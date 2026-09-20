@@ -389,6 +389,18 @@ describe("needsFallback", () => {
     ).toBe(true);
   });
 
+  it("whiteSpace: pre-wrap · pre-line 은 fallback 불필요 — 조각은 normal 규칙으로 접는다 (2026-09-20)", () => {
+    expect(
+      needsFallback({ fontSize: 16, fontFamily: "Arial", whiteSpace: "pre-wrap" }),
+    ).toBe(false);
+    expect(
+      needsFallback({ fontSize: 16, fontFamily: "Arial", whiteSpace: "pre-line" }),
+    ).toBe(false);
+    expect(
+      needsFallback({ fontSize: 16, fontFamily: "Arial", whiteSpace: "pre" }),
+    ).toBe(true);
+  });
+
   it("whiteSpace: normal이면 fallback 불필요", () => {
     expect(
       needsFallback({
@@ -449,6 +461,25 @@ describe("buildHintedText", () => {
 
   it("빈 토큰 배열 포함 줄 처리", () => {
     expect(buildHintedText([[], ["text"]])).toBe("\ntext");
+  });
+});
+
+// 2026-09-20 — pre-wrap · pre-line 조각 (`\n` hard break) 도 이 파이프라인이 접는다.
+describe("measureWithCanvas2D — `\\n` hard break 조각", () => {
+  const style = { fontSize: 16, fontFamily: "Arial", lineHeight: 20 };
+
+  it("조각마다 접고 `\\n` 으로 다시 잇는다 — 한글은 음절 사이에서 (8px/자 · maxWidth 24)", () => {
+    clearSegmentCaches();
+    const r = measureWithCanvas2D("AB\n가나다라마바사\nCD", style, 24);
+    expect(r.lineCount).toBe(5);
+    expect(r.hintedText).toBe("AB\n가나다\n라마바\n사\nCD");
+    expect(r.height).toBe(100);
+  });
+
+  it("빈 조각은 빈 줄 하나", () => {
+    const r = measureWithCanvas2D("A\n\nB", style, 100);
+    expect(r.lineCount).toBe(3);
+    expect(r.hintedText).toBe("A\n\nB");
   });
 });
 

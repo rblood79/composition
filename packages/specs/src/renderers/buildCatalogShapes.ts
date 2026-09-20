@@ -419,6 +419,12 @@ export function buildCatalogShapes(
     const leadingIconWidth =
       (selectionSlot?.width ?? 0) + (leadingSlot?.width ?? 0);
     const textX = paddingX + leadingIconWidth;
+    // 우측 안쪽 여백 — 줄바꿈 폭의 우측 경계 (converter 가 `containerWidth − x − paddingRight`). 우선순위는
+    //   paddingX 와 같다 (인라인 style → rule size.paddingX → 0).
+    const textPaddingRight = parsePxValue(
+      style?.paddingRight ?? style?.padding,
+      size.paddingX ?? 0,
+    );
     // font-weight: 사용자 style 우선, 없으면 visual.textWeight(variant 시각 — DropZone 400 등),
     // 최종 fallback 500. textWeight 는 보편 D3 속성(CSS font-weight 동형).
     const fwRaw = style?.fontWeight;
@@ -510,6 +516,7 @@ export function buildCatalogShapes(
       fontWeight: fw,
       fill: textColor,
       align: textAlign,
+      paddingRight: textPaddingRight,
       baseline: textTop ? "top" : isInlineText ? "top" : "middle",
       ...(lineHeightVal != null
         ? { lineHeight: lineHeightVal as unknown as number }

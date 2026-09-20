@@ -648,8 +648,11 @@ export function needsFallback(style: TextMeasureStyle): boolean {
     return true;
   // wordSpacing: `ctx.measureText` 에 미반영 — upstream 도 미지원이라 폴백 유지.
   if (style.wordSpacing && style.wordSpacing !== 0) return true;
-  // white-space: nowrap, pre, pre-wrap 등은 특수 줄바꿈 규칙
-  if (style.whiteSpace && style.whiteSpace !== "normal") return true;
+  // white-space: nowrap · pre 는 soft wrap 이 없다 (줄바꿈 힌트 대상 아님) → 종전 CanvasKit 경로.
+  //   pre-wrap · pre-line 은 `\n` 이 hard break 일 뿐 그 사이 조각은 normal 과 같은 UAX #14 규칙으로
+  //   접는다 — measureWithCanvas2D 가 조각마다 돈다 (2026-09-20: 종전엔 여기서 폴백돼 CanvasKit
+  //   `cssNormalBreakProcess` 의 공백 split 이 한글 음절 사이를 못 끊어 "가나다라마바사" 가 상자 밖).
+  if (style.whiteSpace === "nowrap" || style.whiteSpace === "pre") return true;
   // break-all: 문자 단위 분할 — CanvasKit ZWS 삽입 방식이 더 정확
   if (style.wordBreak === "break-all") return true;
   // fontVariant(small-caps 등): buildFontString 미포함 — CanvasKit 렌더는 적용하므로 측정도 CanvasKit 로
@@ -882,6 +885,30 @@ export function measureWithCanvas2D(
 
   if (!text || maxWidth <= 0) {
     return { width: 0, height: lineHeight, lineCount: 1, hintedText: text };
+  }
+
+  // `\n` 은 hard break (pre 계열 — normal 은 호출 전에 공백으로 접힌다). 조각마다 접고 `\n` 으로
+  //   다시 잇는다 — 빈 조각은 빈 줄 하나. 힌트 `\n` 과 원문 `\n` 은 CanvasKit 에 같은 hard break 다.
+  if (text.includes("\n")) {
+    const parts: string[] = [];
+    let width = 0;
+    let height = 0;
+    let lineCount = 0;
+    const effectiveLineHeight = Math.max(lineHeight, style.fontSize * 1.2);
+    for (const segment of text.split("\n")) {
+      if (!segment) {
+        parts.push("");
+        height += effectiveLineHeight;
+        lineCount += 1;
+        continue;
+      }
+      const r = measureWithCanvas2D(segment, style, maxWidth);
+      parts.push(r.hintedText);
+      width = Math.max(width, r.width);
+      height += r.height;
+      lineCount += r.lineCount;
+    }
+    return { width, height, lineCount, hintedText: parts.join("\n") };
   }
 
   // Tier 3: Semantic Preprocessing

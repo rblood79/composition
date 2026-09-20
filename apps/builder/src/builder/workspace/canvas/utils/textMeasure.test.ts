@@ -164,6 +164,33 @@ describe("Canvas2DTextMeasurer.measureWrapped — trailing space hang 수정", (
     const result = measurer.measureWrapped("Hello", baseStyle, 0);
     expect(result.height).toBeGreaterThan(0);
   });
+
+  // 2026-09-20 — 한글 연속은 음절 사이가 break 기회다 (UAX #14 · Chrome word-break:normal).
+  //   종전 공백 split 은 "가나다라마바사" (7자 × 8 = 56) 를 한 단어로 봐 maxWidth 24 에서 1줄이었고
+  //   Skia 는 힌트대로 4줄을 그려 상자 밖으로 넘쳤다 (사용자 live: 30% 폭 Text 278 ↔ Preview 350).
+  it("TC9: 한글 연속 — 음절 단위로 접힌다 (maxWidth 24 = 3자/줄 → 3줄)", () => {
+    const lines = (r: { height: number }) => Math.round(r.height / 19.2);
+    expect(lines(measurer.measureWrapped("가나다라마바사", baseStyle, 24))).toBe(3);
+    // pre-wrap 조각도 같은 규칙 — `\n` hard break 2 + 한글 3줄
+    expect(
+      lines(
+        measurer.measureWrapped(
+          "AB\n가나다라마바사\nCD",
+          { ...baseStyle, whiteSpace: "pre-wrap" },
+          24,
+        ),
+      ),
+    ).toBe(5);
+  });
+
+  it("TC10: keep-all 이면 한글 연속을 한 단위로 (1줄 · 넘침)", () => {
+    const r = measurer.measureWrapped(
+      "가나다라마바사",
+      { ...baseStyle, wordBreak: "keep-all" },
+      24,
+    );
+    expect(Math.round(r.height / 19.2)).toBe(1);
+  });
 });
 
 // ============================================

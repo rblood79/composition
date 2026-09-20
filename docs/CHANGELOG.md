@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [한글·한자 텍스트의 줄바꿈 단위 — Canvas 상자·글리프가 Preview 보다 줄이 적던 결함] - 2026-09-20
+
+### Fixed
+
+- 한글·한자 연속 ("가나다라마바사") 은 Chrome 이 음절 사이에서 접는데 (UAX #14 · `word-break: normal`) Canvas 는 공백 사이만 단어로 봐 한 줄로 두었다 — 사용자 live (Compare Mode): body(pad 24) > Text `width: 30% · padding 30 · border 1` 상자가 Preview 350 / Canvas 278 이고 Skia 글리프는 상자 우측 padding 안까지 한 줄로 그려졌다. 세 층이 같은 전제였다: (1) 레이아웃 측정기 `Canvas2DTextMeasurer.measureWrapped` 의 공백 split → 렌더 힌트와 같은 파이프라인 (`measureWithCanvas2D` — Intl.Segmenter · CJK 문자 사이 break · 금칙 · keep-all) 으로 · (2) pre-wrap · pre-line 은 `needsFallback` 이 CanvasKit 경로 (`cssNormalBreakProcess`, 같은 공백 split) 로 보냈다 → 파이프라인이 `\n` 조각마다 돌아 힌트를 낸다 (nowrap · pre 만 종전 경로) · (3) `calculateMinContentWidth` 의 min-content 단위도 같은 토큰화. 함께: 텍스트 leaf 줄바꿈 폭이 border 를 안 뺐고 (120 − 60 = 60 vs Chrome 58), Skia 텍스트 shape 의 줄바꿈 폭이 좌측 padding 만 빼고 우측은 남겼다 (`TextShape.paddingRight` 신설 — converter 가 `W − x − paddingRight`). 검증: 단위 (measurer TC9/10 · needsFallback pre-wrap · `\n` 조각) 원복 RED 4 → GREEN · 새 parity 게이트 `tests/parity/textCjkLineBreak.browser.test.ts` 6 (원복 RED 5 — Δ24~72) · parity 1473 · canvas 단위 1203 · specs 1377 · live 하니스 `text-size-padding-live.mjs --cases-json` 7/7 (block/flex-column/`%`/px/normal/pre-wrap/keep-all) 상자 일치 + 스크린샷에서 글리프 줄 나눔이 Preview 와 같음 · type-check/lint PASS.
+
 ## [저작 보조 사선 (hatch) 패턴 통일 — slot 마커 · padding/gap hover · overflow] - 2026-09-20
 
 ### Changed

@@ -169,6 +169,13 @@ export interface TextShape {
   /** 최대 너비 (말줄임 처리) */
   maxWidth?: number;
 
+  /**
+   * 우측 안쪽 여백 (px). `maxWidth` 미지정 시 converter 가 줄바꿈 폭을 `containerWidth − x − paddingRight`
+   * 로 잰다 — 종전엔 좌측 `x` 만 빼서 (center 는 `x × 2`) 비대칭 padding 의 우측이 줄바꿈 폭에 남았다
+   * (2026-09-20, Text `padding: 30px` 의 한글 줄이 상자 우측 padding 안까지 그려짐).
+   */
+  paddingRight?: number;
+
   /** 오버플로우 처리 */
   overflow?: "visible" | "ellipsis" | "clip";
 

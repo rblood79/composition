@@ -2,7 +2,8 @@
 //   iframe DOM rect 대조 (실제 빌더 부팅, 2026-09-20 root padding 이중 차감 · `%` 높이 Step 4.5 수리).
 //   node apps/builder/scripts/text-size-padding-live.mjs [--headless] [--mobile] [--body-pad] [--reload] [--user]
 //   --mobile 은 부팅 전 localStorage breakpoint (390) · --body-pad 는 현재 페이지 body padding 24 ·
-//   --reload 는 시드 뒤 새로고침 (DB 에서 읽은 상태로 측정) · --user 는 사용자 문서의 px 폭 케이스.
+//   --reload 는 시드 뒤 새로고침 (DB 에서 읽은 상태로 측정) · --user 는 사용자 문서의 px 폭 케이스 ·
+//   --cases-json <file> 은 [{key, style}] 배열 (base 위에 병합) · --shot <png> 는 대조 뒤 화면 캡처.
 import { chromium } from "playwright";
 import { resolve } from "node:path";
 const REPO = "/Users/admin/work/composition";
@@ -38,7 +39,10 @@ const userBase = {
   verticalAlign: "top",
   height: "100%",
 };
-const CASES = process.argv.includes("--user")
+const casesJsonIdx = process.argv.indexOf("--cases-json");
+const CASES = casesJsonIdx >= 0
+  ? JSON.parse((await import("node:fs")).readFileSync(process.argv[casesJsonIdx + 1], "utf8")).map((c) => ({ ...c, style: { ...base, ...c.style } }))
+  : process.argv.includes("--user")
   ? [
       {
         key: "user1 w205.2 pad24 border",
@@ -392,6 +396,11 @@ try {
     log(
       `${bad ? "DIFF" : "ok  "} ${a.key}\n   skia ${JSON.stringify(s?.map((v) => +v.toFixed(1)))}\n   dom  ${JSON.stringify(dr?.map((v) => +v.toFixed(1)))} <${d?.tag} class="${d?.cls}"> ${JSON.stringify(d?.cs)}\n   inline ${d?.inline}`,
     );
+  }
+  const shotIdx = process.argv.indexOf("--shot");
+  if (shotIdx >= 0) {
+    await page.screenshot({ path: process.argv[shotIdx + 1] });
+    log("shot", process.argv[shotIdx + 1]);
   }
   log("pageerrors", errors.length, errors.slice(0, 3));
 } finally {

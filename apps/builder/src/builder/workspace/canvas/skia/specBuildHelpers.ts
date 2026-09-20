@@ -187,9 +187,16 @@ export function measureSpecTextMinHeight(
 
     // maxWidth 계산: specShapesToSkia와 동일한 로직 + border-box 보정
     let maxWidth = shape.maxWidth ?? containerWidth;
-    if (shape.x > 0 && shape.maxWidth == null) {
+    if (
+      shape.maxWidth == null &&
+      (shape.x > 0 || (shape.paddingRight ?? 0) > 0)
+    ) {
       const effectiveX = shape.x + bgBorderWidth;
-      if (shape.align === "center") {
+      if (typeof shape.paddingRight === "number") {
+        // specShapesToSkia 와 같은 식 — 우측 padding + border 도 뺀다.
+        maxWidth =
+          containerWidth - effectiveX - shape.paddingRight - bgBorderWidth;
+      } else if (shape.align === "center") {
         maxWidth = containerWidth - effectiveX * 2;
       } else {
         maxWidth = containerWidth - effectiveX;

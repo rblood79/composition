@@ -104,6 +104,7 @@ import {
   measureFontMetrics,
   getTextMeasurer,
 } from "../../utils/textMeasure";
+import { preprocessTokens, tokenize } from "../../utils/canvas2dSegmentCache";
 import {
   resolveCSSSizeValue,
   FIT_CONTENT as CSS_FIT_CONTENT,
@@ -4320,8 +4321,14 @@ export function calculateContentHeight(
         computedStyle?.fontFamily ??
         specFontFamily.sans;
       const pad = parsePadding(style, availableWidth);
+      // border 도 뺀다 (2026-09-20) — availableWidth 는 이 leaf 의 border-box 폭 (명시 px/% 또는
+      //   block stretch) 이라 줄바꿈 폭은 content-box = 폭 − padding − border 다. 종전엔 border 만큼
+      //   넓게 재서 (120 − 60 = 60 vs Chrome 58) 경계에 걸린 단어가 한 줄 덜 접혔다.
+      const bd49 = parseBorder(style);
       const maxTextWidth =
-        ws49 === "pre" ? 100000 : availableWidth - pad.left - pad.right;
+        ws49 === "pre"
+          ? 100000
+          : availableWidth - pad.left - pad.right - bd49.left - bd49.right;
       if (maxTextWidth > 0) {
         // Tailwind CSS v4 기본 line-height: 1.5 → fontSize * 1.5
         // style.lineHeight 명시 우선 → spec size lineHeight → fontSize*1.5 fallback
@@ -5213,7 +5220,15 @@ export function enrichWithIntrinsicSize(
           : (_computedStyle?.fontSize ?? 16);
       resolvedIntrinsicWidth =
         rawWidth === "min-content"
-          ? calculateMinContentWidth(textContent, fontSize)
+          ? calculateMinContentWidth(
+              textContent,
+              fontSize,
+              undefined,
+              undefined,
+              typeof styleRecord?.wordBreak === "string"
+                ? styleRecord.wordBreak
+                : "normal",
+            )
           : calculateMaxContentWidth(textContent, fontSize);
     }
   }
@@ -5468,6 +5483,7 @@ export function enrichWithIntrinsicSize(
                 fontSize,
                 scalarFontFamily,
                 scalarFontWeight,
+                typeof style?.wordBreak === "string" ? style.wordBreak : "normal",
               ),
             ),
             maxC,
@@ -5794,16 +5810,24 @@ export function calculateMinContentWidth(
   fontSize: number = 14,
   fontFamily: string = specFontFamily.sans,
   fontWeight: number | string = 400,
+  /** `keep-all` 이면 CJK 연속도 한 단위 (Chrome 과 같이). 생략은 normal. */
+  wordBreak: string = "normal",
 ): number {
   if (!text) return 0;
 
-  // 공백/줄바꿈/탭으로 단어 분리
-  const words = text.split(/\s+/).filter(Boolean);
-  if (words.length === 0) return 0;
-
+  // 줄바꿈 단위는 렌더 힌트·wrap 측정과 같은 토큰화 (Intl.Segmenter · CJK 문자 사이 break · 금칙
+  //   병합) 로 — min-content 는 그 단위 중 가장 넓은 것이다 (2026-09-20). 종전 공백 split 은 한글
+  //   연속 "가나다라마바사" 를 한 단어 (112) 로 봐 엔진 폭 하한이 Chrome (한 음절) 보다 컸다.
+  const tokens = preprocessTokens(tokenize(text, wordBreak), wordBreak);
   let maxWordWidth = 0;
-  for (const word of words) {
-    const width = measureTextWidth(word, fontSize, fontFamily, fontWeight);
+  for (const token of tokens) {
+    if (/^\s+$/.test(token.text)) continue;
+    const width = measureTextWidth(
+      token.text,
+      fontSize,
+      fontFamily,
+      fontWeight,
+    );
     if (width > maxWordWidth) {
       maxWordWidth = width;
     }

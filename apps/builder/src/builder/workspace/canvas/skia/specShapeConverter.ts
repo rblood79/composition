@@ -880,9 +880,15 @@ export function specShapesToSkia(
           // Right-aligned: x는 텍스트 우측 끝 위치 → [0, x] 영역 내 우측 정렬
           paddingLeft = 0;
           maxWidth = shape.x;
-        } else if (shape.x > 0 && shape.maxWidth == null) {
+        } else if (
+          shape.maxWidth == null &&
+          (shape.x > 0 || (shape.paddingRight ?? 0) > 0)
+        ) {
           // Auto-reduce maxWidth when text has padding offset
-          if (shape.align === "center") {
+          if (typeof shape.paddingRight === "number") {
+            // 양쪽 여백을 shape 이 준다 (buildCatalogShapes) — content 폭 = W − 좌 − 우 (비대칭 padding 도).
+            maxWidth = containerWidth - shape.x - shape.paddingRight;
+          } else if (shape.align === "center") {
             // Center-aligned: symmetric padding (subtract from both sides)
             maxWidth = containerWidth - shape.x * 2;
           } else {

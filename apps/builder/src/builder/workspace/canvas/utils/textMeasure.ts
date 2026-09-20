@@ -61,7 +61,7 @@ export interface TextMeasurer {
   ): TextMeasureResult;
 }
 
-import { buildFontString } from "./canvas2dSegmentCache";
+import { buildFontString, measureWithCanvas2D } from "./canvas2dSegmentCache";
 import {
   collapseTextWhiteSpace,
   collapsesSegmentBreaks,
@@ -212,6 +212,17 @@ export class Canvas2DTextMeasurer implements TextMeasurer {
     // break-all: 모든 문자가 줄바꿈 지점 → 문자 단위 측정
     if (wb === "break-all") {
       return this._measureBreakAll(ctx, text, maxWidth, lineHeight, style);
+    }
+
+    // 줄 나누기는 렌더 힌트와 같은 파이프라인 (`measureWithCanvas2D` — Intl.Segmenter 토큰 · CJK
+    //   문자 사이 break · 금칙 · keep-all · break-word) 으로 센다 (2026-09-20). 종전의 공백 split 은
+    //   한글·한자 연속을 한 단어로 봐 Chrome (UAX #14: 음절 사이 break) 보다 줄이 적었고 —
+    //   "가나다라마바사" 60px 상자 · 사용자 live 30% 폭 Text 상자 278 ↔ Preview 350 — Skia 는
+    //   힌트대로 여러 줄을 그려 상자 밖으로 넘쳤다. wordSpacing 은 그 파이프라인이 안 받아
+    //   (렌더도 CanvasKit 폴백) 종전 공백 split 을 유지한다.
+    if (!style.wordSpacing) {
+      const r = measureWithCanvas2D(text, style, maxWidth);
+      return { width: maxWidth, height: r.lineCount * lineHeight };
     }
 
     const words = text.split(/(\s+)/); // 공백 포함 분리
