@@ -29,8 +29,8 @@ catalog rule 2,333 개 TokenRef 는 색 · 서체 · radius 를 이름으로만 
 - **두 leg 대칭** (ssot-hierarchy §1 D3): 테마 전환 결과가 Skia 캔버스와 Preview/Publish DOM 에서 같은 시각 결과여야 한다 — 팔레트 전수 × 테마 2 에서 Skia 픽셀 vs computed style digest Δ 0 (ADR-198 하니스 기준). "DOM 만 테마" 는 대칭 위반.
 - **rule 무변경 원칙**: catalog `COMPONENT_RULES_TABLE` 의 값 (어느 토큰을 쓰는가) 은 바꾸지 않는다. 리터럴 → TokenRef 치환은 값 변경이 아니라 **참조화** 이며 seed 토큰이 현행 리터럴과 같은 값이라 시각 Δ 0 이어야 한다.
 - **문서 비대화** (ADR-143 HC3): 테마마다 토큰 전체를 싣지 않는다 — seed 와 다른 델타만. 테마 N 개 문서 크기 ≤ N × 델타.
-- **BC**: 기존 문서 100% 가 `themes` 단일 객체 (또는 부재) — 1회 hydration migration, 문서당 필드 1개 재직렬화, 마이그레이션 전후 시각 Δ 0 (활성 테마 = 구 프리셋). 롤백 = 활성 테마의 preset 4 값을 구 필드로 되쓰는 역변환 1개.
-- **전환 비용**: 활성 테마 전환은 현행 `setTint` 와 같은 경로 (`themeVersion+1` + `notifyLayoutChange` 1회) — 노드별 재resolve 없음. 600 요소 문서 전환 프레임 ≤ 25 ms (perf-baseline frame lane).
+- **BC**: 기존 문서와 프로젝트별 localStorage의 **기존 실효값**을 최초 1회 승계한다. 기존 write-through on/off 및 import 출처를 구분하며 baseTypography도 보존한다. 문서 저장 성공 뒤에만 legacy 설정을 id 캐시로 축소한다. 구 문서·설정 백업 복원으로 rollback하며 preset 4값만의 손실 역변환을 rollback으로 간주하지 않는다.
+- **전환 비용**: 활성 snapshot 1회 설치 + themeVersion/notifyLayoutChange 각 1회. 노드별 snapshot 생성은 없으나 변경 축의 재해석·재레이아웃·paint는 수행한다. 600 요소 문서 총 전환 프레임 ≤25ms로 측정한다.
 - **쓰기 경로**: 테마 추가/삭제/전환/토큰 편집은 `runCanonicalMutation` 경유 + History 등록 (ADR-184/185). store 직접 mutate 0.
 
 ### Soft constraints
@@ -49,9 +49,9 @@ catalog rule 2,333 개 TokenRef 는 색 · 서체 · radius 를 이름으로만 
 
 ### 대안 B: 문서 소유 토큰 세트 컬렉션 — 프로젝트 단위 활성 하나 + 테마 소유 축 확장
 
-- 설명: `themes: { active, items: { id: { name, preset, tokens(델타) } }, order }`. 프리셋은 새 테마를 만들 때 seed 를 채우는 생성기로 강등되고, 사용자가 `color.accent` 같은 토큰 값을 직접 편집한다. `resolveCanonicalToken` 이 활성 테마 델타 → 문서 user-defined → seed 순으로 읽고, Skia (`ResolvedTokenMap` 덮어쓰기) 와 DOM (`:root` CSS 변수 emit) 이 같은 델타를 소비한다. `borderWidth` 리터럴 43 → `{border.width.*}`. 로드 시 write-through 를 기본으로 (localStorage 는 캐시). 테마 표면 = Components 페이지 (ADR-228 이 origin 전집으로 채운다 — 이 ADR 은 별도 섹션을 만들지 않는다).
+- 설명: `themes: { active, items: { id: { name, preset, tokens(델타) } }, order }`. preset은 매 resolve의 seed 생성 입력이고 명시 델타가 값을 덮는다. 문서에서 파생한 snapshot 하나를 Skia·layout·Preview·Publish에 연결한다. borderWidth 참조화는 타입·validator·generator·layout 소비자 확장을 포함한다. 최초 legacy migration 성공 이후 문서가 정본이며 Components 페이지가 테마 표면이다.
 - 근거: Figma variables + modes (컬렉션 안 모드 전환, 컴포넌트는 변수 참조만) · Framer color/text styles (프로젝트 단위 스타일 세트, 편집 시 전 인스턴스 반영) · Webflow variables + modes — 셋 다 "컴포넌트는 참조, 값은 테마" 구조이고 프로젝트 단위 활성 하나가 기본이다. composition 의 rule ↔ TokenRef 분리가 이미 같은 구조 (F6).
-- 위험: 기술(**M** — Skia 색은 프리셋에서 **파생** (hover/pressed 단계 · dark 반전, F11) 되므로 사용자 hex 직접 지정 시 파생 규칙을 토큰 키 단위로 유지해야 한다 → G2) / 성능(L — 전환은 현행 경로 1회) / 유지보수(**M** — 리터럴 sweep 이 두 leg 를 같이 지나야 하고 (`toSkiaStyle` · `toReactStyle` · CSSGenerator) 한쪽만 바뀌면 padding 만큼 갈리는 가족 (메모리 `feedback-skia-only-channel-divergence-family`) → G3 ratchet) / 마이그레이션(**M** — 문서 100% 1회 migration, 필드 1개, 역변환 있음 → G1)
+- 위험: 기술(**H** — 독립 token map·DOM 변수·geometry 소비 경로의 누락 → G2/G3) / 성능(M — typography/border 변경은 재레이아웃 필요 → G4/G5) / 유지보수(M — 매핑과 파생 규칙 공유) / 마이그레이션(**H** — 문서·localStorage 실효값과 typography 승계 → G1). 구체적 대응은 Risks R1~R4 및 breakdown §3.
 
 ### 대안 C: B + 요소/페이지 스코프 테마 (subtree override)
 
@@ -66,25 +66,25 @@ catalog rule 2,333 개 TokenRef 는 색 · 서체 · radius 를 이름으로만 
 
 ### Risk Threshold Check
 
-| 대안 | HIGH+                  | 판정                                     |
-| ---- | ---------------------- | ---------------------------------------- |
-| A    | 없음                   | 요구 미충족 (값 편집 · border 축) — 기각 |
-| B    | 없음 (M 3)             | **채택** — M 3 은 G1~G3 로 관리          |
-| C    | 기술 H · 성능 H        | 유보 — B 의 재개 조건 (Decision 3)       |
-| D    | 유지보수 H (대칭 위반) | 기각                                     |
+| 대안 | HIGH+                   | 판정                                               |
+| ---- | ----------------------- | -------------------------------------------------- |
+| A    | 없음                    | 요구 미충족 (값 편집 · border 축) — 기각           |
+| B    | 기술 H · 마이그레이션 H | 채택 — G1~G3 선통과 전 구현 완료/BC 보장 주장 금지 |
+| C    | 기술 H · 성능 H         | 유보 — B 의 재개 조건 (Decision 3)                 |
+| D    | 유지보수 H (대칭 위반)  | 기각                                               |
 
-루프 판정: 채택 대안에 HIGH 0 → 추가 루프 불필요. C 의 HIGH 는 회피 (스코프 유보) 로 처리.
+루프 판정: A에는 HIGH가 없으나 직접 값 편집 요구를 충족하지 못한다. B의 HIGH는 소비자별 연결과 migration 행렬로 관리하며 G1~G3 미통과 시 완료하지 않는다. C/D는 스코프 확대 및 비대칭 위험으로 기각/유보한다. 추가 범위 분리는 같은 토큰 전달·저장 계약을 끊으므로 이번 설계 안에서 보강한다.
 
 ## Decision
 
 **대안 B 채택.**
 
-1. **Decision 1 — 스키마**: `CompositionDocument.themes` = `ThemesCollection { active, items, order }`, 항목 = `{ id, name, preset: ThemeSnapshot, tokens: TokensSnapshot(델타) }`. `tokens` root 필드는 테마 무관 user-defined 만. 1회 hydration migration + 역변환. write-through 기본 (env flag 제거) — 정본은 문서, localStorage 는 마지막 활성 id 캐시.
-2. **Decision 2 — 두 leg resolve**: `resolveCanonicalToken(ref, doc)` = 활성 테마 델타 → user-defined → seed. Skia 는 프리셋 파생 `ResolvedTokenMap` 위에 델타를 덮고 (파생 규칙은 토큰 키 단위 유지), DOM 은 같은 델타를 `:root` CSS 변수로 emit 하는 함수 하나를 builder Preview 와 publish 가 공유. 전환 = `themeVersion+1` 1회.
+1. **Decision 1 — 스키마와 승계**: `ThemesCollection { active, items, order }`, 항목은 `{ id, name, preset, tokens(델타) }`. root tokens는 user-defined만. 최초 migration은 기존 부팅 정책의 실효값·baseTypography를 승계하고 저장 성공 후 문서 우선으로 전환한다. imported 문서에 이 기기의 legacy 설정을 섞지 않는다.
+2. **Decision 2 — 전체 소비 경로**: 활성 테마 명시 델타 → root user-defined fallback → preset seed. 명시 파생값은 자동 파생보다 우선한다. 공통 snapshot을 실제 tokenResolver·layout·text/focus/shadow 소비자에 연결하고 DOM은 기존 의미 변수 매핑을 사용한다. Preview·Publish는 같은 helper를 쓰며 전환/reset 때 이전 override를 제거한다.
 3. **Decision 3 — 테마 소유 축**: color · typography · radius · **border 폭 (신설 `{border.width.none|thin|thick}`, rule 리터럴 43 참조화)** · shadow · focus. size/spacing (density) · 요소/페이지 스코프 · 테마별 light/dark 이중 세트는 **유보** — 재개 조건은 breakdown §6.
 4. **Decision 4 — 표면**: Themes 패널 = 테마 목록 (추가 = 복제 · 이름 · 삭제 · 활성) + 토큰 편집 (프리셋 채우기 유지). 테마 결과를 전집으로 보는 자리는 **Components 페이지** (origin · instance · slot) — 별도 섹션을 만들지 않고 [ADR-228](228-palette-wide-reusable-origins.md) 이 채운 origin 전집을 읽는다 (2026-09-21 사용자 정정: 초안의 "catalog leaf read-only 섹션" 철회 — 아무도 ref 하지 않는 origin 을 만든다).
 
-위험 수용 근거: 잔존 M 3 은 모두 측정 가능한 게이트 (round-trip · 픽셀 digest · ratchet) 로 닫힌다. rule 값과 D1/D2 경계는 손대지 않으므로 실패 시 롤백 범위가 theme 층 안에 갇힌다.
+위험 수용 근거: 기술·migration HIGH를 G1의 실효값 승계 행렬, G2의 축별 비기본값 대칭, G3의 CSS·box model 검증으로 관리한다. renderer와 layout 소비자까지 변경 범위에 포함하며 G1~G3를 통과하기 전 BC·대칭을 보장했다고 판정하지 않는다. D1/D2 의미 계약은 유지한다.
 
 기각 사유: **A** — 값 편집이 없어 "theme 에서 선택하면 color · border 가 바뀐다" 의 절반 (사용자가 정한 값) 을 못 채우고, 채우려면 B 를 다시 해야 한다. **C** — 요구에 스코프가 없고 (프로젝트 단위 전환이면 충분) HIGH 2 를 지금 감수할 근거가 없다; B 의 스키마가 C 를 막지 않는다 (노드 `themeId` 추가로 확장 가능). **D** — 캔버스와 Preview 가 다른 색을 보이는 것은 D3 대칭 위반이며 이 프로젝트의 최상위 원칙에 어긋난다.
 
@@ -92,29 +92,29 @@ catalog rule 2,333 개 TokenRef 는 색 · 서체 · radius 를 이름으로만 
 
 ## Risks
 
-| ID  | 위험                                                                                                                                                                          | 심각도 | 대응                                                                                                        |
-| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----: | ----------------------------------------------------------------------------------------------------------- |
-| R1  | Skia 파생 규칙 손실 — 사용자 hex 직접 지정 시 hover/pressed 단계 · dark 반전이 프리셋 파생과 달라져 캔버스와 Preview 가 갈린다 (`tintToSkiaColors.ts` · `preview-system.css`) |  MED   | 파생을 토큰 키 단위로 유지 (`accent` 만 주면 `accent-hover` 는 파생 함수) · **G2** 팔레트 전수 digest       |
-| R2  | 리터럴 sweep 두 leg drift — `borderWidth` 참조화가 `toSkiaStyle` / `toReactStyle` / CSSGenerator 중 한쪽만 지나면 padding 만큼 갈린다 (메모리 divergence family)              |  MED   | ratchet (숫자 리터럴 0 고정) + **G3** 원복 RED + 픽셀 Δ 0                                                   |
-| R3  | migration BC — 구 `themes` 단일 객체 · `tokens` 델타 분할에서 값 소실 (fallback = 기본값이면 무증상, 메모리 `feedback-fallback-equals-default-masks-dropped-channel`)         |  MED   | **G1** round-trip 을 기본값이 아닌 커스텀 프리셋 fixture 로 · 역변환 테스트                                 |
-| R4  | 정본 이중화 — localStorage 테마와 문서 테마가 다른 프로젝트에서 엇갈린다 (F5 의 잔재)                                                                                         |  MED   | write-through 기본 · localStorage 는 id 캐시만 · 로드 시 문서 우선 (G4 새로고침 시나리오)                   |
-| R5  | Components 페이지가 테마 표면이 되려면 origin 이 전집이어야 한다 — ADR-228 미착수면 5 항목만 보인다 (표면 결손, 기능 결함 아님)                                               |  LOW   | 227 은 228 을 선행 조건으로 두지 않는다 · **G5** 는 그 시점의 Components 페이지 전수로 측정 · 228 뒤 재측정 |
-| R6  | 문서 비대화 — 테마마다 토큰 전체 저장                                                                                                                                         |  LOW   | 델타 저장 (ADR-143 규칙 그대로) · G1 에서 미커스터마이즈 테마 델타 = {} 확인                                |
+| ID  | 위험                                                                                                                            | 심각도 | 대응                                                                                                        |
+| --- | ------------------------------------------------------------------------------------------------------------------------------- | :----: | ----------------------------------------------------------------------------------------------------------- |
+| R1  | 카테고리별 map/실제 DOM 변수/hover 파생 전달 누락 — tokenResolver · colorTokenToCss · toSkiaStyle                               |  HIGH  | 공유 snapshot·실제 CSS 매핑·명시 파생값 우선순위, **G2** 축별 비기본값/reset/Publish                        |
+| R2  | border TokenRef가 number 전용 타입·CSSGenerator·implicitStyles/size 산식에서 유실                                               |  HIGH  | 타입/검증/resolve/생성/레이아웃을 함께 확장, **G3** thin=3/thick=4 외곽·content box                         |
+| R3  | 구 문서와 legacy localStorage 충돌 또는 baseTypography 소실                                                                     |  HIGH  | 기존 write-through 정책과 import를 구분한 승계, 저장 성공 후 전환, **G1** 실패/재시도/백업 복원             |
+| R4  | 문서/캐시 이중화와 전환 History 중복                                                                                            |  MED   | migrated 문서 우선, **G4/G5** 사용자 전환 entry 1건·파생 처리 추가 0건·Undo/Redo                            |
+| R5  | Components 페이지가 테마 표면이 되려면 origin 이 전집이어야 한다 — ADR-228 미착수면 5 항목만 보인다 (표면 결손, 기능 결함 아님) |  LOW   | 227 은 228 을 선행 조건으로 두지 않는다 · **G5** 는 그 시점의 Components 페이지 전수로 측정 · 228 뒤 재측정 |
+| R6  | 문서 비대화 — 테마마다 토큰 전체 저장                                                                                           |  LOW   | 델타 저장 (ADR-143 규칙 그대로) · G1 에서 미커스터마이즈 테마 델타 = {} 확인                                |
 
-잔존 HIGH 위험 없음.
+잔존 HIGH R1~R3은 G2/G3/G1과 각각 대응한다. 설계 수리와 구현 gate 통과는 별개다.
 
 ## Gates
 
-| Gate | 시점         | 통과 조건                                                                                                                                                                                            | 실패 시 대안                                                             |
-| ---- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| G0   | Phase 0      | F1~F12 재실측 일치 · `resolveCanonicalToken`/`resolveToken` 호출처 전수 · fixture `themes` 보유 수 집계 · 파일 수 추정 25 대비 1.5× 이내                                                             | inventory 보강 commit (M3) 후 재개                                       |
-| G1   | Phase 1      | fixture round-trip 100% (커스텀 프리셋 · 부재 · 구 델타 3 종) · 구 문서 로드 시각 Δ 0 · 역변환 = 구 필드 복원 · 미커스터마이즈 테마 델타 `{}`                                                        | migration 함수 수리, 스키마 변경 없이                                    |
-| G2   | Phase 2      | 팔레트 전수 × 테마 2 (Default · accent/border 편집) 에서 Skia 픽셀 vs Preview computed style digest 일치 · hover/pressed/dark 파생 토큰 값 두 leg 동일 · publish `<style>` 이 같은 변수 emit         | 파생 규칙을 토큰 키 단위로 재정렬 · 대칭 안 되는 축은 테마 밖으로 되돌림 |
-| G3   | Phase 3      | `borderWidth` 숫자 리터럴 0 ratchet · 원복 RED (1곳 되돌리면 실패) · sweep 전후 두 leg 픽셀 Δ 0                                                                                                      | 리터럴 축 축소 (thin 만) 후 재측정                                       |
-| G4   | Phase 4 live | Chrome MCP 또는 headed Playwright: 테마 2개 생성 → 전환 시 캔버스 · Preview · Properties swatch 같은 프레임 반영 · 새로고침 후 활성 유지 · Undo 로 복귀 · 600 요소 전환 프레임 ≤ 25 ms               | 전환 경로를 `setTint` 경로로 되돌리고 원인 분리                          |
-| G5   | Phase 5 live | Components 페이지 (origin · instance · slot 전수) 가 테마 전환 1회에 바뀜 · canonical `children[]` 길이 · history 길이 무변화 (테마 전환은 노드를 만들지 않는다) · 600 요소 문서 전환 프레임 ≤ 25 ms | 전환 경로 원인 분리 (G4 와 같은 대안)                                    |
+| Gate | 시점         | 통과 조건                                                                                                                                                 | 실패 시 대안                                     |
+| ---- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| G0   | Phase 0      | F1~F12 재실측 + token/geometry/DOM/Publish 소비자 표 + legacy 출처별 fixture + border 문자열/shorthand 포함 sweep + 변경 파일 집합 확정                   | 같은 ADR inventory 보강                          |
+| G1   | Phase 1      | legacy flag on/off·themes 유무·stale 충돌·baseTypography·외부 import·저장 실패/재시도·reload 멱등·백업 복원, 기존 실효 시각 Δ0, 미편집 델타 {}            | migration 수리, legacy 값 보존                   |
+| G2   | Phase 2      | Default/편집 테마 전수 및 color/typography/radius/shadow/focus 각각 비기본값·reset·light/dark·명시 hover/pressed, Canvas/Preview/Publish 소비 결과 일치   | 배선·매핑 수리, 미지원 축을 완료로 처리하지 않음 |
+| G3   | Phase 3      | number/TokenRef 타입·resolve·CSS parse 통과, literal ratchet/원복 RED, seed Δ0, thin=3/thick=4 paint/외곽/content box 일치                                | 소비 경로 수리 후 재측정                         |
+| G4   | Phase 4 live | 테마 생성/전환/편집/reset/reload/Undo/Redo, Canvas·Preview·Properties 반영, 사용자 전환 entry 1건, 600요소 총 전환 프레임 ≤25ms                           | snapshot 적용·invalidation 경로 수리             |
+| G5   | Phase 5 live | Components origin/instance/slot 전수 반영, children 구조 무변화, 사용자 전환 entry 1건·파생 처리 추가 0건(동일 테마 재선택 0건), Undo/Redo, 600요소 ≤25ms | G4와 같은 경로 수리, 228 뒤 확정 전수로 재실행   |
 
-측정 조건 (measurement-validity §1): Q1 fixture 는 **커스텀 프리셋** (기본값이 아닌 값 — fallback = 기본값이면 드롭이 무증상) · Q2 불리 케이스 = 사용자 hex 직접 지정 테마 (파생 규칙이 걸리는 쪽) + dark · Q3 대조군 = Default 테마 (구 프리셋과 같은 값) 의 두 leg digest · Q4 소비 경로 = 로드 → `applyCanonicalThemes` → store → Skia/DOM 을 live 로 (env flag 제거 뒤) · Q5 oracle = ADR-198 하니스 픽셀 + Preview computed style (외부) — `tintToSkiaColors` 와 CSS 가 서로를 확인하는 형태 금지. 기록 항목: visibilityState visible · headed · 1440×900 · DPR.
+측정 조건 (measurement-validity §1): Q1 의미 검증은 비기본 preset·legacy 설정·축별 수작업 fixture, 600요소 합성 문서는 규모 전용. Q2 불리 케이스는 typography/border 편집 및 light/dark·가시 집합 변경. Q3 같은 세션·문서·입력에서 기존 preset 전환과 새 전환의 총 frame 비용 A/B, 시각은 변경 전 baseline과 비기본 기대값을 각각 대조한다. Q4 DB hydration→snapshot→production 소비자→Preview ready/Publish를 실제 실행한다. Q5 ADR-198 실제 브라우저 픽셀·computed style·외곽/content box와 독립 기대값을 사용하며 두 내부 map의 일치만으로 통과하지 않는다. visible·headed·1440×900·DPR·기기·반복 수·힙 상태를 기록한다.
 
 ### Live Exercise
 
@@ -132,7 +132,7 @@ catalog rule 2,333 개 TokenRef 는 색 · 서체 · radius 를 이름으로만 
 ### Negative
 
 - `CompositionDocument.themes` 타입 변경 — 이 필드를 읽는 adapter · publish · 테스트 fixture 재직렬화 1회.
-- Skia 색 파생 (`tintToSkiaColors`) 이 "프리셋 → map" 에서 "프리셋 → map → 델타 덮기" 로 한 단계 늘어난다.
+- 활성 snapshot을 color뿐 아니라 typography/radius/border/shadow/focus 및 layout 소비자에 전달해야 한다. 기존 CSS·generator·cache 배선 변경 비용이 발생한다.
 - density (size/spacing) · 스코프 테마 · light/dark 이중 세트는 남는다 — 재개 조건은 breakdown §6.
 
 ## References
@@ -145,3 +145,7 @@ catalog rule 2,333 개 TokenRef 는 색 · 서체 · radius 를 이름으로만 
 - [ADR-228](228-palette-wide-reusable-origins.md) — 직교 · Components 페이지 origin 전집 (테마 표면)
 - [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md) §1 D3 · §6 금지 패턴
 - 외부: Figma Variables (collections · modes) · Framer Styles (color / text styles) · Webflow Variables + modes · Adobe Spectrum density 축 분리
+
+## 리뷰 보완 (2026-09-21)
+
+[round 1 리뷰](reviews/227.md)의 H1/H2/H3/M4를 반영했다. 설계 수리 완료, Proposed 유지. 구현·live·pixel·perf G0~G5는 UNVERIFIED다.

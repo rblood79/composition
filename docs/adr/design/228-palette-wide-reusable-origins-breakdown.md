@@ -10,7 +10,7 @@
 - schema: canonical 타입 변경 0. `type:"ref"` instance · origin 노드 · `metadata.propsSchema` 전부 148 의 모양 그대로. 바뀌는 것은 **catalog entry 의 kind** (primitive → reusable, 동명 primitive 는 `placeable:false` 공존) 와 origin seed 의 **생성 방식** (손 seed → catalog 파생 generic).
 - 의존 방향: 148 → 228 한 방향. 227 (다중 테마) 과는 **직교** — 227 은 토큰 값, 228 은 노드 구조. 둘 다 Components 페이지를 표면으로 쓰지만 서로를 선행 조건으로 두지 않는다 (227 Decision 4 는 228 의 결과를 "그 페이지가 테마 표면" 으로 읽기만 한다).
 - 사용자 결정 3 (2026-09-21): ① 새 ADR-228 (148 재개 · 227 흡수 기각) ② origin 범위 = RAC 컴포넌트만 (내용/레이아웃 primitive 8 제외) ③ 기존 plain 노드는 공존 — 새 배치만 instance (migration 0).
-- fork 아님 · sub-phase 분할 없음 (Phase 4 개). 파일 수 추정 ≤ 20 — 손 seed 58 개를 만들지 않는 것이 이 ADR 의 핵심이라 파일 수가 항목 수에 비례하지 않는다.
+- fork 아님 · sub-phase 분할 없음 (Phase 0~4). 파일 수 추정 ≤ 20 — 손 seed를 항목별로를 만들지 않는 것이 이 ADR 의 핵심이라 파일 수가 항목 수에 비례하지 않는다.
 
 ## 2. Phase 0 코드 사실 표 (2026-09-21 실측, `81d96353f`)
 
@@ -24,84 +24,125 @@
 | F6  | instance 편집 계약 = origin root `metadata.propsSchema` → `resolveEditContract` 가 generic 필드로 소비 · 편집은 instance root props override · 템플릿 바인딩 `{label}` 은 `canonicalRefResolution.ts` propsSchema gate 가 치환 · **passthrough** 축 (variant/size) 은 origin root 가 직접 소비    | `iconButtonTemplateOrigins.ts:16-34` · `catalog/resolvers/resolveEditContract.ts:320` · `catalog/templateBinding.ts` (`readPropsSchema`)                                                                    |
 | F7  | 렌더: Skia `canvasSceneNode.ts:1144` · DOM `CanonicalNodeRenderer` 모두 `resolveCanonicalRefTree` 로 origin 서브트리를 실체화 (`_resolvedFrom`) — ref 는 이미 두 leg 공통 경로                                                                                                                    | `workspace/canvas/scene/canvasSceneNode.ts:1144` · `packages/shared/src/renderers/*`                                                                                                                        |
 | F8  | Components 페이지 = 시스템 페이지 `page-components` (`pageRole:"components"`, `/__components`, runtime audience 제외, body `overflow:auto`) — origin 보관 + 사용자 reusable origin 저작 자리                                                                                                      | `apps/builder/src/builder/pages/systemComponentsPage.ts` · `packages/shared/src/utils/export.utils.ts:224-236`                                                                                              |
-| F9  | 내용/레이아웃 primitive (origin 제외 후보): Text · Icon · Separator · Skeleton · Image · frame · Section · Slot = 8. 나머지 58 이 RAC 컴포넌트 (catalog binding 보유) — Phase 0 에서 binding 유무로 확정                                                                                          | `paletteItems.ts:186-288` · `catalog/bindings/*`                                                                                                                                                            |
+| F9  | PALETTE_ORDER 66 type − 내용/레이아웃 primitive 8 − IllustratedMessage 1 = eligible 57 type. Toast는 PALETTE_ORDER 밖이다. creationVariants로 펼친 UI 항목 수와 type 수는 별도다 (리뷰 재실측 HEAD a7c85b70f)                                                                                     | `paletteItems.ts:190-277,304-313` · `componentCatalog.ts:457-462`                                                                                                                                           |
 | F10 | 148 Phase 3 판정 잔재: Toast (팔레트 비노출 · imperative) 보류 · IllustratedMessage (escape + flat self-compose) 부적격 — 이 ADR 도 같은 판정 승계 (IllustratedMessage 는 primitive 유지)                                                                                                         | `docs/adr/completed/148-*.md` 진행 로그 Phase 3                                                                                                                                                             |
 
-## 3. 핵심 설계 — origin seed 를 catalog 에서 파생한다 (Decision 2)
+## 3. origin 기본값과 instance 생성값의 소유권
 
-손 seed 58 개는 만들지 않는다. leaf RAC 컴포넌트의 origin 은 **노드 하나** 이고 그 모양은 catalog 가 이미 안다:
+2026-09-21 리뷰 수리 기준 HEAD `a7c85b70f`.
+
+### 3.1 origin seed — 현행 factory의 기본값 합성을 재사용 (M2)
+
+PropContract는 편집 계약의 source이며 factory 초기값 전체는 아니다. `types/builder/defaultPropsDerivation.ts`는 catalog defaults + FACTORY_LOCAL_DEFAULTS를 합친다. Button의 "Button", Badge의 "Badge", Link의 href 등은 후자에서 온다. origin seed는 기존 `getDefaultProps(type)` 및 생성 기본 style 합성 경로를 재사용한다. `defaultPropsFrom(contract)`라는 별도 기본값 함수를 만들지 않는다.
 
 ```ts
-// apps/builder/src/builder/components/catalogOrigins.ts (신규)
-export function buildCatalogOrigin(entry: ReusableCatalogEntry): CanonicalNode {
-  const contract = getPropContract(entry.primitiveType); // D2 — 읽기만
-  return {
-    id: entry.reusableId, // "component-<type-kebab>"
-    type: entry.primitiveType, // origin root = 동명 primitive
-    props: defaultPropsFrom(contract), // factory 기본값과 같은 함수
-    metadata: {
-      systemOwned: true,
-      propsSchema: passthroughSchema(contract), // 전 prop passthrough (F6 축)
-    },
-    children: entry.children ? seedChildren(entry) : undefined, // 손 seed 가 있는 5 + 자식 구조형만
-  };
-}
+// 개념 코드 — entry→primitiveType 매핑은 Phase 0에서 확정한다.
+// leaf seed의 기본값은 기존 palette 생성 합성과 같은 함수에서 온다.
+const props = composeCreationProps(
+  primitiveType,
+  getDefaultProps(primitiveType),
+  undefined, // 생성 진입점 initialProps는 origin에 넣지 않는다
+);
+const origin = {
+  id: reusableId,
+  type: primitiveType,
+  reusable: true,
+  name: catalogLabel,
+  props,
+  metadata: {
+    systemOwned: true,
+    propsSchema: passthroughSchema(primitiveContract),
+  },
+};
 ```
 
-- `REUSABLE_ORIGIN_ENSURERS` 는 "손 seed 가 있으면 그것, 없으면 `buildCatalogOrigin`" 으로 한 함수 (`ensureCatalogOrigins`) 가 감싼다 — 등록 불변식 테스트 (F4) 는 "entry 마다 ensurer **또는** catalog 파생 가능" 으로 완화.
-- `passthroughSchema(contract)` = PropContract 의 편집 가능 prop 전부를 root passthrough 로 선언 — 템플릿 바인딩 (`{label}`) 은 손 seed 에만 있다. Properties 패널은 F6 경로 그대로라 신규 InspectorFieldKind 0.
-- **D2 경계**: PropContract 의 kind/값은 읽기만 한다. catalog 파일 변경은 entry 의 `kind`/`placeable` 뿐 (§4 Phase 1).
-- 자식 구조가 있는 RAC 컴포넌트 (Dialog · Tabs · Table · Menu · ListBox · GridList · Tree · DisclosureGroup · CardView · Nav · Breadcrumbs · TagGroup · CheckboxGroup · RadioGroup · ToggleButtonGroup · ButtonGroup · Modal · Popover · Form/Toolbar/Card 기존) 은 factory 가 만들던 기본 자식을 origin 자식으로 옮긴다 — factory 의 `createDefaultChildren` 을 seed 가 재사용 (코드 이동, 로직 복제 0).
+기존 reusable 5종의 특수 구조/템플릿은 손 ensurer를 유지한다. 나머지는 generic seed로 만들되, 기존 동일 origin id가 있으면 재사용하고 사용자 props/children/responsive/name/배치를 보존한다. schema 진화는 코드 정본으로 보강한다.
+
+자식 구조형은 factory의 **root props와 children definition 모두** 재사용한다. 현재 예시는 `createSelectDefinition(context)`, `createComboBoxDefinition(context)` (`factories/definitions/SelectionComponents.ts`)이며 범용 `createDefaultChildren` 함수가 이미 있다고 가정하지 않는다. Phase 0에서 타입별 순수 definition 경계, context 의존과 ID 생성 위치를 기록하고 공통 seed adapter에서 canonical origin subtree로 변환한다. DB/store mutation을 일으키는 factory 실행을 hydration에서 호출하지 않는다. origin root·descendant id는 최초 생성 뒤 안정적으로 유지하고 재hydration 시 새로 발급하지 않는다.
+
+passthrough schema는 PropContract를 복제하고 기존 resolveEditContract 경로로 소비한다. schema 추가가 기존 row-data `{label}` 치환 범위에 영향을 주는 자식 구조형은 instance별 다른 행 데이터로 확인한다. D2 kind/값은 바꾸지 않는다.
+
+### 3.2 생성 진입점의 initialProps — instance override (H1)
+
+현행 `useElementCreator.ts:242-275` ref 분기는 props={}만 넣는다. Chart의 `componentCatalog.ts:457-462` creationVariants와 `paletteItems.ts:304-313` 전달값을 보존하도록 이 분기를 수정해야 한다.
+
+- reusable entry의 panel 메타에 기존 creationVariants를 그대로 보존한다. type=Chart 하나와 여러 paletteId의 관계를 유지하며 PALETTE_ORDER를 늘리지 않는다.
+- origin은 공통 factory 기본값을 소유하고, instance는 선택한 생성 진입점/호출자가 **명시한 initialProps만** override로 소유한다. 현재 origin과 값이 같더라도 명시한 chartType은 보존한다.
+- origin 기본 props 전체를 ref에 복사하지 않는다. unmodified size/variant 등은 origin 변경을 따라야 한다. style patch도 origin style과 기존 deep-merge 계약을 유지한다.
+- 팔레트·AI의 compositeCreation/builderHost 중 직접 initialProps를 받는 경로가 같은 생성 patch 함수를 사용한다. initialProps 미지정 시 props={}로 상속한다.
+- 재사용할 기존 parent routing/nesting preflight도 ref 전환으로 우회하지 않도록 생성 경로 inventory에 포함한다. 컴포넌트 생성 자체의 공통 유효성 계약은 유지한다.
+
+### 3.3 대상 집합과 문서 증가량 (M3)
+
+Phase 0이 아래 집합/수를 JSON 또는 표로 freeze하고 이후 gate가 이를 읽는다.
+
+| 지표           | 정의와 현재 확인값                                                                                    |
+| -------------- | ----------------------------------------------------------------------------------------------------- |
+| P              | PALETTE_ORDER의 고유 type 집합, 현재 66                                                               |
+| X              | Text/Icon/Separator/Skeleton/Image/frame/Section/Slot + IllustratedMessage, 현재 9. Toast는 P 밖      |
+| E              | P − X, 현재 57 eligible type. binding 유무는 등록 매핑 검증이지 X를 덮는 자동 선정 기준이 아님        |
+| V              | E의 creationVariants를 펼친 palette entry 집합. 각 entry→type→originId→initialProps를 기록            |
+| R              | E에 대응하는 고유 origin root id 집합. 현재 type별 하나 정책상 57 예상, alias/collision은 G0에서 해결 |
+| 신규 root      | 문서별 R − 기존 origin id 집합. 기존 reusable 5와 template origin을 빼므로 고정 57이 아님             |
+| 노드·byte 증가 | 신규 root와 모든 descendants, 필요한 페이지 shell, schema 보강을 포함한 실제 직렬화 전후 차이         |
+
+E 밖의 사용자 origin과 collection item template origin도 Components 페이지에 남는다. 따라서 페이지 전체 노드 수를 57로 제한하지 않는다. 새 reusable 등록 수는 기존 5가 E에 포함되면 52이며, 신규 origin root 수와 같다고 가정하지 않는다. 기존 plain 노드가 재작성되지 않았음을 별도로 비교한다.
 
 ## 4. Phase 별 작업
 
 ### Phase 0 — inventory freeze
 
-- F1~F10 재실측. 58 항목을 세 군으로 분류해 표 확정: (a) leaf (자식 0, catalog 파생만) · (b) 자식 구조형 (factory 기본 자식 이동) · (c) 148 판정 잔재 (Toast 보류 · IllustratedMessage 제외). `placeable:false` 로 바꿀 동명 primitive 목록.
-- 성능 baseline: 600 요소 문서 (perf-baseline frame lane) 에서 ref 0% vs ref 100% 의 scene build · 선택 · 편집 프레임 — 이 ADR 이 유일하게 새로 만드는 비용.
-- **G0**: 표 · 분류 · baseline 일치. 파일 수 20 대비 1.5× 초과 시 M3.
+- F1~F10, §3의 P/X/E/V/R와 entry→ensurer 또는 generic seed 매핑, factory definition/default 합성/initialProps caller를 확정한다.
+- E를 leaf/자식 구조형/기존 특수 reusable로 나누고 excluded X는 별도 표로 둔다. origin id 충돌과 기존 template origin 재사용 규칙을 명시한다.
+- 동일 seed 600요소 ref 0% baseline, 예상 origin root/descendant/byte 증가량, 변경 파일 수 확정.
+- **G0**: 명시 제외 정책과 E 일치, V 전수 매핑·파일/소비자 inventory 완결. 초기 20파일 추정은 확정 inventory로 대체하며 누락은 같은 ADR 안에서 보강한다.
 
-### Phase 1 — catalog 등록 sweep + generic origin (Decision 1·2)
+### Phase 1 — 등록 · seed · 생성 경로
 
-- `componentCatalog.ts`: (a)+(b) 군 `reusableEntry(...)` 추가 + 동명 primitive `panel.placeable:false`. `PALETTE_ORDER` 는 무변경 (placeable 단일성으로 reusable 이 정본).
-- `catalogOrigins.ts` 신규 (§3) · `reusableCompositeOrigins.ts` 의 ENSURERS 를 `ensureCatalogOrigins` 로 감싸기 · 등록 불변식 테스트 완화.
-- hydration: `mainDocumentNormalization` 이 새 origin 을 Components body 에 멱등 시드 (기존 문서도 열면 origin 이 생긴다 — plain 노드는 그대로).
-- **G1**: 팔레트 58 항목 추가 → 전부 `type:"ref"` · origin 이 Components body 에 1개씩 · 새로고침 후 유지 · 기존 fixture 의 plain 노드 렌더/편집 무변화 (원복 RED: entry 1개 primitive 로 되돌리면 plain 노드 생성).
+- reusableEntry 등록 및 동명 primitive placeable:false. 기존 panel 메타와 creationVariants 보존, PALETTE_ORDER 무변경.
+- ensureCatalogOrigins는 기존 손 ensurer 또는 §3.1 generic seed를 호출한다. 등록 불변식은 각 E에 실제 seed 가능한 경로가 있는지 강제하며 단순 방어적 skip을 합격으로 보지 않는다.
+- useElementCreator 및 AI 생성 ingress에 §3.2 initialProps patch를 연결한다.
+- mainDocumentNormalization은 기존 origin을 보존하면서 누락분만 생성한다.
+- **G1**: V 전수 추가→예상 type/ref/명시 initialProps, origin R 존재, factory 초기 유효 props/subtree 동치, reload 멱등, 기존 plain 무변화. entry 1개 원복 RED.
 
-### Phase 2 — instance 편집 · 렌더 대칭 (Decision 3)
+### Phase 2 — 실제 편집 · 렌더 대칭
 
-- `resolveEditContract`: passthrough 전체 schema 를 읽는 경로 확인 (IconButton 의 variant/size 축 일반화). Properties 패널 필드 목록이 plain 노드일 때와 **같아야** 한다 (사용자가 instance 인지 모르게).
-- Skia · DOM: ref 실체화 경로 (F7) 에서 leaf origin (자식 0) 처리 — `_resolvedFrom` 이 root 만 가리키는 경우.
-- Styles 패널: instance root 의 `props.style` override 가 origin 위에 덮이는 순서 (148 R3 순서 계약 그대로).
-- **G2**: `/cross-check` 팔레트 전수 — ref instance vs 같은 props 의 plain 노드 픽셀 Δ 0 (두 leg). ADR-198 하니스에 "instance arm" 추가.
+- resolveEditContract의 필드뿐 아니라 편집 쓰기·Styles override/상속·reset을 확인한다.
+- **G2**: V 전수 ref vs 같은 유효 props의 plain Skia/DOM 픽셀 Δ0. Button/Badge/Link/ToggleButton 기본 내용, 자식 구조형 기본 트리, Chart 모든 생성 진입점의 chartType 및 preset 보존.
+- Chart 각각 생성→props 저장→reload→origin 공통 size/variant 변경→Undo/Redo를 live로 확인한다. 명시 chartType은 유지되고 비override 필드는 origin을 따른다. initialProps 없는 instance도 확인한다.
+- 자식 구조형의 행 데이터/구조 편집·drag·복제는 대표 경로별 실제 사용자 동작으로 검증한다. 필드 목록 정적 일치만으로 편집 동등성을 선언하지 않는다.
 
-### Phase 3 — Components 페이지 = origin 전집 + 테마 표면 (Decision 4)
+### Phase 3 — Components 페이지
 
-- Components body 의 origin 배치: 카테고리 7 순서 (PALETTE_ORDER) 로 grid 자동 배치 (`pagePositions` 아님 — body 안 flex/grid 레이아웃, 사용자가 옮길 수 있다).
-- origin 편집 → instance 전파 (148 기존) · origin 삭제 금지 (systemOwned) · origin 이름은 catalog label.
-- 227 이 같이 있으면: 테마 전환 시 이 페이지 전수가 바뀐다 — 227 G5 가 여기서 측정된다.
-- **G3**: live — Components 페이지에 origin 58 표시 · origin 의 variant 를 바꾸면 그 컴포넌트의 instance 전부 반영 · Undo · plain 노드는 안 따라옴 (공존 계약 실증).
+- origin R을 카테고리 순 grid로 배치한다. 사용자/기존 template origin과 사용자 배치는 보존하며 전체 children 수=57을 요구하지 않는다.
+- systemOwned root 삭제 금지, origin 편집→instance 전파, 이름/이동 가능. 227이 있으면 해당 전집으로 227 G5 실행.
+- **G3**: R 전수 표시, origin 변경/Undo 전파, plain 공존, 기존 origin 사용자 편집과 위치의 hydration 보존.
 
-### Phase 4 — AI · 초기 문서 · 성능 확정
+### Phase 4 — AI · 초기 문서 · 비용
 
-- `compositeCreation` · `builderHost` · `createInitialProjectDocument` 가 `ensureCatalogOrigins` 를 쓰도록 (F5 5곳).
-- **G4**: 600 요소 ref 100% 문서 — scene build · 선택 · 편집 p95 가 Phase 0 baseline (ref 0%) 대비 +1 ms 이내 · 문서 크기 증가 = origin 58 노드뿐.
+- AI/팔레트/초기 생성/hydration이 같은 ensurer를 사용하고 직접 생성 initialProps도 같은 patch를 통과한다.
+- **G4**: 600요소 ref 100% scene build·선택·편집 p95 ≤ ref 0% baseline +1ms. 문서별 신규 root/descendants/schema/page shell의 Δnode 및 Δbyte를 G0 예상값과 대조, 재hydration 추가 Δ0. plain 본문 재직렬화 변화 0. AI initialProps와 origin 상속 확인.
 
-## 5. 파일 경계 (추정 — Phase 0 에서 확정)
+## 5. 파일 경계 (Phase 0 확정)
 
-| 영역        | 파일                                                                                                                             |     수 |
-| ----------- | -------------------------------------------------------------------------------------------------------------------------------- | -----: |
-| catalog     | `componentCatalog.ts` (entry 58 + placeable) · `types.ts` (children seed 훅 필드)                                                |      2 |
-| origin seed | `catalogOrigins.ts` (신규) · `reusableCompositeOrigins.ts` · `ensureTemplateOrigins.ts` · 자식 구조형 seed 이동 (factory 재사용) |      4 |
-| 편집        | `resolveEditContract.ts` · `canonicalRefResolution.ts`                                                                           |      2 |
-| 호출처      | F5 5곳                                                                                                                           |      5 |
-| 페이지      | `systemComponentsPage.ts` (origin grid 배치)                                                                                     |      1 |
-| 테스트      | 등록 불변식 · origin 파생 · 편집 계약 · cross-check instance arm                                                                 |      4 |
-| 하니스      | `adr228-origins-live.mjs` · perf arm                                                                                             |      2 |
-| **합계**    |                                                                                                                                  | **20** |
+| 영역      | 경로·책임                                                                                                               |
+| --------- | ----------------------------------------------------------------------------------------------------------------------- |
+| catalog   | componentCatalog.ts entry/placeable 및 panel creationVariants 보존. binding kind/값 무변경                              |
+| seed      | catalogOrigins.ts 신규, reusableCompositeOrigins, ensureTemplateOrigins, factory definition/default 합성 재사용 adapter |
+| 생성      | useElementCreator, compositeCreation, builderHost, 공통 initialProps patch 및 parent preflight                          |
+| hydration | createInitialProjectDocument, mainDocumentNormalization, 기존 origin 보존                                               |
+| 편집      | resolveEditContract, canonicalRefResolution 소비 확인/필요 수리                                                         |
+| 페이지    | systemComponentsPage origin 배치                                                                                        |
+| 검증      | registration, factory seed 동치, Chart variant 생성/persist/상속, instance 편집/cross-check, live/perf                  |
 
-## 6. 유보 항목 (재개 조건)
+새 catalog children seed 훅을 당연시하지 않는다. 현재 factory definition 재사용으로 해결하며 필요 파일 수는 Phase 0에서 중복 제거해 확정한다.
 
-- **기존 plain 노드의 instance 전환**: 사용자 결정 ③ 공존. 재개 = 사용자가 "선택 노드를 instance 로" 액션을 요구할 때 (역변환 규칙 필요 — 자식 있는 노드).
-- **내용 primitive 8 의 origin 화**: 사용자 결정 ②. 재개 = Text 스타일 세트 (Framer text styles) 요구 시 — 그건 227 typography 토큰이 먼저 답한다.
-- **Toast · IllustratedMessage**: 148 판정 승계. 재개 = Toast 팔레트 노출 제품 결정.
+## 6. 유보 항목
+
+- 기존 plain의 instance 전환: 사용자 요청 시 별도 액션과 자식 역변환 규칙을 정한다.
+- 내용/레이아웃 primitive 8종의 origin화: 이번 범위 밖. typography는 우선 227에서 다룬다.
+- Toast·IllustratedMessage: 기존 제외 정책 유지. 포함하려면 제품 범위 재결정이 필요하다.
+
+## 7. 리뷰 수리 상태
+
+2026-09-21 round 1 H1/M2/M3를 §3~~5와 본문 Gates에 반영했다. 설계 수리 완료, Proposed 유지. 구현 G0~~G4는 UNVERIFIED다.

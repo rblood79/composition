@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-227·228 설계 리뷰 보완 — 토큰 소비·기존 테마 승계·origin 생성 계약] - 2026-09-21
+
+### Documentation
+
+- ADR-227 Phase 0~5 설계: 카테고리별 runtime/CSS 소비와 파생값 우선순위, border 타입·generator·layout 확장, 프로젝트별 legacy 실효값·typography의 저장 성공 후 migration, 사용자 History 1건/파생 추가 0건을 명시했다.
+- ADR-228 Phase 0~4 설계: creationVariants/initialProps의 instance 소유권, 기존 factory 기본값 및 자식 definition 재사용, 대상 57 type과 palette entry/origin root/descendant/byte 집계를 분리했다.
+- 위치: `docs/adr/227-multi-theme-token-set-collection.md`, `docs/adr/228-palette-wide-reusable-origins.md` 및 각 `design/*-breakdown.md`, `reviews/227.md`, `reviews/228.md`. 리뷰 7건의 설계 보완이며 제품 구현·ADR 상태 승격은 포함하지 않는다.
+
 ## [font-variant: small-caps 를 Canvas 도 그린다 — 합성 (대문자 × 0.7) · 측정 폭 Chrome 정합] - 2026-09-20
 
 ### Fixed
