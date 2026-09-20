@@ -29,7 +29,8 @@ describe("ADR-224 캔버스 resize — marker 축만 Fill 해제 + CSS px", () =
       "desktop",
     );
     expect(result?.sizing).toEqual({ width: null, height: { factor: 1 } });
-    expect(result?.props?.style).toEqual({ width: "491.33px" });
+    // flex 주축 Fixed 는 authored used size 계약 — resolveSizeMode 가 flexShrink:0 을 같이 쓴다
+    expect(result?.props?.style).toEqual({ width: "491.33px", flexShrink: "0" });
     expect(result?.responsive).toBeUndefined();
   });
 
@@ -47,7 +48,11 @@ describe("ADR-224 캔버스 resize — marker 축만 Fill 해제 + CSS px", () =
     );
     // Size 메뉴 Fixed 와 같은 경로 — 요청 축은 marker null (없던 축도 명시 null)
     expect(result?.sizing).toEqual({ width: null, height: null });
-    expect(result?.props?.style).toEqual({ width: "300px", height: "120px" });
+    expect(result?.props?.style).toEqual({
+      width: "300px",
+      height: "120px",
+      flexShrink: "0",
+    });
   });
 
   it("removes legacy CSS grow on the resized main axis", () => {
@@ -61,7 +66,11 @@ describe("ADR-224 캔버스 resize — marker 축만 Fill 해제 + CSS px", () =
       row,
       "desktop",
     );
-    expect(result?.props?.style).toEqual({ height: "40px", width: "250px" });
+    expect(result?.props?.style).toEqual({
+      height: "40px",
+      width: "250px",
+      flexShrink: "0",
+    });
   });
 
   it("routes a non-desktop resize to the tier override with a tier marker null", () => {
@@ -104,6 +113,7 @@ describe("ADR-224 캔버스 resize — marker 축만 Fill 해제 + CSS px", () =
       left: "50.33px",
       top: "0px",
       width: "541px",
+      flexShrink: "0",
     });
     const tiered = make({
       props: { style: { position: "absolute", left: "0px", top: "0px" } },

@@ -118,7 +118,7 @@ describe("BuilderHeader chrome control groups", () => {
       /\.react-aria-ToggleButton\s*\{[\s\S]*?padding: var\(--spacing-sm\);/,
     );
     expect(groupStyles).toMatch(
-      /\.react-aria-ToggleButton\[data-selected\]\s*\{[\s\S]*?--button-text: var\(--fg-on-accent\);[\s\S]*?color: var\(--button-text\);/,
+      /\.react-aria-ToggleButton\[data-selected\]\s*\{[\s\S]*?color: var\(--focus-ring\);/,
     );
     expect(groupStyles).toMatch(
       /\.react-aria-SelectionIndicator\s*\{[\s\S]*?--button-color: var\(--accent\);[\s\S]*?background: var\(--button-color\);/,

@@ -567,9 +567,8 @@ describe("pageFrameBinding canonical primary helper", () => {
           expect.objectContaining({
             id: "page-3-body",
             type: "body",
-            props: expect.objectContaining({
-              className: "react-aria-Body",
-            }),
+            // className 은 DOM 렌더러가 투영한다 (2026-09-18) — 기본 props 는 style 만
+            props: { style: { overflow: "auto" } },
           }),
         ],
       }),

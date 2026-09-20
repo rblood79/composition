@@ -250,15 +250,15 @@ export class ComponentFactory {
     // 생성 후 별도 update를 하면 undo가 갈라지고 합성 자식에 요청 prop이 전달되지 않는다.
     if (context.initialProps) {
       const defaults = definition.parent.props ?? {};
-      const overrides = context.initialProps;
+      const initial = context.initialProps;
       definition.parent.props = {
         ...defaults,
-        ...overrides,
-        ...(overrides.style
+        ...initial,
+        ...(initial.style
           ? {
               style: {
                 ...((defaults.style as Record<string, unknown>) ?? {}),
-                ...(overrides.style as Record<string, unknown>),
+                ...(initial.style as Record<string, unknown>),
               },
             }
           : {}),

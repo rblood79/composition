@@ -11,7 +11,8 @@ describe("panelConfigs rail icon contract", () => {
       source.indexOf('id: "datatable"'),
     );
 
-    expect(componentsConfig).toContain("icon: Component");
+    // 정본 ACTION_ICONS.component (lucide Component) — 낱개 lucide import 금지 (actionIcons.static.test)
+    expect(componentsConfig).toContain("icon: ACTION_ICONS.component");
     expect(componentsConfig).not.toContain("icon: Blocks");
   });
 });

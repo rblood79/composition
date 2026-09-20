@@ -7,7 +7,6 @@
 import {
   Bot,
   Columns3,
-  Component,
   Database,
   FileEdit,
   History,
@@ -23,6 +22,7 @@ import { PanelRegistry } from "./PanelRegistry";
 
 // Navigation panels
 import { NavigatorPanel } from "../navigator/NavigatorPanel";
+import { ACTION_ICONS } from "../../config/actionIcons";
 import { ComponentsPanel } from "../components/ComponentsPanel";
 import { ThemesPanel } from "../themes/ThemesPanel";
 import { AIPanel } from "../ai/lazyAIPanel";
@@ -73,7 +73,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     id: "components",
     name: "컴포넌트",
     nameEn: "Components",
-    icon: Component,
+    icon: ACTION_ICONS.component,
     component: ComponentsPanel,
     category: "navigation",
     defaultPosition: "left",
