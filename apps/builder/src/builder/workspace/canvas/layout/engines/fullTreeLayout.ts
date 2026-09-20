@@ -2742,6 +2742,25 @@ function resolveLayoutViewport(
   };
 }
 
+/**
+ * root 가 놓인 containing block 상자 — caller 가 root padding/border 를 뺀 content-box 를 넘기므로
+ * (`layoutCache`) 되돌려 DFS 의 `availableWidth` 계약 ("containing block content 폭") 에 맞춘다.
+ * root 종류 무관 (body 는 `resolveLayoutViewport` 와 같은 값).
+ */
+function resolveRootContainingBlock(
+  rootEl: CanvasLayoutNode,
+  availableWidth: number,
+  availableHeight: number,
+): { width: number; height: number } {
+  const rootStyle = (rootEl.props?.style ?? {}) as Record<string, unknown>;
+  const bp = parsePadding(rootStyle, availableWidth);
+  const bb = parseBorder(rootStyle);
+  return {
+    width: availableWidth + bp.left + bp.right + bb.left + bb.right,
+    height: availableHeight + bp.top + bp.bottom + bb.top + bb.bottom,
+  };
+}
+
 export function calculateFullTreeLayout(
   rootElementId: string,
   elementsMap: Map<string, CanvasLayoutNode>,
@@ -2803,11 +2822,25 @@ export function calculateFullTreeLayout(
   // TagGroup allowsRemoving 컨텍스트 설정 (모든 DFS/FlexEngine/재귀 경로에서 조회)
   setTagGroupAllowsRemovingContext(elementsMap, childrenMap);
 
+  // DFS 의 `availableWidth` 는 "그 노드가 놓인 containing block 의 content 폭" 이다 —
+  //   `estimateChildAvailableSize` 가 노드 자신의 padding/border 를 빼서 자식에게 넘긴다. 그런데
+  //   caller (layoutCache) 는 root 의 padding/border 를 이미 뺀 content-box 를 넘기므로 root 에
+  //   그 값을 그대로 주면 root padding 이 **두 번** 빠진다 (body pad 24 · 390: 342 → 294). 1-pass
+  //   가 자식 텍스트를 그 폭으로 재 `%` 폭 텍스트 (294 × 50%) 와 auto 폭 텍스트의 줄 수가 늘고,
+  //   Step 4.5 재측정이 건너뛰는 `height: 100%` (부모 미결정 → auto, TS 스칼라가 곧 높이) 에서는
+  //   그대로 남았다 (사용자 live 2026-09-20: pre-wrap Text 50% Chrome 218 / Canvas 242). root 는
+  //   자기 상자 (content + padding + border) 를 containing block 으로 받는다 — body 는 Step 0.5
+  //   의 page 상자와 같은 식이고, Frame root 도 caller 가 같은 차감을 하므로 같이 되돌린다.
+  const rootContainingBlock = resolveRootContainingBlock(
+    rootEl,
+    availableWidth,
+    availableHeight,
+  );
   traversePostOrder(
     rootElementId,
     dfsCtx,
-    availableWidth,
-    availableHeight,
+    rootContainingBlock.width,
+    rootContainingBlock.height,
     getRootComputedStyle(),
     "block",
     0,
@@ -3010,11 +3043,26 @@ export function calculateFullTreeLayout(
             childStyle,
             resolveElementSizeName(childEl),
           ).height;
+        // `%` 높이의 측정 leaf 는 후보다 (2026-09-20): 부모 블록 축이 미결정이면 CSS 는 auto 로
+        //   떨어지고 엔진은 TS 가 실은 `contentHeight` 스칼라를 쓴다 (`enrichWithIntrinsicSize`
+        //   percentageHeightMayNeedIntrinsicFallback) — 그 스칼라가 1-pass 가정 폭에서 잰 값이라
+        //   실배치 폭이 다르면 (flex:1 · `%` 폭) 줄 수가 남거나 모자란다 (Chrome 120 / 100). 부모가
+        //   definite 면 엔진이 `%` 를 해소하고 스칼라를 안 읽으니 재측정은 무해하다. TS 가 쟀는지는
+        //   batch record 로 판정한다 — flex/grid 자식은 `contentHeight` 스칼라, block 자식은 `%` 를
+        //   측정 px 로 바꿔 실었다 (`enrichWithIntrinsicSize` 의 두 갈래). 컨테이너 `%` 높이는 엔진
+        //   소유라 record 에 `%` 그대로 남아 종전대로 건너뛴다.
+        const batchStyle = node.style as Record<string, unknown>;
+        const percentHeightMeasuredLeaf =
+          typeof rawH === "string" &&
+          rawH.trim().endsWith("%") &&
+          (typeof batchStyle.contentHeight === "number" ||
+            (batchStyle.height !== undefined && batchStyle.height !== rawH));
         if (
           rawH !== undefined &&
           rawH !== null &&
           rawH !== "auto" &&
-          rawH !== "fit-content"
+          rawH !== "fit-content" &&
+          !percentHeightMeasuredLeaf
         )
           continue;
 
@@ -3053,8 +3101,7 @@ export function calculateFullTreeLayout(
         //   store/processedElementsMap 에 반영되지 않고 직렬화 record 에만 있다.
         //   스칼라 없는 요소(컨테이너/합성 leaf)는 기존 판정 유지 — 컨테이너의
         //   주입 height 삭제(아래 분기)가 이 트리거에 걸려 있다.
-        const cMax = (node.style as Record<string, unknown> | undefined)
-          ?.contentMaxWidth;
+        const cMax = batchStyle.contentMaxWidth;
         if (
           typeof cMax === "number" &&
           cMax <= enrichedWidth &&

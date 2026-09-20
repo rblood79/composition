@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [padding 있는 페이지의 Text 가 `%` 크기 + padding 조건에서 Canvas 만 줄이 늘던 결함] - 2026-09-20
+
+### Fixed
+
+- body (padding 24) 안의 Text `width: 50% · height: 100% · padding 24 · pre-wrap` 이 Preview 218 / Canvas 242 로 갈리던 결함 (Compare Mode 에서 한 줄 차이). 원인 둘 — (1) layout 진입 (`layoutCache`) 이 root padding/border 를 뺀 content-box 를 넘기는데 DFS 가 그 값을 "root 가 놓인 containing block" 으로 읽어 root padding 을 **한 번 더** 빼고 (390: 342 → 294) 그 폭으로 1-pass 텍스트를 쟀다 → root 는 자기 상자 (content + padding + border) 를 containing block 으로 받는다 (`resolveRootContainingBlock`). (2) `height: 100%` 텍스트는 Step 4.5 height-for-width 재측정 후보에서 빠져 (명시 높이로 판정) 1-pass 높이가 남았다 → 부모 블록 축이 미결정이면 CSS 도 auto 라 TS 측정값이 곧 높이이므로, TS 가 잰 `%` 높이 leaf (flex/grid 자식 `contentHeight` 스칼라 · block 자식 px 치환) 는 후보에 넣는다 (flex row `flex: 1` 텍스트 Chrome 120 / 종전 100 도 같이 닫힘). 게이트 `tests/parity/bodyPaddingRootAvail.browser.test.ts` 5 (Chrome 오라클) · parity 1435/1435 · live `apps/builder/scripts/text-size-padding-live.mjs --mobile --body-pad --reload` 9/9 (종전 8 DIFF) · 사용자 문서 3 요소 218/218/198 (종전 218/242/222).
+
 ## [publish /simplify 정리 — 렌더 fan-out 구조 + Avatar 4종 shared 컴포넌트] - 2026-09-20
 
 ### Changed
