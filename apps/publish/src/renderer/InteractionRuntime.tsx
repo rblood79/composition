@@ -32,6 +32,7 @@ import {
   buildInteractionIndex,
   createElementHandlers,
   EMPTY_INTERACTION_INDEX,
+  resolvePageIdByPath,
   type DispatchDeps,
   type InteractionIndex,
 } from "@composition/shared";
@@ -61,12 +62,6 @@ export interface InteractionRuntimeProviderProps {
   children: ReactNode;
 }
 
-function normalizeSlug(slug: string): string {
-  const trimmed = slug.trim();
-  if (trimmed === "" || trimmed === "/") return "/";
-  return trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
-}
-
 export function InteractionRuntimeProvider({
   rules,
   elements,
@@ -89,8 +84,11 @@ export function InteractionRuntimeProvider({
     () => new Map(elements.map((el) => [el.id, el])),
     [elements],
   );
-  const pageIdBySlug = useMemo(
-    () => new Map(pages.map((p) => [normalizeSlug(p.slug ?? ""), p.id])),
+  // navigate path → 페이지: preview `CanvasRouter` 가 라우트로 쓰는 `generatePageUrl` 표
+  // (parent_id 계층 · 동적 세그먼트 · trailing slash/대소문자 허용) 와 같은 해석기.
+  // 게시 페이로드에는 layout 이 없어 layout slug 규칙 (rule 2) 은 여기서 생략된다.
+  const resolvePageId = useCallback(
+    (path: string) => resolvePageIdByPath(path, pages),
     [pages],
   );
 
@@ -140,7 +138,7 @@ export function InteractionRuntimeProvider({
           window.location.hash = path;
           return;
         }
-        const pageId = pageIdBySlug.get(normalizeSlug(path));
+        const pageId = resolvePageId(path);
         if (pageId) {
           onNavigatePage(pageId);
           return;
@@ -172,7 +170,7 @@ export function InteractionRuntimeProvider({
           : { ok: false, reason: result.reason ?? "setState 실패" };
       },
     }),
-    [elementById, pageIdBySlug, onNavigatePage, patchOverride, addToast],
+    [elementById, resolvePageId, onNavigatePage, patchOverride, addToast],
   );
 
   const value = useMemo(

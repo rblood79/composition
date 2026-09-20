@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [게시본 navigate 규칙이 중첩 페이지 URL 을 preview 와 다르게 해석하던 결함] - 2026-09-20
+
+### Fixed
+
+- 인터랙션 **navigate** 의 path 가 preview 에서는 통하고 게시본 (publish) 에서는 무동작이던 결함 — preview 는 `generatePageUrl` 로 만든 **계층 URL** (`/products/shoes`, parent_id · 동적 세그먼트) 을 라우트로 쓰는데, publish 는 페이지 자체 slug (`/shoes`) 만 표로 갖고 있었다. `generatePageUrl` 을 `@composition/shared` (`utils/pageUrl.ts`) 로 올리고 publish 가 `resolvePageIdByPath` 로 같은 표를 읽는다 — trailing slash · 대소문자 (`/Products/`) 도 react-router 기본값과 같이 허용. builder 의 `utils/urlGenerator.ts` 는 재수출 shim. 게시 페이로드에 layout 이 없어 layout slug 규칙은 publish 에서 생략 (기존과 같음). shared 9/9 · publish live: `/products/shoes` → shoes · `/Products/` → products · `/shoes` → 매칭 없음 (preview 404 와 같은 결과).
+
 ## [canvas /simplify 정리 + HEAD 에서 실패하던 테스트 9건 정합] - 2026-09-20
 
 ### Changed
