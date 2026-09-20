@@ -284,21 +284,9 @@ export function useSpacingInteraction({
     [gestureSession, openInlineInput],
   );
 
-  // 인라인 입력 중 카메라 이동/줌 → 캡처 좌표계가 무효 → 취소 (breakdown §4)
-  useEffect(() => {
-    if (!inlineInput) return;
-    const start = useViewportSyncStore.getState();
-    return useViewportSyncStore.subscribe((next) => {
-      if (
-        next.zoom !== start.zoom ||
-        next.panOffset.x !== start.panOffset.x ||
-        next.panOffset.y !== start.panOffset.y
-      ) {
-        inlineInput.session.cancel("superseded");
-        closeInlineInput();
-      }
-    });
-  }, [closeInlineInput, inlineInput]);
+  // 인라인 입력 중 카메라 이동/줌은 취소 사유가 아니다 — 입력이 핸들을 따라간다
+  //   (`SpacingInlineInput` 이 Skia 프레임 카메라 채널로 프레임마다 재배치, 2026-09-20).
+  //   종전 mirror 구독 취소는 제스처 종료에만 동작해 팬 중 입력이 옛 자리에 남았다.
 
   const onDragStart = useCallback((drag: SpacingDragState) => {
     setSpacingActive({

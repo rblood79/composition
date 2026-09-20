@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [캔버스 DOM 오버레이 카메라 추종 sweep — spacing 인라인 입력 · 컨텍스트 메뉴] - 2026-09-20
+
+### Fixed
+
+- 앞 항목 (텍스트 편집 오버레이) 의 유사 패턴을 캔버스 위 DOM 오버레이 전체에서 점검 (`scripts/dom-overlay-camera-sweep-live.mjs`, headed). page header · action bar · ruler · dot background · scrollbar · zoom 표시는 이미 프레임/presentation 채널이라 정상. 결함 2:
+  - **padding·gap 인라인 입력 (ADR-222)** — 휠 팬 중 캔버스 핸들은 움직이는데 입력은 옛 자리에 남았다가 제스처가 끝나야 (React mirror 동기화) 닫혔다. 취소 규칙 자체가 mirror 구독이라 늦게 동작했고, 숫자 입력은 카메라가 좌표계를 무효화하지 않는다 → 입력이 핸들을 **따라간다** (`subscribeCanvasFramePresentation` 로 핸들 중심을 프레임마다 DOM style 에, setState 없음). mirror 기반 취소 제거. ADR-222 본문·breakdown §4.1 에 갱신 주석.
+  - **컨텍스트 메뉴** — 열린 채 휠 팬이 캔버스를 움직여 메뉴가 가리키던 자리와 어긋났다 → 메뉴 밖 휠에 닫는다 (Figma 와 같다, 메뉴 안 스크롤은 유지, 휠 자체는 막지 않아 캔버스는 정상 팬).
+- 검증: live 실제 빌더 — spacing 입력: 휠 첫 프레임에 핸들과 같이 이동 (Δy = mirror 총 Δ, mirror 미동기) · 종료 후 되돌림 0 · 핸들 중심과 일치 · 팬 뒤 24 Enter commit `24px` / 컨텍스트 메뉴: 휠 뒤 닫힘 + 캔버스 팬 정상. 수정 전 같은 하니스 RED 2. contextMenu·hooks·interaction 단위 263 · type-check PASS.
+
 ## [텍스트 편집 중 팬·줌 시 편집 상자가 캔버스를 제스처 뒤에야 따라오던 결함] - 2026-09-20
 
 ### Fixed

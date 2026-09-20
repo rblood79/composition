@@ -68,13 +68,31 @@ export function ContextMenuProvider({
       event.stopPropagation();
     };
 
+    // 메뉴 밖 휠 = 캔버스 팬·줌 — 메뉴가 가리키던 자리가 움직이므로 닫는다 (Figma 와 같다).
+    // 메뉴 안의 휠 (긴 목록 스크롤) 은 그대로. 휠 자체는 막지 않아 캔버스는 정상 팬.
+    const handleOutsideWheel = (event: WheelEvent) => {
+      const target = event.target;
+      if (
+        target instanceof Element &&
+        target.closest(".context-menu-popover")
+      ) {
+        return;
+      }
+      close();
+    };
+
     document.addEventListener("pointerdown", handleOutsidePointerDown, true);
+    document.addEventListener("wheel", handleOutsideWheel, {
+      capture: true,
+      passive: true,
+    });
     return () => {
       document.removeEventListener(
         "pointerdown",
         handleOutsidePointerDown,
         true,
       );
+      document.removeEventListener("wheel", handleOutsideWheel, true);
     };
   }, [close, request]);
 

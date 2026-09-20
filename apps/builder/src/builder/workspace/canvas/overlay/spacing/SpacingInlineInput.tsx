@@ -4,14 +4,34 @@
  * Skia 배지 자리에 뜨는 DOM 층 — RAC NumberField 재사용 (D1: 포커스·키보드·IME 는 RAC 소유).
  * Enter/정상 blur = 값이 바뀌었을 때만 세션 finish (commit 1) · Escape = cancel ·
  * 열려 있는 동안 캔버스 핸들은 남고 (mode "input") 패널의 같은 필드가 강조된다.
- * 세션이 밖에서 닫히면 (선택 변경 · 문서 교체 · 카메라 이동) 입력도 닫힌다.
+ * 세션이 밖에서 닫히면 (선택 변경 · 문서 교체) 입력도 닫힌다.
+ *
+ * 카메라 (팬·줌) 는 **따라간다** — 핸들 중심을 Skia 프레임 카메라 채널로 프레임마다 다시 찍는다
+ * (`subscribeCanvasFramePresentation`, TextEditOverlay 와 같은 경로 · setState 없음). 종전엔 React
+ * mirror 변화에 취소했는데 mirror 는 제스처 종료에만 동기화라 팬 중 입력이 옛 자리에 남았다가
+ * 끝나야 닫혔다 (2026-09-20 sweep). 값은 숫자라 카메라가 좌표계를 무효화하지 않는다.
  */
 
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { NumberField } from "react-aria-components/NumberField";
 import { Input } from "react-aria-components/Input";
 import type { SpacingPresentationSession } from "../../../../presentation/editorPresentationSpacingSession";
-import type { SpacingBand } from "../../interaction/spacingGeometry";
+import {
+  resolveSpacingHandleRect,
+  type SpacingBand,
+} from "../../interaction/spacingGeometry";
+import {
+  getCanvasFramePresentationSnapshot,
+  subscribeCanvasFramePresentation,
+} from "../../canvasFramePresentation";
+import type { CameraState } from "../../skia/types";
 import { useSemanticLabel } from "../../../../../i18n";
 import "./SpacingInlineInput.css";
 
@@ -51,6 +71,24 @@ export const SpacingInlineInput = memo(function SpacingInlineInput({
   const [value, setValue] = useState<number>(startValue);
   const closedRef = useRef(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+
+  // 핸들 중심 (scene) → 화면 px 를 카메라 프레임마다 DOM style 에 쓴다. 첫 값은 호출부의
+  // `state.x/y` (열 때의 카메라) 이고, 프레임 채널이 있으면 그 카메라로 바로 덮는다.
+  useLayoutEffect(() => {
+    const write = (cam: CameraState) => {
+      const el = rootRef.current;
+      if (!el) return;
+      const handle = resolveSpacingHandleRect(band, cam.zoom, true);
+      const x = (handle.x + handle.width / 2) * cam.zoom + cam.panX;
+      const y = (handle.y + handle.height / 2) * cam.zoom + cam.panY;
+      el.style.left = `${x}px`;
+      el.style.top = `${y}px`;
+    };
+    const first = getCanvasFramePresentationSnapshot()?.cameraState;
+    if (first) write(first);
+    return subscribeCanvasFramePresentation(write);
+  }, [band]);
 
   const close = useCallback(() => {
     if (closedRef.current) return;
@@ -102,6 +140,7 @@ export const SpacingInlineInput = memo(function SpacingInlineInput({
 
   return (
     <div
+      ref={rootRef}
       className="spacing-inline-input"
       data-kind={band.kind}
       style={{ left: state.x, top: state.y }}

@@ -36,8 +36,10 @@ Implemented — 2026-09-17 (Proposed 09-17 → [reviews/222.md](../reviews/222.m
   `data-active` 강조 + read-only (§4.1) · Gap 필드는 단일 행/열 flex 에서 주축 longhand (`utils/gapAxis.ts`:
   row → columnGap · column → rowGap) 를 읽고 쓴다 (wrap/grid/block 은 종전 shorthand 계약, 2 케이스) · 인라인 숫자
   입력 `overlay/spacing/SpacingInlineInput.tsx` (RAC NumberField, 클릭 = 임계값 미만 pointerup 이 세션을 열린 채
-  input 모드로 넘김 · Enter/blur 는 값이 바뀌었을 때만 finish → commit 1 · Escape cancel · 카메라 이동·선택 변경·
-  세션 종료 시 닫힘). **live 16/16** (위 12 + 드래그 중 패널 Padding Top 40·data-active·readOnly · Gap 필드 22 ·
+  input 모드로 넘김 · Enter/blur 는 값이 바뀌었을 때만 finish → commit 1 · Escape cancel · 선택 변경·
+  세션 종료 시 닫힘 · 카메라 이동은 **따라간다** — 2026-09-20 갱신: 종전 "카메라 이동 시 닫힘" 은 React mirror 구독이라
+  제스처 종료에만 동작해 팬 중 입력이 옛 자리에 남았다; Skia 프레임 카메라 채널로 핸들을 프레임마다 추종, 값은
+  숫자라 카메라가 무효화하지 않는다). **live 16/16** (위 12 + 드래그 중 패널 Padding Top 40·data-active·readOnly · Gap 필드 22 ·
   클릭 → 입력 열림 (16 · 포커스 · mode input) → 24 Enter → canonical paddingBottom 24px + history +1 · 입력
   Escape 무변경). 함정: Compare Mode 는 캔버스 반폭 + Styles 패널이 우측에 떠 있어 focus 점을 캔버스 폭 25% 로.
 - **Phase 3 (2026-09-17, G4/G5)**: G4 `adr222-spacing-frame-ab.mjs` (100 자식 flex column · DPR 2 · CPU throttle 1 ·
