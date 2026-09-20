@@ -190,28 +190,21 @@ export function renderOverflowHatching(
   ctx: ChildOverflowContext,
   zoom: number,
 ): void {
-  const scope = new SkiaDisposable();
-  try {
-    const { containerBounds: c, childBounds: cb } = ctx;
+  const { containerBounds: c, childBounds: cb } = ctx;
 
-    // 부모 컨테이너 밖 영역만 (Difference clipping)
-    canvas.save();
-    const containerRect = ck.LTRBRect(c.x, c.y, c.x + c.width, c.y + c.height);
-    canvas.clipRect(containerRect, ck.ClipOp.Difference, true);
-
-    // 자식 bounds 안 — 사선 패턴은 padding·gap hover · slot 마커와 한 정본 (`hatchPattern.ts`).
-    drawDiagonalHatch(
-      ck,
-      canvas,
-      cb,
-      ck.Color4f(OVERLAY_BLUE_R, OVERLAY_BLUE_G, OVERLAY_BLUE_B, HATCH_ALPHA),
-      zoom,
-    );
-
-    canvas.restore();
-  } finally {
-    scope.dispose();
-  }
+  // 부모 컨테이너 밖 영역만 (Difference clipping) — 자식 bounds ∩ 그 밖.
+  canvas.save();
+  const containerRect = ck.LTRBRect(c.x, c.y, c.x + c.width, c.y + c.height);
+  canvas.clipRect(containerRect, ck.ClipOp.Difference, true);
+  // 사선 패턴은 padding·gap hover · slot 마커와 한 정본 (`hatchPattern.ts`) — 간격 4 · 굵기 1 · α 0.35.
+  drawDiagonalHatch(
+    ck,
+    canvas,
+    cb,
+    ck.Color4f(OVERLAY_BLUE_R, OVERLAY_BLUE_G, OVERLAY_BLUE_B, HATCH_ALPHA),
+    zoom,
+  );
+  canvas.restore();
 }
 
 // ============================================
