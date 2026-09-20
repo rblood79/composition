@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [텍스트 편집 중 팬·줌 시 편집 상자가 캔버스를 제스처 뒤에야 따라오던 결함] - 2026-09-20
+
+### Fixed
+
+- Text 편집 (Quill 오버레이) 상태에서 휠 팬 / Ctrl+휠 줌을 하면 캔버스는 프레임마다 움직이는데 편집 상자는 제자리에 남았다가 제스처가 끝나야 (휠 종료 150ms 디바운스 · `endPan`) 새 위치로 뛰던 결함 (사용자 보고 — Figma/Framer 는 같이 움직인다). 오버레이가 React mirror (`zoom`/`panOffset` prop, 제스처 종료에만 동기화) 를 읽고 있었다 → Skia 가 이 프레임에 실제로 그리는 카메라 채널 (`subscribeCanvasFramePresentation`, page header · action bar 와 같은 채널) 을 구독해 같은 paint 에 싣는다. 프레임마다 setState 하지 않는다 — 배치 (left/top/width/height/scale) 는 DOM style 에 직접 쓰고 (transform-only), 텍스트 성장 (`subscribeBounds`) 도 같은 경로. 배치용 React state 는 없어졌다 (`livePos`/`liveSize` 제거).
+- 검증: live 실제 빌더 (`scripts/text-edit-camera-follow-live.mjs`, headed) — 휠 팬 2 프레임 뒤 (mirror 미동기) 오버레이 Δy = 총 Δ 의 절반 · 누적 · 제스처 종료 후 되돌림 0 · 줌 중 scale 1.36 즉시 · 줌 종료 후 오버레이 = Skia 상자 (905, −686, 272×54.4) · 팬·줌 뒤 타이핑 정상 · 유휴 프레임 p50 8.3ms / p95 9.2ms. 수정 전 같은 하니스 RED 4 (제스처 중 Δ 0, 종료 후 −240 점프). 정적 게이트 `TextEditOverlay.viewportShift.static.test.ts` (프레임 채널 구독 · 배치 useState 없음).
+
 ## [컨테이너 auto 크기가 자식 end margin 을 빼먹던 결함 — flex 양축 · block shrink-to-fit · grid 행 측정 폭] - 2026-09-20
 
 ### Fixed

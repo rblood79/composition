@@ -11,10 +11,15 @@
  * @updated 2026-03-07 Quill 에디터 전환 (Pencil nUt 패턴)
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import Quill from "quill";
 import "quill/dist/quill.core.css";
 import { getSceneBounds, subscribeBounds } from "../canvas/skia/renderCommands";
+import {
+  getCanvasFramePresentationSnapshot,
+  subscribeCanvasFramePresentation,
+} from "../canvas/canvasFramePresentation";
+import type { CameraState } from "../canvas/skia/types";
 import { setEditingElementId } from "../canvas/skia/nodeRenderers";
 import { notifyLayoutChange } from "../canvas/skia/useSkiaNode";
 import { resolveTextGlyphOrigin } from "../canvas/skia/textDrawOrigin";
@@ -85,63 +90,89 @@ export function TextEditOverlay({
   const containerRef = useRef<HTMLDivElement>(null);
   const quillRef = useRef<Quill | null>(null);
 
-  // Pencil nUt.updateSize 패턴: getSceneBounds()로 장면 좌표 추적 + 카메라 변환
-  // boundsMap(scene 좌표)는 매 프레임 갱신됨 → zoom/pan 적용하여 screen 좌표 산출
-  const zoomRef = useRef(zoom);
-  const panOffsetRef = useRef(panOffset);
-  useEffect(() => {
-    zoomRef.current = zoom;
-    panOffsetRef.current = panOffset;
-  }, [zoom, panOffset]);
+  // ── 배치: scene bounds × Skia 프레임 카메라 → 컨테이너 style 을 **직접** 쓴다 ──
+  //
+  // 카메라는 `subscribeCanvasFramePresentation` — Skia 가 이 프레임에 실제로 그리는 camera 를
+  // 같은 JS 태스크에서 받아 같은 paint 에 실린다 (page header · action bar 와 같은 채널). 종전엔
+  // React mirror (`zoom`/`panOffset` prop) 를 읽었는데 mirror 는 `endPan` 에서만 동기화되므로
+  // 팬·줌 중 캔버스는 움직이고 편집 상자는 제자리에 남았다가 제스처가 끝나야 따라왔다
+  // (사용자 보고 2026-09-20 — Figma/Framer 는 편집 상자가 캔버스와 같이 움직인다).
+  // 프레임마다 setState 하지 않는다 — Quill 서브트리 재렌더 없이 transform-only DOM 쓰기다.
+  // React 가 다른 이유로 재렌더해도 `placementRef` 의 값을 JSX 에 그대로 실어 되돌리지 않는다.
+  const initialCamera: CameraState = getCanvasFramePresentationSnapshot()
+    ?.cameraState ?? { zoom, panX: panOffset.x, panY: panOffset.y };
+  const sceneBoundsRef = useRef(getSceneBounds(elementId) ?? null);
+  const cameraRef = useRef<CameraState>(initialCamera);
+  const zoomRef = useRef(initialCamera.zoom);
+  const placementRef = useRef<{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    zoom: number;
+  } | null>(null);
+  // 배치 값을 컨테이너에 쓴다 — 렌더 밖 (layout effect · 채널 콜백) 에서만 부른다.
+  const writePlacement = () => {
+    const el = containerRef.current;
+    if (!el) return;
+    const cam = cameraRef.current;
+    const sb = sceneBoundsRef.current;
+    const p = sb
+      ? {
+          x: sb.x * cam.zoom + cam.panX,
+          y: sb.y * cam.zoom + cam.panY,
+          width: sb.width * cam.zoom,
+          height: sb.height * cam.zoom,
+          zoom: cam.zoom,
+        }
+      : { ...position, ...size, zoom: cam.zoom };
+    const prev = placementRef.current;
+    if (
+      !prev ||
+      p.x !== prev.x ||
+      p.y !== prev.y ||
+      p.width !== prev.width ||
+      p.height !== prev.height ||
+      p.zoom !== prev.zoom
+    ) {
+      el.style.left = `${p.x}px`;
+      el.style.top = `${p.y}px`;
+      el.style.width = `${p.width / p.zoom}px`;
+      el.style.height = `${p.height / p.zoom}px`;
+      el.style.transform = `scale(${p.zoom})`;
+    }
+    placementRef.current = p;
+    zoomRef.current = p.zoom;
+  };
 
-  // 첫 렌더부터 카메라를 적용한다 (ADR-027 D3). `position`/`size` prop 은 scene 좌표라 (startEdit 의
-  //   getElementBoundsSimple) 그대로 두면 200% 에서 컨테이너가 반 크기로 마운트되고, 마운트 effect 의
-  //   D2 nudge 측정이 그 상자에서 이뤄져 (Save 라벨 textLeft 12 · lineTop −2.4) 보정이 6px 틀렸다.
-  //   effect 가 나중에 setState 로 고치지만 측정은 이미 끝난 뒤다.
-  const [livePos, setLivePos] = useState(() => {
-    const sb = getSceneBounds(elementId);
-    return sb
-      ? { x: sb.x * zoom + panOffset.x, y: sb.y * zoom + panOffset.y }
-      : position;
-  });
-  const [liveSize, setLiveSize] = useState(() => {
-    const sb = getSceneBounds(elementId);
-    return sb ? { width: sb.width * zoom, height: sb.height * zoom } : size;
-  });
-
-  // scene→screen 변환 헬퍼 (subscribeBounds 콜백 + zoom/pan 변경에서 공유)
-  const applyTransform = useCallback(
-    (sceneBounds: { x: number; y: number; width: number; height: number }) => {
-      const z = zoomRef.current;
-      const pan = panOffsetRef.current;
-      const sx = sceneBounds.x * z + pan.x;
-      const sy = sceneBounds.y * z + pan.y;
-      const sw = sceneBounds.width * z;
-      const sh = sceneBounds.height * z;
-      setLivePos((prev) =>
-        prev.x !== sx || prev.y !== sy ? { x: sx, y: sy } : prev,
-      );
-      setLiveSize((prev) =>
-        prev.width !== sw || prev.height !== sh
-          ? { width: sw, height: sh }
-          : prev,
-      );
-    },
-    [],
-  );
-
-  // boundsMap 변경 시 구독 (rAF 폴링 대체 — 이벤트 기반)
+  // boundsMap 변경 (텍스트 성장 · 레이아웃) — 이벤트 기반, rAF 폴링 없음.
   useEffect(() => {
     return subscribeBounds(elementId, (_id, bounds) => {
-      applyTransform(bounds);
+      sceneBoundsRef.current = bounds;
+      writePlacement();
     });
-  }, [elementId, applyTransform]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [elementId]);
 
-  // zoom/pan 변경 시 기존 bounds로 재변환
-  useEffect(() => {
-    const sceneBounds = getSceneBounds(elementId);
-    if (sceneBounds) applyTransform(sceneBounds);
-  }, [elementId, zoom, panOffset, applyTransform]);
+  // Skia 프레임 카메라 (팬 · 줌 중 프레임마다).
+  useLayoutEffect(() => {
+    return subscribeCanvasFramePresentation((cameraState) => {
+      cameraRef.current = cameraState;
+      writePlacement();
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // mirror 동기화 (endPan · 프로그램 줌) — 프레임 채널이 아직 없을 때의 폴백.
+  useLayoutEffect(() => {
+    if (!getCanvasFramePresentationSnapshot()) {
+      cameraRef.current = { zoom, panX: panOffset.x, panY: panOffset.y };
+    }
+    const sb = getSceneBounds(elementId);
+    if (sb) sceneBoundsRef.current = sb;
+    writePlacement();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [elementId, zoom, panOffset]);
 
   // Stable refs for callbacks (avoid stale closures)
   const onCompleteRef = useRef(onComplete);
@@ -365,14 +396,10 @@ export function TextEditOverlay({
   // CSS 텍스트는 자연 크기(fontSize px)로 렌더링 → scale(zoom)으로 Skia와 일치시킴.
   // 컨테이너 크기는 1/zoom으로 보정 → scale 후 스크린 크기와 일치.
   const isVerticalCenter = style?.verticalAlign === "center";
+  // left/top/width/height/transform 은 `writePlacement` 만 쓴다 (첫 paint 전 layout effect 부터).
   const containerStyle: React.CSSProperties = {
     position: "absolute",
-    left: livePos.x,
-    top: livePos.y,
-    width: liveSize.width / zoom,
-    height: liveSize.height / zoom,
     transformOrigin: "top left",
-    transform: `scale(${zoom})`,
     border: "none",
     boxSizing: "border-box",
     background: "transparent",
