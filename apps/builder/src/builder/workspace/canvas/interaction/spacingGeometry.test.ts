@@ -32,17 +32,19 @@ describe("buildSpacingBands (ADR-222 §3)", () => {
       width: 296,
       height: 30,
     });
+    // 좌·우 띠도 padding-box 높이 **전체** (Figma 와 같다 — 2026-09-20). 코너는 상·하와 겹치고
+    // 히트 순서 (상·하 먼저) 가 코너 소유를 정한다 (아래 hit test 케이스).
     expect(byId["padding:left"].rect).toEqual({
       x: 102,
-      y: 212,
+      y: 202,
       width: 40,
-      height: 156 - 10 - 30,
+      height: 156,
     });
     expect(byId["padding:right"].rect).toEqual({
       x: 102 + 296 - 20,
-      y: 212,
+      y: 202,
       width: 20,
-      height: 116,
+      height: 156,
     });
     // 바깥쪽으로 끌면 커진다 — top 은 위(−y), right 는 오른쪽(+x)
     expect(byId["padding:top"]).toMatchObject({
@@ -144,6 +146,26 @@ describe("hitTestSpacingBands", () => {
     border,
     padding,
     gap: null,
+  });
+
+  it("corners belong to top/bottom even though left/right bands span the full height", () => {
+    // 좌상 코너 (padding-box 안, top 10 × left 40 겹침) → top
+    expect(
+      hitTestSpacingBands({ x: 102 + 5, y: 202 + 5 }, bands, 1),
+    ).toMatchObject({
+      band: { id: "padding:top" },
+      onHandle: false,
+    });
+    // 우하 코너 (bottom 30 × right 20 겹침) → bottom
+    expect(
+      hitTestSpacingBands({ x: 102 + 296 - 5, y: 202 + 156 - 5 }, bands, 1),
+    ).toMatchObject({ band: { id: "padding:bottom" }, onHandle: false });
+    // 좌측 띠의 중간 (코너 밖) 은 left
+    expect(
+      hitTestSpacingBands({ x: 102 + 5, y: 202 + 78 }, bands, 1),
+    ).toMatchObject({
+      band: { id: "padding:left" },
+    });
   });
 
   it("prefers the 12px handle square over the band area and scales with zoom", () => {

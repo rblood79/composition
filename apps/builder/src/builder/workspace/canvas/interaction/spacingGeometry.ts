@@ -75,9 +75,6 @@ function buildPaddingBands(
   pb: BoundingBox,
   padding: SpacingBoxMetrics,
 ): SpacingBand[] {
-  const innerTop = pb.y + padding.top;
-  const innerBottom = pb.y + pb.height - padding.bottom;
-  const innerHeight = Math.max(0, innerBottom - innerTop);
   const band = (
     side: SpacingSide,
     rect: BoundingBox,
@@ -94,7 +91,9 @@ function buildPaddingBands(
     value: padding[side],
     sign,
   });
-  // 상·하 띠가 코너를 소유하고 좌·우 띠는 그 사이 구간만 소유한다 (§3.2)
+  // 네 띠 모두 padding-box 의 한 변 **전체** 길이다 — 상·하는 폭 전체, 좌·우는 높이 전체 (Figma 와
+  // 같다, 2026-09-20 사용자 지적: 좌·우 사선이 상·하 padding 만큼 짧았다). 코너는 겹치지만
+  // 히트는 배열 순서 (상·하 먼저) 라 코너 소유는 종전대로 상·하 띠다 (§3.2).
   return [
     // 바깥쪽으로 끌면 커진다 (2026-09-17 사용자 지적 — top 은 위로, right 는 오른쪽으로)
     band(
@@ -116,7 +115,7 @@ function buildPaddingBands(
     ),
     band(
       "left",
-      { x: pb.x, y: innerTop, width: padding.left, height: innerHeight },
+      { x: pb.x, y: pb.y, width: padding.left, height: pb.height },
       "x",
       -1,
     ),
@@ -124,9 +123,9 @@ function buildPaddingBands(
       "right",
       {
         x: pb.x + pb.width - padding.right,
-        y: innerTop,
+        y: pb.y,
         width: padding.right,
-        height: innerHeight,
+        height: pb.height,
       },
       "x",
       1,

@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [padding hover 사선 — 좌·우 띠가 상·하 padding 만큼 짧게 그려지던 것] - 2026-09-20
+
+### Fixed
+
+- 선택 요소 hover 시 padding 사선 (ADR-222) 이 상·하는 폭 전체인데 좌·우는 높이에서 상·하 padding 을 뺀 구간만 그려졌다 (사용자 지적 — Figma 는 네 변 모두 변 전체). `spacingGeometry.buildPaddingBands` 의 좌·우 띠 rect 를 padding-box 높이 전체로. 코너는 상·하와 겹치지만 히트는 배열 순서 (상·하 먼저) 라 코너 소유 (§3.2) 는 종전대로 — 단위 테스트에 코너 히트 케이스 추가. 검증: 단위 242 · ADR-222 live 27/27 · live 스크린샷 (left 40 hover 사선이 위·아래 변까지).
+
 ## [캔버스 DOM 오버레이 카메라 추종 sweep — spacing 인라인 입력 · 컨텍스트 메뉴] - 2026-09-20
 
 ### Fixed
