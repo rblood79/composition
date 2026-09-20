@@ -1,6 +1,8 @@
-// grid-row-margin-live.mjs — auto 행 grid 의 자식 margin 이 행 트랙 (컨테이너 높이) 에 들어가는지
-//   Skia layout rect vs Preview iframe DOM rect 대조 (실제 빌더 부팅, 2026-09-20 엔진 row_intrinsic
-//   margin-box 기여 수리). node apps/builder/scripts/grid-row-margin-live.mjs [--headless]
+// grid-row-margin-live.mjs — 컨테이너 auto 크기에 자식 margin-box 가 들어가는지 (grid 행 · flex 양축 ·
+//   block shrink-to-fit) + grid 행이 area 폭으로 재지는지 — Skia layout rect vs Preview iframe DOM rect
+//   대조 (실제 빌더 부팅, 2026-09-20 엔진 row_intrinsic margin-box · 양축 sweep 수리).
+//   node apps/builder/scripts/grid-row-margin-live.mjs [--headless]
+//   kids[].kids 로 손자까지 (wrap flex 안의 항목).
 import { chromium } from "playwright";
 import { resolve } from "node:path";
 const REPO = "/Users/admin/work/composition";
@@ -30,7 +32,9 @@ const CASES = [
       display: "grid",
       gridTemplateColumns: "1fr 1fr",
       width: "300px",
-      borderStyle: "solid", borderWidth: 1, borderColor: "#0000FF",
+      borderStyle: "solid",
+      borderWidth: 1,
+      borderColor: "#0000FF",
     },
     kids: [
       {
@@ -40,9 +44,17 @@ const CASES = [
         marginRight: "10px",
         marginBottom: "10px",
         marginLeft: "10px",
-        borderStyle: "solid", borderWidth: 1, borderColor: "#FF0000",
+        borderStyle: "solid",
+        borderWidth: 1,
+        borderColor: "#FF0000",
       },
-      { width: "40px", height: "20px", borderStyle: "solid", borderWidth: 1, borderColor: "#00AA00" },
+      {
+        width: "40px",
+        height: "20px",
+        borderStyle: "solid",
+        borderWidth: 1,
+        borderColor: "#00AA00",
+      },
     ],
   },
   {
@@ -53,16 +65,165 @@ const CASES = [
       gridTemplateRows: "auto auto",
       rowGap: "8px",
       width: "300px",
-      borderStyle: "solid", borderWidth: 1, borderColor: "#0000FF",
+      borderStyle: "solid",
+      borderWidth: 1,
+      borderColor: "#0000FF",
     },
     kids: [
       {
         width: "40px",
         height: "10px",
         marginBottom: "30px",
-        borderStyle: "solid", borderWidth: 1, borderColor: "#FF0000",
+        borderStyle: "solid",
+        borderWidth: 1,
+        borderColor: "#FF0000",
       },
-      { width: "40px", height: "10px", marginTop: "4px", borderStyle: "solid", borderWidth: 1, borderColor: "#AA00AA" },
+      {
+        width: "40px",
+        height: "10px",
+        marginTop: "4px",
+        borderStyle: "solid",
+        borderWidth: 1,
+        borderColor: "#AA00AA",
+      },
+    ],
+  },
+  {
+    key: "flex row auto 높이 > 자식 marginTop 10 / marginBottom 30 → 80",
+    frame: {
+      display: "flex",
+      flexDirection: "row",
+      width: "300px",
+      borderStyle: "solid",
+      borderWidth: 1,
+      borderColor: "#0000FF",
+    },
+    kids: [
+      {
+        width: "40px",
+        height: "40px",
+        marginTop: "10px",
+        marginBottom: "30px",
+        borderStyle: "solid",
+        borderWidth: 1,
+        borderColor: "#FF0000",
+      },
+      {
+        width: "40px",
+        height: "40px",
+        borderStyle: "solid",
+        borderWidth: 1,
+        borderColor: "#00AA00",
+      },
+    ],
+  },
+  {
+    key: "flex row > shrink-to-fit flex row 자식 > marginRight 20 → 내부 폭 62 (2+40+20)",
+    frame: {
+      display: "flex",
+      flexDirection: "row",
+      width: "300px",
+      borderStyle: "solid",
+      borderWidth: 1,
+      borderColor: "#0000FF",
+    },
+    kids: [
+      {
+        display: "flex",
+        flexDirection: "row",
+        borderStyle: "solid",
+        borderWidth: 1,
+        borderColor: "#FF0000",
+        kids: [
+          {
+            width: "40px",
+            height: "40px",
+            marginRight: "20px",
+            borderStyle: "solid",
+            borderWidth: 1,
+            borderColor: "#00AA00",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    key: "grid 2열 auto 행 > wrap flex 자식 (100×3) → area 폭 149 에서 3줄 (Chrome 122)",
+    frame: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      width: "300px",
+      borderStyle: "solid",
+      borderWidth: 1,
+      borderColor: "#0000FF",
+    },
+    kids: [
+      {
+        display: "flex",
+        flexDirection: "row",
+        flexWrap: "wrap",
+        borderStyle: "solid",
+        borderWidth: 1,
+        borderColor: "#FF0000",
+        kids: [
+          {
+            width: "100px",
+            height: "40px",
+            borderStyle: "solid",
+            borderWidth: 1,
+            borderColor: "#00AA00",
+          },
+          {
+            width: "100px",
+            height: "40px",
+            borderStyle: "solid",
+            borderWidth: 1,
+            borderColor: "#00AA00",
+          },
+          {
+            width: "100px",
+            height: "40px",
+            borderStyle: "solid",
+            borderWidth: 1,
+            borderColor: "#00AA00",
+          },
+        ],
+      },
+      {
+        width: "40px",
+        height: "10px",
+        borderStyle: "solid",
+        borderWidth: 1,
+        borderColor: "#AA00AA",
+      },
+    ],
+  },
+  {
+    key: "grid 2열 auto 행 > 자식 margin 5% (area 149 기준 7.45) → 트랙 54.9",
+    frame: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      width: "300px",
+      borderStyle: "solid",
+      borderWidth: 1,
+      borderColor: "#0000FF",
+    },
+    kids: [
+      {
+        width: "40px",
+        height: "40px",
+        margin: "5%",
+        borderStyle: "solid",
+        borderWidth: 1,
+        borderColor: "#FF0000",
+      },
+      {
+        width: "40px",
+        height: "10px",
+        borderStyle: "solid",
+        borderWidth: 1,
+        borderColor: "#00AA00",
+      },
     ],
   },
   {
@@ -72,14 +233,18 @@ const CASES = [
       gridTemplateColumns: "100px",
       gridTemplateRows: "30px",
       width: "300px",
-      borderStyle: "solid", borderWidth: 1, borderColor: "#0000FF",
+      borderStyle: "solid",
+      borderWidth: 1,
+      borderColor: "#0000FF",
     },
     kids: [
       {
         width: "40px",
         height: "10px",
         marginBottom: "50px",
-        borderStyle: "solid", borderWidth: 1, borderColor: "#FF0000",
+        borderStyle: "solid",
+        borderWidth: 1,
+        borderColor: "#FF0000",
       },
     ],
   },
@@ -128,7 +293,11 @@ async function addFromPalette(page, query, parentId) {
   return page.evaluate((before) => {
     const st = window.__composition_STORE__.getState();
     const fresh = st.elements.filter((e) => !before.includes(e.id));
-    return { id: fresh[0].id, type: fresh[0].type ?? fresh[0].tag, parent: fresh[0].parent_id };
+    return {
+      id: fresh[0].id,
+      type: fresh[0].type ?? fresh[0].tag,
+      parent: fresh[0].parent_id,
+    };
   }, before);
 }
 const setStyle = (page, id, style, extra = {}) =>
@@ -166,15 +335,29 @@ try {
     await setStyle(page, f.id, c.frame);
     await page.waitForTimeout(300);
     const kids = [];
+    const grandkids = [];
     for (const k of c.kids) {
+      const { kids: sub, ...style } = k;
       const t = await addFromPalette(page, "frame", f.id);
       if (t.parent !== f.id) log("warn: 자식 부모 불일치", t);
-      await setStyle(page, t.id, k);
+      await setStyle(page, t.id, style);
       await page.waitForTimeout(300);
       kids.push(t.id);
+      for (const g of sub ?? []) {
+        const gt = await addFromPalette(page, "frame", t.id);
+        if (gt.parent !== t.id) log("warn: 손자 부모 불일치", gt);
+        await setStyle(page, gt.id, g);
+        await page.waitForTimeout(300);
+        grandkids.push(gt.id);
+      }
     }
-    added.push({ ...c, id: f.id, kids });
-    log("added", c.key, f.id.slice(0, 8), kids.map((k) => k.slice(0, 8)));
+    added.push({ ...c, id: f.id, kids, grandkids });
+    log(
+      "added",
+      c.key,
+      f.id.slice(0, 8),
+      kids.map((k) => k.slice(0, 8)),
+    );
   }
   await setPanel(page, "components", false);
   await page.evaluate(() =>
@@ -184,7 +367,7 @@ try {
   await page.goto(page.url(), { waitUntil: "networkidle" });
   await waitReady(page);
   await page.waitForTimeout(2500);
-  const allIds = added.flatMap((a) => [a.id, ...a.kids]);
+  const allIds = added.flatMap((a) => [a.id, ...a.kids, ...a.grandkids]);
   const skia = await page.evaluate((ids) => {
     const lm = window.__composition_LAYOUT_DEBUG__.getSharedLayoutMap();
     const out = {};
@@ -240,8 +423,12 @@ try {
         const p = el.parentElement?.closest("[data-element-id]");
         const pr = p?.getBoundingClientRect() ?? { x: 0, y: 0 };
         const pcs = p ? getComputedStyle(p) : null;
-        const px = pcs ? parseFloat(pcs.paddingLeft) + parseFloat(pcs.borderLeftWidth) : 0;
-        const py = pcs ? parseFloat(pcs.paddingTop) + parseFloat(pcs.borderTopWidth) : 0;
+        const px = pcs
+          ? parseFloat(pcs.paddingLeft) + parseFloat(pcs.borderLeftWidth)
+          : 0;
+        const py = pcs
+          ? parseFloat(pcs.paddingTop) + parseFloat(pcs.borderTopWidth)
+          : 0;
         out[id] = {
           rect: [r.x - pr.x - px, r.y - pr.y - py, r.width, r.height],
           display: getComputedStyle(el).display,
@@ -255,7 +442,11 @@ try {
   let bad = 0;
   for (const a of added) {
     log(`# ${a.key}`);
-    for (const [label, id] of [["frame", a.id], ...a.kids.map((k, i) => [`kid${i}`, k])]) {
+    for (const [label, id] of [
+      ["frame", a.id],
+      ...a.kids.map((k, i) => [`kid${i}`, k]),
+      ...a.grandkids.map((k, i) => [`grand${i}`, k]),
+    ]) {
       const s = skia[id];
       const d = dom[id]?.rect;
       // frame 은 크기만 (body 안 위치는 다른 형제 누적), 자식은 부모 상대 x/y + 크기
@@ -275,7 +466,7 @@ try {
   });
   await page.screenshot({
     path: `${process.env.SHOT_DIR ?? "/tmp"}/grid-compare-crop.png`,
-    clip: { x: 160, y: 20, width: 1130, height: 220 },
+    clip: { x: 160, y: 20, width: 1130, height: 520 },
   });
   log("pageerrors", errors.length, errors.slice(0, 3));
   log(bad === 0 ? "ALL OK" : `DIFF ${bad}`);

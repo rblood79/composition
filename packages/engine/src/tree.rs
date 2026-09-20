@@ -1252,18 +1252,13 @@ impl LayoutTree {
         (cw + m_h, cw + m_h, true)
     }
 
-    /// 자식의 세로 margin 합 (px 만 — `%`/auto 는 0). grid 행 기여를 margin-box 로 올릴 때 쓴다.
-    fn child_block_margin_px(&self, c: usize, container_w: f32) -> f32 {
+    /// 자식의 세로 margin 합 (`%` 는 `area_w` 기준 · auto 는 0). grid 행 기여를 margin-box 로
+    /// 올릴 때 쓴다 — 열이 먼저 확정되므로 인라인 축 (`col_contribution`) 과 달리 순환이 아니다.
+    fn child_block_margin(&self, c: usize, area_w: f32) -> f32 {
         let Some(n) = self.get(c) else { return 0.0 };
-        let ctx = self.ctx_for(container_w.max(0.0));
-        let resolve_margin = |v: Option<&str>| -> f32 {
-            match v.map(str::trim) {
-                Some(t) if t.ends_with('%') => 0.0,
-                _ => resolve_signed(v, &ctx),
-            }
-        };
-        resolve_margin(n.style.margin_top.as_deref())
-            + resolve_margin(n.style.margin_bottom.as_deref())
+        let ctx = self.ctx_for(area_w.max(0.0));
+        resolve_signed(n.style.margin_top.as_deref(), &ctx)
+            + resolve_signed(n.style.margin_bottom.as_deref(), &ctx)
     }
 
     /// 자식의 **블록 축이 auto** 이면 상하 pad+border 합, 아니면 0 (인라인 축 대칭).
@@ -3224,13 +3219,9 @@ impl LayoutTree {
                     if avail_main >= 0.0 { Some(avail_main) } else { None },
                 )
             };
-            let mut cmax_x: f32 = 0.0;
-            let mut cmax_y: f32 = 0.0;
-            for i in 0..children.len() {
-                let off = i * 4;
-                cmax_x = cmax_x.max(out[off] + out[off + 2]);
-                cmax_y = cmax_y.max(out[off + 1] + out[off + 3]);
-            }
+            // content extent 는 **margin-box** (아래 4) 와 같은 값) — border-box 로 반사하면
+            // end margin 이 반대편에서 사라진다.
+            let (cmax_x, cmax_y) = flex_margin_box_extent(&out, &data, children.len());
             let ext_x = x_size.unwrap_or(cmax_x);
             let ext_y = y_size.unwrap_or(cmax_y);
             for i in 0..children.len() {
@@ -3247,8 +3238,18 @@ impl LayoutTree {
         // 4) 자식 위치 반영 + bounding box 로 컨테이너 content 크기 도출.
         //    bounding box 는 offset 전 좌표 기준(컨테이너 content 크기), 저장은 offset 후
         //    (자식 화면 좌표는 padding 안쪽) — 섞으면 컨테이너 크기에 padding 이중 반영.
-        let mut max_right: f32 = 0.0;
-        let mut max_bottom: f32 = 0.0;
+        // auto 축의 content 크기는 자식 **margin-box** 의 extent 다 (§9.2 step 3·§9.4 step 8·
+        // §9.9 — 라인 main 은 outer main 합, 라인 cross 는 outer cross 최댓값). 종전 border-box
+        // bbox 는 end margin (right/bottom) 을 빼먹었다 — row auto 높이 + `marginBottom:30` 자식
+        // Chrome 80 / 엔진 50, shrink-to-fit row 의 `marginRight:20` 65 / 45 (2026-09-20 양축
+        // sweep). 반사 (3.9) 뒤 좌표라 물리 end margin 은 반사 여부로 고른다.
+        let (max_right, max_bottom) = if main_reverse || cross_reverse {
+            let reflect_x = if is_row { main_reverse } else { cross_reverse };
+            let reflect_y = if is_row { cross_reverse } else { main_reverse };
+            flex_margin_box_extent_reflected(&out, &data, children.len(), reflect_x, reflect_y)
+        } else {
+            flex_margin_box_extent(&out, &data, children.len())
+        };
         // ADR-923 Phase 3: wrap row 컨테이너의 min-content 측정용 — 최대 item outer 기여
         // (css-flexbox-1 §9.9: wrap 의 min-content main 은 합산이 아니라 최대 item).
         let min_wrap_measure =
@@ -3262,8 +3263,6 @@ impl LayoutTree {
         for (i, &c) in children.iter().enumerate() {
             let off = i * 4;
             let (x, y, w, h) = (out[off], out[off + 1], out[off + 2], out[off + 3]);
-            max_right = max_right.max(x + w);
-            max_bottom = max_bottom.max(y + h);
             if min_wrap_measure {
                 let cst = self.get(c).map(|n| n.style.clone()).unwrap_or_default();
                 let outer = w
@@ -3618,7 +3617,15 @@ impl LayoutTree {
                     x
                 };
             }
-            max_right = max_right.max(x + w);
+            // shrink-to-fit 폭은 자식 **margin-box** 의 max-content (CSS 2.1 §10.3.5 / CSS-SIZING-3
+            // §5.1) — x 는 margin-left 를 이미 품고 있으니 margin-right 만 더한다. `%`/auto 는 0
+            // (intrinsic 기여의 백분율 = 0, §5.2.1). 종전 border-box 는 flex item 블록 안 자식
+            // `marginRight:20` 이 Chrome 65 / 엔진 45 (2026-09-20 양축 sweep).
+            let m_right = match cstyle.margin_right.as_deref().map(str::trim) {
+                Some(t) if t.ends_with('%') || t.eq_ignore_ascii_case("auto") => 0.0,
+                v => resolve_signed(v, &self.ctx_for(0.0)),
+            };
+            max_right = max_right.max(x + w + m_right);
             if let Some(n) = self.get_mut(c) {
                 let child_baseline = n.layout.baseline;
                 n.layout =
@@ -4018,122 +4025,13 @@ impl LayoutTree {
             }
         }
 
-        // ── 행 트랙 sizing (블록 축) — 트랙 목록의 소유자는 tree.rs 다 ──
+        // ── 열 트랙을 **먼저** 확정한다 (CSS-GRID-1 §12.1 step 1 → step 2) ──
         //
-        // grid.rs 는 **자식을 모른다**. `auto` 를 1fr 로 근사(available 분배)하므로 측정 없이는
-        // `height:auto` 컨테이너에서 auto row 가 상속 available 을 나눠 가져 폭발(availH>0)
-        // 하거나 0 으로 붕괴(availH<0)한다. 그래서 여기서 자식 기여로 행을 px 로 확정해 넘긴다.
-        // 토큰화는 grid.rs 와 **같은 함수**를 쓴다 — `split_whitespace` 는 `minmax(50px, 80px)`
-        // 처럼 내부에 공백이 있는 토큰을 두 조각으로 쪼갠다.
-        //
-        // **행 목록 = 명시 토큰 ++ 암묵 토큰**. 암묵 행의 크기는 `grid-auto-rows` 가 정하고
-        // (기본 `auto`, 값이 여러 개면 첫 암묵 행부터 순환), 자식이 쓰는 최대 row 까지 만든다.
-        // 종전엔 명시 토큰이 하나라도 있으면 암묵 행을 아예 만들지 않아 grid.rs 의
-        // `cell_bounds_for_child` 가 범위 밖 트랙을 0 으로 읽었다 — 자식이 같은 y 에 겹치고
-        // 컨테이너도 그만큼 짧아진다 (실측 `30px` 1행 + 자식 3개: DOM 70 / 엔진 50, k2 가 k1 위).
-        //
-        // **블록 축이 미결정이면 전 토큰을 기여로 세운다** (§12.5–§12.7.1, 인라인 축과 동형).
-        // `1fr`/`%` 는 나눠 줄 여유가 없으니 content 크기가 되어야 하는데 종전 경로는 그 둘을
-        // 상속 available 로 풀었다. 미결정 축에서는 이 확정 결과가 곧 컨테이너 높이다(`final_h`).
-        let auto_row_tokens: Vec<String> = style
-            .grid_auto_rows
-            .as_deref()
-            .map(|v| {
-                v.iter()
-                    .map(|t| t.trim().to_string())
-                    .filter(|t| !t.is_empty())
-                    .collect()
-            })
-            .filter(|v: &Vec<String>| !v.is_empty())
-            .unwrap_or_else(|| vec!["auto".to_string()]);
-        let child_rows: Vec<usize> = placed_cells.iter().map(|p| p.0).collect();
-        // 암묵 행은 flow 와 무관하게 배치가 쓰는 만큼 생긴다 (span 끝까지) — col-flow 도
-        // 명시 행이 없으면 암묵 행 1개다 (ADR-206 G11: 종전 row_count 0 → 컨테이너 높이 0).
-        let row_count = placed_cells
-            .iter()
-            .map(|p| p.0 + p.2)
-            .max()
-            .unwrap_or(0)
-            .max(explicit_row_tokens.len());
-        let row_tokens: Vec<String> = (0..row_count)
-            .map(|r| match explicit_row_tokens.get(r) {
-                Some(t) => t.clone(),
-                None => auto_row_tokens
-                    [(r - explicit_row_tokens.len()) % auto_row_tokens.len()]
-                .clone(),
-            })
-            .collect();
-
-        let block_indefinite = explicit_h <= 0.0;
-        let needs_row_measure =
-            block_indefinite || row_tokens.iter().any(|t| track_needs_contribution(t));
-
-        // 행별 content 기여. **블록 축은 min-content == max-content** 로 둔다 — 높이는 폭이
-        // 정해진 뒤의 내용 크기 하나뿐이라 두 값이 갈리지 않는다 (인라인 축과 다른 점).
-        let mut row_intrinsic: Vec<f32> = vec![0.0; row_count];
-        if needs_row_measure && !children.is_empty() {
-            measured_with_container = true;
-            for (i, &c) in children.iter().enumerate() {
-                let row = child_rows[i];
-                let (cw, ch) = self.solve_node(c, container_w, container_h);
-                // auto 높이의 solve 반환은 content-box — 행 기여는 border-box 라 pad/border 를
-                // 더한다 (인라인 축 `col_contribution` 과 대칭. 실측: padded 컨테이너 행 20 / 40).
-                let ch = ch + self.child_auto_block_pad_border(c, container_w, container_h);
-                // §6.6 — 고정 max 트랙만 span 하는 auto-height 아이템의 최소 기여 clamp.
-                let fixed_max = row_tokens
-                    .get(row)
-                    .and_then(|t| track_fixed_max(t, container_h));
-                let ch = self.clamp_auto_min_contribution(c, ch, fixed_max, false);
-                let (_, ch) = self.track_contribution(c, cw, ch, container_w, container_h);
-                // §12.5 기여는 **outer size(margin-box)** — `col_contribution` 과 대칭으로 세로
-                // margin 을 clamp **뒤**에 더한다 (min/max-height 는 border-box 대상). 종전엔 안
-                // 더해 auto 행 + `margin:10px` 자식의 컨테이너가 Chrome 60 / 엔진 40 이었다
-                // (2026-09-20). `%` margin 은 인라인 축과 같이 0 — 기준(grid area 폭)이 열
-                // sizing 뒤에야 정해지는데 이 루프는 그보다 앞이라 순환이다.
-                let ch = ch + self.child_block_margin_px(c, container_w);
-                if row < row_intrinsic.len() {
-                    row_intrinsic[row] = row_intrinsic[row].max(ch);
-                }
-            }
-        }
-
-        let row_auto_idx: Vec<usize> = row_tokens
-            .iter()
-            .enumerate()
-            .filter(|(_, t)| track_max_sizing_is_auto(t))
-            .map(|(r, _)| r)
-            .collect();
-
-        // 블록 축 트랙 extent — 미결정 축에서는 이것이 곧 컨테이너 높이다.
-        let mut row_extent: Option<f32> = None;
-        template_rows = if block_indefinite {
-            let sizes = grid_intrinsic_track_sizes(
-                &row_tokens,
-                &row_intrinsic,
-                &row_intrinsic,
-                IntrinsicMode::Max,
-            );
-            row_extent =
-                Some(sizes.iter().sum::<f32>() + row_gap * (row_count as f32 - 1.0).max(0.0));
-            sizes
-                .iter()
-                .map(|s| format!("{s}px"))
-                .collect::<Vec<_>>()
-                .join(" ")
-        } else {
-            // definite 축 — content 기반 토큰만 측정값으로 해소, px/fr/% 는 원본 유지
-            // (그 뒤 §12.8 stretch 가 auto 트랙에 여유를 분배한다).
-            row_tokens
-                .iter()
-                .enumerate()
-                .map(|(r, tok)| {
-                    let h = row_intrinsic.get(r).copied().unwrap_or(0.0);
-                    resolve_track_with_contribution(tok, h, h)
-                })
-                .collect::<Vec<_>>()
-                .join(" ")
-        };
-
+        // 행 기여는 "그 grid area 폭에서의 내용 높이" 다 (§12.5 — 블록 축 기여는 인라인 축이
+        // 정해진 뒤). 종전엔 행을 열보다 먼저, 자식을 **컨테이너 폭**으로 solve 해 쟀다 — 2열
+        // grid 의 wrap 자식이 컨테이너 400 에서 1줄 (40) 로 재져 Chrome 80 / 엔진 40, 블록 축
+        // `%` margin/padding 도 기준이 없어 0 이었다 (2026-09-20 양축 sweep). 열이 먼저 서면
+        // 각 자식의 area 폭이 나오고 행은 그 폭으로 잰다.
         // auto **column** intrinsic 측정 (row 와 대칭). `gridTemplateColumns:"1fr auto"`
         // 에서 auto col 은 CSS 상 그 col 자식들의 max content width. grid.rs 는 auto 를 1fr
         // 로 근사(available 분배)하므로, 측정 없이는 auto col 이 1fr 과 available 을 나눠 가져
@@ -4197,11 +4095,6 @@ impl LayoutTree {
         // vs 엔진 400 으로 어긋나 있다 — **`auto` 와 무관한 별개 축**이라 여기서 같이 풀지
         // 않는다. 좁힌 게이트는 그 축을 건드리지 않고, `auto` 트랙이 우연히 맞던 경우
         // (flex item 그리드)를 깨지도 않는다. `gridItemBox.browser.test.ts` 의 스냅샷이 고정.
-        let mut row_tracks: Vec<String> = grid::tokenize_template(&template_rows);
-        if explicit_h > 0.0 && distribution_allows_stretch(style.align_content.as_deref()) {
-            stretch_auto_tracks(&mut row_tracks, &row_auto_idx, container_h, row_gap);
-            template_rows = row_tracks.join(" ");
-        }
         // **인라인 축은 stretch-fit 도 definite** 다 — block-level `width:auto` 박스는 CSS 상
         //   containing block 을 채우므로(§10.3.3) 나눠 줄 여유가 있다. 그 구분은 이제 위
         //   `inline_intrinsic` 이 준다: shrink-to-fit(flex item / 측정 모드 / 키워드)이면
@@ -4217,6 +4110,151 @@ impl LayoutTree {
             } else {
                 template_cols
             };
+
+        // ── 행 트랙 sizing (블록 축) — 트랙 목록의 소유자는 tree.rs 다 ──
+        //
+        // grid.rs 는 **자식을 모른다**. `auto` 를 1fr 로 근사(available 분배)하므로 측정 없이는
+        // `height:auto` 컨테이너에서 auto row 가 상속 available 을 나눠 가져 폭발(availH>0)
+        // 하거나 0 으로 붕괴(availH<0)한다. 그래서 여기서 자식 기여로 행을 px 로 확정해 넘긴다.
+        // 토큰화는 grid.rs 와 **같은 함수**를 쓴다 — `split_whitespace` 는 `minmax(50px, 80px)`
+        // 처럼 내부에 공백이 있는 토큰을 두 조각으로 쪼갠다.
+        //
+        // **행 목록 = 명시 토큰 ++ 암묵 토큰**. 암묵 행의 크기는 `grid-auto-rows` 가 정하고
+        // (기본 `auto`, 값이 여러 개면 첫 암묵 행부터 순환), 자식이 쓰는 최대 row 까지 만든다.
+        // 종전엔 명시 토큰이 하나라도 있으면 암묵 행을 아예 만들지 않아 grid.rs 의
+        // `cell_bounds_for_child` 가 범위 밖 트랙을 0 으로 읽었다 — 자식이 같은 y 에 겹치고
+        // 컨테이너도 그만큼 짧아진다 (실측 `30px` 1행 + 자식 3개: DOM 70 / 엔진 50, k2 가 k1 위).
+        //
+        // **블록 축이 미결정이면 전 토큰을 기여로 세운다** (§12.5–§12.7.1, 인라인 축과 동형).
+        // `1fr`/`%` 는 나눠 줄 여유가 없으니 content 크기가 되어야 하는데 종전 경로는 그 둘을
+        // 상속 available 로 풀었다. 미결정 축에서는 이 확정 결과가 곧 컨테이너 높이다(`final_h`).
+        let auto_row_tokens: Vec<String> = style
+            .grid_auto_rows
+            .as_deref()
+            .map(|v| {
+                v.iter()
+                    .map(|t| t.trim().to_string())
+                    .filter(|t| !t.is_empty())
+                    .collect()
+            })
+            .filter(|v: &Vec<String>| !v.is_empty())
+            .unwrap_or_else(|| vec!["auto".to_string()]);
+        let child_rows: Vec<usize> = placed_cells.iter().map(|p| p.0).collect();
+        // 암묵 행은 flow 와 무관하게 배치가 쓰는 만큼 생긴다 (span 끝까지) — col-flow 도
+        // 명시 행이 없으면 암묵 행 1개다 (ADR-206 G11: 종전 row_count 0 → 컨테이너 높이 0).
+        let row_count = placed_cells
+            .iter()
+            .map(|p| p.0 + p.2)
+            .max()
+            .unwrap_or(0)
+            .max(explicit_row_tokens.len());
+        let row_tokens: Vec<String> = (0..row_count)
+            .map(|r| match explicit_row_tokens.get(r) {
+                Some(t) => t.clone(),
+                None => auto_row_tokens
+                    [(r - explicit_row_tokens.len()) % auto_row_tokens.len()]
+                .clone(),
+            })
+            .collect();
+
+        let block_indefinite = explicit_h <= 0.0;
+        let needs_row_measure =
+            block_indefinite || row_tokens.iter().any(|t| track_needs_contribution(t));
+
+        // 행별 content 기여. **블록 축은 min-content == max-content** 로 둔다 — 높이는 폭이
+        // 정해진 뒤의 내용 크기 하나뿐이라 두 값이 갈리지 않는다 (인라인 축과 다른 점).
+        let mut row_intrinsic: Vec<f32> = vec![0.0; row_count];
+        // 자식별 측정 폭 (grid area 폭) — 최종 셀 solve 의 stale 캐시 판정이 이 값과 비교한다.
+        let mut measured_w: Vec<f32> = vec![container_w; children.len()];
+        if needs_row_measure && !children.is_empty() {
+            measured_with_container = true;
+            // 열은 확정됐으니 placement 만으로 area 폭이 나온다 — 행 템플릿은 아직 미확정이라
+            // 가배치 (y/h 는 버린다). 커널 호출은 자식을 모르므로 비용이 트랙 수에 비례한다.
+            let area_bounds = grid::grid_layout(
+                &template_cols,
+                &template_rows,
+                "",
+                &placement_spec,
+                children.len() as u32,
+                container_w,
+                container_h.max(0.0),
+                col_gap,
+                row_gap,
+                "",
+                "",
+                style.grid_auto_flow.as_deref().unwrap_or(""),
+                &join_tracks(style.grid_auto_columns.as_deref()),
+                &join_tracks(style.grid_auto_rows.as_deref()),
+            );
+            for (i, &c) in children.iter().enumerate() {
+                let row = child_rows[i];
+                let area_w = area_bounds.get(i * 4 + 2).copied().unwrap_or(container_w);
+                let area_w = if area_w > 0.0 { area_w } else { container_w };
+                measured_w[i] = area_w;
+                let (cw, ch) = self.solve_node(c, area_w, container_h);
+                // auto 높이의 solve 반환은 content-box — 행 기여는 border-box 라 pad/border 를
+                // 더한다 (인라인 축 `col_contribution` 과 대칭. 실측: padded 컨테이너 행 20 / 40).
+                let ch = ch + self.child_auto_block_pad_border(c, area_w, container_h);
+                // §6.6 — 고정 max 트랙만 span 하는 auto-height 아이템의 최소 기여 clamp.
+                let fixed_max = row_tokens
+                    .get(row)
+                    .and_then(|t| track_fixed_max(t, container_h));
+                let ch = self.clamp_auto_min_contribution(c, ch, fixed_max, false);
+                let (_, ch) = self.track_contribution(c, cw, ch, area_w, container_h);
+                // §12.5 기여는 **outer size(margin-box)** — `col_contribution` 과 대칭으로 세로
+                // margin 을 clamp **뒤**에 더한다 (min/max-height 는 border-box 대상). 종전엔 안
+                // 더해 auto 행 + `margin:10px` 자식의 컨테이너가 Chrome 60 / 엔진 40 이었다
+                // (2026-09-20). 블록 축 `%` margin 은 area 폭 기준 — 열이 먼저 서서 순환이 아니다
+                // (Chrome 2열 400 + `margin:5%` → 10 · 트랙 60).
+                let ch = ch + self.child_block_margin(c, area_w);
+                if row < row_intrinsic.len() {
+                    row_intrinsic[row] = row_intrinsic[row].max(ch);
+                }
+            }
+        }
+
+        let row_auto_idx: Vec<usize> = row_tokens
+            .iter()
+            .enumerate()
+            .filter(|(_, t)| track_max_sizing_is_auto(t))
+            .map(|(r, _)| r)
+            .collect();
+
+        // 블록 축 트랙 extent — 미결정 축에서는 이것이 곧 컨테이너 높이다.
+        let mut row_extent: Option<f32> = None;
+        template_rows = if block_indefinite {
+            let sizes = grid_intrinsic_track_sizes(
+                &row_tokens,
+                &row_intrinsic,
+                &row_intrinsic,
+                IntrinsicMode::Max,
+            );
+            row_extent =
+                Some(sizes.iter().sum::<f32>() + row_gap * (row_count as f32 - 1.0).max(0.0));
+            sizes
+                .iter()
+                .map(|s| format!("{s}px"))
+                .collect::<Vec<_>>()
+                .join(" ")
+        } else {
+            // definite 축 — content 기반 토큰만 측정값으로 해소, px/fr/% 는 원본 유지
+            // (그 뒤 §12.8 stretch 가 auto 트랙에 여유를 분배한다).
+            row_tokens
+                .iter()
+                .enumerate()
+                .map(|(r, tok)| {
+                    let h = row_intrinsic.get(r).copied().unwrap_or(0.0);
+                    resolve_track_with_contribution(tok, h, h)
+                })
+                .collect::<Vec<_>>()
+                .join(" ")
+        };
+
+        let mut row_tracks: Vec<String> = grid::tokenize_template(&template_rows);
+        if explicit_h > 0.0 && distribution_allows_stretch(style.align_content.as_deref()) {
+            stretch_auto_tracks(&mut row_tracks, &row_auto_idx, container_h, row_gap);
+            template_rows = row_tracks.join(" ");
+        }
 
         // ADR-183 #7 — 커널에 넘어가는 **확정 트랙**. 여기까지 오면 §12.5 기여로 세운
         // base 에 §12.6/§12.7.1 이 얹히고 §12.8 stretch 까지 반영된 값이다. 트랙 폭을
@@ -4319,7 +4357,7 @@ impl LayoutTree {
             // 셀 크기가 측정 available 과 같으면 되살리지 않는다 — 증분 재사용 보존.
             const CELL_RESOLVE_EPS: f32 = 0.5;
             if measured_with_container
-                && ((w - container_w).abs() > CELL_RESOLVE_EPS
+                && ((w - measured_w.get(i).copied().unwrap_or(container_w)).abs() > CELL_RESOLVE_EPS
                     || (h - container_h).abs() > CELL_RESOLVE_EPS)
             {
                 self.mark_subtree_dirty(c);
@@ -6280,6 +6318,43 @@ fn resolve_inset(value: Option<&str>, ctx: &CssValueContext) -> Option<f32> {
 #[inline]
 fn resolve_signed(value: Option<&str>, ctx: &CssValueContext) -> f32 {
     resolve_inset(value, ctx).unwrap_or(0.0)
+}
+
+/// flex 자식 배치 (`out` = [x,y,w,h]×n, 커널 정방향 좌표) 의 **margin-box** extent (max right, max
+/// bottom). margin 은 `write_flex_item` 이 커널에 넘긴 값 (슬롯 4 = 논리 right, 5 = bottom — reverse
+/// 축은 이미 맞바꿔져 있다) 이라 커널 좌표의 end 쪽과 일치한다. auto margin 은 0 으로 실려 있다.
+fn flex_margin_box_extent(out: &[f32], data: &[f32], count: usize) -> (f32, f32) {
+    let mut max_right: f32 = 0.0;
+    let mut max_bottom: f32 = 0.0;
+    for i in 0..count {
+        let off = i * 4;
+        let doff = i * flex::FLEX_FIELD_COUNT;
+        max_right = max_right.max(out[off] + out[off + 2] + data[doff + 4]);
+        max_bottom = max_bottom.max(out[off + 1] + out[off + 3] + data[doff + 5]);
+    }
+    (max_right, max_bottom)
+}
+
+/// 반사 (3.9) **뒤** 좌표용 — 반사된 축의 물리 end margin 은 커널의 start 쪽 슬롯 (6 = left,
+/// 3 = top) 이다. 반사는 margin-box extent 를 보존하므로 값은 반사 전과 같다.
+fn flex_margin_box_extent_reflected(
+    out: &[f32],
+    data: &[f32],
+    count: usize,
+    reflect_x: bool,
+    reflect_y: bool,
+) -> (f32, f32) {
+    let mut max_right: f32 = 0.0;
+    let mut max_bottom: f32 = 0.0;
+    for i in 0..count {
+        let off = i * 4;
+        let doff = i * flex::FLEX_FIELD_COUNT;
+        let m_end_x = if reflect_x { data[doff + 6] } else { data[doff + 4] };
+        let m_end_y = if reflect_y { data[doff + 3] } else { data[doff + 5] };
+        max_right = max_right.max(out[off] + out[off + 2] + m_end_x);
+        max_bottom = max_bottom.max(out[off + 1] + out[off + 3] + m_end_y);
+    }
+    (max_right, max_bottom)
 }
 
 /// E15: aspect-ratio 파생 — 한 축만 definite 이고 다른 축이 auto(None)면 ratio 로 파생한다.

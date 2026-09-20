@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [컨테이너 auto 크기가 자식 end margin 을 빼먹던 결함 — flex 양축 · block shrink-to-fit · grid 행 측정 폭] - 2026-09-20
+
+### Fixed
+
+- 앞 항목 (grid 행 margin) 의 유사 패턴을 양축 × 컨테이너 종류로 sweep (`tests/parity/marginBoxContributionAxes.browser.test.ts` 12 케이스 × engine/pipeline) → 수정 전 RED 6:
+  - **flex** — `height:auto` row 컨테이너 안의 자식 `marginBottom:30` 이 Canvas 높이에 빠짐 (Chrome 80 / Canvas 50), shrink-to-fit row/column 의 `marginRight:20` (65 / 45), wrap 2 라인 (140 / 120). `solve_flex` 가 컨테이너 content 크기를 자식 **border-box** bbox 로 잡아 end margin 이 사라졌다 → margin-box extent (`flex_margin_box_extent`, reverse 반사 뒤에는 물리 end 슬롯 선택). 반사 (3.9) 의 content extent 도 같은 값.
+  - **block** — flex item 블록 (shrink-to-fit) 안 자식 `marginRight:20` (65 / 45). `solve_block` `max_right` 가 border-box → margin-right 가산 (`%`/auto 는 intrinsic 기여 0, CSS-SIZING-3 §5.2.1).
+  - **grid 행 측정 폭** — 행을 열보다 먼저, 자식을 **컨테이너 폭**으로 solve 해 재고 있었다. 2열 grid 안의 wrap flex 자식이 컨테이너 400 에서 1줄 (Chrome 80 / Canvas 40 — 실제 빌더 3줄 122 / 1줄), 블록 축 `%` margin/padding 은 기준이 없어 0. 열을 먼저 확정 (§12.1 step 1) 하고 가배치 `grid_layout` 으로 각 자식의 area 폭을 얻어 행을 그 폭으로 잰다 (step 2) — `%` margin 도 area 폭 기준 (Chrome 2열 400 + `margin:5%` → 트랙 60). 최종 셀 solve 의 stale 캐시 판정은 측정 폭과 비교.
+- 검증: Rust 431 · parity 1473 (기존 1449 회귀 0 — grid 재정렬이 gridItemBox/gridContainer* 스냅샷을 건드리지 않음) · canvas 단위 · live 실제 빌더 (`scripts/grid-row-margin-live.mjs` 8 케이스 22 rect) Skia layout = Preview DOM, Compare Mode 시각 일치. wasm 재빌드 필요.
+
 ## [auto 행 grid 의 자식 margin 이 Canvas 컨테이너 높이에 안 들어가던 결함] - 2026-09-20
 
 ### Fixed
