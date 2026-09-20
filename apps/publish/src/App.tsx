@@ -58,13 +58,13 @@ interface ProjectData {
   pages: Page[];
   elements: Element[];
   currentPageId: string | null;
-  projectName: string;
-  version: string;
   /** canonical document.events — 인터랙션 규칙 (ADR-158). 구 entry 는 색인이 걸러낸다 */
   events: readonly unknown[];
 }
 
-type LoadingState = "idle" | "loading" | "loaded" | "error";
+type LoadingState = "idle" | "loading" | "loaded";
+
+const EMPTY_PAGES: Page[] = [];
 
 // ============================================
 // Error Display Component
@@ -76,6 +76,12 @@ type LoadingState = "idle" | "loading" | "loaded" | "error";
  * (브라우저 `languagechange` 로 실제 일어난다). 로더가 만든 오류는 문구가 그대로 온다.
  */
 type PublishLoadError = ExportError & { messageKey?: PublishStringKey };
+
+/** 로드 실패 — 있으면 오류 화면. `loadingState` 와 따로 두면 두 상태를 손으로 맞춰야 한다. */
+interface LoadFailure {
+  error: PublishLoadError;
+  errors?: ExportError[];
+}
 
 interface ErrorDisplayProps {
   error: PublishLoadError;
@@ -161,6 +167,15 @@ function EmptyState({ message }: EmptyStateProps) {
   );
 }
 
+/** id 로 식별되는 `<style>` 하나를 교체한다 (테마 · 폰트 registry 가 같이 쓴다). */
+function replaceStyleTag(id: string, css: string): void {
+  document.getElementById(id)?.remove();
+  const style = document.createElement("style");
+  style.id = id;
+  style.textContent = css;
+  document.head.appendChild(style);
+}
+
 // ============================================
 // Theme Config Helper (ADR-021 Phase C)
 // ============================================
@@ -204,15 +219,10 @@ function applyThemeConfig(themeConfig?: {
   }
 
   if (lines.length === 0) return;
-
-  // 기존 스타일 태그 제거 (중복 방지)
-  const existing = document.getElementById("composition-theme-config");
-  if (existing) existing.remove();
-
-  const style = document.createElement("style");
-  style.id = "composition-theme-config";
-  style.textContent = `:root {\n  ${lines.join("\n  ")}\n}`;
-  document.head.appendChild(style);
+  replaceStyleTag(
+    "composition-theme-config",
+    `:root {\n  ${lines.join("\n  ")}\n}`,
+  );
 }
 
 // ============================================
@@ -241,20 +251,12 @@ function injectGoogleFontsCss() {
   document.head.appendChild(link);
 }
 
+const CUSTOM_FONTS_CSS_ID = "composition-publish-custom-fonts";
+
 function injectFontRegistryFromData(fontRegistry?: FontRegistryV2) {
   if (!fontRegistry || !fontRegistry.faces?.length) return;
-
   const css = buildRegistryFontFaceCss(fontRegistry);
-  if (!css) return;
-
-  // 기존 스타일 태그 제거 (중복 방지)
-  const existing = document.getElementById("composition-publish-custom-fonts");
-  if (existing) existing.remove();
-
-  const styleEl = document.createElement("style");
-  styleEl.id = "composition-publish-custom-fonts";
-  styleEl.textContent = css;
-  document.head.appendChild(styleEl);
+  if (css) replaceStyleTag(CUSTOM_FONTS_CSS_ID, css);
 }
 
 // ============================================
@@ -267,8 +269,7 @@ export function App() {
   const [projectData, setProjectData] = useState<ProjectData | null>(null);
   const collectionServices = useMemo(() => createCollectionSnapshotServices(projectData?.collections ?? [], projectData?.apiEndpoints ?? []), [projectData?.collections, projectData?.apiEndpoints]);
   const [loadingState, setLoadingState] = useState<LoadingState>("idle");
-  const [error, setError] = useState<PublishLoadError | null>(null);
-  const [errors, setErrors] = useState<ExportError[] | undefined>(undefined);
+  const [loadFailure, setLoadFailure] = useState<LoadFailure | null>(null);
   const [warnings, setWarnings] = useState<ExportError[] | undefined>(
     undefined,
   );
@@ -279,34 +280,25 @@ export function App() {
     // Google Fonts CSS 주입
     injectGoogleFontsCss();
 
+    // FontRegistryV2 기반 폰트 로드 (ADR-014 Phase D) — 페이로드의 fontRegistry 가 같은
+    // style 을 나중에 덮어쓴다.
     try {
-      // FontRegistryV2 기반 폰트 로드 (ADR-014 Phase D)
-      const registry = loadFontRegistry();
-      const css = buildRegistryFontFaceCss(registry);
-      if (!css) return;
-
-      const styleEl = document.createElement("style");
-      styleEl.id = "composition-publish-custom-fonts";
-      styleEl.textContent = css;
-      document.head.appendChild(styleEl);
-
-      return () => {
-        styleEl.remove();
-      };
+      injectFontRegistryFromData(loadFontRegistry());
     } catch {
       return;
     }
+    return () => document.getElementById(CUSTOM_FONTS_CSS_ID)?.remove();
   }, []);
 
   // 페이지 라우팅
   const { currentPageId, currentPage, setCurrentPageId } = usePageRouting({
-    pages: projectData?.pages || [],
+    pages: projectData?.pages ?? EMPTY_PAGES,
     defaultPageId: projectData?.currentPageId,
   });
 
-  // 현재 페이지의 요소들
-  const currentElements =
-    projectData?.elements.filter((el) => el.page_id === currentPageId) || [];
+  // 현재 페이지에 요소가 하나라도 있는가 (렌더 자체는 PageRenderer 가 거른다)
+  const hasCurrentElements =
+    projectData?.elements.some((el) => el.page_id === currentPageId) ?? false;
 
   // 프로젝트 데이터 설정
   const setProject = useCallback(
@@ -320,8 +312,6 @@ export function App() {
         pages: renderModel.pages,
         elements: renderModel.elements,
         currentPageId: renderModel.currentPageId,
-        projectName: data.project.name,
-        version: data.version,
         events: data.document.events ?? [],
         collections: data.collections ?? [],
         apiEndpoints: data.apiEndpoints ?? [],
@@ -336,20 +326,35 @@ export function App() {
       setProjectData(projectData);
       setWarnings(loadWarnings);
       setLoadingState("loaded");
-      setError(null);
-      setErrors(undefined);
+      setLoadFailure(null);
     },
     [],
   );
 
   // 에러 설정
   const setLoadError = useCallback(
-    (err: PublishLoadError, allErrors?: ExportError[]) => {
-      setError(err);
-      setErrors(allErrors);
-      setLoadingState("error");
+    (error: PublishLoadError, errors?: ExportError[]) => {
+      setLoadFailure({ error, errors });
+      setLoadingState("idle");
     },
     [],
+  );
+
+  // 로더 결과 → 상태 (URL · 드롭 · 파일 선택 공용)
+  const applyLoadResult = useCallback(
+    (result: Awaited<ReturnType<typeof loadProjectFromUrl>>) => {
+      if (result.success) setProject(result.data, result.warnings);
+      else setLoadError(result.error, result.errors);
+    },
+    [setProject, setLoadError],
+  );
+
+  const loadFile = useCallback(
+    async (file: File) => {
+      setLoadingState("loading");
+      applyLoadResult(await loadProjectFromFile(file));
+    },
+    [applyLoadResult],
   );
 
   // URL 파라미터에서 프로젝트 로드
@@ -360,13 +365,7 @@ export function App() {
 
       if (projectUrl) {
         setLoadingState("loading");
-        const result = await loadProjectFromUrl(projectUrl);
-
-        if (result.success) {
-          setProject(result.data, result.warnings);
-        } else {
-          setLoadError(result.error, result.errors);
-        }
+        applyLoadResult(await loadProjectFromUrl(projectUrl));
         return true;
       }
       return false;
@@ -387,36 +386,20 @@ export function App() {
       const previewData = sessionStorage.getItem("composition-preview-data");
       if (previewData) {
         try {
-          const parsed = JSON.parse(previewData);
+          const parsed = JSON.parse(previewData) as Partial<ProjectExportData> & {
+            themeConfig?: Parameters<typeof applyThemeConfig>[0];
+          };
           if (!parsed.document) {
             throw new Error("CompositionDocument payload is required");
           }
-          const renderModel = deriveProjectRenderModelFromDocument(
-            parsed.document,
-            parsed.project?.id || "preview",
-            parsed.currentPageId,
-          );
-          const projectData: ProjectData = {
-            pages: renderModel.pages,
-            elements: renderModel.elements,
-            currentPageId: renderModel.currentPageId,
-            projectName: parsed.project?.name || "Preview",
-            version: parsed.version,
-            events: parsed.document.events ?? [],
-            collections: parsed.collections ?? [],
-            apiEndpoints: parsed.apiEndpoints ?? [],
-            variables: parsed.variables ?? [],
-            projectId: parsed.project?.id || "preview",
-            document: parsed.document,
-          };
-          setProjectData(projectData);
-          setLoadingState("loaded");
+          // 페이로드는 `ProjectExportData` 모양 (+ themeConfig) — 로더 경로와 같은 setProject 로.
+          setProject({
+            ...parsed,
+            project: parsed.project ?? { id: "preview", name: "Preview" },
+          } as ProjectExportData);
 
           // ADR-021 Phase C: themeConfig → CSS 변수 주입
           applyThemeConfig(parsed.themeConfig);
-
-          // ADR-014 Phase D: fontRegistry → @font-face 주입
-          injectFontRegistryFromData(parsed.fontRegistry);
 
           // 사용 후 삭제 (새로고침 시 다시 로드하지 않음)
           // sessionStorage.removeItem('composition-preview-data');
@@ -446,7 +429,7 @@ export function App() {
     }
 
     init();
-  }, [setProject, setLoadError]);
+  }, [setProject, setLoadError, applyLoadResult]);
 
   // 파일 드롭 핸들러
   const handleDrop = useCallback(
@@ -465,34 +448,18 @@ export function App() {
         return;
       }
 
-      setLoadingState("loading");
-      const result = await loadProjectFromFile(file);
-
-      if (result.success) {
-        setProject(result.data, result.warnings);
-      } else {
-        setLoadError(result.error, result.errors);
-      }
+      await loadFile(file);
     },
-    [setProject, setLoadError],
+    [loadFile, setLoadError],
   );
 
   // 파일 선택 핸들러
   const handleFileSelect = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
-      if (!file) return;
-
-      setLoadingState("loading");
-      const result = await loadProjectFromFile(file);
-
-      if (result.success) {
-        setProject(result.data, result.warnings);
-      } else {
-        setLoadError(result.error, result.errors);
-      }
+      if (file) await loadFile(file);
     },
-    [setProject, setLoadError],
+    [loadFile],
   );
 
   // 드래그 이벤트 핸들러
@@ -508,14 +475,19 @@ export function App() {
 
   // 재시도 핸들러
   const handleRetry = useCallback(() => {
-    setError(null);
-    setErrors(undefined);
+    setLoadFailure(null);
     setLoadingState("idle");
   }, []);
 
   // 에러 상태
-  if (loadingState === "error" && error) {
-    return <ErrorDisplay error={error} errors={errors} onRetry={handleRetry} />;
+  if (loadFailure) {
+    return (
+      <ErrorDisplay
+        error={loadFailure.error}
+        errors={loadFailure.errors}
+        onRetry={handleRetry}
+      />
+    );
   }
 
   // 로딩 상태
@@ -605,7 +577,7 @@ export function App() {
 
             {/* 메인 콘텐츠 */}
             <main className="publish-content">
-              {currentElements.length === 0 ? (
+              {!hasCurrentElements ? (
                 <EmptyState message={t("emptyPage")} />
               ) : (
                 <PageRenderer

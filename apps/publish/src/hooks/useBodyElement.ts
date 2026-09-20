@@ -8,10 +8,11 @@
  * Publish 는 테마 토글이 없으므로 초기 마운트 + element 변경 시에만 동기화.
  */
 
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import type { Element } from "@composition/shared";
 import {
   adaptElementStyle,
+  camelToKebab,
   resolveBodyDomClassName,
   resolveBodyDomPresentation,
 } from "@composition/shared";
@@ -26,8 +27,13 @@ const CSS_UNITLESS = new Set([
   "order",
 ]);
 
-function camelToKebab(str: string): string {
-  return str.replace(/([A-Z])/g, (m) => `-${m.toLowerCase()}`);
+function removeBodyClassName(className: string): void {
+  const toRemove = className.split(" ");
+  document.body.className = document.body.className
+    .split(" ")
+    .filter((cls) => !toRemove.includes(cls))
+    .join(" ")
+    .trim();
 }
 
 /**
@@ -38,25 +44,9 @@ function camelToKebab(str: string): string {
  * - D3: fills 배열은 무시하고 Spec TokenRef 경로 (style.backgroundColor) 만 사용
  */
 export function useBodyElement(elements: Element[]): void {
-  const appliedStyleKeysRef = useRef<Set<string>>(new Set());
-  const appliedClassNameRef = useRef<string>("");
-
+  // 되돌릴 것은 cleanup 이 지역값으로 잡는다 — React 는 다음 effect 전에 이전 cleanup 을
+  // 먼저 실행하므로 effect 머리에서 "이전 적용분 제거" 를 또 할 필요가 없다.
   useEffect(() => {
-    appliedStyleKeysRef.current.forEach((key) => {
-      document.body.style.removeProperty(key);
-    });
-    appliedStyleKeysRef.current.clear();
-
-    if (appliedClassNameRef.current) {
-      const current = document.body.className.split(" ");
-      const toRemove = appliedClassNameRef.current.split(" ");
-      document.body.className = current
-        .filter((cls) => !toRemove.includes(cls))
-        .join(" ")
-        .trim();
-      appliedClassNameRef.current = "";
-    }
-
     // body element 찾기 (page-level + parent_id 없음)
     const bodyElement = elements.find(
       (el) => el.type === "body" && !el.parent_id && !el.deleted,
@@ -68,14 +58,14 @@ export function useBodyElement(elements: Element[]): void {
     const adaptedBody = adaptElementStyle(bodyElement);
 
     // D1: BodySpec className 주입 — `.react-aria-Body { ... }` CSS 규칙 매칭
-    const specClassName = resolveBodyDomClassName(
+    const appliedClassName = resolveBodyDomClassName(
       "body",
       adaptedBody.props?.className as string | undefined,
     )!;
     document.body.className =
-      `${document.body.className} ${specClassName}`.trim();
-    appliedClassNameRef.current = specClassName;
+      `${document.body.className} ${appliedClassName}`.trim();
 
+    const appliedStyleKeys = new Set<string>();
     const bodyPresentation = resolveBodyDomPresentation(
       "body",
       adaptedBody.props?.style as React.CSSProperties | undefined,
@@ -99,25 +89,15 @@ export function useBodyElement(elements: Element[]): void {
             ? `${value}px`
             : String(value);
         document.body.style.setProperty(cssKey, cssValue);
-        appliedStyleKeysRef.current.add(cssKey);
+        appliedStyleKeys.add(cssKey);
       });
     }
 
-    const styleKeysToClean = new Set(appliedStyleKeysRef.current);
-    const classNameToClean = appliedClassNameRef.current;
-
     return () => {
-      styleKeysToClean.forEach((key) => {
+      appliedStyleKeys.forEach((key) => {
         document.body.style.removeProperty(key);
       });
-      if (classNameToClean) {
-        const current = document.body.className.split(" ");
-        const toRemove = classNameToClean.split(" ");
-        document.body.className = current
-          .filter((cls) => !toRemove.includes(cls))
-          .join(" ")
-          .trim();
-      }
+      removeBodyClassName(appliedClassName);
     };
   }, [elements]);
 }

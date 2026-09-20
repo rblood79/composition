@@ -11,10 +11,10 @@
 import { memo, useMemo } from "react";
 import type { Element, Page } from "@composition/shared";
 import {
-  buildElementTree,
   collectResponsiveCssFromElements,
+  getPageElements,
 } from "@composition/shared";
-import { ElementRenderer } from "./ElementRenderer";
+import { ElementRenderer, groupChildrenByParent } from "./ElementRenderer";
 import { useBodyElement } from "../hooks/useBodyElement";
 
 // ============================================
@@ -25,7 +25,6 @@ export interface PageRendererProps {
   page: Page;
   elements: Element[];
   className?: string;
-  style?: React.CSSProperties;
 }
 
 // ============================================
@@ -36,17 +35,19 @@ export const PageRenderer = memo(function PageRenderer({
   page,
   elements,
   className,
-  style,
 }: PageRendererProps) {
-  // 현재 페이지의 요소들만 필터링
-  const pageElements = useMemo(() => {
-    return elements.filter((el) => el.page_id === page.id && !el.deleted);
-  }, [elements, page.id]);
+  // 현재 페이지의 요소들만
+  const pageElements = useMemo(
+    () => getPageElements(elements, page.id),
+    [elements, page.id],
+  );
 
-  // 루트 요소들 (parent_id가 null인 요소들)
-  const rootElements = useMemo(() => {
-    return buildElementTree(pageElements, null);
-  }, [pageElements]);
+  // 부모별 자식 표 한 번 — 루트는 null 키
+  const childrenByParent = useMemo(
+    () => groupChildrenByParent(pageElements),
+    [pageElements],
+  );
+  const rootElements = childrenByParent.get(null) ?? [];
 
   // ADR-109 D1: body element → document.body className/style 동기화
   useBodyElement(pageElements);
@@ -63,7 +64,6 @@ export const PageRenderer = memo(function PageRenderer({
   return (
     <div
       className={className}
-      style={style}
       data-page-id={page.id}
       data-page-slug={page.slug}
     >
@@ -74,7 +74,7 @@ export const PageRenderer = memo(function PageRenderer({
         <ElementRenderer
           key={element.id}
           element={element}
-          elements={pageElements}
+          childrenByParent={childrenByParent}
         />
       ))}
     </div>

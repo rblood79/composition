@@ -25,8 +25,12 @@ import {
 
 interface RuntimeStateValue {
   runtimeState: RuntimeStateHandle;
-  /** 값 변경마다 증가 — 구독 컴포넌트가 다시 읽는 신호 */
-  revision: number;
+  /**
+   * 정의 (projectVariables · document) 를 세울 때마다 새 객체 — `createEnv` 가 정의 색인을
+   * 잡는 시점이라 그때만 env 를 다시 만든다. 값 변경은 변수별 `subscribeVariable` 이
+   * 알리므로 여기 싣지 않는다 (싣으면 쓰기 1회 = 페이지의 모든 ElementRenderer 재렌더).
+   */
+  definitions: object;
 }
 
 const RuntimeStateContext = createContext<RuntimeStateValue | null>(null);
@@ -51,20 +55,18 @@ export function RuntimeStateProvider({
     // 프로젝트가 바뀌면 새 handle (namespace 전환은 switchProject 로도 되지만 게시본은 1 프로젝트)
     [projectId],
   );
-  const [revision, setRevision] = useState(0);
-  useEffect(
-    () => runtimeState.subscribe(() => setRevision((r) => r + 1)),
-    [runtimeState],
-  );
-  useEffect(() => {
+  // 정의는 렌더 중 동기로 세운다 — effect 로 미루면 첫 렌더의 env 가 정의 0 으로 만들어지고,
+  //   `rebuildDefinitions` 는 값이 안 바뀌면 notify 하지 않아 그 env 가 stale 로 남는다.
+  const definitions = useMemo<object>(() => {
     runtimeState.setDefinitions({ projectVariables: variables, document });
+    return {};
   }, [runtimeState, variables, document]);
   useEffect(() => {
     runtimeState.enterPage(currentPageId);
   }, [runtimeState, currentPageId]);
   const value = useMemo(
-    () => ({ runtimeState, revision }),
-    [runtimeState, revision],
+    () => ({ runtimeState, definitions }),
+    [runtimeState, definitions],
   );
   return (
     <RuntimeStateContext.Provider value={value}>

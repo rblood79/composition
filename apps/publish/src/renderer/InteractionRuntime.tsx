@@ -17,14 +17,18 @@
  * 문서 편집이 아니다. 병합 의미도 preview `patchInteractionOverride` 미러:
  * 요소별 shallow merge (dispatcher 의 `buildPatch` 가 style 을 실행 시점 현재값
  * 기준으로 이미 병합해 보내므로 여기선 shallow 가 정확하다).
+ *
+ * override 층은 context 값이 아니라 작은 외부 store 다 (2026-09-20 /simplify) —
+ * context 에 실으면 patch 1회 = 페이지의 모든 ElementRenderer 재렌더 + 핸들러 전부
+ * 재생성이라, preview 의 `useRuntimeStore((s) => s.interactionOverrides[id])` 처럼
+ * 요소별로 `useSyncExternalStore` 선택한다.
  */
 import {
   createContext,
   useCallback,
   useContext,
   useMemo,
-  useRef,
-  useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
 import type { Element, Page } from "@composition/shared";
@@ -41,10 +45,49 @@ import { useRuntimeState } from "./RuntimeStateRuntime";
 
 type PropsBag = Record<string, unknown>;
 
+/** 요소별 override — shallow merge, style 만 1단 deep merge (preview 와 같은 규칙). */
+export function mergeInteractionOverride(
+  props: PropsBag,
+  override: PropsBag | undefined,
+): PropsBag {
+  if (!override) return props;
+  const merged: PropsBag = { ...props, ...override };
+  if (override.style && typeof override.style === "object") {
+    merged.style = {
+      ...((props.style as PropsBag | undefined) ?? {}),
+      ...(override.style as PropsBag),
+    };
+  }
+  return merged;
+}
+
+interface OverrideStore {
+  get: (elementId: string) => PropsBag | undefined;
+  patch: (elementId: string, patch: PropsBag) => void;
+  subscribe: (listener: () => void) => () => void;
+}
+
+function createOverrideStore(): OverrideStore {
+  const overrides = new Map<string, PropsBag>();
+  const listeners = new Set<() => void>();
+  return {
+    get: (elementId) => overrides.get(elementId),
+    patch: (elementId, patch) => {
+      if (!elementId || !patch || Object.keys(patch).length === 0) return;
+      overrides.set(elementId, { ...overrides.get(elementId), ...patch });
+      for (const fn of [...listeners]) fn();
+    },
+    subscribe: (listener) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+  };
+}
+
 interface InteractionRuntimeValue {
   index: InteractionIndex;
   deps: DispatchDeps;
-  interactionOverrides: Record<string, PropsBag>;
+  overrides: OverrideStore;
 }
 
 const InteractionRuntimeContext = createContext<InteractionRuntimeValue | null>(
@@ -70,9 +113,7 @@ export function InteractionRuntimeProvider({
   children,
 }: InteractionRuntimeProviderProps) {
   const { addToast } = useToast();
-  const [interactionOverrides, setInteractionOverrides] = useState<
-    Record<string, PropsBag>
-  >({});
+  const overrides = useMemo(() => createOverrideStore(), []);
 
   const index = useMemo(
     () =>
@@ -84,50 +125,26 @@ export function InteractionRuntimeProvider({
     () => new Map(elements.map((el) => [el.id, el])),
     [elements],
   );
-  // navigate path → 페이지: preview `CanvasRouter` 가 라우트로 쓰는 `generatePageUrl` 표
-  // (parent_id 계층 · 동적 세그먼트 · trailing slash/대소문자 허용) 와 같은 해석기.
-  // 게시 페이로드에는 layout 이 없어 layout slug 규칙 (rule 2) 은 여기서 생략된다.
-  const resolvePageId = useCallback(
-    (path: string) => resolvePageIdByPath(path, pages),
-    [pages],
-  );
+
+  // ADR-214 — 런타임 상태 handle (RuntimeStateProvider 가 바깥). handle 은 projectId 당
+  //   하나라 deps 에 넣어도 memo 가 안 깨진다.
+  const runtimeState = useRuntimeState()?.runtimeState ?? null;
 
   // deps 는 참조 안정이어야 한다 — 실행마다 바뀌면 소비자 memo 가 전부 깨진다.
-  // 최신 상태는 ref 로 그때그때 읽는다 (preview 의 store-경유 읽기와 동형).
-  const overridesRef = useRef(interactionOverrides);
-  overridesRef.current = interactionOverrides;
-
-  const patchOverride = useCallback((id: string, patch: PropsBag) => {
-    if (!id || !patch || Object.keys(patch).length === 0) return;
-    setInteractionOverrides((prev) => ({
-      ...prev,
-      [id]: { ...(prev[id] ?? {}), ...patch },
-    }));
-  }, []);
-
-  // ADR-214 — 런타임 상태 handle (RuntimeStateProvider 가 바깥). ref 로 읽어 deps memo 를 안 깨뜨린다.
-  const runtimeStateValue = useRuntimeState();
-  const runtimeStateRef = useRef(runtimeStateValue?.runtimeState ?? null);
-  runtimeStateRef.current = runtimeStateValue?.runtimeState ?? null;
-
   const deps = useMemo<DispatchDeps>(
     () => ({
       getElement: (id) => {
         const el = elementById.get(id);
         if (!el) return undefined;
-        const props = (el.props ?? {}) as PropsBag;
-        const override = overridesRef.current[id];
-        if (!override) return { type: el.type, props };
-        const merged: PropsBag = { ...props, ...override };
-        if (override.style && typeof override.style === "object") {
-          merged.style = {
-            ...((props.style as PropsBag | undefined) ?? {}),
-            ...(override.style as PropsBag),
-          };
-        }
-        return { type: el.type, props: merged };
+        return {
+          type: el.type,
+          props: mergeInteractionOverride(
+            (el.props ?? {}) as PropsBag,
+            overrides.get(id),
+          ),
+        };
       },
-      updateElementProps: patchOverride,
+      updateElementProps: overrides.patch,
       navigate: (path) => {
         // 외부 링크/앵커는 브라우저 기본 의미로 — 게시본은 실제 사이트다.
         if (/^https?:\/\//.test(path)) {
@@ -138,7 +155,10 @@ export function InteractionRuntimeProvider({
           window.location.hash = path;
           return;
         }
-        const pageId = resolvePageId(path);
+        // navigate path → 페이지: preview `CanvasRouter` 가 라우트로 쓰는 `generatePageUrl` 표
+        // (parent_id 계층 · 동적 세그먼트 · trailing slash/대소문자 허용) 와 같은 해석기.
+        // 게시 페이로드에는 layout 이 없어 layout slug 규칙 (rule 2) 은 여기서 생략된다.
+        const pageId = resolvePageIdByPath(path, pages);
         if (pageId) {
           onNavigatePage(pageId);
           return;
@@ -146,36 +166,35 @@ export function InteractionRuntimeProvider({
         console.warn(`[Interaction] navigate: 매칭되는 페이지 없음 — ${path}`);
       },
       showToast: (message) => addToast({ title: message }),
-      // ADR-214 Phase 4 — 변수 쓰기 (shared runtimeState, preview 와 같은 스코프 규칙)
+      // ADR-214 Phase 4 — 변수 쓰기. 스코프는 shared `write()` 가 소유자에서 유도한다 —
+      //   publish 가 덧붙이는 건 element 소유자의 instanceKey 규약 하나뿐.
       writeState: ({ variableId, op, value, instanceKeyFor }) => {
-        const runtimeState = runtimeStateRef.current;
         if (!runtimeState)
-          return { ok: false, reason: "런타임 상태 없음 (RuntimeStateProvider 밖)" };
-        const definition = runtimeState.getDefinition(variableId);
-        if (!definition)
-          return { ok: false, reason: `변수 없음: ${variableId}` };
-        const owner = definition.owner;
+          return {
+            ok: false,
+            reason: "런타임 상태 없음 (RuntimeStateProvider 밖)",
+          };
+        const owner = runtimeState.getDefinition(variableId)?.owner;
+        if (!owner) return { ok: false, reason: `변수 없음: ${variableId}` };
         const scope =
-          owner.kind === "element"
+          owner.kind === "element" && instanceKeyFor
             ? {
                 kind: "element" as const,
-                instanceKey: instanceKeyFor?.(owner.elementId) ?? owner.elementId,
+                instanceKey: instanceKeyFor(owner.elementId),
               }
-            : owner.kind === "page"
-              ? { kind: "page" as const, pageId: owner.pageId }
-              : { kind: "project" as const };
+            : undefined;
         const result = runtimeState.write({ variableId, op, value, scope });
         return result.ok
           ? { ok: true }
           : { ok: false, reason: result.reason ?? "setState 실패" };
       },
     }),
-    [elementById, resolvePageId, onNavigatePage, patchOverride, addToast],
+    [elementById, pages, onNavigatePage, overrides, addToast, runtimeState],
   );
 
   const value = useMemo(
-    () => ({ index, deps, interactionOverrides }),
-    [index, deps, interactionOverrides],
+    () => ({ index, deps, overrides }),
+    [index, deps, overrides],
   );
 
   return (
@@ -186,7 +205,7 @@ export function InteractionRuntimeProvider({
 }
 
 const NO_HANDLERS: Record<string, (...args: unknown[]) => void> = {};
-const NO_OVERRIDE: PropsBag | undefined = undefined;
+const noopSubscribe = () => () => {};
 
 /** 요소의 트리거 callback map — provider 밖(규칙 없음)에선 빈 객체. */
 export function useElementInteractionHandlers(
@@ -199,10 +218,17 @@ export function useElementInteractionHandlers(
   }, [runtime, elementId]);
 }
 
-/** 요소의 실행 override — 렌더 직전 props 에 병합할 patch. */
+/** 요소의 실행 override — 렌더 직전 props 에 병합할 patch. patch 된 요소만 재렌더된다. */
 export function useElementInteractionOverride(
   elementId: string,
 ): PropsBag | undefined {
   const runtime = useContext(InteractionRuntimeContext);
-  return runtime?.interactionOverrides[elementId] ?? NO_OVERRIDE;
+  const getSnapshot = useCallback(
+    () => runtime?.overrides.get(elementId),
+    [runtime, elementId],
+  );
+  return useSyncExternalStore(
+    runtime?.overrides.subscribe ?? noopSubscribe,
+    getSnapshot,
+  );
 }

@@ -55,7 +55,9 @@ function paletteTypes(): string[] {
 
 function registeredTypes(): Set<string> {
   const source = readFileSync(REGISTRY_FILE, "utf8");
-  const matches = source.matchAll(/registerComponent\(\s*"([A-Za-z_]+)"/g);
+  // `SHARED_COMPONENTS` 표의 키 (`  Button,` / `  Radio: …` 형태) 만 읽는다.
+  const table = source.slice(source.indexOf("const SHARED_COMPONENTS"));
+  const matches = table.matchAll(/^ {2}([A-Za-z_]+)[,:]/gm);
   return new Set([...matches].map((m) => m[1]));
 }
 

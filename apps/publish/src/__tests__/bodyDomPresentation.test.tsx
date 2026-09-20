@@ -5,7 +5,10 @@ import { describe, expect, it } from "vitest";
 
 import type { Element } from "@composition/shared";
 
-import { ElementRenderer } from "../renderer/ElementRenderer";
+import {
+  ElementRenderer,
+  groupChildrenByParent,
+} from "../renderer/ElementRenderer";
 
 describe("Publish Body DOM presentation", () => {
   it("case-correct class 하나와 CSS viewport fill만 방출한다 (inline 0)", async () => {
@@ -28,7 +31,12 @@ describe("Publish Body DOM presentation", () => {
     document.body.append(host);
     const root = createRoot(host);
     await act(async () => {
-      root.render(<ElementRenderer element={body} elements={[body]} />);
+      root.render(
+        <ElementRenderer
+          element={body}
+          childrenByParent={groupChildrenByParent([body])}
+        />,
+      );
     });
     const rendered = host.querySelector(
       '[data-element-id="body-1"]',

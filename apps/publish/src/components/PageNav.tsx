@@ -6,7 +6,7 @@
  * @since 2026-01-02 Phase 2
  */
 
-import { useCallback, useRef, type KeyboardEvent } from "react";
+import { useCallback, useMemo, useRef, type KeyboardEvent } from "react";
 import type { Page } from "@composition/shared";
 import { usePublishStrings } from "../i18n";
 import "./PageNav.css";
@@ -17,19 +17,14 @@ interface PageNavProps {
   onPageChange: (pageId: string) => void;
 }
 
-interface PageTreeNode {
+interface FlatPage {
   page: Page;
-  children: PageTreeNode[];
   level: number;
 }
 
-/**
- * 페이지를 트리 구조로 변환
- */
-function buildPageTree(pages: Page[]): PageTreeNode[] {
+/** 페이지를 parent_id 계층의 DFS 순서로 편다 (children 은 어디서도 안 읽으니 트리를 안 만든다). */
+function flattenPages(pages: Page[]): FlatPage[] {
   const childrenMap = new Map<string | null, Page[]>();
-
-  // 부모별로 자식 페이지 그룹화
   for (const page of pages) {
     const parentId = page.parent_id || null;
     const siblings = childrenMap.get(parentId) || [];
@@ -37,34 +32,14 @@ function buildPageTree(pages: Page[]): PageTreeNode[] {
     childrenMap.set(parentId, siblings);
   }
 
-  // 재귀적으로 트리 구축
-  function buildNodes(parentId: string | null, level: number): PageTreeNode[] {
-    const children = childrenMap.get(parentId) || [];
-
-    return children.map((page) => ({
-      page,
-      children: buildNodes(page.id, level + 1),
-      level,
-    }));
-  }
-
-  return buildNodes(null, 0);
-}
-
-/**
- * 트리를 평탄화하여 순서대로 배열
- */
-function flattenTree(nodes: PageTreeNode[]): PageTreeNode[] {
-  const result: PageTreeNode[] = [];
-
-  function traverse(nodeList: PageTreeNode[]) {
-    for (const node of nodeList) {
-      result.push(node);
-      traverse(node.children);
+  const result: FlatPage[] = [];
+  function visit(parentId: string | null, level: number) {
+    for (const page of childrenMap.get(parentId) || []) {
+      result.push({ page, level });
+      visit(page.id, level + 1);
     }
   }
-
-  traverse(nodes);
+  visit(null, 0);
   return result;
 }
 
@@ -75,9 +50,7 @@ export function PageNav({ pages, currentPageId, onPageChange }: PageNavProps) {
   const t = usePublishStrings();
   const buttonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
-  // 페이지 트리 구축
-  const pageTree = buildPageTree(pages);
-  const flatPages = flattenTree(pageTree);
+  const flatPages = useMemo(() => flattenPages(pages), [pages]);
 
   // 버튼 ref 저장
   const setButtonRef = useCallback(
@@ -141,7 +114,7 @@ export function PageNav({ pages, currentPageId, onPageChange }: PageNavProps) {
   }
 
   // 페이지 버튼 렌더링
-  const renderPageButton = (node: PageTreeNode, index: number) => {
+  const renderPageButton = (node: FlatPage, index: number) => {
     const { page, level } = node;
     const isActive = currentPageId === page.id;
 

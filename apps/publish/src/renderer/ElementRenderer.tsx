@@ -23,6 +23,7 @@ import {
 } from "@composition/shared";
 import { getComponent } from "../registry/ComponentRegistry";
 import {
+  mergeInteractionOverride,
   useElementInteractionHandlers,
   useElementInteractionOverride,
 } from "./InteractionRuntime";
@@ -32,11 +33,44 @@ import { useResolvedStateProps } from "./RuntimeStateRuntime";
 // Types
 // ============================================
 
+/**
+ * parent_id → 자식 (render model 입력 순서 = canonical child order). 루트는 `null` 키 —
+ * `parent_id` 가 undefined 인 요소는 종전 `buildElementTree(…, null)` 과 같이 루트가 아니다.
+ */
+export type ChildrenByParent = ReadonlyMap<
+  string | null | undefined,
+  Element[]
+>;
+
+/** 페이지 요소를 한 번 순회해 부모별 자식 표를 만든다 — 요소마다 filter 하면 O(n²). */
+export function groupChildrenByParent(elements: Element[]): ChildrenByParent {
+  const map = new Map<string | null | undefined, Element[]>();
+  for (const el of elements) {
+    if (el.deleted) continue;
+    const bucket = map.get(el.parent_id);
+    if (bucket) bucket.push(el);
+    else map.set(el.parent_id, [el]);
+  }
+  return map;
+}
+
+const NO_CHILDREN: Element[] = [];
+
 export interface ElementRendererProps {
   element: Element;
-  elements: Element[];
-  depth?: number;
+  childrenByParent: ChildrenByParent;
 }
+
+// Card: structural children 감지 (Preview renderCard와 동일 로직)
+const STRUCTURAL_CARD_TAGS = new Set([
+  "CardHeader",
+  "CardContent",
+  "CardPreview",
+  "CardFooter",
+]);
+
+// 미등록 타입 경고는 타입당 1회 — 렌더마다 찍으면 patch/write 때마다 되풀이된다.
+const warnedUnknownTypes = new Set<string>();
 
 // ============================================
 // Element Renderer Component
@@ -44,8 +78,7 @@ export interface ElementRendererProps {
 
 export const ElementRenderer = memo(function ElementRenderer({
   element,
-  elements,
-  depth = 0,
+  childrenByParent,
 }: ElementRendererProps) {
   // 인터랙션 규칙 트리거 (onPress 등) — 규칙 없는 요소는 공유 빈 객체.
   const eventHandlers = useElementInteractionHandlers(element.id);
@@ -69,63 +102,14 @@ export const ElementRenderer = memo(function ElementRenderer({
   const adaptedElement = useMemo(() => {
     const adapted = adaptElementStyle(stateResolvedElement);
     if (!interactionOverride) return adapted;
-    const baseProps = (adapted.props ?? {}) as Record<string, unknown>;
-    const merged: Record<string, unknown> = {
-      ...baseProps,
-      ...interactionOverride,
-    };
-    if (
-      interactionOverride.style &&
-      typeof interactionOverride.style === "object"
-    ) {
-      merged.style = {
-        ...((baseProps.style as Record<string, unknown> | undefined) ?? {}),
-        ...(interactionOverride.style as Record<string, unknown>),
-      };
-    }
+    const merged = mergeInteractionOverride(
+      (adapted.props ?? {}) as Record<string, unknown>,
+      interactionOverride,
+    );
     return { ...adapted, props: merged as Element["props"] };
   }, [stateResolvedElement, interactionOverride]);
 
-  // 자식 요소들 찾기. render model 입력 순서가 canonical child order이다.
-  const children = useMemo(() => {
-    return elements.filter(
-      (el) => el.parent_id === adaptedElement.id && !el.deleted,
-    );
-  }, [elements, adaptedElement.id]);
-
-  // 컴포넌트 가져오기
-  const componentEntry = getComponent(adaptedElement.type);
-
-  // 등록되지 않은 컴포넌트는 div로 fallback
-  if (!componentEntry) {
-    console.warn(`[ElementRenderer] Unknown component: ${adaptedElement.type}`);
-    // 자식 Element가 있으면 재귀 렌더링, 없으면 props.children(텍스트 등) 사용
-    const fallbackContent =
-      children.length > 0
-        ? children.map((child) => (
-            <ElementRenderer
-              key={child.id}
-              element={child}
-              elements={elements}
-              depth={depth + 1}
-            />
-          ))
-        : ((adaptedElement.props as Record<string, unknown>)
-            ?.children as React.ReactNode);
-    return (
-      <div
-        id={resolveAuthoredDomId(adaptedElement.type, adaptedElement.customId)}
-        data-element-id={adaptedElement.id}
-        data-element-type={adaptedElement.type}
-        style={adaptedElement.props?.style as React.CSSProperties}
-        {...eventHandlers}
-      >
-        {fallbackContent}
-      </div>
-    );
-  }
-
-  const Component = componentEntry.component;
+  const children = childrenByParent.get(adaptedElement.id) ?? NO_CHILDREN;
 
   // Props 추출 (style 제외한 나머지)
   const {
@@ -135,6 +119,41 @@ export const ElementRenderer = memo(function ElementRenderer({
     accentColor,
     ...restProps
   } = adaptedElement.props as Record<string, unknown>;
+
+  // 자식이 있으면 재귀 렌더링, 없으면 props.children 사용
+  const renderedChildren =
+    children.length > 0
+      ? children.map((child) => (
+          <ElementRenderer
+            key={child.id}
+            element={child}
+            childrenByParent={childrenByParent}
+          />
+        ))
+      : (propsChildren as React.ReactNode);
+
+  const Component = getComponent(adaptedElement.type);
+
+  // 등록되지 않은 컴포넌트는 div로 fallback
+  if (!Component) {
+    if (!warnedUnknownTypes.has(adaptedElement.type)) {
+      warnedUnknownTypes.add(adaptedElement.type);
+      console.warn(
+        `[ElementRenderer] Unknown component: ${adaptedElement.type}`,
+      );
+    }
+    return (
+      <div
+        id={resolveAuthoredDomId(adaptedElement.type, adaptedElement.customId)}
+        data-element-id={adaptedElement.id}
+        data-element-type={adaptedElement.type}
+        style={style as React.CSSProperties}
+        {...eventHandlers}
+      >
+        {renderedChildren}
+      </div>
+    );
+  }
 
   // D3 대칭 정합: Body 기본 시각은 generated CSS가 소유하고 DOM에는 사용자 override만 싣는다.
   const bodyPresentation = resolveBodyDomPresentation(
@@ -146,18 +165,11 @@ export const ElementRenderer = memo(function ElementRenderer({
     authoredClassName as string | undefined,
   );
 
-  // Card: structural children 감지 (Preview renderCard와 동일 로직)
-  const STRUCTURAL_CARD_TAGS = new Set([
-    "CardHeader",
-    "CardContent",
-    "CardPreview",
-    "CardFooter",
-  ]);
   if (
     adaptedElement.type === "Card" &&
     children.some((c) => STRUCTURAL_CARD_TAGS.has(c.type))
   ) {
-    (restProps as Record<string, unknown>).structuralChildren = true;
+    restProps.structuralChildren = true;
   }
 
   // ADR-912 후속(2026-06-09): Slider 는 런타임 사용자 드래그를 위해 RAC uncontrolled
@@ -166,30 +178,17 @@ export const ElementRenderer = memo(function ElementRenderer({
   //   (react-aria.adobe.com/Slider 레퍼런스). value → defaultValue 매핑으로 RAC 내부 state
   //   드래그 관리. (Preview renderSlider 와 동일 정책)
   if (adaptedElement.type === "Slider" && "value" in restProps) {
-    const props = restProps as Record<string, unknown>;
-    if (props.defaultValue === undefined) props.defaultValue = props.value;
-    delete props.value;
+    if (restProps.defaultValue === undefined)
+      restProps.defaultValue = restProps.value;
+    delete restProps.value;
   }
-
-  // 자식이 있으면 재귀 렌더링, 없으면 props.children 사용
-  const renderedChildren =
-    children.length > 0
-      ? children.map((child) => (
-          <ElementRenderer
-            key={child.id}
-            element={child}
-            elements={elements}
-            depth={depth + 1}
-          />
-        ))
-      : propsChildren;
 
   // 사용자가 지정한 id 를 DOM 에 싣는다 (CSS `#id`/앵커/외부 스크립트). catalog prop 으로 이미
   // id 가 투영된 경우와 RAC collection key 타입은 resolveAuthoredDomId 가 걸러 낸다.
   const authoredDomId = resolveAuthoredDomId(
     adaptedElement.type,
     adaptedElement.customId,
-    (restProps as Record<string, unknown>).id,
+    restProps.id,
   );
 
   return (

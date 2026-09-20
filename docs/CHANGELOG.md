@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [publish /simplify 정리 — 렌더 fan-out 구조 + Avatar 4종 shared 컴포넌트] - 2026-09-20
+
+### Changed
+
+- **게시본 (publish) 내부 정리 (`/simplify`, `apps/publish/src` 22 파일 4 각도 판독)** — 시각 결과 무변경: `ComponentRegistry` 등록 블록 60 → 표 하나 (dead API 6 · `displayName`/`category` 필드 · RangeCalendar 이중 등록 · `registry/index.ts` 삭제, 커버리지 테스트는 표 키를 읽는다) · 자식 찾기를 요소마다 `filter` (O(n²)) → `PageRenderer` 가 부모별 자식 표 한 번 · 인터랙션 override 층을 context 값에서 **요소별 `useSyncExternalStore`** 로 (patch 1회 = 페이지의 모든 ElementRenderer 재렌더 + 핸들러 전부 재생성이던 것 → patch 된 요소만) · 런타임 상태 context 는 값 revision 대신 **정의 시점만** 싣고 (값 갱신은 변수별 구독) 정의는 렌더 중 동기로 세운다 (첫 env 가 정의 0 으로 만들어지던 stale) · App 의 sessionStorage 경로가 `setProject` 를 타고 (조립 사본 12줄 · 경고 버림 제거) 로더 결과 처리 3벌 → 1 · `<style>` 교체 3벌 → 1 · 오류 상태 2개 → 1 · `useBodyElement` 의 no-op 머리 블록 + ref 2 제거 · `PageNav` 트리→평탄화 2단계 → DFS 1 · `usePageRouting` 초기 페이지 선택 2벌 → 1 · 미등록 타입 경고 타입당 1회 · `writeState` 스코프는 shared `write()` 유도. eslint 오류 2 → 0.
+
+### Fixed
+
+- 게시본에서 **Avatar · StatusLight · ProgressCircle · IllustratedMessage** 가 ADR-030 placeholder (맨 `<div>`, props 는 DOM 미지 attribute) 로 남아 있던 것 → preview 와 같은 shared 컴포넌트. live 9/9 (요소 5종 렌더 · Avatar 원형 상자 · Slider thumb · onPress → hide/toast/setState `{{greet}}` hello→world · pageerror 0).
+
 ## [게시본 navigate 규칙이 중첩 페이지 URL 을 preview 와 다르게 해석하던 결함] - 2026-09-20
 
 ### Fixed

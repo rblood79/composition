@@ -18,7 +18,6 @@ interface UsePageRoutingReturn {
   currentPageId: string | null;
   currentPage: Page | null;
   setCurrentPageId: (pageId: string) => void;
-  goToPage: (pageId: string) => void;
 }
 
 /**
@@ -32,6 +31,21 @@ function getPageIdFromHash(): string | null {
   return null;
 }
 
+function hasPage(pages: Page[], pageId: string | null | undefined): boolean {
+  return !!pageId && pages.some((p) => p.id === pageId);
+}
+
+/** 초기 페이지: URL 해시 > defaultPageId > 첫 번째 페이지 */
+function pickInitialPageId(
+  pages: Page[],
+  defaultPageId: string | null | undefined,
+): string | null {
+  const hashPageId = getPageIdFromHash();
+  if (hasPage(pages, hashPageId)) return hashPageId;
+  if (hasPage(pages, defaultPageId)) return defaultPageId!;
+  return pages[0]?.id || null;
+}
+
 /**
  * 페이지 라우팅 훅
  */
@@ -39,17 +53,9 @@ export function usePageRouting({
   pages,
   defaultPageId,
 }: UsePageRoutingOptions): UsePageRoutingReturn {
-  const [currentPageId, setCurrentPageIdState] = useState<string | null>(() => {
-    // 초기값: URL 해시 > defaultPageId > 첫 번째 페이지
-    const hashPageId = getPageIdFromHash();
-    if (hashPageId && pages.some((p) => p.id === hashPageId)) {
-      return hashPageId;
-    }
-    if (defaultPageId && pages.some((p) => p.id === defaultPageId)) {
-      return defaultPageId;
-    }
-    return pages[0]?.id || null;
-  });
+  const [currentPageId, setCurrentPageIdState] = useState<string | null>(() =>
+    pickInitialPageId(pages, defaultPageId),
+  );
 
   // 현재 페이지 객체
   const currentPage = pages.find((p) => p.id === currentPageId) || null;
@@ -57,7 +63,7 @@ export function usePageRouting({
   // 페이지 ID 변경 시 URL 해시 업데이트
   const setCurrentPageId = useCallback(
     (pageId: string) => {
-      if (pages.some((p) => p.id === pageId)) {
+      if (hasPage(pages, pageId)) {
         setCurrentPageIdState(pageId);
         window.location.hash = `page-${pageId}`;
       }
@@ -65,16 +71,11 @@ export function usePageRouting({
     [pages],
   );
 
-  // 페이지 이동 (동일 함수지만 의미상 구분)
-  const goToPage = setCurrentPageId;
-
   // URL 해시 변경 감지
   useEffect(() => {
     function handleHashChange() {
       const pageId = getPageIdFromHash();
-      if (pageId && pages.some((p) => p.id === pageId)) {
-        setCurrentPageIdState(pageId);
-      }
+      if (hasPage(pages, pageId)) setCurrentPageIdState(pageId);
     }
 
     window.addEventListener("hashchange", handleHashChange);
@@ -88,16 +89,10 @@ export function usePageRouting({
 
     // 페이지가 있는데 currentPageId가 없으면 첫 페이지로 설정
     if (pages.length > 0 && !currentPageId) {
-      const hashPageId = getPageIdFromHash();
-      targetPageId =
-        hashPageId && pages.some((p) => p.id === hashPageId)
-          ? hashPageId
-          : defaultPageId && pages.some((p) => p.id === defaultPageId)
-            ? defaultPageId
-            : pages[0]?.id || null;
+      targetPageId = pickInitialPageId(pages, defaultPageId);
     }
     // currentPageId가 있는데 해당 페이지가 없으면 첫 페이지로
-    else if (currentPageId && !pages.some((p) => p.id === currentPageId)) {
+    else if (currentPageId && !hasPage(pages, currentPageId)) {
       targetPageId = pages[0]?.id || null;
     }
 
@@ -114,7 +109,6 @@ export function usePageRouting({
     currentPageId,
     currentPage,
     setCurrentPageId,
-    goToPage,
   };
 }
 
