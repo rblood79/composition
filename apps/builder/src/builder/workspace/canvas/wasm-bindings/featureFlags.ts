@@ -29,7 +29,7 @@ export const WASM_FLAGS = {
  * false → 기존 CanvasKit Paragraph 경로 (즉시 원복)
  * true  → Canvas 2D 세그먼트 캐시 + 3-Tier 파이프라인
  *
- * 소비처: nodeRendererText, canvaskitTextMeasurer.
+ * 소비처: nodeRendererText.
  * (2026-08-15 registry 통합 — 구 정의처 `utils/canvas2dSegmentCache.ts`)
  */
 export const USE_CANVAS2D_MEASURE = true;

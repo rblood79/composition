@@ -520,31 +520,16 @@ let _activeMeasurer: TextMeasurer = new Canvas2DTextMeasurer();
 /**
  * 활성 텍스트 측정기 가져오기
  *
- * CanvasKit 초기화 전: Canvas2DTextMeasurer (기본값)
- * CanvasKit 초기화 후: setTextMeasurer()로 CanvasKitTextMeasurer 교체
+ * production 은 Canvas2DTextMeasurer 하나다 (ADR-051 → ADR-900 하이브리드 —
+ * CSS 정합이 정본, CanvasKit Paragraph 는 nodeRendererText 의 needsFallback
+ * 분기에서만). setTextMeasurer 는 테스트 교체용.
  */
 export function getTextMeasurer(): TextMeasurer {
   return _activeMeasurer;
 }
 
 /**
- * 현재 활성 측정기가 CanvasKit 기반인지 확인
- *
- * Canvas 2D 측정 + CanvasKit 렌더링 간 오차는 nodeRendererText.ts의
- * effectiveLayoutWidth +1 마진으로 처리 (layout 보정 불필요).
- */
-export function isCanvasKitMeasurer(): boolean {
-  return !(_activeMeasurer instanceof Canvas2DTextMeasurer);
-}
-
-/**
- * 활성 텍스트 측정기 교체
- *
- * CanvasKit 초기화 후 호출하여 Paragraph API 기반 측정기로 교체.
- *
- * @example
- * // CanvasKit 초기화 후
- * setTextMeasurer(new CanvasKitTextMeasurer(canvasKit));
+ * 활성 텍스트 측정기 교체 (테스트에서 스텁 측정기 주입용)
  */
 export function setTextMeasurer(measurer: TextMeasurer): void {
   _activeMeasurer = measurer;

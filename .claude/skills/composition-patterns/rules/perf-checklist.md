@@ -75,7 +75,7 @@ const element = elements.find((el) => el.id === id);
 
 ### Skia/CanvasKit 렌더링
 
-- [ ] **WASM Paragraph 객체 캐싱 금지**: 메모리 누수 — 측정 결과값 `{width, height}` 만 LRU 캐싱 (`canvaskitTextMeasurer.ts` `lruSet()` 패턴, 상세: `.claude/rules/canvas-rendering.md` §3)
+- [ ] **WASM Paragraph 객체 캐싱 금지**: 메모리 누수 — 측정 결과값 `{width, height}` 만 LRU 캐싱 (Canvas 2D 세그먼트 캐시 `canvas2dSegmentCache.ts` 는 폭만 보관, 상세: `.claude/rules/canvas-rendering.md` §3)
 - [ ] **측정기 ↔ 렌더러 fontFamilies 동일 배열**: CSS 체인 전체를 `split(",")` → `resolveFamily()` 매핑 (불일치 시 줄바꿈 위치 어긋남)
 - [ ] **컬링**: 뷰포트 외 요소 렌더링 스킵 (`useViewportCulling`)
 

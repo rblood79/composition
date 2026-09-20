@@ -152,19 +152,19 @@ DatePicker/DateRangePicker 내부의 Calendar/RangeCalendar은 Preview에서 Pop
 
 측정기와 렌더러가 완전히 동일한 `fontFamilies` 배열을 사용해야 함:
 
-- 측정기(`canvaskitTextMeasurer.ts`의 `buildFontFamilies()`): CSS 체인 전체를 `split(",")` → `resolveFamily()` 매핑
+- 측정 (`nodeRendererText.ts` — Canvas 2D 문자열과 fallback Paragraph 둘 다 `resolvedFamilies` 에서): CSS 체인 전체를 `resolveFamily()` 매핑
 - 렌더러(`specShapeConverter.ts`): `shape.fontFamily.split(",")` → `resolveFamily()` 매핑
 - CSS fontFamily 문자열을 단일 배열 요소로 전달 금지 (CanvasKit이 매칭 실패 → fallback 폰트 → 폭 차이)
 - 측정기에서 첫 번째 폰트만 추출 (`split(",")[0]`) 금지 — fallback chain이 다르면 동일 텍스트도 shaping 결과 다름
 - 참조: `docs/bug/skia-button-text-linebreak.md`
 
-**FontMgr 교체 시 캐시 clear**: 렌더러의 Paragraph LRU 캐시(nodeRenderers.ts)와 측정기 캐시(canvaskitTextMeasurer.ts)는 별도 관리 (목적이 다름: 렌더 vs 측정)
+**FontMgr 교체 시 캐시 clear**: 렌더러의 Paragraph 캐시(nodeRendererText.ts)와 Canvas 2D 세그먼트 캐시(canvas2dSegmentCache.ts)는 별도 관리 (목적이 다름: 렌더 vs 측정)
 
 ## Canvas 2D↔CanvasKit 텍스트 오차 처리 원칙
 
 Layout = Canvas 2D = CSS 정합이 원칙. Canvas 2D 측정값에 보정(+2/+4px) 추가 금지.
 
-- **Layout 경로** (`calculateContentWidth`, `enrichWithIntrinsicSize`, `fullTreeLayout Step 3.6`): Canvas 2D `measureTextWidth()` 결과를 그대로 사용. `isCanvasKitMeasurer()` 기반 보정 금지.
+- **Layout 경로** (`calculateContentWidth`, `enrichWithIntrinsicSize`, `fullTreeLayout Step 3.6`): Canvas 2D `measureTextWidth()` 결과를 그대로 사용. 측정기 종류별 보정 금지.
 - **렌더링 경로** (`nodeRendererText.ts`): post-layout 교정 — `paragraph.layout(effectiveLayoutWidth)` 후, `\n` 없는 단일줄 텍스트가 줄바꿈되면 `getMaxIntrinsicWidth() + 1`로 재layout. CanvasKit 자체 측정 기반이므로 경험적 tolerance 불필요.
 - **Break Hint** (`nodeRendererText.ts:324`): Canvas 2D가 줄바꿈 결정 → hintedText `\n` 주입 → CanvasKit 강제.
 - **`getMaxIntrinsicWidth()` 호출 시점**: 반드시 `layout()` 이후. layout 전 호출 시 0 반환.

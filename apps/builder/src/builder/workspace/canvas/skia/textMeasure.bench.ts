@@ -1,7 +1,7 @@
 /**
  * ADR-916 2-E 재평가 벤치 — 텍스트 측정 경로 비용 분리 측정.
  *
- * breakdown 2-E 는 `canvaskitTextMeasurer.ts` 의 CanvasKit Paragraph 측정
+ * breakdown 2-E 는 (2026-09-20 삭제된) `canvaskitTextMeasurer.ts` 의 CanvasKit Paragraph 측정
  * 결과 캐시를 Rust LRU 로 이관 + Rust batch 측정 + 조상 체인 font 상속
  * top-down 1패스를 전제한다. 본 벤치는 그 이관을 정당화하기 위해 **각 단계
  * 비용을 분리 측정**한다 (2-C/2-D 교훈: 원안이 지목한 대상이 실제 병목이

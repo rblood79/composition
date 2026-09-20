@@ -6,7 +6,7 @@ CSS 텍스트 래핑 속성의 CanvasKit 에뮬레이션 패턴.
 
 ### 공유 유틸리티 (textWrapUtils.ts)
 
-`canvaskitTextMeasurer.ts`(높이 측정)와 `nodeRenderers.ts`(렌더링) 양쪽에서 동일한 전처리 함수를 호출하여 **측정-렌더링 경로 일치**를 보장한다.
+`nodeRendererText.ts` 의 `needsFallback` 분기 (Canvas 2D 가 표현 못 하는 letterSpacing · wordSpacing · white-space≠normal · break-all) 가 CanvasKit Paragraph 를 만들 때 호출한다. 일반 경로의 측정은 Canvas 2D (`textMeasure.ts`) 다 — ADR-051.
 
 | 함수                        | 용도                                                                           |
 | --------------------------- | ------------------------------------------------------------------------------ |
@@ -41,19 +41,11 @@ clipText?: boolean; // overflow:hidden|clip → canvas.clipRect()
 
 ## fontFamilies 정합성 (CRITICAL)
 
-측정기(`canvaskitTextMeasurer`)와 렌더러(`specShapeConverter` + `nodeRenderers`)가 **동일한 fontFamilies 배열**을 사용해야 한다. 불일치 시 동일 텍스트에 대해 다른 intrinsic width가 산출되어 의도치 않은 줄바꿈이 발생한다.
+Paragraph 를 만드는 두 렌더 경로 (`nodeRendererText` · `specShapeConverter`) 와 Canvas 2D 측정 font 문자열이 **동일한 fontFamilies 체인**을 사용해야 한다. 불일치 시 동일 텍스트에 대해 다른 intrinsic width가 산출되어 의도치 않은 줄바꿈이 발생한다.
 
-### 측정기 — `buildFontFamilies()` (`canvaskitTextMeasurer.ts`)
+### 렌더러 — `nodeRendererText.ts`
 
-```typescript
-function buildFontFamilies(fontFamilyCSS: string | undefined): string[] {
-  const rawFamilies = (fontFamilyCSS ?? "Pretendard")
-    .split(",").map(f => f.trim().replace(/['"]/g, "")).filter(Boolean);
-  const resolved = rawFamilies.map(f => skiaFontManager.resolveFamily(f));
-  // 중복 제거 + Pretendard fallback 보장
-  ...
-}
-```
+`node.text.fontFamilies` 를 `skiaFontManager.resolveFamily` 로 매핑한 `resolvedFamilies` 를 Paragraph 와 Canvas 2D 측정 (`fontFamily: fontFamilies.join(", ")`) 양쪽에 같이 넘긴다 (`:454-528`).
 
 ### 렌더러 — `specShapeConverter.ts`
 

@@ -298,7 +298,7 @@ export const DEFAULT_FONT_FAMILY = "Pretendard";
 /**
  * CanvasKit fontFamilies 말미 공통 fallback 체인.
  *
- * 측정기(canvaskitTextMeasurer)와 렌더러(specShapeConverter)가 같은 기본
+ * Paragraph 를 만드는 소비처 (nodeRendererText · specShapeConverter) 가 같은 기본
  * 폰트로 수렴해야 한다 (canvas-rendering.md §3 — 불일치 시 줄바꿈 위치
  * 어긋남). 선두는 DEFAULT_BASE_TYPOGRAPHY 의 첫 family 와 동일한
  * DEFAULT_FONT_FAMILY — 구 렌더러 tail 은 "Inter" 로 어긋나 기본 폰트

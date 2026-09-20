@@ -101,7 +101,7 @@ state.updateSelectedProperties(changedProps);
 
 | 역할                            | 위치                                                                                                                                    |
 | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| 측정기 (CanvasKit Paragraph)    | `apps/builder/src/builder/workspace/canvas/utils/canvaskitTextMeasurer.ts`                                                              |
+| 측정기 (Canvas 2D — production 유일) | `canvas/utils/textMeasure.ts` `Canvas2DTextMeasurer` · fallback Paragraph 는 `nodeRendererText.ts` `needsFallback` 분기 |
 | 스타일 계약 인터페이스          | `canvas/utils/textMeasure.ts:28` `TextMeasureStyle`                                                                                     |
 | Spec/catalog 텍스트 스타일 추출 | `canvas/utils/specTextStyle.ts:183` `extractSpecTextStyle(tag, props)` — 텍스트 props 없이 호출 금지 (null 반환 → fallback 측정 불일치) |
 | 렌더러 ParagraphStyle           | `canvas/skia/nodeRendererText.ts:88` `renderText()` — `halfLeading: true` (`:375/:419/:550`)                                            |

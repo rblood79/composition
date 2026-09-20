@@ -115,13 +115,13 @@ collection/self-render 컨테이너 (`Breadcrumbs, ComboBox, GridList, ListBox, 
 
 ## 3. 텍스트 측정 동기화
 
-ParagraphStyle 변경 시 **3곳 동시 업데이트** 필수: canvaskitTextMeasurer.ts, nodeRenderers.ts, TextMeasureStyle 인터페이스
+production 측정기는 Canvas 2D 하나다 (`utils/textMeasure.ts` `Canvas2DTextMeasurer` — ADR-051 → ADR-900 하이브리드, CSS 정합이 정본). CanvasKit Paragraph 는 `nodeRendererText.ts` 의 `needsFallback` 분기 (letterSpacing · wordSpacing · white-space≠normal · break-all) 에서만 만든다. ParagraphStyle 변경 시 **동시 업데이트**: nodeRendererText.ts · specShapeConverter.ts · TextMeasureStyle 인터페이스. (`CanvasKitTextMeasurer` 클래스는 2026-04-07 배선이 끊긴 채 남아 있다가 2026-09-20 삭제)
 
 - fontFamilies: 측정기와 렌더러가 **동일한 배열** 사용. CSS 체인 전체를 `split(",")` → `resolveFamily()` 매핑. **Why**: font 설정 불일치 → 텍스트 줄바꿈 위치 어긋남
 - strutStyle: `heightMultiplier > 0` 시 `forceStrutHeight: true` — 측정기/렌더러 양쪽 동일 적용
 - Spec-Driven Text Style: `extractSpecTextStyle(tag, props)` 사용. **텍스트 props(children/text/label) 없이 호출 금지** → null 반환 → fallback 측정 불일치
 - Paragraph API: 콘텐츠 폭=`getLongestLine()`, max-content=`getMaxIntrinsicWidth()`. `getMaxWidth()` 사용 금지
-- WASM Paragraph 객체 캐싱 금지는 **측정 경로 한정** (canvaskitTextMeasurer — 결과값 `{width, height}` 만 LRU 캐싱). 렌더 측 paragraph 는 **텍스트 노드 소유 retained + deferred 폐기** (ADR-174 — 전역 content-키 LRU/상한 재도입 금지: 상한→퇴거→프레임 중 폐기가 텍스트 소실의 병인. paragraph 생성은 `MakeFromFontCollection` + 공유 FontCollection 경유만 — per-call `ParagraphBuilder.Make` 는 paragraph 마다 ~5.78MB variable font 인스턴스를 복제 보유시킨다, 정적 가드 `nodeRendererText.static.test.ts`)
+- WASM Paragraph 객체 캐싱 금지는 **측정 경로 한정** (Canvas 2D 세그먼트 캐시는 결과값 폭만 보관). 렌더 측 paragraph 는 **텍스트 노드 소유 retained + deferred 폐기** (ADR-174 — 전역 content-키 LRU/상한 재도입 금지: 상한→퇴거→프레임 중 폐기가 텍스트 소실의 병인. paragraph 생성은 `MakeFromFontCollection` + 공유 FontCollection 경유만 — per-call `ParagraphBuilder.Make` 는 paragraph 마다 ~5.78MB variable font 인스턴스를 복제 보유시킨다, 정적 가드 `nodeRendererText.static.test.ts`)
 - **Layout 보정 금지**: `calculateContentWidth`, `enrichWithIntrinsicSize` 등 layout 경로에서 `+2/+4px` Canvas 2D→CanvasKit 보정 사용 금지. **Why**: Layout = Canvas 2D = CSS 정합이 원칙. Canvas 2D↔CanvasKit sub-pixel 차이는 **렌더링 단**(nodeRendererText.ts)에서 post-layout `getMaxIntrinsicWidth()` 교정으로 처리. layout에 보정 적용 시 CSS와 불일치.
 - **min/max-content 스칼라 경로 (ADR-165)**: 텍스트 leaf 폭 intrinsic 은 `enrichWithIntrinsicSize` 가 `contentMinWidth`(최장 단어 — `calculateMinContentWidth`)/`contentMaxWidth`(단일줄 — `calculateContentWidth`) 스칼라 2종을 측정해 엔진 NodeStyle 로 공급 — 엔진이 fit/min/max-content 공식과 §4.5 floor 를 소유. min-content 측정은 max-content 와 **동일 font 체인** (inline style 우선 fontFamily/fontWeight/fontSize) 필수 — 불일치 시 floor 가 다른 폰트 기준으로 어긋남. Paragraph `getMinIntrinsicWidth()` 는 canvaskit-wasm 타입 존재·현행 미사용 (Canvas 2D 지배 경로 — CanvasKit 동일-Paragraph 2-getter 추출은 후속 최적화 여지).
 - **CanvasKit 오발 줄바꿈 교정**: nodeRendererText.ts에서 `paragraph.layout()` 후 `\n` 없는 단일줄 텍스트가 줄바꿈되면 `getMaxIntrinsicWidth() + 1`로 재layout. **Why**: Canvas 2D↔CanvasKit 엔진 차이로 같은 텍스트가 다른 폭으로 측정됨. CanvasKit 자체 측정 기반 교정이므로 경험적 tolerance 불필요.
@@ -177,7 +177,7 @@ ParagraphStyle 변경 시 **3곳 동시 업데이트** 필수: canvaskitTextMeas
 - ❌ publishLayoutMap 타이밍 해킹, notifyLayoutChange() 강제 호출
 - ❌ parentElement를 useMemo 내 직접 참조 (stale closure)
 - ❌ hitElementId를 startMove에 직접 전달 (selectedElementIds 사용)
-- ❌ `calculateContentWidth`에 `isCanvasKitMeasurer() ? 0 : +N` 보정 추가 (CSS 정합 파괴 → nodeRendererText `+1` 마진 사용)
+- ❌ `calculateContentWidth`에 측정기 종류별 `+N` 보정 추가 (CSS 정합 파괴 → nodeRendererText `+1` 마진 사용)
 - ❌ 텍스트 leaf 에 width/minWidth 주입 재도입 (ADR-165 스칼라 계약과 이중 적용 — `contentMinWidth`/`contentMaxWidth` 공급이 정본. 비텍스트 leaf 의 width 주입 시 minWidth 동시 주입은 잔존 계약 유지)
 - ❌ overflow 기준 flexShrink 주입 보정 (구 Step 5.7) TS 재도입 (automatic minimum size 는 엔진 소속 — `flex.rs` §4.5, ADR-164. layout-engine.md §"TS 잔존 계약" 참조)
 

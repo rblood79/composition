@@ -2,7 +2,7 @@
  * CSS Text Wrapping Utilities (ADR-008)
  *
  * CanvasKit Paragraph API를 사용하여 CSS word-break / overflow-wrap를 에뮬레이션하는
- * 공유 유틸리티. canvaskitTextMeasurer.ts와 nodeRenderers.ts 양쪽에서 사용.
+ * 공유 유틸리티. nodeRendererText 의 needsFallback 분기가 사용.
  *
  * @since 2026-03-02
  */
@@ -221,8 +221,7 @@ export function computeKeepAllWidth(
  * 내부에 ZWS를 삽입하여 문자 단위 줄바꿈을 허용한다.
  * 이를 통해 CanvasKit이 CSS break-word와 유사하게 렌더링한다.
  *
- * canvaskitTextMeasurer.ts(높이 측정)와 nodeRenderers.ts(렌더링) 양쪽에서 사용하여
- * 측정-렌더링 경로 일치를 보장한다.
+ * nodeRendererText(렌더링) 가 사용한다.
  *
  * @param ck - CanvasKit 인스턴스
  * @param paraStyle - ParagraphStyle 객체
