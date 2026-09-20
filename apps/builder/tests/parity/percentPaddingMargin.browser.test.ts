@@ -76,8 +76,9 @@ const CASES: ParityCase[] = [
     { label: "b", style: BOX },
     ROOT([0, 1], { display: "flex", flexDirection: "column" }),
   ]),
-  // grid item 의 `%` 는 grid **area** 폭 (열 200) 기준 — 10. 컨테이너 높이는 명시 (행 트랙 기여가
-  //   margin 을 안 더하는 별도 엔진 gap 은 px 도 같아 이 축 밖 — 2026-09-20 발견, 후속).
+  // grid item 의 `%` 는 grid **area** 폭 (열 200) 기준 — 10. 컨테이너 높이는 명시 — auto 행의 `%`
+  //   margin 은 행 기여에서 0 (기준인 area 폭이 열 sizing 뒤라 순환, px margin 은 gridContainerBlockSize
+  //   A9~A11 이 잠근다).
   c("grid 2열 h100 > 자식 margin:5% (grid branch 직렬화 · area 폭 기준 10)", [
     { label: "a", style: { ...BOX, margin: "5%" } },
     { label: "b", style: BOX },

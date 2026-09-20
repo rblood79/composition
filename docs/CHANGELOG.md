@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [auto 행 grid 의 자식 margin 이 Canvas 컨테이너 높이에 안 들어가던 결함] - 2026-09-20
+
+### Fixed
+
+- `display: grid` 컨테이너 (height auto · 행 트랙 auto) 안의 자식에 margin 을 주면 Preview 는 컨테이너가 margin 만큼 커지는데 (자식 `margin: 10px` · h40 → 60) Canvas 는 40 에 머물러 아래 형제가 겹치던 결함 (앞 항목의 후속). 엔진 `solve_grid` 의 행 기여 루프 (`row_intrinsic`) 가 border-box 만 더하고 세로 margin 을 빼먹었다 — CSS-GRID-1 §12.5 의 트랙 기여는 outer size (margin-box) 이고 인라인 축 (`col_contribution`) 은 이미 그렇게 하고 있었다. `child_block_margin_px` 로 clamp 뒤에 더한다 (`%` margin 은 인라인 축과 같이 0 — 기준인 grid area 폭이 열 sizing 뒤에야 정해져 순환). 고정 트랙 (`30px`) 은 종전대로 margin 을 안 늘린다. 게이트 `gridContainerBlockSize` A9~A11 (수정 전 3 RED: Chrome 60/40 · 60/40 · 62/28) · Rust 431 · parity 1449 · live 실제 빌더 (`scripts/grid-row-margin-live.mjs`, 2열 auto 행 · rows auto auto + rowGap · 대조군 30px 행) 8/8 Skia layout = Preview DOM, Compare Mode 시각 일치. wasm 재빌드 필요 (`pnpm wasm:build:engine`).
+
+### Removed
+
+- `layout/engines/resolveMarginAutoSides.ts` (+ 테스트) — 앞 항목에서 block/flex 어댑터가 `resolveEngineBoxEdges` 로 통일되며 소비처 0. auto 방향 케이스는 `resolveEngineBoxEdges.test.ts` 로 이관.
+
 ## [`%` padding / margin 이 Canvas 에서 0 (레이아웃) · 10px (글리프) 로 떨어지던 결함] - 2026-09-20
 
 ### Fixed

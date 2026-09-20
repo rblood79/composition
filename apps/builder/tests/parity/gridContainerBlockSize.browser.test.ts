@@ -136,6 +136,40 @@ const EXTENT_CASES: ParityCase[] = [
     gridTemplateRows: ["30px"],
     height: "200px",
   }),
+  // A9~A11 — **auto 행의 기여는 margin-box** 다 (§12.5 outer size, 인라인 축 `col_contribution`
+  //   과 대칭). 종전 `row_intrinsic` 루프는 border-box 만 더해 `margin:10px` 자식의 컨테이너가
+  //   Chrome 60 / 엔진 40 이었다 (2026-09-20 `%` padding sweep 에서 발견). A6 의 30px 행과 다른 점:
+  //   고정 트랙은 margin 을 안 늘리지만 auto 트랙은 margin 까지 잰다.
+  rowCase(
+    "A9 auto 행 + 자식 margin 10 (longhand — 엔진 leg 은 shorthand 를 안 편다) → 트랙 60",
+    { gridTemplateRows: ["auto"] },
+    [
+      {
+        width: "40px",
+        height: "40px",
+        marginTop: "10px",
+        marginRight: "10px",
+        marginBottom: "10px",
+        marginLeft: "10px",
+      },
+    ],
+  ),
+  rowCase(
+    "A10 암묵 auto 행 (템플릿 없음) 2열 + marginTop/Bottom 비대칭",
+    { gridTemplateColumns: ["1fr", "1fr"] },
+    [
+      { width: "40px", height: "40px", marginTop: "5px", marginBottom: "15px" },
+      { width: "40px", height: "20px" },
+    ],
+  ),
+  rowCase(
+    "A11 auto 행 2개 + rowGap + 자식 margin (행마다 margin-box 최댓값)",
+    { gridTemplateRows: ["auto", "auto"], rowGap: "8px" },
+    [
+      { width: "40px", height: "10px", marginBottom: "30px" },
+      { width: "40px", height: "10px", marginTop: "4px" },
+    ],
+  ),
 ];
 
 // ── B. 미결정 블록 축의 행 토큰 해소 ──

@@ -1252,6 +1252,20 @@ impl LayoutTree {
         (cw + m_h, cw + m_h, true)
     }
 
+    /// 자식의 세로 margin 합 (px 만 — `%`/auto 는 0). grid 행 기여를 margin-box 로 올릴 때 쓴다.
+    fn child_block_margin_px(&self, c: usize, container_w: f32) -> f32 {
+        let Some(n) = self.get(c) else { return 0.0 };
+        let ctx = self.ctx_for(container_w.max(0.0));
+        let resolve_margin = |v: Option<&str>| -> f32 {
+            match v.map(str::trim) {
+                Some(t) if t.ends_with('%') => 0.0,
+                _ => resolve_signed(v, &ctx),
+            }
+        };
+        resolve_margin(n.style.margin_top.as_deref())
+            + resolve_margin(n.style.margin_bottom.as_deref())
+    }
+
     /// 자식의 **블록 축이 auto** 이면 상하 pad+border 합, 아니면 0 (인라인 축 대칭).
     fn child_auto_block_pad_border(&self, c: usize, container_w: f32, container_h: f32) -> f32 {
         let Some(n) = self.get(c) else { return 0.0 };
@@ -4071,6 +4085,12 @@ impl LayoutTree {
                     .and_then(|t| track_fixed_max(t, container_h));
                 let ch = self.clamp_auto_min_contribution(c, ch, fixed_max, false);
                 let (_, ch) = self.track_contribution(c, cw, ch, container_w, container_h);
+                // §12.5 기여는 **outer size(margin-box)** — `col_contribution` 과 대칭으로 세로
+                // margin 을 clamp **뒤**에 더한다 (min/max-height 는 border-box 대상). 종전엔 안
+                // 더해 auto 행 + `margin:10px` 자식의 컨테이너가 Chrome 60 / 엔진 40 이었다
+                // (2026-09-20). `%` margin 은 인라인 축과 같이 0 — 기준(grid area 폭)이 열
+                // sizing 뒤에야 정해지는데 이 루프는 그보다 앞이라 순환이다.
+                let ch = ch + self.child_block_margin_px(c, container_w);
                 if row < row_intrinsic.len() {
                     row_intrinsic[row] = row_intrinsic[row].max(ch);
                 }
