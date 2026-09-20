@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [canvas /simplify 정리 + HEAD 에서 실패하던 테스트 9건 정합] - 2026-09-20
+
+### Changed
+
+- Styles 패널 Size 모드의 `vw` / `vh` 한국어 라벨을 "화면 기준" → **"뷰포트"** 로 — Properties 패널의 Viewport 와 같은 영어에 같은 한국어 (어휘 정합 게이트 `sharedActionVocabulary.static`).
+- Components 패널 rail 아이콘을 정본 `ACTION_ICONS.component` 경유로 (그림은 같은 lucide `Component`) — 낱개 lucide import 금지 게이트 `actionIcons.static` 정합.
+- 헤더 선택 ToggleButton 글리프 색은 `--focus-ring` (09-19) 을 유지하고 소비처 없던 `--button-text` 선언을 삭제.
+- **canvas 내부 정리 (`/simplify`, 09-17 이후 변경 58 파일 판독)** — 동작 변경 0: resize·spacing 드래그의 window pointer lifecycle (move/up/cancel/blur/unmount/Escape · 3px 임계값) 을 `usePointerDragLifecycle` 하나로 · `containsPoint`/px 파서/엔진 JSON 파싱/scene→screen 변환/intrinsic 키워드 판정 등 중복 8종을 기존 helper 로 · dead export 4 삭제 · 엔진 측정 스칼라 키 목록을 `ENGINE_MEASURE_SCALAR_KEYS` 하나로 (enrich 등식에 빠져 있던 `contentMinHeight` 포함 — 09-19 `contentHeight` 무음 drop 과 같은 종류의 잠재 결함) · 텍스트 렌더 per-draw 공백 접기 2회 → 1회 + fast path · spacing hover 는 owner 없으면 rAF·할당 0 · `textDrawOrigins` 수명을 Skia registry 와 같이.
+
+### Fixed
+
+- `pnpm -F builder test` 가 HEAD 에서 9건 실패하던 것 — 09-16 ~ 09-19 커밋 6개가 제품은 바꾸고 짝 테스트를 안 바꾼 것 5 (flex 주축 Fixed 의 `flexShrink: 0` 동반 · body 기본 props 의 className 제거), 게이트 false positive 1 (`ComponentFactory` 지역 변수 `overrides` 가 legacy 필드 패턴에 걸림 → `initial`), 게이트가 잡은 실제 위반 3 (위 Changed). 856/856.
+
 ## [Styles 패널 Size — Width/Height 에 값을 치고 Enter 하면 요소를 바꾼 뒤 첫 번엔 반영되지 않던 결함] - 2026-09-20
 
 ### Fixed
