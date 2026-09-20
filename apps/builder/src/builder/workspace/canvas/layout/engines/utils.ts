@@ -4823,10 +4823,7 @@ export function isEngineIntrinsicKeyword(value: unknown): value is string {
 }
 
 /** intrinsic 크기 키워드 — height/width에서 enrichWithIntrinsicSize가 개입해야 하는 값 */
-const INTRINSIC_SIZE_KEYWORDS = new Set([
-  ...ENGINE_INTRINSIC_KEYWORDS,
-  "auto",
-]);
+const INTRINSIC_SIZE_KEYWORDS = new Set([...ENGINE_INTRINSIC_KEYWORDS, "auto"]);
 
 /** replaced element 태그 — 자연 치수(natural size)를 가져야 하는 요소 */
 const IMAGE_INTRINSIC_TAGS = new Set(["image", "avatar", "logo", "thumbnail"]);
@@ -5274,11 +5271,20 @@ export function enrichWithIntrinsicSize(
       }
       injectHeight += box.border.top + box.border.bottom;
     }
+    // `%` 높이는 **부모 display 와 무관하게** 스칼라로 싣고 `%` 를 남긴다 (2026-09-20): 종전엔 flex/grid
+    //   자식 (measuredAutoLeaf) 만 스칼라였고 block 자식은 `%` 를 측정 px 로 **치환**해 엔진이 `%` 를
+    //   못 봤다 — definite block 부모 (frame h300 pad 20) 안의 Text `height:100%` 가 Chrome 260 /
+    //   Canvas 100 (측정 4줄), `50%` 는 130 / 100. 엔진 leaf 경로는 부모 display 와 무관하게 "`%` 해소
+    //   실패 + explicit_h 0 일 때만 contentHeight" 를 쓰므로 (tree.rs) 두 갈래가 같은 계약이 된다.
+    //   IMAGE/CIRCLE 은 measuredAutoLeaf 와 같이 제외 (자연 치수 · 지름 = 별도 주입).
+    const percentHeightScalarLeaf =
+      percentageHeightMayNeedIntrinsicFallback &&
+      tsMeasuredLeaf &&
+      !IMAGE_INTRINSIC_TAGS.has(type) &&
+      !CIRCLE_LEAF_TAGS.has(type);
     if (
-      measuredAutoLeaf &&
-      (rawHeight == null ||
-        rawHeight === "auto" ||
-        percentageHeightMayNeedIntrinsicFallback)
+      (measuredAutoLeaf && (rawHeight == null || rawHeight === "auto")) ||
+      percentHeightScalarLeaf
     ) {
       injectedStyle.contentHeight = Math.max(
         0,

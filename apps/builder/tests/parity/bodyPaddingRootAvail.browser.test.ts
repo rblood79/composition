@@ -170,6 +170,54 @@ describe("`%` 높이 측정 leaf 는 Step 4.5 재측정 후보", () => {
   });
 });
 
+describe("definite block 부모 안의 `%` 높이 텍스트 — 엔진이 `%` 를 본다", () => {
+  beforeAll(async () => {
+    await initEngineWasm();
+  });
+
+  // 종전엔 block 자식 텍스트의 `%` 높이를 1-pass 측정 px 로 치환해 엔진이 `%` 를 못 봤다
+  //   (frame h300 pad 20: `100%` Chrome 260 / Canvas 100 · `50%` 130 / 100). flex/grid 자식과 같이
+  //   `contentHeight` 스칼라 + `%` 유지 — 엔진은 `%` 해소 실패 (미결정 부모) 일 때만 스칼라를 쓴다.
+  it.each([
+    ["height:100% → 260", "100%"],
+    ["height:50% → 130", "50%"],
+  ])("block frame h300 pad 20 > Text %s", (_name, height) => {
+    const nodes: CaseNode[] = [
+      {
+        label: "t",
+        elementType: "Text",
+        text: TEXT,
+        style: { ...TEXT_BASE, height },
+      },
+      {
+        label: "frame",
+        style: { display: "block", height: "300px", padding: "20px" },
+        children: [0],
+      },
+      {
+        label: "body",
+        elementType: "body",
+        style: { display: "block" },
+        children: [1],
+      },
+    ];
+    const dom = domLeg(nodes, PAGE_W);
+    const pipe = pipelineLeg(nodes, PAGE_W, PAGE_H);
+    const bad: string[] = [];
+    for (const i of [0, 1]) {
+      for (const f of ["x", "y", "w", "h"] as const) {
+        const d = Math.abs(dom[i][f] - pipe[i][f]);
+        if (d > TOL) {
+          bad.push(
+            `${nodes[i].label}.${f}: dom=${dom[i][f].toFixed(1)} pipe=${pipe[i][f].toFixed(1)} (Δ${d.toFixed(1)})`,
+          );
+        }
+      }
+    }
+    expect(bad, bad.join("\n")).toEqual([]);
+  });
+});
+
 describe("padding 있는 body root — 1-pass 가정 폭 (root padding 이중 차감 금지)", () => {
   beforeAll(async () => {
     await initEngineWasm();

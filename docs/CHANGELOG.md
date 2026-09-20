@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [definite 부모 안의 Text `%` 높이를 Canvas 가 측정 px 로 치환하던 결함 — 유사 패턴 sweep] - 2026-09-20
+
+### Fixed
+
+- 앞 항목의 유사 패턴 sweep (block/flex 부모 × `%` 높이 × `%` padding 6 프로브) 에서 나온 1건: block 부모 (Frame `height:300px · padding 20`) 안의 Text `height:100%` 가 Preview 260 / Canvas 100 (`50%` 는 130 / 100). block 자식 텍스트만 1-pass 가 `%` 높이를 측정 px 로 **치환**해 엔진이 `%` 를 못 봤다 (flex/grid 자식은 `contentHeight` 스칼라 + `%` 유지). 부모 display 와 무관하게 스칼라 경로로 — 엔진 leaf 는 `%` 해소 실패 (미결정 부모) 일 때만 스칼라를 쓴다. 게이트 `bodyPaddingRootAvail` +2 (7) · parity 1437 · live 9/9. **범위 밖 (LOW deferred)**: `%` padding/margin 은 `applyCommonEngineStyle` 이 `parsePadding(style)` (containerWidth 없음) 로 0 으로 떨어뜨린다 — Styles 패널 spacing 단위는 px 뿐 (`UNIT_OPTIONS.spacing`) 이라 저작 경로 없음, import/AI 데이터 한정.
+
 ## [padding 있는 페이지의 Text 가 `%` 크기 + padding 조건에서 Canvas 만 줄이 늘던 결함] - 2026-09-20
 
 ### Fixed

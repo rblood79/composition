@@ -3048,15 +3048,14 @@ export function calculateFullTreeLayout(
         //   percentageHeightMayNeedIntrinsicFallback) — 그 스칼라가 1-pass 가정 폭에서 잰 값이라
         //   실배치 폭이 다르면 (flex:1 · `%` 폭) 줄 수가 남거나 모자란다 (Chrome 120 / 100). 부모가
         //   definite 면 엔진이 `%` 를 해소하고 스칼라를 안 읽으니 재측정은 무해하다. TS 가 쟀는지는
-        //   batch record 로 판정한다 — flex/grid 자식은 `contentHeight` 스칼라, block 자식은 `%` 를
-        //   측정 px 로 바꿔 실었다 (`enrichWithIntrinsicSize` 의 두 갈래). 컨테이너 `%` 높이는 엔진
-        //   소유라 record 에 `%` 그대로 남아 종전대로 건너뛴다.
+        //   batch record 의 `contentHeight` 스칼라로 판정한다 (`enrichWithIntrinsicSize` — `%` 높이 측정
+        //   leaf 는 부모 display 와 무관하게 스칼라). 컨테이너 `%` 높이는 엔진 소유라 스칼라가 없어
+        //   종전대로 건너뛴다.
         const batchStyle = node.style as Record<string, unknown>;
         const percentHeightMeasuredLeaf =
           typeof rawH === "string" &&
           rawH.trim().endsWith("%") &&
-          (typeof batchStyle.contentHeight === "number" ||
-            (batchStyle.height !== undefined && batchStyle.height !== rawH));
+          typeof batchStyle.contentHeight === "number";
         if (
           rawH !== undefined &&
           rawH !== null &&
