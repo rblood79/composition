@@ -52,9 +52,6 @@
 
 - **Inspector**: `src/builder/inspector/hooks/` (`index.ts` 존재)
 - **Layout**: `src/builder/layout/usePanelLayout.ts`
-- **Overlay**: `src/builder/overlay/hooks/*`
-  - `useOverlayRAF.ts`
-  - `useVisibleOverlays.ts`
 - **Panels**
   - **Styles**: `src/builder/panels/styles/hooks/*`
   - **Monitor**: `src/builder/panels/monitor/hooks/*`

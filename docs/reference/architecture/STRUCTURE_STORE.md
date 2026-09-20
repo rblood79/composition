@@ -217,7 +217,6 @@ Builder는 WebGL 모드(PixiJS)를 사용합니다. 각 Phase별 영향 범위�
 | `apps/builder/src/builder/stores/index.ts`                                  | import                      |
 | `apps/builder/src/builder/panels/settings/SettingsPanel.tsx`                | 모든 필드 UI                |
 | `apps/builder/src/builder/main/BuilderCore.tsx`                             | showOverlay                 |
-| `apps/builder/src/builder/overlay/index.tsx`                                | showOverlay, overlayOpacity |
 | `src/builder/grid/index.tsx`                                   | showGrid                    |
 | `apps/builder/src/builder/workspace/canvas/BuilderCanvas.tsx`  | useStore 직접 사용          |
 | `apps/builder/src/builder/workspace/canvas/grid/GridLayer.tsx` | showGrid, gridSize          |
