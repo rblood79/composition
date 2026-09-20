@@ -19,6 +19,10 @@
  */
 
 import type { TextMeasureStyle } from "./textMeasure";
+import {
+  applyFontVariantCaps,
+  normalizeFontVariantCaps,
+} from "./smallCapsSynthesis";
 
 // USE_CANVAS2D_MEASURE 게이트는 wasm-bindings/featureFlags.ts (단일 registry) 로 이동.
 
@@ -524,11 +528,20 @@ function supportsCanvasLetterSpacing(): boolean {
   }
 }
 
-/** 공유 ctx 에 letter-spacing 을 세팅한다 — 값이 남아 다음 측정을 오염시키지 않게 항상 명시. */
+/**
+ * 파이프라인이 재는 동안의 font-variant-caps — `ctx.font =` 가 caps 를 normal 로 되돌리므로 font 세팅
+ * 직후마다 (applyLetterSpacing) 다시 싣는다. `measureWithCanvas2D` 가 진입 시 style 에서 잡고 나갈 때
+ * 되돌린다; 캐시 분리는 `buildFontKey` 의 fontVariant 가 담당한다. Chrome 실측 (2026-09-20): ctx
+ * `fontVariantCaps` 폭 == DOM `font-variant` 폭 (all-small-caps "Bye 12345 가나" 76.05 / 76.06).
+ */
+let activeFontVariantCaps = "normal";
+
+/** 공유 ctx 에 letter-spacing · font-variant-caps 를 세팅한다 — 값이 남아 다음 측정을 오염시키지 않게 항상 명시. */
 function applyLetterSpacing(
   ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
   letterSpacing: number,
 ): void {
+  applyFontVariantCaps(ctx, activeFontVariantCaps);
   if (!("letterSpacing" in ctx)) return;
   const next = `${letterSpacing || 0}px`;
   if (ctx.letterSpacing !== next) ctx.letterSpacing = next;
@@ -621,7 +634,14 @@ export function buildFontString(style: TextMeasureStyle): string {
       : style.fontStyle === 2 || style.fontStyle === "oblique"
         ? "oblique "
         : "";
-  return `${fs}${style.fontWeight ?? 400} ${style.fontSize}px ${style.fontFamily}`;
+  // font-variant: small-caps — Canvas 2D 도 Chrome DOM 과 같은 합성 (대문자 × 0.7) 으로 잰다
+  //   (smallCapsSynthesis.ts). shorthand 가 받는 값은 `small-caps` 뿐 — 다른 caps 값은
+  //   `applyFontVariantCaps` (ctx.fontVariantCaps) 가 font 세팅 뒤에 싣는다.
+  const fv =
+    normalizeFontVariantCaps(style.fontVariant) === "small-caps"
+      ? "small-caps "
+      : "";
+  return `${fs}${fv}${style.fontWeight ?? 400} ${style.fontSize}px ${style.fontFamily}`;
 }
 
 // ============================================
@@ -655,8 +675,8 @@ export function needsFallback(style: TextMeasureStyle): boolean {
   if (style.whiteSpace === "nowrap" || style.whiteSpace === "pre") return true;
   // break-all: 문자 단위 분할 — CanvasKit ZWS 삽입 방식이 더 정확
   if (style.wordBreak === "break-all") return true;
-  // fontVariant(small-caps 등): buildFontString 미포함 — CanvasKit 렌더는 적용하므로 측정도 CanvasKit 로
-  if (style.fontVariant && style.fontVariant !== "normal") return true;
+  // fontVariant (small-caps 등): 측정은 ctx.fontVariantCaps (Chrome DOM 과 같은 합성 폭), 렌더는
+  //   smallCapsSynthesis 가 run 으로 합성한다 (2026-09-20) — 폴백 사유가 아니다.
   return false;
 }
 
@@ -894,6 +914,22 @@ export function measureWithCanvas2D(
     return { width: 0, height: lineHeight, lineCount: 1, hintedText: text };
   }
 
+  const prevCaps = activeFontVariantCaps;
+  activeFontVariantCaps = normalizeFontVariantCaps(style.fontVariant);
+  try {
+    return measureWithCanvas2DInner(text, style, maxWidth);
+  } finally {
+    activeFontVariantCaps = prevCaps;
+  }
+}
+
+function measureWithCanvas2DInner(
+  text: string,
+  style: TextMeasureStyle,
+  maxWidth: number,
+): Canvas2DMeasureResult {
+  const lineHeight = style.lineHeight ?? style.fontSize * 1.2;
+
   // `\n` 은 hard break (pre 계열 — normal 은 호출 전에 공백으로 접힌다). 조각마다 접고 `\n` 으로
   //   다시 잇는다 — 빈 조각은 빈 줄 하나. 힌트 `\n` 과 원문 `\n` 은 CanvasKit 에 같은 hard break 다.
   if (text.includes("\n")) {
@@ -909,7 +945,7 @@ export function measureWithCanvas2D(
         lineCount += 1;
         continue;
       }
-      const r = measureWithCanvas2D(segment, style, maxWidth);
+      const r = measureWithCanvas2DInner(segment, style, maxWidth);
       parts.push(r.hintedText);
       width = Math.max(width, r.width);
       height += r.height;

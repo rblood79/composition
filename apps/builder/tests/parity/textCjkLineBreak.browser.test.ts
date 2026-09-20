@@ -115,6 +115,17 @@ const CASES: { name: string; text: StyleRecord }[] = [
     },
   },
   {
+    // small-caps 합성 폭 (smallCapsSynthesis.ts) — wrap leg 이 fontVariant 를 받아야 줄 수가 맞는다.
+    name: "sweep — font-variant:small-caps + letter-spacing:2px width:66px (합성 폭으로 줄 수)",
+    text: {
+      ...TEXT_BASE,
+      display: "block",
+      width: "66px",
+      fontVariant: "small-caps",
+      letterSpacing: "2px",
+    },
+  },
+  {
     name: "width:60px padding:10px border:1px — 좁은 padding 도 같은 식",
     text: {
       ...TEXT_BASE,

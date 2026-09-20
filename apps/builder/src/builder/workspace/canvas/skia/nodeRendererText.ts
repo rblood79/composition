@@ -18,6 +18,11 @@ import {
 import { USE_CANVAS2D_MEASURE } from "../wasm-bindings/featureFlags";
 import { collapseTextWhiteSpace } from "../utils/textWhiteSpace";
 import {
+  isSyntheticSmallCaps,
+  SMALL_CAPS_SCALE,
+  splitSmallCapsRuns,
+} from "../utils/smallCapsSynthesis";
+import {
   needsFallback,
   measureWithCanvas2D,
 } from "../utils/canvas2dSegmentCache";
@@ -447,6 +452,9 @@ export function renderText(
     const fontVariantStr = node.text.fontVariant ?? "normal";
     const variantFeatures = resolveFontVariantFeatures(fontVariantStr);
     const fontFeatureTags = [...DEFAULT_FONT_FEATURES, ...variantFeatures];
+    // small-caps 합성 (smallCapsSynthesis.ts): 번들 폰트에 smcp 가 없어 feature 태그만으로는 소문자
+    //   그대로였다 — Chrome 처럼 소문자 run 을 대문자 × 0.7 로 그린다. 줄 높이는 strut 이 본문 크기로 고정.
+    const synthSmallCaps = isSyntheticSmallCaps(fontVariantStr);
 
     const heightMultiplierOpt =
       heightMultiplier > 0 ? heightMultiplier : undefined;
@@ -501,14 +509,15 @@ export function renderText(
           : {}),
       },
       textAlign,
-      ...(heightMultiplierOpt !== undefined
+      ...(heightMultiplierOpt !== undefined || synthSmallCaps
         ? {
             strutStyle: {
               strutEnabled: true,
               fontFamilies: resolvedFamilies,
               fontSize: node.text.fontSize,
-              heightMultiplier: heightMultiplierOpt,
-              halfLeading: true,
+              ...(heightMultiplierOpt !== undefined
+                ? { heightMultiplier: heightMultiplierOpt, halfLeading: true }
+                : {}),
               forceStrutHeight: true,
             },
           }
@@ -642,14 +651,14 @@ export function renderText(
           })(),
         }
       : {};
-    builder.pushStyle(
+    const runTextStyle = (fontSize: number) =>
       new ck.TextStyle({
         fontFamilies: resolvedFamilies,
-        fontSize: node.text.fontSize,
+        fontSize,
         fontStyle: { weight: fontWeight, slant: fontSlant, width: fontWidth },
-        color: node.text.color,
-        letterSpacing: node.text.letterSpacing ?? 0,
-        wordSpacing: node.text.wordSpacing ?? 0,
+        color: node.text!.color,
+        letterSpacing: node.text!.letterSpacing ?? 0,
+        wordSpacing: node.text!.wordSpacing ?? 0,
         ...(heightMultiplierOpt !== undefined
           ? { heightMultiplier: heightMultiplierOpt, halfLeading: true }
           : {}),
@@ -657,10 +666,24 @@ export function renderText(
           ? { fontFeatures: fontFeatureTags }
           : {}),
         ...decorationTextStyleFields,
-        fontVariations: [{ axis: "wght", value: node.text.fontWeight ?? 400 }],
-      }),
-    );
-    builder.addText(renderableText);
+        fontVariations: [{ axis: "wght", value: node.text!.fontWeight ?? 400 }],
+      });
+    builder.pushStyle(runTextStyle(node.text.fontSize));
+    if (synthSmallCaps) {
+      // 소문자 run 만 축소 TextStyle 로 — 공백 · 숫자 · 한글 · 대문자는 본문 크기 (Chrome 합성과 같다).
+      const smallStyle = runTextStyle(node.text.fontSize * SMALL_CAPS_SCALE);
+      for (const run of splitSmallCapsRuns(renderableText, fontVariantStr)) {
+        if (run.small) {
+          builder.pushStyle(smallStyle);
+          builder.addText(run.text);
+          builder.pop();
+        } else {
+          builder.addText(run.text);
+        }
+      }
+    } else {
+      builder.addText(renderableText);
+    }
     const paragraph = observe("render.text.paragraph.build", () =>
       builder.build(),
     );

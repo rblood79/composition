@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [font-variant: small-caps 를 Canvas 도 그린다 — 합성 (대문자 × 0.7) · 측정 폭 Chrome 정합] - 2026-09-20
+
+### Fixed
+
+- 번들 폰트 (Pretendard · Inter Variable) 에 `smcp` OpenType feature 가 없어 Chrome 은 소문자를 **대문자 글리프 × 0.7** 로 합성하는데 (Blink `kSmallCapsFontSizeMultiplier`) CanvasKit 은 feature 태그만 받고 아무것도 안 해 소문자 그대로였다 (Preview "BYE BYE" ↔ Canvas "bye bye", 사용자 지시). 새 `utils/smallCapsSynthesis.ts`: (1) 렌더 — 텍스트를 run 으로 나눠 소문자 run 을 대문자 · fontSize × 0.7 TextStyle 로 push (`nodeRendererText`), 줄 높이는 strut 을 본문 크기로 고정; `all-small-caps` · `all-petite-caps` 는 Chrome 실측대로 `\n` 만 빼고 전부 축소 (숫자 · 한글 포함), `unicase` · `titling-caps` 는 Chrome 도 합성하지 않아 제외 · (2) 측정 — Canvas 2D `ctx.fontVariantCaps` 가 DOM `font-variant` 와 같은 합성 폭을 낸다 (실측 "bye bye" 16px 44.0625 == 44.0625 · all-small-caps "Bye 12345 가나" 76.05 / 76.06) → 세그먼트 파이프라인은 진입 시 style 의 caps 값을 잡아 `ctx.font =` 뒤마다 다시 싣고 (shorthand 가 normal 로 되돌린다), `buildFontString` 은 `small-caps` 접두어, `needsFallback` 에서 fontVariant 폴백 제거 (측정도 렌더도 Canvas 2D 힌트 경로) · (3) wrap leg (`measureWrappedTextHeight`) 에 fontVariant 전달 — 종전엔 미전달이라 letter-spacing 과 겹치면 줄 수가 달랐다 (60px · small-caps · letter-spacing 2: Chrome 240 / Canvas 264). 검증: 단위 (smallCapsSynthesis 6 · needsFallback/buildFontString 갱신) · parity 게이트 `textCjkLineBreak` 9 (small-caps + letter-spacing 원복 RED Δ24) · parity 1482 · canvas 1914 · live 하니스 (small-caps · all-small-caps · petite-caps · small-caps+letter-spacing) 상자 4/4 + 스크린샷 글리프 (BYE BYE 축소 · all-small-caps 전체 축소) Preview 와 동일 · type-check/lint PASS.
+
 ## [텍스트 줄바꿈 sweep — CanvasKit 폴백 경로의 공백 split · break-word 줄 첫 단어 · wrap leg 의 word-spacing] - 2026-09-20
 
 ### Fixed

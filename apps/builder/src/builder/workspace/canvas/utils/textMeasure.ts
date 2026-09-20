@@ -72,6 +72,7 @@ import {
   collapsesSegmentBreaks,
 } from "./textWhiteSpace";
 import { setSpecWrappedTextHeightMeasurer } from "@composition/specs";
+import { applyFontVariantCaps } from "./smallCapsSynthesis";
 
 // ============================================
 // Canvas 2D Implementation
@@ -133,6 +134,7 @@ export class Canvas2DTextMeasurer implements TextMeasurer {
       return text.length * (style.fontSize * 0.5);
     }
     ctx.font = buildFontString(style);
+    applyFontVariantCaps(ctx, style.fontVariant);
     const shaperHandlesSpacing = applyMeasureLetterSpacing(
       ctx,
       style.letterSpacing,
@@ -202,13 +204,8 @@ export class Canvas2DTextMeasurer implements TextMeasurer {
     //   pre · pre-wrap 은 그 함수가 그대로 돌려준다.
     text = collapseTextWhiteSpace(text, ws);
 
-    const fontStyleStr =
-      style.fontStyle === 1 || style.fontStyle === "italic"
-        ? "italic "
-        : style.fontStyle === 2 || style.fontStyle === "oblique"
-          ? "oblique "
-          : "";
-    ctx.font = `${fontStyleStr}${style.fontWeight ?? 400} ${style.fontSize}px ${style.fontFamily}`;
+    ctx.font = buildFontString(style);
+    applyFontVariantCaps(ctx, style.fontVariant);
 
     // ADR-008: word-break × overflow-wrap 에뮬레이션
     const wb = style.wordBreak || "normal";
@@ -292,6 +289,7 @@ export class Canvas2DTextMeasurer implements TextMeasurer {
       ctx,
       style.letterSpacing,
     );
+    applyFontVariantCaps(ctx, style.fontVariant);
     let w = ctx.measureText(word).width;
     if (!shaperHandlesSpacing) {
       w += letterSpacingFallbackWidth(word, style.letterSpacing);
@@ -591,6 +589,8 @@ export function measureWrappedTextHeight(
   whiteSpace?: string,
   /** 단어 간격(px) — 공백 토큰 폭에 더한다 (2026-09-20 sweep: 종전 wrap leg 미전달 → Chrome 보다 줄이 적었다). */
   wordSpacing?: number,
+  /** font-variant-caps (small-caps 등) — 합성 폭이 줄 수를 바꾼다 (smallCapsSynthesis.ts). */
+  fontVariant?: string,
 ): number {
   const result = getTextMeasurer().measureWrapped(
     text,
@@ -604,6 +604,7 @@ export function measureWrappedTextHeight(
       letterSpacing,
       whiteSpace,
       wordSpacing,
+      fontVariant,
     },
     maxWidth,
   );

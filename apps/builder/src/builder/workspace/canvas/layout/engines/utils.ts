@@ -4351,6 +4351,9 @@ export function calculateContentHeight(
           resolveTextRenderStyle(style, computedStyle).letterSpacing,
           ws49,
           parseNumericValue(style?.wordSpacing) ?? computedStyle?.wordSpacing,
+          (style?.fontVariant ?? computedStyle?.fontVariant) as
+            | string
+            | undefined,
         );
         const singleLineH = resolvedLH;
         if (wrappedHeight > singleLineH + 0.5) {

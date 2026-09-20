@@ -298,6 +298,15 @@ describe("buildFontKey", () => {
 // ============================================
 
 describe("buildFontString", () => {
+  it("small-caps 는 shorthand 접두어로 (다른 caps 값은 ctx.fontVariantCaps 가 맡는다)", () => {
+    expect(
+      buildFontString({ fontSize: 16, fontFamily: "Arial", fontVariant: "small-caps" }),
+    ).toBe("small-caps 400 16px Arial");
+    expect(
+      buildFontString({ fontSize: 16, fontFamily: "Arial", fontVariant: "all-small-caps" }),
+    ).toBe("400 16px Arial");
+  });
+
   it("기본 스타일 → 표준 CSS font shorthand 생성", () => {
     const fs = buildFontString({ fontSize: 16, fontFamily: "Arial" });
     expect(fs).toBe("400 16px Arial");
@@ -421,14 +430,14 @@ describe("needsFallback", () => {
     ).toBe(true);
   });
 
-  it("fontVariant: small-caps면 fallback 필요 (ADR-151 B18 — buildFontString 미포함, CanvasKit 렌더는 적용)", () => {
+  it("fontVariant: small-caps 도 Canvas 2D 로 잰다 (2026-09-20 — ctx.fontVariantCaps 합성 폭 · 렌더는 run 합성)", () => {
     expect(
       needsFallback({
         fontSize: 16,
         fontFamily: "Arial",
         fontVariant: "small-caps",
       }),
-    ).toBe(true);
+    ).toBe(false);
   });
 
   it("fontVariant: normal이면 fallback 불필요", () => {
