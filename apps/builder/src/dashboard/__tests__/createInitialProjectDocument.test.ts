@@ -37,7 +37,16 @@ describe("createInitialProjectDocument", () => {
               type: "body",
               // 20ac5e60d: 시스템 페이지 body 에 실제 overflow:auto 부여 (일반 페이지
               //   createDefaultBodyProps 와 대칭 — Components 스크롤바 미표시 해소).
-              props: { style: { overflow: "auto" } },
+              // ADR-228 Decision 4: origin 전집을 카테고리 순 grid (flex wrap) 로 흐르게 한다.
+              props: {
+                style: expect.objectContaining({
+                  overflow: "auto",
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 24,
+                  padding: 24,
+                }),
+              },
               children: expect.arrayContaining([
                 expect.objectContaining({
                   id: "component-listbox-item-default",

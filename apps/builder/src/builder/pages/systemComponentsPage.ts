@@ -36,6 +36,23 @@ const SYSTEM_PAGE_BODY_PROPS: Record<string, unknown> = {
   style: { overflow: "auto" },
 };
 
+/**
+ * ADR-228 Decision 4 — Components 페이지 body 는 origin 전집 (R 57 + item template + 사용자 origin)
+ * 을 **카테고리 순 grid** 로 보인다: flex wrap 흐름 (한 줄에 여러 origin, 넘치면 다음 줄) + 간격.
+ * 세로 한 줄 stack (block) 이면 57 origin 이 3천 px 를 넘게 쌓여 페이지가 "전집" 으로 읽히지 않는다.
+ * 순서는 siblings 순서 (= seed 순서 · 사용자 이동) 그대로 — 여기서는 흐름만 정한다.
+ * 기존 문서에는 **부재 키만** 채운다 (사용자가 body style 을 만졌으면 그 값 우선).
+ */
+const COMPONENTS_BODY_GRID_STYLE: Record<string, unknown> = {
+  display: "flex",
+  flexDirection: "row",
+  flexWrap: "wrap",
+  alignItems: "flex-start",
+  alignContent: "flex-start",
+  gap: 24,
+  padding: 24,
+};
+
 // 기존 프로젝트의 시스템 페이지 body(props:{})에 overflow:auto 를 1회 보강(migration).
 //   사용자/기존 명시 overflow 는 보존(덮어쓰기 금지). 보강 대상이 없으면 원본 children 참조를
 //   그대로 반환해 idempotent(불필요한 re-persist 방지).
@@ -49,11 +66,18 @@ function ensureBodyOverflowAuto(
     //   비교는 string 으로 좁힌다.
     if ((child.type as string) !== "body") return child;
     const style = (child.props?.style ?? {}) as Record<string, unknown>;
-    if (style.overflow != null) return child;
+    const nextStyle: Record<string, unknown> = { ...style };
+    if (style.overflow == null) nextStyle.overflow = "auto";
+    // ADR-228: grid 흐름 키도 부재 시에만.
+    for (const [key, value] of Object.entries(COMPONENTS_BODY_GRID_STYLE)) {
+      if (nextStyle[key] == null) nextStyle[key] = value;
+    }
+    if (Object.keys(nextStyle).length === Object.keys(style).length)
+      return child;
     mutated = true;
     return {
       ...child,
-      props: { ...child.props, style: { ...style, overflow: "auto" } },
+      props: { ...child.props, style: nextStyle },
     };
   });
   return mutated ? next : children;
@@ -93,7 +117,12 @@ function createComponentsPageNode(): CanonicalNode {
       {
         id: COMPONENTS_SYSTEM_BODY_ID,
         type: "body" as CanonicalNode["type"],
-        props: { ...SYSTEM_PAGE_BODY_PROPS },
+        props: {
+          style: {
+            ...(SYSTEM_PAGE_BODY_PROPS.style as Record<string, unknown>),
+            ...COMPONENTS_BODY_GRID_STYLE,
+          },
+        },
       },
     ],
   };

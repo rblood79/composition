@@ -411,3 +411,45 @@ describe("ADR-228 G1 — entry 원복 RED (게이트가 반응하는 행)", () =
     ).toBeDefined();
   });
 });
+
+describe("ADR-228 G4 — 문서 증가량 (Δnode · Δbyte) 실측 기록", () => {
+  function countNodes(nodes: readonly CanonicalNode[]): number {
+    let n = 0;
+    for (const node of nodes) n += 1 + countNodes(node.children ?? []);
+    return n;
+  }
+  it("generic origin 50 = root 50 + descendants 135 (G0 예상과 일치) · Δbyte 는 예상 ±20%", () => {
+    const base = makeDocument();
+    // hand seed 5 + template origin 만 시드한 문서를 기준으로 generic 만의 증가를 잰다.
+    const withoutGeneric = ensureReusableCompositeOrigins({
+      ...base,
+    });
+    const genericIds = new Set(
+      getCatalogOriginTypes().map(catalogReusableOriginId),
+    );
+    const stripGeneric = (nodes: CanonicalNode[]): CanonicalNode[] =>
+      nodes
+        .filter((n) => !genericIds.has(n.id))
+        .map((n) =>
+          n.children ? { ...n, children: stripGeneric(n.children) } : n,
+        );
+    const before: CompositionDocument = {
+      ...withoutGeneric,
+      children: stripGeneric(withoutGeneric.children),
+    };
+    const after = ensureCatalogOrigins(before);
+    const deltaNodes = countNodes(after.children) - countNodes(before.children);
+    const deltaBytes =
+      JSON.stringify(after).length - JSON.stringify(before).length;
+    const roots = getCatalogOriginTypes().length;
+    expect(roots).toBe(50);
+    expect(deltaNodes - roots).toBe(135);
+    // G0 예상 ~28 KB 는 definition 직렬화 합 — 실측 37,952 B (id · name · metadata 가 더해진다,
+    //   2026-09-21). 범위 밖이면 seed 모양이 바뀐 것이니 inventory (breakdown §8.5) 를 갱신할 것.
+    expect(deltaBytes).toBeGreaterThan(30_000);
+    expect(deltaBytes).toBeLessThan(45_000);
+    console.log(
+      `[ADR-228 G4] Δnode ${deltaNodes} (root ${roots} + desc ${deltaNodes - roots}) · Δbyte ${deltaBytes}`,
+    );
+  });
+});

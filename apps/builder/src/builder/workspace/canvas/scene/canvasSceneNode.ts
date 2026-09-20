@@ -1,4 +1,5 @@
 import type { CanvasProjectionMetadata } from "../canvasProjection";
+import { mergePropsWithStyleDeep } from "../../../../adapters/canonical/instanceResolver";
 export type { CanvasProjectionMetadata } from "../canvasProjection";
 import type {
   BreakpointName,
@@ -2613,11 +2614,21 @@ export function buildCanvasSceneGraph(
       //   프로덕션 코드는 `CanvasSceneNode.type==="ref"` 를 읽지 않는다(전부 canonical
       //   node.type 소비). page placeholder ref 는 별도 렌더 경로라 제외(isRenderableRef 대칭).
       if (node.type === "ref" && !isPagePlaceholderNode(node)) {
-        const masterType = getDocumentNodesById().get(
-          (node as RefNode).ref,
-        )?.type;
+        const master = getDocumentNodesById().get((node as RefNode).ref);
+        const masterType = master?.type;
         if (typeof masterType === "string" && masterType !== "ref") {
           sceneNode.type = masterType;
+          // ADR-228: scene 층의 projection gate (Breadcrumbs `props.items` · Table `props.rows`
+          //   · Chart `_chartRows` …) 는 **raw instance props** 를 읽었다. ListBox/GridList 는
+          //   factory 가 items 를 instance override 로 실어 보였을 뿐이고, catalog 파생 origin
+          //   의 instance 는 명시 patch 만 갖는다 (§3.2) — 여기서 origin 기본 props 를 깔고
+          //   instance override 를 얹는다 (렌더 SSOT `resolveCanonicalRefElement` 와 같은 merge).
+          if (master?.props) {
+            sceneNode.props = mergePropsWithStyleDeep(
+              master.props as Record<string, unknown>,
+              sceneNode.props as Record<string, unknown>,
+            ) as typeof sceneNode.props;
+          }
         }
       }
       // ADR-148 Phase 0: ListBoxItem 자체(주로 Components 페이지 origin)의 slot 조합

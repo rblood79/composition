@@ -174,11 +174,11 @@ export function resolveCanonicalRefMaster<T extends CanonicalRefResolvableNode>(
 
 export function resolveCanonicalRefElement<
   T extends CanonicalRefResolvableNode,
->(node: T, nodes: Iterable<T>): T {
+>(node: T, nodes: Iterable<T>, knownMaster?: T): T {
   if (!isCanonicalRefElement(node)) return node;
 
   const ref = getCanonicalRefTarget(node)!;
-  const master = resolveCanonicalRefMaster(ref, nodes);
+  const master = knownMaster ?? resolveCanonicalRefMaster(ref, nodes);
   if (!master) return node;
 
   const {
@@ -252,7 +252,10 @@ export function resolveCanonicalRefElementsMap<
   const elements = Array.from(elementsMap.values());
   const resolvedEntries = Array.from(elementsMap.entries()).map(
     ([id, element]) => {
-      const resolved = resolveCanonicalRefElement(element, elements);
+      // ADR-228 G4: id 참조는 map 조회 (선형 탐색은 legacy 참조 폴백).
+      const ref = getCanonicalRefTarget(element);
+      const known = ref ? elementsMap.get(ref) : undefined;
+      const resolved = resolveCanonicalRefElement(element, elements, known);
       if (resolved !== element) changed = true;
       return [id, resolved] as const;
     },
@@ -764,24 +767,38 @@ export function resolveCanonicalRefTree<
   const elementsMap = new Map(input.elementsMap);
   const childrenMap = new Map(input.childrenMap ?? sourceChildrenMap);
 
+  // ADR-228 G4: 팔레트 배치가 전부 ref 라 instance 수 × 노드 수의 선형 탐색이 O(n²) 였다
+  //   (600 instance × 850 노드 × 3 pass — page-switch p95 +4 ms 실측). origin 은 id 로 참조되므로
+  //   map 조회를 먼저 하고, legacy 참조 (customId · name) 만 선형 탐색으로 떨어진다. 같은 origin
+  //   은 한 번만 찾는다.
+  const masterCache = new Map<string, T | undefined>();
+  const lookupMaster = (ref: string): T | undefined => {
+    if (masterCache.has(ref)) return masterCache.get(ref);
+    const master =
+      input.elementsMap.get(ref) ??
+      resolveCanonicalRefMaster(ref, input.elementsMap.values());
+    masterCache.set(ref, master);
+    return master;
+  };
+  const indexById = new Map<string, number>();
+  elements.forEach((candidate, index) => indexById.set(candidate.id, index));
+
   for (const element of input.elements) {
     if (!isCanonicalRefElement(element)) continue;
+    const ref = getCanonicalRefTarget(element);
+    const master = ref ? lookupMaster(ref) : undefined;
     const resolvedRoot = resolveCanonicalRefElement(
       element,
       input.elementsMap.values(),
+      master,
     );
     if (resolvedRoot !== element) {
       elementsMap.set(element.id, resolvedRoot);
-      const index = elements.findIndex(
-        (candidate) => candidate.id === element.id,
-      );
+      const index = indexById.get(element.id) ?? -1;
       if (index >= 0) elements[index] = resolvedRoot;
     }
 
-    const ref = getCanonicalRefTarget(element);
-    if (!ref) continue;
-    const master = resolveCanonicalRefMaster(ref, input.elementsMap.values());
-    if (!master) continue;
+    if (!ref || !master) continue;
 
     materializeSyntheticDescendants(
       element,

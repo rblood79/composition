@@ -11,6 +11,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-228 Implemented — 팔레트 전 항목이 Components 페이지 origin · 배치는 instance] - 2026-09-21
+
+### Added
+
+- 팔레트의 RAC 컴포넌트 57 종 전부가 Components 페이지에 origin 으로 시드되고 (기존 5 + 신규 52, `PALETTE_REUSABLE_ORIGIN_TYPES`), 팔레트에서 놓는 것은 그 origin 의 instance (`type:"ref"`) 다 — origin 을 고치면 instance 가 따라오고 (영향 대화상자 「Continue」), 같은 Button 을 두 번 놓아도 한 정의를 공유한다. Text · Icon · Separator · Skeleton · Image · frame · Section · Slot · IllustratedMessage 는 종전대로 plain.
+- origin 은 손 seed 없이 현행 factory 기본값·자식 definition 에서 파생된다 (`apps/builder/src/builder/components/catalogOrigins.ts`) — 새 origin 은 팔레트가 만들던 노드와 같은 트리 (단위 게이트 16 · live parity 50 type Skia rect + Preview 픽셀 Δ0). 기존 문서는 열 때 origin 만 추가되고 (57 root + 자손 135 · ≈38 KB) 기존 plain 노드는 그대로다.
+- instance 는 명시 initialProps 만 소유한다 — 「bar chart」 처럼 진입점이 고른 `chartType` 은 origin 과 같아도 보존 (canonical diff 예외), 그 외 공통 기본값은 origin 상속. Properties/Styles 패널은 origin type 의 편집 계약을 그대로 보인다 (schema 문서 복제 0).
+- Components 페이지 body 는 flex-wrap grid 흐름 (gap · padding 24) 으로 origin 전집을 보이고, 시스템 origin root 는 삭제되지 않는다 (이동·편집 가능).
+- 하니스: `adr228-reusable-origins-live.mjs` (G1~G3 24/24) · `adr228-instance-parity-live.mjs` (G2 instance arm 51/51) · `perf-baseline.mjs --fixture-kind buttons|button-refs` (G4 ref 0%/100% arm).
+
+### Fixed
+
+- Breadcrumbs 처럼 root 가 `props.items` 로 자식을 투영하는 컴포넌트의 instance 가 Canvas 에서 폭 0 이던 결함 — scene node 가 origin 기본 props 를 상속하지 않았다 (`canvasSceneNode.ts`, 원복 RED 2).
+- 600 instance 문서에서 page-switch p95 +4 ms — `resolveCanonicalRefTree` 가 instance 마다 노드 전체를 선형 탐색 (O(n²)) → id map 조회 (headed 3회: select +0.3 · edit +0.1 · page-switch +0.1 ms; zoom +4.5 는 유보).
+- origin 편집 뒤 Chart instance 의 `chartType` 이 사라지던 결함 (`diffRefPropsAgainstMaster` 가 master 와 같은 값을 지운다) — `chartType` 명시 보존.
+- Toolbar/Form instance 가 Properties 에 semantic 필드 0 이던 것 — origin type 의 accepts 를 읽는다 (ADR-148 Phase 2 "미선언 = 0" 을 ADR-228 이 대체).
+
+### Changed
+
+- `ComponentFactory` 의 컴포넌트당 private wrapper 55 개를 `componentDefinitions.ts` (store-free definition 맵) 파생으로 대체 — 등록 집합 (`getRegisteredTypes`) 은 동일. Table 순수 definition (`createTableDefinition`) 분리.
+- AI 카탈로그: 동명 primitive 가 있는 reusable entry 는 primitive 계약 (props · RAC 이름) 을 광고한다 — 57 종이 reusable 이 되면서 system prompt 의 prop 정보가 비는 것을 막는다.
+- 위치: `docs/adr/completed/228-palette-wide-reusable-origins.md` (Gate 결과 · Live Exercise) · `design/228-*-breakdown.md` §8~§9.
+
 ## [ADR-227·228 설계 리뷰 보완 — 토큰 소비·기존 테마 승계·origin 생성 계약] - 2026-09-21
 
 ### Documentation

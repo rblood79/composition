@@ -22,7 +22,7 @@ catalog rule 2,333 개 TokenRef 는 색 · 서체 · radius 를 이름으로만 
 - 런타임은 `themeConfigStore` 전역 싱글턴 — `setTint` → `tintToSkiaColors` → `themeVersion+1` → `notifyLayoutChange` → localStorage (`themeConfigStore.ts:168-200`). 문서 → store 적용은 `VITE_ADR110_P2_THEMES_WRITE_THROUGH` 게이트 (`BuilderCore.tsx:640-661`).
 - rule: hex 리터럴 0 · TokenRef 2,333 · `borderWidth` 숫자 리터럴 43 (`componentRulesTable.ts`).
 - DOM leg 는 `--tint: var(--blue)` 한 줄 + `[data-accent]` 요소 override (`preview-system.css:7-45`); publish 는 `applyThemeConfig` 로 `--tint` · neutral alias · radius 주입 (`apps/publish/src/App.tsx:188-215`).
-- Components 페이지 = 시스템 페이지 `page-components` — 템플릿 origin + 사용자 reusable origin 보관 (ADR-148 · F12). 팔레트 66 중 origin 을 갖는 것은 5 뿐이라 "컴포넌트 전집이 테마를 입는 표면" 은 아직 없다 — 그 확장은 [ADR-228](228-palette-wide-reusable-origins.md) (2026-09-21).
+- Components 페이지 = 시스템 페이지 `page-components` — 템플릿 origin + 사용자 reusable origin 보관 (ADR-148 · F12). 팔레트 66 중 origin 을 갖는 것은 5 뿐이라 "컴포넌트 전집이 테마를 입는 표면" 은 아직 없다 — 그 확장은 [ADR-228](completed/228-palette-wide-reusable-origins.md) (2026-09-21).
 
 ### Hard constraints
 
@@ -82,7 +82,7 @@ catalog rule 2,333 개 TokenRef 는 색 · 서체 · radius 를 이름으로만 
 1. **Decision 1 — 스키마와 승계**: `ThemesCollection { active, items, order }`, 항목은 `{ id, name, preset, tokens(델타) }`. root tokens는 user-defined만. 최초 migration은 기존 부팅 정책의 실효값·baseTypography를 승계하고 저장 성공 후 문서 우선으로 전환한다. imported 문서에 이 기기의 legacy 설정을 섞지 않는다.
 2. **Decision 2 — 전체 소비 경로**: 활성 테마 명시 델타 → root user-defined fallback → preset seed. 명시 파생값은 자동 파생보다 우선한다. 공통 snapshot을 실제 tokenResolver·layout·text/focus/shadow 소비자에 연결하고 DOM은 기존 의미 변수 매핑을 사용한다. Preview·Publish는 같은 helper를 쓰며 전환/reset 때 이전 override를 제거한다.
 3. **Decision 3 — 테마 소유 축**: color · typography · radius · **border 폭 (신설 `{border.width.none|thin|thick}`, rule 리터럴 43 참조화)** · shadow · focus. size/spacing (density) · 요소/페이지 스코프 · 테마별 light/dark 이중 세트는 **유보** — 재개 조건은 breakdown §6.
-4. **Decision 4 — 표면**: Themes 패널 = 테마 목록 (추가 = 복제 · 이름 · 삭제 · 활성) + 토큰 편집 (프리셋 채우기 유지). 테마 결과를 전집으로 보는 자리는 **Components 페이지** (origin · instance · slot) — 별도 섹션을 만들지 않고 [ADR-228](228-palette-wide-reusable-origins.md) 이 채운 origin 전집을 읽는다 (2026-09-21 사용자 정정: 초안의 "catalog leaf read-only 섹션" 철회 — 아무도 ref 하지 않는 origin 을 만든다).
+4. **Decision 4 — 표면**: Themes 패널 = 테마 목록 (추가 = 복제 · 이름 · 삭제 · 활성) + 토큰 편집 (프리셋 채우기 유지). 테마 결과를 전집으로 보는 자리는 **Components 페이지** (origin · instance · slot) — 별도 섹션을 만들지 않고 [ADR-228](completed/228-palette-wide-reusable-origins.md) 이 채운 origin 전집을 읽는다 (2026-09-21 사용자 정정: 초안의 "catalog leaf read-only 섹션" 철회 — 아무도 ref 하지 않는 origin 을 만든다).
 
 위험 수용 근거: 기술·migration HIGH를 G1의 실효값 승계 행렬, G2의 축별 비기본값 대칭, G3의 CSS·box model 검증으로 관리한다. renderer와 layout 소비자까지 변경 범위에 포함하며 G1~G3를 통과하기 전 BC·대칭을 보장했다고 판정하지 않는다. D1/D2 의미 계약은 유지한다.
 
@@ -142,7 +142,7 @@ catalog rule 2,333 개 TokenRef 는 색 · 서체 · radius 를 이름으로만 
 - [ADR-142](completed/142-starter-spec-component-system-cutover.md) — D3 SSOT = catalog + theme/tokens
 - [ADR-193](completed/193-theme-aware-semantic-palette-map.md) — neutral alias · publish `applyThemeConfig` 함정
 - [ADR-198](completed/198-d3-renderer-pixel-parity-gate.md) — 팔레트 전수 픽셀 parity 하니스 (G2 재사용)
-- [ADR-228](228-palette-wide-reusable-origins.md) — 직교 · Components 페이지 origin 전집 (테마 표면)
+- [ADR-228](completed/228-palette-wide-reusable-origins.md) — 직교 · Components 페이지 origin 전집 (테마 표면)
 - [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md) §1 D3 · §6 금지 패턴
 - 외부: Figma Variables (collections · modes) · Framer Styles (color / text styles) · Webflow Variables + modes · Adobe Spectrum density 축 분리
 

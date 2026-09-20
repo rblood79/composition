@@ -2476,3 +2476,90 @@ describe("buildCanvasSceneGraph — ADR-159 행 텍스트 템플릿 보간", () 
     });
   });
 });
+
+/**
+ * ADR-228 — catalog 파생 origin 의 ref instance 는 명시 patch 만 갖는다 (props {}). scene 층의
+ * projection gate (Breadcrumbs `props.items`) 가 raw instance props 를 읽으면 crumb 이 0 이 되어
+ * Skia 폭 0 (live 실측 2026-09-21) — scene node 는 origin 기본 props 위에 instance override 를
+ * 얹어야 한다 (`resolveCanonicalRefElement` 와 같은 merge).
+ */
+describe("buildCanvasSceneGraph — ADR-228 ref instance 의 origin props 상속", () => {
+  const items = [
+    { id: "c1", label: "Home", href: "/" },
+    { id: "c2", label: "Category", href: "/category" },
+    { id: "c3", label: "Page" },
+  ];
+  function makeDoc(
+    instanceProps: Record<string, unknown>,
+  ): CompositionDocument {
+    return {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-components",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-components" },
+          children: [
+            {
+              id: "page-components-body",
+              type: "body",
+              props: {},
+              children: [
+                {
+                  id: "component-breadcrumbs",
+                  type: "Breadcrumbs",
+                  name: "Breadcrumbs",
+                  reusable: true,
+                  props: { size: "M", isDisabled: false, items },
+                  metadata: { type: "catalog-origin", systemOwned: true },
+                },
+              ],
+            },
+          ],
+        },
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: "body-1",
+              type: "body",
+              props: {},
+              children: [
+                {
+                  id: "inst",
+                  type: "ref",
+                  ref: "component-breadcrumbs",
+                  name: "Breadcrumbs",
+                  props: instanceProps,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument;
+  }
+
+  it("props {} instance 도 origin items 로 crumb projection 행 3 을 낸다 (scene type = origin type)", () => {
+    const graph = buildCanvasSceneGraph(makeDoc({}));
+    const inst = graph.nodesMap.get("inst");
+    expect(inst?.type).toBe("Breadcrumbs");
+    expect((inst?.props as { items?: unknown[] }).items).toHaveLength(3);
+    const crumbs = [...graph.nodesMap.keys()].filter((id) =>
+      id.startsWith("projection:breadcrumb-row:inst:"),
+    );
+    expect(crumbs).toHaveLength(3);
+  });
+
+  it("instance override 는 origin 값을 덮고 style 은 deep-merge 된다", () => {
+    const graph = buildCanvasSceneGraph(
+      makeDoc({ size: "L", style: { marginTop: 4 } }),
+    );
+    const inst = graph.nodesMap.get("inst");
+    expect(inst?.props.size).toBe("L");
+    expect(inst?.props.isDisabled).toBe(false);
+    expect(inst?.props.style).toEqual({ marginTop: 4 });
+  });
+});

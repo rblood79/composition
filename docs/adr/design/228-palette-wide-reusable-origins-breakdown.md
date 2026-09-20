@@ -1,6 +1,6 @@
 # ADR-228 구현 설계: 팔레트 전 항목 reusable origin — Components 페이지 = origin 전집 + 테마 한 세트
 
-정본: [ADR-228](../228-palette-wide-reusable-origins.md)
+정본: [ADR-228](../completed/228-palette-wide-reusable-origins.md)
 
 작성일: 2026-09-21. 코드 사실은 이 날짜의 main (`81d96353f`) 실측이다 — 착수 시 Phase 0 에서 재실측한다.
 
@@ -200,3 +200,27 @@ E 밖의 사용자 origin과 collection item template origin도 Components 페�
 - 600 요소 ref 0% (plain Button 격자, headless, 1440×900, Navigator·Properties 열림): `pnpm perf:baseline -- --lane frame --seed-count 600 --fixture-kind buttons` — gap p95: idle 18.2 · pan 18.4 · zoom 27.2 · select 27.6 · edit 133.5 · page-switch 53.3 · panel-toggle 24.2 · layers-scroll 28.3 (ms). 하니스에 `buttons` / `button-refs` fixture 추가 (같은 격자의 두 arm). JSON: scratch `perf/g0-frame-buttons-ref0-600.json`.
 - 예상 Δnode (신규 문서): root 50 + descendants 135 (definition 실측 합 — TextField 3 · NumberField 6 · FileUpload 10 · DatePicker 7 · TableView 9 · Table 2 …) = **185**. 예상 Δbyte ≈ definition 직렬화 합 ~28 KB (미포맷). G4 가 실측으로 대조.
 - 변경 파일 추정 (Phase 1~4): shared 3 (componentCatalog · resolveEditContract · canonicalNestingContext) · builder 12 (catalogOrigins 신규 · reusableCompositeOrigins · ComponentFactory · TableComponents · useElementCreator · compositeCreation · elementRemoval · systemComponentsPage · ai/catalog/componentCatalog · entryUniverseContract.test · componentRegistrationContract.test · perf-baseline.mjs) + 테스트 신규 3.
+
+## 9. 실행 기록 (2026-09-21, Phase 0~4 같은 날)
+
+| Phase | 커밋 / 산출                | 내용                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| ----- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 0     | `25866715f` (breakdown §8) | inventory freeze · 결정 4 (schema 미복제 · template origin 재사용 · type 목록 하나 · definition 맵 노출) · G0 baseline                                                                                                                                                                                                                                                                                                                                       |
+| 1     | `25866715f`                | shared `PALETTE_REUSABLE_ORIGIN_TYPES` 52 → reusable entry 파생 · `catalogOrigins.ts` generic seed (definition → propagation → migration → canonical, 안정 id) · `componentDefinitions.ts` (store-free) · `createTableDefinition` · `resolveEditContract` (A″) 확장 · ref 생성 부모 결정 공유 + 명시 patch (`buildReusableInstanceProps`) · AI catalog primitive twin · nesting ref → origin type · systemOwned root 삭제 가드 · `catalogOrigins.test.ts` 15 |
+| 2     | 후속 커밋                  | live 결함 3 수리 — canonical diff 의 `chartType` 명시 보존 · scene node origin props merge (Breadcrumbs 폭 0) · `resolveCanonicalRefTree` O(n²) → map · `adr228-reusable-origins-live.mjs` 24/24 · `adr228-instance-parity-live.mjs` 51/51                                                                                                                                                                                                                   |
+| 3     | 후속 커밋                  | Components body grid 흐름 (flex wrap · gap 24 · padding 24, 부재 키만) · `systemComponentsPage.test.ts` 2 · 초기 문서 테스트 갱신                                                                                                                                                                                                                                                                                                                            |
+| 4     | 후속 커밋                  | G4 headed 3회 A/B (select +0.3 · edit +0.1 · page-switch +0.1 · zoom +4.5 유보) · Δnode 185 · Δbyte 37,952 · `useElementCreator.reusableInstanceProps.test.ts` 5                                                                                                                                                                                                                                                                                             |
+
+### 9.1 설계와 달라진 점
+
+- §3.1 개념 코드의 `propsSchema: passthroughSchema(...)` 는 두지 않았다 — §8.4-1 (편집 계약은 A″ 가 accepts 를 직접 읽는다). Toolbar/Form instance 가 primitive accepts 필드를 얻는 부수 효과는 `componentCatalog.test.ts` 가 명시.
+- leaf origin 은 creationVariants 의 **공통 initialProps** 를 소유한다 (Chart: 7 진입점이 같은 값으로 명시하는 키). 진입점마다 갈리는 키 (chartType · showGrid …) 만 instance patch — H1 의 "origin 기본값 전체를 instance 에 복사하지 않는다" 를 canonical diff (`diffRefPropsAgainstMaster`) 가 이미 강제하고 있었고, 그 diff 가 `chartType` 까지 지우던 것을 예외로 뺐다.
+- 생성 경로의 명시 patch 는 origin props 를 **문서에서** 읽는다 (`findCanonicalNodeById(doc, originId)`) — 팔레트 `elements` 는 page-scoped 라 Components 페이지 origin 이 없다 (같은 이유로 preflight 의 ref → origin type 해석은 page 밖 origin 에 대해 "ref" 로 남는다 — canonical guard 가 최종 판정).
+- G4 는 headless 로는 판정하지 않았다 (SwiftShader flush 가 run 마다 ±6 ms) — 실 GPU headed 3회 평균.
+
+### 9.2 함정 (다음 세션용)
+
+- Chrome MCP 탭은 `visibilityState: hidden` 으로 열려 빌더 부트가 95% 에서 멈춘다 — store · IndexedDB 판독은 되므로 조회에만 쓰고 live 는 headed Playwright.
+- origin 편집은 instance 가 있으면 EditingSemantics 영향 대화상자 (`.editing-impact-actions` 「Continue」) 뒤에야 적용된다 — `updateElementProps` 는 그때까지 pending promise.
+- persist 는 백그라운드 — reload 전에 `document_parts` `node:<id>` 를 폴링한다. 값은 JSON 문자열 (따옴표 escape) 이라 `"component-x"` 문자열 검색은 놓친다.
+- Compare Mode 의 Preview iframe (1920×1080) 은 왼쪽 CSS pane 에 clip 되고 그 위에 헤더/rail 이 뜬다 — 요소 스크린샷은 page clip + stage 여백으로.

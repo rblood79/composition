@@ -113,3 +113,57 @@ describe("ensureComponentsSystemPage — 시스템 body overflow:auto", () => {
     expect(bodyOverflow(findComponentsBody(out))).toBe("hidden");
   });
 });
+
+/** ADR-228 Decision 4 — Components body 의 grid 흐름 (flex wrap · gap · padding), 부재 키만 채운다. */
+describe("ensureComponentsSystemPage — ADR-228 body grid 흐름", () => {
+  const bodyStyle = (body: CanonicalNode | undefined) =>
+    (body?.props?.style ?? {}) as Record<string, unknown>;
+
+  it("신규 생성: body 가 flex wrap grid 흐름 + overflow:auto 를 갖는다", () => {
+    const out = ensureComponentsSystemPage({
+      version: "composition-1.0",
+      children: [makeEditorPage("page-home")],
+    });
+    expect(bodyStyle(findComponentsBody(out))).toMatchObject({
+      overflow: "auto",
+      display: "flex",
+      flexWrap: "wrap",
+      gap: 24,
+      padding: 24,
+      alignItems: "flex-start",
+    });
+  });
+
+  it("기존 repair: overflow 만 있던 body 에 grid 키를 보강하되 사용자 값 (gap) 은 덮지 않는다", () => {
+    const componentsPage: CanonicalNode = {
+      id: COMPONENTS_SYSTEM_PAGE_ID,
+      type: "frame",
+      name: "Components",
+      metadata: {
+        type: "legacy-page",
+        pageId: COMPONENTS_SYSTEM_PAGE_ID,
+        slug: "/components",
+        parent_id: null,
+        systemOwned: true,
+      },
+      children: [
+        {
+          id: COMPONENTS_SYSTEM_BODY_ID,
+          type: "body" as CanonicalNode["type"],
+          props: { style: { overflow: "auto", gap: 8 } },
+        },
+      ],
+    } as CanonicalNode;
+    const out = ensureComponentsSystemPage({
+      version: "composition-1.0",
+      children: [componentsPage, makeEditorPage("page-home")],
+    });
+    const style = bodyStyle(findComponentsBody(out));
+    expect(style.gap).toBe(8);
+    expect(style.display).toBe("flex");
+    expect(style.flexWrap).toBe("wrap");
+    // 두 번째 repair 는 무변경 (멱등).
+    const twice = ensureComponentsSystemPage(out);
+    expect(JSON.stringify(twice)).toBe(JSON.stringify(out));
+  });
+});

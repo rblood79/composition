@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-09-21
+Implemented — 2026-09-21 (Proposed 09-21 → [reviews/228.md](../reviews/228.md) round 1 HIGH 1 · MEDIUM 2 전부 fixed → round 2 pending 0 → 사용자 `/execute-adr 228` (09-21, 착수 = 승인) → Phase 0~~4 / G0~~G4 같은 날 종결. 구현 커밋: Phase 0·1 `25866715f` · Phase 2~4 (편집·렌더 대칭 · Components 페이지 grid · 비용) 후속 커밋)
 
 설계 요청: 사용자 (2026-09-21) — "컴포넌트 패널의 컴포넌트들이 모두 Components 페이지에 origin 으로 존재해야 하고, 패널에서 선택해 쓰는 것은 instance 가 되어야 한다. IconButton 이 현재 그렇게 되어 있다. 그러면 theme 와 components 가 Components 페이지에서 한 세트가 된다." ADR-148 이 "전면 reusable entry 등록" 을 confirm 받았으나 (2026-07-07) Phase 1~4 는 5 항목 + collection item slot 에서 끝났다 — 이 ADR 은 그 "전면" 을 팔레트의 RAC 컴포넌트 전 항목으로 완결한다. 착수 전 결정 3 (새 ADR · RAC 컴포넌트만 · 기존 plain 노드 공존) 은 사용자 AskUserQuestion confirm (2026-09-21).
 
@@ -85,7 +85,7 @@ Proposed — 2026-09-21
 
 기각 사유: **A** — seed 만 줄 단위로 catalog 와 이중화되어 PropContract 변경마다 57 곳 drift. **C** — 사용자 결정 ②③ 과 상충, 역변환 규칙이 HIGH. **D** — "고치면 따라온다" 가 없어 theme + components 가 한 세트가 되지 않는다; 227 초안의 Decision 4 는 이 ADR 이 대체한다.
 
-> 구현 상세: [228-palette-wide-reusable-origins-breakdown.md](design/228-palette-wide-reusable-origins-breakdown.md)
+> 구현 상세: [228-palette-wide-reusable-origins-breakdown.md](../design/228-palette-wide-reusable-origins-breakdown.md)
 
 ## Risks
 
@@ -112,9 +112,24 @@ Proposed — 2026-09-21
 
 측정 조건 (measurement-validity §1): Q1 600 요소 문서는 perf-baseline 합성 seed — **규모 전용**, 분포 지표 인용 금지 · Q2 불리 케이스 = ref 100% 문서에서 가시 집합이 바뀌는 스크롤 + 다중 선택 + 편집 (실체화가 매 프레임 걸리는 조작) · Q3 대조군 = 같은 세션 · 같은 seed 의 ref 0% arm (entry kind 원복) · Q4 소비 경로 = 팔레트 → `useElementCreator` → `type:"ref"` 를 live 로 (grep 아님) · Q5 oracle = ADR-198 하니스 (실 브라우저 픽셀 · Preview computed style) — dual-run 자기 확인 아님. 기록 항목: visibilityState visible · headed · 1440×900 · 처녀 힙 · DPR.
 
+### Gate 결과 (2026-09-21, main `25866715f` + Phase 2~4 working tree · 1440×900 · 120 Hz · DPR 1 · visible · headed Chrome)
+
+| Gate | 결과             | 근거 (local `docs/adr/evidence/228-palette-wide-reusable-origins/`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ---- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| G0   | PASS             | breakdown §8 — P 66 · X 9 · E 57 = 손 seed 5 + catalog 파생 52 · V 63 (Chart 7) · R 57 (신규 root 50 + template 재사용 2) · 600 요소 ref 0% baseline (`g0-buttons-ref0.log`) · 예상 Δnode 185 (`catalogOrigins.test.ts` G0 집합 검사 6)                                                                                                                                                                                                                                                                                                                                       |
+| G1   | PASS             | `catalogOrigins.test.ts` 16 — R 전수 시드 · reusableId 규약 · complex 39 subtree = `createElementsFromDefinition` 결과 (type 순서·props, UUID 정규화) · leaf 11 = 팔레트 합성 (로드 migration 뒤) · 재hydration 직렬화 Δ0 · 사용자 편집 보존 · entry 원복 RED. live G1-a/b/c 12/12 (아래)                                                                                                                                                                                                                                                                                     |
+| G2   | PASS             | `adr228-instance-parity-live.mjs` **51/51** — generic 50 type 마다 ref instance ↔ origin subtree 복제 plain: Skia layout rect 열 (root + 자손 DFS) 동일 · Preview DOM 스크린샷 pixelmatch **diff 0** + computed style digest 동일 (45 type) · overlay/trigger 전용 5 (Menu · FileTrigger · Modal · Popover · Tooltip) 는 두 arm 모두 DOM 미출력 → Skia 만 (`g2-instance-parity-findings.json`). 편집·전파·복제·Undo/Redo·Chart 진입점은 live G2-a~e 9/9                                                                                                                       |
+| G3   | PASS             | live G3-a/b 3/3 — systemOwned origin root `removeElement` 거부 · origin 편집 IndexedDB persist · reload 후 origin 편집 · body 순서 · 요소 수 Δ0 · instance override 보존. Components body grid 흐름 (`systemComponentsPage.test.ts` 2)                                                                                                                                                                                                                                                                                                                                        |
+| G4   | PASS (zoom 유보) | headed 3회 평균 p95 (ref 0% → 100%): **select 24.9 → 25.2 (+0.3) · edit 10.43 → 10.57 (+0.1) · page-switch 20.7 → 20.8 (+0.1)** ≤ +1 ms (`g4b-*-headed-{1,2,3}.log`). O(n²) master 선형 탐색 → map 조회 수리 전에는 page-switch +4.1 이었다. **zoom 32.5 → 37.0 (+4.5) 는 게이트 밖 부류 — 유보 (§Consequences)**. Δnode 185 (root 50 + desc 135 = G0 예상) · Δbyte 37,952 (`catalogOrigins.test.ts` G4) · 재hydration Δ0 · AI initialProps 패치 `useElementCreator.reusableInstanceProps.test.ts` 5 + `canonicalVocabulary.test.ts` (ComboBox ref 생성 → 계약 → 컴파일 요청) |
+
 ### Live Exercise
 
-(Implemented 승격 시 기재)
+- **2026-09-21 · headed Playwright (`apps/builder/scripts/adr228-reusable-origins-live.mjs`) · 실제 빌더 (dev 5173 · 격리 새 프로젝트 · 실입력 팔레트 클릭 · 패널 입력 · ⌘D · Compare Mode Preview iframe) · 24/24 · page error 0 · native dialog 0** — 사용자 참관 없음 (Chrome MCP 탭이 `visibilityState: hidden` 이라 부트 95% 정지 — 메모리 `reference-chrome-mcp-hidden-tab-raf-pause-stale-overlay`; 같은 탭에서 store/IndexedDB 판독만 병행). 기록 `g1-g3-live-findings.json`.
+  - G1-a Components body 에 root 61 (R 57 + item template 4) · elements 236. G1-b 팔레트 「Button/Text Field/Select/Badge/Table」 → `type:"ref"` · `ref: component-<type>` · `props {}` · 사용자 페이지. 「bar chart」 → `{chartType:"bar", showGrid:true}` (origin 과 다른 키 + chartType). G1-c Preview DOM 에 Button/TextField/Select 실체화 (`react-aria-Button` 68×30 · TextField 1920×56 · Select) · Skia rect 69×30.
+  - G2-a Button instance 선택 → Properties 에 Variant (Primary/Accent/…) · Size · Fill Style (primitive accepts) · Content › Text 입력 "Buy now" → instance props `{children:"Buy now"}` 하나 · Preview 반영. G2-b origin `variant: accent` (EditingSemantics 영향 대화상자 「Continue」) → Preview `data-variant="accent"` · "Buy now" 유지 · 복귀. G2-c ⌘D → 두 번째 instance (props 동일) · Undo 1 · Redo 2. G2-d 같은 props 의 plain Button — Skia 81×30 = 81×30 · Preview 80×30 = 80×30 · variant 동일. G2-e Chart origin `style.width` 320→480 → instance Skia 480 · instance props 는 `{chartType:"bar", showGrid:true}` 그대로 · Undo 320 · Redo 480.
+  - G3-a `removeElement("component-badge")` → 요소 수 244 → 244 · 존재. G3-b origin `children:"Edited origin"` → `document_parts` `node:component-badge` persist → reload → 편집 보존 · body 순서 동일 · 244 · Button instance `{children:"Buy now"}` 보존.
+- **2026-09-21 · headed Playwright (`apps/builder/scripts/adr228-instance-parity-live.mjs`) · 51/51** — 위 G2 행. 하니스 함정: Compare Mode 의 CSS pane 위에 헤더 (48px) · rail 이 떠 있어 stage 컨테이너 (paddingTop 140 · paddingLeft 100) 로 피하고, 두 arm 을 같은 자리에서 찍기 위해 다른 arm 을 iframe DOM 에서 `visibility:hidden; position:absolute` (display:none 은 Recharts 가 remount 로 보고 애니메이션을 다시 돈다) · 연속 두 캡처가 동일할 때까지 settle · plain arm 은 legacy view 의 origin 필드 (`componentRole:"master"`) 를 옮기지 않는다.
+- **live 가 드러낸 결함 3 (수리 포함)**: ① Chart instance 의 `chartType` 이 첫 origin 편집/Undo 뒤 사라짐 — canonical 이 ref override 를 master 와 diff 해 같은 값을 지운다 (`diffRefPropsAgainstMaster`) → `chartType` 명시 보존 (`canonicalMutations.test.ts` 신규 1). ② Breadcrumbs instance 가 Skia 폭 0 — scene 층 projection gate 가 raw instance props (`{}`) 를 읽어 `items` 0 → scene node 에 origin props merge (`canvasSceneNode.test.ts` 신규 2, 원복 RED). ③ page-switch p95 +4.1 ms — `resolveCanonicalRefTree` 가 instance 마다 노드 전체를 선형 탐색 (O(n²)) → id map 조회 + origin memo (G4 재측정 +0.1).
 
 ## Consequences
 
@@ -126,19 +141,19 @@ Proposed — 2026-09-21
 
 ### Negative
 
-- 새 배치는 전부 ref — scene 실체화 한 단계가 모든 노드에 붙는다 (G4 로 상한).
+- 새 배치는 전부 ref — scene 실체화 한 단계가 모든 노드에 붙는다 (G4 로 상한). **잔여 (유보, LOW)**: 600 instance 문서의 zoom p95 가 +4.5 ms (32.5 → 37.0, headed 3회). 프로파일은 두 arm 이 같은 모양이고 `skiaNodeContentEquals` (resolved instance 는 매 resolve 마다 새 객체라 identity 빠른 길이 안 걸린다) 만 3.1% vs 2.1% — 가설 = resolved 노드 memo (origin rev × instance props identity). production 재현 시나리오 (사용자 체감) 는 없다 — 재개 조건: 실문서 zoom 체감 저하.
 - plain/instance 공존 기간의 혼란 (R6) — 표식과 유보 액션으로 관리.
 - catalog 등록 sweep 외에도 creationVariants/initialProps 보존과 factory definition 재사용이 필요하다. 기존 5종을 제외한 신규 reusable 등록은 현재 집합 기준 52종이며 신규 origin root 수는 문서별로 다르다.
 
 ## References
 
-- [ADR-148](completed/148-reusable-slot-system-unification.md) — base: 등록 단일화 · propsSchema · slot · IconButton 수직 슬라이스
-- [ADR-142](completed/142-starter-spec-component-system-cutover.md) · [ADR-912](completed/912-rac-pencil-rebuild-cutover.md) — 조합 = canonical reusable 문서 / 조합 = 데이터 (HC#5)
-- [ADR-227](227-multi-theme-token-set-collection.md) — 직교 · Components 페이지를 테마 표면으로 읽는다
-- [ADR-198](completed/198-d3-renderer-pixel-parity-gate.md) — G2 instance arm
-- [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md) §1 D3 · D2 읽기 전용
+- [ADR-148](148-reusable-slot-system-unification.md) — base: 등록 단일화 · propsSchema · slot · IconButton 수직 슬라이스
+- [ADR-142](142-starter-spec-component-system-cutover.md) · [ADR-912](912-rac-pencil-rebuild-cutover.md) — 조합 = canonical reusable 문서 / 조합 = 데이터 (HC#5)
+- [ADR-227](../227-multi-theme-token-set-collection.md) — 직교 · Components 페이지를 테마 표면으로 읽는다
+- [ADR-198](198-d3-renderer-pixel-parity-gate.md) — G2 instance arm
+- [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md) §1 D3 · D2 읽기 전용
 - 외부: Figma components (main component + instance overrides) · Framer code components (definition + instance props)
 
 ## 리뷰 보완 (2026-09-21)
 
-[round 1 리뷰](reviews/228.md)의 H1/M2/M3를 반영했다. 설계 수리 완료, Proposed 유지. 구현·live·pixel·perf G0~G4는 UNVERIFIED다.
+[round 1 리뷰](../reviews/228.md)의 H1/M2/M3를 반영했다 (설계 수리 → round 2 pending 0). 구현 결과 G0~~G4 는 위 Gate 결과 표 · breakdown §8~~§9.
