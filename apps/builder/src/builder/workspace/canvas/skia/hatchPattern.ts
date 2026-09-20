@@ -5,7 +5,7 @@
  * 각각 자기 상수 (간격 4/7/6 · 굵기 1/1.5/1.5 · alpha 0.35/0.42/0.35) 로 같은 45° 사선을 따로 그려
  * 한 화면에 세 가지 결이 섞였다 (사용자 지적 2026-09-20 — slot 과 padding 의 패턴이 다르다).
  * 여기 하나로 통일한다: 색 (의미) 만 호출부가 정하고 간격·굵기·alpha·상한은 공통이다.
- * 기준값은 ADR-222 breakdown §1.2 의 사선 간격 4 화면 px (가장 나중에 사용자 live 확인).
+ * 간격 8 화면 px (사용자 결정 2026-09-20 — 통일 시점의 ADR-222 §1.2 제안값 4 에서 조정).
  */
 import type { CanvasKit, Canvas } from "canvaskit-wasm";
 import type { BoundingBox } from "../selection/types";
@@ -14,7 +14,7 @@ import { SkiaDisposable } from "./disposable";
 import { acquireScopedPaint } from "./paints";
 
 /** 사선 간격 (화면 px) */
-export const HATCH_SPACING_PX = 4;
+export const HATCH_SPACING_PX = 8;
 /** 사선 굵기 (화면 px) */
 export const HATCH_STROKE_PX = 1;
 /** 사선 alpha — 호출부 색에 곱한다 */
