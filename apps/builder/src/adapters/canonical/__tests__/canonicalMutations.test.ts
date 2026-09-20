@@ -320,10 +320,14 @@ describe("canonical mutation wrappers", () => {
     // 페이지 추가 (appendPageShell → 전체 shell 재구성) 와 같은 경로
     setElementsCanonicalPrimary([]);
 
-    const nextDoc = useCanonicalDocumentStore.getState().getDocument("project-1");
+    const nextDoc = useCanonicalDocumentStore
+      .getState()
+      .getDocument("project-1");
     const home = nextDoc?.children.find((node) => node.id === "page-home");
     expect(home?.state).toEqual(pageState);
-    expect(nextDoc?.children.find((node) => node.id === "page-two")?.state).toBeUndefined();
+    expect(
+      nextDoc?.children.find((node) => node.id === "page-two")?.state,
+    ).toBeUndefined();
   });
 
   it("attaches slot-less page children to a framed page's children (not the slot override)", () => {
@@ -2104,6 +2108,54 @@ describe("canonical mutation wrappers", () => {
         }),
       }),
     ]);
+  });
+
+  it("ADR-228 — ref override diff 는 chartType 을 master 와 같아도 보존한다 (진입점 정체)", () => {
+    const page = makePage("page-1");
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore.getState().setDocument(
+      "project-1",
+      makeDocument([
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: "component-chart",
+              type: "Chart",
+              reusable: true,
+              props: { chartType: "bar", showGrid: false, size: "md" },
+            },
+          ],
+        },
+      ]),
+    );
+    registerCanonicalMutationStoreActions({
+      getCurrentLegacySnapshot: () => ({
+        elements: [],
+        pages: [page],
+        layouts: [],
+      }),
+      getCurrentProjectId: () => "project-1",
+    });
+
+    mergeElementsCanonicalPrimary([
+      makeElement("chart-instance", "Chart", {
+        page_id: "page-1",
+        ref: "component-chart",
+        props: { chartType: "bar", showGrid: true, size: "md" },
+        order_num: 1,
+      } as never),
+    ]);
+
+    const nextDoc = useCanonicalDocumentStore
+      .getState()
+      .getDocument("project-1");
+    const pageNode = nextDoc?.children.find((node) => node.id === "page-1");
+    const instance = pageNode?.children?.find((n) => n.id === "chart-instance");
+    // size 는 master 와 같아 지워지고 showGrid 는 다르니 남는다 — chartType 은 같아도 명시 보존.
+    expect(instance?.props).toEqual({ chartType: "bar", showGrid: true });
   });
 
   it("mergeElementsCanonicalPrimary preserves reusable page origins in canonical storage", () => {

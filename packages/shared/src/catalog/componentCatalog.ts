@@ -63,7 +63,7 @@ function reusableEntry(
   type: string,
   family: ComponentCatalogEntry["family"],
   reusableId: string,
-  panel: { category: string; label: string; icon: string },
+  panel: Omit<PanelMeta, "placeable">,
 ): Extract<ComponentCatalogEntry, { kind: "reusable" }> {
   return {
     kind: "reusable",
@@ -1208,7 +1208,95 @@ const REUSABLE_ENTRIES: ComponentCatalogEntry[] = [
   }),
 ];
 
-export const componentCatalog: readonly ComponentCatalogEntry[] = [
+/**
+ * ADR-228 (2026-09-21) — 팔레트의 RAC 컴포넌트 전 항목을 reusable origin 으로.
+ *
+ * 사용자 결정 ② "origin 범위 = RAC 컴포넌트만": `PALETTE_ORDER` 66 − 내용/레이아웃 primitive 8
+ * (Text · Icon · Separator · Skeleton · Image · frame · Section · Slot) − IllustratedMessage
+ * (148 Phase 3 부적격) = 57 = 아래 52 + 위 손 seed 5 (Toolbar · Form · IconButton · InlineAlert · Card).
+ * builder `adr228Inventory.test.ts` 가 이 목록 ↔ PALETTE_ORDER − 제외 9 − 기존 5 의 일치를 강제한다.
+ *
+ * 등록은 **type 목록 하나** — 동명 primitive entry 의 panel 메타 (category · label · icon ·
+ * creationVariants · layoutOnly) 를 그대로 reusable entry 로 파생하고, primitive 는
+ * `placeable:false` 로 공존한다 (placeable 단일성 HC#3, Toolbar/Form 과 같은 모양). origin
+ * 문서 seed 는 builder `catalogOrigins.ts` 가 factory 기본값·definition 에서 파생한다 —
+ * 손 seed 모듈 0 (ADR-228 Decision 2). reusableId = `component-<type lowercase>` (R③) 로
+ * ListBox/GridList 는 기존 template origin id (`component-listbox` / `component-gridlist`) 와
+ * 자연히 일치해 그 origin 을 그대로 재사용한다.
+ */
+export const PALETTE_REUSABLE_ORIGIN_TYPES: readonly string[] = [
+  // content
+  "Badge",
+  "ProgressBar",
+  "Avatar",
+  "AvatarGroup",
+  "StatusLight",
+  "ProgressCircle",
+  // layout / navigation
+  "Tabs",
+  "Breadcrumbs",
+  "Link",
+  "Nav",
+  "Pagination",
+  "DisclosureGroup",
+  "Disclosure",
+  "CardView",
+  // buttons
+  "Button",
+  "ToggleButton",
+  "ToggleButtonGroup",
+  "ButtonGroup",
+  "Menu",
+  // forms
+  "TextField",
+  "TextArea",
+  "NumberField",
+  "SearchField",
+  "ColorField",
+  "Checkbox",
+  "CheckboxGroup",
+  "RadioGroup",
+  "Select",
+  "ComboBox",
+  "Switch",
+  "Slider",
+  "Meter",
+  "DropZone",
+  "FileTrigger",
+  "FileUpload",
+  // collections
+  "Table",
+  "ListBox",
+  "GridList",
+  "Tree",
+  "TagGroup",
+  "TableView",
+  // charts
+  "Chart",
+  // dateTime
+  "Calendar",
+  "DatePicker",
+  "DateRangePicker",
+  "DateField",
+  "TimeField",
+  "RangeCalendar",
+  // overlays
+  "Dialog",
+  "Modal",
+  "Popover",
+  "Tooltip",
+];
+
+/** ADR-228: type → reusableId 규약 (R③ `component-<kebab>`; 대문자 없는 소문자 접합). */
+export function catalogReusableOriginId(type: string): string {
+  return `component-${type.toLowerCase()}`;
+}
+
+const PALETTE_REUSABLE_ORIGIN_TYPE_SET: ReadonlySet<string> = new Set(
+  PALETTE_REUSABLE_ORIGIN_TYPES,
+);
+
+const PRIMITIVE_ENTRIES: readonly ComponentCatalogEntry[] = [
   ...FAMILY_1_ENTRIES,
   ...FAMILY_2_ENTRIES,
   ...FAMILY_3_ENTRIES,
@@ -1217,7 +1305,42 @@ export const componentCatalog: readonly ComponentCatalogEntry[] = [
   ...FAMILY_6_ENTRIES,
   ...FAMILY_7_ENTRIES,
   ...FAMILY_8_ENTRIES,
+];
+
+/**
+ * ADR-228 catalog 파생 reusable entry — `PALETTE_REUSABLE_ORIGIN_TYPES` 의 동명 primitive
+ * panel 메타를 복제한다. 목록의 type 에 primitive entry 가 없으면 등록 결손이므로 즉시 throw
+ * (모듈 로드 시점에 드러난다).
+ */
+const CATALOG_DERIVED_REUSABLE_ENTRIES: ComponentCatalogEntry[] =
+  PALETTE_REUSABLE_ORIGIN_TYPES.map((type) => {
+    const primitive = PRIMITIVE_ENTRIES.find(
+      (entry) => entry.type === type && entry.kind === "primitive",
+    );
+    if (!primitive) {
+      throw new Error(
+        `[componentCatalog] ADR-228 PALETTE_REUSABLE_ORIGIN_TYPES "${type}" 의 primitive entry 부재`,
+      );
+    }
+    const { placeable: _placeable, ...panel } = primitive.panel;
+    return reusableEntry(
+      type,
+      primitive.family,
+      catalogReusableOriginId(type),
+      panel,
+    );
+  });
+
+export const componentCatalog: readonly ComponentCatalogEntry[] = [
+  // ADR-228: 동명 reusable 이 palette 정본인 primitive 는 placeable:false (HC#3).
+  ...PRIMITIVE_ENTRIES.map((entry) =>
+    entry.kind === "primitive" &&
+    PALETTE_REUSABLE_ORIGIN_TYPE_SET.has(entry.type)
+      ? { ...entry, panel: { ...entry.panel, placeable: false } }
+      : entry,
+  ),
   ...REUSABLE_ENTRIES,
+  ...CATALOG_DERIVED_REUSABLE_ENTRIES,
 ];
 
 /**

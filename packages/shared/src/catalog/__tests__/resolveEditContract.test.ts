@@ -400,8 +400,10 @@ describe("resolveEditContract — semantic ∪ universal style (ADR-912 1A-(4))"
       expect(mode?.currentValue).toBe("single");
     });
 
-    it("registry reusable ref(Toolbar — propsSchema 미선언)는 기존 동작 유지 (semantic 0)", () => {
-      // ADR-148 Phase 2 결정: 미선언 registry reusable 은 semantic 필드 없음.
+    it("registry reusable ref(Toolbar — propsSchema 미선언)도 origin type accepts 를 읽는다 (ADR-228)", () => {
+      // ADR-148 Phase 2 결정 (미선언 registry reusable 은 semantic 0) 은 ADR-228 이 대체 —
+      //   catalog 파생 generic origin 52 종이 schema 를 문서에 복제하지 않고 이 경로로 편집
+      //   계약을 얻는다. Toolbar/Form 도 같은 규칙 (breakdown §8.4-1).
       const originToolbar: CanonicalNode = {
         id: "component-toolbar",
         type: "Toolbar" as CanonicalNode["type"],
@@ -418,7 +420,44 @@ describe("resolveEditContract — semantic ∪ universal style (ADR-912 1A-(4))"
       const semantic = resolveEditContract(toolbarRef, doc).fields.filter(
         (f) => f.origin === "semantic",
       );
-      expect(semantic.length).toBe(0);
+      const accepts = getCatalogEntry("Toolbar");
+      expect(accepts?.kind).toBe("primitive");
+      expect(semantic.map((f) => f.key)).toEqual(
+        Object.keys(
+          accepts?.kind === "primitive" ? accepts.binding.props.accepts : {},
+        ),
+      );
+    });
+
+    it("catalog 파생 generic origin (Button) 의 ref 는 primitive accepts 전체를 얻고 baseValue 는 origin props 다 (ADR-228)", () => {
+      const originButton: CanonicalNode = {
+        id: "component-button",
+        type: "Button" as CanonicalNode["type"],
+        reusable: true,
+        props: { variant: "accent", children: "Origin label" },
+      };
+      const buttonRef = {
+        id: "inst3",
+        type: "ref",
+        ref: "component-button",
+        props: { children: "Override" },
+      } as unknown as CanonicalNode;
+      const contract = resolveEditContract(buttonRef, makeDoc([originButton]));
+      const byKey = new Map(contract.fields.map((f) => [f.key, f]));
+      const accepts = getCatalogEntry("Button");
+      expect(
+        contract.fields
+          .filter((f) => f.origin === "semantic")
+          .map((f) => f.key),
+      ).toEqual(
+        Object.keys(
+          accepts?.kind === "primitive" ? accepts.binding.props.accepts : {},
+        ),
+      );
+      expect(byKey.get("variant")?.baseValue).toBe("accent");
+      expect(byKey.get("variant")?.isOverridden).toBe(false);
+      expect(byKey.get("children")?.currentValue).toBe("Override");
+      expect(byKey.get("children")?.isOverridden).toBe(true);
     });
 
     it("doc 미제공 또는 origin 미존재 ref 는 semantic 0 (graceful)", () => {

@@ -18,9 +18,11 @@
  */
 import type { InitialCanonicalFields } from "../../../builder/factories/types";
 import type { CompositionDocument } from "@composition/shared";
+import { findCanonicalNodeById } from "@composition/shared";
 import { ComponentFactory } from "../../../builder/factories/ComponentFactory";
 import { COMPLEX_COMPONENT_TAGS } from "../../../builder/factories/constants";
 import { getReusableCompositeOriginId } from "../../../builder/components/reusableCompositeOrigins";
+import { buildReusableInstanceProps } from "../../../builder/hooks/useElementCreator";
 import { resolveCreationParentId } from "../../../builder/hooks/useElementCreator";
 import { generateCustomId } from "../../../builder/utils/idGeneration";
 import { withFrameElementMirrorId } from "../../../adapters/canonical/frameMirror";
@@ -128,7 +130,11 @@ export async function createCompositeElement(
         [COMPONENT_MASTER_ID_MIRROR_FIELD]: originId,
         customId: generateCustomId(input.type, input.elements),
         componentName: input.type,
-        props: input.initialProps ?? {},
+        // ADR-228 §3.2 — 명시 initialProps 중 origin 유효값과 다른 키만 (chartType 은 보존).
+        props: buildReusableInstanceProps(
+          input.initialProps,
+          findCanonicalNodeById(doc, originId)?.props,
+        ),
         ...input.initialCanonical,
         page_id: input.currentPageId,
         parent_id: parentId,

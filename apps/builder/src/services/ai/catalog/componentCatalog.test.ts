@@ -49,9 +49,25 @@ describe("AI 카탈로그 커버리지", () => {
       const entry = getAiCatalogEntry(type);
       expect(entry?.kind, type).toBe("reusable");
       expect(entry?.placeable, type).toBe(true);
-      // primitive accepts 를 광고하지 않는다 (존재하지 않는 편집 prop)
-      expect(entry?.props, type).toEqual([]);
+      // ADR-228: 동명 primitive 가 origin root 라 편집 계약 = primitive accepts —
+      //   `resolveEditContract` (A″) 가 ref instance 에 주는 것과 같은 필드를 광고한다.
+      const primitive = componentCatalog.find(
+        (e) => e.type === type && e.kind === "primitive",
+      );
+      const expected =
+        primitive?.kind === "primitive"
+          ? Object.keys(primitive.binding.props.accepts ?? {})
+          : [];
+      expect(
+        entry?.props.filter((p) => p.origin === "semantic").map((p) => p.name),
+        type,
+      ).toEqual(expected);
     }
+  });
+
+  it("동명 primitive 가 없는 손 seed reusable (IconButton) 만 props 를 비운다", () => {
+    expect(getAiCatalogEntry("IconButton")?.props).toEqual([]);
+    expect(getAiCatalogEntry("Button")?.racPrimitive).toBe("Button");
   });
 
   it("카테고리 인덱스가 팔레트 노출 항목을 전부 담는다", () => {

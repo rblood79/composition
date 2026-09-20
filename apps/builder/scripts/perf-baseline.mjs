@@ -145,7 +145,13 @@ export function parseArgs(argv) {
     throw new Error("cpu throttle must be >= 1");
   if (!["timeTicks", "threadTicks"].includes(options.cpuTimeDomain))
     throw new Error("cpu time domain");
-  if (!["mixed", "text", "refs"].includes(options.fixtureKind))
+  // ADR-228 G0/G4 — `buttons` (plain Button 격자) 와 `button-refs` (같은 격자를
+  //   `component-button` origin 의 ref instance 로) 는 같은 시드의 ref 0% / 100% 두 arm.
+  if (
+    !["mixed", "text", "refs", "buttons", "button-refs"].includes(
+      options.fixtureKind,
+    )
+  )
     throw new Error("fixture kind");
   if (!Number.isInteger(options.pages) || options.pages < 2)
     throw new Error("pages 는 2 이상 정수");
@@ -440,6 +446,47 @@ export async function seedDocument(
         const isText = fixtureKind === "text" || i % 2 === 0;
         const col = i % 6,
           row = Math.floor(i / 6);
+        if (fixtureKind === "buttons" || fixtureKind === "button-refs") {
+          // ADR-228: 같은 격자를 plain Button (ref 0%) 또는 origin ref (ref 100%) 로.
+          //   ref 는 palette-add 와 같은 instance 모양 — 명시 patch (위치·라벨) 만 소유.
+          const isRef = fixtureKind === "button-refs";
+          missingElements.push({
+            id,
+            customId: id,
+            ...(isRef
+              ? {
+                  type: "ref",
+                  ref: "component-button",
+                  componentName: "Button",
+                }
+              : { type: "Button" }),
+            parent_id: body.id,
+            page_id: pageId,
+            order_num: i,
+            created_at: now,
+            updated_at: now,
+            props: {
+              children: `Seed ${i}`,
+              ...(isRef
+                ? {}
+                : {
+                    variant: "primary",
+                    size: "md",
+                    fillStyle: "fill",
+                    type: "button",
+                    name: "",
+                    isDisabled: false,
+                    isPending: false,
+                  }),
+              style: {
+                position: "absolute",
+                left: `${20 + col * 200}px`,
+                top: `${20 + row * 90}px`,
+              },
+            },
+          });
+          continue;
+        }
         missingElements.push({
           id,
           customId: id,

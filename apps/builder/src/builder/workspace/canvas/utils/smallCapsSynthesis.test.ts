@@ -45,19 +45,20 @@ describe("smallCapsSynthesis — font-variant-caps 합성 (2026-09-20)", () => {
 
   it("applyFontVariantCaps — 지원 ctx 에만, 값이 같으면 다시 쓰지 않는다", () => {
     let writes = 0;
+    // getter/setter 객체 리터럴의 `this` 는 `{}` 로 추론돼 `_v` 접근이 TS2339 — 상태를 밖에 둔다.
+    const state = { v: "normal" };
     const ctx = {
-      _v: "normal",
       get fontVariantCaps() {
-        return this._v;
+        return state.v;
       },
       set fontVariantCaps(v: string) {
         writes++;
-        this._v = v;
+        state.v = v;
       },
     } as unknown as CanvasRenderingContext2D;
     applyFontVariantCaps(ctx, "small-caps");
     applyFontVariantCaps(ctx, "small-caps");
-    expect((ctx as unknown as { _v: string })._v).toBe("small-caps");
+    expect(state.v).toBe("small-caps");
     expect(writes).toBe(1);
     applyFontVariantCaps({} as CanvasRenderingContext2D, "small-caps"); // 미지원 → no-op
   });

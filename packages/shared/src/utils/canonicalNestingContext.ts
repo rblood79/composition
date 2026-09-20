@@ -73,6 +73,21 @@ function resolveIndex(
     : createCanonicalNestingIndex(documentOrIndex as CompositionDocument);
 }
 
+/**
+ * ADR-228 (2026-09-21): ref 노드의 **유효 타입** — 원본 root 의 타입. 팔레트 배치가 전부 ref
+ * instance 가 되면서 "ref" 를 그대로 내면 nesting 규칙 (`OPAQUE_TYPES`) 이 instance 에서 전부
+ * 무력해진다 (Button 안 Button 등). 원본이 문서에 없거나 원본도 ref 면 "ref" 유지 (opaque).
+ */
+function effectiveType(
+  index: CanonicalNestingIndex,
+  entry: CanonicalNestingIndexEntry,
+): string {
+  if (entry.type !== "ref" || !entry.refOrigin) return entry.type;
+  const origin = index.get(entry.refOrigin);
+  if (!origin || origin.type === "ref") return entry.type;
+  return origin.type;
+}
+
 /** `startId` 부터 루트까지 타입 사슬 (startId 포함, 가까운 순). 없으면 `null`. */
 function chainFrom(
   index: CanonicalNestingIndex,
@@ -87,7 +102,7 @@ function chainFrom(
     seen.add(cursor);
     const entry = index.get(cursor);
     if (!entry) return out.length > 0 ? out : null;
-    out.push(entry.type);
+    out.push(effectiveType(index, entry));
     if (cursor === stopAtInclusive) break;
     cursor = entry.parentId;
   }
@@ -98,7 +113,9 @@ export function findCanonicalNodeType(
   documentOrIndex: CompositionDocument | CanonicalNestingIndex,
   nodeId: string,
 ): string | null {
-  return resolveIndex(documentOrIndex).get(nodeId)?.type ?? null;
+  const index = resolveIndex(documentOrIndex);
+  const entry = index.get(nodeId);
+  return entry ? effectiveType(index, entry) : null;
 }
 
 /**

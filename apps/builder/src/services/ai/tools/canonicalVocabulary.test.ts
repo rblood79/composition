@@ -19,6 +19,7 @@ import {
 } from "../../../adapters/canonical/canonicalMutations";
 import { registerCanonicalMutationRunnerBridge } from "../../../adapters/canonical/canonicalMutationRunner";
 import { __resetTraversalCache_TEST_ONLY__ } from "../../../builder/stores/canonical/canonicalTraversalHelpers";
+import { ensureReusableCompositeOrigins } from "../../../builder/components/reusableCompositeOrigins";
 import { createElementTool } from "./createElement";
 import { updateElementTool } from "./updateElement";
 import { searchElementsTool } from "./searchElements";
@@ -127,7 +128,11 @@ function seed() {
     documentVersion: 0,
   });
   useCanonicalDocumentStore.getState().setCurrentProject(PROJECT_ID);
-  useCanonicalDocumentStore.getState().setDocument(PROJECT_ID, doc);
+  // ADR-228: 팔레트 항목 생성이 origin ref 라 실제 문서처럼 Components 페이지 origin 을 시드한다
+  //   (production 은 hydration `mainDocumentNormalization` 이 같은 함수를 부른다).
+  useCanonicalDocumentStore
+    .getState()
+    .setDocument(PROJECT_ID, ensureReusableCompositeOrigins(doc));
   registerCanonicalMutationStoreActions({
     getCurrentLegacySnapshot: () => ({
       elements: useStore.getState().elements,
@@ -498,7 +503,12 @@ describe("batch_design history 단위 (G3 실측)", () => {
     // 복원 결과는 canonical 문서 기준 — seed 문서는 body + seeded-frame 2개다
     // (legacy store 초기값 1개는 seed 편의값이고 canonical 이 정본).
     await useStore.getState().undo();
-    const remaining = useStore.getState().elements.map((e) => e.id);
+    // ADR-228: Components 페이지 origin (page-components-*, component-*) 은 seed 의 일부다 —
+    //   사용자 페이지 요소만 대조한다.
+    const remaining = useStore
+      .getState()
+      .elements.filter((e) => e.page_id === "page-1")
+      .map((e) => e.id);
     expect(remaining.sort()).toEqual(["body", "seeded-frame"]);
   });
 });

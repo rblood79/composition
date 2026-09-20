@@ -976,6 +976,15 @@ function diffStylePropsAgainstMaster(
   return Object.keys(styleOverrides).length > 0 ? styleOverrides : undefined;
 }
 
+/**
+ * ADR-228 §3.2 (리뷰 H1): 값이 master 와 같아도 instance 가 **명시 보존** 하는 키.
+ * `chartType` 은 팔레트 진입점 (bar/line/pie …) 의 정체다 — 아래 diff 가 master 와 같다고
+ * 지우면 origin 의 chartType 을 바꿀 때 "bar chart" 로 만든 instance 까지 따라 바뀐다.
+ */
+const REF_INSTANCE_EXPLICIT_PROP_KEYS: ReadonlySet<string> = new Set([
+  "chartType",
+]);
+
 function diffRefPropsAgainstMaster(
   masterNode: CanonicalNode | null,
   refProps: Record<string, unknown>,
@@ -984,6 +993,10 @@ function diffRefPropsAgainstMaster(
 
   const props: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(refProps)) {
+    if (REF_INSTANCE_EXPLICIT_PROP_KEYS.has(key)) {
+      props[key] = value;
+      continue;
+    }
     if (key === "style") {
       const styleOverride = diffStylePropsAgainstMaster(
         masterNode.props.style,

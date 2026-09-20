@@ -120,8 +120,10 @@ describe("ADR-912 R-5 reusable composite registry", () => {
   });
 
   it("returns null / false for non-composite types", () => {
-    expect(isReusableCompositeType("Button")).toBe(false);
-    expect(getReusableCompositeOriginId("Button")).toBeNull();
+    // ADR-228: Button 도 catalog 파생 origin (component-button) — 비-composite 예시는 X 집합의 Text.
+    expect(isReusableCompositeType("Text")).toBe(false);
+    expect(getReusableCompositeOriginId("Text")).toBeNull();
+    expect(getReusableCompositeOriginId("Button")).toBe("component-button");
   });
 
   it("ensureReusableCompositeOrigins seeds the Toolbar origin", () => {

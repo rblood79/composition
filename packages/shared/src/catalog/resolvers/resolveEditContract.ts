@@ -391,18 +391,18 @@ export function resolveEditContract(
   //   instance 에서 리스트 편집 불가). origin 문서 노드의 type 이 primitive catalog entry
   //   를 가지면 그 accepts 로 계약을 파생한다. write target 은 (A′) 와 동일하게
   //   node.props[key] — instance root props override(resolve 시 origin props 위에 merge).
-  //   registry reusable(Toolbar/Form — propsSchema 의도적 미선언, ADR-148 Phase 2 결정
-  //   "기존 동작 유지: semantic 필드 없음")은 제외 — (A′) propsSchema 경로 전용.
+  //   ADR-228 (2026-09-21): registry reusable 도 origin 이 propsSchema 를 선언하지 않으면
+  //   이 경로다 — catalog 파생 generic origin 52 종은 schema 를 문서에 복제하지 않고 origin
+  //   type 의 accepts 를 직접 읽는다 (passthrough schema 와 동치 · 템플릿 치환 gate off ·
+  //   origin 당 schema byte 0). 종전 제외 대상이던 Toolbar/Form 도 같은 규칙으로 primitive
+  //   accepts 필드를 얻는다 ("instance 인지 모르게" 와 같은 방향, breakdown §8.4-1).
   const refId = (node as { ref?: unknown }).ref;
   if (
     !reusable &&
     !accepts &&
     typeof refId === "string" &&
     refId.length > 0 &&
-    doc &&
-    !getReusableEntries().some(
-      (catalogEntry) => catalogEntry.reusableId === refId,
-    )
+    doc
   ) {
     const origin = findDocumentNodeById(doc.children, refId);
     const originEntry = origin ? getCatalogEntry(origin.type) : undefined;

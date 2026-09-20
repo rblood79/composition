@@ -15,6 +15,7 @@
  */
 import {
   componentCatalog,
+  getCatalogEntry,
   resolveEditContract,
   type ComponentCatalogEntry,
   type ComponentTag,
@@ -73,7 +74,15 @@ function toProp(field: ResolvedField): AiCatalogProp {
 }
 
 function deriveEntry(entry: ComponentCatalogEntry): AiCatalogEntry {
-  const binding = entry.kind === "primitive" ? entry.binding : undefined;
+  // ADR-228: 동명 primitive (generic origin 의 root) — 아래 binding · 편집 계약의 source.
+  const primitiveTwin =
+    entry.kind === "reusable" ? getCatalogEntry(entry.type) : undefined;
+  const binding =
+    entry.kind === "primitive"
+      ? entry.binding
+      : primitiveTwin?.kind === "primitive"
+        ? primitiveTwin.binding
+        : undefined;
   const racPrimitive =
     binding?.source.kind === "rac" ? binding.source.component : undefined;
   const states = binding?.rac?.states;
@@ -81,15 +90,26 @@ function deriveEntry(entry: ComponentCatalogEntry): AiCatalogEntry {
   // reusable(조합) entry 는 편집 계약이 코드가 아니라 **origin 문서**의 propsSchema 에 있다
   // (ADR-148 Decision 4). 활성 문서 없이는 알 수 없으므로 props 를 지어내지 않고 비운다 —
   // 모델은 인스턴스를 만든 뒤 `get_editor_state` 로 확인한다.
-  const contract =
+  // ADR-228 (2026-09-21): catalog 파생 generic origin (동명 primitive 가 있는 reusable — Button ·
+  //   TextField …) 은 origin root 가 그 primitive 자체라 편집 계약 = primitive accepts 다
+  //   (`resolveEditContract` A″ 와 같은 source). 문서 없이도 확정이므로 primitive 계약으로 채운다 —
+  //   57 종이 reusable 이 되면서 system prompt 의 prop 정보가 통째로 비는 것을 막는다.
+  //   동명 primitive 가 없는 손 seed (IconButton) 만 종전대로 비운다.
+  const contractEntry =
     entry.kind === "reusable"
+      ? primitiveTwin?.kind === "primitive"
+        ? primitiveTwin
+        : null
+      : entry;
+  const contract =
+    contractEntry === null
       ? null
       : resolveEditContract(
           // 빈 props 의 합성 노드 — Inspector 가 신규 요소에 보여 주는 계약과 동일하다.
           // catalog entry 의 type 은 정의상 ComponentTag 이지만 entry 타입은 string 이다.
           {
             id: `__ai_catalog__${entry.type}`,
-            type: entry.type as ComponentTag,
+            type: contractEntry.type as ComponentTag,
             props: {},
           },
           null,
@@ -198,7 +218,9 @@ export function formatCatalogEntry(
     ")",
   ].join("");
 
-  if (entry.kind === "reusable") {
+  // 편집 계약을 문서 없이 알 수 없는 조합 (손 seed · 동명 primitive 없음) 만 힌트로 —
+  //   ADR-228 generic origin 은 primitive 계약을 실었으므로 아래 props 경로.
+  if (entry.kind === "reusable" && entry.props.length === 0) {
     return `${head}\n${t("aiRuntime.compositeHint")}`;
   }
 

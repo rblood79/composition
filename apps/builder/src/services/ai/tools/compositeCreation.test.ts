@@ -33,8 +33,12 @@ describe("합성 판정 — 팔레트와 같은 SSOT", () => {
   });
 
   it("Select 같은 COMPLEX 는 complex 로 간다 (RED 사례)", () => {
+    // ADR-228: 팔레트 RAC 항목은 전부 reusable origin — COMPLEX 멤버라도 reusable 이 우선.
+    //   complex 는 팔레트 밖 COMPLEX (Toast · ColorPicker …) 에만 남는다.
     expect(COMPLEX_COMPONENT_TAGS.has("Select")).toBe(true);
-    expect(resolveCompositeMode("Select")).toBe("complex");
+    expect(resolveCompositeMode("Select")).toBe("reusable");
+    expect(COMPLEX_COMPONENT_TAGS.has("ColorPicker")).toBe(true);
+    expect(resolveCompositeMode("ColorPicker")).toBe("complex");
   });
 
   it("Card / Form 같은 reusable 은 ref 인스턴스 경로", () => {
@@ -45,15 +49,21 @@ describe("합성 판정 — 팔레트와 같은 SSOT", () => {
   });
 
   it("leaf 는 기존 단일 element 경로를 그대로 쓴다", () => {
-    for (const type of ["Button", "Text", "Link"]) {
+    // ADR-228: X 집합 (내용/레이아웃 primitive) 만 leaf — Button/Link 는 reusable.
+    for (const type of ["Text", "Icon", "Image", "Separator"]) {
       expect(resolveCompositeMode(type)).toBe("leaf");
+    }
+    for (const type of ["Button", "Link"]) {
+      expect(resolveCompositeMode(type)).toBe("reusable");
     }
   });
 
-  it("양쪽 set 이 겹치지 않는다 (우선순위가 무의미해야 정상)", () => {
+  it("COMPLEX ∩ reusable 은 우선순위 (reusable 승) 로 갈린다 — ADR-228", () => {
     const both = [...COMPLEX_COMPONENT_TAGS].filter((t) =>
       isReusableCompositeType(t),
     );
-    expect(both).toEqual([]);
+    expect(both.length).toBe(41);
+    for (const type of both)
+      expect(resolveCompositeMode(type)).toBe("reusable");
   });
 });

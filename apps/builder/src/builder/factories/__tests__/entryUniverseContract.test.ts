@@ -62,8 +62,13 @@ const INVENTORY = {
   // ADR-148 Phase 3 (2026-07-17): Card/InlineAlert creator 제거 → 54 → 52 (reusable origin
   //   전환 — palette-add 는 type:"ref" instance, Toolbar/Form 동형). COMPLEX 도 2 축소.
   // ADR-201 (2026-09-17): FileUpload compound creator + COMPLEX 추가 → 52 → 53 · 46 → 47.
+  // ADR-228 (2026-09-21): 팔레트 RAC 전 항목 reusable origin — COMPLEX 47 중 41 이 reusable
+  //   entry 를 얻어 facet 은 `reusableOrigin` (우선순위) 으로 갈린다. creators 53 은 그대로
+  //   (definition 이 origin seed 의 source 라 제거하지 않는다 — Card/InlineAlert 때와 다름).
+  //   complex 잔여 6 = Toast · Radio · ColorPicker · ColorSwatchPicker · Navigation ·
+  //   IllustratedMessage (PALETTE_ORDER 밖 또는 제외 정책).
   creators: 53,
-  complexComponentTags: 47,
+  complexComponentTags: 6,
   propagationRegistered: 31,
   syntheticChildPropMerge: 9,
   popoverChildren: 2,
@@ -122,9 +127,13 @@ describe("ADR-914 entry universe contract", () => {
   });
 
   // ── 2. facet mirror == inventory freeze 정본 ──
-  it("creation facet — COMPLEX_COMPONENT_TAGS mirror == 48", () => {
+  it("creation facet — complex 잔여 == COMPLEX − reusableOrigin", () => {
     const complex = entries.filter((e) => e.creation.mode === "complex");
     expect(complex.length).toBe(INVENTORY.complexComponentTags);
+    // ADR-228: 잔여 complex 는 전부 팔레트 밖 또는 제외 정책 (reusable entry 없음).
+    for (const e of complex) {
+      expect(isReusableCompositeType(e.type), e.type).toBe(false);
+    }
   });
 
   // ── ADR-914 Phase 4-C (creation facet membership SSOT 명문화, 2026-06-21) ──
@@ -220,10 +229,15 @@ describe("ADR-914 entry universe contract", () => {
   });
 
   it("Phase 4 creation facet — leaf(none) 은 creator 부재 + COMPLEX 미포함", () => {
-    // Avatar 는 4-B 에서 creator 제거 → COMPLEX 미포함 leaf → mode==="none".
-    expect(resolveComponentEntryRuntime("Avatar").creation.mode).toBe("none");
-    // Button(항상 leaf, COMPLEX 미포함) 도 none.
-    expect(resolveComponentEntryRuntime("Button").creation.mode).toBe("none");
+    // ADR-228: Avatar/Button 은 catalog 파생 reusable origin → facet 은 reusableOrigin.
+    //   none 의 예시는 X 집합 (Text — creator 부재 + COMPLEX 미포함 + reusable 아님).
+    expect(resolveComponentEntryRuntime("Avatar").creation.mode).toBe(
+      "reusableOrigin",
+    );
+    expect(resolveComponentEntryRuntime("Button").creation.mode).toBe(
+      "reusableOrigin",
+    );
+    expect(resolveComponentEntryRuntime("Text").creation.mode).toBe("none");
   });
 
   it("Phase 4-B — Avatar creator 제거 (placeable 아님)", () => {

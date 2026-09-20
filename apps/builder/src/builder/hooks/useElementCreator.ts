@@ -2,6 +2,7 @@ import { useCallback, useRef, useEffect } from "react";
 import { useI18n } from "@/i18n";
 import { focusCanvasContainer } from "./useActiveScope";
 import type { CompositionDocument } from "@composition/shared";
+import { findCanonicalNodeById } from "@composition/shared";
 import {
   Element,
   ComponentElementProps,
@@ -45,12 +46,22 @@ function resolveNestedCreationParent(
   relocated: boolean;
   notify: () => void;
 } {
+  // ADR-228: ref instance 는 원본 root 의 타입으로 판정한다 — 팔레트 배치가 전부 instance 라
+  //   "ref" 를 그대로 두면 preflight 가 opaque 통과해 Button 안 Button 같은 규칙이 무력해진다
+  //   (canonical guard 의 `canonicalNestingContext.effectiveType` 과 같은 규칙).
+  const rawById = new Map(elements.map((el) => [el.id, el]));
+  const effectiveType = (el: ComponentCreationSourceNode): string => {
+    const ref = (el as { ref?: unknown }).ref;
+    if (el.type !== "ref" || typeof ref !== "string") return el.type;
+    const origin = rawById.get(ref);
+    return origin && origin.type !== "ref" ? origin.type : el.type;
+  };
   const byId = new Map<string, CanvasInteractionNode>(
     elements.map((el) => [
       el.id,
       {
         id: el.id,
-        type: el.type,
+        type: effectiveType(el),
         props: el.props ?? {},
         parent_id: el.parent_id ?? null,
         page_id: el.page_id ?? null,
@@ -160,6 +171,88 @@ export function resolveCreationParentId({
   );
 }
 
+/**
+ * ADR-228: reusable instance 의 초기 props — 호출자가 명시한 initialProps 만 override 로 둔다.
+ * origin 기본 props 를 복사하지 않는다 (unmodified 값은 origin 변경을 따라야 한다).
+ * `style` 은 origin style 과 resolve 시 deep-merge 되므로 여기서도 명시분만 싣는다.
+ */
+export function buildReusableInstanceProps(
+  initialProps: Record<string, unknown> | undefined,
+  originProps: Record<string, unknown> | undefined,
+): Record<string, unknown> {
+  if (!initialProps) return {};
+  // 팔레트 creationVariants (Chart `chart-*`) 의 initialProps 는 `createChartInitialProps(chartType)`
+  //   전체다 — 그대로 실으면 instance 가 origin 기본값을 통째로 소유해 origin 편집이 전파되지
+  //   않는다 (리뷰 H1). origin 유효값과 **다른 키만** patch 로 남기고, 진입점을 가르는
+  //   `chartType` 은 값이 같아도 명시 보존한다 (breakdown §3.2).
+  const patch: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(initialProps)) {
+    if (
+      key !== "chartType" &&
+      originProps &&
+      Object.hasOwn(originProps, key) &&
+      JSON.stringify(originProps[key]) === JSON.stringify(value)
+    ) {
+      continue;
+    }
+    patch[key] = value;
+  }
+  return patch;
+}
+
+/**
+ * 생성 부모 결정 — plain / ref 두 분기가 같이 쓴다 (ADR-228 에서 ref 분기로 확장).
+ * ① 선택 → 실제 element id 확인 ② Card + 액션 컴포넌트 → CardFooter 자동 라우팅
+ * ③ 중첩 preflight (가까운 유효 조상으로 이동 · 어디에도 못 두면 rejected).
+ */
+function resolveCreationParentForType(
+  type: string,
+  input: {
+    selectedElementId: string | null;
+    elements: readonly ComponentCreationSourceNode[];
+    currentPageId: string | null;
+    layoutId: string | null | undefined;
+    doc: CompositionDocument;
+  },
+): ReturnType<typeof resolveNestedCreationParent> {
+  const elements = input.elements as ComponentCreationSourceNode[];
+  let parentId = resolveCreationParentId({
+    selectedElementId: input.selectedElementId,
+    elements,
+    currentPageId: input.currentPageId,
+    layoutId: input.layoutId,
+    doc: input.doc,
+  });
+
+  // Card + action component → CardFooter 자동 라우팅
+  const parentEl = parentId ? elements.find((el) => el.id === parentId) : null;
+  if (parentEl?.type === "Card") {
+    const ACTION_TAGS = new Set([
+      "Button",
+      "ToggleButton",
+      "Link",
+      "ActionButtonGroup",
+      "ButtonGroup",
+    ]);
+    if (ACTION_TAGS.has(type)) {
+      const cardFooter = elements.find(
+        (el) =>
+          el.parent_id === parentId && el.type === "CardFooter" && !el.deleted,
+      );
+      if (cardFooter) {
+        parentId = cardFooter.id;
+        console.log(
+          `📎 Card action routing: ${type} → CardFooter (${cardFooter.id})`,
+        );
+      }
+    }
+  }
+
+  // 중첩 preflight — Button 안에 Button, Text 안에 무엇이든 등은 가까운 유효
+  //   조상으로 옮기고 알린다. 어디에도 못 두면 취소.
+  return resolveNestedCreationParent(type, parentId, elements);
+}
+
 export const useElementCreator = (): UseElementCreatorReturn => {
   const isProcessingRef = useRef(false);
   const elementsRef = useRef<ComponentCreationSourceNode[]>([]);
@@ -246,13 +339,18 @@ export const useElementCreator = (): UseElementCreatorReturn => {
               //   코드 없이 origin 문서를 참조하는 type:"ref" instance 로 생성한다.
               //   조합 트리(자식)는 origin (Components page body) 이 보유 → palette-add 는
               //   ref 만 만든다 (paste 경로와 동일한 instance shape).
-              const parentId = resolveCreationParentId({
+              // ADR-228 (2026-09-21): 팔레트 RAC 전 항목이 이 분기를 탄다 — plain 분기와 같은
+              //   부모 결정 (Card 액션 → CardFooter 라우팅 · 중첩 preflight) 을 거치고,
+              //   instance 는 **호출자가 명시한 initialProps 만** override 로 소유한다 (Chart
+              //   진입점의 chartType 등, breakdown §3.2). 공통 기본값은 origin 상속.
+              const parent = resolveCreationParentForType(type, {
                 selectedElementId,
                 elements,
                 currentPageId: currentPageId || null,
                 layoutId,
                 doc,
               });
+              if (parent.rejected) return null;
 
               const refElement: Element = withFrameElementMirrorId(
                 {
@@ -263,9 +361,14 @@ export const useElementCreator = (): UseElementCreatorReturn => {
                   [COMPONENT_MASTER_ID_MIRROR_FIELD]: reusableCompositeOriginId,
                   customId: generateCustomId(type, elements),
                   componentName: type,
-                  props: {},
+                  // origin 은 Components 페이지에 있어 page-scoped `elements` 에 없다 — 문서에서 읽는다.
+                  props: buildReusableInstanceProps(
+                    initialProps,
+                    findCanonicalNodeById(doc, reusableCompositeOriginId)
+                      ?.props,
+                  ),
                   page_id: layoutId ? null : currentPageId,
-                  parent_id: parentId,
+                  parent_id: parent.parentId,
                   created_at: new Date().toISOString(),
                   updated_at: new Date().toISOString(),
                 } as Element,
@@ -273,6 +376,7 @@ export const useElementCreator = (): UseElementCreatorReturn => {
               );
 
               addElement(refElement);
+              parent.notify();
               return refElement.id;
             } else if (COMPLEX_COMPONENT_TAGS.has(type)) {
               // 중첩 preflight — 선택된 요소가 이 타입을 담을 수 없으면 가까운 유효 조상으로
@@ -303,51 +407,15 @@ export const useElementCreator = (): UseElementCreatorReturn => {
               // 단순 컴포넌트 생성 (캐시 활용)
               // selectedElementId 는 page-level selection id 일 수 있으므로
               // 실제 element id 로 확인된 경우에만 parent_id 로 사용한다.
-              let parentId = resolveCreationParentId({
+              const nested = resolveCreationParentForType(type, {
                 selectedElementId,
                 elements,
                 currentPageId: currentPageId || null,
                 layoutId,
                 doc,
               });
-
-              // Card + action component → CardFooter 자동 라우팅
-              const parentEl = parentId
-                ? elements.find((el) => el.id === parentId)
-                : null;
-              if (parentEl?.type === "Card") {
-                const ACTION_TAGS = new Set([
-                  "Button",
-                  "ToggleButton",
-                  "Link",
-                  "ActionButtonGroup",
-                  "ButtonGroup",
-                ]);
-                if (ACTION_TAGS.has(type)) {
-                  const cardFooter = elements.find(
-                    (el) =>
-                      el.parent_id === parentId &&
-                      el.type === "CardFooter" &&
-                      !el.deleted,
-                  );
-                  if (cardFooter) {
-                    parentId = cardFooter.id;
-                    console.log(
-                      `📎 Card action routing: ${type} → CardFooter (${cardFooter.id})`,
-                    );
-                  }
-                }
-              }
-
-              // 중첩 preflight — Button 안에 Button, Text 안에 무엇이든 등은 가까운 유효
-              //   조상으로 옮기고 알린다. 어디에도 못 두면 취소.
-              const nested = resolveNestedCreationParent(
-                type,
-                parentId,
-                elements,
-              );
               if (nested.rejected) return null;
-              parentId = nested.parentId;
+              const parentId = nested.parentId;
 
               const newElement: Element = withFrameElementMirrorId(
                 {

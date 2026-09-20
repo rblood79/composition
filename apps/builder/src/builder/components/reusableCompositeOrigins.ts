@@ -24,6 +24,16 @@ import {
   CARD_ORIGIN_ID,
   ensureCardTemplateOrigins,
 } from "./card/cardTemplateOrigins";
+import {
+  LISTBOX_ORIGIN_ID,
+  ensureListBoxTemplateOrigins,
+} from "./listbox/listBoxTemplateOrigins";
+import {
+  GRIDLIST_ORIGIN_ID,
+  ensureGridListTemplateOrigins,
+} from "./gridlist/gridListTemplateOrigins";
+import { ensureCatalogOrigins, getCatalogOriginTypes } from "./catalogOrigins";
+import { catalogReusableOriginId } from "@composition/shared";
 
 /**
  * ADR-912 R-5 (HC#5 "조합 = 데이터") → **ADR-148 Phase 1 (catalog 파생 대체)**.
@@ -50,6 +60,18 @@ export const REUSABLE_ORIGIN_ENSURERS: Readonly<
   [ICONBUTTON_ORIGIN_ID]: ensureIconButtonTemplateOrigins,
   [INLINE_ALERT_ORIGIN_ID]: ensureInlineAlertTemplateOrigins,
   [CARD_ORIGIN_ID]: ensureCardTemplateOrigins,
+  // ADR-228 (2026-09-21): ListBox/GridList 는 factory definition 이 이미 ref 인 template origin
+  //   을 reusableId 로 재사용 — ensurer 도 기존 모듈 (item template origin 을 같이 시드).
+  [LISTBOX_ORIGIN_ID]: ensureListBoxTemplateOrigins,
+  [GRIDLIST_ORIGIN_ID]: ensureGridListTemplateOrigins,
+  // ADR-228: 나머지 catalog 파생 generic origin 50 — 손 seed 모듈 0, 한 ensurer 가 1 pass 로
+  //   전부 시드 (`ensureReusableCompositeOrigins` 는 같은 함수를 한 번만 부른다).
+  ...Object.fromEntries(
+    getCatalogOriginTypes().map((type) => [
+      catalogReusableOriginId(type),
+      ensureCatalogOrigins,
+    ]),
+  ),
 };
 
 /** `type` 이 reusable composite (origin ref 로 생성) 인지 여부 — catalog 파생. */
@@ -74,9 +96,16 @@ export function ensureReusableCompositeOrigins(
   document: CompositionDocument,
 ): CompositionDocument {
   let next = document;
+  // 같은 ensurer 를 여러 entry 가 공유한다 (ADR-228 generic 50 → `ensureCatalogOrigins` 하나) —
+  //   함수 identity 로 dedupe 해 문서 pass 를 entry 수가 아니라 ensurer 수만큼만 돈다.
+  const applied = new Set<
+    (document: CompositionDocument) => CompositionDocument
+  >();
   for (const entry of getReusableEntries()) {
     const ensure = REUSABLE_ORIGIN_ENSURERS[entry.reusableId];
-    if (ensure) next = ensure(next);
+    if (!ensure || applied.has(ensure)) continue;
+    applied.add(ensure);
+    next = ensure(next);
   }
   return next;
 }

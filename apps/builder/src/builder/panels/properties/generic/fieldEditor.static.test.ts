@@ -19,6 +19,9 @@ import {
 function allSemanticFields(): Array<{ type: string; field: ResolvedField }> {
   const out: Array<{ type: string; field: ResolvedField }> = [];
   for (const entry of componentCatalog) {
+    // ADR-228: 동명 reusable entry (Button · Badge …) 는 primitive 와 같은 accepts 를 같은 type
+    //   으로 다시 세게 한다 — type 당 한 번 (primitive 쪽) 만.
+    if (entry.kind === "reusable") continue;
     const props = getCatalogDefaultProps(entry.type) ?? {};
     const contract = resolveEditContract(
       { id: "x", type: entry.type, props } as never,

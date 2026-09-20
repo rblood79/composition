@@ -319,7 +319,10 @@ describe("ADR-148 Phase 1 — reusable entry 등록 불변식", () => {
   });
 
   it("불변식 R④ — placeable reusable entry 는 palette 에 노출", () => {
-    const paletteTypes = new Set(getPaletteItems().map((i) => i.type));
+    // creationVariants 항목 (Chart `chart-*`) 은 componentType 이 canonical type — ADR-228.
+    const paletteTypes = new Set(
+      getPaletteItems().map((i) => i.componentType ?? i.type),
+    );
     for (const e of reusableEntries) {
       if (e.panel.placeable) {
         expect(
