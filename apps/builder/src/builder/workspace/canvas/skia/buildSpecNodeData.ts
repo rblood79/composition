@@ -17,6 +17,12 @@
 
 import { resolveTextRenderStyle } from "../utils/textRenderStyle";
 import type { CanvasSceneNode } from "../scene/canvasSceneNode";
+import { readStateVariantSelf } from "../../../components/stateVariantOrigins";
+import {
+  STATE_VARIANTS_PROP,
+  readStateVariantProjection,
+  resolveStateVariantOverlay,
+} from "../../../components/stateVariantResolution";
 import type { SkiaNodeData } from "./nodeRendererTypes";
 import type { FillStyle } from "./types";
 import { buildScrollNodeFields } from "./buildBoxNodeData";
@@ -1799,12 +1805,19 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
   // 단계 3 scope: disabled 만 실효. hover/pressed/focusVisible 는 interaction threading 후속
   //   (매 pointermove 가 sceneVersion signature 유발하는 ADR-136 §9 충돌 + frame cadence 정밀화 필요).
   //   selection(props.isSelected)은 buildCatalogShapes 직교 차원 — racStateAttrs 밖.
+  // ADR-230 — 상태 변형 origin 자신 (Components 페이지 `Button/Disabled` 등) 은 canonical props 에
+  //   상태를 굽지 않고 `metadata.variant` 를 유효 상태로 가정한다 (render-only · Preview 동형).
+  const stateVariantSelf = readStateVariantSelf(element);
+  if (stateVariantSelf?.state === "selected" && specProps.isSelected !== true) {
+    specProps = { ...specProps, isSelected: true };
+  }
   const isNodeDisabled = breadcrumbCtx?._isLast
     ? false
     : Boolean(
         specProps.isDisabled ||
         specProps.disabled ||
-        breadcrumbCtx?._parentIsDisabled,
+        breadcrumbCtx?._parentIsDisabled ||
+        stateVariantSelf?.state === "disabled",
       );
   const componentState: ComponentState = racStateAttrs({
     isDisabled: isNodeDisabled,
@@ -1859,6 +1872,51 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
           backgroundColor: hex6,
         },
       };
+    }
+  }
+
+  // ---------- ADR-230 상태 변형 origin overlay ----------
+  // instance 의 `_stateVariants` (ref 해소가 실은 render-only projection) 를 **유효 상태** 로 겹친다 —
+  //   selected 는 RadioGroup/Tabs 투영 뒤의 `isSelected`, disabled 는 조상 disabled 까지 평탄화한
+  //   `componentState` (self props 만 읽지 않는다 — 리뷰 m3). 키 우선순위와 instance 명시 키 제외는
+  //   공용 해소기 (`resolveStateVariantOverlay`) 하나. 배경은 fills 채널 → hex6 + `_fillBgAlpha`
+  //   (위 fills 블록과 같은 변환) · opacity 는 `style` 에 실려 아래 cssEffects 가 한 번만 읽는다.
+  let effectiveFills = element.fills;
+  const stateVariantProjection = readStateVariantProjection(
+    specProps[STATE_VARIANTS_PROP],
+  );
+  if (stateVariantProjection) {
+    const overlay = resolveStateVariantOverlay(stateVariantProjection, {
+      selected: specProps.isSelected === true,
+      disabled: componentState === "disabled",
+    });
+    if (overlay.ownedKeys.length > 0) {
+      const patch: Record<string, unknown> = { ...overlay.style };
+      let fillAlpha: number | undefined;
+      if (overlay.fills) {
+        const skiaFill =
+          fillsToSkiaFillColor(overlay.fills) ??
+          fillsToSkiaFallbackColor(overlay.fills);
+        if (skiaFill) {
+          const toHexByte = (v: number): string =>
+            Math.round(Math.max(0, Math.min(1, v)) * 255)
+              .toString(16)
+              .padStart(2, "0");
+          patch.backgroundColor =
+            `#${toHexByte(skiaFill[0])}${toHexByte(skiaFill[1])}${toHexByte(skiaFill[2])}`.toUpperCase();
+          fillAlpha = skiaFill[3];
+          effectiveFills = overlay.fills;
+        }
+      }
+      specProps = {
+        ...specProps,
+        ...(fillAlpha !== undefined ? { _fillBgAlpha: fillAlpha } : {}),
+        style: {
+          ...((specProps.style as Record<string, unknown> | undefined) ?? {}),
+          ...patch,
+        },
+      };
+      style = { ...style, ...patch };
     }
   }
 
@@ -1963,11 +2021,11 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
   // 를 무시하므로, 위에서 주입한 hex6 fallback 은 shader 실패 시에만 노출된다.
   // 기하(각도/center/radius)는 w × specHeight 박스 기준 — DOM CSS gradient 와 동일 기준.
   if (
-    Array.isArray(element.fills) &&
-    element.fills.length > 0 &&
+    Array.isArray(effectiveFills) &&
+    effectiveFills.length > 0 &&
     specNode.box
   ) {
-    const fillStyle = fillsToSkiaFillStyle(element.fills, w, specHeight);
+    const fillStyle = fillsToSkiaFillStyle(effectiveFills, w, specHeight);
     if (
       fillStyle &&
       (fillStyle.type === "linear-gradient" ||
@@ -1975,7 +2033,7 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
         fillStyle.type === "angular-gradient")
     ) {
       specNode.box.fill = fillStyle;
-      const topEnabledFill = getTopEnabledFill(element.fills);
+      const topEnabledFill = getTopEnabledFill(effectiveFills);
       if (topEnabledFill) {
         specNode.presentationFillTargets = [
           ...(specNode.presentationFillTargets ?? []),
@@ -1999,7 +2057,7 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
     }
     // 다층 fill (box 경로 buildBoxNodeData 와 같은 계약) — 맨 위 층 아래만, 맨 위는 box.fill / fillColor
     if (fillStyle && fillStyle.type !== "image") {
-      const underlays = fillsToSkiaFillUnderlays(element.fills, w, specHeight);
+      const underlays = fillsToSkiaFillUnderlays(effectiveFills, w, specHeight);
       if (underlays) specNode.box.fillUnderlays = underlays;
     }
   }
@@ -2046,7 +2104,12 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
   }
 
   // ---------- Disabled opacity ----------
-  if (componentState === "disabled") {
+  // ADR-230 (리뷰 h1): 명시 opacity (상태 origin · instance · plain inline) 가 있으면 catalog disabled
+  //   opacity 를 **대체** 한다 — 위 cssEffects 가 이미 `source:"style"` 로 한 번 실었고 DOM 은
+  //   inline 이 `[data-disabled]{opacity}` (non-important) 를 이긴다 (F13: 종전 Skia 0.5×0.38 ≠ DOM 0.5).
+  const hasExplicitOpacity =
+    style.opacity !== undefined && style.opacity !== null && style.opacity !== "";
+  if (componentState === "disabled" && !hasExplicitOpacity) {
     // D3 정본: catalog `structure.states.disabled.opacity` (DOM generated CSS 의
     //   `[data-disabled] { opacity }` 와 동일 source — Breadcrumbs 는 1 로 dim 없음).
     //   잔존 spec 3개는 spec.states 우선. 테이블 값은 number/string("0.38") 혼재라 coerce.

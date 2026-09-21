@@ -64,6 +64,13 @@ import {
 import { readLegacyMetadataCustomId } from "../../adapters/canonical/legacyMetadata";
 import type { FillItem } from "../../types/builder/fill.types";
 import { normalizePresentationSpacingStyle } from "../../builder/presentation/editorPresentationStyleNormalization";
+import { readStateVariantSelf } from "../../builder/components/stateVariantOrigins";
+import {
+  STATE_ORIGIN_DATA_ATTR,
+  STATE_VARIANTS_PROP,
+  readStateVariantProjection,
+  toStateVariantInlineStyle,
+} from "../../builder/components/stateVariantResolution";
 import {
   resolvePresentationLayoutProps,
   resolvePresentationPaintProps,
@@ -430,8 +437,42 @@ function CanonicalNodeRendererBody({
   // fills + style 변환 (adaptElementStyle)
   // ADR-214 Phase 4 — 렌더 문맥 (instanceKey 맵) 과 상태 정의를 실어 createEventHandlerMap 이
   //   setState 스코프 · 암묵 상태 미러를 만든다 (cutover · rendererMap 두 경로 공통).
+  const adaptedBase = adaptElementStyle(previewEl);
+  // ADR-230 — 상태 변형 origin (render-only, canonical 불변):
+  //   - instance: `_stateVariants` projection → default origin 이 소유한 관리 키의 inline 을
+  //     `var(--co-<key>, <baseline>)` 로 옮긴다 (문서별 `<style data-adr230-states>` 의 RAC 상태
+  //     selector 가 변수를 세팅 — inline 이 stylesheet 를 이기는 F14 경합 회피). instance 명시 키는
+  //     리터럴 그대로 (= instance 우선). 표식 `data-state-origin` 이 규칙의 selector 키.
+  //   - 변형 origin 자신 (Components 페이지): `metadata.variant` 를 상태 prop 으로 가정해 RAC 가
+  //     data-selected/data-disabled 를 내게 한다 (Skia `buildSpecNodeData` 동형).
+  const stateVariantProjection = readStateVariantProjection(
+    (adaptedBase.props as Record<string, unknown> | undefined)?.[
+      STATE_VARIANTS_PROP
+    ],
+  );
+  const stateVariantSelf = readStateVariantSelf(node);
+  const stateOriginId =
+    stateVariantProjection?.originId ?? stateVariantSelf?.variantOf ?? null;
+  const stateAdjustedProps = (() => {
+    const base = (adaptedBase.props ?? {}) as Record<string, unknown>;
+    if (!stateVariantProjection && !stateVariantSelf) return base;
+    const next: Record<string, unknown> = { ...base };
+    if (stateVariantProjection) {
+      delete next[STATE_VARIANTS_PROP];
+      next.style = toStateVariantInlineStyle(
+        next.style as Record<string, unknown> | undefined,
+        stateVariantProjection,
+      );
+    }
+    if (stateVariantSelf?.state === "selected") next.isSelected = true;
+    if (stateVariantSelf?.state === "disabled") next.isDisabled = true;
+    return next;
+  })();
   const adaptedEl: PreviewElement = {
-    ...adaptElementStyle(previewEl),
+    ...adaptedBase,
+    ...(stateAdjustedProps !== adaptedBase.props
+      ? { props: stateAdjustedProps as PreviewElement["props"] }
+      : {}),
     stateInstanceScope: stateScope.ancestorKeys,
     ...(Array.isArray(node.state) && node.state.length > 0
       ? { stateDefs: node.state }
@@ -442,6 +483,7 @@ function CanonicalNodeRendererBody({
   const markerProps = {
     "data-canonical-id": node.id,
     "data-element-id": elementId,
+    ...(stateOriginId ? { [STATE_ORIGIN_DATA_ATTR]: stateOriginId } : {}),
   };
 
   // 사용자가 지정한 id (Properties > Attributes) — publish `ElementRenderer` 와 같은 규칙으로

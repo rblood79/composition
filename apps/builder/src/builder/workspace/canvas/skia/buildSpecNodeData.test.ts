@@ -1276,4 +1276,135 @@ describe("buildSpecNodeData", () => {
       expect(withoutInline?.letterSpacing).toBe(baseline?.letterSpacing);
     });
   });
+
+  describe("ADR-230 상태 변형 origin — 유효 상태 overlay · opacity 단일 적용", () => {
+    const projection = {
+      originId: "component-togglebutton",
+      sets: {
+        selected: {
+          style: { color: "#FFFFFF" },
+          fills: [
+            { id: "f1", type: "color", color: "#FF0000", opacity: 1, enabled: true },
+          ],
+        },
+        disabled: { style: { opacity: 0.5 } },
+      },
+      defaultOwned: [],
+      instanceOwned: [],
+    };
+    function buildToggle(
+      props: Record<string, unknown>,
+      extra: Partial<CanvasSceneNode> = {},
+    ): SkiaNodeData | null {
+      const el = makeElement("tb-inst", {
+        type: "ToggleButton",
+        props: { children: "T", _stateVariants: projection, ...props },
+        ...extra,
+      });
+      return buildSpecNodeData({
+        element: el,
+        layout: makeLayout({ x: 0, y: 0, width: 120, height: 32 }),
+        theme: "light",
+        elementsMap: new Map([[el.id, el]]),
+      });
+    }
+    const rgb = (node: SkiaNodeData | null): number[] =>
+      Array.from(node?.box?.fillColor ?? [])
+        .slice(0, 3)
+        .map((v) => Math.round(v * 100) / 100);
+    const opacityEffects = (node: SkiaNodeData | null) =>
+      (node?.effects ?? []).filter((e) => e.type === "opacity");
+
+    it("isSelected instance → selected origin 의 fills(빨강)·color 를 겹친다 · 미선택은 종전 시각", () => {
+      expect(rgb(buildToggle({ isSelected: true }))).toEqual([1, 0, 0]);
+      expect(rgb(buildToggle({}))).not.toEqual([1, 0, 0]);
+    });
+
+    it("h1 반증 — disabled origin 의 opacity 0.5 는 effect 1개 (catalog 0.38 과 곱하지 않는다)", () => {
+      const effects = opacityEffects(buildToggle({ isDisabled: true }));
+      expect(effects).toEqual([{ type: "opacity", value: 0.5, source: "style" }]);
+    });
+
+    it("instance 명시 opacity 0.8 이 상태 origin 0.5 보다 우선 · 명시 color 가 selected color 보다 우선", () => {
+      const node = buildToggle({
+        isDisabled: true,
+        isSelected: true,
+        style: { opacity: 0.8, color: "#123456" },
+        _stateVariants: { ...projection, instanceOwned: ["color", "opacity"] },
+      });
+      expect(opacityEffects(node)).toEqual([
+        { type: "opacity", value: 0.8, source: "style" },
+      ]);
+      expect(rgb(node)).toEqual([1, 0, 0]);
+    });
+
+    it("plain disabled Button + inline opacity 0.5 도 effect 1개 — DOM inline 이 [data-disabled] 를 이기는 것과 대칭 (F13)", () => {
+      const el = makeElement("plain", {
+        type: "Button",
+        props: { isDisabled: true, style: { opacity: 0.5 } },
+      });
+      const node = buildSpecNodeData({
+        element: el,
+        layout: makeLayout({ x: 0, y: 0, width: 200, height: 40 }),
+        theme: "light",
+        elementsMap: new Map([[el.id, el]]),
+      });
+      expect(opacityEffects(node)).toEqual([
+        { type: "opacity", value: 0.5, source: "style" },
+      ]);
+    });
+
+    it("m3 반증 — RadioGroup.value 로만 선택된 Radio 인스턴스도 selected overlay 를 읽는다", () => {
+      const group = makeElement("rg", {
+        type: "RadioGroup",
+        props: { value: "a" },
+      });
+      const radio = makeElement("r-a", {
+        type: "Radio",
+        parent_id: "rg",
+        props: {
+          value: "a",
+          children: "A",
+          _stateVariants: { ...projection, originId: "component-radio" },
+        },
+      });
+      const node = buildSpecNodeData({
+        element: radio,
+        layout: makeLayout({ x: 0, y: 0, width: 120, height: 24 }),
+        theme: "light",
+        elementsMap: new Map([
+          [group.id, group],
+          [radio.id, radio],
+        ]),
+      });
+      // Radio primitive 는 selected 일 때만 안쪽 dot(8×8) 을 그리고 dot 색 = 배경 채널
+      //   (overlay 가 selected origin fills 빨강을 실었으면 dot 이 빨강).
+      const dot = node?.children?.find((c) => c.width === 8 && c.height === 8);
+      expect(dot).toBeDefined();
+      expect(Array.from(dot?.box?.fillColor ?? []).slice(0, 3)).toEqual([
+        1, 0, 0,
+      ]);
+    });
+
+    it("변형 origin 자신 (metadata.variant/variantOf) 은 상태를 가정한다 — disabled 변형은 catalog 0.38 dim", () => {
+      const el = makeElement("component-button--disabled", {
+        type: "Button",
+        props: { children: "Button" },
+        metadata: {
+          type: "catalog-origin",
+          variant: "disabled",
+          variantOf: "component-button",
+        },
+      });
+      const node = buildSpecNodeData({
+        element: el,
+        layout: makeLayout({ x: 0, y: 0, width: 200, height: 40 }),
+        theme: "light",
+        elementsMap: new Map([[el.id, el]]),
+      });
+      expect(opacityEffects(node)).toEqual([
+        { type: "opacity", value: 0.38, source: "state" },
+      ]);
+    });
+  });
 });

@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-230 Phase 1 — 기본 요소의 selected/disabled 변형 origin] - 2026-09-22
+
+### Added
+
+- **Components 페이지 상태 변형 origin**: Button · ToggleButton · Link · Checkbox · Switch 의 origin 옆에 `Button/Disabled` · `ToggleButton/Selected` … 8 개가 시드된다 (`<origin>--<state>` · `metadata.variant/variantOf` · style 비움 = 종전 시각 그대로). 변형 origin 의 Background/색/opacity 를 편집하면 `isSelected`/`isDisabled` instance (Form 안 Button 같은 조합 instance 포함) 가 캔버스와 Preview 에서 같이 따른다. instance 가 명시한 값은 그대로 우선.
+  - 위치: `apps/builder/src/builder/components/stateVariantOrigins.ts` · `stateVariantResolution.ts` · `adapters/canonical/canonicalRefResolution.ts` · `resolvers/canonical/index.ts` · `workspace/canvas/skia/buildSpecNodeData.ts` · `preview/App.tsx` · `preview/components/CanonicalNodeRenderer.tsx`.
+  - 하니스: `apps/builder/scripts/adr230-state-origins-live.mjs` 8/8.
+
+### Fixed
+
+- **disabled 요소의 inline opacity 가 캔버스에서 두 번 곱해지던 것**: `style.opacity 0.5` + disabled 가 Skia 에서 0.5 × 0.38 = 0.19 로 그려졌다 (Preview 는 0.5). 명시 opacity 가 있으면 catalog disabled opacity 를 대체한다 (ADR-230 리뷰 h1 · F13).
+
 ## [ADR-230 Accepted + Phase 0 — 기본 요소 상태별 origin inventory] - 2026-09-21
 
 ### Documentation

@@ -37,6 +37,7 @@ import {
   ensureTagGroupTemplateOrigins,
 } from "./taggroup/tagGroupTemplateOrigins";
 import { ensureCatalogOrigins, getCatalogOriginTypes } from "./catalogOrigins";
+import { ensureStateVariantOrigins } from "./stateVariantOrigins";
 import { catalogReusableOriginId } from "@composition/shared";
 import {
   collectReusableOriginIds,
@@ -141,7 +142,9 @@ export function ensureReusableCompositeOrigins(
   }
   const converted = convertNewOriginChildrenToRefs(next, { existingOriginIds });
   reportOriginChildRefDiagnostics(converted.diagnostics);
-  return converted.document;
+  // ADR-230 — 기본 요소 origin 의 상태 변형 origin 은 조합 자식 ref 변환 **뒤** 보충한다
+  //   (변형 subtree 는 그 시점의 default 와 동형 — default 의 자식이 ref 로 바뀐 뒤 복제).
+  return ensureStateVariantOrigins(converted.document);
 }
 
 /** 변환 보류는 조용히 지나가지 않는다 — 개발 중 즉시 보이도록 (production 도 warn 1줄). */

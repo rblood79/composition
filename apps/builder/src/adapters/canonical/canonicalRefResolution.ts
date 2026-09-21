@@ -10,6 +10,10 @@ import { mergePropsWithStyleDeep } from "./instanceResolver";
 import { resolveReference } from "../../utils/component/referenceResolution";
 import type { LegacyElementMirrorFields } from "./legacyElementFields";
 import { isRenderProjectionId } from "../../builder/projection/renderProjectionIds";
+import {
+  STATE_VARIANTS_PROP,
+  buildStateVariantProjection,
+} from "../../builder/components/stateVariantResolution";
 
 export type CanonicalRefResolvableNode = {
   id: string;
@@ -731,10 +735,15 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
         ...(patch && Array.isArray(patch.fills) ? { fills: patch.fills } : {}),
         reusable: undefined,
       } as T;
-      const resolvedNested = resolveCanonicalRefElement(
-        nestedRefNode,
-        resultElementsMap.values(),
+      const resolvedNested = withStateVariantProjection(
+        resolveCanonicalRefElement(
+          nestedRefNode,
+          resultElementsMap.values(),
+          nestedMaster,
+        ),
         nestedMaster,
+        nestedRefNode,
+        lookupMaster,
       );
       const syntheticNested = {
         ...resolvedNested,
@@ -915,6 +924,37 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
   }
 }
 
+/**
+ * ADR-230 — instance 의 resolved props 에 상태 변형 origin projection (`_stateVariants`) 을
+ * 싣는다 (render-only). master 에 `<origin>--<state>` 변형이 하나도 없으면 무변경 (plain 과 동일
+ * 경로). instance 명시 키의 출처는 **raw ref 노드** (scene node 는 `sourceNode`) — scene 층이
+ * origin props 를 이미 깔아 둔 merged props 로 판정하면 origin 소유 키가 instance 소유로 잘못
+ * 읽힌다 (ADR-228 scene merge).
+ */
+function withStateVariantProjection<T extends CanonicalRefResolvableNode>(
+  resolved: T,
+  master: T,
+  rawRefNode: T,
+  lookupMaster: (ref: string) => T | undefined,
+): T {
+  const raw =
+    ((rawRefNode as { sourceNode?: unknown }).sourceNode as T | undefined) ??
+    rawRefNode;
+  const projection = buildStateVariantProjection(
+    master as unknown as import("@composition/shared").CanonicalNode,
+    raw as unknown as import("@composition/shared").CanonicalNode,
+    (id) =>
+      lookupMaster(id) as unknown as
+        | import("@composition/shared").CanonicalNode
+        | undefined,
+  );
+  if (!projection) return resolved;
+  return {
+    ...resolved,
+    props: { ...(resolved.props ?? {}), [STATE_VARIANTS_PROP]: projection },
+  };
+}
+
 export function resolveCanonicalRefTree<
   T extends CanonicalRefResolvableNode,
 >(input: {
@@ -949,11 +989,20 @@ export function resolveCanonicalRefTree<
     if (!isCanonicalRefElement(element)) continue;
     const ref = getCanonicalRefTarget(element);
     const master = ref ? lookupMaster(ref) : undefined;
-    const resolvedRoot = resolveCanonicalRefElement(
+    const resolvedRootBase = resolveCanonicalRefElement(
       element,
       input.elementsMap.values(),
       master,
     );
+    const resolvedRoot =
+      master && resolvedRootBase !== element
+        ? withStateVariantProjection(
+            resolvedRootBase,
+            master,
+            element,
+            lookupMaster,
+          )
+        : resolvedRootBase;
     if (resolvedRoot !== element) {
       elementsMap.set(element.id, resolvedRoot);
       const index = indexById.get(element.id) ?? -1;

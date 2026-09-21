@@ -48,6 +48,10 @@ import {
 } from "./cache";
 import { parseCompositionImportReference } from "./importNamespace";
 import { isSlotCandidateAllowed } from "../../builder/components/slotHostPolicy";
+import {
+  STATE_VARIANTS_PROP,
+  buildStateVariantProjection,
+} from "../../builder/components/stateVariantResolution";
 
 export type { ImportResolverContext } from "@composition/shared";
 
@@ -218,8 +222,17 @@ function _resolveRefNodeUncached(
 
   // ── Step 4: ResolvedNode 산출 (메타 필드 주입) ────────────────────────────
   const overrideFields = collectOverrideFields(refNode);
+  // ADR-230 — 상태 변형 origin projection (render-only). builder Skia 축 (`resolveCanonicalRefTree`)
+  //   과 같은 함수·같은 props 키 — 한쪽만 실으면 CSS↔Skia 발산. DOM 은 유효 상태를 정적으로 고르지
+  //   않고 `CanonicalNodeRenderer` 가 표식 + var() inline 을, App 이 문서별 상태 규칙을 싣는다.
+  const stateVariants = buildStateVariantProjection(master, refNode, (id) =>
+    findReusableMaster(doc, id, imports),
+  );
   const resolved: ResolvedNode = {
     ...resolvedBase,
+    ...(stateVariants
+      ? { props: { ...resolvedProps, [STATE_VARIANTS_PROP]: stateVariants } }
+      : {}),
     children: resolvedChildren,
     _resolvedFrom: master.id,
     ...(overrideFields.length > 0 ? { _overrides: overrideFields } : {}),

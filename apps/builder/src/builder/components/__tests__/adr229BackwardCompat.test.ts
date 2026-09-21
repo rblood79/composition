@@ -7,6 +7,7 @@ import {
   getReusableOriginEnsurers,
 } from "../reusableCompositeOrigins";
 import { convertNewOriginChildrenToRefs } from "../originChildRefs";
+import { ensureStateVariantOrigins } from "../stateVariantOrigins";
 import {
   TAG_ITEM_DEFAULT_ORIGIN_ID,
   TAG_ITEM_SELECTED_ORIGIN_ID,
@@ -109,6 +110,10 @@ function buildPre229Document(): CompositionDocument {
     applied.add(ensure);
     next = ensure(next);
   }
+  // ADR-230 (같은 hydration post-pass) 의 상태 변형 origin 은 이 테스트의 측정 대상이 아니다 —
+  //   pre 문서에 미리 실어 Δ 가 229 의 보충량 (Tag item origin 2) 만 남게 한다. 230 의 최초 보충량은
+  //   `adr230BackwardCompat.test.ts` 가 잰다.
+  next = ensureStateVariantOrigins(next);
   const tagItemIds = new Set<string>([
     TAG_ITEM_DEFAULT_ORIGIN_ID,
     TAG_ITEM_SELECTED_ORIGIN_ID,
