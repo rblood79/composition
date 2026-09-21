@@ -71,7 +71,10 @@ import {
   type PagePositionPresentationSnapshot,
 } from "../interaction/pagePositionPresentation";
 import { getCanvasFramePresentationSnapshot } from "../canvasFramePresentation";
-import { resolveTextLineMetrics } from "./textDrawOrigin";
+import {
+  resolveTextLineMetrics,
+  resolveTextNodeDebug,
+} from "./textDrawOrigin";
 
 // ── Command 타입 ──────────────────────────────────────────────────────
 
@@ -2674,5 +2677,5 @@ export function buildAIBoundsFromStream(
 // boundsMap). ADR-027 D3 파리티 하니스가 요소의 화면 rect 를 이 값 + 카메라로 만든다.
 if (typeof window !== "undefined" && import.meta.env?.DEV) {
   (window as unknown as Record<string, unknown>).__composition_RENDER_DEBUG__ =
-    { getSceneBounds, resolveTextLineMetrics };
+    { getSceneBounds, resolveTextLineMetrics, resolveTextNodeDebug };
 }

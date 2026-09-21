@@ -1058,8 +1058,12 @@ function resolveTagChipMetric(sizeName: string): {
   const height = num(chip.height, lineHeight + 8);
   const paddingX = num(chip.paddingX, 12);
   const borderRadius = num(chip.borderRadius, 6);
-  // paddingY 는 Tag rule 에 명시 없음 → height/lineHeight 로 도출 (chip 시각 = lineHeight + paddingY*2).
-  const paddingY = Math.max(0, (height - lineHeight) / 2);
+  // paddingY 는 rule 명시값 우선 (2026-09-21: rule height 가 border-box 30 이 되어 (height − lineHeight)/2
+  //   도출은 5 가 된다 — DOM padding 4). 미명시 rule 만 종전 도출 (border 2 차감).
+  const paddingY =
+    typeof chip.paddingY === "number"
+      ? chip.paddingY
+      : Math.max(0, (height - lineHeight - 2) / 2);
 
   const gap = resolveTagListGap(sizeName);
 

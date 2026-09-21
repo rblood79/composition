@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [TagGroup chip — 공백 라벨 세로 중앙 · chip 상자 DOM 정합] - 2026-09-21
+
+### Fixed
+
+- TagGroup 에 추가한 tag 의 라벨에 공백이 있으면 ("Label A") 캔버스 글자가 6px 아래로 내려가던 것 (사용자 보고) — 두 원인이 겹쳤다: ① 레이아웃의 Tag 측정 표 키가 `tag` 가 아니라 `type` 이어서 (ADR-913 기계 rename 잔재 3번째) 측정이 null → weight 400 폴백으로 chip 이 글자보다 좁았고, ② Skia 가 chip 텍스트 상자 높이를 wrap 으로 재 (Tag 기본 nowrap 은 변환 **뒤**에만 붙었다) 공백 라벨을 2줄 (40) 로 잡은 뒤 한 줄을 그 상자 중앙에 두었다. 측정 표 키 `tag` (Tag rule 기반) · Tag/Badge nowrap 을 변환 전에 실음 · 측정기가 `nowrap` 을 1줄로 (원복 RED 3).
+- Tag chip 상자를 DOM `.react-aria-Tag` 실측에 맞춤 — rule `height` 를 border-box (md 28 → 30) 로, `borderWidth: 1` 추가 (엔진 폭에 border 가 빠져 2px 좁았다), `textWeight: 400` 명시 (DOM 은 font-weight 미선언 = 400, 캔버스만 500). Styles 패널 Tag 높이 28 → 30.
+
+### Added
+
+- `taggroup-chip-text-live.mjs` — TagGroup instance 에 items 추가 → Skia 텍스트 상자 (dev 훅 `__composition_RENDER_DEBUG__.resolveTextNodeDebug`) · 레이아웃 rect · Preview DOM chip 을 같이 판정 (6/6).
+
 ## [TagGroup maxRows 두 leg 정합 · Skia 접힘 stale stream · 기존 실패 테스트 2 정리] - 2026-09-21
 
 ### Fixed

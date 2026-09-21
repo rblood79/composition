@@ -82,7 +82,11 @@ const TEXT_BEARING_SPECS: Record<
   submitbutton: { defaultSize: "md", catalogType: "Button" },
   fancybutton: { defaultSize: "md", catalogType: "Button" },
   badge: { defaultSize: "sm", catalogType: "Badge" },
-  type: { defaultSize: "sm", catalogType: "Badge" },
+  // 키는 lowercase 컴포넌트 type "tag" (Tag chip). ADR-913 (`99e4e7c96`) 의 `Element.tag → Element.type`
+  //   mechanical rename 이 이 키를 `type:` 으로 바꿔 (utils.ts INLINE_UI_SIZE_CONFIGS · 측정 leaf 분류표와
+  //   같은 사고) Tag 측정이 null → 레이아웃이 weight 400 폴백으로 재 chip 이 rule (500) 보다 3px 좁았다.
+  //   당시 값 BadgeSpec 은 Tag rule 이 catalog 에 생기기 전 대용 — 지금은 Tag rule 자신이 정본이다.
+  tag: { defaultSize: "md", catalogType: "Tag" },
   chip: { defaultSize: "sm", catalogType: "Badge" },
   togglebutton: {
     defaultSize: "md",

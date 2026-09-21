@@ -32,6 +32,7 @@ describe("레이아웃 컨테이너의 intrinsic height", () => {
     // 이 단언이 없으면 "전부 undefined" 로 망가뜨려도 위 테스트가 통과한다.
     //   Avatar/Tag 는 자기 박스 높이를 catalog 가 정하는 leaf — 실측으로 고른 대조군이다.
     expect(resolveSpecPreset("Avatar", "md").height).toBe(32);
-    expect(resolveSpecPreset("Tag", "md").height).toBe(28);
+    // Tag md 30 = DOM chip border-box (lineHeight 20 + paddingY 4×2 + border 1×2, 2026-09-21).
+    expect(resolveSpecPreset("Tag", "md").height).toBe(30);
   });
 });

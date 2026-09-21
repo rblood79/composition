@@ -207,6 +207,13 @@ export class Canvas2DTextMeasurer implements TextMeasurer {
     ctx.font = buildFontString(style);
     applyFontVariantCaps(ctx, style.fontVariant);
 
+    // nowrap 은 줄을 못 연다 (CSS white-space:nowrap · nodeRendererText 도 layout 폭 무한) — 종전엔
+    //   normal 과 같이 접어 Tag chip "Label A" 의 텍스트 상자 높이를 2줄로 잰 뒤 렌더는 한 줄을 그
+    //   상자 중앙에 두어 글자가 6px 내려갔다 (2026-09-21). `\n` 은 위에서 이미 공백으로 접혔다.
+    if (ws === "nowrap") {
+      return { width: this._measureWord(ctx, text, style), height: lineHeight };
+    }
+
     // ADR-008: word-break × overflow-wrap 에뮬레이션
     const wb = style.wordBreak || "normal";
     const ow = style.overflowWrap || "normal";

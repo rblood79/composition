@@ -160,6 +160,10 @@ describe("extractSpecTextStyle — generic 발효 type 측정 parity (ADR-912 �
     { tag: "checkbox", catalogType: "Checkbox", size: "md" },
     { tag: "radio", catalogType: "Radio", size: "md" },
     { tag: "switch", catalogType: "Switch", size: "md" },
+    // 2026-09-21 — ADR-913 mechanical rename 이 TEXT_BEARING_SPECS 의 키 `tag:` 를 `type:` 으로 바꿔
+    //   Tag chip 측정이 null → 400 폴백이었다 (rule 은 500). "Chocolate" 3px 좁은 chip · 공백 라벨
+    //   ("Label A") 는 wrap 높이 40 으로 재 글자가 6px 내려갔다 (utils.ts INLINE_UI_SIZE_CONFIGS 와 같은 사고).
+    { tag: "tag", catalogType: "Tag", size: "md" },
   ];
 
   for (const { tag, spec, size } of boxTextCutoverCases) {

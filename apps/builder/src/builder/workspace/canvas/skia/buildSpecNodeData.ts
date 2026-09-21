@@ -1908,6 +1908,13 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
     rearrangeShapesForColumn(shapes, w, sizeSpec.gap ?? 8);
   }
 
+  // Tag/Badge 기본 nowrap (아래 §1 과 같은 값) — 종전엔 변환 뒤에만 붙어 auto-height 와 specShapeConverter
+  //   가 chip 텍스트를 wrap 으로 쟀다: 공백 라벨 "Label A" 가 폭 1px 부족에 2줄 (40) 이 되고 렌더는
+  //   nowrap 한 줄을 그 상자 중앙에 두어 글자가 6px 내려갔다 (2026-09-21 사용자 보고).
+  const shapeWhiteSpace =
+    (style.whiteSpace as string | undefined) ??
+    (type === "Tag" || type === "Badge" ? "nowrap" : undefined);
+
   // ---------- Text auto-height ----------
   const hasExplicitHeight =
     style.height !== undefined && style.height !== "auto";
@@ -1916,7 +1923,7 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
       shapes,
       w,
       sizeSpec as unknown as Record<string, unknown>,
-      style.whiteSpace as string | undefined,
+      shapeWhiteSpace,
       style.wordBreak as string | undefined,
       style.overflowWrap as string | undefined,
     );
@@ -1928,8 +1935,9 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
   // ADR-027 D3 (2026-09-20) — 사용자 style.whiteSpace 를 text shape 에도 싣는다. 아래 override (§13 필드)
   //   는 변환된 node 에만 적용돼 specShapeConverter 의 textBlockHeight 측정 (baseline middle 의 세로
   //   중앙) 이 `\n` 을 공백으로 봤다 — pre-wrap 3줄 (72) 을 2줄 (48) 로 재 12px 아래에 놓았다 (live).
+  //   Tag/Badge 기본 nowrap 도 같이 (위 shapeWhiteSpace).
   {
-    const ws = style.whiteSpace;
+    const ws = shapeWhiteSpace;
     if (
       ws === "normal" ||
       ws === "nowrap" ||

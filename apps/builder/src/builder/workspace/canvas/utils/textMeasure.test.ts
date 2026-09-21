@@ -192,6 +192,25 @@ describe("Canvas2DTextMeasurer.measureWrapped — trailing space hang 수정", (
     expect(Math.round(r.height / 19.2)).toBe(3);
   });
 
+  // 2026-09-21 — nowrap 은 줄을 못 연다 (CSS white-space:nowrap · 렌더도 layout 폭 무한). 종전엔
+  //   normal 과 같이 접어 Tag chip "Label A" 의 텍스트 상자 높이를 2줄 (40) 로 잰 뒤 렌더는 한 줄을
+  //   그 상자 중앙에 두어 글자가 6px 내려갔다.
+  it("TC12: nowrap 은 maxWidth 가 좁아도 1줄", () => {
+    const r = measurer.measureWrapped(
+      "Label A Label B",
+      { ...baseStyle, whiteSpace: "nowrap" },
+      24,
+    );
+    expect(Math.round(r.height / 19.2)).toBe(1);
+    // `\n` 도 공백으로 접힌다 (normal 과 같이)
+    const r2 = measurer.measureWrapped(
+      "가나\n다라마바사",
+      { ...baseStyle, whiteSpace: "nowrap" },
+      24,
+    );
+    expect(Math.round(r2.height / 19.2)).toBe(1);
+  });
+
   it("TC10: keep-all 이면 한글 연속을 한 단위로 (1줄 · 넘침)", () => {
     const r = measurer.measureWrapped(
       "가나다라마바사",

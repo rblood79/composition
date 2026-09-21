@@ -80,3 +80,34 @@ export function resolveTextLineMetrics(
     descent: m.descent,
   }));
 }
+
+/**
+ * 진단 — text 자식의 상자 (width · height · padding · whiteSpace · maxWidth · font) 와 마지막
+ * 프레임의 draw 원점. 단일행 글리프 중앙 배치 (`computeDrawY`) 의 입력을 페이지 밖에서 읽는다.
+ */
+export function resolveTextNodeDebug(elementId: string): Record<
+  string,
+  unknown
+> | null {
+  const textNode = findTextNode(getSkiaNode(elementId) ?? undefined);
+  if (!textNode?.text) return null;
+  const t = textNode.text;
+  return {
+    width: textNode.width,
+    height: textNode.height,
+    content: t.content,
+    whiteSpace: t.whiteSpace,
+    maxWidth: t.maxWidth,
+    paddingTop: t.paddingTop,
+    paddingBottom: t.paddingBottom,
+    paddingLeft: t.paddingLeft,
+    fontSize: t.fontSize,
+    fontWeight: t.fontWeight,
+    fontFamilies: t.fontFamilies,
+    verticalAlign: t.verticalAlign,
+    lineHeight: t.lineHeight,
+    origin: getTextDrawOrigin(elementId) ?? null,
+    lines: resolveTextLineMetrics(elementId),
+  };
+}
+

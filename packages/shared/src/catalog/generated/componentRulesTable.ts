@@ -12041,6 +12041,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           text: "{color.neutral}",
           border: "{color.border}",
         },
+        // DOM `.react-aria-Tag` 는 font-weight 미선언 (상속 400) — generic 폴백 500 이면 캔버스 chip 글자만
+        //   굵고 폭이 DOM 보다 넓다 (2026-09-21, Checkbox/Radio/Switch 와 같은 명시).
+        textWeight: 400,
         // ADR-912 영역 B (A) Tag cutover (2026-06-12): allowsRemoving remove X 를
         //   trailing_icon(Lucide "x" glyph)으로 그린다 — buildCatalogShapes 가 showProp(allowsRemoving)
         //   true 일 때만 text 우측에 덧그림(SearchField clear / DOM Button slot=remove 와 동일 icon).
@@ -12090,6 +12093,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           text: "{color.on-accent}",
           border: "{color.accent}",
         },
+        textWeight: 400,
         // selected variant: remove X color = on-accent (text 와 동일).
         // leading icon (2026-08-21, design-data 감사 §2-? Tag avatar/icon 슬롯):
         //   chip 아이콘은 **항목별 데이터**라 rule 에 정적 이름을 둘 수 없다 → `nameProp` 으로
@@ -12121,6 +12125,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
+      // height 는 DOM chip 의 border-box 실측 (TagGroup.css: height 없음 = lineHeight + paddingY×2 + border 1×2).
+      //   종전 28 (md) 은 border 미포함 값이라 implicitStyles height 미러가 캔버스 chip 을 2px 낮게 잡았고,
+      //   borderWidth 미선언으로 엔진 폭에도 border 가 빠져 DOM 보다 2px 좁았다 (2026-09-21, Badge r22m1 동형).
       // ADR-912 영역 B (A) Tag cutover (2026-06-12): paddingX 보강 — buildCatalogShapes 가
       //   text x = paddingX 로 좌측 정렬. Tag.spec sizes.paddingX(xs4/sm8/md12/lg16/xl24) 이전.
       //   미보강 시 `?? 0` fallback 으로 text 가 box 좌측 끝(padding 없음)에 붙음(chip 시각 깨짐).
@@ -12137,7 +12144,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-2xs}",
         lineHeight: 16,
         borderRadius: "{radius.sm}",
-        height: 18,
+        height: 20,
+        borderWidth: 1,
         paddingX: 4,
         paddingY: 1,
         iconSize: 14,
@@ -12146,7 +12154,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-xs}",
         lineHeight: 16,
         borderRadius: "{radius.sm}",
-        height: 20,
+        height: 22,
+        borderWidth: 1,
         paddingX: 8,
         paddingY: 2,
         iconSize: 14,
@@ -12155,7 +12164,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-sm}",
         lineHeight: 20,
         borderRadius: "{radius.md}",
-        height: 28,
+        height: 30,
+        borderWidth: 1,
         paddingX: 12,
         paddingY: 4,
         iconSize: 14,
@@ -12164,7 +12174,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-base}",
         lineHeight: 24,
         borderRadius: "{radius.lg}",
-        height: 40,
+        height: 42,
+        borderWidth: 1,
         paddingX: 16,
         paddingY: 8,
         iconSize: 14,
@@ -12173,7 +12184,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-lg}",
         lineHeight: 28,
         borderRadius: "{radius.lg}",
-        height: 52,
+        height: 54,
+        borderWidth: 1,
         paddingX: 24,
         paddingY: 12,
         iconSize: 14,
