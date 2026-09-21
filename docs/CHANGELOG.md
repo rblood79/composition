@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [TagGroup instance 「Add Tag」 · Canvas chip 폭 · instance 의 자식 projection] - 2026-09-21
+
+### Fixed
+
+- Home 에 TagGroup 을 놓고 Properties 「Add Tag」 를 눌러도 아무것도 안 바뀌던 것 (사용자 보고) — 세 결함이 겹쳐 있었다: ① Properties 의 Tags 목록과 store `addItem` 이 instance 의 raw override (`{}`) 만 읽어 상속 항목 0 으로 보이고 「Add」 가 상속 4개를 1개로 갈아치웠다 → origin ⊕ override 의 유효 props 로 읽는다 (쓰기는 그대로 instance override). ② instance 의 자식 (TagList · TabList) 은 ref 실체화가 scene visit 뒤라 chip/tab projection 을 받지 못해 캔버스에 chip 이 0 이었다 → resolved instance 를 owner 로 projection 을 붙인다 (Preview 와 대칭 · override 없으면 origin 항목 상속). ③ 모든 TagGroup (plain 포함) 의 chip 이 캔버스에서 24px 로 접혀 글자가 잘리던 것 — 레이아웃 분류표의 키가 `tag` 가 아니라 `type` 이었고 (`Element.tag → type` 기계 rename 의 잔재) 09-19 「자식 0 컨테이너도 엔진 소유」 가 비측정 leaf 의 `width:fit-content` 를 content 0 으로 넘겼다 → 키 `tag` (측정 leaf).
+- ADR-228 parity 하니스의 Skia 픽셀 leg 가 stage 를 화면 밖에 둔 채 (Home 페이지 y=1160) 빈 캔버스를 찍어 공허했다 → stage 를 뷰포트로 옮기고 첫 target 에서 빈 캡처 가드.
+
 ## [ADR-228 round 3 — Button 안 Button · origin 순서 보존 · 검증 보강] - 2026-09-21
 
 ### Fixed
