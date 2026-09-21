@@ -582,6 +582,7 @@ if (typeof window !== "undefined" && import.meta.env?.DEV) {
     {
       getSharedLayoutMap,
       getSharedLayoutVersion,
+      getSharedFilteredChildrenMap,
       getEngineInput: (elementId: string) => {
         for (const key of persistentTrees.keys()) {
           const style = readPersistentEngineStyle(key, elementId);
@@ -3211,6 +3212,14 @@ export function calculateFullTreeLayout(
         filteredChildIdsMap.set(rowsGroupId, keep);
         persistentTree.updateChildren(rowsGroupId, keep);
         needsSecondPass = true;
+      }
+      // 접힘이 children 을 바꿨으면 공유 filtered map 을 **다시 발행**한다 (2026-09-21). Step 2 발행
+      //   뒤 이 run 안에서 `getSharedFilteredChildrenMap()` 이 한 번이라도 불리면 (utils 의 자식
+      //   조회) 병합 map 이 접힘 전 배열을 붙든 채 version 이 같아 render 가 그 stale 배열로 자식을
+      //   읽는다 — 접힘 불필요인데도 「Show all」 chip 이 첫 pass 위치에 그려졌다 (parity 하니스
+      //   실측 · 단독 재현에선 호출 순서가 달라 안 보였다).
+      if (foldChipRemovals.length > 0) {
+        publishFilteredChildrenMap(filteredChildIdsMap, rootKey);
       }
 
       if (needsSecondPass) {

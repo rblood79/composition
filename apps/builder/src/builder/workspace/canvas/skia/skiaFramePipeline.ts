@@ -303,6 +303,14 @@ function buildViaCommandStream(
   } else {
     commandChildrenMap = rendererInput.childrenMap;
   }
+  if (process.env.NODE_ENV === "development" && typeof window !== "undefined") {
+    (window as unknown as Record<string, unknown>).__composition_FRAME_DEBUG__ = {
+      filteredSource: filteredChildIds ? "filtered" : "scene",
+      layoutVersion,
+      getCommandChildren: (id: string) =>
+        (commandChildrenMap.get(id) ?? []).map((n) => n.id),
+    };
+  }
 
   const stream = getCachedCommandStream(
     rootElementIds,

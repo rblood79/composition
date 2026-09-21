@@ -113,10 +113,8 @@ describe("legacy model leaf cleanup static gates", () => {
       resolve(__dirname, "../../../panels/styles/hooks/useResetStyles.ts"),
       "utf-8",
     );
-    const overlaySource = await readFile(
-      resolve(__dirname, "../../../overlay/index.tsx"),
-      "utf-8",
-    );
+    // builder/overlay (iframe Preview 시절 DOM SelectionOverlay) 는 f011a4098 에서 삭제 —
+    //   Skia buildSelectionOverlayData 가 대체. 이 게이트는 남은 세 파일만 본다.
     const viewSource = await readFile(
       resolve(__dirname, "../../canonical/canonicalElementsView.ts"),
       "utf-8",
@@ -128,9 +126,6 @@ describe("legacy model leaf cleanup static gates", () => {
     expect(resetSource).toContain("getParent");
     expect(resetSource).not.toContain("getCanonicalDocumentElementsView");
     expect(resetSource).not.toContain("visitCanonicalDocumentElements");
-    expect(overlaySource).toContain("getLastProjectableNodeById");
-    expect(overlaySource).not.toContain("getCanonicalDocumentElementsView");
-    expect(overlaySource).not.toContain("visitCanonicalDocumentElements");
     expect(viewSource).toContain(
       "const elements = [...getCanonicalDocumentElementProjection(doc)]",
     );

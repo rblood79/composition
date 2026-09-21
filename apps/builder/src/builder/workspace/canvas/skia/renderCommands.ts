@@ -944,6 +944,10 @@ let _cachePagePosVersion = -1;
 let _cacheFramePosVersion = -1;
 let _cacheLayoutVersion = -1;
 let _cacheRootSignature = "";
+// 자식 맵 identity — filtered children map (layout 의 접힘 결과) 이 layoutVersion 없이 바뀌는 경우
+//   (2026-09-21 TagGroup maxRows: 접힘 재발행이 layoutVersion 을 안 올린다) 캐시가 옛 자식으로
+//   그린 stream 을 돌려줬다. 같은 layoutVersion 이라도 childrenMap 객체가 다르면 다시 만든다.
+let _cacheChildrenMap: Map<string, CanvasSceneNode[]> | null = null;
 /** 직전 miss 가 명시적 invalidateCommandStreamCache() 호출로 인한 것인지 구분 */
 let _explicitInvalidate = false;
 
@@ -997,7 +1001,8 @@ export function getCachedCommandStream(
     pagePosVersion === _cachePagePosVersion &&
     framePosVersion === _cacheFramePosVersion &&
     layoutVersion === _cacheLayoutVersion &&
-    rootSignature === _cacheRootSignature
+    rootSignature === _cacheRootSignature &&
+    childrenMap === _cacheChildrenMap
   ) {
     if (process.env.NODE_ENV === "development") {
       getCacheMetrics("commandStream").recordHit();
@@ -1035,6 +1040,7 @@ export function getCachedCommandStream(
   _cacheFramePosVersion = framePosVersion;
   _cacheLayoutVersion = layoutVersion;
   _cacheRootSignature = rootSignature;
+  _cacheChildrenMap = childrenMap;
   _explicitInvalidate = false;
 
   return stream;

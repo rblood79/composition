@@ -77,3 +77,28 @@ describe("TagGroup — size/variant DOM attribute = CSS 후손 선택자 정본(
     expect(rootAttr(html, "data-tag-size")).toBe("md");
   });
 });
+
+/**
+ * 2026-09-21 — maxRows 미러 DOM 의 chip 글자. 정적 `<Tag>` 자식은 render function 으로 감싸이는데
+ * 종전엔 그 함수의 `String(...)` (소스 코드 3,000px) 이 미러에 실려 chip 마다 한 줄이 됐고 접힘이
+ * 항상 maxRows 개만 남겼다 (Canvas 4 ↔ Preview 2). 원복 시 첫 단언 RED.
+ */
+describe("TagGroup maxRows 미러 — 정적 Tag 자식의 글자", () => {
+  it("미러 chip 은 Tag 의 글자만 담는다 (render function 소스 0)", () => {
+    const html = renderToStaticMarkup(
+      <TagGroup label="Tags" maxRows={2}>
+        <Tag id="a">Chocolate</Tag>
+        <Tag id="b">
+          <span>Mint</span>
+        </Tag>
+      </TagGroup>,
+    );
+    const mirror =
+      html.match(/aria-hidden="true"[^>]*>([\s\S]*?)<\/div><template>/)?.[1] ??
+      "";
+    expect(mirror).not.toContain("allowsRemoving");
+    expect(mirror).not.toContain("=>");
+    expect(mirror).toContain("Chocolate");
+    expect(mirror).toContain("Mint");
+  });
+});

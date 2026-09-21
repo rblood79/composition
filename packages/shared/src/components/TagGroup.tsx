@@ -289,18 +289,28 @@ export function TagGroup<T extends object>({
         icon: row.icon ?? null,
         avatar: row.avatar ?? null,
       }));
-    if (!Array.isArray(allMappedChildren)) return [];
-    return allMappedChildren.map((child) => {
-      if (!React.isValidElement(child))
-        return { text: "", icon: null, avatar: null };
-      const p = child.props as { textValue?: string; children?: unknown };
-      return {
-        text: p.textValue || String(p.children || ""),
-        icon: null,
-        avatar: null,
-      };
-    });
-  }, [hasDataBinding, filteredRows, allMappedChildren]);
+    if (typeof children === "function") return [];
+    // 원본 `<Tag>` 자식에서 글자를 뽑는다 — allMappedChildren 은 자식을 render function
+    //   (`({ allowsRemoving }) => …`) 으로 감싸 `String(props.children)` 이 **함수 소스 코드** (3,000px)
+    //   가 됐고, 미러 chip 이 하나씩 한 줄을 차지해 maxRows 접힘이 항상 maxRows 개만 남겼다
+    //   (2026-09-21 Compare Mode 실측: Canvas 4 chip ↔ Preview 2 chip + Show all).
+    const extractText = (node: unknown): string => {
+      if (node == null || typeof node === "boolean") return "";
+      if (typeof node === "string" || typeof node === "number")
+        return String(node);
+      if (Array.isArray(node)) return node.map(extractText).join("");
+      if (React.isValidElement(node)) {
+        const p = node.props as { textValue?: string; children?: unknown };
+        return p.textValue || extractText(p.children);
+      }
+      return "";
+    };
+    return React.Children.toArray(children as React.ReactNode).map((child) => ({
+      text: extractText(child),
+      icon: null,
+      avatar: null,
+    }));
+  }, [hasDataBinding, filteredRows, children]);
 
   // children이 render function인지 확인 (Field children 렌더링 모드)
   const isRenderFunction = typeof children === "function";

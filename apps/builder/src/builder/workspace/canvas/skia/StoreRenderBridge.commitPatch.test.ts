@@ -155,3 +155,46 @@ describe("StoreRenderBridge ADR-189 commit patch — 다중 dirty root", () => {
     expect(result.commandStreamInvalidated).toBe(false);
   });
 });
+
+/**
+ * 2026-09-21 — command stream 캐시는 layoutVersion 만이 아니라 **childrenMap identity** 로도 갈린다.
+ * TagGroup maxRows 접힘이 filtered children map 을 layoutVersion 없이 다시 발행하는데, 종전 캐시는
+ * 같은 layoutVersion 이면 옛 자식 (Show all chip 포함) 으로 만든 stream 을 돌려줬다. 원복 시 RED.
+ */
+describe("command stream 캐시 — childrenMap identity", () => {
+  beforeEach(() => {
+    clearSkiaRegistry();
+    invalidateCommandStreamCache();
+  });
+  afterEach(() => {
+    clearSkiaRegistry();
+    invalidateCommandStreamCache();
+  });
+
+  it("같은 version 이라도 childrenMap 객체가 다르면 stream 을 다시 만든다 (자식이 준 것을 반영)", () => {
+    const scene = buildScene();
+    const bridge = primeBridge(scene);
+    void bridge;
+    const call = (childrenMap: Map<string, CanvasSceneNode[]>) =>
+      getCachedCommandStream(
+        [BODY_ID],
+        childrenMap,
+        scene.layoutMap,
+        { [BODY_ID]: { x: 0, y: 0 } },
+        getRegistryVersion(),
+        0,
+        0,
+        0,
+        { presentationRevision: 0, baseCanonicalRevision: 0 },
+      );
+    const full = call(scene.childrenMap);
+    expect(full.boundsMap.has(SECOND_ID)).toBe(true);
+    // 접힘: second 를 뺀 새 children map (같은 layoutVersion 0)
+    const folded = new Map([[BODY_ID, [scene.elementsMap.get(FIRST_ID)!]]]);
+    const stream = call(folded);
+    expect(stream).not.toBe(full);
+    expect(stream.boundsMap.has(SECOND_ID)).toBe(false);
+    // 같은 객체로 다시 부르면 캐시 hit
+    expect(call(folded)).toBe(stream);
+  });
+});

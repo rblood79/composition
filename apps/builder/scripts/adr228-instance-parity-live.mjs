@@ -276,9 +276,62 @@ function nonBackgroundPixels(png) {
 }
 
 async function skiaCapture() {
-  await page.evaluate(() =>
-    window.__composition_STORE__.getState().setSelectedElement(null),
-  );
+  // 선택 · hover 크롬 (요소 outline · 페이지 프레임 outline) 을 지운다 — plain arm 을 addComplexElement 로
+  //   넣은 직후 페이지 outline 이 남아 두 arm 픽셀이 갈린 적이 있다 (Menu 1,381 px).
+  await page.evaluate(() => {
+    const st = window.__composition_STORE__.getState();
+    st.setSelectedElement(null);
+    st.setSelectedElements?.([]);
+    st.setHoveredElementId?.(null);
+  });
+  if (process.env.ADR228_DEBUG_FOLD) {
+    const fold = await page.evaluate(() => {
+      const fc =
+        window.__composition_LAYOUT_DEBUG__.getSharedFilteredChildrenMap?.();
+      const out = [];
+      if (fc)
+        for (const [k, v] of fc.entries())
+          if (String(k).includes("tag-rows"))
+            out.push([
+              k,
+              v.map((x) => String(x).split(":").pop().slice(0, 12)),
+            ]);
+      const map = window.__composition_LAYOUT_DEBUG__.getSharedLayoutMap();
+      const sa = [];
+      for (const [k, l] of map.entries())
+        if (String(k).includes("show_all"))
+          sa.push([k, Math.round(l.x), Math.round(l.y)]);
+      return {
+        out,
+        sa,
+        ver: window.__composition_LAYOUT_DEBUG__.getSharedLayoutVersion?.(),
+      };
+    });
+    log(`fold ${JSON.stringify(fold)}`);
+    const stream = await page.evaluate(() => {
+      const map = window.__composition_LAYOUT_DEBUG__.getSharedLayoutMap();
+      const out = [];
+      for (const [k] of map.entries())
+        if (String(k).includes("show_all"))
+          out.push([
+            k,
+            window.__composition_RENDER_DEBUG__?.getSceneBounds?.(k) ?? null,
+          ]);
+      const fd = window.__composition_FRAME_DEBUG__;
+      const cmd = [];
+      if (fd)
+        for (const [k] of map.entries())
+          if (String(k).includes("tag-rows"))
+            cmd.push([
+              k,
+              fd
+                .getCommandChildren(k)
+                .map((x) => x.split(":").pop().slice(0, 12)),
+            ]);
+      return { out, src: fd?.filteredSource, lv: fd?.layoutVersion, cmd };
+    });
+    log(`sceneBounds(show_all) ${JSON.stringify(stream)}`);
+  }
   await page.mouse.move(2, 890);
   await page.waitForTimeout(300);
   // 캔버스 위 상단 100px 은 헤더·툴바 DOM 이 겹친다 (hover fade 가 1 채널 흔들린다 — Breadcrumbs 에서

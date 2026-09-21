@@ -61,20 +61,21 @@ export function mergeInteractionOverride(
   return merged;
 }
 
-interface OverrideStore {
+interface RuntimePatchStore {
   get: (elementId: string) => PropsBag | undefined;
   patch: (elementId: string, patch: PropsBag) => void;
   subscribe: (listener: () => void) => () => void;
 }
 
-function createOverrideStore(): OverrideStore {
-  const overrides = new Map<string, PropsBag>();
+function createRuntimePatchStore(): RuntimePatchStore {
+  // 이름은 `patches` — legacy element 필드 `overrides` (ADR-116 G5 grep 게이트 대상) 와 구별한다.
+  const patches = new Map<string, PropsBag>();
   const listeners = new Set<() => void>();
   return {
-    get: (elementId) => overrides.get(elementId),
+    get: (elementId) => patches.get(elementId),
     patch: (elementId, patch) => {
       if (!elementId || !patch || Object.keys(patch).length === 0) return;
-      overrides.set(elementId, { ...overrides.get(elementId), ...patch });
+      patches.set(elementId, { ...patches.get(elementId), ...patch });
       for (const fn of [...listeners]) fn();
     },
     subscribe: (listener) => {
@@ -87,7 +88,7 @@ function createOverrideStore(): OverrideStore {
 interface InteractionRuntimeValue {
   index: InteractionIndex;
   deps: DispatchDeps;
-  overrides: OverrideStore;
+  patches: RuntimePatchStore;
 }
 
 const InteractionRuntimeContext = createContext<InteractionRuntimeValue | null>(
@@ -113,7 +114,7 @@ export function InteractionRuntimeProvider({
   children,
 }: InteractionRuntimeProviderProps) {
   const { addToast } = useToast();
-  const overrides = useMemo(() => createOverrideStore(), []);
+  const patches = useMemo(() => createRuntimePatchStore(), []);
 
   const index = useMemo(
     () =>
@@ -140,11 +141,11 @@ export function InteractionRuntimeProvider({
           type: el.type,
           props: mergeInteractionOverride(
             (el.props ?? {}) as PropsBag,
-            overrides.get(id),
+            patches.get(id),
           ),
         };
       },
-      updateElementProps: overrides.patch,
+      updateElementProps: patches.patch,
       navigate: (path) => {
         // 외부 링크/앵커는 브라우저 기본 의미로 — 게시본은 실제 사이트다.
         if (/^https?:\/\//.test(path)) {
@@ -189,12 +190,12 @@ export function InteractionRuntimeProvider({
           : { ok: false, reason: result.reason ?? "setState 실패" };
       },
     }),
-    [elementById, pages, onNavigatePage, overrides, addToast, runtimeState],
+    [elementById, pages, onNavigatePage, patches, addToast, runtimeState],
   );
 
   const value = useMemo(
-    () => ({ index, deps, overrides }),
-    [index, deps, overrides],
+    () => ({ index, deps, patches }),
+    [index, deps, patches],
   );
 
   return (
@@ -224,11 +225,11 @@ export function useElementInteractionOverride(
 ): PropsBag | undefined {
   const runtime = useContext(InteractionRuntimeContext);
   const getSnapshot = useCallback(
-    () => runtime?.overrides.get(elementId),
+    () => runtime?.patches.get(elementId),
     [runtime, elementId],
   );
   return useSyncExternalStore(
-    runtime?.overrides.subscribe ?? noopSubscribe,
+    runtime?.patches.subscribe ?? noopSubscribe,
     getSnapshot,
   );
 }

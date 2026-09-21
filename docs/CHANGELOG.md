@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [TagGroup maxRows 두 leg 정합 · Skia 접힘 stale stream · 기존 실패 테스트 2 정리] - 2026-09-21
+
+### Fixed
+
+- Preview 의 TagGroup 이 `maxRows` 접힘에서 항상 maxRows 개만 보이던 것 (500px 에 4 chip 이 한 줄인데 2개 + 「Show all」) — 미러 DOM 이 정적 `<Tag>` 자식의 render function **소스 코드** (3,000px) 를 chip 글자로 실어 chip 마다 한 줄이 됐다 → 원본 자식에서 글자만 뽑는다 (원복 RED 1).
+- 캔버스가 접힘이 필요 없는데도 「Show all」 chip 을 그리던 것 — 레이아웃의 접힘 결과 (filtered children) 가 layoutVersion 없이 바뀌면 command stream 캐시가 옛 자식으로 만든 stream 을 돌려줬다 → 접힘 뒤 filtered map 재발행 + stream 캐시를 childrenMap identity 로도 가른다 (원복 RED 1). 실제 접힘 (maxRows 1 · 250px) 은 두 leg 3 chip + Show all 로 일치.
+- 기존 실패 테스트 2: `g5LegacyFieldGrepGate` — publish 런타임의 로컬 이름 `overrides` (legacy element 필드가 아님) 를 `patches` 로 · `instanceActions.static` — 삭제된 `builder/overlay` 참조 제거. builder 스위트 6846 / shared 1367 전부 PASS.
+- parity 하니스 Skia 캡처 전에 hover · 페이지 outline 크롬을 지운다 (Menu 1,381 px 오탐). 전수 56 pair 재실행 PASS.
+
 ## [TagGroup instance 「Add Tag」 · Canvas chip 폭 · instance 의 자식 projection] - 2026-09-21
 
 ### Fixed
