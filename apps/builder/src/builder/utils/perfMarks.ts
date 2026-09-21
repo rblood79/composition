@@ -43,6 +43,11 @@ export const PERF_LABEL = {
    */
   INPUT_PAGE_TRANSITION: "input.page-transition",
   RENDER_FRAME: "render.frame",
+  /**
+   * ADR-228 G4 (codex round 3 m5): canonical document → scene model build (ref 실체화
+   * `resolveCanonicalRefTree` 포함). 문서가 바뀔 때마다 (편집·페이지 전환) 한 번.
+   */
+  SCENE_BUILD: "scene.build",
   RENDER_CONTENT_BUILD: "render.content.build",
   RENDER_PLAN_BUILD: "render.plan.build",
   RENDER_SKIA_DRAW: "render.skia.draw",

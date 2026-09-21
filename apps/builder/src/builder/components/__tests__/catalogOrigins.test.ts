@@ -267,6 +267,60 @@ describe("ADR-228 G1 — origin seed · 멱등 · 보존", () => {
     expect(order(repaired)).toEqual(order(seeded));
   });
 
+  it("사용자가 origin 순서를 바꾸거나 frame 에 넣어도 재hydration 이 되돌리지 않는다 — 누락만 보충 (codex round 3 h2)", () => {
+    const seeded = ensureReusableCompositeOrigins(makeDocument());
+    const bodyOf = (doc: CompositionDocument) =>
+      findById(doc.children, COMPONENTS_SYSTEM_BODY_ID)!;
+    const seededOrder = bodyOf(seeded).children!.map((n) => n.id);
+    // ① 역순 재정렬 + ② 첫 origin 을 사용자 frame 안으로 이동 + ③ origin 하나 제거 (누락)
+    const reversed = [...bodyOf(seeded).children!].reverse();
+    const [moved, ...rest] = reversed;
+    const removedId = rest[rest.length - 1]!.id;
+    const kept = rest.slice(0, -1);
+    const rewriteBody = (nodes: readonly CanonicalNode[]): CanonicalNode[] =>
+      nodes.map((n) =>
+        n.id === COMPONENTS_SYSTEM_BODY_ID
+          ? {
+              ...n,
+              children: [
+                { id: "user-frame", type: "frame", children: [moved!] },
+                ...kept,
+              ] as CanonicalNode[],
+            }
+          : n.children
+            ? { ...n, children: rewriteBody(n.children) }
+            : n,
+      );
+    const edited: CompositionDocument = {
+      ...seeded,
+      children: rewriteBody(seeded.children),
+    };
+    const repaired = ensureReusableCompositeOrigins(edited);
+    const repairedBody = bodyOf(repaired);
+    // 순서·위치 보존: user-frame 이 맨 앞, 그 안에 moved, 나머지는 역순 그대로
+    expect(repairedBody.children![0]!.id).toBe("user-frame");
+    expect(repairedBody.children![0]!.children!.map((n) => n.id)).toEqual([
+      moved!.id,
+    ]);
+    expect(
+      repairedBody.children!.slice(1, kept.length + 1).map((n) => n.id),
+    ).toEqual(kept.map((n) => n.id));
+    // 누락 origin 하나만 맨 뒤에 보충
+    expect(
+      repairedBody.children!.slice(kept.length + 1).map((n) => n.id),
+    ).toEqual([removedId]);
+    // 집합은 seed 와 같다 (root 수 · id 집합)
+    const ids = (nodes: readonly CanonicalNode[]): string[] =>
+      nodes.flatMap((n) => [n.id, ...ids(n.children ?? [])]);
+    expect(
+      new Set(
+        ids(repairedBody.children!).filter((id) => seededOrder.includes(id)),
+      ),
+    ).toEqual(new Set(seededOrder));
+    // 멱등
+    expect(ensureReusableCompositeOrigins(repaired)).toEqual(repaired);
+  });
+
   it("repairCatalogOrigin — metadata 는 코드 정본 (systemOwned · componentFamily) 을 확정한다", () => {
     const base = buildCatalogOrigin("Badge");
     const repaired = repairCatalogOrigin(

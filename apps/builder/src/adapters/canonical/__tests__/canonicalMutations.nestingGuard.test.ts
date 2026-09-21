@@ -355,3 +355,82 @@ describe("canonical nesting guard — merge (insert)", () => {
     expect(result.nestingViolation).toBeUndefined();
   });
 });
+
+/**
+ * ADR-228 (codex round 3 h1, 2026-09-21): 팔레트 배치가 전부 ref instance 라 배치 요소의
+ * `type === "ref"` 를 그대로 판정하면 Button 안 Button 이 통과했다 (headed 재현). 새 자식과
+ * 배치 안 조상 모두 **origin root 의 유효 타입**으로 판정한다.
+ */
+describe("canonical nesting guard — ref instance 는 origin 타입으로 판정 (ADR-228)", () => {
+  const REF_DOC = makeDocument([
+    {
+      id: "page-components-body",
+      type: "body",
+      children: [
+        {
+          id: "component-button",
+          type: "Button",
+          children: [{ id: "component-button__text", type: "Text" }],
+        },
+        { id: "component-textfield", type: "TextField" },
+      ],
+    },
+    {
+      id: "body",
+      type: "body",
+      children: [
+        { id: "inst-a", type: "ref", ref: "component-button" },
+        { id: "frame-a", type: "frame" },
+      ],
+    },
+  ]);
+
+  const makeRef = (
+    id: string,
+    ref: string,
+    parent_id: string | null,
+  ): Element =>
+    ({ ...makeElement(id, "ref", parent_id), ref }) as unknown as Element;
+
+  beforeEach(() => {
+    resetCanonicalMutationStoreActions();
+    useCanonicalDocumentStore.setState({
+      documents: new Map(),
+      currentProjectId: null,
+      documentVersion: 0,
+    });
+    setup(REF_DOC);
+  });
+
+  it("새 Button instance 를 기존 Button instance 아래 삽입하지 못한다", () => {
+    const result = mergeElementsCanonicalPrimary([
+      makeRef("inst-b", "component-button", "inst-a"),
+    ]);
+    expect(result.changed).toBe(false);
+    expect(result.nestingViolation).toMatchObject({
+      parentType: "Button",
+      childType: "Button",
+    });
+  });
+
+  it("배치 안 조상도 유효 타입으로 잇는다 — 같은 배치의 Button instance 아래 TextField instance", () => {
+    const result = mergeElementsCanonicalPrimary([
+      makeRef("inst-c", "component-button", "frame-a"),
+      makeRef("inst-d", "component-textfield", "inst-c"),
+    ]);
+    expect(result.changed).toBe(true);
+    expect(result.rejectedElementIds).toEqual(["inst-d"]);
+    expect(result.nestingViolation).toMatchObject({
+      parentType: "Button",
+      childType: "TextField",
+    });
+  });
+
+  it("frame 아래 instance 는 통과한다", () => {
+    const result = mergeElementsCanonicalPrimary([
+      makeRef("inst-e", "component-button", "frame-a"),
+    ]);
+    expect(result.changed).toBe(true);
+    expect(result.nestingViolation).toBeUndefined();
+  });
+});

@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-228 round 3 — Button 안 Button · origin 순서 보존 · 검증 보강] - 2026-09-21
+
+### Fixed
+
+- Button instance 를 **선택한 채** 팔레트에서 Button 을 다시 놓으면 그 instance 안에 들어가던 결함 (codex round 3 h1) — 생성 preflight 가 page-scoped 요소만 봐서 Components 페이지 origin 의 타입을 못 읽었고, canonical 삽입 guard 도 새 instance 를 `ref` 그대로 판정했다. 둘 다 origin 타입으로 판정한다 (가까운 유효 조상 = body 로 이동, RED→GREEN 5 · live 1).
+- Components 페이지에서 origin 순서를 바꾸거나 frame 에 넣어도 다음 열기에서 seed 순서로 되돌아가던 결함 (h2) — `ensureTemplateOrigins` 가 origin 을 전부 떼어 다시 붙이던 것을 제자리 보정 + 누락만 보충으로 (RED→GREEN 1 · live reload 2).
+- Skia 렌더 bridge 가 instance 마다 origin 을 요소 전체에서 선형 탐색하던 것을 id 조회로 (600 instance 편집 프로파일 1.9%).
+
+### Changed
+
+- 검증 보강 (m4 · m5): instance parity 하니스가 팔레트 진입점 전수 (generic 50 + Chart 7 = 56 pair) 를 한 arm 씩 같은 자리에 두고 **Skia 캔버스 실픽셀** 까지 비교한다 (57/57); origins live 에 Chart 7 왕복 (생성 → origin 변경 → Undo/Redo → persist → reload) · h1 · h2 (38/38); `perf-baseline.mjs` 에 `scene.build` 직접 계측 + `multi-select-edit` class. G4 재측정 (같은 세션 A/B): 캔버스 축 ≤ +0.7 ms, `scene.build` +0.5~+2.5 ms 는 유보 (ADR §Consequences), 다중 선택 편집 +16 ms 는 DOM 패널 비용.
+- 명시 initialProps 계약 문구를 정확히 했다 — instance 소유 = origin 유효값과 다른 키 (+chartType). 같은 값을 명시해도 소유하려면 스키마 확장 (별도 ADR, m3 LOW deferred).
+- 위치: `docs/adr/reviews/228.md` §Round 3 수리 검증 · `completed/228-*.md` Gate 표 G2~G4 · Live Exercise · `design/228-*-breakdown.md` §9.
+
 ## [ADR-228 Implemented — 팔레트 전 항목이 Components 페이지 origin · 배치는 instance] - 2026-09-21
 
 ### Added

@@ -211,6 +211,8 @@ E 밖의 사용자 origin과 collection item template origin도 Components 페�
 | 3     | 후속 커밋                  | Components body grid 흐름 (flex wrap · gap 24 · padding 24, 부재 키만) · `systemComponentsPage.test.ts` 2 · 초기 문서 테스트 갱신                                                                                                                                                                                                                                                                                                                            |
 | 4     | 후속 커밋                  | G4 headed 3회 A/B (select +0.3 · edit +0.1 · page-switch +0.1 · zoom +4.5 유보) · Δnode 185 · Δbyte 37,952 · `useElementCreator.reusableInstanceProps.test.ts` 5                                                                                                                                                                                                                                                                                             |
 
+| R3 | 후속 커밋 (round 3) | codex 완료 검증 (`reviews/228.md` Round 3) 수리 — h1 Button 안 Button (preflight 문서 유효 타입 + canonical guard 배치 유효 타입, RED→GREEN 5) · h2 origin 재정렬 보존 (`ensureTemplateOrigins` 제자리 보정, RED→GREEN 1) · m3 LOW deferred (소유권 모델) · m4 parity V manifest 56 pair + Skia 픽셀 leg 57/57 · Chart 7 왕복 · m5 `scene.build` 계측 + pan/multi-select-edit A/B + Skia bridge 선형 탐색 수리 · live 38/38 |
+
 ### 9.1 설계와 달라진 점
 
 - §3.1 개념 코드의 `propsSchema: passthroughSchema(...)` 는 두지 않았다 — §8.4-1 (편집 계약은 A″ 가 accepts 를 직접 읽는다). Toolbar/Form instance 가 primitive accepts 필드를 얻는 부수 효과는 `componentCatalog.test.ts` 가 명시.
@@ -224,3 +226,7 @@ E 밖의 사용자 origin과 collection item template origin도 Components 페�
 - origin 편집은 instance 가 있으면 EditingSemantics 영향 대화상자 (`.editing-impact-actions` 「Continue」) 뒤에야 적용된다 — `updateElementProps` 는 그때까지 pending promise.
 - persist 는 백그라운드 — reload 전에 `document_parts` `node:<id>` 를 폴링한다. 값은 JSON 문자열 (따옴표 escape) 이라 `"component-x"` 문자열 검색은 놓친다.
 - Compare Mode 의 Preview iframe (1920×1080) 은 왼쪽 CSS pane 에 clip 되고 그 위에 헤더/rail 이 뜬다 — 요소 스크린샷은 page clip + stage 여백으로.
+- (round 3) `moveElementToSiblingEdge` 는 nesting guard 를 거친다 — Components body 의 첫 root 가 ListBoxItem template origin 이라 (ListBoxItem ⊄ body) 이동이 거부된다. 순서 보존 live 는 catalog origin (Badge) 으로.
+- (round 3) Skia 캔버스 스크린샷 (`page.screenshot` clip) 은 상단 100px 에 헤더·툴바 DOM 이 겹쳐 hover fade 가 1 채널 흔들린다 (Breadcrumbs y=4/43 픽셀 4개) — stage 아래만 찍는다. 두 arm 은 **한 번에 하나만** 두고 같은 자리에서 찍는다.
+- (round 3) 디스플레이 cadence 가 세션마다 다르다 (어제 119 Hz · 오늘 50 Hz) — callback gap 절대값은 세션 간 비교 불가, A/B 는 같은 세션 안에서만. `scene.build` 같은 직접 계측이 cadence 와 무관하다.
+- (round 3) multi-select 편집의 gap 차이는 캔버스가 아니라 DOM 패널일 수 있다 — `--open-panels ""` 로 패널을 닫은 대조를 먼저 돌린다.

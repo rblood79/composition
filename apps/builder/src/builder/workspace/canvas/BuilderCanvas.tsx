@@ -23,6 +23,7 @@ import {
   Suspense,
 } from "react";
 import { useStore } from "../../stores";
+import { observe, PERF_LABEL } from "../../utils/perfMarks";
 import { useDataStore, useProjectVariableDefs } from "../../stores/data";
 import {
   normalizePageLayoutDirection,
@@ -347,12 +348,14 @@ export function BuilderCanvas({
 
   const canonicalSceneModel = useMemo(() => {
     if (!activeCanonicalDocument) return null;
-    return buildCanonicalSceneModel(activeCanonicalDocument, {
-      collections,
-      collectionWindows,
-      activeBreakpoint: sceneActiveBreakpoint,
-      projectVariables,
-    });
+    return observe(PERF_LABEL.SCENE_BUILD, () =>
+      buildCanonicalSceneModel(activeCanonicalDocument, {
+        collections,
+        collectionWindows,
+        activeBreakpoint: sceneActiveBreakpoint,
+        projectVariables,
+      }),
+    );
     // collectionWindows 는 window 경계 signature(collectionWindowSig)로 게이팅한다 — map
     //   identity 는 scroll 마다 바뀌지만 window 불변 구간은 rebuild 를 억제(pointer/scroll
     //   hot path 무회귀, ADR-136 §9). signature 변경 시 최신 map 을 읽어 재투영.

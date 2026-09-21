@@ -56,7 +56,10 @@ import type { CanonicalNode } from "@composition/shared";
 import { isCatalogCutover } from "@composition/shared";
 import { parsePxValue } from "@composition/specs";
 import { resolveInstanceWithSharedCache } from "@/resolvers/canonical/storeBridge";
-import { resolveCanonicalRefElement } from "../../../utils/canonicalRefResolution";
+import {
+  getCanonicalRefTarget,
+  resolveCanonicalRefElement,
+} from "../../../utils/canonicalRefResolution";
 import {
   recordEditorPresentationBridgeFullRebuild,
   recordEditorPresentationTargetIncrementalPatches,
@@ -1673,9 +1676,17 @@ export class StoreRenderBridge {
     // 와 시각 등가, ADR-903 storeBridge.test.ts TC9 검증).
     //
     // master 가 없는 broken instance 는 null 반환 → 원본 element 유지.
+    // ADR-228 G4 (codex round 3 m5): origin 은 id 로 참조되므로 map 조회를 먼저 넘긴다 — 노드마다
+    //   elementsMap 전체 선형 탐색 (600 instance × 850 노드) 이 다중 선택 편집 프로파일에서
+    //   ref arm 에만 1.9% (~4 ms/편집) 로 잡혔다. legacy 참조 (customId · name) 만 선형 폴백.
+    const knownMaster = (() => {
+      const ref = getCanonicalRefTarget(element);
+      return ref ? elementsMap.get(ref) : undefined;
+    })();
     let effectiveElement = resolveCanonicalRefElement(
       element,
       elementsMap.values(),
+      knownMaster,
     );
     // ADR-116 G5-B P5-D: component master reference 는 mirror adapter 를
     // 경유한다 (canonical RefNode ref 자동 호환).

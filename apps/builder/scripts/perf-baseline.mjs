@@ -19,7 +19,7 @@
 //     [--selection-driver external-props|id-only] (기본 external-props: 기존 baseline 보존)
 //     [--save-storage-state <path>] (격리 프로젝트 IndexedDB 포함, 후속 persistent run용)
 //     [--pointer-exercise] (Skia canvas hit-test 실포인터 클릭 1회 + 선택 결과 기록)
-//     [--classes idle,pan,zoom,select,edit,panel-resize,page-switch,panel-toggle,layers-scroll]
+//     [--classes idle,pan,zoom,select,multi-select-edit,edit,panel-resize,page-switch,panel-toggle,layers-scroll]
 //     [--pages N] (시드 페이지 수, 기본 2 — ADR-221 G2 는 22)
 //     [--zoom Z] (시드 뒤 초기 줌 0.1~5 — DEV 훅 __composition_APPLY_VIEWPORT__, 22 페이지 전부 뷰포트 안 = 0.1)
 //
@@ -1600,6 +1600,14 @@ export function summarizeRecording(rec, nominalMs = 1000 / 60) {
     gcCount: rec.gcCount,
     longTasks: rec.longTasks.length,
     longTaskMs: Math.round(rec.longTasks.reduce((a, b) => a + b, 0)),
+    sceneBuild: perf["scene.build"]
+      ? {
+          count: perf["scene.build"].count,
+          p50: +perf["scene.build"].p50.toFixed(2),
+          p95: +perf["scene.build"].p95.toFixed(2),
+          max: +perf["scene.build"].max.toFixed(2),
+        }
+      : null,
     renderFrame: perf["render.frame"]
       ? {
           count: perf["render.frame"].count,
@@ -1802,6 +1810,40 @@ export const FRAME_CLASSES = {
         fixedInputs: ctx.fixedInputs,
       },
     ),
+  // ADR-228 G4 Q2 (codex round 3 m5): 다중 선택 + 편집 — 20개를 한 번에 선택한 채 그중 하나를
+  //   5회/s 편집 (선택 overlay 20개 + 실체화가 매 프레임 걸리는 불리 조작). 선택 집합은 1초마다
+  //   다음 20개로 옮긴다.
+  "multi-select-edit": (page, ctx, ms) =>
+    page.evaluate(
+      async ({ ids, ms, fixedInputs }) => {
+        const store = window.__composition_STORE__;
+        const GROUP = 20;
+        const t0 = performance.now();
+        let i = 0;
+        while (
+          fixedInputs ? i < Math.ceil(ms / 200) : performance.now() - t0 < ms
+        ) {
+          const groupStart = (Math.floor(i / 5) * GROUP) % ids.length;
+          const group = ids.slice(groupStart, groupStart + GROUP);
+          if (i % 5 === 0) store.getState().setSelectedElements(group);
+          const target = group[0];
+          const el = store.getState().elements.find((e) => e.id === target);
+          if (el) {
+            await store.getState().updateElementProps(target, {
+              ...el.props,
+              style: {
+                ...(el.props?.style ?? {}),
+                width: `${160 + (i % 5) * 4}px`,
+              },
+            });
+          }
+          i++;
+          await new Promise((r) => setTimeout(r, 200));
+        }
+        store.getState().setSelectedElement(null);
+      },
+      { ids: ctx.seedIds, ms, fixedInputs: ctx.fixedInputs },
+    ),
   // 스타일 편집 5회/s (mutation 축: 동기 무효화 + persist)
   edit: (page, ctx, ms) =>
     page.evaluate(
@@ -1979,8 +2021,8 @@ function renderFrameTable(results) {
   const lines = [
     "\n### frame lane",
     "callback gap/dropPct는 실행 간격이며 RAF timestamp 간격 및 실제 presentation과 다르다. RAF 첫 callback은 간격 표본에서 제외한다.",
-    "| 부류 | frames/fps | callback gap p50 / p95 / p99 / max (ms) | callback >25ms % | 할당 MB/s | GC | longtask (n / ms) | render.frame p50/p95 | record.content p50/p95 | flush p95/max | stream miss |",
-    "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |",
+    "| 부류 | frames/fps | callback gap p50 / p95 / p99 / max (ms) | callback >25ms % | 할당 MB/s | GC | longtask (n / ms) | scene.build p50/p95/max (n) | render.frame p50/p95 | record.content p50/p95 | flush p95/max | stream miss |",
+    "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |",
   ];
   for (const [cls, r] of Object.entries(results)) {
     const miss = r.streamMiss
@@ -1994,7 +2036,7 @@ function renderFrameTable(results) {
         }`
       : "-";
     lines.push(
-      `| ${cls} | ${r.frames}/${r.fps} | ${r.gapP50} / ${r.gapP95} / ${r.gapP99} / ${r.gapMax} | ${r.dropPct} | ${r.allocMBps} | ${r.gcCount} | ${r.longTasks} / ${r.longTaskMs} | ${r.renderFrame ? `${r.renderFrame.p50}/${r.renderFrame.p95} (${r.renderFrame.count})` : "-"} | ${r.recordContent ? `${r.recordContent.p50}/${r.recordContent.p95} (${r.recordContent.count})` : "-"} | ${r.flushContent ? `${r.flushContent.p95}/${r.flushContent.max}` : "-"} | ${miss} |`,
+      `| ${cls} | ${r.frames}/${r.fps} | ${r.gapP50} / ${r.gapP95} / ${r.gapP99} / ${r.gapMax} | ${r.dropPct} | ${r.allocMBps} | ${r.gcCount} | ${r.longTasks} / ${r.longTaskMs} | ${r.sceneBuild ? `${r.sceneBuild.p50}/${r.sceneBuild.p95}/${r.sceneBuild.max} (${r.sceneBuild.count})` : "-"} | ${r.renderFrame ? `${r.renderFrame.p50}/${r.renderFrame.p95} (${r.renderFrame.count})` : "-"} | ${r.recordContent ? `${r.recordContent.p50}/${r.recordContent.p95} (${r.recordContent.count})` : "-"} | ${r.flushContent ? `${r.flushContent.p95}/${r.flushContent.max}` : "-"} | ${miss} |`,
     );
   }
   lines.push(

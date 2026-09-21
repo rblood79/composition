@@ -197,6 +197,19 @@ function partitionMergeByNesting(
   const skipped = new Set<string>();
   let violation: NestingViolation | null = null;
 
+  // ADR-228 (codex round 3 h1): 팔레트 배치는 전부 `type:"ref"` instance 다 — "ref" 를 그대로
+  //   판정하면 opaque 통과라 Button 안 Button 이 문서에 들어갔다 (headed 재현). 배치 요소는
+  //   origin root 의 유효 타입 (문서 index, 또는 같은 배치에 origin 이 오면 그것) 으로 판정한다
+  //   (`findCanonicalNodeType` 의 ref → origin 규칙과 동일).
+  const effectiveBatchType = (element: Element): string => {
+    if (element.type !== "ref") return element.type;
+    const ref = (element as { ref?: unknown }).ref;
+    if (typeof ref !== "string") return element.type;
+    const inBatch = batchById.get(ref);
+    if (inBatch && inBatch.type !== "ref") return inBatch.type;
+    return findCanonicalNodeType(index, ref) ?? element.type;
+  };
+
   const ancestorTypesOf = (
     parentId: string | null,
   ): readonly string[] | null => {
@@ -211,7 +224,7 @@ function partitionMergeByNesting(
         const fromDoc = collectAncestorTypesForChildOf(index, cursor);
         return fromDoc ? [...types, ...fromDoc] : null;
       }
-      types.push(inBatch.type);
+      types.push(effectiveBatchType(inBatch));
       cursor = inBatch.parent_id ?? null;
     }
     return types;
@@ -239,7 +252,7 @@ function partitionMergeByNesting(
       if (ancestorTypes) {
         const found = resolveNestingViolation({
           parentType: ancestorTypes[0] ?? null,
-          childType: element.type,
+          childType: effectiveBatchType(element),
           ancestorTypes,
         });
         if (found) {

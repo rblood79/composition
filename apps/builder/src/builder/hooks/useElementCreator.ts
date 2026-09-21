@@ -2,7 +2,11 @@ import { useCallback, useRef, useEffect } from "react";
 import { useI18n } from "@/i18n";
 import { focusCanvasContainer } from "./useActiveScope";
 import type { CompositionDocument } from "@composition/shared";
-import { findCanonicalNodeById } from "@composition/shared";
+import {
+  createCanonicalNestingIndex,
+  findCanonicalNodeById,
+  findCanonicalNodeType,
+} from "@composition/shared";
 import {
   Element,
   ComponentElementProps,
@@ -39,6 +43,7 @@ function resolveNestedCreationParent(
   type: string,
   parentId: string | null,
   elements: readonly ComponentCreationSourceNode[],
+  doc: CompositionDocument,
 ): {
   parentId: string | null;
   parentElement: ComponentCreationSourceNode | null;
@@ -49,12 +54,16 @@ function resolveNestedCreationParent(
   // ADR-228: ref instance 는 원본 root 의 타입으로 판정한다 — 팔레트 배치가 전부 instance 라
   //   "ref" 를 그대로 두면 preflight 가 opaque 통과해 Button 안 Button 같은 규칙이 무력해진다
   //   (canonical guard 의 `canonicalNestingContext.effectiveType` 과 같은 규칙).
+  //   origin 은 Components 페이지에 있어 page-scoped `elements` 에 없다 — 문서에서 읽는다
+  //   (codex round 3 h1: elements 만 보던 첫 구현이 headed 에서 Button 안 Button 을 만들었다).
   const rawById = new Map(elements.map((el) => [el.id, el]));
+  const nestingIndex = createCanonicalNestingIndex(doc);
   const effectiveType = (el: ComponentCreationSourceNode): string => {
     const ref = (el as { ref?: unknown }).ref;
     if (el.type !== "ref" || typeof ref !== "string") return el.type;
     const origin = rawById.get(ref);
-    return origin && origin.type !== "ref" ? origin.type : el.type;
+    if (origin && origin.type !== "ref") return origin.type;
+    return findCanonicalNodeType(nestingIndex, ref) ?? el.type;
   };
   const byId = new Map<string, CanvasInteractionNode>(
     elements.map((el) => [
@@ -205,7 +214,7 @@ export function buildReusableInstanceProps(
  * ① 선택 → 실제 element id 확인 ② Card + 액션 컴포넌트 → CardFooter 자동 라우팅
  * ③ 중첩 preflight (가까운 유효 조상으로 이동 · 어디에도 못 두면 rejected).
  */
-function resolveCreationParentForType(
+export function resolveCreationParentForType(
   type: string,
   input: {
     selectedElementId: string | null;
@@ -250,7 +259,7 @@ function resolveCreationParentForType(
 
   // 중첩 preflight — Button 안에 Button, Text 안에 무엇이든 등은 가까운 유효
   //   조상으로 옮기고 알린다. 어디에도 못 두면 취소.
-  return resolveNestedCreationParent(type, parentId, elements);
+  return resolveNestedCreationParent(type, parentId, elements, input.doc);
 }
 
 export const useElementCreator = (): UseElementCreatorReturn => {
@@ -385,6 +394,7 @@ export const useElementCreator = (): UseElementCreatorReturn => {
                 type,
                 selectedElement?.id ?? null,
                 elements,
+                doc,
               );
               if (complexParent.rejected) return null;
               // ComponentFactory를 사용하여 복합 컴포넌트 생성
