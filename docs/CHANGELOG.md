@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-230 Phase 2 — 기본 요소의 hover/pressed/focus-visible 변형 origin] - 2026-09-22
+
+### Added
+
+- **Components 페이지 interaction 변형 origin**: 기본 요소 5 마다 `Button/Hover` · `/Pressed` · `/Focus` 가 선언적 변형 뒤에 시드된다 (15 root · style 비움 = 종전 시각 그대로). 변형의 Background/색/opacity 를 편집하면 Preview 의 instance 가 실제 hover/pressed/키보드 focus 에서 그 값을 쓴다 — 순서 selected → focus → hover → pressed → disabled, disabled 요소에는 hover/pressed 가 붙지 않고, instance 가 명시한 값은 그대로 우선. 캔버스는 변형 origin 자신만 catalog hover/pressed 토큰으로 정적 표시하고 instance 는 무변화 (캔버스에 interaction 재현 없음).
+  - 위치: `stateVariantOrigins.ts` (`INTERACTION_STATE_VARIANTS`) · `stateVariantResolution.ts` (`STATE_VARIANT_CSS_ORDER` · `:not([data-disabled])`) · `buildSpecNodeData.ts` (origin 자신 `racStateAttrs` hover/pressed).
+  - 성능: `perf-baseline.mjs` fixture `button-refs-stateful` (ref 600 · 상태 50%) — `scene.build` p95 Δ −1.4 ms.
+
 ## [ADR-230 Phase 1 — 기본 요소의 selected/disabled 변형 origin] - 2026-09-22
 
 ### Added

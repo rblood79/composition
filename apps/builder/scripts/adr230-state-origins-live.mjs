@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// adr230-state-origins-live.mjs — ADR-230 Phase 1 G2 live (실제 빌더, headed Playwright).
+// adr230-state-origins-live.mjs — ADR-230 Phase 1 G2 + Phase 2 G2/G3 live (실제 빌더, headed Playwright).
 //   기본 요소의 상태 변형 origin (`<origin>--selected|disabled`) 을 두 leg 가 유효 상태로 읽는지 본다.
 //   L1) Components body — 기본 요소 5 마다 변형 origin 이 default 바로 오른쪽에 시드 (8 root).
 //   L2) Skia 픽셀 — `ToggleButton/Selected` fills 빨강 → `isSelected` instance 빨강 · 미선택 instance 불변 ·
@@ -11,6 +11,10 @@
 //    프레임 안 스크롤이라 카메라 pan 으로 못 올리고 Preview 는 system 페이지를 안 그린다.)
 //   L5) instance 명시 opacity 0.8 이 상태 origin 0.5 보다 우선 (두 leg).
 //   L6) Preview 직접 클릭 — 미선택 B 를 누르면 canonical 변경 없이 RAC 상태로 빨강 (m3 DOM 축) · 다시 누르면 복귀.
+//   Phase 2 (interaction, Preview DOM 만 — ADR-150):
+//   P2-1) Components body — hover · pressed · focus-visible 변형 15 root 가 선언적 run 뒤에.
+//   P2-2) Tab 키 focus-visible → /Focus color (interaction 규칙이 RAC data 속성으로 붙는 증명) ·
+//   P2-3 (G3) <style> ≤ 8 KB · 편집당 재주입 ≤ 1. (pointer hover/pressed 는 하니스 밖 — 사용자 판정, unit 고정.)
 //   L7) reload → 두 leg 보존 · Components body Δ0.
 //   page error 0 · dialog 0.
 // 사용: node apps/builder/scripts/adr230-state-origins-live.mjs [--headed]  (dev 5173 · .auth-session.json)
@@ -27,9 +31,9 @@ const { PNG } = require(
 
 const BASE_URL = "http://localhost:5173";
 const STORAGE_STATE = resolve("apps/builder/scripts/.auth-session.json");
-const OUT_DIR = process.env.ADR230_OUT ?? "/private/tmp/adr230-p1-live";
+const OUT_DIR = process.env.ADR230_OUT ?? "/private/tmp/adr230-live";
 const headed = process.argv.includes("--headed");
-const log = (...a) => console.log("[adr230 p1]", ...a);
+const log = (...a) => console.log("[adr230]", ...a);
 const findings = [];
 const record = (name, pass, detail) => {
   findings.push({ name, pass, detail });
@@ -45,6 +49,17 @@ const B = "adr230-toggle-plain";
 const C = "adr230-button-disabled";
 const D = "adr230-button-enabled";
 const FORM = "adr230-form";
+const TOGGLE_HOVER = `${TOGGLE_ORIGIN}--hover`;
+const TOGGLE_PRESSED = `${TOGGLE_ORIGIN}--pressed`;
+const TOGGLE_FOCUS = `${TOGGLE_ORIGIN}--focus-visible`;
+const BUTTON_HOVER = `${BUTTON_ORIGIN}--hover`;
+const EXPECTED_INTERACTION_ROOTS = [
+  "component-button",
+  "component-togglebutton",
+  "component-link",
+  "component-checkbox",
+  "component-switch",
+].flatMap((o) => [`${o}--hover`, `${o}--pressed`, `${o}--focus-visible`]);
 const NESTED_SAVE_PATH = "ButtonGroup/component-buttongroup__2";
 const NESTED_SAVE = `${FORM}/${NESTED_SAVE_PATH}`;
 const EXPECTED_VARIANT_ROOTS = [
@@ -74,6 +89,8 @@ const elementById = (page, id) =>
             props: e.props ?? {},
             fills: e.fills ?? null,
             parent_id: e.parent_id ?? null,
+            name: e.name ?? null,
+            metadata: e.metadata ?? null,
           }
         : null;
     },
@@ -199,6 +216,68 @@ const previewClick = (page, id) =>
     },
     id,
   );
+/** Preview iframe 안 RAC 요소의 화면 좌표 — Playwright frame locator 의 boundingBox (iframe offset · 배율 반영). */
+async function previewScreenRect(page, id) {
+  const frame = page.frames().find((f) => f.url().includes("preview.html"));
+  if (!frame) return null;
+  const loc = frame
+    .locator(
+      `button[data-element-id="${id}"], label[data-element-id="${id}"], a[data-element-id="${id}"]`,
+    )
+    .first();
+  const box = await loc.boundingBox().catch(() => null);
+  if (!box || box.width === 0) return null;
+  return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+}
+const previewInteraction = (page, id) =>
+  state(
+    page,
+    (id) => {
+      for (const f of document.querySelectorAll("iframe")) {
+        const doc = f.contentDocument;
+        const nodes = doc?.querySelectorAll(`[data-element-id="${id}"]`);
+        if (!nodes?.length) continue;
+        const el =
+          [...nodes].find((n) => n.matches("button, label, a")) ??
+          nodes[nodes.length - 1];
+        if (el.getBoundingClientRect().width === 0) continue;
+        const cs = doc.defaultView.getComputedStyle(el);
+        return {
+          bg: cs.backgroundColor,
+          color: cs.color,
+          hovered: el.hasAttribute("data-hovered"),
+          pressed: el.hasAttribute("data-pressed"),
+          focusVisible: el.hasAttribute("data-focus-visible"),
+          selected: el.hasAttribute("data-selected"),
+          disabled: el.hasAttribute("data-disabled"),
+        };
+      }
+      return null;
+    },
+    id,
+  );
+/** Preview `<style data-adr230-states>` 크기 + (설치 후) 재주입 횟수. */
+const stateStyleStats = (page) =>
+  state(page, () => {
+    for (const f of document.querySelectorAll("iframe")) {
+      const doc = f.contentDocument;
+      const el = doc?.querySelector("style[data-adr230-states]");
+      if (!el) continue;
+      const win = doc.defaultView;
+      if (!win.__adr230StyleMutations) {
+        win.__adr230StyleMutations = 0;
+        new win.MutationObserver((list) => {
+          win.__adr230StyleMutations += list.length;
+        }).observe(el, { childList: true, characterData: true, subtree: true });
+      }
+      return {
+        bytes: (el.textContent ?? "").length,
+        rules: (el.textContent ?? "").split("\n").filter(Boolean).length,
+        mutations: win.__adr230StyleMutations,
+      };
+    }
+    return null;
+  });
 async function waitFor(read, predicate, ms = 12_000) {
   const start = Date.now();
   let last = await read();
@@ -586,6 +665,87 @@ try {
       clicked: pBClicked,
       released: pBReleased,
       canonical: [bBefore?.props?.isSelected, bAfter?.props?.isSelected],
+    }),
+  );
+
+  // ══════════════ Phase 2 — interaction 변형 (Preview DOM 만) ══════════════
+  // ── P2-1: Components body — hover/pressed/focus-visible 15 root 가 선언적 run 뒤에 ──
+  const bodyP2 = await componentsBodySnapshot(page);
+  const idsP2 = bodyP2.rootIds;
+  const interactionPlaced = EXPECTED_INTERACTION_ROOTS.every((vid) => {
+    const base = vid.split("--")[0];
+    const i = idsP2.indexOf(base);
+    const j = idsP2.indexOf(vid);
+    return i >= 0 && j > i && j - i <= 5;
+  });
+  const hoverOrigin = await elementById(page, TOGGLE_HOVER);
+  record(
+    "P2-1: Components body — interaction 변형 15 root (hover · pressed · focus-visible × 5) 가 default 뒤 ≤ 5 칸 · style 비움 · metadata.variant",
+    interactionPlaced &&
+      hoverOrigin?.metadata?.variant === "hover" &&
+      hoverOrigin?.metadata?.variantOf === TOGGLE_ORIGIN &&
+      Object.keys(hoverOrigin?.props?.style ?? {}).length === 0,
+    JSON.stringify({
+      placed: interactionPlaced,
+      hover: hoverOrigin && {
+        name: hoverOrigin.name,
+        variant: hoverOrigin.metadata?.variant,
+      },
+      roots: idsP2.filter((x) => x.startsWith("component-togglebutton")),
+    }),
+  );
+
+  // ── P2-2: 편집 — ToggleButton/Hover 파랑 · /Pressed 초록 · /Focus color 마젠타 · Button/Hover 파랑 ──
+  const styleBefore = await stateStyleStats(page);
+  await editOrigin(page, TOGGLE_HOVER, {
+    fills: [{ type: "color", color: "#0000ff", opacity: 1, enabled: true }],
+  });
+  const styleAfterOneEdit = await stateStyleStats(page);
+  await editOrigin(page, TOGGLE_PRESSED, {
+    fills: [{ type: "color", color: "#00aa00", opacity: 1, enabled: true }],
+  });
+  await editOrigin(page, TOGGLE_FOCUS, { style: { color: "#ff00ff" } });
+  await editOrigin(page, BUTTON_HOVER, {
+    fills: [{ type: "color", color: "#0000ff", opacity: 1, enabled: true }],
+  });
+  await page.waitForTimeout(800);
+
+  // (pointer hover/pressed 는 Compare Mode iframe 하니스 밖 — 사용자 판정 2026-09-22. 규칙 내용·순서·
+  //  disabled 차단은 unit `stateVariantResolution.test.ts` 가, 채널이 실제로 붙는 건 아래 focus-visible 이 증명.)
+
+  // ── P2-2: 키보드 focus-visible — Tab 으로 A/B/E 중 하나에 닿으면 color 마젠타 ──
+  const rectB = await previewScreenRect(page, B);
+  await page.mouse.click(rectB.x, rectB.y - 60); // iframe 안 빈 곳에 포커스 (B 위쪽 여백)
+  let focusHit = null;
+  for (let i = 0; i < 12 && !focusHit; i += 1) {
+    await page.keyboard.press("Tab");
+    await page.waitForTimeout(150);
+    for (const id of [A, B]) {
+      const p = await previewInteraction(page, id);
+      if (p?.focusVisible) {
+        focusHit = { id, ...p };
+        break;
+      }
+    }
+  }
+  record(
+    "P2-2: Tab 키 focus-visible → ToggleButton/Focus color 마젠타 (data-focus-visible)",
+    focusHit?.color === "rgb(255, 0, 255)",
+    JSON.stringify(focusHit),
+  );
+  await page.mouse.click(10, 400);
+
+  // ── P2-3 (G3): <style data-adr230-states> 크기 ≤ 8 KB · 편집 1회당 재주입 ≤ 1 ──
+  const styleNow = await stateStyleStats(page);
+  record(
+    "P2-3 (G3): Preview <style data-adr230-states> ≤ 8 KB · 편집 1회 (Hover fills) 당 텍스트 교체 ≤ 1",
+    styleNow?.bytes <= 8 * 1024 &&
+      styleBefore?.mutations === 0 &&
+      styleAfterOneEdit?.mutations <= 1,
+    JSON.stringify({
+      before: styleBefore,
+      afterOneEdit: styleAfterOneEdit,
+      now: styleNow,
     }),
   );
 

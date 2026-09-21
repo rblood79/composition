@@ -15,6 +15,9 @@
  *
  * Preview 채널: origin 당 상태 규칙 한 벌 (`collectStateVariantCss`) — instance 는
  * `data-state-origin` 표식만 든다 (규칙 수 = origin × 상태, 문서 크기와 무관 — G3).
+ * 방출 순서 = cascade 정책 (같은 specificity 는 후순 우선): selected → focus-visible → hover →
+ * pressed → disabled. interaction 규칙은 `:not([data-disabled])` 로 disabled 를 차단한다 —
+ * RAC 가 disabled 요소에 hover/pressed 를 안 붙이지만 stylesheet 가 자기 정책을 갖는다.
  *   - default origin 이 소유한 키 → inline 이 `var(--co-<key>, <baseline>)` 로 바뀌고 상태 규칙은
  *     변수만 세팅 (inline 이 stylesheet 를 이기는 F14 경합 회피).
  *   - 소유하지 않은 키 → 상태 규칙이 속성을 직접 세팅. selector 는 (0,3,0) — 생성 CSS
@@ -25,8 +28,9 @@ import type { CanonicalNode, CompositionDocument } from "@composition/shared";
 import { camelToKebab, fillsToCssBackgroundStyle } from "@composition/shared";
 import type { FillItem } from "../../types/builder/fill.types";
 import {
-  DECLARATIVE_STATE_VARIANTS,
+  ALL_STATE_VARIANTS,
   type StateVariantState,
+  isInteractionStateVariant,
   readStateVariantSelf,
   stateVariantOriginId,
 } from "./stateVariantOrigins";
@@ -123,7 +127,8 @@ export function buildStateVariantProjection(
   if (readStateVariantSelf(master)) return null;
   const sets: StateVariantProjection["sets"] = {};
   let any = false;
-  for (const state of DECLARATIVE_STATE_VARIANTS) {
+  // interaction 상태 set 은 DOM 축만 읽는다 (CSS 채널) — Skia overlay 는 선언적 두 상태만 본다.
+  for (const state of ALL_STATE_VARIANTS) {
     const variant = lookup(stateVariantOriginId(master.id, state));
     if (!variant) continue;
     any = true;
@@ -278,9 +283,19 @@ function collectVariantOrigins(
   }
 }
 
+/** CSS 방출 순서 — selected → focus-visible → hover → pressed → disabled (후순 우선). */
+export const STATE_VARIANT_CSS_ORDER: readonly StateVariantState[] = [
+  "selected",
+  "focus-visible",
+  "hover",
+  "pressed",
+  "disabled",
+];
+
 /**
- * 문서의 상태 변형 origin 전부 → Preview `<style>` 1장. origin 당 상태별 규칙 (selected 먼저,
- * disabled 마지막 — 같은 specificity 는 후순 우선 = disabled 최우선). 변형이 없으면 "".
+ * 문서의 상태 변형 origin 전부 → Preview `<style>` 1장. origin 당 상태별 규칙
+ * (`STATE_VARIANT_CSS_ORDER` — disabled 마지막 = 최우선 · interaction 은 disabled 차단).
+ * 변형이 없으면 "".
  */
 export function collectStateVariantCss(document: CompositionDocument): string {
   const byOrigin = new Map<string, VariantOriginEntry>();
@@ -292,7 +307,7 @@ export function collectStateVariantCss(document: CompositionDocument): string {
       readOwnedManagedKeys(entry.defaultOrigin),
     );
     const escaped = escapeAttrValue(originId);
-    for (const state of DECLARATIVE_STATE_VARIANTS) {
+    for (const state of STATE_VARIANT_CSS_ORDER) {
       const variant = entry.variants.get(state);
       if (!variant) continue;
       const set = readStyleSet(variant);
@@ -304,11 +319,15 @@ export function collectStateVariantCss(document: CompositionDocument): string {
       );
       if (decls.length === 0) continue;
       const attr = STATE_DATA_ATTR[state];
+      const guard = isInteractionStateVariant(state)
+        ? ":not([data-disabled])"
+        : "";
       // 두 selector — 표식이 RAC 요소 자체에 있는 경로 (generic) 와 display:contents wrapper 에
-      //   있는 경로 (rendererMap 위임 · RAC 요소는 직계 자식) 를 같이 맞춘다. 둘 다 (0,3,0).
+      //   있는 경로 (rendererMap 위임 · RAC 요소는 직계 자식) 를 같이 맞춘다. 선언적 (0,3,0) ·
+      //   interaction (0,4,0) — hover/pressed 가 selected 를 이기고 disabled 에는 안 붙는다.
       const selector =
-        `[${STATE_ORIGIN_DATA_ATTR}="${escaped}"][data-element-id][${attr}],` +
-        `[${STATE_ORIGIN_DATA_ATTR}="${escaped}"] > [data-element-id][${attr}]`;
+        `[${STATE_ORIGIN_DATA_ATTR}="${escaped}"][data-element-id][${attr}]${guard},` +
+        `[${STATE_ORIGIN_DATA_ATTR}="${escaped}"] > [data-element-id][${attr}]${guard}`;
       parts.push(`${selector}{${decls.join(";")}}`);
     }
   }

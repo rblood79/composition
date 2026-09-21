@@ -49,7 +49,7 @@ Phase 0 추가 확정: 기본 요소 집합 (후보 Button · ToggleButton · Li
 
 **기본 요소 집합 (Phase 1)** — 팔레트 reusable 이면서 상태 prop 계약이 있는 leaf. 상태 열은 타입별 계약 (F7):
 
-| origin                   | selected | disabled | hover · pressed · focus-visible (Phase 2) | 자식    |
+| origin                   | selected | disabled | hover · pressed · focus-visible (Phase 2 — 시드 완료) | 자식    |
 | ------------------------ | :------: | :------: | :---------------------------------------: | ------- |
 | `component-button`       |    —     |    ✓     |                     ✓                     | 0       |
 | `component-togglebutton` |    ✓     |    ✓     |                     ✓                     | 0       |
@@ -139,3 +139,13 @@ Phase 0 추가 확정: 기본 요소 집합 (후보 Button · ToggleButton · Li
 - live `adr230-state-origins-live.mjs` **8/8** (headed): L1 변형 8 root 가 default 바로 오른쪽 · L2-0 편집 전 disabled 픽셀 = 0.38 합성 `[167]` · L2-1 `ToggleButton/Selected` fills 빨강 → `isSelected` instance Skia `[255,0,0]` · 미선택 불변 · `Button/Disabled` opacity 0.5 → 픽셀 `[139]` = 0.5·23 + 0.5·255 (0.19 이면 `[211]`) · L3 Preview A `rgb(255,0,0)` data-selected · C opacity 0.5 · **Form 안 Save (229 ref + descendants isDisabled) opacity 0.5** · L5 instance 명시 0.8 > 0.5 (Skia `[69]` · Preview 0.8) · L6 Preview 클릭으로 RAC 상태만 바뀌어 빨강 ↔ 복귀 (canonical 불변, m3 DOM 축) · L7 reload 보존 · Components body Δnode 0 · Δbyte 0 (fill id · 편집 metadata mirror 제외) · page error 0.
 - 잡은 것: F13 (plain 도 Skia 0.19 ≠ DOM 0.5) 수리 · 하니스 함정 3 — `descendants` mode A 는 flat props (`{path: {isDisabled: true}}`) · ToggleButton/Checkbox/Switch 는 rendererMap 위임이라 표식이 wrapper 에 (selector 2형) · **Components 페이지는 프레임 안 스크롤 + Preview 는 system 페이지를 안 그린다** → 변형 origin 자신의 캔버스 시각은 unit (`buildSpecNodeData.test.ts` "변형 origin 자신") 로 고정, 하니스 밖.
 - 미완 (Phase 3 로): Properties 읽기 전용 배지 (이름 `ToggleButton/Selected` 가 Navigator/Properties 헤더에 이미 실린다) · `variantOf` 삭제 가드는 `systemOwned` 가드 (ADR-228) 가 그대로 막는다 (별도 코드 0).
+
+### Phase 2 — G2 (interaction) · G3 PASS (2026-09-22)
+
+- seed: `INTERACTION_STATE_VARIANTS` (hover · pressed · focus-visible) 를 5 타입 전부에 추가 — 변형 origin 15 root + 자식 6 (Checkbox/Switch Label) = **Δnode 21 · Δbyte ≈ 5.8 KB**. `ensureStateVariantOrigins` 는 부재 변형을 **기존 변형 run 의 끝** 에 넣는다 (Phase 1 문서에 보충해도 `--selected`/`--disabled` 자리 보존 · 재hydration Δ0). 이름 `ToggleButton/Hover` · `/Pressed` · `/Focus`.
+- projection: `buildStateVariantProjection` 이 `ALL_STATE_VARIANTS` 를 읽어 `sets.hover/pressed/focus-visible` 까지 싣는다 — **Skia overlay (`resolveStateVariantOverlay`) 는 선언적 두 상태만 읽는다** (ADR-150 경계 · instance 캔버스 무변화, unit 고정).
+- Preview CSS (`collectStateVariantCss`): 방출 순서 `STATE_VARIANT_CSS_ORDER` = selected → focus-visible → hover → pressed → disabled (같은 specificity 후순 우선). interaction 규칙은 `:not([data-disabled])` 를 붙여 (0,4,0) — selected 를 이기고 disabled 에는 안 붙는다 (RAC 가 disabled 에 hover/pressed 를 안 붙이지만 stylesheet 가 자기 정책을 갖는다). instance 명시 키는 inline 리터럴이라 그대로 우선 (Phase 1 과 같은 규칙). `!important` 0.
+- 캔버스: 변형 origin **자신** (`Button/Hover` · `/Pressed`) 은 `racStateAttrs({isHovered, isPressed})` 로 catalog hover/pressed 토큰을 **정적 표시** (pointer 추적 0 — ADR-912 단계 3 의 "hover/pressed 입력은 항상 false" 는 origin 자신에 한해 열린다). `/Focus` 는 catalog paint 에 focusVisible 분기가 없어 default 와 같다.
+- unit (원복 RED): `stateVariantOrigins.test.ts` 6 (+1 Phase 1 문서 보충 순서) · `stateVariantResolution.test.ts` 7 (+1 interaction 규칙 순서·차단·두 selector 형) · `buildSpecNodeData.test.ts` +1 (hover/pressed origin 자신 ≠ base · instance 는 hover set 있어도 default) — builder 58 files 306 PASS (관련 스위트) · type-check PASS.
+- **G3** (`pnpm perf:baseline -- --lane frame --seed-count 600 --headed --classes edit`, fixture `button-refs` (상태 0%) vs 신설 `button-refs-stateful` (홀수 instance `isDisabled:true` = 50%), 같은 세션 3회씩 · run 당 표본 10 이라 p95 ≈ max): `scene.build` p95 **10.1 / 7.6 / 9.1 (median 9.1) → 7.7 / 7.1 / 8.5 (median 7.7), Δ −1.4 ≤ +1 PASS** · p50 4.9 → 4.6 · render.frame p95 5.6 → 6.3 (+0.7, 표본 편차 안). Preview `<style data-adr230-states>`: 변형 6 편집 뒤 1,221 B (규칙 6) ≤ 8 KB · 편집 1회당 텍스트 교체 1 (MutationObserver — Phase 2 하니스 P2-3, Compare Mode 보류 전 1회 실측).
+- live: **Compare Mode/Preview iframe 검증은 사용자 판정으로 보류 (2026-09-22, 메모리 `feedback-no-compare-mode-preview-checks-now`)** — 보류 전 1회 실측에서 P2-1 (interaction 변형 15 root 가 선언적 run 뒤 · style 비움) · P2-2 (Tab 키 `data-focus-visible` → `ToggleButton/Focus` color 마젠타 — interaction 규칙이 RAC data 속성으로 붙는 증명) · P2-3 (G3 `<style>`) PASS. pointer hover/pressed 항목은 하니스에서 제거 — 규칙 내용·순서·disabled 차단은 unit 고정, 실제 hover 시각은 **사용자 확인 대상** (Preview 에서 `ToggleButton/Hover` 배경을 바꾸고 instance 에 마우스를 올린다). 재개 조건 = 사용자가 Preview 검증을 다시 요청할 때.

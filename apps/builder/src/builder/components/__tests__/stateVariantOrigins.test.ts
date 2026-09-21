@@ -4,6 +4,7 @@ import { COMPONENTS_SYSTEM_BODY_ID } from "../../pages/systemComponentsPage";
 import { buildCatalogOrigin } from "../catalogOrigins";
 import {
   STATE_VARIANT_BASE_TYPES,
+  buildStateVariantOrigin,
   ensureStateVariantOrigins,
   readStateVariantSelf,
   stateVariantOriginId,
@@ -52,15 +53,25 @@ function bodyChildren(doc: CompositionDocument): CanonicalNode[] {
 }
 
 describe("ADR-230 stateVariantOrigins — 기본 요소 상태 변형 origin seed", () => {
-  it("상태 열은 타입별 계약 — Button/Link 는 disabled 만, ToggleButton/Checkbox/Switch 는 selected+disabled", () => {
-    expect(STATE_VARIANT_BASE_TYPES.Button).toEqual(["disabled"]);
-    expect(STATE_VARIANT_BASE_TYPES.Link).toEqual(["disabled"]);
+  it("상태 열은 타입별 계약 — Button/Link 는 disabled + interaction 3, ToggleButton/Checkbox/Switch 는 selected+disabled + interaction 3", () => {
+    const interaction = ["hover", "pressed", "focus-visible"];
+    expect(STATE_VARIANT_BASE_TYPES.Button).toEqual(["disabled", ...interaction]);
+    expect(STATE_VARIANT_BASE_TYPES.Link).toEqual(["disabled", ...interaction]);
     expect(STATE_VARIANT_BASE_TYPES.ToggleButton).toEqual([
       "selected",
       "disabled",
+      ...interaction,
     ]);
-    expect(STATE_VARIANT_BASE_TYPES.Checkbox).toEqual(["selected", "disabled"]);
-    expect(STATE_VARIANT_BASE_TYPES.Switch).toEqual(["selected", "disabled"]);
+    expect(STATE_VARIANT_BASE_TYPES.Checkbox).toEqual([
+      "selected",
+      "disabled",
+      ...interaction,
+    ]);
+    expect(STATE_VARIANT_BASE_TYPES.Switch).toEqual([
+      "selected",
+      "disabled",
+      ...interaction,
+    ]);
     expect(stateVariantOriginId("component-togglebutton", "selected")).toBe(
       "component-togglebutton--selected",
     );
@@ -77,9 +88,15 @@ describe("ADR-230 stateVariantOrigins — 기본 요소 상태 변형 origin see
       "component-togglebutton",
       "component-togglebutton--selected",
       "component-togglebutton--disabled",
+      "component-togglebutton--hover",
+      "component-togglebutton--pressed",
+      "component-togglebutton--focus-visible",
       "component-switch",
       "component-switch--selected",
       "component-switch--disabled",
+      "component-switch--hover",
+      "component-switch--pressed",
+      "component-switch--focus-visible",
     ]);
 
     const selected = bodyChildren(next)[1]!;
@@ -98,7 +115,7 @@ describe("ADR-230 stateVariantOrigins — 기본 요소 상태 변형 origin see
     expect(selected.props?.style ?? {}).toEqual({});
     expect(selected.fills).toBeUndefined();
 
-    const switchDisabled = bodyChildren(next)[5]!;
+    const switchDisabled = bodyChildren(next)[8]!;
     expect(switchDisabled.children?.map((c) => c.id)).toEqual([
       "component-switch--disabled__1",
     ]);
@@ -107,13 +124,44 @@ describe("ADR-230 stateVariantOrigins — 기본 요소 상태 변형 origin see
       state: "disabled",
       variantOf: "component-switch",
     });
-    expect(readStateVariantSelf(bodyChildren(next)[3]!)).toBeNull();
+    expect(readStateVariantSelf(bodyChildren(next)[6]!)).toBeNull();
+    expect(bodyChildren(next)[5]!.name).toBe("ToggleButton/Focus");
   });
 
-  it("Button 은 --disabled 만 · base origin 이 없는 타입은 시드하지 않는다", () => {
+  it("Button 은 --selected 없음 · base origin 이 없는 타입은 시드하지 않는다", () => {
     const doc = docWithOrigins([buildCatalogOrigin("Button")]);
     const ids = bodyChildren(ensureStateVariantOrigins(doc)).map((n) => n.id);
-    expect(ids).toEqual(["component-button", "component-button--disabled"]);
+    expect(ids).toEqual([
+      "component-button",
+      "component-button--disabled",
+      "component-button--hover",
+      "component-button--pressed",
+      "component-button--focus-visible",
+    ]);
+  });
+
+  it("Phase 1 문서 (selected/disabled 만) 에 Phase 2 interaction 변형을 보충하면 기존 run 의 끝에 붙는다 — 기존 자리 보존", () => {
+    const button = buildCatalogOrigin("Button");
+    const phase1 = docWithOrigins([
+      button,
+      buildStateVariantOrigin(button, "disabled"),
+      buildCatalogOrigin("Link"),
+    ]);
+    const ids = bodyChildren(ensureStateVariantOrigins(phase1)).map(
+      (n) => n.id,
+    );
+    expect(ids).toEqual([
+      "component-button",
+      "component-button--disabled",
+      "component-button--hover",
+      "component-button--pressed",
+      "component-button--focus-visible",
+      "component-link",
+      "component-link--disabled",
+      "component-link--hover",
+      "component-link--pressed",
+      "component-link--focus-visible",
+    ]);
   });
 
   it("멱등 — 두 번째 호출은 같은 문서 객체 · 사용자가 편집한 변형 style 보존 · 위치 보존", () => {
@@ -160,6 +208,9 @@ describe("ADR-230 stateVariantOrigins — 기본 요소 상태 변형 origin see
     expect(bodyChildren(next).map((n) => n.id)).toEqual([
       "component-link",
       "component-link--disabled",
+      "component-link--hover",
+      "component-link--pressed",
+      "component-link--focus-visible",
     ]);
   });
 });

@@ -23,10 +23,29 @@ const disabled: CanonicalNode = {
   ...buildStateVariantOrigin(toggle, "disabled"),
   props: { ...toggle.props, style: { opacity: 0.5, color: "#999999" } },
 } as CanonicalNode;
+// Phase 2 — interaction 변형 (DOM 축만)
+const hover: CanonicalNode = {
+  ...buildStateVariantOrigin(toggle, "hover"),
+  props: { ...toggle.props, style: {} },
+  fills: [{ type: "color", color: "#0000ff", opacity: 1, enabled: true }],
+} as CanonicalNode;
+const pressed: CanonicalNode = {
+  ...buildStateVariantOrigin(toggle, "pressed"),
+  props: { ...toggle.props, style: { borderColor: "#00ff00" } },
+} as CanonicalNode;
+const focusVisible: CanonicalNode = {
+  ...buildStateVariantOrigin(toggle, "focus-visible"),
+  props: { ...toggle.props, style: { color: "#111111" } },
+} as CanonicalNode;
 const lookup = (id: string): CanonicalNode | undefined =>
-  ({ [toggle.id]: toggle, [selected.id]: selected, [disabled.id]: disabled })[
-    id
-  ];
+  ({
+    [toggle.id]: toggle,
+    [selected.id]: selected,
+    [disabled.id]: disabled,
+    [hover.id]: hover,
+    [pressed.id]: pressed,
+    [focusVisible.id]: focusVisible,
+  })[id];
 
 describe("ADR-230 stateVariantResolution — 두 leg 공용 해소", () => {
   it("projection: 변형 집합 · default/instance 소유 키 — 관리 키만 실린다", () => {
@@ -39,7 +58,13 @@ describe("ADR-230 stateVariantResolution — 두 leg 공용 해소", () => {
     const projection = buildStateVariantProjection(toggle, refNode, lookup);
     expect(projection).not.toBeNull();
     expect(projection!.originId).toBe(toggle.id);
-    expect(Object.keys(projection!.sets)).toEqual(["selected", "disabled"]);
+    expect(Object.keys(projection!.sets)).toEqual([
+      "selected",
+      "disabled",
+      "hover",
+      "pressed",
+      "focus-visible",
+    ]);
     // padding 은 관리 키가 아니라 빠진다
     expect(projection!.sets.selected).toEqual({
       style: { color: "#ffffff" },
@@ -100,6 +125,7 @@ describe("ADR-230 stateVariantResolution — 두 leg 공용 해소", () => {
       selected: true,
       disabled: false,
     });
+    // hover/pressed/focus-visible set 이 projection 에 있어도 Skia overlay 는 안 읽는다 (ADR-150)
     expect(sel.style).toEqual({ color: "#ffffff" });
     expect(sel.fills).toEqual(selected.fills);
     expect(sel.ownedKeys).toEqual(["backgroundColor", "color"]);
@@ -151,9 +177,14 @@ describe("ADR-230 stateVariantResolution — 두 leg 공용 해소", () => {
       ],
     });
     const body = doc.children[0]!.children![0]!;
-    body.children = body.children!.map((n) =>
-      n.id === selected.id ? selected : n.id === disabled.id ? disabled : n,
-    );
+    const edited: Record<string, CanonicalNode> = {
+      [selected.id]: selected,
+      [disabled.id]: disabled,
+      [hover.id]: hover,
+      [pressed.id]: pressed,
+      [focusVisible.id]: focusVisible,
+    };
+    body.children = body.children!.map((n) => edited[n.id] ?? n);
     const css = collectStateVariantCss(doc);
     expect(css).toContain(
       '[data-state-origin="component-togglebutton"][data-element-id][data-selected]',
@@ -171,6 +202,58 @@ describe("ADR-230 stateVariantResolution — 두 leg 공용 해소", () => {
     );
     expect(css).not.toContain("!important");
     expect(css.length).toBeLessThan(8 * 1024);
+  });
+
+  it("Preview CSS (Phase 2): interaction 규칙은 selected 뒤 · disabled 앞 · :not([data-disabled]) 차단 · 두 selector 형", () => {
+    const doc = ensureStateVariantOrigins({
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-components",
+          type: "frame",
+          props: {},
+          metadata: { type: "page" },
+          children: [
+            {
+              id: "page-components-body",
+              type: "body",
+              props: {},
+              children: [toggle],
+            } as unknown as CanonicalNode,
+          ],
+        } as CanonicalNode,
+      ],
+    });
+    const body = doc.children[0]!.children![0]!;
+    const edited: Record<string, CanonicalNode> = {
+      [selected.id]: selected,
+      [disabled.id]: disabled,
+      [hover.id]: hover,
+      [pressed.id]: pressed,
+      [focusVisible.id]: focusVisible,
+    };
+    body.children = body.children!.map((n) => edited[n.id] ?? n);
+    const css = collectStateVariantCss(doc);
+    const o = '[data-state-origin="component-togglebutton"]';
+    expect(css.toLowerCase()).toContain(
+      `${o}[data-element-id][data-hovered]:not([data-disabled]),${o} > [data-element-id][data-hovered]:not([data-disabled]){background-color:#0000ff}`,
+    );
+    expect(css).toContain(
+      `${o}[data-element-id][data-pressed]:not([data-disabled]),${o} > [data-element-id][data-pressed]:not([data-disabled]){border-color:#00ff00}`,
+    );
+    expect(css).toContain(
+      `${o}[data-element-id][data-focus-visible]:not([data-disabled]),${o} > [data-element-id][data-focus-visible]:not([data-disabled]){color:#111111}`,
+    );
+    // 선언적 규칙에는 차단 없음
+    expect(css).toMatch(/\[data-selected\]\{/);
+    expect(css).toMatch(/\[data-disabled\]\{/);
+    // 순서 = selected → focus-visible → hover → pressed → disabled
+    const at = (needle: string) => css.indexOf(needle);
+    expect(at("[data-selected]")).toBeLessThan(at("[data-focus-visible]"));
+    expect(at("[data-focus-visible]")).toBeLessThan(at("[data-hovered]"));
+    expect(at("[data-hovered]")).toBeLessThan(at("[data-pressed]"));
+    expect(at("[data-pressed]")).toBeLessThan(at("[data-disabled]{"));
+    expect(css).not.toContain("!important");
   });
 
   it("Preview CSS: 변형이 없는 문서는 빈 문자열", () => {

@@ -16,7 +16,11 @@ import { catalogReusableOriginId } from "@composition/shared";
 import { COMPONENTS_SYSTEM_BODY_ID } from "../pages/systemComponentsPage";
 import { CATALOG_ORIGIN_METADATA_TYPE } from "./catalogOrigins";
 
-/** Phase 1 선언적 상태. Phase 2 (hover · pressed · focus-visible) 는 Preview DOM 전용. */
+/**
+ * 선언적 상태 (Phase 1 — 두 leg 유효 상태로 해소) 와 interaction 상태 (Phase 2 — Preview DOM
+ * 의 RAC data 속성으로만 해소, 캔버스는 변형 origin 자신을 catalog 상태 토큰으로 정적 표시 —
+ * ADR-150 경계).
+ */
 export type StateVariantState =
   "selected" | "disabled" | "hover" | "pressed" | "focus-visible";
 
@@ -25,16 +29,32 @@ export const DECLARATIVE_STATE_VARIANTS: readonly StateVariantState[] = [
   "disabled",
 ];
 
+export const INTERACTION_STATE_VARIANTS: readonly StateVariantState[] = [
+  "hover",
+  "pressed",
+  "focus-visible",
+];
+
+/** seed · projection · CSS 방출이 같이 도는 상태 열 (선언적 먼저, interaction 뒤). */
+export const ALL_STATE_VARIANTS: readonly StateVariantState[] = [
+  ...DECLARATIVE_STATE_VARIANTS,
+  ...INTERACTION_STATE_VARIANTS,
+];
+
 /** 기본 요소 집합 (Phase 0 inventory) — 팔레트 reusable 이면서 상태 prop 계약이 있는 leaf. */
 export const STATE_VARIANT_BASE_TYPES: Readonly<
   Record<string, readonly StateVariantState[]>
 > = {
-  Button: ["disabled"],
-  ToggleButton: ["selected", "disabled"],
-  Link: ["disabled"],
-  Checkbox: ["selected", "disabled"],
-  Switch: ["selected", "disabled"],
+  Button: ["disabled", ...INTERACTION_STATE_VARIANTS],
+  ToggleButton: ["selected", "disabled", ...INTERACTION_STATE_VARIANTS],
+  Link: ["disabled", ...INTERACTION_STATE_VARIANTS],
+  Checkbox: ["selected", "disabled", ...INTERACTION_STATE_VARIANTS],
+  Switch: ["selected", "disabled", ...INTERACTION_STATE_VARIANTS],
 };
+
+export function isInteractionStateVariant(state: StateVariantState): boolean {
+  return INTERACTION_STATE_VARIANTS.includes(state);
+}
 
 const STATE_LABELS: Readonly<Record<StateVariantState, string>> = {
   selected: "Selected",
@@ -157,8 +177,10 @@ function collectIds(nodes: readonly CanonicalNode[], out: Set<string>): void {
 }
 
 /**
- * Components 페이지 body 의 기본 요소 origin 마다 부재 변형 origin 을 default 바로 뒤에 넣는다.
- * 기존 변형 (사용자 편집 포함) 은 그대로 · 변경 0 이면 같은 문서 객체를 돌려준다 (재hydration Δ0).
+ * Components 페이지 body 의 기본 요소 origin 마다 부재 변형 origin 을 default 바로 뒤 — 이미
+ * 있는 변형 run 의 **끝** — 에 넣는다 (Phase 1 문서에 Phase 2 interaction 변형을 보충해도 기존
+ * `--selected`/`--disabled` 자리는 그대로). 기존 변형 (사용자 편집 포함) 은 그대로 · 변경 0 이면
+ * 같은 문서 객체를 돌려준다 (재hydration Δ0).
  */
 export function ensureStateVariantOrigins(
   document: CompositionDocument,
@@ -170,10 +192,18 @@ export function ensureStateVariantOrigins(
   const patchBody = (body: CanonicalNode): CanonicalNode => {
     const source = body.children ?? [];
     const next: CanonicalNode[] = [];
-    for (const node of source) {
+    for (let index = 0; index < source.length; index += 1) {
+      const node = source[index]!;
       next.push(node);
       const states = isBaseOrigin(node);
       if (!states) continue;
+      while (
+        index + 1 < source.length &&
+        readStateVariantSelf(source[index + 1])?.variantOf === node.id
+      ) {
+        index += 1;
+        next.push(source[index]!);
+      }
       for (const state of states) {
         const variantId = stateVariantOriginId(node.id, state);
         if (existingIds.has(variantId)) continue;

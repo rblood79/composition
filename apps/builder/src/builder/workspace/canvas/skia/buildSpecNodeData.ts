@@ -1807,6 +1807,8 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
   //   selection(props.isSelected)은 buildCatalogShapes 직교 차원 — racStateAttrs 밖.
   // ADR-230 — 상태 변형 origin 자신 (Components 페이지 `Button/Disabled` 등) 은 canonical props 에
   //   상태를 굽지 않고 `metadata.variant` 를 유효 상태로 가정한다 (render-only · Preview 동형).
+  //   Phase 2 interaction 변형 (`Button/Hover` · `/Pressed`) 은 catalog hover/pressed 토큰의
+  //   **정적 표시** 뿐 — pointer 추적 0 (ADR-150 경계). instance 캔버스는 무변화.
   const stateVariantSelf = readStateVariantSelf(element);
   if (stateVariantSelf?.state === "selected" && specProps.isSelected !== true) {
     specProps = { ...specProps, isSelected: true };
@@ -1821,6 +1823,9 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
       );
   const componentState: ComponentState = racStateAttrs({
     isDisabled: isNodeDisabled,
+    isHovered: stateVariantSelf?.state === "hover",
+    isPressed: stateVariantSelf?.state === "pressed",
+    isFocusVisible: stateVariantSelf?.state === "focus-visible",
   });
 
   // ---------- width/height injection ----------

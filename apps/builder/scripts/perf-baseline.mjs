@@ -150,6 +150,8 @@ export function parseArgs(argv) {
   // ADR-229 G3 — `forms` (Form origin subtree 를 plain 으로 펼친 격자) 와 `form-refs` (같은 격자를
   //   `component-form` instance — 자식이 origin instance 라 3단 실체화) · `taggroups` / `taggroup-refs`
   //   (8 item chip projection) 도 같은 시드의 ref 0% / 100% 두 arm.
+  // ADR-230 G3 — `button-refs-stateful` (같은 ref 격자, 홀수 instance 가 `isDisabled:true` = 상태 50%)
+  //   vs `button-refs` (상태 0%) — 상태 overlay 의 scene.build 비용.
   if (
     ![
       "mixed",
@@ -157,6 +159,7 @@ export function parseArgs(argv) {
       "refs",
       "buttons",
       "button-refs",
+      "button-refs-stateful",
       "forms",
       "form-refs",
       "taggroups",
@@ -560,10 +563,16 @@ export async function seedDocument(
           clone(origin, id, body.id, ownProps);
           continue;
         }
-        if (fixtureKind === "buttons" || fixtureKind === "button-refs") {
+        if (
+          fixtureKind === "buttons" ||
+          fixtureKind === "button-refs" ||
+          fixtureKind === "button-refs-stateful"
+        ) {
           // ADR-228: 같은 격자를 plain Button (ref 0%) 또는 origin ref (ref 100%) 로.
           //   ref 는 palette-add 와 같은 instance 모양 — 명시 patch (위치·라벨) 만 소유.
-          const isRef = fixtureKind === "button-refs";
+          // ADR-230: `-stateful` 은 홀수 instance 에 `isDisabled:true` (상태 50%).
+          const isRef = fixtureKind !== "buttons";
+          const stateful = fixtureKind === "button-refs-stateful" && i % 2 === 1;
           missingElements.push({
             id,
             customId: id,
@@ -581,6 +590,7 @@ export async function seedDocument(
             updated_at: now,
             props: {
               children: `Seed ${i}`,
+              ...(stateful ? { isDisabled: true } : {}),
               ...(isRef
                 ? {}
                 : {

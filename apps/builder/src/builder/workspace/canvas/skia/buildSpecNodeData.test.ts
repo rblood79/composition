@@ -1406,5 +1406,62 @@ describe("buildSpecNodeData", () => {
         { type: "opacity", value: 0.38, source: "state" },
       ]);
     });
+
+    it("Phase 2 — hover/pressed 변형 origin 자신은 catalog hover/pressed 토큰을 정적 표시한다 · instance 캔버스 무변화", () => {
+      const build = (id: string, variant?: string) => {
+        const el = makeElement(id, {
+          type: "Button",
+          props: { children: "Button" },
+          ...(variant
+            ? {
+                metadata: {
+                  type: "catalog-origin",
+                  variant,
+                  variantOf: "component-button",
+                },
+              }
+            : {}),
+        });
+        return buildSpecNodeData({
+          element: el,
+          layout: makeLayout({ x: 0, y: 0, width: 200, height: 40 }),
+          theme: "light",
+          elementsMap: new Map([[el.id, el]]),
+        });
+      };
+      const base = rgb(build("component-button"));
+      const hover = rgb(build("component-button--hover", "hover"));
+      const pressed = rgb(build("component-button--pressed", "pressed"));
+      expect(hover).not.toEqual(base);
+      expect(pressed).not.toEqual(base);
+      expect(pressed).not.toEqual(hover);
+      // opacity dim 없음 (disabled 가 아니다)
+      expect(opacityEffects(build("component-button--hover", "hover"))).toEqual(
+        [],
+      );
+      // hover set 이 projection 에 있어도 instance 는 default 색 (ADR-150 — interaction 은 Preview 만)
+      expect(
+        rgb(
+          buildToggle({
+            _stateVariants: {
+              ...projection,
+              sets: {
+                hover: {
+                  fills: [
+                    {
+                      id: "f2",
+                      type: "color",
+                      color: "#0000FF",
+                      opacity: 1,
+                      enabled: true,
+                    },
+                  ],
+                },
+              },
+            },
+          }),
+        ),
+      ).toEqual(rgb(buildToggle({ _stateVariants: undefined })));
+    });
   });
 });

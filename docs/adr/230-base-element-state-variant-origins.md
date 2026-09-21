@@ -4,7 +4,7 @@
 
 Accepted — 2026-09-21 (Proposed 2026-09-21 같은 날 · 사용자 `/execute-adr 230`)
 
-리뷰 round 1 h1/m2/m3 설계 보완 완료 (round 2, 이슈 0). **Phase 0 (G0) 완료** — inventory freeze (breakdown §2 F13~~F21) · 기본 요소 집합 5 (Button · ToggleButton · Link · Checkbox · Switch) · Δnode 12 · 리뷰 반증 3건 현재 코드 재현. **Phase 1 (G1 · G2) 완료 2026-09-22** — selected/disabled 변형 origin seed + 두 leg 유효 상태 overlay + opacity 단일 적용 + Preview CSS 변수/RAC 상태 selector 1장 · unit 23 · live 8/8 (breakdown §7). G3 · G4 는 UNVERIFIED.
+리뷰 round 1 h1/m2/m3 설계 보완 완료 (round 2, 이슈 0). **Phase 0 (G0) 완료** — inventory freeze (breakdown §2 F13~~F21) · 기본 요소 집합 5 (Button · ToggleButton · Link · Checkbox · Switch) · Δnode 12 · 리뷰 반증 3건 현재 코드 재현. **Phase 1 (G1 · G2) 완료 2026-09-22** — selected/disabled 변형 origin seed + 두 leg 유효 상태 overlay + opacity 단일 적용 + Preview CSS 변수/RAC 상태 selector 1장 · unit 23 · live 8/8 (breakdown §7). **Phase 2 (G2 interaction · G3) 완료 2026-09-22** — hover/pressed/focus-visible 변형 origin 15 root 시드 · Preview CSS 순서 selected→focus-visible→hover→pressed→disabled + `:not([data-disabled])` 차단 · 변형 origin 자신은 캔버스에 catalog hover/pressed 토큰 정적 표시 · G3 `scene.build` p95 Δ −1.4 ms (600 ref · 상태 50%) · `<style>` 1.2 KB. Preview iframe live 는 사용자 판정으로 보류 (unit 고정 · 사용자 확인 대상). G4 는 UNVERIFIED.
 
 설계 요청: 사용자 (2026-09-21, ADR-229 Phase 3 뒤) — "다른 컴포넌트들도 같은 패턴이다. 선택했을 때 · 비활성을 보여주는 스타일을 정의하고 보여줘야 하는 부분이다. Components 페이지는 각 컴포넌트들을 분해해서" + "기본적인 UI 요소들만 정의가 잘 되면 나머지는 모두 조합이지 않나, RAC 도 그 패턴이고". 전제 확정 (AskUserQuestion 2026-09-21, 메모리 `project-components-page-state-variant-origins-2026-09`): **229 종결 후 새 ADR · 형태 = 상태별 별도 origin (Tag/Default · Tag/Selected 패턴)**. ADR-229 는 같은 날 Implemented (Consequences "후속 후보" 1번이 이 ADR).
 
