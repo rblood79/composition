@@ -54,7 +54,7 @@
   }
 
   &[data-pressed] {
-    background: color-mix(in srgb, var(--bg-muted) 85%, black);
+    background: var(--neutral-hover, color-mix(in srgb, var(--bg-muted) 85%, black));
   }
 }
 

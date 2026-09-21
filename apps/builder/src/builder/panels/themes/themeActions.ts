@@ -15,6 +15,7 @@ import type {
   CompositionDocument,
   ThemePreset,
   ThemesCollection,
+  TokensSnapshot,
   TokensSnapshotEntry,
 } from "@composition/shared";
 import {
@@ -32,18 +33,13 @@ import {
 } from "@composition/shared";
 
 import { getDB } from "../../../lib/db";
+import { readBaseTypographyFromTheme } from "../../../adapters/canonical/themesAdapter";
+import { markThemeActiveCache } from "../../../stores/themeConfigStore";
+import { installThemeSnapshot } from "../../../utils/theme/installThemeSnapshot";
 import {
-  applyCanonicalThemes,
-  readBaseTypographyFromTheme,
-} from "../../../adapters/canonical/themesAdapter";
-import {
-  type DarkModePreference,
-  type RadiusScale,
-  markThemeActiveCache,
-  useThemeConfigStore,
-} from "../../../stores/themeConfigStore";
-import type { TintPreset } from "../../../utils/theme/tintToSkiaColors";
-import type { NeutralPreset } from "../../../utils/theme/neutralToSkiaColors";
+  resolveThemeSnapshot,
+  type ResolvedThemeSnapshot,
+} from "../../../utils/theme/resolveThemeSnapshot";
 import {
   DEFAULT_BASE_TYPOGRAPHY,
   type BaseTypography,
@@ -71,42 +67,27 @@ export function readThemesCollection(): ThemesCollection | null {
 // ───────────────────────────── 런타임 재적용 ─────────────────────────────
 
 /**
- * 활성 테마 → themeConfigStore (specs 토큰 맵 mutation · themeVersion · Preview 전송은 기존
- * subscribe 가 이어받는다). undo/redo · 로드 · 쓰기 뒤 한 곳에서만 부른다.
+ * 활성 테마 → 런타임 (Phase 2): `resolveThemeSnapshot` (preset seed → root user-defined → 델타 →
+ * 파생 · cssVars) → `installThemeSnapshot` 1회 (specs 토큰 맵 · store set 1 · notifyLayoutChange 1 ·
+ * Preview THEME_VARS 1). undo/redo · 로드 · 쓰기 뒤 한 곳에서만 부른다.
  */
-export function applyActiveThemeToRuntime(themes: ThemesCollection): void {
-  const store = useThemeConfigStore.getState();
+export function applyActiveThemeToRuntime(
+  themes: ThemesCollection,
+  rootTokens?: TokensSnapshot,
+): ResolvedThemeSnapshot | null {
   const doc: Pick<CompositionDocument, "themes"> = { themes };
   const active = getActiveTheme(doc);
-  if (!active) return;
+  if (!active) return null;
   markThemeActiveCache(active.id);
-  applyCanonicalThemes(doc as CompositionDocument, {
-    setTint: (tint) => {
-      if (store.tint !== tint) store.setTint(tint as TintPreset);
-    },
-    setDarkMode: (mode) => {
-      if (store.darkMode !== mode)
-        store.setDarkMode(mode as DarkModePreference);
-    },
-    setNeutral: (neutral) => {
-      if (store.neutral !== neutral) store.setNeutral(neutral as NeutralPreset);
-    },
-    setRadiusScale: (scale) => {
-      if (store.radiusScale !== scale)
-        store.setRadiusScale(scale as RadiusScale);
-    },
-    setBaseTypography: (partial) => {
-      const next: BaseTypography = { ...DEFAULT_BASE_TYPOGRAPHY, ...partial };
-      const current = store.baseTypography;
-      if (
-        current.fontFamily !== next.fontFamily ||
-        current.fontSize !== next.fontSize ||
-        current.lineHeight !== next.lineHeight
-      ) {
-        store.setBaseTypography(next);
-      }
-    },
+  const snapshot = resolveThemeSnapshot(active, {
+    rootTokens: rootTokens ?? activeDocument()?.tokens,
+    baseTypographySeed: DEFAULT_BASE_TYPOGRAPHY,
   });
+  if (snapshot.warnings.length > 0 && import.meta.env.DEV) {
+    console.warn("[ADR-227] theme resolve warnings:", snapshot.warnings);
+  }
+  installThemeSnapshot(snapshot);
+  return snapshot;
 }
 
 // ───────────────────────────── commit ─────────────────────────────
@@ -276,4 +257,19 @@ export function setActiveThemeBaseTypography(
     "number",
   );
   return commitThemes(before, after, "token", active.name);
+}
+
+// dev 전용 디버그 전역 — live 하니스가 문서 우선 쓰기 진입점을 그대로 부른다 (패널 UI 는 Phase 4).
+if (typeof window !== "undefined" && import.meta.env?.DEV) {
+  (window as unknown as Record<string, unknown>).__composition_THEME_ACTIONS__ =
+    {
+      readThemesCollection,
+      addThemeFromActive,
+      removeTheme,
+      renameTheme,
+      setActiveTheme,
+      setActiveThemePreset,
+      setThemeToken,
+      setActiveThemeBaseTypography,
+    };
 }

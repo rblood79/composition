@@ -96,11 +96,32 @@ function applyNeutralColors(
   palette: Record<number, string>,
   map: Record<string, number | string>,
 ): void {
+  Object.assign(colors, neutralColorTokens(palette, map));
+}
+
+/** ADR-227 — 순수: neutral 프리셋 → 토큰 맵 (mutation 없음). `installThemeSnapshot` 이 쓴다. */
+export function resolveNeutralColorTokens(
+  preset: NeutralPreset,
+  mode: "light" | "dark",
+): Record<string, string> {
+  return neutralColorTokens(
+    NEUTRAL_PALETTES[preset] ?? NEUTRAL_PALETTES.neutral,
+    mode === "dark" ? DARK_MAP : LIGHT_MAP,
+  );
+}
+
+/** neutral 11 단계 hex (DOM `--color-neutral-N`). */
+export function resolveNeutralSteps(preset: NeutralPreset): Record<number, string> {
+  return NEUTRAL_PALETTES[preset] ?? NEUTRAL_PALETTES.neutral;
+}
+
+function neutralColorTokens(
+  palette: Record<number, string>,
+  map: Record<string, number | string>,
+): Record<string, string> {
+  const out: Record<string, string> = {};
   for (const [token, stepOrHex] of Object.entries(map)) {
-    if (typeof stepOrHex === "string") {
-      colors[token] = stepOrHex;
-    } else {
-      colors[token] = palette[stepOrHex];
-    }
+    out[token] = typeof stepOrHex === "string" ? stepOrHex : palette[stepOrHex]!;
   }
+  return out;
 }

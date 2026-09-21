@@ -67,6 +67,8 @@ export interface UpdateElementPropsMessage {
 export interface ThemeVarsMessage {
   type: "THEME_VARS";
   vars: ThemeVar[];
+  /** ADR-227 — true 면 이전 벌을 걷어내고 이 벌로 교체 (활성 테마 snapshot 1회 설치). */
+  replace?: boolean;
 }
 
 export interface SetDarkModeMessage {
@@ -308,7 +310,7 @@ export class MessageHandler {
 
   private handleThemeVars(data: ThemeVarsMessage): void {
     const vars = data.vars || [];
-    this.store.setThemeVars(vars);
+    this.store.setThemeVars(vars, data.replace === true);
   }
 
   private handleSetDarkMode(data: SetDarkModeMessage): void {

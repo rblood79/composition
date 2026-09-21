@@ -45,6 +45,8 @@
 .react-aria-Button[data-variant="accent"] {
   --button-color: var(--accent);
   --button-text: var(--fg-on-accent);
+  --button-color-hover: var(--accent-hover);
+  --button-color-pressed: var(--accent-pressed);
   --button-border: var(--accent);
 
 }
@@ -58,6 +60,8 @@
 .react-aria-Button[data-variant="primary"] {
   --button-color: var(--fg);
   --button-text: var(--bg);
+  --button-color-hover: var(--neutral-hover);
+  --button-color-pressed: var(--neutral-pressed);
   --button-border: var(--fg);
 
 }
@@ -84,6 +88,8 @@
 .react-aria-Button[data-variant="negative"] {
   --button-color: var(--negative);
   --button-text: var(--color-white);
+  --button-color-hover: var(--negative-hover);
+  --button-color-pressed: var(--negative-pressed);
   --button-border: var(--negative);
 
 }
@@ -97,6 +103,8 @@
 .react-aria-Button[data-variant="premium"] {
   --button-color: var(--hue-purple);
   --button-text: var(--color-white);
+  --button-color-hover: var(--purple-hover);
+  --button-color-pressed: var(--purple-pressed);
   --button-border: var(--hue-purple);
 
 }
@@ -110,6 +118,8 @@
 .react-aria-Button[data-variant="genai"] {
   --button-color: var(--hue-purple);
   --button-text: var(--color-white);
+  --button-color-hover: var(--purple-hover);
+  --button-color-pressed: var(--purple-pressed);
   --button-border: var(--hue-purple);
 
 }

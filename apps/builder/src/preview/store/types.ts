@@ -246,7 +246,7 @@ export interface RuntimeStoreState extends StateHierarchy {
 
   // Theme
   themeVars: ThemeVar[];
-  setThemeVars: (vars: ThemeVar[]) => void;
+  setThemeVars: (vars: ThemeVar[], replace?: boolean) => void;
   isDarkMode: boolean;
   setDarkMode: (isDark: boolean) => void;
 

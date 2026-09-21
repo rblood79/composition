@@ -40,7 +40,7 @@
   }
 
   &[data-pressed] {
-    background: color-mix(in srgb, var(--bg-muted) 75%, black);
+    background: var(--neutral-pressed, color-mix(in srgb, var(--bg-muted) 75%, black));
   }
 }
 

@@ -70,6 +70,13 @@ interface ThemeConfigState extends PersistedThemeConfig {
 
   /** 프로젝트 초기화 시 localStorage에서 설정 복원 */
   initThemeConfig: (projectId: string) => void;
+
+  /**
+   * ADR-227 — 활성 테마 snapshot 설치 뒤 store 필드를 **한 번의 set** 으로 맞춘다 (themeVersion +1).
+   * 토큰 맵 mutation · notifyLayoutChange · Preview 전송은 `installThemeSnapshot` 이 소유 —
+   * 여기서는 store 상태만 (setter 4~5 회 대신 1 회).
+   */
+  applyResolvedTheme: (fields: PersistedThemeConfig) => void;
 }
 
 // ============================================================================
@@ -348,6 +355,22 @@ export const useThemeConfigStore = create<ThemeConfigState>()(
         notifyLayoutChange();
 
         // localStorage 영속화
+        persistCurrentConfig();
+      },
+
+      applyResolvedTheme: (fields) => {
+        set(
+          (state) => ({
+            tint: fields.tint,
+            darkMode: fields.darkMode,
+            neutral: fields.neutral,
+            radiusScale: fields.radiusScale,
+            baseTypography: fields.baseTypography,
+            themeVersion: state.themeVersion + 1,
+          }),
+          undefined,
+          "applyResolvedTheme",
+        );
         persistCurrentConfig();
       },
 

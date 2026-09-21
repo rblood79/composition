@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-227 Phase 2 — 활성 테마 snapshot 1회 설치 · Preview/Publish CSS 변수 배선] - 2026-09-22
+
+### Changed
+
+- **테마 토큰 델타가 실제로 그려진다**: 활성 테마의 `color.*` (hex — `color.accent` 는 tint 전체를 대체) · `typography.*` · `radius.*` · `shadow.*` · `focus.*` 델타를 preset seed 위에 얹어 한 snapshot 으로 풀고 (`resolveThemeSnapshot`), 캔버스 (specs 토큰 맵) · Preview (`THEME_VARS` 통째 교체) · Publish (`applyThemeVars`) 에 **한 번에** 설치한다 (`installThemeSnapshot` — themeVersion +1 · 레이아웃 알림 1 회, 종전 setter 4~5 회). 미명시 hover/pressed 는 base 에서 파생하고 명시가 우선하며, 생성 CSS 의 상태 배경은 `var(--X-hover, color-mix(...))` 슬롯을 통해 override 를 받는다 (미명시면 종전 색 그대로).
+- **수리**: 테마 typography/radius 변경이 페이지 레이아웃 캐시에 무시되던 결함 (시그니처가 요소 props 만 읽었다 — Button 라벨 hug 폭이 안 바뀜) → 시그니처에 테마 epoch 추가. Skia radius 배율이 xs/2xl 을 건너뛰어 DOM 과 갈리던 것 → `RADIUS_BASE_PX` 하나로 통일.
+  - 위치: `apps/builder/src/utils/theme/{resolveThemeSnapshot,installThemeSnapshot}.ts` · `stores/themeConfigStore.ts` (`applyResolvedTheme`) · `preview/store/runtimeStore.ts` (`setThemeVars(vars, replace)`) · `apps/publish/src/App.tsx` · `packages/specs/src/renderers/{CSSGenerator,utils/tokenResolver}.ts` · `packages/shared/src/catalog/resolvers/colorTokenToCss.ts` · `components/styles/utilities.css` · `workspace/canvas/scene/layoutCache.ts`.
+  - 하니스: `apps/builder/scripts/adr227-theme-snapshot-live.mjs` 8/8 (Canvas). Preview/Publish 채널은 unit 고정, 사용자 확인 대상.
+
 ## [ADR-227 Phase 1 — 테마 컬렉션 스키마 · migration · 문서 우선 쓰기] - 2026-09-22
 
 ### Changed
@@ -23,13 +32,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **ADR-227 Accepted · Phase 0 (G0) 완료** (`/execute-adr 227`): 재실측 F13~F18 — `doc.themes`/`doc.tokens` 는 production 에서 쓰인 적이 없어 기존 문서 100% 가 themes 부재 (실전 migration 경로 = localStorage `composition-theme-config-<projectId>` → 컬렉션) · write-through flag 는 어디에도 없음 · DOM 채널 = `THEME_VARS` postMessage · Skia 채널 = specs 토큰 맵 mutation (resolveToken 소비자 21 파일이 같은 맵) · focus 축은 DOM 만 (ADR-150) · border inventory 48+6+8+2 (outline 17 은 focus 예외) · Components 페이지는 228~230 으로 이미 전집 · 변경 파일 39 확정. `docs/adr/design/227-multi-theme-token-set-collection-breakdown.md` §8.
+- **ADR-227 Accepted · Phase 0 (G0) 완료** (`/execute-adr 227`): 재실측 F13~~F18 — `doc.themes`/`doc.tokens` 는 production 에서 쓰인 적이 없어 기존 문서 100% 가 themes 부재 (실전 migration 경로 = localStorage `composition-theme-config-<projectId>` → 컬렉션) · write-through flag 는 어디에도 없음 · DOM 채널 = `THEME_VARS` postMessage · Skia 채널 = specs 토큰 맵 mutation (resolveToken 소비자 21 파일이 같은 맵) · focus 축은 DOM 만 (ADR-150) · border inventory 48+6+8+2 (outline 17 은 focus 예외) · Components 페이지는 228~~230 으로 이미 전집 · 변경 파일 39 확정. `docs/adr/design/227-multi-theme-token-set-collection-breakdown.md` §8.
 
 ## [ADR-230 Implemented — 기본 요소의 상태별 origin 분해] - 2026-09-22
 
 ### Changed
 
-- **ADR-230 Implemented** (Phase 0~3 / G0~G4, 사용자 배치 confirm): Components 페이지의 Button · ToggleButton · Link · Checkbox · Switch 가 `Selected → Disabled → Hover → Pressed → Focus` 변형 origin 을 default 오른쪽 같은 행에 두고, 편집이 `isSelected`/`isDisabled` instance (캔버스·Preview) 와 Preview 의 실제 hover/pressed/focus 에 반영된다. `docs/adr/completed/230-base-element-state-variant-origins.md` · 리뷰 종결 `docs/adr/reviews/230.md` round 3.
+- **ADR-230 Implemented** (Phase 0~~3 / G0~~G4, 사용자 배치 confirm): Components 페이지의 Button · ToggleButton · Link · Checkbox · Switch 가 `Selected → Disabled → Hover → Pressed → Focus` 변형 origin 을 default 오른쪽 같은 행에 두고, 편집이 `isSelected`/`isDisabled` instance (캔버스·Preview) 와 Preview 의 실제 hover/pressed/focus 에 반영된다. `docs/adr/completed/230-base-element-state-variant-origins.md` · 리뷰 종결 `docs/adr/reviews/230.md` round 3.
 
 ## [ADR-230 Phase 3 — 상태 변형 origin BC · Properties 상태 배지] - 2026-09-22
 

@@ -29,7 +29,7 @@ import { oklchToHex } from "./oklchToHex";
  * srgb 채널별 선형 혼합: result = color × (percent/100)
  * (black = 0,0,0 이므로 두 번째 항은 0)
  */
-function mixWithBlackSrgb(hex: string, percent: number): string {
+export function mixWithBlackSrgb(hex: string, percent: number): string {
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
   const b = parseInt(hex.slice(5, 7), 16);
@@ -163,7 +163,7 @@ function applyAccentColors(
   }
 }
 
-function createAccentColorTokens(
+export function createAccentColorTokens(
   c: number,
   h: number,
   mode: "light" | "dark",

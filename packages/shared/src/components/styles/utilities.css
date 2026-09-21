@@ -19,8 +19,13 @@
     color: var(--button-text, var(--color-white));
     border-color: var(--button-border, var(--button-color));
 
+    /* ADR-227 — `--button-color-hover/-pressed` 는 generated CSS 가 variant 의 hover/pressed 토큰
+       (`var(--accent-hover, color-mix(...))` 슬롯) 으로 채운다. 테마가 명시하면 그 값, 아니면 종전 mix. */
     &:where([data-hovered]) {
-      background: color-mix(in srgb, var(--button-color) 85%, black);
+      background: var(
+        --button-color-hover,
+        color-mix(in srgb, var(--button-color) 85%, black)
+      );
       border-color: color-mix(
         in srgb,
         var(--button-border, var(--button-color)) 85%,
@@ -29,7 +34,10 @@
     }
 
     &:where([data-pressed]) {
-      background: color-mix(in srgb, var(--button-color) 75%, black);
+      background: var(
+        --button-color-pressed,
+        color-mix(in srgb, var(--button-color) 75%, black)
+      );
       border-color: color-mix(
         in srgb,
         var(--button-border, var(--button-color)) 75%,
@@ -44,7 +52,10 @@
     }
 
     &:where([data-selected][data-hovered]) {
-      background: color-mix(in srgb, var(--button-color) 85%, black);
+      background: var(
+        --button-color-hover,
+        color-mix(in srgb, var(--button-color) 85%, black)
+      );
       border-color: color-mix(
         in srgb,
         var(--button-border, var(--button-color)) 85%,
@@ -53,7 +64,10 @@
     }
 
     &:where([data-selected][data-pressed]) {
-      background: color-mix(in srgb, var(--button-color) 75%, black);
+      background: var(
+        --button-color-pressed,
+        color-mix(in srgb, var(--button-color) 75%, black)
+      );
       border-color: color-mix(
         in srgb,
         var(--button-border, var(--button-color)) 75%,

@@ -912,6 +912,21 @@ function generateVariantStyles(
     emitColorLine("background", tokenToCSSVar(fill.default.base), mode),
     emitColorLine("text", tokenToCSSVar(visual.text!), mode),
   ];
+  // ADR-227 — button-base 모드의 hover/pressed **override 슬롯**: variant 의 hover/pressed 토큰이
+  //   파생 키 (`{color.X-hover}` / `{color.X-pressed}`) 면 `--button-color-hover: var(--X-hover)` 를 낸다.
+  //   테마가 `--X-hover` 를 명시하지 않으면 이 선언은 guaranteed-invalid 라 `.button-base` 의
+  //   `var(--button-color-hover, color-mix(...))` 가 종전 파생으로 떨어진다 (기본 시각 무변경).
+  //   비파생 토큰 (`{color.neutral-subtle}` 등) 은 내지 않는다 — 내면 종전 `.button-base` mix 와 갈린다.
+  if (mode === "button-base") {
+    const slot = (ref: unknown) => {
+      const m = typeof ref === "string" ? /^\{color\.([a-z0-9-]+-(?:hover|pressed))\}$/.exec(ref) : null;
+      return m ? `var(--${m[1]})` : null;
+    };
+    const hover = slot(fill.default.hover);
+    const pressed = slot(fill.default.pressed);
+    if (hover) lines.push(`  --button-color-hover: ${hover};`);
+    if (pressed) lines.push(`  --button-color-pressed: ${pressed};`);
+  }
 
   if (visual.border && !omitBorder) {
     lines.push(emitColorLine("border", tokenToCSSVar(visual.border), mode));

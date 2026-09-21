@@ -119,6 +119,12 @@ import {
 } from "../../stores/themeConfigStore";
 import { isThemesCollection, migrateThemesField } from "@composition/shared";
 import { applyActiveThemeToRuntime } from "../panels/themes/themeActions";
+import {
+  getCurrentThemeSnapshot,
+  registerThemeLayoutInvalidator,
+  sendThemeSnapshotToPreview,
+} from "../../utils/theme/installThemeSnapshot";
+import { bumpLayoutThemeEpoch } from "../workspace/canvas/scene/layoutCache";
 import { registerThemeHistoryApplier } from "../stores/history/historyActions";
 import { useUiStore } from "../../stores/uiStore";
 import { getDB } from "../../lib/db";
@@ -298,7 +304,15 @@ export const BuilderCore: React.FC = () => {
     });
     // ADR-227 — theme history entry undo/redo 뒤 활성 테마를 런타임에 재적용 (순환 import 회피 DI)
     registerThemeHistoryApplier(applyActiveThemeToRuntime);
-    return () => registerThemeHistoryApplier(null);
+    // ADR-227 Phase 2 — geometry 축 (typography · radius) 테마 변경 시 레이아웃 엔진 재계산
+    registerThemeLayoutInvalidator(() => {
+      bumpLayoutThemeEpoch(); // 페이지 레이아웃 캐시 signature 를 끊는다 (요소 props 무변경이라 필요)
+      useStore.getState().invalidateLayout();
+    });
+    return () => {
+      registerThemeHistoryApplier(null);
+      registerThemeLayoutInvalidator(null);
+    };
   }, [projectId]);
 
   // ADR-196 Phase 3 — `window.__compositionAgent` (DEV 전용). Chrome MCP 로 빌더를
@@ -815,11 +829,15 @@ export const BuilderCore: React.FC = () => {
     }
 
     // 초기 전송: iframe ready 시 현재 복원된 설정 즉시 반영
+    //   ADR-227 — 설치본 (`installThemeSnapshot`) 이 있으면 그 cssVars 한 벌 (replace) 로, 아니면 종전
+    //   preset 파생 (migration 전 창).
     const current = useThemeConfigStore.getState();
-    sendThemeConfigToIframe(current);
+    if (!sendThemeSnapshotToPreview()) sendThemeConfigToIframe(current);
 
-    // 변경 구독
+    // 변경 구독 — 설치본이 있는 동안은 installThemeSnapshot 이 직접 보내므로 (1회) 여기서는
+    //   설치본이 없는 경로 (legacy setter) 만 이어받는다.
     const unsub = useThemeConfigStore.subscribe((state, prev) => {
+      if (getCurrentThemeSnapshot()) return;
       if (
         state.tint !== prev.tint ||
         state.neutral !== prev.neutral ||
@@ -1201,6 +1219,11 @@ export const BuilderCore: React.FC = () => {
       // ADR-214 Phase 2 — 프로젝트 변수 정의 (publish 의 shared 런타임 store 입력)
       variables: getProjectVariableDefinitions(),
       themeConfig: { tint, neutral, radiusScale },
+      // ADR-227 — 활성 테마 설치본의 CSS 변수 한 벌 (light/dark) · base typography. publish 는 이것을
+      //   우선 싣고, 없으면 (구 payload) themeConfig 로 폴백.
+      themeVars: getCurrentThemeSnapshot()?.cssVars,
+      themeBaseTypography: getCurrentThemeSnapshot()?.base,
+      themeDarkMode: getCurrentThemeSnapshot()?.darkMode,
       fontRegistry: loadFontRegistry(),
     };
 

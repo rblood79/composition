@@ -70,17 +70,23 @@ const COLOR_TOKEN_CSS: Record<string, string> = {
 };
 
 // hover/pressed 파생 — tokenResolver 와 동일 규칙 (ADR-193 후속). 이전엔 키가 없어 fallback `--fg-muted` 로 떨어졌다 (review l2).
+// ADR-227 — override 슬롯 `var(--<token>-hover, color-mix(...))`: 테마 델타가 `--<token>-hover` 를 명시하면
+//   그 값, 없으면 종전 파생. Skia 는 같은 키를 맵에서 읽는다 (resolveThemeSnapshot 이 명시 없으면 base 에서 mix).
 for (const [token, entry] of Object.entries(SEMANTIC_PALETTE_MAP)) {
   if (token.endsWith("-subtle")) continue;
   COLOR_TOKEN_CSS[`${token}-hover`] ??=
-    `color-mix(in srgb, var(${entry.cssVar}) 85%, black)`;
+    `var(--${token}-hover, color-mix(in srgb, var(${entry.cssVar}) 85%, black))`;
   COLOR_TOKEN_CSS[`${token}-pressed`] ??=
-    `color-mix(in srgb, var(${entry.cssVar}) 75%, black)`;
+    `var(--${token}-pressed, color-mix(in srgb, var(${entry.cssVar}) 75%, black))`;
 }
-COLOR_TOKEN_CSS["accent-hover"] ??= "color-mix(in srgb, var(--accent) 85%, black)";
-COLOR_TOKEN_CSS["accent-pressed"] ??= "color-mix(in srgb, var(--accent) 75%, black)";
-COLOR_TOKEN_CSS["neutral-hover"] ??= "color-mix(in srgb, var(--bg-muted) 85%, black)";
-COLOR_TOKEN_CSS["neutral-pressed"] ??= "color-mix(in srgb, var(--bg-muted) 75%, black)";
+COLOR_TOKEN_CSS["accent-hover"] ??=
+  "var(--accent-hover, color-mix(in srgb, var(--accent) 85%, black))";
+COLOR_TOKEN_CSS["accent-pressed"] ??=
+  "var(--accent-pressed, color-mix(in srgb, var(--accent) 75%, black))";
+COLOR_TOKEN_CSS["neutral-hover"] ??=
+  "var(--neutral-hover, color-mix(in srgb, var(--bg-muted) 85%, black))";
+COLOR_TOKEN_CSS["neutral-pressed"] ??=
+  "var(--neutral-pressed, color-mix(in srgb, var(--bg-muted) 75%, black))";
 
 /**
  * `{color.X}` TokenRef 또는 직접 CSS 값을 CSS 색 문자열로 변환.

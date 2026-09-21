@@ -44,7 +44,7 @@
 
   &[data-hovered] {
     background: var(--bg);
-    color: color-mix(in srgb, var(--accent) 85%, black);
+    color: var(--accent-hover, color-mix(in srgb, var(--accent) 85%, black));
   }
 
   &[data-pressed] {

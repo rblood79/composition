@@ -36,6 +36,20 @@ interface CachedPageLayoutEntry {
 const pageLayoutCache = new Map<string, CachedPageLayoutEntry>();
 
 /**
+ * ADR-227 Phase 2 — 테마 geometry 축 (typography · base 서체 · radius) 이 바뀌면 요소 props 는
+ * 그대로인데 측정 (Button 라벨 폭 = specs `typography` 맵) 이 달라진다. 페이지 엔트리는 요소
+ * signature 만 보므로 이 epoch 를 signature 에 섞어 히트를 끊는다 — `installThemeSnapshot` 이
+ * geometry 변경 때만 올린다 (색만 바뀌면 레이아웃은 그대로라 올리지 않는다).
+ */
+let layoutThemeEpoch = 0;
+export function bumpLayoutThemeEpoch(): void {
+  layoutThemeEpoch += 1;
+}
+export function getLayoutThemeEpoch(): number {
+  return layoutThemeEpoch;
+}
+
+/**
  * `pageLayoutCache` 의 키 — 페이지당 1 엔트리.
  *
  * 호출부가 자체 키를 만들면 prune 과 조회가 서로 다른 키를 쓰게 되므로 여기서만 만든다
@@ -140,7 +154,7 @@ export function createPageLayoutSignature(
   bodyElement: CanvasLayoutNode | null,
   elements: CanvasLayoutNode[],
 ): string {
-  const signatureParts: string[] = [];
+  const signatureParts: string[] = [`theme=${layoutThemeEpoch}`];
 
   if (bodyElement) {
     signatureParts.push(createElementLayoutSignature(bodyElement));

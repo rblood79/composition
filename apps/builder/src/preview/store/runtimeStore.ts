@@ -602,9 +602,10 @@ export const createRuntimeStore = () =>
     // Theme
     // ============================================
     themeVars: [],
-    setThemeVars: (vars: ThemeVar[]) => {
-      // 기존 vars에 새 vars를 병합 (name+isDark 기준 덮어쓰기)
-      const existing = get().themeVars;
+    setThemeVars: (vars: ThemeVar[], replace = false) => {
+      // ADR-227: replace — 활성 테마 한 벌로 통째 교체 (이전 테마의 변수를 남기지 않는다)
+      // 기본은 기존 vars에 새 vars를 병합 (name+isDark 기준 덮어쓰기)
+      const existing = replace ? [] : get().themeVars;
       const merged = [...existing];
       for (const newVar of vars) {
         const idx = merged.findIndex(

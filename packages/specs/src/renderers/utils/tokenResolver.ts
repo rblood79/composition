@@ -87,8 +87,10 @@ export function resolveColor(
 const COLOR_TOKEN_TO_CSS: Record<string, string> = {
   // --- Accent ---
   accent: "var(--accent)",
-  "accent-hover": "color-mix(in srgb, var(--accent) 85%, black)",
-  "accent-pressed": "color-mix(in srgb, var(--accent) 75%, black)",
+  "accent-hover":
+    "var(--accent-hover, color-mix(in srgb, var(--accent) 85%, black))",
+  "accent-pressed":
+    "var(--accent-pressed, color-mix(in srgb, var(--accent) 75%, black))",
   "on-accent": "var(--fg-on-accent)",
   "accent-subtle": "var(--accent-subtle)",
 
@@ -96,13 +98,17 @@ const COLOR_TOKEN_TO_CSS: Record<string, string> = {
   neutral: "var(--fg)",
   "neutral-subdued": "var(--fg-muted)",
   "neutral-subtle": "var(--bg-muted)",
-  "neutral-hover": "color-mix(in srgb, var(--bg-muted) 85%, black)",
-  "neutral-pressed": "color-mix(in srgb, var(--bg-muted) 75%, black)",
+  "neutral-hover":
+    "var(--neutral-hover, color-mix(in srgb, var(--bg-muted) 85%, black))",
+  "neutral-pressed":
+    "var(--neutral-pressed, color-mix(in srgb, var(--bg-muted) 75%, black))",
 
   // --- Negative ---
   negative: "var(--negative)",
-  "negative-hover": "color-mix(in srgb, var(--negative) 85%, black)",
-  "negative-pressed": "color-mix(in srgb, var(--negative) 75%, black)",
+  "negative-hover":
+    "var(--negative-hover, color-mix(in srgb, var(--negative) 85%, black))",
+  "negative-pressed":
+    "var(--negative-pressed, color-mix(in srgb, var(--negative) 75%, black))",
   "on-negative": "var(--color-white)",
   "negative-subtle": "var(--negative-subtle)",
 
@@ -208,10 +214,11 @@ for (const [token, entry] of Object.entries(SEMANTIC_PALETTE_MAP)) {
   if (token.endsWith("-subtle")) continue;
   const target =
     token in COLOR_TOKEN_TO_CSS ? COLOR_TOKEN_TO_CSS : NAMED_COLOR_TO_CSS;
+  // ADR-227 — override 슬롯: 테마가 `--<token>-hover` 를 명시하면 그 값, 없으면 종전 color-mix 파생.
   target[`${token}-hover`] ??=
-    `color-mix(in srgb, var(${entry.cssVar}) 85%, black)`;
+    `var(--${token}-hover, color-mix(in srgb, var(${entry.cssVar}) 85%, black))`;
   target[`${token}-pressed`] ??=
-    `color-mix(in srgb, var(${entry.cssVar}) 75%, black)`;
+    `var(--${token}-pressed, color-mix(in srgb, var(${entry.cssVar}) 75%, black))`;
 }
 
 /**

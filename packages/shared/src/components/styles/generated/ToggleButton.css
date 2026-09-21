@@ -43,6 +43,8 @@
 .react-aria-ToggleButton[data-variant="default"] {
   --button-color: var(--bg-muted);
   --button-text: var(--fg);
+  --button-color-hover: var(--neutral-hover);
+  --button-color-pressed: var(--neutral-pressed);
   --button-border: transparent;
 
 
@@ -68,7 +70,7 @@
 }
 
 .react-aria-ToggleButton[data-variant="default"][data-quiet]:where([data-pressed]) {
-  --button-color: color-mix(in srgb, var(--bg-muted) 85%, black);
+  --button-color: var(--neutral-hover, color-mix(in srgb, var(--bg-muted) 85%, black));
 }
 
 .react-aria-ToggleButton[data-icon-only] {

@@ -66,3 +66,50 @@ export function oklchToHex(l: number, c: number, h: number): string {
 
   return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${bVal.toString(16).padStart(2, "0")}`;
 }
+
+// ─────────────────────────────────────────────
+// ADR-227 — 역변환 (hex → oklch). 사용자가 accent 를 hex 로 주면 tint 프리셋과 같은 (c, h) 로
+//   접어 두 leg 가 같은 파생 (L 55% accent · hover/pressed mix · subtle · chart) 을 쓴다.
+//   CSS 쪽은 `--tint: #hex` 를 `oklch(from var(--tint) L c h)` 가 같은 식으로 읽는다.
+// ─────────────────────────────────────────────
+
+function srgbToLinear(c: number): number {
+  if (c <= 0.04045) return c / 12.92;
+  return Math.pow((c + 0.055) / 1.055, 2.4);
+}
+
+function linearSrgbToOklab(
+  r: number,
+  g: number,
+  b: number,
+): [number, number, number] {
+  const l = 0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b;
+  const m = 0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b;
+  const s = 0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b;
+  const l_ = Math.cbrt(l);
+  const m_ = Math.cbrt(m);
+  const s_ = Math.cbrt(s);
+  return [
+    0.2104542553 * l_ + 0.793617785 * m_ - 0.0040720468 * s_,
+    1.9779984951 * l_ - 2.428592205 * m_ + 0.4505937099 * s_,
+    0.0259040371 * l_ + 0.7827717662 * m_ - 0.808675766 * s_,
+  ];
+}
+
+/** `#rgb` / `#rrggbb` / `#rrggbbaa` → `{ l, c, h }` (h 는 0~360). 파싱 실패면 null. */
+export function hexToOklch(
+  hex: string,
+): { l: number; c: number; h: number } | null {
+  const m = /^#?([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.exec(hex.trim());
+  if (!m) return null;
+  let s = m[1]!;
+  if (s.length === 3) s = s.split("").map((ch) => ch + ch).join("");
+  const r = parseInt(s.slice(0, 2), 16) / 255;
+  const g = parseInt(s.slice(2, 4), 16) / 255;
+  const b = parseInt(s.slice(4, 6), 16) / 255;
+  const [L, a, bb] = linearSrgbToOklab(srgbToLinear(r), srgbToLinear(g), srgbToLinear(b));
+  const c = Math.sqrt(a * a + bb * bb);
+  let h = (Math.atan2(bb, a) * 180) / Math.PI;
+  if (h < 0) h += 360;
+  return { l: L, c, h };
+}

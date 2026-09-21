@@ -190,6 +190,41 @@ const RADIUS_MAP: Record<string, string> = {
   xl: "16px",
 };
 
+/**
+ * ADR-227 — builder 가 활성 테마 설치본 (`installThemeSnapshot`) 에서 만든 CSS 변수 한 벌을 그대로
+ * 싣는다 (Preview `THEME_VARS` 와 같은 `{name, value, isDark}` · 같은 `:root` / `[data-theme="dark"]`
+ * 블록). 이 벌이 있으면 구 `themeConfig` (preset 3 값) 는 쓰지 않는다 — 두 소비자가 같은 값을 본다.
+ */
+function applyThemeVars(
+  vars?: Array<{ name: string; value: string; isDark?: boolean }>,
+  base?: { fontFamily?: string; fontSize?: number; lineHeight?: number },
+  darkMode?: string,
+): boolean {
+  if (!vars || vars.length === 0) return false;
+  const light = vars.filter((v) => !v.isDark);
+  const dark = vars.filter((v) => v.isDark);
+  let css = `:root {\n${light.map((v) => `  ${v.name}: ${v.value};`).join("\n")}\n}`;
+  if (dark.length > 0) {
+    css += `\n[data-theme="dark"] {\n${dark.map((v) => `  ${v.name}: ${v.value};`).join("\n")}\n}`;
+  }
+  replaceStyleTag("composition-theme-config", css);
+  const isDark =
+    darkMode === "dark" ||
+    (darkMode === "system" &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches);
+  document.documentElement.setAttribute("data-theme", isDark ? "dark" : "light");
+  if (base) {
+    const apply = (el: HTMLElement) => {
+      if (base.fontFamily) el.style.fontFamily = base.fontFamily;
+      if (typeof base.fontSize === "number") el.style.fontSize = `${base.fontSize}px`;
+      if (typeof base.lineHeight === "number") el.style.lineHeight = String(base.lineHeight);
+    };
+    apply(document.documentElement);
+    if (document.body) apply(document.body);
+  }
+  return true;
+}
+
 function applyThemeConfig(themeConfig?: {
   tint?: string;
   neutral?: string;
@@ -388,6 +423,9 @@ export function App() {
         try {
           const parsed = JSON.parse(previewData) as Partial<ProjectExportData> & {
             themeConfig?: Parameters<typeof applyThemeConfig>[0];
+            themeVars?: Parameters<typeof applyThemeVars>[0];
+            themeBaseTypography?: Parameters<typeof applyThemeVars>[1];
+            themeDarkMode?: string;
           };
           if (!parsed.document) {
             throw new Error("CompositionDocument payload is required");
@@ -398,8 +436,16 @@ export function App() {
             project: parsed.project ?? { id: "preview", name: "Preview" },
           } as ProjectExportData);
 
-          // ADR-021 Phase C: themeConfig → CSS 변수 주입
-          applyThemeConfig(parsed.themeConfig);
+          // ADR-227: 설치본 CSS 변수 한 벌 우선 · 없으면 ADR-021 Phase C themeConfig 폴백
+          if (
+            !applyThemeVars(
+              parsed.themeVars,
+              parsed.themeBaseTypography,
+              parsed.themeDarkMode,
+            )
+          ) {
+            applyThemeConfig(parsed.themeConfig);
+          }
 
           // 사용 후 삭제 (새로고침 시 다시 로드하지 않음)
           // sessionStorage.removeItem('composition-preview-data');
