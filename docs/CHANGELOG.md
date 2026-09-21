@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-230 Implemented — 기본 요소의 상태별 origin 분해] - 2026-09-22
+
+### Changed
+
+- **ADR-230 Implemented** (Phase 0~3 / G0~G4, 사용자 배치 confirm): Components 페이지의 Button · ToggleButton · Link · Checkbox · Switch 가 `Selected → Disabled → Hover → Pressed → Focus` 변형 origin 을 default 오른쪽 같은 행에 두고, 편집이 `isSelected`/`isDisabled` instance (캔버스·Preview) 와 Preview 의 실제 hover/pressed/focus 에 반영된다. `docs/adr/completed/230-base-element-state-variant-origins.md` · 리뷰 종결 `docs/adr/reviews/230.md` round 3.
+
 ## [ADR-230 Phase 3 — 상태 변형 origin BC · Properties 상태 배지] - 2026-09-22
 
 ### Added
