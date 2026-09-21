@@ -244,6 +244,24 @@ export function getHistoryEntryLabel(
       }
       return t("history.entryGuideMove");
     }
+    case "theme": {
+      // ADR-227 — 조작 종류 + 이름 (entry 사본)
+      const event = entry.data.themeEvent;
+      const name = event?.themeName ?? "";
+      switch (event?.kind) {
+        case "add":
+        case "duplicate":
+          return t("history.entryThemeAdd", { name });
+        case "remove":
+          return t("history.entryThemeRemove", { name });
+        case "rename":
+          return t("history.entryThemeRename", { name });
+        case "activate":
+          return t("history.entryThemeActivate", { name });
+        default:
+          return t("history.entryThemeEdit", { name });
+      }
+    }
     case "snapshot-restore": {
       // ADR-180 — snapshotName 은 entry 에 담긴 사본이라 스냅샷 삭제 후에도
       // 라벨 유지 (R5)

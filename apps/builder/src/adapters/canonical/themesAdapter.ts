@@ -6,8 +6,10 @@
  * - **Phase 1 (read-only)**: `snapshotThemesFromConfig()` + `readCanonicalThemes()`
  *   — themeConfigStore 가 여전히 런타임 SSOT, document 직렬화만 수행
  * - **Phase 2 ts-3.1 (write-through)**: `applyCanonicalThemes()` — document
- *   로드 시 `themes.tint`/`darkMode`/`neutral`/`radiusScale` → themeConfigStore
- *   적용. opt-in 진입 (BuilderCore 등 caller 가 env flag 로 게이트)
+ *   로드 시 활성 테마 preset → themeConfigStore 적용.
+ * - **ADR-227**: `themes` 는 `ThemesCollection` (활성 하나 + 항목) — 이 adapter 는 활성 항목만
+ *   다룬다. 구 단일 `ThemeSnapshot` 은 hydration 의 `migrateThemesField` 가 옮기고, 읽기는 둘 다
+ *   허용한다 (migration 전 문서 · import). env flag 게이트는 제거됐다 (항상 문서 우선).
  *
  * **Read-only 원칙 (Phase 1)**:
  * - `snapshotThemesFromConfig()` 는 call-time 직렬화 — subscribe 기반 아님
@@ -23,7 +25,20 @@
  * - per-element theme override 는 후속 ADR 에서 결정
  */
 
-import type { CompositionDocument, ThemeSnapshot } from "@composition/shared";
+import type {
+  CompositionDocument,
+  ThemeDefinition,
+  ThemePreset,
+  ThemeSnapshot,
+  ThemesCollection,
+} from "@composition/shared";
+import {
+  BASE_TYPOGRAPHY_TOKEN_KEYS,
+  createThemesCollection,
+  getActiveTheme,
+  isThemesCollection,
+  readLegacyThemeSnapshot,
+} from "@composition/shared";
 
 // ThemeSnapshot 은 packages/shared 에서 정의됨 — re-export 로 기존 import 경로 유지
 export type { ThemeSnapshot } from "@composition/shared";
@@ -50,52 +65,42 @@ export interface ThemeConfigInput {
 // ─────────────────────────────────────────────
 
 /**
- * themeConfigStore 현재 상태 → `ThemeSnapshot` 직렬화.
+ * themeConfigStore 현재 상태 → `ThemesCollection` 직렬화 (ADR-227: Default 테마 하나 · 델타 {}).
  *
  * call-time 직렬화 (subscribe 기반 아님) — stale snapshot 방지 (ADR-110 R4).
  * `legacyToCanonical()` 호출 시 전달된 `getThemeConfig()` 콜백에서 호출됨.
- *
- * @param themeConfig - themeConfigStore 현재 상태 (ThemeConfigInput 최소 계약)
- * @returns ThemeSnapshot — canonical document themes 필드에 주입할 snapshot
  */
 export function snapshotThemesFromConfig(
   themeConfig: ThemeConfigInput,
-): ThemeSnapshot {
-  return {
+): ThemesCollection {
+  return createThemesCollection({
     tint: themeConfig.tint,
     darkMode: themeConfig.darkMode,
     neutral: themeConfig.neutral,
     radiusScale: themeConfig.radiusScale,
-  };
+  });
 }
 
 /**
- * canonical document 에서 `themes` 필드를 `ThemeSnapshot` 으로 읽기.
- *
- * Phase 2 write-through 이전: read-only accessor.
- * `themes` 필드가 없거나 ThemeSnapshot 구조가 아니면 `undefined` 반환.
- *
- * @param doc - canonical CompositionDocument
- * @returns ThemeSnapshot 또는 undefined (themes 필드 없음)
+ * canonical document 의 **활성 테마 preset** 을 읽는다 — 컬렉션 (ADR-227) 이면 active 항목, 구 단일
+ * `ThemeSnapshot` 모양 (migration 전 문서) 이면 그 4 필드. 둘 다 아니면 `undefined`.
  */
 export function readCanonicalThemes(
   doc: CompositionDocument,
-): ThemeSnapshot | undefined {
-  if (!doc.themes) return undefined;
-
-  // ADR-110 Phase 1: CompositionDocument.themes 타입이 ThemeSnapshot 으로 전환됨
-  // 필드 존재 여부만 확인 (타입 캐스팅 불필요)
-  const t = doc.themes;
-  if (
-    typeof t.tint === "string" &&
-    typeof t.darkMode === "string" &&
-    typeof t.neutral === "string" &&
-    typeof t.radiusScale === "string"
-  ) {
-    return t;
+): ThemePreset | undefined {
+  const raw = doc.themes as unknown;
+  if (!raw) return undefined;
+  if (isThemesCollection(raw)) {
+    return getActiveTheme({ themes: raw })?.preset;
   }
+  return readLegacyThemeSnapshot(raw) ?? undefined;
+}
 
-  return undefined;
+/** 활성 테마 항목 (컬렉션일 때만). */
+export function readActiveThemeDefinition(
+  doc: CompositionDocument,
+): ThemeDefinition | null {
+  return getActiveTheme(doc);
 }
 
 // ─────────────────────────────────────────────
@@ -113,34 +118,55 @@ export interface ThemeConfigSetters {
   setDarkMode: (mode: string) => void;
   setNeutral: (neutral: string) => void;
   setRadiusScale: (scale: string) => void;
+  /** ADR-227 — 테마 델타의 `typography.base-*` 3 키 → body 기본 서체 (부재 키는 seed). */
+  setBaseTypography?: (typography: {
+    fontFamily?: string;
+    fontSize?: number;
+    lineHeight?: number;
+  }) => void;
+}
+
+/** 테마 델타에서 base typography 3 키를 읽는다 (부재 = seed 유지 → undefined). */
+export function readBaseTypographyFromTheme(theme: ThemeDefinition): {
+  fontFamily?: string;
+  fontSize?: number;
+  lineHeight?: number;
+} {
+  const family = theme.tokens[BASE_TYPOGRAPHY_TOKEN_KEYS.fontFamily]?.value;
+  const size = theme.tokens[BASE_TYPOGRAPHY_TOKEN_KEYS.fontSize]?.value;
+  const lineHeight =
+    theme.tokens[BASE_TYPOGRAPHY_TOKEN_KEYS.lineHeight]?.value;
+  return {
+    ...(typeof family === "string" ? { fontFamily: family } : {}),
+    ...(typeof size === "number" ? { fontSize: size } : {}),
+    ...(typeof lineHeight === "number" ? { lineHeight } : {}),
+  };
 }
 
 /**
- * canonical document `themes` → `themeConfigStore` 적용 (Phase 2 ts-3.1).
- *
- * **호출 시점**: document 로드 entry (예: `initializeProject` 종료 직후) — caller
- * 가 env flag 로 게이트해서 호출. opt-in 진입 — flag 미설정 시 호출하지 않음.
+ * canonical document 활성 테마 → `themeConfigStore` 적용.
  *
  * **idempotent**: 같은 doc 으로 반복 호출 시 stable (round-trip 보장).
- * **hierarchy**: themeConfigStore 의 4 setter 를 순서대로 호출 — 각 setter 는
- * `themeVersion` 증가 + `notifyLayoutChange()` 트리거 (4회 발생 → ElementSprite
- * 재렌더는 batched). batch 적용은 Phase 2 ts-3.5 monitoring 단계에서 검토.
+ * setter 4 (+ baseTypography) 를 순서대로 호출 — 각 setter 는 `themeVersion` 증가 +
+ * `notifyLayoutChange()` (Phase 2 `installThemeSnapshot` 이 한 번으로 줄인다).
  *
- * @param doc - canonical CompositionDocument
- * @param setters - themeConfigStore setter 인터페이스 (DI)
- * @returns 적용 여부 (`true` = themes 필드 발견 + 적용 / `false` = themes 미존재)
+ * @returns 적용 여부 (`true` = 활성 preset 발견 + 적용 / `false` = themes 미존재)
  */
 export function applyCanonicalThemes(
   doc: CompositionDocument,
   setters: ThemeConfigSetters,
 ): boolean {
-  const snapshot = readCanonicalThemes(doc);
-  if (!snapshot) return false;
+  const preset = readCanonicalThemes(doc);
+  if (!preset) return false;
 
-  setters.setTint(snapshot.tint);
-  setters.setDarkMode(snapshot.darkMode);
-  setters.setNeutral(snapshot.neutral);
-  setters.setRadiusScale(snapshot.radiusScale);
+  setters.setTint(preset.tint);
+  setters.setDarkMode(preset.darkMode);
+  setters.setNeutral(preset.neutral);
+  setters.setRadiusScale(preset.radiusScale);
+  const active = getActiveTheme(doc);
+  if (active && setters.setBaseTypography) {
+    setters.setBaseTypography(readBaseTypographyFromTheme(active));
+  }
 
   return true;
 }

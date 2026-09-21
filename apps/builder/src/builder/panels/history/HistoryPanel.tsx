@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArchiveRestore,
+  SwatchBook,
   Camera,
   Database,
   Ellipsis,
@@ -75,6 +76,8 @@ const ENTRY_TYPE_ICONS: Record<HistoryEntry["type"], LucideIcon> = {
   "snapshot-restore": ArchiveRestore,
   // ADR-152 Phase 1c — 데이터 편집 (collection 축)
   data: Database,
+  // ADR-227 — 테마 컬렉션 편집 (Themes 패널과 같은 아이콘)
+  theme: SwatchBook,
 };
 
 // 더블클릭 rename 과 단일클릭 복원의 분리 지연 — 이 안에 두 번째 클릭이 오면

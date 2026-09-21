@@ -12,7 +12,6 @@ import { Key } from "react-aria-components/Collection";
 import { useStore } from "../stores";
 import { historyManager } from "../stores/history";
 import { applySnapshotDocument } from "../stores/history/snapshotRestore";
-import { applyCanonicalThemes } from "@/adapters/canonical";
 import type { BreakpointName } from "@composition/shared";
 import { Button } from "@composition/shared/components";
 
@@ -73,6 +72,7 @@ import { Workspace } from "../workspace";
 import { isWebGLCanvas } from "../../utils/featureFlags";
 import { startCanonicalDocumentSync } from "../stores/canonical/canonicalDocumentSync";
 import { useCanonicalDocumentStore } from "../stores/canonical/canonicalDocumentStore";
+import { persistActiveCanonicalDocument } from "../stores/canonical/persistActiveCanonicalDocument";
 // ADR-116 Phase 2 G3 Step 4 — BuilderCore layout refresh dual-mode
 import {
   getActiveCanonicalDocument,
@@ -113,11 +113,13 @@ interface Project {
   updated_at: string;
 }
 import {
+  markThemeDocumentOwned,
+  readLegacyThemeConfig,
   useThemeConfigStore,
-  type DarkModePreference,
-  type RadiusScale,
 } from "../../stores/themeConfigStore";
-import type { TintPreset } from "../../utils/theme/tintToSkiaColors";
+import { isThemesCollection, migrateThemesField } from "@composition/shared";
+import { applyActiveThemeToRuntime } from "../panels/themes/themeActions";
+import { registerThemeHistoryApplier } from "../stores/history/historyActions";
 import { useUiStore } from "../../stores/uiStore";
 import { getDB } from "../../lib/db";
 import { getCanonicalReusableLayouts } from "../stores/canonical/reusableLayoutStore";
@@ -139,7 +141,11 @@ import {
   downloadProjectAsJson,
   loadProjectFromFile,
 } from "@composition/shared/utils";
-import { loadFontRegistry, saveRegistryAndNotify } from "../fonts/customFonts";
+import {
+  DEFAULT_BASE_TYPOGRAPHY,
+  loadFontRegistry,
+  saveRegistryAndNotify,
+} from "../fonts/customFonts";
 import { useI18n } from "../../i18n";
 import {
   NEUTRAL_PALETTES,
@@ -290,6 +296,9 @@ export const BuilderCore: React.FC = () => {
         state._rebuildIndexes(source === "store" ? state.elements : undefined);
       },
     });
+    // ADR-227 — theme history entry undo/redo 뒤 활성 테마를 런타임에 재적용 (순환 import 회피 DI)
+    registerThemeHistoryApplier(applyActiveThemeToRuntime);
+    return () => registerThemeHistoryApplier(null);
   }, [projectId]);
 
   // ADR-196 Phase 3 — `window.__compositionAgent` (DEV 전용). Chrome MCP 로 빌더를
@@ -634,32 +643,55 @@ export const BuilderCore: React.FC = () => {
       // ADR-021 Phase C: localStorage에서 ThemeConfig 복원
       useThemeConfigStore.getState().initThemeConfig(projectId);
 
-      // ADR-110 Phase 2 ts-3.1: canonical themes write-through (env flag opt-in)
-      // env flag 미설정 시 호출 안 함 — Phase 1 (read-only snapshot) 동작 유지.
-      // ADR-116 projection 제거: active canonical document 만 사용한다.
-      if (import.meta.env.VITE_ADR110_P2_THEMES_WRITE_THROUGH === "true") {
-        try {
-          const doc = getActiveCanonicalDocument();
-          if (doc) {
-            const themeState = useThemeConfigStore.getState();
-            const applied = applyCanonicalThemes(doc, {
-              setTint: (tint) => themeState.setTint(tint as TintPreset),
-              setDarkMode: (mode) =>
-                themeState.setDarkMode(mode as DarkModePreference),
-              setNeutral: (neutral) =>
-                themeState.setNeutral(neutral as NeutralPreset),
-              setRadiusScale: (scale) =>
-                themeState.setRadiusScale(scale as RadiusScale),
-            });
-            if (applied && import.meta.env.DEV) {
-              console.log(
-                "[ADR-110 P2 ts-3.1] applied canonical themes from document",
+      // ADR-227 — themes 컬렉션 migration (최초 1회) → 저장 성공 뒤 문서 우선 → 활성 테마 적용.
+      //   legacy 실효값 = 같은 projectId 의 localStorage (initThemeConfig 가 방금 읽어 store 에 적용한
+      //   그 값) · write-through flag 는 제거됐다 (실전 항상 off — Phase 0 F5). 저장 실패면
+      //   markThemeDocumentOwned 를 부르지 않아 legacy 가 남고 다음 부팅이 다시 시도한다.
+      try {
+        const doc = getActiveCanonicalDocument();
+        if (doc) {
+          const migrated = migrateThemesField(doc, {
+            legacyConfig: readLegacyThemeConfig(projectId),
+            legacyWriteThrough: false,
+            source: "local-project",
+            baseTypographySeed: DEFAULT_BASE_TYPOGRAPHY,
+          });
+          if (migrated.report.warnings.length > 0 && import.meta.env.DEV) {
+            console.warn(
+              "[ADR-227] themes migration warnings:",
+              migrated.report.warnings,
+            );
+          }
+          let persisted = true;
+          if (migrated.changed) {
+            useCanonicalDocumentStore
+              .getState()
+              .setDocument(projectId, migrated.document);
+            try {
+              await persistActiveCanonicalDocument(getDB);
+            } catch (error) {
+              persisted = false;
+              console.warn(
+                "[ADR-227] themes migration 저장 실패 — legacy 설정 유지, 다음 부팅에 재시도:",
+                error,
               );
             }
           }
-        } catch (err) {
-          console.warn("[ADR-110 P2 ts-3.1] applyCanonicalThemes failed:", err);
+          const themes = migrated.document.themes as unknown;
+          if (isThemesCollection(themes)) {
+            if (persisted) {
+              markThemeDocumentOwned(projectId, themes.active);
+            }
+            applyActiveThemeToRuntime(themes);
+            if (import.meta.env.DEV) {
+              console.log(
+                `[ADR-227] themes ${migrated.report.path} (active ${themes.active}, persisted ${persisted})`,
+              );
+            }
+          }
         }
+      } catch (err) {
+        console.warn("[ADR-227] themes migration failed:", err);
       }
 
       // Preview iframe에 초기 테마 토큰 전송

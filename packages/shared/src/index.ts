@@ -44,3 +44,6 @@ export * from "./i18n";
 //   Skia(buildSpecNodeData 의 체크박스 가시성 판정)가 **같은 식**을 써야 두 표면이 갈리지
 //   않는다. React 의존 없는 순수 모듈이라 barrel 노출이 안전하다.
 export * from "./components/selectionStyle";
+
+// ADR-227 — 문서 소유 토큰 세트 컬렉션 (pure)
+export * from "./theme";

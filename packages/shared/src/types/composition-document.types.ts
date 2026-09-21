@@ -72,6 +72,39 @@ export interface ThemeSnapshot {
 }
 
 // ─────────────────────────────────────────────
+// ThemesCollection — ADR-227 (문서 소유 토큰 세트 컬렉션)
+// ─────────────────────────────────────────────
+
+/**
+ * 테마 preset — 매 resolve 때 seed 를 만드는 입력 (ADR-227 §3.1). ADR-110 의 `ThemeSnapshot`
+ * 4 필드와 같다 (`customTokens` 는 컬렉션에서 `tokens` 델타로 정규화된다).
+ */
+export type ThemePreset = Omit<ThemeSnapshot, "customTokens">;
+
+/**
+ * 이름 있는 토큰 세트 하나 — preset seed + seed 와 다른 명시 델타만 (`tokens`, ADR-143 델타 규칙).
+ * 전환마다 새 seed 에서 시작하므로 한 테마의 override 가 다른 테마에 남지 않는다.
+ */
+export interface ThemeDefinition {
+  id: string;
+  name: string;
+  preset: ThemePreset;
+  tokens: TokensSnapshot;
+}
+
+/**
+ * canonical document `themes` 필드 (ADR-227) — 프로젝트 단위 활성 하나 + 항목 + 순서.
+ * `active` ∈ `items` · `order` 는 `items` 의 키 순열 (hydration 이 무결성을 보정한다 —
+ * `normalizeThemesCollection`). ADR-110 의 단일 `ThemeSnapshot` 모양은 `migrateThemesField` 가
+ * 최초 1회 컬렉션으로 옮긴다.
+ */
+export interface ThemesCollection {
+  active: string;
+  items: Record<string, ThemeDefinition>;
+  order: string[];
+}
+
+// ─────────────────────────────────────────────
 // TokensSnapshot — ADR-110 Phase 1 / ADR-143 정명 (Variables → Tokens)
 // ─────────────────────────────────────────────
 
@@ -1041,12 +1074,17 @@ export interface CompositionDocument {
    * Phase 2 write-through 이후: document 로드 시 → `themeConfigStore` 주입.
    *
    * 각 엔티티는 `theme?` 필드로 노드별 override 가능.
+   *
+   * **ADR-227**: 단일 `ThemeSnapshot` → `ThemesCollection` (활성 하나 + 항목 + 순서). 구 모양은
+   * hydration 의 `migrateThemesField` 가 최초 1회 옮긴다 — 읽는 쪽은 `isThemesCollection` 로 판별.
    */
-  themes?: ThemeSnapshot;
+  themes?: ThemesCollection;
 
   /**
    * 문서 design token 선언 — ADR-022 Spec TokenRef + 사용자 정의 토큰 통합.
    *
+   * **ADR-227**: 테마 무관 `user-defined` 토큰만 — spec-token 델타는 활성 테마의
+   * `themes.items[id].tokens` 로 옮겨졌다 (해석 순서: preset seed → root user-defined → 테마 델타).
    * ADR-143: `variables` → `tokens` 정명 (D3 시각 design token).
    * ADR-110 Phase 1: `TokensSnapshot` (read-only snapshot).
    * 기존 `TokenDefinition` 타입은 D2 props 참조용으로 유지 (하위 호환).

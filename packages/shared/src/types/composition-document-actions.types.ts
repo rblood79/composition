@@ -32,6 +32,7 @@ import type {
   PageGuideLine,
   PagePositionPoint,
   SerializedAction,
+  ThemesCollection,
 } from "./composition-document.types";
 import type { BreakpointName } from "./responsive.types";
 
@@ -306,4 +307,15 @@ export interface CanonicalDocumentActions {
    * - 목록 무변경 entry 만 있으면 no-op (documentVersion 미증가 — lazy write).
    */
   setPageGuides(entries: PageGuideSetEntry[]): void;
+
+  // ─────────────────────────────────────────────
+  // ADR-227 — 테마 컬렉션 root 필드 mutation surface
+  // ─────────────────────────────────────────────
+
+  /**
+   * 활성 document 의 `themes` root 필드를 **통째로 교체** — 항목 연산은 shared `themesCollection.ts`
+   * 의 순수 함수 (`addTheme` · `setActiveTheme` · `setThemeToken` …) 가 만들고, 히스토리 payload 도
+   * before/after 컬렉션 전체라 이 형태가 정합적이다 (컬렉션은 N × 델타라 작다). 같은 참조면 no-op.
+   */
+  setThemes(themes: ThemesCollection): void;
 }

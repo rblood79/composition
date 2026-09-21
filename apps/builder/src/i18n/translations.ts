@@ -416,6 +416,11 @@ const koKR: TranslationKeys = {
     entryGuideRemove: "가이드 삭제",
     entryGuideRemoveCount: "가이드 삭제 ({count})",
     entryGuideMove: "가이드 이동",
+    entryThemeAdd: "테마 추가: {name}",
+    entryThemeRemove: "테마 삭제: {name}",
+    entryThemeRename: "테마 이름: {name}",
+    entryThemeActivate: "테마 전환: {name}",
+    entryThemeEdit: "테마 편집: {name}",
     entrySnapshotRestore: "스냅샷 복원",
     entrySnapshotRestoreNamed: "스냅샷 복원 — {name}",
     entryPageAdd: "페이지 추가",
@@ -2310,6 +2315,11 @@ const enUS: TranslationKeys = {
     entryGuideRemove: "Delete guide",
     entryGuideRemoveCount: "Delete guides ({count})",
     entryGuideMove: "Move guide",
+    entryThemeAdd: "Add theme: {name}",
+    entryThemeRemove: "Remove theme: {name}",
+    entryThemeRename: "Rename theme: {name}",
+    entryThemeActivate: "Switch theme: {name}",
+    entryThemeEdit: "Edit theme: {name}",
     entrySnapshotRestore: "Restore snapshot",
     entrySnapshotRestoreNamed: "Restore snapshot — {name}",
     entryPageAdd: "Add page",
@@ -4829,6 +4839,14 @@ const formattedMessages: Record<
       `'${String(args?.label ?? "")}' override 해제됨`,
     "propertiesPanel.stateVariantOf": (args) =>
       `${String(args?.name ?? "")} 의 상태 변형 — 이 상태일 때의 배경 · 색 · 테두리 · 투명도만 편집한다`,
+    "history.entryThemeAdd": (args) => `테마 추가: ${String(args?.name ?? "")}`,
+    "history.entryThemeRemove": (args) =>
+      `테마 삭제: ${String(args?.name ?? "")}`,
+    "history.entryThemeRename": (args) =>
+      `테마 이름: ${String(args?.name ?? "")}`,
+    "history.entryThemeActivate": (args) =>
+      `테마 전환: ${String(args?.name ?? "")}`,
+    "history.entryThemeEdit": (args) => `테마 편집: ${String(args?.name ?? "")}`,
     "propertiesPanel.bindingUsedBy": (args) =>
       `사용처 ${String(args?.count ?? 0)}`,
     "propertiesPanel.idUnique": (args) =>
@@ -5301,6 +5319,14 @@ const formattedMessages: Record<
       `'${String(args?.label ?? "")}' override cleared`,
     "propertiesPanel.stateVariantOf": (args) =>
       `State variant of ${String(args?.name ?? "")} — edit only the background · color · border · opacity used in this state`,
+    "history.entryThemeAdd": (args) => `Add theme: ${String(args?.name ?? "")}`,
+    "history.entryThemeRemove": (args) =>
+      `Remove theme: ${String(args?.name ?? "")}`,
+    "history.entryThemeRename": (args) =>
+      `Rename theme: ${String(args?.name ?? "")}`,
+    "history.entryThemeActivate": (args) =>
+      `Switch theme: ${String(args?.name ?? "")}`,
+    "history.entryThemeEdit": (args) => `Edit theme: ${String(args?.name ?? "")}`,
     "propertiesPanel.bindingUsedBy": (args) =>
       `Used by ${String(args?.count ?? 0)}`,
     "propertiesPanel.idUnique": (args) =>

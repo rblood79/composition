@@ -930,6 +930,17 @@ export const useCanonicalDocumentStore = create<CanonicalDocumentStore>(
         return { ...doc, pageGuides: next };
       });
     },
+
+    // ─────────────────────────────────────────────
+    // ADR-227 — 테마 컬렉션 root 필드 mutation
+    // ─────────────────────────────────────────────
+
+    setThemes: (themes) => {
+      mutateActiveDoc(set, "setThemes", (doc) => {
+        if (doc.themes === themes) return doc;
+        return { ...doc, themes };
+      });
+    },
   }),
 );
 

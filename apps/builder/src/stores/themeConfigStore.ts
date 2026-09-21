@@ -77,9 +77,24 @@ interface ThemeConfigState extends PersistedThemeConfig {
 // ============================================================================
 
 const STORAGE_KEY_PREFIX = "composition-theme-config-";
+/** ADR-227 — migration 전 legacy 실효값 백업 (rollback 용). */
+const LEGACY_BACKUP_SUFFIX = ".pre227";
 
 /** 현재 프로젝트 ID (persist 시 사용) */
 let currentProjectId: string | null = null;
+
+/**
+ * ADR-227 — 문서가 정본이 된 뒤의 localStorage 캐시 모양. `migrated` 가 있으면 legacy 실효값이
+ * 아니라 캐시다 (`readLegacyThemeConfig` 가 null 을 돌려준다).
+ */
+interface PersistedThemeCache {
+  migrated: true;
+  activeThemeId: string | null;
+}
+
+/** 문서 우선 전환 여부 (migration 저장 성공 뒤 true) + 활성 테마 id 캐시. */
+let documentOwned = false;
+let activeThemeIdCache: string | null = null;
 
 function getStorageKey(projectId: string): string {
   return `${STORAGE_KEY_PREFIX}${projectId}`;
@@ -91,32 +106,96 @@ function loadPersistedConfig(
   try {
     const raw = localStorage.getItem(getStorageKey(projectId));
     if (!raw) return null;
-    return JSON.parse(raw) as Partial<PersistedThemeConfig>;
+    const parsed = JSON.parse(raw) as
+      | Partial<PersistedThemeConfig>
+      | PersistedThemeCache;
+    if ((parsed as PersistedThemeCache).migrated === true) return null;
+    return parsed as Partial<PersistedThemeConfig>;
   } catch {
     return null;
   }
 }
 
-function persistConfig(projectId: string, state: PersistedThemeConfig): void {
+/**
+ * ADR-227 §3.2 — 같은 projectId 의 legacy 실효값 (tint · darkMode · neutral · radiusScale ·
+ * baseTypography). 이미 캐시 모양 (`migrated`) 이면 null — migration 입력으로만 쓴다.
+ */
+export function readLegacyThemeConfig(
+  projectId: string,
+): Partial<PersistedThemeConfig> | null {
+  return loadPersistedConfig(projectId);
+}
+
+/**
+ * ADR-227 — canonical 문서 저장 성공 뒤 호출: legacy 실효값을 `.pre227` 로 백업하고 캐시
+ * 모양으로 축소한다 (이후 setter 의 persist 는 캐시만 쓴다). 저장 실패면 부르지 않는다 —
+ * legacy 값이 그대로 남아 다음 부팅이 다시 migration 을 시도한다.
+ */
+export function markThemeDocumentOwned(
+  projectId: string,
+  activeThemeId: string | null,
+): void {
+  documentOwned = true;
+  activeThemeIdCache = activeThemeId;
+  try {
+    const key = getStorageKey(projectId);
+    const raw = localStorage.getItem(key);
+    if (raw && !raw.includes('"migrated":true')) {
+      localStorage.setItem(`${key}${LEGACY_BACKUP_SUFFIX}`, raw);
+    }
+  } catch {
+    // 백업 실패는 무시 — 캐시 축소는 아래 persist 가 한다
+  }
+  persistCurrentConfig();
+}
+
+/** ADR-227 — 활성 테마 전환 시 캐시 갱신 (문서가 정본, 캐시는 힌트). */
+export function markThemeActiveCache(activeThemeId: string | null): void {
+  activeThemeIdCache = activeThemeId;
+  if (documentOwned) persistCurrentConfig();
+}
+
+/** 테스트 전용 — 모듈 상태 초기화. */
+export function resetThemeDocumentOwnershipForTest(): void {
+  documentOwned = false;
+  activeThemeIdCache = null;
+  currentProjectId = null;
+}
+
+function persistConfig(
+  projectId: string,
+  state: PersistedThemeConfig | PersistedThemeCache,
+): void {
   try {
     localStorage.setItem(
       getStorageKey(projectId),
-      JSON.stringify({
-        tint: state.tint,
-        darkMode: state.darkMode,
-        neutral: state.neutral,
-        radiusScale: state.radiusScale,
-        baseTypography: state.baseTypography,
-      }),
+      JSON.stringify(
+        "migrated" in state
+          ? { migrated: true, activeThemeId: state.activeThemeId }
+          : {
+              tint: state.tint,
+              darkMode: state.darkMode,
+              neutral: state.neutral,
+              radiusScale: state.radiusScale,
+              baseTypography: state.baseTypography,
+            },
+      ),
     );
   } catch {
     // localStorage full — 무시
   }
 }
 
-/** 현재 프로젝트에 설정 영속화 (set 액션 내부에서 호출) */
+/** 현재 프로젝트에 설정 영속화 (set 액션 내부에서 호출) — 문서 우선이면 캐시만. */
 function persistCurrentConfig(): void {
   if (!currentProjectId) return;
+  if (documentOwned) {
+    persistConfig(currentProjectId, {
+      migrated: true,
+      activeThemeId: activeThemeIdCache,
+    });
+    return;
+  }
   const { tint, darkMode, neutral, radiusScale, baseTypography } =
     useThemeConfigStore.getState();
   persistConfig(currentProjectId, {
@@ -274,6 +353,9 @@ export const useThemeConfigStore = create<ThemeConfigState>()(
 
       initThemeConfig: (projectId: string) => {
         currentProjectId = projectId;
+        // ADR-227 — 프로젝트마다 문서 우선 여부를 다시 판정한다 (migration 이 markThemeDocumentOwned).
+        documentOwned = false;
+        activeThemeIdCache = null;
 
         const persisted = loadPersistedConfig(projectId);
 
@@ -355,3 +437,9 @@ export function resolveSkiaTheme(pref: DarkModePreference): "light" | "dark" {
 
 export const useResolvedSkiaTheme = () =>
   useThemeConfigStore((s) => resolveSkiaTheme(s.darkMode));
+
+// dev 전용 디버그 전역 — live 하니스가 런타임 파생값 (ADR-227 문서 → store) 을 읽는 진입점.
+if (typeof window !== "undefined" && import.meta.env?.DEV) {
+  (window as unknown as Record<string, unknown>).__composition_THEME_CONFIG__ =
+    useThemeConfigStore;
+}

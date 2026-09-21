@@ -256,6 +256,12 @@ export interface TranslationKeys {
     entryGuideRemove: string;
     entryGuideRemoveCount: string;
     entryGuideMove: string;
+    /** ADR-227 — 테마 history entry 라벨 (`{name}`) */
+    entryThemeAdd: string;
+    entryThemeRemove: string;
+    entryThemeRename: string;
+    entryThemeActivate: string;
+    entryThemeEdit: string;
     entrySnapshotRestore: string;
     entrySnapshotRestoreNamed: string;
     entryPageAdd: string;

@@ -263,6 +263,40 @@ function applyPageGuideHistoryEntry(
 }
 
 /**
+ * ADR-227 — `theme` entry 적용 (undo/redo/goToIndex 공용).
+ *
+ * `page-guide` 와 같은 비-element 축 — canonical `themes` root 만 되돌리고 (스토어 미러 없음)
+ * 런타임 themeConfigStore 는 활성 테마에서 다시 파생한다 (`applyActiveThemeToRuntime`).
+ * 적용기는 순환 import 을 피하려고 등록 콜백이다 (BuilderCore 가 `registerThemeHistoryApplier`).
+ */
+function applyThemeHistoryEntry(
+  entry: NonNullable<ReturnType<typeof historyManager.undo>>,
+  direction: "undo" | "redo",
+): void {
+  const event = entry.data.themeEvent;
+  if (!event) return;
+  const next = direction === "undo" ? event.before : event.after;
+  useCanonicalDocumentStore.getState().setThemes(next);
+  themeHistoryApplier?.(next);
+  queueMicrotask(() => {
+    void persistActiveCanonicalDocument().catch((error) => {
+      console.error("[applyThemeHistoryEntry] DB persist:", error);
+    });
+  });
+}
+
+let themeHistoryApplier:
+  | ((themes: import("@composition/shared").ThemesCollection) => void)
+  | null = null;
+
+/** ADR-227 — undo/redo 뒤 활성 테마를 런타임에 재적용하는 콜백 (BuilderCore 등록). */
+export function registerThemeHistoryApplier(
+  applier: ((themes: import("@composition/shared").ThemesCollection) => void) | null,
+): void {
+  themeHistoryApplier = applier;
+}
+
+/**
  * ADR-152 Phase 1c — `data` entry 적용 (undo/redo/goToIndex 공용).
  *
  * collection 축 — element 노드 · canonical 문서와 무관하다. undo 는 `inverse`,
@@ -587,6 +621,13 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
       return;
     }
 
+    // ADR-227: theme entry — canonical themes root 만 (early-branch)
+    if (entry.type === "theme") {
+      applyThemeHistoryEntry(entry, "undo");
+      set({ historyOperationInProgress: false });
+      return;
+    }
+
     if (entry.type === "page-title") {
       applyPageTitleHistoryEntry(set, get, entry, "undo");
       set({ historyOperationInProgress: false });
@@ -725,6 +766,13 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
     // redo = afterSnapshot 재적용 (persist 포함, snapshotRestore.ts)
     if (entry.type === "snapshot-restore") {
       await applySnapshotRestoreHistoryEntry(get, entry, "redo");
+      set({ historyOperationInProgress: false });
+      return;
+    }
+
+    // ADR-227: theme entry — canonical themes root 만 (early-branch)
+    if (entry.type === "theme") {
+      applyThemeHistoryEntry(entry, "redo");
       set({ historyOperationInProgress: false });
       return;
     }
@@ -871,6 +919,11 @@ export const createGoToHistoryIndexAction =
           applyPageGuideHistoryEntry(get, entry, direction);
           continue;
         }
+        // ADR-227: theme 도 동일 — canonical themes root 만 (스토어 미러 없음)
+        if (entry.type === "theme") {
+          applyThemeHistoryEntry(entry, direction);
+          continue;
+        }
         // ADR-185 G-1: page-lifecycle 도 element 경로 미진입 — 자체 적용 후
         // 누적 기준을 store 에서 재취득 (snapshot-restore 동형). 스택 내
         // index 산술 보존을 위해 이관은 생략 (migrate: false — 함수 doc 참조).
@@ -1011,6 +1064,8 @@ async function syncDatabaseForEntries(
     // ADR-181: page-guide 도 동일 — persist 는 applyPageGuideHistoryEntry 가
     // 자체 수행 (elementId=pageId 오인 방지).
     if (entry.type === "page-guide") continue;
+    // ADR-227: theme 도 동일 — persist 는 applyThemeHistoryEntry 가 자체 수행 (elementId=themeId 무해값).
+    if (entry.type === "theme") continue;
     // ADR-180: snapshot-restore 도 동일 — persist 는 applySnapshotDocument 가
     // allowShrink 명시로 자체 수행 (elementId=pageId 무해값).
     if (entry.type === "snapshot-restore") continue;

@@ -4,7 +4,7 @@
 
 Accepted — 2026-09-22 (Proposed 2026-09-20 · 사용자 `/execute-adr 227` 착수 · 리뷰 round 1 4건 fixed → round 2 pending 0)
 
-**Phase 0 (G0) 완료 2026-09-22** — 재실측 F1~F18 (breakdown §8): `doc.themes`/`doc.tokens` 는 production 에서 한 번도 쓰이지 않아 기존 문서 100% 가 themes 부재 (실전 migration 경로 = localStorage → 컬렉션 1행) · write-through flag 는 어디에도 없음 (항상 off) · DOM 채널 = `THEME_VARS` postMessage · Skia 채널 = specs 맵 mutation (resolveToken 소비자 21 파일이 같은 맵) · focus 는 DOM 만 (ADR-150) · border inventory 48+6+8+2 (+ outline 17 예외) · Components 페이지는 228~230 으로 이미 전집 (R5 해소) · 변경 파일 39. G1~G5 는 UNVERIFIED.
+**Phase 0 (G0) 완료 2026-09-22** — 재실측 F1~F18 (breakdown §8): `doc.themes`/`doc.tokens` 는 production 에서 한 번도 쓰이지 않아 기존 문서 100% 가 themes 부재 (실전 migration 경로 = localStorage → 컬렉션 1행) · write-through flag 는 어디에도 없음 (항상 off) · DOM 채널 = `THEME_VARS` postMessage · Skia 채널 = specs 맵 mutation (resolveToken 소비자 21 파일이 같은 맵) · focus 는 DOM 만 (ADR-150) · border inventory 48+6+8+2 (+ outline 17 예외) · Components 페이지는 228~230 으로 이미 전집 (R5 해소) · 변경 파일 39. **Phase 1 (G1) 완료 2026-09-22** — `ThemesCollection` 스키마 · shared 순수 migration (행렬 5행 · 델타 분할 · 멱등) · canonical `setThemes` + history `theme` entry (undo/redo) · `themeActions` 문서 우선 쓰기 (ThemesPanel 배선) · BuilderCore 승계 (저장 성공 뒤 legacy 백업 `.pre227` + 캐시 축소) · unit 29 · live 6/6 (breakdown §9). G2~G5 는 UNVERIFIED.
 
 설계 요청: 사용자 (2026-09-20) — "RAC 는 headless 라 기본 구조만 SSOT 로 정의하고 스타일은 theme 로. Components 페이지에서 기본 요소가 보이고 theme 를 선택하면 color · border 등이 바뀌는, Figma / Framer / 다른 웹빌더와 같은 기능." 코드 실측 결과 catalog rule 은 이미 TokenRef 만 들고 있어 그 골격은 있으나, theme 쪽이 "이름 있는 값 세트 여러 개" 가 아니라 프리셋 4 값 하나다.
 

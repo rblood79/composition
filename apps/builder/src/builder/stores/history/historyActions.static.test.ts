@@ -326,3 +326,30 @@ describe("ADR-152: data entry 소비 지점 6곳 (R9)", () => {
     expect(panel).toContain("data: Database");
   });
 });
+
+describe("ADR-227: theme entry 소비 지점 (page-guide 동형 — 비-element 축)", () => {
+  const readSource = (relativePath: string) =>
+    readFile(resolve(__dirname, relativePath), "utf-8");
+
+  it("undo/redo/goToIndex early-branch + syncDatabaseForEntries skip + addEntry DEV guard 면제 + 라벨/아이콘", async () => {
+    const source = await readSource("historyActions.ts");
+    expect(source).toContain("function applyThemeHistoryEntry");
+    expect(source).toContain(".setThemes(");
+    expect(source).toContain("registerThemeHistoryApplier");
+    const branches = [...source.matchAll(/entry\.type === "theme"/g)];
+    expect(branches.length).toBeGreaterThanOrEqual(4);
+    expect(source).toContain(
+      'if (entry.type === "theme") {\n          applyThemeHistoryEntry(entry, direction);\n          continue;\n        }',
+    );
+    expect(source).toContain('if (entry.type === "theme") continue;');
+    const history = await readSource("../history.ts");
+    expect(history).toContain('entry.type !== "theme"');
+    const label = await readSource("../../panels/history/historyEntryLabel.ts");
+    expect(label).toContain('case "theme"');
+    for (const key of ["Add", "Remove", "Rename", "Activate", "Edit"]) {
+      expect(label).toContain(`history.entryTheme${key}`);
+    }
+    const idb = await readSource("historyIndexedDB.ts");
+    expect(idb).toContain('case "theme"');
+  });
+});

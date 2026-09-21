@@ -19,6 +19,7 @@ import {
   type ResolvedTokenMap,
 } from "../variablesAdapter";
 import { legacyToCanonical } from "../index";
+import { getActiveTheme } from "@composition/shared";
 import { convertComponentRole } from "../componentRoleAdapter";
 import { convertPageLayout } from "../slotAndLayoutAdapter";
 import { resolveToken } from "@composition/specs";
@@ -242,7 +243,7 @@ describe("legacyToCanonical + getTokens (ADR-110 Phase 1)", () => {
 
     expect(doc.themes).toBeDefined();
     expect(doc.tokens).toBeDefined();
-    expect(doc.themes?.tint).toBe("blue");
+    expect(getActiveTheme(doc)?.preset.tint).toBe("blue");
     expect(readCanonicalTokens(doc)?.["color.accent"]?.value).toBe("#0070f3");
   });
 

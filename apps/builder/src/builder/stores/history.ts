@@ -57,6 +57,22 @@ export interface PagePositionHistoryEntryItem {
  * 구분되지 않기 때문이다 (C9 — `setPageGuides` 가 빈 목록을 받으면 entry 를
  * 지우고, hydrate 는 부재를 빈 목록으로 읽는다). 따라서 `[]` 하나로 충분하다.
  */
+/** ADR-227 — 테마 컬렉션 변경 1건 (조작 종류는 라벨용). */
+export interface ThemeHistoryEvent {
+  kind:
+    | "add"
+    | "remove"
+    | "rename"
+    | "activate"
+    | "preset"
+    | "token"
+    | "duplicate";
+  before: import("@composition/shared").ThemesCollection;
+  after: import("@composition/shared").ThemesCollection;
+  /** 라벨용 사본 — 항목 삭제 뒤에도 이름 유지 */
+  themeName: string;
+}
+
 export interface PageGuideHistoryEntryItem {
   pageId: string;
   breakpoint: import("@composition/shared").BreakpointName;
@@ -122,7 +138,8 @@ export interface HistoryEntry {
     | "page-guide"
     | "page-lifecycle"
     | "snapshot-restore"
-    | "data";
+    | "data"
+    | "theme";
   /**
    * element 노드 id — `page-position` entry 는 첫 pageId 를 넣는다 (소비자
    * 미해석 무해값, ADR-177 breakdown §5 C5). `data` entry 는 첫 collectionId.
@@ -167,6 +184,12 @@ export interface HistoryEntry {
      * `pagePositionEvent` 가 스토어 스냅샷을 함께 되돌리는 것과 갈리는 지점.
      */
     pageGuideEvent?: { entries: PageGuideHistoryEntryItem[] };
+    /**
+     * **ADR-227** — `type: "theme"` 전용 payload. `pageGuideEvent` 와 같은 비-element 축
+     * (canonical `themes` root 만, 스토어 미러 없음 — 런타임 themeConfigStore 는 파생).
+     * 컬렉션 전체 before/after (N × 델타라 작다) — undo/redo 는 `setThemes` + 활성 테마 재적용.
+     */
+    themeEvent?: ThemeHistoryEvent;
     /**
      * **ADR-180** — `type: "snapshot-restore"` 전용 payload. 직렬화 본 없이
      * 스냅샷 참조 id 만 담는다 (undo = before / redo = after 재적용 —
@@ -585,6 +608,7 @@ export class HistoryManager {
       entry.type !== "page-lifecycle" &&
       entry.type !== "snapshot-restore" &&
       entry.type !== "data" &&
+      entry.type !== "theme" &&
       !entry.data.canonicalEvents?.length
     ) {
       console.warn(

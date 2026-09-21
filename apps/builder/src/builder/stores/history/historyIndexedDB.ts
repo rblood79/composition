@@ -82,6 +82,8 @@ export function isCanonicalHistoryEntry(entry: HistoryEntry): boolean {
       return entry.data.snapshotRestoreEvent !== undefined;
     case "data":
       return entry.data.dataChangeEvent !== undefined;
+    case "theme":
+      return entry.data.themeEvent !== undefined;
     default:
       return false;
   }

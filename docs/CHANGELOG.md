@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-227 Phase 1 — 테마 컬렉션 스키마 · migration · 문서 우선 쓰기] - 2026-09-22
+
+### Changed
+
+- **테마 설정의 정본이 문서로**: `CompositionDocument.themes` 가 이름 있는 테마 컬렉션 (`{ active, items, order }` — 항목 = preset + seed 와 다른 델타) 이 됐다. 기존 프로젝트는 처음 열 때 localStorage 실효값 (tint · dark · neutral · radius · 기본 서체) 을 Default 테마로 1회 승계하고 (저장 성공 뒤 `.pre227` 백업 + 캐시 축소), 이후 Themes 패널 편집은 문서에 기록되며 **Undo/Redo 와 새로고침 보존** 이 된다 (history `테마 편집: Default`). 시각 변화 0 (같은 값 승계).
+  - 위치: `packages/shared/src/theme/themesCollection.ts` · `apps/builder/src/adapters/canonical/themesAdapter.ts` · `stores/canonical/canonicalDocumentStore.ts` (`setThemes`) · `stores/history/historyActions.ts` (`theme` entry) · `panels/themes/themeActions.ts` · `builder/main/BuilderCore.tsx` · `stores/themeConfigStore.ts`.
+  - 하니스: `apps/builder/scripts/adr227-themes-migration-live.mjs` 6/6.
+
 ## [ADR-227 Accepted + Phase 0 — 다중 테마 inventory freeze] - 2026-09-22
 
 ### Changed

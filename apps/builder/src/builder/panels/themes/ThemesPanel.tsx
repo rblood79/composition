@@ -34,6 +34,10 @@ import {
 } from "../../components";
 import { MiniThemePreview } from "./MiniThemePreview";
 import { useThemeMessenger } from "../../hooks/useThemeMessenger";
+import {
+  setActiveThemeBaseTypography,
+  setActiveThemePreset,
+} from "./themeActions";
 import { DEFAULT_BASE_TYPOGRAPHY } from "../../fonts/customFonts";
 import "./ThemesPanel.css";
 
@@ -246,59 +250,59 @@ function ThemesContent() {
 
   const isDark = darkMode === "dark";
 
+  // ADR-227 Phase 1 — 쓰기는 문서 우선: canonical themes 컬렉션 (활성 테마 preset/델타) + history +
+  //   persist 를 `themeActions` 가 한 묶음으로 내고, 런타임 store 는 거기서 파생된다. migration 전
+  //   (컬렉션 부재) 이면 종전대로 store 만 (false 반환) — 로드 직후 잠깐의 창.
   const handleDarkModeToggle = useCallback(
     (isSelected: boolean) => {
-      setDarkMode(isSelected ? "dark" : "light");
+      const darkMode = isSelected ? "dark" : "light";
+      if (!setActiveThemePreset({ darkMode })) setDarkMode(darkMode);
     },
     [setDarkMode],
   );
 
   const handleTintSelect = useCallback(
     (tint: TintPreset) => {
-      setTint(tint);
+      if (!setActiveThemePreset({ tint })) setTint(tint);
     },
     [setTint],
   );
 
   const handleNeutralSelect = useCallback(
     (preset: NeutralPreset) => {
-      setNeutral(preset);
+      if (!setActiveThemePreset({ neutral: preset })) setNeutral(preset);
     },
     [setNeutral],
   );
 
   const handleRadiusChange = useCallback(
     (value: string) => {
-      setRadiusScale(value as RadiusScale);
+      if (!setActiveThemePreset({ radiusScale: value })) {
+        setRadiusScale(value as RadiusScale);
+      }
     },
     [setRadiusScale],
   );
 
-  // ADR-056 Phase 3+4: Typography 핸들러 — store 업데이트 + Preview postMessage 동시
+  // ADR-056 Phase 3+4: Typography 핸들러 — 문서 (테마 델타) + Preview postMessage 동시
+  const applyTypography = useCallback(
+    (patch: Partial<typeof baseTypography>) => {
+      if (!setActiveThemeBaseTypography(patch)) setBaseTypography(patch);
+      sendBaseTypography({ ...baseTypography, ...patch });
+    },
+    [setBaseTypography, sendBaseTypography, baseTypography],
+  );
   const handleFontFamilyChange = useCallback(
-    (value: string) => {
-      setBaseTypography({ fontFamily: value });
-      sendBaseTypography({ ...baseTypography, fontFamily: value });
-    },
-    [setBaseTypography, sendBaseTypography, baseTypography],
+    (value: string) => applyTypography({ fontFamily: value }),
+    [applyTypography],
   );
-
   const handleBaseFontSizeChange = useCallback(
-    (value: string) => {
-      const fontSize = Number(value);
-      setBaseTypography({ fontSize });
-      sendBaseTypography({ ...baseTypography, fontSize });
-    },
-    [setBaseTypography, sendBaseTypography, baseTypography],
+    (value: string) => applyTypography({ fontSize: Number(value) }),
+    [applyTypography],
   );
-
   const handleLineHeightChange = useCallback(
-    (value: string) => {
-      const lineHeight = Number(value);
-      setBaseTypography({ lineHeight });
-      sendBaseTypography({ ...baseTypography, lineHeight });
-    },
-    [setBaseTypography, sendBaseTypography, baseTypography],
+    (value: string) => applyTypography({ lineHeight: Number(value) }),
+    [applyTypography],
   );
 
   return (
