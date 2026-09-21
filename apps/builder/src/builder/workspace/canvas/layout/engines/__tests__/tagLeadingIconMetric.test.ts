@@ -3,6 +3,10 @@ import { describe, expect, it } from "vitest";
 import { resolveComponentRule } from "@composition/shared";
 
 import {
+  getTextMeasurer,
+  setTextMeasurer,
+} from "../../../utils/textMeasure";
+import {
   TAG_LEADING_AVATAR_GAP,
   TAG_LEADING_AVATAR_SIZE,
   TAG_LEADING_ICON_GAP,
@@ -160,5 +164,89 @@ describe("Tag leading avatar 폭 계약", () => {
       })),
     }).rowCount;
     expect(avatarRows).toBeGreaterThanOrEqual(iconRows);
+  });
+});
+
+/**
+ * ADR-229 Phase 3 (F28, live 실측 2026-09-21): Tag item origin 의 icon slot `fontSize` 20 을 Skia 가
+ * **그리기** 는 `_leadingSlotSize` 로 읽어 20 으로 그렸는데 chip **박스** 폭 (`calculateContentWidth`) 과
+ * wrap/maxRows 접힘 측정 (`resolveTagWrapLayout`) 은 상수 14 를 더해 Preview 보다 6px 좁았다 (Alpha 107
+ * vs 113). label slot `fontWeight` 700 도 접힘 측정만 400 으로 쟀다. 세 곳이 같은 숫자를 읽어야 한다.
+ */
+describe("ADR-229 Phase 3 — chip 박스 폭이 item template 의 slot 크기 · fontWeight 를 읽는다", () => {
+  it("resolveTagLeadingExtraWidth — slot 크기 인자가 상수를 덮는다 (icon 20 → 24 · avatar 24 → 28)", () => {
+    expect(resolveTagLeadingExtraWidth({ icon: "star" }, 20)).toBe(
+      20 + TAG_LEADING_ICON_GAP,
+    );
+    expect(resolveTagLeadingExtraWidth({ avatar: "/a.png" }, 24)).toBe(
+      24 + TAG_LEADING_AVATAR_GAP,
+    );
+    expect(resolveTagLeadingExtraWidth({ icon: "star" }, undefined)).toBe(
+      TAG_LEADING_ICON_SIZE + TAG_LEADING_ICON_GAP,
+    );
+  });
+
+  it("calculateContentWidth — chip props `_leadingSlotSize` 20 이면 폭이 14 기준보다 6 넓다", async () => {
+    const { calculateContentWidth } = await import("../utils");
+    const chip = (extra: Record<string, unknown>) =>
+      calculateContentWidth(
+        {
+          id: "chip",
+          type: "Tag",
+          props: {
+            children: "Alpha",
+            icon: "star",
+            size: "md",
+            style: { width: "fit-content" },
+            ...extra,
+          },
+        } as never,
+        [],
+      );
+    expect(chip({ _leadingSlotSize: 20 }) - chip({})).toBe(6);
+  });
+
+  it("resolveTagWrapLayout — leadingSlotSizes.icon 20 · chipStyle.fontWeight 700 이 접힘 판정에 반영된다", () => {
+    const items = Array.from({ length: 6 }, (_, i) => ({
+      label: `Tag label ${i}`,
+      icon: "star",
+    }));
+    const rows = (cw: number, extra: Record<string, unknown>) =>
+      resolveTagWrapLayout({
+        items,
+        containerWidth: cw,
+        sizeName: "md",
+        allowsRemoving: false,
+        maxRows: 0,
+        ...extra,
+      }).rowCount;
+    const widths = Array.from({ length: 60 }, (_, i) => 120 + i * 5);
+    // 어떤 컨테이너 폭에서는 icon 20 이 14 보다 한 줄 더 접힌다 (단조: 항상 ≥).
+    const iconRows = widths.map((cw) => [
+      rows(cw, {}),
+      rows(cw, { leadingSlotSizes: { icon: 20 } }),
+    ]);
+    expect(iconRows.every(([a, b]) => b >= a)).toBe(true);
+    expect(iconRows.some(([a, b]) => b > a)).toBe(true);
+    // fontWeight — 단위 환경 측정기는 weight 무감이라 weight 를 폭에 싣는 스텁으로 (700 = 1.2×).
+    const previous = getTextMeasurer();
+    setTextMeasurer({
+      measureWidth: (text, style) =>
+        text.length * 7 * (Number(style.fontWeight) >= 700 ? 1.2 : 1),
+      measureWrapped: (text, style) => ({
+        width: text.length * 7 * (Number(style.fontWeight) >= 700 ? 1.2 : 1),
+        height: style.fontSize ?? 14,
+      }),
+    });
+    try {
+      const boldRows = widths.map((cw) => [
+        rows(cw, {}),
+        rows(cw, { chipStyle: { fontWeight: 700 } }),
+      ]);
+      expect(boldRows.every(([a, b]) => b >= a)).toBe(true);
+      expect(boldRows.some(([a, b]) => b > a)).toBe(true);
+    } finally {
+      setTextMeasurer(previous);
+    }
   });
 });

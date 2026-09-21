@@ -147,10 +147,21 @@ export function parseArgs(argv) {
     throw new Error("cpu time domain");
   // ADR-228 G0/G4 — `buttons` (plain Button 격자) 와 `button-refs` (같은 격자를
   //   `component-button` origin 의 ref instance 로) 는 같은 시드의 ref 0% / 100% 두 arm.
+  // ADR-229 G3 — `forms` (Form origin subtree 를 plain 으로 펼친 격자) 와 `form-refs` (같은 격자를
+  //   `component-form` instance — 자식이 origin instance 라 3단 실체화) · `taggroups` / `taggroup-refs`
+  //   (8 item chip projection) 도 같은 시드의 ref 0% / 100% 두 arm.
   if (
-    !["mixed", "text", "refs", "buttons", "button-refs"].includes(
-      options.fixtureKind,
-    )
+    ![
+      "mixed",
+      "text",
+      "refs",
+      "buttons",
+      "button-refs",
+      "forms",
+      "form-refs",
+      "taggroups",
+      "taggroup-refs",
+    ].includes(options.fixtureKind)
   )
     throw new Error("fixture kind");
   if (!Number.isInteger(options.pages) || options.pages < 2)
@@ -446,6 +457,109 @@ export async function seedDocument(
         const isText = fixtureKind === "text" || i % 2 === 0;
         const col = i % 6,
           row = Math.floor(i / 6);
+        if (
+          fixtureKind === "forms" ||
+          fixtureKind === "form-refs" ||
+          fixtureKind === "taggroups" ||
+          fixtureKind === "taggroup-refs"
+        ) {
+          // ADR-229 G3: 조합 origin (Form · TagGroup) 격자 — ref arm 은 palette-add 와 같은 instance
+          //   (위치 · TagGroup items 만 소유), plain arm 은 origin subtree 를 ref 까지 펼친 plain 트리
+          //   (origin props ⊕ 자식 patch, 새 id). 같은 시각 결과의 ref 0% / 100%.
+          const isRef = fixtureKind.endsWith("-refs");
+          const isTag = fixtureKind.startsWith("taggroup");
+          const originId = isTag ? "component-taggroup" : "component-form";
+          const colW = isTag ? 520 : 460;
+          const rowH = isTag ? 120 : 340;
+          const cols = isTag ? 3 : 4;
+          const c = i % cols,
+            r = Math.floor(i / cols);
+          const ownProps = {
+            ...(isTag
+              ? {
+                  items: Array.from({ length: 8 }, (_, k) => ({
+                    id: `t${k}`,
+                    label: `Tag ${i}-${k}`,
+                    ...(k % 3 === 0 ? { icon: "star" } : {}),
+                  })),
+                  selectionMode: "multiple",
+                  maxRows: 0,
+                }
+              : {}),
+            style: {
+              position: "absolute",
+              left: `${20 + c * colW}px`,
+              top: `${20 + r * rowH}px`,
+              ...(isTag ? { width: "480px" } : {}),
+            },
+          };
+          if (isRef) {
+            missingElements.push({
+              id,
+              customId: id,
+              type: "ref",
+              ref: originId,
+              componentName: isTag ? "TagGroup" : "Form",
+              parent_id: body.id,
+              page_id: pageId,
+              order_num: i,
+              created_at: now,
+              updated_at: now,
+              props: ownProps,
+            });
+            continue;
+          }
+          const all = store.getState().elements;
+          const byId = new Map(all.map((e) => [e.id, e]));
+          const byParent = new Map();
+          for (const e of all) {
+            if (!e.parent_id) continue;
+            const list = byParent.get(e.parent_id) ?? [];
+            list.push(e);
+            byParent.set(e.parent_id, list);
+          }
+          const origin = byId.get(originId);
+          if (!origin) throw new Error(`${originId} origin 없음`);
+          let seq = 0;
+          const mergeProps = (base, patch) => ({
+            ...base,
+            ...patch,
+            ...(base?.style || patch?.style
+              ? { style: { ...(base?.style ?? {}), ...(patch?.style ?? {}) } }
+              : {}),
+          });
+          // plain 복제: ref 노드는 가리키는 origin subtree 로 펼친다 (props = origin ⊕ patch).
+          const clone = (src, dstId, dstParentId, propsPatch) => {
+            const target = src.type === "ref" ? byId.get(src.ref) : src;
+            if (!target) return;
+            const props = JSON.parse(
+              JSON.stringify(
+                mergeProps(
+                  src.type === "ref" ? (target.props ?? {}) : (src.props ?? {}),
+                  src.type === "ref" ? (src.props ?? {}) : {},
+                ),
+              ),
+            );
+            missingElements.push({
+              id: dstId,
+              customId: dstId,
+              type: target.type,
+              ...(target.slot !== undefined ? { slot: target.slot } : {}),
+              parent_id: dstParentId,
+              page_id: pageId,
+              order_num: dstParentId === body.id ? i : seq,
+              created_at: now,
+              updated_at: now,
+              props: propsPatch ? mergeProps(props, propsPatch) : props,
+            });
+            for (const child of byParent.get(target.id) ?? []) {
+              seq += 1;
+              clone(child, `${dstId}__${seq}`, dstId, null);
+            }
+          };
+          clone(origin, id, body.id, ownProps);
+          continue;
+        }
         if (fixtureKind === "buttons" || fixtureKind === "button-refs") {
           // ADR-228: 같은 격자를 plain Button (ref 0%) 또는 origin ref (ref 100%) 로.
           //   ref 는 palette-add 와 같은 instance 모양 — 명시 patch (위치·라벨) 만 소유.

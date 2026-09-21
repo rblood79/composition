@@ -136,10 +136,29 @@ async function seedArm(type, originId, arm, patch) {
       }
       // plain arm 은 type · props (· slot) 만 옮긴다 — legacy view 의 origin 필드 (componentRole
       //   "master" · masterId …) 가 따라오면 plain 이 origin 으로 읽혀 비교가 아니게 된다.
-      const strip = (e) => ({
-        type: e.type,
-        ...(e.slot !== undefined ? { slot: e.slot } : {}),
-      });
+      //   ADR-229 Phase 2 뒤 조합 origin 의 자식은 origin instance (`type:"ref"`) 라 그 자식만은
+      //   ref 가 가리키는 대상 (`ref` · instance 미러 · `descendants`) 을 같이 옮긴다 — 안 옮기면
+      //   대상 없는 ref 가 되어 plain 트리가 비어 비교가 아니게 된다 (Phase 3 parity 항목).
+      const strip = (e) =>
+        e.type === "ref"
+          ? {
+              type: "ref",
+              ref: e.ref,
+              componentRole: "instance",
+              masterId: e.ref,
+              ...(e.componentName !== undefined
+                ? { componentName: e.componentName }
+                : {}),
+              ...(e.name !== undefined ? { name: e.name } : {}),
+              ...(e.descendants !== undefined
+                ? { descendants: JSON.parse(JSON.stringify(e.descendants)) }
+                : {}),
+              ...(e.slot !== undefined ? { slot: e.slot } : {}),
+            }
+          : {
+              type: e.type,
+              ...(e.slot !== undefined ? { slot: e.slot } : {}),
+            };
       const originProps = JSON.parse(JSON.stringify(origin.props ?? {}));
       const rootProps = patch
         ? {

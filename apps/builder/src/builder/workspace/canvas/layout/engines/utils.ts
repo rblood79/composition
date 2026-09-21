@@ -86,6 +86,7 @@ import { resolveComponentRuleByTag } from "@composition/shared";
 // ADR-148 Phase 0 — projection 주입 slot 구성(_slots) gating (listbox_item escape 와 Layer D 대칭).
 import {
   isSlotEnabled,
+  readLeadingSlotSize,
   readSlotComposition,
   resolveBindingSelectionMode,
   resolveBindingSelectionStyle,
@@ -1020,12 +1021,21 @@ export const TAG_LEADING_AVATAR_GAP = 4;
  * chip 은 fit-content 라 이 값이 곧 시각 폭이다. 둘을 더하면(양쪽 다 있는 항목) 실제보다
  * 넓게 잡혀 행당 chip 수가 모자라고, 빼면 라벨이 잘린다.
  */
-export function resolveTagLeadingExtraWidth(item: {
-  icon?: string | null;
-  avatar?: string | null;
-}): number {
-  if (item.avatar) return TAG_LEADING_AVATAR_SIZE + TAG_LEADING_AVATAR_GAP;
-  if (item.icon) return TAG_LEADING_ICON_SIZE + TAG_LEADING_ICON_GAP;
+export function resolveTagLeadingExtraWidth(
+  item: {
+    icon?: string | null;
+    avatar?: string | null;
+  },
+  /**
+   * ADR-229 Phase 3 (F28) — item template origin 의 leading slot 자식 style 크기 (icon `fontSize` ·
+   * avatar `width`). Skia 그리기 (`_leadingSlotSize`) · DOM inline 과 같은 숫자 — 박스 폭도 같이 읽어야
+   * "20 으로 그렸는데 상자는 14" 발산이 없다. 없으면 catalog 상수.
+   */
+  slotSize?: number,
+): number {
+  if (item.avatar)
+    return (slotSize ?? TAG_LEADING_AVATAR_SIZE) + TAG_LEADING_AVATAR_GAP;
+  if (item.icon) return (slotSize ?? TAG_LEADING_ICON_SIZE) + TAG_LEADING_ICON_GAP;
   return 0;
 }
 
@@ -1154,6 +1164,11 @@ export function resolveTagWrapLayout(input: {
    * fold 판정·컨테이너 높이가 어긋나지 않는다 (ADR-907 Layer D 동일 resolver 원칙).
    */
   chipStyle?: Record<string, unknown> | null;
+  /**
+   * ADR-229 Phase 3 (F28) — item template 의 leading slot 크기 (`readLeadingSlotSize` 결과, 활성 slot 별).
+   * projection 이 chip 마다 `_leadingSlotSize` 로 싣는 값과 같은 원천 (owner TagList `_slots`).
+   */
+  leadingSlotSizes?: { icon?: number; avatar?: number } | null;
 }): {
   visibleItemCount: number;
   shouldShowAll: boolean;
@@ -1196,10 +1211,25 @@ export function resolveTagWrapLayout(input: {
     //   와 같은 toItemProjectionRow 로. 종전 `label || \`Tag ${i + 1}\`` 은 이 측정만의 기본 글자였다
     //   (빈 label 은 두 표면 모두 itemKey 를 그린다).
     const label = toItemProjectionRow(items[i], i).label;
-    const textWidth = measureTextWidth(label, fontSize, "Pretendard", 400);
+    // ADR-229 Phase 3 (F28) — label slot fontWeight 가 chip style 로 접혀 오면 (`resolveItemTemplateChipStyle`)
+    //   글자 폭도 그 weight 로 — 700 을 400 으로 재면 접힘 행 수가 DOM 과 갈린다.
+    const textWidth = measureTextWidth(
+      label,
+      fontSize,
+      "Pretendard",
+      parseNumericValue(input.chipStyle?.fontWeight) ?? 400,
+    );
     // 좌측 슬롯(avatar/icon) 보유 chip 은 그만큼 넓다 — 행 wrap/maxRows 접힘 판정이
     //   실제 배치와 어긋나지 않도록 같은 값을 더한다(DOM 미러 측정도 슬롯을 포함해야 정합).
-    const iconExtraWidth = resolveTagLeadingExtraWidth(items[i]);
+    const item = items[i];
+    const iconExtraWidth = resolveTagLeadingExtraWidth(
+      item,
+      item.avatar
+        ? input.leadingSlotSizes?.avatar
+        : item.icon
+          ? input.leadingSlotSizes?.icon
+          : undefined,
+    );
     const chipWidth =
       textWidth +
       chipSize.paddingLeft +
@@ -2307,11 +2337,20 @@ export function calculateContentWidth(
         //   "슬롯은 그렸는데 박스가 좁아 라벨이 잘리는" 발산이 안 생긴다. avatar > icon
         //   우선순위도 `resolveLeadingSlot`/`renderTagLeadingSlot` 과 같다.
         const tagProps = element.props as
-          { icon?: unknown; avatar?: unknown } | undefined;
-        removeExtra += resolveTagLeadingExtraWidth({
-          icon: typeof tagProps?.icon === "string" ? tagProps.icon : null,
-          avatar: typeof tagProps?.avatar === "string" ? tagProps.avatar : null,
-        });
+          | { icon?: unknown; avatar?: unknown; _leadingSlotSize?: unknown }
+          | undefined;
+        removeExtra += resolveTagLeadingExtraWidth(
+          {
+            icon: typeof tagProps?.icon === "string" ? tagProps.icon : null,
+            avatar:
+              typeof tagProps?.avatar === "string" ? tagProps.avatar : null,
+          },
+          // ADR-229 Phase 3 (F28) — projection 이 실은 template slot 크기 (그리기와 같은 숫자).
+          typeof tagProps?._leadingSlotSize === "number" &&
+            tagProps._leadingSlotSize > 0
+            ? tagProps._leadingSlotSize
+            : undefined,
+        );
       }
 
       // minWidth 적용: totalWidth = contentWidth + padding >= minWidth
@@ -3111,6 +3150,14 @@ export function calculateContentHeight(
         ? (chipTemplateStyle as Record<string, unknown>)
         : null;
     const templateFontSize = parsePxValue(chipStyle?.fontSize, NaN);
+    // ADR-229 Phase 3 (F28) — owner TagList `_slots` (projection 주입) 의 leading slot 크기.
+    const chipSlots = readSlotComposition(props?._slots);
+    const leadingSlotSizes = chipSlots
+      ? {
+          icon: readLeadingSlotSize(chipSlots.slots.icon?.style, "icon"),
+          avatar: readLeadingSlotSize(chipSlots.slots.avatar?.style, "avatar"),
+        }
+      : null;
     const { contentHeight } = resolveTagWrapLayout({
       items,
       containerWidth:
@@ -3123,6 +3170,7 @@ export function calculateContentHeight(
         (Number.isFinite(templateFontSize) ? templateFontSize : undefined) ??
         chipSize.fontSize,
       chipStyle,
+      leadingSlotSizes,
     });
     return contentHeight;
   }
