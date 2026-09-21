@@ -646,3 +646,26 @@ describe("shouldClearSideLabelTagGroupHeight — side-label preserve height 제�
     expect(shouldClearSideLabelTagGroupHeight(undefined)).toBe(false);
   });
 });
+
+/**
+ * 2026-09-21 사용자 보고 (TagGroup chip 이 캔버스에서 24px 로 접힘): 분류표 키가 `type` 이라 Tag 가
+ * 측정 leaf 집합 (`INTRINSIC_MEASURE_TAGS`) 에 없었고, 09-19 「자식 0 컨테이너도 엔진 소유」 가
+ * `width:fit-content` chip 을 content 0 으로 넘겼다. 원복 시 첫 단언 RED.
+ */
+describe("Tag chip 은 측정 leaf 다 (분류표 키 `tag`)", () => {
+  it("INTRINSIC_MEASURE_TAGS 에 tag 가 있고 chip 폭 = 글자 + padding 이다", async () => {
+    const { INTRINSIC_MEASURE_TAGS, calculateContentWidth } = await import("../utils");
+    expect(INTRINSIC_MEASURE_TAGS.has("tag")).toBe(true);
+    expect(INTRINSIC_MEASURE_TAGS.has("type")).toBe(false);
+    const width = calculateContentWidth(
+      {
+        id: "chip",
+        type: "Tag",
+        props: { children: "Chocolate", size: "md", style: { width: "fit-content" } },
+      } as unknown as Element,
+      [],
+    );
+    // 글자 폭 (Chocolate ≈ 60px+) 이 실려야 한다 — padding 만이면 24.
+    expect(width).toBeGreaterThan(24);
+  });
+});

@@ -225,6 +225,56 @@ async function instancePatch(originId, initialProps) {
  * Skia leg 픽셀 — 캔버스 픽셀은 페이지 안에서 못 읽는다 (preserveDrawingBuffer:false) → Playwright
  * 스크린샷. 선택 overlay · 패널 DOM 이 같이 찍히므로 선택은 비우고 rail 패널은 루프 전에 닫는다.
  */
+/**
+ * stage 를 캔버스 뷰포트 안에 둔다 — 현재 페이지는 Components 페이지 아래 (y ≈ 1160) 라 기본 카메라
+ * 에서는 화면 밖이고, 그 상태의 캔버스 스크린샷은 두 arm 모두 빈 화면이라 픽셀 비교가 공허했다
+ * (round 3 첫 실행의 함정). stage (page-local 0,0) 를 캔버스 (100, 140) 에 놓는다.
+ */
+async function focusStage() {
+  const applied = await page.evaluate((stageId) => {
+    const st = window.__composition_STORE__.getState();
+    const stage = st.elements.find((e) => e.id === stageId);
+    const positions = st.pagePositions;
+    const pos = (positions instanceof Map
+      ? positions.get(stage.page_id)
+      : positions?.[stage.page_id]) ?? { x: 0, y: 0 };
+    const l = window.__composition_LAYOUT_DEBUG__
+      ?.getSharedLayoutMap?.()
+      .get(stageId);
+    const sx = pos.x + (l?.x ?? 0);
+    const sy = pos.y + (l?.y ?? 0);
+    window.__composition_APPLY_VIEWPORT__?.({
+      scale: 1,
+      x: 100 - sx,
+      y: 140 - sy,
+    });
+    return { sx, sy };
+  }, STAGE_ID);
+  await page.waitForTimeout(800);
+  const viewport = await page.evaluate(
+    () => window.__composition_VIEWPORT__?.() ?? null,
+  );
+  Object.assign(applied, { viewport });
+  log(`stage focused ${JSON.stringify(applied)}`);
+}
+
+/** 캡처가 공허하지 않은지 — 배경과 다른 픽셀이 있어야 한다 (첫 target 에서 한 번 검사). */
+function nonBackgroundPixels(png) {
+  const p = PNG.sync.read(png);
+  const bg = [p.data[0], p.data[1], p.data[2]];
+  let n = 0;
+  for (let i = 0; i < p.data.length; i += 4) {
+    if (
+      Math.abs(p.data[i] - bg[0]) +
+        Math.abs(p.data[i + 1] - bg[1]) +
+        Math.abs(p.data[i + 2] - bg[2]) >
+      24
+    )
+      n++;
+  }
+  return n;
+}
+
 async function skiaCapture() {
   await page.evaluate(() =>
     window.__composition_STORE__.getState().setSelectedElement(null),
@@ -458,6 +508,8 @@ try {
   await ensureStage();
 
   await closeRailPanels();
+  await focusStage();
+  let blankChecked = false;
   const originIds = await page.evaluate(() => {
     const st = window.__composition_STORE__.getState();
     const body = st.elements.find((e) => e.id === "page-components-body");
@@ -565,6 +617,15 @@ try {
       refRects.length > 0 &&
       JSON.stringify(refRects) === JSON.stringify(plainRects);
     const skiaPx = pixelDiff(ref.skiaPng, plain.skiaPng);
+    if (!blankChecked) {
+      blankChecked = true;
+      const n = nonBackgroundPixels(ref.skiaPng);
+      record(
+        "Skia 픽셀 leg 가 공허하지 않다 (첫 target ref arm 에 배경 외 픽셀)",
+        n > 200,
+        `non-background px ${n}`,
+      );
+    }
     writeFileSync(
       resolve(OUT_DIR, `${target.label.replace(":", "-")}-skia-ref.png`),
       ref.skiaPng,

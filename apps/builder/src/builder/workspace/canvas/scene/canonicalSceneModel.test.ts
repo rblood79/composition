@@ -517,3 +517,156 @@ describe("buildCanonicalSceneModel — ADR-127 Phase 2 (canonical-native)", () =
   });
 });
 
+
+describe("ADR-228 — 자식 소유 projection (TagGroup › TagList) 의 ref instance override", () => {
+  // 재현 (2026-09-21 사용자 보고): home 에 TagGroup instance 를 놓고 Properties 「Add Tag」 → instance
+  //   override `items:[New Tag]` 는 저장되고 Preview 는 New Tag 를 그리는데 캔버스는 origin 의 chip 그대로.
+  //   chip 은 자식 TagList 의 projection 인데, instance 의 synthetic TagList 는 origin 문서의 TagGroup 을
+  //   owner 로 찾아 origin items 를 그린다 (또는 아무것도 못 그린다) — instance 의 resolved items 를 읽어야 한다.
+  const document: CompositionDocument = {
+    version: "composition-1.0",
+    children: [
+      {
+        id: "page-components",
+        type: "frame",
+        metadata: { type: "legacy-page", pageId: "page-components" },
+        children: [
+          {
+            id: "page-components-body",
+            type: "Body",
+            props: {},
+            children: [
+              {
+                id: "component-taggroup",
+                type: "TagGroup",
+                reusable: true,
+                props: {
+                  label: "Tag Group",
+                  items: [
+                    { id: "a", label: "Alpha" },
+                    { id: "b", label: "Beta" },
+                    { id: "c", label: "Gamma" },
+                  ],
+                },
+                children: [
+                  { id: "component-taggroup__1", type: "Label", props: {} },
+                  {
+                    id: "component-taggroup__2",
+                    type: "TagList",
+                    props: {
+                      items: [
+                        { id: "a", label: "Alpha" },
+                        { id: "b", label: "Beta" },
+                        { id: "c", label: "Gamma" },
+                      ],
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      {
+        id: "page-1",
+        type: "frame",
+        metadata: { type: "legacy-page", pageId: "page-1" },
+        children: [
+          {
+            id: "body-1",
+            type: "Body",
+            props: {},
+            children: [
+              {
+                id: "tg-inst",
+                type: "ref",
+                ref: "component-taggroup",
+                name: "TagGroup",
+                props: { items: [{ id: "new", label: "New Tag" }] },
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  } as unknown as CompositionDocument;
+
+  const chipLabelsUnder = (
+    model: ReturnType<typeof buildCanonicalSceneModel>,
+    ownerPrefix: string,
+  ): string[] =>
+    [...model.sceneNodesMap.values()]
+      .filter(
+        (n) =>
+          n.projection?.kind === "tag-row" && String(n.id).startsWith(ownerPrefix),
+      )
+      .map((n) => String((n.props as { children?: unknown }).children));
+
+  it("instance 의 TagList chip 은 instance override items 로 그린다 (origin chip 상속 0)", () => {
+    const model = buildCanonicalSceneModel(document);
+    const originChips = chipLabelsUnder(model, "projection:tag-row:component-taggroup__2");
+    expect(originChips.sort()).toEqual(["Alpha", "Beta", "Gamma"]);
+    const instanceChips = [...model.sceneNodesMap.values()]
+      .filter((n) => n.projection?.kind === "tag-row" && String(n.id).includes("tg-inst"))
+      .map((n) => String((n.props as { children?: unknown }).children));
+    expect(instanceChips).toEqual(["New Tag"]);
+  });
+
+  it("Tabs instance 의 TabList tab 도 instance override items 로 그린다 (같은 경로)", () => {
+    const tabsDoc: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "component-tabs",
+          type: "Tabs",
+          reusable: true,
+          props: { items: [{ id: "t1", label: "One" }, { id: "t2", label: "Two" }] },
+          children: [
+            {
+              id: "component-tabs__1",
+              type: "TabList",
+              props: { items: [{ id: "t1", label: "One" }, { id: "t2", label: "Two" }] },
+            },
+          ],
+        },
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: "body-1",
+              type: "Body",
+              props: {},
+              children: [
+                {
+                  id: "tabs-inst",
+                  type: "ref",
+                  ref: "component-tabs",
+                  props: { items: [{ id: "x", label: "Only" }] },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument;
+    const model = buildCanonicalSceneModel(tabsDoc);
+    const tabs = [...model.sceneNodesMap.values()]
+      .filter((n) => n.projection?.kind === "tab-row" && String(n.id).includes("tabs-inst"))
+      .map((n) => String((n.props as { children?: unknown }).children));
+    expect(tabs).toEqual(["Only"]);
+  });
+
+  it("override 가 없으면 instance chip = origin items (상속)", () => {
+    const noOverride = JSON.parse(JSON.stringify(document)) as CompositionDocument;
+    const inst = (noOverride.children[1] as { children: { children: { props: unknown }[] }[] })
+      .children[0].children[0];
+    inst.props = {};
+    const model = buildCanonicalSceneModel(noOverride);
+    const instanceChips = [...model.sceneNodesMap.values()]
+      .filter((n) => n.projection?.kind === "tag-row" && String(n.id).includes("tg-inst"))
+      .map((n) => String((n.props as { children?: unknown }).children));
+    expect(instanceChips.sort()).toEqual(["Alpha", "Beta", "Gamma"]);
+  });
+});

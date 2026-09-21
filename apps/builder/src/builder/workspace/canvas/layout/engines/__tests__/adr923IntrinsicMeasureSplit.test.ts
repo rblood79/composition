@@ -86,7 +86,7 @@ describe("ADR-923 Phase 4 G5 — INLINE_BLOCK_TAGS 분류표 + INTRINSIC_MEASURE
         "fancybutton",
         "linkbutton",
         "submitbutton",
-        "type",
+        "tag",
       ].sort(),
     );
   });
@@ -226,7 +226,7 @@ describe("ADR-923 Phase 5 — resolveDefaultDisplay(type) (getElementDisplay 배
       "fancybutton",
       "linkbutton",
       "submitbutton",
-      "type",
+      "tag",
     ]);
     for (const [tag, c] of handEntries) {
       expect(resolveDefaultDisplay(tag), tag).toBe(c.handDisplay);

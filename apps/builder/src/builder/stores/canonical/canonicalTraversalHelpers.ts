@@ -33,6 +33,7 @@
  * - 자세한 schema: `packages/shared/src/types/composition-document.types.ts:206-284`
  */
 
+import { mergePropsWithStyleDeep } from "../../../adapters/canonical/instanceResolver";
 import type {
   CanonicalNode,
   CompositionDocument,
@@ -526,6 +527,24 @@ export function getFirstProjectableNodeById(
 ): CanonicalNode | null {
   const c = ensureCache();
   return c?.firstProjectableNodeById.get(nodeId)?.lookup.node ?? null;
+}
+
+/**
+ * ADR-228 (2026-09-21): ref instance 의 **유효 props** = origin root props ⊕ instance override (style 은
+ * deep). canonical 노드의 `props` 는 override 만이라 items 편집 (ItemsManager · store addItem) 이 raw 를
+ * 읽으면 instance 의 상속 항목이 0 으로 보이고 「Add」 가 상속 목록을 1개로 갈아치운다. 렌더 SSOT
+ * (`resolveCanonicalRefElement`) 와 같은 merge 다. origin 이 없거나 ref 가 아니면 그대로.
+ */
+export function getFirstProjectableNodeResolvedProps(
+  nodeId: string,
+): Record<string, unknown> | null {
+  const node = getFirstProjectableNodeById(nodeId);
+  if (!node) return null;
+  const ref = (node as { ref?: unknown }).ref;
+  if (node.type !== "ref" || typeof ref !== "string") return node.props ?? {};
+  const master = getFirstProjectableNodeById(ref);
+  if (!master || master.type === "ref") return node.props ?? {};
+  return mergePropsWithStyleDeep(master.props ?? {}, node.props ?? {});
 }
 
 /** 첫 projectable node와 legacy projection parent/scope를 O(1)로 반환한다. */

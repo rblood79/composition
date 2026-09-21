@@ -8,6 +8,7 @@ import {
 } from "../../../stores/canonical/canonicalElementsBridge";
 import {
   getFirstProjectableNodeLookupByReference,
+  getFirstProjectableNodeResolvedProps,
   getLastProjectableNodeById,
 } from "../../../stores/canonical/canonicalTraversalHelpers";
 import { getCanonicalRefTarget } from "../../../utils/canonicalRefResolution";
@@ -51,6 +52,22 @@ export function useCanonicalPropertyElement(
   }, [canonicalDocument, elementId]);
 
   return canonicalElement;
+}
+
+/**
+ * ADR-228: ref instance 의 유효 props (origin ⊕ override) 로 읽는 panel 노드. items 류 편집기가
+ * 상속 항목을 보고 그 위에 추가하도록 — 쓰기는 그대로 instance override 로 간다.
+ */
+export function useCanonicalPropertyResolvedElement(
+  elementId: string,
+): PanelNode | undefined {
+  const element = useCanonicalPropertyElement(elementId);
+  return useMemo(() => {
+    if (!element) return undefined;
+    const resolved = getFirstProjectableNodeResolvedProps(elementId);
+    if (!resolved || resolved === element.props) return element;
+    return { ...element, props: resolved } as PanelNode;
+  }, [element, elementId]);
 }
 
 function readCanonicalPropertyElementType(elementId: string): string | null {

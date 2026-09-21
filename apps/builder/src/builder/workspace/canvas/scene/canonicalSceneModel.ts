@@ -10,6 +10,7 @@ import { resolveCanonicalRefTree } from "../../../utils/canonicalRefResolution";
 import type { PageElementIndex } from "../../../stores/utils/elementIndexer";
 import {
   type CanvasSceneGraph,
+  appendRefInstanceChildProjections,
   buildCanvasSceneGraph,
   buildCanvasScenePageIndex,
   type CanvasSceneNode,
@@ -88,19 +89,31 @@ function buildSceneParentById(
   return parentById;
 }
 
-function resolveSceneGraph(graph: CanvasSceneGraph): CanvasSceneGraph {
+function resolveSceneGraph(
+  graph: CanvasSceneGraph,
+  options: BuildCanonicalSceneModelOptions,
+): CanvasSceneGraph {
   const resolved = resolveCanonicalRefTree({
     childrenMap: graph.childrenByParent,
     elements: graph.nodes,
     elementsMap: graph.nodesMap,
   });
 
-  return {
+  const resolvedGraph: CanvasSceneGraph = {
     childrenByParent: resolved.childrenMap,
     nodes: resolved.elements,
     nodesMap: resolved.elementsMap,
     parentById: buildSceneParentById(resolved.childrenMap),
   };
+  // ADR-228: ref instance 의 synthetic 자식 (TagList/TabList) 은 실체화가 scene visit 뒤라 자식 소유
+  //   projection 을 못 받는다 — resolved owner (instance) props 로 여기서 붙인다.
+  appendRefInstanceChildProjections(resolvedGraph, {
+    collections: options.collections,
+    collectionWindows: options.collectionWindows,
+    activeBreakpoint: options.activeBreakpoint,
+    projectVariables: options.projectVariables,
+  });
+  return resolvedGraph;
 }
 
 /**
@@ -187,6 +200,7 @@ export function buildCanonicalSceneModel(
       projectVariables: options.projectVariables,
       includeReusableFrames: true,
     }),
+    options,
   );
 
   return {

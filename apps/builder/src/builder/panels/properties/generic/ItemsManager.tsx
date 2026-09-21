@@ -19,7 +19,7 @@ import {
   PropertySelect,
   PropertyIconPicker,
 } from "../../../components";
-import { useCanonicalPropertyElement } from "../hooks/useCanonicalPropertyRead";
+import { useCanonicalPropertyResolvedElement } from "../hooks/useCanonicalPropertyRead";
 import { packHalfRows } from "./fieldEditor";
 import { resolveItemEditorIdentities } from "./itemsEditorIdentity";
 import { localizeSemanticLabel, useOptionalI18n } from "@/i18n";
@@ -424,7 +424,8 @@ export const ItemsManager = memo(function ItemsManager({
   const allowSeparators = field.allowSeparators ?? false;
   const sectionHasSelection = field.sectionHasSelection ?? false;
 
-  const element = useCanonicalPropertyElement(elementId);
+  // ADR-228: ref instance 는 origin ⊕ override 의 유효 items 를 보인다 (쓰기는 instance override).
+  const element = useCanonicalPropertyResolvedElement(elementId);
   const rawItems = useMemo(() => {
     const val = (element?.props as Record<string, unknown> | undefined)?.[
       itemsKey

@@ -40,7 +40,9 @@ describe("generic property editors canonical read contract", () => {
       "utf-8",
     );
 
-    expect(source).toContain("useCanonicalPropertyElement(elementId)");
+    // ADR-228 (2026-09-21): ref instance 는 origin ⊕ override 의 유효 items 를 보여야 한다 —
+    //   canonical 읽기는 유지하되 resolved 변형 hook 을 쓴다.
+    expect(source).toContain("useCanonicalPropertyResolvedElement(elementId)");
     expect(source).not.toContain("state.elementsMap.get(elementId)");
   });
 });

@@ -80,6 +80,7 @@ import {
 } from "./canonical/canonicalElementsView";
 import {
   getFirstProjectableNodeById,
+  getFirstProjectableNodeResolvedProps,
   getLastProjectableNodeLookupById,
 } from "./canonical/canonicalTraversalHelpers";
 import {
@@ -532,7 +533,14 @@ function getElementForItemsAction(
 ): ItemsActionNode | undefined {
   const state = get();
   if (selectActiveCanonicalDocument()) {
-    return getFirstProjectableNodeById(elementId) ?? undefined;
+    const node = getFirstProjectableNodeById(elementId);
+    if (!node) return undefined;
+    // ADR-228: ref instance 는 origin ⊕ override 의 유효 props 로 — raw override 만 읽으면 상속
+    //   items 가 0 으로 보여 「Add」 가 상속 목록을 1개로 갈아치운다 (2026-09-21 TagGroup 보고).
+    return {
+      type: node.type,
+      props: getFirstProjectableNodeResolvedProps(elementId) ?? node.props,
+    };
   }
   return state.elementsMap.get(elementId);
 }

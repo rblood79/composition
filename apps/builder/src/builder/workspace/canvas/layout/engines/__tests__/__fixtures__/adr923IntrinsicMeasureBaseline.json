@@ -7,7 +7,7 @@
     "togglebutton",
     "badge",
     "progresscircle",
-    "type",
+    "tag",
     "chip",
     "checkbox",
     "radio",
@@ -130,21 +130,21 @@
       "width": 120,
       "height": 32
     },
-    "type @absent": {
-      "height": 24,
-      "width": 30
+    "tag @absent": {
+      "height": 30,
+      "width": 61
     },
-    "type @auto": {
-      "width": 30,
-      "height": 24
+    "tag @auto": {
+      "width": 61,
+      "height": 30
     },
-    "type @fit-content": {
-      "width": 30,
-      "height": 24
+    "tag @fit-content": {
+      "width": 61,
+      "height": 30
     },
-    "type @px120": {
+    "tag @px120": {
       "width": 120,
-      "height": 24
+      "height": 30
     },
     "chip @absent": {
       "height": 30,

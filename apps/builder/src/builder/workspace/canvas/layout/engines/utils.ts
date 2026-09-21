@@ -4737,13 +4737,18 @@ export const INLINE_BLOCK_TAG_CLASSIFICATION: Readonly<
     reason:
       "self-render leaf (CIRCLE_LEAF_TAGS, width = diameter). catalog structure grid = block-level — 이 Set 등재가 부모 판정을 inline-block 으로 만들어 DOM 과 어긋남 (B)",
   },
-  type: {
+  // 2026-09-21: 키가 `type` 이었다 — 99e4e7c96 의 `Element.tag → Element.type` 기계 rename 이 이 표의
+  //   키 "tag" 까지 바꿨다 (INLINE_UI_SIZE_CONFIGS 와 같은 사고, 1299 행). 그 뒤로 Tag chip 은 측정 leaf
+  //   가 아니었고, 09-19 「자식 0 컨테이너도 엔진 소유」 가 비측정 leaf 의 `width:fit-content` 를 엔진에
+  //   넘기자 chip 이 content 0 = padding 24px 로 접혔다 (TagGroup 전부 · Preview 는 정상). Tag 는
+  //   catalog rule (inline-flex) 이 있는 텍스트 leaf 라 catalog 파생.
+  tag: {
     measure: true,
     role: "?",
     display: "hand",
     handDisplay: "inline-block",
     reason:
-      "catalog rule 없음 · 생성 경로 미확인 (소비처 needsWidth · VERTICALLY_CENTERED_TAGS 뿐). Phase 5 cutover 후에도 손 목록 (inline-block) 유지 — 파생 원천 없음",
+      "텍스트 leaf 측정 (calculateContentWidth inline UI 분기 · TAG_SIZE_CONFIG). chip projection (`appendTagRowProjection`) 의 `width:fit-content` 가 측정 스칼라를 받아야 한다. display 는 종전 손 목록 값 (inline-block) 유지 — Tag catalog rule 은 structure display 를 파생하지 않는다 (DOM .react-aria-Tag inline-flex 는 후속 판정)",
   },
   chip: {
     measure: true,

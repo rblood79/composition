@@ -1986,10 +1986,13 @@ function resolveDataBoundTagProjection(
   sourceNode: CanonicalNode,
   options: BuildCanvasSceneGraphOptions,
   getDocumentNodesById: () => Map<string, CanonicalNode>,
+  /** ADR-228: ref instance 의 synthetic TagList 는 owner 가 문서 노드가 아니라 resolved instance 다. */
+  owner?: Pick<CanonicalNode, "props"> & { metadata?: CanonicalNode["metadata"] },
 ): { rows: ListBoxProjectionRow[]; sourceNode: CanonicalNode } | null {
   if (!isTagListSceneSource(tagListSceneNode, sourceNode)) return null;
 
-  const ownerNode = findOwnerTagGroupNode(sourceNode.id, getDocumentNodesById);
+  const ownerNode =
+    owner ?? findOwnerTagGroupNode(sourceNode.id, getDocumentNodesById);
 
   // dataBinding 도 owner 소유다 — Inspector 의 Data 필드가 TagGroup 의 것이고 DOM
   //   wrapper 도 `TagGroup` 이 `useCollectionData({ dataBinding })` 로 소비한다.
@@ -1998,7 +2001,9 @@ function resolveDataBoundTagProjection(
   //   TagList 자신에 걸린 값(legacy 문서)도 그대로 존중하려고 자식을 먼저 본다.
   const dataBinding =
     getElementDataBinding(sourceNode) ??
-    (ownerNode ? getElementDataBinding(ownerNode) : undefined);
+    (ownerNode
+      ? getElementDataBinding(ownerNode as CanonicalNode)
+      : undefined);
 
   // owner-first: dataBinding 없을 때만 owner TagGroup.items 로 stale TagList.items 를 대체.
   //   dataBinding(collection/api) 이 있으면 그 경로가 items 보다 우선하므로 items 대체 skip.
@@ -2263,6 +2268,8 @@ function resolveDataBoundTabProjection(
   tabListSceneNode: CanvasSceneNode,
   sourceNode: CanonicalNode,
   getDocumentNodesById: () => Map<string, CanonicalNode>,
+  /** ADR-228: ref instance 의 synthetic TabList — owner = resolved instance props (항상 우선). */
+  ownerOverrideProps?: Record<string, unknown> | null,
 ): {
   rows: ListBoxProjectionRow[];
   sourceNode: CanonicalNode;
@@ -2274,10 +2281,16 @@ function resolveDataBoundTabProjection(
   const tabListProps = tabListSceneNode.props;
   let resolvedProps = tabListProps;
 
+  // ADR-228: instance 의 synthetic TabList 는 origin TabList 의 props 를 복제해 왔다 — owner
+  //   (resolved instance) 의 items/selectedKey 가 정본이라 propagation `override:true` 와 같게 덮는다.
+  if (ownerOverrideProps) {
+    resolvedProps = { ...tabListProps, ...ownerOverrideProps };
+  }
+
   // 호환 fallback: propagation 전 문서는 TabList.props.items 가 비어있음 → owner Tabs 보충.
   const hasItems =
-    Array.isArray(tabListProps.items) && tabListProps.items.length > 0;
-  if (!hasItems) {
+    Array.isArray(resolvedProps.items) && resolvedProps.items.length > 0;
+  if (!hasItems && !ownerOverrideProps) {
     const ownerProps = findOwnerTabsProps(sourceNode.id, getDocumentNodesById);
     if (ownerProps) {
       // TabList.props 우선 + owner Tabs props 보충(items/selectedKey/showIndicator/variant/size).
@@ -2863,4 +2876,61 @@ export function buildCanvasScenePageIndex(
     elementsByPage,
     rootsByPage,
   };
+}
+
+/**
+ * ADR-228 (2026-09-21 사용자 보고 「TagGroup instance 에 Add Tag 해도 캔버스 무변화」): ref instance 의
+ * synthetic 자식 (`<instance>/<path>`) 은 `resolveCanonicalRefTree` 가 scene visit **뒤에** 만들므로
+ * 자식 소유 projection (TagList chip · TabList tab) 을 받지 못했다 — origin 의 projection 은 ref
+ * 경계에서 걸러지고 (2026-08-26), instance 쪽은 아무도 산출하지 않아 chip/tab 이 0 이었다 (override
+ * 유무와 무관). 여기서 synthetic TagList/TabList 마다 **owner = resolved instance root** (origin props ⊕
+ * instance override) 로 projection 을 붙인다 — DOM 이 instance 의 resolved `items` 를 그리는 것과 대칭.
+ * owner 수준 projection (ListBox · GridList · Table · Breadcrumbs) 은 ref 노드 자체에서 이미 산출된다.
+ */
+export function appendRefInstanceChildProjections(
+  graph: CanvasSceneGraph,
+  options: BuildCanvasSceneGraphOptions,
+): void {
+  const emptyDocumentNodes = () => new Map<string, CanonicalNode>();
+  for (const node of [...graph.nodes]) {
+    if (!node.id.includes("/")) continue;
+    if (node.type !== "TagList" && node.type !== "TabList") continue;
+    const ownerId = graph.parentById.get(node.id) ?? node.parentId;
+    const owner = ownerId ? graph.nodesMap.get(ownerId) : undefined;
+    if (!owner) continue;
+    const rowsGroupId = toCollectionRowsGroupProjectionId(
+      node.type === "TagList" ? "tag" : "tab",
+      node.id,
+    );
+    if (graph.nodesMap.has(rowsGroupId)) continue;
+    const scope: SceneScopeContext = {
+      pageId: node.pageId ?? null,
+      layoutId: node.layoutId ?? null,
+    };
+    const sourceNode =
+      (node.sourceNode as CanonicalNode | undefined) ??
+      (node as unknown as CanonicalNode);
+    const ownerSource = owner.sourceNode as CanonicalNode | undefined;
+    if (node.type === "TagList") {
+      const projection = resolveDataBoundTagProjection(
+        node,
+        sourceNode,
+        options,
+        emptyDocumentNodes,
+        {
+          props: owner.props as Record<string, unknown>,
+          metadata: ownerSource?.metadata ?? owner.metadata,
+        },
+      );
+      if (projection) appendTagRowProjection(node, projection, scope, graph);
+      continue;
+    }
+    const projection = resolveDataBoundTabProjection(
+      node,
+      sourceNode,
+      emptyDocumentNodes,
+      owner.props as Record<string, unknown>,
+    );
+    if (projection) appendTabRowProjection(node, projection, scope, graph);
+  }
 }

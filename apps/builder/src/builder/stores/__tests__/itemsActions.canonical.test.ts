@@ -89,6 +89,64 @@ describe("items actions canonical lookup", () => {
     expect(items?.map((item) => item.id)).toEqual(["canonical", "new"]);
   });
 
+  it("ADR-228 — ref instance 의 addItem 은 origin 의 상속 items 위에 추가한다 (raw override {} 가 아니라)", async () => {
+    // 2026-09-21 사용자 보고: home 의 TagGroup instance 에 「Add Tag」 → instance props 가 raw `{}` 라
+    //   currentItems=[] → items:[New] 하나로 갈아치워졌다 (상속 3개 소실).
+    const origin = {
+      id: "component-taggroup",
+      type: "TagGroup",
+      reusable: true,
+      props: {
+        items: [
+          { id: "a", label: "Alpha" },
+          { id: "b", label: "Beta" },
+        ],
+      },
+    };
+    const instance = {
+      id: "tg-inst",
+      type: "ref",
+      ref: "component-taggroup",
+      props: {},
+    };
+    const legacyInstance = {
+      id: "tg-inst",
+      type: "ref",
+      ref: "component-taggroup",
+      parent_id: null,
+      page_id: "page-1",
+      order_num: 0,
+      props: {},
+    };
+    useCanonicalDocumentStore.setState({
+      documents: new Map([
+        [
+          "project-items",
+          {
+            version: "composition-1.0",
+            children: [origin, instance],
+          } as never,
+        ],
+      ]),
+      currentProjectId: "project-items",
+      documentVersion: 1,
+    });
+    useStore.setState({
+      currentPageId: null,
+      elements: [legacyInstance as never],
+      elementsMap: new Map([["tg-inst", legacyInstance as never]]),
+      childrenMap: new Map(),
+    } as never);
+
+    await useStore
+      .getState()
+      .addItem("tg-inst", "items", { id: "new", label: "New Tag" });
+
+    const items = useStore.getState().elementsMap.get("tg-inst")?.props
+      .items as Array<{ id: string }> | undefined;
+    expect(items?.map((item) => item.id)).toEqual(["a", "b", "new"]);
+  });
+
   it("active canonical document에 없는 id를 stale legacy cache에서 되살리지 않는다", async () => {
     const staleElement = {
       id: "stale-select",
