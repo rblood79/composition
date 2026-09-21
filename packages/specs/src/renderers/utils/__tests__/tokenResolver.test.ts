@@ -1,10 +1,15 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   tokenToCSSVar,
   resolveToken,
   resolveColor,
   hexStringToNumber,
+  cssVarToTokenRef,
+  resolveBorderWidthPx,
+  borderWidthToCSS,
 } from "../tokenResolver";
+import { borderWidth } from "../../../primitives/border";
+import { isValidTokenRef } from "../../../types/token.types";
 
 // 2026-07-20 (Selected variant 배선) — origin props.style 의 var() 리터럴이 Skia fill 로
 //   도달하는 경로. 역변환 가능한 단순 var() 는 토큰 해석 (theme 정합), 불가하면 passthrough.
@@ -126,7 +131,9 @@ describe("resolveToken — {shadow.*} theme 분기 (ADR-166)", () => {
   });
 
   it("theme 미지정 기본값 = light", () => {
-    expect(resolveToken("{shadow.md}")).toBe(resolveToken("{shadow.md}", "light"));
+    expect(resolveToken("{shadow.md}")).toBe(
+      resolveToken("{shadow.md}", "light"),
+    );
   });
 
   it("dark 는 기하 동일 + alpha 만 ×3 (Spectrum 규칙)", () => {
@@ -188,5 +195,69 @@ describe("hexStringToNumber — 표기별 채널 정합", () => {
   it("0x 표기와 비-hex fallback 은 기존 동작 유지", () => {
     expect(hexStringToNumber("0x2F6FED")).toBe(0x2f6fed);
     expect(hexStringToNumber("transparent")).toBe(0x000000);
+  });
+});
+
+// ADR-227 Phase 3 — border 폭 토큰 `{border.width.none|thin|thick}` (테마 소유 축).
+describe("border width 토큰 (ADR-227 Phase 3)", () => {
+  it("resolveToken — 3-segment `{border.width.<k>}` 는 category border · name width.<k> → 맵 px", () => {
+    expect(resolveToken("{border.width.none}")).toBe(0);
+    expect(resolveToken("{border.width.thin}")).toBe(1);
+    expect(resolveToken("{border.width.thick}")).toBe(2);
+    // dark 도 같은 값 (폭은 모드 무관)
+    expect(resolveToken("{border.width.thin}", "dark")).toBe(1);
+  });
+
+  it("resolveToken — 미등록 키는 경고 + ref 그대로 (1 로 숨기지 않는다)", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    expect(resolveToken("{border.width.hairline}")).toBe(
+      "{border.width.hairline}",
+    );
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it("tokenToCSSVar / cssVarToTokenRef 왕복 — `var(--border-width-thin)`", () => {
+    expect(tokenToCSSVar("{border.width.thin}")).toBe(
+      "var(--border-width-thin)",
+    );
+    expect(cssVarToTokenRef("var(--border-width-thick)")).toBe(
+      "{border.width.thick}",
+    );
+  });
+
+  it("resolveBorderWidthPx — 숫자 통과 · 토큰 해석 · 'Npx' 파싱 · 미지정은 thin (종전 `?? 1`) · fallback 명시 시 그 값", () => {
+    expect(resolveBorderWidthPx(3)).toBe(3);
+    expect(resolveBorderWidthPx("{border.width.thick}")).toBe(2);
+    expect(resolveBorderWidthPx("1px")).toBe(1);
+    expect(resolveBorderWidthPx(undefined)).toBe(1);
+    expect(resolveBorderWidthPx(undefined, 0)).toBe(0);
+    expect(resolveBorderWidthPx("solid", 0)).toBe(0);
+  });
+
+  it("resolveBorderWidthPx — 맵을 덮어쓰면 (활성 테마 설치) 같은 토큰이 새 px 를 준다", () => {
+    const prev = borderWidth.thin;
+    borderWidth.thin = 3;
+    try {
+      expect(resolveToken("{border.width.thin}")).toBe(3);
+      expect(resolveBorderWidthPx("{border.width.thin}")).toBe(3);
+      expect(resolveBorderWidthPx(undefined)).toBe(3);
+    } finally {
+      borderWidth.thin = prev;
+    }
+  });
+
+  it("borderWidthToCSS — 숫자 → px · 토큰 → var · 미지정 → thin 변수 (`{…}px` 출력 없음)", () => {
+    expect(borderWidthToCSS(2)).toBe("2px");
+    expect(borderWidthToCSS("{border.width.thick}")).toBe(
+      "var(--border-width-thick)",
+    );
+    expect(borderWidthToCSS(undefined)).toBe("var(--border-width-thin)");
+    expect(borderWidthToCSS("{border.width.thin}")).not.toContain("px");
+  });
+
+  it("isValidTokenRef — border 3-segment 허용, 2-segment `{border.thin}` 거부", () => {
+    expect(isValidTokenRef("{border.width.thin}")).toBe(true);
+    expect(isValidTokenRef("{border.thin}")).toBe(false);
   });
 });

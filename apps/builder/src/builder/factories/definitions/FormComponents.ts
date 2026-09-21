@@ -643,7 +643,7 @@ export function createFileUploadDefinition(
             flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            borderWidth: "2px",
+            // borderWidth 인라인 없음 — catalog `{border.width.thick}` 테마 축 (ADR-227 P3)
             paddingTop: "24px",
             paddingRight: "24px",
             paddingBottom: "24px",

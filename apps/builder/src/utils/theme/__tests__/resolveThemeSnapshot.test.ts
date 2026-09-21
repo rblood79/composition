@@ -17,6 +17,9 @@ import {
   radius,
   typography,
   lightShadows,
+  borderWidth,
+  resolveToken,
+  resolveBorderWidthPx,
 } from "@composition/specs";
 
 vi.mock("../../../builder/workspace/canvas/skia/useSkiaNode", () => ({
@@ -230,7 +233,7 @@ describe("resolveThemeSnapshot — 명시 델타 (축별 비기본값 · reset �
     expect(reset.cssVars).toEqual(seed.cssVars);
   });
 
-  it("root user-defined 는 fallback — 테마 델타가 같은 키를 덮는다 · 무효/미지원은 경고 (border 는 Phase 3)", () => {
+  it("root user-defined 는 fallback — 테마 델타가 같은 키를 덮는다 · 무효/미지원은 경고", () => {
     const s = resolve(
       theme({
         "color.neutral": {
@@ -261,10 +264,40 @@ describe("resolveThemeSnapshot — 명시 델타 (축별 비기본값 · reset �
     );
     expect(s.colors.light.neutral).toBe("#222222");
     expect(s.colors.light.border).toBe("#abcdef");
-    expect(s.warnings.some((w) => w.includes("border.width.thin"))).toBe(true);
+    // ADR-227 Phase 3: border 축은 해석된다 — root user-defined 도 fallback 으로 반영
+    expect(s.border.thin).toBe(2);
+    expect(s.warnings.some((w) => w.includes("border.width.thin"))).toBe(false);
     expect(s.warnings.some((w) => w.includes("weird.key"))).toBe(true);
     expect(s.warnings.some((w) => w.includes("radius.md"))).toBe(true);
     expect(s.radius.md).toBe(6);
+  });
+
+  it("border.width.thin 3 · thick 4 (ADR-227 Phase 3) → border 맵 + --border-width-* · 음수/문자열은 경고 · seed 는 0/1/2", () => {
+    const seed = resolve(theme({}));
+    expect(seed.border).toEqual({ none: 0, thin: 1, thick: 2 });
+    expect(varOf(seed, "--border-width-thin")).toBe("1px");
+    const s = resolve(
+      theme({
+        "border.width.thin": { type: "number", value: 3, source: "spec-token" },
+        "border.width.thick": {
+          type: "number",
+          value: 4,
+          source: "spec-token",
+        },
+        "border.width.none": {
+          type: "number",
+          value: -1,
+          source: "spec-token",
+        },
+        "border.thin": { type: "number", value: 5, source: "spec-token" },
+      }),
+    );
+    expect(s.border).toEqual({ none: 0, thin: 3, thick: 4 });
+    expect(varOf(s, "--border-width-thin")).toBe("3px");
+    expect(varOf(s, "--border-width-thick")).toBe("4px");
+    expect(varOf(s, "--border-width-none")).toBe("0px");
+    expect(s.warnings.some((w) => w.includes("border.width.none"))).toBe(true);
+    expect(s.warnings.some((w) => w.includes("border.thin"))).toBe(true);
   });
 
   it("hexToOklch ↔ oklchToHex 왕복 (±1/255)", () => {
@@ -296,7 +329,7 @@ describe("installThemeSnapshot — 1회 설치", () => {
   });
   afterEach(() => vi.restoreAllMocks());
 
-  it("맵 덮어쓰기 (colors · typography · radius · shadows) · themeVersion +1 (한 번) · notifyLayoutChange 1 · THEME_VARS replace + SET_DARK_MODE + BASE_TYPOGRAPHY 각 1", () => {
+  it("맵 덮어쓰기 (colors · typography · radius · border · shadows) · themeVersion +1 (한 번) · notifyLayoutChange 1 · THEME_VARS replace + SET_DARK_MODE + BASE_TYPOGRAPHY 각 1", () => {
     const s = resolve(
       theme(
         {
@@ -314,6 +347,11 @@ describe("installThemeSnapshot — 1회 설치", () => {
           "shadow.md": {
             type: "string",
             value: "0 0 3px blue",
+            source: "spec-token",
+          },
+          "border.width.thin": {
+            type: "number",
+            value: 3,
             source: "spec-token",
           },
         },
@@ -334,6 +372,10 @@ describe("installThemeSnapshot — 1회 설치", () => {
     expect((lightShadows as unknown as Record<string, string>).md).toBe(
       "0 0 3px blue",
     );
+    // ADR-227 Phase 3: border 맵 — resolveToken 소비자 (Skia · layout) 가 같은 값을 읽는다
+    expect(borderWidth.thin).toBe(3);
+    expect(resolveToken("{border.width.thin}")).toBe(3);
+    expect(resolveBorderWidthPx(undefined)).toBe(3);
     const st = useThemeConfigStore.getState();
     expect(st.themeVersion).toBe(1);
     expect([st.tint, st.darkMode]).toEqual(["purple", "dark"]);

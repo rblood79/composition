@@ -58,7 +58,8 @@ describe("resolveSkiaRule — Button size source = theme rule table (ADR-912 1C 
     // buildCatalogShapes 가 소비하는 size 필드 전부 — table 값 그대로 통과.
     expect(projected.fontSize).toBe("{typography.text-sm}");
     expect(projected.borderRadius).toBe("{radius.md}");
-    expect(projected.borderWidth).toBe(1);
+    // ADR-227 P3: 토큰 그대로 통과 — px 는 소비자 (buildCatalogShapes) 가 resolveBorderWidthPx 로
+    expect(projected.borderWidth).toBe("{border.width.thin}");
     expect(projected.paddingX).toBe(12);
   });
 

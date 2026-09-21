@@ -38,7 +38,7 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
         //   생성 CSS `border: 1px solid` 를 캔버스가 못 받아 h Δ2 였다 (실측 DOM 52 /
         //   캔버스 50, `catalogComponentBox.browser.test.ts`). Calendar/RangeCalendar 는
         //   같은 슬립을 ADR-151 B1/B2 에서 이미 고쳤고 ListBox 만 남아 있었다.
-        borderWidth: "1px",
+        borderWidth: 1, // ADR-227 P3: `{border.width.thin}` → 활성 테마 px
       });
     });
 
@@ -54,7 +54,7 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
         width: "100%",
         overflow: "auto",
         outline: "none",
-        borderWidth: "1px",
+        borderWidth: 1, // ADR-227 P3: `{border.width.thin}` → 활성 테마 px
       });
     });
 
@@ -71,7 +71,7 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
         width: "100%",
         overflow: "auto",
         outline: "none",
-        borderWidth: "1px",
+        borderWidth: 1, // ADR-227 P3: `{border.width.thin}` → 활성 테마 px
       });
     });
 
@@ -212,7 +212,7 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
         display: "flex",
         flexDirection: "column",
         width: "fit-content",
-        borderWidth: "1px",
+        borderWidth: 1, // ADR-227 P3: `{border.width.thin}` → 활성 테마 px
         paddingTop: 8,
         paddingRight: 8,
         paddingBottom: 8,
@@ -230,7 +230,7 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
       expect(fb).toEqual({
         display: "flex",
         flexDirection: "column",
-        borderWidth: "1px",
+        borderWidth: 1, // ADR-227 P3: `{border.width.thin}` → 활성 테마 px
         paddingTop: 8,
         paddingRight: 8,
         paddingBottom: 8,
@@ -248,7 +248,7 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
         display: "flex",
         flexDirection: "column",
         width: "fit-content",
-        borderWidth: "1px",
+        borderWidth: 1, // ADR-227 P3: `{border.width.thin}` → 활성 테마 px
         paddingTop: 8,
         paddingRight: 8,
         paddingBottom: 8,
@@ -291,7 +291,7 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
         //   함께 해소됐다 (9 → 8 필드).
         overflow: "auto",
         outline: "none",
-        borderWidth: "1px", // ADR-151 B5 (2026-07-16) — Tree.css border 1px layout 반영
+        borderWidth: 1, // ADR-227 P3 토큰 해석 · ADR-151 B5 (2026-07-16) — Tree.css border 1px layout 반영
       });
     });
   });
@@ -379,7 +379,7 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
         //   바뀌었고 재배선은 무오염" 을 계속 증명한다.
         overflow: "auto",
         outline: "none",
-        borderWidth: "1px", // ADR-171 Phase 3-b — 위 listbox describe 참조
+        borderWidth: 1, // ADR-227 P3 토큰 해석 · ADR-171 Phase 3-b — 위 listbox describe 참조
       });
     });
   });
@@ -432,7 +432,7 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
         // maxHeight 제거 (2026-08-21) — 위 tree describe 참조. listbox 와 같은 8필드가 됐다.
         overflow: "auto",
         outline: "none",
-        borderWidth: "1px", // ADR-151 B5 (2026-07-16)
+        borderWidth: 1, // ADR-227 P3 토큰 해석 · ADR-151 B5 (2026-07-16)
       });
     });
 

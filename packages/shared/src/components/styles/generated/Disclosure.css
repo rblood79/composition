@@ -20,7 +20,7 @@
   font-size: var(--text-sm);
   border-radius: var(--radius-md);
   line-height: var(--text-sm--line-height);
-  border-width: 0px;
+  border-width: var(--border-width-none);
   --icon-size: 16px;
 }
 
@@ -28,7 +28,7 @@
   font-size: var(--text-xs);
   border-radius: var(--radius-sm);
   line-height: var(--text-xs--line-height);
-  border-width: 0px;
+  border-width: var(--border-width-none);
   --icon-size: 14px;
 }
 
@@ -36,7 +36,7 @@
   font-size: var(--text-sm);
   border-radius: var(--radius-md);
   line-height: var(--text-sm--line-height);
-  border-width: 0px;
+  border-width: var(--border-width-none);
   --icon-size: 16px;
 }
 
@@ -44,7 +44,7 @@
   font-size: var(--text-base);
   border-radius: var(--radius-lg);
   line-height: var(--text-base--line-height);
-  border-width: 0px;
+  border-width: var(--border-width-none);
   --icon-size: 20px;
 }
 

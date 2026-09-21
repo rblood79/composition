@@ -130,7 +130,7 @@
   width: 100%;
   padding: var(--select-btn-padding);
   text-align: left;
-  border: 1px solid var(--border);
+  border: var(--border-width-thin) solid var(--border);
   border-radius: var(--border-radius);
   background: var(--bg-inset);
   color: var(--fg);
@@ -257,7 +257,7 @@
   min-width: var(--trigger-width);
   max-height: 300px;
   overflow: auto;
-  border: 1px solid var(--border);
+  border: var(--border-width-thin) solid var(--border);
   border-radius: var(--border-radius);
   background: var(--bg-raised);
   box-shadow: var(--shadow-lg);

@@ -68,6 +68,13 @@ export {
 // Radius
 export { radius, getRadiusToken } from "./radius";
 
+// Border width (ADR-227 Phase 3)
+export {
+  borderWidth,
+  DEFAULT_BORDER_WIDTH_TOKEN,
+  getBorderWidthToken,
+} from "./border";
+
 // Shadows
 export {
   lightShadows,

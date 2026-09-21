@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-227 Phase 3 — border 폭이 테마 토큰이 된다] - 2026-09-22
+
+### Changed
+
+- **border 폭 토큰 `{border.width.none|thin|thick}`** (0 / 1 / 2 px): catalog rule 의 border 폭 63 곳 (숫자 47 · `"1px"` 6 · `border: "1px solid …"` 10) 이 이 토큰을 참조하고, 테마 델타 `border.width.thin = 3` 같은 값이 캔버스 (Skia stroke · 레이아웃 border-box) 와 Preview/Publish (`--border-width-*` · 생성 CSS `border-width: var(--border-width-thin)`) 에 같이 닿는다. rule 이 폭을 생략한 곳의 기본값도 thin 토큰 하나로 모였다 (종전 `?? 1` 리터럴). 미지정 · seed 상태의 시각은 그대로 (Δ0).
+- **수리**: DropZone 기본 스타일의 인라인 `borderWidth: 2px` 가 테마를 가리고 있었다 → 제거 (레이아웃은 catalog 값 주입, DOM 은 생성 CSS — 같은 2px).
+  - 위치: `packages/specs/src/primitives/border.ts` · `types/token.types.ts` · `renderers/utils/tokenResolver.ts` (`resolveBorderWidthPx` · `borderWidthToCSS`) · `renderers/CSSGenerator.ts` · `packages/shared/src/catalog/generated/componentRulesTable.ts` · `components/styles/theme/shared-tokens.css` · `apps/builder/src/builder/workspace/canvas/layout/engines/{implicitStyles,utils}.ts` · `utils/theme/{resolveThemeSnapshot,installThemeSnapshot}.ts` · `types/builder/unified.types.ts`.
+  - 게이트: `packages/shared/src/catalog/__tests__/borderWidthLiteral.static.test.ts` (리터럴 0 ratchet) · 하니스 `apps/builder/scripts/adr227-border-token-live.mjs` 5/5 (Canvas). DOM 채널은 unit 고정, 사용자 확인 대상.
+
 ## [ADR-227 Phase 2 — 활성 테마 snapshot 1회 설치 · Preview/Publish CSS 변수 배선] - 2026-09-22
 
 ### Changed

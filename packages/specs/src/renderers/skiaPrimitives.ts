@@ -61,6 +61,7 @@ import type {
   TextMark,
 } from "../chart";
 import { resolveSpecFontSize } from "./utils/resolveSpecFontSize";
+import { resolveBorderWidthPx } from "./utils/tokenResolver";
 import { resolveTextSourceText } from "./utils/textSource";
 import {
   resolveIllustratedMessageMetric,
@@ -584,11 +585,7 @@ const gridListCard: SkiaPrimitiveDrawFn = ({
     // selected → 2px (DOM `[data-selected]{border-width:2px}` 정합). style.borderWidth 우선.
     borderWidth: parsePxValue(
       style?.borderWidth,
-      isSelected
-        ? 2
-        : typeof size.borderWidth === "number"
-          ? size.borderWidth
-          : 1,
+      isSelected ? 2 : resolveBorderWidthPx(size.borderWidth),
     ),
     color: borderColor,
     radius: cardBorderRadius,

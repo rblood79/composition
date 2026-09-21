@@ -8,7 +8,11 @@
  */
 
 import type { Shape } from "./shape.types";
-import type { TokenRef, ShadowTokenRef } from "./token.types";
+import type {
+  TokenRef,
+  ShadowTokenRef,
+  BorderWidthTokenRef,
+} from "./token.types";
 import type { StateStyles } from "./state.types";
 import type { ComponentType } from "react";
 import type { LucideIcon } from "lucide-react";
@@ -57,7 +61,7 @@ export interface ContainerStylesSchema {
   background?: TokenRef;
   text?: TokenRef; // → CSS `color`
   border?: TokenRef; // → CSS `border-color`
-  borderWidth?: number; // → CSS `border-width` (px)
+  borderWidth?: number | BorderWidthTokenRef; // → CSS `border-width` (px 또는 `var(--border-width-*)`, ADR-227 P3)
 
   // 구조 — TokenRef 우선, CSS 값 보조
   borderRadius?: TokenRef | string;
@@ -993,8 +997,12 @@ export interface SizeSpec {
   /** CSS letter-spacing + Skia TextStyle.letterSpacing (optional) */
   letterSpacing?: number;
 
-  /** CSS border-width + Skia BorderShape.borderWidth (optional) */
-  borderWidth?: number;
+  /**
+   * CSS border-width + Skia BorderShape.borderWidth (optional).
+   * ADR-227 Phase 3: `{border.width.none|thin|thick}` TokenRef 허용 — 두 leg 가 활성 테마 px 로 해석
+   * (`resolveBorderWidthPx` / `borderWidthToCSS`). 미지정 = `{border.width.thin}`.
+   */
+  borderWidth?: number | BorderWidthTokenRef;
 
   /** 최소 너비 (optional, px) */
   minWidth?: number;

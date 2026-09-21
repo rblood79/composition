@@ -20,7 +20,7 @@
   /* Default variant */
   background: var(--bg-overlay);
   color: var(--fg);
-  border: 1px solid var(--border);
+  border: var(--border-width-thin) solid var(--border);
 
   /* Default size */
   height: auto;
@@ -28,7 +28,7 @@
   font-size: var(--text-sm);
   border-radius: var(--radius-lg);
   line-height: var(--text-sm--line-height);
-  border-width: 1px;
+  border-width: var(--border-width-thin);
   gap: 2px;
 }
 

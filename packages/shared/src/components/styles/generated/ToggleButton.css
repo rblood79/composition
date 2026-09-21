@@ -35,7 +35,7 @@
   font-size: var(--text-sm);
   border-radius: var(--radius-md);
   line-height: 20px;
-  border-width: 1px;
+  border-width: var(--border-width-thin);
   gap: 8px;
   --icon-size: 18px;
 }
@@ -84,7 +84,7 @@
   font-size: var(--text-2xs);
   border-radius: var(--radius-sm);
   line-height: 16px;
-  border-width: 1px;
+  border-width: var(--border-width-thin);
   gap: 4px;
   --icon-size: 14px;
 }
@@ -95,7 +95,7 @@
   font-size: var(--text-xs);
   border-radius: var(--radius-sm);
   line-height: 16px;
-  border-width: 1px;
+  border-width: var(--border-width-thin);
   gap: 6px;
   --icon-size: 16px;
 }
@@ -106,7 +106,7 @@
   font-size: var(--text-sm);
   border-radius: var(--radius-md);
   line-height: 20px;
-  border-width: 1px;
+  border-width: var(--border-width-thin);
   gap: 8px;
   --icon-size: 18px;
 }
@@ -117,7 +117,7 @@
   font-size: var(--text-base);
   border-radius: var(--radius-lg);
   line-height: 24px;
-  border-width: 1px;
+  border-width: var(--border-width-thin);
   gap: 10px;
   --icon-size: 24px;
 }
@@ -128,7 +128,7 @@
   font-size: var(--text-lg);
   border-radius: var(--radius-lg);
   line-height: 28px;
-  border-width: 1px;
+  border-width: var(--border-width-thin);
   gap: 12px;
   --icon-size: 28px;
 }

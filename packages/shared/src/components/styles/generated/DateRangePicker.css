@@ -145,7 +145,7 @@
   width: 100%;
   gap: var(--drp-group-gap);
   padding: var(--drp-group-padding);
-  border: 1px solid var(--border);
+  border: var(--border-width-thin) solid var(--border);
   border-radius: var(--border-radius);
   background: var(--bg-inset);
   color: var(--fg);

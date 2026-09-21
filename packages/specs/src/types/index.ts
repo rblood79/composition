@@ -80,6 +80,8 @@ export type {
   TypographyTokens,
   RadiusTokens,
   ShadowTokens,
+  BorderWidthTokens,
+  BorderWidthTokenRef,
 } from "./token.types";
 
 export { isValidTokenRef } from "./token.types";

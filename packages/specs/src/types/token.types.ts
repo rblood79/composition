@@ -22,6 +22,8 @@ export type SpacingTokenRef = `{spacing.${keyof SpacingTokens}}`;
 export type TypographyTokenRef = `{typography.${keyof TypographyTokens}}`;
 export type RadiusTokenRef = `{radius.${keyof RadiusTokens}}`;
 export type ShadowTokenRef = `{shadow.${keyof ShadowTokens}}`;
+/** ADR-227 Phase 3 — border 폭 토큰 `{border.width.none|thin|thick}` (3-segment: category `border`, name `width.<k>`). */
+export type BorderWidthTokenRef = `{border.width.${keyof BorderWidthTokens}}`;
 
 /**
  * 모든 유효한 토큰 참조 유니온
@@ -31,14 +33,15 @@ export type StrictTokenRef =
   | SpacingTokenRef
   | TypographyTokenRef
   | RadiusTokenRef
-  | ShadowTokenRef;
+  | ShadowTokenRef
+  | BorderWidthTokenRef;
 
 /**
  * 토큰 참조 유효성 검사 유틸리티
  */
 export function isValidTokenRef(ref: string): ref is TokenRef {
   const pattern =
-    /^\{(color|spacing|typography|radius|shadow)\.[a-zA-Z0-9-]+\}$/;
+    /^\{(color|spacing|typography|radius|shadow)\.[a-zA-Z0-9-]+\}$|^\{border\.width\.[a-z]+\}$/;
   return pattern.test(ref);
 }
 
@@ -51,6 +54,7 @@ export interface TokenCategories {
   typography: TypographyTokens;
   radius: RadiusTokens;
   shadow: ShadowTokens;
+  border: BorderWidthTokens;
 }
 
 /**
@@ -231,6 +235,16 @@ export interface RadiusTokens {
   xl: number; // 12 (정정: 과거 주석 16 stale — 정본 12px)
   "2xl": number; // 16 (ADR-913 slice 5 — shared-tokens.css --radius-2xl:1rem, catalog {radius.2xl})
   full: number; // 9999
+}
+
+/**
+ * border 폭 토큰 (ADR-227 Phase 3) — 테마가 소유하는 축. catalog rule 의 `borderWidth` 는 이 토큰을
+ * 참조하고 (`{border.width.thin}`), Skia 는 `borderWidth` 맵 (px), DOM 은 `--border-width-*` 를 읽는다.
+ */
+export interface BorderWidthTokens {
+  none: number; // 0
+  thin: number; // 1
+  thick: number; // 2
 }
 
 /**

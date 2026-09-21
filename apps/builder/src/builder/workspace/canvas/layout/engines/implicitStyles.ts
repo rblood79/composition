@@ -27,6 +27,7 @@ import {
   //   specSizeField("breadcrumbs", ...) read-through 로 이관(spec 삭제 선행, rule fallback).
   normalizeBreadcrumbRspSizeKey,
   resolveToken,
+  resolveBorderWidthPx,
   resolveContainerStylesFallback as _resolveContainerStylesFallback,
   resolveContainerVariants,
   isValidTokenRef,
@@ -303,7 +304,9 @@ function textAreaInputHeight(
   const oneRow = specSizeField("input", sizeName, "height");
   if (typeof oneRow !== "number") return undefined;
   const padY = specSizeField("input", sizeName, "paddingY") ?? 0;
-  const border = specSizeField("input", sizeName, "borderWidth") ?? 1;
+  const border = resolveBorderWidthPx(
+    specSizeField("input", sizeName, "borderWidth"),
+  );
   const lineHeight = oneRow - padY * 2 - border * 2;
   const rows =
     typeof rawRows === "number" && Number.isFinite(rawRows)
@@ -440,9 +443,10 @@ export function resolveContainerStylesFallback(
       !has("border") &&
       topLevelBox?.border == null &&
       rule?.structure?.containerStyles?.border == null &&
-      typeof sizeRecord.borderWidth === "number"
+      sizeRecord.borderWidth != null
     ) {
-      assign("borderWidth", sizeRecord.borderWidth);
+      // ADR-227 P3: 숫자 또는 `{border.width.*}` — 활성 테마 px 로 해석해 주입
+      assign("borderWidth", resolveBorderWidthPx(sizeRecord.borderWidth));
     }
     // `gap` 은 row 축이고 `columnGap` 은 column 축 override 다 (ComponentRuleSize 계약 —
     //   생성 CSS 도 `gap: {gap}px; column-gap: {columnGap}px` 로 emit).
@@ -1711,7 +1715,8 @@ export function applyImplicitStyles(
     //   2px 누락 → leaf Button(30px, enrichWithIntrinsicSize 가 border 더함)보다 2px 작아짐
     //   (md container 28 vs leaf 30, CSS 는 box-sizing:border-box 로 30 → Skia↔CSS 발산).
     //   selecttrigger 분기(borderWidth ?? 1) 동형. catalog 값 read-through(모든 size borderWidth=1).
-    const bw = specSizeField(containerTag, sizeName, "borderWidth");
+    const bwRaw = specSizeField(containerTag, sizeName, "borderWidth");
+    const bw = bwRaw == null ? undefined : resolveBorderWidthPx(bwRaw);
     // minWidth (Spectrum 2.25×height 식별성 하한, 2026-08-20): catalog sizes.minWidth 를
     //   style.minWidth 로 주입 → 엔진 min_width clamp 가 standalone leaf(주입 explicit width)/
     //   조합(fit-content 측정) 양쪽을 동일 하한으로 clamp. DOM 은 generated CSS `min-width`

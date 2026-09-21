@@ -278,7 +278,7 @@
   width: 100%;
   gap: var(--spacing-xs);
   padding: var(--sf-container-padding);
-  border: 1px solid var(--border);
+  border: var(--border-width-thin) solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-inset);
   transition: border-color 200ms ease, background-color 200ms ease;

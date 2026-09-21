@@ -125,7 +125,7 @@
   display: inline-flex;
   padding: var(--time-field-input-padding);
   background: var(--bg-inset);
-  border: 1px solid;
+  border: var(--border-width-thin) solid;
   border-radius: var(--border-radius);
   width: 100%;
   min-width: var(--time-field-input-min-width);

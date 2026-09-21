@@ -19,14 +19,14 @@
   /* Default variant */
   background: var(--bg);
   color: var(--fg-muted);
-  border: 2px solid var(--border);
+  border: var(--border-width-thick) solid var(--border);
 
   /* Default size */
   height: 120px;
   padding: 24px 24px;
   font-size: var(--text-sm);
   border-radius: var(--radius-lg);
-  border-width: 2px;
+  border-width: var(--border-width-thick);
   gap: 12px;
   --icon-size: 32px;
 }
@@ -51,7 +51,7 @@
   padding: 16px 16px;
   font-size: var(--text-sm);
   border-radius: var(--radius-md);
-  border-width: 2px;
+  border-width: var(--border-width-thick);
   gap: 8px;
   --icon-size: 24px;
 }
@@ -61,7 +61,7 @@
   padding: 24px 24px;
   font-size: var(--text-sm);
   border-radius: var(--radius-lg);
-  border-width: 2px;
+  border-width: var(--border-width-thick);
   gap: 12px;
   --icon-size: 32px;
 }
@@ -71,7 +71,7 @@
   padding: 32px 32px;
   font-size: var(--text-lg);
   border-radius: var(--radius-xl);
-  border-width: 2px;
+  border-width: var(--border-width-thick);
   gap: 16px;
   --icon-size: 40px;
 }

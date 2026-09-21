@@ -28,6 +28,8 @@ export type { NestedSelectorChild } from "./matchNestedSelector";
 // Token Resolver Utils
 export {
   resolveToken,
+  resolveBorderWidthPx,
+  borderWidthToCSS,
   resolveColor,
   tokenToCSSVar,
   cssVarToTokenRef,

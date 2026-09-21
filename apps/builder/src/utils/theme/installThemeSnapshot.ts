@@ -1,7 +1,7 @@
 /**
  * ADR-227 Phase 2 — 활성 테마 snapshot **1회 설치** (breakdown §3.3 commit 순서).
  *
- *   맵 설치 (specs `lightColors/darkColors` · `typography` · `radius` · `lightShadows/darkShadows`
+ *   맵 설치 (specs `lightColors/darkColors` · `typography` · `radius` · `borderWidth` · `lightShadows/darkShadows`
  *   덮어쓰기 — production `resolveToken` 소비자 21 파일이 같은 맵을 읽는다, Phase 0 F15) →
  *   themeConfigStore 한 번의 set (`applyResolvedTheme`, themeVersion +1) → `notifyLayoutChange` 1회 →
  *   Preview `THEME_VARS` (replace) + `SET_DARK_MODE` + `THEME_BASE_TYPOGRAPHY` 1회.
@@ -14,6 +14,7 @@ import {
   darkShadows,
   lightColors,
   lightShadows,
+  borderWidth,
   radius,
   typography,
 } from "@composition/specs";
@@ -32,7 +33,7 @@ import type { TintPreset } from "./tintToSkiaColors";
 let current: ResolvedThemeSnapshot | null = null;
 
 /**
- * geometry 축 (typography · base · radius) 이 바뀌면 레이아웃 엔진 재계산이 필요하다 —
+ * geometry 축 (typography · base · radius · border) 이 바뀌면 레이아웃 엔진 재계산이 필요하다 —
  * `notifyLayoutChange` 는 Skia 트리 캐시만 비우고 레이아웃 엔진 결과 (`layoutVersion`) 는 안 건드린다
  * (Phase 2 live S5 실측: text-sm 24 에도 Button 폭 72 유지). builder store 의 `invalidateLayout`
  * 을 순환 import 없이 부르려고 등록 콜백을 쓴다 (BuilderCore 가 `registerThemeLayoutInvalidator`).
@@ -47,10 +48,12 @@ function geometryChanged(
   next: ResolvedThemeSnapshot,
 ): boolean {
   if (!prev) return true;
-  const same = (a: object, b: object) => JSON.stringify(a) === JSON.stringify(b);
+  const same = (a: object, b: object) =>
+    JSON.stringify(a) === JSON.stringify(b);
   return !(
     same(prev.typography, next.typography) &&
     same(prev.radius, next.radius) &&
+    same(prev.border, next.border) &&
     same(prev.base, next.base)
   );
 }
@@ -89,7 +92,8 @@ export function sendThemeSnapshotToPreview(
   iframe.contentWindow.postMessage(
     {
       type: "SET_DARK_MODE",
-      isDark: resolveSkiaTheme(snapshot.darkMode as DarkModePreference) === "dark",
+      isDark:
+        resolveSkiaTheme(snapshot.darkMode as DarkModePreference) === "dark",
     },
     origin,
   );
@@ -103,12 +107,28 @@ export function sendThemeSnapshotToPreview(
 export function installThemeSnapshot(snapshot: ResolvedThemeSnapshot): void {
   const previous = current;
   // 1. 맵 설치 — Skia paint · layout · text 측정이 다음 resolveToken 부터 읽는다
-  overwrite(lightColors as unknown as Record<string, unknown>, snapshot.colors.light);
-  overwrite(darkColors as unknown as Record<string, unknown>, snapshot.colors.dark);
-  overwrite(typography as unknown as Record<string, unknown>, snapshot.typography);
+  overwrite(
+    lightColors as unknown as Record<string, unknown>,
+    snapshot.colors.light,
+  );
+  overwrite(
+    darkColors as unknown as Record<string, unknown>,
+    snapshot.colors.dark,
+  );
+  overwrite(
+    typography as unknown as Record<string, unknown>,
+    snapshot.typography,
+  );
   overwrite(radius as unknown as Record<string, unknown>, snapshot.radius);
-  overwrite(lightShadows as unknown as Record<string, unknown>, snapshot.shadows.light);
-  overwrite(darkShadows as unknown as Record<string, unknown>, snapshot.shadows.dark);
+  overwrite(borderWidth as unknown as Record<string, unknown>, snapshot.border);
+  overwrite(
+    lightShadows as unknown as Record<string, unknown>,
+    snapshot.shadows.light,
+  );
+  overwrite(
+    darkShadows as unknown as Record<string, unknown>,
+    snapshot.shadows.dark,
+  );
   current = snapshot;
 
   // 2. store 한 번 (themeVersion +1 → ElementSprite 재생성) — setter 4~5 회 대신

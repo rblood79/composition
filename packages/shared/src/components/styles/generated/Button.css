@@ -35,7 +35,7 @@
   font-size: var(--text-sm);
   border-radius: var(--radius-md);
   line-height: var(--text-sm--line-height);
-  border-width: 1px;
+  border-width: var(--border-width-thin);
   min-width: 68px;
   gap: 8px;
   --icon-size: 18px;
@@ -141,7 +141,7 @@
   font-size: var(--text-2xs);
   border-radius: var(--radius-sm);
   line-height: var(--text-2xs--line-height);
-  border-width: 1px;
+  border-width: var(--border-width-thin);
   min-width: 45px;
   gap: 4px;
   --icon-size: 14px;
@@ -154,7 +154,7 @@
   font-size: var(--text-xs);
   border-radius: var(--radius-sm);
   line-height: var(--text-xs--line-height);
-  border-width: 1px;
+  border-width: var(--border-width-thin);
   min-width: 50px;
   gap: 6px;
   --icon-size: 16px;
@@ -167,7 +167,7 @@
   font-size: var(--text-sm);
   border-radius: var(--radius-md);
   line-height: var(--text-sm--line-height);
-  border-width: 1px;
+  border-width: var(--border-width-thin);
   min-width: 68px;
   gap: 8px;
   --icon-size: 18px;
@@ -180,7 +180,7 @@
   font-size: var(--text-base);
   border-radius: var(--radius-lg);
   line-height: var(--text-base--line-height);
-  border-width: 1px;
+  border-width: var(--border-width-thin);
   min-width: 95px;
   gap: 10px;
   --icon-size: 24px;
@@ -193,7 +193,7 @@
   font-size: var(--text-lg);
   border-radius: var(--radius-xl);
   line-height: var(--text-lg--line-height);
-  border-width: 1px;
+  border-width: var(--border-width-thin);
   min-width: 122px;
   gap: 12px;
   --icon-size: 28px;

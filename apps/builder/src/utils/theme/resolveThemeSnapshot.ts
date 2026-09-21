@@ -23,6 +23,7 @@ import {
   colorTokenToCss,
 } from "@composition/shared";
 import {
+  borderWidth as borderWidthSeed,
   darkColors,
   darkShadows,
   lightColors,
@@ -59,6 +60,8 @@ export interface ResolvedThemeSnapshot {
   colors: { light: Record<string, string>; dark: Record<string, string> };
   typography: Record<string, number | string>;
   radius: Record<string, number>;
+  /** ADR-227 Phase 3 — border 폭 (px): `{border.width.none|thin|thick}` 의 값. Skia 맵 · DOM `--border-width-*`. */
+  border: Record<string, number>;
   shadows: { light: Record<string, string>; dark: Record<string, string> };
   base: BaseTypography;
   /** DOM 한 벌 — light/dark 두 블록. Preview `THEME_VARS` (replace) · Publish 가 그대로 싣는다. */
@@ -79,6 +82,9 @@ const SEED_TYPOGRAPHY: Readonly<Record<string, number | string>> = {
 };
 const SEED_RADIUS: Readonly<Record<string, number>> = {
   ...(radiusSeed as unknown as Record<string, number>),
+};
+const SEED_BORDER: Readonly<Record<string, number>> = {
+  ...(borderWidthSeed as unknown as Record<string, number>),
 };
 const SEED_LIGHT_SHADOWS: Readonly<Record<string, string>> = {
   ...(lightShadows as unknown as Record<string, string>),
@@ -174,6 +180,7 @@ export function resolveThemeSnapshot(
     ...SEED_RADIUS,
     ...resolveRadiusTokens(preset.radiusScale),
   };
+  const border: Record<string, number> = { ...SEED_BORDER };
   const lightShadow: Record<string, string> = { ...SEED_LIGHT_SHADOWS };
   const darkShadow: Record<string, string> = { ...SEED_DARK_SHADOWS };
   const base: BaseTypography = { ...options.baseTypographySeed };
@@ -198,6 +205,8 @@ export function resolveThemeSnapshot(
     if (key === "none" || key === "full") continue;
     both(`--radius-${key}`, `${px}px`);
   }
+  for (const [key, px] of Object.entries(border))
+    both(`--border-width-${key}`, `${px}px`);
 
   // ── 명시 델타 ──
   const explicitColorKeys = new Set<string>();
@@ -267,9 +276,20 @@ export function resolveThemeSnapshot(
         else warnings.push(`${tokenKey} 무효 값 — 무시`);
         break;
       }
-      case "border":
-        warnings.push(`${tokenKey} — border 축은 Phase 3 (저장만)`);
+      // ADR-227 Phase 3: `border.width.<k>` — 맵 키는 `<k>` (none/thin/thick), 새 키도 받는다
+      case "border": {
+        const name = key.startsWith("width.") ? key.slice(6) : "";
+        if (
+          name !== "" &&
+          typeof value === "number" &&
+          Number.isFinite(value) &&
+          value >= 0
+        ) {
+          border[name] = value;
+          both(`--border-width-${name}`, `${value}px`);
+        } else warnings.push(`${tokenKey} 무효 값 — 무시`);
         break;
+      }
       default:
         warnings.push(`${tokenKey} 미지원 카테고리 — 무시`);
     }
@@ -307,6 +327,7 @@ export function resolveThemeSnapshot(
     colors: { light, dark },
     typography,
     radius,
+    border,
     shadows: { light: lightShadow, dark: darkShadow },
     base,
     cssVars,
@@ -316,7 +337,9 @@ export function resolveThemeSnapshot(
 
 /** hex6 만 mix (tintToSkiaColors 와 같은 식) — hex 가 아니면 null 로 두어 seed 파생값을 유지한다. */
 function mixHexWithBlack(hex: string, pct: number): string | null {
-  return /^#[0-9a-f]{6}$/i.test(hex.trim()) ? mixWithBlackSrgb(hex.trim(), pct) : null;
+  return /^#[0-9a-f]{6}$/i.test(hex.trim())
+    ? mixWithBlackSrgb(hex.trim(), pct)
+    : null;
 }
 
 export { BASE_TYPOGRAPHY_TOKEN_KEYS };

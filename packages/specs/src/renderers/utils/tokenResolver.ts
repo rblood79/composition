@@ -15,6 +15,10 @@ import { spacing } from "../../primitives/spacing";
 import { typography } from "../../primitives/typography";
 import { radius } from "../../primitives/radius";
 import { lightShadows, darkShadows } from "../../primitives/shadows";
+import {
+  borderWidth,
+  DEFAULT_BORDER_WIDTH_TOKEN,
+} from "../../primitives/border";
 
 /**
  * 토큰 참조를 실제 값으로 변환
@@ -50,10 +54,55 @@ export function resolveToken(
       return theme === "dark"
         ? darkShadows[name as keyof typeof darkShadows]
         : lightShadows[name as keyof typeof lightShadows];
+    // ADR-227 Phase 3: `{border.width.<k>}` — name 은 `width.<k>` (3-segment). 맵은 활성 테마가 덮어쓴다.
+    case "border": {
+      const key = name.startsWith("width.") ? name.slice(6) : "";
+      const px = borderWidth[key as keyof typeof borderWidth];
+      if (typeof px === "number") return px;
+      console.warn(`Unknown border token: ${ref}`);
+      return ref;
+    }
     default:
       console.warn(`Unknown token category: ${category}`);
       return ref;
   }
+}
+
+/**
+ * ADR-227 Phase 3 — rule/size 의 `borderWidth` (숫자 · `{border.width.<k>}` · "Npx") 를 활성 테마 px 로.
+ * 미지정 (`undefined`) 은 두 leg 공통 기본 `{border.width.thin}` — 종전 소비자마다 흩어져 있던 `?? 1`
+ * 리터럴을 여기로 모은다 (fallback 을 주면 그 값). 해석 불가도 같은 fallback — 비숫자를 1 로 숨기지 않는다.
+ */
+export function resolveBorderWidthPx(
+  value: unknown,
+  fallback?: number,
+): number {
+  const dflt = fallback ?? (resolveToken(DEFAULT_BORDER_WIDTH_TOKEN) as number);
+  if (value === undefined || value === null) return dflt;
+  if (typeof value === "number") return Number.isFinite(value) ? value : dflt;
+  if (typeof value !== "string") return dflt;
+  const trimmed = value.trim();
+  if (trimmed.startsWith("{")) {
+    const resolved = resolveToken(trimmed as TokenRef);
+    return typeof resolved === "number" ? resolved : dflt;
+  }
+  const px = /^(-?\d*\.?\d+)(px)?$/.exec(trimmed);
+  return px ? Number.parseFloat(px[1]) : dflt;
+}
+
+/**
+ * ADR-227 Phase 3 — CSS 채널: 숫자 → `Npx`, `{border.width.<k>}` → `var(--border-width-<k>)`,
+ * 미지정 → 기본 thin 변수. `{border.width.thin}px` 같은 출력은 내지 않는다.
+ */
+export function borderWidthToCSS(value: unknown): string {
+  if (value === undefined || value === null) {
+    return tokenToCSSVar(DEFAULT_BORDER_WIDTH_TOKEN);
+  }
+  if (typeof value === "number") return `${value}px`;
+  if (typeof value === "string" && value.startsWith("{")) {
+    return tokenToCSSVar(value as TokenRef);
+  }
+  return String(value);
 }
 
 /**
@@ -248,6 +297,9 @@ export function tokenToCSSVar(ref: TokenRef): string {
       return `var(--radius-${name})`;
     case "shadow":
       return `var(--shadow-${name})`;
+    // ADR-227 Phase 3: `{border.width.thin}` → `var(--border-width-thin)`
+    case "border":
+      return `var(--border-${name.replace(/\./g, "-")})`;
     default:
       return `var(--${name})`;
   }
@@ -283,6 +335,8 @@ export function cssVarToTokenRef(cssVar: string): TokenRef | null {
     return `{spacing.${name.slice(8)}}` as TokenRef;
   if (name.startsWith("radius-"))
     return `{radius.${name.slice(7)}}` as TokenRef;
+  if (name.startsWith("border-width-"))
+    return `{border.width.${name.slice(13)}}` as TokenRef;
   if (name.startsWith("shadow-"))
     return `{shadow.${name.slice(7)}}` as TokenRef;
   // typography: text-2xs / text-xs / text-sm / text-base / text-lg / ... / text-Nxl--line-height

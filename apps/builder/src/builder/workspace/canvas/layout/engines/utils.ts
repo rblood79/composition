@@ -56,6 +56,7 @@ import {
   //   동일 metric SSOT (Layer D 동일 resolver 원칙).
   resolveIllustratedMessageMetric,
   resolveIllustratedMessageText,
+  resolveBorderWidthPx,
 } from "@composition/specs";
 import type { SizeSpec, CollectionRowMetricEntry } from "@composition/specs";
 import {
@@ -929,7 +930,10 @@ function deriveSizeConfig(
           : typeof s.lineHeight === "string" && s.lineHeight.startsWith("{")
             ? Number(resolveToken(s.lineHeight)) || 20
             : 20,
-      borderWidth: s.borderWidth ?? 1,
+      // ADR-227 P3: 모듈 로드 시 고정하지 않고 읽을 때 활성 테마 px 로 해석 (getter — 테마 전환 뒤 stale 방지)
+      get borderWidth(): number {
+        return resolveBorderWidthPx(s.borderWidth);
+      },
       iconSize: s.iconSize ?? 16,
       iconGap: s.iconGap ?? s.gap ?? 8,
       // ADR-923 r20 sweep — catalog Button sizes.minWidth (45/50/68/95/122) 는 생성 CSS 가 `min-width`
@@ -1035,7 +1039,8 @@ export function resolveTagLeadingExtraWidth(
 ): number {
   if (item.avatar)
     return (slotSize ?? TAG_LEADING_AVATAR_SIZE) + TAG_LEADING_AVATAR_GAP;
-  if (item.icon) return (slotSize ?? TAG_LEADING_ICON_SIZE) + TAG_LEADING_ICON_GAP;
+  if (item.icon)
+    return (slotSize ?? TAG_LEADING_ICON_SIZE) + TAG_LEADING_ICON_GAP;
   return 0;
 }
 
@@ -1106,7 +1111,10 @@ function applyTagChipTemplateStyle(
     parsePxValue(v, fallback);
   const shorthand = style.padding;
   const paddingTop = px(style.paddingTop ?? shorthand, base.paddingTop);
-  const paddingBottom = px(style.paddingBottom ?? shorthand, base.paddingBottom);
+  const paddingBottom = px(
+    style.paddingBottom ?? shorthand,
+    base.paddingBottom,
+  );
   const paddingLeft = px(style.paddingLeft ?? shorthand, base.paddingLeft);
   const paddingRight = px(style.paddingRight ?? shorthand, base.paddingRight);
   const fontSize = px(style.fontSize, base.fontSize);
@@ -3448,7 +3456,7 @@ export function calculateContentHeight(
     const rs = resolveSkiaRule("SelectTrigger")?.sizes[parentSize];
     const h = typeof rs?.height === "number" ? rs.height : 30;
     const py = typeof rs?.paddingY === "number" ? rs.paddingY : 4;
-    const bw = typeof rs?.borderWidth === "number" ? rs.borderWidth : 1;
+    const bw = resolveBorderWidthPx(rs?.borderWidth);
     return h - py * 2 - bw * 2;
   }
 
@@ -3643,7 +3651,7 @@ export function calculateContentHeight(
       const entry = trg?.sizes[sizeName] ?? trg?.sizes.md;
       const h = typeof entry?.height === "number" ? entry.height : 30;
       const py = typeof entry?.paddingY === "number" ? entry.paddingY : 4;
-      const bw = typeof entry?.borderWidth === "number" ? entry.borderWidth : 1;
+      const bw = resolveBorderWidthPx(entry?.borderWidth);
       return Math.max(0, h - py * 2 - bw * 2);
     }
     const rule = resolveSkiaRule("DateInput");
@@ -4470,8 +4478,7 @@ export function calculateContentHeight(
           ws49,
           parseNumericValue(style?.wordSpacing) ?? computedStyle?.wordSpacing,
           (style?.fontVariant ?? computedStyle?.fontVariant) as
-            | string
-            | undefined,
+            string | undefined,
         );
         const singleLineH = resolvedLH;
         if (wrappedHeight > singleLineH + 0.5) {
@@ -5610,7 +5617,9 @@ export function enrichWithIntrinsicSize(
                 fontSize,
                 scalarFontFamily,
                 scalarFontWeight,
-                typeof style?.wordBreak === "string" ? style.wordBreak : "normal",
+                typeof style?.wordBreak === "string"
+                  ? style.wordBreak
+                  : "normal",
               ),
             ),
             maxC,

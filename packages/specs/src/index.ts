@@ -68,6 +68,8 @@ export type {
   TypographyTokens,
   RadiusTokens,
   ShadowTokens,
+  BorderWidthTokens,
+  BorderWidthTokenRef,
   // State Types
   StateStyles,
   StateEffect,
@@ -181,6 +183,9 @@ export {
   // Radius
   radius,
   getRadiusToken,
+  borderWidth,
+  DEFAULT_BORDER_WIDTH_TOKEN,
+  getBorderWidthToken,
   // Shadows — light 별칭 `shadows` 는 제거됨 (2026-07-25). light 값이 필요하면 `lightShadows`
   //   를 명시하고, theme 을 따라야 하면 `getShadowToken(name, theme)` 을 쓴다
   lightShadows,
@@ -235,6 +240,8 @@ export {
   isSupportedNestedSelector,
   // Token Resolver
   resolveToken,
+  resolveBorderWidthPx,
+  borderWidthToCSS,
   resolveColor,
   tokenToCSSVar,
   cssVarToTokenRef,

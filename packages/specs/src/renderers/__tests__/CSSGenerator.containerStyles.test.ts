@@ -36,6 +36,24 @@ describe("emitContainerStyles — ADR-071", () => {
     expect(lines).toContain("  border: 1px solid var(--border);");
   });
 
+  // ADR-227 Phase 3 — border 폭은 테마 토큰: 토큰 → var · 미지정 → thin 변수 (종전 리터럴 `1px`)
+  it("borderWidth `{border.width.*}` → var(--border-width-*) · 미지정 → thin 변수 · `{…}px` 없음", () => {
+    const token: ContainerStylesSchema = {
+      border: "{color.border}",
+      borderWidth: "{border.width.thick}",
+    };
+    expect(emitContainerStyles(token)).toContain(
+      "  border: var(--border-width-thick) solid var(--border);",
+    );
+    const omitted: ContainerStylesSchema = { border: "{color.border}" };
+    expect(emitContainerStyles(omitted)).toContain(
+      "  border: var(--border-width-thin) solid var(--border);",
+    );
+    for (const line of emitContainerStyles(token)) {
+      expect(line).not.toMatch(/\{border\.width\.[a-z]+\}px/);
+    }
+  });
+
   it("emits TokenRef structure props", () => {
     const c: ContainerStylesSchema = {
       borderRadius: "{radius.md}",
@@ -66,9 +84,11 @@ describe("emitContainerStyles — ADR-071", () => {
     expect(emitContainerStyles({})).toEqual([]);
   });
 
-  it("defaults borderWidth to 1 when border set without width", () => {
+  it("defaults borderWidth to the thin token var when border set without width (ADR-227 P3 — 종전 `1px`)", () => {
     const lines = emitContainerStyles({ border: "{color.border}" });
-    expect(lines).toContain("  border: 1px solid var(--border);");
+    expect(lines).toContain(
+      "  border: var(--border-width-thin) solid var(--border);",
+    );
   });
 });
 

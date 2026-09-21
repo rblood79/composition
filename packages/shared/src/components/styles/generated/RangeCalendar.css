@@ -19,7 +19,7 @@
   /* Default variant */
   background: var(--bg);
   color: var(--fg);
-  border: 1px solid var(--border);
+  border: var(--border-width-thin) solid var(--border);
 
   /* Default size */
   height: auto;

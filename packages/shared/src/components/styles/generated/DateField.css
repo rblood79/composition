@@ -125,7 +125,7 @@
   display: inline-flex;
   padding: var(--df-input-padding);
   background: var(--bg-inset);
-  border: 1px solid;
+  border: var(--border-width-thin) solid;
   border-radius: var(--border-radius);
   width: 100%;
   min-width: var(--df-input-min-width);

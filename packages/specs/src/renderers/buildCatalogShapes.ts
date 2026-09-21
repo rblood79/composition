@@ -23,6 +23,7 @@ import { fontFamily } from "../primitives/typography";
 import type { BorderStyleValue, Shape, SizeSpec, TokenRef } from "../types";
 import type { CatalogResolvedPaint } from "./catalogPaint";
 import { resolveSpecFontSize } from "./utils/resolveSpecFontSize";
+import { resolveBorderWidthPx } from "./utils/tokenResolver";
 import { resolveTextSourceText } from "./utils/textSource";
 import { measureSpecTextWidth } from "./utils/measureText";
 import type { ComponentVisualRule } from "./utils/resolveComponentVisual";
@@ -311,7 +312,7 @@ export function buildCatalogShapes(
   // border-width: 사용자 style 우선, 없으면 size.borderWidth(보편 D3 속성), 최종 fallback 1.
   const borderWidth = parseBorderWidth(
     style?.borderWidth,
-    size.borderWidth ?? 1,
+    resolveBorderWidthPx(size.borderWidth),
   );
 
   // ADR-912 후속 Phase 2: root paint의 상태/우선순위는 shared `resolveCatalogPaint`

@@ -17,7 +17,11 @@ import type {
   ContainerStylesSchema,
 } from "../types";
 import type { ShadowTokenRef, TokenRef } from "../types/token.types";
-import { tokenToCSSVar, resolveFocusRingToken } from "./utils/tokenResolver";
+import {
+  tokenToCSSVar,
+  resolveFocusRingToken,
+  borderWidthToCSS,
+} from "./utils/tokenResolver";
 import { CHART_OTHERS_FALLBACK_TOKEN } from "../chart/budget";
 import { CHART_REFERENCE_FALLBACK_TOKEN } from "../chart/marks/referenceLine";
 import { deriveAutoDelegationVariables } from "../runtime/deriveAutoDelegationVariables";
@@ -774,14 +778,15 @@ function generateBaseStyles<Props>(spec: ComponentSpec<Props>): string[] {
     // toggle-indicator: border 는 indicator box 전용(Skia) → 컨테이너는 border: none(ADR-142 B2).
     const omitContainerBorder = spec.archetype === "toggle-indicator";
     if (defaultVariant.border && !omitContainerBorder) {
-      const bw = defaultSize?.borderWidth ?? 1;
+      // ADR-227 P3: 숫자 → px · `{border.width.*}` → var · 미지정 → thin 변수 (종전 `?? 1`)
+      const bw = borderWidthToCSS(defaultSize?.borderWidth);
       if (mode === "button-base") {
         lines.push(
           emitColorLine("border", tokenToCSSVar(defaultVariant.border), mode),
         );
       } else {
         lines.push(
-          `  border: ${bw}px solid ${tokenToCSSVar(defaultVariant.border)};`,
+          `  border: ${bw} solid ${tokenToCSSVar(defaultVariant.border)};`,
         );
       }
     } else {
@@ -838,8 +843,8 @@ export function emitContainerStyles(c: ContainerStylesSchema): string[] {
   if (c.background) lines.push(`  background: ${tokenToCSSVar(c.background)};`);
   if (c.text) lines.push(`  color: ${tokenToCSSVar(c.text)};`);
   if (c.border) {
-    const bw = c.borderWidth ?? 1;
-    lines.push(`  border: ${bw}px solid ${tokenToCSSVar(c.border)};`);
+    const bw = borderWidthToCSS(c.borderWidth);
+    lines.push(`  border: ${bw} solid ${tokenToCSSVar(c.border)};`);
   }
   if (c.borderRadius != null) {
     const v =
@@ -919,7 +924,10 @@ function generateVariantStyles(
   //   비파생 토큰 (`{color.neutral-subtle}` 등) 은 내지 않는다 — 내면 종전 `.button-base` mix 와 갈린다.
   if (mode === "button-base") {
     const slot = (ref: unknown) => {
-      const m = typeof ref === "string" ? /^\{color\.([a-z0-9-]+-(?:hover|pressed))\}$/.exec(ref) : null;
+      const m =
+        typeof ref === "string"
+          ? /^\{color\.([a-z0-9-]+-(?:hover|pressed))\}$/.exec(ref)
+          : null;
       return m ? `var(--${m[1]})` : null;
     };
     const hover = slot(fill.default.hover);
@@ -1016,7 +1024,7 @@ function generateSizeStyles(
 
   // border-width — ADR-071: containerStyles.border 존재 시 skip (border shorthand 이중 emit 방지)
   if (size.borderWidth !== undefined && !options?.skipBorderWidth) {
-    lines.push(`  border-width: ${size.borderWidth}px;`);
+    lines.push(`  border-width: ${borderWidthToCSS(size.borderWidth)};`);
   }
 
   // min-width / min-height

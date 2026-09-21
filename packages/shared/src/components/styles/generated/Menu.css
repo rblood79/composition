@@ -15,7 +15,7 @@
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
   background: var(--bg-raised);
   color: var(--fg);
-  border: 1px solid var(--border);
+  border: var(--border-width-thin) solid var(--border);
   border-radius: var(--radius-md);
   padding: var(--spacing-xs);
   gap: var(--spacing-2xs);

@@ -1998,12 +1998,14 @@ export function createDefaultColorSwatchProps(): ColorSwatchElementProps {
 export function createDefaultDropZoneProps(): DropZoneElementProps {
   return {
     // CSS base: display:flex; flex-direction:column; border:2px dashed var(--outline-variant)
+    // ADR-227 Phase 3 (2026-09-22): borderWidth 인라인 제거 — 폭은 catalog `sizes.*.borderWidth =
+    //   {border.width.thick}` (테마 축). layout 은 implicit 주입 (활성 테마 px), DOM 은 생성 CSS
+    //   `border-width: var(--border-width-thick)`. 인라인 "2px" 는 두 leg 에서 테마를 가렸다.
     style: {
       display: "inline-flex",
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
-      borderWidth: "2px",
       // ADR-912 단계5 step4 Phase 1 batch 2 (2026-06-16): _hasChildren 컨테이너 layout SSOT
       //   = factory props.style (ADR-907 Layer B — layout 엔진은 catalog rule import 0건).
       //   md 기본값 미러(rule.sizes.md paddingX/Y 24 / gap 12). store longhand 정책(style-ssot.md):

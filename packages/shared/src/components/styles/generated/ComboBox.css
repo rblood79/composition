@@ -126,7 +126,7 @@
   align-items: center;
   gap: var(--btn-gap, var(--spacing-xs));
   width: 100%;
-  border: 1px solid var(--border);
+  border: var(--border-width-thin) solid var(--border);
   border-radius: var(--border-radius);
   background: var(--bg-inset);
   overflow: hidden;
@@ -304,7 +304,7 @@
   max-height: 300px;
   overflow: auto;
   box-sizing: border-box;
-  border: 1px solid var(--border);
+  border: var(--border-width-thin) solid var(--border);
   border-radius: var(--border-radius);
   background: var(--bg-raised);
   box-shadow: var(--shadow-lg);

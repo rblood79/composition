@@ -122,6 +122,11 @@
     --radius-full: 9999px;
     /* pill */
 
+    /* Border width — ADR-227 Phase 3 테마 소유 축 (Skia 는 specs borderWidth 맵, 활성 테마가 둘 다 덮어쓴다) */
+    --border-width-none: 0px;
+    --border-width-thin: 1px;
+    --border-width-thick: 2px;
+
     /* Tracking - Tailwind v4 표준 (고정값, AI 생성 불필요) */
     --tracking-tighter: -0.05em;
     --tracking-tight: -0.025em;

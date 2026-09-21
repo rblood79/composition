@@ -19,7 +19,7 @@
   /* Default variant */
   background: var(--bg-inset);
   color: var(--fg);
-  border: 1px solid var(--border);
+  border: var(--border-width-thin) solid var(--border);
 
   /* Default size */
   height: 22px;
@@ -27,7 +27,7 @@
   font-size: var(--text-sm);
   border-radius: var(--radius-sm);
   line-height: var(--text-sm--line-height);
-  border-width: 1px;
+  border-width: var(--border-width-thin);
 }
 
 .react-aria-Kbd[data-variant="default"] {
@@ -50,7 +50,7 @@
   font-size: var(--text-xs);
   border-radius: var(--radius-xs);
   line-height: var(--text-xs--line-height);
-  border-width: 1px;
+  border-width: var(--border-width-thin);
 }
 
 .react-aria-Kbd[data-size="sm"] {
@@ -59,7 +59,7 @@
   font-size: var(--text-sm);
   border-radius: var(--radius-sm);
   line-height: var(--text-sm--line-height);
-  border-width: 1px;
+  border-width: var(--border-width-thin);
 }
 
 .react-aria-Kbd[data-size="md"] {
@@ -68,7 +68,7 @@
   font-size: var(--text-base);
   border-radius: var(--radius-sm);
   line-height: var(--text-base--line-height);
-  border-width: 1px;
+  border-width: var(--border-width-thin);
 }
 
 .react-aria-Kbd[data-size="lg"] {
@@ -77,7 +77,7 @@
   font-size: var(--text-lg);
   border-radius: var(--radius-md);
   line-height: var(--text-lg--line-height);
-  border-width: 1px;
+  border-width: var(--border-width-thin);
 }
 
 .react-aria-Kbd[data-focus-visible] {
