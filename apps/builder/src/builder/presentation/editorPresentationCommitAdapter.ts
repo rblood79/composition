@@ -45,6 +45,7 @@ import {
   withCanonicalRefDescendantStylePatch,
 } from "../../adapters/canonical/canonicalRefResolution";
 import { getFrameElementMirrorId } from "../../adapters/canonical/frameMirror";
+import { mergePropsWithStyleDeep } from "../../adapters/canonical/instanceResolver";
 import {
   buildResponsiveStyleOverride,
   shouldWriteBreakpointOverride,
@@ -163,19 +164,47 @@ function getIndexedNode(
     : null;
 }
 
+/**
+ * ADR-229 Phase 0 — 조합 origin 의 자식이 다른 origin 의 ref (Form 안 TextField · Toolbar 안
+ * Button) 면 path 는 그 ref 를 지나 nested master 의 자식으로 이어진다. 걸음마다 ref 자식은
+ * 자기 origin 으로 열어 (유효 props = origin ⊕ 자식 props — `resolveCanonicalRefElement` 와 같은
+ * merge) 계속 내려가고, 끝점이 ref 자식이면 열린 노드를 돌려준다 — base style 을 읽는 쪽이
+ * nested master 의 값을 보게. 순환은 유한 종료.
+ */
 function findDescendantNode(
   root: CanonicalNode,
   pathKey: string,
+  lookupNode?: (id: string) => CanonicalNode | null,
 ): CanonicalNode | null {
   let current: CanonicalNode = root;
+  const visitedMasters = new Set<string>();
   for (const segment of pathKey.split("/")) {
     const next = current.children?.find(
       (child) => getCanonicalRefPathSegment(child) === segment,
     );
     if (!next) return null;
-    current = next;
+    current = openNestedRefChild(next, lookupNode, visitedMasters);
   }
   return current;
+}
+
+function openNestedRefChild(
+  node: CanonicalNode,
+  lookupNode: ((id: string) => CanonicalNode | null) | undefined,
+  visitedMasters: Set<string>,
+): CanonicalNode {
+  if (node.type !== "ref" || !lookupNode) return node;
+  const masterId = getCanonicalRefTarget(node);
+  if (!masterId || visitedMasters.has(masterId)) return node;
+  const master = lookupNode(masterId);
+  if (!master || master.type === "ref") return node;
+  visitedMasters.add(masterId);
+  return {
+    ...master,
+    id: node.id,
+    props: mergePropsWithStyleDeep(master.props ?? {}, node.props ?? {}),
+    reusable: undefined,
+  } as CanonicalNode;
 }
 
 export function getEditorPresentationTargetNode(
@@ -196,7 +225,15 @@ export function getEditorPresentationTargetNode(
     kind: "canonical-node",
     nodeId: masterId,
   });
-  return master ? findDescendantNode(master.node, target.pathKey) : null;
+  return master
+    ? findDescendantNode(
+        master.node,
+        target.pathKey,
+        (id) =>
+          getIndexedNode(projectId, { kind: "canonical-node", nodeId: id })
+            ?.node ?? null,
+      )
+    : null;
 }
 
 export function resolveEditorPresentationTarget(

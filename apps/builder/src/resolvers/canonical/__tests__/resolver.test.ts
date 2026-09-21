@@ -693,3 +693,100 @@ describe("resolveCanonicalDocument", () => {
     expect(node._resolvedFrom).toBeUndefined();
   });
 });
+
+// ──────────────────────────────────────────────────────────────────────────────
+// ADR-229 Phase 0 — 조합 origin 의 자식 ref (origin 안 instance) + 바깥 instance patch
+// ──────────────────────────────────────────────────────────────────────────────
+
+describe("ADR-229 Phase 0 — 일반 origin-child ref 와 바깥 instance descendants", () => {
+  let warnSpy: ReturnType<typeof vi.spyOn>;
+  beforeEach(() => {
+    warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+  });
+  afterEach(() => {
+    warnSpy.mockRestore();
+  });
+
+  function buildDoc(outerDescendants?: Record<string, unknown>) {
+    const button: CanonicalNode = {
+      ...makeReusable("component-button", "Button"),
+      props: { children: "Button", variant: "primary", size: "md" },
+    };
+    const action = makeRef("component-toolbar__action-1", "component-button", {
+      props: { children: "Save" },
+    } as Partial<RefNode>);
+    const toolbar = makeReusable("component-toolbar", "Toolbar", [action]);
+    const instance = makeRef("toolbar-1", "component-toolbar", {
+      ...(outerDescendants ? { descendants: outerDescendants } : {}),
+    } as Partial<RefNode>);
+    return makeDoc([button, toolbar, instance]);
+  }
+
+  it("바깥 instance 의 mode A patch 가 조합 자식 ref 에 닿아도 그 ref 는 자기 origin 타입으로 해소된다", () => {
+    const result = resolveCanonicalDocument(
+      buildDoc({ "component-toolbar__action-1": { variant: "accent" } }),
+    );
+    const outer = result.find((n) => n.id === "toolbar-1") as ResolvedNode;
+    const nested = outer.children?.find(
+      (c) => c.id === "component-toolbar__action-1",
+    ) as ResolvedNode;
+    expect(nested.type).toBe("Button");
+    expect(nested._resolvedFrom).toBe("component-button");
+    // nested master → 조합 자식 props → 바깥 patch
+    expect(nested.props).toEqual({
+      children: "Save",
+      variant: "accent",
+      size: "md",
+    });
+  });
+
+  it("바깥 instance 의 깊은 path patch 가 nested master 의 자식에 닿는다", () => {
+    const textField: CanonicalNode = {
+      ...makeReusable("component-textfield", "TextField", [
+        makePlain("component-textfield__1", "Label", {
+          props: { children: "Field" },
+        }),
+        makePlain("component-textfield__2", "Input", { props: {} }),
+      ]),
+      props: { label: "Field" },
+    };
+    const field = makeRef("component-form__field-1", "component-textfield", {
+      props: { label: "Name" },
+    } as Partial<RefNode>);
+    const form = makeReusable("component-form", "Form", [field]);
+    const instance = makeRef("form-1", "component-form", {
+      descendants: {
+        "component-form__field-1/component-textfield__1": {
+          children: "Email",
+        },
+      },
+    } as unknown as Partial<RefNode>);
+    const result = resolveCanonicalDocument(
+      makeDoc([textField, form, instance]),
+    );
+    const outer = result.find((n) => n.id === "form-1") as ResolvedNode;
+    const nested = outer.children?.find(
+      (c) => c.id === "component-form__field-1",
+    ) as ResolvedNode;
+    expect(nested.type).toBe("TextField");
+    expect(nested.props?.label).toBe("Name");
+    const label = nested.children?.find(
+      (c) => c.id === "component-textfield__1",
+    ) as ResolvedNode;
+    expect(label.props?.children).toBe("Email");
+  });
+
+  it("patch 없는 조합 자식 ref 는 종전대로 재귀 해소된다 (TC8 회귀)", () => {
+    const result = resolveCanonicalDocument(buildDoc());
+    const outer = result.find((n) => n.id === "toolbar-1") as ResolvedNode;
+    const nested = outer.children?.find(
+      (c) => c.id === "component-toolbar__action-1",
+    ) as ResolvedNode;
+    expect(nested.type).toBe("Button");
+    expect(nested.props).toEqual({
+      children: "Save",
+      variant: "primary",
+      size: "md",
+    });
+  });
+});

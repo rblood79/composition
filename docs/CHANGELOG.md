@@ -11,6 +11,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-229 Phase 0 — 조합 origin 안 instance (일반 origin-child ref) 실체화] - 2026-09-21
+
+### Fixed
+
+- 조합 origin (Form/Toolbar 등) 의 자식이 다른 origin 의 `ref` 일 때 그 origin 의 instance 안에서 자식이 `type:"ref"` 미해소 노드로 남던 것 (리뷰 h1 · F5) — builder Skia 축 (`resolveCanonicalRefTree` 일반 source-child 경로) 이 nested master 를 해소해 자식 origin 의 자식까지 실체화하고 (master props → 조합 자식 patch → 바깥 instance patch, 바깥이 이김), nested master 의 propsSchema 로 재바인딩한다. 판정은 ref 대상 존재로 — scene 층이 ref 노드의 `type` 을 master type 으로 바꿔 두므로 type 판정이면 Form instance 안 TextField ref 가 자식 0 인 빈 상자였다 (live 실측).
+- Preview 축 (`resolveCanonicalDocument`) 이 바깥 instance 의 mode A patch 가 닿은 ref 자식을 `type:"ref"` 로 남기던 것 — patch 를 얹은 뒤 그 origin 으로 열고, 바깥 instance 의 깊은 path (`<자식 ref>/<nested 자식>`) 를 자식 ref 범위로 좁혀 적용한다.
+- descendants mode C 판정이 `children` 키 존재였던 것 → **배열** 만 mode C (Text/Label 의 `children` 문자열 patch 는 props patch) — 문자열이면 `.map` 크래시였다. Skia 축 판정과 일치.
+- Styles/캔버스 (presentation lane) 의 ref-descendant target 이 nested ref 를 거치는 깊은 path 를 찾지 못하던 것 — ref 자식을 origin 으로 열어 계속 걷고, 저장은 바깥 instance `descendants` 하나 (조합 origin · 자식 origin 무오염).
+  - Why: ADR-229 G0 — 공통 해소기 GREEN 전에는 Phase 2 의 ref seed 를 켜지 않는다. 원복 RED 11 (unit 3 파일) · 인접 179 파일 1,296 PASS · headed live `adr229-nested-origin-live.mjs` 12/12 (proposed Form nested-ref fixture: 두 leg 실체화 · 편집 → 바깥 instance descendants → Undo/Redo → reload Δ0).
+  - 발견: synthetic 자식 (`<instance>/<path>`) 은 1-level 부터 Properties/Styles 패널이 빈 상태 — nested 고유가 아닌 기존 표면 한계, ADR-229 Phase 2 범위로 기록 (breakdown F15).
+
+## [ADR-229 설계 리뷰 보완 — nested ref · avatar slot · seed 계약] - 2026-09-21
+
+### Documentation
+
+- **ADR-229 Phase 0~4 설계 보완**: 일반 origin-child ref 실체화와 소유권 검증을 seed 전환의 선행 조건으로 명시. Avatar slot vocabulary/양 consumer 계약, origin index 완성 후 신규 origin만 변환하는 2단 seed, 기존 저작 내용·최초 보충량·재hydration 증가량을 분리한 BC gate를 반영했다.
+  - Why: override.children 전용 해소를 일반 자식 ref 지원으로 오인했고, avatar role과 dependency seed 보장도 현행 코드에 없었다.
+  - 위치: `docs/adr/229-collection-item-template-and-nested-origin-instances.md`, `docs/adr/design/229-collection-item-template-and-nested-origin-instances-breakdown.md`, `docs/adr/reviews/229.md`.
+  - 설계 수리이며 제품 구현·gate 통과·상태 승격은 아님. Proposed 유지.
+
 ## [TagGroup chip — 공백 라벨 세로 중앙 · chip 상자 DOM 정합] - 2026-09-21
 
 ### Fixed

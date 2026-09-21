@@ -93,8 +93,9 @@ export function resolveCanonicalDescendantOverride(
   const override = descendants[pathKey];
   if (!override) return child;
 
-  // mode 판정: type 또는 children 키가 있으면 patch 모드 아님 (caller 책임으로 에러)
-  if ("type" in override || "children" in override) {
+  // mode 판정: type 또는 children **배열** 이 있으면 patch 모드 아님 (caller 책임으로 에러).
+  //   ADR-229: `children` 문자열 (Text/Label 본문) 은 props patch 다.
+  if ("type" in override || Array.isArray(override.children)) {
     throw new Error(
       `[ADR-903] resolveCanonicalDescendantOverride called with non-patch mode at path "${pathKey}" — caller must dispatch mode B/C separately`,
     );

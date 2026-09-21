@@ -298,6 +298,46 @@ function getDescendantPatch<T extends CanonicalRefResolvableNode>(
   return isRecord(patch) ? patch : null;
 }
 
+/**
+ * ADR-229 Phase 0 — descendants patch 의 소유자 스택.
+ *
+ * 조합 origin 의 자식이 다른 origin 의 ref (Form 안 TextField · Toolbar 안 Button) 이면
+ * 그 자식 아래 노드의 patch 는 두 층에서 온다 — 조합 자식 ref 자신의 `descendants`
+ * (nested master 기준 상대 path) 와 바깥 instance 의 `descendants` (instance 기준 전체
+ * path). 적용 순서는 nested master props → 조합 자식 patch → 바깥 instance patch (바깥이
+ * 이긴다). 스택은 `[바깥 instance, 안쪽 ref, …]` 순으로 쌓고 안쪽부터 합친다.
+ */
+type DescendantPatchOwner<T extends CanonicalRefResolvableNode> = {
+  owner: T;
+  /** owner 가 바깥 instance 기준 어느 path 에 실체화됐는가 (바깥 instance 자신은 ""). */
+  mountPath: string;
+};
+
+function relativeDescendantPath(
+  path: string,
+  mountPath: string,
+): string | null {
+  if (!mountPath) return path;
+  const prefix = `${mountPath}/`;
+  return path.startsWith(prefix) ? path.slice(prefix.length) : null;
+}
+
+function getStackedDescendantPatch<T extends CanonicalRefResolvableNode>(
+  owners: readonly DescendantPatchOwner<T>[],
+  path: string,
+): Record<string, unknown> | null {
+  let merged: Record<string, unknown> | null = null;
+  for (let index = owners.length - 1; index >= 0; index -= 1) {
+    const { owner, mountPath } = owners[index]!;
+    const relative = relativeDescendantPath(path, mountPath);
+    if (relative === null) continue;
+    const patch = getDescendantPatch(owner, relative);
+    if (!patch) continue;
+    merged = merged ? mergePropsWithStyleDeep(merged, patch) : patch;
+  }
+  return merged;
+}
+
 function propsFromDescendantPatch(
   patch: Record<string, unknown>,
 ): Record<string, unknown> {
@@ -597,6 +637,13 @@ function materializeOverrideChildren<T extends CanonicalRefResolvableNode>(
   }
 }
 
+type MaterializeContext<T extends CanonicalRefResolvableNode> = {
+  /** origin 조회 (ADR-228 G4 — map 우선). 없으면 result map 선형 탐색. */
+  lookupMaster?: (ref: string) => T | undefined;
+  /** ADR-229 — descendants patch 소유자 스택 (바깥 instance 가 [0]). 없으면 refElement 하나. */
+  patchOwners?: readonly DescendantPatchOwner<T>[];
+};
+
 function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
   refElement: T,
   sourceParent: T,
@@ -608,6 +655,7 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
   templateBindings?: Record<string, unknown>,
   pathPrefix = "",
   visitedSourceIds: Set<string> = new Set(),
+  context: MaterializeContext<T> = {},
 ): void {
   if (visitedSourceIds.has(sourceParent.id)) return;
 
@@ -615,6 +663,12 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
   nextVisitedSourceIds.add(sourceParent.id);
   const sourceChildren = sourceChildrenMap.get(sourceParent.id) ?? [];
   const syntheticChildren: T[] = [];
+  const patchOwners: readonly DescendantPatchOwner<T>[] =
+    context.patchOwners ?? [{ owner: refElement, mountPath: "" }];
+  const lookupMaster =
+    context.lookupMaster ??
+    ((ref: string) =>
+      resolveCanonicalRefMaster(ref, resultElementsMap.values()));
 
   sourceChildren.forEach((sourceChild) => {
     // render projection(`projection:` prefix — collection rows/cells/spacer/remainder, page-frame)은
@@ -626,12 +680,118 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
     if (isRenderProjectionId(sourceChild.id)) return;
     const segment = getCanonicalRefPathSegment(sourceChild);
     const path = pathPrefix ? `${pathPrefix}/${segment}` : segment;
-    const patch = getDescendantPatch(refElement, path);
+    const patch = getStackedDescendantPatch(patchOwners, path);
     const syntheticId = `${refElement.id}/${path}`;
     const patchProps = patch ? propsFromDescendantPatch(patch) : {};
     const patchedType =
       patch && typeof patch.type === "string" ? patch.type : sourceChild.type;
     const existingSyntheticChild = resultElementsMap.get(syntheticId);
+
+    // ADR-229 Phase 0 — 조합 origin 의 자식이 다른 origin 의 ref 면 (일반 source-child 경로)
+    //   그 origin 을 여기서 해소한다. 종전에는 override.children (mode C) 경로만 nested master
+    //   를 해소하고 이 경로는 `type:"ref"` 를 그대로 복제했다 (리뷰 h1 · F5). mode B (patch.type)
+    //   교체는 ref 가 아니게 되므로 아래 일반 경로로 둔다. origin 이 없거나 순환이면 (visited)
+    //   종전처럼 미해소 복제 — 다음 로드에서 origin 이 생기면 자연히 해소된다.
+    //   판정은 `type` 이 아니라 ref 대상의 존재다 — scene 층 (`buildCanvasSceneGraph`, ADR-161)
+    //   은 ref 노드의 `type` 을 이미 master type 으로 바꾸고 `.ref` 만 남긴다 (live 실측: type 으로
+    //   판정하면 Form instance 안 TextField ref 가 자식 0 인 빈 상자로 그려졌다).
+    const sourceChildRef =
+      patch && typeof patch.type === "string"
+        ? undefined
+        : getCanonicalRefTarget(sourceChild);
+    const nestedMaster = sourceChildRef
+      ? lookupMaster(sourceChildRef)
+      : undefined;
+    if (
+      sourceChildRef &&
+      nestedMaster &&
+      !existingSyntheticChild &&
+      !nextVisitedSourceIds.has(nestedMaster.id)
+    ) {
+      // nested master props → 조합 자식 patch (자식 ref 자신의 props — 바깥 origin 의 `{키}`
+      //   치환은 여기까지) → 바깥 instance patch. 그 다음 nested master 의 자식은 nested master
+      //   의 propsSchema 로 재바인딩한다 — 바깥 origin 의 바인딩이 안쪽 placeholder 를 잡으면 안 된다.
+      const ownProps = mergePropsWithStyleDeep(
+        getNodeProps(sourceChild),
+        patchProps,
+      );
+      const nestedRefNode = {
+        ...sourceChild,
+        id: syntheticId,
+        parentId: syntheticParentId,
+        pageId: getPageId(refElement) ?? getPageId(sourceChild),
+        layoutId: getLayoutId(refElement) ?? getLayoutId(sourceChild),
+        parent_id: syntheticParentId,
+        page_id: getPageId(refElement) ?? getPageId(sourceChild),
+        layout_id: getLayoutId(refElement) ?? getLayoutId(sourceChild),
+        props: templateBindings
+          ? substituteTemplateBindingsInProps(ownProps, templateBindings)
+          : ownProps,
+        ...mergeFillSizing(sourceChild, patch ?? {}),
+        ...(patch && Array.isArray(patch.fills) ? { fills: patch.fills } : {}),
+        reusable: undefined,
+      } as T;
+      const resolvedNested = resolveCanonicalRefElement(
+        nestedRefNode,
+        resultElementsMap.values(),
+        nestedMaster,
+      );
+      const syntheticNested = {
+        ...resolvedNested,
+        id: syntheticId,
+        parentId: syntheticParentId,
+        parent_id: syntheticParentId,
+        reusable: undefined,
+      } as T;
+
+      resultElements.push(syntheticNested);
+      resultElementsMap.set(syntheticId, syntheticNested);
+      syntheticChildren.push(syntheticNested);
+
+      if (patch && Array.isArray(patch.children)) {
+        removeSyntheticDescendantElements(
+          syntheticId,
+          resultElementsMap,
+          resultChildrenMap,
+          resultElements,
+        );
+        materializeOverrideChildren(
+          refElement,
+          patch.children,
+          syntheticId,
+          sourceChildrenMap,
+          resultElementsMap,
+          resultChildrenMap,
+          resultElements,
+          path,
+          templateBindings,
+        );
+      } else {
+        materializeSyntheticDescendants(
+          refElement,
+          nestedMaster,
+          syntheticId,
+          sourceChildrenMap,
+          resultElementsMap,
+          resultChildrenMap,
+          resultElements,
+          resolveMasterTemplateBindings(
+            nestedMaster,
+            getNodeProps(syntheticNested),
+          ),
+          path,
+          nextVisitedSourceIds,
+          {
+            lookupMaster,
+            patchOwners: [
+              ...patchOwners,
+              { owner: sourceChild, mountPath: path },
+            ],
+          },
+        );
+      }
+      return;
+    }
 
     if (existingSyntheticChild) {
       const patchedExistingChild = withTemplateBindings(
@@ -674,6 +834,7 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
           templateBindings,
           path,
           nextVisitedSourceIds,
+          context,
         );
       }
       return;
@@ -734,6 +895,7 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
         templateBindings,
         path,
         nextVisitedSourceIds,
+        context,
       );
     }
   });
@@ -810,6 +972,9 @@ export function resolveCanonicalRefTree<
       elements,
       // ADR-148 Phase 2 — origin 이 propsSchema 를 선언한 reusable 에 한해 `{키}` 치환.
       resolveMasterTemplateBindings(master, getNodeProps(resolvedRoot)),
+      "",
+      new Set(),
+      { lookupMaster },
     );
   }
 

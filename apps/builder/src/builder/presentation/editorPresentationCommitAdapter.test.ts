@@ -17,6 +17,7 @@ import {
   commitEditorPresentationStyle,
   editorPresentationCanonicalRuntimeOptions,
   getEditorPresentationCommitAdapterDiagnostics,
+  getEditorPresentationTargetNode,
   resolveEditorPresentationTarget,
 } from "./editorPresentationCommitAdapter";
 import { EditorPresentationTransactionRuntime } from "./editorPresentationRuntime";
@@ -519,8 +520,8 @@ describe("ADR-187 Phase 2 canonical fill commit", () => {
     }
     function commitSpacing(patch: Record<string, string>) {
       return commitEditorPresentationStyle({
-        baseDocumentVersion: useCanonicalDocumentStore.getState()
-          .documentVersion,
+        baseDocumentVersion:
+          useCanonicalDocumentStore.getState().documentVersion,
         commitIntent: "style-layout-spacing",
         descriptor: {
           patch,
@@ -865,6 +866,103 @@ describe("ADR-187 Phase 2 canonical fill commit", () => {
       }),
     ).toEqual({ reason: "conflict", status: "cancelled" });
     expect(currentColor()).toBe("#555555FF");
+  });
+
+  // ADR-229 Phase 0 — 조합 origin 의 자식이 다른 origin 의 ref (Form 안 TextField) 일 때 그 안쪽
+  //   자식 (Label) 의 style 편집 target 은 nested master 를 거쳐 찾고, 저장은 바깥 instance 의
+  //   `descendants["<자식 ref>/<nested 자식>"]` 하나다 (2단 소유권 — 조합 origin · Button origin 무오염).
+  it("nested origin-child ref 를 거치는 깊은 path 의 style 편집은 바깥 instance descendants 에 저장된다", () => {
+    const nestedDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "component-textfield",
+          type: "TextField",
+          reusable: true,
+          props: { label: "Field" },
+          children: [
+            {
+              id: "component-textfield__1",
+              type: "Label",
+              props: { children: "Field", style: { fontWeight: 600 } },
+            },
+          ],
+        },
+        {
+          id: "component-form",
+          type: "Form",
+          reusable: true,
+          props: {},
+          children: [
+            {
+              id: "component-form__field-1",
+              type: "ref",
+              ref: "component-textfield",
+              props: { label: "Name" },
+            },
+          ],
+        },
+        { id: "form-1", type: "ref", ref: "component-form", descendants: {} },
+      ],
+    } as unknown as CompositionDocument;
+    useCanonicalDocumentStore
+      .getState()
+      .setDocument(PROJECT_ID, nestedDocument);
+    const snapshot = JSON.stringify(nestedDocument);
+
+    const target = resolveEditorPresentationTarget(
+      PROJECT_ID,
+      "form-1/component-form__field-1/component-textfield__1",
+    );
+    expect(target).toEqual({
+      kind: "ref-descendant",
+      refId: "form-1",
+      pathKey: "component-form__field-1/component-textfield__1",
+    });
+    // nested ref 자식 자체도 target 이며 base style 은 nested master ⊕ 자식 props 다.
+    const fieldTarget = resolveEditorPresentationTarget(
+      PROJECT_ID,
+      "form-1/component-form__field-1",
+    );
+    expect(fieldTarget).toEqual({
+      kind: "ref-descendant",
+      refId: "form-1",
+      pathKey: "component-form__field-1",
+    });
+    expect(
+      getEditorPresentationTargetNode(PROJECT_ID, fieldTarget!),
+    ).toMatchObject({ type: "TextField", props: { label: "Name" } });
+
+    commitEditorPresentationStyle({
+      baseDocumentVersion: useCanonicalDocumentStore.getState().documentVersion,
+      commitIntent: "style-border-color",
+      descriptor: {
+        type: "style.patch",
+        target: target!,
+        patch: { borderColor: "#ABCDEF" },
+      },
+      projectId: PROJECT_ID,
+      sessionId: "nested-session",
+      targets: [target!],
+    });
+
+    const doc = useCanonicalDocumentStore.getState().documents.get(PROJECT_ID)!;
+    const instance = doc.children.find((c) => c.id === "form-1") as unknown as {
+      descendants?: Record<string, { style?: Record<string, unknown> }>;
+    };
+    expect(
+      instance.descendants?.["component-form__field-1/component-textfield__1"]
+        ?.style,
+    ).toEqual({ borderColor: "#ABCDEF" });
+    // 조합 origin 과 TextField origin 은 그대로.
+    const origins = doc.children.filter((c) => c.id !== "form-1");
+    expect(JSON.stringify(origins)).toBe(
+      JSON.stringify(
+        JSON.parse(snapshot).children.filter(
+          (c: { id: string }) => c.id !== "form-1",
+        ),
+      ),
+    );
   });
 
   it("ref-descendant fill은 stable path를 통해 DOM/Skia 공통 semantic target으로 commit한다", () => {

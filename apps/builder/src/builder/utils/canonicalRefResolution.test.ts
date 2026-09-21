@@ -760,3 +760,334 @@ describe("ADR-148 Phase 3 — depth-2 템플릿 바인딩 (Card 4-region 동형)
     });
   });
 });
+
+describe("ADR-229 Phase 0 — 일반 origin-child ref (조합 origin 안 instance) 실체화", () => {
+  // 조합 origin (Toolbar/Form) 의 자식이 다른 origin (Button/TextField) 의 ref 인 proposed
+  // fixture. override.children (mode C) 경로만 중첩 master 를 해소하고 일반 source-child
+  // 경로는 ref 를 그대로 복제하던 것이 리뷰 h1 의 진단 RED (F5).
+  function buildToolbarFixture(options?: {
+    outerDescendants?: Record<string, unknown>;
+    compositeChildProps?: Record<string, unknown>;
+  }) {
+    const button = makeElement("component-button", {
+      type: "Button",
+      reusable: true,
+      props: { children: "Button", variant: "primary", size: "md" },
+    });
+    const toolbar = makeElement("component-toolbar", {
+      type: "Toolbar",
+      reusable: true,
+      props: { orientation: "horizontal" },
+    });
+    const action = makeElement("component-toolbar__action-1", {
+      type: "ref",
+      ref: "component-button",
+      parent_id: "component-toolbar",
+      props: options?.compositeChildProps ?? { children: "Save" },
+    } as never);
+    const separator = makeElement("component-toolbar__sep", {
+      type: "Separator",
+      parent_id: "component-toolbar",
+      props: { orientation: "vertical" },
+    });
+    const instance = makeElement("toolbar-1", {
+      type: "ref",
+      ref: "component-toolbar",
+      parent_id: "body",
+      ...(options?.outerDescendants
+        ? { descendants: options.outerDescendants }
+        : {}),
+    } as never);
+    const elements = [button, toolbar, action, separator, instance];
+    return {
+      elements,
+      tree: resolveCanonicalRefTree({
+        elements,
+        elementsMap: new Map(elements.map((e) => [e.id, e])),
+      }),
+    };
+  }
+
+  it("조합 origin 의 ref 자식이 바깥 instance 안에서 자기 origin 타입으로 실체화된다 (master props ⊕ 자식 patch)", () => {
+    const { tree } = buildToolbarFixture();
+    const nested = tree.elementsMap.get(
+      "toolbar-1/component-toolbar__action-1",
+    );
+    expect(nested).toMatchObject({
+      type: "Button",
+      ref: "component-button",
+      parent_id: "toolbar-1",
+      props: { children: "Save", variant: "primary", size: "md" },
+    });
+    expect(
+      (nested as { reusable?: boolean } | undefined)?.reusable,
+    ).toBeUndefined();
+    // 형제 plain 자식과 순서 보존
+    expect(tree.childrenMap.get("toolbar-1")?.map((c) => c.id)).toEqual([
+      "toolbar-1/component-toolbar__action-1",
+      "toolbar-1/component-toolbar__sep",
+    ]);
+  });
+
+  it("바깥 instance 의 descendants patch 가 자식 patch 와 nested master 위에 이긴다 (master → 자식 → 바깥 순)", () => {
+    const { tree } = buildToolbarFixture({
+      outerDescendants: {
+        "component-toolbar__action-1": { variant: "accent", children: "Go" },
+      },
+    });
+    expect(
+      tree.elementsMap.get("toolbar-1/component-toolbar__action-1")?.props,
+    ).toEqual({ children: "Go", variant: "accent", size: "md" });
+  });
+
+  it("입력 요소는 변형하지 않는다 (원본 불변)", () => {
+    const { elements, tree } = buildToolbarFixture({
+      outerDescendants: {
+        "component-toolbar__action-1": { variant: "accent" },
+      },
+    });
+    const snapshot = JSON.parse(JSON.stringify(elements));
+    expect(tree.elementsMap.size).toBeGreaterThan(elements.length);
+    expect(JSON.parse(JSON.stringify(elements))).toEqual(snapshot);
+    expect(
+      elements.find((e) => e.id === "component-toolbar__action-1")?.type,
+    ).toBe("ref");
+  });
+
+  it("nested master 의 자식 (TextField 의 Label/Input) 이 깊은 path 로 실체화되고 바깥 patch 가 그 path 로 닿는다", () => {
+    const textField = makeElement("component-textfield", {
+      type: "TextField",
+      reusable: true,
+      props: { label: "Field" },
+    });
+    const label = makeElement("component-textfield__1", {
+      type: "Label",
+      parent_id: "component-textfield",
+      props: { children: "Field" },
+    });
+    const input = makeElement("component-textfield__2", {
+      type: "Input",
+      parent_id: "component-textfield",
+      props: { placeholder: "" },
+    });
+    const form = makeElement("component-form", {
+      type: "Form",
+      reusable: true,
+      props: {},
+    });
+    const field = makeElement("component-form__field-1", {
+      type: "ref",
+      ref: "component-textfield",
+      parent_id: "component-form",
+      props: { label: "Name" },
+    } as never);
+    const instance = makeElement("form-1", {
+      type: "ref",
+      ref: "component-form",
+      parent_id: "body",
+      descendants: {
+        "component-form__field-1/component-textfield__1": {
+          children: "Email",
+        },
+      },
+    } as never);
+    const elements = [textField, label, input, form, field, instance];
+    const tree = resolveCanonicalRefTree({
+      elements,
+      elementsMap: new Map(elements.map((e) => [e.id, e])),
+    });
+
+    expect(
+      tree.elementsMap.get("form-1/component-form__field-1"),
+    ).toMatchObject({
+      type: "TextField",
+      props: { label: "Name" },
+    });
+    expect(
+      tree.childrenMap.get("form-1/component-form__field-1")?.map((c) => c.id),
+    ).toEqual([
+      "form-1/component-form__field-1/component-textfield__1",
+      "form-1/component-form__field-1/component-textfield__2",
+    ]);
+    expect(
+      tree.elementsMap.get(
+        "form-1/component-form__field-1/component-textfield__1",
+      ),
+    ).toMatchObject({
+      type: "Label",
+      parent_id: "form-1/component-form__field-1",
+      props: { children: "Email" },
+    });
+  });
+
+  it("nested master 가 propsSchema 를 선언하면 자식 ref 의 유효 props 로 `{키}` 를 재바인딩한다", () => {
+    const card = makeElement("component-card", {
+      type: "Card",
+      reusable: true,
+      props: { title: "Card" },
+      metadata: {
+        propsSchema: {
+          title: { kind: "string", label: "Title", default: "Card" },
+        },
+      },
+    } as never);
+    const cardTitle = makeElement("component-card__title", {
+      type: "Text",
+      parent_id: "component-card",
+      props: { children: "{title}" },
+    });
+    const panel = makeElement("component-panel", {
+      type: "Panel",
+      reusable: true,
+      props: {},
+    });
+    const panelCard = makeElement("component-panel__card", {
+      type: "ref",
+      ref: "component-card",
+      parent_id: "component-panel",
+      props: { title: "Inside panel" },
+    } as never);
+    const instance = makeElement("panel-1", {
+      type: "ref",
+      ref: "component-panel",
+      parent_id: "body",
+      descendants: { "component-panel__card": { title: "Overridden" } },
+    } as never);
+    const elements = [card, cardTitle, panel, panelCard, instance];
+    const tree = resolveCanonicalRefTree({
+      elements,
+      elementsMap: new Map(elements.map((e) => [e.id, e])),
+    });
+    expect(
+      tree.elementsMap.get(
+        "panel-1/component-panel__card/component-card__title",
+      )?.props,
+    ).toMatchObject({ children: "Overridden" });
+  });
+
+  it("scene 층 모양 — 자식 ref 의 type 이 이미 master type 으로 바뀌고 `.ref` 만 남아도 nested master 자식을 실체화한다", () => {
+    // buildCanvasSceneGraph (ADR-161) 는 ref 노드의 type 을 master type 으로, props 를 master ⊕ 자식으로 바꾼다.
+    const textField = makeElement("component-textfield", {
+      type: "TextField",
+      reusable: true,
+      props: { label: "Field" },
+    });
+    const label = makeElement("component-textfield__1", {
+      type: "Label",
+      parent_id: "component-textfield",
+      props: { children: "Field" },
+    });
+    const form = makeElement("component-form", {
+      type: "Form",
+      reusable: true,
+      props: {},
+    });
+    const field = makeElement("component-form__field-1", {
+      type: "TextField",
+      ref: "component-textfield",
+      parent_id: "component-form",
+      props: { label: "Name" },
+    } as never);
+    const instance = makeElement("form-1", {
+      type: "Form",
+      ref: "component-form",
+      parent_id: "body",
+    } as never);
+    const elements = [textField, label, form, field, instance];
+    const tree = resolveCanonicalRefTree({
+      elements,
+      elementsMap: new Map(elements.map((e) => [e.id, e])),
+    });
+    expect(
+      tree.childrenMap.get("form-1/component-form__field-1")?.map((c) => c.id),
+    ).toEqual(["form-1/component-form__field-1/component-textfield__1"]);
+    expect(
+      tree.elementsMap.get("form-1/component-form__field-1")?.props,
+    ).toMatchObject({
+      label: "Name",
+    });
+  });
+
+  it("origin 끼리 서로를 참조하는 순환은 유한하게 끝난다", () => {
+    const a = makeElement("origin-a", { type: "Group", reusable: true });
+    const aChild = makeElement("origin-a__b", {
+      type: "ref",
+      ref: "origin-b",
+      parent_id: "origin-a",
+    } as never);
+    const b = makeElement("origin-b", { type: "Group", reusable: true });
+    const bChild = makeElement("origin-b__a", {
+      type: "ref",
+      ref: "origin-a",
+      parent_id: "origin-b",
+    } as never);
+    const instance = makeElement("a-1", {
+      type: "ref",
+      ref: "origin-a",
+      parent_id: "body",
+    } as never);
+    const elements = [a, aChild, b, bChild, instance];
+    const tree = resolveCanonicalRefTree({
+      elements,
+      elementsMap: new Map(elements.map((e) => [e.id, e])),
+    });
+    expect(tree.elementsMap.get("a-1/origin-a__b")?.type).toBe("Group");
+    expect(tree.elements.length).toBeLessThan(elements.length + 8);
+  });
+
+  it("일반 source-child 경로와 override.children (mode C) 경로가 같은 fixture 에 같은 모양을 낸다", () => {
+    const { tree: sourceTree } = buildToolbarFixture();
+    const sourceChild = sourceTree.elementsMap.get(
+      "toolbar-1/component-toolbar__action-1",
+    );
+
+    const button = makeElement("component-button", {
+      type: "Button",
+      reusable: true,
+      props: { children: "Button", variant: "primary", size: "md" },
+    });
+    const host = makeElement("component-host", {
+      type: "Toolbar",
+      reusable: true,
+      props: { orientation: "horizontal" },
+    });
+    const slot = makeElement("component-host__slot", {
+      type: "frame",
+      parent_id: "component-host",
+      customId: "slot",
+      slot: ["component-button"],
+    } as never);
+    const instance = makeElement("host-1", {
+      type: "ref",
+      ref: "component-host",
+      parent_id: "body",
+      descendants: {
+        slot: {
+          children: [
+            {
+              id: "component-toolbar__action-1",
+              type: "ref",
+              ref: "component-button",
+              props: { children: "Save" },
+            },
+          ],
+        },
+      },
+    } as never);
+    const elements = [button, host, slot, instance];
+    const overrideTree = resolveCanonicalRefTree({
+      elements,
+      elementsMap: new Map(elements.map((e) => [e.id, e])),
+    });
+    const overrideChild = overrideTree.elementsMap.get(
+      "host-1/slot/component-toolbar__action-1",
+    );
+    expect(overrideChild).toBeDefined();
+    const shape = (element: Element | undefined) => ({
+      type: element?.type,
+      ref: (element as { ref?: string } | undefined)?.ref,
+      props: element?.props,
+    });
+    expect(shape(sourceChild)).toEqual(shape(overrideChild));
+  });
+});

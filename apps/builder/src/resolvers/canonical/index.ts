@@ -30,6 +30,7 @@ import {
 } from "@composition/shared";
 
 import {
+  mergePropsWithStyleDeep,
   resolveCanonicalRefProps,
   resolveCanonicalDescendantOverride,
 } from "@/utils/component/instanceResolver";
@@ -265,14 +266,22 @@ function applyDescendantsToTree(
         doc,
         cache,
         imports,
+        descendants,
       );
     }
 
-    // 매칭 없음 — ref 자식은 자체 master 로 재귀 resolve.
-    // inherited descendants 는 path 가 ref 까지 매칭되지 않았으므로 침투 안 함
-    // (RefNode 자체 descendants 가 별도 resolve 시 적용됨).
+    // 매칭 없음 — ref 자식은 자체 master 로 재귀 resolve. ADR-229: 바깥 instance 의
+    // 깊은 path patch (`<자식 ref path>/<nested master 자식>`) 는 그 ref 의 범위로 좁혀 넘긴다.
     if (child.type === "ref") {
-      return resolveRefNode(child as RefNode, doc, cache, imports);
+      return resolveNestedRefChild(
+        child as RefNode,
+        undefined,
+        descendants,
+        currentPath,
+        doc,
+        cache,
+        imports,
+      );
     }
 
     return resolveFrameOrPlain(
@@ -287,6 +296,68 @@ function applyDescendantsToTree(
 }
 
 /**
+ * ADR-229 Phase 0 — 조합 origin 의 자식 ref (origin 안 instance) 를 바깥 instance 문맥에서 해소한다.
+ *
+ * 바깥 instance 의 `descendants` 중 `<이 ref 의 path>/…` 로 시작하는 항목을 이 ref 의 범위로
+ * 좁혀 (상대 path) 자식 ref 자신의 `descendants` 위에 얹는다 — nested master → 조합 자식
+ * patch → 바깥 instance patch 순 (builder Skia 축 `getStackedDescendantPatch` 와 같은 계약).
+ * 바깥 문맥이 관여하면 (mode A patch 또는 좁힌 항목 존재) 같은 자식 id 가 instance 마다 다른
+ * 결과를 내므로 id 기준 cache 를 우회한다. 관여 0 이면 종전 경로 (cache 포함).
+ */
+function resolveNestedRefChild(
+  child: RefNode,
+  override: DescendantOverride | undefined,
+  inheritedDescendants: Record<string, DescendantOverride> | undefined,
+  currentPath: string,
+  doc: CompositionDocument,
+  cache: ResolverCache | undefined,
+  imports: ImportResolverContext | undefined,
+): ResolvedNode {
+  const scoped = scopeInheritedDescendants(inheritedDescendants, currentPath);
+  if (!override && !scoped) {
+    return resolveRefNode(child, doc, cache, imports);
+  }
+  const ownDescendants = child.descendants ?? {};
+  const mergedDescendants: Record<string, DescendantOverride> = {
+    ...ownDescendants,
+  };
+  for (const [path, outer] of Object.entries(scoped ?? {})) {
+    const own = ownDescendants[path];
+    mergedDescendants[path] =
+      own &&
+      !("type" in outer) &&
+      !Array.isArray(outer.children) &&
+      !("type" in own)
+        ? (mergePropsWithStyleDeep(
+            own as Record<string, unknown>,
+            outer as Record<string, unknown>,
+          ) as DescendantOverride)
+        : outer;
+  }
+  const effective: RefNode = {
+    ...child,
+    ...(Object.keys(mergedDescendants).length > 0
+      ? { descendants: mergedDescendants }
+      : {}),
+  };
+  return _resolveRefNodeUncached(effective, doc, cache, imports);
+}
+
+function scopeInheritedDescendants(
+  descendants: Record<string, DescendantOverride> | undefined,
+  currentPath: string,
+): Record<string, DescendantOverride> | undefined {
+  if (!descendants) return undefined;
+  const prefix = `${currentPath}/`;
+  let scoped: Record<string, DescendantOverride> | undefined;
+  for (const [path, override] of Object.entries(descendants)) {
+    if (!path.startsWith(prefix)) continue;
+    (scoped ??= {})[path.slice(prefix.length)] = override;
+  }
+  return scoped;
+}
+
+/**
  * 단일 노드에 descendants override 를 적용한다 (3-mode discriminator).
  */
 function applyOverrideToNode(
@@ -296,9 +367,13 @@ function applyOverrideToNode(
   doc: CompositionDocument,
   cache: ResolverCache | undefined,
   imports: ImportResolverContext | undefined,
+  inheritedDescendants?: Record<string, DescendantOverride>,
 ): ResolvedNode {
   const hasType = "type" in override && override.type !== undefined;
-  const hasChildren = "children" in override && override.children !== undefined;
+  // ADR-229: mode C 는 **배열** children 만이다 — Text/Label 의 `children` 문자열 patch 는 mode A
+  //   props patch (builder Skia 축 `propsFromDescendantPatch` 와 같은 판정). 문자열을 mode C 로
+  //   읽으면 `.map` 크래시.
+  const hasChildren = Array.isArray(override.children);
 
   // 복수 조건 위반 체크 (type + children 동시 존재)
   if (hasType && hasChildren) {
@@ -338,6 +413,27 @@ function applyOverrideToNode(
     { [pathKey]: override },
     pathKey,
   );
+  // ADR-229 Phase 0 — patch 대상이 조합 origin 의 자식 ref (Toolbar 안 Button) 면 patch 를
+  //   얹은 뒤에도 그 ref 의 origin 으로 열어야 한다. 종전에는 `resolveFrameOrPlain` 이
+  //   `type:"ref"` 를 그대로 두어 Preview 가 미해소 노드를 받았다 (Skia 축 F5 와 같은 결함).
+  if (patched.type === "ref") {
+    const resolvedRef = resolveNestedRefChild(
+      patched as RefNode,
+      override,
+      inheritedDescendants,
+      pathKey,
+      doc,
+      cache,
+      imports,
+    );
+    return {
+      ...resolvedRef,
+      _overrides: [
+        ...(resolvedRef._overrides ?? []),
+        ...Object.keys(override as Record<string, unknown>),
+      ],
+    };
+  }
   const resolved = resolveFrameOrPlain(patched, doc, cache, imports);
   return {
     ...resolved,

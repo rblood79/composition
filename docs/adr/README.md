@@ -17,6 +17,8 @@
 
 > **2026-09-20 ADR-027 Implemented (Phase D 전환 무결성 재정의 → D0~D3 같은 날)**: 부분 완료 (Phase A~C) 로 남아 있던 Canvas 인라인 텍스트 편집을 "리치 텍스트/툴바" 대신 **Skia ↔ DOM 오버레이 전환 무결성** 으로 완료 조건 재정의 (사용자 승인) — D0 캔버스 변위 차단 · D1 wrap 파리티 · D2 글리프/baseline nudge · D3 타입 8 × 줌 2 픽셀 게이트 16/16 + 사용자 참관 live 7. 게이트가 잡은 Canvas 결함 (CJK 단일행 descent 만큼 위 · px 폭 텍스트 leaf 높이 · pre 계열 `\n` 높이) 동반 수리. 리치 텍스트·툴바 보류 (canonical 텍스트 모델 ADR 선행). 열림 5 (Proposed 4 · Accepted 1 · 부분 0), 완료 247, 합계 252.
 
+> **2026-09-21 ADR-229 Proposed 추가**: TagGroup item template origin (`component-tag-item-default`/`-selected` · TagList `slot` · projection/Preview read-through — ListBox 모델 복제) + 저작 조합층 origin (Form/Toolbar/ButtonGroup/Pagination …) 의 "origin 이 있는 타입" 자식을 그 origin 의 instance (`type:"ref"`) 로 — RAC 재사용 조합을 Components 페이지 모양 그대로. RAC 내부 sub-part (TextField 의 Label/Input · Select 트리거 Button) 는 parent rule delegation 유지 (사용자 판정 (a), ADR-923 P5 승계). 리뷰 round 1~2 설계 보완: 일반 origin-child ref 실체화는 선행 구현 대상(G0); avatar 공용 role·양 consumer, 2단 seed/index, 최초 보충량과 재hydration Δ0 분리를 명시했다. 열림 8 (Proposed 6 · Accepted 2 · 부분 0), 합계 256. **2026-09-21 Accepted + Phase 0 완료** (`/execute-adr 229`): 일반 origin-child ref 실체화 (Skia `resolveCanonicalRefTree` 일반 경로 · Preview mode A ref 자식) + nested path 편집 소유권 (바깥 instance descendants 하나) · headed live 12/12 · 발견 F15 (synthetic 자식 패널 표면 부재는 1-level 부터의 기존 한계 → Phase 2 범위).
+
 > **2026-09-21 ADR-228 round 3 (codex 완료 검증 HIGH 2 · MEDIUM 3 → 같은 날 수리)**: h1 Button instance 를 선택한 채 Button 을 놓으면 그 안에 들어가던 결함 — 생성 preflight 가 page-scoped 요소만 봐 Components 페이지 origin 타입을 못 읽고 canonical guard 도 `ref` 그대로 판정 → 둘 다 origin 타입 (RED→GREEN 5 · live 1) · h2 origin 재정렬이 재hydration 에 되돌아가던 것 — `ensureTemplateOrigins` 제자리 보정 (RED→GREEN 1 · live reload 2) · m4 parity V manifest 56 pair (Chart ×7) + Skia 캔버스 실픽셀 57/57 · Chart 7 왕복 · m5 `scene.build` 직접 계측 + pan/multi-select-edit A/B (캔버스 축 ≤ +0.7 · scene.build +0.5~+2.5 유보 · 다중 선택 +16 은 DOM 패널) + Skia bridge 선형 탐색 수리 · m3 명시 initialProps = origin 과 다른 키 (+chartType) 로 계약 문구 확정, 같은 값 소유는 스키마 확장 (LOW deferred). live 38/38 + 57/57. 열림 6, 합계 255.
 
 > **2026-09-21 ADR-228 Implemented (같은 날)**: 팔레트 전 항목 reusable origin — 리뷰 round 1·2 pending 0 → `/execute-adr 228` Phase 0~~4 / G0~~G4 종결. shared `PALETTE_REUSABLE_ORIGIN_TYPES` 52 로 동명 primitive panel 메타를 reusable entry 로 파생 (E 57 = 손 seed 5 + 52 · X 9) · `catalogOrigins.ts` 가 factory definition/기본값에서 origin 을 시드 (로드 migration 통과 · 안정 id · 재hydration Δ0) · instance 는 origin 과 다른 명시 initialProps 만 (chartType 보존 — canonical diff 예외) · 편집 계약은 origin type accepts 직접 (schema 문서 복제 0) · scene node 가 origin props 상속 (Breadcrumbs 폭 0 수리) · `resolveCanonicalRefTree` O(n²) → map · systemOwned origin root 삭제 가드 · Components body flex-wrap grid. G1 단위 16 · G2 instance parity live 51/51 (Skia rect + Preview 픽셀 Δ0) · live 24/24 · G4 headed 3회 select +0.3 · edit +0.1 · page-switch +0.1 ms (zoom +4.5 유보) · Δnode 185 · Δbyte 38 KB. 열림 6 (Proposed 5 · Accepted 1 · 부분 0), 합계 255.
@@ -50,11 +52,11 @@
 | ├ Accepted                    |      13 |
 | ├ Superseded                  |      14 |
 | └ Deprecated                  |       9 |
-| 열려 있는 것 (`adr/*.md`)     |       7 |
-| ├ Proposed                    |       6 |
+| 열려 있는 것 (`adr/*.md`)     |       8 |
+| ├ Proposed                    |       7 |
 | ├ Accepted (미착수·일부 착수) |       1 |
 | └ 부분 완료                   |       0 |
-| **합계**                      | **255** |
+| **합계**                      | **256** |
 
 `completed/` 에는 ADR 외에 Phase 0 baseline 4건과 참조 자료 1건이 함께 있다 (완료 절 끝 참조).
 `adr/` 직속에는 ADR 이 아닌 레퍼런스 1건 (`react-skia-zustand-frame-performance-design.md`) 이 있다.
@@ -88,6 +90,12 @@
 - **상태**: Proposed — **비실행 목표 참조** (execute-adr 대상 아님)
 - **규모**: **비실행 목표 참조(Target Reference) / 백지 목표 아키텍처 설계서** (사용자 요청 2026-06-02 "서두 조건 Status/Context/HC/SC 기반으로 재작성 — 현재코드 수정 설계서 아님"). ADR-910 이 현재 124 spec / family cutover / 레거시 제거를 다루는 **전환(cutover) 실행 설계서**가 된 데 대해, 911 은 현재 코드를 참조하지 않고 **"조건을 만족하는 목표 구조가 정적으로 무엇인가"** 만 1차 원리(RAC core + Pencil format)로 유도한다. 같은 대안 E(Canonical 문서 SSOT + RAC primitive binding) 채택 — 목표 구조가 910/912 와 수렴하되 전략이 다름(910=점진 cutover / 911=목표 자체 / 912=백지 직행). **착수/execute-adr/phase 반영은 ADR-912(백지 직행, 유일 착수)로 진행하고(사용자 옵션 B 2026-06-02, codex review 라우팅 동기화), 911 은 912 실행 중 목표 구조 drift 를 판정하는 reference 로 사용한다.** HC 1~7 ↔ 목표 구조 1:1 증명(breakdown ⑨). Risks 는 **목표 성립 불확실성만**(R-1 generic 공통기반 / R-2 base⊕override 단일 어댑터 / R-3 Interactive Projected Tree 60fps+깊은노드 / R-4 Skia 상태모델) — 마이그레이션 축 N/A, 실행 위험(정합성 회귀 / 등록 collapse / 레거시 제거)은 912 보유. Gate 는 증명 게이트(G-slice/G-adapter/G-projected/G-state) — 실행 게이트는 912. design breakdown `design/911-rac-pencil-target-component-architecture-breakdown.md`.
 - **우선순위**: **P1**
+
+#### [229](229-collection-item-template-and-nested-origin-instances.md) — TagGroup item template origin + 저작 조합층의 origin 안 instance
+
+- **상태**: Accepted (2026-09-21) — **Phase 0 완료** (일반 origin-child ref 실체화 두 leg + nested path 편집 소유권 · headed live 12/12), Phase 1~4 진행 중
+- **규모**: D3 조합 축 확장 (ADR-147/148/161 + 228 응용, 스키마 변경 0). ① `component-tag-item-default`/`-selected` + TagList `slot` + `appendTagRowProjection` template read-through + Preview `tag` 구성 주입 ② 조합 origin seed·생성 경로의 reusable 타입 자식을 `ref` 로 (228 instance 계약 그대로, sub-part 제외 = `isDelegatedSubpartChild`). 대안 B 채택, R1 (일반 origin-child ref 미해소 + 2단 override) · R2 (Preview 대칭) HIGH 는 G0/G1/G2 로. [설계](design/229-collection-item-template-and-nested-origin-instances-breakdown.md) Phase 0~~4, 추정 파일 15~~20. 후속 후보: Tabs/Breadcrumbs/Tree/Table/CardView/ToggleButtonGroup/Nav/Pagination item template.
+- **우선순위**: 사용자 요청 2026-09-21 (TagGroup chip 결함 수리 중 지적 2건)
 
 #### [227](227-multi-theme-token-set-collection.md) — 다중 테마 — 문서 소유 토큰 세트 컬렉션 + 활성 전환 + 테마 소유 축 확장
 
