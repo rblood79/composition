@@ -1229,6 +1229,33 @@ export interface TranslationKeys {
     noPagesMatch: string;
     resizeSections: string;
   };
+  /** Themes 패널 (ADR-227 Phase 4) — 테마 목록 · 토큰 재정의 */
+  themes: {
+    title: string;
+    list: string;
+    add: string;
+    duplicate: string;
+    rename: string;
+    delete: string;
+    deleteLast: string;
+    activate: string;
+    active: string;
+    name: string;
+    tokens: string;
+    tokensEmpty: string;
+    category: string;
+    key: string;
+    value: string;
+    addOverride: string;
+    reset: string;
+    invalidValue: string;
+    catColor: string;
+    catTypography: string;
+    catRadius: string;
+    catBorder: string;
+    catShadow: string;
+    catFocus: string;
+  };
   styles: {
     responsiveGlobalHint: string;
     responsiveNoOverrides: string;

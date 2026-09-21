@@ -79,3 +79,47 @@
   height: 16px;
   border-radius: 3px;
 }
+
+/* ADR-227 Phase 4 — 테마 목록 · 토큰 재정의 (공용 .list-row 위에 패널 고유 표지만) */
+.theme-list,
+.theme-token-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  min-width: 0;
+}
+
+/* 활성 표지 20 — 눌린 상태는 accent 채움 (Check 흰색) */
+.theme-row-activate[data-selected] {
+  background: var(--accent);
+  color: var(--fg-on-accent);
+}
+
+.theme-row[data-active] .theme-row-name {
+  font-weight: 600;
+}
+
+/* 값 입력은 본문 안 20 (이름 짓기 입력과 같은 규격) — 키 라벨이 먼저, 값이 뒤 */
+.theme-token-value {
+  flex: 0 1 8em;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+}
+
+.theme-token-empty,
+.theme-token-invalid {
+  margin: 0;
+  padding: 0 var(--spacing);
+  font-size: var(--text-xs);
+  line-height: var(--text-xs--line-height);
+  color: var(--fg-muted);
+}
+
+.theme-token-invalid {
+  color: var(--negative);
+}
+
+.theme-token-add {
+  display: grid;
+  gap: var(--spacing-sm);
+}

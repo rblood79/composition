@@ -1,8 +1,8 @@
 /**
- * ThemesPanel - 인라인 테마 설정 패널 (ADR-021 Phase A+B)
+ * ThemesPanel - 인라인 테마 설정 패널 (ADR-021 Phase A+B · ADR-227 Phase 4)
  *
- * Tint 프리셋 선택 + Dark Mode 토글 + Neutral Tone + Radius Scale + 미니 프리뷰.
- * 기존 PropertySection/PanelHeader 패턴 준수.
+ * 테마 목록 (문서 컬렉션) + Tint 프리셋 선택 + Dark Mode 토글 + Neutral Tone + Radius Scale + 토큰 재정의
+ * + 미니 프리뷰. 기존 PropertySection/PanelHeader 패턴 준수. preset/서체 절은 활성 테마에 쓴다.
  */
 
 import { memo, useCallback } from "react";
@@ -33,6 +33,9 @@ import {
   PanelContents,
 } from "../../components";
 import { MiniThemePreview } from "./MiniThemePreview";
+import { ThemeListSection } from "./ThemeListSection";
+import { ThemeTokensSection } from "./ThemeTokensSection";
+import { useI18n } from "../../../i18n";
 import { useThemeMessenger } from "../../hooks/useThemeMessenger";
 import {
   setActiveThemeBaseTypography,
@@ -236,6 +239,7 @@ const LINE_HEIGHT_OPTIONS = [
 // ============================================================================
 
 function ThemesContent() {
+  const { t } = useI18n();
   const currentTint = useThemeConfigTint();
   const darkMode = useThemeConfigDarkMode();
   const neutral = useThemeConfigNeutral();
@@ -309,7 +313,7 @@ function ThemesContent() {
     <div className="panel themes-panel">
       <PanelHeader
         icon={<SwatchBook size={iconProps.size} />}
-        title="Theme"
+        title={t("themes.title")}
         panelId="theme"
         actions={
           <RAToggleButton
@@ -328,6 +332,9 @@ function ThemesContent() {
       />
 
       <PanelContents>
+        {/* ADR-227 Phase 4 — 문서 테마 컬렉션 목록 (추가 = 활성 복제 · 활성 · 이름 · 삭제) */}
+        <ThemeListSection />
+
         <PropertySection title="Colors" id="theme-colors">
           <fieldset className="properties-aria">
             <legend className="fieldset-legend">Accent</legend>
@@ -387,6 +394,9 @@ function ThemesContent() {
             options={LINE_HEIGHT_OPTIONS}
           />
         </PropertySection>
+
+        {/* ADR-227 Phase 4 — 활성 테마 토큰 재정의 (color · typography · radius · border · shadow · focus) */}
+        <ThemeTokensSection />
 
         <PropertySection title="Preview" id="theme-preview">
           <MiniThemePreview />

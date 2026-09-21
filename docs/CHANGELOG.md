@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-227 Phase 4 — Themes 패널: 테마 목록 · 토큰 재정의] - 2026-09-22
+
+### Added
+
+- **Themes 패널 「테마 목록」**: 문서의 테마를 행으로 보여 주고 (활성 표지 · 이름 · preset 요약), `+` 로 활성 테마를 복제해 추가, 표지 클릭으로 활성 전환, 연필로 이름 변경, `−` 로 삭제 (마지막 테마는 삭제 불가). 모든 동작이 History 1 건 (Undo/Redo) 이고 새로고침 뒤 보존된다.
+- **「토큰 재정의」**: 활성 테마의 색상 · 타이포그래피 · 반경 · 테두리 폭 · 그림자 · 포커스 토큰을 분류 → 키 → 값으로 덮어쓰고 (hex/숫자 검증, 프리셋 값과 같으면 자동 해제), 행의 `−` 로 초기화한다. 캔버스는 즉시 반영, Preview/Publish 는 같은 CSS 변수 한 벌을 받는다.
+  - 위치: `apps/builder/src/builder/panels/themes/{ThemeListSection,ThemeTokensSection}.tsx` · `themeTokenEditor.ts` · `ThemesPanel.tsx` · `ThemesPanel.css` · i18n `themes.*`.
+  - 하니스: `apps/builder/scripts/adr227-themes-panel-live.mjs` 10/10 (패널 UI 클릭 · 854 요소 전환 ≤ 16.4 ms).
+
 ## [ADR-227 Phase 3 — border 폭이 테마 토큰이 된다] - 2026-09-22
 
 ### Changed
