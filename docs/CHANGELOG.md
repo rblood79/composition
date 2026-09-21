@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-229 Implemented — TagGroup item template origin + 저작 조합층의 origin 안 instance] - 2026-09-21
+
+### Changed
+
+- ADR-229 Phase 4 종결 (G4 BC) → **Implemented** (`docs/adr/completed/229-…`). 기존 프로젝트를 열면 Tag chip item template origin 2 (`Tag/Default` · `Tag/Selected`) 와 `component-taggroup.slot` 만 보충되고 (Δnode 8 · Δbyte 1,959), 기존 origin 의 자식 · 사용자 저작 · 순서는 그대로다 (조합 origin 자식의 instance 화는 새 프로젝트의 seed 에만). 두 번째 열기부터 Δ0.
+  - Why: G4 — unit `adr229BackwardCompat.test.ts` 4 (기존 노드 직렬화 불변 · Δ 정확 · 재hydration Δ0 · 변환만 끈 롤백에서 해소기 유지) · headed live `adr229-bc-live.mjs` 7/7 (저장된 canonical 문서를 ADR-228 모양으로 재작성 → reload → plain 자식 유지 · Tag origin 보충 · 재reload Δ0 · TagGroup instance chip 두 leg 30). 전체 gate 결과 · Live Exercise · 후속 후보 (기본 요소의 상태별 별도 origin 분해 = 새 ADR) 는 ADR 본문.
+
 ## [ADR-229 Phase 3 — 두 leg parity + 성능 (G2 · G3)] - 2026-09-21
 
 ### Fixed
@@ -69,7 +76,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **ADR-229 Phase 0~4 설계 보완**: 일반 origin-child ref 실체화와 소유권 검증을 seed 전환의 선행 조건으로 명시. Avatar slot vocabulary/양 consumer 계약, origin index 완성 후 신규 origin만 변환하는 2단 seed, 기존 저작 내용·최초 보충량·재hydration 증가량을 분리한 BC gate를 반영했다.
   - Why: override.children 전용 해소를 일반 자식 ref 지원으로 오인했고, avatar role과 dependency seed 보장도 현행 코드에 없었다.
-  - 위치: `docs/adr/229-collection-item-template-and-nested-origin-instances.md`, `docs/adr/design/229-collection-item-template-and-nested-origin-instances-breakdown.md`, `docs/adr/reviews/229.md`.
+  - 위치: `docs/adr/completed/229-collection-item-template-and-nested-origin-instances.md`, `docs/adr/design/229-collection-item-template-and-nested-origin-instances-breakdown.md`, `docs/adr/reviews/229.md`.
   - 설계 수리이며 제품 구현·gate 통과·상태 승격은 아님. Proposed 유지.
 
 ## [TagGroup chip — 공백 라벨 세로 중앙 · chip 상자 DOM 정합] - 2026-09-21

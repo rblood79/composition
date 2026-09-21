@@ -2,9 +2,9 @@
 
 ## Status
 
-Accepted — 2026-09-21 (Proposed 2026-09-21 → 사용자 `/execute-adr 229` 착수 · Phase 0 G0 통과 · Phase 1 G1 통과 · Phase 2 G1 통과 · Phase 3 G2·G3 통과)
+Implemented — 2026-09-21 (Proposed 2026-09-21 → Accepted 같은 날 사용자 `/execute-adr 229` 착수 · Phase 0 G0 · Phase 1·2 G1 · Phase 3 G2·G3 · Phase 4 G4 통과, 같은 날 종결)
 
-리뷰 round 1의 h1/m2/m3/l4 설계 보완 완료 (round 2). **Phase 0 (2026-09-21) 완료** — 일반 origin-child ref 실체화를 builder Skia 축 (`resolveCanonicalRefTree` 일반 source-child 경로) 과 Preview 축 (`resolveCanonicalDocument` mode A patch 가 닿은 ref 자식) 양쪽에 구현, proposed Form nested-ref fixture 를 실제 builder 에서 편집→저장→reload→Undo/Redo 로 실측 (headed live 12/12). **Phase 1 (2026-09-21) 완료** — Tag chip item template origin 2 + `component-taggroup` TagList `slot` + chip read-through 두 leg (headed live 8/8). **Phase 2 (2026-09-21) 완료** — 조합 origin 의 reusable-type 자식을 origin instance 로 (규칙 하나 `toOriginChildSeed` · 2단 seed · 생성 경로) + synthetic 자식 (`<instance>/<path>`) 의 Properties/Styles 표면 (F15, 쓰기는 바깥 instance descendants) · headed live 9/9 · 잡은 결함 3 (Preview segment id≠name · descendants 쓰기 재레이아웃 · segment 안 `/`). Phase 3~4 는 진행 중 — 기록은 [breakdown §7](design/229-collection-item-template-and-nested-origin-instances-breakdown.md). **Phase 3 (2026-09-21) 완료** — 두 leg 동시 Δ live (`adr229-two-leg-parity-live.mjs` 7/7: Tag item origin icon `fontSize` · label `fontWeight` · root padding → TagGroup instance Skia rect + 픽셀 + Preview computed · `component-button` 편집 → Form/Toolbar instance 안 Button 두 leg · 중첩 편집 → reload) + ADR-228 parity 56 pair 회귀 0 (58/58 — Phase 2 직후 FAIL 11 은 하니스 plain arm 이 ref 자식을 못 옮긴 것, F29) + G3 `scene.build` A/B (Form 100 instance 7회 median p95 +0.7 · TagGroup 100×8 −0.2/−1.2). live 가 잡은 결함 F28 (chip 박스 폭 · 접힘 측정이 template slot 크기 · fontWeight 를 안 읽음) 수리. 남은 Phase 4 = BC (G4) · 문서 · 종결.
+리뷰 round 1의 h1/m2/m3/l4 설계 보완 완료 (round 2). **Phase 0 (2026-09-21) 완료** — 일반 origin-child ref 실체화를 builder Skia 축 (`resolveCanonicalRefTree` 일반 source-child 경로) 과 Preview 축 (`resolveCanonicalDocument` mode A patch 가 닿은 ref 자식) 양쪽에 구현, proposed Form nested-ref fixture 를 실제 builder 에서 편집→저장→reload→Undo/Redo 로 실측 (headed live 12/12). **Phase 1 (2026-09-21) 완료** — Tag chip item template origin 2 + `component-taggroup` TagList `slot` + chip read-through 두 leg (headed live 8/8). **Phase 2 (2026-09-21) 완료** — 조합 origin 의 reusable-type 자식을 origin instance 로 (규칙 하나 `toOriginChildSeed` · 2단 seed · 생성 경로) + synthetic 자식 (`<instance>/<path>`) 의 Properties/Styles 표면 (F15, 쓰기는 바깥 instance descendants) · headed live 9/9 · 잡은 결함 3 (Preview segment id≠name · descendants 쓰기 재레이아웃 · segment 안 `/`). Phase 3~4 는 진행 중 — 기록은 [breakdown §7](../design/229-collection-item-template-and-nested-origin-instances-breakdown.md). **Phase 3 (2026-09-21) 완료** — 두 leg 동시 Δ live (`adr229-two-leg-parity-live.mjs` 7/7: Tag item origin icon `fontSize` · label `fontWeight` · root padding → TagGroup instance Skia rect + 픽셀 + Preview computed · `component-button` 편집 → Form/Toolbar instance 안 Button 두 leg · 중첩 편집 → reload) + ADR-228 parity 56 pair 회귀 0 (58/58 — Phase 2 직후 FAIL 11 은 하니스 plain arm 이 ref 자식을 못 옮긴 것, F29) + G3 `scene.build` A/B (Form 100 instance 7회 median p95 +0.7 · TagGroup 100×8 −0.2/−1.2). live 가 잡은 결함 F28 (chip 박스 폭 · 접힘 측정이 template slot 크기 · fontWeight 를 안 읽음) 수리. **Phase 4 (2026-09-21) 완료** — G4 BC: unit (`adr229BackwardCompat.test.ts` 4 — 228 모양 문서 + 사용자 저작에 229 hydration → 기존 노드 props/children/순서 직렬화 불변 (유일 필드 추가 = `component-taggroup.slot`) · 최초 보충 Δnode 8 · Δbyte 1,959 (= Tag item origin 2 직렬화 + slot 필드, 정확히) · 재hydration Δ0 · 조합 자식 변환만 끈 롤백에서도 해소기가 중첩 ref 문서를 읽음) + live (`adr229-bc-live.mjs` 7/7 — 저장된 canonical 문서를 228 모양으로 재작성 후 reload: 조합 origin 자식 plain 유지 · Tag origin 2 + slot 보충 Δnode 8 · 재reload Δ0 · 그 문서의 TagGroup instance chip 두 leg 30). 사용자 판정 후속 2 (같은 날): Slot 절 "+" 가 TagList 에 item 등록 (F30) · Components 페이지 Properties 에서 data binding 제외. 실행 기록 전문은 [breakdown §7](../design/229-collection-item-template-and-nested-origin-instances-breakdown.md).
 
 설계 요청: 사용자 (2026-09-21) — ① "TagList 는 ListBox 처럼 반복되는 slot 영역인데 Tag chip 이 Components 페이지에 없다." ② "RAC 레퍼런스 구조만 봐도 Button · Input · Label 같은 기본 요소를 재사용 조합하는 개념인데, 동일하게 origin/instance 로 할 수 있지 않나." 범위 판정은 사용자 AskUserQuestion confirm (2026-09-21): **(a) 저작 조합층만 먼저** — RAC 내부 sub-part (TextField 의 Label/Input, Select 트리거 Button …) 는 parent rule delegation 유지 (ADR-923 P5 판정 승계). ADR-228 (Implemented 09-21) 은 inventory freeze (R 57 + item template 4) 안에서 TagGroup 을 generic origin 으로 심었으므로 둘 다 228 범위 밖 = 이 ADR (ADR-148 계열).
 
@@ -89,7 +89,7 @@ Accepted — 2026-09-21 (Proposed 2026-09-21 → 사용자 `/execute-adr 229` �
 
 위험 수용 근거: override.children 경로의 선례를 재사용하되 일반 origin-child 실체화는 명시 구현 대상으로 둔다. G0에서 proposed fixture의 타입·상속·경로·편집 저장 위치를 확인하기 전에는 ref seed를 활성화하지 않는다. 공통 경로 실패 시 모든 조합 ref 전환을 보류하므로 미해소 노드가 신규 문서에 퍼지지 않는다. 기각 사유: A 는 사용자 지적 ② 를 남긴다 · C 는 D1 경계 (RAC self-compose) 를 넘고 사용자 판정 밖 · D 는 조합을 표현하지 못한다.
 
-> 구현 상세: [229-collection-item-template-and-nested-origin-instances-breakdown.md](design/229-collection-item-template-and-nested-origin-instances-breakdown.md)
+> 구현 상세: [229-collection-item-template-and-nested-origin-instances-breakdown.md](../design/229-collection-item-template-and-nested-origin-instances-breakdown.md)
 
 ## Risks
 
@@ -112,6 +112,27 @@ Accepted — 2026-09-21 (Proposed 2026-09-21 → 사용자 `/execute-adr 229` �
 | G3   | Phase 3        | 600 요소 A/B: `scene.build` p95 ≤ +1 ms · TagGroup 100×8 projection ≤ +1 ms                                                                                                                                                   | 중첩 merge 캐시 (ADR-228 유보와 같은 가설) 또는 축소                           |
 | G4   | Phase 4        | BC: 기존 저작 subtree/순서 불변 · 최초 누락 root/자식/shell 예상 Δnode·Δbyte 일치 · 두 번째 hydration Δnode·Δbyte 0 · ref seed 원복/해소기 유지 후 문서 열림                                                                  | migration 0 유지 못 하면 중단                                                  |
 
+### Gate 결과 (2026-09-21)
+
+| Gate | 판정 | 근거                                                                                                                                                                                                                                                                                                                                                        |
+| ---- | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| G0   | PASS | 일반 origin-child ref 실체화 두 leg RED→GREEN · proposed Form nested-ref fixture 편집→저장→reload→Undo/Redo live 12/12 (`adr229-nested-origin-live.mjs`)                                                                                                                                                                                                    |
+| G1   | PASS | Phase 1 원복 RED 17 + import 실패 2 · Phase 2 원복 RED 7 · shared 1,376 · specs 1,378 · builder 전체 864 파일 6,895 PASS · live 8/8 (`adr229-tag-template-live`) + 9/9 (`adr229-composite-children-live`) + 9/9 (`adr229-canvas-origin-live`)                                                                                                               |
+| G2   | PASS | `adr229-two-leg-parity-live.mjs` 7/7 (Tag icon fontSize · label fontWeight · padding → Skia rect + 픽셀 + Preview computed 동시 Δ, 폭 113 = 113.12 · `component-button` width → Form/Toolbar instance 두 leg · 중첩 편집 → reload) · ADR-228 parity 58/58 (56 pair Skia rect/픽셀/DOM Δ0) · live 가 잡은 F28 수리                                           |
+| G3   | PASS | `scene.build` 같은 세션 A/B headed — Form instance 100 (plain 펼침 ≈ 1,400 노드 vs 3단 ref) 7회 p95 median 4.0 → 4.7 (**+0.7 ≤ +1**) · p50 +0.5 · render.frame Δ ≈ 0 · TagGroup 100×8 2회 −0.2/−1.2. 유보 (LOW): ref arm 의 p95 spike 2회 (7.5 · 6.2, 표본 10 의 max) — ADR-228 잔여 (a) 와 같은 가설 (instance 당 merge 3회 · resolved identity 캐시 후보) |
+| G4   | PASS | unit `adr229BackwardCompat.test.ts` 4 (기존 노드 직렬화 불변 · Δnode 8 · Δbyte 1,959 정확 · 재hydration Δ0 · 변환만 끈 롤백에서 해소기 유지) · live `adr229-bc-live.mjs` 7/7 (228 모양 문서 재작성 → reload → plain 자식 유지 · Tag origin 2 + slot 보충 · 재reload Δ0 · TagGroup instance chip 두 leg)                                                     |
+
+## Live Exercise
+
+실제 builder (dev 5173, headed Playwright, `.auth-session.json`) 에서 exercise 한 것 — 전부 새 프로젝트 생성부터. 하니스는 `apps/builder/scripts/adr229-*.mjs`, 결과 JSON 은 `/private/tmp/adr229-*/findings.json`, run ledger `live-exercise pass` (Phase 마다).
+
+- **Phase 0** `adr229-nested-origin-live.mjs` 12/12 — 손 fixture `adr229-form` (자식 ref TextField · Button) + 바깥 instance: Skia rect (Label 까지) · Preview BUTTON variant 상속 + patch 'Save' · 안쪽 Button Text/border-radius 편집 → 바깥 instance descendants 하나 · Undo/Redo · reload · Components body Δ0.
+- **Phase 1** `adr229-tag-template-live.mjs` 8/8 — Tag item origin 2 + root slot 시드 · instance chip Skia 30 = Preview 30 (avatar > icon > 없음, 폭 차 ≤ 3) · default origin padding 24/8 → 38 두 leg · Avatar slot 삭제 → 두 leg icon · label fontSize 18 → 43.71 = 43.7 · Undo ×3 · reload 보존 · Δ0.
+- **Phase 2** `adr229-composite-children-live.mjs` 9/9 — 신규 seed (Form 자식 ref ×3 · Toolbar Button ref ×3) · Form instance 3단 rect · synthetic Save 선택 → Properties Button 필드 · 'Go' → descendants 하나 · TextField/Name Label → 'Full name' · Undo/Redo · reload Δ0 · 보류 진단 = CardView Card 3 만. `adr229-canvas-origin-live.mjs` 9/9 — Components 페이지에서 origin 안 ref 자식 rect/글자 · origin 자식 편집 → instance 동반 · `component-button` 편집 → 자기 patch 우선 · width 200 상속 · 영향 대화상자 Continue. TagGroup Properties 프로브 — instance "Target slot" 없음 · origin "Slot · 2 recommendations".
+- **Phase 3** `adr229-two-leg-parity-live.mjs` 7/7 (위 G2) · `adr228-instance-parity-live.mjs` 58/58 · `pnpm perf:baseline` `forms`/`form-refs` · `taggroups`/`taggroup-refs` headed (위 G3).
+- **Phase 4** `adr229-bc-live.mjs` 7/7 (위 G4) · 후속 `adr229-slot-insert-live.mjs` 5/5 (origin Slot 절 Insert Tag/Default → items 5 · Insert Tag/Selected → items 6 + selectedKeys · 상속 instance Preview chip 6 = Skia 6) · data binding 제외 프로브 (instance 「새 테이블」 1 / origin 4종 0).
+- **live 가 잡은 결함** (unit 은 통과했던 것, 전부 수리): F17 Preview JSX 경로 template 미수신 · F18 Canvas chip 높이 30 고정 · F19 lineHeight 배율 · F21 Preview 가 name 자식 patch 무반응 (id path 만) · F22 descendants 쓰기 재레이아웃 · F23 segment 안 `/` · F27 TagGroup slot 자리 (사용자 지적) · F28 chip 박스 폭 slot 크기/fontWeight · F30 Slot 절 "+" (사용자 지적).
+
 ## Consequences
 
 ### Positive
@@ -125,3 +146,10 @@ Accepted — 2026-09-21 (Proposed 2026-09-21 → 사용자 `/execute-adr 229` �
 - 조합 origin 의 자식이 ref 라 Components 페이지에서 Form origin 을 펼치면 안쪽 Button 이 "instance" 로 보인다 — 사용자 체감은 plain 과 같아야 하나 (HC), Navigator 표시는 instance 배지가 한 겹 더 생긴다.
 - 중첩 merge 비용 (R3) · seed 순서 의존 (R4) 이 생긴다.
 - RAC 내부 sub-part 는 여전히 rule delegation — "Select 의 트리거 Button 도 Button origin 을 따라야 하지 않나" 는 이 ADR 이 답하지 않는다 (사용자 판정 (a); 재개 조건 = 결정 지점 ③ 재질문).
+
+### 후속 후보 (이 ADR 밖)
+
+- **Components 페이지 상태별 origin 분해** (사용자 판정 2026-09-21, 새 ADR — 사용자 `/create-adr`): 모든 기본 요소 (Button · ToggleButton · Checkbox/Radio/Switch · Input · Tag/ListBoxItem/GridListItem/MenuItem/Tab …) 를 선택됨 · 비활성 · hover · pressed 의 **상태별 별도 origin** (Tag/Default · Tag/Selected 패턴) 으로 — 지금은 ListBoxItem · Tag 만 selected 변형, 그 외 상태 스타일은 catalog rule fill state 토큰 (D3, 노드 아님) 이라 정본 위치 재판정이 필요. 원칙 "기본 요소만 잘 정의되면 나머지는 조합" — 조합은 ref 로 상속하므로 상태 origin 은 기본 요소 집합에만. 원칙과 아직 어긋나는 자리 = RAC 내부 sub-part (TextField Label/Input 등, ADR-923 delegation).
+- 다른 collection 의 item template origin: Tabs/Breadcrumbs/Tree/Table/CardView/ToggleButtonGroup/Nav/Pagination (이 ADR 의 resolver/주입 패턴 복제).
+- G3 유보 (LOW): 중첩 instance 의 `scene.build` spike — resolved instance identity 캐시 (ADR-228 잔여 (a) 와 같은 가설).
+- ADR-228 parity 하니스 plain arm 의 ref 자식 복제 (F29) 는 하니스 수리로 종결 — 문서 모양 변경 시 같은 자리 재점검.
