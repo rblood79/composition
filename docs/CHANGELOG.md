@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-230 설계 보완 — 상태 효과 소유권 · CSS cascade · 유효 상태] - 2026-09-21
+
+### Documentation
+
+- **ADR-230 Phase 0~3 설계 리뷰 3건 보완**: 상태 origin opacity의 catalog 효과 대체, Phase 1부터 CSS 변수/상태 selector 공통 채널, 조상·collection·RAC의 유효 상태 입력, 명시 instance override 우선순위와 반증 gate를 명시했다.
+  - Why: 단순 overlay는 Skia opacity 중복, inline 색의 hover 차단, 부모/RAC 상태 누락을 일으킨다.
+  - 위치: `docs/adr/230-base-element-state-variant-origins.md`, `docs/adr/design/230-base-element-state-variant-origins-breakdown.md`, `docs/adr/reviews/230.md`.
+  - Proposed 유지. 제품 구현·gate 완료가 아닌 설계 수리다.
+
 ## [ADR-229 Implemented — TagGroup item template origin + 저작 조합층의 origin 안 instance] - 2026-09-21
 
 ### Changed
