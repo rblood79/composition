@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-227 Accepted + Phase 0 — 다중 테마 inventory freeze] - 2026-09-22
+
+### Changed
+
+- **ADR-227 Accepted · Phase 0 (G0) 완료** (`/execute-adr 227`): 재실측 F13~F18 — `doc.themes`/`doc.tokens` 는 production 에서 쓰인 적이 없어 기존 문서 100% 가 themes 부재 (실전 migration 경로 = localStorage `composition-theme-config-<projectId>` → 컬렉션) · write-through flag 는 어디에도 없음 · DOM 채널 = `THEME_VARS` postMessage · Skia 채널 = specs 토큰 맵 mutation (resolveToken 소비자 21 파일이 같은 맵) · focus 축은 DOM 만 (ADR-150) · border inventory 48+6+8+2 (outline 17 은 focus 예외) · Components 페이지는 228~230 으로 이미 전집 · 변경 파일 39 확정. `docs/adr/design/227-multi-theme-token-set-collection-breakdown.md` §8.
+
 ## [ADR-230 Implemented — 기본 요소의 상태별 origin 분해] - 2026-09-22
 
 ### Changed

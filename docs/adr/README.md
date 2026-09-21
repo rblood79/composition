@@ -57,8 +57,8 @@
 | ├ Superseded                  |      14 |
 | └ Deprecated                  |       9 |
 | 열려 있는 것 (`adr/*.md`)     |       7 |
-| ├ Proposed                    |       7 |
-| ├ Accepted (미착수·일부 착수) |       0 |
+| ├ Proposed                    |       6 |
+| ├ Accepted (미착수·일부 착수) |       1 |
 | └ 부분 완료                   |       0 |
 | **합계**                      | **256** |
 
@@ -97,7 +97,7 @@
 
 #### [227](227-multi-theme-token-set-collection.md) — 다중 테마 — 문서 소유 토큰 세트 컬렉션 + 활성 전환 + 테마 소유 축 확장
 
-- **상태**: Proposed (2026-09-20)
+- **상태**: Accepted (2026-09-22, `/execute-adr 227`) — Phase 0 (G0) 완료: 기존 문서 100% themes 부재 (실전 migration 1행) · DOM=THEME_VARS · Skia=specs 맵 · 파일 39
 - **규모**: D3 내부 확장 — ThemesCollection(preset + 델타), 기존 localStorage 실효값·baseTypography를 최초 저장 성공 후 문서로 이관. 카테고리별 production snapshot/CSS 변수·파생값 우선순위와 border 타입/validator/generator/layout 확장. Themes 패널과 Components origin/instance/slot 테마 표면. 사용자 전환 History 1건/파생 추가 0건. 대안 B 채택, R1~~R3 HIGH는 G2/G3/G1로 관리. [설계](design/227-multi-theme-token-set-collection-breakdown.md) Phase 0~~5, 변경 파일 수는 G0 inventory에서 확정. [리뷰](reviews/227.md) 4건 설계 수리, 구현 gate UNVERIFIED.
 - **우선순위**: 사용자 요청 2026-09-20 ("Figma/Framer 와 같은 theme 기능")
 
