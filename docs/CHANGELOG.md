@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-230 Accepted + Phase 0 — 기본 요소 상태별 origin inventory] - 2026-09-21
+
+### Documentation
+
+- **ADR-230 Accepted · Phase 0 (G0) 완료**: 기본 요소 집합 5 (Button · ToggleButton · Link · Checkbox · Switch — 상태 열은 타입별 계약) · Δnode 12 / ≈ 3.3 KB · Preview 문서별 CSS 채널은 ADR-154 `<style>` 패턴 재사용 · 두 leg 유효 상태 입력 지점 확정. 리뷰 반증 3건을 현재 코드에서 재현 (disabled Button + inline opacity 0.5 → Skia effect 2개 0.19, DOM 0.5 — plain 노드도 이미 발산).
+  - 위치: `docs/adr/230-base-element-state-variant-origins.md`, `docs/adr/design/230-base-element-state-variant-origins-breakdown.md` §2 F13~F21 · §7.
+  - 제품 코드 변경 0. Radio/Tab 은 base origin 부재로 후속 후보.
+
 ## [ADR-230 설계 보완 — 상태 효과 소유권 · CSS cascade · 유효 상태] - 2026-09-21
 
 ### Documentation

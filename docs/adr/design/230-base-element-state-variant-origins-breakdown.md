@@ -30,11 +30,38 @@
 
 Phase 0 추가 확정: 기본 요소 집합 (후보 Button · ToggleButton · Link · Checkbox · Radio · Switch · Tab · MenuItem · GridListItem + ListBoxItem/Tag `--disabled`) · 예상 Δnode/Δbyte (228 실측 205 B/노드) · 두 leg 상태 조합 매트릭스 (selected×disabled · selected×hover/pressed · disabled×hover · 조상 selected · instance 명시 override) · Breadcrumb 류 예외 표.
 
-### 리뷰 반증 (h1/m2/m3)
+### 리뷰 반증 (h1/m2/m3) — Phase 0 재현 (2026-09-21, HEAD `2645fc86e`)
 
-- F13: buildSpecNodeData.ts:2033/2048은 style opacity와 catalog disabled opacity를 별도 emit하고 effects.ts:62가 각각 saveLayer를 연다. 진단 결과 [0.5, 0.38].
-- F14: inline selected 색과 hover stylesheet가 겹치면 selector가 매칭돼도 inline이 이긴다 (Chromium 최소 fixture 빨강 유지).
-- F15: buildSpecNodeData.ts:1148/1703의 RadioGroup/Tab 투영 및 CollectionRenderers.tsx:733의 RAC 내부/group 상태는 self props와 다르다.
+- F13 (h1 재현): `buildSpecNodeData.ts:2033-2042` 가 `style.opacity` 를 `source:"style"` effect 로, `:2048-2070` 이 catalog `structure.states.disabled.opacity` 를 `source:"state"` effect 로 **각각** push 하고 `effects.ts:62-67` 이 opacity effect 마다 `saveLayer` 를 연다. Button `isDisabled` + `style.opacity 0.5` → effect 2개 `[0.5 style, 0.38 state]` (Phase 0 probe 재현). DOM 은 `CSSGenerator.ts:1300-1302` `[data-disabled]{opacity:0.38}` (non-important) 이라 inline 0.5 가 이긴다 → **plain 노드에서도 이미 Skia 0.19 ≠ DOM 0.5**. 230 의 opacity 단일화는 "명시 opacity (상태 origin · instance · plain inline) 가 catalog disabled opacity 를 대체" 한 규칙으로 두 leg 를 같이 맞춘다 (plain 도 같은 규칙 — DOM cascade 가 이미 그렇다).
+- F14 (m2): `LayoutRenderers.tsx:529-580` `renderButton` · `CollectionRenderers.tsx:722-790` `renderToggleButton` 이 `style={element.props.style}` 를 RAC 요소 inline 으로 싣고 같은 요소에 `data-element-id` 가 붙는다 (RAC 가 `data-hovered/pressed/selected/disabled/focus-visible` 도 같은 요소에 emit). inline 은 non-important stylesheet 를 항상 이긴다 → 상태 selector 규칙이 매칭돼도 inline 색이 남는다 (Codex Chromium fixture).
+- F15 (m3): Canvas 유효 상태는 self props 뒤에 투영된다 — `resolveRadioGroupSelection` (`buildSpecNodeData.ts:1148-1170`, 호출 `:1713-1720`) · `resolveTabsAncestorProjection` (`:1703-1710`, `_isSelected`) · `isNodeDisabled = breadcrumbCtx._isLast ? false : isDisabled || disabled || _parentIsDisabled` (`:1805-1810`). DOM 은 RAC 내부 상태 (`renderToggleButton` — 그룹 안은 `defaultSelectedKeys` + groupState, 단독은 `defaultSelected` uncontrolled + key remount `:745-760`; RadioGroup `defaultValue`).
+
+### Phase 0 확정 inventory (G0, 2026-09-21)
+
+| ID  | 사실                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | 경로                                                                                                       |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| F16 | root paint 의 단일 owner = `resolveCatalogPaint` (shared, pure): `backgroundColor = style.backgroundColor ?? staticHex ?? stateBackground` · `stateBackground = isSelected ? fill.default.(emphasized)selected : hover/pressed 는 interactionState` — Skia 는 `toCatalogInteractionState(state)` 로 항상 default 를 넘긴다. **origin/instance 의 명시 style 이 selected 토큰까지 가린다** (두 leg 동일 cascade) → 상태 origin 이 "상태별로 다른 style 세트" 를 주는 것이 유일한 해법 | `packages/shared/src/catalog/resolvers/resolveCatalogPaint.ts:58-104` · `resolveSkiaVisualRule.ts:134-140` |
+| F17 | 두 leg 의 origin 출처 표식: Skia resolved element 는 `ref` (origin id) 를 보존하고 instance 명시 override 는 ref 노드 자신의 `props` (`getRefOverrideProps`) 로 판독 가능 · Preview `ResolvedNode` 는 `_resolvedFrom` + `_overrides` (`descendants.*` 키만 — root props override 는 미기록)                                                                                                                                                                                          | `adapters/canonical/canonicalRefResolution.ts:175-246` · `resolvers/canonical/index.ts:212-224 · 716-719`  |
+| F18 | Preview 문서별 CSS 주입 채널 **있음** — ADR-154 `collectResponsiveCss(pageNodes)` → `<style data-adr154-responsive>` 를 React 트리 안에 (page 노드 변경마다 재계산, `[data-element-id="…"]` selector + `escapeAttrValue`). 154 는 inline 을 이기려고 `!important` 를 쓴다 — 230 은 관리 키를 var() 로 옮겨 `!important` 없이 간다                                                                                                                                                    | `preview/App.tsx:1311-1320` · `packages/shared/src/utils/responsiveCss.ts:87-149`                          |
+| F19 | DOM inline 은 `adaptElementStyle(previewEl)` (fills + style → props.style) 한 자리에서 만들어지고 marker (`data-canonical-id` · `data-element-id`) 가 같은 자리에서 붙는다 — 관리 키의 var() 치환 지점                                                                                                                                                                                                                                                                               | `preview/components/CanonicalNodeRenderer.tsx:422-445`                                                     |
+| F20 | seed 채널: `ensureReusableCompositeOrigins` = ensurer 순회 → `convertNewOriginChildrenToRefs` (229) → 상태 변형 post-pass 는 그 **뒤** 한 줄. `ensureTemplateOrigins(document, ids, repair)` 가 부재 origin 을 Components body 끝에 append (배치는 G4)                                                                                                                                                                                                                               | `components/reusableCompositeOrigins.ts:114-131` · `ensureTemplateOrigins.ts`                              |
+| F21 | 기본 요소 origin 5 의 seed 모양: Button (321 B, 자식 0, `isDisabled:false`) · ToggleButton (325 B, 자식 0, `isSelected/isDisabled:false`) · Link (259 B, 자식 0) · Checkbox (437 B, 자식 Label 1) · Switch (351 B, 자식 Label 1) — **inline style 없음** (`style:{}` 또는 부재) → 오늘은 catalog 상태 토큰이 그대로 보인다                                                                                                                                                           | Phase 0 probe (`buildCatalogOrigin`)                                                                       |
+
+**기본 요소 집합 (Phase 1)** — 팔레트 reusable 이면서 상태 prop 계약이 있는 leaf. 상태 열은 타입별 계약 (F7):
+
+| origin                   | selected | disabled | hover · pressed · focus-visible (Phase 2) | 자식    |
+| ------------------------ | :------: | :------: | :---------------------------------------: | ------- |
+| `component-button`       |    —     |    ✓     |                     ✓                     | 0       |
+| `component-togglebutton` |    ✓     |    ✓     |                     ✓                     | 0       |
+| `component-link`         |    —     |    ✓     |                     ✓                     | 0       |
+| `component-checkbox`     |    ✓     |    ✓     |                     ✓                     | Label 1 |
+| `component-switch`       |    ✓     |    ✓     |                     ✓                     | Label 1 |
+
+- Phase 1 변형 origin = 8 (root) + 자식 4 = **Δnode 12 · Δbyte ≈ 3.3 KB** (origin 바이트 + `metadata.variant/variantOf` + name ≈ +60 B/노드). 후보 중 제외 — **Radio · Tab**: 팔레트 reusable 이 아니라 base origin 이 없다 (RadioGroup/Tabs origin 의 plain 자식) — 변형을 걸 origin 이 없으므로 범위 밖 (재개 = base origin 신설, ADR-228 축 후속). **MenuItem · GridListItem · ListBoxItem · Tag**: item template origin (`*-item-default`) — `--disabled` 추가는 Phase 1 범위 밖으로 미루고 (host `slot` 규약과 `variantOf` 규약이 겹친다 — 229 slot 정렬 뒤 G4 에서 배치와 같이 판정) 후속 후보에 둔다. 집합 5 ≤ 15 → 축소 불요.
+- 시드 값: 변형 origin 의 style/fills 는 **비워서** 시드한다 (부재 키 = catalog 폴백이라 시각 Δ0 · 재hydration Δ0 · R5 토큰 참조 문제 없음). Components 페이지의 변형 노드는 해소기가 `metadata.variant` 를 유효 상태로 가정해 catalog 상태 시각 (selected 토큰 · disabled 0.38) 을 그린다. 사용자가 편집하면 그 키만 상태 origin 소유가 된다.
+- Preview 채널 설계 (m2): default origin/instance 가 관리 키 (`backgroundColor` (fills) · `color` · `borderColor` · `opacity`) 를 inline 으로 소유하면 inline 을 `var(--co-<key>-<id>, <baseline>)` 로 바꾸고 상태 규칙은 변수만 세팅; 소유하지 않으면 inline 무변경 + 상태 규칙이 속성을 직접 세팅 (`[data-element-id="X"][data-element-id][data-selected]` — 생성 CSS `.react-aria-*[data-selected]` (0,2,0) 보다 높은 (0,3,0)). disabled 규칙은 마지막에 emit (같은 specificity → 후순 우선). `!important` 0.
+- 두 leg 유효 상태 입력 (m3): Skia = `buildSpecNodeData` 의 RadioGroup/Tabs 투영 + `isNodeDisabled` 뒤 (한 지점, `:1810` 직후) · DOM = RAC data 속성 (CSS selector 가 곧 유효 상태) — 정적 해소는 Skia 만 하고 DOM 은 상태별 규칙 전부를 싣는다.
+- Breadcrumb 예외: 집합 밖 (composite) — `_isLast` 평탄화는 그대로.
 
 ## 3. Phase
 
@@ -95,4 +122,9 @@ Phase 0 추가 확정: 기본 요소 집합 (후보 Button · ToggleButton · Li
 
 ## 7. Phase 기록
 
-(착수 시 기록)
+### Phase 0 — G0 PASS (2026-09-21, `2645fc86e` 기준)
+
+- 상태 Proposed → **Accepted** (사용자 `/execute-adr 230` = 승인 기록, reviews/230.md round 2 이슈 0 · 전제 확정).
+- inventory §2 F13~F21 freeze · 기본 요소 집합 5 (상태 열 표) · Δnode 12 / Δbyte ≈ 3.3 KB · Preview 채널 = ADR-154 `<style>` 패턴 재사용 (F18) · 유효 상태 입력 지점 (Skia `:1810` 직후 · DOM = RAC data 속성).
+- 리뷰 반증 3건을 현재 코드에서 재현 (F13 probe: opacity effect `[0.5 style, 0.38 state]` — DOM 은 0.5 라 plain 도 이미 발산). Phase 1 unit 이 이 세 사실을 원복 RED 로 고정한다.
+- 판정: 공통 채널 (CSS 주입 · 유효 상태 · opacity 단일화) 모두 구현 가능 — Phase 1 보류 사유 없음. Radio/Tab (base origin 부재) · item template `--disabled` 는 후속 후보.
