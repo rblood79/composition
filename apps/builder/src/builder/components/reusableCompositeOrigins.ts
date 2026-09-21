@@ -32,6 +32,10 @@ import {
   GRIDLIST_ORIGIN_ID,
   ensureGridListTemplateOrigins,
 } from "./gridlist/gridListTemplateOrigins";
+import {
+  TAGGROUP_ORIGIN_ID,
+  ensureTagGroupTemplateOrigins,
+} from "./taggroup/tagGroupTemplateOrigins";
 import { ensureCatalogOrigins, getCatalogOriginTypes } from "./catalogOrigins";
 import { catalogReusableOriginId } from "@composition/shared";
 
@@ -51,28 +55,46 @@ import { catalogReusableOriginId } from "@composition/shared";
 /**
  * reusableId → origin seed(멱등 repair) 매핑. catalog 는 id 를 알고, 문서 리터럴과
  * 멱등 repair 는 seed 모듈이 담는다 (설계도 I4). key 는 catalog entry 의 `reusableId`.
+ *
+ * 함수로 두는 이유 (ADR-229 Phase 1, 2026-09-21): 이 모듈은 `mainDocumentNormalization` ←
+ * `adapters/canonical/index` ← `utils/element/elementUtils` ← factory definitions ←
+ * `catalogOrigins` 순환 안에 있다. 모듈 본문에서 seed 모듈의 상수 (`TAGGROUP_ORIGIN_ID` ·
+ * `getCatalogOriginTypes()`) 를 읽으면 진입점이 seed 모듈 쪽 (테스트가 `catalogOrigins` 나
+ * `tagGroupTemplateOrigins` 를 먼저 import) 일 때 TDZ (`Cannot access … before initialization`)
+ * 가 난다 — 첫 호출 시점까지 평가를 미룬다 (production 진입은 normalization 쪽이라 무관했고,
+ * `catalogOrigins.test` 는 import 순서가 우연히 막고 있었다).
  */
-export const REUSABLE_ORIGIN_ENSURERS: Readonly<
+let reusableOriginEnsurersCache: Readonly<
   Record<string, (document: CompositionDocument) => CompositionDocument>
-> = {
-  [TOOLBAR_ORIGIN_ID]: ensureToolbarTemplateOrigins,
-  [FORM_ORIGIN_ID]: ensureFormTemplateOrigins,
-  [ICONBUTTON_ORIGIN_ID]: ensureIconButtonTemplateOrigins,
-  [INLINE_ALERT_ORIGIN_ID]: ensureInlineAlertTemplateOrigins,
-  [CARD_ORIGIN_ID]: ensureCardTemplateOrigins,
-  // ADR-228 (2026-09-21): ListBox/GridList 는 factory definition 이 이미 ref 인 template origin
-  //   을 reusableId 로 재사용 — ensurer 도 기존 모듈 (item template origin 을 같이 시드).
-  [LISTBOX_ORIGIN_ID]: ensureListBoxTemplateOrigins,
-  [GRIDLIST_ORIGIN_ID]: ensureGridListTemplateOrigins,
-  // ADR-228: 나머지 catalog 파생 generic origin 50 — 손 seed 모듈 0, 한 ensurer 가 1 pass 로
-  //   전부 시드 (`ensureReusableCompositeOrigins` 는 같은 함수를 한 번만 부른다).
-  ...Object.fromEntries(
-    getCatalogOriginTypes().map((type) => [
-      catalogReusableOriginId(type),
-      ensureCatalogOrigins,
-    ]),
-  ),
-};
+> | null = null;
+
+export function getReusableOriginEnsurers(): Readonly<
+  Record<string, (document: CompositionDocument) => CompositionDocument>
+> {
+  if (reusableOriginEnsurersCache) return reusableOriginEnsurersCache;
+  reusableOriginEnsurersCache = {
+    [TOOLBAR_ORIGIN_ID]: ensureToolbarTemplateOrigins,
+    [FORM_ORIGIN_ID]: ensureFormTemplateOrigins,
+    [ICONBUTTON_ORIGIN_ID]: ensureIconButtonTemplateOrigins,
+    [INLINE_ALERT_ORIGIN_ID]: ensureInlineAlertTemplateOrigins,
+    [CARD_ORIGIN_ID]: ensureCardTemplateOrigins,
+    // ADR-228 (2026-09-21): ListBox/GridList 는 factory definition 이 이미 ref 인 template origin
+    //   을 reusableId 로 재사용 — ensurer 도 기존 모듈 (item template origin 을 같이 시드).
+    [LISTBOX_ORIGIN_ID]: ensureListBoxTemplateOrigins,
+    [GRIDLIST_ORIGIN_ID]: ensureGridListTemplateOrigins,
+    // ADR-229 Phase 1: TagGroup 은 generic 과 같은 트리 + chip item template origin 2 + TagList slot.
+    [TAGGROUP_ORIGIN_ID]: ensureTagGroupTemplateOrigins,
+    // ADR-228: 나머지 catalog 파생 generic origin 49 — 손 seed 모듈 0, 한 ensurer 가 1 pass 로
+    //   전부 시드 (`ensureReusableCompositeOrigins` 는 같은 함수를 한 번만 부른다).
+    ...Object.fromEntries(
+      getCatalogOriginTypes().map((type) => [
+        catalogReusableOriginId(type),
+        ensureCatalogOrigins,
+      ]),
+    ),
+  };
+  return reusableOriginEnsurersCache;
+}
 
 /** `type` 이 reusable composite (origin ref 로 생성) 인지 여부 — catalog 파생. */
 export function isReusableCompositeType(type: string): boolean {
@@ -88,7 +110,7 @@ export function getReusableCompositeOriginId(type: string): string | null {
  * 모든 reusable composite origin 을 Components page body 에 보장한다 (멱등).
  *
  * 신규 프로젝트 생성 + hydration 진입점에서 호출한다. catalog 의 reusable entry 를
- * 순회하며 reusableId 별 ensurer 를 적용 — entry 추가 시 seed 모듈 + `REUSABLE_ORIGIN_ENSURERS`
+ * 순회하며 reusableId 별 ensurer 를 적용 — entry 추가 시 seed 모듈 + `getReusableOriginEnsurers`
  * 1줄이면 자동 합류한다. ensurer 부재 entry 는 조용히 건너뛰지 않고 개발 중 즉시
  * 드러나도록 test 불변식이 차단한다 (여기서는 방어적 skip — bootstrap 경로 안전 우선).
  */
@@ -102,7 +124,7 @@ export function ensureReusableCompositeOrigins(
     (document: CompositionDocument) => CompositionDocument
   >();
   for (const entry of getReusableEntries()) {
-    const ensure = REUSABLE_ORIGIN_ENSURERS[entry.reusableId];
+    const ensure = getReusableOriginEnsurers()[entry.reusableId];
     if (!ensure || applied.has(ensure)) continue;
     applied.add(ensure);
     next = ensure(next);

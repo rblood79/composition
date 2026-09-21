@@ -56,6 +56,27 @@ describe("leadingAvatar — 좌측 슬롯 단일 판정", () => {
     expect(resolveLeadingSlot(visual, { avatar: "" }, size, 14)).toBeNull();
   });
 
+  it("ADR-229 — projection 이 주입한 `_leadingSlotSize` 가 지름/glyph 크기를 덮고 shift 폭도 따라간다", () => {
+    expect(
+      resolveLeadingSlot(
+        visual,
+        { avatar: "/a.png", _leadingSlotSize: 24 },
+        size,
+        14,
+      ),
+    ).toMatchObject({ kind: "avatar", size: 24, width: 28 });
+    expect(
+      resolveLeadingSlot(visual, { icon: "star", _leadingSlotSize: 20 }, size, 14),
+    ).toMatchObject({ kind: "icon", size: 20, width: 24 });
+    expect(textX({ children: "Tag", icon: "star", _leadingSlotSize: 20 })).toBe(
+      12 + 24,
+    );
+    // 숫자가 아니거나 0 이하면 무시 (rule 값).
+    expect(
+      resolveLeadingSlot(visual, { icon: "star", _leadingSlotSize: "20" }, size, 14),
+    ).toMatchObject({ size: 14 });
+  });
+
   it("text shift 폭이 슬롯 종류를 따른다 (avatar 20 / icon 18 / 없음 0)", () => {
     expect(textX({ children: "Tag" })).toBe(12);
     expect(textX({ children: "Tag", icon: "star" })).toBe(12 + 18);

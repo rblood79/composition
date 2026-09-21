@@ -278,9 +278,13 @@ export function repairCatalogOrigin(
 export const TEMPLATE_ORIGIN_REUSABLE_TYPES: ReadonlySet<string> = new Set([
   "ListBox",
   "GridList",
+  // ADR-229 Phase 1: definition 은 plain 이지만 chip item template origin (`component-tag-item-*`)
+  //   의 slot 보유자가 origin 의 TagList 자식이라 generic 경로가 표현하지 못한다 — 손 ensurer
+  //   (`taggroup/tagGroupTemplateOrigins.ts`) 가 generic 과 같은 트리 + slot 을 시드한다.
+  "TagGroup",
 ]);
 
-/** generic seed 대상 type — `PALETTE_REUSABLE_ORIGIN_TYPES` − template origin 재사용 2. */
+/** generic seed 대상 type — `PALETTE_REUSABLE_ORIGIN_TYPES` − template origin 보유 3. */
 export function getCatalogOriginTypes(): readonly string[] {
   return PALETTE_REUSABLE_ORIGIN_TYPES.filter(
     (type) => !TEMPLATE_ORIGIN_REUSABLE_TYPES.has(type),

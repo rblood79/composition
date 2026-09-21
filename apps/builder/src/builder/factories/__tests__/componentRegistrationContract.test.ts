@@ -35,7 +35,7 @@ import {
   getCatalogEntry,
   getReusableEntries,
 } from "@composition/shared";
-import { REUSABLE_ORIGIN_ENSURERS } from "@/builder/components/reusableCompositeOrigins";
+import { getReusableOriginEnsurers } from "@/builder/components/reusableCompositeOrigins";
 import { getPaletteItems } from "@/builder/panels/components/paletteItems";
 import { TAG_SPEC_MAP } from "@composition/specs";
 import { TAG_SPEC_MAP as BUILDER_TAG_SPEC_MAP } from "@/builder/workspace/canvas/styleConversion/tagSpecMap";
@@ -286,13 +286,13 @@ describe("ADR-148 Phase 1 — reusable entry 등록 불변식", () => {
   it("불변식 R① — reusable entry 마다 origin ensurer 존재 (양방향)", () => {
     for (const e of reusableEntries) {
       expect(
-        REUSABLE_ORIGIN_ENSURERS[e.reusableId],
+        getReusableOriginEnsurers()[e.reusableId],
         `catalog reusable entry "${e.type}" (${e.reusableId}) 의 ensurer 부재 — ` +
-          `REUSABLE_ORIGIN_ENSURERS 에 seed 모듈 ensure 를 등록하세요.`,
+          `getReusableOriginEnsurers 에 seed 모듈 ensure 를 등록하세요.`,
       ).toBeTypeOf("function");
     }
     const catalogIds = new Set(reusableEntries.map((e) => e.reusableId));
-    for (const id of Object.keys(REUSABLE_ORIGIN_ENSURERS)) {
+    for (const id of Object.keys(getReusableOriginEnsurers())) {
       expect(
         catalogIds.has(id),
         `ensurer "${id}" 에 대응하는 catalog reusable entry 부재 (dead ensurer)`,

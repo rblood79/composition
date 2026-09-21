@@ -13,7 +13,7 @@ import {
   ensureCardTemplateOrigins,
 } from "../cardTemplateOrigins";
 import {
-  REUSABLE_ORIGIN_ENSURERS,
+  getReusableOriginEnsurers,
   getReusableCompositeOriginId,
   isReusableCompositeType,
 } from "../../reusableCompositeOrigins";
@@ -107,7 +107,7 @@ describe("ADR-148 Phase 3 Card reusable origin (4-region)", () => {
     expect(getReusableEntry("Card")?.reusableId).toBe(CARD_ORIGIN_ID);
     expect(isReusableCompositeType("Card")).toBe(true);
     expect(getReusableCompositeOriginId("Card")).toBe(CARD_ORIGIN_ID);
-    expect(REUSABLE_ORIGIN_ENSURERS[CARD_ORIGIN_ID]).toBe(
+    expect(getReusableOriginEnsurers()[CARD_ORIGIN_ID]).toBe(
       ensureCardTemplateOrigins,
     );
   });

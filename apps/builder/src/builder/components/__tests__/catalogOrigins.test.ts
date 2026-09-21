@@ -32,7 +32,7 @@ import {
   repairCatalogOrigin,
 } from "../catalogOrigins";
 import {
-  REUSABLE_ORIGIN_ENSURERS,
+  getReusableOriginEnsurers,
   ensureReusableCompositeOrigins,
 } from "../reusableCompositeOrigins";
 import { COMPONENTS_SYSTEM_BODY_ID } from "../../pages/systemComponentsPage";
@@ -154,7 +154,7 @@ describe("ADR-228 G0 — 집합 E/V/R", () => {
     expect(catalogReusableOriginId("GridList")).toBe("component-gridlist");
   });
 
-  it("template origin 재사용 집합 ⟺ factory definition 이 ref 인 type (정적 집합 실측 일치)", () => {
+  it("template origin 재사용 집합 ⟺ factory definition 이 ref 인 type + item template 보유자 (정적 집합 실측 일치)", () => {
     const refDefinitionTypes = PALETTE_REUSABLE_ORIGIN_TYPES.filter((type) => {
       if (!COMPLEX_COMPONENT_TAGS.has(type)) return false;
       const creator = ComponentFactory.getDefinitionCreator(type);
@@ -168,21 +168,23 @@ describe("ADR-228 G0 — 집합 E/V/R", () => {
         }).parent.type === "ref"
       );
     });
-    expect([...refDefinitionTypes].sort()).toEqual(
+    // ADR-229 Phase 1: TagGroup 은 definition 이 plain 이지만 chip item template origin 의 slot
+    //   보유자 (origin 의 TagList 자식) 라 손 ensurer 가 generic 과 같은 트리를 시드한다.
+    expect([...refDefinitionTypes, "TagGroup"].sort()).toEqual(
       [...TEMPLATE_ORIGIN_REUSABLE_TYPES].sort(),
     );
-    expect(getCatalogOriginTypes()).toHaveLength(50);
+    expect(getCatalogOriginTypes()).toHaveLength(49);
   });
 
   it("entry 마다 ensurer 가 있고 generic 50 은 한 함수를 공유한다", () => {
     for (const entry of getReusableEntries()) {
-      expect(REUSABLE_ORIGIN_ENSURERS[entry.reusableId], entry.type).toBeTypeOf(
+      expect(getReusableOriginEnsurers()[entry.reusableId], entry.type).toBeTypeOf(
         "function",
       );
     }
     const generic = new Set(
       getCatalogOriginTypes().map(
-        (t) => REUSABLE_ORIGIN_ENSURERS[catalogReusableOriginId(t)],
+        (t) => getReusableOriginEnsurers()[catalogReusableOriginId(t)],
       ),
     );
     expect(generic.size).toBe(1);
@@ -356,8 +358,9 @@ describe("ADR-228 G1 — factory 동치 (origin = live 생성 경로가 만드�
     (t) => !COMPLEX_COMPONENT_TAGS.has(t),
   );
 
-  it("complex 39 — subtree 의 type 순서 · props 가 createElementsFromDefinition 결과와 같다", () => {
-    expect(complexTypes).toHaveLength(39);
+  it("complex 38 — subtree 의 type 순서 · props 가 createElementsFromDefinition 결과와 같다", () => {
+    // ADR-229 Phase 1: TagGroup (complex) 은 손 ensurer 로 이동 — 39 → 38.
+    expect(complexTypes).toHaveLength(38);
     for (const type of complexTypes) {
       const creator = ComponentFactory.getDefinitionCreator(type)!;
       const definition = creator({
@@ -472,7 +475,7 @@ describe("ADR-228 G4 — 문서 증가량 (Δnode · Δbyte) 실측 기록", () 
     for (const node of nodes) n += 1 + countNodes(node.children ?? []);
     return n;
   }
-  it("generic origin 50 = root 50 + descendants 135 (G0 예상과 일치) · Δbyte 는 예상 ±20%", () => {
+  it("generic origin 49 = root 49 + descendants 133 (ADR-228 G0 50/135 − TagGroup 1/2, ADR-229 Phase 1) · Δbyte 는 예상 ±20%", () => {
     const base = makeDocument();
     // hand seed 5 + template origin 만 시드한 문서를 기준으로 generic 만의 증가를 잰다.
     const withoutGeneric = ensureReusableCompositeOrigins({
@@ -496,8 +499,8 @@ describe("ADR-228 G4 — 문서 증가량 (Δnode · Δbyte) 실측 기록", () 
     const deltaBytes =
       JSON.stringify(after).length - JSON.stringify(before).length;
     const roots = getCatalogOriginTypes().length;
-    expect(roots).toBe(50);
-    expect(deltaNodes - roots).toBe(135);
+    expect(roots).toBe(49);
+    expect(deltaNodes - roots).toBe(133);
     // G0 예상 ~28 KB 는 definition 직렬화 합 — 실측 37,952 B (id · name · metadata 가 더해진다,
     //   2026-09-21). 범위 밖이면 seed 모양이 바뀐 것이니 inventory (breakdown §8.5) 를 갱신할 것.
     expect(deltaBytes).toBeGreaterThan(30_000);

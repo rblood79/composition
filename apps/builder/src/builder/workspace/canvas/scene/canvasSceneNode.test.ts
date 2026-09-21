@@ -6,8 +6,11 @@ import {
   buildCanvasSceneGraph,
   buildCanvasScenePageIndex,
   resolveGridListTemplateOriginId,
+  resolveTagItemTemplateStyle,
+  resolveTagTemplateOriginIds,
   type CollectionWindowResolution,
 } from "./canvasSceneNode";
+import { buildCanonicalSceneModel } from "./canonicalSceneModel";
 import type { CanonicalNode } from "@composition/shared";
 import {
   toListBoxRowProjectionId,
@@ -2561,5 +2564,364 @@ describe("buildCanvasSceneGraph — ADR-228 ref instance 의 origin props 상속
     expect(inst?.props.size).toBe("L");
     expect(inst?.props.isDisabled).toBe(false);
     expect(inst?.props.style).toEqual({ marginTop: 4 });
+  });
+});
+
+// ─── ADR-229 Phase 1 — TagGroup chip item template origin read-through ────────────────
+//
+// chip 은 `items[]` 데이터로만 합성됐고 template origin 이 없었다 (`templateOriginId: null`).
+//   이제 TagList 의 `slot: [default, selected]` (ref instance 면 master TagGroup 의 TagList 자식)
+//   에서 item origin 을 읽어 chip 에 root style · fills · slot 존재 gating · label typography 를
+//   주입한다 — ListBox 행 `appendListBoxRowProjection` 의 templateAnchorStyle/_slots 동형.
+describe("ADR-229 Phase 1 — TagGroup chip item template origin", () => {
+  const ITEMS = [
+    { id: "a", label: "A", icon: "star", avatar: "https://x/a.png" },
+    { id: "b", label: "B", icon: "inbox" },
+    { id: "c", label: "C" },
+  ];
+
+  function slotChildren(
+    originId: string,
+    roles: ReadonlyArray<"icon" | "avatar" | "label">,
+    labelStyle?: Record<string, unknown>,
+    iconStyle?: Record<string, unknown>,
+  ): CanonicalNode[] {
+    return roles.map((role) => {
+      if (role === "icon") {
+        return {
+          id: `${originId}__icon`,
+          type: "Icon",
+          props: { slot: "icon", iconName: "{icon}", ...(iconStyle ? { style: iconStyle } : {}) },
+          metadata: { slotRole: "icon", optional: true },
+        } as unknown as CanonicalNode;
+      }
+      if (role === "avatar") {
+        return {
+          id: `${originId}__avatar`,
+          type: "Avatar",
+          props: { slot: "avatar", src: "{avatar}" },
+          metadata: { slotRole: "avatar", optional: true },
+        } as unknown as CanonicalNode;
+      }
+      return {
+        id: `${originId}__label`,
+        type: "Text",
+        props: { slot: "label", children: "{label}", ...(labelStyle ? { style: labelStyle } : {}) },
+        metadata: { slotRole: "label" },
+      } as unknown as CanonicalNode;
+    });
+  }
+
+  function tagOrigins(input: {
+    defaultStyle?: Record<string, unknown>;
+    defaultRoles?: ReadonlyArray<"icon" | "avatar" | "label">;
+    labelStyle?: Record<string, unknown>;
+    iconStyle?: Record<string, unknown>;
+    defaultFills?: unknown[];
+    selectedStyle?: Record<string, unknown>;
+  }): CanonicalNode[] {
+    return [
+      {
+        id: "component-tag-item-default",
+        type: "Tag",
+        reusable: true,
+        props: { children: "{label}", style: input.defaultStyle ?? {} },
+        ...(input.defaultFills ? { fills: input.defaultFills } : {}),
+        children: slotChildren(
+          "component-tag-item-default",
+          input.defaultRoles ?? ["icon", "avatar", "label"],
+          input.labelStyle,
+          input.iconStyle,
+        ),
+        metadata: { type: "tag-template-origin", variant: "default" },
+      },
+      {
+        id: "component-tag-item-selected",
+        type: "Tag",
+        reusable: true,
+        props: { children: "{label}", style: input.selectedStyle ?? {} },
+        // seed 규약: selected 도 같은 slot 자식 (차이는 root style 뿐) — fixture 도 같은 구성.
+        children: slotChildren(
+          "component-tag-item-selected",
+          input.defaultRoles ?? ["icon", "avatar", "label"],
+          input.labelStyle,
+          input.iconStyle,
+        ),
+        metadata: { type: "tag-template-origin", variant: "selected" },
+      },
+    ] as CanonicalNode[];
+  }
+
+  function makeDoc(input: {
+    origins: CanonicalNode[];
+    tagListSlot?: string[] | undefined;
+    instance?: boolean;
+  }): CompositionDocument {
+    const tagGroupOrigin: CanonicalNode = {
+      id: "component-taggroup",
+      type: "TagGroup",
+      reusable: true,
+      props: { items: ITEMS, selectedKeys: ["b"], selectionMode: "multiple" },
+      children: [
+        { id: "component-taggroup__1", type: "Label", props: {} },
+        {
+          id: "component-taggroup__2",
+          type: "TagList",
+          // selectedKeys 는 propagation 으로 TagList 에 실린다 (production 모양).
+          props: { selectedKeys: ["b"] },
+          ...(input.tagListSlot ? { slot: input.tagListSlot } : {}),
+        },
+      ],
+    } as CanonicalNode;
+    const pageChildren: CanonicalNode[] = input.instance
+      ? [
+          {
+            id: "tg-inst",
+            type: "ref",
+            ref: "component-taggroup",
+            props: {},
+          } as CanonicalNode,
+        ]
+      : [
+          {
+            id: "taggroup-1",
+            type: "TagGroup",
+            props: { items: ITEMS, selectedKeys: ["b"], selectionMode: "multiple" },
+            children: [
+              { id: "label-1", type: "Label", props: {} },
+              {
+                id: "taglist-1",
+                type: "TagList",
+                props: { selectedKeys: ["b"] },
+                ...(input.tagListSlot ? { slot: input.tagListSlot } : {}),
+              },
+            ],
+          } as CanonicalNode,
+        ];
+    return {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-components",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-components" },
+          children: [
+            {
+              id: "body-components",
+              type: "Body",
+              props: {},
+              children: [...input.origins, tagGroupOrigin],
+            },
+          ],
+        },
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            { id: "body-1", type: "Body", props: {}, children: pageChildren },
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument;
+  }
+
+  function chipsOf(doc: CompositionDocument, tagListId: string) {
+    const graph = buildCanvasSceneGraph(doc, { activeBreakpoint: "desktop" });
+    const byKey = (key: string) =>
+      graph.nodesMap.get(toCollectionRowProjectionId("tag", tagListId, key))!;
+    return {
+      graph,
+      tagList: graph.nodesMap.get(tagListId)!,
+      a: byKey("a"),
+      b: byKey("b"),
+      c: byKey("c"),
+    };
+  }
+
+  it("plain TagGroup — TagList slot[0] 의 origin root style 을 chip style 에 (layout 키 제외) · fills · templateOriginId 로 주입한다", () => {
+    const doc = makeDoc({
+      origins: tagOrigins({
+        defaultStyle: {
+          display: "flex",
+          gap: 4,
+          width: "fit-content",
+          paddingLeft: 20,
+          paddingRight: 20,
+          borderRadius: 999,
+        },
+        defaultFills: [
+          { id: "f1", type: "color", enabled: true, opacity: 1, color: "#11223344" },
+        ],
+        selectedStyle: { borderColor: "#ff0000" },
+      }),
+      tagListSlot: ["component-tag-item-default", "component-tag-item-selected"],
+    });
+    const { a, b, tagList } = chipsOf(doc, "taglist-1");
+    expect(a.projection).toMatchObject({
+      kind: "tag-row",
+      templateOriginId: "component-tag-item-default",
+    });
+    // height:auto — layout 의 catalog size 축 fallback (Tag md height 30) 을 풀어 DOM 처럼
+    //   line-height + padding + border 로 자라게 한다 (template 이 있을 때만).
+    expect(a.props.style).toEqual({
+      width: "fit-content",
+      height: "auto",
+      paddingLeft: 20,
+      paddingRight: 20,
+      borderRadius: 999,
+    });
+    expect(a.fills).toEqual(doc.children[0].children![0].children![0].fills);
+    // selected chip = default 위에 selected origin overlay (ListBox Selected 동형).
+    expect(b.props._isSelected).toBe(true);
+    expect(b.projection).toMatchObject({
+      templateOriginId: "component-tag-item-selected",
+    });
+    expect(b.props.style).toEqual({
+      width: "fit-content",
+      height: "auto",
+      paddingLeft: 20,
+      paddingRight: 20,
+      borderRadius: 999,
+      borderColor: "#ff0000",
+    });
+    // layout (fold/높이 추정) 이 같은 template 을 읽도록 TagList props 에도 주입.
+    expect(tagList.props._tagTemplateStyle).toEqual({
+      paddingLeft: 20,
+      paddingRight: 20,
+      borderRadius: 999,
+    });
+    expect(tagList.props._slots).toMatchObject({
+      order: ["icon", "avatar", "label"],
+    });
+  });
+
+  it("slot 존재 gating — origin 에 Avatar slot 이 없으면 chip 의 avatar 데이터를 버리고 icon 은 남긴다 · icon slot 만 없으면 avatar 는 그대로", () => {
+    const noAvatar = makeDoc({
+      origins: tagOrigins({ defaultRoles: ["icon", "label"] }),
+      tagListSlot: ["component-tag-item-default", "component-tag-item-selected"],
+    });
+    const chips1 = chipsOf(noAvatar, "taglist-1");
+    expect(chips1.a.props.avatar).toBeUndefined();
+    expect(chips1.a.props.icon).toBe("star");
+    expect(chips1.c.props.icon).toBeUndefined();
+
+    const noIcon = makeDoc({
+      origins: tagOrigins({ defaultRoles: ["avatar", "label"] }),
+      tagListSlot: ["component-tag-item-default", "component-tag-item-selected"],
+    });
+    const chips2 = chipsOf(noIcon, "taglist-1");
+    expect(chips2.a.props.avatar).toBe("https://x/a.png");
+    expect(chips2.a.props.icon).toBeUndefined();
+    expect(chips2.b.props.icon).toBeUndefined();
+  });
+
+  it("label slot typography 는 chip root 로 fold 되고 icon slot 의 fontSize 는 `_leadingSlotSize` 로 실린다", () => {
+    const doc = makeDoc({
+      origins: tagOrigins({
+        labelStyle: { fontSize: 18, fontWeight: 700, color: "#123456" },
+        iconStyle: { fontSize: 20 },
+      }),
+      tagListSlot: ["component-tag-item-default", "component-tag-item-selected"],
+    });
+    const { a, b, c, tagList } = chipsOf(doc, "taglist-1");
+    expect(a.props.style).toMatchObject({
+      fontSize: 18,
+      fontWeight: 700,
+      color: "#123456",
+      // lineHeight 는 Tag rule md 비율 (20/14, unitless 배율) 로 같이 — DOM line-height 비율 토큰과 정합.
+      lineHeight: 20 / 14,
+    });
+    // icon 만 있는 chip → icon slot fontSize. avatar 가 이기는 chip 은 avatar slot 의 width (없으면 미주입).
+    expect(b.props._leadingSlotSize).toBe(20);
+    expect(a.props._leadingSlotSize).toBeUndefined();
+    // leading 데이터가 없는 chip 은 크기도 싣지 않는다 (폭 shift 0 유지).
+    expect(c.props._leadingSlotSize).toBeUndefined();
+    expect(tagList.props._tagTemplateStyle).toMatchObject({
+      fontSize: 18,
+      lineHeight: 20 / 14,
+    });
+  });
+
+  it("ref instance — synthetic TagList 는 master(component-taggroup) 의 TagList slot 으로 같은 origin 을 읽는다", () => {
+    const doc = makeDoc({
+      origins: tagOrigins({ defaultStyle: { paddingLeft: 20 } }),
+      tagListSlot: ["component-tag-item-default", "component-tag-item-selected"],
+      instance: true,
+    });
+    // instance 의 synthetic 자식 projection 은 `buildCanonicalSceneModel` (ref 해소 뒤 pass) 이 붙인다.
+    const model = buildCanonicalSceneModel(doc, { activeBreakpoint: "desktop" });
+    const byKey = (key: string) =>
+      model.sceneNodesMap.get(
+        toCollectionRowProjectionId("tag", "tg-inst/component-taggroup__2", key),
+      )!;
+    const a = byKey("a");
+    const b = byKey("b");
+    expect(a.projection).toMatchObject({
+      templateOriginId: "component-tag-item-default",
+    });
+    expect(a.props.style).toEqual({
+      width: "fit-content",
+      height: "auto",
+      paddingLeft: 20,
+    });
+    expect(b.projection).toMatchObject({
+      templateOriginId: "component-tag-item-selected",
+    });
+  });
+
+  it("legacy — TagList 에 slot 이 없으면 표준 origin id 로 안전망 해석, origin 도 없으면 chip 은 종전 그대로 (BC)", () => {
+    const withOrigins = makeDoc({
+      origins: tagOrigins({ defaultStyle: { paddingLeft: 20 } }),
+      tagListSlot: undefined,
+    });
+    expect(chipsOf(withOrigins, "taglist-1").a.props.style).toEqual({
+      width: "fit-content",
+      height: "auto",
+      paddingLeft: 20,
+    });
+
+    const noOrigins = makeDoc({ origins: [], tagListSlot: undefined });
+    const { a, tagList } = chipsOf(noOrigins, "taglist-1");
+    expect(a.props.style).toEqual({ width: "fit-content" });
+    expect(a.props.avatar).toBe("https://x/a.png");
+    expect(a.props.icon).toBe("star");
+    expect(a.projection).toMatchObject({ templateOriginId: null });
+    expect(tagList.props._tagTemplateStyle).toBeUndefined();
+    expect(tagList.props._slots).toBeUndefined();
+  });
+
+  it("resolveTagTemplateOriginIds / resolveTagItemTemplateStyle 단위 계약", () => {
+    const nodes = new Map<string, CanonicalNode>();
+    const doc = makeDoc({
+      origins: tagOrigins({
+        defaultStyle: { display: "flex", paddingLeft: 20 },
+        labelStyle: { fontSize: 18 },
+      }),
+      tagListSlot: ["component-tag-item-default", "component-tag-item-selected"],
+    });
+    const walk = (n: CanonicalNode) => {
+      nodes.set(n.id, n);
+      n.children?.forEach(walk);
+    };
+    doc.children.forEach(walk);
+    const get = () => nodes;
+    expect(resolveTagTemplateOriginIds(nodes.get("taglist-1")!, get, null)).toEqual({
+      defaultOriginId: "component-tag-item-default",
+      selectedOriginId: "component-tag-item-selected",
+    });
+    // slot 순서가 뒤집혀도 selected 는 metadata.variant 로 찾는다.
+    const flipped = {
+      ...nodes.get("taglist-1")!,
+      slot: ["component-tag-item-selected", "component-tag-item-default"],
+    } as CanonicalNode;
+    expect(resolveTagTemplateOriginIds(flipped, get, null)).toEqual({
+      defaultOriginId: "component-tag-item-selected",
+      selectedOriginId: "component-tag-item-selected",
+    });
+    expect(
+      resolveTagItemTemplateStyle(nodes.get("component-tag-item-default"), "desktop"),
+    ).toEqual({ paddingLeft: 20, fontSize: 18 });
+    expect(resolveTagItemTemplateStyle(undefined, "desktop")).toBeNull();
   });
 });

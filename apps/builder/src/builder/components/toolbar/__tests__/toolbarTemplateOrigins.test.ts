@@ -6,7 +6,7 @@ import {
   TOOLBAR_ORIGIN_ID,
 } from "../toolbarTemplateOrigins";
 import {
-  REUSABLE_ORIGIN_ENSURERS,
+  getReusableOriginEnsurers,
   ensureReusableCompositeOrigins,
   getReusableCompositeOriginId,
   isReusableCompositeType,
@@ -116,7 +116,7 @@ describe("ADR-912 R-5 reusable composite registry", () => {
     // ADR-148 Phase 1: 하드코딩 맵 → catalog reusable entry 파생 (id parity = seed 상수).
     expect(getReusableCompositeOriginId("Toolbar")).toBe(TOOLBAR_ORIGIN_ID);
     expect(isReusableCompositeType("Toolbar")).toBe(true);
-    expect(REUSABLE_ORIGIN_ENSURERS[TOOLBAR_ORIGIN_ID]).toBeTypeOf("function");
+    expect(getReusableOriginEnsurers()[TOOLBAR_ORIGIN_ID]).toBeTypeOf("function");
   });
 
   it("returns null / false for non-composite types", () => {

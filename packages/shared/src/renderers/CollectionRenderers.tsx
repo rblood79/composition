@@ -11,7 +11,6 @@ import {
   Toolbar,
 } from "../components/list";
 // chip leading icon glyph (2026-08-21) — 고정 14px, 수동 TagGroup.css `.tag-leading-icon` 소비.
-import { renderTagLeadingSlot } from "../components/tagLeadingSlot";
 import { resolveSelectionBehavior } from "../components/selectionStyle";
 import {
   resolveBindingSelectionMode,
@@ -354,22 +353,12 @@ export const renderTagGroup = (
         );
       }
     : hasItemsArray
-      ? // ADR-097 P2 (NEW): items[] SSOT canonical. Select/ComboBox/ListBox Path 2 와 대칭.
-        storedTagItems!.map((item) => (
-          <Tag
-            key={item.id}
-            id={item.id}
-            data-element-id={element.id}
-            isDisabled={Boolean(item.isDisabled)}
-          >
-            {/* 항목별 좌측 슬롯 (2026-08-21) — itemSchema 의 `avatar`(이미지) > `icon`(glyph).
-                Skia 는 Tag rule 의 `leadingAvatar.srcProp`/`leadingIcon.nameProp` 으로 같은 값을
-                읽고 `resolveLeadingSlot` 이 같은 우선순위로 하나만 고른다. 크기/간격은 수동
-                TagGroup.css `.tag-leading-avatar`(16px + 4px) / `.tag-leading-icon`(14px + 4px). */}
-            {renderTagLeadingSlot(item)}
-            {item.label}
-          </Tag>
-        ))
+      ? // ADR-097 P2: items[] SSOT canonical. Select/ComboBox/ListBox Path 2 와 대칭.
+        //   ADR-229 Phase 1 (2026-09-21): chip JSX 를 여기서 만들지 않고 `items` prop 으로 넘긴다 —
+        //   TagGroup 의 rows 경로 (RAC items + render function) 가 chip 을 그린다. chip 렌더러가 한
+        //   곳이어야 item template (root style base/selected · leading slot 존재 gating · slot 크기) 을
+        //   selected 상태별로 적용할 수 있고, maxRows 미러도 실제 chip 과 같은 leading 을 측정한다.
+        null
       : // Path 3 (legacy, P6 소멸 예정): Tag element tree fallback
         tagChildren.map((type) => (
           <Tag
@@ -417,6 +406,10 @@ export const renderTagGroup = (
           : undefined
       }
       dataBinding={getElementDataBinding(element) as DataBinding | undefined}
+      // ADR-097 P2 items SSOT — TagGroup rows 경로가 chip 을 그린다 (ADR-229: chip 렌더러 단일화).
+      items={hasValidTemplate ? undefined : (storedTagItems as never)}
+      // ADR-229 Phase 1 — chip item template (provider 가 문서에서 해석해 renderContext 로 주입).
+      itemTemplate={context.tagTemplate ?? undefined}
       columnMapping={columnMapping}
       removedItemIds={removedItemIds}
       onSelectionChange={async (selectedKeys) => {

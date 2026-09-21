@@ -92,6 +92,7 @@ function buildSceneParentById(
 function resolveSceneGraph(
   graph: CanvasSceneGraph,
   options: BuildCanonicalSceneModelOptions,
+  documentNodesById: Map<string, CanonicalNode>,
 ): CanvasSceneGraph {
   const resolved = resolveCanonicalRefTree({
     childrenMap: graph.childrenByParent,
@@ -107,12 +108,16 @@ function resolveSceneGraph(
   };
   // ADR-228: ref instance 의 synthetic 자식 (TagList/TabList) 은 실체화가 scene visit 뒤라 자식 소유
   //   projection 을 못 받는다 — resolved owner (instance) props 로 여기서 붙인다.
-  appendRefInstanceChildProjections(resolvedGraph, {
-    collections: options.collections,
-    collectionWindows: options.collectionWindows,
-    activeBreakpoint: options.activeBreakpoint,
-    projectVariables: options.projectVariables,
-  });
+  appendRefInstanceChildProjections(
+    resolvedGraph,
+    {
+      collections: options.collections,
+      collectionWindows: options.collectionWindows,
+      activeBreakpoint: options.activeBreakpoint,
+      projectVariables: options.projectVariables,
+    },
+    () => documentNodesById,
+  );
   return resolvedGraph;
 }
 
@@ -201,6 +206,7 @@ export function buildCanonicalSceneModel(
       includeReusableFrames: true,
     }),
     options,
+    nodesMap,
   );
 
   return {

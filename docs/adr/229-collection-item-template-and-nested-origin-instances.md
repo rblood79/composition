@@ -2,9 +2,9 @@
 
 ## Status
 
-Accepted — 2026-09-21 (Proposed 2026-09-21 → 사용자 `/execute-adr 229` 착수 · Phase 0 G0 통과)
+Accepted — 2026-09-21 (Proposed 2026-09-21 → 사용자 `/execute-adr 229` 착수 · Phase 0 G0 통과 · Phase 1 G1 통과)
 
-리뷰 round 1의 h1/m2/m3/l4 설계 보완 완료 (round 2). **Phase 0 (2026-09-21) 완료** — 일반 origin-child ref 실체화를 builder Skia 축 (`resolveCanonicalRefTree` 일반 source-child 경로) 과 Preview 축 (`resolveCanonicalDocument` mode A patch 가 닿은 ref 자식) 양쪽에 구현, proposed Form nested-ref fixture 를 실제 builder 에서 편집→저장→reload→Undo/Redo 로 실측 (headed live 12/12). Phase 1~4 는 진행 중 — 기록은 [breakdown §7](design/229-collection-item-template-and-nested-origin-instances-breakdown.md).
+리뷰 round 1의 h1/m2/m3/l4 설계 보완 완료 (round 2). **Phase 0 (2026-09-21) 완료** — 일반 origin-child ref 실체화를 builder Skia 축 (`resolveCanonicalRefTree` 일반 source-child 경로) 과 Preview 축 (`resolveCanonicalDocument` mode A patch 가 닿은 ref 자식) 양쪽에 구현, proposed Form nested-ref fixture 를 실제 builder 에서 편집→저장→reload→Undo/Redo 로 실측 (headed live 12/12). **Phase 1 (2026-09-21) 완료** — Tag chip item template origin 2 + `component-taggroup` TagList `slot` + chip read-through 두 leg (headed live 8/8). Phase 2~4 는 진행 중 — 기록은 [breakdown §7](design/229-collection-item-template-and-nested-origin-instances-breakdown.md).
 
 설계 요청: 사용자 (2026-09-21) — ① "TagList 는 ListBox 처럼 반복되는 slot 영역인데 Tag chip 이 Components 페이지에 없다." ② "RAC 레퍼런스 구조만 봐도 Button · Input · Label 같은 기본 요소를 재사용 조합하는 개념인데, 동일하게 origin/instance 로 할 수 있지 않나." 범위 판정은 사용자 AskUserQuestion confirm (2026-09-21): **(a) 저작 조합층만 먼저** — RAC 내부 sub-part (TextField 의 Label/Input, Select 트리거 Button …) 는 parent rule delegation 유지 (ADR-923 P5 판정 승계). ADR-228 (Implemented 09-21) 은 inventory freeze (R 57 + item template 4) 안에서 TagGroup 을 generic origin 으로 심었으므로 둘 다 228 범위 밖 = 이 ADR (ADR-148 계열).
 

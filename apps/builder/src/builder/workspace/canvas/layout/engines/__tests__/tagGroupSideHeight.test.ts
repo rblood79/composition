@@ -282,6 +282,86 @@ describe("calculateContentHeight — TagGroup side label height", () => {
   });
 });
 
+// ── ADR-229 Phase 1 — item template origin root style read-through ─────────────
+//
+// chip 폭·높이 추정이 template 을 모르면 origin 에서 padding/fontSize 를 바꿨을 때 fold 판정과
+//   컨테이너 높이가 실제 chip (projection 이 template style 을 실은 leaf) 과 어긋난다 (ADR-907
+//   Layer D 동일 resolver 원칙). projection 이 TagList props `_tagTemplateStyle` 로 주입한다.
+describe("ADR-229 Phase 1 — TagList 높이 추정이 chip template style 을 읽는다", () => {
+  const withTemplate = (style: Record<string, unknown>): Element =>
+    ({
+      ...TAGLIST_CHILD,
+      props: { ...TAGLIST_CHILD.props, _tagTemplateStyle: style },
+    }) as Element;
+
+  it("paddingTop/Bottom 이 커지면 chip border-box 가 커져 2줄 높이가 늘어난다 (4 → 10: 64 → 88)", () => {
+    // 30 = 20 + 4*2 + 2 → 42 = 20 + 10*2 + 2. 2줄 = 42*2 + 4 = 88.
+    expect(
+      calculateContentHeight(
+        withTemplate({ paddingTop: 10, paddingBottom: 10 }),
+        229,
+        [],
+        getChildElements,
+      ),
+    ).toBe(88);
+  });
+
+  it("paddingLeft/Right 가 커지면 chip 이 넓어져 같은 폭에서 행이 늘어난다", () => {
+    const base = calculateContentHeight(TAGLIST_CHILD, 229, [], getChildElements);
+    const wide = calculateContentHeight(
+      withTemplate({ paddingLeft: 40, paddingRight: 40 }),
+      229,
+      [],
+      getChildElements,
+    );
+    expect(base).toBe(64);
+    expect(wide).toBeGreaterThan(base);
+  });
+
+  it("resolveTagWrapLayout — chipStyle 의 lineHeight/fontSize/padding 이 rule 값을 덮는다", () => {
+    const plain = resolveTagWrapLayout({
+      items: ITEMS,
+      containerWidth: 1000,
+      sizeName: "md",
+      allowsRemoving: false,
+      maxRows: 0,
+    });
+    const styled = resolveTagWrapLayout({
+      items: ITEMS,
+      containerWidth: 1000,
+      sizeName: "md",
+      allowsRemoving: false,
+      maxRows: 0,
+      chipStyle: { lineHeight: "30px", paddingTop: 8, paddingBottom: 8 },
+    });
+    expect(plain.contentHeight).toBe(30);
+    // 30 + 8*2 + 2 = 48
+    expect(styled.contentHeight).toBe(48);
+    // unitless 배율 (CSS 계약) — fontSize 18 × 20/14 = 25.71 → 25.71 + 16 + 2 = 43.71
+    expect(
+      resolveTagWrapLayout({
+        items: ITEMS,
+        containerWidth: 1000,
+        sizeName: "md",
+        allowsRemoving: false,
+        maxRows: 0,
+        chipStyle: { fontSize: 18, lineHeight: 20 / 14, paddingTop: 8, paddingBottom: 8 },
+      }).contentHeight,
+    ).toBeCloseTo(43.71, 1);
+    // shorthand padding 도 같은 채널.
+    expect(
+      resolveTagWrapLayout({
+        items: ITEMS,
+        containerWidth: 1000,
+        sizeName: "md",
+        allowsRemoving: false,
+        maxRows: 0,
+        chipStyle: { padding: 8 },
+      }).contentHeight,
+    ).toBe(38);
+  });
+});
+
 // ── resolveTagWrapLayout SSOT (maxRows 접힘, 2026-07-01) ──────────────────
 // wrap 시뮬레이션 단일 resolver — calculateContentHeight(height) + Skia chip render skip
 //   (visibleItemCount) 공유. jsdom 텍스트 측정은 근사라 절대 개수 대신 불변식으로 고정.

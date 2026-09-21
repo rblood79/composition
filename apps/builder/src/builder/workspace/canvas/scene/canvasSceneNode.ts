@@ -38,6 +38,9 @@ import {
   resolveBindingSelectionStyle,
   resolveSelectionCheckboxVisible,
   resolveSlotComposition,
+  isSlotEnabled,
+  readLeadingSlotSize,
+  resolveItemTemplateChipStyle,
 } from "@composition/shared";
 // ADR-157 gap 배선 (②): ListBox 소유자 gap 을 px 로 해석 (style longhand/shorthand + props.gap).
 import { parsePxValue } from "@composition/specs";
@@ -59,9 +62,17 @@ import {
   type ListBoxProjectionRow,
 } from "../../../components/listbox/listBoxRowProjectionModel";
 import { GRIDLIST_ITEM_DEFAULT_ORIGIN_ID } from "../../../components/gridlist/gridListTemplateOrigins";
+import {
+  TAG_ITEM_DEFAULT_ORIGIN_ID,
+  TAG_ITEM_SELECTED_ORIGIN_ID,
+  findTagGroupOriginTagList,
+} from "../../../components/taggroup/tagGroupTemplateOrigins";
 // ADR-907 Layer D: chip gap 정본 = TagList catalog rule. projection 배치와 layout
 //   height 계산이 동일 resolver(resolveTagListGap)를 공유해 size 별 gap(lg=6) 을 정합.
-import { resolveTagListGap } from "../layout/engines/utils";
+import {
+  resolveTagChipMetric,
+  resolveTagListGap,
+} from "../layout/engines/utils";
 // ADR-157 gap 배선 (② 정정): ListBox gap 은 catalog containerStyles.gap(theme 토큰 → px)에서
 //   오고 CSS 가 이를 소비한다. rowsGroup 이 element.props.style 만 읽으면 catalog gap 을 놓쳐
 //   Skia 만 gap 미적용(D3 asymmetry) → 소유자 layout 이 쓰는 동일 resolver 로 catalog gap 흡수.
@@ -646,6 +657,69 @@ export function resolveGridListTemplateOriginId(
       : sourceNode.slot;
   if (Array.isArray(slot) && typeof slot[0] === "string") return slot[0];
   return GRIDLIST_ITEM_DEFAULT_ORIGIN_ID;
+}
+
+/**
+ * ADR-229 Phase 1 — TagGroup chip 의 item template origin id 해석 (`resolveListBoxTemplateOriginId` ·
+ * `resolveListBoxSelectedOriginId` 동형, anchor-less).
+ *
+ * slot 보유자는 **TagList** (origin `component-taggroup` 의 자식 `__2`) 다 — ListBox 와 달리 chip
+ * 컬렉션이 중간 컨테이너를 갖는다. 우선순위:
+ *   1. TagList sourceNode 자신의 `slot` (문서 TagList — origin 의 자식 또는 legacy plain).
+ *   2. ref instance 의 synthetic TagList → master(`ownerRef`) TagGroup 의 TagList 자식 `slot`.
+ *   3. 안전망: 표준 origin id 상수 (origin 이 없으면 소비자가 주입 0 — BC).
+ * selected 는 slot 항목 중 `metadata.variant === "selected"` → slot[1] → 상수.
+ */
+export function resolveTagTemplateOriginIds(
+  sourceNode: CanonicalNode,
+  getDocumentNodesById: () => Map<string, CanonicalNode>,
+  ownerRef: string | null,
+): { defaultOriginId: string; selectedOriginId: string } {
+  let slot = sourceNode.slot;
+  if (!Array.isArray(slot) && ownerRef) {
+    slot = findTagGroupOriginTagList(getDocumentNodesById().get(ownerRef))
+      ?.slot;
+  }
+  let defaultOriginId = TAG_ITEM_DEFAULT_ORIGIN_ID;
+  let selectedOriginId = TAG_ITEM_SELECTED_ORIGIN_ID;
+  if (Array.isArray(slot)) {
+    if (typeof slot[0] === "string") defaultOriginId = slot[0];
+    let selected: string | undefined;
+    for (const entry of slot) {
+      if (typeof entry !== "string") continue;
+      const metadata = getDocumentNodesById().get(entry)?.metadata as
+        | { variant?: unknown }
+        | undefined;
+      if (metadata?.variant === "selected") {
+        selected = entry;
+        break;
+      }
+    }
+    if (!selected && typeof slot[1] === "string") selected = slot[1];
+    if (selected) selectedOriginId = selected;
+  }
+  return { defaultOriginId, selectedOriginId };
+}
+
+/**
+ * ADR-229 Phase 1 — item origin → 데이터 chip 에 실을 style. responsive override 를 activeBreakpoint 로
+ * 해소한 root style + slot 구성을 shared `resolveItemTemplateChipStyle` (두 leg 공용 규약 — Preview
+ * `App.tsx` `tagTemplate` 도 같은 함수) 에 넘긴다. 값이 없으면 null — chip 은 Tag rule 값 그대로.
+ */
+export function resolveTagItemTemplateStyle(
+  origin: CanonicalNode | undefined,
+  activeBreakpoint: BreakpointName,
+): Record<string, unknown> | null {
+  if (!origin) return null;
+  const rootStyle = resolveResponsiveStyleMap(
+    (origin.props?.style as Record<string, unknown> | undefined) ?? {},
+    origin.responsive,
+    activeBreakpoint,
+  );
+  return resolveItemTemplateChipStyle(
+    rootStyle,
+    resolveSlotComposition(origin.children),
+  );
 }
 
 function isListBoxSceneSource(
@@ -2031,6 +2105,26 @@ function resolveDataBoundTagProjection(
 }
 
 /**
+ * ADR-229 Phase 1 — template 이 fontSize 만 바꾸면 lineHeight 도 같은 비율로 (Tag rule `sizes[size]`
+ * 의 lineHeight/fontSize — md 20/14). DOM chip 의 `line-height: var(--text-sm--line-height)` 는
+ * 비율 토큰 (`calc(1.25 / 0.875)`) 이라 font-size 18 에서 25.71 로 자라는데, Canvas 는 rule 의
+ * px 20 을 고정으로 읽어 chip 높이가 갈렸다 (2026-09-21 live P1-e: DOM 43.7 vs Canvas 38).
+ * 값은 CSS 와 같은 **unitless 배율** (숫자 = fontSize 배수 — `parseLineHeight` 계약; px 로 실으려면
+ * 문자열 "…px" 여야 하고, 숫자 25.7 은 25.7 배가 되어 chip 이 480 이 됐다). 명시 lineHeight 가 있으면 그대로.
+ */
+function withTagChipLineHeight(
+  style: Record<string, unknown> | null,
+  sizeName: string,
+): Record<string, unknown> | null {
+  if (!style || style.lineHeight != null) return style;
+  const fontSize = style.fontSize;
+  if (typeof fontSize !== "number" || fontSize <= 0) return style;
+  const metric = resolveTagChipMetric(sizeName);
+  if (metric.fontSize <= 0) return style;
+  return { ...style, lineHeight: metric.lineHeight / metric.fontSize };
+}
+
+/**
  * TagGroup chip projected tree 생성: RowsGroup(flex wrap row) → Tag chip[i] (+ remove cell).
  *
  * - rowsGroup: 가로 flex row + flexWrap:wrap → chip 들이 컨테이너 폭에서 자동 줄바꿈(엔진 위임,
@@ -2048,10 +2142,47 @@ function appendTagRowProjection(
   graph: Pick<CanvasSceneGraph, "childrenByParent" | "nodes" | "nodesMap"> & {
     parentById: Map<string, string>;
   },
+  /** ADR-229 Phase 1 — item template origin 조회 (문서 노드) + responsive 기준 + instance master. */
+  template: {
+    getDocumentNodesById: () => Map<string, CanonicalNode>;
+    activeBreakpoint: BreakpointName;
+    ownerRef: string | null;
+  },
 ): void {
   const props = tagListSceneNode.props;
   const { rows, sourceNode } = projection;
   const allowsRemoving = Boolean(props.allowsRemoving);
+  // ADR-229 Phase 1 — chip item template origin read-through (ListBox 행의 templateAnchorStyle ·
+  //   selectedOriginStyle · _slots · fills 동형). origin 이 문서에 없으면 전부 undefined → 종전 chip.
+  const { defaultOriginId, selectedOriginId } = resolveTagTemplateOriginIds(
+    sourceNode,
+    template.getDocumentNodesById,
+    template.ownerRef,
+  );
+  const defaultOrigin = template.getDocumentNodesById().get(defaultOriginId);
+  const selectedOrigin = template.getDocumentNodesById().get(selectedOriginId);
+  const chipSizeName = typeof props.size === "string" ? props.size : "md";
+  const defaultTemplateStyle = withTagChipLineHeight(
+    resolveTagItemTemplateStyle(defaultOrigin, template.activeBreakpoint),
+    chipSizeName,
+  );
+  const selectedTemplateStyle = withTagChipLineHeight(
+    resolveTagItemTemplateStyle(selectedOrigin, template.activeBreakpoint),
+    chipSizeName,
+  );
+  const defaultOriginFills = readCanonicalNodeFills(defaultOrigin);
+  const selectedOriginFills = readCanonicalNodeFills(selectedOrigin);
+  const defaultSlots = resolveSlotComposition(defaultOrigin?.children);
+  const selectedSlots =
+    resolveSlotComposition(selectedOrigin?.children) ?? defaultSlots;
+  if (defaultTemplateStyle) {
+    // 컨테이너 layout (`utils.ts` taglist 높이 추정 · fold) 이 chip 과 같은 template 을 읽도록 owner
+    //   TagList scene props 에도 주입 (ListBox `_slots` Layer D 대칭).
+    (props as Record<string, unknown>)._tagTemplateStyle = defaultTemplateStyle;
+  }
+  if (defaultSlots) {
+    (props as Record<string, unknown>)._slots = defaultSlots;
+  }
   const variant = props.variant;
   const size = props.size;
   // ADR-907 Layer D: chip 간 gap 정본 = TagList catalog rule(sm/md=4, lg=6). 이전 `props.gap ?? 4`
@@ -2106,12 +2237,30 @@ function appendTagRowProjection(
       tagListSceneNode.id,
       row.itemKey,
     );
+    const isSelected = isListBoxRowSelected(props, row.itemKey, row.rowIndex);
+    const chipOrigin = isSelected
+      ? (selectedOrigin ?? defaultOrigin)
+      : defaultOrigin;
+    const chipSlots = isSelected ? selectedSlots : defaultSlots;
     const chipProps: Record<string, unknown> = {
       children: row.label,
       // chip 폭 = 라벨 + padding (+ allowsRemoving 시 trailing X) — Tag rule(catalog cutover) inline-flex.
       //   wrap-flow 에서 각 chip 이 fit-content 로 자연 폭을 갖고 엔진 flexWrap 이 행 배치.
-      style: { width: "fit-content" },
-      _isSelected: isListBoxRowSelected(props, row.itemKey, row.rowIndex),
+      //   ADR-229: template origin root style (layout 키 제외) 을 그 위에 — selected chip 은 default
+      //   위에 selected origin overlay (ListBox Selected variant 동형).
+      //   template 이 있으면 `height: auto` 를 같이 싣는다 — layout 의 catalog size 축 fallback 이
+      //   Tag rule `sizes[size].height` (md 30) 를 명시 높이로 넣는데, DOM chip (hand CSS) 은 높이
+      //   선언 없이 line-height + padding + border 로 자란다. origin 에서 padding 을 키우면 DOM 은 38,
+      //   Canvas 는 30 에 갇혔다 (2026-09-21 live P1-c). auto 면 엔진이 같은 식으로 잰다.
+      style: {
+        width: "fit-content",
+        ...(defaultTemplateStyle || selectedTemplateStyle
+          ? { height: "auto" }
+          : {}),
+        ...(defaultTemplateStyle ?? {}),
+        ...(isSelected ? (selectedTemplateStyle ?? {}) : {}),
+      },
+      _isSelected: isSelected,
     };
     if (variant) chipProps.variant = variant;
     if (size) chipProps.size = size;
@@ -2120,12 +2269,26 @@ function appendTagRowProjection(
     //   Tag rule 의 `leadingIcon.nameProp: "icon"` 이 이 값을 읽어 glyph + text shift 를 만들고,
     //   값이 없는 chip 은 아이콘 없이 기존 폭을 유지한다(레이아웃 폭 계산도 같은 조건).
     //   `row.icon` 은 resolveCollectionItems 가 정규화한 필드(ADR-147, ListBox 행과 동일 소스).
-    if (row.icon) chipProps.icon = row.icon;
+    //   ADR-229: origin 의 slot 자식이 없는 leading 은 데이터가 있어도 싣지 않는다 (존재 gating —
+    //   구성 SSOT = origin 자식, ADR-148 Decision 3). 구성 null (legacy) 이면 항상 허용.
+    if (row.icon && isSlotEnabled(chipSlots, "icon")) chipProps.icon = row.icon;
     // 항목별 avatar 이미지 (2026-08-21): Tag rule 의 `leadingAvatar.srcProp: "avatar"` 가 읽는다.
     //   icon 과 **같은 좌측 슬롯**이라 둘 다 실려도 `resolveLeadingSlot` 이 avatar 하나만 그린다
     //   (DOM `renderTagLeadingSlot` 과 같은 우선순위). row.avatar 는 값이 이미지 참조일 때만
     //   채워지므로 glyph 이름이 아바타로 새지 않는다(getItemAvatar/getItemIcon 분리).
-    if (row.avatar) chipProps.avatar = row.avatar;
+    if (row.avatar && isSlotEnabled(chipSlots, "avatar"))
+      chipProps.avatar = row.avatar;
+    // ADR-229: leading slot 자식 style 의 크기 채널 — 실제로 그려질 슬롯 (avatar > icon) 의 값만.
+    //   Skia `resolveLeadingSlot` 과 DOM `renderTagLeadingSlot` 이 같은 숫자를 읽는다.
+    const leadingSlotSize = chipProps.avatar
+      ? readLeadingSlotSize(chipSlots?.slots.avatar?.style, "avatar")
+      : chipProps.icon
+        ? readLeadingSlotSize(chipSlots?.slots.icon?.style, "icon")
+        : undefined;
+    if (leadingSlotSize != null) chipProps._leadingSlotSize = leadingSlotSize;
+    const chipFills = isSelected
+      ? (selectedOriginFills ?? defaultOriginFills)
+      : defaultOriginFills;
     // ADR-912 영역 B (A) — Tag catalog cutover (2026-06-12): X(remove)는 chip 본체가 line×2 로
     //   직접 그리던 것(Tag.spec)을 폐기하고 **trailing_icon(icon_font "x" Lucide glyph)**으로 그린다
     //   — X = line 이 아니라 icon 데이터(SelectIcon/SearchField clear 와 동일 Lucide "x"), DOM Button
@@ -2138,6 +2301,8 @@ function appendTagRowProjection(
       {
         id: chipId,
         type: "Tag",
+        // origin fills 채널 — buildSpecNodeData fills→배경 변환 재사용 (ListBox 행 동형).
+        ...(chipFills ? { fills: chipFills } : {}),
         props: chipProps,
         parentId: rowsGroupId,
         pageId: scope.pageId,
@@ -2150,7 +2315,8 @@ function appendTagRowProjection(
           itemKey: row.itemKey,
           rowIndex: row.rowIndex,
           templateAnchorId: null,
-          templateOriginId: null,
+          // ADR-229: item template origin 참조 보존 (ListBox 행 동형) — origin 이 문서에 없으면 null.
+          templateOriginId: chipOrigin?.id ?? null,
         },
         sourceNode,
       },
@@ -2817,7 +2983,11 @@ export function buildCanvasSceneGraph(
       appendTableRowProjection(sceneNode, tableProjection, nextScope, graph);
     }
     if (sceneNode && tagProjection) {
-      appendTagRowProjection(sceneNode, tagProjection, nextScope, graph);
+      appendTagRowProjection(sceneNode, tagProjection, nextScope, graph, {
+        getDocumentNodesById,
+        activeBreakpoint: options.activeBreakpoint ?? "desktop",
+        ownerRef: null,
+      });
     }
     if (sceneNode && tabProjection) {
       appendTabRowProjection(sceneNode, tabProjection, nextScope, graph);
@@ -2890,6 +3060,9 @@ export function buildCanvasScenePageIndex(
 export function appendRefInstanceChildProjections(
   graph: CanvasSceneGraph,
   options: BuildCanvasSceneGraphOptions,
+  /** ADR-229 Phase 1 — 문서 노드 조회 (chip item template origin · master TagGroup 의 TagList slot). */
+  getDocumentNodesById: () => Map<string, CanonicalNode> = () =>
+    new Map<string, CanonicalNode>(),
 ): void {
   const emptyDocumentNodes = () => new Map<string, CanonicalNode>();
   for (const node of [...graph.nodes]) {
@@ -2922,7 +3095,17 @@ export function appendRefInstanceChildProjections(
           metadata: ownerSource?.metadata ?? owner.metadata,
         },
       );
-      if (projection) appendTagRowProjection(node, projection, scope, graph);
+      if (projection) {
+        // synthetic TagList 의 master = owner instance 의 ref (scene 층은 `.ref` 를 남긴다 — ADR-161).
+        const ownerRef =
+          (ownerSource as { ref?: unknown } | undefined)?.ref ??
+          (owner as { ref?: unknown }).ref;
+        appendTagRowProjection(node, projection, scope, graph, {
+          getDocumentNodesById,
+          activeBreakpoint: options.activeBreakpoint ?? "desktop",
+          ownerRef: typeof ownerRef === "string" ? ownerRef : null,
+        });
+      }
       continue;
     }
     const projection = resolveDataBoundTabProjection(

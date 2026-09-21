@@ -38,6 +38,7 @@ import {
   isRuntimePageNode,
   resolveBodyDomClassName,
   resolveBodyDomPresentation,
+  resolveItemTemplateChipStyle,
   resolveSlotComposition,
   resolveStateTemplate,
 } from "@composition/shared";
@@ -295,6 +296,7 @@ function CanvasContent() {
         listBoxRowStyles: null,
         gridList: null,
         menuItem: null,
+        tag: null,
       };
     }
     const byId = new Map<
@@ -383,6 +385,54 @@ function CanvasContent() {
       const origin = byId.get(originId);
       return origin ? resolveSlotComposition(origin.children) : null;
     };
+    // ADR-229 Phase 1 — TagGroup chip item template. slot 보유자는 master(component-taggroup) 의
+    //   **TagList 자식** (builder `resolveTagTemplateOriginIds` 와 같은 해석: TagList.slot[0] → default,
+    //   metadata.variant==="selected" → slot[1] → 표준 상수). chip style = root style 에서 저작 layout
+    //   키 제외 + label slot typography fold (`resolveItemTemplateChipStyle`, 두 leg 공용) — fills 는
+    //   rootStyleOf 가 backgroundColor 로 이미 접는다. origin 이 없으면 null (legacy → 기존 chip).
+    const tagListSlot = (
+      byId.get("component-taggroup")?.children as
+        | Array<{ type?: unknown; slot?: unknown }>
+        | undefined
+    )?.find((child) => child.type === "TagList")?.slot;
+    const tagDefaultOriginId =
+      Array.isArray(tagListSlot) && typeof tagListSlot[0] === "string"
+        ? tagListSlot[0]
+        : "component-tag-item-default";
+    const tagSelectedOriginId = (() => {
+      if (Array.isArray(tagListSlot)) {
+        for (const entry of tagListSlot) {
+          if (typeof entry !== "string") continue;
+          const metadata = byId.get(entry)?.metadata as
+            | { variant?: unknown }
+            | undefined;
+          if (metadata?.variant === "selected") return entry;
+        }
+        if (typeof tagListSlot[1] === "string") return tagListSlot[1];
+      }
+      return "component-tag-item-selected";
+    })();
+    const tagTemplate = (() => {
+      const defaultOrigin = byId.get(tagDefaultOriginId);
+      const selectedOrigin = byId.get(tagSelectedOriginId);
+      if (!defaultOrigin && !selectedOrigin) return null;
+      const composition = compositionOf(tagDefaultOriginId);
+      const selectedComposition = compositionOf(tagSelectedOriginId);
+      return {
+        composition,
+        selectedComposition,
+        rootStyles: {
+          base: resolveItemTemplateChipStyle(
+            rootStyleOf(tagDefaultOriginId),
+            composition,
+          ),
+          selected: resolveItemTemplateChipStyle(
+            rootStyleOf(tagSelectedOriginId),
+            selectedComposition,
+          ),
+        },
+      };
+    })();
     return {
       listBox: compositionOf(listBoxOriginId),
       // 행 root style — base(default origin) + selected(variant origin) overlay 층.
@@ -392,6 +442,7 @@ function CanvasContent() {
       },
       gridList: compositionOf(gridListOriginId),
       menuItem: compositionOf("component-menu-item-default"),
+      tag: tagTemplate,
     };
   }, [resolvedCanonicalNodes]);
   const listBoxTemplateSlotComposition = templateSlotCompositions.listBox;
@@ -833,6 +884,8 @@ function CanvasContent() {
       listBoxRowTemplateStyles,
       gridListTemplateSlotComposition: templateSlotCompositions.gridList,
       menuItemTemplateSlotComposition: templateSlotCompositions.menuItem,
+      // ADR-229 Phase 1 — TagGroup chip item template (구성 + root style base/selected).
+      tagTemplate: templateSlotCompositions.tag,
       // ADR-214 Phase 3 — collection 행 템플릿의 `{{ }}` 를 런타임 값으로 (소유자 요소 기준 가시성).
       //   store 를 호출 시점에 읽어 값 변경 시 renderContext 참조를 바꾸지 않는다 — 소유자
       //   노드는 자식 템플릿 참조로 의존 인덱스에 구독되어 (useStateTemplateProps) 스스로 다시 렌더한다.

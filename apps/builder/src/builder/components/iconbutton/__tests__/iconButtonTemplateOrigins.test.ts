@@ -17,7 +17,7 @@ import {
   buttonTextMetrics,
 } from "../../../utils/propagationRegistry";
 import {
-  REUSABLE_ORIGIN_ENSURERS,
+  getReusableOriginEnsurers,
   getReusableCompositeOriginId,
   isReusableCompositeType,
 } from "../../reusableCompositeOrigins";
@@ -171,7 +171,7 @@ describe("ADR-148 Phase 2 IconButton reusable origin", () => {
     expect(getReusableCompositeOriginId("IconButton")).toBe(
       ICONBUTTON_ORIGIN_ID,
     );
-    expect(REUSABLE_ORIGIN_ENSURERS[ICONBUTTON_ORIGIN_ID]).toBe(
+    expect(getReusableOriginEnsurers()[ICONBUTTON_ORIGIN_ID]).toBe(
       ensureIconButtonTemplateOrigins,
     );
   });

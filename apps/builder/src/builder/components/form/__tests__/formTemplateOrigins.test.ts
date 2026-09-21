@@ -6,7 +6,7 @@ import {
   FORM_ORIGIN_ID,
 } from "../formTemplateOrigins";
 import {
-  REUSABLE_ORIGIN_ENSURERS,
+  getReusableOriginEnsurers,
   ensureReusableCompositeOrigins,
   getReusableCompositeOriginId,
   isReusableCompositeType,
@@ -171,7 +171,7 @@ describe("ADR-912 R-5 reusable composite registry — Form 합류 (코드 변경
     // ADR-148 Phase 1: 하드코딩 맵 → catalog reusable entry 파생 (id parity = seed 상수).
     expect(getReusableCompositeOriginId("Form")).toBe(FORM_ORIGIN_ID);
     expect(isReusableCompositeType("Form")).toBe(true);
-    expect(REUSABLE_ORIGIN_ENSURERS[FORM_ORIGIN_ID]).toBeTypeOf("function");
+    expect(getReusableOriginEnsurers()[FORM_ORIGIN_ID]).toBeTypeOf("function");
   });
 
   it("ensureReusableCompositeOrigins seeds both Toolbar and Form origins", () => {

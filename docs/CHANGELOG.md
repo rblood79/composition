@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-229 Phase 1 — TagGroup chip item template origin] - 2026-09-21
+
+### Added
+
+- Components 페이지에 Tag chip 의 item template origin `component-tag-item-default` / `component-tag-item-selected` (slot 자식 Icon `{icon}` · Avatar `{avatar}` · Text `{label}`) — `component-taggroup` origin 의 TagList 자식이 `slot: [default, selected]` 로 등록하고 (기존 문서는 결손 보충), TagGroup instance 의 chip 이 두 leg 에서 그 origin 을 읽는다: root style (padding · radius · border …) + label slot typography (fontSize · weight · color) · fills 배경 · selected chip 은 selected origin overlay · leading slot 존재 gating (Avatar 자식을 지우면 avatar 데이터가 있어도 icon 으로) · slot 자식 크기 (icon fontSize · avatar width). Preview 는 `tagTemplate` renderContext → `TagGroup` rows 경로가 chip 마다 적용.
+- 공용 slot vocabulary 에 `avatar` (`SLOT_ROLES`) + item template chip style 규칙 (`resolveItemTemplateChipStyle` — 저작 layout 키 제외 + label typography fold, 두 leg 공용).
+
+### Fixed
+
+- TagGroup chip 의 template padding 을 키우면 Preview 는 자라는데 Canvas 는 rule 높이 30 에 갇히던 것 — layout 의 catalog size 축 fallback (`Tag.sizes[size].height`) 을 template 이 있을 때 `height: auto` 로 풀어 DOM 처럼 line-height + padding + border 로 잰다.
+- chip 글자 크기를 바꾸면 DOM 은 line-height 비율 토큰 (20/14) 으로 자라고 Canvas 는 px 20 고정이던 것 — rule 비율을 unitless 배율로 같이 싣는다 (컨테이너 높이 추정 `resolveTagWrapLayout` 도 같은 chip style 을 읽는다).
+- Preview TagGroup 이 items 를 `<Tag>` JSX 로 만들어 넘기던 경로가 chip 렌더러를 둘로 갈라 template 을 못 받던 것 — `items` prop 으로 rows 경로 하나에 합류 (maxRows 미러도 실제 chip 과 같은 leading 을 잰다).
+  - Why: ADR-229 Phase 1 (G1) — 원복 RED 17 + import 실패 2 파일 · shared 1,376 · specs 1,378 · builder 인접 3,005 PASS · headed live `adr229-tag-template-live.mjs` 8/8 (시드 · 기준 30=30 · padding 38=38 · Avatar slot 삭제 gating · fontSize 18 → 43.71=43.7 · Undo · reload Δ0).
+
 ## [ADR-229 Phase 0 — 조합 origin 안 instance (일반 origin-child ref) 실체화] - 2026-09-21
 
 ### Fixed

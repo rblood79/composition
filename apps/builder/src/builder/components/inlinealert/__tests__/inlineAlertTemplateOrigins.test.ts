@@ -13,7 +13,7 @@ import {
   INLINE_ALERT_PROPS_SCHEMA,
 } from "../inlineAlertTemplateOrigins";
 import {
-  REUSABLE_ORIGIN_ENSURERS,
+  getReusableOriginEnsurers,
   getReusableCompositeOriginId,
   isReusableCompositeType,
 } from "../../reusableCompositeOrigins";
@@ -96,7 +96,7 @@ describe("ADR-148 Phase 3 InlineAlert reusable origin", () => {
     expect(getReusableCompositeOriginId("InlineAlert")).toBe(
       INLINE_ALERT_ORIGIN_ID,
     );
-    expect(REUSABLE_ORIGIN_ENSURERS[INLINE_ALERT_ORIGIN_ID]).toBe(
+    expect(getReusableOriginEnsurers()[INLINE_ALERT_ORIGIN_ID]).toBe(
       ensureInlineAlertTemplateOrigins,
     );
   });

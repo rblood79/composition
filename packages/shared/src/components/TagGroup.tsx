@@ -17,7 +17,12 @@ import { X } from "lucide-react";
 // chip leading icon glyph — DOM 아이콘은 프로젝트 관례상 고정 크기(14px), Skia 는
 //   Tag rule `sizes[*].iconSize`(전 size 14)로 같은 값을 쓴다.
 import { renderTagLeadingSlot } from "./tagLeadingSlot";
-import type { DataBinding, ColumnMapping, DataBindingValue } from "../types";
+import type {
+  DataBinding,
+  ColumnMapping,
+  DataBindingValue,
+  TagItemTemplate,
+} from "../types";
 
 import { useResolvedCollectionItems } from "../hooks";
 import { useComponentStrings } from "../i18n";
@@ -72,6 +77,12 @@ export interface TagGroupProps<T>
    * @default ['label', 'name', 'title']
    */
   filterFields?: (keyof T)[];
+  /**
+   * ADR-229 Phase 1 — chip item template (Components 페이지 `component-tag-item-*` origin).
+   * 렌더러 (`renderTagGroup`) 가 renderContext 에서 넘기는 wrapper 내부 계약 — canonical prop 아님
+   * (D2 무관). chip inline style (base + selected overlay) · leading slot 존재 gating · slot 크기.
+   */
+  itemTemplate?: TagItemTemplate | null;
 }
 
 export function TagGroup<T extends object>({
@@ -100,8 +111,26 @@ export function TagGroup<T extends object>({
   filterText,
   filterFields = ["label", "name", "title"] as (keyof T)[],
   labelPosition = "top",
+  itemTemplate,
   ...props
 }: TagGroupProps<T>): JSX.Element {
+  // ADR-229 Phase 1 — chip template: base style 은 모든 chip, selected 는 RAC isSelected chip 에 overlay
+  //   (Skia `appendTagRowProjection` 의 default ⊕ selected origin style 과 대칭). 구성은 leading slot
+  //   존재 gating 에 쓴다 — selected chip 은 selected origin 의 구성 (없으면 default).
+  const chipBaseStyle = (itemTemplate?.rootStyles.base ?? undefined) as
+    | React.CSSProperties
+    | undefined;
+  const chipSelectedStyle = (itemTemplate?.rootStyles.selected ?? undefined) as
+    | React.CSSProperties
+    | undefined;
+  const chipStyle = (isSelected: boolean): React.CSSProperties | undefined => {
+    if (!chipBaseStyle && !chipSelectedStyle) return undefined;
+    return { ...chipBaseStyle, ...(isSelected ? chipSelectedStyle : undefined) };
+  };
+  const chipComposition = (isSelected: boolean) =>
+    isSelected
+      ? (itemTemplate?.selectedComposition ?? itemTemplate?.composition)
+      : itemTemplate?.composition;
   const t = useComponentStrings();
   // Build className with variant and size (재사용을 위해 최상위에 선언)
   const tagGroupClassName = "react-aria-TagGroup";
@@ -605,11 +634,12 @@ export function TagGroup<T extends object>({
           }}
         >
           {tagTexts.map((entry, i) => (
-            <span key={i} className="react-aria-Tag">
+            <span key={i} className="react-aria-Tag" style={chipStyle(false)}>
               {/* 미러는 실제 chip 의 **정확한 폭 대체**여야 한다 — 좌측 슬롯(icon/avatar)을
                   빼면 슬롯 있는 chip 이 실제보다 좁게 측정돼 행당 개수가 과다 산출된다
-                  (같은 축의 과거 결함: chip size CSS 미적용 / side-label 폭 미차감). */}
-              {renderTagLeadingSlot(entry)}
+                  (같은 축의 과거 결함: chip size CSS 미적용 / side-label 폭 미차감).
+                  ADR-229: template style · slot gating 도 실제 chip 과 같은 값으로. */}
+              {renderTagLeadingSlot(entry, chipComposition(false))}
               {entry.text}
             </span>
           ))}
@@ -644,10 +674,13 @@ export function TagGroup<T extends object>({
                   textValue={item.label}
                   isDisabled={item.isDisabled}
                   className="react-aria-Tag"
+                  style={({ isSelected: chipSelected }) =>
+                    chipStyle(chipSelected) ?? {}
+                  }
                 >
-                  {({ allowsRemoving: removing }) => (
+                  {({ allowsRemoving: removing, isSelected: chipSelected }) => (
                     <>
-                      {renderTagLeadingSlot(item)}
+                      {renderTagLeadingSlot(item, chipComposition(chipSelected))}
                       {item.label}
                       {removing && (
                         <Button slot="remove" className="tag-remove-btn">

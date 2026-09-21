@@ -1029,7 +1029,7 @@ export function resolveTagLeadingExtraWidth(item: {
   return 0;
 }
 
-function resolveTagChipMetric(sizeName: string): {
+export function resolveTagChipMetric(sizeName: string): {
   paddingX: number;
   paddingY: number;
   fontSize: number;
@@ -1071,6 +1071,51 @@ function resolveTagChipMetric(sizeName: string): {
 }
 
 /**
+ * ADR-229 Phase 1 — rule chip metric 위에 template root style (projection 주입) 을 얹는다.
+ * padding 은 longhand 우선 · shorthand fallback (style-ssot 정책), fontSize/lineHeight 는 숫자·px
+ * 문자열만. 없는 키는 rule 값 (BC).
+ */
+function applyTagChipTemplateStyle(
+  chip: ReturnType<typeof resolveTagChipMetric>,
+  style: Record<string, unknown> | null | undefined,
+): ReturnType<typeof resolveTagChipMetric> & {
+  paddingTop: number;
+  paddingBottom: number;
+  paddingLeft: number;
+  paddingRight: number;
+} {
+  const base = {
+    ...chip,
+    paddingTop: chip.paddingY,
+    paddingBottom: chip.paddingY,
+    paddingLeft: chip.paddingX,
+    paddingRight: chip.paddingX,
+  };
+  if (!style) return base;
+  const px = (v: unknown, fallback: number): number =>
+    parsePxValue(v, fallback);
+  const shorthand = style.padding;
+  const paddingTop = px(style.paddingTop ?? shorthand, base.paddingTop);
+  const paddingBottom = px(style.paddingBottom ?? shorthand, base.paddingBottom);
+  const paddingLeft = px(style.paddingLeft ?? shorthand, base.paddingLeft);
+  const paddingRight = px(style.paddingRight ?? shorthand, base.paddingRight);
+  const fontSize = px(style.fontSize, base.fontSize);
+  // lineHeight 는 CSS 계약 (숫자 = 배율 · "px" 문자열 = px) — `parseLineHeight` 하나로.
+  const lineHeight = parseLineHeight(style, fontSize) ?? base.lineHeight;
+  return {
+    ...base,
+    fontSize,
+    lineHeight,
+    paddingTop,
+    paddingBottom,
+    paddingLeft,
+    paddingRight,
+    paddingY: Math.min(paddingTop, paddingBottom),
+    paddingX: paddingLeft,
+  };
+}
+
+/**
  * TagList chip wrap 시뮬레이션 SSOT (ADR-907 Layer D — 동일 resolver 공유).
  *
  * items 를 containerWidth 에서 flex-wrap 배치했을 때:
@@ -1102,6 +1147,13 @@ export function resolveTagWrapLayout(input: {
   maxRows: number;
   /** style.fontSize override (없으면 chip catalog fontSize). */
   fontSizeOverride?: number;
+  /**
+   * ADR-229 Phase 1 — chip item template origin 의 root style (projection 이 TagList props
+   * `_tagTemplateStyle` 로 주입, chip leaf 의 `props.style` 과 같은 값). padding · fontSize ·
+   * lineHeight 가 rule 값을 덮는다 — chip 이 실제로 그 style 로 배치되므로 추정도 같은 값을 읽어야
+   * fold 판정·컨테이너 높이가 어긋나지 않는다 (ADR-907 Layer D 동일 resolver 원칙).
+   */
+  chipStyle?: Record<string, unknown> | null;
 }): {
   visibleItemCount: number;
   shouldShowAll: boolean;
@@ -1109,19 +1161,23 @@ export function resolveTagWrapLayout(input: {
   contentHeight: number;
 } {
   const { items, containerWidth, sizeName, allowsRemoving, maxRows } = input;
-  const chipSize = resolveTagChipMetric(sizeName);
+  const ruleChip = resolveTagChipMetric(sizeName);
+  const chipSize = applyTagChipTemplateStyle(ruleChip, input.chipStyle);
   const fontSize = input.fontSizeOverride ?? chipSize.fontSize;
   // chip border-box 높이 = lineHeight + paddingY*2 + borderWidth*2 (CSS border:1px solid).
   const CHIP_BORDER_WIDTH = 1;
   const tagHeight =
-    chipSize.lineHeight + chipSize.paddingY * 2 + CHIP_BORDER_WIDTH * 2;
+    chipSize.lineHeight +
+    chipSize.paddingTop +
+    chipSize.paddingBottom +
+    CHIP_BORDER_WIDTH * 2;
   const gap = chipSize.gap;
   const rowGap = gap;
 
   // allowsRemoving 시 paddingRight=paddingY (text-X 과밀 방지) + X 아이콘 예약 폭.
   const chipPaddingRight = allowsRemoving
     ? chipSize.paddingY
-    : chipSize.paddingX;
+    : chipSize.paddingRight;
   const iconGap = 4;
   const removeExtraWidth = allowsRemoving ? iconGap + fontSize : 0;
 
@@ -1146,7 +1202,7 @@ export function resolveTagWrapLayout(input: {
     const iconExtraWidth = resolveTagLeadingExtraWidth(items[i]);
     const chipWidth =
       textWidth +
-      chipSize.paddingX +
+      chipSize.paddingLeft +
       chipPaddingRight +
       removeExtraWidth +
       iconExtraWidth;
@@ -1188,7 +1244,7 @@ export function resolveTagWrapLayout(input: {
       "Pretendard",
       400,
     );
-    const showAllWidth = showAllTextWidth + chipSize.paddingX * 2;
+    const showAllWidth = showAllTextWidth + ruleChip.paddingX * 2;
     const fitsOnSameRow = lastPlacedRowEnd + gap + showAllWidth <= cw;
     extraRow = fitsOnSameRow ? 0 : 1;
   }
@@ -3048,6 +3104,13 @@ export function calculateContentHeight(
     //   행 포함 높이 반환(chip border-box 30 = lineHeight20 + paddingY*2 + border*2 정합).
     const sizeName = (props?.size as string) ?? "md";
     const chipSize = resolveTagChipMetric(sizeName);
+    // ADR-229: chip item template origin root style (projection 주입) — chip leaf 와 같은 값.
+    const chipTemplateStyle = props?._tagTemplateStyle;
+    const chipStyle =
+      chipTemplateStyle && typeof chipTemplateStyle === "object"
+        ? (chipTemplateStyle as Record<string, unknown>)
+        : null;
+    const templateFontSize = parsePxValue(chipStyle?.fontSize, NaN);
     const { contentHeight } = resolveTagWrapLayout({
       items,
       containerWidth:
@@ -3056,7 +3119,10 @@ export function calculateContentHeight(
       allowsRemoving: Boolean(props?.allowsRemoving),
       maxRows: typeof props?.maxRows === "number" ? props.maxRows : 0,
       fontSizeOverride:
-        resolveTextRenderStyle(style).fontSize ?? chipSize.fontSize,
+        resolveTextRenderStyle(style).fontSize ??
+        (Number.isFinite(templateFontSize) ? templateFontSize : undefined) ??
+        chipSize.fontSize,
+      chipStyle,
     });
     return contentHeight;
   }

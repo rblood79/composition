@@ -4,6 +4,9 @@ import {
   SLOT_ROLES,
   getSlotRole,
   isSlotEnabled,
+  readLeadingSlotSize,
+  readSlotComposition,
+  resolveItemTemplateChipStyle,
   resolveSlotComposition,
 } from "../slotRoles";
 
@@ -34,6 +37,97 @@ describe("getSlotRole", () => {
     expect(SLOT_ROLES).toEqual(
       expect.arrayContaining(["icon", "label", "description"]),
     );
+  });
+});
+
+describe("ADR-229 Phase 1 — avatar slot role (Tag item template)", () => {
+  it("avatar 는 공용 vocabulary 이고 metadata/props 두 축으로 읽힌다", () => {
+    expect(SLOT_ROLES).toContain("avatar");
+    expect(getSlotRole({ metadata: { slotRole: "avatar" } })).toBe("avatar");
+    expect(getSlotRole({ props: { slot: "avatar" } })).toBe("avatar");
+  });
+
+  it("Tag item origin 자식 (Icon·Avatar·Text) 구성이 avatar 를 순서·optional·style 째 보존하고 readSlotComposition 왕복이 같다", () => {
+    const composition = resolveSlotComposition([
+      {
+        type: "Icon",
+        props: { slot: "icon", iconName: "{icon}" },
+        metadata: { slotRole: "icon", optional: true },
+      },
+      {
+        type: "Avatar",
+        props: { slot: "avatar", src: "{avatar}", style: { width: 20 } },
+        metadata: { slotRole: "avatar", optional: true },
+      },
+      {
+        type: "Text",
+        props: { slot: "label", children: "{label}" },
+        metadata: { slotRole: "label" },
+      },
+    ]);
+    expect(composition?.order).toEqual(["icon", "avatar", "label"]);
+    expect(composition?.slots.avatar).toEqual({
+      role: "avatar",
+      optional: true,
+      style: { width: 20 },
+    });
+    expect(isSlotEnabled(composition, "avatar")).toBe(true);
+    const roundTrip = readSlotComposition(
+      JSON.parse(JSON.stringify(composition)),
+    );
+    expect(roundTrip).toEqual(composition);
+  });
+
+  it("origin 에서 Avatar slot 자식을 지우면 avatar 가 비활성이고 icon 은 그대로다 (존재 gating 독립)", () => {
+    const composition = resolveSlotComposition([
+      {
+        type: "Icon",
+        props: { slot: "icon", iconName: "{icon}" },
+        metadata: { slotRole: "icon", optional: true },
+      },
+      { type: "Text", props: { slot: "label", children: "{label}" } },
+    ]);
+    expect(isSlotEnabled(composition, "avatar")).toBe(false);
+    expect(isSlotEnabled(composition, "icon")).toBe(true);
+  });
+});
+
+describe("ADR-229 Phase 1 — resolveItemTemplateChipStyle / readLeadingSlotSize", () => {
+  it("root style 에서 저작 layout 키를 빼고 label slot typography 를 얹는다 · 없으면 null", () => {
+    const composition = resolveSlotComposition([
+      { type: "Icon", props: { slot: "icon", style: { fontSize: 20 } } },
+      { type: "Avatar", props: { slot: "avatar", style: { width: 24 } } },
+      {
+        type: "Text",
+        props: { slot: "label", style: { fontSize: 18, color: "#123456" } },
+      },
+    ]);
+    expect(
+      resolveItemTemplateChipStyle(
+        {
+          display: "flex",
+          alignItems: "center",
+          gap: 4,
+          width: "fit-content",
+          paddingLeft: 20,
+          borderRadius: 999,
+        },
+        composition,
+      ),
+    ).toEqual({
+      paddingLeft: 20,
+      borderRadius: 999,
+      fontSize: 18,
+      color: "#123456",
+    });
+    expect(resolveItemTemplateChipStyle({ display: "flex" }, null)).toBeNull();
+    expect(resolveItemTemplateChipStyle(null, null)).toBeNull();
+    expect(readLeadingSlotSize(composition?.slots.icon?.style, "icon")).toBe(20);
+    expect(readLeadingSlotSize(composition?.slots.avatar?.style, "avatar")).toBe(
+      24,
+    );
+    expect(readLeadingSlotSize({ fontSize: "20px" }, "icon")).toBeUndefined();
+    expect(readLeadingSlotSize(undefined, "avatar")).toBeUndefined();
   });
 });
 

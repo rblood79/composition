@@ -26,6 +26,9 @@ import { COMPONENT_RULES_TABLE } from "./generated/componentRulesTable";
 export const SLOT_ROLES = [
   // P2 collection item (ADR-147 가동분 + Phase 4 MenuItem)
   "icon",
+  // ADR-229 Phase 1 — Tag item template 의 좌측 이미지 슬롯 (icon 과 같은 자리를 다툰다 —
+  //   소비자는 데이터가 있는 활성 slot 중 avatar > icon 하나만 고른다).
+  "avatar",
   "label",
   "description",
   "shortcut",
@@ -252,4 +255,65 @@ export function readSlotComposition(raw: unknown): SlotComposition | null {
       )
     : [];
   return { order, slots: slots as SlotComposition["slots"] };
+}
+
+/**
+ * ADR-229 Phase 1 — item template origin root style 중 **chip 에 싣지 않는** 저작 조합 layout 키.
+ * Tag chip 같은 leaf 행은 origin 이 slot 자식을 가로로 놓으려고 쓴 display/gap/width 를 받으면
+ * 안 된다 (leading/label 배치는 rule 몫). 두 leg (builder projection · Preview App) 가 같은 집합을 뺀다.
+ */
+export const ITEM_TEMPLATE_AUTHORING_LAYOUT_STYLE_KEYS: ReadonlySet<string> =
+  new Set([
+    "display",
+    "flexDirection",
+    "flexWrap",
+    "alignItems",
+    "justifyContent",
+    "alignContent",
+    "gap",
+    "rowGap",
+    "columnGap",
+    "width",
+    "height",
+  ]);
+
+/**
+ * ADR-229 Phase 1 — origin root style (responsive 해소 뒤) + slot 구성 → leaf chip 에 실을 style.
+ *
+ * - root style 에서 `ITEM_TEMPLATE_AUTHORING_LAYOUT_STYLE_KEYS` 를 뺀다.
+ * - label slot 자식의 typography (`resolveSlotComposition` 이 size/fills 를 fold 한 style) 를 root 위에
+ *   얹는다: chip 은 한 줄 텍스트라 label 의 글자 = chip 의 글자 (Skia 는 `buildCatalogShapes` 가
+ *   `style.fontSize/fontWeight/fontFamily/color` 를, DOM 은 chip inline style 이 같은 키를 읽는다).
+ * 값이 없으면 null — chip 은 rule 값 그대로 (BC).
+ */
+export function resolveItemTemplateChipStyle(
+  rootStyle: Record<string, unknown> | null | undefined,
+  composition: SlotComposition | null | undefined,
+): Record<string, unknown> | null {
+  const out: Record<string, unknown> = {};
+  if (rootStyle) {
+    for (const [key, value] of Object.entries(rootStyle)) {
+      if (ITEM_TEMPLATE_AUTHORING_LAYOUT_STYLE_KEYS.has(key) || value == null)
+        continue;
+      out[key] = value;
+    }
+  }
+  const labelStyle = composition?.slots.label?.style;
+  if (labelStyle) {
+    for (const [key, value] of Object.entries(labelStyle)) {
+      if (value == null) continue;
+      out[key] = value;
+    }
+  }
+  return Object.keys(out).length > 0 ? out : null;
+}
+
+/** leading slot 자식 style 의 크기 채널 — icon 은 `fontSize`, avatar 는 `width`/`height` (양수 숫자만). */
+export function readLeadingSlotSize(
+  style: Record<string, unknown> | undefined,
+  role: "icon" | "avatar",
+): number | undefined {
+  if (!style) return undefined;
+  const raw = role === "icon" ? style.fontSize : (style.width ?? style.height);
+  return typeof raw === "number" && raw > 0 ? raw : undefined;
 }

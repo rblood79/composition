@@ -180,6 +180,26 @@ export interface RenderContext {
    * `component-menu-item-default` 자식에서 파생 — icon/label/shortcut/description).
    */
   menuItemTemplateSlotComposition?: SlotComposition | null;
+  /**
+   * ADR-229 Phase 1 — TagGroup chip item template (origin `component-tag-item-default` / `-selected`,
+   * master `component-taggroup` 의 TagList 자식 `slot` 에서 해석). provider (Preview App) 가 문서에서
+   * 계산해 주입하고 `renderTagGroup` → `TagGroup` 이 chip 마다 적용한다:
+   * - `composition` / `selectedComposition`: slot 구성 (icon · avatar · label 존재 gating + slot style).
+   * - `rootStyles.base` / `.selected`: chip inline style (root style 에서 저작 layout 키 제외 + label
+   *   typography fold — `resolveItemTemplateChipStyle`). selected 는 `data-selected` chip 에만 overlay.
+   * builder Skia projection (`appendTagRowProjection`) 과 D3 대칭. null/미주입 = legacy → 기존 동작.
+   */
+  tagTemplate?: TagItemTemplate | null;
+}
+
+/** ADR-229 Phase 1 — Tag chip item template 의 DOM 소비 형태 (renderContext → TagGroup prop). */
+export interface TagItemTemplate {
+  composition: SlotComposition | null;
+  selectedComposition: SlotComposition | null;
+  rootStyles: {
+    base: Record<string, unknown> | null;
+    selected: Record<string, unknown> | null;
+  };
 }
 
 // ============================================

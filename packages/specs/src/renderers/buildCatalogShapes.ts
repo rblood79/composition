@@ -212,6 +212,10 @@ export type LeadingSlotResolution =
  *
  * 두 채널 모두 **행 데이터 게이팅**(`nameProp`/`srcProp`)을 지원한다: 값이 비면 그 항목은
  * 슬롯이 없는 것으로 보고 shift 도 하지 않는다(컴포넌트 식별 분기 아님 — ADR-142 §3).
+ *
+ * `props._leadingSlotSize` (ADR-229 Phase 1): builder projection 이 item template origin 의 leading
+ * slot 자식 style (icon `fontSize` · avatar `width`) 에서 주입한 크기 — 있으면 rule 의 지름/glyph
+ * 크기를 덮는다. DOM `renderTagLeadingSlot` 이 같은 숫자를 inline 으로 읽어 두 leg 가 같은 폭.
  */
 export function resolveLeadingSlot(
   visual: ComponentVisualRule | undefined,
@@ -219,6 +223,10 @@ export function resolveLeadingSlot(
   size: SizeSpec,
   fontSize: number,
 ): LeadingSlotResolution | null {
+  const injectedSize =
+    typeof props._leadingSlotSize === "number" && props._leadingSlotSize > 0
+      ? props._leadingSlotSize
+      : undefined;
   const la = visual?.leadingAvatar;
   if (la) {
     let src: string | null = null;
@@ -229,7 +237,7 @@ export function resolveLeadingSlot(
     }
     if (!src && la.src && la.src.length > 0) src = la.src;
     if (src) {
-      const diameter = la.size ?? 16;
+      const diameter = injectedSize ?? la.size ?? 16;
       const gap = la.gap ?? 4;
       return {
         kind: "avatar",
@@ -245,9 +253,10 @@ export function resolveLeadingSlot(
   const iconName = resolveLeadingIconName(visual?.leadingIcon, props);
   if (!iconName) return null;
   const iconSize =
-    typeof size.iconSize === "number" && size.iconSize > 0
+    injectedSize ??
+    (typeof size.iconSize === "number" && size.iconSize > 0
       ? size.iconSize
-      : Math.round(fontSize * 1.1);
+      : Math.round(fontSize * 1.1));
   const gap = visual!.leadingIcon!.gap ?? 6;
   return {
     kind: "icon",
