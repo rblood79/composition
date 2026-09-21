@@ -133,11 +133,48 @@ function isTagItemTemplateVariant(
   if (!candidate) return false;
   if (TAG_ITEM_ORIGIN_IDS.has(candidate.id)) return true;
   if (candidate.ref && TAG_ITEM_ORIGIN_IDS.has(candidate.ref)) return true;
-  if (candidate._resolvedFrom && TAG_ITEM_ORIGIN_IDS.has(candidate._resolvedFrom)) {
+  if (
+    candidate._resolvedFrom &&
+    TAG_ITEM_ORIGIN_IDS.has(candidate._resolvedFrom)
+  ) {
     return true;
   }
   const label = getElementLabel(candidate).toLowerCase();
   return label.startsWith("tag/");
+}
+
+/**
+ * ADR-229 Phase 3 후속 (사용자 지적 2026-09-21) — Slot 절 "Insert" 의 뜻이 host 마다 다르다.
+ * Frame 가족은 slot 에 ref 자식을 넣고, ListBox/GridList 도 (ADR-148 template anchor) ref 자식이다.
+ * TagGroup 은 chip 이 `items[]` 데이터라 (ADR-097 Addendum 1) ref 자식을 root 에 넣어도 TagList 에
+ * 아무것도 안 생긴다 — Tag item template "+" 는 **item 등록** 이고 selected variant 는 selectedKeys 까지.
+ */
+export type SlotInsertAction =
+  | { kind: "child" }
+  | { kind: "collection-item"; itemsKey: "items"; selected: boolean };
+
+export function resolveSlotInsertAction(
+  host: SlotPolicyElement | undefined,
+  candidate: SlotPolicyElement | undefined,
+): SlotInsertAction {
+  if (isTagGroupHost(host) && isTagItemTemplateVariant(candidate)) {
+    return {
+      kind: "collection-item",
+      itemsKey: "items",
+      selected: isTagItemSelectedVariant(candidate),
+    };
+  }
+  return { kind: "child" };
+}
+
+function isTagItemSelectedVariant(
+  candidate: SlotPolicyElement | undefined,
+): boolean {
+  if (!candidate) return false;
+  if (candidate.metadata?.variant === "selected") return true;
+  return [candidate.id, candidate.ref, candidate._resolvedFrom].includes(
+    TAG_ITEM_SELECTED_ORIGIN_ID,
+  );
 }
 
 export function isSlotHostElement(

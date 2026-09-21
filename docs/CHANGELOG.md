@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Components 페이지 TagGroup origin 의 Properties "Slot" 절에서 Tag/Default · Tag/Selected 의 "+" 를 눌러도 TagList 에 아무것도 생기지 않던 것 — chip 은 `items[]` 데이터라 ref 자식은 안 그려진다. 이제 "+" 가 item 을 등록한다 (Tag/Default → 'New Tag' chip, Tag/Selected → 선택된 'New Tag' chip); items 를 상속하는 instance 에 두 leg 모두 반영. Frame · ListBox · GridList 의 "+" 는 종전과 같다.
+  - Why: 사용자 지적 (2026-09-21) — 원복 RED 2 · headed live `adr229-slot-insert-live.mjs` 5/5 (Insert Default → items 5 · Insert Selected → items 6 + selectedKeys · Skia chip 6 · 상속 instance Preview chip 6 = Skia 6 · items 소유 instance 불변).
 - TagGroup chip 의 item template origin 에서 icon slot 크기 (`fontSize`) 나 label slot 굵기 (`fontWeight`) 를 바꾸면 Canvas 가 아이콘은 그 크기로 그리면서 chip 상자는 기본 크기로 재 Preview 보다 좁았고 (icon 20 → 6px 차), maxRows 접힘 판정도 굵기를 무시하던 것 — 상자 폭 · 접힘 측정 · 그리기가 같은 slot 크기 · fontWeight 를 읽는다.
   - Why: ADR-229 Phase 3 (G2·G3) — 원복 RED 3 · builder layout/scene/taggroup 80 파일 719 PASS · headed live `adr229-two-leg-parity-live.mjs` 7/7 (Tag item origin icon `fontSize` 20 · label `fontWeight` 700 · root padding 24/8 → TagGroup instance Skia rect + 픽셀 Δ + Preview computed, 폭 113 = 113.12 · `component-button` `style.width` 200 → Form/Toolbar instance 안 Button 두 leg 200 · synthetic Save → 'Go' → reload 두 leg 보존 · Components body Δ0) · ADR-228 parity `adr228-instance-parity-live.mjs` 58/58 (Phase 2 직후 11 family FAIL 은 하니스 plain arm 이 ref 자식을 `type` 만 복제한 것 — `ref`/`descendants` 동반) · G3 `pnpm perf:baseline` 같은 세션 A/B — Form instance 100 (`forms`/`form-refs` fixture, 7회) `scene.build` p95 median 4.0 → 4.7 (+0.7 ≤ +1) · TagGroup 100×8 (`taggroups`/`taggroup-refs`, 2회) 7.3/7.1 → 7.1/5.9 · render.frame Δ ≈ 0.
 

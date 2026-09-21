@@ -21,6 +21,7 @@ import {
   filterSlotCandidates,
   isSlotCandidateAllowed,
   isSlotHostElement,
+  resolveSlotInsertAction,
 } from "../../components/slotHostPolicy";
 import type { PanelNode } from "../panelNode";
 import { ACTION_ICONS } from "../../config/actionIcons";
@@ -90,6 +91,7 @@ export const FrameSlotSection = memo(function FrameSlotSection({
   const { t } = useI18n();
   const addElement = useStore((state) => state.addElement);
   const updateElement = useStore((state) => state.updateElement);
+  const updateElementProps = useStore((state) => state.updateElementProps);
   const [selectedCandidateId, setSelectedCandidateId] = useState("");
 
   const slot = element ? getSlotValue(element) : false;
@@ -189,6 +191,31 @@ export const FrameSlotSection = memo(function FrameSlotSection({
     if (!candidate) return;
     if (!isSlotCandidateAllowed(latestElement, candidate)) return;
 
+    // ADR-229: TagGroup 의 Tag item template "+" 는 TagList 의 item 등록 (chip 은 `items[]` 데이터).
+    //   selected variant 는 selectedKeys 에도 — 한 번의 props 쓰기 (history 1).
+    const insertAction = resolveSlotInsertAction(latestElement, candidate);
+    if (insertAction.kind === "collection-item") {
+      const props = (latestElement.props ?? {}) as Record<string, unknown>;
+      const currentItems = Array.isArray(props[insertAction.itemsKey])
+        ? (props[insertAction.itemsKey] as Record<string, unknown>[])
+        : [];
+      const itemId = crypto.randomUUID();
+      const nextProps: Record<string, unknown> = {
+        [insertAction.itemsKey]: [
+          ...currentItems,
+          { id: itemId, label: "New Tag" },
+        ],
+      };
+      if (insertAction.selected) {
+        const selectedKeys = Array.isArray(props.selectedKeys)
+          ? (props.selectedKeys as unknown[])
+          : [];
+        nextProps.selectedKeys = [...selectedKeys, itemId];
+      }
+      void updateElementProps(latestElement.id, nextProps);
+      return;
+    }
+
     void addElement(
       withFrameElementMirrorId(
         {
@@ -211,7 +238,9 @@ export const FrameSlotSection = memo(function FrameSlotSection({
           셀렉트 행의 28 액션 열 (panel-structure §1, 2026-09-15) */}
       <div className="fieldset-row" data-wide="true">
         <fieldset className="properties-aria frame-slot-status">
-          <legend className="fieldset-legend">{t("propertiesPanel.slotStatus")}</legend>
+          <legend className="fieldset-legend">
+            {t("propertiesPanel.slotStatus")}
+          </legend>
           <div className="react-aria-control react-aria-Group">
             <span className="frame-slot-value">
               {isActive

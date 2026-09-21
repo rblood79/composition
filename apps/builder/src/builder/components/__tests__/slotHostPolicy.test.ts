@@ -4,6 +4,7 @@ import {
   filterSlotCandidates,
   isSlotCandidateAllowed,
   isSlotHostElement,
+  resolveSlotInsertAction,
 } from "../slotHostPolicy";
 import {
   LISTBOX_ITEM_DEFAULT_ORIGIN_ID,
@@ -90,20 +91,74 @@ describe("ADR-146 shared slot host policy", () => {
   // ADR-229 Phase 2: TagGroup 은 ListBox 대칭 slot host — origin Properties 에 "Slot" 절, 후보는 Tag item origin 2.
   it("recognizes reusable TagGroup origin as a slot host and limits candidates to Tag item template variants", () => {
     expect(
-      isSlotHostElement({ id: "component-taggroup", type: "TagGroup", reusable: true }),
+      isSlotHostElement({
+        id: "component-taggroup",
+        type: "TagGroup",
+        reusable: true,
+      }),
     ).toBe(true);
     expect(isSlotHostElement({ id: "tg", type: "TagGroup" })).toBe(false);
     const host = { id: "component-taggroup", type: "TagGroup" };
-    const defaultItem = { id: TAG_ITEM_DEFAULT_ORIGIN_ID, type: "Tag", reusable: true };
-    const selectedItem = { id: TAG_ITEM_SELECTED_ORIGIN_ID, type: "Tag", reusable: true };
+    const defaultItem = {
+      id: TAG_ITEM_DEFAULT_ORIGIN_ID,
+      type: "Tag",
+      reusable: true,
+    };
+    const selectedItem = {
+      id: TAG_ITEM_SELECTED_ORIGIN_ID,
+      type: "Tag",
+      reusable: true,
+    };
     const plainTag = { id: "local-tag", type: "Tag", reusable: true };
     const button = { id: "button-origin", type: "Button", reusable: true };
     expect(isSlotCandidateAllowed(host, defaultItem)).toBe(true);
     expect(isSlotCandidateAllowed(host, selectedItem)).toBe(true);
     expect(isSlotCandidateAllowed(host, plainTag)).toBe(false);
-    expect(filterSlotCandidates(host, [button, plainTag, defaultItem, selectedItem])).toEqual([
-      defaultItem,
-      selectedItem,
-    ]);
+    expect(
+      filterSlotCandidates(host, [button, plainTag, defaultItem, selectedItem]),
+    ).toEqual([defaultItem, selectedItem]);
+  });
+
+  /**
+   * ADR-229 Phase 3 후속 (사용자 지적 2026-09-21): TagGroup 은 chip 이 `items[]` 데이터라 (ADR-097
+   * Addendum 1) origin Slot 절의 "+" 가 ref 자식을 root 에 넣어도 TagList 에 아무것도 안 생긴다 —
+   * Tag/Default "+" 는 item 등록, Tag/Selected "+" 는 item 등록 + selectedKeys. Frame/ListBox 는 종전 ref 자식.
+   */
+  it("resolveSlotInsertAction — TagGroup host 는 collection item 등록, selected variant 면 selected", () => {
+    const host = { id: "component-taggroup", type: "TagGroup", reusable: true };
+    expect(
+      resolveSlotInsertAction(host, {
+        id: TAG_ITEM_DEFAULT_ORIGIN_ID,
+        type: "Tag",
+      }),
+    ).toEqual({ kind: "collection-item", itemsKey: "items", selected: false });
+    expect(
+      resolveSlotInsertAction(host, {
+        id: TAG_ITEM_SELECTED_ORIGIN_ID,
+        type: "Tag",
+        metadata: { variant: "selected" },
+      }),
+    ).toEqual({ kind: "collection-item", itemsKey: "items", selected: true });
+    // 사용자가 만든 selected 변형 (id 는 임의, metadata.variant 로 판정)
+    expect(
+      resolveSlotInsertAction(host, {
+        id: "my-tag-selected",
+        type: "Tag",
+        componentName: "Tag/Hot",
+        metadata: { variant: "selected" },
+      }),
+    ).toEqual({ kind: "collection-item", itemsKey: "items", selected: true });
+    expect(
+      resolveSlotInsertAction(
+        { id: "frame", type: "frame" },
+        { id: "button-origin", type: "Button" },
+      ),
+    ).toEqual({ kind: "child" });
+    expect(
+      resolveSlotInsertAction(
+        { id: "component-listbox", type: "ListBox", reusable: true },
+        { id: LISTBOX_ITEM_DEFAULT_ORIGIN_ID, type: "ListBoxItem" },
+      ),
+    ).toEqual({ kind: "child" });
   });
 });

@@ -381,4 +381,90 @@ describe("FrameSlotSection", () => {
       expect(children[0].id).not.toBe(children[1].id);
     });
   });
+
+  /**
+   * ADR-229 Phase 3 후속 (사용자 지적 2026-09-21): TagGroup origin 의 Slot 절 "+" 는 ref 자식이 아니라
+   * TagList 의 item 을 등록한다 (chip 은 `items[]` 데이터 — ADR-097 Addendum 1). Tag/Selected 는 selectedKeys 까지.
+   */
+  it("TagGroup host: Insert Tag/Default → items 에 등록 · Insert Tag/Selected → items + selectedKeys (ref 자식 0)", async () => {
+    const tagGroup = makeElement("component-taggroup", {
+      type: "TagGroup",
+      reusable: true,
+      slot: ["tag-default-origin", "tag-selected-origin"],
+      props: { items: [{ id: "a", label: "Alpha" }], selectedKeys: ["a"] },
+    });
+    const addElement = vi.fn(async () => {});
+    const updateElementProps = vi.fn(
+      async (id: string, props: Record<string, unknown>) => {
+        const state = useStore.getState();
+        const el = state.elementsMap.get(id)!;
+        const next = { ...el, props: { ...el.props, ...props } } as Element;
+        useStore.setState({
+          elements: state.elements.map((e) => (e.id === id ? next : e)),
+          elementsMap: new Map([...state.elementsMap, [id, next]]),
+        });
+        seedCanonicalFromStore();
+      },
+    );
+    useStore.setState({
+      addElement,
+      updateElementProps,
+      elements: [tagGroup],
+      elementsMap: new Map([["component-taggroup", tagGroup]]),
+    });
+    seedCanonicalFromStore();
+    // legacy merge 는 root 의 `Tag` element 를 items 로 흡수해 버린다 (ADR-097) — 실제 Tag item origin 은
+    //   canonical-first 시드라 문서에 직접 둔다.
+    const canonical = useCanonicalDocumentStore.getState();
+    const doc = canonical.getDocument("frame-slot-section-project")!;
+    const pageFrame = doc.children.find((node) => node.id === "page-1")!;
+    canonical.setDocument("frame-slot-section-project", {
+      ...doc,
+      children: doc.children.map((node) =>
+        node === pageFrame
+          ? {
+              ...node,
+              children: [
+                ...(node.children ?? []),
+                {
+                  id: "tag-default-origin",
+                  type: "Tag",
+                  name: "Tag/Default",
+                  reusable: true,
+                  props: {},
+                },
+                {
+                  id: "tag-selected-origin",
+                  type: "Tag",
+                  name: "Tag/Selected",
+                  reusable: true,
+                  props: {},
+                  metadata: { variant: "selected" },
+                },
+              ],
+            }
+          : node,
+      ),
+    } as typeof doc);
+
+    renderWithI18n(<FrameSlotSection elementId="component-taggroup" />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Insert Tag/Default" }));
+    await waitFor(() => expect(updateElementProps).toHaveBeenCalledTimes(1));
+    const [, first] = updateElementProps.mock.calls[0];
+    const firstItems = first.items as Array<{ id: string; label: string }>;
+    expect(firstItems).toHaveLength(2);
+    expect(firstItems[1].label).toBe("New Tag");
+    expect(first.selectedKeys).toBeUndefined();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Insert Tag/Selected" }),
+    );
+    await waitFor(() => expect(updateElementProps).toHaveBeenCalledTimes(2));
+    const [, second] = updateElementProps.mock.calls[1];
+    const secondItems = second.items as Array<{ id: string; label: string }>;
+    expect(secondItems).toHaveLength(3);
+    expect(second.selectedKeys).toEqual(["a", secondItems[2].id]);
+    expect(addElement).not.toHaveBeenCalled();
+  });
 });
