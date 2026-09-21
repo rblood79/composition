@@ -98,6 +98,35 @@ describe("ComponentSemanticsSection", () => {
     expect(screen.getByText("Origin")).toBeTruthy();
   });
 
+  // ADR-230 Phase 3 — 상태 변형 origin 은 정체 칩에 상태 배지 (읽기 전용 표식) 를 더한다.
+  it("state variant origin shows a state badge next to the Origin role", () => {
+    const origin = makeElement("component-togglebutton", {
+      componentName: "ToggleButton",
+      reusable: true,
+    });
+    const selected = makeElement("component-togglebutton--selected", {
+      componentName: "ToggleButton",
+      reusable: true,
+      metadata: {
+        type: "catalog-origin",
+        variant: "selected",
+        variantOf: "component-togglebutton",
+      },
+    } as never);
+
+    seedPanelElements([origin, selected]);
+
+    renderWithI18n(
+      <ComponentSemanticsSection elementId="component-togglebutton--selected" />,
+    );
+
+    expect(screen.getByText("Origin")).toBeTruthy();
+    const badge = screen.getByText("Selected");
+    expect(badge.className).toBe("component-semantics-identity-state");
+    expect(badge.getAttribute("data-state")).toBe("selected");
+    expect(badge.getAttribute("title")).toContain("ToggleButton");
+  });
+
   it("renders Instance label for ref element", () => {
     const instance = makeElement("instance", {
       type: "ref",

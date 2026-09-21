@@ -609,6 +609,20 @@
       color: var(--fg-muted);
     }
 
+    /* ADR-230 — 상태 변형 origin 의 상태 배지 (`ToggleButton/Selected` 의 SELECTED). 역할 라벨과 같은
+       10 mono 어법에 얇은 테두리 pill 로 구분 — 읽기 전용 표식이라 버튼이 아니다. */
+    .component-semantics-identity-state {
+      flex: 0 0 auto;
+      padding: 0 var(--spacing-xs);
+      border: 1px solid currentColor;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-mono);
+      font-size: var(--text-2xs);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--fg-muted);
+    }
+
     /* 역할 = pencil 과 같은 축 — 원본은 역할색 채움, 인스턴스는 역할색 점선 (Pen v1.2.8 이름
        상자: 원본 bg #42324b / 인스턴스 border-dashed). 색은 캔버스 오버레이
        (skia/semanticOverlayColors.ts) · Navigator 점과 같은 `--editing-semantics-*` 토큰이다.

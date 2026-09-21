@@ -581,6 +581,13 @@ export interface TranslationKeys {
     slotDisable: string;
     roleInstanceOrigin: string;
     roleStandard: string;
+    /** ADR-230 — 상태 변형 origin 정체 칩의 상태 배지 (읽기 전용 표식). */
+    stateVariantSelected: string;
+    stateVariantDisabled: string;
+    stateVariantHover: string;
+    stateVariantPressed: string;
+    stateVariantFocusVisible: string;
+    stateVariantOf: string;
     resetForkedItems: string;
     resetOverride: string;
     resetToOrigin: string;

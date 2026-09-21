@@ -754,6 +754,12 @@ const koKR: TranslationKeys = {
     slotEnable: "슬롯 켜기",
     slotDisable: "슬롯 끄기",
     roleInstanceOrigin: "인스턴스 · 원본",
+    stateVariantSelected: "선택됨",
+    stateVariantDisabled: "비활성",
+    stateVariantHover: "호버",
+    stateVariantPressed: "눌림",
+    stateVariantFocusVisible: "포커스",
+    stateVariantOf: "{name} 의 상태 변형 — 이 상태일 때의 배경 · 색 · 테두리 · 투명도만 편집한다",
     roleStandard: "표준",
     resetForkedItems: "분기된 항목을 원본으로 되돌리기",
     resetOverride: "{label} 재정의 되돌리기",
@@ -2641,6 +2647,12 @@ const enUS: TranslationKeys = {
     slotEnable: "Enable slot",
     slotDisable: "Disable slot",
     roleInstanceOrigin: "Instance · Origin",
+    stateVariantSelected: "Selected",
+    stateVariantDisabled: "Disabled",
+    stateVariantHover: "Hover",
+    stateVariantPressed: "Pressed",
+    stateVariantFocusVisible: "Focus",
+    stateVariantOf: "State variant of {name} — edit only the background · color · border · opacity used in this state",
     roleStandard: "Standard",
     resetForkedItems: "Reset forked items to origin",
     resetOverride: "Reset {label} override",
@@ -4815,6 +4827,8 @@ const formattedMessages: Record<
       `페이지를 찾을 수 없습니다: ${String(args?.path ?? "")}`,
     "propertiesPanel.overrideCleared": (args) =>
       `'${String(args?.label ?? "")}' override 해제됨`,
+    "propertiesPanel.stateVariantOf": (args) =>
+      `${String(args?.name ?? "")} 의 상태 변형 — 이 상태일 때의 배경 · 색 · 테두리 · 투명도만 편집한다`,
     "propertiesPanel.bindingUsedBy": (args) =>
       `사용처 ${String(args?.count ?? 0)}`,
     "propertiesPanel.idUnique": (args) =>
@@ -5285,6 +5299,8 @@ const formattedMessages: Record<
       `Page not found: ${String(args?.path ?? "")}`,
     "propertiesPanel.overrideCleared": (args) =>
       `'${String(args?.label ?? "")}' override cleared`,
+    "propertiesPanel.stateVariantOf": (args) =>
+      `State variant of ${String(args?.name ?? "")} — edit only the background · color · border · opacity used in this state`,
     "propertiesPanel.bindingUsedBy": (args) =>
       `Used by ${String(args?.count ?? 0)}`,
     "propertiesPanel.idUnique": (args) =>

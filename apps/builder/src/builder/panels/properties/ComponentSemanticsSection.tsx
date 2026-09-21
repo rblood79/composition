@@ -31,6 +31,10 @@ import {
 } from "../../utils/editingSemantics";
 import { getFrameElementMirrorId } from "../../../adapters/canonical/frameMirror";
 import {
+  readStateVariantSelf,
+  type StateVariantState,
+} from "../../components/stateVariantOrigins";
+import {
   useCanonicalPropertyElement,
   useCanonicalPropertyElementsMap,
 } from "./hooks/useCanonicalPropertyRead";
@@ -101,6 +105,22 @@ function getComponentDisplayName(
   );
 }
 
+/** ADR-230 — 상태 변형 origin 의 배지 라벨 키 (정체 칩 · 읽기 전용 표식). */
+const STATE_VARIANT_BADGE_KEY: Record<
+  StateVariantState,
+  | "propertiesPanel.stateVariantSelected"
+  | "propertiesPanel.stateVariantDisabled"
+  | "propertiesPanel.stateVariantHover"
+  | "propertiesPanel.stateVariantPressed"
+  | "propertiesPanel.stateVariantFocusVisible"
+> = {
+  selected: "propertiesPanel.stateVariantSelected",
+  disabled: "propertiesPanel.stateVariantDisabled",
+  hover: "propertiesPanel.stateVariantHover",
+  pressed: "propertiesPanel.stateVariantPressed",
+  "focus-visible": "propertiesPanel.stateVariantFocusVisible",
+};
+
 function isFrameBodyElement(element: PanelNode): boolean {
   return (
     element.type.toLowerCase() === "body" &&
@@ -149,6 +169,12 @@ export const ComponentSemanticsSection = memo(
     if (!element) return null;
     if (isFrameBodyElement(element)) return null;
     const componentName = getComponentDisplayName(element, originElement);
+    // ADR-230 — 상태 변형 origin (`ToggleButton/Selected` …) 은 정체 칩에 상태 배지를 더한다.
+    //   변형은 default origin 의 그 상태 시각만 소유한다 — 배지 툴팁이 그 계약을 읽어 준다.
+    const stateVariant = readStateVariantSelf(element);
+    const stateVariantOrigin = stateVariant
+      ? resolveOriginElement(stateVariant.variantOf, lookupElements)
+      : null;
 
     // 실행·확인은 `runComponentSemanticsAction` 한 벌이 소유한다 (ADR-199
     // Phase 3) — 이 표면은 자기 element 해석 결과 (canonical property element)
@@ -242,6 +268,19 @@ export const ComponentSemanticsSection = memo(
               >
                 {componentName}
               </span>
+              {stateVariant && (
+                <span
+                  className="component-semantics-identity-state"
+                  data-state={stateVariant.state}
+                  title={t("propertiesPanel.stateVariantOf", {
+                    name: stateVariantOrigin
+                      ? getComponentDisplayName(stateVariantOrigin, null)
+                      : stateVariant.variantOf,
+                  })}
+                >
+                  {t(STATE_VARIANT_BADGE_KEY[stateVariant.state])}
+                </span>
+              )}
               <span className="component-semantics-identity-role">
                 {roleLabel}
               </span>

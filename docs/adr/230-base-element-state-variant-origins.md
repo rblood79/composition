@@ -121,7 +121,12 @@ Accepted — 2026-09-21 (Proposed 2026-09-21 같은 날 · 사용자 `/execute-a
 
 ### Live Exercise
 
-(Implemented 승격 시 기재)
+실제 builder (dev 5173, headed Playwright, `.auth-session.json`, 새 프로젝트 생성부터). 하니스는 `apps/builder/scripts/adr230-*.mjs`, 결과 JSON 은 `/private/tmp/adr230-*/findings.json`. **Compare Mode/Preview iframe 은 사용자 판정 (2026-09-22) 으로 열지 않는다** — Preview 채널은 unit 고정 + 사용자 확인 대상.
+
+- **Phase 1** `adr230-state-origins-live.mjs` 8/8 (G2 두 leg): Components body 변형 8 이 default 바로 오른쪽 · Skia 픽셀 — `ToggleButton/Selected` fills 빨강 → `isSelected` instance `[255,0,0]` · 미선택 불변 · `Button/Disabled` opacity 0.5 → `isDisabled` instance `[139]` = 0.5·23 + 0.5·255 (0.38 과 곱하면 `[211]` — h1 반증 GREEN) · 편집 전 `[167]` = catalog 0.38 · instance 명시 0.8 > 0.5 (`[69]`) · Form 안 Save (229 ref + descendants isDisabled) 상속 · reload Δ0. (Preview 절 L3/L6 은 당시 실측 PASS — 이후 보류.)
+- **Phase 2** 같은 하니스 (보류 전 1회 실측): P2-1 interaction 변형 15 root 가 선언적 run 뒤 · style 비움 · P2-2 Tab 키 `data-focus-visible` → `ToggleButton/Focus` color 마젠타 (interaction 규칙이 RAC data 속성으로 붙는 증명) · P2-3 `<style data-adr230-states>` 1,221 B ≤ 8 KB · 편집 1회당 텍스트 교체 1. pointer hover/pressed 시각은 unit (`stateVariantResolution.test.ts` 규칙 순서·`:not([data-disabled])`) 고정 — 사용자 확인 대상. **G3** `pnpm perf:baseline -- --lane frame --seed-count 600 --headed --classes edit` `button-refs` vs `button-refs-stateful` (isDisabled 50%) 3회: `scene.build` p95 median 9.1 → 7.7 ms (Δ −1.4 ≤ +1).
+- **Phase 3** `adr230-bc-live.mjs` 6/6 (G4 BC, Compare Mode 없음): 새 프로젝트 → instance A + `Selected` 빨강 · `Button/Disabled` 0.5 편집 저장 → IndexedDB `document_parts` 에서 interaction 변형 21 레코드 + body children 15 삭제 (= Phase 1 코드가 저장한 모양) → reload: 기존 변형 8 의 편집 보존 · interaction 15 가 default → selected → disabled → hover → pressed → focus 순으로 기존 run 끝에 보충 · Skia A `[255,0,0]` (상태 overlay 가 옛 문서에도) · 두 번째 reload Δnode 0 · Δbyte 0 (251 노드 · 53,021 B). unit `adr230BackwardCompat.test.ts` 6: 기존 노드 직렬화 불변 (필드 추가 0) · 사용자가 옮긴 default 를 변형이 따라감 · 최초 보충 Δnode 33 · Δbyte 9,793 (= 변형 직렬화) · 재hydration 같은 객체 · 롤백 (seed 0 문서는 plain 경로).
+- **잡은 결함**: F13 plain 노드 disabled + inline opacity 이중 곱 (Skia 0.19 ≠ DOM 0.5) 수리 (Phase 1). 하니스 함정: `descendants` mode A 는 flat props · 위임 renderer 표식은 wrapper · Components 페이지는 프레임 안 스크롤 (변형 origin 자신의 캔버스 시각은 unit) · Playwright context 마다 새 IndexedDB (옛 프로젝트 BC 는 저장 층에서 모양을 만든다).
 
 ## Consequences
 

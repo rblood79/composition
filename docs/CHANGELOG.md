@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-230 Phase 3 — 상태 변형 origin BC · Properties 상태 배지] - 2026-09-22
+
+### Added
+
+- **Properties 패널 상태 배지**: 상태 변형 origin (`ToggleButton/Selected` 등) 을 선택하면 Component 정체 칩에 `SELECTED` · `DISABLED` · `HOVER` · `PRESSED` · `FOCUS` pill 이 선다 (툴팁: 어느 origin 의 상태 변형인지 · 이 상태에서 편집되는 키). `apps/builder/src/builder/panels/properties/ComponentSemanticsSection.tsx`.
+- **BC**: 기존 프로젝트를 열면 부족한 변형만 기존 변형 뒤에 보충된다 — 기존 노드 · 편집 · 순서 불변, 재로드 Δ0. unit `adr230BackwardCompat.test.ts` (Δnode 33 · Δbyte 9,793) · live `adr230-bc-live.mjs` 6/6.
+
 ## [ADR-230 Phase 2 — 기본 요소의 hover/pressed/focus-visible 변형 origin] - 2026-09-22
 
 ### Added

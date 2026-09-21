@@ -90,7 +90,7 @@ export interface StateVariantSelf {
 
 /** 이 노드가 상태 변형 origin 자신이면 `{state, variantOf}` — 아니면 null. */
 export function readStateVariantSelf(
-  node: Pick<CanonicalNode, "metadata"> | null | undefined,
+  node: { metadata?: unknown } | null | undefined,
 ): StateVariantSelf | null {
   const metadata = node?.metadata as
     { variant?: unknown; variantOf?: unknown } | undefined;
