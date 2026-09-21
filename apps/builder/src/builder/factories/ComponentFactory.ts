@@ -147,6 +147,7 @@ export class ComponentFactory {
     const { parent, children } = createElementsFromDefinition(definition, {
       pageId: pageId || null,
       layoutId,
+      doc,
     });
 
     // canonical 초기값도 첫 insert event 안에 포함한다.

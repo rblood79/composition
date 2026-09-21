@@ -2,7 +2,7 @@
 // adr229-tag-template-live.mjs — ADR-229 Phase 1 live (실제 빌더, headed Playwright).
 //   TagGroup chip item template origin (`component-tag-item-default` / `-selected`) 이 실제 문서에
 //   시드되고, 사용자 페이지의 TagGroup instance chip 이 그 origin 을 두 leg (Skia · Preview) 에서 읽는가.
-//   P1-a) 신규 프로젝트 — item origin 2 (자식 Icon·Avatar·Text) + `component-taggroup` 의 TagList 자식 slot
+//   P1-a) 신규 프로젝트 — item origin 2 (자식 Icon·Avatar·Text) + `component-taggroup` root slot (Phase 2 정정 · ListBox 동형)
 //   P1-b) instance chip 기준값 — Skia rect 높이 = Preview chip 높이 (30, md)
 //   P1-c) default origin root style 편집 (padding 24/8) → Skia rect · Preview computed 둘 다 따라감 · 높이 동일
 //   P1-d) default origin 의 Avatar slot 자식 삭제 → avatar 데이터 chip 이 두 leg 모두 icon 으로 (존재 gating)
@@ -213,19 +213,27 @@ try {
   const defaultChildren = await childrenOf(page, DEFAULT_ORIGIN);
   const tagGroupChildren = await childrenOf(page, TAGGROUP_ORIGIN);
   const tagList = tagGroupChildren.find((c) => c.type === "TagList");
+  // Phase 2 정정: slot 보유자는 TagGroup root (ListBox 동형) — TagList 자식은 slot 없음.
+  const tagGroupSlot = await state(
+    page,
+    (id) => window.__composition_STORE__.getState().elements.find((e) => e.id === id)?.slot ?? null,
+    TAGGROUP_ORIGIN,
+  );
   record(
-    "P1-a: item origin 2 (reusable · Tag · 자식 Icon/Avatar/Text) + component-taggroup 의 TagList 자식 slot [default, selected]",
+    "P1-a: item origin 2 (reusable · Tag · 자식 Icon/Avatar/Text) + component-taggroup root slot [default, selected] (TagList 자식은 slot 없음)",
     defaultOrigin?.reusable === true &&
       defaultOrigin?.type === "Tag" &&
       selectedOrigin?.reusable === true &&
       JSON.stringify(defaultChildren.map((c) => c.type)) ===
         JSON.stringify(["Icon", "Avatar", "Text"]) &&
-      JSON.stringify(tagList?.slot) ===
-        JSON.stringify([DEFAULT_ORIGIN, SELECTED_ORIGIN]),
+      JSON.stringify(tagGroupSlot) ===
+        JSON.stringify([DEFAULT_ORIGIN, SELECTED_ORIGIN]) &&
+      tagList?.slot == null,
     JSON.stringify({
       defaultOrigin: { type: defaultOrigin?.type, reusable: defaultOrigin?.reusable, parent: defaultOrigin?.parent_id },
       children: defaultChildren.map((c) => `${c.type}:${c.props?.slot}`),
-      tagList: { id: tagList?.id, slot: tagList?.slot },
+      tagGroupSlot,
+      tagList: { id: tagList?.id, slot: tagList?.slot ?? null },
     }),
   );
   const bodyBefore = await componentsBodySnapshot(page);

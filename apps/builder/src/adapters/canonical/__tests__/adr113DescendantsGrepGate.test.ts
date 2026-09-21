@@ -61,6 +61,10 @@ const CANONICAL_DESCENDANTS_ALLOWLIST = new Set([
   // ADR-214 가시성 사슬 인덱스 — page ref 의 descendants children-mode 자식도 사슬에 넣기
   // 위해 canonical `RefNode.descendants` 를 걷는다 (canonicalNestingContext 와 같은 범위).
   "packages/shared/src/state/visibility.ts",
+  // ADR-229 Phase 2 — 조합 origin 자식의 ref 화 seed. canonical `RefNode.descendants` 를 **만든다**
+  //   (저작 subtree ↔ origin subtree 차이를 mode A patch 로) 와 생성 경로의 같은 규칙 적용.
+  "apps/builder/src/builder/components/originChildRefs.ts",
+  "apps/builder/src/builder/factories/utils/originChildRefElements.ts",
 ]);
 
 const COMMENT_LINE_PATTERN = /^\s*(\/\/|\*|\/\*|\*\/)/;

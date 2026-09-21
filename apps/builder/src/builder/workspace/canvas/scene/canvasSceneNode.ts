@@ -663,10 +663,11 @@ export function resolveGridListTemplateOriginId(
  * ADR-229 Phase 1 — TagGroup chip 의 item template origin id 해석 (`resolveListBoxTemplateOriginId` ·
  * `resolveListBoxSelectedOriginId` 동형, anchor-less).
  *
- * slot 보유자는 **TagList** (origin `component-taggroup` 의 자식 `__2`) 다 — ListBox 와 달리 chip
- * 컬렉션이 중간 컨테이너를 갖는다. 우선순위:
- *   1. TagList sourceNode 자신의 `slot` (문서 TagList — origin 의 자식 또는 legacy plain).
- *   2. ref instance 의 synthetic TagList → master(`ownerRef`) TagGroup 의 TagList 자식 `slot`.
+ * slot 보유자는 **TagGroup root** (origin `component-taggroup.slot` — ListBox 와 같은 자리, Phase 2 정정:
+ * TagList 자식에 두면 Properties 가 사용자 fill 대상으로 읽는다). 우선순위:
+ *   1. owner TagGroup 의 `slot` — 문서 TagGroup (TagList sourceNode 의 부모) 또는 ref instance 의
+ *      master (`ownerRef`).
+ *   2. legacy: TagList sourceNode 자신의 `slot` (Phase 1 당일 시드 · 보충 전 문서).
  *   3. 안전망: 표준 origin id 상수 (origin 이 없으면 소비자가 주입 0 — BC).
  * selected 는 slot 항목 중 `metadata.variant === "selected"` → slot[1] → 상수.
  */
@@ -675,10 +676,13 @@ export function resolveTagTemplateOriginIds(
   getDocumentNodesById: () => Map<string, CanonicalNode>,
   ownerRef: string | null,
 ): { defaultOriginId: string; selectedOriginId: string } {
-  let slot = sourceNode.slot;
-  if (!Array.isArray(slot) && ownerRef) {
-    slot = findTagGroupOriginTagList(getDocumentNodesById().get(ownerRef))
-      ?.slot;
+  const owner = ownerRef
+    ? getDocumentNodesById().get(ownerRef)
+    : findOwnerTagGroupNode(sourceNode.id, getDocumentNodesById);
+  let slot: unknown = owner?.slot;
+  if (!Array.isArray(slot)) slot = sourceNode.slot;
+  if (!Array.isArray(slot) && owner) {
+    slot = findTagGroupOriginTagList(owner)?.slot;
   }
   let defaultOriginId = TAG_ITEM_DEFAULT_ORIGIN_ID;
   let selectedOriginId = TAG_ITEM_SELECTED_ORIGIN_ID;

@@ -15,6 +15,8 @@ import {
 // 는 러너가 소유. 종전 수동 순서 + 로컬 persist 헬퍼를 러너가 대체한다.
 import { runCanonicalMutation } from "@/adapters/canonical/canonicalMutationRunner";
 import { withFrameElementMirrorId } from "../../../adapters/canonical/frameMirror";
+import type { CompositionDocument } from "@composition/shared";
+import { convertCreatedChildrenToRefs } from "./originChildRefElements";
 import { historyManager } from "../../stores/history";
 import {
   buildCanonicalInsertEvents,
@@ -30,6 +32,11 @@ import {
 export interface ElementCreationContext {
   pageId: string | null;
   layoutId: string | null | undefined;
+  /**
+   * ADR-229 Phase 2 — 있으면 definition 자식 중 reusable type 을 seed 와 같은 규칙으로 origin
+   * instance (ref) 로 만든다 (`convertCreatedChildrenToRefs`). origin index 원천.
+   */
+  doc?: CompositionDocument | null;
 }
 
 function getCustomIdType(
@@ -117,7 +124,19 @@ export function createElementsFromDefinition(
   // ADR-048: 부모 props를 자식에 전파 (Factory 생성 시 초기값 보장)
   const propagatedChildren = applyFactoryPropagation(parent, allChildren);
 
-  return { parent, children: propagatedChildren };
+  // ADR-229 Phase 2: 자식 중 reusable type (Navigation 의 Link · ColorPicker 의 ColorField) 은
+  //   seed 와 같은 규칙으로 origin instance — 전파 뒤에 적용해 diff 가 유효 props 기준이 되게.
+  const converted = context?.doc
+    ? convertCreatedChildrenToRefs(parent, propagatedChildren, context.doc)
+    : null;
+  if (converted && converted.diagnostics.length > 0) {
+    console.warn(
+      `[elementCreation] ADR-229 자식 ref 변환 보류 ${converted.diagnostics.length}건`,
+      converted.diagnostics,
+    );
+  }
+
+  return { parent, children: converted?.children ?? propagatedChildren };
 }
 
 /**

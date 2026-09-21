@@ -385,16 +385,19 @@ function CanvasContent() {
       const origin = byId.get(originId);
       return origin ? resolveSlotComposition(origin.children) : null;
     };
-    // ADR-229 Phase 1 — TagGroup chip item template. slot 보유자는 master(component-taggroup) 의
-    //   **TagList 자식** (builder `resolveTagTemplateOriginIds` 와 같은 해석: TagList.slot[0] → default,
+    // ADR-229 Phase 1 — TagGroup chip item template (builder `resolveTagTemplateOriginIds` 와 같은 해석:
+    //   slot[0] → default,
     //   metadata.variant==="selected" → slot[1] → 표준 상수). chip style = root style 에서 저작 layout
     //   키 제외 + label slot typography fold (`resolveItemTemplateChipStyle`, 두 leg 공용) — fills 는
     //   rootStyleOf 가 backgroundColor 로 이미 접는다. origin 이 없으면 null (legacy → 기존 chip).
-    const tagListSlot = (
-      byId.get("component-taggroup")?.children as
-        | Array<{ type?: unknown; slot?: unknown }>
-        | undefined
-    )?.find((child) => child.type === "TagList")?.slot;
+    // slot 보유자는 master root (`component-taggroup.slot`, ListBox 동형 — Phase 2 정정); Phase 1 당일
+    //   시드의 TagList 자식 slot 은 legacy 폴백.
+    const tagMaster = byId.get("component-taggroup") as
+      | { slot?: unknown; children?: Array<{ type?: unknown; slot?: unknown }> }
+      | undefined;
+    const tagListSlot = Array.isArray(tagMaster?.slot)
+      ? tagMaster.slot
+      : tagMaster?.children?.find((child) => child.type === "TagList")?.slot;
     const tagDefaultOriginId =
       Array.isArray(tagListSlot) && typeof tagListSlot[0] === "string"
         ? tagListSlot[0]

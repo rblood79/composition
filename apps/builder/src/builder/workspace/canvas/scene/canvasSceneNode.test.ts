@@ -2656,12 +2656,20 @@ describe("ADR-229 Phase 1 — TagGroup chip item template origin", () => {
     origins: CanonicalNode[];
     tagListSlot?: string[] | undefined;
     instance?: boolean;
+    /** slot 보유자 — 기본 root (ListBox 동형, Phase 2 정정) · "tagList" 는 Phase 1 당일 legacy 폴백. */
+    slotOn?: "root" | "tagList";
   }): CompositionDocument {
+    const slotOn = input.slotOn ?? "root";
+    const rootSlot =
+      input.tagListSlot && slotOn === "root" ? { slot: input.tagListSlot } : {};
+    const listSlot =
+      input.tagListSlot && slotOn === "tagList" ? { slot: input.tagListSlot } : {};
     const tagGroupOrigin: CanonicalNode = {
       id: "component-taggroup",
       type: "TagGroup",
       reusable: true,
       props: { items: ITEMS, selectedKeys: ["b"], selectionMode: "multiple" },
+      ...rootSlot,
       children: [
         { id: "component-taggroup__1", type: "Label", props: {} },
         {
@@ -2669,7 +2677,7 @@ describe("ADR-229 Phase 1 — TagGroup chip item template origin", () => {
           type: "TagList",
           // selectedKeys 는 propagation 으로 TagList 에 실린다 (production 모양).
           props: { selectedKeys: ["b"] },
-          ...(input.tagListSlot ? { slot: input.tagListSlot } : {}),
+          ...listSlot,
         },
       ],
     } as CanonicalNode;
@@ -2687,13 +2695,14 @@ describe("ADR-229 Phase 1 — TagGroup chip item template origin", () => {
             id: "taggroup-1",
             type: "TagGroup",
             props: { items: ITEMS, selectedKeys: ["b"], selectionMode: "multiple" },
+            ...rootSlot,
             children: [
               { id: "label-1", type: "Label", props: {} },
               {
                 id: "taglist-1",
                 type: "TagList",
                 props: { selectedKeys: ["b"] },
-                ...(input.tagListSlot ? { slot: input.tagListSlot } : {}),
+                ...listSlot,
               },
             ],
           } as CanonicalNode,
@@ -2906,17 +2915,31 @@ describe("ADR-229 Phase 1 — TagGroup chip item template origin", () => {
     };
     doc.children.forEach(walk);
     const get = () => nodes;
+    // owner TagGroup root 의 slot (부모 탐색) 이 정본.
     expect(resolveTagTemplateOriginIds(nodes.get("taglist-1")!, get, null)).toEqual({
       defaultOriginId: "component-tag-item-default",
       selectedOriginId: "component-tag-item-selected",
     });
-    // slot 순서가 뒤집혀도 selected 는 metadata.variant 로 찾는다.
-    const flipped = {
-      ...nodes.get("taglist-1")!,
+    // slot 순서가 뒤집혀도 selected 는 metadata.variant 로 찾는다 (root slot 을 뒤집어 대조).
+    const flippedNodes = new Map(nodes);
+    flippedNodes.set("taggroup-1", {
+      ...nodes.get("taggroup-1")!,
       slot: ["component-tag-item-selected", "component-tag-item-default"],
-    } as CanonicalNode;
-    expect(resolveTagTemplateOriginIds(flipped, get, null)).toEqual({
+    } as CanonicalNode);
+    expect(
+      resolveTagTemplateOriginIds(nodes.get("taglist-1")!, () => flippedNodes, null),
+    ).toEqual({
       defaultOriginId: "component-tag-item-selected",
+      selectedOriginId: "component-tag-item-selected",
+    });
+    // legacy 폴백 — root slot 없이 TagList 자식만 slot 을 가진 문서 (Phase 1 당일 시드).
+    const legacyNodes = new Map<string, CanonicalNode>(nodes);
+    const legacyList = { ...nodes.get("taglist-1")!, slot: ["component-tag-item-default", "component-tag-item-selected"] } as CanonicalNode;
+    const legacyOwner = (({ slot: _s, ...rest }) => rest)(nodes.get("taggroup-1")! as CanonicalNode & { slot?: unknown });
+    legacyNodes.set("taggroup-1", { ...(legacyOwner as CanonicalNode), children: [nodes.get("label-1")!, legacyList] });
+    legacyNodes.set("taglist-1", legacyList);
+    expect(resolveTagTemplateOriginIds(legacyList, () => legacyNodes, null)).toEqual({
+      defaultOriginId: "component-tag-item-default",
       selectedOriginId: "component-tag-item-selected",
     });
     expect(

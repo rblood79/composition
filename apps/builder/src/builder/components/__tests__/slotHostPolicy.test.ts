@@ -10,6 +10,10 @@ import {
   LISTBOX_ITEM_SELECTED_ORIGIN_ID,
 } from "../listbox/listBoxTemplateOrigins";
 import { GRIDLIST_ITEM_DEFAULT_ORIGIN_ID } from "../gridlist/gridListTemplateOrigins";
+import {
+  TAG_ITEM_DEFAULT_ORIGIN_ID,
+  TAG_ITEM_SELECTED_ORIGIN_ID,
+} from "../taggroup/tagGroupTemplateOrigins";
 
 describe("ADR-146 shared slot host policy", () => {
   it("keeps frame-compatible shell slot host detection out of property panels", () => {
@@ -80,6 +84,26 @@ describe("ADR-146 shared slot host policy", () => {
     expect(isSlotCandidateAllowed(host, button)).toBe(false);
     expect(filterSlotCandidates(host, [button, defaultItem])).toEqual([
       defaultItem,
+    ]);
+  });
+
+  // ADR-229 Phase 2: TagGroup 은 ListBox 대칭 slot host — origin Properties 에 "Slot" 절, 후보는 Tag item origin 2.
+  it("recognizes reusable TagGroup origin as a slot host and limits candidates to Tag item template variants", () => {
+    expect(
+      isSlotHostElement({ id: "component-taggroup", type: "TagGroup", reusable: true }),
+    ).toBe(true);
+    expect(isSlotHostElement({ id: "tg", type: "TagGroup" })).toBe(false);
+    const host = { id: "component-taggroup", type: "TagGroup" };
+    const defaultItem = { id: TAG_ITEM_DEFAULT_ORIGIN_ID, type: "Tag", reusable: true };
+    const selectedItem = { id: TAG_ITEM_SELECTED_ORIGIN_ID, type: "Tag", reusable: true };
+    const plainTag = { id: "local-tag", type: "Tag", reusable: true };
+    const button = { id: "button-origin", type: "Button", reusable: true };
+    expect(isSlotCandidateAllowed(host, defaultItem)).toBe(true);
+    expect(isSlotCandidateAllowed(host, selectedItem)).toBe(true);
+    expect(isSlotCandidateAllowed(host, plainTag)).toBe(false);
+    expect(filterSlotCandidates(host, [button, plainTag, defaultItem, selectedItem])).toEqual([
+      defaultItem,
+      selectedItem,
     ]);
   });
 });

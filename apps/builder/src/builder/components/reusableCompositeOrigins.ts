@@ -38,6 +38,11 @@ import {
 } from "./taggroup/tagGroupTemplateOrigins";
 import { ensureCatalogOrigins, getCatalogOriginTypes } from "./catalogOrigins";
 import { catalogReusableOriginId } from "@composition/shared";
+import {
+  collectReusableOriginIds,
+  convertNewOriginChildrenToRefs,
+  type OriginChildRefDiagnostic,
+} from "./originChildRefs";
 
 /**
  * ADR-912 R-5 (HC#5 "조합 = 데이터") → **ADR-148 Phase 1 (catalog 파생 대체)**.
@@ -117,6 +122,11 @@ export function getReusableCompositeOriginId(type: string): string | null {
 export function ensureReusableCompositeOrigins(
   document: CompositionDocument,
 ): CompositionDocument {
+  // ADR-229 Phase 2 — 2단 seed ①: 진입 시 존재하던 origin id 를 먼저 보관한다. ensurer 들은 plain
+  //   으로 보충하고 (기존 origin 은 repair 가 children 을 보존), ② 에서 진입 시 없던 origin 의
+  //   자식만 ref 로 바꾼다 — 처음 보충된 plain 자식을 사용자 자식으로 오인해 건너뛰지 않고,
+  //   기존 origin 의 자식은 일절 바꾸지 않는다 (G4).
+  const existingOriginIds = collectReusableOriginIds(document);
   let next = document;
   // 같은 ensurer 를 여러 entry 가 공유한다 (ADR-228 generic 50 → `ensureCatalogOrigins` 하나) —
   //   함수 identity 로 dedupe 해 문서 pass 를 entry 수가 아니라 ensurer 수만큼만 돈다.
@@ -129,5 +139,20 @@ export function ensureReusableCompositeOrigins(
     applied.add(ensure);
     next = ensure(next);
   }
-  return next;
+  const converted = convertNewOriginChildrenToRefs(next, { existingOriginIds });
+  reportOriginChildRefDiagnostics(converted.diagnostics);
+  return converted.document;
+}
+
+/** 변환 보류는 조용히 지나가지 않는다 — 개발 중 즉시 보이도록 (production 도 warn 1줄). */
+function reportOriginChildRefDiagnostics(
+  diagnostics: readonly OriginChildRefDiagnostic[],
+): void {
+  if (diagnostics.length === 0) return;
+  console.warn(
+    `[reusableCompositeOrigins] ADR-229 조합 자식 ref 변환 보류 ${diagnostics.length}건`,
+    diagnostics.map(
+      (d) => `${d.childId} → ${d.originId ?? "?"} (${d.reason}${d.detail ? `: ${d.detail}` : ""})`,
+    ),
+  );
 }

@@ -965,6 +965,72 @@ describe("ADR-187 Phase 2 canonical fill commit", () => {
     );
   });
 
+  // ADR-229 Phase 2 (F23, live 실측): segment 는 name → id 라 '/' 를 품을 수 있다 (Form seed
+  //   "TextField/Name"). path 를 '/' 로 쪼개면 그 자식을 못 찾는다 — 남은 path 의 앞부분과 segment 를
+  //   통째로 맞춘다 (해소기 · descendants 키와 같은 문자열 규약).
+  it("segment 안에 '/' 가 있는 조합 자식 (name 'TextField/Name') 도 target 을 찾고 그 아래 path 로 내려간다", () => {
+    const nestedDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "component-textfield",
+          type: "TextField",
+          reusable: true,
+          props: { label: "Field" },
+          children: [
+            {
+              id: "component-textfield__1",
+              type: "Label",
+              props: { children: "Field", style: { fontWeight: 600 } },
+            },
+          ],
+        },
+        {
+          id: "component-form",
+          type: "Form",
+          reusable: true,
+          props: {},
+          children: [
+            {
+              id: "component-form__field-1",
+              type: "ref",
+              ref: "component-textfield",
+              name: "TextField/Name",
+              props: { label: "Name" },
+            },
+          ],
+        },
+        { id: "form-1", type: "ref", ref: "component-form", descendants: {} },
+      ],
+    } as unknown as CompositionDocument;
+    useCanonicalDocumentStore
+      .getState()
+      .setDocument(PROJECT_ID, nestedDocument);
+
+    const fieldTarget = resolveEditorPresentationTarget(
+      PROJECT_ID,
+      "form-1/TextField/Name",
+    );
+    expect(fieldTarget).toEqual({
+      kind: "ref-descendant",
+      refId: "form-1",
+      pathKey: "TextField/Name",
+    });
+    expect(
+      getEditorPresentationTargetNode(PROJECT_ID, fieldTarget!),
+    ).toMatchObject({ type: "TextField", props: { label: "Name" } });
+    const labelTarget = resolveEditorPresentationTarget(
+      PROJECT_ID,
+      "form-1/TextField/Name/component-textfield__1",
+    );
+    expect(
+      getEditorPresentationTargetNode(PROJECT_ID, labelTarget!),
+    ).toMatchObject({ type: "Label", props: { children: "Field" } });
+    expect(
+      resolveEditorPresentationTarget(PROJECT_ID, "form-1/TextField"),
+    ).toBeNull();
+  });
+
   it("ref-descendant fill은 stable path를 통해 DOM/Skia 공통 semantic target으로 commit한다", () => {
     const refDocument = {
       version: "composition-1.0",

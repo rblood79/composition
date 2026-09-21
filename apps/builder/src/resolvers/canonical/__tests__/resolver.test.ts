@@ -789,4 +789,59 @@ describe("ADR-229 Phase 0 — 일반 origin-child ref 와 바깥 instance descen
       size: "md",
     });
   });
+
+  // ADR-229 Phase 2 (F21, live 실측): descendants 키의 segment 는 builder 축과 같은 SSOT
+  //   (`getCanonicalRefPathSegment` — canonical 노드는 name → id). 종전 Preview 는 id 로만 맞춰
+  //   name 을 가진 조합 자식 (Form seed "ButtonGroup" · "TextField/Name") 의 patch 를 못 읽었다.
+  it("name 을 가진 조합 자식은 name segment 로 patch 를 읽는다 — 3단 중첩 · segment 안의 '/' 도", () => {
+    const button: CanonicalNode = {
+      ...makeReusable("component-button", "Button"),
+      props: { children: "Button", variant: "primary", size: "md" },
+    };
+    const groupButton = makeRef("component-buttongroup__2", "component-button", {
+      props: { children: "Save", variant: "accent" },
+    } as Partial<RefNode>);
+    const buttonGroup = makeReusable("component-buttongroup", "ButtonGroup", [
+      groupButton,
+    ]);
+    const textField: CanonicalNode = {
+      ...makeReusable("component-textfield", "TextField"),
+      props: { label: "Field" },
+    };
+    const actions: CanonicalNode = {
+      ...makeRef("component-form__actions", "component-buttongroup", {
+        props: {},
+      } as Partial<RefNode>),
+      name: "ButtonGroup",
+    };
+    const field: CanonicalNode = {
+      ...makeRef("component-form__field-1", "component-textfield", {
+        props: { label: "Name" },
+      } as Partial<RefNode>),
+      name: "TextField/Name",
+    };
+    const form = makeReusable("component-form", "Form", [field, actions]);
+    const instance = makeRef("form-1", "component-form", {
+      descendants: {
+        "ButtonGroup/component-buttongroup__2": { children: "Go" },
+        "TextField/Name": { label: "Full name" },
+      },
+    } as unknown as Partial<RefNode>);
+    const result = resolveCanonicalDocument(
+      makeDoc([button, buttonGroup, textField, form, instance]),
+    );
+    const outer = result.find((n) => n.id === "form-1") as ResolvedNode;
+    const nestedField = outer.children?.find(
+      (c) => c.id === "component-form__field-1",
+    ) as ResolvedNode;
+    expect(nestedField.props?.label).toBe("Full name");
+    const nestedGroup = outer.children?.find(
+      (c) => c.id === "component-form__actions",
+    ) as ResolvedNode;
+    const save = nestedGroup.children?.find(
+      (c) => c.id === "component-buttongroup__2",
+    ) as ResolvedNode;
+    expect(save.type).toBe("Button");
+    expect(save.props).toEqual({ children: "Go", variant: "accent", size: "md" });
+  });
 });

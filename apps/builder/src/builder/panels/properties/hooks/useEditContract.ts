@@ -24,6 +24,10 @@ import { resolveEditContract, type EditContract } from "@composition/shared";
 
 import { useCanonicalNode } from "../../../stores/canonical/canonicalElementsBridge";
 import { useActiveCanonicalDocument } from "../../../stores/canonical/canonicalElementsBridge";
+import {
+  getSyntheticDescendantLookup,
+  isSyntheticDescendantId,
+} from "../../../stores/canonical/syntheticDescendantLookup";
 
 const EMPTY_CONTRACT: EditContract = { type: "", fields: [] };
 
@@ -34,11 +38,28 @@ const EMPTY_CONTRACT: EditContract = { type: "", fields: [] };
  * @returns `EditContract` — `fields` 를 `origin` 으로 필터해 Properties/Style view 분리.
  */
 export function useEditContract(nodeId: string | null): EditContract {
-  const node = useCanonicalNode(nodeId);
+  const canonicalNode = useCanonicalNode(nodeId);
   const doc = useActiveCanonicalDocument();
 
   return useMemo(() => {
+    // ADR-229 Phase 2 (F15): synthetic 자식 (`<instance>/<path>`) 은 canonical 노드가 없다 — 해소된
+    //   노드 (type = origin type · props = origin ⊕ patch) 로 계약을 세운다. `ref` 를 떼어 (A″)
+    //   대신 (A) primitive accepts 를 타게 — "필드 = plain 과 같음" (HC). 값은 유효값이라 origin
+    //   기본과 같은 필드도 isOverridden 이지만 쓰기는 descendants patch 로만 간다.
+    const node =
+      canonicalNode ??
+      (doc && nodeId && isSyntheticDescendantId(nodeId)
+        ? withoutRefField(getSyntheticDescendantLookup(nodeId)?.node)
+        : null);
     if (!node) return EMPTY_CONTRACT;
     return resolveEditContract(node, doc);
-  }, [node, doc]);
+  }, [canonicalNode, doc, nodeId]);
+}
+
+function withoutRefField(
+  node: Parameters<typeof resolveEditContract>[0] | undefined,
+): Parameters<typeof resolveEditContract>[0] | null {
+  if (!node) return null;
+  const { ref: _ref, ...rest } = node as typeof node & { ref?: unknown };
+  return rest as typeof node;
 }

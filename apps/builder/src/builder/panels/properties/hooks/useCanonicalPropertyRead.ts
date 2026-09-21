@@ -12,6 +12,12 @@ import {
   getLastProjectableNodeById,
 } from "../../../stores/canonical/canonicalTraversalHelpers";
 import { getCanonicalRefTarget } from "../../../utils/canonicalRefResolution";
+import { canonicalNodeToElement } from "../../../stores/canonical/canonicalElementsView";
+import {
+  getSyntheticDescendantChildren,
+  getSyntheticDescendantLookup,
+  isSyntheticDescendantId,
+} from "../../../stores/canonical/syntheticDescendantLookup";
 import type { PanelNode } from "../../panelNode";
 import {
   getCanonicalPropertyReadIndex,
@@ -47,11 +53,35 @@ export function useCanonicalPropertyElement(
     if (!canonicalDocument) return undefined;
     return (
       (getActiveCanonicalElementById(elementId) as PanelNode | null) ??
+      readSyntheticPanelNode(elementId) ??
       undefined
     );
   }, [canonicalDocument, elementId]);
 
   return canonicalElement;
+}
+
+/**
+ * ADR-229 Phase 2 (F15): synthetic 자식 (`<instance>/<path>`) 은 canonical 노드가 없어 위 lookup 이
+ * 비었다 — 해소된 노드 (origin ⊕ patch) 를 같은 Element 모양으로 읽는다. 쓰기는 store 가 바깥
+ * instance 의 descendants 로 돌린다.
+ */
+export function readSyntheticPanelNode(elementId: string): PanelNode | null {
+  if (!isSyntheticDescendantId(elementId)) return null;
+  const lookup = getSyntheticDescendantLookup(elementId);
+  if (!lookup) return null;
+  return canonicalNodeToElement(lookup.node, lookup.parentId, {
+    pageId: lookup.pageId,
+    layoutId: lookup.layoutId,
+  }) as PanelNode | null;
+}
+
+function readPanelNodeById(elementId: string) {
+  return (
+    getLastProjectableNodeById(elementId) ??
+    getSyntheticDescendantLookup(elementId)?.node ??
+    null
+  );
 }
 
 /**
@@ -72,7 +102,7 @@ export function useCanonicalPropertyResolvedElement(
 
 function readCanonicalPropertyElementType(elementId: string): string | null {
   if (!elementId) return null;
-  const node = getLastProjectableNodeById(elementId);
+  const node = readPanelNodeById(elementId);
   if (!node) return null;
 
   if (node.metadata?.type === "legacy-slot-hoisted") return "Slot";
@@ -107,7 +137,7 @@ export function useCanonicalPropertyDisplayName(
 ): string | null {
   const read = useCallback(() => {
     if (!elementId) return null;
-    const node = getLastProjectableNodeById(elementId);
+    const node = readPanelNodeById(elementId);
     if (!node) return null;
     const type = readCanonicalPropertyElementType(elementId);
     if (type !== "Chart") return type;
@@ -128,7 +158,7 @@ function readCanonicalPropertyValue(
   key: string,
   baseValue: unknown,
 ): unknown {
-  const node = getLastProjectableNodeById(elementId);
+  const node = readPanelNodeById(elementId);
   const props = node?.props;
   if (!props) return baseValue;
 
@@ -208,9 +238,25 @@ export function useCanonicalPropertyElementsMap(): ReadonlyMap<
 }
 
 export function useCanonicalPropertyChildren(elementId: string): PanelNode[] {
+  const index = useCanonicalPropertyAggregateIndex();
+  const canonicalDocument = useActiveCanonicalDocument();
+  // ADR-229 Phase 2 (F15): synthetic 자식의 자식 (Button 의 Icon/Text) 도 해소 트리에서.
+  const syntheticChildren = useMemo(() => {
+    if (!canonicalDocument || !isSyntheticDescendantId(elementId)) return null;
+    const children = getSyntheticDescendantChildren(elementId);
+    if (children.length === 0) return null;
+    return children
+      .map(
+        (child) =>
+          canonicalNodeToElement(child, elementId, {
+            pageId: null,
+            layoutId: null,
+          }) as PanelNode | null,
+      )
+      .filter((child): child is PanelNode => child !== null);
+  }, [canonicalDocument, elementId]);
   return (
-    useCanonicalPropertyAggregateIndex().childrenByParent.get(elementId) ??
-    EMPTY_ELEMENTS
+    index.childrenByParent.get(elementId) ?? syntheticChildren ?? EMPTY_ELEMENTS
   );
 }
 

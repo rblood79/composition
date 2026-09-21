@@ -97,6 +97,11 @@ import {
   type CanonicalProjectableNodeLookup,
 } from "./canonical/canonicalTraversalHelpers";
 import {
+  getSyntheticDescendantLookup,
+  getSyntheticDescendantRootId,
+  isSyntheticDescendantId,
+} from "./canonical/syntheticDescendantLookup";
+import {
   normalizeElementTagInElement,
   normalizeElementTags,
 } from "./utils/elementTagNormalizer";
@@ -316,6 +321,14 @@ function getInspectorElementById(
   elements: Iterable<Element>,
   elementId: string,
 ): Element | null {
+  // ADR-229 Phase 2 (F15): synthetic 자식 (`<instance>/<path>`) 은 해소된 노드로 읽는다 — 쓰기는
+  //   `updateAndSave` 가 바깥 instance 의 descendants 로 돌리므로 여기서 Element 모양만 맞춘다.
+  const syntheticLookup = isSyntheticDescendantId(elementId)
+    ? getSyntheticDescendantLookup(elementId)
+    : null;
+  if (syntheticLookup) {
+    return projectCanonicalInspectorElement(syntheticLookup);
+  }
   const canonicalElement = getActiveCanonicalInspectorElementById(elementId);
   if (canonicalElement) return canonicalElement.element;
 
@@ -792,6 +805,35 @@ export const createInspectorActionsSlice: StateCreator<
     prevElementOverride?: Element,
   ) => {
     const { elements, elementsMap, selectedElementId, currentPageId } = get();
+    // ADR-229 Phase 2 (F15): synthetic 자식 (`<instance>/<path>`) 의 편집은 canonical 에 그 노드가
+    //   없다 — 바깥 instance 의 `descendants[path]` patch 하나로 간다 (Phase 0 U1: 조합 origin ·
+    //   자식 origin 무오염). 자식 갱신 매핑 (`buildInstanceDescendantPatches`) 과 같은 함수. props
+    //   밖 필드 (fills 외) 는 patch 로 표현 못 해 버린다.
+    if (isSyntheticDescendantId(elementId)) {
+      const rootId = getSyntheticDescendantRootId(elementId);
+      const root = rootId ? getInspectorElementById(elements, rootId) : null;
+      if (!root || !isInspectorInstanceElement(root)) return;
+      const fills = additionalUpdates?.fills;
+      const patches = buildInstanceDescendantPatches(root, [
+        {
+          elementId,
+          props: {
+            ...(propsUpdate as Record<string, unknown>),
+            ...(Array.isArray(fills) ? { fills } : {}),
+          } as ComponentElementProps,
+        },
+      ]);
+      if (!patches) return;
+      if (selectedElementId === elementId) {
+        get()._cancelHydrateSelectedProps();
+      }
+      await updateAndSave(
+        root.id,
+        {},
+        { [COMPONENT_DESCENDANTS_MIRROR_FIELD]: patches } as Partial<Element>,
+      );
+      return;
+    }
     const source = getInspectorUpdateSource(elements, elementsMap, elementId);
     if (!source) return;
     const element = normalizeElementTagInElement(source.currentElement);
@@ -869,9 +911,13 @@ export const createInspectorActionsSlice: StateCreator<
     // ADR-154: responsive override 는 props 축이 아니라 top-level 필드로 오므로
     // propsUpdate 키 검사에 걸리지 않는다 — additionalUpdates.responsive 변경도
     // 전역 재레이아웃(resolve 재계산) 대상이므로 layoutVersion bump 을 강제.
+    // ADR-229 Phase 2: instance `descendants` patch (synthetic 자식 편집 · 자식 전파) 도 자식의
+    //   글자·크기를 바꾼다 — props 가 비어도 재레이아웃 대상 (없으면 Skia 가 stale rect 로 남는다).
     const hasResponsiveChange =
       additionalUpdates !== undefined &&
-      ("responsive" in additionalUpdates || "sizing" in additionalUpdates);
+      ("responsive" in additionalUpdates ||
+        "sizing" in additionalUpdates ||
+        COMPONENT_DESCENDANTS_MIRROR_FIELD in additionalUpdates);
     const hasLayoutChange =
       hasResponsiveChange ||
       Object.keys(propsUpdate).some((key) =>
@@ -1581,6 +1627,33 @@ export const createInspectorActionsSlice: StateCreator<
 
       // Race condition 방지: 선택된 요소의 hydration 취소
       get()._cancelHydrateSelectedProps();
+
+      // ADR-229 Phase 2 (F15): synthetic 자식이 선택이면 자신 + 자식 갱신 전부가 바깥 instance
+      //   의 descendants patch (자식 id 도 `<instance>/<path>/…` 라 같은 매핑).
+      if (isSyntheticDescendantId(element.id)) {
+        const rootId = getSyntheticDescendantRootId(element.id);
+        const root = rootId
+          ? getInspectorElementById(get().elements, rootId)
+          : null;
+        if (!root || !isInspectorInstanceElement(root)) return;
+        const descendantPatches = buildInstanceDescendantPatches(root, [
+          {
+            elementId: element.id,
+            props: sanitizeInspectorProps(properties) as ComponentElementProps,
+          },
+          ...childUpdates.map((update) => ({
+            ...update,
+            props: sanitizeInspectorProps(
+              update.props as Record<string, unknown>,
+            ) as ComponentElementProps,
+          })),
+        ]);
+        if (!descendantPatches) return;
+        updateAndSave(root.id, {}, {
+          [COMPONENT_DESCENDANTS_MIRROR_FIELD]: descendantPatches,
+        } as Partial<Element>);
+        return;
+      }
 
       if (isInspectorInstanceElement(element)) {
         const descendantPatches = buildInstanceDescendantPatches(

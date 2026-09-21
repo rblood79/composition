@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-229 Phase 2 — 저작 조합층 자식의 origin instance 화 + synthetic 자식 Properties 표면] - 2026-09-21
+
+### Added
+
+- 새 프로젝트의 조합 origin (Form · Toolbar · ButtonGroup · Pagination · AvatarGroup · Nav · ToggleButtonGroup · CheckboxGroup · DisclosureGroup · FileUpload · DatePicker 의 Calendar …) 안에서 origin 이 있는 타입의 자식 (Button · TextField · Link · Avatar …) 이 그 origin 의 **instance** (`type:"ref"`) 로 시드된다 — props 는 origin 과 다른 키만 (ADR-228 계약), 자식 subtree 의 저작 차이는 `descendants` patch 로, 표현 못 하는 차이 (CardView 의 Card 3) · origin 부재 · 순환은 진단하고 plain 으로 둔다. `component-button` 을 바꾸면 Form/Toolbar/ButtonGroup instance 안의 Button 이 같이 따라간다. 기존 문서의 origin 자식은 그대로 (진입 시 없던 origin 만 변환) · 재hydration Δ0. 생성 경로 (Navigation 의 Link · ColorPicker 의 ColorField) 도 같은 규칙.
+- instance 안의 자식 (`<instance>/<path>` — 캔버스 더블클릭 · Navigator 선택) 을 고르면 Properties/Styles 패널이 plain 노드와 같은 필드를 보인다 (종전 "Select an element"). 편집은 바깥 instance 의 `descendants[path]` 하나로 저장되고 (origin 무오염) Undo/Redo · reload · 두 leg 에 반영된다.
+
+### Fixed
+
+- Preview 가 name 을 가진 조합 자식 (Form 의 ButtonGroup · Toolbar 의 "Button/Action 1") 의 instance patch 를 못 읽던 것 — descendants path 를 canonical id path (page-frame slot fill) 와 builder 축 segment path (name → id) 둘 다로 맞춘다.
+- TagGroup instance 의 Properties 에 "Slot Fill · Target slot: TagList" 가 뜨고 origin 에는 ListBox 의 "Slot" 절이 없던 것 (Phase 1 당일) — item template slot 을 TagGroup root 로 (ListBox/GridList 와 같은 자리), TagGroup 을 slot host 로 등록. 당일 시드된 문서의 TagList slot 은 자동으로 root 로 옮긴다.
+- instance `descendants` 만 바꾸는 편집 뒤 Canvas 가 stale rect/글자로 남던 것 — 재레이아웃 대상에 포함.
+- Styles 패널이 segment 에 `/` 가 든 자식 ("TextField/Name") 의 편집 target 을 못 찾던 것 — path 를 통째로 맞춘다.
+- TextField 의 `type` (email/password) 이 Input 자식에 전파되지 않던 것 (규칙 부재).
+  - Why: ADR-229 Phase 2 (G1) — 원복 RED 7 · builder 전체 864 파일 6,895 PASS · headed live `adr229-composite-children-live.mjs` 9/9 (seed 모양 · Form instance 3단 중첩 두 leg · synthetic Button/TextField 선택 → Properties 편집 → descendants 하나 · Undo/Redo · reload Δ0) + 캔버스 축 `adr229-canvas-origin-live.mjs` 9/9 (Components 페이지 origin 안 ref 자식 rect/글자 · origin 자식 편집 → instance 동반 · Button origin 편집 상속/patch 우선) + `adr229-tag-template-live.mjs` 8/8 재통과.
+
 ## [ADR-229 Phase 1 — TagGroup chip item template origin] - 2026-09-21
 
 ### Added

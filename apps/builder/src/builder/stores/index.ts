@@ -34,6 +34,7 @@ import {
   getNodeMap,
   type CanonicalProjectableNodeLookup,
 } from "./canonical/canonicalTraversalHelpers";
+import { getSyntheticDescendantLookup } from "./canonical/syntheticDescendantLookup";
 import { getElementDataBinding } from "../../adapters/canonical/compositionExtensionFields";
 import { mergePropsWithStyleDeep } from "../../adapters/canonical/instanceResolver";
 import {
@@ -195,7 +196,11 @@ function projectCanonicalSelectionLookup(
 }
 
 function getActiveCanonicalSelectedElement(elementId: string): Element | null {
-  const selectedLookup = getLastProjectableNodeLookupById(elementId);
+  // ADR-229 Phase 2 (F15): synthetic 자식 (`<instance>/<path>`) 은 canonical 노드가 없다 — 해소된
+  //   노드를 같은 lookup 모양으로 읽는다 (읽기 전용 · 쓰기는 inspectorActions 가 descendants 로).
+  const selectedLookup =
+    getLastProjectableNodeLookupById(elementId) ??
+    getSyntheticDescendantLookup(elementId);
   if (!selectedLookup) return null;
 
   const selectedElement = projectCanonicalSelectionLookup(selectedLookup);

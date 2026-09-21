@@ -125,22 +125,45 @@ function createTagItemSelectedOrigin(): CanonicalNode {
   };
 }
 
-/** origin 의 TagList 자식 (slot 보유자) — instance 의 synthetic TagList 도 같은 경로로 찾는다. */
+/** origin 의 TagList 자식 — instance 의 synthetic TagList 도 같은 경로로 찾는다 (legacy slot 폴백용). */
 export function findTagGroupOriginTagList(
   origin: Pick<CanonicalNode, "children"> | undefined,
 ): CanonicalNode | undefined {
   return origin?.children?.find((child) => child.type === "TagList");
 }
 
-function withTagListSlot(origin: CanonicalNode): CanonicalNode {
-  if (!origin.children) return origin;
-  let changed = false;
-  const children = origin.children.map((child) => {
-    if (child.type !== "TagList" || Array.isArray(child.slot)) return child;
-    changed = true;
-    return { ...child, slot: [...TAG_ITEM_TEMPLATE_SLOT] };
-  });
-  return changed ? { ...origin, children } : origin;
+function isTemplateSlot(slot: unknown): boolean {
+  return (
+    Array.isArray(slot) &&
+    slot.length === TAG_ITEM_TEMPLATE_SLOT.length &&
+    slot.every((entry, index) => entry === TAG_ITEM_TEMPLATE_SLOT[index])
+  );
+}
+
+/**
+ * item template slot 은 **TagGroup root** 가 갖는다 — ListBox/GridList (`component-listbox.slot`) 와
+ * 같은 자리. Phase 1 (2026-09-21 당일) 은 TagList 자식에 두었는데, Properties 가 "자식의 slot 배열"
+ * 을 사용자 fill 대상 (`ComponentSlotFillSection` — instance 에 "Target slot: TagList") 으로 읽고 origin
+ * 에는 ListBox 처럼 "Slot" 절이 뜨지 않았다 (사용자 지적). 같은 날 시드된 문서의 TagList slot (표준
+ * 두 id 그대로일 때만) 은 root 로 옮긴다 — 사용자가 바꾼 slot 은 보존.
+ */
+function withTemplateSlot(origin: CanonicalNode): CanonicalNode {
+  let next = origin;
+  const tagList = findTagGroupOriginTagList(origin);
+  if (tagList && isTemplateSlot(tagList.slot) && origin.children) {
+    next = {
+      ...next,
+      children: origin.children.map((child) => {
+        if (child !== tagList) return child;
+        const { slot: _slot, ...rest } = child;
+        return rest as CanonicalNode;
+      }),
+    };
+  }
+  if (!Array.isArray(next.slot)) {
+    next = { ...next, slot: [...TAG_ITEM_TEMPLATE_SLOT] };
+  }
+  return next;
 }
 
 function repairItemOrigin(
@@ -190,10 +213,10 @@ export function ensureTagGroupTemplateOrigins(
         createTagItemSelectedOrigin,
       ),
       // generic seed 와 같은 트리 + TagList slot 결손 보충 (기존 자식 보존은 repairCatalogOrigin).
-      withTagListSlot(
+      withTemplateSlot(
         repairCatalogOrigin(
           existingOrigins.get(TAGGROUP_ORIGIN_ID),
-          withTagListSlot(buildCatalogOrigin("TagGroup")),
+          withTemplateSlot(buildCatalogOrigin("TagGroup")),
         ),
       ),
     ],

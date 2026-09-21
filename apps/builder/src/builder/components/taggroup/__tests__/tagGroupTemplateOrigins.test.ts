@@ -101,7 +101,7 @@ describe("ADR-229 Phase 1 — TagGroup item template origins", () => {
     }
   });
 
-  it("TagGroup origin 은 generic seed 와 같은 트리이고 TagList 자식이 slot: [default, selected] 를 갖는다", () => {
+  it("TagGroup origin 은 generic seed 와 같은 트리이고 root 가 slot: [default, selected] 를 갖는다 (ListBox 동형 · TagList 자식은 slot 없음)", () => {
     const doc = ensureTagGroupTemplateOrigins(makeDocument());
     const origin = findById(doc.children, TAGGROUP_ORIGIN_ID)!;
     expect(TAGGROUP_ORIGIN_ID).toBe(catalogReusableOriginId("TagGroup"));
@@ -114,11 +114,12 @@ describe("ADR-229 Phase 1 — TagGroup item template origins", () => {
       }),
     });
     expect(origin.children?.map((c) => c.type)).toEqual(["Label", "TagList"]);
-    const tagList = findTagGroupOriginTagList(origin);
-    expect(tagList?.slot).toEqual([
+    expect(origin.slot).toEqual([
       TAG_ITEM_DEFAULT_ORIGIN_ID,
       TAG_ITEM_SELECTED_ORIGIN_ID,
     ]);
+    // Phase 2 정정: TagList 자식에 두면 Properties 가 instance 의 fill 대상 ("Target slot") 으로 읽는다.
+    expect(findTagGroupOriginTagList(origin)?.slot).toBeUndefined();
     // ADR-228 generic seed 와 같은 root props (팔레트 생성과 같은 노드).
     expect(origin.props).toMatchObject({
       label: "Tag Group",
@@ -136,7 +137,7 @@ describe("ADR-229 Phase 1 — TagGroup item template origins", () => {
     );
   });
 
-  it("재hydration 멱등 + 기존 origin 편집 보존 (root style · slot 자식 삭제 · TagList 위치) + slot 결손만 보충", () => {
+  it("재hydration 멱등 + 기존 origin 편집 보존 (root style · slot 자식 삭제) + root slot 결손 보충 + Phase 1 당일 TagList slot 은 root 로 이동", () => {
     const once = ensureTagGroupTemplateOrigins(makeDocument());
     const twice = ensureTagGroupTemplateOrigins(once);
     expect(JSON.stringify(twice)).toBe(JSON.stringify(once));
@@ -154,13 +155,15 @@ describe("ADR-229 Phase 1 — TagGroup item template origins", () => {
           };
         }
         if (node.id === TAGGROUP_ORIGIN_ID) {
+          // root slot 없음 + TagList 자식에 slot (Phase 1 당일 시드 모양).
+          const { slot: _rootSlot, ...root } = node;
           return {
-            ...node,
-            children: (node.children ?? []).map((c) => {
-              if (c.type !== "TagList") return c;
-              const { slot: _slot, ...rest } = c;
-              return rest;
-            }),
+            ...root,
+            children: (node.children ?? []).map((c) =>
+              c.type === "TagList"
+                ? { ...c, slot: [TAG_ITEM_DEFAULT_ORIGIN_ID, TAG_ITEM_SELECTED_ORIGIN_ID] }
+                : c,
+            ),
           };
         }
         return node;
@@ -170,12 +173,28 @@ describe("ADR-229 Phase 1 — TagGroup item template origins", () => {
     const origin = findById(repaired.children, TAG_ITEM_DEFAULT_ORIGIN_ID)!;
     expect(origin.props?.style).toEqual({ paddingLeft: 20, fontSize: 18 });
     expect(origin.children?.map((c) => c.type)).toEqual(["Icon", "Text"]);
-    const tagList = findTagGroupOriginTagList(
-      findById(repaired.children, TAGGROUP_ORIGIN_ID)!,
-    );
-    expect(tagList?.slot).toEqual([
+    const tagGroup = findById(repaired.children, TAGGROUP_ORIGIN_ID)!;
+    expect(tagGroup.slot).toEqual([
       TAG_ITEM_DEFAULT_ORIGIN_ID,
       TAG_ITEM_SELECTED_ORIGIN_ID,
     ]);
+    expect(findTagGroupOriginTagList(tagGroup)?.slot).toBeUndefined();
+    // 사용자가 바꾼 TagList slot (표준 두 id 가 아님) 은 옮기지 않고 보존, root 는 표준으로 보충.
+    const custom = ensureTagGroupTemplateOrigins({
+      ...once,
+      children: mapNodes(once.children, (node) =>
+        node.id === TAGGROUP_ORIGIN_ID
+          ? {
+              ...(({ slot: _s, ...r }) => r)(node),
+              children: (node.children ?? []).map((c) =>
+                c.type === "TagList" ? { ...c, slot: ["my-tag-item"] } : c,
+              ),
+            }
+          : node,
+      ),
+    });
+    const customGroup = findById(custom.children, TAGGROUP_ORIGIN_ID)!;
+    expect(findTagGroupOriginTagList(customGroup)?.slot).toEqual(["my-tag-item"]);
+    expect(customGroup.slot).toEqual([TAG_ITEM_DEFAULT_ORIGIN_ID, TAG_ITEM_SELECTED_ORIGIN_ID]);
   });
 });

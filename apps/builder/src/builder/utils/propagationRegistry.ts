@@ -310,6 +310,16 @@ const textFieldPropagationRules: PropagationRule[] = [
     childProp: "placeholder",
     override: true,
   },
+  // ADR-229 Phase 2 (2026-09-21): `type → Input.type` — factory 트리는 부모 `type` (email/password)
+  //   을 Input 자식에 그대로 실었는데 규칙이 없어 seed 전파 · 편집 전파 모두 자식이 stale 였다.
+  //   조합 자식 ref 화가 origin subtree 를 "root props 전파" 로 기대하므로 이 축이 있어야
+  //   Form 의 email 필드가 descendants patch 없이 origin 과 대조된다 (`originChildRefs.ts`).
+  {
+    parentProp: "type",
+    childPath: "Input",
+    childProp: "type",
+    override: true,
+  },
 ];
 
 // ADR-912 단계5 step4 small-B (2026-06-16): SearchField.spec 삭제 — propagation.rules 인라인 보존.

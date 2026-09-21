@@ -2158,6 +2158,85 @@ describe("canonical mutation wrappers", () => {
     expect(instance?.props).toEqual({ chartType: "bar", showGrid: true });
   });
 
+  it("ADR-229 Phase 2 — 조합 origin 안 자식 ref 의 편집은 그 자식이 가리키는 origin (Button) 과 diff 한다 (Form origin 아님)", () => {
+    const page = makePage("page-components");
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore.getState().setDocument(
+      "project-1",
+      makeDocument([
+        {
+          id: "page-components",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-components" },
+          children: [
+            {
+              id: "component-button",
+              type: "Button",
+              reusable: true,
+              props: { children: "Button", variant: "primary", size: "md" },
+            },
+            {
+              id: "component-form",
+              type: "Form",
+              reusable: true,
+              props: { labelPosition: "top", size: "lg" },
+              children: [
+                {
+                  id: "component-form__action-1",
+                  type: "ref",
+                  ref: "component-button",
+                  props: { children: "Cancel", variant: "secondary" },
+                },
+              ],
+            },
+          ],
+        },
+      ]),
+    );
+    registerCanonicalMutationStoreActions({
+      getCurrentLegacySnapshot: () => ({
+        elements: [],
+        pages: [page],
+        layouts: [],
+      }),
+      getCurrentProjectId: () => "project-1",
+    });
+
+    // Components 페이지에서 조합 자식 (중첩 instance) 을 편집 — 패널은 병합 props 를 싣는다.
+    mergeElementsCanonicalPrimary([
+      makeElement("component-form__action-1", "Button", {
+        page_id: "page-components",
+        parent_id: "component-form",
+        ref: "component-button",
+        props: { children: "Go", variant: "secondary", size: "md" },
+        order_num: 1,
+      } as never),
+    ]);
+
+    const nextDoc = useCanonicalDocumentStore
+      .getState()
+      .getDocument("project-1");
+    const pageNode = nextDoc?.children.find(
+      (node) => node.id === "page-components",
+    );
+    const form = pageNode?.children?.find((n) => n.id === "component-form");
+    const action = form?.children?.find(
+      (n) => n.id === "component-form__action-1",
+    );
+    // master = component-button: size md 는 같아 지워지고 children/variant 만 남는다.
+    //   Form origin (size lg) 과 diff 했다면 size:"md" 가 남았을 것.
+    expect(action?.type).toBe("ref");
+    expect((action as { ref?: string } | undefined)?.ref).toBe(
+      "component-button",
+    );
+    expect(action?.props).toEqual({ children: "Go", variant: "secondary" });
+    // Button origin · Form origin 무오염.
+    expect(
+      pageNode?.children?.find((n) => n.id === "component-button")?.props,
+    ).toEqual({ children: "Button", variant: "primary", size: "md" });
+    expect(form?.props).toEqual({ labelPosition: "top", size: "lg" });
+  });
+
   it("mergeElementsCanonicalPrimary preserves reusable page origins in canonical storage", () => {
     const setElements = vi.fn();
     const page = makePage("page-1");

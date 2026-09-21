@@ -119,6 +119,7 @@ import {
   useCanonicalPropertyDisplayName,
   useCanonicalPropertyElementsMap,
   useCanonicalPropertyValue,
+  readSyntheticPanelNode,
 } from "./hooks/useCanonicalPropertyRead";
 import { getActiveCanonicalDocument } from "../../stores/canonical/canonicalElementsBridge";
 import { getCanonicalPropertyReadIndex } from "./hooks/canonicalPropertyReadIndex";
@@ -247,7 +248,10 @@ const CatalogEditContractEditor = memo(function CatalogEditContractEditor({
       if (!canonicalDocument) return;
       const { childrenByParent, elementsById } =
         getCanonicalPropertyReadIndex(canonicalDocument);
-      const element = elementsById.get(elementId);
+      // ADR-229 Phase 2 (F15): synthetic 자식은 index 에 없다 — 해소된 노드로 (쓰기는 store 가
+      //   바깥 instance 의 descendants 로 돌린다).
+      const element =
+        elementsById.get(elementId) ?? readSyntheticPanelNode(elementId);
       if (!element) return;
 
       const lookupRefElementList = Array.from(elementsById.values()).map(

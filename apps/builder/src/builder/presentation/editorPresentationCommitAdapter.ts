@@ -178,12 +178,25 @@ function findDescendantNode(
 ): CanonicalNode | null {
   let current: CanonicalNode = root;
   const visitedMasters = new Set<string>();
-  for (const segment of pathKey.split("/")) {
-    const next = current.children?.find(
-      (child) => getCanonicalRefPathSegment(child) === segment,
-    );
-    if (!next) return null;
-    current = openNestedRefChild(next, lookupNode, visitedMasters);
+  // ADR-229 Phase 2: segment (name → id) 자체가 '/' 를 품을 수 있다 (Form seed 의 "TextField/Name") —
+  //   '/' 로 쪼개지 않고 남은 path 의 앞부분과 segment 를 통째로 맞춘다 (해소기 · descendants 키와
+  //   같은 문자열 규약). 같은 부모 안에서는 긴 segment 부터.
+  let remaining = pathKey;
+  while (remaining.length > 0) {
+    const candidates = (current.children ?? [])
+      .map((child) => ({ child, segment: getCanonicalRefPathSegment(child) }))
+      .filter(
+        ({ segment }) =>
+          remaining === segment || remaining.startsWith(`${segment}/`),
+      )
+      .sort((a, b) => b.segment.length - a.segment.length);
+    const match = candidates[0];
+    if (!match) return null;
+    current = openNestedRefChild(match.child, lookupNode, visitedMasters);
+    remaining =
+      remaining === match.segment
+        ? ""
+        : remaining.slice(match.segment.length + 1);
   }
   return current;
 }
