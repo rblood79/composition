@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Components 페이지 (origin 을 테마처럼 손보는 자리) 의 Properties 에서 collection 의 외부 데이터 연결 (Data 절 · 「새 테이블」) 을 뺐다 — 데이터 연결은 사용자 페이지의 instance 가 자기 데이터로 정하는 축. 정적 items 편집 (chip/행 견본) 은 그대로.
+  - Why: 사용자 판정 (2026-09-21) — `omitDataBindingOnComponentsPage` (kind `binding` 필드, `page_id === page-components`) · unit 2 · live 프로브: TagGroup instance 「새 테이블」 1 / origin TagGroup·ListBox·Table·Select 0.
 - Components 페이지 TagGroup origin 의 Properties "Slot" 절에서 Tag/Default · Tag/Selected 의 "+" 를 눌러도 TagList 에 아무것도 생기지 않던 것 — chip 은 `items[]` 데이터라 ref 자식은 안 그려진다. 이제 "+" 가 item 을 등록한다 (Tag/Default → 'New Tag' chip, Tag/Selected → 선택된 'New Tag' chip); items 를 상속하는 instance 에 두 leg 모두 반영. Frame · ListBox · GridList 의 "+" 는 종전과 같다.
   - Why: 사용자 지적 (2026-09-21) — 원복 RED 2 · headed live `adr229-slot-insert-live.mjs` 5/5 (Insert Default → items 5 · Insert Selected → items 6 + selectedKeys · Skia chip 6 · 상속 instance Preview chip 6 = Skia 6 · items 소유 instance 불변).
 - TagGroup chip 의 item template origin 에서 icon slot 크기 (`fontSize`) 나 label slot 굵기 (`fontWeight`) 를 바꾸면 Canvas 가 아이콘은 그 크기로 그리면서 chip 상자는 기본 크기로 재 Preview 보다 좁았고 (icon 20 → 6px 차), maxRows 접힘 판정도 굵기를 무시하던 것 — 상자 폭 · 접힘 측정 · 그리기가 같은 slot 크기 · fontWeight 를 읽는다.

@@ -32,6 +32,7 @@ import type { SelectedElement } from "../../inspector/types";
 import { useEditContract } from "./hooks/useEditContract";
 import { useCollections } from "../../stores/data";
 import { buildChartSemanticFields } from "./chartFieldOptions";
+import { omitDataBindingOnComponentsPage } from "./componentsPageFields";
 import { ChartAuthoringControls } from "./ChartAuthoringControls";
 import { ChartDataMappingControls } from "./ChartDataMappingControls";
 import { ChartTimeAxisControls } from "./ChartTimeAxisControls";
@@ -218,7 +219,11 @@ const CatalogEditContractEditor = memo(function CatalogEditContractEditor({
   const collections = useCollections();
   // Properties view = semantic origin (node.props / D2). style origin 은 Style view(후속).
   const semanticFields = useMemo(() => {
-    const fields = contract.fields.filter((f) => f.origin === "semantic");
+    // Components 페이지 origin 은 외부 데이터 연결 (dataBinding) 이 뜻이 없다 — 테마 손질 자리.
+    const fields = omitDataBindingOnComponentsPage(
+      contract.fields.filter((f) => f.origin === "semantic"),
+      selectedCanonicalNode,
+    );
     if (elementType === "Chart") {
       return buildChartSemanticFields(fields, collections, {
         none: t("chart.none"),
@@ -238,7 +243,14 @@ const CatalogEditContractEditor = memo(function CatalogEditContractEditor({
       }
     }
     return fields;
-  }, [contract, elementType, selectedChildren, collections, t]);
+  }, [
+    contract,
+    elementType,
+    selectedChildren,
+    selectedCanonicalNode,
+    collections,
+    t,
+  ]);
 
   // semantic write — ADR-048 propagation + canonical ref 해소 보존 (legacy handleUpdate 동일).
   const handleSemanticPatch = useCallback(
