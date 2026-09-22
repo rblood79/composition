@@ -310,9 +310,13 @@ export const TEMPLATE_ORIGIN_REUSABLE_TYPES: ReadonlySet<string> = new Set([
   //   의 slot 보유자가 origin 의 TagList 자식이라 generic 경로가 표현하지 못한다 — 손 ensurer
   //   (`taggroup/tagGroupTemplateOrigins.ts`) 가 generic 과 같은 트리 + slot 을 시드한다.
   "TagGroup",
+  // ADR-233 Phase 1: definition 은 plain — Tab 항목 template origin (`component-tab-item-*`) 의 slot
+  //   보유자 (`component-tabs.slot`) 를 얹는 손 ensurer (`tabs/tabsTemplateOrigins.ts`) 가 generic 과
+  //   같은 트리를 시드한다.
+  "Tabs",
 ]);
 
-/** generic seed 대상 type — `PALETTE_REUSABLE_ORIGIN_TYPES` − template origin 보유 3. */
+/** generic seed 대상 type — `PALETTE_REUSABLE_ORIGIN_TYPES` − template origin 보유 4. */
 export function getCatalogOriginTypes(): readonly string[] {
   return PALETTE_REUSABLE_ORIGIN_TYPES.filter(
     (type) => !TEMPLATE_ORIGIN_REUSABLE_TYPES.has(type),

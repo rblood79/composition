@@ -194,6 +194,7 @@ export const FrameSlotSection = memo(function FrameSlotSection({
     // ADR-229: TagGroup 의 Tag item template "+" 는 TagList 의 item 등록 (chip 은 `items[]` 데이터).
     //   selected variant 는 selectedKeys 에도 — 한 번의 props 쓰기 (history 1).
     const insertAction = resolveSlotInsertAction(latestElement, candidate);
+    if (insertAction.kind === "none") return;
     if (insertAction.kind === "collection-item") {
       const props = (latestElement.props ?? {}) as Record<string, unknown>;
       const currentItems = Array.isArray(props[insertAction.itemsKey])
@@ -312,14 +313,19 @@ export const FrameSlotSection = memo(function FrameSlotSection({
                     </span>
                   </div>
                   <div className="list-row__actions">
-                    <button
-                      aria-label={`Insert ${item.label}`}
-                      className="list-row__action frame-slot-insert"
-                      onClick={() => handleInsertDefault(item.id)}
-                      type="button"
-                    >
-                      <AddIcon aria-hidden="true" size={12} />
-                    </button>
+                    {resolveSlotInsertAction(
+                      element,
+                      resolvePanelReference(item.id, elementsById) ?? undefined,
+                    ).kind === "none" ? null : (
+                      <button
+                        aria-label={`Insert ${item.label}`}
+                        className="list-row__action frame-slot-insert"
+                        onClick={() => handleInsertDefault(item.id)}
+                        type="button"
+                      >
+                        <AddIcon aria-hidden="true" size={12} />
+                      </button>
+                    )}
                     <button
                       aria-label={`Remove ${item.label}`}
                       className="list-row__action frame-slot-remove"

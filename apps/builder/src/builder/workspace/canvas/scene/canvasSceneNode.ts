@@ -67,6 +67,10 @@ import {
   TAG_ITEM_SELECTED_ORIGIN_ID,
   findTagGroupOriginTagList,
 } from "../../../components/taggroup/tagGroupTemplateOrigins";
+import {
+  TAB_ITEM_DEFAULT_ORIGIN_ID,
+  TAB_ITEM_SELECTED_ORIGIN_ID,
+} from "../../../components/tabs/tabsTemplateOrigins";
 // ADR-907 Layer D: chip gap 정본 = TagList catalog rule. projection 배치와 layout
 //   height 계산이 동일 resolver(resolveTagListGap)를 공유해 size 별 gap(lg=6) 을 정합.
 import {
@@ -684,8 +688,23 @@ export function resolveTagTemplateOriginIds(
   if (!Array.isArray(slot) && owner) {
     slot = findTagGroupOriginTagList(owner)?.slot;
   }
-  let defaultOriginId = TAG_ITEM_DEFAULT_ORIGIN_ID;
-  let selectedOriginId = TAG_ITEM_SELECTED_ORIGIN_ID;
+  return resolveItemTemplateSlotOriginIds(slot, getDocumentNodesById, {
+    defaultOriginId: TAG_ITEM_DEFAULT_ORIGIN_ID,
+    selectedOriginId: TAG_ITEM_SELECTED_ORIGIN_ID,
+  });
+}
+
+/**
+ * item template slot → (default, selected) origin id. slot[0] = default · selected 는 slot 항목 중
+ * `metadata.variant === "selected"` → slot[1] → 상수 (ListBox/Tag/Tab 공용 규칙 — Preview `App.tsx`
+ * 가 같은 순서로 읽는다). slot 이 배열이 아니면 상수 (안전망 — origin 이 없으면 소비자가 주입 0).
+ */
+function resolveItemTemplateSlotOriginIds(
+  slot: unknown,
+  getDocumentNodesById: () => Map<string, CanonicalNode>,
+  fallback: { defaultOriginId: string; selectedOriginId: string },
+): { defaultOriginId: string; selectedOriginId: string } {
+  let { defaultOriginId, selectedOriginId } = fallback;
   if (Array.isArray(slot)) {
     if (typeof slot[0] === "string") defaultOriginId = slot[0];
     let selected: string | undefined;
@@ -703,6 +722,27 @@ export function resolveTagTemplateOriginIds(
     if (selected) selectedOriginId = selected;
   }
   return { defaultOriginId, selectedOriginId };
+}
+
+/**
+ * ADR-233 Phase 1 — Tab 행의 item template origin id 해석 (`resolveTagTemplateOriginIds` 동형).
+ * slot 보유자는 **Tabs root** (`component-tabs.slot`). 우선순위: owner Tabs 의 `slot` (문서 Tabs 또는
+ * ref instance 의 master `ownerRef`) → 표준 origin id 상수.
+ */
+export function resolveTabTemplateOriginIds(
+  owner: Pick<CanonicalNode, "slot"> | null | undefined,
+  getDocumentNodesById: () => Map<string, CanonicalNode>,
+  ownerRef: string | null,
+): { defaultOriginId: string; selectedOriginId: string } {
+  const slotOwner = ownerRef ? getDocumentNodesById().get(ownerRef) : owner;
+  return resolveItemTemplateSlotOriginIds(
+    slotOwner?.slot,
+    getDocumentNodesById,
+    {
+      defaultOriginId: TAB_ITEM_DEFAULT_ORIGIN_ID,
+      selectedOriginId: TAB_ITEM_SELECTED_ORIGIN_ID,
+    },
+  );
 }
 
 /**
@@ -2494,6 +2534,12 @@ function appendTabRowProjection(
   graph: Pick<CanvasSceneGraph, "childrenByParent" | "nodes" | "nodesMap"> & {
     parentById: Map<string, string>;
   },
+  /** ADR-233 Phase 1 — Tab 항목 template origin 조회 (문서 노드) + responsive 기준 + instance master. */
+  template: {
+    getDocumentNodesById: () => Map<string, CanonicalNode>;
+    activeBreakpoint: BreakpointName;
+    ownerRef: string | null;
+  },
 ): void {
   // resolvedProps = TabList.props 우선 + (pre-propagation 문서면) owner Tabs props 보충.
   //   orientation/variant/size/showIndicator/selectedKey 모두 동일 소스에서 읽어 일관성 유지.
@@ -2509,6 +2555,32 @@ function appendTabRowProjection(
   const selectedKey =
     (props.selectedKey as string | undefined) ??
     (props.defaultSelectedKey as string | undefined);
+
+  // ADR-233 Phase 1 — Tab 항목 template origin read-through (Tag chip 동형). slot 보유자 = owner Tabs
+  //   root — plain 문서는 scene 부모 (TabList 의 부모 Tabs) 의 sourceNode, instance 는 master (ownerRef).
+  //   origin 이 문서에 없으면 전부 undefined → 종전 Tab.
+  const ownerSceneId = graph.parentById.get(tabListSceneNode.id);
+  const ownerSource = ownerSceneId
+    ? (graph.nodesMap.get(ownerSceneId)?.sourceNode as CanonicalNode | undefined)
+    : undefined;
+  const { defaultOriginId, selectedOriginId } = resolveTabTemplateOriginIds(
+    ownerSource?.type === "Tabs" ? ownerSource : null,
+    template.getDocumentNodesById,
+    template.ownerRef,
+  );
+  const defaultOrigin = template.getDocumentNodesById().get(defaultOriginId);
+  const selectedOrigin = template.getDocumentNodesById().get(selectedOriginId);
+  const defaultTemplateStyle = resolveTagItemTemplateStyle(
+    defaultOrigin,
+    template.activeBreakpoint,
+  );
+  const selectedTemplateStyle = resolveTagItemTemplateStyle(
+    selectedOrigin,
+    template.activeBreakpoint,
+  );
+  const defaultOriginFills = readCanonicalNodeFills(defaultOrigin);
+  const selectedOriginFills = readCanonicalNodeFills(selectedOrigin);
+  const hasTemplateStyle = Boolean(defaultTemplateStyle || selectedTemplateStyle);
 
   const rowsGroupId = toCollectionRowsGroupProjectionId(
     "tab",
@@ -2546,15 +2618,30 @@ function appendTabRowProjection(
       tabListSceneNode.id,
       row.itemKey,
     );
+    const isSelected = selectedKey != null && selectedKey === row.itemKey;
+    const tabOrigin = isSelected
+      ? (selectedOrigin ?? defaultOrigin)
+      : defaultOrigin;
+    const tabFills = isSelected
+      ? (selectedOriginFills ?? defaultOriginFills)
+      : defaultOriginFills;
     const tabProps: Record<string, unknown> = {
       // Tab.spec.render.shapes 는 props.title 을 텍스트 소스로 읽는다(children 아님) —
       //   virtual Tab(이전 layout-synthetic)도 title 을 넣었다. children 은 호환용 동시 제공.
       title: row.label,
       children: row.label,
       // tab 폭 = 라벨 + padding — Tab.spec containerStyles. 한 줄 row 에서 각 tab fit-content.
-      style: { width: "fit-content" },
+      //   ADR-233: template origin root style (layout 키 제외 + label typography) 을 그 위에 — selected
+      //   Tab 은 default 위에 selected origin overlay. template 이 있으면 `height: auto` 로 catalog size
+      //   높이 (md 29) 대신 line-height + padding 으로 자란다 (Tag chip 선례 — DOM Tab 은 높이 선언 없음).
+      style: {
+        width: "fit-content",
+        ...(hasTemplateStyle ? { height: "auto" } : {}),
+        ...(defaultTemplateStyle ?? {}),
+        ...(isSelected ? (selectedTemplateStyle ?? {}) : {}),
+      },
       // ADR-912 영역 B (A): Tab 단일 선택 — selectedKey ?? defaultSelectedKey === itemKey.
-      _isSelected: selectedKey != null && selectedKey === row.itemKey,
+      _isSelected: isSelected,
       _showIndicator: showIndicator,
       // tab 본체가 owner Tabs 의 item 식별 (선택 redirect / write-target 라우팅용).
       tabId: row.itemKey,
@@ -2567,6 +2654,8 @@ function appendTabRowProjection(
       {
         id: tabId,
         type: "Tab",
+        // origin fills 채널 — buildSpecNodeData fills→배경 변환 재사용 (Tag chip 동형).
+        ...(tabFills ? { fills: tabFills } : {}),
         props: tabProps,
         parentId: rowsGroupId,
         pageId: scope.pageId,
@@ -2579,7 +2668,8 @@ function appendTabRowProjection(
           itemKey: row.itemKey,
           rowIndex: row.rowIndex,
           templateAnchorId: null,
-          templateOriginId: null,
+          // ADR-233: Tab 항목 template origin 참조 (origin 이 문서에 없으면 null).
+          templateOriginId: tabOrigin?.id ?? null,
         },
         sourceNode,
       },
@@ -2994,7 +3084,11 @@ export function buildCanvasSceneGraph(
       });
     }
     if (sceneNode && tabProjection) {
-      appendTabRowProjection(sceneNode, tabProjection, nextScope, graph);
+      appendTabRowProjection(sceneNode, tabProjection, nextScope, graph, {
+        getDocumentNodesById,
+        activeBreakpoint: options.activeBreakpoint ?? "desktop",
+        ownerRef: null,
+      });
     }
     if (sceneNode && breadcrumbProjection) {
       appendBreadcrumbRowProjection(
@@ -3118,6 +3212,16 @@ export function appendRefInstanceChildProjections(
       emptyDocumentNodes,
       owner.props as Record<string, unknown>,
     );
-    if (projection) appendTabRowProjection(node, projection, scope, graph);
+    if (projection) {
+      // ADR-233: synthetic TabList 의 master = owner instance 의 ref (Tag 동형).
+      const ownerRef =
+        (ownerSource as { ref?: unknown } | undefined)?.ref ??
+        (owner as { ref?: unknown }).ref;
+      appendTabRowProjection(node, projection, scope, graph, {
+        getDocumentNodesById,
+        activeBreakpoint: options.activeBreakpoint ?? "desktop",
+        ownerRef: typeof ownerRef === "string" ? ownerRef : null,
+      });
+    }
   }
 }

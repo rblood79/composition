@@ -7,6 +7,10 @@ import {
   TAG_ITEM_DEFAULT_ORIGIN_ID,
   TAG_ITEM_SELECTED_ORIGIN_ID,
 } from "./taggroup/tagGroupTemplateOrigins";
+import {
+  TAB_ITEM_DEFAULT_ORIGIN_ID,
+  TAB_ITEM_SELECTED_ORIGIN_ID,
+} from "./tabs/tabsTemplateOrigins";
 
 export type SlotPolicyElement = {
   _resolvedFrom?: string;
@@ -44,6 +48,12 @@ const GRIDLIST_ITEM_ORIGIN_IDS = new Set([GRIDLIST_ITEM_DEFAULT_ORIGIN_ID]);
 const TAG_ITEM_ORIGIN_IDS = new Set([
   TAG_ITEM_DEFAULT_ORIGIN_ID,
   TAG_ITEM_SELECTED_ORIGIN_ID,
+]);
+
+// ADR-233 Phase 1: Tabs 의 Tab 항목 template slot host (root `component-tabs.slot`, Tag 대칭).
+const TAB_ITEM_ORIGIN_IDS = new Set([
+  TAB_ITEM_DEFAULT_ORIGIN_ID,
+  TAB_ITEM_SELECTED_ORIGIN_ID,
 ]);
 
 function normalizeType(type: string | undefined): string {
@@ -143,6 +153,32 @@ function isTagItemTemplateVariant(
   return label.startsWith("tag/");
 }
 
+function isTabsHost(element: SlotPolicyElement | undefined): boolean {
+  if (!element) return false;
+  return normalizeType(element.type) === "tabs";
+}
+
+function isTabsPolicyActive(element: SlotPolicyElement | undefined): boolean {
+  if (!isTabsHost(element)) return false;
+  return element?.reusable === true || element?.metadata?.systemOwned === true;
+}
+
+function isTabItemTemplateVariant(
+  candidate: SlotPolicyElement | undefined,
+): boolean {
+  if (!candidate) return false;
+  if (TAB_ITEM_ORIGIN_IDS.has(candidate.id)) return true;
+  if (candidate.ref && TAB_ITEM_ORIGIN_IDS.has(candidate.ref)) return true;
+  if (
+    candidate._resolvedFrom &&
+    TAB_ITEM_ORIGIN_IDS.has(candidate._resolvedFrom)
+  ) {
+    return true;
+  }
+  const label = getElementLabel(candidate).toLowerCase();
+  return label.startsWith("tab/");
+}
+
 /**
  * ADR-229 Phase 3 후속 (사용자 지적 2026-09-21) — Slot 절 "Insert" 의 뜻이 host 마다 다르다.
  * Frame 가족은 slot 에 ref 자식을 넣고, ListBox/GridList 도 (ADR-148 template anchor) ref 자식이다.
@@ -151,12 +187,18 @@ function isTagItemTemplateVariant(
  */
 export type SlotInsertAction =
   | { kind: "child" }
-  | { kind: "collection-item"; itemsKey: "items"; selected: boolean };
+  | { kind: "collection-item"; itemsKey: "items"; selected: boolean }
+  // ADR-233: Tabs 의 Tab 은 `items` + TabPanel `itemId` 쌍 (ADR-066) 인데 그 쌍을 만드는 기존 추가
+  //   경로가 없다 (Phase 0) — ref 자식 삽입도 item 등록도 아닌 "삽입 없음". 버튼을 숨긴다.
+  | { kind: "none" };
 
 export function resolveSlotInsertAction(
   host: SlotPolicyElement | undefined,
   candidate: SlotPolicyElement | undefined,
 ): SlotInsertAction {
+  if (isTabsHost(host) && isTabItemTemplateVariant(candidate)) {
+    return { kind: "none" };
+  }
   if (isTagGroupHost(host) && isTagItemTemplateVariant(candidate)) {
     return {
       kind: "collection-item",
@@ -184,6 +226,7 @@ export function isSlotHostElement(
   if (isListBoxPolicyActive(element)) return true;
   if (isGridListPolicyActive(element)) return true;
   if (isTagGroupPolicyActive(element)) return true;
+  if (isTabsPolicyActive(element)) return true;
   return FRAME_SLOT_HOST_TYPES.has(normalizeType(element.type));
 }
 
@@ -200,6 +243,9 @@ export function isSlotCandidateAllowed(
   }
   if (isTagGroupHost(host)) {
     return isTagItemTemplateVariant(candidate);
+  }
+  if (isTabsHost(host)) {
+    return isTabItemTemplateVariant(candidate);
   }
   return true;
 }

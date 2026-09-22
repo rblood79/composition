@@ -120,6 +120,7 @@ export const renderTabs = (
   context: RenderContext,
 ): React.ReactNode => {
   const { childrenByParent, updateElementProps, renderElement } = context;
+  const tabTemplate = context.tabTemplate ?? null;
 
   // PropertyDataBinding 형식 감지
   const dataBinding = getElementDataBinding(element);
@@ -194,7 +195,25 @@ export const renderTabs = (
         showIndicator={element.props.showIndicator !== false}
         items={items}
       >
-        {(item) => <Tab id={item.id}>{item.title}</Tab>}
+        {(item) => (
+          <Tab
+            id={item.id}
+            // ADR-233 — Tab 항목 template: base 는 모든 Tab, selected 는 RAC isSelected Tab 에 overlay.
+            style={
+              tabTemplate
+                ? ({ isSelected }) =>
+                    ({
+                      ...(tabTemplate.rootStyles.base ?? {}),
+                      ...(isSelected
+                        ? (tabTemplate.rootStyles.selected ?? {})
+                        : {}),
+                    }) as React.CSSProperties
+                : undefined
+            }
+          >
+            {item.title}
+          </Tab>
+        )}
       </TabList>
 
       {items.map((item) => {

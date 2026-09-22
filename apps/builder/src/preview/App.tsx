@@ -305,6 +305,7 @@ function CanvasContent() {
         gridList: null,
         menuItem: null,
         tag: null,
+        tab: null,
       };
     }
     const byId = new Map<
@@ -444,6 +445,48 @@ function CanvasContent() {
         },
       };
     })();
+    // ADR-233 Phase 1 — Tabs 의 Tab 항목 template (builder `resolveTabTemplateOriginIds` 와 같은 해석:
+    //   master root `component-tabs.slot` → slot[0] default · metadata.variant==="selected" → slot[1] →
+    //   표준 상수). Tab style = Tag chip 과 같은 shared `resolveItemTemplateChipStyle` (두 leg 공용).
+    const tabsSlot = byId.get("component-tabs")?.slot;
+    const tabDefaultOriginId =
+      Array.isArray(tabsSlot) && typeof tabsSlot[0] === "string"
+        ? tabsSlot[0]
+        : "component-tab-item-default";
+    const tabSelectedOriginId = (() => {
+      if (Array.isArray(tabsSlot)) {
+        for (const entry of tabsSlot) {
+          if (typeof entry !== "string") continue;
+          const metadata = byId.get(entry)?.metadata as
+            | { variant?: unknown }
+            | undefined;
+          if (metadata?.variant === "selected") return entry;
+        }
+        if (typeof tabsSlot[1] === "string") return tabsSlot[1];
+      }
+      return "component-tab-item-selected";
+    })();
+    const tabTemplate = (() => {
+      if (!byId.get(tabDefaultOriginId) && !byId.get(tabSelectedOriginId)) {
+        return null;
+      }
+      const composition = compositionOf(tabDefaultOriginId);
+      const selectedComposition = compositionOf(tabSelectedOriginId);
+      return {
+        composition,
+        selectedComposition,
+        rootStyles: {
+          base: resolveItemTemplateChipStyle(
+            rootStyleOf(tabDefaultOriginId),
+            composition,
+          ),
+          selected: resolveItemTemplateChipStyle(
+            rootStyleOf(tabSelectedOriginId),
+            selectedComposition,
+          ),
+        },
+      };
+    })();
     return {
       listBox: compositionOf(listBoxOriginId),
       // 행 root style — base(default origin) + selected(variant origin) overlay 층.
@@ -454,6 +497,7 @@ function CanvasContent() {
       gridList: compositionOf(gridListOriginId),
       menuItem: compositionOf("component-menu-item-default"),
       tag: tagTemplate,
+      tab: tabTemplate,
     };
   }, [resolvedCanonicalNodes]);
   const listBoxTemplateSlotComposition = templateSlotCompositions.listBox;
@@ -897,6 +941,7 @@ function CanvasContent() {
       menuItemTemplateSlotComposition: templateSlotCompositions.menuItem,
       // ADR-229 Phase 1 — TagGroup chip item template (구성 + root style base/selected).
       tagTemplate: templateSlotCompositions.tag,
+      tabTemplate: templateSlotCompositions.tab,
       // ADR-214 Phase 3 — collection 행 템플릿의 `{{ }}` 를 런타임 값으로 (소유자 요소 기준 가시성).
       //   store 를 호출 시점에 읽어 값 변경 시 renderContext 참조를 바꾸지 않는다 — 소유자
       //   노드는 자식 템플릿 참조로 의존 인덱스에 구독되어 (useStateTemplateProps) 스스로 다시 렌더한다.

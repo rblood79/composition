@@ -36,6 +36,10 @@ import {
   TAGGROUP_ORIGIN_ID,
   ensureTagGroupTemplateOrigins,
 } from "./taggroup/tagGroupTemplateOrigins";
+import {
+  TABS_ORIGIN_ID,
+  ensureTabsTemplateOrigins,
+} from "./tabs/tabsTemplateOrigins";
 import { ensureCatalogOrigins, getCatalogOriginTypes } from "./catalogOrigins";
 import { ensureStateVariantOrigins } from "./stateVariantOrigins";
 import { catalogReusableOriginId } from "@composition/shared";
@@ -90,6 +94,8 @@ export function getReusableOriginEnsurers(): Readonly<
     [GRIDLIST_ORIGIN_ID]: ensureGridListTemplateOrigins,
     // ADR-229 Phase 1: TagGroup 은 generic 과 같은 트리 + chip item template origin 2 + TagList slot.
     [TAGGROUP_ORIGIN_ID]: ensureTagGroupTemplateOrigins,
+    // ADR-233 Phase 1: Tabs 는 generic 과 같은 트리 + Tab 항목 template origin 2 + root slot.
+    [TABS_ORIGIN_ID]: ensureTabsTemplateOrigins,
     // ADR-228: 나머지 catalog 파생 generic origin 49 — 손 seed 모듈 0, 한 ensurer 가 1 pass 로
     //   전부 시드 (`ensureReusableCompositeOrigins` 는 같은 함수를 한 번만 부른다).
     ...Object.fromEntries(

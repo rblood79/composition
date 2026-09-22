@@ -17,6 +17,8 @@
 
 > **2026-09-20 ADR-027 Implemented (Phase D 전환 무결성 재정의 → D0~D3 같은 날)**: 부분 완료 (Phase A~C) 로 남아 있던 Canvas 인라인 텍스트 편집을 "리치 텍스트/툴바" 대신 **Skia ↔ DOM 오버레이 전환 무결성** 으로 완료 조건 재정의 (사용자 승인) — D0 캔버스 변위 차단 · D1 wrap 파리티 · D2 글리프/baseline nudge · D3 타입 8 × 줌 2 픽셀 게이트 16/16 + 사용자 참관 live 7. 게이트가 잡은 Canvas 결함 (CJK 단일행 descent 만큼 위 · px 폭 텍스트 leaf 높이 · pre 계열 `\n` 높이) 동반 수리. 리치 텍스트·툴바 보류 (canonical 텍스트 모델 ADR 선행). 열림 5 (Proposed 4 · Accepted 1 · 부분 0), 완료 247, 합계 252.
 
+> **2026-09-23 ADR-233 Proposed 추가**: Tabs 의 Tab 항목 템플릿 origin (`component-tab-item-default`/`-selected` · `component-tabs` root `slot` · Tab 행 projection/Preview `renderTabs` read-through — ADR-229 Tag 선례 복제) + Radio origin (팔레트 밖 reusable `placeable:false` · 새 RadioGroup origin 자식 ref · ADR-230 상태 변형 Radio 추가). ADR-229 후속 후보와 ADR-230 보류 (Radio/Tab base origin) 의 교집합. 열림 7 (Proposed 5 · Accepted 2), 합계 260. **2026-09-23 Accepted + Phase 0·1 완료** (`/execute-adr 233`): G0 — Tab 추가 경로 없음 (Slot "+" 는 삽입 없음) · Radio ref 자식은 두 해소기가 이미 Radio 로 실체화 (R2 해소) · 진단 RED 고정 (Tab 행 템플릿 미소비 4 · 독립 Radio `TypeError … isDisabled` 5). Phase 1 — `component-tab-item-default/-selected` + `component-tabs.slot` (부재 시만) · Skia Tab 행 style/fills/`templateOriginId` · Preview `renderTabs` 템플릿 overlay · Tabs slot host. 열림 7 (Proposed 4 · Accepted 3).
+
 > **2026-09-22 ADR-231 Proposed 추가**: Components 페이지의 breakpoint 중립 — 페이지 frame 이 활성 breakpoint (desktop 1920×1080 / tablet / mobile 390×844) 를 따라 origin 86 이 mobile 한 열 · body 내부 스크롤에 갇히던 것을, frame = 고정 폭 (desktop 1920) + 내용 높이 (레이아웃 보고 · floor 1080) + 사용자 페이지 격자 밖 시스템 페이지 열 (Home 원점 왼쪽 `x = homeX − (max 시스템 폭 + gap)` · 세로 누적, 사용자 판정 ×2) 으로 바꾼다. origin 의 breakpoint override → instance 상속 채널 (ADR-154 후속 07-21) 은 그대로 (대안 C 기각). 코드 사실 F1~F10 · R1 HIGH (레이아웃→frame 피드백 루프) 는 "발행 높이를 레이아웃 입력에 넣지 않는다" 로 회피 + G1 계측. 사용자 진술 "components page 는 breakPoint 에 영향을 받을 필요가 없는 page". 열림 6 (Proposed 5 · Accepted 1 · 부분 0), 합계 258 (파일 실측). 구현 미착수 — `/review-adr 231` 후 `/execute-adr 231`.
 
 > **2026-09-22 ADR-231 Implemented (같은 날)**: Components 페이지의 breakpoint 중립 — `/execute-adr 231` Phase 0~~2 / G0~~G4 종결 (frame = 1920 × 레이아웃 발행 body 높이 (floor 1080 · 저작 height 우선) · Step 1.5 보고 높이 = 내용 → body 내부 스크롤 0 · 시스템 페이지 (Components) 는 사용자 격자 밖 왼쪽 열 `x = homeX − (1920 + gap)` · reflow 열/격자 경계 · 위치는 세 breakpoint 공통값). live 7/7 + 15/15 · BC PASS · G3 는 1차 headless total 하니스가 +2.4~~+5 로 미달 → 판독 (계약 지표 ≠ 하니스 total) → `layout.publish` 계측 + 단계 분해 A/B (`adr231-frame-decomp-ab.mjs`) headed Δ0/Δ0 · headless +0.9/+0.4 PASS (잔차 render.frame +0.5 = 페이지 전체를 그리는 draw). 열림 5 (Proposed 4 · Accepted 1 · 부분 0), 완료 253, 합계 258.
@@ -68,11 +70,11 @@
 | ├ Accepted                    |      13 |
 | ├ Superseded                  |      14 |
 | └ Deprecated                  |       9 |
-| 열려 있는 것 (`adr/*.md`)     |       6 |
-| ├ Proposed                    |       4 |
+| 열려 있는 것 (`adr/*.md`)     |       7 |
+| ├ Proposed                    |       5 |
 | ├ Accepted (미착수·일부 착수) |       2 |
 | └ 부분 완료                   |       0 |
-| **합계**                      | **259** |
+| **합계**                      | **260** |
 
 > 2026-09-22 파일 실측: `completed/` ADR 파일 253 (비-ADR 5 제외) · `adr/` 직속 ADR 6 (09-22 232 추가). 완료 내역 (Implemented/Accepted/Superseded/Deprecated) 은 09-10 대조값에 그 뒤 Implemented 5 (224~~227 · 231) 를 더한 것 — 개별 Status 재대조는 다음 정리 때.
 
@@ -96,6 +98,12 @@
 - **상태**: Proposed
 - **규모**: 카드 = origin 템플릿 서브트리 행별 실체화(composed 판정 `isComposedCollectionTemplate` opt-in, slot-only BC 0%) + 카드 높이 formula→실측 전환(§1.55c/rowMetric/window stride 단일화) + escape gate + 패널 임의 자식 prop 오소링. **ADR-159 base 의존 재획정(2026-07-24 사용자 confirm)**: 보간·오소링·dataTable 단일화는 159 소비(제2 엔진 금지, P2←159 P1 / P5←159 P4 선행), 본 ADR 은 구조 축만. Phase 0~~6, R1 HIGH(카드 높이) / R2~~R5 / G1~G4. design breakdown `design/162-gridlist-template-subtree-projection-breakdown.md`
 - **우선순위**: 사용자 제안 2026-07-24
+
+#### [233](233-tab-item-template-and-radio-origin.md) — Tabs 의 Tab 항목 템플릿 origin + Radio origin
+
+- **상태**: Accepted (2026-09-23 `/execute-adr 233`) — Phase 0 (진단 RED ①③ · Radio ref 실체화 GREEN) · Phase 1 (Tab 항목 템플릿 두 leg) 완료
+- **규모**: Tab 항목 템플릿 origin 2 (Default/Selected, label slot) + Tab 행 projection · Preview `renderTabs` read-through · Radio reusable origin (`placeable:false`) + 새 RadioGroup origin 자식 ref · Radio 상태 변형 5 (230 경로). Δnode 16 · Δbyte ≈ 3.3 KB, migration 0. 잔존 HIGH 1 (R7 독립 Radio origin 의 Preview 크래시 → render-only RadioGroup 호스트, G0·G1) · MED 4. [리뷰](reviews/233.md) round 1 HIGH 1 · MEDIUM 1 · LOW 1 설계 수리 → round 2 pending 0 · 설계 승인 가능 (2026-09-23)
+- **우선순위**: 사용자 요청 2026-09-23 (origin/instance/slot 후속 1순위)
 
 #### [910](910-rac-pencil-component-architecture.md) — RAC core + Pencil format 1차 원리 컴포넌트 아키텍처
 

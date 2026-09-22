@@ -15,6 +15,10 @@ import {
   TAG_ITEM_DEFAULT_ORIGIN_ID,
   TAG_ITEM_SELECTED_ORIGIN_ID,
 } from "../taggroup/tagGroupTemplateOrigins";
+import {
+  TAB_ITEM_DEFAULT_ORIGIN_ID,
+  TAB_ITEM_SELECTED_ORIGIN_ID,
+} from "../tabs/tabsTemplateOrigins";
 
 describe("ADR-146 shared slot host policy", () => {
   it("keeps frame-compatible shell slot host detection out of property panels", () => {
@@ -160,5 +164,25 @@ describe("ADR-146 shared slot host policy", () => {
         { id: LISTBOX_ITEM_DEFAULT_ORIGIN_ID, type: "ListBoxItem" },
       ),
     ).toEqual({ kind: "child" });
+  });
+
+  /**
+   * ADR-233 Phase 1: Tabs origin root 가 Tab 항목 template slot host (Tag 대칭). Tab 은 items + TabPanel
+   * 쌍이라 그 쌍을 만드는 기존 추가 경로가 없어 (Phase 0) "+" 는 삽입 없음.
+   */
+  it("Tabs origin 은 Tab 항목 origin 만 후보로 받는 slot host 이고 삽입은 none", () => {
+    const host = { id: "component-tabs", type: "Tabs", reusable: true };
+    const defaultItem = { id: TAB_ITEM_DEFAULT_ORIGIN_ID, type: "Tab", reusable: true };
+    const selectedItem = { id: TAB_ITEM_SELECTED_ORIGIN_ID, type: "Tab", reusable: true };
+    const button = { id: "button-origin", type: "Button", reusable: true };
+    expect(isSlotHostElement(host)).toBe(true);
+    // plain Tabs (사용자 배치) 는 host 아님 — Tag 와 같은 정책.
+    expect(isSlotHostElement({ id: "tabs-1", type: "Tabs" })).toBe(false);
+    expect(filterSlotCandidates(host, [button, defaultItem, selectedItem])).toEqual([
+      defaultItem,
+      selectedItem,
+    ]);
+    expect(resolveSlotInsertAction(host, defaultItem)).toEqual({ kind: "none" });
+    expect(resolveSlotInsertAction(host, selectedItem)).toEqual({ kind: "none" });
   });
 });

@@ -190,6 +190,13 @@ export interface RenderContext {
    * builder Skia projection (`appendTagRowProjection`) 과 D3 대칭. null/미주입 = legacy → 기존 동작.
    */
   tagTemplate?: TagItemTemplate | null;
+  /**
+   * ADR-233 Phase 1 — Tabs 의 Tab 항목 template (origin `component-tab-item-default` / `-selected`,
+   * master `component-tabs` root `slot` 에서 해석). `renderTabs` 가 Tab 마다 `rootStyles.base` 를,
+   * RAC `isSelected` Tab 에 `rootStyles.selected` 를 overlay 한다 (Tag chip 과 같은 형태 · 같은 shared
+   * `resolveItemTemplateChipStyle`). builder Skia `appendTabRowProjection` 과 D3 대칭. null = 기존 Tab.
+   */
+  tabTemplate?: TagItemTemplate | null;
 }
 
 /** ADR-229 Phase 1 — Tag chip item template 의 DOM 소비 형태 (renderContext → TagGroup prop). */
