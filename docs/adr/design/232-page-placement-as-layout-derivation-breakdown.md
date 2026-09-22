@@ -100,3 +100,22 @@
 | 부팅 순서 (R3) | frame 데이터 1285 ms · 엔진 rect 1340 ms · Skia canvas 1369 ms — 그러나 `SkiaRenderer` 는 `await initAllWasm()` 뒤에만 생성되므로 **엔진 준비 전 frame 은 그려질 수 없다 → R3 도달 불가** |
 
 후속 반영: (1) Phase 1 track stride 는 `CANVAS_VIEWPORT[tier].width + pageLayout.gap` (기본 80) · (2) G3 파생 1회 비용은 페이지 30 과 함께 **80** 도 1회 기록 (실물 최대) · (3) R3 대응은 신규 구현 대신 "렌더러 생성이 `ready` 뒤" 를 고정하는 정적 테스트로 대체.
+
+### G1 — Phase 1 파생 배치 root + frames · **PASS** (2026-09-22, `476fd6af6` + `0371d0c00`)
+
+| 조건                                                       | 결과                                                                                                                                      |
+| ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| (a) 페이지 1~30 × direction 3 × breakpoint 3 = 현행 출력   | PASS — oracle `calculatePagePositions` 와 Δ0 (63 케이스)                                                                                  |
+| (b) 불규칙 높이 = 행 최대 (`rowMaxHeight` 동형)            | PASS — 1600 행에서 둘째 행 y 1680 · 폭 혼합에도 auto 칸 stride 유지 · vertical/horizontal 자기 치수 누적                                  |
+| (c) 칸 고정 longhand · absolute 음수 inset                 | PASS — 고정 칸 (4000,0) · 빈 열 보존 (접히면 2000) · absolute −2000 · absolute 로 빠진 칸을 뒤 페이지가 채움 · row span                   |
+| (d) root 열 수 override + 페이지 칸 override (mobile 전용) | PASS — `resolveResponsiveStyleMap` (요소와 같은 SSOT) 경유 · eligibility 밖 키 (`gridAutoFlow`) 는 차단 · direction 은 breakpoint 공통    |
+| (e) 메모 키 불변 시 엔진 호출 0                            | PASS — 같은 입력 10회 → 파생 1회 · 크기 벡터/breakpoint/열 수/placement 각각이 키에 포함                                                  |
+| (f) tier reset (`position:"static"` · line `"auto"`)       | PASS — desktop absolute → tablet cascade 상속 → mobile 흐름 복귀                                                                          |
+| (g) Home 은 흐름 원점                                      | PASS — placement 없으면 3 direction 모두 (0,0) · 다른 페이지가 absolute 로 나가도 유지. **쓰기 거부는 Phase 2** (`setPagePlacement` 액션) |
+| 파생 1회 비용                                              | n=30 median 0.24 ms · n=80 median 0.57 ms (엔진 프로브 build+compute+read) — 게이트 ≤ 1 ms                                                |
+
+unit 91/91 (`scene/pagePlacement.test.ts`) + 정적 4 (`pagePlacementKeys.static.test.ts`). 원복 RED 5/5 — gap +1 (67 FAIL) · `justifyContent:start` 제거 (20) · track `max-content` (6) · 메모 키에서 크기 벡터 제거 (1) · eligibility 필터 우회 (2).
+
+live 21/21 (`apps/builder/scripts/adr232-derived-placement-live.mjs`, headed · 실제 빌더 · 페이지 6) — [evidence/232-phase1b-live.json](../evidence/232-phase1b-live.json). derived 전환 · 3열 격자 · 겹침 0 · 열 수 변경 · 칸 고정 + 재흐름 · breakpoint 왕복 Δ0 · tier stride 848/470 · mobile 열 수 override · Home body 1600 → 둘째 행 1680 (reflow 코드 없이) · 파생 갱신 저장 좌표 쓰기 0 · legacy 복귀.
+
+Phase 1 구현 결정 (승인 scope 안의 통상 판단): 페이지 `placement` 는 **문서 root `pageLayout.placements[pageId]`** 에 둔다 — 페이지 노드/`Page` 배선을 건드리지 않고 `pagePositions` 를 구조적으로 1:1 대체하며, R6 (export 누출) 도 같은 근거로 닫힌다. style 언어와 cascade 는 요소와 동일 (`resolveResponsiveStyleMap`).
