@@ -59,6 +59,7 @@ export type ComponentTag =
   | "DateRangePicker"
   | "Description"
   | "Dialog"
+  | "DialogTrigger"
   | "Disclosure"
   | "DisclosureGroup"
   | "DisclosureHeader"

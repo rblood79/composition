@@ -1,0 +1,47 @@
+/* ============================================================
+ * AUTO-GENERATED from DialogTriggerSpec — DO NOT EDIT MANUALLY
+ * Source: packages/specs/src/components/DialogTrigger.spec.ts
+ * Archetype: container
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-DialogTrigger {
+  /* Base styles — archetype: container */
+    display: block;
+    box-sizing: border-box;
+    font-family: var(--font-sans);
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  gap: 12px;
+  width: fit-content;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+
+  /* Default size */
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--text-base);
+  border-radius: var(--radius-none);
+}
+
+.react-aria-DialogTrigger[data-focus-visible] {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-DialogTrigger[data-disabled] {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+@media (forced-colors: active) {
+  .react-aria-DialogTrigger {
+    forced-color-adjust: auto;
+  }
+}
+
+
+} /* @layer components */

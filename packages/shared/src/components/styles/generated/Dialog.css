@@ -1,15 +1,16 @@
 /* ============================================================
  * AUTO-GENERATED from DialogSpec — DO NOT EDIT MANUALLY
  * Source: packages/specs/src/components/Dialog.spec.ts
- * Archetype: overlay
+ * Archetype: container
  * ============================================================ */
 
 @layer components {
 
 .react-aria-Dialog {
-  /* Base styles — archetype: overlay */
-    position: fixed;
+  /* Base styles — archetype: container */
+    display: block;
     box-sizing: border-box;
+    font-family: var(--font-sans);
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
   overflow: auto;
@@ -97,10 +98,5 @@
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .react-aria-Dialog {
-    transition-duration: 0s !important;
-  }
-}
 
 } /* @layer components */

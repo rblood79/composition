@@ -4663,6 +4663,28 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
+  DialogTrigger: {
+    defaultSize: "md",
+    variants: {},
+    sizes: {
+      md: {
+        height: 0,
+        fontSize: "{typography.text-base}",
+        borderRadius: "{radius.none}",
+      },
+    },
+    structure: {
+      archetype: "container",
+      element: "div",
+      containerStyles: {
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "flex-start",
+        gap: "12px",
+        width: "fit-content",
+      },
+    },
+  },
   Dialog: {
     defaultVariant: "default",
     defaultSize: "md",
@@ -4729,7 +4751,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: "overlay",
+      archetype: "container",
       element: "div",
       // ADR-171 Phase 1 (2026-07-29): 수동 `overlays.css` 의 실효값을 catalog 로 이관.
       //   generated CSS root 는 overflow 미선언이었고 실효는 `auto` 였다 — 값 자체는 불변.
@@ -7480,6 +7502,18 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       //   대응이 없다 — Modal 그림자가 눈에 띄게 옅어진다(잉크 ×0.62, Gate G2 제시 대상).
       containerStyles: {
         boxShadow: "{shadow.lg}",
+      },
+      composition: {
+        rootSelectors: {
+          "&[data-dialog-trigger]": {
+            styles: {
+              position: "relative",
+              padding: "0px",
+              "max-height": "90vh",
+            },
+          },
+        },
+        delegation: [],
       },
       states: {},
     },

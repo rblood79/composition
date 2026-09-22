@@ -1,6 +1,32 @@
 import { ComponentElementProps } from "../../../types/core/store.types";
 import { ComponentDefinition, ComponentCreationContext } from "../types";
 
+/** 트리거와 본문은 독립적인 canonical 자식으로 편집한다. */
+export function createDialogDefinition(
+  context: ComponentCreationContext,
+): ComponentDefinition {
+  const content = createDialogContentDefinition(context);
+  return {
+    type: "Dialog",
+    parent: {
+      type: "DialogTrigger",
+      props: {},
+      parent_id: context.parentElement?.id ?? null,
+    },
+    children: [
+      {
+        type: "Button",
+        props: { children: "Open Dialog", variant: "primary", size: "md" },
+      },
+      {
+        type: "Dialog",
+        props: content.parent.props,
+        children: content.children,
+      },
+    ],
+  };
+}
+
 /**
  * Dialog 컴포넌트 정의
  *
@@ -10,7 +36,7 @@ import { ComponentDefinition, ComponentCreationContext } from "../types";
  *     ├─ Description — 본문 텍스트 노드
  *     └─ DialogFooter — 버튼 영역 컨테이너
  */
-export function createDialogDefinition(
+function createDialogContentDefinition(
   context: ComponentCreationContext,
 ): ComponentDefinition {
   const { parentElement } = context;
@@ -35,6 +61,8 @@ export function createDialogDefinition(
         style: {
           display: "flex",
           flexDirection: "column",
+          width: "400px",
+          maxWidth: "100%",
         },
       } as ComponentElementProps,
       parent_id: parentId,
@@ -69,6 +97,17 @@ export function createDialogDefinition(
       },
       {
         type: "DialogFooter",
+        children: [
+          {
+            type: "Button",
+            props: {
+              children: "Close",
+              slot: "close",
+              variant: "secondary",
+              size: "md",
+            },
+          },
+        ],
         props: {
           style: {
             display: "flex",

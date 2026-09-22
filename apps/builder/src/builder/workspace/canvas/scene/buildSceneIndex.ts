@@ -1,3 +1,4 @@
+import { projectDialogVisibility } from "./projectDialogVisibility";
 import type { PageElementIndex } from "../../../stores/utils/elementIndexer";
 import { getPageElements } from "../../../stores/utils/elementIndexer";
 import type { Page } from "../../../../types/core/store.types";
@@ -63,7 +64,10 @@ export function buildPageDataMap(
 
     pageDataMap.set(page.id, {
       bodyElement: resolved.bodyElement,
-      pageElements: resolved.pageElements,
+      pageElements: projectDialogVisibility(
+        resolved.pageElements,
+        isComponentsPageMirror(page),
+      ),
     });
   }
 

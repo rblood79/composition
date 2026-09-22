@@ -51,6 +51,9 @@
   pointer-events: none;
 }
 
+/* ── Tier 2: Composite Delegation ── */
+
+
 @media (forced-colors: active) {
   .react-aria-Modal {
     forced-color-adjust: auto;
@@ -62,5 +65,12 @@
     transition-duration: 0s !important;
   }
 }
+
+  .react-aria-Modal[data-dialog-trigger] {
+    position: relative;
+    padding: 0px;
+    max-height: 90vh;
+  }
+
 
 } /* @layer components */

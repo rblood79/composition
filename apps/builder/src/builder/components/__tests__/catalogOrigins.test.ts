@@ -8,6 +8,7 @@
  * - entry 원복 RED: 목록에서 type 을 빼면 origin 이 시드되지 않는다 (게이트가 반응하는 행).
  */
 import { describe, expect, it } from "vitest";
+import { resolveCanonicalDocument } from "../../../resolvers/canonical";
 import type {
   CanonicalNode,
   CompositionDocument,
@@ -288,10 +289,10 @@ describe("ADR-228 G1 — origin seed · 멱등 · 보존", () => {
     },
   );
 
-  it("origin root type 은 palette type 이고 id 에 `/` 가 없다 (descendants 경로 구분자)", () => {
+  it("origin root type 은 factory root type 이고 id 에 `/` 가 없다 (descendants 경로 구분자)", () => {
     for (const type of getCatalogOriginTypes()) {
       const origin = buildCatalogOrigin(type);
-      expect(origin.type).toBe(type);
+      expect(origin.type).toBe(type === "Dialog" ? "DialogTrigger" : type);
       expect(origin.metadata?.type).toBe(CATALOG_ORIGIN_METADATA_TYPE);
       expect(origin.metadata?.componentFamily).toBe(type);
       const walk = (n: CanonicalNode): void => {
@@ -559,7 +560,7 @@ describe("ADR-228 G4 — 문서 증가량 (Δnode · Δbyte) 실측 기록", () 
     for (const node of nodes) n += 1 + countNodes(node.children ?? []);
     return n;
   }
-  it("Modal 제외 generic origin 48 + descendants 133 · Δbyte 는 예상 ±20%", () => {
+  it("Modal 제외 generic origin 48 + descendants 136 · Δbyte 는 예상 ±20%", () => {
     const base = makeDocument();
     // hand seed 5 + template origin 만 시드한 문서를 기준으로 generic 만의 증가를 잰다.
     const withoutGeneric = ensureReusableCompositeOrigins({
@@ -586,7 +587,7 @@ describe("ADR-228 G4 — 문서 증가량 (Δnode · Δbyte) 실측 기록", () 
       (type) => type !== "Modal",
     ).length;
     expect(roots).toBe(48);
-    expect(deltaNodes - roots).toBe(133);
+    expect(deltaNodes - roots).toBe(136);
     // G0 예상 ~28 KB 는 definition 직렬화 합 — 실측 37,952 B (id · name · metadata 가 더해진다,
     //   2026-09-21). 범위 밖이면 seed 모양이 바뀐 것이니 inventory (breakdown §8.5) 를 갱신할 것.
     expect(deltaBytes).toBeGreaterThan(30_000);
@@ -594,5 +595,74 @@ describe("ADR-228 G4 — 문서 증가량 (Δnode · Δbyte) 실측 기록", () 
     console.log(
       `[ADR-228 G4] Δnode ${deltaNodes} (root ${roots} + desc ${deltaNodes - roots}) · Δbyte ${deltaBytes}`,
     );
+  });
+});
+
+describe("Dialog trigger 원본 이관", () => {
+  it("기존 ref의 본문 스타일과 자식 override를 새 본문 경로로 이관한다", () => {
+    const doc = makeDocument();
+    doc.children.push({
+      id: "component-dialog",
+      type: "Dialog",
+      reusable: true,
+      children: [
+        { id: "old-heading", type: "Heading", props: { children: "Old" } },
+      ],
+    });
+    findById(doc.children, "page-home-body")!.children = [
+      {
+        id: "old-ref",
+        type: "ref",
+        ref: "component-dialog",
+        props: { style: { width: "580px" } },
+        descendants: { "old-heading": { children: "Custom" } },
+      } as unknown as RefNode,
+    ];
+    const migrated = ensureCatalogOrigins(doc);
+    const ref = findById(migrated.children, "old-ref") as RefNode;
+    expect(ref.props).toEqual({});
+    expect(ref.descendants).toEqual({
+      "component-dialog--content": { style: { width: "580px" } },
+      "component-dialog--content/old-heading": { children: "Custom" },
+    });
+    const resolved = resolveCanonicalDocument(migrated);
+    const instance = findById(resolved as CanonicalNode[], "old-ref")!;
+    expect(instance.children?.[1].props?.style).toMatchObject({
+      width: "580px",
+    });
+    expect(instance.children?.[1].children?.[0].props?.children).toBe("Custom");
+    expect(ensureCatalogOrigins(migrated)).toEqual(migrated);
+  });
+  it("새 원본은 독립 Button과 Dialog 자식을 가진다", () => {
+    const origin = buildCatalogOrigin("Dialog");
+    expect(origin.type).toBe("DialogTrigger");
+    expect(origin.children?.map((child) => child.type)).toEqual([
+      "Button",
+      "Dialog",
+    ]);
+    expect(origin.props?.isOpen).toBeUndefined();
+  });
+  it("기존 본문 스타일과 자식 ID를 보존하고 재이관하지 않는다", () => {
+    const base = buildCatalogOrigin("Dialog");
+    const old: CanonicalNode = {
+      id: base.id,
+      type: "Dialog",
+      reusable: true,
+      props: { style: { width: "520px", backgroundColor: "red" } },
+      children: [
+        {
+          id: "component-dialog__1",
+          type: "Heading",
+          props: { children: "My Dialog" },
+        },
+      ],
+    };
+    const migrated = repairCatalogOrigin(old, base);
+    expect(migrated.id).toBe(old.id);
+    expect(migrated.type).toBe("DialogTrigger");
+    expect(migrated.children?.[1].props).toEqual(old.props);
+    expect(migrated.children?.[1].children).toEqual(old.children);
+    expect(migrated.children?.[0].id).not.toBe(old.children?.[0].id);
+    expect(repairCatalogOrigin(migrated, base)).toEqual(migrated);
   });
 });

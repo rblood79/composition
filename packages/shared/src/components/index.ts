@@ -120,6 +120,7 @@ export {
 } from "./CollectionErrorState";
 
 // Overlay Components
+export { DialogTrigger } from "./DialogTrigger";
 export { Dialog } from "./Dialog";
 export { Modal } from "./Modal";
 export { Popover } from "./Popover";

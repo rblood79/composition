@@ -147,4 +147,5 @@ export const ENTRY_DERIVED_DEFAULT_TYPES: ReadonlySet<string> = new Set([
   // ADR-201 (2026-09-17): FileUpload — literal row 없이 catalog accepts.default + overlay(style) 파생.
   //   factory(createFileUploadDefinition) 도 같은 파생을 부모 props 로 쓴다 (두 진입로 동일 값).
   "FileUpload",
+  "DialogTrigger",
 ]);

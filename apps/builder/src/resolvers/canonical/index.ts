@@ -462,7 +462,15 @@ function applyOverrideToNode(
       ],
     };
   }
-  const resolved = resolveFrameOrPlain(patched, doc, cache, imports);
+  // 조상 속성 patch와 더 깊은 자식 patch는 동시에 적용되어야 한다.
+  const resolved = resolveFrameOrPlain(
+    patched,
+    doc,
+    cache,
+    imports,
+    inheritedDescendants,
+    pathKey,
+  );
   return {
     ...resolved,
     _overrides: [

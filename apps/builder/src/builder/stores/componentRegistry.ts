@@ -84,6 +84,7 @@ export const COMPONENT_METHODS: Record<string, string[]> = {
   // UI Components
   Modal: ["open", "close"],
   Dialog: ["open", "close"],
+  DialogTrigger: ["open", "close"],
   Popover: ["open", "close"],
   Tooltip: ["show", "hide"],
   Tabs: ["selectTab", "focus"],

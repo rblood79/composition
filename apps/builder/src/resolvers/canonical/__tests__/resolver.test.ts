@@ -798,9 +798,13 @@ describe("ADR-229 Phase 0 — 일반 origin-child ref 와 바깥 instance descen
       ...makeReusable("component-button", "Button"),
       props: { children: "Button", variant: "primary", size: "md" },
     };
-    const groupButton = makeRef("component-buttongroup__2", "component-button", {
-      props: { children: "Save", variant: "accent" },
-    } as Partial<RefNode>);
+    const groupButton = makeRef(
+      "component-buttongroup__2",
+      "component-button",
+      {
+        props: { children: "Save", variant: "accent" },
+      } as Partial<RefNode>,
+    );
     const buttonGroup = makeReusable("component-buttongroup", "ButtonGroup", [
       groupButton,
     ]);
@@ -842,6 +846,31 @@ describe("ADR-229 Phase 0 — 일반 origin-child ref 와 바깥 instance descen
       (c) => c.id === "component-buttongroup__2",
     ) as ResolvedNode;
     expect(save.type).toBe("Button");
-    expect(save.props).toEqual({ children: "Go", variant: "accent", size: "md" });
+    expect(save.props).toEqual({
+      children: "Go",
+      variant: "accent",
+      size: "md",
+    });
+  });
+});
+
+it("조상 스타일 patch가 있어도 더 깊은 자식 patch를 유지한다", () => {
+  const origin = makeReusable("origin", "frame", [
+    makePlain("content", "Dialog", {
+      children: [
+        makePlain("title", "Heading", { props: { children: "Title" } }),
+      ],
+    }),
+  ]);
+  const ref = makeRef("instance", "origin", {
+    descendants: {
+      content: { style: { width: "580px" } },
+      "content/title": { style: { color: "red" } },
+    },
+  });
+  const resolved = resolveCanonicalDocument(makeDoc([origin, ref]))[1];
+  expect(resolved.children?.[0].props?.style).toMatchObject({ width: "580px" });
+  expect(resolved.children?.[0].children?.[0].props?.style).toMatchObject({
+    color: "red",
   });
 });

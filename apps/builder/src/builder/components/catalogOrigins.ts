@@ -1,3 +1,7 @@
+import {
+  migrateDialogTriggerInstances,
+  LEGACY_DIALOG_CONTENT_ID,
+} from "./migrateDialogTriggerInstances";
 import type {
   CanonicalNode,
   CompositionDocument,
@@ -216,7 +220,7 @@ function buildRawCatalogOrigin(type: string): CanonicalNode {
   };
   const root: SeedElement = {
     id: originId,
-    type,
+    type: definition.parent.type,
     parent_id: null,
     props: rootProps,
     extra: pickCanonicalExtras(definition.parent as ChildDefinition),
@@ -229,7 +233,7 @@ function buildRawCatalogOrigin(type: string): CanonicalNode {
 
   return {
     id: originId,
-    type: type as CanonicalNode["type"],
+    type: definition.parent.type as CanonicalNode["type"],
     name: type,
     reusable: true,
     props: rootProps,
@@ -250,6 +254,26 @@ export function repairCatalogOrigin(
   base: CanonicalNode,
 ): CanonicalNode {
   if (!existing) return base;
+  // 기존 시스템 Dialog 본문을 새 trigger의 자식으로 옮긴다. origin ID와 기존
+  // 자식 ID는 유지하므로 ref와 사용자 콘텐츠 참조가 끊기지 않는다.
+  if (existing.type === "Dialog" && base.type === "DialogTrigger") {
+    const { id, name, reusable, metadata, ...content } = existing;
+    return {
+      ...base,
+      id,
+      name: name ?? base.name,
+      reusable,
+      metadata: {
+        ...base.metadata,
+        ...metadata,
+        type: metadata?.type ?? CATALOG_ORIGIN_METADATA_TYPE,
+      },
+      children: [
+        { ...base.children![0], id: `${id}--trigger` },
+        { ...content, id: LEGACY_DIALOG_CONTENT_ID, type: "Dialog" },
+      ],
+    };
+  }
   const hasExistingChildren = Array.isArray(existing.children);
   return {
     ...base,
@@ -310,6 +334,7 @@ export function isCatalogOriginId(id: string): boolean {
 export function ensureCatalogOrigins(
   document: CompositionDocument,
 ): CompositionDocument {
+  document = migrateDialogTriggerInstances(document);
   // Modal은 팔레트에서 은퇴했다. 기존 인스턴스가 참조할 때만 호환 원본을 유지한다.
   const modalId = catalogReusableOriginId("Modal");
   const modalNodeIds = new Set([modalId]);

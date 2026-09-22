@@ -961,12 +961,13 @@ const FAMILY_5_ENTRIES: ComponentCatalogEntry[] = [
 const FAMILY_6_CUTOVER: CutoverState = "catalog";
 
 const FAMILY_6_ENTRIES: ComponentCatalogEntry[] = [
-  // Dialog — Skia generic 전환 (skiaLegacy 제거, ADR-142 Inc3 2026-06-01): bg 는
-  //   buildCatalogShapes(variant fill {color.layer-1}), backdrop 은 skiaPrimitive
-  //   (overlay_backdrop, prepend) 합성.
-  //   ADR-166 Phase 4 (2026-07-25): dialog_shadow 은퇴 — Dialog 는 그림자 없음이 정본
-  //   (elevation 소유자는 Modal, DOM Dialog.css box-shadow 0건). 해당 primitive 는 bg 추출
-  //   경로에서 삼켜져 캔버스 출력이 0이었어서 제거해도 시각 변화 없음.
+  primitiveEntry("DialogTrigger", "overlays", FAMILY_6_CUTOVER, {
+    category: "overlays",
+    label: "dialog trigger",
+    icon: "AppWindowMac",
+    placeable: false,
+  }),
+  // Dialog 본문은 일반 컨테이너다. 열림 동작은 DialogTrigger 조합이 담당한다.
   primitiveEntry("Dialog", "overlays", FAMILY_6_CUTOVER, {
     category: "overlays",
     label: "dialog",

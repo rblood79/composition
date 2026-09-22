@@ -213,9 +213,7 @@ const PATCH_RESERVED_PROP_KEYS: ReadonlySet<string> = new Set([
   "fills",
 ]);
 
-function unpatchablePropKey(
-  patch: Record<string, unknown>,
-): string | null {
+function unpatchablePropKey(patch: Record<string, unknown>): string | null {
   for (const key of Object.keys(patch)) {
     if (PATCH_RESERVED_PROP_KEYS.has(key)) return key;
     if (key === "children" && Array.isArray(patch[key])) return key;
@@ -301,7 +299,12 @@ export function toOriginChildSeed(
   if (isDelegatedSubpartChild(node.type, parentType, grandparentType)) {
     return node;
   }
-  const originId = getReusableOriginId(node.type);
+  // DialogTrigger의 본문은 같은 palette Dialog 원본의 내부 primitive다.
+  // 전체 Dialog 조합을 다시 참조하면 자기 자신을 포함하는 순환이 된다.
+  const originId =
+    node.type === "Dialog" && parentType === "DialogTrigger"
+      ? null
+      : getReusableOriginId(node.type);
   const converted = originId
     ? convertToRef(node as PlainNode, originId, context)
     : null;

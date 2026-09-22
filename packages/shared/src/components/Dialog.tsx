@@ -1,35 +1,12 @@
+import { useContext } from "react";
+import { Modal, ModalOverlay } from "react-aria-components/Modal";
+import { DialogTriggerScope } from "./DialogTrigger";
 import { Dialog as RACDialog, DialogProps } from "react-aria-components/Dialog";
 import type { ComponentSize } from "../types";
 
 /**
- * Dialog Component with Material Design 3 support
- *
- * 🚀 Phase 4: data-* 패턴 전환
- * - tailwind-variants 제거
- * - data-variant, data-size 속성 사용
- *
- * A dialog component that should be used within a Modal overlay.
- * The Modal component handles focus management, so this component
- * focuses on content structure and accessibility.
- *
- * M3 Features:
- * - 5 variants: primary, secondary, tertiary, error, filled
- * - 3 sizes: sm, md, lg
- * - M3 color tokens for consistent theming
- *
- * Features:
- * - Semantic HTML structure
- * - Proper ARIA attributes (role="dialog")
- * - Keyboard accessibility (inherited from Modal)
- *
- * @example
- * <Modal>
- *   <Dialog variant="primary" size="md">
- *     <Heading>Dialog Title</Heading>
- *     <p>Dialog content goes here</p>
- *     <Button onPress={close}>Close</Button>
- *   </Dialog>
- * </Modal>
+ * Dialog 본문. DialogTrigger 안에서는 RAC ModalOverlay/Modal로 열고,
+ * 단독 사용 시에는 기존 RAC Dialog 콘텐츠 계약을 유지한다.
  */
 
 export interface DialogExtendedProps extends DialogProps {
@@ -42,6 +19,7 @@ export function Dialog({
   isDismissable,
   ...props
 }: DialogExtendedProps) {
+  const hasTrigger = useContext(DialogTriggerScope);
   // 🚀 ClassNameOrFunction 타입 지원 - 문자열로 단순화
   const baseClassName =
     typeof props.className === "string" ? props.className : undefined;
@@ -49,12 +27,32 @@ export function Dialog({
     ? `react-aria-Dialog ${baseClassName}`
     : "react-aria-Dialog";
 
-  return (
+  const content = (
     <RACDialog
       {...props}
+      aria-label={
+        props["aria-label"] ?? (props["aria-labelledby"] ? undefined : "Dialog")
+      }
       className={dialogClassName}
       data-size={size}
       data-dismissible={isDismissable || undefined}
     />
+  );
+  if (!hasTrigger) return content;
+  return (
+    <ModalOverlay
+      className="react-aria-ModalOverlay"
+      isDismissable={isDismissable}
+    >
+      <Modal
+        className="react-aria-Modal"
+        data-size={size}
+        data-dialog-trigger=""
+      >
+        <DialogTriggerScope.Provider value={false}>
+          {content}
+        </DialogTriggerScope.Provider>
+      </Modal>
+    </ModalOverlay>
   );
 }

@@ -54,6 +54,7 @@ export const buttonBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
+      slot: { kind: "string", label: "Slot", section: "content" },
       children: { kind: "string", label: "Text", section: "content" },
       // 시각 차원 → data-variant / data-size (theme 가 값 집합 제공)
       variant: {

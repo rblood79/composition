@@ -57,6 +57,7 @@ import {
   Meter,
   Skeleton,
   Dialog,
+  DialogTrigger,
   Modal,
   Popover,
   Tooltip,
@@ -225,8 +226,10 @@ const SHARED_COMPONENTS: Record<string, ComponentType<never>> = {
   CardContent: createHtmlElement("div", "react-aria-CardContent"),
   CardPreview: createHtmlElement("div", "react-aria-CardPreview"),
   CardFooter: createHtmlElement("div", "react-aria-CardFooter"),
+  DialogFooter: createHtmlElement("footer", "react-aria-DialogFooter"),
   // Overlay
   Dialog,
+  DialogTrigger,
   Modal,
   Popover,
   Tooltip,

@@ -12,7 +12,7 @@ import { toRacProps } from "../outputs/toRacProps";
  *
  * **ADR-912 단계 5 (1b) + step 1 (2026-06-04) — 5 overlay 전부 Skia generic 전환 (skiaLegacy 0건)**:
  * Popover bg/border buildCatalogShapes + V-arrow skiaPrimitive(popover_arrow),
- * Dialog bg + backdrop(overlay_backdrop), Modal transparent shell(primitive 없음),
+ * Dialog bg(본문), Modal transparent shell(primitive 없음),
  * DropZone variant+dashed border 보편 D3 속성, Tooltip bg+text generic + arrow(tooltip_arrow, append).
  * Toast 는 imperative API → 제외.
  *
@@ -86,9 +86,7 @@ describe("family ⑥ overlays — catalog 등록 + cutover 상태", () => {
     expect(getPrimitiveBinding("Popover")?.skiaPrimitive).toEqual([
       "popover_arrow",
     ]);
-    expect(getPrimitiveBinding("Dialog")?.skiaPrimitive).toEqual([
-      "overlay_backdrop",
-    ]);
+    expect(getPrimitiveBinding("Dialog")?.skiaPrimitive).toBeUndefined();
     // Tooltip — V-arrow(showArrow=true 한정) append escape (단계 5 (1b)).
     expect(getPrimitiveBinding("Tooltip")?.skiaPrimitive).toBe("tooltip_arrow");
   });
