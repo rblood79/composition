@@ -41,6 +41,21 @@ const readState = (page) =>
     derivations: window.__composition_PAGE_PLACEMENT__.derivationCount(),
     containerWidth:
       window.__composition_VIEWPORT_SYNC__.getState().containerSize.width,
+    // 패널 토글 레일이 캔버스 위에서 가리는 좌우 띠 — auto 열 수는 이걸 뺀 폭을 쓴다.
+    railInset: (() => {
+      let inset = 0;
+      for (const side of ["left", "right"]) {
+        const rail = document.querySelector(
+          `.panel-toggle-rail[data-side="${side}"]`,
+        );
+        if (!rail) continue;
+        const r = rail.getBoundingClientRect();
+        if (r.width <= 0) continue;
+        inset +=
+          side === "left" ? r.right : Math.max(0, window.innerWidth - r.left);
+      }
+      return inset;
+    })(),
     zoom: window.__composition_VIEWPORT_SYNC__.getState().zoom,
     frames: window.__composition_SCENE_DEBUG__
       .readPageFrames()
@@ -61,8 +76,11 @@ const observedColumns = (state) => {
   return rows.length;
 };
 
-const expectedColumns = (width, zoom) =>
-  Math.min(24, Math.max(1, Math.floor((width / zoom + GAP) / (TRACK + GAP))));
+const expectedColumns = (width, zoom, railInset = 0) =>
+  Math.min(
+    24,
+    Math.max(1, Math.floor(((width - railInset) / zoom + GAP) / (TRACK + GAP))),
+  );
 
 const setZoom = async (page, scale) => {
   await page.evaluate(
@@ -137,7 +155,7 @@ async function main() {
     for (const scale of [0.1, 0.12, 0.2, 0.35]) {
       await setZoom(page, scale);
       const st = await readState(page);
-      const want = expectedColumns(st.containerWidth, st.zoom);
+      const want = expectedColumns(st.containerWidth, st.zoom, st.railInset);
       record.steps.push({ step: `zoom-${scale}`, want, ...st });
       check(
         `zoom ${scale} — 열 수 = 보이는 폭에 들어가는 개수 (${want})`,
@@ -151,15 +169,43 @@ async function main() {
       );
     }
 
+    // 레일을 빼지 않으면 마지막 열이 레일 밑으로 들어간다 — 전폭 기준 열 수와 갈리는
+    //   zoom 을 하나 찾아 "전폭이 아니라 레일 뺀 폭" 임을 직접 본다.
+    {
+      const probe = await readState(page);
+      const full = expectedColumns(probe.containerWidth, probe.zoom, 0);
+      const inset = expectedColumns(
+        probe.containerWidth,
+        probe.zoom,
+        probe.railInset,
+      );
+      check(
+        "레일 폭을 뺀 폭으로 센다 (전폭 기준과 갈리는 zoom 에서 확인)",
+        probe.railInset > 0 &&
+          (full === inset || observedColumns(probe) === inset),
+        {
+          railInset: probe.railInset,
+          full,
+          inset,
+          got: observedColumns(probe),
+        },
+      );
+    }
+
     // ── 「가장 적은 비용」 — 정수가 그대로인 zoom 변화는 파생 0 ──
     await setZoom(page, 0.12);
     const base = await readState(page);
-    const baseCols = expectedColumns(base.containerWidth, base.zoom);
+    const baseCols = expectedColumns(
+      base.containerWidth,
+      base.zoom,
+      base.railInset,
+    );
     await page.evaluate(() =>
       window.__composition_PAGE_PLACEMENT__.resetDerivationCount(),
     );
     const sameIntegerZooms = [0.105, 0.11, 0.115, 0.118].filter(
-      (z) => expectedColumns(base.containerWidth, z) === baseCols,
+      (z) =>
+        expectedColumns(base.containerWidth, z, base.railInset) === baseCols,
     );
     for (const z of sameIntegerZooms) await setZoom(page, z);
     const afterJitter = await readState(page);
@@ -179,7 +225,11 @@ async function main() {
       "정수가 바뀌는 zoom 은 다시 파생한다",
       afterStep.derivations >= 1 &&
         observedColumns(afterStep) ===
-          expectedColumns(afterStep.containerWidth, afterStep.zoom),
+          expectedColumns(
+            afterStep.containerWidth,
+            afterStep.zoom,
+            afterStep.railInset,
+          ),
       { derivations: afterStep.derivations, got: observedColumns(afterStep) },
     );
 

@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Dialog 트리거 연결 — Components 편집과 런타임 열림 분리] - 2026-09-23
+
+### Fixed
+
+- Dialog 삽입 구성을 `DialogTrigger → Button + Dialog`로 변경했다. 일반 Canvas는 기본 닫힘 상태의 버튼만 표시하고, Components는 버튼과 본문을 함께 펼쳐 편집한다. Preview와 publish는 React Aria 모달을 통해 열기·Close·Escape·포커스 복원을 처리한다.
+- 기존 Components Dialog 원본의 스타일과 자식 ID를 보존하고, 해당 인스턴스의 본문 props와 descendants override 경로를 이관한다. 편집용 열린 표시는 문서의 초기 열림 상태를 변경하지 않는다.
+- Dialog 본문에 적용되던 fixed 배치와 Canvas 전면 backdrop을 제거했다. 런타임 배경막과 중앙 배치는 ModalOverlay가 맡으며 모달 내부의 중복 패딩을 제거했다.
+
 ## [Components 페이지의 선택 영역이 페이지 크기를 따른다] - 2026-09-23
 
 ### Fixed
@@ -26,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Settings 의 「열 수」에 `auto` 가 생겼다.** 고르면 페이지가 **지금 보이는 캔버스 폭에 들어가는 만큼**씩 한 줄에 놓인다 — 줌을 당기면 열이 줄고, 밀면 늘어난다. 숫자를 입력하면 예전처럼 줌과 무관하게 고정된다 (기본값은 그대로 3).
   - 입력 칸에 `auto` 를 직접 쳐도 되고, 단위 목록에서 골라도 된다. breakpoint 별로 따로 둘 수도 있다 (「이 breakpoint 만」).
   - 줌이 조금씩 흔들려도 열 수가 그대로면 배치를 다시 계산하지 않는다 — 계산의 입력이 줌 값이 아니라 거기서 나온 열 수(정수)이기 때문이다.
+  - 세는 폭은 캔버스 전폭이 아니라 **좌우 패널 버튼 띠를 뺀 폭**이다 — 전폭으로 세면 마지막 열이 그 띠 밑으로 들어간다. 여닫는 패널은 빼지 않는다 (열 수가 패널 상태를 따라 뛰지 않게).
   - 위치: `apps/builder/src/builder/workspace/canvas/scene/pagePlacement.ts`, `apps/builder/src/builder/panels/settings/SettingsPanel.tsx`
 
 ## [열 수 설정이 고정된 페이지 때문에 무시되던 문제] - 2026-09-23

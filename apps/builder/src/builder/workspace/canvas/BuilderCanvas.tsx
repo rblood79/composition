@@ -104,6 +104,7 @@ import {
 import { getElementBoundsSimple } from "./elementRegistry";
 import { buildPagePaintRank } from "./scene/pagePaintOrder";
 import { readPageFrameSize } from "./scene/pageFrameSize";
+import { readCanvasRailInset } from "./viewport/canvasChromeInset";
 import {
   derivePagePositionsMemo,
   pagePlacementVersion,
@@ -643,11 +644,16 @@ export function BuilderCanvas({
   //   **정수 하나로 양자화해서** 파생에 넘긴다: zoom 이 연속으로 바뀌어도 정수가 그대로면
   //   아래 memo 의 deps 가 안 움직여 엔진 호출도 메모 키 재생성도 없다 (「가장 적은 비용」).
   //   auto 가 아니면 계산 자체를 건너뛴다.
+  //
+  //   폭은 컨테이너 전폭이 아니라 **패널 토글 레일을 뺀 폭** 이다 — 캔버스는 창 전체를 덮고
+  //   레일 (좌·우 각 40px + 바깥 여백) 이 그 위에 떠 있어서, 전폭으로 세면 마지막 열이 레일
+  //   아래로 들어간다 (사용자 지적 2026-09-23). 떠 있는 **패널** 은 빼지 않는다 — 여닫을
+  //   때마다 열 수가 뛴다.
   const autoColumns = useMemo(() => {
     const base = resolvePageLayout(documentPageLayout, sceneActiveBreakpoint);
     if (!base.columnsAuto) return undefined;
     return resolveAutoColumns(
-      containerSize.width,
+      containerSize.width - readCanvasRailInset(),
       zoom,
       base.trackWidth,
       base.gap,
