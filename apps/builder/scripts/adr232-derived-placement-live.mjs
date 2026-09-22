@@ -334,6 +334,65 @@ async function main() {
       storePositions: grown.storePositions,
     });
 
+    // ── 고정 칸이 열 수를 무력화하지 않는가 (사용자 보고 2026-09-23) ──
+    //   grid 는 명시 track 밖 line 에 implicit track 을 만들고 auto-placement 가 그 격자를
+    //   쓴다 → 3열에서 3번 칸에 고정한 페이지 하나가 「열 수」 설정을 통째로 무시하게 만들었다.
+    await setLayout(page, { direction: "auto", gap: 80, columns: 3 });
+    await settle(page, 1000);
+    const pinTarget = userIds[2];
+    await setPlacements(page, [
+      {
+        pageId: pinTarget,
+        placement: { style: { gridColumnStart: 3, gridRowStart: 2 } },
+      },
+    ]);
+    await settle(page, 1000);
+    const pinned3 = await readFrames(page);
+    const p3map = Object.fromEntries(
+      pinned3.frames.map((f) => [f.id, [f.x, f.y]]),
+    );
+
+    await setLayout(page, { columns: 2 });
+    await settle(page, 1100);
+    const pinned2 = await readFrames(page);
+    const p2map = Object.fromEntries(
+      pinned2.frames.map((f) => [f.id, [f.x, f.y]]),
+    );
+    const flowIds = userIds.filter((id) => id !== pinTarget);
+    check(
+      "고정 페이지가 있어도 열 수 3→2 가 흐름 페이지를 접는다",
+      flowIds.every((id) => p2map[id]?.[0] <= 2000) &&
+        flowIds.some((id) => p2map[id]?.[1] > 0),
+      { got: flowIds.map((id) => p2map[id]) },
+    );
+    check(
+      "열 밖 고정 칸은 마지막 열로 clamp 된다 (문서 placement 는 유지)",
+      p2map[pinTarget]?.[0] === 2000 &&
+        p2map[pinTarget]?.[1] === p3map[pinTarget]?.[1],
+      { pinned: p2map[pinTarget], at3: p3map[pinTarget] },
+    );
+    const cells2 = pinned2.frames.map((f) => `${f.x}:${f.y}`);
+    check(
+      "clamp 뒤에도 겹치는 페이지가 없다",
+      new Set(cells2).size === cells2.length,
+      { cells: cells2 },
+    );
+
+    await setLayout(page, { columns: 3 });
+    await settle(page, 1100);
+    const back3 = await readFrames(page);
+    const b3map = Object.fromEntries(
+      back3.frames.map((f) => [f.id, [f.x, f.y]]),
+    );
+    check(
+      "열 수를 되돌리면 고정 칸도 원래 자리로 (clamp 는 파생 시점만)",
+      b3map[pinTarget]?.[0] === p3map[pinTarget]?.[0] &&
+        b3map[pinTarget]?.[1] === p3map[pinTarget]?.[1],
+      { back: b3map[pinTarget], original: p3map[pinTarget] },
+    );
+    await setPlacements(page, [{ pageId: pinTarget, placement: null }]);
+    await settle(page, 900);
+
     // ── legacy 복귀 ──
     await setLayout(page, { placementModel: "legacy" });
     await settle(page, 1100);

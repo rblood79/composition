@@ -669,3 +669,97 @@ describe("엔진 미준비 폴백 (부팅 초기 — G0 §4)", () => {
     });
   });
 });
+
+/**
+ * ADR-232 후속 (사용자 보고 2026-09-23 — "column count 변경 시 반영이 되지 않는다").
+ *
+ * grid 는 명시 track 밖의 line 번호에 implicit track 을 만들고 auto-placement 가 그 격자를
+ * 쓴다 → 3열에서 3번 칸에 고정한 페이지 하나가 열 수 설정을 통째로 무력화했다.
+ */
+describe("고정 칸은 격자를 넓히지 못한다 (열 수 설정이 정본)", () => {
+  const sizes = uniformSizes(4, "desktop");
+  const pin = (style: Record<string, string | number>) => ({
+    p2: { style },
+  });
+
+  it("열 수를 줄이면 그 밖의 고정 칸은 마지막 열로 clamp 되고 흐름도 따라 접힌다", () => {
+    const derived = derivePagePositions({
+      pages: pagesOf(4),
+      pageSizes: sizes,
+      pageLayout: {
+        direction: "auto",
+        gap: GAP,
+        columns: 2,
+        placements: pin({ gridColumnStart: 3, gridRowStart: 2 }),
+      },
+      activeBreakpoint: "desktop",
+    });
+    const stride = TIER.desktop.width + GAP;
+    // 고정 페이지 = (2열, 2행) 으로 clamp
+    expect(asMap(derived!).p2).toEqual([stride, 1160]);
+    // 나머지는 2열 흐름 — implicit 3번째 열이 생기지 않는다
+    expect(asMap(derived!).p0).toEqual([0, 0]);
+    expect(asMap(derived!).p1).toEqual([stride, 0]);
+    expect(asMap(derived!).p3).toEqual([0, 1160]);
+  });
+
+  it("열 수를 다시 늘리면 문서의 고정 칸이 그대로 돌아온다 (clamp 는 파생 시점만)", () => {
+    const layout = {
+      direction: "auto" as const,
+      gap: GAP,
+      placements: pin({ gridColumnStart: 3, gridRowStart: 2 }),
+    };
+    const stride = TIER.desktop.width + GAP;
+    const narrow = derivePagePositions({
+      pages: pagesOf(4),
+      pageSizes: sizes,
+      pageLayout: { ...layout, columns: 2 },
+      activeBreakpoint: "desktop",
+    });
+    const wide = derivePagePositions({
+      pages: pagesOf(4),
+      pageSizes: sizes,
+      pageLayout: { ...layout, columns: 3 },
+      activeBreakpoint: "desktop",
+    });
+    expect(asMap(narrow!).p2).toEqual([stride, 1160]);
+    expect(asMap(wide!).p2).toEqual([stride * 2, 1160]);
+  });
+
+  it("clamp 뒤 같은 칸이 겹치면 뒤 페이지는 흐름으로 돌아간다 (겹쳐 그리지 않는다)", () => {
+    const derived = derivePagePositions({
+      pages: pagesOf(4),
+      pageSizes: sizes,
+      pageLayout: {
+        direction: "auto",
+        gap: GAP,
+        columns: 2,
+        placements: {
+          p1: { style: { gridColumnStart: 3, gridRowStart: 1 } },
+          p2: { style: { gridColumnStart: 4, gridRowStart: 1 } },
+        },
+      },
+      activeBreakpoint: "desktop",
+    });
+    const map = asMap(derived!);
+    const cells = Object.values(map).map((xy) => xy.join(","));
+    expect(new Set(cells).size).toBe(cells.length);
+  });
+
+  it("span 등 숫자가 아닌 line 값은 손대지 않는다", () => {
+    const derived = derivePagePositions({
+      pages: pagesOf(2),
+      pageSizes: uniformSizes(2, "desktop"),
+      pageLayout: {
+        direction: "auto",
+        gap: GAP,
+        columns: 2,
+        placements: {
+          p1: { style: { gridColumnStart: 2, gridColumnEnd: "span 1" } },
+        },
+      },
+      activeBreakpoint: "desktop",
+    });
+    expect(asMap(derived!).p1).toEqual([TIER.desktop.width + GAP, 0]);
+  });
+});

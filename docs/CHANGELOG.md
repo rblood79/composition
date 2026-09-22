@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [열 수 설정이 고정된 페이지 때문에 무시되던 문제] - 2026-09-23
+
+### Fixed
+
+- **페이지를 한 번이라도 격자 칸에 놓아 둔 문서에서 「열 수」를 바꿔도 배치가 그대로이던 문제를 고쳤다.** 예를 들어 3열일 때 세 번째 칸에 놓은 페이지가 하나 있으면, 열 수를 2로 줄여도 모든 페이지가 3열 그대로 남았다.
+  - **Why:** grid 는 명시된 열 밖의 칸 번호를 만나면 열을 하나 더 만들고, 나머지 페이지의 자동 배치도 그 늘어난 격자를 쓴다. 그래서 고정된 페이지 하나가 열 수 설정을 통째로 덮어썼다. 이제 파생 시점에 고정 칸을 설정된 열 안으로 접어 넣는다 — 문서에 저장된 칸은 그대로라 열 수를 다시 늘리면 원래 자리로 돌아온다. 접은 결과 두 페이지가 같은 칸이 되면 뒤 페이지는 흐름으로 돌아간다 (겹쳐 그리지 않는다).
+  - 위치: `apps/builder/src/builder/workspace/canvas/scene/pagePlacement.ts`
+
 ## [페이지 헤더가 설정 변경을 따라가지 않던 문제] - 2026-09-22
 
 ### Fixed

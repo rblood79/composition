@@ -230,6 +230,76 @@ function placementToEngineStyle(
   return out;
 }
 
+/** 명시 track 수 — `null` 이면 그 축은 설정이 정하지 않는다 (implicit 이 설계다). */
+function explicitTrackCount(
+  layout: ResolvedPageLayout,
+  axis: "column" | "row",
+): number | null {
+  if (layout.direction === "horizontal") {
+    // `gridAutoFlow: column` — 행은 하나 (`gridTemplateRows: ["auto"]`), 열은 자라는 축.
+    return axis === "row" ? 1 : null;
+  }
+  if (axis === "row") return null; // `gridAutoRows: auto` — 행은 페이지 수가 정한다.
+  return layout.direction === "vertical" ? 1 : layout.columns;
+}
+
+function parseLine(value: string | undefined): number | null {
+  if (value === undefined) return null;
+  if (!/^\d+$/.test(value)) return null; // `span 2` 등은 손대지 않는다.
+  const n = Number.parseInt(value, 10);
+  return Number.isFinite(n) && n >= 1 ? n : null;
+}
+
+/**
+ * ADR-232 후속 (사용자 보고 2026-09-23) — **고정 칸은 격자를 넓히지 못한다.**
+ *
+ * grid 는 명시 track 밖의 line 번호를 만나면 implicit track 을 만들고, auto-placement 는
+ * 그 늘어난 격자를 쓴다. 그래서 3열일 때 3번 칸에 고정한 페이지가 하나 있으면 열 수를 2로
+ * 줄여도 implicit 3번째 열이 생겨 **모든 페이지가 그대로 있는다** — 「열 수」 설정이 통째로
+ * 무시된 것처럼 보인다 (live 재현: columns 2·6 어느 쪽으로 바꿔도 frame Δ0).
+ *
+ * 그래서 파생 시점에 고정 칸을 명시 track 안으로 clamp 한다. 문서의 placement 는 그대로 두므로
+ * (사용자가 놓은 자리) 열 수를 다시 늘리면 원래 칸으로 돌아온다. clamp 뒤 같은 칸이 겹치면
+ * 뒤 페이지는 고정을 버리고 흐름으로 — 엔진은 같은 칸 중복을 허용해 그대로 두면 겹쳐 그린다.
+ */
+function clampPinnedCell(
+  engineStyle: Record<string, string>,
+  layout: ResolvedPageLayout,
+  usedCells: Set<string>,
+): Record<string, string> {
+  if (engineStyle.position === "absolute") return engineStyle;
+  const out = { ...engineStyle };
+  for (const axis of ["column", "row"] as const) {
+    const count = explicitTrackCount(layout, axis);
+    if (count === null) continue;
+    const startKey = axis === "column" ? "gridColumnStart" : "gridRowStart";
+    const endKey = axis === "column" ? "gridColumnEnd" : "gridRowEnd";
+    const start = parseLine(out[startKey]);
+    if (start === null) continue;
+    const clamped = Math.min(start, count);
+    if (clamped !== start) out[startKey] = String(clamped);
+    const end = parseLine(out[endKey]);
+    if (end !== null) {
+      const clampedEnd = Math.min(Math.max(end, clamped + 1), count + 1);
+      if (clampedEnd !== end) out[endKey] = String(clampedEnd);
+    }
+  }
+  const col = parseLine(out.gridColumnStart);
+  const row = parseLine(out.gridRowStart);
+  if (col === null || row === null) return out;
+  const cell = `${col}:${row}`;
+  if (usedCells.has(cell)) {
+    // 같은 칸을 두 페이지가 잡았다 — 뒤 페이지는 흐름으로 (겹쳐 그리지 않는다).
+    delete out.gridColumnStart;
+    delete out.gridColumnEnd;
+    delete out.gridRowStart;
+    delete out.gridRowEnd;
+    return out;
+  }
+  usedCells.add(cell);
+  return out;
+}
+
 /** 합성 root style — direction 별 매핑 (위 표). */
 export function buildContainerStyle(
   layout: ResolvedPageLayout,
@@ -362,6 +432,7 @@ export function derivePagePositions(
   const placements = input.pageLayout?.placements;
   const nodes: Array<{ style: Record<string, unknown>; children: number[] }> =
     [];
+  const usedCells = new Set<string>();
   for (const page of input.pages) {
     const size = input.pageSizes[page.id];
     let style = resolvePagePlacementStyle(
@@ -382,7 +453,7 @@ export function derivePagePositions(
         display: "block",
         width: `${size?.width ?? tier.width}px`,
         height: `${size?.height ?? tier.height}px`,
-        ...placementToEngineStyle(style),
+        ...clampPinnedCell(placementToEngineStyle(style), layout, usedCells),
       },
       children: [],
     });
