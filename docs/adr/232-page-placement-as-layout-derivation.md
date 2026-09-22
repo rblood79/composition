@@ -2,9 +2,20 @@
 
 ## Status
 
-Accepted — 2026-09-22 (Phase 0 완료 · G0 PASS)
+Accepted — 2026-09-22 (Phase 0~3 완료 · Phase 4 부분 — **G3 미달 1건 재승인 대기**)
 
-리뷰 [reviews/232.md](reviews/232.md) round 3 종결 (pending 0 · HIGH 전부 fixed) 로 전제 확정, 사용자 `/execute-adr 232` 로 실행 승인. Phase 0 inventory freeze 완료 — [evidence/232-g0-inventory-freeze.md](evidence/232-g0-inventory-freeze.md).
+리뷰 [reviews/232.md](reviews/232.md) round 3 종결 (pending 0 · HIGH 전부 fixed) 로 전제 확정, 사용자 `/execute-adr 232` 로 실행 승인.
+
+| Gate | 판정                                                                                                                                                                                                                                                                                        |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| G0   | PASS — [evidence/232-g0-inventory-freeze.md](evidence/232-g0-inventory-freeze.md)                                                                                                                                                                                                           |
+| G1   | PASS — unit 91 + 정적 4 · 원복 RED 5/5 · live 21/21                                                                                                                                                                                                                                         |
+| G2   | PASS — live 24/24                                                                                                                                                                                                                                                                           |
+| G4   | PASS — live 15/15 · unit 13 (이전 빌드 왕복 기록 1건 미실행)                                                                                                                                                                                                                                |
+| G5   | PASS — 정적 허용 목록 · live 5/5 (2건은 채널 미노출로 판정 생략) · ADR-231 하니스 14/14                                                                                                                                                                                                     |
+| G3   | **PASS 3 / 미달 1** — breakpoint 전환 total +9.9 ms (+12.6%). `render.frame` 은 −0.2 (PASS). 원인 분해 완료 (메모·렌더 캐시 아님 = tier 재산출의 1회 상호작용 비용) → ADR 의 실패 대안 마지막 단계 "**원인 분해 후 재승인**" 대기. [evidence/232-g3-perf-ab.md](evidence/232-g3-perf-ab.md) |
+
+Implemented 승격은 G3 재승인 뒤. 구현 기록은 [breakdown §5](design/232-page-placement-as-layout-derivation-breakdown.md#5-게이트-실행-기록).
 
 설계 요청: 사용자 (2026-09-22, ADR-231 Implemented 직후 페이지 정렬 결함 `f258286ef` 수리 뒤) — "page 도 canvas 내에 컴퍼넌트와 같은 element 잖아. page 들의 parents 에 이미 구현된 display 기능으로 page 정렬 자체도 같은 패턴으로 하는 게 좋지 않나." 이어진 대화에서 확정: 자유 배치 = `position:absolute` · breakpoint 별 배치 = 컨테이너의 responsive override · 칸 고정이 필요하면 `display:grid`. 컨테이너 폭을 브라우저 크기에 묶는 안은 2026-09-18 실측 (zoom 마다 칸이 바뀜) 으로 기각하고 **열 수 설정** 으로 대체.
 
@@ -111,7 +122,16 @@ Accepted — 2026-09-22 (Phase 0 완료 · G0 PASS)
 
 ### Live Exercise
 
-(Implemented 승격 시 기재)
+전부 headed Chrome · 실제 빌더 부팅 · 실입력 (Compare Mode/Preview iframe 은 열지 않는다 — 사용자 지시 2026-09-22).
+
+| 하니스                                                        | 결과  | 무엇을 실제로 돌렸나                                                                                                                                                                                                                              |
+| ------------------------------------------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `adr232-derived-placement-live.mjs`                           | 21/21 | hydration 이 `derived` 기록 · 3열 격자 · 시스템 열 · 겹침 0 · 열 수 3↔4 · 칸 고정 + 재흐름 · desktop→tablet→mobile→desktop 왕복 Δ0 · tier stride 848/470 · mobile 열 수 override · Home body 1600 → 둘째 행 1680 (reflow 코드 없이) · legacy 복귀 |
+| `adr232-placement-edit-live.mjs`                              | 24/24 | 실제 마우스 드래그로 격자 밖 → absolute → Cmd+Z → reload 보존 · 칸 고정/교환/거부 (커밋 진입점) · Home 드래그·nudge 무반응 · align → 흐름 복귀 · 저장 좌표 쓰기 0                                                                                 |
+| `adr232-migration-bc-live.mjs`                                | 15/15 | 레거시 문서 (Home 오프셋 317 · 손 배치 1 · tier 3 상이) reload → 이관 · normalized-world Δ0 × 3 tier · `pagePositions` 바이트 동일 · 두 번째 reload 재이관 0 · legacy 복귀·재이관 Δ0                                                              |
+| `adr232-consumer-parity-live.mjs`                             | 5/5   | store 파생 미러 = scene frame · 페이지 헤더 화면 좌표 · 빈 페이지 영역 클릭 → 그 페이지 body 선택 (스크롤바·액션 바는 채널 미노출로 판정 생략)                                                                                                    |
+| `adr231-components-frame-live.mjs --phase 2`                  | 14/14 | ADR-231 frame 크기·시스템 열 계약이 파생 모델에서 그대로 성립 (드래그 보존 · reload · align · mobile override 왕복)                                                                                                                               |
+| `adr232-page-move-perf-ab.mjs` · `adr231-frame-decomp-ab.mjs` | G3    | 두 worktree A/B — 위 Status 표                                                                                                                                                                                                                    |
 
 ## Consequences
 

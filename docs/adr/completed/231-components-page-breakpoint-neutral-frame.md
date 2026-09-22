@@ -2,6 +2,8 @@
 
 ## Status
 
+> **2026-09-22 — ADR-232 가 배치 절을 대체한다.** 본 ADR 의 **frame 크기 계약** (Components frame = 1920 × 발행 body 높이 · floor 1080 · 저작 height 우선) 은 그대로 유효하며 ADR-232 파생의 **입력** 이다. 반면 Phase 2 의 **배치** (시스템 열 `x = homeX − (1920+gap)` 을 저장 좌표로 쓰기 · reflow 열/격자 경계 · breakpoint 공통 좌표 쓰기) 는 없어졌다 — 시스템 열은 이제 파생의 **기본 placement** (`absolute · left −(frame 폭 + gap)`) 이고 저장되지 않는다. 같은 시각 결과를 ADR-232 가 `adr231-components-frame-live.mjs --phase 2` 14/14 로 재확인했다.
+
 Implemented — 2026-09-22 (Proposed 같은 날 → 리뷰 round 1 HIGH 2 · MEDIUM 1 → round 2 HIGH 1 · MEDIUM 1 → 설계 수리 · round 3 이슈 0 → 사용자 `/execute-adr 231` 로 Accepted → Phase 0~~2 / G0~~G4 같은 날. G3 는 1차 headless total 이 +2.4~~+5 로 미달 → 판독 (계약 지표 ≠ 하니스 total) → 단계 분해 재측정 headed Δ0/Δ0 · headless +0.9/+0.4 PASS)
 
 설계 요청: 사용자 (2026-09-22, ADR-228~~230 origin/instance/slot 작업 중) — "컴포넌트들을 components page 에 보여주게 되는데 현재는 보기에도 불편하고 breakPoint 에 영향을 받고 있다. components page 는 breakPoint 에 영향을 받을 필요가 없는 page 이지 않나?" 전제 = **Components 페이지는 breakpoint 중립** (사용자 진술, 코드 사실 F1~~F5 가 반대로 되어 있음을 확인).

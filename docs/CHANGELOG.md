@@ -11,6 +11,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [페이지 배치 = 컨테이너 레이아웃 파생값 (ADR-232 Phase 0~3)] - 2026-09-22
+
+### Changed
+
+- **페이지 캔버스 위치를 저장하지 않는다.** 페이지 frame 의 x·y 는 페이지 컨테이너 (합성 grid root) 에 페이지 frame 을 넣어 레이아웃 엔진이 낸 결과다. 문서에는 페이지 `placement` 만 남는다 — 없음 (흐름) · 칸 고정 (`gridColumnStart`/`gridRowStart`) · 격자 밖 (`position:absolute` + `left`/`top`), breakpoint 차이는 요소와 같은 responsive override.
+  - **Why:** 저장 좌표는 페이지 추가·삭제·breakpoint 전환·body 크기 변화·reload·align 여섯 사건마다 좌표를 맞춰 주는 코드를 요구했고, 그 정합이 깨질 때마다 사용자 가시 결함이 됐다 (60일 8 커밋). 요소는 같은 문제를 부모의 display 로 푼다 — 페이지만 다른 모델을 쓰고 있었다.
+  - 배치 방향·간격·**열 수** 는 localStorage 에서 **문서 데이터** 로 승격됐다 (Settings). 열 수·간격은 breakpoint 별 override 가 되고, 방향은 breakpoint 공통이다.
+  - 기존 문서는 로드 시 1회 이관된다 (Home 기준 상대 배치 불변 · 칸이면 고정 / 아니면 absolute / 검증 실패면 Home 제외 전부 absolute). 저장 좌표는 지우지 않고 휴면으로 남아 `"legacy"` 복귀에서 읽힌다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/scene/pagePlacement*.ts`, `apps/builder/src/builder/stores/utils/pagePlacement*.ts`, `apps/builder/src/builder/stores/elements.ts`, `packages/shared/src/types/composition-document.types.ts`
+
+### Added
+
+- **페이지 칸 고정과 칸 교환.** 페이지를 격자 안에 놓으면 그 칸에 고정되고, 이미 고정된 페이지가 있는 칸에 놓으면 두 페이지가 자리를 맞바꾼다 (Cmd+Z 1회로 전체 복귀). 격자 밖에 놓으면 자유 배치다.
+- **Home 은 이동할 수 없다.** 흐름의 첫 칸이 Home 자리이며 드래그·X/Y 입력·방향키·칸 교환이 전부 거부된다.
+- **Settings 의 「열 수」** 와 비-desktop 의 「이 breakpoint 만」 토글 (ko/en).
+
+### Fixed
+
+- **body 높이를 바꿔도 뒤 페이지가 어긋나지 않는다.** 행 높이는 그 행 최대 frame 높이라 컨테이너 레이아웃이 다시 돌며 따라온다 — 이웃을 밀어 주던 reflow 계층이 없어졌다.
+- **breakpoint 를 오가도 페이지가 겹치지 않는다.** tier 별 좌표 스냅샷 3벌이 없어지고 차이는 placement override 하나로 표현된다.
+
+### Removed
+
+- 배치 함수 12 · breakpoint 좌표 스냅샷 · frame reflow · 페이지 추가의 다음 칸 계산 · hydration/스냅샷 복원의 위치 초기화 · 페이지 생성·삭제 이력의 좌표 스냅샷 (약 850 행).
+
+## [Components 페이지 — 미사용 Modal 원본 제거] - 2026-09-22
+
+### Fixed
+
+- **Components 페이지에서 Modal 자동 등록을 중단하고 기존 미사용 시스템 원본을 로드 시 정리한다.** 기존 인스턴스가 원본이나 자식을 참조하는 경우와 사용자 생성 Modal은 보존한다.
+  - **Why:** 팔레트 항목만 제거하여 Components 페이지 초기화가 Modal을 계속 시드했다.
+  - 위치: `apps/builder/src/builder/components/catalogOrigins.ts`, `packages/shared/src/catalog/componentCatalog.ts`
+
 ## [Dialog 기본 너비 — 부모의 100%] - 2026-09-22
 
 ### Changed

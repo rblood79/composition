@@ -11,6 +11,10 @@ import type {
 } from "@composition/shared";
 import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
 import {
+  getPagePlacementDerivationCount,
+  resetPagePlacementDerivationCount,
+} from "./pagePlacement";
+import {
   commitPagePlacementFromPoint,
   setPagePlacementModelDerived,
   setPagePlacementModelLegacy,
@@ -25,6 +29,9 @@ function readPageLayout(): PageLayoutSettingsDocument | undefined {
 
 export const pagePlacementDebugActions = {
   readPageLayout,
+  /** 파생 호출 횟수 (R4 메모 검증 · G3 진단). */
+  derivationCount: () => getPagePlacementDerivationCount(),
+  resetDerivationCount: () => resetPagePlacementDerivationCount(),
   setPageLayout: (patch: Partial<PageLayoutSettingsDocument>) =>
     useCanonicalDocumentStore.getState().setPageLayout(patch),
   setPagePlacements: (

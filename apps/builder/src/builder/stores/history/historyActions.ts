@@ -430,16 +430,8 @@ function applyPageLifecycleHistoryEntry(
   // (동기 구독) — 그 결과 위에서 index 를 재구축한다
   get()._rebuildIndexes();
 
-  const canonicalPositionEntries = event.positions.map((item) => ({
-    pageId,
-    breakpoint: item.breakpoint,
-    position: op === "add" ? { ...item.position } : null,
-  }));
-  if (canonicalPositionEntries.length > 0) {
-    useCanonicalDocumentStore
-      .getState()
-      .setPagePositions(canonicalPositionEntries);
-  }
+  // ADR-232 — 페이지 추가/삭제의 좌표 기록이 없어졌다 (위치는 파생값이고 `event.positions`
+  //   는 새 이력에서 빈 배열이다). 옛 이력의 좌표는 이관 뒤 읽히지 않는 휴면 필드에 남는다.
 
   if (nextCurrentPageId) {
     historyManager.setCurrentPage(nextCurrentPageId);

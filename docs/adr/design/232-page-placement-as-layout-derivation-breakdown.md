@@ -119,3 +119,41 @@ unit 91/91 (`scene/pagePlacement.test.ts`) + 정적 4 (`pagePlacementKeys.static
 live 21/21 (`apps/builder/scripts/adr232-derived-placement-live.mjs`, headed · 실제 빌더 · 페이지 6) — [evidence/232-phase1b-live.json](../evidence/232-phase1b-live.json). derived 전환 · 3열 격자 · 겹침 0 · 열 수 변경 · 칸 고정 + 재흐름 · breakpoint 왕복 Δ0 · tier stride 848/470 · mobile 열 수 override · Home body 1600 → 둘째 행 1680 (reflow 코드 없이) · 파생 갱신 저장 좌표 쓰기 0 · legacy 복귀.
 
 Phase 1 구현 결정 (승인 scope 안의 통상 판단): 페이지 `placement` 는 **문서 root `pageLayout.placements[pageId]`** 에 둔다 — 페이지 노드/`Page` 배선을 건드리지 않고 `pagePositions` 를 구조적으로 1:1 대체하며, R6 (export 누출) 도 같은 근거로 닫힌다. style 언어와 cascade 는 요소와 동일 (`resolveResponsiveStyleMap`).
+
+### G2 — Phase 2 편집 경로 · **PASS** (2026-09-22, `a208eff16`)
+
+live 24/24 (`apps/builder/scripts/adr232-placement-edit-live.mjs`, headed · 실제 빌더 · 페이지 6) — [evidence/232-g2-placement-edit-live.json](../evidence/232-g2-placement-edit-live.json).
+
+격자 밖 드래그 → absolute (파생 좌표 = inset) · Cmd+Z 흐름 복귀 · reload 보존 (placement·좌표 Δ0) · 흐름 칸 → 고정 + 뒤 페이지 재흐름 · 고정 칸 → 교환 (좌표 맞바뀜 · 겹침 0 · Cmd+Z 1회) · Home 드래그/nudge 무반응 · 첫 칸 교환 거부 · align → placement 0 + 3열 복귀 + 시스템 기본 배치 유지 · 열 수 5 · 저장 좌표 쓰기 0 · 시스템 페이지 기본 배치 (placement 저장 없이 왼쪽 열).
+
+**live 가 잡은 결함 2** (unit 은 통과했다): (1) `pages[0]` 은 Home 이 아니다 — store 페이지 순서는 시스템 Components 가 앞에 와서 **Home 이동 금지 규칙이 통째로 뚫려 있었다** (R10). (2) align 이 시스템 페이지 placement 까지 지워 Components 가 흐름 첫 칸에 합류, Home 을 밀어냈다 → Decision 5 의 시스템 기본 배치를 **파생에 둔다** (저장하지 않는 기본값).
+
+포인터 플럼빙 경계: 칸 고정·교환·거부는 드래그 finish 와 **같은 커밋 진입점** (`commitFromPoint`) 으로 실행한다 — 헤더 합성 드래그는 작은 Δ 에서 실행마다 갈려 판정 자체를 못 본다. 실제 마우스 드래그는 absolute 드롭과 Home 무반응이 덮는다. **Navigator 순서 변경** 은 현재 제품에 그 조작이 없어 (store reorder 액션 0) 하니스에서 뺐다 — ADR 본문 G2 의 해당 항목은 제품에 그 기능이 생길 때 열린다.
+
+### G4 — Phase 3 이관 BC · **PASS** (2026-09-22, `7ab3c4727`)
+
+live 15/15 (`apps/builder/scripts/adr232-migration-bc-live.mjs`, headed · 실제 hydration · Home 오프셋 317 + 손 배치 1 + tier 3 상이 fixture) — [evidence/232-g4-migration-bc-live.json](../evidence/232-g4-migration-bc-live.json) · unit 13 (`pagePlacementMigration.test.ts`).
+
+(a) normalized-world Δ0 × 3 tier · 시스템 열 규칙 (Home.x − 2000) · `pagePositions` 바이트 동일 · (b) 두 번째 reload 재이관 0 + 벡터 Δ0 · (c) legacy 복귀 좌표 = 저장값 · 겹침 0 · legacy reload 재이관 0 · 재이관 벡터 Δ0.
+
+**하니스 함정**: 새 프로젝트는 hydration 이 이미 `derived` 를 쓴다 — 레거시 문서를 재현하려면 표식을 지워야 이관이 돈다. 그러지 않으면 G4 (a) 가 흐름끼리 비교해 **거짓 통과** 한다 (첫 실행에서 실제로 그랬다).
+
+시스템 페이지는 벡터 계약에서 뺀다 — 그 위치는 저장값이 아니라 ADR-231 규칙의 파생 기본값이고 (Decision 5) 이관 대상도 아니다. 대신 규칙 자체 (Home.x − (1920+gap)) 를 따로 본다.
+
+**미실행 1**: (c) 의 "232 이전 빌드로 같은 문서 열기 → 좌표 Δ0 · root 필드 보존 여부" 는 이전 빌드 worktree 가 G3 측정에 쓰여 이번에 돌리지 않았다. `pagePositions` 가 바이트 동일하다는 것은 확인했으므로 이전 빌드가 읽을 좌표는 보존돼 있다 (보존 **여부 기록** 만 미실행).
+
+### G5 — Phase 3 회귀 · **PASS** (2026-09-22)
+
+- 정적 (`scene/__tests__/pagePositionsResidue.static.test.ts`): 문서 `pagePositions` 를 읽거나 쓰는 곳이 **허용 목록 안뿐** — 이관 (`pagePlacementHydration` · `pagePlacementMigration`) · legacy 읽기 (`pagePlacement`) · 복귀 (`pagePlacementCommit`) · canonical mutation surface · 파생 입력 1지점 (`BuilderCanvas`) · dev 디버그 전역 · 벤치 fixture. store 에 저장 좌표 필드·배치 함수 12 부재도 같이 고정.
+- live 5/5 (`adr232-consumer-parity-live.mjs`): store 파생 미러 = scene frame 좌표 · 페이지 헤더 x = frame x (화면 좌표) · 히트 (페이지 중심 클릭 → 그 페이지 body 선택). 스크롤바 extent·액션 바는 그 채널이 노출/표시되지 않아 **판정 생략** (2/5 는 trivially true).
+- ADR-231 Phase 2 하니스 **14/14** (`adr231-components-frame-live.mjs --phase 2`): frame 1920 × 발행 높이 · maxScrollTop 0 · 전환 왕복 Δ0 · 시스템 열 규칙 · 드래그 (−2500,200) 보존 · reload 보존 · 새 페이지 x ≥ 0 · align 뒤 시스템 열 복귀 · mobile override 왕복 · pageerror 0. (구 15 항목 중 `updatePagePosition` 직접 호출 1건은 같은 조작을 `commitFromPoint` 로 바꿔 유지.)
+
+### G3 — Phase 4 성능 · **PASS 3 / 미달 1 (재승인 대기)** (2026-09-22)
+
+전문: [evidence/232-g3-perf-ab.md](../evidence/232-g3-perf-ab.md). 대조군 = `f258286ef` worktree · 실험군 = `accf4eaec` worktree (둘 다 그 커밋 lockfile 로 install).
+
+- (1) frame 크기 불변 편집 600 요소 (`--pairs 4`): `scene.build` +0.1 · `layout.publish` +0.1 · total +0.2 → **PASS**. 크기 불변 편집의 **파생 카운터 0** · 유휴 0 · 전환 1회당 1 (메모 정상).
+- (2) 위치 변경 조작 (페이지 30 · 줌 0.12 · `--pairs 5`): body 높이 **−24.3 ms** · 페이지 추가 **−3.8 ms** · 열 수 (after 전용) 47.9 ms → PASS. **breakpoint 전환 total +9.9 ms (+12.6%) 미달** — `render.frame` 은 −0.2 (PASS).
+- 미달 원인 분해: 메모 키 누락 아님 (파생 1회) · 렌더 캐시 재생성 아님 (`render.frame` −0.2) · scene 재구성 아님 (+0.1). 남은 것은 tier 재산출 (`layout.publish` +1.2) 과 그 뒤 React 커밋·effect 사슬 ≈ 8 ms. before 는 저장 스냅샷을 바꿔 끼우기만 했고 after 는 그 tier 로 다시 파생한다 — **모델에 내재한 1회 상호작용 비용**이다.
+- ADR G3 의 실패 대안 3단계 중 앞 둘은 실측 배제 → 남은 것은 "**원인 분해 후 재승인**" (사용자 판정).
+- 조작 목록 정정: "순서 변경" 은 제품에 그 사용자 조작이 없어 **페이지 추가** 로 대체.

@@ -236,11 +236,13 @@ async function main() {
         },
       );
 
-      // (a) 드래그 finish 커밋 (usePageDrag → updatePagePosition) 후 전환 왕복 · reload 보존
+      // (a) 드래그 finish 커밋 후 전환 왕복 · reload 보존.
+      //   ADR-232 — 커밋은 좌표가 아니라 placement 다 (`commitFromPoint` = 드래그 finish 진입점).
       await page.evaluate(() =>
-        window.__composition_STORE__
-          .getState()
-          .updatePagePosition("page-components", -2500, 200),
+        window.__composition_PAGE_PLACEMENT__.commitFromPoint("page-components", {
+          x: -2500,
+          y: 200,
+        }),
       );
       await settle(page, 800);
       for (const bp of ["mobile", "desktop"]) await switchBreakpoint(page, bp);
@@ -294,7 +296,8 @@ async function main() {
         });
       }
 
-      // (c) align (줌 메뉴 → 페이지 정렬 실입력) → Home (leftInset,0) · Components 왼쪽 열 · 겹침 0
+      // (c) align (줌 메뉴 → 페이지 정렬 실입력) → Home 원점 · Components 왼쪽 열 · 겹침 0.
+      //   ADR-232 — align 은 placement 삭제라 Components 도 기본 배치 (왼쪽 열) 로 돌아온다.
       await page.evaluate(() =>
         window.__composition_STORE__.getState().setPageLayoutDirection("auto"),
       );

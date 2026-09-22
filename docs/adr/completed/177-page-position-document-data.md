@@ -2,7 +2,13 @@
 
 ## Status
 
-Implemented — 2026-08-12 (리뷰 round 1 승인 `docs/adr/reviews/177.md` → Accepted → Phase 0~4 같은 날 완료)
+Superseded by [ADR-232](../232-page-placement-as-layout-derivation.md) — 2026-09-22
+
+(원래: Implemented — 2026-08-12 · 리뷰 round 1 승인 `docs/adr/reviews/177.md` → Accepted → Phase 0~4 같은 날 완료)
+
+**무엇이 대체됐나**: "페이지 위치 = breakpoint 별 **저장 좌표** (`pagePositions`)" 라는 모델. ADR-232 는 위치를 페이지 컨테이너 (합성 grid root) 의 **레이아웃 파생값** 으로 바꾸고 문서에는 페이지 `placement` (칸 고정 / absolute / tier override) 만 남긴다.
+
+**무엇이 남았나**: 본 ADR 의 "위치는 문서 데이터이고 undo 는 일원이다" 는 원칙은 그대로다 — placement 도 문서 데이터이고 같은 `"page-position"` history 스택에 들어간다 (`pagePlacementEvent`). `pagePositions` 필드 자체는 한 major 간 **휴면** 으로 남아 이관 입력과 `"legacy"` 복귀에서만 읽힌다.
 
 ### Phase 진행 로그
 
