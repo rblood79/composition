@@ -42,6 +42,37 @@ describe("findBodySelectionAtCanvasPoint", () => {
     expect(result).toEqual({ bodyElementId: "page-body", pageId: "page-1" });
   });
 
+  // ADR-231 후속 (사용자 보고 2026-09-23) — Components 페이지는 breakpoint 를 읽지 않는다
+  //   (frame = 1920 × 발행 높이). 이 모듈은 그 규칙을 모르므로 호출자가 reader 를 준다.
+  it("주입된 pageSizeReader 가 breakpoint 크기보다 우선한다", () => {
+    const common = {
+      currentPageId: "page-1",
+      elementsMap: new Map([
+        ["page-body", makeBody({ id: "page-body", page_id: "page-1" })],
+      ]),
+      pageHeight: 844,
+      pageIndexElementsByPage: new Map([["page-1", new Set(["page-body"])]]),
+      pagePositions: { "page-1": { x: 0, y: 0 } },
+      pageWidth: 390,
+      pages: [{ id: "page-1" }],
+    };
+    // breakpoint 상자 (390×844) 밖 · 중립 frame (1920×2000) 안
+    const canvasPoint = { x: 1500, y: 1500 };
+
+    expect(findBodySelectionAtCanvasPoint({ ...common, canvasPoint })).toEqual({
+      bodyElementId: null,
+      pageId: null,
+    });
+
+    expect(
+      findBodySelectionAtCanvasPoint({
+        ...common,
+        canvasPoint,
+        pageSizeReader: () => ({ width: 1920, height: 2000 }),
+      }),
+    ).toEqual({ bodyElementId: "page-body", pageId: "page-1" });
+  });
+
   it("selects canonical Body nodes with uppercase type for empty page clicks", () => {
     const result = findBodySelectionAtCanvasPoint({
       canvasPoint: { x: 40, y: 40 },

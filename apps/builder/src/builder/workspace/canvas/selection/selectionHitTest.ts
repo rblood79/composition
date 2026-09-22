@@ -116,7 +116,12 @@ export function findTopPageIdAtCanvasPoint({
     };
     if (
       containsPoint(
-        { x: position.x, y: position.y, width: size.width, height: size.height },
+        {
+          x: position.x,
+          y: position.y,
+          width: size.width,
+          height: size.height,
+        },
         canvasPoint,
       )
     ) {
@@ -353,6 +358,7 @@ export function findBodySelectionAtCanvasPoint({
   pages,
   frameAreas = [],
   pagePositionReader,
+  pageSizeReader,
 }: {
   canvasPoint: CanvasPoint;
   currentPageId: string | null;
@@ -363,6 +369,11 @@ export function findBodySelectionAtCanvasPoint({
   pageSelectionEnabled?: boolean;
   pagePositions: PagePositionMap;
   pagePositionReader?: (pageId: string) => { x: number; y: number } | undefined;
+  /**
+   * 페이지 frame 크기 — 호출자가 주면 그것을 쓴다 (ADR-231 breakpoint 중립 페이지처럼 이
+   * 모듈이 알 수 없는 규칙이 있는 경우). 없으면 저작 크기 ?? breakpoint 크기.
+   */
+  pageSizeReader?: (pageId: string) => { width: number; height: number };
   pageWidth: number;
   pages: PageLike[];
 }): BodySelectionResult {
@@ -385,14 +396,16 @@ export function findBodySelectionAtCanvasPoint({
     pageHeight,
     pagePositions,
     pagePositionReader,
-    pageSizeReader: (id) =>
-      readPageFrameSize(
-        id,
-        pageIndexElementsByPage,
-        elementsMap,
-        pageWidth,
-        pageHeight,
-      ),
+    pageSizeReader:
+      pageSizeReader ??
+      ((id) =>
+        readPageFrameSize(
+          id,
+          pageIndexElementsByPage,
+          elementsMap,
+          pageWidth,
+          pageHeight,
+        )),
     pageWidth,
     pages,
   });

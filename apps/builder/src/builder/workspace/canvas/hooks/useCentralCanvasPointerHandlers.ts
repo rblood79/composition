@@ -6,6 +6,8 @@ import {
 } from "react";
 import { useStore } from "../../../stores";
 import { readPageFrameSize } from "../scene/pageFrameSize";
+import { isComponentsPageMirror } from "../../../pages/systemComponentsPage";
+import { useViewportSyncStore } from "../stores";
 import type {
   BoundingBox,
   FrameBodySelectionArea,
@@ -319,19 +321,34 @@ export function useCentralCanvasPointerHandlers({
         state.pages,
         state.currentPageId,
       );
+      // ADR-231 — Components 페이지는 breakpoint 를 읽지 않는다 (frame = 1920 × 발행 높이).
+      //   히트·선택이 같은 규칙을 안 쓰면 그려진 상자와 고를 수 있는 상자가 어긋난다
+      //   (사용자 보고 2026-09-23: 선택 영역이 breakpoint 크기였다).
+      const pageContentHeights =
+        useViewportSyncStore.getState().pageContentHeights;
+      const neutralPageIds = new Set(
+        state.pages.filter(isComponentsPageMirror).map((p) => p.id),
+      );
+      const pageSizeReader = (pageId: string) =>
+        readPageFrameSize(
+          pageId,
+          state.pageIndex.elementsByPage,
+          hitElementsMap,
+          pageWidth,
+          pageHeight,
+          neutralPageIds.has(pageId)
+            ? {
+                neutral: true,
+                publishedContentHeight: pageContentHeights.get(pageId),
+              }
+            : undefined,
+        );
       const topPageId = resolveTopPageIdAtPoint({
         canvasPoint: canvasPos,
         activePageId: state.currentPageId,
         pageHeight,
         pagePositions: state.derivedPagePositions,
-        pageSizeReader: (pageId) =>
-          readPageFrameSize(
-            pageId,
-            state.pageIndex.elementsByPage,
-            hitElementsMap,
-            pageWidth,
-            pageHeight,
-          ),
+        pageSizeReader,
         pageWidth,
         pages: state.pages,
       });
@@ -354,6 +371,7 @@ export function useCentralCanvasPointerHandlers({
             pageIndexElementsByPage: state.pageIndex.elementsByPage,
             pageSelectionEnabled,
             pagePositions: state.derivedPagePositions,
+            pageSizeReader,
             pageWidth,
             pages: state.pages,
           });
@@ -519,6 +537,7 @@ export function useCentralCanvasPointerHandlers({
             pageIndexElementsByPage: state.pageIndex.elementsByPage,
             pageSelectionEnabled,
             pagePositions: state.derivedPagePositions,
+            pageSizeReader,
             pageWidth,
             pages: state.pages,
           });

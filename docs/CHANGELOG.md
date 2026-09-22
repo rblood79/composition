@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Components 페이지의 선택 영역이 페이지 크기를 따른다] - 2026-09-23
+
+### Fixed
+
+- **Components 페이지에서 데스크톱이 아닌 breakpoint 일 때 페이지 오른쪽·아래쪽을 눌러도 선택되지 않던 문제를 고쳤다.** 그려진 페이지 안인데도 모바일에서는 390×844, 태블릿에서는 768×1024 안쪽만 눌렸다.
+  - **Why:** Components 페이지는 breakpoint 를 따르지 않고 고정 크기(1920 × 내용 높이)로 그려지는데, 빈 영역을 눌렀을 때 어느 페이지인지 판정하는 쪽만 그 규칙을 쓰지 않고 현재 breakpoint 크기를 썼다. 그려지는 상자와 누를 수 있는 상자가 달랐다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/hooks/useCentralCanvasPointerHandlers.ts`, `apps/builder/src/builder/workspace/canvas/selection/selectionHitTest.ts`
+
 ## [페이지 열 수 `auto` — 화면에 들어가는 만큼] - 2026-09-23
 
 ### Added
