@@ -78,7 +78,7 @@ function resolveAutomaticPageAnchor(
     frame?.pagePositionSnapshot ?? getPagePositionPresentationSnapshot();
   const pagePosition = readPagePositionForInteraction(
     pageId,
-    useStore.getState().pagePositions,
+    useStore.getState().derivedPagePositions,
     pagePositionPresentation,
   ) ?? { x: 0, y: 0 };
   const cameraState = frame?.cameraState;

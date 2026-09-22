@@ -19,10 +19,6 @@ interface ApiPage {
 }
 import { getDB } from "../../lib/db";
 import { useStore } from "../stores";
-import {
-  calculateNextPagePosition,
-  resolveSystemPageIds,
-} from "../stores/elements";
 import { readPageFrameSize } from "../workspace/canvas/scene/pageFrameSize";
 // ADR-116 Phase 3 G4 — mutation reverse wrapper (D18=A 정합)
 import { useCanonicalDocumentStore } from "../stores/canonical/canonicalDocumentStore";
@@ -146,50 +142,8 @@ export const usePageManager = (): UsePageManagerReturn => {
     [t],
   );
 
-  const computeNextPagePosition = useCallback(() => {
-    const {
-      elementsMap,
-      pageGap,
-      pageIndex,
-      pageLayoutDirection,
-      pagePositions,
-      pages,
-    } = useStore.getState();
-    const { canvasSize, containerSize, pageLayoutPanelMetrics, zoom } =
-      useViewportSyncStore.getState();
-    const pageLayoutBounds = resolvePageLayoutBounds(
-      containerSize.width,
-      zoom,
-      pageGap,
-      pageLayoutPanelMetrics,
-    );
-    // 새 페이지는 기존 페이지의 frame 크기 (body 저작 크기) 뒤에 놓는다.
-    //   ADR-231: 시스템 페이지 (Components) 는 격자 밖 — 다음 칸 계산에서 무시.
-    const systemPageIds = resolveSystemPageIds(pages);
-    const pageSizes: Record<string, { width: number; height: number }> = {};
-    for (const page of pages) {
-      pageSizes[page.id] = readPageFrameSize(
-        page.id,
-        pageIndex.elementsByPage,
-        elementsMap,
-        canvasSize.width,
-        canvasSize.height,
-        systemPageIds.has(page.id) ? { neutral: true } : undefined,
-      );
-    }
-    return calculateNextPagePosition(
-      pages,
-      pagePositions,
-      canvasSize.width,
-      canvasSize.height,
-      pageGap,
-      pageLayoutDirection,
-      pageLayoutBounds.availableWidth,
-      pageLayoutBounds.leftInset,
-      pageSizes,
-      systemPageIds,
-    );
-  }, []);
+  // ADR-232 — 새 페이지의 좌표를 계산하지 않는다. 컨테이너 레이아웃이 다음 칸을 준다
+  //   (`calculateNextPagePosition` · 뷰포트 bounds · frame 크기 사전 계산 전부 소멸).
 
   /**
    * fetchElements - 페이지 요소 로드
@@ -264,13 +218,9 @@ export const usePageManager = (): UsePageManagerReturn => {
 
         setSelectedPageId(newPage.id);
 
-        const nextPosition = computeNextPagePosition();
-
-        useStore
-          .getState()
-          .appendPageShell(newPage, bodyElement, nextPosition, {
-            activate: true,
-          });
+        useStore.getState().appendPageShell(newPage, bodyElement, {
+          activate: true,
+        });
 
         console.log("✅ 페이지 추가 완료:", newPage.title);
         return { success: true, data: newPage };
@@ -319,12 +269,9 @@ export const usePageManager = (): UsePageManagerReturn => {
 
         setSelectedPageId(newPage.id);
 
-        const nextPosition = computeNextPagePosition();
-        useStore
-          .getState()
-          .appendPageShell(newPage, bodyElement, nextPosition, {
-            activate: true,
-          });
+        useStore.getState().appendPageShell(newPage, bodyElement, {
+          activate: true,
+        });
 
         if (layoutId) {
           setSelectedPageId(newPage.id);
@@ -375,14 +322,8 @@ export const usePageManager = (): UsePageManagerReturn => {
           pageList.remove(...existingKeys);
         }
 
-        const {
-          setPages,
-          hydrateProjectSnapshot,
-          initializePagePositions,
-          setLazyLoadingEnabled,
-          pageGap,
-          pageLayoutDirection,
-        } = useStore.getState();
+        const { setPages, hydrateProjectSnapshot, setLazyLoadingEnabled } =
+          useStore.getState();
 
         const baseDocument =
           persistedDocument ??
@@ -446,29 +387,8 @@ export const usePageManager = (): UsePageManagerReturn => {
         observe("boot.pageList.publish", () =>
           apiPages.forEach((page) => pageList.append(page)),
         );
-        // 🆕 Multi-page: 페이지 위치 초기화 (현재 방향 + canvasSize 기반).
-        // ADR-177: document 에 저장된 배치가 있으면 페이지 단위로 재계산 결과를
-        // override 병합 (entry 부재 페이지만 재계산 폴백 — lazy write 대응).
-        const currentCanvasSize = useViewportSyncStore.getState().canvasSize;
-        const currentViewport = useViewportSyncStore.getState();
-        const pageLayoutBounds = resolvePageLayoutBounds(
-          currentViewport.containerSize.width,
-          currentViewport.zoom,
-          pageGap,
-          currentViewport.pageLayoutPanelMetrics,
-        );
-        initializePagePositions(
-          storePages,
-          currentCanvasSize.width,
-          currentCanvasSize.height,
-          pageGap,
-          pageLayoutDirection,
-          document.pagePositions ?? {},
-          pageLayoutBounds.availableWidth,
-          pageLayoutBounds.leftInset,
-        );
-        // 위치를 먼저 준비한 뒤 page 목록을 publish하여 미초기화 page가
-        // 렌더 단계에서 (0, 0)으로 겹치는 중간 상태를 만들지 않는다.
+        // ADR-232 — 페이지 위치 초기화가 없어졌다. 위치는 컨테이너 레이아웃 파생값이고,
+        //   저장 좌표가 있는 옛 문서는 아래 이관이 placement 로 옮긴다.
         observe("boot.pages.publish", () => setPages(storePages));
 
         // ADR-232 Decision 6 — 저장 좌표 → placement 1회 이관. `placementModel` 이 이미

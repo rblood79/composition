@@ -56,7 +56,7 @@ describe("useWorkspaceCanvasSizing viewport persistence", () => {
   it("compare에서는 current page의 문서 위치를 상쇄해 같은 viewport를 가운데 둔다", () => {
     useStore.setState({
       currentPageId: "home",
-      pagePositions: { home: { x: 470, y: 40 } },
+      derivedPagePositions: { home: { x: 470, y: 40 } },
     });
     const containerRef = createRefElement(1000, 700);
     const canvasAreaRef = createRefElement(1000, 700);

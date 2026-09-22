@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 type TestStoreState = {
   currentPageId: string | null;
   selectedElementIds: string[];
-  pagePositions: Record<string, { x: number; y: number }>;
+  derivedPagePositions: Record<string, { x: number; y: number }>;
 };
 
 vi.mock("../../../../stores", async () => {
@@ -13,7 +13,7 @@ vi.mock("../../../../stores", async () => {
   const useStore = create<TestStoreState>(() => ({
     currentPageId: "p2",
     selectedElementIds: [],
-    pagePositions: {},
+    derivedPagePositions: {},
   }));
   return { useStore };
 });

@@ -23,7 +23,6 @@ import {
   Suspense,
 } from "react";
 import { useStore } from "../../stores";
-import { computePageFrameReflow } from "../../stores/utils/pageFrameReflow";
 import { resolveSystemPageIds } from "../../stores/elements";
 import { observe, PERF_LABEL } from "../../utils/perfMarks";
 import { useDataStore, useProjectVariableDefs } from "../../stores/data";
@@ -581,8 +580,11 @@ export function BuilderCanvas({
   // Zoom/Pan은 ViewportControlBridge에서 처리 (Application 내부에서 Container 직접 조작)
 
   // 🆕 Multi-page: 모든 페이지의 데이터 (body + elements) 사전 계산
-  const pagePositions = useStore((state) => state.pagePositions);
-  const pagePositionsVersion = useStore((state) => state.pagePositionsVersion);
+  // ADR-232 — 파생 미러 (호환 폴백용). 캔버스 자신은 아래 memo 가 만든 값을 쓴다.
+  const pagePositions = useStore((state) => state.derivedPagePositions);
+  const pagePositionsVersion = useStore(
+    (state) => state.derivedPagePositionsVersion,
+  );
   // ADR-111 P3-δ: reusable frame canvas authoring 시각 path
   const framePositions = useStore((state) => state.framePositions);
   const framePositionsVersion = useStore(
@@ -599,10 +601,10 @@ export function BuilderCanvas({
   //   `"derived"` → 아래 파생값 · `"legacy"` 또는 부재 → 저장 좌표 (`pagePositions`).
   // 미이관 문서는 모델이 없으므로 이 배선은 Phase 3 이관 전까지 휴면이다 (동작 변경 0).
   const documentPageLayout = activeCanonicalDocument?.pageLayout;
-  // `placementModel` 이 있으면 (derived · legacy 둘 다) 위치는 **파생이 소유** 한다.
-  //   legacy 는 파생 안에서 저장 좌표를 읽는 분기다 (Decision 7) — store 미러가 아니다.
-  //   여기서 derived 만 보면 legacy 문서가 store map 을 그려 문서와 어긋난다 (live 실측 09-22).
-  const isDerivedPlacement = documentPageLayout?.placementModel !== undefined;
+  // 페이지 위치는 **언제나 파생이 소유** 한다 (ADR-232 Phase 3). 모델이 `"legacy"` 거나 아직
+  //   없는 (이관 직전) 문서는 파생 **안에서** 저장 좌표를 읽는 분기로 처리된다 — store 미러가
+  //   그리는 경로는 없다. store `pagePositions` 는 Phase 3b-2 에서 삭제한다.
+  const isDerivedPlacement = true;
 
   // 파생 입력 1 — 페이지별 frame 크기 (저작 크기 ?? breakpoint · Components 는 ADR-231 neutral).
   const pageFrameSizes = useMemo(() => {
@@ -659,6 +661,11 @@ export function BuilderCanvas({
   const effectivePagePositions = derivedPagePositions ?? pagePositions;
   // 파생 모드에서는 store 의 version 이 오르지 않으므로 좌표 자체로 version 을 만든다 —
   //   stale 프레임 카운터 (`skiaTreeBuilder`) 와 커맨드 캐시 키가 같이 읽는다.
+  // ADR-232 — 파생 위치를 store 미러에 싣는다. 히트·가이드·스크롤바·오버레이가 같은 값을
+  //   읽는다 (그들은 캔버스 렌더 트리 밖이라 memo 를 직접 볼 수 없다). set 은 값이 바뀔 때만.
+  const publishDerivedPagePositions = useStore(
+    (state) => state.publishDerivedPagePositions,
+  );
   const effectivePagePositionsVersion = useMemo(
     () =>
       derivedPagePositions
@@ -666,6 +673,17 @@ export function BuilderCanvas({
         : pagePositionsVersion,
     [derivedPagePositions, pagePositionsVersion],
   );
+  useEffect(() => {
+    if (!derivedPagePositions) return;
+    publishDerivedPagePositions(
+      derivedPagePositions,
+      effectivePagePositionsVersion,
+    );
+  }, [
+    derivedPagePositions,
+    effectivePagePositionsVersion,
+    publishDerivedPagePositions,
+  ]);
   // Compare Canvas는 기존처럼 전체 page scene을 유지한다. 사용자가 명시적으로
   // current-page filter를 켠 경우에만 CSS leg와 같은 canonical page로 제한한다.
   const compareVisiblePageIds = useMemo<ReadonlySet<string> | null>(
@@ -747,79 +765,8 @@ export function BuilderCanvas({
   ]);
   visiblePageIdsRef.current = sceneStructureSnapshot.document.visiblePageIds;
 
-  // 페이지 frame 크기 (body 저작 크기) 가 바뀌면 쌓는 축에서 그 뒤의 페이지를 Δ 만큼 민다 —
-  //   "페이지 간격도 frame 크기를 따른다" (2026-09-22). breakpoint 전환은 frame 전체가 같이
-  //   바뀌고 위치 스냅샷도 breakpoint 별이라 비교 기준을 버린다 (재배치 0). 첫 관측도 기준만 잡는다.
-  //   history 없음 — 원인 편집 (body Size) 의 entry 하나가 정본이고 undo/redo 는 이 effect 가 따라간다.
-  const pageFrameSizesRef = useRef<{
-    breakpoint: string;
-    sizes: Map<string, { width: number; height: number }>;
-  } | null>(null);
-  useEffect(() => {
-    const frames = sceneStructureSnapshot.document.allPageFrames;
-    // body 가 아직 없는 페이지 (hydration 전) 는 기준에서 뺀다 — breakpoint 크기로 잠깐 관측됐다가
-    //   body 가 실리며 "커진" 것처럼 보이면 이웃을 잘못 민다.
-    const nextSizes = new Map(
-      frames
-        .filter(
-          (frame) =>
-            sceneStructureSnapshot.pageSnapshots.get(frame.id)?.bodyElement,
-        )
-        .map((frame) => [
-          frame.id,
-          { width: frame.width, height: frame.height },
-        ]),
-    );
-    const prev = pageFrameSizesRef.current;
-    pageFrameSizesRef.current = {
-      breakpoint: sceneActiveBreakpoint,
-      sizes: nextSizes,
-    };
-    if (!prev || prev.breakpoint !== sceneActiveBreakpoint || isFrameEditMode) {
-      return;
-    }
-    // ADR-232: 파생 모드에서는 reflow 가 필요 없다 — frame 크기가 바뀌면 파생이 다시 돌아
-    //   행 높이가 따라온다 (b290d75da 의 목적을 컨테이너 레이아웃이 그대로 수행).
-    if (isDerivedPlacement) return;
-    const state = useStore.getState();
-    let positions = state.pagePositions;
-    // ADR-231: reflow 는 열/격자 경계를 넘지 않는다 — 시스템 열 (Components) 의 높이 성장이
-    //   사용자 페이지를 밀지 않고, 사용자 페이지 변화가 시스템 열을 밀지 않는다.
-    const systemPageIds = resolveSystemPageIds(state.pages);
-    const shifts = new Map<string, { pageId: string; x: number; y: number }>();
-    for (const [pageId, next] of nextSizes) {
-      const before = prev.sizes.get(pageId);
-      if (
-        !before ||
-        (before.width === next.width && before.height === next.height)
-      ) {
-        continue;
-      }
-      const moved = computePageFrameReflow({
-        positions,
-        direction: state.pageLayoutDirection,
-        changedPageId: pageId,
-        prev: before,
-        next,
-        systemPageIds,
-      });
-      if (moved.length === 0) continue;
-      positions = { ...positions };
-      for (const entry of moved) {
-        positions[entry.pageId] = { x: entry.x, y: entry.y };
-        shifts.set(entry.pageId, entry);
-      }
-    }
-    if (shifts.size > 0) {
-      state.applyPageFrameReflow([...shifts.values()]);
-    }
-  }, [
-    isDerivedPlacement,
-    isFrameEditMode,
-    sceneActiveBreakpoint,
-    sceneStructureSnapshot.document.allPageFrames,
-    sceneStructureSnapshot.pageSnapshots,
-  ]);
+  // ADR-232 — 페이지 frame 크기 변화의 reflow 는 없어졌다. 크기가 바뀌면 컨테이너 레이아웃이
+  //   다시 돌아 행 높이가 따라온다 (b290d75da 의 목적을 파생이 그대로 수행).
 
   useEffect(() => {
     if (isCompareMode) {
@@ -1289,7 +1236,7 @@ export function BuilderCanvas({
         canvasPoint,
         activePageId: state.currentPageId,
         pageHeight,
-        pagePositions: state.pagePositions,
+        pagePositions: state.derivedPagePositions,
         pageWidth,
         pages: state.pages,
       });
@@ -1490,11 +1437,11 @@ export function BuilderCanvas({
           activePageId: guideState.currentPageId,
           pageHeight,
           pageWidth,
-          pagePositions: guideState.pagePositions,
+          pagePositions: guideState.derivedPagePositions,
           pages: guideState.pages,
         });
         const guideOrigin = guidePageId
-          ? guideState.pagePositions[guidePageId]
+          ? guideState.derivedPagePositions[guidePageId]
           : null;
         if (guidePageId && guideOrigin) {
           const guides = readPageGuides(
@@ -1547,7 +1494,7 @@ export function BuilderCanvas({
               canvasPoint: scenePoint,
               activePageId: titleState.currentPageId,
               pageHeight,
-              pagePositions: titleState.pagePositions,
+              pagePositions: titleState.derivedPagePositions,
               pageWidth,
               pages: titleState.pages,
             });

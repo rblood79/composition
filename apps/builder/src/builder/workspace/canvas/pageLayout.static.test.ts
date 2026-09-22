@@ -25,29 +25,15 @@ describe("explicit page layout command contract", () => {
     expect(source).toContain('t("zoom.align")');
   });
 
-  it("switches the active page-position snapshot with the breakpoint", async () => {
+  // ADR-232 — breakpoint 전환은 위치를 옮기지 않는다 (스냅샷 3벌 소멸). tier 차이는 페이지
+  //   placement 의 responsive override 가 갖고, 파생이 활성 tier 로 다시 돈다.
+  it("does not switch page-position snapshots on breakpoint change", async () => {
     const source = await readFile(
       resolve(__dirname, "../../main/BuilderCore.tsx"),
       "utf-8",
     );
 
-    expect(source).toContain("switchPagePositionsBreakpoint");
-    expect(source).toContain("currentBreakpoint");
-    expect(source).toContain("nextBreakpoint");
-  });
-
-  it("uses the target breakpoint canvas size for a first-entry snapshot", async () => {
-    const source = await readFile(
-      resolve(__dirname, "../../main/BuilderCore.tsx"),
-      "utf-8",
-    );
-
-    expect(source).toContain("CANVAS_VIEWPORT");
-    expect(source).toContain(
-      "pageWidth: CANVAS_VIEWPORT[nextBreakpoint].width",
-    );
-    expect(source).toContain(
-      "pageHeight: CANVAS_VIEWPORT[nextBreakpoint].height",
-    );
+    expect(source).not.toContain("switchPagePositionsBreakpoint");
+    expect(source).not.toContain("pageWidth: CANVAS_VIEWPORT[nextBreakpoint]");
   });
 });

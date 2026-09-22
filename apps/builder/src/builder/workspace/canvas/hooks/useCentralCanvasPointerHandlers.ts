@@ -323,7 +323,7 @@ export function useCentralCanvasPointerHandlers({
         canvasPoint: canvasPos,
         activePageId: state.currentPageId,
         pageHeight,
-        pagePositions: state.pagePositions,
+        pagePositions: state.derivedPagePositions,
         pageSizeReader: (pageId) =>
           readPageFrameSize(
             pageId,
@@ -353,7 +353,7 @@ export function useCentralCanvasPointerHandlers({
             pageHeight,
             pageIndexElementsByPage: state.pageIndex.elementsByPage,
             pageSelectionEnabled,
-            pagePositions: state.pagePositions,
+            pagePositions: state.derivedPagePositions,
             pageWidth,
             pages: state.pages,
           });
@@ -518,7 +518,7 @@ export function useCentralCanvasPointerHandlers({
             pageHeight,
             pageIndexElementsByPage: state.pageIndex.elementsByPage,
             pageSelectionEnabled,
-            pagePositions: state.pagePositions,
+            pagePositions: state.derivedPagePositions,
             pageWidth,
             pages: state.pages,
           });

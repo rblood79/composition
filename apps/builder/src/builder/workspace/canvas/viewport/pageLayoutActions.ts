@@ -1,103 +1,15 @@
-import { persistActiveCanonicalDocument } from "../../../stores/canonical/persistActiveCanonicalDocument";
-import { useStore } from "../../../stores";
-import { commitPagePlacementAlign } from "../../../stores/utils/pagePlacementCommit";
-import { resolveSystemPageIds } from "../../../stores/elements";
-import { BREAKPOINT_ORDER } from "../../../../types/builder/responsive.types";
-import { historyManager } from "../../../stores/history";
-import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
-import { getDB } from "../../../../lib/db";
-import { useViewportSyncStore } from "../stores";
-import { resolvePageLayoutBounds } from "../pageLayoutConstants";
-
-type BreakpointName = import("@composition/shared").BreakpointName;
-
 /**
- * 현재 breakpoint의 page 크기와 Settings의 배치 방향으로 모든 page를 재배치한다.
- * breakpoint 전환 자체는 page 위치를 변경하지 않으며, 이 명시적 command만 호출한다.
+ * ADR-232 — 페이지 정렬 (align).
  *
- * ADR-177 Phase 2: 명시적 사용자 명령이므로 이동 결과를 문서 데이터로 기록한다 —
- * 전 페이지 재배치를 **단일 batch 히스토리 entry** 로 (Cmd+Z 1회 전체 복귀,
- * HC5) + canonical `pagePositions` batch 기록 + persist. 위치 무변경이면 전부
- * no-op (lazy write).
+ * 좌표 재계산이 아니라 **배치를 지우는 것** 이다. Home 을 제외한 모든 페이지의 placement 를
+ * 삭제하면 컨테이너 레이아웃이 전부 흐름으로 되돌린다 (계산 0 · 쓰기 1 · Cmd+Z 1회).
+ *
+ * 종전 구현 (ADR-177) 은 breakpoint 크기와 Settings 방향으로 전 페이지 좌표를 다시 계산해
+ * 문서에 batch 기록했다. 좌표가 문서 데이터가 아니게 되면서 그 계층 전체가 없어졌다.
  */
+
+import { commitPagePlacementAlign } from "../../../stores/utils/pagePlacementCommit";
+
 export function alignPagesToScreen(): void {
-  // ADR-232: 파생 모드면 좌표 계산 없이 Home 제외 placement 를 지운다 (= 흐름 복귀).
-  if (commitPagePlacementAlign()) return;
-
-  const { canvasSize, containerSize, pageLayoutPanelMetrics, zoom } =
-    useViewportSyncStore.getState();
-  const { initializePagePositions, pageGap, pageLayoutDirection, pages } =
-    useStore.getState();
-
-  if (pages.length === 0 || canvasSize.width <= 0 || canvasSize.height <= 0) {
-    return;
-  }
-
-  const pageLayoutBounds = resolvePageLayoutBounds(
-    containerSize.width,
-    zoom,
-    pageGap,
-    pageLayoutPanelMetrics,
-  );
-
-  const storeState = useStore.getState();
-  const beforePositions = { ...storeState.pagePositions };
-  const activeBreakpoint = (
-    storeState as typeof storeState & { activeBreakpoint: BreakpointName }
-  ).activeBreakpoint;
-
-  initializePagePositions(
-    pages,
-    canvasSize.width,
-    canvasSize.height,
-    pageGap,
-    pageLayoutDirection,
-    undefined,
-    pageLayoutBounds.availableWidth,
-    pageLayoutBounds.leftInset,
-  );
-
-  const afterPositions = useStore.getState().pagePositions;
-  // ADR-231: 시스템 페이지 (Components) 는 breakpoint 공통값 — 세 breakpoint 에 같은 값을 쓴다
-  //   (history 도 세 entry, Cmd+Z 1회로 전부 복귀).
-  const systemPageIds = resolveSystemPageIds(pages);
-  const entries = pages.flatMap((page) => {
-    const before = beforePositions[page.id];
-    const after = afterPositions[page.id];
-    if (!before || !after) return [];
-    if (before.x === after.x && before.y === after.y) return [];
-    const breakpoints = systemPageIds.has(page.id)
-      ? BREAKPOINT_ORDER
-      : [activeBreakpoint];
-    return breakpoints.map((breakpoint) => ({
-      pageId: page.id,
-      breakpoint,
-      before: { ...before },
-      after: { ...after },
-    }));
-  });
-  if (entries.length === 0) return;
-
-  historyManager.addEntry({
-    type: "page-position",
-    elementId: entries[0].pageId,
-    data: { pagePositionEvent: { entries } },
-  });
-  useCanonicalDocumentStore.getState().setPagePositions(
-    entries.map((entry) => ({
-      pageId: entry.pageId,
-      breakpoint: entry.breakpoint,
-      position: entry.after,
-    })),
-  );
-  queueMicrotask(() => {
-    void (async () => {
-      try {
-        const db = await getDB();
-        await persistActiveCanonicalDocument(db);
-      } catch (error) {
-        console.error("[alignPagesToScreen] DB persist:", error);
-      }
-    })();
-  });
+  commitPagePlacementAlign();
 }

@@ -133,7 +133,7 @@ describe("removePageLocal component semantics", () => {
       editingContextId: null,
       selectedTab: null,
       multiSelectMode: false,
-      pagePositions: {},
+      derivedPagePositions: {},
       pageElementsSnapshot: {},
       layoutVersion: 0,
     });

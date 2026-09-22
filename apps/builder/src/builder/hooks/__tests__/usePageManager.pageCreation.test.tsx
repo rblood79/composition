@@ -47,13 +47,14 @@ function resetStoreState(): void {
     editingContextId: null,
     selectedTab: null,
     multiSelectMode: false,
-    pagePositions: {},
-    pagePositionsByBreakpoint: {},
+    derivedPagePositions: {},
     pageLayoutDirection: "horizontal",
   });
   useViewportSyncStore.getState().reset();
 }
 
+// ADR-232 — 새 page 의 **좌표** 계약은 없어졌다 (위치는 컨테이너 레이아웃 파생값).
+//   "다음 칸에 놓인다" 는 `scene/pagePlacement.test.ts` (흐름 배치) 와 G2 live 가 본다.
 describe("usePageManager page creation activation", () => {
   beforeEach(() => {
     resetStoreState();
@@ -67,7 +68,7 @@ describe("usePageManager page creation activation", () => {
   it("addPage는 다음 frame 전에도 새 page body를 활성 선택으로 만든다", async () => {
     const home = makePage("page-1");
     const homeBody = makeBody("body-1", home.id);
-    useStore.getState().appendPageShell(home, homeBody, { x: 0, y: 0 });
+    useStore.getState().appendPageShell(home, homeBody);
 
     const { result } = renderPageManager();
 
@@ -99,14 +100,8 @@ describe("usePageManager page creation activation", () => {
     const home = { ...makePage("page-1"), title: "Home", slug: "/" };
     useStore
       .getState()
-      .appendPageShell(components, makeBody("body-components", components.id), {
-        x: 0,
-        y: 0,
-      });
-    useStore.getState().appendPageShell(home, makeBody("body-1", home.id), {
-      x: 100,
-      y: 0,
-    });
+      .appendPageShell(components, makeBody("body-components", components.id));
+    useStore.getState().appendPageShell(home, makeBody("body-1", home.id));
 
     const { result } = renderPageManager();
 
@@ -121,7 +116,7 @@ describe("usePageManager page creation activation", () => {
   it("layout-bound addPageWithParams도 appendPageShell activation 외 activatePage를 중복 호출하지 않는다", async () => {
     const home = makePage("page-1");
     const homeBody = makeBody("body-1", home.id);
-    useStore.getState().appendPageShell(home, homeBody, { x: 0, y: 0 });
+    useStore.getState().appendPageShell(home, homeBody);
 
     const activateSpy = vi.spyOn(useStore.getState(), "activatePage");
     const { result } = renderPageManager();
@@ -138,77 +133,5 @@ describe("usePageManager page creation activation", () => {
 
     expect(activateSpy).not.toHaveBeenCalled();
     expect(useStore.getState().currentPageId).not.toBe(home.id);
-  });
-
-  it("현재 pageLayoutDirection에 맞춰 새 page를 gap과 함께 배치한다", async () => {
-    const first = makePage("page-1");
-    const second = makePage("page-2");
-    useStore.setState({
-      pageLayoutDirection: "vertical",
-    });
-    useStore
-      .getState()
-      .appendPageShell(first, makeBody("body-1", first.id), { x: 0, y: 0 });
-    useStore.getState().appendPageShell(second, makeBody("body-2", second.id), {
-      x: 0,
-      y: 1160,
-    });
-    useViewportSyncStore.getState().setCanvasSize({
-      width: 640,
-      height: 480,
-    });
-
-    const { result } = renderPageManager();
-
-    await act(async () => {
-      const addResult = await result.current.addPage("project-1");
-      expect(addResult.success).toBe(true);
-    });
-
-    const pages = useStore.getState().pages;
-    const createdPage = pages[pages.length - 1];
-    expect(useStore.getState().pagePositions[createdPage.id]).toEqual({
-      x: 0,
-      y: 1720,
-    });
-  });
-
-  it("auto pageLayoutDirection은 화면 폭에 맞춰 다음 줄에 새 page를 둔다", async () => {
-    const first = makePage("page-1");
-    const second = makePage("page-2");
-    useStore.setState({
-      pageLayoutDirection: "auto",
-      pages: [first, second],
-      pagePositions: {
-        [first.id]: { x: 0, y: 0 },
-        [second.id]: { x: 2000, y: 0 },
-      },
-    });
-    useViewportSyncStore.getState().setCanvasSize({
-      width: 1920,
-      height: 1080,
-    });
-    useViewportSyncStore.getState().setContainerSize({
-      width: 2200,
-      height: 900,
-    });
-    useViewportSyncStore.getState().setViewportSnapshot({
-      panOffset: { x: 0, y: 0 },
-      zoom: 0.5,
-    });
-
-    const { result } = renderPageManager();
-
-    await act(async () => {
-      const addResult = await result.current.addPage("project-1");
-      expect(addResult.success).toBe(true);
-    });
-
-    const pages = useStore.getState().pages;
-    const createdPage = pages[pages.length - 1];
-    expect(useStore.getState().pagePositions[createdPage.id]).toEqual({
-      x: 0,
-      y: 1160,
-    });
   });
 });

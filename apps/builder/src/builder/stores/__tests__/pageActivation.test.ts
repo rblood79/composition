@@ -290,9 +290,7 @@ describe("page activation selection invariant", () => {
       currentPageId: "page-1",
     });
 
-    useStore
-      .getState()
-      .appendPageShell(makePage("page-2"), bodyTwo, { x: 100, y: 120 });
+    useStore.getState().appendPageShell(makePage("page-2"), bodyTwo);
 
     const state = useStore.getState();
     expect(state.elementsMap.get(bodyTwo.id)).toBe(bodyTwo);
@@ -308,30 +306,8 @@ describe("page activation selection invariant", () => {
     expect(state.selectedElementId).toBe(bodyTwo.id);
   });
 
-  it("appendPageShell은 새 page 위치를 canonical pagePositions 에도 기록한다 (활성 breakpoint)", () => {
-    // 미기록이면 새로고침 시 그 page 만 ADR-177 재계산 폴백을 타 persist 된 다른 page 와 겹친다
-    // (실측 2026-09-18: gap 200 으로 persist 된 5 page 사이에 gap 80 으로 재계산된 Page 6)
-    const bodyOne = makeElement("body-1", "page-1");
-    const bodyTwo = makeElement("body-2", "page-2");
-    useStore.getState().setElements([bodyOne]);
-    useStore.setState({
-      pages: [makePage("page-1")],
-      currentPageId: "page-1",
-      activeBreakpoint: "desktop",
-    } as never);
-    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
-    useCanonicalDocumentStore.getState().setDocument("project-1", {
-      version: "composition-1.0",
-      children: [{ id: "page-1", type: "page", props: {}, children: [] }],
-    } as unknown as CompositionDocument);
-
-    useStore
-      .getState()
-      .appendPageShell(makePage("page-2"), bodyTwo, { x: 100, y: 120 });
-
-    const doc = useCanonicalDocumentStore.getState().documents.get("project-1");
-    expect(doc?.pagePositions?.["page-2"]?.desktop).toEqual({ x: 100, y: 120 });
-  });
+  // ADR-232 — `appendPageShell` 은 좌표를 문서에 쓰지 않는다 (위치는 파생값). 이 계약은
+  //   `scene/pagePlacement.test.ts` 와 G2 live 가 대체한다.
 
   it("lazyLoadPageElements는 현재 page 로드 완료 후 stale 선택을 body로 보정한다", async () => {
     const body = makeElement("body-1", "page-1");

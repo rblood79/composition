@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 type TestStoreState = {
   currentPageId: string | null;
   selectedElementIds: string[];
-  pagePositions: Record<string, { x: number; y: number }>;
+  derivedPagePositions: Record<string, { x: number; y: number }>;
 };
 
 vi.mock("../../../../stores", async () => {
@@ -13,7 +13,7 @@ vi.mock("../../../../stores", async () => {
   const useStore = create<TestStoreState>(() => ({
     currentPageId: "p2",
     selectedElementIds: [],
-    pagePositions: {
+    derivedPagePositions: {
       p1: { x: 0, y: 0 },
       p2: { x: 1000, y: 0 },
       p3: { x: 5000, y: 5000 },
@@ -39,7 +39,7 @@ const frames = [
 ];
 
 const idle: PagePositionPresentationSnapshot = {
-  canonical: testStore.getState().pagePositions,
+  canonical: testStore.getState().derivedPagePositions,
   activeOverrides: null,
   version: 0,
   isActive: false,
@@ -200,7 +200,7 @@ describe("usePageHeaderPlacement — 게이트 · drag 추종 · settle 배치",
   it("위 (활성) 페이지가 겹치면 아래 페이지 헤더는 clip-path inset 으로 잘린다", () => {
     // p2 (활성, 위) 를 p1 오른쪽 절반 위로 옮긴다
     testStore.setState({
-      pagePositions: {
+      derivedPagePositions: {
         p1: { x: 0, y: 0 },
         p2: { x: 200, y: 0 },
         p3: { x: 5000, y: 5000 },
@@ -213,7 +213,7 @@ describe("usePageHeaderPlacement — 게이트 · drag 추종 · settle 배치",
     );
     expect(headerOf(layer, "p2").style.clipPath).toBe("");
     testStore.setState({
-      pagePositions: {
+      derivedPagePositions: {
         p1: { x: 0, y: 0 },
         p2: { x: 1000, y: 0 },
         p3: { x: 5000, y: 5000 },

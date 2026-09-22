@@ -79,24 +79,8 @@ export async function applySnapshotDocument(
   const elements = canonicalDocumentToElements(docCopy);
   store.hydrateProjectSnapshot(elements);
 
-  const canvasSize = useViewportSyncStore.getState().canvasSize;
-  const viewport = useViewportSyncStore.getState();
-  const pageLayoutBounds = resolvePageLayoutBounds(
-    viewport.containerSize.width,
-    viewport.zoom,
-    store.pageGap,
-    viewport.pageLayoutPanelMetrics,
-  );
-  store.initializePagePositions(
-    storePages,
-    canvasSize.width,
-    canvasSize.height,
-    store.pageGap,
-    store.pageLayoutDirection,
-    docCopy.pagePositions ?? {},
-    pageLayoutBounds.availableWidth,
-    pageLayoutBounds.leftInset,
-  );
+  // ADR-232 — 스냅샷 복원도 위치를 초기화하지 않는다 (파생값). 문서의 `pageLayout` 이
+  //   그대로 실리고, 저장 좌표만 있는 옛 스냅샷은 다음 hydration 이관이 placement 로 옮긴다.
   store.setPages(storePages);
 
   // 3. 현재 페이지 재정합 — 복원본에 없는 페이지면 첫 페이지로

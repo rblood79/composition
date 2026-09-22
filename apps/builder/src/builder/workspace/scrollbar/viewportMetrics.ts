@@ -23,7 +23,8 @@ function collectContentRects(canvasSize: {
   width: number;
   height: number;
 }): ContentRect[] {
-  const { pagePositions, framePositions } = useStore.getState();
+  const { derivedPagePositions: pagePositions, framePositions } =
+    useStore.getState();
   const isFrameEditMode = useEditModeStore.getState().mode === "layout";
   const positions = isFrameEditMode ? framePositions : pagePositions;
 

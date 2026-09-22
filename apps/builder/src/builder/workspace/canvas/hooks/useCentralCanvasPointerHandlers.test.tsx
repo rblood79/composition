@@ -92,7 +92,7 @@ describe("useCentralCanvasPointerHandlers page body drag", () => {
       currentPageId: "page-1",
       editingContextId: null,
       pageIndex: { elementsByPage: new Map() },
-      pagePositions: { "page-1": { x: 500, y: 500 } },
+      derivedPagePositions: { "page-1": { x: 500, y: 500 } },
       pages: [{ id: "page-1" }],
       selectedElementIds: ["element-1"],
     });
@@ -156,7 +156,7 @@ describe("useCentralCanvasPointerHandlers page body drag", () => {
       currentPageId: "page-1",
       editingContextId: null,
       pageIndex: { elementsByPage: new Map([["page-1", new Set([body.id])]]) },
-      pagePositions: { "page-1": { x: 0, y: 0 } },
+      derivedPagePositions: { "page-1": { x: 0, y: 0 } },
       pages: [{ id: "page-1" }],
       selectedElementIds: [body.id],
     });
@@ -226,7 +226,7 @@ describe("useCentralCanvasPointerHandlers page body drag", () => {
       currentPageId: "page-1",
       editingContextId: null,
       pageIndex: { elementsByPage: new Map([["page-1", new Set([body.id])]]) },
-      pagePositions: { "page-1": { x: 0, y: 0 } },
+      derivedPagePositions: { "page-1": { x: 0, y: 0 } },
       pages: [{ id: "page-1" }],
       selectedElementIds: [body.id],
     });
@@ -293,7 +293,7 @@ describe("useCentralCanvasPointerHandlers page body drag", () => {
       currentPageId: "page-1",
       editingContextId: null,
       pageIndex: { elementsByPage: new Map([["page-1", new Set([body.id])]]) },
-      pagePositions: { "page-1": { x: 0, y: 0 } },
+      derivedPagePositions: { "page-1": { x: 0, y: 0 } },
       pages: [{ id: "page-1" }],
       selectedElementIds: [body.id],
     });
@@ -362,7 +362,7 @@ describe("useCentralCanvasPointerHandlers page body drag", () => {
       pageIndex: {
         elementsByPage: new Map([["page-1", new Set([element.id])]]),
       },
-      pagePositions: { "page-1": { x: 0, y: 0 } },
+      derivedPagePositions: { "page-1": { x: 0, y: 0 } },
       pages: [{ id: "page-1" }],
       selectedElementIds: [],
     });

@@ -325,11 +325,32 @@ function readLegacyPositions(
 /**
  * 페이지 위치 파생. 엔진 미준비면 `null` (호출자는 이전 값을 유지한다).
  */
+/**
+ * 저장 좌표를 읽어야 하는가.
+ *
+ * `"legacy"` 는 물론이고, **모델이 아직 없는 문서** (이관 직전 프레임) 도 저장 좌표가 정본이다 —
+ * 그 순간 흐름으로 그리면 이관 전후로 화면이 한 번 튄다. 저장 좌표가 없으면 (새 문서) 흐름이다.
+ */
+function shouldReadStoredPositions(
+  input: DerivePagePositionsInput,
+  layout: ResolvedPageLayout,
+): boolean {
+  if (layout.placementModel === "legacy") return true;
+  if (layout.placementModel === "derived") return false;
+  const stored = input.legacyPositions;
+  if (!stored) return false;
+  return input.pages.some(
+    (page) =>
+      !input.systemPageIds?.has(page.id) &&
+      stored[page.id]?.[input.activeBreakpoint] !== undefined,
+  );
+}
+
 export function derivePagePositions(
   input: DerivePagePositionsInput,
 ): PagePositionMap | null {
   const layout = resolvePageLayout(input.pageLayout, input.activeBreakpoint);
-  if (layout.placementModel === "legacy") {
+  if (shouldReadStoredPositions(input, layout)) {
     return readLegacyPositions(input, layout);
   }
   if (input.pages.length === 0) return {};
@@ -427,21 +448,18 @@ export function buildPagePlacementMemoKey(
         : `${page.id}:${keys.map((k) => `${k}=${style[k]}`).join(";")}`;
     })
     .join(",");
-  const legacy =
-    layout.placementModel === "legacy"
-      ? input.pages
-          .map((page) => {
-            const stored =
-              input.legacyPositions?.[page.id]?.[input.activeBreakpoint] ??
-              input.pageLayout?.legacyFallback?.[input.activeBreakpoint]?.[
-                page.id
-              ];
-            return stored
-              ? `${page.id}:${stored.x},${stored.y}`
-              : `${page.id}:-`;
-          })
-          .join(",")
-      : "";
+  const legacy = shouldReadStoredPositions(input, layout)
+    ? input.pages
+        .map((page) => {
+          const stored =
+            input.legacyPositions?.[page.id]?.[input.activeBreakpoint] ??
+            input.pageLayout?.legacyFallback?.[input.activeBreakpoint]?.[
+              page.id
+            ];
+          return stored ? `${page.id}:${stored.x},${stored.y}` : `${page.id}:-`;
+        })
+        .join(",")
+    : "";
   return [
     input.activeBreakpoint,
     layout.placementModel ?? "none",

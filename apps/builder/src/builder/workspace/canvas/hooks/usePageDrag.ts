@@ -109,7 +109,7 @@ export function usePageDrag(
       }
 
       cleanupRef.current?.();
-      const canonical = useStore.getState().pagePositions;
+      const canonical = useStore.getState().derivedPagePositions;
       const pos = canonical[pageId];
       if (!pos) {
         gestureSession.endPage(pointerId);
@@ -369,12 +369,16 @@ export function usePageDrag(
         }
 
         const currentStore = useStore.getState();
+        // ADR-232 — 같은 이유로 identity 비교를 값 비교로 바꾼다.
         const canCommit =
           currentStore.activeBreakpoint === currentOwner.startBreakpoint &&
-          currentStore.pagePositions === state.canonical &&
-          positions.every(
-            (entry) => currentStore.pagePositions[entry.pageId] !== undefined,
-          );
+          positions.every((entry) => {
+            const before = state.canonical?.[entry.pageId];
+            const now = currentStore.derivedPagePositions[entry.pageId];
+            return Boolean(
+              before && now && before.x === now.x && before.y === now.y,
+            );
+          });
         if (!canCommit) {
           abort();
           return;
@@ -390,33 +394,15 @@ export function usePageDrag(
         if (moved.length > 0) {
           isFinishingRef.current = true;
           try {
-            // ADR-232: 파생 모드면 저장 좌표 대신 placement 를 쓴다 (칸 스냅 / absolute /
-            //   교환 · Home 거부). 아니면 기존 경로 그대로.
-            const handledByPlacement =
-              moved.length === 1
-                ? commitPagePlacementFromPoint(moved[0].pageId, {
-                    x: moved[0].position.x,
-                    y: moved[0].position.y,
-                  })
-                : commitPagePlacementsFromPoints(moved);
-            if (handledByPlacement) {
-              // 파생 경로가 처리했다 — 저장 좌표 쓰기 0.
-            } else if (moved.length === 1) {
-              currentStore.updatePagePosition(
-                moved[0].pageId,
-                moved[0].position.x,
-                moved[0].position.y,
-              );
+            // ADR-232 — 좌표는 저장하지 않는다. 놓은 자리를 placement (칸 고정 / absolute)
+            //   로 옮기고, 위치는 컨테이너 레이아웃이 다시 준다.
+            if (moved.length === 1) {
+              commitPagePlacementFromPoint(moved[0].pageId, {
+                x: moved[0].position.x,
+                y: moved[0].position.y,
+              });
             } else {
-              // ADR-178: 다중 페이지 finish — batch entry 1개 (Cmd+Z 1회
-              // 전체 복귀, ADR-177 pagePositionEvent.entries[] 계약)
-              currentStore.updatePagePositionsBatch(
-                moved.map((entry) => ({
-                  pageId: entry.pageId,
-                  x: entry.position.x,
-                  y: entry.position.y,
-                })),
-              );
+              commitPagePlacementsFromPoints(moved);
             }
           } finally {
             isFinishingRef.current = false;
@@ -427,8 +413,8 @@ export function usePageDrag(
         const committedSnapshot = getPagePositionPresentationSnapshot();
         finishPagePositionPresentation(
           committedSnapshot.canonical === state.canonical
-            ? useStore.getState().pagePositions
-            : currentStore.pagePositions,
+            ? useStore.getState().derivedPagePositions
+            : currentStore.derivedPagePositions,
         );
         release();
       };
@@ -526,10 +512,19 @@ export function usePageDrag(
         return;
       }
 
-      if (
-        state.pagePositions !== drag.canonical ||
-        state.activeBreakpoint !== drag.startBreakpoint
-      ) {
+      // ADR-232 — identity 가 아니라 **값** 으로 본다. 파생 map 은 입력이 하나라도 바뀌면
+      //   새 객체가 되므로 (pan · 크기 · 패널) identity 비교는 드래그를 조용히 취소해 버린다
+      //   (live 실측 09-22: 드래그가 커밋되지 않는 것처럼 보였다). 드래그 중인 페이지의
+      //   좌표가 밖에서 실제로 움직였을 때만 취소한다.
+      const movedOutside = [...(drag.startPagePosById?.keys() ?? [])].some(
+        (id) => {
+          const before = drag.canonical?.[id];
+          const now = state.derivedPagePositions[id];
+          if (!before || !now) return true;
+          return before.x !== now.x || before.y !== now.y;
+        },
+      );
+      if (movedOutside || state.activeBreakpoint !== drag.startBreakpoint) {
         cleanupRef.current?.();
       }
     });

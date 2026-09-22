@@ -151,12 +151,18 @@ export interface ElementsState {
   multiSelectMode: boolean;
   editingContextId: string | null;
 
-  // 🆕 Multi-page: 페이지별 캔버스 위치
-  pagePositions: Record<string, { x: number; y: number }>;
-  pagePositionsVersion: number;
+  /**
+   * ADR-232 — 페이지별 캔버스 위치 **파생 미러** (읽기 전용).
+   *
+   * 저장 좌표가 아니다. 캔버스가 컨테이너 레이아웃에서 계산한 결과를 `publishDerivedPagePositions`
+   * 로 싣고, 히트·가이드·스크롤바·오버레이가 같은 값을 읽는다. 문서에 쓰이는 것은 페이지
+   * `placement` 뿐이며 (`pageLayout.placements`), 이 map 은 persist 되지 않는다.
+   */
+  derivedPagePositions: Record<string, { x: number; y: number }>;
+  derivedPagePositionsVersion: number;
 
   // ADR-111 P3-α: reusable frame 별 캔버스 영역 (frame canvas authoring 시각 path)
-  // pagePositions 와 분리: page 는 global pageWidth/Height 공유, frame 은 width/height 개별
+  // 파생 페이지 위치와 분리: page 는 global pageWidth/Height 공유, frame 은 width/height 개별
   framePositions: Record<
     string,
     { x: number; y: number; width: number; height: number }
@@ -212,7 +218,6 @@ export interface ElementsState {
   appendPageShell: (
     page: Page,
     bodyElement: Element,
-    position: { x: number; y: number },
     options?: { activate?: boolean },
   ) => void;
   removePageLocal: (
@@ -318,34 +323,13 @@ export interface ElementsState {
   // 🚀 배치 업데이트 (100+ 요소 최적화)
   batchUpdateElementProps: (updates: BatchPropsUpdate[]) => Promise<void>;
 
-  // 🆕 Multi-page: 페이지 위치 관리
-  initializePagePositions: (
-    pages: Page[],
-    pageWidth: number,
-    pageHeight: number,
-    gap: number,
-    direction?: PageLayoutDirection,
-    /** ADR-177: document `pagePositions` 필드 — 페이지 단위로 재계산 결과를 override 병합. */
-    persisted?: Record<
-      string,
-      Partial<Record<BreakpointName, { x: number; y: number }>>
-    >,
-    /** auto 배치에서 한 줄의 기준이 되는 world 좌표 폭 */
-    availableWidth?: number,
-    /** auto 배치에서 첫 page가 시작하는 world 좌표 x */
-    pageStartX?: number,
-  ) => void;
-  updatePagePosition: (pageId: string, x: number, y: number) => void;
   /**
-   * 페이지 frame 크기 변화에 따른 이웃 페이지 재배치 (`computePageFrameReflow` 결과) — set 1 ·
-   * canonical 1 · persist 1, **history 없음** (원인인 body 크기 편집의 entry 하나가 정본이고, 그
-   * undo/redo 로 frame 이 되돌아오면 호출자가 다시 반대 방향으로 재배치한다).
+   * ADR-232 — 파생 위치 발행 (캔버스 → store 미러). 값이 같으면 no-op.
+   * 이 액션 말고 페이지 위치를 쓰는 경로는 없다 (좌표는 문서 데이터가 아니다).
    */
-  applyPageFrameReflow: (
-    shifts: ReadonlyArray<{ pageId: string; x: number; y: number }>,
-  ) => void;
-  updatePagePositionsBatch: (
-    entries: Array<{ pageId: string; x: number; y: number }>,
+  publishDerivedPagePositions: (
+    positions: Record<string, { x: number; y: number }>,
+    version: number,
   ) => void;
 
   // ADR-111 P3-α: reusable frame 캔버스 영역 setter
@@ -586,267 +570,18 @@ export interface ElementsState {
 }
 
 type BreakpointName = import("@composition/shared").BreakpointName;
-type PagePositions = Record<string, { x: number; y: number }>;
-
 export interface ElementsState {
-  /** 활성 breakpoint별 page 위치 snapshot. 현재 pagePositions는 active map이다. */
-  pagePositionsByBreakpoint: Partial<Record<BreakpointName, PagePositions>>;
-  switchPagePositionsBreakpoint: (
-    from: BreakpointName,
-    to: BreakpointName,
-    options?: PagePositionBreakpointSwitchOptions,
-  ) => void;
+  /** ADR-232 — breakpoint 별 위치 스냅샷은 없어졌다 (tier 차이는 placement override 가 갖는다). */
+  _pagePlacementModelMarker?: never;
 }
 
+/** 페이지 캔버스 좌표 (파생값) — 미러 map 의 entry 타입. */
 export type PagePosition = { x: number; y: number };
 
-export interface PagePositionBreakpointSwitchOptions {
-  pageWidth: number;
-  pageHeight: number;
-  gap: number;
-  direction: PageLayoutDirection;
-  /** auto 배치에서 한 줄의 기준이 되는 world 좌표 폭 */
-  availableWidth?: number;
-  /** auto 배치에서 첫 page가 시작하는 world 좌표 x */
-  pageStartX?: number;
-}
-
-/** 페이지별 frame 크기 (body 저작 크기 — `readPageFrameSize`). 없는 페이지는 breakpoint 크기. */
+/** 페이지별 frame 크기 (body 저작 크기 — `readPageFrameSize`). */
 export type PageFrameSizes = Readonly<
   Record<string, { width: number; height: number } | undefined>
 >;
-
-/**
- * ADR-231 — 시스템 페이지 (Components …) 는 사용자 격자 밖 **왼쪽 세로 열**:
- * `x = homeX − (max 시스템 폭 + gap)` · `y = homeY + Σ(앞선 시스템 페이지 높이 + gap)`.
- * 격자 참여 0 이라 어느 breakpoint · 방향에서도 겹침 경로가 없고 (사용자 페이지 x ≥ homeX,
- * 열 오른쪽 끝 = homeX − gap), 시스템 페이지가 늘어도 같은 열에 아래로 쌓인다.
- */
-function placeSystemColumn(
-  systemPages: readonly Pick<Page, "id">[],
-  home: PagePosition,
-  gap: number,
-  sizeOf: (id: string) => { width: number; height: number },
-): PagePositions {
-  const positions: PagePositions = {};
-  if (systemPages.length === 0) return positions;
-  let maxWidth = 0;
-  for (const page of systemPages) {
-    maxWidth = Math.max(maxWidth, sizeOf(page.id).width);
-  }
-  const x = home.x - (maxWidth + gap);
-  let y = home.y;
-  for (const page of systemPages) {
-    positions[page.id] = { x, y };
-    y += sizeOf(page.id).height + gap;
-  }
-  return positions;
-}
-
-function splitSystemPages<T extends Pick<Page, "id">>(
-  pages: readonly T[],
-  systemPageIds: ReadonlySet<string> | undefined,
-): { userPages: T[]; systemPages: T[] } {
-  if (!systemPageIds || systemPageIds.size === 0) {
-    return { userPages: [...pages], systemPages: [] };
-  }
-  const userPages: T[] = [];
-  const systemPages: T[] = [];
-  for (const page of pages) {
-    (systemPageIds.has(page.id) ? systemPages : userPages).push(page);
-  }
-  return { userPages, systemPages };
-}
-
-export function calculatePagePositions(
-  pages: readonly Pick<Page, "id">[],
-  pageWidth: number,
-  pageHeight: number,
-  gap: number,
-  direction: PageLayoutDirection = "horizontal",
-  availableWidth?: number,
-  pageStartX = 0,
-  pageSizes?: PageFrameSizes,
-  /** ADR-231 — 시스템 페이지 집합: 격자에서 빼고 왼쪽 세로 열에 둔다. */
-  systemPageIds?: ReadonlySet<string>,
-): PagePositions {
-  const sizeOf = (id: string) => ({
-    width: pageSizes?.[id]?.width ?? pageWidth,
-    height: pageSizes?.[id]?.height ?? pageHeight,
-  });
-  const { userPages, systemPages } = splitSystemPages(pages, systemPageIds);
-  const normalizedDirection = normalizePageLayoutDirection(direction);
-  const positions = placeUserPages(
-    userPages,
-    pageWidth,
-    gap,
-    normalizedDirection,
-    availableWidth,
-    pageStartX,
-    sizeOf,
-  );
-  if (systemPages.length > 0) {
-    const home =
-      userPages.length > 0
-        ? positions[userPages[0].id]!
-        : { x: normalizedDirection === "auto" ? pageStartX : 0, y: 0 };
-    Object.assign(positions, placeSystemColumn(systemPages, home, gap, sizeOf));
-  }
-  return positions;
-}
-
-function placeUserPages(
-  pages: readonly Pick<Page, "id">[],
-  pageWidth: number,
-  gap: number,
-  normalizedDirection: ReturnType<typeof normalizePageLayoutDirection>,
-  availableWidth: number | undefined,
-  pageStartX: number,
-  sizeOf: (id: string) => { width: number; height: number },
-): PagePositions {
-  const positions: PagePositions = {};
-
-  if (normalizedDirection === "vertical") {
-    let currentY = 0;
-    for (const page of pages) {
-      positions[page.id] = { x: 0, y: currentY };
-      currentY += sizeOf(page.id).height + gap;
-    }
-    return positions;
-  }
-
-  if (normalizedDirection === "auto") {
-    // 열은 breakpoint 폭 기준 (열 수 · x 칸), 행 높이는 그 행에서 가장 큰 frame — 폭이 다른
-    // 페이지가 섞여도 칸은 유지되고 높이만 따라간다.
-    const columnCount = resolveAutoPageColumnCount(
-      pageWidth,
-      gap,
-      availableWidth ?? 0,
-    );
-    let rowY = 0;
-    let rowMaxHeight = 0;
-    for (let index = 0; index < pages.length; index++) {
-      const column = index % columnCount;
-      if (column === 0 && index > 0) {
-        rowY += rowMaxHeight + gap;
-        rowMaxHeight = 0;
-      }
-      positions[pages[index].id] = {
-        x: pageStartX + column * (pageWidth + gap),
-        y: rowY,
-      };
-      rowMaxHeight = Math.max(rowMaxHeight, sizeOf(pages[index].id).height);
-    }
-    return positions;
-  }
-
-  let currentX = 0;
-  for (const page of pages) {
-    positions[page.id] = { x: currentX, y: 0 };
-    currentX += sizeOf(page.id).width + gap;
-  }
-  return positions;
-}
-
-export function calculateNextPagePosition(
-  allPages: readonly Pick<Page, "id">[],
-  pagePositions: PagePositions,
-  pageWidth: number,
-  pageHeight: number,
-  gap: number,
-  direction: PageLayoutDirection,
-  availableWidth?: number,
-  pageStartX = 0,
-  pageSizes?: PageFrameSizes,
-  /** ADR-231 — 시스템 페이지는 무시한다 (새 페이지는 사용자 격자의 다음 칸). */
-  systemPageIds?: ReadonlySet<string>,
-): PagePosition {
-  const { userPages: pages } = splitSystemPages(allPages, systemPageIds);
-  const positionedPages = pages
-    .map((page) => ({ page, position: pagePositions[page.id] }))
-    .filter(
-      (entry): entry is { page: Pick<Page, "id">; position: PagePosition } =>
-        entry.position !== undefined,
-    );
-  const sizeOf = (id: string) => ({
-    width: pageSizes?.[id]?.width ?? pageWidth,
-    height: pageSizes?.[id]?.height ?? pageHeight,
-  });
-
-  const normalizedDirection = normalizePageLayoutDirection(direction);
-
-  if (normalizedDirection === "vertical") {
-    let maxBottom = 0;
-    let anchorX = 0;
-    for (const { position, page } of positionedPages) {
-      const bottom = position.y + sizeOf(page.id).height;
-      if (bottom > maxBottom) {
-        maxBottom = bottom;
-        anchorX = position.x;
-      }
-    }
-    return { x: anchorX, y: maxBottom === 0 ? 0 : maxBottom + gap };
-  }
-
-  if (normalizedDirection === "auto") {
-    // 격자 (원점 x · 열 수) 는 기존 page 배치에서 읽는다. 뷰포트 (panel 폭 · zoom) 로
-    // 재도출하면 부팅 시 panel metrics 0 으로 놓인 page 들과 원점이 어긋나고 (x=0 vs
-    // leftInset), zoom 이 바뀌면 열 수가 달라져 기존 열과 무관한 칸에 놓인다
-    // (실측 2026-09-18). 배치된 page 가 없을 때만 뷰포트 bounds 를 쓴다.
-    let gridStartX = pageStartX;
-    let columnCount = resolveAutoPageColumnCount(
-      pageWidth,
-      gap,
-      availableWidth ?? 0,
-    );
-    if (positionedPages.length > 0) {
-      let minX = Infinity;
-      let minY = Infinity;
-      for (const { position } of positionedPages) {
-        if (position.x < minX) minX = position.x;
-        if (position.y < minY) minY = position.y;
-      }
-      let firstRowCount = 0;
-      for (const { position } of positionedPages) {
-        if (position.y === minY) firstRowCount += 1;
-      }
-      gridStartX = minX;
-      columnCount = Math.max(1, firstRowCount);
-    }
-    let index = pages.length;
-    while (true) {
-      const column = index % columnCount;
-      const row = Math.floor(index / columnCount);
-      const candidate = {
-        x: gridStartX + column * (pageWidth + gap),
-        y: row * (pageHeight + gap),
-      };
-      const collides = positionedPages.some(({ position, page }) => {
-        const size = sizeOf(page.id);
-        const separatedX =
-          candidate.x + pageWidth + gap <= position.x ||
-          position.x + size.width + gap <= candidate.x;
-        const separatedY =
-          candidate.y + pageHeight + gap <= position.y ||
-          position.y + size.height + gap <= candidate.y;
-        return !separatedX && !separatedY;
-      });
-      if (!collides) return candidate;
-      index += 1;
-    }
-  }
-
-  let maxRight = 0;
-  let anchorY = 0;
-  for (const { position, page } of positionedPages) {
-    const right = position.x + sizeOf(page.id).width;
-    if (right > maxRight) {
-      maxRight = right;
-      anchorY = position.y;
-    }
-  }
-  return { x: maxRight === 0 ? 0 : maxRight + gap, y: anchorY };
-}
 
 function getActiveBreakpoint(state: ElementsState): BreakpointName {
   return (state as ElementsState & { activeBreakpoint: BreakpointName })
@@ -865,147 +600,6 @@ export function resolveSystemPageIds(
     if (isComponentsPageMirror(page)) ids.add(page.id);
   }
   return ids;
-}
-
-/** 배치 함수 입력 — 페이지별 frame 크기 (Components 는 1920 × 발행 높이) + 시스템 집합. */
-function resolvePagePlacementInputs(
-  state: Pick<ElementsState, "pages" | "pageIndex" | "elementsMap">,
-  pageWidth: number,
-  pageHeight: number,
-): { pageSizes: PageFrameSizes; systemPageIds: ReadonlySet<string> } {
-  const systemPageIds = resolveSystemPageIds(state.pages);
-  const pageContentHeights = useViewportSyncStore.getState().pageContentHeights;
-  const pageSizes: Record<string, { width: number; height: number }> = {};
-  for (const page of state.pages) {
-    const neutral = systemPageIds.has(page.id);
-    pageSizes[page.id] = readPageFrameSize(
-      page.id,
-      state.pageIndex.elementsByPage,
-      state.elementsMap,
-      pageWidth,
-      pageHeight,
-      neutral
-        ? {
-            neutral: true,
-            publishedContentHeight: pageContentHeights.get(page.id),
-          }
-        : undefined,
-    );
-  }
-  return { pageSizes, systemPageIds };
-}
-
-interface PagePlacementGrid {
-  pageWidth: number;
-  pageHeight: number;
-  gap: number;
-  direction: PageLayoutDirection;
-  availableWidth?: number;
-  pageStartX?: number;
-}
-
-/**
- * 한 breakpoint 의 위치 집합 `known` 에 없는 사용자 페이지를 **그 breakpoint 격자**에서 페이지 순서대로
- * 다음 칸에 놓는다. 다른 breakpoint 좌표를 그대로 옮기면 1920 격자 값이 768/390 격자에 (또는 반대로)
- * 섞여 겹치고, 저장된 뒤에는 다음 배치 (첫 행 열 수 · 충돌 판정) 까지 오염시킨다 (사용자 보고
- * 2026-09-22). 전환 (`switchPagePositionsBreakpoint`) 과 hydration (`initializePagePositions` 의
- * persisted 병합) 이 같이 쓴다. 시스템 페이지는 격자 밖 — 호출자가 따로 싣는다.
- */
-function placeMissingUserPages(
-  pages: readonly Page[],
-  known: PagePositions,
-  grid: PagePlacementGrid,
-  pageSizes: PageFrameSizes,
-  systemPageIds: ReadonlySet<string>,
-): {
-  positions: PagePositions;
-  placed: Array<{ pageId: string; position: PagePosition }>;
-} {
-  const positions: PagePositions = {};
-  const placed: Array<{ pageId: string; position: PagePosition }> = [];
-  const placedPages: Page[] = [];
-  for (const page of pages) {
-    if (systemPageIds.has(page.id)) continue;
-    let position = known[page.id];
-    if (!position) {
-      position = calculateNextPagePosition(
-        placedPages,
-        positions,
-        grid.pageWidth,
-        grid.pageHeight,
-        grid.gap,
-        grid.direction,
-        grid.availableWidth,
-        grid.pageStartX,
-        pageSizes,
-        systemPageIds,
-      );
-      placed.push({ pageId: page.id, position });
-    }
-    positions[page.id] = position;
-    placedPages.push(page);
-  }
-  return { positions, placed };
-}
-
-/** 시스템 페이지 위치를 존재하는 모든 breakpoint 스냅샷에 같은 값으로 (공통값 계약). */
-function mirrorSystemPagePositions(
-  byBreakpoint: Partial<Record<BreakpointName, PagePositions>>,
-  systemPageIds: ReadonlySet<string>,
-  positions: PagePositions,
-): Partial<Record<BreakpointName, PagePositions>> {
-  if (systemPageIds.size === 0) return byBreakpoint;
-  const next: Partial<Record<BreakpointName, PagePositions>> = {};
-  for (const [breakpoint, snapshot] of Object.entries(byBreakpoint)) {
-    if (!snapshot) continue;
-    const merged = { ...snapshot };
-    for (const id of systemPageIds) {
-      const position = positions[id];
-      if (position) merged[id] = position;
-    }
-    next[breakpoint as BreakpointName] = merged;
-  }
-  return next;
-}
-
-function withActivePagePositionSnapshot(
-  state: ElementsState,
-  pagePositions: PagePositions,
-): Pick<ElementsState, "pagePositions" | "pagePositionsByBreakpoint"> {
-  const activeBreakpoint = getActiveBreakpoint(state);
-  return {
-    pagePositions,
-    pagePositionsByBreakpoint: mirrorSystemPagePositions(
-      {
-        ...state.pagePositionsByBreakpoint,
-        [activeBreakpoint]: pagePositions,
-      },
-      resolveSystemPageIds(state.pages),
-      pagePositions,
-    ),
-  };
-}
-
-/** canonical `pagePositions` 쓰기 entry — 시스템 페이지는 세 breakpoint 에 같은 값. */
-export function buildPagePositionWriteEntries(
-  moved: ReadonlyArray<{ pageId: string; x: number; y: number }>,
-  activeBreakpoint: BreakpointName,
-  systemPageIds: ReadonlySet<string>,
-): Array<{
-  pageId: string;
-  breakpoint: BreakpointName;
-  position: { x: number; y: number };
-}> {
-  return moved.flatMap((entry) =>
-    (systemPageIds.has(entry.pageId)
-      ? BREAKPOINT_ORDER
-      : [activeBreakpoint]
-    ).map((breakpoint) => ({
-      pageId: entry.pageId,
-      breakpoint,
-      position: { x: entry.x, y: entry.y },
-    })),
-  );
 }
 
 function resolveCurrentPageSelectionTarget(
@@ -1321,9 +915,8 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
     editingContextId: null,
 
     // 🆕 Multi-page: 페이지별 캔버스 위치
-    pagePositions: {},
-    pagePositionsByBreakpoint: {},
-    pagePositionsVersion: 0,
+    derivedPagePositions: {},
+    derivedPagePositionsVersion: 0,
 
     // ADR-111 P3-α: reusable frame 캔버스 영역 초기값
     framePositions: {},
@@ -1727,7 +1320,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
       return true;
     },
 
-    appendPageShell: (page, bodyElement, position, options) => {
+    appendPageShell: (page, bodyElement, options) => {
       const activate = options?.activate ?? true;
       // ADR-185 G-1 — 생성 undo 기록용 사전 캡처 (활성 전환 전 상태)
       const prevStateForHistory = get();
@@ -1747,10 +1340,6 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
         const nextPages = [...state.pages, page];
         const nextIndexes = buildIndexes(nextElements);
 
-        const nextPagePositions = {
-          ...state.pagePositions,
-          [page.id]: position,
-        };
         return {
           pages: nextPages,
           currentPageId: activate ? page.id : state.currentPageId,
@@ -1770,21 +1359,11 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
             ? createCompleteProps(bodyElement)
             : state.selectedElementProps,
           editingContextId: activate ? null : state.editingContextId,
-          ...withActivePagePositionSnapshot(state, nextPagePositions),
-          pagePositionsVersion: state.pagePositionsVersion + 1,
           layoutVersion: state.layoutVersion + 1,
         };
       });
 
-      // ADR-177 — 새 page 위치를 canonical `pagePositions` 에도 기록한다. 위 set 이
-      // page shell bridge (BuilderCore) 를 거쳐 canonical 을 재구성한 뒤라 root 필드가
-      // 보존되고, persist 는 같은 microtask 배치에 실린다 (별도 I/O 0). 미기록이면
-      // 새로고침 시 이 page 만 재계산 폴백을 타 persist 된 다른 page 와 겹친다.
-      useCanonicalDocumentStore
-        .getState()
-        .setPagePositions([
-          { pageId: page.id, breakpoint: historyBreakpoint, position },
-        ]);
+      // ADR-232 — 새 page 의 위치는 기록하지 않는다. 컨테이너 레이아웃이 다음 칸을 준다.
 
       // ADR-185 G-1 — 페이지 생성 undo 기록. entry 는 활성-후 페이지 스택
       // (activate 시 신규 페이지 — 위 setCurrentPage 로 스택 생성됨) 에 실리고,
@@ -1801,9 +1380,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
             page: structuredClone(page),
             subtreeElements: [structuredClone(bodyElement)],
             detach: [],
-            positions: [
-              { breakpoint: historyBreakpoint, position: { ...position } },
-            ],
+            positions: [],
             prevCurrentPageId,
             nextCurrentPageId: activate ? page.id : prevCurrentPageId,
           },
@@ -1862,9 +1439,6 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
       const nextIndexes = buildIndexes(nextElements);
       const nextElementsMap = nextIndexes.elementsMap;
 
-      const nextPagePositions = { ...state.pagePositions };
-      delete nextPagePositions[pageId];
-
       const requestedElementId = nextSelection?.elementId ?? null;
       const requestedPageId = nextSelection?.pageId ?? null;
       const requestedElementIsValid =
@@ -1889,23 +1463,10 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
             ? null
             : state.currentPageId;
 
-      const nextPagePositionsByBreakpoint = Object.fromEntries(
-        Object.entries(state.pagePositionsByBreakpoint).map(
-          ([breakpoint, positions]) => {
-            const nextPositions = { ...positions };
-            delete nextPositions[pageId];
-            return [breakpoint, nextPositions];
-          },
-        ),
-      ) as Partial<Record<BreakpointName, PagePositions>>;
-
       set(() => ({
         pages: nextPages,
         elements: nextElements,
         ...nextIndexes,
-        pagePositions: nextPagePositions,
-        pagePositionsByBreakpoint: nextPagePositionsByBreakpoint,
-        pagePositionsVersion: state.pagePositionsVersion + 1,
         currentPageId: nextCurrentPageId,
         selectedElementId: nextSelectedElementId,
         selectedElementIds: nextSelectedElementIds,
@@ -1934,19 +1495,9 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
             autoDetachElementsByPreviousId.get(previous.id) ?? []
           ).map((element) => structuredClone(element)),
         }));
-        const positionSnapshots = Object.entries(
-          state.pagePositionsByBreakpoint,
-        ).flatMap(([breakpoint, positions]) => {
-          const position = positions?.[pageId];
-          return position
-            ? [
-                {
-                  breakpoint: breakpoint as BreakpointName,
-                  position: { ...position },
-                },
-              ]
-            : [];
-        });
+        // ADR-232 — 좌표 스냅샷은 없다. 페이지 배치는 `pageLayout.placements` 가 갖고,
+        //   페이지 삭제/복원의 배치 복원은 그 필드의 undo 가 담당한다.
+        const positionSnapshots: never[] = [];
         historyManager.setCurrentPage(historyTargetPageId);
         historyManager.addEntry({
           type: "page-lifecycle",
@@ -2649,429 +2200,18 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
     //   (`computedLayout`)가 채워진 적이 없다. 현행 패널은 레이아웃 엔진 결과를
     //   `fullTreeLayoutMap` / computed style 경로로 읽는다.
 
-    // 🆕 Multi-page: 페이지 위치 초기화 (canonical 입력 순서 → 방향별 스택)
-    initializePagePositions: (
-      pages: Page[],
-      pageWidth: number,
-      pageHeight: number,
-      gap: number,
-      direction: PageLayoutDirection = "horizontal",
-      persisted,
-      availableWidth,
-      pageStartX,
-    ) => {
-      // ADR-231: 시스템 페이지는 격자 밖 왼쪽 열 · frame 크기는 페이지별 (Components 1920 × 발행 높이)
-      const placement = resolvePagePlacementInputs(
-        { pages, pageIndex: get().pageIndex, elementsMap: get().elementsMap },
-        pageWidth,
-        pageHeight,
-      );
-      const positions = calculatePagePositions(
-        pages,
-        pageWidth,
-        pageHeight,
-        gap,
-        direction,
-        availableWidth,
-        pageStartX,
-        placement.pageSizes,
-        placement.systemPageIds,
-      );
-
-      // ADR-177: document `pagePositions` 를 breakpoint 축으로 뒤집어 페이지 단위
-      // 병합 준비. 삭제된 pageId entry 는 무시 (breakdown §5 C4).
-      const validPageIds = new Set(pages.map((page) => page.id));
-      const persistedByBreakpoint: Partial<
-        Record<BreakpointName, PagePositions>
-      > = {};
-      if (persisted) {
-        for (const [pageId, byBreakpoint] of Object.entries(persisted)) {
-          if (!validPageIds.has(pageId)) continue;
-          for (const [breakpoint, position] of Object.entries(byBreakpoint)) {
-            if (!position) continue;
-            (persistedByBreakpoint[breakpoint as BreakpointName] ??= {})[
-              pageId
-            ] = { x: position.x, y: position.y };
-          }
-        }
-      }
-
-      let hydrationWriteEntries: Array<{
-        pageId: string;
-        breakpoint: BreakpointName;
-        position: PagePosition;
-      }> = [];
-      set((state) => {
-        const currentPageIds = new Set(state.pages.map((page) => page.id));
-        const nextPageIds = new Set(pages.map((page) => page.id));
-        const hasSamePageSet =
-          currentPageIds.size === nextPageIds.size &&
-          pages.every((page) => currentPageIds.has(page.id));
-        const activeBreakpoint = getActiveBreakpoint(state);
-
-        const activePersisted = persistedByBreakpoint[activeBreakpoint];
-        // persisted 가 있으면 그 격자가 정본 — 없는 페이지는 전체 격자 재계산 값을 섞지 않고
-        //   persisted 옆 다음 칸에 놓는다 (전체 재계산은 열 수·원점이 달라 겹친다).
-        const hasUserPersisted =
-          activePersisted !== undefined &&
-          pages.some(
-            (page) =>
-              !placement.systemPageIds.has(page.id) &&
-              activePersisted[page.id] !== undefined,
-          );
-        const placedMissing = hasUserPersisted
-          ? placeMissingUserPages(
-              pages,
-              activePersisted,
-              {
-                pageWidth,
-                pageHeight,
-                gap,
-                direction,
-                availableWidth,
-                pageStartX,
-              },
-              placement.pageSizes,
-              placement.systemPageIds,
-            )
-          : undefined;
-        const mergedActive: PagePositions = placedMissing
-          ? {
-              ...placedMissing.positions,
-              ...Object.fromEntries(
-                [...placement.systemPageIds].flatMap((id) => {
-                  const position = activePersisted?.[id] ?? positions[id];
-                  return position ? [[id, position]] : [];
-                }),
-              ),
-            }
-          : positions;
-
-        const nextByBreakpoint: Partial<Record<BreakpointName, PagePositions>> =
-          hasSamePageSet ? { ...state.pagePositionsByBreakpoint } : {};
-        for (const [breakpoint, persistedPositions] of Object.entries(
-          persistedByBreakpoint,
-        )) {
-          if (breakpoint === activeBreakpoint) continue;
-          // 비-active breakpoint 는 계산 결과가 없으므로 persisted 를 스냅샷에
-          // 병합만 — 부재 페이지는 switchPagePositionsBreakpoint 의 현행
-          // per-page 폴백 (`targetPositionMap?.[id] ?? current[id]`) 이 처리.
-          nextByBreakpoint[breakpoint as BreakpointName] = {
-            ...(nextByBreakpoint[breakpoint as BreakpointName] ?? {}),
-            ...persistedPositions,
-          };
-        }
-        nextByBreakpoint[activeBreakpoint] = mergedActive;
-
-        // hydration 에서 새로 놓은 위치는 canonical 에도 싣는다 — 프로젝트 생성 경로의 Home · 다른
-        //   breakpoint 에서만 추가된 페이지 · 시스템 페이지는 저장된 값이 없어 reload 마다 당시 panel
-        //   상태 (leftInset 0/317) 로 다시 놓였다 (사용자 보고 2026-09-22 reload 어긋남).
-        if (persisted) {
-          // 활성 breakpoint 에 저장값이 없는 사용자 페이지 전부 (최초 부팅의 전체 계산 · persisted 옆
-          //   다음 칸 배치 모두) — align (`persisted` undefined) 은 자기 history entry 로 쓴다.
-          const userEntries = pages
-            .filter(
-              (page) =>
-                !placement.systemPageIds.has(page.id) &&
-                persisted[page.id]?.[activeBreakpoint] === undefined &&
-                mergedActive[page.id] !== undefined,
-            )
-            .map((page) => ({
-              pageId: page.id,
-              breakpoint: activeBreakpoint,
-              position: mergedActive[page.id]!,
-            }));
-          const systemEntries = buildPagePositionWriteEntries(
-            [...placement.systemPageIds]
-              .filter(
-                (id) =>
-                  persisted[id] === undefined && mergedActive[id] !== undefined,
-              )
-              .map((id) => ({ pageId: id, ...mergedActive[id]! })),
-            activeBreakpoint,
-            placement.systemPageIds,
-          );
-          hydrationWriteEntries = [...userEntries, ...systemEntries];
-        }
-
-        // ADR-231: 시스템 페이지 위치는 공통값 — breakpoint 별 값이 다른 기존 문서는 활성
-        //   breakpoint 의 값 (mergedActive) 을 골라 모든 스냅샷에 싣는다 (리뷰 round 2 m2).
-        return {
-          pagePositions: mergedActive,
-          pagePositionsByBreakpoint: mirrorSystemPagePositions(
-            nextByBreakpoint,
-            placement.systemPageIds,
-            mergedActive,
-          ),
-          pagePositionsVersion: state.pagePositionsVersion + 1,
-        };
-      });
-      if (hydrationWriteEntries.length > 0) {
-        useCanonicalDocumentStore
-          .getState()
-          .setPagePositions(hydrationWriteEntries);
-      }
-    },
-
-    switchPagePositionsBreakpoint: (from, to, options) => {
-      if (from === to) return;
-
-      const currentState = get();
-      if (currentState.pages.length === 0) return;
-
-      const hasCompleteCurrentPositions = currentState.pages.every(
-        (page) => currentState.pagePositions[page.id] !== undefined,
-      );
-      if (!hasCompleteCurrentPositions) return;
-
-      let placedForCanonical: Array<{
-        pageId: string;
-        position: PagePosition;
-      }> = [];
-      set((state) => {
-        const currentPositions = { ...state.pagePositions };
-        // ADR-231: 시스템 페이지는 breakpoint 공통값 — 대상 스냅샷 · 첫 진입 배치를 읽지 않고
-        //   현재값을 그대로 싣는다 (전환 Δ0 은 구성상 성립).
-        const systemPageIds = resolveSystemPageIds(state.pages);
-        const targetPositions = state.pagePositionsByBreakpoint[to];
-        const hasTargetSnapshot =
-          targetPositions !== undefined &&
-          state.pages.some(
-            (page) =>
-              !systemPageIds.has(page.id) &&
-              targetPositions[page.id] !== undefined,
-          );
-        const firstEntryPositions =
-          !hasTargetSnapshot && options
-            ? calculatePagePositions(
-                state.pages,
-                options.pageWidth,
-                options.pageHeight,
-                options.gap,
-                options.direction,
-                options.availableWidth,
-                options.pageStartX,
-                resolvePagePlacementInputs(
-                  state,
-                  options.pageWidth,
-                  options.pageHeight,
-                ).pageSizes,
-                systemPageIds,
-              )
-            : undefined;
-        const targetPositionMap =
-          firstEntryPositions ??
-          (hasTargetSnapshot ? targetPositions : undefined);
-        const nextPositions: PagePositions = {};
-
-        if (options && targetPositionMap) {
-          // 대상 스냅샷에 없는 사용자 페이지 (다른 breakpoint 에서 추가된 페이지) 는 대상 격자에서
-          //   다음 칸 — 현재 breakpoint 좌표를 옮기지 않는다. 놓인 위치는 canonical 에도 싣는다
-          //   (reload 의 hydration 이 같은 값을 읽도록).
-          const { positions, placed } = placeMissingUserPages(
-            state.pages,
-            targetPositionMap,
-            options,
-            resolvePagePlacementInputs(
-              state,
-              options.pageWidth,
-              options.pageHeight,
-            ).pageSizes,
-            systemPageIds,
-          );
-          Object.assign(nextPositions, positions);
-          placedForCanonical = placed;
-        } else {
-          for (const page of state.pages) {
-            if (systemPageIds.has(page.id)) continue;
-            const position =
-              targetPositionMap?.[page.id] ?? currentPositions[page.id];
-            if (position) nextPositions[page.id] = position;
-          }
-        }
-        for (const id of systemPageIds) {
-          const position = currentPositions[id];
-          if (position) nextPositions[id] = position;
-        }
-
-        return {
-          pagePositions: nextPositions,
-          pagePositionsByBreakpoint: {
-            ...state.pagePositionsByBreakpoint,
-            [from]: currentPositions,
-            [to]: nextPositions,
-          },
-          pagePositionsVersion: state.pagePositionsVersion + 1,
-        };
-      });
-      if (placedForCanonical.length > 0) {
-        useCanonicalDocumentStore.getState().setPagePositions(
-          placedForCanonical.map((entry) => ({
-            pageId: entry.pageId,
-            breakpoint: to,
-            position: entry.position,
-          })),
-        );
-      }
-    },
-
-    // 🆕 Multi-page: 단일 페이지 위치 업데이트 (드래그용)
-    updatePagePosition: (pageId: string, x: number, y: number) => {
-      const prevPosition = get().pagePositions[pageId];
-
-      set((state) => {
-        const nextPagePositions = {
-          ...state.pagePositions,
-          [pageId]: { x, y },
-        };
-        return {
-          ...withActivePagePositionSnapshot(state, nextPagePositions),
-          pagePositionsVersion: state.pagePositionsVersion + 1,
-        };
-      });
-
-      // ADR-177: 페이지 위치는 문서 데이터 — finish commit 지점 1곳 (ADR-176
-      // 계약: 드래그 중 경로는 transient presentation, 본 함수는 finish 1회).
-      // lazy write — 위치가 실제로 변경된 시점에만 document 필드 기록.
-      const activeBreakpoint = getActiveBreakpoint(get());
-      // ADR-231: 시스템 페이지는 세 breakpoint 에 같은 값 (공통값 계약)
-      const writeEntries = buildPagePositionWriteEntries(
-        [{ pageId, x, y }],
-        activeBreakpoint,
-        resolveSystemPageIds(get().pages),
-      );
-      useCanonicalDocumentStore.getState().setPagePositions(writeEntries);
-
-      // ADR-177 Phase 2: 히스토리 기록 — 기존 파이프라인 편입 (기록 시점
-      // 활성 페이지 스택, breakdown §5 C6). undo/redo 적용은
-      // historyActions.applyPagePositionHistoryEntry (재기록 없음 — 본 함수
-      // 미경유).
-      if (prevPosition && (prevPosition.x !== x || prevPosition.y !== y)) {
-        historyManager.addEntry({
-          type: "page-position",
-          elementId: pageId,
-          data: {
-            pagePositionEvent: {
-              entries: writeEntries.map((entry) => ({
-                pageId,
-                breakpoint: entry.breakpoint,
-                before: { ...prevPosition },
-                after: { x, y },
-              })),
-            },
-          },
-        });
-      }
-      queueMicrotask(() => {
-        void (async () => {
-          try {
-            const db = await getDB();
-            await persistActiveCanonicalDocument(db);
-          } catch (error) {
-            console.error("[updatePagePosition] DB persist:", error);
-          }
-        })();
-      });
-    },
-
-    applyPageFrameReflow: (shifts) => {
-      const prevPositions = get().pagePositions;
-      const moved = shifts.filter((entry) => {
-        const prev = prevPositions[entry.pageId];
-        return prev && (prev.x !== entry.x || prev.y !== entry.y);
-      });
-      if (moved.length === 0) return;
-
-      set((state) => {
-        const nextPagePositions = { ...state.pagePositions };
-        for (const entry of moved) {
-          nextPagePositions[entry.pageId] = { x: entry.x, y: entry.y };
-        }
-        return {
-          ...withActivePagePositionSnapshot(state, nextPagePositions),
-          pagePositionsVersion: state.pagePositionsVersion + 1,
-        };
-      });
-
-      const activeBreakpoint = getActiveBreakpoint(get());
-      useCanonicalDocumentStore
-        .getState()
-        .setPagePositions(
-          buildPagePositionWriteEntries(
-            moved,
-            activeBreakpoint,
-            resolveSystemPageIds(get().pages),
-          ),
-        );
-
-      queueMicrotask(() => {
-        void (async () => {
-          try {
-            const db = await getDB();
-            await persistActiveCanonicalDocument(db);
-          } catch (error) {
-            console.error("[applyPageFrameReflow] DB persist:", error);
-          }
-        })();
-      });
-    },
-
-    // ADR-178 Phase 2: 페이지 다중 드래그 finish — updatePagePosition 을
-    // 페이지별 N회 호출하면 히스토리 entry N개 (HC1/HC2 위반) 라, ADR-177 의
-    // page-position **batch entry** (`pagePositionEvent.entries[]`) 로
-    // 한 번에 기록한다 (alignPagesToScreen 과 같은 계약 — Cmd+Z 1회 전체 복귀).
-    // set 1회 + canonical batch 1회 + entry 1개 + persist 1회.
-    updatePagePositionsBatch: (entries) => {
-      const prevPositions = get().pagePositions;
-      const moved = entries.filter((entry) => {
-        const prev = prevPositions[entry.pageId];
-        return prev && (prev.x !== entry.x || prev.y !== entry.y);
-      });
-      if (moved.length === 0) return;
-
-      set((state) => {
-        const nextPagePositions = { ...state.pagePositions };
-        for (const entry of moved) {
-          nextPagePositions[entry.pageId] = { x: entry.x, y: entry.y };
-        }
-        return {
-          ...withActivePagePositionSnapshot(state, nextPagePositions),
-          pagePositionsVersion: state.pagePositionsVersion + 1,
-        };
-      });
-
-      const activeBreakpoint = getActiveBreakpoint(get());
-      const writeEntries = buildPagePositionWriteEntries(
-        moved,
-        activeBreakpoint,
-        resolveSystemPageIds(get().pages),
-      );
-      useCanonicalDocumentStore.getState().setPagePositions(writeEntries);
-
-      historyManager.addEntry({
-        type: "page-position",
-        elementId: moved[0].pageId,
-        data: {
-          pagePositionEvent: {
-            entries: writeEntries.map((entry) => ({
-              pageId: entry.pageId,
-              breakpoint: entry.breakpoint,
-              before: { ...prevPositions[entry.pageId] },
-              after: { ...entry.position },
-            })),
-          },
-        },
-      });
-
-      queueMicrotask(() => {
-        void (async () => {
-          try {
-            const db = await getDB();
-            await persistActiveCanonicalDocument(db);
-          } catch (error) {
-            console.error("[updatePagePositionsBatch] DB persist:", error);
-          }
-        })();
+    /**
+     * ADR-232 — 파생 위치 발행 (캔버스 → store 미러). 값이 같으면 set 0.
+     *
+     * 페이지 위치를 쓰는 경로는 이것 하나다. 문서에 쓰이는 것은 `pageLayout.placements` 뿐이고
+     * 이 map 은 persist 되지 않는다 (히트·가이드·스크롤바·오버레이의 읽기 채널).
+     */
+    publishDerivedPagePositions: (positions, version) => {
+      const current = get().derivedPagePositions;
+      if (current === positions) return;
+      set({
+        derivedPagePositions: positions,
+        derivedPagePositionsVersion: version,
       });
     },
 

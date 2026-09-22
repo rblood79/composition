@@ -85,7 +85,7 @@ function resolvePosition(
   snapshot: PagePositionPresentationSnapshot | null,
 ): ScenePoint {
   // canonical 은 store 가 정본 (drag commit 이 동기라 프레임 목록보다 먼저 갱신된다).
-  const canonical = useStore.getState().pagePositions[frame.id] ?? frame;
+  const canonical = useStore.getState().derivedPagePositions[frame.id] ?? frame;
   const delta = snapshot ? readPagePositionDelta(frame.id, snapshot) : null;
   return {
     x: canonical.x + (delta?.dx ?? 0),

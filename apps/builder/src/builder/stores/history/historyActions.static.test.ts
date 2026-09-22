@@ -152,7 +152,8 @@ describe("ADR-180: snapshot-restore entry 소비 분기 (문서 전체 교체 �
     expect(source).toContain(".setDocument(projectId, docCopy)");
     expect(source).toContain("deriveProjectEditorPageModelFromDocument");
     expect(source).toContain("hydrateProjectSnapshot");
-    expect(source).toContain("initializePagePositions");
+    // ADR-232 — 위치 초기화가 없어졌다 (페이지 위치는 컨테이너 레이아웃 파생값).
+    expect(source).not.toContain("initializePagePositions");
     expect(source).toContain("setPages(storePages)");
     expect(source).toContain("activatePage");
 

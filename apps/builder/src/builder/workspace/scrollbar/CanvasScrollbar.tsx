@@ -145,10 +145,12 @@ export function CanvasScrollbar({ direction }: CanvasScrollbarProps) {
     //
     // 페이지 추가/삭제/재배치는 뷰포트를 건드리지 않으므로 위 소스에 걸리지 않는다.
     // 전체 store 구독이지만 비교는 카운터 하나이고 갱신은 rAF 로 합쳐진다.
-    let lastPagePositionsVersion = useStore.getState().pagePositionsVersion;
+    let lastPagePositionsVersion =
+      useStore.getState().derivedPagePositionsVersion;
     const unsubPagePositions = useStore.subscribe((state) => {
-      if (state.pagePositionsVersion === lastPagePositionsVersion) return;
-      lastPagePositionsVersion = state.pagePositionsVersion;
+      if (state.derivedPagePositionsVersion === lastPagePositionsVersion)
+        return;
+      lastPagePositionsVersion = state.derivedPagePositionsVersion;
       scheduleUpdate();
     });
 

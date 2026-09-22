@@ -373,14 +373,7 @@ export function applyPathHeavy117Fixture(
   canonicalStore.setCurrentProject(projectId);
   store.setPages(pages);
   store.setElements(canonicalDocumentToElements(document));
-  store.initializePagePositions(
-    pages,
-    1920,
-    1080,
-    200,
-    "horizontal",
-    document.pagePositions,
-  );
+  // ADR-232 — 위치 초기화 없음 (컨테이너 레이아웃 파생값).
   store.setCurrentPageId(SOURCE_PAGE_ID);
   store.selectElementWithPageTransition(SLOT_FRAME_ID, SOURCE_PAGE_ID);
   store.setWorkflowStraightEdges(

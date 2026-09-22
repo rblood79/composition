@@ -420,7 +420,7 @@ function buildManualSnapContext(
     // 자기 페이지 가이드도 후보다 (페이지 드래그와 갈리는 지점).
     guideLines: collectGuideSnapLines(
       useStore.getState().activeBreakpoint,
-      useStore.getState().pagePositions,
+      useStore.getState().derivedPagePositions,
     ),
   };
 }

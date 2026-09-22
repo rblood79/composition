@@ -93,7 +93,7 @@ beforeEach(() => {
 
   useStore.setState({
     actionBar: { hidden: false, pinned: false, offset: { dx: 9999, dy: 0 } },
-    pagePositions: { "page-1": { x: 100, y: 50 } },
+    derivedPagePositions: { "page-1": { x: 100, y: 50 } },
   } as never);
   useViewportSyncStore.getState().reset();
   useViewportSyncStore.getState().setCanvasSize({ width: 400, height: 300 });
@@ -382,7 +382,7 @@ describe("useActionBarPlacement — page 자동 고정", () => {
   });
 
   it("저장된 page position이 없으면 Skia page frame과 같이 (0, 0)을 쓴다", () => {
-    useStore.setState({ pagePositions: {} } as never);
+    useStore.setState({ derivedPagePositions: {} } as never);
     const view = render(<Harness visible pageId="page-1" />);
     const bar = view.getByTestId("bar");
 
@@ -400,7 +400,7 @@ describe("useActionBarPlacement — page 자동 고정", () => {
 
     act(() => {
       beginPagePositionPresentation(
-        useStore.getState().pagePositions,
+        useStore.getState().derivedPagePositions,
         ["page-1"],
         "desktop",
       );

@@ -11,6 +11,7 @@ import type {
 } from "@composition/shared";
 import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
 import {
+  commitPagePlacementFromPoint,
   setPagePlacementModelDerived,
   setPagePlacementModelLegacy,
 } from "../../../stores/utils/pagePlacementCommit";
@@ -51,6 +52,12 @@ export const pagePlacementDebugActions = {
     useCanonicalDocumentStore
       .getState()
       .setPageLayout({ placementModel: undefined }),
+  /**
+   * 드래그 finish 와 **같은 커밋 진입점** (판정 → 쓰기 → history → 파생). 하니스가 포인터
+   * 플럼빙 없이 배치 정책 (칸 고정 · 교환 · 거부) 을 실행할 때 쓴다.
+   */
+  commitFromPoint: (pageId: string, point: { x: number; y: number }) =>
+    commitPagePlacementFromPoint(pageId, point),
   /** ADR-232 Decision 7 — 복귀 · 재이관 (Settings 숨김 항목과 같은 진입점). */
   setPlacementModelLegacy: () => setPagePlacementModelLegacy(),
   setPlacementModelDerived: () => setPagePlacementModelDerived(),

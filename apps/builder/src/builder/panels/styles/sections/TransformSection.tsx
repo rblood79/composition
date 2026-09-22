@@ -143,7 +143,7 @@ const PagePositionRow = memo(function PagePositionRow({
 }: {
   pageId: string;
 }) {
-  const pagePosition = useStore((s) => s.pagePositions[pageId]);
+  const pagePosition = useStore((s) => s.derivedPagePositions[pageId]);
   const liveKey = useSyncExternalStore(
     subscribePagePositionPresentation,
     () => {
@@ -162,15 +162,14 @@ const PagePositionRow = memo(function PagePositionRow({
       const parsed = Number.parseFloat(value);
       if (!Number.isFinite(parsed)) return;
       const state = useStore.getState();
-      const current = state.pagePositions[pageId];
+      const current = state.derivedPagePositions[pageId];
       if (!current) return;
       const next = {
         x: axis === "x" ? parsed : current.x,
         y: axis === "y" ? parsed : current.y,
       };
-      // ADR-232: 파생 모드면 placement 로 쓴다 (Home 은 거부 — 아래 입력 비활성과 같은 판정).
-      if (commitPagePlacementFromPoint(pageId, next)) return;
-      state.updatePagePosition(pageId, next.x, next.y);
+      // ADR-232 — X/Y 입력도 placement 로 쓴다 (Home 은 거부 — 아래 입력 비활성과 같은 판정).
+      commitPagePlacementFromPoint(pageId, next);
     },
     [pageId],
   );

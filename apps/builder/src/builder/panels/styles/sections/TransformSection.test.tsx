@@ -25,6 +25,12 @@ import {
 import { TransformSection } from "./TransformSection";
 
 const getSceneBoundsMock = vi.hoisted(() => vi.fn());
+// ADR-232 — 페이지 X/Y 는 좌표가 아니라 placement 로 커밋된다.
+const commitPagePlacementFromPointMock = vi.hoisted(() => vi.fn(() => true));
+vi.mock("../../../stores/utils/pagePlacementCommit", () => ({
+  commitPagePlacementFromPoint: commitPagePlacementFromPointMock,
+  isPagePlacementEditable: () => true,
+}));
 
 vi.mock("../../../workspace/canvas/skia/renderCommands", () => ({
   getSceneBounds: getSceneBoundsMock,
@@ -659,9 +665,8 @@ describe("TransformSection sizing controls", () => {
     expect(moveElementToSiblingEdge).not.toHaveBeenCalled();
   });
 
-  // ADR-177 적응형 통합 — body 선택 시 position row 는 pagePositions 를 편집
-  it("shows page X/Y for a real page body and commits via updatePagePosition", () => {
-    const updatePagePosition = vi.fn();
+  // ADR-232 — body 선택 시 position row 는 페이지 **배치** 를 편집한다 (좌표 저장 0).
+  it("shows page X/Y for a real page body and commits via placement", () => {
     setTestElements([
       {
         id: "body-1",
@@ -674,8 +679,7 @@ describe("TransformSection sizing controls", () => {
     useStore.setState({
       selectedElementId: "body-1",
       currentPageId: "page-1",
-      pagePositions: { "page-1": { x: 120, y: 40 } },
-      updatePagePosition,
+      derivedPagePositions: { "page-1": { x: 120, y: 40 } },
     } as never);
 
     render(<TransformSection />);
@@ -692,7 +696,10 @@ describe("TransformSection sizing controls", () => {
 
     fireEvent.change(xInput, { target: { value: "300" } });
     fireEvent.blur(xInput);
-    expect(updatePagePosition).toHaveBeenCalledWith("page-1", 300, 40);
+    expect(commitPagePlacementFromPointMock).toHaveBeenCalledWith("page-1", {
+      x: 300,
+      y: 40,
+    });
   });
 
   it("updates page X/Y live from the transient drag channel", async () => {
@@ -708,7 +715,7 @@ describe("TransformSection sizing controls", () => {
     useStore.setState({
       selectedElementId: "body-1",
       currentPageId: "page-1",
-      pagePositions: { "page-1": { x: 120, y: 40 } },
+      derivedPagePositions: { "page-1": { x: 120, y: 40 } },
     } as never);
 
     render(<TransformSection />);
@@ -749,7 +756,7 @@ describe("TransformSection sizing controls", () => {
     useStore.setState({
       selectedElementId: "body-2",
       currentPageId: "page-1",
-      pagePositions: {},
+      derivedPagePositions: {},
     } as never);
 
     render(<TransformSection />);

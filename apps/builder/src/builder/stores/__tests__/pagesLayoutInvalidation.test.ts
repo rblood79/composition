@@ -56,25 +56,7 @@ describe("setPages layout invalidation", () => {
     expect(useStore.getState().layoutVersion).toBe(7);
   });
 
-  it("initializePagePositions 는 order_num 대신 입력된 canonical page 순서를 따른다", () => {
-    useStore
-      .getState()
-      .initializePagePositions(
-        [
-          makePage("page-three", { order_num: 2 }),
-          makePage("page-home", { order_num: 0 }),
-          makePage("page-two", { order_num: 1 }),
-        ],
-        100,
-        200,
-        10,
-        "horizontal",
-      );
-
-    expect(useStore.getState().pagePositions).toMatchObject({
-      "page-three": { x: 0, y: 0 },
-      "page-home": { x: 110, y: 0 },
-      "page-two": { x: 220, y: 0 },
-    });
-  });
+  // ADR-232 — `initializePagePositions` 는 삭제됐다 (페이지 위치는 컨테이너 레이아웃 파생값).
+  //   "canonical 순서를 따른다" 는 계약은 파생 자체가 `pages` 배열 순서로 흐름을 만들며
+  //   `scene/pagePlacement.test.ts` 가 본다.
 });

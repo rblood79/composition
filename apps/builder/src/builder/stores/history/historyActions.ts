@@ -186,59 +186,9 @@ function applyPagePositionHistoryEntry(
     return;
   }
 
-  const event = entry.data.pagePositionEvent;
-  if (!event || event.entries.length === 0) return;
-
-  const state = get();
-  const validPageIds = new Set(state.pages.map((page) => page.id));
-  const activeBreakpoint = (
-    state as ElementsState & {
-      activeBreakpoint: import("@composition/shared").BreakpointName;
-    }
-  ).activeBreakpoint;
-
-  const canonicalEntries: Array<{
-    pageId: string;
-    breakpoint: import("@composition/shared").BreakpointName;
-    position: { x: number; y: number } | null;
-  }> = [];
-
-  set((prev) => {
-    const nextByBreakpoint = { ...prev.pagePositionsByBreakpoint };
-    let activeTouched = false;
-
-    for (const item of event.entries) {
-      if (!validPageIds.has(item.pageId)) continue;
-      const position = direction === "undo" ? item.before : item.after;
-      canonicalEntries.push({
-        pageId: item.pageId,
-        breakpoint: item.breakpoint,
-        position: position ? { ...position } : null,
-      });
-      if (position === null) continue; // 문서 축만 정리 — 스토어 위치 유지
-      const snapshot = { ...(nextByBreakpoint[item.breakpoint] ?? {}) };
-      snapshot[item.pageId] = { ...position };
-      nextByBreakpoint[item.breakpoint] = snapshot;
-      if (item.breakpoint === activeBreakpoint) activeTouched = true;
-    }
-
-    return {
-      pagePositions: activeTouched
-        ? { ...(nextByBreakpoint[activeBreakpoint] ?? {}) }
-        : prev.pagePositions,
-      pagePositionsByBreakpoint: nextByBreakpoint,
-      pagePositionsVersion: prev.pagePositionsVersion + 1,
-    };
-  });
-
-  if (canonicalEntries.length > 0) {
-    useCanonicalDocumentStore.getState().setPagePositions(canonicalEntries);
-  }
-  queueMicrotask(() => {
-    void persistActiveCanonicalDocument().catch((error) => {
-      console.error("[applyPagePositionHistoryEntry] DB persist:", error);
-    });
-  });
+  // ADR-232 — 옛 `pagePositionEvent` (저장 좌표) 는 적용하지 않는다. 좌표는 더 이상 문서
+  //   데이터가 아니며 (위치는 파생값), 그 시절 이력은 `placementModel` 이관 이전의 것이라
+  //   되돌릴 대상이 없다. 새 이력은 위 `pagePlacementEvent` 분기가 처리한다.
 }
 
 /**
@@ -452,27 +402,9 @@ function applyPageLifecycleHistoryEntry(
         : (nextPages[0]?.id ?? null);
   }
 
-  // breakpoint 별 위치 — add 는 기록 위치 복원, remove 는 전 breakpoint 제거
-  const activeBreakpoint = (
-    state as ElementsState & {
-      activeBreakpoint: import("@composition/shared").BreakpointName;
-    }
-  ).activeBreakpoint;
-  const nextByBreakpoint = { ...state.pagePositionsByBreakpoint };
-  if (op === "add") {
-    for (const item of event.positions) {
-      const snapshot = { ...(nextByBreakpoint[item.breakpoint] ?? {}) };
-      snapshot[pageId] = { ...item.position };
-      nextByBreakpoint[item.breakpoint] = snapshot;
-    }
-  } else {
-    for (const breakpoint of Object.keys(nextByBreakpoint)) {
-      const key = breakpoint as keyof typeof nextByBreakpoint;
-      const snapshot = { ...(nextByBreakpoint[key] ?? {}) };
-      delete snapshot[pageId];
-      nextByBreakpoint[key] = snapshot;
-    }
-  }
+  // ADR-232 — 페이지 위치는 복원 대상이 아니다 (파생값). 페이지가 돌아오면 컨테이너
+  //   레이아웃이 그 칸을 다시 준다. 배치 (`pageLayout.placements`) 의 복원은 그 필드의
+  //   자기 undo entry (`pagePlacementEvent`) 가 담당한다.
 
   const nextBodyElement =
     nextElements.find(
@@ -483,9 +415,6 @@ function applyPageLifecycleHistoryEntry(
   set(() => ({
     pages: nextPages,
     elements: nextElements,
-    pagePositions: { ...(nextByBreakpoint[activeBreakpoint] ?? {}) },
-    pagePositionsByBreakpoint: nextByBreakpoint,
-    pagePositionsVersion: state.pagePositionsVersion + 1,
     currentPageId: nextCurrentPageId,
     selectedElementId: nextBodyElement?.id ?? null,
     selectedElementIds: nextBodyElement ? [nextBodyElement.id] : [],

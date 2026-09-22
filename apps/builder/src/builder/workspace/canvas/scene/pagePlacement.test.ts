@@ -7,10 +7,12 @@
  */
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { initEngineWasm, isEngineReady } from "../wasm-bindings/engineWasm";
-import {
-  calculatePagePositions,
-  type PageFrameSizes,
-} from "../../../stores/elements";
+import { calculatePagePositions } from "./__tests__/legacyPagePositionsOracle";
+
+/** 페이지별 frame 크기 (body 저작 크기). */
+type PageFrameSizes = Readonly<
+  Record<string, { width: number; height: number } | undefined>
+>;
 import {
   __resetPagePlacementEngine,
   __resetPagePlacementMemo,
@@ -503,6 +505,50 @@ describe("G1 (g) Home 은 흐름 원점이다", () => {
 });
 
 describe("placementModel — 읽기 모드는 placement 존재가 아니라 모델이 정한다", () => {
+  it("모델이 없고 저장 좌표가 있으면 저장 좌표를 읽는다 (이관 직전 프레임)", () => {
+    const derived = derivePagePositions({
+      pages: pagesOf(2),
+      pageSizes: uniformSizes(2, "desktop"),
+      pageLayout: { direction: "auto", gap: GAP, columns: 3 },
+      legacyPositions: {
+        p0: { desktop: { x: 317, y: 0 } },
+        p1: { desktop: { x: 2317, y: 0 } },
+      },
+      activeBreakpoint: "desktop",
+    });
+    expect(asMap(derived!)).toEqual({ p0: [317, 0], p1: [2317, 0] });
+  });
+
+  it("모델도 저장 좌표도 없으면 흐름이다 (새 문서)", () => {
+    const derived = derivePagePositions({
+      pages: pagesOf(2),
+      pageSizes: uniformSizes(2, "desktop"),
+      pageLayout: { direction: "auto", gap: GAP, columns: 3 },
+      activeBreakpoint: "desktop",
+    });
+    expect(asMap(derived!)).toEqual({ p0: [0, 0], p1: [2000, 0] });
+  });
+
+  it("시스템 페이지 좌표만 있는 문서는 흐름이다 (사용자 좌표가 판정 기준)", () => {
+    const derived = derivePagePositions({
+      pages: [{ id: "page-components" }, { id: "p0" }, { id: "p1" }],
+      pageSizes: {
+        "page-components": { width: 1920, height: 1080 },
+        p0: { width: 1920, height: 1080 },
+        p1: { width: 1920, height: 1080 },
+      },
+      pageLayout: { direction: "auto", gap: GAP, columns: 3 },
+      systemPageIds: new Set(["page-components"]),
+      legacyPositions: { "page-components": { desktop: { x: -2000, y: 0 } } },
+      activeBreakpoint: "desktop",
+    });
+    expect(asMap(derived!)).toEqual({
+      "page-components": [-2000, 0],
+      p0: [0, 0],
+      p1: [2000, 0],
+    });
+  });
+
   it('"legacy" 는 저장 좌표를 그대로 쓴다 (흐름 0)', () => {
     const derived = derivePagePositions({
       pages: pagesOf(3),

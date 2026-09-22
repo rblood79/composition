@@ -23,7 +23,7 @@ let animationSession: ViewportInteractionSession | null = null;
  * 지정된 페이지가 화면 중앙에 오도록 카메라를 300ms ease-out 애니메이션으로 이동한다.
  */
 export function panToPage(pageId: string): void {
-  const { pagePositions } = useStore.getState();
+  const { derivedPagePositions: pagePositions } = useStore.getState();
   const pos = pagePositions[pageId];
   if (!pos) return;
 

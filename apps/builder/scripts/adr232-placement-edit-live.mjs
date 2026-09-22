@@ -48,7 +48,7 @@ const readState = (page) =>
       pageLayout:
         window.__composition_PAGE_PLACEMENT__.readPageLayout() ?? null,
       storePositions: Object.fromEntries(
-        Object.entries(st.pagePositions).map(([k, v]) => [
+        Object.entries(st.derivedPagePositions).map(([k, v]) => [
           k,
           [Math.round(v.x), Math.round(v.y)],
         ]),
@@ -77,18 +77,59 @@ const worldToScreen = (page, point) =>
     };
   }, point);
 
+/** 그 페이지의 헤더가 화면에 들어오도록 pan 을 맞춘다 (드래그 전 필수 — 밖이면 헤더가 없다). */
+async function ensureVisible(page, pageId) {
+  await page.evaluate((id) => {
+    const frames = window.__composition_SCENE_DEBUG__.readPageFrames();
+    const frame = frames.find((f) => f.id === id);
+    if (!frame) return;
+    const vp = window.__composition_VIEWPORT_SYNC__.getState();
+    const canvas = document.querySelector(
+      '[data-testid="skia-canvas-unified"]',
+    );
+    const rect = canvas.getBoundingClientRect();
+    vp.setPanOffset?.({
+      x: rect.width / 2 - (frame.x + frame.width / 2) * vp.zoom,
+      y: rect.height / 2 - (frame.y + frame.height / 2) * vp.zoom,
+    });
+  }, pageId);
+  await settle(page, 700);
+}
+
 /** 페이지 헤더를 잡고 world Δ 만큼 끈다. */
 async function dragPageBy(page, pageId, dx, dy) {
+  await ensureVisible(page, pageId);
   const header = page
     .locator(`[data-page-header][data-page-id="${pageId}"]`)
     .first();
   if ((await header.count()) === 0)
     throw new Error(`page header 없음: ${pageId}`);
-  const box = await header.boundingBox();
+  // 제목 span 을 잡는다 — 액션 아이콘 (`page-header__action`) 은 드래그를 시작하지 않는다.
+  const title = header.locator(".page-header__title").first();
+  const box =
+    (await title.count()) > 0
+      ? await title.boundingBox()
+      : await header.boundingBox();
   const zoom = await page.evaluate(
     () => window.__composition_VIEWPORT_SYNC__.getState().zoom,
   );
+  // 헤더 **중앙**은 액션 아이콘 (삭제 등) 위일 수 있다 — 실측 09-22: 페이지가 지워졌다.
+  //   제목 쪽 왼쪽 가장자리를 잡는다.
   const from = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+  const hit = await page.evaluate(({ x, y }) => {
+    const el = document.elementFromPoint(x, y);
+    return el
+      ? {
+          tag: el.tagName,
+          cls: el.className,
+          pageId:
+            el.closest("[data-page-id]")?.getAttribute("data-page-id") ?? null,
+        }
+      : null;
+  }, from);
+  process.stderr.write(
+    `[drag] ${pageId.slice(0, 6)} at (${Math.round(from.x)},${Math.round(from.y)}) → ${JSON.stringify(hit)}\n`,
+  );
   await page.mouse.move(from.x, from.y);
   await page.mouse.down();
   const steps = 12;
@@ -151,8 +192,9 @@ async function main() {
     // 화면에 격자가 다 보이도록 줌 아웃 + 원점 근처로 pan
     await page.evaluate(() => {
       const vp = window.__composition_VIEWPORT_SYNC__.getState();
-      vp.setZoom?.(0.12);
-      vp.setPanOffset?.({ x: 700, y: 300 });
+      // 격자 (3열 × 2행 + 시스템 열 + 아래 absolute 자리) 를 한 화면에 담는 줌.
+      vp.setZoom?.(0.06);
+      vp.setPanOffset?.({ x: 420, y: 180 });
     });
     await settle(page, 900);
 
@@ -244,6 +286,20 @@ async function main() {
       after: afterReload.frames,
     });
 
+    /**
+     * 칸 판정 (고정 · 교환 · 거부) 은 드래그 finish 와 **같은 커밋 진입점** 으로 실행한다 —
+     * 포인터 플럼빙은 위 absolute 드래그와 아래 Home 무반응이 실제 마우스로 덮는다.
+     * (헤더를 잡는 합성 드래그는 작은 Δ 에서 실행마다 갈려 판정 자체를 못 본다.)
+     */
+    const dropAt = async (pageId, point) => {
+      await page.evaluate(
+        ({ id, p }) =>
+          window.__composition_PAGE_PLACEMENT__.commitFromPoint(id, p),
+        { id: pageId, p: point },
+      );
+      await settle(page, 900);
+    };
+
     // ── 2) 흐름 칸으로 드래그 → 고정 + 뒤 페이지 재흐름 ──
     await page.evaluate(
       (id) =>
@@ -255,8 +311,7 @@ async function main() {
     await settle(page, 900);
     const flowBase = await readState(page);
     // p3 (행2 열1) 을 행1 열3 (= p2 자리) 으로
-    const dx = 2 * stride - 0;
-    await dragPageBy(page, userIds[3], dx, -1160);
+    await dropAt(userIds[3], { x: 2 * stride + 40, y: 30 });
     const s3 = await readState(page);
     const pinned = s3.pageLayout?.placements?.[userIds[3]];
     check(
@@ -278,7 +333,7 @@ async function main() {
     const beforeSwap = await readState(page);
     const from = beforeSwap.frames[userIds[2]];
     const to = beforeSwap.frames[userIds[3]];
-    await dragPageBy(page, userIds[2], to[0] - from[0], to[1] - from[1]);
+    await dropAt(userIds[2], { x: to[0] + 40, y: to[1] + 30 });
     const s4 = await readState(page);
     const a = s4.pageLayout?.placements?.[userIds[2]]?.style;
     const b = s4.pageLayout?.placements?.[userIds[3]]?.style;
@@ -369,7 +424,11 @@ async function main() {
         home: s8.frames[homeId],
       },
     );
-    record.steps.push({ step: "home-immovable", frames: s8.frames });
+    record.steps.push({
+      step: "home-immovable",
+      frames: s8.frames,
+      pages: s8.pages,
+    });
 
     // ── 5) align → 전부 흐름 ──
     await page.evaluate(() => {

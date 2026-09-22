@@ -260,9 +260,6 @@ export const BuilderCore: React.FC = () => {
   const setSelectedElement = useStore((state) => state.setSelectedElement);
   // ADR-154: 반응형 breakpoint bridge (기존 선택기 → activeBreakpoint SSOT)
   const setActiveBreakpoint = useStore((state) => state.setActiveBreakpoint);
-  const switchPagePositionsBreakpoint = useStore(
-    (state) => state.switchPagePositionsBreakpoint,
-  );
   const invalidateLayout = useStore((state) => state.invalidateLayout);
   // UI 설정 (글로벌 uiStore에서 가져옴 - Phase 1)
   const themeMode = useUiStore((state) => state.themeMode);
@@ -538,25 +535,13 @@ export const BuilderCore: React.FC = () => {
       // desktop → desktop tier, tablet/mobile → 동명 tier.
       const nextBreakpoint = toResponsiveBreakpoint(String(value));
       const currentBreakpoint = useStore.getState().activeBreakpoint;
-      const viewport = useViewportSyncStore.getState();
-      const pageLayoutBounds = resolvePageLayoutBounds(
-        viewport.containerSize.width,
-        viewport.zoom,
-        useStore.getState().pageGap,
-        viewport.pageLayoutPanelMetrics,
-      );
-      switchPagePositionsBreakpoint(currentBreakpoint, nextBreakpoint, {
-        pageWidth: CANVAS_VIEWPORT[nextBreakpoint].width,
-        pageHeight: CANVAS_VIEWPORT[nextBreakpoint].height,
-        gap: useStore.getState().pageGap,
-        direction: useStore.getState().pageLayoutDirection,
-        availableWidth: pageLayoutBounds.availableWidth,
-        pageStartX: pageLayoutBounds.leftInset,
-      });
+      // ADR-232 — breakpoint 전환은 위치를 옮기지 않는다. tier 차이는 페이지 placement 의
+      //   responsive override 가 갖고, 파생이 활성 tier 로 다시 돈다 (스냅샷 3벌 소멸).
+      void currentBreakpoint;
       setActiveBreakpoint(nextBreakpoint);
       invalidateLayout();
     },
-    [invalidateLayout, setActiveBreakpoint, switchPagePositionsBreakpoint],
+    [invalidateLayout, setActiveBreakpoint],
   );
 
   // ADR-154: 마운트/복원 시 활성 breakpoint 를 store 에 1회 동기화
@@ -566,26 +551,14 @@ export const BuilderCore: React.FC = () => {
     if (initial != null) {
       const nextBreakpoint = toResponsiveBreakpoint(String(initial));
       const currentBreakpoint = useStore.getState().activeBreakpoint;
-      const viewport = useViewportSyncStore.getState();
-      const pageLayoutBounds = resolvePageLayoutBounds(
-        viewport.containerSize.width,
-        viewport.zoom,
-        useStore.getState().pageGap,
-        viewport.pageLayoutPanelMetrics,
-      );
-      switchPagePositionsBreakpoint(currentBreakpoint, nextBreakpoint, {
-        pageWidth: CANVAS_VIEWPORT[nextBreakpoint].width,
-        pageHeight: CANVAS_VIEWPORT[nextBreakpoint].height,
-        gap: useStore.getState().pageGap,
-        direction: useStore.getState().pageLayoutDirection,
-        availableWidth: pageLayoutBounds.availableWidth,
-        pageStartX: pageLayoutBounds.leftInset,
-      });
+      // ADR-232 — breakpoint 전환은 위치를 옮기지 않는다. tier 차이는 페이지 placement 의
+      //   responsive override 가 갖고, 파생이 활성 tier 로 다시 돈다 (스냅샷 3벌 소멸).
+      void currentBreakpoint;
       setActiveBreakpoint(nextBreakpoint);
     }
     // 마운트 1회만 — 이후 변경은 handleBreakpointChange 경유
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [setActiveBreakpoint, switchPagePositionsBreakpoint]);
+  }, [setActiveBreakpoint]);
 
   // 프로젝트 정보 가져오기 (IndexedDB 조회)
   useEffect(() => {

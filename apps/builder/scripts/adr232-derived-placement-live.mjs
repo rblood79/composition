@@ -46,7 +46,7 @@ const readFrames = (page) =>
         h: Math.round(f.height),
       })),
       storePositions: Object.fromEntries(
-        Object.entries(st.pagePositions).map(([k, v]) => [
+        Object.entries(st.derivedPagePositions).map(([k, v]) => [
           k,
           [Math.round(v.x), Math.round(v.y)],
         ]),
@@ -111,8 +111,8 @@ async function main() {
     const before = await readFrames(page);
     record.steps.push({ step: "before", ...before });
     check(
-      "부팅 시 pageLayout 부재 (미이관 — 배선 휴면)",
-      before.docPageLayout === null,
+      "부팅 시 hydration 이 derived 를 기록한다 (새 문서 — ADR-232 Phase 3)",
+      before.docPageLayout?.placementModel === "derived",
       { docPageLayout: before.docPageLayout },
     );
 
@@ -323,10 +323,10 @@ async function main() {
     //   (`switchPagePositionsBreakpoint`) 가 아직 살아 있어 저장 좌표를 건드린다. derived 모드에서
     //   그 값은 읽히지 않으며, 여기서 보는 것은 "파생 갱신 자체가 쓰지 않는다" 다.
     check(
-      "파생 갱신 (body 높이 변경) 이 저장 좌표를 쓰지 않았다",
-      JSON.stringify(grown.storePositions) ===
-        JSON.stringify(back.storePositions),
-      { before: back.storePositions, after: grown.storePositions },
+      "파생 갱신 (body 높이 변경) 이 문서 배치를 쓰지 않았다",
+      JSON.stringify(grown.docPageLayout?.placements ?? null) ===
+        JSON.stringify(back.docPageLayout?.placements ?? null),
+      { before: back.docPageLayout, after: grown.docPageLayout },
     );
     record.steps.push({
       step: "grown",

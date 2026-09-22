@@ -382,12 +382,13 @@ export function useGlobalKeyboardShortcuts() {
       const pageId = resolveSelectedPageForNudge();
       if (pageId) {
         const state = useStore.getState();
-        const position = state.pagePositions[pageId];
+        const position = state.derivedPagePositions[pageId];
         if (!position) return;
-        const next = { x: position.x + dx * step, y: position.y + dy * step };
-        // ADR-232: 파생 모드면 placement 로 쓴다 (Home nudge 는 거부되어 무반응).
-        if (commitPagePlacementFromPoint(pageId, next)) return;
-        state.updatePagePosition(pageId, next.x, next.y);
+        // ADR-232 — nudge 도 placement 로 쓴다 (Home 은 거부되어 무반응).
+        commitPagePlacementFromPoint(pageId, {
+          x: position.x + dx * step,
+          y: position.y + dy * step,
+        });
         return;
       }
       if (step !== 1) return;

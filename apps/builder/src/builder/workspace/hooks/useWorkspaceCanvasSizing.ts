@@ -230,7 +230,7 @@ export function useWorkspaceCanvasSizing({
     if (compareMode) {
       const state = useStore.getState();
       const position = state.currentPageId
-        ? state.pagePositions[state.currentPageId]
+        ? state.derivedPagePositions[state.currentPageId]
         : undefined;
       if (position) {
         centered.x -= position.x * centered.scale;
@@ -255,7 +255,7 @@ export function useWorkspaceCanvasSizing({
     if (compareMode) {
       const state = useStore.getState();
       const position = state.currentPageId
-        ? state.pagePositions[state.currentPageId]
+        ? state.derivedPagePositions[state.currentPageId]
         : undefined;
       if (position) {
         centered.x -= position.x;

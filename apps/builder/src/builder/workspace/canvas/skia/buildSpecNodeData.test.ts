@@ -42,6 +42,26 @@ function collectText(node: SkiaNodeData | undefined | null): string[] {
 }
 
 describe("buildSpecNodeData", () => {
+  it("keeps a placed Dialog's painted boxes within its body instead of covering the page", () => {
+    const dialog = makeElement("dialog", { type: "Dialog" });
+    const node = buildSpecNodeData({
+      element: dialog,
+      layout: makeLayout({ x: 0, y: 0, width: 480, height: 240 }),
+      theme: "light",
+      elementsMap: new Map([[dialog.id, dialog]]),
+    });
+    expect(node).not.toBeNull();
+    expect(node?.box).toBeDefined();
+    const checkBounds = (current: SkiaNodeData) => {
+      expect(current.x).toBeGreaterThanOrEqual(0);
+      expect(current.y).toBeGreaterThanOrEqual(0);
+      expect(current.x + current.width).toBeLessThanOrEqual(480);
+      expect(current.y + current.height).toBeLessThanOrEqual(240);
+      current.children?.forEach(checkBounds);
+    };
+    checkBounds(node!);
+  });
+
   it("does not render center placeholder text for visible Slot chrome", () => {
     const slot = makeElement("slot-content", {
       type: "Slot",
@@ -1284,7 +1304,13 @@ describe("buildSpecNodeData", () => {
         selected: {
           style: { color: "#FFFFFF" },
           fills: [
-            { id: "f1", type: "color", color: "#FF0000", opacity: 1, enabled: true },
+            {
+              id: "f1",
+              type: "color",
+              color: "#FF0000",
+              opacity: 1,
+              enabled: true,
+            },
           ],
         },
         disabled: { style: { opacity: 0.5 } },
@@ -1322,7 +1348,9 @@ describe("buildSpecNodeData", () => {
 
     it("h1 반증 — disabled origin 의 opacity 0.5 는 effect 1개 (catalog 0.38 과 곱하지 않는다)", () => {
       const effects = opacityEffects(buildToggle({ isDisabled: true }));
-      expect(effects).toEqual([{ type: "opacity", value: 0.5, source: "style" }]);
+      expect(effects).toEqual([
+        { type: "opacity", value: 0.5, source: "style" },
+      ]);
     });
 
     it("instance 명시 opacity 0.8 이 상태 origin 0.5 보다 우선 · 명시 color 가 selected color 보다 우선", () => {

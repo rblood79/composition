@@ -209,12 +209,12 @@ export function useGuideDrag({
                     pageHeight,
                   ),
                 pageWidth,
-                pagePositions: state.pagePositions,
+                pagePositions: state.derivedPagePositions,
                 pages: state.pages,
               });
         if (!pageId) return { pageId: null, removing: false, scenePosition };
 
-        const origin = state.pagePositions[pageId];
+        const origin = state.derivedPagePositions[pageId];
         if (!origin) return { pageId: null, removing: false, scenePosition };
         const position = Math.round(
           axis === "x" ? scene.x - origin.x : scene.y - origin.y,
@@ -366,7 +366,7 @@ export function useGuideDrag({
 
   const startMove = useCallback<UseGuideDragReturn["startMove"]>(
     (target, pointerId, clientX, clientY) => {
-      const origin = useStore.getState().pagePositions[target.pageId];
+      const origin = useStore.getState().derivedPagePositions[target.pageId];
       if (!origin) return;
       const localPosition =
         target.axis === "x"
@@ -480,10 +480,10 @@ export function useGuideHoverCursor({
         pageHeight,
         pageSizeReader,
         pageWidth,
-        pagePositions: state.pagePositions,
+        pagePositions: state.derivedPagePositions,
         pages: state.pages,
       });
-      const origin = pageId ? state.pagePositions[pageId] : null;
+      const origin = pageId ? state.derivedPagePositions[pageId] : null;
       if (!pageId || !origin) {
         applyHit(null);
         return;
