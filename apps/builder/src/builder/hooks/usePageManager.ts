@@ -20,6 +20,7 @@ interface ApiPage {
 import { getDB } from "../../lib/db";
 import { useStore } from "../stores";
 import { calculateNextPagePosition } from "../stores/elements";
+import { readPageFrameSize } from "../workspace/canvas/scene/pageFrameSize";
 // ADR-116 Phase 3 G4 — mutation reverse wrapper (D18=A 정합)
 import { useCanonicalDocumentStore } from "../stores/canonical/canonicalDocumentStore";
 import { useViewportSyncStore } from "../workspace/canvas/stores";
@@ -139,8 +140,14 @@ export const usePageManager = (): UsePageManagerReturn => {
   );
 
   const computeNextPagePosition = useCallback(() => {
-    const { pageGap, pageLayoutDirection, pagePositions, pages } =
-      useStore.getState();
+    const {
+      elementsMap,
+      pageGap,
+      pageIndex,
+      pageLayoutDirection,
+      pagePositions,
+      pages,
+    } = useStore.getState();
     const { canvasSize, containerSize, pageLayoutPanelMetrics, zoom } =
       useViewportSyncStore.getState();
     const pageLayoutBounds = resolvePageLayoutBounds(
@@ -149,6 +156,17 @@ export const usePageManager = (): UsePageManagerReturn => {
       pageGap,
       pageLayoutPanelMetrics,
     );
+    // 새 페이지는 기존 페이지의 frame 크기 (body 저작 크기) 뒤에 놓는다
+    const pageSizes: Record<string, { width: number; height: number }> = {};
+    for (const page of pages) {
+      pageSizes[page.id] = readPageFrameSize(
+        page.id,
+        pageIndex.elementsByPage,
+        elementsMap,
+        canvasSize.width,
+        canvasSize.height,
+      );
+    }
     return calculateNextPagePosition(
       pages,
       pagePositions,
@@ -158,6 +176,7 @@ export const usePageManager = (): UsePageManagerReturn => {
       pageLayoutDirection,
       pageLayoutBounds.availableWidth,
       pageLayoutBounds.leftInset,
+      pageSizes,
     );
   }, []);
 

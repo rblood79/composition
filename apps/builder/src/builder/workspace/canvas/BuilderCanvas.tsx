@@ -23,6 +23,7 @@ import {
   Suspense,
 } from "react";
 import { useStore } from "../../stores";
+import { computePageFrameReflow } from "../../stores/utils/pageFrameReflow";
 import { observe, PERF_LABEL } from "../../utils/perfMarks";
 import { useDataStore, useProjectVariableDefs } from "../../stores/data";
 import {
@@ -651,6 +652,69 @@ export function BuilderCanvas({
     zoom,
   ]);
   visiblePageIdsRef.current = sceneStructureSnapshot.document.visiblePageIds;
+
+  // 페이지 frame 크기 (body 저작 크기) 가 바뀌면 쌓는 축에서 그 뒤의 페이지를 Δ 만큼 민다 —
+  //   "페이지 간격도 frame 크기를 따른다" (2026-09-22). breakpoint 전환은 frame 전체가 같이
+  //   바뀌고 위치 스냅샷도 breakpoint 별이라 비교 기준을 버린다 (재배치 0). 첫 관측도 기준만 잡는다.
+  //   history 없음 — 원인 편집 (body Size) 의 entry 하나가 정본이고 undo/redo 는 이 effect 가 따라간다.
+  const pageFrameSizesRef = useRef<{
+    breakpoint: string;
+    sizes: Map<string, { width: number; height: number }>;
+  } | null>(null);
+  useEffect(() => {
+    const frames = sceneStructureSnapshot.document.allPageFrames;
+    // body 가 아직 없는 페이지 (hydration 전) 는 기준에서 뺀다 — breakpoint 크기로 잠깐 관측됐다가
+    //   body 가 실리며 "커진" 것처럼 보이면 이웃을 잘못 민다.
+    const nextSizes = new Map(
+      frames
+        .filter(
+          (frame) =>
+            sceneStructureSnapshot.pageSnapshots.get(frame.id)?.bodyElement,
+        )
+        .map((frame) => [
+          frame.id,
+          { width: frame.width, height: frame.height },
+        ]),
+    );
+    const prev = pageFrameSizesRef.current;
+    pageFrameSizesRef.current = {
+      breakpoint: sceneActiveBreakpoint,
+      sizes: nextSizes,
+    };
+    if (!prev || prev.breakpoint !== sceneActiveBreakpoint || isFrameEditMode) {
+      return;
+    }
+    const state = useStore.getState();
+    let positions = state.pagePositions;
+    const shifts = new Map<string, { pageId: string; x: number; y: number }>();
+    for (const [pageId, next] of nextSizes) {
+      const before = prev.sizes.get(pageId);
+      if (!before || (before.width === next.width && before.height === next.height)) {
+        continue;
+      }
+      const moved = computePageFrameReflow({
+        positions,
+        direction: state.pageLayoutDirection,
+        changedPageId: pageId,
+        prev: before,
+        next,
+      });
+      if (moved.length === 0) continue;
+      positions = { ...positions };
+      for (const entry of moved) {
+        positions[entry.pageId] = { x: entry.x, y: entry.y };
+        shifts.set(entry.pageId, entry);
+      }
+    }
+    if (shifts.size > 0) {
+      state.applyPageFrameReflow([...shifts.values()]);
+    }
+  }, [
+    isFrameEditMode,
+    sceneActiveBreakpoint,
+    sceneStructureSnapshot.document.allPageFrames,
+    sceneStructureSnapshot.pageSnapshots,
+  ]);
 
   useEffect(() => {
     if (isCompareMode) {

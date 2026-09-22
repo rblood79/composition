@@ -336,6 +336,14 @@ export interface ElementsState {
     pageStartX?: number,
   ) => void;
   updatePagePosition: (pageId: string, x: number, y: number) => void;
+  /**
+   * 페이지 frame 크기 변화에 따른 이웃 페이지 재배치 (`computePageFrameReflow` 결과) — set 1 ·
+   * canonical 1 · persist 1, **history 없음** (원인인 body 크기 편집의 entry 하나가 정본이고, 그
+   * undo/redo 로 frame 이 되돌아오면 호출자가 다시 반대 방향으로 재배치한다).
+   */
+  applyPageFrameReflow: (
+    shifts: ReadonlyArray<{ pageId: string; x: number; y: number }>,
+  ) => void;
   updatePagePositionsBatch: (
     entries: Array<{ pageId: string; x: number; y: number }>,
   ) => void;
@@ -600,6 +608,11 @@ export interface PagePositionBreakpointSwitchOptions {
   pageStartX?: number;
 }
 
+/** 페이지별 frame 크기 (body 저작 크기 — `readPageFrameSize`). 없는 페이지는 breakpoint 크기. */
+export type PageFrameSizes = Readonly<
+  Record<string, { width: number; height: number } | undefined>
+>;
+
 export function calculatePagePositions(
   pages: readonly Pick<Page, "id">[],
   pageWidth: number,
@@ -608,32 +621,45 @@ export function calculatePagePositions(
   direction: PageLayoutDirection = "horizontal",
   availableWidth?: number,
   pageStartX = 0,
+  pageSizes?: PageFrameSizes,
 ): PagePositions {
   const positions: PagePositions = {};
   const normalizedDirection = normalizePageLayoutDirection(direction);
+  const sizeOf = (id: string) => ({
+    width: pageSizes?.[id]?.width ?? pageWidth,
+    height: pageSizes?.[id]?.height ?? pageHeight,
+  });
 
   if (normalizedDirection === "vertical") {
     let currentY = 0;
     for (const page of pages) {
       positions[page.id] = { x: 0, y: currentY };
-      currentY += pageHeight + gap;
+      currentY += sizeOf(page.id).height + gap;
     }
     return positions;
   }
 
   if (normalizedDirection === "auto") {
+    // 열은 breakpoint 폭 기준 (열 수 · x 칸), 행 높이는 그 행에서 가장 큰 frame — 폭이 다른
+    // 페이지가 섞여도 칸은 유지되고 높이만 따라간다.
     const columnCount = resolveAutoPageColumnCount(
       pageWidth,
       gap,
       availableWidth ?? 0,
     );
+    let rowY = 0;
+    let rowMaxHeight = 0;
     for (let index = 0; index < pages.length; index++) {
       const column = index % columnCount;
-      const row = Math.floor(index / columnCount);
+      if (column === 0 && index > 0) {
+        rowY += rowMaxHeight + gap;
+        rowMaxHeight = 0;
+      }
       positions[pages[index].id] = {
         x: pageStartX + column * (pageWidth + gap),
-        y: row * (pageHeight + gap),
+        y: rowY,
       };
+      rowMaxHeight = Math.max(rowMaxHeight, sizeOf(pages[index].id).height);
     }
     return positions;
   }
@@ -641,7 +667,7 @@ export function calculatePagePositions(
   let currentX = 0;
   for (const page of pages) {
     positions[page.id] = { x: currentX, y: 0 };
-    currentX += pageWidth + gap;
+    currentX += sizeOf(page.id).width + gap;
   }
   return positions;
 }
@@ -655,6 +681,7 @@ export function calculateNextPagePosition(
   direction: PageLayoutDirection,
   availableWidth?: number,
   pageStartX = 0,
+  pageSizes?: PageFrameSizes,
 ): PagePosition {
   const positionedPages = pages
     .map((page) => ({ page, position: pagePositions[page.id] }))
@@ -662,14 +689,18 @@ export function calculateNextPagePosition(
       (entry): entry is { page: Pick<Page, "id">; position: PagePosition } =>
         entry.position !== undefined,
     );
+  const sizeOf = (id: string) => ({
+    width: pageSizes?.[id]?.width ?? pageWidth,
+    height: pageSizes?.[id]?.height ?? pageHeight,
+  });
 
   const normalizedDirection = normalizePageLayoutDirection(direction);
 
   if (normalizedDirection === "vertical") {
     let maxBottom = 0;
     let anchorX = 0;
-    for (const { position } of positionedPages) {
-      const bottom = position.y + pageHeight;
+    for (const { position, page } of positionedPages) {
+      const bottom = position.y + sizeOf(page.id).height;
       if (bottom > maxBottom) {
         maxBottom = bottom;
         anchorX = position.x;
@@ -711,13 +742,14 @@ export function calculateNextPagePosition(
         x: gridStartX + column * (pageWidth + gap),
         y: row * (pageHeight + gap),
       };
-      const collides = positionedPages.some(({ position }) => {
+      const collides = positionedPages.some(({ position, page }) => {
+        const size = sizeOf(page.id);
         const separatedX =
           candidate.x + pageWidth + gap <= position.x ||
-          position.x + pageWidth + gap <= candidate.x;
+          position.x + size.width + gap <= candidate.x;
         const separatedY =
           candidate.y + pageHeight + gap <= position.y ||
-          position.y + pageHeight + gap <= candidate.y;
+          position.y + size.height + gap <= candidate.y;
         return !separatedX && !separatedY;
       });
       if (!collides) return candidate;
@@ -727,8 +759,8 @@ export function calculateNextPagePosition(
 
   let maxRight = 0;
   let anchorY = 0;
-  for (const { position } of positionedPages) {
-    const right = position.x + pageWidth;
+  for (const { position, page } of positionedPages) {
+    const right = position.x + sizeOf(page.id).width;
     if (right > maxRight) {
       maxRight = right;
       anchorY = position.y;
@@ -2581,6 +2613,46 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
             await persistActiveCanonicalDocument(db);
           } catch (error) {
             console.error("[updatePagePosition] DB persist:", error);
+          }
+        })();
+      });
+    },
+
+    applyPageFrameReflow: (shifts) => {
+      const prevPositions = get().pagePositions;
+      const moved = shifts.filter((entry) => {
+        const prev = prevPositions[entry.pageId];
+        return prev && (prev.x !== entry.x || prev.y !== entry.y);
+      });
+      if (moved.length === 0) return;
+
+      set((state) => {
+        const nextPagePositions = { ...state.pagePositions };
+        for (const entry of moved) {
+          nextPagePositions[entry.pageId] = { x: entry.x, y: entry.y };
+        }
+        return {
+          ...withActivePagePositionSnapshot(state, nextPagePositions),
+          pagePositionsVersion: state.pagePositionsVersion + 1,
+        };
+      });
+
+      const activeBreakpoint = getActiveBreakpoint(get());
+      useCanonicalDocumentStore.getState().setPagePositions(
+        moved.map((entry) => ({
+          pageId: entry.pageId,
+          breakpoint: activeBreakpoint,
+          position: { x: entry.x, y: entry.y },
+        })),
+      );
+
+      queueMicrotask(() => {
+        void (async () => {
+          try {
+            const db = await getDB();
+            await persistActiveCanonicalDocument(db);
+          } catch (error) {
+            console.error("[applyPageFrameReflow] DB persist:", error);
           }
         })();
       });

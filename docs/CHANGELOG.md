@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **페이지 body 의 Size (width/height) 를 바꾸면 페이지 구분선 (테두리) · 선택 outline · 크기 배지 · 빈 영역 클릭 범위 · 가이드 범위가 같이 바뀐다.** 종전에는 페이지 frame 이 breakpoint 크기 (1920×1080 …) 에 고정돼, body 높이를 1600 으로 늘려도 테두리는 1080 에 남아 실제 상자와 다른 선이 보였다 (사용자 보고). 페이지 frame 크기는 body 저작 값 (px · 숫자 · % — auto/calc 는 breakpoint) 을 읽는 `scene/pageFrameSize.ts` 하나가 정한다.
   - 위치: `buildSceneIndex.buildPageFrames` · `selectionModel.computeSelectionBounds` · `selectionHitTest.findTopPageIdAtCanvasPoint` (`pageSizeReader`) · `useCentralCanvasPointerHandlers` · `useGuideDrag`. unit +5 · live (body 1600 → 테두리 1600 · 빈 영역 y 1400 클릭 → body 선택 · 배지 1920×1600).
+- **페이지 간격도 frame 크기를 따른다**: 한 페이지의 body 크기가 바뀌면 쌓는 축에서 그 뒤의 페이지만 Δ 만큼 밀려 간격 (Page Gap) 이 유지된다 — vertical 은 아래, horizontal 은 오른쪽, auto 격자는 아래 행 + 같은 행 오른쪽. 사용자가 끌어 놓은 상대 배치는 그대로고, 원인 편집의 Undo/Redo 를 따라 되돌아온다 (별도 History 없음). 새 페이지 추가 위치와 첫 배치 계산도 페이지별 frame 크기를 읽는다.
+  - 위치: `stores/utils/pageFrameReflow.ts` (순수) · `elements.applyPageFrameReflow` · `calculatePagePositions`/`calculateNextPagePosition` (`pageSizes`) · `BuilderCanvas` frame 크기 변화 effect (body 없는 페이지는 기준 제외) · `usePageManager`. unit +8 · live (Components 1600 → Home y 1160→1680 · Undo 1160 · Redo 1680 · reload 보존).
 
 ## [ADR-227 Implemented — 다중 테마 (문서 소유 토큰 세트 컬렉션)] - 2026-09-22
 
