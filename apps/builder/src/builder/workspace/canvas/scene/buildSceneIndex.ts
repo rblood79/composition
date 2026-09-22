@@ -2,6 +2,7 @@ import type { PageElementIndex } from "../../../stores/utils/elementIndexer";
 import { getPageElements } from "../../../stores/utils/elementIndexer";
 import type { Page } from "../../../../types/core/store.types";
 import type { CanvasSceneNode } from "./canvasSceneNode";
+import { readPageFrameSize } from "./pageFrameSize";
 import { resolvePageWithFrame } from "./resolvePageWithFrame";
 import type { ScenePageData, ScenePageFrame } from "./sceneSnapshotTypes";
 
@@ -89,12 +90,20 @@ export function buildPageFrames(
       }
     }
 
+    // 페이지 frame = body 저작 크기 (없으면 breakpoint) — 테두리·선택·히트·가이드가 같이 읽는다
+    const size = readPageFrameSize(
+      page.id,
+      pageIndex.elementsByPage,
+      elementsMap,
+      pageWidth,
+      pageHeight,
+    );
     return {
       elementCount,
-      height: pageHeight,
+      height: size.height,
       id: page.id,
       title: page.title,
-      width: pageWidth,
+      width: size.width,
       x: pagePositions[page.id]?.x ?? 0,
       y: pagePositions[page.id]?.y ?? 0,
     };

@@ -1,4 +1,5 @@
 import { isLegacyFrameElementForFrame } from "../../../../adapters/canonical/frameElementLoader";
+import { readPageFrameSize } from "../scene/pageFrameSize";
 import { getElementBoundsSimple } from "../elementRegistry";
 import { parseZIndex } from "../layout/engines/cssStackingContext";
 import { orderPagesForPaint } from "../scene/pagePaintOrder";
@@ -79,6 +80,8 @@ export interface TopPageAtPointOptions {
   pageHeight: number;
   pagePositions: PagePositionMap;
   pagePositionReader?: (pageId: string) => { x: number; y: number } | undefined;
+  /** 페이지별 frame 크기 (body 저작 크기 — `readPageFrameSize`). 없으면 pageWidth/pageHeight. */
+  pageSizeReader?: (pageId: string) => { width: number; height: number };
   pageWidth: number;
   pages: PageLike[];
 }
@@ -95,6 +98,7 @@ export function findTopPageIdAtCanvasPoint({
   pageHeight,
   pagePositions,
   pagePositionReader,
+  pageSizeReader,
   pageWidth,
   pages,
 }: TopPageAtPointOptions): string | null {
@@ -106,9 +110,13 @@ export function findTopPageIdAtCanvasPoint({
       continue;
     }
 
+    const size = pageSizeReader?.(page.id) ?? {
+      width: pageWidth,
+      height: pageHeight,
+    };
     if (
       containsPoint(
-        { x: position.x, y: position.y, width: pageWidth, height: pageHeight },
+        { x: position.x, y: position.y, width: size.width, height: size.height },
         canvasPoint,
       )
     ) {
@@ -377,6 +385,14 @@ export function findBodySelectionAtCanvasPoint({
     pageHeight,
     pagePositions,
     pagePositionReader,
+    pageSizeReader: (id) =>
+      readPageFrameSize(
+        id,
+        pageIndexElementsByPage,
+        elementsMap,
+        pageWidth,
+        pageHeight,
+      ),
     pageWidth,
     pages,
   });

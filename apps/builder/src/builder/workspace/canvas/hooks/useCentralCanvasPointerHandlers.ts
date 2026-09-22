@@ -5,6 +5,7 @@ import {
   type RefObject,
 } from "react";
 import { useStore } from "../../../stores";
+import { readPageFrameSize } from "../scene/pageFrameSize";
 import type {
   BoundingBox,
   FrameBodySelectionArea,
@@ -323,6 +324,14 @@ export function useCentralCanvasPointerHandlers({
         activePageId: state.currentPageId,
         pageHeight,
         pagePositions: state.pagePositions,
+        pageSizeReader: (pageId) =>
+          readPageFrameSize(
+            pageId,
+            state.pageIndex.elementsByPage,
+            hitElementsMap,
+            pageWidth,
+            pageHeight,
+          ),
         pageWidth,
         pages: state.pages,
       });

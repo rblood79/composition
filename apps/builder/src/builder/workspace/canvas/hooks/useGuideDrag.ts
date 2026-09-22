@@ -15,6 +15,7 @@
  */
 
 import { useCallback, useEffect, useRef } from "react";
+import { readPageFrameSize } from "../scene/pageFrameSize";
 
 import { useStore } from "../../../stores";
 import {
@@ -199,6 +200,14 @@ export function useGuideDrag({
                 canvasPoint: scene,
                 activePageId: state.currentPageId,
                 pageHeight,
+                pageSizeReader: (id) =>
+                  readPageFrameSize(
+                    id,
+                    state.pageIndex.elementsByPage,
+                    state.elementsMap,
+                    pageWidth,
+                    pageHeight,
+                  ),
                 pageWidth,
                 pagePositions: state.pagePositions,
                 pages: state.pages,
@@ -218,7 +227,14 @@ export function useGuideDrag({
         //
         // create 에는 걸지 않는다 — 페이지 밖이면 `resolveTopPageIdAtPoint`
         // 가 이미 pageId 를 주지 않아 아무것도 만들어지지 않는다.
-        const extent = axis === "x" ? pageWidth : pageHeight;
+        const pageSize = readPageFrameSize(
+          pageId,
+          state.pageIndex.elementsByPage,
+          state.elementsMap,
+          pageWidth,
+          pageHeight,
+        );
+        const extent = axis === "x" ? pageSize.width : pageSize.height;
         if (drag?.kind === "move" && (position < 0 || position > extent)) {
           return { pageId, position, removing: true, scenePosition };
         }
@@ -450,10 +466,19 @@ export function useGuideHoverCursor({
         y: point.y - rect.top,
       });
       const state = useStore.getState();
+      const pageSizeReader = (id: string) =>
+        readPageFrameSize(
+          id,
+          state.pageIndex.elementsByPage,
+          state.elementsMap,
+          pageWidth,
+          pageHeight,
+        );
       const pageId = resolveTopPageIdAtPoint({
         canvasPoint: scene,
         activePageId: state.currentPageId,
         pageHeight,
+        pageSizeReader,
         pageWidth,
         pagePositions: state.pagePositions,
         pages: state.pages,
@@ -470,10 +495,7 @@ export function useGuideHoverCursor({
       }
       const hit = resolveGuideHit(
         scene,
-        buildGuideHitTargets(pageId, guides, origin, {
-          width: pageWidth,
-          height: pageHeight,
-        }),
+        buildGuideHitTargets(pageId, guides, origin, pageSizeReader(pageId)),
         GUIDE_HIT_THRESHOLD_SCREEN_PX / (zoom === 0 ? 1 : zoom),
       );
       // 커서는 눈금자 스트립 hover 와 같은 함수를 쓴다 — 두 곳이 갈리면

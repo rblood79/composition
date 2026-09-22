@@ -25,6 +25,7 @@ import { getViewportController } from "../viewport/ViewportController";
 import { getFrameElementMirrorId } from "../../../../adapters/canonical/frameMirror";
 import { resolveClickTarget } from "../../../utils/hierarchicalSelection";
 import type { CanvasInteractionNode } from "./interactionNode";
+import { resolvePageFrameSize } from "../scene/pageFrameSize";
 import {
   getPagePositionPresentationSnapshot,
   readPagePositionForInteraction,
@@ -150,11 +151,17 @@ export function computeSelectionBounds({
         ? (pagePositionReader?.(element.page_id) ??
           pagePositions?.[element.page_id])
         : undefined;
+      // 페이지 body outline = 페이지 frame 크기 (body 저작 크기, 없으면 breakpoint)
+      const pageSize = resolvePageFrameSize(
+        element.props?.style as Record<string, unknown> | undefined,
+        pageWidth,
+        pageHeight,
+      );
       boxes.push({
         x: frameArea?.x ?? position?.x ?? 0,
         y: frameArea?.y ?? position?.y ?? 0,
-        width: frameArea?.width ?? pageWidth,
-        height: frameArea?.height ?? pageHeight,
+        width: frameArea?.width ?? pageSize.width,
+        height: frameArea?.height ?? pageSize.height,
       });
       continue;
     }
