@@ -27,7 +27,7 @@ export function createDialogDefinition(
         isDismissable: false,
         // 2026-06-24 잔존 catalog 이관 — padding/gap 을 catalog md(=RSP var(--spacing-10)=40 정합,
         //   ADR-914 Tier1) 정본값으로 맞춤. factory 24/16 ≠ catalog 40/12 였던 false dirty + 시각
-        //   비대칭 해소. width:400 은 RSP size M modal 폭(catalog 미보유) → createDefault 미러로 baseline.
+        //   비대칭 해소. 기본 너비 100%는 catalog containerStyles에서 두 소비자가 읽는다.
         // ADR-171 Phase 4 (2026-07-29): `padding:40px`/`gap:12px` 인라인 제거 — 두 소비자 모두
         //   같은 값을 자기 채널로 갖는다(실측 DOM `.react-aria-Dialog` pad 40 · rowGap 12 /
         //   catalog resolver pad 40 · gap 12). display/flexDirection 은 **유지** — 실측 DOM 은
@@ -35,7 +35,6 @@ export function createDialogDefinition(
         style: {
           display: "flex",
           flexDirection: "column",
-          width: "400px",
         },
       } as ComponentElementProps,
       parent_id: parentId,

@@ -1323,12 +1323,16 @@ const CATALOG_DERIVED_REUSABLE_ENTRIES: ComponentCatalogEntry[] =
       );
     }
     const { placeable: _placeable, ...panel } = primitive.panel;
-    return reusableEntry(
+    const entry = reusableEntry(
       type,
       primitive.family,
       catalogReusableOriginId(type),
       panel,
     );
+    // 기존 문서의 ref 해소용 등록은 유지하되 신규 삽입 대상에서는 제외한다.
+    return type === "Modal"
+      ? { ...entry, panel: { ...entry.panel, placeable: false } }
+      : entry;
   });
 
 export const componentCatalog: readonly ComponentCatalogEntry[] = [

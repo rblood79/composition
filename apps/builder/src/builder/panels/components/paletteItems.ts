@@ -265,7 +265,6 @@ const PALETTE_ORDER: ReadonlyArray<{
   { type: "TimeField", source: "catalog" },
   { type: "RangeCalendar", source: "catalog" },
   { type: "Dialog", source: "catalog" },
-  { type: "Modal", source: "catalog" },
   { type: "Popover", source: "catalog" },
   { type: "Tooltip", source: "catalog" },
 ];

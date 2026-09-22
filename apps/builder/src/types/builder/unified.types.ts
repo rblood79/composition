@@ -1855,16 +1855,11 @@ export function createDefaultDescriptionProps(): BaseElementProps {
 
 export function createDefaultDialogProps(): DialogElementProps {
   return {
-    // CSS base: display:flex; flex-direction:column; max-height:inherit
-    // 2026-06-24: factory(OverlayComponents) props.style 미러 — width:400(RSP size M modal 폭,
-    //   catalog 미보유)/padding:40/gap:12(catalog md=RSP var(--spacing-10) 정합) 를 dirty baseline 으로
-    //   제공. 미러 없으면 factory width:400 이 reset="" 대비 false dirty.
-    // ADR-171 Phase 4 (2026-07-29): padding/gap 미러 제거 — factory 인라인 동시 제거 (R7).
-    //   display/flexDirection 은 factory 가 계속 주입하므로 미러 유지.
+    // display/flexDirection은 factory 인라인의 dirty baseline이다.
+    // 기본 너비 100%와 padding/gap은 catalog containerStyles/size에서 파생한다.
     style: {
       display: "flex",
       flexDirection: "column",
-      width: "400px",
     },
   };
 }

@@ -1,4 +1,8 @@
-import type { CanonicalNode, CompositionDocument } from "@composition/shared";
+import type {
+  CanonicalNode,
+  CompositionDocument,
+  RefNode,
+} from "@composition/shared";
 import {
   PALETTE_REUSABLE_ORIGIN_TYPES,
   catalogReusableOriginId,
@@ -300,14 +304,57 @@ export function isCatalogOriginId(id: string): boolean {
 }
 
 /**
- * generic origin 전부를 Components page body 에 보장한다 (멱등, 1 pass).
- * `ensureTemplateOrigins` 동형 — 기존 origin 은 `repairCatalogOrigin` 으로 보존한다.
+ * 활성 generic origin을 Components page body에 보장한다 (멱등).
+ * 은퇴한 Modal은 외부 ref가 사용 중일 때만 보강하고, 미사용 시스템 원본은 정리한다.
  */
 export function ensureCatalogOrigins(
   document: CompositionDocument,
 ): CompositionDocument {
-  const types = getCatalogOriginTypes();
-  return ensureTemplateOrigins(document, CATALOG_ORIGIN_IDS, (existing) =>
+  // Modal은 팔레트에서 은퇴했다. 기존 인스턴스가 참조할 때만 호환 원본을 유지한다.
+  const modalId = catalogReusableOriginId("Modal");
+  const modalNodeIds = new Set([modalId]);
+  const refs = new Set<string>();
+  const collect = (
+    nodes: readonly (Partial<CanonicalNode> & {
+      ref?: string;
+      descendants?: RefNode["descendants"];
+    })[],
+    insideModal = false,
+  ): void => {
+    for (const node of nodes) {
+      const isModal = insideModal || node.id === modalId;
+      if (isModal && node.id) modalNodeIds.add(node.id);
+      if (!isModal && typeof node.ref === "string") refs.add(node.ref);
+      collect(node.children ?? [], isModal);
+      collect(Object.values(node.descendants ?? {}), isModal);
+    }
+  };
+  collect(document.children);
+  const needsModal = [...refs].some((ref) => modalNodeIds.has(ref));
+  const removeUnusedModal = (nodes: CanonicalNode[]): CanonicalNode[] => {
+    let changed = false;
+    const next = nodes.flatMap((node) => {
+      if (node.id === modalId && node.metadata?.systemOwned === true) {
+        changed = true;
+        return [];
+      }
+      if (!node.children) return [node];
+      const children = removeUnusedModal(node.children);
+      if (children === node.children) return [node];
+      changed = true;
+      return [{ ...node, children }];
+    });
+    return changed ? next : nodes;
+  };
+  const children = needsModal
+    ? document.children
+    : removeUnusedModal(document.children);
+  const source =
+    children === document.children ? document : { ...document, children };
+  const types = getCatalogOriginTypes().filter(
+    (type) => type !== "Modal" || needsModal,
+  );
+  return ensureTemplateOrigins(source, CATALOG_ORIGIN_IDS, (existing) =>
     types.map((type) =>
       repairCatalogOrigin(
         existing.get(catalogReusableOriginId(type)),

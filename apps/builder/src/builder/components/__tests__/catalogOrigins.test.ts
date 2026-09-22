@@ -8,7 +8,11 @@
  * - entry 원복 RED: 목록에서 type 을 빼면 origin 이 시드되지 않는다 (게이트가 반응하는 행).
  */
 import { describe, expect, it } from "vitest";
-import type { CanonicalNode, CompositionDocument } from "@composition/shared";
+import type {
+  CanonicalNode,
+  CompositionDocument,
+  RefNode,
+} from "@composition/shared";
 import {
   PALETTE_REUSABLE_ORIGIN_TYPES,
   catalogReusableOriginId,
@@ -106,12 +110,14 @@ describe("ADR-228 G0 — 집합 E/V/R", () => {
     ...new Set(getPaletteItems().map((i) => i.componentType ?? i.type)),
   ];
 
-  it("P = 66 · X = 9 · E = 57 = 손 seed 5 + catalog 파생 52", () => {
-    expect(paletteTypes).toHaveLength(66);
+  it("P = 65 · X = 9 · E = 56 · Modal origin은 내부 호환용으로 유지", () => {
+    expect(paletteTypes).toHaveLength(65);
     const eligible = paletteTypes.filter((t) => !EXCLUDED_X.includes(t));
-    expect(eligible).toHaveLength(57);
+    expect(eligible).toHaveLength(56);
     expect([...eligible].sort()).toEqual(
-      [...HAND_SEEDED, ...PALETTE_REUSABLE_ORIGIN_TYPES].sort(),
+      [...HAND_SEEDED, ...PALETTE_REUSABLE_ORIGIN_TYPES]
+        .filter((type) => type !== "Modal")
+        .sort(),
     );
     expect(PALETTE_REUSABLE_ORIGIN_TYPES).toHaveLength(52);
   });
@@ -135,7 +141,7 @@ describe("ADR-228 G0 — 집합 E/V/R", () => {
     for (const item of chartItems) {
       expect(item.initialProps?.chartType).toBeTruthy();
     }
-    expect(getPaletteItems()).toHaveLength(72);
+    expect(getPaletteItems()).toHaveLength(71);
   });
 
   it("R — reusableId 규약 · 동명 primitive placeable:false · panel 메타 동일", () => {
@@ -144,7 +150,7 @@ describe("ADR-228 G0 — 집합 E/V/R", () => {
       const primitive = getCatalogEntry(type)!;
       expect(reusable.reusableId).toBe(`component-${type.toLowerCase()}`);
       expect(primitive.panel.placeable, type).toBe(false);
-      expect(reusable.panel.placeable, type).toBe(true);
+      expect(reusable.panel.placeable, type).toBe(type !== "Modal");
       const { placeable: _a, ...reusablePanel } = reusable.panel;
       const { placeable: _b, ...primitivePanel } = primitive.panel;
       expect(reusablePanel, type).toEqual(primitivePanel);
@@ -178,9 +184,10 @@ describe("ADR-228 G0 — 집합 E/V/R", () => {
 
   it("entry 마다 ensurer 가 있고 generic 50 은 한 함수를 공유한다", () => {
     for (const entry of getReusableEntries()) {
-      expect(getReusableOriginEnsurers()[entry.reusableId], entry.type).toBeTypeOf(
-        "function",
-      );
+      expect(
+        getReusableOriginEnsurers()[entry.reusableId],
+        entry.type,
+      ).toBeTypeOf("function");
     }
     const generic = new Set(
       getCatalogOriginTypes().map(
@@ -192,11 +199,15 @@ describe("ADR-228 G0 — 집합 E/V/R", () => {
 });
 
 describe("ADR-228 G1 — origin seed · 멱등 · 보존", () => {
-  it("ensureReusableCompositeOrigins 가 R 57 전부를 Components body 에 시드한다", () => {
+  it("팔레트 origin을 시드하고 은퇴한 Modal은 새 문서에 등록하지 않는다", () => {
     const doc = ensureReusableCompositeOrigins(makeDocument());
     const body = findById(doc.children, COMPONENTS_SYSTEM_BODY_ID)!;
     const rootIds = new Set((body.children ?? []).map((n) => n.id));
     for (const entry of getReusableEntries()) {
+      if (entry.type === "Modal") {
+        expect(findById(doc.children, entry.reusableId)).toBeUndefined();
+        continue;
+      }
       expect(rootIds.has(entry.reusableId), entry.type).toBe(true);
       const origin = findById(doc.children, entry.reusableId)!;
       expect(origin.reusable, entry.type).toBe(true);
@@ -205,6 +216,77 @@ describe("ADR-228 G1 — origin seed · 멱등 · 보존", () => {
     // 사용자 페이지는 건드리지 않는다.
     expect(findById(doc.children, "page-home-body")?.children).toBeUndefined();
   });
+
+  it("기존 미사용 Modal 원본은 hydration에서 제거하고 다시 만들지 않는다", () => {
+    const doc = ensureReusableCompositeOrigins(makeDocument());
+    const body = findById(doc.children, COMPONENTS_SYSTEM_BODY_ID)!;
+    body.children!.push(buildCatalogOrigin("Modal"));
+    const next = ensureReusableCompositeOrigins(doc);
+    expect(findById(next.children, "component-modal")).toBeUndefined();
+    expect(ensureReusableCompositeOrigins(next)).toEqual(next);
+  });
+
+  it.each(["component-modal", "modal-edited-child"])(
+    "기존 ref %s가 사용 중이면 Modal 원본과 사용자 편집을 보존한다",
+    (ref) => {
+      const doc = ensureReusableCompositeOrigins(makeDocument());
+      const body = findById(doc.children, COMPONENTS_SYSTEM_BODY_ID)!;
+      const modal = buildCatalogOrigin("Modal");
+      modal.props = { ...modal.props, "aria-label": "Edited modal" };
+      modal.children = [
+        {
+          id: "modal-edited-child",
+          type: "Button",
+          props: { children: "Keep" },
+        },
+      ];
+      body.children!.push(modal);
+      findById(doc.children, "page-home-body")!.children = [
+        { id: "modal-instance", type: "ref", ref } as RefNode,
+      ];
+      const next = ensureReusableCompositeOrigins(doc);
+      expect(findById(next.children, modal.id)).toEqual(modal);
+      expect((findById(next.children, "modal-instance") as RefNode).ref).toBe(
+        ref,
+      );
+      expect(ensureReusableCompositeOrigins(next)).toEqual(next);
+    },
+  );
+
+  it("사용자가 만든 Modal은 자동 정리하지 않는다", () => {
+    const doc = ensureReusableCompositeOrigins(makeDocument());
+    const modal: CanonicalNode = {
+      id: "custom-modal",
+      type: "Modal",
+      reusable: true,
+    };
+    findById(doc.children, COMPONENTS_SYSTEM_BODY_ID)!.children!.push(modal);
+    expect(
+      findById(ensureReusableCompositeOrigins(doc).children, modal.id),
+    ).toEqual(modal);
+  });
+
+  it.each(["replacement", "children"])(
+    "descendants %s 안의 Modal ref도 보존한다",
+    (mode) => {
+      const doc = ensureReusableCompositeOrigins(makeDocument());
+      const modal = buildCatalogOrigin("Modal");
+      findById(doc.children, COMPONENTS_SYSTEM_BODY_ID)!.children!.push(modal);
+      const child: RefNode = { id: "nested-modal", type: "ref", ref: modal.id };
+      const instance: RefNode = {
+        id: "card-instance",
+        type: "ref",
+        ref: "component-card",
+        descendants: {
+          content: mode === "replacement" ? child : { children: [child] },
+        },
+      };
+      findById(doc.children, "page-home-body")!.children = [instance];
+      expect(
+        findById(ensureReusableCompositeOrigins(doc).children, modal.id),
+      ).toEqual(modal);
+    },
+  );
 
   it("origin root type 은 palette type 이고 id 에 `/` 가 없다 (descendants 경로 구분자)", () => {
     for (const type of getCatalogOriginTypes()) {
@@ -442,7 +524,9 @@ describe("ADR-228 G1 — factory 동치 (origin = live 생성 경로가 만드�
 describe("ADR-228 G1 — entry 원복 RED (게이트가 반응하는 행)", () => {
   it("목록에서 뺀 type 은 origin 이 시드되지 않는다", () => {
     // 같은 ensure 경로를 목록 하나 줄인 입력으로 돌린다 — 결과에 그 origin 이 없어야 한다.
-    const without = getCatalogOriginTypes().filter((t) => t !== "Badge");
+    const without = getCatalogOriginTypes().filter(
+      (t) => t !== "Badge" && t !== "Modal",
+    );
     const doc = ensureCatalogOrigins(makeDocument());
     const stripped: CompositionDocument = {
       ...doc,
@@ -475,7 +559,7 @@ describe("ADR-228 G4 — 문서 증가량 (Δnode · Δbyte) 실측 기록", () 
     for (const node of nodes) n += 1 + countNodes(node.children ?? []);
     return n;
   }
-  it("generic origin 49 = root 49 + descendants 133 (ADR-228 G0 50/135 − TagGroup 1/2, ADR-229 Phase 1) · Δbyte 는 예상 ±20%", () => {
+  it("Modal 제외 generic origin 48 + descendants 133 · Δbyte 는 예상 ±20%", () => {
     const base = makeDocument();
     // hand seed 5 + template origin 만 시드한 문서를 기준으로 generic 만의 증가를 잰다.
     const withoutGeneric = ensureReusableCompositeOrigins({
@@ -498,8 +582,10 @@ describe("ADR-228 G4 — 문서 증가량 (Δnode · Δbyte) 실측 기록", () 
     const deltaNodes = countNodes(after.children) - countNodes(before.children);
     const deltaBytes =
       JSON.stringify(after).length - JSON.stringify(before).length;
-    const roots = getCatalogOriginTypes().length;
-    expect(roots).toBe(49);
+    const roots = getCatalogOriginTypes().filter(
+      (type) => type !== "Modal",
+    ).length;
+    expect(roots).toBe(48);
     expect(deltaNodes - roots).toBe(133);
     // G0 예상 ~28 KB 는 definition 직렬화 합 — 실측 37,952 B (id · name · metadata 가 더해진다,
     //   2026-09-21). 범위 밖이면 seed 모양이 바뀐 것이니 inventory (breakdown §8.5) 를 갱신할 것.

@@ -434,12 +434,6 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     icon: "AppWindowMac",
   },
   {
-    type: "Modal",
-    category: "overlays",
-    label: "modal",
-    icon: "InspectionPanel",
-  },
-  {
     type: "Popover",
     category: "overlays",
     label: "popover",
