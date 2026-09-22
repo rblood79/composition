@@ -1,0 +1,137 @@
+# ADR-231: Components 페이지의 breakpoint 중립 — 페이지 frame 이 breakpoint 가 아니라 고정 폭 + 내용 높이를 따른다
+
+## Status
+
+Proposed — 2026-09-22 (리뷰 round 1 HIGH 2 · MEDIUM 1 → 같은 날 설계 수리, round 2 대기)
+
+설계 요청: 사용자 (2026-09-22, ADR-228~~230 origin/instance/slot 작업 중) — "컴포넌트들을 components page 에 보여주게 되는데 현재는 보기에도 불편하고 breakPoint 에 영향을 받고 있다. components page 는 breakPoint 에 영향을 받을 필요가 없는 page 이지 않나?" 전제 = **Components 페이지는 breakpoint 중립** (사용자 진술, 코드 사실 F1~~F5 가 반대로 되어 있음을 확인).
+
+## Context
+
+**SSOT 3-domain 관계**: **D1/D2/D3 무변경** — 이 ADR 은 컴포넌트의 DOM · props · 시각 스타일을 건드리지 않는다. 대상은 빌더 캔버스의 **페이지 frame 표면** (페이지 테두리 · 선택 outline · 빈 영역 히트 · 페이지 쌓기 위치 · body 뷰포트 상자) 이며, Components 페이지는 `previewExcluded` / `publishExcluded` (F8) 라 Preview/Publish leg 가 없다. 대칭 검증 대상은 Skia 한 leg 뿐이다. origin 노드의 저작 값 (`props.style` · `responsive`) 은 바이트 하나 바뀌지 않는다 — instance 가 origin 을 읽는 채널 (ADR-228/229/230) 은 이 ADR 밖이다.
+
+### 문제
+
+- Components 페이지는 "우리 프로젝트의 컴포넌트 전집" 을 보는 자리 (ADR-228 Decision 4 — flex-wrap grid) 인데, **페이지 frame 이 활성 breakpoint 크기** 다. desktop 1920×1080 에서는 origin 86 (RAC 57 + item template 2 + 상태 변형 23 + 조합 자식) 이 여러 행으로 wrap 되지만 1080 을 넘는 부분은 body 내부 스크롤에 갇히고, mobile 390×844 에서는 한 열 ~86 행이 844 높이 상자 안에서 스크롤된다 — "보기에도 불편하고 breakpoint 에 영향을 받는다".
+- breakpoint 는 **사용자 페이지의 반응형 저작 축** (ADR-154) 이다. Components 페이지의 origin 은 그 축의 _공급원_ 이지 _소비 뷰포트_ 가 아니다 — origin 을 보는 상자가 390 으로 줄어들 이유가 없다.
+- 단, origin 은 breakpoint 별 override 를 **가질 수 있고 instance 가 그것을 상속한다** (F6). "Components 페이지 = breakpoint 중립" 은 _frame 이 중립_ 이지 _origin 이 breakpoint 를 모른다_ 가 아니다 — 이 둘을 갈라야 기존 채널을 깨지 않는다.
+
+### 코드 사실 (2026-09-22, main `a74700961`)
+
+| #   | 사실                                                                                                                                                                                                                                                                                                                                                       | 경로:라인                                                                                                                                                          |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| F1  | 캔버스 페이지 크기 = 선택 breakpoint 의 `max_width/max_height` → `BuilderCanvas pageWidth/pageHeight` (모든 페이지 공통 값 하나)                                                                                                                                                                                                                           | `workspace/Workspace.tsx:57-63 · 90-91` · `hooks/useWorkspaceCanvasSizing.ts:113`                                                                                  |
+| F2  | breakpoint 3종 = desktop 1920×1080 · tablet 768×1024 · mobile 390×844                                                                                                                                                                                                                                                                                      | `workspace/canvasBreakpoints.ts:15-19`                                                                                                                             |
+| F3  | 페이지 frame = body 저작 width/height (px · 숫자 · `%`) 있으면 그것, 없으면 breakpoint. 구조 스냅샷 (동기) 에서 계산 — 레이아웃 결과는 읽지 않는다. 테두리 · 선택 outline · 히트 · 가이드 · 페이지 쌓기 Δ reflow 가 같이 읽는다                                                                                                                            | `canvas/scene/pageFrameSize.ts:46-56 · 66-86` · `scene/buildSceneIndex.ts:93-99` · `BuilderCanvas.tsx:656-700`                                                     |
+| F4  | Components body 시드 style = `overflow:auto` + flex-wrap grid (gap 24 · padding 24). **width/height 없음** → F3 폴백 = breakpoint. 기존 문서에는 부재 키만 채운다                                                                                                                                                                                          | `pages/systemComponentsPage.ts:35-56 · 63-88`                                                                                                                      |
+| F5  | 엔진 Step 1.5: body 에 저작 width 없으면 `width = pageW`, height/minHeight 없으면 `minHeight = pageH` + **보고 높이를 뷰포트 (pageH) 로 되돌림** → GAP 4 가 `maxScrollTop = 내용 extent − pageH` 를 발행 → 넘친 origin 은 body 내부 스크롤                                                                                                                 | `layout/engines/fullTreeLayout.ts:2862-2900 · 3532-3554 · 3571-3600`                                                                                               |
+| F6  | scene · layout · Styles 패널이 **모든 페이지 노드** (origin 포함) 의 `responsive` 를 activeBreakpoint 로 resolve 한다. origin 의 mobile override → instance 행 (item template) · instance tier 표시에 상속 ("origin ListBoxItem 을 mobile 에서 편집하면 mobile 뷰 인스턴스에 반영", 2026-07-21)                                                            | `BuilderCanvas.tsx:344-356` · `hooks/useLayoutPublisher.ts:125-160` · `scene/canvasSceneNode.ts:947-960` · `panels/styles/hooks/useElementStyleContext.ts:111-121` |
+| F7  | breakpoint 전환 = 페이지 위치를 breakpoint 별 스냅샷으로 교체 (`pagePositionsByBreakpoint`) + `setActiveBreakpoint` + `invalidateLayout`. 스냅샷이 없는 breakpoint 첫 진입은 `calculatePagePositions(pages, breakpoint 폭/높이, …)` 를 **`pageSizes` 없이** 호출 — 페이지별 frame 크기를 안 읽는다 (`calculatePagePositions` 자체는 `pageSizes` 를 받는다) | `main/BuilderCore.tsx:540-558` · `stores/elements.ts:616-630 · 2508-2560`                                                                                          |
+| F8  | Components 페이지 metadata = `previewExcluded` · `publishExcluded` · `systemOwned` — Preview/Publish leg 없음                                                                                                                                                                                                                                              | `pages/systemComponentsPage.ts:104-118`                                                                                                                            |
+| F9  | 레이아웃 입력 available 상자 = `pageWidth/pageHeight − body padding/border` · 발행 dimension key = `p:<pageId>:<pageWidth>:<pageHeight>` (breakpoint 변경은 layoutVersion 을 안 올리고 이 key 로 캐시 miss)                                                                                                                                                | `scene/layoutCache.ts:270-285` · `hooks/useLayoutPublisher.ts:68-83`                                                                                               |
+| F10 | 페이지 frame Δ reflow: frame 크기가 바뀐 페이지 뒤의 페이지만 쌓는 축에서 Δ 이동. breakpoint 가 바뀌면 비교 기준을 버리고 첫 관측은 기준만 잡는다 (history 0)                                                                                                                                                                                              | `BuilderCanvas.tsx:656-700` (`b290d75da`)                                                                                                                          |
+
+### Hard constraints
+
+- **frame 중립 = breakpoint 뷰포트 치수에 종속되지 않음** (리뷰 h1 정정): Components 페이지 frame 의 **width · x · y** 는 desktop ↔ tablet ↔ mobile 전환 시 Δ0. **height 는 내용 함수** — 뷰포트 높이 (1080/1024/844) 를 읽지 않지만, origin 의 breakpoint override (F6) 가 내용 extent 를 바꾸면 그만큼 변한다 (허용 · 예측값 = 내용 Δ). 사용자 페이지의 frame · 위치 · 반응형 동작은 Δ0 (회귀 0).
+- **origin 저작 값 무변경**: origin 노드의 `props.style` · `responsive` · 순서 바이트 Δ0. origin 의 breakpoint override → instance 상속 채널 (F6) 유지 — Components 페이지에서 mobile 을 고르면 origin 은 mobile override 로 **보이고 편집되며**, frame 폭·위치만 그대로다.
+- **내용이 갇히지 않는다 — body 에 저작 height/maxHeight 가 없을 때** (리뷰 m3 정정): 시드 상태 (F4 — 저작 높이 없음) 의 Components body 는 origin 전부가 페이지 안에 보이고 테두리가 내용 끝에 있으며 `maxScrollTop = 0`. 사용자가 body Size 에 height/maxHeight 를 넣었으면 **저작값 우선** — frame = 그 높이, 내부 스크롤은 사용자 페이지와 같은 규칙으로 남는다 (canonical 저작값 보존 > 전체 노출).
+- **시스템 페이지 열** (리뷰 h2 정정 → 사용자 판정 2026-09-22 ×2): 페이지 쌓기 (horizontal · vertical · auto) 와 align (`alignPagesToScreen`) · 새 페이지 배치 (`calculateNextPagePosition`) 는 **사용자 페이지만** 으로 돌리고 Home (첫 사용자 페이지) 이 원점 (0,0 · auto 는 `leftInset`) 이다. 시스템 페이지 (`systemOwned` — 지금은 Components 하나) 는 그 원점 왼쪽의 **세로 열**: `x = homeX − (max(시스템 페이지 폭) + gap)`, `y = homeY + 앞선 시스템 페이지 높이 누적 (+ gap)`. 격자 참여 0 이라 어느 breakpoint · 어느 방향에서도 겹침 0 이고, 시스템 페이지가 늘어나도 (Layouts 탭 분리 · Customize 컴포넌트 페이지) 같은 열에 아래로 쌓인다 — 새 배치 정책 0. 사용자가 시스템 페이지를 드래그로 옮긴 좌표는 스냅샷대로 보존하고 align 때만 열로 복귀.
+- **재레이아웃 루프 0**: frame 높이가 레이아웃 결과를 따르더라도 그 갱신이 레이아웃을 다시 돌리지 않는다 (편집 1회당 layout publish 1). 뷰포트 입력 (폭 1920 · floor 1080) 은 상수라 breakpoint 전환만으로는 dimension key miss 0 — origin override 가 있으면 responsive 해소 시그니처가 바뀌어 miss 하는 것은 현행 그대로 (F9).
+- **BC**: 기존 문서 최초 열기 때 Components body style 에 **부재 키만** 채운다 (F4 계약 그대로). Δnode 0 · 재hydration Δ0.
+- **성능**: 600 요소 문서 `scene.build` · layout publish p95 Δ ≤ +1 ms.
+
+### Soft constraints
+
+- 고정 폭은 desktop 뷰포트 폭 (1920) 하나 — 새 상수 계층을 만들지 않는다 (`CANVAS_VIEWPORT.desktop` 파생).
+- Components 페이지에서 breakpoint 전환 UI 는 그대로 동작한다 (사용자 페이지를 위한 축). 비활성화는 이 ADR 밖.
+- 페이지 쌓기 `auto` 의 `x` 는 `pageWidth + gap` 만 쓴다 (`elements.ts:642-663`) — 저작 폭이 칸보다 넓은 **사용자** 페이지 (c849fdd52 이후 body width 저작 가능) 는 여전히 겹칠 수 있다. 이 ADR 은 Components 를 격자 밖으로 빼는 것으로 끝내고, 사용자 페이지의 넓은 frame 배치는 범위 밖 (후속).
+
+## Alternatives Considered
+
+### 대안 A: body 에 고정 폭만 시드 (width 1920) — 높이 · 스크롤 현행 유지
+
+- 설명: `COMPONENTS_BODY_GRID_STYLE` 에 `width: 1920` 을 넣어 F3 이 px 를 읽게 한다. 높이는 breakpoint 1080/1024/844 + 내부 스크롤 그대로.
+- 위험: 기술 LOW / 성능 LOW / 유지보수 LOW / 마이그레이션 LOW (부재 키 1개).
+- 요구 절반: 폭은 중립이 되지만 높이는 breakpoint 를 따르고 (mobile 844) 내용은 여전히 스크롤에 갇힌다. "보기 불편" 의 절반이 남는다.
+
+### 대안 B: frame = 고정 폭 (1920) + 내용 높이 (레이아웃 보고 body 높이 · floor 1080) — 채택
+
+- 설명: (1) 페이지 frame 폭 — Components 페이지는 breakpoint 대신 `CANVAS_VIEWPORT.desktop.width` 를 읽는다 (F3 분기 · F9 available 상자 · F5 Step 1.5 같은 값). (2) 높이 — Step 1.5 가 Components body 에 뷰포트 보고 높이를 되돌리지 않고 (내용 높이 보고 · `minHeight` 1080 floor) GAP 4 maxScroll 이 0 이 되며, 레이아웃 발행이 페이지별 body 높이를 viewport 채널 (`pageContentHeights`) 에 싣고 F3 이 Components 페이지에 한해 그 값을 frame 높이로 읽는다 (동기 스냅샷 계약은 "저장된 마지막 발행값" 으로 유지 — 레이아웃을 기다리지 않는다). (3) 위치 — Components 페이지는 `pagePositionsByBreakpoint` 교체 대상에서 빼고 하나의 위치를 유지 · 첫 진입 `calculatePagePositions` 에 `pageSizes` 를 넘긴다 (F7). (4) scene/layout/패널의 activeBreakpoint resolve 는 **그대로** — origin 의 override 채널 (F6) 보존.
+- 리서치: Figma 의 컴포넌트 페이지는 device frame 이 아니라 무한 캔버스 (frame 은 사용자가 그린 것만) · Pen/Pencil 의 origin 페이지도 뷰포트 프리셋 밖 (메모리 `pencil-component-visual-markers`) · Storybook 의 viewport addon 은 story 별 opt-in 이고 docs 페이지는 뷰포트 무관. 디자인 도구 관례가 "라이브러리 표면 = 뷰포트 프리셋 밖" 이다.
+- 위험: 기술 **HIGH** (레이아웃 → frame 높이 → 구조 스냅샷 → 레이아웃 입력 재계산의 피드백 루프 가능성 — R1) / 성능 LOW (페이지 하나 · 값 같으면 no-op) / 유지보수 MEDIUM (Components 분기 3곳 — F3 · F5 · F7 — 한 술어 `isComponentsPageMirror` 로 묶는다) / 마이그레이션 LOW (body 부재 키 · 위치 스냅샷은 파생).
+
+### 대안 C: B + Components 페이지는 항상 desktop (base) 으로 resolve
+
+- 설명: B 에 더해 Components 페이지의 scene/layout/패널이 activeBreakpoint 를 무시하고 `desktop` 으로 origin 을 그린다 — "origin 은 breakpoint 를 모른다".
+- 위험: 기술 LOW / 성능 LOW / 유지보수 **HIGH** (F6 채널 제거 — origin mobile override 를 저작할 표면이 사라지고, 이미 저장된 override 는 instance 에만 보이는 "보이지 않는 값" 이 된다) / 마이그레이션 MEDIUM (기존 origin `responsive` 처리 판정 필요).
+- 기각: 기존 기능 (ADR-154 후속 2026-07-21 · `useElementStyleContext` tier resolve) 을 없앤다. 사용자 요청은 frame 이지 origin 의 반응형 축이 아니다.
+
+### 대안 D: Components 페이지를 페이지 스택 밖의 별도 캔버스 모드로 (라이브러리 탭)
+
+- 설명: Figma "Assets" 처럼 Components 를 페이지가 아닌 별도 모드로 열고, 그 모드에는 breakpoint · 페이지 쌓기 · 페이지 테두리가 없다.
+- 위험: 기술 HIGH (viewport · scene · navigator · 선택 · history 가 페이지 전제 — 분기 광범위) / 성능 LOW / 유지보수 HIGH (두 캔버스 모드) / 마이그레이션 MEDIUM (Components 페이지 노드 · 위치 · 사용자 배치의 처리).
+- 기각: ADR-228 "Components 페이지 = origin 전집 **페이지**" 전제 (사용자 확정 2026-09-21, 메모리 `project-components-page-origin-instance-theme-set-2026-09`) 와 충돌 · 범위 10배.
+
+### Risk Threshold Check
+
+| 대안 | HIGH+                     | 판정                                                            |
+| ---- | ------------------------- | --------------------------------------------------------------- |
+| A    | 0                         | 기각 (요구 절반)                                                |
+| B    | 기술 HIGH 1 (R1 루프)     | 채택 — G1 루프 0 계측 · G1 (e) 시스템 열 산술 · G2 live 전환 Δ0 |
+| C    | 유지보수 HIGH             | 기각 (기존 채널 제거)                                           |
+| D    | 기술 HIGH · 유지보수 HIGH | 기각 (228 전제 충돌)                                            |
+
+루프 1회: B 의 HIGH 는 "frame 높이를 레이아웃 발행에서 읽되 레이아웃 입력 (dimension key · available 상자) 에는 넣지 않는다" 로 회피 가능 — 입력은 고정 폭 + floor 높이 (상수) 이고, 발행 높이는 frame 표면 (테두리 · 히트 · 쌓기) 만 읽는다. 잔존은 G1 이 계측한다.
+
+## Decision
+
+**대안 B.** Components 페이지의 frame 은 breakpoint 뷰포트가 아니라 **고정 폭 (desktop 1920) + 내용 높이 (레이아웃 보고 · floor 1080 · 저작 height/maxHeight 있으면 그 값)** 를 따르고, 위치는 **사용자 페이지 격자 밖의 시스템 페이지 열** (Home 원점 왼쪽 `x = homeX − (max 시스템 폭 + gap)`, 시스템 페이지끼리 세로로 누적) 이다 — Home 이 (0,0) 을 지키고, 시스템 페이지가 늘어나도 아래로 쌓인다. 시드 상태 body 의 내부 스크롤은 없어진다 (페이지가 내용만큼 자란다). "중립" 의 뜻은 **뷰포트 치수 비종속** 이다 — 높이는 origin override 가 내용을 바꾸면 따라 변한다 (리뷰 h1).
+
+위험 수용 근거: R1 (피드백 루프) 은 "발행 높이를 레이아웃 입력에 넣지 않는다" 는 한 줄 계약으로 구조적으로 막히고 (입력 = 상수 · 출력 = 표면), 값이 같으면 no-op 이라 유휴 비용 0 이다. G1 이 편집 1회당 layout publish 1 을 계측해 잔존을 닫는다.
+
+기각 사유 — A: 높이 · 스크롤이 남아 요구 절반. C: 기존 origin 반응형 저작 채널 (2026-07-21) 을 없앤다 — 요청 밖. D: 228 전제 (Components = 페이지) 충돌 · 범위 10배.
+
+> 구현 상세: [231-components-page-breakpoint-neutral-frame-breakdown.md](design/231-components-page-breakpoint-neutral-frame-breakdown.md)
+
+## Risks
+
+| ID  | 위험                                                                                                                                                                                                                                                                                 | 심각도 | 대응                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :----: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | 레이아웃 보고 높이 → frame → 구조 스냅샷 → 레이아웃 입력 재계산 → 재발행의 루프                                                                                                                                                                                                      |  HIGH  | 발행 높이는 dimension key (F9) · available 상자에 **미포함** — 입력은 고정 폭 + floor 높이 상수. 같은 값이면 store no-op. G1 이 publish 횟수 계측                                                                                                                                                                                                                                                                         |
+| R2  | `height: %` 를 가진 origin 자식이 auto 높이 body 에서 다르게 풀린다 (CSS: 부모 indefinite → auto)                                                                                                                                                                                    |  MED   | 엔진 Taffy 동형 (ADR-206) — G1 unit 에 `%` 높이 origin 1 포함. 현재 시드 origin 에 `%` 높이 0 (Phase 0 실측)                                                                                                                                                                                                                                                                                                              |
+| R4  | 페이지 쌓기 · align · 새 페이지 배치가 `pages` 순서 그대로 (Components = `pages[0]`) 라 Components 가 원점을 차지하고 Home 이 밀리며, `auto` 에서는 1920 frame 이 390 칸과 겹친다 (리뷰 h2 산술: pageWidth 390 · gap 80 · availableWidth 1000 → 2열, 사용자 페이지 x=470 ∈ [0,1920]) |  HIGH  | 배치 함수 3곳 (`calculatePagePositions` · `calculateNextPagePosition` · `switchPagePositionsBreakpoint` 첫 진입) 이 시스템 페이지 (`systemOwned`) 를 **제외**하고 사용자 페이지만 배치한 뒤 시스템 열 (`x = homeX − (max 시스템 폭 + gap)` · y 누적) 을 더한다 (사용자 판정 2026-09-22 ×2 — 시스템 페이지가 늘면 아래로). 격자 참여 0 = 겹침 0 · Home (0,0). 사용자 드래그 좌표는 스냅샷 보존 — G1 (e) 산술 + G2 (3) live |
+| R6  | origin 의 mobile override (height/padding/visibility) 가 내용 extent 를 바꿔 breakpoint 전환 시 Components 높이가 변한다 (리뷰 h1)                                                                                                                                                   |  MED   | HC 를 "height = 내용 함수" 로 정의 — Δ 는 결함이 아니라 예측값 (내용 Δ). G2 (2) 에 geometry override 를 가진 origin 왕복 전환을 넣고 `Δheight == Δ내용 extent` · width/x/y Δ0 을 판정                                                                                                                                                                                                                                     |
+| R7  | 기존 Components body 에 사용자 저작 height/maxHeight 가 있으면 보고 높이 변경만으로 스크롤이 안 없어진다 (리뷰 m3 — Step 1.5 는 저작 height 를 보존)                                                                                                                                 |  MED   | 저작값 우선 계약 (HC) — 그 문서는 사용자 페이지와 같은 내부 스크롤. G1/G2 의 "스크롤 0" 은 저작 높이 없는 body 한정, F12 로 실제 문서 분포 실측                                                                                                                                                                                                                                                                           |
+| R5  | 사용자가 Components body Size 에 `%` 를 넣으면 breakpoint 의존이 돌아온다                                                                                                                                                                                                            |  LOW   | F3 계약 그대로 (사용자 값 우선). Styles 패널 안내 없음 — 문서화만                                                                                                                                                                                                                                                                                                                                                         |
+
+## Gates
+
+| Gate | 시점         | 통과 조건                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | 실패 시 대안                                                                   |
+| ---- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| G0   | Phase 0      | F1~F10 재grep 일치 · 시드 origin 86 의 `height:%` 개수 · 기존 프로젝트 Components body 실제 style (사용자 손댄 키) 실측 · `pageContentHeights` 채널 부재 확인                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | 사실 어긋나면 본문 §코드 사실 수정 후 재시작                                   |
+| G1   | Phase 1 unit | (a) `resolvePageFrameSize` Components 분기 = 1920 × (저작 height ?? max(1080, 발행 높이)) · (b) Step 1.5 Components body (저작 높이 없음) 보고 높이 = 내용 (`bodyViewportHeight` 미적용) · GAP 4 `maxScrollTop = 0` · (b′) 저작 height 1080 + 내용 3000 인 body 는 현행대로 `maxScrollTop > 0` · frame = 1080 · (c) 발행 높이 갱신 뒤 layout publish 추가 0 (spy 계측) · (d) `%` 높이 origin 자식 1 · (e) 배치 산술 — pageWidth 390 · gap 80 · availableWidth 1000 (auto 2열) · pages = [Components, Home, P2, P3] → Home (leftInset, 0) · P2 다음 칸 · Components (leftInset − 2000, 0) · 시스템 페이지 2개 fixture (Components 1920×3000 + 가상 시스템 페이지 1920×1080) → 두 번째는 (leftInset − 2000, 3000 + gap) · 세 방향 모두 사용자 페이지 위치 = 시스템 페이지가 없을 때와 동일 · `calculateNextPagePosition` 도 시스템 페이지 무시 | (c) 실패 = R1 실재 → 발행 높이를 frame 이 아니라 별도 overlay 로만 읽는 축소안 |
+| G2   | Phase 2 live | headed builder: (1) override 없는 문서 — desktop→tablet→mobile→desktop 전환 시 Components frame width/height/x/y Δ0 · 사용자 페이지는 종전 스냅샷대로 · origin 86 스크롤 없이 페이지 안 · 테두리 = 내용 끝 · (2) origin 1 개에 mobile `paddingTop`/`height` override 저장 후 왕복 — width/x/y Δ0 · `Δheight == Δ내용 extent` (layout map 로 계산한 예측값) · mobile 뷰 instance 에 반영 · desktop 복귀 base · (3) align 버튼 · 스냅샷 없는 breakpoint 첫 진입 (localStorage 초기화) · 새 페이지 추가 — Home (0,0)/(leftInset,0) · Components 왼쪽 시스템 열 · 겹침 0 · 기존 스냅샷 복원은 재배치 0 · Components 드래그 좌표 보존 · 사용자 페이지 회귀 0                                                                                                                                                                                      | 항목별 수리 후 같은 하니스 재실행 1회                                          |
+| G3   | Phase 2      | 600 요소 문서 `scene.build` · layout publish p95 Δ ≤ +1 ms (A/B 7회 median)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | 발행 채널을 Components 페이지 하나로 한정했는지 재확인, 초과 시 채널 dedupe    |
+| G4   | Phase 2 BC   | 기존 문서 reload: Δnode 0 · body style 부재 키만 · 재hydration Δ0 · 두 번째 열기 페이지 위치 Δ0                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | 위치 Δ 발생 시 발행 높이 초기값 persist (localStorage viewport 채널) 로 보강   |
+
+### Live Exercise
+
+(Implemented 승격 시 기재)
+
+## Consequences
+
+### Positive
+
+- Components 페이지가 breakpoint 전환에 흔들리지 않는다 — frame · 위치 Δ0, 내용이 스크롤에 갇히지 않고 페이지 테두리가 내용 끝에 있다.
+- origin 의 반응형 저작 채널 (F6) 은 그대로다 — 사용자 페이지의 mobile 편집 모델과 한 규칙.
+- 분기 술어 둘: frame 크기 · Step 1.5 는 `isComponentsPageMirror`, 배치 함수 3곳은 `systemOwned` (제외 + 시스템 열). 새 상수 계층 0, 새 스키마 필드 0.
+- 사용자 페이지 body 의 "저작 크기 우선" 계약 (c849fdd52 · b290d75da) 을 Components 페이지가 그대로 쓴다 — 별도 페이지 모델 없음.
+
+### Negative
+
+- 페이지 frame 이 처음으로 **레이아웃 결과** 를 읽는다 (Components 한정). 동기 구조 스냅샷의 "저작 값만 읽는다" 계약에 예외 하나가 생긴다 — pageFrameSize.ts 주석에 예외를 적는다.
+- 시스템 페이지가 사용자 페이지 격자 밖 (왼쪽 음수 x 열) 에 놓인다 — 기존 문서에서 Components 가 (0,0) 에 있던 배치는 align 을 누르기 전까지 스냅샷대로 남는다 (재배치 0). 첫 로드 Δ reflow 는 시스템 열 높이 성장이 사용자 페이지를 밀지 않으므로 소멸.
+- Components 높이는 origin 의 breakpoint override 가 내용을 바꾸면 전환 시 변한다 — "중립" 이 폭·위치에만 엄격하다는 것을 사용자가 알아야 한다 (문서화).
+- 사용자 페이지의 저작 폭이 `auto` 칸보다 넓을 때의 겹침은 이 ADR 이 다루지 않는다 (Components 만 격자 밖으로) — 후속.
+- breakpoint 전환 UI 는 Components 페이지에서도 살아 있으나 frame 폭·위치에는 아무 일도 안 한다 — 사용자가 "안 먹는다" 고 느낄 수 있다 (origin 은 override 로 보인다는 것이 답). 비활성/안내는 후속.

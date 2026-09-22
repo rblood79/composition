@@ -174,6 +174,11 @@ let cacheGeneration = 0;
 export async function loadSkImage(url: string): Promise<SkImage | null> {
   if (!url) return null;
 
+  // Components의 템플릿 원본에는 치환 전 src("{avatar}")가 남아 있다.
+  // URL로 요청하면 dev 서버의 HTML fallback을 이미지로 decode하게 된다.
+  // 원본 바인딩은 보존하고 실제 값으로 치환된 뒤에만 이미지를 로드한다.
+  if (/^\s*\{[^{}]+\}\s*$/.test(url)) return null;
+
   const requestGeneration = cacheGeneration;
 
   // 문서/fixture는 CanvasKit WASM 초기화와 병렬로 store에 들어올 수 있다.

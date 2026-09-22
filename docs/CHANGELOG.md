@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [이미지 템플릿 경고 수정] - 2026-09-22
+
+### Fixed
+
+- Components 템플릿의 `{avatar}` 같은 치환 전 이미지 바인딩을 URL로 요청해 발생하던 `[imageCache] Decode failed` 경고를 수정했다. 실제 URL로 치환되면 기존 이미지 로딩을 수행한다.
+
 ## [캔버스 — 페이지 테두리가 페이지 크기를 따른다] - 2026-09-22
 
 ### Fixed

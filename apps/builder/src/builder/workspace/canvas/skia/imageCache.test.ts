@@ -101,6 +101,33 @@ describe("imageCache LRU 퇴거", () => {
     vi.unstubAllGlobals();
   });
 
+  it.each(["{avatar}", "{src}", " {item.avatar} "])(
+    "치환 전 이미지 바인딩 %s는 초기화·fetch·decode하지 않는다",
+    async (src) => {
+      canvasKitInitialized = false;
+      await expect(loadSkImage(src)).resolves.toBeNull();
+      expect(initCanvasKitMock).not.toHaveBeenCalled();
+      expect(fetch).not.toHaveBeenCalled();
+      expect(createdImages).toHaveLength(0);
+      expect(getImageCacheSize()).toBe(0);
+    },
+  );
+
+  it.each([
+    "/images/avatar.png",
+    "https://example.test/avatar.png",
+    "blob:https://example.test/avatar",
+    'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"><style>svg{fill:red}</style></svg>',
+  ])("바인딩 대신 실제 src %s가 들어오면 로드한다", async (src) => {
+    await loadSkImage("{avatar}");
+    await expect(loadSkImage(src)).resolves.not.toBeNull();
+    expect(fetch).toHaveBeenCalledExactlyOnceWith(src, {
+      mode: "cors",
+      credentials: "same-origin",
+    });
+    expect(getSkImage(src)).not.toBeNull();
+  });
+
   it("큰 이미지는 개수 미만에서도 byte 예산으로 정리하고 live 참조는 보존한다", async () => {
     imageSize = 4096;
     await loadUrls(3);
