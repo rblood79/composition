@@ -37,6 +37,10 @@ import { canonicalDocumentToElements } from "../stores/canonical/canonicalElemen
 import { countUserPagesForAutoName } from "../pages/systemComponentsPage";
 import { normalizeMainDocument } from "../../adapters/canonical/mainDocumentNormalization";
 import { resolvePageLayoutBounds } from "../workspace/canvas/pageLayoutConstants";
+import {
+  resolvePagePlacementHydration,
+  resolveMigrationPanCorrection,
+} from "../stores/utils/pagePlacementHydration";
 
 function normalizePageSlug(slug: string | null | undefined): string {
   if (!slug) return "";
@@ -466,6 +470,36 @@ export const usePageManager = (): UsePageManagerReturn => {
         // 위치를 먼저 준비한 뒤 page 목록을 publish하여 미초기화 page가
         // 렌더 단계에서 (0, 0)으로 겹치는 중간 상태를 만들지 않는다.
         observe("boot.pages.publish", () => setPages(storePages));
+
+        // ADR-232 Decision 6 — 저장 좌표 → placement 1회 이관. `placementModel` 이 이미
+        //   있으면 no-op 이고, 엔진 미준비면 보류해 다음 hydration 이 다시 시도한다.
+        //   `pagePositions` 는 지우지 않는다 (휴면 — 롤백 경로가 읽는다).
+        observe("boot.pagePlacement.migrate", () => {
+          const state = useStore.getState();
+          const migration = resolvePagePlacementHydration({
+            document,
+            pages: storePages,
+            elementsByPage: state.pageIndex.elementsByPage,
+            elementsMap: state.elementsMap,
+            activeBreakpoint: state.activeBreakpoint,
+            pageContentHeights:
+              useViewportSyncStore.getState().pageContentHeights,
+          });
+          if (!migration.patch) return;
+          useCanonicalDocumentStore.getState().setPageLayout(migration.patch);
+          // 이관 세션 안에서만 화면이 움직이지 않도록 pan 을 보정한다 (world 가 −H 만큼
+          //   옮겨졌으므로 pan 은 +H × zoom). reload 뒤 화면 위치는 지금도 보존되지 않는다.
+          if (migration.homeOrigin) {
+            const viewport = useViewportSyncStore.getState();
+            viewport.setPanOffset?.(
+              resolveMigrationPanCorrection(
+                viewport.panOffset,
+                migration.homeOrigin,
+                viewport.zoom,
+              ),
+            );
+          }
+        });
 
         setLazyLoadingEnabled(false);
 

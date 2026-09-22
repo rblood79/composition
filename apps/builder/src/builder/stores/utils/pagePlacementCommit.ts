@@ -37,10 +37,22 @@ import {
 } from "../../workspace/canvas/scene/pagePlacementEdit";
 import { isComponentsPageMirror } from "../../pages/systemComponentsPage";
 import { getDB } from "../../../lib/db";
+import {
+  buildLegacyFallback,
+  resolvePagePlacementHydration,
+} from "./pagePlacementHydration";
 
 /** 문서가 파생 모드인가 — 편집 라우팅의 단일 판정. */
 export function isDerivedPlacementActive(): boolean {
   return readActiveDocument()?.pageLayout?.placementModel === "derived";
+}
+
+/**
+ * `"legacy"` 는 **배치 편집이 잠긴다** (Decision 7). 저장 좌표는 복귀용 스냅샷이므로
+ * 그 상태에서 좌표를 쓰면 되돌아갈 지점이 사라진다.
+ */
+export function isPlacementEditingLocked(): boolean {
+  return readActiveDocument()?.pageLayout?.placementModel === "legacy";
 }
 
 function readActiveDocument() {
@@ -190,6 +202,7 @@ export function commitPagePlacementFromPoint(
   pageId: string,
   point: PagePositionPoint,
 ): boolean {
+  if (isPlacementEditingLocked()) return true; // 잠김 — 저장 좌표도 쓰지 않는다
   const ctx = buildPlacementEditContext(pageId);
   if (!ctx) return false;
   const result = resolvePlacementForDrop(ctx, pageId, point);
@@ -202,6 +215,7 @@ export function commitPagePlacementFromPoint(
 export function commitPagePlacementsFromPoints(
   moved: ReadonlyArray<{ pageId: string; position: PagePositionPoint }>,
 ): boolean {
+  if (isPlacementEditingLocked()) return true; // 잠김 — 저장 좌표도 쓰지 않는다
   const ctx = buildPlacementEditContext();
   if (!ctx) return false;
   const entries: PagePlacementEditEntry[] = [];
@@ -229,6 +243,7 @@ export function commitPagePlacementsFromPoints(
 
 /** align — Home 제외 전부 흐름 복귀. */
 export function commitPagePlacementAlign(): boolean {
+  if (isPlacementEditingLocked()) return true; // 잠김 — 저장 좌표도 쓰지 않는다
   const ctx = buildPlacementEditContext();
   if (!ctx) return false;
   commitEntries(resolvePlacementsForAlign(ctx), ctx.placements);
@@ -237,10 +252,88 @@ export function commitPagePlacementAlign(): boolean {
 
 /** Home 은 배치 편집 대상이 아니다 — UI 비활성 판정. */
 export function isPagePlacementEditable(pageId: string): boolean {
+  if (isPlacementEditingLocked()) return false;
   if (!isDerivedPlacementActive()) return true;
   const pages = useStore.getState().pages;
   return isPlacementEditable(
     pageId,
     resolveHomePageId(pages, isComponentsPageMirror),
   );
+}
+
+// ─────────────────────────────────────────────
+// ADR-232 Decision 7 — 읽기 모드 전환 (복귀 · 재이관)
+// ─────────────────────────────────────────────
+
+function buildHydrationInput() {
+  const doc = readActiveDocument();
+  if (!doc) return null;
+  const state = useStore.getState();
+  return {
+    document: doc,
+    pages: state.pages,
+    elementsByPage: state.pageIndex.elementsByPage,
+    elementsMap: state.elementsMap,
+    activeBreakpoint: (
+      state as typeof state & { activeBreakpoint: BreakpointName }
+    ).activeBreakpoint,
+    pageContentHeights: useViewportSyncStore.getState().pageContentHeights,
+  };
+}
+
+/**
+ * `"derived"` → `"legacy"` 복귀.
+ *
+ * 표식·placement 를 **지우지 않는다** — 지우면 다음 hydration 이 이관 조건을 다시 만족해
+ * 재이관이 돌아버린다 (리뷰 round 2 h2). 전환 순간 `pagePositions` 에 좌표가 없는
+ * (page × tier) 를 그때의 파생 위치로 `legacyFallback` 에 채운다 (round 3 m2).
+ */
+export function setPagePlacementModelLegacy(): boolean {
+  const input = buildHydrationInput();
+  if (!input) return false;
+  const fallback = buildLegacyFallback(input);
+  useCanonicalDocumentStore.getState().setPageLayout({
+    placementModel: "legacy",
+    legacyFallback: fallback,
+  });
+  return true;
+}
+
+/**
+ * `"legacy"` → `"derived"` 재이관 (명시 액션).
+ *
+ * placement 를 초기화한 뒤 `pagePositions ⊕ legacyFallback` 을 입력으로 Decision 6 을 다시 돈다.
+ */
+export function setPagePlacementModelDerived(): boolean {
+  const input = buildHydrationInput();
+  if (!input) return false;
+  const doc = input.document;
+  const merged: NonNullable<typeof doc.pagePositions> = {
+    ...(doc.pagePositions ?? {}),
+  };
+  for (const [breakpoint, entries] of Object.entries(
+    doc.pageLayout?.legacyFallback ?? {},
+  )) {
+    for (const [pageId, point] of Object.entries(entries ?? {})) {
+      merged[pageId] = {
+        ...(merged[pageId] ?? {}),
+        [breakpoint as BreakpointName]:
+          merged[pageId]?.[breakpoint as BreakpointName] ?? point,
+      };
+    }
+  }
+  const result = resolvePagePlacementHydration({
+    ...input,
+    document: {
+      ...doc,
+      pagePositions: merged,
+      pageLayout: { ...doc.pageLayout, placementModel: undefined },
+    },
+  });
+  if (!result.patch) return false;
+  useCanonicalDocumentStore.getState().setPageLayout({
+    ...result.patch,
+    placements: result.patch.placements ?? {},
+  });
+  return true;
 }

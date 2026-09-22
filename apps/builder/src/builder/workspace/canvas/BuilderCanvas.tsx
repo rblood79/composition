@@ -599,7 +599,10 @@ export function BuilderCanvas({
   //   `"derived"` → 아래 파생값 · `"legacy"` 또는 부재 → 저장 좌표 (`pagePositions`).
   // 미이관 문서는 모델이 없으므로 이 배선은 Phase 3 이관 전까지 휴면이다 (동작 변경 0).
   const documentPageLayout = activeCanonicalDocument?.pageLayout;
-  const isDerivedPlacement = documentPageLayout?.placementModel === "derived";
+  // `placementModel` 이 있으면 (derived · legacy 둘 다) 위치는 **파생이 소유** 한다.
+  //   legacy 는 파생 안에서 저장 좌표를 읽는 분기다 (Decision 7) — store 미러가 아니다.
+  //   여기서 derived 만 보면 legacy 문서가 store map 을 그려 문서와 어긋난다 (live 실측 09-22).
+  const isDerivedPlacement = documentPageLayout?.placementModel !== undefined;
 
   // 파생 입력 1 — 페이지별 frame 크기 (저작 크기 ?? breakpoint · Components 는 ADR-231 neutral).
   const pageFrameSizes = useMemo(() => {
