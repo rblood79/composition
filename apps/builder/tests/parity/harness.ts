@@ -2,6 +2,7 @@ import { EngineLayout } from "@/builder/workspace/canvas/wasm-bindings/engine";
 import {
   calculateFullTreeLayout,
   resetPersistentTree,
+  type FullTreeLayoutOptions,
 } from "@/builder/workspace/canvas/layout/engines/fullTreeLayout";
 import { setStrictLayoutInput } from "@/builder/workspace/canvas/wasm-bindings/layoutBridge";
 import type { CanvasLayoutNode } from "@/builder/workspace/canvas/layout/layoutNode";
@@ -240,6 +241,7 @@ export function pipelineLeg(
   nodes: CaseNode[],
   availW: number,
   availH: number,
+  options?: FullTreeLayoutOptions,
 ): Bounds[] {
   const n = nodes.length;
   const rootIdx = n - 1;
@@ -289,6 +291,7 @@ export function pipelineLeg(
       availW,
       availH,
       getChild,
+      options,
     );
   } finally {
     setStrictLayoutInput(false);

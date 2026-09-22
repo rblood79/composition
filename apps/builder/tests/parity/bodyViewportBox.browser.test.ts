@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
+import type { FullTreeLayoutOptions } from "@/builder/workspace/canvas/layout/engines/fullTreeLayout";
 
 import { pipelineLeg, type CaseNode, type StyleRecord } from "./harness";
 
@@ -111,6 +112,7 @@ function pipelineBodyLeg(
   bodyStyle: StyleRecord,
   childStyles: StyleRecord[],
   pageH: number = PAGE_H,
+  options?: FullTreeLayoutOptions,
 ): { body: Rect; children: Rect[] } {
   const nodes: CaseNode[] = [
     ...childStyles.map((style, i) => ({ label: `c${i}`, style })),
@@ -121,7 +123,7 @@ function pipelineBodyLeg(
       children: childStyles.map((_, i) => i),
     },
   ];
-  const res = pipelineLeg(nodes, PAGE_W, pageH);
+  const res = pipelineLeg(nodes, PAGE_W, pageH, options);
   const rootIdx = nodes.length - 1;
   const toRect = (b: (typeof res)[number]): Rect => ({
     x: b.x,
@@ -377,6 +379,56 @@ describe("body 뷰포트 상자 ↔ 내용 배치 분리", () => {
       expect(dom.children.map((c) => Math.round(c.h))).toEqual([60, 600]);
       expect(pipe.children.map((c) => Math.round(c.h))).toEqual([60, 600]);
       expect(pipe.body.h).toBeCloseTo(PAGE_H, 1);
+    });
+  });
+
+  describe("ADR-231 — breakpoint 중립 root (Components 페이지): 보고 높이 = 내용", () => {
+    const NEUTRAL: FullTreeLayoutOptions = { breakpointNeutralRoot: true };
+
+    it("내용이 넘치면 body 높이 = 내용 (뷰포트로 되돌리지 않는다) · 폭은 그대로 주입", () => {
+      const pipe = pipelineBodyLeg(
+        COLUMN_FLEX,
+        [{ height: "400px" }, { height: "400px" }, { height: "400px" }],
+        PAGE_H,
+        NEUTRAL,
+      );
+      expect(pipe.body.h).toBeCloseTo(1200, 1);
+      expect(pipe.body.w).toBeCloseTo(PAGE_W, 1);
+      // 자식 배치는 종전과 같다 (min-height 주입은 그대로)
+      expect(pipe.children.map((c) => c.y)).toEqual([0, 400, 800]);
+    });
+
+    it("내용이 짧으면 floor = 페이지 높이 (min-height)", () => {
+      const pipe = pipelineBodyLeg(COLUMN_FLEX, [{ height: "100px" }], PAGE_H, NEUTRAL);
+      expect(pipe.body.h).toBeCloseTo(PAGE_H, 1);
+    });
+
+    it("저작 height 가 있으면 중립 옵션과 무관하게 그 값 (리뷰 m3 — 저작값 보존)", () => {
+      const style: StyleRecord = { ...COLUMN_FLEX, height: "300px" };
+      const pipe = pipelineBodyLeg(style, [{ height: "400px" }, { height: "400px" }], PAGE_H, NEUTRAL);
+      expect(pipe.body.h).toBeCloseTo(300, 1);
+    });
+
+    it("flex-wrap row body (Components 시드 모양): 두 행이 되면 높이 = 두 행 + padding", () => {
+      const wrap: StyleRecord = {
+        display: "flex",
+        flexDirection: "row",
+        flexWrap: "wrap",
+        alignItems: "flex-start",
+        alignContent: "flex-start",
+        gap: "24px",
+        padding: "24px",
+        overflow: "auto",
+      };
+      // PAGE_W 390 − 48 padding = 342 → 200 폭 상자 2개는 한 행에 못 들어가 두 행
+      const pipe = pipelineBodyLeg(wrap, [{ width: "200px", height: "100px" }, { width: "200px", height: "100px" }], PAGE_H, NEUTRAL);
+      expect(pipe.children.map((c) => c.y)).toEqual([24, 148]);
+      // floor 가 내용 (24+100+24+100+24 = 272) 보다 크므로 floor. 하니스의 pageH 는 content-box 라
+      // 주입되는 min-height (border-box) 는 pageH + padding 48 (Step 0.5 `resolveLayoutViewport`).
+      expect(pipe.body.h).toBeCloseTo(PAGE_H + 48, 1);
+      const tall = pipelineBodyLeg(wrap, Array.from({ length: 5 }, () => ({ width: "200px", height: "100px" })), PAGE_H, NEUTRAL);
+      // 5 행: 24 + 5·100 + 4·24 + 24 = 644
+      expect(tall.body.h).toBeCloseTo(644, 1);
     });
   });
 });

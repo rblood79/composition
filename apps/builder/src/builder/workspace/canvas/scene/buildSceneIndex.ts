@@ -2,6 +2,7 @@ import type { PageElementIndex } from "../../../stores/utils/elementIndexer";
 import { getPageElements } from "../../../stores/utils/elementIndexer";
 import type { Page } from "../../../../types/core/store.types";
 import type { CanvasSceneNode } from "./canvasSceneNode";
+import { isComponentsPageMirror } from "../../../pages/systemComponentsPage";
 import { readPageFrameSize } from "./pageFrameSize";
 import { resolvePageWithFrame } from "./resolvePageWithFrame";
 import type { ScenePageData, ScenePageFrame } from "./sceneSnapshotTypes";
@@ -76,6 +77,8 @@ export function buildPageFrames(
   pagePositions: Record<string, { x: number; y: number } | undefined>,
   pageWidth: number,
   pageHeight: number,
+  /** ADR-231 — 레이아웃이 발행한 페이지별 body 높이 (Components 페이지만 읽는다). */
+  pageContentHeights?: ReadonlyMap<string, number>,
 ): ScenePageFrame[] {
   return pages.map((page) => {
     const pageElementIds = pageIndex.elementsByPage.get(page.id);
@@ -90,13 +93,21 @@ export function buildPageFrames(
       }
     }
 
-    // 페이지 frame = body 저작 크기 (없으면 breakpoint) — 테두리·선택·히트·가이드가 같이 읽는다
+    // 페이지 frame = body 저작 크기 (없으면 breakpoint) — 테두리·선택·히트·가이드가 같이 읽는다.
+    //   Components 페이지 (ADR-231) 는 breakpoint 중립: 1920 × max(1080, 발행 높이).
+    const neutral = isComponentsPageMirror(page);
     const size = readPageFrameSize(
       page.id,
       pageIndex.elementsByPage,
       elementsMap,
       pageWidth,
       pageHeight,
+      neutral
+        ? {
+            neutral: true,
+            publishedContentHeight: pageContentHeights?.get(page.id),
+          }
+        : undefined,
     );
     return {
       elementCount,

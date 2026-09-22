@@ -15,6 +15,12 @@ export interface ViewportSyncState {
    * 프로그램 zoom · 페이지 drag 는 게이트 대상이 아니다 (breakdown §3).
    */
   cameraGestureActive: boolean;
+  /**
+   * ADR-231 — 레이아웃이 발행한 페이지별 body 높이 (border-box). Components 페이지 frame 높이의
+   * 원천 (`buildPageFrames`). 레이아웃 **입력** 이 아니다 — dimension key · available 상자에 넣지
+   * 않는다 (R1 루프 차단). 같은 값이면 no-op.
+   */
+  pageContentHeights: ReadonlyMap<string, number>;
   setZoom: (zoom: number) => void;
   setPanOffset: (offset: { x: number; y: number }) => void;
   setViewportSnapshot: (viewport: CanvasViewportSnapshot) => void;
@@ -22,6 +28,7 @@ export interface ViewportSyncState {
   setPageLayoutPanelMetrics: (metrics: PageLayoutPanelMetrics) => void;
   setCanvasSize: (size: { width: number; height: number }) => void;
   setCameraGestureActive: (active: boolean) => void;
+  setPageContentHeight: (pageId: string, height: number | null) => void;
   reset: () => void;
 }
 
@@ -32,6 +39,7 @@ const initialViewportState = {
   pageLayoutPanelMetrics: { leftWidth: 0, rightWidth: 0, gap: 0 },
   canvasSize: { width: 1920, height: 1080 },
   cameraGestureActive: false,
+  pageContentHeights: new Map<string, number>() as ReadonlyMap<string, number>,
 };
 
 export const useViewportSyncStore = create<ViewportSyncState>()(
@@ -65,6 +73,22 @@ export const useViewportSyncStore = create<ViewportSyncState>()(
 
     setContainerSize: (size) => {
       set({ containerSize: size });
+    },
+
+    setPageContentHeight: (pageId, height) => {
+      set((state) => {
+        const prev = state.pageContentHeights.get(pageId);
+        if (height === null) {
+          if (prev === undefined) return state;
+          const next = new Map(state.pageContentHeights);
+          next.delete(pageId);
+          return { pageContentHeights: next };
+        }
+        if (!Number.isFinite(height) || prev === height) return state;
+        const next = new Map(state.pageContentHeights);
+        next.set(pageId, height);
+        return { pageContentHeights: next };
+      });
     },
 
     setPageLayoutPanelMetrics: (metrics) => {

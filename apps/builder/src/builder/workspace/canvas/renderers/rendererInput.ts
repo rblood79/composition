@@ -31,6 +31,12 @@ export interface LayoutPublisherInput {
   panOffset: { x: number; y: number };
   wasmLayoutReady: boolean;
   zoom: number;
+  /**
+   * ADR-231 — breakpoint 중립 페이지 (Components). pageWidth/pageHeight 는 desktop 상수이고
+   * 엔진은 body 보고 높이를 뷰포트로 되돌리지 않는다. publisher 가 body 높이를 viewport store
+   * (`pageContentHeights`) 에 싣는다.
+   */
+  breakpointNeutralRoot?: boolean;
 }
 
 interface BuildPageLayoutPublisherInputOptions {
@@ -43,6 +49,7 @@ interface BuildPageLayoutPublisherInputOptions {
   sceneSnapshot: SceneStructureSnapshot;
   wasmLayoutReady: boolean;
   zoom: number;
+  breakpointNeutralRoot?: boolean;
 }
 
 export function buildPageLayoutPublisherInput({
@@ -55,6 +62,7 @@ export function buildPageLayoutPublisherInput({
   sceneSnapshot,
   wasmLayoutReady,
   zoom,
+  breakpointNeutralRoot,
 }: BuildPageLayoutPublisherInputOptions): LayoutPublisherInput | null {
   const pageSnapshot = sceneSnapshot.pageSnapshots.get(pageId);
   if (!pageSnapshot?.bodyElement) {
@@ -76,6 +84,7 @@ export function buildPageLayoutPublisherInput({
     panOffset,
     wasmLayoutReady,
     zoom,
+    ...(breakpointNeutralRoot ? { breakpointNeutralRoot: true } : {}),
   };
 }
 

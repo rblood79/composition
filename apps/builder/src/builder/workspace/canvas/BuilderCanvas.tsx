@@ -156,6 +156,7 @@ import {
   resolvePageLayoutBounds,
 } from "./pageLayoutConstants";
 import { isComponentsPageMirror } from "../../pages/systemComponentsPage";
+import { CANVAS_VIEWPORT } from "../canvasBreakpoints";
 
 import { useGPUProfiler } from "./utils/gpuProfilerCore";
 import { hitTestPoint } from "./wasm-bindings/spatialIndex";
@@ -279,6 +280,10 @@ export function BuilderCanvas({
   const { wasmLayoutFailed, wasmLayoutReady } = useCanvasRuntimeBootstrap();
 
   const containerSize = useViewportSyncStore((state) => state.containerSize);
+  // ADR-231 — 레이아웃이 발행한 페이지별 body 높이 (Components 페이지 frame 높이의 원천).
+  const pageContentHeights = useViewportSyncStore(
+    (state) => state.pageContentHeights,
+  );
 
   // 컨테이너 ref 콜백: 마운트 시점에 DOM 노드를 안전하게 확보
   const setContainerNode = useCallback((node: HTMLDivElement | null) => {
@@ -619,6 +624,7 @@ export function BuilderCanvas({
       elements: sceneNodes,
       elementsMap: sceneNodesMap,
       layoutVersion,
+      pageContentHeights,
       pageHeight,
       pageIndex: scenePageIndex,
       pagePositions,
@@ -638,6 +644,7 @@ export function BuilderCanvas({
     currentPageId,
     isFrameEditMode,
     layoutVersion,
+    pageContentHeights,
     pageHeight,
     scenePageIndex,
     pagePositions,
@@ -792,6 +799,11 @@ export function BuilderCanvas({
           ? { props: node.props ?? {}, stateDeps: node.stateDeps ?? null }
           : null;
       },
+      // ADR-231 live: 페이지 frame (buildPageFrames 산출 — 테두리·히트·쌓기가 읽는 값).
+      readPageFrames: () =>
+        sceneDebugRef.current.sceneStructureSnapshot.document.allPageFrames.map(
+          (f) => ({ id: f.id, x: f.x, y: f.y, width: f.width, height: f.height }),
+        ),
     };
   }, []);
 
@@ -812,16 +824,20 @@ export function BuilderCanvas({
   const layoutPublisherInputs = useMemo(() => {
     return visiblePages
       .map((page) => {
+        // ADR-231 — Components 페이지는 breakpoint 뷰포트 대신 desktop 상수 (1920×1080) 로
+        //   레이아웃한다. dimension key 도 상수라 breakpoint 전환만으로는 캐시 miss 0.
+        const neutral = isComponentsPageMirror(page);
         const input = buildPageLayoutPublisherInput({
           elementById,
-          pageHeight,
+          pageHeight: neutral ? CANVAS_VIEWPORT.desktop.height : pageHeight,
           pageId: page.id,
           pagePositionVersion: pagePositionsVersion,
-          pageWidth,
+          pageWidth: neutral ? CANVAS_VIEWPORT.desktop.width : pageWidth,
           panOffset,
           sceneSnapshot,
           wasmLayoutReady,
           zoom,
+          breakpointNeutralRoot: neutral,
         });
         return input ? { pageId: page.id, input } : null;
       })

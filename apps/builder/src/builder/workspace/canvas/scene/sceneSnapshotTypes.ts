@@ -89,6 +89,8 @@ export interface BuildSceneStructureInput {
   pageIndex: PageElementIndex;
   pagePositions: Record<string, { x: number; y: number } | undefined>;
   pagePositionsVersion: number;
+  /** ADR-231 — 레이아웃이 발행한 페이지별 body 높이 (Components 페이지 frame 높이). */
+  pageContentHeights?: ReadonlyMap<string, number>;
   pageWidth: number;
   pages: Page[];
   panOffset: { x: number; y: number };

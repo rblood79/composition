@@ -43,8 +43,8 @@
 ### Phase 2 — 위치 스냅샷 · live · 성능 · BC (G2 · G3 · G4)
 
 1. `stores/elements.ts` `calculatePagePositions` · `calculateNextPagePosition` — 입력 `pages` 에서 시스템 페이지 (`systemOwned` — 지금은 Components 하나, `isComponentsPageMirror` 는 부분집합) 를 **제외**하고 사용자 페이지만 현행 산술로 배치한 뒤, 시스템 열을 결과에 더한다: `x = homeX − (max(pageSizes[system].width) + gap)`, `y = homeY + Σ(앞선 시스템 페이지 높이 + gap)` (`homeX/homeY` = 첫 사용자 페이지 위치). 사용자 판정 2026-09-22 ×2 — Home 이 (0,0), 시스템 페이지는 왼쪽 세로 열이라 Layouts 탭 분리 · Customize 페이지가 생겨도 아래로 쌓인다 (새 정책 0). 격자 참여 0 이므로 겹침 경로 없음 (사용자 페이지 x ≥ homeX, 시스템 열 오른쪽 끝 = homeX − gap). unit: 세 방향 × [Components, Home, P2, P3] → 사용자 페이지 위치 = 시스템 페이지 부재 시와 동일 · Components = (homeX − 2000, homeY) (gap 80) · 시스템 페이지 2개 fixture 는 두 번째가 (homeX − 2000, homeY + h₁ + gap) · `calculateNextPagePosition` 은 시스템 페이지를 무시.
-2. `stores/elements.ts` `switchPagePositionsBreakpoint` · `initializePagePositions` (align) — 1번 산술 그대로 (첫 진입 `pageSizes` 전달, caller `BuilderCore.tsx:540-558` 가 `allPageFrames` 에서 만든다). 기존 스냅샷이 있는 breakpoint 는 재배치 0 · 사용자가 시스템 페이지를 드래그한 좌표는 스냅샷 보존, align 때만 열로 복귀.
-3. `BuilderCanvas.tsx:656-700` Δ reflow — Components 발행 높이 변화도 같은 규칙으로 뒤 페이지를 민다 (변경 0 예상 · unit +1 로 고정).
+2. `stores/elements.ts` `switchPagePositionsBreakpoint` · `initializePagePositions` (align) · hydration — **시스템 페이지 위치는 breakpoint 공통값 하나** (리뷰 round 2 m2): `switchPagePositionsBreakpoint` 는 시스템 페이지를 대상 스냅샷 · `firstEntryPositions` 적용에서 제외하고 `currentPositions` 값을 그대로 `nextPositions` 에 싣는다 (전환은 시스템 위치를 읽지도 쓰지도 않는다). 첫 진입 `calculatePagePositions(…, pageSizes)` 는 사용자 페이지만 (1번 산술의 사용자 부분, caller `BuilderCore.tsx:540-558` 가 `allPageFrames` 로 `pageSizes` 를 만든다). `updatePagePosition` (드래그) · align 이 시스템 페이지를 쓸 때는 `pagePositionsByBreakpoint` 세 값 + canonical `pagePositions` 세 breakpoint 에 같은 값 (스키마 무변경 · history 는 현행 entry 하나). hydration (`initializePagePositions` persisted 병합): 시스템 페이지의 breakpoint 별 값이 다르면 **활성 breakpoint 의 값** 을 공통값으로 채택. 열 산술은 align 과 위치가 전혀 없는 새 문서에만. unit: 드래그 (−2500,200) → mobile 첫 진입 (−2500,200) · 기존 문서 desktop (0,0) / mobile (10,10) 을 mobile 활성으로 열면 (10,10) · 사용자 페이지는 현행 (스냅샷 복원 · 첫 진입 산술).
+3. `stores/utils/pageFrameReflow.ts` `computePageFrameReflow` + caller `BuilderCanvas.tsx:656-700` — **열/격자 경계** (리뷰 round 2 h1 실행 반증: Components (−2000,0) 1080→3000 · Home (0,0) · P2 (0,1160) → 현행은 vertical/auto 에서 P2 → 3080). 입력에 `systemPageIds: ReadonlySet<string>` 추가: 바뀐 페이지가 시스템이면 시스템 페이지만 순회하며 세로 규칙 (`y > origin.y` → `dy`, 전역 방향 무관), 사용자 페이지면 시스템을 건너뛰고 현행 규칙. unit: 리뷰 반례 → `[]` (세 방향) · 시스템 2개 fixture (두 번째 (−2000,1160)) → 두 번째만 (−2000,3080) · Home 1080→2000 (vertical) → P2 만 이동 · Components 무이동.
 4. live 하니스 (headed Playwright 또는 Chrome MCP · `scripts/` 전용 vitest config): (1) override 없는 문서: desktop→tablet→mobile→desktop 전환 4회 — Components frame `{x,y,width,height}` Δ0 · 사용자 페이지 3개 frame/위치 = 종전 스냅샷 · origin 86 bbox 가 frame 안 · `maxScrollTop(body) = 0`. (2) origin 1 개에 mobile `paddingTop` + `height` override 저장 후 왕복 — `{x,y,width}` Δ0 · `Δheight == Δ내용 extent` (layout map 의 body 자식 maxBottom 차로 예측) · mobile 뷰 instance 반영 · desktop 복귀 base. (3) align 버튼 · localStorage 스냅샷 초기화 후 첫 진입 · 새 페이지 추가 — Home (0,0)/(leftInset,0) · Components (homeX − 2000, 0) · 페이지 bbox 쌍 교집합 0 · Components 드래그 좌표 보존. **Compare Mode/Preview 는 열지 않는다** (메모리 `feedback-no-compare-mode-preview-checks-now`).
 5. 성능 A/B (G3): `pnpm perf:baseline -- --lane frame` 유사 — 600 요소 문서 `scene.build` · layout publish p95, before/after 7회 median.
 6. BC (G4): 기존 문서 reload 2회 — Δnode 0 · body style diff = 부재 키만 · 두 번째 열기 페이지 위치 Δ0.
@@ -52,19 +52,34 @@
 
 ## 4. 파일 변경표 (예상)
 
-| 파일                                                                                            | 변경                                                         | Phase |
-| ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | :---: |
-| `workspace/canvas/scene/pageFrameSize.ts` (+test)                                               | Components 분기 (폭 상수 · 높이 = max(floor, 발행))          |   1   |
-| `workspace/canvas/scene/buildSceneIndex.ts` · `buildSceneSnapshot.ts` · `sceneSnapshotTypes.ts` | `pageContentHeights` 입력                                    |   1   |
-| `workspace/canvas/layout/engines/fullTreeLayout.ts` (+test)                                     | Step 1.5 `isBreakpointNeutralRoot` 플래그 · 보고 높이 = 내용 |   1   |
-| `workspace/canvas/scene/layoutCache.ts` · `hooks/useLayoutPublisher.ts` (+test)                 | Components 페이지 입력 상수화 · 발행 높이 채널 (key 미포함)  |   1   |
-| `workspace/canvas/stores/viewportSync*.ts`                                                      | `pageContentHeights` + setter (no-op 가드)                   |   1   |
-| `workspace/canvas/BuilderCanvas.tsx`                                                            | 채널 배선 (구조 스냅샷 dep · Δ reflow 무변경)                |  1·2  |
-| `stores/elements.ts` (+test) · `main/BuilderCore.tsx`                                           | 위치 스냅샷 교체 제외 · 첫 진입 `pageSizes`                  |   2   |
-| `scripts/` live 하니스 · `docs/adr/evidence/231-*.md`                                           | G2 · G3 · G4 기록                                            |   2   |
+| 파일                                                                                            | 변경                                                                | Phase |
+| ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- | :---: |
+| `workspace/canvas/scene/pageFrameSize.ts` (+test)                                               | Components 분기 (폭 상수 · 높이 = max(floor, 발행))                 |   1   |
+| `workspace/canvas/scene/buildSceneIndex.ts` · `buildSceneSnapshot.ts` · `sceneSnapshotTypes.ts` | `pageContentHeights` 입력                                           |   1   |
+| `workspace/canvas/layout/engines/fullTreeLayout.ts` (+test)                                     | Step 1.5 `isBreakpointNeutralRoot` 플래그 · 보고 높이 = 내용        |   1   |
+| `workspace/canvas/scene/layoutCache.ts` · `hooks/useLayoutPublisher.ts` (+test)                 | Components 페이지 입력 상수화 · 발행 높이 채널 (key 미포함)         |   1   |
+| `workspace/canvas/stores/viewportSync*.ts`                                                      | `pageContentHeights` + setter (no-op 가드)                          |   1   |
+| `workspace/canvas/BuilderCanvas.tsx`                                                            | 채널 배선 (구조 스냅샷 dep) · reflow caller 에 `systemPageIds` 전달 |  1·2  |
+| `stores/elements.ts` (+test) · `main/BuilderCore.tsx`                                           | 위치 스냅샷 교체 제외 · 첫 진입 `pageSizes`                         |   2   |
+| `scripts/` live 하니스 · `docs/adr/evidence/231-*.md`                                           | G2 · G3 · G4 기록                                                   |   2   |
 
 새 상수 0 (`CANVAS_VIEWPORT.desktop` 재사용) · 새 스키마 필드 0 · i18n 0.
 
 ## 5. 게이트 실행 기록
 
-(Phase 진행 시 기재 — G0 → G4)
+### G0 — Phase 0 inventory freeze (2026-09-22, HEAD `12063c042`)
+
+- F1~F10 재grep: 라인 일치 (F1 `Workspace.tsx:56 · 76 · 90` · F3 `pageFrameSize.ts:46 · 65` / `buildSceneIndex.ts:94` · F4 `systemComponentsPage.ts:46 · 72` · F5 `fullTreeLayout.ts:2862 · 2898 · 3553 · 3571` · F6 `BuilderCanvas.tsx:345` / `useLayoutPublisher.ts:159` · F7 `BuilderCore.tsx:548 · 576` / `elements.ts:2508` · F9 `useLayoutPublisher.ts:72-76` · F10 `BuilderCanvas.tsx:660`). `a74700961..12063c042` 는 imageCache 만 — 대상 파일 무변경.
+- F11: origin root style 에 `height: %` **0**. catalog `height: "100%"` 2건은 Meter · ProgressBar 의 `.fill` sub-part (고정 높이 track 안) — body 직계가 아니라 R2 무관.
+- F12: 사용자 IndexedDB 문서의 Components body style 은 Phase 2 live 하니스가 store 에서 읽어 기록 (시드 경로는 width/height 를 쓴 적이 없으므로 사용자가 Size 를 손대지 않은 한 부재).
+- F13: 페이지별 body 높이 발행 채널 **부재** (`pageContentHeight` grep 0). `useViewportSyncStore` (`stores/viewportSync.ts`, `canvasSize`/`containerSize` 이웃) 에 신설. 발행자 = `useLayoutPublisher` 의 페이지 루프 (layout map 의 body 높이), 소비자 = `buildSceneStructureSnapshot` → `buildPageFrames`.
+- 루프 분석 (R1): `sceneVersion` 은 `visiblePagePositionVersion` (frame 크기 포함) 을 넣으므로 frame 높이 갱신 → `projectionVersion` → publisher effect 1회 재실행. 그 실행은 `pageLayoutSignature` · dimension key 가 같아 `getCachedPageLayout` **캐시 hit (엔진 0)** 이고 같은 높이를 다시 싣는 setter 는 no-op — 2회째 재실행 없음. G1 (c) 의 계측 단위 = 엔진 호출 (`getCachedPageLayout` 입력의 pageWidth/pageHeight 가 상수인지 + setter no-op).
+
+### G1 — Phase 1 frame 폭·높이·스크롤 + 발행 채널 (2026-09-22)
+
+- 구현: `pageFrameSize.ts` `resolveNeutralPageFrameSize` + `readPageFrameSize(…, { neutral, publishedContentHeight })` · `buildSceneIndex.buildPageFrames` (`isComponentsPageMirror` → neutral · `pageContentHeights` 입력) · `viewportSync.ts` `pageContentHeights` + `setPageContentHeight` (no-op 가드) · `fullTreeLayout.ts` `FullTreeLayoutOptions.breakpointNeutralRoot` (Step 1.5 `bodyViewportHeight` 미설정) · `layoutCache.ts` 옵션 전달 + 캐시 entry 비교 · `rendererInput.ts` / `useLayoutPublisher.ts` (Components 는 1920×1080 상수 입력 · body 높이 발행) · `BuilderCanvas.tsx` (구조 스냅샷 입력 · publisher 입력 · `__composition_SCENE_DEBUG__.readPageFrames`).
+- unit: `pageFrameSize.test.ts` +3 · `buildPageFrames.test.ts` +1 · `useLayoutPublisher.test.ts` +2 (G1 (a) · (c) — 엔진 입력 상수 · 같은 높이 store no-op 참조 유지) · 인접 스위트 scene/hooks/stores/layout/renderers 102 파일 828/828.
+- browser (`tests/parity/bodyViewportBox.browser.test.ts` +4, G1 (b) · (b′) · (d)): 중립 root 넘침 → 보고 높이 1200 (뷰포트 400 아님) · 짧으면 floor · 저작 height 300 은 그대로 · flex-wrap row 시드 모양 5행 = 644. 하니스 함정: `pipelineLeg` 의 pageH 는 content-box 라 padded body 의 floor 는 pageH + padding.
+- live smoke (`scripts/adr231-components-frame-live.mjs --phase 1`, headed Chrome, 새 프로젝트): **7/7** — origin 86 · frame 1920×4881 = 발행 body 높이 · originMaxBottom 4857 ≤ 4881 · `maxScrollTop 0` · body style 시드 키만 · desktop→tablet→mobile→desktop 왕복 Components [1920,4881] ×4 · 사용자 페이지 768×1024 / 390×844 / 1920×1080 · pageerror 0. 기록 `docs/adr/evidence/231-components-frame-live/phase1-live.json`.
+- F12 실측: 새 프로젝트 body style = `{overflow, display, flexDirection, flexWrap, alignItems, alignContent, gap, padding}` — width/height 부재 (R7 경로 없음).
+- 하니스 함정: RAC ToggleButton `id` 는 DOM id 가 아니다 → `.builder-control-group button` nth 로 · store `Page.slug` 는 `/__components`.

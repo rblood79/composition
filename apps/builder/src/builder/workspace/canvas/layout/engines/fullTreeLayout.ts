@@ -2768,6 +2768,17 @@ function resolveRootContainingBlock(
   };
 }
 
+export interface FullTreeLayoutOptions {
+  /**
+   * ADR-231 — breakpoint 중립 root (Components 페이지 body). Step 1.5 의 폭/min-height 주입은
+   * 그대로 받되 **보고 높이를 뷰포트로 되돌리지 않는다** — body 높이 = 내용 (floor 는 min-height).
+   * 그러면 GAP 4 의 `maxScrollTop = 내용 extent − 보고 높이` 가 0 이 되어 내용이 body 안에
+   * 갇히지 않고 페이지 frame 이 그 높이를 따른다 (`pageFrameSize.ts`). 저작 height/minHeight
+   * 가 있으면 현행 분기 그대로 (저작값 보존 — 리뷰 m3).
+   */
+  breakpointNeutralRoot?: boolean;
+}
+
 export function calculateFullTreeLayout(
   rootElementId: string,
   elementsMap: Map<string, CanvasLayoutNode>,
@@ -2775,6 +2786,7 @@ export function calculateFullTreeLayout(
   availableWidth: number,
   availableHeight: number,
   getChildElements: (id: string) => CanvasLayoutNode[],
+  options?: FullTreeLayoutOptions,
 ): Map<string, ComputedLayout> | null {
   // WASM 가용성 확인 (자체 엔진 — ADR-916 Taffy 완전 제거)
   if (!isEngineReady()) return null;
@@ -2895,7 +2907,10 @@ export function calculateFullTreeLayout(
       if (!hasAuthoredHeight && !hasAuthoredMinHeight) {
         delete batch[rootIdx].style.height;
         batch[rootIdx].style.minHeight = `${pageH}px`;
-        bodyViewportHeight = pageH;
+        // ADR-231: breakpoint 중립 root 는 보고 높이를 뷰포트로 되돌리지 않는다 (= 내용 높이).
+        if (!options?.breakpointNeutralRoot) {
+          bodyViewportHeight = pageH;
+        }
       }
     }
   }
@@ -3680,6 +3695,7 @@ export function calculateFullTreeLayoutFromSceneModel(
   availableWidth: number,
   availableHeight: number,
   getChildElements?: (id: string) => CanvasLayoutNode[],
+  options?: FullTreeLayoutOptions,
 ): Map<string, ComputedLayout> | null {
   // childrenByParent (CanvasLayoutNode[]) 를 childrenMap (string[]) 로 derive
   const childrenIdMap = new Map<string, string[]>();
@@ -3701,6 +3717,7 @@ export function calculateFullTreeLayoutFromSceneModel(
     availableWidth,
     availableHeight,
     accessor,
+    options,
   );
 }
 

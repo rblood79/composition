@@ -143,6 +143,7 @@ export function buildSceneStructureSnapshot(
     input.pagePositions,
     input.pageWidth,
     input.pageHeight,
+    input.pageContentHeights,
   );
   const calculatedVisiblePageIds = buildVisiblePageSet({
     containerSize: input.containerSize,

@@ -28,6 +28,7 @@ interface CachedPageLayoutEntry {
   pageHeight: number;
   pageWidth: number;
   wasmLayoutReady: boolean;
+  breakpointNeutralRoot: boolean;
   filteredChildIdsMap: Map<string, string[]> | null;
   syntheticElementsMap: Map<string, CanvasLayoutNode> | null;
   rootKey: string;
@@ -232,6 +233,8 @@ interface GetCachedPageLayoutInput {
   pageHeight: number;
   pageWidth: number;
   wasmLayoutReady: boolean;
+  /** ADR-231 — Components 페이지 body: 보고 높이 = 내용 (`FullTreeLayoutOptions`). */
+  breakpointNeutralRoot?: boolean;
 }
 
 export function getCachedPageLayout({
@@ -243,6 +246,7 @@ export function getCachedPageLayout({
   pageHeight,
   pageWidth,
   wasmLayoutReady,
+  breakpointNeutralRoot,
 }: GetCachedPageLayoutInput): Map<string, ComputedLayout> | null {
   if (!bodyElement || !wasmLayoutReady) {
     return null;
@@ -259,7 +263,8 @@ export function getCachedPageLayout({
     cachedEntry.pageLayoutSignature === pageLayoutSignature &&
     cachedEntry.pageWidth === pageWidth &&
     cachedEntry.pageHeight === pageHeight &&
-    cachedEntry.wasmLayoutReady === wasmLayoutReady
+    cachedEntry.wasmLayoutReady === wasmLayoutReady &&
+    cachedEntry.breakpointNeutralRoot === (breakpointNeutralRoot === true)
   ) {
     publishFilteredChildrenMap(
       cachedEntry.filteredChildIdsMap,
@@ -307,6 +312,7 @@ export function getCachedPageLayout({
     availableWidth,
     availableHeight,
     (id: string) => pageChildrenMap.get(id) ?? [],
+    breakpointNeutralRoot ? { breakpointNeutralRoot: true } : undefined,
   );
   const filteredChildIdsMap = getPublishedFilteredChildrenMap(rootKey);
   const syntheticElementsMap = getPublishedSyntheticElementsMap(rootKey);
@@ -319,6 +325,7 @@ export function getCachedPageLayout({
     pageHeight,
     pageWidth,
     wasmLayoutReady,
+    breakpointNeutralRoot: breakpointNeutralRoot === true,
     filteredChildIdsMap,
     syntheticElementsMap,
     rootKey,

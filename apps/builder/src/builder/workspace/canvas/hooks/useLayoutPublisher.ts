@@ -37,6 +37,7 @@ import {
 } from "../scene/layoutCache";
 import { resolveResponsiveLayoutNode } from "../layout/resolveResponsive";
 import { useStore } from "../../../stores";
+import { useViewportSyncStore } from "../stores";
 import { recordEditorPresentationLayoutPublish } from "../../../performance/editorPresentationPhase0Metrics";
 
 interface PageLayoutInput {
@@ -144,6 +145,7 @@ export function useLayoutPublisher(
         pageWidth,
         pageHeight,
         wasmLayoutReady,
+        breakpointNeutralRoot,
       } = input;
 
       if (bodyElement) {
@@ -201,7 +203,20 @@ export function useLayoutPublisher(
         pageHeight,
         pageWidth,
         wasmLayoutReady,
+        breakpointNeutralRoot,
       });
+
+      // ADR-231 — breakpoint 중립 페이지의 body 높이 (border-box) 를 viewport store 에 싣는다.
+      //   레이아웃 **출력** 채널: 페이지 frame (`buildPageFrames`) 만 읽고 dimension key ·
+      //   available 상자 (입력) 에는 들어가지 않는다 — 같은 값이면 store no-op (R1 루프 차단).
+      if (breakpointNeutralRoot && layoutMap && resolvedBody) {
+        const bodyHeight = layoutMap.get(resolvedBody.id)?.height;
+        if (typeof bodyHeight === "number" && Number.isFinite(bodyHeight)) {
+          useViewportSyncStore
+            .getState()
+            .setPageContentHeight(resolvedBody.page_id ?? resolvedBody.id, bodyHeight);
+        }
+      }
 
       // D5=A: publishLayoutMap key fallback chain.
       // - page bodyElement: page_id 확정 → 기존 동작 유지

@@ -43,3 +43,45 @@ describe("buildPageFrames — 페이지 frame 크기는 body 저작 크기 (Styl
     ]);
   });
 });
+
+describe("buildPageFrames — ADR-231 Components 페이지 frame 은 breakpoint 중립", () => {
+  it("mobile 390×844 에서도 Components 는 1920 × max(1080, 발행 높이), 사용자 페이지는 390×844", () => {
+    const pages = [
+      {
+        id: "page-components",
+        title: "Components",
+        slug: "/components",
+        pageRole: "components",
+        systemOwned: true,
+      },
+      { id: "p1", title: "Home" },
+    ] as unknown as Page[];
+    const elementsMap = new Map<string, CanvasSceneNode>([
+      ["bc", node("bc", "body", "page-components", { overflow: "auto", display: "flex" })],
+      ["b1", node("b1", "body", "p1")],
+    ]);
+    const pageIndex = {
+      elementsByPage: new Map([
+        ["page-components", new Set(["bc"])],
+        ["p1", new Set(["b1"])],
+      ]),
+      rootsByPage: new Map(),
+    };
+    const positions = { "page-components": { x: -2000, y: 0 }, p1: { x: 0, y: 0 } };
+    expect(
+      buildPageFrames(pages, pageIndex, elementsMap, positions, 390, 844, new Map([["page-components", 3000]])).map(
+        (f) => [f.id, f.width, f.height],
+      ),
+    ).toEqual([
+      ["page-components", 1920, 3000],
+      ["p1", 390, 844],
+    ]);
+    // 발행 전 (채널 없음) 은 floor 1080
+    expect(
+      buildPageFrames(pages, pageIndex, elementsMap, positions, 390, 844).map((f) => [f.id, f.width, f.height]),
+    ).toEqual([
+      ["page-components", 1920, 1080],
+      ["p1", 390, 844],
+    ]);
+  });
+});
