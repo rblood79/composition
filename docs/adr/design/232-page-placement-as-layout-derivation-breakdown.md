@@ -1,6 +1,6 @@
 # ADR-232 Design Breakdown — 페이지 배치 = 페이지 컨테이너의 레이아웃 파생값
 
-> 본문: [232](../232-page-placement-as-layout-derivation.md). 구현 상세 (Phase · 파일 · 게이트 실행 기록) 는 이 문서에만 둔다.
+> 본문: [232](../completed/232-page-placement-as-layout-derivation.md). 구현 상세 (Phase · 파일 · 게이트 실행 기록) 는 이 문서에만 둔다.
 
 ## 1. 전제 lock-in (fork 4 질문 — 사용자 confirm 2026-09-22 대화)
 
@@ -148,12 +148,12 @@ live 15/15 (`apps/builder/scripts/adr232-migration-bc-live.mjs`, headed · 실�
 - live 5/5 (`adr232-consumer-parity-live.mjs`): store 파생 미러 = scene frame 좌표 · 페이지 헤더 x = frame x (화면 좌표) · 히트 (페이지 중심 클릭 → 그 페이지 body 선택). 스크롤바 extent·액션 바는 그 채널이 노출/표시되지 않아 **판정 생략** (2/5 는 trivially true).
 - ADR-231 Phase 2 하니스 **14/14** (`adr231-components-frame-live.mjs --phase 2`): frame 1920 × 발행 높이 · maxScrollTop 0 · 전환 왕복 Δ0 · 시스템 열 규칙 · 드래그 (−2500,200) 보존 · reload 보존 · 새 페이지 x ≥ 0 · align 뒤 시스템 열 복귀 · mobile override 왕복 · pageerror 0. (구 15 항목 중 `updatePagePosition` 직접 호출 1건은 같은 조작을 `commitFromPoint` 로 바꿔 유지.)
 
-### G3 — Phase 4 성능 · **PASS 3 / 미달 1 (재승인 대기)** (2026-09-22)
+### G3 — Phase 4 성능 · **PASS 3 / 재승인 1** (2026-09-22)
 
 전문: [evidence/232-g3-perf-ab.md](../evidence/232-g3-perf-ab.md). 대조군 = `f258286ef` worktree · 실험군 = `accf4eaec` worktree (둘 다 그 커밋 lockfile 로 install).
 
 - (1) frame 크기 불변 편집 600 요소 (`--pairs 4`): `scene.build` +0.1 · `layout.publish` +0.1 · total +0.2 → **PASS**. 크기 불변 편집의 **파생 카운터 0** · 유휴 0 · 전환 1회당 1 (메모 정상).
 - (2) 위치 변경 조작 (페이지 30 · 줌 0.12 · `--pairs 5`): body 높이 **−24.3 ms** · 페이지 추가 **−3.8 ms** · 열 수 (after 전용) 47.9 ms → PASS. **breakpoint 전환 total +9.9 ms (+12.6%) 미달** — `render.frame` 은 −0.2 (PASS).
 - 미달 원인 분해: 메모 키 누락 아님 (파생 1회) · 렌더 캐시 재생성 아님 (`render.frame` −0.2) · scene 재구성 아님 (+0.1). 남은 것은 tier 재산출 (`layout.publish` +1.2) 과 그 뒤 React 커밋·effect 사슬 ≈ 8 ms. before 는 저장 스냅샷을 바꿔 끼우기만 했고 after 는 그 tier 로 다시 파생한다 — **모델에 내재한 1회 상호작용 비용**이다.
-- ADR G3 의 실패 대안 3단계 중 앞 둘은 실측 배제 → 남은 것은 "**원인 분해 후 재승인**" (사용자 판정).
+- ADR G3 의 실패 대안 3단계 중 앞 둘은 실측 배제 → 마지막 단계 "**원인 분해 후 재승인**" 에 따라 **사용자 재승인 2026-09-22** (「232부터 끝을 내자」). 수용 근거: 초과분은 tier 전환 1회에만 드는 비용이고 프레임 비용 (`render.frame` −0.2) 은 바뀌지 않았으며, 같은 문서의 나머지 세 조작은 같거나 빨라졌다 (−24.3 · −3.8 · +0.2).
 - 조작 목록 정정: "순서 변경" 은 제품에 그 사용자 조작이 없어 **페이지 추가** 로 대체.

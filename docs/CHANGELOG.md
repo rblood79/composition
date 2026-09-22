@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
-## [페이지 배치 = 컨테이너 레이아웃 파생값 (ADR-232 Phase 0~3)] - 2026-09-22
+## [페이지 배치 = 컨테이너 레이아웃 파생값 (ADR-232)] - 2026-09-22
 
 ### Changed
 
@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 배치 방향·간격·**열 수** 는 localStorage 에서 **문서 데이터** 로 승격됐다 (Settings). 열 수·간격은 breakpoint 별 override 가 되고, 방향은 breakpoint 공통이다.
   - 기존 문서는 로드 시 1회 이관된다 (Home 기준 상대 배치 불변 · 칸이면 고정 / 아니면 absolute / 검증 실패면 Home 제외 전부 absolute). 저장 좌표는 지우지 않고 휴면으로 남아 `"legacy"` 복귀에서 읽힌다.
   - 위치: `apps/builder/src/builder/workspace/canvas/scene/pagePlacement*.ts`, `apps/builder/src/builder/stores/utils/pagePlacement*.ts`, `apps/builder/src/builder/stores/elements.ts`, `packages/shared/src/types/composition-document.types.ts`
+
+- **breakpoint 전환은 페이지가 많은 문서에서 조금 느려진다.** 페이지 30 개 문서에서 전환 한 번이 약 10 ms (+12.6%) 늘었다 — 전환할 때 그 tier 로 배치를 다시 내기 때문이고, 예전에는 저장해 둔 좌표 묶음을 바꿔 끼우기만 했다. 전환 뒤의 프레임 비용은 그대로다 (−0.2 ms). 같은 문서의 다른 조작은 같거나 빨라졌다 — body 높이 변경 −24.3 ms · 페이지 추가 −3.8 ms · 600 요소 편집 +0.2 ms.
 
 ### Added
 

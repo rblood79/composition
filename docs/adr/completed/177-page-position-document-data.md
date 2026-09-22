@@ -2,7 +2,7 @@
 
 ## Status
 
-Superseded by [ADR-232](../232-page-placement-as-layout-derivation.md) — 2026-09-22
+Superseded by [ADR-232](232-page-placement-as-layout-derivation.md) — 2026-09-22
 
 (원래: Implemented — 2026-08-12 · 리뷰 round 1 승인 `docs/adr/reviews/177.md` → Accepted → Phase 0~4 같은 날 완료)
 
