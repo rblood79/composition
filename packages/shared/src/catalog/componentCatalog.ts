@@ -1288,6 +1288,21 @@ export const PALETTE_REUSABLE_ORIGIN_TYPES: readonly string[] = [
   "Tooltip",
 ];
 
+/**
+ * ADR-233 — 팔레트 밖 reusable origin. 팔레트 항목이 아니지만 조합 origin 의 자식으로 재사용되는
+ * 기본 요소 — RadioGroup 안 Radio 가 `component-radio` 의 instance 가 되어 (ADR-229 조합 자식 규칙)
+ * ADR-230 상태 변형 (Selected · Disabled …) 을 받는다. 등록 모양은 `PALETTE_REUSABLE_ORIGIN_TYPES`
+ * 와 **같다** (reusable 이 placeable · 동명 primitive 는 placeable:false — ADR-148 R② 단일성).
+ * `placeable` 은 삽입 가능 여부 (AI 도구 등) 를 가르고 팔레트 노출 정본은 builder `PALETTE_ORDER`
+ * 다 — Radio 는 그 목록에 없어 팔레트 노출 0. `PALETTE_ORDER` 일치 ratchet (`adr228Inventory`) 과
+ * 섞이지 않게 목록만 나눈다.
+ */
+export const NESTED_REUSABLE_ORIGIN_TYPES: readonly string[] = ["Radio"];
+
+const NESTED_REUSABLE_ORIGIN_TYPE_SET: ReadonlySet<string> = new Set(
+  NESTED_REUSABLE_ORIGIN_TYPES,
+);
+
 /** ADR-228: type → reusableId 규약 (R③ `component-<kebab>`; 대문자 없는 소문자 접합). */
 export function catalogReusableOriginId(type: string): string {
   return `component-${type.toLowerCase()}`;
@@ -1313,8 +1328,10 @@ const PRIMITIVE_ENTRIES: readonly ComponentCatalogEntry[] = [
  * panel 메타를 복제한다. 목록의 type 에 primitive entry 가 없으면 등록 결손이므로 즉시 throw
  * (모듈 로드 시점에 드러난다).
  */
-const CATALOG_DERIVED_REUSABLE_ENTRIES: ComponentCatalogEntry[] =
-  PALETTE_REUSABLE_ORIGIN_TYPES.map((type) => {
+const CATALOG_DERIVED_REUSABLE_ENTRIES: ComponentCatalogEntry[] = [
+  ...PALETTE_REUSABLE_ORIGIN_TYPES,
+  ...NESTED_REUSABLE_ORIGIN_TYPES,
+].map((type) => {
     const primitive = PRIMITIVE_ENTRIES.find(
       (entry) => entry.type === type && entry.kind === "primitive",
     );
@@ -1340,7 +1357,8 @@ export const componentCatalog: readonly ComponentCatalogEntry[] = [
   // ADR-228: 동명 reusable 이 palette 정본인 primitive 는 placeable:false (HC#3).
   ...PRIMITIVE_ENTRIES.map((entry) =>
     entry.kind === "primitive" &&
-    PALETTE_REUSABLE_ORIGIN_TYPE_SET.has(entry.type)
+    (PALETTE_REUSABLE_ORIGIN_TYPE_SET.has(entry.type) ||
+      NESTED_REUSABLE_ORIGIN_TYPE_SET.has(entry.type))
       ? { ...entry, panel: { ...entry.panel, placeable: false } }
       : entry,
   ),

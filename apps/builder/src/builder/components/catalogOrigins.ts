@@ -8,6 +8,7 @@ import type {
   RefNode,
 } from "@composition/shared";
 import {
+  NESTED_REUSABLE_ORIGIN_TYPES,
   PALETTE_REUSABLE_ORIGIN_TYPES,
   catalogReusableOriginId,
   getReusableEntry,
@@ -316,11 +317,17 @@ export const TEMPLATE_ORIGIN_REUSABLE_TYPES: ReadonlySet<string> = new Set([
   "Tabs",
 ]);
 
-/** generic seed 대상 type — `PALETTE_REUSABLE_ORIGIN_TYPES` − template origin 보유 4. */
+/**
+ * generic seed 대상 type — `PALETTE_REUSABLE_ORIGIN_TYPES` − template origin 보유 4 + 팔레트 밖
+ * reusable (ADR-233 Radio — 목록 끝, 기존 origin 순서 불변).
+ */
 export function getCatalogOriginTypes(): readonly string[] {
-  return PALETTE_REUSABLE_ORIGIN_TYPES.filter(
-    (type) => !TEMPLATE_ORIGIN_REUSABLE_TYPES.has(type),
-  );
+  return [
+    ...PALETTE_REUSABLE_ORIGIN_TYPES.filter(
+      (type) => !TEMPLATE_ORIGIN_REUSABLE_TYPES.has(type),
+    ),
+    ...NESTED_REUSABLE_ORIGIN_TYPES,
+  ];
 }
 
 const CATALOG_ORIGIN_IDS: ReadonlySet<string> = new Set(

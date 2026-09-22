@@ -50,6 +50,8 @@ export const STATE_VARIANT_BASE_TYPES: Readonly<
   Link: ["disabled", ...INTERACTION_STATE_VARIANTS],
   Checkbox: ["selected", "disabled", ...INTERACTION_STATE_VARIANTS],
   Switch: ["selected", "disabled", ...INTERACTION_STATE_VARIANTS],
+  // ADR-233 Phase 2: 팔레트 밖 reusable origin `component-radio` 가 생겨 230 보류가 풀렸다.
+  Radio: ["selected", "disabled", ...INTERACTION_STATE_VARIANTS],
 };
 
 export function isInteractionStateVariant(state: StateVariantState): boolean {

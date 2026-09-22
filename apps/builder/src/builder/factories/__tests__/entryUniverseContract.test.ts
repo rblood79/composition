@@ -67,8 +67,10 @@ const INVENTORY = {
   //   (definition 이 origin seed 의 source 라 제거하지 않는다 — Card/InlineAlert 때와 다름).
   //   complex 잔여 6 = Toast · Radio · ColorPicker · ColorSwatchPicker · Navigation ·
   //   IllustratedMessage (PALETTE_ORDER 밖 또는 제외 정책).
+  //   ADR-233 Phase 2: Radio 가 팔레트 밖 reusable origin (`component-radio`) 을 얻어 reusableOrigin
+  //   mode 로 이동 — 잔여 5.
   creators: 53,
-  complexComponentTags: 6,
+  complexComponentTags: 5,
   propagationRegistered: 31,
   syntheticChildPropMerge: 9,
   popoverChildren: 2,

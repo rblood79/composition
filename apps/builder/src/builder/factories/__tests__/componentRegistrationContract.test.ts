@@ -31,6 +31,7 @@ import { describe, it, expect } from "vitest";
 
 import { rendererMap } from "@composition/shared/renderers";
 import {
+  NESTED_REUSABLE_ORIGIN_TYPES,
   getCatalogCutoverTypes,
   getCatalogEntry,
   getReusableEntries,
@@ -324,6 +325,9 @@ describe("ADR-148 Phase 1 — reusable entry 등록 불변식", () => {
       getPaletteItems().map((i) => i.componentType ?? i.type),
     );
     for (const e of reusableEntries) {
+      // ADR-233: 팔레트 밖 reusable (Radio) 은 조합 origin 자식 전용 — 삽입 가능 (AI 도구) 이지만
+      //   팔레트 노출은 `PALETTE_ORDER` 가 정하고 거기 없다 (`NESTED_REUSABLE_ORIGIN_TYPES`).
+      if (NESTED_REUSABLE_ORIGIN_TYPES.includes(e.type)) continue;
       if (e.panel.placeable) {
         expect(
           paletteTypes.has(e.type),

@@ -181,7 +181,8 @@ describe("ADR-228 G0 — 집합 E/V/R", () => {
     expect([...refDefinitionTypes, "TagGroup", "Tabs"].sort()).toEqual(
       [...TEMPLATE_ORIGIN_REUSABLE_TYPES].sort(),
     );
-    expect(getCatalogOriginTypes()).toHaveLength(48);
+    // ADR-233 Phase 2: 팔레트 밖 reusable Radio 가 generic 목록 끝에 합류 — 48 → 49.
+    expect(getCatalogOriginTypes()).toHaveLength(49);
   });
 
   it("entry 마다 ensurer 가 있고 generic 50 은 한 함수를 공유한다", () => {
@@ -442,10 +443,11 @@ describe("ADR-228 G1 — factory 동치 (origin = live 생성 경로가 만드�
     (t) => !COMPLEX_COMPONENT_TAGS.has(t),
   );
 
-  it("complex 37 — subtree 의 type 순서 · props 가 createElementsFromDefinition 결과와 같다", () => {
+  it("complex 38 — subtree 의 type 순서 · props 가 createElementsFromDefinition 결과와 같다", () => {
     // ADR-229 Phase 1: TagGroup (complex) 은 손 ensurer 로 이동 — 39 → 38.
     // ADR-233 Phase 1: Tabs (complex) 도 손 ensurer 로 이동 — 38 → 37.
-    expect(complexTypes).toHaveLength(37);
+    // ADR-233 Phase 2: Radio (complex — Radio > Label) 합류 — 37 → 38.
+    expect(complexTypes).toHaveLength(38);
     for (const type of complexTypes) {
       const creator = ComponentFactory.getDefinitionCreator(type)!;
       const definition = creator({
@@ -562,7 +564,7 @@ describe("ADR-228 G4 — 문서 증가량 (Δnode · Δbyte) 실측 기록", () 
     for (const node of nodes) n += 1 + countNodes(node.children ?? []);
     return n;
   }
-  it("Modal 제외 generic origin 47 + descendants 132 · Δbyte 는 예상 ±20%", () => {
+  it("Modal 제외 generic origin 48 + descendants 133 · Δbyte 는 예상 ±20%", () => {
     const base = makeDocument();
     // hand seed 5 + template origin 만 시드한 문서를 기준으로 generic 만의 증가를 잰다.
     const withoutGeneric = ensureReusableCompositeOrigins({
@@ -589,8 +591,9 @@ describe("ADR-228 G4 — 문서 증가량 (Δnode · Δbyte) 실측 기록", () 
       (type) => type !== "Modal",
     ).length;
     // ADR-233 Phase 1: Tabs (root 1 + TabList · TabPanels · TabPanel ×2 = desc 4) 가 손 ensurer 로 이동.
-    expect(roots).toBe(47);
-    expect(deltaNodes - roots).toBe(132);
+    // ADR-233 Phase 2: Radio (root 1 + Label 1) 합류.
+    expect(roots).toBe(48);
+    expect(deltaNodes - roots).toBe(133);
     // G0 예상 ~28 KB 는 definition 직렬화 합 — 실측 37,952 B (id · name · metadata 가 더해진다,
     //   2026-09-21). 범위 밖이면 seed 모양이 바뀐 것이니 inventory (breakdown §8.5) 를 갱신할 것.
     expect(deltaBytes).toBeGreaterThan(30_000);

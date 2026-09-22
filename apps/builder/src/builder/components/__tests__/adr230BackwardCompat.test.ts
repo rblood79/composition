@@ -147,13 +147,14 @@ describe("ADR-230 Phase 3 — G4 BC", () => {
   const post = ensureReusableCompositeOrigins(pre);
   const postJson = JSON.stringify(post);
 
-  it("pre 문서에는 변형 origin 이 0 · 기본 요소 origin 5 는 있다", () => {
+  // ADR-233 Phase 2: Radio 가 기본 요소에 합류 (팔레트 밖 reusable `component-radio`) — 6 · 변형 28.
+  it("pre 문서에는 변형 origin 이 0 · 기본 요소 origin 6 은 있다", () => {
     const ids = indexById(pre.children);
     expect(EXPECTED_VARIANT_IDS.some((id) => ids.has(id))).toBe(false);
     for (const type of Object.keys(STATE_VARIANT_BASE_TYPES)) {
       expect(ids.has(`component-${type.toLowerCase()}`)).toBe(true);
     }
-    expect(EXPECTED_VARIANT_IDS).toHaveLength(23);
+    expect(EXPECTED_VARIANT_IDS).toHaveLength(28);
   });
 
   it("기존 노드 (origin + 자식 + 사용자 저작) 는 props/children/순서 직렬화 불변 — 필드 추가 0", () => {
@@ -206,9 +207,10 @@ describe("ADR-230 Phase 3 — G4 BC", () => {
     ]);
   });
 
-  it("최초 보충량 — Δnode 33 (root 23 + Checkbox/Switch Label 10) · Δbyte = 그 직렬화 (정확히)", () => {
+  // ADR-233 Phase 2: Radio 변형 5 + Label 5 합류 — 33 → 43.
+  it("최초 보충량 — Δnode 43 (root 28 + Checkbox/Switch/Radio Label 15) · Δbyte = 그 직렬화 (정확히)", () => {
     const deltaNodes = countNodes(post.children) - countNodes(pre.children);
-    expect(deltaNodes).toBe(33);
+    expect(deltaNodes).toBe(43);
     const added = EXPECTED_VARIANT_IDS.map(
       (id) => findNode(post.children, id)!,
     );

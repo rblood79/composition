@@ -62,7 +62,8 @@ describe("합성 판정 — 팔레트와 같은 SSOT", () => {
     const both = [...COMPLEX_COMPONENT_TAGS].filter((t) =>
       isReusableCompositeType(t),
     );
-    expect(both.length).toBe(41);
+    // ADR-233 Phase 2: Radio (COMPLEX — Radio > Label) 가 팔레트 밖 reusable 로 합류 — 41 → 42.
+    expect(both.length).toBe(42);
     for (const type of both)
       expect(resolveCompositeMode(type)).toBe("reusable");
   });

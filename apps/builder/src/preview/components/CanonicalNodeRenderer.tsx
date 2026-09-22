@@ -139,10 +139,14 @@ const ORPHAN_ITEM_HOST: Readonly<Record<string, string>> = {
   treeitem: "Tree",
 };
 
+/** ADR-233 — Radio 의 그룹 조상 type (소문자). 이 조상 밑 Radio 는 호스트를 만들지 않는다. */
+const RADIO_GROUP_ANCESTOR = "radiogroup";
+
 /** 호스트가 될 수 있는 collection type(소문자) — 자손 item 은 이미 collection 안이다. */
-const COLLECTION_HOST_TYPES: ReadonlySet<string> = new Set(
-  Object.values(ORPHAN_ITEM_HOST).map((v) => v.toLowerCase()),
-);
+const COLLECTION_HOST_TYPES: ReadonlySet<string> = new Set([
+  ...Object.values(ORPHAN_ITEM_HOST).map((v) => v.toLowerCase()),
+  RADIO_GROUP_ANCESTOR,
+]);
 
 /** `services` 미공급(publish 등) 일 때의 안정 참조 — 매 렌더 새 객체를 만들지 않는다. */
 const EMPTY_EVENT_HANDLERS: EventHandlerMap = Object.freeze({});
@@ -165,6 +169,36 @@ function hostOrphanCollectionItem(
     <Host aria-label={`${type} sample`} style={{ display: "contents" }}>
       {rendered}
     </Host>
+  );
+}
+
+/**
+ * ADR-233 R7 (리뷰 h1) — RadioGroup 조상이 없는 Radio 를 render-only RAC `RadioGroup` 으로 감싼다.
+ *
+ * RAC `Radio` 는 RadioGroup 문맥이 없으면 `state.isDisabled` 를 읽다 throw 해 Preview 전체가 죽는다.
+ * Components 페이지의 `component-radio` 와 상태 변형 origin 은 body 직계에 단독으로 놓인다
+ * (`ORPHAN_ITEM_HOST` 와 같은 쇼케이스 배치). 선택 표현은 RAC 계약 그대로 — 호스트 `value` = 유효
+ * selected (자기 `isSelected` 또는 selected 변형) 면 그 Radio 의 value, 아니면 null. 비활성은 Radio
+ * 자신의 `isDisabled`. `display: contents` 라 박스를 만들지 않고, 문서 (canonical · binding) 는
+ * 건드리지 않는다. Skia 는 조상이 없으면 이미 자기 상태로 그린다 (`buildSpecNodeData` F15).
+ */
+function hostOrphanRadio(
+  type: string,
+  collectionAncestor: string | undefined,
+  radio: { value: unknown; isSelected: boolean },
+  rendered: React.ReactElement,
+): React.ReactElement {
+  if (type.toLowerCase() !== "radio") return rendered;
+  if (collectionAncestor === RADIO_GROUP_ANCESTOR) return rendered;
+  const value = radio.value == null ? "" : String(radio.value);
+  return (
+    <RAC.RadioGroup
+      aria-label="Radio sample"
+      value={radio.isSelected ? value : null}
+      style={{ display: "contents" }}
+    >
+      {rendered}
+    </RAC.RadioGroup>
   );
 }
 
@@ -571,8 +605,25 @@ function CanonicalNodeRendererBody({
         : INTERNAL_RENDERERS[binding.source.renderer];
     if (binding && PrimitiveComponent) {
       // ADR-158 Phase 3 실측 — `node` 를 넘기면 Modal.isOpen patch 가 무반응이었다.
+      // ADR-233 — 변형 origin 자신 (`metadata.variant`) 의 상태 prop (isSelected · isDisabled) 도
+      //   RAC 입력에 싣는다 (ADR-230 계약: 캔버스처럼 변형 = 상태). 종전엔 `stateAdjustedProps` 가
+      //   rendererMap 위임 경로에만 닿아 catalog 경로의 Disabled 변형이 data-disabled 를 못 냈다.
+      const racSourceNode: ResolvedNode = stateVariantSelf
+        ? {
+            ...renderNode,
+            props: {
+              ...(renderNode.props ?? {}),
+              ...(stateAdjustedProps.isSelected === true
+                ? { isSelected: true }
+                : {}),
+              ...(stateAdjustedProps.isDisabled === true
+                ? { isDisabled: true }
+                : {}),
+            },
+          }
+        : renderNode;
       const { children: racChildren, ...racRest } = toRacProps(
-        renderNode,
+        racSourceNode,
         binding,
       );
       const childNodes = node.children ?? [];
@@ -636,7 +687,13 @@ function CanonicalNodeRendererBody({
       //   label 은 RSP 공식대로 `<Text>` 자식 element 로 표현되므로(ButtonChildSection 이
       //   Button.children → Text 자식 element 이관) 이 배타로 충분 — string children 은 비고
       //   `<Text>` 자식이 label 을 보유. text-only leaf(Badge/Text/Checkbox/Link…)도 동일 배타.
-      return (
+      return hostOrphanRadio(
+        type,
+        collectionAncestor,
+        {
+          value: stateAdjustedProps.value,
+          isSelected: stateAdjustedProps.isSelected === true,
+        },
         <PrimitiveComponent
           key={node.id}
           {...markerProps}
@@ -674,7 +731,7 @@ function CanonicalNodeRendererBody({
                 />
               ))
             : (racChildren as React.ReactNode)}
-        </PrimitiveComponent>
+        </PrimitiveComponent>,
       );
     }
   }
@@ -686,6 +743,8 @@ function CanonicalNodeRendererBody({
     // 여기서는 rendererMap 에 그대로 위임. DOM 마커는 wrapper div 로 감쌈.
     return (
       <div key={node.id} {...markerProps} style={{ display: "contents" }}>
+        {/* Radio 는 여기서 호스트를 붙이지 않는다 — `renderRadio` 가 그룹 밖이면 자체 RadioGroup 으로
+            감싼다 (이중 그룹 방지). catalog 경로만 `hostOrphanRadio` (ADR-233). */}
         {hostOrphanCollectionItem(
           type,
           collectionAncestor,
