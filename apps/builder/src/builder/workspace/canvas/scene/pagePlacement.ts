@@ -179,7 +179,10 @@ export function resolvePageLayout(
     activeBreakpoint,
     pageLayout?.columns,
   );
-  const columnsAuto = rawColumns === "auto";
+  // 기본값이 `auto` 다 (사용자 판정 2026-09-23) — 문서에 열 수가 없으면 화면에 들어가는
+  //   만큼 쓴다. 숫자를 명시한 문서만 고정이다. `DEFAULT_PAGE_LAYOUT_COLUMNS` 는 이제
+  //   "뷰포트를 아직 못 읽었을 때의 정수 fallback" 으로만 남는다.
+  const columnsAuto = rawColumns === "auto" || rawColumns === undefined;
   let columns: number;
   if (columnsAuto) {
     columns = Math.min(

@@ -27,8 +27,17 @@ function readPageLayout(): PageLayoutSettingsDocument | undefined {
   return state.documents.get(projectId)?.pageLayout;
 }
 
+/** 문서에 저장된 좌표 (ADR-232 이후 휴면 필드) — 하니스가 "쓰기 0" 을 실제로 본다. */
+function readPagePositions() {
+  const state = useCanonicalDocumentStore.getState();
+  const projectId = state.currentProjectId;
+  if (!projectId) return undefined;
+  return state.documents.get(projectId)?.pagePositions;
+}
+
 export const pagePlacementDebugActions = {
   readPageLayout,
+  readPagePositions,
   /** 파생 호출 횟수 (R4 메모 검증 · G3 진단). */
   derivationCount: () => getPagePlacementDerivationCount(),
   resetDerivationCount: () => resetPagePlacementDerivationCount(),

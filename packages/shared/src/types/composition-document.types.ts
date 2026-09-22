@@ -1097,7 +1097,7 @@ export interface PageLayoutSettingsDocument {
   /** 페이지 사이 간격 (world px, ≥ 0). 기본 80 (`PAGE_STACK_GAP`). */
   gap?: number;
   /**
-   * `direction:"auto"` 의 열 수 (≥ 1). 기본 3.
+   * `direction:"auto"` 의 열 수 (≥ 1). **기본 `"auto"`** (필드 부재 = auto, 2026-09-23).
    *
    * `"auto"` 는 **보이는 캔버스 폭에 들어가는 만큼** 을 쓴다 (zoom · 창 크기 파생, 2026-09-23
    * 사용자 요청). ADR-232 는 이것을 기본 모델로 삼는 안 (대안 D) 을 기각했고 — zoom 마다 칸이

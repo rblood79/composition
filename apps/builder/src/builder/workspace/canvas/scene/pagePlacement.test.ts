@@ -20,6 +20,7 @@ import {
   buildContainerStyle,
   derivePagePositions,
   derivePagePositionsMemo,
+  __resetAutoColumns,
   DEFAULT_PAGE_LAYOUT_COLUMNS,
   getPagePlacementDerivationCount,
   MAX_PAGE_LAYOUT_COLUMNS,
@@ -850,6 +851,33 @@ describe('columns: "auto" — 보이는 캔버스 폭에서 열 수', () => {
     expect(getPagePlacementDerivationCount()).toBe(1);
     derivePagePositionsMemo(input(2));
     expect(getPagePlacementDerivationCount()).toBe(2);
+  });
+
+  it("열 수를 안 쓴 문서는 auto 다 (기본값 — 2026-09-23 사용자 판정)", () => {
+    const implicit = resolvePageLayout(
+      { direction: "auto", gap: GAP },
+      "desktop",
+      5,
+    );
+    expect(implicit.columnsAuto).toBe(true);
+    expect(implicit.columns).toBe(5);
+    // 숫자를 명시한 문서는 그대로 고정 — 기본값 변경이 기존 설정을 덮지 않는다.
+    const explicit = resolvePageLayout(
+      { direction: "auto", gap: GAP, columns: 3 },
+      "desktop",
+      5,
+    );
+    expect(explicit.columnsAuto).toBe(false);
+    expect(explicit.columns).toBe(3);
+  });
+
+  it("뷰포트를 아직 못 읽었으면 기본 정수로 떨어진다", () => {
+    __resetAutoColumns();
+    const layout = resolvePageLayout(
+      { direction: "auto", gap: GAP },
+      "desktop",
+    );
+    expect(layout.columns).toBe(DEFAULT_PAGE_LAYOUT_COLUMNS);
   });
 
   it("tier override 도 auto 를 쓴다 (mobile 만 auto)", () => {

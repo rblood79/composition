@@ -128,7 +128,48 @@ async function main() {
       .first();
     check("Settings 에 열 수 입력이 있다", (await columns.count()) === 1, {});
 
+    // ── 기본값 확인 (2026-09-23 사용자 판정: 열 수 기본값 = auto) ──
+    const fresh = await readState(page);
+    const freshShown = await columns.evaluate(
+      (n) => n.value || n.placeholder || "",
+    );
+    check(
+      "새 문서의 기본 열 수는 auto (문서에 columns 필드 없음)",
+      freshShown.trim().toLowerCase() === "auto" &&
+        fresh.layout?.columns === undefined,
+      { shown: freshShown, layout: fresh.layout },
+    );
+    check(
+      "기본 auto 도 레일 뺀 폭을 따른다",
+      observedColumns(fresh) ===
+        expectedColumns(fresh.containerWidth, fresh.zoom, fresh.railInset),
+      {
+        got: observedColumns(fresh),
+        want: expectedColumns(
+          fresh.containerWidth,
+          fresh.zoom,
+          fresh.railInset,
+        ),
+      },
+    );
+
     // ── 실제 입력으로 auto 선택 ──
+    //   기본이 이미 auto 라, 숫자를 한 번 거쳐야 "auto" 쓰기가 실제로 일어난다
+    //   (같은 값 재입력은 commit 되지 않는다 — PropertyUnitInput 규약).
+    await columns.click();
+    await page.keyboard.press("ControlOrMeta+a");
+    await page.keyboard.type("3");
+    await page.keyboard.press("Enter");
+    await settle(page, 1200);
+    const numbered = await readState(page);
+    check(
+      "숫자 입력이 먼저 문서에 실린다 (auto 쓰기의 전제)",
+      numbered.layout?.columns === 3,
+      {
+        layout: numbered.layout,
+      },
+    );
+
     await columns.click();
     await page.keyboard.press("ControlOrMeta+a");
     await page.keyboard.type("auto");

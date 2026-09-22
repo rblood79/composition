@@ -60,6 +60,9 @@ const readFrames = (page) =>
       })),
       docPageLayout:
         window.__composition_PAGE_PLACEMENT__.readPageLayout() ?? null,
+      // **문서에 저장된** 좌표 — 위 storePositions (파생 미러) 와 다르다.
+      docPagePositions:
+        window.__composition_PAGE_PLACEMENT__.readPagePositions() ?? null,
     };
   });
 
@@ -136,7 +139,7 @@ async function main() {
     const legacyFrames = Object.fromEntries(
       afterAdd.frames.map((f) => [f.id, [f.x, f.y]]),
     );
-    const legacyStore = JSON.stringify(afterAdd.storePositions);
+    const storedBefore = JSON.stringify(afterAdd.docPagePositions);
 
     // ── derived 모드 전환 ──
     await setLayout(page, {
@@ -181,10 +184,16 @@ async function main() {
       want: expectedAuto.map(([, xy]) => xy),
     });
 
+    // 파생 미러 (`derivedPagePositions`) 가 아니라 **문서의 `pagePositions`** 를 본다 —
+    //   미러는 열 수·gap 이 바뀌면 당연히 바뀌는 파생값이라 "쓰기 0" 의 증거가 아니다
+    //   (열 수 기본값이 auto 가 되자 이 검사가 미러 변화로 실패해 드러났다, 2026-09-23).
     check(
       "파생 전환이 저장 좌표를 쓰지 않았다 (쓰기 0)",
-      JSON.stringify(derived.storePositions) === legacyStore,
-      { changed: JSON.stringify(derived.storePositions) !== legacyStore },
+      JSON.stringify(derived.docPagePositions) === storedBefore,
+      {
+        before: storedBefore,
+        after: JSON.stringify(derived.docPagePositions),
+      },
     );
 
     const overlapping = [];
