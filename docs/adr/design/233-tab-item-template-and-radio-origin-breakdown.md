@@ -1,6 +1,6 @@
 # ADR-233 구현 상세 — Tabs 의 Tab 항목 템플릿 origin + Radio origin
 
-> 본문: [233-tab-item-template-and-radio-origin.md](../233-tab-item-template-and-radio-origin.md)
+> 본문: [233-tab-item-template-and-radio-origin.md](../completed/233-tab-item-template-and-radio-origin.md)
 > 선례: ADR-229 (TagGroup 항목 템플릿 · 조합 자식 ref) · ADR-230 (기본 요소 상태 변형 origin) · ADR-228 (reusable origin · Modal `placeable:false`)
 
 ## 1. 전제 lock-in (4 질문)
@@ -136,3 +136,10 @@ Phase 0 에서 확정할 것 (현재 미확정): Tab 항목 추가·편집 UI �
 - **G3 PASS** ([evidence](../evidence/233-g3-perf-ab.md)) — `scene.build` p95 pair median Δ: tabs −0.2 / −0.1 / +0.2 · radio +0.4 / +0.7 / +0.6 (static / originEdit / breakpoint). 측정 정정 2 (opacity 는 scene 재구성 0 · 영향 대화상자 확인 전엔 편집 0 — 제품 결함 아님).
 - unit: `adr233TabTemplateLayout` 4 (원복 RED 3) · tabTemplate · tabsItemTemplate 기대값 (minHeight 29) 갱신.
 - 기존 실패 (233 무관, browser parity): `adr923Dc6OverflowCapInventory` (ADR-228 이전 생성 방식 기대) · `catalogComponentBox` Dialog fixed.
+
+### Phase 4 — BC · 문서 (G4, 2026-09-23)
+
+- unit `adr233BackwardCompat.test.ts` 6: pre-233 모양 (233 origin 0 · slot 없음 · RadioGroup origin plain 자식) + 사용자 저작 → (i) `component-tabs` 밖 기존 노드 자기 필드 · 자식 순서 불변 · body 기존 순서 · 사용자 페이지 동일 (ii) `component-tabs` 변경 필드 = `slot` 하나 · 사용자 slot 보존 (iii) Δnode 16 · **Δbyte 3,487** (노드 3,419 + slot 필드 68 — G0 추정 ≈ 3.3 KB, 기준값 고정) · 재hydration Δ0.
+- live `adr233-bc-live.mjs` 6/6 ([evidence](../evidence/233-g4-bc-live.json)) — IndexedDB `document_parts` 에서 233 추가분 16 레코드 삭제 · slot 제거 · RadioGroup origin ref 자식 → plain factory 트리 → reload: 보충 16 · slot 보충 · plain 자식 유지 · 사용자 저작 불변 · Skia 에 옛 instance 그대로 · 재reload 직렬화 변화 0. 함정: store 미러의 fill `id` 는 hydration 마다 새로 발급 (230 하니스와 같이 정규화).
+- 문서: 본문 Implemented + `### Live Exercise` · `completed/` 이동 · README · CHANGELOG.
+- 후속 후보 (범위 밖): Tab 추가 UI (items + TabPanel 쌍) · 선택 컨트롤 fills 의 D3 뜻 (Skia 점 색 ↔ DOM 행 배경) · 기존 문서 RadioGroup origin plain 자식 ref 이관 · Tab 항목 disabled/interaction 변형 · `calculateContentHeight` tabs 분기의 template 탭 바 높이 (engine 은 이미 행을 따라 잰다 — live Tabs 53 → 64).

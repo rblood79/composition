@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-09-23 (사용자 `/execute-adr 233` "완료까지 모든 phase") · [리뷰](reviews/233.md) round 1 (HIGH 1 · MEDIUM 1 · LOW 1) 설계 수리 → round 2 수리 검증 **pending 0 · 설계 승인 가능** (같은 날) — 독립 Radio origin 의 Preview render-only RadioGroup 호스트 계약 (h1) · 기존 시스템 root 의 허용 보충 필드 분리 (m2) · G3 측정 조건 (l3).
+Implemented — 2026-09-23 (`/execute-adr 233` Phase 0~~4 / G0~~G4 같은 날 종결 — [구현 기록](../design/233-tab-item-template-and-radio-origin-breakdown.md#6-실행-기록)) · Accepted — 2026-09-23 (사용자 `/execute-adr 233` "완료까지 모든 phase") · [리뷰](../reviews/233.md) round 1 (HIGH 1 · MEDIUM 1 · LOW 1) 설계 수리 → round 2 수리 검증 **pending 0 · 설계 승인 가능** (같은 날) — 독립 Radio origin 의 Preview render-only RadioGroup 호스트 계약 (h1) · 기존 시스템 root 의 허용 보충 필드 분리 (m2) · G3 측정 조건 (l3).
 
 설계 요청: 사용자 (2026-09-23) — "컴퍼넌트 origin, instance, slot 작업 이어서 진행" → 후속 후보 코드 실측 보고의 권장안 ("1 + 2 를 한 ADR 로") 뒤 `/create-adr`. ADR-229 §후속 후보 (다른 collection 의 item template) 와 ADR-230 보류 (Radio/Tab base origin) 의 교집합이다.
 
@@ -86,7 +86,7 @@ Accepted — 2026-09-23 (사용자 `/execute-adr 233` "완료까지 모든 phase
 
 위험 수용 근거: 기술 H (독립 Radio Preview 크래시) 는 canonical · binding 을 건드리지 않는 render-only 호스트로 닫고, G0 에서 production catalog 경로 RED 를 먼저 고정한 뒤 G1 에서 GREEN 으로 확인한다 — 호스트가 두 leg 유효 상태를 못 맞추면 Radio 절을 보류한다. 그 밖에는 새 해소 경로를 만들지 않는다 — Tab 은 Tag read-through 복제, Radio 는 229 조합 자식 규칙과 230 상태 변형의 입력 (base origin) 만 채운다. MED 기술 위험 두 곳 (Preview Tabs 주입 · Radio ref 두 leg 실체화) 은 G0 에서 진단 RED 로 먼저 고정하고, Radio 쪽이 base 해소기 계약 변경을 요구하면 Radio 절만 보류한다 (breakdown §5). 기각 사유: B·C 는 이미 확정된 SSOT 모델 (ADR-066 · ADR-912 starter 구조) 을 역전하고 모든 해당 문서를 바꾼다 · D 는 조합과 상태를 표현하지 못한다.
 
-> 구현 상세: [233-tab-item-template-and-radio-origin-breakdown.md](design/233-tab-item-template-and-radio-origin-breakdown.md)
+> 구현 상세: [233-tab-item-template-and-radio-origin-breakdown.md](../design/233-tab-item-template-and-radio-origin-breakdown.md)
 
 ## Risks
 
@@ -100,7 +100,7 @@ Accepted — 2026-09-23 (사용자 `/execute-adr 233` "완료까지 모든 phase
 | R6  | 중첩 ref · 행별 템플릿 주입이 `scene.build` 에 누적 (228 잔여 (a) 위)                                                                                                                              |   MED    | G3 A/B                                                                                                                                                |
 | R7  | 독립 Radio origin (default · 상태 변형 5) 이 Components 페이지 Preview 를 크래시시킨다 — RadioGroup 문맥 부재 (F18, 리뷰 h1 진단 RED) · selected 변형이 그룹 value 없이는 선택으로 안 보인다 (F19) | **HIGH** | render-only RadioGroup 호스트 계약 (Decision) · G0 RED 고정 · G1 production catalog 경로 독립 default/selected/disabled + 그룹 안 ref (호스트 중복 0) |
 
-잔존 HIGH 1 (R7) — G0 · G1 에 1:1 대응.
+잔존 HIGH 1 (R7) — G0 · G1 에 1:1 대응. **해소 (2026-09-23)**: G0 RED 5 (`TypeError … isDisabled`) → catalog 경로 `hostOrphanRadio` 뒤 GREEN 6 (default · isSelected · Selected 변형 · Disabled 변형 · display:contents · 그룹 안 호스트 0). R2 는 G0 ② GREEN (두 해소기가 이미 Radio 로 실체화) 으로 해소. R4 는 별도 상수 `NESTED_REUSABLE_ORIGIN_TYPES` 로 해소 (등록 모양은 다른 reusable 과 같다 — breakdown §6 Phase 2 정정).
 
 ## Gates
 
@@ -114,7 +114,12 @@ Accepted — 2026-09-23 (사용자 `/execute-adr 233` "완료까지 모든 phase
 
 ### Live Exercise
 
-(Implemented 승격 시 기재)
+2026-09-23 · 실제 builder (dev 5173) · headed Playwright · Skia 캔버스 · store · IndexedDB 저장 층. Compare Mode / Preview iframe 은 사용자 지시 (2026-09-22 ×3) 로 열지 않았다 — Preview 축은 renderer unit (`tabsItemTemplate` · `CanonicalNodeRenderer.standaloneRadio`) 으로 고정했고 **사용자 확인 대상**이다.
+
+- **G2 `adr233-tab-radio-live.mjs` 10/10**: 새 프로젝트 seed (Tab/Default·Tab/Selected + label · `component-tabs.slot` · `component-radio` + Label · Radio 변형 5 · 새 RadioGroup origin 의 Radio 자식 ref) → Tabs instance · RadioGroup instance 를 사용자 페이지에 두고 — Tab/Default padding 24/10 → Tab 행 폭 +24 · 높이 40 · TabList 40 · 선택 TabPanel +11 (겹침 0) · label fontWeight 700 · Tab/Selected fills → 선택 Tab 만 픽셀 · `component-radio` opacity → instance Radio 전부 픽셀 · `component-radio` paddingLeft 8 → instance Radio rect +8 · Radio/Selected → 선택 Radio 만 픽셀 · reload 보존 · Components body 순서 Δ0 · page error 0.
+- **G4 `adr233-bc-live.mjs` 6/6**: 저장 층에서 233 이전 모양으로 되돌린 문서를 reload — 추가 노드 16 · `component-tabs.slot` 보충 · 기존 RadioGroup origin 의 plain Radio 자식 유지 · 사용자 저작 그대로 · Skia 에 옛 RadioGroup instance Radio 2 · plain Tabs 행 2 · 재reload Δnode/Δbyte 0.
+- **G3 `adr233-g3-perf-ab.mjs`**: `scene.build` p95 pair median Δ ≤ +0.7 ms (6 조작) — [evidence](../evidence/233-g3-perf-ab.md) (로컬).
+- live 가 잡은 결함 2 (unit 통과): Tab 높이 두 leg 비대칭 (생성 CSS 고정 높이) · TabList 고정 높이 + Tab 테두리 기본값 1px — 둘 다 수리 (breakdown §6 Phase 3).
 
 ## Consequences
 
@@ -127,6 +132,8 @@ Accepted — 2026-09-23 (사용자 `/execute-adr 233` "완료까지 모든 phase
 ### Negative
 
 - 기존 문서의 RadioGroup origin 자식은 plain 으로 남아 새 문서와 동작이 갈린다 (R5) — 기존 문서 이관은 후속 후보.
+- Tabs origin Slot 절의 "+" 는 삽입 없음 — Tab 추가 (items + TabPanel 쌍) 경로가 제품에 없다. 탭 추가 UI 는 후속 후보.
+- Radio `fills` 는 두 leg 의 뜻이 다르다 (Skia 선택 점 색 · DOM 행 배경) — 233 이전부터의 plain Radio · ADR-230 Checkbox 비대칭. 선택 컨트롤 fills 의 D3 뜻 정의는 후속 후보.
 - Preview 축 검증은 unit + 사용자 확인으로 남는다 (Compare Mode 보류 지시).
 - Components 페이지 노드 +16 (Tab 항목 origin 2 · Radio origin 1 · Radio 변형 5, 각 자식 포함).
 - 후속 후보 (이 ADR 밖): Tab 항목 disabled/interaction 변형 · Breadcrumbs 항목 템플릿 · Select/ComboBox 팝업의 ListBoxItem 템플릿 소비 · 기존 문서 plain 자식 ref 이관 · Table/Tree.

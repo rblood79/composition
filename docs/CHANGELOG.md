@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-233 Tabs 의 Tab 항목 템플릿 · Radio origin] - 2026-09-23
+
+### Added
+
+- **Components 페이지에 `Tab/Default` · `Tab/Selected` 가 생겼다.** Tab 의 여백 · 글자 · 배경을 여기서 한 번 바꾸면 문서의 모든 Tabs 가 따른다 (ListBox · TagGroup 항목과 같은 방식). 선택된 탭은 `Tab/Selected` 를 그 위에 겹친다. Tabs origin 의 Slot 절에서 어떤 항목 origin 을 쓸지 고를 수 있다.
+  - 여백을 키우면 탭이 커지고 탭 목록 · 패널도 그만큼 내려간다 (캔버스 · Preview 같은 규칙: 높이는 자라되 기본 높이 아래로는 줄지 않는다).
+  - Slot 절의 "+" 는 Tabs 에서는 보이지 않는다 — 탭 추가 (항목 + 패널 한 쌍) 는 아직 별도 UI 가 없다.
+- **Radio 도 Components 페이지 origin (`Radio`) 과 상태 변형 5 (`Radio/Selected` · `Disabled` · `Hover` · `Pressed` · `Focus visible`) 를 갖는다.** 새로 만드는 RadioGroup 의 Radio 는 이 origin 의 instance 라 `Radio` 편집이 그대로 전파된다. 팔레트에는 따로 나오지 않는다. 이미 있던 문서의 RadioGroup origin 안 Radio 는 그대로 둔다.
+
+### Fixed
+
+- Components 페이지의 단독 Radio (origin · 상태 변형) 가 Preview 를 통째로 멈추던 문제를 막았다 — RadioGroup 밖 Radio 는 화면용 그룹으로 감싸 그린다 (문서는 바뀌지 않는다). Disabled 변형이 Preview 에서 비활성으로 보이지 않던 것도 함께 고쳤다.
+- 캔버스에서 Tab 의 테두리를 1px 로 계산하던 것을 DOM 과 같은 0 으로 맞췄다 (단독 Tab 폭 61 → 59).
+  - 위치: `apps/builder/src/builder/components/tabs/tabsTemplateOrigins.ts`, `apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts`, `apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts`, `packages/shared/src/renderers/LayoutRenderers.tsx`, `apps/builder/src/preview/components/CanonicalNodeRenderer.tsx`, `packages/shared/src/catalog/componentCatalog.ts`
+  - 결정: [ADR-233](adr/completed/233-tab-item-template-and-radio-origin.md)
+
 ## [Dialog 트리거 연결 — Components 편집과 런타임 열림 분리] - 2026-09-23
 
 ### Fixed
