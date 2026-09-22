@@ -1,0 +1,28 @@
+import { resolve } from "node:path";
+import { chromium } from "playwright";
+import { waitReady } from "../perf-baseline.mjs";
+const browser = await chromium.launch({ headless: false });
+const context = await browser.newContext({ storageState: resolve("/Users/admin/work/composition/apps/builder/scripts/.auth-session.json"), viewport: { width: 1440, height: 900 } });
+const page = await context.newPage();
+await page.goto("http://localhost:5173/dashboard", { waitUntil: "networkidle" });
+await page.locator("button.dashboard-create-button").first().click();
+const input = page.locator("#new-project-name");
+await input.fill(`probe-${Date.now()}`); await input.press("Enter");
+await page.waitForURL(/\/builder\/[^/?]+$/, { timeout: 90_000 });
+await waitReady(page); await page.waitForTimeout(1500);
+await page.evaluate(() => {
+  const st = window.__composition_STORE__.getState();
+  const body = st.elements.find((e) => e.type === "body" && e.page_id === st.currentPageId);
+  const now = new Date().toISOString();
+  st.addElement({ id: "probe-form", customId: "probe-form", type: "ref", ref: "component-form", componentName: "Form", parent_id: body.id, page_id: st.currentPageId, props: {}, created_at: now, updated_at: now });
+});
+await page.waitForTimeout(2000);
+console.log("home page:", await page.evaluate(() => ({ cur: window.__composition_STORE__.getState().currentPageId, pages: window.__composition_STORE__.getState().pages.map(p=>p.id), probeKeys: [...window.__composition_LAYOUT_DEBUG__.getSharedLayoutMap().keys()].filter(k => /probe/i.test(k)), size: window.__composition_LAYOUT_DEBUG__.getSharedLayoutMap().size })));
+await page.evaluate(() => { const st = window.__composition_STORE__.getState(); const l = window.__composition_LAYOUT_DEBUG__.getSharedLayoutMap().get("probe-form"); const pos = st.pagePositions instanceof Map ? st.pagePositions.get(st.currentPageId) : st.pagePositions?.[st.currentPageId]; window.__composition_APPLY_VIEWPORT__({ scale: 1, x: 300 - ((pos?.x??0) + (l?.x??0)), y: 300 - ((pos?.y??0) + (l?.y??0)) }); });
+await page.waitForTimeout(1500);
+console.log("after focus probeKeys:", await page.evaluate(() => [...window.__composition_LAYOUT_DEBUG__.getSharedLayoutMap().keys()].filter(k => /probe/i.test(k))));
+console.log("home el:", await page.evaluate(() => window.__composition_STORE__.getState().elements.filter(e => e.id.startsWith("probe")).map(e => ({id:e.id,type:e.type,ref:e.ref}))));
+await page.evaluate(() => window.__composition_STORE__.getState().setCurrentPageId("page-components"));
+await page.waitForTimeout(2000);
+console.log("components keys form:", await page.evaluate(() => [...window.__composition_LAYOUT_DEBUG__.getSharedLayoutMap().keys()].filter(k => /component-form/.test(k))));
+await browser.close();
