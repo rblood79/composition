@@ -308,6 +308,29 @@ export function resolveItemTemplateChipStyle(
   return Object.keys(out).length > 0 ? out : null;
 }
 
+/**
+ * ADR-233 Phase 3 — 고정 높이 rule (Tab: 생성 CSS `height: 29px` md) 을 가진 행에 item template 을 얹을 때의
+ * 높이 규칙. template style 이 있으면 행은 `height: auto` 로 padding · 글자에 따라 자라되 rule 높이 아래로는
+ * 줄지 않는다 (`minHeight`) — 편집 전 (template 비움) 과 기본 padding 에서는 종전 높이 그대로. 두 leg
+ * (Skia `appendTabRowProjection` · Preview `renderTabs`) 가 같은 값을 싣는다. rule 높이가 없으면 auto 만.
+ */
+export function resolveItemTemplateRowBoxStyle(
+  ruleType: string,
+  sizeName: string | undefined,
+): Record<string, unknown> {
+  const sizes = (
+    COMPONENT_RULES_TABLE as unknown as Record<
+      string,
+      { defaultSize?: string; sizes?: Record<string, { height?: unknown }> }
+    >
+  )[ruleType];
+  const height =
+    sizes?.sizes?.[sizeName ?? sizes.defaultSize ?? "md"]?.height;
+  return typeof height === "number" && height > 0
+    ? { height: "auto", minHeight: height }
+    : { height: "auto" };
+}
+
 /** leading slot 자식 style 의 크기 채널 — icon 은 `fontSize`, avatar 는 `width`/`height` (양수 숫자만). */
 export function readLeadingSlotSize(
   style: Record<string, unknown> | undefined,

@@ -2056,13 +2056,16 @@ export function applyImplicitStyles(
       // → spatialIndex에 bounds 등록 → 캔버스에서 TabList/Tab 선택 가능
       // ADR-087 SP2: display/flexDirection 은 TabList.spec containerStyles 로 리프팅됨.
       //   height/width 는 size-based tabBarHeight 주입 (runtime 잔존).
+      // ADR-233: Tab 항목 template style 이 있으면 Tab 행이 auto 높이로 자란다 — TabList 는 고정 높이
+      //   대신 탭 바 높이를 하한으로 두고 행을 따라 자란다 (DOM TabList 는 높이 선언 없음).
+      const tabTemplateActive = hasTabTemplateStyle(tabListEl.props);
       const injectedTabList: CanvasLayoutNode = {
         ...tabListEl,
         props: {
           ...tabListEl.props,
           style: {
             ...((tabListEl.props?.style as Record<string, unknown>) ?? {}),
-            height: tabBarHeight,
+            ...(tabTemplateActive ? {} : { height: tabBarHeight }),
             minHeight: tabBarHeight,
             width: "100%",
           },
@@ -2163,7 +2166,10 @@ export function applyImplicitStyles(
     //   원본 그대로 — TabList 의 canonical 자식(없음) + scene projection 이 별도로 tab 전개.
     effectiveParent = withParentStyle(containerEl, {
       ...(containerEl.props?.style as Record<string, unknown> | undefined),
-      height: tabBarHeight,
+      // ADR-233: template style 이 있으면 고정 높이 대신 하한 (Tabs 분기와 같은 규칙).
+      ...(hasTabTemplateStyle(containerProps)
+        ? { minHeight: tabBarHeight }
+        : { height: tabBarHeight }),
       width: "100%",
       ...(tabGap !== undefined ? { gap: tabGap } : {}),
     });
@@ -3540,4 +3546,15 @@ export function applyImplicitStyles(
     effectiveParent,
     filteredChildren,
   };
+}
+
+/**
+ * ADR-233 — projection (`appendTabRowProjection`) 이 TabList scene props 에 실은 Tab 항목 template style
+ * 표식. 있으면 Tab 행이 auto 높이 (rule 높이 하한) 라 TabList 는 고정 높이 대신 하한만 받는다.
+ */
+function hasTabTemplateStyle(
+  props: Record<string, unknown> | undefined | null,
+): boolean {
+  const style = props?._tabTemplateStyle;
+  return !!style && typeof style === "object";
 }

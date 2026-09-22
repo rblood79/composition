@@ -41,6 +41,7 @@ import {
   isSlotEnabled,
   readLeadingSlotSize,
   resolveItemTemplateChipStyle,
+  resolveItemTemplateRowBoxStyle,
 } from "@composition/shared";
 // ADR-157 gap 배선 (②): ListBox 소유자 gap 을 px 로 해석 (style longhand/shorthand + props.gap).
 import { parsePxValue } from "@composition/specs";
@@ -2581,6 +2582,20 @@ function appendTabRowProjection(
   const defaultOriginFills = readCanonicalNodeFills(defaultOrigin);
   const selectedOriginFills = readCanonicalNodeFills(selectedOrigin);
   const hasTemplateStyle = Boolean(defaultTemplateStyle || selectedTemplateStyle);
+  // 행 상자: 생성 CSS 가 Tab 에 고정 높이 (md 29) 를 주므로 Tag chip 과 달리 `auto` 만으로는 DOM 과
+  //   맞지 않는다 — 두 leg 가 같은 shared 규칙 (auto + rule 높이 하한) 을 싣는다.
+  const templateRowBoxStyle = hasTemplateStyle
+    ? resolveItemTemplateRowBoxStyle(
+        "Tab",
+        typeof size === "string" ? size : undefined,
+      )
+    : null;
+  if (hasTemplateStyle) {
+    // TabList (컨테이너) 가 고정 탭 바 높이 대신 행을 따라 자라도록 layout 에 알린다 (Tag
+    //   `_tagTemplateStyle` 동형 — implicitStyles tablist/tabs 분기 · calculateContentHeight 가 읽는다).
+    (tabListSceneNode.props as Record<string, unknown>)._tabTemplateStyle =
+      defaultTemplateStyle ?? selectedTemplateStyle;
+  }
 
   const rowsGroupId = toCollectionRowsGroupProjectionId(
     "tab",
@@ -2632,11 +2647,11 @@ function appendTabRowProjection(
       children: row.label,
       // tab 폭 = 라벨 + padding — Tab.spec containerStyles. 한 줄 row 에서 각 tab fit-content.
       //   ADR-233: template origin root style (layout 키 제외 + label typography) 을 그 위에 — selected
-      //   Tab 은 default 위에 selected origin overlay. template 이 있으면 `height: auto` 로 catalog size
-      //   높이 (md 29) 대신 line-height + padding 으로 자란다 (Tag chip 선례 — DOM Tab 은 높이 선언 없음).
+      //   Tab 은 default 위에 selected origin overlay. template 이 있으면 `height: auto` + rule 높이 하한
+      //   (`resolveItemTemplateRowBoxStyle`) — padding · 글자에 따라 자라되 편집 전 높이 (29) 아래로 줄지 않는다.
       style: {
         width: "fit-content",
-        ...(hasTemplateStyle ? { height: "auto" } : {}),
+        ...(templateRowBoxStyle ?? {}),
         ...(defaultTemplateStyle ?? {}),
         ...(isSelected ? (selectedTemplateStyle ?? {}) : {}),
       },

@@ -1363,7 +1363,14 @@ const TOGGLEBUTTON_SIZE_CONFIG = deriveSizeConfig(
 // ADR-912 projection 3 cutover (2026-06-15): Tab catalog cutover → TabSpec.sizes 직접 import 제거.
 //   COMPONENT_RULES_TABLE.Tab.sizes(paddingX/paddingY 보강 완료)에서 파생(ruleSizesToSizeSpecMap,
 //   Button/ToggleButton 동형 consumer 이관). spec 삭제 후에도 padding/height 메트릭 보존.
-const TAB_SIZE_CONFIG = deriveSizeConfig(ruleSizesToSizeSpecMap("Tab"));
+// ADR-233 Phase 3 (live L3): Tab rule sizes 에 borderWidth 가 없어 파생값이 기본 thin (1px) 이 됐다 — DOM
+//   생성 CSS 는 `border: none`. TabList 가 고정 높이 (29) 일 땐 가려졌지만, Tab 항목 template 으로 TabList
+//   가 행을 따라 자라자 높이 추정이 Tab 행 40 을 42 로 셌다 (engine 은 40). 두 leg 와 같은 0 으로 둔다.
+const TAB_SIZE_CONFIG = Object.fromEntries(
+  Object.entries(deriveSizeConfig(ruleSizesToSizeSpecMap("Tab"))).map(
+    ([size, config]) => [size, { ...config, borderWidth: 0 }],
+  ),
+) as ReturnType<typeof deriveSizeConfig>;
 
 // ADR-912 R6 (2026-06-15): Card 본체 catalog cutover → CardSpec.sizes 직접 import 제거.
 //   COMPONENT_RULES_TABLE.Card.sizes 의 paddingX 에서 파생(resolveSkiaRule, R1 SelectTrigger 동형

@@ -100,6 +100,9 @@ describe("ADR-923 Phase 4 G5 — INLINE_BLOCK_TAGS 분류표 + INTRINSIC_MEASURE
     expect(utilsSrc).not.toMatch(/export const INLINE_BLOCK_TAGS\b/);
   });
 
+  // ADR-233 Phase 3 (2026-09-23): `tab` 4 항목만 갱신 — Tab size config 테두리 기본값 thin 1px 를 DOM 생성
+  //   CSS (`border: none`) 와 같은 0 으로 (폭 61 → 59 = DOM 텍스트 35 + padding 24 · 높이 30 → 28). projection
+  //   Tab 행은 TabList 고정 높이 29 에 stretch 되어 편집 전 높이 그대로다 (live `adr233-tab-radio-live` L2).
   it("분리 전 baseline 과 enrichWithIntrinsicSize 출력 diff 0 (24 + 대조군 7, width 4 변형)", () => {
     const tags = [...INTRINSIC_MEASURE_TAGS, ...CONTROL_TAGS];
     expect(tags).toEqual(BASELINE.tags);

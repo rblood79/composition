@@ -46,6 +46,7 @@ import {
 } from "../utils/disclosureGroupExpansion";
 import { resolveCatalogDensityField } from "../catalog/resolvers/resolveCatalogContainer";
 import { resolveComponentRule } from "../catalog/resolvers/resolveComponentRule";
+import { resolveItemTemplateRowBoxStyle } from "../catalog/slotRoles";
 import { resolveCalendarHeaderStyle } from "./DateRenderers";
 import type {
   PreviewElement,
@@ -121,6 +122,16 @@ export const renderTabs = (
 ): React.ReactNode => {
   const { childrenByParent, updateElementProps, renderElement } = context;
   const tabTemplate = context.tabTemplate ?? null;
+  // ADR-233 — template style 이 있으면 Tab 은 생성 CSS 고정 높이 (md 29) 대신 auto + rule 높이 하한
+  //   (Skia `appendTabRowProjection` 과 같은 shared 규칙).
+  const tabRowBoxStyle =
+    tabTemplate &&
+    (tabTemplate.rootStyles.base || tabTemplate.rootStyles.selected)
+      ? resolveItemTemplateRowBoxStyle(
+          "Tab",
+          (element.props.size as string | undefined) ?? undefined,
+        )
+      : null;
 
   // PropertyDataBinding 형식 감지
   const dataBinding = getElementDataBinding(element);
@@ -203,6 +214,7 @@ export const renderTabs = (
               tabTemplate
                 ? ({ isSelected }) =>
                     ({
+                      ...(tabRowBoxStyle ?? {}),
                       ...(tabTemplate.rootStyles.base ?? {}),
                       ...(isSelected
                         ? (tabTemplate.rootStyles.selected ?? {})

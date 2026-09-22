@@ -183,6 +183,8 @@ describe("ADR-233 Phase 1 — Tab 항목 템플릿 origin (Skia 행 projection)"
     expect(t1.props.style).toEqual({
       width: "fit-content",
       height: "auto",
+      // 생성 CSS Tab 고정 높이 (md 29) 를 하한으로 — DOM 과 같은 shared 규칙.
+      minHeight: 29,
       paddingLeft: 20,
       paddingRight: 20,
       fontWeight: 700,
@@ -204,6 +206,8 @@ describe("ADR-233 Phase 1 — Tab 항목 템플릿 origin (Skia 행 projection)"
     expect(t2.props.style).toEqual({
       width: "fit-content",
       height: "auto",
+      // 생성 CSS Tab 고정 높이 (md 29) 를 하한으로 — DOM 과 같은 shared 규칙.
+      minHeight: 29,
       paddingLeft: 20,
       paddingRight: 20,
       fontWeight: 700,

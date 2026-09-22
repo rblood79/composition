@@ -86,6 +86,9 @@ describe("ADR-233 — renderTabs Tab 항목 template", () => {
     const two = tabTag(markup, "t2");
     expect(one).toContain("padding-left:20px");
     expect(one).toContain("font-weight:700");
+    // 생성 CSS 고정 높이 (md 29) 대신 auto + 하한 29 (Skia 와 같은 shared 규칙).
+    expect(one).toContain("height:auto");
+    expect(one).toContain("min-height:29px");
     expect(one).not.toContain("border-color");
     expect(two).toContain('data-selected="true"');
     expect(two).toContain("padding-left:20px");
