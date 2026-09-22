@@ -874,8 +874,7 @@ function resolvePagePlacementInputs(
   pageHeight: number,
 ): { pageSizes: PageFrameSizes; systemPageIds: ReadonlySet<string> } {
   const systemPageIds = resolveSystemPageIds(state.pages);
-  const pageContentHeights =
-    useViewportSyncStore.getState().pageContentHeights;
+  const pageContentHeights = useViewportSyncStore.getState().pageContentHeights;
   const pageSizes: Record<string, { width: number; height: number }> = {};
   for (const page of state.pages) {
     const neutral = systemPageIds.has(page.id);
@@ -886,11 +885,67 @@ function resolvePagePlacementInputs(
       pageWidth,
       pageHeight,
       neutral
-        ? { neutral: true, publishedContentHeight: pageContentHeights.get(page.id) }
+        ? {
+            neutral: true,
+            publishedContentHeight: pageContentHeights.get(page.id),
+          }
         : undefined,
     );
   }
   return { pageSizes, systemPageIds };
+}
+
+interface PagePlacementGrid {
+  pageWidth: number;
+  pageHeight: number;
+  gap: number;
+  direction: PageLayoutDirection;
+  availableWidth?: number;
+  pageStartX?: number;
+}
+
+/**
+ * 한 breakpoint 의 위치 집합 `known` 에 없는 사용자 페이지를 **그 breakpoint 격자**에서 페이지 순서대로
+ * 다음 칸에 놓는다. 다른 breakpoint 좌표를 그대로 옮기면 1920 격자 값이 768/390 격자에 (또는 반대로)
+ * 섞여 겹치고, 저장된 뒤에는 다음 배치 (첫 행 열 수 · 충돌 판정) 까지 오염시킨다 (사용자 보고
+ * 2026-09-22). 전환 (`switchPagePositionsBreakpoint`) 과 hydration (`initializePagePositions` 의
+ * persisted 병합) 이 같이 쓴다. 시스템 페이지는 격자 밖 — 호출자가 따로 싣는다.
+ */
+function placeMissingUserPages(
+  pages: readonly Page[],
+  known: PagePositions,
+  grid: PagePlacementGrid,
+  pageSizes: PageFrameSizes,
+  systemPageIds: ReadonlySet<string>,
+): {
+  positions: PagePositions;
+  placed: Array<{ pageId: string; position: PagePosition }>;
+} {
+  const positions: PagePositions = {};
+  const placed: Array<{ pageId: string; position: PagePosition }> = [];
+  const placedPages: Page[] = [];
+  for (const page of pages) {
+    if (systemPageIds.has(page.id)) continue;
+    let position = known[page.id];
+    if (!position) {
+      position = calculateNextPagePosition(
+        placedPages,
+        positions,
+        grid.pageWidth,
+        grid.pageHeight,
+        grid.gap,
+        grid.direction,
+        grid.availableWidth,
+        grid.pageStartX,
+        pageSizes,
+        systemPageIds,
+      );
+      placed.push({ pageId: page.id, position });
+    }
+    positions[page.id] = position;
+    placedPages.push(page);
+  }
+  return { positions, placed };
 }
 
 /** 시스템 페이지 위치를 존재하는 모든 breakpoint 스냅샷에 같은 값으로 (공통값 계약). */
@@ -936,15 +991,20 @@ export function buildPagePositionWriteEntries(
   moved: ReadonlyArray<{ pageId: string; x: number; y: number }>,
   activeBreakpoint: BreakpointName,
   systemPageIds: ReadonlySet<string>,
-): Array<{ pageId: string; breakpoint: BreakpointName; position: { x: number; y: number } }> {
+): Array<{
+  pageId: string;
+  breakpoint: BreakpointName;
+  position: { x: number; y: number };
+}> {
   return moved.flatMap((entry) =>
-    (systemPageIds.has(entry.pageId) ? BREAKPOINT_ORDER : [activeBreakpoint]).map(
-      (breakpoint) => ({
-        pageId: entry.pageId,
-        breakpoint,
-        position: { x: entry.x, y: entry.y },
-      }),
-    ),
+    (systemPageIds.has(entry.pageId)
+      ? BREAKPOINT_ORDER
+      : [activeBreakpoint]
+    ).map((breakpoint) => ({
+      pageId: entry.pageId,
+      breakpoint,
+      position: { x: entry.x, y: entry.y },
+    })),
   );
 }
 
@@ -2636,6 +2696,11 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
         }
       }
 
+      let hydrationWriteEntries: Array<{
+        pageId: string;
+        breakpoint: BreakpointName;
+        position: PagePosition;
+      }> = [];
       set((state) => {
         const currentPageIds = new Set(state.pages.map((page) => page.id));
         const nextPageIds = new Set(pages.map((page) => page.id));
@@ -2645,8 +2710,41 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
         const activeBreakpoint = getActiveBreakpoint(state);
 
         const activePersisted = persistedByBreakpoint[activeBreakpoint];
-        const mergedActive = activePersisted
-          ? { ...positions, ...activePersisted }
+        // persisted 가 있으면 그 격자가 정본 — 없는 페이지는 전체 격자 재계산 값을 섞지 않고
+        //   persisted 옆 다음 칸에 놓는다 (전체 재계산은 열 수·원점이 달라 겹친다).
+        const hasUserPersisted =
+          activePersisted !== undefined &&
+          pages.some(
+            (page) =>
+              !placement.systemPageIds.has(page.id) &&
+              activePersisted[page.id] !== undefined,
+          );
+        const placedMissing = hasUserPersisted
+          ? placeMissingUserPages(
+              pages,
+              activePersisted,
+              {
+                pageWidth,
+                pageHeight,
+                gap,
+                direction,
+                availableWidth,
+                pageStartX,
+              },
+              placement.pageSizes,
+              placement.systemPageIds,
+            )
+          : undefined;
+        const mergedActive: PagePositions = placedMissing
+          ? {
+              ...placedMissing.positions,
+              ...Object.fromEntries(
+                [...placement.systemPageIds].flatMap((id) => {
+                  const position = activePersisted?.[id] ?? positions[id];
+                  return position ? [[id, position]] : [];
+                }),
+              ),
+            }
           : positions;
 
         const nextByBreakpoint: Partial<Record<BreakpointName, PagePositions>> =
@@ -2665,6 +2763,37 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
         }
         nextByBreakpoint[activeBreakpoint] = mergedActive;
 
+        // hydration 에서 새로 놓은 위치는 canonical 에도 싣는다 — 프로젝트 생성 경로의 Home · 다른
+        //   breakpoint 에서만 추가된 페이지 · 시스템 페이지는 저장된 값이 없어 reload 마다 당시 panel
+        //   상태 (leftInset 0/317) 로 다시 놓였다 (사용자 보고 2026-09-22 reload 어긋남).
+        if (persisted) {
+          // 활성 breakpoint 에 저장값이 없는 사용자 페이지 전부 (최초 부팅의 전체 계산 · persisted 옆
+          //   다음 칸 배치 모두) — align (`persisted` undefined) 은 자기 history entry 로 쓴다.
+          const userEntries = pages
+            .filter(
+              (page) =>
+                !placement.systemPageIds.has(page.id) &&
+                persisted[page.id]?.[activeBreakpoint] === undefined &&
+                mergedActive[page.id] !== undefined,
+            )
+            .map((page) => ({
+              pageId: page.id,
+              breakpoint: activeBreakpoint,
+              position: mergedActive[page.id]!,
+            }));
+          const systemEntries = buildPagePositionWriteEntries(
+            [...placement.systemPageIds]
+              .filter(
+                (id) =>
+                  persisted[id] === undefined && mergedActive[id] !== undefined,
+              )
+              .map((id) => ({ pageId: id, ...mergedActive[id]! })),
+            activeBreakpoint,
+            placement.systemPageIds,
+          );
+          hydrationWriteEntries = [...userEntries, ...systemEntries];
+        }
+
         // ADR-231: 시스템 페이지 위치는 공통값 — breakpoint 별 값이 다른 기존 문서는 활성
         //   breakpoint 의 값 (mergedActive) 을 골라 모든 스냅샷에 싣는다 (리뷰 round 2 m2).
         return {
@@ -2677,6 +2806,11 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
           pagePositionsVersion: state.pagePositionsVersion + 1,
         };
       });
+      if (hydrationWriteEntries.length > 0) {
+        useCanonicalDocumentStore
+          .getState()
+          .setPagePositions(hydrationWriteEntries);
+      }
     },
 
     switchPagePositionsBreakpoint: (from, to, options) => {
@@ -2690,6 +2824,10 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
       );
       if (!hasCompleteCurrentPositions) return;
 
+      let placedForCanonical: Array<{
+        pageId: string;
+        position: PagePosition;
+      }> = [];
       set((state) => {
         const currentPositions = { ...state.pagePositions };
         // ADR-231: 시스템 페이지는 breakpoint 공통값 — 대상 스냅샷 · 첫 진입 배치를 읽지 않고
@@ -2726,13 +2864,34 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
           (hasTargetSnapshot ? targetPositions : undefined);
         const nextPositions: PagePositions = {};
 
-        for (const page of state.pages) {
-          const position = systemPageIds.has(page.id)
-            ? currentPositions[page.id]
-            : (targetPositionMap?.[page.id] ?? currentPositions[page.id]);
-          if (position) {
-            nextPositions[page.id] = position;
+        if (options && targetPositionMap) {
+          // 대상 스냅샷에 없는 사용자 페이지 (다른 breakpoint 에서 추가된 페이지) 는 대상 격자에서
+          //   다음 칸 — 현재 breakpoint 좌표를 옮기지 않는다. 놓인 위치는 canonical 에도 싣는다
+          //   (reload 의 hydration 이 같은 값을 읽도록).
+          const { positions, placed } = placeMissingUserPages(
+            state.pages,
+            targetPositionMap,
+            options,
+            resolvePagePlacementInputs(
+              state,
+              options.pageWidth,
+              options.pageHeight,
+            ).pageSizes,
+            systemPageIds,
+          );
+          Object.assign(nextPositions, positions);
+          placedForCanonical = placed;
+        } else {
+          for (const page of state.pages) {
+            if (systemPageIds.has(page.id)) continue;
+            const position =
+              targetPositionMap?.[page.id] ?? currentPositions[page.id];
+            if (position) nextPositions[page.id] = position;
           }
+        }
+        for (const id of systemPageIds) {
+          const position = currentPositions[id];
+          if (position) nextPositions[id] = position;
         }
 
         return {
@@ -2745,6 +2904,15 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
           pagePositionsVersion: state.pagePositionsVersion + 1,
         };
       });
+      if (placedForCanonical.length > 0) {
+        useCanonicalDocumentStore.getState().setPagePositions(
+          placedForCanonical.map((entry) => ({
+            pageId: entry.pageId,
+            breakpoint: to,
+            position: entry.position,
+          })),
+        );
+      }
     },
 
     // 🆕 Multi-page: 단일 페이지 위치 업데이트 (드래그용)
@@ -2826,13 +2994,15 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
       });
 
       const activeBreakpoint = getActiveBreakpoint(get());
-      useCanonicalDocumentStore.getState().setPagePositions(
-        buildPagePositionWriteEntries(
-          moved,
-          activeBreakpoint,
-          resolveSystemPageIds(get().pages),
-        ),
-      );
+      useCanonicalDocumentStore
+        .getState()
+        .setPagePositions(
+          buildPagePositionWriteEntries(
+            moved,
+            activeBreakpoint,
+            resolveSystemPageIds(get().pages),
+          ),
+        );
 
       queueMicrotask(() => {
         void (async () => {

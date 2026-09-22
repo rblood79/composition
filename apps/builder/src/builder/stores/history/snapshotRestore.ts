@@ -93,7 +93,7 @@ export async function applySnapshotDocument(
     canvasSize.height,
     store.pageGap,
     store.pageLayoutDirection,
-    docCopy.pagePositions,
+    docCopy.pagePositions ?? {},
     pageLayoutBounds.availableWidth,
     pageLayoutBounds.leftInset,
   );

@@ -11,12 +11,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
-## [컴포넌트 패널 Modal 항목 제거] - 2026-09-22
+## [Dialog 기본 너비 — 부모의 100%] - 2026-09-22
+
+### Changed
+
+- **Dialog 기본 너비를 400px에서 100%로 변경했다.** 생성 코드와 기본값의 고정 너비를 제거하고 catalog `containerStyles.width`를 두 렌더러의 정본으로 사용한다. 기존 문서에 명시된 너비는 보존한다.
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts`, `OverlayComponents.ts`, `unified.types.ts`
+
+## [Dialog Canvas 배경 덮임 수정 · Modal 팔레트 제거] - 2026-09-22
+
+### Fixed
+
+- **Dialog를 Canvas에 배치할 때 페이지 전체가 반투명하게 덮이던 문제를 수정했다.**
+  - **Why:** Dialog binding이 열림 상태와 무관하게 전체 화면 backdrop primitive를 합성했다. Dialog는 본체만 렌더하고 모달 배경의 역할은 분리한다.
+  - 위치: `packages/shared/src/catalog/bindings/Dialog.binding.ts`
 
 ### Changed
 
 - **컴포넌트 패널에서 Modal 항목을 제거했다.** Dialog와 혼동되는 독립 삽입 항목을 숨기고, 기존 문서와 내부 조합에서 쓰는 Modal 구현은 유지한다.
   - 위치: `apps/builder/src/builder/panels/components/paletteItems.ts`
+
+## [페이지 배치 — breakpoint 를 바꿔도 페이지가 겹치지 않는다] - 2026-09-22
+
+### Fixed
+
+- **새 프로젝트에서 페이지를 여럿 추가한 뒤 breakpoint 를 바꾸면 한 breakpoint 가 맞으면 다른 breakpoint 가 어긋나거나 겹쳤다** (사용자 보고). 원인 둘: (1) 새 페이지 위치는 추가한 breakpoint 에만 저장되는데, 전환 시 대상 breakpoint 에 없는 페이지를 **현재 breakpoint 좌표 그대로** 옮겨 1920 격자 값이 768/390 격자에 (또는 반대로) 섞였고, 그 값이 저장돼 다음 페이지 배치 (첫 행 열 수 · 충돌 판정) 까지 오염시켰다 — desktop 에 같은 좌표 쌍 5개까지 생겼다. (2) reload 시 hydration 이 "전체 격자 재계산 ⊕ 저장값" 을 병합해 저장값 없는 페이지 (다른 breakpoint 에서만 추가된 페이지 · 프로젝트 생성 경로의 Home · Components) 가 열 수·원점이 다른 칸에 놓였다. 수리: 대상 breakpoint 에 위치가 없는 사용자 페이지는 **그 breakpoint 격자에서 페이지 순서대로 다음 칸** 에 놓고 (`placeMissingUserPages` — 전환 · hydration 공용), 놓은 위치는 canonical `pagePositions` 에 그 breakpoint 로 저장한다 (최초 부팅의 Home · Components 포함). 게이트: unit 5 (`pagePositionsBreakpointGap.test.ts`, 원복 RED 3) · headed live `scripts/page-positions-breakpoint-live.mjs` 20/20 (desktop 3 추가 → tablet 전환·1 추가 → mobile → desktop 왕복 → reload: 중복 0 · 격자 stride 배수 · 겹침 0 · Δ0) · ADR-231 Phase 2 live 15/15 회귀 0. 이미 어긋난 문서는 breakpoint 마다 줌 메뉴 「페이지 정렬」 한 번으로 정리된다.
 
 ## [ADR-231 Implemented — Components 페이지가 breakpoint 에 흔들리지 않는다] - 2026-09-22
 

@@ -459,7 +459,7 @@ export const usePageManager = (): UsePageManagerReturn => {
           currentCanvasSize.height,
           pageGap,
           pageLayoutDirection,
-          document.pagePositions,
+          document.pagePositions ?? {},
           pageLayoutBounds.availableWidth,
           pageLayoutBounds.leftInset,
         );
