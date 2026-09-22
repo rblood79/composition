@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [페이지 열 수 `auto` — 화면에 들어가는 만큼] - 2026-09-23
+
+### Added
+
+- **Settings 의 「열 수」에 `auto` 가 생겼다.** 고르면 페이지가 **지금 보이는 캔버스 폭에 들어가는 만큼**씩 한 줄에 놓인다 — 줌을 당기면 열이 줄고, 밀면 늘어난다. 숫자를 입력하면 예전처럼 줌과 무관하게 고정된다 (기본값은 그대로 3).
+  - 입력 칸에 `auto` 를 직접 쳐도 되고, 단위 목록에서 골라도 된다. breakpoint 별로 따로 둘 수도 있다 (「이 breakpoint 만」).
+  - 줌이 조금씩 흔들려도 열 수가 그대로면 배치를 다시 계산하지 않는다 — 계산의 입력이 줌 값이 아니라 거기서 나온 열 수(정수)이기 때문이다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/scene/pagePlacement.ts`, `apps/builder/src/builder/panels/settings/SettingsPanel.tsx`
+
 ## [열 수 설정이 고정된 페이지 때문에 무시되던 문제] - 2026-09-23
 
 ### Fixed

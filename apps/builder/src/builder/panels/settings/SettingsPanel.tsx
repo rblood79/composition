@@ -72,7 +72,11 @@ function SettingsContent() {
     ? resolvedPageLayout.direction
     : normalizePageLayoutDirection(pageLayoutDirection);
   const effectiveGap = isDerivedPlacement ? resolvedPageLayout.gap : pageGap;
-  const effectiveColumns = resolvedPageLayout.columns;
+  const columnsAuto = resolvedPageLayout.columnsAuto;
+  // auto 는 값 칸에 키워드로 싣는다 — 실제 열 수는 뷰포트에서 나오므로 여기 숫자를 쓰지 않는다.
+  const columnsFieldValue = columnsAuto
+    ? "auto"
+    : String(resolvedPageLayout.columns);
   const tierOverrideAvailable =
     isDerivedPlacement && activeBreakpoint !== "desktop";
   const hasTierOverride =
@@ -83,7 +87,7 @@ function SettingsContent() {
 
   /** 열 수·간격 쓰기 — tier 토글 ON 이면 활성 tier override, 아니면 base. */
   const writeLayoutValue = useCallback(
-    (key: "gap" | "columns", value: number) => {
+    (key: "gap" | "columns", value: number | "auto") => {
       const store = useCanonicalDocumentStore.getState();
       if (tierOverrideAvailable && hasTierOverride) {
         store.setPageLayout({
@@ -115,24 +119,29 @@ function SettingsContent() {
         // 켜는 순간 현재 유효값을 그 tier 에 고정한다 (토글 자체가 값을 바꾸지 않는다).
         responsive.columns = {
           ...(responsive.columns ?? {}),
-          [activeBreakpoint]: resolvedPageLayout.columns,
+          // base 가 "auto" 면 그 tier 도 "auto" 로 고정한다 (토글은 값을 바꾸지 않는다).
+          [activeBreakpoint]:
+            documentPageLayout?.columns ?? resolvedPageLayout.columns,
         };
         responsive.gap = {
           ...(responsive.gap ?? {}),
           [activeBreakpoint]: resolvedPageLayout.gap,
         };
       } else {
-        for (const key of ["columns", "gap"] as const) {
-          const entry = { ...(responsive[key] ?? {}) };
-          delete entry[activeBreakpoint];
-          if (Object.keys(entry).length === 0) delete responsive[key];
-          else responsive[key] = entry;
-        }
+        const columnsEntry = { ...(responsive.columns ?? {}) };
+        delete columnsEntry[activeBreakpoint];
+        if (Object.keys(columnsEntry).length === 0) delete responsive.columns;
+        else responsive.columns = columnsEntry;
+        const gapEntry = { ...(responsive.gap ?? {}) };
+        delete gapEntry[activeBreakpoint];
+        if (Object.keys(gapEntry).length === 0) delete responsive.gap;
+        else responsive.gap = gapEntry;
       }
       store.setPageLayout({ responsive });
     },
     [
       activeBreakpoint,
+      documentPageLayout?.columns,
       documentPageLayout?.responsive,
       resolvedPageLayout.columns,
       resolvedPageLayout.gap,
@@ -206,6 +215,11 @@ function SettingsContent() {
   };
 
   const handlePageColumnsChange = (value: string) => {
+    // ADR-232 후속 (2026-09-23) — "auto" = 보이는 캔버스 폭에 들어가는 만큼.
+    if (value.trim().toLowerCase() === "auto") {
+      writeLayoutValue("columns", "auto");
+      return;
+    }
     const next = Number.parseInt(value, 10);
     if (!Number.isFinite(next) || next < 1) return;
     writeLayoutValue("columns", next);
@@ -271,13 +285,14 @@ function SettingsContent() {
             <div className="fieldset-row settings-row">
               <PropertyUnitInput
                 label={t("settings.pageColumns")}
-                value={String(effectiveColumns)}
+                value={columnsFieldValue}
                 min={1}
                 max={24}
                 onChange={handlePageColumnsChange}
-                units={[""]}
+                // "auto" 는 단위 목록의 항목이자 타이핑으로도 받는 키워드다 (2026-09-23).
+                units={["", "auto"]}
                 unitSuffix
-                allowKeywords={false}
+                allowKeywords
               />
               {tierOverrideAvailable && (
                 <PropertySwitch

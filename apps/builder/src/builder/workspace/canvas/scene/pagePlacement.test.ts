@@ -20,7 +20,10 @@ import {
   buildContainerStyle,
   derivePagePositions,
   derivePagePositionsMemo,
+  DEFAULT_PAGE_LAYOUT_COLUMNS,
   getPagePlacementDerivationCount,
+  MAX_PAGE_LAYOUT_COLUMNS,
+  resolveAutoColumns,
   resetPagePlacementDerivationCount,
   resolvePageLayout,
   resolvePagePlacementStyle,
@@ -761,5 +764,104 @@ describe("고정 칸은 격자를 넓히지 못한다 (열 수 설정이 정본)
       activeBreakpoint: "desktop",
     });
     expect(asMap(derived!).p1).toEqual([TIER.desktop.width + GAP, 0]);
+  });
+});
+
+/**
+ * ADR-232 후속 (2026-09-23 사용자 요청) — `columns: "auto"`.
+ *
+ * ADR 은 컨테이너 폭을 뷰포트에 묶는 안 (대안 D) 을 **기본 모델로는** 기각했다 (zoom 마다 칸이
+ * 바뀌면 위치가 뷰 상태가 된다). 여기서는 사용자가 명시적으로 고르는 모드이고, 파생 입력은
+ * zoom 이 아니라 그 zoom 에서 나온 **정수 열 수** 라 메모가 연속값을 타지 않는다.
+ */
+describe('columns: "auto" — 보이는 캔버스 폭에서 열 수', () => {
+  const W = TIER.desktop.width;
+
+  it("열 수 = 보이는 scene 폭에 들어가는 개수 (마지막 열 뒤 gap 은 제외)", () => {
+    // zoom 1 에 정확히 2열 (2×1920 + 80)
+    expect(resolveAutoColumns(2 * W + GAP, 1, W, GAP)).toBe(2);
+    // 1px 모자라면 1열
+    expect(resolveAutoColumns(2 * W + GAP - 1, 1, W, GAP)).toBe(1);
+    // zoom 0.5 → 보이는 scene 폭이 2배 (3920 → 7840 = 3열 분 7760 은 되고 4열 분 7920 은 모자람)
+    expect(resolveAutoColumns(2 * W + GAP, 0.5, W, GAP)).toBe(3);
+    expect(resolveAutoColumns(4 * W + 3 * GAP, 1, W, GAP)).toBe(4);
+  });
+
+  it("최소 1 · 최대 24 로 묶이고 비정상 입력은 기본값", () => {
+    expect(resolveAutoColumns(10, 1, W, GAP)).toBe(1);
+    expect(resolveAutoColumns(1e7, 1, W, GAP)).toBe(MAX_PAGE_LAYOUT_COLUMNS);
+    expect(resolveAutoColumns(0, 1, W, GAP)).toBe(DEFAULT_PAGE_LAYOUT_COLUMNS);
+    expect(resolveAutoColumns(1000, 0, W, GAP)).toBe(
+      DEFAULT_PAGE_LAYOUT_COLUMNS,
+    );
+  });
+
+  it("resolvePageLayout 이 auto 를 호출자가 준 정수로 해석한다", () => {
+    const layout = resolvePageLayout(
+      { direction: "auto", gap: GAP, columns: "auto" },
+      "desktop",
+      5,
+    );
+    expect(layout.columnsAuto).toBe(true);
+    expect(layout.columns).toBe(5);
+    const fixed = resolvePageLayout(
+      { direction: "auto", gap: GAP, columns: 3 },
+      "desktop",
+    );
+    expect(fixed.columnsAuto).toBe(false);
+    expect(fixed.columns).toBe(3);
+  });
+
+  it("auto 로 파생한 배치 = 같은 열 수를 숫자로 준 배치", () => {
+    const sizes = uniformSizes(5, "desktop");
+    const auto = derivePagePositions({
+      pages: pagesOf(5),
+      pageSizes: sizes,
+      pageLayout: { direction: "auto", gap: GAP, columns: "auto" },
+      activeBreakpoint: "desktop",
+      autoColumns: 2,
+    });
+    const fixed = derivePagePositions({
+      pages: pagesOf(5),
+      pageSizes: sizes,
+      pageLayout: { direction: "auto", gap: GAP, columns: 2 },
+      activeBreakpoint: "desktop",
+    });
+    expect(asMap(auto!)).toEqual(asMap(fixed!));
+  });
+
+  it("정수가 그대로면 엔진을 다시 부르지 않는다 (zoom 연속 변화 비용 0)", () => {
+    const input = (autoColumns: number) => ({
+      pages: pagesOf(4),
+      pageSizes: uniformSizes(4, "desktop"),
+      pageLayout: {
+        direction: "auto" as const,
+        gap: GAP,
+        columns: "auto" as const,
+      },
+      activeBreakpoint: "desktop" as BreakpointName,
+      autoColumns,
+    });
+    resetPagePlacementDerivationCount();
+    derivePagePositionsMemo(input(3));
+    expect(getPagePlacementDerivationCount()).toBe(1);
+    derivePagePositionsMemo(input(3));
+    derivePagePositionsMemo(input(3));
+    expect(getPagePlacementDerivationCount()).toBe(1);
+    derivePagePositionsMemo(input(2));
+    expect(getPagePlacementDerivationCount()).toBe(2);
+  });
+
+  it("tier override 도 auto 를 쓴다 (mobile 만 auto)", () => {
+    const layout = {
+      direction: "auto" as const,
+      gap: GAP,
+      columns: 3,
+      responsive: { columns: { mobile: "auto" as const } },
+    };
+    expect(resolvePageLayout(layout, "desktop", 7).columns).toBe(3);
+    expect(resolvePageLayout(layout, "desktop", 7).columnsAuto).toBe(false);
+    expect(resolvePageLayout(layout, "mobile", 7).columns).toBe(7);
+    expect(resolvePageLayout(layout, "mobile", 7).columnsAuto).toBe(true);
   });
 });

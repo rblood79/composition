@@ -51,6 +51,8 @@ export type PageLayoutDirection = "auto" | "vertical" | "horizontal";
 /** 페이지 배치 기본값 — 현행 Settings 기본과 같다 (`PAGE_STACK_GAP` 80 · auto). */
 export const DEFAULT_PAGE_LAYOUT_GAP = 80;
 export const DEFAULT_PAGE_LAYOUT_COLUMNS = 3;
+/** Settings 입력 상한과 같은 값 — auto 도 이 위로는 가지 않는다. */
+export const MAX_PAGE_LAYOUT_COLUMNS = 24;
 export const DEFAULT_PAGE_LAYOUT_DIRECTION: PageLayoutDirection = "auto";
 
 export interface PagePlacementSize {
@@ -80,6 +82,11 @@ export interface DerivePagePositionsInput {
   legacyPositions?: Readonly<
     Record<string, Partial<Record<BreakpointName, PagePositionPoint>>>
   >;
+  /**
+   * `columns: "auto"` 일 때 쓸 정수 열 수 — 호출자가 보이는 캔버스 폭과 zoom 에서 계산한다
+   * (`resolveAutoColumns`). 정수로 받는 이유는 메모 키가 zoom 연속값을 타지 않게 하기 위함.
+   */
+  autoColumns?: number;
 }
 
 /** 활성 tier 로 해석된 컨테이너 설정. */
@@ -87,6 +94,8 @@ export interface ResolvedPageLayout {
   direction: PageLayoutDirection;
   gap: number;
   columns: number;
+  /** 열 수가 설정값이 아니라 보이는 캔버스 폭에서 나왔는가 (`columns: "auto"`). */
+  columnsAuto: boolean;
   /** 열 track 폭 = 그 breakpoint 의 페이지 폭 (저장하지 않고 파생 시 계산). */
   trackWidth: number;
   placementModel: PagePlacementModel | null;
@@ -96,6 +105,42 @@ function normalizeDirection(value: unknown): PageLayoutDirection {
   return value === "vertical" || value === "horizontal" || value === "auto"
     ? value
     : DEFAULT_PAGE_LAYOUT_DIRECTION;
+}
+
+/**
+ * 보이는 캔버스 폭에 들어가는 열 수 (2026-09-23 사용자 요청 — `columns: "auto"`).
+ *
+ * 입력은 **정수 하나** 로 끝난다: 호출자가 이 값을 파생 입력으로 넘기므로 zoom 이 연속으로
+ * 흔들려도 정수가 그대로면 메모 키가 같아 엔진을 부르지 않는다 (「가장 적은 비용」).
+ */
+export function resolveAutoColumns(
+  viewportWidth: number,
+  zoom: number,
+  trackWidth: number,
+  gap: number,
+): number {
+  if (!Number.isFinite(viewportWidth) || viewportWidth <= 0) {
+    return DEFAULT_PAGE_LAYOUT_COLUMNS;
+  }
+  if (!Number.isFinite(zoom) || zoom <= 0) return DEFAULT_PAGE_LAYOUT_COLUMNS;
+  const sceneWidth = viewportWidth / zoom;
+  const stride = trackWidth + gap;
+  if (stride <= 0) return DEFAULT_PAGE_LAYOUT_COLUMNS;
+  // 마지막 열 뒤의 gap 은 필요 없다 → (폭 + gap) / stride.
+  const fits = Math.floor((sceneWidth + gap) / stride);
+  return Math.min(MAX_PAGE_LAYOUT_COLUMNS, Math.max(1, fits));
+}
+
+/**
+ * 직전 파생이 쓴 auto 열 수. 편집 경로 (`pagePlacementCommit` 의 점 → 칸 판정) 는 화면에
+ * 보이는 격자와 **같은 열 수** 를 써야 하는데 뷰포트를 직접 읽지 않는다 — 파생이 방금 쓴
+ * 값을 그대로 물려준다. 파생이 한 번도 안 돌았으면 기본값.
+ */
+let lastAutoColumns = DEFAULT_PAGE_LAYOUT_COLUMNS;
+
+/** 하니스·테스트용 — 편집 경로가 물려받는 auto 열 수를 초기화한다. */
+export function __resetAutoColumns(): void {
+  lastAutoColumns = DEFAULT_PAGE_LAYOUT_COLUMNS;
 }
 
 function normalizeNumber(
@@ -116,38 +161,51 @@ function normalizeNumber(
 export function resolvePageLayout(
   pageLayout: PageLayoutSettingsDocument | undefined,
   activeBreakpoint: BreakpointName,
+  /** `columns: "auto"` 일 때 쓸 정수 열 수 (호출자가 뷰포트에서 계산). 없으면 직전 파생값. */
+  autoColumns?: number,
 ): ResolvedPageLayout {
   const baseGap = normalizeNumber(pageLayout?.gap, DEFAULT_PAGE_LAYOUT_GAP, 0);
-  const baseColumns = normalizeNumber(
-    pageLayout?.columns,
-    DEFAULT_PAGE_LAYOUT_COLUMNS,
-    1,
-  );
-  return {
-    direction: normalizeDirection(pageLayout?.direction),
-    gap: normalizeNumber(
-      getResponsiveValueWithCascade(
-        pageLayout?.responsive?.gap,
-        activeBreakpoint,
-        baseGap,
-      ),
+  const gap = normalizeNumber(
+    getResponsiveValueWithCascade(
+      pageLayout?.responsive?.gap,
+      activeBreakpoint,
       baseGap,
-      0,
     ),
-    columns: Math.max(
-      1,
-      Math.round(
-        normalizeNumber(
-          getResponsiveValueWithCascade(
-            pageLayout?.responsive?.columns,
-            activeBreakpoint,
-            baseColumns,
-          ),
-          baseColumns,
-          1,
+    baseGap,
+    0,
+  );
+  const rawColumns = getResponsiveValueWithCascade(
+    pageLayout?.responsive?.columns,
+    activeBreakpoint,
+    pageLayout?.columns,
+  );
+  const columnsAuto = rawColumns === "auto";
+  let columns: number;
+  if (columnsAuto) {
+    columns = Math.min(
+      MAX_PAGE_LAYOUT_COLUMNS,
+      Math.max(
+        1,
+        Math.round(
+          normalizeNumber(autoColumns ?? lastAutoColumns, lastAutoColumns, 1),
         ),
       ),
-    ),
+    );
+    lastAutoColumns = columns;
+  } else {
+    columns = Math.min(
+      MAX_PAGE_LAYOUT_COLUMNS,
+      Math.max(
+        1,
+        Math.round(normalizeNumber(rawColumns, DEFAULT_PAGE_LAYOUT_COLUMNS, 1)),
+      ),
+    );
+  }
+  return {
+    direction: normalizeDirection(pageLayout?.direction),
+    gap,
+    columns,
+    columnsAuto,
     trackWidth: CANVAS_VIEWPORT[activeBreakpoint].width,
     placementModel: pageLayout?.placementModel ?? null,
   };
@@ -419,7 +477,11 @@ function shouldReadStoredPositions(
 export function derivePagePositions(
   input: DerivePagePositionsInput,
 ): PagePositionMap | null {
-  const layout = resolvePageLayout(input.pageLayout, input.activeBreakpoint);
+  const layout = resolvePageLayout(
+    input.pageLayout,
+    input.activeBreakpoint,
+    input.autoColumns,
+  );
   if (shouldReadStoredPositions(input, layout)) {
     return readLegacyPositions(input, layout);
   }
@@ -499,7 +561,11 @@ export function derivePagePositions(
 export function buildPagePlacementMemoKey(
   input: DerivePagePositionsInput,
 ): string {
-  const layout = resolvePageLayout(input.pageLayout, input.activeBreakpoint);
+  const layout = resolvePageLayout(
+    input.pageLayout,
+    input.activeBreakpoint,
+    input.autoColumns,
+  );
   const sizes = input.pages
     .map((page) => {
       const size = input.pageSizes[page.id];

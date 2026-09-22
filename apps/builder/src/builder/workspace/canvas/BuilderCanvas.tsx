@@ -107,6 +107,8 @@ import { readPageFrameSize } from "./scene/pageFrameSize";
 import {
   derivePagePositionsMemo,
   pagePlacementVersion,
+  resolveAutoColumns,
+  resolvePageLayout,
 } from "./scene/pagePlacement";
 // dev 디버그 전역 등록 (ADR-232 live 하니스 진입점) — production 은 no-op.
 import "./scene/pagePlacementDebug";
@@ -637,6 +639,21 @@ export function BuilderCanvas({
     sceneNodesMap,
   ]);
 
+  // `columns: "auto"` (2026-09-23 사용자 요청) — 보이는 캔버스 폭에 들어가는 열 수.
+  //   **정수 하나로 양자화해서** 파생에 넘긴다: zoom 이 연속으로 바뀌어도 정수가 그대로면
+  //   아래 memo 의 deps 가 안 움직여 엔진 호출도 메모 키 재생성도 없다 (「가장 적은 비용」).
+  //   auto 가 아니면 계산 자체를 건너뛴다.
+  const autoColumns = useMemo(() => {
+    const base = resolvePageLayout(documentPageLayout, sceneActiveBreakpoint);
+    if (!base.columnsAuto) return undefined;
+    return resolveAutoColumns(
+      containerSize.width,
+      zoom,
+      base.trackWidth,
+      base.gap,
+    );
+  }, [containerSize.width, documentPageLayout, sceneActiveBreakpoint, zoom]);
+
   const derivedPagePositions = useMemo(() => {
     if (!isDerivedPlacement) return null;
     return derivePagePositionsMemo({
@@ -646,9 +663,11 @@ export function BuilderCanvas({
       activeBreakpoint: sceneActiveBreakpoint,
       systemPageIds: resolveSystemPageIds(pages),
       legacyPositions: activeCanonicalDocument?.pagePositions,
+      autoColumns,
     });
   }, [
     activeCanonicalDocument?.pagePositions,
+    autoColumns,
     documentPageLayout,
     isDerivedPlacement,
     pageFrameSizes,
