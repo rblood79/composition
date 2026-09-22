@@ -24,6 +24,7 @@ import {
 } from "react";
 import { useStore } from "../../stores";
 import { computePageFrameReflow } from "../../stores/utils/pageFrameReflow";
+import { resolveSystemPageIds } from "../../stores/elements";
 import { observe, PERF_LABEL } from "../../utils/perfMarks";
 import { useDataStore, useProjectVariableDefs } from "../../stores/data";
 import {
@@ -693,6 +694,9 @@ export function BuilderCanvas({
     }
     const state = useStore.getState();
     let positions = state.pagePositions;
+    // ADR-231: reflow 는 열/격자 경계를 넘지 않는다 — 시스템 열 (Components) 의 높이 성장이
+    //   사용자 페이지를 밀지 않고, 사용자 페이지 변화가 시스템 열을 밀지 않는다.
+    const systemPageIds = resolveSystemPageIds(state.pages);
     const shifts = new Map<string, { pageId: string; x: number; y: number }>();
     for (const [pageId, next] of nextSizes) {
       const before = prev.sizes.get(pageId);
@@ -705,6 +709,7 @@ export function BuilderCanvas({
         changedPageId: pageId,
         prev: before,
         next,
+        systemPageIds,
       });
       if (moved.length === 0) continue;
       positions = { ...positions };

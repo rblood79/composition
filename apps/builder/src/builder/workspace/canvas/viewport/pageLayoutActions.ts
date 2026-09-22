@@ -1,5 +1,7 @@
 import { persistActiveCanonicalDocument } from "../../../stores/canonical/persistActiveCanonicalDocument";
 import { useStore } from "../../../stores";
+import { resolveSystemPageIds } from "../../../stores/elements";
+import { BREAKPOINT_ORDER } from "../../../../types/builder/responsive.types";
 import { historyManager } from "../../../stores/history";
 import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
 import { getDB } from "../../../../lib/db";
@@ -52,19 +54,23 @@ export function alignPagesToScreen(): void {
   );
 
   const afterPositions = useStore.getState().pagePositions;
+  // ADR-231: 시스템 페이지 (Components) 는 breakpoint 공통값 — 세 breakpoint 에 같은 값을 쓴다
+  //   (history 도 세 entry, Cmd+Z 1회로 전부 복귀).
+  const systemPageIds = resolveSystemPageIds(pages);
   const entries = pages.flatMap((page) => {
     const before = beforePositions[page.id];
     const after = afterPositions[page.id];
     if (!before || !after) return [];
     if (before.x === after.x && before.y === after.y) return [];
-    return [
-      {
-        pageId: page.id,
-        breakpoint: activeBreakpoint,
-        before: { ...before },
-        after: { ...after },
-      },
-    ];
+    const breakpoints = systemPageIds.has(page.id)
+      ? BREAKPOINT_ORDER
+      : [activeBreakpoint];
+    return breakpoints.map((breakpoint) => ({
+      pageId: page.id,
+      breakpoint,
+      before: { ...before },
+      after: { ...after },
+    }));
   });
   if (entries.length === 0) return;
 

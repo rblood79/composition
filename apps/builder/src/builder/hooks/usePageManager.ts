@@ -19,7 +19,10 @@ interface ApiPage {
 }
 import { getDB } from "../../lib/db";
 import { useStore } from "../stores";
-import { calculateNextPagePosition } from "../stores/elements";
+import {
+  calculateNextPagePosition,
+  resolveSystemPageIds,
+} from "../stores/elements";
 import { readPageFrameSize } from "../workspace/canvas/scene/pageFrameSize";
 // ADR-116 Phase 3 G4 — mutation reverse wrapper (D18=A 정합)
 import { useCanonicalDocumentStore } from "../stores/canonical/canonicalDocumentStore";
@@ -156,7 +159,9 @@ export const usePageManager = (): UsePageManagerReturn => {
       pageGap,
       pageLayoutPanelMetrics,
     );
-    // 새 페이지는 기존 페이지의 frame 크기 (body 저작 크기) 뒤에 놓는다
+    // 새 페이지는 기존 페이지의 frame 크기 (body 저작 크기) 뒤에 놓는다.
+    //   ADR-231: 시스템 페이지 (Components) 는 격자 밖 — 다음 칸 계산에서 무시.
+    const systemPageIds = resolveSystemPageIds(pages);
     const pageSizes: Record<string, { width: number; height: number }> = {};
     for (const page of pages) {
       pageSizes[page.id] = readPageFrameSize(
@@ -165,6 +170,7 @@ export const usePageManager = (): UsePageManagerReturn => {
         elementsMap,
         canvasSize.width,
         canvasSize.height,
+        systemPageIds.has(page.id) ? { neutral: true } : undefined,
       );
     }
     return calculateNextPagePosition(
@@ -177,6 +183,7 @@ export const usePageManager = (): UsePageManagerReturn => {
       pageLayoutBounds.availableWidth,
       pageLayoutBounds.leftInset,
       pageSizes,
+      systemPageIds,
     );
   }, []);
 

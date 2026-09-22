@@ -11,6 +11,11 @@
  *
  * history 에 남기지 않는다 — 원인인 body 크기 편집이 이미 entry 1 이고, 그 undo/redo 로 frame 이
  * 되돌아오면 이 재배치가 다시 반대 방향으로 따라간다 (호출자가 frame 변화에 반응).
+ *
+ * ADR-231 — 열/격자 경계: 시스템 페이지 (`systemPageIds`, Components …) 는 사용자 격자 왼쪽의
+ * 세로 열이다. 바뀐 페이지가 시스템이면 **뒤의 시스템 페이지만** 세로로 (전역 방향 무관), 사용자
+ * 페이지면 **사용자 페이지만** 위 규칙으로 민다 — Components 높이가 내용을 따라 자라도 사용자
+ * 페이지는 움직이지 않는다 (리뷰 round 2 h1 실행 반증: (−2000,0) 1080→3000 이 P2 (0,1160) 를 3080 으로 밀던 것).
  */
 import { normalizePageLayoutDirection, type PageLayoutDirection } from "../canvasSettings";
 
@@ -27,6 +32,8 @@ export interface PageFrameReflowInput {
   changedPageId: string;
   prev: PageFrameSizeLike;
   next: PageFrameSizeLike;
+  /** ADR-231 — 시스템 페이지 집합 (없으면 종전 규칙: 전체가 한 격자). */
+  systemPageIds?: ReadonlySet<string>;
 }
 
 export interface PagePositionShift {
@@ -35,23 +42,27 @@ export interface PagePositionShift {
   y: number;
 }
 
-export function computePageFrameReflow({
-  positions,
-  direction,
-  changedPageId,
-  prev,
-  next,
-}: PageFrameReflowInput): PagePositionShift[] {
+export function computePageFrameReflow(
+  input: PageFrameReflowInput,
+): PagePositionShift[] {
+  const { positions, direction, changedPageId, prev, next } = input;
   const origin = positions[changedPageId];
   if (!origin) return [];
   const dw = next.width - prev.width;
   const dh = next.height - prev.height;
   if (dw === 0 && dh === 0) return [];
-  const normalized = normalizePageLayoutDirection(direction);
+  const systemPageIds = input.systemPageIds;
+  const changedIsSystem = systemPageIds?.has(changedPageId) === true;
+  // 시스템 열은 전역 방향과 무관하게 세로다.
+  const normalized = changedIsSystem
+    ? "vertical"
+    : normalizePageLayoutDirection(direction);
   const shifts: PagePositionShift[] = [];
 
   for (const [pageId, position] of Object.entries(positions)) {
     if (pageId === changedPageId || !position) continue;
+    // 열/격자 경계 — 바뀐 쪽과 같은 집합만 민다.
+    if (systemPageIds && systemPageIds.has(pageId) !== changedIsSystem) continue;
     let dx = 0;
     let dy = 0;
     if (normalized === "vertical") {

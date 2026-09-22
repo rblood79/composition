@@ -83,3 +83,31 @@
 - live smoke (`scripts/adr231-components-frame-live.mjs --phase 1`, headed Chrome, 새 프로젝트): **7/7** — origin 86 · frame 1920×4881 = 발행 body 높이 · originMaxBottom 4857 ≤ 4881 · `maxScrollTop 0` · body style 시드 키만 · desktop→tablet→mobile→desktop 왕복 Components [1920,4881] ×4 · 사용자 페이지 768×1024 / 390×844 / 1920×1080 · pageerror 0. 기록 `docs/adr/evidence/231-components-frame-live/phase1-live.json`.
 - F12 실측: 새 프로젝트 body style = `{overflow, display, flexDirection, flexWrap, alignItems, alignContent, gap, padding}` — width/height 부재 (R7 경로 없음).
 - 하니스 함정: RAC ToggleButton `id` 는 DOM id 가 아니다 → `.builder-control-group button` nth 로 · store `Page.slug` 는 `/__components`.
+
+### G2 — Phase 2 시스템 페이지 열 · reflow 경계 · breakpoint 공통 위치 (2026-09-22)
+
+- 구현: `stores/utils/pageFrameReflow.ts` `systemPageIds` (열/격자 경계 — 시스템 변화는 시스템만 세로로 · 사용자 변화는 사용자만) · `stores/elements.ts` `placeSystemColumn` / `splitSystemPages` / `resolveSystemPageIds` / `resolvePagePlacementInputs` / `mirrorSystemPagePositions` / `buildPagePositionWriteEntries` — `calculatePagePositions` · `calculateNextPagePosition` (시스템 제외 + 왼쪽 열) · `initializePagePositions` (hydration 활성값 공통화) · `switchPagePositionsBreakpoint` (시스템은 현재값 그대로 · 첫 진입 `pageSizes`) · `updatePagePosition` / `applyPageFrameReflow` / `updatePagePositionsBatch` (세 breakpoint 동시 쓰기 · history 세 entry) · `viewport/pageLayoutActions.ts` align (세 entry) · `hooks/usePageManager.ts` 새 페이지 (시스템 무시) · `BuilderCanvas.tsx` reflow caller.
+- unit: `pageFrameReflow.test.ts` +4 (리뷰 round 2 h1 실행 반례 → `[]` 세 방향 · 시스템 2개 +1920 · Home 변화 시스템 0 · 호환) · `pagePositionsFrameSizes.test.ts` +5 (리뷰 h2 산술 390·80·1000 → Home (0,0) · P2 (470,0) · Components (−2000,0) · 세 방향 · leftInset · 시스템 2개 누적 · 사용자 페이지 0 · next 무시) · `systemPagePositions.test.ts` +4 (전환 현재값 · 드래그 세 스냅샷 · hydration 활성값 · align 열) · 인접 stores/viewport/scene/hooks/settings 144 파일 1111/1111.
+- live (`scripts/adr231-components-frame-live.mjs --phase 2`, headed Chrome, 새 프로젝트): **15/15** — Phase 1 의 7 + 전환 왕복 위치 Δ0 ([−2000,0] ×4) · 새 문서 hydration Components (−2000,0) = homeX − (1920+80) · 드래그 finish (`updatePagePosition` (−2500,200)) 후 mobile→desktop 왕복 보존 · reload 후 (−2500,200) · 1920 · 높이 = 발행 · 새 페이지 (Navigator "페이지 추가" 실입력) → (0,1160) · Components 불변 · align (줌 메뉴 → 페이지 정렬 실입력, auto) → Home (2055,0) (leftInset) · Components (55,0) = homeX − 2000 · 페이지 bbox 쌍 겹침 0 · origin 1 개 (`component-iconbutton`) mobile `height` override (tier 토글 ON → `responsive.styles.height.mobile = 600px`) → mobile frame 4881→5451 = 발행 body 높이 (내용 함수) · desktop 복귀 4881 · width/x/y Δ0. 기록 `docs/adr/evidence/231-components-frame-live/phase2-live.json`.
+- 하니스 함정: Components 가 x<0 이라 보이는 페이지만 레이아웃 → 읽기 전 `__composition_APPLY_VIEWPORT__` 로 열 쪽으로 pan (`showComponents`) · `updateSelectedStyle(property, value)` 시그니처 · ADR-154 개정 1 — tier 토글 (`setResponsiveStyleOverrideEnabled`) 없이는 base 에 쓴다 · align 은 줌 메뉴 `.zoom-menu-item[data-key="align-pages"]`.
+
+### G3 — 성능 A/B (2026-09-22) — **Components origin 편집 p95 Δ +2.4~+5.0 ms · 게이트 (≤ +1 ms) 미달, 원인 미확정**
+
+- 하니스 `scripts/adr231-frame-perf-ab.mjs` (headless · DPR 2 · Home 600 mixed + 시드 Components · 워밍업 5 + 30회 × 7 반복 → p95 median). before = `12063c042` 별도 worktree dev 서버 (5174, 원래 lockfile · engine-pkg/wasm 복사) · after = HEAD Phase 1 (`ba14e85d3`, 5173 = 작업 서버 / r4 는 5175 별도 worktree).
+- 결과 (total p95 median, ms — 기록 `evidence/231-components-frame-live/{before,after}.json` · `g3-r2..r4/`):
+
+  | 짝                                   | Home 요소 편집 (N600)                                                                              | Components origin 편집 (Button width ±) |
+  | ------------------------------------ | -------------------------------------------------------------------------------------------------- | --------------------------------------- |
+  | r1 (5174 → 5173, comp-scale 0.12)    | 41.3 → 43.8 (+2.5)                                                                                 | 57.7 → 62.7 (+5.0)                      |
+  | r2 (교차 재실행)                     | 41.9 → 42.7 (+0.8)                                                                                 | 59.1 → 62.4 (+3.3)                      |
+  | r3 (comp-scale 0.8 — 그리는 행 통제) | —                                                                                                  | 59.3 → 63.5 (+4.2)                      |
+  | r4 (양쪽 fresh worktree 5174 · 5175) | 42.3 → 4009 (after 폴링 deadline — Phase 1 만 있는 빌드에서 Home 이 뷰포트 밖, 하니스 결함 · 무효) | 58.0 → 60.4 (+2.4)                      |
+
+- **판정**: Home 편집 Δ +0.8 (r2) 는 게이트 안. Components origin 편집은 4 짝 모두 +2.4 ~ +5.0 (before 스프레드 57.7~~59.3 · after 60.4~~63.5, 겹침 없음) — **실재하는 +3 ms 안팎의 회귀**, 게이트 미달.
+- 원인 추적 (probe `_adr231-probe.mjs`, 삭제): 같은 편집 30회에서 두 arm 모두 `layoutPublishCount 30` (추가 publisher 실행 0 — R1 루프 아님) · projection signature p50 4.1 vs 4.9 ms (동급) · body 발행 높이 불변 (1080 / 4881 — 행 wrap 변화 0) · sceneVersion 변경 30/30 (동일). 이 probe 의 편집당 total 정렬 분포는 median 65.9 vs 66.1 (Δ +0.2) — 즉 **추가 실행 경로가 계측되지 않았다**. 그리는 양 (comp-scale 0.12 vs 0.8) 도 Δ 를 바꾸지 않았다.
+- 남는 후보 (미검증): (a) body 보고 높이 4881 로 페이지 frame/overlay/헤더 chrome 이 커진 데 따른 렌더 프레임 비용 (rAF 폴링이 프레임을 포함) · (b) 시드 Components 의 origin 86 이 before 에서는 body clip 1080 안의 일부만 명령 스트림에 오르고 after 는 전부 오르는 경우 (0.8 에서도 Δ 가 같아 약함) · (c) 두 서버 간 잔차.
+- **미종결** — Implemented 승격 보류. 결정 지점: (1) Components 페이지 한정 +3 ms (5~8%) 를 수용하고 게이트를 "Components 편집 ≤ +5 ms" 로 재승인, 또는 (2) 후속 세션에서 (a)/(b) 를 프레임 계측 (`__composition_PERF__` frame decomposition) 으로 가른 뒤 수리. 사용자 판정 대기.
+
+### G4 — BC (2026-09-22)
+
+- `scripts/adr231-bc-live.mjs` (headless, 새 프로젝트 → 드래그 커밋 (−2400,120) → reload 2회): Δnode 0 (nodeCount 동일 3회) · Components body style 키 동일 (`overflow · display · flexDirection · flexWrap · alignItems · alignContent · gap · padding`) · reload 간 pagePositions 동일 · 저장 `pagePositionsByBreakpoint` desktop/tablet/mobile 모두 (−2400,120) (세 breakpoint 동시 쓰기 확인). Phase 2 live (15/15) 의 reload 항목과 합쳐 G4 PASS.

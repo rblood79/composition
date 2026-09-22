@@ -11,6 +11,7 @@ import {
   loadStorageState,
   createInstrumentedContext,
   createIsolatedProject,
+  openPanels,
 } from "./perf-baseline.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -111,15 +112,13 @@ async function main() {
       String(p.slug ?? "").replace(/^\//, "") === "components" ||
       p.id === "page-components";
     const pagesDump = await page.evaluate(() =>
-      window.__composition_STORE__
-        .getState()
-        .pages.map((p) => ({
-          id: p.id,
-          title: p.title,
-          slug: p.slug,
-          pageRole: p.pageRole,
-          systemOwned: p.systemOwned,
-        })),
+      window.__composition_STORE__.getState().pages.map((p) => ({
+        id: p.id,
+        title: p.title,
+        slug: p.slug,
+        pageRole: p.pageRole,
+        systemOwned: p.systemOwned,
+      })),
     );
     process.stderr.write(`[pages] ${JSON.stringify(pagesDump)}\n`);
     await page.evaluate((findSrc) => {
@@ -134,6 +133,22 @@ async function main() {
       st.setCurrentPageId(comp.id);
     }, findComp.toString());
     await settle(page, 2500);
+
+    // Components 는 사용자 격자 왼쪽 (x < 0) — 보이는 페이지만 레이아웃하므로 뷰포트를 그쪽으로.
+    const showComponents = async () => {
+      const frames = await page.evaluate(() =>
+        window.__composition_SCENE_DEBUG__.readPageFrames(),
+      );
+      const comp = frames.find((f) => f.id === "page-components") ?? frames[0];
+      const scale = 0.12;
+      await page.evaluate((s) => window.__composition_APPLY_VIEWPORT__(s), {
+        scale,
+        x: -comp.x * scale + 40,
+        y: -comp.y * scale + 80,
+      });
+      await settle(page, 2500);
+    };
+    await showComponents();
 
     const s0 = await readState(page);
     check(
@@ -207,6 +222,175 @@ async function main() {
         "전환 왕복: Components 위치 Δ0",
         posStable,
         compFrames.map((f) => [f.x, f.y]),
+      );
+      const homeFrame0 = Object.values(s0.frames).find(
+        (f) => f.id !== s0.componentsId,
+      );
+      check(
+        "새 문서 hydration: Home 기준 · Components x = homeX − (1920 + gap) · y = homeY",
+        s0.componentsFrame.x === homeFrame0.x - (1920 + 80) &&
+          s0.componentsFrame.y === homeFrame0.y,
+        {
+          comp: [s0.componentsFrame.x, s0.componentsFrame.y],
+          home: [homeFrame0.x, homeFrame0.y],
+        },
+      );
+
+      // (a) 드래그 finish 커밋 (usePageDrag → updatePagePosition) 후 전환 왕복 · reload 보존
+      await page.evaluate(() =>
+        window.__composition_STORE__
+          .getState()
+          .updatePagePosition("page-components", -2500, 200),
+      );
+      await settle(page, 800);
+      for (const bp of ["mobile", "desktop"]) await switchBreakpoint(page, bp);
+      let s = await readState(page);
+      check(
+        "드래그 (−2500,200) 후 mobile→desktop 왕복: 위치 보존",
+        s.componentsFrame.x === -2500 && s.componentsFrame.y === 200,
+        [s.componentsFrame.x, s.componentsFrame.y],
+      );
+      await page.reload({ waitUntil: "networkidle" });
+      await settle(page, 3500);
+      await showComponents();
+      s = await readState(page);
+      check(
+        "reload 후 Components 위치 (−2500,200) · 폭 1920 · 높이 = 발행",
+        s.componentsFrame?.x === -2500 &&
+          s.componentsFrame?.y === 200 &&
+          s.componentsFrame.width === 1920 &&
+          Math.abs(s.componentsFrame.height - s.bodyLayoutHeight) < 1,
+        s.componentsFrame,
+      );
+
+      // (b) 새 페이지 추가 — 사용자 격자 다음 칸 (Components 무시)
+      const before = await readState(page);
+      await openPanels(page, ["Navigator"]);
+      await page
+        .locator(
+          'button[aria-label="Add page" i], button[aria-label="페이지 추가"]',
+        )
+        .first()
+        .click({ timeout: 5000 })
+        .catch(() => null);
+      await settle(page, 1500);
+      const afterAdd = await readState(page);
+      const newPages = afterAdd.pages.filter(
+        (p) => !before.pages.some((q) => q.id === p.id),
+      );
+      if (newPages.length === 1) {
+        const np = afterAdd.frames[newPages[0].id];
+        check(
+          "새 페이지: x ≥ 0 (Components 열 밖) · Components 위치 불변",
+          np.x >= 0 && afterAdd.componentsFrame.x === -2500,
+          {
+            newPage: [np.x, np.y],
+            comp: [afterAdd.componentsFrame.x, afterAdd.componentsFrame.y],
+          },
+        );
+      } else {
+        check("새 페이지 추가 (버튼 미발견 — 스킵)", false, {
+          newPages: newPages.length,
+        });
+      }
+
+      // (c) align (줌 메뉴 → 페이지 정렬 실입력) → Home (leftInset,0) · Components 왼쪽 열 · 겹침 0
+      await page.evaluate(() =>
+        window.__composition_STORE__.getState().setPageLayoutDirection("auto"),
+      );
+      await page.locator(".zoom-chevron-button").first().click();
+      await settle(page, 400);
+      await page
+        .locator('.zoom-menu-item[data-key="align-pages"]')
+        .first()
+        .click();
+      await settle(page, 1500);
+      const sa = await readState(page);
+      const userFrames = Object.values(sa.frames).filter(
+        (f) => f.id !== sa.componentsId,
+      );
+      const homeA = userFrames[0];
+      const overlaps = [];
+      const all = Object.values(sa.frames);
+      for (let i = 0; i < all.length; i++)
+        for (let j = i + 1; j < all.length; j++) {
+          const a = all[i],
+            b = all[j];
+          const sepX = a.x + a.width <= b.x || b.x + b.width <= a.x;
+          const sepY = a.y + a.height <= b.y || b.y + b.height <= a.y;
+          if (!sepX && !sepY) overlaps.push([a.id, b.id]);
+        }
+      check(
+        "align: 사용자 페이지 x ≥ 0 · Components x = homeX − 2000 · y = homeY · 겹침 0",
+        userFrames.every((f) => f.x >= 0) &&
+          sa.componentsFrame.x === homeA.x - 2000 &&
+          sa.componentsFrame.y === homeA.y &&
+          overlaps.length === 0,
+        {
+          comp: [sa.componentsFrame.x, sa.componentsFrame.y],
+          home: [homeA.x, homeA.y],
+          users: userFrames.map((f) => [f.x, f.y]),
+          overlaps,
+        },
+      );
+
+      // (d) origin 1 개 mobile override → 왕복: width/x/y Δ0 · mobile 높이 = 발행 (내용 함수)
+      await showComponents();
+      const base = await readState(page);
+      await switchBreakpoint(page, "mobile");
+      await showComponents();
+      const originId = await page.evaluate(() => {
+        const st = window.__composition_STORE__.getState();
+        const body = st.elements.find(
+          (e) =>
+            e.page_id === "page-components" &&
+            String(e.type).toLowerCase() === "body",
+        );
+        const first = st.elements.find(
+          (e) => e.parent_id === body.id && e.type === "Button",
+        );
+        return first?.id ?? null;
+      });
+      await page.evaluate((id) => {
+        const st = window.__composition_STORE__.getState();
+        st.setSelectedElements?.([id]);
+        // ADR-154 개정 1: tier 토글 ON 이어야 override 로 라우팅된다 (없으면 base = 전역)
+        st.setResponsiveStyleOverrideEnabled?.("height", true);
+        st.updateSelectedStyle?.("height", "600px");
+      }, originId);
+      await settle(page, 1500);
+      const mob = await readState(page);
+      const overrideSaved = await page.evaluate(
+        (id) =>
+          window.__composition_STORE__
+            .getState()
+            .elements.find((e) => e.id === id)?.responsive?.styles?.height ??
+          null,
+        originId,
+      );
+      await switchBreakpoint(page, "desktop");
+      await showComponents();
+      const back = await readState(page);
+      check(
+        "mobile override 저장 (responsive.styles.height.mobile) · mobile frame 높이 = 발행 body (내용 함수) · Δheight > 0",
+        overrideSaved?.mobile === "600px" &&
+          Math.abs(mob.componentsFrame.height - mob.bodyLayoutHeight) < 1 &&
+          mob.componentsFrame.height > base.componentsFrame.height,
+        {
+          overrideSaved,
+          base: base.componentsFrame.height,
+          mobile: mob.componentsFrame.height,
+          originId,
+        },
+      );
+      check(
+        "override 왕복: width/x/y Δ0 · desktop 복귀 높이 = 기준",
+        back.componentsFrame.width === 1920 &&
+          back.componentsFrame.x === base.componentsFrame.x &&
+          back.componentsFrame.y === base.componentsFrame.y &&
+          Math.abs(back.componentsFrame.height - base.componentsFrame.height) <
+            1,
+        { base: base.componentsFrame, back: back.componentsFrame },
       );
     }
 
