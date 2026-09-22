@@ -35,7 +35,7 @@ const sizes = (n: number) =>
 
 function ctxOf(
   n: number,
-  placements: Record<string, PagePlacement | undefined> = {},
+  placements: Record<string, PagePlacement> = {},
   overrides: Partial<PlacementEditContext> = {},
 ): PlacementEditContext {
   const layout = resolvePageLayout(
