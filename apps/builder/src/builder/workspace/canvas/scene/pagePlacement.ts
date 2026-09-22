@@ -67,6 +67,13 @@ export interface DerivePagePositionsInput {
   pageLayout?: PageLayoutSettingsDocument;
   activeBreakpoint: BreakpointName;
   /**
+   * 시스템 페이지 (Components) — placement 가 없으면 **기본값** 으로 격자 밖 왼쪽 열에 둔다
+   * (ADR-232 Decision 5 · ADR-231 시스템 열 재현). 저장하지 않는 기본값이라 align 이
+   * placement 를 지워도 같은 자리로 돌아온다 (live 실측 2026-09-22 — 지웠더니 흐름 첫 칸에
+   * 합류해 Home 을 밀어냈다).
+   */
+  systemPageIds?: ReadonlySet<string>;
+  /**
    * `"legacy"` 모드에서 읽는 저장 좌표 — `pagePositions[pageId][tier]`.
    * `"derived"` 에서는 읽지 않는다 (`placementModel` 이 읽기 모드를 정한다 — 리뷰 round 3 l3).
    */
@@ -153,6 +160,14 @@ export function resolvePageLayout(
  * eligibility 표와 desktop→tablet→mobile cascade 가 그대로 적용된다. 표에 없는 키는
  * 그 함수가 skip 하므로 placement 가 eligibility 를 우회할 길이 없다.
  */
+/** 시스템 페이지 기본 배치 — 사용자 격자 왼쪽 열 (폭은 그 페이지 자신의 frame 폭). */
+export function resolveSystemPagePlacementStyle(
+  width: number,
+  gap: number,
+): Record<string, string | number> {
+  return { position: "absolute", left: -(width + gap), top: 0 };
+}
+
 export function resolvePagePlacementStyle(
   placement: PagePlacement | undefined,
   activeBreakpoint: BreakpointName,
@@ -328,10 +343,19 @@ export function derivePagePositions(
     [];
   for (const page of input.pages) {
     const size = input.pageSizes[page.id];
-    const style = resolvePagePlacementStyle(
+    let style = resolvePagePlacementStyle(
       placements?.[page.id],
       input.activeBreakpoint,
     );
+    if (
+      Object.keys(style).length === 0 &&
+      input.systemPageIds?.has(page.id) === true
+    ) {
+      style = resolveSystemPagePlacementStyle(
+        size?.width ?? tier.width,
+        layout.gap,
+      );
+    }
     nodes.push({
       style: {
         display: "block",
@@ -397,8 +421,9 @@ export function buildPagePlacementMemoKey(
         input.activeBreakpoint,
       );
       const keys = Object.keys(style).sort();
+      const system = input.systemPageIds?.has(page.id) === true ? "S" : "";
       return keys.length === 0
-        ? `${page.id}:-`
+        ? `${page.id}:-${system}`
         : `${page.id}:${keys.map((k) => `${k}=${style[k]}`).join(";")}`;
     })
     .join(",");

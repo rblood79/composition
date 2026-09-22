@@ -1123,6 +1123,10 @@ export interface TranslationKeys {
     showActionBar: string;
     pageLayout: string;
     pageGap: string;
+    /** ADR-232 — 페이지 컨테이너 열 수 (direction auto). */
+    pageColumns: string;
+    /** ADR-232 — 열 수·간격을 이 breakpoint 에만 적용. */
+    pageLayoutTierOverride: string;
     pageGapPreset: string;
     pageLayoutAuto: string;
     pageLayoutHorizontal: string;

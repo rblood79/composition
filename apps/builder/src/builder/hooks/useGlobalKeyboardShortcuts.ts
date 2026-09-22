@@ -17,6 +17,7 @@
 
 import { useCallback, useMemo } from "react";
 import { useStore } from "../stores";
+import { commitPagePlacementFromPoint } from "../stores/utils/pagePlacementCommit";
 import { useViewportSyncStore } from "../workspace/canvas/stores";
 import {
   bindHandlersToDefinitions,
@@ -383,11 +384,10 @@ export function useGlobalKeyboardShortcuts() {
         const state = useStore.getState();
         const position = state.pagePositions[pageId];
         if (!position) return;
-        state.updatePagePosition(
-          pageId,
-          position.x + dx * step,
-          position.y + dy * step,
-        );
+        const next = { x: position.x + dx * step, y: position.y + dy * step };
+        // ADR-232: 파생 모드면 placement 로 쓴다 (Home nudge 는 거부되어 무반응).
+        if (commitPagePlacementFromPoint(pageId, next)) return;
+        state.updatePagePosition(pageId, next.x, next.y);
         return;
       }
       if (step !== 1) return;

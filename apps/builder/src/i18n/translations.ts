@@ -764,7 +764,8 @@ const koKR: TranslationKeys = {
     stateVariantHover: "호버",
     stateVariantPressed: "눌림",
     stateVariantFocusVisible: "포커스",
-    stateVariantOf: "{name} 의 상태 변형 — 이 상태일 때의 배경 · 색 · 테두리 · 투명도만 편집한다",
+    stateVariantOf:
+      "{name} 의 상태 변형 — 이 상태일 때의 배경 · 색 · 테두리 · 투명도만 편집한다",
     roleStandard: "표준",
     resetForkedItems: "분기된 항목을 원본으로 되돌리기",
     resetOverride: "{label} 재정의 되돌리기",
@@ -1214,6 +1215,8 @@ const koKR: TranslationKeys = {
     showActionBar: "선택 액션 바 표시",
     pageLayout: "페이지 레이아웃",
     pageGap: "페이지 간격",
+    pageColumns: "열 수",
+    pageLayoutTierOverride: "이 breakpoint 만",
     pageGapPreset: "페이지 간격 프리셋",
     pageLayoutAuto: "자동",
     pageLayoutHorizontal: "가로",
@@ -2688,7 +2691,8 @@ const enUS: TranslationKeys = {
     stateVariantHover: "Hover",
     stateVariantPressed: "Pressed",
     stateVariantFocusVisible: "Focus",
-    stateVariantOf: "State variant of {name} — edit only the background · color · border · opacity used in this state",
+    stateVariantOf:
+      "State variant of {name} — edit only the background · color · border · opacity used in this state",
     roleStandard: "Standard",
     resetForkedItems: "Reset forked items to origin",
     resetOverride: "Reset {label} override",
@@ -3143,6 +3147,8 @@ const enUS: TranslationKeys = {
     showActionBar: "Show Action Bar",
     pageLayout: "Page Layout",
     pageGap: "Page Gap",
+    pageColumns: "Column Count",
+    pageLayoutTierOverride: "This breakpoint only",
     pageGapPreset: "Page Gap Preset",
     pageLayoutAuto: "Auto",
     pageLayoutHorizontal: "Horizontal",
@@ -4898,7 +4904,8 @@ const formattedMessages: Record<
       `테마 이름: ${String(args?.name ?? "")}`,
     "history.entryThemeActivate": (args) =>
       `테마 전환: ${String(args?.name ?? "")}`,
-    "history.entryThemeEdit": (args) => `테마 편집: ${String(args?.name ?? "")}`,
+    "history.entryThemeEdit": (args) =>
+      `테마 편집: ${String(args?.name ?? "")}`,
     "propertiesPanel.bindingUsedBy": (args) =>
       `사용처 ${String(args?.count ?? 0)}`,
     "propertiesPanel.idUnique": (args) =>
@@ -5378,7 +5385,8 @@ const formattedMessages: Record<
       `Rename theme: ${String(args?.name ?? "")}`,
     "history.entryThemeActivate": (args) =>
       `Switch theme: ${String(args?.name ?? "")}`,
-    "history.entryThemeEdit": (args) => `Edit theme: ${String(args?.name ?? "")}`,
+    "history.entryThemeEdit": (args) =>
+      `Edit theme: ${String(args?.name ?? "")}`,
     "propertiesPanel.bindingUsedBy": (args) =>
       `Used by ${String(args?.count ?? 0)}`,
     "propertiesPanel.idUnique": (args) =>

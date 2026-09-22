@@ -165,6 +165,27 @@ function applyPagePositionHistoryEntry(
   entry: NonNullable<ReturnType<typeof historyManager.undo>>,
   direction: "undo" | "redo",
 ): void {
+  // ADR-232 — 파생 모델 payload 가 있으면 canonical 배치만 되돌린다 (스토어 미러 없음).
+  const placementEvent = entry.data.pagePlacementEvent;
+  if (placementEvent && placementEvent.entries.length > 0) {
+    const validIds = new Set(get().pages.map((page) => page.id));
+    const entries = placementEvent.entries
+      .filter((item) => validIds.has(item.pageId))
+      .map((item) => ({
+        pageId: item.pageId,
+        placement: direction === "undo" ? item.before : item.after,
+      }));
+    if (entries.length > 0) {
+      useCanonicalDocumentStore.getState().setPagePlacements(entries);
+      queueMicrotask(() => {
+        void persistActiveCanonicalDocument().catch((error) => {
+          console.error("[applyPagePlacementHistoryEntry] DB persist:", error);
+        });
+      });
+    }
+    return;
+  }
+
   const event = entry.data.pagePositionEvent;
   if (!event || event.entries.length === 0) return;
 
@@ -286,12 +307,13 @@ function applyThemeHistoryEntry(
 }
 
 let themeHistoryApplier:
-  | ((themes: import("@composition/shared").ThemesCollection) => void)
-  | null = null;
+  ((themes: import("@composition/shared").ThemesCollection) => void) | null =
+  null;
 
 /** ADR-227 — undo/redo 뒤 활성 테마를 런타임에 재적용하는 콜백 (BuilderCore 등록). */
 export function registerThemeHistoryApplier(
-  applier: ((themes: import("@composition/shared").ThemesCollection) => void) | null,
+  applier:
+    ((themes: import("@composition/shared").ThemesCollection) => void) | null,
 ): void {
   themeHistoryApplier = applier;
 }

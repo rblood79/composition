@@ -36,8 +36,16 @@ export interface GridCell {
 }
 
 export interface PlacementEditContext {
-  /** canonical 순서. `pages[0]` 이 Home (흐름 원점, 이동 불가). */
+  /** canonical 순서 (시스템 페이지 포함 — store `pages` 그대로). */
   pages: readonly { id: string }[];
+  /**
+   * Home = **첫 사용자 페이지** (흐름 원점, 이동 불가).
+   *
+   * `pages[0]` 이 아니다 — store 의 페이지 순서는 시스템 Components 페이지가 앞에 온다
+   * (live 실측 2026-09-22: `["page-components", "Home", "Page 2", …]`). `pages[0]` 으로
+   * 판정하면 Home 이 이동 가능해져 R10 이 그대로 뚫린다.
+   */
+  homePageId: string | null;
   /** 현재 파생 위치 (칸 격자의 행 경계를 여기서 읽는다). */
   positions: Readonly<Record<string, PagePositionPoint>>;
   pageSizes: Readonly<
@@ -50,18 +58,28 @@ export interface PlacementEditContext {
   writeAsOverride: boolean;
 }
 
-/** Home = canonical 순서 첫 페이지. 이동 불가 (placement 를 갖지 않는다). */
-export function resolveHomePageId(
-  pages: readonly { id: string }[],
+/**
+ * Home = **첫 사용자 페이지** (시스템 페이지 제외). 이동 불가 — placement 를 갖지 않는다.
+ *
+ * `isSystemPage` 는 호출자가 준다 (`isComponentsPageMirror`) — 이 모듈은 페이지 정체를
+ * 모른다. 주지 않으면 첫 페이지가 Home 이며, 그 경로는 테스트 fixture 전용이다.
+ */
+export function resolveHomePageId<T extends { id: string }>(
+  pages: readonly T[],
+  isSystemPage?: (page: T) => boolean,
 ): string | null {
-  return pages[0]?.id ?? null;
+  for (const page of pages) {
+    if (isSystemPage?.(page)) continue;
+    return page.id;
+  }
+  return null;
 }
 
 export function isPlacementEditable(
   pageId: string,
-  pages: readonly { id: string }[],
+  homePageId: string | null,
 ): boolean {
-  return pageId !== resolveHomePageId(pages);
+  return pageId !== homePageId;
 }
 
 /** placement 가 absolute 인가 (활성 tier 해석 결과 기준). */
@@ -247,7 +265,7 @@ export function resolvePlacementForDrop(
   pageId: string,
   dropped: PagePositionPoint,
 ): PlacementDropResult {
-  if (!isPlacementEditable(pageId, ctx.pages)) {
+  if (!isPlacementEditable(pageId, ctx.homePageId)) {
     return { entries: [], kind: "rejected", reason: "home-immovable" };
   }
   const size = ctx.pageSizes[pageId] ?? {
@@ -276,7 +294,7 @@ export function resolvePlacementForDrop(
   }
   const occupant = findPinnedOccupant(ctx, cell, pageId);
   if (occupant) {
-    if (!isPlacementEditable(occupant, ctx.pages)) {
+    if (!isPlacementEditable(occupant, ctx.homePageId)) {
       return { entries: [], kind: "rejected", reason: "home-immovable" };
     }
     const movingFrom = ctx.placements[pageId];
@@ -300,12 +318,11 @@ export function resolvePlacementForDrop(
  * tier override 도 같이 지운다 (base 만 지우면 override 가 살아남아 그 tier 만 어긋난다).
  */
 export function resolvePlacementsForAlign(
-  ctx: Pick<PlacementEditContext, "pages" | "placements">,
+  ctx: Pick<PlacementEditContext, "pages" | "placements" | "homePageId">,
 ): PagePlacementEditEntry[] {
-  const home = resolveHomePageId(ctx.pages);
   const entries: PagePlacementEditEntry[] = [];
   for (const page of ctx.pages) {
-    if (page.id === home) continue;
+    if (page.id === ctx.homePageId) continue;
     if (ctx.placements[page.id] === undefined) continue;
     entries.push({ pageId: page.id, placement: null });
   }

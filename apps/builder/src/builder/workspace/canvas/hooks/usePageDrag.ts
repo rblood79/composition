@@ -15,6 +15,10 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import { useStore } from "../../../stores";
+import {
+  commitPagePlacementFromPoint,
+  commitPagePlacementsFromPoints,
+} from "../../../stores/utils/pagePlacementCommit";
 import type { CanvasGestureSession } from "../interaction/canvasGestureSession";
 import { applyAxisLockToDelta } from "../interaction/dragModifiers";
 import {
@@ -386,7 +390,18 @@ export function usePageDrag(
         if (moved.length > 0) {
           isFinishingRef.current = true;
           try {
-            if (moved.length === 1) {
+            // ADR-232: 파생 모드면 저장 좌표 대신 placement 를 쓴다 (칸 스냅 / absolute /
+            //   교환 · Home 거부). 아니면 기존 경로 그대로.
+            const handledByPlacement =
+              moved.length === 1
+                ? commitPagePlacementFromPoint(moved[0].pageId, {
+                    x: moved[0].position.x,
+                    y: moved[0].position.y,
+                  })
+                : commitPagePlacementsFromPoints(moved);
+            if (handledByPlacement) {
+              // 파생 경로가 처리했다 — 저장 좌표 쓰기 0.
+            } else if (moved.length === 1) {
               currentStore.updatePagePosition(
                 moved[0].pageId,
                 moved[0].position.x,

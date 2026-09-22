@@ -73,7 +73,11 @@ export function isCanonicalHistoryEntry(entry: HistoryEntry): boolean {
     case "page-state":
       return entry.data.pageStateEvent !== undefined;
     case "page-position":
-      return (entry.data.pagePositionEvent?.entries.length ?? 0) > 0;
+      return (
+        (entry.data.pagePositionEvent?.entries.length ?? 0) > 0 ||
+        // ADR-232 — 파생 모델의 배치 payload
+        (entry.data.pagePlacementEvent?.entries.length ?? 0) > 0
+      );
     case "page-guide":
       return (entry.data.pageGuideEvent?.entries.length ?? 0) > 0;
     case "page-lifecycle":

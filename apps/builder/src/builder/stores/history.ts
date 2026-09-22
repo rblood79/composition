@@ -48,6 +48,19 @@ export interface PagePositionHistoryEntryItem {
 }
 
 /**
+ * ADR-232 — `page-position` entry 의 **배치 (placement)** 항목.
+ *
+ * 저장 좌표 대신 페이지 배치 style 전체를 before/after 로 담는다 (`null` = 배치 없음 =
+ * 흐름). 칸 교환은 entry 2 = Cmd+Z 1회 (`PagePositionHistoryEntryItem` 의 batch 계약과 같다).
+ * 같은 `"page-position"` 스택에 들어가며 새 스택은 없다 (ADR-232 R8).
+ */
+export interface PagePlacementHistoryEntryItem {
+  pageId: string;
+  before: import("@composition/shared").PagePlacement | null;
+  after: import("@composition/shared").PagePlacement | null;
+}
+
+/**
  * ADR-181 — `page-guide` entry 의 항목 (batch 지원).
  *
  * 목록 **전체**를 before/after 로 담는다 (부분 diff 아님) — 생성/이동/삭제가
@@ -60,13 +73,7 @@ export interface PagePositionHistoryEntryItem {
 /** ADR-227 — 테마 컬렉션 변경 1건 (조작 종류는 라벨용). */
 export interface ThemeHistoryEvent {
   kind:
-    | "add"
-    | "remove"
-    | "rename"
-    | "activate"
-    | "preset"
-    | "token"
-    | "duplicate";
+    "add" | "remove" | "rename" | "activate" | "preset" | "token" | "duplicate";
   before: import("@composition/shared").ThemesCollection;
   after: import("@composition/shared").ThemesCollection;
   /** 라벨용 사본 — 항목 삭제 뒤에도 이름 유지 */
@@ -177,6 +184,12 @@ export interface HistoryEntry {
      * 진입 전 early-branch 로 처리한다 (`historyActions.ts`).
      */
     pagePositionEvent?: { entries: PagePositionHistoryEntryItem[] };
+    /**
+     * **ADR-232** — `type: "page-position"` 의 **파생 모델** payload. 저장 좌표 대신
+     * 페이지 배치 (`pageLayout.placements`) 를 되돌린다. 스토어 미러가 없어 canonical 만
+     * 갱신하며 (위치는 파생값), 옛 문서·저장된 이력의 `pagePositionEvent` 와 공존한다.
+     */
+    pagePlacementEvent?: { entries: PagePlacementHistoryEntryItem[] };
     /**
      * **ADR-181** — `type: "page-guide"` 전용 payload. `pagePositionEvent` 와
      * 같은 비-element 축 (undo/redo 는 element 경로 진입 전 early-branch).
@@ -859,7 +872,8 @@ export class HistoryManager {
    */
   getAllPageEntryCounts(): Record<string, number> {
     const out: Record<string, number> = {};
-    for (const [pageId, h] of this.pageHistories) out[pageId] = h.entries.length;
+    for (const [pageId, h] of this.pageHistories)
+      out[pageId] = h.entries.length;
     return out;
   }
 

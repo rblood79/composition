@@ -41,6 +41,10 @@ import {
   useParentFlexDirection,
 } from "../hooks/useTransformAuxiliary";
 import { readImmediateSelectionSnapshot, useStore } from "../../../stores";
+import {
+  commitPagePlacementFromPoint,
+  isPagePlacementEditable,
+} from "../../../stores/utils/pagePlacementCommit";
 import { useElementStyleContext } from "../hooks/useElementStyleContext";
 import { getFillBehavior, getRatioDependentAxis } from "@composition/shared";
 import { historyManager } from "../../../stores/history";
@@ -160,11 +164,13 @@ const PagePositionRow = memo(function PagePositionRow({
       const state = useStore.getState();
       const current = state.pagePositions[pageId];
       if (!current) return;
-      state.updatePagePosition(
-        pageId,
-        axis === "x" ? parsed : current.x,
-        axis === "y" ? parsed : current.y,
-      );
+      const next = {
+        x: axis === "x" ? parsed : current.x,
+        y: axis === "y" ? parsed : current.y,
+      };
+      // ADR-232: 파생 모드면 placement 로 쓴다 (Home 은 거부 — 아래 입력 비활성과 같은 판정).
+      if (commitPagePlacementFromPoint(pageId, next)) return;
+      state.updatePagePosition(pageId, next.x, next.y);
     },
     [pageId],
   );
@@ -179,6 +185,8 @@ const PagePositionRow = memo(function PagePositionRow({
 
   if (!pagePosition) return null;
 
+  // ADR-232 — Home 은 흐름 원점이라 이동할 수 없다 (파생 모드 한정).
+  const isEditable = isPagePlacementEditable(pageId);
   const live = liveKey ? liveKey.split(":") : null;
   const displayX = live ? live[0] : String(Math.round(pagePosition.x));
   const displayY = live ? live[1] : String(Math.round(pagePosition.y));
@@ -193,6 +201,7 @@ const PagePositionRow = memo(function PagePositionRow({
         value={`${displayX}px`}
         units={["px"]}
         onChange={handleXCommit}
+        isDisabled={!isEditable}
         min={-99999}
         max={99999}
       />
@@ -203,6 +212,7 @@ const PagePositionRow = memo(function PagePositionRow({
         value={`${displayY}px`}
         units={["px"]}
         onChange={handleYCommit}
+        isDisabled={!isEditable}
         min={-99999}
         max={99999}
       />

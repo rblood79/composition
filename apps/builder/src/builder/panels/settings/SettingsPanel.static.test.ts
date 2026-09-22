@@ -35,8 +35,9 @@ describe("SettingsPanel 공통 panel 구조", () => {
     expect(source).not.toContain("PropertySelect");
     expect(source).toContain("PropertyUnitInput");
     expect(source).toContain('t("settings.pageGap")');
-    // 「80 PX」 — 단위 suffix, preset · 아이콘 · stepper 없음 (panel-ui 20 — 대조 B11)
-    expect(source).toContain("value={`${pageGap}px`}");
+    // 「80 PX」 — 단위 suffix, preset · 아이콘 · stepper 없음 (panel-ui 20 — 대조 B11).
+    //   ADR-232: 파생 모드에서는 문서 `pageLayout.gap` 이 공급원이라 값 표현이 `effectiveGap` 이다.
+    expect(source).toContain("value={`${effectiveGap}px`}");
     expect(source).toContain('units={["px"]}');
     expect(source).toContain("unitSuffix");
     expect(source).toContain("allowKeywords={false}");

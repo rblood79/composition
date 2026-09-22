@@ -1,5 +1,6 @@
 import { persistActiveCanonicalDocument } from "../../../stores/canonical/persistActiveCanonicalDocument";
 import { useStore } from "../../../stores";
+import { commitPagePlacementAlign } from "../../../stores/utils/pagePlacementCommit";
 import { resolveSystemPageIds } from "../../../stores/elements";
 import { BREAKPOINT_ORDER } from "../../../../types/builder/responsive.types";
 import { historyManager } from "../../../stores/history";
@@ -20,6 +21,9 @@ type BreakpointName = import("@composition/shared").BreakpointName;
  * no-op (lazy write).
  */
 export function alignPagesToScreen(): void {
+  // ADR-232: 파생 모드면 좌표 계산 없이 Home 제외 placement 를 지운다 (= 흐름 복귀).
+  if (commitPagePlacementAlign()) return;
+
   const { canvasSize, containerSize, pageLayoutPanelMetrics, zoom } =
     useViewportSyncStore.getState();
   const { initializePagePositions, pageGap, pageLayoutDirection, pages } =

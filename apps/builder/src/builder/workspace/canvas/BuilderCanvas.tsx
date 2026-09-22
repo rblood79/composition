@@ -639,6 +639,7 @@ export function BuilderCanvas({
       pageSizes: pageFrameSizes,
       pageLayout: documentPageLayout,
       activeBreakpoint: sceneActiveBreakpoint,
+      systemPageIds: resolveSystemPageIds(pages),
       legacyPositions: activeCanonicalDocument?.pagePositions,
     });
   }, [

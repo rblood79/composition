@@ -10,6 +10,7 @@
  * @updated 2026-03-05 - ADR-021 Phase D: 저장 테마 선택 UI 제거 (Tint System으로 대체)
  */
 
+import { useCallback } from "react";
 import { Settings } from "lucide-react";
 import { ACTION_ICONS } from "../../config/actionIcons";
 import { iconProps } from "../../../utils/ui/uiConstants";
@@ -31,6 +32,8 @@ import { useThemeMessenger } from "@/builder/hooks";
 import { LanguageSwitcher } from "@/i18n";
 import { useI18n } from "@/i18n";
 import { alignPagesToScreen } from "../../workspace/canvas/viewport/pageLayoutActions";
+import { useCanonicalDocumentStore } from "../../stores/canonical/canonicalDocumentStore";
+import { resolvePageLayout } from "../../workspace/canvas/scene/pagePlacement";
 
 function SettingsContent() {
   const { sendDarkMode } = useThemeMessenger();
@@ -52,6 +55,89 @@ function SettingsContent() {
   );
   const pageGap = useStore((state) => state.pageGap);
   const setPageGap = useStore((state) => state.setPageGap);
+
+  // ADR-232 — 파생 모드에서는 Page layout · gap · 열 수가 **문서 데이터** 다
+  //   (localStorage 에서 승격). 미이관 문서는 현행 store/localStorage 그대로.
+  const activeBreakpoint = useStore((state) => state.activeBreakpoint);
+  const documentPageLayout = useCanonicalDocumentStore((state) => {
+    const projectId = state.currentProjectId;
+    return projectId ? state.documents.get(projectId)?.pageLayout : undefined;
+  });
+  const isDerivedPlacement = documentPageLayout?.placementModel === "derived";
+  const resolvedPageLayout = resolvePageLayout(
+    documentPageLayout,
+    activeBreakpoint,
+  );
+  const effectiveDirection = isDerivedPlacement
+    ? resolvedPageLayout.direction
+    : normalizePageLayoutDirection(pageLayoutDirection);
+  const effectiveGap = isDerivedPlacement ? resolvedPageLayout.gap : pageGap;
+  const effectiveColumns = resolvedPageLayout.columns;
+  const tierOverrideAvailable =
+    isDerivedPlacement && activeBreakpoint !== "desktop";
+  const hasTierOverride =
+    tierOverrideAvailable &&
+    (documentPageLayout?.responsive?.columns?.[activeBreakpoint] !==
+      undefined ||
+      documentPageLayout?.responsive?.gap?.[activeBreakpoint] !== undefined);
+
+  /** 열 수·간격 쓰기 — tier 토글 ON 이면 활성 tier override, 아니면 base. */
+  const writeLayoutValue = useCallback(
+    (key: "gap" | "columns", value: number) => {
+      const store = useCanonicalDocumentStore.getState();
+      if (tierOverrideAvailable && hasTierOverride) {
+        store.setPageLayout({
+          responsive: {
+            ...(documentPageLayout?.responsive ?? {}),
+            [key]: {
+              ...(documentPageLayout?.responsive?.[key] ?? {}),
+              [activeBreakpoint]: value,
+            },
+          },
+        });
+        return;
+      }
+      store.setPageLayout({ [key]: value });
+    },
+    [
+      activeBreakpoint,
+      documentPageLayout?.responsive,
+      hasTierOverride,
+      tierOverrideAvailable,
+    ],
+  );
+
+  const handleTierOverrideChange = useCallback(
+    (selected: boolean) => {
+      const store = useCanonicalDocumentStore.getState();
+      const responsive = { ...(documentPageLayout?.responsive ?? {}) };
+      if (selected) {
+        // 켜는 순간 현재 유효값을 그 tier 에 고정한다 (토글 자체가 값을 바꾸지 않는다).
+        responsive.columns = {
+          ...(responsive.columns ?? {}),
+          [activeBreakpoint]: resolvedPageLayout.columns,
+        };
+        responsive.gap = {
+          ...(responsive.gap ?? {}),
+          [activeBreakpoint]: resolvedPageLayout.gap,
+        };
+      } else {
+        for (const key of ["columns", "gap"] as const) {
+          const entry = { ...(responsive[key] ?? {}) };
+          delete entry[activeBreakpoint];
+          if (Object.keys(entry).length === 0) delete responsive[key];
+          else responsive[key] = entry;
+        }
+      }
+      store.setPageLayout({ responsive });
+    },
+    [
+      activeBreakpoint,
+      documentPageLayout?.responsive,
+      resolvedPageLayout.columns,
+      resolvedPageLayout.gap,
+    ],
+  );
 
   // UI 설정 (글로벌 uiStore에서 가져옴)
   const themeMode = useUiStore((state) => state.themeMode);
@@ -95,15 +181,34 @@ function SettingsContent() {
   };
 
   const handlePageLayoutChange = (value: string) => {
+    if (isDerivedPlacement) {
+      // direction 은 breakpoint 공통 (`gridAutoFlow` 가 responsive eligible 이 아니다 — F11).
+      useCanonicalDocumentStore.getState().setPageLayout({
+        direction: normalizePageLayoutDirection(
+          value as PageLayoutDirection,
+        ) as "auto" | "vertical" | "horizontal",
+      });
+      return;
+    }
     setPageLayoutDirection(value as PageLayoutDirection);
     alignPagesToScreen();
   };
 
   const handlePageGapChange = (value: string) => {
     const nextGap = Number.parseFloat(value);
-    if (!Number.isFinite(nextGap)) return;
+    if (!Number.isFinite(nextGap) || nextGap < 0) return;
+    if (isDerivedPlacement) {
+      writeLayoutValue("gap", nextGap);
+      return;
+    }
     setPageGap(nextGap);
     alignPagesToScreen();
+  };
+
+  const handlePageColumnsChange = (value: string) => {
+    const next = Number.parseInt(value, 10);
+    if (!Number.isFinite(next) || next < 1) return;
+    writeLayoutValue("columns", next);
   };
 
   return (
@@ -151,7 +256,7 @@ function SettingsContent() {
             {/* 「80 PX」 — 아이콘 prefix · S/M/L preset ▾ 대신 단위 suffix + stepper (panel-ui 20 — 대조 B11) */}
             <PropertyUnitInput
               label={t("settings.pageGap")}
-              value={`${pageGap}px`}
+              value={`${effectiveGap}px`}
               min={0}
               max={2000}
               onChange={handlePageGapChange}
@@ -161,9 +266,33 @@ function SettingsContent() {
             />
           </div>
 
+          {/* ADR-232 — 컨테이너 폭은 뷰포트가 아니라 **열 수** 다 (대안 D 기각). */}
+          {isDerivedPlacement && effectiveDirection === "auto" && (
+            <div className="fieldset-row settings-row">
+              <PropertyUnitInput
+                label={t("settings.pageColumns")}
+                value={String(effectiveColumns)}
+                min={1}
+                max={24}
+                onChange={handlePageColumnsChange}
+                units={[""]}
+                unitSuffix
+                allowKeywords={false}
+              />
+              {tierOverrideAvailable && (
+                <PropertySwitch
+                  label={t("settings.pageLayoutTierOverride")}
+                  isSelected={hasTierOverride}
+                  onChange={handleTierOverrideChange}
+                  icon={ACTION_ICONS.toggleRulers}
+                />
+              )}
+            </div>
+          )}
+
           <PropertySizeToggle
             label={t("settings.pageLayout")}
-            value={normalizePageLayoutDirection(pageLayoutDirection)}
+            value={effectiveDirection}
             onChange={handlePageLayoutChange}
             options={pageLayoutOptions}
             className="settings-page-layout-toggle"

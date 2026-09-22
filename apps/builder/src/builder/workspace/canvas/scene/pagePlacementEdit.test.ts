@@ -50,6 +50,7 @@ function ctxOf(
   })!;
   return {
     pages: pages(n),
+    homePageId: "p0",
     positions,
     pageSizes: sizes(n),
     layout,
@@ -243,7 +244,13 @@ describe("align — Home 제외 전부 흐름 복귀", () => {
       p1: { style: { gridColumnStart: 3, gridRowStart: 1 } },
       p3: { style: { position: "absolute", left: -1000, top: 0 } },
     };
-    expect(resolvePlacementsForAlign({ pages: pages(4), placements })).toEqual([
+    expect(
+      resolvePlacementsForAlign({
+        pages: pages(4),
+        homePageId: "p0",
+        placements,
+      }),
+    ).toEqual([
       { pageId: "p1", placement: null },
       { pageId: "p3", placement: null },
     ]);
@@ -253,9 +260,13 @@ describe("align — Home 제외 전부 흐름 복귀", () => {
     const placements = {
       p0: { style: { gridColumnStart: 2, gridRowStart: 1 } },
     };
-    expect(resolvePlacementsForAlign({ pages: pages(3), placements })).toEqual(
-      [],
-    );
+    expect(
+      resolvePlacementsForAlign({
+        pages: pages(3),
+        homePageId: "p0",
+        placements,
+      }),
+    ).toEqual([]);
   });
 });
 
@@ -298,10 +309,21 @@ describe("칸 유일성 (R9 — 엔진 겹침 허용에 기대지 않는다)", (
 });
 
 describe("Home 식별", () => {
-  it("canonical 순서 첫 페이지가 Home 이고 편집 불가다", () => {
+  it("시스템 페이지는 건너뛴다 — store 순서는 Components 가 앞에 온다 (live 실측 09-22)", () => {
+    const withSystem = [
+      { id: "page-components", system: true },
+      { id: "home", system: false },
+      { id: "p2", system: false },
+    ];
+    expect(resolveHomePageId(withSystem, (p) => p.system)).toBe("home");
+    // 술어를 주지 않으면 첫 페이지 — 이 경로로 판정하면 Home 이 이동 가능해진다 (R10)
+    expect(resolveHomePageId(withSystem)).toBe("page-components");
+  });
+
+  it("canonical 순서 첫 사용자 페이지가 Home 이고 편집 불가다", () => {
     expect(resolveHomePageId(pages(3))).toBe("p0");
-    expect(isPlacementEditable("p0", pages(3))).toBe(false);
-    expect(isPlacementEditable("p1", pages(3))).toBe(true);
+    expect(isPlacementEditable("p0", "p0")).toBe(false);
+    expect(isPlacementEditable("p1", "p0")).toBe(true);
   });
 });
 

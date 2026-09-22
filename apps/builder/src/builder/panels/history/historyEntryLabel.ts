@@ -213,7 +213,9 @@ export function getHistoryEntryLabel(
     }
     case "page-position": {
       const count = new Set(
-        entry.data.pagePositionEvent?.entries.map((item) => item.pageId) ?? [],
+        entry.data.pagePositionEvent?.entries.map((item) => item.pageId) ??
+          entry.data.pagePlacementEvent?.entries.map((item) => item.pageId) ??
+          [],
       ).size;
       return count > 1
         ? t("history.entryPageMoveCount", { count })
