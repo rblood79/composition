@@ -18,7 +18,6 @@
  *   위 페이지 body ∪ 헤더 에 가려진 구간은 `clip-path: inset()` (breakdown §6).
  */
 import { useLayoutEffect, useRef } from "react";
-import { useStore } from "../../../../stores";
 import {
   getCanvasFramePresentationSnapshot,
   subscribeCanvasFramePresentation,
@@ -84,12 +83,15 @@ function resolvePosition(
   frame: PageHeaderFrame,
   snapshot: PagePositionPresentationSnapshot | null,
 ): ScenePoint {
-  // canonical 은 store 가 정본 (drag commit 이 동기라 프레임 목록보다 먼저 갱신된다).
-  const canonical = useStore.getState().derivedPagePositions[frame.id] ?? frame;
+  // ADR-232 — 정본은 이 render 가 받은 프레임이다 (Skia 가 그리는 값과 같은 scene 스냅샷).
+  //   store 의 `derivedPagePositions` 는 같은 파생을 BuilderCanvas 의 **passive effect** 가
+  //   싣는 사본이라 이 배치 layoutEffect 보다 항상 늦다 (자식 layoutEffect → 부모 useEffect).
+  //   미러를 먼저 읽으면 Settings 의 gap · 열 수 · 방향 변경에서 페이지 본문만 움직이고
+  //   헤더는 옛 자리에 남았다가 다음 카메라 변화(스크롤)의 재배치에서야 따라왔다 (2026-09-22).
   const delta = snapshot ? readPagePositionDelta(frame.id, snapshot) : null;
   return {
-    x: canonical.x + (delta?.dx ?? 0),
-    y: canonical.y + (delta?.dy ?? 0),
+    x: frame.x + (delta?.dx ?? 0),
+    y: frame.y + (delta?.dy ?? 0),
   };
 }
 

@@ -111,6 +111,27 @@ describe("usePageHeaderPlacement — 게이트 · drag 추종 · settle 배치",
     expect(headerOf(layer, "p3").style.display).toBe("none");
   });
 
+  // ADR-232 — Settings 의 gap · 열 수 · 방향을 바꾸면 파생 좌표가 프레임에 먼저 실리고
+  //   store 미러는 BuilderCanvas 의 passive effect 에서 한 박자 뒤에 실린다. 헤더가 미러를
+  //   먼저 읽으면 페이지 본문만 움직이고 헤더는 그 자리에 남는다 (사용자 보고 2026-09-22 —
+  //   스크롤하면 그때 제자리로 왔다 = 다음 카메라 변화의 재배치가 고친 것).
+  it("frames 가 바뀌면 store 미러가 아직 옛 값이어도 헤더가 프레임을 따라간다", () => {
+    const { container, rerender } = render(<PageHeaderLayer frames={frames} />);
+    const layer = container.firstElementChild as HTMLElement;
+    expect(headerOf(layer, "p1").style.transform).toBe(
+      "translate3d(0px, 64px, 0)",
+    );
+
+    const moved = frames.map((frame) =>
+      frame.id === "p1" ? { ...frame, x: 300 } : frame,
+    );
+    rerender(<PageHeaderLayer frames={moved} />);
+
+    expect(headerOf(layer, "p1").style.transform).toBe(
+      "translate3d(300px, 64px, 0)",
+    );
+  });
+
   it("게이트 ON 동안 프레임 콜백은 DOM 을 쓰지 않고, OFF 전환에 1회 배치한다", async () => {
     const { container } = render(<PageHeaderLayer frames={frames} />);
     const layer = container.firstElementChild as HTMLElement;
@@ -198,27 +219,16 @@ describe("usePageHeaderPlacement — 게이트 · drag 추종 · settle 배치",
   });
 
   it("위 (활성) 페이지가 겹치면 아래 페이지 헤더는 clip-path inset 으로 잘린다", () => {
-    // p2 (활성, 위) 를 p1 오른쪽 절반 위로 옮긴다
-    testStore.setState({
-      derivedPagePositions: {
-        p1: { x: 0, y: 0 },
-        p2: { x: 200, y: 0 },
-        p3: { x: 5000, y: 5000 },
-      },
-    });
-    const { container } = render(<PageHeaderLayer frames={frames} />);
+    // p2 (활성, 위) 를 p1 오른쪽 절반 위로 옮긴다 — 정본은 프레임이다 (ADR-232).
+    const overlapping = frames.map((frame) =>
+      frame.id === "p2" ? { ...frame, x: 200 } : frame,
+    );
+    const { container } = render(<PageHeaderLayer frames={overlapping} />);
     const layer = container.firstElementChild as HTMLElement;
     expect(headerOf(layer, "p1").style.clipPath).toBe(
       "inset(0px 200px 0px 0px)",
     );
     expect(headerOf(layer, "p2").style.clipPath).toBe("");
-    testStore.setState({
-      derivedPagePositions: {
-        p1: { x: 0, y: 0 },
-        p2: { x: 1000, y: 0 },
-        p3: { x: 5000, y: 5000 },
-      },
-    });
   });
 });
 

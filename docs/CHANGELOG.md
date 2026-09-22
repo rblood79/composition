@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [페이지 헤더가 설정 변경을 따라가지 않던 문제] - 2026-09-22
+
+### Fixed
+
+- **Settings 에서 배치 방향·간격·열 수를 바꾸면 페이지 헤더 띠가 그 자리에 남아 있던 문제를 고쳤다.** 페이지 본문만 움직이고 헤더는 옛 위치에 있다가, 캔버스를 스크롤하면 그제서야 제자리로 왔다.
+  - **Why:** 헤더 배치가 페이지 위치를 scene 프레임이 아니라 store 미러 (`derivedPagePositions`) 에서 먼저 읽었다. 그 미러는 같은 파생값을 캔버스의 passive effect 가 싣는 사본이라 헤더의 layout effect 보다 항상 한 커밋 늦다 (자식 layout effect → 부모 passive effect). 이제 헤더는 Skia 가 그리는 프레임과 같은 값을 읽는다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/overlay/pageHeader/usePageHeaderPlacement.ts`
+
 ## [페이지 배치 = 컨테이너 레이아웃 파생값 (ADR-232)] - 2026-09-22
 
 ### Changed
