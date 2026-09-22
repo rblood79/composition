@@ -104,6 +104,13 @@ import {
 } from "./renderers";
 import { getElementBoundsSimple } from "./elementRegistry";
 import { buildPagePaintRank } from "./scene/pagePaintOrder";
+import { readPageFrameSize } from "./scene/pageFrameSize";
+import {
+  derivePagePositionsMemo,
+  pagePlacementVersion,
+} from "./scene/pagePlacement";
+// dev 디버그 전역 등록 (ADR-232 live 하니스 진입점) — production 은 no-op.
+import "./scene/pagePlacementDebug";
 import { GPUDebugOverlay } from "./utils/GPUDebugOverlay";
 import { useCanvasElementSelectionHandlers } from "./hooks/useCanvasElementSelectionHandlers";
 import { useCentralCanvasPointerHandlers } from "./hooks/useCentralCanvasPointerHandlers";
@@ -187,6 +194,11 @@ const DEFAULT_WIDTH = 1920;
 const DEFAULT_HEIGHT = 1080;
 const EMPTY_SCENE_NODES: CanvasSceneNode[] = [];
 const EMPTY_SCENE_NODES_MAP = new Map<string, CanvasSceneNode>();
+/** ADR-232 — 파생 모드가 아닐 때의 빈 frame 크기 map (identity 고정: memo 재계산 방지). */
+const EMPTY_PAGE_FRAME_SIZES: Record<
+  string,
+  { width: number; height: number }
+> = {};
 const EMPTY_SCENE_CHILDREN_MAP = new Map<string, CanvasSceneNode[]>();
 const EMPTY_PAGE_INDEX: PageElementIndex = {
   elementsByPage: new Map(),
@@ -580,6 +592,76 @@ export function BuilderCanvas({
   const pageGap = useStore((state) => state.pageGap);
 
   const scenePageIndex = canonicalSceneModel?.pageIndex ?? EMPTY_PAGE_INDEX;
+
+  // ── ADR-232: 페이지 위치는 컨테이너 레이아웃 파생값 ──────────────────────
+  //
+  // `pageLayout.placementModel` 이 읽기 모드를 정한다 (placement 존재가 아니라 — 리뷰 round 3 l3).
+  //   `"derived"` → 아래 파생값 · `"legacy"` 또는 부재 → 저장 좌표 (`pagePositions`).
+  // 미이관 문서는 모델이 없으므로 이 배선은 Phase 3 이관 전까지 휴면이다 (동작 변경 0).
+  const documentPageLayout = activeCanonicalDocument?.pageLayout;
+  const isDerivedPlacement = documentPageLayout?.placementModel === "derived";
+
+  // 파생 입력 1 — 페이지별 frame 크기 (저작 크기 ?? breakpoint · Components 는 ADR-231 neutral).
+  const pageFrameSizes = useMemo(() => {
+    if (!isDerivedPlacement) return EMPTY_PAGE_FRAME_SIZES;
+    const sizes: Record<string, { width: number; height: number }> = {};
+    for (const page of pages) {
+      const neutral = isComponentsPageMirror(page);
+      sizes[page.id] = readPageFrameSize(
+        page.id,
+        scenePageIndex.elementsByPage,
+        sceneNodesMap,
+        pageWidth,
+        pageHeight,
+        neutral
+          ? {
+              neutral: true,
+              publishedContentHeight: pageContentHeights.get(page.id),
+            }
+          : undefined,
+      );
+    }
+    return sizes;
+  }, [
+    isDerivedPlacement,
+    pageContentHeights,
+    pageHeight,
+    pageWidth,
+    pages,
+    scenePageIndex,
+    sceneNodesMap,
+  ]);
+
+  const derivedPagePositions = useMemo(() => {
+    if (!isDerivedPlacement) return null;
+    return derivePagePositionsMemo({
+      pages,
+      pageSizes: pageFrameSizes,
+      pageLayout: documentPageLayout,
+      activeBreakpoint: sceneActiveBreakpoint,
+      legacyPositions: activeCanonicalDocument?.pagePositions,
+    });
+  }, [
+    activeCanonicalDocument?.pagePositions,
+    documentPageLayout,
+    isDerivedPlacement,
+    pageFrameSizes,
+    pages,
+    sceneActiveBreakpoint,
+  ]);
+
+  // 엔진 미준비 (부팅 초기) 면 파생이 null — 저장 좌표로 강등한다. 그 구간에 화면에 나오는
+  //   것은 없다 (`SkiaRenderer` 는 `await initAllWasm()` 뒤에만 생성 — ADR-232 G0 §4).
+  const effectivePagePositions = derivedPagePositions ?? pagePositions;
+  // 파생 모드에서는 store 의 version 이 오르지 않으므로 좌표 자체로 version 을 만든다 —
+  //   stale 프레임 카운터 (`skiaTreeBuilder`) 와 커맨드 캐시 키가 같이 읽는다.
+  const effectivePagePositionsVersion = useMemo(
+    () =>
+      derivedPagePositions
+        ? pagePlacementVersion(derivedPagePositions)
+        : pagePositionsVersion,
+    [derivedPagePositions, pagePositionsVersion],
+  );
   // Compare Canvas는 기존처럼 전체 page scene을 유지한다. 사용자가 명시적으로
   // current-page filter를 켠 경우에만 CSS leg와 같은 canonical page로 제한한다.
   const compareVisiblePageIds = useMemo<ReadonlySet<string> | null>(
@@ -628,8 +710,8 @@ export function BuilderCanvas({
       pageContentHeights,
       pageHeight,
       pageIndex: scenePageIndex,
-      pagePositions,
-      pagePositionsVersion,
+      pagePositions: effectivePagePositions,
+      pagePositionsVersion: effectivePagePositionsVersion,
       pageWidth,
       pages: scenePages,
       panOffset,
@@ -648,8 +730,8 @@ export function BuilderCanvas({
     pageContentHeights,
     pageHeight,
     scenePageIndex,
-    pagePositions,
-    pagePositionsVersion,
+    effectivePagePositions,
+    effectivePagePositionsVersion,
     pageWidth,
     pages,
     panOffset,
@@ -692,6 +774,9 @@ export function BuilderCanvas({
     if (!prev || prev.breakpoint !== sceneActiveBreakpoint || isFrameEditMode) {
       return;
     }
+    // ADR-232: 파생 모드에서는 reflow 가 필요 없다 — frame 크기가 바뀌면 파생이 다시 돌아
+    //   행 높이가 따라온다 (b290d75da 의 목적을 컨테이너 레이아웃이 그대로 수행).
+    if (isDerivedPlacement) return;
     const state = useStore.getState();
     let positions = state.pagePositions;
     // ADR-231: reflow 는 열/격자 경계를 넘지 않는다 — 시스템 열 (Components) 의 높이 성장이
@@ -700,7 +785,10 @@ export function BuilderCanvas({
     const shifts = new Map<string, { pageId: string; x: number; y: number }>();
     for (const [pageId, next] of nextSizes) {
       const before = prev.sizes.get(pageId);
-      if (!before || (before.width === next.width && before.height === next.height)) {
+      if (
+        !before ||
+        (before.width === next.width && before.height === next.height)
+      ) {
         continue;
       }
       const moved = computePageFrameReflow({
@@ -722,6 +810,7 @@ export function BuilderCanvas({
       state.applyPageFrameReflow([...shifts.values()]);
     }
   }, [
+    isDerivedPlacement,
     isFrameEditMode,
     sceneActiveBreakpoint,
     sceneStructureSnapshot.document.allPageFrames,
@@ -807,7 +896,13 @@ export function BuilderCanvas({
       // ADR-231 live: 페이지 frame (buildPageFrames 산출 — 테두리·히트·쌓기가 읽는 값).
       readPageFrames: () =>
         sceneDebugRef.current.sceneStructureSnapshot.document.allPageFrames.map(
-          (f) => ({ id: f.id, x: f.x, y: f.y, width: f.width, height: f.height }),
+          (f) => ({
+            id: f.id,
+            x: f.x,
+            y: f.y,
+            width: f.width,
+            height: f.height,
+          }),
         ),
     };
   }, []);
@@ -880,7 +975,7 @@ export function BuilderCanvas({
     if (!isFrameEditMode || !pageLayoutPanelMetrics) return [];
     const anchorPageId = currentPageId ?? pages[0]?.id ?? null;
     const anchorPosition = anchorPageId
-      ? pagePositions[anchorPageId]
+      ? effectivePagePositions[anchorPageId]
       : undefined;
     const pageLayoutBounds = resolvePageLayoutBounds(
       containerSize.width,
@@ -918,7 +1013,7 @@ export function BuilderCanvas({
     pageGap,
     pageHeight,
     pageLayoutDirection,
-    pagePositions,
+    effectivePagePositions,
     pageWidth,
     pageLayoutPanelMetrics,
     containerSize.width,
@@ -980,8 +1075,8 @@ export function BuilderCanvas({
       sceneNodes,
       sceneNodesMap,
       pageIndex: scenePageIndex,
-      pagePositions,
-      pagePositionsVersion,
+      pagePositions: effectivePagePositions,
+      pagePositionsVersion: effectivePagePositionsVersion,
       pages,
       sceneSnapshot,
       framePositions,
@@ -996,8 +1091,8 @@ export function BuilderCanvas({
     sceneNodes,
     sceneNodesMap,
     scenePageIndex,
-    pagePositions,
-    pagePositionsVersion,
+    effectivePagePositions,
+    effectivePagePositionsVersion,
     pages,
     sceneSnapshot,
     framePositions,

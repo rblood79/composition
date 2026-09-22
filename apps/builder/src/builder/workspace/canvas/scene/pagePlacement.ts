@@ -448,6 +448,23 @@ export function derivePagePositionsMemo(
   return next;
 }
 
+/**
+ * 파생 좌표 map 의 version — 내용 주소 방식.
+ *
+ * 파생 모드에서는 store `pagePositionsVersion` 이 오르지 않으므로 stale 프레임 카운터
+ * (`skiaTreeBuilder`) 와 커맨드 캐시 키가 이 값을 읽는다.
+ */
+export function pagePlacementVersion(positions: PagePositionMap): number {
+  let hash = 0;
+  for (const [id, point] of Object.entries(positions)) {
+    const text = `${id}:${point.x},${point.y}|`;
+    for (let i = 0; i < text.length; i++) {
+      hash = (hash * 31 + text.charCodeAt(i)) | 0;
+    }
+  }
+  return hash;
+}
+
 /** 테스트 전용 — 메모 비우기. */
 export function __resetPagePlacementMemo(): void {
   memoKey = null;

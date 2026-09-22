@@ -30,6 +30,8 @@ import type {
   CompositionDocument,
   DescendantOverride,
   PageGuideLine,
+  PageLayoutSettingsDocument,
+  PagePlacement,
   PagePositionPoint,
   SerializedAction,
   ThemesCollection,
@@ -46,6 +48,16 @@ export interface PagePositionSetEntry {
   pageId: string;
   breakpoint: BreakpointName;
   position: PagePositionPoint | null;
+}
+
+/**
+ * `setPagePlacements` 입력 entry — ADR-232.
+ *
+ * `placement: null` 은 해당 페이지 배치 제거 (align 의 흐름 복귀 / undo 복원).
+ */
+export interface PagePlacementSetEntry {
+  pageId: string;
+  placement: PagePlacement | null;
 }
 
 /**
@@ -292,6 +304,27 @@ export interface CanonicalDocumentActions {
    * - 값 무변경 entry 만 있으면 no-op (documentVersion 미증가 — lazy write).
    */
   setPagePositions(entries: PagePositionSetEntry[]): void;
+
+  // ─────────────────────────────────────────────
+  // ADR-232 — 페이지 컨테이너 배치 root 필드 mutation surface
+  // ─────────────────────────────────────────────
+
+  /**
+   * 활성 document 의 `pageLayout` root 필드를 **얕은 병합** 으로 갱신.
+   *
+   * `placements` 는 이 진입점에서 통째로 교체되지 않는다 — 페이지 단위 편집은
+   * {@link setPagePlacements} 가 담당한다. 값 무변경이면 no-op (lazy write).
+   */
+  setPageLayout(patch: Partial<PageLayoutSettingsDocument>): void;
+
+  /**
+   * 활성 document `pageLayout.placements` 에 페이지 단위 entry 를 병합 기록.
+   *
+   * - batch 입력 (드래그 finish 1건 / 칸 교환 2건 / align 전 페이지 N건).
+   * - `placement: null` entry 는 해당 페이지 배치를 제거 (= 흐름 복귀).
+   * - 값 무변경 entry 만 있으면 no-op.
+   */
+  setPagePlacements(entries: PagePlacementSetEntry[]): void;
 
   // ─────────────────────────────────────────────
   // ADR-181 — 수동 가이드 root 필드 mutation surface

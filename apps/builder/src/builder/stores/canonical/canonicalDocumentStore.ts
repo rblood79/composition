@@ -890,6 +890,61 @@ export const useCanonicalDocumentStore = create<CanonicalDocumentStore>(
     },
 
     // ─────────────────────────────────────────────
+    // ADR-232 — 페이지 컨테이너 배치 root 필드 mutation
+    // ─────────────────────────────────────────────
+
+    setPageLayout: (patch) => {
+      mutateActiveDoc(set, "setPageLayout", (doc) => {
+        const current = doc.pageLayout ?? {};
+        const next = { ...current, ...patch };
+        let changed = false;
+        for (const key of Object.keys(patch) as Array<keyof typeof patch>) {
+          if (
+            JSON.stringify(current[key] ?? null) !==
+            JSON.stringify(next[key] ?? null)
+          ) {
+            changed = true;
+            break;
+          }
+        }
+        if (!changed) return doc;
+        return { ...doc, pageLayout: next };
+      });
+    },
+
+    setPagePlacements: (entries) => {
+      mutateActiveDoc(set, "setPagePlacements", (doc) => {
+        if (entries.length === 0) return doc;
+        const layout = doc.pageLayout ?? {};
+        const placements = { ...(layout.placements ?? {}) };
+        let changed = false;
+        for (const entry of entries) {
+          const before = placements[entry.pageId];
+          if (entry.placement === null) {
+            if (before === undefined) continue;
+            delete placements[entry.pageId];
+            changed = true;
+            continue;
+          }
+          if (
+            JSON.stringify(before ?? null) === JSON.stringify(entry.placement)
+          )
+            continue;
+          placements[entry.pageId] = entry.placement;
+          changed = true;
+        }
+        if (!changed) return doc;
+        const nextLayout = { ...layout };
+        if (Object.keys(placements).length === 0) {
+          delete nextLayout.placements;
+        } else {
+          nextLayout.placements = placements;
+        }
+        return { ...doc, pageLayout: nextLayout };
+      });
+    },
+
+    // ─────────────────────────────────────────────
     // ADR-181 — 수동 가이드 root 필드 mutation
     // ─────────────────────────────────────────────
 
