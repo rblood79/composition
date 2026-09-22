@@ -39,6 +39,7 @@ import type { ComponentTag } from "./composition-vocabulary";
 import type {
   BreakpointName,
   ElementResponsiveConfig,
+  ResponsiveValue,
 } from "./responsive.types";
 
 // ─────────────────────────────────────────────
@@ -1045,6 +1046,77 @@ export interface PagePositionPoint {
 }
 
 /**
+ * 페이지 배치 모델 — ADR-232 Decision 7.
+ *
+ * - `"derived"`: 페이지 위치는 `pageLayout` 컨테이너 + 페이지 `placement` 의 **레이아웃 파생값**.
+ *   `placement` 가 비어 있어도 합법이다 (기본 흐름 · align 직후).
+ * - `"legacy"`: 복귀 상태. 모든 페이지가 absolute 이고 좌표는 `pagePositions` → `legacyFallback`
+ *   순서로 읽는다. 배치 편집은 잠긴다.
+ * - 필드 부재: 미이관 문서 → hydration 이 1회 이관을 수행한다.
+ *
+ * 무엇을 읽을지는 `placement` 의 존재가 아니라 **이 값**이 정한다 (리뷰 round 3 l3).
+ */
+export type PagePlacementModel = "derived" | "legacy";
+
+/**
+ * 페이지 배치 style — ADR-232 Decision 3. 요소와 같은 CSS longhand 언어다.
+ *
+ * 허용 키는 {@link PAGE_PLACEMENT_STYLE_KEYS} 뿐이며 전부 기존 responsive eligibility 표
+ * (`RESPONSIVE_ELIGIBLE_STYLE_PROPS`) 안에 있다 — eligibility 확장 0 (리뷰 round 2 m3).
+ *
+ * 세 상태: 없음 (흐름 auto-placement) · 칸 고정 (`gridColumnStart/End` · `gridRowStart/End`) ·
+ * 격자 밖 (`position:"absolute"` + `left`/`top`). tier 흐름 복귀는 명시 reset
+ * (`position:"static"` · line `"auto"`) 으로 쓴다 — cascade 상속을 끊는 유일한 방법이다.
+ */
+export type PagePlacementStyleMap = Record<string, string | number>;
+
+/** 페이지 1개의 배치 — base + breakpoint override (ADR-154 와 같은 cascade). */
+export interface PagePlacement {
+  /** desktop(base) 선언. 비어 있으면 흐름. */
+  style?: PagePlacementStyleMap;
+  /** tier override — 키는 {@link PAGE_PLACEMENT_STYLE_KEYS} 한정. */
+  responsive?: Record<string, ResponsiveValue<string | number>>;
+}
+
+/**
+ * 페이지 컨테이너 (합성 grid root) 설정 — ADR-232 Decision 2.
+ *
+ * `direction` 은 **breakpoint 공통**이다 (`gridAutoFlow` 가 responsive eligible 이 아니다 —
+ * F11). tier 별로 달라지는 것은 `columns` · `gap` · 페이지 `placement` 셋뿐.
+ *
+ * 컨테이너 폭은 뷰포트가 아니라 **열 수**에서 나온다 (대안 D 기각 — zoom·창 크기마다 칸이
+ * 바뀌면 위치가 문서 상태가 아니라 뷰 상태가 된다, 2026-09-18 실측). 열 track 은
+ * `repeat(columns, <breakpoint 페이지 폭>px)` 고정 폭 — 빈 열이 0 폭으로 접혀 고정 칸이
+ * 밀리는 것을 막는다 (리뷰 round 2 m3).
+ *
+ * Preview/Publish 산출물과 무관하다 (`pagePositions` 와 같은 빌더 전용 root 필드).
+ */
+export interface PageLayoutSettingsDocument {
+  /** 배치 방향 — breakpoint 공통. 기본 `"auto"`. */
+  direction?: "auto" | "vertical" | "horizontal";
+  /** 페이지 사이 간격 (world px, ≥ 0). 기본 80 (`PAGE_STACK_GAP`). */
+  gap?: number;
+  /** `direction:"auto"` 의 열 수 (≥ 1). 기본 3. */
+  columns?: number;
+  /** `gap` · `columns` 의 tier override — cascade 는 `getResponsiveValueWithCascade` 와 같다. */
+  responsive?: {
+    gap?: ResponsiveValue<number>;
+    columns?: ResponsiveValue<number>;
+  };
+  /** 배치 모델. 부재 = 미이관 (hydration 이 1회 이관). */
+  placementModel?: PagePlacementModel;
+  /** 페이지별 배치. entry 부재 = 흐름. */
+  placements?: Record<string, PagePlacement>;
+  /**
+   * `"legacy"` 복귀용 좌표 보충 — `pagePositions` 에 (페이지 × tier) 가 없을 때만 읽는다.
+   * `"legacy"` 로 전환하는 순간 그때의 파생 위치 (Home 기준 상대) 로 채운다.
+   */
+  legacyFallback?: Partial<
+    Record<BreakpointName, Record<string, PagePositionPoint>>
+  >;
+}
+
+/**
  * 수동 가이드 라인 1개 — ADR-181 `pageGuides` entry 값.
  *
  * `position` 은 **페이지-로컬 px** 다. 페이지 위치(ADR-177 `pagePositions`)와
@@ -1131,6 +1203,15 @@ export interface CompositionDocument {
     string,
     Partial<Record<BreakpointName, PagePositionPoint>>
   >;
+
+  /**
+   * 페이지 컨테이너 배치 — ADR-232 (authoring 데이터, 배포 무관).
+   *
+   * 이 필드가 `pagePositions` 를 **대체**한다 (specialization 이 아니라 교체). 페이지 위치는
+   * 저장하지 않고 컨테이너 style + 페이지 `placement` + 페이지 frame 크기에서 파생한다.
+   * `pagePositions` 는 이관 입력과 `"legacy"` 복귀용으로만 남는 휴면 필드다 (쓰기 0).
+   */
+  pageLayout?: PageLayoutSettingsDocument;
 
   /**
    * 수동 가이드 — ADR-181.

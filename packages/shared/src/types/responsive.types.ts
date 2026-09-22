@@ -216,6 +216,24 @@ export const RESPONSIVE_ELIGIBLE_STYLE_PROPS: ReadonlySet<string> = new Set([
 ]);
 
 /**
+ * ADR-232 — 페이지 `placement` 가 쓰는 style longhand 전수.
+ *
+ * 전부 {@link RESPONSIVE_ELIGIBLE_STYLE_PROPS} 안에 있어야 한다 — 페이지 배치를 위해
+ * eligibility 표를 넓히지 않는다는 계약 (리뷰 round 2 m3). `pagePlacementKeys.static.test.ts`
+ * 가 기계 대조한다. shorthand (`gridColumn` · `gridRow` · `inset`) 는 제외 — source order 가
+ * 승자를 정하는 emit 계약 때문에 longhand 만 쓴다 (ADR-168 M3 와 같은 이유).
+ */
+export const PAGE_PLACEMENT_STYLE_KEYS: readonly string[] = [
+  "position",
+  "left",
+  "top",
+  "gridColumnStart",
+  "gridColumnEnd",
+  "gridRowStart",
+  "gridRowEnd",
+];
+
+/**
  * ADR-154 개정 1 — style prop 이 breakpoint 별 override(토글 opt-in) 대상인지 판정.
  * `false` = 전역 속성(어느 breakpoint 에서든 base 저장). SSOT: {@link RESPONSIVE_ELIGIBLE_STYLE_PROPS}.
  */

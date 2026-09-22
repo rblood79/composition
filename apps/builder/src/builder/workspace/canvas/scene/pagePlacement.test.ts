@@ -1,0 +1,625 @@
+/**
+ * ADR-232 G1 — 페이지 배치 파생 (합성 grid root) 단위 게이트.
+ *
+ * oracle = 현행 `calculatePagePositions` (기본 문서에서 Δ0 이어야 한다 — 이관 없는 새 문서의
+ * 배치가 바뀌면 그 자체가 회귀다). 실제 wasm 엔진을 돌린다 — grid 의미를 흉내 내면
+ * "TS 가 스스로와 정합" 만 확인하게 된다.
+ */
+import { beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { initEngineWasm, isEngineReady } from "../wasm-bindings/engineWasm";
+import {
+  calculatePagePositions,
+  type PageFrameSizes,
+} from "../../../stores/elements";
+import {
+  __resetPagePlacementEngine,
+  __resetPagePlacementMemo,
+  __setPagePlacementEngine,
+  buildContainerStyle,
+  derivePagePositions,
+  derivePagePositionsMemo,
+  getPagePlacementDerivationCount,
+  resetPagePlacementDerivationCount,
+  resolvePageLayout,
+  resolvePagePlacementStyle,
+} from "./pagePlacement";
+import type {
+  BreakpointName,
+  PageLayoutSettingsDocument,
+} from "@composition/shared";
+
+const GAP = 80;
+const TIER: Record<BreakpointName, { width: number; height: number }> = {
+  desktop: { width: 1920, height: 1080 },
+  tablet: { width: 768, height: 1024 },
+  mobile: { width: 390, height: 844 },
+};
+
+const pagesOf = (n: number) =>
+  Array.from({ length: n }, (_, i) => ({ id: `p${i}` }));
+
+const uniformSizes = (n: number, bp: BreakpointName): PageFrameSizes =>
+  Object.fromEntries(
+    Array.from({ length: n }, (_, i) => [`p${i}`, { ...TIER[bp] }]),
+  );
+
+/** 현행 oracle 호출 — 같은 열 수 · gap · 원점(0) 으로 맞춘다. */
+function oracle(
+  n: number,
+  bp: BreakpointName,
+  direction: "auto" | "vertical" | "horizontal",
+  columns: number,
+  sizes: PageFrameSizes,
+) {
+  return calculatePagePositions(
+    pagesOf(n),
+    TIER[bp].width,
+    TIER[bp].height,
+    GAP,
+    direction,
+    // auto 열 수는 availableWidth 에서 도출된다 — columns 개가 정확히 들어가는 폭을 준다.
+    columns * TIER[bp].width + (columns - 1) * GAP,
+    0,
+    sizes,
+    undefined,
+  );
+}
+
+const asMap = (positions: Record<string, { x: number; y: number }>) =>
+  Object.fromEntries(
+    Object.entries(positions).map(([id, p]) => [
+      id,
+      [Math.round(p.x), Math.round(p.y)],
+    ]),
+  );
+
+beforeAll(async () => {
+  await initEngineWasm();
+  expect(isEngineReady()).toBe(true);
+});
+
+beforeEach(() => {
+  __resetPagePlacementMemo();
+  resetPagePlacementDerivationCount();
+});
+
+describe("G1 (a) 파생 = 현행 calculatePagePositions (균일 크기)", () => {
+  const breakpoints: BreakpointName[] = ["desktop", "tablet", "mobile"];
+  const directions = ["auto", "vertical", "horizontal"] as const;
+
+  for (const bp of breakpoints) {
+    for (const direction of directions) {
+      for (const n of [1, 2, 3, 5, 7, 12, 30]) {
+        it(`${bp} · ${direction} · 페이지 ${n}`, () => {
+          const columns = 3;
+          const sizes = uniformSizes(n, bp);
+          const derived = derivePagePositions({
+            pages: pagesOf(n),
+            pageSizes: sizes,
+            pageLayout: { direction, gap: GAP, columns },
+            activeBreakpoint: bp,
+          });
+          expect(derived).not.toBeNull();
+          expect(asMap(derived!)).toEqual(
+            asMap(oracle(n, bp, direction, columns, sizes)),
+          );
+        });
+      }
+    }
+  }
+});
+
+describe("G1 (b) 불규칙 높이 — 행 높이 = 행 최대 (rowMaxHeight 동형)", () => {
+  it("desktop auto 3열, 2행에 걸친 5 페이지", () => {
+    const heights = [1080, 1600, 900, 1080, 1080];
+    const sizes: PageFrameSizes = Object.fromEntries(
+      heights.map((h, i) => [`p${i}`, { width: 1920, height: h }]),
+    );
+    const derived = derivePagePositions({
+      pages: pagesOf(5),
+      pageSizes: sizes,
+      pageLayout: { direction: "auto", gap: GAP, columns: 3 },
+      activeBreakpoint: "desktop",
+    });
+    expect(asMap(derived!)).toEqual(
+      asMap(oracle(5, "desktop", "auto", 3, sizes)),
+    );
+    // 둘째 행 y = 첫 행 최대 높이 (1600) + gap
+    expect(Math.round(derived!.p3.y)).toBe(1680);
+  });
+
+  it("폭이 제각각이어도 auto 칸은 tier 폭 stride 를 유지한다", () => {
+    const widths = [1920, 1200, 2400];
+    const sizes: PageFrameSizes = Object.fromEntries(
+      widths.map((w, i) => [`p${i}`, { width: w, height: 1080 }]),
+    );
+    const derived = derivePagePositions({
+      pages: pagesOf(3),
+      pageSizes: sizes,
+      pageLayout: { direction: "auto", gap: GAP, columns: 3 },
+      activeBreakpoint: "desktop",
+    });
+    expect(asMap(derived!)).toEqual(
+      asMap(oracle(3, "desktop", "auto", 3, sizes)),
+    );
+    expect(Math.round(derived!.p2.x)).toBe(4000);
+  });
+
+  it("vertical 은 각 페이지 자기 높이로 쌓인다", () => {
+    const heights = [1080, 1600, 900];
+    const sizes: PageFrameSizes = Object.fromEntries(
+      heights.map((h, i) => [`p${i}`, { width: 1920, height: h }]),
+    );
+    const derived = derivePagePositions({
+      pages: pagesOf(3),
+      pageSizes: sizes,
+      pageLayout: { direction: "vertical", gap: GAP, columns: 3 },
+      activeBreakpoint: "desktop",
+    });
+    expect(asMap(derived!)).toEqual(
+      asMap(oracle(3, "desktop", "vertical", 3, sizes)),
+    );
+    expect(Math.round(derived!.p2.y)).toBe(1080 + GAP + 1600 + GAP);
+  });
+
+  it("horizontal 은 각 페이지 자기 폭으로 이어진다", () => {
+    const widths = [1920, 800, 400];
+    const sizes: PageFrameSizes = Object.fromEntries(
+      widths.map((w, i) => [`p${i}`, { width: w, height: 1080 }]),
+    );
+    const derived = derivePagePositions({
+      pages: pagesOf(3),
+      pageSizes: sizes,
+      pageLayout: { direction: "horizontal", gap: GAP, columns: 3 },
+      activeBreakpoint: "desktop",
+    });
+    expect(asMap(derived!)).toEqual(
+      asMap(oracle(3, "desktop", "horizontal", 3, sizes)),
+    );
+    expect(Math.round(derived!.p2.x)).toBe(1920 + GAP + 800 + GAP);
+  });
+});
+
+describe("G1 (c) 칸 고정 longhand · absolute 음수 inset", () => {
+  const sizes = uniformSizes(4, "desktop");
+
+  it("고정 칸은 그 칸에, 흐름은 남은 칸을 채운다", () => {
+    const derived = derivePagePositions({
+      pages: pagesOf(4),
+      pageSizes: sizes,
+      pageLayout: {
+        direction: "auto",
+        gap: GAP,
+        columns: 3,
+        placements: {
+          p1: { style: { gridColumnStart: 3, gridRowStart: 1 } },
+        },
+      },
+      activeBreakpoint: "desktop",
+    });
+    expect(asMap(derived!)).toEqual({
+      p0: [0, 0],
+      p1: [4000, 0],
+      p2: [2000, 0],
+      p3: [0, 1160],
+    });
+  });
+
+  it("빈 열은 0 폭으로 접히지 않는다 — 고정 폭 track (round 2 m3)", () => {
+    const derived = derivePagePositions({
+      pages: pagesOf(2),
+      pageSizes: uniformSizes(2, "desktop"),
+      pageLayout: {
+        direction: "auto",
+        gap: GAP,
+        columns: 3,
+        placements: { p1: { style: { gridColumnStart: 3, gridRowStart: 1 } } },
+      },
+      activeBreakpoint: "desktop",
+    });
+    // 둘째 열이 비어도 셋째 칸 x 는 4000 (접히면 2000 이 된다)
+    expect(Math.round(derived!.p1.x)).toBe(4000);
+  });
+
+  it("absolute 는 음수 inset 을 그대로 쓴다 (Components 시스템 열 −2000)", () => {
+    const derived = derivePagePositions({
+      pages: pagesOf(2),
+      pageSizes: uniformSizes(2, "desktop"),
+      pageLayout: {
+        direction: "auto",
+        gap: GAP,
+        columns: 3,
+        placements: {
+          p1: { style: { position: "absolute", left: -2000, top: 0 } },
+        },
+      },
+      activeBreakpoint: "desktop",
+    });
+    expect(asMap(derived!)).toEqual({ p0: [0, 0], p1: [-2000, 0] });
+  });
+
+  it("absolute 로 빠진 페이지의 칸은 뒤 페이지가 채운다", () => {
+    const derived = derivePagePositions({
+      pages: pagesOf(3),
+      pageSizes: uniformSizes(3, "desktop"),
+      pageLayout: {
+        direction: "auto",
+        gap: GAP,
+        columns: 3,
+        placements: {
+          p1: { style: { position: "absolute", left: 9000, top: 9000 } },
+        },
+      },
+      activeBreakpoint: "desktop",
+    });
+    expect(Math.round(derived!.p2.x)).toBe(2000);
+  });
+
+  it("row span 은 다음 행 흐름을 밀어낸다", () => {
+    const derived = derivePagePositions({
+      pages: pagesOf(4),
+      pageSizes: uniformSizes(4, "desktop"),
+      pageLayout: {
+        direction: "auto",
+        gap: GAP,
+        columns: 3,
+        placements: {
+          p0: { style: { gridRowStart: 1, gridRowEnd: 3 } },
+        },
+      },
+      activeBreakpoint: "desktop",
+    });
+    expect(Math.round(derived!.p3.y)).toBe(1160);
+    expect(Math.round(derived!.p3.x)).toBe(2000);
+  });
+});
+
+describe("G1 (d) tier override — root 열 수 · 페이지 칸이 mobile 에서만", () => {
+  it("mobile 열 수 override 는 mobile 에서만 적용된다", () => {
+    const layout: PageLayoutSettingsDocument = {
+      direction: "auto",
+      gap: GAP,
+      columns: 3,
+      responsive: { columns: { mobile: 6 } },
+    };
+    expect(resolvePageLayout(layout, "desktop").columns).toBe(3);
+    expect(resolvePageLayout(layout, "tablet").columns).toBe(3);
+    expect(resolvePageLayout(layout, "mobile").columns).toBe(6);
+
+    const mobile = derivePagePositions({
+      pages: pagesOf(7),
+      pageSizes: uniformSizes(7, "mobile"),
+      pageLayout: layout,
+      activeBreakpoint: "mobile",
+    });
+    // 6열이면 7번째가 둘째 행 첫 칸
+    expect(Math.round(mobile!.p6.x)).toBe(0);
+    expect(Math.round(mobile!.p5.x)).toBe(5 * (390 + GAP));
+  });
+
+  it("페이지 칸 override 가 responsive eligibility·cascade 를 통과한다", () => {
+    const placements = {
+      p1: {
+        style: {},
+        responsive: {
+          gridColumnStart: { mobile: 3 },
+          gridRowStart: { mobile: 1 },
+        },
+      },
+    };
+    expect(resolvePagePlacementStyle(placements.p1, "desktop")).toEqual({});
+    expect(resolvePagePlacementStyle(placements.p1, "tablet")).toEqual({});
+    expect(resolvePagePlacementStyle(placements.p1, "mobile")).toEqual({
+      gridColumnStart: 3,
+      gridRowStart: 1,
+    });
+
+    const desktop = derivePagePositions({
+      pages: pagesOf(2),
+      pageSizes: uniformSizes(2, "desktop"),
+      pageLayout: { direction: "auto", gap: GAP, columns: 3, placements },
+      activeBreakpoint: "desktop",
+    });
+    expect(Math.round(desktop!.p1.x)).toBe(2000);
+
+    const mobile = derivePagePositions({
+      pages: pagesOf(2),
+      pageSizes: uniformSizes(2, "mobile"),
+      pageLayout: { direction: "auto", gap: GAP, columns: 3, placements },
+      activeBreakpoint: "mobile",
+    });
+    expect(Math.round(mobile!.p1.x)).toBe(2 * (390 + GAP));
+  });
+
+  it("eligibility 밖 키는 override 로 들어오지 못한다", () => {
+    const style = resolvePagePlacementStyle(
+      {
+        style: {},
+        // gridAutoFlow 는 eligible 이 아니다 — direction 이 breakpoint 공통인 이유
+        responsive: { gridAutoFlow: { mobile: "column" } },
+      },
+      "mobile",
+    );
+    expect(style).toEqual({});
+  });
+
+  it("direction 은 breakpoint 공통이다", () => {
+    const layout: PageLayoutSettingsDocument = {
+      direction: "vertical",
+      gap: GAP,
+      columns: 3,
+    };
+    for (const bp of ["desktop", "tablet", "mobile"] as BreakpointName[]) {
+      expect(resolvePageLayout(layout, bp).direction).toBe("vertical");
+    }
+  });
+});
+
+describe("G1 (e) 메모 — 키 불변이면 엔진 호출 0", () => {
+  const input = () => ({
+    pages: pagesOf(5),
+    pageSizes: uniformSizes(5, "desktop"),
+    pageLayout: {
+      direction: "auto" as const,
+      gap: GAP,
+      columns: 3,
+    },
+    activeBreakpoint: "desktop" as BreakpointName,
+  });
+
+  it("같은 입력 10회 → 파생 1회", () => {
+    for (let i = 0; i < 10; i++) derivePagePositionsMemo(input());
+    expect(getPagePlacementDerivationCount()).toBe(1);
+  });
+
+  it("frame 크기 벡터가 바뀌면 다시 계산한다", () => {
+    derivePagePositionsMemo(input());
+    const changed = input();
+    changed.pageSizes = {
+      ...changed.pageSizes,
+      p1: { width: 1920, height: 1600 },
+    };
+    derivePagePositionsMemo(changed);
+    expect(getPagePlacementDerivationCount()).toBe(2);
+  });
+
+  it("breakpoint · 열 수 · placement 각각이 키에 들어 있다", () => {
+    derivePagePositionsMemo(input());
+    derivePagePositionsMemo({ ...input(), activeBreakpoint: "mobile" });
+    derivePagePositionsMemo({
+      ...input(),
+      pageLayout: { direction: "auto", gap: GAP, columns: 4 },
+    });
+    derivePagePositionsMemo({
+      ...input(),
+      pageLayout: {
+        direction: "auto",
+        gap: GAP,
+        columns: 3,
+        placements: { p1: { style: { gridColumnStart: 3, gridRowStart: 1 } } },
+      },
+    });
+    expect(getPagePlacementDerivationCount()).toBe(4);
+  });
+});
+
+describe("G1 (f) tier reset — 명시 reset 이 cascade 상속을 끊는다", () => {
+  it("desktop absolute · mobile static + line auto → mobile 흐름 복귀", () => {
+    const placements = {
+      p1: {
+        style: { position: "absolute", left: -2000, top: 0 },
+        responsive: {
+          position: { mobile: "static" },
+          left: { mobile: "auto" },
+          top: { mobile: "auto" },
+        },
+      },
+    };
+    const desktop = derivePagePositions({
+      pages: pagesOf(2),
+      pageSizes: uniformSizes(2, "desktop"),
+      pageLayout: { direction: "auto", gap: GAP, columns: 3, placements },
+      activeBreakpoint: "desktop",
+    });
+    expect(Math.round(desktop!.p1.x)).toBe(-2000);
+
+    // tablet 은 desktop cascade 상속 (override 없음) → 여전히 absolute
+    const tablet = derivePagePositions({
+      pages: pagesOf(2),
+      pageSizes: uniformSizes(2, "tablet"),
+      pageLayout: { direction: "auto", gap: GAP, columns: 3, placements },
+      activeBreakpoint: "tablet",
+    });
+    expect(Math.round(tablet!.p1.x)).toBe(-2000);
+
+    const mobile = derivePagePositions({
+      pages: pagesOf(2),
+      pageSizes: uniformSizes(2, "mobile"),
+      pageLayout: { direction: "auto", gap: GAP, columns: 3, placements },
+      activeBreakpoint: "mobile",
+    });
+    expect(Math.round(mobile!.p1.x)).toBe(390 + GAP);
+    expect(Math.round(mobile!.p1.y)).toBe(0);
+  });
+
+  it("line 을 auto 로 되돌리면 흐름 칸으로 돌아온다", () => {
+    const placements = {
+      p1: {
+        style: { gridColumnStart: 3, gridRowStart: 1 },
+        responsive: {
+          gridColumnStart: { mobile: "auto" },
+          gridRowStart: { mobile: "auto" },
+        },
+      },
+    };
+    const desktop = derivePagePositions({
+      pages: pagesOf(2),
+      pageSizes: uniformSizes(2, "desktop"),
+      pageLayout: { direction: "auto", gap: GAP, columns: 3, placements },
+      activeBreakpoint: "desktop",
+    });
+    expect(Math.round(desktop!.p1.x)).toBe(4000);
+
+    const mobile = derivePagePositions({
+      pages: pagesOf(2),
+      pageSizes: uniformSizes(2, "mobile"),
+      pageLayout: { direction: "auto", gap: GAP, columns: 3, placements },
+      activeBreakpoint: "mobile",
+    });
+    expect(Math.round(mobile!.p1.x)).toBe(390 + GAP);
+  });
+});
+
+describe("G1 (g) Home 은 흐름 원점이다", () => {
+  it("placement 가 없으면 첫 페이지가 항상 (0,0)", () => {
+    for (const direction of ["auto", "vertical", "horizontal"] as const) {
+      const derived = derivePagePositions({
+        pages: pagesOf(4),
+        pageSizes: uniformSizes(4, "desktop"),
+        pageLayout: { direction, gap: GAP, columns: 3 },
+        activeBreakpoint: "desktop",
+      });
+      expect(asMap(derived!).p0).toEqual([0, 0]);
+    }
+  });
+
+  it("다른 페이지가 absolute 로 나가도 Home 은 원점에 남는다", () => {
+    const derived = derivePagePositions({
+      pages: pagesOf(3),
+      pageSizes: uniformSizes(3, "desktop"),
+      pageLayout: {
+        direction: "auto",
+        gap: GAP,
+        columns: 3,
+        placements: {
+          p1: { style: { position: "absolute", left: -5000, top: -5000 } },
+          p2: { style: { position: "absolute", left: 5000, top: 5000 } },
+        },
+      },
+      activeBreakpoint: "desktop",
+    });
+    expect(asMap(derived!).p0).toEqual([0, 0]);
+  });
+});
+
+describe("placementModel — 읽기 모드는 placement 존재가 아니라 모델이 정한다", () => {
+  it('"legacy" 는 저장 좌표를 그대로 쓴다 (흐름 0)', () => {
+    const derived = derivePagePositions({
+      pages: pagesOf(3),
+      pageSizes: uniformSizes(3, "desktop"),
+      pageLayout: {
+        direction: "auto",
+        gap: GAP,
+        columns: 3,
+        placementModel: "legacy",
+        placements: { p1: { style: { gridColumnStart: 3, gridRowStart: 1 } } },
+        legacyFallback: { desktop: { p2: { x: 777, y: 888 } } },
+      },
+      legacyPositions: {
+        p0: { desktop: { x: 10, y: 20 } },
+        p1: { desktop: { x: 30, y: 40 } },
+      },
+      activeBreakpoint: "desktop",
+    });
+    expect(asMap(derived!)).toEqual({
+      p0: [10, 20],
+      p1: [30, 40],
+      p2: [777, 888],
+    });
+  });
+
+  it('"derived" 는 placement 가 비어 있어도 합법이다 (기본 흐름)', () => {
+    const derived = derivePagePositions({
+      pages: pagesOf(2),
+      pageSizes: uniformSizes(2, "desktop"),
+      pageLayout: {
+        direction: "auto",
+        gap: GAP,
+        columns: 3,
+        placementModel: "derived",
+      },
+      legacyPositions: { p0: { desktop: { x: 999, y: 999 } } },
+      activeBreakpoint: "desktop",
+    });
+    expect(asMap(derived!)).toEqual({ p0: [0, 0], p1: [2000, 0] });
+  });
+});
+
+describe("컨테이너 style — direction 매핑", () => {
+  it("horizontal 은 justifyContent:start 가 있어야 한다 (없으면 x 발산)", () => {
+    const style = buildContainerStyle(
+      resolvePageLayout({ direction: "horizontal", gap: GAP }, "desktop"),
+    );
+    expect(style.gridAutoFlow).toBe("column");
+    expect(style.justifyContent).toBe("start");
+  });
+
+  it("auto 열 track 은 tier 페이지 폭 고정이다", () => {
+    for (const bp of ["desktop", "tablet", "mobile"] as BreakpointName[]) {
+      const style = buildContainerStyle(
+        resolvePageLayout({ direction: "auto", gap: GAP, columns: 3 }, bp),
+      );
+      expect(style.gridTemplateColumns).toEqual(
+        Array(3).fill(`${TIER[bp].width}px`),
+      );
+    }
+  });
+
+  it("vertical 은 1열이다", () => {
+    const style = buildContainerStyle(
+      resolvePageLayout(
+        { direction: "vertical", gap: GAP, columns: 5 },
+        "desktop",
+      ),
+    );
+    expect(style.gridTemplateColumns).toEqual(["1920px"]);
+  });
+});
+
+describe("엔진 미준비 폴백 (부팅 초기 — G0 §4)", () => {
+  it("엔진이 준비되지 않았으면 null (호출자는 이전 값 유지)", () => {
+    __setPagePlacementEngine({
+      isAvailable: () => false,
+    } as unknown as Parameters<typeof __setPagePlacementEngine>[0]);
+    const derived = derivePagePositions({
+      pages: pagesOf(2),
+      pageSizes: uniformSizes(2, "desktop"),
+      pageLayout: { direction: "auto", gap: GAP, columns: 3 },
+      activeBreakpoint: "desktop",
+    });
+    expect(derived).toBeNull();
+    __resetPagePlacementEngine();
+  });
+
+  it("페이지가 0 이면 엔진을 부르지 않고 빈 map", () => {
+    __setPagePlacementEngine({
+      isAvailable: () => false,
+    } as unknown as Parameters<typeof __setPagePlacementEngine>[0]);
+    expect(
+      derivePagePositions({
+        pages: [],
+        pageSizes: {},
+        activeBreakpoint: "desktop",
+      }),
+    ).toEqual({});
+    __resetPagePlacementEngine();
+  });
+
+  it("메모는 null 을 캐시하지 않는다 — 엔진이 준비되면 즉시 계산", () => {
+    __setPagePlacementEngine({
+      isAvailable: () => false,
+    } as unknown as Parameters<typeof __setPagePlacementEngine>[0]);
+    const input = {
+      pages: pagesOf(2),
+      pageSizes: uniformSizes(2, "desktop"),
+      pageLayout: { direction: "auto" as const, gap: GAP, columns: 3 },
+      activeBreakpoint: "desktop" as BreakpointName,
+    };
+    expect(derivePagePositionsMemo(input)).toBeNull();
+    __resetPagePlacementEngine();
+    expect(asMap(derivePagePositionsMemo(input)!)).toEqual({
+      p0: [0, 0],
+      p1: [2000, 0],
+    });
+  });
+});
