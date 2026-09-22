@@ -11,6 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [컴포넌트 패널 Modal 항목 제거] - 2026-09-22
+
+### Changed
+
+- **컴포넌트 패널에서 Modal 항목을 제거했다.** Dialog와 혼동되는 독립 삽입 항목을 숨기고, 기존 문서와 내부 조합에서 쓰는 Modal 구현은 유지한다.
+  - 위치: `apps/builder/src/builder/panels/components/paletteItems.ts`
+
+## [ADR-231 Implemented — Components 페이지가 breakpoint 에 흔들리지 않는다] - 2026-09-22
+
+### Changed
+
+- **Components 페이지 frame 은 활성 breakpoint 를 읽지 않는다.** 폭은 desktop 1920 고정, 높이는 레이아웃이 보고한 내용 높이 (최소 1080 · body 에 height 를 저작하면 그 값). tablet/mobile 로 바꿔도 origin 이 한 열로 접히거나 body 안 스크롤에 갇히지 않고, 페이지 테두리가 내용 끝에 온다. origin 의 breakpoint override → instance 상속은 그대로다.
+- **Components 페이지는 사용자 페이지 격자 밖 왼쪽 열에 놓인다.** Home 이 (0,0) 을 지키고 Components 는 그 왼쪽 (`x = homeX − (1920 + gap)`). 페이지 추가 · 정렬 · breakpoint 전환이 Components 위치를 건드리지 않고 (세 breakpoint 공통값 하나), Components 높이가 바뀌어도 사용자 페이지를 밀지 않는다 (간격 반영은 열/격자 경계 안에서만). 드래그해 옮긴 위치는 전환 · reload 뒤에도 그대로다.
+
+### Internal
+
+- 레이아웃 발행 effect 에 `layout.publish` perf 라벨 (`__composition_PERF__`) · G3 단계 분해 A/B 하니스 `apps/builder/scripts/adr231-frame-decomp-ab.mjs` (headed/headless · Home 만 보이는 대조군).
+
 ## [이미지 템플릿 경고 수정] - 2026-09-22
 
 ### Fixed
@@ -31,7 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **여러 테마를 문서가 소유한다**: 프로젝트마다 이름 있는 테마 여러 개 (`themes: { active, items, order }`) 를 두고 Themes 패널에서 복제 · 활성 전환 · 이름 변경 · 삭제 · 토큰 재정의를 한다. 활성 테마는 캔버스 (Skia) · Preview · Publish 에 한 벌의 값으로 설치되고, 전환은 History 1 건 (Undo/Redo), 새로고침·IndexedDB 에 보존된다. border 폭이 테마 축에 들어와 (`{border.width.none|thin|thick}`) 테마가 색 · 서체 · 반경 · 테두리 폭을 함께 바꾼다. 기존 프로젝트의 localStorage 테마 설정은 처음 저장에 성공할 때 문서로 옮긴다 (백업 `.pre227`).
-  - Phase 0~5 개별 엔트리는 아래 (같은 날). 정본: `docs/adr/completed/227-multi-theme-token-set-collection.md` (Live Exercise 절) · `docs/adr/design/227-multi-theme-token-set-collection-breakdown.md` §8~9.
+  - Phase 0~~5 개별 엔트리는 아래 (같은 날). 정본: `docs/adr/completed/227-multi-theme-token-set-collection.md` (Live Exercise 절) · `docs/adr/design/227-multi-theme-token-set-collection-breakdown.md` §8~~9.
   - 사용자 확인 대상: Preview iframe 의 테마 전환 · Styles 패널 base 값 (Compare Mode 는 열지 않았다).
 
 ## [ADR-227 Phase 5 — Components 페이지 테마 표면 검증] - 2026-09-22

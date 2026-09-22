@@ -1,6 +1,6 @@
 # ADR-231 설계 breakdown — Components 페이지의 breakpoint 중립 frame
 
-> 본문: [231](../231-components-page-breakpoint-neutral-frame.md). 구현 상세 (Phase · 파일 변경표 · 게이트 실행 기록) 는 이 파일에만 둔다.
+> 본문: [231](../completed/231-components-page-breakpoint-neutral-frame.md). 구현 상세 (Phase · 파일 변경표 · 게이트 실행 기록) 는 이 파일에만 둔다.
 
 ## 1. 전제 lock-in (fork 4 질문)
 
@@ -91,22 +91,23 @@
 - live (`scripts/adr231-components-frame-live.mjs --phase 2`, headed Chrome, 새 프로젝트): **15/15** — Phase 1 의 7 + 전환 왕복 위치 Δ0 ([−2000,0] ×4) · 새 문서 hydration Components (−2000,0) = homeX − (1920+80) · 드래그 finish (`updatePagePosition` (−2500,200)) 후 mobile→desktop 왕복 보존 · reload 후 (−2500,200) · 1920 · 높이 = 발행 · 새 페이지 (Navigator "페이지 추가" 실입력) → (0,1160) · Components 불변 · align (줌 메뉴 → 페이지 정렬 실입력, auto) → Home (2055,0) (leftInset) · Components (55,0) = homeX − 2000 · 페이지 bbox 쌍 겹침 0 · origin 1 개 (`component-iconbutton`) mobile `height` override (tier 토글 ON → `responsive.styles.height.mobile = 600px`) → mobile frame 4881→5451 = 발행 body 높이 (내용 함수) · desktop 복귀 4881 · width/x/y Δ0. 기록 `docs/adr/evidence/231-components-frame-live/phase2-live.json`.
 - 하니스 함정: Components 가 x<0 이라 보이는 페이지만 레이아웃 → 읽기 전 `__composition_APPLY_VIEWPORT__` 로 열 쪽으로 pan (`showComponents`) · `updateSelectedStyle(property, value)` 시그니처 · ADR-154 개정 1 — tier 토글 (`setResponsiveStyleOverrideEnabled`) 없이는 base 에 쓴다 · align 은 줌 메뉴 `.zoom-menu-item[data-key="align-pages"]`.
 
-### G3 — 성능 A/B (2026-09-22) — **Components origin 편집 p95 Δ +2.4~+5.0 ms · 게이트 (≤ +1 ms) 미달, 원인 미확정**
+### G3 — 성능 A/B (2026-09-22) — **PASS (단계 분해 재측정)** · 1차 수치는 하니스가 계약 밖 구간을 더한 headless total
 
-- 하니스 `scripts/adr231-frame-perf-ab.mjs` (headless · DPR 2 · Home 600 mixed + 시드 Components · 워밍업 5 + 30회 × 7 반복 → p95 median). before = `12063c042` 별도 worktree dev 서버 (5174, 원래 lockfile · engine-pkg/wasm 복사) · after = HEAD Phase 1 (`ba14e85d3`, 5173 = 작업 서버 / r4 는 5175 별도 worktree).
-- 결과 (total p95 median, ms — 기록 `evidence/231-components-frame-live/{before,after}.json` · `g3-r2..r4/`):
+- **1차 (게이트 미달로 기록됐던 것)**: `scripts/adr231-frame-perf-ab.mjs` headless · total = 편집 시작 → rAF 폴링으로 layout map 갱신을 관측할 때까지 (render frame + rAF 대기 포함) · after = Phase 1 빌드 (`ba14e85d3`). Components origin 편집 +2.4 ~ +5.0 ms (r1~~r4, 4 짝 모두). probe 로 publisher 실행 30/30 · signature 동급 · body 높이 불변 · sceneVersion 동일 → 코드 경로로 잡히지 않았다. 판독 (Codex, 사용자 전달 2026-09-22): "G3 계약은 scene.build · layout publish 비용인데 하니스는 프레임 대기를 포함한다 · headless · Phase 1 기준 → 현재 HEAD 에서 headed 로 scene.build → layout → 명령 생성 → draw → 관측 대기를 분리".
+- **분해 하니스** `scripts/adr231-frame-decomp-ab.mjs` (신규): 편집마다 `__composition_PERF__.reset()` → 관측 후 라벨 누적치 — commit (동기 store) · `scene.build` · `layout.publish` (신규 라벨, 발행 effect 본문 — 계측 커밋 `e85b8d359`, before arm 에도 같은 계측을 얹은 worktree 커밋 `fbb27e7d7`) · `render.frame` (= content.build + plan.build + skia.draw[record/flush]) · other (= total − 위 합 = React 커밋 · 오버레이 DOM · rAF 대기). before = `12063c042` + 계측 (5174) · after = Phase 2 HEAD + 계측 (5175), 둘 다 별도 worktree · 같은 lockfile · engine-pkg/wasm 복사. arm 마다 새 브라우저 + 새 프로젝트 + 시드 600 mixed · 짝마다 arm 순서 교대 · 워밍업 5 + 30회 × 3 반복 (Home 대조군 2) · Components 뷰포트 0.12 (페이지 전체가 보인다) · DPR 2 · CPU throttle 1 · visibilityState visible.
+- **결과** (p95 median → 뒤 괄호 Δ · 기록 `evidence/231-components-frame-live/g3-decomp/*` (local, gitignored)):
 
-  | 짝                                   | Home 요소 편집 (N600)                                                                              | Components origin 편집 (Button width ±) |
-  | ------------------------------------ | -------------------------------------------------------------------------------------------------- | --------------------------------------- |
-  | r1 (5174 → 5173, comp-scale 0.12)    | 41.3 → 43.8 (+2.5)                                                                                 | 57.7 → 62.7 (+5.0)                      |
-  | r2 (교차 재실행)                     | 41.9 → 42.7 (+0.8)                                                                                 | 59.1 → 62.4 (+3.3)                      |
-  | r3 (comp-scale 0.8 — 그리는 행 통제) | —                                                                                                  | 59.3 → 63.5 (+4.2)                      |
-  | r4 (양쪽 fresh worktree 5174 · 5175) | 42.3 → 4009 (after 폴링 deadline — Phase 1 만 있는 빌드에서 Home 이 뷰포트 밖, 하니스 결함 · 무효) | 58.0 → 60.4 (+2.4)                      |
+  | 조건                                                          | op                     | total (p95 / p50)                                                                          | scene.build            | layout.publish              | render.frame     | other            |
+  | ------------------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------ | ---------------------- | --------------------------- | ---------------- | ---------------- |
+  | headed Chrome · 4 짝                                          | Components origin 편집 | 59.0→59.6 (+0.6) / 56.4→56.7 (+0.3)                                                        | 2.6→2.6 (0)            | 29.8→29.8 (0)               | 9.2→9.7 (+0.5)   | 19.6→19.2 (−0.4) |
+  | headed Chrome · 4 짝                                          | Home 편집 (대조군)     | 45.2→47.6 (+2.4) / 42.8→42.9 (+0.1)                                                        | 2.7→2.7 (0)            | 19.1→19.2 (+0.1)            | 3.9→4.8 (+0.9)   | 19.8→20.6 (+0.8) |
+  | headless · 2 짝                                               | Components origin 편집 | 61.5→66.4 (+4.9) / 57.3→58.8 (+1.5)                                                        | 2.7→3.6 (+0.9 · p50 0) | 30.9→31.3 (+0.4 · p50 +0.8) | 10.0→10.9 (+0.9) | 19.4→19.9 (+0.5) |
+  | headed · Home 만 보임 (두 arm 모두 Components 화면 밖) · 2 짝 | Home 편집              | 35.6→33.2 (−2.4) / 33.9→32.4 (−1.5)                                                        | 2.9→2.8 (−0.1)         | 12.9→11.0 (−1.9)            | 2.5→2.3 (−0.2)   | 19.2→18.6 (−0.6) |
+  | headless · 종전 하니스 · Phase 2 HEAD 재실행 (7 반복)         | Components / Home      | 59.2→61.8 (+2.6) / 42.4→43.7 (+1.3) — run 분포 겹침 (before 56.9~~67.2 · after 59.6~~66.8) | —                      | —                           | —                | —                |
 
-- **판정**: Home 편집 Δ +0.8 (r2) 는 게이트 안. Components origin 편집은 4 짝 모두 +2.4 ~ +5.0 (before 스프레드 57.7~~59.3 · after 60.4~~63.5, 겹침 없음) — **실재하는 +3 ms 안팎의 회귀**, 게이트 미달.
-- 원인 추적 (probe `_adr231-probe.mjs`, 삭제): 같은 편집 30회에서 두 arm 모두 `layoutPublishCount 30` (추가 publisher 실행 0 — R1 루프 아님) · projection signature p50 4.1 vs 4.9 ms (동급) · body 발행 높이 불변 (1080 / 4881 — 행 wrap 변화 0) · sceneVersion 변경 30/30 (동일). 이 probe 의 편집당 total 정렬 분포는 median 65.9 vs 66.1 (Δ +0.2) — 즉 **추가 실행 경로가 계측되지 않았다**. 그리는 양 (comp-scale 0.12 vs 0.8) 도 Δ 를 바꾸지 않았다.
-- 남는 후보 (미검증): (a) body 보고 높이 4881 로 페이지 frame/overlay/헤더 chrome 이 커진 데 따른 렌더 프레임 비용 (rAF 폴링이 프레임을 포함) · (b) 시드 Components 의 origin 86 이 before 에서는 body clip 1080 안의 일부만 명령 스트림에 오르고 after 는 전부 오르는 경우 (0.8 에서도 Δ 가 같아 약함) · (c) 두 서버 간 잔차.
-- **미종결** — Implemented 승격 보류. 결정 지점: (1) Components 페이지 한정 +3 ms (5~8%) 를 수용하고 게이트를 "Components 편집 ≤ +5 ms" 로 재승인, 또는 (2) 후속 세션에서 (a)/(b) 를 프레임 계측 (`__composition_PERF__` frame decomposition) 으로 가른 뒤 수리. 사용자 판정 대기.
+- **판정**: 게이트 계약 지표 (`scene.build` · `layout.publish` p95 Δ) 는 headed **Δ0 / Δ0**, headless +0.9 / +0.4 — 모두 ≤ +1 ms → **G3 PASS**. 1차의 +2.4~~+5 는 (i) headless (software GL) 에서 render frame · rAF 대기 꼬리가 넓어진 것 + (ii) 하니스 total 이 계약 밖 구간 (`render.frame` + other) 을 더한 것. headed 에서는 그 total 도 +0.6 (Home 대조군 total p95 +2.4 는 p50 +0.1 · 짝별 분포 겹침 — 꼬리 잡음).
+- **잔차 (계약 밖, 원인 확정)**: `render.frame` +0.5 ms p95 = `render.skia.draw` (record +0.2 · flush +0.2). Components 가 화면에 있을 때만 나고 (Home 만 보이게 하면 frame Δ −0.2 · draw Δ0), 이유는 after 가 페이지 전체 (4881 · origin 86) 를 그리고 before 는 body 1080 clip 안의 일부만 그리기 때문 — 이 ADR 의 목적 (내용이 스크롤에 갇히지 않는다) 그 자체다. 0.12 줌에서 페이지 전체가 보일 때 frame p95 9.7 ms (< 16.7). 수리 대상 아님.
+- 하니스 함정: before 빌드에는 `readPageFrames` 가 없다 → store `pagePositions` 폴백 · before 빌드는 Components 가 (0,0) · Home 이 (0,1160) 이라 "Home 만 보이는" 뷰포트는 arm 마다 Home 위치 기준으로 계산해야 한다 (고정 좌표 (40,80)·0.3 은 after 에서 Components 열 오른쪽 16 px 띠를, (700,80) 은 열 전체를 화면에 올린다) · `--headless` 는 chromium headless (software GL), headed 는 `channel: "chrome"`.
 
 ### G4 — BC (2026-09-22)
 
