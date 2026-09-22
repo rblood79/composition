@@ -854,6 +854,16 @@ export class HistoryManager {
   }
 
   /**
+   * 페이지별 entry 수 — ADR-227 G5 (테마 전환이 다른 페이지 history 에 파생 entry 를 남기지 않는다)
+   * 를 live 에서 세는 진입점. 페이지 밖 (dev 디버그 전역) 전용.
+   */
+  getAllPageEntryCounts(): Record<string, number> {
+    const out: Record<string, number> = {};
+    for (const [pageId, h] of this.pageHistories) out[pageId] = h.entries.length;
+    return out;
+  }
+
+  /**
    * 현재 페이지 히스토리 엔트리 목록
    */
   getCurrentPageEntries(): HistoryEntry[] {
@@ -1076,6 +1086,9 @@ if (typeof window !== "undefined" && import.meta.env?.DEV) {
   (window as unknown as Record<string, unknown>).__composition_HISTORY_DEBUG__ =
     {
       getCurrentPageHistory: () => historyManager.getCurrentPageHistory(),
+      getAllPageEntryCounts: () => historyManager.getAllPageEntryCounts(),
+      getCurrentPageEntryTypes: () =>
+        historyManager.getCurrentPageEntries().map((e) => e.type),
     };
 }
 

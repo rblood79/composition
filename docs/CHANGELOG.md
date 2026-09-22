@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-227 Phase 5 — Components 페이지 테마 표면 검증] - 2026-09-22
+
+### Verified
+
+- **테마 전환은 문서 구조를 건드리지 않는다**: Components 페이지의 origin 86 (팔레트 catalog 73 + Form/Toolbar/Card 등 template 13) 과 홈 페이지의 instance (Form instance 안 Button · Button instance) 가 테마 전환 한 번에 같이 바뀌고, canonical `children[]` · origin 기하 · 다른 페이지의 History 는 그대로다. 전환당 History 1 건, 같은 테마 재선택은 0 건, Undo/Redo 로 테마가 되돌아온다. 전환 비용은 origin 전집 페이지 최대 24.6 ms · 600 요소 페이지 최대 21.4 ms.
+  - 하니스: `apps/builder/scripts/adr227-components-theme-live.mjs` 7/7 · unit `themeHistoryRoundtrip.test.ts` +1 · dev 디버그 전역 `__composition_HISTORY_DEBUG__.getAllPageEntryCounts`.
+
 ## [ADR-227 Phase 4 — Themes 패널: 테마 목록 · 토큰 재정의] - 2026-09-22
 
 ### Added

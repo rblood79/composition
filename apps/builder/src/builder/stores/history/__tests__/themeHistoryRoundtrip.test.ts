@@ -151,6 +151,28 @@ describe("ADR-227: theme entry undo/redo 왕복 · 문서 우선 쓰기", () => 
     expect(removeTheme(DEFAULT_THEME_ID)).toBe(false);
   });
 
+  it("G5 — 전환은 현재 페이지 history 만 +1 · 다른 페이지 +0 · canonical children[] 참조 무변화 · 같은 테마 재선택 no-op", () => {
+    const children = [{ id: "n1", type: "Button", props: {} }] as unknown as CompositionDocument["children"];
+    seed({ version: "composition-1.0", themes: createThemesCollection(), children });
+    useStore.setState({
+      pages: [
+        { id: "page-1", title: "page-1", project_id: PROJECT_ID },
+        { id: "page-2", title: "page-2", project_id: PROJECT_ID },
+      ],
+    } as never);
+    historyManager.setCurrentPage("page-2");
+    historyManager.setCurrentPage("page-1");
+    addThemeFromActive("Brand");
+    const before = historyManager.getAllPageEntryCounts();
+    expect(setActiveTheme("theme-2")).toBe(true);
+    expect(setActiveTheme("theme-2")).toBe(false);
+    const after = historyManager.getAllPageEntryCounts();
+    expect(after["page-1"]).toBe((before["page-1"] ?? 0) + 1);
+    expect(after["page-2"] ?? 0).toBe(before["page-2"] ?? 0);
+    expect(currentThemesDoc().children).toBe(children);
+    expect(currentThemes().active).toBe("theme-2");
+  });
+
   it("base typography — seed 와 같은 값은 델타를 지우고 다른 값만 남긴다 · 런타임 baseTypography 파생", () => {
     seed();
     expect(setActiveThemeBaseTypography({ fontSize: 18 })).toBe(true);
