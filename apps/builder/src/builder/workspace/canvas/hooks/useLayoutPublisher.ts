@@ -37,6 +37,7 @@ import {
 } from "../scene/layoutCache";
 import { resolveResponsiveLayoutNode } from "../layout/resolveResponsive";
 import { useStore } from "../../../stores";
+import { observe, PERF_LABEL } from "../../../utils/perfMarks";
 import { useViewportSyncStore } from "../stores";
 import { recordEditorPresentationLayoutPublish } from "../../../performance/editorPresentationPhase0Metrics";
 
@@ -118,139 +119,145 @@ export function useLayoutPublisher(
     .join("||");
 
   useEffect(() => {
-    recordEditorPresentationLayoutPublish();
-    const all = [...pagesRef.current, ...framePagesRef.current];
-    // ADR-154: 현재 activeBreakpoint 를 publish 시점에 읽어 resolve 에 사용.
-    // activeBreakpoint 변경은 bridge(invalidateLayout)로 layoutVersion 을 bump →
-    // 본 effect 가 재실행되고, resolve 된 style 로 시그니처가 달라져 캐시 miss.
-    const activeBreakpoint = useStore.getState().activeBreakpoint;
-    // ADR-224 geometry 발행 문맥 — 루프 불변 (compute 의 setState 는 microtask 라 루프 중 안 바뀐다)
-    const canonical = useCanonicalDocumentStore.getState();
-    const publishedLayoutVersion = useStore.getState().layoutVersion;
-    const activeKeys = new Set<string>();
-    // 발행 키(frame mirror id 포함)와 layout 캐시 키는 서로 다르다 — 캐시 정리는
-    //   캐시 자신의 키로 해야 한다. readiness 와 무관하게 모으는 것은 startup·전환
-    //   중 일시적으로 pending 인 페이지의 캐시가 퇴거·재계산되지 않게 하기 위함.
-    const activeLayoutCacheKeys = new Set<string>();
-    const layoutUpdates: Array<{
-      key: string;
-      map: Map<string, ComputedLayout> | null;
-    }> = [];
+    // ADR-231 G3 분해 — 발행 본문 전체를 layout.publish 로 잰다 (scene.build 와 같은 규약).
+    observe(PERF_LABEL.LAYOUT_PUBLISH, () => {
+      recordEditorPresentationLayoutPublish();
+      const all = [...pagesRef.current, ...framePagesRef.current];
+      // ADR-154: 현재 activeBreakpoint 를 publish 시점에 읽어 resolve 에 사용.
+      // activeBreakpoint 변경은 bridge(invalidateLayout)로 layoutVersion 을 bump →
+      // 본 effect 가 재실행되고, resolve 된 style 로 시그니처가 달라져 캐시 miss.
+      const activeBreakpoint = useStore.getState().activeBreakpoint;
+      // ADR-224 geometry 발행 문맥 — 루프 불변 (compute 의 setState 는 microtask 라 루프 중 안 바뀐다)
+      const canonical = useCanonicalDocumentStore.getState();
+      const publishedLayoutVersion = useStore.getState().layoutVersion;
+      const activeKeys = new Set<string>();
+      // 발행 키(frame mirror id 포함)와 layout 캐시 키는 서로 다르다 — 캐시 정리는
+      //   캐시 자신의 키로 해야 한다. readiness 와 무관하게 모으는 것은 startup·전환
+      //   중 일시적으로 pending 인 페이지의 캐시가 퇴거·재계산되지 않게 하기 위함.
+      const activeLayoutCacheKeys = new Set<string>();
+      const layoutUpdates: Array<{
+        key: string;
+        map: Map<string, ComputedLayout> | null;
+      }> = [];
 
-    for (const { input } of all) {
-      const {
-        bodyElement,
-        elementById,
-        pageElements,
-        pageWidth,
-        pageHeight,
-        wasmLayoutReady,
-        breakpointNeutralRoot,
-      } = input;
+      for (const { input } of all) {
+        const {
+          bodyElement,
+          elementById,
+          pageElements,
+          pageWidth,
+          pageHeight,
+          wasmLayoutReady,
+          breakpointNeutralRoot,
+        } = input;
 
-      if (bodyElement) {
-        activeLayoutCacheKeys.add(getPageLayoutCacheKey(bodyElement));
-      }
-      if (!bodyElement || !wasmLayoutReady) continue;
-      const key = getLayoutRootKey(bodyElement);
-      activeKeys.add(key);
+        if (bodyElement) {
+          activeLayoutCacheKeys.add(getPageLayoutCacheKey(bodyElement));
+        }
+        if (!bodyElement || !wasmLayoutReady) continue;
+        const key = getLayoutRootKey(bodyElement);
+        activeKeys.add(key);
 
-      // ADR-154: responsive override resolve (base ⊕ cascade). desktop 은 원본
-      // identity 반환이라 기존 경로 비용 0. 시그니처/엔진/children map 모두 resolved
-      // 노드로 계산 → activeBreakpoint·override 변경이 자연히 캐시 miss 를 유발.
-      const resolvedBody = resolveResponsiveLayoutNode(
-        bodyElement,
-        activeBreakpoint,
-      );
-      const sourceElementById = new Map<string, CanvasLayoutNode>();
-      for (const [id, node] of elementById) {
-        sourceElementById.set(
-          id,
-          resolveResponsiveLayoutNode(node, activeBreakpoint),
+        // ADR-154: responsive override resolve (base ⊕ cascade). desktop 은 원본
+        // identity 반환이라 기존 경로 비용 0. 시그니처/엔진/children map 모두 resolved
+        // 노드로 계산 → activeBreakpoint·override 변경이 자연히 캐시 miss 를 유발.
+        const resolvedBody = resolveResponsiveLayoutNode(
+          bodyElement,
+          activeBreakpoint,
         );
-      }
-      sourceElementById.set(resolvedBody.id, resolvedBody);
-      for (const element of pageElements) {
-        sourceElementById.set(
-          element.id,
-          resolveResponsiveLayoutNode(element, activeBreakpoint),
+        const sourceElementById = new Map<string, CanvasLayoutNode>();
+        for (const [id, node] of elementById) {
+          sourceElementById.set(
+            id,
+            resolveResponsiveLayoutNode(node, activeBreakpoint),
+          );
+        }
+        sourceElementById.set(resolvedBody.id, resolvedBody);
+        for (const element of pageElements) {
+          sourceElementById.set(
+            element.id,
+            resolveResponsiveLayoutNode(element, activeBreakpoint),
+          );
+        }
+        projectFillLayoutNodes(sourceElementById);
+        const resolvedPageElements = pageElements.map(
+          (el) => sourceElementById.get(el.id) ?? el,
         );
-      }
-      projectFillLayoutNodes(sourceElementById);
-      const resolvedPageElements = pageElements.map(
-        (el) => sourceElementById.get(el.id) ?? el,
-      );
-      const pageChildrenMap = buildPageChildrenMap({
-        bodyElement: resolvedBody,
-        elementById: sourceElementById,
-        pageElements: resolvedPageElements,
-      });
-      const pageElementsSignature = createPageElementsSignature(pageElements);
-      const freshElements = resolvedPageElements;
-      const pageLayoutSignature = createPageLayoutSignature(
-        resolvedBody,
-        freshElements,
-      );
-      const childrenIdMap = buildChildrenIdMap(pageChildrenMap);
+        const pageChildrenMap = buildPageChildrenMap({
+          bodyElement: resolvedBody,
+          elementById: sourceElementById,
+          pageElements: resolvedPageElements,
+        });
+        const pageElementsSignature = createPageElementsSignature(pageElements);
+        const freshElements = resolvedPageElements;
+        const pageLayoutSignature = createPageLayoutSignature(
+          resolvedBody,
+          freshElements,
+        );
+        const childrenIdMap = buildChildrenIdMap(pageChildrenMap);
 
-      const layoutMap = getCachedPageLayout({
-        bodyElement: resolvedBody,
-        childrenIdMap,
-        elementById: sourceElementById,
-        pageChildrenMap,
-        pageElementsSignature,
-        pageLayoutSignature,
-        pageHeight,
-        pageWidth,
-        wasmLayoutReady,
-        breakpointNeutralRoot,
-      });
+        const layoutMap = getCachedPageLayout({
+          bodyElement: resolvedBody,
+          childrenIdMap,
+          elementById: sourceElementById,
+          pageChildrenMap,
+          pageElementsSignature,
+          pageLayoutSignature,
+          pageHeight,
+          pageWidth,
+          wasmLayoutReady,
+          breakpointNeutralRoot,
+        });
 
-      // ADR-231 — breakpoint 중립 페이지의 body 높이 (border-box) 를 viewport store 에 싣는다.
-      //   레이아웃 **출력** 채널: 페이지 frame (`buildPageFrames`) 만 읽고 dimension key ·
-      //   available 상자 (입력) 에는 들어가지 않는다 — 같은 값이면 store no-op (R1 루프 차단).
-      if (breakpointNeutralRoot && layoutMap && resolvedBody) {
-        const bodyHeight = layoutMap.get(resolvedBody.id)?.height;
-        if (typeof bodyHeight === "number" && Number.isFinite(bodyHeight)) {
-          useViewportSyncStore
-            .getState()
-            .setPageContentHeight(resolvedBody.page_id ?? resolvedBody.id, bodyHeight);
+        // ADR-231 — breakpoint 중립 페이지의 body 높이 (border-box) 를 viewport store 에 싣는다.
+        //   레이아웃 **출력** 채널: 페이지 frame (`buildPageFrames`) 만 읽고 dimension key ·
+        //   available 상자 (입력) 에는 들어가지 않는다 — 같은 값이면 store no-op (R1 루프 차단).
+        if (breakpointNeutralRoot && layoutMap && resolvedBody) {
+          const bodyHeight = layoutMap.get(resolvedBody.id)?.height;
+          if (typeof bodyHeight === "number" && Number.isFinite(bodyHeight)) {
+            useViewportSyncStore
+              .getState()
+              .setPageContentHeight(
+                resolvedBody.page_id ?? resolvedBody.id,
+                bodyHeight,
+              );
+          }
+        }
+
+        // D5=A: publishLayoutMap key fallback chain.
+        // - page bodyElement: page_id 확정 → 기존 동작 유지
+        // - frame bodyElement: frame mirror id → frameId 키로 발행
+        // - 양쪽 모두 미정 시 element id fallback (graceful degradation)
+        layoutUpdates.push({ key, map: layoutMap });
+        // ADR-224 Ratio — tier 별 used border-box 발행 (잠금/해제의 geometry 원천). 문서 버전은
+        // **발행 시점**의 값이다: 렌더 시점 캡처 + 일치 가드는 이 훅의 컴포넌트가 canonical 변경에
+        // 재렌더되지 않으면 영원히 stale 이라 발행 0 → 잠금이 항상 "계산되지 않음" 으로 막힌다.
+        // stale 판정은 읽는 쪽 (`readSizingGeometry`) 이 layoutVersion·viewport 로 한다.
+        if (layoutMap && publishedLayoutVersion === layoutVersion) {
+          publishSizingGeometry({
+            projectId: canonical.currentProjectId,
+            documentVersion: canonical.documentVersion,
+            layoutVersion,
+            breakpoint: activeBreakpoint,
+            rootKey: key,
+            viewport: { width: pageWidth, height: pageHeight },
+            layout: layoutMap,
+          });
         }
       }
 
-      // D5=A: publishLayoutMap key fallback chain.
-      // - page bodyElement: page_id 확정 → 기존 동작 유지
-      // - frame bodyElement: frame mirror id → frameId 키로 발행
-      // - 양쪽 모두 미정 시 element id fallback (graceful degradation)
-      layoutUpdates.push({ key, map: layoutMap });
-      // ADR-224 Ratio — tier 별 used border-box 발행 (잠금/해제의 geometry 원천). 문서 버전은
-      // **발행 시점**의 값이다: 렌더 시점 캡처 + 일치 가드는 이 훅의 컴포넌트가 canonical 변경에
-      // 재렌더되지 않으면 영원히 stale 이라 발행 0 → 잠금이 항상 "계산되지 않음" 으로 막힌다.
-      // stale 판정은 읽는 쪽 (`readSizingGeometry`) 이 layoutVersion·viewport 로 한다.
-      if (layoutMap && publishedLayoutVersion === layoutVersion) {
-        publishSizingGeometry({
-          projectId: canonical.currentProjectId,
-          documentVersion: canonical.documentVersion,
-          layoutVersion,
-          breakpoint: activeBreakpoint,
-          rootKey: key,
-          viewport: { width: pageWidth, height: pageHeight },
-          layout: layoutMap,
-        });
+      const staleKeys: string[] = [];
+      for (const key of publishedKeysRef.current) {
+        if (activeKeys.has(key)) continue;
+        publishFilteredChildrenMap(null, key);
+        publishSyntheticElementsMap(null, key);
+        staleKeys.push(key);
       }
-    }
-
-    const staleKeys: string[] = [];
-    for (const key of publishedKeysRef.current) {
-      if (activeKeys.has(key)) continue;
-      publishFilteredChildrenMap(null, key);
-      publishSyntheticElementsMap(null, key);
-      staleKeys.push(key);
-    }
-    // 발행 맵과 같은 liveness 로 layout 캐시도 정리한다 — 종전에는 삭제된 페이지·
-    //   전환한 프로젝트의 엔트리(페이지 전체 ComputedLayout 맵)가 세션 내내 남았다.
-    prunePageLayoutCache(activeLayoutCacheKeys);
-    publishLayoutMapsBatch(layoutUpdates, staleKeys);
-    publishedKeysRef.current = activeKeys;
+      // 발행 맵과 같은 liveness 로 layout 캐시도 정리한다 — 종전에는 삭제된 페이지·
+      //   전환한 프로젝트의 엔트리(페이지 전체 ComputedLayout 맵)가 세션 내내 남았다.
+      prunePageLayoutCache(activeLayoutCacheKeys);
+      publishLayoutMapsBatch(layoutUpdates, staleKeys);
+      publishedKeysRef.current = activeKeys;
+    });
   }, [layoutVersion, dimensionKey, layoutInputKey, readinessKey]);
 }

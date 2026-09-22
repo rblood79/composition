@@ -48,6 +48,11 @@ export const PERF_LABEL = {
    * `resolveCanonicalRefTree` 포함). 문서가 바뀔 때마다 (편집·페이지 전환) 한 번.
    */
   SCENE_BUILD: "scene.build",
+  /**
+   * ADR-231 G3 분해: 페이지 레이아웃 발행 effect 본문 (responsive resolve → 시그니처 →
+   * 캐시 조회/엔진 실행 → 발행 맵 교체). 문서·breakpoint·뷰포트가 바뀔 때마다 한 번.
+   */
+  LAYOUT_PUBLISH: "layout.publish",
   RENDER_CONTENT_BUILD: "render.content.build",
   RENDER_PLAN_BUILD: "render.plan.build",
   RENDER_SKIA_DRAW: "render.skia.draw",
