@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-09-22 (Proposed 2026-09-20 · 사용자 `/execute-adr 227` 착수 · 리뷰 round 1 4건 fixed → round 2 pending 0)
+Implemented — 2026-09-22 (Proposed 2026-09-20 · 리뷰 round 1 4건 fixed → round 2 pending 0 · Accepted + `/execute-adr 227` Phase 0~~5 / G0~~G5 같은 날 종결 · 커밋 `78a2e5b8a` → `1b9c57bf9`)
 
 **Phase 0 (G0) 완료 2026-09-22** — 재실측 F1~~F18 (breakdown §8): `doc.themes`/`doc.tokens` 는 production 에서 한 번도 쓰이지 않아 기존 문서 100% 가 themes 부재 (실전 migration 경로 = localStorage → 컬렉션 1행) · write-through flag 는 어디에도 없음 (항상 off) · DOM 채널 = `THEME_VARS` postMessage · Skia 채널 = specs 맵 mutation (resolveToken 소비자 21 파일이 같은 맵) · focus 는 DOM 만 (ADR-150) · border inventory 48+6+8+2 (+ outline 17 예외) · Components 페이지는 228~~230 으로 이미 전집 (R5 해소) · 변경 파일 39. **Phase 1 (G1) 완료 2026-09-22** — `ThemesCollection` 스키마 · shared 순수 migration (행렬 5행 · 델타 분할 · 멱등) · canonical `setThemes` + history `theme` entry (undo/redo) · `themeActions` 문서 우선 쓰기 (ThemesPanel 배선) · BuilderCore 승계 (저장 성공 뒤 legacy 백업 `.pre227` + 캐시 축소) · unit 29 · live 6/6 (breakdown §9). **Phase 2 (G2) 완료 2026-09-22** — `resolveThemeSnapshot` (preset seed → root user-defined → 델타 → 파생 hover/pressed · `color.accent` hex 는 tint 대체) + `installThemeSnapshot` 1회 (specs 맵 · store set 1 · notify 1 · geometry 변경 시 페이지 레이아웃 캐시 epoch · Preview `THEME_VARS` replace) · Publish `applyThemeVars` · hover/pressed CSS override 슬롯 · unit 13 · Canvas live 8/8 (Preview/Publish 는 unit 고정 + 사용자 확인 대상). **Phase 3 (G3) 완료 2026-09-22** — `{border.width.none|thin|thick}` 토큰 (specs `borderWidth` 맵 · `--border-width-*`) · rule 63 행 참조화 + ratchet · 소비자 전 채널 `resolveBorderWidthPx`/`borderWidthToCSS` (size config 는 getter) · 테마 border 축 · DropZone 인라인 2px 제거 (테마를 가리던 결함) · unit +17 · Canvas live 5/5 (thin 3 / thick 4 · Δ0 · reload) · G2 회귀 8/8. **Phase 4 (G4) 완료 2026-09-22** — Themes 패널 목록 (추가=활성 복제 · 활성 · 이름 · 삭제, 마지막 금지) + 토큰 재정의 편집기 (카테고리 6 · seed 키 · 검증) · i18n 26 키 · 패널 UI 실제 클릭 live 10/10 (854 요소 전환 최대 16.4 ms ≤ 25 · 사용자 전환당 history 1 · reload · Undo/Redo). **Phase 5 (G5) 완료 2026-09-22** — 신규 UI 0 · Components 페이지 origin 86 (catalog 73 + template 13) 위에서 전환: canonical `children[]` 무변화 · 현재 페이지 history +1/전환 (다른 페이지 +0) · 같은 테마 재선택 no-op · Undo/Redo 복귀 · origin 과 instance 픽셀 동시 전환 · 전환 비용 최대 24.6 ms (Components) / 21.4 ms (600 요소) ≤ 25 · unit +1 · live 7/7. **G0~~G5 전부 PASS — Implemented 승격 대기 (Live Exercise 절 · README/CHANGELOG).**
 
@@ -24,7 +24,7 @@ catalog rule 2,333 개 TokenRef 는 색 · 서체 · radius 를 이름으로만 
 - 런타임은 `themeConfigStore` 전역 싱글턴 — `setTint` → `tintToSkiaColors` → `themeVersion+1` → `notifyLayoutChange` → localStorage (`themeConfigStore.ts:168-200`). 문서 → store 적용은 `VITE_ADR110_P2_THEMES_WRITE_THROUGH` 게이트 (`BuilderCore.tsx:640-661`).
 - rule: hex 리터럴 0 · TokenRef 2,333 · `borderWidth` 숫자 리터럴 43 (`componentRulesTable.ts`).
 - DOM leg 는 `--tint: var(--blue)` 한 줄 + `[data-accent]` 요소 override (`preview-system.css:7-45`); publish 는 `applyThemeConfig` 로 `--tint` · neutral alias · radius 주입 (`apps/publish/src/App.tsx:188-215`).
-- Components 페이지 = 시스템 페이지 `page-components` — 템플릿 origin + 사용자 reusable origin 보관 (ADR-148 · F12). 팔레트 66 중 origin 을 갖는 것은 5 뿐이라 "컴포넌트 전집이 테마를 입는 표면" 은 아직 없다 — 그 확장은 [ADR-228](completed/228-palette-wide-reusable-origins.md) (2026-09-21).
+- Components 페이지 = 시스템 페이지 `page-components` — 템플릿 origin + 사용자 reusable origin 보관 (ADR-148 · F12). 팔레트 66 중 origin 을 갖는 것은 5 뿐이라 "컴포넌트 전집이 테마를 입는 표면" 은 아직 없다 — 그 확장은 [ADR-228](228-palette-wide-reusable-origins.md) (2026-09-21).
 
 ### Hard constraints
 
@@ -84,13 +84,13 @@ catalog rule 2,333 개 TokenRef 는 색 · 서체 · radius 를 이름으로만 
 1. **Decision 1 — 스키마와 승계**: `ThemesCollection { active, items, order }`, 항목은 `{ id, name, preset, tokens(델타) }`. root tokens는 user-defined만. 최초 migration은 기존 부팅 정책의 실효값·baseTypography를 승계하고 저장 성공 후 문서 우선으로 전환한다. imported 문서에 이 기기의 legacy 설정을 섞지 않는다.
 2. **Decision 2 — 전체 소비 경로**: 활성 테마 명시 델타 → root user-defined fallback → preset seed. 명시 파생값은 자동 파생보다 우선한다. 공통 snapshot을 실제 tokenResolver·layout·text/focus/shadow 소비자에 연결하고 DOM은 기존 의미 변수 매핑을 사용한다. Preview·Publish는 같은 helper를 쓰며 전환/reset 때 이전 override를 제거한다.
 3. **Decision 3 — 테마 소유 축**: color · typography · radius · **border 폭 (신설 `{border.width.none|thin|thick}`, rule 리터럴 43 참조화)** · shadow · focus. size/spacing (density) · 요소/페이지 스코프 · 테마별 light/dark 이중 세트는 **유보** — 재개 조건은 breakdown §6.
-4. **Decision 4 — 표면**: Themes 패널 = 테마 목록 (추가 = 복제 · 이름 · 삭제 · 활성) + 토큰 편집 (프리셋 채우기 유지). 테마 결과를 전집으로 보는 자리는 **Components 페이지** (origin · instance · slot) — 별도 섹션을 만들지 않고 [ADR-228](completed/228-palette-wide-reusable-origins.md) 이 채운 origin 전집을 읽는다 (2026-09-21 사용자 정정: 초안의 "catalog leaf read-only 섹션" 철회 — 아무도 ref 하지 않는 origin 을 만든다).
+4. **Decision 4 — 표면**: Themes 패널 = 테마 목록 (추가 = 복제 · 이름 · 삭제 · 활성) + 토큰 편집 (프리셋 채우기 유지). 테마 결과를 전집으로 보는 자리는 **Components 페이지** (origin · instance · slot) — 별도 섹션을 만들지 않고 [ADR-228](228-palette-wide-reusable-origins.md) 이 채운 origin 전집을 읽는다 (2026-09-21 사용자 정정: 초안의 "catalog leaf read-only 섹션" 철회 — 아무도 ref 하지 않는 origin 을 만든다).
 
 위험 수용 근거: 기술·migration HIGH를 G1의 실효값 승계 행렬, G2의 축별 비기본값 대칭, G3의 CSS·box model 검증으로 관리한다. renderer와 layout 소비자까지 변경 범위에 포함하며 G1~G3를 통과하기 전 BC·대칭을 보장했다고 판정하지 않는다. D1/D2 의미 계약은 유지한다.
 
 기각 사유: **A** — 값 편집이 없어 "theme 에서 선택하면 color · border 가 바뀐다" 의 절반 (사용자가 정한 값) 을 못 채우고, 채우려면 B 를 다시 해야 한다. **C** — 요구에 스코프가 없고 (프로젝트 단위 전환이면 충분) HIGH 2 를 지금 감수할 근거가 없다; B 의 스키마가 C 를 막지 않는다 (노드 `themeId` 추가로 확장 가능). **D** — 캔버스와 Preview 가 다른 색을 보이는 것은 D3 대칭 위반이며 이 프로젝트의 최상위 원칙에 어긋난다.
 
-> 구현 상세: [227-multi-theme-token-set-collection-breakdown.md](design/227-multi-theme-token-set-collection-breakdown.md)
+> 구현 상세: [227-multi-theme-token-set-collection-breakdown.md](../design/227-multi-theme-token-set-collection-breakdown.md)
 
 ## Risks
 
@@ -120,7 +120,17 @@ catalog rule 2,333 개 TokenRef 는 색 · 서체 · radius 를 이름으로만 
 
 ### Live Exercise
 
-(Implemented 승격 시 기재)
+실제 dev 빌더 (headed Playwright 1440×900 · Compare Mode/Preview iframe 미개방 — 사용자 판정 2026-09-22 ×3) 에서 phase 마다 실행한 하니스 (`apps/builder/scripts/adr227-*-live.mjs`, 산출물 `/private/tmp/adr227-p*-live/`):
+
+| Phase | 하니스                          | 결과      | 실제로 exercise 한 것                                                                                                                                                                                                                                                                                                                                                |
+| ----- | ------------------------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | `adr227-themes-migration-live`  | 6/6       | 새 프로젝트 · legacy localStorage (purple/dark/zinc/lg/20) 프로젝트 → 문서 `themes` 컬렉션 1행으로 이관 · 저장 성공 뒤 `.pre227` 백업 + 캐시 축소 · reload 멱등 · IndexedDB 문서에 themes 저장 · Canvas 픽셀 Δ0                                                                                                                                                  |
+| 2     | `adr227-theme-snapshot-live`    | 8/8       | 활성 테마 tint/`color.accent` hex/radius/typography 델타 → accent Button 픽셀 · Skia radius · 텍스트 layout 높이 · IndexedDB · reload · Undo/Redo (레이아웃 캐시 theme epoch 결함 · Skia radius xs/2xl 비대칭 결함을 잡아 수리)                                                                                                                                      |
+| 3     | `adr227-border-token-live`      | 5/5       | `{border.width.thin}` 1 → 테마 `border.width.thin: 3` / `thick: 4` → secondary Button · DropZone 의 Skia strokeWidth + 픽셀 (edge dx=0) · content box 산식 · reload Δ0 (DropZone 인라인 `2px` 가 테마를 가리던 결함 수리)                                                                                                                                             |
+| 4     | `adr227-themes-panel-live`      | 10/10     | Themes 패널 UI 실제 클릭 — `+` 복제 · 표지 활성 · Tint 스와치 · 연필 이름 · 재정의 추가/초기화 · 삭제 (마지막 비활성) · reload · Undo/Redo — 전환당 history 1 · 854 요소 전환 최대 16.4 ms                                                                                                                                                                        |
+| 5     | `adr227-components-theme-live`  | 7/7       | Components 페이지 origin 86 + 홈 Form instance/Button instance 동시 전환 · canonical `children[]` 무변화 · 현재 페이지 history +1 (다른 페이지 +0) · 재선택 no-op · Undo/Redo · 전환 최대 24.6 ms (Components) / 21.4 ms (600 요소)                                                                                                                                 |
+
+Preview/Publish/Styles 패널 채널은 unit 으로 고정 (`runtimeStore.themeVars` · `applyThemeVars` · `resolveToNumber`) 하고 **사용자 확인 대상**으로 남긴다 (Compare Mode 는 열지 않았다). 사용자 Chrome 은 DevTools CPU throttle 4x 가 걸려 있어 체감은 하니스의 ~4배일 수 있다.
 
 ## Consequences
 
@@ -139,15 +149,17 @@ catalog rule 2,333 개 TokenRef 는 색 · 서체 · radius 를 이름으로만 
 
 ## References
 
-- [ADR-110](completed/110-canonical-themes-variables-land-plan.md) — canonical `themes`/`tokens` adapter (base)
-- [ADR-143](completed/143-canonical-token-field-realignment.md) — tokens 델타 저장 · `design_themes` store 폐기
-- [ADR-142](completed/142-starter-spec-component-system-cutover.md) — D3 SSOT = catalog + theme/tokens
-- [ADR-193](completed/193-theme-aware-semantic-palette-map.md) — neutral alias · publish `applyThemeConfig` 함정
-- [ADR-198](completed/198-d3-renderer-pixel-parity-gate.md) — 팔레트 전수 픽셀 parity 하니스 (G2 재사용)
-- [ADR-228](completed/228-palette-wide-reusable-origins.md) — 직교 · Components 페이지 origin 전집 (테마 표면)
-- [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md) §1 D3 · §6 금지 패턴
+- [ADR-110](110-canonical-themes-variables-land-plan.md) — canonical `themes`/`tokens` adapter (base)
+- [ADR-143](143-canonical-token-field-realignment.md) — tokens 델타 저장 · `design_themes` store 폐기
+- [ADR-142](142-starter-spec-component-system-cutover.md) — D3 SSOT = catalog + theme/tokens
+- [ADR-193](193-theme-aware-semantic-palette-map.md) — neutral alias · publish `applyThemeConfig` 함정
+- [ADR-198](198-d3-renderer-pixel-parity-gate.md) — 팔레트 전수 픽셀 parity 하니스 (G2 재사용)
+- [ADR-228](228-palette-wide-reusable-origins.md) — 직교 · Components 페이지 origin 전집 (테마 표면)
+- [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md) §1 D3 · §6 금지 패턴
 - 외부: Figma Variables (collections · modes) · Framer Styles (color / text styles) · Webflow Variables + modes · Adobe Spectrum density 축 분리
 
 ## 리뷰 보완 (2026-09-21)
 
-[round 1 리뷰](reviews/227.md)의 H1/H2/H3/M4를 반영했다. 설계 수리 완료, Proposed 유지. 구현·live·pixel·perf G0~G5는 UNVERIFIED다.
+[round 1 리뷰](../reviews/227.md)의 H1/H2/H3/M4를 반영했다. 설계 수리 완료, Proposed 유지. 구현·live·pixel·perf G0~G5는 UNVERIFIED다.
+
+> 2026-09-22 종결: 위 문장은 설계 시점 기록이다. G0~~G5 는 같은 날 `/execute-adr 227` 로 전부 PASS (§Gates → Live Exercise · breakdown §8~~§9) — Implemented.

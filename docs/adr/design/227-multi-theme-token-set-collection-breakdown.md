@@ -1,6 +1,6 @@
 # ADR-227 구현 설계: 다중 테마 — 문서 소유 토큰 세트 컬렉션
 
-정본: [ADR-227](../227-multi-theme-token-set-collection.md)
+정본: [ADR-227](../completed/227-multi-theme-token-set-collection.md)
 
 작성일: 2026-09-20. 코드 사실은 이 날짜의 main (`81d96353f`) 실측이다 — 착수 시 Phase 0 에서 재실측한다.
 

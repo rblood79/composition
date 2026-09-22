@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-227 Implemented — 다중 테마 (문서 소유 토큰 세트 컬렉션)] - 2026-09-22
+
+### Added
+
+- **여러 테마를 문서가 소유한다**: 프로젝트마다 이름 있는 테마 여러 개 (`themes: { active, items, order }`) 를 두고 Themes 패널에서 복제 · 활성 전환 · 이름 변경 · 삭제 · 토큰 재정의를 한다. 활성 테마는 캔버스 (Skia) · Preview · Publish 에 한 벌의 값으로 설치되고, 전환은 History 1 건 (Undo/Redo), 새로고침·IndexedDB 에 보존된다. border 폭이 테마 축에 들어와 (`{border.width.none|thin|thick}`) 테마가 색 · 서체 · 반경 · 테두리 폭을 함께 바꾼다. 기존 프로젝트의 localStorage 테마 설정은 처음 저장에 성공할 때 문서로 옮긴다 (백업 `.pre227`).
+  - Phase 0~5 개별 엔트리는 아래 (같은 날). 정본: `docs/adr/completed/227-multi-theme-token-set-collection.md` (Live Exercise 절) · `docs/adr/design/227-multi-theme-token-set-collection-breakdown.md` §8~9.
+  - 사용자 확인 대상: Preview iframe 의 테마 전환 · Styles 패널 base 값 (Compare Mode 는 열지 않았다).
+
 ## [ADR-227 Phase 5 — Components 페이지 테마 표면 검증] - 2026-09-22
 
 ### Verified
