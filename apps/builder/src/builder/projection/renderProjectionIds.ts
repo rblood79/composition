@@ -34,6 +34,11 @@ export function toCollectionRowProjectionId(
   return `${RENDER_PROJECTION_PREFIX}${family}-row:${ownerId}:${itemKey}`;
 }
 
+/** ADR-234 후속 — 정적 Tag 의 remove X (DOM 은 RAC 가 넣는 `Button slot="remove"`). */
+export function toTagRemoveProjectionId(tagId: string): string {
+  return `${RENDER_PROJECTION_PREFIX}tag-remove:${tagId}`;
+}
+
 export function toCollectionRowsGroupProjectionId(
   family: string,
   ownerId: string,

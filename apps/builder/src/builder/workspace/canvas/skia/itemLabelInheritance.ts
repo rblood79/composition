@@ -85,8 +85,11 @@ export function resolveItemLabelTypography<T extends NodeLike>(
   }
   // G5 — Tag leading icon glyph = chip 규칙 14 (`.tag-leading-icon` · catalog `Tag.sizes[*].iconSize`). 색은 chip
   //   글자색 (`color: inherit` — 선택 chip 이면 on-accent).
+  //   allowsRemoving X (scene `_tagRemove` — DOM `.tag-remove-btn` 의 `<X size={14}>`) 도 같은 14 · chip 글자색
+  //   (`color: var(--fg-base)` = `--fg` · 선택 chip 은 `inherit` → on-accent).
   if (item.type === "Tag" && element.type === "Icon") {
-    return propsOf(element).slot === "icon"
+    const elementProps = propsOf(element);
+    return elementProps.slot === "icon" || elementProps._tagRemove === true
       ? { fontSize: TAG_ICON_SIZE, color: resolveTagChipTextColor(item) }
       : null;
   }

@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [캔버스에서 TagGroup Allows Removing 의 X 버튼이 다시 보인다] - 2026-09-24
+
+### Fixed
+
+- **TagGroup 의 Allows Removing 을 켜도 캔버스의 Tag 에 X 가 없던 문제를 고쳤다.** 이제 각 Tag 끝에 X 를 그린다 (Preview 의 remove 버튼과 같은 자리 · 크기). 선택된 Tag 의 X 는 흰색이다. Show all chip 에는 X 가 없다.
+  - **Why**: ADR-234 Phase 3b 부터 Tag 글자는 자식 Text 에 있다. 캔버스는 X 를 Tag 자기 글자 오른쪽에 덧그렸는데, 글자가 자식으로 옮겨가서 그 코드에 닿지 않았다. X 는 Tag 의 구성 자식이 아니다 — Preview 에서도 RAC 가 Allows Removing 을 보고 넣는 버튼이라, 캔버스도 같은 조건으로 Tag 끝에 붙인다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts` (`appendStaticTagRemoveButtons`), `apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts` (Tag 분기), `apps/builder/src/builder/workspace/canvas/skia/itemLabelInheritance.ts`
+
 ## [캔버스에서 TagGroup Max Rows 가 다시 동작한다] - 2026-09-24
 
 ### Fixed

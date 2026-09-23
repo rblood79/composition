@@ -634,6 +634,83 @@ describe("ADR-234 Phase 3b — TagGroup", () => {
     expect(showAllOf(off, "component-taggroup__2")).toHaveLength(1);
   });
 
+  it("allowsRemoving: 정적 Tag 끝에 X (Icon x) — scene · layout 상자 (18 · margin 2 · Tag 오른쪽 padding = paddingY) · Skia 글자색 14", async () => {
+    const removeOf = (model: ReturnType<typeof buildCanonicalSceneModel>, tagId: string) =>
+      (model.sceneChildrenByParent.get(tagId) ?? []).filter(
+        (c) => (c.props as Record<string, unknown>)._tagRemove === true,
+      );
+    const on = buildCanonicalSceneModel(
+      seededDoc([{ ...tagGroupInstance, props: { allowsRemoving: true } } as unknown as CanonicalNode]),
+    );
+    const tags = (on.sceneChildrenByParent.get("tg-1/component-taggroup__2") ?? []).filter(
+      (c) => c.type === "Tag",
+    );
+    const items = tags.filter((t) => !(t.props as Record<string, unknown>)._isShowAll);
+    expect(items).toHaveLength(4);
+    for (const tag of items) {
+      const kids = on.sceneChildrenByParent.get(tag.id) ?? [];
+      const x = removeOf(on, tag.id);
+      expect(x, tag.id).toHaveLength(1);
+      expect(kids[kids.length - 1]!.id).toBe(x[0]!.id);
+      expect(x[0]!.type).toBe("Icon");
+      expect((x[0]!.props as Record<string, unknown>).iconName).toBe("x");
+    }
+    // Show all chip 에는 X 가 없다 · origin (allowsRemoving false) 과 끈 instance 도 없다.
+    for (const tag of tags.filter((t) => (t.props as Record<string, unknown>)._isShowAll)) {
+      expect(removeOf(on, tag.id)).toHaveLength(0);
+    }
+    const originTag = (on.sceneChildrenByParent.get("component-taggroup__2") ?? [])[0]!;
+    expect(removeOf(on, originTag.id)).toHaveLength(0);
+    const off = buildCanonicalSceneModel(seededDoc([tagGroupInstance]));
+    const offTag = (off.sceneChildrenByParent.get("tg-1/component-taggroup__2") ?? [])[0]!;
+    expect(removeOf(off, offTag.id)).toHaveLength(0);
+
+    // layout: X 자식 상자 = DOM `.tag-remove-btn` (glyph 14 + padding 2 × 2 · margin-left 2) · Tag padding-right = paddingY.
+    const { applyImplicitStyles } = await import(
+      "../../workspace/canvas/layout/engines/implicitStyles"
+    );
+    const tagNode = { id: "t", type: "Tag", parent_id: null, props: { size: "md" } };
+    const label = { id: "t-l", type: "Text", parent_id: "t", props: { slot: "label", children: "A" } };
+    const xNode = { id: "t-x", type: "Icon", parent_id: "t", props: { iconName: "x", _tagRemove: true } };
+    const byId = new Map<string, { id: string; type: string; parent_id: string | null; props: Record<string, unknown> }>(
+      [tagNode, label, xNode].map((n) => [n.id, n]),
+    );
+    const result = applyImplicitStyles(
+      tagNode as never,
+      [label, xNode] as never,
+      () => [],
+      byId as never,
+    );
+    const parent = result.effectiveParent.props.style as Record<string, unknown>;
+    expect(parent.paddingRight).toBe(parent.paddingTop);
+    expect(parent.paddingLeft).not.toBe(parent.paddingRight);
+    const xStyle = result.filteredChildren.find((c) => c.id === "t-x")!.props
+      .style as Record<string, unknown>;
+    expect(xStyle).toMatchObject({ width: 18, height: 18, marginLeft: 2, fontSize: 14, flexShrink: 0 });
+    // 작성자 padding 은 그대로 (DOM 인라인 style 이 [data-allows-removing] 규칙을 이긴다).
+    const authored = applyImplicitStyles(
+      { ...tagNode, props: { size: "md", style: { paddingRight: 10 } } } as never,
+      [label, xNode] as never,
+      () => [],
+      byId as never,
+    );
+    expect((authored.effectiveParent.props.style as Record<string, unknown>).paddingRight).toBe(10);
+
+    // Skia: X glyph = chip 글자색 (선택이면 on-accent) · 14.
+    const { resolveItemLabelTypography } = await import(
+      "../../workspace/canvas/skia/itemLabelInheritance"
+    );
+    const idle = resolveItemLabelTypography(xNode as never, byId as never);
+    const selectedMap = new Map(byId);
+    selectedMap.set("t", { ...tagNode, props: { size: "md", _isSelected: true } });
+    const sel = resolveItemLabelTypography(xNode as never, selectedMap as never);
+    const labelIdle = resolveItemLabelTypography(label as never, byId as never);
+    const labelSel = resolveItemLabelTypography(label as never, selectedMap as never);
+    expect(idle).toMatchObject({ fontSize: 14, color: labelIdle!.color });
+    expect(sel).toMatchObject({ fontSize: 14, color: labelSel!.color });
+    expect(sel!.color).not.toBe(idle!.color);
+  });
+
   it("Preview: RAC static Tag 4 (maxRows 미러 제외) · 글자 = label descendants", () => {
     (globalThis as { ResizeObserver?: unknown }).ResizeObserver ??= class {
       observe() {}

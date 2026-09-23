@@ -15,6 +15,7 @@ import {
   type CanvasSceneGraph,
   appendRefInstanceChildProjections,
   appendStaticTagShowAllChips,
+  appendStaticTagRemoveButtons,
   buildCanvasSceneGraph,
   buildCanvasScenePageIndex,
   type CanvasSceneNode,
@@ -158,6 +159,8 @@ function resolveSceneGraph(
   const pruned = pruneDisabledSceneNodes(resolvedGraph);
   // ADR-234 후속: 정적 TagList 의 maxRows 「Show all」 chip — 숨긴 Tag 를 세지 않게 prune 뒤.
   appendStaticTagShowAllChips(pruned);
+  // ADR-234 후속: 정적 Tag 의 allowsRemoving X (DOM 은 RAC 가 넣는 remove 버튼).
+  appendStaticTagRemoveButtons(pruned);
   return pruned;
 }
 

@@ -103,6 +103,7 @@ import {
   toCollectionRowProjectionId,
   toCollectionRowsGroupProjectionId,
   toCollectionCellProjectionId,
+  toTagRemoveProjectionId,
 } from "../../../projection/renderProjectionIds";
 import { getElementDataBinding } from "../../../../adapters/canonical/compositionExtensionFields";
 
@@ -3393,6 +3394,57 @@ export function appendStaticTagShowAllChips(graph: CanvasSceneGraph): void {
       },
       graph,
     );
+  }
+}
+
+/**
+ * ADR-234 Phase 3b 후속 (2026-09-24 사용자 보고 「allows removing 을 켜도 Tag 에 X 가 없다」): 옛 chip 은 글자를
+ * 자기 props 에 들고 있어 X 를 catalog `Tag.trailingIcon` (showProp allowsRemoving) 으로 글자 오른쪽에 그렸다.
+ * 정적 Tag instance 는 글자가 자식 Text 라 그 블록에 닿지 않는다. DOM 은 RAC 가 `allowsRemoving` 이면 Tag 안
+ * 마지막에 `<Button slot="remove"><X/></Button>` 를 넣으므로 (shared `Tag`), Canvas 도 같은 자리에 X 노드 (Icon
+ * "x", `_tagRemove`) 를 붙인다 — 상자는 layout Tag 분기, glyph 색 · 크기는 `resolveItemLabelTypography`.
+ * 구성 자식이 아니라 RAC 가 만드는 부품이라 문서에 저장하지 않는다. allowsRemoving 은 owner TagGroup 우선
+ * (instance override) · 없으면 TagList. Show all chip 에는 붙이지 않는다.
+ */
+export function appendStaticTagRemoveButtons(graph: CanvasSceneGraph): void {
+  for (const node of [...graph.nodes]) {
+    if (node.type !== "TagList") continue;
+    const children = graph.childrenByParent.get(node.id) ?? [];
+    if (children.some((c) => c.id.includes("-rows:"))) continue;
+    const ownerId = graph.parentById.get(node.id) ?? node.parentId;
+    const owner = ownerId ? graph.nodesMap.get(ownerId) : undefined;
+    const ownerValue =
+      owner?.type === "TagGroup"
+        ? (owner.props as Record<string, unknown> | undefined)?.allowsRemoving
+        : undefined;
+    const allowsRemoving =
+      typeof ownerValue === "boolean"
+        ? ownerValue
+        : (node.props as Record<string, unknown> | undefined)
+            ?.allowsRemoving === true;
+    if (!allowsRemoving) continue;
+    for (const tag of children) {
+      if (tag.type !== "Tag" || tag.enabled === false) continue;
+      if ((tag.props as Record<string, unknown> | undefined)?._isShowAll) {
+        continue;
+      }
+      const removeId = toTagRemoveProjectionId(tag.id);
+      if (graph.nodesMap.has(removeId)) continue;
+      addSceneNode(
+        {
+          id: removeId,
+          type: "Icon",
+          props: { iconName: "x", _tagRemove: true },
+          parentId: tag.id,
+          pageId: tag.pageId ?? null,
+          layoutId: tag.layoutId ?? null,
+          parent_id: tag.id,
+          page_id: tag.pageId ?? null,
+          sourceNode: tag.sourceNode as CanonicalNode,
+        },
+        graph,
+      );
+    }
   }
 }
 

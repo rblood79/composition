@@ -972,6 +972,10 @@ function withParentStyle(
   };
 }
 
+/** `TagGroup.css` `.tag-remove-btn` — X glyph 14 + padding `--spacing-2xs` 2 × 2 (aspect 1) · margin-left 2. */
+const TAG_REMOVE_BUTTON_SIZE = 18;
+const TAG_REMOVE_BUTTON_MARGIN = 2;
+
 /** `ListBox.css` `.react-aria-ListBoxItem` — `--spacing-md` 가로 여백 · icon↔글자 6 · 체크 16 · icon 기본 16. */
 const LISTBOX_ITEM_PADDING_X = 12;
 const LISTBOX_ITEM_SLOT_GAP = 6;
@@ -1859,7 +1863,48 @@ export function applyImplicitStyles(
   //   넓어진다 (G5 픽셀 비교에서 발견). 라벨과의 간격 4 는 Canvas Tag 컨테이너 gap 이 이미 준다 (DOM 은
   //   margin-right 4). 그릴 수 없는 아이콘 이름 (`{icon}` 자리표시) 은 DOM 이 Icon 을 안 그리므로 상자 0.
   if (containerTag === "tag") {
+    // allowsRemoving X (scene `appendStaticTagRemoveButtons` 의 `_tagRemove` 자식) — DOM `.tag-remove-btn`
+    //   (`<X size={14}>` · padding `--spacing-2xs` 2 · margin-left 2 · aspect 1 → 18 정사각) 과 같은 상자.
+    //   Tag 는 `[data-allows-removing] { padding-right: <size 의 세로 padding> }` 이라 오른쪽 여백 =
+    //   paddingTop (작성자 padding 이 있으면 인라인이 이긴다 — DOM 도 인라인 style 우선).
+    const hasRemove = filteredChildren.some(
+      (child) => child.props?._tagRemove === true,
+    );
+    if (
+      hasRemove &&
+      rawParentStyle.paddingRight == null &&
+      rawParentStyle.padding == null &&
+      parentStyle.paddingTop != null
+    ) {
+      const current = (effectiveParent.props?.style ?? {}) as Record<
+        string,
+        unknown
+      >;
+      effectiveParent = withParentStyle(effectiveParent, {
+        ...parentStyle,
+        ...current,
+        paddingRight: parentStyle.paddingTop,
+      });
+    }
     filteredChildren = filteredChildren.map((child) => {
+      if (child.props?._tagRemove === true) {
+        const cs = (child.props?.style as Record<string, unknown>) || {};
+        return {
+          ...child,
+          props: {
+            ...child.props,
+            style: {
+              ...cs,
+              width: TAG_REMOVE_BUTTON_SIZE,
+              minWidth: TAG_REMOVE_BUTTON_SIZE,
+              height: TAG_REMOVE_BUTTON_SIZE,
+              marginLeft: TAG_REMOVE_BUTTON_MARGIN,
+              fontSize: TAG_LEADING_ICON_SIZE,
+              flexShrink: 0,
+            },
+          },
+        } as CanvasLayoutNode;
+      }
       const role = getSlotRole(child);
       if (role !== "icon" && role !== "avatar") return child;
       const cs = (child.props?.style as Record<string, unknown>) || {};
