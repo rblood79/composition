@@ -318,6 +318,12 @@ describe("ADR-234 Phase 3 — Slot +", () => {
     const sceneTabs =
       model.sceneChildrenByParent.get("tabs-1/component-tabs__1") ?? [];
     expect(sceneTabs.map((t) => t.type)).toEqual(["Tab", "Tab", "Tab"]);
+    // Skia 입력 (`rendererInput` projection index) 은 모든 scene 노드의 sourceNode 를 읽는다 — mode C 자식도.
+    expect(
+      [...model.sceneNodesMap.values()]
+        .filter((n) => n.id.startsWith("tabs-1/"))
+        .every((n) => (n as { sourceNode?: unknown }).sourceNode != null),
+    ).toBe(true);
     // mode C 로 채운 Tab 도 실행 중 상태 층 (선택 = Tabs key) 을 받는다.
     expect(
       sceneTabs.map((t) => (t.props as Record<string, unknown>)._isSelected),

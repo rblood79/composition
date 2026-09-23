@@ -278,3 +278,12 @@
   - Components 페이지 항목 템플릿 origin (단독 배치): Tab `{label}` 폭 69 → 65 (3c — label 14 · DOM 상속) · Tag 135 → 86 (자리표시 icon 상자 제거 · avatar 16 — DOM 모양) · ListBoxItem 115×76 → 93×50 (3d — icon 절대 위치 · description 12/16, DOM 50) · GridListItem 68 → 76 (3e — label/description Text 기본 16, `GridList.css` 주석의 카드 76).
   - Tag 목록 (origin · instance · plain): chip 폭 · 위치 같음, 글자 x 가 1px 이내 (projection 은 chip 가운데 · instance 는 padding 기준 + 폭 올림) — 화소 1.9% 이내, 시각 동일.
 - h1 (origin 전용 style 키가 이관 후 새로 나타나지 않음) · h2 (변형 직접 ref instance 의 descendants label 편집 보존) · Δbyte 는 Phase 1 · 2 unit (G1 · G2) 으로 고정됨 — 이번 live 문서에는 변형 자식 descendants 편집이 없어 h2 live 는 재지 않았다.
+
+### Phase 4 — live (2026-09-23)
+
+- 하니스 `apps/builder/scripts/adr234-live-exercise.mjs` (headed · 새 프로젝트 · 문서 Tabs instance, Compare Mode · Preview 미개방): **5/5**.
+  - L1 항목 origin 편집 (Tab/Default paddingLeft 12 → 24, 영향 대화상자 적용) → Components origin 65 → 77 · 휴지 변형 65 → 77 · 문서 instance Tab 58/60 → 70/72 (한 편집이 체인 끝까지).
+  - L2 휴지 변형 편집 (`--unselected` paddingRight 30) → 선택 안 된 Tab 만 72 → 90, 선택 Tab · origin 그대로.
+  - L3 문서 instance 의 TabList (synthetic) 선택 → Slot "Insert Tab/Default" → descendants mode C (TabList 3 · TabPanels 3, 새 panel `itemId` = 새 Tab key) · Canvas Tab 3.
+  - L4 reload → instance · origin · 변형 그대로 · Tab 3 같은 폭 · page error 0.
+- **live 에서 잡은 결함 (수리)**: mode C 로 채운 자식 (instance 의 Slot "+" 항목) 의 scene 노드에 `sourceNode` 가 없어 Skia 입력 (`rendererInput` projection index) 이 `sourceNode.id` 로 throw → 캔버스 갱신이 멈췄다 (3a 부터 — unit 은 renderer 입력을 안 돈다). `materializeOverrideChildren` 가 scene 문맥이면 원본 canonical 자식을 `sourceNode` 로 싣는다. unit 에 "scene 노드 전부 sourceNode" 추가 · 원복 RED 1.

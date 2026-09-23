@@ -631,6 +631,12 @@ function materializeOverrideChildren<T extends CanonicalRefResolvableNode>(
       ...(ref ? { ref } : {}),
       ...(descendants ? { descendants } : {}),
       ...(slot !== undefined ? { slot } : {}),
+      // scene 문맥 (ref 가 scene 노드) 이면 mode C 자식도 원본 canonical 노드를 `sourceNode` 로 — Skia 입력
+      //   (`rendererInput` projection index) 이 모든 scene 노드의 sourceNode 를 읽는다 (ADR-234 live: 정적 목록
+      //   instance 의 Slot "+" 항목에서 `sourceNode.id` undefined 로 캔버스가 멈췄다).
+      ...((refElement as { sourceNode?: unknown }).sourceNode
+        ? { sourceNode: child }
+        : {}),
     } as T;
 
     const overrideRef = getCanonicalRefTarget(syntheticChild);
