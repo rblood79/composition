@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [캔버스에서 TagGroup Max Rows 가 다시 동작한다] - 2026-09-24
+
+### Fixed
+
+- **캔버스가 TagGroup 의 Max Rows 를 무시하고 Tag 를 모두 그리던 문제를 고쳤다.** 이제 지정한 행 수를 넘는 Tag 는 접고 그 뒤에 "Show all (N)" chip 을 그린다. 접을 Tag 가 없으면 Show all 도 그리지 않는다. Max Rows 를 바꾸면 곧바로 다시 접는다.
+  - **Why**: ADR-234 Phase 3b 부터 TagGroup 목록은 TagList 의 Tag instance 자식이다. Preview 는 이 목록에도 접기를 그대로 적용했지만, 캔버스의 기존 접기 코드 (Show all chip · 엔진 행 위치 기준 접기) 는 옛 `items` 목록에만 걸려 있어 실행되지 않았다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts` (`appendStaticTagShowAllChips`), `apps/builder/src/builder/workspace/canvas/scene/canonicalSceneModel.ts`, `apps/builder/src/builder/workspace/canvas/layout/engines/fullTreeLayout.ts` (Step 4.5b · Step 5)
+
 ## [TagList 기본 크기 — Tag 가 없어도 chip 한 줄 높이] - 2026-09-24
 
 ### Changed

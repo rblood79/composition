@@ -3040,6 +3040,10 @@ export function calculateFullTreeLayout(
     // 폭 재보정 용도로의 확장 재도입 금지 — 그건 엔진 소속이다.
     // measure callback 이관(대안 A)은 본 ADR 범위 밖 (재개 조건: 2-pass 비용이
     // 프레임 예산 압박 실측 — ADR-165 R4).
+    // Step 4.5b 가 엔진 트리에서 뺀 chip 과 그 자손 — detach 된 subtree 는 handle 이 남아 첫 pass 좌표를
+    //   계속 돌려주므로 Step 5 가 건너뛴다 (좌표 없음 = render 미emit). ADR-234 정적 Tag 는 Label 자식이
+    //   있어 subtree 째 뺀다 (2026-09-24).
+    const foldRemovedIds = new Set<string>();
     {
       const WIDTH_TOLERANCE = 2;
       let needsSecondPass = false;
@@ -3192,23 +3196,25 @@ export function calculateFullTreeLayout(
       for (let i = 0; i < batch.length; i++) {
         const node = batch[i];
         const childIds = filteredChildIdsMap.get(node.elementId);
-        // TagList 판정: 유일 자식이 projection RowsGroup(`-rows:`).
-        if (
-          !childIds ||
-          childIds.length !== 1 ||
-          !childIds[0].includes("-rows:")
-        )
-          continue;
+        if (!childIds || childIds.length === 0) continue;
         const tagListEl =
           processedElementsMap.get(node.elementId) ??
           elementsMap.get(node.elementId);
         if ((tagListEl?.type ?? "").toLowerCase() !== "taglist") continue;
-        projectionTagLists.push({
-          tagListId: node.elementId,
-          rowsGroupId: childIds[0],
-        });
+        // chip 을 담은 상자: items projection 은 유일 자식 RowsGroup(`-rows:`), ADR-234 정적 목록은
+        //   TagList 자신 (자식 = Tag instance + scene 의 Show all chip — `appendStaticTagShowAllChips`).
+        //   2026-09-24 사용자 보고 「Max Rows 가 동작하지 않는다」: Phase 3b 이관 뒤 projection 이 없어
+        //   이 접힘이 정적 목록을 건너뛰었다.
+        const isProjection =
+          childIds.length === 1 && childIds[0].includes("-rows:");
+        if (isProjection) {
+          projectionTagLists.push({
+            tagListId: node.elementId,
+            rowsGroupId: childIds[0],
+          });
+        }
 
-        const rowsGroupId = childIds[0];
+        const rowsGroupId = isProjection ? childIds[0] : node.elementId;
         // owner-first: maxRows 는 owner TagGroup.props SSOT (TagList mirror stale 회피).
         const tlProps = tagListEl!.props as Record<string, unknown> | undefined;
         const ownerTg = tagListEl!.parent_id
@@ -3250,6 +3256,16 @@ export function calculateFullTreeLayout(
       }
       // chip 제외 적용 → RowsGroup children 갱신 → 엔진 재배치.
       for (const { rowsGroupId, keep } of foldChipRemovals) {
+        const kept = new Set(keep);
+        const stack = (filteredChildIdsMap.get(rowsGroupId) ?? []).filter(
+          (id) => !kept.has(id),
+        );
+        while (stack.length > 0) {
+          const id = stack.pop()!;
+          if (foldRemovedIds.has(id)) continue;
+          foldRemovedIds.add(id);
+          stack.push(...(filteredChildIdsMap.get(id) ?? []));
+        }
         filteredChildIdsMap.set(rowsGroupId, keep);
         persistentTree.updateChildren(rowsGroupId, keep);
         needsSecondPass = true;
@@ -3524,6 +3540,7 @@ export function calculateFullTreeLayout(
 
     for (let i = 0; i < batch.length; i++) {
       const node = batch[i];
+      if (foldRemovedIds.has(node.elementId)) continue;
       const handle = persistentTree.getHandle(node.elementId);
       if (handle === undefined) continue;
       const layoutResult = layoutBatch.get(handle);

@@ -3328,6 +3328,75 @@ export function buildCanvasScenePageIndex(
 }
 
 /**
+ * ADR-234 Phase 3b 후속 (2026-09-24 사용자 보고 「TagGroup Max Rows 가 동작하지 않는다」): 목록이 TagList
+ * 의 정적 Tag instance 자식이 된 뒤로 chip projection (`appendTagRowProjection`) 이 만들어지지 않아 그
+ * 안의 「Show all」 chip 도 사라졌다 — layout 의 행 접힘 (fullTreeLayout Step 4.5b) 은 접을 대상과 펼침
+ * chip 을 같이 잃었다. 정적 목록에도 같은 Show all chip 을 TagList 마지막 자식으로 붙인다 (projection
+ * 경로와 같은 노드 · id). 접힘이 없으면 layout 이 빼고, 있으면 남은 chip 뒤에 배치한다 — DOM
+ * `TagGroup` 의 `staticItems` 슬라이스 + `Show all (N)` 과 대칭. maxRows 는 owner TagGroup 우선
+ * (instance override) · 없으면 TagList. 숨긴 (enabled false) Tag 는 세지 않는다 — 그래서 prune 뒤에 부른다.
+ */
+export function appendStaticTagShowAllChips(graph: CanvasSceneGraph): void {
+  for (const node of [...graph.nodes]) {
+    if (node.type !== "TagList") continue;
+    const children = graph.childrenByParent.get(node.id) ?? [];
+    if (children.some((c) => c.id.includes("-rows:"))) continue;
+    const tags = children.filter(
+      (c) =>
+        c.type === "Tag" &&
+        c.enabled !== false &&
+        (c.props as Record<string, unknown> | undefined)?._isShowAll !== true,
+    );
+    if (tags.length === 0) continue;
+    const ownerId = graph.parentById.get(node.id) ?? node.parentId;
+    const owner = ownerId ? graph.nodesMap.get(ownerId) : undefined;
+    const ownerMaxRows =
+      owner?.type === "TagGroup"
+        ? (owner.props as Record<string, unknown> | undefined)?.maxRows
+        : undefined;
+    const maxRows =
+      typeof ownerMaxRows === "number"
+        ? ownerMaxRows
+        : (node.props as Record<string, unknown> | undefined)?.maxRows;
+    if (typeof maxRows !== "number" || maxRows <= 0) continue;
+    const showAllId = toCollectionRowProjectionId(
+      "tag",
+      node.id,
+      "__show_all__",
+    );
+    if (graph.nodesMap.has(showAllId)) continue;
+    const size = (node.props as Record<string, unknown> | undefined)?.size;
+    addSceneNode(
+      {
+        id: showAllId,
+        type: "Tag",
+        props: {
+          children: `Show all (${tags.length})`,
+          style: { width: "fit-content" },
+          _isShowAll: true,
+          ...(typeof size === "string" ? { size } : {}),
+        },
+        parentId: node.id,
+        pageId: node.pageId ?? null,
+        layoutId: node.layoutId ?? null,
+        parent_id: node.id,
+        page_id: node.pageId ?? null,
+        projection: {
+          kind: "tag-row",
+          listBoxId: node.id,
+          itemKey: "__show_all__",
+          rowIndex: tags.length,
+          templateAnchorId: null,
+          templateOriginId: null,
+        },
+        sourceNode: node.sourceNode as CanonicalNode,
+      },
+      graph,
+    );
+  }
+}
+
+/**
  * ADR-228 (2026-09-21 사용자 보고 「TagGroup instance 에 Add Tag 해도 캔버스 무변화」): ref instance 의
  * synthetic 자식 (`<instance>/<path>`) 은 `resolveCanonicalRefTree` 가 scene visit **뒤에** 만들므로
  * 자식 소유 projection (TagList chip · TabList tab) 을 받지 못했다 — origin 의 projection 은 ref

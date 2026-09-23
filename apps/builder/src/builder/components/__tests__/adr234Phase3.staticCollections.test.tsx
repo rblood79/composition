@@ -598,14 +598,40 @@ describe("ADR-234 Phase 3b — TagGroup", () => {
       ),
     } as CompositionDocument;
     const model = buildCanonicalSceneModel(docSelected);
-    const tags =
-      model.sceneChildrenByParent.get("tg-1/component-taggroup__2") ?? [];
+    // maxRows 「Show all」 chip (origin 기본 maxRows 2) 은 항목이 아니다.
+    const tags = (
+      model.sceneChildrenByParent.get("tg-1/component-taggroup__2") ?? []
+    ).filter((t) => !(t.props as Record<string, unknown>)._isShowAll);
     expect(
       tags.map((t) => (t.props as Record<string, unknown>)._isSelected),
     ).toEqual([undefined, true, undefined, undefined]);
     expect(
       (model.sceneChildrenByParent.get(tags[0]!.id) ?? []).map((c) => c.type),
     ).toEqual(["Text"]);
+  });
+
+  it("Canvas: maxRows → 정적 TagList 끝에 Show all chip (instance override 우선 · 숨긴 Tag 제외) · 0 이면 없음", () => {
+    const showAllOf = (model: ReturnType<typeof buildCanonicalSceneModel>, listId: string) =>
+      (model.sceneChildrenByParent.get(listId) ?? []).filter(
+        (c) => (c.props as Record<string, unknown>)._isShowAll === true,
+      );
+    // origin 기본 maxRows 2 — origin · instance 모두 Show all 1 (글자 = 정적 Tag 수).
+    const doc = seededDoc([tagGroupInstance]);
+    const model = buildCanonicalSceneModel(doc);
+    for (const listId of ["component-taggroup__2", "tg-1/component-taggroup__2"]) {
+      const chips = showAllOf(model, listId);
+      expect(chips, listId).toHaveLength(1);
+      expect((chips[0]!.props as Record<string, unknown>).children).toBe("Show all (4)");
+      expect(chips[0]!.type).toBe("Tag");
+      const siblings = model.sceneChildrenByParent.get(listId) ?? [];
+      expect(siblings[siblings.length - 1]!.id).toBe(chips[0]!.id);
+    }
+    // instance maxRows 0 → instance 목록에는 없음 (origin 은 그대로).
+    const off = buildCanonicalSceneModel(
+      seededDoc([{ ...tagGroupInstance, props: { maxRows: 0 } } as unknown as CanonicalNode]),
+    );
+    expect(showAllOf(off, "tg-1/component-taggroup__2")).toHaveLength(0);
+    expect(showAllOf(off, "component-taggroup__2")).toHaveLength(1);
   });
 
   it("Preview: RAC static Tag 4 (maxRows 미러 제외) · 글자 = label descendants", () => {

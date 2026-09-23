@@ -14,6 +14,7 @@ import type { PageElementIndex } from "../../../stores/utils/elementIndexer";
 import {
   type CanvasSceneGraph,
   appendRefInstanceChildProjections,
+  appendStaticTagShowAllChips,
   buildCanvasSceneGraph,
   buildCanvasScenePageIndex,
   type CanvasSceneNode,
@@ -154,7 +155,10 @@ function resolveSceneGraph(
     },
     () => documentNodesById,
   );
-  return pruneDisabledSceneNodes(resolvedGraph);
+  const pruned = pruneDisabledSceneNodes(resolvedGraph);
+  // ADR-234 후속: 정적 TagList 의 maxRows 「Show all」 chip — 숨긴 Tag 를 세지 않게 prune 뒤.
+  appendStaticTagShowAllChips(pruned);
+  return pruned;
 }
 
 /**
