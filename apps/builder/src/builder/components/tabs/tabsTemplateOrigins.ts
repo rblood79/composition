@@ -95,6 +95,14 @@ function createTabItemSelectedOrigin(): CanonicalNode {
 /** slot 은 Tabs root 가 갖는다 (Tag 와 같은 자리). 사용자가 둔 slot 은 보존 — 부재 시만 보충 (BC ii). */
 function withTemplateSlot(origin: CanonicalNode): CanonicalNode {
   if (Array.isArray(origin.slot)) return origin;
+  // ADR-234 Phase 3 — 이관을 지난 origin 은 slot 을 목록 틀 (TabList) 이 갖는다.
+  if (
+    origin.children?.some(
+      (child) => child.type === "TabList" && Array.isArray(child.slot),
+    )
+  ) {
+    return origin;
+  }
   return { ...origin, slot: [...TAB_ITEM_TEMPLATE_SLOT] };
 }
 

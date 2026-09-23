@@ -20,6 +20,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 캔버스 resize 핸들 · padding/gap 띠도 같은 판정으로 이런 자식에서는 세션을 열지 않는다.
   - 위치: `apps/builder/src/builder/stores/canonical/subpartOwnerLookup.ts` (신규), `apps/builder/src/builder/panels/delegatedSubpart.ts`, `apps/builder/src/builder/workspace/canvas/hooks/useResizeInteraction.ts`, `apps/builder/src/builder/presentation/editorPresentationSpacingCapability.ts`
 
+## [ADR-234 Tabs 목록 = Tab instance 자식 (Phase 3a)] - 2026-09-23
+
+### Changed
+
+- **Tabs 의 탭은 TabList 안의 Tab 요소 (Tab origin 의 instance) 다.** 전에는 Tabs 의 `items` 데이터에서 탭을 만들어 캔버스에서 탭 하나를 고를 수도, 탭마다 모양을 바꿀 수도 없었다. 이제 탭마다 label 을 고치고, TabList 를 선택해 Properties 의 Slot 절 "+" 로 탭을 추가한다 (짝 TabPanel 이 같이 생긴다 · instance 에서도 된다).
+  - 기존 문서는 처음 열 때 옮겨진다 — 데이터 바인딩한 Tabs 는 그대로 `items` 를 쓴다.
+  - slot (추천 항목) 은 Tabs 가 아니라 TabList 가 갖는다.
+
+### Fixed
+
+- **Canvas 레이아웃: `width: fit-content` 상자 안 `width: 100%` 글자가 최소 폭으로 접히던 결함** (레이아웃 엔진). 가장 긴 폭을 재는 중에 `100%` 를 측정용 표식 값으로 풀어 "Tab 1" 이 "Tab / 1" 두 줄이 됐다. 이제 기준 없는 백분율은 auto 로 본다 (CSS 와 같음).
+- **Canvas: 선택 안 된 Tab 도 선택 표시 (밑줄) 가 그려지던 결함** — 그리는 단계가 이미 해석한 요소를 origin 값으로 한 번 더 덮었다.
+
 ## [ADR-234 상태 변형 = origin 의 instance (Phase 1·2)] - 2026-09-23
 
 ### Changed

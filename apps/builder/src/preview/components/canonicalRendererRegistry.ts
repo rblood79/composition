@@ -24,7 +24,7 @@ import { RangeCalendar } from "@composition/shared/components/RangeCalendar";
 import { Select } from "@composition/shared/components/Select";
 import { Skeleton } from "@composition/shared/components/Skeleton";
 import Table from "@composition/shared/components/Table";
-import { Tabs } from "@composition/shared/components/Tabs";
+import { Tab, Tabs } from "@composition/shared/components/Tabs";
 import { TagGroup } from "@composition/shared/components/TagGroup";
 import { Tooltip } from "@composition/shared/components/Tooltip";
 import { Tree } from "@composition/shared/components/Tree";
@@ -49,6 +49,8 @@ export const INTERNAL_RENDERERS: Readonly<
   select: Select,
   combobox: ComboBox,
   tabs: Tabs,
+  // ADR-234 Phase 3 — TabList 정적 자식 (Tab instance). RAC Tab 이라 render props 를 받는다.
+  tab: Tab,
   taggroup: TagGroup,
   gridlist: GridList,
   breadcrumbs: Breadcrumbs,
@@ -66,6 +68,14 @@ export const INTERNAL_RENDERERS: Readonly<
   datepicker: DatePicker,
   daterangepicker: DateRangePicker,
 };
+
+/**
+ * ADR-234 Phase 3 — internal renderer 중 RAC collection item 을 그대로 감싸 render props (`style` ·
+ * `children` 함수) 를 RAC 에 넘기는 것. 상태 변형 층을 rac source 와 같은 함수 경로로 겹친다.
+ */
+export const RENDER_PROPS_INTERNAL_RENDERERS: ReadonlySet<string> = new Set([
+  "tab",
+]);
 
 export const DELEGATING_INTERNAL_RENDERERS: ReadonlySet<string> =
   deriveDelegatingInternalRenderers();

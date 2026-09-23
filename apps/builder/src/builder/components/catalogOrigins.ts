@@ -276,10 +276,21 @@ export function repairCatalogOrigin(
     };
   }
   const hasExistingChildren = Array.isArray(existing.children);
+  // ADR-234 Phase 3 — seed `items` 는 기본 행 데이터일 뿐이다: 이관이 목록을 자식으로 옮기며 지운
+  //   origin (자식 배열이 있고 items 가 없다) 에 되살리면 두 목록이 겹친다.
+  const baseProps =
+    hasExistingChildren &&
+    base.props &&
+    "items" in base.props &&
+    !(existing.props && "items" in existing.props)
+      ? (({ items: _seedItems, ...rest }) => rest)(
+          base.props as Record<string, unknown>,
+        )
+      : base.props;
   return {
     ...base,
     ...existing,
-    props: { ...(base.props ?? {}), ...(existing.props ?? {}) },
+    props: { ...(baseProps ?? {}), ...(existing.props ?? {}) },
     ...(hasExistingChildren
       ? { children: existing.children }
       : base.children

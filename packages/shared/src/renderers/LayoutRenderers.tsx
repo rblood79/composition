@@ -46,7 +46,10 @@ import {
 } from "../utils/disclosureGroupExpansion";
 import { resolveCatalogDensityField } from "../catalog/resolvers/resolveCatalogContainer";
 import { resolveComponentRule } from "../catalog/resolvers/resolveComponentRule";
-import { resolveItemTemplateRowBoxStyle } from "../catalog/slotRoles";
+import {
+  resolveItemTemplateRowBoxStyle,
+  resolveStaticItemKey,
+} from "../catalog/slotRoles";
 import { resolveCalendarHeaderStyle } from "./DateRenderers";
 import type {
   PreviewElement,
@@ -142,9 +145,29 @@ export const renderTabs = (
     "name" in (dataBinding as object) &&
     !("type" in (dataBinding as object));
 
+  // ADR-234 Phase 3 — 작성자가 채운 목록 = TabList 의 Tab instance 자식 (RAC static children
+  //   `<TabList><Tab id>`). 바인딩 목록 · 이관 전 문서는 ADR-066 `items` 경로 그대로.
+  const tabListElement = childrenByParent
+    .get(element.id)
+    ?.find((child) => child.type === "TabList");
+  const staticTabs =
+    tabListElement && !dataBinding
+      ? (childrenByParent
+          .get(tabListElement.id)
+          ?.filter((child) => child.type === "Tab") ?? [])
+      : [];
+  const isStaticList = staticTabs.length > 0;
+
   // ADR-066: items SSOT 기반 렌더. Tab element 없음.
-  const items =
-    (element.props.items as Array<{ id: string; title: string }>) ?? [];
+  const items = isStaticList
+    ? staticTabs.map((tab) => ({
+        id: resolveStaticItemKey(
+          tab.props as Record<string, unknown> | undefined,
+          tab.id,
+        ),
+        title: "",
+      }))
+    : ((element.props.items as Array<{ id: string; title: string }>) ?? []);
 
   // TabPanel element는 TabPanels 아래에 존재, itemId로 items와 페어링.
   const tabPanelsElement = childrenByParent
@@ -204,9 +227,39 @@ export const renderTabs = (
         }
         size={(element.props.size as ComponentSize) || "md"}
         showIndicator={element.props.showIndicator !== false}
-        items={items}
+        {...(isStaticList ? {} : { items })}
       >
-        {(item) => (
+        {isStaticList
+          ? // 항목 instance: canonical 경로는 CanonicalNodeRenderer 로 되돌아가 RAC Tab (상태 층 render
+            //   props) 이 되고, legacy 경로는 여기서 RAC Tab 을 합성한다 (자식은 재귀 렌더).
+            staticTabs.map((tab) =>
+              context.renderCollectionItem ? (
+                context.renderCollectionItem(tab, tab.id)
+              ) : (
+                <Tab
+                  key={tab.id}
+                  id={resolveStaticItemKey(
+                    tab.props as Record<string, unknown> | undefined,
+                    tab.id,
+                  )}
+                  data-element-id={tab.id}
+                  style={
+                    tab.stateStyle
+                      ? (renderProps) =>
+                          tab.stateStyle!(
+                            renderProps as unknown as Record<string, unknown>,
+                            tab.props.style as React.CSSProperties | undefined,
+                          ) as React.CSSProperties
+                      : (tab.props.style as React.CSSProperties | undefined)
+                  }
+                >
+                  {(childrenByParent.get(tab.id) ?? []).map((child) =>
+                    renderElement(child, child.id),
+                  )}
+                </Tab>
+              ),
+            )
+          : (item: { id: string; title: string }) => (
           <Tab
             id={item.id}
             // ADR-233 — Tab 항목 template: base 는 모든 Tab, selected 는 RAC isSelected Tab 에 overlay.

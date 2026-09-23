@@ -158,6 +158,15 @@ function isTabsHost(element: SlotPolicyElement | undefined): boolean {
   return normalizeType(element.type) === "tabs";
 }
 
+/** ADR-234 Phase 3 — slot 을 가진 TabList (Tabs 의 목록 틀). */
+function isTabListHost(element: SlotPolicyElement | undefined): boolean {
+  if (!element) return false;
+  return (
+    normalizeType(element.type) === "tablist" &&
+    Array.isArray((element as { slot?: unknown }).slot)
+  );
+}
+
 function isTabsPolicyActive(element: SlotPolicyElement | undefined): boolean {
   if (!isTabsHost(element)) return false;
   return element?.reusable === true || element?.metadata?.systemOwned === true;
@@ -188,14 +197,19 @@ function isTabItemTemplateVariant(
 export type SlotInsertAction =
   | { kind: "child" }
   | { kind: "collection-item"; itemsKey: "items"; selected: boolean }
-  // ADR-233: Tabs 의 Tab 은 `items` + TabPanel `itemId` 쌍 (ADR-066) 인데 그 쌍을 만드는 기존 추가
-  //   경로가 없다 (Phase 0) — ref 자식 삽입도 item 등록도 아닌 "삽입 없음". 버튼을 숨긴다.
+  // ADR-234 Phase 3 — TabList (목록 틀) 의 "+" = Tab instance + 짝 TabPanel (`collectionItemInsert`).
+  | { kind: "tab-item" }
+  // ADR-233: Tabs root slot (이관 전 문서) 의 Tab 은 `items` + TabPanel `itemId` 쌍 (ADR-066) 이라 추가
+  //   경로가 없다 — "삽입 없음". 버튼을 숨긴다.
   | { kind: "none" };
 
 export function resolveSlotInsertAction(
   host: SlotPolicyElement | undefined,
   candidate: SlotPolicyElement | undefined,
 ): SlotInsertAction {
+  if (isTabListHost(host) && isTabItemTemplateVariant(candidate)) {
+    return { kind: "tab-item" };
+  }
   if (isTabsHost(host) && isTabItemTemplateVariant(candidate)) {
     return { kind: "none" };
   }
@@ -227,6 +241,7 @@ export function isSlotHostElement(
   if (isGridListPolicyActive(element)) return true;
   if (isTagGroupPolicyActive(element)) return true;
   if (isTabsPolicyActive(element)) return true;
+  if (isTabListHost(element)) return true;
   return FRAME_SLOT_HOST_TYPES.has(normalizeType(element.type));
 }
 
@@ -244,7 +259,7 @@ export function isSlotCandidateAllowed(
   if (isTagGroupHost(host)) {
     return isTagItemTemplateVariant(candidate);
   }
-  if (isTabsHost(host)) {
+  if (isTabsHost(host) || isTabListHost(host)) {
     return isTabItemTemplateVariant(candidate);
   }
   return true;

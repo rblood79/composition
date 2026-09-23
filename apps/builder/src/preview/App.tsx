@@ -53,6 +53,7 @@ import {
 import type { EventHandlerMap } from "@composition/shared/types";
 import {
   createTabTemplateResolver,
+  readTabsTemplateSlot,
   indexTemplateOriginRecords,
   resolveTemplateOriginRootStyle,
 } from "./utils/itemTemplates";
@@ -399,7 +400,9 @@ function CanvasContent() {
     //   m2 — slot 은 Tabs 마다 다르다: 렌더러가 Tabs 노드마다 `resolveTabTemplate` 을 부른다. `tab` 은
     //   master `component-tabs` 기준 (위임 경로 밖 소비자용 기본값).
     const tabTemplates = createTabTemplateResolver(byId);
-    const tabTemplate = tabTemplates.forSlot(byId.get("component-tabs")?.slot);
+    const tabTemplate = tabTemplates.forSlot(
+      readTabsTemplateSlot(byId.get("component-tabs")),
+    );
     const resolveTabTemplate = tabTemplates.forOwner;
     return {
       listBox: compositionOf(listBoxOriginId),

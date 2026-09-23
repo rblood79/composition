@@ -43,6 +43,7 @@ import {
 import { ensureCatalogOrigins, getCatalogOriginTypes } from "./catalogOrigins";
 import { ensureStateVariantOrigins } from "./stateVariantOrigins";
 import { migrateVariantsToOriginInstances } from "./stateVariantMigration";
+import { migrateStaticCollectionsToInstances } from "./staticCollectionMigration";
 import { catalogReusableOriginId } from "@composition/shared";
 import {
   collectReusableOriginIds,
@@ -132,8 +133,12 @@ export function ensureReusableCompositeOrigins(
 ): CompositionDocument {
   // ADR-234 Phase 2 — 상태 변형 복제본 · 항목 템플릿 selected 를 origin 의 ref 로 이관 (멱등 —
   //   이관을 지난 문서는 같은 객체). seed 는 이관 전 모양으로 두고 여기 한 곳에서 옮긴다.
-  return migrateVariantsToOriginInstances(
-    ensureReusableCompositeOriginsBeforeVariantMigration(document),
+  // ADR-234 Phase 3 — 정적 `items` → 목록 틀의 항목 instance 자식 (멱등). 변형 이관 뒤 — 항목 instance 는
+  //   이관을 지난 항목 origin (선택 상태) 을 가리킨다.
+  return migrateStaticCollectionsToInstances(
+    migrateVariantsToOriginInstances(
+      ensureReusableCompositeOriginsBeforeVariantMigration(document),
+    ),
   );
 }
 

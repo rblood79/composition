@@ -340,3 +340,20 @@ export function readLeadingSlotSize(
   const raw = role === "icon" ? style.fontSize : (style.width ?? style.height);
   return typeof raw === "number" && raw > 0 ? raw : undefined;
 }
+
+/**
+ * ADR-234 Phase 3 — 정적 목록 항목 (TabList 의 Tab · TagList 의 Tag · ListBox 의 ListBoxItem …) 의 RAC key.
+ * `props.id` (RAC `<Tab id>` — TabPanel `itemId` 짝 · Tabs `selectedKey` 가 가리키는 값) 가 정본이고, 없으면
+ * 노드 id. 두 leg (Canvas 유효 상태 · layout panel 짝 · Preview `renderTabs`) 가 이 함수 하나를 읽는다.
+ */
+export function resolveStaticItemKey(
+  props: Record<string, unknown> | null | undefined,
+  nodeId: string,
+): string {
+  const id = props?.id;
+  return typeof id === "string" && id !== ""
+    ? id
+    : typeof id === "number"
+      ? String(id)
+      : nodeId;
+}

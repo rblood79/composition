@@ -381,8 +381,13 @@ export function Tab({ children, ...props }: TabProps) {
 
   return (
     <RACTab {...props} className="react-aria-Tab">
-      {showIndicator && <SelectionIndicator />}
-      {children as ReactNode}
+      {/* ADR-234 Phase 3 — 정적 Tab instance 는 자손 상태 층을 render props (children 함수) 로 받는다. */}
+      {composeRenderProps(children, (content) => (
+        <>
+          {showIndicator && <SelectionIndicator />}
+          {content as ReactNode}
+        </>
+      ))}
     </RACTab>
   );
 }

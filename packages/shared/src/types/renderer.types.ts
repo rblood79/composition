@@ -143,6 +143,12 @@ export interface RenderContext {
   setElements: (elements: PreviewElement[]) => void;
   /** 재귀 렌더링 함수 */
   renderElement: (el: PreviewElement, key?: string) => ReactNode;
+  /**
+   * ADR-234 Phase 3 — 정적 목록 항목 (TabList 의 Tab instance) 을 RAC collection item 그대로 그리는 함수.
+   * canonical 경로 (CanonicalNodeRenderer) 만 공급한다 — 상태 층 render props (style · children 함수) 를
+   * 싣는다. 없으면 목록 렌더러가 직접 RAC item 을 합성한다 (legacy 경로).
+   */
+  renderCollectionItem?: (el: PreviewElement, key?: string) => ReactNode;
   /** 프로젝트 ID (optional) */
   projectId?: string;
   /** 편집 모드 */

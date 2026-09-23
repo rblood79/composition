@@ -1,6 +1,7 @@
 import {
   mergeFillSizing,
   readPropsSchema,
+  resolveStaticItemKey,
   resolveTemplateBindingValues,
   substituteTemplateBindingsInChildren,
   substituteTemplateBindingsInProps,
@@ -181,10 +182,32 @@ export function resolveCanonicalRefMaster<T extends CanonicalRefResolvableNode>(
   return resolveReference(ref, nodes);
 }
 
+/**
+ * ADR-234 Phase 3 — `resolveCanonicalRefTree` 가 해석을 끝낸 ref 노드 표식 (symbol — 직렬화 · 패널 표면에
+ * 안 나온다, spread 로는 따라간다). 페인트 경로 (`StoreRenderBridge.buildNodeForElement`) 는 scene 노드를
+ * 다시 `resolveCanonicalRefElement` 에 넣는데, 해석된 props 를 patch 로 master 위에 다시 얹으면 상태 층 ·
+ * instance `null` 이 지운 키 (휴지 Tab 의 `_isSelected`) 를 master 값이 되살린다.
+ */
+const RESOLVED_REF_MARK = Symbol.for("composition.adr234.resolvedRef");
+
+function markResolvedRef<T extends object>(node: T): T {
+  (node as Record<symbol, unknown>)[RESOLVED_REF_MARK] = true;
+  return node;
+}
+
+export function isResolvedRefNode(node: unknown): boolean {
+  return Boolean(
+    node &&
+    typeof node === "object" &&
+    (node as Record<symbol, unknown>)[RESOLVED_REF_MARK] === true,
+  );
+}
+
 export function resolveCanonicalRefElement<
   T extends CanonicalRefResolvableNode,
 >(node: T, nodes: Iterable<T>, knownMaster?: T): T {
   if (!isCanonicalRefElement(node)) return node;
+  if (isResolvedRefNode(node)) return node;
 
   const ref = getCanonicalRefTarget(node)!;
   const master = knownMaster ?? resolveCanonicalRefMaster(ref, nodes);
@@ -608,37 +631,70 @@ function materializeOverrideChildren<T extends CanonicalRefResolvableNode>(
       ...(slot !== undefined ? { slot } : {}),
     } as T;
 
+    const overrideRef = getCanonicalRefTarget(syntheticChild);
+    const lookupOverrideMaster = (target: string) =>
+      resolveCanonicalRefMaster(target, resultElementsMap.values());
+    const overrideMaster = overrideRef
+      ? lookupOverrideMaster(overrideRef)
+      : undefined;
+    const resolvedChildBase = isCanonicalRefElement(syntheticChild)
+      ? resolveCanonicalRefElement(
+          syntheticChild,
+          resultElementsMap.values(),
+          overrideMaster,
+        )
+      : syntheticChild;
+    // ADR-234 Phase 3 — mode C 로 채운 목록 틀의 항목 instance (Slot "+" 가 instance 에 넣은 Tab) 도
+    //   실행 중 상태 층 (선택 = 조상 Tabs key). 부모 (synthetic 목록 틀) 는 이미 결과 map 에 있다.
+    const overrideStateLayer =
+      overrideMaster && resolvedChildBase !== syntheticChild
+        ? resolveCanvasStateLayer(
+            overrideMaster.id,
+            resolvedChildBase,
+            resultElementsMap,
+            lookupOverrideMaster,
+          )
+        : null;
     const resolvedChild = withTemplateBindings(
-      isCanonicalRefElement(syntheticChild)
-        ? resolveCanonicalRefElement(syntheticChild, resultElementsMap.values())
-        : syntheticChild,
+      overrideStateLayer
+        ? applyStateLayerToResolved(
+            resolvedChildBase,
+            overrideStateLayer,
+            syntheticChild,
+          )
+        : resolvedChildBase,
       templateBindings,
     );
+    if (resolvedChildBase !== syntheticChild) markResolvedRef(resolvedChild);
 
     resultElements.push(resolvedChild);
     resultElementsMap.set(syntheticId, resolvedChild);
     syntheticChildren.push(resolvedChild);
 
-    const syntheticRef = getCanonicalRefTarget(syntheticChild);
-    if (syntheticRef) {
-      const master = resolveCanonicalRefMaster(
-        syntheticRef,
-        resultElementsMap.values(),
+    if (overrideRef && overrideMaster) {
+      // 중첩 ref 는 자신의 origin propsSchema 기준으로 새 바인딩을 산출한다.
+      materializeSyntheticDescendants(
+        syntheticChild,
+        overrideMaster,
+        syntheticId,
+        sourceChildrenMap,
+        resultElementsMap,
+        resultChildrenMap,
+        resultElements,
+        resolveMasterTemplateBindings(
+          overrideMaster,
+          getNodeProps(resolvedChild),
+        ),
+        "",
+        new Set(),
+        {
+          patchOwners: [
+            { owner: syntheticChild, mountPath: "" },
+            ...stateLayerOwner(syntheticChild, overrideStateLayer),
+          ],
+        },
       );
-      if (master) {
-        // 중첩 ref 는 자신의 origin propsSchema 기준으로 새 바인딩을 산출한다.
-        materializeSyntheticDescendants(
-          syntheticChild,
-          master,
-          syntheticId,
-          sourceChildrenMap,
-          resultElementsMap,
-          resultChildrenMap,
-          resultElements,
-          resolveMasterTemplateBindings(master, getNodeProps(resolvedChild)),
-        );
-        return;
-      }
+      return;
     }
 
     const nestedChildren = child.children;
@@ -803,13 +859,13 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
                 : (rawRefSource(sourceChild) as { enabled?: unknown }).enabled,
           } as unknown as T)
         : resolvedNestedBase;
-      const syntheticNested = {
+      const syntheticNested = markResolvedRef({
         ...resolvedNested,
         id: syntheticId,
         parentId: syntheticParentId,
         parent_id: syntheticParentId,
         reusable: undefined,
-      } as T;
+      } as T);
 
       resultElements.push(syntheticNested);
       resultElementsMap.set(syntheticId, syntheticNested);
@@ -988,9 +1044,8 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
  * ADR-234 Phase 2 — Canvas 유효 상태 (selected · disabled). hover/pressed/focus 는 Preview 소관
  * (ADR-150 A1 철회 판정) — 변형 노드 자신 (Components 페이지) 만 `metadata.variant` 로 강제한다.
  *
- * - selected: 강제 상태 → 자기 `isSelected` / `_isSelected` → 조상 RadioGroup `value` 매칭 →
- *   조상 Tabs `selectedKey ?? defaultSelectedKey` 와 자기 `id` 매칭 (paint 단계
- *   `buildSpecNodeData` 의 투영과 같은 규칙).
+ * - selected: 강제 상태 → (Tab) 조상 Tabs `selectedKey ?? defaultSelectedKey` 와 자기 key
+ *   (`resolveStaticItemKey`) 매칭 → 자기 `isSelected` / `_isSelected` → 조상 RadioGroup `value` 매칭.
  * - disabled: 강제 상태 → 자기 `isDisabled` / `disabled` → 조상 그룹의 `isDisabled` (3단계).
  */
 const DISABLING_GROUP_TYPES = new Set([
@@ -1026,6 +1081,18 @@ export function resolveCanvasVariantState<T extends CanonicalRefResolvableNode>(
   const forced = readForcedVariantStates(element) ?? {};
   const props = getNodeProps(element);
   let selected = forced.selected;
+  // ADR-234 Phase 3 — TabList 의 정적 Tab 은 Tabs 의 선택 key 가 정본이다. 항목 origin 은 선택 상태라
+  //   `_isSelected: true` 를 갖고 instance 가 그것을 상속하므로 자기 값보다 먼저 본다.
+  const tabsOwner =
+    selected === undefined && element.type === "Tab"
+      ? findAncestor(element, elementsMap, (node) => node.type === "Tabs")
+      : undefined;
+  if (selected === undefined && tabsOwner) {
+    const tabsProps = getNodeProps(tabsOwner);
+    const key = tabsProps.selectedKey ?? tabsProps.defaultSelectedKey;
+    selected =
+      key != null && key === resolveStaticItemKey(props, element.id);
+  }
   if (selected === undefined) {
     if (props.isSelected === true || props._isSelected === true) {
       selected = true;
@@ -1040,15 +1107,6 @@ export function resolveCanvasVariantState<T extends CanonicalRefResolvableNode>(
         typeof groupValue === "string" && groupValue !== ""
           ? groupValue === props.value
           : false;
-    } else if (element.type === "Tab") {
-      const tabs = findAncestor(
-        element,
-        elementsMap,
-        (node) => node.type === "Tabs",
-      );
-      const tabsProps = tabs ? getNodeProps(tabs) : undefined;
-      const key = tabsProps?.selectedKey ?? tabsProps?.defaultSelectedKey;
-      selected = key != null && key === props.id;
     } else {
       selected = false;
     }
@@ -1093,6 +1151,43 @@ function resolveCanvasStateLayer<T extends CanonicalRefResolvableNode>(
     set,
     resolveCanvasVariantState(resolved, elementsMap),
   );
+}
+
+/** props patch 중 삭제 표기 (`null`) 만 — top-level · style 한 단계. 없으면 null. */
+function deletionOnlyPatch(
+  props: Record<string, unknown>,
+): Record<string, unknown> | null {
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(props)) {
+    if (value === null) out[key] = null;
+  }
+  if (isRecord(props.style)) {
+    const style: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(props.style)) {
+      if (value === null) style[key] = null;
+    }
+    if (Object.keys(style).length > 0) out.style = style;
+  }
+  return Object.keys(out).length > 0 ? out : null;
+}
+
+/**
+ * ADR-234 Phase 3 — scene 노드는 ref 의 props 를 origin 위에 이미 접어 두어 (`resolveSceneRefChain`) ref 자기
+ * `null` (삭제 표기) 이 소비된 뒤다. 그 props 를 patch 로 master 에 다시 얹으면 지운 키를 master 값이
+ * 되살린다 (휴지 Tab 변형의 `_isSelected: null` → origin 의 true). ref 자기 삭제 표기를 해석 뒤에 한 번 더.
+ */
+function reapplyOwnDeletions<T extends CanonicalRefResolvableNode>(
+  resolved: T,
+  ownSource: T,
+  input: T,
+): T {
+  if (resolved === input || ownSource === input) return resolved;
+  const deletions = deletionOnlyPatch(getNodeProps(ownSource));
+  if (!deletions) return resolved;
+  return {
+    ...resolved,
+    props: applyPropsPatch(getNodeProps(resolved), deletions),
+  } as T;
 }
 
 /**
@@ -1235,10 +1330,10 @@ export function resolveCanonicalRefTree<
       : null;
     if (directMaster && !chain) continue; // 순환 · 깊이 초과 · 끊긴 체인 = broken ref
     const master = chain?.effectiveMaster;
-    const resolvedRootBase = resolveCanonicalRefElement(
+    const resolvedRootBase = reapplyOwnDeletions(
+      resolveCanonicalRefElement(element, input.elementsMap.values(), master),
+      rawRefSource(element),
       element,
-      input.elementsMap.values(),
-      master,
     );
     // ADR-234 Phase 2 — 실행 중 상태 층 (selected · disabled). instance 자기 patch 가 마지막에 이기도록
     //   층을 master 에 얹은 뒤 instance 를 다시 연다. 자손 층은 patch 소유자 스택 (instance 다음).
@@ -1259,9 +1354,20 @@ export function resolveCanonicalRefTree<
         )
       : resolvedRootBase;
     if (resolvedRoot !== element) {
+      markResolvedRef(resolvedRoot);
       elementsMap.set(element.id, resolvedRoot);
       const index = indexById.get(element.id) ?? -1;
       if (index >= 0) elements[index] = resolvedRoot;
+      // ADR-234 Phase 3 — 부모의 자식 목록도 같은 객체로 (scene `sceneChildrenByParent` 를 읽는
+      //   소비자가 해석 전 props — 상태 층 전 — 를 보지 않게).
+      const parentId = getParentId(element);
+      const siblings = parentId ? childrenMap.get(parentId) : undefined;
+      const siblingIndex = siblings?.indexOf(element) ?? -1;
+      if (siblings && siblingIndex >= 0) {
+        const nextSiblings = [...siblings];
+        nextSiblings[siblingIndex] = resolvedRoot;
+        childrenMap.set(parentId!, nextSiblings);
+      }
     }
 
     if (!ref || !chain) continue;

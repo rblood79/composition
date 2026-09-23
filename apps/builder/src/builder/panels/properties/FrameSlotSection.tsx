@@ -24,6 +24,8 @@ import {
   resolveSlotInsertAction,
 } from "../../components/slotHostPolicy";
 import type { PanelNode } from "../panelNode";
+import { planTabItemInsert } from "../../components/collectionItemInsert";
+import { getActiveCanonicalDocument } from "../../stores/canonical/canonicalElementsBridge";
 import { ACTION_ICONS } from "../../config/actionIcons";
 import { useI18n } from "@/i18n";
 
@@ -195,6 +197,52 @@ export const FrameSlotSection = memo(function FrameSlotSection({
     //   selected variant 는 selectedKeys 에도 — 한 번의 props 쓰기 (history 1).
     const insertAction = resolveSlotInsertAction(latestElement, candidate);
     if (insertAction.kind === "none") return;
+    // ADR-234 Phase 3 — TabList "+" = Tab instance + 짝 TabPanel (instance 는 descendants mode C).
+    if (insertAction.kind === "tab-item") {
+      const document = getActiveCanonicalDocument();
+      const plan = document
+        ? planTabItemInsert({
+            document,
+            hostId: latestElement.id,
+            candidateId: candidate.id,
+            newKey: crypto.randomUUID(),
+          })
+        : null;
+      if (!plan) return;
+      if (plan.kind === "instance") {
+        void updateElement(plan.instanceId, {
+          descendants: plan.descendants,
+        } as Partial<AddElementInput>);
+        return;
+      }
+      const mirrorId = getFrameElementMirrorId(latestElement);
+      const pageId = latestElement.page_id ?? null;
+      void (async () => {
+        await addElement(
+          withFrameElementMirrorId(
+            {
+              ...plan.tab,
+              parent_id: plan.tabListId,
+              page_id: pageId,
+            } as unknown as AddElementInput,
+            mirrorId,
+          ),
+        );
+        if (plan.panel && plan.tabPanelsId) {
+          await addElement(
+            withFrameElementMirrorId(
+              {
+                ...plan.panel,
+                parent_id: plan.tabPanelsId,
+                page_id: pageId,
+              } as unknown as AddElementInput,
+              mirrorId,
+            ),
+          );
+        }
+      })();
+      return;
+    }
     if (insertAction.kind === "collection-item") {
       const props = (latestElement.props ?? {}) as Record<string, unknown>;
       const currentItems = Array.isArray(props[insertAction.itemsKey])

@@ -18,7 +18,8 @@ import {
   phantomIndicatorGap,
   phantomIndicatorSizeKey,
   isTagGroupSlotChildVisible,
-  resolveTabsItems,
+  findTabListChildren,
+  resolveTabsItemKeys,
 } from "./utils";
 import {
   // ADR-912 단계5 step4 (2026-06-17): InlineAlertSpec import 제거 — InlineAlert padding/gap/자식 font
@@ -2035,9 +2036,12 @@ export function applyImplicitStyles(
     //   (Tab 0 → 높이 0) 만 그리고 TabPanel 은 하나도 그리지 않는다 (`renderTabs` `items.map(
     //   findPanelForItem)`). stale TabPanel 자식도 DOM 에 없다. 종전엔 tab bar 29 + panel padding 24
     //   를 무조건 실었다.
+    // ADR-234 Phase 3 — 작성자 목록은 TabList 의 Tab 자식이 정본 (Preview `renderTabs` 동일).
     const tabsEmpty =
-      resolveTabsItems(containerProps).length === 0 &&
-      containerProps?.dataBinding == null;
+      resolveTabsItemKeys(
+        containerProps,
+        findTabListChildren(children, getChildElements),
+      ).length === 0 && containerProps?.dataBinding == null;
     const tabBarHeight = tabsEmpty
       ? 0
       : (specSizeField("tabs", sizeName, "height") ?? 30);
@@ -2104,7 +2108,15 @@ export function applyImplicitStyles(
     // 활성 TabPanel: itemId가 selectedKey와 매칭 (ADR-066). 없으면 첫 번째.
     // ADR-923 r21m1 — item 이 없는 stale panel 은 Preview 가 그리지 않는다 (owner items 로 필터).
     const ownerItemIds = new Set(
-      resolveTabsItems(tabsProps).map((it) => String(it.id)),
+      resolveTabsItemKeys(
+        tabsProps,
+        tabsParent
+          ? findTabListChildren(
+              getChildElements(tabsParent.id),
+              getChildElements,
+            )
+          : undefined,
+      ),
     );
     const filterByOwnerItems =
       tabsParent !== undefined && tabsProps?.dataBinding == null;
@@ -2146,8 +2158,8 @@ export function applyImplicitStyles(
     const tabListEmpty =
       tabsParent !== undefined &&
       tabsProps?.dataBinding == null &&
-      resolveTabsItems(tabsProps).length === 0 &&
-      resolveTabsItems(containerProps).length === 0;
+      resolveTabsItemKeys(tabsProps, children).length === 0 &&
+      resolveTabsItemKeys(containerProps, children).length === 0;
     const tabBarHeight = tabListEmpty
       ? 0
       : (specSizeField("tabs", sizeName, "height") ?? 30);

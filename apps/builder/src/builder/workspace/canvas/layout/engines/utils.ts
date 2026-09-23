@@ -83,7 +83,10 @@ import {
 } from "@composition/specs";
 import type { ComponentRuleSize } from "@composition/shared";
 // ADR-923 r22m1 — prop 부재 기본 size 의 단일 원천 (catalog defaultSize, lowercase 태그 허용).
-import { resolveComponentRuleByTag } from "@composition/shared";
+import {
+  resolveComponentRuleByTag,
+  resolveStaticItemKey,
+} from "@composition/shared";
 // ADR-148 Phase 0 — projection 주입 slot 구성(_slots) gating (listbox_item escape 와 Layer D 대칭).
 import {
   isSlotEnabled,
@@ -1624,6 +1627,40 @@ export function resolveTabsItems(
   return Array.isArray(props?.items)
     ? (props.items as Array<{ id?: unknown }>)
     : [];
+}
+
+/**
+ * ADR-234 Phase 3 — Tabs 의 항목 key 집합. 작성자가 채운 목록은 TabList 의 Tab 자식 (key =
+ * `resolveStaticItemKey`) 이 정본이고, 자식이 없으면 `items` (바인딩 · 이관 전 문서). Preview
+ * `renderTabs` 와 같은 우선순위.
+ */
+export function resolveTabsItemKeys(
+  tabsProps: Record<string, unknown> | undefined,
+  tabListChildren: readonly CanvasLayoutNode[] | undefined,
+): string[] {
+  const staticTabs = (tabListChildren ?? []).filter(
+    (child) => child.type === "Tab",
+  );
+  if (staticTabs.length > 0 && tabsProps?.dataBinding == null) {
+    return staticTabs.map((tab) =>
+      resolveStaticItemKey(
+        tab.props as Record<string, unknown> | undefined,
+        tab.id,
+      ),
+    );
+  }
+  return resolveTabsItems(tabsProps).map((item) => String(item.id));
+}
+
+/** Tabs 컨테이너의 TabList 자식들 (정적 Tab 목록 판정 입력). */
+export function findTabListChildren(
+  tabsChildren: readonly CanvasLayoutNode[],
+  getChildElements: ((id: string) => CanvasLayoutNode[]) | undefined,
+): CanvasLayoutNode[] | undefined {
+  const tabList = tabsChildren.find((child) => child.type === "TabList");
+  return tabList && getChildElements
+    ? getChildElements(tabList.id)
+    : undefined;
 }
 
 const BUTTON_TEXT_LEAF_TAGS = new Set([
@@ -4212,10 +4249,14 @@ export function calculateContentHeight(
       //   그린다: items 가 비면 빈 TabList (Tab 0 → 높이 0) 만 있고 panel 은 하나도 없다. stale
       //   TabPanel 자식 (item 이 지워진 뒤 남은 것) 도 DOM 에 없다. 종전엔 tab bar 29 + 첫 panel 을
       //   무조건 더했다. Tabs 는 dataBinding 없이 items SSOT 만 (scene `resolveDataBoundTabProjection`).
-      const tabItems = resolveTabsItems(props);
-      if (tabItems.length === 0 && props?.dataBinding == null) return 0;
-      const tabItemIds = new Set(tabItems.map((it) => String(it.id)));
-      if (tabItems.length > 0) {
+      // ADR-234 Phase 3 — 작성자 목록은 TabList 의 Tab 자식이 정본 (Preview `renderTabs` 동일).
+      const tabItemKeys = resolveTabsItemKeys(
+        props,
+        findTabListChildren(childElements, getChildElements),
+      );
+      if (tabItemKeys.length === 0 && props?.dataBinding == null) return 0;
+      const tabItemIds = new Set(tabItemKeys);
+      if (tabItemKeys.length > 0) {
         panelChildren = panelChildren.filter((p) =>
           tabItemIds.has(
             String((p.props as Record<string, unknown> | undefined)?.itemId),

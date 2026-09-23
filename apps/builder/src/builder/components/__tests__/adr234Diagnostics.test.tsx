@@ -286,7 +286,7 @@ describe("ADR-234 진단 (c) — TabList 의 Tab instance 자식", () => {
     expect(children.map((child) => child.type)).toContain("Tab");
   });
 
-  it.fails("Preview DOM: TabList 안에 .react-aria-Tab 'One' 이 있다", () => {
+  it("Preview DOM: TabList 안에 .react-aria-Tab 'One' 이 있다", () => {
     const resolved = findResolved(
       resolveCanonicalDocument(tabListChildDoc()) as ResolvedNode[],
       "tabs",

@@ -61,6 +61,24 @@ export function resolveTemplateOriginRootStyle(
   return Object.keys(merged).length > 0 ? merged : null;
 }
 
+/**
+ * ADR-234 Phase 3 — Tabs 의 항목 slot: 목록 틀 (TabList 자식) 이 갖는다. root `slot` 은 이관 전 문서.
+ */
+export function readTabsTemplateSlot(
+  owner:
+    | { slot?: unknown; children?: readonly unknown[] | unknown[] }
+    | undefined,
+): unknown {
+  if (Array.isArray(owner?.slot)) return owner.slot;
+  const tabList = (owner?.children ?? []).find(
+    (child): child is { type?: unknown; slot?: unknown } =>
+      Boolean(child) &&
+      typeof child === "object" &&
+      (child as { type?: unknown }).type === "TabList",
+  );
+  return tabList?.slot;
+}
+
 const TAB_ITEM_DEFAULT_ORIGIN_ID = "component-tab-item-default";
 const TAB_ITEM_SELECTED_ORIGIN_ID = "component-tab-item-selected";
 
@@ -128,9 +146,12 @@ export function createTabTemplateResolver(
   };
   return {
     forSlot,
-    forOwner: (owner) =>
-      forSlot(
-        owner._resolvedFrom ? byId.get(owner._resolvedFrom)?.slot : owner.slot,
-      ),
+    forOwner: (owner) => {
+      const slotOwner = owner._resolvedFrom
+        ? byId.get(owner._resolvedFrom)
+        : owner;
+      // ADR-234 Phase 3 — slot 은 목록 틀 (TabList) 이 갖는다. root 는 이관 전 문서.
+      return forSlot(readTabsTemplateSlot(slotOwner));
+    },
   };
 }

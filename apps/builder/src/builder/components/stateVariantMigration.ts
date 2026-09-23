@@ -29,6 +29,7 @@ import {
   type StateVariantState,
 } from "./stateVariantOrigins";
 import { readStateLayer } from "./stateVariantLayers";
+import { getCanonicalRefPathSegment } from "../../adapters/canonical/canonicalRefResolution";
 
 // ───────────────────────────── 유효값 차분 ─────────────────────────────
 
@@ -285,7 +286,9 @@ function mergeTemplateChildren(
   const used = new Set<CanonicalNode>();
   for (const def of defaults) {
     const match = byRole.get(slotRoleOf(def))?.find((c) => !used.has(c));
-    const path = pathPrefix ? `${pathPrefix}/${def.id}` : def.id;
+    // descendants 키 = segment 경로 (name 우선 — Canvas 는 이것만 읽고 Preview 는 id · segment 둘 다).
+    const segment = getCanonicalRefPathSegment(def);
+    const path = pathPrefix ? `${pathPrefix}/${segment}` : segment;
     if (!match) {
       // default 에만 — origin 에 숨겨 두고 휴지 변형이 되살린다.
       out.push({ ...def, enabled: false } as CanonicalNode);
@@ -320,7 +323,8 @@ function mergeTemplateChildren(
     if (used.has(extra)) continue;
     // selected 에만 — origin 에 있고 휴지 변형이 숨긴다.
     out.push(extra);
-    descendants[pathPrefix ? `${pathPrefix}/${extra.id}` : extra.id] = {
+    const extraSegment = getCanonicalRefPathSegment(extra);
+    descendants[pathPrefix ? `${pathPrefix}/${extraSegment}` : extraSegment] = {
       enabled: false,
     };
   }

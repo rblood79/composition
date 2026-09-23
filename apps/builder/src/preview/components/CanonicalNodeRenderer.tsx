@@ -35,6 +35,7 @@ import {
   resolveAuthoredDomId,
   resolveBodyDomClassName,
   resolveBodyDomPresentation,
+  resolveStaticItemKey,
   routeIndicatorFillStyle,
   toRacProps,
   toReactStyle,
@@ -51,6 +52,7 @@ import {
   DELEGATING_INTERNAL_RENDERERS,
   DELEGATING_RAC_RENDERERS,
   INTERNAL_RENDERERS,
+  RENDER_PROPS_INTERNAL_RENDERERS,
 } from "./canonicalRendererRegistry";
 import type { ResolvedNode } from "@composition/shared";
 // `../types/index` 가 shared 렌더 타입을 그대로 재수출하므로 별칭 import 와
@@ -151,10 +153,20 @@ const ORPHAN_ITEM_HOST: Readonly<Record<string, string>> = {
 /** ADR-233 — Radio 의 그룹 조상 type (소문자). 이 조상 밑 Radio 는 호스트를 만들지 않는다. */
 const RADIO_GROUP_ANCESTOR = "radiogroup";
 
+/**
+ * ADR-234 Phase 3 — 자기 collection 안에서만 RAC item 으로 그리는 internal renderer → 그 collection 조상
+ * type (소문자). 밖 (Components 페이지의 단독 Tab origin · 변형) 은 종전 경로 그대로 — RAC Tabs 는 빈
+ * 선택을 허용하지 않아 단독 호스트를 씌우면 휴지 변형도 선택으로 그려진다.
+ */
+const COLLECTION_ONLY_INTERNAL_RENDERERS: Readonly<Record<string, string>> = {
+  tab: "tabs",
+};
+
 /** 호스트가 될 수 있는 collection type(소문자) — 자손 item 은 이미 collection 안이다. */
 const COLLECTION_HOST_TYPES: ReadonlySet<string> = new Set([
   ...Object.values(ORPHAN_ITEM_HOST).map((v) => v.toLowerCase()),
   RADIO_GROUP_ANCESTOR,
+  ...Object.values(COLLECTION_ONLY_INTERNAL_RENDERERS),
 ]);
 
 /** `services` 미공급(publish 등) 일 때의 안정 참조 — 매 렌더 새 객체를 만들지 않는다. */
@@ -630,6 +642,8 @@ function CanonicalNodeRendererBody({
           ...renderContext,
           childrenByParent: delegatedChildrenByParent,
           renderElement: recursiveRenderElement,
+          // ADR-234 Phase 3 — 정적 목록 항목도 같은 재귀 (Tab → catalog internal `tab` = RAC Tab).
+          renderCollectionItem: recursiveRenderElement,
           // ADR-233 round 3 m2 — Tab 항목 template 은 이 Tabs 의 slot 으로 (문서 전역 1개가 아니다).
           ...(type === "Tabs" && renderContext.resolveTabTemplate
             ? { tabTemplate: renderContext.resolveTabTemplate(node) }
@@ -649,7 +663,12 @@ function CanonicalNodeRendererBody({
         ? (RAC as unknown as Record<string, React.ElementType | undefined>)[
             binding.source.component
           ]
-        : INTERNAL_RENDERERS[binding.source.renderer];
+        : COLLECTION_ONLY_INTERNAL_RENDERERS[binding.source.renderer] !==
+              undefined &&
+            COLLECTION_ONLY_INTERNAL_RENDERERS[binding.source.renderer] !==
+              collectionAncestor
+          ? undefined
+          : INTERNAL_RENDERERS[binding.source.renderer];
     if (binding && PrimitiveComponent) {
       // ADR-158 Phase 3 실측 — `node` 를 넘기면 Modal.isOpen patch 가 무반응이었다.
       // ADR-233 — 변형 origin 자신 (`metadata.variant`) 의 상태 prop (isSelected · isDisabled) 도
@@ -736,7 +755,9 @@ function CanonicalNodeRendererBody({
       // ADR-234 Phase 2 — 상태 변형 층. RAC 는 render props 로 켜진 상태를 알려 준다: root 는 `style`
       //   함수, 자손은 `children` 함수 → context. internal renderer 는 render props 가 없어 선언적
       //   상태 (selected · disabled) 로 정적 적용.
-      const isRacSource = binding.source.kind === "rac";
+      const isRacSource =
+        binding.source.kind === "rac" ||
+        RENDER_PROPS_INTERNAL_RENDERERS.has(binding.source.renderer);
       const racStateStyle:
         | React.CSSProperties
         | ((
@@ -827,6 +848,15 @@ function CanonicalNodeRendererBody({
           })()}
           {...eventHandlers}
           {...(cutoverClassName ? { className: cutoverClassName } : {})}
+          {...(type === "Tab"
+            ? {
+                // ADR-234 Phase 3 — 정적 Tab 의 RAC key (TabPanel `itemId` 짝 · Tabs selectedKey).
+                id: resolveStaticItemKey(
+                  adaptedEl.props as Record<string, unknown> | undefined,
+                  node.id,
+                ),
+              }
+            : {})}
           style={racStateStyle}
         >
           {racStateChildren}

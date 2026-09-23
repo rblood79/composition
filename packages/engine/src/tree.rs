@@ -4782,10 +4782,16 @@ impl LayoutTree {
         let ctx = self.ctx_for(avail_w);
         let pad_border_h = axis_pad_border(s, &ctx, true);
         let raw = s.width.as_deref().map(str::trim).unwrap_or("");
+        // 키워드는 **문자열** 로 판정한다. `%` 는 측정 모드 available 센티넬 (−2 · −3) 을 기준으로
+        // 풀리면 그 값이 `FIT_CONTENT` · `MIN_CONTENT` 센티넬과 같아진다 (ADR-234 Phase 3 실측 — max-content
+        // 측정 중 `width:100%` 텍스트가 min-content 를 보고). 키워드가 아닌 음수는 기준 없는 백분율
+        // (순환 백분율, CSS-SIZING-3 §5.2.1c) 이라 auto 로 본다.
         let sentinel = if raw.is_empty() || raw.eq_ignore_ascii_case("auto") {
             None
-        } else {
+        } else if size_is_intrinsic_keyword(Some(raw)) {
             resolve_css_size_value(raw, &ctx)
+        } else {
+            resolve_css_size_value(raw, &ctx).filter(|n| *n >= 0.0)
         };
         // 키워드도 auto 와 같이 **content-box 로 보고** — 자기 layout 만 border-box (2026-09-18 박스
         // 계약, solve_node 키워드 블록과 동일). 부모 커널 (flex content 슬롯 · block content_w · grid
@@ -8060,6 +8066,27 @@ mod tests {
         assert_eq!(trg.width, 110.0, "trigger 가 부모 폭으로 stretch 됨");
         // 높이는 Label 20 + gap 4 + trigger 20 = 44.
         assert_eq!(dp.height, 44.0);
+    }
+
+    /// ADR-234 Phase 3 실측 회귀 — flex row 안 `width:fit-content` 항목 (Tab) 의 `width:100%` 텍스트
+    /// 자식 (Text — generated base B22). 항목 폭 = 자식 max-content (Chrome: Tab 64 = 40 + padding 24,
+    /// label 한 줄). 회귀: max-content 측정 available 센티넬 (−3) 을 `%` 의 기준으로 써 `100%` 가 −3 =
+    /// `MIN_CONTENT` 센티넬과 같아져, 최대 폭 측정에서 min-content (24) 를 보고 → label 두 줄.
+    #[test]
+    fn percent_width_text_in_fit_content_flex_item_reports_max_content() {
+        let mut tree = LayoutTree::new();
+        // post-order: label(0, width:100%, 스칼라 24/40), tab(1, flex fit-content, padding 12), tablist(2, flex row 400)
+        let json = r#"[
+            {"style":{"width":"100%","contentHeight":24,"contentMinWidth":24,"contentMaxWidth":40},"children":[]},
+            {"style":{"display":"flex","alignItems":"center","justifyContent":"center","width":"fit-content","height":"29px","paddingLeft":"12px","paddingRight":"12px"},"children":[0]},
+            {"style":{"display":"flex","flexDirection":"row","width":"400px","height":"29px"},"children":[1]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[2], 400.0, 29.0);
+        let tab = tree.get_layout(handles[1]);
+        let label = tree.get_layout(handles[0]);
+        assert_eq!(tab.width, 64.0, "fit-content 항목 = 자식 max-content + padding");
+        assert_eq!(label.width, 40.0, "label 한 줄 (max-content)");
     }
 
     /// DatePicker 실측 회귀 (본체) — shrink-to-fit 부모의 `width:100%` 자식.

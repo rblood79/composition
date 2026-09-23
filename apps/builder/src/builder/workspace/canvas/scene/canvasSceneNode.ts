@@ -872,8 +872,14 @@ export function resolveTabTemplateOriginIds(
   ownerRef: string | null,
 ): { defaultOriginId: string; selectedOriginId: string } {
   const slotOwner = ownerRef ? getDocumentNodesById().get(ownerRef) : owner;
+  // ADR-234 Phase 3 — slot 은 목록 틀 (TabList) 이 갖는다. root 는 이관 전 문서.
+  const slot = Array.isArray(slotOwner?.slot)
+    ? slotOwner.slot
+    : (slotOwner as Pick<CanonicalNode, "children"> | undefined)?.children?.find(
+        (child) => child.type === "TabList",
+      )?.slot;
   return resolveItemTemplateSlotOriginIds(
-    slotOwner?.slot,
+    slot,
     getDocumentNodesById,
     {
       defaultOriginId: TAB_ITEM_DEFAULT_ORIGIN_ID,
