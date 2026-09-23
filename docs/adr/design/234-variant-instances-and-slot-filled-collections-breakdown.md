@@ -242,3 +242,9 @@
 - 회귀: builder 7,228 pass / 5 fail · shared 1,398 / 2 · parity 1,490 / 4 (전부 착수 전부터) · type-check PASS.
 - live: Components 페이지 Menu = MenuItem ref 3 · `items` 0 · slot `[component-menu-item-default]` · 트리거 "Menu" 1872×20 그대로 · Slot "Insert MenuItem/Default" → 항목 4 · reload 같음 · 오류 0.
 - 남은 Phase 3: 전파 규칙 정리 (Tabs → TabList · TagGroup → TagList `items` 복사 — 정적 목록은 자식이 정본).
+
+### Phase 3 닫힘 — 전파 규칙 확인 (2026-09-23)
+
+- `propagationRegistry` 의 `Tabs → TabList` · `TagGroup → TagList` `items` 복사 (`override: true`) 는 owner 에 `items` 가 있을 때만 동작한다 (`propagationEngine` — `parentValue === undefined` 면 건너뜀). 이관된 정적 owner 는 `items` 가 없어 목록 틀에 아무것도 쓰지 않고, 바인딩 owner 는 그대로 전파 (projection 입력). production 에서 깨지는 경로가 없어 코드는 바꾸지 않았고 unit 1 로 고정 (동작 변경 0 — 축소 절차).
+- Phase 3 (G3) 범위: Tabs (3a) · TagGroup (3b) · 항목 label 글자 (3c) · ListBox (3d) · GridList (3e) · Menu (3f) · items-manager 바인딩 전용 (3b) · 전파 규칙 (위). 커밋 7d2116bd2 · 1207e8b5e · 89e2721b4 · 97fe079d7 · c93e781e3 · 0c9dc94db.
+- 기록 (후속 후보, 결함 아님): ① 문서의 plain owner 를 이관한 뒤 바인딩하면 정적 자식과 데이터 행이 같이 보인다 (ref instance 만 거른다) · ② Canvas 는 선택 Tag chip 에 accent 배경을 그리지 않는다 (3c 기록) · ③ Tabs 바인딩은 Canvas projection 이 없다 (Preview 만 데이터 행) · ④ AI tool 의 정적 항목 작성은 범위 밖 (Phase 0 표).

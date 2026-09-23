@@ -1405,3 +1405,35 @@ describe("ADR-234 Phase 3f — Menu (항목 = popover 안 MenuItem instance 자�
     expect(findResolved(resolvedAll, "mn-1")!.children ?? []).toHaveLength(3);
   });
 });
+
+describe("ADR-234 Phase 3 — 전파 규칙 (Tabs → TabList · TagGroup → TagList `items`)", () => {
+  it("이관된 정적 owner (items 없음) 는 목록 틀에 items 를 쓰지 않는다 · 바인딩 owner 는 그대로 전파", async () => {
+    const { resolvePropagatedProps } = await import(
+      "../../utils/propagationEngine"
+    );
+    const doc = seededDoc();
+    const tabs = findById(doc.children, "component-tabs")!;
+    const tabList = tabs.children!.find((c) => c.type === "TabList")!;
+    const tg = findById(doc.children, "component-taggroup")!;
+    const tagList = tg.children!.find((c) => c.type === "TagList")!;
+    const itemsOf = (
+      parent: CanonicalNode,
+      child: CanonicalNode,
+    ): unknown =>
+      resolvePropagatedProps(
+        parent.type,
+        (parent.props ?? {}) as Record<string, unknown>,
+        child.type,
+        (child.props ?? {}) as Record<string, unknown>,
+      )?.items;
+    expect(itemsOf(tabs, tabList)).toBeUndefined();
+    expect(itemsOf(tg, tagList)).toBeUndefined();
+    const boundItems = [{ id: "a", label: "A" }];
+    expect(
+      itemsOf(
+        { ...tg, props: { ...tg.props, items: boundItems } } as CanonicalNode,
+        tagList,
+      ),
+    ).toEqual(boundItems);
+  });
+});
