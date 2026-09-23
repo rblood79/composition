@@ -32,7 +32,6 @@ import { rendererMap } from "@composition/shared/renderers";
 import {
   adaptElementStyle,
   collectResponsiveCss,
-  fillsToCssBackgroundStyle,
   getCatalogCutoverTypes,
   isComponentsPageMetadata,
   isRuntimePageNode,
@@ -52,6 +51,11 @@ import {
   usesButtonBaseUtility,
 } from "./utils/specCatalogBacked";
 import type { EventHandlerMap } from "@composition/shared/types";
+import {
+  createTabTemplateResolver,
+  indexTemplateOriginRecords,
+  resolveTemplateOriginRootStyle,
+} from "./utils/itemTemplates";
 // `./types` 는 shared 렌더 타입의 재수출이다 — 종전의
 // `RenderContext as SharedRenderContext` 별칭 import 와 그에 딸린
 // `as unknown as` 이중 단언은 같은 타입을 가리키게 되어 제거됐다.
@@ -306,34 +310,10 @@ function CanvasContent() {
         menuItem: null,
         tag: null,
         tab: null,
+        resolveTabTemplate: undefined,
       };
     }
-    const byId = new Map<
-      string,
-      {
-        slot?: unknown;
-        children?: unknown[];
-        metadata?: unknown;
-        props?: unknown;
-        fills?: unknown;
-      }
-    >();
-    const walk = (node: unknown): void => {
-      if (!node || typeof node !== "object") return;
-      const record = node as {
-        id?: unknown;
-        slot?: unknown;
-        children?: unknown[];
-        metadata?: unknown;
-        props?: unknown;
-        fills?: unknown;
-      };
-      if (typeof record.id === "string") {
-        byId.set(record.id, record);
-      }
-      if (Array.isArray(record.children)) record.children.forEach(walk);
-    };
-    resolvedCanonicalNodes.forEach(walk);
+    const byId = indexTemplateOriginRecords(resolvedCanonicalNodes);
     const masterSlot = byId.get("component-listbox")?.slot;
     const listBoxOriginId =
       Array.isArray(masterSlot) && typeof masterSlot[0] === "string"
@@ -363,33 +343,9 @@ function CanvasContent() {
       typeof gridListMasterSlot[0] === "string"
         ? gridListMasterSlot[0]
         : "component-gridlist-item-default";
-    const rootStyleOf = (originId: string): Record<string, unknown> | null => {
-      const record = byId.get(originId);
-      const props = record?.props as { style?: unknown } | undefined;
-      const style = props?.style;
-      const styleRecord =
-        style && typeof style === "object" && !Array.isArray(style)
-          ? (style as Record<string, unknown>)
-          : null;
-      // Style 패널 Background 편집은 canonical `fills` 채널에 기록된다 (커밋 시 sanitize
-      //   가 style.backgroundColor 를 비움). fills 파생 배경이 style 위에 merge — builder
-      //   Skia projection(row fills → buildSpecNodeData 배경 변환)과 동일 우선순위.
-      const legacyPropsFills = (
-        record?.metadata as { legacyProps?: { fills?: unknown } } | undefined
-      )?.legacyProps?.fills;
-      const fills =
-        Array.isArray(record?.fills) && record.fills.length > 0
-          ? record.fills
-          : Array.isArray(legacyPropsFills) && legacyPropsFills.length > 0
-            ? legacyPropsFills
-            : undefined;
-      const fillBackground = fillsToCssBackgroundStyle(fills) as Record<
-        string,
-        unknown
-      >;
-      const merged = { ...(styleRecord ?? {}), ...fillBackground };
-      return Object.keys(merged).length > 0 ? merged : null;
-    };
+    // Style 패널 Background 편집 (canonical `fills`) 을 style 위에 merge — `itemTemplates.ts`.
+    const rootStyleOf = (originId: string): Record<string, unknown> | null =>
+      resolveTemplateOriginRootStyle(byId.get(originId));
     const compositionOf = (originId: string) => {
       const origin = byId.get(originId);
       return origin ? resolveSlotComposition(origin.children) : null;
@@ -416,8 +372,7 @@ function CanvasContent() {
         for (const entry of tagListSlot) {
           if (typeof entry !== "string") continue;
           const metadata = byId.get(entry)?.metadata as
-            | { variant?: unknown }
-            | undefined;
+            { variant?: unknown } | undefined;
           if (metadata?.variant === "selected") return entry;
         }
         if (typeof tagListSlot[1] === "string") return tagListSlot[1];
@@ -445,48 +400,12 @@ function CanvasContent() {
         },
       };
     })();
-    // ADR-233 Phase 1 — Tabs 의 Tab 항목 template (builder `resolveTabTemplateOriginIds` 와 같은 해석:
-    //   master root `component-tabs.slot` → slot[0] default · metadata.variant==="selected" → slot[1] →
-    //   표준 상수). Tab style = Tag chip 과 같은 shared `resolveItemTemplateChipStyle` (두 leg 공용).
-    const tabsSlot = byId.get("component-tabs")?.slot;
-    const tabDefaultOriginId =
-      Array.isArray(tabsSlot) && typeof tabsSlot[0] === "string"
-        ? tabsSlot[0]
-        : "component-tab-item-default";
-    const tabSelectedOriginId = (() => {
-      if (Array.isArray(tabsSlot)) {
-        for (const entry of tabsSlot) {
-          if (typeof entry !== "string") continue;
-          const metadata = byId.get(entry)?.metadata as
-            | { variant?: unknown }
-            | undefined;
-          if (metadata?.variant === "selected") return entry;
-        }
-        if (typeof tabsSlot[1] === "string") return tabsSlot[1];
-      }
-      return "component-tab-item-selected";
-    })();
-    const tabTemplate = (() => {
-      if (!byId.get(tabDefaultOriginId) && !byId.get(tabSelectedOriginId)) {
-        return null;
-      }
-      const composition = compositionOf(tabDefaultOriginId);
-      const selectedComposition = compositionOf(tabSelectedOriginId);
-      return {
-        composition,
-        selectedComposition,
-        rootStyles: {
-          base: resolveItemTemplateChipStyle(
-            rootStyleOf(tabDefaultOriginId),
-            composition,
-          ),
-          selected: resolveItemTemplateChipStyle(
-            rootStyleOf(tabSelectedOriginId),
-            selectedComposition,
-          ),
-        },
-      };
-    })();
+    // ADR-233 — Tabs 의 Tab 항목 template (builder `resolveTabTemplateOriginIds` 와 같은 규칙). round 3
+    //   m2 — slot 은 Tabs 마다 다르다: 렌더러가 Tabs 노드마다 `resolveTabTemplate` 을 부른다. `tab` 은
+    //   master `component-tabs` 기준 (위임 경로 밖 소비자용 기본값).
+    const tabTemplates = createTabTemplateResolver(byId);
+    const tabTemplate = tabTemplates.forSlot(byId.get("component-tabs")?.slot);
+    const resolveTabTemplate = tabTemplates.forOwner;
     return {
       listBox: compositionOf(listBoxOriginId),
       // 행 root style — base(default origin) + selected(variant origin) overlay 층.
@@ -498,6 +417,7 @@ function CanvasContent() {
       menuItem: compositionOf("component-menu-item-default"),
       tag: tagTemplate,
       tab: tabTemplate,
+      resolveTabTemplate,
     };
   }, [resolvedCanonicalNodes]);
   const listBoxTemplateSlotComposition = templateSlotCompositions.listBox;
@@ -942,6 +862,7 @@ function CanvasContent() {
       // ADR-229 Phase 1 — TagGroup chip item template (구성 + root style base/selected).
       tagTemplate: templateSlotCompositions.tag,
       tabTemplate: templateSlotCompositions.tab,
+      resolveTabTemplate: templateSlotCompositions.resolveTabTemplate,
       // ADR-214 Phase 3 — collection 행 템플릿의 `{{ }}` 를 런타임 값으로 (소유자 요소 기준 가시성).
       //   store 를 호출 시점에 읽어 값 변경 시 renderContext 참조를 바꾸지 않는다 — 소유자
       //   노드는 자식 템플릿 참조로 의존 인덱스에 구독되어 (useStateTemplateProps) 스스로 다시 렌더한다.

@@ -25,7 +25,11 @@
  *   - instance 명시 키 → inline 리터럴 그대로 (stylesheet 를 이긴다 = instance 우선).
  */
 import type { CanonicalNode, CompositionDocument } from "@composition/shared";
-import { camelToKebab, fillsToCssBackgroundStyle } from "@composition/shared";
+import {
+  camelToKebab,
+  fillsToCssBackgroundStyle,
+  getIndicatorFillCssVar,
+} from "@composition/shared";
 import type { FillItem } from "../../types/builder/fill.types";
 import {
   ALL_STATE_VARIANTS,
@@ -312,10 +316,17 @@ export function collectStateVariantCss(document: CompositionDocument): string {
       if (!variant) continue;
       const set = readStyleSet(variant);
       if (!set) continue;
+      // ADR-233 round 3 h1 — 선택 표시 컴포넌트 (Radio) 의 채움은 선택 표시 CSS 변수로 (행 배경 아님).
+      //   default 가 소유한 키는 이미 `--co-*` 변수 경유 — inline 쪽이 선택 표시 변수로 옮긴다.
+      const indicatorVar = getIndicatorFillCssVar(
+        entry.defaultOrigin?.type ?? variant.type,
+      );
       const decls = styleSetToDeclarations(set).map(([key, css]) =>
         defaultOwned.has(key)
           ? `${stateVariantCssVar(key)}:${css}`
-          : `${camelToKebab(key)}:${css}`,
+          : key === "backgroundColor" && indicatorVar
+            ? `${indicatorVar}:${css}`
+            : `${camelToKebab(key)}:${css}`,
       );
       if (decls.length === 0) continue;
       const attr = STATE_DATA_ATTR[state];

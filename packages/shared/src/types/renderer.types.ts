@@ -197,6 +197,15 @@ export interface RenderContext {
    * `resolveItemTemplateChipStyle`). builder Skia `appendTabRowProjection` 과 D3 대칭. null = 기존 Tab.
    */
   tabTemplate?: TagItemTemplate | null;
+  /**
+   * ADR-233 round 3 m2 — Tabs 마다 자기 slot 의 template 을 고른다 (builder `resolveTabTemplateOriginIds`
+   * 와 같은 규칙: ref instance 는 master (`_resolvedFrom`) 의 slot, 문서 Tabs 는 자기 slot, 없으면 표준
+   * origin 상수). 렌더러 (`CanonicalNodeRenderer`) 가 Tabs 노드마다 불러 `tabTemplate` 을 바꿔 넘긴다.
+   */
+  resolveTabTemplate?: (owner: {
+    slot?: unknown;
+    _resolvedFrom?: string;
+  }) => TagItemTemplate | null;
 }
 
 /** ADR-229 Phase 1 — Tag chip item template 의 DOM 소비 형태 (renderContext → TagGroup prop). */

@@ -31,7 +31,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Components 페이지의 단독 Radio (origin · 상태 변형) 가 Preview 를 통째로 멈추던 문제를 막았다 — RadioGroup 밖 Radio 는 화면용 그룹으로 감싸 그린다 (문서는 바뀌지 않는다). Disabled 변형이 Preview 에서 비활성으로 보이지 않던 것도 함께 고쳤다.
 - 캔버스에서 Tab 의 테두리를 1px 로 계산하던 것을 DOM 과 같은 0 으로 맞췄다 (단독 Tab 폭 61 → 59).
-  - 위치: `apps/builder/src/builder/components/tabs/tabsTemplateOrigins.ts`, `apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts`, `apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts`, `packages/shared/src/renderers/LayoutRenderers.tsx`, `apps/builder/src/preview/components/CanonicalNodeRenderer.tsx`, `packages/shared/src/catalog/componentCatalog.ts`
+- Radio 의 채움 색이 Preview 에서 행 전체 배경으로 칠해지던 것을 캔버스와 같이 선택 표시에만 칠하게 했다 (`Radio/Selected` 채움 포함). Checkbox 등 다른 선택 컨트롤은 그대로다.
+  - **Why**: catalog 는 Radio 채움을 선택 표시 색으로 정의하고 캔버스도 그렇게 그리는데, DOM 만 그 색을 행 `background-color` 로 보냈다 — 이제 `--radio-color` 로 간다 (리뷰 round 3 h1).
+- Tabs 마다 Slot 절에서 고른 Tab 항목 템플릿이 Preview 에서 무시되고 표준 `Tab/Default` 만 쓰이던 것을 고쳤다 — 캔버스와 같이 각 Tabs 가 자기 slot 을 따른다.
+  - **Why**: Preview 가 `component-tabs.slot` 하나로 문서 전역 템플릿 1개를 만들어 모든 Tabs 에 줬다 (리뷰 round 3 m2).
+  - 위치: `apps/builder/src/builder/components/tabs/tabsTemplateOrigins.ts`, `apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts`, `apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts`, `packages/shared/src/renderers/LayoutRenderers.tsx`, `apps/builder/src/preview/components/CanonicalNodeRenderer.tsx`, `packages/shared/src/catalog/componentCatalog.ts`, `packages/shared/src/catalog/indicatorFill.ts`, `apps/builder/src/preview/utils/itemTemplates.ts`
   - 결정: [ADR-233](adr/completed/233-tab-item-template-and-radio-origin.md)
 
 ## [Dialog 트리거 연결 — Components 편집과 런타임 열림 분리] - 2026-09-23

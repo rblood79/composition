@@ -35,6 +35,7 @@ import {
   resolveAuthoredDomId,
   resolveBodyDomClassName,
   resolveBodyDomPresentation,
+  routeIndicatorFillStyle,
   toRacProps,
   toReactStyle,
   type EventHandlerMap,
@@ -587,6 +588,10 @@ function CanonicalNodeRendererBody({
           ...renderContext,
           childrenByParent: delegatedChildrenByParent,
           renderElement: recursiveRenderElement,
+          // ADR-233 round 3 m2 — Tab 항목 template 은 이 Tabs 의 slot 으로 (문서 전역 1개가 아니다).
+          ...(type === "Tabs" && renderContext.resolveTabTemplate
+            ? { tabTemplate: renderContext.resolveTabTemplate(node) }
+            : {}),
         };
         return (
           <div key={node.id} {...markerProps} style={{ display: "contents" }}>
@@ -636,9 +641,14 @@ function CanonicalNodeRendererBody({
         React.CSSProperties | undefined;
       const adaptedStyle = adaptedEl.props?.style as
         React.CSSProperties | undefined;
-      const overrideStyle = adaptedStyle
-        ? { ...(resolvedStyle ?? {}), ...adaptedStyle }
-        : resolvedStyle;
+      // ADR-233 round 3 h1 — 선택 표시 컴포넌트 (Radio) 의 채움은 행 배경이 아니라 선택 표시 색
+      //   (catalog `fill.selected` · Skia `radio` primitive 와 같은 곳). shared 표 하나가 정한다.
+      const overrideStyle = routeIndicatorFillStyle(
+        type,
+        adaptedStyle
+          ? { ...(resolvedStyle ?? {}), ...adaptedStyle }
+          : resolvedStyle,
+      );
       // ADR-913 slice 1 (2026-06-18): cssEmitMode "button-base" 컴포넌트(Button/ToggleButton/
       //   ToggleButtonGroup)는 generated CSS 가 `--button-color` 만 emit 하고 background 는
       //   `.button-base` utility 에 위임 → DOM 에 button-base 클래스 필수. toRacProps 는 className 을
