@@ -47,21 +47,29 @@
 - 진단 RED 4 고정: (a) instance → 변형 ref 체인 두 leg (F9) · (b) 변형의 padding / label 색 편집이 두 leg 에 안 닿음 (F3) · (c) TabList instance 에 Tab instance 자식을 두면 두 leg 가 무시 (F6/F7) · (d) `enabled: false` 무시 (F10).
 - 목록을 만드는 쓰기 경로 전수: 팔레트 · factory · AI tool (`items` 작성) · Pencil import · 데이터 바인딩 · 붙여넣기. 각 경로가 "정적 목록 → 자식" / "바인딩 → items" 중 어디로 가는지 표로 확정.
 - 이관 대상 수식 확정: 문서당 변형 31 노드 재직렬화 + 정적 목록 `n` 항목 → ref 자식 `n` (항목당 추정 150~250 B) + slot 필드 이동 4.
+- 이관 입력 실측 (review round 1 h1 · h2): (e) 변형마다 **이관 전 유효값** — default origin 유효값 + 230 관리 키 overlay 결과, 두 leg 각각 (관리 키 밖 raw 값은 목록으로만 남긴다 — 이관에서 버림) · (f) 변형 노드를 **직접** ref 한 사용자 노드 수 (root ref · 중첩 ref · descendants 안 ref) 와 그 `descendants` 키 · (g) 옛 변형 자식 id → origin 자식 id 대응표 (구조 경로 · `metadata.slotRole`) 와 대응 없는 경로 목록.
+- 진단 RED 2 추가: (h) origin `{style:{color,padding}}` · 변형 `{style:{}}` 를 `diffPropsAgainstOrigin` 으로 옮기면 병합 후 color · padding 이 새로 나타남 · (i) 변형 자식 id 로 편집한 `descendants` 가 master 선해소 후 base 자식 id 에 안 닿음 (review round 1 반증 2건).
 
 ### Phase 1 — ref 체인 · `enabled` (G1)
 
 - 두 해석기가 master 가 `type: "ref"` 면 그 master 를 먼저 해석한 결과를 master 로 쓴다 (깊이 상한 · 순환 감지 → broken ref 와 같은 경고 경로). Preview resolver 캐시 키에 체인 master 의 버전을 포함.
-- `enabled?: false` — schema · 두 leg (Canvas scene 제외 · Preview 미렌더) · 레이아웃 제외 · descendants mode A patch · publish 렌더러도 존중 (publish 는 기능 링크 방침 — 필드 존중만).
-- BC: 필드 부재 = 표시 (기존 문서 Δ0).
+- `enabled?: boolean` — schema · 두 leg (Canvas scene 제외 · Preview 미렌더) · 레이아웃 제외 · descendants mode A patch · publish 렌더러도 존중 (publish 는 기능 링크 방침 — 필드 존중만). 값: 부재 = 상속 (체인 끝까지 부재면 표시) · `false` = 숨김 · `true` = 상속된 숨김을 풀고 표시. 조상 숨김은 자식 `true` 로 못 푼다 (subtree 전체 제외). ref 병합 `{...master, ...ref}` 가 부재를 상속으로 두므로 병합 규칙은 그대로이고, 판정 함수 하나 (`isNodeEnabled` — 체인 해석 결과의 `enabled !== false`) 를 소비자가 같이 읽는다 (review round 1 m3).
+- patch 삭제 표기: props · style · descendants patch 의 값 `null` = 병합 후 그 키 제거 (catalog 기본값으로 돌아감), `fills: []` = 채움 없음 명시, 키 부재 = 상속. `mergePropsWithStyleDeep` (`adapters/canonical/instanceResolver.ts:35`) 한 곳에서 `null` 을 걸러 두 leg 가 `null` 을 보지 않게 한다 (review round 1 h1).
+- BC: 필드 부재 = 표시 · 기존 문서에 `null` patch 값 0 (Phase 0 에서 확인, 있으면 의미 충돌이라 이 표기를 다른 sentinel 로 바꾼다) → 기존 문서 Δ0.
 
 ### Phase 2 — 상태 변형 = origin 의 instance (G2)
 
 - 규칙: **origin = 가장 완성된 상태** (선택 가능한 항목 · 선택 컨트롤 = 선택 상태, 선택 상태가 없는 Button · Link = 기본 상태). 나머지 상태 = origin 의 `reusable` ref + 덮어쓰기 (props · style · fills · descendants · `enabled` 전부 — 관리 키 4 제한 폐지).
 - 상태 → 변형 연결: 변형의 `metadata.variant` (상태 이름) 유지, `variantOf` 는 `ref` 로 대체. 선택 가능한 가족은 휴지 상태 변형 `unselected` 추가.
 - 겹침 순서: RAC 는 상태가 동시에 켜진다 — 휴지(`unselected`) → selected → focus-visible → hover → pressed → disabled (뒤가 이김, 230 CSS 순서 계승).
+- 전체 층 (root · descendants 같은 규칙, review round 1 m4): **origin → 직접 ref 한 변형 patch (있으면, 상속 층) → 실행 중 상태 변형 patch (위 순서) → instance 자기 patch**. "instance 자기 patch" = instance 노드에 저장된 키 (root props · style · fills · `enabled` · 자기 `descendants` 항목) — 체인 중간에서 상속된 값은 포함하지 않는다. 230 `stateVariantResolution.ts:182-197` 의 `instanceOwned` 판정을 이 정의로 바꿔 두 leg 가 같이 읽는다 (Canvas scene · Preview render props 함수). 작성자가 직접 ref 한 변형은 실행 중 상태에 진다 (RAC 계약).
 - Canvas: 유효 상태 (selected · disabled — hover/pressed/focus 는 Preview 소관, ADR-150 A1 철회 판정) 로 변형 덮어쓰기를 scene 에 겹친다.
 - Preview: RAC render props (`style` · `className` 함수 + children 함수로 상태 context 를 자손에 전달) 로 같은 덮어쓰기를 겹친다. 230 의 `<style>` 규칙 + `--co-*` 변수 채널과 `INDICATOR_FILL_CSS_VAR` 우회 (233 round 3) 는 대체 대상 — 대체 전후 결과 대조 후 제거.
-- 이관 (시각 결과 보존): 기존 복제본 변형 → `ref` + (복제본 − origin) diff (F12). 선택 가능한 가족은 origin 을 선택 상태로 다시 세우고 (origin 내용 = 기존 default + selected overlay), 기존 default 모양은 `unselected` 변형의 diff 로 보존.
+- 이관 (시각 결과 보존, review round 1 h1 · h2):
+  - diff = **유효값 차분** `diffEffective(target, originEffective)` — target = Phase 0 (e) 의 이관 전 유효값. 다른 키는 target 값, origin 에만 있는 키는 `null`, fills 가 target 에 없고 origin 에 있으면 `[]`. F12 `diffPropsAgainstOrigin` 은 "복제본에 있는 키만" 비교하므로 재사용하지 않는다 (h 반증).
+  - origin id 고정: 선택 가능한 가족은 **기존 default origin 노드 (사용자 instance 가 ref 하는 id) 를 그대로 두고 내용만** 선택 상태 (기존 default + selected overlay 유효값) 로 다시 쓴다. 자식 id 도 유지 → 기존 instance `descendants` 키 Δ0. 기존 default 모양은 새 `unselected` 변형 (ref → origin + 유효값 diff) 이 가진다. 옛 `--selected` 복제본은 origin 과 같은 상태가 되므로 제거하고, 그것을 직접 ref 한 노드는 origin 으로 대상 교체.
+  - 변형 자식 id: 옛 복제본 자식 id (`${variantId}__n`) → origin 자식 id 대응표 (Phase 0 (g)) 로 변형을 직접 ref 한 노드의 `descendants` 키 (root ref · 중첩 ref · descendants 안 ref) 를 옮긴다. 대응 없는 경로가 하나라도 있으면 그 가족 전체 보류 (부분 이관 없음).
+  - 관리 키 밖 raw 값 (230 이 무시하던 변형 padding 등) 은 target 에 없으므로 diff 에 들어가지 않는다 — 이관이 새 모양을 켜지 않는다.
 
 ### Phase 3 — 목록 = slot 을 채운 instance 자식 (G3)
 
@@ -94,6 +102,8 @@
 
 - ref 체인 해석이 두 leg 중 한쪽에서 캐시 무효화 계약을 깨면 (편집이 체인 끝 instance 에 안 닿음) Phase 1 에서 중단 · 보고.
 - 이관 전후 Canvas 픽셀이 다르면 해당 가족 이관 보류.
+- 자식 id 대응표에 대응 없는 경로가 있으면 해당 가족 이관 보류 (부분 이관 금지).
+- 기존 문서에 patch 값 `null` 이 이미 있으면 삭제 표기를 다른 sentinel 로 바꾸고 본문 개정 (Phase 1 착수 전).
 - RAC render props 가 특정 wrapper (internal renderer) 에서 상태를 자손에 못 넘기면 그 컴포넌트는 Phase 2 보류 (230 채널 유지) · 보고.
 - `scene.build` p95 +1 ms 초과 → 자식 노드화 캐시 가설 재측정, 못 닫으면 보고.
 
