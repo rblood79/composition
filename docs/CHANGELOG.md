@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Styles 패널 · 여러 요소 편집도 컴포넌트 영향 확인을 거친다] - 2026-09-24
+
+### Fixed
+
+- **instance 가 있는 컴포넌트 (origin) 를 Styles 패널이나 Properties 일반 필드에서 고칠 때 영향 확인 대화상자 없이 바로 바뀌던 문제를 고쳤다.** 이제 Properties 의 일부 편집과 같이 "N개 instance 에 영향" 대화상자가 뜨고, 취소하면 origin 에 쓰지 않는다. 한 번 확인하면 같은 instance 구성에서는 다시 묻지 않는다.
+  - **Why**: 확인 게이트가 `updateElementProps` · `updateElement` · `ButtonChildSection` 세 곳에만 있었다. Styles 패널 · Properties 일반 필드 · 캔버스 크기 조절이 지나는 inspector 쓰기 (`updateAndSave`) 와, 자식 전파 · 정렬 · 분배가 지나는 `batchUpdateElementProps` 는 게이트 없이 origin 에 썼다.
+  - 드래그 · 입력 중 미리보기가 origin 에 반영된 뒤 취소하면 미리보기 전 값으로 되돌린다. 여러 요소를 한 되돌리기 단계로 묶는 편집 (크기 · 비율 · Absolute) 은 확인을 먼저 받고 묶는다.
+  - 범위 밖: 드래그로 옮기는 좌표 patch 는 이동과 한 몸이라 확인하지 않는다 (이동 뒤에 취소하면 이동만 남는다).
+  - 위치: `apps/builder/src/builder/stores/utils/elementUpdate.ts` (`confirmOriginImpactForIds`), `apps/builder/src/builder/stores/inspectorActions.ts`
+
 ## [instance 복제 시 자식이 두 벌 그려지던 문제 · instance 안 요소 메뉴 정리] - 2026-09-24
 
 ### Fixed

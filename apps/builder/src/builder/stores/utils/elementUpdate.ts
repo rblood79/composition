@@ -359,6 +359,14 @@ export interface BatchPropsUpdate {
   mergeStyle?: boolean;
 }
 
+export interface BatchUpdateElementPropsOptions {
+  /**
+   * origin 영향 게이트를 건너뛴다 — 이동 트랜잭션 안에서 이동과 한 몸으로 쓰는 좌표 patch 전용.
+   * 이동이 이미 일어난 뒤라 여기서 취소하면 이동만 남는다.
+   */
+  skipOriginImpactGate?: boolean;
+}
+
 type SetState = Parameters<StateCreator<ElementsState>>[0];
 type GetState = Parameters<StateCreator<ElementsState>>[1];
 
@@ -595,6 +603,40 @@ export function confirmOriginImpactIfNeeded(
   return approvalResult instanceof Promise
     ? approvalResult.then((result) => result !== null)
     : true;
+}
+
+/**
+ * 여러 대상의 origin 영향 게이트 — 대화상자가 필요한 대상이 없으면 **동기로** `true`
+ * (`confirmOriginImpactIfNeeded` 와 같은 이유). 있으면 하나씩 묻고, 하나라도 취소하면 `false`.
+ *
+ * Styles 패널 (`updateAndSave`) · batch props 경로가 이 함수 하나로 게이트를 통과한다.
+ * 트랜잭션 안에서는 대화상자를 기다릴 수 없으므로 (기다리는 동안 트랜잭션이 닫힌다)
+ * 호출부가 트랜잭션 밖에서 먼저 부른다 — 확인된 대상은 캐시로 안쪽 호출이 동기 통과한다.
+ */
+export function confirmOriginImpactForIds(
+  ids: Iterable<string>,
+): boolean | Promise<boolean> {
+  const targets: OriginImpactTarget[] = [];
+  for (const id of new Set(ids)) {
+    const node = getFirstProjectableNodeById(id);
+    if (!node) continue;
+    const context = getOriginImpactContext(node);
+    if (
+      context &&
+      context.impactedInstanceIds.length > 0 &&
+      !confirmedOriginImpactKeys.has(context.confirmationKey)
+    ) {
+      targets.push(node);
+    }
+  }
+  if (targets.length === 0) return true;
+  return (async () => {
+    for (const node of targets) {
+      const gate = confirmOriginImpactIfNeeded(node);
+      if (gate !== true && !(await gate)) return false;
+    }
+    return true;
+  })();
 }
 
 /**
@@ -959,11 +1001,21 @@ export const createUpdateElementAction =
  * @returns batchUpdateElementProps 액션 함수
  */
 export const createBatchUpdateElementPropsAction =
-  (set: SetState, get: GetState) => async (updates: BatchPropsUpdate[]) => {
+  (set: SetState, get: GetState) =>
+  async (
+    updates: BatchPropsUpdate[],
+    options?: BatchUpdateElementPropsOptions,
+  ) => {
     const canonicalUpdates = updates.filter(
       (update) => !isRenderProjectionId(update.elementId),
     );
     if (canonicalUpdates.length === 0) return;
+    if (!options?.skipOriginImpactGate) {
+      const originGate = confirmOriginImpactForIds(
+        canonicalUpdates.map((update) => update.elementId),
+      );
+      if (originGate !== true && !(await originGate)) return;
+    }
 
     const state = get();
     const normalizedUpdates = canonicalUpdates.map((update) => ({

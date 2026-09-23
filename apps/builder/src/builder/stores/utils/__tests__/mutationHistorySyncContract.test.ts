@@ -197,7 +197,8 @@ describe("동기 도달 정적 가드", () => {
     const callSites = source.match(
       /if \(originGate !== true && !\(await originGate\)\) return;/g,
     );
-    expect(callSites).toHaveLength(2);
+    // updateElementProps · updateElement · batchUpdateElementProps (B-4)
+    expect(callSites).toHaveLength(3);
     // 게이트 호출 자체를 await 로 감싸면(`await Promise.resolve(gate(...))` 포함)
     // 동기 경로도 microtask 경계를 만든다 — 형태 무관하게 차단한다.
     expect(source).not.toMatch(/await[^\n]*confirmOriginImpactIfNeeded/);

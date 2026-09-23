@@ -105,7 +105,11 @@ import {
   normalizeElementTagInElement,
   normalizeElementTags,
 } from "./utils/elementTagNormalizer";
-import type { BatchPropsUpdate } from "./utils/elementUpdate";
+import {
+  confirmOriginImpactForIds,
+  type BatchPropsUpdate,
+  type BatchUpdateElementPropsOptions,
+} from "./utils/elementUpdate";
 import {
   collectDirtyElementSubtree,
   LAYOUT_AFFECTING_PROP_KEYS,
@@ -721,7 +725,10 @@ interface RequiredState {
   ) => Promise<void>;
   _rebuildIndexes: (sourceElements?: Element[]) => void;
   _cancelHydrateSelectedProps: () => void;
-  batchUpdateElementProps: (updates: BatchPropsUpdate[]) => Promise<void>;
+  batchUpdateElementProps: (
+    updates: BatchPropsUpdate[],
+    options?: BatchUpdateElementPropsOptions,
+  ) => Promise<void>;
   /** ADR-224 §6.1 — Absolute 활성화 시 형제 맨 앞으로 (elements slice) */
   moveElementToSiblingEdge: (
     elementId: string,
@@ -789,6 +796,47 @@ export const createInspectorActionsSlice: StateCreator<
   };
 
   /**
+   * 프리뷰가 반영한 값을 프리뷰 전 원본으로 되돌린다 (origin 영향 대화상자 취소).
+   * 프리뷰 (`updateSelectedStylePreview`) 와 같은 층 — elementsMap + canonical, 히스토리·DB 없음.
+   */
+  const restoreInspectorPreviewElement = (original: Element): void => {
+    const { elements, elementsMap } = get();
+    if (!elementsMap.has(original.id)) return;
+    const newElementsMap = new Map(elementsMap);
+    newElementsMap.set(original.id, original);
+    set((prevState) => {
+      const dirtyIds = new Set(prevState.dirtyElementIds);
+      collectDirtyElementSubtree(original.id, prevState.childrenMap, dirtyIds);
+      return {
+        elements: replaceInspectorElement(elements, original.id, original),
+        elementsMap: newElementsMap,
+        layoutVersion: prevState.layoutVersion + 1,
+        dirtyElementIds: dirtyIds,
+      } as Partial<CombinedState>;
+    });
+    syncInspectorElementToCanonical(original);
+  };
+
+  /**
+   * 트랜잭션 안의 `updateAndSave` 는 대화상자를 기다릴 수 없다 (기다리는 동안 트랜잭션이
+   * 닫혀 편집이 되돌리기 한 단계로 묶이지 않는다). 영향 확인을 트랜잭션 밖에서 먼저 받고,
+   * 필요 없으면 동기로 바로 실행한다.
+   */
+  const runAfterOriginImpactGate = (
+    ids: Iterable<string>,
+    run: () => void,
+  ): void => {
+    const gate = confirmOriginImpactForIds(ids);
+    if (!(gate instanceof Promise)) {
+      if (gate) run();
+      return;
+    }
+    void gate.then((confirmed) => {
+      if (confirmed) run();
+    });
+  };
+
+  /**
    * Helper: Update element and save to DB
    *
    * 🚀 Performance Optimization:
@@ -827,11 +875,27 @@ export const createInspectorActionsSlice: StateCreator<
       if (selectedElementId === elementId) {
         get()._cancelHydrateSelectedProps();
       }
-      await updateAndSave(
-        root.id,
-        {},
-        { [COMPONENT_DESCENDANTS_MIRROR_FIELD]: patches } as Partial<Element>,
-      );
+      await updateAndSave(root.id, {}, {
+        [COMPONENT_DESCENDANTS_MIRROR_FIELD]: patches,
+      } as Partial<Element>);
+      return;
+    }
+    // origin 편집 영향 게이트 (Properties 의 `updateElementProps` 와 같은 확인). 대화상자가 필요
+    //   없으면 동기 통과 — await 지점이 생기지 않는다. 대화상자를 거친 뒤에는 그동안 바뀌었을
+    //   state 를 다시 읽도록 처음부터 다시 들어간다 (확인은 캐시돼 두 번째는 동기 통과).
+    const originGate = confirmOriginImpactForIds([elementId]);
+    if (originGate !== true) {
+      if (await originGate) {
+        await updateAndSave(
+          elementId,
+          propsUpdate,
+          additionalUpdates,
+          prevElementOverride,
+        );
+      } else if (prevElementOverride) {
+        // 취소 — 프리뷰가 이미 origin 에 반영한 값을 프리뷰 전 원본으로 되돌린다.
+        restoreInspectorPreviewElement(prevElementOverride);
+      }
       return;
     }
     const source = getInspectorUpdateSource(elements, elementsMap, elementId);
@@ -1322,12 +1386,27 @@ export const createInspectorActionsSlice: StateCreator<
         useCanonicalDocumentStore.getState().documentVersion
       )
         return "document-changed";
-      historyManager.runInTransaction({ type: "batch", elementId: id }, () => {
-        for (const plan of plans) {
-          const { props, ...fields } = plan.updates;
-          void updateAndSave(plan.id, props ?? {}, fields);
-        }
-      });
+      const expectedVersion = canonical.documentVersion;
+      runAfterOriginImpactGate(
+        plans.map((plan) => plan.id),
+        () => {
+          // 대화상자를 거쳤다면 그 사이 문서가 바뀌었을 수 있다 — plan 은 그 전 기하로 만들었다.
+          if (
+            useCanonicalDocumentStore.getState().documentVersion !==
+            expectedVersion
+          )
+            return;
+          historyManager.runInTransaction(
+            { type: "batch", elementId: id },
+            () => {
+              for (const plan of plans) {
+                const { props, ...fields } = plan.updates;
+                void updateAndSave(plan.id, props ?? {}, fields);
+              }
+            },
+          );
+        },
+      );
       return null;
     },
 
@@ -1387,13 +1466,27 @@ export const createInspectorActionsSlice: StateCreator<
         useCanonicalDocumentStore.getState().documentVersion
       )
         return "document-changed";
-      historyManager.runInTransaction({ type: "batch", elementId: id }, () => {
-        for (const plan of plans) {
-          const { props, ...fields } = plan.updates;
-          void updateAndSave(plan.id, props ?? {}, fields);
-          get().moveElementToSiblingEdge(plan.id, "front");
-        }
-      });
+      const expectedVersion = canonical.documentVersion;
+      runAfterOriginImpactGate(
+        plans.map((plan) => plan.id),
+        () => {
+          if (
+            useCanonicalDocumentStore.getState().documentVersion !==
+            expectedVersion
+          )
+            return;
+          historyManager.runInTransaction(
+            { type: "batch", elementId: id },
+            () => {
+              for (const plan of plans) {
+                const { props, ...fields } = plan.updates;
+                void updateAndSave(plan.id, props ?? {}, fields);
+                get().moveElementToSiblingEdge(plan.id, "front");
+              }
+            },
+          );
+        },
+      );
       return null;
     },
 
@@ -1440,9 +1533,11 @@ export const createInspectorActionsSlice: StateCreator<
       );
       if (!updates) return "target-missing";
       if (!Object.keys(updates).length) return null;
-      historyManager.runInTransaction({ type: "batch", elementId }, () => {
-        const { props, ...fields } = updates;
-        void updateAndSave(elementId, props ?? {}, fields);
+      runAfterOriginImpactGate([elementId], () => {
+        historyManager.runInTransaction({ type: "batch", elementId }, () => {
+          const { props, ...fields } = updates;
+          void updateAndSave(elementId, props ?? {}, fields);
+        });
       });
       return null;
     },
@@ -1455,9 +1550,10 @@ export const createInspectorActionsSlice: StateCreator<
         !snapshot.selectedElementId
       )
         return;
+      const leaderId = snapshot.selectedElementId;
       const ids = state.selectedElementIds?.length
         ? state.selectedElementIds
-        : [snapshot.selectedElementId];
+        : [leaderId];
       const plans: Array<{ id: string; updates: Partial<Element> }> = [];
       for (const id of ids) {
         const source = getInspectorElementById(state.elements, id);
@@ -1485,13 +1581,18 @@ export const createInspectorActionsSlice: StateCreator<
         if (!updates) return;
         if (Object.keys(updates).length) plans.push({ id, updates });
       }
-      historyManager.runInTransaction(
-        { type: "batch", elementId: snapshot.selectedElementId },
+      runAfterOriginImpactGate(
+        plans.map((plan) => plan.id),
         () => {
-          for (const { id, updates } of plans) {
-            const { props, ...fields } = updates;
-            void updateAndSave(id, props ?? {}, fields);
-          }
+          historyManager.runInTransaction(
+            { type: "batch", elementId: leaderId },
+            () => {
+              for (const { id, updates } of plans) {
+                const { props, ...fields } = updates;
+                void updateAndSave(id, props ?? {}, fields);
+              }
+            },
+          );
         },
       );
     },

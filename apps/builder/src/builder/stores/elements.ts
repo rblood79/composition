@@ -51,6 +51,7 @@ import {
   createUpdateElementAction,
   createBatchUpdateElementPropsAction,
   type BatchPropsUpdate,
+  type BatchUpdateElementPropsOptions,
   type OriginImpactApproval,
 } from "./utils/elementUpdate";
 import { ElementUtils } from "../../utils/element/elementUtils";
@@ -322,7 +323,10 @@ export interface ElementsState {
   setSelectedElements: (elementIds: string[]) => void;
 
   // 🚀 배치 업데이트 (100+ 요소 최적화)
-  batchUpdateElementProps: (updates: BatchPropsUpdate[]) => Promise<void>;
+  batchUpdateElementProps: (
+    updates: BatchPropsUpdate[],
+    options?: BatchUpdateElementPropsOptions,
+  ) => Promise<void>;
 
   /**
    * ADR-232 — 파생 위치 발행 (캔버스 → store 미러). 값이 같으면 no-op.
@@ -1759,12 +1763,16 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
           }));
 
           if (absoluteReleaseProps) {
-            void get().batchUpdateElementProps([
-              {
-                elementId,
-                props: absoluteReleaseProps,
-              },
-            ]);
+            // 이동과 한 몸인 좌표 patch — 이동 뒤라 영향 게이트로 취소할 수 없다.
+            void get().batchUpdateElementProps(
+              [
+                {
+                  elementId,
+                  props: absoluteReleaseProps,
+                },
+              ],
+              { skipOriginImpactGate: true },
+            );
           } else {
             queueMicrotask(() => {
               void (async () => {

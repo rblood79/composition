@@ -575,7 +575,12 @@ function commitMultiDragDrop({
     }
 
     if (absoluteUpdates.length > 0) {
-      void useStore.getState().batchUpdateElementProps(absoluteUpdates);
+      // 이동과 한 몸인 좌표 patch — 트랜잭션 안이라 영향 대화상자를 기다릴 수 없다.
+      void useStore
+        .getState()
+        .batchUpdateElementProps(absoluteUpdates, {
+          skipOriginImpactGate: true,
+        });
     }
   });
 
@@ -954,12 +959,15 @@ export function useDragBridge({
 
             didMove = true;
             trackCanonicalMove(elementId, fromLocations.get(elementId));
-            void useStore.getState().batchUpdateElementProps([
-              {
-                elementId,
-                props: manualPositionProps,
-              },
-            ]);
+            void useStore.getState().batchUpdateElementProps(
+              [
+                {
+                  elementId,
+                  props: manualPositionProps,
+                },
+              ],
+              { skipOriginImpactGate: true },
+            );
           });
         }
 

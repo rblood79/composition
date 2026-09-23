@@ -5,7 +5,7 @@
  * 액션을 통과한다. 단언은 `deriveProjectRenderModelFromDocument` 가 canonical 에서 다시
  * 해소한 props 다 (메모리 view 가 아니라 저장본).
  */
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { withComponentOriginMirror } from "@/adapters/canonical/componentSemanticsMirror";
 import {
   deriveProjectRenderModelFromDocument,
@@ -24,6 +24,7 @@ import { dispatchSemanticUpdateWithPropagation } from "../../../panels/propertie
 import { useStore } from "../../index";
 import { useCanonicalDocumentStore } from "../../canonical/canonicalDocumentStore";
 import { historyManager } from "../../history";
+import { clearOriginImpactConfirmationCacheForTests } from "../elementUpdate";
 
 const PROJECT_UUID = "00000000-0000-0000-0000-000000000210";
 const F = (key: string) => seriesIdentity("field", key);
@@ -202,8 +203,14 @@ describe("T07 — 단일 patch = 단일 history · Undo/Redo · reload", () => {
 
 describe("T07 — 소수 자릿수 비우기 (undefined patch) 는 키를 남기지 않는다", () => {
   it("valueFractionDigits: undefined 이후 저장본에 키가 없거나 undefined 다 (auto 기본 자릿수로 읽힌다)", async () => {
-    seedChart({ ...ORIGIN_PROPS, valueFormat: "decimal", valueFractionDigits: 2 });
-    expect(patchSelected("chart", { valueFractionDigits: undefined })).toBe(true);
+    seedChart({
+      ...ORIGIN_PROPS,
+      valueFormat: "decimal",
+      valueFractionDigits: 2,
+    });
+    expect(patchSelected("chart", { valueFractionDigits: undefined })).toBe(
+      true,
+    );
     await Promise.resolve();
     expect(resolvedProps("chart").valueFractionDigits).toBeUndefined();
     const saved = parseProjectData(
@@ -211,12 +218,29 @@ describe("T07 — 소수 자릿수 비우기 (undefined patch) 는 키를 남기
     );
     expect(saved.success).toBe(true);
     if (!saved.success) return;
-    useCanonicalDocumentStore.getState().setDocument(PANEL_FIXTURE_PROJECT_ID, saved.data.document);
-    expect(Object.hasOwn(resolvedProps("chart"), "valueFractionDigits")).toBe(false);
+    useCanonicalDocumentStore
+      .getState()
+      .setDocument(PANEL_FIXTURE_PROJECT_ID, saved.data.document);
+    expect(Object.hasOwn(resolvedProps("chart"), "valueFractionDigits")).toBe(
+      false,
+    );
   });
 });
 
 describe("T07 — ref 인스턴스: 배열 override 는 인스턴스에만, origin write 0", () => {
+  // origin 편집은 instance 가 있으면 영향 확인을 거친다 (B-4) — 여기서는 확인한다.
+  beforeEach(() => {
+    clearOriginImpactConfirmationCacheForTests();
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+  /** 영향 확인 → 재진입 → 쓰기까지 microtask 를 비운다 */
+  async function flushOriginGate(): Promise<void> {
+    for (let i = 0; i < 5; i += 1) await Promise.resolve();
+  }
+
   function seedOriginAndInstances() {
     seedPanelElements([
       {
@@ -285,7 +309,7 @@ describe("T07 — ref 인스턴스: 배열 override 는 인스턴스에만, orig
         ],
       }),
     ).toBe(true);
-    await Promise.resolve();
+    await flushOriginGate();
     expect(resolvedProps(second.id).seriesConfig).toEqual([
       { key: F("desktop"), label: "Desktop" },
       { key: F("mobile"), colorToken: "--chart-series-8" },
@@ -314,7 +338,7 @@ describe("T07 — ref 인스턴스: 배열 override 는 인스턴스에만, orig
     ).toBe(true);
     await Promise.resolve();
     patchSelected("chart-origin", { seriesConfig: [] });
-    await Promise.resolve();
+    await flushOriginGate();
     expect(resolvedProps(first.id).seriesConfig).toEqual([
       { key: F("desktop"), label: "Desktop" },
     ]);
