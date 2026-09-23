@@ -3,7 +3,7 @@ import {
   getReusableOriginId,
   isDelegatedSubpartChild,
 } from "@composition/shared";
-import { mergePropsWithStyleDeep } from "../../adapters/canonical/instanceResolver";
+import { applyPropsPatch } from "../../adapters/canonical/instanceResolver";
 import { applyFactoryPropagation } from "../utils/propagationEngine";
 import { COMPONENTS_SYSTEM_BODY_ID } from "../pages/systemComponentsPage";
 
@@ -164,7 +164,7 @@ function openOriginSubtree(
     return {
       ...opened,
       id: child.id,
-      props: mergePropsWithStyleDeep(master.props ?? {}, child.props ?? {}),
+      props: applyPropsPatch(master.props ?? {}, child.props ?? {}),
       reusable: undefined,
     } as CanonicalNode;
   });
@@ -353,7 +353,7 @@ function convertToRef(
   if (actualChildren.length > 0 || (origin.children?.length ?? 0) > 0) {
     const expected = expectedSubtree(
       origin,
-      mergePropsWithStyleDeep(origin.props ?? {}, node.props ?? {}),
+      applyPropsPatch(origin.props ?? {}, node.props ?? {}),
       context.originsById,
     );
     const mismatch = diffSubtree(actualChildren, expected, "", descendants);

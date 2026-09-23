@@ -118,7 +118,45 @@ function resolveSceneGraph(
     },
     () => documentNodesById,
   );
-  return resolvedGraph;
+  return pruneDisabledSceneNodes(resolvedGraph);
+}
+
+/**
+ * ADR-234 — 유효 `enabled === false` 인 노드와 그 subtree 를 scene 에서 뺀다 (Skia · layout · hit
+ * test 가 모두 scene 을 읽는다). 해석 전에 빼면 instance 가 `enabled: true` 로 되살릴 origin 자식이
+ * 사라지므로 ref 해석 · projection 이 끝난 뒤 한 번만 뺀다. 숨긴 노드가 없으면 같은 graph.
+ */
+export function pruneDisabledSceneNodes(
+  graph: CanvasSceneGraph,
+): CanvasSceneGraph {
+  const hiddenRoots = graph.nodes.filter((node) => node.enabled === false);
+  if (hiddenRoots.length === 0) return graph;
+  const removed = new Set<string>();
+  const stack = hiddenRoots.map((node) => node.id);
+  while (stack.length > 0) {
+    const id = stack.pop()!;
+    if (removed.has(id)) continue;
+    removed.add(id);
+    for (const child of graph.childrenByParent.get(id) ?? []) {
+      stack.push(child.id);
+    }
+  }
+  const childrenByParent = new Map<string, CanvasSceneNode[]>();
+  for (const [parentId, children] of graph.childrenByParent) {
+    if (removed.has(parentId)) continue;
+    childrenByParent.set(
+      parentId,
+      children.filter((child) => !removed.has(child.id)),
+    );
+  }
+  const nodesMap = new Map(graph.nodesMap);
+  for (const id of removed) nodesMap.delete(id);
+  return {
+    childrenByParent,
+    nodes: graph.nodes.filter((node) => !removed.has(node.id)),
+    nodesMap,
+    parentById: buildSceneParentById(childrenByParent),
+  };
 }
 
 /**

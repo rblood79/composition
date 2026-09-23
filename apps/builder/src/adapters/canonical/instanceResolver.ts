@@ -46,6 +46,53 @@ export function mergePropsWithStyleDeep(
   return merged;
 }
 
+/**
+ * ADR-234 — patch 끼리 합성 (descendants 스택 · 체인 중간). patch 값 `null` (= "이 키를 지운다") 을
+ * **보존**한다: 뒤 patch 의 `null` 이 앞 값을 덮고, 뒤 값이 앞 `null` 을 덮는다. 합성 결과는 아직
+ * patch 이므로 `null` 을 지우면 안 된다 (리뷰 round 2 h1 — 지우면 원본 값이 되살아난다).
+ */
+export const composePropsPatches = mergePropsWithStyleDeep;
+
+/** patch 값 `null` 을 제거한 새 props (top-level · style 한 단계). 없으면 같은 참조. */
+export function stripDeletedPatchValues(
+  props: Record<string, unknown>,
+): Record<string, unknown> {
+  let out: Record<string, unknown> | null = null;
+  for (const [key, value] of Object.entries(props)) {
+    if (value === null) {
+      out ??= { ...props };
+      delete out[key];
+    }
+  }
+  const style = (out ?? props).style;
+  if (style && typeof style === "object" && !Array.isArray(style)) {
+    let nextStyle: Record<string, unknown> | null = null;
+    for (const [key, value] of Object.entries(style)) {
+      if (value === null) {
+        nextStyle ??= { ...(style as Record<string, unknown>) };
+        delete nextStyle[key];
+      }
+    }
+    if (nextStyle) {
+      out ??= { ...props };
+      out.style = nextStyle;
+    }
+  }
+  return out ?? props;
+}
+
+/**
+ * ADR-234 — 해석이 끝난 값 (origin · 체인 master 해석 결과) 에 patch 를 적용한다. patch 값 `null`
+ * 은 그 키를 지운다 (catalog 기본값으로 돌아감) — 결과에 `null` 이 남지 않아 소비자 (Skia · DOM ·
+ * layout) 는 `null` 을 보지 않는다.
+ */
+export function applyPropsPatch(
+  baseProps: Record<string, unknown>,
+  patch: Record<string, unknown>,
+): Record<string, unknown> {
+  return stripDeletedPatchValues(mergePropsWithStyleDeep(baseProps, patch));
+}
+
 // ─────────────────────────────────────────────
 // Canonical helpers — ADR-903 P1 Stage 2 / P2 progress
 // ─────────────────────────────────────────────
@@ -70,7 +117,7 @@ export function resolveCanonicalRefProps(
   const masterProps = master.props ?? {};
   const refOverrides = refNode.props ?? {};
 
-  return mergePropsWithStyleDeep(masterProps, refOverrides);
+  return applyPropsPatch(masterProps, refOverrides);
 }
 
 /**
@@ -107,15 +154,18 @@ export function resolveCanonicalDescendantOverride(
     fills: overrideFills,
     sizing: _sizing,
     responsive: _responsive,
+    enabled: overrideEnabled,
     ...overrideProps
   } = overrideRecord;
-  const mergedProps = mergePropsWithStyleDeep(childProps, overrideProps);
+  const mergedProps = applyPropsPatch(childProps, overrideProps);
 
   return {
     ...child,
     ...mergeFillSizing(child, overrideRecord),
     props: mergedProps,
     ...(Array.isArray(overrideFills) ? { fills: overrideFills } : {}),
+    // ADR-234: `enabled` 는 노드 필드 (props 아님) — 부재 = 상속 · false = 숨김 · true = 표시.
+    ...(typeof overrideEnabled === "boolean" ? { enabled: overrideEnabled } : {}),
   };
 }
 

@@ -301,7 +301,10 @@ function resolveRenderableNode(
   const ref = (node as CanonicalNodeWithRef).ref;
   if (!ref) return node;
 
-  const master = findNodeById(document.children, ref);
+  const directMaster = findNodeById(document.children, ref);
+  if (!directMaster) return node;
+  // ADR-234 — master 가 다시 ref (변형) 면 체인 끝 origin 까지 먼저 해석한다 (깊이 8 · 순환 차단).
+  const master = resolveRefChainMaster(document, directMaster);
   if (!master) return node;
 
   return {
@@ -309,9 +312,41 @@ function resolveRenderableNode(
     ...node,
     type: master.type,
     ...mergeFillSizing(master, node),
-    props: mergePropsWithStyleDeep(master.props ?? {}, node.props ?? {}),
+    props: applyPropsPatch(master.props ?? {}, node.props ?? {}),
     children: node.children ?? master.children,
   };
+}
+
+function resolveRefChainMaster(
+  document: CompositionDocument,
+  directMaster: CanonicalNode,
+): CanonicalNode | null {
+  const chain: CanonicalNode[] = [];
+  const seen = new Set<string>();
+  let current: CanonicalNode | null = directMaster;
+  while (current && current.type === "ref") {
+    if (seen.has(current.id) || seen.size >= 8) return null;
+    seen.add(current.id);
+    chain.push(current);
+    current = findNodeById(
+      document.children,
+      (current as CanonicalNodeWithRef).ref ?? "",
+    );
+  }
+  if (!current) return null;
+  let resolved: CanonicalNode = current;
+  for (let index = chain.length - 1; index >= 0; index -= 1) {
+    const link = chain[index]!;
+    resolved = {
+      ...resolved,
+      ...link,
+      type: resolved.type,
+      ...mergeFillSizing(resolved, link),
+      props: applyPropsPatch(resolved.props ?? {}, link.props ?? {}),
+      children: link.children ?? resolved.children,
+    };
+  }
+  return resolved;
 }
 
 function resolvePageRenderableChildren(
@@ -413,6 +448,28 @@ function mergePropsWithStyleDeep(
   return merged;
 }
 
+/**
+ * ADR-234 — 해석이 끝난 값에 patch 적용: patch 값 `null` 은 그 키를 지운다 (builder
+ * `applyPropsPatch` 와 같은 규칙, top-level · style 한 단계).
+ */
+function applyPropsPatch(
+  baseProps: Record<string, unknown>,
+  patchProps: Record<string, unknown>,
+): Record<string, unknown> {
+  const merged = mergePropsWithStyleDeep(baseProps, patchProps);
+  for (const [key, value] of Object.entries(merged)) {
+    if (value === null) delete merged[key];
+  }
+  if (isRecord(merged.style)) {
+    const style = { ...merged.style };
+    for (const [key, value] of Object.entries(style)) {
+      if (value === null) delete style[key];
+    }
+    merged.style = style;
+  }
+  return merged;
+}
+
 function getDescendantPatchProps(
   override: Record<string, unknown>,
 ): Record<string, unknown> {
@@ -428,6 +485,7 @@ function getDescendantPatchProps(
     type: _type,
     sizing: _sizing,
     responsive: _responsive,
+    enabled: _enabled,
     ...props
   } = override;
 
@@ -459,13 +517,16 @@ function applyDescendantOverride(
   }
 
   const children = override.children;
-  const props = mergePropsWithStyleDeep(
+  const props = applyPropsPatch(
     node.props ?? {},
     getDescendantPatchProps(override),
   );
   return {
     ...node,
     ...mergeFillSizing(node, override),
+    ...(typeof override.enabled === "boolean"
+      ? { enabled: override.enabled }
+      : {}),
     props,
     ...(Array.isArray(children)
       ? { children: children.filter(isCanonicalNode) }
@@ -506,6 +567,8 @@ function collectRuntimeElements(
       document,
       sourceNodeWithDescendantOverride,
     );
+    // ADR-234 — 유효 `enabled === false` 면 subtree 째 빠진다 (publish 는 필드 존중만).
+    if (node.enabled === false) return;
     const nodeSegment = options.idPathPrefix
       ? getRuntimeStableSegment(sourceNode)
       : node.id;

@@ -73,7 +73,9 @@ export function resolveCanonicalDocument(
   cache?: ResolverCache,
   imports?: ImportResolverContext,
 ): ResolvedNode[] {
-  return doc.children.map((node) => resolveNode(node, doc, cache, imports));
+  return doc.children
+    .map((node) => resolveNode(node, doc, cache, imports))
+    .filter(isResolvedEnabled);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -139,17 +141,23 @@ function _resolveRefNodeUncached(
   doc: CompositionDocument,
   cache: ResolverCache | undefined,
   imports: ImportResolverContext | undefined,
+  chain: RefChainContext = ROOT_REF_CHAIN,
 ): ResolvedNode {
   // ── Step 1: reusable master lookup ────────────────────────────────────────
-  const master = findReusableMaster(doc, refNode.ref, imports);
+  const directMaster = findReusableMaster(doc, refNode.ref, imports);
 
-  if (!master) {
+  if (!directMaster) {
     // broken ref: warn 1회 + 원본 ref 노드 그대로 반환 (_resolvedFrom 미주입)
     console.warn(
       `[ADR-903] resolveCanonicalDocument: broken ref — master "${refNode.ref}" not found. node id: "${refNode.id}"`,
     );
     return nodeToResolved(refNode);
   }
+
+  // ADR-234 Phase 1 — master 가 다시 ref (변형 = origin 의 reusable ref) 면 master 를 먼저 해석해
+  //   그 결과를 master 로 쓴다 (origin 구조 + 변형 patch). 순환 · 깊이 초과는 broken ref 경로.
+  const master = resolveChainMaster(directMaster, refNode, doc, cache, imports, chain);
+  if (!master) return nodeToResolved(refNode);
 
   // ── Step 1 continued: master + refNode props 머지 ────────────────────────
   const resolvedProps = resolveCanonicalRefProps(master, refNode);
@@ -205,14 +213,17 @@ function _resolveRefNodeUncached(
   //   props(= origin 기본 + override merge)를 schema 키로 좁힌 바인딩으로 자식 placeholder
   //   를 치환한다. builder Skia 축(resolveCanonicalRefTree)과 동일 계약 — 한쪽만 치환하면
   //   CSS↔Skia 발산. 미선언 origin(ListBox 계열 row-data 바인딩)은 원형 보존.
-  const propsSchema = readPropsSchema(master);
+  // 체인 중간 master 는 치환하지 않는다 — placeholder 를 체인 끝 instance 의 값이 채워야 한다.
+  const propsSchema = chain.skipTemplateBindings
+    ? undefined
+    : readPropsSchema(master);
   const templateBindings = propsSchema
     ? resolveTemplateBindingValues(propsSchema, resolvedProps)
     : undefined;
   const mergedChildren = [
     ...resolvedOriginChildren,
     ...resolvedInstanceChildren,
-  ];
+  ].filter(isResolvedEnabled);
   const resolvedChildren = templateBindings
     ? (substituteTemplateBindingsInChildren(
         mergedChildren,
@@ -234,7 +245,7 @@ function _resolveRefNodeUncached(
       ? { props: { ...resolvedProps, [STATE_VARIANTS_PROP]: stateVariants } }
       : {}),
     children: resolvedChildren,
-    _resolvedFrom: master.id,
+    _resolvedFrom: directMaster.id,
     ...(overrideFields.length > 0 ? { _overrides: overrideFields } : {}),
   };
   if (hasSlotContract(resolvedBase)) {
@@ -265,7 +276,7 @@ function applyDescendantsToTree(
   imports: ImportResolverContext | undefined,
   parentPath: string,
 ): ResolvedNode[] {
-  return children.map((child) => {
+  return children.map((child): ResolvedNode => {
     // path 키는 두 규약이 공존한다 — canonical 스키마의 **id path** (`"Box/Slot"`, page-frame slot fill 이
     //   `convertPageLayout` 로 만든다) 와 builder Skia/store 축의 **segment path** (`getCanonicalRefPathSegment`
     //   — canonical 노드는 name → id; synthetic id · Properties/Styles 쓰기 키). ADR-229 Phase 2 (live
@@ -317,7 +328,7 @@ function applyDescendantsToTree(
       descendants,
       currentPath,
     );
-  });
+  }).filter(isResolvedEnabled);
 }
 
 /**
@@ -420,9 +431,9 @@ function applyOverrideToNode(
   if (hasChildren) {
     const childrenOverride = (override as { children: CanonicalNode[] })
       .children;
-    const resolvedChildren = childrenOverride.map((c) =>
-      resolveNode(c, doc, cache, imports),
-    );
+    const resolvedChildren = childrenOverride
+      .map((c) => resolveNode(c, doc, cache, imports))
+      .filter(isResolvedEnabled);
     const resolved: ResolvedNode = {
       ...nodeToResolved(child),
       children: resolvedChildren,
@@ -571,6 +582,92 @@ function matchesResolvedSlotChildReference(
 
   const master = findReusableMaster(doc, child._resolvedFrom, imports);
   return master ? matchesReference(master, reference) : false;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ADR-234 Phase 1 — ref 체인 · enabled
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** 체인 깊이 상한 — 변형 (1) + 변형의 변형 여유. 넘으면 broken ref 와 같은 경고 경로. */
+export const MAX_REF_CHAIN_DEPTH = 8;
+
+type RefChainContext = {
+  /** 지금 해석 중인 ref 노드 id 들 (순환 감지). */
+  readonly visiting: readonly string[];
+  /** 체인 중간 master 해석 — 템플릿 바인딩 치환을 체인 끝으로 미룬다. */
+  readonly skipTemplateBindings?: boolean;
+};
+
+const ROOT_REF_CHAIN: RefChainContext = { visiting: [] };
+
+/**
+ * `enabled` (ADR-234): 부재 = 상속 · false = 숨김 · true = 표시. resolved 노드의 값은 이미 체인
+ * (`{...master, ...ref}`) · descendants patch 를 지난 유효값이다 — 여기서는 false 만 뺀다. 조상이
+ * 빠지면 subtree 전체가 빠진다 (자식은 방문되지 않는다).
+ */
+export function isResolvedEnabled(node: { enabled?: unknown }): boolean {
+  return node.enabled !== false;
+}
+
+/**
+ * master 가 `type: "ref"` (reusable ref — 변형) 면 먼저 해석한 결과를 master 로 쓴다. 결과는
+ * origin 의 type · 구조 + 변형 patch 이고 id 는 변형 id (descendants path 규약 유지). metadata 는
+ * 체인 끝 origin 위에 변형 자신의 것 (propsSchema 는 origin 에서 온다).
+ */
+function resolveChainMaster(
+  master: CanonicalNode,
+  refNode: RefNode,
+  doc: CompositionDocument,
+  cache: ResolverCache | undefined,
+  imports: ImportResolverContext | undefined,
+  chain: RefChainContext,
+): CanonicalNode | undefined {
+  if (master.type !== "ref") return master;
+  const visiting = [...chain.visiting, refNode.id];
+  if (
+    visiting.includes(master.id) ||
+    visiting.length >= MAX_REF_CHAIN_DEPTH
+  ) {
+    console.warn(
+      `[ADR-234] resolveCanonicalDocument: broken ref — ref chain cycle or depth > ${MAX_REF_CHAIN_DEPTH} at "${master.id}". node id: "${refNode.id}"`,
+    );
+    return undefined;
+  }
+  const resolved = _resolveRefNodeUncached(
+    master as RefNode,
+    doc,
+    cache,
+    imports,
+    { visiting, skipTemplateBindings: true },
+  );
+  if (resolved.type === "ref") return undefined; // 체인 안쪽이 broken
+  const chainEnd = findChainEndMaster(master, doc, imports);
+  return {
+    ...resolved,
+    id: master.id,
+    reusable: true,
+    metadata: {
+      ...(chainEnd?.metadata ?? {}),
+      ...(master.metadata ?? {}),
+      type:
+        (master.metadata?.type as string | undefined) ??
+        (chainEnd?.metadata?.type as string | undefined) ??
+        "legacy-element-props",
+    },
+  } as CanonicalNode;
+}
+
+function findChainEndMaster(
+  master: CanonicalNode,
+  doc: CompositionDocument,
+  imports: ImportResolverContext | undefined,
+): CanonicalNode | undefined {
+  let current: CanonicalNode | undefined = master;
+  for (let depth = 0; current && current.type === "ref"; depth += 1) {
+    if (depth >= MAX_REF_CHAIN_DEPTH) return undefined;
+    current = findReusableMaster(doc, (current as RefNode).ref, imports);
+  }
+  return current;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

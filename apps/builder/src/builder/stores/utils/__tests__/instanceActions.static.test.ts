@@ -43,13 +43,13 @@ describe("instanceActions canonical-only read contract", () => {
     expect(source).not.toContain(staleGetterElementMap);
   });
 
-  it("uses mergePropsWithStyleDeep for legacy detach instead of deprecated resolveInstanceProps", async () => {
+  it("uses applyPropsPatch (ADR-234 — merge + null 삭제 표기 제거) for legacy detach instead of deprecated resolveInstanceProps", async () => {
     const source = await readFile(
       resolve(__dirname, "../instanceActions.ts"),
       "utf-8",
     );
 
-    expect(source).toContain("mergePropsWithStyleDeep");
+    expect(source).toContain("applyPropsPatch");
     expect(source).toContain("getComponentOverridesMirror");
     expect(source).not.toContain("resolveInstanceProps");
   });

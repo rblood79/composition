@@ -48,7 +48,8 @@ describe("ADR-116 G6-3 Slot/Ref/Descendants/Frame parity completion contract", (
     expect(mutationsSource).toContain("appendChildToDescendants");
     expect(mutationsSource).toContain("removeNodeFromDescendants");
     expect(resolverSource).toContain("type: master.type");
-    expect(resolverSource).toContain("_resolvedFrom: master.id");
+    // ADR-234: master 가 변형 (ref) 이면 체인을 먼저 열지만 `_resolvedFrom` 은 직접 master id.
+    expect(resolverSource).toContain("_resolvedFrom: directMaster.id");
     expect(componentSectionSource).toMatch(/resolveReference\(\s*originId,/);
     expect(componentSectionSource).toContain(
       "getEditingSemanticsImpactInstanceIds",

@@ -11,6 +11,8 @@
 
 ---
 
+> **2026-09-23 ADR-234 Accepted → Phase 0·1 완료**: 사용자 `/execute-adr 234` (Codex 리뷰 2 round 종결 뒤). G0 — 변형 31 (230 상태 28 + 항목 selected 3) · 직접 ref 0 · 저장 `null` 0 · 항목 자식 170~174 B · Canvas 는 TabList ref 자식을 이미 실체화 (F6 정정). G1 — ref 체인 (Preview · Canvas · publish) · `enabled` 3값 · patch 합성/적용 두 연산, 원복 RED 11/11. 열림 7 (Proposed 4 · Accepted 3), 합계 261.
+
 > **2026-09-23 ADR-234 Proposed 추가**: 상태 변형 = origin 의 instance · 목록 = slot 을 채운 instance 자식 — Pencil (`Tab Item/Inactive` = Active 의 ref · `Tabs` = 빈 TabList 틀 + slot · instance 가 항목 instance 로 채움) 과 RAC (상태 = 같은 구조 + 속성 · TabList 정적 자식 · `items` 는 바인딩 경로) 의 뜻으로 229/230/233 의 템플릿 read-through + 상태 overlay 모델을 대체. 기반 = ref 체인 (두 해석기 모두 현재 끊김) · canonical `enabled` 필드. 사용자 확정: 범위 전부 (Phase 분할) · 정적 items → 자식 이관, 바인딩만 items · 숨기기 = `enabled`. 열림 7 (Proposed 5 · Accepted 2), 합계 261.
 
 > **2026-09-18 ADR-223 Implemented (같은 날)**: 생성 CSS archetype 미지정 기본값 중립화 — 리뷰 round 1 → `/execute-adr 223` Phase 0~~3 / G0~~G5 종결 (생성 CSS 12 파일 · catalog entry 3 · 오라클 3 + live 7종). 열림 7 (Proposed 5 · Accepted 1 · 부분 1), 완료 243, 합계 251.
@@ -97,7 +99,7 @@
 
 #### [234](234-variant-instances-and-slot-filled-collections.md) — 상태 변형 = origin 의 instance · 목록 = slot 을 채운 instance 자식 (Pencil · RAC 정렬)
 
-- **상태**: Proposed (2026-09-23) — Codex 리뷰 2 round 종결 (pending 0 · LOW 1 deferred, [reviews/234](reviews/234.md)), 승인 대기
+- **상태**: Accepted (2026-09-23, 사용자 `/execute-adr 234`) — Codex 리뷰 2 round 종결 (pending 0 · LOW 1 deferred, [reviews/234](reviews/234.md)) · Phase 0 착수
 - **규모**: ref 체인 (Preview resolver · Canvas scene) + canonical `enabled` → 변형 31 을 origin 의 reusable ref + 덮어쓰기로 (origin = 가장 완성된 상태 · 관리 키 4 제한 폐지 · Preview 는 RAC render props) → slot 을 목록 틀 (TabList · TagList · ListBox · GridList · Menu) 로 옮기고 instance 자식으로 목록 채움 (Tabs 는 TabPanel 짝) → 이관 (시각 보존) · 성능 A/B. 066 (정적 목록 한정) · 148 · 229 · 230 · 233 일부 대체
 - **우선순위**: 사용자 요청 2026-09-23 (AskUserQuestion — 범위 전부 · 바인딩만 items · `enabled`)
 

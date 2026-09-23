@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-09-23
+Accepted — 2026-09-23 (사용자 `/execute-adr 234`, Codex 리뷰 2 round 종결 후)
 
 설계 요청: 사용자 (2026-09-23) — Pencil (`pencil-shadcn.pen`) 을 레퍼런스로 "origin, instance, slot 을 의도대로 사용이 안 되고 있다". 의도 (사용자 서술): ① `Tab Item/Active` = 컴포넌트 생성 (origin) ② `Tab Item/Inactive` = 그 origin 의 instance (스타일만 변경) ③ `Tabs` = 컴포넌트 생성, slot 에 Active · Inactive 등록 ④ `Tabs` instance 에서 slot 에 등록된 항목을 추가하면 빈 목록이 채워진다. Pencil `Tabs` 는 RAC Tabs 의 **TabList** 부분이다. "최종 active 환경을 origin 으로 만들고 나머지를 instance" · "그렇게 하면 RAC 의 근본 개념이 더 맞아진다" 는 판단 뒤 `/create-adr`. 범위 · 기존 items · 숨기기 방식은 AskUserQuestion 으로 확정 ([breakdown §1](design/234-variant-instances-and-slot-filled-collections-breakdown.md#1-전제-확정-기록-fork-4-질문--사용자-confirm)).
 

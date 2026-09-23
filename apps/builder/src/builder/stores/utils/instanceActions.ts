@@ -12,7 +12,7 @@
 
 import type { Element } from "../../../types/core/store.types";
 import type { ElementsState } from "../elements";
-import { mergePropsWithStyleDeep } from "../../../utils/component/instanceResolver";
+import { applyPropsPatch } from "../../../utils/component/instanceResolver";
 import { historyManager } from "../history";
 import {
   buildCanonicalInsertEvents,
@@ -412,8 +412,8 @@ function buildCanonicalDetachSnapshot(
       override && !hasReplacement && !hasChildrenReplacement
         ? propsFromCanonicalOverride(override)
         : {};
-    const mergedProps = mergePropsWithStyleDeep(
-      mergePropsWithStyleDeep(baseProps, sourceOverrideProps),
+    const mergedProps = applyPropsPatch(
+      applyPropsPatch(baseProps, sourceOverrideProps),
       patchProps,
     );
     const element = stripCanonicalRuntimeFields(
@@ -465,7 +465,7 @@ function buildCanonicalDetachSnapshot(
     return element;
   };
 
-  const rootProps = mergePropsWithStyleDeep(
+  const rootProps = applyPropsPatch(
     getElementProps(master),
     getRootOverrideProps(refElement),
   );
@@ -520,7 +520,7 @@ function buildLegacyDetachSnapshot(
     // override 없음 → 빈 객체 (master props 유지). shared-cache 경로의
     // getInstanceOverrides 는 override 부재 시 instance.props 로 대체하므로
     // detach 확정 props 에는 사용하지 않는다.
-    mergedProps = mergePropsWithStyleDeep(
+    mergedProps = applyPropsPatch(
       master.props || {},
       getComponentOverridesMirror(instance) ?? {},
     );

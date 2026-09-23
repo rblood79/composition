@@ -121,6 +121,8 @@ const PENCIL_NODE_FIELDS = new Set([
   "sizing",
   // ADR-214 — 노드 소유 상태 정의 (페이지 · 요소 변수): responsive 와 같은 규약
   "state",
+  // ADR-234 — 요소 숨김 (Pencil `enabled` 와 같은 이름 · 뜻)
+  "enabled",
 ]);
 
 const PENCIL_PRIMITIVE_TYPES = new Set<string>([
@@ -454,6 +456,7 @@ export function pencilPrimitiveToComponent(
   assignIfPresent(canonicalNode, record, "responsive");
   assignIfPresent(canonicalNode, record, "sizing");
   assignIfPresent(canonicalNode, record, "state");
+  assignIfPresent(canonicalNode, record, "enabled");
 
   if (canonicalType === "ref") {
     if (typeof record.ref !== "string" || record.ref.length === 0) {
@@ -546,6 +549,7 @@ export function componentToPencilTree(node: CanonicalNode): PencilNode {
   assignIfPresent(pencilNode, nodeRecord, "responsive");
   assignIfPresent(pencilNode, nodeRecord, "sizing");
   assignIfPresent(pencilNode, nodeRecord, "state");
+  assignIfPresent(pencilNode, nodeRecord, "enabled");
 
   if (node.type === "ref") {
     pencilNode.ref = (node as RefNode).ref;

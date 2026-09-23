@@ -45,7 +45,7 @@ import {
   withCanonicalRefDescendantStylePatch,
 } from "../../adapters/canonical/canonicalRefResolution";
 import { getFrameElementMirrorId } from "../../adapters/canonical/frameMirror";
-import { mergePropsWithStyleDeep } from "../../adapters/canonical/instanceResolver";
+import { applyPropsPatch } from "../../adapters/canonical/instanceResolver";
 import {
   buildResponsiveStyleOverride,
   shouldWriteBreakpointOverride,
@@ -215,7 +215,7 @@ function openNestedRefChild(
   return {
     ...master,
     id: node.id,
-    props: mergePropsWithStyleDeep(master.props ?? {}, node.props ?? {}),
+    props: applyPropsPatch(master.props ?? {}, node.props ?? {}),
     reusable: undefined,
   } as CanonicalNode;
 }

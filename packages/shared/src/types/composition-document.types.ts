@@ -895,6 +895,13 @@ export interface CanonicalNode {
    * (`PENCIL_NODE_FIELDS` 등재, clip/placeholder 선례).
    */
   responsive?: ElementResponsiveConfig;
+  /**
+   * ADR-234 — 요소 표시 여부 (Pencil `enabled` 와 같은 이름 · 뜻). 부재 = 상속 (ref 체인 끝까지
+   * 부재면 표시) · `false` = 숨김 · `true` = 상속된 숨김을 풀고 표시. 조상이 숨으면 자식의 `true`
+   * 와 무관하게 subtree 전체가 빠진다. 두 leg (Canvas scene · Preview) · layout · publish 가 존중.
+   * RAC/RSP prop 이 아니다 (D2 무관 — canonical 문서 필드).
+   */
+  enabled?: boolean;
   /** ADR-224: 축별 Fill 의도. */
   sizing?: import("./sizing.types").FillAxes;
 

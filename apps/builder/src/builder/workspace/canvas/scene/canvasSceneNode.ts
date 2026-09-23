@@ -1,5 +1,5 @@
 import type { CanvasProjectionMetadata } from "../canvasProjection";
-import { mergePropsWithStyleDeep } from "../../../../adapters/canonical/instanceResolver";
+import { applyPropsPatch } from "../../../../adapters/canonical/instanceResolver";
 export type { CanvasProjectionMetadata } from "../canvasProjection";
 import type {
   BreakpointName,
@@ -172,6 +172,8 @@ export interface CanvasSceneNode {
    */
   responsive?: CanonicalNode["responsive"];
   sizing?: CanonicalNode["sizing"];
+  /** ADR-234 — 숨김 필드 (부재 = 상속 · false = 숨김 · true = 표시). */
+  enabled?: boolean;
   /**
    * ADR-214 — 이 노드의 string prop 이 `{{ name }}` 으로 소비하는 상태 정의 digest
    * (이름 → id · type · defaultValue). projection signature 입력 — 소비 정의가 바뀌면 이
@@ -455,6 +457,37 @@ function getNodeScope(
   return scope;
 }
 
+/** ADR-234 — scene 체인 깊이 상한 (Preview resolver `MAX_REF_CHAIN_DEPTH` 와 같은 값). */
+const MAX_SCENE_REF_CHAIN_DEPTH = 8;
+
+/**
+ * ADR-234 Phase 1 — ref 대상이 다시 ref (변형) 면 체인 끝 origin 까지 따라가며 props 를 접는다
+ * (origin props → 체인 안쪽 patch 부터 바깥쪽 patch 순 `applyPropsPatch`). 순환 · 깊이 초과 ·
+ * 끊긴 체인은 null (종전 broken ref 와 같이 master 없음).
+ */
+export function resolveSceneRefChain(
+  ref: string,
+  nodesById: ReadonlyMap<string, CanonicalNode>,
+): { master: CanonicalNode; props: Record<string, unknown> | undefined } | null {
+  const patches: Record<string, unknown>[] = [];
+  const seen = new Set<string>();
+  let current = nodesById.get(ref);
+  while (current && current.type === "ref") {
+    if (seen.has(current.id) || seen.size >= MAX_SCENE_REF_CHAIN_DEPTH) {
+      return null;
+    }
+    seen.add(current.id);
+    patches.push((current.props ?? {}) as Record<string, unknown>);
+    current = nodesById.get((current as RefNode).ref);
+  }
+  if (!current) return null;
+  let props = current.props as Record<string, unknown> | undefined;
+  for (let index = patches.length - 1; index >= 0; index -= 1) {
+    props = applyPropsPatch(props ?? {}, patches[index]!);
+  }
+  return { master: current, props };
+}
+
 function toCanvasSceneNode(
   node: CanonicalNode,
   parentId: string | null,
@@ -509,6 +542,9 @@ function toCanvasSceneNode(
   // ADR-154: 반응형 override 를 scene node 로 전달 (resolve 소비 경로).
   if (node.responsive) sceneNode.responsive = node.responsive;
   if (node.sizing) sceneNode.sizing = node.sizing;
+  // ADR-234: 숨김 필드 — scene 에서는 노드를 남기고 (instance 가 `enabled: true` 로 되살릴 수 있게)
+  //   scene model 마지막 단계에서 유효값 false 인 subtree 를 뺀다 (`pruneDisabledSceneNodes`).
+  if (typeof node.enabled === "boolean") sceneNode.enabled = node.enabled;
   if (node.type === "ref") {
     const refNode = node as RefNode;
     sceneNode.ref = refNode.ref;
@@ -2902,7 +2938,13 @@ export function buildCanvasSceneGraph(
       //   프로덕션 코드는 `CanvasSceneNode.type==="ref"` 를 읽지 않는다(전부 canonical
       //   node.type 소비). page placeholder ref 는 별도 렌더 경로라 제외(isRenderableRef 대칭).
       if (node.type === "ref" && !isPagePlaceholderNode(node)) {
-        const master = getDocumentNodesById().get((node as RefNode).ref);
+        // ADR-234 Phase 1 — master 가 다시 ref (변형 = origin 의 reusable ref) 면 체인 끝 origin 의
+        //   type 을 쓰고, props 는 origin → 체인 중간 patch 순으로 접은 값을 master props 로 쓴다.
+        const chain = resolveSceneRefChain(
+          (node as RefNode).ref,
+          getDocumentNodesById(),
+        );
+        const master = chain?.master;
         const masterType = master?.type;
         if (typeof masterType === "string" && masterType !== "ref") {
           sceneNode.type = masterType;
@@ -2911,9 +2953,9 @@ export function buildCanvasSceneGraph(
           //   factory 가 items 를 instance override 로 실어 보였을 뿐이고, catalog 파생 origin
           //   의 instance 는 명시 patch 만 갖는다 (§3.2) — 여기서 origin 기본 props 를 깔고
           //   instance override 를 얹는다 (렌더 SSOT `resolveCanonicalRefElement` 와 같은 merge).
-          if (master?.props) {
-            sceneNode.props = mergePropsWithStyleDeep(
-              master.props as Record<string, unknown>,
+          if (chain?.props) {
+            sceneNode.props = applyPropsPatch(
+              chain.props,
               sceneNode.props as Record<string, unknown>,
             ) as typeof sceneNode.props;
           }

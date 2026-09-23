@@ -33,7 +33,7 @@
  * - 자세한 schema: `packages/shared/src/types/composition-document.types.ts:206-284`
  */
 
-import { mergePropsWithStyleDeep } from "../../../adapters/canonical/instanceResolver";
+import { applyPropsPatch } from "../../../adapters/canonical/instanceResolver";
 import type {
   CanonicalNode,
   CompositionDocument,
@@ -544,7 +544,7 @@ export function getFirstProjectableNodeResolvedProps(
   if (node.type !== "ref" || typeof ref !== "string") return node.props ?? {};
   const master = getFirstProjectableNodeById(ref);
   if (!master || master.type === "ref") return node.props ?? {};
-  return mergePropsWithStyleDeep(master.props ?? {}, node.props ?? {});
+  return applyPropsPatch(master.props ?? {}, node.props ?? {});
 }
 
 /** 첫 projectable node와 legacy projection parent/scope를 O(1)로 반환한다. */

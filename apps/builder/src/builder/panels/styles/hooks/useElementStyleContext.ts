@@ -7,7 +7,7 @@ import { useMemo } from "react";
 import { resolveComponentRule, type BreakpointName } from "@composition/shared";
 import { getSpecForTag } from "../../../workspace/canvas/styleConversion/tagSpecMap";
 import { resolveResponsiveStyleMap } from "../../../workspace/canvas/layout/resolveResponsive";
-import { mergePropsWithStyleDeep } from "../../../../adapters/canonical/instanceResolver";
+import { applyPropsPatch } from "../../../../adapters/canonical/instanceResolver";
 import { useStore } from "../../../stores";
 import type { PanelNode } from "../../panelNode";
 import { useCanonicalPropertyElementsMap } from "../../properties/hooks/useCanonicalPropertyRead";
@@ -155,7 +155,7 @@ export function useElementStyleContext(id: string | null): ElementStyleContext {
 
   const props = useMemo<Readonly<Record<string, unknown>> | undefined>(() => {
     if (!origin) return ownProps;
-    return mergePropsWithStyleDeep(
+    return applyPropsPatch(
       (originProps ?? {}) as Record<string, unknown>,
       (ownProps ?? {}) as Record<string, unknown>,
     );

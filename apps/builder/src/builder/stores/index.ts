@@ -36,7 +36,7 @@ import {
 } from "./canonical/canonicalTraversalHelpers";
 import { getSyntheticDescendantLookup } from "./canonical/syntheticDescendantLookup";
 import { getElementDataBinding } from "../../adapters/canonical/compositionExtensionFields";
-import { mergePropsWithStyleDeep } from "../../adapters/canonical/instanceResolver";
+import { applyPropsPatch } from "../../adapters/canonical/instanceResolver";
 import {
   getComponentOverridesMirror,
   isComponentInstanceMirrorElement,
@@ -296,7 +296,7 @@ export const useSelectedElementData = (): SelectedElement | null => {
 
     const props = shouldUseResolvedRefProps
       ? {
-          ...mergePropsWithStyleDeep(
+          ...applyPropsPatch(
             (resolvedElement.props ?? {}) as Record<string, unknown>,
             currentRefOverrideProps ?? {},
           ),

@@ -6,7 +6,7 @@ import {
   substituteTemplateBindingsInProps,
 } from "@composition/shared";
 
-import { mergePropsWithStyleDeep } from "./instanceResolver";
+import { applyPropsPatch, composePropsPatches } from "./instanceResolver";
 import { resolveReference } from "../../utils/component/referenceResolution";
 import type { LegacyElementMirrorFields } from "./legacyElementFields";
 import { isRenderProjectionId } from "../../builder/projection/renderProjectionIds";
@@ -197,7 +197,7 @@ export function resolveCanonicalRefElement<
     ...refFieldOverrides
   } = node as T & CanonicalRefFields & LegacyElementMirrorFields;
 
-  const mergedProps = mergePropsWithStyleDeep(
+  const mergedProps = applyPropsPatch(
     getNodeProps(master),
     getRefOverrideProps(node),
   );
@@ -337,7 +337,8 @@ function getStackedDescendantPatch<T extends CanonicalRefResolvableNode>(
     if (relative === null) continue;
     const patch = getDescendantPatch(owner, relative);
     if (!patch) continue;
-    merged = merged ? mergePropsWithStyleDeep(merged, patch) : patch;
+    // ADR-234: patch 끼리 합성 — `null` (삭제 표기) 보존 (리뷰 round 2 h1).
+    merged = merged ? composePropsPatches(merged, patch) : patch;
   }
   return merged;
 }
@@ -357,6 +358,7 @@ function propsFromDescendantPatch(
     ref: _ref,
     reusable: _reusable,
     type: _type,
+    enabled: _enabled,
     ...props
   } = patch;
   if (isRecord(patch.props)) return patch.props;
@@ -364,6 +366,15 @@ function propsFromDescendantPatch(
     props.children = children;
   }
   return props;
+}
+
+/** ADR-234 — descendants patch 의 `enabled` 는 노드 필드로 싣는다 (props 아님). */
+function patchEnabledField(
+  patch: Record<string, unknown> | null | undefined,
+): { enabled?: boolean } {
+  return patch && typeof patch.enabled === "boolean"
+    ? { enabled: patch.enabled }
+    : {};
 }
 
 function getOverrideNodeSegment(node: OverrideNode, index: number): string {
@@ -451,9 +462,10 @@ function applyDescendantPatchToElement<T extends CanonicalRefResolvableNode>(
   return {
     ...element,
     type: patchedType,
-    props: mergePropsWithStyleDeep(getNodeProps(element), patchProps),
+    props: applyPropsPatch(getNodeProps(element), patchProps),
     ...mergeFillSizing(element, patch),
     ...(Array.isArray(patch.fills) ? { fills: patch.fills } : {}),
+    ...patchEnabledField(patch),
   } as T;
 }
 
@@ -715,7 +727,8 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
       // nested master props → 조합 자식 patch (자식 ref 자신의 props — 바깥 origin 의 `{키}`
       //   치환은 여기까지) → 바깥 instance patch. 그 다음 nested master 의 자식은 nested master
       //   의 propsSchema 로 재바인딩한다 — 바깥 origin 의 바인딩이 안쪽 placeholder 를 잡으면 안 된다.
-      const ownProps = mergePropsWithStyleDeep(
+      // 자식 ref 자신의 patch + 바깥 patch — 아직 patch 끼리 (nested master 에 적용 전).
+      const ownProps = composePropsPatches(
         getNodeProps(sourceChild),
         patchProps,
       );
@@ -733,6 +746,7 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
           : ownProps,
         ...mergeFillSizing(sourceChild, patch ?? {}),
         ...(patch && Array.isArray(patch.fills) ? { fills: patch.fills } : {}),
+        ...patchEnabledField(patch),
         reusable: undefined,
       } as T;
       const resolvedNested = withStateVariantProjection(
@@ -861,12 +875,13 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
       layout_id: getLayoutId(refElement) ?? getLayoutId(sourceChild),
       props: templateBindings
         ? substituteTemplateBindingsInProps(
-            mergePropsWithStyleDeep(getNodeProps(sourceChild), patchProps),
+            applyPropsPatch(getNodeProps(sourceChild), patchProps),
             templateBindings,
           )
-        : mergePropsWithStyleDeep(getNodeProps(sourceChild), patchProps),
+        : applyPropsPatch(getNodeProps(sourceChild), patchProps),
       ...mergeFillSizing(sourceChild, patch ?? {}),
       ...(patch && Array.isArray(patch.fills) ? { fills: patch.fills } : {}),
+      ...patchEnabledField(patch),
       reusable: undefined,
     } as T;
 
@@ -955,6 +970,43 @@ function withStateVariantProjection<T extends CanonicalRefResolvableNode>(
   };
 }
 
+/** ADR-234 — ref 체인 깊이 상한 (Preview resolver `MAX_REF_CHAIN_DEPTH` 와 같은 값). */
+const MAX_REF_ELEMENT_CHAIN_DEPTH = 8;
+
+/**
+ * ADR-234 Phase 1 — master 에서 체인 끝 origin 까지.
+ * - `origin`: 체인 끝 (ref 아님) — 자식 · propsSchema 출처
+ * - `intermediates`: [직접 master, …, origin 바로 앞] — descendants patch 소유자 (바깥 → 안쪽)
+ * - `effectiveMaster`: 직접 master 를 체인 위에 접은 요소 (root props · type 출처). 체인이 없으면
+ *   직접 master 그대로.
+ * 순환 · 깊이 초과 · 끊긴 체인은 null.
+ */
+function resolveRefElementChain<T extends CanonicalRefResolvableNode>(
+  directMaster: T,
+  nodes: Iterable<T>,
+  lookupMaster: (ref: string) => T | undefined,
+): { origin: T; intermediates: T[]; effectiveMaster: T } | null {
+  const intermediates: T[] = [];
+  const seen = new Set<string>();
+  let current: T | undefined = directMaster;
+  while (current && isCanonicalRefElement(current)) {
+    if (seen.has(current.id) || seen.size >= MAX_REF_ELEMENT_CHAIN_DEPTH) {
+      return null;
+    }
+    seen.add(current.id);
+    intermediates.push(current);
+    const next: string | null = getCanonicalRefTarget(current);
+    current = next ? lookupMaster(next) : undefined;
+  }
+  if (!current) return null;
+  const origin = current;
+  let effective: T = origin;
+  for (let index = intermediates.length - 1; index >= 0; index -= 1) {
+    effective = resolveCanonicalRefElement(intermediates[index]!, nodes, effective);
+  }
+  return { origin, intermediates, effectiveMaster: effective };
+}
+
 export function resolveCanonicalRefTree<
   T extends CanonicalRefResolvableNode,
 >(input: {
@@ -988,17 +1040,24 @@ export function resolveCanonicalRefTree<
   for (const element of input.elements) {
     if (!isCanonicalRefElement(element)) continue;
     const ref = getCanonicalRefTarget(element);
-    const master = ref ? lookupMaster(ref) : undefined;
+    const directMaster = ref ? lookupMaster(ref) : undefined;
+    // ADR-234 Phase 1 — master 가 다시 ref (변형) 면 체인을 따라간다: root props 는 접힌 체인 master
+    //   위에, 자식은 체인 끝 origin 의 자식을 [instance, 변형, …] patch 스택으로 실체화한다.
+    const chain = directMaster
+      ? resolveRefElementChain(directMaster, input.elementsMap.values(), lookupMaster)
+      : null;
+    if (directMaster && !chain) continue; // 순환 · 깊이 초과 · 끊긴 체인 = broken ref
+    const master = chain?.effectiveMaster;
     const resolvedRootBase = resolveCanonicalRefElement(
       element,
       input.elementsMap.values(),
       master,
     );
     const resolvedRoot =
-      master && resolvedRootBase !== element
+      directMaster && resolvedRootBase !== element
         ? withStateVariantProjection(
             resolvedRootBase,
-            master,
+            directMaster,
             element,
             lookupMaster,
           )
@@ -1009,21 +1068,27 @@ export function resolveCanonicalRefTree<
       if (index >= 0) elements[index] = resolvedRoot;
     }
 
-    if (!ref || !master) continue;
+    if (!ref || !chain) continue;
 
     materializeSyntheticDescendants(
       element,
-      master,
+      chain.origin,
       element.id,
       sourceChildrenMap,
       elementsMap,
       childrenMap,
       elements,
       // ADR-148 Phase 2 — origin 이 propsSchema 를 선언한 reusable 에 한해 `{키}` 치환.
-      resolveMasterTemplateBindings(master, getNodeProps(resolvedRoot)),
+      resolveMasterTemplateBindings(chain.origin, getNodeProps(resolvedRoot)),
       "",
       new Set(),
-      { lookupMaster },
+      {
+        lookupMaster,
+        patchOwners: [
+          { owner: element, mountPath: "" },
+          ...chain.intermediates.map((owner) => ({ owner, mountPath: "" })),
+        ],
+      },
     );
   }
 
