@@ -1064,6 +1064,36 @@ describe("buildSpecNodeData", () => {
       expect(userSizes).not.toContain(18);
     });
 
+    it("TagGroup allowsRemoving 이어도 maxRows Show all chip (`_isShowAll`) 에는 remove X 없음 — DOM 은 TagList 밖 button", () => {
+      const group = makeElement("tg", {
+        type: "TagGroup",
+        props: { allowsRemoving: true, maxRows: 1 },
+      });
+      const list = makeElement("tl", {
+        type: "TagList",
+        parent_id: "tg",
+        props: {},
+      });
+      const showAll = makeElement("sa", {
+        type: "Tag",
+        parent_id: "tl",
+        props: { children: "Show all (4)", _isShowAll: true },
+      });
+      const node = buildSpecNodeData({
+        element: showAll,
+        layout: makeLayout({ x: 0, y: 0, width: 100, height: 30 }),
+        theme: "light",
+        elementsMap: new Map([
+          [group.id, group],
+          [list.id, list],
+          [showAll.id, showAll],
+        ]),
+      });
+
+      expect(node).not.toBeNull();
+      expect(findIconPath(node)).toBeNull();
+    });
+
     it("TagGroup allowsRemoving 미설정이면 손자 Tag 에 remove X 없음", () => {
       const group = makeElement("tg", { type: "TagGroup", props: {} });
       const list = makeElement("tl", {

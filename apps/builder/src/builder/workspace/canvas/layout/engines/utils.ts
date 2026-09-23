@@ -1491,6 +1491,10 @@ export function isTagAllowsRemoving(
   element: CanvasLayoutNode,
   _elementsMap?: Map<string, CanvasLayoutNode>,
 ): boolean {
+  // maxRows 「Show all」 chip 은 Tag 모양의 펼침 버튼이다 — DOM 은 TagList 밖 `<button class="tag-show-all-btn">`
+  //   라 remove 버튼 · `[data-allows-removing]` 여백이 없다 (2026-09-24 사용자 보고: Show all 에도 X).
+  if ((element.props as Record<string, unknown> | undefined)?._isShowAll)
+    return false;
   // props에 직접 있으면 (delegation된 경우)
   if ((element.props as Record<string, unknown> | undefined)?.allowsRemoving)
     return true;

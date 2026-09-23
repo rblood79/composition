@@ -18,6 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **TagGroup 의 Allows Removing 을 켜도 캔버스의 Tag 에 X 가 없던 문제를 고쳤다.** 이제 각 Tag 끝에 X 를 그린다 (Preview 의 remove 버튼과 같은 자리 · 크기). 선택된 Tag 의 X 는 흰색이다. Show all chip 에는 X 가 없다.
   - **Why**: ADR-234 Phase 3b 부터 Tag 글자는 자식 Text 에 있다. 캔버스는 X 를 Tag 자기 글자 오른쪽에 덧그렸는데, 글자가 자식으로 옮겨가서 그 코드에 닿지 않았다. X 는 Tag 의 구성 자식이 아니다 — Preview 에서도 RAC 가 Allows Removing 을 보고 넣는 버튼이라, 캔버스도 같은 조건으로 Tag 끝에 붙인다.
   - 위치: `apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts` (`appendStaticTagRemoveButtons`), `apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts` (Tag 분기), `apps/builder/src/builder/workspace/canvas/skia/itemLabelInheritance.ts`
+- **Allows Removing 을 켜면 Max Rows 의 "Show all" chip 에도 X 가 붙고 폭이 넓어지던 문제를 고쳤다.** Show all 은 Tag 모양의 펼침 버튼이라 X 도, 줄어든 오른쪽 여백도 없다 (Preview 의 Show all 버튼과 같다).
+  - **Why**: 정적 목록의 Show all chip 은 TagList 바로 아래 Tag 라서 TagGroup 의 allowsRemoving 이 그대로 전달됐다. 캔버스는 그 값을 보고 X 를 그리고 X 자리만큼 폭도 넓혔다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/buildSpecNodeData.ts`, `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts` (`isTagAllowsRemoving`)
 
 ## [캔버스에서 TagGroup Max Rows 가 다시 동작한다] - 2026-09-24
 

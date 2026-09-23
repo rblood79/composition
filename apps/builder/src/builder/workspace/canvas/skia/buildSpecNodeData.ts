@@ -1485,6 +1485,12 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
     specProps = { ...specProps, children: parentLabelText };
   }
   specProps = applyParentPropagationProps(element, specProps, elementsMap);
+  // maxRows 「Show all」 chip 은 TagList 의 Tag 라 TagGroup `allowsRemoving` 전파 (`["TagList","Tag"]`) 를 받지만 DOM
+  //   은 TagList 밖 `<button class="tag-show-all-btn">` — remove X 가 없다 (2026-09-24 사용자 보고). layout
+  //   `isTagAllowsRemoving` 과 같은 판정.
+  if (specProps._isShowAll === true && specProps.allowsRemoving) {
+    specProps = { ...specProps, allowsRemoving: false };
+  }
 
   // Size injection — Breadcrumb은 항상 RSP 키 S|M|L (Skia shapes·패딩·typography 토큰 정합)
   if (element.type === "Breadcrumb") {

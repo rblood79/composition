@@ -5,7 +5,8 @@
 //   ① allowsRemoving true · false instance: chip 폭 차 = 16 (gap 4 + margin 2 + 버튼 18 − 오른쪽 padding 12→4)
 //      · X 상자 18×18 · chip 오른쪽 여백 4 + border 1.
 //   ② X 자리 픽셀: idle chip 은 어두운 glyph · 선택 chip (selectedKeys) 은 accent 배경 위 밝은 glyph (on-accent).
-//   ③ 편집 allowsRemoving false → true 로 켜면 X 가 생긴다 · maxRows Show all chip 에는 X 없음.
+//   ③ 편집 allowsRemoving false → true 로 켜면 X 가 생긴다 · maxRows Show all chip 에는 X 노드 없음.
+//   ④ Show all chip 은 allowsRemoving 이어도 폭 · 오른쪽 끝 픽셀이 false 와 같다 (전파된 allowsRemoving 이 X 를 그리지 않는다).
 // 사용: node apps/builder/scripts/taggroup-remove-live.mjs [--base http://localhost:5173]
 import { resolve } from "node:path";
 import { createRequire } from "node:module";
@@ -153,6 +154,27 @@ record(
   "편집 allowsRemoving 켬 → X 생김 · Show all chip 에는 X 없음",
   edited.showAll && edited.chips.length >= 1 && edited.chips.every((c) => c.remove) && !edited.showAllRemove,
   { edited },
+);
+// Show all chip — DOM 은 TagList 밖 `<button class="tag-show-all-btn">` 라 X 가 없다 (사용자 보고 2026-09-24: Canvas
+//   Show all 에 X). allowsRemoving true · false 두 instance 의 Show all 폭이 같고 오른쪽에 X glyph 가 없다.
+await place("tg-sa-on", { allowsRemoving: true, maxRows: 1, label: "", style: { width: 120 } }, 3);
+await place("tg-sa-off", { allowsRemoving: false, maxRows: 1, label: "", style: { width: 120 } }, 4);
+const showAllOf = (inst) =>
+  page.evaluate((list) => {
+    const id = `projection:tag-row:${list}:__show_all__`;
+    const l = window.__composition_LAYOUT_DEBUG__.getSharedLayoutMap().get(id);
+    const b = l ? window.__composition_RENDER_DEBUG__.getSceneBounds(id) : null;
+    return l && b ? { x: b.x, y: b.y, w: Math.round(l.width), h: Math.round(l.height) } : null;
+  }, `${inst}/${LIST}`);
+const saOn = await waitFor(() => showAllOf("tg-sa-on"), (r) => r != null);
+const saOff = await waitFor(() => showAllOf("tg-sa-off"), (r) => r != null);
+const tail = (b) => ({ x: b.x + b.w - 24, y: b.y, w: 22, h: b.h });
+const pxOn = saOn ? await pixels(saOn, { tail: tail(saOn) }) : null;
+const pxOff = saOff ? await pixels(saOff, { tail: tail(saOff) }) : null;
+record(
+  "Show all chip: allowsRemoving 이어도 폭 같음 · 오른쪽 끝 ink = allowsRemoving false 와 같음 (X 없음)",
+  saOn != null && saOff != null && saOn.w === saOff.w && pxOn.tail.dark === pxOff.tail.dark,
+  { saOn, saOff, pxOn, pxOff },
 );
 record("page error 0", errors.length === 0, errors.slice(0, 5));
 await browser.close();
