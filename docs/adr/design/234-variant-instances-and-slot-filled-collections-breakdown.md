@@ -192,3 +192,13 @@
 - 회귀: builder 7,209 pass / 5 fail · shared 1,398 / 2 fail (전부 착수 전부터). parity 파일 단위 실패는 개별 재실행 GREEN (브라우저 세션 flaky) · 남은 3 은 착수 전부터 (HC2 판정표의 Tag canvas 캡처 값만 `inline-block` → `flex` 로 이동 — Tag instance 가 origin style `display:flex` 를 싣는다) .
 - live (headless · 새 프로젝트): Components 페이지 TagGroup = TagList Tag ref 4 · slot TagList · `items` 0 · TagList 선택 → Slot "Insert Tag/Default" → Tag 5 (chip 5 한 줄, rect 99/58/106/73/67) · reload 같음 · 오류 0.
 - **남은 BC 차이 (다음 단계 3c)**: 항목 label 이 `Text` 라 두 leg 모두 Text 기본 글자 (16 · 400 · `--fg`) 로 그린다 — 대칭이지만 이관 전 행 (Tab: text-sm · 500 · muted / Tag: text-sm · 선택 시 on-accent) 과 다르다. DOM 은 `.react-aria-Text` 가 font-size · color 를 스스로 선언해 item 글자를 상속하지 않는다. 해결 방향: item rule 의 delegation (`.react-aria-Text` → inherit) + Canvas resolver 가 같은 값을 label 에 주입 (InlineAlert · FieldError 선례).
+
+### Phase 3c — 항목 label 은 항목 글자 상속 (BC, 2026-09-23)
+
+- 3a·3b 의 남은 BC 차이 수리: 항목 (Tab · Tag) 안 label Text 가 Text 기본 글자 (16 · 400 · `--fg`) 로 그려져 이관 전 행 (항목 rule 글자) 과 달랐다.
+- **DOM**: `TabsIndicator.css` · `TagGroup.css` (수동 — Tab/Tag 는 selected · chip 규칙이 이미 수동) 에 `.react-aria-Tab/Tag .react-aria-Text.react-aria-Text { font-size · font-weight · line-height · color: inherit }` — `.react-aria-Text` 가 자기 값을 선언해 끊긴 상속을 되살린다 (Button `.button-base > *` 선례). 인라인 (작성자 값) 은 여전히 이긴다.
+- **Canvas**: `skia/itemLabelInheritance.ts` 하나를 Skia (`buildSpecNodeData`) 와 layout (`fullTreeLayout` — 글자 크기 · 줄 높이 = 측정 폭 · 높이) 이 같이 읽는다. 값 = 항목 rule size (항목 `size` → owner `size` → 기본) 의 글자 크기 · 굵기, 줄 높이 = rule `lineHeight` (Tag) 또는 root 비율 1.5 (Tab, `"<px>px"` 문자열), 색 = Tab 은 선택 시 `{color.neutral}` (TabsIndicator `[data-selected] --fg`) · 아니면 rule text / Tag 는 chip 이 그리는 변형의 text. label 자기 style 에 있는 키는 건드리지 않는다.
+  - Tag 의 선택 색은 Canvas 가 rule `selected` 변형 (accent 배경) 을 고르지 않는 기존 비대칭 때문에 chip 변형 색으로 둔다 — 처음엔 on-accent 로 두어 Components 페이지 단독 Tag origin (선택 상태) 의 label 이 흰 배경 위 흰 글자로 사라졌다 (live 스크린샷에서 발견 · 수리). **기록**: Canvas 는 선택 Tag chip 에 accent 배경을 그리지 않는다 (DOM 은 그린다) — ADR-234 이전부터의 비대칭, Phase 4 BC 판정과 별개 후속.
+- parity 하니스 (`adr923PreviewLeg`) 에 선택적 canonical 폴백 (rendererMap 에 없는 type 을 CanonicalNodeRenderer 로) — 기본 off, `tabsPanelWrapper` 만 켠다. 새 판정: Tab instance 폭 DOM = layout (Δ ≤ 1) — 원복 RED 2/2 (DOM CSS off: DOM 62/64 vs 59/60 · layout 주입 off: 58/60 vs 62/64).
+- unit 21 (resolver 1 · 배선 static 1 추가) · builder 7,211 pass / 5 fail · shared 1,398 / 2 fail (착수 전부터) · type-check PASS.
+- live: Tab label 34×21 / 36×21 (14px · 한 줄) · 선택 Tab 진한 색 · 비선택 muted · Tag chip 90/54 폭 (14px) · 단독 Tag origin label 보임 · reload 같음 · 오류 0.

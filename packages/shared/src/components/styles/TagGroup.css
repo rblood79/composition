@@ -13,6 +13,15 @@
     }
   }
 
+  /* ADR-234 Phase 3c — Tag instance 의 label Text 는 Tag 글자 (크기 · 굵기 · 줄 높이 · 상태별 색) 를 상속한다
+     (TabsIndicator.css 의 Tab 규칙과 같은 이유 · Canvas 는 `itemLabelInheritance.ts`). */
+  .react-aria-Tag .react-aria-Text.react-aria-Text {
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
+    color: inherit;
+  }
+
   .tag-list-wrapper {
     display: flex;
     flex-wrap: wrap;

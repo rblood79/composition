@@ -67,6 +67,10 @@ import { extractSpecTextStyle } from "../../utils/specTextStyle";
 // ADR-912 단계5 step4 (2026-06-17): InlineAlertSpec import 제거 — InlineAlert 자식 font 분기를
 //   resolveSkiaRule("InlineAlert").sizes read-through 로 이관(spec 삭제 선행, rule fallback).
 import { resolveSkiaRule } from "../../skia/resolveSkiaVisualRule";
+import {
+  applyItemLabelTypography,
+  resolveItemLabelTypography,
+} from "../../skia/itemLabelInheritance";
 import { getNecessityIndicatorSuffix } from "@composition/shared/components";
 import { useScrollState } from "../../../../stores/scrollState";
 import type { PresentationLayoutComputeRequest } from "../../../../presentation/editorPresentationLayoutLane";
@@ -1615,6 +1619,23 @@ function traversePostOrder(
   //   SelectTrigger 래퍼 · 그룹 (CheckboxGroup·RadioGroup·Meter·ProgressBar·Slider) Label · 래퍼 아래
   //   DateInput 도 같은 판정 (2026-09-03 판정 A 확장) — 투영 규칙은 `readOnlySubpart.ts` 한 곳.
   rawElement = projectReadOnlySubpart(rawElement, elementsMap);
+
+  // ADR-234 Phase 3c — 목록 항목 (Tab · Tag) 안 label 은 항목 글자 (크기 · 굵기) 로 잰다 — Skia
+  //   (buildSpecNodeData) 가 같은 resolver 로 같은 값을 그린다.
+  const itemLabelTypography = resolveItemLabelTypography(
+    rawElement,
+    elementsMap,
+  );
+  if (itemLabelTypography) {
+    const labelStyle = applyItemLabelTypography(
+      rawElement.props?.style as Record<string, unknown> | undefined,
+      { ...itemLabelTypography, color: undefined },
+    );
+    rawElement = {
+      ...rawElement,
+      props: { ...rawElement.props, style: labelStyle },
+    };
+  }
 
   // Heading/Description → InlineAlert 부모 spec에서 font 스타일 주입 (텍스트 폭 측정 정합성)
   if (rawElement.type === "Heading" || rawElement.type === "Description") {

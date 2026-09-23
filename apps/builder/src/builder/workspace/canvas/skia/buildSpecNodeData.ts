@@ -18,6 +18,10 @@
 import { resolveTextRenderStyle } from "../utils/textRenderStyle";
 import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import { readForcedVariantStates } from "../../../components/stateVariantLayers";
+import {
+  applyItemLabelTypography,
+  resolveItemLabelTypography,
+} from "./itemLabelInheritance";
 import type { SkiaNodeData } from "./nodeRendererTypes";
 import type { FillStyle } from "./types";
 import { buildScrollNodeFields } from "./buildBoxNodeData";
@@ -1576,6 +1580,19 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
         ...existingStyle,
         color: existingStyle.color ?? buttonChildColor,
       },
+    };
+  }
+
+  // ADR-234 Phase 3c — 목록 항목 (Tab · Tag) 안 label 은 항목 글자 상속 (DOM `.react-aria-Tab/Tag
+  //   .react-aria-Text { inherit }` 와 대칭). 사용자 명시 style 우선.
+  const itemLabelTypography = resolveItemLabelTypography(element, elementsMap);
+  if (itemLabelTypography) {
+    specProps = {
+      ...specProps,
+      style: applyItemLabelTypography(
+        specProps.style as Record<string, unknown> | undefined,
+        itemLabelTypography,
+      ),
     };
   }
 

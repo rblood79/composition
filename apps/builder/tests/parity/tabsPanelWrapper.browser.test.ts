@@ -30,6 +30,8 @@ const roots: Root[] = [];
 let host: HTMLElement | undefined;
 let dom: { tabsH: number; panelY: number; panelH: number } | undefined;
 let pipe: { tabsH: number; panelY: number; panelH: number } | undefined;
+// ADR-234 Phase 3c — Tab instance 폭 (label 이 Tab 글자를 상속: DOM CSS inherit ↔ Canvas resolver).
+let tabW: { dom: number[]; pipe: number[] } | undefined;
 
 beforeAll(async () => {
   await initEngineWasm();
@@ -44,7 +46,14 @@ beforeAll(async () => {
   document.body.appendChild(host);
 
   const tree = await paletteCreationTree("Tabs", "tabs-wrapper");
-  const mounted = await mountProductionRoot(host, roots, tree.elements);
+  // ADR-234 Phase 3c — Tab instance 의 label (Text) 까지 그리도록 canonical 폴백.
+  const mounted = await mountProductionRoot(
+    host,
+    roots,
+    tree.elements,
+    "page",
+    true,
+  );
   if (!mounted) throw new Error("Tabs: DOM root 없음");
   await new Promise<void>((r) =>
     requestAnimationFrame(() => requestAnimationFrame(() => r())),
@@ -52,6 +61,7 @@ beforeAll(async () => {
   const tabs = host.querySelector<HTMLElement>(".react-aria-Tabs");
   const panel = host.querySelector<HTMLElement>(".react-aria-TabPanel");
   if (!tabs || !panel) throw new Error("Tabs / TabPanel DOM 없음");
+  const domTabs = Array.from(host.querySelectorAll<HTMLElement>(".react-aria-Tab"));
   const tr = tabs.getBoundingClientRect();
   const pr = panel.getBoundingClientRect();
   dom = { tabsH: tr.height, panelY: pr.y - tr.y, panelH: pr.height };
@@ -65,6 +75,12 @@ beforeAll(async () => {
   const panelBox = panelEl ? run.layout.get(panelEl.id) : undefined;
   if (!tabsBox || !panelsBox || !panelBox)
     throw new Error("layout: Tabs / TabPanels / TabPanel box 없음");
+  tabW = {
+    dom: domTabs.map((t) => t.getBoundingClientRect().width),
+    pipe: tree.elements
+      .filter((e) => e.type === "Tab")
+      .map((e) => run.layout.get(e.id)?.width ?? -1),
+  };
   // ComputedLayout 은 부모 기준 — TabPanel 의 Tabs 기준 y = TabPanels.y + TabPanel.y
   pipe = {
     tabsH: tabsBox.height,
@@ -98,5 +114,12 @@ describe("Tabs — TabPanels 래퍼는 DOM 에 상자가 없다 (padding 0)", ()
       Math.abs(dom!.panelH - pipe!.panelH),
       `h dom ${dom!.panelH} pipe ${pipe!.panelH}`,
     ).toBeLessThanOrEqual(1);
+  });
+  it("ADR-234 Phase 3c — Tab instance 폭 DOM = layout (Δ ≤ 1, label 이 Tab 글자 상속)", () => {
+    expect(tabW!.dom.length, JSON.stringify(tabW)).toBe(tabW!.pipe.length);
+    expect(tabW!.dom.length).toBeGreaterThan(0);
+    tabW!.dom.forEach((w, i) => {
+      expect(Math.abs(w - tabW!.pipe[i]!), JSON.stringify(tabW)).toBeLessThanOrEqual(1);
+    });
   });
 });

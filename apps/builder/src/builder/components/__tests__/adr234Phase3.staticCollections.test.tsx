@@ -677,3 +677,65 @@ describe("ADR-234 Phase 3 — items 편집기는 바인딩 목록 전용", () =>
     expect(isStaticCollectionOwner(doc, "component-listbox")).toBe(false);
   });
 });
+
+describe("ADR-234 Phase 3c — 항목 label 은 항목 글자 상속 (Canvas resolver)", () => {
+  it("Tab label: md 14 · 500 · 줄 21 · 비선택 muted / 선택 neutral · owner size 따라감 · 작성자 값 우선", async () => {
+    const { resolveItemLabelTypography, applyItemLabelTypography } =
+      await import("../../workspace/canvas/skia/itemLabelInheritance");
+    const map = new Map<
+      string,
+      { type: string; props?: Record<string, unknown>; parent_id?: string }
+    >([
+      ["tabs", { type: "Tabs", props: {} }],
+      ["list", { type: "TabList", props: {}, parent_id: "tabs" }],
+      ["t1", { type: "Tab", props: { _isSelected: true }, parent_id: "list" }],
+      ["t2", { type: "Tab", props: {}, parent_id: "list" }],
+      ["l1", { type: "Text", props: {}, parent_id: "t1" }],
+      ["l2", { type: "Text", props: {}, parent_id: "t2" }],
+      ["tg", { type: "TagGroup", props: { size: "lg" } }],
+      ["tl", { type: "TagList", props: {}, parent_id: "tg" }],
+      ["g1", { type: "Tag", props: { _isSelected: true }, parent_id: "tl" }],
+      ["gl", { type: "Text", props: {}, parent_id: "g1" }],
+      ["plain", { type: "Text", props: {}, parent_id: "tabs" }],
+    ]);
+    const sel = resolveItemLabelTypography(map.get("l1")!, map)!;
+    const idle = resolveItemLabelTypography(map.get("l2")!, map)!;
+    expect(sel).toMatchObject({
+      fontSize: 14,
+      fontWeight: 500,
+      lineHeight: "21px",
+      color: "{color.neutral}",
+    });
+    expect(idle.color).toBe("{color.neutral-subdued}");
+    const tag = resolveItemLabelTypography(map.get("gl")!, map)!;
+    expect(tag.fontSize).toBe(16);
+    // Canvas 는 Tag rule 의 selected 변형을 그리지 않는다 — chip 변형 (default) 글자색.
+    expect(tag.color).toBe("{color.neutral}");
+    expect(resolveItemLabelTypography(map.get("plain")!, map)).toBeNull();
+    expect(
+      applyItemLabelTypography({ color: "#f00", fontSize: 20 }, sel),
+    ).toMatchObject({ color: "#f00", fontSize: 20, fontWeight: 500 });
+  });
+});
+
+describe("ADR-234 Phase 3c — 배선 (static)", () => {
+  it("Skia · layout 이 같은 resolver 를 읽고, DOM CSS 가 Tab · Tag 안 Text 상속을 되살린다", async () => {
+    const fs = await import("node:fs");
+    const path = await import("node:path");
+    const root = path.resolve(__dirname, "../../..");
+    const read = (p: string) => fs.readFileSync(path.resolve(root, p), "utf8");
+    for (const file of [
+      "builder/workspace/canvas/skia/buildSpecNodeData.ts",
+      "builder/workspace/canvas/layout/engines/fullTreeLayout.ts",
+    ]) {
+      expect(read(file), file).toMatch(/resolveItemLabelTypography\(/);
+    }
+    const css = path.resolve(root, "../../../packages/shared/src/components/styles");
+    expect(fs.readFileSync(`${css}/TabsIndicator.css`, "utf8")).toMatch(
+      /\.react-aria-Tab \.react-aria-Text\.react-aria-Text \{[^}]*font-size: inherit/,
+    );
+    expect(fs.readFileSync(`${css}/TagGroup.css`, "utf8")).toMatch(
+      /\.react-aria-Tag \.react-aria-Text\.react-aria-Text \{[^}]*color: inherit/,
+    );
+  });
+});

@@ -18,6 +18,8 @@ import type {
   RenderContext,
 } from "@composition/shared/types";
 import type { Element } from "@/types/core/store.types";
+import { getCatalogCutoverTypes, type ResolvedNode } from "@composition/shared";
+import { CanonicalNodeRenderer } from "@/preview/components/CanonicalNodeRenderer";
 
 export function toPreviewElement(el: Element): PreviewElement {
   return {
@@ -34,6 +36,11 @@ export function toPreviewElement(el: Element): PreviewElement {
 export function stubRenderContext(
   elements: PreviewElement[],
   editMode: "page" | "layout",
+  /**
+   * ADR-234 Phase 3c — rendererMap 에 없는 type (Text 등 catalog generic) 을 CanonicalNodeRenderer 로 그린다
+   * (production canonical 경로와 같은 렌더). 기본 false = 종전 (null) — 기존 parity 측정 불변.
+   */
+  canonicalFallback = false,
 ): RenderContext {
   const elementsById = new Map(elements.map((e) => [e.id, e] as const));
   const childrenByParent = new Map<string, PreviewElement[]>();
@@ -52,9 +59,26 @@ export function stubRenderContext(
     setElements: () => {},
     renderElement: (el, key) => {
       const r = rendererMap[el.type];
-      return r
-        ? React.createElement(React.Fragment, { key: key ?? el.id }, r(el, ctx))
-        : null;
+      if (r)
+        return React.createElement(
+          React.Fragment,
+          { key: key ?? el.id },
+          r(el, ctx),
+        );
+      if (!canonicalFallback) return null;
+      const toNode = (p: PreviewElement): ResolvedNode =>
+        ({
+          id: p.id,
+          type: p.type,
+          props: p.props,
+          children: (childrenByParent.get(p.id) ?? []).map(toNode),
+        }) as unknown as ResolvedNode;
+      return React.createElement(CanonicalNodeRenderer, {
+        key: key ?? el.id,
+        node: toNode(el),
+        renderContext: ctx,
+        cutoverPrimitives: getCatalogCutoverTypes(),
+      });
     },
     editMode,
   };
@@ -105,12 +129,13 @@ export async function mountProductionRoot(
   roots: Root[],
   elements: Element[],
   editMode: "page" | "layout" = "page",
+  canonicalFallback = false,
 ): Promise<HTMLElement | null> {
   const previews = elements.map(toPreviewElement);
   const root = previews[0];
   const renderer = rendererMap[root.type];
   if (!renderer) throw new Error(`${root.type}: rendererMap 항목 없음`);
-  const ctx = stubRenderContext(previews, editMode);
+  const ctx = stubRenderContext(previews, editMode, canonicalFallback);
   return mountPreviewNode(host, roots, renderer(adaptElementStyle(root), ctx));
 }
 

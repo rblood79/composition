@@ -27,6 +27,17 @@
     color: var(--fg);
   }
 
+  /* ADR-234 Phase 3c — Tab instance 의 label Text 는 Tab 글자 (크기 · 굵기 · 줄 높이 · 상태별 색) 를 상속한다.
+     `.react-aria-Text` 가 자기 값을 선언해 상속이 끊기므로 되살린다 (Button `.button-base > *` 선례).
+     Canvas 는 `itemLabelInheritance.ts` 가 같은 값을 주입. label 인라인 style (작성자 값) 은 여전히 이긴다.
+     클래스 반복 = `.react-aria-Text[data-size]` (0,2,0) 보다 높은 specificity. */
+  .react-aria-Tab .react-aria-Text.react-aria-Text {
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
+    color: inherit;
+  }
+
   /* ========== 기본 모드: ::before 선/막대 ========== */
   .react-aria-Tab[data-orientation="horizontal"]::before {
     content: "";
