@@ -708,6 +708,10 @@ describe("ADR-234 Phase 3c — 항목 label 은 항목 글자 상속 (Canvas res
       ["tl", { type: "TagList", props: {}, parent_id: "tg" }],
       ["g1", { type: "Tag", props: { _isSelected: true }, parent_id: "tl" }],
       ["gl", { type: "Text", props: {}, parent_id: "g1" }],
+      ["g2", { type: "Tag", props: {}, parent_id: "tl" }],
+      ["gl2", { type: "Text", props: {}, parent_id: "g2" }],
+      ["gi", { type: "Icon", props: { slot: "icon" }, parent_id: "g1" }],
+      ["gi2", { type: "Icon", props: { slot: "icon" }, parent_id: "g2" }],
       ["plain", { type: "Text", props: {}, parent_id: "tabs" }],
     ]);
     const sel = resolveItemLabelTypography(map.get("l1")!, map)!;
@@ -721,8 +725,19 @@ describe("ADR-234 Phase 3c — 항목 label 은 항목 글자 상속 (Canvas res
     expect(idle.color).toBe("{color.neutral-subdued}");
     const tag = resolveItemLabelTypography(map.get("gl")!, map)!;
     expect(tag.fontSize).toBe(16);
-    // Canvas 는 Tag rule 의 selected 변형을 그리지 않는다 — chip 변형 (default) 글자색.
-    expect(tag.color).toBe("{color.neutral}");
+    // 선택 Tag chip 은 rule selected 변형 (accent 배경) — label 은 on-accent (DOM `[data-selected]` 와 같다).
+    expect(tag.color).toBe("{color.on-accent}");
+    expect(resolveItemLabelTypography(map.get("gl2")!, map)!.color).toBe(
+      "{color.neutral}",
+    );
+    // leading icon 은 chip 글자색 (`.tag-leading-icon { color: inherit }`).
+    expect(resolveItemLabelTypography(map.get("gi")!, map)).toEqual({
+      fontSize: 14,
+      color: "{color.on-accent}",
+    });
+    expect(resolveItemLabelTypography(map.get("gi2")!, map)!.color).toBe(
+      "{color.neutral}",
+    );
     expect(resolveItemLabelTypography(map.get("plain")!, map)).toBeNull();
     expect(
       applyItemLabelTypography({ color: "#f00", fontSize: 20 }, sel),
@@ -1484,7 +1499,9 @@ describe("ADR-234 G5 — Tag leading slot 자식 = 이관 전 chip 규칙", () =
         unknown
       >).display,
     ).toBe("none");
-    expect(resolveItemLabelTypography(icon, byId)).toEqual({ fontSize: 14 });
+    expect(resolveItemLabelTypography(icon, byId)).toMatchObject({
+      fontSize: 14,
+    });
     expect(resolveItemLeadingAvatarSize(avatar, byId)).toBe(16);
   });
 

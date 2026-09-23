@@ -69,6 +69,26 @@ export function ruleVariantToVisual(
   };
 }
 
+/** 선택 상태 — 목록 owner 선택 (`_isSelected`) 또는 상태 변형 origin 의 강제 상태 (`isSelected`). */
+function isSelectedProps(props: Readonly<Record<string, unknown>>): boolean {
+  return props._isSelected === true || props.isSelected === true;
+}
+
+/**
+ * 그릴 catalog 변형 이름 — 작성자 `variant` 가 우선이고, 없으면 선택 상태는 rule 의 `selected` 변형 (있을 때 —
+ * Tag), 아니면 rule 기본 변형. DOM `.react-aria-Tag[data-selected]` 가 색 변수를 accent 로 바꾸는 것과 같은
+ * 결과 (사용자 지적 2026-09-24 — 선택 Tag 가 Canvas 에서 비선택과 같았다).
+ */
+export function resolveCatalogVariantName(
+  rule: ComponentRule | undefined,
+  props: Readonly<Record<string, unknown>>,
+): string | undefined {
+  const explicit = props.variant;
+  if (typeof explicit === "string" && explicit) return explicit;
+  if (isSelectedProps(props) && rule?.variants.selected) return "selected";
+  return rule?.defaultVariant;
+}
+
 /**
  * 컴포넌트 type + variant 이름 → ComponentVisualRule. rule/variant 미존재 시 undefined
  * (variant 없는 컨테이너 shell). resolveComponentVisual(spec, name) 의 rule 기반 대체.
@@ -122,9 +142,14 @@ export function resolveSkiaCatalogRenderInput(
   state: ComponentState,
 ): SkiaCatalogRenderInput {
   const rule = resolveComponentRule(type);
-  const variantName =
-    (props.variant as string | undefined) ?? rule?.defaultVariant;
+  const variantName = resolveCatalogVariantName(rule, props);
   const variant = variantName ? rule?.variants[variantName] : undefined;
+  // rule 이 선택을 변형으로 표현하면 (Tag) 선택 모양은 그 변형 자체 — 변형 안의 선택 상태
+  //   (`fill.default.selected` · `colors.selectedText`) 로 다시 고르면 없는 키라 색이 비어 투명해진다.
+  const paintProps =
+    variantName === "selected" && props.isSelected === true
+      ? { ...props, isSelected: false }
+      : props;
   const sizeName = (props.size as string | undefined) ?? rule?.defaultSize;
   const size = sizeName ? rule?.sizes[sizeName] : undefined;
 
@@ -134,8 +159,8 @@ export function resolveSkiaCatalogRenderInput(
     paint: resolveCatalogPaint({
       variant,
       size,
-      props,
-      style: readStyle(props),
+      props: paintProps,
+      style: readStyle(paintProps),
       interactionState: toCatalogInteractionState(state),
     }),
   };

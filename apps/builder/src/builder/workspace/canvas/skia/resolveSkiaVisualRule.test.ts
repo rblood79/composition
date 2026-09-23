@@ -273,3 +273,43 @@ describe("resolveSkiaCatalogRenderInput — ADR-912 후속 Phase 2 paint adapter
     },
   );
 });
+
+/**
+ * 사용자 지적 (2026-09-24): Components 페이지 Tag/Selected · Tag/Default 가 Canvas 에서 같았다. 두 노드의 차이는
+ * `_isSelected` 하나이고 선택 모양은 catalog `Tag.variants.selected` (accent 배경 · on-accent 글자) 가 정본인데,
+ * Canvas 는 변형을 `props.variant` 로만 골랐다. DOM `.react-aria-Tag[data-selected]` 와 같게 — 작성자 `variant` 가
+ * 없으면 선택 상태는 rule 의 `selected` 변형.
+ */
+describe("resolveSkiaCatalogRenderInput — 선택 상태 = rule selected 변형 (Tag)", () => {
+  it("선택 Tag 는 selected 변형 (on-accent 글자 · accent 배경) · 비선택은 기본 변형", () => {
+    const selected = resolveSkiaCatalogRenderInput("Tag", { _isSelected: true }, "default");
+    const idle = resolveSkiaCatalogRenderInput("Tag", {}, "default");
+    const rule = resolveSkiaRule("Tag")!;
+    expect(selected.visual?.text).toBe(rule.variants.selected!.colors?.text);
+    expect(selected.visual?.text).toBe("{color.on-accent}");
+    expect(idle.visual?.text).toBe("{color.neutral}");
+    expect(selected.visual).toEqual(resolveSkiaVisualRule("Tag", "selected"));
+    expect(selected.paint).not.toEqual(idle.paint);
+  });
+
+  it("강제 선택 상태 (`isSelected` — Components 페이지 Tag/Selected origin) 도 selected 변형 · 색이 비지 않는다", () => {
+    for (const props of [{ isSelected: true }, { _isSelected: true, isSelected: true }]) {
+      const { visual, paint } = resolveSkiaCatalogRenderInput("Tag", props, "default");
+      expect(visual).toEqual(resolveSkiaVisualRule("Tag", "selected"));
+      expect(paint.backgroundColor).toBe("{color.accent}");
+      expect(paint.color).toBe("{color.on-accent}");
+      expect(paint.borderColor).toBe("{color.accent}");
+    }
+  });
+
+  it("작성자 variant 가 있으면 그 변형 · selected 변형이 없는 type 은 _isSelected 무관", () => {
+    const rule = resolveSkiaRule("Tag")!;
+    const other = Object.keys(rule.variants).find((v) => v !== "selected" && v !== rule.defaultVariant);
+    if (other) {
+      const explicit = resolveSkiaCatalogRenderInput("Tag", { _isSelected: true, variant: other }, "default");
+      expect(explicit.visual).toEqual(resolveSkiaVisualRule("Tag", other));
+    }
+    const button = resolveSkiaCatalogRenderInput("Button", { _isSelected: true }, "default");
+    expect(button.visual).toEqual(resolveSkiaVisualRule("Button", undefined));
+  });
+});

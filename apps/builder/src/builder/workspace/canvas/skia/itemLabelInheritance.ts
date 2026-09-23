@@ -14,6 +14,7 @@
 import { resolveToken } from "@composition/specs";
 
 import {
+  resolveCatalogVariantName,
   resolveSkiaRule,
   resolveSkiaVisualRule,
 } from "./resolveSkiaVisualRule";
@@ -55,6 +56,14 @@ export interface ItemLabelTypography {
   color?: string;
 }
 
+/** Tag chip 이 그리는 변형 (작성자 `variant` · 선택이면 rule `selected` — accent 배경) 의 글자색. */
+function resolveTagChipTextColor(item: NodeLike): string | undefined {
+  return resolveSkiaVisualRule(
+    "Tag",
+    resolveCatalogVariantName(resolveSkiaRule("Tag"), propsOf(item)),
+  )?.text as string | undefined;
+}
+
 /**
  * `element` 가 항목 (Tab · Tag) 의 직계 Text 면 항목 글자, 아니면 null.
  */
@@ -74,9 +83,12 @@ export function resolveItemLabelTypography<T extends NodeLike>(
       ? { color: "{color.neutral-subdued}" }
       : null;
   }
-  // G5 — Tag leading icon glyph = chip 규칙 14 (`.tag-leading-icon` · catalog `Tag.sizes[*].iconSize`).
+  // G5 — Tag leading icon glyph = chip 규칙 14 (`.tag-leading-icon` · catalog `Tag.sizes[*].iconSize`). 색은 chip
+  //   글자색 (`color: inherit` — 선택 chip 이면 on-accent).
   if (item.type === "Tag" && element.type === "Icon") {
-    return propsOf(element).slot === "icon" ? { fontSize: TAG_ICON_SIZE } : null;
+    return propsOf(element).slot === "icon"
+      ? { fontSize: TAG_ICON_SIZE, color: resolveTagChipTextColor(item) }
+      : null;
   }
   if (element.type !== "Text") return null;
   const ownerType = ITEM_LABEL_OWNERS[item.type];
@@ -111,14 +123,7 @@ export function resolveItemLabelTypography<T extends NodeLike>(
       ? "{color.neutral}"
       : (resolveSkiaVisualRule("Tab", undefined)?.text as string | undefined);
   } else {
-    // Tag: Canvas chip 이 실제로 그리는 변형 (`variant` prop) 의 글자색. rule 의 `selected` 변형 (accent 배경 ·
-    //   on-accent 글자) 은 Canvas 가 고르지 않는다 (DOM `TagGroup.css [data-selected]` 와의 기존 비대칭 —
-    //   글자만 on-accent 로 바꾸면 흰 배경 위 흰 글자가 된다).
-    const visual = resolveSkiaVisualRule(
-      item.type,
-      typeof itemProps.variant === "string" ? itemProps.variant : undefined,
-    );
-    color = visual?.text as string | undefined;
+    color = resolveTagChipTextColor(item);
   }
   const variantWeight = (
     rule.variants[rule.defaultVariant ?? "default"] as

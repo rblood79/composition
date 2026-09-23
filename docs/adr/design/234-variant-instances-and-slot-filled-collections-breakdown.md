@@ -198,7 +198,7 @@
 - 3a·3b 의 남은 BC 차이 수리: 항목 (Tab · Tag) 안 label Text 가 Text 기본 글자 (16 · 400 · `--fg`) 로 그려져 이관 전 행 (항목 rule 글자) 과 달랐다.
 - **DOM**: `TabsIndicator.css` · `TagGroup.css` (수동 — Tab/Tag 는 selected · chip 규칙이 이미 수동) 에 `.react-aria-Tab/Tag .react-aria-Text.react-aria-Text { font-size · font-weight · line-height · color: inherit }` — `.react-aria-Text` 가 자기 값을 선언해 끊긴 상속을 되살린다 (Button `.button-base > *` 선례). 인라인 (작성자 값) 은 여전히 이긴다.
 - **Canvas**: `skia/itemLabelInheritance.ts` 하나를 Skia (`buildSpecNodeData`) 와 layout (`fullTreeLayout` — 글자 크기 · 줄 높이 = 측정 폭 · 높이) 이 같이 읽는다. 값 = 항목 rule size (항목 `size` → owner `size` → 기본) 의 글자 크기 · 굵기, 줄 높이 = rule `lineHeight` (Tag) 또는 root 비율 1.5 (Tab, `"<px>px"` 문자열), 색 = Tab 은 선택 시 `{color.neutral}` (TabsIndicator `[data-selected] --fg`) · 아니면 rule text / Tag 는 chip 이 그리는 변형의 text. label 자기 style 에 있는 키는 건드리지 않는다.
-  - Tag 의 선택 색은 Canvas 가 rule `selected` 변형 (accent 배경) 을 고르지 않는 기존 비대칭 때문에 chip 변형 색으로 둔다 — 처음엔 on-accent 로 두어 Components 페이지 단독 Tag origin (선택 상태) 의 label 이 흰 배경 위 흰 글자로 사라졌다 (live 스크린샷에서 발견 · 수리). **기록**: Canvas 는 선택 Tag chip 에 accent 배경을 그리지 않는다 (DOM 은 그린다) — ADR-234 이전부터의 비대칭, Phase 4 BC 판정과 별개 후속.
+  - Tag 의 선택 색은 Canvas 가 rule `selected` 변형 (accent 배경) 을 고르지 않는 기존 비대칭 때문에 chip 변형 색으로 둔다 — 처음엔 on-accent 로 두어 Components 페이지 단독 Tag origin (선택 상태) 의 label 이 흰 배경 위 흰 글자로 사라졌다 (live 스크린샷에서 발견 · 수리). **기록**: Canvas 는 선택 Tag chip 에 accent 배경을 그리지 않는다 (DOM 은 그린다) — ADR-234 이전부터의 비대칭, Phase 4 BC 판정과 별개 후속. → **2026-09-24 수리** (아래 §후속 — Tag 선택 모양).
 - parity 하니스 (`adr923PreviewLeg`) 에 선택적 canonical 폴백 (rendererMap 에 없는 type 을 CanonicalNodeRenderer 로) — 기본 off, `tabsPanelWrapper` 만 켠다. 새 판정: Tab instance 폭 DOM = layout (Δ ≤ 1) — 원복 RED 2/2 (DOM CSS off: DOM 62/64 vs 59/60 · layout 주입 off: 58/60 vs 62/64).
 - unit 21 (resolver 1 · 배선 static 1 추가) · builder 7,211 pass / 5 fail · shared 1,398 / 2 fail (착수 전부터) · type-check PASS.
 - live: Tab label 34×21 / 36×21 (14px · 한 줄) · 선택 Tab 진한 색 · 비선택 muted · Tag chip 90/54 폭 (14px) · 단독 Tag origin label 보임 · reload 같음 · 오류 0.
@@ -247,7 +247,7 @@
 
 - `propagationRegistry` 의 `Tabs → TabList` · `TagGroup → TagList` `items` 복사 (`override: true`) 는 owner 에 `items` 가 있을 때만 동작한다 (`propagationEngine` — `parentValue === undefined` 면 건너뜀). 이관된 정적 owner 는 `items` 가 없어 목록 틀에 아무것도 쓰지 않고, 바인딩 owner 는 그대로 전파 (projection 입력). production 에서 깨지는 경로가 없어 코드는 바꾸지 않았고 unit 1 로 고정 (동작 변경 0 — 축소 절차).
 - Phase 3 (G3) 범위: Tabs (3a) · TagGroup (3b) · 항목 label 글자 (3c) · ListBox (3d) · GridList (3e) · Menu (3f) · items-manager 바인딩 전용 (3b) · 전파 규칙 (위). 커밋 7d2116bd2 · 1207e8b5e · 89e2721b4 · 97fe079d7 · c93e781e3 · 0c9dc94db.
-- 기록 (후속 후보, 결함 아님): ① 문서의 plain owner 를 이관한 뒤 바인딩하면 정적 자식과 데이터 행이 같이 보인다 (ref instance 만 거른다) · ② Canvas 는 선택 Tag chip 에 accent 배경을 그리지 않는다 (3c 기록) · ③ Tabs 바인딩은 Canvas projection 이 없다 (Preview 만 데이터 행) · ④ AI tool 의 정적 항목 작성은 범위 밖 (Phase 0 표).
+- 기록 (후속 후보, 결함 아님): ① 문서의 plain owner 를 이관한 뒤 바인딩하면 정적 자식과 데이터 행이 같이 보인다 (ref instance 만 거른다) · ② ~~Canvas 는 선택 Tag chip 에 accent 배경을 그리지 않는다 (3c 기록)~~ 2026-09-24 수리 · ③ Tabs 바인딩은 Canvas projection 이 없다 (Preview 만 데이터 행) · ④ AI tool 의 정적 항목 작성은 범위 밖 (Phase 0 표).
 
 ### Phase 4 — G4 성능 A/B (2026-09-23)
 
@@ -328,3 +328,11 @@
 - 하니스 `apps/builder/scripts/adr234-live-list-instance.mjs` (목록 틀 = owner 가족의 문서 instance): **5/5** — ListBox · GridList · Menu instance 선택 → Slot "Insert <항목>/Default" → instance 자기 자식 항목 1 (ListBox · GridList 는 Canvas 행, Menu 는 popover 내용이라 행 없음) · 추천 목록 편집 UI (Enable/Disable · Remove) 없음 · reload 뒤 그대로 · page error 0.
 - **live 에서 잡은 결함 (수리, `ea2408275`)**: 패널이 root ref instance 를 raw (`type:"ref"`, slot 없음) 로 받아 ListBox · GridList · Menu instance 에 Slot 절이 나오지 않았다 — 의도 ④ (instance 에서 항목 추가) 를 막았다. 체인 끝 origin 이 목록 틀 = owner 가족이고 slot 이 있으면 그 slot 을 추천 목록으로 보여 주고 "+" 는 `planTabItemInsert` 의 ref host 경로로 넣는다. 추천 목록 편집은 origin 에서만. 패널 unit 1 · 원복 RED 1.
 - 새 항목은 행 데이터 (`title` · `label`) 만으로 만들어 Label 만 가진다 — plain owner "+" 와 같은 `buildItemInstances` 경로 (이관된 행의 icon · description 은 이관 전 `items` 데이터에서 온 것).
+
+## 후속 — Tag 선택 모양 (2026-09-24, 사용자 지적)
+
+- 증상: Components 페이지 `Tag/Selected` · `Tag/Default` 가 Canvas 에서 같았다 (목록 안 선택 Tag 도).
+- 원인 2: ① 두 노드의 차이는 `_isSelected` 하나이고 선택 모양 정본은 catalog `Tag.variants.selected` 인데, Skia 는 변형을 `props.variant` 로만 골랐다 · ② 선택 상태 origin 은 강제 상태로 `isSelected: true` 를 받고, `resolveCatalogPaint` 가 그 값으로 변형 안의 선택 상태 (`fill.default.selected` · `colors.selectedText`) 를 찾는데 Tag 변형에는 없어 배경 · 글자 · 테두리 색이 비었다 (origin chip 이 투명 — ①만 고치면 흰 글자만 남았다).
+- 수리: `resolveCatalogVariantName` (`resolveSkiaVisualRule.ts`) — 작성자 `variant` 가 없으면 선택 (`_isSelected` · `isSelected`) 은 rule 의 `selected` 변형 (있는 type 만 — Tag · ColorSwatch), 그 변형을 고르면 paint 는 변형 안의 선택 상태를 다시 고르지 않는다. chip label · leading icon 색 (`itemLabelInheritance.ts`) 도 같은 판정 (DOM `.react-aria-Tag[data-selected]` · `.tag-leading-icon { color: inherit }`).
+- 검증: unit (원복 RED 3) · live `adr234-live-tag-selected.mjs` 3/3 (Home TagGroup instance 선택 chip 채도 픽셀 0.898 vs 비선택 0 · Components `Tag/Selected` 0.826 vs `Tag/Default` 0) · builder 7,260 / 5 · parity 1,490 / 4 (기존 실패 동일). Preview 는 열지 않았다 (DOM leg 는 기존 `[data-selected]` 규칙).
+

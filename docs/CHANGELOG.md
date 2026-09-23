@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [캔버스에서 선택된 Tag 를 선택 모양 (accent 배경) 으로 그린다] - 2026-09-24
+
+### Fixed
+
+- **캔버스가 선택된 Tag 를 선택 안 된 Tag 와 똑같이 그리던 문제를 고쳤다.** Components 페이지의 `Tag/Selected` 와 `Tag/Default` 가 같아 보였고, TagGroup 목록에서 선택한 Tag 도 구분되지 않았다. 이제 선택된 Tag 는 accent 배경 · 흰 글자 · accent 테두리로 그린다 (Preview 의 선택 Tag 와 같은 모양).
+  - **Why**: 선택 모양은 catalog 의 Tag `selected` 변형에 있는데, 캔버스는 변형을 `variant` 값으로만 골랐다. 선택 상태 origin 은 여기에 더해 없는 "변형 안 선택 색" 을 찾느라 배경 · 글자 색이 비어 chip 이 투명해졌다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/resolveSkiaVisualRule.ts`, `apps/builder/src/builder/workspace/canvas/skia/itemLabelInheritance.ts`
+
 ## [TagGroup · Tabs 의 Slot 은 TagList · TabList 에만 · Slot 항목 추가 결함 4건 수리] - 2026-09-24
 
 ### Fixed
