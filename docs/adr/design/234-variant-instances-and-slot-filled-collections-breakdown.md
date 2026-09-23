@@ -268,6 +268,25 @@
 - Preview hover 재렌더 비교는 사용자 지시 (Preview iframe 미개방) 로 재지 않았다.
 - **남은 결정 (사용자)**: 기준을 조정할지 (예: 항목당 비용 · 규모별 상한) 또는 해석 증분화 (편집 영향 instance 만 재해석) 를 별도 작업으로 할지.
 
+#### G4 후속 — 해석 증분화 1단계 (2026-09-23, 사용자 결정 "해석 증분화로 진행", `dc29a3183`)
+
+- **재사용 (①)**: scene build 가 직전 build 와 같은 canonical 문서 · 해석 입력 옵션 (collections · 프로젝트 변수) 이면 ref instance 마다 이전 해석 결과 (root · synthetic 노드 · 자식 목록) 를 쓴다 — breakpoint · collection window 는 projection 노드만 바꾸고 ref 해석은 projection 노드를 건너뛴다. 바인딩 목록은 해석 뒤 projection 단계가 synthetic 목록 틀 props 를 제자리에 채우고 (`_tabTemplateStyle` · `_tagTemplateStyle` — breakpoint 따라 값이 바뀜) 그래서 기록하지 않는다. 문서는 `useSyncExternalStore` 스냅샷 identity 로만 바뀌므로 identity 전제가 기존 useMemo 와 같다.
+- **항목당 비용 (②, 출력 동일)**: 이전 구현 사본 (`_old*`, 임시) 과 시드 문서 + 전 origin instance + 목록 fixture 의 전체 해석 출력을 대조해 동일 확인. 가장 컸던 것은 legacy 참조 폴백 — 상태 층 집합이 없는 변형 id (`--hover` 등) 를 origin 마다 최대 6 번 조회하며 매번 문서 전체를 이름으로 훑었다 (두 arm 공통 ≈ 5 ms). 나머지: mode C 자식 origin 조회 · 불변 입력별 공유 (소유 키 · 켜진 층 · 층−소유 키 · patch 분해 · variant 표식 제거) · 한쪽 style 참조 공유 · 숨김 자식 선판정.
+- **live G4** (같은 하니스, pair 3 median, ms):
+
+| fixture  | 조작        | items | instance |       Δ | 직전 Δ |
+| -------- | ----------- | ----: | -------: | ------: | -----: |
+| Tabs     | origin 편집 |   7.6 |      9.9 |    +2.3 |   +2.2 |
+| Tabs     | 변형 편집   |   7.7 |     10.3 |    +2.6 |   +2.5 |
+| Tabs     | breakpoint  |   3.2 |      3.2 |   **0** |   +1.9 |
+| TagGroup | origin 편집 |   7.2 |      9.7 |    +2.5 |   +3.6 |
+| TagGroup | 변형 편집   |   6.9 |     10.2 |    +3.3 |   +4.9 |
+| TagGroup | breakpoint  |   2.4 |      2.6 | **+0.2** |   +2.9 |
+
+- 절대값: instance arm 의 편집 조작 (9.7~10.3) 이 이 작업 전 items arm (Tabs 12.1~12.6 · TagGroup 9.5~10.1) 이하 — 공통 경로 절감이 두 arm 에 같이 들어가 Δ 는 줄지 않았다.
+- **편집 조작이 남는 이유**: origin · 변형 편집은 fixture 의 항목 instance 500 개를 전부 실제로 바꾼다 (재사용 대상 없음). 남은 Δ 는 항목마다 root (origin ⊕ instance 필드 ≈ 35 키) · label 객체를 만드는 비용이다 — node 해석 단계 Δ 0.9 ms 중 절반이 `resolveCanonicalRefElement` 의 반환 객체 생성. rest 분해 제거 · 상태 층 제자리 적용 · for-in 복사 실험은 모두 개선 없음 또는 악화라 넣지 않았다.
+- 검증: unit — 재사용 = 새 해석 (breakpoint 전환 · 자기 자식 순서) · 문서 편집 3종 (항목 origin · 휴지 변형 · owner 선택) 은 재사용 안 함, 원복 RED 1 + 3 · 참조 색인 = `resolveReference` 8. builder 7,240/5 · parity 1,490/4 (기존 실패). live `adr234-live-exercise` 5/5 · `adr234-live-list-instance` 5/5 · G4 하니스의 breakpoint 조작 21회 rebuilt · page error 0.
+
 ### Phase 4 — G5 BC 픽셀 (2026-09-23)
 
 - 하니스 `apps/builder/scripts/adr234-g5-bc-live.mjs`: **before arm = 이관 전 커밋 `66480f5e0` 의 별도 worktree** (`/Users/admin/work/composition-adr234-base` · 그 lockfile 로 설치 · 엔진 wasm 빌드 · dev `127.0.0.1:5174`) · after arm = 현재 빌드. before 에서 새 프로젝트 (seed) + 사람이 만든 노드 (palette instance Tabs · GridList · Menu, items override TagGroup (icon 포함 · 선택) · ListBox (icon · description · 선택), 문서 plain Tabs · TagGroup, 변형 직접 ref Button `--hover`) 를 저장 → IndexedDB `document_heads` · `document_parts` 를 after 의 새 프로젝트에 써 넣고 reload (hydration 이관). 같은 노드를 scale 1 · 같은 화면 위치로 옮겨 Skia 캡처 → 픽셀 비교 (채널 차 > 16). 선택 가능한 가족은 역할 짝 (이전 기본 ↔ 이후 `--unselected`, 이전 selected ↔ 이후 origin).
