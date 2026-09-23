@@ -15,6 +15,7 @@ import {
 import { historyManager } from "./history";
 import { captureCanonicalNodeLocations } from "./history/canonicalHistoryEvents";
 import { trackCanonicalMove } from "./utils/historyHelpers";
+import { reportCanonicalNestingRejection } from "./utils/canonicalNestingRejection";
 import {
   resolveSiblingEdgeTarget,
   resolveSiblingReorderTarget,
@@ -1712,6 +1713,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
       }
 
       if (areCanonicalMutationStoreActionsRegistered()) {
+        let nestingRejected = false;
         const performCanonicalMove = (): boolean => {
           // from-location 은 canonical mutation 전에 캡처 (move event 용)
           const fromLocations = captureCanonicalNodeLocations([elementId]);
@@ -1720,6 +1722,16 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
             newParentId,
             insertionIndex,
           );
+          if (result.nestingViolation) {
+            // 레이어 패널 drop 은 preflight 없이 온다. 거부를 알리고 멈춘다 — 아래
+            // legacy fallback 으로 흘러가면 store 만 옮겨진 split-brain 이 된다.
+            reportCanonicalNestingRejection(
+              { ...result, rejectedElementIds: [elementId] },
+              "moveElementToContainer",
+            );
+            nestingRejected = true;
+            return false;
+          }
           if (!result.changed) return false;
 
           // LayerTree 이동/재배치 undo 지원 — canonical move event.
@@ -1774,7 +1786,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
               performCanonicalMove,
             )
           : performCanonicalMove();
-        if (didMove) return;
+        if (didMove || nestingRejected) return;
       }
 
       const targetPageId = newParent.page_id ?? element.page_id ?? null;

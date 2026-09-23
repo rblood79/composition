@@ -2674,6 +2674,28 @@ export function applyElementOrderCanonicalPrimary(
       return { element, index: siblingIndex };
     });
 
+  // parent_id 만 바꾸는 patch (그룹 · 그룹 해제) 도 reparent 다 — move 와 같은 중첩
+  // 검사를 받는다. 같은 부모 안 재정렬은 옛 문서의 기존 위반을 막지 않도록 건너뛴다.
+  const nestingIndex = createCanonicalNestingIndex(currentDoc);
+  for (const { element, index } of orderedMoves) {
+    const targetParentId = element.parent_id ?? null;
+    if (findCanonicalParentId(nestingIndex, element.id) === targetParentId) {
+      continue;
+    }
+    const nestingViolation = resolveMoveNestingViolation(
+      currentDoc,
+      [element.id],
+      {
+        kind: "node-children",
+        parentId: targetParentId,
+        insertionIndex: index,
+      },
+    );
+    if (nestingViolation) {
+      return { changed: false, document: currentDoc, nestingViolation };
+    }
+  }
+
   let doc = currentDoc;
   let changed = false;
 

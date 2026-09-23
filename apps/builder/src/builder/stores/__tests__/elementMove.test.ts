@@ -464,5 +464,79 @@ describe("moveElementToContainer", () => {
       ).toEqual([first.id, second.id, third.id]);
       expect(state.layoutVersion).toBe(beforeLayoutVersion);
     });
+
+    // 레이어 패널 drop 은 preflight 없이 이 액션을 부른다. canonical 이 중첩 위반으로
+    // 거부하면 legacy fallback 이 parent_id 를 바꿔 store 만 옮겨진 split-brain 이 됐다.
+    function seedButtonBesideListBox(): {
+      button: Element;
+      listBox: Element;
+      body: Element;
+    } {
+      const body = makeElement("body", "page-1", { type: "body" });
+      const listBox = makeElement("listbox", "page-1", {
+        type: "ListBox",
+        parent_id: body.id,
+      });
+      const button = makeElement("button", "page-1", {
+        type: "Button",
+        parent_id: body.id,
+      });
+      const elements = [body, listBox, button];
+      registerCanonical(
+        {
+          version: "composition-1.0",
+          children: [
+            makeCanonicalNode(body, [
+              makeCanonicalNode(listBox),
+              makeCanonicalNode(button),
+            ]),
+          ],
+        },
+        elements,
+      );
+      useStore.getState().setElements(elements);
+      return { button, listBox, body };
+    }
+
+    function canonicalChildIds(parentId: string): string[] {
+      const doc = useCanonicalDocumentStore
+        .getState()
+        .documents.get(PROJECT_ID);
+      const find = (
+        nodes: CompositionDocument["children"],
+      ): CompositionDocument["children"][number] | undefined => {
+        for (const node of nodes) {
+          if (node.id === parentId) return node;
+          const hit = find(node.children ?? []);
+          if (hit) return hit;
+        }
+        return undefined;
+      };
+      return (find(doc?.children ?? [])?.children ?? []).map((n) => n.id);
+    }
+
+    it("중첩 위반 move 는 canonical 과 store 모두 그대로 둔다 (legacy fallback 금지)", () => {
+      const { button, listBox, body } = seedButtonBesideListBox();
+
+      useStore.getState().moveElementToContainer(button.id, listBox.id, 0);
+
+      expect(canonicalChildIds(listBox.id)).toEqual([]);
+      expect(useStore.getState().elementsMap.get(button.id)?.parent_id).toBe(
+        body.id,
+      );
+    });
+
+    it("parent_id 만 바꾸는 updateElement 도 중첩 위반이면 store 를 바꾸지 않는다", async () => {
+      const { button, listBox, body } = seedButtonBesideListBox();
+
+      await useStore
+        .getState()
+        .updateElement(button.id, { parent_id: listBox.id });
+
+      expect(canonicalChildIds(listBox.id)).toEqual([]);
+      expect(useStore.getState().elementsMap.get(button.id)?.parent_id).toBe(
+        body.id,
+      );
+    });
   });
 });

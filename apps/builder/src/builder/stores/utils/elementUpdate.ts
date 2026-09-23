@@ -241,18 +241,28 @@ function createDerivedBatchPropsUpdate(
   return { elements, elementsMap, updatedElementMap };
 }
 
+/**
+ * 위치 변경을 canonical 에 반영한다. 중첩 규칙이 거부하면 `false` — 호출자는 legacy
+ * store 도 쓰지 않는다 (canonical 에 없는 위치가 store 에만 남는 split-brain 방지).
+ */
 function syncLocationUpdatedElementToCanonical(
   element: Element,
   updates: Partial<Element>,
-): void {
+): boolean {
   if (isStructuralOrderMirrorPatch(updates)) {
-    applyElementOrderCanonicalPrimary([element]);
-    return;
+    const result = applyElementOrderCanonicalPrimary([element]);
+    if (!result.nestingViolation) return true;
+    reportCanonicalNestingRejection(
+      { ...result, rejectedElementIds: [element.id] },
+      "updateElement",
+    );
+    return false;
   }
-  reportCanonicalNestingRejection(
+  const rejectedIds = reportCanonicalNestingRejection(
     mergeElementsCanonicalPrimary([element]),
     "updateElement",
   );
+  return !rejectedIds.has(element.id);
 }
 
 function isStructuralOrderMirrorPatch(updates: Partial<Element>): boolean {
@@ -842,10 +852,11 @@ export const createUpdateElementAction =
 
     if (areCanonicalMutationStoreActionsRegistered()) {
       if (hasCanonicalLocationUpdate(sanitizedUpdates)) {
-        syncLocationUpdatedElementToCanonical(
+        const accepted = syncLocationUpdatedElementToCanonical(
           derivedUpdate.element,
           sanitizedUpdates,
         );
+        if (!accepted) return;
       } else {
         updateCanonicalNodeFromElementPrimary(derivedUpdate.element);
       }

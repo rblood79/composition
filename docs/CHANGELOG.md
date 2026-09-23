@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [레이어 패널 이동 · 그룹 · 그룹 해제의 중첩 규칙 우회 수리] - 2026-09-23
+
+### Fixed
+
+- **레이어 패널에서 Button 을 ListBox 안으로 끌어 놓으면, 화면에는 옮겨진 것처럼 보였다가 새로고침하면 원래 자리로 돌아가던 문제를 고쳤다.** 이제 캔버스 drop 과 같이 중첩 규칙 토스트를 띄우고 이동하지 않는다.
+  - **Why**: 문서 (canonical) 가 중첩 위반으로 이동을 거부하면 `moveElementToContainer` 가 legacy fallback 으로 넘어가 화면용 store 의 `parent_id` 만 바꿨다 — 저장되는 문서와 화면이 어긋났다.
+- **그룹 · 그룹 해제가 중첩 규칙을 거치지 않던 문제를 고쳤다.** `parent_id` 만 바꾸는 편집 (그룹 · 그룹 해제가 쓰는 경로) 이 검사 없이 문서에 반영돼 규칙 위반 배치가 그대로 저장될 수 있었다. 이제 move 와 같은 검사를 받고, 거부되면 화면도 바꾸지 않는다.
+  - ListBox 같은 항목 전용 컬렉션 안 항목을 ⌘G 로 묶으면 frame 을 만들지 않고 토스트로 알린다 (전에는 frame 만 거부되고 항목이 없는 부모를 가리켰다).
+  - 그룹 해제는 자식 하나라도 frame 의 부모에 못 들어가면 전체를 거부한다 — 일부만 옮겨진 채 frame 삭제가 나머지 자식까지 지우지 않도록.
+  - 위치: `apps/builder/src/builder/stores/elements.ts`, `apps/builder/src/builder/stores/utils/elementUpdate.ts`, `apps/builder/src/adapters/canonical/canonicalMutations.ts`, `apps/builder/src/builder/workspace/canvas/actions/canvasActions.ts`
+
 ## [AI 패널 Anthropic 프리셋 — planner 를 Opus 5.5 로] - 2026-09-23
 
 ### Changed
