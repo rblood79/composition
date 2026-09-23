@@ -11,6 +11,8 @@
 
 ---
 
+> **2026-09-23 ADR-234 Proposed 추가**: 상태 변형 = origin 의 instance · 목록 = slot 을 채운 instance 자식 — Pencil (`Tab Item/Inactive` = Active 의 ref · `Tabs` = 빈 TabList 틀 + slot · instance 가 항목 instance 로 채움) 과 RAC (상태 = 같은 구조 + 속성 · TabList 정적 자식 · `items` 는 바인딩 경로) 의 뜻으로 229/230/233 의 템플릿 read-through + 상태 overlay 모델을 대체. 기반 = ref 체인 (두 해석기 모두 현재 끊김) · canonical `enabled` 필드. 사용자 확정: 범위 전부 (Phase 분할) · 정적 items → 자식 이관, 바인딩만 items · 숨기기 = `enabled`. 열림 7 (Proposed 5 · Accepted 2), 합계 261.
+
 > **2026-09-18 ADR-223 Implemented (같은 날)**: 생성 CSS archetype 미지정 기본값 중립화 — 리뷰 round 1 → `/execute-adr 223` Phase 0~~3 / G0~~G5 종결 (생성 CSS 12 파일 · catalog entry 3 · 오라클 3 + live 7종). 열림 7 (Proposed 5 · Accepted 1 · 부분 1), 완료 243, 합계 251.
 
 > **2026-09-18 ADR-224 Proposed 개정**: 기존 Size 격자·한 상자 입력 유지, Fill 전용 축별 가중치만 저장, Ratio 종속 축 계약 명시, 자동 복원 기록 제외. Round 1 설계 수리 반영. 열림 8 (Proposed 6 · Accepted 1 · 부분 1), 합계 251. 제품 gate는 UNVERIFIED.
@@ -70,11 +72,11 @@
 | ├ Accepted                    |      13 |
 | ├ Superseded                  |      14 |
 | └ Deprecated                  |       9 |
-| 열려 있는 것 (`adr/*.md`)     |       6 |
-| ├ Proposed                    |       4 |
+| 열려 있는 것 (`adr/*.md`)     |       7 |
+| ├ Proposed                    |       5 |
 | ├ Accepted (미착수·일부 착수) |       2 |
 | └ 부분 완료                   |       0 |
-| **합계**                      | **260** |
+| **합계**                      | **261** |
 
 > 2026-09-22 파일 실측: `completed/` ADR 파일 253 (비-ADR 5 제외) · `adr/` 직속 ADR 6 (09-22 232 추가). 완료 내역 (Implemented/Accepted/Superseded/Deprecated) 은 09-10 대조값에 그 뒤 Implemented 5 (224~~227 · 231) 를 더한 것 — 개별 Status 재대조는 다음 정리 때.
 
@@ -92,6 +94,12 @@
 - **상태**: Accepted (전체) · **A1 철회 2026-07-20** · A2 delivered(시각 확인 대기) · A3 미착수
 - **규모**: **Phase A1(Skia hover/pressed/focusVisible 상태 threading) 철회 2026-07-20 (재판정)** — 빌더(Skia)가 pointer 연동으로 hover/pressed/focus 를 실시간 재현한 것은 **D1/D3 경계 오판**(그 역할은 Preview DOM 소관, RAC 자동 소유). A1 커밋 4건 역순 revert(`5e635ebbc`), 편집 보조 hover outline·선언적 상태(selected/disabled) 시각은 보존. 911 R-4 HIGH→MED / G-state 를 선언적 상태 parity 로 재정의. **A2(collection 가상화)/A3(drill-in·data edit)은 상호작용 시뮬레이션이 아니라 빌더의 대용량 표시·깊은 편집이라 유효 — 진행 유지.** G-A2/G-A3 (HIGH 2: window 동기화 / projected id 경계 — G-A1/R1 은 철회). design breakdown `design/150-rac-pencil-residual-interaction-execution-breakdown.md`
 - **우선순위**: 사용자 확정 2026-07-13 (AskUserQuestion — 단일 실행 ADR)
+
+#### [234](234-variant-instances-and-slot-filled-collections.md) — 상태 변형 = origin 의 instance · 목록 = slot 을 채운 instance 자식 (Pencil · RAC 정렬)
+
+- **상태**: Proposed (2026-09-23)
+- **규모**: ref 체인 (Preview resolver · Canvas scene) + canonical `enabled` → 변형 31 을 origin 의 reusable ref + 덮어쓰기로 (origin = 가장 완성된 상태 · 관리 키 4 제한 폐지 · Preview 는 RAC render props) → slot 을 목록 틀 (TabList · TagList · ListBox · GridList · Menu) 로 옮기고 instance 자식으로 목록 채움 (Tabs 는 TabPanel 짝) → 이관 (시각 보존) · 성능 A/B. 066 (정적 목록 한정) · 148 · 229 · 230 · 233 일부 대체
+- **우선순위**: 사용자 요청 2026-09-23 (AskUserQuestion — 범위 전부 · 바인딩만 items · `enabled`)
 
 #### [162](162-gridlist-template-subtree-projection.md) — GridList 카드 템플릿 임의 자식 실체화 + row-data 동적 매핑
 

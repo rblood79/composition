@@ -1,0 +1,102 @@
+# ADR-234 구현 상세 — 상태 변형 = origin 의 instance · 목록 = slot 을 채운 instance 자식
+
+> 본문: [ADR-234](../234-variant-instances-and-slot-filled-collections.md)
+
+## 1. 전제 확정 기록 (fork 4 질문 · 사용자 confirm)
+
+사용자 confirm 2026-09-23 (AskUserQuestion 3문항 — 범위 · 기존 items · 숨기기):
+
+1. **base / 응용**: 234 는 origin · instance · slot 의 **뜻** (base) 을 정한다. 229 (Tag 항목 템플릿) · 230 (상태 변형) · 233 (Tab 항목 템플릿 · Radio) 은 그 응용이며, 이들이 쌓은 "템플릿 read-through + 상태 overlay" 모델을 234 가 대체한다.
+2. **schema 직교성**: 새 저장 필드는 canonical 노드의 `enabled?: false` 하나다 (Pencil format 과 같은 이름). 변형 노드는 기존 `type: "ref"` + `reusable: true` 조합 — 새 노드 종류 없음.
+3. **선행 전제 역전 검증**: ADR-066 (Tabs `items` 가 정본) 은 **작성자가 채우는 목록에 한해** 역전된다 (사용자 선택 "데이터 바인딩만 items 유지"). 데이터 바인딩 목록은 RAC 의 `items` + render 함수 경로 그대로 — 그 경로에서만 항목 origin 이 템플릿이다.
+4. **범위**: "전부, Phase 로 나눔" (사용자 선택) — ref 체인 → 변형 전환 → 목록 컨테이너 → 검증 · 이관.
+
+## 2. 레퍼런스 실측 — Pencil `pencil-shadcn.pen` (2026-09-23)
+
+| ID  | 사실                                                                                                                                                                                                                        |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P1  | `Tab Item/Active` (coMmv) = reusable frame (배경 · 그림자 · padding 6/12 · label). `Tab Item/Inactive` (QY0Ka) = `type: "ref"`, `ref: coMmv`, `reusable: true`, 덮어쓰기 `fill: []` · `effect: []` · label `fill`.          |
+| P2  | `Tabs` (PbofX) = reusable frame, `slot: [coMmv, QY0Ka]`, **자식 0** (빈 틀). RAC 의 **TabList** 에 해당 (사용자 지적 — TabPanels 층은 Pencil 에 없다).                                                                      |
+| P3  | `Tabs` instance (omDwd) = `ref: PbofX` + 자식 4 = Tab Item instance (Active 1 · Inactive 3), label 은 항목마다 `descendants` 로 덮어씀.                                                                                     |
+| P4  | 변형 = 완성된 상태 origin 의 ref 가 문서 전체 규칙: Pagination Item/Default → Active · Sidebar Item/Default → Active · Radio/Unselected → Selected (`descendants: {점: {enabled: false}}`) · List Item/Unchecked → Checked. |
+| P5  | 컨테이너 안쪽 slot 도 같은 방식: Card Action · Dialog 는 Card instance 가 `descendants: {slot 틀 id: {children: [...]}}` 로 Header/Content/Actions 를 채운다.                                                               |
+
+## 3. 코드 사실 (2026-09-23, main `823b1757a`)
+
+| ID  | 사실                                                                                                                                                                                                                                                                         | 위치                                                                                                                                                 |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F1  | 상태 변형 origin 은 default origin 의 **복제본** (자식도 복제, style/fills 비움) + `metadata.variant`/`variantOf`. seed 된 변형 31 중 `type: "ref"` 0 (seed 전수 실측).                                                                                                      | `apps/builder/src/builder/components/stateVariantOrigins.ts:126-165`                                                                                 |
+| F2  | 변형 대상 = Button · ToggleButton · Link · Checkbox · Switch · Radio.                                                                                                                                                                                                        | `stateVariantOrigins.ts:45-55`                                                                                                                       |
+| F3  | 변형이 두 leg 에 닿는 값은 root 의 관리 키 4 (`backgroundColor` · `color` · `borderColor` · `opacity`) 뿐 — padding · 자식 (label) 편집은 무시.                                                                                                                              | `apps/builder/src/builder/components/stateVariantResolution.ts:42-47,178-216`                                                                        |
+| F4  | Preview 상태 채널 = 문서 `<style>` 의 `[data-state-origin][data-selected]…` 규칙 + `--co-*` 변수 inline.                                                                                                                                                                     | `stateVariantResolution.ts:304-350,352-`                                                                                                             |
+| F5  | 항목 변형 (Tab/ListBoxItem/Tag Selected) 도 복제본. slot 은 "첫 칸 기본 · 둘째 선택" 역할 표로 쓰이고 root 에 있다 (tabs · taggroup root, listbox · gridlist root).                                                                                                          | `components/tabs/tabsTemplateOrigins.ts` · `components/taggroup/tagGroupTemplateOrigins.ts:163-165` · `components/listbox/listBoxTemplateOrigins.ts` |
+| F6  | 목록 행은 `items` 데이터에서 만든 projection 가상 행 (Tab · Tag · ListBox).                                                                                                                                                                                                  | `workspace/canvas/scene/canvasSceneNode.ts:957,2183,2527`                                                                                            |
+| F7  | Preview Tabs 는 `items` 로만 Tab 을 만든다.                                                                                                                                                                                                                                  | `packages/shared/src/renderers/LayoutRenderers.tsx:146` · `packages/shared/src/components/Tabs.tsx:290`                                              |
+| F8  | Slot "+" = `items` 행 추가 (`collection-item`) 또는 Tabs 는 숨김 (`none`).                                                                                                                                                                                                   | `components/slotHostPolicy.ts:188-209`                                                                                                               |
+| F9  | **ref → reusable ref 체인이 두 leg 모두 끊긴다** — 변형 자신 (ref → origin 1단) 은 해석되지만 그 변형을 가리키는 instance 는 `type: "ref"` 로 남고 origin props 소실 (probe 2026-09-23). Preview: master 가 ref 여도 그대로 씀. Canvas: `masterType !== "ref"` 로 명시 제외. | `apps/builder/src/resolvers/canonical/index.ts:144,170-178` · `canvasSceneNode.ts:2905-2918`                                                         |
+| F10 | canonical 노드에 요소 숨김 필드 없음 (Pencil `enabled` 대응 0).                                                                                                                                                                                                              | `packages/shared/src/types/composition-document.types.ts:834`                                                                                        |
+| F11 | descendants 덮어쓰기 3-mode (A props patch · B 교체 · C children 교체) — `enabled` patch 는 mode A 로 실을 수 있다.                                                                                                                                                          | `resolvers/canonical/index.ts:254-257,389-440`                                                                                                       |
+| F12 | 조합 자식 ref 화 규칙 (229) · origin 대비 props diff 유틸이 이미 있다 — 변형 이관 diff 에 재사용.                                                                                                                                                                            | `components/originChildRefs.ts:69,396`                                                                                                               |
+| F13 | RadioGroup origin 자식은 이미 `ref → component-radio` (233) — 목록 = instance 자식 모델의 기존 사례.                                                                                                                                                                         | `components/originChildRefs.ts:396` (seed 결과)                                                                                                      |
+
+## 4. Phase
+
+### Phase 0 — inventory freeze (G0)
+
+- F1~F13 재grep 일치 확인.
+- 진단 RED 4 고정: (a) instance → 변형 ref 체인 두 leg (F9) · (b) 변형의 padding / label 색 편집이 두 leg 에 안 닿음 (F3) · (c) TabList instance 에 Tab instance 자식을 두면 두 leg 가 무시 (F6/F7) · (d) `enabled: false` 무시 (F10).
+- 목록을 만드는 쓰기 경로 전수: 팔레트 · factory · AI tool (`items` 작성) · Pencil import · 데이터 바인딩 · 붙여넣기. 각 경로가 "정적 목록 → 자식" / "바인딩 → items" 중 어디로 가는지 표로 확정.
+- 이관 대상 수식 확정: 문서당 변형 31 노드 재직렬화 + 정적 목록 `n` 항목 → ref 자식 `n` (항목당 추정 150~250 B) + slot 필드 이동 4.
+
+### Phase 1 — ref 체인 · `enabled` (G1)
+
+- 두 해석기가 master 가 `type: "ref"` 면 그 master 를 먼저 해석한 결과를 master 로 쓴다 (깊이 상한 · 순환 감지 → broken ref 와 같은 경고 경로). Preview resolver 캐시 키에 체인 master 의 버전을 포함.
+- `enabled?: false` — schema · 두 leg (Canvas scene 제외 · Preview 미렌더) · 레이아웃 제외 · descendants mode A patch · publish 렌더러도 존중 (publish 는 기능 링크 방침 — 필드 존중만).
+- BC: 필드 부재 = 표시 (기존 문서 Δ0).
+
+### Phase 2 — 상태 변형 = origin 의 instance (G2)
+
+- 규칙: **origin = 가장 완성된 상태** (선택 가능한 항목 · 선택 컨트롤 = 선택 상태, 선택 상태가 없는 Button · Link = 기본 상태). 나머지 상태 = origin 의 `reusable` ref + 덮어쓰기 (props · style · fills · descendants · `enabled` 전부 — 관리 키 4 제한 폐지).
+- 상태 → 변형 연결: 변형의 `metadata.variant` (상태 이름) 유지, `variantOf` 는 `ref` 로 대체. 선택 가능한 가족은 휴지 상태 변형 `unselected` 추가.
+- 겹침 순서: RAC 는 상태가 동시에 켜진다 — 휴지(`unselected`) → selected → focus-visible → hover → pressed → disabled (뒤가 이김, 230 CSS 순서 계승).
+- Canvas: 유효 상태 (selected · disabled — hover/pressed/focus 는 Preview 소관, ADR-150 A1 철회 판정) 로 변형 덮어쓰기를 scene 에 겹친다.
+- Preview: RAC render props (`style` · `className` 함수 + children 함수로 상태 context 를 자손에 전달) 로 같은 덮어쓰기를 겹친다. 230 의 `<style>` 규칙 + `--co-*` 변수 채널과 `INDICATOR_FILL_CSS_VAR` 우회 (233 round 3) 는 대체 대상 — 대체 전후 결과 대조 후 제거.
+- 이관 (시각 결과 보존): 기존 복제본 변형 → `ref` + (복제본 − origin) diff (F12). 선택 가능한 가족은 origin 을 선택 상태로 다시 세우고 (origin 내용 = 기존 default + selected overlay), 기존 default 모양은 `unselected` 변형의 diff 로 보존.
+
+### Phase 3 — 목록 = slot 을 채운 instance 자식 (G3)
+
+- slot 위치: 항목을 직접 담는 목록 틀 — TabList · TagList · ListBox · GridList · Menu. 값 = 항목 origin (추천 목록 — 역할 표 아님).
+- 컨테이너 instance 의 목록 틀 자식 = 항목 origin 의 instance (label 등은 descendants). Slot "+" = 항목 instance 삽입. Tabs 는 Tab `id` 로 TabPanel 을 짝지어 함께 만든다 (RAC `id` 짝 규칙).
+- Canvas: 정적 목록은 실제 자식 노드를 그린다 (projection 가상 행은 바인딩 목록 전용으로 축소). Preview: RAC static children (`<TabList><Tab id>`) 로 렌더.
+- 바인딩 목록: `items` + 항목 origin 템플릿 (RAC `items` + render 함수) 그대로 — 행마다 상태 변형 규칙은 Phase 2 와 같다.
+- 이관: 정적 `items` → 항목 instance 자식 1회 (hydration) · 바인딩 목록 무변경 · slot root → 목록 틀 이동.
+- 쓰기 경로 (Phase 0 표) 를 새 모델로 — AI tool 의 정적 목록 작성 포함.
+
+### Phase 4 — live · 성능 · BC · 문서 (G4 · G5)
+
+- live (Skia · store · IndexedDB): Components 페이지에서 origin 편집 → 변형 노드 · 문서 instance 동시 반영, 변형의 padding/label 편집 → 해당 상태 항목만, TabList instance "+" → Tab + TabPanel, reload 보존. Preview 는 사용자 지시가 풀리기 전까지 renderer unit + 사용자 확인.
+- 성능 A/B (233 G3 조건 계승): 정적 목록 자식 노드화의 `scene.build` · Preview 상태 전환 (hover) 재렌더 비용.
+- BC: 이관 전후 Canvas 픽셀 동일 (변형 · 목록) · 재hydration Δ0.
+- 문서: 066 · 148 · 229 · 230 · 233 에 "일부 결정은 ADR-234 가 대체" 안내 · README · CHANGELOG.
+
+## 5. 파일 경계 (예상)
+
+| 영역              | 파일                                                                                                                |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------- |
+| schema            | `packages/shared/src/types/composition-document.types.ts`                                                           |
+| ref 체인          | `apps/builder/src/resolvers/canonical/index.ts` · `workspace/canvas/scene/canvasSceneNode.ts`                       |
+| 변형 seed · 이관  | `components/stateVariantOrigins.ts` · `stateVariantResolution.ts` · `originChildRefs.ts` · 항목 template origin 3종 |
+| Preview 상태 채널 | `preview/components/CanonicalNodeRenderer.tsx` · shared wrapper (Tabs · TagGroup · ListBox · GridList · Menu)       |
+| 목록 · slot       | `components/slotHostPolicy.ts` · `FrameSlotSection.tsx` · `canvasSceneNode.ts` projection · `LayoutRenderers.tsx`   |
+| 쓰기 경로         | factory · AI tool · Pencil import (Phase 0 표 확정)                                                                 |
+
+## 6. 중단 기준
+
+- ref 체인 해석이 두 leg 중 한쪽에서 캐시 무효화 계약을 깨면 (편집이 체인 끝 instance 에 안 닿음) Phase 1 에서 중단 · 보고.
+- 이관 전후 Canvas 픽셀이 다르면 해당 가족 이관 보류.
+- RAC render props 가 특정 wrapper (internal renderer) 에서 상태를 자손에 못 넘기면 그 컴포넌트는 Phase 2 보류 (230 채널 유지) · 보고.
+- `scene.build` p95 +1 ms 초과 → 자식 노드화 캐시 가설 재측정, 못 닫으면 보고.
+
+## 7. 실행 기록
+
+(착수 후 기록)
