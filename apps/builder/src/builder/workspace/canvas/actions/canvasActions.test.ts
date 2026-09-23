@@ -497,3 +497,57 @@ describe("선택 행동의 body 필터 (2026-08-27 관찰)", () => {
     expect(reparented.sort()).toEqual(["a", "b"]);
   });
 });
+
+describe("groupSelection 중첩 preflight", () => {
+  it("strict 컬렉션 (ListBox) 안 항목은 frame 으로 묶지 않는다 — frame 이 거부되면 자식이 없는 부모를 가리킨다", async () => {
+    useStore.setState({
+      currentPageId: "page-1",
+      multiSelectMode: true,
+      selectedElementId: "a",
+      selectedElementIds: ["a", "b"],
+    } as never);
+    const elementsMap = new Map<string, CanvasActionElement>([
+      ["body-1", makeElement("body-1", { type: "body" })],
+      ["lb", makeElement("lb", { type: "ListBox", parent_id: "body-1" })],
+      ["a", makeElement("a", { type: "ListBoxItem", parent_id: "lb" })],
+      ["b", makeElement("b", { type: "ListBoxItem", parent_id: "lb" })],
+    ]);
+    const state = useStore.getState();
+    const addElement = vi
+      .spyOn(state, "addElement")
+      .mockResolvedValue(undefined as never);
+    const updateElement = vi
+      .spyOn(state, "updateElement")
+      .mockResolvedValue(undefined as never);
+
+    await groupSelection({ elementsMap });
+
+    expect(addElement).not.toHaveBeenCalled();
+    expect(updateElement).not.toHaveBeenCalled();
+  });
+
+  it("ungroupSelection 은 자식이 frame 의 부모에 못 들어가면 frame 을 지우지 않는다", async () => {
+    useStore.setState({
+      currentPageId: "page-1",
+      selectedElementId: "fr",
+    } as never);
+    const elementsMap = new Map<string, CanvasActionElement>([
+      ["body-1", makeElement("body-1", { type: "body" })],
+      ["lb", makeElement("lb", { type: "ListBox", parent_id: "body-1" })],
+      ["fr", makeElement("fr", { type: "frame", parent_id: "lb" })],
+      ["btn", makeElement("btn", { type: "Button", parent_id: "fr" })],
+    ]);
+    const state = useStore.getState();
+    const updateElement = vi
+      .spyOn(state, "updateElement")
+      .mockResolvedValue(undefined as never);
+    const removeElement = vi
+      .spyOn(state, "removeElement")
+      .mockResolvedValue(undefined as never);
+
+    await ungroupSelection({ elementsMap });
+
+    expect(updateElement).not.toHaveBeenCalled();
+    expect(removeElement).not.toHaveBeenCalled();
+  });
+});

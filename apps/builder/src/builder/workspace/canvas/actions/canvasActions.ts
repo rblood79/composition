@@ -357,6 +357,22 @@ export async function groupSelection(
     currentPageId,
   );
 
+  // 새 frame 이 부모 (예: ListBox 같은 strict 컬렉션) 에 못 들어가면 백스톱이 frame 만
+  // 거부하고, 이어지는 parent_id patch 가 자식을 없는 부모 아래로 보낸다. 묶기 전에
+  // 판정한다 — 다른 조상으로 옮기면 선택이 제자리를 떠나므로 relocation 없이 거부.
+  if (groupElement.parent_id) {
+    const nesting = resolveNestingAwareTarget({
+      renderTargetId: groupElement.parent_id,
+      insertionIndex: Number.MAX_SAFE_INTEGER,
+      movingTypes: [groupElement.type],
+      elementsMap: elementsMap as ReadonlyMap<string, CanvasInteractionNode>,
+    });
+    if (nesting.relocation) {
+      notifyNestingRejected(nesting.relocation.violation);
+      return;
+    }
+  }
+
   await addElement(groupElement, { skipHistory: true });
   await Promise.all(
     updatedChildren.map((child) =>
@@ -393,6 +409,22 @@ export async function ungroupSelection(
     selectedElementId,
     elementsMap,
   );
+
+  // 자식 하나라도 frame 의 부모에 못 들어가면 전체를 거부한다 — 일부 자식만 거부된 채
+  // 아래 removeElement 가 frame 을 지우면 남은 자식이 frame 과 함께 삭제된다.
+  const releaseParentId = selectedElement.parent_id;
+  if (releaseParentId && updatedChildren.length > 0) {
+    const nesting = resolveNestingAwareTarget({
+      renderTargetId: releaseParentId,
+      insertionIndex: Number.MAX_SAFE_INTEGER,
+      movingTypes: updatedChildren.map((child) => child.type),
+      elementsMap: elementsMap as ReadonlyMap<string, CanvasInteractionNode>,
+    });
+    if (nesting.relocation) {
+      notifyNestingRejected(nesting.relocation.violation);
+      return;
+    }
+  }
 
   if (groupElementForHistory) {
     trackUngroup(
