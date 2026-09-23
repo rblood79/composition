@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [instance 복제 시 자식이 두 벌 그려지던 문제 · instance 안 요소 메뉴 정리] - 2026-09-24
+
+### Fixed
+
+- **팔레트로 놓은 컴포넌트 (instance) 를 우클릭 메뉴로 복제 · 복사하면 Label · Input 등 자식이 두 벌 그려지던 문제를 고쳤다.** 이제 복제본은 원본처럼 instance 하나이고 자식은 origin 에서 온다. (⌘D 는 원래 정상이었다.)
+  - **Why**: 캔버스 메뉴는 캔버스 대화형 맵을 읽는데, 여기에는 instance 의 자식 (`<instance>/<path>`) 도 들어 있다. 복사는 부모-자식 관계로 자손을 모으므로 이 자식들을 실제 노드로 복사해 새 instance 아래 붙였고, origin 자식과 합쳐 두 벌이 됐다. ⌘D 는 store 맵을 읽어 이 자식을 몰랐다.
+- **instance 안 요소 (더블클릭으로 고른 Label 등) 의 우클릭 메뉴에서 동작하지 않거나 문서를 깨는 항목을 뺐다.** 복제는 instance 아래에 실제 자식을 만들었고, 삭제 · 순서 · 컴포넌트 만들기는 아무 일도 하지 않았다. 이제 붙여넣기만 남는다 (instance 안이 아니라 페이지에 붙는다).
+  - 위치: `apps/builder/src/builder/workspace/canvas/actions/canvasActions.ts` (`buildCanvasActionElementsMap` · `selectableWithoutBody`), `apps/builder/src/builder/workspace/canvas/contextMenu/canvasContextMenuProviders.ts`
+  - 이미 두 벌이 된 문서는 자동으로 고치지 않는다 — 복제본 아래 실제 자식을 지우면 된다.
+
 ## [Components 페이지의 기본 컴포넌트는 분리 · 삭제되지 않는다] - 2026-09-24
 
 ### Fixed

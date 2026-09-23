@@ -328,6 +328,67 @@ describe("duplicateSelection — ADR-182 후속 (2026-08-27)", () => {
     expect(setSelectedElements).not.toHaveBeenCalled();
   });
 
+  // B-3 (2026-09-24 live): instance 의 synthetic 자식 (`<instance>/<path>`) 은 store 노드가 아니다.
+  // 캔버스 대화형 맵에는 있어 메뉴 복제가 ref instance 아래에 실제 자식을 만들었다.
+  it("instance 의 synthetic 자식은 복제하지 않는다", async () => {
+    useStore.setState({
+      currentPageId: "page-1",
+      multiSelectMode: false,
+      selectedElementId: "inst/label",
+      selectedElementIds: ["inst/label"],
+    } as never);
+    const state = useStore.getState();
+    const addElement = vi
+      .spyOn(state, "addElement")
+      .mockResolvedValue(undefined as never);
+    const context = {
+      elementsMap: new Map<string, CanvasActionElement>([
+        ["inst", makeElement("inst", { type: "ref", parent_id: "body-1" })],
+        [
+          "inst/label",
+          makeElement("inst/label", { type: "Label", parent_id: "inst" }),
+        ],
+      ]),
+    };
+
+    await duplicateSelection(context);
+
+    expect(addElement).not.toHaveBeenCalled();
+  });
+
+  // B-3 live: instance 를 메뉴로 복제하면 대화형 맵의 synthetic 자식까지 자손으로 모여 새 ref 아래
+  // 실제 자식으로 붙었다 — origin 자식과 합쳐 Label · Input · FieldError 가 두 벌 그려졌다.
+  it("instance 복제는 ref 노드만 만든다 (synthetic 자식은 복사하지 않는다)", async () => {
+    useStore.setState({
+      currentPageId: "page-1",
+      multiSelectMode: false,
+      selectedElementId: "inst",
+      selectedElementIds: ["inst"],
+    } as never);
+    const state = useStore.getState();
+    const addElement = vi
+      .spyOn(state, "addElement")
+      .mockResolvedValue(undefined as never);
+    const context = {
+      elementsMap: new Map<string, CanvasActionElement>([
+        ["inst", makeElement("inst", { type: "ref", parent_id: "body-1" })],
+        [
+          "inst/label",
+          makeElement("inst/label", { type: "Label", parent_id: "inst" }),
+        ],
+        [
+          "inst/input",
+          makeElement("inst/input", { type: "Input", parent_id: "inst" }),
+        ],
+      ]),
+    };
+
+    await duplicateSelection(context);
+
+    expect(addElement).toHaveBeenCalledTimes(1);
+    expect((addElement.mock.calls[0][0] as { type: string }).type).toBe("ref");
+  });
+
   it("body 가 섞인 다중 선택(⌘A)은 body 를 빼고 나머지만 복제한다", async () => {
     useStore.setState({
       currentPageId: "page-1",

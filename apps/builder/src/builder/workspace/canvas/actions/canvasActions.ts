@@ -1,4 +1,5 @@
 import { useStore } from "../../../stores";
+import { isSyntheticDescendantId } from "../../../stores/canonical/syntheticDescendantLookup";
 import type { CanvasInteractionNode } from "../interaction/interactionNode";
 import { resolveNestingAwareTarget } from "../interaction/nestingRelocation";
 import {
@@ -73,33 +74,39 @@ export interface CanvasActionContext {
  * interactive scene map and may expose canonical camelCase aliases. The
  * action utilities still consume the legacy compatibility shape, so this is
  * the single adapter boundary for both consumers.
+ *
+ * instance 의 synthetic 자식 (`<instance>/<path>`) 은 여기서 뺀다 — store 노드가 아니라 자식은
+ * origin · `descendants` 에서 온다. 넣어 두면 복사 · 복제가 부모-자식 관계로 자손을 모으다
+ * 새 ref 아래 실제 자식으로 붙여 origin 자식과 두 벌 그려졌다 (B-3, 2026-09-24 live).
  */
 export function buildCanvasActionElementsMap(
   elementsMap: ReadonlyMap<string, CanvasActionElement>,
 ): CanvasActionElementsMap {
   return new Map(
-    Array.from(elementsMap.entries()).map(([id, element]) => {
-      const {
-        parentId: _parentId,
-        pageId: _pageId,
-        customId: _customId,
-        componentName: _componentName,
-        ...rest
-      } = element;
+    Array.from(elementsMap.entries())
+      .filter(([id]) => !isSyntheticDescendantId(id))
+      .map(([id, element]) => {
+        const {
+          parentId: _parentId,
+          pageId: _pageId,
+          customId: _customId,
+          componentName: _componentName,
+          ...rest
+        } = element;
 
-      return [
-        id,
-        {
-          ...rest,
-          parent_id: element.parent_id ?? element.parentId ?? null,
-          page_id: element.page_id ?? element.pageId ?? null,
-          ...(element.customId != null ? { customId: element.customId } : {}),
-          ...(element.componentName != null
-            ? { componentName: element.componentName }
-            : {}),
-        } as CanvasActionStoreElement,
-      ];
-    }),
+        return [
+          id,
+          {
+            ...rest,
+            parent_id: element.parent_id ?? element.parentId ?? null,
+            page_id: element.page_id ?? element.pageId ?? null,
+            ...(element.customId != null ? { customId: element.customId } : {}),
+            ...(element.componentName != null
+              ? { componentName: element.componentName }
+              : {}),
+          } as CanvasActionStoreElement,
+        ];
+      }),
   );
 }
 
@@ -134,12 +141,18 @@ function getActionElements(
  * (2026-08-27: 복제는 두 번째 body 를 만들었고 — code-review #1 —,
  * 정렬/분배는 페이지 루트에 left/top 을 쓰고, 그룹은 body 를 새 frame 의
  * 자식으로 reparent 한다).
+ *
+ * instance 의 synthetic 자식 (`<instance>/<path>`) 도 뺀다 — 캔버스 대화형 맵에는 있지만 store
+ * 노드가 아니라 (자식은 origin · `descendants` 에서 온다) 삭제는 no-op 이고, 복제는 ref instance
+ * 아래에 실제 자식을 만들었다 (B-3, 2026-09-24 live). 단축키 판정 (`commandMeta` — store 맵) 은
+ * 이미 이 노드를 못 찾아 대상에서 뺀다.
  */
 export function selectableWithoutBody(
   ids: readonly string[],
   elementsMap: ReadonlyMap<string, { type: string }>,
 ): string[] {
   return ids.filter((id) => {
+    if (isSyntheticDescendantId(id)) return false;
     const element = elementsMap.get(id);
     return element !== undefined && element.type.toLowerCase() !== "body";
   });

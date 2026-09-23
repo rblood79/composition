@@ -44,6 +44,23 @@ function alignSubmenuIds(
   return align?.kind === "submenu" ? align.items.map((i) => i.id) : null;
 }
 
+describe("canvas context-menu providers — instance synthetic 자식 (B-3)", () => {
+  // 더블클릭으로 instance 안 synthetic 자식 (`<instance>/<path>`) 을 고른 뒤 우클릭한 메뉴.
+  // store 노드가 아니라 복제·삭제·z-order·컴포넌트 해제는 할 수 없다 — 붙여넣기만 남는다.
+  it("synthetic 자식 단독 선택에는 구조 변경 항목을 세우지 않는다", () => {
+    const pool = [
+      element("inst", "ref", { ref: "origin-textfield" } as never),
+      element("inst/label", "Label", { parent_id: "inst" }),
+      element("inst/input", "Input", { parent_id: "inst" }),
+    ];
+    // 빈 구분선은 조립 지점 (`dropEmptySeparators`) 이 정리한다.
+    const actionIds = menuItems(["inst/label"], pool)
+      .filter((item) => item.kind !== "separator")
+      .map((item) => item.id);
+    expect(actionIds).toEqual(["paste"]);
+  });
+});
+
 describe("canvas context-menu providers", () => {
   it("builds T1 selection actions and hides single-selection-only items for multi-select", () => {
     const items = buildCanvasContextMenuItems(

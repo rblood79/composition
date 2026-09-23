@@ -55,6 +55,7 @@ import {
 } from "../actions/canvasActions";
 import { isFrameOrLegacyGroup } from "../../../stores/utils/elementGrouping";
 import { isRenderProjectionId } from "../../../projection/renderProjectionIds";
+import { isSyntheticDescendantId } from "../../../stores/canonical/syntheticDescendantLookup";
 import type { CanvasActionElement } from "../actions/canvasActions";
 import {
   applyViewportState,
@@ -253,24 +254,32 @@ function buildElementMenuItems(
     ? getEditingSemanticsOriginId(primaryElement)
     : null;
   const originElement = originId ? elementsMap.get(originId) : undefined;
-  const detachableElement = selectedElements.find((element) =>
-    canDetachInstance(element),
+  const detachableElement = selectedElements.find(
+    (element) =>
+      !isSyntheticDescendantId(element.id) && canDetachInstance(element),
   );
   const context = () => actionContext(options);
 
-  const items: ContextMenuItem[] = [
-    actionItem(
-      "copy",
-      "contextMenu.copy",
-      // `copySelection` 은 `Promise<boolean>` 이라 `run` 계약(`void | Promise<void>`)에
-      // 그대로 맞지 않는다. 호출부(`ContextMenuOverlay`)가 이미 `void item.run()` 으로
-      // 버리므로 결과를 여기서 흘려보내도 동작은 같다.
-      () => {
-        void copySelection(context());
-      },
-      "copy",
-      { icon: ACTION_ICONS.copy },
-    ),
+  // 복사·복제는 구조 변경 관문 (`selectableWithoutBody`) 을 지나는 대상이 있을 때만 — body 와
+  // instance 의 synthetic 자식만 고른 선택에서는 실행 층이 아무것도 하지 않는다 (B-3).
+  const items: ContextMenuItem[] = [];
+  if (nonBodyCount > 0) {
+    items.push(
+      actionItem(
+        "copy",
+        "contextMenu.copy",
+        // `copySelection` 은 `Promise<boolean>` 이라 `run` 계약(`void | Promise<void>`)에
+        // 그대로 맞지 않는다. 호출부(`ContextMenuOverlay`)가 이미 `void item.run()` 으로
+        // 버리므로 결과를 여기서 흘려보내도 동작은 같다.
+        () => {
+          void copySelection(context());
+        },
+        "copy",
+        { icon: ACTION_ICONS.copy },
+      ),
+    );
+  }
+  items.push(
     actionItem(
       "paste",
       request.scenePoint ? "contextMenu.pasteHere" : "contextMenu.paste",
@@ -278,20 +287,25 @@ function buildElementMenuItems(
       "paste",
       { icon: ACTION_ICONS.paste },
     ),
-    actionItem(
-      "duplicate",
-      "contextMenu.duplicate",
-      () => duplicateSelection(context()),
-      "duplicate",
-      { icon: ACTION_ICONS.duplicate },
-    ),
-    { kind: "separator", id: "selection-separator" },
-  ];
+  );
+  if (nonBodyCount > 0) {
+    items.push(
+      actionItem(
+        "duplicate",
+        "contextMenu.duplicate",
+        () => duplicateSelection(context()),
+        "duplicate",
+        { icon: ACTION_ICONS.duplicate },
+      ),
+    );
+  }
+  items.push({ kind: "separator", id: "selection-separator" });
 
   if (
     isSingleSelection &&
     primaryElement &&
     !isRenderProjectionId(primaryElement.id) &&
+    !isSyntheticDescendantId(primaryElement.id) &&
     hasReorderableSiblings(primaryElement, elementsMap)
   ) {
     items.push(...buildZOrderItems(primaryElement));
@@ -350,8 +364,12 @@ function buildElementMenuItems(
   //    버튼으로 자리를 지키지만 메뉴는 항목을 뺀다 (Figma/Pen 공통 관례)
   // 3. `detach-instance` 만 다중 선택을 받는다 — 선택 중 첫 detachable 을 집는
   //    종전 동작 보존. 나머지는 단일 && non-body 에서만 선다
+  // instance 의 synthetic 자식은 store 노드가 아니라 원본 이동만 선다 (B-3) — 분리 · 컴포넌트
+  // 만들기/해제는 실행 층에서 no-op 이다.
+  const primaryIsSynthetic =
+    isSingleSelection && isSyntheticDescendantId(primaryElement?.id);
   const componentAxisTarget =
-    isSingleSelection && nonBodyCount === 1
+    isSingleSelection && (nonBodyCount === 1 || primaryIsSynthetic)
       ? toEditingSemanticsTarget(primaryElement)
       : null;
   const detachTarget = toEditingSemanticsTarget(detachableElement);
@@ -375,9 +393,7 @@ function buildElementMenuItems(
       await runComponentSemanticsAction(id, {
         targetId,
         element,
-        ...(originElement
-          ? { originElement, originId: originElement.id }
-          : {}),
+        ...(originElement ? { originElement, originId: originElement.id } : {}),
       });
     };
   };
@@ -385,6 +401,7 @@ function buildElementMenuItems(
   const componentItems: ContextMenuItem[] = [];
   for (const action of COMPONENT_SEMANTICS_ACTIONS) {
     if (!action.surfaces.includes("context-menu")) continue;
+    if (primaryIsSynthetic && action.id !== "go-to-origin") continue;
     const target =
       action.id === "detach-instance" ? detachTarget : componentAxisTarget;
     if (!target) continue;
