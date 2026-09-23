@@ -40,6 +40,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Canvas: Tabs 탭 사이 간격이 Preview 와 같은 8px** (기본 density regular) — 전에는 캔버스만 0 이었다. Components 페이지의 항목 템플릿 (Tab · Tag · ListBoxItem · GridListItem) 도 Preview 와 같은 크기로 그린다.
 - **Canvas 레이아웃: `position: absolute` 요소가 부모 padding 만큼 밀려 놓이던 결함** (레이아웃 엔진). `left: 0` 이 padding 안쪽에서 시작했고, 높이가 자동인 부모에서는 `top: 50%` 가 위로 치우쳤다. 이제 CSS 처럼 padding box 기준이다.
 - **옮겨진 탭 · 태그의 label 글자가 항목 글자 (크기 · 굵기 · 선택 색) 를 따르지 않던 결함** — label 이 Text 기본 글자로 그려져 옮기기 전 행과 모양이 달랐다. Canvas · Preview 모두 항목 글자를 물려받는다 (label 에 직접 준 값이 있으면 그것).
+- **ListBox · GridList · Menu instance 를 선택하면 Properties 에 Slot 절이 없어 항목을 추가할 수 없던 결함** — 이제 origin 의 추천 항목이 보이고 "+" 로 instance 에 항목이 붙는다 (추천 목록 편집은 origin 에서).
+- **instance TabList 의 Slot "+" 로 탭을 추가하면 캔버스 갱신이 멈추던 결함**.
+- **태그의 아이콘 · 아바타가 크게 그려져 chip 이 넓어지던 결함** (Canvas) — 아이콘 14 · 아바타 16 으로 옮기기 전과 같다.
 
 ## [ADR-234 상태 변형 = origin 의 instance (Phase 1·2)] - 2026-09-23
 
