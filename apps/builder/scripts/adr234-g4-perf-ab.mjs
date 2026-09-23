@@ -12,6 +12,10 @@
 // Preview hover 재렌더는 사용자 지시 (Preview iframe 미개방) 로 이 하니스에서 재지 않는다.
 //
 // 사용: node apps/builder/scripts/adr234-g4-perf-ab.mjs [--pairs 3] [--base http://localhost:5173]
+//   [--items-base http://127.0.0.1:5174 --auth <두 origin storageState>]
+//   `--items-base` = 이관 전 빌드 대비 (사용자 판정 2026-09-23): items arm 을 이관 전 커밋 worktree 빌드에서 잰다.
+//   그 빌드에는 `--unselected` 가 없으므로 편집 대상은 역할 짝 (G5 와 같음) — 선택 모양 편집 = 이후 origin ↔
+//   이전 `-selected` 복제본 · 휴지 모양 편집 = 이후 `--unselected` ↔ 이전 기본 origin.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { chromium } from "playwright";
@@ -23,9 +27,14 @@ const opt = (n, d) => {
   return i >= 0 ? args[i + 1] : d;
 };
 const BASE_URL = opt("base", "http://localhost:5173");
+const ITEMS_BASE_URL = opt("items-base", BASE_URL);
+const PREBUILD = ITEMS_BASE_URL !== BASE_URL;
+/** `--profile originEdit` — 그 조작 표본 구간의 CPU 프로파일 자체 시간 상위 (진단용, 판정과 무관). */
+const PROFILE_KIND = opt("profile", null);
+const ONLY_FIXTURE = opt("fixture", null);
 const PAIRS = Number(opt("pairs", "3"));
 const OUT_DIR = opt("out", "/private/tmp/adr234-g4");
-const STORAGE_STATE = resolve("apps/builder/scripts/.auth-session.json");
+const STORAGE_STATE = resolve(opt("auth", "apps/builder/scripts/.auth-session.json"));
 const WARMUP = 3;
 const RUNS = 7;
 const N = 100;
@@ -131,9 +140,23 @@ async function focusHome(page) {
   await page.waitForTimeout(1200);
 }
 
+/** 편집 대상 — 이관 전 빌드 arm 은 역할 짝 (파일 머리 주석). */
+function editTarget(fixture, arm, kind) {
+  const item = fixture === "tabs" ? "tab" : "tag";
+  if (PREBUILD && arm === "items") {
+    return kind === "originEdit"
+      ? `component-${item}-item-selected`
+      : `component-${item}-item-default`;
+  }
+  return kind === "originEdit"
+    ? `component-${item}-item-default`
+    : `component-${item}-item-default--unselected`;
+}
+
 async function measure(page, fixture, arm, kind, runs) {
+  const target = kind === "breakpoint" ? null : editTarget(fixture, arm, kind);
   return page.evaluate(
-    async ({ fixture, arm, kind, runs }) => {
+    async ({ fixture, arm, kind, runs, target }) => {
       const store = window.__composition_STORE__;
       const perf = window.__composition_PERF__;
       const scene = window.__composition_SCENE_DEBUG__;
@@ -145,15 +168,6 @@ async function measure(page, fixture, arm, kind, runs) {
           bp[i % 2 ? 1 : 0]?.click();
           return;
         }
-        const tabs = fixture === "tabs";
-        const target =
-          kind === "originEdit"
-            ? tabs
-              ? "component-tab-item-default"
-              : "component-tag-item-default"
-            : tabs
-              ? "component-tab-item-default--unselected"
-              : "component-tag-item-default--unselected";
         const el = st.elements.find((e) => e.id === target);
         st.updateElement(target, {
           props: {
@@ -209,7 +223,7 @@ async function measure(page, fixture, arm, kind, runs) {
       }
       return samples;
     },
-    { fixture, arm, kind, runs },
+    { fixture, arm, kind, runs, target },
   );
 }
 
@@ -222,7 +236,8 @@ async function runArm(browser, fixture, arm) {
   const page = await context.newPage();
   const errors = [];
   page.on("pageerror", (e) => errors.push(String(e)));
-  await page.goto(`${BASE_URL}/dashboard`, { waitUntil: "networkidle" });
+  const base = arm === "items" ? ITEMS_BASE_URL : BASE_URL;
+  await page.goto(`${base}/dashboard`, { waitUntil: "networkidle" });
   const create = page.locator("button.dashboard-create-button").first();
   await create.waitFor({ state: "visible", timeout: 20_000 });
   await create.click();
@@ -240,10 +255,30 @@ async function runArm(browser, fixture, arm) {
     dpr: window.devicePixelRatio,
     pageFrames: window.__composition_SCENE_DEBUG__.readPageFrames().length,
   }));
-  const out = { fixture, arm, seeded, env, ops: {} };
+  const out = { fixture, arm, base, seeded, env, ops: {} };
   for (const kind of ["originEdit", "variantEdit", "breakpoint"]) {
     await measure(page, fixture, arm, kind, WARMUP);
+    let cdp = null;
+    if (PROFILE_KIND === kind) {
+      cdp = await page.context().newCDPSession(page);
+      await cdp.send("Profiler.enable");
+      await cdp.send("Profiler.setSamplingInterval", { interval: 50 });
+      await cdp.send("Profiler.start");
+    }
     const samples = await measure(page, fixture, arm, kind, RUNS);
+    if (cdp) {
+      const { profile } = await cdp.send("Profiler.stop");
+      const byId = new Map(profile.nodes.map((n) => [n.id, n]));
+      const self = new Map();
+      profile.samples.forEach((id, i) => {
+        const n = byId.get(id);
+        const url = String(n.callFrame.url).split("/").pop().split("?")[0];
+        const key = `${n.callFrame.functionName || "(anon)"} ${url}:${n.callFrame.lineNumber}`;
+        self.set(key, (self.get(key) ?? 0) + (profile.timeDeltas[i] ?? 0) / 1000 / RUNS);
+      });
+      out.profile = [...self.entries()].sort((a, b) => b[1] - a[1]).slice(0, 60);
+      await cdp.detach();
+    }
     // breakpoint 는 짝수 번 눌러 desktop 으로 되돌아온다 (RUNS 홀수 → 한 번 더).
     if (kind === "breakpoint") await measure(page, fixture, arm, kind, 1);
     out.ops[kind] = {
@@ -262,7 +297,7 @@ mkdirSync(OUT_DIR, { recursive: true });
 const browser = await chromium.launch({ headless: false });
 const runs = [];
 try {
-  for (const fixture of ["tabs", "taggroup"]) {
+  for (const fixture of ["tabs", "taggroup"].filter((f) => !ONLY_FIXTURE || f === ONLY_FIXTURE)) {
     for (let p = 0; p < PAIRS; p += 1) {
       const order = p % 2 === 0 ? ["items", "instance"] : ["instance", "items"];
       for (const arm of order) {
@@ -309,6 +344,10 @@ for (const fixture of ["tabs", "taggroup"]) {
 }
 writeFileSync(
   resolve(OUT_DIR, "g4.json"),
-  JSON.stringify({ at: new Date().toISOString(), summary, runs }, null, 2),
+  JSON.stringify(
+    { at: new Date().toISOString(), base: BASE_URL, itemsBase: ITEMS_BASE_URL, summary, runs },
+    null,
+    2,
+  ),
 );
 log("summary", JSON.stringify(summary, null, 2));

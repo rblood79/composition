@@ -287,6 +287,24 @@
 - **편집 조작이 남는 이유**: origin · 변형 편집은 fixture 의 항목 instance 500 개를 전부 실제로 바꾼다 (재사용 대상 없음). 남은 Δ 는 항목마다 root (origin ⊕ instance 필드 ≈ 35 키) · label 객체를 만드는 비용이다 — node 해석 단계 Δ 0.9 ms 중 절반이 `resolveCanonicalRefElement` 의 반환 객체 생성. rest 분해 제거 · 상태 층 제자리 적용 · for-in 복사 실험은 모두 개선 없음 또는 악화라 넣지 않았다.
 - 검증: unit — 재사용 = 새 해석 (breakpoint 전환 · 자기 자식 순서) · 문서 편집 3종 (항목 origin · 휴지 변형 · owner 선택) 은 재사용 안 함, 원복 RED 1 + 3 · 참조 색인 = `resolveReference` 8. builder 7,240/5 · parity 1,490/4 (기존 실패). live `adr234-live-exercise` 5/5 · `adr234-live-list-instance` 5/5 · G4 하니스의 breakpoint 조작 21회 rebuilt · page error 0.
 
+#### G4 — 이관 전 빌드 대비 (2026-09-23, 사용자 판정 "이관 전 빌드 대비")
+
+- 질문: ADR-234 전체 (모델 변경 + 같은 작업의 절감) 로 사용자 체감 `scene.build` 가 느려졌는가. 대조 arm = **이관 전 커밋 `66480f5e0` worktree 빌드** (그 lockfile · 엔진 wasm · dev `127.0.0.1:5174`) × items fixture, 실험 arm = 현재 빌드 × instance fixture. 하니스 `adr234-g4-perf-ab.mjs --items-base` (같은 세션 · headed · arm 교대 · warm-up 3 · 표본 7 · DPR 1 · visible). 이전 빌드에는 `--unselected` 가 없어 편집 대상은 역할 짝 (선택 모양 = 이후 origin ↔ 이전 `-selected` 복제본 · 휴지 모양 = 이후 `--unselected` ↔ 이전 기본 origin — G5 와 같은 짝). 두 arm 이 같이 받은 공통 절감 (위 1단계) 이 이 비교에 포함된다.
+- 결과 (p95 의 pair median, ms · 전 표본 rebuilt 7/7 · page error 0):
+
+| fixture  | 조작           | 이관 전 (items) | 현재 (instance) |    Δ | 판정 |
+| -------- | -------------- | --------------: | --------------: | ---: | ---- |
+| Tabs     | 선택 모양 편집 |             9.8 |            10.5 | +0.7 | 통과 |
+| Tabs     | 휴지 모양 편집 |             9.8 |            10.8 | +1.0 | 통과 |
+| Tabs     | breakpoint     |             5.1 |             3.3 | −1.8 | 통과 |
+| TagGroup | 선택 모양 편집 |             8.1 |            10.4 | +2.3 | 미달 |
+| TagGroup | 휴지 모양 편집 |             8.1 |            10.7 | +2.6 | 미달 |
+| TagGroup | breakpoint     |             4.0 |             2.5 | −1.5 | 통과 |
+
+  - Tabs pair 3 · TagGroup pair 5 (TagGroup 은 pair 3 에서 +3.0 / +2.0 으로 편차가 커 pair 5 로 다시 쟀다 — 10 pair 모두 instance 가 느림).
+- 남은 Δ 의 위치 (node, scene model 단계 분해 — 재사용 없이): TagGroup instance − items = 해석 +1.63 ms 가 거의 전부 (graph −0.16 · 자식 목록 +0.11 · projection 0 · 숨김 제거 0 · 페이지 색인 +0.04). 항목 500 개 × (root ≈35 키 + Label) 객체 생성 — 항목당 ≈3 µs. 공유 경로 (origin ⊕ 상태 층 템플릿에서 항목을 만드는 별도 해석 경로) 는 scene 노드 props 가 이미 origin 위에 접혀 있고 (`{{ }}` 치환 · `_slots` 같은 scene 주입 포함) 해석 순서가 달라지면 같은 결과를 보장하기 어려워 넣지 않았다.
+- 측정 뒤 기준 worktree · dev 서버는 삭제했다.
+
 ### Phase 4 — G5 BC 픽셀 (2026-09-23)
 
 - 하니스 `apps/builder/scripts/adr234-g5-bc-live.mjs`: **before arm = 이관 전 커밋 `66480f5e0` 의 별도 worktree** (`/Users/admin/work/composition-adr234-base` · 그 lockfile 로 설치 · 엔진 wasm 빌드 · dev `127.0.0.1:5174`) · after arm = 현재 빌드. before 에서 새 프로젝트 (seed) + 사람이 만든 노드 (palette instance Tabs · GridList · Menu, items override TagGroup (icon 포함 · 선택) · ListBox (icon · description · 선택), 문서 plain Tabs · TagGroup, 변형 직접 ref Button `--hover`) 를 저장 → IndexedDB `document_heads` · `document_parts` 를 after 의 새 프로젝트에 써 넣고 reload (hydration 이관). 같은 노드를 scale 1 · 같은 화면 위치로 옮겨 Skia 캡처 → 픽셀 비교 (채널 차 > 16). 선택 가능한 가족은 역할 짝 (이전 기본 ↔ 이후 `--unselected`, 이전 selected ↔ 이후 origin).
