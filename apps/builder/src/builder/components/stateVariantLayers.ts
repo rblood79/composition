@@ -85,8 +85,7 @@ export function readStateLayer(
   //   층은 변형 자기 patch 여야 하므로 원본 canonical 노드 (`sourceNode`) 를 읽는다.
   const variant =
     ((input as { sourceNode?: unknown }).sourceNode as
-      | CanonicalNode
-      | undefined) ?? input;
+      CanonicalNode | undefined) ?? input;
   if (variant.type === "ref") {
     const layer: StateLayer = {};
     if (isRecord(variant.props) && Object.keys(variant.props).length > 0) {
@@ -139,8 +138,7 @@ export function buildStateLayerSet(
     if (!found) continue;
     const variant =
       ((found as { sourceNode?: unknown }).sourceNode as
-        | CanonicalNode
-        | undefined) ?? found;
+        CanonicalNode | undefined) ?? found;
     // origin 자신을 가리키는 변형만 (다른 가족의 우연한 id 충돌 방지).
     if (
       variant.type === "ref" &&
@@ -199,14 +197,28 @@ export function composeStateLayers(
   return Object.keys(out).length > 0 ? out : null;
 }
 
-/** 켜진 상태의 합성 층 (편의). */
+/** ADR-234 G4 — 집합 · 켜진 층 이름이 같으면 같은 합성 (정적 목록 항목 500 개가 같은 층을 매번 합성했다). */
+const activeLayerCache = new WeakMap<
+  StateLayerSet,
+  Map<string, StateLayer | null>
+>();
+
+/** 켜진 상태의 합성 층 (편의). 결과는 공유 객체 — 호출자는 고치지 않는다. */
 export function resolveActiveStateLayer(
   set: StateLayerSet,
   active: ActiveVariantStates,
 ): StateLayer | null {
-  return composeStateLayers(
-    activeStateLayerNames(set, active).map((name) => set.layers[name]!),
-  );
+  const names = activeStateLayerNames(set, active);
+  const key = names.join("|");
+  let byKey = activeLayerCache.get(set);
+  if (!byKey) {
+    byKey = new Map();
+    activeLayerCache.set(set, byKey);
+  }
+  if (byKey.has(key)) return byKey.get(key)!;
+  const layer = composeStateLayers(names.map((name) => set.layers[name]!));
+  byKey.set(key, layer);
+  return layer;
 }
 
 /**
@@ -263,7 +275,21 @@ function readOwnedPatchKeys(
 }
 
 /** ref instance (raw canonical 노드) 의 자기 patch 키 표. */
+/** ADR-234 G4 — 입력 노드 (불변 canonical · 해석 전 scene 노드) 마다 한 번. */
+const ownedKeysCache = new WeakMap<object, InstanceOwnedKeys>();
+
 export function readInstanceOwnedKeys(
+  refNode: CanonicalNode | undefined,
+): InstanceOwnedKeys {
+  if (!refNode) return computeInstanceOwnedKeys(refNode);
+  const hit = ownedKeysCache.get(refNode);
+  if (hit) return hit;
+  const owned = computeInstanceOwnedKeys(refNode);
+  ownedKeysCache.set(refNode, owned);
+  return owned;
+}
+
+function computeInstanceOwnedKeys(
   refNode: CanonicalNode | undefined,
 ): InstanceOwnedKeys {
   const descendants: Record<string, OwnedPatchKeys> = {};
@@ -291,12 +317,33 @@ export function readInstanceOwnedKeys(
 }
 
 /** 상태 층 props patch 에서 instance 소유 키를 뺀다 (instance 가 이긴다). 비면 null. */
+const omitOwnedCache = new WeakMap<
+  Record<string, unknown>,
+  WeakMap<OwnedPatchKeys, Record<string, unknown> | null>
+>();
+
+/** 결과는 (patch, owned) 쌍마다 공유 객체 — 호출자는 고치지 않는다 (ADR-234 G4). */
 export function omitOwnedKeys(
   patch: Record<string, unknown> | undefined,
   owned: OwnedPatchKeys | undefined,
 ): Record<string, unknown> | null {
   if (!patch) return null;
   if (!owned) return patch;
+  let byOwned = omitOwnedCache.get(patch);
+  if (!byOwned) {
+    byOwned = new WeakMap();
+    omitOwnedCache.set(patch, byOwned);
+  }
+  if (byOwned.has(owned)) return byOwned.get(owned)!;
+  const result = computeOmitOwnedKeys(patch, owned);
+  byOwned.set(owned, result);
+  return result;
+}
+
+function computeOmitOwnedKeys(
+  patch: Record<string, unknown>,
+  owned: OwnedPatchKeys,
+): Record<string, unknown> | null {
   const out: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(patch)) {
     if (key === "style") continue;

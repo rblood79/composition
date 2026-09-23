@@ -37,11 +37,14 @@ export function mergePropsWithStyleDeep(
   overrides: Record<string, unknown>,
 ): Record<string, unknown> {
   const merged = { ...baseProps, ...overrides };
-  if (baseProps.style || overrides.style) {
-    merged.style = {
-      ...((baseProps.style as Record<string, unknown> | undefined) ?? {}),
-      ...((overrides.style as Record<string, unknown> | undefined) ?? {}),
-    };
+  const baseStyle = baseProps.style as Record<string, unknown> | undefined;
+  const overrideStyle = overrides.style as Record<string, unknown> | undefined;
+  // 한쪽만 style 이 있으면 그 객체를 그대로 쓴다 (값은 같다 — 해석 결과 style 은 누구도 제자리 수정하지
+  //   않는다). ADR-234 G4: 항목 해석마다 origin style 을 여러 번 복사했다.
+  if (overrideStyle) {
+    if (baseStyle) merged.style = { ...baseStyle, ...overrideStyle };
+  } else if (baseStyle) {
+    merged.style = baseStyle;
   }
   return merged;
 }
@@ -57,19 +60,23 @@ export const composePropsPatches = mergePropsWithStyleDeep;
 export function stripDeletedPatchValues(
   props: Record<string, unknown>,
 ): Record<string, unknown> {
+  // for-in (own 키만) — Object.entries 배열 할당 없이 (ADR-234 G4: 항목 해석마다 여러 번 불린다).
   let out: Record<string, unknown> | null = null;
-  for (const [key, value] of Object.entries(props)) {
-    if (value === null) {
+  for (const key in props) {
+    if (!Object.hasOwn(props, key)) continue;
+    if (props[key] === null) {
       out ??= { ...props };
       delete out[key];
     }
   }
   const style = (out ?? props).style;
   if (style && typeof style === "object" && !Array.isArray(style)) {
+    const styleRecord = style as Record<string, unknown>;
     let nextStyle: Record<string, unknown> | null = null;
-    for (const [key, value] of Object.entries(style)) {
-      if (value === null) {
-        nextStyle ??= { ...(style as Record<string, unknown>) };
+    for (const key in styleRecord) {
+      if (!Object.hasOwn(styleRecord, key)) continue;
+      if (styleRecord[key] === null) {
+        nextStyle ??= { ...styleRecord };
         delete nextStyle[key];
       }
     }
@@ -165,7 +172,9 @@ export function resolveCanonicalDescendantOverride(
     props: mergedProps,
     ...(Array.isArray(overrideFills) ? { fills: overrideFills } : {}),
     // ADR-234: `enabled` 는 노드 필드 (props 아님) — 부재 = 상속 · false = 숨김 · true = 표시.
-    ...(typeof overrideEnabled === "boolean" ? { enabled: overrideEnabled } : {}),
+    ...(typeof overrideEnabled === "boolean"
+      ? { enabled: overrideEnabled }
+      : {}),
   };
 }
 

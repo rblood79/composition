@@ -10,7 +10,10 @@ import {
 } from "@composition/shared";
 
 import { applyPropsPatch, composePropsPatches } from "./instanceResolver";
-import { resolveReference } from "../../utils/component/referenceResolution";
+import {
+  buildReferenceIndex,
+  resolveReference,
+} from "../../utils/component/referenceResolution";
 import type { LegacyElementMirrorFields } from "./legacyElementFields";
 import { isRenderProjectionId } from "../../builder/projection/renderProjectionIds";
 import {
@@ -262,7 +265,9 @@ export function resolveCanonicalRefElement<
       ? { metadata: withoutVariantMarks(master.metadata) }
       : {}),
     ...refFieldOverrides,
-    ...mergeFillSizing(master, node),
+    ...(master.sizing || master.responsive || node.sizing || node.responsive
+      ? mergeFillSizing(master, node)
+      : {}),
     ...(substitutedChildren !== undefined
       ? { children: substitutedChildren }
       : {}),
@@ -287,10 +292,16 @@ export function resolveCanonicalRefElement<
   } as T;
 }
 
+const withoutVariantMarksCache = new WeakMap<object, object>();
+
+/** 결과는 metadata 객체마다 공유 (ADR-234 G4 — 선택 상태 origin 의 instance 마다 새로 만들었다). */
 function withoutVariantMarks(
   metadata: NonNullable<CanonicalRefResolvableNode["metadata"]>,
 ): CanonicalRefResolvableNode["metadata"] {
+  const hit = withoutVariantMarksCache.get(metadata);
+  if (hit) return hit as CanonicalRefResolvableNode["metadata"];
   const { variant: _variant, variantOf: _variantOf, ...rest } = metadata;
+  withoutVariantMarksCache.set(metadata, rest);
   return rest;
 }
 
@@ -318,6 +329,90 @@ export type ResolvedCanonicalRefTree<T extends CanonicalRefResolvableNode> = {
   elements: T[];
   elementsMap: Map<string, T>;
 };
+
+/**
+ * ADR-234 G4 — ref instance 하나의 해석 결과 (재사용 단위): 해석된 root · 이 instance 가 더한 synthetic
+ * 노드 (추가 순서) · 자식 목록 (`null` 자리 = 그 instance 자기 자식 — 재사용 때 지금 목록에서 채운다).
+ */
+export interface RefInstanceResolution<T extends CanonicalRefResolvableNode> {
+  root: T;
+  appended: readonly T[];
+  childLists: ReadonlyArray<readonly [string, ReadonlyArray<T | null>]>;
+}
+
+/**
+ * ADR-234 G4 — 연속 해석의 instance 결과 재사용. 호출자는 **입력이 같을 때만** (같은 canonical 문서 · 같은
+ * scene 옵션 — breakpoint · collection window 처럼 projection 노드만 바꾸는 입력 제외) `previous` 를 넘긴다.
+ * 이번 호출의 결과는 `next` 에 적는다.
+ */
+export interface CanonicalRefTreeReuse<T extends CanonicalRefResolvableNode> {
+  previous: ReadonlyMap<string, RefInstanceResolution<T>> | null;
+  next: Map<string, RefInstanceResolution<T>>;
+}
+
+/** 바인딩 목록 (행 = projection) 이 있는 결과는 재사용하지 않는다 — 해석 뒤 projection 단계가 synthetic
+ *  목록 틀 props 를 제자리에 채우고, 그 값은 breakpoint 에 따라 바뀐다. */
+function hasCollectionData<T extends CanonicalRefResolvableNode>(
+  node: T,
+): boolean {
+  const props = node.props;
+  if (!props) return false;
+  return (
+    props.items !== undefined ||
+    props.dataBinding !== undefined ||
+    props.columnMapping !== undefined ||
+    isBoundListOwnerProps(props)
+  );
+}
+
+function recordRefInstanceResolution<T extends CanonicalRefResolvableNode>(
+  element: T,
+  startLength: number,
+  elementsMap: Map<string, T>,
+  childrenMap: Map<string, T[]>,
+  elements: T[],
+): RefInstanceResolution<T> | null {
+  const root = elementsMap.get(element.id);
+  if (!root || root === element || hasCollectionData(root)) return null;
+  const appended = elements.slice(startLength);
+  if (appended.some(hasCollectionData)) return null;
+  const prefix = `${element.id}/`;
+  const childLists: Array<readonly [string, ReadonlyArray<T | null>]> = [];
+  for (const id of [element.id, ...appended.map((node) => node.id)]) {
+    const list = childrenMap.get(id);
+    if (!list) continue;
+    childLists.push([
+      id,
+      list.map((child) => (child.id.startsWith(prefix) ? child : null)),
+    ]);
+  }
+  return { root, appended, childLists };
+}
+
+function replayRefInstanceResolution<T extends CanonicalRefResolvableNode>(
+  record: RefInstanceResolution<T>,
+  elementsMap: Map<string, T>,
+  childrenMap: Map<string, T[]>,
+  elements: T[],
+): void {
+  for (const node of record.appended) {
+    elements.push(node);
+    elementsMap.set(node.id, node);
+  }
+  for (const [id, pattern] of record.childLists) {
+    const own = (childrenMap.get(id) ?? []).filter(
+      (child) => !pattern.includes(child),
+    );
+    let ownIndex = 0;
+    const next: T[] = [];
+    for (const slot of pattern) {
+      if (slot) next.push(slot);
+      else if (ownIndex < own.length) next.push(own[ownIndex++]!);
+    }
+    while (ownIndex < own.length) next.push(own[ownIndex++]!);
+    childrenMap.set(id, next);
+  }
+}
 
 function buildChildrenMapFromElements<T extends CanonicalRefResolvableNode>(
   elements: Iterable<T>,
@@ -388,7 +483,21 @@ function getStackedDescendantPatch<T extends CanonicalRefResolvableNode>(
   return merged;
 }
 
+const patchPropsCache = new WeakMap<object, Record<string, unknown>>();
+
+/** descendants patch → props patch. 결과는 patch 객체마다 공유 (불변 입력 — ADR-234 G4: 정적 목록 항목의
+ *  label patch 를 build 마다 다시 분해했다). 호출자는 결과를 고치지 않는다. */
 function propsFromDescendantPatch(
+  patch: Record<string, unknown>,
+): Record<string, unknown> {
+  const hit = patchPropsCache.get(patch);
+  if (hit) return hit;
+  const props = computePropsFromDescendantPatch(patch);
+  patchPropsCache.set(patch, props);
+  return props;
+}
+
+function computePropsFromDescendantPatch(
   patch: Record<string, unknown>,
 ): Record<string, unknown> {
   const {
@@ -572,8 +681,14 @@ function materializeOverrideChildren<T extends CanonicalRefResolvableNode>(
   resultElements: T[],
   pathPrefix: string,
   templateBindings?: Record<string, unknown>,
+  lookupResult?: (ref: string) => T | undefined,
 ): void {
   const syntheticChildren: T[] = [];
+  // 결과 map 조회 — 해석 호출 단위 조회가 오면 그것 (id 우선 · legacy 색인), 없으면 선형 탐색 (종전).
+  const lookupOverrideMaster =
+    lookupResult ??
+    ((target: string) =>
+      resolveCanonicalRefMaster(target, resultElementsMap.values()));
 
   overrideChildren.forEach((child, index) => {
     if (!isRecord(child)) return;
@@ -603,6 +718,7 @@ function materializeOverrideChildren<T extends CanonicalRefResolvableNode>(
           resultElements,
           nextPath,
           templateBindings,
+          lookupResult,
         );
       }
       return;
@@ -640,8 +756,6 @@ function materializeOverrideChildren<T extends CanonicalRefResolvableNode>(
     } as T;
 
     const overrideRef = getCanonicalRefTarget(syntheticChild);
-    const lookupOverrideMaster = (target: string) =>
-      resolveCanonicalRefMaster(target, resultElementsMap.values());
     const overrideMaster = overrideRef
       ? lookupOverrideMaster(overrideRef)
       : undefined;
@@ -704,6 +818,7 @@ function materializeOverrideChildren<T extends CanonicalRefResolvableNode>(
             { owner: syntheticChild, mountPath: "" },
             ...stateLayerOwner(syntheticChild, overrideStateLayer),
           ],
+          ...(lookupResult ? { lookupMaster: lookupResult, lookupResult } : {}),
         },
       );
       return;
@@ -722,6 +837,7 @@ function materializeOverrideChildren<T extends CanonicalRefResolvableNode>(
         resultElements,
         nextPath,
         templateBindings,
+        lookupResult,
       );
     }
   });
@@ -746,6 +862,8 @@ type MaterializeContext<T extends CanonicalRefResolvableNode> = {
   lookupMaster?: (ref: string) => T | undefined;
   /** ADR-229 — descendants patch 소유자 스택 (바깥 instance 가 [0]). 없으면 refElement 하나. */
   patchOwners?: readonly DescendantPatchOwner<T>[];
+  /** ADR-234 G4 — 결과 map 조회 (mode C 자식의 origin · 상태 층). 없으면 결과 map 선형 탐색. */
+  lookupResult?: (ref: string) => T | undefined;
 };
 
 function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
@@ -762,10 +880,12 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
   context: MaterializeContext<T> = {},
 ): void {
   if (visitedSourceIds.has(sourceParent.id)) return;
+  const sourceChildren = sourceChildrenMap.get(sourceParent.id);
+  // 자식 없는 source (leaf label 등) — 할 일 없음 (ADR-234 G4: 항목마다 방문 집합을 복제했다).
+  if (!sourceChildren || sourceChildren.length === 0) return;
 
   const nextVisitedSourceIds = new Set(visitedSourceIds);
   nextVisitedSourceIds.add(sourceParent.id);
-  const sourceChildren = sourceChildrenMap.get(sourceParent.id) ?? [];
   const syntheticChildren: T[] = [];
   const patchOwners: readonly DescendantPatchOwner<T>[] =
     context.patchOwners ?? [{ owner: refElement, mountPath: "" }];
@@ -906,6 +1026,7 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
           resultElements,
           path,
           templateBindings,
+          context.lookupResult,
         );
       } else {
         materializeSyntheticDescendants(
@@ -924,6 +1045,7 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
           nextVisitedSourceIds,
           {
             lookupMaster,
+            lookupResult: context.lookupResult,
             patchOwners: [
               ...patchOwners,
               { owner: sourceChild, mountPath: path },
@@ -963,6 +1085,7 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
           resultElements,
           path,
           templateBindings,
+          context.lookupResult,
         );
       } else {
         materializeSyntheticDescendants(
@@ -981,6 +1104,14 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
       }
       return;
     }
+
+    // ADR-234 G4 — 유효 `enabled: false` 인 자식은 만들지 않는다 (scene 이 해석 뒤 subtree 째 빼는 노드 —
+    //   `pruneDisabledSceneNodes`). 정적 Tag instance 500 개가 숨긴 Icon · Avatar 1,000 개를 만들고 버렸다.
+    const effectiveEnabled =
+      patch && typeof patch.enabled === "boolean"
+        ? patch.enabled
+        : (sourceChild as { enabled?: unknown }).enabled;
+    if (effectiveEnabled === false) return;
 
     const syntheticChild = {
       ...sourceChild,
@@ -1003,9 +1134,6 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
       ...patchEnabledField(patch),
       reusable: undefined,
     } as T;
-    // ADR-234 G4 — 유효 `enabled: false` 인 자식은 만들지 않는다 (scene 이 해석 뒤 subtree 째 빼는 노드 —
-    //   `pruneDisabledSceneNodes`). 정적 Tag instance 500 개가 숨긴 Icon · Avatar 1,000 개를 만들고 버렸다.
-    if ((syntheticChild as { enabled?: unknown }).enabled === false) return;
 
     resultElements.push(syntheticChild);
     resultElementsMap.set(syntheticId, syntheticChild);
@@ -1028,6 +1156,7 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
         resultElements,
         path,
         templateBindings,
+        context.lookupResult,
       );
     } else {
       materializeSyntheticDescendants(
@@ -1127,7 +1256,8 @@ export function resolveCanvasVariantState<T extends CanonicalRefResolvableNode>(
   // ADR-234 Phase 3 — 정적 목록 항목 (TabList 의 Tab · TagList 의 Tag) 은 owner 의 선택 key 가 정본이다.
   //   항목 origin 은 선택 상태라 `_isSelected: true` 를 갖고 instance 가 그것을 상속하므로 자기 값보다
   //   먼저 본다.
-  const ownerType = selected === undefined ? ITEM_SELECTION_OWNER[element.type] : undefined;
+  const ownerType =
+    selected === undefined ? ITEM_SELECTION_OWNER[element.type] : undefined;
   const selectionOwner = ownerType
     ? findAncestor(element, elementsMap, (node) => node.type === ownerType)
     : undefined;
@@ -1388,6 +1518,7 @@ export function resolveCanonicalRefTree<
   childrenMap?: Map<string, T[]> | null;
   elements: T[];
   elementsMap: Map<string, T>;
+  reuse?: CanonicalRefTreeReuse<T>;
 }): ResolvedCanonicalRefTree<T> {
   const sourceChildrenMap =
     input.childrenMap ??
@@ -1400,20 +1531,53 @@ export function resolveCanonicalRefTree<
   //   (600 instance × 850 노드 × 3 pass — page-switch p95 +4 ms 실측). origin 은 id 로 참조되므로
   //   map 조회를 먼저 하고, legacy 참조 (customId · name) 만 선형 탐색으로 떨어진다. 같은 origin
   //   은 한 번만 찾는다.
-  const masterCache = new Map<string, T | undefined>();
+  //   ADR-234 G4 — legacy 참조 폴백도 호출 단위 색인 하나 (상태 층 집합이 없는 변형 id 를 origin 마다 최대
+  //   6 번 묻는데, 매번 문서 전체를 훑어 항목 수 × 문서 크기로 늘었다).
+  let referenceIndex: Map<string, T> | null = null;
   const lookupMaster = (ref: string): T | undefined => {
-    if (masterCache.has(ref)) return masterCache.get(ref);
-    const master =
-      input.elementsMap.get(ref) ??
-      resolveCanonicalRefMaster(ref, input.elementsMap.values());
-    masterCache.set(ref, master);
-    return master;
+    const direct = input.elementsMap.get(ref);
+    if (direct) return direct;
+    referenceIndex ??= buildReferenceIndex(input.elementsMap.values());
+    return referenceIndex.get(ref);
+  };
+  // 결과 map 조회 (mode C 자식 — 종전 결과 map 선형 탐색과 같은 대상, id 우선). 색인은 id 만 싣고 값은
+  //   지금 결과 map 에서 — 해석으로 바뀐 노드를 읽는다.
+  let resultIndex: Map<string, T> | null = null;
+  const lookupResult = (ref: string): T | undefined => {
+    const direct = elementsMap.get(ref);
+    if (direct) return direct;
+    resultIndex ??= buildReferenceIndex(elementsMap.values());
+    const id = resultIndex.get(ref)?.id;
+    return id ? elementsMap.get(id) : undefined;
   };
   const indexById = new Map<string, number>();
   elements.forEach((candidate, index) => indexById.set(candidate.id, index));
+  const replaceResolvedRoot = (element: T, resolvedRoot: T) => {
+    elementsMap.set(element.id, resolvedRoot);
+    const index = indexById.get(element.id) ?? -1;
+    if (index >= 0) elements[index] = resolvedRoot;
+    // ADR-234 Phase 3 — 부모의 자식 목록도 같은 객체로 (scene `sceneChildrenByParent` 를 읽는
+    //   소비자가 해석 전 props — 상태 층 전 — 를 보지 않게).
+    const parentId = getParentId(element);
+    const siblings = parentId ? childrenMap.get(parentId) : undefined;
+    const siblingIndex = siblings?.indexOf(element) ?? -1;
+    if (siblings && siblingIndex >= 0) {
+      const nextSiblings = [...siblings];
+      nextSiblings[siblingIndex] = resolvedRoot;
+      childrenMap.set(parentId!, nextSiblings);
+    }
+  };
 
   for (const element of input.elements) {
     if (!isCanonicalRefElement(element)) continue;
+    const reused = input.reuse?.previous?.get(element.id);
+    if (reused) {
+      replaceResolvedRoot(element, reused.root);
+      replayRefInstanceResolution(reused, elementsMap, childrenMap, elements);
+      input.reuse!.next.set(element.id, reused);
+      continue;
+    }
+    const startLength = elements.length;
     const ref = getCanonicalRefTarget(element);
     const directMaster = ref ? lookupMaster(ref) : undefined;
     // ADR-234 Phase 1 — master 가 다시 ref (변형) 면 체인을 따라간다: root props 는 접힌 체인 master
@@ -1452,23 +1616,15 @@ export function resolveCanonicalRefTree<
       : resolvedRootBase;
     const resolvedRoot =
       resolvedRootLayered !== element
-        ? withItemSelectionFlag(resolvedRootLayered, resolvedRootBase, elementsMap)
+        ? withItemSelectionFlag(
+            resolvedRootLayered,
+            resolvedRootBase,
+            elementsMap,
+          )
         : resolvedRootLayered;
     if (resolvedRoot !== element) {
       markResolvedRef(resolvedRoot);
-      elementsMap.set(element.id, resolvedRoot);
-      const index = indexById.get(element.id) ?? -1;
-      if (index >= 0) elements[index] = resolvedRoot;
-      // ADR-234 Phase 3 — 부모의 자식 목록도 같은 객체로 (scene `sceneChildrenByParent` 를 읽는
-      //   소비자가 해석 전 props — 상태 층 전 — 를 보지 않게).
-      const parentId = getParentId(element);
-      const siblings = parentId ? childrenMap.get(parentId) : undefined;
-      const siblingIndex = siblings?.indexOf(element) ?? -1;
-      if (siblings && siblingIndex >= 0) {
-        const nextSiblings = [...siblings];
-        nextSiblings[siblingIndex] = resolvedRoot;
-        childrenMap.set(parentId!, nextSiblings);
-      }
+      replaceResolvedRoot(element, resolvedRoot);
     }
 
     if (!ref || !chain) continue;
@@ -1486,6 +1642,7 @@ export function resolveCanonicalRefTree<
       new Set(),
       {
         lookupMaster,
+        lookupResult,
         patchOwners: [
           { owner: element, mountPath: "" },
           ...stateLayerOwner(element, stateLayer),
@@ -1501,6 +1658,16 @@ export function resolveCanonicalRefTree<
       childrenMap,
       elements,
     );
+    if (input.reuse) {
+      const record = recordRefInstanceResolution(
+        element,
+        startLength,
+        elementsMap,
+        childrenMap,
+        elements,
+      );
+      if (record) input.reuse.next.set(element.id, record);
+    }
   }
 
   return { childrenMap, elements, elementsMap };
@@ -1530,7 +1697,12 @@ function dropBoundListStaticItems<T extends CanonicalRefResolvableNode>(
   const items = listChildren.filter((child) => child.type === family.itemType);
   if (items.length === 0) return;
   for (const item of items) {
-    removeSyntheticDescendantElements(item.id, elementsMap, childrenMap, elements);
+    removeSyntheticDescendantElements(
+      item.id,
+      elementsMap,
+      childrenMap,
+      elements,
+    );
     elementsMap.delete(item.id);
     childrenMap.delete(item.id);
     const index = elements.indexOf(item);

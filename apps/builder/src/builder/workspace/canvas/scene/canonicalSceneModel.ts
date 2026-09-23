@@ -6,7 +6,10 @@ import type {
 } from "@composition/shared";
 
 import { canonicalDocumentToFrameElementScopes } from "../../../../adapters/canonical/frameElementScope";
-import { resolveCanonicalRefTree } from "../../../utils/canonicalRefResolution";
+import {
+  resolveCanonicalRefTree,
+  type RefInstanceResolution,
+} from "../../../utils/canonicalRefResolution";
 import type { PageElementIndex } from "../../../stores/utils/elementIndexer";
 import {
   type CanvasSceneGraph,
@@ -89,16 +92,49 @@ function buildSceneParentById(
   return parentById;
 }
 
+/**
+ * ADR-234 G4 — 직전 scene build 의 ref instance 해석 결과 (한 칸). 문서 · 해석 입력 옵션 (collections ·
+ * 프로젝트 변수) 이 같으면 재사용한다 — breakpoint · collection window 는 projection 노드만 바꾸고 ref
+ * 해석은 projection 노드를 건너뛰므로 입력이 아니다 (바인딩 목록 결과는 해석기가 기록하지 않는다).
+ */
+let lastRefResolution: {
+  doc: CompositionDocument;
+  collections: BuildCanonicalSceneModelOptions["collections"];
+  projectVariables: BuildCanonicalSceneModelOptions["projectVariables"];
+  records: Map<string, RefInstanceResolution<CanvasSceneNode>>;
+} | null = null;
+
+/** 테스트 · 진단용 — 다음 build 가 재사용 없이 전부 해석하게 한다. */
+export function resetSceneRefResolutionReuse(): void {
+  lastRefResolution = null;
+}
+
 function resolveSceneGraph(
+  doc: CompositionDocument,
   graph: CanvasSceneGraph,
   options: BuildCanonicalSceneModelOptions,
   documentNodesById: Map<string, CanonicalNode>,
 ): CanvasSceneGraph {
+  const previous =
+    lastRefResolution &&
+    lastRefResolution.doc === doc &&
+    lastRefResolution.collections === options.collections &&
+    lastRefResolution.projectVariables === options.projectVariables
+      ? lastRefResolution.records
+      : null;
+  const next = new Map<string, RefInstanceResolution<CanvasSceneNode>>();
   const resolved = resolveCanonicalRefTree({
     childrenMap: graph.childrenByParent,
     elements: graph.nodes,
     elementsMap: graph.nodesMap,
+    reuse: { previous, next },
   });
+  lastRefResolution = {
+    doc,
+    collections: options.collections,
+    projectVariables: options.projectVariables,
+    records: next,
+  };
 
   const resolvedGraph: CanvasSceneGraph = {
     childrenByParent: resolved.childrenMap,
@@ -236,6 +272,7 @@ export function buildCanonicalSceneModel(
   const nodesMap = buildSceneNodeMap(nodes);
   const childrenByParent = buildSceneChildrenByParent(nodes, doc);
   const sceneGraph = resolveSceneGraph(
+    doc,
     buildCanvasSceneGraph(doc, {
       collections: options.collections,
       collectionWindows: options.collectionWindows,
