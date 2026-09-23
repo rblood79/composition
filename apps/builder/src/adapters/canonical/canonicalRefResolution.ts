@@ -997,6 +997,9 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
       ...patchEnabledField(patch),
       reusable: undefined,
     } as T;
+    // ADR-234 G4 — 유효 `enabled: false` 인 자식은 만들지 않는다 (scene 이 해석 뒤 subtree 째 빼는 노드 —
+    //   `pruneDisabledSceneNodes`). 정적 Tag instance 500 개가 숨긴 Icon · Avatar 1,000 개를 만들고 버렸다.
+    if ((syntheticChild as { enabled?: unknown }).enabled === false) return;
 
     resultElements.push(syntheticChild);
     resultElementsMap.set(syntheticId, syntheticChild);
@@ -1168,6 +1171,35 @@ export function resolveCanvasVariantState<T extends CanonicalRefResolvableNode>(
   };
 }
 
+/**
+ * ADR-234 G4 — origin 의 상태 층 집합은 한 번의 해석 안에서 같다. 해석 호출마다 새로 만드는 `lookupMaster`
+ * 를 키로 호출 단위 캐시 (정적 목록 항목 instance 500 개가 같은 origin 을 가리키면 집합을 500 번 만들었다).
+ */
+const stateLayerSetCache = new WeakMap<
+  (ref: string) => unknown,
+  Map<string, ReturnType<typeof buildStateLayerSet>>
+>();
+
+function cachedStateLayerSet<T extends CanonicalRefResolvableNode>(
+  originId: string,
+  lookupMaster: (ref: string) => T | undefined,
+): ReturnType<typeof buildStateLayerSet> {
+  let byOrigin = stateLayerSetCache.get(lookupMaster);
+  if (!byOrigin) {
+    byOrigin = new Map();
+    stateLayerSetCache.set(lookupMaster, byOrigin);
+  }
+  if (byOrigin.has(originId)) return byOrigin.get(originId)!;
+  const set = buildStateLayerSet(
+    originId,
+    (id) =>
+      lookupMaster(id) as unknown as
+        import("@composition/shared").CanonicalNode | undefined,
+  );
+  byOrigin.set(originId, set);
+  return set;
+}
+
 /** origin 의 상태 변형 층 중 지금 켜진 것의 합성. 변형이 없거나 켜진 층이 없으면 null. */
 function resolveCanvasStateLayer<T extends CanonicalRefResolvableNode>(
   originId: string,
@@ -1175,12 +1207,7 @@ function resolveCanvasStateLayer<T extends CanonicalRefResolvableNode>(
   elementsMap: Map<string, T>,
   lookupMaster: (ref: string) => T | undefined,
 ): StateLayer | null {
-  const set = buildStateLayerSet(
-    originId,
-    (id) =>
-      lookupMaster(id) as unknown as
-        import("@composition/shared").CanonicalNode | undefined,
-  );
+  const set = cachedStateLayerSet(originId, lookupMaster);
   if (!set) return null;
   return resolveActiveStateLayer(
     set,

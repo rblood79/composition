@@ -248,3 +248,22 @@
 - `propagationRegistry` 의 `Tabs → TabList` · `TagGroup → TagList` `items` 복사 (`override: true`) 는 owner 에 `items` 가 있을 때만 동작한다 (`propagationEngine` — `parentValue === undefined` 면 건너뜀). 이관된 정적 owner 는 `items` 가 없어 목록 틀에 아무것도 쓰지 않고, 바인딩 owner 는 그대로 전파 (projection 입력). production 에서 깨지는 경로가 없어 코드는 바꾸지 않았고 unit 1 로 고정 (동작 변경 0 — 축소 절차).
 - Phase 3 (G3) 범위: Tabs (3a) · TagGroup (3b) · 항목 label 글자 (3c) · ListBox (3d) · GridList (3e) · Menu (3f) · items-manager 바인딩 전용 (3b) · 전파 규칙 (위). 커밋 7d2116bd2 · 1207e8b5e · 89e2721b4 · 97fe079d7 · c93e781e3 · 0c9dc94db.
 - 기록 (후속 후보, 결함 아님): ① 문서의 plain owner 를 이관한 뒤 바인딩하면 정적 자식과 데이터 행이 같이 보인다 (ref instance 만 거른다) · ② Canvas 는 선택 Tag chip 에 accent 배경을 그리지 않는다 (3c 기록) · ③ Tabs 바인딩은 Canvas projection 이 없다 (Preview 만 데이터 행) · ④ AI tool 의 정적 항목 작성은 범위 밖 (Phase 0 표).
+
+### Phase 4 — G4 성능 A/B (2026-09-23, **기준 미달 — 보고**)
+
+- 하니스 `apps/builder/scripts/adr234-g4-perf-ab.mjs` (ADR-233 G3 계승): 같은 세션 · headed · arm 교대 · pair 3 · warm-up 3 · 표본 7 · Home 만 보이게 · DPR 1 · visibility visible. 두 arm 모두 runtime 에 넣은 문서 plain owner (hydration 이관을 안 거침): **items** = 이관 전 모델 (owner `items` 5 행 → Canvas projection 가상 행) · **instance** = 234 모델 (목록 틀 자식 = 항목 origin instance 5). fixture: Tabs 100 × 5 · TagGroup 100 × 5. 조작: 항목 origin padding · 휴지 변형 (`--unselected`) padding (영향 대화상자 적용) · breakpoint. 모든 표본 재구성 (rebuilt 7/7).
+- 결과 — `scene.build` p95 의 pair median (ms, instance − items):
+
+| fixture  | 조작        | items | instance |    Δ |
+| -------- | ----------- | ----: | -------: | ---: |
+| Tabs     | origin 편집 |  12.6 |     14.8 | +2.2 |
+| Tabs     | 변형 편집   |  12.1 |     14.6 | +2.5 |
+| Tabs     | breakpoint  |   6.8 |      8.7 | +1.9 |
+| TagGroup | origin 편집 |  10.1 |     13.7 | +3.6 |
+| TagGroup | 변형 편집   |   9.5 |     14.4 | +4.9 |
+| TagGroup | breakpoint  |   5.1 |      8.0 | +2.9 |
+
+- 판정: 기준 Δ ≤ +1 ms **미달** (6/6). 원인 분해 (node, 같은 fixture — `buildCanvasSceneGraph` / `resolveCanonicalRefTree` 단계별): scene visit 단계는 같고 ref 해석 단계만 는다 — 항목이 실제 노드 (항목 + label = 행당 2 노드, ref 병합 · 상태 층 · 선택 owner 조회) 라 projection 가상 행 (행당 1 노드) 보다 비싸다. origin · 변형 편집은 모든 instance 를 다시 풀어야 하므로 문서 간 캐시로 닫히지 않는다 (breakpoint 는 캐시 대상이지만 그것만으로 +1 을 못 맞춘다).
+- 적용한 절감 (동작 변경 0): ① 상태 층 집합을 해석 호출 단위로 캐시 (`cachedStateLayerSet` — 같은 origin 을 가리키는 instance 500 개가 집합을 500 번 만들었다, −0.4 ms) · ② 유효 `enabled: false` 자식은 만들지 않음 (Tag 의 숨긴 Icon · Avatar 1,000 개 생성 후 prune 하던 것, tag −1.0 ms). node 기준 Δ: tabs +1.3 → +1.2 · tag +2.6 → +1.6.
+- Preview hover 재렌더 비교는 사용자 지시 (Preview iframe 미개방) 로 재지 않았다.
+- **남은 결정 (사용자)**: 기준을 조정할지 (예: 항목당 비용 · 규모별 상한) 또는 해석 증분화 (편집 영향 instance 만 재해석) 를 별도 작업으로 할지.
