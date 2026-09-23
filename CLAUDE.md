@@ -46,6 +46,7 @@ env: `apps/builder/.env.example` → `.env` (필수 키 없음 — 인증은 로
 - Codex 와 Claude 는 `.agent/task-state.json` 을 같은 작업 상태 파일로 읽습니다.
 - 세션 시작과 프롬프트에 표시되는 상태를 작업 계약으로 사용하고, 작업 시작·단계 전환·검증 완료·차단 발생 때 JSON 을 갱신합니다.
 - `goal`, `guard`, `stop` 은 사용자 승인 없이 바꾸지 않습니다. 상태 파일은 로컬 전용이며 커밋하지 않습니다.
+- `next` 는 **현재 작업의 체크리스트**다 — 끝난 항목은 `[x]` 로 표시하고, 작업 중 새로 찾은 일은 추가한다. 작업이 끝나면 그 작업의 키는 `.agent/task-state-archive-YYYY-MM.json` 으로 옮긴다 (이력을 상태 파일에 쌓지 않는다). hook 렌더러 (`~/.agent-work/task-state.py`) 가 읽는 키는 `goal` · `phase` · `next` · `guard` · `stop` · `tip` · `updatedAt` 뿐이다.
 
 ## 작업 워크플로
 
@@ -126,12 +127,13 @@ CSS/Skia 두 타겟 × 5 레이어 (spec/factory/CSS renderer/Skia renderer/edit
 
 - 대규모 리팩토링: `isolation: "worktree"` 격리 에이전트. 독립 작업 2+ 개: Agent tool 병렬 호출 (단일 응답에 복수 agent)
 - 생성-평가 분리: 구현은 메인 세션, 검증은 `/review` (정적) · `/evaluate` (런타임) 격리 fork
+- 서브에이전트 보고는 받아들이기 전에 근거 (파일:라인 · 실행 출력) 를 직접 확인한다 — 결론만 옮겨 적지 않는다
 - worktree 통합은 main 직접 merge (PR 경유 금지) — 절차: `.claude/rules/git-workflow.md` §3
 - `/loop`: 렌더링 파리티 반복 검증에 적합
 
 ---
 
-**마지막 지침**: 항상 **Plan 먼저 → Execute → Verify (`/cross-check` + `type-check`)**. 불확실한 부분이 아래 4개 결정 지점에 해당하면 질문을 먼저 한다. 그 외의 불확실성은 가정 대신 코드·문서 실측으로 해소한 뒤 자율 진행 + 사후 보고한다.
+**마지막 지침**: 항상 **Plan 먼저 → Execute → Verify (`/cross-check` + `type-check`)**. 불확실한 부분이 아래 4개 결정 지점에 해당하면 질문을 먼저 한다. 그 외의 불확실성은 가정 대신 코드·문서 실측으로 해소한 뒤 자율 진행 + 사후 보고한다. 진행 상황 메모는 다음 행동과 같은 메시지에 쓰고 (보고만 하고 멈추지 않는다), 파괴적 작업 — 데이터·파일 삭제 · force-push · 저장소 밖 변경 — 앞에서는 멈추고 확인한다.
 
 **응답·문서 어휘 규칙**: 정본은 `~/.claude/CLAUDE.md` (글로벌 — 3단계 선택 순서 + 금지/대체 표, 모든 프로젝트 적용). 커밋 메시지는 `.claude/hooks/protect-commit-vocabulary.sh` 가 검사. 항목별 사유·지적 이력: 메모리 `feedback-vocabulary-hanja-coinage-history`.
 
