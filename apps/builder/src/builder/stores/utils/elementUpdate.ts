@@ -21,8 +21,9 @@ import { getDB } from "../../../lib/db";
 import { globalToast } from "../toast";
 import {
   getEditingSemanticsImpactInstanceIds,
-  getEditingSemanticsRole,
+  isEditingSemanticsOrigin,
 } from "../../utils/editingSemantics";
+import { readStateVariantSelf } from "../../components/stateVariantOrigins";
 import { requestEditingSemanticsImpactConfirmation } from "../../utils/editingSemanticsImpactConfirmation";
 import {
   applyElementOrderCanonicalPrimary,
@@ -482,13 +483,30 @@ function nowMs(): number {
 function getOriginImpactContext(
   element: OriginImpactTarget,
 ): OriginImpactContext | null {
-  if (getEditingSemanticsRole(element) !== "origin") return null;
+  // origin 축 술어로 판정한다 — role 은 instance 를 먼저 골라 `ref` + `reusable` dual 노드
+  // (ADR-234 상태 변형 `<origin>--<state>`) 를 origin 에서 빼버린다.
+  if (!isEditingSemanticsOrigin(element)) return null;
 
   const startedAt = nowMs();
-  const impactedInstanceIds = getEditingSemanticsImpactInstanceIds(
-    element,
-    getProjectableNodes(),
-  ).sort();
+  const nodes = getProjectableNodes();
+  // 상태 변형은 base origin 의 모든 instance 에 층으로 쌓이므로 그 instance 도 영향 대상이다.
+  const variant = readStateVariantSelf(element);
+  const impacted = new Set(
+    getEditingSemanticsImpactInstanceIds(element, nodes),
+  );
+  if (variant) {
+    for (const id of getEditingSemanticsImpactInstanceIds(
+      { id: variant.variantOf },
+      nodes,
+    )) {
+      impacted.add(id);
+    }
+  }
+  // 상태 변형 노드는 origin 의 ref 지만 사용자 instance 가 아니다 — base 편집에서도 세지 않는다.
+  const impactedInstanceIds = nodes
+    .filter((node) => impacted.has(node.id) && !readStateVariantSelf(node))
+    .map((node) => node.id)
+    .sort();
   const countDurationMs = nowMs() - startedAt;
   if (countDurationMs > 100) {
     console.warn(

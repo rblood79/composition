@@ -184,6 +184,83 @@ describe("origin impact preview", () => {
     });
   });
 
+  it("상태 변형 origin (ref + reusable) 편집은 base origin 의 instance 영향으로 확인을 묻는다", async () => {
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
+    const origin = makeElement("btn", {
+      reusable: true,
+      props: { label: "Origin" },
+    });
+    // ADR-234: 변형 = origin 의 ref + reusable. 층은 base origin 의 모든 instance 에 쌓인다.
+    const hover = makeElement("btn--hover", {
+      type: "ref",
+      ref: "btn",
+      reusable: true,
+      metadata: { variant: "hover" },
+      props: {},
+    } as never);
+    const pressed = makeElement("btn--pressed", {
+      type: "ref",
+      ref: "btn",
+      reusable: true,
+      metadata: { variant: "pressed" },
+      props: {},
+    } as never);
+    const instance = makeElement("instance", {
+      type: "ref",
+      ref: "btn",
+    } as never);
+
+    const all = [origin, hover, pressed, instance];
+    useStore.setState({
+      elements: all,
+      elementsMap: new Map(all.map((element) => [element.id, element])),
+    } as never);
+    useStore.getState()._rebuildIndexes();
+    seedCanonicalFromStore();
+
+    await useStore.getState().updateElementProps("btn--hover", {
+      label: "Hovered",
+    });
+
+    // 형제 변형 (btn--pressed) 은 instance 가 아니다 — 사용자 instance 1개만 센다.
+    expect(confirmSpy).toHaveBeenCalledWith(
+      "Editing this component will affect 1 instance. Continue?",
+    );
+    expect(useStore.getState().elementsMap.get("btn--hover")?.props).toEqual(
+      {},
+    );
+  });
+
+  it("base origin 편집의 영향 instance 수에 자기 상태 변형은 세지 않는다", async () => {
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
+    const variantOf = (state: string) =>
+      makeElement(`btn--${state}`, {
+        type: "ref",
+        ref: "btn",
+        reusable: true,
+        metadata: { variant: state },
+        props: {},
+      } as never);
+    const all = [
+      makeElement("btn", { reusable: true, props: { label: "Origin" } }),
+      variantOf("hover"),
+      variantOf("pressed"),
+      makeElement("instance", { type: "ref", ref: "btn" } as never),
+    ];
+    useStore.setState({
+      elements: all,
+      elementsMap: new Map(all.map((element) => [element.id, element])),
+    } as never);
+    useStore.getState()._rebuildIndexes();
+    seedCanonicalFromStore();
+
+    await useStore.getState().updateElementProps("btn", { label: "Edited" });
+
+    expect(confirmSpy).toHaveBeenCalledWith(
+      "Editing this component will affect 1 instance. Continue?",
+    );
+  });
+
   it("canonical 문서가 없으면 legacy-only origin을 수정하지 않음", async () => {
     const origin = makeElement("origin", {
       reusable: true,

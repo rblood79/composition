@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [상태 변형 origin 편집에도 영향 확인 대화상자가 뜬다] - 2026-09-24
+
+### Fixed
+
+- **Components 페이지의 상태 변형 (`--hover` · `--unselected` 등) 을 편집하면 영향 확인 없이 바로 바뀌던 문제를 고쳤다.** 이제 base origin 의 instance 목록을 보여 주는 대화상자가 먼저 뜨고, 취소하면 편집되지 않는다.
+  - **Why**: ADR-234 부터 상태 변형은 origin 의 `ref` 이면서 `reusable` 이다. 영향 게이트는 역할 하나 (`getEditingSemanticsRole`) 로 판정했는데, 이 함수가 instance 를 먼저 골라 변형을 origin 에서 빼버렸다. 또 변형 층은 base origin 의 모든 instance 에 쌓이는데 영향 집계는 변형을 직접 ref 한 노드만 셌다.
+- **base origin 편집의 영향 instance 수에 자기 상태 변형이 섞여 부풀던 문제를 고쳤다** (ListBoxItem 기본 origin: 4 → 3). 변형 노드는 origin 의 ref 지만 사용자 instance 가 아니다.
+  - 위치: `apps/builder/src/builder/stores/utils/elementUpdate.ts` (`getOriginImpactContext`)
+
 ## [캔버스에서 TagGroup Allows Removing 의 X 버튼이 다시 보인다] - 2026-09-24
 
 ### Fixed
