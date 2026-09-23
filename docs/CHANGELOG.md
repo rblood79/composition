@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [팔레트로 놓은 필드의 Label · Input 등에 "부모에서 편집" 안내가 안 뜨던 문제 수리] - 2026-09-23
+
+### Fixed
+
+- **팔레트로 놓은 TextField 등에서 Label · Input · FieldError 를 고르면 Styles · Properties 패널이 편집 칸을 다 열던 문제를 고쳤다.** 이 자식들은 부모 필드가 그리는 요소라 여기서 바꾼 값은 캔버스에도 Preview 에도 나타나지 않는다 — 이제 예전 문서와 같이 "부모에서 편집하는 요소입니다" 안내가 뜬다.
+  - **Why**: 판정이 화면용 store 에서 자식과 부모를 찾았는데, 팔레트 배치는 instance 라 그 자식이 store 에 없다 (instance 를 펼쳐 만든 가상 자식). 판정이 항상 "sub-part 아님" 으로 끝났다.
+  - 캔버스 resize 핸들 · padding/gap 띠도 같은 판정으로 이런 자식에서는 세션을 열지 않는다.
+  - 위치: `apps/builder/src/builder/stores/canonical/subpartOwnerLookup.ts` (신규), `apps/builder/src/builder/panels/delegatedSubpart.ts`, `apps/builder/src/builder/workspace/canvas/hooks/useResizeInteraction.ts`, `apps/builder/src/builder/presentation/editorPresentationSpacingCapability.ts`
+
 ## [레이어 패널 이동 · 그룹 · 그룹 해제의 중첩 규칙 우회 수리] - 2026-09-23
 
 ### Fixed

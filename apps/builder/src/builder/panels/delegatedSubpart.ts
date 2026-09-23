@@ -14,12 +14,11 @@
  * **owner** (직계 parent 또는 조부모 field) 로 귀속한다: Properties · Styles 패널은 owner 가 있으면 안내만 띄우고,
  * Canvas read 경로 (fullTreeLayout · buildSpecNodeData) 는 같은 shared 술어로 인라인을 무시한다.
  */
-import {
-  resolveDelegatedSubpartOwnerType,
-  resolveSubpartStyleOwnerType,
-} from "@composition/shared";
-
 import { useStore } from "../stores";
+import {
+  resolveDelegatedSubpartOwnerTypeById,
+  resolveSubpartStyleOwnerTypeById,
+} from "../stores/canonical/subpartOwnerLookup";
 
 /** 정본은 shared 의 토큰 표 + 그룹 목록 (`resolveDelegatedSubpartOwnerType`). */
 export function isDelegatedSubpart(
@@ -36,20 +35,10 @@ export function isDelegatedSubpart(
 export function useSelectedSubpartOwnerType(
   elementId: string | null | undefined,
 ): string | null {
-  return useStore((s) => {
-    if (!elementId) return null;
-    const el = s.elementsMap.get(elementId);
-    const parent = el?.parent_id ? s.elementsMap.get(el.parent_id) : undefined;
-    if (!el || !parent) return null;
-    const grandparent = parent.parent_id
-      ? s.elementsMap.get(parent.parent_id)
-      : undefined;
-    return resolveDelegatedSubpartOwnerType(
-      el.type,
-      parent.type,
-      grandparent?.type,
-    );
-  });
+  // instance 의 synthetic 자식 (팔레트 배치 기본) 은 store 에 없다 — id 판정기가 해소 트리에서 읽는다.
+  return useStore((s) =>
+    resolveDelegatedSubpartOwnerTypeById(elementId, s.elementsMap),
+  );
 }
 
 /**
@@ -60,14 +49,7 @@ export function useSelectedSubpartOwnerType(
 export function useSelectedSubpartStyleOwnerType(
   elementId: string | null | undefined,
 ): string | null {
-  return useStore((s) => {
-    if (!elementId) return null;
-    const el = s.elementsMap.get(elementId);
-    const parent = el?.parent_id ? s.elementsMap.get(el.parent_id) : undefined;
-    if (!el || !parent) return null;
-    const grandparent = parent.parent_id
-      ? s.elementsMap.get(parent.parent_id)
-      : undefined;
-    return resolveSubpartStyleOwnerType(el.type, parent.type, grandparent?.type);
-  });
+  return useStore((s) =>
+    resolveSubpartStyleOwnerTypeById(elementId, s.elementsMap),
+  );
 }

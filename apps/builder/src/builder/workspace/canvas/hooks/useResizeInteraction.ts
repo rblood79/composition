@@ -14,6 +14,7 @@
 import { useCallback, useEffect, useRef, type RefObject } from "react";
 import { useStore } from "../../../stores";
 import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
+import { resolveSubpartStyleOwnerTypeById } from "../../../stores/canonical/subpartOwnerLookup";
 import { useViewportSyncStore } from "../stores";
 import { requestCanvasFrame } from "../skia/frameScheduler";
 import { getSceneBounds } from "../skia/renderCommands";
@@ -40,7 +41,6 @@ import {
   setActiveResizeSession,
 } from "../../../presentation/editorPresentationResizeSession";
 import { editorPresentationFillPilotRuntime } from "../../../presentation/editorPresentationFillPilot";
-
 
 let nextOwnerId = 1;
 
@@ -124,18 +124,21 @@ export function useResizeInteraction({
     [gestureSession],
   );
 
-  const onMove = useCallback((drag: ResizeDragState, dxClient: number, dyClient: number) => {
-    drag.session.setSize(
-      resolveResizeRequest({
-        handle: drag.handle,
-        startBounds: drag.startBounds,
-        dx: dxClient / drag.startZoom,
-        dy: dyClient / drag.startZoom,
-        lock: drag.lock,
-        position: drag.position,
-      }),
-    );
-  }, []);
+  const onMove = useCallback(
+    (drag: ResizeDragState, dxClient: number, dyClient: number) => {
+      drag.session.setSize(
+        resolveResizeRequest({
+          handle: drag.handle,
+          startBounds: drag.startBounds,
+          dx: dxClient / drag.startZoom,
+          dy: dyClient / drag.startZoom,
+          lock: drag.lock,
+          position: drag.position,
+        }),
+      );
+    },
+    [],
+  );
   usePointerDragLifecycle({ dragRef, endDrag, onMove });
 
   // 선택이 바뀌면 (다른 요소 · 해제) 세션 취소 — 잡고 있던 요소의 값을 다른 선택에 저장하지 않는다
@@ -159,11 +162,17 @@ export function useResizeInteraction({
     (elementId, handle, bounds, event, cursor) => {
       if (dragRef.current) return false;
       const store = useStore.getState();
+      // read-only sub-part (TextField 의 Label 등) 의 크기는 owner rule 이 정한다 — 여기서 쓴 값은
+      //   layout · Skia · DOM 이 모두 무시한다. 패널과 같은 판정으로 세션을 열지 않는다.
+      if (resolveSubpartStyleOwnerTypeById(elementId, store.elementsMap)) {
+        return false;
+      }
       const sizing = store.readCanvasSizingContext(elementId);
       if (!sizing) return false;
       const projectId = useCanonicalDocumentStore.getState().currentProjectId;
       if (!projectId) return false;
-      if (!gestureSession.promoteElement(event.pointerId, "resize")) return false;
+      if (!gestureSession.promoteElement(event.pointerId, "resize"))
+        return false;
 
       const lock = resolveResizeRatioLock(sizing.effectiveStyle, sizing.fill);
       // 요청될 축 = 핸들이 닿는 축, Ratio 면 driver 하나 — 그 축들의 Fill 파생 CSS 만 미리보기에서 지운다

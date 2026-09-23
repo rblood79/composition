@@ -135,6 +135,23 @@ export function getSyntheticDescendantLookup(
   };
 }
 
+/**
+ * instance 의 해소된 type (origin type — `ref` 가 아니라 `TextField` 등). instance 가 아니거나 해소
+ * 실패면 null. synthetic 자식의 부모 type 판정 (sub-part owner) 에 쓴다.
+ */
+export function getResolvedInstanceType(
+  instanceId: string | null | undefined,
+): string | null {
+  if (!instanceId) return null;
+  const document = getActiveCanonicalDocument();
+  if (!document) return null;
+  const rootLookup = getLastProjectableNodeLookupById(instanceId);
+  if (!rootLookup) return null;
+  const tree = resolveInstanceTree(document, rootLookup);
+  const resolved = tree?.elementsMap.get(instanceId);
+  return typeof resolved?.type === "string" ? resolved.type : null;
+}
+
 /** synthetic 자식의 synthetic 자식들 (Button 의 Icon/Text 등) — resolved children map. */
 export function getSyntheticDescendantChildren(
   elementId: string | null | undefined,

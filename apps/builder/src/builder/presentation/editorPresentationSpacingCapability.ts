@@ -26,6 +26,7 @@ import {
 } from "@composition/shared";
 import { useStore } from "../stores";
 import { useCanonicalDocumentStore } from "../stores/canonical/canonicalDocumentStore";
+import { resolveSubpartStyleOwnerTypeById } from "../stores/canonical/subpartOwnerLookup";
 import { shouldWriteBreakpointOverride } from "../stores/utils/responsiveWriteRouting";
 import {
   editorPresentationCanonicalRuntimeOptions,
@@ -149,15 +150,16 @@ export interface SpacingCapabilityInputs {
   readonly locked: boolean;
 }
 
-const SPACING_SHORTHAND_OF: Readonly<Record<SpacingProperty, "padding" | "gap">> =
-  {
-    paddingTop: "padding",
-    paddingRight: "padding",
-    paddingBottom: "padding",
-    paddingLeft: "padding",
-    rowGap: "gap",
-    columnGap: "gap",
-  };
+const SPACING_SHORTHAND_OF: Readonly<
+  Record<SpacingProperty, "padding" | "gap">
+> = {
+  paddingTop: "padding",
+  paddingRight: "padding",
+  paddingBottom: "padding",
+  paddingLeft: "padding",
+  rowGap: "gap",
+  columnGap: "gap",
+};
 
 interface RoutedSpacingRaw {
   /** 쓰기 목적지의 raw 값 (tier override 또는 base) — provenance 판정 대상 */
@@ -176,10 +178,10 @@ function readRoutedSpacingRaw(
 ): RoutedSpacingRaw {
   const raw = normalizePresentationSpacingStyle(input.rawStyle);
   const breakpoint = input.activeBreakpoint;
-  if (breakpoint === "desktop") return { value: raw[property], shadowed: false };
+  if (breakpoint === "desktop")
+    return { value: raw[property], shadowed: false };
   const styles = input.responsive?.styles as
-    | Record<string, ResponsiveValue<unknown> | undefined>
-    | undefined;
+    Record<string, ResponsiveValue<unknown> | undefined> | undefined;
   if (shouldWriteBreakpointOverride(input.responsive, property, breakpoint)) {
     return { value: styles?.[property]?.[breakpoint], shadowed: false };
   }
@@ -440,6 +442,10 @@ export function resolveSpacingCapability(
   const state = useStore.getState();
   const element = state.elementsMap.get(target.nodeId);
   if (!element) return null;
+  // read-only sub-part (SelectTrigger 래퍼 등) 의 padding · gap 은 owner rule 이 정한다 — 띠를 내지 않는다.
+  if (resolveSubpartStyleOwnerTypeById(target.nodeId, state.elementsMap)) {
+    return null;
+  }
   const rootKey = element.page_id ?? null;
   if (!rootKey) return null;
 
