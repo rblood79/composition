@@ -95,12 +95,7 @@ paths:
 
 ## CSS shorthand ↔ longhand store 정책
 
-- `gap`/`padding`/`margin` shorthand 와 `rowGap`/`columnGap`/`paddingTop`/... longhand 가 element.props.style 에 **공존 시**:
-  - React `setValueForStyles` rerender 경고 "Removing a style property during rerender"
-  - `applyCommonEngineStyle` 적용 순서 (`gap → rowGap/columnGap`) 로 longhand 가 shorthand override → Panel 편집 무시
-- **정책**: store 는 항상 **longhand 만**. `inspectorActions.updateSelectedStyle` / `updateSelectedStylePreview` 가 shorthand 편집 입력을 longhand 로 분배 (gap → rowGap+columnGap, padding → padding{Top,Right,Bottom,Left}, margin → margin{Top,Right,Bottom,Left}). shorthand 자체는 `delete currentStyle[property]`
-- Factory 초기값은 longhand 로 저장 (예: ProgressBar `rowGap: 4, columnGap: 12`). React inline style 은 항상 longhand 만 직렬화 → collision 완전 제거
-- `useLayoutValues.gap` 표시는 `firstDefined(s.rowGap ?? s.columnGap ?? s.gap, numToPx(specPreset.gap), "0px")` — longhand 우선, legacy shorthand fallback
+store 는 **longhand 만** 저장하고 consumer 는 longhand 우선 + shorthand fallback 으로 읽는다. 정본: [style-ssot.md](style-ssot.md) §정책 (분배 진입점 · Why · 읽기 패턴).
 
 ## 2-Pass re-enrichment
 
@@ -231,11 +226,7 @@ paths:
 
 ## Container style pipeline 연계 (ADR-907 Implemented)
 
-collection/self-render 컨테이너의 `calculateContentHeight()` 분기는 **Layer D Spec metric SSOT** 원칙에 따라 `render.shapes()` 와 **동일 resolver 심볼**을 호출해야 한다. 상세 계약은 [canvas-rendering.md §2.6](canvas-rendering.md) 참조.
-
-- **GridList**: `resolveGridListSpacingMetric()` (packages/specs/src/renderers/utils/collectionItemMetrics.ts) 를 utils.ts GridList 분기에서 import 하여 Skia shape 경로와 공유. 기존 `parseNumericValue(style.gap) ?? 12` ad-hoc 파싱 금지
-- **paddingY \* 2 패턴 금지**: 4-way padding 수용 → `paddingTop + paddingBottom` (ADR-907 Wave B)
-- **신규 자체 분기 추가 시**: (1) spec 에 `resolve{Component}SpacingMetric` 또는 `resolveContainerSpacing` 직접 호출 / (2) utils.ts 분기가 같은 resolver import / (3) `{Component}.spacing.test.ts` 에 Layer D contract 검증 추가
+collection/self-render 컨테이너의 `calculateContentHeight()` 분기는 `render.shapes()` 와 **동일 resolver 심볼**을 호출한다 (Layer D). 계약 · 신규 분기 체크리스트 · 금지 패턴 정본: [canvas-rendering.md §2.6](canvas-rendering.md). 예: GridList 는 `resolveGridListSpacingMetric()` (`packages/specs/src/renderers/utils/collectionItemMetrics.ts`) 공유.
 
 ## 기타 규칙
 

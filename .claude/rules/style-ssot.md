@@ -2,7 +2,9 @@
 description: Style SSOT — store longhand 정책과 element.props.style consumer 읽기 계약 (ADR-909)
 paths:
   - "packages/specs/**"
-  - "apps/builder/src/builder/panels/**"
+  - "apps/builder/src/builder/panels/styles/**"
+  - "apps/builder/src/builder/panels/properties/**"
+  - "apps/builder/src/builder/panels/settings/**"
   - "apps/builder/src/builder/stores/**"
   - "apps/builder/src/builder/components/property/**"
   - "apps/builder/src/builder/workspace/canvas/layout/**"
@@ -24,7 +26,11 @@ composition Inspector 의 `distributeShorthand` (inspectorActions.ts) 는 CSS sh
 | `padding`           | `paddingTop`, `paddingRight`, `paddingBottom`, `paddingLeft` |
 | `margin`            | `marginTop`, `marginRight`, `marginBottom`, `marginLeft`     |
 
-**Why**: React inline-style shorthand+longhand 공존 시 rerender 경고 + 레이아웃 엔진 어댑터 `applyCommonEngineStyle` 순서 (gap → rowGap/columnGap override) 경합 방지.
+**Why**: React inline-style shorthand+longhand 공존 시 rerender 경고 ("Removing a style property during rerender") + 레이아웃 엔진 어댑터 `applyCommonEngineStyle` 순서 (gap → rowGap/columnGap override) 로 longhand 가 shorthand 를 덮어 Panel 편집 무시.
+
+- 분배 진입점: `inspectorActions.updateSelectedStyle` / `updateSelectedStylePreview` — shorthand 자체는 `delete style[property]`
+- Factory 초기값도 longhand 로 저장 (예: ProgressBar `rowGap: 4, columnGap: 12`)
+- `useLayoutValues.gap` 표시는 `firstDefined(s.rowGap ?? s.columnGap ?? s.gap, numToPx(specPreset.gap), "0px")`
 
 **Consumer 제약**: `element.props.style` 을 읽는 모든 consumer (spec render.shapes, layout utils, Inspector UI) 는 **longhand 우선 + shorthand fallback** 으로 읽어야 한다.
 

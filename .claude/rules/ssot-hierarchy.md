@@ -53,14 +53,7 @@ composition 아키텍처는 **3개의 독립 domain**으로 구성된다. 각 do
   - 수동 CSS가 SSOT(catalog 또는 잔존 spec)에서 파생이 아니라 독립 정의
   - `@sync` 주석으로 CSS 파일 간 참조 (SSOT 거치지 않은 consumer-to-consumer)
   - Skia 전용 시각 표현 (DOM/CSS로 재현 불가능한 효과를 도입)
-  - (잔존 spec 3개 한정) VariantSpec 또는 IndicatorModeSpec 에 `background` / `backgroundHover` / `backgroundPressed` / `selectedBackground*` / `outlineBackground` / `subtleBackground` / `backgroundAlpha` 등 **legacy 개별 background 필드 신규 도입** (ADR-908 Phase 4 로 fill preset SSOT 통합, `FillTokenSpec` / `FillStateTokens` 단일 소스)
-
-**D3 Fill 계열 SSOT (ADR-908 Implemented 2026-04-24)**:
-
-- VariantSpec 의 배경 계열 10+ 필드 + IndicatorModeSpec 의 background\* 는 모두 `FillTokenSpec` (fillStyle × state 2축) + `FillStateTokens` 로 통합됨.
-- 신규 spec 작성 시 `variants[name].fill = { default: { base, hover?, pressed?, selected?, ... }, outline?, subtle?, alpha? }` 구조 사용.
-- consumer 는 항상 `resolveFillTokens(variant)` / `resolveIndicatorFill(im)` 경유로 fill 접근 (direct property access 금지).
-- 비-background 색상 (`text / border / textHover / borderHover / selectedText / outlineText / subtleText / selectedBorder / emphasizedSelectedText / emphasizedSelectedBorder`) 는 VariantSpec 직접 필드로 유지 — fill preset 언어로의 확장은 후속 ADR 판정.
+  - (잔존 spec 3개 한정) legacy 개별 background 필드 신규 도입 — fill 은 `FillTokenSpec` / `FillStateTokens` 단일 소스 (ADR-908). 구조 · consumer 규약 · 금지 패턴 정본: [canvas-rendering.md §2.5.5](canvas-rendering.md)
 
 **D3 read-only sub-part — field 가족의 FieldError · Label · Input · DateInput 자식 (ADR-923 Phase 5 후속 잔여 1 + Label/Input 판정, 2026-09-03 사용자 판정 A × 2)**:
 
