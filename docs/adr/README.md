@@ -97,7 +97,7 @@
 
 #### [234](234-variant-instances-and-slot-filled-collections.md) — 상태 변형 = origin 의 instance · 목록 = slot 을 채운 instance 자식 (Pencil · RAC 정렬)
 
-- **상태**: Proposed (2026-09-23)
+- **상태**: Proposed (2026-09-23) — Codex 리뷰 2 round 종결 (pending 0 · LOW 1 deferred, [reviews/234](reviews/234.md)), 승인 대기
 - **규모**: ref 체인 (Preview resolver · Canvas scene) + canonical `enabled` → 변형 31 을 origin 의 reusable ref + 덮어쓰기로 (origin = 가장 완성된 상태 · 관리 키 4 제한 폐지 · Preview 는 RAC render props) → slot 을 목록 틀 (TabList · TagList · ListBox · GridList · Menu) 로 옮기고 instance 자식으로 목록 채움 (Tabs 는 TabPanel 짝) → 이관 (시각 보존) · 성능 A/B. 066 (정적 목록 한정) · 148 · 229 · 230 · 233 일부 대체
 - **우선순위**: 사용자 요청 2026-09-23 (AskUserQuestion — 범위 전부 · 바인딩만 items · `enabled`)
 
