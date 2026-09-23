@@ -82,14 +82,59 @@ function withSlotMetadata(
   };
 }
 
+/** ADR-234 Phase 3d~3f — 목록 틀이 곧 owner 인 가족 (항목 = 자기 자식). */
+const SELF_LIST_OWNER_TYPES: ReadonlySet<string> = new Set([
+  "ListBox",
+  "GridList",
+  "Menu",
+]);
+
+/**
+ * root ref instance 가 목록 틀 = owner 인 가족의 instance 면 체인 끝 origin. 패널은 root instance 를 raw (`ref`,
+ * slot 없음) 로 받으므로 origin 의 slot 을 추천 목록으로 보여 주고 "+" 는 instance 자기 자식으로 넣는다.
+ */
+function resolveSelfListInstanceMaster(
+  element: SlotElement | undefined,
+  elementsById: ReadonlyMap<string, PanelNode>,
+): SlotElement | null {
+  if (!element || element.type !== "ref") return null;
+  let current: SlotElement | undefined = element;
+  for (let depth = 0; current?.type === "ref" && depth < 8; depth += 1) {
+    const ref: unknown = (current as { ref?: unknown }).ref;
+    current =
+      typeof ref === "string"
+        ? (elementsById.get(ref) as SlotElement | undefined)
+        : undefined;
+  }
+  if (!current || !SELF_LIST_OWNER_TYPES.has(current.type)) return null;
+  return Array.isArray(current.slot) ? current : null;
+}
+
 export const FrameSlotSection = memo(function FrameSlotSection({
   elementId,
 }: {
   elementId: string;
 }) {
-  const element = useCanonicalPropertyElement(elementId) as
+  const rawElement = useCanonicalPropertyElement(elementId) as
     SlotElement | undefined;
   const elementsById = useCanonicalPropertyElementsMap();
+  const instanceListMaster = useMemo(
+    () => resolveSelfListInstanceMaster(rawElement, elementsById),
+    [rawElement, elementsById],
+  );
+  // instance 는 origin 의 slot 을 읽기 전용으로 쓴다 (추천 목록 편집은 origin 에서).
+  const isInstanceListHost = instanceListMaster != null;
+  const element = useMemo(
+    () =>
+      instanceListMaster && rawElement
+        ? ({
+            ...instanceListMaster,
+            id: rawElement.id,
+            page_id: rawElement.page_id,
+          } as SlotElement)
+        : rawElement,
+    [instanceListMaster, rawElement],
+  );
   const { t } = useI18n();
   const addElement = useStore((state) => state.addElement);
   const updateElement = useStore((state) => state.updateElement);
@@ -187,7 +232,9 @@ export const FrameSlotSection = memo(function FrameSlotSection({
   };
 
   const handleInsertDefault = (id: string) => {
-    const latestElement = elementsById.get(element.id) ?? element;
+    const latestElement = isInstanceListHost
+      ? element
+      : (elementsById.get(element.id) ?? element);
     if (!latestElement) return;
     const candidate = resolvePanelReference(id, elementsById);
     if (!candidate) return;
@@ -302,7 +349,7 @@ export const FrameSlotSection = memo(function FrameSlotSection({
         </fieldset>
       </div>
 
-      {isActive ? (
+      {isInstanceListHost ? null : isActive ? (
         <button
           aria-label={t("propertiesPanel.slotDisable")}
           className="control-button"
@@ -326,7 +373,7 @@ export const FrameSlotSection = memo(function FrameSlotSection({
 
       {isActive && (
         <>
-          {reusableCandidates.length > 0 && (
+          {!isInstanceListHost && reusableCandidates.length > 0 && (
             <div className="fieldset-row frame-slot-picker" data-wide="true">
               <PropertySelect
                 label="Recommended component"
@@ -374,14 +421,16 @@ export const FrameSlotSection = memo(function FrameSlotSection({
                         <AddIcon aria-hidden="true" size={12} />
                       </button>
                     )}
-                    <button
-                      aria-label={`Remove ${item.label}`}
-                      className="list-row__action frame-slot-remove"
-                      onClick={() => handleRemoveRecommendation(item.id)}
-                      type="button"
-                    >
-                      <Minus aria-hidden="true" size={12} />
-                    </button>
+                    {isInstanceListHost ? null : (
+                      <button
+                        aria-label={`Remove ${item.label}`}
+                        className="list-row__action frame-slot-remove"
+                        onClick={() => handleRemoveRecommendation(item.id)}
+                        type="button"
+                      >
+                        <Minus aria-hidden="true" size={12} />
+                      </button>
+                    )}
                   </div>
                 </div>
               ))

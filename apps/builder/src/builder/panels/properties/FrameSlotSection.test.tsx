@@ -467,4 +467,71 @@ describe("FrameSlotSection", () => {
     expect(second.selectedKeys).toEqual(["a", secondItems[2].id]);
     expect(addElement).not.toHaveBeenCalled();
   });
+  /**
+   * ADR-234 Phase 4 live (2026-09-23): ListBox · GridList · Menu 의 ref instance 는 raw (`ref`, slot 없음) 로
+   * 들어온다 — 패널은 체인 끝 origin 의 slot 을 추천 목록으로 보여 주고 "+" 는 instance 자기 자식 항목을 넣는다.
+   * 추천 목록 편집 (Enable/Disable · Remove · picker) 은 origin 에서만.
+   */
+  it("ListBox instance host: origin slot 을 보여 주고 Insert → instance 자기 자식 항목 (추천 편집 UI 없음)", async () => {
+    const listOrigin = makeElement("lb-origin", {
+      type: "ListBox",
+      reusable: true,
+      slot: ["lb-item-origin"],
+    });
+    const instance = makeElement("lb-inst", {
+      type: "ref",
+      ref: "lb-origin",
+    });
+    const addElement = vi.fn(async () => {});
+    useStore.setState({
+      addElement,
+      elements: [listOrigin, instance],
+      elementsMap: new Map([
+        ["lb-origin", listOrigin],
+        ["lb-inst", instance],
+      ]),
+    });
+    seedCanonicalFromStore();
+
+    // legacy merge 는 root 의 `ListBoxItem` element 를 items 로 흡수한다 — 항목 origin 은 canonical-first 시드.
+    const canonical = useCanonicalDocumentStore.getState();
+    const doc = canonical.getDocument("frame-slot-section-project")!;
+    canonical.setDocument("frame-slot-section-project", {
+      ...doc,
+      children: doc.children.map((node) =>
+        node.id === "page-1"
+          ? {
+              ...node,
+              children: [
+                ...(node.children ?? []),
+                {
+                  id: "lb-item-origin",
+                  type: "ListBoxItem",
+                  name: "ListBoxItem/Default",
+                  reusable: true,
+                  props: {},
+                },
+              ],
+            }
+          : node,
+      ),
+    } as typeof doc);
+    renderWithI18n(<FrameSlotSection elementId="lb-inst" />);
+
+    const insert = screen.getByRole("button", { name: /^Insert / });
+    expect(screen.queryByRole("button", { name: "Disable slot" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Enable slot" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Remove / })).toBeNull();
+
+    fireEvent.click(insert);
+    await waitFor(() => expect(addElement).toHaveBeenCalledTimes(1));
+    const [added] = addElement.mock.calls[0] as unknown as [
+      Record<string, unknown>,
+    ];
+    expect(added).toMatchObject({
+      parent_id: "lb-inst",
+      type: "ref",
+      ref: "lb-item-origin",
+    });
+  });
 });
