@@ -257,7 +257,11 @@ describe("Option B — ListBox anchor-less migration", () => {
       deps,
     );
 
-    const gridList = findNode(doc.children, (node) => node.type === "GridList");
+    // ADR-234 Phase 3e — Components 페이지 GridList origin 은 이제 정적 카드 자식 3 을 가지므로 id 로 찾는다.
+    const gridList = findNode(
+      doc.children,
+      (node) => node.type === "GridList" && node.reusable !== true,
+    );
     expect(gridList).toBeDefined();
     expect(gridList!.children ?? []).toHaveLength(0);
   });

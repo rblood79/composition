@@ -163,6 +163,7 @@ const COLLECTION_ONLY_INTERNAL_RENDERERS: Readonly<Record<string, string>> = {
   tab: "tabs",
   tag: "taggroup",
   listboxitem: "listbox",
+  gridlistitem: "gridlist",
 };
 
 /** ADR-234 Phase 3 — RAC key 를 `props.id` (정적 항목 key) 로 내는 항목 type. */
@@ -170,6 +171,7 @@ const STATIC_ITEM_TYPES: ReadonlySet<string> = new Set([
   "Tab",
   "Tag",
   "ListBoxItem",
+  "GridListItem",
 ]);
 
 /** ADR-234 Phase 3 — slot 자식 역할을 DOM `slot` 으로 내는 collection (소문자) · 역할. */

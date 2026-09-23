@@ -674,9 +674,9 @@ describe("ADR-234 Phase 3 — items 편집기는 바인딩 목록 전용", () =>
     expect(isStaticCollectionOwner(doc, "tg-1")).toBe(true);
     expect(isStaticCollectionOwner(doc, "tabs-1")).toBe(true);
     expect(isStaticCollectionOwner(doc, "bound-tg")).toBe(false);
-    // ListBox 는 3d 부터 정적 목록 (자기 자식 = ListBoxItem instance) · GridList 는 아직 items.
+    // ListBox (3d) · GridList (3e) 도 정적 목록 (자기 자식 = 항목 instance).
     expect(isStaticCollectionOwner(doc, "component-listbox")).toBe(true);
-    expect(isStaticCollectionOwner(doc, "component-gridlist")).toBe(false);
+    expect(isStaticCollectionOwner(doc, "component-gridlist")).toBe(true);
   });
 });
 
@@ -1076,5 +1076,185 @@ describe("ADR-234 Phase 3d — ListBox (목록 틀 = owner)", () => {
     });
     expect(resolveItemLabelTypography(icon, map)).toEqual({ fontSize: 16 });
     expect(resolveItemLabelTypography(label, map)).toBeNull();
+  });
+});
+
+describe("ADR-234 Phase 3e — GridList (목록 틀 = owner)", () => {
+  const gridListInstance = {
+    id: "gl-1",
+    type: "ref",
+    ref: "component-gridlist",
+    props: {},
+  } as unknown as CanonicalNode;
+
+  it("이관: GridList 자식 = GridListItem instance (key · label/description) · items 0 · 멱등", () => {
+    const doc = seededDoc([gridListInstance]);
+    const gl = findById(doc.children, "component-gridlist")!;
+    expect(gl.props?.items).toBeUndefined();
+    expect(gl.children).toHaveLength(3);
+    expect(gl.children![0]).toMatchObject({
+      type: "ref",
+      ref: "component-gridlist-item-default",
+      props: { id: "documents" },
+      descendants: {
+        Label: { children: "Documents" },
+        Description: { children: "12 files" },
+      },
+    });
+    expect(JSON.stringify(ensureReusableCompositeOrigins(doc))).toBe(
+      JSON.stringify(doc),
+    );
+  });
+
+  it("Canvas: 선택 = GridList selectedKeys → isSelected · 바인딩 instance 는 정적 카드 없음", () => {
+    const doc = seededDoc([
+      {
+        ...gridListInstance,
+        props: { selectionMode: "single", selectedKeys: ["images"] },
+      } as unknown as CanonicalNode,
+      {
+        id: "gl-b",
+        type: "ref",
+        ref: "component-gridlist",
+        props: { dataBinding: { source: "dataTable", name: "dt" } },
+      } as unknown as CanonicalNode,
+    ]);
+    const model = buildCanonicalSceneModel(doc, {
+      collections: [
+        { name: "dt", useMockData: true, mockData: [{ id: 1, label: "R1" }] },
+      ] as never,
+    });
+    const cards = model.sceneChildrenByParent.get("gl-1") ?? [];
+    expect(
+      cards.map((c) => (c.props as Record<string, unknown>).isSelected),
+    ).toEqual([undefined, true, undefined]);
+    const bound = model.sceneChildrenByParent.get("gl-b") ?? [];
+    expect(bound.every((k) => k.id.startsWith("projection:"))).toBe(true);
+  });
+
+  it("Preview: RAC row 3 · key · 선택 1 · 카드 글자 = label/description descendants", () => {
+    (globalThis as { ResizeObserver?: unknown }).ResizeObserver ??= class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    };
+    const doc = seededDoc([
+      {
+        ...gridListInstance,
+        props: { selectionMode: "single", selectedKeys: ["images"] },
+      } as unknown as CanonicalNode,
+    ]);
+    const resolved = findResolved(
+      resolveCanonicalDocument(doc) as ResolvedNode[],
+      "gl-1",
+    )!;
+    const { container } = renderResolved(resolved);
+    const rows = Array.from(
+      container.querySelectorAll(".react-aria-GridListItem"),
+    );
+    expect(rows.map((r) => r.getAttribute("data-key"))).toEqual([
+      "documents",
+      "images",
+      "downloads",
+    ]);
+    expect(rows.map((r) => r.hasAttribute("data-selected"))).toEqual([
+      false,
+      true,
+      false,
+    ]);
+    expect(rows[0]!.textContent).toBe("Documents12 files");
+    expect(
+      rows[0]!.querySelector('[slot="description"]')!.textContent,
+    ).toBe("12 files");
+  });
+
+  it("Slot +: GridList host → list-item · instance 는 자기 자식", () => {
+    const doc = seededDoc([gridListInstance]);
+    const gl = findById(doc.children, "component-gridlist")!;
+    expect(
+      resolveSlotInsertAction(
+        gl as unknown as Parameters<typeof resolveSlotInsertAction>[0],
+        findById(
+          doc.children,
+          "component-gridlist-item-default",
+        ) as unknown as Parameters<typeof resolveSlotInsertAction>[1],
+      ),
+    ).toEqual({ kind: "list-item" });
+    expect(
+      planTabItemInsert({
+        document: doc,
+        hostId: "gl-1",
+        candidateId: "component-gridlist-item-default",
+        newKey: "k4",
+      }),
+    ).toMatchObject({
+      kind: "plain",
+      tabListId: "gl-1",
+      tab: {
+        id: "gl-1__item-4",
+        props: { id: "k4" },
+        descendants: {
+          Label: { children: "GridListItem 4" },
+          Description: { enabled: false },
+        },
+      },
+    });
+  });
+
+  it("layout · Skia: 카드 label 600 (크기 기본) · description muted · 선택 카드 border 2 + padding −1", async () => {
+    const { applyImplicitStyles } = await import(
+      "../../workspace/canvas/layout/engines/implicitStyles"
+    );
+    const { resolveItemLabelTypography } = await import(
+      "../../workspace/canvas/skia/itemLabelInheritance"
+    );
+    const node = (
+      id: string,
+      type: string,
+      parent: string | null,
+      props: Record<string, unknown> = {},
+      metadata?: Record<string, unknown>,
+    ) => ({ id, type, parent_id: parent, props, ...(metadata ? { metadata } : {}) });
+    const card = node("c", "GridListItem", null, { isSelected: true });
+    const label = node("l", "Text", "c", { children: "A" }, { slotRole: "label" });
+    const desc = node("d", "Text", "c", { slot: "description", children: "b" });
+    const all = [card, label, desc];
+    const byId = new Map(all.map((n) => [n.id, n]));
+    const childrenOf = (id: string) => all.filter((n) => n.parent_id === id);
+    const result = applyImplicitStyles(card, childrenOf("c"), childrenOf, byId);
+    const st = (i: number) =>
+      result.filteredChildren[i]!.props.style as Record<string, unknown>;
+    expect(st(0)).toMatchObject({ fontWeight: 600, width: "100%" });
+    expect(st(0).fontSize).toBeUndefined();
+    expect(st(1).fontWeight).toBeUndefined();
+    expect(st(1).fontSize).toBeUndefined();
+    const ps = result.effectiveParent.props.style as Record<string, unknown>;
+    expect(ps).toMatchObject({
+      borderWidth: 2,
+      paddingTop: 11,
+      paddingLeft: 15,
+    });
+    expect(resolveItemLabelTypography(desc, byId)).toEqual({
+      color: "{color.neutral-subdued}",
+    });
+    // 정적 카드가 있는 GridList = grid 2열 (shared GridList inline) · 카드는 위에서 시작.
+    const gl = node("g", "GridList", null, { layout: "grid", columns: 2 });
+    const c1 = node("c1", "GridListItem", "g");
+    const c2 = node("c2", "GridListItem", "g");
+    const all2 = [gl, c1, c2];
+    const byId2 = new Map(all2.map((n) => [n.id, n]));
+    const childrenOf2 = (id: string) => all2.filter((n) => n.parent_id === id);
+    const glResult = applyImplicitStyles(gl, childrenOf2("g"), childrenOf2, byId2);
+    expect(glResult.effectiveParent.props.style).toMatchObject({
+      display: "grid",
+      gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
+      rowGap: 12,
+      columnGap: 12,
+    });
+    expect(
+      glResult.filteredChildren.map(
+        (c) => (c.props.style as Record<string, unknown>).justifyContent,
+      ),
+    ).toEqual(["flex-start", "flex-start"]);
   });
 });

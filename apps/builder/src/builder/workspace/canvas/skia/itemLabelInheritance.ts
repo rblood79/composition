@@ -68,6 +68,12 @@ export function resolveItemLabelTypography<T extends NodeLike>(
   if (item.type === "ListBoxItem") {
     return resolveListBoxItemSlotTypography(element);
   }
+  // 3e — GridList 카드 `[slot="description"] { color: var(--fg-muted) }` (크기는 Text 기본 그대로).
+  if (item.type === "GridListItem") {
+    return element.type === "Text" && propsOf(element).slot === "description"
+      ? { color: "{color.neutral-subdued}" }
+      : null;
+  }
   if (element.type !== "Text") return null;
   const ownerType = ITEM_LABEL_OWNERS[item.type];
   if (!ownerType) return null;

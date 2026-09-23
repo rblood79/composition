@@ -9,7 +9,7 @@ import { DialogTrigger } from "@composition/shared/components/DialogTrigger";
 import { Dialog } from "@composition/shared/components/Dialog";
 import { DropZone } from "@composition/shared/components/DropZone";
 import { FileUpload } from "@composition/shared/components/FileUpload";
-import { GridList } from "@composition/shared/components/GridList";
+import { GridList, GridListItem } from "@composition/shared/components/GridList";
 import { Icon } from "@composition/shared/components/Icon";
 import { IllustratedMessage } from "@composition/shared/components/IllustratedMessage";
 import { StatusLight } from "@composition/shared/components/StatusLight";
@@ -56,6 +56,8 @@ export const INTERNAL_RENDERERS: Readonly<
   taggroup: TagGroup,
   tag: Tag,
   gridlist: GridList,
+  // ADR-234 Phase 3e — GridList 정적 자식 (GridListItem instance).
+  gridlistitem: GridListItem,
   breadcrumbs: Breadcrumbs,
   tree: Tree,
   table: Table,
@@ -80,6 +82,7 @@ export const RENDER_PROPS_INTERNAL_RENDERERS: ReadonlySet<string> = new Set([
   "tab",
   "tag",
   "listboxitem",
+  "gridlistitem",
 ]);
 
 export const DELEGATING_INTERNAL_RENDERERS: ReadonlySet<string> =

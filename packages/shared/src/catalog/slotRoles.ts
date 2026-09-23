@@ -369,6 +369,7 @@ export const STATIC_LIST_FAMILY_BY_OWNER: Readonly<
   Tabs: { listType: "TabList", itemType: "Tab" },
   TagGroup: { listType: "TagList", itemType: "Tag" },
   ListBox: { listType: null, itemType: "ListBoxItem" },
+  GridList: { listType: null, itemType: "GridListItem" },
 };
 
 /**

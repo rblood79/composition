@@ -19,6 +19,7 @@ import { getCanonicalRefPathSegment } from "../../adapters/canonical/canonicalRe
 import { TAB_ITEM_DEFAULT_ORIGIN_ID } from "./tabs/tabsTemplateOrigins";
 import { TAG_ITEM_DEFAULT_ORIGIN_ID } from "./taggroup/tagGroupTemplateOrigins";
 import { LISTBOX_ITEM_DEFAULT_ORIGIN_ID } from "./listbox/listBoxTemplateOrigins";
+import { GRIDLIST_ITEM_DEFAULT_ORIGIN_ID } from "./gridlist/gridListTemplateOrigins";
 
 type RefLike = CanonicalNode & {
   ref?: string;
@@ -244,10 +245,33 @@ export const LISTBOX_STATIC_FAMILY: StaticCollectionFamily = {
   },
 };
 
+export const GRIDLIST_STATIC_FAMILY: StaticCollectionFamily = {
+  ownerType: "GridList",
+  listType: null,
+  itemType: "GridListItem",
+  itemPrefix: "item",
+  defaultOriginId: GRIDLIST_ITEM_DEFAULT_ORIGIN_ID,
+  buildItem(item, origin) {
+    return {
+      props: item.isDisabled === true ? { isDisabled: true } : {},
+      descendants: {
+        ...labelDescendant(origin, item.label ?? item.textValue ?? item.title),
+        ...optionalSlotDescendant(
+          origin,
+          "description",
+          item.description,
+          (children) => ({ children }),
+        ),
+      },
+    };
+  },
+};
+
 export const STATIC_COLLECTION_FAMILIES: readonly StaticCollectionFamily[] = [
   TABS_STATIC_FAMILY,
   TAGGROUP_STATIC_FAMILY,
   LISTBOX_STATIC_FAMILY,
+  GRIDLIST_STATIC_FAMILY,
 ];
 
 /** 목록 틀 — `listType` 자식, `null` 이면 owner 자신. */

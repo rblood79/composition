@@ -99,9 +99,10 @@ async function domCollectionHeight(
     style.overflow = overflowOverride;
     return { ...el, props: { ...props, style } } as Element;
   });
-  // ADR-234 Phase 3d — ListBox 는 정적 항목 instance 자식 (ListBoxItem > Icon · Text) 이라 production Preview 경로
-  //   (트리 전체 CanonicalNodeRenderer) 로 그린다 — legacy rendererMap 은 Text 자식을 못 그린다 (DOM 110 / 164).
-  const canonicalTree = tree.type === "ListBox";
+  // ADR-234 Phase 3d·3e — ListBox · GridList 는 정적 항목 instance 자식 (항목 > Icon · Text) 이라 production
+  //   Preview 경로 (트리 전체 CanonicalNodeRenderer) 로 그린다 — legacy rendererMap 은 Text 자식을 못 그린다
+  //   (DOM 110 · 64 / 164).
+  const canonicalTree = tree.type === "ListBox" || tree.type === "GridList";
   const first = await mountProductionRoot(
     flex,
     roots,

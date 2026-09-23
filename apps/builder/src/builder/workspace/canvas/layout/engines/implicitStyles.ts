@@ -1067,6 +1067,42 @@ function resolveListBoxItemSlotLayout(
   return hasSlot ? { children: next, iconSize } : null;
 }
 
+/**
+ * ADR-234 Phase 3e — GridListItem 의 slot 자식을 `GridList.css` 규칙대로: label (`.react-aria-Text:not([slot=
+ * "description"])`) = 600 · description = 크기 그대로 (둘 다 Text 기본 16). slot 역할 자식이 없으면 null.
+ */
+function resolveGridListItemSlotLayout(
+  children: CanvasLayoutNode[],
+): CanvasLayoutNode[] | null {
+  let hasSlot = false;
+  const next = children.map((child) => {
+    const role = getSlotRole(child);
+    if (!role || child.type !== "Text") return child;
+    hasSlot = true;
+    const cs = (child.props?.style as Record<string, unknown>) || {};
+    const sizeName = child.props?.size;
+    const sizeFontSize =
+      typeof sizeName === "string"
+        ? specSizeFontSize("text", sizeName)
+        : undefined;
+    return {
+      ...child,
+      props: {
+        ...child.props,
+        style: {
+          ...cs,
+          ...(cs.fontSize == null && sizeFontSize != null
+            ? { fontSize: sizeFontSize }
+            : {}),
+          ...(role === "label" ? { fontWeight: cs.fontWeight ?? 600 } : {}),
+          width: cs.width ?? "100%",
+        },
+      },
+    };
+  });
+  return hasSlot ? next : null;
+}
+
 /** GridListItem/ListBoxItem 자식 Text/Description에 CSS 정합성 fontSize/fontWeight/width 주입 */
 function injectCollectionItemFontStyles(
   children: CanvasLayoutNode[],
@@ -1715,7 +1751,39 @@ export function applyImplicitStyles(
     //   floor (행 수 × stride 164) 를 지킨다 (Chrome 실측: 부모 80 → 164). Canvas 만 hidden 이면
     //   scroll container 로 판정돼 floor 0 → 80 으로 갈린다 (`adr204ReachMatrix.browser.test.ts`).
     //   03-23 (`a87d4d898`) 주입은 사유 기록이 없고 catalog GridList rule 에도 overflow 가 없다.
-    if (layout === "grid") {
+    // ADR-234 Phase 3e — 정적 카드 (GridListItem instance 자식) 는 projection 행 묶음이 없으므로 OWNER 가 곧
+    //   grid 다: shared `GridList` 가 layout grid 에서 inline `display: grid; grid-template-columns:
+    //   repeat(columns, minmax(0, 1fr))` (+ GridList.css gap `--spacing-md`) 로 그린다.
+    const hasStaticCards = filteredChildren.some(
+      (child) => child.type === "GridListItem",
+    );
+    if (layout === "grid" && hasStaticCards) {
+      const columns = Math.max(1, Number(containerProps?.columns ?? 2) || 2);
+      effectiveParent = withParentStyle(containerEl, {
+        ...parentStyle,
+        display: "grid",
+        gridTemplateColumns: Array.from(
+          { length: columns },
+          () => "minmax(0, 1fr)",
+        ).join(" "),
+        rowGap: parentStyle.rowGap ?? parentStyle.gap ?? gap,
+        columnGap: parentStyle.columnGap ?? parentStyle.gap ?? gap,
+      });
+      // `.react-aria-GridList[data-layout="grid"] .react-aria-GridListItem { justify-content: flex-start }` —
+      //   행 높이가 이웃 카드로 늘어나도 내용은 위에서 시작한다.
+      filteredChildren = filteredChildren.map((child) => {
+        if (child.type !== "GridListItem") return child;
+        const cs = (child.props?.style as Record<string, unknown>) || {};
+        if (cs.justifyContent != null) return child;
+        return {
+          ...child,
+          props: {
+            ...child.props,
+            style: { ...cs, justifyContent: "flex-start" },
+          },
+        } as CanvasLayoutNode;
+      });
+    } else if (layout === "grid") {
       effectiveParent = withParentStyle(containerEl, {
         ...parentStyle,
         display: "flex",
@@ -1748,11 +1816,29 @@ export function applyImplicitStyles(
   //   넣는데 이 줄이 shorthand `gap` 을 덧씌워 둘이 공존했다 (style-ssot.md 금지 패턴).
   //   `borderWidth` 는 catalog sizes 에 없어 유지한다.
   if (containerTag === "gridlistitem") {
+    // ADR-234 Phase 3e — 선택 카드 = `GridList.css [data-selected]` (border 2 · padding 1 씩 줄여 크기 유지).
+    const selected =
+      containerProps?.isSelected === true &&
+      rawParentStyle.borderWidth == null;
+    const shrink = (key: string): Record<string, unknown> => {
+      const v = parentStyle[key];
+      return selected && rawParentStyle[key] == null && typeof v === "number"
+        ? { [key]: v - 1 }
+        : {};
+    };
     effectiveParent = withParentStyle(containerEl, {
       ...parentStyle,
-      borderWidth: parentStyle.borderWidth ?? 1,
+      borderWidth: selected ? 2 : (parentStyle.borderWidth ?? 1),
+      ...shrink("paddingTop"),
+      ...shrink("paddingRight"),
+      ...shrink("paddingBottom"),
+      ...shrink("paddingLeft"),
     });
-    filteredChildren = injectCollectionItemFontStyles(filteredChildren);
+    // slot 역할 자식 (정적 항목 · Components 페이지 origin) 은 GridList.css slot 규칙 — label 600 · 크기는
+    //   Text 기본 16 (`.react-aria-Text` 기본, 카드 76 정합), description 은 크기 그대로 (muted 는 Skia 색).
+    const slotChildren = resolveGridListItemSlotLayout(filteredChildren);
+    filteredChildren =
+      slotChildren ?? injectCollectionItemFontStyles(filteredChildren);
   }
 
   // ── ListBoxItem ───────────────────────────────────────────────

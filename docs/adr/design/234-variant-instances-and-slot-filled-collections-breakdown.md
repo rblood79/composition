@@ -219,3 +219,15 @@
 - 회귀: builder 7,219 pass / 5 fail · shared 1,398 / 2 · parity 1,487 / 4 (전부 착수 전부터) · type-check PASS · 엔진 434.
 - live (headless · 새 프로젝트): Components 페이지 ListBox = ListBoxItem ref 3 · `items` 0 · slot ListBox · 행 모양 = 이관 전 (왼쪽 icon · 굵은 label · muted description) · Slot "Insert ListBoxItem/Default" → 항목 4 (label 만 — 왼쪽 여백 12, 행 32) · reload 같음 · 오류 0.
 - 남은 Phase 3: GridList · Menu · 전파 규칙 정리. **기록**: 문서의 plain owner 를 이관한 뒤 바인딩하면 정적 자식과 데이터 행이 같이 보인다 (ref instance 만 거른다 — Components 페이지는 바인딩 없음 판정).
+
+### Phase 3e — GridList: 목록 = GridList 자기의 GridListItem instance 자식 (G3 일부, 2026-09-23)
+
+- **이관**: 가족 표에 `GRIDLIST_STATIC_FAMILY` (목록 틀 = owner 자신). 행 → `props.id` · `Label` · `Description` (값 없으면 `enabled: false`) · `isDisabled`. 바인딩 제외 표 (`STATIC_LIST_FAMILY_BY_OWNER`) 에도 GridList.
+- **Canvas layout**: 정적 카드가 있는 GridList 는 OWNER 자신이 grid (shared `GridList` inline 과 같은 `repeat(columns, minmax(0, 1fr))` · gap 12) 이고 카드는 `justify-content: flex-start` (`GridList.css [data-layout="grid"]`). projection 경로는 행 묶음이 grid 를 맡으므로 OWNER flex column 그대로. 카드 slot 자식: label 600 (크기 Text 기본 16) · description 크기 그대로 (종전 14 · 600 주입은 `GridList.css` 와 달랐다). 선택 카드 = border 2 · padding −1 (`[data-selected]`). Skia: description `{color.neutral-subdued}`.
+- **Preview**: internal `gridlistitem` = shared `GridListItem` (GridList 안에서만) · key = `props.id`. shared `GridListItem` 의 함수 children 지원은 원복 GREEN (GridListItem 에 상태 층 자손 patch 가 없어 production 이 닿지 않음) 이라 넣지 않았다.
+- **Slot "+"**: GridList host → `list-item` (ListBox 와 같은 계획 — instance 는 자기 자식).
+- unit 34 (3e 5) · 원복 RED 10/10 (unit 9 · parity 1) + 원복 GREEN 1 (위 함수 children — 제거).
+- parity: 새 `staticGridListItems` — 카드의 GridList 기준 x · y · 폭 · 높이 (2열) + 카드 안 label (17, 13, h24) · description (17, 39, h24) DOM = layout. ADR-204 · DC-6 게이트의 GridList 전제 (행 투영 · 주입 높이 164 · 높이 definite) 갱신 — 높이는 실제 자식으로 같은 164 / 80, matrix GridList 행도 production DOM 경로로 DOM = pipeline. `legacyListBoxTemplateMigration` 의 GridList 찾기를 사용자 노드로 좁힘 (origin 이 자식을 갖게 됨).
+- 회귀: builder 7,224 pass / 5 fail · shared 1,398 / 2 · parity 1,490 / 4 (전부 착수 전부터) · type-check PASS.
+- live: Components 페이지 GridList = GridListItem ref 3 · `items` 0 · 카드 2열 (930 폭 · 행 간격 12) · Slot "Insert GridListItem/Default" → 카드 4 (label 만, 위에서 시작 y 13) · reload 같음 · 오류 0.
+- 남은 Phase 3: Menu · 전파 규칙 정리.

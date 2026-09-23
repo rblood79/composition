@@ -227,6 +227,9 @@ export function resolveSlotInsertAction(
   if (isListBoxHost(host) && isListBoxItemTemplateVariant(candidate)) {
     return { kind: "list-item" };
   }
+  if (isGridListHost(host) && isGridListItemTemplateVariant(candidate)) {
+    return { kind: "list-item" };
+  }
   if (isTabsHost(host) && isTabItemTemplateVariant(candidate)) {
     return { kind: "none" };
   }
