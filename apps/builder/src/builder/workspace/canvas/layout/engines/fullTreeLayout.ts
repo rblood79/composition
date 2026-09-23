@@ -2247,7 +2247,12 @@ function traversePostOrder(
 
     // DFS post-order: 자식이 부모보다 먼저 enrichment → fontSize 미주입 상태로 계산됨
     // implicitStyles가 fontSize를 주입하면 height(lineHeight 기반) + fit-content width 재계산
-    if (modStyle.fontSize != null && modStyle.fontSize !== origStyle.fontSize) {
+    // 부모가 준 명시 height (ListBoxItem icon slot 상자 등) 는 줄 높이로 덮지 않는다.
+    if (
+      modStyle.fontSize != null &&
+      modStyle.fontSize !== origStyle.fontSize &&
+      modStyle.height == null
+    ) {
       const childFs =
         typeof modStyle.fontSize === "number"
           ? modStyle.fontSize

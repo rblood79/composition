@@ -1,5 +1,6 @@
 /**
  * ADR-234 Phase 3c — 목록 항목 (Tab · Tag) 안 label Text 는 항목의 글자 (크기 · 굵기 · 상태별 색) 를 상속한다.
+ * 3d — ListBoxItem 의 description slot 은 항목 CSS 의 slot 규칙 값.
  *
  * DOM: `.react-aria-Text` 가 자기 font-size · color 를 선언하므로 상속이 끊긴다 — 수동 CSS
  *   (`TabsIndicator.css` · `TagGroup.css`) 의 `.react-aria-Tab/Tag .react-aria-Text { … inherit }` 가 되살린다
@@ -61,9 +62,13 @@ export function resolveItemLabelTypography<T extends NodeLike>(
   element: T,
   elementsMap: ReadonlyMap<string, T>,
 ): ItemLabelTypography | null {
-  if (element.type !== "Text" || !element.parent_id) return null;
+  if (!element.parent_id) return null;
   const item = elementsMap.get(element.parent_id);
   if (!item) return null;
+  if (item.type === "ListBoxItem") {
+    return resolveListBoxItemSlotTypography(element);
+  }
+  if (element.type !== "Text") return null;
   const ownerType = ITEM_LABEL_OWNERS[item.type];
   if (!ownerType) return null;
   const rule = resolveSkiaRule(item.type);
@@ -126,6 +131,32 @@ export function resolveItemLabelTypography<T extends NodeLike>(
           ? variantWeight
           : undefined,
     color,
+  };
+}
+
+/** ListBox `[slot="description"]` 글자 크기 (`--text-xs`) · 줄 높이 (`--text-xs--line-height` = 4/3 배). */
+const LISTBOX_DESCRIPTION_FONT_SIZE = 12;
+const LISTBOX_ICON_SIZE = 16;
+
+/**
+ * ListBoxItem 의 slot 자식 (ADR-234 Phase 3d — 정적 항목 · Components 페이지 origin): DOM 은 항목 CSS
+ * (`ListBox.css` `[slot="description"] { font-size: var(--text-xs); line-height: var(--text-xs--line-height);
+ * color: var(--fg-muted) }`) 로 그린다. label 은 굵기만 다르고 (scene 이 catalog textWeight 를 주입) 크기는
+ * Text 기본 그대로라 여기서는 description 만. 값은 Skia `listbox_item` escape (projection 행) 와 같다.
+ */
+function resolveListBoxItemSlotTypography(
+  element: NodeLike,
+): ItemLabelTypography | null {
+  const slot = propsOf(element).slot;
+  // `[slot="icon"]` 상자 = `--lb-icon-size` (기본 16) — glyph 도 그 크기 (이관 전 행의 `<Icon fontSize 16>`).
+  if (element.type === "Icon" && slot === "icon") {
+    return { fontSize: LISTBOX_ICON_SIZE };
+  }
+  if (element.type !== "Text" || slot !== "description") return null;
+  return {
+    fontSize: LISTBOX_DESCRIPTION_FONT_SIZE,
+    lineHeight: `${Math.ceil((LISTBOX_DESCRIPTION_FONT_SIZE * 4) / 3)}px`,
+    color: "{color.neutral-subdued}",
   };
 }
 

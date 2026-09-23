@@ -158,12 +158,13 @@ describe("ADR-146 shared slot host policy", () => {
         { id: "button-origin", type: "Button" },
       ),
     ).toEqual({ kind: "child" });
+    // ADR-234 Phase 3d — ListBox 는 자기가 목록 틀: "+" = ListBoxItem instance 항목 (`collectionItemInsert`).
     expect(
       resolveSlotInsertAction(
         { id: "component-listbox", type: "ListBox", reusable: true },
         { id: LISTBOX_ITEM_DEFAULT_ORIGIN_ID, type: "ListBoxItem" },
       ),
-    ).toEqual({ kind: "child" });
+    ).toEqual({ kind: "list-item" });
   });
 
   /**

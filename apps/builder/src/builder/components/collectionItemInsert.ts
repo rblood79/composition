@@ -1,5 +1,5 @@
 /**
- * ADR-234 Phase 3 — Slot "+" = 목록 틀 (TabList · TagList) 에 항목 instance 삽입 (breakdown §4 Phase 3).
+ * ADR-234 Phase 3 — Slot "+" = 목록 틀 (TabList · TagList · ListBox) 에 항목 instance 삽입 (breakdown §4 Phase 3).
  *
  * Tabs 는 Tab `id` 로 TabPanel 을 짝지으므로 (RAC `id` 짝 규칙) Tab instance 와 TabPanel 을 함께 만든다.
  * - plain 목록 틀 (origin · 문서 Tabs): TabList 에 Tab ref 자식 · TabPanels 에 TabPanel 자식.
@@ -118,7 +118,7 @@ export function planTabItemInsert(input: {
   if (!origin) return null;
   const familyOf = (listType: string): StaticCollectionFamily | undefined =>
     STATIC_COLLECTION_FAMILIES.find(
-      (f) => f.listType === listType && origin.type === f.itemType,
+      (f) => (f.listType ?? f.ownerType) === listType && origin.type === f.itemType,
     );
   const newRow = (count: number) => ({
     id: newKey,
@@ -127,7 +127,32 @@ export function planTabItemInsert(input: {
   });
 
   if (!isSyntheticDescendantId(hostId)) {
-    const list = byId.get(hostId);
+    const host = byId.get(hostId);
+    // 목록 틀 = owner 인 가족 (ListBox) 의 instance — 항목은 instance 자기 자식으로 덧붙는다 (origin 항목 뒤,
+    //   두 leg 공통 의미). 번호는 origin 항목 + 자기 자식 수부터.
+    if (host?.type === "ref") {
+      const master = resolveChainEnd((host as RefLike).ref, byId);
+      const family = master ? familyOf(master.type) : undefined;
+      if (!master || !family || family.listType !== null) return null;
+      const count =
+        (master.children ?? []).length + (host.children ?? []).length;
+      const [item] = buildItemInstances(
+        family,
+        [newRow(count)],
+        host.id,
+        origin,
+        taken,
+        count,
+      );
+      return {
+        kind: "plain",
+        tabListId: host.id,
+        tab: item!,
+        tabPanelsId: null,
+        panel: null,
+      };
+    }
+    const list = host;
     const family = list ? familyOf(list.type) : undefined;
     if (!list || !family) return null;
     const owner = findParent(document, list.id);

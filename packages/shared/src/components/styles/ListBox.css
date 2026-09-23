@@ -139,6 +139,13 @@
       height: var(--lb-icon-size, 16px);
       color: inherit;
       pointer-events: none;
+
+      /* ADR-234 Phase 3d — 정적 항목의 icon 자식 (`.react-aria-Icon[slot="icon"]` 직계 svg) 은 상자를 채운다
+       * (이관 전 행은 `<Icon fontSize 16>` 로 같은 크기를 그렸다). */
+      & > svg {
+        width: 100%;
+        height: 100%;
+      }
     }
 
     /* icon 존재 시 텍스트 영역 좌측 여백 확보(Skia textX = paddingX + iconSize + 6 와 정합). */

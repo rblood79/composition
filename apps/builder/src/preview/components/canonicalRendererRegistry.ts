@@ -15,7 +15,7 @@ import { IllustratedMessage } from "@composition/shared/components/IllustratedMe
 import { StatusLight } from "@composition/shared/components/StatusLight";
 import { Avatar } from "@composition/shared/components/Avatar";
 import { ProgressCircle } from "@composition/shared/components/ProgressCircle";
-import { ListBox } from "@composition/shared/components/ListBox";
+import { ListBox, ListBoxItem } from "@composition/shared/components/ListBox";
 import { MenuButton } from "@composition/shared/components/Menu";
 import { Modal } from "@composition/shared/components/Modal";
 import { Breadcrumbs } from "@composition/shared/components/Breadcrumbs";
@@ -45,6 +45,8 @@ export const INTERNAL_RENDERERS: Readonly<
   avatar: Avatar,
   progresscircle: ProgressCircle,
   listbox: ListBox,
+  // ADR-234 Phase 3 — ListBox 정적 자식 (ListBoxItem instance).
+  listboxitem: ListBoxItem,
   menu: MenuButton,
   select: Select,
   combobox: ComboBox,
@@ -77,6 +79,7 @@ export const INTERNAL_RENDERERS: Readonly<
 export const RENDER_PROPS_INTERNAL_RENDERERS: ReadonlySet<string> = new Set([
   "tab",
   "tag",
+  "listboxitem",
 ]);
 
 export const DELEGATING_INTERNAL_RENDERERS: ReadonlySet<string> =

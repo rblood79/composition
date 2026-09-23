@@ -357,3 +357,26 @@ export function resolveStaticItemKey(
       ? String(id)
       : nodeId;
 }
+
+/**
+ * ADR-234 Phase 3 — 정적 목록 가족: owner type → 항목을 담는 목록 틀 type (`null` = owner 자신) · 항목 type.
+ * 두 leg 의 ref 해석 (Canvas `resolveCanonicalRefTree` · Preview resolver) 이 바인딩 owner 에서 origin 의
+ * 정적 항목을 펼치지 않을 때 읽는다.
+ */
+export const STATIC_LIST_FAMILY_BY_OWNER: Readonly<
+  Record<string, { listType: string | null; itemType: string }>
+> = {
+  Tabs: { listType: "TabList", itemType: "Tab" },
+  TagGroup: { listType: "TagList", itemType: "Tag" },
+  ListBox: { listType: null, itemType: "ListBoxItem" },
+};
+
+/**
+ * 바인딩 목록 owner 인가 — 행은 데이터 + 항목 템플릿 (breakdown §1-3) 이라 origin 의 정적 항목 자식은
+ * 그리지 않는다 (그리면 데이터 행과 정적 항목이 함께 보인다).
+ */
+export function isBoundListOwnerProps(
+  props: Record<string, unknown> | null | undefined,
+): boolean {
+  return props?.dataBinding != null || props?.columnMapping != null;
+}

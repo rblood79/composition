@@ -175,9 +175,12 @@ describe("ADR-923 Phase 5 — DC-6 overflow cap 제거 (Chrome 게이트)", () =
     //   non-scrollable 이 production 사실이다 (`adr204ReachMatrix.browser.test.ts` Chrome 대조).
     expect(facts["ListBox 400 raw"].reached).toBe("auto");
     expect(facts["GridList 400 raw"].reached).toBe("undefined");
+    expect(facts["GridList 400 raw"].specified).toBe("164px");
+    // ListBox 는 ADR-234 Phase 3d (2026-09-23) 부터 정적 항목 자식 (행 투영 아님) — 주입 높이 없이 엔진이
+    //   실제 자식으로 같은 164 를 낸다.
+    expect(facts["ListBox 400 raw"].specified).toBe("undefined");
     for (const key of ["ListBox 400 raw", "GridList 400 raw"]) {
-      expect(facts[key].specified, key).toBe("164px");
-      expect(facts[key].h, key).toBeCloseTo(164, 0); // 제약 없는 부모 → 주입 높이 그대로
+      expect(facts[key].h, key).toBeCloseTo(164, 0); // 제약 없는 부모 → 콘텐츠 높이 그대로
     }
     // main-axis 가 제한된 부모 80: scroll container (auto/hidden) 는 §4.5 automatic minimum 0 → 80.
     //   종전 TS cap 도 80 을 냈지만 그건 availableHeight 로 자른 결과였고, 지금은 엔진 §4.5 소비다

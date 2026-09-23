@@ -40,6 +40,7 @@ import type { SizeSpec, TokenRef, ShadowTokens } from "@composition/specs";
 import { getNecessityIndicatorSuffix } from "@composition/shared/components";
 import {
   DESCRIPTION_CHILD_SELECTOR,
+  getSlotRole,
   hasDelegatedChild,
   resolveDelegatedChildFontSize,
   resolveInheritedLineHeight,
@@ -968,6 +969,104 @@ function withParentStyle(
   };
 }
 
+/** `ListBox.css` `.react-aria-ListBoxItem` — `--spacing-md` 가로 여백 · icon↔글자 6 · 체크 16 · icon 기본 16. */
+const LISTBOX_ITEM_PADDING_X = 12;
+const LISTBOX_ITEM_SLOT_GAP = 6;
+const LISTBOX_ITEM_CHECK_SIZE = 16;
+const LISTBOX_ITEM_ICON_SIZE = 16;
+/** `[slot="description"]` — `--text-xs` · `--text-xs--line-height` (4/3 배). */
+const LISTBOX_DESCRIPTION_FONT_SIZE = 12;
+
+/**
+ * ADR-234 Phase 3d — ListBoxItem 의 slot 자식을 `ListBox.css` slot 규칙과 같은 상자로:
+ * - `[slot="icon"]`: `position: absolute; left: var(--spacing-md); top: 50%; translateY(-50%)`, 크기
+ *   `--lb-icon-size` (icon 자식 fontSize, 기본 16) — translate 는 `marginTop: -크기/2` 로.
+ * - `[slot="label"]`: `font-weight: 600` · 크기는 Text 기본 (DOM `.react-aria-Text[data-size]`).
+ * - `[slot="description"]`: 12 · 줄 높이 16.
+ * slot 역할 자식이 하나도 없으면 null (종전 주입 경로). icon 크기는 항목 여백 (`:has([slot="icon"])`) 에 쓴다.
+ */
+function resolveListBoxItemSlotLayout(
+  children: CanvasLayoutNode[],
+): { children: CanvasLayoutNode[]; iconSize: number | null } | null {
+  let hasSlot = false;
+  let iconSize: number | null = null;
+  const next = children.map((child) => {
+    const role = getSlotRole(child);
+    if (!role) return child;
+    hasSlot = true;
+    const cs = (child.props?.style as Record<string, unknown>) || {};
+    if (role === "icon") {
+      const size =
+        typeof cs.fontSize === "number" ? cs.fontSize : LISTBOX_ITEM_ICON_SIZE;
+      // DOM 은 알 수 없는 아이콘 이름 (`{icon}` 템플릿 자리표시 포함) 이면 Icon 을 그리지 않아
+      //   `:has([slot="icon"])` 여백도 없다.
+      const iconName = child.props?.iconName;
+      if (
+        typeof iconName === "string" &&
+        iconName !== "" &&
+        !/^\{.*\}$/.test(iconName)
+      ) {
+        iconSize = size;
+      }
+      return {
+        ...child,
+        props: {
+          ...child.props,
+          style: {
+            ...cs,
+            position: cs.position ?? "absolute",
+            left: cs.left ?? LISTBOX_ITEM_PADDING_X,
+            top: cs.top ?? "50%",
+            marginTop: cs.marginTop ?? -size / 2,
+            width: cs.width ?? size,
+            height: cs.height ?? size,
+            fontSize: cs.fontSize ?? size,
+          },
+        },
+      };
+    }
+    if (child.type !== "Text") return child;
+    const sizeName = child.props?.size;
+    const sizeFontSize =
+      typeof sizeName === "string"
+        ? specSizeFontSize("text", sizeName)
+        : undefined;
+    if (role === "description") {
+      const fontSize =
+        (typeof cs.fontSize === "number" ? cs.fontSize : undefined) ??
+        sizeFontSize ??
+        LISTBOX_DESCRIPTION_FONT_SIZE;
+      return {
+        ...child,
+        props: {
+          ...child.props,
+          style: {
+            ...cs,
+            fontSize: cs.fontSize ?? fontSize,
+            lineHeight: cs.lineHeight ?? `${Math.ceil((fontSize * 4) / 3)}px`,
+            width: cs.width ?? "100%",
+          },
+        },
+      };
+    }
+    return {
+      ...child,
+      props: {
+        ...child.props,
+        style: {
+          ...cs,
+          ...(cs.fontSize == null && sizeFontSize != null
+            ? { fontSize: sizeFontSize }
+            : {}),
+          fontWeight: cs.fontWeight ?? 600,
+          width: cs.width ?? "100%",
+        },
+      },
+    };
+  });
+  return hasSlot ? { children: next, iconSize } : null;
+}
+
 /** GridListItem/ListBoxItem 자식 Text/Description에 CSS 정합성 fontSize/fontWeight/width 주입 */
 function injectCollectionItemFontStyles(
   children: CanvasLayoutNode[],
@@ -1668,7 +1767,37 @@ export function applyImplicitStyles(
   //   `gap` shorthand 덧씌우기도 함께 사라진다. ADR-145 의 `display:none` marker 보존은
   //   resolver 의 `parentStyle[key] !== undefined` 우선 규칙이 그대로 담당한다.
   if (containerTag === "listboxitem") {
-    filteredChildren = injectCollectionItemFontStyles(filteredChildren);
+    // ADR-234 Phase 3d — slot 역할이 있는 자식 (정적 항목 · Components 페이지 origin) 은 ListBox.css 의 slot
+    //   규칙대로: icon 절대 위치 + 항목 왼쪽 여백, 선택 체크 자리 오른쪽 여백, label · description 글자.
+    const slotLayout = resolveListBoxItemSlotLayout(filteredChildren);
+    filteredChildren = slotLayout
+      ? slotLayout.children
+      : injectCollectionItemFontStyles(filteredChildren);
+    if (slotLayout) {
+      effectiveParent = withParentStyle(effectiveParent, {
+        ...parentStyle,
+        ...(slotLayout.iconSize != null &&
+        rawParentStyle.paddingLeft == null &&
+        rawParentStyle.padding == null
+          ? {
+              paddingLeft:
+                LISTBOX_ITEM_PADDING_X +
+                slotLayout.iconSize +
+                LISTBOX_ITEM_SLOT_GAP,
+            }
+          : {}),
+        ...(containerProps?.isSelected === true &&
+        rawParentStyle.paddingRight == null &&
+        rawParentStyle.padding == null
+          ? {
+              paddingRight:
+                LISTBOX_ITEM_PADDING_X +
+                LISTBOX_ITEM_CHECK_SIZE +
+                LISTBOX_ITEM_SLOT_GAP,
+            }
+          : {}),
+      });
+    }
   }
 
   // ── ButtonGroup ───────────────────────────────────────────────────

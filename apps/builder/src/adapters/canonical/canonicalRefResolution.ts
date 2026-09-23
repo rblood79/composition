@@ -1,7 +1,9 @@
 import {
   mergeFillSizing,
   readPropsSchema,
+  isBoundListOwnerProps,
   resolveStaticItemKey,
+  STATIC_LIST_FAMILY_BY_OWNER,
   resolveTemplateBindingValues,
   substituteTemplateBindingsInChildren,
   substituteTemplateBindingsInProps,
@@ -656,13 +658,17 @@ function materializeOverrideChildren<T extends CanonicalRefResolvableNode>(
           )
         : null;
     const resolvedChild = withTemplateBindings(
-      overrideStateLayer
-        ? applyStateLayerToResolved(
-            resolvedChildBase,
-            overrideStateLayer,
-            syntheticChild,
-          )
-        : resolvedChildBase,
+      withItemSelectionFlag(
+        overrideStateLayer
+          ? applyStateLayerToResolved(
+              resolvedChildBase,
+              overrideStateLayer,
+              syntheticChild,
+            )
+          : resolvedChildBase,
+        resolvedChildBase,
+        resultElementsMap,
+      ),
       templateBindings,
     );
     if (resolvedChildBase !== syntheticChild) markResolvedRef(resolvedChild);
@@ -832,17 +838,18 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
       );
       // ADR-234 Phase 2 — 조합 origin 안 자식 ref (RadioGroup 안 Radio …) 도 실행 중 상태 층. 부모
       //   (그룹) 는 이미 결과 map 에 있어 그룹 value · disabled 를 읽는다.
+      const nestedStateInput = {
+        ...resolvedNestedBase,
+        parentId: syntheticParentId,
+        parent_id: syntheticParentId,
+      } as T;
       const nestedStateLayer = resolveCanvasStateLayer(
         nestedMaster.id,
-        {
-          ...resolvedNestedBase,
-          parentId: syntheticParentId,
-          parent_id: syntheticParentId,
-        },
+        nestedStateInput,
         resultElementsMap,
         lookupMaster,
       );
-      const resolvedNested = nestedStateLayer
+      const resolvedNestedLayered = nestedStateLayer
         ? applyStateLayerToResolved(resolvedNestedBase, nestedStateLayer, {
             // 소유 키 = 자식 ref 자신의 patch + 바깥 instance patch (둘 다 상태 층보다 위).
             props: composePropsPatches(
@@ -859,6 +866,11 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
                 : (rawRefSource(sourceChild) as { enabled?: unknown }).enabled,
           } as unknown as T)
         : resolvedNestedBase;
+      const resolvedNested = withItemSelectionFlag(
+        resolvedNestedLayered,
+        nestedStateInput,
+        resultElementsMap,
+      );
       const syntheticNested = markResolvedRef({
         ...resolvedNested,
         id: syntheticId,
@@ -1033,9 +1045,11 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
     const preservedChildren = existingChildren.filter(
       (child) => !syntheticChildIds.has(child.id),
     );
+    // origin 자식 → instance 자기 자식 순 (Preview resolver `[...origin, ...instance]` 와 같은 순서 —
+    //   ADR-234 3d: ListBox instance "+" 항목은 origin 항목 뒤).
     resultChildrenMap.set(syntheticParentId, [
-      ...preservedChildren,
       ...syntheticChildren,
+      ...preservedChildren,
     ]);
   }
 }
@@ -1078,6 +1092,8 @@ function findAncestor<T extends CanonicalRefResolvableNode>(
 const ITEM_SELECTION_OWNER: Readonly<Record<string, string>> = {
   Tab: "Tabs",
   Tag: "TagGroup",
+  ListBoxItem: "ListBox",
+  GridListItem: "GridList",
 };
 
 /** owner 의 선택 key (`selectedKey ?? defaultSelectedKey` · `selectedKeys ?? defaultSelectedKeys`) 에 key 가 있나. */
@@ -1170,6 +1186,35 @@ function resolveCanvasStateLayer<T extends CanonicalRefResolvableNode>(
     set,
     resolveCanvasVariantState(resolved, elementsMap),
   );
+}
+
+/**
+ * ADR-234 Phase 3 — 선택 표시를 `isSelected` 로 그리는 목록 항목 (Skia `listbox_item` · `gridlist_card` shell —
+ * projection 행이 싣던 값). owner (ListBox · GridList) 안의 정적 항목에만 owner key 로 싣는다.
+ */
+const SELECTION_FLAG_ITEM_TYPES: ReadonlySet<string> = new Set([
+  "ListBoxItem",
+  "GridListItem",
+]);
+
+function withItemSelectionFlag<T extends CanonicalRefResolvableNode>(
+  resolved: T,
+  stateInput: T,
+  elementsMap: Map<string, T>,
+): T {
+  if (!SELECTION_FLAG_ITEM_TYPES.has(resolved.type)) return resolved;
+  const ownerType = ITEM_SELECTION_OWNER[resolved.type];
+  if (
+    !ownerType ||
+    !findAncestor(stateInput, elementsMap, (node) => node.type === ownerType)
+  ) {
+    return resolved;
+  }
+  const selected =
+    resolveCanvasVariantState(stateInput, elementsMap).selected === true;
+  const props = getNodeProps(resolved);
+  if ((props.isSelected === true) === selected) return resolved;
+  return { ...resolved, props: { ...props, isSelected: selected } } as T;
 }
 
 /** props patch 중 삭제 표기 (`null`) 만 — top-level · style 한 단계. 없으면 null. */
@@ -1365,13 +1410,17 @@ export function resolveCanonicalRefTree<
             lookupMaster,
           )
         : null;
-    const resolvedRoot = stateLayer
+    const resolvedRootLayered = stateLayer
       ? applyStateLayerToResolved(
           resolvedRootBase,
           stateLayer,
           rawRefSource(element),
         )
       : resolvedRootBase;
+    const resolvedRoot =
+      resolvedRootLayered !== element
+        ? withItemSelectionFlag(resolvedRootLayered, resolvedRootBase, elementsMap)
+        : resolvedRootLayered;
     if (resolvedRoot !== element) {
       markResolvedRef(resolvedRoot);
       elementsMap.set(element.id, resolvedRoot);
@@ -1390,7 +1439,6 @@ export function resolveCanonicalRefTree<
     }
 
     if (!ref || !chain) continue;
-
     materializeSyntheticDescendants(
       element,
       chain.origin,
@@ -1412,7 +1460,51 @@ export function resolveCanonicalRefTree<
         ],
       },
     );
+    dropBoundListStaticItems(
+      element.id,
+      chain.origin.type,
+      getNodeProps(resolvedRoot),
+      elementsMap,
+      childrenMap,
+      elements,
+    );
   }
 
   return { childrenMap, elements, elementsMap };
+}
+
+/**
+ * ADR-234 Phase 3 — 바인딩 목록 owner instance 는 origin 의 정적 항목 자식을 펼치지 않는다 (행 = 데이터 +
+ * 항목 템플릿 — scene projection). Preview resolver 도 같은 표 (`STATIC_LIST_FAMILY_BY_OWNER`) 로 거른다.
+ */
+function dropBoundListStaticItems<T extends CanonicalRefResolvableNode>(
+  rootId: string,
+  originType: string,
+  rootProps: Record<string, unknown>,
+  elementsMap: Map<string, T>,
+  childrenMap: Map<string, T[]>,
+  elements: T[],
+): void {
+  const family = STATIC_LIST_FAMILY_BY_OWNER[originType];
+  if (!family || !isBoundListOwnerProps(rootProps)) return;
+  const listId =
+    family.listType === null
+      ? rootId
+      : childrenMap.get(rootId)?.find((child) => child.type === family.listType)
+          ?.id;
+  if (!listId) return;
+  const listChildren = childrenMap.get(listId) ?? [];
+  const items = listChildren.filter((child) => child.type === family.itemType);
+  if (items.length === 0) return;
+  for (const item of items) {
+    removeSyntheticDescendantElements(item.id, elementsMap, childrenMap, elements);
+    elementsMap.delete(item.id);
+    childrenMap.delete(item.id);
+    const index = elements.indexOf(item);
+    if (index >= 0) elements.splice(index, 1);
+  }
+  childrenMap.set(
+    listId,
+    listChildren.filter((child) => child.type !== family.itemType),
+  );
 }

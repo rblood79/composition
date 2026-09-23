@@ -2116,9 +2116,22 @@ impl LayoutTree {
         //   (get_layouts_batch 소비처)이 함께 이동시킨다.
         self.apply_relative_offsets(&children, avail_w, ch);
 
-        // out-of-flow 자식 배치 — 컨테이너 크기 확정 후 (containing block 이 필요).
+        // out-of-flow 자식 배치 — 컨테이너 크기 확정 후 (containing block 이 필요). 넘기는 크기는
+        //   border-box: solver 반환은 명시 축이면 border-box, auto · 키워드 축이면 content-box 라 그 축만
+        //   padding/border 를 더한다 (종전 반환값 그대로 넘겨 auto 높이 컨테이너의 `top: 50%` 가 padding
+        //   만큼 위로 갔다 — ADR-234 3d).
         if !abs_children.is_empty() {
-            self.place_absolute_children(handle, &abs_children, cw, ch, avail_w);
+            let (box_w, box_h) = {
+                let ctx = self.ctx_for(avail_w);
+                let style = self.get(handle).map(|n| n.style.clone()).unwrap_or_default();
+                let w_content = explicit_w <= 0.0 || keyword_content_w;
+                let h_content = explicit_h <= 0.0;
+                (
+                    if w_content { cw + axis_pad_border(&style, &ctx, true) } else { cw },
+                    if h_content { ch + axis_pad_border(&style, &ctx, false) } else { ch },
+                )
+            };
+            self.place_absolute_children(handle, &abs_children, box_w, box_h, avail_w);
         }
         if let Some(n) = self.get_mut(handle) {
             n.last_solved = Some((cw, ch));
@@ -2200,13 +2213,21 @@ impl LayoutTree {
         let style = self.get(handle).map(|n| n.style.clone()).unwrap_or_default();
         let parent_ctx = self.ctx_for(avail_w);
 
-        // containing block = 부모 padding box.
+        // containing block = 부모 padding box (CSS 2 §10.1) — 원점은 border 안쪽 (padding 포함), 크기는
+        //   border-box − border. static position 만 content 원점 (padding+border) 에서 시작한다.
+        //   종전엔 원점 · 크기를 content box 로 잡아 padding 있는 부모의 inset 이 padding 만큼 밀렸다
+        //   (ADR-234 3d: ListBoxItem icon `left: 12px` 가 padding-left 34 위로 46).
         let pb_start_x = pad_border_start(&style, &parent_ctx, true);
         let pb_start_y = pad_border_start(&style, &parent_ctx, false);
-        let pb_total_x = axis_pad_border(&style, &parent_ctx, true);
-        let pb_total_y = axis_pad_border(&style, &parent_ctx, false);
-        let cb_w = (container_w - pb_total_x).max(0.0);
-        let cb_h = (container_h - pb_total_y).max(0.0);
+        let border_start_x = resolve_dimension(style.border_left.as_deref(), &parent_ctx);
+        let border_start_y = resolve_dimension(style.border_top.as_deref(), &parent_ctx);
+        let border_total_x =
+            border_start_x + resolve_dimension(style.border_right.as_deref(), &parent_ctx);
+        let border_total_y =
+            border_start_y + resolve_dimension(style.border_bottom.as_deref(), &parent_ctx);
+        // container_w/h = border-box (호출부 계약).
+        let cb_w = (container_w - border_total_x).max(0.0);
+        let cb_h = (container_h - border_total_y).max(0.0);
 
         // static position (E11 ②) — inset 무지정 시 정상 흐름 위치를 유지한다.
         //   block 흐름 근사: static_y = 문서 순서상 선행 in-flow 형제들의 누적 하단,
@@ -2326,12 +2347,12 @@ impl LayoutTree {
             let min_h = resolve_dimension_opt(cstyle.min_height.as_deref(), &ctx_y);
             let max_h = resolve_dimension_opt(cstyle.max_height.as_deref(), &ctx_y);
             let (x, nw) = resolve_abs_axis(
-                pb_start_x, cb_w, left, right, w, has_w, (min_w, max_w), ml, mr, ml_auto, mr_auto,
-                sx,
+                border_start_x, cb_w, left, right, w, has_w, (min_w, max_w), ml, mr, ml_auto,
+                mr_auto, sx,
             );
             let (y, nh) = resolve_abs_axis(
-                pb_start_y, cb_h, top, bottom, h, has_h, (min_h, max_h), mt, mb, mt_auto, mb_auto,
-                sy,
+                border_start_y, cb_h, top, bottom, h, has_h, (min_h, max_h), mt, mb, mt_auto,
+                mb_auto, sy,
             );
 
             if let Some(n) = self.get_mut(c) {
@@ -9210,6 +9231,42 @@ mod tests {
     }
 
     #[test]
+    fn absolute_child_inset_origin_is_padding_box_not_content_box() {
+        let mut tree = LayoutTree::new();
+        // CSS: containing block = 부모 **padding box** — inset 원점은 border 안쪽 (padding 포함),
+        //   % 기준 크기도 padding box (border 제외). ADR-234 3d: ListBoxItem `[slot="icon"] { left: 12px }`
+        //   (항목 padding-left 34) 가 Chrome 12 인데 엔진은 content 원점 기준 46 을 냈다.
+        let json = r#"[
+            {"style":{"position":"absolute","insetLeft":"12px","insetTop":"50%","marginTop":"-8px","width":"16px","height":"16px"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"column","position":"relative","width":"200px","height":"50px","paddingLeft":"34px","paddingTop":"4px","paddingBottom":"4px","borderLeft":"2px","borderTop":"2px","borderRight":"2px","borderBottom":"2px"},"children":[0]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[1], 400.0, 400.0);
+        let c = tree.get_layout(handles[0]);
+        assert_eq!(c.x, 14.0, "border 2 + left 12 (padding 34 를 더하지 않는다)");
+        // padding box 높이 = 50 − border 4 = 46 → 50% = 23, border 2 + 23 − 8 = 17.
+        assert_eq!(c.y, 17.0, "top:50% 는 padding box 높이 기준");
+    }
+
+    #[test]
+    fn absolute_child_in_auto_height_padded_container_centers_on_padding_box() {
+        let mut tree = LayoutTree::new();
+        // auto 높이 컨테이너 (in-flow 자식 42 + padding 4/4 → border-box 50): top:50% = 25 → −8 = 17
+        //   (Chrome). solver 반환 (auto 축 content-box 42) 로 containing block 을 잡으면 13.
+        let json = r#"[
+            {"style":{"position":"absolute","insetLeft":"12px","insetTop":"50%","marginTop":"-8px","width":"16px","height":"16px"},"children":[]},
+            {"style":{"width":"100px","height":"42px"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"column","position":"relative","width":"200px","paddingLeft":"34px","paddingTop":"4px","paddingBottom":"4px"},"children":[0,1]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[2], 400.0, 400.0);
+        let p = tree.get_layout(handles[2]);
+        assert_eq!(p.height, 50.0);
+        let c = tree.get_layout(handles[0]);
+        assert_eq!((c.x, c.y), (12.0, 17.0));
+    }
+
+    #[test]
     fn absolute_flex_container_keeps_its_padding_and_border_in_border_box() {
         let mut tree = LayoutTree::new();
         // Live Builder regression: 두 Button(69×30)을 row Frame(gap 20, padding 20,
@@ -9595,7 +9652,9 @@ mod tests {
     #[test]
     fn absolute_child_inside_padded_parent_uses_padding_box() {
         let mut tree = LayoutTree::new();
-        // containing block = padding box → 원점이 padding-left/top 만큼 이동.
+        // containing block = padding box → 원점은 padding 바깥 (border 안쪽) 이다 — padding 만큼 밀리지
+        //   않는다. 종전 기대값 (20, 15) 은 content box 원점이라 CSS 와 달랐다 (Chrome offsetLeft/Top 0 · 0
+        //   실측, ADR-234 3d 2026-09-23).
         let json = r#"[
             {"style":{"position":"absolute","insetLeft":"0px","insetTop":"0px","width":"10px","height":"10px"},"children":[]},
             {"style":{"display":"block","position":"relative","width":"200px","height":"100px","paddingLeft":"20px","paddingTop":"15px","paddingRight":"20px","paddingBottom":"15px"},"children":[0]}
@@ -9603,8 +9662,8 @@ mod tests {
         let handles = tree.build_tree_batch(json).unwrap();
         tree.compute_layout(handles[1], 400.0, 400.0);
         let c = tree.get_layout(handles[0]);
-        assert_eq!(c.x, 20.0, "left:0 = padding box 원점 (padding-left)");
-        assert_eq!(c.y, 15.0, "top:0 = padding box 원점 (padding-top)");
+        assert_eq!(c.x, 0.0, "left:0 = padding box 원점 (padding 을 더하지 않는다)");
+        assert_eq!(c.y, 0.0, "top:0 = padding box 원점 (padding 을 더하지 않는다)");
     }
 
     #[test]

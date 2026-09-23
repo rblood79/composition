@@ -18,6 +18,7 @@ import { getElementDataBinding } from "@composition/shared";
 import { getCanonicalRefPathSegment } from "../../adapters/canonical/canonicalRefResolution";
 import { TAB_ITEM_DEFAULT_ORIGIN_ID } from "./tabs/tabsTemplateOrigins";
 import { TAG_ITEM_DEFAULT_ORIGIN_ID } from "./taggroup/tagGroupTemplateOrigins";
+import { LISTBOX_ITEM_DEFAULT_ORIGIN_ID } from "./listbox/listBoxTemplateOrigins";
 
 type RefLike = CanonicalNode & {
   ref?: string;
@@ -58,7 +59,8 @@ function isBoundCollection(node: CanonicalNode): boolean {
   return (
     getElementDataBinding(
       node as unknown as Parameters<typeof getElementDataBinding>[0],
-    ) != null
+    ) != null ||
+    (node.props as Record<string, unknown> | undefined)?.columnMapping != null
   );
 }
 
@@ -125,7 +127,8 @@ function findSlotChildKey(origin: CanonicalNode, role: string): string | null {
  */
 export interface StaticCollectionFamily {
   ownerType: string;
-  listType: string;
+  /** 항목을 직접 담는 목록 틀 type — `null` 이면 owner 자신 (ListBox · GridList). */
+  listType: string | null;
   itemType: string;
   itemPrefix: string;
   defaultOriginId: string;
@@ -196,10 +199,72 @@ export const TAGGROUP_STATIC_FAMILY: StaticCollectionFamily = {
   },
 };
 
+/** 행 값이 있으면 그 patch, 없으면 숨김 (projection 의 슬롯 존재 gating 과 같은 결과). */
+function optionalSlotDescendant(
+  origin: CanonicalNode,
+  role: string,
+  value: unknown,
+  toPatch: (text: string) => Record<string, unknown>,
+): Record<string, unknown> {
+  const key = findSlotChildKey(origin, role);
+  if (!key) return {};
+  return {
+    [key]:
+      typeof value === "string" && value ? toPatch(value) : { enabled: false },
+  };
+}
+
+export const LISTBOX_STATIC_FAMILY: StaticCollectionFamily = {
+  ownerType: "ListBox",
+  listType: null,
+  itemType: "ListBoxItem",
+  itemPrefix: "item",
+  defaultOriginId: LISTBOX_ITEM_DEFAULT_ORIGIN_ID,
+  buildItem(item, origin) {
+    return {
+      props: {
+        ...(item.isDisabled === true ? { isDisabled: true } : {}),
+        ...(typeof item.href === "string" && item.href
+          ? { href: item.href }
+          : {}),
+      },
+      descendants: {
+        ...optionalSlotDescendant(origin, "icon", item.icon, (iconName) => ({
+          iconName,
+        })),
+        ...labelDescendant(origin, item.label ?? item.textValue ?? item.title),
+        ...optionalSlotDescendant(
+          origin,
+          "description",
+          item.description,
+          (children) => ({ children }),
+        ),
+      },
+    };
+  },
+};
+
 export const STATIC_COLLECTION_FAMILIES: readonly StaticCollectionFamily[] = [
   TABS_STATIC_FAMILY,
   TAGGROUP_STATIC_FAMILY,
+  LISTBOX_STATIC_FAMILY,
 ];
+
+/** 목록 틀 — `listType` 자식, `null` 이면 owner 자신. */
+function findListFrame(
+  family: StaticCollectionFamily,
+  owner: CanonicalNode,
+): CanonicalNode | undefined {
+  if (family.listType === null) return owner;
+  return (owner.children ?? []).find((child) => child.type === family.listType);
+}
+
+/** 이관하지 않는 행 모양 — section 묶음 (ListBox `type: "section"`) 은 평면 항목 자식으로 옮길 수 없다. */
+function hasUnsupportedRows(
+  items: ReadonlyArray<Record<string, unknown>>,
+): boolean {
+  return items.some((item) => item.type === "section");
+}
 
 /** 행 → 항목 instance 자식 (`props.id` = 행 id — RAC key). */
 export function buildItemInstances(
@@ -237,6 +302,9 @@ function migratePlainOwner(
   taken: Set<string>,
 ): CanonicalNode | null {
   if (isBoundCollection(owner)) return null;
+  if (family.listType === null) {
+    return migrateSelfListOwner(family, owner, byId, taken);
+  }
   const children = owner.children ?? [];
   const listIndex = children.findIndex(
     (child) => child.type === family.listType,
@@ -279,6 +347,76 @@ function migratePlainOwner(
   } as CanonicalNode;
 }
 
+/**
+ * owner 가 곧 목록 틀 (ListBox · GridList) — 자기 자식으로 항목 instance · items 제거 · slot 은 그대로 (이미 목록
+ * 틀에 있다). 자식이 이미 있으면 (정적 자식 · 템플릿 anchor) 손대지 않는다.
+ */
+function migrateSelfListOwner(
+  family: StaticCollectionFamily,
+  owner: CanonicalNode,
+  byId: ReadonlyMap<string, CanonicalNode>,
+  taken: Set<string>,
+): CanonicalNode | null {
+  const props = (owner.props ?? {}) as Record<string, unknown>;
+  const items = readItems(props);
+  if (items === null || (owner.children ?? []).length > 0) return null;
+  if (hasUnsupportedRows(items)) return null;
+  let children: CanonicalNode[] | undefined;
+  if (items.length > 0) {
+    const originId = pickItemOriginId(owner.slot, byId, family.defaultOriginId);
+    const origin = originId ? byId.get(originId) : undefined;
+    if (!origin) return null; // 보류 — origin 이 생기면 다음 hydration 에서.
+    children = buildItemInstances(family, items, owner.id, origin, taken);
+  }
+  return {
+    ...owner,
+    props: omitKey(props, "items"),
+    ...(children ? { children } : {}),
+  } as CanonicalNode;
+}
+
+/**
+ * owner 자신이 목록 틀 (ListBox) 인 instance 의 `items` override — descendants 는 자손 경로만 바꾸므로 root
+ * 자식 교체 대신 (1) origin 항목 자식을 `enabled: false` 로 숨기고 (2) 행을 instance 자기 자식 (origin 자식
+ * 뒤에 덧붙는 인스턴스 자식 — 두 leg 공통 의미) 으로 싣는다. origin 이 아직 이관 전 (자식 없음) 이면 보류.
+ */
+function migrateSelfListInstance(
+  family: StaticCollectionFamily,
+  instance: RefLike,
+  master: CanonicalNode,
+  items: ReadonlyArray<Record<string, unknown>>,
+  byId: ReadonlyMap<string, CanonicalNode>,
+  taken: Set<string>,
+): CanonicalNode | null {
+  const originItems = (master.children ?? []).filter(
+    (child) => resolveChainEnd(child.id, byId)?.type === family.itemType,
+  );
+  if ((master.children ?? []).length === 0 && readItems(master.props as Record<string, unknown>)) {
+    return null;
+  }
+  const originId = pickItemOriginId(master.slot, byId, family.defaultOriginId);
+  const origin = originId ? byId.get(originId) : undefined;
+  if (!origin) return null;
+  const descendants: Record<string, unknown> = { ...(instance.descendants ?? {}) };
+  for (const child of originItems) {
+    const key = getCanonicalRefPathSegment(child);
+    descendants[key] = {
+      ...((descendants[key] as Record<string, unknown>) ?? {}),
+      enabled: false,
+    };
+  }
+  const props = (instance.props ?? {}) as Record<string, unknown>;
+  return {
+    ...instance,
+    props: omitKey(props, "items"),
+    ...(Object.keys(descendants).length > 0 ? { descendants } : {}),
+    children: [
+      ...(instance.children ?? []),
+      ...buildItemInstances(family, items, instance.id, origin, taken),
+    ],
+  } as CanonicalNode;
+}
+
 /** owner ref instance 가 자기 `items` 를 덮어쓴 경우 → 목록 틀 경로 descendants mode C. */
 function migrateOwnerInstance(
   instance: RefLike,
@@ -292,9 +430,11 @@ function migrateOwnerInstance(
   const master = resolveChainEnd(instance.ref, byId);
   const family = STATIC_COLLECTION_FAMILIES.find((f) => f.ownerType === master?.type);
   if (!master || !family) return null;
-  const list = (master.children ?? []).find(
-    (child) => child.type === family.listType,
-  );
+  if (hasUnsupportedRows(items)) return null;
+  if (family.listType === null) {
+    return migrateSelfListInstance(family, instance, master, items, byId, taken);
+  }
+  const list = findListFrame(family, master);
   if (!list) return null;
   const listPath = getCanonicalRefPathSegment(list);
   if (instance.descendants?.[listPath] !== undefined) {
@@ -329,37 +469,48 @@ export function migrateStaticCollectionsToInstances(
   const taken = new Set(byId.keys());
   const held: string[] = [];
 
-  const visit = (node: CanonicalNode): CanonicalNode => {
-    let next = node;
-    if (node.children) {
-      let changed = false;
-      const children = node.children.map((child) => {
-        const visited = visit(child);
-        if (visited !== child) changed = true;
-        return visited;
-      });
-      if (changed) next = { ...node, children };
-    }
-    const family = STATIC_COLLECTION_FAMILIES.find((f) => f.ownerType === next.type);
-    if (family) {
-      return migratePlainOwner(family, next, byId, taken) ?? next;
-    }
-    if (next.type === "ref") {
-      return migrateOwnerInstance(next as RefLike, byId, taken, held) ?? next;
-    }
-    return next;
+  const mapTree = (
+    doc: CompositionDocument,
+    step: (node: CanonicalNode) => CanonicalNode | null,
+  ): CompositionDocument => {
+    const visit = (node: CanonicalNode): CanonicalNode => {
+      let next = node;
+      if (node.children) {
+        let changed = false;
+        const children = node.children.map((child) => {
+          const visited = visit(child);
+          if (visited !== child) changed = true;
+          return visited;
+        });
+        if (changed) next = { ...node, children };
+      }
+      return step(next) ?? next;
+    };
+    let changed = false;
+    const children = doc.children.map((child) => {
+      const visited = visit(child);
+      if (visited !== child) changed = true;
+      return visited;
+    });
+    return changed ? { ...doc, children } : doc;
   };
 
-  let changed = false;
-  const children = document.children.map((child) => {
-    const visited = visit(child);
-    if (visited !== child) changed = true;
-    return visited;
+  // 1단계 plain owner (origin 포함) → 2단계 instance: instance 이관은 이관을 마친 origin 의 항목 자식을 읽는다
+  //   (ListBox instance 는 origin 항목을 숨기는 descendants 를 쓴다).
+  const plainDone = mapTree(document, (node) => {
+    const family = STATIC_COLLECTION_FAMILIES.find((f) => f.ownerType === node.type);
+    return family ? migratePlainOwner(family, node, byId, taken) : null;
   });
+  const byIdAfterPlain = plainDone === document ? byId : indexNodes(plainDone);
+  const result = mapTree(plainDone, (node) =>
+    node.type === "ref"
+      ? migrateOwnerInstance(node as RefLike, byIdAfterPlain, taken, held)
+      : null,
+  );
   if (held.length > 0) {
     console.warn("[ADR-234] 정적 목록 이관 보류", held);
   }
-  return changed ? { ...document, children } : document;
+  return result;
 }
 
 /**
@@ -374,13 +525,18 @@ export function isStaticCollectionOwner(
   const byId = indexNodes(document);
   const node = byId.get(nodeId);
   if (!node || isBoundCollection(node)) return false;
+  // instance 가 자기 `items` 를 덮어쓴 목록 (이관 보류 — 그 행이 정본) 은 items 편집기로.
+  if (node.type === "ref" && readItems(node.props as Record<string, unknown>)) {
+    return false;
+  }
   const master = node.type === "ref" ? resolveChainEnd(nodeId, byId) : node;
   const family = STATIC_COLLECTION_FAMILIES.find(
     (f) => f.ownerType === master?.type,
   );
   if (!master || !family) return false;
-  const list = (master.children ?? []).find(
-    (child) => child.type === family.listType,
-  );
-  return (list?.children ?? []).length > 0;
+  const list = findListFrame(family, master);
+  return (list?.children ?? []).some((child) => {
+    if (child.type === family.itemType) return true;
+    return resolveChainEnd(child.id, byId)?.type === family.itemType;
+  });
 }

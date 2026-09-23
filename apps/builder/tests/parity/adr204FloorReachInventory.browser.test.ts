@@ -152,14 +152,16 @@ describe("ADR-204 Phase 0 — floor 도달 인벤토리", () => {
     expect(facts.length).toBeGreaterThan(treeCount);
   });
 
-  it("행 투영으로 자식이 0 인 collection 은 ListBox·GridList 둘뿐이다 (Table 은 자식 2)", () => {
+  it("행 투영으로 자식이 0 인 collection 은 GridList 뿐이다 (ListBox 는 정적 항목 자식 · Table 은 자식 2)", () => {
     const root = (t: string): NodeFact => {
       const f = facts.find((x) => x.root && x.type === t);
       if (!f) throw new Error(`${t} root 미도달`);
       return f;
     };
-    // 공급 0 (§4.5 content 제안 0) — ADR-204 가 대상으로 삼은 형태.
-    expect(root("ListBox").childCount, "ListBox 자식").toBe(0);
+    // 공급 0 (§4.5 content 제안 0) — ADR-204 가 대상으로 삼은 형태. ListBox 는 ADR-234 Phase 3d (2026-09-23)
+    //   부터 팔레트 instance 가 origin 의 ListBoxItem instance 자식 3 을 갖는다 (행 투영은 바인딩 목록만) —
+    //   엔진이 실제 자식으로 content 를 잰다 (`adr204ReachMatrix` ListBox 행: production DOM = pipeline).
+    expect(root("ListBox").childCount, "ListBox 자식").toBe(3);
     expect(root("GridList").childCount, "GridList 자식").toBe(0);
     // Table 은 투영 대상 (A2_WINDOWED_COLLECTION_TAGS) 이지만 레이아웃 자식을 갖는다 —
     // 공급 0 이 아니므로 이 형태의 격차 원인은 가드 하나다 (대안 C 단독으로 닫힌다).

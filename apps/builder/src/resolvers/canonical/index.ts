@@ -25,8 +25,10 @@ import type {
 } from "@composition/shared";
 
 import {
+  isBoundListOwnerProps,
   readPropsSchema,
   resolveTemplateBindingValues,
+  STATIC_LIST_FAMILY_BY_OWNER,
   substituteTemplateBindingsInChildren,
 } from "@composition/shared";
 
@@ -223,7 +225,11 @@ function _resolveRefNodeUncached(
     ? resolveTemplateBindingValues(propsSchema, resolvedProps)
     : undefined;
   const mergedChildren = [
-    ...resolvedOriginChildren,
+    ...dropBoundListStaticItems(
+      master.type,
+      resolvedProps as Record<string, unknown>,
+      resolvedOriginChildren,
+    ),
     ...resolvedInstanceChildren,
   ].filter(isResolvedEnabled);
   const resolvedChildren = templateBindings
@@ -265,6 +271,27 @@ function _resolveRefNodeUncached(
   }
 
   return resolved;
+}
+
+/**
+ * ADR-234 Phase 3 — 바인딩 목록 owner instance 는 origin 의 정적 항목 자식을 싣지 않는다 (행 = 데이터 + 항목
+ * 템플릿). Canvas `resolveCanonicalRefTree` 와 같은 표 (`STATIC_LIST_FAMILY_BY_OWNER`).
+ */
+function dropBoundListStaticItems(
+  originType: string,
+  props: Record<string, unknown>,
+  children: ResolvedNode[],
+): ResolvedNode[] {
+  const family = STATIC_LIST_FAMILY_BY_OWNER[originType];
+  if (!family || !isBoundListOwnerProps(props)) return children;
+  const withoutItems = (nodes: ResolvedNode[]) =>
+    nodes.filter((node) => node.type !== family.itemType);
+  if (family.listType === null) return withoutItems(children);
+  return children.map((child) =>
+    child.type === family.listType && child.children
+      ? { ...child, children: withoutItems(child.children as ResolvedNode[]) }
+      : child,
+  );
 }
 
 /**

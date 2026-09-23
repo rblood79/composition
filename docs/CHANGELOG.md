@@ -20,10 +20,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 캔버스 resize 핸들 · padding/gap 띠도 같은 판정으로 이런 자식에서는 세션을 열지 않는다.
   - 위치: `apps/builder/src/builder/stores/canonical/subpartOwnerLookup.ts` (신규), `apps/builder/src/builder/panels/delegatedSubpart.ts`, `apps/builder/src/builder/workspace/canvas/hooks/useResizeInteraction.ts`, `apps/builder/src/builder/presentation/editorPresentationSpacingCapability.ts`
 
-## [ADR-234 Tabs · TagGroup 목록 = 항목 instance 자식 (Phase 3a·3b)] - 2026-09-23
+## [ADR-234 Tabs · TagGroup · ListBox 목록 = 항목 instance 자식 (Phase 3a~3d)] - 2026-09-23
 
 ### Changed
 
+- **ListBox 의 항목도 ListBox 안의 ListBoxItem 요소 (ListBoxItem origin 의 instance) 다** — 항목마다 icon · label · description 을 고치고 ListBox 를 선택해 Slot 절 "+" 로 추가한다 (instance 에서도 — origin 항목 뒤에 붙는다). 데이터 바인딩 ListBox 는 그대로 `items`.
 - **TagGroup 의 태그도 TagList 안의 Tag 요소 (Tag origin 의 instance) 다** — 태그마다 label · 아이콘을 고치고 TagList 의 Slot "+" 로 추가한다. 데이터 바인딩 TagGroup 은 그대로 `items`. 자식으로 옮겨진 목록에서는 Properties 의 items 편집기가 보이지 않는다 (두 목록이 겹치지 않게).
 - **Tabs 의 탭은 TabList 안의 Tab 요소 (Tab origin 의 instance) 다.** 전에는 Tabs 의 `items` 데이터에서 탭을 만들어 캔버스에서 탭 하나를 고를 수도, 탭마다 모양을 바꿀 수도 없었다. 이제 탭마다 label 을 고치고, TabList 를 선택해 Properties 의 Slot 절 "+" 로 탭을 추가한다 (짝 TabPanel 이 같이 생긴다 · instance 에서도 된다).
   - 기존 문서는 처음 열 때 옮겨진다 — 데이터 바인딩한 Tabs 는 그대로 `items` 를 쓴다.
@@ -33,6 +34,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Canvas 레이아웃: `width: fit-content` 상자 안 `width: 100%` 글자가 최소 폭으로 접히던 결함** (레이아웃 엔진). 가장 긴 폭을 재는 중에 `100%` 를 측정용 표식 값으로 풀어 "Tab 1" 이 "Tab / 1" 두 줄이 됐다. 이제 기준 없는 백분율은 auto 로 본다 (CSS 와 같음).
 - **Canvas: 선택 안 된 Tab 도 선택 표시 (밑줄) 가 그려지던 결함** — 그리는 단계가 이미 해석한 요소를 origin 값으로 한 번 더 덮었다.
+- **데이터 바인딩한 ListBox · TagGroup 이 데이터 행과 origin 의 기본 항목을 함께 그리던 결함** — 바인딩 목록은 데이터 행만 그린다.
+- **Canvas 레이아웃: `position: absolute` 요소가 부모 padding 만큼 밀려 놓이던 결함** (레이아웃 엔진). `left: 0` 이 padding 안쪽에서 시작했고, 높이가 자동인 부모에서는 `top: 50%` 가 위로 치우쳤다. 이제 CSS 처럼 padding box 기준이다.
+- **옮겨진 탭 · 태그의 label 글자가 항목 글자 (크기 · 굵기 · 선택 색) 를 따르지 않던 결함** — label 이 Text 기본 글자로 그려져 옮기기 전 행과 모양이 달랐다. Canvas · Preview 모두 항목 글자를 물려받는다 (label 에 직접 준 값이 있으면 그것).
 
 ## [ADR-234 상태 변형 = origin 의 instance (Phase 1·2)] - 2026-09-23
 

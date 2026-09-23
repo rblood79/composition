@@ -99,7 +99,17 @@ async function domCollectionHeight(
     style.overflow = overflowOverride;
     return { ...el, props: { ...props, style } } as Element;
   });
-  const first = await mountProductionRoot(flex, roots, elements);
+  // ADR-234 Phase 3d — ListBox 는 정적 항목 instance 자식 (ListBoxItem > Icon · Text) 이라 production Preview 경로
+  //   (트리 전체 CanonicalNodeRenderer) 로 그린다 — legacy rendererMap 은 Text 자식을 못 그린다 (DOM 110 / 164).
+  const canonicalTree = tree.type === "ListBox";
+  const first = await mountProductionRoot(
+    flex,
+    roots,
+    elements,
+    "page",
+    false,
+    canonicalTree,
+  );
   if (!first) throw new Error(`${tree.type}: DOM root 없음`);
   // mountPreviewNode 의 400px block 래퍼를 지운다 — collection 자체가 flex item 이어야 §4.5 판정이 걸린다.
   const wrapper = first.parentElement as HTMLElement;
@@ -107,7 +117,10 @@ async function domCollectionHeight(
   // RAC collection 은 `<template>` (collection portal) 과 focus-scope span 을 먼저 그린다 —
   //   실제 root 는 `data-element-id` 를 가진 요소다 (rendererMap 이 root 에 단다).
   const root = wrapper.querySelector<HTMLElement>(
-    `[data-element-id="${tree.root.id}"]`,
+    // canonical 경로는 root 를 `display:contents` 표식 div (`data-canonical-id`) 로 한 번 감싼다.
+    canonicalTree
+      ? `[data-element-id="${tree.root.id}"]:not([data-canonical-id])`
+      : `[data-element-id="${tree.root.id}"]`,
   );
   if (!root) throw new Error(`${tree.type}: DOM root 없음 (data-element-id)`);
   // RAC collection 의 행은 portal 커밋 뒤 한 틱 늦게 붙는다 (첫 마운트에서 관찰) — 행이 붙거나

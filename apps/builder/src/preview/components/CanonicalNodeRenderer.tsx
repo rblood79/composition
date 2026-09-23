@@ -55,6 +55,7 @@ import {
   RENDER_PROPS_INTERNAL_RENDERERS,
 } from "./canonicalRendererRegistry";
 import type { ResolvedNode } from "@composition/shared";
+import { ListBoxItemSelectionCheck } from "@composition/shared/components/listBoxItemSlotContent";
 // `../types/index` 가 shared 렌더 타입을 그대로 재수출하므로 별칭 import 와
 // `as unknown as` 이중 단언이 필요 없어졌다 (ADR 없이 타입 검사만 되살아난 자리).
 import { extractCanonicalPropsFromResolved } from "../../resolvers/canonical/storeBridge";
@@ -161,7 +162,27 @@ const RADIO_GROUP_ANCESTOR = "radiogroup";
 const COLLECTION_ONLY_INTERNAL_RENDERERS: Readonly<Record<string, string>> = {
   tab: "tabs",
   tag: "taggroup",
+  listboxitem: "listbox",
 };
+
+/** ADR-234 Phase 3 — RAC key 를 `props.id` (정적 항목 key) 로 내는 항목 type. */
+const STATIC_ITEM_TYPES: ReadonlySet<string> = new Set([
+  "Tab",
+  "Tag",
+  "ListBoxItem",
+]);
+
+/** ADR-234 Phase 3 — slot 자식 역할을 DOM `slot` 으로 내는 collection (소문자) · 역할. */
+const ITEM_SLOT_COLLECTIONS: ReadonlySet<string> = new Set([
+  "listbox",
+  "gridlist",
+  "menu",
+]);
+const ITEM_SLOT_ROLES: ReadonlySet<string> = new Set([
+  "icon",
+  "label",
+  "description",
+]);
 
 /** 호스트가 될 수 있는 collection type(소문자) — 자손 item 은 이미 collection 안이다. */
 const COLLECTION_HOST_TYPES: ReadonlySet<string> = new Set([
@@ -575,6 +596,18 @@ function CanonicalNodeRendererBody({
     "data-canonical-id": node.id,
     "data-element-id": elementId,
   };
+  // ADR-234 Phase 3 — 목록 항목 (ListBoxItem · GridListItem · MenuItem) 의 slot 자식은 역할을 DOM `slot` 으로
+  //   낸다 — 항목 CSS (`ListBox.css` `[slot="label"]` · `[slot="description"]` · `[slot="icon"]`) 가 이관 전 행
+  //   (`renderListBoxItemSlotContent` 의 `slot` 속성) 과 같은 규칙으로 닿는다.
+  const itemSlotRole = (node.props as Record<string, unknown> | undefined)
+    ?.slot;
+  const itemSlotAttr =
+    collectionAncestor !== undefined &&
+    ITEM_SLOT_COLLECTIONS.has(collectionAncestor) &&
+    typeof itemSlotRole === "string" &&
+    ITEM_SLOT_ROLES.has(itemSlotRole)
+      ? { slot: itemSlotRole }
+      : {};
 
   // 사용자가 지정한 id (Properties > Attributes) — publish `ElementRenderer` 와 같은 규칙으로
   // DOM 에 싣는다. canonical 노드에서 customId 는 legacy metadata 에 격리돼 있고(props 아님),
@@ -810,6 +843,19 @@ function CanonicalNodeRendererBody({
               </StateLayerDescendantsContext.Provider>
             )
           : childContent;
+      // ADR-234 Phase 3 — 정적 ListBoxItem 은 이관 전 행처럼 선택 시 우측 체크 (조합 자식이 아닌 render-time
+      //   표시, ADR-147). Skia `listbox_item` shell 이 `isSelected` 로 같은 체크를 그린다.
+      const itemChildren =
+        type === "ListBoxItem" && collectionAncestor === "listbox"
+          ? (renderProps: RacStateRenderProps) => (
+              <>
+                {typeof racStateChildren === "function"
+                  ? racStateChildren(renderProps)
+                  : racStateChildren}
+                {renderProps.isSelected ? <ListBoxItemSelectionCheck /> : null}
+              </>
+            )
+          : racStateChildren;
       const eventHandlers =
         renderContext.services?.createEventHandlerMap?.(
           adaptedEl,
@@ -829,6 +875,7 @@ function CanonicalNodeRendererBody({
         <PrimitiveComponent
           key={node.id}
           {...markerProps}
+          {...itemSlotAttr}
           {...racRest}
           {...(() => {
             const domId = resolveAuthoredDomId(
@@ -849,9 +896,9 @@ function CanonicalNodeRendererBody({
           })()}
           {...eventHandlers}
           {...(cutoverClassName ? { className: cutoverClassName } : {})}
-          {...(type === "Tab" || type === "Tag"
+          {...(STATIC_ITEM_TYPES.has(type)
             ? {
-                // ADR-234 Phase 3 — 정적 항목 (Tab · Tag) 의 RAC key (TabPanel `itemId` 짝 · owner 선택 key).
+                // ADR-234 Phase 3 — 정적 항목 (Tab · Tag · ListBoxItem) 의 RAC key (TabPanel `itemId` 짝 · owner 선택 key).
                 id: resolveStaticItemKey(
                   adaptedEl.props as Record<string, unknown> | undefined,
                   node.id,
@@ -860,7 +907,7 @@ function CanonicalNodeRendererBody({
             : {})}
           style={racStateStyle}
         >
-          {racStateChildren}
+          {itemChildren}
         </PrimitiveComponent>,
       );
     }
@@ -939,6 +986,7 @@ function CanonicalNodeRendererBody({
     {
       key: node.id,
       ...markerProps,
+      ...itemSlotAttr,
       id: resolveAuthoredDomId(type, authoredCustomId),
       ...(() => {
         const ariaLabel = resolveAuthoredAriaLabel(

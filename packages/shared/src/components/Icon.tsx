@@ -54,7 +54,8 @@ export const Icon = memo(function Icon({
   //   `#id` 선택자·앵커 대상이 못 된다 (다른 internal leaf 는 `{...rest}` 로 이미 통과).
   const dataProps: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(rest)) {
-    if (key.startsWith("data-") || key === "id") {
+    // `slot` — 목록 항목 안 icon 자식의 역할 (ADR-234 Phase 3, `ListBox.css [slot="icon"]`).
+    if (key.startsWith("data-") || key === "id" || key === "slot") {
       dataProps[key] = value;
     }
   }

@@ -82,14 +82,22 @@ export function renderListBoxItemSlotContent(opts: {
       {iconNode}
       {descriptionFirst ? descriptionNode : labelNode}
       {descriptionFirst ? labelNode : descriptionNode}
-      {isSelected && showSelectionCheck ? (
-        <Icon
-          iconName="check"
-          aria-hidden="true"
-          className="listbox-item-check"
-          style={{ fontSize: 16 }}
-        />
-      ) : null}
+      {isSelected && showSelectionCheck ? <ListBoxItemSelectionCheck /> : null}
     </>
+  );
+}
+
+/**
+ * ListBox 행 우측 선택 체크마크 (`ListBox.css .listbox-item-check`). 조합 자식이 아니라 선택 상태의
+ * render-time 표시 (ADR-147) — 정적 항목 (ADR-234 Phase 3, ListBoxItem instance 자식) 도 같이 쓴다.
+ */
+export function ListBoxItemSelectionCheck(): React.ReactElement {
+  return (
+    <Icon
+      iconName="check"
+      aria-hidden="true"
+      className="listbox-item-check"
+      style={{ fontSize: 16 }}
+    />
   );
 }

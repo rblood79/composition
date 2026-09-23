@@ -78,11 +78,13 @@ describe("collection item font — props.size 해소 (2026-07-21)", () => {
     expect(textStyle(result, "desc").fontSize).toBe(24);
   });
 
-  it("size 없는 Text 는 14 fallback (BC)", () => {
+  it("size 없는 label 은 Text 기본 크기 그대로 (주입 없음 — Skia · DOM `.react-aria-Text[data-size=md]` 16)", () => {
+    // ADR-234 Phase 3d: 종전 14 폴백은 layout 만 14 로 재고 Skia · DOM 은 16 을 그렸다.
     const result = applyContainer("ListBoxItem", {}, [
       makeText("lbl", { slot: "label" }),
     ]);
-    expect(textStyle(result, "lbl").fontSize).toBe(14);
+    expect(textStyle(result, "lbl").fontSize).toBeUndefined();
+    expect(textStyle(result, "lbl").fontWeight).toBe(600);
   });
 
   it("explicit style.fontSize 가 props.size 보다 우선", () => {

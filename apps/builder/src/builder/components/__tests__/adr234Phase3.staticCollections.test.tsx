@@ -674,7 +674,9 @@ describe("ADR-234 Phase 3 — items 편집기는 바인딩 목록 전용", () =>
     expect(isStaticCollectionOwner(doc, "tg-1")).toBe(true);
     expect(isStaticCollectionOwner(doc, "tabs-1")).toBe(true);
     expect(isStaticCollectionOwner(doc, "bound-tg")).toBe(false);
-    expect(isStaticCollectionOwner(doc, "component-listbox")).toBe(false);
+    // ListBox 는 3d 부터 정적 목록 (자기 자식 = ListBoxItem instance) · GridList 는 아직 items.
+    expect(isStaticCollectionOwner(doc, "component-listbox")).toBe(true);
+    expect(isStaticCollectionOwner(doc, "component-gridlist")).toBe(false);
   });
 });
 
@@ -737,5 +739,342 @@ describe("ADR-234 Phase 3c — 배선 (static)", () => {
     expect(fs.readFileSync(`${css}/TagGroup.css`, "utf8")).toMatch(
       /\.react-aria-Tag \.react-aria-Text\.react-aria-Text \{[^}]*color: inherit/,
     );
+  });
+});
+
+describe("ADR-234 Phase 3d — ListBox (목록 틀 = owner)", () => {
+  const listBoxInstance = {
+    id: "lb-1",
+    type: "ref",
+    ref: "component-listbox",
+    props: {},
+  } as unknown as CanonicalNode;
+
+  function withUser(doc: CompositionDocument, user: CanonicalNode[]) {
+    return {
+      ...doc,
+      children: doc.children.map((page) =>
+        page.id !== "page-home"
+          ? page
+          : {
+              ...page,
+              children: [{ ...page.children![0]!, children: user }],
+            },
+      ),
+    } as CompositionDocument;
+  }
+
+  function stubResizeObserver() {
+    (globalThis as { ResizeObserver?: unknown }).ResizeObserver ??= class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    };
+  }
+
+  it("이관: ListBox 자식 = ListBoxItem instance (key · icon/label/description descendants) · items 0 · slot 은 ListBox · 멱등", () => {
+    const doc = seededDoc([listBoxInstance]);
+    const lb = findById(doc.children, "component-listbox")!;
+    expect(lb.props?.items).toBeUndefined();
+    expect(lb.slot).toEqual([
+      "component-listbox-item-default--unselected",
+      "component-listbox-item-default",
+    ]);
+    expect(lb.children).toHaveLength(3);
+    expect(lb.children![0]).toMatchObject({
+      type: "ref",
+      ref: "component-listbox-item-default",
+      props: { id: "inbox" },
+      descendants: {
+        Icon: { iconName: "inbox" },
+        Label: { children: "Inbox" },
+        Description: { children: "Unread messages" },
+      },
+    });
+    expect(JSON.stringify(ensureReusableCompositeOrigins(doc))).toBe(
+      JSON.stringify(doc),
+    );
+    // 행에 없는 slot 은 숨김 · section 행은 이관하지 않는다.
+    const plain = {
+      id: "plain-lb",
+      type: "ListBox",
+      props: { items: [{ id: "a", label: "Alpha" }] },
+    } as CanonicalNode;
+    const sectioned = {
+      id: "sec-lb",
+      type: "ListBox",
+      props: {
+        items: [{ id: "s", type: "section", header: "S", items: [] }],
+      },
+    } as CanonicalNode;
+    const doc2 = seededDoc([plain, sectioned]);
+    expect(findById(doc2.children, "plain-lb")!.children![0]).toMatchObject({
+      props: { id: "a" },
+      descendants: {
+        Icon: { enabled: false },
+        Label: { children: "Alpha" },
+        Description: { enabled: false },
+      },
+    });
+    expect(findById(doc2.children, "sec-lb")!.props?.items).toHaveLength(1);
+  });
+
+  it("instance 의 items override → origin 항목 숨김 (enabled:false) + instance 자기 자식 · items 0", () => {
+    const doc = seededDoc([
+      {
+        ...listBoxInstance,
+        props: { items: [{ id: "x", label: "Xray" }] },
+      } as unknown as CanonicalNode,
+    ]);
+    const inst = findById(doc.children, "lb-1") as unknown as {
+      props: Record<string, unknown>;
+      descendants: Record<string, unknown>;
+      children: CanonicalNode[];
+    };
+    expect(inst.props.items).toBeUndefined();
+    expect(Object.values(inst.descendants)).toEqual([
+      { enabled: false },
+      { enabled: false },
+      { enabled: false },
+    ]);
+    expect(inst.children).toHaveLength(1);
+    expect(inst.children[0]).toMatchObject({
+      ref: "component-listbox-item-default",
+      props: { id: "x" },
+    });
+    // 두 leg: Canvas scene · Preview resolved 모두 Xray 하나.
+    const model = buildCanonicalSceneModel(doc);
+    const items = model.sceneChildrenByParent.get("lb-1") ?? [];
+    expect(items.map((i) => (i.props as Record<string, unknown>).id)).toEqual([
+      "x",
+    ]);
+    stubResizeObserver();
+    const resolved = findResolved(
+      resolveCanonicalDocument(doc) as ResolvedNode[],
+      "lb-1",
+    )!;
+    const { container } = renderResolved(resolved);
+    expect(
+      Array.from(container.querySelectorAll('[role="option"]')).map((o) =>
+        o.getAttribute("data-key"),
+      ),
+    ).toEqual(["x"]);
+  });
+
+  it("바인딩 instance 는 origin 의 정적 항목을 싣지 않는다 (ListBox · TagGroup — 두 leg)", () => {
+    const binding = { source: "dataTable", name: "dt" };
+    const insts = [
+      { id: "lb-b", type: "ref", ref: "component-listbox", props: { dataBinding: binding } },
+      { id: "tg-b", type: "ref", ref: "component-taggroup", props: { dataBinding: binding } },
+    ] as unknown as CanonicalNode[];
+    const doc = seededDoc(insts);
+    const model = buildCanonicalSceneModel(doc, {
+      collections: [
+        {
+          name: "dt",
+          useMockData: true,
+          mockData: [
+            { id: 1, label: "ROW1" },
+            { id: 2, label: "ROW2" },
+          ],
+        },
+      ] as never,
+    });
+    const lbKids = model.sceneChildrenByParent.get("lb-b") ?? [];
+    expect(lbKids.every((k) => k.id.startsWith("projection:"))).toBe(true);
+    const tagKids =
+      model.sceneChildrenByParent.get("tg-b/component-taggroup__2") ?? [];
+    expect(tagKids.every((k) => k.id.startsWith("projection:"))).toBe(true);
+    const resolvedAll = resolveCanonicalDocument(doc) as ResolvedNode[];
+    expect(findResolved(resolvedAll, "lb-b")!.children ?? []).toEqual([]);
+    const tagList = (findResolved(resolvedAll, "tg-b")!.children ?? []).find(
+      (c) => c.type === "TagList",
+    )!;
+    expect(tagList.children ?? []).toEqual([]);
+  });
+
+  it("Canvas: 선택 = ListBox selectedKeys → 그 항목만 isSelected · 선택 배경", () => {
+    const doc = seededDoc([
+      {
+        ...listBoxInstance,
+        props: { selectedKeys: ["starred"] },
+      } as unknown as CanonicalNode,
+    ]);
+    const model = buildCanonicalSceneModel(doc);
+    const items = model.sceneChildrenByParent.get("lb-1") ?? [];
+    expect(
+      items.map((i) => (i.props as Record<string, unknown>).isSelected),
+    ).toEqual([undefined, true, undefined]);
+    expect(
+      items.map(
+        (i) =>
+          ((i.props as Record<string, unknown>).style as Record<string, unknown>)
+            ?.backgroundColor,
+      ),
+    ).toEqual([undefined, "var(--accent-subtle)", undefined]);
+  });
+
+  it("Preview: RAC option 3 · 선택 1 + 체크 · slot 자식은 DOM `slot` 속성", () => {
+    stubResizeObserver();
+    const doc = seededDoc([
+      {
+        ...listBoxInstance,
+        props: { selectedKeys: ["starred"] },
+      } as unknown as CanonicalNode,
+    ]);
+    const resolved = findResolved(
+      resolveCanonicalDocument(doc) as ResolvedNode[],
+      "lb-1",
+    )!;
+    const { container } = renderResolved(resolved);
+    const options = Array.from(container.querySelectorAll('[role="option"]'));
+    expect(options.map((o) => o.getAttribute("data-key"))).toEqual([
+      "inbox",
+      "starred",
+      "archive",
+    ]);
+    expect(options.map((o) => o.getAttribute("aria-selected"))).toEqual([
+      "false",
+      "true",
+      "false",
+    ]);
+    expect(options[1]!.querySelector(".listbox-item-check")).not.toBeNull();
+    expect(options[0]!.querySelector(".listbox-item-check")).toBeNull();
+    expect(
+      Array.from(options[0]!.children).map((c) => c.getAttribute("slot")),
+    ).toEqual(["icon", "label", "description"]);
+    expect(options[0]!.querySelector('[slot="label"]')!.textContent).toBe(
+      "Inbox",
+    );
+  });
+
+  it("Slot +: ListBox host → list-item · origin 은 자식 · instance 는 자기 자식으로 덧붙어 두 leg 가 4 항목", () => {
+    const doc = seededDoc([listBoxInstance]);
+    const lb = findById(doc.children, "component-listbox")!;
+    expect(
+      resolveSlotInsertAction(
+        lb as unknown as Parameters<typeof resolveSlotInsertAction>[0],
+        findById(
+          doc.children,
+          "component-listbox-item-default",
+        ) as unknown as Parameters<typeof resolveSlotInsertAction>[1],
+      ),
+    ).toEqual({ kind: "list-item" });
+    expect(
+      planTabItemInsert({
+        document: doc,
+        hostId: "component-listbox",
+        candidateId: "component-listbox-item-default--unselected",
+        newKey: "k4",
+      }),
+    ).toMatchObject({
+      kind: "plain",
+      tabListId: "component-listbox",
+      tab: {
+        id: "component-listbox__item-4",
+        ref: "component-listbox-item-default",
+        props: { id: "k4" },
+        descendants: { Label: { children: "ListBoxItem 4" } },
+      },
+    });
+    const plan = planTabItemInsert({
+      document: doc,
+      hostId: "lb-1",
+      candidateId: "component-listbox-item-default",
+      newKey: "k4",
+    });
+    expect(plan).toMatchObject({
+      kind: "plain",
+      tabListId: "lb-1",
+      tab: { id: "lb-1__item-4", props: { id: "k4" } },
+    });
+    const next = withUser(doc, [
+      {
+        ...listBoxInstance,
+        children: [(plan as { tab: CanonicalNode }).tab],
+      } as unknown as CanonicalNode,
+    ]);
+    const model = buildCanonicalSceneModel(next);
+    expect(
+      (model.sceneChildrenByParent.get("lb-1") ?? []).map(
+        (i) => (i.props as Record<string, unknown>).id,
+      ),
+    ).toEqual(["inbox", "starred", "archive", "k4"]);
+    stubResizeObserver();
+    const resolved = findResolved(
+      resolveCanonicalDocument(next) as ResolvedNode[],
+      "lb-1",
+    )!;
+    const { container } = renderResolved(resolved);
+    expect(
+      Array.from(container.querySelectorAll('[role="option"]')).map((o) =>
+        o.getAttribute("data-key"),
+      ),
+    ).toEqual(["inbox", "starred", "archive", "k4"]);
+  });
+
+  it("layout: slot 자식 = ListBox.css 상자 (icon absolute · 항목 왼쪽 여백 · 자리표시 icon 은 여백 없음 · 선택 오른쪽 여백 · description 12/16)", async () => {
+    const { applyImplicitStyles } = await import(
+      "../../workspace/canvas/layout/engines/implicitStyles"
+    );
+    const node = (
+      id: string,
+      type: string,
+      parent: string | null,
+      props: Record<string, unknown> = {},
+    ) => ({ id, type, parent_id: parent, props });
+    const run = (iconName: string, isSelected: boolean) => {
+      const item = node("it", "ListBoxItem", null, isSelected ? { isSelected } : {});
+      const icon = node("ic", "Icon", "it", { slot: "icon", iconName });
+      const label = node("lb", "Text", "it", { slot: "label", children: "A" });
+      const desc = node("ds", "Text", "it", { slot: "description", children: "d" });
+      const all = [item, icon, label, desc];
+      const byId = new Map(all.map((n) => [n.id, n]));
+      const childrenOf = (id: string) => all.filter((n) => n.parent_id === id);
+      return applyImplicitStyles(item, childrenOf("it"), childrenOf, byId);
+    };
+    const result = run("star", true);
+    const styleOf = (i: number) =>
+      result.filteredChildren[i]!.props.style as Record<string, unknown>;
+    expect(styleOf(0)).toMatchObject({
+      position: "absolute",
+      left: 12,
+      top: "50%",
+      marginTop: -8,
+      width: 16,
+      height: 16,
+    });
+    expect(styleOf(1)).toMatchObject({ fontWeight: 600, width: "100%" });
+    expect(styleOf(1).fontSize).toBeUndefined();
+    expect(styleOf(2)).toMatchObject({ fontSize: 12, lineHeight: "16px" });
+    const parentStyle = result.effectiveParent.props.style as Record<
+      string,
+      unknown
+    >;
+    expect(parentStyle).toMatchObject({ paddingLeft: 34, paddingRight: 34 });
+    const placeholder = run("{icon}", false).effectiveParent.props
+      .style as Record<string, unknown>;
+    expect(placeholder.paddingLeft).not.toBe(34);
+    expect(placeholder.paddingRight).not.toBe(34);
+  });
+
+  it("Canvas resolver: description 12 · 줄 16 · muted / icon glyph 16 (DOM slot 규칙)", async () => {
+    const { resolveItemLabelTypography } = await import(
+      "../../workspace/canvas/skia/itemLabelInheritance"
+    );
+    const item = { id: "it", type: "ListBoxItem", props: {} };
+    const desc = { id: "d", type: "Text", parent_id: "it", props: { slot: "description" } };
+    const icon = { id: "i", type: "Icon", parent_id: "it", props: { slot: "icon" } };
+    const label = { id: "l", type: "Text", parent_id: "it", props: { slot: "label" } };
+    const map = new Map<string, typeof desc | typeof item>([
+      ["it", item as typeof desc],
+    ]);
+    expect(resolveItemLabelTypography(desc, map)).toEqual({
+      fontSize: 12,
+      lineHeight: "16px",
+      color: "{color.neutral-subdued}",
+    });
+    expect(resolveItemLabelTypography(icon, map)).toEqual({ fontSize: 16 });
+    expect(resolveItemLabelTypography(label, map)).toBeNull();
   });
 });

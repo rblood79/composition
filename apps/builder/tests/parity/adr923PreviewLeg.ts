@@ -130,9 +130,35 @@ export async function mountProductionRoot(
   elements: Element[],
   editMode: "page" | "layout" = "page",
   canonicalFallback = false,
+  /**
+   * ADR-234 Phase 3d — 트리 전체를 production Preview 경로 (`CanonicalNodeRenderer` — 위임 renderer 의 자식도
+   * CanonicalNodeRenderer) 로 그린다. 정적 항목 instance 자식 (ListBoxItem > Icon · Text) 은 legacy rendererMap
+   * 이 그리지 못한다. 기본 false = 종전.
+   */
+  canonicalTree = false,
 ): Promise<HTMLElement | null> {
   const previews = elements.map(toPreviewElement);
   const root = previews[0];
+  if (canonicalTree) {
+    const ctx = stubRenderContext(previews, editMode, true);
+    const kids = ctx.childrenByParent;
+    const toNode = (p: PreviewElement): ResolvedNode =>
+      ({
+        id: p.id,
+        type: p.type,
+        props: p.props,
+        children: (kids.get(p.id) ?? []).map(toNode),
+      }) as unknown as ResolvedNode;
+    return mountPreviewNode(
+      host,
+      roots,
+      React.createElement(CanonicalNodeRenderer, {
+        node: toNode(root),
+        renderContext: ctx,
+        cutoverPrimitives: getCatalogCutoverTypes(),
+      }),
+    );
+  }
   const renderer = rendererMap[root.type];
   if (!renderer) throw new Error(`${root.type}: rendererMap 항목 없음`);
   const ctx = stubRenderContext(previews, editMode, canonicalFallback);

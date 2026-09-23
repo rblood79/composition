@@ -206,7 +206,7 @@ function isTabItemTemplateVariant(
 export type SlotInsertAction =
   | { kind: "child" }
   | { kind: "collection-item"; itemsKey: "items"; selected: boolean }
-  // ADR-234 Phase 3 — 목록 틀 (TabList · TagList) 의 "+" = 항목 instance (Tabs 는 짝 TabPanel 도 —
+  // ADR-234 Phase 3 — 목록 틀 (TabList · TagList · ListBox) 의 "+" = 항목 instance (Tabs 는 짝 TabPanel 도 —
   //   `collectionItemInsert`).
   | { kind: "list-item" }
   // ADR-233: Tabs root slot (이관 전 문서) 의 Tab 은 `items` + TabPanel `itemId` 쌍 (ADR-066) 이라 추가
@@ -221,6 +221,10 @@ export function resolveSlotInsertAction(
     return { kind: "list-item" };
   }
   if (isTagListHost(host) && isTagItemTemplateVariant(candidate)) {
+    return { kind: "list-item" };
+  }
+  // ListBox 는 자기가 목록 틀 — 정적 목록의 "+" 는 ListBoxItem instance 자식 (바인딩 목록의 행은 데이터).
+  if (isListBoxHost(host) && isListBoxItemTemplateVariant(candidate)) {
     return { kind: "list-item" };
   }
   if (isTabsHost(host) && isTabItemTemplateVariant(candidate)) {
