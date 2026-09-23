@@ -1,5 +1,7 @@
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 import {
   getCatalogCutoverTypes,
@@ -1435,5 +1437,79 @@ describe("ADR-234 Phase 3 — 전파 규칙 (Tabs → TabList · TagGroup → Ta
         tagList,
       ),
     ).toEqual(boundItems);
+  });
+});
+
+describe("ADR-234 G5 — Tag leading slot 자식 = 이관 전 chip 규칙", () => {
+  it("layout: icon 14 (자리표시는 숨김) · avatar 16 (minWidth 도) · Skia icon glyph 14 · avatar 지름 16", async () => {
+    const { applyImplicitStyles } = await import(
+      "../../workspace/canvas/layout/engines/implicitStyles"
+    );
+    const { resolveItemLabelTypography, resolveItemLeadingAvatarSize } =
+      await import("../../workspace/canvas/skia/itemLabelInheritance");
+    const node = (
+      id: string,
+      type: string,
+      parent: string | null,
+      props: Record<string, unknown> = {},
+    ) => ({ id, type, parent_id: parent, props });
+    const run = (iconName: string) => {
+      const tag = node("t", "Tag", null);
+      const icon = node("i", "Icon", "t", { slot: "icon", iconName });
+      const avatar = node("a", "Avatar", "t", { slot: "avatar", src: "x.png" });
+      const all = [tag, icon, avatar];
+      const byId = new Map(all.map((n) => [n.id, n]));
+      const childrenOf = (id: string) => all.filter((n) => n.parent_id === id);
+      return {
+        result: applyImplicitStyles(tag, childrenOf("t"), childrenOf, byId),
+        icon,
+        avatar,
+        byId,
+      };
+    };
+    const { result, icon, avatar, byId } = run("star");
+    const st = (i: number) =>
+      result.filteredChildren[i]!.props.style as Record<string, unknown>;
+    expect(st(0)).toMatchObject({ width: 14, height: 14, fontSize: 14 });
+    expect(st(1)).toMatchObject({ width: 16, minWidth: 16, height: 16 });
+    expect(
+      (run("{icon}").result.filteredChildren[0]!.props.style as Record<
+        string,
+        unknown
+      >).display,
+    ).toBe("none");
+    expect(resolveItemLabelTypography(icon, byId)).toEqual({ fontSize: 14 });
+    expect(resolveItemLeadingAvatarSize(avatar, byId)).toBe(16);
+  });
+
+  it("DOM: TagGroup 안 Tag 의 icon 자식은 `slot` 속성 (TagGroup.css leading 규칙이 닿는다)", () => {
+    (globalThis as { ResizeObserver?: unknown }).ResizeObserver ??= class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    };
+    const doc = seededDoc([
+      {
+        id: "tg-icon",
+        type: "ref",
+        ref: "component-taggroup",
+        props: { items: [{ id: "a", label: "Alpha", icon: "star" }] },
+      } as unknown as CanonicalNode,
+    ]);
+    const resolved = findResolved(
+      resolveCanonicalDocument(doc) as ResolvedNode[],
+      "tg-icon",
+    )!;
+    const { container } = renderResolved(resolved);
+    const tag = container.querySelector('.react-aria-Tag[role="row"]')!;
+    expect(tag.querySelector('.react-aria-Icon[slot="icon"]')).not.toBeNull();
+    const css = readFileSync(
+      resolve(
+        __dirname,
+        "../../../../../../packages/shared/src/components/styles/TagGroup.css",
+      ),
+      "utf8",
+    );
+    expect(css).toMatch(/> \.react-aria-Icon\[slot="icon"\] \{[^}]*width: 14px/);
   });
 });

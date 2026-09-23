@@ -21,6 +21,7 @@ import { readForcedVariantStates } from "../../../components/stateVariantLayers"
 import {
   applyItemLabelTypography,
   resolveItemLabelTypography,
+  resolveItemLeadingAvatarSize,
 } from "./itemLabelInheritance";
 import type { SkiaNodeData } from "./nodeRendererTypes";
 import type { FillStyle } from "./types";
@@ -1455,6 +1456,15 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
         : undefined
   ) as SizeSpec | undefined;
   if (!sizeSpec) return null;
+  // ADR-234 G5 — Tag instance 의 leading avatar 는 chip 규칙 지름 16 (rule size height 24 로 그리면 넘친다).
+  const leadingAvatarSize = resolveItemLeadingAvatarSize(element, elementsMap);
+  if (leadingAvatarSize != null) {
+    sizeSpec = {
+      ...sizeSpec,
+      width: leadingAvatarSize,
+      height: leadingAvatarSize,
+    } as SizeSpec;
+  }
 
   // ---------- flexDirection → column detection ----------
   // ADR-079 Phase 4: 블랙리스트 → 화이트리스트 전환.

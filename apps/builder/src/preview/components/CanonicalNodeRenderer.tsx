@@ -179,9 +179,11 @@ const ITEM_SLOT_COLLECTIONS: ReadonlySet<string> = new Set([
   "listbox",
   "gridlist",
   "menu",
+  "taggroup",
 ]);
 const ITEM_SLOT_ROLES: ReadonlySet<string> = new Set([
   "icon",
+  "avatar",
   "label",
   "description",
 ]);
@@ -598,9 +600,9 @@ function CanonicalNodeRendererBody({
     "data-canonical-id": node.id,
     "data-element-id": elementId,
   };
-  // ADR-234 Phase 3 — 목록 항목 (ListBoxItem · GridListItem · MenuItem) 의 slot 자식은 역할을 DOM `slot` 으로
-  //   낸다 — 항목 CSS (`ListBox.css` `[slot="label"]` · `[slot="description"]` · `[slot="icon"]`) 가 이관 전 행
-  //   (`renderListBoxItemSlotContent` 의 `slot` 속성) 과 같은 규칙으로 닿는다.
+  // ADR-234 Phase 3 — 목록 항목 (ListBoxItem · GridListItem · MenuItem · Tag) 의 slot 자식은 역할을 DOM `slot`
+  //   으로 낸다 — 항목 CSS (`ListBox.css` `[slot="label"]` · `[slot="icon"]` · `TagGroup.css` leading 슬롯) 가 이관 전
+  //   행 (`renderListBoxItemSlotContent` 의 `slot` 속성 · chip `.tag-leading-*`) 과 같은 규칙으로 닿는다.
   const itemSlotRole = (node.props as Record<string, unknown> | undefined)
     ?.slot;
   const itemSlotAttr =

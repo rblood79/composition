@@ -74,6 +74,10 @@ export function resolveItemLabelTypography<T extends NodeLike>(
       ? { color: "{color.neutral-subdued}" }
       : null;
   }
+  // G5 — Tag leading icon glyph = chip 규칙 14 (`.tag-leading-icon` · catalog `Tag.sizes[*].iconSize`).
+  if (item.type === "Tag" && element.type === "Icon") {
+    return propsOf(element).slot === "icon" ? { fontSize: TAG_ICON_SIZE } : null;
+  }
   if (element.type !== "Text") return null;
   const ownerType = ITEM_LABEL_OWNERS[item.type];
   if (!ownerType) return null;
@@ -143,6 +147,7 @@ export function resolveItemLabelTypography<T extends NodeLike>(
 /** ListBox `[slot="description"]` 글자 크기 (`--text-xs`) · 줄 높이 (`--text-xs--line-height` = 4/3 배). */
 const LISTBOX_DESCRIPTION_FONT_SIZE = 12;
 const LISTBOX_ICON_SIZE = 16;
+const TAG_ICON_SIZE = 14;
 
 /**
  * ListBoxItem 의 slot 자식 (ADR-234 Phase 3d — 정적 항목 · Components 페이지 origin): DOM 은 항목 CSS
@@ -164,6 +169,23 @@ function resolveListBoxItemSlotTypography(
     lineHeight: `${Math.ceil((LISTBOX_DESCRIPTION_FONT_SIZE * 4) / 3)}px`,
     color: "{color.neutral-subdued}",
   };
+}
+
+/**
+ * G5 — Tag 의 leading avatar slot 지름 (`TagGroup.css` · catalog `Tag.variants[*].leadingAvatar.size` 16). Skia
+ * avatar 는 지름을 rule size 의 height 로 그리므로 (md 24) 상자 (16) 보다 크게 넘친다 — 이 값으로 덮는다.
+ */
+const TAG_AVATAR_SIZE = 16;
+
+export function resolveItemLeadingAvatarSize<T extends NodeLike>(
+  element: T,
+  elementsMap: ReadonlyMap<string, T>,
+): number | null {
+  if (element.type !== "Avatar" || !element.parent_id) return null;
+  if (propsOf(element).slot !== "avatar") return null;
+  return elementsMap.get(element.parent_id)?.type === "Tag"
+    ? TAG_AVATAR_SIZE
+    : null;
 }
 
 /** label style 에 없는 키만 채운다 (작성자 값 우선). */

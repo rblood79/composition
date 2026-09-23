@@ -267,3 +267,14 @@
 - 적용한 절감 (동작 변경 0): ① 상태 층 집합을 해석 호출 단위로 캐시 (`cachedStateLayerSet` — 같은 origin 을 가리키는 instance 500 개가 집합을 500 번 만들었다, −0.4 ms) · ② 유효 `enabled: false` 자식은 만들지 않음 (Tag 의 숨긴 Icon · Avatar 1,000 개 생성 후 prune 하던 것, tag −1.0 ms). node 기준 Δ: tabs +1.3 → +1.2 · tag +2.6 → +1.6.
 - Preview hover 재렌더 비교는 사용자 지시 (Preview iframe 미개방) 로 재지 않았다.
 - **남은 결정 (사용자)**: 기준을 조정할지 (예: 항목당 비용 · 규모별 상한) 또는 해석 증분화 (편집 영향 instance 만 재해석) 를 별도 작업으로 할지.
+
+### Phase 4 — G5 BC 픽셀 (2026-09-23)
+
+- 하니스 `apps/builder/scripts/adr234-g5-bc-live.mjs`: **before arm = 이관 전 커밋 `66480f5e0` 의 별도 worktree** (`/Users/admin/work/composition-adr234-base` · 그 lockfile 로 설치 · 엔진 wasm 빌드 · dev `127.0.0.1:5174`) · after arm = 현재 빌드. before 에서 새 프로젝트 (seed) + 사람이 만든 노드 (palette instance Tabs · GridList · Menu, items override TagGroup (icon 포함 · 선택) · ListBox (icon · description · 선택), 문서 plain Tabs · TagGroup, 변형 직접 ref Button `--hover`) 를 저장 → IndexedDB `document_heads` · `document_parts` 를 after 의 새 프로젝트에 써 넣고 reload (hydration 이관). 같은 노드를 scale 1 · 같은 화면 위치로 옮겨 Skia 캡처 → 픽셀 비교 (채널 차 > 16). 선택 가능한 가족은 역할 짝 (이전 기본 ↔ 이후 `--unselected`, 이전 selected ↔ 이후 origin).
+- **Δ0**: ListBox · GridList · Menu (origin · instance · items override instance), Button 변형 (hover · disabled) · 변형 직접 ref instance, Checkbox · Switch · Radio 두 상태 (역할 짝). 재hydration Δ0 (store 스냅샷, reload 2 회) · page error 0.
+- **G5 로 잡은 결함 (수리)**: 정적 Tag 의 leading slot — Icon 이 기본 24 로 그려져 chip 이 넓어졌고 (이관 전 14), avatar 는 16 상자에 24 로 그려져 넘쳤다 (Skia 지름 = rule size height). Canvas layout: Tag 의 icon 14 · avatar 16 (+ minWidth — leaf 측정 32 가 이기지 않게) · `{icon}` 자리표시는 숨김 (DOM 도 안 그림) · 간격은 Tag 컨테이너 gap 4. Skia: icon glyph 14 · avatar 지름 16 (`resolveItemLeadingAvatarSize`). DOM: TagGroup 안 slot 자식에 `slot` 속성 + `TagGroup.css` `> .react-aria-Icon[slot="icon"]` 14 · `> .react-aria-Avatar[slot="avatar"]` 16 · margin-right 4. 원복 RED 7/7.
+- **남은 차이 — 판정: 의도된 대칭 수리 (Canvas 가 DOM 과 같아짐)**:
+  - Tabs (origin · instance · plain): 탭 사이 8px — DOM TabList 는 기본 density regular (`gap 8`, 2026-08-21 사용자 결정) 인데 이관 전 Canvas projection 행 묶음만 gap 0 이었다. 이관 후 Tab 이 TabList 직계 자식이라 DOM 과 같은 8.
+  - Components 페이지 항목 템플릿 origin (단독 배치): Tab `{label}` 폭 69 → 65 (3c — label 14 · DOM 상속) · Tag 135 → 86 (자리표시 icon 상자 제거 · avatar 16 — DOM 모양) · ListBoxItem 115×76 → 93×50 (3d — icon 절대 위치 · description 12/16, DOM 50) · GridListItem 68 → 76 (3e — label/description Text 기본 16, `GridList.css` 주석의 카드 76).
+  - Tag 목록 (origin · instance · plain): chip 폭 · 위치 같음, 글자 x 가 1px 이내 (projection 은 chip 가운데 · instance 는 padding 기준 + 폭 올림) — 화소 1.9% 이내, 시각 동일.
+- h1 (origin 전용 style 키가 이관 후 새로 나타나지 않음) · h2 (변형 직접 ref instance 의 descendants label 편집 보존) · Δbyte 는 Phase 1 · 2 unit (G1 · G2) 으로 고정됨 — 이번 live 문서에는 변형 자식 descendants 편집이 없어 h2 live 는 재지 않았다.

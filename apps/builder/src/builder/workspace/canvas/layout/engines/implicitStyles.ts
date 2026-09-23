@@ -20,6 +20,8 @@ import {
   isTagGroupSlotChildVisible,
   findTabListChildren,
   resolveTabsItemKeys,
+  TAG_LEADING_AVATAR_SIZE,
+  TAG_LEADING_ICON_SIZE,
 } from "./utils";
 import {
   // ADR-912 단계5 step4 (2026-06-17): InlineAlertSpec import 제거 — InlineAlert padding/gap/자식 font
@@ -1839,6 +1841,52 @@ export function applyImplicitStyles(
     const slotChildren = resolveGridListItemSlotLayout(filteredChildren);
     filteredChildren =
       slotChildren ?? injectCollectionItemFontStyles(filteredChildren);
+  }
+
+  // ── Tag (정적 항목 instance 의 leading slot 자식) ───────────────
+  // ADR-234 G5 — 이관 전 chip 의 leading 슬롯 (`TagGroup.css .tag-leading-icon` 14 · `.tag-leading-avatar` 16 ·
+  //   catalog `Tag.sizes[*].iconSize` / `leadingAvatar`) 과 같은 상자. 자식 Icon 을 기본 크기 (24) 로 두면 chip 이
+  //   넓어진다 (G5 픽셀 비교에서 발견). 라벨과의 간격 4 는 Canvas Tag 컨테이너 gap 이 이미 준다 (DOM 은
+  //   margin-right 4). 그릴 수 없는 아이콘 이름 (`{icon}` 자리표시) 은 DOM 이 Icon 을 안 그리므로 상자 0.
+  if (containerTag === "tag") {
+    filteredChildren = filteredChildren.map((child) => {
+      const role = getSlotRole(child);
+      if (role !== "icon" && role !== "avatar") return child;
+      const cs = (child.props?.style as Record<string, unknown>) || {};
+      const iconName = child.props?.iconName;
+      if (
+        role === "icon" &&
+        (typeof iconName !== "string" ||
+          iconName === "" ||
+          /^\{.*\}$/.test(iconName))
+      ) {
+        return {
+          ...child,
+          props: { ...child.props, style: { ...cs, display: "none" } },
+        } as CanvasLayoutNode;
+      }
+      const size =
+        typeof cs.fontSize === "number" && role === "icon"
+          ? cs.fontSize
+          : role === "icon"
+            ? TAG_LEADING_ICON_SIZE
+            : TAG_LEADING_AVATAR_SIZE;
+      return {
+        ...child,
+        props: {
+          ...child.props,
+          style: {
+            ...cs,
+            width: cs.width ?? size,
+            // leaf 측정 (Avatar 원 32) 이 준 minWidth 가 폭을 이기지 않게.
+            minWidth: cs.minWidth ?? cs.width ?? size,
+            height: cs.height ?? size,
+            ...(role === "icon" ? { fontSize: cs.fontSize ?? size } : {}),
+            flexShrink: cs.flexShrink ?? 0,
+          },
+        },
+      } as CanvasLayoutNode;
+    });
   }
 
   // ── ListBoxItem ───────────────────────────────────────────────
