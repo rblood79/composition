@@ -222,6 +222,7 @@ export interface TranslationKeys {
     selectInstances: string;
     createComponent: string;
     detachComponent: string;
+    systemOriginLocked: string;
   };
   history: {
     title: string;

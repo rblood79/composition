@@ -35,19 +35,7 @@ import {
 import { isListBoxTemplateAnchor } from "../../components/listbox/listBoxTemplateOrigins";
 import { emitStoreStructureCommitDescriptors } from "../../presentation/storeCommitEmitter";
 import { isRenderProjectionId } from "../../projection/renderProjectionIds";
-
-/** ADR-228: Components 페이지의 system origin root — `reusable` + `metadata.systemOwned`. */
-export function isSystemOwnedReusableOrigin(element: unknown): boolean {
-  if (!element || typeof element !== "object") return false;
-  const candidate = element as {
-    reusable?: unknown;
-    ref?: unknown;
-    metadata?: unknown;
-  };
-  if (typeof candidate.ref === "string") return false; // instance 는 대상 아님
-  const metadata = candidate.metadata as { systemOwned?: unknown } | undefined;
-  return candidate.reusable === true && metadata?.systemOwned === true;
-}
+import { isSystemOwnedOrigin } from "../../../adapters/canonical/editingSemantics";
 
 type SetState = Parameters<StateCreator<ElementsState>>[0];
 type GetState = Parameters<StateCreator<ElementsState>>[1];
@@ -111,7 +99,7 @@ function collectElementsToRemove<TElement extends Element>(
   // ADR-228 Decision 4: systemOwned reusable origin root (Components 페이지의 catalog·손 seed
   //   origin) 는 삭제 불가 — 지우면 그 ref instance 전부가 세션 안에서 빈 노드가 되고 재로드
   //   때 재시드로만 돌아온다. 이동·편집은 허용 (여기서는 삭제만 막는다).
-  if (isSystemOwnedReusableOrigin(element)) return null;
+  if (isSystemOwnedOrigin(element)) return null;
 
   // 자식 요소들 찾기 (재귀적으로)
   const findChildren = (parentId: string): TElement[] => {

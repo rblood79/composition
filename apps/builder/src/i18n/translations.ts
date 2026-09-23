@@ -381,6 +381,8 @@ const koKR: TranslationKeys = {
     selectInstances: "인스턴스 선택 ({count})",
     createComponent: "컴포넌트 만들기",
     detachComponent: "컴포넌트 분리",
+    systemOriginLocked:
+      "Components 페이지의 기본 컴포넌트는 분리할 수 없습니다",
   },
   history: {
     title: "작업 내역",
@@ -2311,6 +2313,8 @@ const enUS: TranslationKeys = {
     selectInstances: "Select instances ({count})",
     createComponent: "Create component",
     detachComponent: "Detach component",
+    systemOriginLocked:
+      "Built-in components on the Components page can't be detached",
   },
   history: {
     title: "History",

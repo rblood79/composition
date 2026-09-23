@@ -29,9 +29,11 @@ import {
   getEditingSemanticsImpactInstanceIds,
   getEditingSemanticsRole,
   isEditingSemanticsOrigin,
+  isSystemOwnedOrigin,
 } from "../../utils/editingSemantics";
 import { requestEditingSemanticsImpactConfirmation } from "../../utils/editingSemanticsImpactConfirmation";
 import { getDB } from "../../../lib/db";
+import { globalToast } from "../toast";
 import {
   areCanonicalMutationStoreActionsRegistered,
   mergeElementsCanonicalPrimary,
@@ -830,6 +832,15 @@ export async function toggleComponentOrigin(
   // 판정 축은 `reusable` 하나 — 인스턴스이면서 동시에 재사용 원본인 노드는
   // 여기서 원본 해제로 들어가야 한다 (role 판정 시 instance 가 먼저 잡혀
   // "다시 reusable 로 만들기" 로 되돌아가 해제 자체가 불가능했다).
+  // Components 페이지의 system origin (상태 변형 포함) 은 해제하지 않는다 — 해제하면 팔레트
+  // 배치 instance 와 상태 층이 원본을 잃는다 (삭제 가드와 같은 술어, ADR-228 Decision 4).
+  if (isSystemOwnedOrigin(element)) {
+    globalToast.info("componentAction.systemOriginLocked", {
+      messageKey: "componentAction.systemOriginLocked",
+    });
+    return null;
+  }
+
   if (!isEditingSemanticsOrigin(element)) {
     const nextElement: CanonicalElement = {
       ...element,

@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Components 페이지의 기본 컴포넌트는 분리 · 삭제되지 않는다] - 2026-09-24
+
+### Fixed
+
+- **Components 페이지의 기본 컴포넌트 (팔레트 원본) 에 "컴포넌트 분리" 를 누르면 원본이 풀리던 문제를 고쳤다.** 이제 분리되지 않고 "Components 페이지의 기본 컴포넌트는 분리할 수 없습니다" 안내가 뜬다.
+  - **Why**: 삭제는 ADR-228 부터 막혀 있었지만 분리 (`toggleComponentOrigin`) 에는 같은 가드가 없었다. 분리되면 팔레트로 놓은 instance 와 상태 층이 원본을 잃는다.
+- **상태 변형 (`--hover` · `--unselected` 등) 이 삭제되던 문제를 고쳤다.** 삭제 가드가 `ref` 를 가진 노드를 instance 로 보고 건너뛰었는데, ADR-234 부터 상태 변형은 origin 의 `ref` 이면서 `reusable` 인 system origin 이다.
+  - 가드 술어는 `isSystemOwnedOrigin` 하나로 삭제 · 분리가 같이 읽는다.
+  - 위치: `apps/builder/src/adapters/canonical/editingSemantics.ts`, `apps/builder/src/builder/stores/utils/{elementRemoval,instanceActions}.ts`
+
 ## [상태 변형 origin 편집에도 영향 확인 대화상자가 뜬다] - 2026-09-24
 
 ### Fixed

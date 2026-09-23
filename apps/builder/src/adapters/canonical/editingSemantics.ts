@@ -67,6 +67,18 @@ export function isEditingSemanticsOrigin(element: unknown): boolean {
  * 액션 가용성은 축 술어 (`isEditingSemanticsInstance` /
  * `isEditingSemanticsOrigin`) 로 판정한다.
  */
+/**
+ * Components 페이지의 system origin — `reusable` + `metadata.systemOwned` (ADR-228). 삭제 · 컴포넌트
+ * 해제 둘 다 불가다. ADR-234 상태 변형 (`<origin>--<state>`) 은 origin 의 `ref` 이면서 `reusable`
+ * 이라 여기 든다 — `ref` 로 거르면 변형이 보호에서 빠진다. 일반 instance 는 `reusable` 이 아니다.
+ */
+export function isSystemOwnedOrigin(element: unknown): boolean {
+  const candidate = asElementLike(element);
+  if (!candidate || candidate.reusable !== true) return false;
+  const metadata = candidate.metadata as { systemOwned?: unknown } | undefined;
+  return metadata?.systemOwned === true;
+}
+
 export function getEditingSemanticsRole(
   element: unknown,
 ): EditingSemanticsRole | null {
