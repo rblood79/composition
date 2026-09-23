@@ -760,20 +760,25 @@ describe("Anthropic 어댑터 — caching · usage · fallback · structured out
     expect(stop && "usage" in stop).toBe(false);
   });
 
-  it("안전 분류기가 붙는 모델 (opus-5 · fable · mythos) 에는 fallbacks default + beta 헤더를 보낸다", async () => {
-    const capture = captureFetch(() => sseResponse([]));
-    await collect(
-      new AnthropicProvider({
-        baseUrl: "https://api.anthropic.com",
-        model: "claude-opus-5",
-        allowRemoteDirect: true,
-        fetchImpl: capture.impl,
-      }).completeWithTools(MESSAGES),
-    );
-    expect(capture.body().fallbacks).toBe("default");
-    const headers = capture.calls[0].init.headers as Record<string, string>;
-    expect(headers["anthropic-beta"]).toBe("server-side-fallback-2026-07-01");
-  });
+  it.each(["claude-opus-5", "claude-opus-5-5"])(
+    "안전 분류기가 붙는 모델 (%s) 에는 fallbacks default + beta 헤더를 보낸다",
+    async (model) => {
+      const capture = captureFetch(() => sseResponse([]));
+      await collect(
+        new AnthropicProvider({
+          baseUrl: "https://api.anthropic.com",
+          model,
+          allowRemoteDirect: true,
+          fetchImpl: capture.impl,
+        }).completeWithTools(MESSAGES),
+      );
+      expect(capture.body().fallbacks).toBe("default");
+      const headers = capture.calls[0].init.headers as Record<string, string>;
+      expect(headers["anthropic-beta"]).toBe(
+        "server-side-fallback-2026-07-01",
+      );
+    },
+  );
 
   it("sonnet-5 · haiku 에는 fallbacks 도 beta 헤더도 붙이지 않는다", async () => {
     const capture = captureFetch(() => sseResponse([]));

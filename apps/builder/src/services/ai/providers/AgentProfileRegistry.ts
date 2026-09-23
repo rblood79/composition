@@ -77,7 +77,9 @@ export const AGENT_PROFILE_PRESETS: Record<
     planner: {
       provider: "anthropic",
       baseUrl: ANTHROPIC_BASE_URL,
-      model: "claude-opus-5",
+      // Opus 5.5 — Opus 5 대비 입력·출력 단가 20% 낮고 계약 (adaptive thinking · auto
+      // tool_choice) 동일. 기본 effort 가 medium 이라 high 를 명시한다.
+      model: "claude-opus-5-5",
       credentialRef: "ANTHROPIC_API_KEY",
       reasoningEffort: "high",
     },

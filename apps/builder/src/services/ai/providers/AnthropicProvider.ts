@@ -6,8 +6,9 @@
  * 2. 도구 결과는 `role: "tool"` 이 아니라 **user 메시지 안의 `tool_result` 블록**이다.
  * 3. 도구 호출 인자는 `input_json_delta` 로 조각나 온다 (OpenAI 의 `arguments` 누적과 같은 역할).
  *
- * Claude 5 계열 (Fable 5.1 · Opus 5 · Sonnet 5) 계약 — 2026-09-03 Fable 5.1 레퍼런스 대조:
- * - thinking 은 adaptive 가 기본이고 Fable 5.x 는 끌 수 없다. `thinking.budget_tokens` 와
+ * Claude 5 계열 (Fable 5.1 · Opus 5.5 · Opus 5 · Sonnet 5) 계약 — 2026-09-03 Fable 5.1,
+ * 2026-09-23 Opus 5.5 레퍼런스 대조:
+ * - thinking 은 adaptive 가 기본이고 Fable 5.x · Opus 5.5 는 끌 수 없다. `thinking.budget_tokens` 와
  *   `thinking.type: "disabled"` 는 400 → `thinking` 필드를 보내지 않고 강도는
  *   `output_config.effort` 로 조절한다.
  * - 비기본 `temperature` / `top_p` / `top_k` 는 400 → 보내지 않는다.
@@ -15,6 +16,8 @@
  *   스트림에서 블록을 index 순으로 모아 `stop.assistantTurn` 으로 돌려주고,
  *   `providerContent` 가 실린 assistant 메시지는 그 블록을 그대로 쓴다.
  * - `tool_choice` 는 `auto` / `none` 만 (forced `any` / `tool` 은 400).
+ * - effort 를 생략하면 모델 기본값 — Opus 5.5 는 `medium`, Opus 5 는 `high` 로 다르다.
+ *   강도가 중요한 프로파일은 `reasoningEffort` 를 명시한다.
  * - `stop_reason: "refusal"` + `stop_details.category` 를 그대로 노출한다.
  *
  * 브라우저에서 `api.anthropic.com` 을 직접 부르려면 provider 가 요구하는 opt-in 헤더가
@@ -42,7 +45,7 @@ const ANTHROPIC_VERSION = "2023-06-01";
 const REFUSAL_FALLBACK_BETA = "server-side-fallback-2026-07-01";
 
 /**
- * 안전 분류기가 붙어 `stop_reason: "refusal"` 을 낼 수 있는 모델 — Opus 5 · Fable · Mythos.
+ * 안전 분류기가 붙어 `stop_reason: "refusal"` 을 낼 수 있는 모델 — Opus 5 · Opus 5.5 · Fable · Mythos.
  * 여기에만 `fallbacks` 를 보낸다.
  */
 export function modelHasRefusalFallbacks(model: string): boolean {

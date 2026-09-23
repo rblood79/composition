@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [AI 패널 Anthropic 프리셋 — planner 를 Opus 5.5 로] - 2026-09-23
+
+### Changed
+
+- **AI 설정의 Anthropic 프리셋에서 planner 기본 모델이 `claude-opus-5-5` 가 됐다** (이전 `claude-opus-5`). Opus 5.5 는 Opus 5 보다 입력·출력 단가가 20% 낮고 요청 계약 (thinking 필드 미전송 · `tool_choice` auto · 거절 시 서버 fallback) 이 같다. 기본 effort 가 `medium` 으로 내려간 모델이라 planner 의 `high` 는 명시값 그대로 유지한다. 이미 저장된 프로파일은 바뀌지 않는다 — 프리셋을 다시 고르거나 모델 칸을 직접 바꾸면 된다.
+  - 위치: `apps/builder/src/services/ai/providers/AgentProfileRegistry.ts`, `apps/builder/src/services/ai/providers/AnthropicProvider.ts` (계약 주석)
+
 ## [ADR-233 Tabs 의 Tab 항목 템플릿 · Radio origin] - 2026-09-23
 
 ### Added
