@@ -44,6 +44,7 @@ import { resolveListBoxItemRowHeightFromStyle } from "../layout/engines/utils";
 import {
   getListBoxTemplateAnchor,
   resolveListBoxTemplateOriginId,
+  resolveTemplateOriginNode,
   type CollectionWindowResolution,
 } from "./canvasSceneNode";
 import { flattenCanonicalDocumentNodes } from "./canonicalSceneModel";
@@ -278,7 +279,9 @@ function resolveListBoxRowHeight(
 ): number {
   const anchor = getListBoxTemplateAnchor(node.children);
   const originId = resolveListBoxTemplateOriginId(node, anchor, getDocNodes);
-  const origin = originId ? getDocNodes().get(originId) : undefined;
+  const origin = originId
+    ? resolveTemplateOriginNode(originId, getDocNodes())
+    : undefined;
   // appendListBoxRowProjection 의 templateAnchorStyle 과 동일 병합(origin ◁ anchor).
   const rowStyle: Record<string, unknown> = {
     ...((origin?.props?.style as Record<string, unknown> | undefined) ?? {}),

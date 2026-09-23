@@ -11,9 +11,14 @@ import { resolveReference } from "../../utils/component/referenceResolution";
 import type { LegacyElementMirrorFields } from "./legacyElementFields";
 import { isRenderProjectionId } from "../../builder/projection/renderProjectionIds";
 import {
-  STATE_VARIANTS_PROP,
-  buildStateVariantProjection,
-} from "../../builder/components/stateVariantResolution";
+  buildStateLayerSet,
+  omitOwnedKeys,
+  readForcedVariantStates,
+  readInstanceOwnedKeys,
+  resolveActiveStateLayer,
+  type ActiveVariantStates,
+  type StateLayer,
+} from "../../builder/components/stateVariantLayers";
 
 export type CanonicalRefResolvableNode = {
   id: string;
@@ -223,6 +228,14 @@ export function resolveCanonicalRefElement<
 
   return {
     ...master,
+    // ADR-234: origin 의 상태 표식 (`metadata.variant` — 선택 가능한 가족 origin = selected) 은 그
+    //   origin 을 Components 페이지에 그리는 표식이다 — 자기 metadata 가 없는 instance 로 새면 모든
+    //   instance 가 강제 선택으로 그려진다.
+    ...(master.metadata &&
+    "variant" in master.metadata &&
+    !(node as { metadata?: unknown }).metadata
+      ? { metadata: withoutVariantMarks(master.metadata) }
+      : {}),
     ...refFieldOverrides,
     ...mergeFillSizing(master, node),
     ...(substitutedChildren !== undefined
@@ -247,6 +260,13 @@ export function resolveCanonicalRefElement<
     // 두 표면이 같은 노드에 반대 라벨을 띄웠다 — 2026-08-30 live 실측).
     reusable: ownReusable === true ? true : undefined,
   } as T;
+}
+
+function withoutVariantMarks(
+  metadata: NonNullable<CanonicalRefResolvableNode["metadata"]>,
+): CanonicalRefResolvableNode["metadata"] {
+  const { variant: _variant, variantOf: _variantOf, ...rest } = metadata;
+  return rest;
 }
 
 export function resolveCanonicalRefElementsMap<
@@ -369,9 +389,9 @@ function propsFromDescendantPatch(
 }
 
 /** ADR-234 — descendants patch 의 `enabled` 는 노드 필드로 싣는다 (props 아님). */
-function patchEnabledField(
-  patch: Record<string, unknown> | null | undefined,
-): { enabled?: boolean } {
+function patchEnabledField(patch: Record<string, unknown> | null | undefined): {
+  enabled?: boolean;
+} {
   return patch && typeof patch.enabled === "boolean"
     ? { enabled: patch.enabled }
     : {};
@@ -749,16 +769,40 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
         ...patchEnabledField(patch),
         reusable: undefined,
       } as T;
-      const resolvedNested = withStateVariantProjection(
-        resolveCanonicalRefElement(
-          nestedRefNode,
-          resultElementsMap.values(),
-          nestedMaster,
-        ),
-        nestedMaster,
+      const resolvedNestedBase = resolveCanonicalRefElement(
         nestedRefNode,
+        resultElementsMap.values(),
+        nestedMaster,
+      );
+      // ADR-234 Phase 2 — 조합 origin 안 자식 ref (RadioGroup 안 Radio …) 도 실행 중 상태 층. 부모
+      //   (그룹) 는 이미 결과 map 에 있어 그룹 value · disabled 를 읽는다.
+      const nestedStateLayer = resolveCanvasStateLayer(
+        nestedMaster.id,
+        {
+          ...resolvedNestedBase,
+          parentId: syntheticParentId,
+          parent_id: syntheticParentId,
+        },
+        resultElementsMap,
         lookupMaster,
       );
+      const resolvedNested = nestedStateLayer
+        ? applyStateLayerToResolved(resolvedNestedBase, nestedStateLayer, {
+            // 소유 키 = 자식 ref 자신의 patch + 바깥 instance patch (둘 다 상태 층보다 위).
+            props: composePropsPatches(
+              getNodeProps(rawRefSource(sourceChild)),
+              patchProps,
+            ),
+            fills:
+              patch && Array.isArray(patch.fills)
+                ? patch.fills
+                : (rawRefSource(sourceChild) as { fills?: unknown }).fills,
+            enabled:
+              patch && typeof patch.enabled === "boolean"
+                ? patch.enabled
+                : (rawRefSource(sourceChild) as { enabled?: unknown }).enabled,
+          } as unknown as T)
+        : resolvedNestedBase;
       const syntheticNested = {
         ...resolvedNested,
         id: syntheticId,
@@ -809,6 +853,7 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
             patchOwners: [
               ...patchOwners,
               { owner: sourceChild, mountPath: path },
+              ...stateLayerOwner(sourceChild, nestedStateLayer, path),
             ],
           },
         );
@@ -940,34 +985,168 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
 }
 
 /**
- * ADR-230 — instance 의 resolved props 에 상태 변형 origin projection (`_stateVariants`) 을
- * 싣는다 (render-only). master 에 `<origin>--<state>` 변형이 하나도 없으면 무변경 (plain 과 동일
- * 경로). instance 명시 키의 출처는 **raw ref 노드** (scene node 는 `sourceNode`) — scene 층이
- * origin props 를 이미 깔아 둔 merged props 로 판정하면 origin 소유 키가 instance 소유로 잘못
- * 읽힌다 (ADR-228 scene merge).
+ * ADR-234 Phase 2 — Canvas 유효 상태 (selected · disabled). hover/pressed/focus 는 Preview 소관
+ * (ADR-150 A1 철회 판정) — 변형 노드 자신 (Components 페이지) 만 `metadata.variant` 로 강제한다.
+ *
+ * - selected: 강제 상태 → 자기 `isSelected` / `_isSelected` → 조상 RadioGroup `value` 매칭 →
+ *   조상 Tabs `selectedKey ?? defaultSelectedKey` 와 자기 `id` 매칭 (paint 단계
+ *   `buildSpecNodeData` 의 투영과 같은 규칙).
+ * - disabled: 강제 상태 → 자기 `isDisabled` / `disabled` → 조상 그룹의 `isDisabled` (3단계).
  */
-function withStateVariantProjection<T extends CanonicalRefResolvableNode>(
+const DISABLING_GROUP_TYPES = new Set([
+  "RadioGroup",
+  "CheckboxGroup",
+  "ToggleButtonGroup",
+  "TagGroup",
+  "Tabs",
+  "ListBox",
+  "GridList",
+]);
+
+function findAncestor<T extends CanonicalRefResolvableNode>(
+  element: T,
+  elementsMap: Map<string, T>,
+  match: (node: T) => boolean,
+  maxDepth = 3,
+): T | undefined {
+  let parentId = getParentId(element);
+  for (let depth = 0; parentId && depth < maxDepth; depth += 1) {
+    const parent = elementsMap.get(parentId);
+    if (!parent) return undefined;
+    if (match(parent)) return parent;
+    parentId = getParentId(parent);
+  }
+  return undefined;
+}
+
+export function resolveCanvasVariantState<T extends CanonicalRefResolvableNode>(
+  element: T,
+  elementsMap: Map<string, T>,
+): ActiveVariantStates {
+  const forced = readForcedVariantStates(element) ?? {};
+  const props = getNodeProps(element);
+  let selected = forced.selected;
+  if (selected === undefined) {
+    if (props.isSelected === true || props._isSelected === true) {
+      selected = true;
+    } else if (element.type === "Radio") {
+      const group = findAncestor(
+        element,
+        elementsMap,
+        (node) => node.type === "RadioGroup",
+      );
+      const groupValue = group ? getNodeProps(group).value : undefined;
+      selected =
+        typeof groupValue === "string" && groupValue !== ""
+          ? groupValue === props.value
+          : false;
+    } else if (element.type === "Tab") {
+      const tabs = findAncestor(
+        element,
+        elementsMap,
+        (node) => node.type === "Tabs",
+      );
+      const tabsProps = tabs ? getNodeProps(tabs) : undefined;
+      const key = tabsProps?.selectedKey ?? tabsProps?.defaultSelectedKey;
+      selected = key != null && key === props.id;
+    } else {
+      selected = false;
+    }
+  }
+  const disabled =
+    forced.disabled ??
+    (props.isDisabled === true ||
+      props.disabled === true ||
+      Boolean(
+        findAncestor(
+          element,
+          elementsMap,
+          (node) =>
+            DISABLING_GROUP_TYPES.has(node.type) &&
+            getNodeProps(node).isDisabled === true,
+        ),
+      ));
+  return {
+    selected,
+    disabled,
+    ...(forced.hovered ? { hovered: true } : {}),
+    ...(forced.pressed ? { pressed: true } : {}),
+    ...(forced.focusVisible ? { focusVisible: true } : {}),
+  };
+}
+
+/** origin 의 상태 변형 층 중 지금 켜진 것의 합성. 변형이 없거나 켜진 층이 없으면 null. */
+function resolveCanvasStateLayer<T extends CanonicalRefResolvableNode>(
+  originId: string,
   resolved: T,
-  master: T,
-  rawRefNode: T,
+  elementsMap: Map<string, T>,
   lookupMaster: (ref: string) => T | undefined,
-): T {
-  const raw =
-    ((rawRefNode as { sourceNode?: unknown }).sourceNode as T | undefined) ??
-    rawRefNode;
-  const projection = buildStateVariantProjection(
-    master as unknown as import("@composition/shared").CanonicalNode,
-    raw as unknown as import("@composition/shared").CanonicalNode,
+): StateLayer | null {
+  const set = buildStateLayerSet(
+    originId,
     (id) =>
       lookupMaster(id) as unknown as
-        | import("@composition/shared").CanonicalNode
-        | undefined,
+        import("@composition/shared").CanonicalNode | undefined,
   );
-  if (!projection) return resolved;
+  if (!set) return null;
+  return resolveActiveStateLayer(
+    set,
+    resolveCanvasVariantState(resolved, elementsMap),
+  );
+}
+
+/**
+ * scene 노드는 ref instance 의 props 를 origin 위에 이미 접어 둔다 (ADR-228 scene merge) — instance 가
+ * **직접 저장한** 키를 알려면 원본 canonical 노드 (`sourceNode`) 를 본다. scene 밖 입력은 그 자신.
+ */
+function rawRefSource<T extends CanonicalRefResolvableNode>(element: T): T {
+  const source = (element as { sourceNode?: unknown }).sourceNode as
+    T | undefined;
+  return source && source.type === "ref" ? source : element;
+}
+
+/**
+ * 해석이 끝난 instance 에 켜진 상태 층을 얹는다 — instance 자기 patch 키 (`readInstanceOwnedKeys`) 는
+ * 층이 건드리지 않는다 (instance 가 최종 층, review round 1 m4). 해석 결과에 scene 층이 실은 값
+ * (projection 입력 등) 은 그대로 남는다.
+ */
+function applyStateLayerToResolved<T extends CanonicalRefResolvableNode>(
+  resolved: T,
+  layer: StateLayer,
+  ownSource: T,
+): T {
+  const own = readInstanceOwnedKeys(
+    ownSource as unknown as import("@composition/shared").CanonicalNode,
+  );
+  const patch = omitOwnedKeys(layer.props, own);
+  const ownEnabled = (ownSource as { enabled?: unknown }).enabled;
   return {
     ...resolved,
-    props: { ...(resolved.props ?? {}), [STATE_VARIANTS_PROP]: projection },
-  };
+    ...(patch ? { props: applyPropsPatch(getNodeProps(resolved), patch) } : {}),
+    ...(layer.fills !== undefined && !own.fills ? { fills: layer.fills } : {}),
+    ...(layer.enabled !== undefined && typeof ownEnabled !== "boolean"
+      ? { enabled: layer.enabled }
+      : {}),
+  } as T;
+}
+
+/** 상태 층의 자손 patch 를 patch 소유자 스택에 넣을 가짜 소유자 (없으면 빈 배열). */
+function stateLayerOwner<T extends CanonicalRefResolvableNode>(
+  owner: T,
+  layer: StateLayer | null,
+  mountPath = "",
+): DescendantPatchOwner<T>[] {
+  if (!layer?.descendants) return [];
+  return [
+    {
+      owner: {
+        id: `${owner.id}::state-layer`,
+        type: owner.type,
+        descendants: layer.descendants,
+      } as unknown as T,
+      mountPath,
+    },
+  ];
 }
 
 /** ADR-234 — ref 체인 깊이 상한 (Preview resolver `MAX_REF_CHAIN_DEPTH` 와 같은 값). */
@@ -1002,7 +1181,11 @@ function resolveRefElementChain<T extends CanonicalRefResolvableNode>(
   const origin = current;
   let effective: T = origin;
   for (let index = intermediates.length - 1; index >= 0; index -= 1) {
-    effective = resolveCanonicalRefElement(intermediates[index]!, nodes, effective);
+    effective = resolveCanonicalRefElement(
+      intermediates[index]!,
+      nodes,
+      effective,
+    );
   }
   return { origin, intermediates, effectiveMaster: effective };
 }
@@ -1044,7 +1227,11 @@ export function resolveCanonicalRefTree<
     // ADR-234 Phase 1 — master 가 다시 ref (변형) 면 체인을 따라간다: root props 는 접힌 체인 master
     //   위에, 자식은 체인 끝 origin 의 자식을 [instance, 변형, …] patch 스택으로 실체화한다.
     const chain = directMaster
-      ? resolveRefElementChain(directMaster, input.elementsMap.values(), lookupMaster)
+      ? resolveRefElementChain(
+          directMaster,
+          input.elementsMap.values(),
+          lookupMaster,
+        )
       : null;
     if (directMaster && !chain) continue; // 순환 · 깊이 초과 · 끊긴 체인 = broken ref
     const master = chain?.effectiveMaster;
@@ -1053,15 +1240,24 @@ export function resolveCanonicalRefTree<
       input.elementsMap.values(),
       master,
     );
-    const resolvedRoot =
-      directMaster && resolvedRootBase !== element
-        ? withStateVariantProjection(
+    // ADR-234 Phase 2 — 실행 중 상태 층 (selected · disabled). instance 자기 patch 가 마지막에 이기도록
+    //   층을 master 에 얹은 뒤 instance 를 다시 연다. 자손 층은 patch 소유자 스택 (instance 다음).
+    const stateLayer =
+      chain && master && resolvedRootBase !== element
+        ? resolveCanvasStateLayer(
+            chain.origin.id,
             resolvedRootBase,
-            directMaster,
-            element,
+            elementsMap,
             lookupMaster,
           )
-        : resolvedRootBase;
+        : null;
+    const resolvedRoot = stateLayer
+      ? applyStateLayerToResolved(
+          resolvedRootBase,
+          stateLayer,
+          rawRefSource(element),
+        )
+      : resolvedRootBase;
     if (resolvedRoot !== element) {
       elementsMap.set(element.id, resolvedRoot);
       const index = indexById.get(element.id) ?? -1;
@@ -1086,6 +1282,7 @@ export function resolveCanonicalRefTree<
         lookupMaster,
         patchOwners: [
           { owner: element, mountPath: "" },
+          ...stateLayerOwner(element, stateLayer),
           ...chain.intermediates.map((owner) => ({ owner, mountPath: "" })),
         ],
       },

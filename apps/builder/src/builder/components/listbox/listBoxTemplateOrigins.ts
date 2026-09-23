@@ -1,4 +1,5 @@
 import type { CanonicalNode, CompositionDocument } from "@composition/shared";
+import { isSelectedStateOrigin } from "../stateVariantOrigins";
 import { ensureTemplateOrigins } from "../ensureTemplateOrigins";
 
 export const LISTBOX_ITEM_DEFAULT_ORIGIN_ID = "component-listbox-item-default";
@@ -249,6 +250,13 @@ function repairOrigin(
   if (!existing) return base;
   return {
     ...base,
+    // ADR-234: 이관이 다시 쓴 이름 · slot (`[휴지 변형, origin]`) · fills 를 보존한다 — seed 값으로 되돌리면
+    //   재hydration 마다 이관이 다시 돈다 (Tab · Tag repair 와 같은 규칙).
+    ...(existing.name ? { name: existing.name } : {}),
+    ...(existing.slot === false || Array.isArray(existing.slot)
+      ? { slot: existing.slot }
+      : {}),
+    ...(existing.fills ? { fills: existing.fills } : {}),
     props: repairLegacyDeadVarProps(existing.props ?? base.props),
     children: existing.children ?? base.children,
     // ADR-154: 사용자 responsive override 보존 (composite origin reseed 소실 방지)
@@ -274,10 +282,17 @@ export function ensureListBoxTemplateOrigins(
         existingOrigins.get(LISTBOX_ITEM_DEFAULT_ORIGIN_ID),
         createListBoxItemDefaultOrigin,
       ),
-      repairOrigin(
-        existingOrigins.get(LISTBOX_ITEM_SELECTED_ORIGIN_ID),
-        createListBoxItemSelectedOrigin,
-      ),
+      // ADR-234: 이관을 지난 default (= 선택 상태 origin) 가 있으면 selected 를 되살리지 않는다.
+      ...(isSelectedStateOrigin(
+        existingOrigins.get(LISTBOX_ITEM_DEFAULT_ORIGIN_ID),
+      )
+        ? []
+        : [
+            repairOrigin(
+              existingOrigins.get(LISTBOX_ITEM_SELECTED_ORIGIN_ID),
+              createListBoxItemSelectedOrigin,
+            ),
+          ]),
       repairOrigin(existingOrigins.get(LISTBOX_ORIGIN_ID), createListBoxOrigin),
     ],
   );

@@ -1297,41 +1297,76 @@ describe("buildSpecNodeData", () => {
     });
   });
 
-  describe("ADR-230 상태 변형 origin — 유효 상태 overlay · opacity 단일 적용", () => {
-    const projection = {
-      originId: "component-togglebutton",
-      sets: {
-        selected: {
-          style: { color: "#FFFFFF" },
-          fills: [
-            {
-              id: "f1",
-              type: "color",
-              color: "#FF0000",
-              opacity: 1,
-              enabled: true,
-            },
-          ],
-        },
-        disabled: { style: { opacity: 0.5 } },
-      },
-      defaultOwned: [],
-      instanceOwned: [],
+  // ADR-234 Phase 2 — 상태 변형은 scene 해석 (`resolveCanonicalRefTree`) 이 켜진 층을 props · fills 에
+  //   겹친다 (ADR-230 의 paint 단계 `_stateVariants` overlay 대체). 아래는 230 overlay 계약 (선택 fills ·
+  //   opacity 단일 · instance 우선 · RadioGroup 선택) 을 새 경로로 그대로 잰다.
+  describe("ADR-230 → 234 상태 변형 층 — 유효 상태 · opacity 단일 적용", () => {
+    const redFill = {
+      id: "f1",
+      type: "color",
+      color: "#FF0000",
+      opacity: 1,
+      enabled: true,
     };
-    function buildToggle(
-      props: Record<string, unknown>,
-      extra: Partial<CanvasSceneNode> = {},
-    ): SkiaNodeData | null {
-      const el = makeElement("tb-inst", {
-        type: "ToggleButton",
-        props: { children: "T", _stateVariants: projection, ...props },
-        ...extra,
+    function variantFamily(originId: string, type: string) {
+      return [
+        makeElement(originId, {
+          type,
+          reusable: true,
+          props: { children: "T" },
+        }),
+        makeElement(`${originId}--selected`, {
+          type,
+          reusable: true,
+          props: { children: "T", style: { color: "#FFFFFF" } },
+          fills: [redFill] as CanvasSceneNode["fills"],
+          metadata: {
+            type: "catalog-origin",
+            variant: "selected",
+            variantOf: originId,
+          },
+        }),
+        makeElement(`${originId}--disabled`, {
+          type,
+          reusable: true,
+          props: { children: "T", style: { opacity: 0.5 } },
+          metadata: {
+            type: "catalog-origin",
+            variant: "disabled",
+            variantOf: originId,
+          },
+        }),
+      ];
+    }
+    function resolveInstance(
+      instance: CanvasSceneNode,
+      extra: CanvasSceneNode[] = [],
+      originId = "component-togglebutton",
+      type = "ToggleButton",
+    ): { node: CanvasSceneNode; map: Map<string, CanvasSceneNode> } {
+      const elements = [...variantFamily(originId, type), ...extra, instance];
+      const tree = resolveCanonicalRefTree({
+        elements,
+        elementsMap: new Map(elements.map((e) => [e.id, e])),
       });
+      return {
+        node: tree.elementsMap.get(instance.id)!,
+        map: tree.elementsMap,
+      };
+    }
+    function buildToggle(props: Record<string, unknown>): SkiaNodeData | null {
+      const { node, map } = resolveInstance(
+        makeElement("tb-inst", {
+          type: "ref",
+          ref: "component-togglebutton",
+          props,
+        } as Partial<CanvasSceneNode>),
+      );
       return buildSpecNodeData({
-        element: el,
+        element: node,
         layout: makeLayout({ x: 0, y: 0, width: 120, height: 32 }),
         theme: "light",
-        elementsMap: new Map([[el.id, el]]),
+        elementsMap: map,
       });
     }
     const rgb = (node: SkiaNodeData | null): number[] =>
@@ -1341,24 +1376,23 @@ describe("buildSpecNodeData", () => {
     const opacityEffects = (node: SkiaNodeData | null) =>
       (node?.effects ?? []).filter((e) => e.type === "opacity");
 
-    it("isSelected instance → selected origin 의 fills(빨강)·color 를 겹친다 · 미선택은 종전 시각", () => {
+    it("isSelected instance → selected 변형의 fills(빨강)·color 를 겹친다 · 미선택은 종전 시각", () => {
       expect(rgb(buildToggle({ isSelected: true }))).toEqual([1, 0, 0]);
       expect(rgb(buildToggle({}))).not.toEqual([1, 0, 0]);
     });
 
-    it("h1 반증 — disabled origin 의 opacity 0.5 는 effect 1개 (catalog 0.38 과 곱하지 않는다)", () => {
+    it("h1 반증 — disabled 변형의 opacity 0.5 는 effect 1개 (catalog 0.38 과 곱하지 않는다)", () => {
       const effects = opacityEffects(buildToggle({ isDisabled: true }));
       expect(effects).toEqual([
         { type: "opacity", value: 0.5, source: "style" },
       ]);
     });
 
-    it("instance 명시 opacity 0.8 이 상태 origin 0.5 보다 우선 · 명시 color 가 selected color 보다 우선", () => {
+    it("instance 명시 opacity 0.8 이 상태 변형 0.5 보다 우선 · 명시 color 가 selected color 보다 우선", () => {
       const node = buildToggle({
         isDisabled: true,
         isSelected: true,
         style: { opacity: 0.8, color: "#123456" },
-        _stateVariants: { ...projection, instanceOwned: ["color", "opacity"] },
       });
       expect(opacityEffects(node)).toEqual([
         { type: "opacity", value: 0.8, source: "style" },
@@ -1382,32 +1416,31 @@ describe("buildSpecNodeData", () => {
       ]);
     });
 
-    it("m3 반증 — RadioGroup.value 로만 선택된 Radio 인스턴스도 selected overlay 를 읽는다", () => {
+    it("m3 반증 — RadioGroup.value 로만 선택된 Radio 인스턴스도 selected 층을 읽는다", () => {
       const group = makeElement("rg", {
         type: "RadioGroup",
         props: { value: "a" },
       });
-      const radio = makeElement("r-a", {
-        type: "Radio",
-        parent_id: "rg",
-        props: {
-          value: "a",
-          children: "A",
-          _stateVariants: { ...projection, originId: "component-radio" },
-        },
-      });
-      const node = buildSpecNodeData({
-        element: radio,
+      const { node, map } = resolveInstance(
+        makeElement("r-a", {
+          type: "ref",
+          ref: "component-radio",
+          parent_id: "rg",
+          props: { value: "a", children: "A" },
+        } as Partial<CanvasSceneNode>),
+        [group],
+        "component-radio",
+        "Radio",
+      );
+      const built = buildSpecNodeData({
+        element: node,
         layout: makeLayout({ x: 0, y: 0, width: 120, height: 24 }),
         theme: "light",
-        elementsMap: new Map([
-          [group.id, group],
-          [radio.id, radio],
-        ]),
+        elementsMap: map,
       });
       // Radio primitive 는 selected 일 때만 안쪽 dot(8×8) 을 그리고 dot 색 = 배경 채널
-      //   (overlay 가 selected origin fills 빨강을 실었으면 dot 이 빨강).
-      const dot = node?.children?.find((c) => c.width === 8 && c.height === 8);
+      //   (선택 층이 fills 빨강을 실었으면 dot 이 빨강).
+      const dot = built?.children?.find((c) => c.width === 8 && c.height === 8);
       expect(dot).toBeDefined();
       expect(Array.from(dot?.box?.fillColor ?? []).slice(0, 3)).toEqual([
         1, 0, 0,
@@ -1467,29 +1500,41 @@ describe("buildSpecNodeData", () => {
       expect(opacityEffects(build("component-button--hover", "hover"))).toEqual(
         [],
       );
-      // hover set 이 projection 에 있어도 instance 는 default 색 (ADR-150 — interaction 은 Preview 만)
+      // hover 층이 있어도 instance 캔버스는 default 색 (ADR-150 — interaction 은 Preview 만)
+      const hoverFill = {
+        id: "f2",
+        type: "color",
+        color: "#0000FF",
+        opacity: 1,
+        enabled: true,
+      };
+      const { node: hovered, map: hoveredMap } = resolveInstance(
+        makeElement("tb-inst", {
+          type: "ref",
+          ref: "component-togglebutton",
+          props: {},
+        } as Partial<CanvasSceneNode>),
+        [
+          makeElement("component-togglebutton--hover", {
+            type: "ref",
+            ref: "component-togglebutton",
+            reusable: true,
+            props: {},
+            fills: [hoverFill] as CanvasSceneNode["fills"],
+            metadata: { type: "catalog-origin", variant: "hover" },
+          } as unknown as Partial<CanvasSceneNode>),
+        ],
+      );
       expect(
         rgb(
-          buildToggle({
-            _stateVariants: {
-              ...projection,
-              sets: {
-                hover: {
-                  fills: [
-                    {
-                      id: "f2",
-                      type: "color",
-                      color: "#0000FF",
-                      opacity: 1,
-                      enabled: true,
-                    },
-                  ],
-                },
-              },
-            },
+          buildSpecNodeData({
+            element: hovered,
+            layout: makeLayout({ x: 0, y: 0, width: 120, height: 32 }),
+            theme: "light",
+            elementsMap: hoveredMap,
           }),
         ),
-      ).toEqual(rgb(buildToggle({ _stateVariants: undefined })));
+      ).toEqual(rgb(buildToggle({})));
     });
   });
 });

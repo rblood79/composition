@@ -1,4 +1,5 @@
 import type { CanonicalNode, CompositionDocument } from "@composition/shared";
+import { isSelectedStateOrigin } from "../stateVariantOrigins";
 import { catalogReusableOriginId } from "@composition/shared";
 import { buildCatalogOrigin, repairCatalogOrigin } from "../catalogOrigins";
 import { ensureTemplateOrigins } from "../ensureTemplateOrigins";
@@ -174,6 +175,8 @@ function repairItemOrigin(
   if (!existing) return base;
   return {
     ...base,
+    // ADR-234: 이관이 다시 쓴 이름 보존 (Tab repair 와 같은 규칙 — 재hydration Δ0).
+    ...(existing.name ? { name: existing.name } : {}),
     props: existing.props ?? base.props,
     children: existing.children ?? base.children,
     ...(existing.responsive ? { responsive: existing.responsive } : {}),
@@ -182,9 +185,7 @@ function repairItemOrigin(
       ...base.metadata,
       ...(existing.metadata ?? {}),
       type:
-        existing.metadata?.type ??
-        base.metadata?.type ??
-        "tag-template-origin",
+        existing.metadata?.type ?? base.metadata?.type ?? "tag-template-origin",
       systemOwned: true,
       componentFamily: "TagGroup",
     },
@@ -208,10 +209,15 @@ export function ensureTagGroupTemplateOrigins(
         existingOrigins.get(TAG_ITEM_DEFAULT_ORIGIN_ID),
         createTagItemDefaultOrigin,
       ),
-      repairItemOrigin(
-        existingOrigins.get(TAG_ITEM_SELECTED_ORIGIN_ID),
-        createTagItemSelectedOrigin,
-      ),
+      // ADR-234: 이관을 지난 default (= 선택 상태 origin) 가 있으면 selected 를 되살리지 않는다.
+      ...(isSelectedStateOrigin(existingOrigins.get(TAG_ITEM_DEFAULT_ORIGIN_ID))
+        ? []
+        : [
+            repairItemOrigin(
+              existingOrigins.get(TAG_ITEM_SELECTED_ORIGIN_ID),
+              createTagItemSelectedOrigin,
+            ),
+          ]),
       // generic seed 와 같은 트리 + TagList slot 결손 보충 (기존 자식 보존은 repairCatalogOrigin).
       withTemplateSlot(
         repairCatalogOrigin(

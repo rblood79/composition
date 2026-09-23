@@ -22,7 +22,13 @@ import { CATALOG_ORIGIN_METADATA_TYPE } from "./catalogOrigins";
  * ADR-150 경계).
  */
 export type StateVariantState =
-  "selected" | "disabled" | "hover" | "pressed" | "focus-visible";
+  | "selected"
+  | "disabled"
+  | "hover"
+  | "pressed"
+  | "focus-visible"
+  // ADR-234: 선택 가능한 가족의 휴지 상태 — origin = 선택 상태, 휴지 모양은 이 변형이 갖는다.
+  | "unselected";
 
 export const DECLARATIVE_STATE_VARIANTS: readonly StateVariantState[] = [
   "selected",
@@ -59,6 +65,7 @@ export function isInteractionStateVariant(state: StateVariantState): boolean {
 }
 
 const STATE_LABELS: Readonly<Record<StateVariantState, string>> = {
+  unselected: "Unselected",
   selected: "Selected",
   disabled: "Disabled",
   hover: "Hover",
@@ -77,6 +84,7 @@ export function isStateVariantState(
   value: unknown,
 ): value is StateVariantState {
   return (
+    value === "unselected" ||
     value === "selected" ||
     value === "disabled" ||
     value === "hover" ||
@@ -92,16 +100,62 @@ export interface StateVariantSelf {
 
 /** 이 노드가 상태 변형 origin 자신이면 `{state, variantOf}` — 아니면 null. */
 export function readStateVariantSelf(
-  node: { metadata?: unknown } | null | undefined,
+  node:
+    { metadata?: unknown; type?: unknown; ref?: unknown } | null | undefined,
 ): StateVariantSelf | null {
   const metadata = node?.metadata as
     { variant?: unknown; variantOf?: unknown } | undefined;
   if (!metadata) return null;
-  const { variant, variantOf } = metadata;
+  const { variant } = metadata;
+  // ADR-234: 변형 = origin 의 ref — 소속은 `ref` 가 말한다 (`variantOf` 는 이관 전 복제본만).
+  const variantOf =
+    typeof metadata.variantOf === "string"
+      ? metadata.variantOf
+      : typeof node?.ref === "string"
+        ? node.ref
+        : undefined;
   if (!isStateVariantState(variant) || typeof variantOf !== "string") {
     return null;
   }
   return { state: variant, variantOf };
+}
+
+/** ADR-234: 선택 가능한 가족 origin 이 이관을 지났는가 (origin = 선택 상태 표식). */
+export function isSelectedStateOrigin(
+  node: { metadata?: unknown } | null | undefined,
+): boolean {
+  return (
+    (node?.metadata as { variant?: unknown } | undefined)?.variant ===
+    "selected"
+  );
+}
+
+/**
+ * ADR-234 — origin 의 ref 변형 (빈 patch). 자식은 origin 에서 상속 (복제 0) · 표시는
+ * `metadata.variant` 강제 상태.
+ */
+export function buildStateVariantRef(
+  origin: CanonicalNode,
+  state: StateVariantState,
+): CanonicalNode {
+  const baseName =
+    typeof origin.name === "string" && origin.name.length > 0
+      ? origin.name
+      : String(origin.type);
+  return {
+    id: stateVariantOriginId(origin.id, state),
+    type: "ref",
+    ref: origin.id,
+    reusable: true,
+    name: `${baseName}/${STATE_LABELS[state]}`,
+    props: {},
+    metadata: {
+      type: CATALOG_ORIGIN_METADATA_TYPE,
+      systemOwned: true,
+      componentFamily: String(origin.type),
+      variant: state,
+    },
+  } as unknown as CanonicalNode;
 }
 
 function cloneVariantChildren(
@@ -206,11 +260,28 @@ export function ensureStateVariantOrigins(
         index += 1;
         next.push(source[index]!);
       }
-      for (const state of states) {
+      // ADR-234: 이관을 지난 origin (= 선택 상태) 은 복제본이 아니라 ref 변형을 보충하고, selected 자리는
+      //   휴지 상태 (`unselected`) 다 — `--selected` 를 되살리지 않는다 (재hydration Δ0).
+      const migrated = isSelectedStateOrigin(node);
+      const hasRefVariant = next.some(
+        (candidate) =>
+          candidate.type === "ref" &&
+          (candidate as { ref?: unknown }).ref === node.id &&
+          readStateVariantSelf(candidate) !== null,
+      );
+      const seedAsRef = migrated || hasRefVariant;
+      const seedStates = migrated
+        ? states.map((state) => (state === "selected" ? "unselected" : state))
+        : states;
+      for (const state of seedStates) {
         const variantId = stateVariantOriginId(node.id, state);
         if (existingIds.has(variantId)) continue;
         existingIds.add(variantId);
-        next.push(buildStateVariantOrigin(node, state));
+        next.push(
+          seedAsRef
+            ? buildStateVariantRef(node, state)
+            : buildStateVariantOrigin(node, state),
+        );
         changed = true;
       }
     }

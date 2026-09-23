@@ -49,9 +49,11 @@ import {
 import { parseCompositionImportReference } from "./importNamespace";
 import { isSlotCandidateAllowed } from "../../builder/components/slotHostPolicy";
 import {
-  STATE_VARIANTS_PROP,
-  buildStateVariantProjection,
-} from "../../builder/components/stateVariantResolution";
+  buildStateLayerSet,
+  readInstanceOwnedKeys,
+  STATE_LAYERS_PROP,
+  type StateLayerProjection,
+} from "../../builder/components/stateVariantLayers";
 
 export type { ImportResolverContext } from "@composition/shared";
 
@@ -233,16 +235,26 @@ function _resolveRefNodeUncached(
 
   // ── Step 4: ResolvedNode 산출 (메타 필드 주입) ────────────────────────────
   const overrideFields = collectOverrideFields(refNode);
-  // ADR-230 — 상태 변형 origin projection (render-only). builder Skia 축 (`resolveCanonicalRefTree`)
-  //   과 같은 함수·같은 props 키 — 한쪽만 실으면 CSS↔Skia 발산. DOM 은 유효 상태를 정적으로 고르지
-  //   않고 `CanonicalNodeRenderer` 가 표식 + var() inline 을, App 이 문서별 상태 규칙을 싣는다.
-  const stateVariants = buildStateVariantProjection(master, refNode, (id) =>
-    findReusableMaster(doc, id, imports),
-  );
+  // ADR-234 Phase 2 — 상태 변형 층 (render-only). Canvas (`resolveCanonicalRefTree`) 와 같은 층
+  //   집합 · 같은 순서 — DOM 은 유효 상태를 정적으로 고르지 않고 `CanonicalNodeRenderer` 가 RAC render
+  //   props (style · children 함수) 로 켜진 층을 겹친다. 층이 비면 (seed 그대로) 싣지 않는다.
+  const stateOriginId =
+    directMaster.type === "ref"
+      ? findChainEndMaster(directMaster, doc, imports)?.id
+      : directMaster.id;
+  const stateLayerSet = stateOriginId
+    ? buildStateLayerSet(stateOriginId, (id) =>
+        findReusableMaster(doc, id, imports),
+      )
+    : null;
+  const stateLayers: StateLayerProjection | null =
+    stateLayerSet && Object.keys(stateLayerSet.layers).length > 0
+      ? { set: stateLayerSet, own: readInstanceOwnedKeys(refNode) }
+      : null;
   const resolved: ResolvedNode = {
     ...resolvedBase,
-    ...(stateVariants
-      ? { props: { ...resolvedProps, [STATE_VARIANTS_PROP]: stateVariants } }
+    ...(stateLayers
+      ? { props: { ...resolvedProps, [STATE_LAYERS_PROP]: stateLayers } }
       : {}),
     children: resolvedChildren,
     _resolvedFrom: directMaster.id,
@@ -811,7 +823,17 @@ function getResolverRefMetadata(
   if (!metadata) return {};
 
   const out: Record<string, unknown> = {};
-  for (const key of ["type", "pageId", "slug", "layoutId"] as const) {
+  // ADR-234: 변형 노드 (ref) 의 상태 표식 — Components 페이지가 그 상태로 그린다 (origin 의 표식은
+  //   instance 로 새지 않는다: master metadata 는 여기서 복사하지 않는다).
+  for (const key of [
+    "type",
+    "pageId",
+    "slug",
+    "layoutId",
+    "variant",
+    "variantOf",
+    "componentFamily",
+  ] as const) {
     if (metadata[key] !== undefined) out[key] = metadata[key];
   }
   return out;

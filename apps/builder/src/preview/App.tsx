@@ -70,7 +70,6 @@ import { getSharedImportRegistry } from "../resolvers/canonical/importRegistry";
 // ?canonical=1 URL param 으로 opt-in. 기본 false → legacy 경로 보존 (회귀 0 보장).
 import { CanonicalNodeRenderer } from "./components/CanonicalNodeRenderer";
 import { resolveCanonicalRefTree } from "../builder/utils/canonicalRefResolution";
-import { collectStateVariantCss } from "../builder/components/stateVariantResolution";
 import { isLegacyFrameElementForFrame } from "../adapters/canonical/frameElementLoader";
 import { hasFrameElementMirrorId } from "../adapters/canonical/frameMirror";
 import { getSlotMirrorName } from "../adapters/canonical/slotMirror";
@@ -257,12 +256,8 @@ function CanvasContent() {
 
   // Renderer와 semantic target index가 같은 visible projection tree를 소비해야
   // ref/page-frame fan-out과 traversal render key가 어긋나지 않는다.
-  // ADR-230 — 문서별 상태 변형 규칙 1장 (origin × 상태, instance 수와 무관). origin 편집은 문서
-  //   버전을 바꾸므로 canonicalDocument 의존만으로 재계산된다 (재주입 ≤ 1회/편집 — G3).
-  const stateVariantCss = useMemo(
-    () => (canonicalDocument ? collectStateVariantCss(canonicalDocument) : ""),
-    [canonicalDocument],
-  );
+  // ADR-234 Phase 2 — 상태 변형은 RAC render props (`CanonicalNodeRenderer`) 가 겹친다 — ADR-230 의
+  //   문서별 `<style data-adr230-states>` 규칙 채널은 대체 후 제거.
 
   const visibleCanonicalNodes = useMemo(() => {
     if (!resolvedCanonicalNodes) return null;
@@ -1291,9 +1286,6 @@ function CanvasContent() {
             <>
               {responsiveCss ? (
                 <style data-adr154-responsive="">{responsiveCss}</style>
-              ) : null}
-              {stateVariantCss ? (
-                <style data-adr230-states="">{stateVariantCss}</style>
               ) : null}
               {pageNodes.map((node) => (
                 <CanonicalNodeRenderer

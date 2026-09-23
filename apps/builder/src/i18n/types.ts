@@ -589,6 +589,7 @@ export interface TranslationKeys {
     roleStandard: string;
     /** ADR-230 — 상태 변형 origin 정체 칩의 상태 배지 (읽기 전용 표식). */
     stateVariantSelected: string;
+    stateVariantUnselected: string;
     stateVariantDisabled: string;
     stateVariantHover: string;
     stateVariantPressed: string;

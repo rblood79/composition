@@ -86,12 +86,21 @@ function ownSerialization(
 const BUTTON_ORIGIN_ID = "component-button";
 const TOGGLE_ORIGIN_ID = "component-togglebutton";
 
+// ADR-234: 선택 가능한 가족은 origin = 선택 상태 · selected 자리는 휴지 (`unselected`) 변형.
+const seededStates = (states: readonly string[]) =>
+  states.map((state) => (state === "selected" ? "unselected" : state));
 const EXPECTED_VARIANT_IDS = Object.entries(STATE_VARIANT_BASE_TYPES).flatMap(
   ([type, states]) =>
-    states.map((state) =>
-      stateVariantOriginId(`component-${type.toLowerCase()}`, state),
+    seededStates(states).map((state) =>
+      stateVariantOriginId(
+        `component-${type.toLowerCase()}`,
+        state as Parameters<typeof stateVariantOriginId>[1],
+      ),
     ),
 );
+const SELECTABLE_ORIGIN_IDS = Object.entries(STATE_VARIANT_BASE_TYPES)
+  .filter(([, states]) => states.includes("selected"))
+  .map(([type]) => `component-${type.toLowerCase()}`);
 
 /** ADR-229 모양 (230 이전): 전체 hydration − 상태 변형 origin. 사용자 저작: Button origin 을 body 맨 뒤로 · 사용자 페이지. */
 function buildPre230Document(): CompositionDocument {
@@ -99,9 +108,22 @@ function buildPre230Document(): CompositionDocument {
     version: "composition-1.0",
     children: [],
   });
-  const stripped = mapNodes(full.children, (node) =>
-    readStateVariantSelf(node) ? null : node,
+  // 230 이전 = 변형 0 · origin 에 234 선택 상태 표식도 없다.
+  const baseOriginIds = new Set(
+    Object.keys(STATE_VARIANT_BASE_TYPES).map(
+      (type) => `component-${type.toLowerCase()}`,
+    ),
   );
+  const stripped = mapNodes(full.children, (node) => {
+    const self = readStateVariantSelf(node);
+    if (self && baseOriginIds.has(self.variantOf)) return null;
+    const metadata = node.metadata as Record<string, unknown> | undefined;
+    if (baseOriginIds.has(node.id) && metadata?.variant === "selected") {
+      const { variant: _variant, ...rest } = metadata;
+      return { ...node, metadata: rest } as CanonicalNode;
+    }
+    return node;
+  });
   const body = findNode(stripped, COMPONENTS_SYSTEM_BODY_ID)!;
   const button = body.children!.find((n) => n.id === BUTTON_ORIGIN_ID)!;
   const reordered = [
@@ -157,7 +179,7 @@ describe("ADR-230 Phase 3 — G4 BC", () => {
     expect(EXPECTED_VARIANT_IDS).toHaveLength(28);
   });
 
-  it("기존 노드 (origin + 자식 + 사용자 저작) 는 props/children/순서 직렬화 불변 — 필드 추가 0", () => {
+  it("기존 노드 (origin + 자식 + 사용자 저작) 는 props/children/순서 직렬화 불변 — 선택 가능한 origin 의 234 표식 (metadata.variant) 1 필드만", () => {
     const before = indexById(pre.children);
     const after = indexById(post.children);
     const changed: string[] = [];
@@ -167,9 +189,19 @@ describe("ADR-230 Phase 3 — G4 BC", () => {
         changed.push(`${id}: 사라짐`);
         continue;
       }
+      const nextWithoutMark = SELECTABLE_ORIGIN_IDS.includes(id)
+        ? (() => {
+            const { variant, ...rest } = (next.metadata ?? {}) as Record<
+              string,
+              unknown
+            >;
+            expect(variant, id).toBe("selected");
+            return { ...next, metadata: rest } as CanonicalNode;
+          })()
+        : next;
       if (
         ownSerialization(node) !==
-        ownSerialization(next, new Set(before.keys()))
+        ownSerialization(nextWithoutMark, new Set(before.keys()))
       )
         changed.push(id);
     }
@@ -196,7 +228,12 @@ describe("ADR-230 Phase 3 — G4 BC", () => {
       const i = bodyIds.indexOf(base);
       expect(i).toBeGreaterThanOrEqual(0);
       expect(bodyIds.slice(i + 1, i + 1 + states.length)).toEqual(
-        states.map((s) => stateVariantOriginId(base, s)),
+        seededStates(states).map((s) =>
+          stateVariantOriginId(
+            base,
+            s as Parameters<typeof stateVariantOriginId>[1],
+          ),
+        ),
       );
     }
     expect(bodyIds.slice(-5)).toEqual([
@@ -207,10 +244,10 @@ describe("ADR-230 Phase 3 — G4 BC", () => {
     ]);
   });
 
-  // ADR-233 Phase 2: Radio 변형 5 + Label 5 합류 — 33 → 43.
-  it("최초 보충량 — Δnode 43 (root 28 + Checkbox/Switch/Radio Label 15) · Δbyte = 그 직렬화 (정확히)", () => {
+  // ADR-233 Phase 2: Radio 합류 · ADR-234: 변형 = origin 의 ref (자식 복제 0) — Δnode 28 (root 만).
+  it("최초 보충량 — Δnode 28 (ref 변형 root) · Δbyte = 그 직렬화 + 선택 가능한 origin 표식 (정확히)", () => {
     const deltaNodes = countNodes(post.children) - countNodes(pre.children);
-    expect(deltaNodes).toBe(43);
+    expect(deltaNodes).toBe(28);
     const added = EXPECTED_VARIANT_IDS.map(
       (id) => findNode(post.children, id)!,
     );
@@ -219,13 +256,15 @@ describe("ADR-230 Phase 3 — G4 BC", () => {
       (n, node) => n + JSON.stringify(node).length + 1,
       0,
     ); // + 쉼표
+    const markBytes = SELECTABLE_ORIGIN_IDS.length * ',"variant":"selected"'.length;
     const deltaBytes = postJson.length - preJson.length;
-    expect(deltaBytes).toBe(originBytes);
-    // 시드 값: style 비움 · fills 없음 · isSelected 미굽기
+    expect(deltaBytes).toBe(originBytes + markBytes);
+    // 시드 값: origin 의 ref · patch 비움 · fills 없음 · 자식 없음 (origin 상속)
     for (const node of added) {
-      expect(node.props?.style ?? {}).toEqual({});
+      expect(node.type).toBe("ref");
+      expect(node.props).toEqual({});
       expect(node.fills).toBeUndefined();
-      expect(node.props?.isSelected ?? false).toBe(false);
+      expect(node.children).toBeUndefined();
     }
     console.log(
       `[ADR-230 G4] 최초 보충 Δnode ${deltaNodes} · Δbyte ${deltaBytes}`,
@@ -259,9 +298,8 @@ describe("ADR-230 Phase 3 — G4 BC", () => {
     expect(rolledBack.props?._stateVariants).toBeUndefined();
     const withVariants = resolveInstance(post);
     expect(withVariants.type).toBe("ToggleButton");
-    expect(withVariants.props?._stateVariants).toMatchObject({
-      originId: TOGGLE_ORIGIN_ID,
-      instanceOwned: ["opacity"],
-    });
+    // ADR-234: Canvas 는 projection 을 싣지 않는다 — seed 변형은 비어 있어 결과 props 가 plain 과 같다.
+    expect(withVariants.props?._stateVariants).toBeUndefined();
+    expect(withVariants.props).toEqual(rolledBack.props);
   });
 });

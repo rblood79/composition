@@ -63,6 +63,15 @@ export interface PreviewElement {
    */
   stateInstanceScope?: ReadonlyMap<string, string>;
   /**
+   * ADR-234 Phase 2 — 상태 변형 층 style (렌더 전용). RAC render props (`isSelected` · `isHovered` …)
+   * 와 렌더러가 넘기던 기본 style 을 받아 켜진 층을 겹친 style 을 돌려준다. 위임 렌더러
+   * (Checkbox · Switch · ToggleButton) 가 RAC `style` 함수로 넘긴다 — 미주입 = 층 없음.
+   */
+  stateStyle?: (
+    renderProps: Record<string, unknown>,
+    baseStyle: React.CSSProperties | undefined,
+  ) => React.CSSProperties | undefined;
+  /**
    * ADR-214 Phase 4 — 이 요소 (origin) 의 상태 정의. `source.prop` 이 있는 정의는 암묵 상태 미러
    * (관찰 이벤트 → 런타임 값). 렌더 전용.
    */

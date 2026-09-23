@@ -109,11 +109,13 @@ function getComponentDisplayName(
 const STATE_VARIANT_BADGE_KEY: Record<
   StateVariantState,
   | "propertiesPanel.stateVariantSelected"
+  | "propertiesPanel.stateVariantUnselected"
   | "propertiesPanel.stateVariantDisabled"
   | "propertiesPanel.stateVariantHover"
   | "propertiesPanel.stateVariantPressed"
   | "propertiesPanel.stateVariantFocusVisible"
 > = {
+  unselected: "propertiesPanel.stateVariantUnselected",
   selected: "propertiesPanel.stateVariantSelected",
   disabled: "propertiesPanel.stateVariantDisabled",
   hover: "propertiesPanel.stateVariantHover",

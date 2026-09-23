@@ -60,47 +60,57 @@ function tree(extra: Node[]) {
   });
 }
 
-describe("ADR-230 ref 해소 — instance props 에 _stateVariants projection (Skia 축)", () => {
-  it("최상위 instance: 변형 집합 · default 소유 키(color) · instance 명시 키(opacity) 를 raw ref 노드로 판정", () => {
-    const rawInstance = make("inst", {
+// ADR-234 Phase 2 — Canvas 는 `_stateVariants` projection 을 싣지 않고 켜진 상태 층을 props 에 직접
+//   겹친다 (origin → 상태 층 → instance 자기 patch). 이관 전 복제본 변형은 230 관리 키 계약 그대로.
+describe("ADR-230 → 234 ref 해소 — 켜진 상태 층을 Skia 축 props 에 직접 겹친다", () => {
+  it("최상위 instance: disabled 면 변형 opacity, instance 가 직접 저장한 키는 instance 가 이긴다", () => {
+    const rawDisabled = make("inst", {
       type: "ref",
       ref: "component-button",
-      props: { style: { opacity: 0.9 } },
+      props: { isDisabled: true },
     });
-    // scene 층은 origin props 를 이미 깔아 둔다 (ADR-228) — sourceNode 가 raw ref.
-    const sceneInstance = make("inst", {
-      type: "Button",
+    const disabled = tree([rawDisabled]).elementsMap.get("inst")!;
+    expect(disabled.props?.style).toEqual({ color: "#000000", opacity: 0.4 });
+    expect(disabled.props?._stateVariants).toBeUndefined();
+
+    const rawOwned = make("inst", {
+      type: "ref",
       ref: "component-button",
-      props: { children: "Button", style: { color: "#000000", opacity: 0.9 } },
-      sourceNode: rawInstance,
+      props: { isDisabled: true, style: { opacity: 0.9 } },
     });
-    const resolved = tree([sceneInstance]).elementsMap.get("inst")!;
-    const projection = resolved.props?._stateVariants as Record<
-      string,
-      unknown
-    >;
-    expect(projection).toMatchObject({
-      originId: "component-button",
-      sets: { disabled: { style: { opacity: 0.4 } } },
-      defaultOwned: ["color"],
-      instanceOwned: ["opacity"],
+    const owned = tree([rawOwned]).elementsMap.get("inst")!;
+    expect(owned.props?.style).toEqual({ color: "#000000", opacity: 0.9 });
+
+    const rawIdle = make("inst", {
+      type: "ref",
+      ref: "component-button",
+      props: {},
+    });
+    expect(tree([rawIdle]).elementsMap.get("inst")!.props?.style).toEqual({
+      color: "#000000",
     });
   });
 
-  it("nested (Form instance 안 Button ref) 도 synthetic 자식이 projection 을 받는다 — 229 상속", () => {
+  it("nested (Form instance 안 Button ref) 도 조상 그룹이 아닌 자기 상태로 층을 받는다 — 229 상속", () => {
+    const disabledFormButton = make("submit", {
+      type: "ref",
+      ref: "component-button",
+      parent_id: "component-form",
+      props: { children: "Submit", isDisabled: true },
+    });
+    const elements = [button, buttonDisabled, form, disabledFormButton];
     const formInstance = make("form-inst", {
       type: "ref",
       ref: "component-form",
       props: {},
     });
-    const t = tree([formInstance]);
+    const t = resolveCanonicalRefTree({
+      elements: [...elements, formInstance],
+      elementsMap: new Map([...elements, formInstance].map((e) => [e.id, e])),
+    });
     const nested = t.elementsMap.get("form-inst/submit")!;
     expect(nested.type).toBe("Button");
-    expect(nested.props?._stateVariants).toMatchObject({
-      originId: "component-button",
-      sets: { disabled: { style: { opacity: 0.4 } } },
-      instanceOwned: [],
-    });
+    expect(nested.props?.style).toEqual({ color: "#000000", opacity: 0.4 });
   });
 
   it("변형이 없는 origin 의 instance 는 무변경 (plain 과 같은 경로)", () => {
@@ -112,9 +122,9 @@ describe("ADR-230 ref 해소 — instance props 에 _stateVariants projection (S
     const inst = make("l-inst", {
       type: "ref",
       ref: "component-link",
-      props: {},
+      props: { isDisabled: true },
     });
     const resolved = tree([link, inst]).elementsMap.get("l-inst")!;
-    expect(resolved.props?._stateVariants).toBeUndefined();
+    expect(resolved.props).toEqual({ children: "Link", isDisabled: true });
   });
 });

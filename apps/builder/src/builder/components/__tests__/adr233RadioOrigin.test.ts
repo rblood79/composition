@@ -135,13 +135,20 @@ describe("ADR-233 Phase 2 — Radio origin", () => {
       "pressed",
       "focus-visible",
     ]);
+    // ADR-234: origin = 선택 상태 (표식) · 휴지 모양은 `--unselected` · 변형은 origin 의 ref.
     const doc = ensureReusableCompositeOrigins(emptyDocument());
-    for (const state of STATE_VARIANT_BASE_TYPES.Radio) {
+    expect(findById(doc.children, "component-radio")?.metadata).toMatchObject({
+      variant: "selected",
+    });
+    expect(findById(doc.children, "component-radio--selected")).toBeUndefined();
+    for (const state of STATE_VARIANT_BASE_TYPES.Radio.map((s) =>
+      s === "selected" ? "unselected" : s,
+    )) {
       const variant = findById(doc.children, `component-radio--${state}`);
-      expect(variant, state).toBeDefined();
-      expect(variant?.metadata).toMatchObject({
-        variant: state,
-        variantOf: "component-radio",
+      expect(variant, state).toMatchObject({
+        type: "ref",
+        ref: "component-radio",
+        metadata: { variant: state },
       });
     }
   });

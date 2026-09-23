@@ -16,11 +16,8 @@ import {
   indexTemplateOriginRecords,
 } from "../../utils/itemTemplates";
 import { buildSpecNodeData } from "../../../builder/workspace/canvas/skia/buildSpecNodeData";
-import {
-  buildStateVariantProjection,
-  collectStateVariantCss,
-} from "../../../builder/components/stateVariantResolution";
 import { buildCanvasSceneGraph } from "../../../builder/workspace/canvas/scene/canvasSceneNode";
+import { buildCanonicalSceneModel } from "../../../builder/workspace/canvas/scene/canonicalSceneModel";
 import { toCollectionRowProjectionId } from "../../../builder/projection/renderProjectionIds";
 import { resolveCanonicalDocument } from "../../../resolvers/canonical";
 
@@ -78,12 +75,14 @@ function renderRadio(node: ResolvedNode, css = "") {
 }
 
 describe("ADR-233 round 3 h1 — Radio 채움 = 선택 표시 (두 leg 같은 영역)", () => {
-  it("Radio/Selected fills — Skia 는 선택 점만, 상태 CSS 는 --radio-color (행 background 0)", () => {
+  it("Radio/Selected fills — Skia 는 선택 점만, Preview 는 --radio-color (행 background 0)", () => {
+    // ADR-234 Phase 2: 상태 층 — Canvas 는 scene 해석이 fills 를 겹치고, Preview 는 RAC render props
+    //   `style` 함수가 겹친다 (ADR-230 CSS 채널 대체).
     const master = {
       id: "component-radio",
       type: "Radio",
       reusable: true,
-      props: { value: "r" },
+      props: { value: "r", children: "Radio" },
     } as unknown as CanonicalNode;
     const variant = {
       id: "component-radio--selected",
@@ -93,49 +92,56 @@ describe("ADR-233 round 3 h1 — Radio 채움 = 선택 표시 (두 leg 같은 �
       fills: [redFill],
       metadata: { variant: "selected", variantOf: master.id },
     } as unknown as CanonicalNode;
-    const byId = new Map([
-      [master.id, master],
-      [variant.id, variant],
-    ]);
-    const projection = buildStateVariantProjection(master, undefined, (id) =>
-      byId.get(id),
-    );
-    const node = {
+    const instance = {
       id: "instance-radio",
-      type: "Radio",
-      props: {
-        value: "r",
-        children: "Radio",
-        isSelected: true,
-        _stateVariants: projection,
-      },
-      parent_id: null,
-      page_id: "page-1",
-    };
+      type: "ref",
+      ref: master.id,
+      props: { isSelected: true },
+    } as unknown as CanonicalNode;
+    const doc = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: "body-1",
+              type: "Body",
+              props: {},
+              children: [master, variant, instance],
+            },
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument;
 
+    const scene = buildCanonicalSceneModel(doc).sceneNodesMap.get(
+      "instance-radio",
+    )!;
     const skia = skiaFills(
       buildSpecNodeData({
-        element: node,
+        element: scene,
         layout: { x: 0, y: 0, width: 120, height: 24 },
         theme: "light",
-        elementsMap: new Map([[node.id, node]]),
+        elementsMap: new Map([[scene.id, scene]]),
       } as never),
     );
     expect(isRed(skia.root)).toBe(false);
     expect(skia.children.filter(isRed)).toHaveLength(1); // 선택 점
 
-    const css = collectStateVariantCss({
-      version: "composition-1.0",
-      children: [master, variant],
-    } as CompositionDocument);
-    expect(css).toMatch(/--radio-color:#ff0000/i);
-    expect(css).not.toMatch(/background/i);
-
-    const { container } = renderRadio(node as unknown as ResolvedNode, css);
-    const radio = container.querySelector(".react-aria-Radio")!;
-    expect(radio.getAttribute("data-state-origin")).toBe(master.id);
+    const resolved = findResolved(
+      resolveCanonicalDocument(doc) as ResolvedNode[],
+      "instance-radio",
+    )!;
+    const { container } = renderRadio(resolved);
+    const radio = container.querySelector<HTMLElement>(".react-aria-Radio")!;
     expect(radio.hasAttribute("data-selected")).toBe(true);
-    expect(radio.getAttribute("style") ?? "").not.toMatch(/background/);
+    expect(radio.style.backgroundColor).toBe("");
+    expect(radio.style.getPropertyValue("--radio-color").toLowerCase()).toBe(
+      RED,
+    );
   });
 
   it("Radio 자기 fills (plain · 변형 origin 자신) — DOM inline 은 --radio-color, Skia 는 선택 점", () => {

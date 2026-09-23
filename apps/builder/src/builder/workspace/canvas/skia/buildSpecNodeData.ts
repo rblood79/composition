@@ -17,12 +17,7 @@
 
 import { resolveTextRenderStyle } from "../utils/textRenderStyle";
 import type { CanvasSceneNode } from "../scene/canvasSceneNode";
-import { readStateVariantSelf } from "../../../components/stateVariantOrigins";
-import {
-  STATE_VARIANTS_PROP,
-  readStateVariantProjection,
-  resolveStateVariantOverlay,
-} from "../../../components/stateVariantResolution";
+import { readForcedVariantStates } from "../../../components/stateVariantLayers";
 import type { SkiaNodeData } from "./nodeRendererTypes";
 import type { FillStyle } from "./types";
 import { buildScrollNodeFields } from "./buildBoxNodeData";
@@ -1809,9 +1804,13 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
   //   상태를 굽지 않고 `metadata.variant` 를 유효 상태로 가정한다 (render-only · Preview 동형).
   //   Phase 2 interaction 변형 (`Button/Hover` · `/Pressed`) 은 catalog hover/pressed 토큰의
   //   **정적 표시** 뿐 — pointer 추적 0 (ADR-150 경계). instance 캔버스는 무변화.
-  const stateVariantSelf = readStateVariantSelf(element);
-  if (stateVariantSelf?.state === "selected" && specProps.isSelected !== true) {
+  // ADR-234: 변형 노드 · 선택 상태 origin 의 강제 상태 (`metadata.variant` — unselected 포함).
+  const forcedStates = readForcedVariantStates(element);
+  if (forcedStates?.selected === true && specProps.isSelected !== true) {
     specProps = { ...specProps, isSelected: true };
+  }
+  if (forcedStates?.selected === false && specProps.isSelected === true) {
+    specProps = { ...specProps, isSelected: false };
   }
   const isNodeDisabled = breadcrumbCtx?._isLast
     ? false
@@ -1819,13 +1818,13 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
         specProps.isDisabled ||
         specProps.disabled ||
         breadcrumbCtx?._parentIsDisabled ||
-        stateVariantSelf?.state === "disabled",
+        forcedStates?.disabled === true,
       );
   const componentState: ComponentState = racStateAttrs({
     isDisabled: isNodeDisabled,
-    isHovered: stateVariantSelf?.state === "hover",
-    isPressed: stateVariantSelf?.state === "pressed",
-    isFocusVisible: stateVariantSelf?.state === "focus-visible",
+    isHovered: forcedStates?.hovered === true,
+    isPressed: forcedStates?.pressed === true,
+    isFocusVisible: forcedStates?.focusVisible === true,
   });
 
   // ---------- width/height injection ----------
@@ -1880,50 +1879,10 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
     }
   }
 
-  // ---------- ADR-230 상태 변형 origin overlay ----------
-  // instance 의 `_stateVariants` (ref 해소가 실은 render-only projection) 를 **유효 상태** 로 겹친다 —
-  //   selected 는 RadioGroup/Tabs 투영 뒤의 `isSelected`, disabled 는 조상 disabled 까지 평탄화한
-  //   `componentState` (self props 만 읽지 않는다 — 리뷰 m3). 키 우선순위와 instance 명시 키 제외는
-  //   공용 해소기 (`resolveStateVariantOverlay`) 하나. 배경은 fills 채널 → hex6 + `_fillBgAlpha`
-  //   (위 fills 블록과 같은 변환) · opacity 는 `style` 에 실려 아래 cssEffects 가 한 번만 읽는다.
-  let effectiveFills = element.fills;
-  const stateVariantProjection = readStateVariantProjection(
-    specProps[STATE_VARIANTS_PROP],
-  );
-  if (stateVariantProjection) {
-    const overlay = resolveStateVariantOverlay(stateVariantProjection, {
-      selected: specProps.isSelected === true,
-      disabled: componentState === "disabled",
-    });
-    if (overlay.ownedKeys.length > 0) {
-      const patch: Record<string, unknown> = { ...overlay.style };
-      let fillAlpha: number | undefined;
-      if (overlay.fills) {
-        const skiaFill =
-          fillsToSkiaFillColor(overlay.fills) ??
-          fillsToSkiaFallbackColor(overlay.fills);
-        if (skiaFill) {
-          const toHexByte = (v: number): string =>
-            Math.round(Math.max(0, Math.min(1, v)) * 255)
-              .toString(16)
-              .padStart(2, "0");
-          patch.backgroundColor =
-            `#${toHexByte(skiaFill[0])}${toHexByte(skiaFill[1])}${toHexByte(skiaFill[2])}`.toUpperCase();
-          fillAlpha = skiaFill[3];
-          effectiveFills = overlay.fills;
-        }
-      }
-      specProps = {
-        ...specProps,
-        ...(fillAlpha !== undefined ? { _fillBgAlpha: fillAlpha } : {}),
-        style: {
-          ...((specProps.style as Record<string, unknown> | undefined) ?? {}),
-          ...patch,
-        },
-      };
-      style = { ...style, ...patch };
-    }
-  }
+  // ---------- ADR-234 상태 변형 층 ----------
+  // 켜진 상태 (selected · disabled) 의 변형 patch 는 scene 해석 (`resolveCanonicalRefTree`) 이 props ·
+  //   fills · 자손에 이미 겹쳤다 — ADR-230 의 여기 (paint 단계) 관리 키 overlay 는 대체 후 제거.
+  const effectiveFills = element.fills;
 
   // ---------- shapes 생성 ----------
   // ADR-142 #5(b): catalog cutover 된 type 은 Skia generic 경로.

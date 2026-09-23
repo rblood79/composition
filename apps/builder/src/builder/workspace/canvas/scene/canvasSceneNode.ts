@@ -1,5 +1,8 @@
 import type { CanvasProjectionMetadata } from "../canvasProjection";
-import { applyPropsPatch } from "../../../../adapters/canonical/instanceResolver";
+import {
+  applyPropsPatch,
+  composePropsPatches,
+} from "../../../../adapters/canonical/instanceResolver";
 export type { CanvasProjectionMetadata } from "../canvasProjection";
 import type {
   BreakpointName,
@@ -468,7 +471,10 @@ const MAX_SCENE_REF_CHAIN_DEPTH = 8;
 export function resolveSceneRefChain(
   ref: string,
   nodesById: ReadonlyMap<string, CanonicalNode>,
-): { master: CanonicalNode; props: Record<string, unknown> | undefined } | null {
+): {
+  master: CanonicalNode;
+  props: Record<string, unknown> | undefined;
+} | null {
   const patches: Record<string, unknown>[] = [];
   const seen = new Set<string>();
   let current = nodesById.get(ref);
@@ -486,6 +492,101 @@ export function resolveSceneRefChain(
     props = applyPropsPatch(props ?? {}, patches[index]!);
   }
   return { master: current, props };
+}
+
+/**
+ * ADR-234 Phase 2 — item template origin 조회 (행 · chip 소비처 공용). slot 에 등록된 항목이 origin 의
+ * ref (휴지 변형 `--unselected`) 면 체인을 펼친 노드를 돌려준다: props 는 origin → patch 순으로 접고,
+ * fills 는 가장 바깥 지정값, 자식은 origin 자식에 descendants patch (mode A · `enabled`) 를 얹는다.
+ * id · metadata · name 은 ref 노드 것. ref 가 아니면 문서 노드 그대로.
+ */
+export function resolveTemplateOriginNode(
+  id: string,
+  nodesById: ReadonlyMap<string, CanonicalNode>,
+): CanonicalNode | undefined {
+  const node = nodesById.get(id);
+  if (!node || node.type !== "ref") return node;
+  const links: CanonicalNode[] = [];
+  let current: CanonicalNode | undefined = node;
+  while (current && current.type === "ref") {
+    if (links.includes(current) || links.length >= MAX_SCENE_REF_CHAIN_DEPTH) {
+      return undefined;
+    }
+    links.push(current);
+    current = nodesById.get((current as RefNode).ref);
+  }
+  if (!current) return undefined;
+  const origin = current;
+  let props = (origin.props ?? {}) as Record<string, unknown>;
+  let fills = origin.fills;
+  const descendants = new Map<string, Record<string, unknown>>();
+  for (let index = links.length - 1; index >= 0; index -= 1) {
+    const link = links[index]!;
+    props = applyPropsPatch(
+      props,
+      (link.props ?? {}) as Record<string, unknown>,
+    );
+    if (Array.isArray(link.fills)) fills = link.fills;
+    const own = (link as RefNode).descendants;
+    if (isRecord(own)) {
+      for (const [path, patch] of Object.entries(own)) {
+        if (!isRecord(patch)) continue;
+        const prev = descendants.get(path);
+        descendants.set(
+          path,
+          prev
+            ? composePropsPatches(prev, patch)
+            : (patch as Record<string, unknown>),
+        );
+      }
+    }
+  }
+  const openChildren = (
+    children: readonly CanonicalNode[] | undefined,
+    prefix: string,
+  ): CanonicalNode[] | undefined => {
+    if (!children) return undefined;
+    const out: CanonicalNode[] = [];
+    for (const child of children) {
+      const path = prefix ? `${prefix}/${child.id}` : child.id;
+      const patch = descendants.get(path);
+      let next = child;
+      if (patch) {
+        const {
+          fills: patchFills,
+          enabled,
+          sizing: _sizing,
+          responsive: _responsive,
+          ...patchProps
+        } = patch;
+        next = {
+          ...child,
+          props: applyPropsPatch(
+            (child.props ?? {}) as Record<string, unknown>,
+            patchProps,
+          ),
+          ...(Array.isArray(patchFills) ? { fills: patchFills } : {}),
+          ...(typeof enabled === "boolean" ? { enabled } : {}),
+        };
+      }
+      if (next.enabled === false) continue;
+      const grand = openChildren(next.children, path);
+      out.push(grand ? { ...next, children: grand } : next);
+    }
+    return out;
+  };
+  const children = openChildren(origin.children, "");
+  const resolved: CanonicalNode = {
+    ...origin,
+    id: node.id,
+    ...(node.name ? { name: node.name } : {}),
+    props,
+    ...(children ? { children } : {}),
+    ...(node.metadata ? { metadata: node.metadata } : {}),
+  };
+  if (Array.isArray(fills) && fills.length > 0) resolved.fills = fills;
+  else delete (resolved as { fills?: unknown }).fills;
+  return resolved;
 }
 
 function toCanvasSceneNode(
@@ -748,8 +849,7 @@ function resolveItemTemplateSlotOriginIds(
     for (const entry of slot) {
       if (typeof entry !== "string") continue;
       const metadata = getDocumentNodesById().get(entry)?.metadata as
-        | { variant?: unknown }
-        | undefined;
+        { variant?: unknown } | undefined;
       if (metadata?.variant === "selected") {
         selected = entry;
         break;
@@ -1019,7 +1119,7 @@ function appendListBoxRowProjection(
   //   반영되어야 한다. anchor 는 raw ref(style 없음)일 수 있으므로 origin master 의 props.style 을 base 로,
   //   anchor 자체 override(있으면)를 위에 merge 한다. width 는 항상 100% (행 폭 고정).
   const templateOriginNode = templateOriginId
-    ? getDocumentNodesById().get(templateOriginId)
+    ? resolveTemplateOriginNode(templateOriginId, getDocumentNodesById())
     : undefined;
   // ADR-154 후속 (2026-07-21) — origin/anchor 의 responsive override 를 활성 breakpoint 로
   //   해석해 행-root style 에 반영. resolveResponsiveStyleMap 은 style map 전체를 병합하므로
@@ -1045,7 +1145,10 @@ function appendListBoxRowProjection(
     sourceNode,
     getDocumentNodesById,
   );
-  const selectedOriginNode = getDocumentNodesById().get(selectedOriginId);
+  const selectedOriginNode = resolveTemplateOriginNode(
+    selectedOriginId,
+    getDocumentNodesById(),
+  );
   const selectedOriginStyle = resolveResponsiveStyleMap(
     (selectedOriginNode?.props?.style as Record<string, unknown> | undefined) ??
       {},
@@ -2142,7 +2245,9 @@ function resolveDataBoundTagProjection(
   options: BuildCanvasSceneGraphOptions,
   getDocumentNodesById: () => Map<string, CanonicalNode>,
   /** ADR-228: ref instance 의 synthetic TagList 는 owner 가 문서 노드가 아니라 resolved instance 다. */
-  owner?: Pick<CanonicalNode, "props"> & { metadata?: CanonicalNode["metadata"] },
+  owner?: Pick<CanonicalNode, "props"> & {
+    metadata?: CanonicalNode["metadata"];
+  },
 ): { rows: ListBoxProjectionRow[]; sourceNode: CanonicalNode } | null {
   if (!isTagListSceneSource(tagListSceneNode, sourceNode)) return null;
 
@@ -2156,9 +2261,7 @@ function resolveDataBoundTagProjection(
   //   TagList 자신에 걸린 값(legacy 문서)도 그대로 존중하려고 자식을 먼저 본다.
   const dataBinding =
     getElementDataBinding(sourceNode) ??
-    (ownerNode
-      ? getElementDataBinding(ownerNode as CanonicalNode)
-      : undefined);
+    (ownerNode ? getElementDataBinding(ownerNode as CanonicalNode) : undefined);
 
   // owner-first: dataBinding 없을 때만 owner TagGroup.items 로 stale TagList.items 를 대체.
   //   dataBinding(collection/api) 이 있으면 그 경로가 items 보다 우선하므로 items 대체 skip.
@@ -2240,8 +2343,14 @@ function appendTagRowProjection(
     template.getDocumentNodesById,
     template.ownerRef,
   );
-  const defaultOrigin = template.getDocumentNodesById().get(defaultOriginId);
-  const selectedOrigin = template.getDocumentNodesById().get(selectedOriginId);
+  const defaultOrigin = resolveTemplateOriginNode(
+    defaultOriginId,
+    template.getDocumentNodesById(),
+  );
+  const selectedOrigin = resolveTemplateOriginNode(
+    selectedOriginId,
+    template.getDocumentNodesById(),
+  );
   const chipSizeName = typeof props.size === "string" ? props.size : "md";
   const defaultTemplateStyle = withTagChipLineHeight(
     resolveTagItemTemplateStyle(defaultOrigin, template.activeBreakpoint),
@@ -2598,15 +2707,22 @@ function appendTabRowProjection(
   //   origin 이 문서에 없으면 전부 undefined → 종전 Tab.
   const ownerSceneId = graph.parentById.get(tabListSceneNode.id);
   const ownerSource = ownerSceneId
-    ? (graph.nodesMap.get(ownerSceneId)?.sourceNode as CanonicalNode | undefined)
+    ? (graph.nodesMap.get(ownerSceneId)?.sourceNode as
+        CanonicalNode | undefined)
     : undefined;
   const { defaultOriginId, selectedOriginId } = resolveTabTemplateOriginIds(
     ownerSource?.type === "Tabs" ? ownerSource : null,
     template.getDocumentNodesById,
     template.ownerRef,
   );
-  const defaultOrigin = template.getDocumentNodesById().get(defaultOriginId);
-  const selectedOrigin = template.getDocumentNodesById().get(selectedOriginId);
+  const defaultOrigin = resolveTemplateOriginNode(
+    defaultOriginId,
+    template.getDocumentNodesById(),
+  );
+  const selectedOrigin = resolveTemplateOriginNode(
+    selectedOriginId,
+    template.getDocumentNodesById(),
+  );
   const defaultTemplateStyle = resolveTagItemTemplateStyle(
     defaultOrigin,
     template.activeBreakpoint,
@@ -2617,7 +2733,9 @@ function appendTabRowProjection(
   );
   const defaultOriginFills = readCanonicalNodeFills(defaultOrigin);
   const selectedOriginFills = readCanonicalNodeFills(selectedOrigin);
-  const hasTemplateStyle = Boolean(defaultTemplateStyle || selectedTemplateStyle);
+  const hasTemplateStyle = Boolean(
+    defaultTemplateStyle || selectedTemplateStyle,
+  );
   // 행 상자: 생성 CSS 가 Tab 에 고정 높이 (md 29) 를 주므로 Tag chip 과 달리 `auto` 만으로는 DOM 과
   //   맞지 않는다 — 두 leg 가 같은 shared 규칙 (auto + rule 높이 하한) 을 싣는다.
   const templateRowBoxStyle = hasTemplateStyle

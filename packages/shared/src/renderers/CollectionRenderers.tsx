@@ -770,7 +770,16 @@ export const renderToggleButton = (
         "auto"
       }
       size={(element.props.size as "sm" | "md" | "lg") || "md"}
-      style={element.props.style}
+      // ADR-234 — 상태 변형 층 (RAC render props). 미주입이면 종전 style 그대로.
+      style={
+        element.stateStyle
+          ? (renderProps: object) =>
+              element.stateStyle!(
+                renderProps as Record<string, unknown>,
+                element.props.style as React.CSSProperties | undefined,
+              )
+          : element.props.style
+      }
       className={element.props.className}
       onPress={
         isInGroup

@@ -12,7 +12,6 @@ import { buildCanonicalSceneModel } from "../../workspace/canvas/scene/canonical
 import { resolveCanonicalDocument } from "../../../resolvers/canonical";
 import { CanonicalNodeRenderer } from "../../../preview/components/CanonicalNodeRenderer";
 import type { RenderContext } from "../../../preview/types/index";
-import { buildStateVariantProjection } from "../stateVariantResolution";
 
 /**
  * ADR-234 Phase 0 — 진단 RED (breakdown §4 Phase 0 (a)~(d)).
@@ -151,36 +150,83 @@ describe("ADR-234 진단 (a) — instance → 변형 ref → origin 체인", () 
 });
 
 // ── (b) 변형의 관리 키 밖 값 ────────────────────────────────────────────────
+// disabled 변형 (origin 의 ref) 이 root paddingLeft 30 · label 색 을 덮어쓴다 — disabled instance 만.
+function paddingVariantDoc(): CompositionDocument {
+  return page([
+    {
+      id: "component-button",
+      type: "Button",
+      reusable: true,
+      props: { style: {} },
+      children: [
+        {
+          id: "component-button__label",
+          type: "Text",
+          props: { children: "Button" },
+        },
+      ],
+    } as CanonicalNode,
+    {
+      id: "component-button--disabled",
+      type: "ref",
+      ref: "component-button",
+      reusable: true,
+      props: { style: { paddingLeft: 30 } },
+      descendants: {
+        "component-button__label": { style: { color: "#ff0000" } },
+      },
+      metadata: { variant: "disabled" },
+    } as unknown as CanonicalNode,
+    {
+      id: "off",
+      type: "ref",
+      ref: "component-button",
+      props: { isDisabled: true },
+    } as unknown as CanonicalNode,
+    {
+      id: "on",
+      type: "ref",
+      ref: "component-button",
+      props: {},
+    } as unknown as CanonicalNode,
+  ]);
+}
+
 describe("ADR-234 진단 (b) — 변형의 padding · 자식 편집", () => {
-  it.fails(
-    "disabled 변형의 paddingLeft · label 색이 상태 적용 값에 실린다",
-    () => {
-      const origin = {
-        id: "component-button",
-        type: "Button",
-        reusable: true,
-        props: { children: "Button", style: {} },
-      } as CanonicalNode;
-      const variant = {
-        id: "component-button--disabled",
-        type: "Button",
-        reusable: true,
-        props: { children: "Button", style: { paddingLeft: 30 } },
-        metadata: { variant: "disabled", variantOf: origin.id },
-      } as unknown as CanonicalNode;
-      const byId = new Map([
-        [origin.id, origin],
-        [variant.id, variant],
-      ]);
-      const projection = buildStateVariantProjection(origin, undefined, (id) =>
-        byId.get(id),
-      );
-      expect(
-        (projection?.sets.disabled?.style as Record<string, unknown>)
-          ?.paddingLeft,
-      ).toBe(30);
-    },
-  );
+  it("Canvas scene: disabled instance 만 변형 paddingLeft · label 색을 받는다", () => {
+    const model = buildCanonicalSceneModel(paddingVariantDoc());
+    const style = (id: string) =>
+      (model.sceneNodesMap.get(id)?.props?.style ?? {}) as Record<
+        string,
+        unknown
+      >;
+    expect(style("off").paddingLeft).toBe(30);
+    expect(style("off/component-button__label").color).toBe("#ff0000");
+    expect(style("on").paddingLeft).toBeUndefined();
+    expect(style("on/component-button__label").color).toBeUndefined();
+  });
+
+  it("Preview DOM: disabled instance 만 변형 paddingLeft · label 색을 받는다 (RAC render props)", () => {
+    const resolved = resolveCanonicalDocument(
+      paddingVariantDoc(),
+    ) as ResolvedNode[];
+    const off = renderResolved(findResolved(resolved, "off")!);
+    const offButton = off.container.querySelector<HTMLElement>(
+      ".react-aria-Button",
+    )!;
+    expect(offButton.hasAttribute("data-disabled")).toBe(true);
+    expect(offButton.style.paddingLeft).toBe("30px");
+    const offLabel = off.container.querySelector<HTMLElement>(
+      '[data-canonical-id="component-button__label"]',
+    )!;
+    expect(offLabel.style.color).toBe("rgb(255, 0, 0)");
+    cleanup();
+    const on = renderResolved(findResolved(resolved, "on")!);
+    const onButton = on.container.querySelector<HTMLElement>(
+      ".react-aria-Button",
+    )!;
+    expect(onButton.style.paddingLeft).toBe("");
+  });
 });
 
 // ── (c) 목록 틀의 instance 자식 ─────────────────────────────────────────────

@@ -660,6 +660,17 @@ export const renderCheckbox = (
       autoFocus={Boolean(element.props.autoFocus)}
       isEmphasized={Boolean(element.props.isEmphasized)}
       size={(element.props.size as "sm" | "md" | "lg") || "md"}
+      // ADR-234 — 인스턴스 style (Switch · ToggleButton 과 같이 — 종전 Checkbox 만 빠져 Skia 와 갈렸다) +
+      //   상태 변형 층 (RAC render props). 이관 뒤 선택 모양은 origin (= 기본 style) 에 있다.
+      style={
+        element.stateStyle
+          ? (renderProps: object) =>
+              element.stateStyle!(
+                renderProps as Record<string, unknown>,
+                element.props.style as React.CSSProperties | undefined,
+              )
+          : (element.props.style as React.CSSProperties | undefined)
+      }
       onChange={async (isSelected) => {
         const updatedProps = {
           ...element.props,
@@ -1022,7 +1033,15 @@ export const renderSwitch = (
       name={element.props.name ? String(element.props.name) : undefined}
       value={element.props.value ? String(element.props.value) : undefined}
       autoFocus={Boolean(element.props.autoFocus)}
-      style={element.props.style}
+      style={
+        element.stateStyle
+          ? (renderProps: object) =>
+              element.stateStyle!(
+                renderProps as Record<string, unknown>,
+                element.props.style as React.CSSProperties | undefined,
+              )
+          : element.props.style
+      }
       className={element.props.className}
       isEmphasized={Boolean(element.props.isEmphasized)}
       size={(element.props.size as "sm" | "md" | "lg") || "md"}

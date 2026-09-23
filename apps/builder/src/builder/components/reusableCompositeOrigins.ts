@@ -42,6 +42,7 @@ import {
 } from "./tabs/tabsTemplateOrigins";
 import { ensureCatalogOrigins, getCatalogOriginTypes } from "./catalogOrigins";
 import { ensureStateVariantOrigins } from "./stateVariantOrigins";
+import { migrateVariantsToOriginInstances } from "./stateVariantMigration";
 import { catalogReusableOriginId } from "@composition/shared";
 import {
   collectReusableOriginIds,
@@ -129,6 +130,20 @@ export function getReusableCompositeOriginId(type: string): string | null {
 export function ensureReusableCompositeOrigins(
   document: CompositionDocument,
 ): CompositionDocument {
+  // ADR-234 Phase 2 — 상태 변형 복제본 · 항목 템플릿 selected 를 origin 의 ref 로 이관 (멱등 —
+  //   이관을 지난 문서는 같은 객체). seed 는 이관 전 모양으로 두고 여기 한 곳에서 옮긴다.
+  return migrateVariantsToOriginInstances(
+    ensureReusableCompositeOriginsBeforeVariantMigration(document),
+  );
+}
+
+/**
+ * ADR-234 이관 **직전** 까지의 seed 파이프라인 (229 · 230 · 233 의 hydration 증분). 이관 전 문서
+ * 모양을 재는 BC 테스트 전용 진입점 — production 은 `ensureReusableCompositeOrigins` 만 쓴다.
+ */
+export function ensureReusableCompositeOriginsBeforeVariantMigration(
+  document: CompositionDocument,
+): CompositionDocument {
   // ADR-229 Phase 2 — 2단 seed ①: 진입 시 존재하던 origin id 를 먼저 보관한다. ensurer 들은 plain
   //   으로 보충하고 (기존 origin 은 repair 가 children 을 보존), ② 에서 진입 시 없던 origin 의
   //   자식만 ref 로 바꾼다 — 처음 보충된 plain 자식을 사용자 자식으로 오인해 건너뛰지 않고,
@@ -161,7 +176,8 @@ function reportOriginChildRefDiagnostics(
   console.warn(
     `[reusableCompositeOrigins] ADR-229 조합 자식 ref 변환 보류 ${diagnostics.length}건`,
     diagnostics.map(
-      (d) => `${d.childId} → ${d.originId ?? "?"} (${d.reason}${d.detail ? `: ${d.detail}` : ""})`,
+      (d) =>
+        `${d.childId} → ${d.originId ?? "?"} (${d.reason}${d.detail ? `: ${d.detail}` : ""})`,
     ),
   );
 }

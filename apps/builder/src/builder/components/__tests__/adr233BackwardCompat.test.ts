@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
+// ADR-234: 이 BC 는 이관 직전 파이프라인의 229/233 증분만 잰다 — 234 이관 BC 는 adr234 G5 테스트.
 import type { CanonicalNode, CompositionDocument } from "@composition/shared";
 
 import { buildCatalogOrigin } from "../catalogOrigins";
-import { ensureReusableCompositeOrigins } from "../reusableCompositeOrigins";
+import { ensureReusableCompositeOriginsBeforeVariantMigration } from "../reusableCompositeOrigins";
 import { COMPONENTS_SYSTEM_BODY_ID } from "../../pages/systemComponentsPage";
 
 /**
@@ -73,7 +74,7 @@ const isAdded233Root = (id: string) =>
 function buildPre233Document(
   input: { userSlot?: string[] } = {},
 ): CompositionDocument {
-  const full = ensureReusableCompositeOrigins({
+  const full = ensureReusableCompositeOriginsBeforeVariantMigration({
     version: "composition-1.0",
     children: [],
   });
@@ -160,7 +161,7 @@ function buildPre233Document(
 describe("ADR-233 Phase 4 — G4 BC", () => {
   const pre = buildPre233Document();
   const preJson = JSON.stringify(pre);
-  const post = ensureReusableCompositeOrigins(pre);
+  const post = ensureReusableCompositeOriginsBeforeVariantMigration(pre);
   const postJson = JSON.stringify(post);
   const before = indexById(pre.children);
   const after = indexById(post.children);
@@ -220,7 +221,8 @@ describe("ADR-233 Phase 4 — G4 BC", () => {
   it("(ii') 사용자가 둔 slot 은 보존 (보충하지 않는다)", () => {
     const userSlot = ["my-tab-item", "component-tab-item-selected"];
     const preUser = buildPre233Document({ userSlot });
-    const postUser = ensureReusableCompositeOrigins(preUser);
+    const postUser =
+      ensureReusableCompositeOriginsBeforeVariantMigration(preUser);
     expect(indexById(postUser.children).get("component-tabs")?.slot).toEqual(
       userSlot,
     );
@@ -260,7 +262,7 @@ describe("ADR-233 Phase 4 — G4 BC", () => {
   });
 
   it("재hydration — Δnode 0 · Δbyte 0 · 직렬화 동일", () => {
-    const again = ensureReusableCompositeOrigins(post);
+    const again = ensureReusableCompositeOriginsBeforeVariantMigration(post);
     expect(countNodes(again.children)).toBe(countNodes(post.children));
     expect(JSON.stringify(again)).toBe(postJson);
   });

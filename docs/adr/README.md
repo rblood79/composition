@@ -11,6 +11,8 @@
 
 ---
 
+> **2026-09-23 ADR-234 Phase 2 완료**: 상태 변형 = origin 의 ref + patch (관리 키 4 제한 폐지) · 두 leg 공용 층 모듈 (Canvas scene 해석 · Preview RAC render props) · 230 CSS 채널 제거 · hydration 이관 (선택 가능한 가족 origin = 선택 상태 · `--unselected` · 항목 템플릿 3종 · slot `[휴지, origin]`) · 원복 RED 9/9. live 는 Phase 4.
+
 > **2026-09-23 ADR-234 Accepted → Phase 0·1 완료**: 사용자 `/execute-adr 234` (Codex 리뷰 2 round 종결 뒤). G0 — 변형 31 (230 상태 28 + 항목 selected 3) · 직접 ref 0 · 저장 `null` 0 · 항목 자식 170~174 B · Canvas 는 TabList ref 자식을 이미 실체화 (F6 정정). G1 — ref 체인 (Preview · Canvas · publish) · `enabled` 3값 · patch 합성/적용 두 연산, 원복 RED 11/11. 열림 7 (Proposed 4 · Accepted 3), 합계 261.
 
 > **2026-09-23 ADR-234 Proposed 추가**: 상태 변형 = origin 의 instance · 목록 = slot 을 채운 instance 자식 — Pencil (`Tab Item/Inactive` = Active 의 ref · `Tabs` = 빈 TabList 틀 + slot · instance 가 항목 instance 로 채움) 과 RAC (상태 = 같은 구조 + 속성 · TabList 정적 자식 · `items` 는 바인딩 경로) 의 뜻으로 229/230/233 의 템플릿 read-through + 상태 overlay 모델을 대체. 기반 = ref 체인 (두 해석기 모두 현재 끊김) · canonical `enabled` 필드. 사용자 확정: 범위 전부 (Phase 분할) · 정적 items → 자식 이관, 바인딩만 items · 숨기기 = `enabled`. 열림 7 (Proposed 5 · Accepted 2), 합계 261.

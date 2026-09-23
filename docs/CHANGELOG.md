@@ -11,6 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-234 상태 변형 = origin 의 instance (Phase 1·2)] - 2026-09-23
+
+### Changed
+
+- **상태 변형 (Hover · Pressed · Disabled · 선택 등) 이 origin 의 instance 가 됐다.** Components 페이지에서 origin 을 고치면 모든 변형과 문서의 instance 가 같이 바뀌고, 변형에서는 그 상태에서만 달라질 값만 고친다 (여백 · 자식 label 색 · 숨김까지 — 전에는 배경 · 글자색 · 테두리색 · 투명도 4 가지만 먹었다).
+  - 선택할 수 있는 요소 (Checkbox · Switch · Radio · ToggleButton · Tab · Tag · ListBoxItem) 는 origin 이 선택 상태이고, 선택 안 된 모양은 새 `…/Unselected` 변형이 갖는다. `…/Selected` 변형 노드는 origin 과 같은 상태라 없어졌다.
+  - 기존 문서는 처음 열 때 한 번 옮겨진다 (이관). 그려지는 모양은 그대로다 — 변형이 무시하던 값 (예: 변형에 넣어 둔 padding) 은 옮기지 않는다.
+  - Preview 는 문서 `<style>` 규칙 대신 React Aria 의 상태 정보 (render props) 로 변형을 겹친다. Canvas 는 선택 · 비활성만 겹친다 (Hover 등은 Preview 에서).
+  - **Why**: 변형이 origin 의 독립 복제본이라 origin 을 고쳐도 변형이 따라오지 않았고, 두 화면이 관리 키 4 개만 읽어 여백 · 자식 편집이 무시됐다 (ADR-234 — Pencil 의 origin/instance 규칙과 RAC 의 상태 모델에 맞춤).
+- **Preview 의 Checkbox 가 인스턴스 style 을 그린다.** 전에는 Checkbox 만 style 을 버려 Canvas 와 모양이 갈렸다 (Switch · ToggleButton 은 이미 그렸다).
+
+### Added
+
+- **ref 체인** — 변형의 instance (instance → 변형 → origin) 가 두 화면과 발행 결과에서 origin 구조와 변형 값을 함께 받는다 (전에는 Preview 에서 빈 요소, Canvas 에서 자식 없음).
+- **요소 숨김 필드 `enabled`** (문서 필드 — Pencil 과 같은 이름). 없음 = 상속 · `false` = 숨김 · `true` = 상속된 숨김 해제. 부모가 숨으면 자식도 숨는다. Canvas · Preview · 발행 결과가 모두 따른다 (편집 UI 는 이후 Phase).
+  - 위치: `apps/builder/src/builder/components/stateVariantLayers.ts` · `stateVariantMigration.ts` · `apps/builder/src/adapters/canonical/canonicalRefResolution.ts` · `apps/builder/src/resolvers/canonical/index.ts` · `apps/builder/src/preview/utils/stateLayerRender.ts` · `packages/shared/src/utils/export.utils.ts`
+
 ## [레이어 패널 이동 · 그룹 · 그룹 해제의 중첩 규칙 우회 수리] - 2026-09-23
 
 ### Fixed

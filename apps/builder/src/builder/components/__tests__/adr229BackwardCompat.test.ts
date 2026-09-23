@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
+// ADR-234: 이 BC 는 이관 직전 파이프라인의 229/233 증분만 잰다 — 234 이관 BC 는 adr234 G5 테스트.
 import type { CanonicalNode, CompositionDocument } from "@composition/shared";
 import { getReusableEntries } from "@composition/shared";
 import { resolveCanonicalRefTree } from "@/adapters/canonical/canonicalRefResolution";
 import {
-  ensureReusableCompositeOrigins,
+  ensureReusableCompositeOriginsBeforeVariantMigration,
   getReusableOriginEnsurers,
 } from "../reusableCompositeOrigins";
 import { convertNewOriginChildrenToRefs } from "../originChildRefs";
@@ -182,7 +183,7 @@ function buildPre229Document(): CompositionDocument {
 describe("ADR-229 Phase 4 — G4 BC", () => {
   const pre = buildPre229Document();
   const preJson = JSON.stringify(pre);
-  const post = ensureReusableCompositeOrigins(pre);
+  const post = ensureReusableCompositeOriginsBeforeVariantMigration(pre);
   const postJson = JSON.stringify(post);
 
   it("기존 노드 (origin 57 + plain 자식 + 사용자 저작) 는 props/children/순서 직렬화 불변 — 유일한 추가 필드는 TagGroup root slot", () => {
@@ -261,14 +262,14 @@ describe("ADR-229 Phase 4 — G4 BC", () => {
   });
 
   it("재hydration — 두 번째 실행은 Δnode 0 · Δbyte 0 · 직렬화 동일", () => {
-    const again = ensureReusableCompositeOrigins(post);
+    const again = ensureReusableCompositeOriginsBeforeVariantMigration(post);
     expect(countNodes(again.children) - countNodes(post.children)).toBe(0);
     expect(JSON.stringify(again)).toBe(postJson);
   });
 
   it("롤백 — 신규 ref seed (조합 자식 변환) 만 끄고 해소기는 유지: 이미 저장된 중첩 ref 문서 (신규 프로젝트 모양) 가 읽힌다", () => {
     // 신규 프로젝트 = 229 모양 (Form 자식 ref) + 사용자 Form instance.
-    const fresh = ensureReusableCompositeOrigins({
+    const fresh = ensureReusableCompositeOriginsBeforeVariantMigration({
       version: "composition-1.0",
       children: [findNode(pre.children, "page-1")!],
     });

@@ -65,13 +65,21 @@ import {
 import { readLegacyMetadataCustomId } from "../../adapters/canonical/legacyMetadata";
 import type { FillItem } from "../../types/builder/fill.types";
 import { normalizePresentationSpacingStyle } from "../../builder/presentation/editorPresentationStyleNormalization";
-import { readStateVariantSelf } from "../../builder/components/stateVariantOrigins";
 import {
-  STATE_ORIGIN_DATA_ATTR,
-  STATE_VARIANTS_PROP,
-  readStateVariantProjection,
-  toStateVariantInlineStyle,
-} from "../../builder/components/stateVariantResolution";
+  STATE_LAYERS_PROP,
+  readForcedVariantStates,
+  readStateLayerProjection,
+} from "../../builder/components/stateVariantLayers";
+import {
+  StateLayerDescendantsContext,
+  applyStateLayerToDescendant,
+  hasDescendantStateLayers,
+  resolveStateLayerStyle,
+  staticActiveVariantStates,
+  toActiveVariantStates,
+  toStateLayerDescendantsValue,
+  type RacStateRenderProps,
+} from "../utils/stateLayerRender";
 import {
   resolvePresentationLayoutProps,
   resolvePresentationPaintProps,
@@ -378,7 +386,7 @@ function CanonicalNodeRendererBody({
   // 요소가 갖고 있던 나머지 스타일이 사라지므로 얕게 병합한다.
   // ADR-214 Phase 3 — 그 다음 `{{ }}` 를 런타임 값으로 해석한다 (string prop 만, 참조 없는
   // 노드는 같은 참조). Canvas 는 같은 해석기를 기본값 환경으로 돈다 (R2).
-  const canonicalProps = useStateTemplateProps(
+  const templateProps = useStateTemplateProps(
     mergeInteractionOverride(
       extractCanonicalPropsFromResolved(node),
       useRuntimeStore((s) => s.interactionOverrides[node.id]),
@@ -386,6 +394,14 @@ function CanonicalNodeRendererBody({
     node,
     stateScope,
   );
+  // ADR-234 Phase 2 — 조상 instance 의 켜진 상태 층이 이 자손에 patch 를 가졌으면 겹친다 (RAC render
+  //   props → children 함수 → context). 층이 `enabled: false` 면 이 자손은 그리지 않는다.
+  const descendantStateLayer = applyStateLayerToDescendant(
+    React.useContext(StateLayerDescendantsContext),
+    currentPath,
+    templateProps,
+  );
+  const canonicalProps = descendantStateLayer.props;
   const layoutPresentationProps = resolvePresentationLayoutProps(
     resolvePresentationTextMetricProps(
       canonicalProps,
@@ -410,6 +426,8 @@ function CanonicalNodeRendererBody({
     presentationProps === node.props
       ? node
       : { ...node, props: presentationProps };
+
+  if (descendantStateLayer.hidden) return null;
 
   // ── type 복원 ─────────────────────────────────────────────────────────────
   // node.type 이 canonical ComponentTag SSOT (예: "TextField", "Input", "frame").
@@ -473,34 +491,28 @@ function CanonicalNodeRendererBody({
   // ADR-214 Phase 4 — 렌더 문맥 (instanceKey 맵) 과 상태 정의를 실어 createEventHandlerMap 이
   //   setState 스코프 · 암묵 상태 미러를 만든다 (cutover · rendererMap 두 경로 공통).
   const adaptedBase = adaptElementStyle(previewEl);
-  // ADR-230 — 상태 변형 origin (render-only, canonical 불변):
-  //   - instance: `_stateVariants` projection → default origin 이 소유한 관리 키의 inline 을
-  //     `var(--co-<key>, <baseline>)` 로 옮긴다 (문서별 `<style data-adr230-states>` 의 RAC 상태
-  //     selector 가 변수를 세팅 — inline 이 stylesheet 를 이기는 F14 경합 회피). instance 명시 키는
-  //     리터럴 그대로 (= instance 우선). 표식 `data-state-origin` 이 규칙의 selector 키.
-  //   - 변형 origin 자신 (Components 페이지): `metadata.variant` 를 상태 prop 으로 가정해 RAC 가
-  //     data-selected/data-disabled 를 내게 한다 (Skia `buildSpecNodeData` 동형).
-  const stateVariantProjection = readStateVariantProjection(
+  // ADR-234 Phase 2 — 상태 변형 층 (render-only, canonical 불변):
+  //   - instance: `_stateLayers` projection (origin 의 변형 층 + instance 소유 키) — RAC 경로는
+  //     `style` · `children` 함수가 render props 로 켜진 층을 겹친다. RAC 밖 경로는 props 의 선언적
+  //     상태 (selected · disabled) 만 (Canvas 와 같은 범위).
+  //   - 변형 노드 자신 · 선택 상태 origin (Components 페이지): `metadata.variant` 를 강제 상태로 —
+  //     selected/disabled 는 RAC 입력에도 실어 data-selected/data-disabled 를 낸다 (Skia 동형).
+  const stateLayers = readStateLayerProjection(
     (adaptedBase.props as Record<string, unknown> | undefined)?.[
-      STATE_VARIANTS_PROP
+      STATE_LAYERS_PROP
     ],
   );
-  const stateVariantSelf = readStateVariantSelf(node);
-  const stateOriginId =
-    stateVariantProjection?.originId ?? stateVariantSelf?.variantOf ?? null;
+  const forcedStates = readForcedVariantStates(node);
   const stateAdjustedProps = (() => {
     const base = (adaptedBase.props ?? {}) as Record<string, unknown>;
-    if (!stateVariantProjection && !stateVariantSelf) return base;
+    if (!stateLayers && !forcedStates) return base;
     const next: Record<string, unknown> = { ...base };
-    if (stateVariantProjection) {
-      delete next[STATE_VARIANTS_PROP];
-      next.style = toStateVariantInlineStyle(
-        next.style as Record<string, unknown> | undefined,
-        stateVariantProjection,
-      );
+    if (stateLayers) {
+      delete next[STATE_LAYERS_PROP];
     }
-    if (stateVariantSelf?.state === "selected") next.isSelected = true;
-    if (stateVariantSelf?.state === "disabled") next.isDisabled = true;
+    if (forcedStates?.selected === true) next.isSelected = true;
+    if (forcedStates?.selected === false) next.isSelected = false;
+    if (forcedStates?.disabled === true) next.isDisabled = true;
     return next;
   })();
   const adaptedEl: PreviewElement = {
@@ -512,13 +524,43 @@ function CanonicalNodeRendererBody({
     ...(Array.isArray(node.state) && node.state.length > 0
       ? { stateDefs: node.state }
       : {}),
-  };
+  }; // RAC 밖 경로 (rendererMap 위임 · internal renderer) — render props 가 없으니 선언적 상태
+  //   (selected · disabled, Canvas 와 같은 범위) 로 층을 정적으로 겹친 style 을 쓴다.
+  //   위임 렌더러 중 RAC render props 를 받는 것 (Checkbox · Switch · ToggleButton) 은 `stateStyle` 함수로
+  //   hover · pressed · focus 까지 겹친다 (base style 은 렌더러가 넘기던 것 그대로).
+  const staticStateEl: PreviewElement = stateLayers
+    ? {
+        ...adaptedEl,
+        props: {
+          ...(adaptedEl.props ?? {}),
+          style: resolveStateLayerStyle(
+            type,
+            adaptedEl.props?.style as React.CSSProperties | undefined,
+            stateLayers,
+            staticActiveVariantStates(stateAdjustedProps, forcedStates),
+          ),
+        } as PreviewElement["props"],
+        // 렌더러는 위 정적 적용본 (`props.style`) 을 기본으로 넘긴다 — 층이 두 번 얹히지 않게 층 적용
+        //   전 style 로 바꿔 쓴다 (기본을 안 넘기는 렌더러는 층 키만).
+        stateStyle: (renderProps, baseStyle) =>
+          resolveStateLayerStyle(
+            type,
+            baseStyle === undefined
+              ? undefined
+              : (adaptedEl.props?.style as React.CSSProperties | undefined),
+            stateLayers,
+            toActiveVariantStates(
+              renderProps as RacStateRenderProps,
+              forcedStates,
+            ),
+          ),
+      }
+    : adaptedEl;
 
   // DOM 마커 props
   const markerProps = {
     "data-canonical-id": node.id,
     "data-element-id": elementId,
-    ...(stateOriginId ? { [STATE_ORIGIN_DATA_ATTR]: stateOriginId } : {}),
   };
 
   // 사용자가 지정한 id (Properties > Attributes) — publish `ElementRenderer` 와 같은 규칙으로
@@ -595,7 +637,7 @@ function CanonicalNodeRendererBody({
         };
         return (
           <div key={node.id} {...markerProps} style={{ display: "contents" }}>
-            {delegatedRenderer(adaptedEl, delegatedRenderContext)}
+            {delegatedRenderer(staticStateEl, delegatedRenderContext)}
           </div>
         );
       }
@@ -613,13 +655,16 @@ function CanonicalNodeRendererBody({
       // ADR-233 — 변형 origin 자신 (`metadata.variant`) 의 상태 prop (isSelected · isDisabled) 도
       //   RAC 입력에 싣는다 (ADR-230 계약: 캔버스처럼 변형 = 상태). 종전엔 `stateAdjustedProps` 가
       //   rendererMap 위임 경로에만 닿아 catalog 경로의 Disabled 변형이 data-disabled 를 못 냈다.
-      const racSourceNode: ResolvedNode = stateVariantSelf
+      const racSourceNode: ResolvedNode = forcedStates
         ? {
             ...renderNode,
             props: {
               ...(renderNode.props ?? {}),
               ...(stateAdjustedProps.isSelected === true
                 ? { isSelected: true }
+                : {}),
+              ...(forcedStates?.selected === false
+                ? { isSelected: false }
                 : {}),
               ...(stateAdjustedProps.isDisabled === true
                 ? { isDisabled: true }
@@ -688,6 +733,61 @@ function CanonicalNodeRendererBody({
       // 규칙이 없는 요소에는 동결된 빈 객체가 돌아오므로 spread 비용이 0 이고 prop 도 붙지
       // 않는다. `racRest` **뒤**에 펼친다 — 트리거 콜백이 catalog prop 에 덮이면 안 된다.
       // ADR-214 Phase 4 — setState 규칙의 요소 변수 스코프 (instanceKey) 는 이 노드의 렌더 문맥
+      // ADR-234 Phase 2 — 상태 변형 층. RAC 는 render props 로 켜진 상태를 알려 준다: root 는 `style`
+      //   함수, 자손은 `children` 함수 → context. internal renderer 는 render props 가 없어 선언적
+      //   상태 (selected · disabled) 로 정적 적용.
+      const isRacSource = binding.source.kind === "rac";
+      const racStateStyle:
+        | React.CSSProperties
+        | ((
+            renderProps: RacStateRenderProps,
+          ) => React.CSSProperties | undefined)
+        | undefined = !stateLayers
+        ? overrideStyle
+        : isRacSource
+          ? (renderProps: RacStateRenderProps) =>
+              resolveStateLayerStyle(
+                type,
+                overrideStyle,
+                stateLayers,
+                toActiveVariantStates(renderProps, forcedStates),
+              )
+          : resolveStateLayerStyle(
+              type,
+              overrideStyle,
+              stateLayers,
+              staticActiveVariantStates(stateAdjustedProps, forcedStates),
+            );
+      const childContent: React.ReactNode =
+        childNodes.length > 0
+          ? childNodes.map((child) => (
+              <CanonicalNodeRenderer
+                key={child.id}
+                node={child}
+                renderContext={renderContext}
+                parentPath={currentPath}
+                cutoverPrimitives={cutoverPrimitives}
+                collectionAncestor={nextCollectionAncestor}
+              />
+            ))
+          : (racChildren as React.ReactNode);
+      const racStateChildren =
+        stateLayers &&
+        isRacSource &&
+        childNodes.length > 0 &&
+        hasDescendantStateLayers(stateLayers)
+          ? (renderProps: RacStateRenderProps) => (
+              <StateLayerDescendantsContext.Provider
+                value={toStateLayerDescendantsValue(
+                  currentPath,
+                  stateLayers,
+                  toActiveVariantStates(renderProps, forcedStates),
+                )}
+              >
+                {childContent}
+              </StateLayerDescendantsContext.Provider>
+            )
+          : childContent;
       const eventHandlers =
         renderContext.services?.createEventHandlerMap?.(
           adaptedEl,
@@ -727,20 +827,9 @@ function CanonicalNodeRendererBody({
           })()}
           {...eventHandlers}
           {...(cutoverClassName ? { className: cutoverClassName } : {})}
-          style={overrideStyle}
+          style={racStateStyle}
         >
-          {childNodes.length > 0
-            ? childNodes.map((child) => (
-                <CanonicalNodeRenderer
-                  key={child.id}
-                  node={child}
-                  renderContext={renderContext}
-                  parentPath={currentPath}
-                  cutoverPrimitives={cutoverPrimitives}
-                  collectionAncestor={nextCollectionAncestor}
-                />
-              ))
-            : (racChildren as React.ReactNode)}
+          {racStateChildren}
         </PrimitiveComponent>,
       );
     }
@@ -758,7 +847,7 @@ function CanonicalNodeRendererBody({
         {hostOrphanCollectionItem(
           type,
           collectionAncestor,
-          renderer(adaptedEl, renderContext) as React.ReactElement,
+          renderer(staticStateEl, renderContext) as React.ReactElement,
         )}
       </div>
     );

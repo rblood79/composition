@@ -1,4 +1,5 @@
 import type { CanonicalNode, CompositionDocument } from "@composition/shared";
+import { isSelectedStateOrigin } from "../stateVariantOrigins";
 import { catalogReusableOriginId } from "@composition/shared";
 import { buildCatalogOrigin, repairCatalogOrigin } from "../catalogOrigins";
 import { ensureTemplateOrigins } from "../ensureTemplateOrigins";
@@ -138,10 +139,15 @@ export function ensureTabsTemplateOrigins(
         existingOrigins.get(TAB_ITEM_DEFAULT_ORIGIN_ID),
         createTabItemDefaultOrigin,
       ),
-      repairItemOrigin(
-        existingOrigins.get(TAB_ITEM_SELECTED_ORIGIN_ID),
-        createTabItemSelectedOrigin,
-      ),
+      // ADR-234: 이관을 지난 default (= 선택 상태 origin) 가 있으면 selected 를 되살리지 않는다.
+      ...(isSelectedStateOrigin(existingOrigins.get(TAB_ITEM_DEFAULT_ORIGIN_ID))
+        ? []
+        : [
+            repairItemOrigin(
+              existingOrigins.get(TAB_ITEM_SELECTED_ORIGIN_ID),
+              createTabItemSelectedOrigin,
+            ),
+          ]),
       // generic seed 와 같은 트리 + root slot 결손 보충 (기존 자식 보존은 repairCatalogOrigin).
       withTemplateSlot(
         repairCatalogOrigin(

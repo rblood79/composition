@@ -48,14 +48,18 @@ describe("createInitialProjectDocument", () => {
                 }),
               },
               children: expect.arrayContaining([
+                // ADR-234: 항목 origin = 선택 상태 (id 유지) · 휴지 모양은 origin 의 ref 변형 · slot 은
+                //   [휴지, origin] (소비처 규칙 "slot[0] = 기본 · variant selected = 선택").
                 expect.objectContaining({
                   id: "component-listbox-item-default",
                   type: "ListBoxItem",
                   reusable: true,
+                  metadata: expect.objectContaining({ variant: "selected" }),
                 }),
                 expect.objectContaining({
-                  id: "component-listbox-item-selected",
-                  type: "ListBoxItem",
+                  id: "component-listbox-item-default--unselected",
+                  type: "ref",
+                  ref: "component-listbox-item-default",
                   reusable: true,
                 }),
                 expect.objectContaining({
@@ -63,8 +67,8 @@ describe("createInitialProjectDocument", () => {
                   type: "ListBox",
                   reusable: true,
                   slot: [
+                    "component-listbox-item-default--unselected",
                     "component-listbox-item-default",
-                    "component-listbox-item-selected",
                   ],
                 }),
                 // ADR-161 Phase 1: GridList 컨테이너 master origin + item origin
