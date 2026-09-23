@@ -1074,6 +1074,24 @@ function findAncestor<T extends CanonicalRefResolvableNode>(
   return undefined;
 }
 
+/** ADR-234 Phase 3 — 정적 목록 항목 type → 선택을 소유한 조상 type. */
+const ITEM_SELECTION_OWNER: Readonly<Record<string, string>> = {
+  Tab: "Tabs",
+  Tag: "TagGroup",
+};
+
+/** owner 의 선택 key (`selectedKey ?? defaultSelectedKey` · `selectedKeys ?? defaultSelectedKeys`) 에 key 가 있나. */
+function isOwnerSelectedKey(
+  ownerProps: Record<string, unknown>,
+  key: string,
+): boolean {
+  const keys = ownerProps.selectedKeys ?? ownerProps.defaultSelectedKeys;
+  if (Array.isArray(keys)) return keys.map(String).includes(key);
+  if (keys === "all") return true;
+  const single = ownerProps.selectedKey ?? ownerProps.defaultSelectedKey;
+  return single != null && String(single) === key;
+}
+
 export function resolveCanvasVariantState<T extends CanonicalRefResolvableNode>(
   element: T,
   elementsMap: Map<string, T>,
@@ -1081,17 +1099,18 @@ export function resolveCanvasVariantState<T extends CanonicalRefResolvableNode>(
   const forced = readForcedVariantStates(element) ?? {};
   const props = getNodeProps(element);
   let selected = forced.selected;
-  // ADR-234 Phase 3 — TabList 의 정적 Tab 은 Tabs 의 선택 key 가 정본이다. 항목 origin 은 선택 상태라
-  //   `_isSelected: true` 를 갖고 instance 가 그것을 상속하므로 자기 값보다 먼저 본다.
-  const tabsOwner =
-    selected === undefined && element.type === "Tab"
-      ? findAncestor(element, elementsMap, (node) => node.type === "Tabs")
-      : undefined;
-  if (selected === undefined && tabsOwner) {
-    const tabsProps = getNodeProps(tabsOwner);
-    const key = tabsProps.selectedKey ?? tabsProps.defaultSelectedKey;
-    selected =
-      key != null && key === resolveStaticItemKey(props, element.id);
+  // ADR-234 Phase 3 — 정적 목록 항목 (TabList 의 Tab · TagList 의 Tag) 은 owner 의 선택 key 가 정본이다.
+  //   항목 origin 은 선택 상태라 `_isSelected: true` 를 갖고 instance 가 그것을 상속하므로 자기 값보다
+  //   먼저 본다.
+  const ownerType = selected === undefined ? ITEM_SELECTION_OWNER[element.type] : undefined;
+  const selectionOwner = ownerType
+    ? findAncestor(element, elementsMap, (node) => node.type === ownerType)
+    : undefined;
+  if (selected === undefined && selectionOwner) {
+    selected = isOwnerSelectedKey(
+      getNodeProps(selectionOwner),
+      resolveStaticItemKey(props, element.id),
+    );
   }
   if (selected === undefined) {
     if (props.isSelected === true || props._isSelected === true) {

@@ -40,7 +40,10 @@ import {
 import { getSelectedChildIds } from "./selection";
 import { getElementDataBinding } from "../utils/compositionExtensionFields";
 // ADR-148 Phase 4 — MenuItem slot 구성 소비 (origin slot 자식의 존재 gating / 스타일 overlay).
-import { resolveSlotComposition } from "../catalog/slotRoles";
+import {
+  resolveSlotComposition,
+  resolveStaticItemKey,
+} from "../catalog/slotRoles";
 import { renderMenuItemSlotParts } from "../components/Menu";
 
 /**
@@ -300,7 +303,43 @@ export const renderTagGroup = (
     ? (element.props.removedItemIds as unknown as string[])
     : [];
 
-  const renderChildren = hasValidTemplate
+  // ADR-234 Phase 3 — 작성자가 채운 목록 = TagList 의 Tag instance 자식. canonical 경로는 CanonicalNodeRenderer
+  //   재귀 (RAC Tag + 상태 층 render props), legacy 경로는 여기서 RAC Tag 를 합성한다.
+  const staticTagItems =
+    !hasValidTemplate && !hasItemsArray && !dataBinding && tagChildren.length > 0
+      ? tagChildren.map((tag) => {
+          const tagKids = childrenByParent.get(tag.id) ?? [];
+          const text = tagKids
+            .filter((kid) => kid.type === "Text")
+            .map((kid) => String(kid.props.children ?? ""))
+            .join(" ");
+          const key = resolveStaticItemKey(
+            tag.props as Record<string, unknown> | undefined,
+            tag.id,
+          );
+          return {
+            text,
+            node: context.renderCollectionItem ? (
+              context.renderCollectionItem(tag, tag.id)
+            ) : (
+              <Tag
+                key={tag.id}
+                id={key}
+                textValue={text}
+                data-element-id={tag.id}
+                isDisabled={Boolean(tag.props.isDisabled)}
+                style={tag.props.style}
+              >
+                {tagKids.map((kid) => context.renderElement(kid, kid.id))}
+              </Tag>
+            ),
+          };
+        })
+      : null;
+
+  const renderChildren = staticTagItems
+    ? null
+    : hasValidTemplate
     ? (item: Record<string, unknown>) => {
         const tagTemplate = tagChildren[0];
         const fieldChildren =
@@ -410,6 +449,7 @@ export const renderTagGroup = (
       items={hasValidTemplate ? undefined : (storedTagItems as never)}
       // ADR-229 Phase 1 — chip item template (provider 가 문서에서 해석해 renderContext 로 주입).
       itemTemplate={context.tagTemplate ?? undefined}
+      staticItems={staticTagItems ?? undefined}
       columnMapping={columnMapping}
       removedItemIds={removedItemIds}
       onSelectionChange={async (selectedKeys) => {

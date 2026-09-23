@@ -17,6 +17,7 @@ import { getElementDataBinding } from "@composition/shared";
 
 import { getCanonicalRefPathSegment } from "../../adapters/canonical/canonicalRefResolution";
 import { TAB_ITEM_DEFAULT_ORIGIN_ID } from "./tabs/tabsTemplateOrigins";
+import { TAG_ITEM_DEFAULT_ORIGIN_ID } from "./taggroup/tagGroupTemplateOrigins";
 
 type RefLike = CanonicalNode & {
   ref?: string;
@@ -99,20 +100,6 @@ export function pickItemOriginId(
   return byId.has(fallback) ? fallback : null;
 }
 
-/**
- * origin 의 label slot 자식 `descendants` 키 — segment 경로 (name 우선). Canvas 는 segment 만, Preview 는
- * id · segment 둘 다 읽는다 (편집기도 segment 로 쓴다).
- */
-export function findLabelChildId(origin: CanonicalNode): string | null {
-  const label = (origin.children ?? []).find(
-    (child) =>
-      (child.metadata as Record<string, unknown> | undefined)?.slotRole ===
-        "label" ||
-      (child.props as Record<string, unknown> | undefined)?.slot === "label",
-  );
-  return label ? getCanonicalRefPathSegment(label) : null;
-}
-
 function uniqueId(base: string, taken: Set<string>): string {
   let id = base;
   for (let n = 2; taken.has(id); n += 1) id = `${base}-${n}`;
@@ -120,92 +107,180 @@ function uniqueId(base: string, taken: Set<string>): string {
   return id;
 }
 
-// ───────────────────────────── Tabs ─────────────────────────────
+// ───────────────────────────── 가족 표 ─────────────────────────────
 
-/** Tabs `items` 행 → Tab instance 자식. */
-export function buildTabInstances(
+/** origin 의 slot 역할 자식 (`metadata.slotRole` · `props.slot`) 의 descendants 키 (segment). */
+function findSlotChildKey(origin: CanonicalNode, role: string): string | null {
+  const child = (origin.children ?? []).find(
+    (c) =>
+      (c.metadata as Record<string, unknown> | undefined)?.slotRole === role ||
+      (c.props as Record<string, unknown> | undefined)?.slot === role,
+  );
+  return child ? getCanonicalRefPathSegment(child) : null;
+}
+
+/**
+ * 정적 목록 가족 — owner (items 보유) · 목록 틀 (항목 자식을 담는 노드) · 항목 origin 기본 id · 행 →
+ * 항목 instance 의 props / descendants.
+ */
+export interface StaticCollectionFamily {
+  ownerType: string;
+  listType: string;
+  itemType: string;
+  itemPrefix: string;
+  defaultOriginId: string;
+  buildItem(
+    item: Record<string, unknown>,
+    origin: CanonicalNode,
+  ): { props: Record<string, unknown>; descendants: Record<string, unknown> };
+}
+
+function labelDescendant(
+  origin: CanonicalNode,
+  text: unknown,
+): Record<string, unknown> {
+  const key = findSlotChildKey(origin, "label");
+  return key ? { [key]: { children: String(text ?? "") } } : {};
+}
+
+export const TABS_STATIC_FAMILY: StaticCollectionFamily = {
+  ownerType: "Tabs",
+  listType: "TabList",
+  itemType: "Tab",
+  itemPrefix: "tab",
+  defaultOriginId: TAB_ITEM_DEFAULT_ORIGIN_ID,
+  buildItem(item, origin) {
+    return {
+      props: item.isDisabled === true ? { isDisabled: true } : {},
+      descendants: labelDescendant(
+        origin,
+        item.title ?? item.label ?? item.textValue,
+      ),
+    };
+  },
+};
+
+export const TAGGROUP_STATIC_FAMILY: StaticCollectionFamily = {
+  ownerType: "TagGroup",
+  listType: "TagList",
+  itemType: "Tag",
+  itemPrefix: "tag",
+  defaultOriginId: TAG_ITEM_DEFAULT_ORIGIN_ID,
+  buildItem(item, origin) {
+    const descendants: Record<string, unknown> = labelDescendant(
+      origin,
+      item.label ?? item.textValue ?? item.title,
+    );
+    // leading slot 은 행에 값이 있을 때만 (projection 의 존재 gating 과 같은 결과) — 없으면 숨김.
+    const icon = findSlotChildKey(origin, "icon");
+    if (icon) {
+      descendants[icon] =
+        typeof item.icon === "string" && item.icon
+          ? { iconName: item.icon }
+          : { enabled: false };
+    }
+    const avatar = findSlotChildKey(origin, "avatar");
+    if (avatar) {
+      descendants[avatar] =
+        typeof item.avatar === "string" && item.avatar
+          ? { src: item.avatar }
+          : { enabled: false };
+    }
+    return {
+      props: {
+        ...(item.isDisabled === true ? { isDisabled: true } : {}),
+        ...(item.allowsRemoving === true ? { allowsRemoving: true } : {}),
+      },
+      descendants,
+    };
+  },
+};
+
+export const STATIC_COLLECTION_FAMILIES: readonly StaticCollectionFamily[] = [
+  TABS_STATIC_FAMILY,
+  TAGGROUP_STATIC_FAMILY,
+];
+
+/** 행 → 항목 instance 자식 (`props.id` = 행 id — RAC key). */
+export function buildItemInstances(
+  family: StaticCollectionFamily,
   items: ReadonlyArray<Record<string, unknown>>,
   idPrefix: string,
-  originId: string,
-  labelChildId: string | null,
+  origin: CanonicalNode,
   taken: Set<string>,
-  /** 새 항목의 번호 시작 (Slot "+" 는 기존 항목 수 — id `__tab-<n>`). */
+  /** 새 항목의 번호 시작 (Slot "+" 는 기존 항목 수 — id `__<prefix>-<n>`). */
   startIndex = 0,
 ): CanonicalNode[] {
   return items.map((item, offset) => {
     const index = startIndex + offset;
-    const title = item.title ?? item.label ?? item.textValue ?? "";
-    const props: Record<string, unknown> = {
-      id: String(item.id ?? `${idPrefix}-${index + 1}`),
-    };
-    if (item.isDisabled === true) props.isDisabled = true;
+    const built = family.buildItem(item, origin);
     return {
-      id: uniqueId(`${idPrefix}__tab-${index + 1}`, taken),
+      id: uniqueId(`${idPrefix}__${family.itemPrefix}-${index + 1}`, taken),
       type: "ref",
-      ref: originId,
-      props,
-      ...(labelChildId
-        ? { descendants: { [labelChildId]: { children: String(title) } } }
+      ref: origin.id,
+      props: {
+        id: String(item.id ?? `${idPrefix}-${index + 1}`),
+        ...built.props,
+      },
+      ...(Object.keys(built.descendants).length > 0
+        ? { descendants: built.descendants }
         : {}),
     } as unknown as CanonicalNode;
   });
 }
 
-/** plain Tabs (origin 포함) — TabList 에 Tab instance 자식 · items 제거 · slot 을 TabList 로. */
-function migratePlainTabs(
-  tabs: CanonicalNode,
+/** plain owner (origin 포함) — 목록 틀에 항목 instance 자식 · items 제거 · slot 을 목록 틀로. */
+function migratePlainOwner(
+  family: StaticCollectionFamily,
+  owner: CanonicalNode,
   byId: ReadonlyMap<string, CanonicalNode>,
   taken: Set<string>,
 ): CanonicalNode | null {
-  if (isBoundCollection(tabs)) return null;
-  const children = tabs.children ?? [];
-  const tabListIndex = children.findIndex((child) => child.type === "TabList");
-  if (tabListIndex < 0) return null;
-  const tabList = children[tabListIndex]!;
-  const tabsProps = (tabs.props ?? {}) as Record<string, unknown>;
-  const tabListProps = (tabList.props ?? {}) as Record<string, unknown>;
-  const hasStaticChildren = (tabList.children ?? []).length > 0;
-  const items = readItems(tabsProps) ?? readItems(tabListProps);
-  const rootSlot = Array.isArray(tabs.slot) ? tabs.slot : undefined;
+  if (isBoundCollection(owner)) return null;
+  const children = owner.children ?? [];
+  const listIndex = children.findIndex(
+    (child) => child.type === family.listType,
+  );
+  if (listIndex < 0) return null;
+  const list = children[listIndex]!;
+  const ownerProps = (owner.props ?? {}) as Record<string, unknown>;
+  const listProps = (list.props ?? {}) as Record<string, unknown>;
+  const hasStaticChildren = (list.children ?? []).length > 0;
+  const items = readItems(ownerProps) ?? readItems(listProps);
+  const rootSlot = Array.isArray(owner.slot) ? owner.slot : undefined;
   const needsConversion = !hasStaticChildren && items !== null;
   if (!needsConversion && !rootSlot) return null;
 
-  let nextTabListChildren = tabList.children;
+  let nextListChildren = list.children;
   if (needsConversion && items.length > 0) {
     const originId = pickItemOriginId(
-      tabList.slot ?? rootSlot,
+      list.slot ?? rootSlot,
       byId,
-      TAB_ITEM_DEFAULT_ORIGIN_ID,
+      family.defaultOriginId,
     );
     const origin = originId ? byId.get(originId) : undefined;
-    if (!originId || !origin) return null; // 보류 — origin 이 생기면 다음 hydration 에서.
-    nextTabListChildren = buildTabInstances(
-      items,
-      tabList.id,
-      originId,
-      findLabelChildId(origin),
-      taken,
-    );
+    if (!origin) return null; // 보류 — origin 이 생기면 다음 hydration 에서.
+    nextListChildren = buildItemInstances(family, items, list.id, origin, taken);
   }
 
-  const nextTabList: CanonicalNode = {
-    ...tabList,
-    ...(needsConversion ? { props: omitKey(tabListProps, "items") } : {}),
-    ...(nextTabListChildren ? { children: nextTabListChildren } : {}),
-    ...(rootSlot && !Array.isArray(tabList.slot) ? { slot: rootSlot } : {}),
+  const nextList: CanonicalNode = {
+    ...list,
+    ...(needsConversion ? { props: omitKey(listProps, "items") } : {}),
+    ...(nextListChildren ? { children: nextListChildren } : {}),
+    ...(rootSlot && !Array.isArray(list.slot) ? { slot: rootSlot } : {}),
   };
-  const { slot: _movedSlot, ...tabsWithoutSlot } = tabs;
+  const { slot: _movedSlot, ...ownerWithoutSlot } = owner;
   const nextChildren = [...children];
-  nextChildren[tabListIndex] = nextTabList;
+  nextChildren[listIndex] = nextList;
   return {
-    ...(rootSlot ? tabsWithoutSlot : tabs),
-    ...(needsConversion ? { props: omitKey(tabsProps, "items") } : {}),
+    ...(rootSlot ? ownerWithoutSlot : owner),
+    ...(needsConversion ? { props: omitKey(ownerProps, "items") } : {}),
     children: nextChildren,
   } as CanonicalNode;
 }
 
-/** Tabs ref instance 가 자기 `items` 를 덮어쓴 경우 → TabList 경로 descendants mode C. */
-function migrateTabsInstance(
+/** owner ref instance 가 자기 `items` 를 덮어쓴 경우 → 목록 틀 경로 descendants mode C. */
+function migrateOwnerInstance(
   instance: RefLike,
   byId: ReadonlyMap<string, CanonicalNode>,
   taken: Set<string>,
@@ -215,37 +290,31 @@ function migrateTabsInstance(
   const items = readItems(props);
   if (items === null || isBoundCollection(instance)) return null;
   const master = resolveChainEnd(instance.ref, byId);
-  if (master?.type !== "Tabs") return null;
-  const tabList = (master.children ?? []).find(
-    (child) => child.type === "TabList",
+  const family = STATIC_COLLECTION_FAMILIES.find((f) => f.ownerType === master?.type);
+  if (!master || !family) return null;
+  const list = (master.children ?? []).find(
+    (child) => child.type === family.listType,
   );
-  if (!tabList) return null;
-  const tabListPath = getCanonicalRefPathSegment(tabList);
-  const existing = instance.descendants?.[tabListPath];
-  if (existing !== undefined) {
-    held.push(`${instance.id}: descendants["${tabListPath}"] 이미 있음`);
+  if (!list) return null;
+  const listPath = getCanonicalRefPathSegment(list);
+  if (instance.descendants?.[listPath] !== undefined) {
+    held.push(`${instance.id}: descendants["${listPath}"] 이미 있음`);
     return null;
   }
   const originId = pickItemOriginId(
-    tabList.slot ?? master.slot,
+    list.slot ?? master.slot,
     byId,
-    TAB_ITEM_DEFAULT_ORIGIN_ID,
+    family.defaultOriginId,
   );
   const origin = originId ? byId.get(originId) : undefined;
-  if (!originId || !origin) return null;
+  if (!origin) return null;
   return {
     ...instance,
     props: omitKey(props, "items"),
     descendants: {
       ...(instance.descendants ?? {}),
-      [tabListPath]: {
-        children: buildTabInstances(
-          items,
-          instance.id,
-          originId,
-          findLabelChildId(origin),
-          taken,
-        ),
+      [listPath]: {
+        children: buildItemInstances(family, items, instance.id, origin, taken),
       },
     },
   } as CanonicalNode;
@@ -271,11 +340,12 @@ export function migrateStaticCollectionsToInstances(
       });
       if (changed) next = { ...node, children };
     }
-    if (next.type === "Tabs") {
-      return migratePlainTabs(next, byId, taken) ?? next;
+    const family = STATIC_COLLECTION_FAMILIES.find((f) => f.ownerType === next.type);
+    if (family) {
+      return migratePlainOwner(family, next, byId, taken) ?? next;
     }
     if (next.type === "ref") {
-      return migrateTabsInstance(next as RefLike, byId, taken, held) ?? next;
+      return migrateOwnerInstance(next as RefLike, byId, taken, held) ?? next;
     }
     return next;
   };
@@ -290,4 +360,27 @@ export function migrateStaticCollectionsToInstances(
     console.warn("[ADR-234] 정적 목록 이관 보류", held);
   }
   return changed ? { ...document, children } : document;
+}
+
+/**
+ * ADR-234 Phase 3 — 이 노드가 **작성자가 채운 목록** (목록 틀에 항목 instance 자식) 의 owner 인가. Properties 의
+ * items 편집기 (items-manager) 는 바인딩 목록 전용이 된다 — 정적 목록에 `items` 를 다시 쓰면 두 목록이 겹친다.
+ * ref instance 는 체인 끝 origin 의 목록 틀 (instance 가 그 경로를 mode C 로 채웠어도 정적).
+ */
+export function isStaticCollectionOwner(
+  document: CompositionDocument,
+  nodeId: string,
+): boolean {
+  const byId = indexNodes(document);
+  const node = byId.get(nodeId);
+  if (!node || isBoundCollection(node)) return false;
+  const master = node.type === "ref" ? resolveChainEnd(nodeId, byId) : node;
+  const family = STATIC_COLLECTION_FAMILIES.find(
+    (f) => f.ownerType === master?.type,
+  );
+  if (!master || !family) return false;
+  const list = (master.children ?? []).find(
+    (child) => child.type === family.listType,
+  );
+  return (list?.children ?? []).length > 0;
 }

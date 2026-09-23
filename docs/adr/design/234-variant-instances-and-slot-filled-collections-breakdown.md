@@ -180,3 +180,15 @@
 - 회귀: builder 7,204 pass / 5 fail · shared 1,398 / 2 fail (전부 착수 전부터). parity (browser): `tabsPanelWrapper` 가 legacy 렌더 경로에서 빈 TabList → `renderCollectionItem` 폴백으로 GREEN · 남은 4 (DC-6 팔레트 facet 집합 · HC2 Tag display · Dialog fixed) 는 엔진 수정 원복 wasm 에서도 같은 실패 — 이번 변경 밖 영역. type-check PASS.
 - live (headless · 새 프로젝트): Components 페이지 Tabs origin = Tab ref 2 + slot TabList · Skia rect Tab 62×29 · label 38×24 (한 줄) · 선택 표시 Tab 1 만 · TabList 선택 → Properties Slot "Insert Tab/Default" → Tab 3 + TabPanel 짝 · reload 후 같음 · 콘솔 오류 0 (스크린샷 확인).
 - 남은 Phase 3: TagGroup (TagList) · ListBox · GridList · Menu · items-manager 를 바인딩 전용으로 · 전파 규칙 정리.
+
+### Phase 3b — TagGroup: 목록 = TagList 의 Tag instance 자식 (G3 일부, 2026-09-23)
+
+- **이관 일반화**: `staticCollectionMigration` 이 가족 표 (`STATIC_COLLECTION_FAMILIES` — owner · 목록 틀 · 항목 type · 기본 origin · 행 → props/descendants) 로 Tabs · TagGroup 을 같은 코드로 옮긴다. Tag 행 → `props.id` · `Label` descendants · leading slot (`Icon` · `Avatar`) 은 행 값이 있으면 `iconName` / `src`, 없으면 `enabled: false` (projection 의 슬롯 존재 gating 과 같은 결과 — Phase 1 `enabled` 의 첫 production 사용) · `isDisabled` · `allowsRemoving`. slot 은 root → TagList (ADR-229 의 root 규칙 역전 — seed 는 root 에 두고 이관이 매 hydration 옮긴다: TagList 보존 분기를 따로 두는 변경은 원복 GREEN 이라 넣지 않음).
+- **Canvas 선택**: 항목 type → 선택 owner 표 (`Tab → Tabs` · `Tag → TagGroup`), `selectedKeys ?? defaultSelectedKeys` (배열 · `"all"`) 또는 `selectedKey ?? defaultSelectedKey`.
+- **Preview**: `renderTagGroup` 정적 분기 → shared `TagGroup` 새 prop `staticItems` (이미 RAC Tag 인 노드 + maxRows 미러 글자) · catalog internal `tag` (shared `Tag`, children 함수 지원) · 컬렉션 밖 단독 Tag 는 종전 경로.
+- **Slot "+"**: TagList host → 행동 `list-item` (Tabs 와 공용으로 이름 일반화) · 계획 함수도 가족 표.
+- **items 편집기**: 정적 목록 owner (`isStaticCollectionOwner` — origin · instance) 에서는 Properties items-manager 를 숨긴다 (바인딩 목록 전용 — 정적 목록에 `items` 를 쓰면 두 목록이 겹친다).
+- unit 19 (3a 13 + 3b 6) · 원복 RED 7/7 (가족 표 · leading gating · Tag owner 선택 · renderTagGroup 정적 · Tag renderer · TagList host · owner 판정). Phase 2 seed 테스트 slot 위치 갱신.
+- 회귀: builder 7,209 pass / 5 fail · shared 1,398 / 2 fail (전부 착수 전부터). parity 파일 단위 실패는 개별 재실행 GREEN (브라우저 세션 flaky) · 남은 3 은 착수 전부터 (HC2 판정표의 Tag canvas 캡처 값만 `inline-block` → `flex` 로 이동 — Tag instance 가 origin style `display:flex` 를 싣는다) .
+- live (headless · 새 프로젝트): Components 페이지 TagGroup = TagList Tag ref 4 · slot TagList · `items` 0 · TagList 선택 → Slot "Insert Tag/Default" → Tag 5 (chip 5 한 줄, rect 99/58/106/73/67) · reload 같음 · 오류 0.
+- **남은 BC 차이 (다음 단계 3c)**: 항목 label 이 `Text` 라 두 leg 모두 Text 기본 글자 (16 · 400 · `--fg`) 로 그린다 — 대칭이지만 이관 전 행 (Tab: text-sm · 500 · muted / Tag: text-sm · 선택 시 on-accent) 과 다르다. DOM 은 `.react-aria-Text` 가 font-size · color 를 스스로 선언해 item 글자를 상속하지 않는다. 해결 방향: item rule 의 delegation (`.react-aria-Text` → inherit) + Canvas resolver 가 같은 값을 label 에 주입 (InlineAlert · FieldError 선례).

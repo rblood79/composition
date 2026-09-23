@@ -83,6 +83,12 @@ export interface TagGroupProps<T>
    * (D2 무관). chip inline style (base + selected overlay) · leading slot 존재 gating · slot 크기.
    */
   itemTemplate?: TagItemTemplate | null;
+  /**
+   * ADR-234 Phase 3 — 작성자가 채운 목록: TagList 의 Tag instance 자식을 **이미 RAC Tag 인** 노드로 받는다
+   * (canonical 경로는 CanonicalNodeRenderer 가 상태 층 render props 를 실은 RAC Tag). `text` 는 maxRows
+   * 미러 측정용 글자. 있으면 `items` · `children` 보다 우선.
+   */
+  staticItems?: ReadonlyArray<{ node: React.ReactNode; text: string }>;
 }
 
 export function TagGroup<T extends object>({
@@ -112,6 +118,7 @@ export function TagGroup<T extends object>({
   filterFields = ["label", "name", "title"] as (keyof T)[],
   labelPosition = "top",
   itemTemplate,
+  staticItems,
   ...props
 }: TagGroupProps<T>): JSX.Element {
   // ADR-229 Phase 1 — chip template: base style 은 모든 chip, selected 는 RAC isSelected chip 에 overlay
@@ -312,6 +319,12 @@ export function TagGroup<T extends object>({
     Array<{ text: string; icon: string | null; avatar: string | null }>
   >(() => {
     if (hasDataBinding) return [];
+    if (staticItems && staticItems.length > 0)
+      return staticItems.map((entry) => ({
+        text: entry.text,
+        icon: null,
+        avatar: null,
+      }));
     if (filteredRows.length > 0)
       return filteredRows.map((row) => ({
         text: row.label,
@@ -339,7 +352,7 @@ export function TagGroup<T extends object>({
       icon: null,
       avatar: null,
     }));
-  }, [hasDataBinding, filteredRows, children]);
+  }, [hasDataBinding, filteredRows, children, staticItems]);
 
   // children이 render function인지 확인 (Field children 렌더링 모드)
   const isRenderFunction = typeof children === "function";
@@ -590,13 +603,23 @@ export function TagGroup<T extends object>({
     [filteredRows, removedItemIds],
   );
 
-  const totalChildCount = hasResolvedRows
-    ? resolvedTagItems.length
-    : tagTexts.length;
+  const totalChildCount =
+    staticItems && staticItems.length > 0
+      ? staticItems.length
+      : hasResolvedRows
+        ? resolvedTagItems.length
+        : tagTexts.length;
 
   // 실제 렌더링할 children: static children 경로(외부 JSX)에서만 collapsed 슬라이스 적용.
-  const displayChildren =
-    showCollapsed && Array.isArray(allMappedChildren)
+  const staticNodes =
+    staticItems && staticItems.length > 0
+      ? staticItems.map((entry) => entry.node)
+      : null;
+  const displayChildren = staticNodes
+    ? showCollapsed
+      ? staticNodes.slice(0, visibleTagCount)
+      : staticNodes
+    : showCollapsed && Array.isArray(allMappedChildren)
       ? allMappedChildren.slice(0, visibleTagCount)
       : allMappedChildren;
 
@@ -661,7 +684,7 @@ export function TagGroup<T extends object>({
       >
         {label && <Label>{label}</Label>}
         <div ref={tagListWrapperRef} className="tag-list-wrapper">
-          {hasResolvedRows ? (
+          {hasResolvedRows && !staticNodes ? (
             <TagList
               items={displayTagItems}
               renderEmptyState={renderEmptyState}
@@ -694,7 +717,7 @@ export function TagGroup<T extends object>({
             </TagList>
           ) : (
             <TagList
-              items={items}
+              items={staticNodes ? undefined : items}
               renderEmptyState={renderEmptyState}
               className="react-aria-TagList"
             >
@@ -731,10 +754,15 @@ export function Tag({ children, ...props }: TagProps): JSX.Element {
   const textValue = typeof children === "string" ? children : undefined;
   return (
     <AriaTag textValue={textValue} {...props} className="react-aria-Tag">
-      {({ allowsRemoving }) => (
+      {(renderProps) => (
         <>
-          {children}
-          {allowsRemoving && (
+          {/* ADR-234 Phase 3 — 정적 Tag instance 는 자손 상태 층을 children 함수로 받는다. */}
+          {typeof children === "function"
+            ? (children as (p: typeof renderProps) => React.ReactNode)(
+                renderProps,
+              )
+            : children}
+          {renderProps.allowsRemoving && (
             <Button slot="remove" className="tag-remove-btn">
               <X size={14} />
             </Button>

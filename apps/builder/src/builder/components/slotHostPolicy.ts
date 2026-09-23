@@ -167,6 +167,15 @@ function isTabListHost(element: SlotPolicyElement | undefined): boolean {
   );
 }
 
+/** ADR-234 Phase 3 — slot 을 가진 TagList (TagGroup 의 목록 틀). */
+function isTagListHost(element: SlotPolicyElement | undefined): boolean {
+  if (!element) return false;
+  return (
+    normalizeType(element.type) === "taglist" &&
+    Array.isArray((element as { slot?: unknown }).slot)
+  );
+}
+
 function isTabsPolicyActive(element: SlotPolicyElement | undefined): boolean {
   if (!isTabsHost(element)) return false;
   return element?.reusable === true || element?.metadata?.systemOwned === true;
@@ -197,8 +206,9 @@ function isTabItemTemplateVariant(
 export type SlotInsertAction =
   | { kind: "child" }
   | { kind: "collection-item"; itemsKey: "items"; selected: boolean }
-  // ADR-234 Phase 3 — TabList (목록 틀) 의 "+" = Tab instance + 짝 TabPanel (`collectionItemInsert`).
-  | { kind: "tab-item" }
+  // ADR-234 Phase 3 — 목록 틀 (TabList · TagList) 의 "+" = 항목 instance (Tabs 는 짝 TabPanel 도 —
+  //   `collectionItemInsert`).
+  | { kind: "list-item" }
   // ADR-233: Tabs root slot (이관 전 문서) 의 Tab 은 `items` + TabPanel `itemId` 쌍 (ADR-066) 이라 추가
   //   경로가 없다 — "삽입 없음". 버튼을 숨긴다.
   | { kind: "none" };
@@ -208,7 +218,10 @@ export function resolveSlotInsertAction(
   candidate: SlotPolicyElement | undefined,
 ): SlotInsertAction {
   if (isTabListHost(host) && isTabItemTemplateVariant(candidate)) {
-    return { kind: "tab-item" };
+    return { kind: "list-item" };
+  }
+  if (isTagListHost(host) && isTagItemTemplateVariant(candidate)) {
+    return { kind: "list-item" };
   }
   if (isTabsHost(host) && isTabItemTemplateVariant(candidate)) {
     return { kind: "none" };
@@ -241,7 +254,7 @@ export function isSlotHostElement(
   if (isGridListPolicyActive(element)) return true;
   if (isTagGroupPolicyActive(element)) return true;
   if (isTabsPolicyActive(element)) return true;
-  if (isTabListHost(element)) return true;
+  if (isTabListHost(element) || isTagListHost(element)) return true;
   return FRAME_SLOT_HOST_TYPES.has(normalizeType(element.type));
 }
 
@@ -256,7 +269,7 @@ export function isSlotCandidateAllowed(
   if (isGridListHost(host)) {
     return isGridListItemTemplateVariant(candidate);
   }
-  if (isTagGroupHost(host)) {
+  if (isTagGroupHost(host) || isTagListHost(host)) {
     return isTagItemTemplateVariant(candidate);
   }
   if (isTabsHost(host) || isTabListHost(host)) {

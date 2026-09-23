@@ -377,9 +377,9 @@ describe("ADR-234 G2 — 항목 템플릿 이관 (Tab · Tag · ListBoxItem)", (
 
   it("seed 문서 — origin (default id) = 선택 모양 · 휴지 변형 = ref · slot = [휴지, origin]", () => {
     for (const [origin, host] of [
-      // ADR-234 Phase 3 — Tabs 의 slot 은 목록 틀 (TabList) 로 옮겨졌다.
+      // ADR-234 Phase 3 — Tabs · TagGroup 의 slot 은 목록 틀 (TabList · TagList) 로 옮겨졌다.
       ["component-tab-item-default", "component-tabs__1"],
-      ["component-tag-item-default", "component-taggroup"],
+      ["component-tag-item-default", "component-taggroup__2"],
       ["component-listbox-item-default", "component-listbox"],
     ]) {
       expect(nodesById.get(origin)?.metadata, origin).toMatchObject({

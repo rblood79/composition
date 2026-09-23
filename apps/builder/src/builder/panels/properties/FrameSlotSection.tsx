@@ -197,8 +197,8 @@ export const FrameSlotSection = memo(function FrameSlotSection({
     //   selected variant 는 selectedKeys 에도 — 한 번의 props 쓰기 (history 1).
     const insertAction = resolveSlotInsertAction(latestElement, candidate);
     if (insertAction.kind === "none") return;
-    // ADR-234 Phase 3 — TabList "+" = Tab instance + 짝 TabPanel (instance 는 descendants mode C).
-    if (insertAction.kind === "tab-item") {
+    // ADR-234 Phase 3 — 목록 틀 "+" = 항목 instance (Tabs 는 짝 TabPanel 도 · instance 는 descendants mode C).
+    if (insertAction.kind === "list-item") {
       const document = getActiveCanonicalDocument();
       const plan = document
         ? planTabItemInsert({

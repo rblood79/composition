@@ -25,7 +25,7 @@ import { Select } from "@composition/shared/components/Select";
 import { Skeleton } from "@composition/shared/components/Skeleton";
 import Table from "@composition/shared/components/Table";
 import { Tab, Tabs } from "@composition/shared/components/Tabs";
-import { TagGroup } from "@composition/shared/components/TagGroup";
+import { Tag, TagGroup } from "@composition/shared/components/TagGroup";
 import { Tooltip } from "@composition/shared/components/Tooltip";
 import { Tree } from "@composition/shared/components/Tree";
 import {
@@ -52,6 +52,7 @@ export const INTERNAL_RENDERERS: Readonly<
   // ADR-234 Phase 3 — TabList 정적 자식 (Tab instance). RAC Tab 이라 render props 를 받는다.
   tab: Tab,
   taggroup: TagGroup,
+  tag: Tag,
   gridlist: GridList,
   breadcrumbs: Breadcrumbs,
   tree: Tree,
@@ -75,6 +76,7 @@ export const INTERNAL_RENDERERS: Readonly<
  */
 export const RENDER_PROPS_INTERNAL_RENDERERS: ReadonlySet<string> = new Set([
   "tab",
+  "tag",
 ]);
 
 export const DELEGATING_INTERNAL_RENDERERS: ReadonlySet<string> =

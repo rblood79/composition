@@ -20,6 +20,8 @@ import {
   PropertyIconPicker,
 } from "../../../components";
 import { useCanonicalPropertyResolvedElement } from "../hooks/useCanonicalPropertyRead";
+import { useActiveCanonicalDocument } from "../../../stores/canonical/canonicalElementsBridge";
+import { isStaticCollectionOwner } from "../../../components/staticCollectionMigration";
 import { packHalfRows } from "./fieldEditor";
 import { resolveItemEditorIdentities } from "./itemsEditorIdentity";
 import { localizeSemanticLabel, useOptionalI18n } from "@/i18n";
@@ -438,6 +440,16 @@ export const ItemsManager = memo(function ItemsManager({
     () => resolveItemEditorIdentities(rawItems),
     [rawItems],
   );
+  // ADR-234 Phase 3 — 작성자가 채운 목록은 목록 틀의 항목 instance 자식이 정본 (캔버스 · Slot "+" 로
+  //   편집). items 편집기는 바인딩 목록 전용 — 정적 목록에 `items` 를 쓰면 두 목록이 겹친다.
+  const canonicalDocument = useActiveCanonicalDocument();
+  const isStaticOwner = useMemo(
+    () =>
+      canonicalDocument
+        ? isStaticCollectionOwner(canonicalDocument, elementId)
+        : false,
+    [canonicalDocument, elementId],
+  );
 
   const handleAdd = useCallback(() => {
     void useStore
@@ -515,6 +527,8 @@ export const ItemsManager = memo(function ItemsManager({
   // legend = 필드 라벨 + 항목 수 (종전 「Total: N」 문단) — 다른 필드와 같은 fieldset/legend 어법
   const rawLabel = field.label ?? field.itemTypeName;
   const displayLabel = localizeSemanticLabel(i18n, rawLabel);
+  if (isStaticOwner) return null;
+
   return (
     <fieldset className="properties-aria items-manager">
       <legend className="fieldset-legend">

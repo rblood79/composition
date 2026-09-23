@@ -13,7 +13,10 @@ import { resolveCanonicalDocument } from "../../../resolvers/canonical";
 import { CanonicalNodeRenderer } from "../../../preview/components/CanonicalNodeRenderer";
 import type { RenderContext } from "../../../preview/types/index";
 import { ensureReusableCompositeOrigins } from "../reusableCompositeOrigins";
-import { migrateStaticCollectionsToInstances } from "../staticCollectionMigration";
+import {
+  isStaticCollectionOwner,
+  migrateStaticCollectionsToInstances,
+} from "../staticCollectionMigration";
 import { planTabItemInsert } from "../collectionItemInsert";
 import { resolveSlotInsertAction } from "../slotHostPolicy";
 
@@ -253,7 +256,7 @@ describe("ADR-234 Phase 3 — Slot +", () => {
           "component-tab-item-default--unselected",
         ) as unknown as Parameters<typeof resolveSlotInsertAction>[1],
       ),
-    ).toEqual({ kind: "tab-item" });
+    ).toEqual({ kind: "list-item" });
   });
 
   it("plain: Tab instance (항목 origin 을 가리킴) + 짝 TabPanel", () => {
@@ -482,5 +485,195 @@ describe("ADR-234 Phase 3 — Skia 페인트 재해석", () => {
         id,
       ).toBe(undefined);
     }
+  });
+});
+
+describe("ADR-234 Phase 3b — TagGroup", () => {
+  const tagGroupInstance = {
+    id: "tg-1",
+    type: "ref",
+    ref: "component-taggroup",
+    props: {},
+  } as unknown as CanonicalNode;
+
+  it("이관: TagList 에 Tag instance 자식 (label · leading slot 은 행 값 없으면 enabled:false) · items 0 · slot 은 TagList · 멱등", () => {
+    const doc = seededDoc([tagGroupInstance]);
+    const tg = findById(doc.children, "component-taggroup")!;
+    const tagList = tg.children!.find((c) => c.type === "TagList")!;
+    expect(tg.props?.items).toBeUndefined();
+    expect(tagList.props?.items).toBeUndefined();
+    expect(tg.slot).toBeUndefined();
+    expect(tagList.slot).toEqual([
+      "component-tag-item-default--unselected",
+      "component-tag-item-default",
+    ]);
+    const tags = tagList.children ?? [];
+    expect(tags).toHaveLength(4);
+    expect(tags[0]).toMatchObject({
+      type: "ref",
+      ref: "component-tag-item-default",
+      descendants: {
+        Label: { children: "Chocolate" },
+        Icon: { enabled: false },
+        Avatar: { enabled: false },
+      },
+    });
+    expect(JSON.stringify(ensureReusableCompositeOrigins(doc))).toBe(
+      JSON.stringify(doc),
+    );
+  });
+
+  it("행의 icon 은 Icon descendants 로 · 바인딩 TagGroup 은 그대로", () => {
+    const plain = {
+      id: "plain-tg",
+      type: "TagGroup",
+      props: { items: [{ id: "a", label: "Alpha", icon: "star" }] },
+      children: [{ id: "plain-tl", type: "TagList", props: {} }],
+    } as CanonicalNode;
+    const bound = {
+      id: "bound-tg",
+      type: "TagGroup",
+      props: {
+        items: [{ id: "a", label: "Alpha" }],
+        dataBinding: { source: "x", name: "y" },
+      },
+      children: [{ id: "bound-tl", type: "TagList", props: {} }],
+    } as CanonicalNode;
+    const doc = seededDoc([plain, bound]);
+    const tag = findById(doc.children, "plain-tl")!.children![0] as unknown as {
+      props: Record<string, unknown>;
+      descendants: Record<string, unknown>;
+    };
+    expect(tag.props.id).toBe("a");
+    expect(tag.descendants.Icon).toEqual({ iconName: "star" });
+    expect(findById(doc.children, "bound-tg")!.props?.items).toHaveLength(1);
+    expect(findById(doc.children, "bound-tl")!.children).toBeUndefined();
+  });
+
+  it("Canvas: 선택 = TagGroup selectedKeys (origin `_isSelected` 상속보다 먼저) · Icon/Avatar 숨김", () => {
+    const base = seededDoc([tagGroupInstance]);
+    const firstKey = String(
+      findById(base.children, "component-taggroup__2")!.children![1]!.props
+        ?.id,
+    );
+    const doc = seededDoc([
+      {
+        ...tagGroupInstance,
+        props: { selectedKeys: [firstKey] },
+      } as unknown as CanonicalNode,
+    ]);
+    // 같은 seed 라도 item id 는 문서마다 새로 — 이 문서의 두 번째 Tag key 로 다시.
+    const key = String(
+      findById(doc.children, "component-taggroup__2")!.children![1]!.props?.id,
+    );
+    const docSelected = {
+      ...doc,
+      children: doc.children.map((page) =>
+        page.id !== "page-home"
+          ? page
+          : {
+              ...page,
+              children: [
+                {
+                  ...page.children![0]!,
+                  children: [
+                    {
+                      ...tagGroupInstance,
+                      props: { selectedKeys: [key] },
+                    } as unknown as CanonicalNode,
+                  ],
+                },
+              ],
+            },
+      ),
+    } as CompositionDocument;
+    const model = buildCanonicalSceneModel(docSelected);
+    const tags =
+      model.sceneChildrenByParent.get("tg-1/component-taggroup__2") ?? [];
+    expect(
+      tags.map((t) => (t.props as Record<string, unknown>)._isSelected),
+    ).toEqual([undefined, true, undefined, undefined]);
+    expect(
+      (model.sceneChildrenByParent.get(tags[0]!.id) ?? []).map((c) => c.type),
+    ).toEqual(["Text"]);
+  });
+
+  it("Preview: RAC static Tag 4 (maxRows 미러 제외) · 글자 = label descendants", () => {
+    (globalThis as { ResizeObserver?: unknown }).ResizeObserver ??= class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    };
+    const doc = seededDoc([tagGroupInstance]);
+    const resolved = findResolved(
+      resolveCanonicalDocument(doc) as ResolvedNode[],
+      "tg-1",
+    )!;
+    const { container } = renderResolved(resolved);
+    const tags = Array.from(
+      container.querySelectorAll('.react-aria-Tag[role="row"]'),
+    );
+    expect(tags.map((t) => t.textContent)).toEqual([
+      "Chocolate",
+      "Mint",
+      "Strawberry",
+      "Vanilla",
+    ]);
+  });
+
+  it("Slot +: TagList host → Tag instance (패널 없음)", () => {
+    const doc = seededDoc();
+    const tagList = findById(doc.children, "component-taggroup__2")!;
+    expect(
+      resolveSlotInsertAction(
+        tagList as unknown as Parameters<typeof resolveSlotInsertAction>[0],
+        findById(
+          doc.children,
+          "component-tag-item-default",
+        ) as unknown as Parameters<typeof resolveSlotInsertAction>[1],
+      ),
+    ).toEqual({ kind: "list-item" });
+    const plan = planTabItemInsert({
+      document: doc,
+      hostId: "component-taggroup__2",
+      candidateId: "component-tag-item-default--unselected",
+      newKey: "k5",
+    });
+    expect(plan).toMatchObject({
+      kind: "plain",
+      tabListId: "component-taggroup__2",
+      tab: {
+        id: "component-taggroup__2__tag-5",
+        ref: "component-tag-item-default",
+        props: { id: "k5" },
+        descendants: { Label: { children: "Tag 5" } },
+      },
+      tabPanelsId: null,
+      panel: null,
+    });
+  });
+});
+
+describe("ADR-234 Phase 3 — items 편집기는 바인딩 목록 전용", () => {
+  it("정적 목록 owner (origin · instance) 는 true, 바인딩 · 이관 전 목록은 false", () => {
+    const bound = {
+      id: "bound-tg",
+      type: "TagGroup",
+      props: {
+        items: [{ id: "a", label: "A" }],
+        dataBinding: { source: "x", name: "y" },
+      },
+      children: [{ id: "bound-tl", type: "TagList", props: {} }],
+    } as CanonicalNode;
+    const doc = seededDoc([
+      { id: "tg-1", type: "ref", ref: "component-taggroup", props: {} } as unknown as CanonicalNode,
+      tabsInstance,
+      bound,
+    ]);
+    expect(isStaticCollectionOwner(doc, "component-taggroup")).toBe(true);
+    expect(isStaticCollectionOwner(doc, "tg-1")).toBe(true);
+    expect(isStaticCollectionOwner(doc, "tabs-1")).toBe(true);
+    expect(isStaticCollectionOwner(doc, "bound-tg")).toBe(false);
+    expect(isStaticCollectionOwner(doc, "component-listbox")).toBe(false);
   });
 });

@@ -160,6 +160,7 @@ const RADIO_GROUP_ANCESTOR = "radiogroup";
  */
 const COLLECTION_ONLY_INTERNAL_RENDERERS: Readonly<Record<string, string>> = {
   tab: "tabs",
+  tag: "taggroup",
 };
 
 /** 호스트가 될 수 있는 collection type(소문자) — 자손 item 은 이미 collection 안이다. */
@@ -848,9 +849,9 @@ function CanonicalNodeRendererBody({
           })()}
           {...eventHandlers}
           {...(cutoverClassName ? { className: cutoverClassName } : {})}
-          {...(type === "Tab"
+          {...(type === "Tab" || type === "Tag"
             ? {
-                // ADR-234 Phase 3 — 정적 Tab 의 RAC key (TabPanel `itemId` 짝 · Tabs selectedKey).
+                // ADR-234 Phase 3 — 정적 항목 (Tab · Tag) 의 RAC key (TabPanel `itemId` 짝 · owner 선택 key).
                 id: resolveStaticItemKey(
                   adaptedEl.props as Record<string, unknown> | undefined,
                   node.id,
