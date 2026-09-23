@@ -41,6 +41,7 @@ import { getSelectedChildIds } from "./selection";
 import { getElementDataBinding } from "../utils/compositionExtensionFields";
 // ADR-148 Phase 4 — MenuItem slot 구성 소비 (origin slot 자식의 존재 gating / 스타일 overlay).
 import {
+  getSlotRole,
   resolveSlotComposition,
   resolveStaticItemKey,
 } from "../catalog/slotRoles";
@@ -955,6 +956,57 @@ export const renderMenu = (
       return renderMenuLeaf(entry as StoredMenuItem);
     });
 
+    return (
+      <MenuButton key={element.id} {...commonProps}>
+        {menuChildren}
+      </MenuButton>
+    );
+  }
+
+  // ADR-234 Phase 3f — 정적 항목 (Menu 자식 = MenuItem instance): 항목의 slot 자식 (Icon · Label · Shortcut ·
+  //   Description) 에서 행을 조립해 이관 전 items 행과 같은 DOM (`renderMenuItemSlotParts`) 을 낸다. 항목은
+  //   popover 안이라 Canvas 는 그리지 않는다 (트리거만). 숨긴 slot (`enabled: false`) 은 resolver 가 뺐다.
+  const staticItems =
+    entries.length === 0
+      ? (context.childrenByParent.get(element.id) ?? []).filter(
+          (child) => child.type === "MenuItem",
+        )
+      : [];
+  if (staticItems.length > 0) {
+    const menuChildren = staticItems.map((item) => {
+      const parts = context.childrenByParent.get(item.id) ?? [];
+      const part = (role: string) =>
+        parts.find((child) => getSlotRole(child) === role);
+      const textOf = (role: string): string | undefined => {
+        const node = part(role);
+        return node ? resolveTextSourceText(node.type, node.props) : undefined;
+      };
+      const iconName = part("icon")?.props.iconName;
+      const label = textOf("label") ?? "";
+      const itemProps = item.props as Record<string, unknown>;
+      return (
+        <MenuItem
+          key={item.id}
+          id={resolveStaticItemKey(itemProps, item.id)}
+          data-element-id={item.id}
+          textValue={label}
+          isDisabled={Boolean(itemProps.isDisabled)}
+          {...(typeof itemProps.href === "string" && itemProps.href
+            ? { href: itemProps.href }
+            : {})}
+        >
+          {renderMenuItemSlotParts(
+            {
+              label,
+              icon: typeof iconName === "string" ? iconName : undefined,
+              shortcut: textOf("shortcut"),
+              description: textOf("description"),
+            },
+            resolveSlotComposition(parts),
+          )}
+        </MenuItem>
+      );
+    });
     return (
       <MenuButton key={element.id} {...commonProps}>
         {menuChildren}

@@ -20,10 +20,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 캔버스 resize 핸들 · padding/gap 띠도 같은 판정으로 이런 자식에서는 세션을 열지 않는다.
   - 위치: `apps/builder/src/builder/stores/canonical/subpartOwnerLookup.ts` (신규), `apps/builder/src/builder/panels/delegatedSubpart.ts`, `apps/builder/src/builder/workspace/canvas/hooks/useResizeInteraction.ts`, `apps/builder/src/builder/presentation/editorPresentationSpacingCapability.ts`
 
-## [ADR-234 Tabs · TagGroup · ListBox · GridList 목록 = 항목 instance 자식 (Phase 3a~3e)] - 2026-09-23
+## [ADR-234 Tabs · TagGroup · ListBox · GridList · Menu 목록 = 항목 instance 자식 (Phase 3a~3f)] - 2026-09-23
 
 ### Changed
 
+- **Menu 의 항목도 Menu 안의 MenuItem 요소 (MenuItem origin 의 instance) 다** — 항목마다 label · icon · 단축키 · 설명을 고치고 Slot 절 "+" 로 추가한다. 캔버스에는 지금처럼 메뉴 버튼만 보인다 (항목은 열리는 목록 안). 구분선 · 하위 메뉴가 있는 메뉴와 데이터 바인딩 메뉴는 그대로 `items`.
 - **GridList 의 카드도 GridList 안의 GridListItem 요소 (GridListItem origin 의 instance) 다** — 카드마다 label · description 을 고치고 Slot 절 "+" 로 추가한다. 데이터 바인딩 GridList 는 그대로 `items`.
 - **ListBox 의 항목도 ListBox 안의 ListBoxItem 요소 (ListBoxItem origin 의 instance) 다** — 항목마다 icon · label · description 을 고치고 ListBox 를 선택해 Slot 절 "+" 로 추가한다 (instance 에서도 — origin 항목 뒤에 붙는다). 데이터 바인딩 ListBox 는 그대로 `items`.
 - **TagGroup 의 태그도 TagList 안의 Tag 요소 (Tag origin 의 instance) 다** — 태그마다 label · 아이콘을 고치고 TagList 의 Slot "+" 로 추가한다. 데이터 바인딩 TagGroup 은 그대로 `items`. 자식으로 옮겨진 목록에서는 Properties 의 items 편집기가 보이지 않는다 (두 목록이 겹치지 않게).

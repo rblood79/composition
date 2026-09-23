@@ -231,3 +231,14 @@
 - 회귀: builder 7,224 pass / 5 fail · shared 1,398 / 2 · parity 1,490 / 4 (전부 착수 전부터) · type-check PASS.
 - live: Components 페이지 GridList = GridListItem ref 3 · `items` 0 · 카드 2열 (930 폭 · 행 간격 12) · Slot "Insert GridListItem/Default" → 카드 4 (label 만, 위에서 시작 y 13) · reload 같음 · 오류 0.
 - 남은 Phase 3: Menu · 전파 규칙 정리.
+
+### Phase 3f — Menu: 목록 = Menu 자기의 MenuItem instance 자식 (popover 안, G3 일부, 2026-09-23)
+
+- **이관**: 가족 표에 `MENU_STATIC_FAMILY` (목록 틀 = owner 자신). 행 → `props.id` · `Icon` / `Label` / `Shortcut` / `Description` (값 없는 slot 은 `enabled: false`) · `isDisabled` · `href`. separator 행이나 하위 메뉴 (`children`) 가 있는 목록은 평면 항목으로 옮길 수 없어 그대로 둔다. Components 페이지 Menu origin 에는 slot 이 없었다 → 이관이 `slot: [MenuItem origin]` 을 싣는다 (reusable 이고 slot 이 없을 때만). 바인딩 제외 표에도 Menu.
+- **Canvas**: Menu 는 트리거만 그린다 (항목은 popover — 이관 전과 같음). layout 은 기존 `menu` 분기가 이미 자식을 비운다 (새 제외 코드는 원복 GREEN 이라 넣지 않음). Skia 는 MenuItem 자식을 `_hasChildren` 로 세지 않는다 — 세면 트리거 글자가 shell-only 로 사라진다 (live 스크린샷에서 발견 · 수리).
+- **Preview**: `renderMenu` 정적 분기 — 항목 instance 의 slot 자식에서 행을 조립해 이관 전 items 행과 같은 DOM (`renderMenuItemSlotParts` · `.menu-item-label` …) · key = `props.id`. 숨긴 slot 은 resolver 가 뺐다.
+- **Slot "+"**: Menu origin = slot host · MenuItem 후보 · `list-item` (instance 는 자기 자식).
+- 테스트 seed 를 production 정규화 순서 (MenuItem origin 먼저) 로 맞췄다. unit 38 (3f 4) · 원복 RED 8/8 + 원복 GREEN 1 (Canvas layout 제외 — 제거).
+- 회귀: builder 7,228 pass / 5 fail · shared 1,398 / 2 · parity 1,490 / 4 (전부 착수 전부터) · type-check PASS.
+- live: Components 페이지 Menu = MenuItem ref 3 · `items` 0 · slot `[component-menu-item-default]` · 트리거 "Menu" 1872×20 그대로 · Slot "Insert MenuItem/Default" → 항목 4 · reload 같음 · 오류 0.
+- 남은 Phase 3: 전파 규칙 정리 (Tabs → TabList · TagGroup → TagList `items` 복사 — 정적 목록은 자식이 정본).

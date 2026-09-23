@@ -20,6 +20,7 @@ import { TAB_ITEM_DEFAULT_ORIGIN_ID } from "./tabs/tabsTemplateOrigins";
 import { TAG_ITEM_DEFAULT_ORIGIN_ID } from "./taggroup/tagGroupTemplateOrigins";
 import { LISTBOX_ITEM_DEFAULT_ORIGIN_ID } from "./listbox/listBoxTemplateOrigins";
 import { GRIDLIST_ITEM_DEFAULT_ORIGIN_ID } from "./gridlist/gridListTemplateOrigins";
+import { MENU_ITEM_DEFAULT_ORIGIN_ID } from "./menu/menuTemplateOrigins";
 
 type RefLike = CanonicalNode & {
   ref?: string;
@@ -267,11 +268,49 @@ export const GRIDLIST_STATIC_FAMILY: StaticCollectionFamily = {
   },
 };
 
+/** Menu — 항목은 popover 안 (Canvas 는 트리거만). 행 → icon · label · shortcut · description · 링크. */
+export const MENU_STATIC_FAMILY: StaticCollectionFamily = {
+  ownerType: "Menu",
+  listType: null,
+  itemType: "MenuItem",
+  itemPrefix: "item",
+  defaultOriginId: MENU_ITEM_DEFAULT_ORIGIN_ID,
+  buildItem(item, origin) {
+    return {
+      props: {
+        ...(item.isDisabled === true ? { isDisabled: true } : {}),
+        ...(typeof item.href === "string" && item.href
+          ? { href: item.href }
+          : {}),
+      },
+      descendants: {
+        ...optionalSlotDescendant(origin, "icon", item.icon, (iconName) => ({
+          iconName,
+        })),
+        ...labelDescendant(origin, item.label ?? item.textValue ?? item.title),
+        ...optionalSlotDescendant(
+          origin,
+          "shortcut",
+          item.shortcut,
+          (children) => ({ children }),
+        ),
+        ...optionalSlotDescendant(
+          origin,
+          "description",
+          item.description,
+          (children) => ({ children }),
+        ),
+      },
+    };
+  },
+};
+
 export const STATIC_COLLECTION_FAMILIES: readonly StaticCollectionFamily[] = [
   TABS_STATIC_FAMILY,
   TAGGROUP_STATIC_FAMILY,
   LISTBOX_STATIC_FAMILY,
   GRIDLIST_STATIC_FAMILY,
+  MENU_STATIC_FAMILY,
 ];
 
 /** 목록 틀 — `listType` 자식, `null` 이면 owner 자신. */
@@ -287,7 +326,13 @@ function findListFrame(
 function hasUnsupportedRows(
   items: ReadonlyArray<Record<string, unknown>>,
 ): boolean {
-  return items.some((item) => item.type === "section");
+  // Menu 는 separator 행도 (항목이 아니다) · 하위 메뉴 (`children`) 도 평면 항목으로 옮길 수 없다.
+  return items.some(
+    (item) =>
+      item.type === "section" ||
+      item.type === "separator" ||
+      (Array.isArray(item.children) && item.children.length > 0),
+  );
 }
 
 /** 행 → 항목 instance 자식 (`props.id` = 행 id — RAC key). */
@@ -396,6 +441,10 @@ function migrateSelfListOwner(
     ...owner,
     props: omitKey(props, "items"),
     ...(children ? { children } : {}),
+    // Components 페이지 origin 에 slot 이 없던 가족 (Menu) — 항목 origin 추천 목록을 싣는다 (Slot "+").
+    ...(owner.reusable === true && owner.slot === undefined
+      ? { slot: [family.defaultOriginId] }
+      : {}),
   } as CanonicalNode;
 }
 

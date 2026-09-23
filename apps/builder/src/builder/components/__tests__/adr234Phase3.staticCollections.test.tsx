@@ -13,6 +13,7 @@ import { resolveCanonicalDocument } from "../../../resolvers/canonical";
 import { CanonicalNodeRenderer } from "../../../preview/components/CanonicalNodeRenderer";
 import type { RenderContext } from "../../../preview/types/index";
 import { ensureReusableCompositeOrigins } from "../reusableCompositeOrigins";
+import { ensureMenuTemplateOrigins } from "../menu/menuTemplateOrigins";
 import {
   isStaticCollectionOwner,
   migrateStaticCollectionsToInstances,
@@ -62,7 +63,8 @@ function findResolved(
 
 function seededDoc(user: CanonicalNode[] = []): CompositionDocument {
   vi.spyOn(console, "warn").mockImplementation(() => {});
-  return ensureReusableCompositeOrigins({
+  // production 정규화 순서 (`normalizeMainDocument`): MenuItem origin 을 먼저 싣고 이관한다.
+  return ensureReusableCompositeOrigins(ensureMenuTemplateOrigins({
     version: "composition-1.0",
     children: [
       {
@@ -78,7 +80,7 @@ function seededDoc(user: CanonicalNode[] = []): CompositionDocument {
         ],
       },
     ],
-  } as CompositionDocument);
+  } as CompositionDocument));
 }
 
 function renderResolved(node: ResolvedNode) {
@@ -1256,5 +1258,150 @@ describe("ADR-234 Phase 3e — GridList (목록 틀 = owner)", () => {
         (c) => (c.props.style as Record<string, unknown>).justifyContent,
       ),
     ).toEqual(["flex-start", "flex-start"]);
+  });
+});
+
+describe("ADR-234 Phase 3f — Menu (항목 = popover 안 MenuItem instance 자식)", () => {
+  const menuInstance = {
+    id: "mn-1",
+    type: "ref",
+    ref: "component-menu",
+    props: {},
+  } as unknown as CanonicalNode;
+
+  it("이관: Menu 자식 = MenuItem instance (label · 없는 slot 숨김) · items 0 · origin slot = MenuItem origin · 멱등 · separator/하위 메뉴 목록은 그대로", () => {
+    const doc = seededDoc([menuInstance]);
+    const menu = findById(doc.children, "component-menu")!;
+    expect(menu.props?.items).toBeUndefined();
+    expect(menu.slot).toEqual(["component-menu-item-default"]);
+    expect(menu.children).toHaveLength(3);
+    expect(menu.children![0]).toMatchObject({
+      type: "ref",
+      ref: "component-menu-item-default",
+      descendants: {
+        Icon: { enabled: false },
+        Label: { children: "Menu Item 1" },
+        Shortcut: { enabled: false },
+        Description: { enabled: false },
+      },
+    });
+    expect(JSON.stringify(ensureReusableCompositeOrigins(doc))).toBe(
+      JSON.stringify(doc),
+    );
+    const sep = {
+      id: "sep-menu",
+      type: "Menu",
+      props: {
+        items: [
+          { id: "a", label: "A" },
+          { id: "s", type: "separator" },
+        ],
+      },
+    } as CanonicalNode;
+    const sub = {
+      id: "sub-menu",
+      type: "Menu",
+      props: {
+        items: [{ id: "a", label: "A", children: [{ id: "b", label: "B" }] }],
+      },
+    } as CanonicalNode;
+    const doc2 = seededDoc([sep, sub]);
+    expect(findById(doc2.children, "sep-menu")!.props?.items).toHaveLength(2);
+    expect(findById(doc2.children, "sub-menu")!.props?.items).toHaveLength(1);
+  });
+
+  it("Canvas: MenuItem 자식은 popover 내용 — layout 자식이 아니고 (기존 경로) 트리거 글자는 남는다 (static)", async () => {
+    const { applyImplicitStyles } = await import(
+      "../../workspace/canvas/layout/engines/implicitStyles"
+    );
+    const menu = { id: "m", type: "Menu", parent_id: null, props: { label: "Menu" } };
+    const item = { id: "i", type: "MenuItem", parent_id: "m", props: {} };
+    const all = [menu, item];
+    const byId = new Map(all.map((n) => [n.id, n]));
+    const childrenOf = (id: string) => all.filter((n) => n.parent_id === id);
+    expect(
+      applyImplicitStyles(menu, childrenOf("m"), childrenOf, byId)
+        .filteredChildren,
+    ).toEqual([]);
+    const fs = await import("node:fs");
+    const path = await import("node:path");
+    const src = fs.readFileSync(
+      path.resolve(
+        __dirname,
+        "../../workspace/canvas/skia/buildSpecNodeData.ts",
+      ),
+      "utf8",
+    );
+    expect(src).toMatch(
+      /type === "Menu"\s*\?\s*childElements\?\.filter\(\(child\) => child\.type !== "MenuItem"\)/,
+    );
+  });
+
+  it("Preview: popover 를 열면 RAC menuitem 3 (key = 항목 id · 글자 = label descendants · 이관 전 행 DOM)", async () => {
+    const { fireEvent, act } = await import("@testing-library/react");
+    const doc = seededDoc([menuInstance]);
+    const keys = (findById(doc.children, "component-menu")!.children ?? []).map(
+      (c) => String(c.props?.id),
+    );
+    const resolved = findResolved(
+      resolveCanonicalDocument(doc) as ResolvedNode[],
+      "mn-1",
+    )!;
+    const { container, baseElement } = renderResolved(resolved);
+    const trigger = container.querySelector("button")!;
+    await act(async () => {
+      fireEvent.click(trigger);
+    });
+    const items = Array.from(
+      baseElement.querySelectorAll('[role="menuitem"]'),
+    );
+    expect(items.map((i) => i.getAttribute("data-key"))).toEqual(keys);
+    expect(
+      items.map((i) => i.querySelector(".menu-item-label")?.textContent),
+    ).toEqual(["Menu Item 1", "Menu Item 2", "Menu Item 3"]);
+    expect(items[0]!.querySelector(".menu-item-shortcut")).toBeNull();
+  });
+
+  it("Slot +: Menu origin 은 slot host · list-item · 바인딩 instance 는 정적 항목 없음", async () => {
+    const { isSlotHostElement } = await import("../slotHostPolicy");
+    const doc = seededDoc([
+      menuInstance,
+      {
+        id: "mn-b",
+        type: "ref",
+        ref: "component-menu",
+        props: { dataBinding: { source: "dataTable", name: "dt" } },
+      } as unknown as CanonicalNode,
+    ]);
+    const menu = findById(doc.children, "component-menu")!;
+    expect(
+      isSlotHostElement(
+        menu as unknown as Parameters<typeof isSlotHostElement>[0],
+      ),
+    ).toBe(true);
+    expect(
+      resolveSlotInsertAction(
+        menu as unknown as Parameters<typeof resolveSlotInsertAction>[0],
+        findById(
+          doc.children,
+          "component-menu-item-default",
+        ) as unknown as Parameters<typeof resolveSlotInsertAction>[1],
+      ),
+    ).toEqual({ kind: "list-item" });
+    expect(
+      planTabItemInsert({
+        document: doc,
+        hostId: "mn-1",
+        candidateId: "component-menu-item-default",
+        newKey: "k4",
+      }),
+    ).toMatchObject({
+      kind: "plain",
+      tabListId: "mn-1",
+      tab: { id: "mn-1__item-4", descendants: { Label: { children: "MenuItem 4" } } },
+    });
+    const resolvedAll = resolveCanonicalDocument(doc) as ResolvedNode[];
+    expect(findResolved(resolvedAll, "mn-b")!.children ?? []).toEqual([]);
+    expect(findResolved(resolvedAll, "mn-1")!.children ?? []).toHaveLength(3);
   });
 });

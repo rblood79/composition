@@ -1776,13 +1776,19 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
   //   (chevron+label)을 그려야 한다(자식은 독립 행). `_hasChildren=true` 면
   //   buildCatalogShapes 가 shell-only(line 186)로 떨어져 label 이 소실되므로 제외.
   //   chevron 조건은 위 `_hasTreeChildren` 으로 분리 처리.
+  // ADR-234 Phase 3f — Menu 의 MenuItem 자식은 popover 내용 (layout 도 빼고 Canvas 는 트리거만) 이라 자식으로
+  //   세지 않는다 — 세면 트리거 글자가 shell-only 로 사라진다.
+  const layoutChildren =
+    type === "Menu"
+      ? childElements?.filter((child) => child.type !== "MenuItem")
+      : childElements;
   if (SHELL_ONLY_CONTAINER_TAGS.has(type)) {
     specProps = { ...specProps, _hasChildren: true };
   } else if (
     type !== "TreeItem" &&
     !SYNTHETIC_CHILD_PROP_MERGE_TAGS.has(type) &&
-    childElements &&
-    childElements.length > 0
+    layoutChildren &&
+    layoutChildren.length > 0
   ) {
     specProps = { ...specProps, _hasChildren: true };
   }

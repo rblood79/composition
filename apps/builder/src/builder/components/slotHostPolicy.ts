@@ -3,6 +3,7 @@ import {
   LISTBOX_ITEM_SELECTED_ORIGIN_ID,
 } from "./listbox/listBoxTemplateOrigins";
 import { GRIDLIST_ITEM_DEFAULT_ORIGIN_ID } from "./gridlist/gridListTemplateOrigins";
+import { MENU_ITEM_DEFAULT_ORIGIN_ID } from "./menu/menuTemplateOrigins";
 import {
   TAG_ITEM_DEFAULT_ORIGIN_ID,
   TAG_ITEM_SELECTED_ORIGIN_ID,
@@ -125,6 +126,31 @@ function isGridListItemTemplateVariant(
   return label.startsWith("gridlistitem/");
 }
 
+// ADR-234 Phase 3f — Menu 는 자기가 목록 틀 (항목 = MenuItem instance 자식, popover 안).
+function isMenuHost(element: SlotPolicyElement | undefined): boolean {
+  if (!element) return false;
+  return normalizeType(element.type) === "menu";
+}
+
+function isMenuPolicyActive(element: SlotPolicyElement | undefined): boolean {
+  if (!isMenuHost(element)) return false;
+  return element?.reusable === true || element?.metadata?.systemOwned === true;
+}
+
+function isMenuItemTemplateVariant(
+  candidate: SlotPolicyElement | undefined,
+): boolean {
+  if (!candidate) return false;
+  if (
+    [candidate.id, candidate.ref, candidate._resolvedFrom].includes(
+      MENU_ITEM_DEFAULT_ORIGIN_ID,
+    )
+  ) {
+    return true;
+  }
+  return getElementLabel(candidate).toLowerCase().startsWith("menuitem/");
+}
+
 function isTagGroupHost(element: SlotPolicyElement | undefined): boolean {
   if (!element) return false;
   return normalizeType(element.type) === "taggroup";
@@ -230,6 +256,9 @@ export function resolveSlotInsertAction(
   if (isGridListHost(host) && isGridListItemTemplateVariant(candidate)) {
     return { kind: "list-item" };
   }
+  if (isMenuHost(host) && isMenuItemTemplateVariant(candidate)) {
+    return { kind: "list-item" };
+  }
   if (isTabsHost(host) && isTabItemTemplateVariant(candidate)) {
     return { kind: "none" };
   }
@@ -259,6 +288,7 @@ export function isSlotHostElement(
   if (!element) return false;
   if (isListBoxPolicyActive(element)) return true;
   if (isGridListPolicyActive(element)) return true;
+  if (isMenuPolicyActive(element)) return true;
   if (isTagGroupPolicyActive(element)) return true;
   if (isTabsPolicyActive(element)) return true;
   if (isTabListHost(element) || isTagListHost(element)) return true;
@@ -275,6 +305,9 @@ export function isSlotCandidateAllowed(
   }
   if (isGridListHost(host)) {
     return isGridListItemTemplateVariant(candidate);
+  }
+  if (isMenuHost(host)) {
+    return isMenuItemTemplateVariant(candidate);
   }
   if (isTagGroupHost(host) || isTagListHost(host)) {
     return isTagItemTemplateVariant(candidate);
