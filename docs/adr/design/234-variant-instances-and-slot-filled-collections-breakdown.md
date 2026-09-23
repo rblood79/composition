@@ -1,6 +1,6 @@
 # ADR-234 구현 상세 — 상태 변형 = origin 의 instance · 목록 = slot 을 채운 instance 자식
 
-> 본문: [ADR-234](../234-variant-instances-and-slot-filled-collections.md)
+> 본문: [ADR-234](../completed/234-variant-instances-and-slot-filled-collections.md)
 
 ## 1. 전제 확정 기록 (fork 4 질문 · 사용자 confirm)
 
@@ -249,7 +249,7 @@
 - Phase 3 (G3) 범위: Tabs (3a) · TagGroup (3b) · 항목 label 글자 (3c) · ListBox (3d) · GridList (3e) · Menu (3f) · items-manager 바인딩 전용 (3b) · 전파 규칙 (위). 커밋 7d2116bd2 · 1207e8b5e · 89e2721b4 · 97fe079d7 · c93e781e3 · 0c9dc94db.
 - 기록 (후속 후보, 결함 아님): ① 문서의 plain owner 를 이관한 뒤 바인딩하면 정적 자식과 데이터 행이 같이 보인다 (ref instance 만 거른다) · ② Canvas 는 선택 Tag chip 에 accent 배경을 그리지 않는다 (3c 기록) · ③ Tabs 바인딩은 Canvas projection 이 없다 (Preview 만 데이터 행) · ④ AI tool 의 정적 항목 작성은 범위 밖 (Phase 0 표).
 
-### Phase 4 — G4 성능 A/B (2026-09-23, **기준 미달 — 보고**)
+### Phase 4 — G4 성능 A/B (2026-09-23)
 
 - 하니스 `apps/builder/scripts/adr234-g4-perf-ab.mjs` (ADR-233 G3 계승): 같은 세션 · headed · arm 교대 · pair 3 · warm-up 3 · 표본 7 · Home 만 보이게 · DPR 1 · visibility visible. 두 arm 모두 runtime 에 넣은 문서 plain owner (hydration 이관을 안 거침): **items** = 이관 전 모델 (owner `items` 5 행 → Canvas projection 가상 행) · **instance** = 234 모델 (목록 틀 자식 = 항목 origin instance 5). fixture: Tabs 100 × 5 · TagGroup 100 × 5. 조작: 항목 origin padding · 휴지 변형 (`--unselected`) padding (영향 대화상자 적용) · breakpoint. 모든 표본 재구성 (rebuilt 7/7).
 - 결과 — `scene.build` p95 의 pair median (ms, instance − items):
@@ -304,6 +304,7 @@
   - Tabs pair 3 · TagGroup pair 5 (TagGroup 은 pair 3 에서 +3.0 / +2.0 으로 편차가 커 pair 5 로 다시 쟀다 — 10 pair 모두 instance 가 느림).
 - 남은 Δ 의 위치 (node, scene model 단계 분해 — 재사용 없이): TagGroup instance − items = 해석 +1.63 ms 가 거의 전부 (graph −0.16 · 자식 목록 +0.11 · projection 0 · 숨김 제거 0 · 페이지 색인 +0.04). 항목 500 개 × (root ≈35 키 + Label) 객체 생성 — 항목당 ≈3 µs. 공유 경로 (origin ⊕ 상태 층 템플릿에서 항목을 만드는 별도 해석 경로) 는 scene 노드 props 가 이미 origin 위에 접혀 있고 (`{{ }}` 치환 · `_slots` 같은 scene 주입 포함) 해석 순서가 달라지면 같은 결과를 보장하기 어려워 넣지 않았다.
 - 측정 뒤 기준 worktree · dev 서버는 삭제했다.
+- **종결 (사용자 판정 2026-09-23 "예외로 기록 후 승격")**: TagGroup 편집 두 조작의 미달을 ADR 본문 R4 잔존 위험으로 기록하고 Implemented 로 승격. 재개 조건 = 실제 문서에서 정적 목록 편집의 체감 저하 보고.
 
 ### Phase 4 — G5 BC 픽셀 (2026-09-23)
 

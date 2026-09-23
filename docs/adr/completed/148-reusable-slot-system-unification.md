@@ -4,7 +4,7 @@
 
 Implemented — 2026-07-17 (Proposed 2026-07-08, Accepted 2026-07-17)
 
-> **[ADR-234](../234-variant-instances-and-slot-filled-collections.md) 가 일부 대체 (2026-09-23)**: 목록 가족 (Tabs · TagGroup · ListBox · GridList · Menu) 의 `slot` 은 템플릿 역할 표가 아니라 **목록 틀의 추천 항목 목록** 이다 — slot 은 목록 틀 (TabList · TagList · ListBox · GridList · Menu 자기) 에 두고, Slot "+" 는 항목 origin 의 instance 를 목록 틀 자식으로 넣는다 (instance 는 자기 자식 또는 descendants mode C). 조합 origin (Form · Toolbar) 의 slot 은 이 ADR 그대로.
+> **[ADR-234](234-variant-instances-and-slot-filled-collections.md) 가 일부 대체 (2026-09-23)**: 목록 가족 (Tabs · TagGroup · ListBox · GridList · Menu) 의 `slot` 은 템플릿 역할 표가 아니라 **목록 틀의 추천 항목 목록** 이다 — slot 은 목록 틀 (TabList · TagList · ListBox · GridList · Menu 자기) 에 두고, Slot "+" 는 항목 origin 의 instance 를 목록 틀 자식으로 넣는다 (instance 는 자기 자식 또는 descendants mode C). 조합 origin (Form · Toolbar) 의 slot 은 이 ADR 그대로.
 
 진행 로그:
 

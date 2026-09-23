@@ -4,7 +4,7 @@
 
 Implemented — 2026-09-23 (`/execute-adr 233` Phase 0~~4 / G0~~G4 같은 날 종결 — [구현 기록](../design/233-tab-item-template-and-radio-origin-breakdown.md#6-실행-기록)) · Accepted — 2026-09-23 (사용자 `/execute-adr 233` "완료까지 모든 phase") · [리뷰](../reviews/233.md) round 1 (HIGH 1 · MEDIUM 1 · LOW 1) 설계 수리 → round 2 수리 검증 **pending 0 · 설계 승인 가능** (같은 날) — 독립 Radio origin 의 Preview render-only RadioGroup 호스트 계약 (h1) · 기존 시스템 root 의 허용 보충 필드 분리 (m2) · G3 측정 조건 (l3). 구현 검증 round 3 (HIGH 1 · MEDIUM 1 · LOW 1) 수리 — 같은 날: Radio 채움 = 선택 표시 색 (두 leg 같은 영역) · Preview Tabs 마다 자기 slot · placeable 문구 정정 ([breakdown §6 round 3](../design/233-tab-item-template-and-radio-origin-breakdown.md#round-3-수리)).
 
-> **[ADR-234](../234-variant-instances-and-slot-filled-collections.md) 가 일부 대체 (2026-09-23)**: Tab 항목 템플릿 origin 은 선택 상태가 origin · 휴지 = `--unselected` ref 변형 (`-selected` 복제본 제거) · Tabs slot 은 root → TabList · 정적 Tab 은 `items` 가 아니라 TabList 의 Tab instance 자식. `INDICATOR_FILL_CSS_VAR` (Radio 선택 표시 색) 와 독립 Radio 호스트 계약은 그대로.
+> **[ADR-234](234-variant-instances-and-slot-filled-collections.md) 가 일부 대체 (2026-09-23)**: Tab 항목 템플릿 origin 은 선택 상태가 origin · 휴지 = `--unselected` ref 변형 (`-selected` 복제본 제거) · Tabs slot 은 root → TabList · 정적 Tab 은 `items` 가 아니라 TabList 의 Tab instance 자식. `INDICATOR_FILL_CSS_VAR` (Radio 선택 표시 색) 와 독립 Radio 호스트 계약은 그대로.
 
 설계 요청: 사용자 (2026-09-23) — "컴퍼넌트 origin, instance, slot 작업 이어서 진행" → 후속 후보 코드 실측 보고의 권장안 ("1 + 2 를 한 ADR 로") 뒤 `/create-adr`. ADR-229 §후속 후보 (다른 collection 의 item template) 와 ADR-230 보류 (Radio/Tab base origin) 의 교집합이다.
 

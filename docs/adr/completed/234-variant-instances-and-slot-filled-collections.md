@@ -2,11 +2,11 @@
 
 ## Status
 
-Accepted — 2026-09-23 (사용자 `/execute-adr 234`, Codex 리뷰 2 round 종결 후)
+Implemented — 2026-09-23 (`/execute-adr 234` Phase 0~4 / G0~G5 같은 날 종결 — [실행 기록](../design/234-variant-instances-and-slot-filled-collections-breakdown.md#7-실행-기록)) · Accepted — 2026-09-23 (사용자 `/execute-adr 234`, Codex 리뷰 2 round 종결 후)
 
-진행 (2026-09-23): Phase 0 (G0) · 1 (G1) · 2 (G2) · 3a~3f (G3) · Phase 4 G5 · live 통과. **G4 (`scene.build` p95 Δ ≤ +1 ms) 미달 — 사용자 결정 대기** (Tabs +1.9~2.5 · TagGroup +2.9~4.9 ms, 원인 = 정적 항목이 실제 노드). Implemented 승격은 G4 결정 뒤. 실행 기록: [breakdown §7](design/234-variant-instances-and-slot-filled-collections-breakdown.md#7-실행-기록).
+G4 는 사용자 판정 2단계로 닫았다 (2026-09-23): ① 같은 세션 A/B 미달 → "해석 증분화로 진행" (같은 문서 scene build 의 ref 해석 재사용 + 항목당 비용 절감, breakpoint 통과) ② 편집 조작 판정 = "이관 전 빌드 대비" → Tabs 세 조작 통과 · TagGroup 편집 두 조작 +2.3 / +2.6 ms (500 항목) 미달 → "예외로 기록 후 승격". 잔존 위험 R4 참조.
 
-설계 요청: 사용자 (2026-09-23) — Pencil (`pencil-shadcn.pen`) 을 레퍼런스로 "origin, instance, slot 을 의도대로 사용이 안 되고 있다". 의도 (사용자 서술): ① `Tab Item/Active` = 컴포넌트 생성 (origin) ② `Tab Item/Inactive` = 그 origin 의 instance (스타일만 변경) ③ `Tabs` = 컴포넌트 생성, slot 에 Active · Inactive 등록 ④ `Tabs` instance 에서 slot 에 등록된 항목을 추가하면 빈 목록이 채워진다. Pencil `Tabs` 는 RAC Tabs 의 **TabList** 부분이다. "최종 active 환경을 origin 으로 만들고 나머지를 instance" · "그렇게 하면 RAC 의 근본 개념이 더 맞아진다" 는 판단 뒤 `/create-adr`. 범위 · 기존 items · 숨기기 방식은 AskUserQuestion 으로 확정 ([breakdown §1](design/234-variant-instances-and-slot-filled-collections-breakdown.md#1-전제-확정-기록-fork-4-질문--사용자-confirm)).
+설계 요청: 사용자 (2026-09-23) — Pencil (`pencil-shadcn.pen`) 을 레퍼런스로 "origin, instance, slot 을 의도대로 사용이 안 되고 있다". 의도 (사용자 서술): ① `Tab Item/Active` = 컴포넌트 생성 (origin) ② `Tab Item/Inactive` = 그 origin 의 instance (스타일만 변경) ③ `Tabs` = 컴포넌트 생성, slot 에 Active · Inactive 등록 ④ `Tabs` instance 에서 slot 에 등록된 항목을 추가하면 빈 목록이 채워진다. Pencil `Tabs` 는 RAC Tabs 의 **TabList** 부분이다. "최종 active 환경을 origin 으로 만들고 나머지를 instance" · "그렇게 하면 RAC 의 근본 개념이 더 맞아진다" 는 판단 뒤 `/create-adr`. 범위 · 기존 items · 숨기기 방식은 AskUserQuestion 으로 확정 ([breakdown §1](../design/234-variant-instances-and-slot-filled-collections-breakdown.md#1-전제-확정-기록-fork-4-질문--사용자-confirm)).
 
 ## Context
 
@@ -29,7 +29,7 @@ Pencil 은 문서 전체가 한 규칙이다 (P1~P5): 가장 완성된 상태 = 
 
 ### 코드 사실
 
-Pencil 실측 P1~~P5 · 코드 사실 F1~~F13 (경로:라인) 은 [breakdown §2 · §3](design/234-variant-instances-and-slot-filled-collections-breakdown.md#2-레퍼런스-실측--pencil-pencil-shadcnpen-2026-09-23).
+Pencil 실측 P1~~P5 · 코드 사실 F1~~F13 (경로:라인) 은 [breakdown §2 · §3](../design/234-variant-instances-and-slot-filled-collections-breakdown.md#2-레퍼런스-실측--pencil-pencil-shadcnpen-2026-09-23).
 
 ### Hard constraints
 
@@ -96,7 +96,7 @@ Pencil 실측 P1~~P5 · 코드 사실 F1~~F13 (경로:라인) 은 [breakdown §2
 
 위험 수용 근거: 기술 H 두 곳 (ref 체인 · Preview 상태 채널) 은 Phase 0 에서 진단 RED 로 먼저 고정하고 각 Phase 가 GREEN 으로 닫는다 — 한 wrapper 가 render props 로 상태를 자손에 못 넘기면 그 컴포넌트만 230 채널로 남기고 보고한다 (breakdown §6). 마이그레이션 H 는 이관 전후 Canvas 픽셀 동일 (G5) 을 가족별로 통과해야 적용하며, 실패한 가족은 이관을 보류한다. 새 해소 경로는 ref 체인 하나이고, 나머지는 기존 ref 해석 · descendants 3-mode · 229 조합 자식 ref 규칙 (F11~F13) 을 쓴다. 기각 사유: B 는 의도 ④ (instance 에서 항목 추가) 를 못 채우고 slot 이중 의미가 남는다 · C 는 변형 노드를 직접 편집할 수 없고 목록 문제가 별도로 남는다 · D 는 복제본 drift 를 키마다 채널을 늘려 막는 방식이라 유지보수 부담이 계속 커진다.
 
-> 구현 상세: [234-variant-instances-and-slot-filled-collections-breakdown.md](design/234-variant-instances-and-slot-filled-collections-breakdown.md)
+> 구현 상세: [234-variant-instances-and-slot-filled-collections-breakdown.md](../design/234-variant-instances-and-slot-filled-collections-breakdown.md)
 
 ## Risks
 
@@ -112,6 +112,8 @@ Pencil 실측 P1~~P5 · 코드 사실 F1~~F13 (경로:라인) 은 [breakdown §2
 | R8  | 이관 diff 가 origin 에만 있는 값을 되돌리지 못하거나 (raw diff), 변형 자식 id 교체로 사용자 `descendants` 편집이 떨어진다 (review round 1 h1 · h2)                      | **HIGH** | 유효값 diff + `null` 표기 · origin id 유지 + 자식 id 대응표 — G1 표기 unit · G5 부재 보존 · 편집 보존, 대응 없는 가족 보류 |
 | R9  | 상태가 geometry (padding · 자식 표시) 까지 바꾸면서 layout cache 서명이 상태를 모르면 형제 위치가 옛 상태로 남는다 (review round 1 l5)                                  |   MED    | G2 형제 위치 unit · G4 전체 비용                                                                                           |
 
+R4 잔존 (Implemented 시점, 사용자 판정 2026-09-23 "예외로 기록 후 승격"): 정적 TagGroup 500 항목의 편집 (선택 · 휴지 모양) 이 이관 전 빌드보다 `scene.build` p95 +2.3 / +2.6 ms (항목당 ≈5 µs — 항목마다 root · label 노드 생성). Tabs 는 +0.7 / +1.0 · breakpoint 는 두 가족 모두 이관 전보다 빠르다 (−1.5 · −1.8). 재개 조건: 실제 문서에서 정적 목록 편집의 체감 저하 보고.
+
 ## Gates
 
 | Gate | 시점    | 통과 조건                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | 실패 시 대안                                 |
@@ -123,6 +125,8 @@ Pencil 실측 P1~~P5 · 코드 사실 F1~~F13 (경로:라인) 은 [breakdown §2
 | G4   | Phase 4 | 같은 세션 headed A/B — 대조 arm = 이관 전 모델 (items 가상 행 · 복제본 변형) · 실험 arm = 234 모델, 같은 fixture (합성 = 규모 전용: Tabs 100×5 · TagGroup 100×5) · 불리 조작 3 (항목 origin 편집 = 전 instance 무효화 · 변형 편집 · breakpoint 전환) · warm-up 3 · 보이는 페이지 1개 · DPR 고정 · visibilityState visible · `scene.build` 라벨 7회 p95 median Δ ≤ +1 ms (보조 기록: `layout.publish` · `render.frame` · Preview commit 시간 — 게이트 아님) · Preview hover 재렌더 수가 RAC 기본 (대조 arm) 대비 증가 0 | 자식 노드화 캐시 가설 재측정, 못 닫으면 보고 |
 | G5   | Phase 4 | BC: 가족별 이관 전후 Canvas 픽셀 동일 — oracle = 이관 전 빌드 arm 이 같은 문서를 그린 픽셀 (변형 · 정적 목록 · 바인딩 목록, 사람이 만든 문서 + seed 문서) · origin 에만 있는 style 키가 이관 후 새로 나타나지 않음 (h1 반례) · 변형을 직접 ref 한 instance 의 `descendants` label 편집이 이관 후 같은 자식에 남음 (h2 반례) · Δbyte 수식 일치 · 재hydration Δ0 (unit + IndexedDB 저장 층 live)                                                                                                                         | 실패 가족 이관 보류                          |
 
+G4 판정 (2026-09-23): 위 문구의 같은 세션 A/B 는 미달 (Δ +2.2~+4.9) → 해석 증분화 1단계 뒤 breakpoint 통과 · 편집 +2.3~+3.3 → 편집 판정을 이관 전 빌드 대비로 (사용자 판정) → Tabs 통과 · TagGroup 편집 +2.3 / +2.6 미달을 예외로 기록 (R4 잔존). 수치 · 조건: [breakdown §7 G4](../design/234-variant-instances-and-slot-filled-collections-breakdown.md#phase-4--g4-성능-ab-2026-09-23).
+
 ### Live Exercise
 
 실제 builder (dev 서버 · headed Playwright · 새 프로젝트, Compare Mode · Preview iframe 미개방 — 사용자 지시) 에서 Skia layout · store · IndexedDB 로 확인했다 (2026-09-23).
@@ -131,6 +135,7 @@ Pencil 실측 P1~~P5 · 코드 사실 F1~~F13 (경로:라인) 은 [breakdown §2
 - `adr234-live-list-instance.mjs` 5/5: ListBox · GridList · Menu 문서 instance 선택 → Slot "Insert <항목>/Default" → instance 자기 자식 항목 (ListBox · GridList 는 Canvas 행, Menu 는 popover) · reload 그대로 · page error 0.
 - `adr234-g5-bc-live.mjs`: 이관 전 빌드 (`66480f5e0` worktree) 가 저장한 문서를 IndexedDB 로 옮겨 reload → 가족별 Canvas 픽셀 대조 (ListBox · GridList · Menu · Button 변형 · Checkbox/Switch/Radio Δ0, Tabs gap 8 · 항목 템플릿 origin 모양은 의도된 대칭 수리) · 재hydration Δ0.
 - live 에서 잡은 결함 3 (수리): mode C 자식 `sourceNode` 누락으로 캔버스 갱신 정지 · ListBox · GridList · Menu instance 에 Slot 절 없음 · 정적 Tag leading icon/avatar 크기.
+- 해석 증분화 뒤 (`dc29a3183`): 위 두 하니스 다시 5/5 · 5/5 · `adr234-g4-perf-ab.mjs` 의 origin · 변형 편집과 breakpoint 전환 각 21회 이상이 모두 scene 재구성 (rebuilt 7/7) · page error 0 — 이관 전 빌드 대비 비교 포함.
 
 ## Consequences
 

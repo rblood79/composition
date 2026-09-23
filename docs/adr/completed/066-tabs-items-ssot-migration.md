@@ -4,7 +4,7 @@
 
 Implemented — 2026-04-15
 
-> **[ADR-234](../234-variant-instances-and-slot-filled-collections.md) 가 정적 목록에 한해 대체 (2026-09-23)**: 바인딩 없는 Tabs 의 `items` 는 hydration 에서 TabList 의 Tab instance 자식 (항목 origin 의 ref · `props.id` = TabPanel `itemId` 짝) 으로 1회 이관되고, 정적 목록의 정본은 그 자식이다. 데이터 바인딩 Tabs 는 이 ADR 의 `items` 정본을 그대로 쓴다.
+> **[ADR-234](234-variant-instances-and-slot-filled-collections.md) 가 정적 목록에 한해 대체 (2026-09-23)**: 바인딩 없는 Tabs 의 `items` 는 hydration 에서 TabList 의 Tab instance 자식 (항목 origin 의 ref · `props.id` = TabPanel `itemId` 짝) 으로 1회 이관되고, 정적 목록의 정본은 그 자식이다. 데이터 바인딩 Tabs 는 이 ADR 의 `items` 정본을 그대로 쓴다.
 
 ## Context
 

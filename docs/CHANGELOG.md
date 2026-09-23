@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-234 Implemented — 상태 변형 = origin 의 instance · 목록 = slot 을 채운 instance 자식 · 캔버스 scene 재구성 비용 절감] - 2026-09-23
+
+### Changed
+
+- **ADR-234 Implemented** — 상태 변형은 origin 의 instance (origin 을 고치면 모든 변형 · instance 가 같이 바뀐다), 정적 목록 (Tabs · TagGroup · ListBox · GridList · Menu) 은 목록 틀의 항목 instance 자식, instance 에서도 Slot "+" 로 항목을 추가한다. 기존 문서는 처음 열 때 모양 그대로 옮겨진다.
+- **캔버스 scene 재구성이 빨라졌다** — 편집 · breakpoint 전환마다 도는 ref 해석에서 없는 상태 변형 이름을 찾을 때 문서 전체를 훑던 것을 색인 하나로 바꾸고 (ref instance 가 많은 문서일수록 효과), breakpoint 처럼 문서가 그대로인 재구성은 직전 해석 결과를 그대로 쓴다. 옮기기 전 빌드 대비 breakpoint 전환 `scene.build` Tabs 100 × 5 문서 5.1 → 3.3 ms · TagGroup 100 × 5 문서 4.0 → 2.5 ms.
+  - **Why**: 항목을 실제 노드로 만든 ADR-234 의 비용 기준 (G4) 을 맞추다 두 모델 공통의 낭비를 찾았다.
+  - 남은 것: 항목 origin · 변형을 고쳐 항목 500 개가 한 번에 바뀌는 편집은 옮기기 전보다 Tabs +0.7 ~ +1.0 ms · TagGroup +2.3 ~ +2.6 ms (항목마다 노드를 만드는 비용) — ADR-234 R4 잔존 위험.
+
 ## [팔레트로 놓은 필드의 Label · Input 등에 "부모에서 편집" 안내가 안 뜨던 문제 수리] - 2026-09-23
 
 ### Fixed
