@@ -12350,6 +12350,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
+    // 기본 크기 (사용자 지시 2026-09-24): height 100% · minHeight = TagGroup size 의 chip 높이 (아래 sizes) —
+    //   Tag 가 하나도 없어도 목록 틀이 기본 높이를 가진다 (Slot "+" 로 채울 자리). top-level containerStyles =
+    //   Canvas layout fallback (resolveContainerStylesFallback 경로 A). DOM 은 TagList 가 display: contents 라
+    //   실제 상자 `.tag-list-wrapper` (TagGroup.css) 가 같은 값을 쓴다.
+    containerStyles: {
+      height: "100%",
+    },
     // gap = chip 간(inter-chip) 간격 — TagList(컨테이너) 소관 layout gap (ADR-912 cutover
     //   2026-06-15: TAG_CHIP_SIZES.gap 이관). chip 자체 치수(lineHeight/paddingX/fontSize/
     //   borderRadius/height)는 Tag rule 에 존재 — utils.ts calculateContentHeight 가 chip 치수=
@@ -12359,18 +12366,24 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 32,
+        // minHeight = Tag.sizes.sm.height (chip border-box) — 빈 목록 틀의 기본 높이.
+        minHeight: 22,
         gap: 4,
       },
       md: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 32,
+        // minHeight = Tag.sizes.md.height (chip border-box) — 빈 목록 틀의 기본 높이.
+        minHeight: 30,
         gap: 4,
       },
       lg: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 32,
+        // minHeight = Tag.sizes.lg.height (chip border-box) — 빈 목록 틀의 기본 높이.
+        minHeight: 42,
         gap: 6,
       },
     },

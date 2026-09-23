@@ -29,12 +29,26 @@
        (appendTagRowProjection → resolveTagListGap)과 동일 값. size 별 override 는 아래 selector. */
     gap: var(--spacing-xs);
     align-items: center;
+    /* 기본 크기 = catalog TagList (containerStyles.height 100% · sizes[size].minHeight = chip 높이) — Tag 가
+       없어도 목록 자리가 보인다 (사용자 지시 2026-09-24). TagList 는 display: contents 라 이 wrapper 가 상자.
+       Canvas = implicitStyles taglist 분기 (resolveTagListMinHeight). size 별 min-height 는 아래 selector. */
+    height: 100%;
+    min-height: 30px;
+  }
+
+  .react-aria-TagGroup[data-tag-size="sm"] .tag-list-wrapper {
+    min-height: 22px;
+  }
+
+  .react-aria-TagGroup[data-tag-size="md"] .tag-list-wrapper {
+    min-height: 30px;
   }
 
   /* lg: catalog TagList.sizes.lg.gap = 6 (--spacing-xs 4 / --spacing-sm 8 사이, 대응 토큰 없어 직접 지정).
      Skia projection resolveTagListGap("lg") = 6 과 정합. */
   .react-aria-TagGroup[data-tag-size="lg"] .tag-list-wrapper {
     gap: 6px;
+    min-height: 42px;
   }
 
   .react-aria-TagList {

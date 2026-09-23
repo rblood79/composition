@@ -992,6 +992,20 @@ export function resolveTagListGap(sizeName: string): number {
 }
 
 /**
+ * TagList 기본 최소 높이 — `TagList.sizes[size].minHeight` (= chip 높이, sm 22 · md 30 · lg 42). Tag 가 없어도
+ * 목록 틀이 이 높이를 가진다 (사용자 지시 2026-09-24). size 는 owner TagGroup 의 Appearance size. 미등록 size 는 md.
+ */
+export function resolveTagListMinHeight(sizeName: string | undefined): number {
+  const sizes = (resolveSkiaRule("TagList")?.sizes ?? {}) as Record<
+    string,
+    ComponentRuleSize
+  >;
+  const raw = (sizes[sizeName ?? "md"] ?? sizes.md)?.minHeight;
+  const n = typeof raw === "number" ? raw : Number(raw);
+  return Number.isFinite(n) ? n : 0;
+}
+
+/**
  * TagList chip 치수 resolver (ADR-912 cutover 2026-06-15 — TAG_CHIP_SIZES 이관).
  *
  * chip 자체 치수(fontSize/lineHeight/paddingX/borderRadius)는 **Tag catalog rule**(이미 cutover)에서,
@@ -4207,7 +4221,19 @@ export function calculateContentHeight(
               childBox.padding.bottom +
               childBox.border.top +
               childBox.border.bottom;
-        childHeights.push(childBorderBox);
+        // TagList 기본 최소 높이 (Tag 가 없어도 chip 한 줄 자리) — implicitStyles taglist 분기와 같은 값.
+        childHeights.push(
+          child.type === "TagList"
+            ? Math.max(
+                childBorderBox,
+                parseNumericValue(childStyle?.minHeight) ??
+                  resolveTagListMinHeight(
+                    (props?.size as string | undefined) ??
+                      (child.props?.size as string | undefined),
+                  ),
+              )
+            : childBorderBox,
+        );
       }
 
       if (isSideLayout) {

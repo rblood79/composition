@@ -20,6 +20,7 @@ import {
   isTagGroupSlotChildVisible,
   findTabListChildren,
   resolveTabsItemKeys,
+  resolveTagListMinHeight,
   TAG_LEADING_AVATAR_SIZE,
   TAG_LEADING_ICON_SIZE,
 } from "./utils";
@@ -1713,6 +1714,15 @@ export function applyImplicitStyles(
       flexWrap: "wrap" as const,
       ...parentStyle,
       gap: parentStyle.gap ?? 4,
+      // 기본 최소 높이 = owner TagGroup size 의 chip 높이 (catalog `TagList.sizes[size].minHeight`) — Tag 가
+      //   없어도 목록 틀이 자리를 가진다. height 100% 는 catalog containerStyles 가 parentStyle 로 공급.
+      minHeight:
+        parentStyle.minHeight ??
+        resolveTagListMinHeight(
+          (parentProps?.size as string | undefined) ??
+            ((containerEl.props as Record<string, unknown> | undefined)
+              ?.size as string | undefined),
+        ),
       // labelPosition: "side" 시 flex:1로 남은 공간 차지 (Label 옆 배치)
       ...(parentSideMode ? { flex: 1, minWidth: 0 } : {}),
     });
