@@ -4,6 +4,8 @@
 
 Accepted — 2026-09-23 (사용자 `/execute-adr 234`, Codex 리뷰 2 round 종결 후)
 
+진행 (2026-09-23): Phase 0 (G0) · 1 (G1) · 2 (G2) · 3a~3f (G3) · Phase 4 G5 · live 통과. **G4 (`scene.build` p95 Δ ≤ +1 ms) 미달 — 사용자 결정 대기** (Tabs +1.9~2.5 · TagGroup +2.9~4.9 ms, 원인 = 정적 항목이 실제 노드). Implemented 승격은 G4 결정 뒤. 실행 기록: [breakdown §7](design/234-variant-instances-and-slot-filled-collections-breakdown.md#7-실행-기록).
+
 설계 요청: 사용자 (2026-09-23) — Pencil (`pencil-shadcn.pen`) 을 레퍼런스로 "origin, instance, slot 을 의도대로 사용이 안 되고 있다". 의도 (사용자 서술): ① `Tab Item/Active` = 컴포넌트 생성 (origin) ② `Tab Item/Inactive` = 그 origin 의 instance (스타일만 변경) ③ `Tabs` = 컴포넌트 생성, slot 에 Active · Inactive 등록 ④ `Tabs` instance 에서 slot 에 등록된 항목을 추가하면 빈 목록이 채워진다. Pencil `Tabs` 는 RAC Tabs 의 **TabList** 부분이다. "최종 active 환경을 origin 으로 만들고 나머지를 instance" · "그렇게 하면 RAC 의 근본 개념이 더 맞아진다" 는 판단 뒤 `/create-adr`. 범위 · 기존 items · 숨기기 방식은 AskUserQuestion 으로 확정 ([breakdown §1](design/234-variant-instances-and-slot-filled-collections-breakdown.md#1-전제-확정-기록-fork-4-질문--사용자-confirm)).
 
 ## Context
@@ -123,7 +125,12 @@ Pencil 실측 P1~~P5 · 코드 사실 F1~~F13 (경로:라인) 은 [breakdown §2
 
 ### Live Exercise
 
-(Implemented 승격 시 기재)
+실제 builder (dev 서버 · headed Playwright · 새 프로젝트, Compare Mode · Preview iframe 미개방 — 사용자 지시) 에서 Skia layout · store · IndexedDB 로 확인했다 (2026-09-23).
+
+- `adr234-live-exercise.mjs` 5/5: 항목 origin 편집 (Tab/Default paddingLeft 12 → 24, 영향 대화상자 적용) → Components origin · 휴지 변형 · 문서 Tabs instance 의 Tab 폭 모두 +12 · 휴지 변형 편집 → 선택 안 된 Tab 만 · 문서 instance TabList Slot "+" → Tab 3 + TabPanel 짝 (descendants mode C) · reload 그대로 · page error 0.
+- `adr234-live-list-instance.mjs` 5/5: ListBox · GridList · Menu 문서 instance 선택 → Slot "Insert <항목>/Default" → instance 자기 자식 항목 (ListBox · GridList 는 Canvas 행, Menu 는 popover) · reload 그대로 · page error 0.
+- `adr234-g5-bc-live.mjs`: 이관 전 빌드 (`66480f5e0` worktree) 가 저장한 문서를 IndexedDB 로 옮겨 reload → 가족별 Canvas 픽셀 대조 (ListBox · GridList · Menu · Button 변형 · Checkbox/Switch/Radio Δ0, Tabs gap 8 · 항목 템플릿 origin 모양은 의도된 대칭 수리) · 재hydration Δ0.
+- live 에서 잡은 결함 3 (수리): mode C 자식 `sourceNode` 누락으로 캔버스 갱신 정지 · ListBox · GridList · Menu instance 에 Slot 절 없음 · 정적 Tag leading icon/avatar 크기.
 
 ## Consequences
 

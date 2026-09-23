@@ -11,6 +11,8 @@
 
 ---
 
+> **2026-09-23 ADR-234 Phase 3·4 진행**: 정적 목록 = 목록 틀의 항목 instance 자식 (Tabs · TagGroup · ListBox · GridList · Menu, 바인딩 목록은 `items` 유지) · Slot "+" = 항목 instance (instance 는 descendants mode C 또는 자기 자식) · G5 BC 픽셀 (이관 전 빌드 worktree 대조) · live 10/10. **G4 `scene.build` Δ ≤ +1 ms 미달** (Tabs +1.9~2.5 · TagGroup +2.9~4.9) — 기준 조정 또는 해석 증분화 결정 대기. 066 · 148 · 229 · 230 · 233 에 대체 안내.
+
 > **2026-09-23 ADR-235 Proposed 추가**: 로컬 프로젝트 저장 v2 — 해시 자산 저장소 (이미지·폰트 원본 바이트, 문서는 `asset:` 참조만) · 형식 v2 (디렉토리 작업 / 같은 구조 zip 교환, v1 JSON 가져오기 유지) · IndexedDB 원본/작업본 역할 · 웹 보호 (`persist()` · 캐시 분리). standalone 병행 분석 후속, Electron 외피는 후속 ADR 로 분리 (사용자 confirm). 열림 8 (Proposed 6 · Accepted 2), 합계 262.
 
 > **2026-09-23 ADR-234 Phase 2 완료**: 상태 변형 = origin 의 ref + patch (관리 키 4 제한 폐지) · 두 leg 공용 층 모듈 (Canvas scene 해석 · Preview RAC render props) · 230 CSS 채널 제거 · hydration 이관 (선택 가능한 가족 origin = 선택 상태 · `--unselected` · 항목 템플릿 3종 · slot `[휴지, origin]`) · 원복 RED 9/9. live 는 Phase 4.
@@ -103,7 +105,7 @@
 
 #### [234](234-variant-instances-and-slot-filled-collections.md) — 상태 변형 = origin 의 instance · 목록 = slot 을 채운 instance 자식 (Pencil · RAC 정렬)
 
-- **상태**: Accepted (2026-09-23, 사용자 `/execute-adr 234`) — Codex 리뷰 2 round 종결 (pending 0 · LOW 1 deferred, [reviews/234](reviews/234.md)) · Phase 0 착수
+- **상태**: Accepted (2026-09-23, 사용자 `/execute-adr 234`) — Codex 리뷰 2 round 종결 (pending 0 · LOW 1 deferred, [reviews/234](reviews/234.md)) · Phase 0~3 · G5 · live 통과 · **G4 미달 — 사용자 결정 대기** (Implemented 보류)
 - **규모**: ref 체인 (Preview resolver · Canvas scene) + canonical `enabled` → 변형 31 을 origin 의 reusable ref + 덮어쓰기로 (origin = 가장 완성된 상태 · 관리 키 4 제한 폐지 · Preview 는 RAC render props) → slot 을 목록 틀 (TabList · TagList · ListBox · GridList · Menu) 로 옮기고 instance 자식으로 목록 채움 (Tabs 는 TabPanel 짝) → 이관 (시각 보존) · 성능 A/B. 066 (정적 목록 한정) · 148 · 229 · 230 · 233 일부 대체
 - **우선순위**: 사용자 요청 2026-09-23 (AskUserQuestion — 범위 전부 · 바인딩만 items · `enabled`)
 
