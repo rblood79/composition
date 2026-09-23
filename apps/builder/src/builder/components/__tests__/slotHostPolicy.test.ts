@@ -92,17 +92,26 @@ describe("ADR-146 shared slot host policy", () => {
     ]);
   });
 
-  // ADR-229 Phase 2: TagGroup 은 ListBox 대칭 slot host — origin Properties 에 "Slot" 절, 후보는 Tag item origin 2.
-  it("recognizes reusable TagGroup origin as a slot host and limits candidates to Tag item template variants", () => {
+  /**
+   * ADR-234 Phase 3 — slot 은 항목을 직접 담는 목록 틀 (TagList) 에 있다. TagGroup root 는 slot host 가 아니다
+   * (ADR-229 의 root 규칙은 이관이 대체 — 사용자 지적 2026-09-23: root 에 Slot 절이 떠 Enable · "+" 가 root 를 썼다).
+   */
+  it("TagGroup root 는 slot host 가 아니고 slot 을 가진 TagList 만 host · 후보는 Tag 항목 origin", () => {
     expect(
       isSlotHostElement({
         id: "component-taggroup",
         type: "TagGroup",
         reusable: true,
       }),
-    ).toBe(true);
+    ).toBe(false);
     expect(isSlotHostElement({ id: "tg", type: "TagGroup" })).toBe(false);
-    const host = { id: "component-taggroup", type: "TagGroup" };
+    const host = {
+      id: "component-taggroup__1",
+      type: "TagList",
+      slot: [TAG_ITEM_SELECTED_ORIGIN_ID],
+    };
+    expect(isSlotHostElement(host)).toBe(true);
+    expect(isSlotHostElement({ id: "tl", type: "TagList" })).toBe(false);
     const defaultItem = {
       id: TAG_ITEM_DEFAULT_ORIGIN_ID,
       type: "Tag",
@@ -121,37 +130,12 @@ describe("ADR-146 shared slot host policy", () => {
     expect(
       filterSlotCandidates(host, [button, plainTag, defaultItem, selectedItem]),
     ).toEqual([defaultItem, selectedItem]);
+    expect(resolveSlotInsertAction(host, selectedItem)).toEqual({
+      kind: "list-item",
+    });
   });
 
-  /**
-   * ADR-229 Phase 3 후속 (사용자 지적 2026-09-21): TagGroup 은 chip 이 `items[]` 데이터라 (ADR-097
-   * Addendum 1) origin Slot 절의 "+" 가 ref 자식을 root 에 넣어도 TagList 에 아무것도 안 생긴다 —
-   * Tag/Default "+" 는 item 등록, Tag/Selected "+" 는 item 등록 + selectedKeys. Frame/ListBox 는 종전 ref 자식.
-   */
-  it("resolveSlotInsertAction — TagGroup host 는 collection item 등록, selected variant 면 selected", () => {
-    const host = { id: "component-taggroup", type: "TagGroup", reusable: true };
-    expect(
-      resolveSlotInsertAction(host, {
-        id: TAG_ITEM_DEFAULT_ORIGIN_ID,
-        type: "Tag",
-      }),
-    ).toEqual({ kind: "collection-item", itemsKey: "items", selected: false });
-    expect(
-      resolveSlotInsertAction(host, {
-        id: TAG_ITEM_SELECTED_ORIGIN_ID,
-        type: "Tag",
-        metadata: { variant: "selected" },
-      }),
-    ).toEqual({ kind: "collection-item", itemsKey: "items", selected: true });
-    // 사용자가 만든 selected 변형 (id 는 임의, metadata.variant 로 판정)
-    expect(
-      resolveSlotInsertAction(host, {
-        id: "my-tag-selected",
-        type: "Tag",
-        componentName: "Tag/Hot",
-        metadata: { variant: "selected" },
-      }),
-    ).toEqual({ kind: "collection-item", itemsKey: "items", selected: true });
+  it("resolveSlotInsertAction — Frame 은 ref 자식 · 목록 틀은 항목 instance", () => {
     expect(
       resolveSlotInsertAction(
         { id: "frame", type: "frame" },
@@ -167,23 +151,25 @@ describe("ADR-146 shared slot host policy", () => {
     ).toEqual({ kind: "list-item" });
   });
 
-  /**
-   * ADR-233 Phase 1: Tabs origin root 가 Tab 항목 template slot host (Tag 대칭). Tab 은 items + TabPanel
-   * 쌍이라 그 쌍을 만드는 기존 추가 경로가 없어 (Phase 0) "+" 는 삽입 없음.
-   */
-  it("Tabs origin 은 Tab 항목 origin 만 후보로 받는 slot host 이고 삽입은 none", () => {
-    const host = { id: "component-tabs", type: "Tabs", reusable: true };
+  /** ADR-234 Phase 3 — Tabs 도 slot 은 TabList 에 있다. Tabs root 는 slot host 가 아니다. */
+  it("Tabs root 는 slot host 가 아니고 slot 을 가진 TabList 만 host · 후보는 Tab 항목 origin", () => {
+    expect(
+      isSlotHostElement({ id: "component-tabs", type: "Tabs", reusable: true }),
+    ).toBe(false);
+    expect(isSlotHostElement({ id: "tabs-1", type: "Tabs" })).toBe(false);
+    const host = {
+      id: "component-tabs__1",
+      type: "TabList",
+      slot: [TAB_ITEM_SELECTED_ORIGIN_ID],
+    };
     const defaultItem = { id: TAB_ITEM_DEFAULT_ORIGIN_ID, type: "Tab", reusable: true };
     const selectedItem = { id: TAB_ITEM_SELECTED_ORIGIN_ID, type: "Tab", reusable: true };
     const button = { id: "button-origin", type: "Button", reusable: true };
     expect(isSlotHostElement(host)).toBe(true);
-    // plain Tabs (사용자 배치) 는 host 아님 — Tag 와 같은 정책.
-    expect(isSlotHostElement({ id: "tabs-1", type: "Tabs" })).toBe(false);
     expect(filterSlotCandidates(host, [button, defaultItem, selectedItem])).toEqual([
       defaultItem,
       selectedItem,
     ]);
-    expect(resolveSlotInsertAction(host, defaultItem)).toEqual({ kind: "none" });
-    expect(resolveSlotInsertAction(host, selectedItem)).toEqual({ kind: "none" });
+    expect(resolveSlotInsertAction(host, selectedItem)).toEqual({ kind: "list-item" });
   });
 });

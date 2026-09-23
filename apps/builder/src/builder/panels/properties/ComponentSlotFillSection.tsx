@@ -23,7 +23,10 @@ import {
 import {
   filterSlotCandidates,
   isSlotCandidateAllowed,
+  resolveSlotInsertAction,
 } from "../../components/slotHostPolicy";
+import { planTabItemInsert } from "../../components/collectionItemInsert";
+import { getActiveCanonicalDocument } from "../../stores/canonical/canonicalElementsBridge";
 import type { PanelNode } from "../panelNode";
 import { ACTION_ICONS } from "../../config/actionIcons";
 
@@ -284,6 +287,26 @@ export const ComponentSlotFillSection = memo(function ComponentSlotFillSection({
     const candidate = elementsById.get(selectedCandidateId);
     if (!candidate || !selectedSlot) return;
     if (!isSlotCandidateAllowed(selectedSlot.host, candidate)) return;
+
+    // ADR-234 Phase 3 — 목록 틀 slot (TagList · TabList) 의 Fill = 항목 instance 추가: 상속 목록을 이어받아
+    //   끝에 새 항목 (Tabs 는 짝 TabPanel 도). 빈 override 로 시작하면 상속 목록이 항목 1개로 바뀐다.
+    if (resolveSlotInsertAction(selectedSlot.host, candidate).kind === "list-item") {
+      const document = getActiveCanonicalDocument();
+      const plan = document
+        ? planTabItemInsert({
+            document,
+            hostId: `${element.id}/${selectedSlot.path}`,
+            candidateId: candidate.id,
+            newKey: crypto.randomUUID(),
+          })
+        : null;
+      if (plan?.kind !== "instance") return;
+      void updateElement(plan.instanceId, {
+        [COMPONENT_DESCENDANTS_MIRROR_FIELD]: plan.descendants,
+        ...(plan.props ? { props: plan.props } : {}),
+      } as UpdateElementPatch);
+      return;
+    }
 
     const latestInstance = elementsById.get(element.id) ?? instance;
     const legacyDescendantMap =

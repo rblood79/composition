@@ -240,10 +240,7 @@ export const FrameSlotSection = memo(function FrameSlotSection({
     if (!candidate) return;
     if (!isSlotCandidateAllowed(latestElement, candidate)) return;
 
-    // ADR-229: TagGroup 의 Tag item template "+" 는 TagList 의 item 등록 (chip 은 `items[]` 데이터).
-    //   selected variant 는 selectedKeys 에도 — 한 번의 props 쓰기 (history 1).
     const insertAction = resolveSlotInsertAction(latestElement, candidate);
-    if (insertAction.kind === "none") return;
     // ADR-234 Phase 3 — 목록 틀 "+" = 항목 instance (Tabs 는 짝 TabPanel 도 · instance 는 descendants mode C).
     if (insertAction.kind === "list-item") {
       const document = getActiveCanonicalDocument();
@@ -259,6 +256,7 @@ export const FrameSlotSection = memo(function FrameSlotSection({
       if (plan.kind === "instance") {
         void updateElement(plan.instanceId, {
           descendants: plan.descendants,
+          ...(plan.props ? { props: plan.props } : {}),
         } as Partial<AddElementInput>);
         return;
       }
@@ -275,6 +273,10 @@ export const FrameSlotSection = memo(function FrameSlotSection({
             mirrorId,
           ),
         );
+        // 선택 모양 후보 — owner 선택 key 에 새 항목 key (ADR-234 후속).
+        if (plan.selection) {
+          await updateElementProps(plan.selection.ownerId, plan.selection.props);
+        }
         if (plan.panel && plan.tabPanelsId) {
           await addElement(
             withFrameElementMirrorId(
@@ -290,28 +292,6 @@ export const FrameSlotSection = memo(function FrameSlotSection({
       })();
       return;
     }
-    if (insertAction.kind === "collection-item") {
-      const props = (latestElement.props ?? {}) as Record<string, unknown>;
-      const currentItems = Array.isArray(props[insertAction.itemsKey])
-        ? (props[insertAction.itemsKey] as Record<string, unknown>[])
-        : [];
-      const itemId = crypto.randomUUID();
-      const nextProps: Record<string, unknown> = {
-        [insertAction.itemsKey]: [
-          ...currentItems,
-          { id: itemId, label: "New Tag" },
-        ],
-      };
-      if (insertAction.selected) {
-        const selectedKeys = Array.isArray(props.selectedKeys)
-          ? (props.selectedKeys as unknown[])
-          : [];
-        nextProps.selectedKeys = [...selectedKeys, itemId];
-      }
-      void updateElementProps(latestElement.id, nextProps);
-      return;
-    }
-
     void addElement(
       withFrameElementMirrorId(
         {
@@ -408,19 +388,14 @@ export const FrameSlotSection = memo(function FrameSlotSection({
                     </span>
                   </div>
                   <div className="list-row__actions">
-                    {resolveSlotInsertAction(
-                      element,
-                      resolvePanelReference(item.id, elementsById) ?? undefined,
-                    ).kind === "none" ? null : (
-                      <button
-                        aria-label={`Insert ${item.label}`}
-                        className="list-row__action frame-slot-insert"
-                        onClick={() => handleInsertDefault(item.id)}
-                        type="button"
-                      >
-                        <AddIcon aria-hidden="true" size={12} />
-                      </button>
-                    )}
+                    <button
+                      aria-label={`Insert ${item.label}`}
+                      className="list-row__action frame-slot-insert"
+                      onClick={() => handleInsertDefault(item.id)}
+                      type="button"
+                    >
+                      <AddIcon aria-hidden="true" size={12} />
+                    </button>
                     {isInstanceListHost ? null : (
                       <button
                         aria-label={`Remove ${item.label}`}

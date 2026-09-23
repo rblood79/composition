@@ -8,6 +8,9 @@
  *   origin 의 현재 자식을 복제한 뒤 덧붙인다.
  * 항목은 slot 항목이 아니라 **항목 origin** (체인 끝) 을 가리킨다 — 휴지 변형을 직접 ref 하면 실행 중
  * 선택 상태가 그 patch 를 이기지 못한다 (선택 상태 = origin 자신, 층 patch 없음).
+ * 그래서 slot 의 어느 모양을 골랐는지는 owner 의 선택 key 로 남긴다: 선택 모양 후보 (`metadata.variant:
+ * "selected"`) 면 새 key 를 owner 선택 key 에 더하고, 휴지 후보면 항목만 (사용자 지적 2026-09-23 — 두 후보가
+ * 같은 항목을 넣었다).
  */
 import type { CanonicalNode, CompositionDocument } from "@composition/shared";
 
@@ -40,12 +43,52 @@ export type TabItemInsertPlan =
       /** Tabs 만 — 짝 TabPanel 을 넣을 TabPanels */
       tabPanelsId: string | null;
       panel: CanonicalNode | null;
+      /** 선택 모양 후보일 때 owner (plain 노드) 선택 key patch */
+      selection: { ownerId: string; props: Record<string, unknown> } | null;
     }
   | {
       kind: "instance";
       instanceId: string;
       descendants: Record<string, unknown>;
+      /** 선택 모양 후보일 때 instance 의 다음 props 전체 (자기 props + 선택 key — owner = instance root) */
+      props: Record<string, unknown> | null;
     };
+
+/** slot 의 선택 모양 후보 — 선택 가능한 가족의 항목 origin (ADR-234 이관: origin = 선택 상태). */
+function isSelectedLookCandidate(candidate: CanonicalNode | undefined): boolean {
+  return (
+    (candidate?.metadata as Record<string, unknown> | undefined)?.variant ===
+    "selected"
+  );
+}
+
+/**
+ * owner 선택 key 에 `key` 를 더하는 props patch. 읽기 순서는 Canvas `isOwnerSelectedKey` 와 같고
+ * (`selectedKeys ?? defaultSelectedKeys` · `selectedKey ?? defaultSelectedKey`), 쓸 키는 이미 있는 키 — 없으면
+ * renderer 정식 계약 키 (`selectedKeys` · `selectedKey`). Tabs 와 `selectionMode: "single"` 은 교체.
+ */
+function selectionPatch(
+  ownerType: string,
+  ownerProps: Record<string, unknown>,
+  key: string,
+): Record<string, unknown> | null {
+  if (ownerType === "Tabs") {
+    return ownerProps.selectedKey === undefined &&
+      ownerProps.defaultSelectedKey !== undefined
+      ? { defaultSelectedKey: key }
+      : { selectedKey: key };
+  }
+  const prop =
+    ownerProps.selectedKeys === undefined &&
+    ownerProps.defaultSelectedKeys !== undefined
+      ? "defaultSelectedKeys"
+      : "selectedKeys";
+  const current = ownerProps[prop];
+  if (current === "all") return null;
+  if (ownerProps.selectionMode === "single") return { [prop]: [key] };
+  const keys = Array.isArray(current) ? current.map(String) : [];
+  return { [prop]: [...keys, key] };
+}
 
 function findParent(
   document: CompositionDocument,
@@ -116,6 +159,7 @@ export function planTabItemInsert(input: {
   const taken = new Set(byId.keys());
   const origin = resolveChainEnd(candidateId, byId);
   if (!origin) return null;
+  const selectsNewItem = isSelectedLookCandidate(byId.get(candidateId));
   const familyOf = (listType: string): StaticCollectionFamily | undefined =>
     STATIC_COLLECTION_FAMILIES.find(
       (f) => (f.listType ?? f.ownerType) === listType && origin.type === f.itemType,
@@ -144,12 +188,21 @@ export function planTabItemInsert(input: {
         taken,
         count,
       );
+      const hostProps = (host.props ?? {}) as Record<string, unknown>;
+      const patch = selectsNewItem
+        ? selectionPatch(
+            family.ownerType,
+            { ...(master.props as Record<string, unknown>), ...hostProps },
+            newKey,
+          )
+        : null;
       return {
         kind: "plain",
         tabListId: host.id,
         tab: item!,
         tabPanelsId: null,
         panel: null,
+        selection: patch ? { ownerId: host.id, props: patch } : null,
       };
     }
     const list = host;
@@ -169,6 +222,16 @@ export function planTabItemInsert(input: {
       taken,
       count,
     );
+    // 선택 owner — 목록 틀 = owner 인 가족 (ListBox) 은 자기, 나머지는 부모 (TagGroup · Tabs).
+    const selectionOwner = family.listType === null ? list : owner;
+    const patch =
+      selectsNewItem && selectionOwner
+        ? selectionPatch(
+            family.ownerType,
+            (selectionOwner.props ?? {}) as Record<string, unknown>,
+            newKey,
+          )
+        : null;
     return {
       kind: "plain",
       tabListId: list.id,
@@ -181,6 +244,10 @@ export function planTabItemInsert(input: {
             props: { itemId: newKey },
           }
         : null,
+      selection:
+        patch && selectionOwner
+          ? { ownerId: selectionOwner.id, props: patch }
+          : null,
     };
   }
 
@@ -238,5 +305,36 @@ export function planTabItemInsert(input: {
       ],
     };
   }
-  return { kind: "instance", instanceId: instance.id, descendants };
+  // 선택 owner = 목록 틀의 부모. instance root 면 instance 자기 props, 더 안쪽이면 그 경로의 descendants props.
+  let props: Record<string, unknown> | null = null;
+  if (selectsNewItem) {
+    const instanceProps = (instance.props ?? {}) as Record<string, unknown>;
+    if (listHit.parent === master) {
+      const patch = selectionPatch(
+        family.ownerType,
+        { ...(master.props as Record<string, unknown>), ...instanceProps },
+        newKey,
+      );
+      props = patch ? { ...instanceProps, ...patch } : null;
+    } else if (parentPath) {
+      const parentPatch = (descendants[parentPath] ?? {}) as {
+        props?: Record<string, unknown>;
+      };
+      const patch = selectionPatch(
+        family.ownerType,
+        {
+          ...(listHit.parent.props as Record<string, unknown>),
+          ...(parentPatch.props ?? {}),
+        },
+        newKey,
+      );
+      if (patch) {
+        descendants[parentPath] = {
+          ...parentPatch,
+          props: { ...(parentPatch.props ?? {}), ...patch },
+        };
+      }
+    }
+  }
+  return { kind: "instance", instanceId: instance.id, descendants, props };
 }

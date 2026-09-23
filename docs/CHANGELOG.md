@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [TagGroup · Tabs 의 Slot 은 TagList · TabList 에만 · Slot 항목 추가 결함 4건 수리] - 2026-09-24
+
+### Fixed
+
+- **TagGroup · Tabs origin 에 Slot 절이 뜨던 문제를 고쳤다.** slot 은 항목을 직접 담는 TagList · TabList 에 있는데, 패널이 root 도 slot 보유 노드로 봐 Enable · "+" 가 root 에 slot · `items` 를 썼다. 이제 Slot 절은 TagList · TabList 를 골랐을 때만 뜬다.
+- **TagGroup · Tabs instance 의 Slot Fill 이 이어받은 목록을 항목 1개로 바꾸던 문제를 고쳤다.** 이제 이어받은 항목 뒤에 새 항목 (새 id) 을 붙이고, Tabs 는 짝 TabPanel 도 만든다.
+- **Tag 를 모두 지운 TagGroup 에 "Add Tag" (items 편집기) 가 뜨던 문제를 고쳤다.** 항목이 0개여도 정적 목록이다 — 편집기는 데이터 바인딩 목록과 아직 옮겨지지 않은 `items` 가 남은 목록에만 뜬다.
+- **Slot 의 "Tag/Selected" · "Tag/Default" 가 같은 항목을 넣던 문제를 고쳤다.** 항목은 둘 다 origin 의 instance 이고, Selected 로 넣으면 새 항목 key 를 owner 의 선택 key (TagGroup · ListBox `selectedKeys`, Tabs `selectedKey`) 에 더해 선택 모양으로 그린다. Tab · ListBoxItem 도 같다.
+  - **Why**: ADR-234 가 slot 을 목록 틀로 옮기고 선택 모양을 origin 으로 바꿨는데, 패널 판정 (root host) · Fill 경로 · 항목 삽입 (ref 체인 끝만 보고 선택 key 를 안 씀) · 편집기 판정 (자식 수) 이 옛 규칙에 남아 있었다.
+  - 위치: `apps/builder/src/builder/components/slotHostPolicy.ts`, `apps/builder/src/builder/components/collectionItemInsert.ts`, `apps/builder/src/builder/components/staticCollectionMigration.ts`, `apps/builder/src/builder/panels/properties/FrameSlotSection.tsx`, `apps/builder/src/builder/panels/properties/ComponentSlotFillSection.tsx`
+
 ## [ADR-234 Implemented — 상태 변형 = origin 의 instance · 목록 = slot 을 채운 instance 자식 · 캔버스 scene 재구성 비용 절감] - 2026-09-23
 
 ### Changed

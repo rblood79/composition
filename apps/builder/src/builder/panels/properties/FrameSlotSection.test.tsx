@@ -383,90 +383,23 @@ describe("FrameSlotSection", () => {
   });
 
   /**
-   * ADR-229 Phase 3 후속 (사용자 지적 2026-09-21): TagGroup origin 의 Slot 절 "+" 는 ref 자식이 아니라
-   * TagList 의 item 을 등록한다 (chip 은 `items[]` 데이터 — ADR-097 Addendum 1). Tag/Selected 는 selectedKeys 까지.
+   * ADR-234 Phase 3 (사용자 지적 2026-09-23): slot 은 목록 틀 (TagList · TabList) 에만 있다 — TagGroup · Tabs
+   * origin root 는 Slot 절을 그리지 않는다 (예전에는 root 에 Enable · "+" 가 떠 root 에 slot · items 를 썼다).
    */
-  it("TagGroup host: Insert Tag/Default → items 에 등록 · Insert Tag/Selected → items + selectedKeys (ref 자식 0)", async () => {
-    const tagGroup = makeElement("component-taggroup", {
-      type: "TagGroup",
-      reusable: true,
-      slot: ["tag-default-origin", "tag-selected-origin"],
-      props: { items: [{ id: "a", label: "Alpha" }], selectedKeys: ["a"] },
-    });
-    const addElement = vi.fn(async () => {});
-    const updateElementProps = vi.fn(
-      async (id: string, props: Record<string, unknown>) => {
-        const state = useStore.getState();
-        const el = state.elementsMap.get(id)!;
-        const next = { ...el, props: { ...el.props, ...props } } as Element;
-        useStore.setState({
-          elements: state.elements.map((e) => (e.id === id ? next : e)),
-          elementsMap: new Map([...state.elementsMap, [id, next]]),
-        });
-        seedCanonicalFromStore();
-      },
-    );
+  it.each([
+    ["component-taggroup", "TagGroup"],
+    ["component-tabs", "Tabs"],
+  ])("%s origin root 는 Slot 절이 없다", (id, type) => {
+    const root = makeElement(id, { type, reusable: true, props: {} });
     useStore.setState({
-      addElement,
-      updateElementProps,
-      elements: [tagGroup],
-      elementsMap: new Map([["component-taggroup", tagGroup]]),
+      elements: [root],
+      elementsMap: new Map([[id, root]]),
     });
     seedCanonicalFromStore();
-    // legacy merge 는 root 의 `Tag` element 를 items 로 흡수해 버린다 (ADR-097) — 실제 Tag item origin 은
-    //   canonical-first 시드라 문서에 직접 둔다.
-    const canonical = useCanonicalDocumentStore.getState();
-    const doc = canonical.getDocument("frame-slot-section-project")!;
-    const pageFrame = doc.children.find((node) => node.id === "page-1")!;
-    canonical.setDocument("frame-slot-section-project", {
-      ...doc,
-      children: doc.children.map((node) =>
-        node === pageFrame
-          ? {
-              ...node,
-              children: [
-                ...(node.children ?? []),
-                {
-                  id: "tag-default-origin",
-                  type: "Tag",
-                  name: "Tag/Default",
-                  reusable: true,
-                  props: {},
-                },
-                {
-                  id: "tag-selected-origin",
-                  type: "Tag",
-                  name: "Tag/Selected",
-                  reusable: true,
-                  props: {},
-                  metadata: { variant: "selected" },
-                },
-              ],
-            }
-          : node,
-      ),
-    } as typeof doc);
-
-    renderWithI18n(<FrameSlotSection elementId="component-taggroup" />);
-
-    fireEvent.click(screen.getByRole("button", { name: "Insert Tag/Default" }));
-    await waitFor(() => expect(updateElementProps).toHaveBeenCalledTimes(1));
-    const [, first] = updateElementProps.mock.calls[0];
-    const firstItems = first.items as Array<{ id: string; label: string }>;
-    expect(firstItems).toHaveLength(2);
-    expect(firstItems[1].label).toBe("New Tag");
-    expect(first.selectedKeys).toBeUndefined();
-
-    fireEvent.click(
-      screen.getByRole("button", { name: "Insert Tag/Selected" }),
-    );
-    await waitFor(() => expect(updateElementProps).toHaveBeenCalledTimes(2));
-    const [, second] = updateElementProps.mock.calls[1];
-    const secondItems = second.items as Array<{ id: string; label: string }>;
-    expect(secondItems).toHaveLength(3);
-    expect(second.selectedKeys).toEqual(["a", secondItems[2].id]);
-    expect(addElement).not.toHaveBeenCalled();
+    const { container } = renderWithI18n(<FrameSlotSection elementId={id} />);
+    expect(container.innerHTML).toBe("");
   });
+
   /**
    * ADR-234 Phase 4 live (2026-09-23): ListBox · GridList · Menu 의 ref instance 는 raw (`ref`, slot 없음) 로
    * 들어온다 — 패널은 체인 끝 origin 의 slot 을 추천 목록으로 보여 주고 "+" 는 instance 자기 자식 항목을 넣는다.

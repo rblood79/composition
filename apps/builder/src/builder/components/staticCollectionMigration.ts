@@ -607,9 +607,15 @@ export function isStaticCollectionOwner(
     (f) => f.ownerType === master?.type,
   );
   if (!master || !family) return false;
+  if (master !== node && isBoundCollection(master)) return false;
+  // 정적 목록의 항목 정본은 목록 틀 자식이다 — 자식이 0 이어도 (항목을 다 지움) 정적 (사용자 지적 2026-09-23:
+  //   빈 TagGroup 에 "Add Tag" 가 떠 root `items` 로 되돌아갔다). 편집기는 아직 이관되지 않은 `items`
+  //   (origin 누락으로 보류) 가 정본일 때만.
   const list = findListFrame(family, master);
-  return (list?.children ?? []).some((child) => {
-    if (child.type === family.itemType) return true;
-    return resolveChainEnd(child.id, byId)?.type === family.itemType;
-  });
+  const hasItemChildren = (list?.children ?? []).length > 0;
+  return (
+    hasItemChildren ||
+    (!readItems(master.props as Record<string, unknown>) &&
+      !readItems(list?.props as Record<string, unknown> | undefined))
+  );
 }

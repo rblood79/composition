@@ -17,6 +17,8 @@ import { historyManager } from "../../stores/history";
 import { useStore } from "../../stores";
 import { useCanonicalDocumentStore } from "../../stores/canonical/canonicalDocumentStore";
 import { ComponentSlotFillSection } from "./ComponentSlotFillSection";
+import type { CanonicalNode, CompositionDocument } from "@composition/shared";
+import { ensureReusableCompositeOrigins } from "../../components/reusableCompositeOrigins";
 
 // Canonical migration: `reusable` / `ref` / `componentRole` are CanonicalNode fields,
 // not legacy Element fields, but runtime reads them off the object. Widen the overrides
@@ -218,4 +220,82 @@ describe("ComponentSlotFillSection", () => {
 
     expect(container.firstChild).toBeNull();
   });
+});
+
+/**
+ * ADR-234 Phase 3 (사용자 지적 2026-09-23 전수): TagGroup · Tabs instance 의 목록 틀 slot (TagList · TabList) 에
+ * "Fill" = 항목 instance 추가다 — 상속 목록을 유지한 채 끝에 새 항목 (새 id) 을 붙이고, Tabs 는 짝 TabPanel 도.
+ * 예전에는 빈 override 에서 시작해 상속 목록을 항목 1개 (id = origin id) 로 바꿔 버렸다.
+ */
+describe("ComponentSlotFillSection — 목록 틀 slot", () => {
+  afterEach(() => {
+    resetCanonicalMutationStoreActions();
+    vi.restoreAllMocks();
+    cleanup();
+  });
+
+  function seedInstanceDoc(ref: string) {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const base = ensureReusableCompositeOrigins({
+      version: "composition-1.0",
+      children: [],
+    } as unknown as CompositionDocument);
+    const doc = {
+      ...base,
+      children: [
+        ...base.children,
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1", slug: "/x" },
+          children: [
+            {
+              id: "body-1",
+              type: "body",
+              children: [{ id: "inst", type: "ref", ref, props: {} }],
+            },
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument;
+    registerCanonicalMutationStoreActions({
+      getCurrentProjectId: () => "slot-fill-list-project",
+      getCurrentLegacySnapshot: () => ({ elements: [], pages: [], layouts: [] }),
+    });
+    const updateElement = vi.fn(async () => {});
+    useStore.setState({ currentPageId: "page-1", updateElement } as never);
+    const canonical = useCanonicalDocumentStore.getState();
+    canonical.setCurrentProject("slot-fill-list-project");
+    canonical.setDocument("slot-fill-list-project", doc);
+    return updateElement;
+  }
+
+  it.each([
+    ["component-taggroup", "component-taggroup__2", 4, null],
+    ["component-tabs", "component-tabs__1", 2, "component-tabs__2"],
+  ])(
+    "%s instance: Fill → 상속 항목 유지 + 새 항목 instance",
+    async (ref, listPath, inherited, panelsPath) => {
+      const updateElement = seedInstanceDoc(ref);
+      render(<ComponentSlotFillSection elementId="inst" />);
+      fireEvent.click(screen.getByRole("button", { name: /fill slot/i }));
+      await waitFor(() => expect(updateElement).toHaveBeenCalledTimes(1));
+      const [id, patch] = updateElement.mock.calls[0] as unknown as [
+        string,
+        { descendants: Record<string, { children: CanonicalNode[] }> },
+      ];
+      expect(id).toBe("inst");
+      const children = patch.descendants[listPath]!.children;
+      expect(children).toHaveLength(inherited + 1);
+      const added = children[inherited] as CanonicalNode & { ref?: string };
+      expect(added.type).toBe("ref");
+      expect(added.id).not.toBe(added.ref);
+      expect(new Set(children.map((c) => c.id)).size).toBe(children.length);
+      if (panelsPath) {
+        expect(patch.descendants[panelsPath]!.children).toHaveLength(
+          inherited + 1,
+        );
+      }
+    },
+  );
 });
