@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [TagList 기본 크기 — Tag 가 없어도 chip 한 줄 높이] - 2026-09-24
+
+### Changed
+
+- **TagList 가 Tag 없이도 기본 높이를 가진다.** catalog 의 TagList 기본값은 `height: 100%` 와 TagGroup 의 Appearance size 에 맞춘 `minHeight` (sm 22 · md 30 · lg 42 px — chip 한 줄 높이) 다. Tag 를 모두 지운 TagGroup 도 목록 자리가 보이고, TagGroup 에 높이를 주면 TagList 가 남은 높이를 채운다. 작성자가 준 height · minHeight 가 우선한다.
+  - **Why**: 빈 목록 틀이 높이 0 으로 접혀 Slot "+" 로 채울 자리가 보이지 않았다 (사용자 지시).
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` (TagList), `packages/shared/src/components/styles/TagGroup.css` (`.tag-list-wrapper` — DOM 에서 TagList 는 display: contents), `apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts` · `utils.ts` (`resolveTagListMinHeight`)
+
 ## [캔버스에서 선택된 Tag 를 선택 모양 (accent 배경) 으로 그린다] - 2026-09-24
 
 ### Fixed
