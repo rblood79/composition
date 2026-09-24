@@ -48,6 +48,7 @@ import { ensureGroupSlots } from "./groupSlotOrigins";
 import { ensureRegionSlots } from "./regionSlotOrigins";
 import { ensureCollectionSectionOrigins } from "./collectionSectionOrigins";
 import { ensureBreadcrumbsTemplateOrigins } from "./breadcrumbs/breadcrumbsTemplateOrigins";
+import { migrateColorSwatchesToInstances } from "./colorswatch/colorSwatchOrigins";
 import {
   ensureTreeTemplateOrigins,
   migrateTreeItemsToInstances,
@@ -159,31 +160,34 @@ export function ensureReusableCompositeOrigins(
         migrateCardViewCardsToRefs(
           // ADR-238 Phase 2 — 목록 section origin 3 + owner slot 추천 (정적 목록 이관 뒤 — 항목 origin · owner slot 이 선다).
           ensureCollectionSectionOrigins(
-            // ADR-239 Phase 1 — plain TreeItem → TreeItem origin ref (같은 id) + key 대응 (선택 · 펼침 · interaction).
-            migrateTreeItemsToInstances(
-            migrateStaticCollectionsToInstances(
-              // ADR-237 Phase 2 — 이관을 지난 항목 템플릿 origin (Tab · Tag · ListBoxItem) 의 상호작용 변형은 이관 뒤
-              //   두 번째 seed pass 가 ref 로 보충한다 (이관 전 쌍은 변형 대상 밖).
-              //   ADR-237 Phase 3 — Breadcrumbs 항목 origin 도 여기서 (Breadcrumbs 는 catalog generic origin 이라 전용
-              //   ensurer 가 없다 · 정적 목록 이관 전에 있어야 한다 · `--current` 는 이 seed pass 가 보충).
-              ensureStateVariantOrigins(
-                // ADR-239 Phase 1 — TreeItem origin (팔레트 밖) 보장 + 이 호출에서 처음 생긴 Tree origin 의 자식 =
-                //   TreeItem instance (중첩 예시) · slot. 기존 문서의 Tree origin 은 뒤의 이관이 같은 id 의 ref 로만
-                //   바꾼다. 변형 (`--unselected` …) 은 이 seed pass 가 ref 로 보충한다.
-                seedFreshTreeOrigin(
-                  ensureTreeTemplateOrigins(
-                    ensureBreadcrumbsTemplateOrigins(
-                      migrateVariantsToOriginInstances(
-                        ensureReusableCompositeOriginsBeforeVariantMigration(
-                          document,
+            // ADR-239 Phase 4 — plain ColorSwatchPicker 의 plain swatch → ColorSwatch origin ref (같은 id · 옛 모양 patch).
+            migrateColorSwatchesToInstances(
+              // ADR-239 Phase 1 — plain TreeItem → TreeItem origin ref (같은 id) + key 대응 (선택 · 펼침 · interaction).
+              migrateTreeItemsToInstances(
+                migrateStaticCollectionsToInstances(
+                  // ADR-237 Phase 2 — 이관을 지난 항목 템플릿 origin (Tab · Tag · ListBoxItem) 의 상호작용 변형은 이관 뒤
+                  //   두 번째 seed pass 가 ref 로 보충한다 (이관 전 쌍은 변형 대상 밖).
+                  //   ADR-237 Phase 3 — Breadcrumbs 항목 origin 도 여기서 (Breadcrumbs 는 catalog generic origin 이라 전용
+                  //   ensurer 가 없다 · 정적 목록 이관 전에 있어야 한다 · `--current` 는 이 seed pass 가 보충).
+                  ensureStateVariantOrigins(
+                    // ADR-239 Phase 1 — TreeItem origin (팔레트 밖) 보장 + 이 호출에서 처음 생긴 Tree origin 의 자식 =
+                    //   TreeItem instance (중첩 예시) · slot. 기존 문서의 Tree origin 은 뒤의 이관이 같은 id 의 ref 로만
+                    //   바꾼다. 변형 (`--unselected` …) 은 이 seed pass 가 ref 로 보충한다.
+                    seedFreshTreeOrigin(
+                      ensureTreeTemplateOrigins(
+                        ensureBreadcrumbsTemplateOrigins(
+                          migrateVariantsToOriginInstances(
+                            ensureReusableCompositeOriginsBeforeVariantMigration(
+                              document,
+                            ),
+                          ),
                         ),
                       ),
+                      existingOriginIds,
                     ),
                   ),
-                  existingOriginIds,
                 ),
               ),
-            ),
             ),
           ),
         ),

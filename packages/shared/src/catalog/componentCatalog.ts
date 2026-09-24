@@ -1323,7 +1323,13 @@ export const PALETTE_REUSABLE_ORIGIN_TYPES: readonly string[] = [
  * 다 — Radio 는 그 목록에 없어 팔레트 노출 0. `PALETTE_ORDER` 일치 ratchet (`adr228Inventory`) 과
  * 섞이지 않게 목록만 나눈다.
  */
-export const NESTED_REUSABLE_ORIGIN_TYPES: readonly string[] = ["Radio"];
+export const NESTED_REUSABLE_ORIGIN_TYPES: readonly string[] = [
+  "Radio",
+  // ADR-239 Phase 4 — ColorSwatchPicker (팔레트 밖 — AI · import 로 생성) 와 그 항목 ColorSwatch. 배치 = instance,
+  //   swatch 모양은 ColorSwatch origin 하나에서.
+  "ColorSwatchPicker",
+  "ColorSwatch",
+];
 
 const NESTED_REUSABLE_ORIGIN_TYPE_SET: ReadonlySet<string> = new Set(
   NESTED_REUSABLE_ORIGIN_TYPES,

@@ -182,7 +182,8 @@ describe("ADR-228 G0 — 집합 E/V/R", () => {
       [...TEMPLATE_ORIGIN_REUSABLE_TYPES].sort(),
     );
     // ADR-233 Phase 2: 팔레트 밖 reusable Radio 가 generic 목록 끝에 합류 — 48 → 49.
-    expect(getCatalogOriginTypes()).toHaveLength(49);
+    // ADR-239 Phase 4: ColorSwatchPicker · ColorSwatch 합류 — 49 → 51.
+    expect(getCatalogOriginTypes()).toHaveLength(51);
   });
 
   it("entry 마다 ensurer 가 있고 generic 50 은 한 함수를 공유한다", () => {
@@ -447,7 +448,8 @@ describe("ADR-228 G1 — factory 동치 (origin = live 생성 경로가 만드�
     // ADR-229 Phase 1: TagGroup (complex) 은 손 ensurer 로 이동 — 39 → 38.
     // ADR-233 Phase 1: Tabs (complex) 도 손 ensurer 로 이동 — 38 → 37.
     // ADR-233 Phase 2: Radio (complex — Radio > Label) 합류 — 37 → 38.
-    expect(complexTypes).toHaveLength(38);
+    // ADR-239 Phase 4: ColorSwatchPicker (complex — swatch 6) 합류 — 38 → 39.
+    expect(complexTypes).toHaveLength(39);
     for (const type of complexTypes) {
       const creator = ComponentFactory.getDefinitionCreator(type)!;
       const definition = creator({
@@ -487,7 +489,8 @@ describe("ADR-228 G1 — factory 동치 (origin = live 생성 경로가 만드�
   });
 
   it("leaf 11 — root props 가 팔레트 else 분기 합성 (composeCreationProps ∘ getDefaultProps) 과 같다", () => {
-    expect(leafTypes).toHaveLength(11);
+    // ADR-239 Phase 4: ColorSwatch (leaf) 합류 — 11 → 12.
+    expect(leafTypes).toHaveLength(12);
     for (const type of leafTypes) {
       const origin = buildCatalogOrigin(type);
       expect(origin.children, type).toBeUndefined();
@@ -592,8 +595,9 @@ describe("ADR-228 G4 — 문서 증가량 (Δnode · Δbyte) 실측 기록", () 
     ).length;
     // ADR-233 Phase 1: Tabs (root 1 + TabList · TabPanels · TabPanel ×2 = desc 4) 가 손 ensurer 로 이동.
     // ADR-233 Phase 2: Radio (root 1 + Label 1) 합류.
-    expect(roots).toBe(48);
-    expect(deltaNodes - roots).toBe(133);
+    // ADR-239 Phase 4: ColorSwatchPicker (root 1 + swatch 6) · ColorSwatch (root 1) 합류.
+    expect(roots).toBe(50);
+    expect(deltaNodes - roots).toBe(139);
     // G0 예상 ~28 KB 는 definition 직렬화 합 — 실측 37,952 B (id · name · metadata 가 더해진다,
     //   2026-09-21). 범위 밖이면 seed 모양이 바뀐 것이니 inventory (breakdown §8.5) 를 갱신할 것.
     expect(deltaBytes).toBeGreaterThan(30_000);

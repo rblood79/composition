@@ -29,7 +29,7 @@ import { resolveSlotInsertAction } from "../slotHostPolicy";
 /**
  * ADR-239 Phase 0 — 진단 RED (breakdown §4 Phase 0 (a)~(e)).
  * `it` = 닫힌 결함 (닫은 Phase 가 `it.fails` → `it` 으로 바꾼다) · `it.fails` = 아직 열린 결함:
- *   (a) (c) → Phase 1 · (b) → Phase 2 (닫힘 — `it`) · (d) → Phase 3 · (e) → Phase 4.
+ *   (a) (c) → Phase 1 · (b) → Phase 2 · (d) → Phase 3 · (e) → Phase 4 — 전부 닫힘 (`it`).
  */
 
 afterEach(() => {
@@ -283,11 +283,11 @@ describe("ADR-239 진단 (e) — ColorSwatchPicker 항목 origin 없음 · 같�
     // Canvas 는 swatch 자식 3 을 상자로 그린다 (F10) — Preview 는 2 항목.
     const { container } = renderById(doc, "csp-1");
     expect(container.querySelectorAll('[role="option"]').length).toBe(2);
-    // 239 전: picker 에 `defaultValue` 가 닿지 않아 (F9) 아무것도 선택되지 않는다.
-    expect(container.querySelectorAll('[aria-selected="true"]').length).toBe(0);
+    // 239 전: picker 에 `defaultValue` 가 닿지 않아 (F9) 아무것도 선택되지 않았다 — Phase 4 부터 닿는다 (합쳐진 한 항목).
+    expect(container.querySelectorAll('[aria-selected="true"]').length).toBe(1);
   });
 
-  it.fails(
+  it(
     "ColorSwatchPicker origin 의 slot = ColorSwatch origin · swatch 는 ref 이고 색이 유일",
     () => {
       const doc = seededDoc();

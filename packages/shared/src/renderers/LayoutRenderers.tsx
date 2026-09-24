@@ -1985,18 +1985,31 @@ export const renderColorSwatchPicker = (
     context.childrenByParent.get(element.id) ?? []
   ).filter((child) => child.type === "ColorSwatch");
 
+  // ADR-239 Phase 4 (F9) — binding `accepts` 가 선언한 RAC prop 이 picker 에 닿는다 (종전: style · className 만).
+  const pickerProps = element.props as Record<string, unknown>;
+  const defaultValue =
+    typeof pickerProps.defaultValue === "string" && pickerProps.defaultValue
+      ? pickerProps.defaultValue
+      : undefined;
+  const layout =
+    pickerProps.layout === "grid" || pickerProps.layout === "stack"
+      ? pickerProps.layout
+      : undefined;
+  const pickerDisabled = pickerProps.isDisabled === true;
+
   return (
     <ColorSwatchPicker
       key={element.id}
       data-element-id={element.id}
       style={element.props.style}
       className={element.props.className}
+      {...(defaultValue ? { defaultValue } : {})}
+      {...(layout ? { layout } : {})}
     >
       {swatchChildren.map((child) => {
+        const childProps = child.props as Record<string, unknown>;
         const colorStr = String(
-          (child.props as Record<string, unknown>).color ||
-            (child.props as Record<string, unknown>).value ||
-            DEFAULT_SWATCH_HEX,
+          childProps.color || childProps.value || DEFAULT_SWATCH_HEX,
         );
         let color;
         try {
@@ -2004,7 +2017,22 @@ export const renderColorSwatchPicker = (
         } catch {
           color = parseColor(DEFAULT_SWATCH_HEX);
         }
-        return <ColorSwatchPickerItem key={child.id} color={color} />;
+        // ADR-239 Phase 4 (리뷰 r1 m1) — 해석된 swatch 자식 (ColorSwatch origin instance) 의 모양을 안쪽 swatch 에:
+        //   origin 의 style · className 이 두 leg 에 닿는다.
+        return (
+          <ColorSwatchPickerItem
+            key={child.id}
+            color={color}
+            data-element-id={child.id}
+            isDisabled={pickerDisabled || childProps.isDisabled === true}
+            swatchProps={{
+              style: childProps.style as React.CSSProperties | undefined,
+              ...(typeof childProps.className === "string"
+                ? { className: childProps.className }
+                : {}),
+            }}
+          />
+        );
       })}
     </ColorSwatchPicker>
   );

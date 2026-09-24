@@ -153,3 +153,16 @@
 - live 10/10 (P3 추가 1): 하위 메뉴 행이 있는 정적 Menu 가 reload 뒤 `items` 0 · share 아래 자식 2 · Canvas 트리거 상자 68×30 = 하위 메뉴 없는 Menu.
 - 원복 RED 5/5: 정적 경로 · 구조 경로 · 이관 끄기 · key fallback · MenuItem host 행.
 - 회귀: builder 7,493 · shared 기존 실패 1 · type-check 0.
+
+### Phase 4 — ColorSwatchPicker 항목 · LoadMore 판정 (G4, 2026-09-25)
+
+- **등록**: ColorSwatchPicker · ColorSwatch 를 팔레트 밖 reusable (`NESTED_REUSABLE_ORIGIN_TYPES` — 233 Radio 선례) 로 — ColorSwatchPicker 는 원래 `PALETTE_ORDER` 밖 (AI · import 로 생성) 이라 "팔레트 reusable" (breakdown) 대신 팔레트 노출을 바꾸지 않는 이 목록을 썼다 (**구현 판단**). 동명 primitive 는 placeable false · 배치 = instance (228). 새 문서 Components: `component-colorswatch` (단독 swatch factory 모양) · `component-colorswatchpicker` 자식 = seed ② 가 만든 swatch ref 6 (색 · 크기 patch) · slot = `GROUP_SLOT_HOSTS` 행 (`[component-colorswatch]`).
+- **이관** `migrateColorSwatchesToInstances` (`components/colorswatch/colorSwatchOrigins.ts`): plain picker 의 plain swatch → 같은 id ref · patch = 옛 props 정확 재현 (`exactPropsPatch` — origin 에만 있는 style 키 `display` · `borderWidth` 는 `null`, 해석 시 지움) — 색 · 같은 색 swatch (R5) 그대로.
+- **Slot "+"**: `planGroupItemInsert` 가 ColorSwatch 에 형제와 다른 색 (factory 6 색 다음 후보 → 색상환) · 마지막 형제 swatch 의 style (크기).
+- **Preview** (F9 · 리뷰 r1 m1): `renderColorSwatchPicker` 가 binding `defaultValue` · `layout` · `isDisabled` (항목마다) 를 전달 · 해석된 swatch 자식의 style · className 을 안쪽 `.react-aria-ColorSwatch` 에 (`ColorSwatchPickerItem.swatchProps` — catalog ColorSwatch rule 이 잡는 class · shared `ColorSwatch` 는 저작 className 을 RAC class 뒤에 덧붙인다) · 항목 `data-element-id`. Canvas 는 box 유지 (F10).
+- **LoadMore**: 저작 모델에 넣지 않는다 — 바인딩 목록의 런타임 부품 (`isLoading` · `onLoadMore`, R6) 이고 소비처 0 (F11). 기록만.
+- **등록 ratchet 갱신 5** (합류 2 종): 233 팔레트 밖 목록 · 228 origin 49 → 51 · complex 38 → 39 · leaf 11 → 12 · G4 root 48 → 50 / desc 133 → 139 · 914 complex 잔여 5 → 4 · AI 합성 판정 COMPLEX ∩ reusable 42 → 43.
+- unit `adr239Phase4.swatches.test.tsx` 5/5 (새 문서 origin · slot · 색 유일 · 기존 picker 이관 = 해석 props 동일 (같은 색 둘) · 멱등 · Slot "+" #FF8000 · binding props 도달 (data-layout · 선택 · 비활성) · origin borderRadius → Canvas scene · Preview swatch 둘 다) · 진단 (e) `it` 전환 (진단 5 전부 닫힘) · 사실 테스트 선택 0 → 1 (defaultValue 도달).
+- live 13/13 (P4 추가 3): 기존 plain picker (같은 색 둘) reload 이관 뒤 swatch rect 동일 [0/32/64, 28×28] · swatch = `component-colorswatch` ref · picker instance Slot "+" → swatch 7 · 새 색 #FF8000 · 28×28 · ColorSwatch origin borderRadius 3 → instance swatch Skia 상자 radius 9999 → 3.
+- 원복 RED 7/7: 이관 null 삭제 · 이관 끄기 · 색 유일 · binding props · swatch 모양 · 그룹 host 행 · 등록.
+- 회귀: builder 7,499 · shared 기존 실패 1 (Modal) · specs 1,387 · type-check 0.

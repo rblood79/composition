@@ -99,6 +99,55 @@ interface Sibling {
   props: Record<string, unknown>;
 }
 
+/** ADR-239 Phase 4 — swatch 후보 색 (factory 6 색 다음 순서). 다 쓰면 색상환을 더 잘게 나눈다. */
+const SWATCH_COLOR_SEQUENCE: readonly string[] = [
+  "#FF0000",
+  "#00FF00",
+  "#0000FF",
+  "#FFFF00",
+  "#FF00FF",
+  "#00FFFF",
+  "#FF8000",
+  "#8000FF",
+  "#0080FF",
+  "#FF0080",
+  "#80FF00",
+  "#00FF80",
+  "#000000",
+  "#FFFFFF",
+  "#808080",
+];
+
+function normalizeHex(value: unknown): string {
+  return typeof value === "string" ? value.trim().toUpperCase() : "";
+}
+
+function pickUnusedSwatchColor(taken: ReadonlySet<string>): string {
+  for (const color of SWATCH_COLOR_SEQUENCE) {
+    if (!taken.has(color)) return color;
+  }
+  for (let step = 1; step < 4096; step += 1) {
+    const hue = (step * 137.508) % 360;
+    const color = hslToHex(hue, 70, 50);
+    if (!taken.has(color)) return color;
+  }
+  return "#000000";
+}
+
+function hslToHex(h: number, s: number, l: number): string {
+  const sat = s / 100;
+  const light = l / 100;
+  const k = (n: number) => (n + h / 30) % 12;
+  const a = sat * Math.min(light, 1 - light);
+  const f = (n: number) =>
+    light - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+  const hex = (x: number) =>
+    Math.round(x * 255)
+      .toString(16)
+      .padStart(2, "0");
+  return `#${hex(f(0))}${hex(f(8))}${hex(f(4))}`.toUpperCase();
+}
+
 export function planGroupItemInsert(input: {
   document: CompositionDocument;
   hostId: string;
@@ -155,6 +204,18 @@ export function planGroupItemInsert(input: {
     let n = items.filter((item) => item.type === "Radio").length + 1;
     while (taken.has(`option${n}`)) n += 1;
     props.value = `option${n}`;
+  }
+
+  // ADR-239 Phase 4 — ColorSwatch 는 RAC key = 색 (`color.toString("hexa")`, N3) — 같은 색 swatch 둘은 한 항목으로
+  //   합쳐진다. 형제와 다른 색을 배정하고, 크기 · 모양은 마지막 형제 swatch 의 style 을 따른다 (picker 안 크기).
+  if (origin.type === "ColorSwatch") {
+    const swatches = items.filter((item) => item.type === "ColorSwatch");
+    const taken = new Set(
+      swatches.map((item) => normalizeHex(item.props.color)),
+    );
+    props.color = pickUnusedSwatchColor(taken);
+    const last = swatches.at(-1);
+    if (last && isRecord(last.props.style)) props.style = { ...last.props.style };
   }
 
   const propsUpdates: GroupItemInsertPlan["propsUpdates"] = [];

@@ -69,8 +69,9 @@ const INVENTORY = {
   //   IllustratedMessage (PALETTE_ORDER 밖 또는 제외 정책).
   //   ADR-233 Phase 2: Radio 가 팔레트 밖 reusable origin (`component-radio`) 을 얻어 reusableOrigin
   //   mode 로 이동 — 잔여 5.
+  //   ADR-239 Phase 4: ColorSwatchPicker 가 팔레트 밖 reusable origin 을 얻어 이동 — 잔여 4.
   creators: 53,
-  complexComponentTags: 5,
+  complexComponentTags: 4,
   propagationRegistered: 31,
   syntheticChildPropMerge: 9,
   popoverChildren: 2,

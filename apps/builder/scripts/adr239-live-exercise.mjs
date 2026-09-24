@@ -351,6 +351,134 @@ record(
   menuState,
 );
 
+// ── Phase 4 — ColorSwatchPicker 항목 origin ──────────────────────────────
+// 기존 plain picker (239 전 모양) 를 넣고 reload 전후 swatch rect 가 같아야 한다 (이관 = 같은 id ref).
+await ev(async () => {
+  const st = window.__composition_STORE__.getState();
+  const body = st.elements.find(
+    (e) => e.type === "body" && e.page_id === st.currentPageId,
+  );
+  const now = new Date().toISOString();
+  const base = (id, type, parent_id, order_num, props) => ({
+    id,
+    customId: id,
+    type,
+    parent_id,
+    page_id: st.currentPageId,
+    order_num,
+    created_at: now,
+    updated_at: now,
+    props,
+  });
+  const colors = ["#FF0000", "#FF0000", "#00FF00"];
+  await st.addComplexElement(
+    base("live-csp", "ColorSwatchPicker", body.id, 6, {
+      columns: 6,
+      style: { display: "flex", flexDirection: "row", flexWrap: "wrap", gap: 4 },
+    }),
+    colors.map((color, i) =>
+      base(`live-csp-sw${i + 1}`, "ColorSwatch", "live-csp", i, {
+        color,
+        style: { width: 28, height: 28 },
+      }),
+    ),
+  );
+});
+await page.waitForTimeout(1200);
+const swatchRects = () =>
+  ev(() => {
+    const m = window.__composition_LAYOUT_DEBUG__.getSharedLayoutMap();
+    return ["live-csp-sw1", "live-csp-sw2", "live-csp-sw3"].map((id) => {
+      const r = m.get(id);
+      return r ? [r.x, r.y, r.width, r.height] : null;
+    });
+  });
+const beforeReload = await swatchRects();
+await page.goto(projectUrl);
+await waitReady(page);
+await page.waitForTimeout(2000);
+const afterReload = await swatchRects();
+const migrated = await ev(() => {
+  const st = window.__composition_STORE__.getState();
+  return ["live-csp-sw1", "live-csp-sw2"].map((id) => {
+    const e = st.elementsMap.get(id);
+    return [e?.type, e?.ref ?? e?.componentName ?? null];
+  });
+});
+record(
+  "P4 기존 plain picker — reload 이관 뒤 swatch rect 동일 (같은 색 둘 포함) · swatch = ColorSwatch origin ref",
+  JSON.stringify(beforeReload) === JSON.stringify(afterReload) &&
+    beforeReload.every((r) => r && r[2] === 28 && r[3] === 28),
+  { beforeReload, afterReload, migrated },
+);
+
+// instance + Slot "+" → 형제와 다른 색 · 크기 28
+await placeInstance("live-csp-inst", "component-colorswatchpicker");
+await openPanels(page, ["Properties"]);
+await ev(
+  (id) =>
+    window.__composition_STORE__.getState().setSelectedElement(id, {}, {}, {}),
+  "live-csp-inst",
+);
+await page.waitForTimeout(1000);
+const insertBtn = page.locator("button.frame-slot-insert").first();
+const insertCount = await insertBtn.count();
+if (insertCount > 0) await insertBtn.click();
+await page.waitForTimeout(1500);
+const instState = await ev(() => {
+  const st = window.__composition_STORE__.getState();
+  const m = window.__composition_LAYOUT_DEBUG__.getSharedLayoutMap();
+  const fmap = window.__composition_LAYOUT_DEBUG__.getSharedFilteredChildrenMap();
+  const kids = fmap?.get("live-csp-inst") ?? [];
+  const own = st.elements.filter((e) => e.parent_id === "live-csp-inst");
+  return {
+    rows: kids.length,
+    last: kids.length ? (() => {
+      const r = m.get(kids[kids.length - 1]);
+      return r ? [r.width, r.height] : null;
+    })() : null,
+    own: own.map((e) => [e.type, e.props?.color ?? null]),
+  };
+});
+record(
+  'P4 Slot "+" (picker instance) — swatch 7 · 새 swatch 색 #FF8000 (형제 6 색과 다름) · 28×28',
+  insertCount > 0 &&
+    instState.rows === 7 &&
+    JSON.stringify(instState.own) === JSON.stringify([["ref", "#FF8000"]]) &&
+    JSON.stringify(instState.last) === JSON.stringify([28, 28]),
+  instState,
+);
+
+// ColorSwatch origin 모양 편집 → instance swatch 의 Skia 상자 radius
+const radius = () =>
+  ev(() => {
+    const n = window.__composition_SKIA_DEBUG__?.getSkiaNode?.(
+      "live-csp-inst/component-colorswatchpicker__1",
+    );
+    return n?.box?.borderRadius ?? null;
+  });
+const radiusBefore = await radius();
+await ev(() => {
+  const st = window.__composition_STORE__.getState();
+  const origin = st.elementsMap.get("component-colorswatch");
+  return st.updateElementProps("component-colorswatch", {
+    style: { ...(origin?.props?.style ?? {}), borderRadius: 3 },
+  });
+});
+await page.waitForTimeout(1500);
+// origin 편집 영향 대화상자 (233 함정) — 있으면 확인
+const confirmBtn = page.getByRole("button", { name: /apply|confirm|확인|적용/i }).first();
+if (await confirmBtn.count()) {
+  await confirmBtn.click().catch(() => {});
+  await page.waitForTimeout(1200);
+}
+const radiusAfter = await radius();
+record(
+  "P4 ColorSwatch origin borderRadius 3 편집 → instance swatch Skia 상자 radius 3 (R6 — Canvas leg)",
+  radiusAfter === 3 && radiusBefore !== 3,
+  { radiusBefore, radiusAfter },
+);
+
 record("page error 0", errors.length === 0, errors);
 console.log(
   `[adr239 live] ${findings.filter((f) => f.pass).length}/${findings.length}`,

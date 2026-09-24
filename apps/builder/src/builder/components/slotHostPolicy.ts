@@ -225,6 +225,13 @@ export const GROUP_SLOT_HOSTS: ReadonlyArray<{
     itemTypes: ["Link"],
     slot: ["component-link"],
   },
+  // ADR-239 Phase 4 — ColorSwatchPicker (항목 = ColorSwatch instance · RAC key = 색 → 삽입 시 형제와 다른 색).
+  {
+    type: "ColorSwatchPicker",
+    originIds: ["component-colorswatch"],
+    itemTypes: ["ColorSwatch"],
+    slot: ["component-colorswatch"],
+  },
   {
     type: "Toolbar",
     originIds: ["component-button", "component-togglebutton"],

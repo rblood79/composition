@@ -56,7 +56,12 @@ afterEach(() => {
 
 describe("ADR-233 Phase 2 — Radio origin", () => {
   it("등록 — Radio 는 팔레트 밖 reusable (reusable 이 placeable · primitive 는 false — R②) 이고 팔레트 목록은 그대로", () => {
-    expect(NESTED_REUSABLE_ORIGIN_TYPES).toEqual(["Radio"]);
+    // ADR-239 Phase 4 — ColorSwatchPicker · ColorSwatch 가 같은 목록에 합류.
+    expect(NESTED_REUSABLE_ORIGIN_TYPES).toEqual([
+      "Radio",
+      "ColorSwatchPicker",
+      "ColorSwatch",
+    ]);
     expect(PALETTE_REUSABLE_ORIGIN_TYPES).not.toContain("Radio");
     const entry = getReusableEntry("Radio");
     expect(entry?.reusableId).toBe("component-radio");
