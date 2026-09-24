@@ -327,7 +327,13 @@ export const SLOT_HOST_RULES: readonly SlotHostRule[] = [
   {
     host: "treeitem",
     matches: byType("treeitem"),
-    active: byTypeWithSlot("treeitem"),
+    // 판독 M1 — Components 의 TreeItem origin · 상태 변형은 Tree 밖이라 하위 항목 host 가 아니다. id 로 가린다 — 패널은
+    //   instance host 에 origin 필드 (reusable · metadata) 를 덮어 넘긴다. 그 밖의 Tree 밖 TreeItem 은 삽입 계획
+    //   (`planTabItemInsert`) 이 소속 Tree 없으면 null.
+    active: (element) =>
+      byTypeWithSlot("treeitem")(element) &&
+      element.id !== TREE_ITEM_DEFAULT_ORIGIN_ID &&
+      !element.id.startsWith(`${TREE_ITEM_DEFAULT_ORIGIN_ID}--`),
     candidate: templateCandidate(
       new Set([TREE_ITEM_DEFAULT_ORIGIN_ID]),
       "treeitem/",

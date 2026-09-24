@@ -163,22 +163,9 @@ function treeHostExpansion(
   hostId: string,
   ownerProps?: Record<string, unknown>,
 ): { ownerId: string; expandedKeys: string[] } | null {
-  const parents = new Map<string, CanonicalNode>();
-  const index = (nodes: readonly CanonicalNode[], parent?: CanonicalNode) => {
-    for (const node of nodes) {
-      if (parent) parents.set(node.id, parent);
-      index(node.children ?? [], node);
-    }
-  };
-  index(roots);
-  const chainType = (node: CanonicalNode) =>
-    node.type === "ref" ? resolveChainEnd(node.id, byId)?.type : node.type;
-  const isItem = (node: CanonicalNode) => String(chainType(node)) === "TreeItem";
-  const host = byId.get(hostId) ?? findInRoots(roots, hostId);
-  if (!host) return null;
-  let owner = parents.get(hostId);
-  while (owner && isItem(owner)) owner = parents.get(owner.id);
-  if (!owner || String(chainType(owner)) !== "Tree") return null;
+  const found = findTreeItemOwner(roots, byId, hostId);
+  if (!found) return null;
+  const { host, owner, parents, isItem } = found;
   const key = resolveTreeItemKey(
     host as TreeItemKeyNode & CanonicalNode,
     (node) => {
@@ -202,6 +189,40 @@ function treeHostExpansion(
   const keys = Array.isArray(current) ? current.map(String) : [];
   if (keys.includes(key)) return null;
   return { ownerId: owner.id, expandedKeys: [...keys, key] };
+}
+
+/**
+ * ADR-239 판독 M1 — 항목 host (TreeItem) 의 소속 Tree (조상 TreeItem 사슬 위). 없으면 null — Components 의 TreeItem
+ * origin · 상태 변형 · Tree 밖 instance 는 하위 항목 host 가 아니다 (Canvas 는 하위 행을 Tree 행 평탄화로만 그리고,
+ * RAC TreeItem 은 Tree collection 밖에서 행을 만들지 않는다).
+ */
+function findTreeItemOwner(
+  roots: readonly CanonicalNode[],
+  byId: ReadonlyMap<string, CanonicalNode>,
+  hostId: string,
+): {
+  host: CanonicalNode;
+  owner: CanonicalNode;
+  parents: Map<string, CanonicalNode>;
+  isItem: (node: CanonicalNode) => boolean;
+} | null {
+  const parents = new Map<string, CanonicalNode>();
+  const index = (nodes: readonly CanonicalNode[], parent?: CanonicalNode) => {
+    for (const node of nodes) {
+      if (parent) parents.set(node.id, parent);
+      index(node.children ?? [], node);
+    }
+  };
+  index(roots);
+  const chainType = (node: CanonicalNode) =>
+    node.type === "ref" ? resolveChainEnd(node.id, byId)?.type : node.type;
+  const isItem = (node: CanonicalNode) => String(chainType(node)) === "TreeItem";
+  const host = byId.get(hostId) ?? findInRoots(roots, hostId);
+  if (!host) return null;
+  let owner = parents.get(hostId);
+  while (owner && isItem(owner)) owner = parents.get(owner.id);
+  if (!owner || String(chainType(owner)) !== "Tree") return null;
+  return { host, owner, parents, isItem };
 }
 
 function findInRoots(
@@ -250,6 +271,15 @@ export function planTabItemInsert(input: {
   /** ADR-239 — host 가 항목 자신 (재귀 목록) 이면 선택 key 를 쓰지 않는다 (선택 owner = 조상). */
   const isItemHost = (family: StaticCollectionFamily, hostType: string) =>
     family.recursiveItems === true && hostType === family.itemType;
+  /** 판독 M1 — TreeItem host 는 소속 Tree 안에서만 (MenuItem 하위 메뉴는 Menu 밖 제약 없음). */
+  const lacksTreeOwner = (
+    family: StaticCollectionFamily,
+    hostType: string,
+    hostId: string,
+  ) =>
+    isItemHost(family, hostType) &&
+    family.itemType === "TreeItem" &&
+    !findTreeItemOwner(document.children, byId, hostId);
   /** 목록 틀 자식 하나 — section origin 이면 section instance (`props.id` = 새 key), 아니면 항목 instance. */
   const buildChild = (
     family: StaticCollectionFamily,
@@ -307,6 +337,7 @@ export function planTabItemInsert(input: {
       ) {
         return null;
       }
+      if (lacksTreeOwner(family, master.type, host.id)) return null;
       // ADR-239 — 항목 host (TreeItem) 는 역할 자식 (Label) 을 항목으로 세지 않는다.
       const countOf = (nodes: readonly CanonicalNode[] | undefined) =>
         isItemHost(family, master.type)
@@ -351,6 +382,7 @@ export function planTabItemInsert(input: {
     const list = host;
     const family = list ? familyOf(list.type) : undefined;
     if (!list || !family) return null;
+    if (lacksTreeOwner(family, list.type, list.id)) return null;
     const owner = findParent(document, list.id);
     const tabPanels =
       family.ownerType === "Tabs"
@@ -409,6 +441,10 @@ export function planTabItemInsert(input: {
       : listHit?.node.type;
   const family = listHit && listType ? familyOf(listType) : undefined;
   if (!listHit || !family) return null;
+  // 상속 항목 host — origin 이 Tree 이거나 instance (TreeItem) 자신이 Tree 안에 있어야 한다 (M1).
+  if (master.type !== "Tree" && lacksTreeOwner(family, listType!, instance.id)) {
+    return null;
+  }
   const tabPanels =
     family.ownerType === "Tabs"
       ? listHit.parent.children?.find((child) => child.type === "TabPanels")

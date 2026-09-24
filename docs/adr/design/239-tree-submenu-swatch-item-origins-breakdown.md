@@ -180,3 +180,11 @@
 - unit: `adr239G5.treeReuse.test.tsx` 5 · `adr239G6.historySnapshots.test.tsx` 3. 원복 RED 7/8 (깊이 2 · 재사용 제외 · Tree deps · history 연결 · origin carry · 이관 재적용 — 평탄 입력 가드만 GREEN, 방어).
 - 회귀: builder 7,507 · type-check 0.
 - 번들 (production initial closure JS gzip, `adr209-bundle-closure.mjs`, `a2d1fe649` → `8a9b072f5`): Builder 1,399,358 → 1,403,536 (**+4,178 B**) · Preview 644,715 → 647,643 (**+2,928 B**) · CSS +5 B · lazy chart 0. base 가 이미 ADR-201 상한 (1,328,315 / 601,346) 을 +71,043 / +43,369 넘어 있다 (239 밖 기존 초과, 240 과 같은 상황) — merge 전 사용자 확인 대상.
+
+### 판독 (2026-09-25 · reviewer 격리 fork, `a2d1fe649..8a9b072f5`)
+
+- CRITICAL · HIGH 0.
+- **M1 (수리)**: Components 의 TreeItem origin · `--collapsed` 등 변형 (소속 Tree 없음) 에 Slot "+" 가 떠, 넣은 하위 항목이 origin 상자에는 안 보이고 (Canvas 는 하위 행을 Tree 행 평탄화로만 그린다 · RAC TreeItem 은 Tree collection 밖에서 행을 만들지 않는다) 모든 Tree 항목 instance 에 상속됐다. `planTabItemInsert` 가 TreeItem host 는 소속 Tree 가 있을 때만 계획 (`findTreeItemOwner` — MenuItem 하위 메뉴는 제외) · slot host 규칙이 TreeItem origin · 변형 id 를 가린다 (패널은 instance host 에 origin 필드를 덮어 넘기므로 id 기준 — 첫 수리 (reusable · metadata 기준) 가 live 에서 Tree 안 항목의 Slot "+" 까지 막아 `adr239-live-exercise` P1 · P2 3 건 FAIL → id 기준으로 고침). unit `adr239Review.standaloneTreeItem.test.tsx` 2 · live `adr239-review-m1-live.mjs` 4/4 · `adr239-live-exercise.mjs` 13/13.
+- **L1 (수리)**: history 재생이 되살리는 origin 을 body 끝에 붙였다 → 현재 body 의 앞 형제 뒤 자리 (`placeCarried`).
+- **L2 · L3 · L4 (LOW deferred)**: 세션 중 만든 plain Tree 를 Undo 하면 이관된 모양 (hydration 결과와 같음) · leaf deps 가 Tree instance canonical 동일성만 본다 (origin `selectedKeys` 만 편집 · instance 전용 key 포함 — 237 가족, 경로 희박) · 재생 이관 비용 (이벤트 수 × body).
+- 원복 RED 3/3 (계획 가드 · host 표시 · 자리). 회귀: builder 7,509 · type-check 0.

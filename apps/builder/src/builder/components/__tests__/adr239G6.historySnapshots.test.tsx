@@ -164,6 +164,12 @@ describe("ADR-239 G6 — history body 스냅샷 재생", () => {
     for (const id of ADDED_BY_239) {
       expect(find(undone.children, id), id).toBeDefined();
     }
+    // 판독 L1 — 되살린 origin 은 현재 body 의 자리 (끝에 붙이지 않는다).
+    const order = (doc: CompositionDocument) =>
+      (find(doc.children, COMPONENTS_SYSTEM_BODY_ID)!.children ?? []).map(
+        (child) => child.id,
+      );
+    expect(order(undone)).toEqual(order(migrated));
     expect(
       (find(undone.children, TREE_ORIGIN_ID)!.children ?? []).map(
         (child) => child.type,

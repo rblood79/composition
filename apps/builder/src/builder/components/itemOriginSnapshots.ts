@@ -42,6 +42,32 @@ function migrateSnapshotDocument(
   return migrateColorSwatchesToInstances(migrateTreeItemsToInstances(document));
 }
 
+/**
+ * 되살리는 origin 을 현재 body 에서의 자리로 — 현재 body 의 바로 앞 형제가 스냅샷에 있으면 그 뒤, 없으면 맨 앞 (판독 L1 —
+ * 끝에 붙이면 Components 페이지 배치가 바뀐다).
+ */
+function placeCarried(
+  snapshotChildren: readonly CanonicalNode[],
+  currentBody: CanonicalNode,
+  carried: readonly CanonicalNode[],
+): CanonicalNode[] {
+  const out = [...snapshotChildren];
+  const current = currentBody.children ?? [];
+  for (const origin of carried) {
+    const at = current.findIndex((child) => child.id === origin.id);
+    let index = 0;
+    for (let i = at - 1; i >= 0; i -= 1) {
+      const found = out.findIndex((child) => child.id === current[i]!.id);
+      if (found >= 0) {
+        index = found + 1;
+        break;
+      }
+    }
+    out.splice(index, 0, origin);
+  }
+  return out;
+}
+
 function alignSnapshot(
   node: CanonicalNode,
   currentBody: CanonicalNode,
@@ -50,7 +76,7 @@ function alignSnapshot(
   if (node.id === COMPONENTS_SYSTEM_BODY_ID) {
     const withOrigins =
       carried.length > 0
-        ? { ...node, children: [...(node.children ?? []), ...carried] }
+        ? { ...node, children: placeCarried(node.children ?? [], currentBody, carried) }
         : node;
     const migrated = migrateSnapshotDocument(wrap([withOrigins]));
     return migrated.children[0] ?? withOrigins;
