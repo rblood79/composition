@@ -153,21 +153,17 @@ describe("ADR-241 진단 (a) — Column 요소만 있는 Table 의 Canvas 데이
 
 // ── (e) 열 폭 제한 ────────────────────────────────────────────────────────────
 describe("ADR-241 진단 (e) — width 80 · minWidth 120 열의 Canvas 셀 폭 (리뷰 r1 m1)", () => {
-  it(
-    "Canvas 셀 폭 = TanStack getSize 120 (Preview) — Phase 1 GREEN",
-    () => {
-      const doc = withBodyChildren(seedDocument(), [
-        columnOnlyTable([
-          { key: "email", children: "Email", width: 80, minWidth: 120 },
-        ]),
-      ]);
-      const [cells] = canvasDataRows(doc, "t1");
-      expect(
-        (cells?.[0]?.props?.style as Record<string, unknown> | undefined)
-          ?.width,
-      ).toBe(120);
-    },
-  );
+  it("Canvas 셀 폭 = TanStack getSize 120 (Preview) — Phase 1 GREEN", () => {
+    const doc = withBodyChildren(seedDocument(), [
+      columnOnlyTable([
+        { key: "email", children: "Email", width: 80, minWidth: 120 },
+      ]),
+    ]);
+    const [cells] = canvasDataRows(doc, "t1");
+    expect(
+      (cells?.[0]?.props?.style as Record<string, unknown> | undefined)?.width,
+    ).toBe(120);
+  });
 
   it("기준선: legacy `props.columns` 경로는 width 그대로 (clamp 없음 · 기본 100)", () => {
     const doc = withBodyChildren(seedDocument(), [
@@ -192,7 +188,8 @@ describe("ADR-241 진단 (e) — width 80 · minWidth 120 열의 Canvas 셀 폭 
 
 // ── (c) TableView instance 열 · 행 추가 경로 ─────────────────────────────────
 describe("ADR-241 진단 (c) — Table · TableView origin 의 TableHeader · TableBody 에 slot 이 없다 (F2)", () => {
-  it("기준선: Table origin = TableHeader · TableBody (Column 0) · TableView origin = Column 3 · Row 1 × Cell 3", () => {
+  // G0 모양은 TableView origin 열 · 행이 plain 이었다 — Phase 3 이관 뒤 같은 id 의 Column · Row origin ref (셀 = Row ref 자기 자식).
+  it("기준선: Table origin = TableHeader · TableBody (Column 0) · TableView origin = 열 3 · 행 1 × 셀 3 (Phase 3 뒤 ref · id 유지)", () => {
     const doc = seedDocument();
     const table = find(doc.children, TABLE_ORIGIN_ID)!;
     expect(table.children?.map((c) => c.type)).toEqual([
@@ -202,35 +199,39 @@ describe("ADR-241 진단 (c) — Table · TableView origin 의 TableHeader · Ta
     expect(table.children?.[0]?.children ?? []).toHaveLength(0);
     const tableView = find(doc.children, TABLEVIEW_ORIGIN_ID)!;
     const [header, body] = tableView.children ?? [];
-    expect(header?.children?.map((c) => c.type)).toEqual([
-      "Column",
-      "Column",
-      "Column",
-    ]);
-    expect(body?.children?.map((r) => r.children?.length)).toEqual([3]);
+    expect(
+      header?.children?.map((c) => [c.id, c.type, (c as { ref?: string }).ref]),
+    ).toEqual(
+      [1, 2, 3].map((n) => [
+        `${TABLEVIEW_ORIGIN_ID}__1_${n}`,
+        "ref",
+        "component-table-column",
+      ]),
+    );
+    expect(
+      body?.children?.map((r) => [
+        r.id,
+        (r as { ref?: string }).ref,
+        r.children?.length,
+      ]),
+    ).toEqual([[`${TABLEVIEW_ORIGIN_ID}__2_1`, "component-table-row", 3]]);
   });
 
-  it(
-    "Table · TableView origin 의 TableHeader 는 slot host (Column origin 추천) — Phase 2 GREEN",
-    () => {
-      const doc = seedDocument();
-      for (const originId of [TABLE_ORIGIN_ID, TABLEVIEW_ORIGIN_ID]) {
-        const header = find(doc.children, originId)!.children![0]!;
-        expect(Array.isArray(header.slot), originId).toBe(true);
-        expect(isSlotHostElement(header as never), originId).toBe(true);
-      }
-    },
-  );
+  it("Table · TableView origin 의 TableHeader 는 slot host (Column origin 추천) — Phase 2 GREEN", () => {
+    const doc = seedDocument();
+    for (const originId of [TABLE_ORIGIN_ID, TABLEVIEW_ORIGIN_ID]) {
+      const header = find(doc.children, originId)!.children![0]!;
+      expect(Array.isArray(header.slot), originId).toBe(true);
+      expect(isSlotHostElement(header as never), originId).toBe(true);
+    }
+  });
 
-  it.fails(
-    "TableView origin 의 TableBody 는 slot host (Row origin 추천) — Phase 3 GREEN",
-    () => {
-      const body = find(seedDocument().children, TABLEVIEW_ORIGIN_ID)!
-        .children![1]!;
-      expect(Array.isArray(body.slot)).toBe(true);
-      expect(isSlotHostElement(body as never)).toBe(true);
-    },
-  );
+  it("TableView origin 의 TableBody 는 slot host (Row origin 추천) — Phase 3 GREEN", () => {
+    const body = find(seedDocument().children, TABLEVIEW_ORIGIN_ID)!
+      .children![1]!;
+    expect(Array.isArray(body.slot)).toBe(true);
+    expect(isSlotHostElement(body as never)).toBe(true);
+  });
 });
 
 // ── (d) 셀 수가 열 수와 어긋난 TableView ─────────────────────────────────────

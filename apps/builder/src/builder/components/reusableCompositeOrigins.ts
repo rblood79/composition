@@ -47,7 +47,7 @@ import { migrateStaticCollectionsToInstances } from "./staticCollectionMigration
 import { ensureGroupSlots } from "./groupSlotOrigins";
 import { ensureRegionSlots } from "./regionSlotOrigins";
 import { ensureCollectionSectionOrigins } from "./collectionSectionOrigins";
-import { ensureTableColumnOrigins } from "./tableColumnOrigins";
+import { ensureTableOrigins } from "./tableOrigins";
 import { ensureBreadcrumbsTemplateOrigins } from "./breadcrumbs/breadcrumbsTemplateOrigins";
 import { catalogReusableOriginId } from "@composition/shared";
 import {
@@ -147,8 +147,8 @@ export function ensureReusableCompositeOrigins(
   // 2026-09-24 — Components body ref 자식의 전파값 patch repair (Checkbox/Radio Label 이 root `children` 을 따른다).
   // ADR-240 Phase 1 — 이름 영역 slot seed (Card 4 · Popover · Tooltip) · Dialog Content/Actions 영역 구조 이관 +
   //   instance Description 경로 전치 (멱등). 자식 ref 변환 (seed ②) 뒤라 영역 frame 은 plain 으로 남는다.
-  // ADR-241 Phase 2 — Table 열 origin + Table · TableView TableHeader slot (멱등).
-  return ensureTableColumnOrigins(
+  // ADR-241 — Table 열 · 행 origin + TableHeader · TableBody slot + TableView plain 열/행 → ref 이관 (멱등).
+  return ensureTableOrigins(
     repairOriginChildPropagationPatches(
       ensureRegionSlots(
         ensureGroupSlots(

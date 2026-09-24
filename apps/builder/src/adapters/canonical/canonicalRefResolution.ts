@@ -861,6 +861,22 @@ function materializeOverrideChildren<T extends CanonicalRefResolvableNode>(
           ...(lookupResult ? { lookupMaster: lookupResult, lookupResult } : {}),
         },
       );
+      // ADR-241 Phase 3 — mode C 항목 ref 의 **자기 자식** (TableView instance 의 Row ref 셀) 은 origin 자식 뒤에 (선행
+      //   수리의 중첩 ref 자기 자식과 같은 순서 규칙 — Preview `[...origin, ...instance]`).
+      if (Array.isArray(child.children) && child.children.length > 0) {
+        materializeOverrideChildren(
+          refElement,
+          child.children,
+          syntheticId,
+          sourceChildrenMap,
+          resultElementsMap,
+          resultChildrenMap,
+          resultElements,
+          pathPrefix ? `${pathPrefix}/${segment}` : segment,
+          templateBindings,
+          lookupResult,
+        );
+      }
       return;
     }
 
@@ -1472,8 +1488,7 @@ function readChainLeafDeps<T extends CanonicalRefResolvableNode>(
   // ADR-238 G4 — origin 자식이 있어도 그 subtree 에 ref · `{{ }}` 템플릿이 없으면 재사용한다: origin canonical
   //   노드는 불변 트리라 자손이 바뀌면 동일성이 바뀐다 (deps 의 origin 항목). ref 가 있으면 다른 origin 을 읽는다.
   const originNode = canonicalIdentity(origin) as
-    | { children?: unknown[] }
-    | undefined;
+    { children?: unknown[] } | undefined;
   if (
     !originSubtreeReusable(
       originNode?.children,

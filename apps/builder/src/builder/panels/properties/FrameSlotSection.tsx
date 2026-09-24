@@ -35,8 +35,14 @@ import {
 import type { PanelNode } from "../panelNode";
 import { planTabItemInsert } from "../../components/collectionItemInsert";
 import { planGroupItemInsert } from "../../components/groupItemInsert";
-import { planTableColumnInsert } from "../../components/tableColumnInsert";
-import { applyTableColumnInsertPlan } from "../../components/tableColumnWrite";
+import {
+  planTableColumnInsert,
+  planTableRowInsert,
+} from "../../components/tableColumnInsert";
+import {
+  applyTableColumnInsertPlan,
+  applyTableRowInsertPlan,
+} from "../../components/tableColumnWrite";
 import { historyManager } from "../../stores/history";
 import { confirmOriginImpactForIds } from "../../stores/utils/elementUpdate";
 import { getActiveCanonicalDocument } from "../../stores/canonical/canonicalElementsBridge";
@@ -321,6 +327,28 @@ export const FrameSlotSection = memo(function FrameSlotSection({
           if (gate !== true && !(await gate)) return;
         }
         await applyTableColumnInsertPlan(
+          plan,
+          { addElement, updateElement, removeElements },
+          { pageId, mirrorId },
+        );
+      })();
+      return;
+    }
+    // ADR-241 Phase 3 — TableBody (TableView) "+" = Row origin 의 instance + 열 수만큼 셀 (instance 는 descendants mode C).
+    if (insertAction.kind === "table-row") {
+      const document = getActiveCanonicalDocument();
+      const plan = document
+        ? planTableRowInsert({ document, hostId: latestElement.id })
+        : null;
+      if (!plan) return;
+      const mirrorId = getFrameElementMirrorId(latestElement);
+      const pageId = latestElement.page_id ?? null;
+      void (async () => {
+        if (plan.kind === "plain") {
+          const gate = confirmOriginImpactForIds([plan.bodyId]);
+          if (gate !== true && !(await gate)) return;
+        }
+        await applyTableRowInsertPlan(
           plan,
           { addElement, updateElement, removeElements },
           { pageId, mirrorId },

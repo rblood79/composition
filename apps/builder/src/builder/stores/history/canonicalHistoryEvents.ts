@@ -26,7 +26,7 @@ import {
   rewriteDialogRegionPathsInNode,
 } from "../../components/dialogRegionPaths";
 import { ensureRegionSlotsInSnapshot } from "../../components/regionSlotOrigins";
-import { ensureTableColumnOriginsInSnapshot } from "../../components/tableColumnOrigins";
+import { ensureTableOriginsInSnapshot } from "../../components/tableOrigins";
 import {
   getCanonicalRefOverrideEntries,
   getProjectableNodeLookups,
@@ -336,7 +336,7 @@ function alignHistoryEventsToRegions(
   return events.map((event) => {
     if (event.type !== "insert" && event.type !== "remove") return event;
     // origin 스냅샷 (Components body · origin 하나) 은 영역 이관 · instance 스냅샷은 경로 전치 (F28).
-    const migrated = ensureTableColumnOriginsInSnapshot(
+    const migrated = ensureTableOriginsInSnapshot(
       ensureRegionSlotsInSnapshot(event.node),
     );
     const node = rewrite

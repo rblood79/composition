@@ -33,7 +33,10 @@ import {
   slotFillPrimitiveLabel,
 } from "../../components/slotFillNodes";
 import { planTabItemInsert } from "../../components/collectionItemInsert";
-import { planTableColumnInsert } from "../../components/tableColumnInsert";
+import {
+  planTableColumnInsert,
+  planTableRowInsert,
+} from "../../components/tableColumnInsert";
 import {
   collectSlotFillHosts,
   readSlotFill,
@@ -267,6 +270,25 @@ export const ComponentSlotFillSection = memo(function ComponentSlotFillSection({
       const document = getActiveCanonicalDocument();
       const plan = document
         ? planTableColumnInsert({
+            document,
+            hostId: `${element.id}/${selectedSlot.path}`,
+          })
+        : null;
+      if (plan?.kind !== "instance") return;
+      void updateElement(plan.instanceId, {
+        [COMPONENT_DESCENDANTS_MIRROR_FIELD]: plan.descendants,
+      } as UpdateElementPatch);
+      return;
+    }
+
+    // ADR-241 Phase 3 — instance 의 TableBody slot Fill = 자기 행 추가 (mode C · 상속 행 이어받기 · 열 수만큼 셀).
+    if (
+      candidate &&
+      resolveSlotInsertAction(selectedSlot.host, candidate).kind === "table-row"
+    ) {
+      const document = getActiveCanonicalDocument();
+      const plan = document
+        ? planTableRowInsert({
             document,
             hostId: `${element.id}/${selectedSlot.path}`,
           })

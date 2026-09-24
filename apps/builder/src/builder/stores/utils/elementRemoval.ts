@@ -68,6 +68,57 @@ async function persistActiveCanonicalDocument(db: BuilderDb): Promise<void> {
   });
 }
 
+/** ADR-241 Phase 3 — 열 · 셀 삭제가 같이 지울 셀 · 열 (위 호출부 주석). */
+function collectTableStructureRemovals<TElement extends Element>(
+  element: TElement,
+  elementsById: ElementRemovalLookup<TElement>,
+  childrenByParent: ElementRemovalChildrenByParent<TElement>,
+): TElement[] {
+  const childrenOf = (id: string | undefined): TElement[] =>
+    (id ? childrenByParent.get(id) : undefined) ?? [];
+  const isTableOwner = (candidate: TElement | undefined): boolean =>
+    candidate?.type === "Table" || candidate?.type === "TableView";
+  const parent = element.parent_id
+    ? elementsById.get(element.parent_id)
+    : undefined;
+  if (!parent?.parent_id) return [];
+  const aligned = (rows: readonly TElement[], columnCount: number) =>
+    rows.every((row) => childrenOf(row.id).length === columnCount);
+
+  // 열 삭제
+  if (parent.type === "TableHeader") {
+    const owner = elementsById.get(parent.parent_id);
+    if (!isTableOwner(owner)) return [];
+    const columns = childrenOf(parent.id);
+    const index = columns.findIndex((column) => column.id === element.id);
+    const body = childrenOf(owner!.id).find((c) => c.type === "TableBody");
+    const rows = childrenOf(body?.id);
+    if (index < 0 || !aligned(rows, columns.length)) return [];
+    return rows
+      .map((row) => childrenOf(row.id)[index])
+      .filter((cell): cell is TElement => Boolean(cell));
+  }
+
+  // 셀 삭제 (행 = TableBody 자식)
+  const body = elementsById.get(parent.parent_id);
+  if (body?.type !== "TableBody" || !body.parent_id) return [];
+  const owner = elementsById.get(body.parent_id);
+  if (!isTableOwner(owner)) return [];
+  const header = childrenOf(owner!.id).find((c) => c.type === "TableHeader");
+  const columns = childrenOf(header?.id);
+  const rows = childrenOf(body.id);
+  const index = childrenOf(parent.id).findIndex((c) => c.id === element.id);
+  const column = columns[index];
+  if (index < 0 || !column || !aligned(rows, columns.length)) return [];
+  return [
+    column,
+    ...rows
+      .filter((row) => row.id !== parent.id)
+      .map((row) => childrenOf(row.id)[index])
+      .filter((cell): cell is TElement => Boolean(cell)),
+  ];
+}
+
 /**
  * 단일 요소에 대해 삭제해야 할 모든 연관 요소를 수집하는 헬퍼
  * (자식, Table Column/Cell, Tab/Panel 연결 등)
@@ -113,91 +164,13 @@ function collectElementsToRemove<TElement extends Element>(
   };
 
   let childElements = findChildren(elementId);
-  const getSiblingIndex = (candidate: TElement): number => {
-    return elements
-      .filter(
-        (el) =>
-          el.parent_id === candidate.parent_id && el.type === candidate.type,
-      )
-      .findIndex((el) => el.id === candidate.id);
-  };
-
-  // Table Column 삭제 시 특별 처리: 연관된 Cell들도 함께 삭제
-  if (element.type === "Column") {
-    const columnIndex = getSiblingIndex(element);
-    const tableElement = elements.find((el) => {
-      const tableHeader = elements.find(
-        (header) => header.id === element.parent_id,
-      );
-      return (
-        tableHeader && el.id === tableHeader.parent_id && el.type === "Table"
-      );
-    });
-
-    if (tableElement) {
-      const tableBody = elements.find(
-        (el) => el.parent_id === tableElement.id && el.type === "TableBody",
-      );
-      if (tableBody) {
-        const rows = elements.filter(
-          (el) => el.parent_id === tableBody.id && el.type === "Row",
-        );
-        const cellsToRemove = rows.flatMap((row) =>
-          elements
-            .filter((cell) => cell.parent_id === row.id && cell.type === "Cell")
-            .filter((_, index) => index === columnIndex),
-        );
-        childElements = [...childElements, ...cellsToRemove];
-      }
-    }
-  }
-
-  // Table Cell 삭제 시 특별 처리: 대응하는 Column도 함께 삭제
-  if (element.type === "Cell") {
-    const cellIndex = getSiblingIndex(element);
-    const row = elements.find((el) => el.id === element.parent_id);
-    if (row && row.type === "Row") {
-      const tableBody = elements.find((el) => el.id === row.parent_id);
-      if (tableBody && tableBody.type === "TableBody") {
-        const tableElement = elements.find(
-          (el) => el.id === tableBody.parent_id && el.type === "Table",
-        );
-        if (tableElement) {
-          const tableHeader = elements.find(
-            (el) =>
-              el.parent_id === tableElement.id && el.type === "TableHeader",
-          );
-          if (tableHeader) {
-            const columns = elements.filter(
-              (col) =>
-                col.parent_id === tableHeader.id && col.type === "Column",
-            );
-            const columnToRemove = columns[cellIndex];
-            if (columnToRemove) {
-              const allRows = elements.filter(
-                (el) => el.parent_id === tableBody.id && el.type === "Row",
-              );
-              const otherCellsToRemove = allRows.flatMap((r) =>
-                elements
-                  .filter(
-                    (cell) => cell.parent_id === r.id && cell.type === "Cell",
-                  )
-                  .filter(
-                    (cell, index) =>
-                      index === cellIndex && cell.id !== element.id,
-                  ),
-              );
-              childElements = [
-                ...childElements,
-                columnToRemove,
-                ...otherCellsToRemove,
-              ];
-            }
-          }
-        }
-      }
-    }
-  }
+  // ADR-241 Phase 3 — Table · TableView 열 ↔ 정적 행 셀 동기화 (종전 Table 전용 분기를 구조 기준으로 넓힘): 열 = TableHeader 자식
+  //   (plain Column · Column origin ref), 행 = TableBody 자식 (plain Row · Row origin ref), 셀 = 행 자식 (ref 의 자기 자식 포함). 열
+  //   삭제 → 모든 행의 같은 index 셀 · 셀 삭제 → 같은 index 열 + 다른 행의 셀 (셀 수 = 열 수 계약). 셀 수가 어긋난 표는 동기화 밖.
+  childElements = [
+    ...childElements,
+    ...collectTableStructureRemovals(element, elementsById, childrenByParent),
+  ];
 
   // ADR-066: Tab element 소멸. TabPanel 개별 삭제는 cascade 자식만 처리
   // (items 동기화는 TabsEditor.removeTabItem 경로에서만 보장).
@@ -263,7 +236,12 @@ async function executeRemoval(
   let removeEvents: CanonicalHistoryNodeEvent[] = [];
   let detachPrevCaptures: Map<string, CanonicalReplaceCapture> | null = null;
   if (shouldRecordHistory) {
-    removeEvents = buildCanonicalRemoveEvents(rootElements, allUniqueElements);
+    // ADR-241 Phase 3 — root 만이 아니라 삭제 집합의 모든 subtree 최상단 (Table 열 삭제가 같이 지우는 다른 행의 셀 — root 의
+    //   자손이 아니다) 을 싣는다. root 만 실으면 undo 가 열만 되살리고 셀은 잃는다 (종전 Table 분기도 같은 공백).
+    removeEvents = buildCanonicalRemoveEvents(
+      allUniqueElements,
+      allUniqueElements,
+    );
     if (autoDetach.elements.length > 0) {
       detachPrevCaptures = captureCanonicalReplaceSources(
         autoDetach.previousElements.map((element) => element.id),

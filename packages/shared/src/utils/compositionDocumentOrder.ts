@@ -557,6 +557,7 @@ export function moveCanonicalChild(
   if (!movingNode || nodeContainsId(movingNode, targetParentId ?? "")) {
     return { document, changed: false };
   }
+  const sourceParent = findParentNode(document.children, childId, null);
 
   const removed = removeCanonicalChild(document, childId);
   if (!removed.removed) return { document, changed: false };
@@ -567,7 +568,108 @@ export function moveCanonicalChild(
     removed.removed,
     index,
   );
-  return inserted.changed ? inserted : { document, changed: false };
+  if (!inserted.changed) return { document, changed: false };
+  // ADR-241 Phase 3 — TableView 열 순서 변경 (같은 TableHeader 안) 은 모든 정적 행의 셀 순서를 같이 바꾼다. Layer drop ·
+  //   키보드 · Canvas drag · undo/redo 재생이 모두 이 함수를 지나므로 되돌리기까지 대칭이다.
+  if (
+    sourceParent &&
+    String(sourceParent.type) === "TableHeader" &&
+    sourceParent.id === targetParentId
+  ) {
+    const fromIndex = (sourceParent.children ?? []).findIndex(
+      (child) => child.id === childId,
+    );
+    const toIndex = (
+      findChildrenByParentId(inserted.document.children, sourceParent.id) ?? []
+    ).findIndex((child) => child.id === childId);
+    if (fromIndex >= 0 && toIndex >= 0 && fromIndex !== toIndex) {
+      return {
+        ...inserted,
+        document: alignTableViewCellsToColumnMove(
+          inserted.document,
+          sourceParent.id,
+          fromIndex,
+          toIndex,
+        ),
+      };
+    }
+  }
+  return inserted;
+}
+
+/** 문서 트리 (ref descendants 안쪽 제외) 에서 부모 — 최상위면 null, 없으면 undefined. */
+function findParentNode(
+  children: readonly CanonicalNode[],
+  childId: string,
+  parent: CanonicalNode | null,
+): CanonicalNode | null | undefined {
+  for (const child of children) {
+    if (child.id === childId) return parent;
+    const hit = findParentNode(child.children ?? [], childId, child);
+    if (hit !== undefined) return hit;
+  }
+  return undefined;
+}
+
+function replaceNodeById(
+  children: readonly CanonicalNode[],
+  nodeId: string,
+  replace: (node: CanonicalNode) => CanonicalNode,
+): { children: CanonicalNode[]; changed: boolean } {
+  let changed = false;
+  const next = children.map((child) => {
+    if (child.id === nodeId) {
+      changed = true;
+      return replace(child);
+    }
+    if (!child.children) return child;
+    const inner = replaceNodeById(child.children, nodeId, replace);
+    if (!inner.changed) return child;
+    changed = true;
+    return { ...child, children: inner.children };
+  });
+  return { children: changed ? next : (children as CanonicalNode[]), changed };
+}
+
+/**
+ * ADR-241 Phase 3 — TableView 의 열 하나가 `fromIndex` → `toIndex` 로 옮겨졌을 때 모든 정적 행 (TableBody 자식) 의 셀을 같은
+ * 자리로 옮긴다. 행 하나라도 셀 수 ≠ 열 수면 (동기화 대상 아님, 리뷰 r1 m2) 또는 TableView 가 아니면 그대로.
+ */
+export function alignTableViewCellsToColumnMove(
+  document: CompositionDocument,
+  headerId: string,
+  fromIndex: number,
+  toIndex: number,
+): CompositionDocument {
+  const tableView = findParentNode(document.children, headerId, null);
+  if (!tableView || String(tableView.type) !== "TableView") return document;
+  const header = (tableView.children ?? []).find(
+    (child) => child.id === headerId,
+  );
+  const body = (tableView.children ?? []).find(
+    (child) => String(child.type) === "TableBody",
+  );
+  const columnCount = header?.children?.length ?? 0;
+  const rows = body?.children ?? [];
+  if (
+    !body ||
+    rows.length === 0 ||
+    !rows.every((row) => (row.children?.length ?? 0) === columnCount)
+  ) {
+    return document;
+  }
+  const nextRows = rows.map((row) => {
+    const cells = [...(row.children ?? [])];
+    const [moved] = cells.splice(fromIndex, 1);
+    if (!moved) return row;
+    cells.splice(toIndex, 0, moved);
+    return { ...row, children: cells };
+  });
+  const result = replaceNodeById(document.children, body.id, (node) => ({
+    ...node,
+    children: nextRows,
+  }));
+  return result.changed ? { ...document, children: result.children } : document;
 }
 
 export function appendDescendantChild(

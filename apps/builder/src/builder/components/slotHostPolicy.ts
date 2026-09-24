@@ -14,8 +14,9 @@ import {
 } from "./tabs/tabsTemplateOrigins";
 import { BREADCRUMB_ITEM_DEFAULT_ORIGIN_ID } from "./breadcrumbs/breadcrumbsTemplateOrigins";
 
-// ADR-241 Phase 2 — Column origin id (tableColumnOrigins 의 상수와 같은 값 — 순환 import 회피).
+// ADR-241 Phase 2 — Column origin id (tableOrigins 의 상수와 같은 값 — 순환 import 회피).
 const TABLE_COLUMN_ORIGIN_ID = "component-table-column";
+const TABLE_ROW_ORIGIN_ID = "component-table-row";
 // ADR-238 Phase 2 — section origin id (collectionSectionOrigins 의 상수와 같은 값 — 순환 import 회피).
 const LISTBOX_SECTION_ORIGIN = "component-listbox-section";
 const MENU_SECTION_ORIGIN = "component-menu-section";
@@ -88,7 +89,9 @@ export type SlotInsertAction =
   // ADR-237 Phase 1 — 그룹 컨테이너의 "+" = origin 의 instance 자식 + 선택 값 (`groupItemInsert`).
   | { kind: "group-item" }
   // ADR-241 Phase 2 — TableHeader 의 "+" = Column origin 의 instance (형제와 다른 `key`) · 정적 행 셀 동기화 (`tableColumnInsert`).
-  | { kind: "table-column" };
+  | { kind: "table-column" }
+  // ADR-241 Phase 3 — TableBody (TableView) 의 "+" = Row origin 의 instance + 열 수만큼 셀 (`tableColumnInsert`).
+  | { kind: "table-row" };
 
 /**
  * ADR-237 Phase 1 — slot host 표 한 행. 종전 type 별 if 문 5종을 행으로 옮겼다 (동작 무변경).
@@ -389,6 +392,17 @@ export const SLOT_HOST_RULES: readonly SlotHostRule[] = [
     insert: "table-column",
     placedChildren: true,
     itemTypes: new Set(["Column"]),
+    contractRefOnly: true,
+  },
+  // ADR-241 Phase 3 — TableBody (TableView) 는 정적 행 목록 틀 (항목 = Row origin 의 instance · 셀은 그 자기 자식).
+  {
+    host: "tablebody",
+    matches: byTypeWithSlot("tablebody"),
+    active: byTypeWithSlot("tablebody"),
+    candidate: familyCandidate(new Set([TABLE_ROW_ORIGIN_ID])),
+    insert: "table-row",
+    placedChildren: true,
+    itemTypes: new Set(["Row"]),
     contractRefOnly: true,
   },
   // ADR-237 Phase 1 — 그룹 컨테이너 9종 (slot 을 가진 것만 — slot 없는 사용자 그룹은 종전 그대로).

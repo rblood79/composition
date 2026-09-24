@@ -17,9 +17,9 @@ import {
 import { ensureReusableCompositeOrigins } from "../reusableCompositeOrigins";
 import {
   TABLE_COLUMN_ORIGIN_ID,
-  ensureTableColumnOrigins,
-  ensureTableColumnOriginsInSnapshot,
-} from "../tableColumnOrigins";
+  ensureTableOrigins,
+  ensureTableOriginsInSnapshot,
+} from "../tableOrigins";
 import {
   planPreviewDetectedColumns,
   planTableColumnInsert,
@@ -156,7 +156,7 @@ describe("ADR-241 G2 — Column origin · TableHeader slot", () => {
     expect(JSON.stringify(ensureReusableCompositeOrigins(doc))).toBe(
       JSON.stringify(doc),
     );
-    expect(ensureTableColumnOrigins(doc)).toBe(doc);
+    expect(ensureTableOrigins(doc)).toBe(doc);
     const custom = mapNodes(doc, (node) =>
       node.id === "component-table__1" ? { ...node, slot: [] } : node,
     );
@@ -198,7 +198,7 @@ describe("ADR-241 G2 — Column origin · TableHeader slot", () => {
             : child,
         ),
     };
-    const migrated = ensureTableColumnOriginsInSnapshot(old);
+    const migrated = ensureTableOriginsInSnapshot(old);
     expect(
       migrated.children?.some((child) => child.id === TABLE_COLUMN_ORIGIN_ID),
     ).toBe(true);
@@ -206,7 +206,7 @@ describe("ADR-241 G2 — Column origin · TableHeader slot", () => {
       migrated.children?.find((c) => c.id === "component-table")?.children?.[0]
         ?.slot,
     ).toEqual([TABLE_COLUMN_ORIGIN_ID]);
-    expect(ensureTableColumnOriginsInSnapshot(migrated)).toBe(migrated);
+    expect(ensureTableOriginsInSnapshot(migrated)).toBe(migrated);
   });
 });
 
