@@ -33,9 +33,11 @@ RAC 와 composition 조합에는 **고정 영역** 을 가진 컨테이너가 �
 ### Hard constraints
 
 - **고정 부품 보존**: Dialog `title` · `close` 와 Calendar · Disclosure 고정 부품은 영역 후보 · drop 대상이 아니다 (RAC 접근성 이름 · 닫기 동작).
-- **Canvas 시각 보존 이관**: Dialog origin 구조 변경 (Description → Content frame) 뒤 기존 Dialog instance 의 Canvas 픽셀 · patch 적용 결과가 같다 (경로 전치 — F7 선례).
+- **Canvas 시각 보존 이관**: Dialog origin 구조 변경 (Description → Content frame · DialogFooter 안 Actions frame) 뒤 기존 Dialog instance 의 Canvas 픽셀 · patch 적용 결과가 같다 (경로 전치 — F7 선례). Close 는 경로 불변.
+- **history 정합**: 이관 뒤 저장 history 의 Undo/Redo 가 이관 전 경로를 되살리지 않는다 (history 스냅샷도 같은 전치, 불가하면 그 페이지 history 명시 무효화).
+- **채운 노드 편집 도달**: 영역에 채운 노드를 Properties · Styles 로 고치면 두 leg 에 반영된다 (쓰기 대상 = 해석기가 읽는 mode C 배열 노드).
 - **구조 보존**: instance 안 영역 밖 inherited 노드에는 drop · 삽입이 없다 (234 — instance 는 origin 구조를 바꾸지 않는다).
-- **BC 수식**: 문서당 (i) origin `slot` 필드 — Card 4 · Dialog 2 · Popover 1 (+ Dialog Content frame 노드 1) (ii) Dialog instance 1개당 Description patch 경로 전치 0~1 (iii) Card · Popover · Tooltip instance Δ0.
+- **BC 수식**: 문서당 (i) origin `slot` 필드 — Card 4 · Dialog 2 · Popover 1 · Tooltip 1 (+ Dialog Content frame · Actions frame 노드 2) (ii) Dialog instance 1개당 Description patch 경로 전치 0~1 (iii) Card · Popover · Tooltip instance Δ0.
 - **성능**: `scene.build` p95 증가 ≤ +1 ms.
 
 ### Soft constraints
@@ -47,7 +49,7 @@ RAC 와 composition 조합에는 **고정 영역** 을 가진 컨테이너가 �
 
 ### 대안 A: 영역 = origin 자식 컨테이너 + `slotRole` + `slot` 배열 · 채우기 = mode C (추천 origin + 팔레트 primitive)
 
-- 설명: 영역 host 노드 (CardHeader · CardContent · Dialog Content frame · DialogFooter …) 에 추천 `slot` 을 seed 하고, instance 는 Slot 채우기 절 · Canvas drop 으로 그 영역에 추천 origin 또는 primitive 를 넣는다 (mode C). Popover · Tooltip 은 root 가 영역.
+- 설명: 영역 host 노드 (CardHeader · CardContent · Dialog Content frame · DialogFooter 안 Actions frame …) 에 추천 `slot` 을 seed 하고, instance 는 Slot 채우기 절 · Canvas drop 으로 그 영역에 추천 origin 또는 primitive 를 넣는다 (mode C). Popover · Tooltip 은 root 가 영역 — instance 자기 자식으로 덧붙인다.
 - 근거: F1 · F2 (모양이 이미 있다) · F13 (페이지 frame slot 이 같은 mode C) · 설계도 P3.
 - 위험: 기술 M (mode C 에 primitive · Canvas drop 경로) / 성능 L / 유지보수 L (Frame · 페이지 slot 과 같은 채우기 규칙) / 마이그레이션 **H** (Dialog origin 구조 변경 + 경로 전치)
 
@@ -81,12 +83,12 @@ HIGH 가 없는 C 는 문제를 풀지 못해 기각. A 의 H 는 Dialog 한 가
 
 ## Decision
 
-**대안 A** — 영역 = origin 자식 컨테이너 + `slotRole` + `slot` · 채우기 = mode C.
+**대안 A** — 영역 = origin 자식 컨테이너 + `slotRole` + `slot` · 채우기 = mode C (Card · Dialog) / instance 자기 자식 (Popover · Tooltip root).
 
-1. **영역 seed**: Card 4 영역 (preview · header · content · footer) · Dialog content (새 `frame` "Content" — Description 을 안으로) · Dialog footer (DialogFooter) · Popover · Tooltip root 에 `slot` (없을 때만). DialogFooter · Popover · Tooltip 을 slot host 로.
-2. **자유 내용**: Slot 채우기 절과 Canvas drop 이 영역에 추천 origin 과 팔레트 primitive 를 넣는다 (mode C). 채운 노드는 instance 소유 — 일반 노드처럼 편집.
+1. **영역 seed**: Card 4 영역 (preview · header · content · footer) · Dialog content (새 `frame` "Content" — Description 을 안으로) · Dialog footer action (DialogFooter 안 Close 앞의 새 `frame` "Actions" — Close 는 제자리 고정 부품, mode C 가 host 자식을 통째로 바꾸므로 DialogFooter 자신은 host 가 아니다) · Popover · Tooltip root 에 `slot` (없을 때만). Popover · Tooltip 을 slot host 로.
+2. **자유 내용**: Slot 채우기 절과 Canvas drop 이 영역에 추천 origin 과 팔레트 primitive 를 넣는다 — Card · Dialog 영역 = mode C (교체) · Popover · Tooltip root = instance 자기 자식 (inherited Heading · Description 뒤에 덧붙음 · Clear = 자기 자식 삭제). 채운 노드는 instance 소유 — 편집 쓰기는 mode C 배열 안 그 노드를 고친다 (`descendants["영역/노드"]` patch 는 두 해석기가 읽지 않는다).
 3. **고정 부품 판정**: Dialog `title` · `close` · Calendar `previous`/`next` · Disclosure `trigger` 는 영역 밖 고정 부품 (slot 후보 · drop 대상 아님).
-4. **Dialog 이관**: Content frame 도입에 따른 instance patch 경로 전치 (1회 · 멱등, F7 선례).
+4. **Dialog 이관**: Content frame 도입에 따른 instance patch 경로 전치 (1회 · 멱등, F7 선례) — 이동 노드는 Description 하나. 같은 전치를 저장 history 스냅샷에도 적용하고, 불가한 페이지는 history 명시 무효화.
 5. **Toast 판정**: 저작 모델 밖 — RAC Toast 는 런타임 큐 (R4) 이고 composition Toast 는 생성 진입점 0 (F11). 재개 조건 = Toast 를 띄우는 이벤트 액션 · 팔레트 도입.
 
 기각: B 는 RAC 에 없는 영역 type 을 만든다 · C 는 영역을 고를 수 없다 · D 는 자유 내용을 막는다.
@@ -95,22 +97,24 @@ HIGH 가 없는 C 는 문제를 풀지 못해 기각. A 의 H 는 Dialog 한 가
 
 ## Risks
 
-| ID  | 위험                                                                                                             | 심각도 | 관리                                                                      |
-| --- | ---------------------------------------------------------------------------------------------------------------- | :----: | ------------------------------------------------------------------------- |
-| R1  | Dialog 구조 이관 뒤 기존 instance 의 Description patch 가 새 경로에 안 붙어 글자 · 모양이 origin 값으로 돌아간다 |  HIGH  | G4 — 경로 전치 unit + 이관 전 빌드 arm Canvas 픽셀 · patch 적용 결과 동일 |
-| R2  | mode C 에 primitive 를 넣는 경로가 한 leg (해석기 · 렌더) 에만 닿아 Canvas · Preview 중 한쪽에서 사라진다        |  HIGH  | G2 — Phase 0 진단 (b) 로 해석기 범위 확정 · 두 leg unit (원복 RED)        |
-| R3  | Canvas drop 이 영역 밖 inherited 노드 · 고정 부품 (`close` Button) 에 들어가 origin 구조를 바꾼다                |  MED   | drop 대상 판정 unit (영역 host 만) · live                                 |
-| R4  | 채운 노드가 많은 Card instance 가 `scene.build` 를 늘린다                                                        |  LOW   | G3 A/B                                                                    |
+| ID  | 위험                                                                                                                                                                                  | 심각도 | 관리                                                                                                                                                                   |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | Dialog 구조 이관 뒤 기존 instance 의 Description patch 가 새 경로에 안 붙어 글자 · 모양이 origin 값으로 돌아가거나, 저장 history 의 Undo/Redo 가 이관 전 경로를 되살린다 (리뷰 r1 h2) |  HIGH  | G4 — 경로 전치 unit (문서 + history 스냅샷) + 이관 전 빌드 arm Canvas 픽셀 · patch 적용 결과 동일 · 이관 → Undo → Redo                                                 |
+| R2  | mode C 에 primitive 를 넣는 경로가 한 leg (해석기 · 렌더) 에만 닿아 Canvas · Preview 중 한쪽에서 사라진다                                                                             |  HIGH  | G2 — Phase 0 진단 (b) 로 해석기 범위 확정 · 두 leg unit (원복 RED)                                                                                                     |
+| R3  | Canvas drop 이 영역 밖 inherited 노드 · 고정 부품 (`close` Button) 에 들어가 origin 구조를 바꾼다                                                                                     |  MED   | drop 대상 판정 unit (영역 host 만) · live                                                                                                                              |
+| R5  | footer 를 채우면 Close 가 사라지거나 (mode C 통째 교체), Close 를 옮기면 기존 Close override 가 끊긴다 (리뷰 r1 h1)                                                                   |  HIGH  | Close 제자리 · Actions frame 이 host (Close 경로 불변) · G1 unit: Actions 채움 뒤 Close 존재 · Close override 적용 · 빈 Actions 의 Close 위치 불변 (Phase 0 배치 실측) |
+| R6  | 채운 노드 편집이 두 해석기가 읽지 않는 `descendants["영역/노드"]` 에 쓰여 화면이 안 바뀐다 (리뷰 r1 h3)                                                                               |  HIGH  | Phase 0 진단 (e) RED → G2 편집 쓰기 대상 = mode C 배열 노드 · 편집 · 저장 · Undo/Redo unit (실제 Properties/Styles 쓰기 payload)                                       |
+| R4  | 채운 노드가 많은 Card instance 가 `scene.build` 를 늘린다                                                                                                                             |  LOW   | G3 A/B                                                                                                                                                                 |
 
 ## Gates
 
-| Gate | Phase   | 조건                                                                                                                                                                                                                                       | 실패 시               |
-| ---- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------- |
-| G0   | Phase 0 | F1~~F13 재확인 · 진단 RED 4 (breakdown §4 (a)~~(d)) · 쓰기 경로 표 · Dialog 경로 전치 건수 실측                                                                                                                                            | 본문 개정             |
-| G1   | Phase 1 | unit (원복 RED): 영역 `slot` seed (없을 때만 · 사용자 값 보존) · Card · Dialog · Popover instance 의 Slot 채우기 절에 영역 표시 · 추천 origin 채우기 두 leg · Dialog 경로 전치 (기존 patch 가 새 경로에서 같은 결과) · live (Skia · store) | 해당 가족 보류        |
-| G2   | Phase 2 | unit (원복 RED): primitive 채우기가 Canvas scene · Preview renderer 에 같은 노드 · Canvas drop 대상 = 영역 host 만 (inherited · 고정 부품 거부) · 채운 노드 Properties/Styles 편집 · live (Skia): Card content 영역에 Text drop → rect     | 자유 내용 보류 (D 로) |
-| G3   | Phase 3 | 같은 세션 headed A/B (대조 arm = 240 전 빌드) · `scene.build` p95 median Δ ≤ +1 ms · fixture = 사람이 만든 모양 (Q1) · 불리 조작 (origin 편집 · breakpoint, Q2) · 총비용 A/B (Q3)                                                          | 사용자 판정           |
-| G4   | Phase 3 | BC: Card · Dialog · Popover instance 이관 전후 Canvas 픽셀 동일 (oracle = 240 전 빌드 arm) · Δbyte 수식 · 재hydration Δ0 (IndexedDB 저장 층 live)                                                                                          | Dialog 구조 이관 보류 |
+| Gate | Phase   | 조건                                                                                                                                                                                                                                                                                                                                                               | 실패 시               |
+| ---- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------- |
+| G0   | Phase 0 | F1~~F13 재확인 · 진단 RED 6 (breakdown §4 (a)~~(f)) · 쓰기 경로 표 · Dialog 경로 전치 건수 · 저장 history 항목 수 · DialogFooter 배치 실측                                                                                                                                                                                                                         | 본문 개정             |
+| G1   | Phase 1 | unit (원복 RED): 영역 `slot` seed (없을 때만 · 사용자 값 보존) · Card · Dialog · Popover instance 의 Slot 채우기 절에 영역 표시 · 추천 origin 채우기 두 leg · Dialog 경로 전치 (기존 patch 가 새 경로에서 같은 결과 · history 스냅샷 전치) · Actions 채움 뒤 Close 존재 · Close override 적용 · live (Skia · store)                                                | 해당 가족 보류        |
+| G2   | Phase 2 | unit (원복 RED): primitive 채우기가 Canvas scene · Preview renderer 에 같은 노드 · Canvas drop 대상 = 영역 host 만 (inherited · 고정 부품 거부) · 채운 노드 Properties/Styles 편집이 실제 쓰기 payload 로 두 leg 에 반영 · 저장 · Undo/Redo (진단 (e) GREEN) · Popover root 자기 자식 순서 · Clear · live (Skia): Card content 영역에 Text drop → rect · 글자 편집 | 자유 내용 보류 (D 로) |
+| G3   | Phase 3 | 같은 세션 headed A/B (대조 arm = 240 전 빌드) · `scene.build` p95 median Δ ≤ +1 ms · fixture = 사람이 만든 모양 (Q1) · 불리 조작 (origin 편집 · breakpoint, Q2) · 총비용 A/B (Q3)                                                                                                                                                                                  | 사용자 판정           |
+| G4   | Phase 3 | BC: Card · Dialog · Popover instance 이관 전후 Canvas 픽셀 동일 (oracle = 240 전 빌드 arm) · Δbyte 수식 · 재hydration Δ0 (IndexedDB 저장 층 live) · 저장 history 가 있는 페이지의 이관 → Undo → Redo                                                                                                                                                               | Dialog 구조 이관 보류 |
 
 ### Live Exercise
 

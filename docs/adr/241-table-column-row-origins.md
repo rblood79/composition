@@ -31,11 +31,12 @@ D1 기록 (이 ADR 의 범위 밖, 사실만): Table Preview 는 RAC Table 이 �
 
 ### Hard constraints
 
-- **열 원천 하나**: 같은 Table 에서 Canvas 와 Preview 가 같은 열 (수 · 순서 · 글자 · 폭) 을 쓴다.
+- **열 원천 하나**: 같은 Table 에서 Canvas 와 Preview 가 같은 열 (수 · 순서 · 글자 · 폭) 을 쓴다. 폭 = 유효 폭 `clamp(width ?? 150, minWidth, maxWidth)` — Preview TanStack 이 하는 clamp 를 공용 reader 가 한다.
 - **바인딩 행 = 데이터** (234): 데이터 Table 의 행은 instance 로 만들지 않는다.
-- **셀 = 열 대응**: 정적 행의 셀 수 · 순서는 열과 같다 — 열 추가 · 삭제 · 순서 변경이 한 history 항목에서 모든 정적 행에 반영된다.
+- **셀 = 열 대응**: 이관된 (또는 새) 정적 행의 셀 수 · 순서는 열과 같다 — 열 추가 · 삭제 · 순서 변경이 한 history 항목에서 모든 정적 행에 반영된다. 셀 수가 어긋난 행이 있는 기존 TableView 는 이관하지 않는다 (plain 그대로 — 동기화 대상 아님).
+- **셀 편집 보존**: 이관 뒤 기존 셀의 글자 · 모양 편집 (행 안 · 바깥 instance `descendants`) 이 같은 셀에 적용된다 — 셀은 행 instance 자기 자식으로 노드째 옮긴다.
 - **Canvas 시각 보존 이관**: 기존 TableView · 열이 있는 Table 을 열었을 때 Canvas 픽셀이 이관 전과 같다 (열 원천 통일로 바뀌는 문서 = `props.columns` 와 Column 요소가 어긋난 것 — Phase 0 실측, 그 문서는 Preview 쪽으로 맞춘다).
-- **BC 수식**: 문서당 (i) Components 새 노드 — Column origin 1 · Row origin 1 (+ Cell 템플릿 1) (ii) 사용자 TableView plain Column `c` · Row `r` → ref (셀 `r × c` 는 행 `descendants`) (iii) 데이터 Table Δ0 (열은 요소 그대로 — 원천만 통일). 항목당 byte 는 Phase 0 실측.
+- **BC 수식**: 문서당 (i) Components 새 노드 — Column origin 1 · Row origin 1 (+ Cell 템플릿 1) (ii) 사용자 TableView plain Column `c` · Row `r` → ref (셀 `r × c` 는 행 instance 자기 자식 — 노드 이동, 셀 Δbyte 0) (iii) 데이터 Table Δ0 (열은 요소 그대로 — 원천만 통일). 항목당 byte 는 Phase 0 실측.
 - **성능**: `scene.build` p95 증가 ≤ +1 ms · 500 행 가상화 경로 회귀 없음.
 
 ### Soft constraints
@@ -82,8 +83,8 @@ D1 기록 (이 ADR 의 범위 밖, 사실만): Table Preview 는 RAC Table 이 �
 1. **열 원천 통일**: Canvas 는 해석된 TableHeader 의 Column 요소 (instance 상속 · 자기 열) 에서 열 정의를 얻는다 — 두 leg 가 한 reader. `props.columns` 는 legacy 폴백.
 2. **열 origin**: `component-table-column` (팔레트 밖 reusable). Table · TableView origin 의 TableHeader `slot` = Column origin. "+" 는 형제와 다른 `key` 를 배정.
 3. **instance 열**: Table instance 의 TableHeader 에 instance 자기 열. quick connect · `ADD_COLUMN_ELEMENTS` 가 ref instance 에서도 이 경로로 열을 만든다 (한 history 항목).
-4. **정적 행**: Row origin `component-table-row` (Cell 템플릿) · TableView TableBody `slot` = Row origin. 셀 글자 = 행 instance `descendants`.
-5. **셀 동기화**: 열 추가 · 삭제 · 순서 변경 → 모든 정적 행의 셀 추가 · 삭제 · 순서 변경 (한 history 항목).
+4. **정적 행**: Row origin `component-table-row` (행 모양만) · TableView TableBody `slot` = Row origin. 셀 = 행 instance 자기 자식 (Cell 템플릿 1 개 origin 으로는 2 번째 이후 셀의 경로가 없다 — 해석기는 origin 에 있는 경로에만 patch 를 붙인다). 이관은 기존 셀 노드를 id 째 옮기고, 바깥 instance 경로가 안 닿으면 전치 · 불가하면 이관 보류. **선행**: 두 해석기가 origin 안 중첩 ref 의 자기 자식을 materialize 하고 바깥 `descendants` 를 적용하도록 맞춘다 (지금 Canvas 는 버리고 Preview 는 patch 를 무시 — 새 origin 을 팔레트로 놓아도 셀이 사라지므로 이관 보류로 막을 수 없다).
+5. **셀 동기화**: 열 추가 · 삭제 · 순서 변경 → 모든 정적 행의 셀 추가 · 삭제 · 순서 변경 (한 history 항목). 셀 수가 어긋난 행이 있는 TableView 는 이관 · 동기화 대상이 아니다.
 
 기각: B 는 열을 요소 밖으로 빼 origin 모델을 못 쓴다 · C 는 발산을 키운다 · D 는 234 규칙과 가상화를 깬다.
 
@@ -93,24 +94,27 @@ D1 기록 (이 ADR 의 범위 밖, 사실만): Table Preview 는 RAC Table 이 �
 
 ## Risks
 
-| ID  | 위험                                                                                         | 심각도 | 관리                                                                                    |
-| --- | -------------------------------------------------------------------------------------------- | :----: | --------------------------------------------------------------------------------------- |
-| R1  | 열 원천 통일로 `props.columns` 만 있고 Column 요소가 없는 기존 Table 의 Canvas 열이 사라진다 |  HIGH  | G1 — `props.columns` 폴백 유지 (Column 요소 0 일 때) · Phase 0 에서 해당 문서 모양 실측 |
-| R2  | 셀 동기화가 행마다 다른 셀 수 (진단 (d)) 문서에서 셀 글자를 잃는다                           |  HIGH  | G3 — 어긋난 행은 동기화 전 셀 보존 규칙 (남는 셀 유지 · 모자란 셀만 추가) unit          |
-| R3  | instance 열 추가가 origin 열과 key 가 겹쳐 데이터 필드 매핑이 틀린다                         |  MED   | key 유일 배정 unit (G2) · quick connect 필드 key 사용                                   |
-| R4  | Column 요소 해석이 500 행 projection 경로를 느리게 한다                                      |  MED   | G4 A/B (가상화 fixture)                                                                 |
-| R5  | 렌더러가 RAC 가 아니라 (F6 · F7) 선택 · 행 상태 변형이 계속 Preview 에 없다                  |  MED   | 범위 밖 기록 — 별도 결정 대상으로 보고                                                  |
+| ID  | 위험                                                                                                                               | 심각도 | 관리                                                                                                                      |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------- | :----: | ------------------------------------------------------------------------------------------------------------------------- |
+| R1  | 열 원천 통일로 `props.columns` 만 있고 Column 요소가 없는 기존 Table 의 Canvas 열이 사라진다                                       |  HIGH  | G1 — `props.columns` 폴백 유지 (Column 요소 0 일 때) · Phase 0 에서 해당 문서 모양 실측                                   |
+| R2  | 셀 동기화가 행마다 다른 셀 수 (진단 (d)) 문서에서 셀 글자를 잃거나, 남는 셀을 두면 셀 = 열 계약이 깨진다 (리뷰 r1 m2)              |  HIGH  | G3 · G5 — 셀 수 어긋난 TableView 는 이관 · 동기화 제외 (plain 유지, 픽셀 · 내용 불변) unit                                |
+| R6  | Row ref 이관이 2 번째 이후 셀 편집 · 바깥 instance 셀 override 를 잃는다 (Cell 템플릿 1 개 origin — 리뷰 r1 h1)                    |  HIGH  | 셀 = 행 instance 자기 자식 (노드 id 째 이동) · Phase 0 진단 (f) · G5 기존 셀 편집 적용 동일 · 경로 불가 문서 이관 보류    |
+| R8  | 중첩 ref 자기 자식 해석 규칙 변경이 공용 해석기라 다른 문서 (origin 안 ref 가 자기 자식을 가진 모양) 의 Canvas 를 바꾼다 (리뷰 r2) |  HIGH  | 진단 RED (g) · Phase 0 영향 문서 수 · 바뀌는 쪽은 Preview 와 맞춰지는 방향만 (G5 변경 영역) · 두 해석기 같은 unit fixture |
+| R7  | `width` 만 공유하면 min/max 제한 열에서 Canvas · Preview 폭이 갈린다 (리뷰 r1 m1)                                                  |  MED   | 공용 reader 가 유효 폭 clamp · G1 제한 열 폭 비교 (진단 (e) GREEN)                                                        |
+| R3  | instance 열 추가가 origin 열과 key 가 겹쳐 데이터 필드 매핑이 틀린다                                                               |  MED   | key 유일 배정 unit (G2) · quick connect 필드 key 사용                                                                     |
+| R4  | Column 요소 해석이 500 행 projection 경로를 느리게 한다                                                                            |  MED   | G4 A/B (가상화 fixture)                                                                                                   |
+| R5  | 렌더러가 RAC 가 아니라 (F6 · F7) 선택 · 행 상태 변형이 계속 Preview 에 없다                                                        |  MED   | 범위 밖 기록 — 별도 결정 대상으로 보고                                                                                    |
 
 ## Gates
 
-| Gate | Phase   | 조건                                                                                                                                                                                                        | 실패 시             |
-| ---- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
-| G0   | Phase 0 | F1~~F9 재확인 · 진단 RED 4 (breakdown §4 (a)~~(d)) · 쓰기 경로 표 · 열 원천이 어긋난 문서 모양 · 이관 수식 실측                                                                                             | 본문 개정           |
-| G1   | Phase 1 | unit (원복 RED): Column 요소만 있는 Table → Canvas 데이터 행 셀 = Preview 열 (진단 (a) GREEN) · `props.columns` 만 있는 legacy 무변경 · live (Skia): 열 3 Table 의 셀 rect                                  | 원천 통일 보류      |
-| G2   | Phase 2 | unit (원복 RED): TableHeader Slot "+" · key 유일 · ref instance 열 추가 (quick connect 포함 — 진단 (b) GREEN) · `ADD_COLUMN_ELEMENTS` 경로 · undo 한 번 · live (Skia · store)                               | instance 열 보류    |
-| G3   | Phase 3 | unit (원복 RED): Row Slot "+" · 열 추가/삭제/순서 변경 → 모든 정적 행 셀 동기화 (한 history) · 어긋난 행 셀 보존 · live (Skia): TableView 열 추가 → 행마다 셀                                               | 행 origin 보류      |
-| G4   | Phase 4 | 같은 세션 headed A/B (대조 arm = 241 전 빌드) · `scene.build` p95 median Δ ≤ +1 ms · fixture = 사람이 만든 모양 (Q1) · 불리 조작 (origin 편집 · 열 추가 · breakpoint · 가상화 스크롤, Q2) · 총비용 A/B (Q3) | 사용자 판정         |
-| G5   | Phase 4 | BC: 이관 전후 Canvas 픽셀 (TableView · 열이 맞는 Table, oracle = 241 전 빌드 arm) · 원천이 어긋났던 문서는 Preview 열과 일치 · Δbyte · 재hydration Δ0 (IndexedDB 저장 층 live)                              | 실패 가족 이관 보류 |
+| Gate | Phase   | 조건                                                                                                                                                                                                                                                                                                                                                          | 실패 시             |
+| ---- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
+| G0   | Phase 0 | F1~~F9 재확인 · 진단 RED 7 (breakdown §4 (a)~~(g)) · 쓰기 경로 표 · 열 원천이 어긋난 문서 모양 · 이관 수식 실측                                                                                                                                                                                                                                               | 본문 개정           |
+| G1   | Phase 1 | unit (원복 RED): Column 요소만 있는 Table → Canvas 데이터 행 셀 = Preview 열 (진단 (a) GREEN) · `width:80 · minWidth:120` 열의 두 leg 폭 = 120 (진단 (e) GREEN) · `props.columns` 만 있는 legacy 무변경 · live (Skia): 열 3 Table 의 셀 rect                                                                                                                  | 원천 통일 보류      |
+| G2   | Phase 2 | unit (원복 RED): TableHeader Slot "+" · key 유일 · ref instance 열 추가 (quick connect 포함 — 진단 (b) GREEN) · `ADD_COLUMN_ELEMENTS` 경로 · undo 한 번 · live (Skia · store)                                                                                                                                                                                 | instance 열 보류    |
+| G3   | Phase 3 | unit (원복 RED): Row Slot "+" (열 수만큼 셀) · 열 추가/삭제/순서 변경 → 모든 정적 행 셀 동기화 (한 history) · 셀 수 어긋난 TableView 이관 · 동기화 제외 · 이관 뒤 기존 셀 편집 (행 안 · 바깥 instance) 동일 (진단 (f) GREEN) · 중첩 Row ref 자기 Cell 이 두 leg 에 같은 수 · 바깥 override 적용 (진단 (g) GREEN) · live (Skia): TableView 열 추가 → 행마다 셀 | 행 origin 보류      |
+| G4   | Phase 4 | 같은 세션 headed A/B (대조 arm = 241 전 빌드) · `scene.build` p95 median Δ ≤ +1 ms · fixture = 사람이 만든 모양 (Q1) · 불리 조작 (origin 편집 · 열 추가 · breakpoint · 가상화 스크롤, Q2) · 총비용 A/B (Q3)                                                                                                                                                   | 사용자 판정         |
+| G5   | Phase 4 | BC: 이관 전후 Canvas 픽셀 (TableView · 열이 맞는 Table, oracle = 241 전 빌드 arm) · 원천이 어긋났던 문서는 Preview 열과 일치 · 기존 셀 override 적용 동일 · 셀 수 어긋난 TableView 무변경 · Δbyte · 재hydration Δ0 (IndexedDB 저장 층 live)                                                                                                                   | 실패 가족 이관 보류 |
 
 ### Live Exercise
 

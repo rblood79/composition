@@ -47,7 +47,7 @@
 - 진단 RED:
   - (a) ListBox instance 항목을 선택해도 Properties 에 description on/off 가 없다 (F3).
   - (b) section entry 가 섞인 정적 ListBox · Menu 는 이관되지 않고 `items` 로 남는다 — Slot "+" 가 section 안에 항목을 넣을 수 없다 (F7 · F11).
-  - (c) 같은 section origin 을 참조하는 section instance 둘의 상속 항목이 Preview 에서 같은 RAC key 를 낸다 (F8 · R4 — 선택이 두 항목을 같이 켠다). 238 설계가 이 모양을 만들기 전에 RED 로 고정한다.
+  - (c) 같은 section origin 을 참조하는 section instance 둘의 상속 항목이 Preview 에서 같은 RAC key 를 낸다 (F8 · R4 — 선택이 두 항목을 같이 켠다). section origin 의 항목이 Slot "+" 로 들어가 `props.id` 를 가진 경우를 포함한다 (리뷰 r1 h1). 238 설계가 이 모양을 만들기 전에 RED 로 고정한다.
   - (d) Select · ComboBox 항목 모양을 ListBoxItem origin 에서 바꿔도 Select popover 항목에 닿지 않는다 (F9).
   - (e) GridListItem 에 `slot:"label"` 역할 자식을 더하면 Preview "Invalid slot" (F5 — 역할 표가 RAC slot 이름으로 제한돼야 하는 근거).
 - 쓰기 경로 표: 팔레트 · factory · AI tool · Pencil import · 붙여넣기 · ItemsManager 가 section · Select/ComboBox 항목 · 항목 역할 자식을 어떤 모양으로 쓰는지.
@@ -72,15 +72,23 @@
 
 - **새 type 3**: `ListBoxSection` · `MenuSection` · `GridListSection` (catalog entry — D3 rule, 생성 CSS archetype 명시). 자식 = `Header` (GridList 는 RAC `GridListHeader` 로 렌더) + 항목 instance. Menu 는 section 사이 `Separator` 자식을 허용.
 - **section origin**: Components 페이지에 `component-listbox-section` · `component-menu-section` · `component-gridlist-section` (Header + 항목 ref 2). owner origin (ListBox · Menu · GridList) 의 `slot` 에 section origin 을 더한다 (owner slot 이 없을 때만 seed · 있으면 사용자 값 보존 — 237 그룹 slot 과 같은 조건). section 자신도 slot host (후보 = 그 목록의 항목 origin).
-- **RAC key (R4 · F8)**: 두 leg 의 정적 항목 key 는 **해석 경로를 포함한 유일값** — 상속 항목은 instance 경로 접두 (`<section instance>/<항목 경로>`) 를 key 로 쓴다. `props.id` 가 있으면 그 값 (사용자 저작). Preview 는 44ec413ad 의 객체 동일성 조회를 section 에도 적용.
+- **RAC key (R4 · F8)** — 항목이 문서의 어디에 실제로 있는지로 가른다 (리뷰 r1 h1):
+  - **instance 자기 자식** (Slot "+" · 이관이 만든 항목 — 문서에 실제 노드가 있다) = `resolveStaticItemKey` 그대로 (`props.id`, 없으면 노드 id). 이 `props.id` 는 삽입 · 이관 경로가 형제와 다르게 배정한다 (`collectionItemInsert.ts` · `staticCollectionMigration.ts:390`).
+  - **origin 에서 상속된 항목** (synthetic — section instance 가 section origin 의 항목을 상속) = **항상** `<상속을 연 instance 의 key>/<origin 안 항목 key>`. 상속 항목의 `props.id` 는 origin 에 저장된 값이라 같은 origin 의 instance 둘에서 그대로 겹친다 — `props.id` 가 있어도 접두를 빼지 않는다.
+  - 선택값 (`selectedKeys` · Menu section 의 `selectedKeys`) 이 상속 항목을 가리킬 때도 같은 접두 key 를 쓴다. section 은 새 층이라 기존 문서에 상속 항목을 가리키는 선택값이 없다 — section 이관은 행을 instance 자기 자식으로 만들어 행 `id` 를 `props.id` 로 유지한다.
+  - Preview 는 44ec413ad 의 객체 동일성 조회를 section 에도 적용 (id 조회 충돌과 RAC key 충돌은 별개 — 둘 다 막는다).
 - **이관**: section · separator 가 섞인 정적 `items` → section instance 자식 + 항목 instance (234 가족 표 확장, `hasUnsupportedRows` 에서 section · separator 를 뺀다). 하위 메뉴 행이 있는 Menu 는 계속 건너뛴다 (범위 밖). 바인딩 목록은 `items` 유지 — ItemsManager section UI 는 바인딩 전용으로 남는다.
 - **두 leg**: Canvas layout 은 section 을 block 자식으로 (헤더 행 높이 = catalog `Header` rule), Skia 는 Header 글자 · Separator 선. Preview 는 RAC section 컴포넌트 (D1 그대로).
 
 ### Phase 3 — Select · ComboBox 항목 origin (G3)
 
 - **목록 틀 = owner 자신** (Menu 선례 F10): Select · ComboBox 의 정적 항목 = ListBoxItem origin (`component-listbox-item-default` · `-selected`) 의 instance 자식, section 은 `ListBoxSection` instance. Canvas 는 트리거만 (항목은 popover 내용 — `_hasChildren` 제외), Preview 는 자식을 Popover > ListBox 로 합성.
-- **선택 계약**: `selectedKey` 는 항목 key (`resolveStaticItemKey` — `props.id` 우선) 를 가리킨다. 이관은 행의 `id`/`value` 를 항목 `props.id` 로 옮겨 기존 `selectedKey` 가 같은 항목을 가리키게 한다. Canvas `SelectValue` 글자 reader 는 선택 항목의 label 역할 글자 (없으면 placeholder).
-- **ComboBox 필터링**: 입력 필터는 RAC 가 항목 textValue 로 한다 — 이관 항목에 label 글자 = textValue.
+- **선택 계약** (리뷰 r1 m1 — 행의 `id` 와 `value` 는 다른 값이다, 기본 factory 부터 `id` = UUID · `value` = 업무 값):
+  - 행 `id` → 항목 `props.id` (= RAC key). 기존 `selectedKey` 는 행 `id` 를 가리키므로 같은 항목을 가리킨다.
+  - 행 `value` → 항목 `props.value` (RAC `ListBoxItem` 의 `value` prop — D2 기존 prop, 새 prop 아님. Phase 0 에서 binding `accepts` 선언 확인).
+  - 선택 writeback (`SelectionRenderers.tsx:1362-1370` 의 `selectedKey` → `selectedValue` 조회) 은 정적 자식 경로에서 **선택 항목의 `props.value`** 를 읽는다 (없으면 key). 이관 전과 같은 `selectedValue` 가 저장돼야 한다.
+- **표시 글자** (리뷰 r1 m3): Canvas `SelectValue` reader 는 `selectDisplayValue.ts` 의 우선순위를 그대로 둔다 — ComboBox `inputValue` (자유 입력) → 선택 항목 글자 → placeholder. 바꾸는 것은 "선택 항목 글자" 조회 한 곳 (`items` 행 → canonical 항목 자식의 label 역할 글자) 뿐이다.
+- **ComboBox 필터링** (리뷰 r1 m2): RAC 필터 입력은 항목 `textValue` 다. 이관은 행의 `textValue` 를 **명시값 그대로** 항목 `props.textValue` 로 옮기고, 행에 없을 때만 label 글자를 쓴다 (`SelectionRenderers.tsx:1552` 의 `item.textValue ?? item.label` 과 같은 우선순위).
 - **이관**: 정적 `items` → 항목 instance 자식 (234 가족 표에 Select · ComboBox 행 · `listType: null`). 바인딩 (`dataBinding` · 템플릿) 은 `items` 유지. slot host 표에 Select · ComboBox 행 (후보 = ListBoxItem origin 2 + ListBoxSection origin).
 
 ### Phase 4 — 성능 · BC 종결 (G4 · G5)
