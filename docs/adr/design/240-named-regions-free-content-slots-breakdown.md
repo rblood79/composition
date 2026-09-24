@@ -238,3 +238,9 @@
   - 총시간 Δ (fillEdit · breakpoint) 는 그린 노드 수 비례 (720 vs 640, +12.5% → +11~14%) — base 가 그릴 수 없던 Dialog 채움 · 영역 frame 의 layout 비용.
 
 - **회귀** (최적화 포함): builder 918 파일 — 실패 6 = Phase 2 와 같은 6 (adr113 grep gate 는 base 와 같은 수) · type-check PASS · 240 3 파일 58 PASS · 1 expected fail = (g) · F28 원복 RED 2/2 (재생 스냅샷 이관 off → 반례 2 실패).
+
+### main merge (2026-09-24)
+
+- main (`b774e5331` — ADR-238 Implemented) 을 worktree 에 먼저 merge (`5f04fc9b4`). 충돌 3: `canonicalRefResolution.ts` (238 이 leaf 재사용 기록을 합성 자손 기록 뒤로 옮김 → main 쪽) · `reusableCompositeOrigins.ts` (파이프라인에 240 `ensureRegionSlots` 와 238 `ensureCollectionSectionOrigins` 를 함께 — 영역 seed 가 가장 바깥) · `docs/adr/README.md` (두 줄 모두). `slotRoles.ts` · `slotHostPolicy.ts` 는 자동 병합.
+- 합친 트리: type-check PASS · builder 921 파일 실패 6 (기존과 같은 6 · adr113 gate base 와 같은 수) · shared 실패 1 (기존 — 다른 1 은 238 이 해소) · live Phase 1 6/6 · Phase 2 9/9 (worktree dev 5181, Skia · store).
+- 번들 (production initial closure JS gzip, `adr209-bundle-closure.mjs`, main `b774e5331` → `5f04fc9b4`): Builder 1,396,132 → 1,399,302 (**+3,170 B**) · Preview 643,341 → 644,646 (**+1,305 B**). main 이 이미 ADR-201 상한 (1,328,315 / 601,346) 을 +67,817 / +41,995 넘어 있다 (240 밖 기존 초과) — 사용자 판정 "merge · push 진행" (2026-09-24).
