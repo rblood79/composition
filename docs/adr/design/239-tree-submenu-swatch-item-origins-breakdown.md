@@ -1,6 +1,6 @@
 # ADR-239 구현 상세 — Tree · Menu 하위 메뉴 · ColorSwatchPicker 항목 origin (재귀 항목)
 
-> 본문: [ADR-239](../239-tree-submenu-swatch-item-origins.md) · base: [ADR-234](../completed/234-variant-instances-and-slot-filled-collections.md) · 선행: [ADR-238](../completed/238-collection-item-slots-sections-picker-items.md) (항목 역할 표 · 경로 포함 항목 key)
+> 본문: [ADR-239](../completed/239-tree-submenu-swatch-item-origins.md) · base: [ADR-234](../completed/234-variant-instances-and-slot-filled-collections.md) · 선행: [ADR-238](../completed/238-collection-item-slots-sections-picker-items.md) (항목 역할 표 · 경로 포함 항목 key)
 
 ## 1. 전제 확정 기록 (fork 4 질문 · 사용자 confirm)
 
@@ -166,3 +166,17 @@
 - live 13/13 (P4 추가 3): 기존 plain picker (같은 색 둘) reload 이관 뒤 swatch rect 동일 [0/32/64, 28×28] · swatch = `component-colorswatch` ref · picker instance Slot "+" → swatch 7 · 새 색 #FF8000 · 28×28 · ColorSwatch origin borderRadius 3 → instance swatch Skia 상자 radius 9999 → 3.
 - 원복 RED 7/7: 이관 null 삭제 · 이관 끄기 · 색 유일 · binding props · swatch 모양 · 그룹 host 행 · 등록.
 - 회귀: builder 7,499 · shared 기존 실패 1 (Modal) · specs 1,387 · type-check 0.
+
+### Phase 5 — 성능 · BC (G5 · G6, 2026-09-25)
+
+- **대조 arm**: `a2d1fe649` detached worktree (scratchpad `base239`, 그 lockfile 로 `pnpm install` · 엔진 wasm 은 소스 동일이라 복사) · dev 5182. 239 arm = worktree dev 5181.
+- **G5 1차 미달 → 원인**: 브라우저 A/B (`adr239-g5-perf-ab.mjs`, tree = Tree 20 × 3 단계 30 항목 · menu = Menu 20 × 하위 메뉴 2 단계) 에서 tree 편집 p95 +5~6 ms. node bench (`adr239G5.sceneBench.test.ts`, `ADR239_BENCH=1`, 두 worktree · 60 표본) + CPU 프로파일: `resolveCanonicalRefTree` 54% — TreeItem ref 600 중 자기 자식 있는 400 이 237 leaf 재사용 대상 밖이라 편집마다 전부 다시 해석. (bench 편집 helper 가 모든 부모를 새 객체로 만들어 재사용을 원천 차단하던 것도 구조 공유로 고침 — store 편집과 같은 모양.)
+- **수리**: `readLeafDeps` 가 자기 자식 있는 TreeItem instance 도 받는다 — 해석이 자기 자식에서 읽는 것이 없고 (펼침 = 해석 뒤 위치 층) 자기 canonical 노드가 subtree 를 대신한다. 소속 Tree canonical 동일성을 deps 에 (조상 3 단계 밖). 평탄 입력 (sourceNode 없음) 은 제외 (방어 가드 — production 경로 0). 곁들여 `removeSceneSubtrees` 영향 부모만 갱신 · `{{ }}` 검사 props 단위 캐시.
+- **발견 결함 1 (깊은 Tree)**: 선택 owner · 접힘 층의 소속 Tree 조회가 조상 3 단계 (`findAncestor` 기본값) 라 5 단계 항목의 Canvas 선택 · 접힘 층이 빠졌다 (Preview RAC 는 깊이 제한 없음 — D3 발산). Tree owner 만 32 단계.
+- **G5 최종 (브라우저, pairs 3 · p95 median Δ)**: menu ownerEdit +0.3 · originEdit +0.6 · expand +0.7 · breakpoint +0.2 (통과). tree ownerEdit +1.7 · originEdit +3.5 · expand +3.2 · breakpoint +1.3 (미달) · 총비용 Δ ownerEdit 0 · originEdit +0.5 · expand +1.4 · breakpoint +106.5 ms (행이 쌓여 layout 노드 증가). node bench tree ownerEdit p95 2.37 → 4.17 · expand 2.04 → 4.05 · originEdit 1.91 → 6.15 (base 는 같은 자리 origin 이 없어 Tree origin 편집 — 항목 무효화 없음, 짝 비교 아님). 남은 차이 = Label Text scene 노드 +626 (1064 → 1690, +59%) 에 비례하는 구조 비용.
+- **G5 사용자 판정 (2026-09-25)**: "예외로 기록 후 종결" — R4 예외.
+- **G6 (`adr239-g6-bc-live.mjs`)**: 보존 — ColorSwatchPicker · Menu 트리거 (평면 · 하위 메뉴) · Menu origin 픽셀 0 · 중첩 없는 Tree rect 동일 [260×106] (글자 weight 500 → 400 만 — Phase 1 기록, 3.7%). 변경 — 중첩 Tree 106 → 170 (행이 쌓임 · chevron 아래) · `expandedKeys: [a]` Tree 106 → 138 (Reports 접힘 · Q3 숨김) · Tree origin rect 동일 (weight). 재hydration Δ0 · 전체 노드 340 → 361 (origin 추가) · subtree byte: 평면 Tree 363 → 600 · 중첩 521 → 998 · swatch picker 589 → 813 · 하위 메뉴 Menu 319 → 1315 (노드 1 → 6). 1 회차의 menu-sub 75% 는 base arm 하니스 viewport 오류 (`Viewport interaction session has not begun` × 15) 로 다른 곳을 찍은 것 — 2 회차 오류 0 · 픽셀 0.
+- **발견 결함 2 (history body 스냅샷 — 240 F28 가족)**: canonical 이벤트 Undo 는 정규화를 거치지 않아, 239 전 Components body 스냅샷 Undo 가 이관이 더한 origin (TreeItem · ColorSwatch · ColorSwatchPicker) 을 지워 항목 ref 가 끊기고 `component-tree` 가 plain 항목으로 돌아갔다. `alignItemOriginSnapshots` (`components/itemOriginSnapshots.ts`) 가 재생 스냅샷에 (a) 현재 body 에 있고 그 history 항목의 어느 body 스냅샷에도 없는 origin 을 싣고 (b) Tree · swatch 이관을 다시 적용한다. live: 239 전 body 스냅샷 1 건을 저장 history 에 넣고 이관 뒤 Undo · Redo → origin 3 유지 · `component-tree` 자식 ref · Home 항목 · swatch ref 대상 존재.
+- unit: `adr239G5.treeReuse.test.tsx` 5 · `adr239G6.historySnapshots.test.tsx` 3. 원복 RED 7/8 (깊이 2 · 재사용 제외 · Tree deps · history 연결 · origin carry · 이관 재적용 — 평탄 입력 가드만 GREEN, 방어).
+- 회귀: builder 7,507 · type-check 0.
+- 번들 (production initial closure JS gzip, `adr209-bundle-closure.mjs`, `a2d1fe649` → `8a9b072f5`): Builder 1,399,358 → 1,403,536 (**+4,178 B**) · Preview 644,715 → 647,643 (**+2,928 B**) · CSS +5 B · lazy chart 0. base 가 이미 ADR-201 상한 (1,328,315 / 601,346) 을 +71,043 / +43,369 넘어 있다 (239 밖 기존 초과, 240 과 같은 상황) — merge 전 사용자 확인 대상.

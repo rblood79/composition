@@ -2,11 +2,13 @@
 
 ## Status
 
-Accepted — 2026-09-25 (사용자 지시 `/execute-adr 239`, Codex 리뷰 판독 1 + 수리 검증 1 + round 3 이슈 0 종결 후 · worktree `adr-239`) · Proposed — 2026-09-24
+Implemented — 2026-09-25 (worktree `adr-239` Phase 0~5 / G0~G6 · [실행 기록](../design/239-tree-submenu-swatch-item-origins-breakdown.md#5-실행-기록)) · Accepted — 2026-09-25 (사용자 지시 `/execute-adr 239`, Codex 리뷰 판독 1 + 수리 검증 1 + round 3 이슈 0 종결 후 · worktree `adr-239`) · Proposed — 2026-09-24
+
+G5 는 사용자 판정으로 닫았다 (2026-09-25): menu fixture 는 전부 통과 (Δ ≤ +0.7 ms), tree fixture (Tree 20 × 3 단계 30 항목) 편집 `scene.build` p95 +1.3 ~ 3.5 ms 로 미달 → 자기 자식 있는 TreeItem instance 해석 재사용 (9.6 → 6.7 ms) 뒤에도 남은 차이는 항목마다 붙는 Label Text scene 노드 (+59%) 의 구조 비용 → "예외로 기록 후 종결" (R4). G6 에서 이관 전 Components body 스냅샷 Undo 가 새 origin 을 지우는 결함 (240 F28 가족) 과 깊은 Tree (5 단계) 의 Canvas 선택 · 접힘 누락을 찾아 수리했다.
 
 G0 개정 (2026-09-25): 239 전 Canvas 는 중첩 TreeItem 을 부모 행 위에 겹쳐 그린다 ("전부 펼쳐 그린다" 가 아님, breakdown §5 N1) → 사용자 판정 "A 유지: 전부 펼침" — Hard constraint 의 Canvas 보존 영역 · G6 를 좁혔다.
 
-설계 요청: 사용자 (2026-09-24) — RAC 조사 후보 중 ADR-238 에 넣지 않은 항목을 "설계부터 하자" → 사용자 판정 (AskUserQuestion): 3 ADR 로 분리 (239 Tree · 240 이름 영역 · 241 Table), 작은 항목 (Menu 하위 메뉴 · LoadMore · ColorSwatchPicker) 은 이 ADR 에 포함. 전제 기록: [breakdown §1](design/239-tree-submenu-swatch-item-origins-breakdown.md#1-전제-확정-기록-fork-4-질문--사용자-confirm).
+설계 요청: 사용자 (2026-09-24) — RAC 조사 후보 중 ADR-238 에 넣지 않은 항목을 "설계부터 하자" → 사용자 판정 (AskUserQuestion): 3 ADR 로 분리 (239 Tree · 240 이름 영역 · 241 Table), 작은 항목 (Menu 하위 메뉴 · LoadMore · ColorSwatchPicker) 은 이 ADR 에 포함. 전제 기록: [breakdown §1](../design/239-tree-submenu-swatch-item-origins-breakdown.md#1-전제-확정-기록-fork-4-질문--사용자-confirm).
 
 ## Context
 
@@ -28,7 +30,7 @@ RAC 에서 **항목 안에 같은 종류 항목이 들어가는** 재귀 collect
 
 ### 코드 사실
 
-레퍼런스 R1~~R6 · 코드 사실 F1~~F11 (경로:라인) 은 [breakdown §2 · §3](design/239-tree-submenu-swatch-item-origins-breakdown.md#2-레퍼런스--rac-react-aria-components1210--starter-packagesreact-aria-startersrc-read-only).
+레퍼런스 R1~~R6 · 코드 사실 F1~~F11 (경로:라인) 은 [breakdown §2 · §3](../design/239-tree-submenu-swatch-item-origins-breakdown.md#2-레퍼런스--rac-react-aria-components1210--starter-packagesreact-aria-startersrc-read-only).
 
 ### Hard constraints
 
@@ -91,7 +93,7 @@ RAC 에서 **항목 안에 같은 종류 항목이 들어가는** 재귀 collect
 
 범위 밖: TreeSection (RAC alpha) · Tree drag and drop · NavigationTree · ColorSwatch Canvas 색 (06-11 방침).
 
-> 구현 상세: [239-tree-submenu-swatch-item-origins-breakdown.md](design/239-tree-submenu-swatch-item-origins-breakdown.md)
+> 구현 상세: [239-tree-submenu-swatch-item-origins-breakdown.md](../design/239-tree-submenu-swatch-item-origins-breakdown.md)
 
 ## Risks
 
@@ -118,7 +120,11 @@ RAC 에서 **항목 안에 같은 종류 항목이 들어가는** 재귀 collect
 
 ### Live Exercise
 
-(Implemented 승격 시 기재)
+실제 builder (worktree dev 5181 · 대조 arm 239 전 빌드 5182, headed Playwright · Skia 픽셀 · store · IndexedDB — Compare Mode · Preview iframe 은 열지 않음, Preview 는 renderer unit):
+
+- `apps/builder/scripts/adr239-live-exercise.mjs` 13/13 — P1 팔레트 Tree 중첩 행 쌓임 · 들여쓰기 · TreeItem Slot "+" · reload · P2 chevron 접기 (Tree 170 → 106 · chevron path 아래 → 오른쪽) · Undo/Redo · reload 뒤 `[]` 유지 · P3 239 전 Menu (`children` 행) reload 이관 · 트리거 68×30 동일 · P4 239 전 picker (같은 색 둘) reload 뒤 swatch rect 동일 · picker instance Slot "+" 새 색 #FF8000 28×28 · ColorSwatch origin borderRadius 9999 → 3 이 instance swatch Skia 상자에.
+- `apps/builder/scripts/adr239-g6-bc-live.mjs` (G6) — 239 전 빌드에서 만든 문서 · 저장 history 를 새 빌드에 넣고 reload: ColorSwatchPicker · Menu 트리거 (평면 · 하위 메뉴) · Menu origin 픽셀 0 · 중첩 없는 Tree rect 동일 (글자 weight 500 → 400 — DOM 과 같은 값) · 중첩 Tree 행 쌓임 106 → 170 · `expandedKeys` 보존 Tree 접힌 자식 숨김 106 → 138 · 재hydration Δ0 · 239 전 Components body 스냅샷 Undo · Redo 뒤 TreeItem · ColorSwatch · ColorSwatchPicker origin 유지 · 항목 ref 대상 존재.
+- `apps/builder/scripts/adr239-g5-perf-ab.mjs` (G5) — menu 전부 Δ ≤ +0.7 ms · tree Δ +1.3 ~ +3.5 ms → 사용자 판정 "예외로 기록 후 종결" (R4, 구조 비용 = Label Text scene 노드 +59%) — breakdown §5 Phase 5.
 
 ## Consequences
 

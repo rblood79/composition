@@ -11,6 +11,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Tree · Menu 하위 메뉴 · ColorSwatchPicker 항목 origin (ADR-239)] - 2026-09-25
+
+### Added
+
+- **Tree 항목 컴포넌트**: TreeItem 이 Components 페이지 origin (`component-tree-item-default` — 선택 · 비선택 · 접힘 · 비활성 · 상호작용 변형) 을 갖는다. Tree · TreeItem instance 를 선택하면 Slot 절의 "+" 로 항목 · 하위 항목을 넣는다 (접힌 항목에 넣으면 그 항목이 펼쳐진다). 항목 안 아이콘 · 글자 · 설명은 항목 slot 역할이다.
+- **Menu 하위 메뉴**: MenuItem instance 안에 MenuItem 을 넣으면 Preview 에서 하위 메뉴 (RAC `SubmenuTrigger`) 가 된다. 기존 문서의 정적 `items` 중 `children` 이 있는 행은 열 때 중첩 MenuItem instance 로 옮겨진다. Canvas 는 트리거만 그린다 (전과 같음).
+- **ColorSwatchPicker 항목 컴포넌트**: ColorSwatch · ColorSwatchPicker origin 이 생기고, picker 의 Slot "+" 는 형제와 겹치지 않는 색 (같은 크기) 의 swatch 를 넣는다. 기존 picker 의 swatch 는 같은 모양 그대로 origin instance 가 된다. Preview picker 에 `defaultValue` · `layout` · 항목 비활성이 닿고, swatch origin 모양 (모서리 등) 편집이 Canvas · Preview 둘 다에 반영된다.
+
+### Changed
+
+- **Canvas Tree 의 중첩 항목이 부모 행 아래에 쌓여 그려진다** — 239 전 Canvas 는 자식 항목을 부모 행 위에 겹쳐 그렸다. 펼침 정본은 Tree `expandedKeys` 이고 Canvas · Preview 가 같이 읽는다 (chevron 으로 접으면 저장 · Undo 됨). 기존 문서의 Tree 는 `expandedKeys` 가 없거나 비어 있으면 부모 항목 전부 펼침으로 한 번 채우고, 이미 값이 있으면 그대로 둔다 (그 값에서 접힌 항목의 자식 행은 이제 숨겨진다).
+- Tree 항목 글자는 Label Text (weight 400) 가 그린다 — 239 전 Canvas 의 500 이 DOM 과 달랐다. 항목 상자 크기는 같다.
+
+### Fixed
+
+- **깊은 Tree (5 단계 이상) 항목의 Canvas 선택 · 접힘 표시가 빠지던 문제** — 소속 Tree 를 조상 3 단계까지만 찾았다 (Preview 는 제한 없음).
+- **이관 전에 저장된 Components 편집 기록을 Undo 하면 새 항목 origin 이 사라지던 문제** — Undo · Redo 가 되살리는 스냅샷을 항목 origin 이관에 맞춘다 (ADR-240 영역 이관과 같은 방식).
+  - 위치: `apps/builder/src/builder/components/tree/` · `components/colorswatch/` · `components/itemOriginSnapshots.ts` · `adapters/canonical/canonicalRefResolution.ts` · `workspace/canvas/treeItemRow.ts` · `packages/shared/src/renderers/CollectionRenderers.tsx` · `LayoutRenderers.tsx` · `components/Menu.tsx`
+  - 성능: 중첩 Tree 편집의 `scene.build` p95 가 +1.3 ~ 3.5 ms (Tree 20 × 30 항목 fixture) — 항목 글자 노드만큼의 구조 비용, 사용자 판정으로 예외 (ADR-239 R4). Menu 는 +0.7 ms 이하. Preview 는 unit 으로 확인 — 사용자 확인 대상.
+
 ## [새 Dialog 의 Styles "수정 2" · 정적 게이트 정비] - 2026-09-25
 
 ### Fixed
