@@ -32,6 +32,7 @@ import type { WorkspaceProps } from "./types";
 import "./Workspace.css";
 
 export function Workspace({
+  projectId,
   breakpoint,
   breakpoints,
   fallbackCanvas,
@@ -54,6 +55,7 @@ export function Workspace({
     containerRef,
   });
   const { canvasSize } = useWorkspaceCanvasSizing({
+    projectId,
     breakpoint,
     breakpoints,
     canvasAreaRef,

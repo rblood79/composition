@@ -12,6 +12,7 @@ const BREAKPOINTS = [
   { id: "tablet", label: "Tablet", max_width: 768, max_height: 1024 },
   { id: "mobile", label: "Mobile", max_width: 390, max_height: 844 },
 ];
+const PROJECT_ID = "project-a";
 
 function createRefElement(width = 1000, height = 700) {
   const element = document.createElement("div");
@@ -24,7 +25,9 @@ function createRefElement(width = 1000, height = 700) {
 
 function readStoredViewports() {
   return JSON.parse(
-    window.localStorage.getItem(WORKSPACE_CANVAS_VIEWPORT_STORAGE_KEY) ?? "{}",
+    window.localStorage.getItem(
+      `${WORKSPACE_CANVAS_VIEWPORT_STORAGE_KEY}:${PROJECT_ID}`,
+    ) ?? "{}",
   );
 }
 
@@ -63,6 +66,7 @@ describe("useWorkspaceCanvasSizing viewport persistence", () => {
 
     renderHook(() =>
       useWorkspaceCanvasSizing({
+        projectId: PROJECT_ID,
         breakpoint: new Set(["mobile"]),
         breakpoints: BREAKPOINTS,
         canvasAreaRef,
@@ -83,6 +87,7 @@ describe("useWorkspaceCanvasSizing viewport persistence", () => {
     const result = renderHook(
       ({ breakpoint }) =>
         useWorkspaceCanvasSizing({
+          projectId: PROJECT_ID,
           breakpoint: new Set([breakpoint]),
           breakpoints: BREAKPOINTS,
           canvasAreaRef,
@@ -115,6 +120,7 @@ describe("useWorkspaceCanvasSizing viewport persistence", () => {
 
     const rendered = renderHook(() =>
       useWorkspaceCanvasSizing({
+        projectId: PROJECT_ID,
         breakpoint: new Set(["desktop"]),
         breakpoints: BREAKPOINTS,
         canvasAreaRef: { current: container },
@@ -138,7 +144,7 @@ describe("useWorkspaceCanvasSizing viewport persistence", () => {
 
   it("restores the persisted desktop viewport after initial sizing", () => {
     window.localStorage.setItem(
-      WORKSPACE_CANVAS_VIEWPORT_STORAGE_KEY,
+      `${WORKSPACE_CANVAS_VIEWPORT_STORAGE_KEY}:${PROJECT_ID}`,
       JSON.stringify({ desktop: { x: 120, y: 80, scale: 1.25 } }),
     );
 
@@ -147,6 +153,24 @@ describe("useWorkspaceCanvasSizing viewport persistence", () => {
     expect(useViewportSyncStore.getState()).toMatchObject({
       panOffset: { x: 120, y: 80 },
       zoom: 1.25,
+    });
+  });
+
+  it("starts at the centered viewport when another project has an offscreen camera", () => {
+    window.localStorage.setItem(
+      WORKSPACE_CANVAS_VIEWPORT_STORAGE_KEY,
+      JSON.stringify({ desktop: { x: -9000, y: -9000, scale: 1 } }),
+    );
+    window.localStorage.setItem(
+      `${WORKSPACE_CANVAS_VIEWPORT_STORAGE_KEY}:another-project`,
+      JSON.stringify({ desktop: { x: -9000, y: -9000, scale: 1 } }),
+    );
+
+    renderSizing();
+
+    expect(useViewportSyncStore.getState()).toMatchObject({
+      panOffset: { x: -460, y: -190 },
+      zoom: 1,
     });
   });
 

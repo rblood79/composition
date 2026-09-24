@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [프로젝트 진입 시 초기 페이지 표시 — viewport 저장 범위] - 2026-09-25
+
+### Fixed
+
+- **프로젝트를 열 때 Home 페이지가 화면 밖에 놓이던 문제**: breakpoint별 카메라 위치와 배율을 프로젝트별로 저장하고 복원한다. 새 프로젝트는 가운데 놓인 기본 viewport에서 시작하며, 같은 프로젝트를 다시 열면 그 프로젝트의 카메라가 복원된다.
+  - **Why:** 기존 viewport 저장 키가 모든 프로젝트에 공통이라 다른 프로젝트에서 이동한 카메라가 새 프로젝트에도 적용됐다.
+  - 위치: `apps/builder/src/builder/workspace/hooks/workspaceCanvasViewportPersistence.ts` · `useWorkspaceCanvasSizing.ts` · `Workspace.tsx` · `main/BuilderCore.tsx`
+
 ## [Tree · Menu 하위 메뉴 · ColorSwatchPicker 항목 origin (ADR-239)] - 2026-09-25
 
 ### Added

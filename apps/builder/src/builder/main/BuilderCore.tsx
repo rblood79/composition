@@ -1501,6 +1501,8 @@ export const BuilderCore: React.FC = () => {
         }
       >
         <Workspace
+          key={projectId}
+          projectId={projectId}
           breakpoint={breakpoint}
           breakpoints={breakpoints}
           fallbackCanvas={

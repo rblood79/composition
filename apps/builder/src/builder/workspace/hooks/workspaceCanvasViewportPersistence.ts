@@ -29,16 +29,17 @@ function isValidViewport(value: unknown): value is WorkspaceCanvasViewport {
 }
 
 export function loadWorkspaceCanvasViewports(
+  projectId: string | null | undefined,
   validBreakpointIds: ReadonlySet<string>,
 ): Map<string, WorkspaceCanvasViewport> {
   const result = new Map<string, WorkspaceCanvasViewport>();
-  if (typeof window === "undefined") {
+  if (typeof window === "undefined" || !projectId) {
     return result;
   }
 
   try {
     const stored = window.localStorage.getItem(
-      WORKSPACE_CANVAS_VIEWPORT_STORAGE_KEY,
+      `${WORKSPACE_CANVAS_VIEWPORT_STORAGE_KEY}:${projectId}`,
     );
     if (!stored) {
       return result;
@@ -66,10 +67,11 @@ export function loadWorkspaceCanvasViewports(
 }
 
 export function saveWorkspaceCanvasViewports(
+  projectId: string | null | undefined,
   viewports: ReadonlyMap<string, WorkspaceCanvasViewport>,
   validBreakpointIds: ReadonlySet<string>,
 ): void {
-  if (typeof window === "undefined") {
+  if (typeof window === "undefined" || !projectId) {
     return;
   }
 
@@ -86,7 +88,7 @@ export function saveWorkspaceCanvasViewports(
 
   try {
     window.localStorage.setItem(
-      WORKSPACE_CANVAS_VIEWPORT_STORAGE_KEY,
+      `${WORKSPACE_CANVAS_VIEWPORT_STORAGE_KEY}:${projectId}`,
       JSON.stringify(serializable),
     );
   } catch {

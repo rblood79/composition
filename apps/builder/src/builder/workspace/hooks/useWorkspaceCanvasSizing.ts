@@ -22,6 +22,7 @@ import type { PageLayoutPanelMetrics } from "../canvas/pageLayoutConstants";
 import { useStore } from "../../stores";
 
 interface UseWorkspaceCanvasSizingOptions {
+  projectId?: string | null;
   breakpoint?: Set<Key>;
   breakpoints?: Breakpoint[];
   /**
@@ -93,6 +94,7 @@ function syncCanvasLayoutVersion(container: HTMLDivElement): void {
 }
 
 export function useWorkspaceCanvasSizing({
+  projectId,
   breakpoint,
   breakpoints,
   canvasAreaRef,
@@ -178,7 +180,7 @@ export function useWorkspaceCanvasSizing({
     [breakpoints],
   );
   const [breakpointViewports] = useState<Map<string, WorkspaceCanvasViewport>>(
-    () => loadWorkspaceCanvasViewports(validBreakpointIds),
+    () => loadWorkspaceCanvasViewports(projectId, validBreakpointIds),
   );
   const viewportPersistenceTimerRef = useRef<ReturnType<
     typeof setTimeout
@@ -203,9 +205,13 @@ export function useWorkspaceCanvasSizing({
         y: currentViewport.panOffset.y,
         scale: currentViewport.zoom,
       });
-      saveWorkspaceCanvasViewports(breakpointViewports, validBreakpointIds);
+      saveWorkspaceCanvasViewports(
+        projectId,
+        breakpointViewports,
+        validBreakpointIds,
+      );
     },
-    [breakpointViewports, validBreakpointIds],
+    [breakpointViewports, projectId, validBreakpointIds],
   );
 
   const scheduleViewportPersistence = useCallback(() => {

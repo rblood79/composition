@@ -8,6 +8,8 @@ export interface Breakpoint {
 }
 
 export interface WorkspaceProps {
+  /** viewport 저장 범위를 정하는 현재 프로젝트 */
+  projectId?: string | null;
   /** 현재 선택된 breakpoint */
   breakpoint?: Set<Key>;
   /** breakpoint 목록 */
