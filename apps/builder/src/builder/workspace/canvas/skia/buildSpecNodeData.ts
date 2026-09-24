@@ -20,7 +20,9 @@ import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import { readForcedVariantStates } from "../../../components/stateVariantLayers";
 import {
   applyItemLabelTypography,
+  applySectionHeaderStyle,
   resolveItemLabelTypography,
+  resolveSectionHeaderStyle,
   resolveItemLeadingAvatarSize,
 } from "./itemLabelInheritance";
 import type { SkiaNodeData } from "./nodeRendererTypes";
@@ -1619,6 +1621,18 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
     };
   }
 
+  // ADR-238 Phase 2 — 목록 section 의 Header (DOM 목록 규칙) — layout (fullTreeLayout) 과 같은 resolver.
+  const sectionHeaderStyle = resolveSectionHeaderStyle(element, elementsMap);
+  if (sectionHeaderStyle) {
+    specProps = {
+      ...specProps,
+      style: applySectionHeaderStyle(
+        specProps.style as Record<string, unknown> | undefined,
+        sectionHeaderStyle,
+      ),
+    };
+  }
+
   // InlineAlert → Heading/Description font 위임 — 사용자 명시 style 우선 (?? fallback).
   const inlineAlertFont = resolveInlineAlertChildFont(element, elementsMap);
   if (inlineAlertFont) {
@@ -1801,9 +1815,15 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
   //   chevron 조건은 위 `_hasTreeChildren` 으로 분리 처리.
   // ADR-234 Phase 3f — Menu 의 MenuItem 자식은 popover 내용 (layout 도 빼고 Canvas 는 트리거만) 이라 자식으로
   //   세지 않는다 — 세면 트리거 글자가 shell-only 로 사라진다.
+  //   ADR-238 Phase 2 — MenuSection · Separator 자식도 popover 내용.
   const layoutChildren =
     type === "Menu"
-      ? childElements?.filter((child) => child.type !== "MenuItem")
+      ? childElements?.filter(
+          (child) =>
+            child.type !== "MenuItem" &&
+            child.type !== "MenuSection" &&
+            child.type !== "Separator",
+        )
       : childElements;
   if (SHELL_ONLY_CONTAINER_TAGS.has(type)) {
     specProps = { ...specProps, _hasChildren: true };

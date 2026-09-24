@@ -127,6 +127,10 @@ function findSlotChildKey(origin: CanonicalNode, role: string): string | null {
 }
 
 /**
+ * origin id 필드는 getter — 이 모듈은 항목 origin 모듈과 순환 import 안이라 (listBoxTemplateOrigins → … →
+ * reusableCompositeOrigins → 여기) 가족 객체를 만들 때 상수를 복사하면 진입 순서에 따라 undefined 로 굳는다
+ * (ADR-238 Phase 2 실측 — 새 프로젝트 경로). getter 는 접근 시점에 live binding 을 읽는다.
+ *
  * 정적 목록 가족 — owner (items 보유) · 목록 틀 (항목 자식을 담는 노드) · 항목 origin 기본 id · 행 →
  * 항목 instance 의 props / descendants.
  */
@@ -139,6 +143,17 @@ export interface StaticCollectionFamily {
   defaultOriginId: string;
   /** Components 페이지 origin 에 slot 이 없을 때 싣는 추천 목록 (기본 `[defaultOriginId]`). */
   originSlot?: readonly string[];
+  /** ADR-238 Phase 2 — section 층 type (RAC `ListBoxSection` …). 있으면 section · separator 행도 이관한다. */
+  sectionType?: string;
+  /** ADR-238 Phase 2 — section 사이 `Separator` 행을 허용하는가 (Menu). */
+  allowsSeparators?: boolean;
+  /**
+   * ADR-238 Phase 3 — owner 가 항목 외 sub-part 자식 (Label · SelectTrigger …) 을 갖는 목록 틀 (Select · ComboBox).
+   * 이관 여부는 항목 · section 자식으로 판정하고, 항목 자식은 sub-part 뒤에 붙는다.
+   */
+  ownerKeepsSubparts?: boolean;
+  /** ADR-238 Phase 3 — Slot "+" 가 선택 모양 후보를 넣어도 owner 선택 key 를 쓰지 않는다 (Select · ComboBox). */
+  skipsSelectionOnInsert?: boolean;
   buildItem(
     item: Record<string, unknown>,
     origin: CanonicalNode,
@@ -158,7 +173,9 @@ export const TABS_STATIC_FAMILY: StaticCollectionFamily = {
   listType: "TabList",
   itemType: "Tab",
   itemPrefix: "tab",
-  defaultOriginId: TAB_ITEM_DEFAULT_ORIGIN_ID,
+  get defaultOriginId() {
+    return TAB_ITEM_DEFAULT_ORIGIN_ID;
+  },
   buildItem(item, origin) {
     return {
       props: item.isDisabled === true ? { isDisabled: true } : {},
@@ -175,7 +192,9 @@ export const TAGGROUP_STATIC_FAMILY: StaticCollectionFamily = {
   listType: "TagList",
   itemType: "Tag",
   itemPrefix: "tag",
-  defaultOriginId: TAG_ITEM_DEFAULT_ORIGIN_ID,
+  get defaultOriginId() {
+    return TAG_ITEM_DEFAULT_ORIGIN_ID;
+  },
   buildItem(item, origin) {
     const descendants: Record<string, unknown> = labelDescendant(
       origin,
@@ -226,7 +245,10 @@ export const LISTBOX_STATIC_FAMILY: StaticCollectionFamily = {
   listType: null,
   itemType: "ListBoxItem",
   itemPrefix: "item",
-  defaultOriginId: LISTBOX_ITEM_DEFAULT_ORIGIN_ID,
+  get defaultOriginId() {
+    return LISTBOX_ITEM_DEFAULT_ORIGIN_ID;
+  },
+  sectionType: "ListBoxSection",
   buildItem(item, origin) {
     return {
       props: {
@@ -256,7 +278,10 @@ export const GRIDLIST_STATIC_FAMILY: StaticCollectionFamily = {
   listType: null,
   itemType: "GridListItem",
   itemPrefix: "item",
-  defaultOriginId: GRIDLIST_ITEM_DEFAULT_ORIGIN_ID,
+  get defaultOriginId() {
+    return GRIDLIST_ITEM_DEFAULT_ORIGIN_ID;
+  },
+  sectionType: "GridListSection",
   buildItem(item, origin) {
     return {
       props: item.isDisabled === true ? { isDisabled: true } : {},
@@ -279,7 +304,11 @@ export const MENU_STATIC_FAMILY: StaticCollectionFamily = {
   listType: null,
   itemType: "MenuItem",
   itemPrefix: "item",
-  defaultOriginId: MENU_ITEM_DEFAULT_ORIGIN_ID,
+  get defaultOriginId() {
+    return MENU_ITEM_DEFAULT_ORIGIN_ID;
+  },
+  sectionType: "MenuSection",
+  allowsSeparators: true,
   buildItem(item, origin) {
     return {
       props: {
@@ -319,11 +348,15 @@ export const BREADCRUMBS_STATIC_FAMILY: StaticCollectionFamily = {
   listType: null,
   itemType: "Breadcrumb",
   itemPrefix: "item",
-  defaultOriginId: BREADCRUMB_ITEM_DEFAULT_ORIGIN_ID,
-  originSlot: [
-    BREADCRUMB_ITEM_DEFAULT_ORIGIN_ID,
-    `${BREADCRUMB_ITEM_DEFAULT_ORIGIN_ID}--current`,
-  ],
+  get defaultOriginId() {
+    return BREADCRUMB_ITEM_DEFAULT_ORIGIN_ID;
+  },
+  get originSlot() {
+    return [
+      BREADCRUMB_ITEM_DEFAULT_ORIGIN_ID,
+      `${BREADCRUMB_ITEM_DEFAULT_ORIGIN_ID}--current`,
+    ];
+  },
   buildItem(item) {
     const label = item.label ?? item.textValue ?? item.title ?? item.name;
     return {
@@ -338,6 +371,60 @@ export const BREADCRUMBS_STATIC_FAMILY: StaticCollectionFamily = {
   },
 };
 
+/** ADR-238 Phase 3 — Select · ComboBox 행 → ListBoxItem instance (id · value · 명시 textValue · icon/label/description). */
+function buildPickerItem(
+  item: Record<string, unknown>,
+  origin: CanonicalNode,
+): ReturnType<StaticCollectionFamily["buildItem"]> {
+  const listBox = LISTBOX_STATIC_FAMILY.buildItem(item, origin);
+  return {
+    ...listBox,
+    props: {
+      ...listBox.props,
+      // 행 `value` (업무 값) → 항목 `value` — writeback `selectedValue` 가 이 값을 읽는다 (행 id 와 다르다).
+      ...(item.value !== undefined ? { value: item.value } : {}),
+      // 검색어는 명시값만 (없으면 renderer 가 label 글자 — 이관 전 `textValue ?? label` 과 같은 우선순위).
+      ...(typeof item.textValue === "string" && item.textValue !== ""
+        ? { textValue: item.textValue }
+        : {}),
+    },
+  };
+}
+
+const PICKER_ORIGIN_SLOT_IDS = (): string[] => [
+  `${LISTBOX_ITEM_DEFAULT_ORIGIN_ID}--unselected`,
+  LISTBOX_ITEM_DEFAULT_ORIGIN_ID,
+  "component-listbox-section",
+];
+
+export const SELECT_STATIC_FAMILY: StaticCollectionFamily = {
+  ownerType: "Select",
+  listType: null,
+  itemType: "ListBoxItem",
+  itemPrefix: "item",
+  get defaultOriginId() {
+    return LISTBOX_ITEM_DEFAULT_ORIGIN_ID;
+  },
+  get originSlot() {
+    return PICKER_ORIGIN_SLOT_IDS();
+  },
+  sectionType: "ListBoxSection",
+  ownerKeepsSubparts: true,
+  skipsSelectionOnInsert: true,
+  buildItem: buildPickerItem,
+};
+
+export const COMBOBOX_STATIC_FAMILY: StaticCollectionFamily = {
+  ...SELECT_STATIC_FAMILY,
+  ownerType: "ComboBox",
+  get defaultOriginId() {
+    return LISTBOX_ITEM_DEFAULT_ORIGIN_ID;
+  },
+  get originSlot() {
+    return PICKER_ORIGIN_SLOT_IDS();
+  },
+};
+
 export const STATIC_COLLECTION_FAMILIES: readonly StaticCollectionFamily[] = [
   TABS_STATIC_FAMILY,
   TAGGROUP_STATIC_FAMILY,
@@ -345,6 +432,8 @@ export const STATIC_COLLECTION_FAMILIES: readonly StaticCollectionFamily[] = [
   GRIDLIST_STATIC_FAMILY,
   MENU_STATIC_FAMILY,
   BREADCRUMBS_STATIC_FAMILY,
+  SELECT_STATIC_FAMILY,
+  COMBOBOX_STATIC_FAMILY,
 ];
 
 /** 목록 틀 — `listType` 자식, `null` 이면 owner 자신. */
@@ -356,17 +445,113 @@ function findListFrame(
   return (owner.children ?? []).find((child) => child.type === family.listType);
 }
 
-/** 이관하지 않는 행 모양 — section 묶음 (ListBox `type: "section"`) 은 평면 항목 자식으로 옮길 수 없다. */
+/** 하위 메뉴 행 (`children`) — 평면 항목으로 옮길 수 없다 (범위 밖, Menu SubmenuTrigger). */
+function hasSubmenu(item: Record<string, unknown>): boolean {
+  return Array.isArray(item.children) && item.children.length > 0;
+}
+
+/**
+ * 이관하지 않는 행 모양. section 층이 있는 가족 (ListBox · GridList · Menu, ADR-238) 은 section (안쪽은 평면 항목만) ·
+ * Menu separator 를 옮기고, 하위 메뉴 행만 건너뛴다. section 층이 없는 가족은 종전대로 section · separator 도 건너뛴다.
+ */
 function hasUnsupportedRows(
+  family: StaticCollectionFamily,
   items: ReadonlyArray<Record<string, unknown>>,
 ): boolean {
-  // Menu 는 separator 행도 (항목이 아니다) · 하위 메뉴 (`children`) 도 평면 항목으로 옮길 수 없다.
-  return items.some(
-    (item) =>
-      item.type === "section" ||
-      item.type === "separator" ||
-      (Array.isArray(item.children) && item.children.length > 0),
-  );
+  return items.some((item) => {
+    if (hasSubmenu(item)) return true;
+    if (item.type === "section") {
+      if (!family.sectionType) return true;
+      const inner = Array.isArray(item.items) ? item.items : [];
+      return inner.some(
+        (row) =>
+          !isRecord(row) ||
+          row.type === "section" ||
+          row.type === "separator" ||
+          hasSubmenu(row),
+      );
+    }
+    if (item.type === "separator") return !family.allowsSeparators;
+    return false;
+  });
+}
+
+/** Menu section 의 per-section 선택 필드 · aria-label — section 노드 props 로 그대로 (F6). */
+const SECTION_ROW_PROP_KEYS = [
+  "selectionMode",
+  "selectedKeys",
+  "defaultSelectedKeys",
+  "disallowEmptySelection",
+] as const;
+
+/**
+ * ADR-238 Phase 2 — 행 목록 → 목록 틀 자식: 평면 행 = 항목 instance · section 행 = section 노드 (Header + 항목
+ * instance) · separator 행 = `Separator`. section 이 없으면 `buildItemInstances` 와 같은 결과.
+ */
+export function buildCollectionEntries(
+  family: StaticCollectionFamily,
+  items: ReadonlyArray<Record<string, unknown>>,
+  idPrefix: string,
+  origin: CanonicalNode,
+  taken: Set<string>,
+  startIndex = 0,
+): CanonicalNode[] {
+  if (!family.sectionType) {
+    return buildItemInstances(family, items, idPrefix, origin, taken, startIndex);
+  }
+  const out: CanonicalNode[] = [];
+  let itemIndex = startIndex;
+  let sectionIndex = 0;
+  let separatorIndex = 0;
+  for (const row of items) {
+    if (row.type === "section") {
+      sectionIndex += 1;
+      const sectionId = uniqueId(`${idPrefix}__section-${sectionIndex}`, taken);
+      const header = typeof row.header === "string" ? row.header : "";
+      const rows = (Array.isArray(row.items) ? row.items : []).filter(isRecord);
+      const props: Record<string, unknown> = {
+        ...(row.id !== undefined ? { id: String(row.id) } : {}),
+        ...(typeof row.ariaLabel === "string" && row.ariaLabel
+          ? { "aria-label": row.ariaLabel }
+          : {}),
+      };
+      for (const key of SECTION_ROW_PROP_KEYS) {
+        if (row[key] !== undefined) props[key] = row[key];
+      }
+      out.push({
+        id: sectionId,
+        type: family.sectionType,
+        props,
+        children: [
+          ...(header
+            ? [
+                {
+                  id: uniqueId(`${sectionId}__header`, taken),
+                  type: "Header",
+                  props: { children: header },
+                } as CanonicalNode,
+              ]
+            : []),
+          ...buildItemInstances(family, rows, sectionId, origin, taken),
+        ],
+      } as CanonicalNode);
+      continue;
+    }
+    if (row.type === "separator") {
+      separatorIndex += 1;
+      out.push({
+        id: uniqueId(`${idPrefix}__separator-${separatorIndex}`, taken),
+        type: "Separator",
+        props: {},
+      } as CanonicalNode);
+      continue;
+    }
+    out.push(
+      ...buildItemInstances(family, [row], idPrefix, origin, taken, itemIndex),
+    );
+    itemIndex += 1;
+  }
+  return out;
 }
 
 /** 행 → 항목 instance 자식 (`props.id` = 행 id — RAC key). */
@@ -457,6 +642,24 @@ function migratePlainOwner(
 }
 
 /**
+ * 목록 틀 (owner 자신) 에 이미 정적 항목이 있나 — sub-part 를 갖는 가족 (Select · ComboBox) 은 항목 · section 자식만
+ * 센다 (Label · SelectTrigger 는 항목이 아니다). 그 밖의 가족은 종전대로 자식이 하나라도 있으면.
+ */
+function hasListChildren(
+  family: StaticCollectionFamily,
+  owner: CanonicalNode,
+  byId: ReadonlyMap<string, CanonicalNode>,
+): boolean {
+  const children = owner.children ?? [];
+  if (!family.ownerKeepsSubparts) return children.length > 0;
+  return children.some((child) => {
+    const type =
+      child.type === "ref" ? resolveChainEnd(child.id, byId)?.type : child.type;
+    return type === family.itemType || type === family.sectionType;
+  });
+}
+
+/**
  * owner 가 곧 목록 틀 (ListBox · GridList) — 자기 자식으로 항목 instance · items 제거 · slot 은 그대로 (이미 목록
  * 틀에 있다). 자식이 이미 있으면 (정적 자식 · 템플릿 anchor) 손대지 않는다.
  */
@@ -468,14 +671,18 @@ function migrateSelfListOwner(
 ): CanonicalNode | null {
   const props = (owner.props ?? {}) as Record<string, unknown>;
   const items = readItems(props);
-  if (items === null || (owner.children ?? []).length > 0) return null;
-  if (hasUnsupportedRows(items)) return null;
+  if (items === null || hasListChildren(family, owner, byId)) return null;
+  if (hasUnsupportedRows(family, items)) return null;
   let children: CanonicalNode[] | undefined;
   if (items.length > 0) {
     const originId = pickItemOriginId(owner.slot, byId, family.defaultOriginId);
     const origin = originId ? byId.get(originId) : undefined;
     if (!origin) return null; // 보류 — origin 이 생기면 다음 hydration 에서.
-    children = buildItemInstances(family, items, owner.id, origin, taken);
+    children = [
+      // Select · ComboBox — sub-part (Label · SelectTrigger …) 는 그대로 두고 항목을 뒤에 붙인다.
+      ...(family.ownerKeepsSubparts ? (owner.children ?? []) : []),
+      ...buildCollectionEntries(family, items, owner.id, origin, taken),
+    ];
   }
   return {
     ...owner,
@@ -505,7 +712,7 @@ function migrateSelfListInstance(
     (child) => resolveChainEnd(child.id, byId)?.type === family.itemType,
   );
   if (
-    (master.children ?? []).length === 0 &&
+    !hasListChildren(family, master, byId) &&
     readItems(master.props as Record<string, unknown>)
   ) {
     return null;
@@ -530,7 +737,7 @@ function migrateSelfListInstance(
     ...(Object.keys(descendants).length > 0 ? { descendants } : {}),
     children: [
       ...(instance.children ?? []),
-      ...buildItemInstances(family, items, instance.id, origin, taken),
+      ...buildCollectionEntries(family, items, instance.id, origin, taken),
     ],
   } as CanonicalNode;
 }
@@ -550,7 +757,7 @@ function migrateOwnerInstance(
     (f) => f.ownerType === master?.type,
   );
   if (!master || !family) return null;
-  if (hasUnsupportedRows(items)) return null;
+  if (hasUnsupportedRows(family, items)) return null;
   if (family.listType === null) {
     return migrateSelfListInstance(
       family,
@@ -668,7 +875,11 @@ export function isStaticCollectionOwner(
   //   빈 TagGroup 에 "Add Tag" 가 떠 root `items` 로 되돌아갔다). 편집기는 아직 이관되지 않은 `items`
   //   (origin 누락으로 보류) 가 정본일 때만.
   const list = findListFrame(family, master);
-  const hasItemChildren = (list?.children ?? []).length > 0;
+  const hasItemChildren = list
+    ? family.listType === null
+      ? hasListChildren(family, list, byId)
+      : (list.children ?? []).length > 0
+    : false;
   return (
     hasItemChildren ||
     (!readItems(master.props as Record<string, unknown>) &&

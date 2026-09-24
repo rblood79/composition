@@ -59,6 +59,12 @@ export const UNLOADED_GENERATED_CSS: Readonly<Record<string, string>> = {
   DialogFooter: "E container — OverlayComponents.ts 인라인",
   DisclosureHeader: "E container — NavigationComponents.ts 인라인",
   Image: "E leaf — DisplayComponents.ts 인라인 width/height, generic <img>",
+  // F. ADR-238 Phase 2 — 목록 section 층. DOM 은 RAC `<section>` 을 UA block 그대로 두고 section 간격은 수동
+  //   `ListBox.css` (`.react-aria-ListBoxSection:not(:first-child)`) 가 맡는다 — 생성 base (font-size 등) 를 실으면 이관
+  //   전 DOM 과 갈린다 (G5 — `adr238SectionDom.browser.test.ts`).
+  ListBoxSection: "F section 층 — UA block + ListBox.css 수동 간격 (ADR-238)",
+  MenuSection: "F section 층 — UA block (ADR-238)",
+  GridListSection: "F section 층 — UA block (ADR-238)",
 };
 
 function listSources(root: string): string[] {
@@ -156,14 +162,15 @@ describe("generated CSS 로드 인벤토리 (ADR-923 잔여 2)", () => {
     expect(stale).toEqual([]);
   });
 
-  it("인벤토리 집계 — 생성 95 · index 73 · 모듈 0 · 미로드 22 (Body CSS load 포함)", () => {
-    expect(generated.length).toBe(95);
-    expect(indexImported.size).toBe(73);
+  // 2026-09-24 — DialogTrigger (`3f50bcf6c`, index 로드) 가 집계를 안 고쳐 96/73 으로 어긋나 있던 것도 같이 맞춘다.
+  it("인벤토리 집계 — 생성 99 · index 74 · 모듈 0 · 미로드 25 (Body CSS load 포함 · DialogTrigger · ADR-238 section 3)", () => {
+    expect(generated.length).toBe(99);
+    expect(indexImported.size).toBe(74);
     expect(
       Array.from(moduleImported)
         .filter((n) => !indexImported.has(n))
         .sort(),
     ).toEqual([]); // 2026-09-16: 모듈 채널 0 — DropZone·FileTrigger 도 index.css 로
-    expect(Object.keys(UNLOADED_GENERATED_CSS).length).toBe(22);
+    expect(Object.keys(UNLOADED_GENERATED_CSS).length).toBe(25);
   });
 });

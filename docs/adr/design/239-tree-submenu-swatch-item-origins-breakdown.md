@@ -1,6 +1,6 @@
 # ADR-239 구현 상세 — Tree · Menu 하위 메뉴 · ColorSwatchPicker 항목 origin (재귀 항목)
 
-> 본문: [ADR-239](../239-tree-submenu-swatch-item-origins.md) · base: [ADR-234](../completed/234-variant-instances-and-slot-filled-collections.md) · 선행: [ADR-238](../238-collection-item-slots-sections-picker-items.md) (항목 역할 표 · 경로 포함 항목 key)
+> 본문: [ADR-239](../239-tree-submenu-swatch-item-origins.md) · base: [ADR-234](../completed/234-variant-instances-and-slot-filled-collections.md) · 선행: [ADR-238](../completed/238-collection-item-slots-sections-picker-items.md) (항목 역할 표 · 경로 포함 항목 key)
 
 ## 1. 전제 확정 기록 (fork 4 질문 · 사용자 confirm)
 

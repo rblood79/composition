@@ -1747,6 +1747,17 @@ export function applyImplicitStyles(
   //   containerStyles fallback 을 주입. 본 분기는 effectiveParent 에 parentStyle 전달만 담당.
   if (containerTag === "listbox") {
     effectiveParent = withParentStyle(containerEl, { ...parentStyle });
+    // ADR-238 Phase 2 — `ListBox.css` `.react-aria-ListBoxSection:not(:first-child) { margin-top: var(--spacing-md) }`
+    //   (12). section 은 block (archetype container) — Header (inline-flex) · 항목이 block flow 로 쌓인다.
+    filteredChildren = filteredChildren.map((child, index) => {
+      if (index === 0 || child.type !== "ListBoxSection") return child;
+      const cs = (child.props?.style as Record<string, unknown>) || {};
+      if (cs.marginTop != null) return child;
+      return {
+        ...child,
+        props: { ...child.props, style: { ...cs, marginTop: 12 } },
+      };
+    });
   }
 
   // ── GridList ─────────────────────────────────────────────────────────

@@ -496,6 +496,10 @@ function buildInstanceDescendantPatches(
       update.elementId,
     );
     if (!descendantPath) continue;
+    // 빈 갱신 (자식만 바꾸는 호출의 자기 몫 `{}`) 은 빈 patch 키를 남기지 않는다 (ADR-238 역할 on/off).
+    if (Object.keys(update.props as Record<string, unknown>).length === 0) {
+      continue;
+    }
 
     const previousPatch = isRecord(next[descendantPath])
       ? next[descendantPath]

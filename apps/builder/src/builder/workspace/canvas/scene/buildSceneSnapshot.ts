@@ -75,6 +75,8 @@ function createNodeProjectionSignature(node: CanvasSceneNode | null) {
     // defaultValue/name/type 변경이 이 노드의 signature 만 바꾼다 (R8 · R5). 비소비 노드는
     // 키 자체를 넣지 않아 기존 직렬화·hash 가 그대로다.
     ...(node.stateDeps ? { stateDeps: node.stateDeps } : {}),
+    // ADR-238 G4 — popover 항목이 scene 에서 빠진 owner 의 "내용 있음" (빈 slot 표시 입력). 없으면 키 생략.
+    ...(node.hasPopoverContent ? { hasPopoverContent: true } : {}),
     type: node.type,
   };
 }

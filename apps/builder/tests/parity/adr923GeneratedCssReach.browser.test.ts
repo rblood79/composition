@@ -109,9 +109,14 @@ const EXPECTED: Readonly<Record<string, "covered" | "gap" | "unobserved">> = {
   DisclosureHeader: "unobserved",
   FieldError: "covered",
   FormField: "unobserved",
+  // ADR-238 Phase 2 — section 3종 (RAC `*Section` class). 담당 CSS = 각 목록 CSS (`ListBox.css`
+  //   `.react-aria-ListBoxSection` 등) — 팔레트 기본 상태에는 section 이 없어 이 sweep 에서 못 본다.
+  GridListSection: "unobserved",
   IllustratedMessage: "unobserved",
   Image: "unobserved",
   Input: "covered",
+  ListBoxSection: "unobserved",
+  MenuSection: "unobserved",
   MeterTrack: "unobserved",
   MeterValue: "unobserved",
   // Nav — 2026-09-17 import (Section 동형, CHANGELOG). renderNav 가 `react-aria-Nav` 를 붙인다.

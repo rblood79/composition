@@ -586,6 +586,15 @@ export interface TranslationKeys {
     slotRecommendations: string;
     slotEnable: string;
     slotDisable: string;
+    /** ADR-238 — 항목 안 역할 (icon · label · description · shortcut · avatar) on/off 절. */
+    itemRolesSection: string;
+    itemRoleRequired: string;
+    itemRoleAdd: string;
+    itemRoleIcon: string;
+    itemRoleAvatar: string;
+    itemRoleLabel: string;
+    itemRoleDescription: string;
+    itemRoleShortcut: string;
     roleInstanceOrigin: string;
     roleStandard: string;
     /** ADR-230 — 상태 변형 origin 정체 칩의 상태 배지 (읽기 전용 표식). */

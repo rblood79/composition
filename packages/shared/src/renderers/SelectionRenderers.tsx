@@ -175,6 +175,74 @@ function renderGridListItemSlotContent(opts: {
  * ListBox 렌더링
  */
 import { invokeCustomEventHandler } from "./utils/customEventHandler";
+import {
+  flattenStaticPickerEntries,
+  readStaticPickerEntries,
+  type StaticPickerEntry,
+  type StaticPickerRow,
+} from "../collections/staticPickerEntries";
+
+/**
+ * ADR-238 Phase 3 — Select · ComboBox 정적 항목 (owner 자식 ListBoxItem instance · ListBoxSection) → popover ListBox 의
+ * RAC 항목. 행은 `readStaticPickerEntries` (Canvas `_staticItems` 와 같은 key · 글자). 항목 origin 의 slot 구성 · root
+ * style · 상태 층 (hover · selected …) 이 이관 전 items 경로 행 마크업 위에 얹힌다.
+ */
+function renderStaticPickerChildren(
+  entries: readonly StaticPickerEntry[],
+  context: RenderContext,
+  ItemComponent: React.ElementType,
+): React.ReactNode[] {
+  const elementById = new Map<string, PreviewElement>();
+  for (const list of context.childrenByParent.values()) {
+    for (const el of list) elementById.set(el.id, el);
+  }
+  const renderRow = (row: StaticPickerRow) => {
+    const el = elementById.get(row.nodeId);
+    const baseStyle = el?.props.style as React.CSSProperties | undefined;
+    const slotComposition = resolveSlotComposition(
+      context.childrenByParent.get(row.nodeId),
+    );
+    return (
+      <ItemComponent
+        key={row.nodeId}
+        id={row.id}
+        data-element-id={row.nodeId}
+        textValue={row.textValue}
+        isDisabled={row.isDisabled}
+        {...(el?.stateStyle
+          ? {
+              style: (renderProps: Record<string, unknown>) =>
+                el.stateStyle!(renderProps, baseStyle) as React.CSSProperties,
+            }
+          : baseStyle
+            ? { style: baseStyle }
+            : {})}
+      >
+        {({ isSelected }: { isSelected: boolean }) =>
+          renderListBoxItemSlotContent({
+            label: row.label,
+            description: row.description,
+            iconName: row.icon,
+            isSelected,
+            slotComposition,
+            // 팝오버는 좌측 gutter ::before ✓ 를 이미 그린다 — 우측 체크 중복 방지.
+            showSelectionCheck: false,
+          })
+        }
+      </ItemComponent>
+    );
+  };
+  return entries.map((entry) =>
+    "type" in entry && entry.type === "section" ? (
+      <AriaListBoxSection key={entry.nodeId} aria-label={entry.ariaLabel}>
+        {entry.header ? <AriaHeader>{entry.header}</AriaHeader> : null}
+        {entry.items.map(renderRow)}
+      </AriaListBoxSection>
+    ) : (
+      renderRow(entry as StaticPickerRow)
+    ),
+  );
+}
 export const renderListBox = (
   element: PreviewElement,
   context: RenderContext,
@@ -597,10 +665,15 @@ export const renderListBox = (
       return renderListBoxLeaf(entry);
     });
   } else {
-    // Path 3: legacy 정적 children fallback — migration 미적용 프로젝트 대비
-    renderChildren = listBoxTemplateChildren.map((item) =>
-      context.renderElement(item),
-    );
+    // Path 3: 정적 children — 항목 instance + ADR-238 section (`ListBoxSection` — RAC section 으로 그린다).
+    renderChildren = (context.childrenByParent.get(element.id) ?? [])
+      .filter(
+        (child) =>
+          child.type === "ListBoxItem" ||
+          child.type === "ref" ||
+          child.type === "ListBoxSection",
+      )
+      .map((item) => context.renderElement(item));
   }
 
   return (
@@ -991,8 +1064,13 @@ export const renderGridList = (
             return renderGridListLeaf(entry);
           });
         })()
-      : // Path 3: legacy 정적 children fallback — migration 미적용 프로젝트 대비
-        gridListChildren.map((item) => context.renderElement(item));
+      : // Path 3: 정적 children — 카드 instance + ADR-238 section (`GridListSection`).
+        (context.childrenByParent.get(element.id) ?? [])
+          .filter(
+            (child) =>
+              child.type === "GridListItem" || child.type === "GridListSection",
+          )
+          .map((item) => context.renderElement(item));
 
   return (
     <GridList
@@ -1146,6 +1224,14 @@ export const renderSelect = (
   // ADR-073 P2: items[] SSOT
   const storedItems = (element.props as { items?: StoredSelectItem[] }).items;
   const hasItemsArray = Array.isArray(storedItems) && storedItems.length > 0;
+  // ADR-238 Phase 3 — 정적 항목 (owner 자식 ListBoxItem instance · section). items 가 있으면 그쪽 (이관 전 · 바인딩).
+  const staticEntries = hasItemsArray
+    ? null
+    : readStaticPickerEntries(
+        context.childrenByParent.get(element.id) ?? [],
+        (id) => context.childrenByParent.get(id) ?? [],
+      );
+  const staticRows = flattenStaticPickerEntries(staticEntries);
 
   // ColumnMapping 추출
   const columnMapping = (element.props as { columnMapping?: ColumnMapping })
@@ -1296,6 +1382,13 @@ export const renderSelect = (
         }
       </SelectItem>
     ));
+  } else if (staticEntries) {
+    // 경로 2b (ADR-238 Phase 3): 정적 항목 = ListBoxItem instance 자식 · section.
+    renderChildren = renderStaticPickerChildren(
+      staticEntries,
+      context,
+      SelectItem,
+    );
   } else {
     // 경로 3 (legacy, P6 소멸): SelectItem element tree fallback
     renderChildren = selectItemChildren.map((item, index) => {
@@ -1370,6 +1463,13 @@ export const renderSelect = (
             (it) => it.id === String(selectedKey),
           );
           actualValue = matched?.value ?? selectedKey;
+        } else if (staticRows.length > 0 && selectedKey != null) {
+          // 경로 2b (ADR-238): 정적 항목 — 선택 항목의 `props.value` (없으면 key). 이관 전 행 `value` 와 같은 값.
+          const matched = staticRows.find(
+            (row) => row.id === String(selectedKey),
+          );
+          actualValue =
+            (matched?.value as React.Key | undefined) ?? selectedKey;
         } else if (
           selectedKey &&
           typeof selectedKey === "string" &&
@@ -1452,6 +1552,14 @@ export const renderComboBox = (
     .items;
   const cbHasItemsArray =
     Array.isArray(cbStoredItems) && cbStoredItems.length > 0;
+  // ADR-238 Phase 3 — 정적 항목 (renderSelect 와 같은 행).
+  const cbStaticEntries = cbHasItemsArray
+    ? null
+    : readStaticPickerEntries(
+        context.childrenByParent.get(element.id) ?? [],
+        (id) => context.childrenByParent.get(id) ?? [],
+      );
+  const cbStaticRows = flattenStaticPickerEntries(cbStaticEntries);
 
   // ColumnMapping 추출
   const columnMapping = (element.props as { columnMapping?: ColumnMapping })
@@ -1564,6 +1672,13 @@ export const renderComboBox = (
         }
       </ComboBoxItem>
     ));
+  } else if (cbStaticEntries) {
+    // 경로 2b (ADR-238 Phase 3): 정적 항목 = ListBoxItem instance 자식 · section.
+    cbRenderChildren = renderStaticPickerChildren(
+      cbStaticEntries,
+      context,
+      ComboBoxItem,
+    );
   } else {
     // 경로 3 (legacy, P6 소멸): ComboBoxItem element tree fallback
     cbRenderChildren = comboBoxItemChildren.map((item, index) => {
@@ -1686,6 +1801,16 @@ export const renderComboBox = (
             actualValue = matched.value ?? selectedKey;
             displayValue = matched.label;
           }
+        } else if (cbStaticRows.length > 0) {
+          // 경로 2b (ADR-238): 정적 항목 — value = 항목 `props.value` (없으면 key) · 표시 = 글자.
+          const matched = cbStaticRows.find(
+            (row) => row.id === String(selectedKey),
+          );
+          if (matched) {
+            actualValue =
+              (matched.value as React.Key | undefined) ?? selectedKey;
+            displayValue = matched.label;
+          }
         } else if (
           selectedKey &&
           typeof selectedKey === "string" &&
@@ -1773,14 +1898,30 @@ export const renderComboBox = (
         // ADR-073 P3: items[] 경로에서 onInputChange reconcile
         // label 정확 일치 → selectedKey/selectedValue 동기화 (stale selection 방지)
         if (cbHasItemsArray) {
+          // RAC 는 선택 뒤 입력칸을 항목 `textValue` 로 채운다 — label 과 다른 명시 검색어면 label 비교만으로는
+          //   방금 고른 선택을 지웠다 (ADR-238 Phase 3 실측). 글자 또는 검색어 일치.
           const matchedItem = cbStoredItems!.find(
-            (it) => it.label === rawInputValue,
+            (it) =>
+              it.label === rawInputValue ||
+              (it.textValue ?? it.label) === rawInputValue,
           );
           updateElementProps(element.id, {
             ...element.props,
             inputValue: rawInputValue,
             selectedKey: matchedItem?.id,
             selectedValue: matchedItem?.value,
+          });
+        } else if (cbStaticRows.length > 0) {
+          // ADR-238 Phase 3 — 정적 항목도 글자 정확 일치 → 선택 동기화 (items 경로와 같은 규칙).
+          const matchedRow = cbStaticRows.find(
+            (row) =>
+              row.label === rawInputValue || row.textValue === rawInputValue,
+          );
+          updateElementProps(element.id, {
+            ...element.props,
+            inputValue: rawInputValue,
+            selectedKey: matchedRow?.id,
+            selectedValue: matchedRow?.value,
           });
         } else {
           // legacy 경로: inputValue만 업데이트

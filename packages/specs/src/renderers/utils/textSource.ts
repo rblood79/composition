@@ -22,7 +22,8 @@
  * | 기본 (Button/Badge/Link/Tag/MenuItem/Column/TreeItem/DisclosureHeader …) | `children` | inspector · factory · overlay 편집 · 데이터 Column (`label`+`children` 동시 기록) |
  * | 텍스트 leaf (Text/Heading/Paragraph/Label/Description/Kbd/Code) + FieldError | `children → text` | + Pencil import (`collectPencilProps` → canonical Text `text`) · legacy 문서 `text` |
  * | label 우선 (ListBoxItem/GridListItem/Menu) | `label → children` | Menu factory `label`+`children` · collection item 데이터 `label` (Preview `label \|\| children`) |
- * | field leaf (Input/TextArea/SelectValue/TextField/SearchField/NumberField/ColorField/Select/ComboBox) | `placeholder` | factory `placeholder` — 값이 비었을 때 DOM 이 placeholder 를 보이듯 Skia 도 같은 텍스트 |
+ * | field leaf (Input/TextArea/TextField/SearchField/NumberField/ColorField/Select/ComboBox) | `placeholder` | factory `placeholder` — 값이 비었을 때 DOM 이 placeholder 를 보이듯 Skia 도 같은 텍스트 |
+ * | 선택 값 leaf (SelectValue) | `children → placeholder` | owner propagation (`resolveSelectDisplayValue` → `children`, 매 draw 재계산) · factory `placeholder` — DOM (RAC `SelectValue`) 은 고른 항목 글자를, 없으면 placeholder 를 그린다 |
  *
  * 순서 밖의 키 (`label`/`title`/`value` 가 기본 군에 있을 때 등) 는 **세 표면 모두** 읽지 않는다 —
  * AI 가 Text 에 `label` 을 써도 Preview·Skia·레이아웃이 함께 `children` 을 읽는다. 종전 Preview 의
@@ -45,6 +46,10 @@ const ORDER_CHILDREN: readonly TextSourceKey[] = ["children"];
 const ORDER_CHILDREN_TEXT: readonly TextSourceKey[] = ["children", "text"];
 const ORDER_LABEL_CHILDREN: readonly TextSourceKey[] = ["label", "children"];
 const ORDER_PLACEHOLDER: readonly TextSourceKey[] = ["placeholder"];
+const ORDER_CHILDREN_PLACEHOLDER: readonly TextSourceKey[] = [
+  "children",
+  "placeholder",
+];
 
 /** 텍스트 leaf 7종 (레이아웃 `TEXT_LEAF_TAGS` 와 동일 집합) + FieldError — `children → text`. */
 const CHILDREN_TEXT_TYPES: ReadonlySet<string> = new Set([
@@ -74,9 +79,15 @@ const PLACEHOLDER_TYPES: ReadonlySet<string> = new Set([
   "numberfield",
   "colorfield",
   "select",
-  "selectvalue",
   "combobox",
 ]);
+
+/**
+ * 선택 값 leaf — DOM (RAC `SelectValue` · ComboBox input) 은 고른 항목 글자를 그리고 비었을 때만 placeholder.
+ * 고른 글자는 owner propagation 이 `children` 에 싣는다 (`resolveSelectDisplayValue`). placeholder 전용으로 두면
+ * Canvas 트리거가 선택과 무관하게 placeholder 를 그린다 (ADR-923 r15 에서 끊겼던 2026-08-22 수정 — ADR-238 G3).
+ */
+const SELECTED_VALUE_TYPES: ReadonlySet<string> = new Set(["selectvalue"]);
 
 /** 타입별 텍스트 원천 순서. 타입은 대소문자 무관 (레이아웃은 소문자 tag, Preview/Skia 는 canonical type). */
 export function textSourceOrder(
@@ -86,6 +97,7 @@ export function textSourceOrder(
   if (CHILDREN_TEXT_TYPES.has(key)) return ORDER_CHILDREN_TEXT;
   if (LABEL_FIRST_TYPES.has(key)) return ORDER_LABEL_CHILDREN;
   if (PLACEHOLDER_TYPES.has(key)) return ORDER_PLACEHOLDER;
+  if (SELECTED_VALUE_TYPES.has(key)) return ORDER_CHILDREN_PLACEHOLDER;
   return ORDER_CHILDREN;
 }
 

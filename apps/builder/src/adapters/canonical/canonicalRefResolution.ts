@@ -2,7 +2,8 @@ import {
   mergeFillSizing,
   readPropsSchema,
   isBoundListOwnerProps,
-  resolveStaticItemKey,
+  SECTION_TYPES,
+  resolveSectionItemKey,
   STATIC_LIST_FAMILY_BY_OWNER,
   resolveTemplateBindingValues,
   substituteTemplateBindingsInChildren,
@@ -18,6 +19,7 @@ import {
 } from "../../utils/component/referenceResolution";
 import type { LegacyElementMirrorFields } from "./legacyElementFields";
 import { isRenderProjectionId } from "../../builder/projection/renderProjectionIds";
+import { createPopoverChildFilter } from "./popoverContent";
 import {
   buildStateLayerSet,
   omitOwnedKeys,
@@ -360,10 +362,15 @@ export interface CanonicalRefTreeReuse<T extends CanonicalRefResolvableNode> {
   leafNext?: Map<string, LeafRefResolution<T>>;
 }
 
-/** ADR-237 G4 — 자식 없는 ref instance 하나의 해석 결과 + 그 결과가 읽은 canonical 노드 (동일성 비교). */
+/**
+ * ADR-237 G4 — 자기 자식 없는 ref instance 하나의 해석 결과 + 그 결과가 읽은 canonical 노드 (동일성 비교).
+ * ADR-238 G4 — origin 자식이 있는 instance (항목 origin 의 Label · Icon …) 도: 합성 자손 기록 (`record`) 을 함께
+ * 두고 재사용 때 다시 싣는다.
+ */
 export interface LeafRefResolution<T extends CanonicalRefResolvableNode> {
   root: T;
   deps: readonly unknown[];
+  record?: RefInstanceResolution<T> | null;
 }
 
 /** scene 노드면 원본 canonical 노드 (편집 안 된 부분은 문서가 바뀌어도 같은 객체), 아니면 자기. */
@@ -895,6 +902,8 @@ type MaterializeContext<T extends CanonicalRefResolvableNode> = {
   patchOwners?: readonly DescendantPatchOwner<T>[];
   /** ADR-234 G4 — 결과 map 조회 (mode C 자식의 origin · 상태 층). 없으면 결과 map 선형 탐색. */
   lookupResult?: (ref: string) => T | undefined;
+  /** ADR-238 G4 — instance 직계 합성 자식 필터 (`false` = 실체화하지 않는다 · popover 내용). */
+  keepChild?: (sourceChild: T, patchProps: Record<string, unknown>) => boolean;
 };
 
 function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
@@ -938,6 +947,13 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
     const patch = getStackedDescendantPatch(patchOwners, path);
     const syntheticId = `${refElement.id}/${path}`;
     const patchProps = patch ? propsFromDescendantPatch(patch) : {};
+    if (
+      pathPrefix === "" &&
+      context.keepChild &&
+      !context.keepChild(sourceChild, patchProps)
+    ) {
+      return;
+    }
     const patchedType =
       patch && typeof patch.type === "string" ? patch.type : sourceChild.type;
     const existingSyntheticChild = resultElementsMap.get(syntheticId);
@@ -1301,9 +1317,20 @@ export function resolveCanvasVariantState<T extends CanonicalRefResolvableNode>(
     ? findAncestor(element, elementsMap, (node) => node.type === ownerType)
     : undefined;
   if (selected === undefined && selectionOwner) {
+    // ADR-238 Phase 2 — section 안 항목: section instance 가 상속한 항목은 section key 접두 (Preview RAC key 와 같은 함수).
+    const parentId = getParentId(element);
+    const parent = parentId ? elementsMap.get(parentId) : undefined;
+    const section =
+      parent && SECTION_TYPES.has(parent.type)
+        ? {
+            id: parent.id,
+            props: getNodeProps(parent),
+            ref: (parent as { ref?: unknown }).ref,
+          }
+        : null;
     selected = isOwnerSelectedKey(
       getNodeProps(selectionOwner),
-      resolveStaticItemKey(props, element.id),
+      resolveSectionItemKey(props, element.id, section),
     );
   }
   if (selected === undefined) {
@@ -1420,11 +1447,19 @@ function readChainLeafDeps<T extends CanonicalRefResolvableNode>(
   }
   if (!current || isCanonicalRefElement(current)) return null;
   const origin = current;
-  if ((sourceChildrenMap.get(origin.id)?.length ?? 0) > 0) return null;
-  const originChildren = (
-    canonicalIdentity(origin) as { children?: unknown[] } | undefined
-  )?.children;
-  if (Array.isArray(originChildren) && originChildren.length > 0) return null;
+  // ADR-238 G4 — origin 자식이 있어도 그 subtree 에 ref · `{{ }}` 템플릿이 없으면 재사용한다: origin canonical
+  //   노드는 불변 트리라 자손이 바뀌면 동일성이 바뀐다 (deps 의 origin 항목). ref 가 있으면 다른 origin 을 읽는다.
+  const originNode = canonicalIdentity(origin) as
+    | { children?: unknown[] }
+    | undefined;
+  if (
+    !originSubtreeReusable(
+      originNode?.children,
+      sourceChildrenMap.get(origin.id),
+    )
+  ) {
+    return null;
+  }
   for (const name of STATE_LAYER_ORDER) {
     deps.push(canonicalIdentity(lookupMaster(`${origin.id}--${name}`)));
   }
@@ -1436,7 +1471,41 @@ const STATE_ANCESTOR_TYPES: ReadonlySet<string> = new Set([
   ...DISABLING_GROUP_TYPES,
   ...Object.values(ITEM_SELECTION_OWNER),
   "RadioGroup",
+  // ADR-238 — section 안 항목의 key · 선택은 section `props.id` 를 읽는다.
+  ...SECTION_TYPES,
 ]);
+
+/**
+ * origin 자식 subtree 가 재사용 가능한가 — ref 노드 (다른 origin 을 읽는다) · `{{ }}` 템플릿 (scene 층이 조상
+ * 상태로 해석) 이 없어야 한다. canonical 자식 (있으면) 과 평탄 자식 (canonical 이 없는 입력) 을 본다.
+ */
+function originSubtreeReusable(
+  canonicalChildren: unknown[] | undefined,
+  flatChildren: readonly unknown[] | undefined,
+): boolean {
+  const stack: unknown[] = [
+    ...(Array.isArray(canonicalChildren) ? canonicalChildren : []),
+  ];
+  if (!Array.isArray(canonicalChildren) && (flatChildren?.length ?? 0) > 0) {
+    return false; // 평탄 입력은 subtree 동일성을 보증하지 못한다 — 재사용하지 않는다.
+  }
+  while (stack.length > 0) {
+    const node = stack.pop() as
+      | { type?: unknown; ref?: unknown; props?: unknown; children?: unknown }
+      | undefined;
+    if (!node || typeof node !== "object") continue;
+    if (node.type === "ref" || typeof node.ref === "string") return false;
+    if (
+      node.props &&
+      typeof node.props === "object" &&
+      hasStateTemplateSyntax(node.props as Record<string, unknown>)
+    ) {
+      return false;
+    }
+    if (Array.isArray(node.children)) stack.push(...node.children);
+  }
+  return true;
+}
 
 /**
  * ADR-237 — 상태 층을 얹은 해석 결과 → 그 instance 의 자기 patch 원천 (`applyStateLayerToResolved` 의 ownSource).
@@ -1757,6 +1826,11 @@ export function resolveCanonicalRefTree<
   elements: T[];
   elementsMap: Map<string, T>;
   reuse?: CanonicalRefTreeReuse<T>;
+  /**
+   * ADR-238 G4 — instance 실체화에서 popover 내용 (Select · ComboBox 의 선택 안 된 항목 · Menu 항목) 을 건너뛴다.
+   * scene build 만 켠다 (Canvas 는 트리거만 그린다 — `popoverContent.ts`).
+   */
+  prunePopoverContent?: boolean;
 }): ResolvedCanonicalRefTree<T> {
   const sourceChildrenMap =
     input.childrenMap ??
@@ -1839,6 +1913,14 @@ export function resolveCanonicalRefTree<
       const leafReused = input.reuse!.leafPrevious?.get(element.id);
       if (leafReused && sameDeps(leafReused.deps, leafDeps)) {
         replaceResolvedRoot(element, leafReused.root);
+        if (leafReused.record) {
+          replayRefInstanceResolution(
+            leafReused.record,
+            elementsMap,
+            childrenMap,
+            elements,
+          );
+        }
         input.reuse!.leafNext!.set(element.id, leafReused);
         continue;
       }
@@ -1894,12 +1976,6 @@ export function resolveCanonicalRefTree<
       replaceResolvedRoot(element, resolvedRoot);
     }
 
-    if (leafDeps && resolvedRoot !== element && !hasCollectionData(resolvedRoot)) {
-      input.reuse!.leafNext!.set(element.id, {
-        root: resolvedRoot,
-        deps: leafDeps,
-      });
-    }
     if (!ref || !chain) continue;
     materializeSyntheticDescendants(
       element,
@@ -1921,6 +1997,16 @@ export function resolveCanonicalRefTree<
           ...stateLayerOwner(element, stateLayer),
           ...chain.intermediates.map((owner) => ({ owner, mountPath: "" })),
         ],
+        ...(input.prunePopoverContent
+          ? {
+              keepChild:
+                createPopoverChildFilter(
+                  chain.origin.type,
+                  getNodeProps(resolvedRoot),
+                  (id) => sourceChildrenMap.get(id) ?? [],
+                ) ?? undefined,
+            }
+          : {}),
       },
     );
     dropBoundListStaticItems(
@@ -1940,6 +2026,15 @@ export function resolveCanonicalRefTree<
         elements,
       );
       if (record) input.reuse.next.set(element.id, record);
+      // leaf 재사용 기록 — 합성 자손이 있으면 (origin 자식) 그 기록째. 기록이 없으면 (해석 변화 없음 · 바인딩 행)
+      //   재사용하지 않는다.
+      if (leafDeps && record) {
+        input.reuse.leafNext!.set(element.id, {
+          root: resolvedRoot,
+          deps: leafDeps,
+          record: record.appended.length > 0 ? record : null,
+        });
+      }
     }
   }
 

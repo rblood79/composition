@@ -5870,6 +5870,57 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   // ADR-912 단계5 step4 (2026-06-16): Header.spec.ts 삭제 — Section Header 시각 SSOT.
   //   paddingX/paddingY/fontWeight 보강(구 HeaderSpec.sizes 미러). 현재 CSS source 는 ListBox.spec
   //   inline child spec(childSpecs emit); 본 rule 은 SSOT 정합용(향후 rule 직접 source 전환 대비).
+  // ADR-238 Phase 2 — ListBoxSection: 목록 묶음 층 (투명 — 상자 시각 없음). display 는 archetype container 기본 (block) —
+  //   DOM `<section>` 과 같은 block flow 에 Header (inline-flex) · 항목 (block) 이 쌓인다.
+  ListBoxSection: {
+    defaultSize: "md",
+    variants: {},
+    sizes: {
+      md: {
+        height: 0,
+        fontSize: "{typography.text-base}",
+        borderRadius: "{radius.none}",
+      },
+    },
+    structure: {
+      archetype: "container",
+      element: "section",
+    },
+  },
+  // ADR-238 Phase 2 — MenuSection: 목록 묶음 층 (투명 — 상자 시각 없음). display 는 archetype container 기본 (block) —
+  //   DOM `<section>` 과 같은 block flow 에 Header (inline-flex) · 항목 (block) 이 쌓인다.
+  MenuSection: {
+    defaultSize: "md",
+    variants: {},
+    sizes: {
+      md: {
+        height: 0,
+        fontSize: "{typography.text-base}",
+        borderRadius: "{radius.none}",
+      },
+    },
+    structure: {
+      archetype: "container",
+      element: "section",
+    },
+  },
+  // ADR-238 Phase 2 — GridListSection: 목록 묶음 층 (투명 — 상자 시각 없음). display 는 archetype container 기본 (block) —
+  //   DOM `<section>` 과 같은 block flow 에 Header (inline-flex) · 항목 (block) 이 쌓인다.
+  GridListSection: {
+    defaultSize: "md",
+    variants: {},
+    sizes: {
+      md: {
+        height: 0,
+        fontSize: "{typography.text-base}",
+        borderRadius: "{radius.none}",
+      },
+    },
+    structure: {
+      archetype: "container",
+      element: "section",
+    },
+  },
   Header: {
     defaultSize: "md",
     variants: {},

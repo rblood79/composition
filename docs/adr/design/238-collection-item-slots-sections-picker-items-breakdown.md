@@ -1,6 +1,6 @@
 # ADR-238 구현 상세 — 목록 항목 안 slot · Section 층 · Select/ComboBox 항목 origin
 
-> 본문: [ADR-238](../238-collection-item-slots-sections-picker-items.md) · base: [ADR-234](../completed/234-variant-instances-and-slot-filled-collections.md) · 같은 base 의 앞선 적용: [ADR-237](../completed/237-origin-instance-slot-extension.md)
+> 본문: [ADR-238](../completed/238-collection-item-slots-sections-picker-items.md) · base: [ADR-234](../completed/234-variant-instances-and-slot-filled-collections.md) · 같은 base 의 앞선 적용: [ADR-237](../completed/237-origin-instance-slot-extension.md)
 
 ## 1. 전제 확정 기록 (fork 4 질문 · 사용자 confirm)
 
@@ -108,4 +108,91 @@
 
 ## 6. 실행 기록
 
-(실행 시 기록)
+### Phase 0 — inventory (G0, 2026-09-24 · main `61d29f98a`)
+
+- **F1~F12 재확인**: 일치. 줄 이동만 — F6 ListBox section 렌더 `SelectionRenderers.tsx:589-595` · GridList `:980-988` · Menu `CollectionRenderers.tsx:935-986` · ItemsManager `SectionRow :260-412` · F7 flat guard `ListBox.tsx:155-169,183` · F9 writeback `SelectionRenderers.tsx:1362-1372` · textValue `:1552` · `defaultInputValue :1639` · F12 `Header` rule `componentRulesTable.ts:5873-5916` (archetype `simple` · element `div` · sizes md fontSize `text-xs` · padding 12/6 · weight 700).
+- **새 사실 (본문 영향)**:
+  - N1 **238 전 Canvas 는 section 이 섞인 정적 ListBox · GridList 를 빈 행으로 그린다** — projection (`getFlatProjectionRows`, `listBoxRowProjectionModel.ts:32-38`) 이 section entry 를 평면 행 하나로 보고 이름은 `header` 를 안 읽어 비고 안쪽 items 는 그리지 않는다 (live: `projection:gridlist-row:sec-gl:s1` 50px 행 2 개, 글자 0). layout 은 헤더 높이 + 안쪽 항목을 센다 (`utils.ts:2859-2880` · `collectionItemMetrics.ts:582` 하드코딩 `fontSize*1.75`). → **사용자 판정 (AskUserQuestion) "Preview 구조로 판정"**: section 가족 G5 는 이관 뒤 Canvas 가 Preview DOM 구조를 그리는지로 본다 (본문 Status · R2 · G5 개정).
+  - N2 `Header` 는 catalog rule 만 있고 `componentCatalog` entry · binding · Preview renderer 가 없다 (`renderers/index.ts` 에 없음) — Phase 2 가 배선한다. `Separator` 는 canonical type (`componentCatalog.ts:125-129` · `Separator.binding.ts`) 이나 Menu 안 경로는 없다.
+  - N3 Skia Menu 트리거 판정 `buildSpecNodeData.ts:1802-1817` 은 `MenuItem` 자식만 빼고 `_hasChildren` 을 본다 — section 자식이 생기면 트리거 글자가 사라진다 (Phase 2 에서 넓힌다).
+  - N4 nesting 규칙: `nestingRules.ts:239-240` Select · ComboBox 허용 자식 = Label · SelectTrigger · Description · FieldError, `:138` ListBoxItem owner = `["ListBox"]` 고정 (Phase 3 에서 넓힌다). `:103-104` 는 HTML `Section` type 이름으로 ListBox ⊃ Section · Header 를 허용.
+  - N5 ListBoxItem binding `accepts` = children · size · isDisabled 뿐 (`ListBoxItem.binding.ts:42-53`) — `value` · `textValue` 선언 없음 (Phase 3 에서 더한다, RAC 기존 prop).
+  - N6 ComboBox writeback 이 본문 외 두 곳 더 있다 — 선택 `SelectionRenderers.tsx:1680-1688` (value + label → `inputValue`) · 입력 label 일치 `:1775-1784`.
+  - N7 Preview `STATIC_ITEM_TYPES` (`CanonicalNodeRenderer.tsx:173-179`) 에 MenuItem 이 없다 (Menu 는 `renderMenu` 가 직접 조립 — 영향 없음).
+- **진단 RED** (`adr238Diagnostics.test.tsx`): (a) · (e) 는 Phase 1 로 GREEN (`it`) · (b) section 목록 이관 안 됨 `expected [section] to be undefined` · (c) 같은 section origin instance 둘의 상속 항목 key `Set size 1 ≠ 2` (`props.id` 있는 항목) · (d) Select origin 항목 ref `0` — `it.fails` 3.
+- **쓰기 경로 표**:
+
+  | 경로 | section (ListBox · Menu · GridList) | Select · ComboBox 항목 | 항목 역할 자식 |
+  | --- | --- | --- | --- |
+  | 팔레트 (`useElementCreator.ts:344-389`) | 쓰지 않음 (owner = reusable ref `{}`) | instance 는 origin `items` 상속 · origin 은 factory 행 `{id: UUID, label, value}` ×4 (`SelectionComponents.ts:25-30,134-139`) | 쓰지 않음 (항목 origin seed 만) |
+  | AI tool | 불가 (`items` = `items-manager` kind, `manifest.ts:83-98`) | 불가 (같음) | 불가 (metadata 필드 없음) |
+  | Pencil import | `items` 그대로 (import 는 정적 목록 이관 안 탐 — `importPayloadAdapter.ts:62-72`) | `items` 그대로 | metadata 통과 |
+  | 붙여넣기 · 복제 (`multiElementCopy.ts`) | props 그대로 (행 id 유지) | 같음 | 요소 id 새로 · `props.id` 유지 |
+  | ItemsManager | section `{type:"section", header:"New Section", items:[]}` (`elements.ts:2351-2364`, 정적 owner 에서는 숨김) | 행 `{label:"Option", value:"", id}` (`elements.ts:2311-2326`) | 쓰지 않음 |
+  | Slot "+" · 이관 | 평면 항목만 (section 행 있으면 건너뜀) | 대상 아님 | ref 항목 `descendants` (label 글자 · 값 없는 역할 `enabled:false`) |
+
+- **이관 수식 실측**: Phase 2 · 3 구현 뒤 G5 에서 잰다 (수식은 본문 BC 행).
+
+### Phase 1 — 항목 안 slot (G1)
+
+- 역할 표 `ITEM_SLOT_ROLE_TABLE` + `resolveItemRoleSlotName` · `isItemRoleSlotNameAllowed` (`packages/shared/src/catalog/slotRoles.ts`) — RAC slot context 를 읽는 자식 (Text · Keyboard) 은 표의 RAC 이름만, Icon · Avatar 는 역할 이름 (CSS `[slot]` 훅 — ListBox.css · TagGroup.css). 기존 seed 의 Tag label `slot:"label"` · Menu shortcut `slot:"shortcut"` 는 표 밖이지만 DOM 이 RAC Text 로 직접 그리지 않고 조립 (`renderMenuItemSlotParts` · Tag chip) 해 크래시가 없어 그대로 둔다 (BC Δ0).
+- 표면 `apps/builder/src/builder/components/itemSlotRoles.ts` (`buildItemRoleSurface` · `planItemRoleToggle` · `planItemRoleChild`) + Properties `ItemSlotRolesSection` ("Item roles" — instance optional 역할 스위치 · label 은 "필수" · origin 은 없는 역할 추가). 쓰기 = 역할 자식 synthetic id `<항목>/<segment>` 의 `enabled` → `updateSelectedPropertiesWithChildren` 가 바깥 instance `descendants[path]` 로 (자기 자식 항목이면 그 항목의 `descendants[segment]`). origin 역할 추가 = `addElement` + `moveElementToContainer` (표 순서 위치) 한 history 트랜잭션. 빈 자기 갱신이 `{}` patch 키를 남기던 것 (`buildInstanceDescendantPatches`) 을 건너뛴다.
+- 해석된 ref 자식 조회 `getResolvedRefChildren` (`syntheticDescendantLookup.ts`) — canonical ref 노드도 같은 해석기.
+- F4 `createListBoxItemSlotChildElement` (소비처 0) 는 이 액션으로 대체됐다 — `listBoxItemSlotChildActions.ts` + 테스트 삭제 (2026-09-24 사용자 승인).
+- unit `adr238Phase1.itemRoles.test.tsx` 6/6 (역할 표 · 표 밖 이름 거부 · synthetic 항목 description off → Canvas scene · Preview DOM 둘 다 빠짐 · 자기 자식 항목 on · label 끄기 거부 · GridListItem icon 추가 index 0 · Preview 크래시 0).
+- live `apps/builder/scripts/adr238-live-exercise.mjs` 6/6 (Compare Mode · Preview 미개방): "Item roles" 절 (Description 스위치 · Label 스위치 없음) · 끄기 → `descendants["component-listbox__item-1/Description"].enabled=false` · 항목 높이 50 → 32 · description rect 없음 · 둘째 항목 50 그대로 · 켜기 → 50 · GridListItem origin Icon 추가 → 자식 순서 `[Icon(slot=icon), Text(slot 없음), Text(description)]` · reload 뒤 그대로 · page error 0.
+
+### Phase 2 — Section 층 (G2)
+
+- catalog 새 type 4: `Header` (RAC Header · 자식 Title) · `ListBoxSection` · `MenuSection` · `GridListSection` (archetype `container` · element `section` · placeable false). 생성 CSS 3 은 index.css 에 싣지 않는다 — 담당 CSS 는 각 목록 CSS (`ListBox.css` `.react-aria-ListBoxSection` 등). 도달 분류 `unobserved` (팔레트 기본 상태에 section 없음) · 로드 인벤토리 생성 99 · index 74 · 미로드 25.
+- nesting: ListBox ⊃ ListBoxSection ⊃ Header · ListBoxItem (Menu · GridList 동형, Menu 는 Separator 허용) · ListBoxSection owner = ListBox · Select · ComboBox.
+- section origin 3 (`collectionSectionOrigins.ts`) — Header "Section" + 항목 instance 2 (`props.id` item-1 · item-2) · owner origin slot 이 시스템 항목 후보만 담을 때만 끝에 더한다. 가족 표는 지연 평가 + origin id 리터럴 — 항목 origin 모듈과 순환 import 라 모듈 평가 시점 상수가 새 프로젝트 경로에서 undefined 였다 (ListBox section origin 이 조용히 빠짐, 같은 이유로 `*_STATIC_FAMILY` 의 origin 필드도 getter).
+- RAC key `resolveSectionItemKey` (`slotRoles.ts`) — **ref instance section 안 항목은 전부** `<section key>/<항목 key>` (계획은 상속 항목만). 두 resolver 의 상속 id 모양이 다르다 (Preview 는 origin id 유지 + `_resolvedFrom` · Canvas 는 `<instance>/<segment>` + `ref`) — "상속 여부" 를 id 로 가르면 leg 마다 답이 갈린다. section instance 는 새 층이라 기존 선택값이 가리키는 항목이 없다 (BC Δ0). 이관이 만드는 section 은 plain 노드라 행 id 가 그대로 key.
+- 이관: section · separator 가 섞인 정적 `items` → plain section 노드 (`props.id` · `aria-label` · Menu section 의 selection key) + Header + 항목 instance / Separator (하위 메뉴 행은 계속 건너뜀). 삽입 (`collectionItemInsert.ts`) — section origin 후보 → section instance (`props.id` 새 key, 선택 key 는 쓰지 않는다).
+- 두 leg: Preview = RAC `ListBoxSection` · `MenuSection` · `GridListSection` + `Header`/`GridListHeader`/`MenuHeader` (section 별 Menu selection). Canvas = section block · Header 글자 (ListBox 14/700/21 muted padding 0 12 · GridList 16/400/24 — 각 목록 CSS 값) · 둘째 이후 ListBoxSection margin-top 12 · layout `TEXT_LEAF_TAGS` += header · Menu 트리거는 section · Separator 를 자식으로 세지 않는다.
+- unit `adr238Phase2.sections.test.tsx` 14/14 · browser `tests/parity/adr238SectionDom.browser.test.ts` 3/3 (DOM oracle · 이관 전후 DOM 같음).
+- live `apps/builder/scripts/adr238-live-sections.mjs` 5/5 (Compare Mode · Preview 미개방, 폭 400): reload 이관 모양 · ListBox Canvas rect = DOM oracle (section y5 h89 / y108 h57 · Header h21 · 항목 h32, Header 폭 ±1.5 = 글자 측정 sub-pixel) · GridList(stack) section h124/74 · Header h24 · 카드 h50 · Menu 트리거 상자 = section 없는 Menu · page error 0.
+- 원복 RED: section origin 보장 제거 → 6 RED · section key 접두 제거 → 2 RED.
+
+### Phase 3 — Select · ComboBox 항목 origin (G3)
+
+- 가족 표 Select · ComboBox 행 (`listType: null`, 항목 = ListBoxItem · section = ListBoxSection) — 행 `id` → `props.id` · `value` → `props.value` · **명시** `textValue` 만 `props.textValue` · `isDisabled`. 바인딩 owner 는 `items` 유지. Select · ComboBox origin 도 sub-part 뒤에 항목 instance 4 · slot = ListBoxItem origin 2 + ListBoxSection origin.
+- 행 읽기 한 곳 `readStaticPickerEntries` (`packages/shared/src/collections/staticPickerEntries.ts`) — Preview `renderSelect` · `renderComboBox` 의 popover 합성 · 선택 writeback (`selectedValue` = 항목 `value`, 없으면 key) · ComboBox 입력 일치와 Canvas scene `_staticItems` (owner 평면 행 → `resolveSelectDisplayValue`) 가 같이 읽는다.
+- ComboBox 입력 일치 = label **또는** textValue — RAC 는 선택 뒤 input 을 textValue 로 채우는데 label 만 비교해 선택이 풀렸다 (items 경로도 같은 결함, 둘 다 수리).
+- **live 에서 찾은 기존 회귀 수리**: Canvas 트리거가 선택과 무관하게 placeholder 를 그렸다. SelectValue text source 가 placeholder 전용이라 (ADR-923 round 15 `04503eebd`, 2026-09-01) owner propagation 이 `children` 에 싣는 고른 글자 (2026-08-22 `1578e8580`) 를 draw 가 읽지 않았다 — 팔레트 instance 는 238 전에도 같은 증상. `textSource.ts` 에 선택 값 leaf 군 (`SelectValue` = `children → placeholder`) — DOM (RAC SelectValue) 이 고른 글자를, 없으면 placeholder 를 그리는 것과 같다. Preview 는 SelectValue 자식 `children` 을 placeholder 로 직접 읽어 영향 없음.
+- unit `adr238Phase3.pickers.test.tsx` 11/11 (이관 모양 · 선택 계약 id ≠ value · Preview writeback · ComboBox textValue 검색 · inputValue 우선 · origin slot style · Slot 삽입 · section 항목 선택 · Skia draw 글자) · 진단 (d) `it` 전환.
+- live `apps/builder/scripts/adr238-live-pickers.mjs` 9/9 (Compare Mode · Preview 미개방): 팔레트 모양 Select · ComboBox instance — origin 항목 ListBoxItem instance 4 · 둘째 항목 선택 → Skia 트리거 글자 "Cat" (수리 전 "Choose an option...") · plain Select · ComboBox · section Select reload 이관 모양 (`props.id`/`value`/명시 `textValue`/`isDisabled` · ListBoxSection) · 트리거 상자 (root · SelectTrigger · SelectValue) 이관 전 = 후 · Skia 글자 이관 전 = 후 (일본 · 대한민국 · Pick) · section 항목 선택 = "Japan" · 항목 · section 자식 layout rect 0 (popover 내용) · 두 번째 reload 모양 불변 · page error 0.
+- 원복 RED: `_staticItems` 주석 제거 → 3 RED · ComboBox textValue 일치 제거 → 1 RED · SelectValue text source 되돌림 → 1 RED ("Choose an option...").
+- 회귀: builder components 26 파일 · canvas · preview · panels · stores · utils 전량 (기존 실패 historyActions.static 1 — ADR-232) · shared 1407 (기존 Modal placeable 1) · specs 565 · parity 1492 (기존 실패 4 — Dc6 inventory 2 · Hc2 GridList · Dialog fixed, 238-base worktree 에서 같은 4 실패 확인) · type-check 0.
+
+### Phase 4 — 성능 · BC 종결 (G4 · G5)
+
+- 대조 arm = 238 전 커밋 `61d29f98a` worktree (scratchpad, 그 lockfile · 엔진 wasm 소스 동일이라 복사 · dev `127.0.0.1:5174`). 두 arm 같은 세션 · headed · arm 교대 · warm-up 3 · 표본 7 · DPR 1 · visible · Home 만 보이게.
+- **G4** `apps/builder/scripts/adr238-g4-perf-ab.mjs` — fixture 는 두 arm 모두 정적 `items` 로 넣고 reload (그 빌드의 hydration 이 만든 production 모양): sections = ListBox 6 · Menu 6 × section 3 × 항목 10 · select = Select 50 × 20 행. 조작 = owner 편집 · 항목 origin (`component-listbox-item-default`) 편집 · breakpoint.
+  - 1차 (재사용 · prune 없음): select 편집 +11.8 ms (항목 ref 1,000 개 해석).
+  - 증분화 ① popover 내용 scene 제외 (Canvas 가 그리지 않는 Select · ComboBox · Menu 항목) ② 해석 재사용 확장 — 237 leaf 재사용을 origin 자식이 있는 instance 로 (origin subtree 에 ref · `{{ }}` 가 없으면 origin canonical 동일성이 subtree 를 대신한다 · 합성 자손 기록 replay · section 을 상태 조상에 추가). → sections 편집 +1.1 · origin 편집 +3.1 · breakpoint +0.8 / select +4.6 · +12.5 · +2.7 → **사용자 판정 (2026-09-24): "Select 최적화 후 예외"**.
+  - 증분화 ③ Select 최적화 — popover 항목을 **해석 전에** 뺀다: 문서 자식은 scene visit (`createPopoverChildFilter`, `adapters/canonical/popoverContent.ts`), instance 가 origin 에서 받는 자식은 해석기 `prunePopoverContent` (scene build 만 opt-in — Properties · Layers 조회는 전 항목). Select · ComboBox 는 선택 key · value 에 맞는 행 (그 section) 만 남겨 트리거 글자를 해석기가 그대로 만든다. prune 으로 Menu origin 이 "빈 slot" 표시를 켜던 것 → owner `hasPopoverContent` (canonical 기준) 를 slot 표시 판정이 읽는다.
+  - **최종 (3 pair median p95, 238 전 → 238)**: select 편집 5.2 → 4.3 (−0.9) · origin 편집 4.1 → 4.8 (+0.7) · breakpoint 1.5 → 2.4 (+0.9) **PASS** / sections 편집 4.2 → 5.5 (+1.3) · origin 편집 4.4 → 6.5 (+2.1) · breakpoint 1.4 → 1.9 (+0.5 PASS). 두 번째 측정에서 sections 편집 0 ~ +2.1 · origin 편집 +1.3 ~ +3.8 (기준 arm 자체 2.0 ~ 4.8 흔들림). rebuilt 7/7 · 오류 0.
+  - 총비용 (Q3): sections breakpoint +57 ms (61 → 117) — 238 전 Canvas 는 section 목록을 key 만 찍힌 빈 행으로 그렸다 (G0). 같은 규모 평면 목록 대조군 (`--fixture flat`, 두 빌드 모두 234 이관) 은 ~102 ms 로 238 회귀 없음, 같은 세션 프로파일에서 평면 124.7 vs section 132.3 ms (헤더 · section 36 노드분, 특정 hotspot 없음) — 글자를 실제로 그리는 비용이다. 편집 총비용 Δ −0.4 ~ +1.4.
+  - **R5 잔존 (예외 기록)**: section 목록 편집 · 항목 origin 편집 +1.3 ~ +3.8 ms (실제 노드화 — 234 R4 와 같은 성격). 재개 조건 = 실제 문서 체감 저하 보고.
+- **G5** `apps/builder/scripts/adr238-g5-bc-live.mjs` — before 빌드가 저장한 문서를 IndexedDB 저장 층째 after 에 넣고 reload:
+  - 픽셀 Δ0 **14/14**: Components origin (Select · ComboBox · ListBox · Menu · GridList · ListBoxItem) · palette Select · ComboBox instance · 정적 items Select · ComboBox (factory 모양) · 평면 ListBox · section Menu 트리거.
+  - 구조 oracle (G0 개정): section ListBox · GridList — before 는 key ("s1" · "s2") 만 찍힌 빈 행, after 는 헤더 · 항목 글자 (Phase 2 live 가 Preview DOM 수치로 판정).
+  - 의도한 차이 2: 선택된 Select (plain · instance) — before 는 선택해도 "Pick" (ADR-923 r15 text source 회귀), after 는 "Japan" (Preview 와 같음, Phase 3 수리).
+  - 노드 수식: Components 292 → 312 (+20 = 12 + 8) · plain Select · ComboBox +3 (= k) · section ListBox · GridList +7 (= 2s + m) · section Menu +5 (section 1 + Header 1 + 항목 2 + Separator 1) · 평면 ListBox · palette instance Δ0. byte: Select 항목당 ~172 B (150 ~ 250 범위). 저장 층 104,487 → 115,501 B.
+  - 재hydration Δ0 (after reload 2 회 store 스냅샷 동일) · 오류 0/0.
+- 원복 RED: slot 표시 `hasPopoverContent` 제거 → 1 RED · 해석 뒤 prune 제거 → 2 RED · visit 필터 제거 → unit GREEN (동작 동일 · 성능 전용 경로 — 근거는 G4: 필터 전 select 편집 +2.1 → 필터 후 −0.9).
+- 회귀: Phase 1 · 2 · 3 live 6/6 · 5/5 · 10/10 (popover 항목 선택 — scene 밖 노드 — 오류 0 추가) · 234 live 5/5 · 5/5 · 3/3 · 9/9 · 237 live 9/9 · builder unit 7,388 (기존 실패 5 — 238-base 에서 같은 실패 확인) · parity 1,493 (기존 실패 4) · type-check 0.
+
+### 판독 (review-loop-closure — 판독 1 + 수리 검증 1)
+
+- 판독 1 (실행자 직접, 계약 체크리스트 대조): HIGH 0.
+  - MEDIUM 수리: owner `hasPopoverContent` 가 scene 서명 (`createNodeProjectionSignature`) 에 없어, popover 항목이 전부 scene 밖인 owner 에서 그 값만 바뀌면 (빈 Menu origin 에 첫 항목) 서명이 같다 → 조건부 키로 서명에 넣었다 (없으면 키 생략 — 다른 노드 서명 불변).
+  - 확인 — 재사용 확장의 stale 경로: scene 후처리 (Breadcrumb · Tag · picker 주석 · 위치 상태) 는 모두 새 객체로 교체해 재사용된 합성 자손을 고치지 않는다 · origin subtree 는 canonical 동일성이 대신한다 · 자기 자식 · ref · `{{ }}` 있는 subtree 는 대상 밖 · section 을 상태 조상에 추가.
+  - LOW deferred (가설 — production writer 없음): SearchField · NumberField 의 SelectValue 도 text source 가 `children → placeholder` 가 되지만 factory `children` 은 `""`/부재, propagation 은 placeholder 만 쓴다 — AI 열린 props 쓰기로 SelectValue `children` 을 채울 때만 Preview (placeholder 만 읽음) 와 갈린다.
+  - LOW deferred: `id` 없는 Select 행 — 이관 전에도 RAC 생성 key 라 reload 뒤 선택 key 가 맞지 않았다 (값 일치 fallback 은 양쪽 동일).
+- 수리 검증: scene · Phase 3 unit 363 · Phase 3 live 10/10 · Phase 2 live 5/5 · type-check 0 → 닫힘.
+
+### 번들 (task guard — ADR-201 initial 상한)
+
+- production 빌드 initial closure JS gzip (`adr209-bundle-closure.mjs`, 238 전 `61d29f98a` worktree vs 현재): Builder 1,391,030 → 1,396,132 (**+5,102 B**) · Preview 640,019 → 643,341 (**+3,322 B**). 238 전 HEAD 가 이미 상한 (1,328,315 / 601,346) 을 +62,715 / +38,673 넘어 있다 (238 밖 기존 초과) — 사용자 보고.

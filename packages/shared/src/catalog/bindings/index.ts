@@ -87,6 +87,10 @@ import { selectTriggerBinding } from "./SelectTrigger.binding";
 import { selectValueBinding } from "./SelectValue.binding";
 import { selectIconBinding } from "./SelectIcon.binding";
 import { separatorBinding } from "./Separator.binding";
+import { headerBinding } from "./Header.binding";
+import { listBoxSectionBinding } from "./ListBoxSection.binding";
+import { menuSectionBinding } from "./MenuSection.binding";
+import { gridListSectionBinding } from "./GridListSection.binding";
 import { skeletonBinding } from "./Skeleton.binding";
 import { sliderBinding } from "./Slider.binding";
 import { sliderOutputBinding } from "./SliderOutput.binding";
@@ -201,6 +205,10 @@ export * from "./SelectTrigger.binding";
 export * from "./SelectValue.binding";
 export * from "./SelectIcon.binding";
 export * from "./Separator.binding";
+export * from "./Header.binding";
+export * from "./ListBoxSection.binding";
+export * from "./MenuSection.binding";
+export * from "./GridListSection.binding";
 export * from "./Skeleton.binding";
 export * from "./Slider.binding";
 export * from "./SliderTrack.binding";
@@ -251,6 +259,11 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   IllustratedMessage: illustratedMessageBinding,
   Link: linkBinding,
   Separator: separatorBinding,
+  // ADR-238 Phase 2 — 목록 section 층 (RAC section + Header).
+  Header: headerBinding,
+  ListBoxSection: listBoxSectionBinding,
+  MenuSection: menuSectionBinding,
+  GridListSection: gridListSectionBinding,
   // ADR-912 위험군 해소(선행-3/4): TEXT_LEAF 순수 텍스트 leaf (internal source, DOM generic, Skia box+text)
   Text: textBinding,
   Heading: headingBinding,

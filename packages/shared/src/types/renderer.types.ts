@@ -51,6 +51,11 @@ export interface PreviewElement {
    * 패키지 경계를 넘길 수 없다.
    */
   fills?: unknown[];
+  /**
+   * ADR-238 Phase 2 — ref instance 해석 노드면 그 ref 대상 id (resolver `_resolvedFrom`). section instance 가 상속한
+   * 항목의 RAC key (`resolveSectionItemKey`) 판정에 쓴다. 렌더 전용.
+   */
+  _resolvedFrom?: string;
   text?: string;
   parent_id?: string | null;
   page_id?: string | null;

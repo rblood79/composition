@@ -45,6 +45,7 @@ import { ensureStateVariantOrigins } from "./stateVariantOrigins";
 import { migrateVariantsToOriginInstances } from "./stateVariantMigration";
 import { migrateStaticCollectionsToInstances } from "./staticCollectionMigration";
 import { ensureGroupSlots } from "./groupSlotOrigins";
+import { ensureCollectionSectionOrigins } from "./collectionSectionOrigins";
 import { ensureBreadcrumbsTemplateOrigins } from "./breadcrumbs/breadcrumbsTemplateOrigins";
 import { catalogReusableOriginId } from "@composition/shared";
 import {
@@ -145,15 +146,20 @@ export function ensureReusableCompositeOrigins(
   return repairOriginChildPropagationPatches(
     ensureGroupSlots(
       migrateCardViewCardsToRefs(
-        migrateStaticCollectionsToInstances(
-          // ADR-237 Phase 2 — 이관을 지난 항목 템플릿 origin (Tab · Tag · ListBoxItem) 의 상호작용 변형은 이관 뒤
-          //   두 번째 seed pass 가 ref 로 보충한다 (이관 전 쌍은 변형 대상 밖).
-          //   ADR-237 Phase 3 — Breadcrumbs 항목 origin 도 여기서 (Breadcrumbs 는 catalog generic origin 이라 전용
-          //   ensurer 가 없다 · 정적 목록 이관 전에 있어야 한다 · `--current` 는 이 seed pass 가 보충).
-          ensureStateVariantOrigins(
-            ensureBreadcrumbsTemplateOrigins(
-              migrateVariantsToOriginInstances(
-                ensureReusableCompositeOriginsBeforeVariantMigration(document),
+        // ADR-238 Phase 2 — 목록 section origin 3 + owner slot 추천 (정적 목록 이관 뒤 — 항목 origin · owner slot 이 선다).
+        ensureCollectionSectionOrigins(
+          migrateStaticCollectionsToInstances(
+            // ADR-237 Phase 2 — 이관을 지난 항목 템플릿 origin (Tab · Tag · ListBoxItem) 의 상호작용 변형은 이관 뒤
+            //   두 번째 seed pass 가 ref 로 보충한다 (이관 전 쌍은 변형 대상 밖).
+            //   ADR-237 Phase 3 — Breadcrumbs 항목 origin 도 여기서 (Breadcrumbs 는 catalog generic origin 이라 전용
+            //   ensurer 가 없다 · 정적 목록 이관 전에 있어야 한다 · `--current` 는 이 seed pass 가 보충).
+            ensureStateVariantOrigins(
+              ensureBreadcrumbsTemplateOrigins(
+                migrateVariantsToOriginInstances(
+                  ensureReusableCompositeOriginsBeforeVariantMigration(
+                    document,
+                  ),
+                ),
               ),
             ),
           ),

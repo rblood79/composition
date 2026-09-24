@@ -390,9 +390,11 @@ describe("ADR-234 G2 — 항목 템플릿 이관 (Tab · Tag · ListBoxItem)", (
         ref: origin,
         metadata: { variant: "unselected" },
       });
+      // ADR-238 Phase 2 — ListBox slot 끝에 section origin (시스템 항목 후보만 있는 slot 에 더한다).
       expect(nodesById.get(host)?.slot, host).toEqual([
         `${origin}--unselected`,
         origin,
+        ...(host === "component-listbox" ? ["component-listbox-section"] : []),
       ]);
       expect(
         nodesById.has(origin.replace("-default", "-selected")),

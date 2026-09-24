@@ -48,7 +48,13 @@ export function resolveSelectDisplayValue(input: {
 
   if (!selectedKey && !selectedValue) return placeholder;
 
-  const items = Array.isArray(props.items) ? props.items : null;
+  // ADR-238 Phase 3 — 정적 항목 (owner 자식 ListBoxItem instance) 은 scene 이 `_staticItems` 평면 행으로 싣는다
+  //   (`readStaticPickerEntries` — Preview 와 같은 행 · key).
+  const items = Array.isArray(props.items)
+    ? props.items
+    : Array.isArray(props._staticItems)
+      ? props._staticItems
+      : null;
   if (items) {
     const matched = items.find((item) => {
       if (typeof item !== "object" || item === null) return false;

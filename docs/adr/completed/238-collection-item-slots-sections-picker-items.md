@@ -2,15 +2,19 @@
 
 ## Status
 
-Proposed — 2026-09-24
+Implemented — 2026-09-24 (`/execute-adr 238` Phase 0~~4 / G0~~G5 같은 날 종결 — [실행 기록](../design/238-collection-item-slots-sections-picker-items-breakdown.md#6-실행-기록)) · Accepted — 2026-09-24 (사용자 `/execute-adr 238`, Codex 리뷰 판독 1 + 수리 검증 1 종결 후) · Proposed — 2026-09-24
 
-설계 요청: 사용자 (2026-09-24) — "listbox 내의 list 내부도 slot 구조화" 질문 → `/deep-research` (react-aria.adobe.com, reusable · origin · instance · slot 으로 분해 · 조립 가능한 것) → 후보 6 중 사용자 선택 "1+2+3" (AskUserQuestion) 으로 `/create-adr`. 237 이 "범위 밖 (후속 ADR)" 으로 남긴 Select · ComboBox 항목 origin · Menu section 을 포함한다. 전제 기록: [breakdown §1](design/238-collection-item-slots-sections-picker-items-breakdown.md#1-전제-확정-기록-fork-4-질문--사용자-confirm).
+G4 는 사용자 판정으로 닫았다 (2026-09-24): 같은 세션 A/B (238 전 빌드 대조) 에서 popover 항목 scene 제외 · 해석 재사용 확장 (origin 자식이 있는 instance) 뒤에도 Select 50 × 20 편집 +4.6 · 항목 origin 편집 +12.5 ms 로 미달 → "Select 최적화 후 예외" → popover 항목을 해석 전에 빼고 선택 행만 해석해 Select 세 조작 모두 통과 (−0.9 / +0.7 / +0.9). section 목록 (ListBox · Menu 6+6 × section 3 × 항목 10) 편집 +1.3 · 항목 origin 편집 +2.1 ms 는 예외로 기록 (R5), breakpoint 는 통과.
+
+G0 개정 (2026-09-24 사용자 판정 — AskUserQuestion): section 이 섞인 정적 ListBox · GridList 는 238 전 빌드 Canvas 에서 빈 행으로 그려진다 (헤더 · 항목 글자 없음 — Preview 와 이미 발산, [실행 기록](../design/238-collection-item-slots-sections-picker-items-breakdown.md#6-실행-기록)). section 가족의 G5 오라클은 "이관 전 빌드 픽셀 동일" 대신 "이관 뒤 Canvas 가 Preview DOM 과 같은 구조 (헤더 글자 · 항목 글자 · 순서 · 행 높이)" 로 판정한다 — 이관이 Canvas 픽셀을 의도적으로 바꾼다. Select · ComboBox · 평면 목록은 픽셀 동일 그대로.
+
+설계 요청: 사용자 (2026-09-24) — "listbox 내의 list 내부도 slot 구조화" 질문 → `/deep-research` (react-aria.adobe.com, reusable · origin · instance · slot 으로 분해 · 조립 가능한 것) → 후보 6 중 사용자 선택 "1+2+3" (AskUserQuestion) 으로 `/create-adr`. 237 이 "범위 밖 (후속 ADR)" 으로 남긴 Select · ComboBox 항목 origin · Menu section 을 포함한다. 전제 기록: [breakdown §1](../design/238-collection-item-slots-sections-picker-items-breakdown.md#1-전제-확정-기록-fork-4-질문--사용자-confirm).
 
 ## Context
 
 ### 문제
 
-[ADR-234](completed/234-variant-instances-and-slot-filled-collections.md) · [ADR-237](completed/237-origin-instance-slot-extension.md) 로 목록 틀 · 그룹 · Breadcrumbs 가 "slot = 추천 항목 · 목록 = instance 자식" 이 됐지만, RAC collection 구조의 나머지 세 층이 모델 밖에 있다.
+[ADR-234](234-variant-instances-and-slot-filled-collections.md) · [ADR-237](237-origin-instance-slot-extension.md) 로 목록 틀 · 그룹 · Breadcrumbs 가 "slot = 추천 항목 · 목록 = instance 자식" 이 됐지만, RAC collection 구조의 나머지 세 층이 모델 밖에 있다.
 
 1. **항목 안 역할 — 구조는 있는데 표면이 없다.** 항목 origin 은 역할 자식 (icon · label · description · shortcut · avatar) 을 이미 갖고 (F1), instance 는 `descendants` 로 역할을 켜고 끌 수 있다 (F3). 그러나 Properties 에 항목 instance 의 역할 on/off 가 없고, 역할 재생성 액션은 소비처 0 이다 (F4). RAC 는 역할마다 provider 가 받는 slot 이름이 정해져 있어 (R1 · R2) 아무 역할이나 실으면 "Invalid slot" 크래시가 난다 (F5 — GridListItem label 실측).
 2. **Section — `items` 엔트리 모양뿐이다.** ListBox · Menu · GridList 의 section 은 `items` 안의 `{type:"section"}` 엔트리다 (F6, ADR-099). 정적 목록 이관은 section 이 섞인 `items` 를 건너뛰어 (F7) 그런 목록은 234 뒤에도 `items` 모델에 남는다 — 같은 ListBox 가 section 유무에 따라 두 모델로 갈린다. RAC 는 section 을 collection 의 한 층 (`ListBoxSection` + `Header`) 으로 둔다 (R3).
@@ -26,7 +30,7 @@ Proposed — 2026-09-24
 
 ### 코드 사실
 
-레퍼런스 R1~~R6 · 코드 사실 F1~~F12 (경로:라인) 는 [breakdown §2 · §3](design/238-collection-item-slots-sections-picker-items-breakdown.md#2-레퍼런스--rac-react-aria-components1210--react-ariaadobecom--starter-packagesreact-aria-startersrc-read-only).
+레퍼런스 R1~~R6 · 코드 사실 F1~~F12 (경로:라인) 는 [breakdown §2 · §3](../design/238-collection-item-slots-sections-picker-items-breakdown.md#2-레퍼런스--rac-react-aria-components1210--react-ariaadobecom--starter-packagesreact-aria-startersrc-read-only).
 
 ### Hard constraints
 
@@ -93,17 +97,17 @@ Proposed — 2026-09-24
 
 범위 밖 (후속 ADR): Tree (재귀 항목 · chevron/selection/drag) · Table (열 × 행) · Dialog · Toast 이름 영역 (`title` · `close` · `description`) · 자유 내용 slot (Card · Dialog · Popover) · Menu 하위 메뉴 (SubmenuTrigger) · LoadMore 항목 · ColorSwatchPicker 항목.
 
-> 구현 상세: [238-collection-item-slots-sections-picker-items-breakdown.md](design/238-collection-item-slots-sections-picker-items-breakdown.md)
+> 구현 상세: [238-collection-item-slots-sections-picker-items-breakdown.md](../design/238-collection-item-slots-sections-picker-items-breakdown.md)
 
 ## Risks
 
 | ID  | 위험                                                                                                                                                                                                                             | 심각도 | 관리                                                                                                                |
 | --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----: | ------------------------------------------------------------------------------------------------------------------- |
 | R1  | Select · ComboBox 이관 뒤 `selectedKey` 가 다른 항목을 가리키거나 비선택이 된다 (행 `id` · `value` · 항목 key 의 대응이 어긋남)                                                                                                  |  HIGH  | G3 선택 oracle (이관 전 빌드 arm 의 SelectValue 글자 · Preview 초기 선택) + G5 — 실패 시 이관 보류                  |
-| R2  | section 목록 이관 뒤 Canvas 헤더 행 · 항목 간격이 달라진다 (layout 의 section entry 높이 계산 → 실제 노드)                                                                                                                       |  HIGH  | G5 픽셀 oracle (이관 전 빌드 arm) — 실패 가족은 이관 보류, origin · slot 만 둠                                      |
+| R2  | section 목록 이관 뒤 Canvas 헤더 행 · 항목 간격이 Preview 와 달라진다 (238 전 Canvas 는 section 목록을 빈 행으로 그렸다 — G0 실측) | HIGH | G5 구조 oracle (Preview DOM 의 헤더 · 항목 글자 · 순서 · 행 높이) — 실패 가족은 이관 보류, origin · slot 만 둠 |
 | R3  | 같은 section origin 의 instance 형제에서 상속 항목 key 가 겹쳐 RAC 선택 · 포커스가 두 항목에 걸린다 (F8 — 44ec413ad 와 같은 뿌리). 상속 항목의 `props.id` 는 origin 값이라 `props.id` 우선 규칙으로는 막히지 않는다 (리뷰 r1 h1) |  HIGH  | G2 진단 RED (c) (`props.id` 있는 상속 항목 포함) → 상속 항목 항상 접두 key 로 GREEN · Preview 객체 동일성 조회 확장 |
 | R4  | 역할 on/off 가 label 을 꺼 항목의 접근 가능한 이름이 사라지거나, 표 밖 slot 이름이 저장돼 Preview 가 크래시한다 (F5)                                                                                                             |  MED   | 역할 표 필수 표시 · 저장 경로 거부 unit (G1)                                                                        |
-| R5  | section · Select 항목 실제 노드화로 `scene.build` 증가 (234 R4 · 237 R5 와 같은 성격)                                                                                                                                            |  MED   | G4 A/B — 미달 시 사용자 판정 (237 선례: 해석 증분화 먼저)                                                           |
+| R5  | section · Select 항목 실제 노드화로 `scene.build` 증가 (234 R4 · 237 R5 와 같은 성격) — **잔존 (2026-09-24 사용자 판정 예외)**: section 목록 편집 +1.3 · 항목 origin 편집 +2.1 ms (재측정 범위 0 ~ +3.8) · Select 는 해석 전 제외로 해소. 재개 조건 = 실제 문서 체감 저하 보고 |  MED   | G4 A/B — 미달 시 사용자 판정 (237 선례: 해석 증분화 먼저)                                                           |
 | R6  | 바인딩 목록의 section entry 는 `items` 에 남아 section 표현이 두 가지로 공존한다 (ItemsManager 바인딩 전용 UI)                                                                                                                   |  LOW   | 234 규칙 (바인딩 = `items`) 그대로 기록                                                                             |
 
 ## Gates
@@ -115,11 +119,18 @@ Proposed — 2026-09-24
 | G2   | Phase 2 | unit (원복 RED): section 3 type 두 leg 렌더 (Preview = RAC section 컴포넌트, renderer unit) · Header 글자 · Menu Separator · section Slot "+" · **같은 section origin instance 둘의 상속 항목 key 유일 (진단 (c) GREEN)** · Menu per-section selection 보존 · live (Skia): ListBox section 2 · 항목 layout rect                                                                                                                                                                   | section type 보류                 |
 | G3   | Phase 3 | unit (원복 RED): Select · ComboBox 항목 instance 자식 · ListBoxItem origin 편집이 popover 항목에 닿음 (Preview renderer unit) · **`selectedKey` 이관 전후 같은 항목 (SelectValue 글자 · Preview 초기 선택 · 클릭 writeback 의 `selectedValue` = 행 `value`, fixture 는 `id` ≠ `value`)** · ComboBox 입력 필터가 명시 `textValue` 로 (label 과 다른 검색어 fixture) · `inputValue` 자유 입력 표시 보존 (reload · Undo/Redo) · 바인딩 무변경 · live (Skia): 트리거 SelectValue 글자 | Select/ComboBox 이관 보류         |
 | G4   | Phase 4 | 같은 세션 headed A/B (대조 arm = 238 전 빌드 worktree) · `scene.build` p95 median Δ ≤ +1 ms · 측정 대상 = 사람이 만든 모양 fixture (Q1) · 불리 조작 포함 (항목 origin 편집 · breakpoint 전환, Q2) · 총비용 A/B (Q3)                                                                                                                                                                                                                                                               | 사용자 판정                       |
-| G5   | Phase 4 | BC: 가족별 이관 전후 Canvas 픽셀 동일 (section 목록 3 · Select · ComboBox, oracle = 238 전 빌드 arm) · 선택 동일 · Δbyte 수식 일치 · 재hydration Δ0 (unit + IndexedDB 저장 층 live)                                                                                                                                                                                                                                                                                               | 실패 가족 이관 보류               |
+| G5   | Phase 4 | BC: 가족별 이관 전후 Canvas 픽셀 동일 (Select · ComboBox · 평면 목록, oracle = 238 전 빌드 arm) · section 목록 3 은 Canvas 가 Preview DOM 과 같은 구조 (헤더 글자 · 항목 글자 · 순서 · 행 높이 — G0 개정) · 선택 동일 · Δbyte 수식 일치 · 재hydration Δ0 (unit + IndexedDB 저장 층 live) | 실패 가족 이관 보류 |
 
 ### Live Exercise
 
-(Implemented 승격 시 기재)
+실제 builder (dev 서버 · headed Playwright · 새 프로젝트, Compare Mode · Preview iframe 미개방 — 사용자 지시) 에서 Skia layout · scene · Skia 노드 글자 · store · IndexedDB 로 확인했다 (2026-09-24).
+
+- `adr238-live-exercise.mjs` **6/6** (Phase 1): "Item roles" 절 (Description 스위치 · Label 은 필수) · 끄기 → instance `descendants[...Description].enabled=false` · 항목 높이 50 → 32 · 켜기 → 50 · GridListItem origin Icon 추가 → 표 순서 index 0 · reload 그대로 · page error 0.
+- `adr238-live-sections.mjs` **5/5** (Phase 2): section 이 섞인 정적 ListBox · GridList · Menu reload 이관 모양 · ListBox · GridList Canvas rect = Preview DOM oracle (section · Header · 항목 y · h, 폭 400) · Menu 트리거 상자 = section 없는 Menu · page error 0.
+- `adr238-live-pickers.mjs` **11/11** (Phase 3): palette Select · ComboBox instance 둘째 항목 선택 → Skia 트리거 글자 "Cat" · plain · section Select reload 이관 모양 (`props.id` · `value` · 명시 `textValue` · `isDisabled`) · 트리거 상자 · 글자 이관 전 = 후 · section 항목 선택 "Japan" · 항목 layout rect 0 · ComboBox `inputValue` 우선 · Undo → 선택 글자 · Redo · reload 보존 · popover 항목 (scene 밖) 선택 오류 0 · 두 번째 reload 모양 불변.
+- `adr238-g5-bc-live.mjs` **픽셀 Δ0 14/14**: 238 전 빌드 (`61d29f98a` worktree) 가 저장한 문서를 IndexedDB 로 옮겨 reload — Components origin 6 · palette Select · ComboBox · 정적 items Select · ComboBox · 평면 ListBox · section Menu 트리거 · 구조 가족 (section ListBox · GridList) 은 before 빈 행 → after 헤더 · 항목 · 노드 수식 (Components +20 · Select +k · section +2s+m) · 재hydration Δ0 · 오류 0.
+- `adr238-g4-perf-ab.mjs`: 위 G4 판정 수치 (평면 목록 대조군 포함).
+- live 에서 잡은 결함 3 (수리): Canvas Select · ComboBox 트리거가 선택과 무관하게 placeholder 를 그림 (ADR-923 r15 text source 회귀 — 238 전부터) · Menu origin 이 popover prune 뒤 "빈 slot" 표시를 켬 · 해석 전 prune 이 Select origin 의 항목 (instance 원본) 까지 뺌.
 
 ## Consequences
 

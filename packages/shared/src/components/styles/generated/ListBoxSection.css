@@ -1,0 +1,40 @@
+/* ============================================================
+ * AUTO-GENERATED from ListBoxSectionSpec — DO NOT EDIT MANUALLY
+ * Source: packages/specs/src/components/ListBoxSection.spec.ts
+ * Archetype: container
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-ListBoxSection {
+  /* Base styles — archetype: container */
+    display: block;
+    box-sizing: border-box;
+    font-family: var(--font-sans);
+
+  /* Default size */
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--text-base);
+  border-radius: var(--radius-none);
+}
+
+.react-aria-ListBoxSection[data-focus-visible] {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-ListBoxSection[data-disabled] {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+@media (forced-colors: active) {
+  .react-aria-ListBoxSection {
+    forced-color-adjust: auto;
+  }
+}
+
+
+} /* @layer components */

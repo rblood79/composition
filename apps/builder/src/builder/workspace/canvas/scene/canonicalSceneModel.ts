@@ -18,10 +18,12 @@ import {
   appendStaticTagShowAllChips,
   appendStaticTagRemoveButtons,
   annotateStaticBreadcrumbItems,
+  annotateStaticPickerItems,
   buildCanvasSceneGraph,
   buildCanvasScenePageIndex,
   type CanvasSceneNode,
   type CollectionWindowResolution,
+  resolveSceneRefChain,
 } from "./canvasSceneNode";
 import type { ListBoxCollectionDataSource } from "../../../components/listbox/listBoxRowProjectionModel";
 
@@ -147,11 +149,14 @@ function resolveSceneGraph(
       ? lastLeafResolution.records
       : null;
   const leafNext = new Map<string, LeafRefResolution<CanvasSceneNode>>();
+  // ADR-238 G4 — popover 내용 (선택 안 된 Select · ComboBox 항목 · Menu 항목) 은 해석하지 않는다 (문서 자식은
+  //   scene visit 이 거르고, instance 가 origin 에서 받는 자식은 해석기의 `prunePopoverContent`).
   const resolved = resolveCanonicalRefTree({
     childrenMap: graph.childrenByParent,
     elements: graph.nodes,
     elementsMap: graph.nodesMap,
     reuse: { previous, next, leafPrevious, leafNext },
+    prunePopoverContent: true,
   });
   lastLeafResolution = {
     collections: options.collections,
@@ -191,7 +196,81 @@ function resolveSceneGraph(
   appendStaticTagRemoveButtons(pruned);
   // ADR-237 G5: 정적 Breadcrumb 자식에 projection 과 같은 표시 입력 (`_isLast` · `_separator` · size).
   annotateStaticBreadcrumbItems(pruned);
-  return pruned;
+  // ADR-238 Phase 3: Select · ComboBox 정적 항목 → owner `_staticItems` (트리거 표시 글자).
+  annotateStaticPickerItems(pruned);
+  // ADR-238 G4: popover 내용 (Select · ComboBox 항목 · Menu 항목) 은 Canvas 가 그리지도 배치하지도 않는다 — 주석 뒤
+  //   scene 에서 뺀다 (남기면 scene 서명 · 인덱스가 항목 수에 비례해 커진다).
+  return markPopoverContentOwners(
+    prunePopoverContentSceneNodes(pruned),
+    documentNodesById,
+  );
+}
+
+/**
+ * ADR-238 G4 — popover 내용을 뺀 owner 에 `hasPopoverContent` — canonical (자기 자식 · ref 체인 origin 의 자식) 에
+ * popover 항목이 있으면. 빈 slot 표시가 scene 자식 수 대신 이것을 읽는다 (prune 전과 같은 판정).
+ */
+function markPopoverContentOwners(
+  graph: CanvasSceneGraph,
+  documentNodesById: Map<string, CanonicalNode>,
+): CanvasSceneGraph {
+  const typeOf = (node: CanonicalNode): string =>
+    node.type === "ref"
+      ? (resolveSceneRefChain((node as unknown as { ref: string }).ref, documentNodesById)
+          ?.master.type ?? "ref")
+      : node.type;
+  for (const owner of [...graph.nodes]) {
+    const types = POPOVER_CONTENT_CHILD_TYPES.get(owner.type);
+    if (!types || owner.hasPopoverContent) continue;
+    let source: CanonicalNode | undefined = owner.sourceNode;
+    let has = false;
+    for (let depth = 0; source && !has && depth < 8; depth += 1) {
+      has = (source.children ?? []).some((child) => types.has(typeOf(child)));
+      source =
+        source.type === "ref"
+          ? documentNodesById.get((source as unknown as { ref: string }).ref)
+          : undefined;
+    }
+    if (!has) continue;
+    const next = { ...owner, hasPopoverContent: true as const };
+    graph.nodesMap.set(owner.id, next);
+    const at = graph.nodes.indexOf(owner);
+    if (at >= 0) graph.nodes[at] = next;
+    const parentId = graph.parentById.get(owner.id);
+    const siblings = parentId ? graph.childrenByParent.get(parentId) : null;
+    if (siblings) {
+      const index = siblings.indexOf(owner);
+      if (index >= 0) siblings[index] = next;
+    }
+  }
+  return graph;
+}
+
+/** owner type → Canvas 가 그리지 않는 popover 내용 자식 type (F10 — Canvas 는 트리거만). */
+const POPOVER_CONTENT_CHILD_TYPES: ReadonlyMap<string, ReadonlySet<string>> =
+  new Map([
+    ["Select", new Set(["ListBoxItem", "ListBoxSection"])],
+    ["ComboBox", new Set(["ListBoxItem", "ListBoxSection"])],
+    ["Menu", new Set(["MenuItem", "MenuSection", "Separator"])],
+  ]);
+
+/**
+ * ADR-238 G4 — popover 내용 subtree 를 scene 에서 뺀다. layout (`implicitStyles` 의 Select · Menu 분기) 과 Skia
+ * (`_hasChildren` 계산) 가 이미 이 자식을 건너뛰므로 화면은 같다. 트리거 표시 글자는 `annotateStaticPickerItems`
+ * 가 owner 에 먼저 싣는다. 없으면 같은 graph.
+ */
+export function prunePopoverContentSceneNodes(
+  graph: CanvasSceneGraph,
+): CanvasSceneGraph {
+  const roots: string[] = [];
+  for (const node of graph.nodes) {
+    const types = POPOVER_CONTENT_CHILD_TYPES.get(node.type);
+    if (!types) continue;
+    for (const child of graph.childrenByParent.get(node.id) ?? []) {
+      if (types.has(child.type)) roots.push(child.id);
+    }
+  }
+  return removeSceneSubtrees(graph, roots);
 }
 
 /**
@@ -202,10 +281,20 @@ function resolveSceneGraph(
 export function pruneDisabledSceneNodes(
   graph: CanvasSceneGraph,
 ): CanvasSceneGraph {
-  const hiddenRoots = graph.nodes.filter((node) => node.enabled === false);
-  if (hiddenRoots.length === 0) return graph;
+  return removeSceneSubtrees(
+    graph,
+    graph.nodes.filter((node) => node.enabled === false).map((node) => node.id),
+  );
+}
+
+/** rootIds 와 그 subtree 를 뺀 graph (없으면 같은 graph). */
+function removeSceneSubtrees(
+  graph: CanvasSceneGraph,
+  rootIds: readonly string[],
+): CanvasSceneGraph {
+  if (rootIds.length === 0) return graph;
   const removed = new Set<string>();
-  const stack = hiddenRoots.map((node) => node.id);
+  const stack = [...rootIds];
   while (stack.length > 0) {
     const id = stack.pop()!;
     if (removed.has(id)) continue;

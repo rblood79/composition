@@ -58,7 +58,7 @@ import {
 // ADR-923 착수 5 재확인 (2026-09-04): `label → Text.children` 규칙 삭제 — ListBoxItem/GridListItem 의
 //   D2 binding 에 `label` prop 이 없어 (라벨 텍스트는 `children`) parentProp 이 항상 undefined 였고,
 //   read/write-time 모두 skip 되는 도달 불가 규칙이었다. slot 자식 편집은 panel 이 직접 쓴다
-//   (`listBoxItemSlotChildActions.ts`). evidence/923-phase5-followup-fitcontent-remeasure-text-source.md §8.
+//   (ADR-238 "항목 역할" 절 — `builder/components/itemSlotRoles.ts`). evidence/923-phase5-followup-fitcontent-remeasure-text-source.md §8.
 const collectionItemPropagationRules: PropagationRule[] = [
   {
     parentProp: "description",
