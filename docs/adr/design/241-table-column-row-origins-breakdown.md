@@ -1,6 +1,6 @@
 # ADR-241 구현 상세 — Table 열 · 행 origin (2차원 collection)
 
-> 본문: [ADR-241](../241-table-column-row-origins.md) · base: [ADR-234](../completed/234-variant-instances-and-slot-filled-collections.md) · 관련: [ADR-013](../completed/013-quick-connect-data-binding.md) (quick connect 열 생성)
+> 본문: [ADR-241](../completed/241-table-column-row-origins.md) · base: [ADR-234](../completed/234-variant-instances-and-slot-filled-collections.md) · 관련: [ADR-013](../completed/013-quick-connect-data-binding.md) (quick connect 열 생성)
 
 ## 1. 전제 확정 기록 (fork 4 질문 · 사용자 confirm)
 
@@ -139,3 +139,16 @@ Phase 3 의 선행 수리를 main 에서 먼저 반영했다 — ADR-239 의 Tre
 - **G3 unit** `adr241Phase3.rows.test.tsx` 11: Row origin · TableBody slot · origin 두 leg 셀 3 · 사용자 TableView 이관 (id · ref · slot · 두 leg 글자/순서 이관 전과 동일 · 멱등) · 셀 수 어긋난 TableView 무변경 · history 스냅샷 · 행 "+" plain · 열 "+" plain (한 계획에 행마다 셀) · instance 열 "+" (바깥 셀 patch 복제본으로 이관 · origin 불변) · instance 행 "+" · 열 이동 → 셀 이동 · 되돌리는 이동 원복 · 어긋난 TableView 무이동 · 열 삭제 (store `removeElements`) → 같은 index 셀 · history 1 항목 undo 원복. 진단 (c) TableBody GREEN — 진단 전부 GREEN. 원복 RED: 해석기 mode C 자기 자식 · 삭제 history 두 수리를 되돌리면 3 RED.
 - **live** (`adr241-phase3-live.mjs`, headed · 팔레트 TableView · Properties Slot Fill UI · Compare Mode · Preview 미개방) **5/5**: instance 열 3 · 행 1 × 셀 3 (셀 x = 열 x) · TableHeader 「Fill slot」 → 열 4 · 셀 4 · undo 1회 → 3/3 · TableBody 「Fill slot」 → 행 2 × 셀 3 · page error 0.
 - 회귀: builder unit 7,498 PASS · shared 1,410 PASS · type-check 0 (실패 = `textAxisGate` worktree evidence · shared `componentCatalog` placeable — 무관, HEAD 기존).
+
+### Phase 4 — 성능 · BC (G4 · G5, 2026-09-25)
+
+- **대조 arm**: 241 전 빌드 = 별도 worktree `/Users/admin/work/composition-adr241-base` @ `a2d1fe649` (그 commit lockfile 로 `pnpm install` · 엔진 소스 동일이라 wasm 복사) · dev 5183. 241 arm = worktree dev 5182.
+- **G4 브라우저 A/B** (`adr241-g4-perf-ab.mjs`, headed · 같은 세션 · arm 교대 3 쌍 · warm-up 3 · 표본 7 · DPR 1 · visible). fixture (Q1): 데이터 Table 500 행 × 8 열 (가상화 · Column 요소 8 + legacy `props.columns` 8 → **두 arm 이 같은 셀** 을 그린다 — 241 은 요소, 전 빌드는 legacy) + TableView 10 × (20 행 × 5 열) plain → reload (241 arm 은 hydration 이관으로 ref 250). `scene.build` p95 median Δ: columnEdit +1.4 · columnLook (열 모양 편집 역할 짝 — 241 = Column origin padding → TableView 열 50 · 전 빌드 = TableView origin 열 1) +1.0 · columnAdd +0.9 · breakpoint +0.2. scroll 조작은 wheel 이 가상화 window 에 닿지 않아 (rebuilt 0) 무효 — 가상화 경로 비용은 fixture 의 500 행 window projection 이 매 build 에 포함.
+- **G4 분해 bench** (`adr241G4.sceneBench.test.ts`, `ADR241_BENCH=1` — 같은 파일을 두 worktree 에서 · `buildCanonicalSceneModel` 60 표본 · 240 교훈: 브라우저 p95 (표본 7) = 최댓값): 편집 (새 문서 객체) p50/p95 — 전체 3.83/5.15 → 4.44/5.83 (**Δ +0.61 / +0.68**) · 데이터 Table 만 +0.09/+0.21 · TableView 만 +0.67/+0.70 · 같은 문서 재빌드 +0.20/+0.63. 증분의 정체 = TableView 이관으로 생긴 Column · Row ref 250 개 해석 (CPU 프로파일 — `resolveCanonicalRefTree` · leaf 재사용 의존 검사 · 형제 순서 정렬에 고르게 퍼짐, 단일 병목 없음) = Decision 4 (열 · 행 = origin instance) 의 구조 비용. 열 원천 통일 (데이터 Table) 은 +0.1~0.2. 판정: bench p95 Δ +0.68 ≤ +1 (240 G3 와 같은 재측정 기준) — 브라우저 columnEdit +1.4 는 표본 7 최댓값 잡음 폭 (한 arm 안 쌍마다 3.1~3.7 / 3.9~5.0) 안.
+- **G5 BC live** (`adr241-g5-bc-live.mjs`, 두 arm 에 같은 문서 → reload, oracle = 241 전 빌드) **7/7**: ① 사용자 plain TableView (셀 수 = 열 수) 노드 13 rect · 글자 동일 · 241 arm Column/Row ref · ② 셀 수 어긋난 TableView 동일 · plain 유지 · ③ legacy `props.columns` Table 동일 · ④ TableView instance (바깥 override "Edited" 셀 · "Kind" 열) 합성 노드 동일 — 이관 뒤 경로 전치 없이 같은 셀 · ⑤ Column 요소 Table (원천이 어긋났던 문서 — 바뀌는 쪽) 241 셀 = 요소 key · 폭 150/120/150 (Preview 열 · TanStack clamp), 전 빌드 셀 0 · ⑥ 241 재hydration Δ0 (IndexedDB `document_parts` 동일) · Δbyte **+828** (문서 94,836 → 95,664 — Column · Row origin 2 · slot 4 · origin/사용자 TableView 열 · 행 ref 필드) · ⑦ page error 0.
+- 저장 history 의 Components body 스냅샷 Undo (240 F28 가족) 는 unit (`ensureTableOriginsInSnapshot` — origin 보충 · plain TableView 스냅샷 이관) 로 고정 · live 미실행 (LOW).
+
+### 종결 (2026-09-25)
+
+- G0~G5 충족 · Implemented. initial 번들 Δ (gzip, 241 전 빌드 대비): Builder +4,147 · Preview +934 B — 대조 빌드 자체가 ADR-201 상한 초과 (Builder 1,399,357 > 1,328,315 · Preview 644,715 > 601,346, 240 종결 때와 같은 main 상태) · 241 증분 = `tableOrigins` · 열/행 삽입 계획 · 셀 동기화 · 공용 열 reader.
+- 범위 밖 (후속 결정, ADR 본문 Decision 기록 그대로): Table · TableView 렌더러의 RAC 전환 (F6 · F7) · 행 상태 변형 · 열별 셀 템플릿 · 행 드래그 · TableLoadMoreItem · Table ↔ TableView 통합. instance 의 mode C 열 · 행 삭제 · 순서 변경의 셀 동기화 (instance 합성 노드는 store 삭제 · 이동 경로 밖 — Clear 로 전체 비우기만) 는 LOW deferred.
