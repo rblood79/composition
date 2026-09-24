@@ -48,6 +48,8 @@ export const treeItemBinding: PrimitiveBinding = {
         section: "appearance",
         default: "md",
       },
+      // ADR-239 Phase 1 — RAC TreeItem `isDisabled` (disabled 상태 변형의 prop).
+      isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
     },
     toRacProps: "default",
   },

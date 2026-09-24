@@ -14236,6 +14236,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   TreeItem: {
     defaultVariant: "default",
     defaultSize: "md",
+    // ADR-239 Phase 1 (2026-09-25): 행 안 역할 자식 (Label Text · Icon · Description) 의 가로 배치 — layout fallback
+    //   채널 (CSS 는 수동 `Tree.css` `.react-aria-TreeItem { display:flex; align-items:center; gap: var(--spacing-2xs) }`
+    //   그대로). 왼쪽 여백 (chevron 앞까지 · 들여쓰기) · 최소 높이는 깊이에 따라 implicitStyles 가 채운다.
+    containerStyles: {
+      display: "flex",
+      flexDirection: "row",
+      alignItems: "center",
+      gap: "{spacing.2xs}",
+    },
     variants: {
       default: {
         fill: {

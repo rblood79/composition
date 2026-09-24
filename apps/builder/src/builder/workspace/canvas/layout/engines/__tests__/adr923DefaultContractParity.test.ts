@@ -290,7 +290,8 @@ describe("ADR-923 r23m1 — defaultSelectionMode 리터럴 0 (catalog binding �
       "GridList",
     ],
     ["src/builder/workspace/canvas/scene/canvasSceneNode.ts", "GridList"],
-    ["src/builder/workspace/canvas/skia/buildSpecNodeData.ts", "Tree"],
+    // ADR-239 — Tree 행 체크박스 판정은 layout · Skia 공용 모듈로 옮겼다.
+    ["src/builder/workspace/canvas/treeItemRow.ts", "Tree"],
   ];
 
   it.each(FILES)(

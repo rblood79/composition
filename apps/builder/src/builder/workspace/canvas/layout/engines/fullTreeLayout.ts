@@ -3670,10 +3670,15 @@ export function calculateFullTreeLayout(
         if (scrollChildIds.length === 0 && isWindowedCollection) {
           continue;
         }
+        // ADR-239 Phase 1 — 자손 rect 는 **layout 부모** 기준이라 누적도 layout 자식표 (filtered) 로 돈다. canonical
+        //   자식표로 돌면 layout 이 다른 부모로 옮긴 노드 (Tree 가 편 중첩 TreeItem 행 — rect 는 Tree 기준) 에 옛
+        //   부모 offset 이 한 번 더 붙어 범위가 부푼다 (가로 스크롤바 오표시). 자식표가 없는 노드는 canonical 그대로.
+        const layoutChildrenOf = (id: string): readonly string[] =>
+          filteredChildIdsMap.get(id) ?? childrenMap.get(id) ?? [];
         const { maxRight, maxBottom } = computeScrollExtent(
-          scrollChildIds,
+          layoutChildrenOf(elementId),
           (id) => result.get(id),
-          (id) => childrenMap.get(id) ?? [],
+          layoutChildrenOf,
           (id) => {
             const childEl = elementsMap.get(id);
             const childNamed = childEl as

@@ -82,6 +82,8 @@ const CANONICAL_DESCENDANTS_ALLOWLIST = new Set([
   "apps/builder/src/builder/components/migrateDialogTriggerInstances.ts",
   "apps/builder/src/builder/components/stateVariantMigration.ts",
   "apps/builder/src/builder/components/staticCollectionMigration.ts",
+  // ADR-239 Phase 1 — Tree origin seed · plain TreeItem → ref 이관 (항목 Label patch).
+  "apps/builder/src/builder/components/tree/treeTemplateOrigins.ts",
   // ADR-230 · 234 — 상태 변형 층 (`StateLayer.descendants` — 변형 origin 의 자손 patch 투영). RefNode 필드가 아니라
   //   층 모델의 자기 필드다 (Canvas 해석 · Preview render props 가 같은 모델을 읽는다).
   "apps/builder/src/builder/components/stateVariantLayers.ts",

@@ -1001,13 +1001,19 @@ describe("resolveDropTarget catalog containerStyles fallback", () => {
     mockBounds.clear();
   });
 
-  function makeDropScene(containerType: string) {
+  function makeDropScene(
+    containerType: string,
+    sourceFields: Record<string, unknown> = {},
+  ) {
     const body = makeElement("body-1", { type: "body" });
     const container = makeElement("container-1", {
       type: containerType,
       parent_id: body.id,
     });
-    const source = makeElement("source-1", { parent_id: body.id });
+    const source = makeElement("source-1", {
+      parent_id: body.id,
+      ...sourceFields,
+    });
 
     mockBounds.set(body.id, { x: 0, y: 0, width: 800, height: 600 });
     mockBounds.set(container.id, { x: 100, y: 100, width: 400, height: 200 });
@@ -1039,7 +1045,11 @@ describe("resolveDropTarget catalog containerStyles fallback", () => {
   });
 
   it("여백을 catalog 에만 둔 컨테이너(Tree)의 삽입 라인이 padding 만큼 안쪽에 놓인다", () => {
-    const withPadding = makeDropScene("Tree"); // catalog padding {spacing.xs}
+    // ADR-239 — Tree 는 slot host (항목 = TreeItem origin instance) 라 끌어 넣는 요소도 TreeItem instance.
+    const withPadding = makeDropScene("Tree", {
+      type: "TreeItem",
+      ref: "component-tree-item-default",
+    }); // catalog padding {spacing.xs}
     const withoutPadding = makeDropScene("Box"); // catalog containerStyles 없음
 
     const resolve = (scene: ReturnType<typeof makeDropScene>) => {

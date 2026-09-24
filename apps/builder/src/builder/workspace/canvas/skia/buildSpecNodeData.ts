@@ -17,6 +17,11 @@
 
 import { resolveTextRenderStyle } from "../utils/textRenderStyle";
 import type { CanvasSceneNode } from "../scene/canvasSceneNode";
+import {
+  isTreeItemRoleChild,
+  resolveTreeItemLevel,
+  resolveTreeSelectionCheckboxVisible,
+} from "../treeItemRow";
 import { readForcedVariantStates } from "../../../components/stateVariantLayers";
 import {
   applyItemLabelTypography,
@@ -545,81 +550,6 @@ function resolveParentDelegatedSize(
     currentId = ancestor.parent_id;
   }
   return null;
-}
-
-/**
- * TreeItem depth(중첩 레벨) 계산 — parent 체인의 TreeItem 조상 수 + 1 (1-based).
- *
- * ADR-912 R1 후속 (TreeItem catalog cutover): DOM 은 RAC 가 `--tree-item-level` CSS
- * 변수를 자동 주입하지만 Skia 는 RAC 를 거치지 않으므로 buildSpecNodeData 가 직접 계산해
- * `_treeLevel` 로 주입한다. buildCatalogShapes 가 `paddingX + (level - 1) * indentPerLevel`
- * 로 들여쓰기를 그려 DOM `Tree.css` 와 D3 시각 대칭. nested TreeItem(TreeItem 안의 TreeItem)
- * 은 canonical element 재귀로 존재 → parent 체인을 타며 TreeItem 만 카운트(Tree 컨테이너는 제외).
- *
- * @returns 1-based level (최상위 TreeItem = 1). 무한 루프 방지 상한 32.
- */
-function resolveTreeItemLevel(
-  element: CanvasSceneNode,
-  elementsMap: Map<string, CanvasSceneNode>,
-): number {
-  let level = 1;
-  let currentId: string | null | undefined = element.parent_id;
-  for (let guard = 0; guard < 32 && currentId; guard++) {
-    const ancestor = elementsMap.get(currentId);
-    if (!ancestor) break;
-    if (ancestor.type === "TreeItem") {
-      level++;
-      currentId = ancestor.parent_id;
-    } else if (ancestor.type === "Tree") {
-      break; // Tree 컨테이너 도달 → 종료 (Tree 는 depth 미포함)
-    } else {
-      // TreeItem 조상 체인 밖 (예: Tree 가 아닌 일반 컨테이너 중첩) → 종료
-      break;
-    }
-  }
-  return level;
-}
-
-/**
- * TreeItem 행에 선택 체크박스를 그릴지 — 부모 Tree 의 selection 축에서 산출 (2026-08-21).
- *
- * DOM(`TreeItemContent`)은 RAC renderProps 로 `selectionBehavior === "toggle" &&
- * selectionMode !== "none"` 를 본다. Skia 는 RAC 를 거치지 않으므로 같은 식을 부모 Tree 의
- * props 에서 재현한다 — `selectionBehavior` 산출은 DOM 렌더러와 **같은 helper**
- * (`resolveSelectionBehavior`, fallback 도 renderTree 와 동일한 `"replace"`)를 써야
- * 두 표면의 판정이 갈리지 않는다.
- *
- * `_treeLevel` 과 같은 자리에서 주입되며, 소비는 rule 의 `selectionCheckbox.showProp` 이다
- * (generic 렌더러가 Tree 를 알 필요 없음 — ADR-142 §3).
- */
-function resolveTreeSelectionCheckboxVisible(
-  element: CanvasSceneNode,
-  elementsMap: Map<string, CanvasSceneNode>,
-): boolean {
-  let currentId: string | null | undefined = element.parent_id;
-  for (let guard = 0; guard < 32 && currentId; guard++) {
-    const ancestor: CanvasSceneNode | undefined = elementsMap.get(currentId);
-    if (!ancestor) return false;
-    if (ancestor.type === "Tree") {
-      const p = ancestor.props as Record<string, unknown>;
-      return resolveSelectionCheckboxVisible({
-        selectionMode: p.selectionMode,
-        // ADR-923 r24m1 — style 축도 기본값 원천은 catalog binding. 아래 `fallback` 은
-        //   binding 미선언 타입용 최후 폴백으로만 남는다.
-        selectionStyle:
-          p.selectionStyle ?? resolveBindingSelectionStyle("Tree"),
-        selectionBehavior: p.selectionBehavior,
-        // ADR-923 r23m1 — 기본값 원천은 catalog binding; 미선언이면 Tree.tsx 기본값 "single".
-        defaultSelectionMode: resolveBindingSelectionMode("Tree", "single"),
-        // Tree.tsx 게이트 = `selectionMode !== "none"` (RAC starter 원본) → single 포함.
-        checkboxModes: ["single", "multiple"],
-        fallback: "replace",
-      });
-    }
-    if (ancestor.type !== "TreeItem") return false;
-    currentId = ancestor.parent_id;
-  }
-  return false;
 }
 
 /** Breadcrumb → 부모 Breadcrumbs의 구분자·마지막 여부·비활성 */
@@ -1784,9 +1714,15 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
   //     일반 `_hasChildren`(shell-only 신호)과 분리한다 — 자식 TreeItem 은 독립 행으로
   //     렌더되므로 부모 TreeItem 은 자식 유무와 무관하게 자기 행(chevron+label)을 그려야 한다.
   if (element.type === "TreeItem") {
-    const treeItemHasChildren = !!(childElements && childElements.length > 0);
+    // ADR-239 Phase 1 — chevron 조건 = 자식 TreeItem (역할 자식 Label · Icon 은 행 안 내용이라 세지 않는다). 역할
+    //   자식이 있으면 행 글자는 그 자식이 그린다 → shell (배경 + chevron · 체크박스 append) 만.
+    const treeItemHasChildren = !!childElements?.some(
+      (child) => child.type === "TreeItem",
+    );
+    const hasRoleChildren = !!childElements?.some(isTreeItemRoleChild);
     specProps = {
       ...specProps,
+      ...(hasRoleChildren ? { _hasChildren: true } : {}),
       _treeLevel: resolveTreeItemLevel(element, elementsMap),
       _hasTreeChildren: treeItemHasChildren,
       // 선택 체크박스 가시성(2026-08-21) — DOM 은 RAC renderProps 로 같은 판정을 한다

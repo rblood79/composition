@@ -398,6 +398,13 @@ export const ITEM_SLOT_ROLE_TABLE: Readonly<
     { role: "avatar" },
     { role: "label", required: true },
   ],
+  // ADR-239 Phase 1 — RAC TreeItemContent 의 자유 자식 (provider slot 은 chevron · selection · drag 뿐 — owner 설정
+  //   부품) 이라 전부 DEFAULT_SLOT.
+  TreeItem: [
+    { role: "icon" },
+    { role: "label", required: true },
+    { role: "description" },
+  ],
 };
 
 /** 항목 type 의 역할 한 행 (표에 없으면 null). */
@@ -466,6 +473,8 @@ export const STATIC_LIST_FAMILY_BY_OWNER: Readonly<
   // ADR-238 Phase 3 — Select · ComboBox (목록 틀 = owner, 항목 = popover 안 ListBoxItem instance — Menu 선례).
   Select: { listType: null, itemType: "ListBoxItem" },
   ComboBox: { listType: null, itemType: "ListBoxItem" },
+  // ADR-239 Phase 1 — Tree (목록 틀 = owner, 항목 안 항목 = 재귀). 바인딩 Tree 는 `dataBinding` 행 그대로.
+  Tree: { listType: null, itemType: "TreeItem" },
 };
 
 /**
@@ -505,6 +514,34 @@ export function resolveSectionItemKey(
     return key;
   }
   return `${resolveStaticItemKey(section.props, section.id)}/${key}`;
+}
+
+/** ADR-239 — TreeItem RAC key 계산에 필요한 최소 노드 모양 (canonical · Canvas 해석 노드 · Preview 해석 노드 공통). */
+export interface TreeItemKeyNode {
+  id: string;
+  type?: string;
+  props?: Record<string, unknown> | null;
+}
+
+/**
+ * ADR-239 Phase 1 — TreeItem 의 RAC key (재귀 — breakdown §4 Phase 1 key). 부모 TreeItem 이 **ref instance** 면
+ * `<부모 key>/<항목 key>`, 아니면 `resolveStaticItemKey` 그대로. ADR-238 section key 와 같은 규칙: 상속 · 자기 자식을
+ * 가르지 않는다 (두 해석기의 상속 id 모양이 다르다 — Canvas `<instance>/<segment>` · Preview origin id). 같은 TreeItem
+ * origin 을 참조하는 형제가 origin 의 자식 항목을 상속해도 부모 key 가 달라 겹치지 않는다 (진단 (c)).
+ *
+ * `getParentItem` = 부모가 TreeItem (해석 노드) 또는 TreeItem instance (canonical ref) 일 때만 그 노드, 아니면 (부모가
+ * Tree · 없음) undefined. `isInstance` = 그 노드가 ref instance 인가 (Canvas `ref` · Preview `_resolvedFrom` · canonical
+ * `type:"ref"`). 최상위 항목은 접두 없음. 두 leg (Canvas 선택 · 펼침 판정 · Preview RAC key) 와 이관이 이 함수를 읽는다.
+ */
+export function resolveTreeItemKey<N extends TreeItemKeyNode>(
+  item: N,
+  getParentItem: (node: N) => N | undefined,
+  isInstance: (node: N) => boolean,
+): string {
+  const own = resolveStaticItemKey(item.props, item.id);
+  const parent = getParentItem(item);
+  if (!parent || !isInstance(parent)) return own;
+  return `${resolveTreeItemKey(parent, getParentItem, isInstance)}/${own}`;
 }
 
 /**

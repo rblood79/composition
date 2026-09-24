@@ -48,7 +48,10 @@ import {
   resolveSlotComposition,
   resolveSectionItemKey,
   resolveStaticItemKey,
+  resolveTreeItemKey,
+  type TreeItemKeyNode,
 } from "../catalog/slotRoles";
+import type { TreeItemRenderProps } from "react-aria-components/Tree";
 import { renderMenuItemSlotParts } from "../components/Menu";
 
 /**
@@ -94,6 +97,18 @@ export const renderTree = (
     context.childrenByParent.get(element.id) ?? []
   ).filter((child) => child.type === "TreeItem");
 
+  // ADR-239 Phase 1 — 항목 RAC key = `resolveTreeItemKey` (부모 TreeItem 이 instance 면 부모 key 접두 — Canvas 선택 ·
+  //   펼침 판정과 같은 함수). instance 판정 = 해석 노드의 `_resolvedFrom`.
+  const parentItemOf = new Map<string, PreviewElement>();
+  const isTreeItemInstance = (item: PreviewElement) =>
+    typeof item._resolvedFrom === "string" && item._resolvedFrom !== "";
+  const treeItemKey = (item: PreviewElement) =>
+    resolveTreeItemKey(
+      item as unknown as TreeItemKeyNode & PreviewElement,
+      (node) => parentItemOf.get(node.id),
+      isTreeItemInstance,
+    );
+
   const renderTreeItemsRecursively = (
     items: PreviewElement[],
   ): React.ReactNode => {
@@ -105,24 +120,45 @@ export const renderTree = (
       const otherChildren = itemChildren.filter(
         (child) => child.type !== "TreeItem",
       );
+      for (const child of childTreeItems) parentItemOf.set(child.id, item);
 
       // ADR-923 r15m1 — 텍스트 원천은 타입별 계약 (TreeItem 은 기본 군 `children`; factory 가 쓰는
       //   키). 종전 `title || label || value || children` 은 production writer 가 없는 키를 Preview
       //   만 읽어 Skia (`children`) 와 갈렸다.
       //   r18m1 — 기본 글자 없음 (Skia 는 계약 결과가 "" 면 text 를 안 그린다).
-      const displayTitle = resolveTextSourceText("TreeItem", item.props);
+      //   ADR-239 — 역할 자식 (Label Text) 이 있으면 행 글자는 그 자식이 그린다 (TreeItem 은 title 을 비운다).
+      const displayTitle =
+        otherChildren.length > 0
+          ? ""
+          : resolveTextSourceText("TreeItem", item.props);
+      const labelChild = otherChildren.find((child) => child.type === "Text");
+      const labelText = labelChild
+        ? resolveTextSourceText("Text", labelChild.props)
+        : displayTitle;
 
       const hasChildren = childTreeItems.length > 0;
+      const itemProps = item.props as Record<string, unknown>;
 
       return (
         <TreeItem
           key={item.id}
           data-element-id={item.id}
-          id={item.id}
+          id={treeItemKey(item)}
           title={displayTitle}
+          textValue={labelText}
           hasChildren={hasChildren}
           showInfoButton={false}
-          style={item.props.style}
+          isDisabled={itemProps.isDisabled === true}
+          // ADR-239 — 상태 변형 층 (unselected · 상호작용 · disabled) 을 RAC render props 로 겹친다 (MenuItem 선례).
+          style={
+            item.stateStyle
+              ? (renderProps: TreeItemRenderProps) =>
+                  item.stateStyle!(
+                    renderProps as unknown as Record<string, unknown>,
+                    item.props.style as React.CSSProperties | undefined,
+                  ) as React.CSSProperties
+              : item.props.style
+          }
           className={item.props.className}
           children={otherChildren.map((child) => context.renderElement(child))}
           childItems={
@@ -235,7 +271,12 @@ export const renderTreeItem = (
   return (
     <TreeItem
       key={element.id}
-      id={element.customId}
+      // ADR-239 Phase 1 (F6) — 재귀 경로와 같은 key 원천 (`props.id` → 노드 id). 종전 `customId` 는 재귀 경로
+      //   (노드 id) 와 규칙이 달랐다.
+      id={resolveStaticItemKey(
+        element.props as Record<string, unknown> | undefined,
+        element.id,
+      )}
       data-element-id={element.id}
       title={displayTitle}
       hasChildren={hasChildren}

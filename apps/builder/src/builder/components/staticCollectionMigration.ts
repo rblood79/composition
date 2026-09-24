@@ -22,6 +22,10 @@ import { LISTBOX_ITEM_DEFAULT_ORIGIN_ID } from "./listbox/listBoxTemplateOrigins
 import { GRIDLIST_ITEM_DEFAULT_ORIGIN_ID } from "./gridlist/gridListTemplateOrigins";
 import { MENU_ITEM_DEFAULT_ORIGIN_ID } from "./menu/menuTemplateOrigins";
 import { BREADCRUMB_ITEM_DEFAULT_ORIGIN_ID } from "./breadcrumbs/breadcrumbsTemplateOrigins";
+import {
+  TREE_ITEM_DEFAULT_ORIGIN_ID,
+  treeItemSlotIds,
+} from "./tree/treeTemplateOrigins";
 
 type RefLike = CanonicalNode & {
   ref?: string;
@@ -154,6 +158,11 @@ export interface StaticCollectionFamily {
   ownerKeepsSubparts?: boolean;
   /** ADR-238 Phase 3 — Slot "+" 가 선택 모양 후보를 넣어도 owner 선택 key 를 쓰지 않는다 (Select · ComboBox). */
   skipsSelectionOnInsert?: boolean;
+  /**
+   * ADR-239 Phase 1 — 항목 안 항목 (Tree 의 TreeItem). 항목 자신도 목록 틀이다 — Slot "+" host 가 항목이면 그 자식으로
+   * 넣는다 (선택 key 는 쓰지 않는다 — 선택 owner 는 조상 Tree 이고 새 항목 key 는 부모 key 접두라 host 가 모른다).
+   */
+  recursiveItems?: boolean;
   buildItem(
     item: Record<string, unknown>,
     origin: CanonicalNode,
@@ -425,6 +434,33 @@ export const COMBOBOX_STATIC_FAMILY: StaticCollectionFamily = {
   },
 };
 
+/**
+ * ADR-239 Phase 1 — Tree (목록 틀 = owner, 항목 = TreeItem instance · 항목 안 항목). Tree 는 `items` 가 아니라 TreeItem
+ * 요소라 행 이관은 `migrateTreeItemsToInstances` 가 맡는다 — 이 가족은 Slot "+" 삽입 (`buildItem` 은 새 행 하나) 용.
+ */
+export const TREE_STATIC_FAMILY: StaticCollectionFamily = {
+  ownerType: "Tree",
+  listType: null,
+  itemType: "TreeItem",
+  itemPrefix: "item",
+  get defaultOriginId() {
+    return TREE_ITEM_DEFAULT_ORIGIN_ID;
+  },
+  get originSlot() {
+    return treeItemSlotIds();
+  },
+  recursiveItems: true,
+  buildItem(item, origin) {
+    return {
+      props: item.isDisabled === true ? { isDisabled: true } : {},
+      descendants: labelDescendant(
+        origin,
+        item.label ?? item.textValue ?? item.title,
+      ),
+    };
+  },
+};
+
 export const STATIC_COLLECTION_FAMILIES: readonly StaticCollectionFamily[] = [
   TABS_STATIC_FAMILY,
   TAGGROUP_STATIC_FAMILY,
@@ -434,6 +470,7 @@ export const STATIC_COLLECTION_FAMILIES: readonly StaticCollectionFamily[] = [
   BREADCRUMBS_STATIC_FAMILY,
   SELECT_STATIC_FAMILY,
   COMBOBOX_STATIC_FAMILY,
+  TREE_STATIC_FAMILY,
 ];
 
 /** 목록 틀 — `listType` 자식, `null` 이면 owner 자신. */

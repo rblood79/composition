@@ -4,6 +4,7 @@ import {
   isBoundListOwnerProps,
   SECTION_TYPES,
   resolveSectionItemKey,
+  resolveTreeItemKey,
   STATIC_LIST_FAMILY_BY_OWNER,
   resolveTemplateBindingValues,
   substituteTemplateBindingsInChildren,
@@ -1307,6 +1308,46 @@ const ITEM_SELECTION_OWNER: Readonly<Record<string, string>> = {
   Tag: "TagGroup",
   ListBoxItem: "ListBox",
   GridListItem: "GridList",
+  // ADR-239 Phase 1 — Tree 항목 (key = `resolveTreeItemKey` — 부모 TreeItem 이 instance 면 부모 key 접두).
+  TreeItem: "Tree",
+};
+
+/**
+ * ADR-239 Phase 1 — Canvas 해석 트리의 TreeItem RAC key (Preview `renderTree` 와 같은 `resolveTreeItemKey`). instance
+ * 판정 = 해석 노드의 `ref` (Canvas 는 ref 를 남긴다 — Preview 는 `_resolvedFrom`).
+ */
+export function resolveCanvasTreeItemKey<T extends CanonicalRefResolvableNode>(
+  element: T,
+  elementsMap: Map<string, T>,
+): string {
+  return resolveTreeItemKey(
+    {
+      id: element.id,
+      type: element.type,
+      props: getNodeProps(element),
+      node: element,
+    } as TreeKeyNode<T>,
+    (item) => {
+      const parentId = getParentId(item.node);
+      const parent = parentId ? elementsMap.get(parentId) : undefined;
+      return parent && parent.type === "TreeItem"
+        ? {
+            id: parent.id,
+            type: parent.type,
+            props: getNodeProps(parent),
+            node: parent,
+          }
+        : undefined;
+    },
+    (item) => typeof (item.node as { ref?: unknown }).ref === "string",
+  );
+}
+
+type TreeKeyNode<T> = {
+  id: string;
+  type: string;
+  props: Record<string, unknown>;
+  node: T;
 };
 
 /** owner 의 선택 key (`selectedKey ?? defaultSelectedKey` · `selectedKeys ?? defaultSelectedKeys`) 에 key 가 있나. */
@@ -1350,7 +1391,9 @@ export function resolveCanvasVariantState<T extends CanonicalRefResolvableNode>(
         : null;
     selected = isOwnerSelectedKey(
       getNodeProps(selectionOwner),
-      resolveSectionItemKey(props, element.id, section),
+      element.type === "TreeItem"
+        ? resolveCanvasTreeItemKey(element, elementsMap)
+        : resolveSectionItemKey(props, element.id, section),
     );
   }
   if (selected === undefined) {

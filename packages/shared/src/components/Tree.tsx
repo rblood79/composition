@@ -296,7 +296,11 @@ export function TreeItem(props: TreeItemProps) {
       className="react-aria-TreeItem"
     >
       <TreeItemContent hasChildren={actualHasChildren}>
-        <span className="tree-item-title">{displayTitle}</span>
+        {/* ADR-239 — 역할 자식 (Label Text) 이 글자를 그리는 항목은 title 이 비어 있다 — 빈 span 이 행 gap 을
+            하나 더 만들지 않도록 싣지 않는다. */}
+        {displayTitle !== "" && (
+          <span className="tree-item-title">{displayTitle}</span>
+        )}
         {children} {/* 다른 컴포넌트들 (Button, Text 등) */}
         {showInfoButton && (
           <Button

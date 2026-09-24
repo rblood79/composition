@@ -48,6 +48,11 @@ import { ensureGroupSlots } from "./groupSlotOrigins";
 import { ensureRegionSlots } from "./regionSlotOrigins";
 import { ensureCollectionSectionOrigins } from "./collectionSectionOrigins";
 import { ensureBreadcrumbsTemplateOrigins } from "./breadcrumbs/breadcrumbsTemplateOrigins";
+import {
+  ensureTreeTemplateOrigins,
+  migrateTreeItemsToInstances,
+  seedFreshTreeOrigin,
+} from "./tree/treeTemplateOrigins";
 import { catalogReusableOriginId } from "@composition/shared";
 import {
   collectReusableOriginIds,
@@ -137,6 +142,8 @@ export function getReusableCompositeOriginId(type: string): string | null {
 export function ensureReusableCompositeOrigins(
   document: CompositionDocument,
 ): CompositionDocument {
+  // ADR-239 Phase 1 — 진입 시 있던 origin (새 문서의 Tree origin seed 판정).
+  const existingOriginIds = collectReusableOriginIds(document);
   // ADR-234 Phase 2 — 상태 변형 복제본 · 항목 템플릿 selected 를 origin 의 ref 로 이관 (멱등 —
   //   이관을 지난 문서는 같은 객체). seed 는 이관 전 모양으로 두고 여기 한 곳에서 옮긴다.
   // ADR-234 Phase 3 — 정적 `items` → 목록 틀의 항목 instance 자식 (멱등). 변형 이관 뒤 — 항목 instance 는
@@ -152,20 +159,31 @@ export function ensureReusableCompositeOrigins(
         migrateCardViewCardsToRefs(
           // ADR-238 Phase 2 — 목록 section origin 3 + owner slot 추천 (정적 목록 이관 뒤 — 항목 origin · owner slot 이 선다).
           ensureCollectionSectionOrigins(
+            // ADR-239 Phase 1 — plain TreeItem → TreeItem origin ref (같은 id) + key 대응 (선택 · 펼침 · interaction).
+            migrateTreeItemsToInstances(
             migrateStaticCollectionsToInstances(
               // ADR-237 Phase 2 — 이관을 지난 항목 템플릿 origin (Tab · Tag · ListBoxItem) 의 상호작용 변형은 이관 뒤
               //   두 번째 seed pass 가 ref 로 보충한다 (이관 전 쌍은 변형 대상 밖).
               //   ADR-237 Phase 3 — Breadcrumbs 항목 origin 도 여기서 (Breadcrumbs 는 catalog generic origin 이라 전용
               //   ensurer 가 없다 · 정적 목록 이관 전에 있어야 한다 · `--current` 는 이 seed pass 가 보충).
               ensureStateVariantOrigins(
-                ensureBreadcrumbsTemplateOrigins(
-                  migrateVariantsToOriginInstances(
-                    ensureReusableCompositeOriginsBeforeVariantMigration(
-                      document,
+                // ADR-239 Phase 1 — TreeItem origin (팔레트 밖) 보장 + 이 호출에서 처음 생긴 Tree origin 의 자식 =
+                //   TreeItem instance (중첩 예시) · slot. 기존 문서의 Tree origin 은 뒤의 이관이 같은 id 의 ref 로만
+                //   바꾼다. 변형 (`--unselected` …) 은 이 seed pass 가 ref 로 보충한다.
+                seedFreshTreeOrigin(
+                  ensureTreeTemplateOrigins(
+                    ensureBreadcrumbsTemplateOrigins(
+                      migrateVariantsToOriginInstances(
+                        ensureReusableCompositeOriginsBeforeVariantMigration(
+                          document,
+                        ),
+                      ),
                     ),
                   ),
+                  existingOriginIds,
                 ),
               ),
+            ),
             ),
           ),
         ),
@@ -200,6 +218,7 @@ export function ensureReusableCompositeOriginsBeforeVariantMigration(
   }
   const converted = convertNewOriginChildrenToRefs(next, { existingOriginIds });
   reportOriginChildRefDiagnostics(converted.diagnostics);
+
   // ADR-230 — 기본 요소 origin 의 상태 변형 origin 은 조합 자식 ref 변환 **뒤** 보충한다
   //   (변형 subtree 는 그 시점의 default 와 동형 — default 의 자식이 ref 로 바뀐 뒤 복제).
   return ensureStateVariantOrigins(converted.document);

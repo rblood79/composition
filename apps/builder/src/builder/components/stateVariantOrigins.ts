@@ -76,6 +76,9 @@ export const STATE_VARIANT_BASE_TYPES: Readonly<
   Disclosure: ["collapsed"],
   // ADR-237 Phase 3 — Breadcrumb 항목 (RAC render prop isCurrent — R3): origin = 링크 + `--current`.
   Breadcrumb: ["current"],
+  // ADR-239 Phase 1 — TreeItem (RAC render props isSelected · isDisabled · 상호작용 · isExpanded): origin = 선택 상태 +
+  //   `--unselected` · 상호작용 4 · `--collapsed` (237 접힘 층 — root 전용).
+  TreeItem: ["selected", "disabled", ...INTERACTION_STATE_VARIANTS, "collapsed"],
 };
 
 /** 이관 대상 항목 템플릿 쌍 (default id = 새 origin id). GridListItem 은 selected 템플릿이 없어 대상 밖 — ADR-237

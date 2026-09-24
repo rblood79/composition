@@ -3,26 +3,28 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   getCatalogCutoverTypes,
-  resolveStaticItemKey,
   type CanonicalNode,
   type CompositionDocument,
   type ResolvedNode,
 } from "@composition/shared";
 
-import { resolveCanonicalRefTree } from "../../../adapters/canonical/canonicalRefResolution";
+import {
+  resolveCanonicalRefTree,
+  resolveCanvasTreeItemKey,
+} from "../../../adapters/canonical/canonicalRefResolution";
 import { resolveCanonicalDocument } from "../../../resolvers/canonical";
 import { CanonicalNodeRenderer } from "../../../preview/components/CanonicalNodeRenderer";
 import type { RenderContext } from "../../../preview/types/index";
 import { buildCanonicalSceneModel } from "../../workspace/canvas/scene/canonicalSceneModel";
 import { ensureReusableCompositeOrigins } from "../reusableCompositeOrigins";
 import { ensureMenuTemplateOrigins } from "../menu/menuTemplateOrigins";
-import { indexNodes } from "../staticCollectionMigration";
+import { indexNodes, resolveChainEnd } from "../staticCollectionMigration";
 import { resolveSlotInsertAction } from "../slotHostPolicy";
 
 /**
  * ADR-239 Phase 0 — 진단 RED (breakdown §4 Phase 0 (a)~(e)).
  * `it` = 닫힌 결함 (닫은 Phase 가 `it.fails` → `it` 으로 바꾼다) · `it.fails` = 아직 열린 결함:
- *   (a) (c) → Phase 1 · (b) → Phase 2 · (d) → Phase 3 · (e) → Phase 4.
+ *   (a) (c) → Phase 1 (닫힘 — `it`) · (b) → Phase 2 · (d) → Phase 3 · (e) → Phase 4.
  */
 
 afterEach(() => {
@@ -119,7 +121,7 @@ function nestedTree(props: Record<string, unknown> = {}): CanonicalNode {
 
 // ── (a) Tree instance 에 Slot "+" 없음 · TreeItem 안 항목 추가 경로 없음 (F2) ─────────────
 describe("ADR-239 진단 (a) — Tree · TreeItem 이 slot host 가 아니다 (F2)", () => {
-  it.fails(
+  it(
     "Tree origin 의 slot = TreeItem origin · Tree / TreeItem instance 가 항목 넣기 host",
     () => {
       const doc = seededDoc();
@@ -127,7 +129,7 @@ describe("ADR-239 진단 (a) — Tree · TreeItem 이 slot host 가 아니다 (F
       const origin = byId.get("component-tree")!;
       expect(Array.isArray(origin.slot)).toBe(true);
       const candidate = byId.get((origin.slot as string[])[0]!)!;
-      expect(candidate.type).toBe("TreeItem");
+      expect(resolveChainEnd(candidate.id, byId)?.type).toBe("TreeItem");
       for (const host of [
         { type: "Tree", slot: origin.slot },
         { type: "TreeItem" },
@@ -179,7 +181,7 @@ describe("ADR-239 진단 (b) — 중첩 TreeItem: Canvas 는 전부 그리고 Pr
 
 // ── (c) 같은 TreeItem origin 을 참조하는 형제의 상속 자식 key 충돌 (238 (c) 와 같은 뿌리) ──────
 describe("ADR-239 진단 (c) — 같은 TreeItem origin instance 둘의 상속 자식이 같은 RAC key", () => {
-  it.fails("상속 자식 key 가 Tree 안에서 유일하다", () => {
+  it("상속 자식 key 가 Tree 안에서 유일하다", () => {
     const doc = seededDoc([
       {
         id: "ti-origin",
@@ -210,14 +212,12 @@ describe("ADR-239 진단 (c) — 같은 TreeItem origin instance 둘의 상속 �
       elementsMap: byId,
       childrenMap: childrenMap(byId),
     });
-    // 239 전 key = 항목 `props.id` 또는 노드 id (`resolveStaticItemKey` — Preview renderTree 는 노드 id).
+    // Phase 1 — key = `resolveTreeItemKey` (부모 TreeItem 이 instance 면 부모 key 접두). 239 전 key
+    //   (`resolveStaticItemKey` — 노드 id · `props.id`) 는 둘 다 "child" 였다.
     const keys = ["ti-x", "ti-y"].flatMap((parent) =>
-      (tree.childrenMap.get(parent) ?? []).map((item) =>
-        resolveStaticItemKey(
-          item.props as Record<string, unknown> | undefined,
-          item.id,
-        ),
-      ),
+      (tree.childrenMap.get(parent) ?? [])
+        .filter((item) => String(item.type) === "TreeItem")
+        .map((item) => resolveCanvasTreeItemKey(item, tree.elementsMap)),
     );
     expect(keys).toHaveLength(2);
     expect(new Set(keys).size).toBe(2);

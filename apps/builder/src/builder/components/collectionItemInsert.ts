@@ -171,8 +171,15 @@ export function planTabItemInsert(input: {
             (f.sectionType !== undefined && origin.type === f.sectionType))) ||
         (f.sectionType !== undefined &&
           f.sectionType === listType &&
+          origin.type === f.itemType) ||
+        // ADR-239 Phase 1 — 항목 안 항목 (TreeItem host 에 TreeItem).
+        (f.recursiveItems === true &&
+          f.itemType === listType &&
           origin.type === f.itemType),
     );
+  /** ADR-239 — host 가 항목 자신 (재귀 목록) 이면 선택 key 를 쓰지 않는다 (선택 owner = 조상). */
+  const isItemHost = (family: StaticCollectionFamily, hostType: string) =>
+    family.recursiveItems === true && hostType === family.itemType;
   /** 목록 틀 자식 하나 — section origin 이면 section instance (`props.id` = 새 key), 아니면 항목 instance. */
   const buildChild = (
     family: StaticCollectionFamily,
@@ -230,13 +237,21 @@ export function planTabItemInsert(input: {
       ) {
         return null;
       }
-      const count =
-        (master.children ?? []).length + (host.children ?? []).length;
+      // ADR-239 — 항목 host (TreeItem) 는 역할 자식 (Label) 을 항목으로 세지 않는다.
+      const countOf = (nodes: readonly CanonicalNode[] | undefined) =>
+        isItemHost(family, master.type)
+          ? (nodes ?? []).filter(
+              (child) => resolveChainEnd(child.id, byId)?.type === family.itemType,
+            ).length
+          : (nodes ?? []).length;
+      const count = countOf(master.children) + countOf(host.children);
       const item = buildChild(family, host.id, count);
       const hostProps = (host.props ?? {}) as Record<string, unknown>;
       // section instance host 의 항목 선택 key 는 owner (목록) 가 갖는다 — 여기서는 쓰지 않는다.
       const patch =
-        selectsFor(family) && master.type !== family.sectionType
+        selectsFor(family) &&
+        master.type !== family.sectionType &&
+        !isItemHost(family, master.type)
           ? selectionPatch(
               family.ownerType,
               { ...(master.props as Record<string, unknown>), ...hostProps },
@@ -260,11 +275,16 @@ export function planTabItemInsert(input: {
       family.ownerType === "Tabs"
         ? owner?.children?.find((child) => child.type === "TabPanels")
         : undefined;
-    const count = (list.children ?? []).length;
+    const count = isItemHost(family, list.type)
+      ? (list.children ?? []).filter(
+          (child) => resolveChainEnd(child.id, byId)?.type === family.itemType,
+        ).length
+      : (list.children ?? []).length;
     const tab = buildChild(family, list.id, count);
     // 선택 owner — 목록 틀 = owner 인 가족 (ListBox) 은 자기, section host 와 나머지는 부모 (TagGroup · Tabs).
-    const selectionOwner =
-      family.listType === null && list.type !== family.sectionType
+    const selectionOwner = isItemHost(family, list.type)
+      ? undefined
+      : family.listType === null && list.type !== family.sectionType
         ? list
         : owner;
     const patch =
@@ -301,7 +321,12 @@ export function planTabItemInsert(input: {
   const master = resolveChainEnd(instance.ref, byId);
   if (!master) return null;
   const listHit = findBySegmentPath(master, listPath);
-  const family = listHit ? familyOf(listHit.node.type) : undefined;
+  // ADR-239 — 목록 틀이 origin 안의 ref (TreeItem instance) 면 체인 끝 type 으로 가족을 찾는다.
+  const listType =
+    listHit?.node.type === "ref"
+      ? resolveChainEnd(listHit.node.id, byId)?.type
+      : listHit?.node.type;
+  const family = listHit && listType ? familyOf(listType) : undefined;
   if (!listHit || !family) return null;
   const tabPanels =
     family.ownerType === "Tabs"
@@ -343,7 +368,7 @@ export function planTabItemInsert(input: {
   }
   // 선택 owner = 목록 틀의 부모. instance root 면 instance 자기 props, 더 안쪽이면 그 경로의 descendants props.
   let props: Record<string, unknown> | null = null;
-  if (selectsFor(family)) {
+  if (selectsFor(family) && !isItemHost(family, String(listType))) {
     const instanceProps = (instance.props ?? {}) as Record<string, unknown>;
     if (listHit.parent === master) {
       const patch = selectionPatch(

@@ -63,6 +63,11 @@ import type {
 } from "@composition/shared";
 import { findAncestorByTag } from "../../skia/ancestorLookup";
 import { resolveSkiaRule } from "../../skia/resolveSkiaVisualRule";
+import {
+  flattenTreeRows,
+  isTreeItemRoleChild,
+  resolveTreeItemContentInset,
+} from "../../treeItemRow";
 import { LOWERCASE_TAG_SPEC_MAP } from "./tagSpecLookup";
 
 // ─── 헬퍼 ────────────────────────────────────────────────────────────
@@ -976,6 +981,19 @@ function withParentStyle(
 const TAG_REMOVE_BUTTON_SIZE = 18;
 const TAG_REMOVE_BUTTON_MARGIN = 2;
 
+/** ADR-239 — `Tree.css` `.react-aria-TreeItem` 행 세로 padding `--spacing-xs` 4. */
+const TREE_ITEM_ROW_PADDING_Y = 4;
+
+/** TreeItem 행 최소 높이 = catalog rule `sizes[size].height` (layout 행 높이 · Skia shape 높이와 같은 원천). */
+function resolveTreeItemRowHeight(
+  props: Record<string, unknown> | undefined,
+): number {
+  const rule = resolveSkiaRule("TreeItem");
+  const sizeName = String(props?.size ?? rule?.defaultSize ?? "md");
+  const height = (rule?.sizes?.[sizeName] ?? rule?.sizes?.md)?.height;
+  return typeof height === "number" && height > 0 ? height : 32;
+}
+
 /** `ListBox.css` `.react-aria-ListBoxItem` — `--spacing-md` 가로 여백 · icon↔글자 6 · 체크 16 · icon 기본 16. */
 const LISTBOX_ITEM_PADDING_X = 12;
 const LISTBOX_ITEM_SLOT_GAP = 6;
@@ -1490,6 +1508,30 @@ export function applyImplicitStyles(
     // Tree 는 전용 분기가 없어 catalog fallback 이 후주입 (buildNodeStyle) 으로만 닿았다 — 빈 상태
     //   padding 을 싣기 위해 ListBox 와 같이 parentStyle 을 선주입한다.
     effectiveParent = withParentStyle(containerEl, { ...parentStyle });
+    // ADR-239 Phase 1 — DOM (RAC) 은 중첩 TreeItem 을 평탄한 행으로 그린다: 행 목록 = TreeItem 자손 DFS.
+    //   (239 전에는 자식 행이 부모 행 상자 안에 겹쳤다 — breakdown §5 N1.) Skia 는 layout 의 자식 표를 따른다.
+    filteredChildren = flattenTreeRows(filteredChildren, getChildElements);
+  }
+
+  // ── TreeItem 행 ─────────────────────────────────────────────────────
+  // ADR-239 Phase 1 — 행 상자 = 자기 행만 (자식 TreeItem 은 Tree 가 형제 행으로 편다). 역할 자식 (Label Text ·
+  //   Icon · Description) 이 있으면 행 안 가로 배치 — 왼쪽 여백 = chevron 앞까지 (`resolveTreeItemContentInset`,
+  //   Skia 가 옛 행 글자를 밀던 식) · 세로 여백 4 · 최소 높이 = rule 행 높이 (DOM `Tree.css` padding 4 8 · min-height 32).
+  if (containerTag === "treeitem") {
+    filteredChildren = filteredChildren.filter(isTreeItemRoleChild);
+    if (filteredChildren.length > 0) {
+      const inset = resolveTreeItemContentInset(containerEl, elementById);
+      const rowHeight = resolveTreeItemRowHeight(containerProps);
+      // 행 축 (flex row · center · gap 2) 은 catalog TreeItem `containerStyles` (parentStyle 에 선주입) 가 정본.
+      effectiveParent = withParentStyle(containerEl, {
+        ...parentStyle,
+        paddingLeft: rawParentStyle.paddingLeft ?? inset.left,
+        paddingRight: rawParentStyle.paddingRight ?? inset.right,
+        paddingTop: rawParentStyle.paddingTop ?? TREE_ITEM_ROW_PADDING_Y,
+        paddingBottom: rawParentStyle.paddingBottom ?? TREE_ITEM_ROW_PADDING_Y,
+        minHeight: rawParentStyle.minHeight ?? rowHeight,
+      });
+    }
   }
 
   // ── Menu ──────────────────────────────────────────────────────────

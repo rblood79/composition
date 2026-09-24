@@ -13,6 +13,7 @@ import {
   TAB_ITEM_SELECTED_ORIGIN_ID,
 } from "./tabs/tabsTemplateOrigins";
 import { BREADCRUMB_ITEM_DEFAULT_ORIGIN_ID } from "./breadcrumbs/breadcrumbsTemplateOrigins";
+import { TREE_ITEM_DEFAULT_ORIGIN_ID } from "./tree/treeTemplateOrigins";
 
 // ADR-238 Phase 2 — section origin id (collectionSectionOrigins 의 상수와 같은 값 — 순환 import 회피).
 const LISTBOX_SECTION_ORIGIN = "component-listbox-section";
@@ -302,6 +303,31 @@ export const SLOT_HOST_RULES: readonly SlotHostRule[] = [
     insert: "list-item",
     itemTypes: new Set(["MenuItem", "MenuSection"]),
   },
+  // ADR-239 Phase 1 — Tree 는 자기가 목록 틀 (항목 = TreeItem instance 자식). TreeItem 도 목록 틀 (항목 안 항목 —
+  //   재귀) — 후보는 TreeItem origin 의 slot (instance 는 ref 체인 끝 origin 의 slot 을 읽는다, Tree slot 과 같은 seed).
+  {
+    host: "tree",
+    matches: byType("tree"),
+    active: (element) =>
+      byType("tree")(element) && isReusableOrSystemOwned(element),
+    candidate: templateCandidate(
+      new Set([TREE_ITEM_DEFAULT_ORIGIN_ID]),
+      "treeitem/",
+    ),
+    insert: "list-item",
+    itemTypes: new Set(["TreeItem"]),
+  },
+  {
+    host: "treeitem",
+    matches: byType("treeitem"),
+    active: byTypeWithSlot("treeitem"),
+    candidate: templateCandidate(
+      new Set([TREE_ITEM_DEFAULT_ORIGIN_ID]),
+      "treeitem/",
+    ),
+    insert: "list-item",
+    itemTypes: new Set(["TreeItem"]),
+  },
   // ADR-238 Phase 2 — section 은 자기가 목록 틀 (항목 = 그 목록의 항목 instance 자식). Header 는 항목이 아니다.
   {
     host: "listboxsection",
@@ -399,6 +425,9 @@ export const SELF_LIST_SLOT_HOST_TYPES: ReadonlySet<string> = new Set([
   "GridListSection",
   "Select",
   "ComboBox",
+  // ADR-239 Phase 1 — Tree · TreeItem (항목 안 항목).
+  "Tree",
+  "TreeItem",
   ...GROUP_SLOT_HOSTS.map((group) => group.type),
   ...ROOT_REGION_SLOT_HOST_TYPES,
 ]);
