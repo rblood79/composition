@@ -189,3 +189,9 @@
 - **L2 · L3 · L4 (LOW deferred)**: 세션 중 만든 plain Tree 를 Undo 하면 이관된 모양 (hydration 결과와 같음) · leaf deps 가 Tree instance canonical 동일성만 본다 (origin `selectedKeys` 만 편집 · instance 전용 key 포함 — 237 가족, 경로 희박) · 재생 이관 비용 (이벤트 수 × body).
 - 원복 RED 3/3 (계획 가드 · host 표시 · 자리). 회귀: builder 7,509 · type-check 0.
 - **수리 검증 판독 (`4f72cfe6b`)**: M1 · L1 닫힘 확인. MEDIUM 1 (수리가 만든 회귀) — 사용자 컴포넌트 (frame origin) 안 Tree 의 상속 TreeItem 에 Slot "+" 가 no-op (synthetic 분기가 소속 Tree 를 instance 의 문서 조상에서만 찾았다) → origin 안쪽 경로 (`findTreeItemOwner([master], …, listHit)`) 를 먼저 본다. 반증 fixture (`uc` / `u1`) RED → GREEN. LOW deferred: Tree 밖 TreeItem instance 에 "+" 가 보이고 누르면 no-op (데이터 영향 없음 · 경로 희박). **판독 종결 (실행자 선언, 판독 1 + 수리 검증 1 · HIGH 0)**.
+
+### main (ADR-241) 병합 뒤 재측정 (2026-09-25 · 병합 `dbce073e1`, 대조 arm = main `6b8ffc9a2`)
+
+- 충돌 4 해결: hydration 체인 (`ensureTableOrigins` 가 239 Tree · swatch 이관 체인을 감싼다) · history 재생 (`ensureTableOriginsInSnapshot` 뒤 `alignItemOriginSnapshots` — 241 이 새로 더한 Table origin 도 carry 규칙 대상) · CHANGELOG · README. type-check 0 · builder 7,549 · shared 기존 실패 1 (Modal) · live 13/13 · M1 4/4.
+- G5 브라우저 (pairs 3): menu Δ ownerEdit +0.1 · originEdit +0.3 · expand +0.8 · breakpoint 0. tree ownerEdit +3.1 · originEdit +6.6 · expand +2.9 · breakpoint +1.4 — 병합 전 (+1.7 · +3.5 · +3.2 · +1.3) 보다 커 보여 node bench 로 재측정: tree ownerEdit p95 2.33 → 3.90 (+1.6) · expand 1.64 → 3.91 (+2.3) · originEdit 2.21 → 6.40 (+4.2) · menu +0.3 이하 — 병합 전 bench (+1.8 · +2.0 · +4.2) 와 같다 (브라우저 표본 7 p95 흔들림, 병합 회귀 없음). 사용자 판정 (예외) 범위 안.
+- G6: 병합 전과 같은 값 — swatch · Menu 트리거 (평면 · 하위 메뉴) · Menu origin 픽셀 0 · 평면 Tree rect 동일 · 중첩 106 → 170 · `expandedKeys` 106 → 138 · 재hydration Δ0 · history Undo/Redo origin 3 유지 · 오류 0.
