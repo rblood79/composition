@@ -14,11 +14,14 @@ import { applyCanonicalHistoryEventsToDocument } from "../../stores/history/cano
 import { isSlotHostElement } from "../slotHostPolicy";
 import { CARD_ORIGIN_ID } from "../card/cardTemplateOrigins";
 import { LEGACY_DIALOG_CONTENT_ID } from "../migrateDialogTriggerInstances";
+import { applyEditToSlotFill } from "../slotFillEdit";
 
 /**
  * ADR-240 Phase 0 — 진단 RED (breakdown §4 Phase 0 (a)~(f)).
  * `it` = G0 실측 기준선 (이미 GREEN). `it.fails` = 현재 결함 — 닫는 Phase 가 `it` 으로 바꾼다:
  *   (a) (c) → Phase 1 · (e) → Phase 2 · (f) → Phase 1 (history 전치).
+ * Phase 2 로 (e) (e2) GREEN — 쓰기가 바깥 `descendants["영역/노드"]` 대신 배열 노드를 고친다 (기준선 "바깥 키는 두 leg 모두
+ *   안 읽는다" 는 그대로 참). store 경유 쓰기 · Undo/Redo 는 `adr240Phase2.freeContent.test.tsx`.
  * Phase 1 로 (a) (c) (f) GREEN — 모양 고정은 `adr240Phase1.regionSlots.test.tsx`. (g) 는 Canvas 가 id 키를 계속 안 읽는다
  *   (UI 가 segment 키를 쓰도록 바꿔 닫음 — 기존 id 키 채움은 LOW deferred, breakdown §5 Phase 1).
  */
@@ -287,9 +290,22 @@ describe("ADR-240 진단 (e) — mode C 로 채운 노드의 편집이 화면에
       cardInstanceWithFill({ "Content/t": { children: "B" } }),
     ]);
 
-  it.fails("Preview: 편집값 B 가 보인다 (Phase 2)", () => {
+  // Phase 2 — 쓰기 (`buildInstanceDescendantPatches` → `applyEditToSlotFill`) 가 바깥 키 대신 배열 노드를 고친다.
+  const written = () =>
+    withBodyChildren(seedDocument(), [
+      {
+        ...cardInstanceWithFill(),
+        descendants: applyEditToSlotFill(
+          cardInstanceWithFill().descendants as Record<string, unknown>,
+          "Content/t",
+          { children: "B" },
+        ),
+      } as unknown as CanonicalNode,
+    ]);
+
+  it("Preview: 편집값 B 가 보인다 (Phase 2 GREEN — 배열 노드 쓰기)", () => {
     const inst = findResolved(
-      resolveCanonicalDocument(edited()) as ResolvedNode[],
+      resolveCanonicalDocument(written()) as ResolvedNode[],
       "card-inst",
     )!;
     const content = (inst.children ?? []).find(
@@ -298,8 +314,8 @@ describe("ADR-240 진단 (e) — mode C 로 채운 노드의 편집이 화면에
     expect(textOf(content.children?.[0] as ResolvedNode)).toBe("B");
   });
 
-  it.fails("Canvas: 편집값 B 가 보인다 (Phase 2)", () => {
-    expect(textOf(sceneNode(edited(), "card-inst/Content/t"))).toBe("B");
+  it("Canvas: 편집값 B 가 보인다 (Phase 2 GREEN — 배열 노드 쓰기)", () => {
+    expect(textOf(sceneNode(written(), "card-inst/Content/t"))).toBe("B");
   });
 
   it("기준선: 두 leg 모두 배열 노드 값 A 를 그린다 (편집 무시 — 두 leg 같은 결과)", () => {
@@ -344,16 +360,37 @@ describe('ADR-240 진단 (e2) — mode C 안 ref 자식 (234 Slot "+" 모양) �
       } as unknown as CanonicalNode,
     ]);
 
-  it.fails("Preview: 편집값 B 가 보인다 (Phase 2)", () => {
+  const written = () => {
+    const doc = edited();
+    const visit = (nodes: CanonicalNode[]): CanonicalNode[] =>
+      nodes.map((node) => {
+        if (node.id === "card-inst") {
+          const { "Content/b": _ignored, ...rest } = (node as RefNode)
+            .descendants as Record<string, unknown>;
+          return {
+            ...node,
+            descendants: applyEditToSlotFill(rest, "Content/b", {
+              children: "B",
+            }),
+          } as CanonicalNode;
+        }
+        return node.children
+          ? { ...node, children: visit(node.children) }
+          : node;
+      });
+    return { ...doc, children: visit(doc.children) };
+  };
+
+  it("Preview: 편집값 B 가 보인다 (Phase 2 GREEN — 배열 노드 쓰기)", () => {
     const button = findResolved(
-      resolveCanonicalDocument(edited()) as ResolvedNode[],
+      resolveCanonicalDocument(written()) as ResolvedNode[],
       "b",
     );
     expect(textOf(button)).toBe("B");
   });
 
-  it.fails("Canvas: 편집값 B 가 보인다 (Phase 2)", () => {
-    expect(textOf(sceneNode(edited(), "card-inst/Content/b"))).toBe("B");
+  it("Canvas: 편집값 B 가 보인다 (Phase 2 GREEN — 배열 노드 쓰기)", () => {
+    expect(textOf(sceneNode(written(), "card-inst/Content/b"))).toBe("B");
   });
 
   it("기준선: 두 leg 모두 배열 노드 값 A", () => {

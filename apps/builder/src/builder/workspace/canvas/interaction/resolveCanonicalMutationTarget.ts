@@ -1,6 +1,9 @@
 import type { PageProjectionMetadata } from "../canvasProjection";
 import type { CanonicalMoveTarget } from "../../../../adapters/canonical/canonicalMutations";
 import type { CanvasInteractionNode } from "./interactionNode";
+import { isSyntheticDescendantId } from "../../../stores/canonical/syntheticDescendantLookup";
+import { getActiveCanonicalDocument } from "../../../stores/canonical/canonicalElementsBridge";
+import { resolveSlotRegionTarget } from "../../../components/slotRegionInsert";
 
 type ProjectionLike = PageProjectionMetadata;
 
@@ -46,6 +49,21 @@ export function resolveCanonicalMoveTarget(input: {
   }
 
   if (hasProjectedId(input.renderTargetId)) return null;
+
+  // ADR-240 Phase 2 (F20) — instance 안 이름 영역 = 그 instance 의 mode C (`descendants[영역 경로].children`).
+  if (isSyntheticDescendantId(input.renderTargetId)) {
+    const document = getActiveCanonicalDocument();
+    const region = document
+      ? resolveSlotRegionTarget(document, input.renderTargetId)
+      : null;
+    if (!region) return null;
+    return {
+      kind: "ref-descendants",
+      refNodeId: region.instanceId,
+      descendantPath: region.regionPath,
+      insertionIndex: input.insertionIndex,
+    };
+  }
 
   return {
     kind: "node-children",

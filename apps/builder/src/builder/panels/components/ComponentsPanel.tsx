@@ -18,6 +18,9 @@ import { useElementCreator } from "@/builder/hooks";
 import { belongsToLegacyLayout } from "../../../adapters/canonical";
 import { getActiveCanonicalDocument } from "../../stores/canonical/canonicalElementsBridge";
 import { collectCanonicalPanelNodes } from "../canonicalPanelNodes";
+import { isSyntheticDescendantId } from "../../stores/canonical/syntheticDescendantLookup";
+import { planSlotRegionInsert } from "../../components/slotRegionInsert";
+import { COMPONENT_DESCENDANTS_MIRROR_FIELD } from "../../../adapters/canonical/componentSemanticsMirror";
 
 export function ComponentsPanel() {
   return <ComponentsPanelContent />;
@@ -31,6 +34,7 @@ function ComponentsPanelContent() {
   const currentPageId = useStore((state) => state.currentPageId);
   // ⚠️ elements 구독 제거 - 콜백 내에서 직접 getState()로 가져옴 (불필요한 리렌더링 방지)
   const addElement = useStore((state) => state.addElement);
+  const updateElement = useStore((state) => state.updateElement);
 
   // ⭐ Layout/Slot System: Edit Mode 상태
   const editMode = useEditModeStore((state) => state.mode);
@@ -102,6 +106,25 @@ function ComponentsPanelContent() {
         return;
       }
 
+      // ADR-240 Phase 2 (F18) — instance 안 이름 영역 (또는 그 안 노드) 선택 = 그 영역 mode C 끝에 추가.
+      //   synthetic 은 패널 노드 목록에 없어 종전에는 body 로 빠졌다.
+      const insertTargetId = parentId || selectedElementId;
+      if (isSyntheticDescendantId(insertTargetId)) {
+        const plan = planSlotRegionInsert({
+          document: doc,
+          targetId: insertTargetId,
+          type,
+          initialProps,
+        });
+        if (plan) {
+          await updateElement(plan.instanceId, {
+            [COMPONENT_DESCENDANTS_MIRROR_FIELD]: plan.descendants,
+          } as Parameters<typeof updateElement>[1]);
+          useStore.getState().setSelectedElement(plan.syntheticId);
+          return;
+        }
+      }
+
       const pageElements = elements.filter(
         (element) => !element.deleted && element.page_id === currentPageId,
       );
@@ -122,6 +145,7 @@ function ComponentsPanelContent() {
       selectedElementId,
       selectedReusableLayoutId,
       addElement,
+      updateElement,
       rawHandleAddElement,
     ],
   );

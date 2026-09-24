@@ -467,4 +467,74 @@ describe("FrameSlotSection", () => {
       ref: "lb-item-origin",
     });
   });
+
+  /**
+   * ADR-240 Phase 2 — Popover · Tooltip instance root = 자유 내용 영역: 추천 origin "+" 에 더해 primitive "+" 가
+   *   instance 자기 자식 (inherited 뒤) 을 넣고, Clear 는 자기 자식만 지운다 (inherited Heading · Description 무관).
+   */
+  it("Popover instance: 자유 내용 Insert → 자기 자식 plain 노드 · Clear → 자기 자식만 삭제", async () => {
+    const origin = makeElement("pop-origin", {
+      type: "Popover",
+      reusable: true,
+      slot: ["btn-origin"],
+    });
+    const button = makeElement("btn-origin", {
+      type: "Button",
+      reusable: true,
+    });
+    const instance = makeElement("pop-inst", { type: "ref", ref: "pop-origin" });
+    const own = makeElement("pop-own", { type: "Text", parent_id: "pop-inst" });
+    const addElement = vi.fn(async () => {});
+    const removeElements = vi.fn(async () => {});
+    useStore.setState({
+      addElement,
+      removeElements,
+      elements: [origin, button, instance, own],
+      elementsMap: new Map([
+        ["pop-origin", origin],
+        ["btn-origin", button],
+        ["pop-inst", instance],
+        ["pop-own", own],
+      ]),
+    });
+    seedCanonicalFromStore();
+    renderWithI18n(<FrameSlotSection elementId="pop-inst" />);
+
+    expect(screen.getByRole("button", { name: "Insert Button" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Insert Text" }));
+    await waitFor(() => expect(addElement).toHaveBeenCalledTimes(1));
+    const [added] = addElement.mock.calls[0] as unknown as [
+      Record<string, unknown>,
+    ];
+    expect(added).toMatchObject({
+      parent_id: "pop-inst",
+      type: "Text",
+      props: { children: "Text", style: { whiteSpace: "pre-wrap" } },
+    });
+    expect(added.ref).toBeUndefined();
+
+    fireEvent.click(screen.getByRole("button", { name: "Clear slot" }));
+    await waitFor(() => expect(removeElements).toHaveBeenCalledTimes(1));
+    expect(removeElements.mock.calls[0]).toEqual([["pop-own"]]);
+  });
+
+  it("ListBox instance (목록 틀) 에는 자유 내용 · Clear 가 없다", () => {
+    const listOrigin = makeElement("lb-origin", {
+      type: "ListBox",
+      reusable: true,
+      slot: [],
+    });
+    const instance = makeElement("lb-inst", { type: "ref", ref: "lb-origin" });
+    useStore.setState({
+      elements: [listOrigin, instance],
+      elementsMap: new Map([
+        ["lb-origin", listOrigin],
+        ["lb-inst", instance],
+      ]),
+    });
+    seedCanonicalFromStore();
+    renderWithI18n(<FrameSlotSection elementId="lb-inst" />);
+    expect(screen.queryByRole("button", { name: "Insert Text" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Clear slot" })).toBeNull();
+  });
 });

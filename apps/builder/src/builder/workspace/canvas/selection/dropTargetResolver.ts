@@ -24,7 +24,11 @@ import {
   resolveToken,
   type TokenRef,
 } from "@composition/specs";
-import { isSlotCandidateAllowed } from "../../../components/slotHostPolicy";
+import {
+  isNamedRegionHost,
+  isSlotCandidateAllowed,
+} from "../../../components/slotHostPolicy";
+import { isSyntheticDescendantId } from "../../../stores/canonical/syntheticDescendantLookup";
 import type { ElementBounds } from "../elementRegistry";
 import { resolveCatalogContainerStyles } from "../layout/engines/implicitStyles";
 import { getSceneBounds } from "../skia/renderCommands";
@@ -286,11 +290,20 @@ function isInsideGuardedInstance(
   return false;
 }
 
-function acceptsDraggedElement(
+/** 이 후보가 drop 컨테이너가 될 수 있는가 (cross-container drop 후보 판정 — ADR-240 G2 unit 이 직접 읽는다). */
+export function acceptsDraggedElement(
   candidate: DropTargetNode,
   store: DropTargetReadModel,
 ): boolean {
   if (isBodyElement(candidate)) return true;
+  // ADR-240 Phase 2 (F20) — instance 안 (synthetic) 은 이름 영역 host 만 받는다 (drop = 그 영역 mode C). 목록 틀 ·
+  //   inherited · 고정 부품 (Dialog 제목 · Close) 은 거부 — canonical 부모가 없어 이동이 조용히 무시되던 자리.
+  if (isSyntheticDescendantId(candidate.id)) {
+    return (
+      isExplicitSlotHost(candidate) &&
+      isNamedRegionHost(candidate as Parameters<typeof isNamedRegionHost>[0])
+    );
+  }
   if (isExplicitSlotHost(candidate)) return true;
   if (isInsideGuardedInstance(candidate, store)) return false;
 

@@ -142,6 +142,100 @@ describe("ComponentSlotFillSection", () => {
     });
   });
 
+  it("ADR-240 Phase 2 — 이름 영역은 자유 내용 (primitive) 을 받는다: Text 선택 → plain 노드 mode C", async () => {
+    const cardOrigin = makeElement("card-origin", { reusable: true });
+    const content = makeElement("content", {
+      type: "CardContent",
+      name: "Content",
+      parent_id: "card-origin",
+      slot: ["btn-origin"],
+      metadata: { slotRole: "content" },
+    } as Partial<Element>);
+    const buttonOrigin = makeElement("btn-origin", {
+      type: "Button",
+      reusable: true,
+      componentName: "Button",
+    });
+    const cardInstance = makeElement("card-instance", {
+      type: "ref",
+      ref: "card-origin",
+    } as Partial<Element>);
+    useStore.setState({
+      elements: [cardOrigin, content, buttonOrigin, cardInstance],
+      elementsMap: new Map([
+        ["card-origin", cardOrigin],
+        ["content", content],
+        ["btn-origin", buttonOrigin],
+        ["card-instance", cardInstance],
+      ]),
+    });
+    seedCanonicalFromStore();
+
+    render(<ComponentSlotFillSection elementId="card-instance" />);
+    const componentField = screen
+      .getAllByRole("group")
+      .find((group) => group.textContent?.includes("Component"));
+    fireEvent.click(
+      (componentField ?? document.body).querySelector("button")!,
+    );
+    fireEvent.click(await screen.findByRole("option", { name: "Text" }));
+    fireEvent.click(screen.getByRole("button", { name: "Fill slot" }));
+
+    await waitFor(() => {
+      expect(
+        useStore.getState().elementsMap.get("card-instance"),
+      ).toMatchObject({
+        // legacy fixture 병합은 name 을 싣지 않는다 — 경로 segment = id.
+        descendants: {
+          content: {
+            children: [
+              {
+                id: "text",
+                type: "Text",
+                props: { children: "Text" },
+              },
+            ],
+          },
+        },
+      });
+    });
+  });
+
+  it("영역 아닌 slot host (slotRole 없음) 는 자유 내용을 보이지 않는다", () => {
+    const origin = makeElement("card-origin", { reusable: true });
+    const footer = makeElement("footer", {
+      type: "CardFooter",
+      parent_id: "card-origin",
+      slot: ["btn-origin"],
+    });
+    const buttonOrigin = makeElement("btn-origin", {
+      type: "Button",
+      reusable: true,
+    });
+    const instance = makeElement("card-instance", {
+      type: "ref",
+      ref: "card-origin",
+    } as Partial<Element>);
+    useStore.setState({
+      elements: [origin, footer, buttonOrigin, instance],
+      elementsMap: new Map([
+        ["card-origin", origin],
+        ["footer", footer],
+        ["btn-origin", buttonOrigin],
+        ["card-instance", instance],
+      ]),
+    });
+    seedCanonicalFromStore();
+    render(<ComponentSlotFillSection elementId="card-instance" />);
+    const componentField = screen
+      .getAllByRole("group")
+      .find((group) => group.textContent?.includes("Component"));
+    fireEvent.click(
+      (componentField ?? document.body).querySelector("button")!,
+    );
+    expect(screen.queryByRole("option", { name: "Text" })).toBeNull();
+  });
+
   it("appends repeated fills instead of replacing existing slot children", async () => {
     const cardOrigin = makeElement("card-origin", {
       reusable: true,
