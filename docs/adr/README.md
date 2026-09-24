@@ -11,6 +11,10 @@
 
 ---
 
+> **2026-09-24 ADR-239 · 240 · 241 Proposed 추가**: RAC 조사의 남은 후보를 사용자 판정 "3개로 분리" 로 설계. **239** Tree · Menu 하위 메뉴 · ColorSwatchPicker 항목 origin (재귀 항목 — TreeItem origin + 상태 변형 · Tree/TreeItem slot host · 펼침 정본 `expandedKeys` 를 Canvas 도 읽음 (지금 Canvas 전부 펼침 / Preview 전부 접힘 발산) · 기존 문서는 Canvas 모습대로 `expandedKeys` 이관 · LoadMore 는 저작 모델 밖 판정, 238 에 의존). **240** 이름 영역 · 자유 내용 slot (Card 4 영역 · Dialog content/footer · Popover · Tooltip 에 `slot` seed + mode C 채우기에 팔레트 primitive · Dialog Content frame 도입 + patch 경로 전치 · 고정 부품 (`title` · `close` · prev/next · trigger) 과 Toast 는 영역 밖 판정). **241** Table 열 · 행 origin (두 leg 열 원천 통일 — Canvas `props.columns` vs Preview Column 요소 발산 · Column/Row origin + TableHeader/TableBody slot · ref instance 열 + quick connect · 정적 행 셀 동기화; Table/TableView 렌더러가 RAC 아님 (TanStack · plain div) 은 범위 밖 기록). 열림 12 (Proposed 11 · Accepted 1), 합계 268.
+
+> **2026-09-24 ADR-238 Proposed 추가**: 목록 항목 안 slot · Section 층 · Select/ComboBox 항목 origin — `/deep-research` (react-aria.adobe.com + RAC 1.21.0 소스) 로 분류한 RAC collection 층 중 사용자 선택 "1+2+3": 항목 역할 표 (RAC provider slot 이름 제한 · instance 역할 on/off = `descendants.enabled`) · 새 canonical type `ListBoxSection`/`MenuSection`/`GridListSection` + section origin · section 이 섞인 정적 `items` 이관 · Select/ComboBox 정적 항목 = ListBoxItem origin instance 자식 (Menu 선례, `selectedKey` 보존 이관). 잔존 HIGH 3 (선택 이관 · section 픽셀 · 상속 항목 RAC key 유일). 열림 9 (Proposed 8 · Accepted 1), 합계 265.
+
 > **2026-09-24 ADR-237 Implemented**: origin · instance · slot 적용 확장 (Phase 0~4 / G0~G5). 그룹 컨테이너 9종 slot · Slot "+" = 가족 origin 의 instance 자식 (선택 값 · Radio `value` 유일 · 단일 선택 정규화 · 한 history 항목) · IconButton 변형 · CardView Card ref · 항목 5종 상호작용 변형 + GridListItem 선택 쌍 + Disclosure `--collapsed` · Breadcrumbs 항목 origin + `--current` + 정적 목록 이관. live 9/9 · G5 픽셀 19/19 Δ0. G4 는 사용자 판정 2단계 — leaf ref instance 재사용 (해석 증분화) 뒤 Breadcrumbs 500 항목 편집 +1.5~2.0 · 항목 origin 편집 +4.1 ms 를 R5 예외로 기록. 열림 8 (Proposed 7 · Accepted 1), 합계 264.
 
 > **2026-09-24 ADR-237 Accepted**: 사용자 `/execute-adr 237` (Codex 리뷰 판독 1 + 수리 검증 1 종결 후). 열림 9 (Proposed 7 · Accepted 2), 합계 264.
@@ -90,11 +94,11 @@
 | ├ Accepted                    |      13 |
 | ├ Superseded                  |      14 |
 | └ Deprecated                  |       9 |
-| 열려 있는 것 (`adr/*.md`)     |       8 |
-| ├ Proposed                    |       7 |
+| 열려 있는 것 (`adr/*.md`)     |      12 |
+| ├ Proposed                    |      11 |
 | ├ Accepted (미착수·일부 착수) |       1 |
 | └ 부분 완료                   |       0 |
-| **합계**                      | **264** |
+| **합계**                      | **268** |
 
 > 2026-09-22 파일 실측: `completed/` ADR 파일 253 (비-ADR 5 제외) · `adr/` 직속 ADR 6 (09-22 232 추가). 완료 내역 (Implemented/Accepted/Superseded/Deprecated) 은 09-10 대조값에 그 뒤 Implemented 5 (224~~227 · 231) 를 더한 것 — 개별 Status 재대조는 다음 정리 때.
 
@@ -112,6 +116,30 @@
 - **상태**: Accepted (전체) · **A1 철회 2026-07-20** · A2 delivered(시각 확인 대기) · A3 미착수
 - **규모**: **Phase A1(Skia hover/pressed/focusVisible 상태 threading) 철회 2026-07-20 (재판정)** — 빌더(Skia)가 pointer 연동으로 hover/pressed/focus 를 실시간 재현한 것은 **D1/D3 경계 오판**(그 역할은 Preview DOM 소관, RAC 자동 소유). A1 커밋 4건 역순 revert(`5e635ebbc`), 편집 보조 hover outline·선언적 상태(selected/disabled) 시각은 보존. 911 R-4 HIGH→MED / G-state 를 선언적 상태 parity 로 재정의. **A2(collection 가상화)/A3(drill-in·data edit)은 상호작용 시뮬레이션이 아니라 빌더의 대용량 표시·깊은 편집이라 유효 — 진행 유지.** G-A2/G-A3 (HIGH 2: window 동기화 / projected id 경계 — G-A1/R1 은 철회). design breakdown `design/150-rac-pencil-residual-interaction-execution-breakdown.md`
 - **우선순위**: 사용자 확정 2026-07-13 (AskUserQuestion — 단일 실행 ADR)
+
+#### [239](239-tree-submenu-swatch-item-origins.md) — Tree · Menu 하위 메뉴 · ColorSwatchPicker 항목 origin — 재귀 항목
+
+- **상태**: Proposed (2026-09-24) · 선행 238 (역할 표 · 경로 포함 항목 key)
+- **규모**: Phase 0~5 ([breakdown](design/239-tree-submenu-swatch-item-origins-breakdown.md)) — inventory → Tree 항목 origin · 재귀 slot → 펼침 두 leg 대칭 + `expandedKeys` 이관 → Menu 하위 메뉴 → ColorSwatchPicker · LoadMore 판정 → 성능 · BC
+- **우선순위**: 사용자 판정 2026-09-24 (3 ADR 분리 · 작은 항목 포함)
+
+#### [240](240-named-regions-free-content-slots.md) — 이름 영역 · 자유 내용 slot — Card · Dialog · Popover · Tooltip
+
+- **상태**: Proposed (2026-09-24)
+- **규모**: Phase 0~3 ([breakdown](design/240-named-regions-free-content-slots-breakdown.md)) — inventory → 영역 `slot` seed + Dialog Content frame · 경로 전치 → 자유 내용 (primitive) 채우기 · Canvas drop → 성능 · BC
+- **우선순위**: 사용자 판정 2026-09-24 (3 ADR 분리)
+
+#### [241](241-table-column-row-origins.md) — Table 열 · 행 origin — 2차원 collection · 두 leg 열 원천 통일
+
+- **상태**: Proposed (2026-09-24)
+- **규모**: Phase 0~4 ([breakdown](design/241-table-column-row-origins-breakdown.md)) — inventory → 열 원천 통일 → Column origin + TableHeader slot · instance 열 · quick connect → Row origin + 셀 동기화 → 성능 · BC
+- **우선순위**: 사용자 판정 2026-09-24 (3 ADR 분리). 렌더러 RAC 전환은 범위 밖 (별도 결정 대상)
+
+#### [238](238-collection-item-slots-sections-picker-items.md) — 목록 항목 안 slot · Section 층 · Select/ComboBox 항목 origin
+
+- **상태**: Proposed (2026-09-24)
+- **규모**: Phase 0~4 ([breakdown](design/238-collection-item-slots-sections-picker-items-breakdown.md)) — inventory (F1~F12 · 진단 RED 5) → 항목 역할 표 + instance 역할 on/off → Section type 3 + section origin + section 목록 이관 (RAC key 경로 유일) → Select/ComboBox 항목 = ListBoxItem instance 자식 (`selectedKey` 보존) → 성능 A/B · BC 픽셀 종결
+- **우선순위**: 사용자 범위 선택 "1+2+3" 2026-09-24 (237 범위 밖 후속 + RAC 조사)
 
 #### [236](236-builder-domain-rules-consolidation.md) — 빌더 도메인 규칙 정리 — 술어 모듈 · 타입 특성 표 · store 액션 진입부 강제
 
