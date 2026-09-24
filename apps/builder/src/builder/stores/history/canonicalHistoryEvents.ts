@@ -26,6 +26,7 @@ import {
   rewriteDialogRegionPathsInNode,
 } from "../../components/dialogRegionPaths";
 import { ensureRegionSlotsInSnapshot } from "../../components/regionSlotOrigins";
+import { alignItemOriginSnapshots } from "../../components/itemOriginSnapshots";
 import {
   getCanonicalRefOverrideEntries,
   getProjectableNodeLookups,
@@ -348,7 +349,11 @@ export function applyCanonicalHistoryEventsToDocument(
   events: CanonicalHistoryNodeEvent[],
   direction: "undo" | "redo",
 ): CompositionDocument {
-  const aligned = alignHistoryEventsToRegions(doc, events);
+  // ADR-239 G6 — 239 전 스냅샷 (Components body · Tree · swatch) 도 항목 origin 이관에 맞춘다.
+  const aligned = alignItemOriginSnapshots(
+    doc,
+    alignHistoryEventsToRegions(doc, events),
+  );
   const orderedEvents = direction === "redo" ? aligned : [...aligned].reverse();
   return orderedEvents.reduce((currentDoc, event) => {
     if (event.type === "insert") {

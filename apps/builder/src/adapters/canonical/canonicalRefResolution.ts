@@ -1313,6 +1313,16 @@ const ITEM_SELECTION_OWNER: Readonly<Record<string, string>> = {
 };
 
 /**
+ * ADR-239 G5 — 선택 owner 조회 깊이. Tree 항목은 중첩 깊이에 제한이 없다 (Preview RAC 도) — 조상 3 단계 (다른 목록
+ * 가족의 항목 · section) 로는 5 단계 항목이 소속 Tree 를 못 찾아 선택 · 접힘 층이 빠졌다.
+ */
+const TREE_OWNER_MAX_DEPTH = 32;
+
+function selectionOwnerDepth(ownerType: string): number {
+  return ownerType === "Tree" ? TREE_OWNER_MAX_DEPTH : 3;
+}
+
+/**
  * ADR-239 Phase 1 — Canvas 해석 트리의 TreeItem RAC key (Preview `renderTree` 와 같은 `resolveTreeItemKey`). instance
  * 판정 = 해석 노드의 `ref` (Canvas 는 ref 를 남긴다 — Preview 는 `_resolvedFrom`).
  */
@@ -1375,7 +1385,12 @@ export function resolveCanvasVariantState<T extends CanonicalRefResolvableNode>(
   const ownerType =
     selected === undefined ? ITEM_SELECTION_OWNER[element.type] : undefined;
   const selectionOwner = ownerType
-    ? findAncestor(element, elementsMap, (node) => node.type === ownerType)
+    ? findAncestor(
+        element,
+        elementsMap,
+        (node) => node.type === ownerType,
+        selectionOwnerDepth(ownerType),
+      )
     : undefined;
   if (selected === undefined && selectionOwner) {
     // ADR-238 Phase 2 — section 안 항목: section instance 가 상속한 항목은 section key 접두 (Preview RAC key 와 같은 함수).
@@ -1449,32 +1464,38 @@ export function resolveCanvasVariantState<T extends CanonicalRefResolvableNode>(
  * ADR-237 G4 — leaf ref instance 의 해석이 읽는 canonical 노드 목록 (동일성 비교 키). leaf 가 아니면 (자기 자식 ·
  * origin 자식 · 끊긴 체인) null. 읽는 것: 자기 · origin 체인 (변형 포함) · 체인 끝 origin 의 상태 변형 · 조상 3
  * (선택 owner · RadioGroup value · disabled 그룹 · 위치 상태 부모 — `resolveCanvasVariantState` 의 조상 범위).
+ * ADR-239 G5 — 자기 자식이 있는 TreeItem instance 도 (중첩 Tree 의 부모 항목): 해석이 자기 자식에서 읽는 것은 없고
+ * (펼침 = 해석 뒤 위치 층) 자기 canonical 노드가 subtree 를 대신한다. 소속 Tree 는 조상 3 단계 밖일 수 있어 따로 싣는다.
  */
 function readLeafDeps<T extends CanonicalRefResolvableNode>(
   element: T,
   elementsMap: Map<string, T>,
   sourceChildrenMap: Map<string, T[]>,
   lookupMaster: (ref: string) => T | undefined,
-  chainDepsByRef: Map<string, readonly unknown[] | null>,
+  chainDepsByRef: Map<string, ChainLeafDeps | null>,
 ): unknown[] | null {
-  if ((sourceChildrenMap.get(element.id)?.length ?? 0) > 0) return null;
+  const hasOwnChildren = (sourceChildrenMap.get(element.id)?.length ?? 0) > 0;
+  // 평탄 입력 (scene 노드 아님) 은 자기 노드 동일성이 subtree 를 보증하지 못한다.
+  if (hasOwnChildren && canonicalIdentity(element) === element) return null;
   // `{{ }}` 템플릿 (ADR-214) 을 쓰는 노드는 scene 층이 조상 상태 정의로 props 를 해석한다 — 재사용 대상 밖.
   if ((element as { stateDeps?: unknown }).stateDeps) return null;
   const ref = getCanonicalRefTarget(element);
   if (!ref) return null;
   // 체인 (origin 까지) · origin 의 상태 변형 의존은 ref 대상마다 한 번 — 같은 origin 을 가리키는 항목 수백 개가
   //   같은 조회를 반복했다. leaf 가 아닌 체인 (origin 자식 있음 · 끊김) 은 null 로 기억한다.
-  let chainDeps = chainDepsByRef.get(ref);
-  if (chainDeps === undefined) {
-    chainDeps = readChainLeafDeps(ref, sourceChildrenMap, lookupMaster);
-    chainDepsByRef.set(ref, chainDeps);
+  let chain = chainDepsByRef.get(ref);
+  if (chain === undefined) {
+    chain = readChainLeafDeps(ref, sourceChildrenMap, lookupMaster);
+    chainDepsByRef.set(ref, chain);
   }
-  if (!chainDeps) return null;
+  if (!chain) return null;
+  const isTreeItem = chain.originType === "TreeItem";
+  if (hasOwnChildren && !isTreeItem) return null;
   const ownProps = (canonicalIdentity(element) as { props?: unknown })?.props;
-  if (ownProps && hasStateTemplateSyntax(ownProps as Record<string, unknown>)) {
+  if (ownProps && hasTemplateSyntaxCached(ownProps as Record<string, unknown>)) {
     return null;
   }
-  const deps: unknown[] = [canonicalIdentity(element), ...chainDeps];
+  const deps: unknown[] = [canonicalIdentity(element), ...chain.deps];
   // 조상: 상태 해석이 값을 읽는 type (선택 owner · RadioGroup · disabled 그룹) 만 노드 동일성, 나머지는 id · type
   //   (편집 경로의 body · page 가 바뀌어도 무효화하지 않는다 — 위치 상태는 해석 뒤 후처리가 따로 본다).
   let parentId = getParentId(element);
@@ -1491,14 +1512,42 @@ function readLeafDeps<T extends CanonicalRefResolvableNode>(
     );
     parentId = getParentId(parent);
   }
+  if (isTreeItem) {
+    // 소속 Tree (선택 · 펼침 key) — canonical 노드는 불변 트리라 조상 항목의 key (`props.id`) 가 바뀌어도 바뀐다.
+    const tree = findAncestor(
+      element,
+      elementsMap,
+      (node) => node.type === "Tree",
+      TREE_OWNER_MAX_DEPTH,
+    );
+    deps.push(tree ? canonicalIdentity(tree) : null);
+  }
   return deps;
 }
+
+/**
+ * ADR-239 G5 — `{{ }}` 템플릿 검사는 canonical props 객체마다 한 번 (props 는 편집하지 않으면 같은 객체 — 매 scene
+ * build 에 instance 수만큼 props 전체를 훑었다).
+ */
+const templateSyntaxByProps = new WeakMap<object, boolean>();
+
+function hasTemplateSyntaxCached(props: Record<string, unknown>): boolean {
+  let hit = templateSyntaxByProps.get(props);
+  if (hit === undefined) {
+    hit = hasStateTemplateSyntax(props);
+    templateSyntaxByProps.set(props, hit);
+  }
+  return hit;
+}
+
+/** origin 체인의 leaf 재사용 의존 (ref 대상마다 한 번) + 체인 끝 origin type. */
+type ChainLeafDeps = { deps: readonly unknown[]; originType: string };
 
 function readChainLeafDeps<T extends CanonicalRefResolvableNode>(
   ref: string,
   sourceChildrenMap: Map<string, T[]>,
   lookupMaster: (ref: string) => T | undefined,
-): readonly unknown[] | null {
+): ChainLeafDeps | null {
   const deps: unknown[] = [];
   let current: T | undefined;
   let next: string | null = ref;
@@ -1528,7 +1577,7 @@ function readChainLeafDeps<T extends CanonicalRefResolvableNode>(
   for (const name of STATE_LAYER_ORDER) {
     deps.push(canonicalIdentity(lookupMaster(`${origin.id}--${name}`)));
   }
-  return deps;
+  return { deps, originType: String(origin.type) };
 }
 
 /** `resolveCanvasVariantState` · `withItemSelectionFlag` 가 조상에서 값을 읽는 type. */
@@ -1697,7 +1746,12 @@ function applyPositionalStateLayers<T extends CanonicalRefResolvableNode>(
       const tree =
         parent.type === "Tree"
           ? parent
-          : findAncestor(parent, elementsMap, (node) => node.type === "Tree");
+          : findAncestor(
+              parent,
+              elementsMap,
+              (node) => node.type === "Tree",
+              TREE_OWNER_MAX_DEPTH,
+            );
       if (!tree) continue;
       const rawKeys = getNodeProps(tree).expandedKeys;
       const keys = Array.isArray(rawKeys) ? rawKeys.map(String) : [];
@@ -1777,7 +1831,12 @@ function withItemSelectionFlag<T extends CanonicalRefResolvableNode>(
   const ownerType = ITEM_SELECTION_OWNER[resolved.type];
   if (
     !ownerType ||
-    !findAncestor(stateInput, elementsMap, (node) => node.type === ownerType)
+    !findAncestor(
+      stateInput,
+      elementsMap,
+      (node) => node.type === ownerType,
+      selectionOwnerDepth(ownerType),
+    )
   ) {
     return resolved;
   }
@@ -1983,7 +2042,7 @@ export function resolveCanonicalRefTree<
 
   // ADR-237 — 자기 자식이 있는 instance (합성 자식이 배열 끝에 붙어 형제 순서가 어긋나는 부모).
   const mixedChildParents = new Set<string>();
-  const chainDepsByRef = new Map<string, readonly unknown[] | null>();
+  const chainDepsByRef = new Map<string, ChainLeafDeps | null>();
   for (const element of input.elements) {
     if (!isCanonicalRefElement(element)) continue;
     if ((sourceChildrenMap.get(element.id)?.length ?? 0) > 0) {

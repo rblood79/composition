@@ -303,21 +303,32 @@ function removeSceneSubtrees(
       stack.push(child.id);
     }
   }
-  const childrenByParent = new Map<string, CanvasSceneNode[]>();
-  for (const [parentId, children] of graph.childrenByParent) {
-    if (removed.has(parentId)) continue;
-    childrenByParent.set(
-      parentId,
-      children.filter((child) => !removed.has(child.id)),
-    );
+  // ADR-239 G5 — 영향받은 부모 (제거 subtree 의 root 를 자식으로 둔 부모) 목록만 새로 · 색인은 복사 뒤 삭제 (종전: 모든
+  //   부모의 자식 목록 filter + parent 색인 재구축 — 빌드마다 scene 크기에 비례해 두 번).
+  const childrenByParent = new Map(graph.childrenByParent);
+  const parentById = new Map(graph.parentById);
+  for (const id of removed) {
+    childrenByParent.delete(id);
+    const parentId = graph.parentById.get(id);
+    if (parentId === undefined || removed.has(parentId)) continue;
+    const siblings = childrenByParent.get(parentId);
+    if (siblings && siblings === graph.childrenByParent.get(parentId)) {
+      childrenByParent.set(
+        parentId,
+        siblings.filter((child) => !removed.has(child.id)),
+      );
+    }
   }
   const nodesMap = new Map(graph.nodesMap);
-  for (const id of removed) nodesMap.delete(id);
+  for (const id of removed) {
+    nodesMap.delete(id);
+    parentById.delete(id);
+  }
   return {
     childrenByParent,
     nodes: graph.nodes.filter((node) => !removed.has(node.id)),
     nodesMap,
-    parentById: buildSceneParentById(childrenByParent),
+    parentById,
   };
 }
 
