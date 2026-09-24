@@ -135,12 +135,12 @@ describe("ADR-241 진단 (a) — Column 요소만 있는 Table 의 Canvas 데이
     const resolved = resolveCanonicalDocument(doc());
     const header = findResolved(resolved, "t1-th");
     expect(
-      (header?.children ?? []).filter((c) => c.type === "Column"),
+      (header?.children ?? []).filter((c) => String(c.type) === "Column"),
     ).toHaveLength(3);
     expect(canvasDataRows(doc(), "t1")).toHaveLength(2);
   });
 
-  it.fails("Canvas 데이터 행마다 셀 3 (= Preview 열) — Phase 1 GREEN", () => {
+  it("Canvas 데이터 행마다 셀 3 (= Preview 열) — Phase 1 GREEN", () => {
     for (const cells of canvasDataRows(doc(), "t1")) {
       expect(cells.map((c) => c.projection?.columnId)).toEqual([
         "name",
@@ -153,7 +153,7 @@ describe("ADR-241 진단 (a) — Column 요소만 있는 Table 의 Canvas 데이
 
 // ── (e) 열 폭 제한 ────────────────────────────────────────────────────────────
 describe("ADR-241 진단 (e) — width 80 · minWidth 120 열의 Canvas 셀 폭 (리뷰 r1 m1)", () => {
-  it.fails(
+  it(
     "Canvas 셀 폭 = TanStack getSize 120 (Preview) — Phase 1 GREEN",
     () => {
       const doc = withBodyChildren(seedDocument(), [

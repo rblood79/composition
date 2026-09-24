@@ -30,6 +30,7 @@ export {
   getFlatProjectionRows,
   resolveCollectionItems,
   readTableColumns,
+  readTableColumnElements,
   getTableProjectionRows,
 } from "@composition/shared";
 
