@@ -38,9 +38,11 @@ export const REGION_SLOT_SEEDS = {
     content: ["component-button", "component-link", "component-taggroup"],
     footer: ["component-button", "component-link"],
   },
+  // 선택 가능한 가족은 휴지 모양 먼저 (234 변형 이관이 추천 목록에 `--unselected` 를 끼우는 규칙 · 그룹 slot 과 같은 순서).
   dialogContent: [
     "component-button",
     "component-textfield",
+    "component-checkbox--unselected",
     "component-checkbox",
   ],
   dialogActions: ["component-button"],

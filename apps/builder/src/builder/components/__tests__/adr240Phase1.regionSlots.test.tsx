@@ -322,7 +322,7 @@ describe("ADR-240 G1 — Dialog 구조 이관 · instance 경로 전치", () => 
     ) as ResolvedNode;
     expect(content.children?.[0]?.props?.children).toBe("Edited");
     const footer = (body.children ?? []).find(
-      (c) => c.type === "DialogFooter",
+      (c) => (c.type as string) === "DialogFooter",
     ) as ResolvedNode;
     expect(
       (footer.children ?? []).map((c) => [c.type, c.props?.children]),
@@ -526,7 +526,7 @@ describe("ADR-240 G1 — Slot 채우기 절 · 추천 origin 두 leg", () => {
       }),
     ]);
     const footer = (resolvedDialogBody(doc).children ?? []).find(
-      (c) => c.type === "DialogFooter",
+      (c) => (c.type as string) === "DialogFooter",
     ) as ResolvedNode;
     expect(
       (footer.children ?? []).map((c) => [

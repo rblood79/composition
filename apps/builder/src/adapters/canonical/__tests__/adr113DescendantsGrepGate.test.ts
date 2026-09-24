@@ -68,6 +68,10 @@ const CANONICAL_DESCENDANTS_ALLOWLIST = new Set([
   // ADR-237 Phase 1 — 그룹 Slot "+" 계획. instance host 의 상속 형제 해제를 canonical `RefNode.descendants`
   //   patch 로 **만든다** (originChildRefs 와 같은 역할).
   "apps/builder/src/builder/components/groupItemInsert.ts",
+  // ADR-240 Phase 1 — Dialog 영역 구조 이관의 instance 경로 전치 (문서 · history 재생) · instance slot 채우기의
+  //   mode C 키 (segment · 옛 id 키 이관). canonical `RefNode.descendants` 를 **고쳐 쓴다**.
+  "apps/builder/src/builder/components/dialogRegionPaths.ts",
+  "apps/builder/src/builder/components/slotFillPath.ts",
 ]);
 
 const COMMENT_LINE_PATTERN = /^\s*(\/\/|\*|\/\*|\*\/)/;
