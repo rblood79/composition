@@ -1778,9 +1778,9 @@ export function calculateContentWidth(
     return Math.ceil(dims.dotSize + dims.gap + textWidth);
   }
 
-  // 1.12. DisclosureHeader: leading icon(chevron) + gap + text + 좌우 paddingX
-  //   (ADR-912 (B+icon)). buildCatalogShapes 의 Skia 시각 공식과 1:1 대칭:
-  //     textX = paddingX + (iconSize + gap), text 는 left-align → 우측 paddingX 까지 포함.
+  // 1.12. DisclosureHeader: leading icon(chevron) + gap + text (content-box — 좌우 paddingX 는 호출자가
+  //   box padding 으로 더한다). buildCatalogShapes 의 Skia 시각 공식과 1:1 대칭:
+  //     textX = paddingX + (iconSize + gap), text 는 left-align.
   //   rule 값 인라인 미러(componentRulesTable.DisclosureHeader.sizes.md): paddingX 12 /
   //   iconSize 15 / gap 6 / fontSize text-sm(14) / weight 500(rule variant textWeight 미정의
   //   → buildCatalogShapes fallback 500 동형). spec 의존 없음(단계5 runtime spec 끊기 정합).
@@ -1792,10 +1792,6 @@ export function calculateContentWidth(
     const text = resolveTextSourceText("DisclosureHeader", props);
     if (!text) return 0;
     const dhDims = disclosureHeaderDims(String(props?.size ?? "md"));
-    const paddingX =
-      parseNumericValue(
-        style?.paddingLeft ?? style?.paddingRight ?? style?.padding,
-      ) ?? dhDims.paddingX;
     const fontSize = resolveTextRenderStyle(style).fontSize ?? 14;
     // iconSize: catalog rule iconSize(>0) 우선, style fontSize override 시 round(fontSize*1.1) —
     //   leading_icon module 과 동형. rule iconSize 는 전 size 18 고정(DOM chevron 고정-크기 컨벤션,
@@ -1811,7 +1807,10 @@ export function calculateContentWidth(
       specFontFamily.sans,
       500,
     );
-    return Math.ceil(paddingX + iconSize + gap + textWidth + paddingX);
+    // content-box (호출자가 box padding 을 더한다 — `utils.ts` 자식 합산 · enrich 와 같은 규약). 2026-09-24
+    //   사용자 신고 (Disclosure 크기): 종전엔 좌우 paddingX 를 여기서도 더해 enrich 스칼라 · 자식 합산이 padding
+    //   을 두 번 셌다 (그룹 안 헤더 130 vs DOM 105).
+    return Math.ceil(iconSize + gap + textWidth);
   }
 
   // ADR-912 (B+icon): CalendarHeader intrinsic width 는 아래 1.2a 분기(calendargrid ||
@@ -5335,6 +5334,19 @@ export function enrichWithIntrinsicSize(
     typeof rawWidth === "string" &&
     rawWidth !== "auto" &&
     INTRINSIC_SIZE_KEYWORDS.has(rawWidth);
+  // 2026-09-24 사용자 신고 (Disclosure 크기) — DisclosureContent 는 전용 높이 분기 때문에 TEXT_LEAF 밖이지만
+  //   (위 1.53), 자식 없는 본문은 글자가 내용이다. 스칼라가 없으면 shrink-to-fit 부모 (flex column
+  //   align-items:flex-start 안 Disclosure) 가 본문 폭을 몰라 헤더 폭으로만 접혔다 (DOM 168 · Canvas 128).
+  //   width 는 주입하지 않고 텍스트 leaf 와 같은 측정 스칼라만 싣는다 (block stretch 는 그대로).
+  const scalarTextLeaf =
+    TEXT_LEAF_TAGS.has(type) ||
+    (type === "disclosurecontent" && !(childElements && childElements.length > 0));
+  const percentMeasuredLeaf =
+    INTRINSIC_MEASURE_TAGS.has(type) &&
+    !TEXT_LEAF_TAGS.has(type) &&
+    !(childElements && childElements.length > 0) &&
+    typeof rawWidth === "string" &&
+    rawWidth.trim().endsWith("%");
   // Flex 자식인 TEXT_LEAF_TAGS(Label, Description 등)도 intrinsic width 필요:
   // Block layout에서는 자동 stretch되지만, Flex layout에서는 엔진이 content size를
   // 알 수 없어 width=0으로 처리함 (Checkbox/Radio/Switch 내부 Label 세로 출력 버그)
@@ -5345,6 +5357,12 @@ export function enrichWithIntrinsicSize(
     //   INTRINSIC_MEASURE_TAGS 의 display 역할과 분리. 멤버십 동일 → 출력 diff 0 (분리 전 baseline 게이트).
     (INTRINSIC_MEASURE_TAGS.has(type) &&
       (!rawWidth || INTRINSIC_SIZE_KEYWORDS.has(rawWidth as string))) ||
+    // **자식 없는 측정 leaf 의 `%` 폭도 대상** (2026-09-24 사용자 신고 — Disclosure 크기): 텍스트
+    //   leaf 와 같은 사유 (아래 TEXT_LEAF 주석 §5.1 순환 백분율). DisclosureHeader (`width:100%`,
+    //   chevron + 제목을 spec 이 그려 layout 자식 0) 가 자동 폭 부모 (그룹 안 Disclosure · absolute
+    //   단독) 에서 내용 폭 없이 padding 24 로 접히거나 가용 폭 1920 으로 퍼졌다 (DOM 105 · 168).
+    //   `%` 는 그대로 두고 측정 스칼라만 싣는다 (아래 `percentMeasuredLeaf`).
+    percentMeasuredLeaf ||
     // 정원형 leaf(ProgressCircle/Avatar): width = diameter = catalog sizes.height.
     //   progresscircle 은 INTRINSIC_MEASURE_TAGS 로도 커버되지만 avatar 는 IMAGE_INTRINSIC_TAGS 소속이라
     //   아래 조건(문자열 키워드 한정)에 안 걸린다 — width 미주입 시 layout 0 → 명시 분기 필요.
@@ -5377,7 +5395,7 @@ export function enrichWithIntrinsicSize(
     //   엔진 400 (padding 있으면 12 = padding 만), column `align-items:center` > block > Text:
     //   Chrome 82.4 / 엔진 **0**. stretch 부모에서는 여전히 무해 (block.rs AUTO 분기는
     //   content_w 를 안 읽는다). 부모 종류 게이트는 여기서만 풀고 `isFlexChild` 자체는 그대로.
-    (TEXT_LEAF_TAGS.has(type) &&
+    (scalarTextLeaf &&
       (!rawWidth ||
         rawWidth === "auto" ||
         (typeof rawWidth === "string" && rawWidth.trim().endsWith("%")) ||
@@ -5390,7 +5408,7 @@ export function enrichWithIntrinsicSize(
   //   (§8.3.1 self-collapsing 제외) 이기도 하다. width/height 가 둘 다 명시돼 크기 주입이
   //   필요 없어도 텍스트가 있으면 이 스칼라는 공급해야 한다 — height:0 텍스트 leaf 의
   //   margin 이 관통하지 않는다 (Chrome b.y 60 / 미공급 시 self-collapsing 40).
-  const suppliesIntrinsicScalars = TEXT_LEAF_TAGS.has(type);
+  const suppliesIntrinsicScalars = scalarTextLeaf;
   const textLeafProps = element.props as Record<string, unknown> | undefined;
   const textLeafContent = suppliesIntrinsicScalars
     ? resolveTextLeafContent(textLeafProps)
@@ -5763,7 +5781,9 @@ export function enrichWithIntrinsicSize(
     const measuresAutoWidth =
       measuredAutoLeaf &&
       (rawWidth === "auto" || hasExplicitIntrinsicWidthKeyword);
-    if (measuresAutoWidth) {
+    if (measuresAutoWidth || percentMeasuredLeaf) {
+      // `%` 측정 leaf: 명시 `%` 는 엔진이 부모 폭으로 풀고, 부모 폭이 미결정 (shrink-to-fit) 이면 이
+      //   스칼라 (content-box) 로 fallback 한다 — width · minWidth 는 주입하지 않는다.
       const contentWidth = Math.max(
         0,
         ceiledWidth -
@@ -5798,6 +5818,7 @@ export function enrichWithIntrinsicSize(
       isFlexChild &&
       !isContainerElement &&
       !measuresAutoWidth &&
+      !percentMeasuredLeaf &&
       style?.minWidth == null
     ) {
       injectedStyle.minWidth = ceiledWidth;

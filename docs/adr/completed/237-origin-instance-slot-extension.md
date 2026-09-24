@@ -128,7 +128,8 @@ HIGH 가 없는 B · C 는 RAC 계약 또는 사용자 판정을 채우지 못�
 - `adr237-g5-bc-live.mjs` **19/19 픽셀 Δ0**: 237 전 빌드 (`ee6ecb890` worktree) 가 저장한 문서를 IndexedDB 로 옮겨 reload — Breadcrumbs (origin · palette instance · plain items · items override) · CardView · DisclosureGroup (단일 펼침 포함) · Disclosure · GridList (+ GridListItem 역할 짝) · 그룹 3 · IconButton · Tabs · 재hydration Δ0 · 오류 0.
 - `adr237-g4-perf-ab.mjs`: 위 G4 판정 수치.
 - live 에서 잡은 결함 2 (수리): instance 자기 자식 (Slot "+" 항목) 이 Canvas layout 에서 상속 자식 앞에 놓임 (Preview 와 발산) · 자동 폭 Breadcrumbs 의 마지막 crumb 이 구분자 폭까지 잡혀 넓어짐 (190 → 210).
-- Preview (DOM leg) 는 renderer unit (Checkbox · ToggleButton · Radio 초기 선택 · 항목 `--disabled` · Tab `--focus-visible` · MenuItem popover · Disclosure 펼침 · Breadcrumbs 정적 자식 · 현재 항목) 으로 고정했다 — 사용자 확인 대기.
+- `adr237-compare-mode.mjs` **7/7** (사용자 지시 "Compare Mode 로 체크해" — Preview iframe 을 연 확인, 2026-09-24): CheckboxGroup Slot "+" 선택 후보 → Preview 새 Checkbox 만 `data-selected` · Skia 도 선택 · RadioGroup 선택 후보 두 번 → Preview · Skia reader 모두 둘째만 · ToggleButtonGroup (single) 새 항목만 선택 · DisclosureGroup 접힘 후보 → Preview 접힘 · Skia `isExpanded:false` · Breadcrumbs instance + "+" → crumb 4 · 마지막만 `data-current` · Tab `--hover` 변형 편집 → hover 한 Tab 만 빨강, 떠나면 복귀 · page error 0.
+- Compare Mode 화면에서 본 237 밖 기존 발산 (237 전 문서 모양 · G5 Skia Δ0 으로 확인): 그룹 origin 의 상속 항목 라벨이 Preview "Checkbox"/"Radio" (Label 자식) vs Skia "Option 1"/"Option 2" (root `children`) · Skia DisclosureGroup instance 본문 좁은 줄바꿈.
 
 ## Consequences
 

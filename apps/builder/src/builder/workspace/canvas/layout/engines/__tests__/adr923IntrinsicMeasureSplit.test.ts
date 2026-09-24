@@ -103,6 +103,10 @@ describe("ADR-923 Phase 4 G5 — INLINE_BLOCK_TAGS 분류표 + INTRINSIC_MEASURE
   // ADR-233 Phase 3 (2026-09-23): `tab` 4 항목만 갱신 — Tab size config 테두리 기본값 thin 1px 를 DOM 생성
   //   CSS (`border: none`) 와 같은 0 으로 (폭 61 → 59 = DOM 텍스트 35 + padding 24 · 높이 30 → 28). projection
   //   Tab 행은 TabList 고정 높이 29 에 stretch 되어 편집 전 높이 그대로다 (live `adr233-tab-radio-live` L2).
+  // 2026-09-24 (사용자 신고 — Disclosure 크기): `disclosureheader` 3 항목 83 → 59. 측정 분기가 좌우 paddingX 를
+  //   포함해 돌려주던 것을 content-box (chevron 18 + gap 6 + 글자 35) 로 — 호출자가 box padding 을 더한다
+  //   (production 헤더는 catalog size 축이 paddingLeft/Right 12 를 싣는다 — 이 합성 fixture 는 padding 0).
+  //   종전엔 padding 이 두 번 더해져 그룹 안 헤더가 DOM 105 보다 24 넓었다.
   it("분리 전 baseline 과 enrichWithIntrinsicSize 출력 diff 0 (24 + 대조군 7, width 4 변형)", () => {
     const tags = [...INTRINSIC_MEASURE_TAGS, ...CONTROL_TAGS];
     expect(tags).toEqual(BASELINE.tags);

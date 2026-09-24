@@ -390,14 +390,14 @@
     },
     "disclosureheader @absent": {
       "height": 36,
-      "width": 83
+      "width": 59
     },
     "disclosureheader @auto": {
-      "width": 83,
+      "width": 59,
       "height": 36
     },
     "disclosureheader @fit-content": {
-      "width": 83,
+      "width": 59,
       "height": 36
     },
     "disclosureheader @px120": {
