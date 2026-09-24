@@ -22,9 +22,13 @@ import {
   isSlotCandidateAllowed,
   isSlotHostElement,
   resolveSlotInsertAction,
+  SELF_LIST_SLOT_HOST_TYPES,
 } from "../../components/slotHostPolicy";
 import type { PanelNode } from "../panelNode";
 import { planTabItemInsert } from "../../components/collectionItemInsert";
+import { planGroupItemInsert } from "../../components/groupItemInsert";
+import { historyManager } from "../../stores/history";
+import { confirmOriginImpactForIds } from "../../stores/utils/elementUpdate";
 import { getActiveCanonicalDocument } from "../../stores/canonical/canonicalElementsBridge";
 import { ACTION_ICONS } from "../../config/actionIcons";
 import { useI18n } from "@/i18n";
@@ -82,13 +86,6 @@ function withSlotMetadata(
   };
 }
 
-/** ADR-234 Phase 3d~3f — 목록 틀이 곧 owner 인 가족 (항목 = 자기 자식). */
-const SELF_LIST_OWNER_TYPES: ReadonlySet<string> = new Set([
-  "ListBox",
-  "GridList",
-  "Menu",
-]);
-
 /**
  * root ref instance 가 목록 틀 = owner 인 가족의 instance 면 체인 끝 origin. 패널은 root instance 를 raw (`ref`,
  * slot 없음) 로 받으므로 origin 의 slot 을 추천 목록으로 보여 주고 "+" 는 instance 자기 자식으로 넣는다.
@@ -106,7 +103,8 @@ function resolveSelfListInstanceMaster(
         ? (elementsById.get(ref) as SlotElement | undefined)
         : undefined;
   }
-  if (!current || !SELF_LIST_OWNER_TYPES.has(current.type)) return null;
+  // ADR-234 Phase 3d~3f · ADR-237 — 목록 틀이 곧 owner 인 가족 (ListBox · GridList · Menu · 그룹 9종).
+  if (!current || !SELF_LIST_SLOT_HOST_TYPES.has(current.type)) return null;
   return Array.isArray(current.slot) ? current : null;
 }
 
@@ -241,6 +239,56 @@ export const FrameSlotSection = memo(function FrameSlotSection({
     if (!isSlotCandidateAllowed(latestElement, candidate)) return;
 
     const insertAction = resolveSlotInsertAction(latestElement, candidate);
+    // ADR-237 Phase 1 — 그룹 "+" = 가족 origin 의 instance 자식 + 선택 값 · Radio value · 단일 선택 정규화를
+    //   한 history 항목으로 (origin 영향 확인은 트랜잭션 밖에서 먼저 — 확인된 대상은 안쪽에서 동기 통과).
+    if (insertAction.kind === "group-item") {
+      const document = getActiveCanonicalDocument();
+      const plan = document
+        ? planGroupItemInsert({
+            document,
+            hostId: latestElement.id,
+            candidateId: candidate.id,
+            newId: crypto.randomUUID(),
+          })
+        : null;
+      if (!plan) return;
+      const mirrorId = getFrameElementMirrorId(latestElement);
+      const pageId = latestElement.page_id ?? null;
+      void (async () => {
+        const gate = confirmOriginImpactForIds([
+          plan.hostId,
+          ...plan.propsUpdates.map((update) => update.id),
+        ]);
+        if (gate !== true && !(await gate)) return;
+        const pendingWrites = historyManager.runInTransaction(
+          { type: "batch", elementId: plan.hostId },
+          (): Promise<unknown>[] => [
+            addElement(
+              withFrameElementMirrorId(
+                {
+                  ...plan.child,
+                  parent_id: plan.hostId,
+                  page_id: pageId,
+                } as unknown as AddElementInput,
+                mirrorId,
+              ),
+            ),
+            ...plan.propsUpdates.map((update) =>
+              updateElementProps(update.id, update.props),
+            ),
+            ...(plan.instanceDescendants
+              ? [
+                  updateElement(plan.hostId, {
+                    descendants: plan.instanceDescendants,
+                  } as Partial<AddElementInput>),
+                ]
+              : []),
+          ],
+        );
+        await Promise.all(pendingWrites);
+      })();
+      return;
+    }
     // ADR-234 Phase 3 — 목록 틀 "+" = 항목 instance (Tabs 는 짝 TabPanel 도 · instance 는 descendants mode C).
     if (insertAction.kind === "list-item") {
       const document = getActiveCanonicalDocument();
@@ -275,7 +323,10 @@ export const FrameSlotSection = memo(function FrameSlotSection({
         );
         // 선택 모양 후보 — owner 선택 key 에 새 항목 key (ADR-234 후속).
         if (plan.selection) {
-          await updateElementProps(plan.selection.ownerId, plan.selection.props);
+          await updateElementProps(
+            plan.selection.ownerId,
+            plan.selection.props,
+          );
         }
         if (plan.panel && plan.tabPanelsId) {
           await addElement(

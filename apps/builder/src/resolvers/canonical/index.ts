@@ -49,7 +49,10 @@ import {
   computeSlotBindingFingerprint,
 } from "./cache";
 import { parseCompositionImportReference } from "./importNamespace";
-import { isSlotCandidateAllowed } from "../../builder/components/slotHostPolicy";
+import {
+  isSlotCandidateAllowed,
+  isSlotContractItem,
+} from "../../builder/components/slotHostPolicy";
 import {
   buildStateLayerSet,
   readInstanceOwnedKeys,
@@ -160,7 +163,14 @@ function _resolveRefNodeUncached(
 
   // ADR-234 Phase 1 — master 가 다시 ref (변형 = origin 의 reusable ref) 면 master 를 먼저 해석해
   //   그 결과를 master 로 쓴다 (origin 구조 + 변형 patch). 순환 · 깊이 초과는 broken ref 경로.
-  const master = resolveChainMaster(directMaster, refNode, doc, cache, imports, chain);
+  const master = resolveChainMaster(
+    directMaster,
+    refNode,
+    doc,
+    cache,
+    imports,
+    chain,
+  );
   if (!master) return nodeToResolved(refNode);
 
   // ── Step 1 continued: master + refNode props 머지 ────────────────────────
@@ -315,59 +325,61 @@ function applyDescendantsToTree(
   imports: ImportResolverContext | undefined,
   parentPath: string,
 ): ResolvedNode[] {
-  return children.map((child): ResolvedNode => {
-    // path 키는 두 규약이 공존한다 — canonical 스키마의 **id path** (`"Box/Slot"`, page-frame slot fill 이
-    //   `convertPageLayout` 로 만든다) 와 builder Skia/store 축의 **segment path** (`getCanonicalRefPathSegment`
-    //   — canonical 노드는 name → id; synthetic id · Properties/Styles 쓰기 키). ADR-229 Phase 2 (live
-    //   실측): name 을 가진 조합 자식 (Form 의 "ButtonGroup" · "TextField/Name") 의 patch 를 Preview 만
-    //   못 읽었다 — id 를 먼저 보고 segment 로도 맞춘다 (name 이 없으면 둘은 같다).
-    const idPath = parentPath ? `${parentPath}/${child.id}` : child.id;
-    const segment = getCanonicalRefPathSegment(child);
-    const segmentPath = parentPath ? `${parentPath}/${segment}` : segment;
-    const currentPath =
-      descendants && Object.prototype.hasOwnProperty.call(descendants, idPath)
-        ? idPath
-        : segmentPath;
+  return children
+    .map((child): ResolvedNode => {
+      // path 키는 두 규약이 공존한다 — canonical 스키마의 **id path** (`"Box/Slot"`, page-frame slot fill 이
+      //   `convertPageLayout` 로 만든다) 와 builder Skia/store 축의 **segment path** (`getCanonicalRefPathSegment`
+      //   — canonical 노드는 name → id; synthetic id · Properties/Styles 쓰기 키). ADR-229 Phase 2 (live
+      //   실측): name 을 가진 조합 자식 (Form 의 "ButtonGroup" · "TextField/Name") 의 patch 를 Preview 만
+      //   못 읽었다 — id 를 먼저 보고 segment 로도 맞춘다 (name 이 없으면 둘은 같다).
+      const idPath = parentPath ? `${parentPath}/${child.id}` : child.id;
+      const segment = getCanonicalRefPathSegment(child);
+      const segmentPath = parentPath ? `${parentPath}/${segment}` : segment;
+      const currentPath =
+        descendants && Object.prototype.hasOwnProperty.call(descendants, idPath)
+          ? idPath
+          : segmentPath;
 
-    if (
-      descendants &&
-      Object.prototype.hasOwnProperty.call(descendants, currentPath)
-    ) {
-      const override = descendants[currentPath]!;
-      return applyOverrideToNode(
+      if (
+        descendants &&
+        Object.prototype.hasOwnProperty.call(descendants, currentPath)
+      ) {
+        const override = descendants[currentPath]!;
+        return applyOverrideToNode(
+          child,
+          override,
+          currentPath,
+          doc,
+          cache,
+          imports,
+          descendants,
+        );
+      }
+
+      // 매칭 없음 — ref 자식은 자체 master 로 재귀 resolve. ADR-229: 바깥 instance 의
+      // 깊은 path patch (`<자식 ref path>/<nested master 자식>`) 는 그 ref 의 범위로 좁혀 넘긴다.
+      if (child.type === "ref") {
+        return resolveNestedRefChild(
+          child as RefNode,
+          undefined,
+          descendants,
+          idPath === segmentPath ? idPath : [idPath, segmentPath],
+          doc,
+          cache,
+          imports,
+        );
+      }
+
+      return resolveFrameOrPlain(
         child,
-        override,
+        doc,
+        cache,
+        imports,
+        descendants,
         currentPath,
-        doc,
-        cache,
-        imports,
-        descendants,
       );
-    }
-
-    // 매칭 없음 — ref 자식은 자체 master 로 재귀 resolve. ADR-229: 바깥 instance 의
-    // 깊은 path patch (`<자식 ref path>/<nested master 자식>`) 는 그 ref 의 범위로 좁혀 넘긴다.
-    if (child.type === "ref") {
-      return resolveNestedRefChild(
-        child as RefNode,
-        undefined,
-        descendants,
-        idPath === segmentPath ? idPath : [idPath, segmentPath],
-        doc,
-        cache,
-        imports,
-      );
-    }
-
-    return resolveFrameOrPlain(
-      child,
-      doc,
-      cache,
-      imports,
-      descendants,
-      currentPath,
-    );
-  }).filter(isResolvedEnabled);
+    })
+    .filter(isResolvedEnabled);
 }
 
 /**
@@ -592,6 +604,8 @@ function validateSlotContract(
   const children = resolved.children ?? [];
 
   for (const child of children) {
+    // ADR-237 — 그룹의 Label · Toolbar Separator 는 항목이 아니다 (추천 목록 대조 밖).
+    if (!isSlotContractItem(frame, child)) continue;
     const refId = child._resolvedFrom ?? child.id;
     const matchesDeclaredSlot = frame.slot.some((reference) =>
       matchesResolvedSlotChildReference(child, reference, doc, imports),
@@ -663,10 +677,7 @@ function resolveChainMaster(
 ): CanonicalNode | undefined {
   if (master.type !== "ref") return master;
   const visiting = [...chain.visiting, refNode.id];
-  if (
-    visiting.includes(master.id) ||
-    visiting.length >= MAX_REF_CHAIN_DEPTH
-  ) {
+  if (visiting.includes(master.id) || visiting.length >= MAX_REF_CHAIN_DEPTH) {
     console.warn(
       `[ADR-234] resolveCanonicalDocument: broken ref — ref chain cycle or depth > ${MAX_REF_CHAIN_DEPTH} at "${master.id}". node id: "${refNode.id}"`,
     );

@@ -28,7 +28,13 @@ export type StateVariantState =
   | "pressed"
   | "focus-visible"
   // ADR-234: 선택 가능한 가족의 휴지 상태 — origin = 선택 상태, 휴지 모양은 이 변형이 갖는다.
-  | "unselected";
+  | "unselected"
+  // ADR-237 Phase 2: Disclosure 의 접힘 — origin = 펼친 상태 (가장 완성된 모양), 접힌 모양은 이 변형이 갖는다.
+  //   props `isExpanded:false` + style patch 만 (구조 patch `enabled` 금지 — review round 1 h2).
+  | "collapsed"
+  // ADR-237 Phase 3: Breadcrumbs 의 현재 항목 — origin = 링크 모양, 현재 모양은 이 변형이 갖는다. 현재 판정은 RAC
+  //   위치 규칙 (마지막 = current) 이 정본이고 변형은 그 상태의 모양만 정한다.
+  | "current";
 
 export const DECLARATIVE_STATE_VARIANTS: readonly StateVariantState[] = [
   "selected",
@@ -58,7 +64,39 @@ export const STATE_VARIANT_BASE_TYPES: Readonly<
   Switch: ["selected", "disabled", ...INTERACTION_STATE_VARIANTS],
   // ADR-233 Phase 2: 팔레트 밖 reusable origin `component-radio` 가 생겨 230 보류가 풀렸다.
   Radio: ["selected", "disabled", ...INTERACTION_STATE_VARIANTS],
+  // ADR-237 Phase 2 — 항목 템플릿 5종 (RAC render props isSelected · isHovered · isPressed · isFocusVisible ·
+  //   isDisabled — breakdown R4). 선택 가능한 4종은 origin = 선택 상태 + `--unselected` (234 규칙 — GridListItem 은
+  //   이 표로 처음 이관). MenuItem 은 선택 없이 상호작용 4.
+  Tab: ["selected", "disabled", ...INTERACTION_STATE_VARIANTS],
+  Tag: ["selected", "disabled", ...INTERACTION_STATE_VARIANTS],
+  ListBoxItem: ["selected", "disabled", ...INTERACTION_STATE_VARIANTS],
+  GridListItem: ["selected", "disabled", ...INTERACTION_STATE_VARIANTS],
+  MenuItem: ["disabled", ...INTERACTION_STATE_VARIANTS],
+  // ADR-237 Phase 2 — Disclosure (RAC render prop isExpanded — R5): origin = 펼침 + `--collapsed`.
+  Disclosure: ["collapsed"],
+  // ADR-237 Phase 3 — Breadcrumb 항목 (RAC render prop isCurrent — R3): origin = 링크 + `--current`.
+  Breadcrumb: ["current"],
 };
+
+/** 이관 대상 항목 템플릿 쌍 (default id = 새 origin id). GridListItem 은 selected 템플릿이 없어 대상 밖 — ADR-237
+ *  Phase 2 부터 상태 변형 표 (`STATE_VARIANT_BASE_TYPES`) 의 선택 가능한 가족으로 이관된다. */
+export const ITEM_TEMPLATE_VARIANT_PAIRS: ReadonlyArray<{
+  defaultId: string;
+  selectedId: string;
+}> = [
+  {
+    defaultId: "component-tab-item-default",
+    selectedId: "component-tab-item-selected",
+  },
+  {
+    defaultId: "component-tag-item-default",
+    selectedId: "component-tag-item-selected",
+  },
+  {
+    defaultId: "component-listbox-item-default",
+    selectedId: "component-listbox-item-selected",
+  },
+];
 
 export function isInteractionStateVariant(state: StateVariantState): boolean {
   return INTERACTION_STATE_VARIANTS.includes(state);
@@ -66,6 +104,8 @@ export function isInteractionStateVariant(state: StateVariantState): boolean {
 
 const STATE_LABELS: Readonly<Record<StateVariantState, string>> = {
   unselected: "Unselected",
+  collapsed: "Collapsed",
+  current: "Current",
   selected: "Selected",
   disabled: "Disabled",
   hover: "Hover",
@@ -85,6 +125,8 @@ export function isStateVariantState(
 ): value is StateVariantState {
   return (
     value === "unselected" ||
+    value === "collapsed" ||
+    value === "current" ||
     value === "selected" ||
     value === "disabled" ||
     value === "hover" ||
@@ -148,7 +190,10 @@ export function buildStateVariantRef(
     ref: origin.id,
     reusable: true,
     name: `${baseName}/${STATE_LABELS[state]}`,
-    props: {},
+    // ADR-237 Phase 2 — 접힘 변형은 그 상태의 prop 값 (`isExpanded:false`) 을 갖는다: 두 leg 의 유효 펼침
+    //   판정 (Canvas `isDisclosureExpandedInContext` · Preview RAC `isExpanded`) 이 변형 노드 자신을 접힌 모양으로
+    //   그린다. 구조 patch (`enabled`) 는 싣지 않는다 (review round 1 h2).
+    props: state === "collapsed" ? { isExpanded: false } : {},
     metadata: {
       type: CATALOG_ORIGIN_METADATA_TYPE,
       systemOwned: true,
@@ -215,13 +260,37 @@ export function buildStateVariantOrigin(
   } as CanonicalNode;
 }
 
-function isBaseOrigin(
+/**
+ * 상태 변형을 가질 base origin 이면 그 상태 열 — seed (`ensureStateVariantOrigins`) 와 이관
+ * (`migrateVariantsToOriginInstances`) 이 같은 술어를 읽는다.
+ *
+ * ADR-237 Phase 1 (F4): 종전 `node.id === catalogReusableOriginId(type)` 은 root type 이 Button 인 IconButton
+ * origin (`component-iconbutton`) 을 빠뜨렸다. 판정 = 시스템 소유 reusable origin 이고 root type 이 표에 있음
+ * (사용자가 만든 reusable 은 `systemOwned` 가 없어 대상 밖 — 변형을 몰래 붙이지 않는다).
+ */
+export function isStateVariantBaseOrigin(
   node: CanonicalNode,
 ): readonly StateVariantState[] | null {
   const states = STATE_VARIANT_BASE_TYPES[String(node.type)];
   if (!states) return null;
-  if (node.id !== catalogReusableOriginId(String(node.type))) return null;
+  if (node.reusable !== true) return null;
+  const metadata = node.metadata as { systemOwned?: unknown } | undefined;
+  if (
+    metadata?.systemOwned !== true &&
+    node.id !== catalogReusableOriginId(String(node.type))
+  ) {
+    return null;
+  }
   if (readStateVariantSelf(node)) return null;
+  // ADR-237 Phase 2 — 234 이관 전 항목 템플릿 쌍은 변형을 받지 않는다: selected 템플릿은 이관이 지우고, default 는
+  //   이관을 지나 선택 상태 origin 이 된 뒤 (hydration 두 번째 seed pass) 변형을 받는다.
+  const pair = ITEM_TEMPLATE_VARIANT_PAIRS.find(
+    (candidate) =>
+      candidate.selectedId === node.id || candidate.defaultId === node.id,
+  );
+  if (pair && (pair.selectedId === node.id || !isSelectedStateOrigin(node))) {
+    return null;
+  }
   return states;
 }
 
@@ -251,7 +320,7 @@ export function ensureStateVariantOrigins(
     for (let index = 0; index < source.length; index += 1) {
       const node = source[index]!;
       next.push(node);
-      const states = isBaseOrigin(node);
+      const states = isStateVariantBaseOrigin(node);
       if (!states) continue;
       while (
         index + 1 < source.length &&
@@ -277,8 +346,9 @@ export function ensureStateVariantOrigins(
         const variantId = stateVariantOriginId(node.id, state);
         if (existingIds.has(variantId)) continue;
         existingIds.add(variantId);
+        // ADR-237 Phase 2 · 3 — 새 어휘 (`collapsed` · `current`) 는 이관 전 복제본 모양이 없다: 처음부터 ref 변형.
         next.push(
-          seedAsRef
+          seedAsRef || state === "collapsed" || state === "current"
             ? buildStateVariantRef(node, state)
             : buildStateVariantOrigin(node, state),
         );

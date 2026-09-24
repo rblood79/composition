@@ -4,6 +4,8 @@ import {
   isDelegatedSubpartChild,
 } from "@composition/shared";
 import { applyPropsPatch } from "../../adapters/canonical/instanceResolver";
+import { getCanonicalRefPathSegment } from "../../adapters/canonical/canonicalRefResolution";
+import { diffEffectiveProps } from "./stateVariantMigration";
 import { applyFactoryPropagation } from "../utils/propagationEngine";
 import { COMPONENTS_SYSTEM_BODY_ID } from "../pages/systemComponentsPage";
 
@@ -347,9 +349,13 @@ function convertToRef(
     );
   }
 
+  const actualChildren = node.children ?? [];
+  // ADR-237 Phase 1 (F3) — 자기 자식이 없는 노드 (CardView 의 Card) 는 origin 자식을 전부 숨긴 instance.
+  if (actualChildren.length === 0 && (origin.children?.length ?? 0) > 0) {
+    return toChildlessOriginRef(node, origin);
+  }
   const props = diffPropsAgainstOrigin(node.props, origin.props);
   const descendants: Record<string, Record<string, unknown>> = {};
-  const actualChildren = node.children ?? [];
   if (actualChildren.length > 0 || (origin.children?.length ?? 0) > 0) {
     const expected = expectedSubtree(
       origin,
@@ -368,6 +374,71 @@ function convertToRef(
     props,
     ...(Object.keys(descendants).length > 0 ? { descendants } : {}),
   } as CanonicalNode;
+}
+
+/**
+ * ADR-237 Phase 1 (F3) — 자기 자식 0 인 plain 노드 → origin 의 ref + origin 자식 전부 `enabled:false` (시각 보존).
+ * props 는 **유효값 차분** (`diffEffectiveProps` — origin 에만 있는 키 = `null`): 종전 plain 노드에 없던 origin
+ * 값 (Card 의 size · orientation · borderWidth …) 이 instance 에 새로 켜지지 않는다.
+ */
+export function toChildlessOriginRef(
+  node: CanonicalNode,
+  origin: CanonicalNode,
+): CanonicalNode {
+  const descendants = Object.fromEntries(
+    (origin.children ?? []).map((child) => [
+      getCanonicalRefPathSegment(child),
+      { enabled: false },
+    ]),
+  );
+  const { children: _children, props: _props, type: _type, ...rest } = node;
+  return {
+    ...rest,
+    type: "ref",
+    ref: origin.id,
+    props:
+      diffEffectiveProps(
+        node.props as Record<string, unknown> | undefined,
+        origin.props as Record<string, unknown> | undefined,
+      ) ?? {},
+    descendants,
+  } as CanonicalNode;
+}
+
+/**
+ * ADR-237 Phase 1 — 기존 문서의 CardView origin (`component-cardview`) 이 plain 으로 남긴 Card 자식 (F3
+ * `subtree-mismatch`) 을 Card origin 의 ref 로 이관한다. 새 문서는 seed ② 가 같은 규칙으로 만든다. 멱등 —
+ * 이관할 것이 없으면 같은 문서 객체.
+ */
+export function migrateCardViewCardsToRefs(
+  document: CompositionDocument,
+): CompositionDocument {
+  const originsById = new Map<string, CanonicalNode>();
+  collectOriginsById(document.children, originsById);
+  const cardOrigin = originsById.get(getReusableOriginId("Card") ?? "");
+  const cardView = originsById.get(getReusableOriginId("CardView") ?? "");
+  if (!cardOrigin || cardOrigin.type !== "Card" || !cardView) return document;
+  let changed = false;
+  const nextCardView = {
+    ...cardView,
+    children: (cardView.children ?? []).map((child) => {
+      if (child.type !== "Card" || (child.children?.length ?? 0) > 0) {
+        return child;
+      }
+      changed = true;
+      return toChildlessOriginRef(child, cardOrigin);
+    }),
+  };
+  if (!changed) return document;
+  const replace = (nodes: readonly CanonicalNode[]): CanonicalNode[] =>
+    nodes.map((node) =>
+      node.id === cardView.id
+        ? nextCardView
+        : node.children
+          ? { ...node, children: replace(node.children) }
+          : node,
+    );
+  return { ...document, children: replace(document.children) };
 }
 
 function collectOriginsById(

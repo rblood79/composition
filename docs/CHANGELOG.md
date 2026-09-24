@@ -11,6 +11,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-237 — 그룹 · Breadcrumbs · 항목 상태도 origin · instance · slot 으로] - 2026-09-24
+
+### Added
+
+- **그룹 컨테이너에 Slot "+" 가 생겼다.** CheckboxGroup · RadioGroup · ToggleButtonGroup · DisclosureGroup · ButtonGroup · Pagination · AvatarGroup · Nav · Toolbar 의 Components origin 에 추천 항목 (slot) 이 실리고, 문서 instance 를 선택하면 Properties 의 Slot 절에서 항목을 넣을 수 있다. 넣은 항목은 가족 origin 의 instance 이고, 고른 후보의 상태를 기존 prop 으로 채운다 (선택 모양 → 선택됨 · 휴지 → 선택 안 됨 · 접힘 → `isExpanded:false`).
+  - Radio 는 그룹 안에서 겹치지 않는 `value` 를 받고, 선택된 Radio 가 있는 그룹에 선택 후보를 넣으면 기존 선택이 풀리고 그룹 값도 새 항목으로 바뀐다 (한 번의 되돌리기). 단일 선택 ToggleButtonGroup 도 기존 선택을 푼다.
+- **항목 템플릿 5종 (Tab · Tag · ListBoxItem · GridListItem · MenuItem) 의 hover · pressed · focus · disabled 변형 · Disclosure 접힘 변형 · IconButton 변형이 Components 페이지에 생겼다.** 변형을 고치면 그 상태의 항목에만 반영된다 (Preview 는 RAC 실행 중 상태, Canvas 는 선언적 상태). GridListItem 도 다른 목록 항목처럼 origin = 선택 모양 + 휴지 변형이 됐다.
+- **Breadcrumbs 가 항목 origin (`Breadcrumb/Default` + 현재 변형) 과 Slot "+" 를 갖는다.** 정적 목록은 항목 instance 자식으로 옮겨지고 (바인딩 목록은 그대로), 마지막 항목이 현재 항목으로 그려진다.
+
+### Fixed
+
+- **항목 (ListBoxItem · Tab · GridListItem) 의 Disabled 가 Preview 에 반영되지 않던 문제를 고쳤다.** Canvas 는 이미 흐리게 그렸는데 Preview 에는 값이 전달되지 않았다.
+- **Breadcrumb 을 자식으로 둔 Breadcrumbs 가 Preview 에서 항목을 그리지 못하던 문제를 고쳤다** (바인딩이 없어도 로딩 표시에 걸리거나 무한 갱신으로 멈췄다).
+- **instance 에 Slot "+" 로 넣은 항목이 Canvas 에서 상속 항목 앞에 놓이던 문제를 고쳤다** (Preview 는 뒤) — ListBox · GridList · Menu instance 도 같은 경로.
+  - 위치: `apps/builder/src/builder/components/slotHostPolicy.ts` · `groupItemInsert.ts` · `stateVariantOrigins.ts` · `breadcrumbs/` · `apps/builder/src/adapters/canonical/canonicalRefResolution.ts`
+
+### Performance
+
+- 편집 뒤 scene 해석이 바뀌지 않은 자식 없는 instance (정적 목록 항목 등) 의 이전 결과를 재사용한다. Breadcrumbs 항목 500 개 문서의 owner 편집 비용이 237 전 대비 +1.5~2.0 ms, 항목 origin 편집은 +4.1 ms 로 남아 ADR-237 R5 에 예외로 기록했다.
+
 ## [Styles 패널 · 여러 요소 편집도 컴포넌트 영향 확인을 거친다] - 2026-09-24
 
 ### Fixed

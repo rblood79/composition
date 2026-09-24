@@ -65,6 +65,9 @@ const CANONICAL_DESCENDANTS_ALLOWLIST = new Set([
   //   (저작 subtree ↔ origin subtree 차이를 mode A patch 로) 와 생성 경로의 같은 규칙 적용.
   "apps/builder/src/builder/components/originChildRefs.ts",
   "apps/builder/src/builder/factories/utils/originChildRefElements.ts",
+  // ADR-237 Phase 1 — 그룹 Slot "+" 계획. instance host 의 상속 형제 해제를 canonical `RefNode.descendants`
+  //   patch 로 **만든다** (originChildRefs 와 같은 역할).
+  "apps/builder/src/builder/components/groupItemInsert.ts",
 ]);
 
 const COMMENT_LINE_PATTERN = /^\s*(\/\/|\*|\/\*|\*\/)/;

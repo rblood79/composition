@@ -21,6 +21,7 @@ import { TAG_ITEM_DEFAULT_ORIGIN_ID } from "./taggroup/tagGroupTemplateOrigins";
 import { LISTBOX_ITEM_DEFAULT_ORIGIN_ID } from "./listbox/listBoxTemplateOrigins";
 import { GRIDLIST_ITEM_DEFAULT_ORIGIN_ID } from "./gridlist/gridListTemplateOrigins";
 import { MENU_ITEM_DEFAULT_ORIGIN_ID } from "./menu/menuTemplateOrigins";
+import { BREADCRUMB_ITEM_DEFAULT_ORIGIN_ID } from "./breadcrumbs/breadcrumbsTemplateOrigins";
 
 type RefLike = CanonicalNode & {
   ref?: string;
@@ -31,7 +32,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-export function indexNodes(document: CompositionDocument): Map<string, CanonicalNode> {
+export function indexNodes(
+  document: CompositionDocument,
+): Map<string, CanonicalNode> {
   const map = new Map<string, CanonicalNode>();
   const visit = (nodes: readonly CanonicalNode[] | undefined): void => {
     for (const node of nodes ?? []) {
@@ -134,6 +137,8 @@ export interface StaticCollectionFamily {
   itemType: string;
   itemPrefix: string;
   defaultOriginId: string;
+  /** Components 페이지 origin 에 slot 이 없을 때 싣는 추천 목록 (기본 `[defaultOriginId]`). */
+  originSlot?: readonly string[];
   buildItem(
     item: Record<string, unknown>,
     origin: CanonicalNode,
@@ -305,12 +310,41 @@ export const MENU_STATIC_FAMILY: StaticCollectionFamily = {
   },
 };
 
+/**
+ * ADR-237 Phase 3 — Breadcrumbs (목록 틀 = owner). 행 (`StoredBreadcrumbItem` — id · label · href) → Breadcrumb
+ * instance 의 `children` · `href`. slot 은 [항목 origin, 현재 변형].
+ */
+export const BREADCRUMBS_STATIC_FAMILY: StaticCollectionFamily = {
+  ownerType: "Breadcrumbs",
+  listType: null,
+  itemType: "Breadcrumb",
+  itemPrefix: "item",
+  defaultOriginId: BREADCRUMB_ITEM_DEFAULT_ORIGIN_ID,
+  originSlot: [
+    BREADCRUMB_ITEM_DEFAULT_ORIGIN_ID,
+    `${BREADCRUMB_ITEM_DEFAULT_ORIGIN_ID}--current`,
+  ],
+  buildItem(item) {
+    const label = item.label ?? item.textValue ?? item.title ?? item.name;
+    return {
+      props: {
+        children: String(label ?? ""),
+        // 행에 href 가 없으면 (현재 페이지) 빈 값 — origin 의 링크 href 를 상속하지 않는다.
+        href: typeof item.href === "string" ? item.href : null,
+        ...(item.isDisabled === true ? { isDisabled: true } : {}),
+      },
+      descendants: {},
+    };
+  },
+};
+
 export const STATIC_COLLECTION_FAMILIES: readonly StaticCollectionFamily[] = [
   TABS_STATIC_FAMILY,
   TAGGROUP_STATIC_FAMILY,
   LISTBOX_STATIC_FAMILY,
   GRIDLIST_STATIC_FAMILY,
   MENU_STATIC_FAMILY,
+  BREADCRUMBS_STATIC_FAMILY,
 ];
 
 /** 목록 틀 — `listType` 자식, `null` 이면 owner 자신. */
@@ -397,7 +431,13 @@ function migratePlainOwner(
     );
     const origin = originId ? byId.get(originId) : undefined;
     if (!origin) return null; // 보류 — origin 이 생기면 다음 hydration 에서.
-    nextListChildren = buildItemInstances(family, items, list.id, origin, taken);
+    nextListChildren = buildItemInstances(
+      family,
+      items,
+      list.id,
+      origin,
+      taken,
+    );
   }
 
   const nextList: CanonicalNode = {
@@ -443,7 +483,7 @@ function migrateSelfListOwner(
     ...(children ? { children } : {}),
     // Components 페이지 origin 에 slot 이 없던 가족 (Menu) — 항목 origin 추천 목록을 싣는다 (Slot "+").
     ...(owner.reusable === true && owner.slot === undefined
-      ? { slot: [family.defaultOriginId] }
+      ? { slot: [...(family.originSlot ?? [family.defaultOriginId])] }
       : {}),
   } as CanonicalNode;
 }
@@ -464,13 +504,18 @@ function migrateSelfListInstance(
   const originItems = (master.children ?? []).filter(
     (child) => resolveChainEnd(child.id, byId)?.type === family.itemType,
   );
-  if ((master.children ?? []).length === 0 && readItems(master.props as Record<string, unknown>)) {
+  if (
+    (master.children ?? []).length === 0 &&
+    readItems(master.props as Record<string, unknown>)
+  ) {
     return null;
   }
   const originId = pickItemOriginId(master.slot, byId, family.defaultOriginId);
   const origin = originId ? byId.get(originId) : undefined;
   if (!origin) return null;
-  const descendants: Record<string, unknown> = { ...(instance.descendants ?? {}) };
+  const descendants: Record<string, unknown> = {
+    ...(instance.descendants ?? {}),
+  };
   for (const child of originItems) {
     const key = getCanonicalRefPathSegment(child);
     descendants[key] = {
@@ -501,11 +546,20 @@ function migrateOwnerInstance(
   const items = readItems(props);
   if (items === null || isBoundCollection(instance)) return null;
   const master = resolveChainEnd(instance.ref, byId);
-  const family = STATIC_COLLECTION_FAMILIES.find((f) => f.ownerType === master?.type);
+  const family = STATIC_COLLECTION_FAMILIES.find(
+    (f) => f.ownerType === master?.type,
+  );
   if (!master || !family) return null;
   if (hasUnsupportedRows(items)) return null;
   if (family.listType === null) {
-    return migrateSelfListInstance(family, instance, master, items, byId, taken);
+    return migrateSelfListInstance(
+      family,
+      instance,
+      master,
+      items,
+      byId,
+      taken,
+    );
   }
   const list = findListFrame(family, master);
   if (!list) return null;
@@ -571,7 +625,9 @@ export function migrateStaticCollectionsToInstances(
   // 1단계 plain owner (origin 포함) → 2단계 instance: instance 이관은 이관을 마친 origin 의 항목 자식을 읽는다
   //   (ListBox instance 는 origin 항목을 숨기는 descendants 를 쓴다).
   const plainDone = mapTree(document, (node) => {
-    const family = STATIC_COLLECTION_FAMILIES.find((f) => f.ownerType === node.type);
+    const family = STATIC_COLLECTION_FAMILIES.find(
+      (f) => f.ownerType === node.type,
+    );
     return family ? migratePlainOwner(family, node, byId, taken) : null;
   });
   const byIdAfterPlain = plainDone === document ? byId : indexNodes(plainDone);

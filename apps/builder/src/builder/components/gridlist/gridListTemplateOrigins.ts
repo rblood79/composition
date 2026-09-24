@@ -137,6 +137,8 @@ function repairOrigin(
     children: existing.children ?? base.children,
     // ADR-154: 사용자 responsive override 보존 (composite origin reseed 소실 방지)
     ...(existing.responsive ? { responsive: existing.responsive } : {}),
+    // ADR-237 Phase 2: slot (추천 항목 — 이관이 더한 `--unselected` · 사용자 편집) 보존 (ListBox repair 와 같다).
+    ...(existing.slot !== undefined ? { slot: existing.slot } : {}),
     metadata: {
       ...base.metadata,
       ...(existing.metadata ?? {}),

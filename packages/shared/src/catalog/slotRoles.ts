@@ -324,8 +324,7 @@ export function resolveItemTemplateRowBoxStyle(
       { defaultSize?: string; sizes?: Record<string, { height?: unknown }> }
     >
   )[ruleType];
-  const height =
-    sizes?.sizes?.[sizeName ?? sizes.defaultSize ?? "md"]?.height;
+  const height = sizes?.sizes?.[sizeName ?? sizes.defaultSize ?? "md"]?.height;
   return typeof height === "number" && height > 0
     ? { height: "auto", minHeight: height }
     : { height: "auto" };
@@ -371,6 +370,8 @@ export const STATIC_LIST_FAMILY_BY_OWNER: Readonly<
   ListBox: { listType: null, itemType: "ListBoxItem" },
   GridList: { listType: null, itemType: "GridListItem" },
   Menu: { listType: null, itemType: "MenuItem" },
+  // ADR-237 Phase 3 — Breadcrumbs (목록 틀 = owner) · 바인딩 목록은 `items` 행 그대로.
+  Breadcrumbs: { listType: null, itemType: "Breadcrumb" },
 };
 
 /**

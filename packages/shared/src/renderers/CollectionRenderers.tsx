@@ -16,7 +16,10 @@ import {
   resolveBindingSelectionMode,
   resolveBindingSelectionStyle,
 } from "../catalog/bindings";
-import { MenuSection as AriaMenuSection } from "react-aria-components/Menu";
+import {
+  MenuSection as AriaMenuSection,
+  type MenuItemRenderProps,
+} from "react-aria-components/Menu";
 import { Header as AriaMenuHeader } from "react-aria-components/Header";
 import { Separator as AriaMenuSeparator } from "react-aria-components/Separator";
 import { DataField } from "../components/Field";
@@ -181,7 +184,12 @@ export const renderTree = (
         };
         updateElementProps(element.id, updatedProps);
         // ADR-158 규칙 · ADR-214 암묵 상태 미러
-        invokeCustomEventHandler(context, element, "onSelectionChange", selectedKeys);
+        invokeCustomEventHandler(
+          context,
+          element,
+          "onSelectionChange",
+          selectedKeys,
+        );
       }}
       onExpandedChange={(expandedKeys) => {
         const updatedProps = {
@@ -189,7 +197,12 @@ export const renderTree = (
           expandedKeys: Array.from(expandedKeys),
         };
         updateElementProps(element.id, updatedProps);
-        invokeCustomEventHandler(context, element, "onExpandedChange", expandedKeys);
+        invokeCustomEventHandler(
+          context,
+          element,
+          "onExpandedChange",
+          expandedKeys,
+        );
       }}
     >
       {renderTreeItemsRecursively(treeItemChildren)}
@@ -307,7 +320,10 @@ export const renderTagGroup = (
   // ADR-234 Phase 3 — 작성자가 채운 목록 = TagList 의 Tag instance 자식. canonical 경로는 CanonicalNodeRenderer
   //   재귀 (RAC Tag + 상태 층 render props), legacy 경로는 여기서 RAC Tag 를 합성한다.
   const staticTagItems =
-    !hasValidTemplate && !hasItemsArray && !dataBinding && tagChildren.length > 0
+    !hasValidTemplate &&
+    !hasItemsArray &&
+    !dataBinding &&
+    tagChildren.length > 0
       ? tagChildren.map((tag) => {
           const tagKids = childrenByParent.get(tag.id) ?? [];
           const text = tagKids
@@ -341,76 +357,77 @@ export const renderTagGroup = (
   const renderChildren = staticTagItems
     ? null
     : hasValidTemplate
-    ? (item: Record<string, unknown>) => {
-        const tagTemplate = tagChildren[0];
-        const fieldChildren =
-          context.childrenByParent
-            .get(tagTemplate.id)
-            ?.filter((child) => child.type === "Field") ?? [];
+      ? (item: Record<string, unknown>) => {
+          const tagTemplate = tagChildren[0];
+          const fieldChildren =
+            context.childrenByParent
+              .get(tagTemplate.id)
+              ?.filter((child) => child.type === "Field") ?? [];
 
-        return (
-          <Tag
-            key={String(item.id)}
-            data-element-id={tagTemplate.id}
-            isDisabled={Boolean(tagTemplate.props.isDisabled)}
-            style={tagTemplate.props.style}
-            className={tagTemplate.props.className}
-          >
-            {fieldChildren.length > 0
-              ? fieldChildren.map((field) => {
-                  // fieldKey 또는 key 속성 모두 지원 (fieldKey 우선)
-                  const fieldKey =
-                    (field.props as { fieldKey?: string; key?: string })
-                      .fieldKey || (field.props as { key?: string }).key;
-                  const fieldValue = fieldKey ? item[fieldKey] : undefined;
+          return (
+            <Tag
+              key={String(item.id)}
+              data-element-id={tagTemplate.id}
+              isDisabled={Boolean(tagTemplate.props.isDisabled)}
+              style={tagTemplate.props.style}
+              className={tagTemplate.props.className}
+            >
+              {fieldChildren.length > 0
+                ? fieldChildren.map((field) => {
+                    // fieldKey 또는 key 속성 모두 지원 (fieldKey 우선)
+                    const fieldKey =
+                      (field.props as { fieldKey?: string; key?: string })
+                        .fieldKey || (field.props as { key?: string }).key;
+                    const fieldValue = fieldKey ? item[fieldKey] : undefined;
 
-                  return (
-                    <DataField
-                      key={field.id}
-                      fieldKey={fieldKey || ""}
-                      label={(field.props as { label?: string }).label}
-                      type={
-                        (field.props as { type?: string }).type as
-                          | "string"
-                          | "number"
-                          | "boolean"
-                          | "date"
-                          | "image"
-                          | "url"
-                          | "email"
-                      }
-                      value={fieldValue}
-                      visible={
-                        (field.props as { visible?: boolean }).visible !== false
-                      }
-                      style={field.props.style}
-                      className={field.props.className}
-                    />
-                  );
-                })
-              : String(tagTemplate.props.children || "")}
-          </Tag>
-        );
-      }
-    : hasItemsArray
-      ? // ADR-097 P2: items[] SSOT canonical. Select/ComboBox/ListBox Path 2 와 대칭.
-        //   ADR-229 Phase 1 (2026-09-21): chip JSX 를 여기서 만들지 않고 `items` prop 으로 넘긴다 —
-        //   TagGroup 의 rows 경로 (RAC items + render function) 가 chip 을 그린다. chip 렌더러가 한
-        //   곳이어야 item template (root style base/selected · leading slot 존재 gating · slot 크기) 을
-        //   selected 상태별로 적용할 수 있고, maxRows 미러도 실제 chip 과 같은 leading 을 측정한다.
-        null
-      : // Path 3 (legacy, P6 소멸 예정): Tag element tree fallback
-        tagChildren.map((type) => (
-          <Tag
-            key={type.id}
-            data-element-id={type.id}
-            isDisabled={Boolean(type.props.isDisabled)}
-            style={type.props.style}
-            className={type.props.className}
-          >
-            {String(type.props.children || "")}
-          </Tag>
-        ));
+                    return (
+                      <DataField
+                        key={field.id}
+                        fieldKey={fieldKey || ""}
+                        label={(field.props as { label?: string }).label}
+                        type={
+                          (field.props as { type?: string }).type as
+                            | "string"
+                            | "number"
+                            | "boolean"
+                            | "date"
+                            | "image"
+                            | "url"
+                            | "email"
+                        }
+                        value={fieldValue}
+                        visible={
+                          (field.props as { visible?: boolean }).visible !==
+                          false
+                        }
+                        style={field.props.style}
+                        className={field.props.className}
+                      />
+                    );
+                  })
+                : String(tagTemplate.props.children || "")}
+            </Tag>
+          );
+        }
+      : hasItemsArray
+        ? // ADR-097 P2: items[] SSOT canonical. Select/ComboBox/ListBox Path 2 와 대칭.
+          //   ADR-229 Phase 1 (2026-09-21): chip JSX 를 여기서 만들지 않고 `items` prop 으로 넘긴다 —
+          //   TagGroup 의 rows 경로 (RAC items + render function) 가 chip 을 그린다. chip 렌더러가 한
+          //   곳이어야 item template (root style base/selected · leading slot 존재 gating · slot 크기) 을
+          //   selected 상태별로 적용할 수 있고, maxRows 미러도 실제 chip 과 같은 leading 을 측정한다.
+          null
+        : // Path 3 (legacy, P6 소멸 예정): Tag element tree fallback
+          tagChildren.map((type) => (
+            <Tag
+              key={type.id}
+              data-element-id={type.id}
+              isDisabled={Boolean(type.props.isDisabled)}
+              style={type.props.style}
+              className={type.props.className}
+            >
+              {String(type.props.children || "")}
+            </Tag>
+          ));
 
   return (
     <TagGroup
@@ -460,7 +477,12 @@ export const renderTagGroup = (
         };
         updateElementProps(element.id, updatedProps);
         // ADR-158 규칙 · ADR-214 암묵 상태 미러
-        invokeCustomEventHandler(context, element, "onSelectionChange", selectedKeys);
+        invokeCustomEventHandler(
+          context,
+          element,
+          "onSelectionChange",
+          selectedKeys,
+        );
 
         window.parent.postMessage(
           {
@@ -991,6 +1013,17 @@ export const renderMenu = (
           data-element-id={item.id}
           textValue={label}
           isDisabled={Boolean(itemProps.isDisabled)}
+          // ADR-237 Phase 2 — MenuItem 상태 변형 층 (hover · pressed · focus-visible · disabled) 을 RAC render
+          //   props 로 겹친다 (항목 기본 style 은 종전처럼 넘기지 않는다 — 층 키만).
+          {...(item.stateStyle
+            ? {
+                style: (renderProps: MenuItemRenderProps) =>
+                  item.stateStyle!(
+                    renderProps as unknown as Record<string, unknown>,
+                    undefined,
+                  ) as React.CSSProperties,
+              }
+            : {})}
           {...(typeof itemProps.href === "string" && itemProps.href
             ? { href: itemProps.href }
             : {})}

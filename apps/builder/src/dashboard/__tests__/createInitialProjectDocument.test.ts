@@ -77,11 +77,15 @@ describe("createInitialProjectDocument", () => {
                   type: "GridListItem",
                   reusable: true,
                 }),
+                // ADR-237 Phase 2: GridListItem 도 origin = 선택 상태 + `--unselected` — slot [휴지, origin].
                 expect.objectContaining({
                   id: "component-gridlist",
                   type: "GridList",
                   reusable: true,
-                  slot: ["component-gridlist-item-default"],
+                  slot: [
+                    "component-gridlist-item-default--unselected",
+                    "component-gridlist-item-default",
+                  ],
                 }),
               ]),
             }),

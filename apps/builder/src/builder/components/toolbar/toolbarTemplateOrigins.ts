@@ -100,6 +100,8 @@ function repairOrigin(
     children: existing.children ?? base.children,
     // ADR-154: 사용자 responsive override 보존 (composite origin reseed 소실 방지)
     ...(existing.responsive ? { responsive: existing.responsive } : {}),
+    // ADR-237: 그룹 slot (추천 항목 — seed · 사용자 편집 · 끄기 `false`) 보존.
+    ...(existing.slot !== undefined ? { slot: existing.slot } : {}),
     metadata: {
       ...base.metadata,
       ...(existing.metadata ?? {}),

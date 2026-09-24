@@ -9,7 +9,10 @@ import { DialogTrigger } from "@composition/shared/components/DialogTrigger";
 import { Dialog } from "@composition/shared/components/Dialog";
 import { DropZone } from "@composition/shared/components/DropZone";
 import { FileUpload } from "@composition/shared/components/FileUpload";
-import { GridList, GridListItem } from "@composition/shared/components/GridList";
+import {
+  GridList,
+  GridListItem,
+} from "@composition/shared/components/GridList";
 import { Icon } from "@composition/shared/components/Icon";
 import { IllustratedMessage } from "@composition/shared/components/IllustratedMessage";
 import { StatusLight } from "@composition/shared/components/StatusLight";
@@ -19,6 +22,7 @@ import { ListBox, ListBoxItem } from "@composition/shared/components/ListBox";
 import { MenuButton } from "@composition/shared/components/Menu";
 import { Modal } from "@composition/shared/components/Modal";
 import { Breadcrumbs } from "@composition/shared/components/Breadcrumbs";
+import { Breadcrumb } from "@composition/shared/components/Breadcrumb";
 import { Popover } from "@composition/shared/components/Popover";
 import { RangeCalendar } from "@composition/shared/components/RangeCalendar";
 import { Select } from "@composition/shared/components/Select";
@@ -59,6 +63,8 @@ export const INTERNAL_RENDERERS: Readonly<
   // ADR-234 Phase 3e — GridList 정적 자식 (GridListItem instance).
   gridlistitem: GridListItem,
   breadcrumbs: Breadcrumbs,
+  // ADR-237 Phase 3 — Breadcrumbs 정적 자식 (Breadcrumb instance). RAC Breadcrumb + Link, render props 를 받는다.
+  breadcrumb: Breadcrumb,
   tree: Tree,
   table: Table,
   dialog: Dialog,
@@ -83,6 +89,7 @@ export const RENDER_PROPS_INTERNAL_RENDERERS: ReadonlySet<string> = new Set([
   "tag",
   "listboxitem",
   "gridlistitem",
+  "breadcrumb",
 ]);
 
 export const DELEGATING_INTERNAL_RENDERERS: ReadonlySet<string> =

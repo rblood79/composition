@@ -5,8 +5,10 @@
  * **origin → (직접 ref 한 변형 · 상속 층) → 실행 중 상태 층 → instance 자기 patch** 순으로 쌓인다
  * (review round 1 m4). 이 모듈은 "실행 중 상태 층" 을 만든다:
  *
- * - 층 순서 `STATE_LAYER_ORDER` (뒤가 이김): 휴지 (`unselected`) → selected → focus-visible →
- *   hover → pressed → disabled. RAC 는 상태가 동시에 켜진다.
+ * - 층 순서 `STATE_LAYER_ORDER` (뒤가 이김): 접힘 (`collapsed`, ADR-237) → 휴지 (`unselected`) → selected →
+ *   focus-visible → hover → pressed → disabled. RAC 는 상태가 동시에 켜진다.
+ * - 접힘 · 현재 층은 root 만 (ADR-237): `enabled` · 자손 patch 는 읽지 않는다 (`rootOnlyLayer`). 본문 표시는 유효
+ *   펼침 상태가 정한다.
  * - 선택 가능한 가족은 origin = 선택 상태, 휴지 모양은 `--unselected` 층. 선택 상태 층은 이관 전
  *   복제본 (`--selected`) 이 남은 문서에서만 있다.
  * - 층 내용: ref 변형 = 자기 patch 전부 (props · style · fills · descendants · `enabled` — 관리 키
@@ -24,16 +26,20 @@ import {
 import { STATE_VARIANT_MANAGED_KEYS } from "./stateVariantResolution";
 
 export type StateLayerName =
+  | "collapsed"
   | "unselected"
   | "selected"
+  | "current"
   | "focus-visible"
   | "hover"
   | "pressed"
   | "disabled";
 
 export const STATE_LAYER_ORDER: readonly StateLayerName[] = [
+  "collapsed",
   "unselected",
   "selected",
+  "current",
   "focus-visible",
   "hover",
   "pressed",
@@ -63,6 +69,10 @@ export interface ActiveVariantStates {
   hovered?: boolean;
   pressed?: boolean;
   focusVisible?: boolean;
+  /** ADR-237 — Disclosure 유효 펼침 (`false` 면 접힘 층). 부재 = 펼침 상태가 없는 노드. */
+  expanded?: boolean;
+  /** ADR-237 — Breadcrumb 현재 항목 (RAC 위치 규칙: 마지막). */
+  current?: boolean;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -70,10 +80,21 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function stateVariantNodeId(originId: string, name: StateLayerName): string {
-  // `unselected` 는 ADR-230 상태 열 밖 (234 신규) — id 규약은 같다.
-  return name === "unselected"
-    ? `${originId}--unselected`
-    : stateVariantOriginId(originId, name);
+  // `unselected` (234) · `collapsed` (237) 도 id 규약은 같다.
+  return stateVariantOriginId(originId, name);
+}
+
+/**
+ * ADR-237 — 위치 · 펼침 상태 층 (`collapsed` · `current`) 은 root 의 props · style · fills 만 읽는다:
+ * - 구조 patch (`enabled`) 는 상태 해석보다 먼저 자식을 지워 (F12) 반대 상태로 되돌릴 수 없다 (review round 1 h2).
+ * - 자손 patch 는 위치 상태가 형제가 다 모인 뒤 root 에만 얹혀 (Canvas `applyPositionalStateLayers`) 자손에 닿지
+ *   않고, Preview 위임 렌더러 (Disclosure) 도 root style 만 받는다 — 두 leg 가 같은 범위를 쓰도록 뺀다.
+ * 비면 null.
+ */
+function rootOnlyLayer(layer: StateLayer | null): StateLayer | null {
+  if (!layer) return null;
+  const { enabled: _enabled, descendants: _descendants, ...rest } = layer;
+  return Object.keys(rest).length > 0 ? rest : null;
 }
 
 /** 변형 노드 하나 → 층. 이관 전 복제본은 ADR-230 관리 키만 (230 계약). 비면 null. */
@@ -149,7 +170,9 @@ export function buildStateLayerSet(
     const self = readStateVariantSelf(variant);
     if (self && self.variantOf !== originId) continue;
     any = true;
-    const layer = readStateLayer(variant);
+    const read = readStateLayer(variant);
+    const layer =
+      name === "collapsed" || name === "current" ? rootOnlyLayer(read) : read;
     if (layer) layers[name] = layer;
   }
   return any ? { originId, layers } : null;
@@ -161,8 +184,10 @@ export function activeStateLayerNames(
   active: ActiveVariantStates,
 ): StateLayerName[] {
   const on = new Set<StateLayerName>();
+  if (active.expanded === false) on.add("collapsed");
   if (active.selected) on.add("selected");
   else on.add("unselected");
+  if (active.current) on.add("current");
   if (active.focusVisible) on.add("focus-visible");
   if (active.hovered) on.add("hover");
   if (active.pressed) on.add("pressed");
@@ -243,6 +268,10 @@ export function readForcedVariantStates(
       return { pressed: true };
     case "focus-visible":
       return { focusVisible: true };
+    case "collapsed":
+      return { expanded: false };
+    case "current":
+      return { current: true };
     default:
       return null;
   }

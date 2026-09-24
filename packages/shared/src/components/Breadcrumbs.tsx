@@ -135,8 +135,9 @@ export function Breadcrumbs<T extends object>({
     );
   }
 
-  // dataBinding async 로딩/에러 — 단일 placeholder crumb.
-  if (loading) {
+  // dataBinding async 로딩/에러 — 단일 placeholder crumb. 바인딩이 없으면 (정적 items · 정적 자식) 해당 없음 —
+  //   ADR-237 Phase 3: 종전엔 바인딩 없는 정적 자식 Breadcrumbs 가 이 분기에 걸려 자식에 도달하지 못했다.
+  if (dataBinding && loading) {
     return (
       <RACBreadcrumbs
         {...props}
@@ -149,7 +150,7 @@ export function Breadcrumbs<T extends object>({
       </RACBreadcrumbs>
     );
   }
-  if (error) {
+  if (dataBinding && error) {
     return (
       <RACBreadcrumbs
         {...props}

@@ -149,6 +149,8 @@ const ORPHAN_ITEM_HOST: Readonly<Record<string, string>> = {
   menuitem: "Menu",
   tag: "TagGroup",
   treeitem: "Tree",
+  // ADR-237 Phase 3 — Components 페이지의 단독 Breadcrumb 항목 origin · 변형.
+  breadcrumb: "Breadcrumbs",
 };
 
 /** ADR-233 — Radio 의 그룹 조상 type (소문자). 이 조상 밑 Radio 는 호스트를 만들지 않는다. */
@@ -164,6 +166,7 @@ const COLLECTION_ONLY_INTERNAL_RENDERERS: Readonly<Record<string, string>> = {
   tag: "taggroup",
   listboxitem: "listbox",
   gridlistitem: "gridlist",
+  breadcrumb: "breadcrumbs",
 };
 
 /** ADR-234 Phase 3 — RAC key 를 `props.id` (정적 항목 key) 로 내는 항목 type. */
@@ -172,6 +175,7 @@ const STATIC_ITEM_TYPES: ReadonlySet<string> = new Set([
   "Tag",
   "ListBoxItem",
   "GridListItem",
+  "Breadcrumb",
 ]);
 
 /** ADR-234 Phase 3 — slot 자식 역할을 DOM `slot` 으로 내는 collection (소문자) · 역할. */
@@ -207,14 +211,23 @@ function hostOrphanCollectionItem(
   type: string,
   collectionAncestor: string | undefined,
   rendered: React.ReactElement,
+  forced?: { current?: boolean } | null,
 ): React.ReactElement {
   const host = ORPHAN_ITEM_HOST[type.toLowerCase()];
   if (!host || collectionAncestor === host.toLowerCase()) return rendered;
   const Host = (RAC as unknown as Record<string, React.ElementType>)[host];
   if (!Host) return rendered;
+  // ADR-237 Phase 3 — RAC Breadcrumbs 는 마지막 항목을 현재 (current) 로 그린다. 단독 항목 origin (링크 모양) 은
+  //   숨긴 뒤 항목을 하나 더 두어 현재가 아니게 하고, 현재 변형 (`--current`) 만 마지막으로 둔다 — Skia 는 단독
+  //   항목을 링크 모양으로 · 현재 변형을 현재 모양으로 그린다.
+  const trailing =
+    type.toLowerCase() === "breadcrumb" && forced?.current !== true ? (
+      <RAC.Breadcrumb id="__orphan-next" style={{ display: "none" }} />
+    ) : null;
   return (
     <Host aria-label={`${type} sample`} style={{ display: "contents" }}>
       {rendered}
+      {trailing}
     </Host>
   );
 }
@@ -295,16 +308,39 @@ function flattenNodeChildrenByParent(
     if (children.length > 0) {
       map.set(
         node.id,
-        children.map((child) => ({
-          id: child.id,
-          type: resolveNodeType(child),
-          props: extractCanonicalPropsFromResolved(
-            child,
-          ) as PreviewElement["props"],
-          parent_id: node.id,
-          page_id: null,
-          fills: child.fills,
-        })),
+        children.map((child) => {
+          const type = resolveNodeType(child);
+          const props = extractCanonicalPropsFromResolved(child);
+          // ADR-237 Phase 2 — 래퍼가 자식을 직접 RAC 로 합성하는 경로 (Menu 정적 MenuItem) 도 상태 층을 겹치도록
+          //   render props → style 함수를 싣는다 (기본 style 을 안 넘기면 층 키만).
+          const projection = readStateLayerProjection(props[STATE_LAYERS_PROP]);
+          const forced = readForcedVariantStates(child);
+          return {
+            id: child.id,
+            type,
+            props: props as PreviewElement["props"],
+            parent_id: node.id,
+            page_id: null,
+            fills: child.fills,
+            ...(projection
+              ? {
+                  stateStyle: (
+                    renderProps: Record<string, unknown>,
+                    baseStyle: React.CSSProperties | undefined,
+                  ) =>
+                    resolveStateLayerStyle(
+                      type,
+                      baseStyle,
+                      projection,
+                      toActiveVariantStates(
+                        renderProps as RacStateRenderProps,
+                        forced,
+                      ),
+                    ),
+                }
+              : {}),
+          };
+        }),
       );
     }
     for (const child of children) visit(child);
@@ -551,6 +587,8 @@ function CanonicalNodeRendererBody({
     if (forcedStates?.selected === true) next.isSelected = true;
     if (forcedStates?.selected === false) next.isSelected = false;
     if (forcedStates?.disabled === true) next.isDisabled = true;
+    // ADR-237 — 접힘 변형 노드 (Components 페이지) 는 RAC 입력도 접힘.
+    if (forcedStates?.expanded === false) next.isExpanded = false;
     return next;
   })();
   const adaptedEl: PreviewElement = {
@@ -930,6 +968,7 @@ function CanonicalNodeRendererBody({
           type,
           collectionAncestor,
           renderer(staticStateEl, renderContext) as React.ReactElement,
+          forcedStates,
         )}
       </div>
     );

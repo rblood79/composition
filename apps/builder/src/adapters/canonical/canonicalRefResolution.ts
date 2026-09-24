@@ -7,6 +7,8 @@ import {
   resolveTemplateBindingValues,
   substituteTemplateBindingsInChildren,
   substituteTemplateBindingsInProps,
+  resolveGroupExpandedDisclosureIds,
+  hasStateTemplateSyntax,
 } from "@composition/shared";
 
 import { applyPropsPatch, composePropsPatches } from "./instanceResolver";
@@ -22,6 +24,7 @@ import {
   readForcedVariantStates,
   readInstanceOwnedKeys,
   resolveActiveStateLayer,
+  STATE_LAYER_ORDER,
   type ActiveVariantStates,
   type StateLayer,
 } from "../../builder/components/stateVariantLayers";
@@ -348,6 +351,31 @@ export interface RefInstanceResolution<T extends CanonicalRefResolvableNode> {
 export interface CanonicalRefTreeReuse<T extends CanonicalRefResolvableNode> {
   previous: ReadonlyMap<string, RefInstanceResolution<T>> | null;
   next: Map<string, RefInstanceResolution<T>>;
+  /**
+   * ADR-237 G4 — 문서가 바뀌어도 쓰는 leaf instance 재사용 (자기 · 조상 3 · origin 체인 · 상태 변형의 canonical
+   * 노드가 같으면 이전 해석 결과). 호출자는 scene 옵션 (collections · 프로젝트 변수 · breakpoint) 이 같을 때만
+   * `leafPrevious` 를 넘긴다.
+   */
+  leafPrevious?: ReadonlyMap<string, LeafRefResolution<T>> | null;
+  leafNext?: Map<string, LeafRefResolution<T>>;
+}
+
+/** ADR-237 G4 — 자식 없는 ref instance 하나의 해석 결과 + 그 결과가 읽은 canonical 노드 (동일성 비교). */
+export interface LeafRefResolution<T extends CanonicalRefResolvableNode> {
+  root: T;
+  deps: readonly unknown[];
+}
+
+/** scene 노드면 원본 canonical 노드 (편집 안 된 부분은 문서가 바뀌어도 같은 객체), 아니면 자기. */
+function canonicalIdentity(node: unknown): unknown {
+  if (!node || typeof node !== "object") return node;
+  return (node as { sourceNode?: unknown }).sourceNode ?? node;
+}
+
+function sameDeps(a: readonly unknown[], b: readonly unknown[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i += 1) if (a[i] !== b[i]) return false;
+  return true;
 }
 
 /** 바인딩 목록 (행 = projection) 이 있는 결과는 재사용하지 않는다 — 해석 뒤 projection 단계가 synthetic
@@ -791,7 +819,10 @@ function materializeOverrideChildren<T extends CanonicalRefResolvableNode>(
       ),
       templateBindings,
     );
-    if (resolvedChildBase !== syntheticChild) markResolvedRef(resolvedChild);
+    if (resolvedChildBase !== syntheticChild) {
+      markResolvedRef(resolvedChild);
+      registerStateOwnSource(resolvedChild, syntheticChild);
+    }
 
     resultElements.push(resolvedChild);
     resultElementsMap.set(syntheticId, resolvedChild);
@@ -975,35 +1006,43 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
         resultElementsMap,
         lookupMaster,
       );
+      const nestedOwnSource = {
+        // 소유 키 = 자식 ref 자신의 patch + 바깥 instance patch (둘 다 상태 층보다 위).
+        props: composePropsPatches(
+          getNodeProps(rawRefSource(sourceChild)),
+          patchProps,
+        ),
+        fills:
+          patch && Array.isArray(patch.fills)
+            ? patch.fills
+            : (rawRefSource(sourceChild) as { fills?: unknown }).fills,
+        enabled:
+          patch && typeof patch.enabled === "boolean"
+            ? patch.enabled
+            : (rawRefSource(sourceChild) as { enabled?: unknown }).enabled,
+      } as unknown as T;
       const resolvedNestedLayered = nestedStateLayer
-        ? applyStateLayerToResolved(resolvedNestedBase, nestedStateLayer, {
-            // 소유 키 = 자식 ref 자신의 patch + 바깥 instance patch (둘 다 상태 층보다 위).
-            props: composePropsPatches(
-              getNodeProps(rawRefSource(sourceChild)),
-              patchProps,
-            ),
-            fills:
-              patch && Array.isArray(patch.fills)
-                ? patch.fills
-                : (rawRefSource(sourceChild) as { fills?: unknown }).fills,
-            enabled:
-              patch && typeof patch.enabled === "boolean"
-                ? patch.enabled
-                : (rawRefSource(sourceChild) as { enabled?: unknown }).enabled,
-          } as unknown as T)
+        ? applyStateLayerToResolved(
+            resolvedNestedBase,
+            nestedStateLayer,
+            nestedOwnSource,
+          )
         : resolvedNestedBase;
       const resolvedNested = withItemSelectionFlag(
         resolvedNestedLayered,
         nestedStateInput,
         resultElementsMap,
       );
-      const syntheticNested = markResolvedRef({
-        ...resolvedNested,
-        id: syntheticId,
-        parentId: syntheticParentId,
-        parent_id: syntheticParentId,
-        reusable: undefined,
-      } as T);
+      const syntheticNested = registerStateOwnSource(
+        markResolvedRef({
+          ...resolvedNested,
+          id: syntheticId,
+          parentId: syntheticParentId,
+          parent_id: syntheticParentId,
+          reusable: undefined,
+        } as T),
+        nestedOwnSource,
+      );
 
       resultElements.push(syntheticNested);
       resultElementsMap.set(syntheticId, syntheticNested);
@@ -1298,13 +1337,212 @@ export function resolveCanvasVariantState<T extends CanonicalRefResolvableNode>(
             getNodeProps(node).isDisabled === true,
         ),
       ));
+  // ADR-237 Phase 2 · 3 — 위치에 따른 상태 (그룹 단일 펼침 · Breadcrumbs 마지막 = 현재) 는 형제가 다 모인 뒤에만
+  //   알 수 있다 (합성 자식은 순서대로 결과 map 에 들어간다). 여기서는 강제 (Components 변형) · 자기 의도
+  //   (`isExpanded` 부재 = 펼침) 만 — 위치 상태는 해석 끝 `applyPositionalStateLayers` 가 최종 자식 목록으로 얹는다.
+  const expanded =
+    forced.expanded ??
+    (element.type === "Disclosure" ? props.isExpanded !== false : undefined);
+  const current = forced.current === true;
   return {
     selected,
     disabled,
     ...(forced.hovered ? { hovered: true } : {}),
     ...(forced.pressed ? { pressed: true } : {}),
     ...(forced.focusVisible ? { focusVisible: true } : {}),
+    ...(expanded !== undefined ? { expanded } : {}),
+    ...(current ? { current: true } : {}),
   };
+}
+
+/**
+ * ADR-237 G4 — leaf ref instance 의 해석이 읽는 canonical 노드 목록 (동일성 비교 키). leaf 가 아니면 (자기 자식 ·
+ * origin 자식 · 끊긴 체인) null. 읽는 것: 자기 · origin 체인 (변형 포함) · 체인 끝 origin 의 상태 변형 · 조상 3
+ * (선택 owner · RadioGroup value · disabled 그룹 · 위치 상태 부모 — `resolveCanvasVariantState` 의 조상 범위).
+ */
+function readLeafDeps<T extends CanonicalRefResolvableNode>(
+  element: T,
+  elementsMap: Map<string, T>,
+  sourceChildrenMap: Map<string, T[]>,
+  lookupMaster: (ref: string) => T | undefined,
+  chainDepsByRef: Map<string, readonly unknown[] | null>,
+): unknown[] | null {
+  if ((sourceChildrenMap.get(element.id)?.length ?? 0) > 0) return null;
+  // `{{ }}` 템플릿 (ADR-214) 을 쓰는 노드는 scene 층이 조상 상태 정의로 props 를 해석한다 — 재사용 대상 밖.
+  if ((element as { stateDeps?: unknown }).stateDeps) return null;
+  const ref = getCanonicalRefTarget(element);
+  if (!ref) return null;
+  // 체인 (origin 까지) · origin 의 상태 변형 의존은 ref 대상마다 한 번 — 같은 origin 을 가리키는 항목 수백 개가
+  //   같은 조회를 반복했다. leaf 가 아닌 체인 (origin 자식 있음 · 끊김) 은 null 로 기억한다.
+  let chainDeps = chainDepsByRef.get(ref);
+  if (chainDeps === undefined) {
+    chainDeps = readChainLeafDeps(ref, sourceChildrenMap, lookupMaster);
+    chainDepsByRef.set(ref, chainDeps);
+  }
+  if (!chainDeps) return null;
+  const ownProps = (canonicalIdentity(element) as { props?: unknown })?.props;
+  if (ownProps && hasStateTemplateSyntax(ownProps as Record<string, unknown>)) {
+    return null;
+  }
+  const deps: unknown[] = [canonicalIdentity(element), ...chainDeps];
+  // 조상: 상태 해석이 값을 읽는 type (선택 owner · RadioGroup · disabled 그룹) 만 노드 동일성, 나머지는 id · type
+  //   (편집 경로의 body · page 가 바뀌어도 무효화하지 않는다 — 위치 상태는 해석 뒤 후처리가 따로 본다).
+  let parentId = getParentId(element);
+  for (let depth = 0; depth < 3; depth += 1) {
+    const parent = parentId ? elementsMap.get(parentId) : undefined;
+    if (!parent) {
+      deps.push(null);
+      break;
+    }
+    deps.push(
+      STATE_ANCESTOR_TYPES.has(parent.type)
+        ? canonicalIdentity(parent)
+        : `${parent.id}\u0000${parent.type}`,
+    );
+    parentId = getParentId(parent);
+  }
+  return deps;
+}
+
+function readChainLeafDeps<T extends CanonicalRefResolvableNode>(
+  ref: string,
+  sourceChildrenMap: Map<string, T[]>,
+  lookupMaster: (ref: string) => T | undefined,
+): readonly unknown[] | null {
+  const deps: unknown[] = [];
+  let current: T | undefined;
+  let next: string | null = ref;
+  for (let depth = 0; next && depth < 8; depth += 1) {
+    current = lookupMaster(next);
+    if (!current) return null;
+    deps.push(canonicalIdentity(current));
+    next = isCanonicalRefElement(current) ? getCanonicalRefTarget(current) : null;
+  }
+  if (!current || isCanonicalRefElement(current)) return null;
+  const origin = current;
+  if ((sourceChildrenMap.get(origin.id)?.length ?? 0) > 0) return null;
+  const originChildren = (
+    canonicalIdentity(origin) as { children?: unknown[] } | undefined
+  )?.children;
+  if (Array.isArray(originChildren) && originChildren.length > 0) return null;
+  for (const name of STATE_LAYER_ORDER) {
+    deps.push(canonicalIdentity(lookupMaster(`${origin.id}--${name}`)));
+  }
+  return deps;
+}
+
+/** `resolveCanvasVariantState` · `withItemSelectionFlag` 가 조상에서 값을 읽는 type. */
+const STATE_ANCESTOR_TYPES: ReadonlySet<string> = new Set([
+  ...DISABLING_GROUP_TYPES,
+  ...Object.values(ITEM_SELECTION_OWNER),
+  "RadioGroup",
+]);
+
+/**
+ * ADR-237 — 상태 층을 얹은 해석 결과 → 그 instance 의 자기 patch 원천 (`applyStateLayerToResolved` 의 ownSource).
+ * 위치 상태 후처리가 같은 소유 키로 층을 다시 얹는다. 결과 객체는 재사용 기록 (`reuse`) 으로 다음 build 에도
+ * 그대로 돌아오므로 모듈 수명 WeakMap.
+ */
+const stateOwnSourceByResolved = new WeakMap<object, object>();
+
+/** 위치 상태 후처리 대상 type — 그 밖의 해석 결과는 기록하지 않는다 (정적 목록 항목 500 개 · G4). */
+const POSITIONAL_STATE_TYPES: ReadonlySet<string> = new Set([
+  "Disclosure",
+  "Breadcrumb",
+]);
+
+function registerStateOwnSource<T extends object>(resolved: T, own: object): T {
+  if (POSITIONAL_STATE_TYPES.has((resolved as { type?: string }).type ?? "")) {
+    stateOwnSourceByResolved.set(resolved, own);
+  }
+  return resolved;
+}
+
+/**
+ * ADR-237 Phase 2 · 3 — 위치에 따른 상태 층 (형제가 다 모인 최종 자식 목록 기준):
+ * - DisclosureGroup `allowsMultipleExpanded:false` 에서 첫 후보가 아닌 Disclosure → 접힘 (RAC 그룹 상태머신 ·
+ *   layout · chevron 과 같은 SSOT `resolveGroupExpandedDisclosureIds`).
+ * - Breadcrumbs 의 마지막 Breadcrumb → 현재 (RAC 위치 규칙 · paint `resolveBreadcrumbItemContext` 와 같다).
+ * 켜진 층 전체를 다시 합성해 해석 결과 위에 얹는다 — 이미 얹힌 층은 같은 값이라 그대로, 위치 층만 더해진다.
+ * 결과는 새 객체로 교체한다 (재사용 기록의 객체는 고치지 않는다 — 다음 build 에서 위치가 바뀌면 다시 계산).
+ */
+function applyPositionalStateLayers<T extends CanonicalRefResolvableNode>(
+  elements: T[],
+  elementsMap: Map<string, T>,
+  childrenMap: Map<string, T[]>,
+  lookupMaster: (ref: string) => T | undefined,
+): void {
+  let elementIndex: Map<string, number> | null = null;
+  const replace = (parentId: string, index: number, next: T) => {
+    const kids = [...childrenMap.get(parentId)!];
+    const previous = kids[index]!;
+    kids[index] = next;
+    childrenMap.set(parentId, kids);
+    elementsMap.set(next.id, next);
+    elementIndex ??= new Map(elements.map((node, i) => [node.id, i]));
+    const at = elementIndex.get(previous.id);
+    if (at !== undefined) elements[at] = next;
+  };
+  const relayer = (
+    parentId: string,
+    index: number,
+    extra: Partial<ActiveVariantStates>,
+  ) => {
+    const kid = childrenMap.get(parentId)![index]!;
+    const node = elementsMap.get(kid.id) ?? kid;
+    if (!isResolvedRefNode(node)) return;
+    let origin: T | undefined = node;
+    for (let depth = 0; depth < 8; depth += 1) {
+      const ref = (origin as { ref?: unknown }).ref;
+      if (typeof ref !== "string") break;
+      const next = lookupMaster(ref);
+      if (!next) break;
+      origin = next;
+      if (origin.type !== "ref") break;
+    }
+    if (!origin || origin === node || origin.type === "ref") return;
+    const set = cachedStateLayerSet(origin.id, lookupMaster);
+    if (!set) return;
+    const layer = resolveActiveStateLayer(set, {
+      ...resolveCanvasVariantState(node, elementsMap),
+      ...extra,
+    });
+    if (!layer) return;
+    const own = (stateOwnSourceByResolved.get(node) ?? rawRefSource(node)) as T;
+    const next = markResolvedRef(applyStateLayerToResolved(node, layer, own));
+    registerStateOwnSource(next, own);
+    replace(parentId, index, next);
+  };
+  for (const [parentId, kids] of childrenMap) {
+    const parent = elementsMap.get(parentId);
+    if (parent?.type === "DisclosureGroup") {
+      const current = kids.map((kid) => elementsMap.get(kid.id) ?? kid);
+      const expandedIds = resolveGroupExpandedDisclosureIds(
+        getNodeProps(parent),
+        current.map((node) => ({
+          id: node.id,
+          type: node.type,
+          props: getNodeProps(node),
+        })),
+      );
+      current.forEach((node, index) => {
+        if (
+          node.type === "Disclosure" &&
+          getNodeProps(node).isExpanded !== false &&
+          !expandedIds.has(node.id)
+        ) {
+          relayer(parentId, index, { expanded: false });
+        }
+      });
+    } else if (parent?.type === "Breadcrumbs") {
+      let last = -1;
+      kids.forEach((kid, index) => {
+        if ((elementsMap.get(kid.id) ?? kid).type === "Breadcrumb")
+          last = index;
+      });
+      if (last >= 0) relayer(parentId, last, { current: true });
+    }
+  }
 }
 
 /**
@@ -1568,14 +1806,42 @@ export function resolveCanonicalRefTree<
     }
   };
 
+  // ADR-237 — 자기 자식이 있는 instance (합성 자식이 배열 끝에 붙어 형제 순서가 어긋나는 부모).
+  const mixedChildParents = new Set<string>();
+  const chainDepsByRef = new Map<string, readonly unknown[] | null>();
   for (const element of input.elements) {
     if (!isCanonicalRefElement(element)) continue;
+    if ((sourceChildrenMap.get(element.id)?.length ?? 0) > 0) {
+      mixedChildParents.add(element.id);
+    }
     const reused = input.reuse?.previous?.get(element.id);
     if (reused) {
       replaceResolvedRoot(element, reused.root);
       replayRefInstanceResolution(reused, elementsMap, childrenMap, elements);
       input.reuse!.next.set(element.id, reused);
+      // 같은 문서 재사용이면 leaf 기록도 그대로 유효하다 (읽은 canonical 노드가 같다) — 다음 편집이 쓰도록 넘긴다.
+      const carried = input.reuse!.leafPrevious?.get(element.id);
+      if (carried) input.reuse!.leafNext?.set(element.id, carried);
       continue;
+    }
+    // ADR-237 G4 — leaf instance (자기 자식 · origin 자식 없음) 는 문서가 바뀌어도 읽은 canonical 노드가 같으면
+    //   이전 해석을 쓴다 (편집한 owner 밖 정적 목록 항목 수백 개를 매 편집 다시 해석했다).
+    const leafDeps = input.reuse?.leafNext
+      ? readLeafDeps(
+          element,
+          elementsMap,
+          sourceChildrenMap,
+          lookupMaster,
+          chainDepsByRef,
+        )
+      : null;
+    if (leafDeps) {
+      const leafReused = input.reuse!.leafPrevious?.get(element.id);
+      if (leafReused && sameDeps(leafReused.deps, leafDeps)) {
+        replaceResolvedRoot(element, leafReused.root);
+        input.reuse!.leafNext!.set(element.id, leafReused);
+        continue;
+      }
     }
     const startLength = elements.length;
     const ref = getCanonicalRefTarget(element);
@@ -1624,9 +1890,16 @@ export function resolveCanonicalRefTree<
         : resolvedRootLayered;
     if (resolvedRoot !== element) {
       markResolvedRef(resolvedRoot);
+      registerStateOwnSource(resolvedRoot, rawRefSource(element));
       replaceResolvedRoot(element, resolvedRoot);
     }
 
+    if (leafDeps && resolvedRoot !== element && !hasCollectionData(resolvedRoot)) {
+      input.reuse!.leafNext!.set(element.id, {
+        root: resolvedRoot,
+        deps: leafDeps,
+      });
+    }
     if (!ref || !chain) continue;
     materializeSyntheticDescendants(
       element,
@@ -1670,7 +1943,56 @@ export function resolveCanonicalRefTree<
     }
   }
 
+  // ADR-237 — 위치 상태 (그룹 단일 펼침 · Breadcrumbs 마지막 = 현재) 는 최종 자식 목록으로.
+  applyPositionalStateLayers(elements, elementsMap, childrenMap, lookupMaster);
+  if (mixedChildParents.size > 0) {
+    alignSiblingOrderToChildrenMap(elements, childrenMap, mixedChildParents);
+  }
   return { childrenMap, elements, elementsMap };
+}
+
+/**
+ * ADR-237 Phase 4 live — 결과 배열의 형제 순서를 최종 자식 목록 (`childrenMap`) 에 맞춘다.
+ *
+ * 합성 자식 (instance 가 상속한 origin 자식) 은 해석 중 배열 **끝** 에 붙어, 같은 부모의 원본 자식 (instance 자기
+ * 자식 — Slot "+" 항목) 보다 뒤에 온다. 부모별 자식 목록은 `[origin 자식, 자기 자식]` 인데 layout 입력
+ * (`buildPageChildrenMap`) 은 배열 순서로 부모별 목록을 만들어 자기 자식을 맨 앞에 배치했다 (Preview resolver 는
+ * `[...origin, ...instance]` — 두 leg 발산). 각 부모의 자식이 차지한 배열 칸 안에서만 순서를 바꾼다 — 다른 부모
+ * 사이의 상대 순서는 그대로.
+ */
+function alignSiblingOrderToChildrenMap<T extends CanonicalRefResolvableNode>(
+  elements: T[],
+  childrenMap: Map<string, T[]>,
+  parentIds: ReadonlySet<string>,
+): void {
+  const rank = new Map<string, number>();
+  for (const parentId of parentIds) {
+    childrenMap.get(parentId)?.forEach((kid, index) => rank.set(kid.id, index));
+  }
+  const slotsByParent = new Map<string, number[]>();
+  elements.forEach((element, index) => {
+    const parentId = getParentId(element);
+    if (!parentId || !parentIds.has(parentId) || !rank.has(element.id)) return;
+    const slots = slotsByParent.get(parentId);
+    if (slots) slots.push(index);
+    else slotsByParent.set(parentId, [index]);
+  });
+  for (const slots of slotsByParent.values()) {
+    if (slots.length < 2) continue;
+    const members = slots.map((index) => elements[index]!);
+    let sorted = true;
+    for (let i = 1; i < members.length; i += 1) {
+      if (rank.get(members[i - 1]!.id)! > rank.get(members[i]!.id)!) {
+        sorted = false;
+        break;
+      }
+    }
+    if (sorted) continue;
+    members.sort((a, b) => rank.get(a.id)! - rank.get(b.id)!);
+    slots.forEach((index, i) => {
+      elements[index] = members[i]!;
+    });
+  }
 }
 
 /**

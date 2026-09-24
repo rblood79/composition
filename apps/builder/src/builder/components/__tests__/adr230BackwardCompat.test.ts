@@ -83,13 +83,28 @@ function ownSerialization(
   });
 }
 
+// ADR-237 Phase 2: 상태 변형 표가 항목 템플릿 · Disclosure 로 넓어졌다 — 이 BC 는 230 가족 (기본 요소 6,
+//   origin id = `component-${type}`) 만 잰다. 237 변형 (IconButton · 항목 · Disclosure) 은 pre · post 양쪽에 있다.
+const BASE_230_TYPES = [
+  "Button",
+  "ToggleButton",
+  "Link",
+  "Checkbox",
+  "Switch",
+  "Radio",
+] as const;
+const BASE_230: Readonly<Record<string, readonly string[]>> =
+  Object.fromEntries(
+    BASE_230_TYPES.map((type) => [type, STATE_VARIANT_BASE_TYPES[type]!]),
+  );
+
 const BUTTON_ORIGIN_ID = "component-button";
 const TOGGLE_ORIGIN_ID = "component-togglebutton";
 
 // ADR-234: 선택 가능한 가족은 origin = 선택 상태 · selected 자리는 휴지 (`unselected`) 변형.
 const seededStates = (states: readonly string[]) =>
   states.map((state) => (state === "selected" ? "unselected" : state));
-const EXPECTED_VARIANT_IDS = Object.entries(STATE_VARIANT_BASE_TYPES).flatMap(
+const EXPECTED_VARIANT_IDS = Object.entries(BASE_230).flatMap(
   ([type, states]) =>
     seededStates(states).map((state) =>
       stateVariantOriginId(
@@ -98,7 +113,7 @@ const EXPECTED_VARIANT_IDS = Object.entries(STATE_VARIANT_BASE_TYPES).flatMap(
       ),
     ),
 );
-const SELECTABLE_ORIGIN_IDS = Object.entries(STATE_VARIANT_BASE_TYPES)
+const SELECTABLE_ORIGIN_IDS = Object.entries(BASE_230)
   .filter(([, states]) => states.includes("selected"))
   .map(([type]) => `component-${type.toLowerCase()}`);
 
@@ -110,9 +125,7 @@ function buildPre230Document(): CompositionDocument {
   });
   // 230 이전 = 변형 0 · origin 에 234 선택 상태 표식도 없다.
   const baseOriginIds = new Set(
-    Object.keys(STATE_VARIANT_BASE_TYPES).map(
-      (type) => `component-${type.toLowerCase()}`,
-    ),
+    Object.keys(BASE_230).map((type) => `component-${type.toLowerCase()}`),
   );
   const stripped = mapNodes(full.children, (node) => {
     const self = readStateVariantSelf(node);
@@ -173,7 +186,7 @@ describe("ADR-230 Phase 3 — G4 BC", () => {
   it("pre 문서에는 변형 origin 이 0 · 기본 요소 origin 6 은 있다", () => {
     const ids = indexById(pre.children);
     expect(EXPECTED_VARIANT_IDS.some((id) => ids.has(id))).toBe(false);
-    for (const type of Object.keys(STATE_VARIANT_BASE_TYPES)) {
+    for (const type of Object.keys(BASE_230)) {
       expect(ids.has(`component-${type.toLowerCase()}`)).toBe(true);
     }
     expect(EXPECTED_VARIANT_IDS).toHaveLength(28);
@@ -221,9 +234,11 @@ describe("ADR-230 Phase 3 — G4 BC", () => {
   });
 
   it("변형은 default 바로 뒤 (body 끝이 아니다) — 사용자가 맨 뒤로 옮긴 Button 의 변형 4 는 그 뒤 4 칸", () => {
-    const bodyIds = findNode(post.children, COMPONENTS_SYSTEM_BODY_ID)!
-      .children!.map((c) => c.id);
-    for (const [type, states] of Object.entries(STATE_VARIANT_BASE_TYPES)) {
+    const bodyIds = findNode(
+      post.children,
+      COMPONENTS_SYSTEM_BODY_ID,
+    )!.children!.map((c) => c.id);
+    for (const [type, states] of Object.entries(BASE_230)) {
       const base = `component-${type.toLowerCase()}`;
       const i = bodyIds.indexOf(base);
       expect(i).toBeGreaterThanOrEqual(0);
@@ -248,15 +263,16 @@ describe("ADR-230 Phase 3 — G4 BC", () => {
   it("최초 보충량 — Δnode 28 (ref 변형 root) · Δbyte = 그 직렬화 + 선택 가능한 origin 표식 (정확히)", () => {
     const deltaNodes = countNodes(post.children) - countNodes(pre.children);
     expect(deltaNodes).toBe(28);
-    const added = EXPECTED_VARIANT_IDS.map(
-      (id) => findNode(post.children, id)!,
+    const added = EXPECTED_VARIANT_IDS.map((id) =>
+      findNode(post.children, id)!,
     );
     expect(added.every(Boolean)).toBe(true);
     const originBytes = added.reduce(
       (n, node) => n + JSON.stringify(node).length + 1,
       0,
     ); // + 쉼표
-    const markBytes = SELECTABLE_ORIGIN_IDS.length * ',"variant":"selected"'.length;
+    const markBytes =
+      SELECTABLE_ORIGIN_IDS.length * ',"variant":"selected"'.length;
     const deltaBytes = postJson.length - preJson.length;
     expect(deltaBytes).toBe(originBytes + markBytes);
     // 시드 값: origin 의 ref · patch 비움 · fills 없음 · 자식 없음 (origin 상속)

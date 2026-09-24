@@ -1151,7 +1151,7 @@ function resolveTabsAncestorProjection(
  *
  * 반환: null = 미개입 (Radio 아님 | 조상 RadioGroup 없음).
  */
-function resolveRadioGroupSelection(
+export function resolveRadioGroupSelection(
   element: CanvasSceneNode,
   elementsMap: Map<string, CanvasSceneNode>,
   currentIsSelected: unknown,
@@ -1550,6 +1550,13 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
       _isLast: breadcrumbCtx._isLast,
       _separator: breadcrumbCtx._separator,
     };
+  } else if (
+    element.type === "Breadcrumb" &&
+    readForcedVariantStates(element)?.current === true
+  ) {
+    // ADR-237 Phase 3 — Components 페이지의 단독 현재 변형 (`--current`) 은 Breadcrumbs 밖이라 위치 규칙이 없다:
+    //   강제 상태로 현재 모양 (Preview 는 orphan 호스트의 마지막 항목).
+    specProps = { ...specProps, _isLast: true };
   }
 
   // Label necessity indicator
@@ -2111,7 +2118,9 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
   //   opacity 를 **대체** 한다 — 위 cssEffects 가 이미 `source:"style"` 로 한 번 실었고 DOM 은
   //   inline 이 `[data-disabled]{opacity}` (non-important) 를 이긴다 (F13: 종전 Skia 0.5×0.38 ≠ DOM 0.5).
   const hasExplicitOpacity =
-    style.opacity !== undefined && style.opacity !== null && style.opacity !== "";
+    style.opacity !== undefined &&
+    style.opacity !== null &&
+    style.opacity !== "";
   if (componentState === "disabled" && !hasExplicitOpacity) {
     // D3 정본: catalog `structure.states.disabled.opacity` (DOM generated CSS 의
     //   `[data-disabled] { opacity }` 와 동일 source — Breadcrumbs 는 1 로 dim 없음).

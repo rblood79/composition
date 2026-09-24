@@ -3406,6 +3406,64 @@ export function appendStaticTagShowAllChips(graph: CanvasSceneGraph): void {
  * 구성 자식이 아니라 RAC 가 만드는 부품이라 문서에 저장하지 않는다. allowsRemoving 은 owner TagGroup 우선
  * (instance override) · 없으면 TagList. Show all chip 에는 붙이지 않는다.
  */
+/**
+ * ADR-237 Phase 4 (G5 실측) — 정적 Breadcrumbs 의 Breadcrumb 자식 (항목 instance · legacy plain) 에 projection 행이
+ * 싣던 표시 입력을 같이 싣는다: `_isLast` (마지막 = current — RAC 위치 규칙) · `_separator` (owner `separator`,
+ * 기본 "›") · 크기 (자기 `size` 가 없으면 owner `size`). layout 폭 측정 (`calculateContentWidth` breadcrumb 분기) 은
+ * element 단위라 이 값이 없으면 마지막 crumb 을 구분자 폭 · 보통 굵기로 재 자동 폭 Breadcrumbs 가 넓어졌다
+ * (G5: origin 190 → 210). paint 는 `resolveBreadcrumbItemContext` 가 같은 규칙으로 다시 계산한다. 숨긴 자식을 빼고
+ * 세도록 prune 뒤 · 노드는 새 객체로 교체 (재사용 기록은 고치지 않는다).
+ */
+export function annotateStaticBreadcrumbItems(graph: CanvasSceneGraph): void {
+  const nodeIndex = new Map<string, number>();
+  for (const [parentId, kids] of graph.childrenByParent) {
+    const owner = graph.nodesMap.get(parentId);
+    if (owner?.type !== "Breadcrumbs") continue;
+    const crumbs = kids.filter((kid) => kid.type === "Breadcrumb");
+    if (crumbs.length === 0) continue;
+    const ownerProps = (owner.props ?? {}) as Record<string, unknown>;
+    const separator =
+      typeof ownerProps.separator === "string" ? ownerProps.separator : "›";
+    const last = crumbs[crumbs.length - 1]!;
+    // 측정기 기본값 (`_isLast` 부재 = false · 구분자 "›" · size "M") 과 같은 값은 싣지 않는다 — 정적 목록 항목
+    //   500 개를 매 build 새 객체로 바꾸지 않게 (G4). 마지막 crumb 과, owner 가 기본이 아닌 구분자 · 크기를 가진
+    //   목록만 바뀐다.
+    const ownerSize = ownerProps.size;
+    const needsOwnerValues =
+      separator !== "›" || (ownerSize !== undefined && ownerSize !== "M");
+    const nextKids = kids.map((kid) => {
+      if (kid.type !== "Breadcrumb") return kid;
+      const isLast = kid === last;
+      if (!isLast && !needsOwnerValues) return kid;
+      const props = (kid.props ?? {}) as Record<string, unknown>;
+      const size = props.size ?? ownerSize;
+      const patch: Record<string, unknown> = {};
+      if (isLast && props._isLast !== true) patch._isLast = true;
+      if (needsOwnerValues && props._separator !== separator) {
+        patch._separator = separator;
+      }
+      if (needsOwnerValues && size !== undefined && props.size !== size) {
+        patch.size = size;
+      }
+      if (Object.keys(patch).length === 0) return kid;
+      const next = {
+        ...kid,
+        props: { ...props, ...patch },
+      } as CanvasSceneNode;
+      graph.nodesMap.set(next.id, next);
+      if (nodeIndex.size === 0) {
+        graph.nodes.forEach((node, index) => nodeIndex.set(node.id, index));
+      }
+      const at = nodeIndex.get(next.id);
+      if (at !== undefined) graph.nodes[at] = next;
+      return next;
+    });
+    if (nextKids.some((kid, index) => kid !== kids[index])) {
+      graph.childrenByParent.set(parentId, nextKids);
+    }
+  }
+}
+
 export function appendStaticTagRemoveButtons(graph: CanvasSceneGraph): void {
   for (const node of [...graph.nodes]) {
     if (node.type !== "TagList") continue;

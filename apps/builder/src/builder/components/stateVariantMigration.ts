@@ -17,13 +17,14 @@
  * - 멱등: 이관을 지난 문서는 같은 객체 (재hydration Δ0).
  */
 import type { CanonicalNode, CompositionDocument } from "@composition/shared";
-import { catalogReusableOriginId } from "@composition/shared";
 
 import { COMPONENTS_SYSTEM_BODY_ID } from "../pages/systemComponentsPage";
 import {
   STATE_VARIANT_BASE_TYPES,
+  ITEM_TEMPLATE_VARIANT_PAIRS,
   buildStateVariantRef,
   isSelectedStateOrigin,
+  isStateVariantBaseOrigin,
   readStateVariantSelf,
   stateVariantOriginId,
   type StateVariantState,
@@ -237,24 +238,7 @@ function planStateVariantFamily(
 
 // ───────────────────────── 항목 템플릿 (Tab · Tag · ListBoxItem) ─────────────────────────
 
-/** 이관 대상 항목 템플릿 쌍 (default id = 새 origin id). GridListItem 은 selected 가 없어 대상 밖. */
-export const ITEM_TEMPLATE_VARIANT_PAIRS: ReadonlyArray<{
-  defaultId: string;
-  selectedId: string;
-}> = [
-  {
-    defaultId: "component-tab-item-default",
-    selectedId: "component-tab-item-selected",
-  },
-  {
-    defaultId: "component-tag-item-default",
-    selectedId: "component-tag-item-selected",
-  },
-  {
-    defaultId: "component-listbox-item-default",
-    selectedId: "component-listbox-item-selected",
-  },
-];
+export { ITEM_TEMPLATE_VARIANT_PAIRS } from "./stateVariantOrigins";
 
 function slotRoleOf(node: CanonicalNode): string {
   const metadata = node.metadata as { slotRole?: unknown } | undefined;
@@ -487,12 +471,11 @@ export function migrateVariantsToOriginInstances(
 
   const plans: FamilyPlan[] = [];
   const slotMap = new Map<string, string>();
+  // ADR-237 Phase 2 — 이번에 이관되는 선택 가능한 가족 origin → 휴지 변형 id. 그 origin 을 추천하는 slot 에
+  //   휴지 변형을 앞에 더한다 (234 항목 템플릿 slot `[휴지, origin]` 과 같은 모양 — GridListItem).
+  const restSlotInserts = new Map<string, string>();
   for (const origin of body.children) {
-    const states = STATE_VARIANT_BASE_TYPES[String(origin.type)];
-    if (!states || origin.id !== catalogReusableOriginId(String(origin.type))) {
-      continue;
-    }
-    if (readStateVariantSelf(origin)) continue;
+    if (!isStateVariantBaseOrigin(origin)) continue;
     const clones = body.children.filter(
       (node) =>
         node.type !== "ref" &&
@@ -507,6 +490,12 @@ export function migrateVariantsToOriginInstances(
       continue;
     }
     plans.push(plan);
+    if (isSelectableFamily(String(origin.type))) {
+      restSlotInserts.set(
+        origin.id,
+        stateVariantOriginId(origin.id, "unselected"),
+      );
+    }
   }
   for (const pair of ITEM_TEMPLATE_VARIANT_PAIRS) {
     const defaultNode = byId.get(pair.defaultId);
@@ -560,5 +549,35 @@ export function migrateVariantsToOriginInstances(
     childIds,
     migratedIds,
   );
-  return { ...document, children: rewritten.nodes };
+  return {
+    ...document,
+    children: insertRestSlotCandidates(rewritten.nodes, restSlotInserts),
+  };
+}
+
+/** slot 에 origin 만 있고 휴지 변형이 없으면 origin 앞에 휴지 변형을 넣는다 (ADR-237 Phase 2). */
+function insertRestSlotCandidates(
+  nodes: CanonicalNode[],
+  inserts: ReadonlyMap<string, string>,
+): CanonicalNode[] {
+  if (inserts.size === 0) return nodes;
+  return nodes.map((node) => {
+    let next = node;
+    if (Array.isArray(node.slot)) {
+      const slot: string[] = [];
+      for (const id of node.slot) {
+        const rest = inserts.get(id);
+        if (rest && !node.slot.includes(rest)) slot.push(rest);
+        slot.push(id);
+      }
+      if (slot.length !== node.slot.length) next = { ...next, slot };
+    }
+    if (node.children) {
+      const children = insertRestSlotCandidates(node.children, inserts);
+      if (children.some((child, index) => child !== node.children![index])) {
+        next = { ...next, children };
+      }
+    }
+    return next;
+  });
 }

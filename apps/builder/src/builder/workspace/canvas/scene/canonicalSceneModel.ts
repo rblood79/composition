@@ -9,6 +9,7 @@ import { canonicalDocumentToFrameElementScopes } from "../../../../adapters/cano
 import {
   resolveCanonicalRefTree,
   type RefInstanceResolution,
+  type LeafRefResolution,
 } from "../../../utils/canonicalRefResolution";
 import type { PageElementIndex } from "../../../stores/utils/elementIndexer";
 import {
@@ -16,6 +17,7 @@ import {
   appendRefInstanceChildProjections,
   appendStaticTagShowAllChips,
   appendStaticTagRemoveButtons,
+  annotateStaticBreadcrumbItems,
   buildCanvasSceneGraph,
   buildCanvasScenePageIndex,
   type CanvasSceneNode,
@@ -106,9 +108,21 @@ let lastRefResolution: {
   records: Map<string, RefInstanceResolution<CanvasSceneNode>>;
 } | null = null;
 
+/**
+ * ADR-237 G4 — 문서가 바뀌어도 쓰는 leaf instance 재사용 기록. scene 노드 props 는 collections · 프로젝트 변수 ·
+ * breakpoint 에서도 오므로 셋이 같을 때만 넘긴다 (항목별 canonical 노드 동일성은 해석기가 비교).
+ */
+let lastLeafResolution: {
+  collections: BuildCanonicalSceneModelOptions["collections"];
+  projectVariables: BuildCanonicalSceneModelOptions["projectVariables"];
+  activeBreakpoint: BuildCanonicalSceneModelOptions["activeBreakpoint"];
+  records: Map<string, LeafRefResolution<CanvasSceneNode>>;
+} | null = null;
+
 /** 테스트 · 진단용 — 다음 build 가 재사용 없이 전부 해석하게 한다. */
 export function resetSceneRefResolutionReuse(): void {
   lastRefResolution = null;
+  lastLeafResolution = null;
 }
 
 function resolveSceneGraph(
@@ -125,12 +139,26 @@ function resolveSceneGraph(
       ? lastRefResolution.records
       : null;
   const next = new Map<string, RefInstanceResolution<CanvasSceneNode>>();
+  const leafPrevious =
+    lastLeafResolution &&
+    lastLeafResolution.collections === options.collections &&
+    lastLeafResolution.projectVariables === options.projectVariables &&
+    lastLeafResolution.activeBreakpoint === options.activeBreakpoint
+      ? lastLeafResolution.records
+      : null;
+  const leafNext = new Map<string, LeafRefResolution<CanvasSceneNode>>();
   const resolved = resolveCanonicalRefTree({
     childrenMap: graph.childrenByParent,
     elements: graph.nodes,
     elementsMap: graph.nodesMap,
-    reuse: { previous, next },
+    reuse: { previous, next, leafPrevious, leafNext },
   });
+  lastLeafResolution = {
+    collections: options.collections,
+    projectVariables: options.projectVariables,
+    activeBreakpoint: options.activeBreakpoint,
+    records: leafNext,
+  };
   lastRefResolution = {
     doc,
     collections: options.collections,
@@ -161,6 +189,8 @@ function resolveSceneGraph(
   appendStaticTagShowAllChips(pruned);
   // ADR-234 후속: 정적 Tag 의 allowsRemoving X (DOM 은 RAC 가 넣는 remove 버튼).
   appendStaticTagRemoveButtons(pruned);
+  // ADR-237 G5: 정적 Breadcrumb 자식에 projection 과 같은 표시 입력 (`_isLast` · `_separator` · size).
+  annotateStaticBreadcrumbItems(pruned);
   return pruned;
 }
 

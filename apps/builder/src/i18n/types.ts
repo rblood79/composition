@@ -595,6 +595,8 @@ export interface TranslationKeys {
     stateVariantHover: string;
     stateVariantPressed: string;
     stateVariantFocusVisible: string;
+    stateVariantCollapsed: string;
+    stateVariantCurrent: string;
     stateVariantOf: string;
     resetForkedItems: string;
     resetOverride: string;

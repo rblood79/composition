@@ -260,25 +260,25 @@ export const renderTabs = (
               ),
             )
           : (item: { id: string; title: string }) => (
-          <Tab
-            id={item.id}
-            // ADR-233 — Tab 항목 template: base 는 모든 Tab, selected 는 RAC isSelected Tab 에 overlay.
-            style={
-              tabTemplate
-                ? ({ isSelected }) =>
-                    ({
-                      ...(tabRowBoxStyle ?? {}),
-                      ...(tabTemplate.rootStyles.base ?? {}),
-                      ...(isSelected
-                        ? (tabTemplate.rootStyles.selected ?? {})
-                        : {}),
-                    }) as React.CSSProperties
-                : undefined
-            }
-          >
-            {item.title}
-          </Tab>
-        )}
+              <Tab
+                id={item.id}
+                // ADR-233 — Tab 항목 template: base 는 모든 Tab, selected 는 RAC isSelected Tab 에 overlay.
+                style={
+                  tabTemplate
+                    ? ({ isSelected }) =>
+                        ({
+                          ...(tabRowBoxStyle ?? {}),
+                          ...(tabTemplate.rootStyles.base ?? {}),
+                          ...(isSelected
+                            ? (tabTemplate.rootStyles.selected ?? {})
+                            : {}),
+                        }) as React.CSSProperties
+                    : undefined
+                }
+              >
+                {item.title}
+              </Tab>
+            )}
       </TabList>
 
       {items.map((item) => {
@@ -476,9 +476,12 @@ function catalogChrome(
   const rule = resolveComponentRule(type);
   return {
     className: [`react-aria-${type}`, userClassName].filter(Boolean).join(" "),
-    "data-size": (element.props?.size as string | undefined) ?? rule?.defaultSize ?? "md",
+    "data-size":
+      (element.props?.size as string | undefined) ?? rule?.defaultSize ?? "md",
     "data-variant":
-      (element.props?.variant as string | undefined) ?? rule?.defaultVariant ?? "default",
+      (element.props?.variant as string | undefined) ??
+      rule?.defaultVariant ??
+      "default",
   };
 }
 
@@ -1144,9 +1147,15 @@ export const renderBreadcrumbs = (
       columnMapping={element.props.columnMapping as ColumnMapping | undefined}
       {...eventHandlers}
     >
+      {/* ADR-237 Phase 3 — 정적 항목 (Breadcrumb instance 자식) 은 canonical 경로의 RAC 항목으로 (key = props.id ·
+          상태 층 render props). legacy 경로는 renderElement. */}
       {hasItems
         ? null
-        : breadcrumbChildren.map((child) => renderElement(child, child.id))}
+        : breadcrumbChildren.map((child) =>
+            context.renderCollectionItem
+              ? context.renderCollectionItem(child, child.id)
+              : renderElement(child, child.id),
+          )}
     </Breadcrumbs>
   );
 };
@@ -1158,14 +1167,25 @@ export const renderBreadcrumb = (
   element: PreviewElement,
   _context: RenderContext,
 ): React.ReactNode => {
+  // ADR-237 Phase 3 — 컬렉션 밖 (Components 페이지의 단독 항목 origin · 변형) 경로. 컬렉션 안 정적 항목은
+  //   canonical internal renderer (`Breadcrumb`) 가 그린다. 링크 · 상태 층은 같은 모양.
   return (
     <Breadcrumb
       key={element.id}
       id={element.customId}
       data-element-id={element.id}
       href={element.props.href ? String(element.props.href) : undefined}
+      style={
+        element.stateStyle
+          ? (renderProps) =>
+              element.stateStyle!(
+                renderProps as unknown as Record<string, unknown>,
+                element.props.style as React.CSSProperties | undefined,
+              ) as React.CSSProperties
+          : (element.props.style as React.CSSProperties | undefined)
+      }
     >
-      {element.props.children}
+      {element.props.children as React.ReactNode}
     </Breadcrumb>
   );
 };
@@ -1834,9 +1854,23 @@ export const renderDisclosure = (
       onExpandedChange={(isExpanded) => {
         updateElementProps(element.id, { isExpanded });
         // ADR-158 규칙 · ADR-214 암묵 상태 미러
-        invokeCustomEventHandler(context, element, "onExpandedChange", isExpanded);
+        invokeCustomEventHandler(
+          context,
+          element,
+          "onExpandedChange",
+          isExpanded,
+        );
       }}
-      style={element.props.style}
+      // ADR-237 Phase 2 — 상태 변형 층 (`--collapsed`) 은 RAC render prop `isExpanded` (그룹 제약 반영) 로 고른다.
+      style={
+        element.stateStyle
+          ? (renderProps) =>
+              element.stateStyle!(
+                renderProps as unknown as Record<string, unknown>,
+                element.props.style as React.CSSProperties | undefined,
+              ) as React.CSSProperties
+          : element.props.style
+      }
       className={element.props.className}
     >
       {contentChildren.map((child) => renderElement(child, child.id))}

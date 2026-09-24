@@ -2,15 +2,17 @@
 
 ## Status
 
-Proposed — 2026-09-24
+Implemented — 2026-09-24 (`/execute-adr 237` Phase 0~~4 / G0~~G5 같은 날 종결 — [실행 기록](../design/237-origin-instance-slot-extension-breakdown.md#7-실행-기록)) · Accepted — 2026-09-24 (사용자 `/execute-adr 237`, Codex 리뷰 판독 1 + 수리 검증 1 종결 후) · Proposed — 2026-09-24
 
-설계 요청: 사용자 (2026-09-24) — "components page 의 컴퍼넌트들 reusable, origin, instance, slot 화를 더 진행 가능한 컴퍼넌트 RAC 레퍼런스 기준으로 분석" → 분석 결과 네 묶음 중 사용자 선택 "1+2" 로 `/create-adr`. 범위와 전제 (234 = base, 237 = 적용 확장, 새 저장 필드 없음) 는 AskUserQuestion 으로 확정 ([breakdown §1](design/237-origin-instance-slot-extension-breakdown.md#1-전제-확정-기록-fork-4-질문--사용자-confirm)).
+G4 는 사용자 판정 2단계로 닫았다 (2026-09-24): ① 같은 세션 A/B (237 전 빌드 대조) 에서 Breadcrumbs 100 × 5 편집이 +3.5~~3.7 ms 로 미달 → "해석 증분화 먼저" (leaf ref instance 재사용 — ownerEdit +3.7 → +1.5~~2.0) ② 남은 미달 (Breadcrumbs ownerEdit +1.5~2.0 · 항목 origin 편집 +4.1 ms @500 항목) → "예외로 기록 후 승격". CheckboxGroup 100 × 5 는 세 조작 모두 통과. 잔존 위험 R5 참조.
+
+설계 요청: 사용자 (2026-09-24) — "components page 의 컴퍼넌트들 reusable, origin, instance, slot 화를 더 진행 가능한 컴퍼넌트 RAC 레퍼런스 기준으로 분석" → 분석 결과 네 묶음 중 사용자 선택 "1+2" 로 `/create-adr`. 범위와 전제 (234 = base, 237 = 적용 확장, 새 저장 필드 없음) 는 AskUserQuestion 으로 확정 ([breakdown §1](../design/237-origin-instance-slot-extension-breakdown.md#1-전제-확정-기록-fork-4-질문--사용자-confirm)).
 
 ## Context
 
 ### 문제
 
-[ADR-234](completed/234-variant-instances-and-slot-filled-collections.md) 가 "변형 = 가장 완성된 상태 origin 의 instance · slot = 목록 틀의 추천 항목 · 목록 = instance 자식" 을 정했지만 적용은 목록 틀 5종 (TabList · TagList · ListBox · GridList · Menu) 과 상태 변형 6종에 그쳤다. RAC 레퍼런스와 대조하면 같은 구조인데 모델 밖에 있는 곳이 세 갈래다.
+[ADR-234](234-variant-instances-and-slot-filled-collections.md) 가 "변형 = 가장 완성된 상태 origin 의 instance · slot = 목록 틀의 추천 항목 · 목록 = instance 자식" 을 정했지만 적용은 목록 틀 5종 (TabList · TagList · ListBox · GridList · Menu) 과 상태 변형 6종에 그쳤다. RAC 레퍼런스와 대조하면 같은 구조인데 모델 밖에 있는 곳이 세 갈래다.
 
 1. **그룹 컨테이너 — 자식은 instance 인데 slot 이 없다.** CheckboxGroup · RadioGroup · ToggleButtonGroup · DisclosureGroup · ButtonGroup · Pagination · AvatarGroup · Nav · Toolbar 는 RAC 에서 독립 컴포넌트를 자식으로 받고 (breakdown R1), origin 자식은 이미 origin 의 ref 다 (F2). 그러나 Slot "+" 판정이 type 별 if 문 5종에 고정돼 (F1) instance 에서 항목을 추가할 길이 없다 — 사용자 모델 ④단계 ("instance 에서 slot 항목 추가") 가 막혀 있다. 선택은 Checkbox · ToggleButton 에서 두 leg 가 같은 계약을 쓴다 — 자식 `isSelected` 가 정본이고 RAC key 는 node id 다 (F6 · F11). Radio 는 다르다: Canvas 표시는 그룹 `value` 가 있으면 그것을 먼저 읽고, Preview 는 `isSelected` 인 첫 자식을 먼저 읽는다 (F14) — 두 값이 어긋나면 두 leg 가 다른 항목을 선택으로 그린다. 237 은 Slot 으로 넣은 항목이 두 leg 가 같게 읽는 모양으로만 저장되게 한다. 곁가지 결함 2: CardView 의 Card 자식은 plain 에 남았고 (F3), IconButton 은 변형 base 판정이 id 비교라 변형이 없다 (F4).
 2. **Breadcrumbs — RAC collection 인데 `items` 가상 행.** 정적 `<Breadcrumb id>` 자식 구조 (R3) 이지만 Canvas 는 `items` projection, Preview 는 `items` 정본 + 자식 BC 폴백이다 (F8). 234 가 범위 밖으로 남겼다.
@@ -26,7 +28,7 @@ Proposed — 2026-09-24
 
 ### 코드 사실
 
-레퍼런스 R1~~R5 · 코드 사실 F1~~F10 (경로:라인) 은 [breakdown §2 · §3](design/237-origin-instance-slot-extension-breakdown.md#2-레퍼런스--rac-starter-packagesreact-aria-startersrc-read-only).
+레퍼런스 R1~~R5 · 코드 사실 F1~~F10 (경로:라인) 은 [breakdown §2 · §3](../design/237-origin-instance-slot-extension-breakdown.md#2-레퍼런스--rac-starter-packagesreact-aria-startersrc-read-only).
 
 ### Hard constraints
 
@@ -94,7 +96,7 @@ HIGH 가 없는 B · C 는 RAC 계약 또는 사용자 판정을 채우지 못�
 
 범위 밖 (후속 ADR): Select · ComboBox 항목 origin (Menu 선례) · Tree (중첩 · 펼침) · Table/TableView (열 × 행) · Menu section/submenu · Checkbox indeterminate · 자유 내용 컨테이너 (Card · Dialog · Popover) 의 내용 slot.
 
-> 구현 상세: [237-origin-instance-slot-extension-breakdown.md](design/237-origin-instance-slot-extension-breakdown.md)
+> 구현 상세: [237-origin-instance-slot-extension-breakdown.md](../design/237-origin-instance-slot-extension-breakdown.md)
 
 ## Risks
 
@@ -104,7 +106,7 @@ HIGH 가 없는 B · C 는 RAC 계약 또는 사용자 판정을 채우지 못�
 | R2  | 항목 wrapper 중 render props 로 상태 층을 못 겹치는 것이 있어 hover 변형이 Preview 에 안 닿는다                                                                                                                                                                                                             |  MED   | G2 원복 RED — 실패 wrapper 는 변형 seed 보류 + 보고                        |
 | R3  | `expanded` 어휘 추가가 두 leg 공용 상태 모듈의 기존 층 순서를 바꾼다                                                                                                                                                                                                                                        |  MED   | 234 `stateVariantLayers` 층 순서 unit 계승 + 새 상태 행만 추가             |
 | R4  | Radio `value` 배정이 사용자가 직접 쓴 `value` 와 충돌하거나, 복사 · 붙여넣기 · AI tool 경로가 선택 `isSelected` 를 다른 모양으로 쓴다. 기존 문서에 이미 그룹 `value` 와 자식 `isSelected` 가 어긋난 RadioGroup 은 237 전부터 두 leg 가 갈린다 (F14 — 237 은 삽입 경로만 정규화, 기존 불일치 수리는 범위 밖) |  MED   | 쓰기 경로 표 (G0) · 경로별 unit (G1)                                       |
-| R5  | Breadcrumbs 실제 노드화로 `scene.build` 증가 (234 R4 와 같은 성격)                                                                                                                                                                                                                                          |  MED   | G4 A/B — 미달은 사용자 판정                                                |
+| R5  | Breadcrumbs 실제 노드화로 `scene.build` 증가 (234 R4 와 같은 성격). **실측 (G4, 사용자 판정 "예외로 기록 후 승격" 2026-09-24)**: 항목 500 개 문서의 owner 편집 +1.5~2.0 ms · 항목 origin 편집 +4.1 ms · breakpoint +1.0 (해석 증분화 뒤). 재개 조건 = 실제 문서에서 체감 저하 보고                          |  MED   | leaf ref instance 재사용 (G4 1단계) · 잔여는 예외 기록                     |
 | R6  | 상태 변형 편집 (Styles 패널) 이 상태가 표시를 정하는 자식에 `enabled:false` 를 써 반대 상태에서 본문이 사라진다                                                                                                                                                                                             |  MED   | 변형 쓰기 경로에서 해당 patch 거부 unit (G2) · 왕복 검증                   |
 
 ## Gates
@@ -120,7 +122,13 @@ HIGH 가 없는 B · C 는 RAC 계약 또는 사용자 판정을 채우지 못�
 
 ### Live Exercise
 
-(Implemented 승격 시 작성 — headed Playwright 로 Skia · store 경로, Preview 는 사용자 확인)
+실제 builder (dev 서버 · headed Playwright · 새 프로젝트, Compare Mode · Preview iframe 미개방 — 사용자 지시) 에서 Skia layout · scene · store · IndexedDB 로 확인했다 (2026-09-24).
+
+- `adr237-live-exercise.mjs` **9/9**: seed (그룹 origin 9 slot · 변형 26 ref · Breadcrumbs 자식 3 · CardView Card ref 3) · 그룹 instance 9 에 Slot "+" (instance 자기 자식 1 · 선택 후보 `isSelected:true` · Radio 유일 `value` · 접힘 후보 `isExpanded:false` · Canvas layout rect) · RadioGroup 선택 후보 두 번 → Skia reader 로 둘째만 선택 · 그룹 value = 둘째 · undo 한 번에 첫째 선택 복원 · Disclosure 닫힘 → 펼침 → 닫힘 (scene `isExpanded` · 본문 layout 높이 0 → 20 → 0) · Breadcrumbs instance crumb 3 가로 배치 · Slot "+" 4 번째 crumb 이 오른쪽 · reload 그대로 · page error 0.
+- `adr237-g5-bc-live.mjs` **19/19 픽셀 Δ0**: 237 전 빌드 (`ee6ecb890` worktree) 가 저장한 문서를 IndexedDB 로 옮겨 reload — Breadcrumbs (origin · palette instance · plain items · items override) · CardView · DisclosureGroup (단일 펼침 포함) · Disclosure · GridList (+ GridListItem 역할 짝) · 그룹 3 · IconButton · Tabs · 재hydration Δ0 · 오류 0.
+- `adr237-g4-perf-ab.mjs`: 위 G4 판정 수치.
+- live 에서 잡은 결함 2 (수리): instance 자기 자식 (Slot "+" 항목) 이 Canvas layout 에서 상속 자식 앞에 놓임 (Preview 와 발산) · 자동 폭 Breadcrumbs 의 마지막 crumb 이 구분자 폭까지 잡혀 넓어짐 (190 → 210).
+- Preview (DOM leg) 는 renderer unit (Checkbox · ToggleButton · Radio 초기 선택 · 항목 `--disabled` · Tab `--focus-visible` · MenuItem popover · Disclosure 펼침 · Breadcrumbs 정적 자식 · 현재 항목) 으로 고정했다 — 사용자 확인 대기.
 
 ## Consequences
 

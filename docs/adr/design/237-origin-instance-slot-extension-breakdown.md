@@ -1,6 +1,6 @@
 # ADR-237 구현 상세 — origin · instance · slot 적용 확장
 
-> 본문: [ADR-237](../237-origin-instance-slot-extension.md) · base: [ADR-234](../completed/234-variant-instances-and-slot-filled-collections.md) ([breakdown](234-variant-instances-and-slot-filled-collections-breakdown.md))
+> 본문: [ADR-237](../completed/237-origin-instance-slot-extension.md) · base: [ADR-234](../completed/234-variant-instances-and-slot-filled-collections.md) ([breakdown](234-variant-instances-and-slot-filled-collections-breakdown.md))
 
 ## 1. 전제 확정 기록 (fork 4 질문 · 사용자 confirm)
 
@@ -131,4 +131,78 @@
 - **h3 (Radio 단일 선택)**: Radio 표시 reader 가 두 leg 에서 다름을 F14 로 기록 (Canvas 그룹 `value` 우선 · Preview 첫 `isSelected` 자식). reader 는 바꾸지 않고 Slot "+" 삽입을 Preview writeback 과 같은 모양으로 정규화 (새 항목 선택 · 형제 해제 · 그룹 `value` 갱신, 한 history 항목). 단일 선택 ToggleButtonGroup 도 형제 해제. 진단 RED (h) · G1 입력 추가.
 - **l1 (ToggleButtonGroup writeback 문구, LOW)**: F11 을 "writeback 은 자식 `isSelected` 만" 으로 정정.
 
-(착수 후 Phase 별로 추가)
+### Phase 0 — G0 inventory freeze (2026-09-24, 기준 `ee6ecb890`)
+
+- **F1~F14 재확인**: `be0b657d2..ee6ecb890` 사이 `apps` · `packages` 변경 0 → 라인 그대로. 정정 1건:
+  - **F8 정정** — Canvas 도 `items` 가 없으면 정적 Breadcrumb 자식을 scene 자식으로 세우고 (projection 이 활성일 때만 자식을 뺀다 — `canvasSceneNode.ts:3203`), 마지막 = current · 구분자 · 크기 위임은 paint 시점 `resolveBreadcrumbItemContext` (`buildSpecNodeData.ts:624`) · layout 은 `implicitStyles.ts:2318` (높이 · gap 0) 이 이미 처리한다. 결함은 "Canvas 가 자식을 못 그림" 이 아니라 **seed · 쓰기 경로가 `items` 를 쓰고 항목 origin 이 없음** 이다 (진단 (g) 를 그 모양으로 고정). Phase 3 의 Canvas 변경은 projection → 자식 경로 픽셀 동일 확인 (G5) 이 중심.
+- **seed 실측** (`createInitialProjectDocument` 전 파이프라인 — Components body 93 노드):
+  - 그룹 origin 9 = 자식 ref 가 이미 origin 을 가리킨다 · `slot` 0. Toolbar 자식 = Button ref 3 + plain Separator 1 · Form 은 그룹 아님 (범위 밖).
+  - 선택 가능한 base origin (Checkbox · Radio · ToggleButton · Switch) = `metadata.variant: "selected"` 이지만 자기 props `isSelected:false` — instance 는 자기 props 로 휴지 (`--unselected` 층). Slot "+" 는 후보가 origin (선택 모양) 이면 새 자식 `isSelected:true`, `--unselected` 면 `false`.
+  - 항목 템플릿: Tab · Tag · ListBoxItem = origin (선택) + `--unselected` · GridListItem · MenuItem = `v=default` 단독. 상호작용 변형 0.
+  - IconButton origin (`component-iconbutton`, root type Button) 변형 0 · Disclosure origin 변형 0 (자식 DisclosureHeader · DisclosureContent plain) · CardView Card 3 plain (`subtree-mismatch`) · Breadcrumbs `items` 3 (마지막 href 없음).
+  - **이관 수식 (i) 확정 26**: 항목 5 × (hover · pressed · focus-visible · disabled) 20 + GridListItem `--unselected` 1 + Disclosure `--collapsed` 1 + IconButton (Button 상태 열 = disabled + 상호작용 3) 4. (ii) slot 필드 9. (iii) · (iv) Δbyte 는 이관을 만드는 Phase (3 · 1) 에서 실측.
+- **진단 RED 8** (`components/__tests__/adr237Diagnostics.test.tsx`, `it.fails` — 원인 확인: `it` 로 바꿔 실행한 실패 메시지 대조):
+  - (a) 그룹 origin `isSlotHostElement` = false
+  - (b) Frame 식 삽입 두 번 → Radio value 1종
+  - (h) 그룹 value `""` · A · B 둘 다 `isSelected` → Canvas `[ra, rb]` · Preview `[ra]`
+  - (d) `component-iconbutton--hover` 없음
+  - (e) 항목 5종 `--hover` 없음 · GridListItem `--unselected` 없음
+  - (f) 상태 어휘 `collapsed` 없음
+  - (g) seed Breadcrumbs 가 `items` · 항목 origin 없음
+- **기준선 GREEN 7**: 그룹 origin 자식 ref · slot 0 (F2) · 정규화된 Radio 모양 (그룹 value = B · A 해제) 두 leg 같은 B · Checkbox 그룹 Preview 선택 = 자식 `isSelected` (그룹 value 만 있는 자식은 비선택, F11) · F12 (`enabled:false` 자식은 `isExpanded:true` 여도 두 leg 에서 사라짐) · F13 (단일 펼침 그룹 둘째 = 접힘) · Breadcrumbs 자식 Preview BC 폴백 · Canvas scene 자식 (F8 정정).
+- **Canvas Radio reader export**: 진단 · G1 이 production reader 를 직접 쓰도록 `resolveRadioGroupSelection` 을 export (동작 변경 0).
+- **쓰기 경로 표** (그룹 자식 · Breadcrumbs 항목):
+
+| 경로                    | 위치                                                                                                                                                  | 대상                                 | 237 처리                                                                                                                                    |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| origin seed · repair    | `catalogOrigins.ts` (catalog 파생 generic) → `originChildRefs.ts` (새 origin 자식 → ref) · factory `GroupComponents.ts:342-367` (Breadcrumbs `items`) | 그룹 9 · Breadcrumbs                 | 그룹 origin `slot` seed · repair (Phase 1) · Breadcrumbs 항목 instance 자식 (Phase 3)                                                       |
+| 배치 (팔레트)           | `useElementCreator` → ref instance `props = {}`                                                                                                       | 전부                                 | 변경 없음 — instance 는 origin 자식 상속, "+" 는 instance 자기 자식                                                                         |
+| Slot "+"                | `FrameSlotSection.tsx:187-265` · `ComponentSlotFillSection.tsx:245-275` · `slotHostPolicy.ts` · `collectionItemInsert.ts`                             | 목록 틀 5                            | 그룹 9 · Breadcrumbs 행 추가 + 선택 값 채우기 · Radio `value` 유일 · 단일 선택 정규화 (한 history 항목 — `historyManager.runInTransaction`) |
+| 캔버스 drop · 붙여넣기  | `addElement` 일반 경로 · `multiElementCopy.ts`                                                                                                        | 그룹 자식                            | 변경 없음 — 팔레트 Radio drop · Radio 붙여넣기는 origin `value` 를 그대로 가져가 237 전부터 중복 가능 (ADR R4, 범위 밖 기록)                |
+| Preview 클릭 writeback  | `FormRenderers.tsx:778-797,987-1006` · `CollectionRenderers.tsx`                                                                                      | Checkbox · Radio · ToggleButton 그룹 | 변경 없음 (계약 기준선)                                                                                                                     |
+| AI tool · Pencil import | 일반 요소 생성 · `pencil-adapter` 일반 매핑                                                                                                           | —                                    | 변경 없음 (그룹 전용 경로 없음)                                                                                                             |
+| hydration               | `mainDocumentNormalization.ts:30-40` · `createInitialProjectDocument.ts`                                                                              | 전부                                 | 그룹 slot repair · CardView 이관 · 변형 seed · Breadcrumbs 이관 지점                                                                        |
+
+### Phase 1 — 그룹 컨테이너 slot · IconButton · CardView (G1, 2026-09-24)
+
+- **slot host 표** (`components/slotHostPolicy.ts` `SLOT_HOST_RULES`): 종전 if 문 5종 (TabList · TagList · ListBox · GridList · Menu) 을 행으로 옮김 (동작 무변경 — 기존 `slotHostPolicy.test` 7 GREEN). 행 = `matches` (후보 · drop 정책 host) · `active` (Slot 절 표시) · `candidate` · `insert` · `placedChildren` · `itemTypes`. 그룹 9 행은 **slot 을 가진 것만** host 이고 (slot 없는 사용자 그룹은 종전 그대로), reusable 후보만 가족 제한 · 배치 요소 (Label · 끌어 넣은 instance) 는 허용 — 같은 판정을 캔버스 drop · 형제 재배치 · Preview slot 계약 경고가 읽는다 (`isSlotContractItem` — 그룹 Label · Toolbar Separator 는 경고 대상 밖). `SELF_LIST_SLOT_HOST_TYPES` 가 FrameSlotSection 의 instance root → origin slot 해석을 넓힌다.
+- **slot seed · repair** (`groupSlotOrigins.ts`): Components body 의 그룹 origin 9 에 slot 이 **없을 때만** (끈 `false` · 사용자 편집 보존). 추천 목록 = 휴지 · origin 순 (Tabs 와 같은 순서, Disclosure 는 `--collapsed` · origin, Toolbar 는 Button · ToggleButton 휴지 · ToggleButton). Toolbar repair 가 slot 을 떨어뜨리던 것을 보존으로 수리.
+- **Slot "+" 계획** (`groupItemInsert.ts`): 항목 = 가족 origin (체인 끝) 의 ref · 후보 상태 → 기존 prop (선택 → `isSelected:true` · 휴지 → `false` · disabled → `isDisabled` · 접힘 → `isExpanded:false`) · Radio `value` 유일 (`option<n>`) · RadioGroup 선택 후보는 형제 해제 + 그룹 `value` = 새 값 · 단일 선택 ToggleButtonGroup 은 형제 해제만. host 가 instance 면 항목은 instance 자기 자식, 상속 형제의 해제는 instance `descendants`. 패널 (`FrameSlotSection`) 은 origin 영향 확인을 트랜잭션 밖에서 먼저 받고 `historyManager.runInTransaction` 한 항목으로 쓴다.
+- **IconButton** (`stateVariantOrigins.ts` `isStateVariantBaseOrigin`): 판정 = 시스템 소유 reusable origin + root type 이 표에 있음 (사용자 reusable 은 대상 밖). seed · 이관이 같은 술어.
+- **CardView** (`originChildRefs.ts` `toChildlessOriginRef` · `migrateCardViewCardsToRefs`): 자기 자식 0 인 Card → Card origin ref + origin 자식 4 `enabled:false` + props 는 **유효값 차분** (`diffEffectiveProps` — origin 에만 있는 size · orientation · borderWidth 등 = `null`). 새 문서는 seed ② (변환 보류 경고 0), 기존 문서는 hydration 이관.
+- unit `adr237Phase1.groupSlot.test.tsx` 14 (Checkbox · ToggleButton 선택 두 leg · Radio value 유일 · 선택 Radio A + 후보 B → Canvas reader · Preview 모두 B · instance host 의 상속 형제 해제 · 가족 밖 후보 거부 · IconButton 변형 4 · CardView 이관 전후 scene props · resolved props 동일 · 경고 0). 원복 RED 14/14.
+- 조사 부산물: `resolveRadioGroupSelection` export (진단 · G1 이 production reader 사용, 동작 변경 0). adr113 descendants grep gate 는 착수 전부터 실패 (45 건) — `groupItemInsert.ts` 는 canonical RefNode 를 만드는 경계라 allowlist 에 추가.
+
+### Phase 2 — 항목 · Disclosure 상태 변형 (G2, 2026-09-24)
+
+- **변형 표** (`STATE_VARIANT_BASE_TYPES`): 항목 템플릿 Tab · Tag · ListBoxItem · GridListItem (선택 + 상호작용 4) · MenuItem (상호작용 4) · Disclosure (`collapsed`). seed 는 이관 전 항목 쌍 (default · selected 템플릿) 을 대상에서 빼고 234 이관 뒤 두 번째 seed pass 가 ref 로 보충 — 첫 구현이 이관 전 쌍에 변형을 붙여 중복 노드가 생긴 것을 실측으로 잡았다. GridListItem 은 이 표로 처음 이관 (origin = 선택 + `--unselected`, GridList slot 에 휴지 변형을 origin 앞에 삽입 — GridList repair 가 slot 을 되돌리던 것도 보존으로 수리). Components body 93 → 119 (+26 = 수식 (i)).
+- **`collapsed` 어휘**: `--collapsed` = ref + props `isExpanded:false` (seed 부터 ref). 층 순서 맨 앞. 접힘 층은 **root 만** (`rootOnlyLayer` — `enabled` · 자손 patch 를 읽지 않는다): 구조 patch 거부 (review h2) + Preview 위임 렌더러가 root style 만 받는 범위와 맞춤.
+- **유효 펼침**: 해석 중에는 강제 · 자기 의도 (`isExpanded` 부재 = 펼침) 만, 그룹 단일 펼침은 해석 끝 `applyPositionalStateLayers` 가 최종 자식 목록 (`resolveGroupExpandedDisclosureIds`) 으로 접힘 층을 얹는다. **실측 결함 1**: 첫 구현은 해석 중 결과 map 을 훑어 형제를 찾았는데, 합성 자식이 순서대로 map 에 들어가 instance 안 DisclosureGroup 의 Disclosure 가 전부 접힘 (`isExpanded:false`) 으로 해석됐다 (기존 문서 시각 회귀 — probe 로 발견, unit 고정). Preview 는 RAC render prop `isExpanded` (`renderDisclosure` 가 `stateStyle` 을 RAC `style` 함수로).
+- **R2 실측 2건 (두 leg 발산 수리)**: ① ListBoxItem · Tab · GridListItem binding `accepts` 에 `isDisabled` 가 없어 Canvas 는 disabled 층을 그리는데 DOM 에 닿지 않았다 → RSP/RAC 항목 prop 선언 (Tag 와 같음). ② Menu 정적 MenuItem 은 Menu 래퍼가 직접 RAC MenuItem 을 합성해 상태 층이 없었다 → 평탄화된 자식 PreviewElement 에 `stateStyle` 을 싣고 래퍼가 RAC `style` 함수로.
+- unit `adr237Phase2.itemVariants.test.tsx` 15 (seed 26 · 기존 문서 이관 Δnode 26 · 항목 4종 `--disabled` 두 leg · Tab `--focus-visible` 키보드 포커스 (Preview) · Canvas 무변화 · MenuItem popover · Disclosure 왕복 origin 참조 · 직접 참조 · 단일 펼침 그룹 (plain · instance 합성) · 구조 patch 거부 · 층 순서). 원복 RED 16 + 재설계 3.
+
+### Phase 3 — Breadcrumbs 항목 origin · slot · 이관 (G3, 2026-09-24)
+
+- **항목 origin** `component-breadcrumb-item-default` (`breadcrumbs/breadcrumbsTemplateOrigins.ts`, Breadcrumbs origin 바로 앞) = 링크 (`children` · `href "#"` · 폭 fit-content) + `--current` (새 어휘 `current`, 층 순서 selected 뒤, root 만). 정적 목록 가족 표에 `BREADCRUMBS_STATIC_FAMILY` (행 → `children` · `href` — 행에 href 가 없으면 `null` 로 origin href 를 끊는다), origin slot `[항목, --current]`, 바인딩 제외 표 (`STATIC_LIST_FAMILY_BY_OWNER`) 에 추가. seed 는 234 이관 뒤 · 두 번째 변형 seed 앞 (229 BC 의 이관 직전 파이프라인과 분리).
+- **현재 항목**: RAC 위치 규칙 — Canvas 는 해석 끝 후처리 (Breadcrumbs 의 마지막 Breadcrumb 에 현재 층), paint 는 기존 `resolveBreadcrumbItemContext`, Components 단독 `--current` 는 강제 상태로 `_isLast`. Preview 는 RAC render prop `isCurrent`.
+- **Preview 결함 2 수리 (F8 BC 폴백이 실제로는 깨져 있었다)**: ① 바인딩 없는 Breadcrumbs 가 `loading` 분기에 걸려 정적 자식에 도달하지 못했다 (items 경로도 같은 분기) → loading · error 는 바인딩이 있을 때만. ② 정적 Breadcrumb 자식이 rendererMap `display: contents` 래퍼로 RAC collection 안에 들어가 "Maximum update depth exceeded" → internal renderer `breadcrumb` (shared `Breadcrumb` — RAC Breadcrumb + Link, render props) · 정적 항목 key = `props.id` · `renderCollectionItem` 경로. 단독 origin 은 orphan 호스트 (`RAC.Breadcrumbs`) — 링크 모양은 숨긴 뒤 항목을 더해 현재가 아니게, `--current` 만 마지막.
+- **slot 규칙**: Breadcrumbs 행 = slot 을 가진 것만 · 배치 요소 허용 (첫 구현은 type 만으로 잡아 slot 없는 사용자 Breadcrumbs 의 drop · 재배치를 막았다 — `dropTargetResolver.test` 회귀로 발견, 수리).
+- unit `adr237Phase3.breadcrumbs.test.tsx` 9 (seed · 기존 문서 이관 Δnode 5 · 바인딩 유지 · 바인딩 instance 정적 항목 0 · Canvas origin · instance 합성 마지막만 현재 층 · Preview crumb 3 · data-current · href · 단독 origin 두 모양 · instance 자기 자식 순서 · Slot "+"). 원복 RED 14/14 + 순서 1.
+- 회귀 (Phase 1~3 누적): builder 전체 7,332 pass / 7 fail → dropTargetResolver 수리 뒤 착수 전 실패 6 (adr113 · propertyFieldIcons `isOpen` · factoryInlineDirtyBaseline · historyActions.static · textAxisGate · AI componentCatalog — 234 기록과 같은 목록) · shared 1,398 / 2 (착수 전: componentCatalog placeable · generatedCssLoadInventory) · 기대값 갱신 3 (230 BC 를 230 가족 6 으로 한정 · createInitialProjectDocument GridList slot · 진단 (a)(d)(e)(f)(g) GREEN 전환). `pnpm type-check` PASS.
+
+### Phase 4 — live · 성능 · BC (G4 · G5, 2026-09-24)
+
+- **live** `apps/builder/scripts/adr237-live-exercise.mjs` (headed Playwright · 새 프로젝트 · Skia layout · scene · store, Compare Mode · Preview iframe 미개방): **9/9** — seed (그룹 slot 9 · 변형 26 ref · Breadcrumbs 자식 3 · items 없음 · CardView Card ref 3) · 그룹 instance 9 Slot "+" (instance 자기 자식 1 · 선택 후보 `isSelected:true` · Radio `option3` · 접힘 후보 `isExpanded:false` · layout rect) · RadioGroup 선택 후보 두 번 → Skia reader 로 둘째만 선택 · 그룹 value = 둘째 · undo 1 회로 첫째 선택 상태 복원 · Disclosure 닫힘 → 펼침 → 닫힘 (scene `isExpanded` · 본문 layout 높이 0 → 20 → 0) · Breadcrumbs instance crumb 3 가로 (x 0 · 64 · 152) · Slot "+" 4 번째 crumb 이 오른쪽 · reload 뒤 그대로 · page error 0.
+  - **live 결함 1 (수리)**: instance 자기 자식 (Slot "+" 항목) 이 Canvas layout 에서 상속 자식 **앞** 에 놓였다 (Preview 는 `[...origin, ...instance]` — 두 leg 발산, 234 ListBox instance "+" 도 같은 경로). 원인: 합성 자식은 해석 중 결과 배열 끝에 붙고 layout 입력 (`buildPageChildrenMap`) 은 배열 순서로 부모별 목록을 만든다 → 해석 끝 `alignSiblingOrderToChildrenMap` (자기 자식이 있는 instance 만, 그 부모의 자식 칸 안에서만 재배열). unit + 원복 RED.
+- **G5 BC** `adr237-g5-bc-live.mjs` (234 G5 계승 — before = 237 코드 전 `ee6ecb890` worktree `/Users/admin/work/composition-adr237-base` · 그 lockfile · 엔진 wasm 은 소스 동일이라 복사 · dev `127.0.0.1:5174`; before 문서를 IndexedDB 저장 층째 after 에 넣고 reload): **19/19 픽셀 Δ0** (Breadcrumbs origin · palette instance · plain items · items override · CardView origin · instance · DisclosureGroup origin · instance · 단일 펼침 instance · Disclosure · GridList origin · instance · GridListItem 역할 짝 · 그룹 3 · IconButton · Tabs origin · instance) · 재hydration Δ0 · 오류 0.
+  - **G5 결함 1 (수리)**: 1차 측정에서 자동 폭 Breadcrumbs origin 이 190 → 210 (Δ 640 px). layout 폭 측정 (`utils.ts` breadcrumb 분기) 은 projection 이 싣던 `_isLast` 로 마지막 crumb 의 구분자 폭을 빼는데 정적 자식에는 그 값이 없었다 → scene 후처리 `annotateStaticBreadcrumbItems` (마지막 crumb 에 `_isLast` · owner 구분자 · 크기가 기본이 아닐 때만 — 측정기 기본값과 같은 값은 싣지 않는다). unit + 원복 RED.
+- **Δbyte 수식 실측**: (iii) Breadcrumb 항목 instance 176~~188 B (추정 150~~250 안) · 항목 origin 303 B + `--current` 276 B (문서당 1 회) · (iv) CardView Card ref 320 B × 3.
+- **G4** `adr237-g4-perf-ab.mjs` (같은 세션 · headed · arm 교대 · pair 3 · warm-up 3 · 표본 7 · DPR 1 · visible · 대조 arm = 237 전 빌드 5174): `scene.build` p95 median Δ (instance − items)
+  - CheckboxGroup 100 × 5 (두 빌드 같은 문서 — 237 의 순수 추가분): ownerEdit **+0.5** · originEdit **+0.4** · breakpoint **+0.2** ms — 통과.
+  - Breadcrumbs 100 × 5 (237 전 = items projection · 237 = 항목 instance 자식 500): ownerEdit **+3.7** · originEdit **+3.5** ms — **미달** · breakpoint +0.8 통과. 재측정 3 회 (주입 축소 전후) 모두 +2~~4 ms 범위. node bench 로 뗀 원인: 237 후처리 (위치 상태 · 형제 재배열 · 주입) 는 0.1~~0.4 ms, 나머지는 항목 500 개의 ref 해석 본체 (`resolveCanonicalRefElement` · props 병합 · scene 노드 생성 ≈ 7 µs/항목) — 234 TagGroup 편집 +2.3/+2.6 ms 와 같은 성격.
+  - ADR §6 에 따라 사용자 판정 → **"해석 증분화 먼저"** (2026-09-24).
+- **해석 증분화 (G4 1단계)**: 편집마다 재사용 기록이 통째로 버려졌다 (같은 문서일 때만 재사용). **leaf ref instance 재사용** — 자식 없는 ref instance 는 문서가 바뀌어도 해석이 읽는 canonical 노드 (자기 · origin 체인 · origin 의 상태 변형 8 · 상태를 읽는 조상 type (선택 owner · RadioGroup · disabled 그룹) 의 노드, 나머지 조상은 id · type) 가 같으면 이전 해석 객체를 쓴다 (`readLeafDeps` · `LeafRefResolution`, scene 옵션 collections · 프로젝트 변수 · breakpoint 가 같을 때만). `{{ }}` 템플릿 노드는 대상 밖. 체인 · 변형 조회는 ref 대상마다 호출 단위 캐시. 위치 상태 기록 (`registerStateOwnSource`) 은 합성 자식만 (root 는 `rawRefSource` 가 정확). unit `adr237G4.leafReuse.test.ts` 5 (재사용 결과 = 새 해석 differential · owner 편집 재사용 · 자기 · origin · `--current` · disabled 그룹 · `--disabled` 편집은 재해석 · 같은 문서 재빌드 이월) · 원복 RED 4/4.
+- **G4 최종** (pair 3 median, 237 전 빌드 대조): CheckboxGroup ownerEdit **+0.2** · originEdit **+0.9** · breakpoint **+0.5** — 통과. Breadcrumbs ownerEdit **+1.5~2.0** (증분화 전 +3.7) · originEdit **+4.1** · breakpoint **+1.0**. originEdit 은 항목 origin 편집이 항목 500 개 전부를 다시 해석하는 경우라 재사용 대상이 아니고, 237 전 빌드에는 같은 편집이 없어 역할 짝이 Breadcrumbs origin 편집 (문서 항목과 무관) 이다. node 편집 bench 잔여: 항목 scene 노드 생성 · 체인 props 접기 (scene visit) 와 leaf 판정.
+- **G4 판정 2단계 (사용자, 2026-09-24)**: 남은 미달 (Breadcrumbs ownerEdit +1.5~2.0 · 항목 origin 편집 +4.1 · breakpoint +1.0 ms @500 항목) → "예외로 기록 후 승격" — ADR R5 에 기록, 재개 조건 = 실제 문서 체감 저하 보고. **Implemented 2026-09-24.**
+- 증분화 뒤 재확인: live 9/9 · G5 19/19 Δ0 · 재hydration Δ0 · builder 7,340 / 6 (착수 전 실패) · type-check PASS.
+- 회귀 (Phase 4 수리 후): builder 7,335 pass / 6 fail · shared 1,398 / 2 (모두 착수 전부터 있던 실패) · `pnpm type-check` PASS.

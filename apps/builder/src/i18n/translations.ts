@@ -767,6 +767,8 @@ const koKR: TranslationKeys = {
     stateVariantHover: "호버",
     stateVariantPressed: "눌림",
     stateVariantFocusVisible: "포커스",
+    stateVariantCollapsed: "접힘",
+    stateVariantCurrent: "현재",
     stateVariantOf:
       "{name} 의 상태 변형 — 이 상태일 때의 배경 · 색 · 테두리 · 투명도만 편집한다",
     roleStandard: "표준",
@@ -2697,6 +2699,8 @@ const enUS: TranslationKeys = {
     stateVariantHover: "Hover",
     stateVariantPressed: "Pressed",
     stateVariantFocusVisible: "Focus",
+    stateVariantCollapsed: "Collapsed",
+    stateVariantCurrent: "Current",
     stateVariantOf:
       "State variant of {name} — edit only the background · color · border · opacity used in this state",
     roleStandard: "Standard",

@@ -114,6 +114,8 @@ const STATE_VARIANT_BADGE_KEY: Record<
   | "propertiesPanel.stateVariantHover"
   | "propertiesPanel.stateVariantPressed"
   | "propertiesPanel.stateVariantFocusVisible"
+  | "propertiesPanel.stateVariantCollapsed"
+  | "propertiesPanel.stateVariantCurrent"
 > = {
   unselected: "propertiesPanel.stateVariantUnselected",
   selected: "propertiesPanel.stateVariantSelected",
@@ -121,6 +123,8 @@ const STATE_VARIANT_BADGE_KEY: Record<
   hover: "propertiesPanel.stateVariantHover",
   pressed: "propertiesPanel.stateVariantPressed",
   "focus-visible": "propertiesPanel.stateVariantFocusVisible",
+  collapsed: "propertiesPanel.stateVariantCollapsed",
+  current: "propertiesPanel.stateVariantCurrent",
 };
 
 function isFrameBodyElement(element: PanelNode): boolean {
@@ -355,7 +359,9 @@ export const ComponentSemanticsSection = memo(
 
         {role === "instance" && overrideItems.length > 0 && (
           <fieldset className="properties-aria component-semantics-overrides">
-            <legend className="fieldset-legend">{t("propertiesPanel.overridesLegend")}</legend>
+            <legend className="fieldset-legend">
+              {t("propertiesPanel.overridesLegend")}
+            </legend>
             <div className="react-aria-Group component-semantics-field-list">
               {overrideItems.map((item) => {
                 // ADR-138 A-3: instance 가 props.items 를 override 하면
@@ -368,7 +374,9 @@ export const ComponentSemanticsSection = memo(
                     aria-label={
                       isItemsFork
                         ? t("propertiesPanel.resetForkedItems")
-                        : t("propertiesPanel.resetOverride", { label: item.label })
+                        : t("propertiesPanel.resetOverride", {
+                            label: item.label,
+                          })
                     }
                     className={
                       isItemsFork
@@ -386,7 +394,9 @@ export const ComponentSemanticsSection = memo(
                   >
                     <span className="component-semantics-field-dot" />
                     <span className="component-semantics-field-name">
-                      {isItemsFork ? t("propertiesPanel.itemsForkedLabel") : item.label}
+                      {isItemsFork
+                        ? t("propertiesPanel.itemsForkedLabel")
+                        : item.label}
                     </span>
                     <span className="component-semantics-field-reset">
                       {isItemsFork

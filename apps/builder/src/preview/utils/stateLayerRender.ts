@@ -30,6 +30,10 @@ export interface RacStateRenderProps {
   isHovered?: boolean;
   isPressed?: boolean;
   isFocusVisible?: boolean;
+  /** ADR-237 — RAC Disclosure render prop (그룹 단일 펼침 제약까지 반영된 실행 중 값). */
+  isExpanded?: boolean;
+  /** ADR-237 — RAC Breadcrumb render prop (마지막 항목 = current). */
+  isCurrent?: boolean;
 }
 
 /** 강제 상태 (Components 페이지 변형 노드) 가 RAC 값보다 먼저. */
@@ -43,6 +47,14 @@ export function toActiveVariantStates(
     hovered: forced?.hovered ?? racState.isHovered === true,
     pressed: forced?.pressed ?? racState.isPressed === true,
     focusVisible: forced?.focusVisible ?? racState.isFocusVisible === true,
+    ...(forced?.expanded !== undefined
+      ? { expanded: forced.expanded }
+      : racState.isExpanded !== undefined
+        ? { expanded: racState.isExpanded }
+        : {}),
+    ...((forced?.current ?? racState.isCurrent === true)
+      ? { current: true }
+      : {}),
   };
 }
 
@@ -55,6 +67,8 @@ export function staticActiveVariantStates(
     {
       isSelected: props.isSelected === true || props._isSelected === true,
       isDisabled: props.isDisabled === true,
+      // ADR-237 — 선언적 펼침 (prop 부재 = 펼침). 그룹 단일 펼침 제약은 RAC render prop 경로가 반영한다.
+      ...(props.isExpanded === false ? { isExpanded: false } : {}),
     },
     forced,
   );
