@@ -359,17 +359,24 @@ function insertIntoDescendantChildren(
 
     if (refNode.id === refPath) {
       const currentOverride = descendants[descendantPath];
-      if (currentOverride && !isDescendantChildrenMode(currentOverride)) {
+      // mode B (노드 교체) 만 거부 — mode A patch (영역 host 의 style 등) 는 보존하고 children 을 얹는다
+      //   (ADR-240 Phase 2: 스타일만 준 영역에 drop 하면 조용히 무시되던 자리).
+      if (currentOverride && "type" in currentOverride) {
         return nextNode;
       }
 
-      const currentChildren = currentOverride?.children ?? [];
+      const currentChildren = isDescendantChildrenMode(currentOverride)
+        ? currentOverride.children
+        : [];
       const inserted = [...currentChildren];
       inserted.splice(clampIndex(index, inserted.length), 0, child);
       changed = true;
       return cloneRefWithDescendants(refNode, {
         ...descendants,
-        [descendantPath]: { children: inserted },
+        [descendantPath]: {
+          ...(currentOverride ?? {}),
+          children: inserted,
+        } as DescendantOverride,
       });
     }
 

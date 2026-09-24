@@ -33,6 +33,7 @@ import {
 import type { Element, Page } from "../../../types/builder/unified.types";
 import { CARD_ORIGIN_ID } from "../card/cardTemplateOrigins";
 import { applyEditToSlotFill } from "../slotFillEdit";
+import { writeSlotFill } from "../slotFillPath";
 import {
   SLOT_FILL_PRIMITIVE_TYPES,
   buildSlotFillNodeForType,
@@ -410,6 +411,78 @@ describe("ADR-240 G2 — 채운 노드 편집이 mode C 배열 노드에 쓰인�
   });
 });
 
+// ── 채운 영역 host 자체의 스타일 (두 leg 대칭 · 채우기/비우기/drop 보존) ────────────
+describe("ADR-240 G2 — 채운 영역 host 의 스타일", () => {
+  const STYLE = { paddingTop: "40px", backgroundColor: "red" };
+
+  it("`{ children, style }` 항목 — Preview 도 영역 style 을 싣는다 (Canvas 와 같은 값)", () => {
+    const doc = withBodyChildren(seedDocument(), [
+      cardInstance([{ id: "t", type: "Text", props: { children: "A" } }]),
+    ]);
+    (instanceNode(doc).descendants!.Content as Record<string, unknown>).style =
+      STYLE;
+    const resolved = findResolved(
+      resolveCanonicalDocument(doc) as ResolvedNode[],
+      INST,
+    )!;
+    const content = (resolved.children ?? []).find(
+      (c) => c.type === "CardContent",
+    );
+    expect(content?.props?.style).toMatchObject(STYLE);
+    expect(content?.children?.map((c) => c.props?.children)).toEqual(["A"]);
+    expect(scene(doc).node(`${INST}/Content`)?.props?.style).toMatchObject(
+      STYLE,
+    );
+  });
+
+  it("Slot 채우기 · 비우기는 영역 host 편집 (style) 을 보존한다 (옛 id 키 항목 포함)", () => {
+    const host = { path: "Content", legacyPath: "component-card__content" };
+    const filled = writeSlotFill(
+      { "component-card__content": { style: STYLE } },
+      host,
+      [{ id: "t", type: "Text" }],
+    );
+    expect(filled).toEqual({
+      Content: { style: STYLE, children: [{ id: "t", type: "Text" }] },
+    });
+    expect(writeSlotFill(filled, host, null)).toEqual({
+      Content: { style: STYLE },
+    });
+    expect(writeSlotFill({ Content: { children: [] } }, host, null)).toEqual(
+      {},
+    );
+  });
+
+  it("스타일만 준 영역 (mode A) 에 drop → style 보존 + children 추가 (조용히 무시되지 않는다)", () => {
+    const doc = withBodyChildren(seedDocument(), [
+      {
+        id: INST,
+        type: "ref",
+        ref: CARD_ORIGIN_ID,
+        props: {},
+        descendants: { Footer: { style: STYLE } },
+      } as unknown as CanonicalNode,
+      { id: "page-text", type: "Text", props: { children: "Moved" } },
+    ]);
+    setUpStore(doc, "page-text");
+    const result = moveElementToCanonicalTarget("page-text", {
+      kind: "ref-descendants",
+      refNodeId: INST,
+      descendantPath: "Footer",
+      insertionIndex: 0,
+    });
+    expect(result.changed).toBe(true);
+    const footer = instanceNode(currentDoc()).descendants?.Footer as Record<
+      string,
+      unknown
+    >;
+    expect(footer.style).toEqual(STYLE);
+    expect((footer.children as CanonicalNode[]).map((n) => n.id)).toEqual([
+      "page-text",
+    ]);
+  });
+});
+
 // ── fills (F19) ──────────────────────────────────────────────────────────────
 describe("ADR-240 G2 — 채운 노드 배경 (fills)", () => {
   const FILL = [
@@ -532,7 +605,10 @@ describe("ADR-240 G2 — 자유 내용 (primitive) 채우기", () => {
     })!;
     expect(plan.syntheticId).toBe(`${INST}/Content/text`);
     const next = withBodyChildren(seedDocument(), [
-      { ...cardInstance([]), descendants: plan.nextDescendantMap } as CanonicalNode,
+      {
+        ...cardInstance([]),
+        descendants: plan.nextDescendantMap,
+      } as CanonicalNode,
     ]);
     expect(previewContent(next).map((c) => c.type)).toEqual(["Button", "Text"]);
     expect(scene(next).childIds(`${INST}/Content`)).toEqual([
@@ -607,9 +683,9 @@ describe("ADR-240 G2 — Canvas drop 대상 = 영역 host 만", () => {
     const tabList = [...tabsStore.elementsById.values()].find(
       (node) => node.id.startsWith("tabs-inst/") && node.type === "TabList",
     );
-    expect(Array.isArray((tabList as { slot?: unknown } | undefined)?.slot)).toBe(
-      true,
-    );
+    expect(
+      Array.isArray((tabList as { slot?: unknown } | undefined)?.slot),
+    ).toBe(true);
     expect(acceptsDraggedElement(tabList!, tabsStore)).toBe(false);
   });
 

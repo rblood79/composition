@@ -485,8 +485,22 @@ function applyOverrideToNode(
     const resolvedChildren = childrenOverride
       .map((c) => resolveNode(c, doc, cache, imports))
       .filter(isResolvedEnabled);
+    // ADR-240 Phase 2 — 같은 항목의 props patch (채운 영역 host 자체의 style 편집 — `{ children, style }`) 도
+    //   얹는다. Canvas (`applyDescendantPatchToElement`) 는 이미 싣는다 — 빠지면 영역 스타일이 Preview 만 사라진다.
+    const { children: _replaced, ...hostPatch } = override as Record<
+      string,
+      unknown
+    >;
+    const host =
+      Object.keys(hostPatch).length > 0
+        ? resolveCanonicalDescendantOverride(
+            child,
+            { [pathKey]: hostPatch as DescendantOverride },
+            pathKey,
+          )
+        : child;
     const resolved: ResolvedNode = {
-      ...nodeToResolved(child),
+      ...nodeToResolved(host),
       children: resolvedChildren,
       _overrides: ["children"],
     };

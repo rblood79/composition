@@ -94,15 +94,32 @@ export function readSlotFill(
   );
 }
 
-/** 채움 목록을 segment 키로 쓴 다음 descendants (옛 id 키는 지운다). `children` 이 null 이면 비우기. */
+function entryRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+/**
+ * 채움 목록을 segment 키로 쓴 다음 descendants (옛 id 키는 지운다). `children` 이 null 이면 비우기.
+ * ADR-240 Phase 2 — 같은 항목의 영역 host 편집 (style · fills 등 mode A 필드) 은 채우기 · 비우기에서 보존한다.
+ */
 export function writeSlotFill(
   descendants: Descendants | undefined,
   host: Pick<SlotFillHost<SlotFillPathNode>, "path" | "legacyPath">,
   children: unknown[] | null,
 ): Descendants {
   const next: Descendants = { ...(descendants ?? {}) };
+  const { children: _legacyChildren, ...legacyRest } = host.legacyPath
+    ? entryRecord(next[host.legacyPath])
+    : {};
+  const { children: _currentChildren, ...currentRest } = entryRecord(
+    next[host.path],
+  );
   if (host.legacyPath) delete next[host.legacyPath];
-  if (children === null) delete next[host.path];
-  else next[host.path] = { children };
+  const kept = { ...legacyRest, ...currentRest };
+  if (children !== null) next[host.path] = { ...kept, children };
+  else if (Object.keys(kept).length > 0) next[host.path] = kept;
+  else delete next[host.path];
   return next;
 }
