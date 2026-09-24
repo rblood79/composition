@@ -2253,7 +2253,20 @@ impl LayoutTree {
 
         for &c in abs_children {
             // 자식 solve — available = containing block (%/auto 해석 기준).
-            let (mut w, mut h) = self.solve_node(c, cb_w, cb_h);
+            //
+            // **auto 폭 컨테이너는 shrink-to-fit** (CSS 2.1 §10.3.7 — left · right 가 동시에 지정되지 않으면
+            //   used width = min(max-content, max(min-content, 가용 폭))). 종전엔 containing block 폭으로 한 번
+            //   solve 해 그 안의 `%` 자식 (Disclosure 헤더 `width:100%`) 이 containing block 에 풀리고, block
+            //   컨테이너는 텍스트 자식까지 가용 폭으로 퍼져 absolute Disclosure · frame 이 페이지 폭 1920 이
+            //   됐다 (Chrome: 내용 폭 168 — 사용자 신고 2026-09-24). fit 확정 뒤 그 폭으로 다시 solve 한다
+            //   (`solve_block_child` 의 atomic inline shrink-to-fit 과 같은 순서 · 재-solve 전 dirty 필수).
+            let (mut w, mut h) = match self.absolute_shrink_to_fit_width(c, cb_w) {
+                Some(fit_border_box) => {
+                    self.mark_subtree_dirty(c);
+                    self.solve_node(c, fit_border_box, cb_h)
+                }
+                None => self.solve_node(c, cb_w, cb_h),
+            };
 
             let cstyle = self.get(c).map(|n| n.style.clone()).unwrap_or_default();
             let child_is_container = self
@@ -2364,6 +2377,37 @@ impl LayoutTree {
                 n.subtree_dirty = false;
             }
         }
+    }
+
+    /// absolute 자식의 shrink-to-fit border-box 폭 (CSS 2.1 §10.3.7). 폭이 auto 인 **컨테이너** 이고 left ·
+    /// right 가 동시에 지정되지 않았을 때만 — 둘 다 지정이면 stretch (`resolve_abs_axis`), 명시 폭 · leaf
+    /// (측정 스칼라가 폭을 정한다) 는 종전 경로. 가용 폭 = containing block − 지정된 inset − margin.
+    fn absolute_shrink_to_fit_width(&mut self, c: usize, cb_w: f32) -> Option<f32> {
+        let (cstyle, has_children) = {
+            let n = self.get(c)?;
+            (n.style.clone(), !n.children.is_empty())
+        };
+        if !has_children || !matches!(cstyle.width.as_deref(), None | Some("auto")) {
+            return None;
+        }
+        let set = |v: Option<&str>| v.map(|s| s.trim() != "auto").unwrap_or(false);
+        let left_set = set(cstyle.inset_left.as_deref());
+        let right_set = set(cstyle.inset_right.as_deref());
+        if left_set && right_set {
+            return None;
+        }
+        let ctx = self.ctx_for(cb_w);
+        let (min_w, max_w) = self.measure_intrinsic_width(c)?;
+        let pbh = axis_pad_border(&cstyle, &ctx, true);
+        let margin = |v: Option<&str>| {
+            if v == Some("auto") { 0.0 } else { resolve_signed(v, &ctx) }
+        };
+        let margins = margin(cstyle.margin_left.as_deref()) + margin(cstyle.margin_right.as_deref());
+        let inset = |set: bool, v: Option<&str>| if set { resolve_inset(v, &ctx).unwrap_or(0.0) } else { 0.0 };
+        let insets = inset(left_set, cstyle.inset_left.as_deref()) + inset(right_set, cstyle.inset_right.as_deref());
+        let avail_content = (cb_w - insets - margins - pbh).max(0.0);
+        let fit = max_w.min(min_w.max(avail_content));
+        Some(fit + pbh)
     }
 
     /// flex 컨테이너 solve — 자식 재귀 → `flex.rs` 배치 → 컨테이너 크기 도출.
@@ -9214,6 +9258,46 @@ mod tests {
         assert_eq!(c.x, 30.0, "insetLeft 가 x 로 반영");
         assert_eq!(c.y, 10.0, "insetTop 이 y 로 반영");
         assert_eq!((c.width, c.height), (20.0, 20.0));
+    }
+
+    #[test]
+    fn absolute_auto_width_block_container_shrinks_to_fit() {
+        // CSS 2.1 §10.3.7 — left · right 가 동시에 지정되지 않은 auto 폭 absolute 상자는 shrink-to-fit.
+        //   2026-09-24 사용자 신고: absolute Disclosure (block > 헤더 `width:100%` + 텍스트 본문) 가 캔버스
+        //   1920 (containing block) / Chrome 168. 텍스트 leaf 와 `%` 자식 모두 containing block 이 아니라
+        //   내용 폭에 풀려야 한다.
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"flex","width":"100%","height":"36px","paddingLeft":"12px","paddingRight":"12px","contentMinWidth":59,"contentMaxWidth":59},"children":[]},
+            {"style":{"display":"block","height":"20px","contentMinWidth":40,"contentMaxWidth":144},"children":[]},
+            {"style":{"display":"block","position":"absolute","insetLeft":"10px","insetTop":"10px","paddingLeft":"12px","paddingRight":"12px"},"children":[0,1]},
+            {"style":{"display":"block","position":"relative","width":"1920px","height":"400px"},"children":[2]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[3], 1920.0, 400.0);
+        let abs = tree.get_layout(handles[2]);
+        assert_eq!(abs.x, 10.0);
+        assert_eq!(abs.width, 168.0, "max-content 144 + padding 24 (containing block 1920 아님)");
+        let header = tree.get_layout(handles[0]);
+        assert_eq!(header.width, 144.0, "헤더 100% = shrink-to-fit 된 content 폭");
+    }
+
+    #[test]
+    fn absolute_auto_width_shrink_to_fit_is_bounded_by_available_space() {
+        // 가용 폭 (containing block − left − margin) 이 max-content 보다 작으면 min-content 하한까지 줄고,
+        // left · right 가 둘 다 지정되면 종전대로 stretch.
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"block","height":"20px","contentMinWidth":40,"contentMaxWidth":300},"children":[]},
+            {"style":{"display":"block","position":"absolute","insetLeft":"50px"},"children":[0]},
+            {"style":{"display":"block","height":"20px","contentMinWidth":40,"contentMaxWidth":300},"children":[]},
+            {"style":{"display":"block","position":"absolute","insetLeft":"20px","insetRight":"30px"},"children":[2]},
+            {"style":{"display":"block","position":"relative","width":"200px","height":"100px"},"children":[1,3]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[4], 400.0, 400.0);
+        assert_eq!(tree.get_layout(handles[1]).width, 150.0, "가용 200 − left 50 = 150 (max-content 300 보다 작다)");
+        assert_eq!(tree.get_layout(handles[3]).width, 150.0, "양측 inset = stretch 200 − 20 − 30");
     }
 
     #[test]

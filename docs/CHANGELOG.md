@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [폭을 지정하지 않은 absolute 요소가 캔버스에서 내용 폭으로 그려진다] - 2026-09-24
+
+### Fixed
+
+- **폭을 지정하지 않은 absolute 배치 컨테이너 (Disclosure · frame 등) 가 캔버스에서 페이지 폭 (1920) 까지 넓어지던 문제를 고쳤다.** 이제 Preview 처럼 내용 폭에 맞춰지고 (absolute Disclosure 1920 → 169, Preview 168), 가용 폭이 모자라면 최장 단어 폭까지 줄어든다. left · right 를 둘 다 지정한 요소는 종전대로 그 사이를 채운다.
+  - **Why**: 레이아웃 엔진이 absolute 자식을 containing block 폭으로 한 번 풀어, 자식의 `%` 폭과 block 흐름이 그 폭으로 퍼졌다. CSS 는 이 경우 shrink-to-fit (§10.3.7) 이다.
+  - 위치: `packages/engine/src/tree.rs` (`place_absolute_children` · `absolute_shrink_to_fit_width`)
+
 ## [Disclosure · DisclosureGroup 캔버스 크기가 Preview 와 맞는다] - 2026-09-24
 
 ### Fixed
@@ -18,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **캔버스에서 Disclosure 와 DisclosureGroup 이 너무 좁게 (그룹 안 24px) 그려지고 본문이 한 글자씩 줄바꿈되던 문제를 고쳤다.** 폭을 지정하지 않은 Disclosure 는 이제 Preview 처럼 헤더 (chevron + 제목) 와 본문 글자 중 넓은 쪽에 맞춰진다 (Preview 대비 1px 이내).
   - **Why**: 헤더는 `width:100%` 인 측정 요소라 부모 폭이 정해지지 않으면 레이아웃이 헤더 글자 폭을 몰랐다 (padding 만 남음). 헤더 측정값은 padding 을 두 번 셌고, 본문 글자 폭은 레이아웃에 전달되지 않았다.
   - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts` (`enrichWithIntrinsicSize` · `calculateContentWidth` DisclosureHeader 분기)
-  - 남은 것: 폭을 지정하지 않은 absolute 배치 요소는 캔버스에서 페이지 폭까지 넓어진다 (Disclosure 만이 아니라 엔진 공통 — 별도 판단).
+  - 남은 것: 폭을 지정하지 않은 absolute 배치 요소가 페이지 폭까지 넓어지던 엔진 공통 문제는 위 항목에서 고쳤다.
 
 ## [ADR-237 — 그룹 · Breadcrumbs · 항목 상태도 origin · instance · slot 으로] - 2026-09-24
 
