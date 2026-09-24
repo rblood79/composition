@@ -2,7 +2,9 @@
 
 ## Status
 
-Proposed — 2026-09-24
+Accepted — 2026-09-25 (사용자 지시 `/execute-adr 239`, Codex 리뷰 판독 1 + 수리 검증 1 + round 3 이슈 0 종결 후 · worktree `adr-239`) · Proposed — 2026-09-24
+
+G0 개정 (2026-09-25): 239 전 Canvas 는 중첩 TreeItem 을 부모 행 위에 겹쳐 그린다 ("전부 펼쳐 그린다" 가 아님, breakdown §5 N1) → 사용자 판정 "A 유지: 전부 펼침" — Hard constraint 의 Canvas 보존 영역 · G6 를 좁혔다.
 
 설계 요청: 사용자 (2026-09-24) — RAC 조사 후보 중 ADR-238 에 넣지 않은 항목을 "설계부터 하자" → 사용자 판정 (AskUserQuestion): 3 ADR 로 분리 (239 Tree · 240 이름 영역 · 241 Table), 작은 항목 (Menu 하위 메뉴 · LoadMore · ColorSwatchPicker) 은 이 ADR 에 포함. 전제 기록: [breakdown §1](design/239-tree-submenu-swatch-item-origins-breakdown.md#1-전제-확정-기록-fork-4-질문--사용자-confirm).
 
@@ -31,7 +33,7 @@ RAC 에서 **항목 안에 같은 종류 항목이 들어가는** 재귀 collect
 ### Hard constraints
 
 - **펼침 두 leg 일치**: 같은 Tree 문서에서 Canvas 와 Preview 가 같은 항목 집합을 보인다 (정본 = `expandedKeys`).
-- **Canvas 시각 보존 (영역 구분)**: 기존 문서를 열었을 때 Canvas 의 행 집합 · 행 rect · 글자 · 들여쓰기가 이관 전과 같다 (Tree 는 지금 전부 펼쳐 그리므로 그 상태를 `expandedKeys` 로 굳힌다). 의도된 변화 2 가지만 허용: 자식 있는 항목 chevron 이 오른쪽 → 아래 (지금 Canvas 는 자식을 그리면서 접힘 chevron 을 그린다 — 그 자체가 발산) · 비어 있지 않은 `expandedKeys` (AI · import 가 쓴 값) Tree 의 접힌 자식이 빠짐. Preview Tree 는 접힘 → 펼침 (두 leg 일치 — 영향 범위 = 중첩 TreeItem 이 있고 `expandedKeys` 가 없거나 `[]` 인 Tree).
+- **Canvas 시각 보존 (영역 구분 — G0 개정 2026-09-25)**: 기존 문서를 열었을 때 **중첩 TreeItem 이 없는 Tree** 와 중첩 Tree 의 **최상위 행** 까지의 행 집합 · 행 rect · 글자 · 들여쓰기가 이관 전과 같다. G0 실측 (N1): 239 전 Canvas 는 중첩 자식 행을 펼쳐 쌓지 않고 **부모 행 상자 안에 겹쳐** 그린다 — 그래서 중첩 Tree 는 보존할 모습이 없다. 사용자 판정 (2026-09-25, AskUserQuestion) "A 유지: 전부 펼침" — 기존 중첩 Tree 는 `expandedKeys` 를 부모 항목 key 전부로 채우고 Canvas 는 자식 행을 부모 행 아래에 쌓는다 (중첩 자식 행 · 그 아래 행의 이동 = 변경 영역). 의도된 변화: 자식 있는 항목 chevron 오른쪽 → 아래 · 중첩 자식 행 겹침 → 쌓임 (아래 행이 내려감) · 비어 있지 않은 `expandedKeys` (AI · import · interaction 이 쓴 값) Tree 의 접힌 자식이 빠짐. Preview Tree 는 접힘 → 펼침 (두 leg 일치 — 영향 범위 = 중첩 TreeItem 이 있고 `expandedKeys` 가 없거나 `[]` 인 Tree).
 - **펼침은 문서 상태**: Preview 펼침 토글이 canonical · history · DB 까지 닿는다 (지금은 runtime 전용 — F3). 이관 · reload 뒤 선택 · 펼침 항목이 이관 전과 같다 (key 가 바뀌면 old → new 대응).
 - **RAC key 유일**: TreeItem · MenuItem 은 깊이를 가로질러, swatch 는 색으로 유일.
 - **BC 수식**: 문서당 (i) Components 새 노드 — TreeItem origin 2 + 상호작용 변형 4 + `--collapsed` 1 · ColorSwatch origin 1 · ColorSwatchPicker origin 1 (+ swatch ref 6) (ii) 사용자 Tree plain TreeItem `n` → ref `n` (iii) `children` 이 있는 정적 Menu 행 `k` → 중첩 ref `k` (iv) 사용자 ColorSwatchPicker swatch `s` → ref `s` (v) 바인딩 Tree · Menu Δ0. 항목당 byte 는 Phase 0 실측.
@@ -112,7 +114,7 @@ RAC 에서 **항목 안에 같은 종류 항목이 들어가는** 재귀 collect
 | G3   | Phase 3 | unit (원복 RED): MenuItem 자식 → Preview `SubmenuTrigger` (정적 · 구조 경로) · `children` 행 이관 전후 같은 트리 · 바인딩 Menu 무변경                                                                                                                                                                                                                                                                      | 하위 메뉴 이관 보류     |
 | G4   | Phase 4 | unit (원복 RED): ColorSwatchPicker origin · swatch Slot "+" 색 유일 · binding props Preview 도달 · ColorSwatch origin 모양 (`borderRadius`) 편집이 Preview swatch 에 도달 · live (Skia): swatch 추가 rect · origin 모양 편집                                                                                                                                                                               | swatch slot 보류        |
 | G5   | Phase 5 | 같은 세션 headed A/B (대조 arm = 239 전 빌드) · `scene.build` p95 median Δ ≤ +1 ms · fixture = 사람이 만든 모양 (Q1) · 불리 조작 (origin 편집 · 펼침 토글 · breakpoint, Q2) · 총비용 A/B (Q3)                                                                                                                                                                                                              | 사용자 판정             |
-| G6   | Phase 5 | BC: 보존 영역 Canvas 픽셀 이관 전후 동일 (Tree 행 · 글자 · 들여쓰기, chevron mask · ColorSwatchPicker 전 영역, oracle = 239 전 빌드 arm) · 변경 영역 기대 결과 (chevron 아래 · 비어 있지 않은 `expandedKeys` 의 접힌 자식 제외) · Δbyte 수식 · 재hydration Δ0 (IndexedDB 저장 층 live)                                                                                                                     | 실패 가족 이관 보류     |
+| G6   | Phase 5 | BC: 보존 영역 Canvas 픽셀 이관 전후 동일 (중첩 없는 Tree · 중첩 Tree 의 최상위 행까지 — 행 · 글자 · 들여쓰기, chevron mask · ColorSwatchPicker 전 영역, oracle = 239 전 빌드 arm) · 변경 영역 기대 결과 (chevron 아래 · 중첩 자식 행이 부모 행 아래에 쌓이고 아래 행이 내려감 · 비어 있지 않은 `expandedKeys` 의 접힌 자식 제외) · Δbyte 수식 · 재hydration Δ0 (IndexedDB 저장 층 live)                                                                                                                     | 실패 가족 이관 보류     |
 
 ### Live Exercise
 

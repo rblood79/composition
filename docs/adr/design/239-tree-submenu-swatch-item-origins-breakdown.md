@@ -91,4 +91,26 @@
 
 ## 5. 실행 기록
 
-(실행 시 기록)
+### Phase 0 — inventory (G0, 2026-09-25 · main `a2d1fe649`, worktree `adr-239`)
+
+- **238 반영**: Implemented (2026-09-24) — 역할 표 `ITEM_SLOT_ROLE_TABLE` (`slotRoles.ts:377-401`) · section key `resolveSectionItemKey` (`slotRoles.ts:491-508`) 확인. 착수 조건 충족.
+- **F1~F11 재확인**: 내용 전부 일치, 줄 이동만 — F1 `nestingRules.ts:302-303` · F3 `CollectionRenderers.tsx:87-212` (key `:119-121` · 펼침 `:161-165` · writeback `:181-207`) · F4 `buildSpecNodeData.ts:1786-1801` · F5 level `:561-581` · checkbox `:595-623` · F6 `CollectionRenderers.tsx:217-251` · F7 `staticCollectionMigration.ts` `hasSubmenu :449-451` · `hasUnsupportedRows :457-477` · F8 `buildSpecNodeData.ts:1816-1827` · F9 catalog `componentCatalog.ts:1254-1315` · F10 `componentCatalog.ts:1069`. F7 보강: 238 이 만든 정적 MenuItem instance 경로 (`CollectionRenderers.tsx:989-1116`) 에도 `SubmenuTrigger` 가 없다.
+- **새 사실 (본문 영향)**:
+  - **N1 239 전 Canvas 는 중첩 TreeItem 을 부모 행 위에 겹쳐 그린다** — TreeItem 은 rule 고정 높이 32 (`layout/engines/utils.ts:2696-2702`) 상자이고 자식 TreeItem 은 그 상자 안 (부모 padding 안쪽 x 8 · y 0) 에 놓인다. live (`adr239-g0-probe.mjs`, `A > B` · `C`): Tree 74 · A (5,5,1910,32) · B (A 기준 8,0,1894,32) · C (5,37) — 스크린샷에서 "A B" 가 한 행에 겹치고 chevron 오른쪽. 본문의 "Canvas 는 전부 펼쳐 그린다" 는 틀렸다 → **사용자 판정 (AskUserQuestion, 2026-09-25) "A 유지: 전부 펼침"** — Hard constraint Canvas 보존 영역을 중첩 없는 Tree · 최상위 행으로 좁히고, 중첩 자식 행 쌓임 · 아래 행 이동을 G6 변경 영역에 더했다 (본문 Status · Hard constraints · G6 개정). Phase 2 는 펼침 판정에 더해 **자식 행을 부모 행 아래에 쌓는 layout** 까지 맡는다.
+  - N2 238 경로 key 는 계획 ("상속 항목만 접두") 과 달리 **ref instance section 안 항목 전부** 접두다 — 두 해석기의 상속 id 모양이 다르다 (Canvas `<instance>/<segment>` · Preview origin id + `_resolvedFrom`). 239 TreeItem key 도 id 모양으로 상속 여부를 가르지 않는다 (Phase 1 에서 확정 · 기록).
+  - N3 RAC `ColorSwatchPickerItem` 의 collection id = `color.toString("hexa")` (`react-aria-components/dist/private/ColorSwatchPicker.mjs:86`) — 같은 색 swatch 둘은 "같이 선택" 이 아니라 **한 항목으로 합쳐진다** (Preview 2 항목 · Canvas 3 상자). R5 의 뜻을 이 사실로 읽는다 (Slot "+" 새 swatch 는 형제와 다른 색 — 그대로).
+  - N4 Tree 항목 key 는 네 선택 · 펼침 필드 밖에도 문서에 저장된다 — interaction capability `selectItem` · `expand` 의 `itemKey` param (`packages/shared/src/interactions/capabilityRegistry.ts:149-179`). key 대응 이관 (Phase 2) 이 이 param 도 같은 대응표로 옮긴다 (없으면 그 Tree 이관 보류와 같은 규칙).
+- **진단 RED** (`apps/builder/src/builder/components/__tests__/adr239Diagnostics.test.tsx`, `it.fails` 5 · 사실 `it` 2): (a) `component-tree` origin `slot` 없음 `expected false to be true` · (b) 행 집합 Canvas `[ti-a, ti-b, ti-c]` ≠ Preview `[ti-a, ti-c]` · (c) 같은 TreeItem origin instance 둘의 상속 자식 key `Set size 1 ≠ 2` · (d) 하위 메뉴 행 있는 정적 Menu `items` 그대로 · (e) ColorSwatchPicker origin 없음. 사실: 239 전 두 leg 행 집합 (Canvas 3 · Preview 2) · 같은 색 swatch 합쳐짐 + picker `defaultValue` 미도달 (선택 0).
+- **쓰기 경로 표**:
+
+  | 경로 | 중첩 TreeItem | Tree `expandedKeys` | Menu 하위 메뉴 | swatch |
+  | --- | --- | --- | --- | --- |
+  | 팔레트 · factory | 평면 TreeItem 2 (`LayoutComponents.ts:75-111`) | `[]` (`unified.types.ts:1367`) | 쓰지 않음 | ColorSwatch 6 (`DateColorComponents.ts:647-690`) |
+  | Layers drag · 붙여넣기 | 가능 (nesting `TreeItem: ["TreeItem"]`) | props 그대로 | props 그대로 | 가능 |
+  | Properties 패널 | 없음 | 표면 0 (Tree binding `accepts` 에 없음) | ItemsManager `children` 편집 없음 | swatch `color` |
+  | Preview 토글 | — | runtime 전용 (allowlist `isExpanded` 뿐, F3) | — | — |
+  | interaction | — | capability `expand` / `collapse` (runtime) · param 저장 | — | — |
+  | AI · import | 열린 props · 트리 | 열린 props 쓰기 가능 (비어 있지 않은 배열의 유일한 원천) | `items.children` | 가능 |
+
+- **live 하니스 전제 (worktree)**: gitignored 파일 2 — `apps/builder/public/license` 복사 · `.auth-session.json` 에 `http://localhost:5181` origin 항목 추가 (없으면 대시보드 대기 timeout).
+- **이관 수식 실측**: Phase 1~4 구현 뒤 G6 에서 잰다 (238 선례 — 수식은 본문 BC 행).

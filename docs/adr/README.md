@@ -11,6 +11,8 @@
 
 ---
 
+> **2026-09-25 ADR-239 Accepted**: 사용자 지시 `/execute-adr 239` (Codex 리뷰 round 3 이슈 0 종결 후, worktree `adr-239` — 241 과 병렬). 열림 10 (Proposed 8 · Accepted 2), 합계 268.
+
 > **2026-09-24 ADR-240 Implemented**: 이름 영역 · 자유 내용 slot — Card · Dialog · Popover · Tooltip (Phase 0~3 / G0~G4, worktree `adr-240` → main merge `a0ecd2004`). Card 영역 4 · Popover/Tooltip root slot seed · Dialog 본문 Content · Actions 영역 frame 이관 (instance Description 경로 전치 · 저장 history 재생 전치) · 자유 내용 5종 (Text · Image · Icon · Separator · Frame) 채우기 · 채운 노드 편집 = mode C 배열 노드 · 팔레트 영역 삽입 · Canvas drop 영역 이동 (history 수리) · 영역 style 두 leg 대칭. G3 사용자 판정 "최적화 먼저" → mode C 새 노드의 빈 지우기 스캔 생략 · 네 조작 base 보다 빠름. G4 픽셀 Δ0 · Δbyte +8 · 재hydration Δ0 · origin 스냅샷 Undo 수리 (F28). live 6/6 · 9/9. 열림 10 (Proposed 9 · Accepted 1), 합계 268.
 
 > **2026-09-24 ADR-238 Implemented**: 목록 항목 안 slot · Section 층 · Select/ComboBox 항목 origin (Phase 0~4 / G0~G5). 항목 역할 표 + Properties "Item roles" (instance 역할 on/off · origin 역할 추가) · Section type 3 + Header + section origin 3 (section 이 섞인 정적 목록 이관 — Canvas 가 Preview 구조를 그린다, G0 개정) · Select/ComboBox 정적 항목 = ListBoxItem origin instance 자식 (선택 key · value · 명시 textValue 보존) · Canvas 트리거 선택 글자 회귀 수리 (SelectValue text source). live 6/6 · 5/5 · 11/11 · G5 픽셀 14/14 Δ0. G4 는 사용자 판정 "Select 최적화 후 예외" — popover 항목 해석 전 제외 (Select 통과) · 해석 재사용을 origin 자식 있는 instance 로 확장, section 목록 편집 +1.3 · 항목 origin 편집 +2.1 ms 를 R5 예외로 기록. 열림 11 (Proposed 10 · Accepted 1), 합계 268.
@@ -125,7 +127,7 @@
 
 #### [239](239-tree-submenu-swatch-item-origins.md) — Tree · Menu 하위 메뉴 · ColorSwatchPicker 항목 origin — 재귀 항목
 
-- **상태**: Proposed (2026-09-24) · 선행 238 (역할 표 · 경로 포함 항목 key)
+- **상태**: Accepted (2026-09-25) · worktree `adr-239` 실행 중 · 선행 238 (역할 표 · 경로 포함 항목 key — Implemented 2026-09-24)
 - **규모**: Phase 0~5 ([breakdown](design/239-tree-submenu-swatch-item-origins-breakdown.md)) — inventory → Tree 항목 origin · 재귀 slot → 펼침 두 leg 대칭 + `expandedKeys` 이관 → Menu 하위 메뉴 → ColorSwatchPicker · LoadMore 판정 → 성능 · BC
 - **우선순위**: 사용자 판정 2026-09-24 (3 ADR 분리 · 작은 항목 포함)
 
