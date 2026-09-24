@@ -26,6 +26,12 @@ import {
   resolveSlotInsertAction,
 } from "../../components/slotHostPolicy";
 import { planTabItemInsert } from "../../components/collectionItemInsert";
+import {
+  collectSlotFillHosts,
+  readSlotFill,
+  writeSlotFill,
+  type SlotFillHost,
+} from "../../components/slotFillPath";
 import { getActiveCanonicalDocument } from "../../stores/canonical/canonicalElementsBridge";
 import type { PanelNode } from "../panelNode";
 import { ACTION_ICONS } from "../../config/actionIcons";
@@ -39,17 +45,7 @@ type UpdateElementPatch = Parameters<
   ReturnType<typeof useStore.getState>["updateElement"]
 >[1];
 
-type SlotHostElement = PanelNode & {
-  metadata?: { slot?: unknown };
-  slot?: false | string[];
-};
-
-type SlotHostInfo = {
-  host: PanelNode;
-  label: string;
-  path: string;
-  recommendedIds: string[];
-};
+type SlotHostInfo = SlotFillHost<PanelNode> & { label: string };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -92,55 +88,24 @@ function resolvePanelReference(
   );
 }
 
-function getStableSegment(element: PanelNode): string {
-  return element.customId ?? element.id;
-}
-
-function getSlotValue(element: PanelNode): string[] | null {
-  const slotElement = element as SlotHostElement;
-  if (Array.isArray(slotElement.slot)) return slotElement.slot;
-
-  const metadataSlot = slotElement.metadata?.slot;
-  if (Array.isArray(metadataSlot)) return metadataSlot;
-
-  return null;
-}
-
-function getSlotFillChildren(instance: PanelNode, path: string): unknown[] {
-  const override = getComponentDescendantsMirror(asElementLike(instance))?.[
-    path
-  ];
-  if (!override || typeof override !== "object" || Array.isArray(override)) {
-    return [];
-  }
-  const children = (override as { children?: unknown }).children;
-  return Array.isArray(children) ? children : [];
-}
-
+/** ADR-240 Phase 1 — 경로 키 = segment (`slotFillPath`). 종전 `customId ?? id` 키는 읽기 폴백 · 다음 쓰기에서 이관. */
 function collectSlotHosts(
   parent: PanelNode,
   childrenByParent: ReadonlyMap<string, PanelNode[]>,
-  pathPrefix = "",
 ): SlotHostInfo[] {
-  const slots: SlotHostInfo[] = [];
-  const children = childrenByParent.get(parent.id) ?? [];
+  return collectSlotFillHosts<PanelNode>(parent.id, childrenByParent).map(
+    (slot) => ({ ...slot, label: getElementLabel(slot.host) }),
+  );
+}
 
-  for (const child of children) {
-    const segment = getStableSegment(child);
-    const path = pathPrefix ? `${pathPrefix}/${segment}` : segment;
-    const slot = getSlotValue(child);
-    if (slot) {
-      slots.push({
-        host: child,
-        label: getElementLabel(child),
-        path,
-        recommendedIds: slot,
-      });
-    }
-    slots.push(...collectSlotHosts(child, childrenByParent, path));
-  }
-
-  return slots;
+function getSlotFillChildren(
+  instance: PanelNode,
+  slot: SlotHostInfo,
+): unknown[] {
+  return readSlotFill(
+    getComponentDescendantsMirror(asElementLike(instance)) ?? undefined,
+    slot,
+  );
 }
 
 function getFillCandidateOptions(
@@ -280,7 +245,7 @@ export const ComponentSlotFillSection = memo(function ComponentSlotFillSection({
   }
 
   const instance = element;
-  const filledChildren = getSlotFillChildren(instance, selectedSlot.path);
+  const filledChildren = getSlotFillChildren(instance, selectedSlot);
   const filledLabel = getFilledLabel(filledChildren, elementsById);
 
   const handleFillSlot = () => {
@@ -290,7 +255,9 @@ export const ComponentSlotFillSection = memo(function ComponentSlotFillSection({
 
     // ADR-234 Phase 3 — 목록 틀 slot (TagList · TabList) 의 Fill = 항목 instance 추가: 상속 목록을 이어받아
     //   끝에 새 항목 (Tabs 는 짝 TabPanel 도). 빈 override 로 시작하면 상속 목록이 항목 1개로 바뀐다.
-    if (resolveSlotInsertAction(selectedSlot.host, candidate).kind === "list-item") {
+    if (
+      resolveSlotInsertAction(selectedSlot.host, candidate).kind === "list-item"
+    ) {
       const document = getActiveCanonicalDocument();
       const plan = document
         ? planTabItemInsert({
@@ -311,10 +278,7 @@ export const ComponentSlotFillSection = memo(function ComponentSlotFillSection({
     const latestInstance = elementsById.get(element.id) ?? instance;
     const legacyDescendantMap =
       getComponentDescendantsMirror(asElementLike(latestInstance)) ?? {};
-    const currentChildren = getSlotFillChildren(
-      latestInstance,
-      selectedSlot.path,
-    );
+    const currentChildren = getSlotFillChildren(latestInstance, selectedSlot);
     const effectiveChildren =
       pendingChildrenByPathRef.current[selectedSlot.path] ?? currentChildren;
     const nextChildren = [
@@ -328,20 +292,22 @@ export const ComponentSlotFillSection = memo(function ComponentSlotFillSection({
     pendingChildrenByPathRef.current[selectedSlot.path] = nextChildren;
 
     void updateElement(element.id, {
-      [COMPONENT_DESCENDANTS_MIRROR_FIELD]: {
-        ...legacyDescendantMap,
-        [selectedSlot.path]: {
-          children: nextChildren,
-        },
-      },
+      [COMPONENT_DESCENDANTS_MIRROR_FIELD]: writeSlotFill(
+        legacyDescendantMap,
+        selectedSlot,
+        nextChildren,
+      ),
     } as UpdateElementPatch);
   };
 
   const handleClearSlot = () => {
     const legacyDescendantMap =
       getComponentDescendantsMirror(asElementLike(instance)) ?? {};
-    const nextLegacyDescendantMap = { ...legacyDescendantMap };
-    delete nextLegacyDescendantMap[selectedSlot.path];
+    const nextLegacyDescendantMap = writeSlotFill(
+      legacyDescendantMap,
+      selectedSlot,
+      null,
+    );
     delete pendingChildrenByPathRef.current[selectedSlot.path];
 
     void updateElement(element.id, {

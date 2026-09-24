@@ -19,6 +19,8 @@ import { LEGACY_DIALOG_CONTENT_ID } from "../migrateDialogTriggerInstances";
  * ADR-240 Phase 0 — 진단 RED (breakdown §4 Phase 0 (a)~(f)).
  * `it` = G0 실측 기준선 (이미 GREEN). `it.fails` = 현재 결함 — 닫는 Phase 가 `it` 으로 바꾼다:
  *   (a) (c) → Phase 1 · (e) → Phase 2 · (f) → Phase 1 (history 전치).
+ * Phase 1 로 (a) (c) (f) GREEN — 모양 고정은 `adr240Phase1.regionSlots.test.tsx`. (g) 는 Canvas 가 id 키를 계속 안 읽는다
+ *   (UI 가 segment 키를 쓰도록 바꿔 닫음 — 기존 id 키 채움은 LOW deferred, breakdown §5 Phase 1).
  */
 
 function seedDocument(): CompositionDocument {
@@ -88,36 +90,29 @@ function sceneChildTypes(doc: CompositionDocument, parentId: string) {
 describe("ADR-240 진단 (a) — Card instance 의 Slot 채우기 절이 비어 있다 (F3 · F5)", () => {
   const REGIONS = ["preview", "header", "content", "footer"];
 
-  it("기준선 F5: Card origin 영역 자식 4 = slotRole 만 있고 slot 배열은 없다", () => {
+  it("기준선 F5: Card origin 영역 자식 4 = slotRole 보유 (G0 에서는 slot 배열 0)", () => {
     const card = find(seedDocument().children, CARD_ORIGIN_ID)!;
     const regions = (card.children ?? []).filter((child) =>
       REGIONS.includes(String(child.metadata?.slotRole)),
     );
     expect(regions.map((r) => r.metadata?.slotRole)).toEqual(REGIONS);
-    expect(regions.some((r) => Array.isArray(r.slot))).toBe(false);
   });
 
-  it.fails(
-    "Card origin 영역 host 4 개가 slot 배열을 가진다 (Slot 채우기 절 대상 — Phase 1)",
-    () => {
-      const card = find(seedDocument().children, CARD_ORIGIN_ID)!;
-      for (const role of REGIONS) {
-        const region = (card.children ?? []).find(
-          (child) => child.metadata?.slotRole === role,
-        );
-        expect(Array.isArray(region?.slot), role).toBe(true);
-      }
-    },
-  );
-
-  it.fails(
-    "CardPreview 는 slot host 다 (FRAME_SLOT_HOST_TYPES 에 없음 — Phase 1)",
-    () => {
-      expect(isSlotHostElement({ id: "p", type: "CardPreview" } as never)).toBe(
-        true,
+  it("Card origin 영역 host 4 개가 slot 배열을 가진다 (Slot 채우기 절 대상 — Phase 1 GREEN)", () => {
+    const card = find(seedDocument().children, CARD_ORIGIN_ID)!;
+    for (const role of REGIONS) {
+      const region = (card.children ?? []).find(
+        (child) => child.metadata?.slotRole === role,
       );
-    },
-  );
+      expect(Array.isArray(region?.slot), role).toBe(true);
+    }
+  });
+
+  it("CardPreview 는 slot host 다 (G0 FRAME_SLOT_HOST_TYPES 에 없음 — Phase 1 GREEN)", () => {
+    expect(isSlotHostElement({ id: "p", type: "CardPreview" } as never)).toBe(
+      true,
+    );
+  });
 });
 
 // ── (b) mode C 에 primitive ──────────────────────────────────────────────────
@@ -196,7 +191,9 @@ describe("ADR-240 진단 (g) — Slot 채우기 UI 의 id 경로 키를 Canvas �
     expect((content.children ?? []).map((c) => c.type)).toEqual(["Text"]);
   });
 
-  it.fails("Canvas 도 id 경로 키의 mode C 를 그린다 (Phase 1)", () => {
+  // Phase 1 은 UI 가 segment 키를 쓰게 닫는다 (`regionSlotFill.getSlotFillPath`) — Canvas 는 여전히 id 키를 안 읽는다.
+  //   기존 id 키 채움 (234 이후 name 을 가진 host) 은 LOW deferred: UI 가 다음 채우기 · 비우기에서 segment 키로 옮긴다.
+  it.fails("Canvas 도 id 경로 키의 mode C 를 그린다 (LOW deferred)", () => {
     expect(sceneChildTypes(byIdKey(), "card-inst/Content")).toEqual(["Text"]);
   });
 });
@@ -209,15 +206,20 @@ describe("ADR-240 진단 (c) — Dialog instance 에 내용을 더할 자리가 
   }
 
   // F6 정정 (G0): trigger 와 Close 는 plain Button 이 아니라 Button origin ref (`originChildRefs`) — Close 는 `props.slot:"close"`.
-  it("기준선 F6: seed Dialog origin = DialogTrigger > [ref Button, Dialog > Heading · Description · DialogFooter > ref Button(close)]", () => {
+  // G0 모양 (Heading · Description · DialogFooter > ref Close) → Phase 1 이관 뒤: Description 이 Content 영역 안 ·
+  //   DialogFooter = [Actions 영역, ref Close].
+  it("기준선 F6 (Phase 1 뒤): seed Dialog origin = DialogTrigger > [ref Button, Dialog > Heading · Content(Description) · DialogFooter > Actions · ref Button(close)]", () => {
     const doc = seedDocument();
     const origin = find(doc.children, "component-dialog")!;
     expect(origin.type).toBe("DialogTrigger");
     const content = dialogContent(doc);
     expect((content.children ?? []).map((c) => c.type)).toEqual([
       "Heading",
-      "Description",
+      "frame",
       "DialogFooter",
+    ]);
+    expect((content.children![1]!.children ?? []).map((c) => c.type)).toEqual([
+      "Description",
     ]);
     const footer = content.children![2]!;
     expect(
@@ -226,24 +228,19 @@ describe("ADR-240 진단 (c) — Dialog instance 에 내용을 더할 자리가 
         (c as RefNode).ref,
         c.props?.slot,
       ]),
-    ).toEqual([["ref", "component-button", "close"]]);
-    expect(
-      [content, ...(content.children ?? [])].some(
-        (node) => node.metadata?.slotRole || Array.isArray(node.slot),
-      ),
-    ).toBe(false);
+    ).toEqual([
+      ["frame", undefined, undefined],
+      ["ref", "component-button", "close"],
+    ]);
   });
 
-  it.fails(
-    "Dialog 본문에 slot 배열을 가진 content 영역 host 가 있다 (Phase 1)",
-    () => {
-      const content = dialogContent(seedDocument());
-      const host = (content.children ?? []).find(
-        (child) => child.metadata?.slotRole === "content",
-      );
-      expect(Array.isArray(host?.slot)).toBe(true);
-    },
-  );
+  it("Dialog 본문에 slot 배열을 가진 content 영역 host 가 있다 (Phase 1 GREEN)", () => {
+    const content = dialogContent(seedDocument());
+    const host = (content.children ?? []).find(
+      (child) => child.metadata?.slotRole === "content",
+    );
+    expect(Array.isArray(host?.slot)).toBe(true);
+  });
 });
 
 // ── (d) Popover 자기 자식 순서 ───────────────────────────────────────────────
@@ -400,6 +397,7 @@ describe("ADR-240 진단 (f) — 저장 history 의 Undo 가 이관 전 경로�
               id: CONTENT_FRAME,
               type: "frame",
               props: {},
+              metadata: { slotRole: "content" },
               children: [
                 {
                   id: DESC,
@@ -459,29 +457,26 @@ describe("ADR-240 진단 (f) — 저장 history 의 Undo 가 이관 전 경로�
     expect(descriptionText(doc(instance(NEW_PATH, "B")))).toBe("B");
   });
 
-  it.fails(
-    "이관 뒤 문서에서 이관 전 스냅샷 (A, 옛 경로) 로 Undo → 편집값 A 가 보인다 (Phase 1 history 전치)",
-    () => {
-      const migrated = doc(instance(NEW_PATH, "B"));
-      const undone = applyCanonicalHistoryEventsToDocument(
-        migrated,
-        [
-          {
-            type: "remove",
-            node: instance(OLD_PATH, "A"),
-            parentId: "body-1",
-            index: 0,
-          },
-          {
-            type: "insert",
-            node: instance(NEW_PATH, "B"),
-            parentId: "body-1",
-            index: 0,
-          },
-        ],
-        "undo",
-      );
-      expect(descriptionText(undone)).toBe("A");
-    },
-  );
+  it("이관 뒤 문서에서 이관 전 스냅샷 (A, 옛 경로) 로 Undo → 편집값 A 가 보인다 (Phase 1 history 전치 GREEN)", () => {
+    const migrated = doc(instance(NEW_PATH, "B"));
+    const undone = applyCanonicalHistoryEventsToDocument(
+      migrated,
+      [
+        {
+          type: "remove",
+          node: instance(OLD_PATH, "A"),
+          parentId: "body-1",
+          index: 0,
+        },
+        {
+          type: "insert",
+          node: instance(NEW_PATH, "B"),
+          parentId: "body-1",
+          index: 0,
+        },
+      ],
+      "undo",
+    );
+    expect(descriptionText(undone)).toBe("A");
+  });
 });

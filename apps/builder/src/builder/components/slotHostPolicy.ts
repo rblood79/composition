@@ -32,10 +32,41 @@ export const FRAME_SLOT_HOST_TYPES = new Set([
   "cardcontent",
   "cardfooter",
   "cardheader",
+  // ADR-240 Phase 1 — Card preview 영역 · 자유 내용 컨테이너 (RAC Popover · Tooltip — 이름 있는 slot 없음, R2).
+  "cardpreview",
   "frame",
   "group",
+  "popover",
   "section",
+  "tooltip",
 ]);
+
+/**
+ * ADR-240 — 이름 영역 host (148 slotRole 어휘 P3). 영역의 계약 대상은 **채운 reusable instance** 뿐이다:
+ * origin 에서 상속한 자식 (Card `{title}` Heading · Dialog Description) 과 자유 내용 (primitive) 은 추천 목록과
+ * 대조하지 않는다 (Preview `validateSlotContract` 경고 대상 밖).
+ */
+export const NAMED_REGION_SLOT_ROLES: ReadonlySet<string> = new Set([
+  "preview",
+  "header",
+  "content",
+  "footer",
+  "action",
+]);
+
+/** 자유 내용 컨테이너 root 가 곧 영역인 type (instance 는 자기 자식으로 채운다 — mode C 아님). */
+export const ROOT_REGION_SLOT_HOST_TYPES: ReadonlySet<string> = new Set([
+  "Popover",
+  "Tooltip",
+]);
+
+function isNamedRegionHost(element: SlotPolicyElement): boolean {
+  const role = element.metadata?.slotRole;
+  return (
+    (typeof role === "string" && NAMED_REGION_SLOT_ROLES.has(role)) ||
+    ROOT_REGION_SLOT_HOST_TYPES.has(element.type)
+  );
+}
 
 /**
  * Slot 절 "Insert" 의 뜻 — Frame 가족은 slot 에 ref 자식을 넣고, 목록 틀 (TabList · TagList · ListBox · GridList ·
@@ -288,13 +319,17 @@ export const SLOT_HOST_RULES: readonly SlotHostRule[] = [
   })),
 ];
 
-/** 목록 틀 = host 자신 (항목 = 자기 자식) — instance root 가 origin 의 slot 을 읽는 가족. */
+/**
+ * 목록 틀 = host 자신 (항목 = 자기 자식) — instance root 가 origin 의 slot 을 읽는 가족. ADR-240 — 자유 내용
+ * 컨테이너 root (Popover · Tooltip) 도 같은 모양 (instance 자기 자식, inherited 자식 뒤).
+ */
 export const SELF_LIST_SLOT_HOST_TYPES: ReadonlySet<string> = new Set([
   "ListBox",
   "GridList",
   "Menu",
   "Breadcrumbs",
   ...GROUP_SLOT_HOSTS.map((group) => group.type),
+  ...ROOT_REGION_SLOT_HOST_TYPES,
 ]);
 
 function findRule(
@@ -340,8 +375,12 @@ export function isSlotCandidateAllowed(
  */
 export function isSlotContractItem(
   host: SlotPolicyElement | undefined,
-  child: { type?: string },
+  child: { type?: string; _resolvedFrom?: string },
 ): boolean {
+  // ADR-240 — 이름 영역은 채운 reusable instance (해석된 ref) 만 대조한다.
+  if (host && isNamedRegionHost(host)) {
+    return typeof child._resolvedFrom === "string";
+  }
   const itemTypes = findRule(host)?.itemTypes;
   return !itemTypes || itemTypes.has(String(child.type));
 }

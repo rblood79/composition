@@ -22,6 +22,10 @@ import {
 import type { Element } from "@/types/core/store.types";
 import { canonicalNodeToElement } from "../canonical/canonicalElementsView";
 import {
+  getDialogRegionPathRewrite,
+  rewriteDialogRegionPathsInNode,
+} from "../../components/dialogRegionPaths";
+import {
   getCanonicalRefOverrideEntries,
   getProjectableNodeLookups,
   withCanonicalRefOverrides,
@@ -312,12 +316,35 @@ function collectHistoryResultElements(): Element[] {
   return elements;
 }
 
+/**
+ * ADR-240 Phase 1 — 이관 전에 저장된 스냅샷 (Dialog instance 의 옛 Description 경로) 을 재생 대상 문서의 영역
+ * 구조에 맞춰 전치한다 (문서 이관과 같은 함수 · 멱등). 이관을 지나지 않은 문서면 그대로.
+ */
+function alignHistoryEventsToRegions(
+  doc: CompositionDocument,
+  events: CanonicalHistoryNodeEvent[],
+): CanonicalHistoryNodeEvent[] {
+  if (
+    !events.some((event) => event.type === "insert" || event.type === "remove")
+  ) {
+    return events;
+  }
+  const rewrite = getDialogRegionPathRewrite(doc);
+  if (!rewrite) return events;
+  return events.map((event) => {
+    if (event.type !== "insert" && event.type !== "remove") return event;
+    const node = rewriteDialogRegionPathsInNode(event.node, rewrite);
+    return node === event.node ? event : { ...event, node };
+  });
+}
+
 export function applyCanonicalHistoryEventsToDocument(
   doc: CompositionDocument,
   events: CanonicalHistoryNodeEvent[],
   direction: "undo" | "redo",
 ): CompositionDocument {
-  const orderedEvents = direction === "redo" ? events : [...events].reverse();
+  const aligned = alignHistoryEventsToRegions(doc, events);
+  const orderedEvents = direction === "redo" ? aligned : [...aligned].reverse();
   return orderedEvents.reduce((currentDoc, event) => {
     if (event.type === "insert") {
       return direction === "redo"
