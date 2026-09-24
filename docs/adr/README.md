@@ -11,6 +11,8 @@
 
 ---
 
+> **2026-09-24 ADR-236 Proposed 추가**: 빌더 도메인 규칙 정리 — 술어 모듈 (body · instance · origin · synthetic id · Components 페이지 · systemOwned 재구현 → 하나, ratchet) · `packages/shared` 타입 특성 표 (catalog 밖, 중복 타입 집합 · `nestingRules` 겹침 파생) · store 액션 진입부 강제 (`canX` · `resolveMoveTarget`, 액션 목록 ratchet). 선행 `/fix` 7건 (결함 1·3 · A · B 묶음) 이 표면별 강제의 실측. 열림 8 (Proposed 7 · Accepted 1), 합계 263.
+
 > **2026-09-23 ADR-234 Implemented**: 상태 변형 = origin 의 instance · 목록 = slot 을 채운 instance 자식 (Phase 0~4 / G0~G5). G4 는 사용자 판정 2단계 — 해석 증분화 (같은 문서 scene build 의 ref 해석 재사용 · legacy 참조 폴백 색인 등 항목당 비용 절감, breakpoint 통과) 뒤 이관 전 빌드 대비로 판정: Tabs 통과 · TagGroup 편집 +2.3/+2.6 ms @500 항목은 R4 잔존으로 기록. 열림 7 (Proposed 6 · Accepted 1), 합계 262.
 
 > **2026-09-23 ADR-234 Phase 3·4 진행**: 정적 목록 = 목록 틀의 항목 instance 자식 (Tabs · TagGroup · ListBox · GridList · Menu, 바인딩 목록은 `items` 유지) · Slot "+" = 항목 instance (instance 는 descendants mode C 또는 자기 자식) · G5 BC 픽셀 (이관 전 빌드 worktree 대조) · live 10/10. **G4 `scene.build` Δ ≤ +1 ms 미달** (Tabs +1.9~2.5 · TagGroup +2.9~4.9) — 기준 조정 또는 해석 증분화 결정 대기. 066 · 148 · 229 · 230 · 233 에 대체 안내.
@@ -82,11 +84,11 @@
 | ├ Accepted                    |      13 |
 | ├ Superseded                  |      14 |
 | └ Deprecated                  |       9 |
-| 열려 있는 것 (`adr/*.md`)     |       7 |
-| ├ Proposed                    |       6 |
+| 열려 있는 것 (`adr/*.md`)     |       8 |
+| ├ Proposed                    |       7 |
 | ├ Accepted (미착수·일부 착수) |       1 |
 | └ 부분 완료                   |       0 |
-| **합계**                      | **262** |
+| **합계**                      | **263** |
 
 > 2026-09-22 파일 실측: `completed/` ADR 파일 253 (비-ADR 5 제외) · `adr/` 직속 ADR 6 (09-22 232 추가). 완료 내역 (Implemented/Accepted/Superseded/Deprecated) 은 09-10 대조값에 그 뒤 Implemented 5 (224~~227 · 231) 를 더한 것 — 개별 Status 재대조는 다음 정리 때.
 
@@ -104,6 +106,12 @@
 - **상태**: Accepted (전체) · **A1 철회 2026-07-20** · A2 delivered(시각 확인 대기) · A3 미착수
 - **규모**: **Phase A1(Skia hover/pressed/focusVisible 상태 threading) 철회 2026-07-20 (재판정)** — 빌더(Skia)가 pointer 연동으로 hover/pressed/focus 를 실시간 재현한 것은 **D1/D3 경계 오판**(그 역할은 Preview DOM 소관, RAC 자동 소유). A1 커밋 4건 역순 revert(`5e635ebbc`), 편집 보조 hover outline·선언적 상태(selected/disabled) 시각은 보존. 911 R-4 HIGH→MED / G-state 를 선언적 상태 parity 로 재정의. **A2(collection 가상화)/A3(drill-in·data edit)은 상호작용 시뮬레이션이 아니라 빌더의 대용량 표시·깊은 편집이라 유효 — 진행 유지.** G-A2/G-A3 (HIGH 2: window 동기화 / projected id 경계 — G-A1/R1 은 철회). design breakdown `design/150-rac-pencil-residual-interaction-execution-breakdown.md`
 - **우선순위**: 사용자 확정 2026-07-13 (AskUserQuestion — 단일 실행 ADR)
+
+#### [236](236-builder-domain-rules-consolidation.md) — 빌더 도메인 규칙 정리 — 술어 모듈 · 타입 특성 표 · store 액션 진입부 강제
+
+- **상태**: Proposed (2026-09-24)
+- **규모**: Phase 0~4 ([breakdown](design/236-builder-domain-rules-consolidation-breakdown.md)) — 인벤토리 (타입 집합 125 · body 직접 비교 78행) → 술어 모듈 + ratchet (동작 0) → shared 특성 표 + 집합 파생 (동등성 게이트) → `canX` · `resolveMoveTarget` · 구조 변경 store 액션 진입부 가드 (표면별 원복 RED + live) → 종결. layout · skia 렌더 분기는 상시 규칙 (일괄 이관 없음)
+- **우선순위**: 사용자 요청 2026-09-24 (도메인 규칙 최적화 C 단계, 특성 표 위치 = shared 사용자 확정 09-24)
 
 #### [235](235-local-project-storage-v2-asset-store-directory-format.md) — 로컬 프로젝트 저장 v2 — 해시 자산 저장소 · 디렉토리 형식 · IndexedDB 작업본
 
