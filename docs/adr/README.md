@@ -131,7 +131,7 @@
 
 #### [241](241-table-column-row-origins.md) — Table 열 · 행 origin — 2차원 collection · 두 leg 열 원천 통일
 
-- **상태**: Proposed (2026-09-24)
+- **상태**: Accepted (2026-09-25) · worktree `adr-241` 실행 중
 - **규모**: Phase 0~4 ([breakdown](design/241-table-column-row-origins-breakdown.md)) — inventory → 열 원천 통일 → Column origin + TableHeader slot · instance 열 · quick connect → Row origin + 셀 동기화 → 성능 · BC
 - **우선순위**: 사용자 판정 2026-09-24 (3 ADR 분리). 렌더러 RAC 전환은 범위 밖 (별도 결정 대상)
 

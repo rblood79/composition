@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-09-24
+Accepted — 2026-09-25 (사용자 `/execute-adr 241` 실행 지시, Codex 리뷰 판독 1 + 수리 검증 1 종결 (round 3 이슈 0) 후 · worktree `adr-241`) · Proposed — 2026-09-24
 
 설계 요청: 사용자 (2026-09-24) — RAC 조사 후보 중 남은 항목 "설계부터 하자" → 사용자 판정 3 ADR 분리 (239 Tree · 240 이름 영역 · **241 Table**). 전제 기록: [breakdown §1](design/241-table-column-row-origins-breakdown.md#1-전제-확정-기록-fork-4-질문--사용자-confirm).
 

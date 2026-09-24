@@ -91,3 +91,21 @@ Phase 3 의 선행 수리를 main 에서 먼저 반영했다 — ADR-239 의 Tre
 - 회귀: builder unit 7,454 PASS · 실패 5 는 변경 전부터 있던 정적 게이트 drift (ADR-113 grep gate · propertyFieldIcons `isOpen` · factoryInlineDirtyBaseline Dialog · historyActions `setPagePositions` · AI catalog 동명 type) — 수리 파일 무관. type-check 0.
 - live (`apps/builder/scripts/adr241-nested-ref-own-children-live.mjs`, headed · Skia layout · store, Compare Mode · Preview 미개방) **5/5**: 대조군 단일 instance origin 자식 rect · 중첩 ref 자기 자식 2 가 instance Canvas 에 실체화 (inner y 0 → own 28 → 56) · 합성 id 선택 + `updateSelectedProperties` → 바깥 `descendants["live-outer__row/live-outer__own-2"]` · rect 폭 44 → 194 · origin 원본 불변 · page error 0.
 - 관측 (범위 밖): `frame` type origin 을 `addComplexElement` 로 넣으면 그 instance 의 자식이 Canvas 에 풀리지 않는다 (대조군 ⓪ 가 frame 일 때 rect null) — 하니스 seed 경로 한정인지 미확인, LOW.
+
+### Phase 0 — inventory freeze (2026-09-25, worktree `adr-241` @ `a2d1fe649`)
+
+- **진단** (`apps/builder/src/builder/components/__tests__/adr241Diagnostics.test.tsx`): 기준선 5 GREEN · RED 4 (`it.fails`) — (a) Column 요소만 있는 Table 의 Canvas 데이터 행 셀 0 (Preview 열 3) · (e) `width:80 · minWidth:120` 셀 폭 ≠ 120 · (c) Table/TableView origin TableHeader slot 없음 · TableView TableBody slot 없음. (b) 는 `quickConnect.test.ts` "ref 인스턴스 · TableHeader 없는 노드는 컬럼 계획 없음" 이 기준선 (store 의 instance element 는 `type: "ref"` → `elementType !== "Table"`). (d) 셀 수 어긋난 TableView 는 두 leg 모두 셀을 있는 그대로 (Column 4 · Cell 3). (f) 바깥 TableView instance 의 `descendants["component-tableview__2/component-tableview__2_1/component-tableview__2_1_3"]` 가 두 leg 에 적용 — 이관 뒤 같은 경로가 같은 셀에 닿아야 한다. (g) 는 선행 수리에서 GREEN.
+- **F3 보강**: Preview 열 우선순위 = Column 요소 > `columnMapping` (정적 바인딩) > 데이터 필드 감지 (`ADD_COLUMN_ELEMENTS`). Preview 는 `props.columns` 를 읽지 않는다. 기본 폭: Preview 150 · Canvas legacy 100. TanStack `getSize()` = `clamp(size ?? 150, minSize ?? 20, maxSize ?? MAX_SAFE_INTEGER)` (columnDef 의 `minSize: undefined` 는 기본 20 으로 떨어진다).
+- **Canvas 모습 live** (`apps/builder/scripts/adr241-g0-probe-live.mjs`, Skia layout · store): Column 요소 3 (폭 150 · 80/min120 · 150) 인 바인딩 Table → 헤더 = Column 요소 (catalog `flex:1` 이라 Table 폭 1920 을 640 씩 나눔 — `width` 무시) · projection 헤더 행 (빈 36px) · 데이터 행 2 (셀 0, 행 폭 360 폴백). 즉 지금 Canvas 헤더는 Column 요소가 그리고 projection 헤더 행은 빈 줄이다.
+- **instance 열의 해석**: Table instance 의 `descendants["component-table__1"].children = [Column…]` (mode C) 는 Canvas scene 에 이미 `t2/component-table__1/<col>` 로 풀린다 — instance TableHeader 는 origin 안쪽 노드라 237 `placedChildren` (root 전용) 이 아니라 234 Tabs 의 TabList 와 같은 mode C 로 채운다 (Phase 2 결정).
+- **`props.columns` 쓰기 경로 0**: `createDefaultTableProps` 가 배열을 뺀 뒤 production writer 없음 — legacy 문서만 가진다 (R1 폴백 대상).
+
+쓰기 경로 표 (Column · Row · Cell):
+
+| 경로                                   | Table                                                                                                   | TableView                                          |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| 팔레트 · AI (`useElementCreator`)      | ref instance — origin 상속 (Column 0)                                                                   | ref instance — origin 상속 (Column 3 · Row 1×Cell 3) |
+| quick connect (`executeQuickConnect`)  | plain Table 만 Column 삽입 (`key` · `label` · `children` · `width:150` …) · ref instance 는 바인딩만    | 대상 아님                                          |
+| `ADD_COLUMN_ELEMENTS` (Preview 감지)   | plain: Column 0 일 때 `columnMapping` 열 삽입 · instance: 해석 id (`<inst>/component-table__1`) 를 부모로 보냄 | —                                                  |
+| 붙여넣기                               | 원본 모양 그대로                                                                                        | 원본 모양 그대로                                   |
+| Column · Cell 삭제 (`elementRemoval`)  | 같은 index Cell · Column 을 같이 지운다 — 단 `Table` 조상만 (정적 행이 없어 사실상 no-op)               | 동기화 없음 (Phase 3 대상)                         |
