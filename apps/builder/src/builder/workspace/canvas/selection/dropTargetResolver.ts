@@ -25,7 +25,7 @@ import {
   type TokenRef,
 } from "@composition/specs";
 import {
-  isNamedRegionHost,
+  isFreeContentSlotHost,
   isSlotCandidateAllowed,
 } from "../../../components/slotHostPolicy";
 import { isSyntheticDescendantId } from "../../../stores/canonical/syntheticDescendantLookup";
@@ -296,12 +296,12 @@ export function acceptsDraggedElement(
   store: DropTargetReadModel,
 ): boolean {
   if (isBodyElement(candidate)) return true;
-  // ADR-240 Phase 2 (F20) — instance 안 (synthetic) 은 이름 영역 host 만 받는다 (drop = 그 영역 mode C). 목록 틀 ·
-  //   inherited · 고정 부품 (Dialog 제목 · Close) 은 거부 — canonical 부모가 없어 이동이 조용히 무시되던 자리.
+  // ADR-240 Phase 2 (F20) — instance 안 (synthetic) 은 자유 내용 slot host (이름 영역 · frame 가족 slot) 만 받는다
+  //   (drop = 그 host 의 mode C). 목록 틀 · inherited · 고정 부품 (Dialog 제목 · Close) 은 거부 — canonical 부모가 없어
+  //   이동이 조용히 무시되던 자리.
   if (isSyntheticDescendantId(candidate.id)) {
-    return (
-      isExplicitSlotHost(candidate) &&
-      isNamedRegionHost(candidate as Parameters<typeof isNamedRegionHost>[0])
+    return isFreeContentSlotHost(
+      candidate as Parameters<typeof isFreeContentSlotHost>[0],
     );
   }
   if (isExplicitSlotHost(candidate)) return true;

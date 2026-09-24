@@ -600,6 +600,64 @@ export function buildCanonicalMoveEvents(
 }
 
 /**
+ * ADR-240 Phase 2 (F20) — instance 이름 영역 (`ref-descendants` · mode C) 으로의 이동 history.
+ *
+ * move event 는 `to` 를 이동 뒤 문서에서 찾는데, mode C 안 노드는 부모가 instance 로 잡혀 Redo 가 노드를
+ * instance 자기 자식으로 넣는다 (위 `buildCanonicalMoveEvents` 의 "ref override 내부 노드 금지"). 그래서 옮긴
+ * 노드의 remove + instance replace (remove prev · insert next) 로 기록한다.
+ *
+ * `captures` = 이동 **전** `captureCanonicalReplaceSources([...movedIds, refNodeId])`. instance prev 의 index 는 같은
+ * 부모에서 앞에 있던 옮긴 노드 수만큼 뺀다 — Undo 는 instance 를 옮긴 노드들이 아직 없는 목록에 먼저 되돌린다.
+ */
+export function buildCanonicalMoveIntoRefDescendantsEvents(
+  movedIds: readonly string[],
+  captures: ReadonlyMap<string, CanonicalReplaceCapture>,
+  refNodeId: string,
+): CanonicalHistoryNodeEvent[] {
+  const doc = selectActiveCanonicalDocument();
+  const refCapture = captures.get(refNodeId);
+  const refFrom = refCapture?.location;
+  const nextRef = doc ? findLocation(doc, refNodeId) : null;
+  if (!refCapture || !refFrom || !nextRef) return [];
+  const moved = movedIds
+    .map((id) => captures.get(id))
+    .flatMap((capture) =>
+      capture?.location
+        ? [{ node: capture.node, location: capture.location }]
+        : [],
+    )
+    // Undo 는 역순 재생 — 뒤 index 부터 remove 기록 = 앞 index 부터 되살린다.
+    .sort((a, b) => b.location.index - a.location.index);
+  const shift = moved.filter(
+    (capture) =>
+      capture.location.parentId === refFrom.parentId &&
+      capture.location.index < refFrom.index,
+  ).length;
+  return [
+    ...moved.map(
+      (capture): CanonicalHistoryNodeEvent => ({
+        type: "remove",
+        node: capture.node,
+        parentId: capture.location.parentId,
+        index: capture.location.index,
+      }),
+    ),
+    {
+      type: "remove",
+      node: refCapture.node,
+      parentId: refFrom.parentId,
+      index: refFrom.index - shift,
+    },
+    {
+      type: "insert",
+      node: cloneNode(nextRef.node),
+      parentId: nextRef.parentId,
+      index: nextRef.index,
+    },
+  ];
+}
+
+/**
  * canonical mutation **이전** 시점의 노드 clone + 좌표 스냅샷
  * (replace event 의 prev 소스).
  */

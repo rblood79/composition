@@ -34,7 +34,11 @@ import {
 } from "../skia/dragAnimator";
 import { historyManager } from "../../../stores/history";
 import { captureCanonicalNodeLocations } from "../../../stores/history/canonicalHistoryEvents";
-import { trackCanonicalMove } from "../../../stores/utils/historyHelpers";
+import {
+  captureRefDescendantsMoveSources,
+  trackCanonicalMove,
+  trackCanonicalMoveIntoRefDescendants,
+} from "../../../stores/utils/historyHelpers";
 import { getDB } from "../../../../lib/db";
 import { hitTestPoint, queryRect } from "../wasm-bindings/spatialIndex";
 import { getSceneBounds } from "../skia/renderCommands";
@@ -541,6 +545,10 @@ function commitMultiDragDrop({
   historyManager.runInTransaction({ type: "move", elementId: leaderId }, () => {
     if (canonicalTarget && moveIds.length > 0) {
       const fromLocations = captureCanonicalNodeLocations(moveIds);
+      const refCaptures = captureRefDescendantsMoveSources(
+        moveIds,
+        canonicalTarget,
+      );
       const moveResult = moveElementsToCanonicalTarget(
         moveIds,
         canonicalTarget,
@@ -568,8 +576,16 @@ function commitMultiDragDrop({
             (fromLocations.get(right)?.index ?? 0) -
             (fromLocations.get(left)?.index ?? 0),
         );
-        for (const id of trackOrder) {
-          trackCanonicalMove(id, fromLocations.get(id));
+        if (refCaptures && canonicalTarget.kind === "ref-descendants") {
+          trackCanonicalMoveIntoRefDescendants(
+            moveResult.movedIds,
+            refCaptures,
+            canonicalTarget.refNodeId,
+          );
+        } else {
+          for (const id of trackOrder) {
+            trackCanonicalMove(id, fromLocations.get(id));
+          }
         }
       }
     }
@@ -948,6 +964,10 @@ export function useDragBridge({
         if (manualPositionProps && canonicalTarget) {
           historyManager.runInTransaction({ type: "move", elementId }, () => {
             const fromLocations = captureCanonicalNodeLocations([elementId]);
+            const refCaptures = captureRefDescendantsMoveSources(
+              [elementId],
+              canonicalTarget,
+            );
             const moveResult = moveElementToCanonicalTarget(
               elementId,
               canonicalTarget,
@@ -958,7 +978,15 @@ export function useDragBridge({
             if (!moveResult.changed) return;
 
             didMove = true;
-            trackCanonicalMove(elementId, fromLocations.get(elementId));
+            if (refCaptures && canonicalTarget.kind === "ref-descendants") {
+              trackCanonicalMoveIntoRefDescendants(
+                [elementId],
+                refCaptures,
+                canonicalTarget.refNodeId,
+              );
+            } else {
+              trackCanonicalMove(elementId, fromLocations.get(elementId));
+            }
             void useStore.getState().batchUpdateElementProps(
               [
                 {
@@ -1032,6 +1060,10 @@ export function useDragBridge({
           });
           // from-location 은 mutation 전에 캡처
           const fromLocations = captureCanonicalNodeLocations([elementId]);
+          const refCaptures = captureRefDescendantsMoveSources(
+            [elementId],
+            canonicalTarget,
+          );
           const moveResult = canonicalTarget
             ? moveElementToCanonicalTarget(elementId, canonicalTarget)
             : { changed: false, document: null };
@@ -1040,7 +1072,15 @@ export function useDragBridge({
           }
           if (moveResult.changed) {
             didMove = true;
-            trackCanonicalMove(elementId, fromLocations.get(elementId));
+            if (refCaptures && canonicalTarget?.kind === "ref-descendants") {
+              trackCanonicalMoveIntoRefDescendants(
+                [elementId],
+                refCaptures,
+                canonicalTarget.refNodeId,
+              );
+            } else {
+              trackCanonicalMove(elementId, fromLocations.get(elementId));
+            }
             if (flowNesting.relocation) {
               notifyNestingRelocation(
                 flowNesting.relocation,

@@ -12,9 +12,12 @@ import {
   buildCanonicalGroupEvents,
   buildCanonicalInsertEvents,
   buildCanonicalMoveEvents,
+  buildCanonicalMoveIntoRefDescendantsEvents,
   buildCanonicalUngroupEvents,
   buildCanonicalUpdateEvent,
+  captureCanonicalReplaceSources,
   type CanonicalNodeLocation,
+  type CanonicalReplaceCapture,
 } from "../history/canonicalHistoryEvents";
 
 /**
@@ -155,6 +158,35 @@ export function trackCanonicalMove(
   historyManager.addEntry({
     type: "move",
     elementId,
+    data: { canonicalEvents },
+  });
+}
+
+/** 이동 대상이 instance 이름 영역 (`ref-descendants`) 이면 이동 전 스냅샷 (옮길 노드 + instance), 아니면 null. */
+export function captureRefDescendantsMoveSources(
+  elementIds: readonly string[],
+  target: { kind: string; refNodeId?: string } | null | undefined,
+): Map<string, CanonicalReplaceCapture> | null {
+  if (target?.kind !== "ref-descendants" || !target.refNodeId) return null;
+  return captureCanonicalReplaceSources([...elementIds, target.refNodeId]);
+}
+
+/** ADR-240 Phase 2 — `ref-descendants` 이동 history (remove + instance replace, `buildCanonicalMoveIntoRefDescendantsEvents`). */
+export function trackCanonicalMoveIntoRefDescendants(
+  movedIds: readonly string[],
+  captures: ReadonlyMap<string, CanonicalReplaceCapture>,
+  refNodeId: string,
+): void {
+  if (movedIds.length === 0) return;
+  const canonicalEvents = buildCanonicalMoveIntoRefDescendantsEvents(
+    movedIds,
+    captures,
+    refNodeId,
+  );
+  if (canonicalEvents.length === 0) return;
+  historyManager.addEntry({
+    type: "move",
+    elementId: movedIds[0]!,
     data: { canonicalEvents },
   });
 }

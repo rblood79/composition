@@ -10,7 +10,13 @@ import type {
 import { createInitialProjectDocument } from "../../../dashboard/createInitialProjectDocument";
 import { buildCanonicalSceneModel } from "../../workspace/canvas/scene/canonicalSceneModel";
 import { resolveCanonicalDocument } from "../../../resolvers/canonical";
-import { applyCanonicalHistoryEventsToDocument } from "../../stores/history/canonicalHistoryEvents";
+import {
+  applyCanonicalHistoryEventsToDocument,
+  buildCanonicalMoveEvents,
+  buildCanonicalMoveIntoRefDescendantsEvents,
+  captureCanonicalNodeLocations,
+  captureCanonicalReplaceSources,
+} from "../../stores/history/canonicalHistoryEvents";
 import { useCanonicalDocumentStore } from "../../stores/canonical/canonicalDocumentStore";
 import {
   moveElementToCanonicalTarget,
@@ -526,7 +532,7 @@ describe("ADR-240 G2 — 자유 내용 (primitive) 채우기", () => {
     })!;
     expect(plan.syntheticId).toBe(`${INST}/Content/text`);
     const next = withBodyChildren(seedDocument(), [
-      { ...cardInstance([]), descendants: plan.descendants } as CanonicalNode,
+      { ...cardInstance([]), descendants: plan.nextDescendantMap } as CanonicalNode,
     ]);
     expect(previewContent(next).map((c) => c.type)).toEqual(["Button", "Text"]);
     expect(scene(next).childIds(`${INST}/Content`)).toEqual([
@@ -588,6 +594,23 @@ describe("ADR-240 G2 — Canvas drop 대상 = 영역 host 만", () => {
     expect(accepts("dlg/component-dialog__2/component-dialog__2_3")).toBe(
       false,
     );
+    // 목록 틀 (TabList — 항목 instance 를 넣는 host) 은 slot 이 있어도 자유 내용 drop 대상이 아니다.
+    const tabsDoc = withBodyChildren(seedDocument(), [
+      {
+        id: "tabs-inst",
+        type: "ref",
+        ref: "component-tabs",
+        props: {},
+      } as unknown as CanonicalNode,
+    ]);
+    const tabsStore = readModel(tabsDoc);
+    const tabList = [...tabsStore.elementsById.values()].find(
+      (node) => node.id.startsWith("tabs-inst/") && node.type === "TabList",
+    );
+    expect(Array.isArray((tabList as { slot?: unknown } | undefined)?.slot)).toBe(
+      true,
+    );
+    expect(acceptsDraggedElement(tabList!, tabsStore)).toBe(false);
   });
 
   it("영역 drop → `ref-descendants` 이동 대상 · 페이지 Text 가 Content mode C 로 · 두 leg · 원래 자리에서 빠진다", () => {
@@ -631,5 +654,70 @@ describe("ADR-240 G2 — Canvas drop 대상 = 영역 host 만", () => {
       descendantPath: "Content",
       insertionIndex: 0,
     });
+  });
+
+  function bodyIds(doc: CompositionDocument) {
+    return (find(doc.children, "body-1")?.children ?? []).map((n) => n.id);
+  }
+  function footerIds(doc: CompositionDocument) {
+    return (
+      (instanceNode(doc).descendants?.Footer as { children?: CanonicalNode[] })
+        ?.children ?? []
+    ).map((n) => n.id);
+  }
+
+  it("영역 이동 history — Undo 는 Text 를 원래 자리 (instance 앞) 로 · Redo 는 다시 영역 (instance 자기 자식 아님)", () => {
+    // Text 가 instance **앞** 형제 — instance prev index 보정 (shift) 이 필요한 모양.
+    const doc = withBodyChildren(seedDocument(), [
+      { id: "page-text", type: "Text", props: { children: "Moved" } },
+      cardInstance([]),
+      { id: "after", type: "Text", props: { children: "After" } },
+    ]);
+    setUpStore(doc, "page-text");
+    const before = bodyIds(currentDoc());
+    const target = {
+      kind: "ref-descendants" as const,
+      refNodeId: INST,
+      descendantPath: "Footer",
+      insertionIndex: 0,
+    };
+    const captures = captureCanonicalReplaceSources(["page-text", INST]);
+    const locations = captureCanonicalNodeLocations(["page-text"]);
+    expect(moveElementToCanonicalTarget("page-text", target).changed).toBe(
+      true,
+    );
+    const moved = currentDoc();
+    expect(footerIds(moved)).toEqual(["page-text"]);
+
+    // 반례 — 종전 move event 는 Redo 가 instance 자기 자식으로 넣는다 (live 실측 결함).
+    const legacy = buildCanonicalMoveEvents([
+      { nodeId: "page-text", from: locations.get("page-text")! },
+    ]);
+    const legacyRedo = applyCanonicalHistoryEventsToDocument(
+      applyCanonicalHistoryEventsToDocument(moved, legacy, "undo"),
+      legacy,
+      "redo",
+    );
+    expect(footerIds(legacyRedo)).toEqual([]);
+
+    const events = buildCanonicalMoveIntoRefDescendantsEvents(
+      ["page-text"],
+      captures,
+      INST,
+    );
+    const undone = applyCanonicalHistoryEventsToDocument(moved, events, "undo");
+    expect(bodyIds(undone)).toEqual(before);
+    expect(footerIds(undone)).toEqual([]);
+    const redone = applyCanonicalHistoryEventsToDocument(
+      undone,
+      events,
+      "redo",
+    );
+    expect(footerIds(redone)).toEqual(["page-text"]);
+    expect(bodyIds(redone)).toEqual(bodyIds(moved));
+    expect(find(redone.children, INST)?.children ?? []).toEqual([]);
+    expect(
+      scene(redone).node(`${INST}/Footer/page-text`)?.props?.children,
+    ).toBe("Moved");
   });
 });

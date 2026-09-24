@@ -72,6 +72,9 @@ const CANONICAL_DESCENDANTS_ALLOWLIST = new Set([
   //   mode C 키 (segment · 옛 id 키 이관). canonical `RefNode.descendants` 를 **고쳐 쓴다**.
   "apps/builder/src/builder/components/dialogRegionPaths.ts",
   "apps/builder/src/builder/components/slotFillPath.ts",
+  // ADR-240 Phase 2 — 채운 노드 편집 (mode C 배열 노드 · 채운 ref 의 자기 descendants) · 영역 삽입 계획 (팔레트 · drop).
+  "apps/builder/src/builder/components/slotFillEdit.ts",
+  "apps/builder/src/builder/components/slotRegionInsert.ts",
 ]);
 
 const COMMENT_LINE_PATTERN = /^\s*(\/\/|\*|\/\*|\*\/)/;

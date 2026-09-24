@@ -118,7 +118,7 @@ function ComponentsPanelContent() {
         });
         if (plan) {
           await updateElement(plan.instanceId, {
-            [COMPONENT_DESCENDANTS_MIRROR_FIELD]: plan.descendants,
+            [COMPONENT_DESCENDANTS_MIRROR_FIELD]: plan.nextDescendantMap,
           } as Parameters<typeof updateElement>[1]);
           useStore.getState().setSelectedElement(plan.syntheticId);
           return;

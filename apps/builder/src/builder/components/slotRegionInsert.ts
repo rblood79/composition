@@ -1,9 +1,9 @@
 /**
  * ADR-240 Phase 2 — instance 안 이름 영역에 새 노드를 넣는 계획 (팔레트 클릭 · Canvas drop 공용, F18 · F20).
  *
- * 대상 = synthetic id (`<instance>/<경로>`) 의 경로에서 가장 가까운 **이름 영역 host** (origin 영역 노드 — `slot` 배열 +
- * slotRole). 영역 자신이나 그 안 (상속 Description · 채운 노드) 을 가리키면 그 영역이다. 영역 밖 (Card root 직계가
- * 아닌 inherited 노드 · Dialog 제목 · Close 같은 고정 부품) 이면 null — 234 구조 보존.
+ * 대상 = synthetic id (`<instance>/<경로>`) 의 경로에서 가장 가까운 **자유 내용 slot host** (`isFreeContentSlotHost` —
+ * 이름 영역 · frame 가족 slot, 목록 틀 제외). 영역 자신이나 그 안 (상속 Description · 채운 노드) 을 가리키면 그 영역이다.
+ * 영역 밖 (inherited 노드 · Dialog 제목 · Close 같은 고정 부품) 이면 null — 234 구조 보존.
  *
  * 쓰기 = Slot 채우기 절과 같은 mode C (`descendants[영역 segment 경로].children` 끝에 추가 · 옛 id 키는 이관).
  */
@@ -19,7 +19,7 @@ import {
   writeSlotFill,
 } from "./slotFillPath";
 import { buildSlotFillNodeForType } from "./slotFillNodes";
-import { isNamedRegionHost } from "./slotHostPolicy";
+import { isFreeContentSlotHost } from "./slotHostPolicy";
 import { indexNodes, resolveChainEnd } from "./staticCollectionMigration";
 
 type RefLike = CanonicalNode & {
@@ -63,7 +63,7 @@ export function resolveSlotRegionTarget(
   const hosts = collectSlotFillHosts<CanonicalNode>(
     master.id,
     childrenMapOf(master),
-  ).filter((hit) => isNamedRegionHost(hit.host as never));
+  ).filter((hit) => isFreeContentSlotHost(hit.host as never));
   let best: (typeof hosts)[number] | null = null;
   for (const hit of hosts) {
     if (path !== hit.path && !path.startsWith(`${hit.path}/`)) continue;
@@ -81,7 +81,8 @@ export function resolveSlotRegionTarget(
 
 export interface SlotRegionInsertPlan {
   instanceId: string;
-  descendants: Record<string, unknown>;
+  /** instance 의 다음 descendants 전체 (영역 mode C 에 노드 추가) */
+  nextDescendantMap: Record<string, unknown>;
   node: CanonicalNode;
   /** 새 노드의 synthetic id (선택용) */
   syntheticId: string;
@@ -110,7 +111,7 @@ export function planSlotRegionInsert(input: {
   if (!node) return null;
   return {
     instanceId: target.instanceId,
-    descendants: writeSlotFill(
+    nextDescendantMap: writeSlotFill(
       instance.descendants,
       { path: target.regionPath, legacyPath: target.legacyPath },
       [...current, node],

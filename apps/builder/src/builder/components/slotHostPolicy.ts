@@ -350,6 +350,14 @@ export function resolveSlotInsertAction(
   return { kind: "child" };
 }
 
+/**
+ * ADR-240 Phase 2 — instance 안에서 새 노드 (팔레트 삽입 · Canvas drop) 를 mode C 로 받는 slot host: `slot` 배열이 있고
+ * 목록 틀 · 그룹 규칙 (`SLOT_HOST_RULES` — 항목 instance 를 넣는 host) 이 아닌 것 = 이름 영역 · frame 가족 slot.
+ */
+export function isFreeContentSlotHost(host: SlotPolicyElement): boolean {
+  return Array.isArray(host.slot) && !findRule(host);
+}
+
 export function isSlotHostElement(
   element: SlotPolicyElement | undefined,
 ): boolean {
