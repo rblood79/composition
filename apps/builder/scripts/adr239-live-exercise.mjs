@@ -205,6 +205,74 @@ record(
   r4.rows.map((r) => [r.text, r.label]),
 );
 
+// ── Phase 2 — 펼침 두 leg 대칭 (정본 expandedKeys) ──────────────────────────
+const chevron = (rowId) =>
+  ev((id) => {
+    const n = window.__composition_SKIA_DEBUG__?.getSkiaNode?.(id);
+    const icons = [];
+    const walk = (x) => {
+      if (!x) return;
+      if (x.type === "icon_path") icons.push(JSON.stringify(x.iconPath).slice(0, 80));
+      (x.children ?? []).forEach(walk);
+    };
+    walk(n);
+    return icons;
+  }, rowId);
+const expandedRow = r4.rows[0]?.id;
+const chevronBefore = await chevron(expandedRow);
+const heightBefore = r4.tree?.[3];
+await ev(
+  (id) =>
+    window.__composition_STORE__
+      .getState()
+      .updateElementProps(id, { expandedKeys: [] }),
+  "live-tree",
+);
+await page.waitForTimeout(1200);
+const r5 = await treeRows("live-tree");
+const chevronCollapsed = await chevron(expandedRow);
+record(
+  "P2 expandedKeys [] → 접힌 항목의 자식 행 제외 (행 5 → 3 · Tree 높이 −64) · chevron 모양 바뀜",
+  r4.rows.length === 5 &&
+    r5.rows.length === 3 &&
+    r5.tree?.[3] === heightBefore - 64 &&
+    JSON.stringify(chevronBefore) !== JSON.stringify(chevronCollapsed),
+  {
+    heightBefore,
+    heightAfter: r5.tree?.[3],
+    rows: r5.rows.map((r) => r.text),
+    chevronBefore,
+    chevronCollapsed,
+  },
+);
+await shot("p2-collapsed", "live-tree");
+await ev(() => window.__composition_STORE__.getState().undo());
+await page.waitForTimeout(1200);
+const r6 = await treeRows("live-tree");
+await ev(() => window.__composition_STORE__.getState().redo());
+await page.waitForTimeout(1200);
+const r7 = await treeRows("live-tree");
+record(
+  "P2 Undo → 펼침 복원 (행 5) · Redo → 다시 접힘 (행 3)",
+  r6.rows.length === 5 && r7.rows.length === 3,
+  { undo: r6.rows.map((r) => r.text), redo: r7.rows.map((r) => r.text) },
+);
+await page.goto(projectUrl);
+await waitReady(page);
+await page.waitForTimeout(2000);
+const r8 = await treeRows("live-tree");
+const storedKeys = await ev(
+  (id) =>
+    window.__composition_STORE__.getState().elementsMap.get(id)?.props
+      ?.expandedKeys,
+  "live-tree",
+);
+record(
+  "P2 reload 뒤 접힘 유지 (`expandedKeys: []` 저장 · 재hydration 이 다시 채우지 않음)",
+  r8.rows.length === 3 && Array.isArray(storedKeys) && storedKeys.length === 0,
+  { rows: r8.rows.map((r) => r.text), storedKeys },
+);
+
 record("page error 0", errors.length === 0, errors);
 console.log(
   `[adr239 live] ${findings.filter((f) => f.pass).length}/${findings.length}`,

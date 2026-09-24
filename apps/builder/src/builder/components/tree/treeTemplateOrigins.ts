@@ -214,43 +214,72 @@ function toTreeItemRef(
   } as unknown as CanonicalNode;
 }
 
+/** 이관 뒤 subtree 의 key 계산 문맥 — host (Tree · Tree instance) 는 항목 부모가 아니다. */
+function buildKeyContext(nodes: readonly CanonicalNode[], hostId: string) {
+  const byIdAfter = new Map<string, TreeNode>();
+  const parentOf = new Map<string, string>();
+  const index = (list: readonly CanonicalNode[], parentId: string) => {
+    for (const node of list) {
+      byIdAfter.set(node.id, node as TreeNode);
+      parentOf.set(node.id, parentId);
+      index(node.children ?? [], node.id);
+    }
+  };
+  index(nodes, hostId);
+  const isInstance = (node: TreeNode) => node.type === "ref";
+  const getParentItem = (node: TreeNode): TreeNode | undefined => {
+    const parentId = parentOf.get(node.id);
+    if (!parentId || parentId === hostId) return undefined;
+    const parent = byIdAfter.get(parentId);
+    return parent &&
+      (String(parent.type) === "TreeItem" || parent.type === "ref")
+      ? parent
+      : undefined;
+  };
+  const keyOf = (node: CanonicalNode) =>
+    resolveTreeItemKey(node as TreeNode, getParentItem, isInstance);
+  return { keyOf };
+}
+
+const isItemNode = (node: CanonicalNode) =>
+  String(node.type) === "TreeItem" || node.type === "ref";
+
 /** 239 전 key (Preview `renderTree` — 노드 id) → 새 key 대응을 Tree subtree 에서 모은다. */
 function collectKeyMap(
   before: readonly CanonicalNode[],
   after: readonly CanonicalNode[],
-  byIdAfter: ReadonlyMap<string, TreeNode>,
-  parentOf: ReadonlyMap<string, string>,
+  keyOf: (node: CanonicalNode) => string,
   out: Map<string, string>,
 ): void {
-  const isInstance = (node: TreeNode) => node.type === "ref";
-  const getParentItem = (node: TreeNode): TreeNode | undefined => {
-    const parentId = parentOf.get(node.id);
-    const parent = parentId ? byIdAfter.get(parentId) : undefined;
-    return parent && (String(parent.type) === "TreeItem" || parent.type === "ref")
-      ? parent
-      : undefined;
-  };
   for (let i = 0; i < before.length; i += 1) {
     const old = before[i]!;
     const next = after[i];
     if (!next || next.id !== old.id) continue;
-    const oldKey = old.id;
-    const newKey = resolveTreeItemKey(
-      next as TreeNode,
-      getParentItem,
-      isInstance,
-    );
-    out.set(oldKey, newKey);
+    out.set(old.id, keyOf(next));
     collectKeyMap(
       (old.children ?? []).filter((c) => String(c.type) === "TreeItem"),
-      (next.children ?? []).filter(
-        (c) => String(c.type) === "TreeItem" || c.type === "ref",
-      ),
-      byIdAfter,
-      parentOf,
+      (next.children ?? []).filter(isItemNode),
+      keyOf,
       out,
     );
   }
+}
+
+/** 자식 항목이 있는 항목의 새 key (DFS) — 펼침 채우기 (ADR-239 Phase 2). */
+function collectParentKeys(
+  nodes: readonly CanonicalNode[],
+  keyOf: (node: CanonicalNode) => string,
+  out: string[] = [],
+): string[] {
+  for (const node of nodes) {
+    if (!isItemNode(node)) continue;
+    const items = (node.children ?? []).filter(isItemNode);
+    if (items.length > 0) {
+      out.push(keyOf(node));
+      collectParentKeys(items, keyOf, out);
+    }
+  }
+  return out;
 }
 
 function mapKeyList(
@@ -270,11 +299,30 @@ function mapKeyList(
   return { value: next, missing };
 }
 
-/** plain Tree (origin 포함) 의 TreeItem 자식 이관 — 결과 노드 · key 대응 (변화 없으면 null). */
-function migratePlainTree(
-  tree: CanonicalNode,
+const isNonEmptyArray = (value: unknown) =>
+  Array.isArray(value) && value.length > 0;
+
+/** Tree · Tree instance 이관 결과 — 다음 pass (instance) 가 origin 의 대응 · 유효 펼침을 읽는다. */
+interface TreeHostMigration {
+  node: CanonicalNode;
+  keyMap: Map<string, string>;
+  expandedKeys: unknown;
+}
+
+/**
+ * Tree host (plain Tree · Components origin · Tree instance) 의 자기 자식 plain TreeItem 이관 + key 대응 + 펼침 채우기.
+ * `origin` = instance 가 참조하는 Tree 의 이 pass 이관 결과 (plain host 는 undefined). 변화 없으면 null.
+ *
+ * 펼침 채우기 (ADR-239 Phase 2 · 사용자 판정 "A 유지: 전부 펼침"): 239 전 Canvas 는 중첩 행을 전부 그렸고 사용자 펼침
+ * 선택이 저장된 경로가 없다 — `expandedKeys` 가 부재 · `[]` 이고 중첩 항목이 있으면 부모 항목 key 전부로 채운다. **이관과
+ * 같은 pass 에서만** (plain TreeItem 이 있던 Tree = 239 전 문서) — 이관을 지난 Tree 의 `[]` 는 사용자가 전부 접은 값이라
+ * 다시 채우지 않는다 (별도 표식 없이 1회).
+ */
+function migrateTreeHost(
+  host: CanonicalNode,
   held: string[],
-): { node: CanonicalNode; keyMap: Map<string, string> } | null {
+  origin?: TreeHostMigration,
+): TreeHostMigration | null {
   let converted = false;
   const convert = (
     children: readonly CanonicalNode[] | undefined,
@@ -293,51 +341,81 @@ function migratePlainTree(
       }
       return child;
     });
-  const nextChildren = convert(tree.children);
-  const addsSlot = tree.id === TREE_ORIGIN_ID && tree.slot === undefined;
-  if (!converted && !addsSlot) return null;
+  const nextChildren = convert(host.children);
+  const addsSlot = host.id === TREE_ORIGIN_ID && host.slot === undefined;
+  if (!converted && !addsSlot && !origin) return null;
 
-  const keyMap = new Map<string, string>();
+  const { keyOf } = buildKeyContext(nextChildren, host.id);
+  const keyMap = new Map<string, string>(origin?.keyMap ?? []);
   if (converted) {
-    const byIdAfter = new Map<string, TreeNode>();
-    const parentOf = new Map<string, string>();
-    const index = (nodes: readonly CanonicalNode[], parentId: string) => {
-      for (const node of nodes) {
-        byIdAfter.set(node.id, node as TreeNode);
-        parentOf.set(node.id, parentId);
-        index(node.children ?? [], node.id);
-      }
-    };
-    index(nextChildren, tree.id);
     collectKeyMap(
-      (tree.children ?? []).filter((c) => String(c.type) === "TreeItem"),
-      nextChildren.filter((c) => String(c.type) === "TreeItem" || c.type === "ref"),
-      byIdAfter,
-      parentOf,
+      (host.children ?? []).filter((c) => String(c.type) === "TreeItem"),
+      nextChildren.filter(isItemNode),
+      keyOf,
       keyMap,
     );
   }
 
-  const props = { ...((tree.props ?? {}) as Record<string, unknown>) };
+  const props = { ...((host.props ?? {}) as Record<string, unknown>) };
   let missing = false;
   for (const field of TREE_KEY_FIELDS) {
-    if (!(field in props)) continue;
+    if (!Array.isArray(props[field])) continue;
     const mapped = mapKeyList(props[field], keyMap);
     if (mapped.missing) missing = true;
     props[field] = mapped.value;
   }
-  if (missing) {
-    held.push(`${tree.id}: 선택 · 펼침 key 중 대응 없는 값`);
+  // instance 의 key 는 origin 이 정한 항목도 가리킨다 — 대응이 없으면 그대로 둔다 (origin 쪽이 보류를 판정).
+  if (missing && !origin) {
+    held.push(`${host.id}: 선택 · 펼침 key 중 대응 없는 값`);
     return null;
+  }
+
+  const ownParents = converted ? collectParentKeys(nextChildren, keyOf) : [];
+  if (!origin) {
+    if (
+      converted &&
+      ownParents.length > 0 &&
+      !isNonEmptyArray(props.expandedKeys)
+    ) {
+      props.expandedKeys = ownParents;
+    }
+  } else {
+    // instance — 유효 펼침 = 자기 값 ?? origin 값. 자기 값이 `[]` 거나 (origin 을 가린다) 자기 중첩 항목이 새로
+    //   생겼으면 origin 의 채운 값 + 자기 부모 항목.
+    const originKeys = Array.isArray(origin.expandedKeys)
+      ? origin.expandedKeys.map(String)
+      : [];
+    const own = props.expandedKeys;
+    const merged = [...originKeys, ...ownParents];
+    if (
+      merged.length > 0 &&
+      ((Array.isArray(own) && own.length === 0) ||
+        (!Array.isArray(own) && ownParents.length > 0))
+    ) {
+      props.expandedKeys = merged;
+    }
+  }
+
+  const hostProps = (host.props ?? {}) as Record<string, unknown>;
+  const unchanged =
+    !converted &&
+    !addsSlot &&
+    TREE_KEY_FIELDS.every(
+      (field) =>
+        JSON.stringify(props[field]) === JSON.stringify(hostProps[field]),
+    );
+  if (unchanged) {
+    return { node: host, keyMap, expandedKeys: props.expandedKeys };
   }
   return {
     node: {
-      ...tree,
+      ...host,
       props,
       children: nextChildren,
       ...(addsSlot ? { slot: treeItemSlotIds() } : {}),
     } as CanonicalNode,
     keyMap,
+    expandedKeys: props.expandedKeys,
   };
 }
 
@@ -350,83 +428,91 @@ function isBoundTree(node: CanonicalNode): boolean {
 }
 
 /**
- * 문서의 plain Tree (Components origin 포함) 이관 + 그 Tree 를 참조하는 instance 의 key 필드 · interaction param 대응.
- * 바인딩 Tree (`dataBinding`) 는 행 = 데이터라 대상 밖.
+ * 문서의 plain Tree (Components origin 포함) 이관 → 그 Tree 를 참조하는 instance (자기 자식 · key 필드 · 펼침) →
+ * interaction param 대응. 바인딩 Tree (`dataBinding`) 는 행 = 데이터라 대상 밖.
  */
 export function migrateTreeItemsToInstances(
   document: CompositionDocument,
 ): CompositionDocument {
   const held: string[] = [];
-  /** Tree id → key 대응 (plain Tree · origin). instance 는 origin 의 대응을 쓴다. */
+  /** Tree id (plain · origin) → 이 pass 이관 결과. */
+  const migrated = new Map<string, TreeHostMigration>();
+  /** interaction 대상 id (Tree · instance) → key 대응. */
   const keyMaps = new Map<string, Map<string, string>>();
   let changed = false;
 
-  const visit = (nodes: readonly CanonicalNode[]): CanonicalNode[] =>
+  const mapTree = (
+    nodes: readonly CanonicalNode[],
+    step: (node: CanonicalNode) => CanonicalNode,
+  ): CanonicalNode[] =>
     nodes.map((node) => {
       let next = node;
       if (next.children) {
-        const children = visit(next.children);
+        const children = mapTree(next.children, step);
         if (!children.every((child, i) => child === next.children![i])) {
           next = { ...next, children };
         }
       }
-      if (next.type === "Tree" && !isBoundTree(next)) {
-        const migrated = migratePlainTree(next, held);
-        if (migrated) {
-          changed = true;
-          if (migrated.keyMap.size > 0) keyMaps.set(next.id, migrated.keyMap);
-          return migrated.node;
-        }
-      }
-      return next;
+      return step(next);
     });
 
-  let children = visit(document.children);
+  // 1단계 — plain Tree (Components origin 포함).
+  let children = mapTree(document.children, (node) => {
+    if (node.type !== "Tree" || isBoundTree(node)) return node;
+    const result = migrateTreeHost(node, held);
+    if (!result) return node;
+    migrated.set(node.id, result);
+    if (result.keyMap.size > 0) keyMaps.set(node.id, result.keyMap);
+    if (result.node !== node) changed = true;
+    return result.node;
+  });
 
-  // Tree instance (origin 이 이관된 ref) 의 key 필드 — origin 의 대응표로 (instance 자기 자식 plain 항목은 드물어
-  //   instance 는 root props 만 옮긴다).
-  const instanceKeyMap = (ref: unknown): Map<string, string> | undefined =>
-    typeof ref === "string" ? keyMaps.get(ref) : undefined;
-  const instanceKeyMaps = new Map<string, Map<string, string>>();
-  const remapInstances = (nodes: readonly CanonicalNode[]): CanonicalNode[] =>
-    nodes.map((node) => {
-      let next = node;
-      if (next.children) {
-        const kids = remapInstances(next.children);
-        if (!kids.every((child, i) => child === next.children![i])) {
-          next = { ...next, children: kids };
-        }
-      }
-      const keyMap =
-        next.type === "ref"
-          ? instanceKeyMap((next as TreeNode).ref)
-          : undefined;
-      if (!keyMap) return next;
-      const props = { ...((next.props ?? {}) as Record<string, unknown>) };
-      let touched = false;
-      for (const field of TREE_KEY_FIELDS) {
-        if (!Array.isArray(props[field])) continue;
-        const mapped = mapKeyList(props[field], keyMap);
-        props[field] = mapped.value;
-        touched = true;
-      }
-      // interaction 규칙이 instance 를 대상으로 해도 같은 대응 (아래 events pass).
-      instanceKeyMaps.set(next.id, keyMap);
-      if (!touched) return next;
-      changed = true;
-      return { ...next, props } as CanonicalNode;
-    });
-  if (keyMaps.size > 0) children = remapInstances(children);
+  // 2단계 — Tree instance (origin 이 1단계에서 이관됐거나 자기 자식에 plain TreeItem).
+  const byId = new Map<string, CanonicalNode>();
+  const index = (nodes: readonly CanonicalNode[]) => {
+    for (const node of nodes) {
+      byId.set(node.id, node);
+      index(node.children ?? []);
+    }
+  };
+  index(children);
+  const chainEnd = (node: CanonicalNode): CanonicalNode | undefined => {
+    let current: CanonicalNode | undefined = node;
+    for (let depth = 0; current?.type === "ref" && depth < 8; depth += 1) {
+      current = byId.get((current as TreeNode).ref ?? "");
+    }
+    return current;
+  };
+  children = mapTree(children, (node) => {
+    if (node.type !== "ref") return node;
+    const end = chainEnd(node);
+    if (!end || end.type !== "Tree" || isBoundTree(node)) return node;
+    const origin = migrated.get(end.id);
+    const hasPlainItems = (node.children ?? []).some(isPlainTreeItem);
+    if (!origin && !hasPlainItems) return node;
+    const result = migrateTreeHost(
+      node,
+      held,
+      origin ?? {
+        node: end,
+        keyMap: new Map(),
+        expandedKeys: (end.props as Record<string, unknown> | undefined)
+          ?.expandedKeys,
+      },
+    );
+    if (!result) return node;
+    if (result.keyMap.size > 0) keyMaps.set(node.id, result.keyMap);
+    if (result.node !== node) changed = true;
+    return result.node;
+  });
 
-  // interaction 규칙 (N4) — Tree 대상 capability 의 key param.
+  // interaction 규칙 (N4) — Tree · instance 대상 capability 의 key param.
   let events = document.events;
   if (keyMaps.size > 0 && Array.isArray(events)) {
     const nextEvents = events.map((rule): InteractionRule => {
       const action = (rule as { action?: unknown }).action;
       if (!isRecord(action) || action.kind !== "capability") return rule;
-      const keyMap =
-        keyMaps.get(String(action.targetId)) ??
-        instanceKeyMaps.get(String(action.targetId));
+      const keyMap = keyMaps.get(String(action.targetId));
       const params = action.params;
       if (!keyMap || !isRecord(params) || typeof params.value !== "string") {
         return rule;
@@ -450,6 +536,5 @@ export function migrateTreeItemsToInstances(
     ...(events !== document.events ? { events } : {}),
   };
 }
-
 /** Components body id — 테스트가 origin 위치를 읽는다. */
 export const TREE_COMPONENTS_BODY_ID = COMPONENTS_SYSTEM_BODY_ID;

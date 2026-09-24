@@ -1502,6 +1502,22 @@ export class StoreRenderBridge {
           }
         }
       }
+
+      // ADR-239 Phase 2 — TreeItem 의 chevron (방향 · 유무) 은 소속 Tree 의 `expandedKeys` 와 자기 자식 TreeItem 을
+      //   읽는다: Tree 가 바뀌면 깊이와 무관하게 TreeItem 자손 전부, TreeItem 이 바뀌면 (자식 추가 · 삭제) 부모 TreeItem.
+      if (element.type === "Tree" && childrenMap) {
+        const stack = [...(childrenMap.get(id) ?? [])];
+        while (stack.length > 0) {
+          const node = stack.pop()!;
+          if (node.type !== "TreeItem") continue;
+          expandedIds.add(node.id);
+          stack.push(...(childrenMap.get(node.id) ?? []));
+        }
+      }
+      if (element.type === "TreeItem" && element.parent_id) {
+        const parent = elementsMap.get(element.parent_id);
+        if (parent?.type === "TreeItem") expandedIds.add(parent.id);
+      }
     }
 
     recordEditorPresentationTargetIncrementalPatches(expandedIds.size);

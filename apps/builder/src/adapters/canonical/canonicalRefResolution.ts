@@ -1592,6 +1592,17 @@ function registerStateOwnSource<T extends object>(resolved: T, own: object): T {
   return resolved;
 }
 
+/** ADR-239 — 접힘 층이 없거나 펼침 prop (`isExpanded:false`) 만 가진다 — 해석 결과를 바꾸지 않는다. */
+function isInertCollapsedLayer(layer: StateLayer | undefined): boolean {
+  if (!layer) return true;
+  if (layer.fills !== undefined || layer.descendants !== undefined) {
+    return false;
+  }
+  if (layer.enabled !== undefined) return false;
+  const props = layer.props ?? {};
+  return Object.keys(props).every((key) => key === "isExpanded");
+}
+
 /**
  * ADR-237 Phase 2 · 3 — 위치에 따른 상태 층 (형제가 다 모인 최종 자식 목록 기준):
  * - DisclosureGroup `allowsMultipleExpanded:false` 에서 첫 후보가 아닌 Disclosure → 접힘 (RAC 그룹 상태머신 ·
@@ -1621,6 +1632,8 @@ function applyPositionalStateLayers<T extends CanonicalRefResolvableNode>(
     parentId: string,
     index: number,
     extra: Partial<ActiveVariantStates>,
+    /** ADR-239 — 접힘 층이 `isExpanded:false` 뿐 (기본 `--collapsed`) 이면 재합성하지 않는다 (시각 변화 0). */
+    skipInertCollapsed = false,
   ) => {
     const kid = childrenMap.get(parentId)![index]!;
     const node = elementsMap.get(kid.id) ?? kid;
@@ -1637,6 +1650,9 @@ function applyPositionalStateLayers<T extends CanonicalRefResolvableNode>(
     if (!origin || origin === node || origin.type === "ref") return;
     const set = cachedStateLayerSet(origin.id, lookupMaster);
     if (!set) return;
+    if (skipInertCollapsed && isInertCollapsedLayer(set.layers.collapsed)) {
+      return;
+    }
     const layer = resolveActiveStateLayer(set, {
       ...resolveCanvasVariantState(node, elementsMap),
       ...extra,
@@ -1675,6 +1691,26 @@ function applyPositionalStateLayers<T extends CanonicalRefResolvableNode>(
           last = index;
       });
       if (last >= 0) relayer(parentId, last, { current: true });
+    } else if (parent?.type === "Tree" || parent?.type === "TreeItem") {
+      // ADR-239 Phase 2 — TreeItem 접힘 층: RAC render prop `isExpanded` = 자식 항목이 있고 소속 Tree `expandedKeys`
+      //   에 key 가 있을 때만 (잎 항목은 false — `aria-expanded` 없음). 자식 목록 · 소속 Tree 가 모인 뒤라 여기서.
+      const tree =
+        parent.type === "Tree"
+          ? parent
+          : findAncestor(parent, elementsMap, (node) => node.type === "Tree");
+      if (!tree) continue;
+      const rawKeys = getNodeProps(tree).expandedKeys;
+      const keys = Array.isArray(rawKeys) ? rawKeys.map(String) : [];
+      kids.forEach((kid, index) => {
+        const node = elementsMap.get(kid.id) ?? kid;
+        if (node.type !== "TreeItem") return;
+        const hasItems = (childrenMap.get(node.id) ?? []).some(
+          (child) => (elementsMap.get(child.id) ?? child).type === "TreeItem",
+        );
+        const expanded =
+          hasItems && keys.includes(resolveCanvasTreeItemKey(node, elementsMap));
+        if (!expanded) relayer(parentId, index, { expanded: false }, true);
+      });
     }
   }
 }

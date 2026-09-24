@@ -314,7 +314,7 @@ describe("ADR-239 Phase 1 — 두 leg (Tree instance · 항목 key · 역할 자
     expect(keys).toEqual(["item-1", "item-1/item-1-1", "item-2"]);
   });
 
-  it('Slot "+": Tree instance root → 자기 자식 항목 · TreeItem instance → 그 항목의 자식 (선택 key 쓰지 않음)', () => {
+  it('Slot "+": Tree instance root → 자기 자식 항목 · TreeItem instance → 그 항목의 자식 (선택 key 대신 host 펼침)', () => {
     const doc = seededDoc([
       {
         id: "t-plain",
@@ -356,7 +356,8 @@ describe("ADR-239 Phase 1 — 두 leg (Tree instance · 항목 key · 역할 자
       kind: "plain",
       tabListId: "own-1",
       tab: { ref: TREE_ITEM_DEFAULT_ORIGIN_ID, props: { id: "k-nested" } },
-      selection: null,
+      // Phase 2 — 선택 key 대신 host 를 소속 Tree 펼침에 더한다 (넣은 항목이 두 leg 에 보인다).
+      selection: { ownerId: "t-plain", props: { expandedKeys: ["own-1"] } },
     });
     expect(
       (nestedPlan as { tab: { descendants?: unknown } }).tab.descendants,

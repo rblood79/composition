@@ -65,6 +65,7 @@ import { findAncestorByTag } from "../../skia/ancestorLookup";
 import { resolveSkiaRule } from "../../skia/resolveSkiaVisualRule";
 import {
   flattenTreeRows,
+  isTreeItemExpanded,
   isTreeItemRoleChild,
   resolveTreeItemContentInset,
 } from "../../treeItemRow";
@@ -1510,7 +1511,11 @@ export function applyImplicitStyles(
     effectiveParent = withParentStyle(containerEl, { ...parentStyle });
     // ADR-239 Phase 1 — DOM (RAC) 은 중첩 TreeItem 을 평탄한 행으로 그린다: 행 목록 = TreeItem 자손 DFS.
     //   (239 전에는 자식 행이 부모 행 상자 안에 겹쳤다 — breakdown §5 N1.) Skia 는 layout 의 자식 표를 따른다.
-    filteredChildren = flattenTreeRows(filteredChildren, getChildElements);
+    //   ADR-239 Phase 2 — 접힌 항목 (소속 Tree `expandedKeys` 에 key 없음) 의 자식 행은 싣지 않는다 (DOM RAC 와 같은
+    //   행 집합 · Skia 는 layout 자식표 밖 노드를 그리지 않는다).
+    filteredChildren = flattenTreeRows(filteredChildren, getChildElements, (item) =>
+      isTreeItemExpanded(item, elementById),
+    );
   }
 
   // ── TreeItem 행 ─────────────────────────────────────────────────────

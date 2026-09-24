@@ -12,7 +12,12 @@
  * "selected"`) 면 새 key 를 owner 선택 key 에 더하고, 휴지 후보면 항목만 (사용자 지적 2026-09-23 — 두 후보가
  * 같은 항목을 넣었다).
  */
-import type { CanonicalNode, CompositionDocument } from "@composition/shared";
+import type {
+  CanonicalNode,
+  CompositionDocument,
+  TreeItemKeyNode,
+} from "@composition/shared";
+import { resolveTreeItemKey } from "@composition/shared";
 
 import { getCanonicalRefPathSegment } from "../../adapters/canonical/canonicalRefResolution";
 import {
@@ -147,6 +152,71 @@ function cloneWithFreshIds(
 }
 
 /**
+ * ADR-239 Phase 2 — 항목 host (TreeItem) 에 하위 항목을 넣으면 host 를 소속 Tree `expandedKeys` 에 더한다 (펼침 정본 —
+ * 접힌 항목에 넣은 항목은 두 leg 모두 보이지 않는다). host key = `resolveTreeItemKey` (부모 TreeItem 이 instance 면 부모
+ * key 접두). `roots` 는 host 를 품은 subtree (문서 · instance 가 참조하는 origin), owner 의 현재 값은 ref 체인에서 처음 만난
+ * 배열. 이미 펼쳐져 있거나 소속 Tree 가 없으면 null.
+ */
+function treeHostExpansion(
+  roots: readonly CanonicalNode[],
+  byId: ReadonlyMap<string, CanonicalNode>,
+  hostId: string,
+  ownerProps?: Record<string, unknown>,
+): { ownerId: string; expandedKeys: string[] } | null {
+  const parents = new Map<string, CanonicalNode>();
+  const index = (nodes: readonly CanonicalNode[], parent?: CanonicalNode) => {
+    for (const node of nodes) {
+      if (parent) parents.set(node.id, parent);
+      index(node.children ?? [], node);
+    }
+  };
+  index(roots);
+  const chainType = (node: CanonicalNode) =>
+    node.type === "ref" ? resolveChainEnd(node.id, byId)?.type : node.type;
+  const isItem = (node: CanonicalNode) => String(chainType(node)) === "TreeItem";
+  const host = byId.get(hostId) ?? findInRoots(roots, hostId);
+  if (!host) return null;
+  let owner = parents.get(hostId);
+  while (owner && isItem(owner)) owner = parents.get(owner.id);
+  if (!owner || String(chainType(owner)) !== "Tree") return null;
+  const key = resolveTreeItemKey(
+    host as TreeItemKeyNode & CanonicalNode,
+    (node) => {
+      const parent = parents.get(node.id);
+      return parent && isItem(parent)
+        ? (parent as TreeItemKeyNode & CanonicalNode)
+        : undefined;
+    },
+    (node) => node.type === "ref",
+  );
+  let current: unknown = ownerProps?.expandedKeys;
+  let cursor: CanonicalNode | undefined = owner;
+  for (let depth = 0; !Array.isArray(current) && cursor && depth < 8; depth += 1) {
+    current = (cursor.props as Record<string, unknown> | undefined)
+      ?.expandedKeys;
+    cursor =
+      cursor.type === "ref"
+        ? byId.get((cursor as RefLike).ref ?? "")
+        : undefined;
+  }
+  const keys = Array.isArray(current) ? current.map(String) : [];
+  if (keys.includes(key)) return null;
+  return { ownerId: owner.id, expandedKeys: [...keys, key] };
+}
+
+function findInRoots(
+  roots: readonly CanonicalNode[],
+  id: string,
+): CanonicalNode | undefined {
+  for (const node of roots) {
+    if (node.id === id) return node;
+    const hit = findInRoots(node.children ?? [], id);
+    if (hit) return hit;
+  }
+  return undefined;
+}
+
+/**
  * `hostId` (목록 틀 — plain 또는 synthetic) 에 `candidateId` (slot 항목) 의 항목을 넣는 계획. 넣을 수 없으면
  * null (origin 누락 · 구조 불일치).
  */
@@ -258,13 +328,24 @@ export function planTabItemInsert(input: {
               newKey,
             )
           : null;
+      // ADR-239 Phase 2 — 항목 host 는 선택 대신 소속 Tree 펼침에 host 를 더한다.
+      const expansion = isItemHost(family, master.type)
+        ? treeHostExpansion(document.children, byId, host.id)
+        : null;
       return {
         kind: "plain",
         tabListId: host.id,
         tab: item,
         tabPanelsId: null,
         panel: null,
-        selection: patch ? { ownerId: host.id, props: patch } : null,
+        selection: patch
+          ? { ownerId: host.id, props: patch }
+          : expansion
+            ? {
+                ownerId: expansion.ownerId,
+                props: { expandedKeys: expansion.expandedKeys },
+              }
+            : null,
       };
     }
     const list = host;
@@ -395,6 +476,22 @@ export function planTabItemInsert(input: {
           props: { ...(parentPatch.props ?? {}), ...patch },
         };
       }
+    }
+  }
+  // ADR-239 Phase 2 — instance 가 상속한 항목 host: origin (Tree) 안 key 로 instance 펼침에 더한다.
+  if (isItemHost(family, String(listType)) && master.type === "Tree") {
+    const instanceProps = (props ?? instance.props ?? {}) as Record<
+      string,
+      unknown
+    >;
+    const expansion = treeHostExpansion(
+      [master],
+      byId,
+      listHit.node.id,
+      Array.isArray(instanceProps.expandedKeys) ? instanceProps : undefined,
+    );
+    if (expansion) {
+      props = { ...instanceProps, expandedKeys: expansion.expandedKeys };
     }
   }
   return { kind: "instance", instanceId: instance.id, descendants, props };

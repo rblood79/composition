@@ -18,6 +18,7 @@
 import { resolveTextRenderStyle } from "../utils/textRenderStyle";
 import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import {
+  isTreeItemExpanded,
   isTreeItemRoleChild,
   resolveTreeItemLevel,
   resolveTreeSelectionCheckboxVisible,
@@ -1723,6 +1724,10 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
     specProps = {
       ...specProps,
       ...(hasRoleChildren ? { _hasChildren: true } : {}),
+      // ADR-239 Phase 2 — chevron 방향 = 유효 펼침 (layout 평탄화와 같은 판정 · leading_icon 은 `isExpanded === true`
+      //   일 때 아래). 자식 TreeItem 이 없으면 chevron 자체를 그리지 않는다.
+      isExpanded:
+        treeItemHasChildren && isTreeItemExpanded(element, elementsMap),
       _treeLevel: resolveTreeItemLevel(element, elementsMap),
       _hasTreeChildren: treeItemHasChildren,
       // 선택 체크박스 가시성(2026-08-21) — DOM 은 RAC renderProps 로 같은 판정을 한다

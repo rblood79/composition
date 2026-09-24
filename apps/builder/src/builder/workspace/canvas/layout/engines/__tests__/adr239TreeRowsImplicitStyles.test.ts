@@ -17,7 +17,10 @@ function node(
   return { id, type, parent_id, props } as unknown as CanvasLayoutNode;
 }
 
-const tree = node("t", "Tree", null, { selectionMode: "single" });
+const tree = node("t", "Tree", null, {
+  selectionMode: "single",
+  expandedKeys: ["a"],
+});
 const a = node("a", "TreeItem", "t");
 const aLabel = node("a-label", "Text", "a", { children: "A" });
 const b = node("b", "TreeItem", "a");
@@ -31,12 +34,22 @@ const apply = (container: CanvasLayoutNode) =>
   applyImplicitStyles(container, childrenOf(container.id), childrenOf, byId);
 
 describe("ADR-239 — Tree 행 평탄화 · TreeItem 행 여백", () => {
-  it("Tree layout 자식 = TreeItem 자손 DFS (부모 행 → 자식 행 → 다음 행)", () => {
+  it("Tree layout 자식 = TreeItem 자손 DFS (부모 행 → 자식 행 → 다음 행) · 접힌 항목 (`expandedKeys` 밖) 의 자식 행 제외", () => {
     expect(apply(tree).filteredChildren.map((n) => n.id)).toEqual([
       "a",
       "b",
       "c",
     ]);
+    const collapsed = { ...tree, props: { ...tree.props, expandedKeys: [] } };
+    byId.set("t", collapsed);
+    try {
+      expect(apply(collapsed).filteredChildren.map((n) => n.id)).toEqual([
+        "a",
+        "c",
+      ]);
+    } finally {
+      byId.set("t", tree);
+    }
   });
 
   it("TreeItem layout 자식 = 역할 자식만 · 왼쪽 여백 = paddingX 8 + chevron 16 + gap 6 (깊이마다 +16) · 최소 높이 32", () => {

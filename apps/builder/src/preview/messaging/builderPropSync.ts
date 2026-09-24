@@ -21,9 +21,13 @@
  *   `applyImplicitStyles`(DisclosureContent display:none) / chevron 방향 판정에 소비한다.
  *   Inspector 의 State > Expanded 토글과 같은 prop 이므로 문서 편집으로 취급(undo/persist 포함)
  *   하는 것이 일관된다.
+ * - `expandedKeys` — Tree 펼침 (ADR-239). 항목 key 는 `resolveTreeItemKey` (두 leg 같은 함수).
  */
 export const BUILDER_SYNCED_PREVIEW_PROPS: ReadonlySet<string> = new Set([
   "isExpanded",
+  // ADR-239 Phase 2 — Tree 펼침 (`expandedKeys`) 도 문서 상태다: Canvas layout (접힌 항목의 자식 행 제외) · chevron
+  //   방향이 같은 값을 읽는다. Tree 의 `selectedKeys` 역전파는 범위 밖 (펼침과 독립 — breakdown §4 Phase 2).
+  "expandedKeys",
 ]);
 
 /**

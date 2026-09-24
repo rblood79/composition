@@ -16,6 +16,11 @@ import { resolveCanonicalDocument } from "../../../resolvers/canonical";
 import { CanonicalNodeRenderer } from "../../../preview/components/CanonicalNodeRenderer";
 import type { RenderContext } from "../../../preview/types/index";
 import { buildCanonicalSceneModel } from "../../workspace/canvas/scene/canonicalSceneModel";
+import {
+  flattenTreeRows,
+  isTreeItemExpanded,
+  type TreeRowNode,
+} from "../../workspace/canvas/treeItemRow";
 import { ensureReusableCompositeOrigins } from "../reusableCompositeOrigins";
 import { ensureMenuTemplateOrigins } from "../menu/menuTemplateOrigins";
 import { indexNodes, resolveChainEnd } from "../staticCollectionMigration";
@@ -24,7 +29,7 @@ import { resolveSlotInsertAction } from "../slotHostPolicy";
 /**
  * ADR-239 Phase 0 — 진단 RED (breakdown §4 Phase 0 (a)~(e)).
  * `it` = 닫힌 결함 (닫은 Phase 가 `it.fails` → `it` 으로 바꾼다) · `it.fails` = 아직 열린 결함:
- *   (a) (c) → Phase 1 (닫힘 — `it`) · (b) → Phase 2 · (d) → Phase 3 · (e) → Phase 4.
+ *   (a) (c) → Phase 1 · (b) → Phase 2 (닫힘 — `it`) · (d) → Phase 3 · (e) → Phase 4.
  */
 
 afterEach(() => {
@@ -145,19 +150,17 @@ describe("ADR-239 진단 (a) — Tree · TreeItem 이 slot host 가 아니다 (F
 
 // ── (b) 중첩 Tree 펼침 두 leg 발산 (F3 · F4) ─────────────────────────────────────────────
 describe("ADR-239 진단 (b) — 중첩 TreeItem: Canvas 는 전부 그리고 Preview 는 전부 접는다 (F4)", () => {
-  /** 239 전 Canvas: 펼침 판정이 없어 scene 의 TreeItem 을 전부 그린다 (live: 자식 행이 부모 행에 겹침). */
+  /**
+   * Canvas 행 집합 = layout 이 Tree 에 펴는 행 (`flattenTreeRows` + 유효 펼침 `isTreeItemExpanded` — Phase 2). 239 전에는
+   * 펼침 판정이 없어 scene 의 TreeItem 을 전부 그렸다 (live: 자식 행이 부모 행에 겹침).
+   */
   function canvasRows(doc: CompositionDocument): string[] {
     const model = buildCanonicalSceneModel(doc);
-    const out: string[] = [];
-    const visit = (id: string) => {
-      for (const child of model.sceneChildrenByParent.get(id) ?? []) {
-        if (child.type !== "TreeItem") continue;
-        out.push(child.id);
-        visit(child.id);
-      }
-    };
-    visit("tree-1");
-    return out;
+    const kids = (id: string) =>
+      (model.sceneChildrenByParent.get(id) ?? []) as TreeRowNode[];
+    return flattenTreeRows(kids("tree-1"), kids, (item) =>
+      isTreeItemExpanded(item, model.sceneNodesMap as never),
+    ).map((row) => row.id);
   }
 
   function previewRows(doc: CompositionDocument): string[] {
@@ -167,15 +170,22 @@ describe("ADR-239 진단 (b) — 중첩 TreeItem: Canvas 는 전부 그리고 Pr
     );
   }
 
-  it("사실 — 239 전 두 leg 의 행 집합 (Canvas 3 · Preview 2)", () => {
+  it("239 전 문서 (plain · `expandedKeys: []`) — 이관이 부모 key 를 채워 두 leg 모두 3 행 (Canvas 가 보던 행 집합)", () => {
     const doc = seededDoc([nestedTree({ expandedKeys: [] })]);
     expect(canvasRows(doc)).toEqual(["ti-a", "ti-b", "ti-c"]);
-    expect(previewRows(doc)).toEqual(["ti-a", "ti-c"]);
+    expect(previewRows(doc)).toEqual(["ti-a", "ti-b", "ti-c"]);
   });
 
-  it.fails("같은 문서에서 두 leg 가 같은 행 집합을 보인다", () => {
-    const doc = seededDoc([nestedTree({ expandedKeys: [] })]);
-    expect(canvasRows(doc)).toEqual(previewRows(doc));
+  it("같은 문서에서 두 leg 가 같은 행 집합을 보인다 (비어 있지 않은 `expandedKeys` 는 보존 — 접힌 자식 제외)", () => {
+    for (const expandedKeys of [[], ["ti-c"], ["ti-a"]]) {
+      const doc = seededDoc([nestedTree({ expandedKeys })]);
+      expect(canvasRows(doc), JSON.stringify(expandedKeys)).toEqual(
+        previewRows(doc),
+      );
+      cleanup();
+    }
+    const collapsed = seededDoc([nestedTree({ expandedKeys: ["ti-c"] })]);
+    expect(canvasRows(collapsed)).toEqual(["ti-a", "ti-c"]);
   });
 });
 

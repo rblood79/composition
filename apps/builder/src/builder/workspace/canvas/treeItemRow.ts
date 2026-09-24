@@ -14,6 +14,7 @@ import {
   resolveSelectionCheckboxVisible,
 } from "@composition/shared";
 
+import { resolveCanvasTreeItemKey } from "../../../adapters/canonical/canonicalRefResolution";
 import { resolveSkiaRule } from "./skia/resolveSkiaVisualRule";
 
 /** 판정에 필요한 최소 노드 — CanvasSceneNode · CanvasLayoutNode 공통. */
@@ -136,4 +137,43 @@ export function flattenTreeRows<N extends { id: string; type: string }>(
   };
   visit(children);
   return out;
+}
+
+/** 가장 가까운 Tree 조상 (TreeItem 사슬 위) — 없으면 undefined (Components 페이지 단독 TreeItem). */
+export function findOwnerTree<N extends TreeRowNode>(
+  element: N,
+  elementsMap: ReadonlyMap<string, N>,
+): N | undefined {
+  let currentId: string | null | undefined = element.parent_id;
+  for (let guard = 0; guard < 32 && currentId; guard++) {
+    const ancestor = elementsMap.get(currentId);
+    if (!ancestor) return undefined;
+    if (ancestor.type === "Tree") return ancestor;
+    if (ancestor.type !== "TreeItem") return undefined;
+    currentId = ancestor.parent_id;
+  }
+  return undefined;
+}
+
+/**
+ * ADR-239 Phase 2 — TreeItem 의 유효 펼침 (정본 = 소속 Tree `expandedKeys`). Preview `renderTree` 와 같은 읽기:
+ * `expandedKeys` 가 배열이 아니면 `[]` (controlled — 부재 = 전부 접힘, RAC 기본), 항목 key 는 `resolveCanvasTreeItemKey`
+ * (Preview RAC key 와 같은 함수). Tree 밖 단독 TreeItem (Components 페이지 origin · `--collapsed` 변형) 은 자기
+ * `isExpanded` (부재 = 펼침 — origin = 가장 완성된 모양, 237 Disclosure 선례).
+ */
+export function isTreeItemExpanded<N extends TreeRowNode>(
+  element: N,
+  elementsMap: ReadonlyMap<string, N>,
+): boolean {
+  const tree = findOwnerTree(element, elementsMap);
+  if (!tree) {
+    return (element.props as Record<string, unknown> | undefined)?.isExpanded !== false;
+  }
+  const keys = (tree.props as Record<string, unknown> | undefined)?.expandedKeys;
+  if (!Array.isArray(keys) || keys.length === 0) return false;
+  const key = resolveCanvasTreeItemKey(
+    element as never,
+    elementsMap as never,
+  );
+  return keys.some((entry) => String(entry) === key);
 }

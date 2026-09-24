@@ -64,6 +64,8 @@ const LAYOUT_AFFECTING_PROP_SOURCE = [
   "valueLabel",
   "isExpanded",
   "allowsMultipleExpanded",
+  // ADR-239 Phase 2 — Tree 펼침: 접힌 항목의 자식 행이 layout 에서 빠진다 (Tree 가 행을 편다).
+  "expandedKeys",
   "selectionMode",
   "selectionStyle",
   "selectionBehavior",
@@ -123,6 +125,7 @@ const LAYOUT_PROP_CACHE_SOURCE = [
   "valueLabel",
   "isExpanded",
   "allowsMultipleExpanded",
+  "expandedKeys",
   "height",
   "heightMode",
   "_projectedRowsContentHeight",
