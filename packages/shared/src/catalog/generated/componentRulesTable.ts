@@ -5028,20 +5028,26 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
+    // 테두리 없음 (starter DisclosureGroup.css 정합 · Disclosure 2026-09-18 동형). sizes 에 borderWidth 가
+    //   없으면 Skia generic shell 이 기본 thin (1px) 로 variant border 색을 그렸고, 생성 CSS 는
+    //   border-style 이 없어 DOM 은 `0px none` — Skia 에만 테두리가 보였다 (2026-09-24 Compare Mode 실측).
     sizes: {
       sm: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
+        borderWidth: "{border.width.none}",
         height: 0,
       },
       md: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
+        borderWidth: "{border.width.none}",
         height: 0,
       },
       lg: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.lg}",
+        borderWidth: "{border.width.none}",
         height: 0,
       },
     },

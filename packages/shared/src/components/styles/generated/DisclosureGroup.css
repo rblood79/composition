@@ -19,21 +19,25 @@
   /* Default size */
   font-size: var(--text-sm);
   border-radius: var(--radius-md);
+  border-width: var(--border-width-none);
 }
 
 .react-aria-DisclosureGroup[data-size="sm"] {
   font-size: var(--text-sm);
   border-radius: var(--radius-md);
+  border-width: var(--border-width-none);
 }
 
 .react-aria-DisclosureGroup[data-size="md"] {
   font-size: var(--text-sm);
   border-radius: var(--radius-md);
+  border-width: var(--border-width-none);
 }
 
 .react-aria-DisclosureGroup[data-size="lg"] {
   font-size: var(--text-lg);
   border-radius: var(--radius-lg);
+  border-width: var(--border-width-none);
 }
 
 .react-aria-DisclosureGroup[data-focus-visible] {
