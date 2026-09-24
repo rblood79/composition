@@ -56,6 +56,7 @@ import {
   resolveBindingPropDefault,
   resolveCatalogDensityField,
   resolveComponentRule,
+  resolveTableColumnEffectiveWidth,
 } from "@composition/shared";
 import type {
   ComponentRuleSize,
@@ -1892,8 +1893,7 @@ export function applyImplicitStyles(
   if (containerTag === "gridlistitem") {
     // ADR-234 Phase 3e — 선택 카드 = `GridList.css [data-selected]` (border 2 · padding 1 씩 줄여 크기 유지).
     const selected =
-      containerProps?.isSelected === true &&
-      rawParentStyle.borderWidth == null;
+      containerProps?.isSelected === true && rawParentStyle.borderWidth == null;
     const shrink = (key: string): Record<string, unknown> => {
       const v = parentStyle[key];
       return selected && rawParentStyle[key] == null && typeof v === "number"
@@ -2561,6 +2561,36 @@ export function applyImplicitStyles(
       width: "100%",
       ...(tabGap !== undefined ? { gap: tabGap } : {}),
     });
+  }
+
+  // ── TableHeader (data Table) — ADR-241 Phase 1 열 폭 ─────────────────
+  // data Table 의 헤더는 Column 요소가 그리고 데이터 셀은 projection 이 같은 reader 의 유효 폭으로 그린다
+  //   (`readTableColumnElements`). Column 요소도 같은 폭이어야 셀과 줄이 맞는다 — catalog `flex:1` 균등 분할은
+  //   `width` 를 무시한다. Preview TanStack 헤더 셀도 `getSize()` 만 읽는다 (Column style.width 미소비).
+  if (containerTag === "tableheader") {
+    const tableParent = findAncestorByTag(containerEl, "Table", elementById, 1);
+    if (tableParent) {
+      filteredChildren = filteredChildren.map((child) => {
+        if (child.type !== "Column") return child;
+        const cs = (child.props?.style as Record<string, unknown>) || {};
+        return {
+          ...child,
+          props: {
+            ...child.props,
+            style: {
+              ...cs,
+              width: resolveTableColumnEffectiveWidth(
+                child.props as Record<string, unknown> | undefined,
+              ),
+              // catalog `flex:1` 이 자식 visit 에서 batch 에 남긴 basis `0%` 를 덮는다 (grow 0 이면 content 폭으로 준다).
+              flexBasis: "auto",
+              flexGrow: 0,
+              flexShrink: 0,
+            },
+          },
+        };
+      });
+    }
   }
 
   // ── TableHeader / Row (TableView density) ─────────────────────────

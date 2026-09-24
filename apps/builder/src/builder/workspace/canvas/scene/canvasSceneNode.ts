@@ -94,6 +94,7 @@ import { resolveContainerStylesFallback } from "../layout/engines/implicitStyles
 import { resolveResponsiveStyleMap } from "../layout/resolveResponsive";
 import {
   getTableProjectionRows,
+  readTableColumnElements,
   readDataBindingRows,
   type TableColumnDef,
   type TableProjectionRow,
@@ -884,17 +885,13 @@ export function resolveTabTemplateOriginIds(
   // ADR-234 Phase 3 — slot 은 목록 틀 (TabList) 이 갖는다. root 는 이관 전 문서.
   const slot = Array.isArray(slotOwner?.slot)
     ? slotOwner.slot
-    : (slotOwner as Pick<CanonicalNode, "children"> | undefined)?.children?.find(
-        (child) => child.type === "TabList",
-      )?.slot;
-  return resolveItemTemplateSlotOriginIds(
-    slot,
-    getDocumentNodesById,
-    {
-      defaultOriginId: TAB_ITEM_DEFAULT_ORIGIN_ID,
-      selectedOriginId: TAB_ITEM_SELECTED_ORIGIN_ID,
-    },
-  );
+    : (
+        slotOwner as Pick<CanonicalNode, "children"> | undefined
+      )?.children?.find((child) => child.type === "TabList")?.slot;
+  return resolveItemTemplateSlotOriginIds(slot, getDocumentNodesById, {
+    defaultOriginId: TAB_ITEM_DEFAULT_ORIGIN_ID,
+    selectedOriginId: TAB_ITEM_SELECTED_ORIGIN_ID,
+  });
 }
 
 /**
@@ -1834,12 +1831,16 @@ function resolveDataBoundTableProjection(
   tableSceneNode: CanvasSceneNode,
   sourceNode: CanonicalNode,
   options: BuildCanvasSceneGraphOptions,
+  /** 자식 scene 노드가 이미 선 graph — TableHeader · Column 을 읽는다 (자식 visit 뒤 · ref 해석 뒤에 부른다). */
+  graph: Pick<CanvasSceneGraph, "childrenByParent">,
 ): {
   columns: TableColumnDef[];
   rows: TableProjectionRow[];
   sourceNode: CanonicalNode;
   /** ADR-150 A2 (Table 확산): data 행 가상화 window 해석. null=legacy 정적 cap. */
   windowResolution: CollectionWindowResolution | null;
+  /** ADR-241 — 헤더를 Column 요소가 그린다 (projection 헤더 행 생략). */
+  headerFromElements: boolean;
 } | null {
   if (!isTableSceneSource(tableSceneNode, sourceNode)) return null;
 
@@ -1848,6 +1849,11 @@ function resolveDataBoundTableProjection(
   //   data 행 슬라이스. header 행은 항상 포함. 미판정이면 undefined → legacy 정적 cap.
   const windowResolution =
     options.collectionWindows?.get(tableSceneNode.id) ?? null;
+  // ADR-241 Phase 1 — 열 원천 = 해석된 TableHeader 의 Column scene 노드 (instance 상속 · mode C 자기 열 · Column ref 의
+  //   접힌 props 포함). Preview TableRenderer 와 같은 reader. Column 요소가 없을 때만 legacy `props.columns`.
+  const elementColumns = readTableColumnElements(
+    readTableHeaderColumnSceneNodes(tableSceneNode.id, graph),
+  );
   const { columns, rows, totalDataRows } = getTableProjectionRows(
     {
       collections: options.collections,
@@ -1855,13 +1861,37 @@ function resolveDataBoundTableProjection(
       props: tableSceneNode.props,
     },
     windowResolution?.window,
+    elementColumns,
   );
   // 원본 data 행(header 제외)이 하나도 없으면 projection 의미 없음 → standalone 유지.
   //   totalDataRows 로 gating(window 슬라이스 후 rows 수 아님) — 스크롤로 window 가 비어도
   //   빈 테이블로 오판하지 않는다. (빈 데이터 Table 정상 경로, 2026-06-22)
   if (totalDataRows === 0) return null;
 
-  return { columns, rows, sourceNode, windowResolution };
+  return {
+    columns,
+    rows,
+    sourceNode,
+    windowResolution,
+    headerFromElements: elementColumns.length > 0,
+  };
+}
+
+/** Table scene 노드의 TableHeader 자식 Column scene 노드 (ref 는 visit 이 origin type · props 로 접어 둔다). */
+function readTableHeaderColumnSceneNodes(
+  tableId: string,
+  graph: Pick<CanvasSceneGraph, "childrenByParent">,
+): Array<{ type: string; props?: Record<string, unknown> }> {
+  const header = (graph.childrenByParent.get(tableId) ?? []).find(
+    (child) => child.type === "TableHeader",
+  );
+  if (!header) return [];
+  return (graph.childrenByParent.get(header.id) ?? [])
+    .filter((child) => child.type === "Column")
+    .map((child) => ({
+      type: child.type,
+      props: child.props as Record<string, unknown> | undefined,
+    }));
 }
 
 /** Table size prop → TableRow/TableCell size (sm/md/lg). 기본 md. */
@@ -1884,6 +1914,7 @@ function appendTableRowProjection(
     rows: TableProjectionRow[];
     sourceNode: CanonicalNode;
     windowResolution: CollectionWindowResolution | null;
+    headerFromElements: boolean;
   },
   scope: SceneScopeContext,
   graph: Pick<CanvasSceneGraph, "childrenByParent" | "nodes" | "nodesMap"> & {
@@ -2179,6 +2210,8 @@ function appendTableRowProjection(
   };
   let dataStarted = false;
   for (const row of rows) {
+    // ADR-241 — Column 요소가 헤더를 그리면 (선택 · 편집 대상) projection 헤더 행을 겹쳐 세우지 않는다.
+    if (row.kind === "header" && projection.headerFromElements) continue;
     if (row.kind === "data" && !dataStarted) {
       dataStarted = true;
       addTableSpacer("lead", spacerRows.lead);
@@ -3167,12 +3200,6 @@ export function buildCanvasSceneGraph(
       ? resolveDataBoundGridListProjection(sceneNode, node, options)
       : null;
 
-    // ADR-912 단계 4 C1: data-bound Table 2D projection (RowsGroup→Row→Cell).
-    //   Table factory children:[] (GridList 동형) → suppression 불필요, append 만.
-    const tableProjection = sceneNode
-      ? resolveDataBoundTableProjection(sceneNode, node, options)
-      : null;
-
     // data-bound collection projection 컨테이너는 box 경로(buildBoxNodeData)로 렌더돼 catalog
     //   "shell variant" 배경(`{color.raised}`)을 그리지 못한다(catalog 경로만 shell 담당). 사용자
     //   배경이 없을 때만 collectionShellTag 을 심어 render 단이 theme-aware 로 배경을 복원 —
@@ -3295,6 +3322,13 @@ export function buildCanvasSceneGraph(
         stateEnvFor,
       );
     }
+    // ADR-912 단계 4 C1: data-bound Table 2D projection (RowsGroup→Row→Cell). suppression 불필요, append 만.
+    // ADR-241 Phase 1 — 열은 자식 scene (TableHeader > Column) 에서 읽으므로 자식 visit 뒤에 계산한다. ref instance 는
+    //   origin 열 · mode C 자기 열이 해석 뒤에 실체화되므로 `appendRefInstanceChildProjections` 가 붙인다.
+    const tableProjection =
+      sceneNode && node.type !== "ref"
+        ? resolveDataBoundTableProjection(sceneNode, node, options, graph)
+        : null;
     if (sceneNode && tableProjection) {
       appendTableRowProjection(sceneNode, tableProjection, nextScope, graph);
     }
@@ -3522,9 +3556,7 @@ export function annotateStaticPickerItems(graph: CanvasSceneGraph): void {
     const props = (owner.props ?? {}) as Record<string, unknown>;
     if (rows.length === 0) {
       if (props._staticItems === undefined) continue;
-    } else if (
-      JSON.stringify(props._staticItems) === JSON.stringify(rows)
-    ) {
+    } else if (JSON.stringify(props._staticItems) === JSON.stringify(rows)) {
       continue;
     }
     const nextProps: Record<string, unknown> = { ...props };
@@ -3605,6 +3637,33 @@ export function appendRefInstanceChildProjections(
 ): void {
   const emptyDocumentNodes = () => new Map<string, CanonicalNode>();
   for (const node of [...graph.nodes]) {
+    // ADR-241 Phase 1 — ref instance Table (root 또는 합성) 의 데이터 행: 해석된 TableHeader 의 Column 을 읽는다.
+    if (node.type === "Table") {
+      const sourceNode =
+        (node.sourceNode as CanonicalNode | undefined) ??
+        (node as unknown as CanonicalNode);
+      if (sourceNode.type !== "ref" && !node.id.includes("/")) continue;
+      if (
+        graph.nodesMap.has(toCollectionRowsGroupProjectionId("table", node.id))
+      ) {
+        continue;
+      }
+      const projection = resolveDataBoundTableProjection(
+        node,
+        sourceNode,
+        options,
+        graph,
+      );
+      if (projection) {
+        appendTableRowProjection(
+          node,
+          projection,
+          { pageId: node.pageId ?? null, layoutId: node.layoutId ?? null },
+          graph,
+        );
+      }
+      continue;
+    }
     if (!node.id.includes("/")) continue;
     if (node.type !== "TagList" && node.type !== "TabList") continue;
     const ownerId = graph.parentById.get(node.id) ?? node.parentId;

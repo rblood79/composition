@@ -25,6 +25,8 @@ const state = vi.hoisted(() => ({
   }),
   merged: [] as El[],
   mutationLog: [] as string[],
+  // ADR-241 — instance 열 계획이 읽는 활성 canonical 문서
+  doc: null as unknown,
 }));
 
 vi.mock("../../../stores", () => ({
@@ -65,6 +67,18 @@ vi.mock("../../../stores/history/canonicalHistoryEvents", () => ({
     els.map((e) => ({ type: "insert", nodeId: e.id })),
   buildCanonicalRemoveEvents: (els: El[]) =>
     els.map((e) => ({ type: "remove", nodeId: e.id })),
+  captureCanonicalReplaceSources: (ids: string[]) =>
+    new Map(ids.map((id) => [id, { captured: true }])),
+  buildCanonicalReplaceEvents: (prev: El[], next: El[]) => {
+    state.mutationLog.push("replaceEvents");
+    return [
+      { type: "remove", nodeId: prev[0]!.id },
+      { type: "insert", nodeId: next[0]!.id },
+    ];
+  },
+}));
+vi.mock("../../../stores/canonical/canonicalElementsBridge", () => ({
+  getActiveCanonicalDocument: () => state.doc,
 }));
 vi.mock("@/adapters/canonical/canonicalMutationRunner", () => ({
   runCanonicalMutation: (stages: {
@@ -82,6 +96,11 @@ vi.mock("@/adapters/canonical/canonicalMutations", () => ({
     state.merged.push(...els);
     return { changed: true };
   },
+  updateCanonicalNodeFromElementPrimary: (el: El) => {
+    state.mutationLog.push(`updateInstance:${el.id}`);
+    state.elements.set(el.id, el);
+    return { changed: true };
+  },
 }));
 vi.mock("../../../../utils/element/elementUtils", () => ({
   ElementUtils: {
@@ -93,6 +112,7 @@ vi.mock("../../../utils/idGeneration", () => ({
   generateCustomId: (type: string) => `${type.toLowerCase()}_x`,
 }));
 
+import { COMPONENT_DESCENDANTS_MIRROR_FIELD } from "@/adapters/canonical/componentSemanticsMirror";
 import {
   captureQuickConnectTarget,
   executeQuickConnect,
@@ -276,7 +296,7 @@ describe("executeQuickConnect — Table 컬럼 (ADR-013 Phase 2)", () => {
     ]);
   });
 
-  it("ref 인스턴스 · TableHeader 없는 노드는 컬럼 계획 없음 (바인딩만)", () => {
+  it("문서에 없는 ref · TableHeader 없는 노드는 컬럼 계획 없음 (바인딩만)", () => {
     state.elements.set("ref", {
       id: "ref",
       type: "ref",
@@ -288,6 +308,126 @@ describe("executeQuickConnect — Table 컬럼 (ADR-013 Phase 2)", () => {
     expect(planTableColumns(captureQuickConnectTarget("lb")!)).toBeNull();
     state.elements.delete("th");
     expect(planTableColumns(tableTarget())).toBeNull();
+  });
+});
+
+describe("quickConnect — ref instance Table 의 자기 열 (ADR-241 Phase 2 · 진단 (b))", () => {
+  const INSTANCE_DESCENDANTS = COMPONENT_DESCENDANTS_MIRROR_FIELD;
+  function instanceDoc() {
+    return {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-components-body",
+          type: "body",
+          props: {},
+          children: [
+            {
+              id: "component-table",
+              type: "Table",
+              reusable: true,
+              props: {},
+              children: [
+                {
+                  id: "component-table__1",
+                  type: "TableHeader",
+                  props: {},
+                  slot: ["component-table-column"],
+                },
+                { id: "component-table__2", type: "TableBody", props: {} },
+              ],
+            },
+            {
+              id: "component-table-column",
+              type: "Column",
+              reusable: true,
+              props: { children: "Column" },
+            },
+          ],
+        },
+        {
+          id: "body-1",
+          type: "body",
+          props: {},
+          children: [
+            { id: "ti", type: "ref", ref: "component-table", props: {} },
+          ],
+        },
+      ],
+    };
+  }
+  beforeEach(() => {
+    state.doc = instanceDoc();
+    state.elements.set("ti", {
+      id: "ti",
+      type: "ref",
+      page_id: "pg1",
+      customId: "table_2",
+    });
+    state.snapshots.set("ti", {});
+  });
+
+  it("팔레트 Table instance → 열 계획 (host = instance 안 TableHeader · 기존 0 → create)", () => {
+    const plan = planTableColumns(captureQuickConnectTarget("ti")!);
+    expect(plan).toMatchObject({
+      tableId: "ti",
+      tableHeaderId: "ti/component-table__1",
+      existing: [],
+      instance: true,
+    });
+    expect(resolveColumnMode(plan, false)).toBe("create");
+  });
+
+  it("실행: 바인딩보다 먼저 instance 자기 열 (mode C · schema key) · History entry 1 (data + replace event)", async () => {
+    await executeQuickConnect({
+      input,
+      target: captureQuickConnectTarget("ti")!,
+      projectId: "p1",
+    });
+    // replace event 는 바인딩 **뒤** (post-mutation) — 열 쓰기 직후 스냅샷이면 redo 가 바인딩을 지운다 (live 실측).
+    expect(state.mutationLog).toEqual([
+      "updateInstance:ti",
+      "applyDataChange",
+      "replaceEvents",
+    ]);
+    const written = state.elements.get("ti") as unknown as Record<
+      string,
+      Record<string, { children: { ref: string; props: Record<string, unknown> }[] }>
+    >;
+    const columns = written[INSTANCE_DESCENDANTS]!["component-table__1"]!.children;
+    expect(columns.map((c) => [c.ref, c.props.key, c.props.children])).toEqual([
+      ["component-table-column", "name", "name"],
+      ["component-table-column", "email", "email"],
+    ]);
+    expect(state.addEntry).toHaveBeenCalledTimes(1);
+    const entry = state.addEntry.mock.calls[0][0] as {
+      type: string;
+      data: { dataChangeEvent: unknown; canonicalEvents: { type: string }[] };
+    };
+    expect(entry.type).toBe("data");
+    expect(entry.data.dataChangeEvent).toBeDefined();
+    expect(entry.data.canonicalEvents.map((e) => e.type)).toEqual([
+      "remove",
+      "insert",
+    ]);
+  });
+
+  it("applyDataChange 실패 → instance 원복 · History 0", async () => {
+    state.applyDataChange.mockRejectedValueOnce(new Error("binding changed"));
+    await expect(
+      executeQuickConnect({
+        input,
+        target: captureQuickConnectTarget("ti")!,
+        projectId: "p1",
+      }),
+    ).rejects.toThrow("binding changed");
+    expect(state.mutationLog).toEqual(["updateInstance:ti", "updateInstance:ti"]);
+    expect(
+      (state.elements.get("ti") as unknown as Record<string, unknown>)[
+        INSTANCE_DESCENDANTS
+      ],
+    ).toBeUndefined();
+    expect(state.addEntry).not.toHaveBeenCalled();
   });
 });
 

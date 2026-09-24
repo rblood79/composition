@@ -31,6 +31,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 위치: `apps/builder/src/builder/components/tree/` · `components/colorswatch/` · `components/itemOriginSnapshots.ts` · `adapters/canonical/canonicalRefResolution.ts` · `workspace/canvas/treeItemRow.ts` · `packages/shared/src/renderers/CollectionRenderers.tsx` · `LayoutRenderers.tsx` · `components/Menu.tsx`
   - 성능: 중첩 Tree 편집의 `scene.build` p95 가 +1.3 ~ 3.5 ms (Tree 20 × 30 항목 fixture) — 항목 글자 노드만큼의 구조 비용, 사용자 판정으로 예외 (ADR-239 R4). Menu 는 +0.7 ms 이하. Preview 는 unit 으로 확인 — 사용자 확인 대상.
 
+## [Table 열 · 행 origin (ADR-241)] - 2026-09-25
+
+### Added
+
+- **팔레트로 놓은 Table 에 열을 넣을 수 있다** — Table instance 를 선택하고 Properties Slot Fill 에서 Column 을 채우면 그 instance 자기 열이 생긴다 (Components 의 Table 원본은 그대로). Data 행 「New table」 (quick connect) 도 팔레트 Table 에 schema 열을 만든다 — 이전에는 바인딩만 걸리고 열이 없었다. 되돌리기 한 번에 열 · 바인딩이 같이 돌아간다.
+- **TableView 열 · 행 추가**: TableView instance 의 Slot Fill 에서 TableHeader (Column) 를 채우면 모든 행에 셀이 같이 생기고, TableBody (Row) 를 채우면 열 수만큼 셀을 가진 행이 생긴다. Components 페이지에 Column · Row 원본이 새로 생긴다.
+- **TableView 열 삭제 · 순서 변경이 행 셀을 따라간다** — 열을 지우면 모든 행의 같은 자리 셀이, 레이어에서 열 순서를 바꾸면 셀 순서가 같이 바뀐다 (되돌리기 포함). 행마다 셀 수가 열 수와 다른 TableView 는 그대로 둔다.
+
+### Fixed
+
+- **Canvas Table 에 데이터 셀이 비어 보이던 문제를 고쳤다** — Column 요소로 열을 가진 Table 은 Preview 에만 셀이 나오고 Canvas 에는 빈 행과 빈 헤더 줄이 그려졌다. 이제 Canvas 도 Column 요소에서 열 (key · 글자 · 폭) 을 읽고, 폭은 Preview 와 같이 min/max 로 제한한다 (예: 폭 80 · 최소 120 → 120). 헤더 열 폭이 셀 폭과 맞는다.
+- TableView instance 에 행을 더하면 Canvas 에서 새 행의 셀이 사라지던 문제 · 열을 지운 뒤 되돌리기에서 다른 행의 셀이 돌아오지 않던 문제를 고쳤다.
+  - 위치: `packages/shared/src/collections/resolveCollectionItems.ts` (`readTableColumnElements`) · `apps/builder/src/builder/components/tableOrigins.ts` · `tableColumnInsert.ts` · `packages/shared/src/utils/compositionDocumentOrder.ts` · `apps/builder/src/builder/stores/utils/elementRemoval.ts`
+
+### Changed
+
+- 기존 TableView 의 열 · 행은 열었을 때 Column · Row 원본의 instance 로 바뀐다 (같은 id · 셀 · 편집 유지 — Canvas 모습 동일). legacy `props.columns` 만 있는 Table 은 종전 그대로. Preview 는 unit 으로 확인 — 사용자 확인 대상.
+
 ## [새 Dialog 의 Styles "수정 2" · 정적 게이트 정비] - 2026-09-25
 
 ### Fixed

@@ -2,9 +2,9 @@
 
 ## Status
 
-Proposed — 2026-09-24
+Implemented — 2026-09-25 (worktree `adr-241` Phase 0~4 / G0~G5 같은 날 종결 — [실행 기록](../design/241-table-column-row-origins-breakdown.md#5-실행-기록)) · Accepted — 2026-09-25 (사용자 `/execute-adr 241` 실행 지시, Codex 리뷰 판독 1 + 수리 검증 1 종결 (round 3 이슈 0) 후 · worktree `adr-241`) · Proposed — 2026-09-24
 
-설계 요청: 사용자 (2026-09-24) — RAC 조사 후보 중 남은 항목 "설계부터 하자" → 사용자 판정 3 ADR 분리 (239 Tree · 240 이름 영역 · **241 Table**). 전제 기록: [breakdown §1](design/241-table-column-row-origins-breakdown.md#1-전제-확정-기록-fork-4-질문--사용자-confirm).
+설계 요청: 사용자 (2026-09-24) — RAC 조사 후보 중 남은 항목 "설계부터 하자" → 사용자 판정 3 ADR 분리 (239 Tree · 240 이름 영역 · **241 Table**). 전제 기록: [breakdown §1](../design/241-table-column-row-origins-breakdown.md#1-전제-확정-기록-fork-4-질문--사용자-confirm).
 
 ## Context
 
@@ -27,7 +27,7 @@ D1 기록 (이 ADR 의 범위 밖, 사실만): Table Preview 는 RAC Table 이 �
 
 ### 코드 사실
 
-레퍼런스 R1~~R3 · 코드 사실 F1~~F9 (경로:라인) 는 [breakdown §2 · §3](design/241-table-column-row-origins-breakdown.md#2-레퍼런스--rac-react-aria-components1210--starter-packagesreact-aria-startersrctabletsx-read-only).
+레퍼런스 R1~~R3 · 코드 사실 F1~~F9 (경로:라인) 는 [breakdown §2 · §3](../design/241-table-column-row-origins-breakdown.md#2-레퍼런스--rac-react-aria-components1210--starter-packagesreact-aria-startersrctabletsx-read-only).
 
 ### Hard constraints
 
@@ -90,7 +90,7 @@ D1 기록 (이 ADR 의 범위 밖, 사실만): Table Preview 는 RAC Table 이 �
 
 범위 밖 (후속 결정): **Table · TableView 렌더러의 RAC 전환** (F6 · F7 — 선택 · 행 상태 변형 · 정렬 · 크기 조절의 D1 경로) · 행 상태 변형 · 열별 셀 템플릿 · 행 드래그 · TableLoadMoreItem · Table ↔ TableView 통합.
 
-> 구현 상세: [241-table-column-row-origins-breakdown.md](design/241-table-column-row-origins-breakdown.md)
+> 구현 상세: [241-table-column-row-origins-breakdown.md](../design/241-table-column-row-origins-breakdown.md)
 
 ## Risks
 
@@ -118,7 +118,14 @@ D1 기록 (이 ADR 의 범위 밖, 사실만): Table Preview 는 RAC Table 이 �
 
 ### Live Exercise
 
-(Implemented 승격 시 기재)
+실제 builder (worktree dev 서버 5182 · headed Playwright · 새 프로젝트, Compare Mode · Preview iframe 미개방 — 사용자 지시) 에서 Skia layout · scene props · store · IndexedDB 로 확인했다 (2026-09-25). Preview 채널은 unit (두 leg · TanStack `getSize()` 대조) 고정 — 사용자 확인 대상.
+
+- `adr241-g0-probe-live.mjs` (Phase 0 → 1): Column 요소 3 + 정적 바인딩 Table — 수리 전 Column 640×3 (폭 무시) · 빈 projection 헤더 행 · 데이터 셀 0 → 수리 뒤 Column 150/120/150 = 데이터 셀 폭 · 헤더 행 없음 · page error 0.
+- `adr241-phase2-live.mjs` **7/7** (Phase 2): 실제 팔레트 Table (ref instance) → Data 「New table」 Contacts → instance 자기 열 13 (Column origin ref · schema key) · Canvas 합성 Column · 데이터 셀 key = 열 key · 셀 폭 = Column 폭 · undo 1회 → 열 · 바인딩 같이 제거 · redo 복원 · Slot Fill 「Fill slot」 → 열 1 (key 유일) · undo 1회 → 그 열만 · page error 0 · dialog 0.
+- `adr241-phase3-live.mjs` **5/5** (Phase 3): 팔레트 TableView instance 열 3 · 행 1 × 셀 3 (셀 x = 열 x) · TableHeader 「Fill slot」 → 열 4 · 셀 4 · undo 1회 → 3/3 · TableBody 「Fill slot」 → 행 2 × 셀 3.
+- `adr241-g5-bc-live.mjs` **7/7** (Phase 4 G5, 241 전 빌드 `a2d1fe649` worktree = oracle): 사용자 plain TableView · 셀 수 어긋난 TableView · legacy `props.columns` Table · TableView instance (바깥 override) 의 rect · 글자 동일 · Column 요소 Table 은 Preview 열로 바뀜 · 재hydration Δ0 · Δbyte +828.
+- `adr241-g4-perf-ab.mjs` + `adr241G4.sceneBench.test.ts` (Phase 4 G4): 위 판정 수치.
+- live 에서 잡은 결함 (수리): quick connect redo 가 바인딩을 지움 (replace event 를 바인딩 전 스냅샷으로 만듦) · Column 요소 폭이 catalog `flex:1` basis `0%` 에 막힘.
 
 ## Consequences
 

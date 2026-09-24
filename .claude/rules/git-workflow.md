@@ -12,6 +12,8 @@ git commit -m "..."
 git push origin main
 ```
 
+**예외 — 같은 checkout 에 다른 세션의 변경이 있을 때**: 커밋 직전 `git status --short` 에 자기가 편집하지 않은 파일 (병렬 세션 WIP · Cursor 수동 편집 · 이미 스테이징된 다른 세션의 삭제) 이 보이면 `git add -A` 도 `git add -u <dir>` 도 쓰지 않는다. 자기 파일만 `git add <paths>` 로 스테이징하거나 `git commit -- <paths>` (pathspec 커밋) 로 커밋한다. 파일이 많아도 같다. Why: 2026-07-25 `3045fd979` · 2026-08-30 `47636a999` 에서 병렬 세션의 미커밋 WIP 와 승인 대기 삭제가 잘못된 메시지로 main 에 push 됐다 — 메모리 `feedback-git-add-all-swallows-parallel-session-wip`.
+
 **금지 행위**:
 
 - ❌ `gh pr create` / GitHub web UI PR 생성 — 절대 금지

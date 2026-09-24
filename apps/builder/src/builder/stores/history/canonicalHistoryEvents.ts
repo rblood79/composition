@@ -26,6 +26,7 @@ import {
   rewriteDialogRegionPathsInNode,
 } from "../../components/dialogRegionPaths";
 import { ensureRegionSlotsInSnapshot } from "../../components/regionSlotOrigins";
+import { ensureTableOriginsInSnapshot } from "../../components/tableOrigins";
 import { alignItemOriginSnapshots } from "../../components/itemOriginSnapshots";
 import {
   getCanonicalRefOverrideEntries,
@@ -336,7 +337,9 @@ function alignHistoryEventsToRegions(
   return events.map((event) => {
     if (event.type !== "insert" && event.type !== "remove") return event;
     // origin 스냅샷 (Components body · origin 하나) 은 영역 이관 · instance 스냅샷은 경로 전치 (F28).
-    const migrated = ensureRegionSlotsInSnapshot(event.node);
+    const migrated = ensureTableOriginsInSnapshot(
+      ensureRegionSlotsInSnapshot(event.node),
+    );
     const node = rewrite
       ? rewriteDialogRegionPathsInNode(migrated, rewrite)
       : migrated;
@@ -644,14 +647,12 @@ export function buildCanonicalMoveIntoRefDescendantsEvents(
       capture.location.index < refFrom.index,
   ).length;
   return [
-    ...moved.map(
-      (capture): CanonicalHistoryNodeEvent => ({
-        type: "remove",
-        node: capture.node,
-        parentId: capture.location.parentId,
-        index: capture.location.index,
-      }),
-    ),
+    ...moved.map((capture): CanonicalHistoryNodeEvent => ({
+      type: "remove",
+      node: capture.node,
+      parentId: capture.location.parentId,
+      index: capture.location.index,
+    })),
     {
       type: "remove",
       node: refCapture.node,

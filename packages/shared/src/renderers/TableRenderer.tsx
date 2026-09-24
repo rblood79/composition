@@ -10,6 +10,10 @@ import type {
 } from "../types";
 import { generateId } from "../utils";
 import { getElementDataBinding } from "../utils/compositionExtensionFields";
+import {
+  TABLE_COLUMN_DEFAULT_WIDTH,
+  resolveTableColumnKey,
+} from "../collections/resolveCollectionItems";
 
 /**
  * Table 컴포넌트 렌더러
@@ -68,24 +72,22 @@ export const renderTable = (
       )
     : children.filter((child) => child.type === "Column" && !child.deleted);
 
-  // Column 정의 생성
+  // Column 정의 생성 — key · 기본 폭은 Canvas projection 과 같은 reader (ADR-241 열 원천 통일).
+  //   폭 clamp (min/max) 는 TanStack `getSize()` 가 같은 규칙으로 한다 (`resolveTableColumnEffectiveWidth`).
   const columns = columnElements.map((col, index) => {
-    const dataKey =
-      col.props.key ||
-      (typeof col.props.children === "string"
-        ? col.props.children.toLowerCase()
-        : "") ||
-      col.props.id ||
-      `col${index}`;
+    const dataKey = resolveTableColumnKey(col.props, index);
 
     return {
-      key: dataKey as string,
+      key: dataKey,
       label: resolveColumnHeaderLabel(col.props),
       elementId: col.id,
       order_num: index,
       allowsSorting: Boolean(col.props.allowsSorting ?? true),
       enableResizing: Boolean(col.props.enableResizing ?? true),
-      width: typeof col.props.width === "number" ? col.props.width : 150,
+      width:
+        typeof col.props.width === "number"
+          ? col.props.width
+          : TABLE_COLUMN_DEFAULT_WIDTH,
       minWidth:
         typeof col.props.minWidth === "number" ? col.props.minWidth : undefined,
       maxWidth:

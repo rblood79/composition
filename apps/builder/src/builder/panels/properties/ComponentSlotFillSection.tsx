@@ -34,6 +34,10 @@ import {
 } from "../../components/slotFillNodes";
 import { planTabItemInsert } from "../../components/collectionItemInsert";
 import {
+  planTableColumnInsert,
+  planTableRowInsert,
+} from "../../components/tableColumnInsert";
+import {
   collectSlotFillHosts,
   readSlotFill,
   writeSlotFill,
@@ -254,6 +258,45 @@ export const ComponentSlotFillSection = memo(function ComponentSlotFillSection({
       : elementsById.get(selectedCandidateId);
     if (!primitiveType && !candidate) return;
     if (candidate && !isSlotCandidateAllowed(selectedSlot.host, candidate)) {
+      return;
+    }
+
+    // ADR-241 Phase 2 — instance 의 TableHeader slot Fill = 자기 열 추가 (mode C · 상속 열 이어받기 · key 유일).
+    if (
+      candidate &&
+      resolveSlotInsertAction(selectedSlot.host, candidate).kind ===
+        "table-column"
+    ) {
+      const document = getActiveCanonicalDocument();
+      const plan = document
+        ? planTableColumnInsert({
+            document,
+            hostId: `${element.id}/${selectedSlot.path}`,
+          })
+        : null;
+      if (plan?.kind !== "instance") return;
+      void updateElement(plan.instanceId, {
+        [COMPONENT_DESCENDANTS_MIRROR_FIELD]: plan.descendants,
+      } as UpdateElementPatch);
+      return;
+    }
+
+    // ADR-241 Phase 3 — instance 의 TableBody slot Fill = 자기 행 추가 (mode C · 상속 행 이어받기 · 열 수만큼 셀).
+    if (
+      candidate &&
+      resolveSlotInsertAction(selectedSlot.host, candidate).kind === "table-row"
+    ) {
+      const document = getActiveCanonicalDocument();
+      const plan = document
+        ? planTableRowInsert({
+            document,
+            hostId: `${element.id}/${selectedSlot.path}`,
+          })
+        : null;
+      if (plan?.kind !== "instance") return;
+      void updateElement(plan.instanceId, {
+        [COMPONENT_DESCENDANTS_MIRROR_FIELD]: plan.descendants,
+      } as UpdateElementPatch);
       return;
     }
 

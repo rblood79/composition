@@ -1,4 +1,8 @@
-import { registerFieldIds, resolveFieldRef } from "@composition/specs";
+import {
+  registerFieldIds,
+  resolveFieldRef,
+  resolveTextSourceText,
+} from "@composition/specs";
 import { resolveCollectionSnapshot } from "./collectionSnapshot";
 import { resolveBoundCollection, resolveField } from "./resolveBoundCollection";
 import { normalizeDataBinding } from "./normalizeDataBinding";
@@ -273,7 +277,8 @@ export function resolveFieldRoles(
   dataBinding: unknown,
   schema?: readonly { id?: string; key: string }[],
 ): CollectionFieldRoles | undefined {
-  if (!isRecord(dataBinding) || !isRecord(dataBinding.fieldMap)) return undefined;
+  if (!isRecord(dataBinding) || !isRecord(dataBinding.fieldMap))
+    return undefined;
   const fieldMap = dataBinding.fieldMap;
   const roles: CollectionFieldRoles = {};
   for (const role of FIELD_ROLE_KEYS) {
@@ -295,7 +300,10 @@ function resolveInputFieldRoles(
 ): CollectionFieldRoles | undefined {
   if (!isProjectionRowsInput(input) || !isRecord(input.dataBinding))
     return undefined;
-  const table = resolveBoundCollection(input.dataBinding, input.collections ?? []);
+  const table = resolveBoundCollection(
+    input.dataBinding,
+    input.collections ?? [],
+  );
   return resolveFieldRoles(input.dataBinding, table?.schema);
 }
 
@@ -616,6 +624,64 @@ export function readTableColumns(
   return [];
 }
 
+// ── ADR-241 Phase 1 — 열 원천 = Column 요소 (두 leg 한 reader) ─────────────────────
+
+/** Column 요소 폭 기본값 — Preview TanStack `size` 기본값과 같은 상수. */
+export const TABLE_COLUMN_DEFAULT_WIDTH = 150;
+/** TanStack `defaultColumnSizing.minSize` — Column 에 `minWidth` 가 없을 때의 하한 (columnDef `minSize: undefined` 는 이 값으로 떨어진다). */
+export const TABLE_COLUMN_MIN_WIDTH_FLOOR = 20;
+
+export type TableColumnElementLike = {
+  id?: string;
+  deleted?: boolean;
+  props?: Record<string, unknown>;
+};
+
+/** 데이터 필드 key — `key` · 글자 소문자 · `props.id` · `col<index>` 순 (Preview TableRenderer 의 dataKey 규칙). */
+export function resolveTableColumnKey(
+  props: Record<string, unknown> | undefined,
+  index: number,
+): string {
+  const key = props?.key;
+  if (typeof key === "string" && key.length > 0) return key;
+  if (typeof key === "number") return String(key);
+  const text = props?.children;
+  if (typeof text === "string" && text.length > 0) return text.toLowerCase();
+  const id = props?.id;
+  if (typeof id === "string" && id.length > 0) return id;
+  return `col${index}`;
+}
+
+/** 유효 열 폭 — `clamp(width ?? 150, minWidth ?? 20, maxWidth)` (TanStack `getSize()` 와 같은 값, 리뷰 r1 m1). */
+export function resolveTableColumnEffectiveWidth(
+  props: Record<string, unknown> | undefined,
+): number {
+  const num = (value: unknown): number | undefined =>
+    typeof value === "number" && Number.isFinite(value) ? value : undefined;
+  const width = num(props?.width) ?? TABLE_COLUMN_DEFAULT_WIDTH;
+  const min = num(props?.minWidth) ?? TABLE_COLUMN_MIN_WIDTH_FLOOR;
+  const max = num(props?.maxWidth) ?? Number.MAX_SAFE_INTEGER;
+  return Math.min(Math.max(min, width), max);
+}
+
+/**
+ * Column 요소 (해석된 TableHeader 의 자식 — instance 상속 · 자기 열 포함) → 열 정의. 삭제 표시 · Column 밖 type 은 건너뛴다.
+ * Canvas projection 과 Preview TableRenderer 가 같이 읽는다 (ADR-241 열 원천 통일).
+ */
+export function readTableColumnElements(
+  columns: readonly (TableColumnElementLike & { type?: string })[],
+): TableColumnDef[] {
+  return columns
+    .filter(
+      (col) => col.deleted !== true && (col.type ?? "Column") === "Column",
+    )
+    .map((col, index) => ({
+      id: resolveTableColumnKey(col.props, index),
+      label: resolveTextSourceText("Column", col.props),
+      width: resolveTableColumnEffectiveWidth(col.props),
+    }));
+}
+
 /**
  * 데이터 행 1개에서 컬럼별 셀 값 추출. row.cells(Table.spec 구조) 우선, 없으면 row 자체를
  * flat record 로 취급(dataBinding/collections 의 평탄 row 와 호환).
@@ -650,13 +716,18 @@ function readRowCells(
 export function getTableProjectionRows(
   input: Record<string, unknown> | CollectionProjectionRowsInput | undefined,
   window: number | CollectionWindow = COLLECTION_ROW_PROJECTION_WINDOW_LIMIT,
+  /** ADR-241 — Column 요소 열 (`readTableColumnElements`). 1 개 이상이면 정본, 없으면 legacy `props.columns`. */
+  elementColumns?: readonly TableColumnDef[],
 ): {
   columns: TableColumnDef[];
   rows: TableProjectionRow[];
   totalDataRows: number;
 } {
   const props = isProjectionRowsInput(input) ? input.props : input;
-  const columns = readTableColumns(props);
+  const columns =
+    elementColumns && elementColumns.length > 0
+      ? [...elementColumns]
+      : readTableColumns(props);
 
   const dataBindingRows = isProjectionRowsInput(input)
     ? readDataBindingRows(input.dataBinding, input.collections)

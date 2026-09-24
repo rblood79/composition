@@ -23,10 +23,27 @@ import { historyManager } from "../../../stores/history";
 import {
   buildCanonicalInsertEvents,
   buildCanonicalRemoveEvents,
+  buildCanonicalReplaceEvents,
+  captureCanonicalReplaceSources,
   type CanonicalHistoryNodeEvent,
 } from "../../../stores/history/canonicalHistoryEvents";
 import { runCanonicalMutation } from "@/adapters/canonical/canonicalMutationRunner";
-import { mergeElementsCanonicalPrimary } from "@/adapters/canonical/canonicalMutations";
+import {
+  mergeElementsCanonicalPrimary,
+  updateCanonicalNodeFromElementPrimary,
+} from "@/adapters/canonical/canonicalMutations";
+import { COMPONENT_DESCENDANTS_MIRROR_FIELD } from "@/adapters/canonical/componentSemanticsMirror";
+import { getActiveCanonicalDocument } from "../../../stores/canonical/canonicalElementsBridge";
+import {
+  indexNodes,
+  resolveChainEnd,
+} from "../../../components/staticCollectionMigration";
+import {
+  planTableColumnInsert,
+  readTableHeaderColumns,
+  resolveTableHeaderHostId,
+  type TableColumnSpec,
+} from "../../../components/tableColumnInsert";
 import { ElementUtils } from "../../../../utils/element/elementUtils";
 import { generateCustomId } from "../../../utils/idGeneration";
 import type { Element } from "../../../../types/core/store.types";
@@ -106,20 +123,24 @@ export function readBackQuickConnect(
 
 export interface TableColumnPlan {
   tableId: string;
+  /** plain Table 의 TableHeader id · ref instance 는 `<instance>/<origin 안 경로>` (ADR-241) */
   tableHeaderId: string;
   pageId: string | null;
-  /** 기존 Column 자식 — 순서 그대로 */
+  /** 기존 Column 자식 — 순서 그대로 (instance 는 자기 열 · 없으면 origin 열) */
   existing: { id: string; key: string; label: string }[];
+  /** ADR-241 Phase 2 — ref instance Table: 열은 instance 자기 열 (`descendants` mode C) 로 쓴다 */
+  instance?: boolean;
 }
 
 /**
- * 대상이 **직접** Table 노드 (TableHeader 자식이 있는) 일 때만 컬럼 계획을 세운다. `ref`
- * 인스턴스는 Column 이 공유 origin 에 있어 건드리지 않는다 (§3 "공유 component origin 을
- * 수정하지 않는다") — 바인딩만 쓴다. TableHeader 가 없어도 null (바인딩만).
+ * Table 의 컬럼 계획. 직접 Table 노드는 TableHeader 자식으로, ref instance (팔레트로 놓은 Table — ADR-228) 는 instance
+ * 자기 열 (`descendants[TableHeader 경로].children`) 로 쓴다 — 공유 origin 은 수정하지 않는다 (§3, ADR-241 Phase 2).
+ * TableHeader 가 없으면 null (바인딩만).
  */
 export function planTableColumns(
   target: QuickConnectTarget,
 ): TableColumnPlan | null {
+  if (target.elementType === "ref") return planInstanceTableColumns(target);
   if (target.elementType !== "Table") return null;
   const elements = useStore.getState().elements;
   const header = elements.find(
@@ -139,6 +160,64 @@ export function planTableColumns(
     pageId: target.pageId,
     existing,
   };
+}
+
+function planInstanceTableColumns(
+  target: QuickConnectTarget,
+): TableColumnPlan | null {
+  const document = getActiveCanonicalDocument();
+  if (!document) return null;
+  const byId = indexNodes(document);
+  const instance = byId.get(target.elementId) as
+    { type: string; ref?: string } | undefined;
+  if (instance?.type !== "ref") return null;
+  if (String(resolveChainEnd(instance.ref, byId)?.type) !== "Table") {
+    return null;
+  }
+  const hostId = resolveTableHeaderHostId(document, target.elementId);
+  const existing = hostId ? readTableHeaderColumns(document, hostId) : null;
+  if (!hostId || !existing) return null;
+  return {
+    tableId: target.elementId,
+    tableHeaderId: hostId,
+    pageId: target.pageId,
+    existing,
+    instance: true,
+  };
+}
+
+/** schema → 열 spec (plain 경로 `buildColumnElements` 와 같은 props). */
+function schemaColumnSpecs(schema: readonly DataField[]): TableColumnSpec[] {
+  return schema.map((field) => {
+    const label = field.label ?? field.key;
+    return {
+      key: field.key,
+      label,
+      props: {
+        label,
+        allowsSorting: true,
+        enableResizing: true,
+        width: 150,
+        align: "left",
+      },
+    };
+  });
+}
+
+/** instance 자기 열 쓰기 — history 는 여기서 만들지 않는다 (호출자가 data entry 에 replace event 로 싣는다). */
+function writeInstanceElement(next: Element): void {
+  runCanonicalMutation({
+    canonical: () => updateCanonicalNodeFromElementPrimary(next),
+    store: () => {
+      useStore.setState((prev) => ({
+        elements: prev.elements.map((e) => (e.id === next.id ? next : e)),
+        layoutVersion: prev.layoutVersion + 1,
+      }));
+    },
+    history: {
+      skip: "ADR-241 — instance 열은 생성+연결 data entry 하나에 canonicalEvents 로 실린다",
+    },
+  });
 }
 
 /** 기존 컬럼 중 새 schema 에 같은 key 가 없는 것 — 실행 전에 사용자에게 보인다 (§4 재연결). */
@@ -243,7 +322,37 @@ export async function executeQuickConnect({
   const canonicalEvents: CanonicalHistoryNodeEvent[] = [];
   let inserted: Element[] = [];
   let removed: Element[] = [];
-  if (plan && (mode === "create" || mode === "replace")) {
+  // ADR-241 Phase 2 — ref instance: 자기 열 (mode C) 을 쓰고 replace event 쌍을 data entry 에 싣는다. event 는 바인딩
+  //   **뒤** 현재 문서에서 만든다 (post-mutation 모드) — 열 쓰기 직후 스냅샷을 쓰면 redo 가 그 노드 (바인딩 전) 를 다시
+  //   넣어 바인딩을 지운다 (live 실측).
+  let instanceBefore: Element | null = null;
+  let instanceNext: Element | null = null;
+  let instanceCaptures: ReturnType<
+    typeof captureCanonicalReplaceSources
+  > | null = null;
+  if (plan?.instance && (mode === "create" || mode === "replace")) {
+    const document = getActiveCanonicalDocument();
+    const columnPlan = document
+      ? planTableColumnInsert({
+          document,
+          hostId: plan.tableHeaderId,
+          columns: schemaColumnSpecs(schema),
+          replace: mode === "replace",
+        })
+      : null;
+    const before = useStore.getState().elementsMap.get(plan.tableId);
+    if (columnPlan?.kind === "instance" && before) {
+      const captures = captureCanonicalReplaceSources([plan.tableId]);
+      const next = {
+        ...before,
+        [COMPONENT_DESCENDANTS_MIRROR_FIELD]: columnPlan.descendants,
+      } as Element;
+      writeInstanceElement(next);
+      instanceBefore = before;
+      instanceNext = next;
+      instanceCaptures = captures;
+    }
+  } else if (plan && (mode === "create" || mode === "replace")) {
     if (mode === "replace") {
       const elements = useStore.getState().elements;
       removed = plan.existing
@@ -295,7 +404,8 @@ export async function executeQuickConnect({
       },
     );
   } catch (error) {
-    // ① 되돌리기 — 삽입 제거 · 제거 복원 (history 0)
+    // ① 되돌리기 — instance 자기 열 원복 · 삽입 제거 · 제거 복원 (history 0)
+    if (instanceBefore) writeInstanceElement(instanceBefore);
     if (inserted.length > 0) {
       await useStore.getState().removeElements(
         inserted.map((e) => e.id),
@@ -304,6 +414,16 @@ export async function executeQuickConnect({
     }
     if (removed.length > 0) insertColumns(removed);
     throw error;
+  }
+
+  if (instanceBefore && instanceNext && instanceCaptures) {
+    canonicalEvents.push(
+      ...buildCanonicalReplaceEvents(
+        [instanceBefore],
+        [instanceNext],
+        instanceCaptures,
+      ),
+    );
   }
 
   // ③ History entry 1 — 두 축
