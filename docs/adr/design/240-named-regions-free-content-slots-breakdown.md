@@ -220,6 +220,21 @@
   | breakpoint                            |             1.4 |            1.4 |      0.0 |              +17.8 | PASS |
   - **분해** (같은 조건 · Dialog 채움 없이 — 240 arm 680 노드 = base + Content · Actions frame 40): fillEdit +0.2 · cardOriginEdit +0.2 · dialogOriginEdit **+0.1** · breakpoint −0.1 → 4/4 PASS. 따라서 dialogOriginEdit +2.1 은 240 구조 · 코드 비용이 아니라 **Dialog 20 개에 새로 넣은 채움 60 노드를 그리는 비용** (base 는 그 내용을 가질 수 없다). 편집마다 도는 240 코드 없음 (`normalizeMainDocument` 는 load 경로만).
   - 총시간 Δ 는 노드 수에 비례: 채움 없이 +6% 노드 → fillEdit · breakpoint +7 ms · 채움 포함 +12.5% → +11 · +18 ms. origin 편집 두 조작은 총시간 Δ ≤ 0.
-  - → G3 판정은 **사용자 판정** (Gate 표 "실패 시").
+  - → G3 판정은 **사용자 판정** (Gate 표 "실패 시"). 사용자 판정 (2026-09-24): **최적화 먼저**.
 
-- **회귀**: builder 918 파일 — 실패 6 = Phase 2 와 같은 6 (adr113 grep gate 는 base 와 같은 수) · type-check PASS · 240 3 파일 58 PASS · 1 expected fail = (g) · F28 원복 RED 2/2 (재생 스냅샷 이관 off → 반례 2 실패).
+- **G3 최적화** (사용자 판정 뒤):
+  - 정밀 측정 — 브라우저 표본 7 개의 p95 는 사실상 최댓값이라 한 arm 안에서 3~10 ms 로 흔들린다. `buildCanonicalSceneModel` 만 같은 fixture 로 60 회 (vitest bench, 두 worktree): 채움 있음 Dialog origin 편집 base 2.86 · 240 3.37 ms (Δ +0.51) · 채움 없음 1.50 · 1.62. 채운 노드 1 개 ≈ 10 µs vs 상속 노드 ≈ 1.5 µs — 240 전부터 있던 mode C 경로.
+  - 원인 (CPU 프로파일): scene.build 의 26% 가 `removeSyntheticDescendantElements` self — 채운 영역을 **새로 만들 때마다** 방금 만든 노드 아래를 지우려고 결과 문서 전체 (요소 배열 + 자식 map) 를 훑는다. 새로 만든 노드 아래에는 synthetic 자손이 있을 수 없어 항상 빈 스캔.
+  - 수리 (`canonicalRefResolution.ts` — 새로 만드는 두 경로 (`!existingSyntheticChild`) 에서 스캔 생략 · 기존 노드를 다시 쓰는 경로는 유지): 채움 있음 Dialog origin 편집 3.37 → **2.19 ms** (base 2.86 보다 빠름) · Card origin 편집 3.23 → 1.95.
+  - 결과 동일성: 같은 fixture 의 scene 노드 1,152 개 props · type + 자식 순서 425 부모 — 수리 전후 seed 의 무작위 UUID 를 빼면 byte 동일 (편집 3 단계 모두). 동작 변경 0 → 새 게이트 없음 (review-loop §3).
+  - **브라우저 재측정** (3 pair, 같은 조건):
+
+  | 조작             | base p95 median | 240 p95 median |    Δ | 편집→화면 총시간 Δ | 판정 |
+  | ---------------- | --------------: | -------------: | ---: | -----------------: | ---- |
+  | fillEdit         |             4.4 |            3.8 | −0.6 |              +14.5 | PASS |
+  | cardOriginEdit   |             9.3 |            7.4 | −1.9 |               −0.6 | PASS |
+  | dialogOriginEdit |             9.3 |            7.8 | −1.5 |               +0.3 | PASS |
+  | breakpoint       |             1.5 |            1.4 | −0.1 |              +20.7 | PASS |
+  - 총시간 Δ (fillEdit · breakpoint) 는 그린 노드 수 비례 (720 vs 640, +12.5% → +11~14%) — base 가 그릴 수 없던 Dialog 채움 · 영역 frame 의 layout 비용.
+
+- **회귀** (최적화 포함): builder 918 파일 — 실패 6 = Phase 2 와 같은 6 (adr113 grep gate 는 base 와 같은 수) · type-check PASS · 240 3 파일 58 PASS · 1 expected fail = (g) · F28 원복 RED 2/2 (재생 스냅샷 이관 off → 반례 2 실패).

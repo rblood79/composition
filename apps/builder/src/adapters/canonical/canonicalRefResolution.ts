@@ -1050,13 +1050,9 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
       resultElementsMap.set(syntheticId, syntheticNested);
       syntheticChildren.push(syntheticNested);
 
+      // 방금 만든 노드 (`!existingSyntheticChild`) — 그 아래 synthetic 자손은 아직 없다. 지우기 스캔
+      //   (`removeSyntheticDescendantElements` — 결과 문서 전체 선형) 을 건너뛴다 (ADR-240 G3: 채운 영역마다 빈 스캔).
       if (patch && Array.isArray(patch.children)) {
-        removeSyntheticDescendantElements(
-          syntheticId,
-          resultElementsMap,
-          resultChildrenMap,
-          resultElements,
-        );
         materializeOverrideChildren(
           refElement,
           patch.children,
@@ -1180,13 +1176,8 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
     resultElementsMap.set(syntheticId, syntheticChild);
     syntheticChildren.push(syntheticChild);
 
+    // 방금 만든 노드 — 아래 synthetic 자손이 없어 지우기 스캔 (문서 전체 선형) 을 건너뛴다 (ADR-240 G3).
     if (patch && Array.isArray(patch.children)) {
-      removeSyntheticDescendantElements(
-        syntheticId,
-        resultElementsMap,
-        resultChildrenMap,
-        resultElements,
-      );
       materializeOverrideChildren(
         refElement,
         patch.children,

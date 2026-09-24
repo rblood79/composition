@@ -37,6 +37,10 @@ const CARDS = 50;
 const DIALOGS = 20;
 /** `--dialog-fill 0` — 분해 측정: Dialog 채움 없이 (240 구조 비용 · 채움 내용 비용 분리). */
 const DIALOG_FILL = opt("dialog-fill", "1") !== "0";
+/** `--profile dialogOriginEdit` — 그 조작 표본 구간 CPU 프로파일 자체 시간 상위 (진단용 · 판정과 무관). */
+const PROFILE_KIND = opt("profile", null);
+/** `--arms r240` — 한 arm 만 (진단용). */
+const ARMS = opt("arms", "base,r240").split(",");
 const OPS = opt(
   "ops",
   "fillEdit,cardOriginEdit,dialogOriginEdit,breakpoint",
@@ -294,7 +298,33 @@ async function runArm(browser, arm) {
   const out = { arm, base, seeded, env, probe, seedBuild, ops: {} };
   for (const kind of OPS) {
     await measure(page, kind, WARMUP);
+    let cdp = null;
+    if (PROFILE_KIND === kind) {
+      cdp = await page.context().newCDPSession(page);
+      await cdp.send("Profiler.enable");
+      await cdp.send("Profiler.setSamplingInterval", { interval: 50 });
+      await cdp.send("Profiler.start");
+    }
     const samples = await measure(page, kind, RUNS);
+    if (cdp) {
+      const { profile } = await cdp.send("Profiler.stop");
+      const byId = new Map(profile.nodes.map((n) => [n.id, n]));
+      const self = new Map();
+      profile.samples.forEach((id, i) => {
+        const n = byId.get(id);
+        const url = String(n.callFrame.url).split("/").pop().split("?")[0];
+        const key = `${n.callFrame.functionName || "(anon)"} ${url}:${n.callFrame.lineNumber}`;
+        self.set(
+          key,
+          (self.get(key) ?? 0) + (profile.timeDeltas[i] ?? 0) / 1000 / RUNS,
+        );
+      });
+      out.profile = [...self.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 60)
+        .map(([k, v]) => [k, Number(v.toFixed(3))]);
+      await cdp.detach();
+    }
     // breakpoint 는 짝수 번 눌러 desktop 으로 되돌아온다 (RUNS 홀수 → 한 번 더).
     if (kind === "breakpoint") await measure(page, kind, 1);
     out.ops[kind] = {
@@ -324,7 +354,9 @@ const browser = await chromium.launch({ headless: false });
 const runs = [];
 try {
   for (let p = 0; p < PAIRS; p += 1) {
-    const order = p % 2 === 0 ? ["base", "r240"] : ["r240", "base"];
+    const order = (p % 2 === 0 ? ["base", "r240"] : ["r240", "base"]).filter(
+      (arm) => ARMS.includes(arm),
+    );
     for (const arm of order) {
       const r = await runArm(browser, arm);
       runs.push({ pair: p, ...r });
