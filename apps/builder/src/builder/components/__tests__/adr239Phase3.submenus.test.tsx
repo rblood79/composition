@@ -105,6 +105,11 @@ async function openMenus(doc: CompositionDocument, id: string) {
   const trigger = [...menus()[0]!.querySelectorAll('[role="menuitem"]')].find(
     (row) => row.getAttribute("aria-haspopup") === "menu",
   );
+  // 하위 메뉴 표식 glyph — 항목 글자 크기 (1em) · 선 아이콘 (fill 없음). 종전: 크기 없는 `<svg>` 가 채움 검정으로 81px.
+  const glyph = trigger?.querySelector("svg");
+  const chevron = glyph
+    ? { width: glyph.getAttribute("width"), fill: glyph.getAttribute("fill") }
+    : null;
   let sub: ReturnType<typeof rows> = [];
   if (trigger) {
     await act(async () => {
@@ -115,7 +120,7 @@ async function openMenus(doc: CompositionDocument, id: string) {
     const nested = menus()[1];
     sub = nested ? rows(nested) : [];
   }
-  return { top, sub };
+  return { top, sub, chevron };
 }
 
 const SUBMENU_ROWS = [
@@ -208,6 +213,7 @@ describe("ADR-239 Phase 3 — 하위 메뉴 이관 · 두 경로", () => {
       { text: "Share", submenu: true },
     ]);
     expect(after.top).toEqual(before.top);
+    expect(after.chevron).toEqual({ width: "1em", fill: "none" });
     expect(after.sub).toEqual([
       { text: "Mail", submenu: false },
       { text: "SMS", submenu: false },

@@ -1,4 +1,5 @@
 import { Button } from "react-aria-components/Button";
+import { ChevronRightIcon } from "lucide-react";
 import {
   Menu,
   MenuItem as AriaMenuItem,
@@ -521,10 +522,14 @@ export function MenuItem({
               <kbd className="menu-item-shortcut">{shortcutDisplay}</kbd>
             )}
           </span>
+          {/* ADR-239 Preview 확인 — 하위 메뉴 표식은 선 아이콘 · 항목 글자 크기 (catalog MenuItem size 별 fontSize).
+              종전 크기 · 선 속성 없는 `<svg>` 는 채움 검정 81px 로 그려져 라벨을 밀었다 (Tree chevron 과 같은 lucide). */}
           {hasSubmenu && (
-            <svg className="chevron" viewBox="0 0 24 24">
-              <path d="m9 18 6-6-6-6" />
-            </svg>
+            <ChevronRightIcon
+              className="chevron"
+              size="1em"
+              aria-hidden="true"
+            />
           )}
         </>
       )}

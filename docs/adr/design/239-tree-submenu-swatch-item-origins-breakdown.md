@@ -195,3 +195,10 @@
 - 충돌 4 해결: hydration 체인 (`ensureTableOrigins` 가 239 Tree · swatch 이관 체인을 감싼다) · history 재생 (`ensureTableOriginsInSnapshot` 뒤 `alignItemOriginSnapshots` — 241 이 새로 더한 Table origin 도 carry 규칙 대상) · CHANGELOG · README. type-check 0 · builder 7,549 · shared 기존 실패 1 (Modal) · live 13/13 · M1 4/4.
 - G5 브라우저 (pairs 3): menu Δ ownerEdit +0.1 · originEdit +0.3 · expand +0.8 · breakpoint 0. tree ownerEdit +3.1 · originEdit +6.6 · expand +2.9 · breakpoint +1.4 — 병합 전 (+1.7 · +3.5 · +3.2 · +1.3) 보다 커 보여 node bench 로 재측정: tree ownerEdit p95 2.33 → 3.90 (+1.6) · expand 1.64 → 3.91 (+2.3) · originEdit 2.21 → 6.40 (+4.2) · menu +0.3 이하 — 병합 전 bench (+1.8 · +2.0 · +4.2) 와 같다 (브라우저 표본 7 p95 흔들림, 병합 회귀 없음). 사용자 판정 (예외) 범위 안.
 - G6: 병합 전과 같은 값 — swatch · Menu 트리거 (평면 · 하위 메뉴) · Menu origin 픽셀 0 · 평면 Tree rect 동일 · 중첩 106 → 170 · `expandedKeys` 106 → 138 · 재hydration Δ0 · history Undo/Redo origin 3 유지 · 오류 0.
+
+### Preview 확인 (2026-09-25 · 사용자 지시 "Preview 에서 Tree 펼침 · 하위 메뉴 확인해" — Compare Mode, main `7f62b8b18`)
+
+- `apps/builder/scripts/adr239-preview-check.mjs` 7/7: Tree origin instance Preview 행 3 (Node 1 `aria-expanded=true` · Node 1.1 level 2 · Node 2) = Canvas 행 · 239 전 모양 plain 중첩 Tree reload 이관 → Preview 행 4 전부 = Canvas 행 · Preview chevron 클릭 → 행 2 · builder `expandedKeys` 에서 빠짐 · Canvas 행 2 → 다시 클릭 → 복원 · 239 전 Menu (`children` 행) reload 이관 → 트리거 (키보드 Enter) → Share to (`aria-haspopup=menu`) ArrowRight → 하위 메뉴 Email · Social → ArrowRight → 2 단계 X · page error 0.
+- **발견 · 수리**: 239 정적 경로의 하위 메뉴 트리거가 shared `MenuItem` 의 크기 · 선 속성 없는 `<svg class="chevron">` 을 그려 81×81 채움 검정 삼각형 · 라벨 줄바꿈 (239 전 `items` 경로는 AriaMenuItem 직접 — 표식 없음) → lucide `ChevronRightIcon` (`size="1em"` — catalog MenuItem size 별 fontSize) · Tree chevron 과 같은 아이콘. unit `adr239Phase3.submenus` 단언 추가 (원복 RED `{width:null, fill:null}`).
+- 기록만 (239 전부터): 하위 메뉴 Popover (padding 16 · border) 안 Menu (border) 이중 테두리 — `items` 하위 메뉴 · 최상위 메뉴와 같은 마크업. 최상위 Menu 는 owner 절대 위치 style 이 Menu 에 실려 Popover (34px) 와 떨어져 그려진다.
+- Compare Mode 는 Preview iframe 을 축소 렌더해 Playwright pointer 가시성 판정이 실패한다 → RAC 키보드 경로로 연다 (하니스 기록).

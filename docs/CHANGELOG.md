@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **깊은 Tree (5 단계 이상) 항목의 Canvas 선택 · 접힘 표시가 빠지던 문제** — 소속 Tree 를 조상 3 단계까지만 찾았다 (Preview 는 제한 없음).
 - **이관 전에 저장된 Components 편집 기록을 Undo 하면 새 항목 origin 이 사라지던 문제** — Undo · Redo 가 되살리는 스냅샷을 항목 origin 이관에 맞춘다 (ADR-240 영역 이관과 같은 방식).
+- **Preview 하위 메뉴 표식이 거대한 검정 삼각형으로 그려지던 문제** — 하위 메뉴가 있는 MenuItem 의 표식을 Tree 와 같은 선 아이콘 (항목 글자 크기) 으로 그린다. 라벨이 줄바꿈되지 않는다.
   - 위치: `apps/builder/src/builder/components/tree/` · `components/colorswatch/` · `components/itemOriginSnapshots.ts` · `adapters/canonical/canonicalRefResolution.ts` · `workspace/canvas/treeItemRow.ts` · `packages/shared/src/renderers/CollectionRenderers.tsx` · `LayoutRenderers.tsx` · `components/Menu.tsx`
   - 성능: 중첩 Tree 편집의 `scene.build` p95 가 +1.3 ~ 3.5 ms (Tree 20 × 30 항목 fixture) — 항목 글자 노드만큼의 구조 비용, 사용자 판정으로 예외 (ADR-239 R4). Menu 는 +0.7 ms 이하. Preview 는 unit 으로 확인 — 사용자 확인 대상.
 
