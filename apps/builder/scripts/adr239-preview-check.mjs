@@ -343,6 +343,15 @@ let menuState = null;
           bg: c.backgroundColor,
           shadow: c.boxShadow.slice(0, 40),
           width: Math.round(el.getBoundingClientRect().width),
+          rect: (() => {
+            const r = el.getBoundingClientRect();
+            return [Math.round(r.x), Math.round(r.y), Math.round(r.width), Math.round(r.height)];
+          })(),
+          pos: c.position,
+          display: c.display,
+          minWidth: c.minWidth,
+          cssWidth: c.width,
+          inline: el.getAttribute("style"),
           trigger: el.getAttribute("data-trigger"),
         };
       };
@@ -360,6 +369,56 @@ let menuState = null;
     }),
   );
   console.log("[adr239 preview] menu styles", JSON.stringify(styles));
+  // 한 겹 틀 — popover 는 틀 없는 wrapper (border 0 · padding 0), 목록 (Menu) 이 틀 · 모든 층.
+  record(
+    "메뉴 틀 한 겹 — popover border 0 · padding 0 · 목록 Menu border 1px (최상위 · 하위 2 층)",
+    styles.length === 3 &&
+      styles.every(
+        (lv) =>
+          lv.popover?.border.startsWith("0px") &&
+          lv.popover?.pad === "0px" &&
+          lv.menu?.border.startsWith("1px"),
+      ),
+    styles.map((lv) => [lv.popover?.border, lv.popover?.pad, lv.menu?.border]),
+  );
+  // 최상위 목록은 popover 안 (owner 절대 위치가 목록에 실리지 않는다) · 트리거는 owner 위치 (Canvas 와 같은 자리).
+  const attrs = await pf.evaluate(() => {
+    const pops = [...document.querySelectorAll(".react-aria-Popover")].map((p) =>
+      [...p.attributes].map((a) => `${a.name}=${a.value.slice(0, 40)}`).join(" "),
+    );
+    const b = document.querySelector('[data-element-id="pv-menu"] button');
+    const c = b ? getComputedStyle(b) : null;
+    return {
+      pops,
+      button: b
+        ? {
+            style: b.getAttribute("style"),
+            margin: c.margin,
+            boxSizing: c.boxSizing,
+            width: c.width,
+            transform: c.transform,
+            position: c.position,
+          }
+        : null,
+    };
+  });
+  console.log("[adr239 preview] attrs", JSON.stringify(attrs));
+  const trig = await pf.evaluate(() => {
+    // 열린 동안 트리거는 눌림 scale(0.95) — rect 대신 layout 상자 (offset).
+    const b = document.querySelector('[data-element-id="pv-menu"] button');
+    return b ? [b.offsetLeft, b.offsetTop, b.offsetWidth] : null;
+  });
+  const top = styles[0];
+  record(
+    "최상위 — 트리거 = owner 위치 · 폭 (320, 20, 160) · 목록은 popover 안 (inline 위치 없음)",
+    trig?.[0] === 320 &&
+      trig?.[1] === 20 &&
+      trig?.[2] === 160 &&
+      !String(top?.menu?.inline ?? "").includes("320px") &&
+      Math.abs((top?.menu?.rect?.[0] ?? -1) - (top?.popover?.rect?.[0] ?? -2)) <= 1 &&
+      Math.abs((top?.menu?.rect?.[1] ?? -1) - (top?.popover?.rect?.[1] ?? -2)) <= 1,
+    { trig, menu: top?.menu?.rect, popover: top?.popover?.rect, inline: top?.menu?.inline },
+  );
   menuState = { trigger: triggerText, level1, level2, level3 };
 }
 record(

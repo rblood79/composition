@@ -122,6 +122,7 @@ export function MenuButton<T extends object>({
   selectedKeys,
   onSelectionChange,
   slotComposition,
+  style,
   ...props
 }: MenuButtonProps<T>) {
   const t = useComponentStrings();
@@ -220,6 +221,10 @@ export function MenuButton<T extends object>({
       data-size={size}
       aria-label={triggerAriaLabel}
       aria-labelledby={ariaLabelledBy}
+      // ADR-239 Preview 확인 — owner style (위치 · 폭 · 모양) 은 트리거 상자 (Canvas 가 그리는 Menu 상자, ADR-151 B7).
+      //   종전 `{...props}` 로 MenuTrigger 에 넘겨 RAC 가 목록 (popover 안 Menu) 에 실었다 — 목록이 popover 밖 절대
+      //   위치로 떨어지고 트리거는 문서 흐름 자리에 그려졌다.
+      style={typeof style === "object" ? style : undefined}
     >
       {triggerLabel}
     </Button>
@@ -416,7 +421,7 @@ export function MenuButton<T extends object>({
     return (
       <MenuTrigger {...props}>
         {triggerButton}
-        <Popover>
+        <Popover data-size={size}>
           <Menu
             items={menuItems}
             className={getMenuClassName()}
@@ -434,7 +439,7 @@ export function MenuButton<T extends object>({
   return (
     <MenuTrigger {...props}>
       {triggerButton}
-      <Popover>
+      <Popover data-size={size}>
         <Menu
           {...props}
           className={getMenuClassName()}

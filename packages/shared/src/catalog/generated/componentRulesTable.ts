@@ -7000,6 +7000,46 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           pointerEvents: "none",
         },
       },
+      // ADR-239 Preview 확인 (2026-09-25 사용자 지시 "이중 테두리도 영향 범위 확인하고 고쳐") — 메뉴 popover 는
+      //   틀 없는 wrapper, 목록 틀 (배경 · 테두리 · 모서리 · 여백 = 위 containerStyles) 과 그림자는 Menu 한 겹이다.
+      //   종전: 일반 Popover 틀 (padding 16 · border · 배경) 안에 Menu 틀이 한 겹 더 (하위 메뉴 · 최상위 메뉴 모두).
+      //   `[data-size]` = composition Menu 가 싣는 표식 — builder 크롬 메뉴 (자기 className · data-size 없음) 는 대상 밖.
+      //   Canvas 는 트리거만 그린다 (popover 대칭 대상 없음 — 목록은 DOM consumer 하나).
+      composition: {
+        delegation: [],
+        externalStyles: [
+          {
+            selector: '.react-aria-Popover[data-trigger="MenuTrigger"][data-size]',
+            styles: {
+              padding: "0",
+              border: "none",
+              background: "transparent",
+              "box-shadow": "none",
+            },
+            nested: [
+              {
+                selector: "> .react-aria-Menu",
+                styles: { "box-shadow": "var(--shadow-md)" },
+              },
+            ],
+          },
+          {
+            selector: '.react-aria-Popover[data-trigger="SubmenuTrigger"][data-size]',
+            styles: {
+              padding: "0",
+              border: "none",
+              background: "transparent",
+              "box-shadow": "none",
+            },
+            nested: [
+              {
+                selector: "> .react-aria-Menu",
+                styles: { "box-shadow": "var(--shadow-md)" },
+              },
+            ],
+          },
+        ],
+      },
     },
   },
   MenuItem: {

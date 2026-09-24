@@ -102,6 +102,16 @@ async function openMenus(doc: CompositionDocument, id: string) {
         submenu: row.getAttribute("aria-haspopup") === "menu",
       }));
   const top = rows(menus()[0]!);
+  // owner style 은 트리거 버튼 (Canvas 가 그리는 Menu 상자) — 목록 (popover 안) 에 실리면 목록이 트리거와 떨어져 그려진다.
+  const triggerButton = container.querySelector("button") as HTMLElement;
+  const placement = {
+    trigger: [triggerButton.style.left, triggerButton.style.width],
+    list: menus()[0]!.getAttribute("style"),
+    // 메뉴 popover 한 겹 틀 규칙 (catalog Menu externalStyles) 의 대상 표식.
+    popoverSize:
+      menus()[0]!.closest(".react-aria-Popover")?.getAttribute("data-size") ??
+      null,
+  };
   const trigger = [...menus()[0]!.querySelectorAll('[role="menuitem"]')].find(
     (row) => row.getAttribute("aria-haspopup") === "menu",
   );
@@ -120,7 +130,7 @@ async function openMenus(doc: CompositionDocument, id: string) {
     const nested = menus()[1];
     sub = nested ? rows(nested) : [];
   }
-  return { top, sub, chevron };
+  return { top, sub, chevron, placement };
 }
 
 const SUBMENU_ROWS = [
@@ -218,6 +228,26 @@ describe("ADR-239 Phase 3 — 하위 메뉴 이관 · 두 경로", () => {
       { text: "Mail", submenu: false },
       { text: "SMS", submenu: false },
     ]);
+  });
+
+  it("owner style (위치 · 폭) 은 트리거 버튼에 — 목록 (popover 안 Menu) 에는 없다", async () => {
+    const { placement } = await openMenus(
+      page([
+        {
+          id: "mp",
+          type: "Menu",
+          props: {
+            label: "Share",
+            items: SUBMENU_ROWS,
+            style: { position: "absolute", left: "320px", width: "160px" },
+          },
+        } as CanonicalNode,
+      ]),
+      "mp",
+    );
+    expect(placement.trigger).toEqual(["320px", "160px"]);
+    expect(placement.list ?? "").not.toContain("320px");
+    expect(placement.popoverSize).toBe("md");
   });
 
   it("Preview 구조 경로 (section 이 섞인 items) 도 하위 메뉴를 그린다 (F7 — 종전: 버림)", async () => {

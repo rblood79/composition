@@ -67,6 +67,31 @@
   pointer-events: none;
 }
 
+/* ── Tier 2: Composite Delegation ── */
+
+.react-aria-Popover[data-trigger="MenuTrigger"][data-size] {
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.react-aria-Popover[data-trigger="MenuTrigger"][data-size] > .react-aria-Menu {
+  box-shadow: var(--shadow-md);
+}
+
+.react-aria-Popover[data-trigger="SubmenuTrigger"][data-size] {
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.react-aria-Popover[data-trigger="SubmenuTrigger"][data-size] > .react-aria-Menu {
+  box-shadow: var(--shadow-md);
+}
+
+
 @media (forced-colors: active) {
   .react-aria-Menu {
     forced-color-adjust: auto;
