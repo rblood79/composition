@@ -45,7 +45,19 @@ describe("AI 카탈로그 커버리지", () => {
       .filter((t, i, all) => all.indexOf(t) !== i);
     expect(collisions.length).toBeGreaterThan(0);
 
-    for (const type of collisions) {
+    // 기존 문서 ref 해소용으로만 남은 reusable (신규 삽입 제외 — Modal, 2026-09-23 `922f11583`) 은
+    //   AI 도 삽입 대상으로 광고하지 않는다.
+    const legacyOnly = collisions.filter((type) =>
+      componentCatalog.some(
+        (e) => e.type === type && e.kind === "reusable" && !e.panel.placeable,
+      ),
+    );
+    expect(legacyOnly).toEqual(["Modal"]);
+    for (const type of legacyOnly) {
+      expect(getAiCatalogEntry(type)?.placeable, type).toBe(false);
+    }
+
+    for (const type of collisions.filter((t) => !legacyOnly.includes(t))) {
       const entry = getAiCatalogEntry(type);
       expect(entry?.kind, type).toBe("reusable");
       expect(entry?.placeable, type).toBe(true);

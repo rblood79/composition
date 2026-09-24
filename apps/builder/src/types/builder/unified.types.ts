@@ -1855,11 +1855,14 @@ export function createDefaultDescriptionProps(): BaseElementProps {
 
 export function createDefaultDialogProps(): DialogElementProps {
   return {
-    // display/flexDirection은 factory 인라인의 dirty baseline이다.
-    // 기본 너비 100%와 padding/gap은 catalog containerStyles/size에서 파생한다.
+    // factory 인라인 (`createDialogContentDefinition`) 의 dirty baseline 미러 — display/flexDirection ·
+    //   width 400 (RSP size M modal 폭) · maxWidth 100% (2026-09-23 `3f50bcf6c` 가 인라인에 다시 넣은 값 — 미러
+    //   누락으로 갓 만든 Dialog 가 "수정 2"). padding/gap 은 catalog size 에서 파생한다.
     style: {
       display: "flex",
       flexDirection: "column",
+      width: "400px",
+      maxWidth: "100%",
     },
   };
 }

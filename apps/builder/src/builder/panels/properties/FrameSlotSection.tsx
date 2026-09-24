@@ -13,6 +13,7 @@ import {
   getFrameElementMirrorId,
   withFrameElementMirrorId,
 } from "../../../adapters/canonical/frameMirror";
+import { COMPONENT_DESCENDANTS_MIRROR_FIELD } from "../../../adapters/canonical/componentSemanticsMirror";
 import {
   useCanonicalPropertyChildren,
   useCanonicalPropertyElement,
@@ -292,7 +293,8 @@ export const FrameSlotSection = memo(function FrameSlotSection({
             ...(plan.instanceDescendants
               ? [
                   updateElement(plan.hostId, {
-                    descendants: plan.instanceDescendants,
+                    [COMPONENT_DESCENDANTS_MIRROR_FIELD]:
+                      plan.instanceDescendants,
                   } as Partial<AddElementInput>),
                 ]
               : []),
@@ -316,7 +318,7 @@ export const FrameSlotSection = memo(function FrameSlotSection({
       if (!plan) return;
       if (plan.kind === "instance") {
         void updateElement(plan.instanceId, {
-          descendants: plan.descendants,
+          [COMPONENT_DESCENDANTS_MIRROR_FIELD]: plan.descendants,
           ...(plan.props ? { props: plan.props } : {}),
         } as Partial<AddElementInput>);
         return;

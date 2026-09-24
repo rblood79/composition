@@ -94,9 +94,12 @@ describe("ADR-177: page-position entry 소비 분기 (element 노드 경로 미�
       "utf-8",
     );
 
-    // 적용 헬퍼 정의 (스토어 스냅샷 + canonical setPagePositions + persist)
+    // 적용 헬퍼 정의 — ADR-232 (2026-09-22 `accf4eaec`) 이후 위치는 파생값이라 canonical 배치
+    //   (`setPagePlacements` — `pagePlacementEvent`) 만 되돌리고 persist 한다. 옛 저장 좌표
+    //   (`setPagePositions` · `pagePositionEvent`) 는 적용하지 않는다.
     expect(source).toContain("function applyPagePositionHistoryEntry");
-    expect(source).toContain(".setPagePositions(");
+    expect(source).toContain(".setPagePlacements(");
+    expect(source).not.toContain(".setPagePositions(");
 
     // 진입점 분기 — undo/redo 는 early-return, goToIndex 는 continue,
     // syncDatabaseForEntries 는 skip. 최소 4곳.

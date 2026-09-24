@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [새 Dialog 의 Styles "수정 2" · 정적 게이트 정비] - 2026-09-25
+
+### Fixed
+
+- **팔레트로 놓은 Dialog 가 아무것도 고치지 않았는데 Styles 에 "수정 2" 로 보이던 문제를 고쳤다** — Dialog 본문의 기본 너비 (400px · 최대 100%) 가 초기화 기준값에 빠져 있었다 (2026-09-23 DialogTrigger 도입 때 인라인만 다시 넣음). Components 페이지 origin 의 Dialog 와 instance 안 Dialog 모두 수정 0 이고, 초기화하면 400px 로 돌아간다. width 가 없는 기존 Dialog 는 영향 없음.
+  - 위치: `apps/builder/src/types/builder/unified.types.ts` (`createDefaultDialogProps`)
+  - 같이: 정적 게이트 4 개를 현재 계약에 맞춤 (ADR-113 descendants 게이트 allowlist · 공유 prop `isOpen` 아이콘 · ADR-232 `setPagePlacements` · AI 카탈로그 Modal 신규 삽입 제외) — 동작 변경 없음. `FrameSlotSection` 은 descendants 쓰기 필드를 adapter 상수로 (같은 값).
+
 ## [origin 안 중첩 instance 의 자기 자식 (ADR-241 선행 수리)] - 2026-09-25
 
 ### Fixed

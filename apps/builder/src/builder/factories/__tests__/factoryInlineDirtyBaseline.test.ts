@@ -108,6 +108,25 @@ const ORIGIN_CASES: Array<{
   },
 ];
 
+/**
+ * 대상 type 의 노드 (props · type). 팔레트 Dialog 는 `DialogTrigger > [Button, Dialog]` 로 만들어진다 (2026-09-23
+ * `3f50bcf6c`) — parent 는 DialogTrigger 라 Dialog 본문은 자식에서 찾는다. 나머지는 parent 그대로.
+ */
+function styledNode(
+  def: ComponentDefinition,
+  type: string,
+): { type: string; props: Record<string, unknown> } {
+  const node =
+    def.parent.type === type
+      ? def.parent
+      : def.children?.find((child) => child.type === type);
+  if (!node) throw new Error(`${type} node missing in factory definition`);
+  return {
+    type: node.type,
+    props: (node.props ?? {}) as Record<string, unknown>,
+  };
+}
+
 function emptyDocument(): CompositionDocument {
   return {
     version: "composition-1.0",
@@ -141,18 +160,16 @@ function findOriginRoot(
 describe("ADR-171 Phase 4 (R7) — factory 인라인 ↔ dirty baseline", () => {
   for (const { type, create } of CASES) {
     it(`${type} — 갓 만든 요소의 dirty style 이 0 (① 인라인 ⊆ baseline)`, () => {
-      const def = create(ctx);
-      expect(
-        computeDirtyStyleProps({
-          type: def.parent.type,
-          props: def.parent.props as Record<string, unknown>,
-        }),
-      ).toEqual([]);
+      const node = styledNode(create(ctx), type);
+      expect(node.type).toBe(type);
+      expect(computeDirtyStyleProps(node)).toEqual([]);
     });
 
     it(`${type} — baseline 이 factory 미주입 layout 키를 주장하지 않음 (② baseline ⊆ 인라인)`, () => {
-      const def = create(ctx);
-      const inline = (def.parent.props?.style ?? {}) as Record<string, unknown>;
+      const inline = (styledNode(create(ctx), type).props.style ?? {}) as Record<
+        string,
+        unknown
+      >;
       const mirror = (getDefaultProps(type)?.style ?? {}) as Record<
         string,
         unknown

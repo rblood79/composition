@@ -75,6 +75,21 @@ const CANONICAL_DESCENDANTS_ALLOWLIST = new Set([
   // ADR-240 Phase 2 — 채운 노드 편집 (mode C 배열 노드 · 채운 ref 의 자기 descendants) · 영역 삽입 계획 (팔레트 · drop).
   "apps/builder/src/builder/components/slotFillEdit.ts",
   "apps/builder/src/builder/components/slotRegionInsert.ts",
+  // ADR-228 · 234 · 237 · 238 — origin seed · 목록 틀 "+" · 이관이 canonical `RefNode.descendants` 를 **만들거나 고쳐
+  //   쓴다** (originChildRefs 와 같은 역할). 입력 · 출력 모두 `CanonicalNode` / `RefNode` — legacy Element 아님.
+  "apps/builder/src/builder/components/catalogOrigins.ts",
+  "apps/builder/src/builder/components/collectionItemInsert.ts",
+  "apps/builder/src/builder/components/migrateDialogTriggerInstances.ts",
+  "apps/builder/src/builder/components/stateVariantMigration.ts",
+  "apps/builder/src/builder/components/staticCollectionMigration.ts",
+  // ADR-230 · 234 — 상태 변형 층 (`StateLayer.descendants` — 변형 origin 의 자손 patch 투영). RefNode 필드가 아니라
+  //   층 모델의 자기 필드다 (Canvas 해석 · Preview render props 가 같은 모델을 읽는다).
+  "apps/builder/src/builder/components/stateVariantLayers.ts",
+  "apps/builder/src/preview/utils/stateLayerRender.ts",
+  // ADR-234 · 237 — Slot "+" 계획 (canonical 문서에서 만든 `plan.descendants`) 을 adapter 소유 필드
+  //   (`COMPONENT_DESCENDANTS_MIRROR_FIELD`) 로 store 에 쓴다. 필드 이름은 adapter 가 정한다.
+  "apps/builder/src/builder/panels/properties/ComponentSlotFillSection.tsx",
+  "apps/builder/src/builder/panels/properties/FrameSlotSection.tsx",
 ]);
 
 const COMMENT_LINE_PATTERN = /^\s*(\/\/|\*|\/\*|\*\/)/;

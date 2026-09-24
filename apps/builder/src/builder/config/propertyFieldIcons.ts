@@ -51,6 +51,7 @@ import {
   Palette,
   Rainbow,
   PanelBottom,
+  PanelTopOpen,
   Percent,
   Play,
   Radius,
@@ -193,6 +194,7 @@ export const PROP_KEY_ICONS: Record<string, PropertyFieldIcon> = {
   isRequired: Asterisk,
   isInvalid: CircleAlert,
   isSelected: Check,
+  isOpen: PanelTopOpen, // DialogTrigger · Modal — overlay 열림 (ADR-240)
   isIndeterminate: Minus,
   isQuiet: EyeOff,
   isEmphasized: Sparkles,
