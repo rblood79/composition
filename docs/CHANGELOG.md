@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [그룹 항목 라벨 · DisclosureGroup 테두리가 Preview 와 캔버스에서 같다] - 2026-09-24
+
+### Fixed
+
+- **CheckboxGroup · RadioGroup origin 의 기본 항목이 Preview 에서 "Checkbox" / "Radio" (또는 두 항목 모두 "Option 2") 로 보이던 문제를 고쳤다.** 이제 Preview 와 캔버스 모두 "Option 1" · "Option 2" 다. 기존 프로젝트는 열 때 자동으로 고쳐진다 (Label 을 직접 바꾼 값은 그대로).
+  - **Why**: origin 자식을 instance 로 바꿀 때 항목 이름이 Label 로 전파된다고 보고 Label 값을 저장하지 않았는데, 해석 단계는 전파를 다시 걸지 않아 Label 이 origin 글자로 남았다. 또 Preview 의 그룹 렌더 경로가 해석 노드를 로컬 id 로 찾아, 같은 origin 의 instance 두 개가 마지막 Label 을 같이 그렸다.
+  - 위치: `apps/builder/src/builder/components/originChildRefs.ts` (`expectedSubtree` · `repairOriginChildPropagationPatches`) · `apps/builder/src/preview/components/CanonicalNodeRenderer.tsx` (delegating 렌더의 요소 → 해석 노드 동일성 조회)
+- **캔버스에서만 DisclosureGroup 둘레에 1px 회색 테두리가 그려지던 문제를 고쳤다** (Preview 는 테두리 없음 — starter 와 같다).
+  - **Why**: catalog 에 테두리 폭이 없어 캔버스는 기본 1px 로 variant 테두리 색을 그렸고, 생성 CSS 는 border-style 이 없어 DOM 은 0 이었다 (Disclosure 2026-09-18 과 같은 원인).
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` (`DisclosureGroup.sizes.*.borderWidth`)
+
 ## [폭을 지정하지 않은 absolute 요소가 캔버스에서 내용 폭으로 그려진다] - 2026-09-24
 
 ### Fixed

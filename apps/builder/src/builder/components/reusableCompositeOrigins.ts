@@ -51,6 +51,7 @@ import {
   collectReusableOriginIds,
   convertNewOriginChildrenToRefs,
   migrateCardViewCardsToRefs,
+  repairOriginChildPropagationPatches,
   type OriginChildRefDiagnostic,
 } from "./originChildRefs";
 
@@ -140,17 +141,20 @@ export function ensureReusableCompositeOrigins(
   //   이관을 지난 항목 origin (선택 상태) 을 가리킨다.
   // ADR-237 Phase 1 — 그룹 컨테이너 origin 9 의 slot (추천 항목) seed · repair (slot 이 없을 때만).
   //   CardView origin 의 plain Card 자식 (F3) → Card origin ref (기존 문서 이관 — 새 문서는 seed ② 가 같은 모양).
-  return ensureGroupSlots(
-    migrateCardViewCardsToRefs(
-      migrateStaticCollectionsToInstances(
-        // ADR-237 Phase 2 — 이관을 지난 항목 템플릿 origin (Tab · Tag · ListBoxItem) 의 상호작용 변형은 이관 뒤
-        //   두 번째 seed pass 가 ref 로 보충한다 (이관 전 쌍은 변형 대상 밖).
-        //   ADR-237 Phase 3 — Breadcrumbs 항목 origin 도 여기서 (Breadcrumbs 는 catalog generic origin 이라 전용
-        //   ensurer 가 없다 · 정적 목록 이관 전에 있어야 한다 · `--current` 는 이 seed pass 가 보충).
-        ensureStateVariantOrigins(
-          ensureBreadcrumbsTemplateOrigins(
-            migrateVariantsToOriginInstances(
-              ensureReusableCompositeOriginsBeforeVariantMigration(document),
+  // 2026-09-24 — Components body ref 자식의 전파값 patch repair (Checkbox/Radio Label 이 root `children` 을 따른다).
+  return repairOriginChildPropagationPatches(
+    ensureGroupSlots(
+      migrateCardViewCardsToRefs(
+        migrateStaticCollectionsToInstances(
+          // ADR-237 Phase 2 — 이관을 지난 항목 템플릿 origin (Tab · Tag · ListBoxItem) 의 상호작용 변형은 이관 뒤
+          //   두 번째 seed pass 가 ref 로 보충한다 (이관 전 쌍은 변형 대상 밖).
+          //   ADR-237 Phase 3 — Breadcrumbs 항목 origin 도 여기서 (Breadcrumbs 는 catalog generic origin 이라 전용
+          //   ensurer 가 없다 · 정적 목록 이관 전에 있어야 한다 · `--current` 는 이 seed pass 가 보충).
+          ensureStateVariantOrigins(
+            ensureBreadcrumbsTemplateOrigins(
+              migrateVariantsToOriginInstances(
+                ensureReusableCompositeOriginsBeforeVariantMigration(document),
+              ),
             ),
           ),
         ),

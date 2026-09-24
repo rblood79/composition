@@ -301,6 +301,7 @@ function isCanonicalPageShell(node: ResolvedNode): boolean {
  */
 function flattenNodeChildrenByParent(
   root: ResolvedNode,
+  nodeByElement?: WeakMap<PreviewElement, ResolvedNode>,
 ): Map<string, PreviewElement[]> {
   const map = new Map<string, PreviewElement[]>();
   const visit = (node: ResolvedNode): void => {
@@ -309,37 +310,9 @@ function flattenNodeChildrenByParent(
       map.set(
         node.id,
         children.map((child) => {
-          const type = resolveNodeType(child);
-          const props = extractCanonicalPropsFromResolved(child);
-          // ADR-237 Phase 2 — 래퍼가 자식을 직접 RAC 로 합성하는 경로 (Menu 정적 MenuItem) 도 상태 층을 겹치도록
-          //   render props → style 함수를 싣는다 (기본 style 을 안 넘기면 층 키만).
-          const projection = readStateLayerProjection(props[STATE_LAYERS_PROP]);
-          const forced = readForcedVariantStates(child);
-          return {
-            id: child.id,
-            type,
-            props: props as PreviewElement["props"],
-            parent_id: node.id,
-            page_id: null,
-            fills: child.fills,
-            ...(projection
-              ? {
-                  stateStyle: (
-                    renderProps: Record<string, unknown>,
-                    baseStyle: React.CSSProperties | undefined,
-                  ) =>
-                    resolveStateLayerStyle(
-                      type,
-                      baseStyle,
-                      projection,
-                      toActiveVariantStates(
-                        renderProps as RacStateRenderProps,
-                        forced,
-                      ),
-                    ),
-                }
-              : {}),
-          };
+          const element = toFlattenedPreviewElement(child, node.id);
+          nodeByElement?.set(element, child);
+          return element;
         }),
       );
     }
@@ -347,6 +320,40 @@ function flattenNodeChildrenByParent(
   };
   visit(root);
   return map;
+}
+
+function toFlattenedPreviewElement(
+  child: ResolvedNode,
+  parentId: string,
+): PreviewElement {
+  const type = resolveNodeType(child);
+  const props = extractCanonicalPropsFromResolved(child);
+  // ADR-237 Phase 2 — 래퍼가 자식을 직접 RAC 로 합성하는 경로 (Menu 정적 MenuItem) 도 상태 층을 겹치도록
+  //   render props → style 함수를 싣는다 (기본 style 을 안 넘기면 층 키만).
+  const projection = readStateLayerProjection(props[STATE_LAYERS_PROP]);
+  const forced = readForcedVariantStates(child);
+  return {
+    id: child.id,
+    type,
+    props: props as PreviewElement["props"],
+    parent_id: parentId,
+    page_id: null,
+    fills: child.fills,
+    ...(projection
+      ? {
+          stateStyle: (
+            renderProps: Record<string, unknown>,
+            baseStyle: React.CSSProperties | undefined,
+          ) =>
+            resolveStateLayerStyle(
+              type,
+              baseStyle,
+              projection,
+              toActiveVariantStates(renderProps as RacStateRenderProps, forced),
+            ),
+        }
+      : {}),
+  };
 }
 
 /**
@@ -685,7 +692,15 @@ function CanonicalNodeRendererBody({
     if (isDelegatingInternal || isDelegatingRac) {
       const delegatedRenderer = rendererMap[adaptedEl.type];
       if (delegatedRenderer) {
-        const delegatedChildrenByParent = flattenNodeChildrenByParent(node);
+        // 요소 → 해석 노드는 **객체 동일성** 으로 먼저 잇는다. 해석 노드 id 는 instance 안에서 로컬
+        //   (같은 origin 의 instance 두 개 = `component-checkbox__1` ×2) 이라 id map 은 마지막 것으로 덮인다 —
+        //   CheckboxGroup 의 두 Checkbox 가 둘 다 마지막 Label 글자를 그렸다 (2026-09-24 Compare Mode 실측).
+        //   renderer 가 요소를 복제해 넘기면 id map 폴백.
+        const nodeByElement = new WeakMap<PreviewElement, ResolvedNode>();
+        const delegatedChildrenByParent = flattenNodeChildrenByParent(
+          node,
+          nodeByElement,
+        );
         // ADR-912 Disclosure 군 cutover 후속 (2026-06-10): child-context 재귀 전파.
         //   delegating renderer 가 자식을 `context.renderElement(child)` 로 렌더할 때, 그 자식을
         //   CanonicalNodeRenderer 로 되돌려 **각 자식이 자기 서브트리 flatten 보강을 받도록** 한다.
@@ -698,8 +713,8 @@ function CanonicalNodeRendererBody({
           el: PreviewElement,
           key?: string,
         ): React.ReactNode => {
-          const childNode = nodeById.get(el.id);
-          if (childNode && childNode.id !== node.id) {
+          const childNode = nodeByElement.get(el) ?? nodeById.get(el.id);
+          if (childNode && childNode !== node) {
             return (
               <CanonicalNodeRenderer
                 key={key ?? childNode.id}

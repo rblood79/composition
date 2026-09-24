@@ -173,11 +173,20 @@ function openOriginSubtree(
   return children.length > 0 ? { ...node, children } : node;
 }
 
-/** origin subtree 에 (origin ⊕ 자식 props) 를 root 로 한 factory 전파를 얹은 기대 subtree. */
+/**
+ * origin subtree 에 (origin ⊕ 자식 props) 를 root 로 한 factory 전파를 얹은 기대 subtree.
+ *
+ * 전파가 "설명" 하는 것은 **sub-part** (`isDelegatedSubpartChild` — Preview 가 parent props 로 self-compose
+ * 하고 자식을 읽지 않는다) 뿐이다. 그 밖의 자식 (Checkbox · Radio 의 Label) 은 해소기가 전파를 다시 걸지 않아
+ * 해석값 = origin 값 + patch 이고 Preview 는 그 자식을 그린다 — 전파로 설명된다고 patch 를 빼면 Preview 는
+ * origin 글자 ("Checkbox") 를, Canvas 는 read-time 전파로 root `children` ("Option 1") 을 그렸다
+ * (2026-09-24 Compare Mode 실측). 그런 자식은 origin 원본 props 를 기대값으로 둔다.
+ */
 function expectedSubtree(
   origin: CanonicalNode,
   rootProps: Record<string, unknown>,
   originsById: ReadonlyMap<string, CanonicalNode>,
+  options: { propagateNonSubparts?: boolean } = {},
 ): CanonicalNode[] {
   const opened = openOriginSubtree(origin, originsById, new Set([origin.id]));
   const flat: FlatSeed[] = [];
@@ -192,7 +201,26 @@ function expectedSubtree(
     source: origin,
   };
   const propagated = applyFactoryPropagation(root, flat);
-  return nestSubtree(origin.id, propagated);
+  if (options.propagateNonSubparts) return nestSubtree(origin.id, propagated);
+  const typeById = new Map<string, string>([[origin.id, origin.type]]);
+  const parentById = new Map<string, string | null>([[origin.id, null]]);
+  for (const item of flat) {
+    typeById.set(item.id, item.type);
+    parentById.set(item.id, item.parent_id);
+  }
+  const rawById = new Map(flat.map((item) => [item.id, item.props]));
+  const explained = propagated.map((item) => {
+    const parentType = item.parent_id ? typeById.get(item.parent_id) : null;
+    const grandparentId = item.parent_id
+      ? parentById.get(item.parent_id)
+      : null;
+    const grandparentType = grandparentId ? typeById.get(grandparentId) : null;
+    if (isDelegatedSubpartChild(item.type, parentType, grandparentType)) {
+      return item;
+    }
+    return { ...item, props: rawById.get(item.id) ?? item.props };
+  });
+  return nestSubtree(origin.id, explained);
 }
 
 /** descendants patch 로 옮길 수 없는 자식 필드 — 갈리면 변환 보류. */
@@ -439,6 +467,95 @@ export function migrateCardViewCardsToRefs(
           : node,
     );
   return { ...document, children: replace(document.children) };
+}
+
+/**
+ * 기존 문서 repair — Components body 안 ref 노드 (조합 origin 의 seed 자식 · 그룹 항목) 가 root props 전파로
+ * **sub-part 가 아닌** 자식에 실어야 할 값을 descendants patch 에 채운다 (`expectedSubtree` 의 2026-09-24 정정
+ * 이전 seed 는 그 patch 를 뺐다 — CheckboxGroup origin 의 Checkbox 가 root `children: "Option 1"` 인데 Label 은
+ * origin "Checkbox"). 이미 patch 에 있는 키는 사용자 값이라 건드리지 않는다. 멱등 — 채울 것이 없으면 같은 문서 객체.
+ */
+export function repairOriginChildPropagationPatches(
+  document: CompositionDocument,
+): CompositionDocument {
+  const originsById = new Map<string, CanonicalNode>();
+  collectOriginsById(document.children, originsById);
+
+  const repairRef = (node: CanonicalNode): CanonicalNode => {
+    const ref = (node as { ref?: unknown }).ref;
+    const master = typeof ref === "string" ? originsById.get(ref) : undefined;
+    if (!master || master.type === "ref" || !master.children?.length) {
+      return node;
+    }
+    const rootProps = applyPropsPatch(master.props ?? {}, node.props ?? {});
+    const propagated = expectedSubtree(master, rootProps, originsById, {
+      propagateNonSubparts: true,
+    });
+    const raw = expectedSubtree(master, rootProps, originsById);
+    const existing = ((node as { descendants?: unknown }).descendants ??
+      {}) as Record<string, Record<string, unknown>>;
+    const additions: Record<string, Record<string, unknown>> = {};
+    const walk = (
+      full: readonly CanonicalNode[],
+      base: readonly CanonicalNode[],
+      prefix: string,
+    ) => {
+      full.forEach((target, index) => {
+        const source = base[index];
+        if (!source) return;
+        const path = `${prefix}${pathSegmentOf(target)}`;
+        const diff = diffPropsAgainstOrigin(target.props, source.props);
+        const current = existing[path] ?? {};
+        const add: Record<string, unknown> = {};
+        for (const [key, value] of Object.entries(diff)) {
+          if (PATCH_RESERVED_PROP_KEYS.has(key) || Array.isArray(value))
+            continue;
+          if (key === "style" && isRecord(value)) {
+            const currentStyle = isRecord(current.style) ? current.style : {};
+            const missing = Object.fromEntries(
+              Object.entries(value).filter(([k]) => !(k in currentStyle)),
+            );
+            if (Object.keys(missing).length > 0) {
+              add.style = { ...currentStyle, ...missing };
+            }
+            continue;
+          }
+          if (!(key in current)) add[key] = value;
+        }
+        if (Object.keys(add).length > 0)
+          additions[path] = { ...current, ...add };
+        walk(target.children ?? [], source.children ?? [], `${path}/`);
+      });
+    };
+    walk(propagated, raw, "");
+    if (Object.keys(additions).length === 0) return node;
+    return {
+      ...node,
+      descendants: { ...existing, ...additions },
+    } as CanonicalNode;
+  };
+
+  const visit = (
+    nodes: readonly CanonicalNode[],
+    insideBody: boolean,
+  ): CanonicalNode[] => {
+    let changed = false;
+    const next = nodes.map((node) => {
+      let current = insideBody && isRefNode(node) ? repairRef(node) : node;
+      if (current.children) {
+        const children = visit(
+          current.children,
+          insideBody || current.id === COMPONENTS_SYSTEM_BODY_ID,
+        );
+        if (children !== current.children) current = { ...current, children };
+      }
+      if (current !== node) changed = true;
+      return current;
+    });
+    return changed ? next : (nodes as CanonicalNode[]);
+  };
+  const children = visit(document.children, false);
+  return children === document.children ? document : { ...document, children };
 }
 
 function collectOriginsById(

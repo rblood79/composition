@@ -129,7 +129,7 @@ HIGH 가 없는 B · C 는 RAC 계약 또는 사용자 판정을 채우지 못�
 - `adr237-g4-perf-ab.mjs`: 위 G4 판정 수치.
 - live 에서 잡은 결함 2 (수리): instance 자기 자식 (Slot "+" 항목) 이 Canvas layout 에서 상속 자식 앞에 놓임 (Preview 와 발산) · 자동 폭 Breadcrumbs 의 마지막 crumb 이 구분자 폭까지 잡혀 넓어짐 (190 → 210).
 - `adr237-compare-mode.mjs` **7/7** (사용자 지시 "Compare Mode 로 체크해" — Preview iframe 을 연 확인, 2026-09-24): CheckboxGroup Slot "+" 선택 후보 → Preview 새 Checkbox 만 `data-selected` · Skia 도 선택 · RadioGroup 선택 후보 두 번 → Preview · Skia reader 모두 둘째만 · ToggleButtonGroup (single) 새 항목만 선택 · DisclosureGroup 접힘 후보 → Preview 접힘 · Skia `isExpanded:false` · Breadcrumbs instance + "+" → crumb 4 · 마지막만 `data-current` · Tab `--hover` 변형 편집 → hover 한 Tab 만 빨강, 떠나면 복귀 · page error 0.
-- Compare Mode 화면에서 본 237 밖 기존 발산 (237 전 문서 모양 · G5 Skia Δ0 으로 확인): 그룹 origin 의 상속 항목 라벨이 Preview "Checkbox"/"Radio" (Label 자식) vs Skia "Option 1"/"Option 2" (root `children`) · Skia DisclosureGroup instance 본문 좁은 줄바꿈.
+- Compare Mode 화면에서 본 237 밖 기존 발산 (237 전 문서 모양 · G5 Skia Δ0 으로 확인): 그룹 origin 의 상속 항목 라벨이 Preview "Checkbox"/"Radio" (Label 자식) vs Skia "Option 1"/"Option 2" (root `children`) · Skia DisclosureGroup instance 본문 좁은 줄바꿈. → 2026-09-24 후속 수리: 본문 줄바꿈 `742fd3ee3` · 상속 항목 라벨 (seed 전파값 patch + 기존 문서 repair + Preview delegating 렌더의 로컬 id 중복 — 두 Checkbox 가 마지막 Label 을 그림) · Skia 전용 DisclosureGroup 1px 테두리 (catalog `borderWidth` none).
 
 ## Consequences
 
