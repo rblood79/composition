@@ -35,6 +35,7 @@ import {
   resolveAuthoredDomId,
   resolveBodyDomClassName,
   resolveBodyDomPresentation,
+  resolveSectionItemKey,
   resolveStaticItemKey,
   routeIndicatorFillStyle,
   toRacProps,
@@ -144,6 +145,10 @@ interface CanonicalNodeRendererProps {
  * item 과 시각 결과가 같다. **문서(데이터)는 건드리지 않는다** — 단독 배치는 쇼케이스 의도다.
  */
 const ORPHAN_ITEM_HOST: Readonly<Record<string, string>> = {
+  // ADR-238 Phase 2 — Components 페이지의 단독 section origin (RAC section 도 collection 밖에서 못 그린다).
+  listboxsection: "ListBox",
+  gridlistsection: "GridList",
+  menusection: "Menu",
   listboxitem: "ListBox",
   gridlistitem: "GridList",
   menuitem: "Menu",
@@ -191,6 +196,23 @@ const ITEM_SLOT_ROLES: ReadonlySet<string> = new Set([
   "label",
   "description",
 ]);
+
+/**
+ * ADR-238 Phase 2 — section type (소문자) → 그 section 이 속한 collection (소문자). section 자식 (Header · 항목) 에게는
+ * collection 조상으로 내린다 (단독 section origin 은 호스트가 그 collection 을 씌운다).
+ */
+const SECTION_COLLECTION: Readonly<Record<string, string>> = {
+  listboxsection: "listbox",
+  gridlistsection: "gridlist",
+  menusection: "menu",
+};
+
+/** ADR-238 Phase 2 — section 이 자식 항목에게 내리는 자기 정보 (상속 항목 RAC key — `resolveSectionItemKey`). */
+const CollectionSectionContext = React.createContext<{
+  id: string;
+  props?: Record<string, unknown> | null;
+  ref?: unknown;
+} | null>(null);
 
 /** 호스트가 될 수 있는 collection type(소문자) — 자손 item 은 이미 collection 안이다. */
 const COLLECTION_HOST_TYPES: ReadonlySet<string> = new Set([
@@ -339,6 +361,7 @@ function toFlattenedPreviewElement(
     parent_id: parentId,
     page_id: null,
     fills: child.fills,
+    ...(child._resolvedFrom ? { _resolvedFrom: child._resolvedFrom } : {}),
     ...(projection
       ? {
           stateStyle: (
@@ -446,6 +469,8 @@ function CanonicalNodeRendererBody({
   stateScope: StateInstanceScope;
 }): React.ReactElement | null {
   const currentPath = parentPath ? `${parentPath}/${node.id}` : node.id;
+  // ADR-238 Phase 2 — 가장 가까운 section (있으면) — 상속 항목 RAC key 접두.
+  const itemSection = React.useContext(CollectionSectionContext);
   const editorPresentation = useRuntimeStore(
     (state) => state.editorPresentationOverrides[currentPath],
   );
@@ -524,9 +549,11 @@ function CanonicalNodeRendererBody({
     String(node.type);
 
   // 자식에게 물려줄 collection 조상 — 자기 자신이 collection 이면 자기 type 으로 갱신.
-  const nextCollectionAncestor = COLLECTION_HOST_TYPES.has(type.toLowerCase())
-    ? type.toLowerCase()
-    : collectionAncestor;
+  const nextCollectionAncestor =
+    SECTION_COLLECTION[type.toLowerCase()] ??
+    (COLLECTION_HOST_TYPES.has(type.toLowerCase())
+      ? type.toLowerCase()
+      : collectionAncestor);
 
   // Page FrameNode/RefNode는 canonical 문서·state scope의 소유 경계이지 DOM layout
   // container가 아니다. 실제 페이지 상자는 자식 body가 소유하므로 page shell의
@@ -922,14 +949,40 @@ function CanonicalNodeRendererBody({
       //   label 은 RSP 공식대로 `<Text>` 자식 element 로 표현되므로(ButtonChildSection 이
       //   Button.children → Text 자식 element 이관) 이 배타로 충분 — string children 은 비고
       //   `<Text>` 자식이 label 을 보유. text-only leaf(Badge/Text/Checkbox/Link…)도 동일 배타.
-      return hostOrphanRadio(
+      // ADR-238 Phase 2 — GridList 안의 Header 는 RAC `GridListHeader` (RAC 가 GridList collection 에서 요구).
+      const RenderedComponent =
+        type === "Header" && collectionAncestor === "gridlist"
+          ? (RAC.GridListHeader as React.ElementType)
+          : PrimitiveComponent;
+      // ADR-238 Phase 2 — section 은 자식 항목에게 자기 정보를 내리고 (상속 항목 key), 단독 (Components 페이지)
+      //   이면 그 collection 호스트를 씌운다.
+      const isSection = SECTION_COLLECTION[type.toLowerCase()] !== undefined;
+      const sectionValue = {
+        id: node.id,
+        props: adaptedEl.props as Record<string, unknown> | undefined,
+        ref: node._resolvedFrom,
+      };
+      const sectionChildren = !isSection
+        ? null
+        : typeof itemChildren === "function"
+          ? (renderProps: RacStateRenderProps) => (
+              <CollectionSectionContext.Provider value={sectionValue}>
+                {itemChildren(renderProps)}
+              </CollectionSectionContext.Provider>
+            )
+          : (
+              <CollectionSectionContext.Provider value={sectionValue}>
+                {itemChildren as React.ReactNode}
+              </CollectionSectionContext.Provider>
+            );
+      const primitive = hostOrphanRadio(
         type,
         collectionAncestor,
         {
           value: stateAdjustedProps.value,
           isSelected: stateAdjustedProps.isSelected === true,
         },
-        <PrimitiveComponent
+        <RenderedComponent
           key={node.id}
           {...markerProps}
           {...itemSlotAttr}
@@ -956,17 +1009,22 @@ function CanonicalNodeRendererBody({
           {...(STATIC_ITEM_TYPES.has(type)
             ? {
                 // ADR-234 Phase 3 — 정적 항목 (Tab · Tag · ListBoxItem) 의 RAC key (TabPanel `itemId` 짝 · owner 선택 key).
-                id: resolveStaticItemKey(
+                //   ADR-238 Phase 2 — section instance 가 상속한 항목은 section key 접두 (R4).
+                id: resolveSectionItemKey(
                   adaptedEl.props as Record<string, unknown> | undefined,
                   node.id,
+                  itemSection,
                 ),
               }
             : {})}
           style={racStateStyle}
         >
-          {itemChildren}
-        </PrimitiveComponent>,
+          {isSection ? sectionChildren : itemChildren}
+        </RenderedComponent>,
       );
+      return isSection
+        ? hostOrphanCollectionItem(type, collectionAncestor, primitive)
+        : primitive;
     }
   }
 

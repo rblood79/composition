@@ -358,6 +358,97 @@ export function resolveStaticItemKey(
 }
 
 /**
+ * ADR-238 Phase 1 — 항목 안 역할 한 행: 역할 · RAC provider 가 받는 slot 이름 (없으면 DEFAULT_SLOT) · 필수 여부.
+ */
+export interface ItemSlotRoleSpec {
+  role: SlotRole;
+  /** RAC 항목 provider 의 `slots` 키 (R2). 없으면 역할 자식은 `slot` 을 싣지 않는다 (DEFAULT_SLOT). */
+  racSlot?: string;
+  /** 필수 역할 (label — 항목의 접근 가능한 이름) 은 instance 에서 끌 수 없다. */
+  required?: boolean;
+}
+
+/**
+ * ADR-238 Phase 1 — 항목 type → 허용 역할 표 (breakdown §4 Phase 1). RAC provider 가 받는 이름만 `racSlot` 이다:
+ * ListBoxItem · MenuItem = `label` · `description` (MenuItem 단축키는 Keyboard) · GridListItem = `description` 만
+ * (label 은 DEFAULT — `slot:"label"` 을 실으면 "Invalid slot" 크래시) · Tag = 없음 (`remove` 는 owner 설정 부품).
+ * selection · drag · remove 는 역할이 아니다 (owner 설정이 켜는 render-time 부품, R6).
+ */
+export const ITEM_SLOT_ROLE_TABLE: Readonly<
+  Record<string, readonly ItemSlotRoleSpec[]>
+> = {
+  ListBoxItem: [
+    { role: "icon" },
+    { role: "label", racSlot: "label", required: true },
+    { role: "description", racSlot: "description" },
+  ],
+  MenuItem: [
+    { role: "icon" },
+    { role: "label", racSlot: "label", required: true },
+    { role: "description", racSlot: "description" },
+    { role: "shortcut" },
+  ],
+  GridListItem: [
+    { role: "icon" },
+    { role: "label", required: true },
+    { role: "description", racSlot: "description" },
+  ],
+  Tag: [
+    { role: "icon" },
+    { role: "avatar" },
+    { role: "label", required: true },
+  ],
+};
+
+/** 항목 type 의 역할 한 행 (표에 없으면 null). */
+export function getItemSlotRoleSpec(
+  itemType: string,
+  role: string,
+): ItemSlotRoleSpec | null {
+  return (
+    ITEM_SLOT_ROLE_TABLE[itemType]?.find((spec) => spec.role === role) ?? null
+  );
+}
+
+/** RAC slot context 를 읽는 역할 자식 type — `slot` 이 provider 의 `slots` 키여야 한다 (R1). */
+const RAC_SLOTTED_ROLE_CHILD_TYPES: ReadonlySet<string> = new Set([
+  "Text",
+  "Keyboard",
+]);
+
+/**
+ * 역할 자식이 실을 `props.slot` 이름. RAC slot context 를 읽는 자식 (Text · Keyboard) 은 표의 `racSlot` 만 (없으면
+ * undefined = DEFAULT_SLOT), 그 밖의 자식 (Icon · Avatar — RAC slot context 없음) 은 역할 이름 (CSS `[slot]` 훅,
+ * ListBox.css · TagGroup.css). 표에 없는 역할이면 undefined.
+ */
+export function resolveItemRoleSlotName(
+  itemType: string,
+  role: string,
+  childType: string,
+): string | undefined {
+  const spec = getItemSlotRoleSpec(itemType, role);
+  if (!spec) return undefined;
+  return RAC_SLOTTED_ROLE_CHILD_TYPES.has(childType) ? spec.racSlot : role;
+}
+
+/**
+ * 항목 역할 자식의 `props.slot` 저장 판정 — 표에 없는 역할은 거부, `slot` 은 비었거나
+ * `resolveItemRoleSlotName` 과 같아야 한다 (GridListItem Text 에 `slot:"label"` → "Invalid slot" 크래시, F5).
+ * 표에 없는 항목 type 은 판정하지 않는다 (true).
+ */
+export function isItemRoleSlotNameAllowed(
+  itemType: string,
+  role: string,
+  childType: string,
+  slot: unknown,
+): boolean {
+  if (!ITEM_SLOT_ROLE_TABLE[itemType]) return true;
+  if (!getItemSlotRoleSpec(itemType, role)) return false;
+  if (slot === undefined || slot === null) return true;
+  return slot === resolveItemRoleSlotName(itemType, role, childType);
+}
+
+/**
  * ADR-234 Phase 3 — 정적 목록 가족: owner type → 항목을 담는 목록 틀 type (`null` = owner 자신) · 항목 type.
  * 두 leg 의 ref 해석 (Canvas `resolveCanonicalRefTree` · Preview resolver) 이 바인딩 owner 에서 origin 의
  * 정적 항목을 펼치지 않을 때 읽는다.
@@ -372,7 +463,49 @@ export const STATIC_LIST_FAMILY_BY_OWNER: Readonly<
   Menu: { listType: null, itemType: "MenuItem" },
   // ADR-237 Phase 3 — Breadcrumbs (목록 틀 = owner) · 바인딩 목록은 `items` 행 그대로.
   Breadcrumbs: { listType: null, itemType: "Breadcrumb" },
+  // ADR-238 Phase 3 — Select · ComboBox (목록 틀 = owner, 항목 = popover 안 ListBoxItem instance — Menu 선례).
+  Select: { listType: null, itemType: "ListBoxItem" },
+  ComboBox: { listType: null, itemType: "ListBoxItem" },
 };
+
+/**
+ * ADR-238 Phase 2 — 목록 owner → section type (RAC `ListBoxSection` · `MenuSection` · `GridListSection`, 한 단계).
+ */
+export const SECTION_TYPE_BY_OWNER: Readonly<Record<string, string>> = {
+  ListBox: "ListBoxSection",
+  Menu: "MenuSection",
+  GridList: "GridListSection",
+};
+
+export const SECTION_TYPES: ReadonlySet<string> = new Set(
+  Object.values(SECTION_TYPE_BY_OWNER),
+);
+
+/**
+ * ADR-238 Phase 2 — section 안 정적 항목의 RAC key (R4 · 리뷰 r1 h1). section 이 **ref instance** 면 그 안 항목은
+ * `<section key>/<항목 key>` — 상속 항목의 `props.id` 는 origin 값이라 같은 origin 의 instance 형제에서 겹친다. 상속 ·
+ * 자기 자식을 가르지 않는다: 두 leg 해석기의 상속 항목 id 모양이 다르다 (Canvas `<section>/<segment>` · Preview origin
+ * id 그대로) — 판정을 id 모양에 두면 한 leg 만 접두가 붙는다. plain section (이관이 만든 section) 의 항목은
+ * `resolveStaticItemKey` 그대로 (행 id 유지). 두 leg (Canvas 선택 상태 · Preview RAC key) 가 이 함수 하나를 읽는다.
+ */
+export function resolveSectionItemKey(
+  itemProps: Record<string, unknown> | null | undefined,
+  itemId: string,
+  section:
+    | {
+        id: string;
+        props?: Record<string, unknown> | null;
+        ref?: unknown;
+      }
+    | null
+    | undefined,
+): string {
+  const key = resolveStaticItemKey(itemProps, itemId);
+  if (!section || typeof section.ref !== "string" || section.ref === "") {
+    return key;
+  }
+  return `${resolveStaticItemKey(section.props, section.id)}/${key}`;
+}
 
 /**
  * 바인딩 목록 owner 인가 — 행은 데이터 + 항목 템플릿 (breakdown §1-3) 이라 origin 의 정적 항목 자식은

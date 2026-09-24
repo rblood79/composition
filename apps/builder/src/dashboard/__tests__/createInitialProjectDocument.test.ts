@@ -66,9 +66,11 @@ describe("createInitialProjectDocument", () => {
                   id: "component-listbox",
                   type: "ListBox",
                   reusable: true,
+                  // ADR-238 Phase 2 — section origin 추천.
                   slot: [
                     "component-listbox-item-default--unselected",
                     "component-listbox-item-default",
+                    "component-listbox-section",
                   ],
                 }),
                 // ADR-161 Phase 1: GridList 컨테이너 master origin + item origin
@@ -85,6 +87,7 @@ describe("createInitialProjectDocument", () => {
                   slot: [
                     "component-gridlist-item-default--unselected",
                     "component-gridlist-item-default",
+                    "component-gridlist-section",
                   ],
                 }),
               ]),

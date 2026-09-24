@@ -69,7 +69,9 @@ import { extractSpecTextStyle } from "../../utils/specTextStyle";
 import { resolveSkiaRule } from "../../skia/resolveSkiaVisualRule";
 import {
   applyItemLabelTypography,
+  applySectionHeaderStyle,
   resolveItemLabelTypography,
+  resolveSectionHeaderStyle,
 } from "../../skia/itemLabelInheritance";
 import { getNecessityIndicatorSuffix } from "@composition/shared/components";
 import { useScrollState } from "../../../../stores/scrollState";
@@ -1634,6 +1636,21 @@ function traversePostOrder(
     rawElement = {
       ...rawElement,
       props: { ...rawElement.props, style: labelStyle },
+    };
+  }
+
+  // ADR-238 Phase 2 — 목록 section 의 Header 상자 · 글자 (Skia 와 같은 resolver).
+  const sectionHeaderStyle = resolveSectionHeaderStyle(rawElement, elementsMap);
+  if (sectionHeaderStyle) {
+    rawElement = {
+      ...rawElement,
+      props: {
+        ...rawElement.props,
+        style: applySectionHeaderStyle(
+          rawElement.props?.style as Record<string, unknown> | undefined,
+          sectionHeaderStyle,
+        ),
+      },
     };
   }
 

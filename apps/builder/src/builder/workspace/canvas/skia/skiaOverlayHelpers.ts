@@ -518,6 +518,8 @@ function hasVisibleSlotContent(
   //   카운트하면 origin(자식 0개) 과 달리 영영 "filled" 로 판정되어 hatch 가 안 나온다.
   //   → template anchor 는 content 에서 제외해 빈 instance 도 origin 처럼 사선을 표시한다.
   //   (복사-붙여넣기로 만든 ListBox 는 anchor 구조가 달라 이미 정상 표시됨 — 그 동작과 일치시킨다.)
+  // ADR-238 G4 — popover 항목 (Select · ComboBox · Menu) 은 scene 에서 빠졌어도 내용이다.
+  if (elementsMap.get(slotHostId)?.hasPopoverContent) return true;
   const renderChildren = childrenMap.get(slotHostId);
   if (
     renderChildren?.some(

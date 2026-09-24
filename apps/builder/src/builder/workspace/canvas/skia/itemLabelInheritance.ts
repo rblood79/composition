@@ -212,3 +212,66 @@ export function applyItemLabelTypography(
     next.lineHeight = typography.lineHeight;
   return next;
 }
+
+/**
+ * ADR-238 Phase 2 — 목록 section 의 Header 상자 · 글자 (DOM 실측 — `adr238SectionDom.browser.test.ts`):
+ * - ListBox: `ListBox.css` `.react-aria-ListBox .react-aria-Header` (14 · 700 · 줄 21 · padding 0 12 · margin-bottom 4) +
+ *   생성 `Header.css` (inline-flex · 배경 raised · 글자 muted).
+ * - GridList: RAC `GridListHeader` 는 규칙이 없어 상속 글자 (16 · 400 · 줄 24 · 기본 글자색 · 투명 block).
+ * Skia (`buildSpecNodeData`) 와 layout (`fullTreeLayout`) 이 같은 값을 읽는다. 작성자 style 이 이긴다.
+ */
+const SECTION_HEADER_STYLE: Readonly<Record<string, Record<string, unknown>>> =
+  {
+    ListBox: {
+      display: "inline-flex",
+      fontSize: 14,
+      fontWeight: 700,
+      lineHeight: "21px",
+      color: "{color.neutral-subdued}",
+      paddingTop: 0,
+      paddingBottom: 0,
+      paddingLeft: 12,
+      paddingRight: 12,
+      marginBottom: 4,
+    },
+    GridList: {
+      display: "block",
+      fontSize: 16,
+      fontWeight: 400,
+      lineHeight: "24px",
+      color: "{color.neutral}",
+      backgroundColor: "transparent",
+      paddingTop: 0,
+      paddingBottom: 0,
+      paddingLeft: 0,
+      paddingRight: 0,
+    },
+  };
+
+const SECTION_OWNER_BY_TYPE: Readonly<Record<string, string>> = {
+  ListBoxSection: "ListBox",
+  GridListSection: "GridList",
+  MenuSection: "Menu",
+};
+
+export function resolveSectionHeaderStyle<T extends NodeLike>(
+  element: T,
+  elementsMap: ReadonlyMap<string, T>,
+): Record<string, unknown> | null {
+  if (element.type !== "Header" || !element.parent_id) return null;
+  const section = elementsMap.get(element.parent_id);
+  const owner = section ? SECTION_OWNER_BY_TYPE[section.type] : undefined;
+  return owner ? (SECTION_HEADER_STYLE[owner] ?? null) : null;
+}
+
+/** 작성자 style 에 없는 키만 채운다. */
+export function applySectionHeaderStyle(
+  style: Record<string, unknown> | undefined,
+  headerStyle: Record<string, unknown>,
+): Record<string, unknown> {
+  const next = { ...(style ?? {}) };
+  for (const [key, value] of Object.entries(headerStyle)) {
+    if (next[key] == null) next[key] = value;
+  }
+  return next;
+}

@@ -497,6 +497,10 @@ function buildInstanceDescendantPatches(
       update.elementId,
     );
     if (!descendantPath) continue;
+    // 빈 갱신 (자식만 바꾸는 호출의 자기 몫 `{}`) 은 빈 patch 키를 남기지 않는다 (ADR-238 역할 on/off).
+    if (Object.keys(update.props as Record<string, unknown>).length === 0) {
+      continue;
+    }
 
     // ADR-240 Phase 2: mode C 로 채운 노드 (영역 채움 · 234 Slot "+" 항목) 는 배열 안 그 노드가 정본 —
     //   두 해석기가 거기를 읽는다. 바깥 `descendants[path]` patch 는 어느 leg 도 안 읽는다.

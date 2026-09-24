@@ -165,3 +165,22 @@ export function getSyntheticDescendantChildren(
   const tree = resolveInstanceTree(document, rootLookup);
   return tree?.childrenMap.get(elementId) ?? [];
 }
+
+/**
+ * ADR-238 Phase 1 — ref instance (자기 자식 항목 등 canonical 에 있는 ref 노드) 의 해석된 자식. synthetic id 면
+ * `getSyntheticDescendantChildren` 과 같다. ref 가 아니거나 해소 실패면 [].
+ */
+export function getResolvedRefChildren(
+  elementId: string | null | undefined,
+): CanonicalNode[] {
+  if (!elementId) return [];
+  if (isSyntheticDescendantId(elementId)) {
+    return getSyntheticDescendantChildren(elementId);
+  }
+  const document = getActiveCanonicalDocument();
+  if (!document) return [];
+  const lookup = getLastProjectableNodeLookupById(elementId);
+  if (!lookup || lookup.node.type !== "ref") return [];
+  const tree = resolveInstanceTree(document, lookup);
+  return tree?.childrenMap.get(elementId) ?? [];
+}

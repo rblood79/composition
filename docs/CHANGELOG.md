@@ -11,6 +11,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [목록 항목 역할 · Section · Select/ComboBox 항목 origin (ADR-238)] - 2026-09-24
+
+### Added
+
+- **Properties 패널 "항목 역할" 절**: ListBox · Menu · GridList · Tag 항목에서 아이콘 · 설명 · 단축키 같은 역할을 켜고 끈다 (항목 이름 Label 은 필수라 끌 수 없다). Components 페이지의 항목 origin 에서는 없는 역할을 추가한다 — 역할 순서대로 들어간다.
+- **목록 Section**: ListBox · Menu · GridList 에 Section (머리글 + 항목) 을 둘 수 있다. Components 페이지에 section origin 3 개가 생기고 목록의 Slot "+" 에서 넣는다. Menu section 은 section 마다 선택 방식을 가진다.
+- **Select · ComboBox 항목 = ListBoxItem origin 의 instance**: 항목 origin 을 고치면 Select · ComboBox 팝오버 항목에도 반영된다. Slot "+" 로 항목 · section 을 더한다.
+
+### Changed
+
+- 기존 프로젝트의 정적 목록 (section 이 섞인 ListBox · GridList · Menu, 정적 Select · ComboBox) 은 열 때 항목 instance 자식으로 옮겨진다. 선택 (선택 key · 업무 값) 과 ComboBox 검색어 (`textValue`) 는 그대로다. 데이터 바인딩 목록은 바뀌지 않는다.
+- **캔버스가 section 목록의 머리글 · 항목 글자를 그린다** — 이전에는 key 만 찍힌 빈 행이었다 (Preview 와 같은 구조).
+- 캔버스는 Select · ComboBox · Menu 의 팝오버 항목을 장면에 세우지 않는다 (트리거만 그린다 — 선택된 행만 트리거 글자에 쓴다). 항목이 많은 문서의 편집 비용이 줄었다.
+- origin 자식이 있는 항목 instance (ListBoxItem · Tag 등) 의 해석 결과를 편집 사이에 재사용한다.
+
+### Fixed
+
+- **Select · ComboBox 에서 항목을 골라도 캔버스 트리거가 placeholder 를 그리던 문제를 고쳤다** (Preview 는 고른 항목 글자). 2026-09-01 텍스트 원천 통합에서 SelectValue 를 placeholder 전용으로 분류해 고른 글자를 읽지 않았다.
+- ComboBox 에서 항목을 고른 뒤 선택이 풀리던 문제를 고쳤다 — 선택 뒤 입력 칸이 검색어 (`textValue`) 로 채워지는데 입력 일치를 라벨로만 비교했다.
+  - 위치: `packages/specs/src/renderers/utils/textSource.ts` · `packages/shared/src/renderers/SelectionRenderers.tsx` · `apps/builder/src/adapters/canonical/popoverContent.ts` · `apps/builder/src/adapters/canonical/canonicalRefResolution.ts` · `apps/builder/src/builder/components/{staticCollectionMigration,collectionSectionOrigins,itemSlotRoles}.ts` · `packages/shared/src/catalog/slotRoles.ts`
+  - 남은 것: section 목록 편집 · 항목 origin 편집 시 장면 빌드가 이전보다 1~2 ms 늘었다 (ADR-238 R5, 사용자 판정 예외).
+
 ## [그룹 항목 라벨 · DisclosureGroup 테두리가 Preview 와 캔버스에서 같다] - 2026-09-24
 
 ### Fixed

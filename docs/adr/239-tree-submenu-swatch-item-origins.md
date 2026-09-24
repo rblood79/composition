@@ -22,7 +22,7 @@ RAC 에서 **항목 안에 같은 종류 항목이 들어가는** 재귀 collect
 - **D2**: 새 prop 없음. `expandedKeys` 는 Tree 기존 prop.
 - **D3**: TreeItem · ColorSwatch 모양 = 새 항목 origin (Components 페이지). ColorSwatch Canvas 는 box 만 — 2026-06-11 사용자 방침 유지 (F10).
 - **SSOT 경계 변경 없음.** 새 노드 type 없음.
-- **선행**: [ADR-238](238-collection-item-slots-sections-picker-items.md) 의 항목 역할 표 · 경로 포함 항목 key 를 재사용 — 238 이 먼저 반영돼야 한다 (의존 239 → 238).
+- **선행**: [ADR-238](completed/238-collection-item-slots-sections-picker-items.md) 의 항목 역할 표 · 경로 포함 항목 key 를 재사용 — 238 이 먼저 반영돼야 한다 (의존 239 → 238).
 
 ### 코드 사실
 

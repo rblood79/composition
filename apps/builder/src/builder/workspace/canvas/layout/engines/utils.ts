@@ -5103,6 +5103,8 @@ export const TEXT_LEAF_TAGS = new Set([
   // ADR-058 Phase 3: 신설 Kbd/Code spec이 렌더하는 lowercase 시맨틱 태그
   "kbd",
   "code",
+  // ADR-238 Phase 2 — 목록 section 제목 (RAC `Header`) — 글자 폭 · 줄 높이 측정 (inline-flex 상자 = 글자 + padding).
+  "header",
 ]);
 
 /**

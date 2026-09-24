@@ -736,6 +736,32 @@ const FAMILY_4_ENTRIES: ComponentCatalogEntry[] = [
     label: "list box item",
     icon: "ListIcon",
   }),
+  // ADR-238 Phase 2 — 목록 section 층 (RAC section + Header). 팔레트 배치 대상이 아니다 — 목록의 Slot "+"
+  //   (section origin) 와 section 이 섞인 정적 `items` 이관이 만든다.
+  primitiveEntry("ListBoxSection", "collections", FAMILY_4_CUTOVER, {
+    category: "collections",
+    label: "list box section",
+    icon: "ListIcon",
+    placeable: false,
+  }),
+  primitiveEntry("MenuSection", "collections", FAMILY_4_CUTOVER, {
+    category: "collections",
+    label: "menu section",
+    icon: "ListIcon",
+    placeable: false,
+  }),
+  primitiveEntry("GridListSection", "collections", FAMILY_4_CUTOVER, {
+    category: "collections",
+    label: "grid list section",
+    icon: "ListIcon",
+    placeable: false,
+  }),
+  primitiveEntry("Header", "collections", FAMILY_4_CUTOVER, {
+    category: "collections",
+    label: "section header",
+    icon: "Heading",
+    placeable: false,
+  }),
   // ADR-912 단계 4 (비-data-bound 4종 Skia generic 발효, 2026-06-03): Select/ComboBox/Tabs/
   //   TagGroup 의 skiaLegacy 제거 → isCatalogSkiaCutover=true → buildCatalogShapes 경로.
   //   안전 3계약 동반 land: C2(rule fill 정렬 — Tabs/TagGroup default variant 컨테이너 shell

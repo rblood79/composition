@@ -907,6 +907,8 @@ describe("ADR-234 Phase 3d — ListBox (목록 틀 = owner)", () => {
     expect(lb.slot).toEqual([
       "component-listbox-item-default--unselected",
       "component-listbox-item-default",
+      // ADR-238 Phase 2 — section origin 추천.
+      "component-listbox-section",
     ]);
     expect(lb.children).toHaveLength(3);
     expect(lb.children![0]).toMatchObject({
@@ -922,7 +924,7 @@ describe("ADR-234 Phase 3d — ListBox (목록 틀 = owner)", () => {
     expect(JSON.stringify(ensureReusableCompositeOrigins(doc))).toBe(
       JSON.stringify(doc),
     );
-    // 행에 없는 slot 은 숨김 · section 행은 이관하지 않는다.
+    // 행에 없는 slot 은 숨김 · section 행은 ADR-238 Phase 2 부터 section 노드로 이관한다 (adr238Phase2).
     const plain = {
       id: "plain-lb",
       type: "ListBox",
@@ -944,7 +946,7 @@ describe("ADR-234 Phase 3d — ListBox (목록 틀 = owner)", () => {
         Description: { enabled: false },
       },
     });
-    expect(findById(doc2.children, "sec-lb")!.props?.items).toHaveLength(1);
+    expect(findById(doc2.children, "sec-lb")!.props?.items).toBeUndefined();
   });
 
   it("instance 의 items override → origin 항목 숨김 (enabled:false) + instance 자기 자식 · items 0", () => {
@@ -1395,11 +1397,15 @@ describe("ADR-234 Phase 3f — Menu (항목 = popover 안 MenuItem instance 자�
     props: {},
   } as unknown as CanonicalNode;
 
-  it("이관: Menu 자식 = MenuItem instance (label · 없는 slot 숨김) · items 0 · origin slot = MenuItem origin · 멱등 · separator/하위 메뉴 목록은 그대로", () => {
+  it("이관: Menu 자식 = MenuItem instance (label · 없는 slot 숨김) · items 0 · origin slot = MenuItem origin · 멱등 · separator 는 이관 · 하위 메뉴 목록은 그대로", () => {
     const doc = seededDoc([menuInstance]);
     const menu = findById(doc.children, "component-menu")!;
     expect(menu.props?.items).toBeUndefined();
-    expect(menu.slot).toEqual(["component-menu-item-default"]);
+    // ADR-238 Phase 2 — section origin 추천.
+    expect(menu.slot).toEqual([
+      "component-menu-item-default",
+      "component-menu-section",
+    ]);
     expect(menu.children).toHaveLength(3);
     expect(menu.children![0]).toMatchObject({
       type: "ref",
@@ -1432,7 +1438,11 @@ describe("ADR-234 Phase 3f — Menu (항목 = popover 안 MenuItem instance 자�
       },
     } as CanonicalNode;
     const doc2 = seededDoc([sep, sub]);
-    expect(findById(doc2.children, "sep-menu")!.props?.items).toHaveLength(2);
+    // ADR-238 Phase 2 — separator 행은 `Separator` 자식으로 이관 · 하위 메뉴 행은 그대로.
+    expect(findById(doc2.children, "sep-menu")!.props?.items).toBeUndefined();
+    expect(
+      findById(doc2.children, "sep-menu")!.children!.map((c) => c.type),
+    ).toEqual(["ref", "Separator"]);
     expect(findById(doc2.children, "sub-menu")!.props?.items).toHaveLength(1);
   });
 
@@ -1459,7 +1469,8 @@ describe("ADR-234 Phase 3f — Menu (항목 = popover 안 MenuItem instance 자�
       "utf8",
     );
     expect(src).toMatch(
-      /type === "Menu"\s*\?\s*childElements\?\.filter\(\(child\) => child\.type !== "MenuItem"\)/,
+      // ADR-238 Phase 2 — MenuSection · Separator 도 popover 내용 (같은 filter 안).
+      /type === "Menu"\s*\?\s*childElements\?\.filter\(\s*\(child\) =>\s*child\.type !== "MenuItem" &&/,
     );
   });
 

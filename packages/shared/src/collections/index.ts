@@ -14,3 +14,4 @@ export * from "./resolveBoundCollection";
 export * from "./normalizeDataBinding";
 export * from "./resolveCollectionItems";
 export * from "./selectDisplayValue";
+export * from "./staticPickerEntries";

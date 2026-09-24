@@ -1,0 +1,40 @@
+/* ============================================================
+ * AUTO-GENERATED from MenuSectionSpec — DO NOT EDIT MANUALLY
+ * Source: packages/specs/src/components/MenuSection.spec.ts
+ * Archetype: container
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-MenuSection {
+  /* Base styles — archetype: container */
+    display: block;
+    box-sizing: border-box;
+    font-family: var(--font-sans);
+
+  /* Default size */
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--text-base);
+  border-radius: var(--radius-none);
+}
+
+.react-aria-MenuSection[data-focus-visible] {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-MenuSection[data-disabled] {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+@media (forced-colors: active) {
+  .react-aria-MenuSection {
+    forced-color-adjust: auto;
+  }
+}
+
+
+} /* @layer components */

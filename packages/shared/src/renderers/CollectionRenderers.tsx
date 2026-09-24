@@ -46,6 +46,7 @@ import { getElementDataBinding } from "../utils/compositionExtensionFields";
 import {
   getSlotRole,
   resolveSlotComposition,
+  resolveSectionItemKey,
   resolveStaticItemKey,
 } from "../catalog/slotRoles";
 import { renderMenuItemSlotParts } from "../components/Menu";
@@ -988,14 +989,25 @@ export const renderMenu = (
   // ADR-234 Phase 3f — 정적 항목 (Menu 자식 = MenuItem instance): 항목의 slot 자식 (Icon · Label · Shortcut ·
   //   Description) 에서 행을 조립해 이관 전 items 행과 같은 DOM (`renderMenuItemSlotParts`) 을 낸다. 항목은
   //   popover 안이라 Canvas 는 그리지 않는다 (트리거만). 숨긴 slot (`enabled: false`) 은 resolver 가 뺐다.
-  const staticItems =
+  // ADR-238 Phase 2 — 정적 자식 = MenuItem instance · MenuSection (Header + MenuItem) · Separator (RAC 그대로).
+  const staticChildren =
     entries.length === 0
       ? (context.childrenByParent.get(element.id) ?? []).filter(
-          (child) => child.type === "MenuItem",
+          (child) =>
+            child.type === "MenuItem" ||
+            child.type === "MenuSection" ||
+            child.type === "Separator",
         )
       : [];
-  if (staticItems.length > 0) {
-    const menuChildren = staticItems.map((item) => {
+  if (
+    staticChildren.some(
+      (child) => child.type === "MenuItem" || child.type === "MenuSection",
+    )
+  ) {
+    const renderStaticMenuItem = (
+      item: PreviewElement,
+      section: PreviewElement | null,
+    ) => {
       const parts = context.childrenByParent.get(item.id) ?? [];
       const part = (role: string) =>
         parts.find((child) => getSlotRole(child) === role);
@@ -1009,7 +1021,17 @@ export const renderMenu = (
       return (
         <MenuItem
           key={item.id}
-          id={resolveStaticItemKey(itemProps, item.id)}
+          id={resolveSectionItemKey(
+            itemProps,
+            item.id,
+            section
+              ? {
+                  id: section.id,
+                  props: section.props as Record<string, unknown>,
+                  ref: section._resolvedFrom,
+                }
+              : null,
+          )}
           data-element-id={item.id}
           textValue={label}
           isDisabled={Boolean(itemProps.isDisabled)}
@@ -1039,6 +1061,52 @@ export const renderMenu = (
           )}
         </MenuItem>
       );
+    };
+    const menuChildren = staticChildren.map((child) => {
+      if (child.type === "Separator") {
+        return <AriaMenuSeparator key={child.id} />;
+      }
+      if (child.type === "MenuSection") {
+        const sectionKids = context.childrenByParent.get(child.id) ?? [];
+        const header = sectionKids.find((kid) => kid.type === "Header");
+        const sectionProps = child.props as Record<string, unknown>;
+        return (
+          <AriaMenuSection
+            key={child.id}
+            aria-label={
+              typeof sectionProps["aria-label"] === "string"
+                ? (sectionProps["aria-label"] as string)
+                : undefined
+            }
+            // F6 — per-section 선택 (RAC MenuSection 공식 prop) 은 section 노드 props 그대로.
+            {...(sectionProps.selectionMode !== undefined
+              ? {
+                  selectionMode: sectionProps.selectionMode as
+                    "none" | "single" | "multiple",
+                }
+              : {})}
+            {...(Array.isArray(sectionProps.selectedKeys)
+              ? { selectedKeys: sectionProps.selectedKeys as string[] }
+              : {})}
+            {...(Array.isArray(sectionProps.defaultSelectedKeys)
+              ? {
+                  defaultSelectedKeys:
+                    sectionProps.defaultSelectedKeys as string[],
+                }
+              : {})}
+          >
+            {header ? (
+              <AriaMenuHeader>
+                {resolveTextSourceText(header.type, header.props) ?? ""}
+              </AriaMenuHeader>
+            ) : null}
+            {sectionKids
+              .filter((kid) => kid.type === "MenuItem")
+              .map((kid) => renderStaticMenuItem(kid, child))}
+          </AriaMenuSection>
+        );
+      }
+      return renderStaticMenuItem(child, null);
     });
     return (
       <MenuButton key={element.id} {...commonProps}>

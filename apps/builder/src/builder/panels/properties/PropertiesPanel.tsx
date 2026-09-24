@@ -62,6 +62,7 @@ import { ElementSlotSelector } from "./editors/ElementSlotSelector";
 import { ComponentSemanticsSection } from "./ComponentSemanticsSection";
 import { ComponentSlotFillSection } from "./ComponentSlotFillSection";
 import { FrameSlotSection } from "./FrameSlotSection";
+import { ItemSlotRolesSection } from "./ItemSlotRolesSection";
 import { ButtonChildFields } from "./ButtonChildSection";
 import { BUTTON_CHILD_HOST_TAGS } from "./buttonChildSectionUtils";
 import { ElementAttributesSection } from "./ElementAttributesSection";
@@ -1082,6 +1083,9 @@ function PropertiesPanelContent() {
             <FrameSlotSection elementId={selectedElementId} />
 
             <ComponentSlotFillSection elementId={selectedElementId} />
+
+            {/* ADR-238 Phase 1 — 목록 항목 안 역할 (icon · description …) on/off · origin 역할 추가 */}
+            <ItemSlotRolesSection elementId={selectedElementId} />
 
             <CatalogEditContractEditor
               elementId={selectedElementId}

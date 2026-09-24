@@ -159,6 +159,8 @@ describe("ADR-237 G2 — seed · 이관 모양", () => {
     ).toEqual([
       "component-gridlist-item-default--unselected",
       "component-gridlist-item-default",
+      // ADR-238 Phase 2 — section origin 추천.
+      "component-gridlist-section",
     ]);
     const collapsed = find(doc.children, "component-disclosure--collapsed")!;
     expect(collapsed).toMatchObject({

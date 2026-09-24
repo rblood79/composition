@@ -32,6 +32,8 @@ import {
 import {
   buildCollectionRowTemplateItem,
   classifyTableCellDisplay,
+  flattenStaticPickerEntries,
+  readStaticPickerEntries,
   compileFieldTemplate,
   getSlotRole,
   interpolateFieldTemplate,
@@ -53,6 +55,7 @@ import { readLegacyMetadataCustomId } from "../../../../adapters/canonical/legac
 import type { FillItem } from "../../../../types/builder/fill.types";
 import type { PageElementIndex } from "../../../stores/utils/elementIndexer";
 import { normalizeFrameLayoutId } from "../../../../adapters/canonical/frameMirror";
+import { createPopoverChildFilter } from "../../../../adapters/canonical/popoverContent";
 import {
   detectListBoxAuthoringMode,
   isListBoxTemplateAnchor,
@@ -185,6 +188,11 @@ export interface CanvasSceneNode {
    * 기본값으로 해석한 문자열을 `props` 에 얹을 때도 name/type 축 감시로 남는다.
    */
   stateDeps?: StateDependency[];
+  /**
+   * ADR-238 G4 — popover owner (Select · ComboBox · Menu) 의 항목을 scene 에서 뺐지만 canonical 에는 있다 — 빈 slot
+   * 표시 (`hasVisibleSlotContent`) 가 "내용 있음" 으로 읽는다.
+   */
+  hasPopoverContent?: true;
   sourceNode: CanonicalNode;
 }
 
@@ -3038,6 +3046,20 @@ export function buildCanvasSceneGraph(
     return documentNodesById;
   };
 
+  /** popover 판정용 모양 — ref 항목은 체인 끝 origin type (scene 노드 type 과 같은 규칙). */
+  function popoverChildView(child: CanonicalNode): {
+    id: string;
+    type: string;
+    props?: unknown;
+  } {
+    if (child.type !== "ref") return child;
+    const master = resolveSceneRefChain(
+      (child as RefNode).ref,
+      getDocumentNodesById(),
+    )?.master;
+    return { id: child.id, type: master?.type ?? "ref", props: child.props };
+  }
+
   function visit(
     node: CanonicalNode,
     parentSceneId: string | null,
@@ -3196,8 +3218,26 @@ export function buildCanvasSceneGraph(
     const suppressBreadcrumbChildren =
       breadcrumbProjection != null && node.type === "Breadcrumbs";
 
+    // ADR-238 G4 — popover 내용 (선택 안 된 Select · ComboBox 항목 · Menu 항목) 은 scene 노드로 세우지 않는다 (Canvas 는
+    //   트리거만 그린다). 선택 행은 남아 트리거 글자를 만든다 (`annotateStaticPickerItems`). origin 의 자식은
+    //   instance 가 실체화할 원본이라 남긴다 (해석 뒤 prune).
+    const keepPopoverChild =
+      sceneNode && node.reusable !== true
+        ? createPopoverChildFilter(
+            sceneNode.type,
+            sceneNode.props as Record<string, unknown> | undefined,
+            (id) =>
+              (getDocumentNodesById().get(id)?.children ?? []).map(
+                popoverChildView,
+              ),
+          )
+        : null;
+
     node.children?.forEach((child) => {
       if (suppressedAnchorId && child.id === suppressedAnchorId) return;
+      if (keepPopoverChild && !keepPopoverChild(popoverChildView(child))) {
+        return;
+      }
       // ADR-912 영역 B (A): items projection active 면 legacy 자식 Breadcrumb element 제외
       //   (이중 렌더 차단). non-Breadcrumb 자식(혹시 잔존)은 보존.
       if (suppressBreadcrumbChildren && child.type === "Breadcrumb") {
@@ -3460,6 +3500,47 @@ export function annotateStaticBreadcrumbItems(graph: CanvasSceneGraph): void {
     });
     if (nextKids.some((kid, index) => kid !== kids[index])) {
       graph.childrenByParent.set(parentId, nextKids);
+    }
+  }
+}
+
+/**
+ * ADR-238 Phase 3 — Select · ComboBox 의 정적 항목 (owner 자식 ListBoxItem instance · ListBoxSection, popover 내용) 을
+ * owner 에 평면 행 `_staticItems` 로 싣는다 — 트리거 표시 글자 (`resolveSelectDisplayValue`) 가 선택 항목 글자를 찾는다.
+ * 행 · key 는 Preview 와 같은 `readStaticPickerEntries`. ref 해석 뒤 (항목 · label 역할 자식이 선 뒤) · prune 뒤.
+ */
+export function annotateStaticPickerItems(graph: CanvasSceneGraph): void {
+  const childrenOf = (id: string) =>
+    (graph.childrenByParent.get(id) ?? []) as unknown as Parameters<
+      typeof readStaticPickerEntries
+    >[0];
+  for (const owner of [...graph.nodesMap.values()]) {
+    if (owner.type !== "Select" && owner.type !== "ComboBox") continue;
+    const rows = flattenStaticPickerEntries(
+      readStaticPickerEntries(childrenOf(owner.id), childrenOf),
+    ).map((row) => ({ id: row.id, label: row.label, value: row.value }));
+    const props = (owner.props ?? {}) as Record<string, unknown>;
+    if (rows.length === 0) {
+      if (props._staticItems === undefined) continue;
+    } else if (
+      JSON.stringify(props._staticItems) === JSON.stringify(rows)
+    ) {
+      continue;
+    }
+    const nextProps: Record<string, unknown> = { ...props };
+    if (rows.length > 0) nextProps._staticItems = rows;
+    else delete nextProps._staticItems;
+    const next = { ...owner, props: nextProps } as CanvasSceneNode;
+    graph.nodesMap.set(owner.id, next);
+    const at = graph.nodes.indexOf(owner);
+    if (at >= 0) graph.nodes[at] = next;
+    const parentId = graph.parentById.get(owner.id);
+    const siblings = parentId ? graph.childrenByParent.get(parentId) : null;
+    if (parentId && siblings) {
+      graph.childrenByParent.set(
+        parentId,
+        siblings.map((kid) => (kid === owner ? next : kid)),
+      );
     }
   }
 }

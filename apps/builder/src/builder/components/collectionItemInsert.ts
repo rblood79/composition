@@ -55,7 +55,9 @@ export type TabItemInsertPlan =
     };
 
 /** slot 의 선택 모양 후보 — 선택 가능한 가족의 항목 origin (ADR-234 이관: origin = 선택 상태). */
-function isSelectedLookCandidate(candidate: CanonicalNode | undefined): boolean {
+function isSelectedLookCandidate(
+  candidate: CanonicalNode | undefined,
+): boolean {
   return (
     (candidate?.metadata as Record<string, unknown> | undefined)?.variant ===
     "selected"
@@ -160,10 +162,54 @@ export function planTabItemInsert(input: {
   const origin = resolveChainEnd(candidateId, byId);
   if (!origin) return null;
   const selectsNewItem = isSelectedLookCandidate(byId.get(candidateId));
+  // ADR-238 Phase 2 — 목록 틀 = owner 또는 section (section host) · 후보 = 항목 origin 또는 section origin (목록 host).
   const familyOf = (listType: string): StaticCollectionFamily | undefined =>
     STATIC_COLLECTION_FAMILIES.find(
-      (f) => (f.listType ?? f.ownerType) === listType && origin.type === f.itemType,
+      (f) =>
+        ((f.listType ?? f.ownerType) === listType &&
+          (origin.type === f.itemType ||
+            (f.sectionType !== undefined && origin.type === f.sectionType))) ||
+        (f.sectionType !== undefined &&
+          f.sectionType === listType &&
+          origin.type === f.itemType),
     );
+  /** 목록 틀 자식 하나 — section origin 이면 section instance (`props.id` = 새 key), 아니면 항목 instance. */
+  const buildChild = (
+    family: StaticCollectionFamily,
+    prefix: string,
+    count: number,
+  ): CanonicalNode => {
+    if (
+      family.sectionType !== undefined &&
+      origin.type === family.sectionType
+    ) {
+      let id = `${prefix}__section-${count + 1}`;
+      for (let n = 2; taken.has(id); n += 1)
+        id = `${prefix}__section-${count + 1}-${n}`;
+      taken.add(id);
+      return {
+        id,
+        type: "ref",
+        ref: origin.id,
+        props: { id: newKey },
+      } as unknown as CanonicalNode;
+    }
+    return buildItemInstances(
+      family,
+      [newRow(count)],
+      prefix,
+      origin,
+      taken,
+      count,
+    )[0]!;
+  };
+  const insertsSection = (family: StaticCollectionFamily) =>
+    family.sectionType !== undefined && origin.type === family.sectionType;
+  /** 선택 모양 후보면 owner 선택 key 에 더한다 — section 삽입 · Select/ComboBox (popover 항목) 는 제외. */
+  const selectsFor = (family: StaticCollectionFamily) =>
+    selectsNewItem &&
+    !insertsSection(family) &&
+    family.skipsSelectionOnInsert !== true;
   const newRow = (count: number) => ({
     id: newKey,
     title: `${origin.type} ${count + 1}`,
@@ -177,29 +223,30 @@ export function planTabItemInsert(input: {
     if (host?.type === "ref") {
       const master = resolveChainEnd((host as RefLike).ref, byId);
       const family = master ? familyOf(master.type) : undefined;
-      if (!master || !family || family.listType !== null) return null;
+      if (
+        !master ||
+        !family ||
+        (family.listType !== null && master.type !== family.sectionType)
+      ) {
+        return null;
+      }
       const count =
         (master.children ?? []).length + (host.children ?? []).length;
-      const [item] = buildItemInstances(
-        family,
-        [newRow(count)],
-        host.id,
-        origin,
-        taken,
-        count,
-      );
+      const item = buildChild(family, host.id, count);
       const hostProps = (host.props ?? {}) as Record<string, unknown>;
-      const patch = selectsNewItem
-        ? selectionPatch(
-            family.ownerType,
-            { ...(master.props as Record<string, unknown>), ...hostProps },
-            newKey,
-          )
-        : null;
+      // section instance host 의 항목 선택 key 는 owner (목록) 가 갖는다 — 여기서는 쓰지 않는다.
+      const patch =
+        selectsFor(family) && master.type !== family.sectionType
+          ? selectionPatch(
+              family.ownerType,
+              { ...(master.props as Record<string, unknown>), ...hostProps },
+              newKey,
+            )
+          : null;
       return {
         kind: "plain",
         tabListId: host.id,
-        tab: item!,
+        tab: item,
         tabPanelsId: null,
         panel: null,
         selection: patch ? { ownerId: host.id, props: patch } : null,
@@ -214,18 +261,14 @@ export function planTabItemInsert(input: {
         ? owner?.children?.find((child) => child.type === "TabPanels")
         : undefined;
     const count = (list.children ?? []).length;
-    const [tab] = buildItemInstances(
-      family,
-      [newRow(count)],
-      list.id,
-      origin,
-      taken,
-      count,
-    );
-    // 선택 owner — 목록 틀 = owner 인 가족 (ListBox) 은 자기, 나머지는 부모 (TagGroup · Tabs).
-    const selectionOwner = family.listType === null ? list : owner;
+    const tab = buildChild(family, list.id, count);
+    // 선택 owner — 목록 틀 = owner 인 가족 (ListBox) 은 자기, section host 와 나머지는 부모 (TagGroup · Tabs).
+    const selectionOwner =
+      family.listType === null && list.type !== family.sectionType
+        ? list
+        : owner;
     const patch =
-      selectsNewItem && selectionOwner
+      selectsFor(family) && selectionOwner
         ? selectionPatch(
             family.ownerType,
             (selectionOwner.props ?? {}) as Record<string, unknown>,
@@ -235,7 +278,7 @@ export function planTabItemInsert(input: {
     return {
       kind: "plain",
       tabListId: list.id,
-      tab: tab!,
+      tab,
       tabPanelsId: tabPanels?.id ?? null,
       panel: tabPanels
         ? {
@@ -279,17 +322,10 @@ export function planTabItemInsert(input: {
       : cloneWithFreshIds(fallback.children ?? [], instance.id, taken);
   };
   const itemChildren = currentChildren(listPath, listHit.node);
-  const [item] = buildItemInstances(
-    family,
-    [newRow(itemChildren.length)],
-    instance.id,
-    origin,
-    taken,
-    itemChildren.length,
-  );
+  const item = buildChild(family, instance.id, itemChildren.length);
   descendants[listPath] = {
     ...((descendants[listPath] as Record<string, unknown>) ?? {}),
-    children: [...itemChildren, item!],
+    children: [...itemChildren, item],
   };
   if (tabPanels && tabPanelsPath) {
     const panelChildren = currentChildren(tabPanelsPath, tabPanels);
@@ -307,7 +343,7 @@ export function planTabItemInsert(input: {
   }
   // 선택 owner = 목록 틀의 부모. instance root 면 instance 자기 props, 더 안쪽이면 그 경로의 descendants props.
   let props: Record<string, unknown> | null = null;
-  if (selectsNewItem) {
+  if (selectsFor(family)) {
     const instanceProps = (instance.props ?? {}) as Record<string, unknown>;
     if (listHit.parent === master) {
       const patch = selectionPatch(

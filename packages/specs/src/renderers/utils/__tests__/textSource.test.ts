@@ -63,11 +63,19 @@ describe("ADR-923 r15m1 — textSourceOrder (타입별 writer 인벤토리)", ()
       "NumberField",
       "ColorField",
       "Select",
-      "SelectValue",
       "ComboBox",
     ]) {
       expect(textSourceOrder(t)).toEqual(["placeholder"]);
     }
+  });
+  it("선택 값 leaf SelectValue 는 children → placeholder (owner propagation 이 고른 항목 글자를 children 에 싣는다 — ADR-238 G3)", () => {
+    expect(textSourceOrder("SelectValue")).toEqual(["children", "placeholder"]);
+    expect(
+      resolveTextSourceText("SelectValue", { children: "Cat", placeholder: "P" }),
+    ).toBe("Cat");
+    expect(
+      resolveTextSourceText("SelectValue", { children: "", placeholder: "P" }),
+    ).toBe("P");
   });
 });
 

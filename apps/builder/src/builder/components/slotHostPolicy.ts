@@ -14,6 +14,11 @@ import {
 } from "./tabs/tabsTemplateOrigins";
 import { BREADCRUMB_ITEM_DEFAULT_ORIGIN_ID } from "./breadcrumbs/breadcrumbsTemplateOrigins";
 
+// ADR-238 Phase 2 — section origin id (collectionSectionOrigins 의 상수와 같은 값 — 순환 import 회피).
+const LISTBOX_SECTION_ORIGIN = "component-listbox-section";
+const MENU_SECTION_ORIGIN = "component-menu-section";
+const GRIDLIST_SECTION_ORIGIN = "component-gridlist-section";
+
 export type SlotPolicyElement = {
   _resolvedFrom?: string;
   componentName?: string | null;
@@ -264,10 +269,12 @@ export const SLOT_HOST_RULES: readonly SlotHostRule[] = [
       new Set([
         LISTBOX_ITEM_DEFAULT_ORIGIN_ID,
         LISTBOX_ITEM_SELECTED_ORIGIN_ID,
+        LISTBOX_SECTION_ORIGIN,
       ]),
       "listboxitem/",
     ),
     insert: "list-item",
+    itemTypes: new Set(["ListBoxItem", "ListBoxSection"]),
   },
   // ADR-161 Phase 7: GridList slot host parity (ListBox 대칭).
   {
@@ -276,10 +283,11 @@ export const SLOT_HOST_RULES: readonly SlotHostRule[] = [
     active: (element) =>
       byType("gridlist")(element) && isReusableOrSystemOwned(element),
     candidate: templateCandidate(
-      new Set([GRIDLIST_ITEM_DEFAULT_ORIGIN_ID]),
+      new Set([GRIDLIST_ITEM_DEFAULT_ORIGIN_ID, GRIDLIST_SECTION_ORIGIN]),
       "gridlistitem/",
     ),
     insert: "list-item",
+    itemTypes: new Set(["GridListItem", "GridListSection"]),
   },
   // ADR-234 Phase 3f — Menu 는 자기가 목록 틀 (항목 = MenuItem instance 자식, popover 안).
   {
@@ -288,10 +296,48 @@ export const SLOT_HOST_RULES: readonly SlotHostRule[] = [
     active: (element) =>
       byType("menu")(element) && isReusableOrSystemOwned(element),
     candidate: templateCandidate(
+      new Set([MENU_ITEM_DEFAULT_ORIGIN_ID, MENU_SECTION_ORIGIN]),
+      "menuitem/",
+    ),
+    insert: "list-item",
+    itemTypes: new Set(["MenuItem", "MenuSection"]),
+  },
+  // ADR-238 Phase 2 — section 은 자기가 목록 틀 (항목 = 그 목록의 항목 instance 자식). Header 는 항목이 아니다.
+  {
+    host: "listboxsection",
+    matches: byTypeWithSlot("listboxsection"),
+    active: byTypeWithSlot("listboxsection"),
+    candidate: templateCandidate(
+      new Set([
+        LISTBOX_ITEM_DEFAULT_ORIGIN_ID,
+        LISTBOX_ITEM_SELECTED_ORIGIN_ID,
+      ]),
+      "listboxitem/",
+    ),
+    insert: "list-item",
+    itemTypes: new Set(["ListBoxItem"]),
+  },
+  {
+    host: "menusection",
+    matches: byTypeWithSlot("menusection"),
+    active: byTypeWithSlot("menusection"),
+    candidate: templateCandidate(
       new Set([MENU_ITEM_DEFAULT_ORIGIN_ID]),
       "menuitem/",
     ),
     insert: "list-item",
+    itemTypes: new Set(["MenuItem"]),
+  },
+  {
+    host: "gridlistsection",
+    matches: byTypeWithSlot("gridlistsection"),
+    active: byTypeWithSlot("gridlistsection"),
+    candidate: templateCandidate(
+      new Set([GRIDLIST_ITEM_DEFAULT_ORIGIN_ID]),
+      "gridlistitem/",
+    ),
+    insert: "list-item",
+    itemTypes: new Set(["GridListItem"]),
   },
   // ADR-237 Phase 3 — Breadcrumbs 는 자기가 목록 틀 (항목 = Breadcrumb instance 자식 · 현재 변형도 후보).
   {
@@ -307,6 +353,26 @@ export const SLOT_HOST_RULES: readonly SlotHostRule[] = [
     placedChildren: true,
     insert: "list-item",
   },
+  // ADR-238 Phase 3 — Select · ComboBox 는 자기가 목록 틀 (항목 = popover 안 ListBoxItem instance · section). Label ·
+  //   SelectTrigger 는 항목이 아니다 (배치 요소 허용 · 계약 경고 밖).
+  ...(["select", "combobox"] as const).map(
+    (host): SlotHostRule => ({
+      host,
+      matches: byTypeWithSlot(host),
+      active: byTypeWithSlot(host),
+      candidate: templateCandidate(
+        new Set([
+          LISTBOX_ITEM_DEFAULT_ORIGIN_ID,
+          LISTBOX_ITEM_SELECTED_ORIGIN_ID,
+          LISTBOX_SECTION_ORIGIN,
+        ]),
+        "listboxitem/",
+      ),
+      insert: "list-item",
+      placedChildren: true,
+      itemTypes: new Set(["ListBoxItem", "ListBoxSection"]),
+    }),
+  ),
   // ADR-237 Phase 1 — 그룹 컨테이너 9종 (slot 을 가진 것만 — slot 없는 사용자 그룹은 종전 그대로).
   ...GROUP_SLOT_HOSTS.map((group): SlotHostRule => ({
     host: normalizeType(group.type),
@@ -328,6 +394,11 @@ export const SELF_LIST_SLOT_HOST_TYPES: ReadonlySet<string> = new Set([
   "GridList",
   "Menu",
   "Breadcrumbs",
+  "ListBoxSection",
+  "MenuSection",
+  "GridListSection",
+  "Select",
+  "ComboBox",
   ...GROUP_SLOT_HOSTS.map((group) => group.type),
   ...ROOT_REGION_SLOT_HOST_TYPES,
 ]);

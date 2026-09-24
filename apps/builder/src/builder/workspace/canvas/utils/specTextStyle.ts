@@ -169,6 +169,11 @@ const TEXT_BEARING_SPECS: Record<
     defaultSize: "md",
     catalogType: "Code",
   },
+  // ADR-238 Phase 2 — 목록 section 제목. 글자 크기 · 줄 높이는 목록 규칙 (`resolveSectionHeaderStyle` 주입) 이 이긴다.
+  header: {
+    defaultSize: "md",
+    catalogType: "Header",
+  },
   // ADR-912 box+text 변환 군 DisclosureContent 발효 (2026-06-10): inline text leaf (Description 동형,
   //   rule height:0). catalog 발효 → spec 생략, 측정이 resolveSkiaRule("DisclosureContent").sizes
   //   (fontSize/lineHeight) 기반으로 산출 → spec import 0.
