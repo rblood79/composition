@@ -462,6 +462,38 @@ export function MenuButton<T extends object>({
   );
 }
 
+/**
+ * ADR-239 Phase 3 — 하위 메뉴 한 칸 (RAC `SubmenuTrigger > MenuItem + Popover > Menu`, R4). items 경로 (`renderMenuItem`
+ * · `renderRuntimeMenuItem`) 와 같은 구조 · 클래스 (`react-aria-Menu` + 호출자 className · `data-size`) — 정적 자식 경로 ·
+ * 구조 (section) 경로가 이 부품 하나로 같은 DOM 을 낸다.
+ */
+export function MenuSubmenu({
+  trigger,
+  size = "md",
+  className,
+  children,
+}: {
+  /** 하위 메뉴를 여는 항목 (MenuItem). */
+  trigger: React.ReactElement;
+  size?: ComponentSize;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <SubmenuTrigger>
+      {trigger}
+      <Popover data-size={size}>
+        <Menu
+          className={className ? `react-aria-Menu ${className}` : "react-aria-Menu"}
+          data-size={size}
+        >
+          {children}
+        </Menu>
+      </Popover>
+    </SubmenuTrigger>
+  );
+}
+
 export interface ExtendedMenuItemProps extends Omit<MenuItemProps, "children"> {
   children?: React.ReactNode;
   /** 직접 지정하는 단축키 문자열 */

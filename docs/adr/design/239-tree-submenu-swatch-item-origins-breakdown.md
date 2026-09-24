@@ -142,3 +142,14 @@
 - live `adr239-live-exercise.mjs` 9/9: P1 6 + `expandedKeys: []` → 행 5 → 3 · Tree 높이 170 → 106 · chevron path `m6 9 6 6 6-6` (↓) → `m9 18 6-6-6-6` (→) · Undo 행 5 · Redo 행 3 · reload 뒤 `[]` 유지 (재hydration 이 다시 채우지 않음) · page error 0.
 - 원복 RED 8/8: layout 펼침 판정 · 채우기 · 1회 가드 · instance 병합 · 역전파 allowlist · 접힘 층 · Slot host 펼침 · registry 등재 — 각 1~4 RED.
 - 회귀: builder 7,486 통과 · shared 기존 실패 1 (Modal placeable) · type-check 0.
+
+### Phase 3 — Menu 하위 메뉴 (G3, 2026-09-25)
+
+- **Preview**: 공용 부품 `MenuSubmenu` (`packages/shared/src/components/Menu.tsx` — `SubmenuTrigger > MenuItem + Popover[data-size] > Menu.react-aria-Menu[data-size]`, items 경로와 같은 구조 · 클래스). 정적 자식 경로 (`renderMenu` 의 MenuItem instance) = 항목의 자식 MenuItem 을 하위 메뉴로 (역할 자식과 나눈다 · 하위 메뉴는 자기 collection 이라 key 는 section 없이) · 구조 경로 (section 이 섞인 `items`, `renderMenuLeaf`) = 행 `children` 을 하위 메뉴로 (F7 — 종전: 버림). 두 경로 모두 재귀.
+- **이관**: `MENU_STATIC_FAMILY.allowsSubmenus` — 하위 메뉴 행 (`children`) 이 있는 정적 Menu 도 이관, 행 → 항목 instance 의 자식 항목 instance (재귀, section 안 행 포함). id 없는 하위 행 key = `<부모 행 id>-<index>` (items 경로 `Menu.tsx` fallback 과 같다). 바인딩 Menu 는 `items` 그대로. 234 · 238 테스트의 "하위 메뉴 목록은 그대로" 단언을 239 계약으로 갱신.
+- **Slot host**: `menuitem` 행 (slot 있는 MenuItem — instance 는 ref 체인 끝 = MenuItem origin 의 slot) · MenuItem origin 에 `slot: [origin]` seed (repair 는 사용자 값 보존) · `MENU_STATIC_FAMILY.recursiveItems` 로 삽입 계획기가 MenuItem host 의 자식으로 넣는다 (선택 key 없음 · Tree 가 아니라 펼침 patch 도 없음).
+- **Canvas**: 변화 없음 (F8 — 트리거만 · MenuItem 은 popover 내용이라 layout · scene 에서 빠진다).
+- unit `adr239Phase3.submenus.test.tsx` 6/6 (이관 모양 · 멱등 · key fallback · 정적 경로 = 이관 전 items 경로 최상위 + 하위 메뉴 내용 · 구조 경로 하위 메뉴 · 바인딩 무변경 · MenuItem host 삽입) · 진단 (d) `it` 전환. jsdom 에서 items 경로 (동적 collection) 의 하위 메뉴는 열리지 않아 이관 전 oracle 은 최상위 DOM (하위 메뉴 표식) + 행 데이터로 둔다.
+- live 10/10 (P3 추가 1): 하위 메뉴 행이 있는 정적 Menu 가 reload 뒤 `items` 0 · share 아래 자식 2 · Canvas 트리거 상자 68×30 = 하위 메뉴 없는 Menu.
+- 원복 RED 5/5: 정적 경로 · 구조 경로 · 이관 끄기 · key fallback · MenuItem host 행.
+- 회귀: builder 7,493 · shared 기존 실패 1 · type-check 0.

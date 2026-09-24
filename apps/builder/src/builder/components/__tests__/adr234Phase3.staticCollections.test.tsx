@@ -1438,12 +1438,19 @@ describe("ADR-234 Phase 3f — Menu (항목 = popover 안 MenuItem instance 자�
       },
     } as CanonicalNode;
     const doc2 = seededDoc([sep, sub]);
-    // ADR-238 Phase 2 — separator 행은 `Separator` 자식으로 이관 · 하위 메뉴 행은 그대로.
+    // ADR-238 Phase 2 — separator 행은 `Separator` 자식으로 이관. ADR-239 Phase 3 — 하위 메뉴 행도 이관 (자식 MenuItem).
     expect(findById(doc2.children, "sep-menu")!.props?.items).toBeUndefined();
     expect(
       findById(doc2.children, "sep-menu")!.children!.map((c) => c.type),
     ).toEqual(["ref", "Separator"]);
-    expect(findById(doc2.children, "sub-menu")!.props?.items).toHaveLength(1);
+    const subMenu = findById(doc2.children, "sub-menu")!;
+    expect(subMenu.props?.items).toBeUndefined();
+    expect(
+      subMenu.children!.map((c) => [
+        (c.props as Record<string, unknown>).id,
+        (c.children ?? []).map((k) => (k.props as Record<string, unknown>).id),
+      ]),
+    ).toEqual([["a", ["b"]]]);
   });
 
   it("Canvas: MenuItem 자식은 popover 내용 — layout 자식이 아니고 (기존 경로) 트리거 글자는 남는다 (static)", async () => {

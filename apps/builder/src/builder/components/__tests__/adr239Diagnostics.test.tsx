@@ -236,7 +236,7 @@ describe("ADR-239 진단 (c) — 같은 TreeItem origin instance 둘의 상속 �
 
 // ── (d) 하위 메뉴 (F7) ────────────────────────────────────────────────────────────────
 describe("ADR-239 진단 (d) — Menu 하위 메뉴가 `items.children` 에만 있다 (F7)", () => {
-  it.fails(
+  it(
     "하위 메뉴 행이 있는 정적 Menu 가 instance 자식으로 이관된다",
     () => {
       const doc = seededDoc([

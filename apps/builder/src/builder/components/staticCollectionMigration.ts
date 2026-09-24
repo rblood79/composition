@@ -163,6 +163,11 @@ export interface StaticCollectionFamily {
    * 넣는다 (선택 key 는 쓰지 않는다 — 선택 owner 는 조상 Tree 이고 새 항목 key 는 부모 key 접두라 host 가 모른다).
    */
   recursiveItems?: boolean;
+  /**
+   * ADR-239 Phase 3 — 행의 `children` (하위 메뉴) 를 항목 instance 의 자식 항목으로 옮긴다 (Menu). 없으면 하위 메뉴
+   * 행이 있는 목록은 이관하지 않는다.
+   */
+  allowsSubmenus?: boolean;
   buildItem(
     item: Record<string, unknown>,
     origin: CanonicalNode,
@@ -318,6 +323,9 @@ export const MENU_STATIC_FAMILY: StaticCollectionFamily = {
   },
   sectionType: "MenuSection",
   allowsSeparators: true,
+  // ADR-239 Phase 3 — MenuItem instance 의 자식 MenuItem = 하위 메뉴. Slot "+" 가 MenuItem host 에도 넣는다.
+  allowsSubmenus: true,
+  recursiveItems: true,
   buildItem(item, origin) {
     return {
       props: {
@@ -495,8 +503,19 @@ function hasUnsupportedRows(
   family: StaticCollectionFamily,
   items: ReadonlyArray<Record<string, unknown>>,
 ): boolean {
+  // ADR-239 Phase 3 — 하위 메뉴 행은 `allowsSubmenus` 가족 (Menu) 이면 중첩 항목으로 옮긴다.
+  const unsupportedSubmenu = (row: Record<string, unknown>): boolean =>
+    hasSubmenu(row) &&
+    (!family.allowsSubmenus ||
+      (row.children as unknown[]).some(
+        (child) =>
+          !isRecord(child) ||
+          child.type === "section" ||
+          child.type === "separator" ||
+          unsupportedSubmenu(child),
+      ));
   return items.some((item) => {
-    if (hasSubmenu(item)) return true;
+    if (unsupportedSubmenu(item)) return true;
     if (item.type === "section") {
       if (!family.sectionType) return true;
       const inner = Array.isArray(item.items) ? item.items : [];
@@ -505,7 +524,7 @@ function hasUnsupportedRows(
           !isRecord(row) ||
           row.type === "section" ||
           row.type === "separator" ||
-          hasSubmenu(row),
+          unsupportedSubmenu(row),
       );
     }
     if (item.type === "separator") return !family.allowsSeparators;
@@ -600,20 +619,49 @@ export function buildItemInstances(
   taken: Set<string>,
   /** 새 항목의 번호 시작 (Slot "+" 는 기존 항목 수 — id `__<prefix>-<n>`). */
   startIndex = 0,
+  /**
+   * ADR-239 Phase 3 — 하위 메뉴 행의 id 없는 자식 key = `<부모 행 id>-<index>` (items 경로 `Menu.tsx` 의
+   * `${item.id}-${childIndex}` 와 같다). 최상위는 종전 `<idPrefix>-<n>`.
+   */
+  submenuParentKey?: string,
 ): CanonicalNode[] {
   return items.map((item, offset) => {
     const index = startIndex + offset;
     const built = family.buildItem(item, origin);
+    const id = uniqueId(`${idPrefix}__${family.itemPrefix}-${index + 1}`, taken);
+    const key = String(
+      item.id ??
+        (submenuParentKey !== undefined
+          ? `${submenuParentKey}-${offset}`
+          : `${idPrefix}-${index + 1}`),
+    );
+    const submenuRows =
+      family.allowsSubmenus && Array.isArray(item.children)
+        ? item.children.filter(isRecord)
+        : [];
     return {
-      id: uniqueId(`${idPrefix}__${family.itemPrefix}-${index + 1}`, taken),
+      id,
       type: "ref",
       ref: origin.id,
       props: {
-        id: String(item.id ?? `${idPrefix}-${index + 1}`),
+        id: key,
         ...built.props,
       },
       ...(Object.keys(built.descendants).length > 0
         ? { descendants: built.descendants }
+        : {}),
+      ...(submenuRows.length > 0
+        ? {
+            children: buildItemInstances(
+              family,
+              submenuRows,
+              id,
+              origin,
+              taken,
+              0,
+              key,
+            ),
+          }
         : {}),
     } as unknown as CanonicalNode;
   });

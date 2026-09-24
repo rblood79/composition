@@ -152,7 +152,7 @@ describe("ADR-238 Phase 2 — 이관 (section 이 섞인 정적 items)", () => {
     );
   });
 
-  it("Menu: per-section 선택 필드 → section props · separator → Separator · 하위 메뉴 목록은 그대로", () => {
+  it("Menu: per-section 선택 필드 → section props · separator → Separator · 하위 메뉴 행도 이관 (ADR-239)", () => {
     const doc = seededDoc([
       {
         id: "sec-menu",
@@ -202,7 +202,15 @@ describe("ADR-238 Phase 2 — 이관 (section 이 섞인 정적 items)", () => {
       selectionMode: "single",
       selectedKeys: ["cut"],
     });
-    expect(byId.get("sub-menu")!.props?.items).toHaveLength(1);
+    // ADR-239 Phase 3 — section 안 하위 메뉴 행도 이관 (section > 항목 > 자식 항목).
+    const subMenu = byId.get("sub-menu")!;
+    expect(subMenu.props?.items).toBeUndefined();
+    expect(subMenu.children![0]!.type).toBe("MenuSection");
+    const subItem = subMenu.children![0]!.children!.find((c) => c.type === "ref")!;
+    expect((subItem.props as Record<string, unknown>).id).toBe("a");
+    expect(
+      (subItem.children ?? []).map((c) => (c.props as Record<string, unknown>).id),
+    ).toEqual(["b"]);
   });
 
   it("GridList: section 노드 (GridListSection) · 바인딩 목록은 그대로", () => {

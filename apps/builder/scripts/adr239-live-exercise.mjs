@@ -273,6 +273,84 @@ record(
   { rows: r8.rows.map((r) => r.text), storedKeys },
 );
 
+// ── Phase 3 — Menu 하위 메뉴 (Canvas 는 트리거만 — F8) ──────────────────────────
+await ev(async () => {
+  const st = window.__composition_STORE__.getState();
+  const body = st.elements.find(
+    (e) => e.type === "body" && e.page_id === st.currentPageId,
+  );
+  const now = new Date().toISOString();
+  const mk = (id, items) => ({
+    id,
+    customId: id,
+    type: "Menu",
+    parent_id: body.id,
+    page_id: st.currentPageId,
+    order_num: 5,
+    created_at: now,
+    updated_at: now,
+    props: { label: "Menu", children: "Menu", "aria-label": "Menu", items },
+  });
+  await st.addComplexElement(
+    mk("live-menu-sub", [
+      { id: "open", label: "Open" },
+      {
+        id: "share",
+        label: "Share",
+        children: [
+          { id: "mail", label: "Mail" },
+          { id: "sms", label: "SMS" },
+        ],
+      },
+    ]),
+    [],
+  );
+  await st.addComplexElement(
+    mk("live-menu-flat", [
+      { id: "open", label: "Open" },
+      { id: "share", label: "Share" },
+    ]),
+    [],
+  );
+});
+await page.waitForTimeout(800);
+await page.goto(projectUrl);
+await waitReady(page);
+await page.waitForTimeout(2000);
+const menuState = await ev(() => {
+  const st = window.__composition_STORE__.getState();
+  const m = window.__composition_LAYOUT_DEBUG__.getSharedLayoutMap();
+  const shape = (id) => {
+    const kids = st.elements.filter((e) => e.parent_id === id);
+    return kids.map((k) => [
+      k.props?.id ?? null,
+      st.elements.filter((e) => e.parent_id === k.id && e.type === "ref")
+        .length,
+    ]);
+  };
+  const rect = (id) => {
+    const r = m.get(id);
+    return r ? [r.width, r.height] : null;
+  };
+  return {
+    items: st.elementsMap.get("live-menu-sub")?.props?.items ?? null,
+    shape: shape("live-menu-sub"),
+    sub: rect("live-menu-sub"),
+    flat: rect("live-menu-flat"),
+  };
+});
+record(
+  "P3 하위 메뉴 행 이관 (items 0 · share 아래 자식 2) · Canvas 트리거 상자 = 하위 메뉴 없는 Menu",
+  menuState.items === null &&
+    JSON.stringify(menuState.shape) ===
+      JSON.stringify([
+        ["open", 0],
+        ["share", 2],
+      ]) &&
+    JSON.stringify(menuState.sub) === JSON.stringify(menuState.flat),
+  menuState,
+);
+
 record("page error 0", errors.length === 0, errors);
 console.log(
   `[adr239 live] ${findings.filter((f) => f.pass).length}/${findings.length}`,

@@ -328,6 +328,18 @@ export const SLOT_HOST_RULES: readonly SlotHostRule[] = [
     insert: "list-item",
     itemTypes: new Set(["TreeItem"]),
   },
+  // ADR-239 Phase 3 — MenuItem 도 목록 틀 (자식 MenuItem = 하위 메뉴) — 후보는 MenuItem origin 의 slot.
+  {
+    host: "menuitem",
+    matches: byType("menuitem"),
+    active: byTypeWithSlot("menuitem"),
+    candidate: templateCandidate(
+      new Set([MENU_ITEM_DEFAULT_ORIGIN_ID]),
+      "menuitem/",
+    ),
+    insert: "list-item",
+    itemTypes: new Set(["MenuItem"]),
+  },
   // ADR-238 Phase 2 — section 은 자기가 목록 틀 (항목 = 그 목록의 항목 instance 자식). Header 는 항목이 아니다.
   {
     host: "listboxsection",
@@ -428,6 +440,8 @@ export const SELF_LIST_SLOT_HOST_TYPES: ReadonlySet<string> = new Set([
   // ADR-239 Phase 1 — Tree · TreeItem (항목 안 항목).
   "Tree",
   "TreeItem",
+  // ADR-239 Phase 3 — MenuItem (하위 메뉴).
+  "MenuItem",
   ...GROUP_SLOT_HOSTS.map((group) => group.type),
   ...ROOT_REGION_SLOT_HOST_TYPES,
 ]);

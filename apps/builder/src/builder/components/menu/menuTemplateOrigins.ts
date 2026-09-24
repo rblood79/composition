@@ -80,6 +80,9 @@ function createMenuItemDefaultOrigin(): CanonicalNode {
       children: "{label}",
       textValue: "{label}",
     },
+    // ADR-239 Phase 3 — MenuItem instance 도 Slot "+" host (자식 MenuItem = 하위 메뉴) — instance 는 ref 체인 끝
+    //   origin 의 slot 을 읽는다.
+    slot: [MENU_ITEM_DEFAULT_ORIGIN_ID],
     // ADR-148 Phase 4: icon/label/shortcut/description slot 조합 자식.
     children: menuItemSlotChildren(MENU_ITEM_DEFAULT_ORIGIN_ID),
     metadata: {
@@ -107,6 +110,8 @@ function repairOrigin(
     children: existing.children ?? base.children,
     // ADR-154: 사용자 responsive override 보존 (composite origin reseed 소실 방지)
     ...(existing.responsive ? { responsive: existing.responsive } : {}),
+    // ADR-239 Phase 3 — 사용자가 고친 추천 목록 보존 (없으면 seed).
+    ...(existing.slot !== undefined ? { slot: existing.slot } : {}),
     metadata: {
       ...base.metadata,
       ...(existing.metadata ?? {}),

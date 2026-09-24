@@ -8,6 +8,7 @@ import {
   ToggleButton,
   MenuButton,
   MenuItem,
+  MenuSubmenu,
   Toolbar,
 } from "../components/list";
 // chip leading icon glyph (2026-08-21) — 고정 14px, 수동 TagGroup.css `.tag-leading-icon` 소비.
@@ -977,20 +978,41 @@ export const renderMenu = (
   if (hasStructuredEntries) {
     // section/separator 포함 — children 경로 (MenuButton static children fallback)
     // RAC D1: MenuSection / Header / Separator 공식 API 사용
-    const renderMenuLeaf = (item: StoredMenuItem): React.ReactNode => (
-      <MenuItem
-        key={item.id}
-        id={item.id}
-        textValue={item.textValue ?? item.label}
-        isDisabled={Boolean(item.isDisabled)}
-        // RAC MenuItem 은 `href` 키가 존재하기만 하면(undefined 값이어도) link 모드로
-        // 진입해 DOM 에 `href=""` 를 렌더 → React 경고("empty string passed to href").
-        // 따라서 href 가 있을 때만 prop 을 전개(conditional spread)해 키 자체를 제거한다.
-        {...(item.href ? { href: item.href } : {})}
-      >
-        {renderMenuItemSlotParts(item, menuItemSlotComposition)}
-      </MenuItem>
-    );
+    const renderMenuLeaf = (item: StoredMenuItem): React.ReactNode => {
+      const leaf = (
+        <MenuItem
+          key={item.id}
+          id={item.id}
+          textValue={item.textValue ?? item.label}
+          isDisabled={Boolean(item.isDisabled)}
+          // RAC MenuItem 은 `href` 키가 존재하기만 하면(undefined 값이어도) link 모드로
+          // 진입해 DOM 에 `href=""` 를 렌더 → React 경고("empty string passed to href").
+          // 따라서 href 가 있을 때만 prop 을 전개(conditional spread)해 키 자체를 제거한다.
+          {...(item.href ? { href: item.href } : {})}
+        >
+          {renderMenuItemSlotParts(item, menuItemSlotComposition)}
+        </MenuItem>
+      );
+      // ADR-239 Phase 3 (F7) — section 이 섞인 구조 경로도 하위 메뉴 (`children`) 를 그린다 (종전: 버렸다).
+      const submenu = Array.isArray(item.children)
+        ? (item.children as StoredMenuItem[])
+        : [];
+      if (submenu.length === 0) return leaf;
+      return (
+        <MenuSubmenu
+          key={item.id}
+          trigger={leaf}
+          size={commonProps.size}
+          className={
+            typeof element.props.className === "string"
+              ? element.props.className
+              : undefined
+          }
+        >
+          {submenu.map(renderMenuLeaf)}
+        </MenuSubmenu>
+      );
+    };
 
     const menuChildren = entries.map((entry) => {
       if (isMenuSectionEntry(entry)) {
@@ -1048,8 +1070,13 @@ export const renderMenu = (
     const renderStaticMenuItem = (
       item: PreviewElement,
       section: PreviewElement | null,
-    ) => {
-      const parts = context.childrenByParent.get(item.id) ?? [];
+    ): React.ReactNode => {
+      const itemChildren = context.childrenByParent.get(item.id) ?? [];
+      // ADR-239 Phase 3 — MenuItem instance 의 자식 MenuItem = 하위 메뉴 (역할 자식과 나눈다).
+      const submenuItems = itemChildren.filter(
+        (child) => child.type === "MenuItem",
+      );
+      const parts = itemChildren.filter((child) => child.type !== "MenuItem");
       const part = (role: string) =>
         parts.find((child) => getSlotRole(child) === role);
       const textOf = (role: string): string | undefined => {
@@ -1059,7 +1086,7 @@ export const renderMenu = (
       const iconName = part("icon")?.props.iconName;
       const label = textOf("label") ?? "";
       const itemProps = item.props as Record<string, unknown>;
-      return (
+      const menuItem = (
         <MenuItem
           key={item.id}
           id={resolveSectionItemKey(
@@ -1101,6 +1128,22 @@ export const renderMenu = (
             resolveSlotComposition(parts),
           )}
         </MenuItem>
+      );
+      if (submenuItems.length === 0) return menuItem;
+      // 하위 메뉴는 자기 collection — 항목 key 는 section 없이 (`props.id` → 노드 id).
+      return (
+        <MenuSubmenu
+          key={item.id}
+          trigger={menuItem}
+          size={commonProps.size}
+          className={
+            typeof element.props.className === "string"
+              ? element.props.className
+              : undefined
+          }
+        >
+          {submenuItems.map((child) => renderStaticMenuItem(child, null))}
+        </MenuSubmenu>
       );
     };
     const menuChildren = staticChildren.map((child) => {
