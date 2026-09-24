@@ -874,3 +874,80 @@ it("조상 스타일 patch가 있어도 더 깊은 자식 patch를 유지한다"
     color: "red",
   });
 });
+
+describe("ADR-241 선행 — origin 안 중첩 ref 의 자기 자식 (진단 (g))", () => {
+  // Canvas (`resolveCanonicalRefTree`) 와 같은 fixture — 종전 Preview 는 자기 Cell 은 그리되 바깥 instance
+  //   의 `<중첩 ref>/<자기 자식>` patch 를 적용하지 않았다.
+  // Row · Cell · TableView 는 ComponentTag 표 밖 (legacy element type) — fixture 에서만 좁힌다.
+  const ROW = "Row" as CanonicalNode["type"];
+  const CELL = "Cell" as CanonicalNode["type"];
+  const TABLE_VIEW = "TableView" as CanonicalNode["type"];
+
+  function buildDoc(options?: {
+    outerDescendants?: Record<string, unknown>;
+    rowOriginChildren?: boolean;
+  }) {
+    const rowOrigin = makeReusable(
+      "component-table-row",
+      ROW,
+      options?.rowOriginChildren
+        ? [
+            makePlain("component-table-row__handle", CELL, {
+              props: { children: "handle" },
+            }),
+          ]
+        : undefined,
+    );
+    const row = makeRef("component-tableview__row-1", "component-table-row", {
+      children: [1, 2, 3].map((n) =>
+        makePlain(`component-tableview__cell-${n}`, CELL, {
+          props: { children: `Cell ${n}` },
+        }),
+      ),
+    } as Partial<RefNode>);
+    const tableView = makeReusable("component-tableview", TABLE_VIEW, [row]);
+    const instance = makeRef("tv-1", "component-tableview", {
+      ...(options?.outerDescendants
+        ? { descendants: options.outerDescendants }
+        : {}),
+    } as unknown as Partial<RefNode>);
+    return makeDoc([rowOrigin, tableView, instance]);
+  }
+
+  function rowCells(doc: CompositionDocument): unknown[] {
+    const outer = resolveCanonicalDocument(doc).find(
+      (n) => n.id === "tv-1",
+    ) as ResolvedNode;
+    const row = outer.children?.find(
+      (c) => c.id === "component-tableview__row-1",
+    ) as ResolvedNode;
+    return (row.children ?? []).map((c) => c.props?.children);
+  }
+
+  it("바깥 instance 에서 중첩 Row ref 의 자기 Cell 3 이 해석된다", () => {
+    expect(rowCells(buildDoc())).toEqual(["Cell 1", "Cell 2", "Cell 3"]);
+  });
+
+  it("바깥 instance 의 `<중첩 ref>/<자기 자식>` patch 가 그 자식에 닿는다", () => {
+    expect(
+      rowCells(
+        buildDoc({
+          outerDescendants: {
+            "component-tableview__row-1/component-tableview__cell-3": {
+              children: "Edited",
+            },
+          },
+        }),
+      ),
+    ).toEqual(["Cell 1", "Cell 2", "Edited"]);
+  });
+
+  it("순서 = 중첩 ref origin 자식 → 자기 자식", () => {
+    expect(rowCells(buildDoc({ rowOriginChildren: true }))).toEqual([
+      "handle",
+      "Cell 1",
+      "Cell 2",
+      "Cell 3",
+    ]);
+  });
+});

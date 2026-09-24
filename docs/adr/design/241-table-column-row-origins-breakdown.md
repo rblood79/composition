@@ -79,4 +79,15 @@
 
 ## 5. 실행 기록
 
-(실행 시 기록)
+### 선행 수리 — 중첩 ref 자기 자식 해석 (2026-09-25, main)
+
+Phase 3 의 선행 수리를 main 에서 먼저 반영했다 — ADR-239 의 Tree origin (자식 항목을 가진 TreeItem instance) · 하위 메뉴 (중첩 ref) 도 같은 모양이라, 239 · 241 을 worktree 로 나누기 전에 공용 해석기를 한 번만 고친다.
+
+- 진단 RED (g) → GREEN: 두 해석기 같은 fixture (`빈 Row origin ref + 자기 Cell 3` 을 담은 TableView origin 의 instance). 수리 전 Canvas `childrenMap` 셀 **0** (자기 자식 버림) · origin 자식이 있으면 `["handle"]` 만 · Preview 셀 3 이지만 `"Edited"` override 미적용 (4 RED). 수리 뒤 6/6 GREEN.
+  - Canvas `materializeSyntheticDescendants`: nested master 자식 뒤에 자식 ref 의 자기 자식을 실체화 (`appendAfterExisting` — Preview `[...origin, ...instance]` 순서). patch 소유자 = 바깥 owner 만 (자식 ref 자신의 descendants 는 nested master 경로를 가리킨다).
+  - Preview `resolveNestedRefChild` → `_resolveRefNodeUncached(…, ownChildrenDescendants = scoped)`: 자기 자식에 `applyDescendantsToTree` (id · segment path 둘 다). scoped 가 없으면 종전 경로 (`resolveNode`).
+  - 테스트: `apps/builder/src/builder/utils/canonicalRefResolution.test.ts` · `apps/builder/src/resolvers/canonical/__tests__/resolver.test.ts` 의 `ADR-241 선행` describe.
+- 영향 범위: `createInitialProjectDocument` 의 origin 124 · origin 안 ref 70 중 자기 자식을 가진 것 **0** → seed 문서 Canvas 무변경. 사용자가 origin 안 instance 에 자식을 넣은 문서만 바뀌며, 바뀌는 방향은 Preview 와 맞춰지는 쪽 (G5 변경 영역).
+- 회귀: builder unit 7,454 PASS · 실패 5 는 변경 전부터 있던 정적 게이트 drift (ADR-113 grep gate · propertyFieldIcons `isOpen` · factoryInlineDirtyBaseline Dialog · historyActions `setPagePositions` · AI catalog 동명 type) — 수리 파일 무관. type-check 0.
+- live (`apps/builder/scripts/adr241-nested-ref-own-children-live.mjs`, headed · Skia layout · store, Compare Mode · Preview 미개방) **5/5**: 대조군 단일 instance origin 자식 rect · 중첩 ref 자기 자식 2 가 instance Canvas 에 실체화 (inner y 0 → own 28 → 56) · 합성 id 선택 + `updateSelectedProperties` → 바깥 `descendants["live-outer__row/live-outer__own-2"]` · rect 폭 44 → 194 · origin 원본 불변 · page error 0.
+- 관측 (범위 밖): `frame` type origin 을 `addComplexElement` 로 넣으면 그 instance 의 자식이 Canvas 에 풀리지 않는다 (대조군 ⓪ 가 frame 일 때 rect null) — 하니스 seed 경로 한정인지 미확인, LOW.

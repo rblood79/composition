@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [origin 안 중첩 instance 의 자기 자식 (ADR-241 선행 수리)] - 2026-09-25
+
+### Fixed
+
+- **origin 안에 놓인 instance 에 넣은 자식이 Canvas 에서 사라지던 문제를 고쳤다** — 예: 컴포넌트 origin 안의 다른 컴포넌트 instance (TableView 안 Row 처럼) 에 자식을 넣으면, 그 origin 의 instance 에서 Canvas 는 그 자식을 그리지 않고 Preview 만 그렸다. 이제 Canvas 도 그 ref origin 의 자식 뒤에 그린다.
+- 같은 자식을 instance 에서 고치면 Preview 에 반영되지 않던 문제를 고쳤다 — Canvas · Preview 모두 instance 편집 (`descendants["<중첩 instance>/<자식>"]`) 을 적용한다. origin 원본은 그대로다.
+  - 위치: `apps/builder/src/adapters/canonical/canonicalRefResolution.ts` · `apps/builder/src/resolvers/canonical/index.ts`
+  - 기본 Components origin 124 개 중 이 모양은 없다 (중첩 instance 70 개 모두 자기 자식 0) — 사용자가 만든 origin 에만 해당한다. Preview 는 unit 으로 확인 — 사용자 확인 대상.
+
 ## [Card · Dialog · Popover · Tooltip 영역 채우기 (ADR-240)] - 2026-09-24
 
 ### Added

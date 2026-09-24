@@ -1091,3 +1091,103 @@ describe("ADR-229 Phase 0 — 일반 origin-child ref (조합 origin 안 instanc
     expect(shape(sourceChild)).toEqual(shape(overrideChild));
   });
 });
+
+describe("ADR-241 선행 — origin 안 중첩 ref 의 자기 자식 (진단 (g))", () => {
+  // TableView origin 안 Row = `Row origin ref + 자기 Cell 3` (Row origin 은 행 모양만 — 셀 자식 0). 종전
+  //   Canvas 는 중첩 ref 를 만나면 Row origin 의 자식만 펼치고 자기 Cell 을 버렸다 (Preview 는 그린다).
+  function buildTableViewFixture(options?: {
+    outerDescendants?: Record<string, unknown>;
+    rowOriginChildren?: boolean;
+  }) {
+    const rowOrigin = makeElement("component-table-row", {
+      type: "Row",
+      reusable: true,
+      props: {},
+    });
+    const rowOriginChild = makeElement("component-table-row__handle", {
+      type: "Cell",
+      parent_id: "component-table-row",
+      props: { children: "handle" },
+    });
+    const tableView = makeElement("component-tableview", {
+      type: "TableView",
+      reusable: true,
+      props: {},
+    });
+    const row = makeElement("component-tableview__row-1", {
+      type: "ref",
+      ref: "component-table-row",
+      parent_id: "component-tableview",
+      props: {},
+    } as never);
+    const cells = [1, 2, 3].map((n) =>
+      makeElement(`component-tableview__cell-${n}`, {
+        type: "Cell",
+        parent_id: "component-tableview__row-1",
+        order_num: n,
+        props: { children: `Cell ${n}` },
+      }),
+    );
+    const instance = makeElement("tv-1", {
+      type: "ref",
+      ref: "component-tableview",
+      parent_id: "body",
+      ...(options?.outerDescendants
+        ? { descendants: options.outerDescendants }
+        : {}),
+    } as never);
+    const elements = [
+      rowOrigin,
+      ...(options?.rowOriginChildren ? [rowOriginChild] : []),
+      tableView,
+      row,
+      ...cells,
+      instance,
+    ];
+    return resolveCanonicalRefTree({
+      elements,
+      elementsMap: new Map(elements.map((e) => [e.id, e])),
+    });
+  }
+
+  it("바깥 instance 에서 중첩 Row ref 의 자기 Cell 3 이 실체화된다", () => {
+    const tree = buildTableViewFixture();
+    expect(
+      tree.childrenMap
+        .get("tv-1/component-tableview__row-1")
+        ?.map((c) => c.props?.children),
+    ).toEqual(["Cell 1", "Cell 2", "Cell 3"]);
+    expect(
+      tree.elementsMap.get(
+        "tv-1/component-tableview__row-1/component-tableview__cell-3",
+      ),
+    ).toMatchObject({
+      type: "Cell",
+      parent_id: "tv-1/component-tableview__row-1",
+    });
+  });
+
+  it("바깥 instance 의 `<중첩 ref>/<자기 자식>` patch 가 그 자식에 닿는다", () => {
+    const tree = buildTableViewFixture({
+      outerDescendants: {
+        "component-tableview__row-1/component-tableview__cell-3": {
+          children: "Edited",
+        },
+      },
+    });
+    expect(
+      tree.childrenMap
+        .get("tv-1/component-tableview__row-1")
+        ?.map((c) => c.props?.children),
+    ).toEqual(["Cell 1", "Cell 2", "Edited"]);
+  });
+
+  it("순서 = 중첩 ref origin 자식 → 자기 자식 (Preview `[...origin, ...instance]` 와 같다)", () => {
+    const tree = buildTableViewFixture({ rowOriginChildren: true });
+    expect(
+      tree.childrenMap
+        .get("tv-1/component-tableview__row-1")
+        ?.map((c) => c.props?.children),
+    ).toEqual(["handle", "Cell 1", "Cell 2", "Cell 3"]);
+  });
+});

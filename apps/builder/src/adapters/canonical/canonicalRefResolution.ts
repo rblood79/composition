@@ -906,6 +906,8 @@ type MaterializeContext<T extends CanonicalRefResolvableNode> = {
   lookupResult?: (ref: string) => T | undefined;
   /** ADR-238 G4 — instance 직계 합성 자식 필터 (`false` = 실체화하지 않는다 · popover 내용). */
   keepChild?: (sourceChild: T, patchProps: Record<string, unknown>) => boolean;
+  /** ADR-241 — 실체화한 자식을 부모의 기존 결과 자식 **뒤에** 둔다 (중첩 ref 의 자기 자식 = origin 자식 뒤). */
+  appendAfterExisting?: boolean;
 };
 
 function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
@@ -1082,6 +1084,10 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
           context.lookupResult,
         );
       } else {
+        const nestedBindings = resolveMasterTemplateBindings(
+          nestedMaster,
+          getNodeProps(syntheticNested),
+        );
         materializeSyntheticDescendants(
           refElement,
           nestedMaster,
@@ -1090,10 +1096,7 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
           resultElementsMap,
           resultChildrenMap,
           resultElements,
-          resolveMasterTemplateBindings(
-            nestedMaster,
-            getNodeProps(syntheticNested),
-          ),
+          nestedBindings,
           path,
           nextVisitedSourceIds,
           {
@@ -1104,6 +1107,28 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
               { owner: sourceChild, mountPath: path },
               ...stateLayerOwner(sourceChild, nestedStateLayer, path),
             ],
+          },
+        );
+        // ADR-241 선행 — 자식 ref 의 **자기 자식** (TableView origin 안 Row ref 의 Cell) 을 nested master 자식
+        //   뒤에 실체화한다 (Preview `[...origin, ...instance]` 와 같은 순서). 종전에는 버려 Canvas 셀 0 · Preview
+        //   셀 3 으로 갈렸다. patch 는 바깥 instance 의 `<자식 ref>/<자기 자식>` 만 — 자식 ref 자신의 descendants
+        //   는 nested master 경로를 가리키므로 얹지 않는다 (Preview `resolveNestedRefChild` 와 같은 범위).
+        materializeSyntheticDescendants(
+          refElement,
+          sourceChild,
+          syntheticId,
+          sourceChildrenMap,
+          resultElementsMap,
+          resultChildrenMap,
+          resultElements,
+          nestedBindings,
+          path,
+          nextVisitedSourceIds,
+          {
+            lookupMaster,
+            lookupResult: context.lookupResult,
+            patchOwners,
+            appendAfterExisting: true,
           },
         );
       }
@@ -1233,10 +1258,12 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
     );
     // origin 자식 → instance 자기 자식 순 (Preview resolver `[...origin, ...instance]` 와 같은 순서 —
     //   ADR-234 3d: ListBox instance "+" 항목은 origin 항목 뒤).
-    resultChildrenMap.set(syntheticParentId, [
-      ...syntheticChildren,
-      ...preservedChildren,
-    ]);
+    resultChildrenMap.set(
+      syntheticParentId,
+      context.appendAfterExisting
+        ? [...preservedChildren, ...syntheticChildren]
+        : [...syntheticChildren, ...preservedChildren],
+    );
   }
 }
 

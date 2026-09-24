@@ -149,6 +149,8 @@ function _resolveRefNodeUncached(
   cache: ResolverCache | undefined,
   imports: ImportResolverContext | undefined,
   chain: RefChainContext = ROOT_REF_CHAIN,
+  /** ADR-241 — 바깥 instance 가 이 ref (origin 안 중첩 ref) 의 **자기 자식** 에 건 patch (상대 path). */
+  ownChildrenDescendants?: Record<string, DescendantOverride>,
 ): ResolvedNode {
   // ── Step 1: reusable master lookup ────────────────────────────────────────
   const directMaster = findReusableMaster(doc, refNode.ref, imports);
@@ -219,9 +221,20 @@ function _resolveRefNodeUncached(
     imports,
     "",
   );
-  const resolvedInstanceChildren = (refNode.children ?? []).map((child) =>
-    resolveNode(child, doc, cache, imports),
-  );
+  // ADR-241 선행 — origin 안 중첩 ref 의 자기 자식 (TableView origin 안 Row ref 의 Cell) 에도 바깥 instance 의
+  //   `<중첩 ref>/<자기 자식>` patch 를 적용한다 (Canvas `materializeSyntheticDescendants` 와 같은 범위).
+  const resolvedInstanceChildren = ownChildrenDescendants
+    ? applyDescendantsToTree(
+        refNode.children ?? [],
+        ownChildrenDescendants,
+        doc,
+        cache,
+        imports,
+        "",
+      )
+    : (refNode.children ?? []).map((child) =>
+        resolveNode(child, doc, cache, imports),
+      );
   // ADR-148 Phase 2 — 템플릿 바인딩 `{키}` 치환 (propsSchema gate).
   //   origin 이 metadata.propsSchema 를 선언한 reusable 에 한해, resolved instance root
   //   props(= origin 기본 + override merge)를 schema 키로 좁힌 바인딩으로 자식 placeholder
@@ -427,7 +440,14 @@ function resolveNestedRefChild(
       ? { descendants: mergedDescendants }
       : {}),
   };
-  return _resolveRefNodeUncached(effective, doc, cache, imports);
+  return _resolveRefNodeUncached(
+    effective,
+    doc,
+    cache,
+    imports,
+    ROOT_REF_CHAIN,
+    scoped,
+  );
 }
 
 function scopeInheritedDescendants(
