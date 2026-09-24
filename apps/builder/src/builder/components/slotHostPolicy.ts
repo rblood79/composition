@@ -60,7 +60,7 @@ export const ROOT_REGION_SLOT_HOST_TYPES: ReadonlySet<string> = new Set([
   "Tooltip",
 ]);
 
-function isNamedRegionHost(element: SlotPolicyElement): boolean {
+export function isNamedRegionHost(element: SlotPolicyElement): boolean {
   const role = element.metadata?.slotRole;
   return (
     (typeof role === "string" && NAMED_REGION_SLOT_ROLES.has(role)) ||

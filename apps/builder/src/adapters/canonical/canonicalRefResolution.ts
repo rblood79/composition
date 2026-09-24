@@ -775,6 +775,8 @@ function materializeOverrideChildren<T extends CanonicalRefResolvableNode>(
       ...(ref ? { ref } : {}),
       ...(descendants ? { descendants } : {}),
       ...(slot !== undefined ? { slot } : {}),
+      // ADR-240 Phase 2 (F19): 채운 노드의 배경 (1차 필드) — Preview `resolveNode` 는 싣는다.
+      ...(Array.isArray(child.fills) ? { fills: child.fills } : {}),
       // scene 문맥 (ref 가 scene 노드) 이면 mode C 자식도 원본 canonical 노드를 `sourceNode` 로 — Skia 입력
       //   (`rendererInput` projection index) 이 모든 scene 노드의 sourceNode 를 읽는다 (ADR-234 live: 정적 목록
       //   instance 의 Slot "+" 항목에서 `sourceNode.id` undefined 로 캔버스가 멈췄다).
@@ -1416,7 +1418,9 @@ function readChainLeafDeps<T extends CanonicalRefResolvableNode>(
     current = lookupMaster(next);
     if (!current) return null;
     deps.push(canonicalIdentity(current));
-    next = isCanonicalRefElement(current) ? getCanonicalRefTarget(current) : null;
+    next = isCanonicalRefElement(current)
+      ? getCanonicalRefTarget(current)
+      : null;
   }
   if (!current || isCanonicalRefElement(current)) return null;
   const origin = current;
@@ -1894,7 +1898,11 @@ export function resolveCanonicalRefTree<
       replaceResolvedRoot(element, resolvedRoot);
     }
 
-    if (leafDeps && resolvedRoot !== element && !hasCollectionData(resolvedRoot)) {
+    if (
+      leafDeps &&
+      resolvedRoot !== element &&
+      !hasCollectionData(resolvedRoot)
+    ) {
       input.reuse!.leafNext!.set(element.id, {
         root: resolvedRoot,
         deps: leafDeps,

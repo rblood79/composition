@@ -22,9 +22,16 @@ import {
 } from "../../../adapters/canonical/componentSemanticsMirror";
 import {
   filterSlotCandidates,
+  isNamedRegionHost,
   isSlotCandidateAllowed,
   resolveSlotInsertAction,
 } from "../../components/slotHostPolicy";
+import {
+  SLOT_FILL_PRIMITIVE_TYPES,
+  buildSlotFillNodeForType,
+  buildSlotFillRefNode,
+  slotFillPrimitiveLabel,
+} from "../../components/slotFillNodes";
 import { planTabItemInsert } from "../../components/collectionItemInsert";
 import {
   collectSlotFillHosts,
@@ -124,13 +131,24 @@ function getFillCandidateOptions(
       ? filterSlotCandidates(slot.host, recommended)
       : filterSlotCandidates(slot.host, [...elementsById.values()]);
 
-  return candidates
+  const reusableOptions = candidates
     .map((candidate) => ({
       label: getElementLabel(candidate),
       value: candidate.id,
     }))
     .sort((left, right) => left.label.localeCompare(right.label));
+  // ADR-240 Phase 2 — 이름 영역은 추천 origin 에 더해 자유 내용 (팔레트 primitive) 을 받는다.
+  if (!isNamedRegionHost(slot.host)) return reusableOptions;
+  return [
+    ...reusableOptions,
+    ...SLOT_FILL_PRIMITIVE_TYPES.map((type) => ({
+      label: slotFillPrimitiveLabel(type),
+      value: `${PRIMITIVE_OPTION_PREFIX}${type}`,
+    })),
+  ];
 }
+
+const PRIMITIVE_OPTION_PREFIX = "primitive:";
 
 function getFilledLabel(
   children: unknown[],
@@ -146,30 +164,6 @@ function getFilledLabel(
   });
 
   return labels.length > 0 ? labels.join(", ") : "Empty";
-}
-
-function getFillNodeId(
-  candidate: PanelNode,
-  existingChildren: unknown[],
-): string {
-  const baseId = candidate.customId ?? candidate.id;
-  const existingIds = new Set(
-    existingChildren
-      .filter(isRecord)
-      .map((child) => child.id)
-      .filter((id): id is string => typeof id === "string"),
-  );
-
-  if (!existingIds.has(baseId)) return baseId;
-
-  let index = 2;
-  let nextId = `${baseId}-${index}`;
-  while (existingIds.has(nextId)) {
-    index += 1;
-    nextId = `${baseId}-${index}`;
-  }
-
-  return nextId;
 }
 
 export const ComponentSlotFillSection = memo(function ComponentSlotFillSection({
@@ -249,13 +243,24 @@ export const ComponentSlotFillSection = memo(function ComponentSlotFillSection({
   const filledLabel = getFilledLabel(filledChildren, elementsById);
 
   const handleFillSlot = () => {
-    const candidate = elementsById.get(selectedCandidateId);
-    if (!candidate || !selectedSlot) return;
-    if (!isSlotCandidateAllowed(selectedSlot.host, candidate)) return;
+    if (!selectedSlot) return;
+    const primitiveType = selectedCandidateId.startsWith(
+      PRIMITIVE_OPTION_PREFIX,
+    )
+      ? selectedCandidateId.slice(PRIMITIVE_OPTION_PREFIX.length)
+      : null;
+    const candidate = primitiveType
+      ? undefined
+      : elementsById.get(selectedCandidateId);
+    if (!primitiveType && !candidate) return;
+    if (candidate && !isSlotCandidateAllowed(selectedSlot.host, candidate)) {
+      return;
+    }
 
     // ADR-234 Phase 3 — 목록 틀 slot (TagList · TabList) 의 Fill = 항목 instance 추가: 상속 목록을 이어받아
     //   끝에 새 항목 (Tabs 는 짝 TabPanel 도). 빈 override 로 시작하면 상속 목록이 항목 1개로 바뀐다.
     if (
+      candidate &&
       resolveSlotInsertAction(selectedSlot.host, candidate).kind === "list-item"
     ) {
       const document = getActiveCanonicalDocument();
@@ -281,14 +286,11 @@ export const ComponentSlotFillSection = memo(function ComponentSlotFillSection({
     const currentChildren = getSlotFillChildren(latestInstance, selectedSlot);
     const effectiveChildren =
       pendingChildrenByPathRef.current[selectedSlot.path] ?? currentChildren;
-    const nextChildren = [
-      ...effectiveChildren,
-      {
-        id: getFillNodeId(candidate, effectiveChildren),
-        type: "ref",
-        ref: candidate.id,
-      },
-    ];
+    const fillNode = candidate
+      ? buildSlotFillRefNode(candidate, effectiveChildren)
+      : buildSlotFillNodeForType(primitiveType!, effectiveChildren);
+    if (!fillNode) return;
+    const nextChildren = [...effectiveChildren, fillNode];
     pendingChildrenByPathRef.current[selectedSlot.path] = nextChildren;
 
     void updateElement(element.id, {

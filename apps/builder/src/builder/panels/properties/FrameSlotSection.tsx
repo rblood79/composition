@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useState } from "react";
-import { Minus } from "lucide-react";
+import { Minus, X } from "lucide-react";
 import { SwatchIconButton } from "../../components/ui/SwatchIconButton";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import {
@@ -14,6 +14,7 @@ import {
   withFrameElementMirrorId,
 } from "../../../adapters/canonical/frameMirror";
 import {
+  useCanonicalPropertyChildren,
   useCanonicalPropertyElement,
   useCanonicalPropertyElementsMap,
 } from "./hooks/useCanonicalPropertyRead";
@@ -22,8 +23,14 @@ import {
   isSlotCandidateAllowed,
   isSlotHostElement,
   resolveSlotInsertAction,
+  ROOT_REGION_SLOT_HOST_TYPES,
   SELF_LIST_SLOT_HOST_TYPES,
 } from "../../components/slotHostPolicy";
+import {
+  SLOT_FILL_PRIMITIVE_TYPES,
+  buildSlotFillPrimitiveProps,
+  slotFillPrimitiveLabel,
+} from "../../components/slotFillNodes";
 import type { PanelNode } from "../panelNode";
 import { planTabItemInsert } from "../../components/collectionItemInsert";
 import { planGroupItemInsert } from "../../components/groupItemInsert";
@@ -122,6 +129,11 @@ export const FrameSlotSection = memo(function FrameSlotSection({
   );
   // instance 는 origin 의 slot 을 읽기 전용으로 쓴다 (추천 목록 편집은 origin 에서).
   const isInstanceListHost = instanceListMaster != null;
+  // ADR-240 Phase 2 — Popover · Tooltip instance root = 자유 내용 영역 (자기 자식 · inherited 뒤).
+  const isRootRegionInstance =
+    instanceListMaster != null &&
+    ROOT_REGION_SLOT_HOST_TYPES.has(instanceListMaster.type);
+  const ownChildren = useCanonicalPropertyChildren(elementId);
   const element = useMemo(
     () =>
       instanceListMaster && rawElement
@@ -135,6 +147,7 @@ export const FrameSlotSection = memo(function FrameSlotSection({
   );
   const { t } = useI18n();
   const addElement = useStore((state) => state.addElement);
+  const removeElements = useStore((state) => state.removeElements);
   const updateElement = useStore((state) => state.updateElement);
   const updateElementProps = useStore((state) => state.updateElementProps);
   const [selectedCandidateId, setSelectedCandidateId] = useState("");
@@ -359,6 +372,27 @@ export const FrameSlotSection = memo(function FrameSlotSection({
     );
   };
 
+  const handleInsertPrimitive = (type: string) => {
+    if (!rawElement) return;
+    void addElement(
+      withFrameElementMirrorId(
+        {
+          id: crypto.randomUUID(),
+          type,
+          parent_id: rawElement.id,
+          page_id: rawElement.page_id ?? null,
+          props: buildSlotFillPrimitiveProps(type),
+        } as AddElementInput,
+        getFrameElementMirrorId(rawElement),
+      ),
+    );
+  };
+
+  const handleClearOwnChildren = () => {
+    const ids = ownChildren.map((child) => child.id);
+    if (ids.length > 0) void removeElements(ids);
+  };
+
   return (
     <PropertySection title={t("propertiesPanel.slotSection")}>
       {/* 읽기 전용 값도 필드 어법 (legend + 값 상자) · 추천 목록은 공용 `.list-row` · 추천 추가는
@@ -462,6 +496,45 @@ export const FrameSlotSection = memo(function FrameSlotSection({
               ))
             )}
           </div>
+
+          {isRootRegionInstance && (
+            <div aria-label="Free content" className="frame-slot-list">
+              {SLOT_FILL_PRIMITIVE_TYPES.map((type) => {
+                const label = slotFillPrimitiveLabel(type);
+                return (
+                  <div className="list-row frame-slot-item" key={type}>
+                    <div className="list-row__body">
+                      <span className="list-row__label frame-slot-item-label">
+                        {label}
+                      </span>
+                    </div>
+                    <div className="list-row__actions">
+                      <button
+                        aria-label={`Insert ${label}`}
+                        className="list-row__action frame-slot-insert"
+                        onClick={() => handleInsertPrimitive(type)}
+                        type="button"
+                      >
+                        <AddIcon aria-hidden="true" size={12} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {isRootRegionInstance && ownChildren.length > 0 && (
+            <button
+              aria-label="Clear slot"
+              className="control-button"
+              onClick={handleClearOwnChildren}
+              type="button"
+            >
+              <X aria-hidden="true" size={14} />
+              <span>Clear</span>
+            </button>
+          )}
         </>
       )}
     </PropertySection>

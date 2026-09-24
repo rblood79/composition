@@ -136,6 +136,7 @@ import {
   toStyleNumericValue,
 } from "./utils/responsiveWriteRouting";
 import { mergePropsWithStyleDeep } from "../../adapters/canonical/instanceResolver";
+import { applyEditToSlotFill } from "../components/slotFillEdit";
 
 // CSS shorthand → longhand 분배 매핑 (inspectorActions 공용).
 // React inline style shorthand+longhand 공존 시 rerender 경고 + 엔진
@@ -496,6 +497,19 @@ function buildInstanceDescendantPatches(
       update.elementId,
     );
     if (!descendantPath) continue;
+
+    // ADR-240 Phase 2: mode C 로 채운 노드 (영역 채움 · 234 Slot "+" 항목) 는 배열 안 그 노드가 정본 —
+    //   두 해석기가 거기를 읽는다. 바깥 `descendants[path]` patch 는 어느 leg 도 안 읽는다.
+    const slotFillEdit = applyEditToSlotFill(
+      next,
+      descendantPath,
+      update.props as Record<string, unknown>,
+    );
+    if (slotFillEdit) {
+      Object.assign(next, slotFillEdit);
+      hasMappedChildPatch = true;
+      continue;
+    }
 
     const previousPatch = isRecord(next[descendantPath])
       ? next[descendantPath]
