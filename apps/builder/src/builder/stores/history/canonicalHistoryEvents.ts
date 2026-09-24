@@ -25,6 +25,7 @@ import {
   getDialogRegionPathRewrite,
   rewriteDialogRegionPathsInNode,
 } from "../../components/dialogRegionPaths";
+import { ensureRegionSlotsInSnapshot } from "../../components/regionSlotOrigins";
 import {
   getCanonicalRefOverrideEntries,
   getProjectableNodeLookups,
@@ -319,6 +320,7 @@ function collectHistoryResultElements(): Element[] {
 /**
  * ADR-240 Phase 1 — 이관 전에 저장된 스냅샷 (Dialog instance 의 옛 Description 경로) 을 재생 대상 문서의 영역
  * 구조에 맞춰 전치한다 (문서 이관과 같은 함수 · 멱등). 이관을 지나지 않은 문서면 그대로.
+ * Phase 3 (F28) — origin 스냅샷 (Components body 전체 · origin 하나) 도 같은 영역 이관을 거친다.
  */
 function alignHistoryEventsToRegions(
   doc: CompositionDocument,
@@ -330,10 +332,13 @@ function alignHistoryEventsToRegions(
     return events;
   }
   const rewrite = getDialogRegionPathRewrite(doc);
-  if (!rewrite) return events;
   return events.map((event) => {
     if (event.type !== "insert" && event.type !== "remove") return event;
-    const node = rewriteDialogRegionPathsInNode(event.node, rewrite);
+    // origin 스냅샷 (Components body · origin 하나) 은 영역 이관 · instance 스냅샷은 경로 전치 (F28).
+    const migrated = ensureRegionSlotsInSnapshot(event.node);
+    const node = rewrite
+      ? rewriteDialogRegionPathsInNode(migrated, rewrite)
+      : migrated;
     return node === event.node ? event : { ...event, node };
   });
 }

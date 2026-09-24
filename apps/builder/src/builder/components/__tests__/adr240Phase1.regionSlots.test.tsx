@@ -19,6 +19,7 @@ import { CARD_ORIGIN_ID } from "../card/cardTemplateOrigins";
 import {
   DIALOG_ACTIONS_REGION_ID,
   DIALOG_CONTENT_REGION_ID,
+  DIALOG_ORIGIN_ID,
 } from "../dialogRegionPaths";
 import { REGION_SLOT_SEEDS, ensureRegionSlots } from "../regionSlotOrigins";
 import {
@@ -441,6 +442,103 @@ describe("ADR-240 G1 — Dialog 구조 이관 · instance 경로 전치", () => 
       "redo",
     );
     expect(descText(redone)).toBe("B");
+  });
+
+  it("history 재생 — 이관 전 Components body 스냅샷 (origin 편집 기록) 을 Undo 해도 영역 구조가 남는다 (G4 사용자 IDB 모양)", () => {
+    // 사용자 저장 history (5173 · page-components 50 건) 의 모양: origin 편집 = Components body 전체 remove + insert.
+    const migrated = normalizeMainDocument(
+      preDoc({ [`${BODY}/${DESC}`]: { children: "B" } }),
+    );
+    const preBody = find(
+      toPre240(seedDocument()).children,
+      COMPONENTS_SYSTEM_BODY_ID,
+    )!;
+    const location = (() => {
+      const walk = (
+        nodes: readonly CanonicalNode[],
+        parentId: string,
+      ): { parentId: string; index: number } | null => {
+        for (const [index, node] of nodes.entries()) {
+          if (node.id === COMPONENTS_SYSTEM_BODY_ID) return { parentId, index };
+          const hit = walk(node.children ?? [], node.id);
+          if (hit) return hit;
+        }
+        return null;
+      };
+      return walk(migrated.children, "");
+    })()!;
+    const events = [
+      { type: "remove" as const, node: preBody, ...location },
+      {
+        type: "insert" as const,
+        node: { ...preBody, props: { ...preBody.props, "data-edit": 1 } },
+        ...location,
+      },
+    ];
+    const undone = applyCanonicalHistoryEventsToDocument(
+      migrated,
+      events,
+      "undo",
+    );
+    const dialogBody = find(undone.children, BODY)!;
+    expect((dialogBody.children ?? []).map((c) => c.id)).toContain(
+      DIALOG_CONTENT_REGION_ID,
+    );
+    expect(
+      (find(undone.children, FOOTER)!.children ?? []).map((c) => c.id),
+    ).toEqual([DIALOG_ACTIONS_REGION_ID, CLOSE]);
+    expect(
+      (
+        find(undone.children, `${CARD_ORIGIN_ID}__content`) as CanonicalNode & {
+          slot?: unknown;
+        }
+      ).slot,
+    ).toEqual(REGION_SLOT_SEEDS.card.content);
+    // 이관된 instance patch (새 경로) 가 되돌린 origin 에서도 적용된다.
+    const desc = (
+      (resolvedDialogBody(undone).children ?? []).find(
+        (c) => c.type === "frame",
+      ) as ResolvedNode | undefined
+    )?.children?.[0]?.props?.children;
+    expect(desc).toBe("B");
+    const redone = applyCanonicalHistoryEventsToDocument(
+      undone,
+      events,
+      "redo",
+    );
+    expect(
+      (find(redone.children, BODY)!.children ?? []).map((c) => c.id),
+    ).toContain(DIALOG_CONTENT_REGION_ID);
+  });
+
+  it("history 재생 — 이관 전 Dialog origin 하나의 스냅샷 (remove + insert) 을 Undo 해도 Content · Actions 영역이 남는다", () => {
+    const migrated = normalizeMainDocument(preDoc({}));
+    const preOrigin = find(toPre240(seedDocument()).children, DIALOG_ORIGIN_ID)!;
+    const events = [
+      {
+        type: "remove" as const,
+        node: preOrigin,
+        parentId: COMPONENTS_SYSTEM_BODY_ID,
+        index: 0,
+      },
+      {
+        type: "insert" as const,
+        node: { ...preOrigin, props: { ...preOrigin.props, "data-edit": 1 } },
+        parentId: COMPONENTS_SYSTEM_BODY_ID,
+        index: 0,
+      },
+    ];
+    const undone = applyCanonicalHistoryEventsToDocument(
+      migrated,
+      events,
+      "undo",
+    );
+    expect(
+      (find(undone.children, BODY)!.children ?? []).map((c) => c.id),
+    ).toContain(DIALOG_CONTENT_REGION_ID);
+    expect(
+      (find(undone.children, FOOTER)!.children ?? []).map((c) => c.id),
+    ).toEqual([DIALOG_ACTIONS_REGION_ID, CLOSE]);
   });
 });
 

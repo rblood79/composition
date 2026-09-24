@@ -181,24 +181,47 @@ function migrateDialogOrigin(origin: CanonicalNode): CanonicalNode {
 const POPOVER_ORIGIN_ID = catalogReusableOriginId("Popover");
 const TOOLTIP_ORIGIN_ID = catalogReusableOriginId("Tooltip");
 
+/** origin 하나의 영역 seed · Dialog 구조 이관 (대상 아니면 같은 객체). */
+function patchRegionOrigin(node: CanonicalNode): CanonicalNode {
+  if (node.reusable !== true) return node;
+  if (node.id === CARD_ORIGIN_ID) return seedCardRegions(node);
+  if (node.id === POPOVER_ORIGIN_ID && node.type === "Popover") {
+    return withSlotIfMissing(node, REGION_SLOT_SEEDS.popover);
+  }
+  if (node.id === TOOLTIP_ORIGIN_ID && node.type === "Tooltip") {
+    return withSlotIfMissing(node, REGION_SLOT_SEEDS.tooltip);
+  }
+  if (node.id === DIALOG_ORIGIN_ID) return migrateDialogOrigin(node);
+  return node;
+}
+
+/**
+ * ADR-240 Phase 3 (F28) — 저장 history 스냅샷 (origin 편집 = Components body 전체 · 또는 origin 하나의 remove + insert)
+ * 을 재생 시점에 같은 영역 이관으로 맞춘다. 이관 전 스냅샷을 Undo 해도 origin 이 240 전 구조로 돌아가지 않는다
+ * (instance 경로는 이미 전치돼 있어 되돌린 origin 과 어긋난다). 대상 아니면 같은 객체.
+ */
+export function ensureRegionSlotsInSnapshot(node: CanonicalNode): CanonicalNode {
+  if (node.id === COMPONENTS_SYSTEM_BODY_ID) {
+    const children = (node.children ?? []).map(patchRegionOrigin);
+    return children.every((child, index) => child === node.children![index])
+      ? node
+      : { ...node, children };
+  }
+  return patchRegionOrigin(node);
+}
+
 export function ensureRegionSlots(
   document: CompositionDocument,
 ): CompositionDocument {
   let changed = false;
   let dialogRewrite: DialogRegionPathRewrite | null = null;
   const patchOrigin = (node: CanonicalNode): CanonicalNode => {
-    if (node.reusable !== true) return node;
-    let next = node;
-    if (node.id === CARD_ORIGIN_ID) next = seedCardRegions(node);
-    else if (node.id === POPOVER_ORIGIN_ID && node.type === "Popover") {
-      next = withSlotIfMissing(node, REGION_SLOT_SEEDS.popover);
-    } else if (node.id === TOOLTIP_ORIGIN_ID && node.type === "Tooltip") {
-      next = withSlotIfMissing(node, REGION_SLOT_SEEDS.tooltip);
-    } else if (node.id === DIALOG_ORIGIN_ID) {
-      next = migrateDialogOrigin(node);
-      if (next !== node) dialogRewrite = buildDialogRegionPathRewrite(next);
+    const next = patchRegionOrigin(node);
+    if (next === node) return node;
+    if (node.id === DIALOG_ORIGIN_ID) {
+      dialogRewrite = buildDialogRegionPathRewrite(next);
     }
-    if (next !== node) changed = true;
+    changed = true;
     return next;
   };
   const visit = (nodes: readonly CanonicalNode[]): CanonicalNode[] =>
