@@ -92,6 +92,35 @@ describe("ADR-239 판독 M1 — 소속 Tree 없는 TreeItem host", () => {
       kind: "instance",
       instanceId: "ti",
     });
+    // 수리 검증 판독 — 사용자 컴포넌트 (frame origin) 안 Tree 의 상속 항목: 소속 Tree 는 origin 안쪽 경로에 있다.
+    const user = seededDoc([
+      {
+        id: "uc",
+        type: "frame",
+        reusable: true,
+        props: {},
+        children: [
+          {
+            id: "uc-tree",
+            type: "Tree",
+            props: {},
+            children: [
+              {
+                id: "uc-ti",
+                type: "ref",
+                ref: TREE_ITEM_DEFAULT_ORIGIN_ID,
+                props: { id: "uc-ti" },
+              },
+            ],
+          },
+        ],
+      },
+      { id: "u1", type: "ref", ref: "uc", props: {} },
+    ] as unknown as CanonicalNode[]);
+    expect(plan(user, "u1/uc-tree/uc-ti")).toMatchObject({
+      kind: "instance",
+      instanceId: "u1",
+    });
   });
 
   it('Slot host 표시 — origin · 상태 변형에는 Slot "+" 가 없다', () => {

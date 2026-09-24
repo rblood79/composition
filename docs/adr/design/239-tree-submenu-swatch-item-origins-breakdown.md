@@ -188,3 +188,4 @@
 - **L1 (수리)**: history 재생이 되살리는 origin 을 body 끝에 붙였다 → 현재 body 의 앞 형제 뒤 자리 (`placeCarried`).
 - **L2 · L3 · L4 (LOW deferred)**: 세션 중 만든 plain Tree 를 Undo 하면 이관된 모양 (hydration 결과와 같음) · leaf deps 가 Tree instance canonical 동일성만 본다 (origin `selectedKeys` 만 편집 · instance 전용 key 포함 — 237 가족, 경로 희박) · 재생 이관 비용 (이벤트 수 × body).
 - 원복 RED 3/3 (계획 가드 · host 표시 · 자리). 회귀: builder 7,509 · type-check 0.
+- **수리 검증 판독 (`4f72cfe6b`)**: M1 · L1 닫힘 확인. MEDIUM 1 (수리가 만든 회귀) — 사용자 컴포넌트 (frame origin) 안 Tree 의 상속 TreeItem 에 Slot "+" 가 no-op (synthetic 분기가 소속 Tree 를 instance 의 문서 조상에서만 찾았다) → origin 안쪽 경로 (`findTreeItemOwner([master], …, listHit)`) 를 먼저 본다. 반증 fixture (`uc` / `u1`) RED → GREEN. LOW deferred: Tree 밖 TreeItem instance 에 "+" 가 보이고 누르면 no-op (데이터 영향 없음 · 경로 희박). **판독 종결 (실행자 선언, 판독 1 + 수리 검증 1 · HIGH 0)**.

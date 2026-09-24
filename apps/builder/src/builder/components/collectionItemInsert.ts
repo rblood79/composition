@@ -442,7 +442,11 @@ export function planTabItemInsert(input: {
   const family = listHit && listType ? familyOf(listType) : undefined;
   if (!listHit || !family) return null;
   // 상속 항목 host — origin 이 Tree 이거나 instance (TreeItem) 자신이 Tree 안에 있어야 한다 (M1).
-  if (master.type !== "Tree" && lacksTreeOwner(family, listType!, instance.id)) {
+  // 소속 Tree 는 origin 안쪽 경로 (Tree origin · 사용자 컴포넌트 안 Tree) 에서 먼저, 없으면 instance 쪽 (Tree 안 항목 instance).
+  if (
+    !findTreeItemOwner([master], byId, listHit.node.id) &&
+    lacksTreeOwner(family, listType!, instance.id)
+  ) {
     return null;
   }
   const tabPanels =
