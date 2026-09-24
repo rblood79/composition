@@ -33,6 +33,7 @@ import {
   slotFillPrimitiveLabel,
 } from "../../components/slotFillNodes";
 import { planTabItemInsert } from "../../components/collectionItemInsert";
+import { planTableColumnInsert } from "../../components/tableColumnInsert";
 import {
   collectSlotFillHosts,
   readSlotFill,
@@ -254,6 +255,26 @@ export const ComponentSlotFillSection = memo(function ComponentSlotFillSection({
       : elementsById.get(selectedCandidateId);
     if (!primitiveType && !candidate) return;
     if (candidate && !isSlotCandidateAllowed(selectedSlot.host, candidate)) {
+      return;
+    }
+
+    // ADR-241 Phase 2 — instance 의 TableHeader slot Fill = 자기 열 추가 (mode C · 상속 열 이어받기 · key 유일).
+    if (
+      candidate &&
+      resolveSlotInsertAction(selectedSlot.host, candidate).kind ===
+        "table-column"
+    ) {
+      const document = getActiveCanonicalDocument();
+      const plan = document
+        ? planTableColumnInsert({
+            document,
+            hostId: `${element.id}/${selectedSlot.path}`,
+          })
+        : null;
+      if (plan?.kind !== "instance") return;
+      void updateElement(plan.instanceId, {
+        [COMPONENT_DESCENDANTS_MIRROR_FIELD]: plan.descendants,
+      } as UpdateElementPatch);
       return;
     }
 

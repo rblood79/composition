@@ -90,6 +90,12 @@ const CANONICAL_DESCENDANTS_ALLOWLIST = new Set([
   //   (`COMPONENT_DESCENDANTS_MIRROR_FIELD`) 로 store 에 쓴다. 필드 이름은 adapter 가 정한다.
   "apps/builder/src/builder/panels/properties/ComponentSlotFillSection.tsx",
   "apps/builder/src/builder/panels/properties/FrameSlotSection.tsx",
+  // ADR-241 Phase 2 — Table 열 "+" 계획 (instance TableHeader mode C · origin 열 patch 이관) 과 그 쓰기 (Slot "+" ·
+  //   quick connect · Preview 열 감지). 계획은 canonical `RefNode.descendants` 를 만들고, 쓰기는 adapter 소유 필드로 store 에.
+  "apps/builder/src/builder/components/tableColumnInsert.ts",
+  "apps/builder/src/builder/components/tableColumnWrite.ts",
+  "apps/builder/src/builder/panels/datatable/utils/quickConnect.ts",
+  "apps/builder/src/builder/hooks/useIframeMessenger.ts",
 ]);
 
 const COMMENT_LINE_PATTERN = /^\s*(\/\/|\*|\/\*|\*\/)/;

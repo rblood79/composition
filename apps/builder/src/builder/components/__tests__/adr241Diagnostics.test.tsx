@@ -210,7 +210,7 @@ describe("ADR-241 진단 (c) — Table · TableView origin 의 TableHeader · Ta
     expect(body?.children?.map((r) => r.children?.length)).toEqual([3]);
   });
 
-  it.fails(
+  it(
     "Table · TableView origin 의 TableHeader 는 slot host (Column origin 추천) — Phase 2 GREEN",
     () => {
       const doc = seedDocument();

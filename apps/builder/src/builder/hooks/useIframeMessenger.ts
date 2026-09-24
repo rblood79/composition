@@ -55,7 +55,13 @@ import {
 // 있었다. Builder → Preview 동기화는 `UPDATE_CANONICAL_DOCUMENT` 단일 채널.
 // 🚀 Phase 11: Feature Flags for WebGL-only mode optimization
 import { isWebGLCanvas, isCanvasCompareMode } from "../../utils/featureFlags";
-import { useActiveCanonicalDocument } from "../stores/canonical/canonicalElementsBridge";
+import {
+  getActiveCanonicalDocument,
+  useActiveCanonicalDocument,
+} from "../stores/canonical/canonicalElementsBridge";
+import { isSyntheticDescendantId } from "../stores/canonical/syntheticDescendantLookup";
+import { COMPONENT_DESCENDANTS_MIRROR_FIELD } from "../../adapters/canonical/componentSemanticsMirror";
+import { planPreviewDetectedColumns } from "../components/tableColumnInsert";
 import { useCanonicalDocumentStore } from "../stores/canonical/canonicalDocumentStore";
 import { getActiveCanonicalElementById } from "../stores/canonical/canonicalElementsView";
 import { getCanonicalDocumentProjectableNodeIds } from "../stores/canonical/canonicalTraversalHelpers";
@@ -779,6 +785,24 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
         // (Quick Connect 가 schema 컬럼을 바인딩보다 먼저 싣는다) Preview 의 감지 요청은
         // 옛 문서 기준이다. 받아들이면 컬럼이 중복되고 undo 뒤 되살아난다 → 버린다.
         const headerId = event.data.payload.tableHeaderId as string | undefined;
+        // ADR-241 Phase 2 — ref instance Table 의 TableHeader 는 해석 id (`<instance>/<경로>`) 로 온다: 합성 부모에
+        //   Column 을 넣지 않고 instance 자기 열 (mode C) 로 쓴다. 이미 열이 있으면 (quick connect 가 먼저 씀) 버린다.
+        if (headerId && isSyntheticDescendantId(headerId)) {
+          const document = getActiveCanonicalDocument();
+          const plan = document
+            ? planPreviewDetectedColumns(
+                document,
+                headerId,
+                event.data.payload.columns,
+              )
+            : null;
+          if (plan?.kind === "instance") {
+            void useStore.getState().updateElement(plan.instanceId, {
+              [COMPONENT_DESCENDANTS_MIRROR_FIELD]: plan.descendants,
+            } as Partial<Element>);
+          }
+          return;
+        }
         if (
           headerId &&
           useStore
