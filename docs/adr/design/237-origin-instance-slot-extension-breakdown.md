@@ -1,0 +1,126 @@
+# ADR-237 구현 상세 — origin · instance · slot 적용 확장
+
+> 본문: [ADR-237](../237-origin-instance-slot-extension.md) · base: [ADR-234](../completed/234-variant-instances-and-slot-filled-collections.md) ([breakdown](234-variant-instances-and-slot-filled-collections-breakdown.md))
+
+## 1. 전제 확정 기록 (fork 4 질문 · 사용자 confirm)
+
+사용자 confirm 2026-09-24 (AskUserQuestion 2문항 — 범위 · 전제):
+
+1. **base / 응용**: 234 가 origin · instance · slot 의 뜻 (변형 = 완성된 상태 origin 의 ref · slot = 목록 틀의 추천 항목 · 목록 = instance 자식) 을 정한 base 다. 237 은 그 모델을 234 가 다루지 않은 컴포넌트에 적용하는 응용이다. 234 의 결정은 재검토하지 않는다.
+2. **schema 직교성**: 새 저장 필드 없음. `slot` · `enabled` · `type: "ref"` + `reusable` · `metadata.variant` 는 234 것 그대로. 새 상태 이름 `expanded` 는 `metadata.variant` 값 하나를 더한다 (필드 아님).
+3. **선행 전제 역전 검증**: 의존 방향 237 → 234 단방향. 234 가 범위 밖으로 둔 Breadcrumbs 를 237 이 같은 규칙으로 옮긴다 — 234 의 "정적 목록 = 자식 · 바인딩 = `items`" 전제를 그대로 따른다.
+4. **범위**: 사용자 선택 "1+2" — ① 그룹 컨테이너 slot + CardView ref 수리 + IconButton 변형 수리 ② Breadcrumbs 항목 이관 + 항목 상태 변형 (hover · pressed · disabled · focus-visible, GridListItem selected, Disclosure expanded). Select · ComboBox · Tree · Table 은 후속.
+
+## 2. 레퍼런스 — RAC starter (`packages/react-aria-starter/src`, read-only)
+
+| ID  | 사실                                                                                                                                                                                                                                                       |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | 그룹 컨테이너의 자식은 독립 RAC 컴포넌트다 — `<CheckboxGroup><Checkbox value>` · `<RadioGroup><Radio value>` · `<ToggleButtonGroup><ToggleButton id>` · `<DisclosureGroup><Disclosure id>` · `<Toolbar>`.                                                  |
+| R2  | RAC 그룹의 선택은 자식 key 로 정해진다 — CheckboxGroup `value: string[]` ↔ Checkbox `value` · ToggleButtonGroup `selectedKeys` ↔ ToggleButton `id` · RadioGroup `value` ↔ Radio `value`. composition wrapper 는 이 key 에 무엇을 넣는지 따로 정한다 (F11). |
+| R3  | `Breadcrumbs` 는 collection — 정적 `<Breadcrumb id>` 자식 또는 `items` + render 함수. 마지막 항목이 현재 (`data-current`), 현재 항목은 링크가 아니다 (`Breadcrumbs.tsx`).                                                                                  |
+| R4  | 항목 컴포넌트 (Tab · Tag · ListBoxItem · GridListItem · MenuItem) 의 render props = `isSelected` · `isHovered` · `isPressed` · `isFocusVisible` · `isDisabled`. DOM 구조는 상태와 무관.                                                                    |
+| R5  | `Disclosure` render prop `isExpanded` (`data-expanded`) — 펼침 여부로 panel 표시만 바뀌고 DOM 구조 (header · panel) 는 같다. DisclosureGroup `allowsMultipleExpanded:false` 면 첫 key 만 펼친다.                                                           |
+
+## 3. 코드 사실 (2026-09-24, main `be0b657d2`)
+
+| ID  | 사실                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | 위치                                                                                                                                                                                                  |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F1  | Slot "+" 동작 · host 판정 · 후보 판정이 type 별 if 문 5종 (TabList · TagList · ListBox · GridList · Menu) + Frame 가족으로 고정. 그룹 컨테이너는 host 가 될 수 없다.                                                                                                                                                                                                                                                                                                                                                                                                                                             | `apps/builder/src/builder/components/slotHostPolicy.ts:214-236,238-246,248-`                                                                                                                          |
+| F2  | 그룹 origin 자식은 이미 origin 의 ref 다 (229 규칙) — CheckboxGroup · RadioGroup · ToggleButtonGroup · DisclosureGroup · ButtonGroup · Pagination · AvatarGroup · Nav · Toolbar. canonical `slot` 은 이 9종 어디에도 없다.                                                                                                                                                                                                                                                                                                                                                                                       | `apps/builder/src/builder/components/originChildRefs.ts:289-326` · `__tests__/originChildRefs.test.ts:281-333`                                                                                        |
+| F3  | CardView 의 Card 자식 3 은 `subtree-mismatch` 로 plain 에 남아 있다 (Card 자식 0 ≠ Card origin 자식 4).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | `originChildRefs.ts:353-360` · [229 breakdown F24](229-collection-item-template-and-nested-origin-instances-breakdown.md)                                                                             |
+| F4  | 상태 변형 base 판정이 `node.id === catalogReusableOriginId(type)` — root type 이 Button 인 IconButton origin (`component-iconbutton`) 은 변형이 생기지 않는다.                                                                                                                                                                                                                                                                                                                                                                                                                                                   | `apps/builder/src/builder/components/stateVariantOrigins.ts:218-226`                                                                                                                                  |
+| F5  | 상태 변형 대상 표 = Button · ToggleButton · Link · Checkbox · Switch · Radio. 항목 템플릿 변형은 selected 쌍 3 (Tab · Tag · ListBoxItem) 뿐 — GridListItem 은 "selected 가 없어 대상 밖", MenuItem 은 표에 없음.                                                                                                                                                                                                                                                                                                                                                                                                 | `stateVariantOrigins.ts:51-61` · `stateVariantMigration.ts:236-256`                                                                                                                                   |
+| F6  | Canvas 유효 상태: selected = 강제 → 항목 owner (Tab/Tag/ListBoxItem/GridListItem) 선택 key → 자기 `isSelected` / `_isSelected` → (Radio 만) 조상 RadioGroup `value` ↔ 자기 `value`. Checkbox · ToggleButton 은 자기 `isSelected` 가 정본 (Preview 와 같음 — F11). hover · pressed · focus 는 Preview 소관 (150 A1 철회).                                                                                                                                                                                                                                                                                         | `apps/builder/src/adapters/canonical/canonicalRefResolution.ts:1195-1300`                                                                                                                             |
+| F7  | Preview 상태 층은 instance 의 `_stateLayers` projection 을 RAC render props (`style` · `children` 함수) 로 겹친다. render props 가 없는 경로는 selected · disabled 만. 상태 어휘 = selected · disabled · hovered · pressed · focusVisible (`expanded` 없음).                                                                                                                                                                                                                                                                                                                                                     | `apps/builder/src/preview/utils/stateLayerRender.ts:27-60` · `preview/components/CanonicalNodeRenderer.tsx:531-593`                                                                                   |
+| F8  | Breadcrumbs 는 `items` 정본 (factory seed 3행). Canvas 는 `breadcrumb-row` projection 가상 행, Preview 는 `items` 가 비고 Breadcrumb 자식이 있으면 자식을 그리는 BC 폴백이 이미 있다.                                                                                                                                                                                                                                                                                                                                                                                                                            | `factories/definitions/GroupComponents.ts:353-367` · `workspace/canvas/scene/canvasSceneNode.ts:2858-2880` · `packages/shared/src/renderers/LayoutRenderers.tsx:1095-1170`                            |
+| F9  | 정적 목록 이관 가족 표 = Tabs · TagGroup · ListBox · GridList · Menu. 바인딩 owner 는 origin 정적 항목을 펼치지 않는다 (공용 표).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | `components/staticCollectionMigration.ts:308-314` · `packages/shared/src/catalog/slotRoles.ts` (`STATIC_LIST_FAMILY_BY_OWNER`)                                                                        |
+| F10 | Disclosure 편집 surface = title · `isExpanded` · size. origin 자식 = DisclosureHeader · DisclosureContent (plain sub-part).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | `packages/shared/src/catalog/bindings/Disclosure.binding.ts:26-40` · `factories/definitions/NavigationComponents.ts:230-247`                                                                          |
+| F11 | Preview 그룹 선택 계약 = **자식 `isSelected` 가 정본, 그룹 값은 writeback 거울**. CheckboxGroup: `isSelected` 자식의 node id 배열 → `defaultValue` (uncontrolled, key 에 선택 서명을 묶어 re-mount), Checkbox `value = node id`, onChange 는 그룹 `value` (node id 배열) + 자식 `isSelected` 를 같이 쓴다. ToggleButtonGroup: 같은 구조 (`defaultSelectedKeys` = node id, ToggleButton `id = node id`). RadioGroup: `isSelected` 자식의 `props.value` → `defaultValue`, 없으면 그룹 `value`; Radio key = `props.value`. controlled 로 바꾸면 canonical 렌더 경로가 store 변경을 못 봐 표시가 멈춘다 (주석 기록). | `packages/shared/src/renderers/FormRenderers.tsx:728-822,940-1000` · `packages/shared/src/renderers/CollectionRenderers.tsx:690-800`                                                                  |
+| F12 | ref 자식 제거 (`enabled:false`) 가 실행 중 상태 층보다 먼저 일어난다 — Preview resolver 는 ref 자식을 `isResolvedEnabled` 로 걸러낸 뒤 상태 projection 을 만들고, Canvas 는 자식 생성 자체를 건너뛴다. 제거된 자식은 어떤 상태에서도 돌아오지 않는다.                                                                                                                                                                                                                                                                                                                                                            | `apps/builder/src/resolvers/canonical/index.ts:234,244-265` · `canonicalRefResolution.ts:1108-1114`                                                                                                   |
+| F13 | Disclosure 유효 펼침 SSOT = `isDisclosureExpandedInContext` (prop 부재 = 펼침 · 그룹 `allowsMultipleExpanded:false` 면 첫 후보만). Canvas layout · chevron · Preview 가 이미 이 판정을 쓴다.                                                                                                                                                                                                                                                                                                                                                                                                                     | `packages/shared/src/utils/disclosureGroupExpansion.ts:40-92` · `workspace/canvas/layout/engines/implicitStyles.ts:3842-3868` · `skia/buildSpecNodeData.ts:785-804` · `LayoutRenderers.tsx:1716-1722` |
+
+## 4. Phase
+
+### Phase 0 — inventory freeze (G0)
+
+- F1~F13 재grep 일치 확인. ADR-236 (술어 모듈 · 타입 특성 표) 진행 상태 확인 — 236 이 먼저 반영됐으면 §4 Phase 1 의 slot host 표를 236 특성 표 위치에 둔다 (표 내용은 같음).
+- 진단 RED:
+  - (a) 그룹 instance 에서 Slot "+" 가 보이지 않음 (F1).
+  - (b) Slot 으로 넣은 Radio 가 기존 자식과 같은 `value` → RAC 선택이 둘 다 켜짐 (Radio 만 key 가 `props.value` — F11. Checkbox · ToggleButton · Disclosure 는 node id 라 유일).
+  - (c) 선택 계약 고정 (GREEN 기대 — 바꾸지 않는 것을 확인): 그룹에 Slot 으로 넣은 Checkbox/ToggleButton instance 의 `isSelected` 가 Canvas selected 모양 · Preview `defaultValue`/`defaultSelectedKeys` · 클릭 writeback (그룹 값 = node id) 에서 같은 key 로 읽힌다 (F6 · F11). 그룹 `value`/`selectedKeys` 만 있고 자식 `isSelected` 가 없는 문서는 두 leg 모두 비선택 (현행 — 237 이 바꾸지 않음).
+  - (d) IconButton origin 에 변형 0 (F4).
+  - (e) Tab/Tag/ListBoxItem/GridListItem/MenuItem 의 hover 변형 편집이 Preview hover 에 안 닿음 (변형 노드 부재 — F5).
+  - (f) Disclosure `expanded` 변형 어휘 부재 (F7) · `enabled:false` 로 숨긴 자식이 `isExpanded:true` 로 돌아오지 않음 (F12 — 변형 설계가 구조 patch 를 쓰면 안 되는 근거) · 그룹 `allowsMultipleExpanded:false` 에서 raw `isExpanded:true` 인 둘째 Disclosure 의 유효 상태 = 접힘 (F13).
+  - (g) 정적 Breadcrumb 자식이 Canvas 에 안 그려짐 (F8 — projection 은 `items` 만 읽음).
+- 쓰기 경로 표: 팔레트 · factory · AI tool · Pencil import · 붙여넣기가 그룹 자식 · Breadcrumbs 항목을 어떤 모양으로 쓰는지.
+- 이관 수식 실측: 문서당 (i) Components 페이지 새 변형 노드 수 (항목 5종 × 상태 수 + GridListItem 선택 쌍 + Disclosure 1 + IconButton 변형) (ii) 그룹 origin slot 필드 9 (iii) 사용자 정적 Breadcrumbs 1개당 항목 `n` → ref 자식 `n` 의 Δbyte (iv) CardView Card 3 의 ref + `enabled:false` patch Δbyte.
+
+### Phase 1 — 그룹 컨테이너 slot · IconButton · CardView (G1)
+
+- **slot host 표 하나**: `slotHostPolicy.ts` 의 type 별 if 문을 표 `{hostType → 후보 origin 판정 · 넣기 동작 · key 배정}` 으로 바꾼다. 기존 5종은 행으로 옮기고 동작 무변경 (원복 대조). 새 행:
+
+  | host                     | 후보 origin                       | 넣기                          | key 배정             |
+  | ------------------------ | --------------------------------- | ----------------------------- | -------------------- |
+  | CheckboxGroup            | Checkbox (+ 변형)                 | 자식 ref                      | 없음 (key = node id) |
+  | RadioGroup               | Radio (+ 변형)                    | 자식 ref                      | `value` 유일값       |
+  | ToggleButtonGroup        | ToggleButton (+ 변형)             | 자식 ref                      | 없음 (key = node id) |
+  | DisclosureGroup          | Disclosure (+ 변형)               | 자식 ref                      | 없음 (key = node id) |
+  | ButtonGroup · Pagination | Button (+ 변형)                   | 자식 ref                      | 없음                 |
+  | AvatarGroup              | Avatar                            | 자식 ref                      | 없음                 |
+  | Nav                      | Link (+ 변형)                     | 자식 ref                      | 없음                 |
+  | Toolbar                  | Button · ToggleButton · Separator | 자식 ref (Separator 는 plain) | 없음                 |
+
+- **seed · repair**: 9종 origin 에 `slot: [후보 origin id…]` — 새 문서는 seed, 기존 문서는 hydration repair (reusable 이고 slot 이 없을 때만, 234 Menu 이관과 같은 조건).
+- **선택 계약 (review round 1 h1)**: 그룹 선택의 정본은 **자식 `isSelected`** (현행 두 leg 계약 F6 · F11) 를 그대로 쓴다 — 그룹 `value`/`selectedKeys` 를 새 선택 원천으로 만들지 않고 Canvas 선택 owner 도 추가하지 않는다. Slot "+" 는 후보가 선택 상태 origin 이면 새 자식에 `isSelected: true`, `--unselected` 면 `false` 를 자기 prop 으로 쓴다 (Tag/Selected 가 `selectedKeys` 를 쓰는 것과 같은 자리). 넣은 뒤 그룹 writeback (onChange 가 쓰는 그룹 값 = node id 배열 · 자식 `isSelected`) 은 기존 경로 그대로. Radio 만 key 가 `props.value` 라 유일값을 배정한다.
+- **IconButton**: 변형 base 판정을 id 비교에서 "reusable origin 이고 root type 이 표에 있음" 으로. IconButton 변형 = Button 과 같은 상태 집합, 자식 (Icon · Text) patch 는 234 descendants 규칙.
+- **CardView**: Card 자식 3 을 Card origin ref + origin 에만 있는 자식 4 는 `descendants: {id: {enabled: false}}` 로 변환 (시각 보존). 새 seed 는 ref 로, 기존 문서는 hydration 이관.
+
+### Phase 2 — 항목 · Disclosure 상태 변형 (G2)
+
+- **항목 템플릿 5종의 상호작용 변형**: Tab · Tag · ListBoxItem · GridListItem · MenuItem 에 hover · pressed · focus-visible · disabled 변형 (origin 의 ref). 선택 가능한 4종은 234 규칙대로 origin = 선택 상태 — GridListItem 은 새로 origin = selected + `--unselected` ref 로 전환 (234 Tab/Tag/ListBoxItem 이관과 같은 이관 함수).
+- 변형 대상 표를 base 요소 6 + 항목 템플릿 5 + IconButton + Disclosure 로 확장하고 seed · repair · 이관이 표 하나를 읽는다.
+- **Disclosure `expanded` (review round 1 h2 · m1)**: origin = 펼친 상태, `--collapsed` = ref + **props `isExpanded: false` 와 style patch 만** — 구조 patch (`enabled:false`) 금지. RAC 처럼 상태가 바뀌어도 구조는 같고, 본문 표시는 유효 펼침 상태가 정한다 (Canvas layout 의 content 제외 · Preview RAC panel). `enabled:false` 는 상태 해석 전에 자식을 지우므로 (F12) 펼침으로 되돌릴 수 없다 — 그래서 상태 변형은 "상태가 표시를 정하는 자식" 에 `enabled` patch 를 싣지 않는다 (seed · 이관 · Styles 패널 쓰기에서 거부, unit 고정). instance 가 직접 저장한 `enabled:false` 는 계속 존중. 상태 어휘에 `expanded` 추가 — Canvas 유효 상태 = 강제 (Components 변형 노드 `metadata.variant`) → `isDisclosureExpandedInContext` (F13 — prop 부재 = 펼침 · 그룹 단일 펼침 제약) 순서, Preview = RAC render prop `isExpanded` (RAC DisclosureGroup 이 같은 제약을 이미 적용). 왕복 검증: origin 참조 · `--collapsed` 참조 각각 닫힘 → 펼침 → 닫힘에서 본문 · chevron · 상태 층이 같이 바뀐다.
+- Preview: 항목 wrapper 5종이 render props 로 상태 층을 겹치는지 원복 RED 로 확인 — 못 넘기는 wrapper 는 그 컴포넌트만 보류하고 보고 (234 §6 규칙).
+- Canvas: hover · pressed · focus 는 계속 그리지 않는다 (Components 페이지 변형 노드 자신만 강제 상태로).
+
+### Phase 3 — Breadcrumbs 항목 origin · slot · 이관 (G3)
+
+- **항목 origin**: `component-breadcrumb-item-default` (Breadcrumb, 링크 상태 — 구분자 포함, 가장 완성된 모양) + `--current` ref (현재 항목: 링크 아님 · 구분자 없음). 구분자 · 현재 판정은 RAC 위치 규칙 (마지막 = current) 이 정본이고 `--current` 변형은 그 상태의 모양만 정한다.
+- **slot**: Breadcrumbs origin `slot: [item-default, --current]` · Slot "+" = 항목 instance (key `id` 유일값 · `href`).
+- **이관**: 가족 표에 `BREADCRUMBS_STATIC_FAMILY` (목록 틀 = owner 자신). 행 → `props.id` · label · `href`. 바인딩 목록 (`dataBinding` · `columnMapping`) 은 `items` 유지, 바인딩 제외 표에도 추가.
+- **Canvas**: 정적 자식이 있는 Breadcrumbs 는 projection 대신 자식을 그린다 (한 줄 flex nowrap 은 owner 가 · 구분자 · 마지막 판정은 Breadcrumb 쪽 기존 shape). **Preview**: F8 BC 폴백 경로를 정본으로 — key = `props.id`, 현재 항목 상태 층.
+- 쓰기 경로 (팔레트 · factory · AI tool · Pencil import) 를 정적 자식으로. AI tool 정적 항목 작성은 234 와 같이 범위 밖이면 표에 명시.
+
+### Phase 4 — live · 성능 · BC · 문서 (G4 · G5)
+
+- live (headed Playwright, Skia · store 만 — Compare Mode · Preview iframe 미개방): 그룹 9종 Slot "+" · 넣은 항목의 선택 모양 (선택 후보 → `isSelected`) · Radio `value` 유일 · Disclosure 왕복 (닫힘 → 펼침 → 닫힘) · IconButton 변형 · CardView 픽셀 · 항목 변형 노드 · Disclosure 두 변형 · Breadcrumbs 자식 + Slot "+" · reload 같음 · 오류 0. Preview 는 renderer unit + 사용자 확인.
+- 성능: `scene.build` — 234 G4 방식 (같은 세션 headed A/B, 이관 전 빌드 arm). 대상 = Breadcrumbs 100 × 5 · CheckboxGroup 100 × 5.
+- BC: 가족별 이관 전후 Canvas 픽셀 동일 (Breadcrumbs · CardView) · Δbyte 수식 일치 · 재hydration Δ0.
+- README · CHANGELOG · ADR `### Live Exercise`.
+
+## 5. 파일 경계 (예상)
+
+| 영역               | 파일                                                                                                                                                                                                                 |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| slot host 표       | `components/slotHostPolicy.ts` · `panels/properties/ComponentSlotFillSection.tsx` · `FrameSlotSection.tsx`                                                                                                           |
+| seed · 이관        | `components/reusableCompositeOrigins.ts` · `originChildRefs.ts` · `stateVariantOrigins.ts` · `stateVariantMigration.ts` · `staticCollectionMigration.ts` · 새 `components/breadcrumbs/breadcrumbsTemplateOrigins.ts` |
+| 유효 상태 (두 leg) | `adapters/canonical/canonicalRefResolution.ts` · `components/stateVariantLayers.ts` · `preview/utils/stateLayerRender.ts`                                                                                            |
+| Breadcrumbs 렌더   | `workspace/canvas/scene/canvasSceneNode.ts` (projection) · layout `implicitStyles.ts` · `packages/shared/src/renderers/LayoutRenderers.tsx` · shared `Breadcrumbs.tsx`                                               |
+| 바인딩 제외 표     | `packages/shared/src/catalog/slotRoles.ts`                                                                                                                                                                           |
+
+## 6. 중단 기준
+
+- Slot 으로 넣은 그룹 항목의 선택이 Canvas · Preview 초기 표시 · 클릭 writeback 중 하나라도 다른 key 로 읽히면 그 그룹은 slot 만 두고 선택 상태 후보 (선택 origin) 를 후보에서 뺀다.
+- 항목 wrapper 가 render props 로 상태 층을 못 겹치면 그 항목의 상호작용 변형은 seed 하지 않는다 (Components 페이지에 효과 없는 노드를 두지 않는다).
+- Breadcrumbs 이관 전후 Canvas 픽셀이 다르면 Breadcrumbs 이관을 보류하고 origin · slot 만 둔다.
+- 성능 G4 미달은 234 와 같이 사용자 판정으로 넘긴다 (자동 수용 금지).
+
+## 7. 실행 기록
+
+### 리뷰 반영 — Round 1 (2026-09-24, [reviews/237.md](../reviews/237.md))
+
+- **h1 (그룹 선택 계약)**: "Canvas 선택 owner 에 그룹 `value`/`selectedKeys` 추가 · Checkbox/ToggleButton key 배정" 철회. 현행 두 leg 계약 (자식 `isSelected` 정본 · RAC key = node id, Radio 만 `props.value` — F6 · F11) 을 그대로 쓰고, Slot "+" 가 `isSelected` 와 Radio `value` 만 채운다. uncontrolled + key re-mount 경로 무변경 (controlled 전환 금지 — F11 주석의 stale 결함).
+- **h2 (접힌 Disclosure 본문 복원)**: `--collapsed` 는 `isExpanded:false` + style patch 만, 구조 patch (`enabled:false`) 금지. 근거 F12 (자식 제거가 상태 해석보다 먼저). 상태 변형 쓰기 경로에서 해당 patch 거부 + 왕복 gate.
+- **m1 (그룹 유효 펼침)**: Canvas 상태 원천 = 강제 → `isDisclosureExpandedInContext` (F13). Preview 는 RAC DisclosureGroup 이 같은 제약을 적용.
+
+(착수 후 Phase 별로 추가)
