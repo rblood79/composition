@@ -2,15 +2,17 @@
 
 ## Status
 
-Accepted — 2026-09-24 (사용자 지시 "240 Accepted 승격", Codex 리뷰 판독 1 + 수리 검증 1 종결 후 · worktree `adr-240`) · Proposed — 2026-09-24
+Implemented — 2026-09-24 (worktree `adr-240` Phase 0~3 / G0~G4 같은 날 종결 · main merge `a0ecd2004` — [실행 기록](../design/240-named-regions-free-content-slots-breakdown.md#5-실행-기록)) · Accepted — 2026-09-24 (사용자 지시 "240 Accepted 승격", Codex 리뷰 판독 1 + 수리 검증 1 종결 후 · worktree `adr-240`) · Proposed — 2026-09-24
 
-설계 요청: 사용자 (2026-09-24) — RAC 조사 후보 중 남은 항목 "설계부터 하자" → 사용자 판정 3 ADR 분리 (239 Tree · **240 이름 영역** · 241 Table). 전제 기록: [breakdown §1](design/240-named-regions-free-content-slots-breakdown.md#1-전제-확정-기록-fork-4-질문--사용자-confirm).
+G3 는 사용자 판정으로 닫았다 (2026-09-24): 1차 A/B (240 전 빌드 대조, Card 50 · Dialog 20 · 채움 3) 에서 Dialog origin 편집 `scene.build` +2.1 ms 로 미달 → "최적화 먼저" → 채운 영역을 새로 만들 때마다 결과 문서 전체를 훑던 빈 지우기 스캔을 생략 (scene 결과 byte 동일) → 네 조작 모두 base 보다 빠름 (−0.1 ~ −1.9 ms). G4 에서 사용자 저장 history 모양 (Components body 전체 스냅샷) 의 Undo 가 origin 을 240 전 구조로 되돌리는 결함 (F28) 을 찾아 재생 시점 영역 이관으로 수리했다. initial 번들 +3,170 / +1,305 B (main 이 이미 ADR-201 상한 초과 — 사용자 판정 merge 진행).
+
+설계 요청: 사용자 (2026-09-24) — RAC 조사 후보 중 남은 항목 "설계부터 하자" → 사용자 판정 3 ADR 분리 (239 Tree · **240 이름 영역** · 241 Table). 전제 기록: [breakdown §1](../design/240-named-regions-free-content-slots-breakdown.md#1-전제-확정-기록-fork-4-질문--사용자-confirm).
 
 ## Context
 
 ### 문제
 
-RAC 와 composition 조합에는 **고정 영역** 을 가진 컨테이너가 있다 — Dialog 의 제목 · 내용 · 닫기 (R1), Popover · Tooltip 의 자유 내용 (R2), composition Card 의 preview · header · content · footer (R5). [ADR-148](completed/148-reusable-slot-system-unification.md) 이 영역 어휘 (`header` · `content` · `footer` · `preview` · `action`) 를 정했고 234 가 instance slot 채우기 (`descendants[path].children`, mode C — F2) 와 그 UI (F3) 를 만들었지만, 둘이 이어지지 않았다.
+RAC 와 composition 조합에는 **고정 영역** 을 가진 컨테이너가 있다 — Dialog 의 제목 · 내용 · 닫기 (R1), Popover · Tooltip 의 자유 내용 (R2), composition Card 의 preview · header · content · footer (R5). [ADR-148](148-reusable-slot-system-unification.md) 이 영역 어휘 (`header` · `content` · `footer` · `preview` · `action`) 를 정했고 234 가 instance slot 채우기 (`descendants[path].children`, mode C — F2) 와 그 UI (F3) 를 만들었지만, 둘이 이어지지 않았다.
 
 1. **Card** — 영역 자식은 `slotRole` 만 있고 `slot` 배열이 없어 (F5) Slot 채우기 절이 Card instance 에서 비어 있다. instance 는 `{title}` · `{description}` 글자만 바꿀 수 있다.
 2. **Dialog** — 영역 표시도 내용 컨테이너도 없다 (F6). instance 에 내용 (입력 필드 · 버튼) 을 더할 자리가 없다.
@@ -28,7 +30,7 @@ RAC 와 composition 조합에는 **고정 영역** 을 가진 컨테이너가 �
 
 ### 코드 사실
 
-레퍼런스 R1~~R5 · 코드 사실 F1~~F13 (경로:라인) 은 [breakdown §2 · §3](design/240-named-regions-free-content-slots-breakdown.md#2-레퍼런스--rac-react-aria-components1210--starter-read-only).
+레퍼런스 R1~~R5 · 코드 사실 F1~~F13 (경로:라인) 은 [breakdown §2 · §3](../design/240-named-regions-free-content-slots-breakdown.md#2-레퍼런스--rac-react-aria-components1210--starter-read-only).
 
 ### Hard constraints
 
@@ -93,7 +95,7 @@ HIGH 가 없는 C 는 문제를 풀지 못해 기각. A 의 H 는 Dialog 한 가
 
 기각: B 는 RAC 에 없는 영역 type 을 만든다 · C 는 영역을 고를 수 없다 · D 는 자유 내용을 막는다.
 
-> 구현 상세: [240-named-regions-free-content-slots-breakdown.md](design/240-named-regions-free-content-slots-breakdown.md)
+> 구현 상세: [240-named-regions-free-content-slots-breakdown.md](../design/240-named-regions-free-content-slots-breakdown.md)
 
 ## Risks
 
@@ -118,7 +120,15 @@ HIGH 가 없는 C 는 문제를 풀지 못해 기각. A 의 H 는 Dialog 한 가
 
 ### Live Exercise
 
-(Implemented 승격 시 기재)
+실제 builder (worktree dev 서버 · headed Playwright · 새 프로젝트, Compare Mode · Preview iframe 미개방 — 사용자 지시) 에서 Skia layout · scene 경계 · store · IndexedDB 로 확인했다 (2026-09-24). Preview 채널은 unit (두 leg) 고정 — 사용자 확인 대상.
+
+- `adr240-live-exercise.mjs` **6/6** (Phase 1): seed 모양 (Card 영역 4 · Popover/Tooltip root slot · Dialog 본문 [Heading, Content(Description), Footer(Actions, Close)]) · Card instance Slot 채우기 절 영역 4 → Content 에 Button (segment 키 · Skia rect · 상속 Description 교체) · Dialog Actions 에 Button → Close rect 전후 동일 (x 252 · 68×30) · 새 Button 이 Close 왼쪽 · Popover "+" → 자기 자식이 Description 아래 · reload 보존 · page error 0.
+- `adr240-phase2-live.mjs` **9/9** (Phase 2): Card Content 선택 + 팔레트 Text → mode C · Skia rect · 새 노드 선택 · 채운 Text 편집 (Properties 쓰기 action) → 배열 노드 · 페이지 Text pointer drag → Card Footer 영역 · Undo → body / Redo → 영역 (수리 전 Redo 는 instance 자기 자식 — F23) · 상속 Title 위 drag 는 Title 경로 쓰기 0 · Dialog Content 팔레트 Text · Close 불변 · Popover 자유 내용 Insert / Clear · reload 보존 · page error 0.
+- `adr240-g4-bc-live.mjs` (Phase 3 G4): 240 전 빌드 (`61d29f98a` worktree) 에서 실제 Properties 쓰기로 만든 문서 + 저장 history 를 240 빌드에 옮겨 reload — Card · Dialog 본문 · Popover 픽셀 **Δ0** (이관 뒤 · Undo · Redo 각각 240 전 캡처와) · Δbyte Dialog +8 · Card · Popover 0 · Undo "Edited 1" / Redo "Edited 2" 가 새 경로에 · Components 페이지 body 스냅샷 Undo 뒤 영역 구조 유지 (F28) · 이관 직후 재hydration Δ0 · page error 0.
+- 사용자 문서 계수 (이관 빌드를 열기 전 · 사용자 Chrome `localhost:5173` IndexedDB 읽기 전용): 프로젝트 9 · Card · Dialog · Popover · Tooltip instance 0 · Dialog origin 을 담은 저장 history 46 (F28 발견 근거).
+- `adr240-g3-perf-ab.mjs` (Phase 3 G3): 위 판정 수치 · 분해 (Dialog 채움 없는 대조) · 최적화 뒤 재측정 4/4.
+- main merge 뒤 (ADR-238 합친 트리) Phase 1 · 2 live 재실행 6/6 · 9/9.
+- live 에서 잡은 결함 (수리): F23 영역 이동 Redo 가 instance 자기 자식으로 넣음 · F28 origin 스냅샷 Undo 가 240 전 구조를 되살림.
 
 ## Consequences
 

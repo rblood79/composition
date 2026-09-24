@@ -1,6 +1,6 @@
 # ADR-240 구현 상세 — 이름 영역 · 자유 내용 slot (Card · Dialog · Popover · Tooltip)
 
-> 본문: [ADR-240](../240-named-regions-free-content-slots.md) · base: [ADR-234](../completed/234-variant-instances-and-slot-filled-collections.md) · 관련: [ADR-148](../completed/148-reusable-slot-system-unification.md) (slotRole 어휘 · 설계도 `docs/reference/components/REUSABLE_SLOT_DESIGN.md`)
+> 본문: [ADR-240](../completed/240-named-regions-free-content-slots.md) · base: [ADR-234](../completed/234-variant-instances-and-slot-filled-collections.md) · 관련: [ADR-148](../completed/148-reusable-slot-system-unification.md) (slotRole 어휘 · 설계도 `docs/reference/components/REUSABLE_SLOT_DESIGN.md`)
 
 ## 1. 전제 확정 기록 (fork 4 질문 · 사용자 confirm)
 

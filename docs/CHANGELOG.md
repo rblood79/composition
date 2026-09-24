@@ -11,6 +11,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Card · Dialog · Popover · Tooltip 영역 채우기 (ADR-240)] - 2026-09-24
+
+### Added
+
+- **Card · Dialog 영역 채우기**: Card instance 의 Preview · Header · Content · Footer 영역과 Dialog instance 의 Content · Actions 영역을 Properties 의 Slot 채우기 절에서 채운다. 추천 컴포넌트 (Button · Link · TagGroup · TextField 등) 뒤에 **자유 내용** (Text · Image · Icon · Separator · Frame) 도 넣을 수 있다. 채우면 그 영역의 상속 내용 (Card 설명 · Dialog 설명) 을 대신한다.
+- **Popover · Tooltip 자유 내용**: Popover · Tooltip instance 의 Slot 절에서 자유 내용을 넣고 (상속 제목 · 설명 뒤), Clear 로 instance 에 직접 넣은 자식만 지운다.
+- **영역에 바로 넣기**: Card Content 같은 영역이나 그 안의 노드를 선택하고 팔레트를 누르면 그 영역 끝에 들어간다 (이전에는 페이지 body 로 빠졌다). 캔버스의 요소를 instance 영역으로 끌어다 놓으면 그 영역으로 옮겨진다 — 목록 틀 · 상속 노드 · Dialog 제목 · Close 같은 고정 부품에는 놓이지 않는다.
+
+### Changed
+
+- Dialog origin 본문이 [제목, Content 영역 (설명), Footer (Actions 영역, Close)] 구조가 된다. 기존 프로젝트는 열 때 옮겨지고, instance 의 설명 편집 · 저장된 Undo/Redo 기록도 새 구조로 따라간다. Close 위치 · 편집은 그대로다.
+- 영역을 채운 instance 가 많은 문서에서 origin 편집 뒤 장면 빌드가 빨라졌다 (채운 영역을 새로 만들 때마다 문서 전체를 훑던 스캔 제거).
+
+### Fixed
+
+- **채운 노드 편집이 화면에 반영되지 않던 문제를 고쳤다** — 영역에 채운 노드 (ADR-234 Tab Slot "+" 항목 포함) 를 Properties · Styles · 배경으로 고치면 Canvas · Preview 모두 바뀌고 Undo/Redo 된다.
+- 요소를 영역으로 옮긴 뒤 Undo → Redo 하면 영역이 아니라 instance 직계 자식으로 되살아나던 문제를 고쳤다.
+- 채운 영역 자체에 준 스타일 (padding 등) 이 Canvas 에만 보이고 Preview 에는 없던 문제 · Slot 채우기가 영역 스타일을 지우던 문제 · 스타일만 준 영역에 끌어다 놓기가 무시되던 문제를 고쳤다.
+- 이관 뒤 Components 페이지에서 Undo 하면 저장된 옛 기록이 Dialog · Card origin 을 이관 전 구조로 되돌리던 문제를 고쳤다.
+  - 위치: `apps/builder/src/builder/components/{regionSlotOrigins,dialogRegionPaths,slotFillPath,slotFillEdit,slotFillNodes,slotRegionInsert,slotHostPolicy}.ts` · `apps/builder/src/builder/stores/{inspectorActions.ts,history/canonicalHistoryEvents.ts}` · `apps/builder/src/adapters/canonical/canonicalRefResolution.ts` · `apps/builder/src/resolvers/canonical/index.ts` · `packages/shared/src/utils/compositionDocumentOrder.ts`
+  - 남은 것 (LOW): 채운 노드에는 캔버스 여백 · 크기 조절 핸들이 없다 (Properties · Styles 로 편집). Preview 는 unit 으로 확인 — 사용자 확인 대상.
+
 ## [목록 항목 역할 · Section · Select/ComboBox 항목 origin (ADR-238)] - 2026-09-24
 
 ### Added
