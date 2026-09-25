@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-09-24 (사용자 `/execute-adr 236`, review round 2 이슈 0) · Phase 0 완료 (G0 PASS) · Phase 1 완료 2026-09-25 (G1 PASS — [breakdown §9](design/236-builder-domain-rules-consolidation-breakdown.md#9-phase-1-기록)) · Phase 2 완료 2026-09-25 (G2 PASS — [breakdown §10](design/236-builder-domain-rules-consolidation-breakdown.md#10-phase-2-기록)) · Phase 3 완료 2026-09-25 (G3 · G4 PASS — [breakdown §11](design/236-builder-domain-rules-consolidation-breakdown.md#11-phase-3-기록))
+Implemented — 2026-09-25 (Phase 0–4 · G0–G4 — [종결 기록](../design/236-builder-domain-rules-consolidation-breakdown.md#12-phase-4--종결-기록-2026-09-25)) · Accepted — 2026-09-24 (사용자 `/execute-adr 236`, review round 2 이슈 0) · Phase 0 완료 (G0 PASS) · Phase 1 완료 2026-09-25 (G1 PASS — [breakdown §9](../design/236-builder-domain-rules-consolidation-breakdown.md#9-phase-1-기록)) · Phase 2 완료 2026-09-25 (G2 PASS — [breakdown §10](../design/236-builder-domain-rules-consolidation-breakdown.md#10-phase-2-기록)) · Phase 3 완료 2026-09-25 (G3 · G4 PASS — [breakdown §11](../design/236-builder-domain-rules-consolidation-breakdown.md#11-phase-3-기록)) · Phase 4 종결 2026-09-25
 
 ## Context
 
@@ -115,7 +115,7 @@ Accepted — 2026-09-24 (사용자 `/execute-adr 236`, review round 2 이슈 0) 
 
 특성 표 위치는 `packages/shared` 로 사용자가 확정했다 (2026-09-24, review round 1 뒤).
 
-> 구현 상세: [236-builder-domain-rules-consolidation-breakdown.md](design/236-builder-domain-rules-consolidation-breakdown.md)
+> 구현 상세: [236-builder-domain-rules-consolidation-breakdown.md](../design/236-builder-domain-rules-consolidation-breakdown.md)
 
 ## Risks
 
@@ -143,7 +143,14 @@ G0 결과 (2026-09-24): PASS — 집합 144 (파생 대상 23) · body 직접 �
 
 ### Live Exercise
 
-(Implemented 승격 시 기재)
+실제 builder (headed Playwright · 새 프로젝트 · Compare Mode · Preview iframe 미개방 — 사용자 지시) 에서 Skia layout · 픽셀 · store · DOM 메뉴로 확인했다 (2026-09-25). 표 전체: [breakdown §12.3](../design/236-builder-domain-rules-consolidation-breakdown.md#123-live).
+
+- `adr236-phase2-live.mjs` (G2): Form 안 필드 · DateField · DatePicker · Image · Avatar 의 파생 전후 layout rect 차이 0/8 · Skia 픽셀 차이 0 (감도: image family 제거 시 55,380 px).
+- `adr236-phase3-live.mjs` A–E (G3): ⌥⌘K body 거부 + 토스트 · system origin Backspace 거부 + 토스트 · Layers system origin 행 삭제/해제 없음 (대조군 있음) · Layers Button → ListBox 드롭 거부 (대조군 이동) · Button instance 붙여넣기 → frame 으로 옮김 + 알림.
+- `adr236-phase3-repair-live.mjs` F–H (판독 수리): origin 안 Backspace · ⌘G 가 영향 확인 대화상자 → 취소 시 변화 0 · 확인 시 frame 1 + 두 Text 이동.
+- `adr236-phase3-perf.mjs` (G4): 호출당 p95 ≈ 0.0003 ms · 선택 변경당 0.4 ms.
+- pageerror 0. AI 도구 판정 · 위임 sub-part resize 는 단위 테스트 (AI 는 모델 실행 필요).
+- live 전 판독이 잡은 결함 (수리 `66af8347d`): 이름 영역으로 캔버스 드래그 차단 · store 진입부 영향 확인이 병렬 · 트랜잭션 호출부를 부분 반영으로 깨뜨림.
 
 ## Consequences
 

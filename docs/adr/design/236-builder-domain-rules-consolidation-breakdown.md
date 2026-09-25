@@ -1,6 +1,6 @@
 # ADR-236 구현 상세 — 빌더 도메인 규칙 정리 (술어 모듈 · 타입 특성 표 · store 강제)
 
-> 본문: [ADR-236](../236-builder-domain-rules-consolidation.md). 이 문서는 Phase · 파일 경계 · 게이트 절차만 담는다.
+> 본문: [ADR-236](../completed/236-builder-domain-rules-consolidation.md). 이 문서는 Phase · 파일 경계 · 게이트 절차만 담는다.
 
 ## 1. 전제 기록
 
@@ -222,20 +222,20 @@ Phase 2 종결 (G2): 파생 대상 23 판정 완료 (표 17 · D2 2 · 이미 �
 
 강제 지점 불일치 (§8.4) 판정:
 
-| #   | 결과                                                                                                                                                                                                                                                                                                            |
-| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| E1  | 닫힘 — 공통 실행기 (단축키 · agent · 패널) · commandMeta · store `toggleComponentOrigin` 이 `canOperate("toggleOrigin")` (body 거부)                                                                                                                                                                            |
-| E2  | 닫힘 — AI `update_element canonical.reusable` 이 store `toggleComponentOrigin` 경유 (systemOwned 가드 · 영향 확인 · instance 분리)                                                                                                                                                                              |
-| E3  | 닫힘 — 메뉴 · Layers 에 systemOwned origin 삭제 · 해제가 서지 않고, 표면 밖 호출은 store 가 이유를 토스트로 보인다                                                                                                                                                                                              |
+| #   | 결과                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| E1  | 닫힘 — 공통 실행기 (단축키 · agent · 패널) · commandMeta · store `toggleComponentOrigin` 이 `canOperate("toggleOrigin")` (body 거부)                                                                                                                                                                                                                                                                                                        |
+| E2  | 닫힘 — AI `update_element canonical.reusable` 이 store `toggleComponentOrigin` 경유 (systemOwned 가드 · 영향 확인 · instance 분리)                                                                                                                                                                                                                                                                                                          |
+| E3  | 닫힘 — 메뉴 · Layers 에 systemOwned origin 삭제 · 해제가 서지 않고, 표면 밖 호출은 store 가 이유를 토스트로 보인다                                                                                                                                                                                                                                                                                                                          |
 | E4  | 부분 — 사용자 동작을 시작하는 표면이 첫 쓰기 전에 가장 가까운 origin 의 영향 확인 (`confirmStructuralOriginImpact`): 캔버스 삭제 · 묶기 · 묶기 해제 · 붙여넣기 · 복제 · Properties/Layers 삭제 · 팔레트 생성 · Layers 이동 · AI 생성/삭제. store 액션 진입부는 묻지 않는다 (판독 HIGH-2). **캔버스 드래그 · 패널 내부 추가 (Table "+" · Button 아이콘 · 항목 역할 · 프리셋 · 컬렉션 항목) · Alt 드래그 복제는 후속** — 종전처럼 묻지 않는다 |
-| E5  | 닫힘 — `canOperate("ungroup")` 이 systemOwned frame 거부 (메뉴 · 단축키 · agent)                                                                                                                                                                                                                                |
-| E6  | 닫힘 — `resolveMoveTarget` · store `addElement` · `addComplexElement` · factory · reorder · 이동 진입부가 synthetic 자식을 부모 · 대상으로 받지 않는다                                                                                                                                                          |
-| E7  | 닫힘 — AI 생성 · 붙여넣기가 ref 부모를 원본 타입으로 읽고 (팔레트와 같은 해석기), Layers 드롭에 중첩 preflight                                                                                                                                                                                                  |
-| E8  | 닫힘 — factory `addElementsToStore` 에 생성 가드, 드래그 쓰기는 `resolveDragMoveTarget` 뒤에서만 (ratchet 이 쓰기마다 확인)                                                                                                                                                                                     |
-| E9  | 닫힘 — group · 정렬 · 분배가 `multiSelectMode` 대신 개수로 판정                                                                                                                                                                                                                                                 |
-| E10 | Phase 1 에서 닫힘 (`isBodyType`)                                                                                                                                                                                                                                                                                |
-| E11 | 닫힘 — ListBox template anchor 에 삭제가 서지 않고 store 는 이유를 보인다                                                                                                                                                                                                                                       |
-| E12 | 판정 — 새 가드 없음. Components 페이지는 origin 을 편집하는 정상 표면이다. 보호는 systemOwned 루트 (삭제 · 해제 · ungroup) 와 E4 영향 확인 (origin 자손 구조 변경 시 instance 가 있으면 묻는다) 이 맡는다                                                                                                       |
+| E5  | 닫힘 — `canOperate("ungroup")` 이 systemOwned frame 거부 (메뉴 · 단축키 · agent)                                                                                                                                                                                                                                                                                                                                                            |
+| E6  | 닫힘 — `resolveMoveTarget` · store `addElement` · `addComplexElement` · factory · reorder · 이동 진입부가 synthetic 자식을 부모 · 대상으로 받지 않는다                                                                                                                                                                                                                                                                                      |
+| E7  | 닫힘 — AI 생성 · 붙여넣기가 ref 부모를 원본 타입으로 읽고 (팔레트와 같은 해석기), Layers 드롭에 중첩 preflight                                                                                                                                                                                                                                                                                                                              |
+| E8  | 닫힘 — factory `addElementsToStore` 에 생성 가드, 드래그 쓰기는 `resolveDragMoveTarget` 뒤에서만 (ratchet 이 쓰기마다 확인)                                                                                                                                                                                                                                                                                                                 |
+| E9  | 닫힘 — group · 정렬 · 분배가 `multiSelectMode` 대신 개수로 판정                                                                                                                                                                                                                                                                                                                                                                             |
+| E10 | Phase 1 에서 닫힘 (`isBodyType`)                                                                                                                                                                                                                                                                                                                                                                                                            |
+| E11 | 닫힘 — ListBox template anchor 에 삭제가 서지 않고 store 는 이유를 보인다                                                                                                                                                                                                                                                                                                                                                                   |
+| E12 | 판정 — 새 가드 없음. Components 페이지는 origin 을 편집하는 정상 표면이다. 보호는 systemOwned 루트 (삭제 · 해제 · ungroup) 와 E4 영향 확인 (origin 자손 구조 변경 시 instance 가 있으면 묻는다) 이 맡는다                                                                                                                                                                                                                                   |
 
 그 밖: 위임 sub-part 쓰기 (A-2 잔여) 는 `canOperate("editStyle")` 하나로 — 캔버스 resize · spacing · AI `update_element` styles. `createInstance` 는 role 우선순위 함수 대신 축 술어 (dual 노드 거부 명시, production 호출처 0). ratchet: `structuralStoreActionGuard.static.test.ts` (가드 목록 13 액션 · 우회 쓰기 2 경로 · canonical 변경 래퍼 호출 함수 집합) · `domainPredicateRatchet` (stores 안 role 우선순위 함수 0).
 
@@ -269,3 +269,62 @@ Phase 3 판독 (reviewer, 2026-09-25, `b8e1f864b..2ac63ed5f`): HIGH 2 · MEDIUM 
 - LOW deferred — `elementRemoval` 이 대화상자 await 전 읽은 source 를 뒤에 쓴다 (store 확인을 뺐으므로 await 자체가 없어짐) · `reorderElementWithinParent` / `moveElementToSiblingEdge` 가 store 맵에 없는 id 를 `notFound` 로 무음 거부 (canonical 전용 대상이 닿는 재현 경로 미확인, 가설).
 
 Phase 3 종결 (G3 · G4): 판독 HIGH 2 수리 · 수리 검증 builder 스위트 7,619 PASS · type-check 0 · live 재실행. 실행자 닫힘 선언.
+
+## 12. Phase 4 — 종결 기록 (2026-09-25)
+
+Phase 기록 정본은 §9 ~ 11. 이 절은 Phase 0 ratchet 시작값 (§8.1 · 인벤토리 evidence §4) 에 대한 최종값과 게이트 근거만 모은다.
+
+### 12.1 ratchet 최종값
+
+| 항목                                               | 시작값 (§8.1)        | 최종값                                                                                          | 지키는 테스트                                                            |
+| -------------------------------------------------- | -------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| 파생 대상 집합                                     | 23                   | 표 17 · D2 2 · 이미 파생 1 · 재분류 2 · 파생하지 않음 1 (AI `CONTAINER_TYPES`, 사유 §12.5)      | `domainPredicateRatchet` (리터럴 재선언 0 — 집합 20 · nestingRules 맵 2) |
+| body 타입 직접 비교                                | 92 (+ shared 4)      | 0                                                                                               | `domainPredicateRatchet`                                                 |
+| body 파일 로컬 헬퍼                                | 12                   | 0 (합성 술어 `isFrameBodyElement` 만)                                                           | `domainPredicateRatchet`                                                 |
+| synthetic id 직접 파싱                             | 8행 (Phase 1 실측 9) | 0                                                                                               | `domainPredicateRatchet`                                                 |
+| Components 페이지 판정 헬퍼                        | 4                    | 1 + 허용 1 (export HTML 인라인 스크립트)                                                        | `domainPredicateRatchet`                                                 |
+| `getEditingSemanticsRole` 을 액션 판정에 쓰는 호출 | 1                    | 0 (stores 안 0)                                                                                 | `domainPredicateRatchet`                                                 |
+| `typeof x.ref === "string"`                        | 7                    | 판정 — 대부분 ref 값을 읽는 필드 접근이라 술어 대상 아님 (§9 후속)                              | —                                                                        |
+| 구조 변경 store 액션 진입부 가드                   | 공통 가드 없음       | 13 액션이 첫 변경 전에 `canOperate` 계열 호출                                                   | `structuralStoreActionGuard` (AST)                                       |
+| store 우회 쓰기                                    | 2                    | 2 경로 모두 쓰기마다 가드 선행 (드래그 `resolveDragMoveTarget` · factory `guardCreationParent`) | `structuralStoreActionGuard`                                             |
+| canonical 변경 래퍼를 부르는 stores 함수           | 미집계               | 11 (가드된 8 · 사유 등재 3 — props 축 2 · layout 삭제 1)                                        | `structuralStoreActionGuard` (새 호출 함수 → 등재 요구)                  |
+| 강제 지점 불일치 (§8.4)                            | 12                   | 닫힘 11 · E4 부분 (드래그 · 패널 내부 추가 · Alt 복제 후속) · E12 판정                          | 표면별 · store 단위 테스트                                               |
+
+### 12.2 동등성 · 원복 RED
+
+- Phase 1: 동작 변경 0 을 스위트 실패 집합 전후 동일로 확인 (§8.5). body 대소문자 무시 전환은 대문자 입력이 export 런타임 모델 안에서만 생겨 차이 없음.
+- Phase 2: `componentTraits.test.ts` 가 옛 리터럴을 기대값으로 둔다 (조합 집합 · nestingRules 세 표의 값 배열 순서 포함). ratchet 재도입 시 RED. 감도 — 표에서 `Image` 의 image family 를 빼면 Skia 픽셀 55,380 개가 달라진다.
+- Phase 3: 원복 RED 표면 7 · store 9 · AI reusable 1 · 대상 판정 8 · 영향 확인 3 · editStyle · role 2, 판독 수리 4 (영역 드래그 1 · 표면 영향 확인 2 · store 가 묻지 않음 1). 커밋별로 소스를 되돌리면 해당 테스트가 실패하고 복원하면 통과.
+
+### 12.3 live
+
+모두 headed Playwright · 실제 builder · 새 프로젝트. Compare Mode · Preview iframe 은 열지 않았다.
+
+| 하니스                            | Phase  | 조작                                                                                 | 결과                                                             |
+| --------------------------------- | ------ | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
+| `adr236-phase2-live.mjs`          | 2      | Form 안 TextField · NumberField · DateField · DatePicker · Image · Avatar, 파생 전후 | layout rect 차이 0/8 · Skia 픽셀 차이 0                          |
+| `adr236-phase3-live.mjs` A        | 3      | body 선택 후 ⌥⌘K                                                                     | reusable false 유지 · 이유 토스트                                |
+| B                                 | 3      | Components 페이지 system origin Backspace                                            | 남아 있음 · 이유 토스트                                          |
+| C                                 | 3      | Layers system origin · 상태 변형 행 우클릭                                           | 삭제 버튼 0 · 메뉴에 delete · toggle 없음 (대조군 frame 은 있음) |
+| D                                 | 3      | Layers 에서 Button 을 ListBox 로 끌기                                                | 부모 그대로 (대조군 frame 드롭은 이동)                           |
+| E                                 | 3      | Button instance 선택 후 ⌘C · ⌘V                                                      | instance 부모 frame 으로 옮겨 붙이고 중첩 알림                   |
+| `adr236-phase3-repair-live.mjs` F | 3 수리 | origin (frame + Text 2, instance 1) 안 Text Backspace → 취소                         | 영향 확인 대화상자 · 남아 있음                                   |
+| G                                 | 3 수리 | 같은 두 Text ⌘G → 취소                                                               | 대화상자 · 요소 수 변화 0 · 부모 그대로                          |
+| H                                 | 3 수리 | 다시 ⌘G → 확인                                                                       | frame 1 추가 · 두 Text 가 그 안으로 · 새 frame 은 origin 안      |
+
+pageerror 는 모든 실행에서 0. AI 도구 판정과 위임 sub-part resize 는 단위 테스트로 확인했다 (AI 는 모델 실행이 필요하고, resize 진입 차단은 `ba47a0ddc` 에서 live 로 확인한 판정을 옮긴 것이다).
+
+### 12.4 성능 · 번들
+
+- G4 (`adr236-phase3-perf.mjs`, 600 요소 · headed · visible): `canOperate` 호출당 p95 ≈ 0.0003 ms · 전체 선택 600 의 선택 변경당 판정 몫 p95 0.4 ms · 메뉴 조립 0.6 ms (종전 관문 대조군 0.1 ms).
+- 번들 (production 빌드 · 별도 worktree `1185387fa` · `adr209-bundle-closure.mjs`, initial JS gzip): Builder 1,411,505 · Preview 621,472 — ADR-201 재승인 상한 (1,415,000 / 622,000) 안. Phase 3 는 builder 만 바꿔 Preview 는 Phase 2 값과 같다.
+
+### 12.5 범위 밖 (R5 — 상시 규칙)
+
+ratchet 이 0 이어도 정리가 끝난 것은 아니다. 아래는 이 ADR 이 옮기지 않았고, 해당 코드를 고치는 커밋이 표로 옮긴다.
+
+| 부류                                | 개수 | 위치 (인벤토리 §1.1)                                                                         |
+| ----------------------------------- | ---: | -------------------------------------------------------------------------------------------- |
+| 렌더 특수 (layout · skia 이름 분기) |   27 | `buildSpecNodeData.ts` · `layout/engines/*` · `canvasSceneNode.ts` · `specPresetResolver.ts` |
+| 로컬 정당                           |   11 | migration 고정 · HTML 태그 · 레지스트리 키 · 기본 props cohort                               |
+| AI `CONTAINER_TYPES`                |    1 | 구조 컨테이너 표로 바꾸면 AI 계획 어휘가 바뀐다 — AI 품질 판단으로 별도                      |

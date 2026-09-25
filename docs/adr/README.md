@@ -11,6 +11,8 @@
 
 ---
 
+> **2026-09-25 ADR-236 Implemented**: 빌더 도메인 규칙 정리 (Phase 0–4 · G0–G4). body · synthetic id · Components 페이지 술어를 shared `domain/` 하나로 (직접 구현 0 ratchet) · shared 타입 특성 표 `componentTraits.ts` 에서 집합 17 + nestingRules 층 2 표 3, D2 스키마에서 Direction 토글 2 파생 (동등성 · live rect/픽셀 0) · 구조 변경 판정 `canOperate` · 대상 판정 `resolveMoveTarget` 을 표면과 store 진입부 13 액션 · 우회 쓰기 2 경로가 같이 부른다 (AST ratchet). 강제 지점 불일치 12 중 11 닫힘 · E4 (origin 안 구조 변경 영향 확인) 는 표면 선행 확인, 드래그 · 패널 내부 추가 · Alt 복제는 후속. 판독 HIGH 2 수리 (이름 영역 드래그 · store 대화상자 → 표면). live 9 · G4 호출당 p95 ≈ 0.0003 ms · 번들 Builder 1,411,505 / Preview 621,472 (상한 안). 범위 밖: 렌더 특수 분기 27 (상시 규칙). 열림 9 (Proposed 8 · Accepted 1), 합계 268.
+
 > **2026-09-25 ADR-236 Phase 3 완료 (G3 · G4)**: 구조 변경 판정 `builder/domain/canOperate.ts` · 대상 판정 `resolveMoveTarget.ts` 를 표면 (메뉴 · 액션 바 · 단축키 · Layers · AI · 드래그 · 팔레트 · 붙여넣기) 과 구조 변경 store 액션 진입부 13 · store 우회 쓰기 2 경로가 같이 부른다 (ratchet `structuralStoreActionGuard`). 강제 지점 불일치 E1~E12 중 11 닫힘 · E12 판정 (새 가드 없음) · E4 는 캔버스 드래그만 후속. live 5 (body toggle 단축키 · system origin 삭제 · Layers 노출 · 중첩 드롭 · instance 붙여넣기) · 판정 호출당 p95 ≈ 0.0003 ms.
 
 > **2026-09-25 ADR-236 Phase 2 완료 (G2)**: shared 타입 특성 표 `domain/componentTraits.ts` (container · families · children · owners). 멤버십 집합 17 개와 `nestingRules` 층 2 의 세 표를 표에서, Direction 토글 집합 2 개를 D2 스키마 (binding accepts ∧ catalog variant) 에서 파생 — 옛 리터럴 동등성 테스트 · ratchet · skia/layout live rect 0/8 · 픽셀 차이 0. 번들 Builder 1,408,955 · Preview 621,472 (상한 안, Preview 여유 528 B). 재분류 2 (`COMPLEX_COMPONENT_TAGS` ADR-914 정본 · slot host 레지스트리) · AI `CONTAINER_TYPES` 는 Phase 3 으로.
@@ -107,14 +109,14 @@
 
 | 구분                          |    개수 |
 | ----------------------------- | ------: |
-| 완료 (`completed/`)           |     258 |
-| ├ Implemented                 |     222 |
+| 완료 (`completed/`)           |     259 |
+| ├ Implemented                 |     223 |
 | ├ Accepted                    |      13 |
 | ├ Superseded                  |      14 |
 | └ Deprecated                  |       9 |
-| 열려 있는 것 (`adr/*.md`)     |      10 |
+| 열려 있는 것 (`adr/*.md`)     |       9 |
 | ├ Proposed                    |       8 |
-| ├ Accepted (미착수·일부 착수) |       2 |
+| ├ Accepted (미착수·일부 착수) |       1 |
 | └ 부분 완료                   |       0 |
 | **합계**                      | **268** |
 
@@ -134,12 +136,6 @@
 - **상태**: Accepted (전체) · **A1 철회 2026-07-20** · A2 delivered(시각 확인 대기) · A3 미착수
 - **규모**: **Phase A1(Skia hover/pressed/focusVisible 상태 threading) 철회 2026-07-20 (재판정)** — 빌더(Skia)가 pointer 연동으로 hover/pressed/focus 를 실시간 재현한 것은 **D1/D3 경계 오판**(그 역할은 Preview DOM 소관, RAC 자동 소유). A1 커밋 4건 역순 revert(`5e635ebbc`), 편집 보조 hover outline·선언적 상태(selected/disabled) 시각은 보존. 911 R-4 HIGH→MED / G-state 를 선언적 상태 parity 로 재정의. **A2(collection 가상화)/A3(drill-in·data edit)은 상호작용 시뮬레이션이 아니라 빌더의 대용량 표시·깊은 편집이라 유효 — 진행 유지.** G-A2/G-A3 (HIGH 2: window 동기화 / projected id 경계 — G-A1/R1 은 철회). design breakdown `design/150-rac-pencil-residual-interaction-execution-breakdown.md`
 - **우선순위**: 사용자 확정 2026-07-13 (AskUserQuestion — 단일 실행 ADR)
-
-#### [236](236-builder-domain-rules-consolidation.md) — 빌더 도메인 규칙 정리 — 술어 모듈 · 타입 특성 표 · store 액션 진입부 강제
-
-- **상태**: Accepted (2026-09-24, 사용자 `/execute-adr 236`) — Phase 0 · 1 · 2 · 3 완료 (G0: 집합 144 · body 직접 비교 92행 · 강제 지점 불일치 12 · G1 2026-09-25: body · synthetic id · Components 페이지 술어를 shared `domain/` 하나로, 직접 구현 0 ratchet · G2 2026-09-25: shared 타입 특성 표 `domain/componentTraits.ts` 에서 집합 17 + nestingRules 층 2 표 3 · D2 스키마에서 Direction 토글 집합 2 파생, 동등성 · live rect/픽셀 0 · G3/G4 2026-09-25: canOperate · resolveMoveTarget 를 표면과 store 진입부가 같이 부른다, E1~E12 중 11 닫힘, [breakdown §8~11](design/236-builder-domain-rules-consolidation-breakdown.md#11-phase-3-기록))
-- **규모**: Phase 0~4 ([breakdown](design/236-builder-domain-rules-consolidation-breakdown.md)) — 인벤토리 (타입 집합 144 · body 직접 비교 92행) → 술어 모듈 + ratchet (동작 0) → shared 특성 표 + 집합 파생 (동등성 게이트) → `canX` · `resolveMoveTarget` · 구조 변경 store 액션 진입부 가드 (표면별 원복 RED + live) → 종결. layout · skia 렌더 분기는 상시 규칙 (일괄 이관 없음)
-- **우선순위**: 사용자 요청 2026-09-24 (도메인 규칙 최적화 C 단계, 특성 표 위치 = shared 사용자 확정 09-24)
 
 #### [235](235-local-project-storage-v2-asset-store-directory-format.md) — 로컬 프로젝트 저장 v2 — 해시 자산 저장소 · 디렉토리 형식 · IndexedDB 작업본
 
@@ -234,7 +230,7 @@
 
 ---
 
-## 완료 ADR (253)
+## 완료 ADR (254)
 
 > 상세는 각 본문이 정본이다. 구 README 의 **비고** 열 서술 (최장 셀 14KB — ADR-912 행이 표
 > 전체를 그 폭으로 채워 3.2MB 를 만들었다) 은
@@ -258,6 +254,7 @@
 | [240](completed/240-named-regions-free-content-slots.md) | 이름 영역 · 자유 내용 slot — Card 영역 4 · Popover/Tooltip root slot · Dialog Content · Actions 영역 (경로 전치 · history 재생 전치) · 자유 내용 5종 채우기 · 채운 노드 편집 (mode C 배열) · 팔레트 영역 삽입 · Canvas drop 영역 이동 · 영역 style 두 leg 대칭 · mode C 빈 지우기 스캔 생략 | Implemented | 2026-09-24 |
 | [239](completed/239-tree-submenu-swatch-item-origins.md) | Tree · Menu 하위 메뉴 · ColorSwatchPicker 항목 origin — TreeItem origin · Tree/TreeItem slot · 재귀 key · Canvas 중첩 행 쌓기 · `expandedKeys` 두 leg 대칭 + 이관 · Menu 하위 메뉴 (SubmenuTrigger) · swatch origin · 자식 있는 TreeItem 해석 재사용 · history 스냅샷 새 origin 유지 | Implemented | 2026-09-25 |
 | [241](completed/241-table-column-row-origins.md) | Table 열 · 행 origin — 두 leg 열 원천 통일 (Column 요소 · 유효 폭 clamp) · Column · Row origin + TableHeader · TableBody slot · instance 자기 열 (Slot "+" · quick connect · Preview 열 감지) · TableView 셀 동기화 (추가 · 삭제 · 순서 · 행 "+") · TableView plain 열/행 → ref 이관 (id 유지) · mode C 항목 ref 자기 자식 해석 · 삭제 history 셀 | Implemented | 2026-09-25 |
+| [236](completed/236-builder-domain-rules-consolidation.md) | 빌더 도메인 규칙 정리 — body · synthetic id · Components 페이지 술어 shared 하나 (ratchet) · shared 타입 특성 표 `componentTraits.ts` (집합 17 + nestingRules 층 2 표 3 파생 · D2 Direction 토글 2) · 구조 변경 판정 `canOperate` · 대상 판정 `resolveMoveTarget` 를 표면 + store 진입부 13 액션 · 우회 쓰기 2 가 같이 부름 (AST ratchet) · origin 안 구조 변경 영향 확인 (표면 선행) · AI reusable 은 store 경유 | Implemented | 2026-09-25 |
 | [027](completed/027-inline-text-editing.md) | Canvas 인라인 텍스트 편집 — Phase A~~C (TextEditOverlay + Quill · 멀티페이지 좌표 · Spec 컴포넌트 텍스트) + **Phase D 전환 무결성** (2026-09-20 "리치 텍스트" 에서 재정의): D0 `.workspace` overflow clip + Quill focus preventScroll (캔버스 변위 0) · D1 오버레이 white-space 를 Skia paragraph 입력에서 파생 (`overlayWrap.ts`, Enter = pre 계열만 줄바꿈) · D2 Skia 텍스트 draw 원점 기록 → 첫 글리프·baseline 끼리 nudge (`overlayNudge.ts`) · D3 픽셀 게이트 `adr027-text-edit-parity.mjs` (타입 8 × 줌 2, 텍스트 지도 shift + 반치 bbox ≤ 1 CSS px) 16/16 + live 7. 게이트가 잡은 Canvas 결함 수리: CJK 단일행 descent 만큼 위 (ideographic 원점) · 고정 px 폭 텍스트 leaf 높이를 부모 폭으로 측정 · pre 계열 `\n` 높이 (레이아웃 측정기 · shape 변환기) · 오버레이 font-feature-settings / wrapWidthExtra / 첫 렌더 카메라. 보류: 리치 텍스트·툴바 (canonical 텍스트 모델 ADR 선행) | Implemented | 2026-09-20 |
 | [223](completed/223-generated-css-default-archetype-neutralization.md) | 생성 CSS archetype 미지정 기본값 중립화 — `DEFAULT_BASE_STYLES` (inline-flex · align/justify center · cursor pointer · user-select none · transition) 를 `container` 와 같은 중립 상자 (block · box-sizing · font-family) 로. Skia 가 읽지 않는 DOM 전용 채널이 Section/Toolbar/TableView/GridListItem 정렬 발산의 기제였다. catalog entry 3 이관 (Pagination `containerStyles.alignItems` · Card `rootSelectors["&"]` cursor · Tab `rootSelectors["&"]` cursor/user-select/transition) · 생성 CSS 12 파일 (catalog 11 + 잔존 spec Slot; layout 17 byte-identical) · 정적 ratchet (미지정 11 pin). 실측: 생성기 5 (원복 4 RED) · `catalogComponentBox` Toolbar/TableView 불리 케이스 + GridListItem 기존 Δ18 GREEN (원복 Δ114/Δ79/Δ18 RED) · 실제 Card·Tab·Toolbar before/after root Δ0 (원복 2 RED) · live 7종 (`adr223-archetype-live.mjs`, Skia↔DOM 부모 기준 rect · computed interaction). 이 ADR 밖 기존 발산 5 기록 (Pagination preview class 미부여 · Disclosure border-style · Tabs TabPanels padding · Toolbar Skia 높이 · Tooltip Δ20) | Implemented | 2026-09-18 |
 | [222](completed/222-canvas-padding-gap-direct-manipulation.md) | 캔버스 Padding·Gap 직접 편집 — 선택 컨테이너의 padding 4변 + 단일 행/열 flex 주축 gap 을 캔버스 띠·핸들로 드래그/클릭 편집 (발견성 Framer · 피드백 Figma 조합: 선택 즉시 얇은 핸들 (0값 포함) · hover 사선+값 배지 · 드래그 중 잡은 띠 배지 하나 · 클릭 = RAC 인라인 숫자 입력). 공급원 = 엔진 소비 style (`readPersistentEngineStyle`, catalog 기본값·미지정 0 도 편집) · capability 표 (Grid/wrap/space-\*/비-desktop/ref/회전/단위 보존 값 차단) · planner h1 (`isSpacingSizeInvariant` — hug/auto 부모 승격 + 외부 형제) · m2 receipt 채널 (bridge rejected 사유 · 확정값만 표시 · 1초 초과/rejected cancel) · 세션 어댑터 (finish commit 1 · 시작값 복귀 no-op) · gesture "spacing" owner · Option 양쪽/Option+Shift 4변/Shift 10px · Styles 패널 동기 강조+read-only · Gap 필드 주축 longhand. 실측: unit 40+ · live 22/22 (hug→following +24 · Undo 1 · Preview gap 22 · Escape 선택 유지 · zoom 25/200 · 코너 우선 · Space pan · overflow clip) · G4 Δp95 +0.6ms (100 자식) | Implemented | 2026-09-17 |

@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-236 Implemented — 빌더 도메인 규칙 정리 종결] - 2026-09-25
+
+### Changed
+
+- **ADR-236 을 Implemented 로 닫았다** — 술어 (body · synthetic id · Components 페이지) 는 shared `domain/` 하나, 타입 멤버십 집합과 중첩 규칙 표는 shared 특성 표 `componentTraits.ts` 하나, 구조 변경 가능 여부와 생성 · 이동 대상은 `canOperate` · `resolveMoveTarget` 하나를 표면 (메뉴 · 액션 바 · 단축키 · Layers · 팔레트 · 붙여넣기 · 드래그 · AI) 과 store 액션이 같이 읽는다. 사용자-가시 변화는 아래 Phase 3 엔트리와 같다.
+  - 판정 근거 · ratchet 최종값 · live 표: `docs/adr/design/236-builder-domain-rules-consolidation-breakdown.md` §12
+  - 번들: Builder 1,411,505 · Preview 621,472 (ADR-201 재승인 상한 안)
+  - 남은 것: 캔버스 드래그 · 패널 안 추가 · Alt 드래그 복제의 원본 영향 확인, layout · skia 렌더 분기 27 (고치는 커밋이 표로 옮긴다)
+
 ## [구조 변경 판정을 한 곳으로 — 메뉴 · 단축키 · Layers · AI 가 같은 규칙 (ADR-236 Phase 3)] - 2026-09-25
 
 ### Changed
