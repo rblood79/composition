@@ -3,6 +3,8 @@ import { act, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useStore } from "../../../stores";
 import type { Element } from "../../../../types/core/store.types";
+import type { CompositionDocument } from "@composition/shared";
+import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
 import { useStyleActions } from "./useStyleActions";
 
 vi.mock("@/builder/hooks", () => ({
@@ -11,6 +13,65 @@ vi.mock("@/builder/hooks", () => ({
     paste: vi.fn(),
   }),
 }));
+
+/** Form origin (Components 페이지) 안 TextField 자식 · page-1 에 Form instance — 자식은 synthetic `form-1/field-1`. */
+function makeSyntheticFormDocument(
+  descendants?: Record<string, Record<string, unknown>>,
+): CompositionDocument {
+  return {
+    version: "composition-1.0",
+    children: [
+      {
+        id: "page-components",
+        type: "frame",
+        metadata: { type: "legacy-page", pageId: "page-components" },
+        children: [
+          {
+            id: "page-components-body",
+            type: "body",
+            props: {},
+            children: [
+              {
+                id: "component-form",
+                type: "Form",
+                reusable: true,
+                props: {},
+                children: [
+                  {
+                    id: "field-1",
+                    type: "TextField",
+                    props: { label: "Name", labelPosition: "top" },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      {
+        id: "page-1",
+        type: "frame",
+        metadata: { type: "legacy-page", pageId: "page-1" },
+        children: [
+          {
+            id: "body",
+            type: "body",
+            props: {},
+            children: [
+              {
+                id: "form-1",
+                type: "ref",
+                ref: "component-form",
+                props: {},
+                ...(descendants ? { descendants } : {}),
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  } as unknown as CompositionDocument;
+}
 
 describe("useStyleActions", () => {
   afterEach(() => {
@@ -364,6 +425,70 @@ describe("useStyleActions", () => {
 
       expect(updateSelectedProperty).not.toHaveBeenCalled();
       expect(updateSelectedStyles).not.toHaveBeenCalled();
+    });
+
+    describe("instance 안 자식 (synthetic) 선택", () => {
+      function setupSynthetic(
+        descendants?: Record<string, Record<string, unknown>>,
+      ) {
+        useCanonicalDocumentStore.setState({
+          currentProjectId: "project-1",
+          documents: new Map([
+            ["project-1", makeSyntheticFormDocument(descendants)],
+          ]),
+          documentVersion: 1,
+        });
+        const updateSelectedStyles = vi.fn();
+        const updateSelectedProperty = vi.fn();
+        const updateSelectedProperties = vi.fn();
+        // synthetic 노드는 store elementsMap 에 없다 — 해소된 canonical 노드로만 읽힌다.
+        useStore.setState({
+          selectedElementId: "form-1/field-1",
+          elementsMap: new Map<string, Element>(),
+          updateSelectedStyles,
+          updateSelectedProperty,
+          updateSelectedProperties,
+        });
+        return {
+          updateSelectedStyles,
+          updateSelectedProperty,
+          updateSelectedProperties,
+        };
+      }
+
+      it("origin 타입 (TextField) 으로 판정해 labelPosition 을 쓴다", () => {
+        const { updateSelectedStyles, updateSelectedProperty } =
+          setupSynthetic();
+        const { result } = renderHook(() => useStyleActions());
+
+        act(() => {
+          result.current.handleFlexDirection("row");
+        });
+
+        expect(updateSelectedProperty).toHaveBeenCalledWith(
+          "labelPosition",
+          "side",
+        );
+        expect(updateSelectedStyles).not.toHaveBeenCalled();
+      });
+
+      it("patch 에 남은 인라인 방향은 null 표식으로 지운다 (descendants 병합은 키 삭제를 잇지 못한다)", () => {
+        const { updateSelectedProperties } = setupSynthetic({
+          "field-1": {
+            style: { display: "flex", flexDirection: "row", width: "200px" },
+          },
+        });
+        const { result } = renderHook(() => useStyleActions());
+
+        act(() => {
+          result.current.handleFlexDirection("column");
+        });
+
+        expect(updateSelectedProperties).toHaveBeenCalledWith({
+          labelPosition: "top",
+          style: { display: null, flexDirection: null },
+        });
+      });
     });
 
     it("옛 토글이 남긴 인라인 display · flexDirection 은 같은 쓰기에서 지운다", () => {

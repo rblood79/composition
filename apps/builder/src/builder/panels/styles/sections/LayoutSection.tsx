@@ -39,7 +39,10 @@ import {
 import { useResetStyles, useHasDirtyStyles } from "../hooks/useResetStyles";
 import { useStore } from "../../../stores";
 import { isDirectionDrivenTag } from "../utils/orientationDrivenTags";
-import { resolveStyleSpecType } from "../hooks/useElementStyleContext";
+import {
+  readStyleTargetNode,
+  resolveStyleSpecType,
+} from "../hooks/useElementStyleContext";
 import { useLayoutPresentationActions } from "../hooks/useLayoutPresentationActions";
 import { LAYOUT_PROPS } from "./styleSectionProps";
 import { resolveGapAxisProperty } from "../utils/gapAxis";
@@ -71,11 +74,11 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
   // 별도 prop(row/column 만, block 없음)이라 Direction 토글의 block 버튼을 disable
   // — 매핑 불가능한 block 선택을 원천 차단(2026-06-30). 대상 정본:
   // orientationDrivenTags (element.type PascalCase → 헬퍼가 toLowerCase 정규화).
-  // ref instance (팔레트가 만드는 요소) 는 origin 타입으로 판정한다 — `type` 은 "ref" 다.
+  // ref instance (팔레트가 만드는 요소) 는 origin 타입, instance 안 자식 (synthetic) 은 해소 노드로 판정한다.
   const isDirectionDriven = useStore((s) =>
     isDirectionDrivenTag(
       resolveStyleSpecType(
-        selectedId ? s.elementsMap.get(selectedId) : undefined,
+        readStyleTargetNode(selectedId, s.elementsMap),
         s.elementsMap,
       ),
     ),

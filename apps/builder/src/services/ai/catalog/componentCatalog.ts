@@ -53,6 +53,12 @@ export interface AiCatalogEntry {
 /**
  * 컨테이너로 쓸 수 있는 canonical type. frame 은 catalog `native` entry 이지만
  * "여러 요소를 담는 그릇" 이라는 사실은 catalog 에 필드가 없다 (ADR-130 결정).
+ *
+ * 프롬프트 표기 전용이다 — Tier 2 제목의 `, container` 한 줄만 정한다. 부모 허용은 도구가
+ * `resolveMoveTarget` 으로 판정하고 이 집합을 읽지 않는다. `STRUCTURAL_CONTAINER_TYPES`
+ * (캔버스 drop · padding 대상) 에서 파생하지 않는다 (ADR-236 §16): 파생하면 Nav · Slot 이 빠지고
+ * Card 계열이 붙어 계획 힌트만 바뀐다 — Card 는 이름 영역 (ADR-240) 으로 채운다. box · container ·
+ * Group 은 AI catalog 에 없다.
  */
 export const CONTAINER_TYPES: ReadonlySet<string> = new Set([
   "frame",

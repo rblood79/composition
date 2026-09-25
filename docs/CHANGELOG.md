@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Styles 패널 — 컴포넌트 instance 안 요소 선택] - 2026-09-25
+
+### Fixed
+
+- **Form 같은 컴포넌트 instance 안의 요소 (Form 안 TextField 등) 를 선택하면 Styles 패널이 기본값만 보이던 문제** — 패널이 그 요소를 찾지 못해 Layout · Fill · Border 등 모든 절이 요소의 실제 값 대신 기본값을 표시했다 (Properties 패널은 제대로 읽었다). 편집은 요소에 쓰였기 때문에 표시와 결과가 갈렸다. Direction 은 비활성 Block 으로 보였고, Row 를 누르면 라벨 위치 대신 인라인 방향이 쓰였다. 이제 Properties 와 같은 해석 노드를 읽고, Direction 은 라벨 위치로 기록하며, 이전에 남은 인라인 방향은 지운다.
+  - 위치: `panels/styles/hooks/useElementStyleContext.ts` (`readStyleTargetNode`) · `useStyleActions.ts` · `sections/LayoutSection.tsx`
+
 ## [Style 패널 Direction 토글 — instance · Meter · ProgressBar · Slider 의 라벨 위치] - 2026-09-25
 
 ### Fixed

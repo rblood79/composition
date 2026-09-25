@@ -365,3 +365,17 @@ ADR-236 종결: Phase 0–4 · G0–G4, 실행자 닫힘 선언.
 
 
 판독 (reviewer, 2026-09-25, `84a7a8d12`): HIGH 0 · MEDIUM 1 수리 → 닫힘. M1 — Direction 그룹에 `disallowEmptySelection` 이 없어 선택된 버튼 재클릭이 `undefined` 를 보낸다. style 경로에서는 무동작이었지만 prop 번역은 column 외를 side · horizontal 로 흡수해 top 이 side 로 뒤집혔다 (이 커밋으로 팔레트 instance 전부가 이 경로에 들어왔다). `handleFlexDirection` 이 block · row · column 외 값을 거른다 — 단위 RED 1 → GREEN · live C2 (Column 재클릭 → 4 타입 모두 top 유지). LOW deferred: instance 안 synthetic 자식 (`<instance>/<path>`) 은 여전히 style 경로 (커밋 전과 같음) · 비-desktop tier override 의 옛 `responsive.styles` 방향은 정리 대상 아님 · 인라인이 방향 두 키뿐이면 빈 `style` override 가 남음 (렌더 무영향) · vertical Slider + side 미확인 · DOM leg 는 CSS 특이도 추론.
+
+## 16. 종결 뒤 후속 — 병렬 조사 4건 (2026-09-25)
+
+§15 의 남은 항목 · AI `CONTAINER_TYPES` 를 조사 에이전트 4개로 동시에 판정했다.
+
+| 항목 | 판정 | 처리 |
+| --- | --- | --- |
+| AI `CONTAINER_TYPES` | 결함 아님 — Tier 2 제목 `, container` 표기 전용. 부모 허용은 도구가 `resolveMoveTarget` 으로 판정하고 이 집합을 읽지 않는다. structural 에서 파생하면 Nav · Slot 이 빠지고 Card 계열이 붙어 계획 힌트만 바뀐다 | 사유를 `componentCatalog.ts` 주석에 기록 (동작 변경 0) |
+| instance 안 자식 (synthetic) 의 Styles 패널 | 결함 — `useElementStyleContext` · Direction 판정이 `map.get(id)` 만 써서 synthetic 에서 조용히 undefined (ADR-229 F15 fallback 이 Properties 에만 들어갔다). 표시는 기본값, 쓰기는 descendants | `readStyleTargetNode` (map → `readSyntheticPanelNode`) 를 세 곳이 공유. 옛 인라인은 descendants 병합이 키 삭제를 잇지 못해 `null` 표식으로 지운다 |
+| Alignment · Space · Wrap 이 grid 를 flex 로 | 결함 — 아래 |
+| side 에서 Canvas 가 인라인 방향을 덮음 | 결함 — 아래 |
+
+synthetic 근거: 단위 RED 3 → GREEN · live (`labelposition-direction-live.mjs` G — 팔레트 Form 의 `<form>/TextField/Name`): 패널 Column 표시 (종전 block) · Row → `descendants[path].labelPosition = "side"` · Input x 0 → 180 · 옛 patch 인라인 + Column → `style: { display: null, flexDirection: null }` · 다시 세로.
+

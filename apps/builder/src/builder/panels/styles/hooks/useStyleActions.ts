@@ -20,7 +20,11 @@ import {
   resolveDirectionDrivenProp,
   flexDirectionToDrivenValue,
 } from "../utils/orientationDrivenTags";
-import { resolveStyleSpecType } from "./useElementStyleContext";
+import {
+  readStyleTargetNode,
+  resolveStyleSpecType,
+} from "./useElementStyleContext";
+import { isSyntheticDescendantId } from "../../../stores/canonical/syntheticDescendantLookup";
 
 /** Direction 토글이 style 경로에서 쓰는 display 값 — 사용자가 따로 고른 grid 등은 남긴다. */
 const DIRECTION_TOGGLE_DISPLAYS = new Set(["flex", "block"]);
@@ -34,6 +38,7 @@ const DIRECTION_VALUES = new Set(["block", "row", "column"]);
  */
 function withoutStaleDirectionStyle(
   style: unknown,
+  asPatch: boolean,
 ): Record<string, unknown> | null {
   if (!style || typeof style !== "object") return null;
   const current = style as Record<string, unknown>;
@@ -41,6 +46,14 @@ function withoutStaleDirectionStyle(
     typeof current.display === "string" &&
     DIRECTION_TOGGLE_DISPLAYS.has(current.display);
   if (current.flexDirection === undefined && !staleDisplay) return null;
+  // instance 안 자식은 바깥 instance 의 descendants patch 에 병합된다 — 병합은 빠진 키를 지우지
+  //   못하므로 ADR-234 삭제 표식 `null` 을 싣는다.
+  if (asPatch) {
+    return {
+      ...(staleDisplay ? { display: null } : {}),
+      flexDirection: null,
+    };
+  }
   const next = { ...current };
   delete next.flexDirection;
   if (staleDisplay) delete next.display;
@@ -145,15 +158,16 @@ export function useStyleActions() {
     //   side / horizontal 로 흡수하므로 여기서 걸러야 top 이 side 로 뒤집히지 않는다.
     if (!DIRECTION_VALUES.has(value)) return;
     const { selectedElementId, elementsMap } = useStore.getState();
-    const selected = selectedElementId
-      ? elementsMap.get(selectedElementId)
-      : undefined;
+    const selected = readStyleTargetNode(selectedElementId, elementsMap);
     const drivenProp = resolveDirectionDrivenProp(
       resolveStyleSpecType(selected, elementsMap),
     );
     if (drivenProp) {
       const drivenValue = flexDirectionToDrivenValue(drivenProp, value);
-      const staleStyle = withoutStaleDirectionStyle(selected?.props?.style);
+      const staleStyle = withoutStaleDirectionStyle(
+        selected?.props?.style,
+        selectedElementId !== null && isSyntheticDescendantId(selectedElementId),
+      );
       if (staleStyle) {
         // 이 토글이 prop 번역 전에 (ref instance 판정 누락 · 멤버십 밖) 쓴 인라인이 남아 있으면
         // DOM 에서 인라인이 variant 를 이긴다 — prop 과 같은 쓰기에서 지운다.

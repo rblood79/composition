@@ -268,6 +268,72 @@ try {
     await page.screenshot({ path: `${OUT}/${type}.png` });
     await setPanel(page, "styles", false);
   }
+
+  // G. instance 안 자식 (synthetic `<form>/<path>`) — Form 안 TextField 에서 Direction 이 labelPosition 을 쓴다.
+  {
+    const formId = await addFromPalette(page, "Form", bodyId);
+    const r = (report.checks.FormChild = { formId });
+    const childId = await page.evaluate((formId) => {
+      const lm = window.__composition_LAYOUT_DEBUG__.getSharedLayoutMap();
+      const st = window.__composition_STORE__.getState();
+      // origin 안 필드는 어느 깊이든 `<form>/<…>/<field>` — 마지막 조각의 origin 노드 (ref 면 그 원본) 가 TextField.
+      const typeOf = (id) => {
+        const n = st.elementsMap.get(id);
+        return n?.type === "ref" ? st.elementsMap.get(n.ref)?.type : n?.type;
+      };
+      const keys = [...lm.keys()].filter((k) => k.startsWith(`${formId}/`));
+      // path 조각은 이름 기반 (`<form>/TextField/Name`) — TextField origin 자식 (`component-textfield__N`) 의 부모 키.
+      const key = keys
+        .filter((k) => /\/component-textfield__1$/.test(k))
+        .map((k) => k.slice(0, k.lastIndexOf("/")))
+        .sort((a, b) => a.length - b.length)[0];
+      return key ?? { missing: true, keys: keys.slice(0, 30).map((k) => `${k} → ${typeOf(k.split("/").pop())}`) };
+    }, formId).then((v) => {
+      if (v && typeof v === "object") {
+        r.probe = v.keys;
+        return null;
+      }
+      return v;
+    });
+    r.childId = childId;
+    const readChild = () =>
+      page.evaluate(
+        ({ formId, childId }) => {
+          const st = window.__composition_STORE__.getState();
+          const form = st.elementsMap.get(formId);
+          const path = childId.slice(formId.length + 1);
+          // 중첩 경로면 patch 키도 전체 path.
+          const lm = window.__composition_LAYOUT_DEBUG__.getSharedLayoutMap();
+          const kids = [...lm.keys()]
+            .filter((k) => k.startsWith(`${childId}/`) && !k.slice(childId.length + 1).includes("/"))
+            .map((k) => ({ k: k.slice(childId.length + 1), x: Math.round(lm.get(k).x), y: Math.round(lm.get(k).y) }));
+          return { patch: form?.descendants?.[path] ?? null, kids };
+        },
+        { formId, childId },
+      );
+    if (childId) {
+      await page.evaluate(
+        (id) => window.__composition_STORE__.getState().setSelectedElement(id),
+        childId,
+      );
+      await setPanel(page, "styles", true);
+      await page.waitForTimeout(800);
+      r.before = { ...(await readChild()), direction: await directionState(page) };
+      await clickDirection(page, "row");
+      r.afterRow = { ...(await readChild()), direction: await directionState(page) };
+      // 옛 경로가 남긴 patch 인라인 재현 (종전 토글이 synthetic 에 쓰던 값).
+      await page.evaluate(() =>
+        window.__composition_STORE__
+          .getState()
+          .updateSelectedProperties({ style: { display: "flex", flexDirection: "row" } }),
+      );
+      await page.waitForTimeout(900);
+      r.staleSeeded = { ...(await readChild()), direction: await directionState(page) };
+      await clickDirection(page, "column");
+      r.afterColumn = { ...(await readChild()), direction: await directionState(page) };
+      await page.screenshot({ path: `${OUT}/form-child.png` });
+    }
+  }
 } finally {
   await writeFile(`${OUT}/report.json`, JSON.stringify(report, null, 2));
   console.log(JSON.stringify(report, null, 2));

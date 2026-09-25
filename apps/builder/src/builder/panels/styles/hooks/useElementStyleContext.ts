@@ -10,7 +10,10 @@ import { resolveResponsiveStyleMap } from "../../../workspace/canvas/layout/reso
 import { applyPropsPatch } from "../../../../adapters/canonical/instanceResolver";
 import { useStore } from "../../../stores";
 import type { PanelNode } from "../../panelNode";
-import { useCanonicalPropertyElementsMap } from "../../properties/hooks/useCanonicalPropertyRead";
+import {
+  readSyntheticPanelNode,
+  useCanonicalPropertyElementsMap,
+} from "../../properties/hooks/useCanonicalPropertyRead";
 import {
   TINT_PRESETS,
   type TintPreset,
@@ -89,6 +92,19 @@ function resolveStyleOriginElement(
 }
 
 /**
+ * Styles 패널이 편집 대상으로 읽는 노드. instance 안 자식 (synthetic `<instance>/<path>`) 은
+ * canonical 노드도 store 노드도 아니어서 `map.get` 이 조용히 비었다 — Properties 와 같은 해소
+ * 노드 (origin ⊕ descendants patch) 로 읽는다. 쓰기는 store 가 바깥 instance 의 descendants 로 돌린다.
+ */
+export function readStyleTargetNode(
+  id: string | null | undefined,
+  elementsMap: ReadonlyMap<string, PanelNode>,
+): PanelNode | undefined {
+  if (!id) return undefined;
+  return elementsMap.get(id) ?? readSyntheticPanelNode(id) ?? undefined;
+}
+
+/**
  * 패널이 컴포넌트 규칙을 찾을 타입 — ref instance 는 origin 타입 (팔레트가 만드는 요소는 instance 다).
  * Direction 토글의 labelPosition · orientation 판정도 이 타입을 읽는다.
  */
@@ -143,7 +159,10 @@ function readNodeAccentColor(
 export function useElementStyleContext(id: string | null): ElementStyleContext {
   const elementsMap = useCanonicalPropertyElementsMap();
   const activeBreakpoint = useStore((state) => state.activeBreakpoint);
-  const element = id ? elementsMap.get(id) : undefined;
+  const element = useMemo(
+    () => readStyleTargetNode(id, elementsMap),
+    [id, elementsMap],
+  );
   const ownProps = element?.props as
     Readonly<Record<string, unknown>> | undefined;
   const type = resolveStyleSpecType(element, elementsMap);

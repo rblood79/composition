@@ -20,6 +20,65 @@ function makeElement(id: string, overrides: Partial<Element> = {}): Element {
   } as Element;
 }
 
+/** Form origin (Components 페이지) 안 TextField 자식 · page-1 에 Form instance — 자식은 synthetic `form-1/field-1`. */
+function makeSyntheticFormDocument(
+  descendants?: Record<string, Record<string, unknown>>,
+): CompositionDocument {
+  return {
+    version: "composition-1.0",
+    children: [
+      {
+        id: "page-components",
+        type: "frame",
+        metadata: { type: "legacy-page", pageId: "page-components" },
+        children: [
+          {
+            id: "page-components-body",
+            type: "body",
+            props: {},
+            children: [
+              {
+                id: "component-form",
+                type: "Form",
+                reusable: true,
+                props: {},
+                children: [
+                  {
+                    id: "field-1",
+                    type: "TextField",
+                    props: { label: "Name", labelPosition: "top" },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      {
+        id: "page-1",
+        type: "frame",
+        metadata: { type: "legacy-page", pageId: "page-1" },
+        children: [
+          {
+            id: "body",
+            type: "body",
+            props: {},
+            children: [
+              {
+                id: "form-1",
+                type: "ref",
+                ref: "component-form",
+                props: {},
+                ...(descendants ? { descendants } : {}),
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  } as unknown as CompositionDocument;
+}
+
 describe("useElementStyleContext", () => {
   beforeEach(() => {
     useStore.setState({
@@ -34,6 +93,27 @@ describe("useElementStyleContext", () => {
       currentProjectId: null,
       documentVersion: 0,
     });
+  });
+
+  it("instance 안 자식 (synthetic `<instance>/<path>`) 도 해소된 노드로 읽는다 — origin 타입 · descendants patch", () => {
+    useCanonicalDocumentStore.setState({
+      currentProjectId: "project-1",
+      documents: new Map([
+        [
+          "project-1",
+          makeSyntheticFormDocument({
+            "field-1": { labelPosition: "side", style: { width: "200px" } },
+          }),
+        ],
+      ]),
+      documentVersion: 1,
+    });
+
+    const { result } = renderHook(() => useElementStyleContext("form-1/field-1"));
+
+    expect(result.current.type).toBe("TextField");
+    expect(result.current.props?.labelPosition).toBe("side");
+    expect(result.current.style?.width).toBe("200px");
   });
 
   it("resolves a canonical ref instance style type from its reusable origin", () => {
