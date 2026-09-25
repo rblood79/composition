@@ -34,8 +34,6 @@ export interface SpacingBand {
   readonly value: number;
   /** 포인터를 +축 방향으로 끌 때 값이 커지면 +1 */
   readonly sign: 1 | -1;
-  /** 드래그 중 핸들을 띠 중앙에서 조절 축으로 옮기는 거리 (scene) — `shiftDraggedHandles` */
-  readonly handleShift?: number;
 }
 
 export interface SpacingGapGeometryInput {
@@ -208,49 +206,7 @@ export function buildSpacingBands(
   return bands;
 }
 
-/** 핸들 중심 (scene) — 띠 중앙 + 드래그 보정 (`handleShift`). 그리기·히트·인라인 입력이 같이 읽는다 */
-function spacingHandleCenter(band: SpacingBand): { x: number; y: number } {
-  const shift = band.handleShift ?? 0;
-  return {
-    x: band.rect.x + band.rect.width / 2 + (band.axis === "x" ? shift : 0),
-    y: band.rect.y + band.rect.height / 2 + (band.axis === "y" ? shift : 0),
-  };
-}
-
-/**
- * 드래그 중 움직이는 띠의 핸들을 포인터와 1:1 로 — 값이 d 변하면 띠 중앙은 d/2 만 움직여
- * 핸들이 포인터의 절반 속도로 따라왔다 (2026-09-26 사용자 신고). 남은 d/2 를 `sign` 방향으로
- * 더해 핸들을 움직이는 가장자리에 붙인다. 값은 포인터와 1:1 그대로 (step · 0 하한이 핸들에도
- * 보인다). 드래그가 끝나면 보정이 빠져 핸들은 띠 중앙으로 돌아간다.
- *
- * 잡은 핸들 (`grabbed`) 은 띠가 아니라 **시작 위치 + sign·값 변화량** 에 둔다 — Alt 양쪽 편집에서
- * 반대 변 증가가 박스를 키워 띠 자체를 밀면 (hug 축의 bottom·right) 중앙 기준 보정은 포인터를
- * 앞지른다. 값 기준이라 step · 0 하한은 그대로 보인다.
- */
-export function shiftDraggedHandles(
-  bands: readonly SpacingBand[],
-  bandIds: readonly string[],
-  startValues: Readonly<Record<string, number>>,
-  grabbed?: { readonly bandId: string; readonly center: number },
-): readonly SpacingBand[] {
-  const moving = new Set(bandIds);
-  return bands.map((band) => {
-    const start = startValues[band.id];
-    if (!moving.has(band.id) || start === undefined) return band;
-    const delta = band.sign * (band.value - start);
-    let shift = delta / 2;
-    if (grabbed?.bandId === band.id) {
-      const center =
-        band.axis === "y"
-          ? band.rect.y + band.rect.height / 2
-          : band.rect.x + band.rect.width / 2;
-      shift = grabbed.center + delta - center;
-    }
-    return shift === 0 ? band : { ...band, handleShift: shift };
-  });
-}
-
-/** 핸들 rect (scene) — 띠 중앙 (+ 드래그 보정), 길이·두께는 화면 px 고정 */
+/** 띠 중앙의 핸들 rect (scene) — 길이·두께는 화면 px 고정 */
 export function resolveSpacingHandleRect(
   band: SpacingBand,
   zoom: number,
@@ -260,7 +216,8 @@ export function resolveSpacingHandleRect(
   const thickness =
     (active ? SPACING_HANDLE_THICKNESS_ACTIVE : SPACING_HANDLE_THICKNESS) /
     zoom;
-  const { x: cx, y: cy } = spacingHandleCenter(band);
+  const cx = band.rect.x + band.rect.width / 2;
+  const cy = band.rect.y + band.rect.height / 2;
   return band.axis === "y"
     ? {
         x: cx - length / 2,
@@ -292,7 +249,8 @@ export function hitTestSpacingHandles(
 ): SpacingBand | null {
   const hit = SPACING_HANDLE_HIT / zoom;
   for (const band of bands) {
-    const { x: cx, y: cy } = spacingHandleCenter(band);
+    const cx = band.rect.x + band.rect.width / 2;
+    const cy = band.rect.y + band.rect.height / 2;
     if (
       pointInBox(point, {
         x: cx - hit / 2,
@@ -334,13 +292,74 @@ export function hitTestSpacingBands(
   return null;
 }
 
-/** 띠 축 기준 pointer 이동량 → 값 delta (scene px, zoom 은 호출부가 나눈다) */
-export function spacingDeltaFromPointer(
-  band: SpacingBand,
-  dx: number,
-  dy: number,
+/**
+ * 핸들 = 포인터 (2026-09-26 사용자 규칙) — 핸들은 띠 중앙 (값의 절반) 에 고정되고, 드래그 중
+ * 포인터와 같은 자리에 있어야 한다. 그래서 값 변화량은 포인터 이동이 아니라 "핸들을 포인터까지
+ * 옮기는 값" 이다: delta = 포인터 이동 / rate, rate = 값 +1 당 핸들 중심 이동 (조절 축 +방향, scene).
+ * 한 변이면 rate ±0.5 (값은 포인터의 2배). rate 는 추정값으로 시작해 드래그 중 실측
+ * (`measureSpacingHandleRate`) 으로 바뀐다 — Alt 양쪽 · 여러 gap · 부모 가운데 정렬처럼 띠 자체가
+ * 밀리는 배치를 식으로 다 담지 않는다.
+ */
+export const SPACING_MIN_HANDLE_RATE = 0.1;
+
+function spacingHandleCenterOnAxis(band: SpacingBand): number {
+  return band.axis === "y"
+    ? band.rect.y + band.rect.height / 2
+    : band.rect.x + band.rect.width / 2;
+}
+
+/** 시작 배치 추정 rate — 박스가 시작 (좌·상) 에 붙어 있다고 본다 */
+export function estimateSpacingHandleRate(
+  band: Pick<SpacingBand, "kind" | "gapIndex" | "sign" | "side">,
+  context: {
+    readonly sides?: readonly SpacingSide[];
+    readonly gapCount?: number;
+  },
 ): number {
-  return (band.axis === "y" ? dy : dx) * band.sign;
+  if (band.kind === "gap") {
+    // gap 은 전부 같이 변한다 — 앞 (진행 방향 반대쪽) 의 gap 들이 이 띠를 민다
+    const index = band.gapIndex ?? 0;
+    const before =
+      band.sign > 0
+        ? index
+        : Math.max(0, (context.gapCount ?? index + 1) - 1 - index);
+    return band.sign * (before + 0.5);
+  }
+  // padding 띠 중앙 = 고정 가장자리 + 값/2. hug 축의 뒤쪽 변 (sign +1 인 bottom·right) 은 같이
+  // 늘어나는 앞쪽 변 (Alt 양쪽 · link) 이 띠를 통째로 민다.
+  const pushedBy =
+    band.side === "bottom" ? "top" : band.side === "right" ? "left" : null;
+  const pushed =
+    band.sign > 0 && pushedBy !== null && context.sides?.includes(pushedBy);
+  return band.sign * 0.5 + (pushed ? 1 : 0);
+}
+
+/** 드래그 중 실측 rate — 시작 띠와 현재 (확정값 반영) 띠의 핸들 중심 이동 / 값 변화. |Δ값| < 2 면 null */
+export function measureSpacingHandleRate(
+  start: SpacingBand,
+  current: SpacingBand,
+): number | null {
+  const deltaValue = current.value - start.value;
+  if (Math.abs(deltaValue) < 2) return null;
+  const rate =
+    (spacingHandleCenterOnAxis(current) - spacingHandleCenterOnAxis(start)) /
+    deltaValue;
+  return Number.isFinite(rate) ? rate : null;
+}
+
+/**
+ * 조절 축 포인터 이동 (scene) → 값 delta. 핸들이 값에 따라 거의 안 움직이는 배치 (|rate| <
+ * 최소 — 예: 가운데 정렬 부모 안 hug 박스의 top) 는 따라갈 수 없으므로 종전 1:1 (축·부호) 로.
+ */
+export function spacingDeltaForPointer(
+  band: Pick<SpacingBand, "sign">,
+  pointerAlongAxis: number,
+  rate: number,
+): number {
+  if (Math.abs(rate) < SPACING_MIN_HANDLE_RATE) {
+    return pointerAlongAxis * band.sign;
+  }
+  return pointerAlongAxis / rate;
 }
 
 /** 조절 축에 맞는 커서 */

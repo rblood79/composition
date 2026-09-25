@@ -3,9 +3,10 @@ import {
   buildSpacingBands,
   hitTestSpacingBands,
   hitTestSpacingHandles,
+  estimateSpacingHandleRate,
+  measureSpacingHandleRate,
   resolveSpacingHandleRect,
-  shiftDraggedHandles,
-  spacingDeltaFromPointer,
+  spacingDeltaForPointer,
 } from "./spacingGeometry";
 
 const owner = { x: 100, y: 200, width: 300, height: 160 };
@@ -256,85 +257,65 @@ describe("hitTestSpacingBands", () => {
     expect(hitTestSpacingBands({ x: 120, y: 206 }, zero, 1)).toBeNull();
   });
 
-  it("maps pointer movement through axis and sign", () => {
+  it("falls back to 1:1 along axis·sign when the handle does not move with the value (rate ≈ 0)", () => {
     const bottom = bands.find((b) => b.id === "padding:bottom")!;
-    expect(spacingDeltaFromPointer(bottom, 7, 10)).toBe(10);
-    const top = bands.find((b) => b.id === "padding:top")!;
-    expect(spacingDeltaFromPointer(top, 7, 10)).toBe(10);
+    expect(spacingDeltaForPointer(bottom, 10, 0)).toBe(10);
     const right = bands.find((b) => b.id === "padding:right")!;
-    expect(spacingDeltaFromPointer(right, -4, 99)).toBe(4);
-    const left = bands.find((b) => b.id === "padding:left")!;
-    expect(spacingDeltaFromPointer(left, 4, 99)).toBe(4);
+    expect(spacingDeltaForPointer(right, -4, 0.05)).toBe(4);
   });
 });
 
-describe("shiftDraggedHandles — 드래그 중 핸들이 포인터와 1:1 (2026-09-26 사용자 신고: 핸들이 절반 속도)", () => {
-  // 값이 d 늘면 띠 중앙은 d/2 만 움직인다 — 핸들을 sign·(현재 − 시작)/2 만큼 더 옮겨 움직이는 가장자리에 붙인다
-  const at = (value: number) =>
-    buildSpacingBands({
+describe("핸들 = 포인터 · 핸들은 값의 절반 위치 (2026-09-26 사용자 규칙)", () => {
+  const bands = buildSpacingBands({ ownerBounds: owner, border, padding, gap: null });
+  // 핸들은 띠 중앙 (값/2) 에 고정 — 핸들이 포인터와 같은 자리에 있도록 값 변화량을 정한다.
+  //   rate = 값 +1 당 핸들 중심 이동 (조절 축 +방향). delta = 포인터 이동 / rate.
+  const center = (b: { rect: { x: number; y: number; width: number; height: number }; axis: "x" | "y" }) =>
+    b.axis === "y" ? b.rect.y + b.rect.height / 2 : b.rect.x + b.rect.width / 2;
+
+  it("한 변: 핸들은 값의 절반만 움직인다 → rate ±0.5 → 포인터 10 = 값 20", () => {
+    const top = bands.find((b) => b.id === "padding:top")!;
+    expect(estimateSpacingHandleRate(top, { sides: ["top"] })).toBe(0.5);
+    expect(spacingDeltaForPointer(top, 10, 0.5)).toBe(20);
+    const right = bands.find((b) => b.id === "padding:right")!; // 기본 고정 폭 → sign −1
+    expect(estimateSpacingHandleRate(right, { sides: ["right"] })).toBe(-0.5);
+    expect(spacingDeltaForPointer(right, -10, -0.5)).toBe(20);
+  });
+
+  it("Alt 양쪽 · hug 축의 뒤쪽 변: 앞쪽 변 증가가 띠를 민다 → rate 1.5", () => {
+    const grown = buildSpacingBands({
       ownerBounds: owner,
       border,
-      padding: { ...padding, top: value, right: value },
+      padding,
+      paddingGrowth: { x: true, y: true },
       gap: null,
     });
-  const handleCenter = (band: ReturnType<typeof at>[number]) => {
-    const r = resolveSpacingHandleRect(band, 1);
-    return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
-  };
-
-  it("top (+y): 값 10 → 30 이면 핸들이 20 이동 (띠 중앙 이동 10 + 보정 10)", () => {
-    const start = at(10).find((b) => b.id === "padding:top")!;
-    const shifted = shiftDraggedHandles(at(30), ["padding:top"], {
-      "padding:top": 10,
-    }).find((b) => b.id === "padding:top")!;
-    expect(handleCenter(shifted).y - handleCenter(start).y).toBe(20);
-    expect(handleCenter(shifted).x).toBe(handleCenter(start).x);
+    const bottom = grown.find((b) => b.id === "padding:bottom")!;
+    const right = grown.find((b) => b.id === "padding:right")!;
+    expect(estimateSpacingHandleRate(bottom, { sides: ["top", "bottom"] })).toBe(1.5);
+    expect(estimateSpacingHandleRate(right, { sides: ["left", "right"] })).toBe(1.5);
+    expect(estimateSpacingHandleRate(bottom, { sides: ["bottom"] })).toBe(0.5);
   });
 
-  it("right 고정 폭 (sign −1): 값 20 → 30 이면 핸들이 −10 이동", () => {
-    const start = at(20).find((b) => b.id === "padding:right")!;
-    const shifted = shiftDraggedHandles(at(30), ["padding:right"], {
-      "padding:right": 20,
-    }).find((b) => b.id === "padding:right")!;
-    expect(handleCenter(shifted).x - handleCenter(start).x).toBe(-10);
+  it("gap k 번째: 앞의 gap 들이 같이 늘어 띠를 민다 → rate k + 0.5 (reverse 는 뒤에서부터 · 음수)", () => {
+    const gapBand = (gapIndex: number, sign: 1 | -1) =>
+      ({ kind: "gap", gapIndex, sign, axis: "y", side: null }) as never;
+    expect(estimateSpacingHandleRate(gapBand(0, 1), { gapCount: 3 })).toBe(0.5);
+    expect(estimateSpacingHandleRate(gapBand(2, 1), { gapCount: 3 })).toBe(2.5);
+    expect(estimateSpacingHandleRate(gapBand(2, -1), { gapCount: 3 })).toBe(-0.5);
+    expect(estimateSpacingHandleRate(gapBand(0, -1), { gapCount: 3 })).toBe(-2.5);
   });
 
-  it("움직이지 않는 띠 · 시작값 없는 띠는 그대로 · 히트도 옮긴 핸들을 따른다", () => {
-    const bands = shiftDraggedHandles(at(30), ["padding:top"], {
-      "padding:top": 10,
-    });
-    const left = bands.find((b) => b.id === "padding:left")!;
-    expect(left.handleShift ?? 0).toBe(0);
-    const top = bands.find((b) => b.id === "padding:top")!;
-    const c = handleCenter(top);
-    expect(hitTestSpacingHandles(c, bands, 1)).toBe(top);
-  });
-});
-
-describe("shiftDraggedHandles — 잡은 핸들은 시작 위치 + 값 변화량 (Alt 양쪽: 반대 변 증가가 띠를 민다)", () => {
-  it("bottom 을 잡고 top·bottom 이 같이 +40 이면 (hug 높이) 박스가 80 커져도 잡은 핸들은 +40", () => {
-    const start = buildSpacingBands({ ownerBounds: owner, border, padding, gap: null });
-    const startBottom = start.find((b) => b.id === "padding:bottom")!;
-    const startCenter = startBottom.rect.y + startBottom.rect.height / 2;
-    const grown = buildSpacingBands({
-      ownerBounds: { ...owner, height: owner.height + 80 },
-      border,
-      padding: { ...padding, top: padding.top + 40, bottom: padding.bottom + 40 },
-      gap: null,
-    });
-    const bands = shiftDraggedHandles(
-      grown,
-      ["padding:top", "padding:bottom"],
-      { "padding:top": padding.top, "padding:bottom": padding.bottom },
-      { bandId: "padding:bottom", center: startCenter },
-    );
-    const bottom = bands.find((b) => b.id === "padding:bottom")!;
-    const r = resolveSpacingHandleRect(bottom, 1);
-    expect(r.y + r.height / 2 - startCenter).toBe(40);
-    // 잡지 않은 top 은 자기 움직이는 가장자리에 붙는다 (시작 중앙 + 40)
-    const top = bands.find((b) => b.id === "padding:top")!;
-    const rt = resolveSpacingHandleRect(top, 1);
-    const startTop = start.find((b) => b.id === "padding:top")!;
-    expect(rt.y + rt.height / 2 - (startTop.rect.y + startTop.rect.height / 2)).toBe(40);
+  it("실측 rate: 시작 · 현재 띠의 핸들 중심 이동 / 값 변화 (|Δ값| < 2 는 미측정)", () => {
+    const start = bands.find((b) => b.id === "padding:top")!;
+    const at = (top: number) =>
+      buildSpacingBands({ ownerBounds: { ...owner, y: owner.y - 10 }, border, padding: { ...padding, top }, gap: null })
+        .find((b) => b.id === "padding:top")!;
+    // 부모 가운데 정렬처럼 박스가 위로 −10 밀린 채 값 +20: 중심 이동 = −10 + 10 = 0 → rate 0
+    expect(measureSpacingHandleRate(start, at(padding.top + 20))).toBe(0);
+    expect(measureSpacingHandleRate(start, at(padding.top + 1))).toBeNull();
+    const plain = buildSpacingBands({ ownerBounds: owner, border, padding: { ...padding, top: padding.top + 20 }, gap: null })
+      .find((b) => b.id === "padding:top")!;
+    expect(measureSpacingHandleRate(start, plain)).toBe(0.5);
+    expect(center(plain) - center(start)).toBe(10);
   });
 });
