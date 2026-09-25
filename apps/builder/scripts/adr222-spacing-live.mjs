@@ -462,6 +462,15 @@ try {
     handlesAfterDrag === true,
     `handlesVisible=${handlesAfterDrag}`,
   );
+  // 포인터를 움직이지 않아도 놓은 자리가 띠 위면 hover 사선이 돌아온다 (2026-09-26)
+  const hoverAfterDrag = (await spacingDebug(page)).hoveredBandId;
+  record(
+    "드래그 종료 (포인터 정지) → 띠 위면 hover 사선 복귀",
+    hoverAfterDrag === "padding:top",
+    `hoveredBandId=${hoverAfterDrag}`,
+  );
+  await page.waitForTimeout(150);
+  await page.screenshot({ path: resolve(OUT_DIR, "4-after-drag-hover.png") });
   await page.waitForTimeout(1200);
   const styleAfter = await readStyle(page, boxId);
   const histAfter = await historyCount(page);

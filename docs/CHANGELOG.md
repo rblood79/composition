@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **팔레트로 넣은 Card · Form · Tabs · ListBox · TextField · Select 등에서 padding · gap 드래그 핸들이 나오지 않던 문제를 고쳤다.** 이 요소들은 origin instance 로 배치되는데 캔버스 spacing 판정이 instance 의 origin 타입과 엔진이 배치한 자식을 읽지 못했다. 드래그 값은 instance 자신의 style 에 저장되고 origin 은 바뀌지 않는다 (ADR-222 후속).
 - **padding 드래그 방향이 bottom 외 세 변에서 반대로 동작하던 문제를 고쳤다.** 이제 값이 커질 때 실제로 움직이는 띠 가장자리가 포인터를 따라간다 — top · left 는 안쪽으로 끌면 커지고, bottom · right 는 박스가 그 축으로 내용에 맞춰 늘어나면 바깥으로, 크기가 고정이면 안쪽으로 끌면 커진다.
-- **padding · gap 을 끄는 동안 핸들을 숨긴다 (Figma 와 같다).** 값은 마우스 이동과 1:1 로 바뀌고 핸들은 여백 값의 절반 위치에 있어, 드래그 중 핸들이 마우스와 어긋나 보였다. 드래그 중에는 값 배지만 보이고 끝나면 핸들이 다시 나온다.
+- **padding · gap 을 끄는 동안 핸들을 숨긴다 (Figma 와 같다).** 값은 마우스 이동과 1:1 로 바뀌고 핸들은 여백 값의 절반 위치에 있어, 드래그 중 핸들이 마우스와 어긋나 보였다. 드래그 중에는 값 배지만 보이고 끝나면 핸들이 다시 나온다. 놓은 자리가 여백 띠 위면 마우스를 움직이지 않아도 hover 사선이 바로 다시 보인다.
 
 ### Changed
 

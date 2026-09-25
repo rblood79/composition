@@ -80,7 +80,10 @@ Implemented — 2026-09-17 (Proposed 09-17 → [reviews/222.md](../reviews/222.m
   튄다, ② 핸들 이동률로 값 매핑 (`b6472f41f`, 한 변 값 = 포인터 2배) — 실사용 조작감이 나쁘다. 확정: 값은 포인터 1:1
   그대로, **drag 중 핸들을 숨기고 끝나면 다시 보인다** (`spacingHandlesVisible`, 렌더러 · 디버그 전역이 같은 판정).
   값 배지는 드래그 중에도 보인다. live 하니스 +2 (드래그 중 handlesVisible false · 스크린샷 핸들 없음 배지 40 ·
-  종료 후 true) → 30/31 (Preview 1 항목 제외).
+  종료 후 true) → 30/31 (Preview 1 항목 제외). 이어서 (같은 날 사용자 지시) 놓은 자리가 띠 위면 포인터가 멈춰 있어도
+  hover 사선 · 배지를 되살린다 — hover 는 pointermove 에서만 판정돼 다음 이동까지 비어 있었다. 드래그 중에도 포인터
+  좌표를 기록하고 종료 (확정 · 취소) 와 commit 완료 뒤 같은 좌표로 hover 를 다시 판정한다. 하니스 +1 (수정 전 RED
+  `hoveredBandId=null`) → 31/32 · 스크린샷 사선 · 배지 40 · 핸들 복귀.
 
 ## Context
 

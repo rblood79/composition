@@ -157,6 +157,8 @@ export function useSpacingInteraction({
   const inlineInputRef = useRef<SpacingInlineInputState | null>(null);
   const hoverRafRef = useRef<number | null>(null);
   const lastPointerRef = useRef({ x: Number.NaN, y: Number.NaN });
+  /** 마지막 포인터 좌표로 hover 를 다시 판정 (hover effect 가 채운다) — 드래그 종료 직후 사선 복귀 */
+  const refreshHoverRef = useRef<(() => void) | null>(null);
   const ownerIdRef = useRef(`canvas-spacing-${nextOwnerId++}`);
 
   // ── 1. owner 동기화 ──
@@ -269,11 +271,15 @@ export function useSpacingInteraction({
         return;
       }
       setSpacingActive(null);
+      // 포인터가 멈춰 있어도 놓은 자리가 띠 위면 hover 사선 · 배지를 되살린다 (2026-09-26) —
+      //   hover 는 pointermove 에서만 판정돼 다음 이동까지 비어 있었다. commit 뒤 띠 기하로 한 번 더.
+      refreshHoverRef.current?.();
       if (outcome === "finish") {
         void drag.session.finish().then(() => {
           if (getActiveSpacingSession() === drag.session) {
             setActiveSpacingSession(null);
           }
+          refreshHoverRef.current?.();
           requestCanvasFrame();
         });
       } else {
@@ -319,21 +325,7 @@ export function useSpacingInteraction({
       spacingHoverCursor = null;
       if (setSpacingHover(null)) requestCanvasFrame();
     };
-    const handlePointerMove = (event: PointerEvent): void => {
-      if (dragRef.current) return;
-      // window 리스너다 — owner 가 없으면 (선택 없음 · 앱 어디든 마우스 이동) rAF 도 잡지 않는다
-      if (!getSpacingPresentationSnapshot().owner) {
-        clearHover();
-        return;
-      }
-      if (isRulerEventTarget(event.target)) {
-        clearHover();
-        return;
-      }
-      const last = lastPointerRef.current;
-      if (event.clientX === last.x && event.clientY === last.y) return;
-      last.x = event.clientX;
-      last.y = event.clientY;
+    const scheduleHover = (): void => {
       if (hoverRafRef.current !== null) return;
       hoverRafRef.current = requestAnimationFrame(() => {
         hoverRafRef.current = null;
@@ -377,10 +369,31 @@ export function useSpacingInteraction({
         if (setSpacingHover(hit.band.id)) requestCanvasFrame();
       });
     };
+    refreshHoverRef.current = scheduleHover;
+    const handlePointerMove = (event: PointerEvent): void => {
+      const last = lastPointerRef.current;
+      const moved = event.clientX !== last.x || event.clientY !== last.y;
+      // 드래그 중에도 좌표는 기록한다 — 놓은 자리의 hover 재판정 (`refreshHoverRef`) 입력
+      last.x = event.clientX;
+      last.y = event.clientY;
+      if (dragRef.current) return;
+      // window 리스너다 — owner 가 없으면 (선택 없음 · 앱 어디든 마우스 이동) rAF 도 잡지 않는다
+      if (!getSpacingPresentationSnapshot().owner) {
+        clearHover();
+        return;
+      }
+      if (isRulerEventTarget(event.target)) {
+        clearHover();
+        return;
+      }
+      if (!moved) return;
+      scheduleHover();
+    };
     const handleLeave = (): void => clearHover();
     window.addEventListener("pointermove", handlePointerMove);
     container.addEventListener("pointerleave", handleLeave);
     return () => {
+      refreshHoverRef.current = null;
       window.removeEventListener("pointermove", handlePointerMove);
       container.removeEventListener("pointerleave", handleLeave);
       if (hoverRafRef.current !== null) {
