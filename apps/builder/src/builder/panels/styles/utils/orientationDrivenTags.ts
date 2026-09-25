@@ -49,32 +49,58 @@
  * 정규화한 소문자 집합으로 둔다.
  */
 
+import {
+  getComponentRulesTable,
+  getPrimitiveBinding,
+} from "@composition/shared";
+
+/**
+ * ADR-236 Phase 2 — D2 스키마에서 파생한다: binding `props.accepts` 에 `propKey` 가 있고 catalog
+ * containerVariants (top-level 또는 `structure.composition`) 에 `variantKey` 가 있는 타입 (소문자).
+ * 위 "적용 대상 = variant + accepts 양쪽 보유" 규칙을 그대로 식으로 옮긴 것이다.
+ */
+function directionDrivenTypes(
+  propKey: string,
+  variantKey: string,
+  excluded: ReadonlySet<string> = new Set(),
+): ReadonlySet<string> {
+  const types = new Set<string>();
+  for (const [type, rule] of Object.entries(getComponentRulesTable())) {
+    const variants =
+      rule.containerVariants ??
+      (rule.structure?.composition?.containerVariants as
+        Record<string, unknown> | undefined);
+    if (!variants || !Object.hasOwn(variants, variantKey)) continue;
+    const accepts = getPrimitiveBinding(type)?.props?.accepts;
+    if (!accepts || !Object.hasOwn(accepts, propKey)) continue;
+    const lower = type.toLowerCase();
+    if (!excluded.has(lower)) types.add(lower);
+  }
+  return types;
+}
+
 /** Direction 토글이 `props.orientation` 으로 번역되는 컨테이너. */
-export const ORIENTATION_DRIVEN_TAGS: ReadonlySet<string> = new Set([
-  "togglebuttongroup",
-  "toolbar",
+export const ORIENTATION_DRIVEN_TAGS: ReadonlySet<string> =
+  directionDrivenTypes("orientation", "orientation");
+
+/**
+ * 식은 맞지만 현행 집합에 없는 타입 — Form 은 위 ⚠️ 제외 사유. Meter · ProgressBar · Slider 는
+ * 제외 사유 기록이 없다 (ADR-236 Phase 2 에서 멤버십 차이로 기록, live 판정 전 현행 유지).
+ */
+const LABEL_POSITION_NOT_DRIVEN: ReadonlySet<string> = new Set([
+  "form",
+  "meter",
+  "progressbar",
+  "slider",
 ]);
 
 /** Direction 토글이 `props.labelPosition` 으로 번역되는 컨테이너. */
-export const LABEL_POSITION_DRIVEN_TAGS: ReadonlySet<string> = new Set([
-  "radiogroup",
-  "checkboxgroup",
-  // field 8종 (catalog label-position variant + binding accepts 양쪽 보유)
-  "textfield",
-  "textarea",
-  "numberfield",
-  "searchfield",
-  "colorfield",
-  "datefield",
-  "timefield",
-  "datepicker",
-  // chip 계열 (Direction 토글 = labelPosition. orientation prop 은 제거됨 — 2026-07-01, D2)
-  "taggroup",
-  // combobox/select/searchfield + datepicker/daterangepicker 공통 분기 (field 동형)
-  "combobox",
-  "select",
-  "daterangepicker",
-]);
+export const LABEL_POSITION_DRIVEN_TAGS: ReadonlySet<string> =
+  directionDrivenTypes(
+    "labelPosition",
+    "label-position",
+    LABEL_POSITION_NOT_DRIVEN,
+  );
 
 /** Direction 토글이 그룹 축 prop 으로 derive 되는 prop key (없으면 일반 style 경로). */
 export type DirectionDrivenProp = "orientation" | "labelPosition";

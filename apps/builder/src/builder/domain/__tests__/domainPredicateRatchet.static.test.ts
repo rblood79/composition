@@ -141,6 +141,8 @@ describe("ADR-236 도메인 술어 ratchet", () => {
       "IMAGE_TAGS",
       "IMAGE_INTRINSIC_TAGS",
       "STRICT_COLLECTION_PARENT_TYPES",
+      "ORIENTATION_DRIVEN_TAGS",
+      "LABEL_POSITION_DRIVEN_TAGS",
     ];
     const literalDecl = new RegExp(
       `const (${derived.join("|")})\\b[^=]*=\\s*new Set(?:<[^>]*>)?\\(\\s*\\[\\s*["']`,
