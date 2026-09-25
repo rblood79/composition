@@ -343,7 +343,7 @@ try {
   await page.screenshot({ path: resolve(OUT_DIR, "1-selected.png") });
 
   // 3) hover
-  const topPt = await handleScreenPoint(page, "padding:top");
+  let topPt = await handleScreenPoint(page, "padding:top");
   // headed 창 위에 실제 OS 마우스가 있으면 그 pointermove (소수 좌표) 가 hover 를 지운다 — 2회 시도
   for (let i = 0; i < 2; i++) {
     await page.mouse.move(topPt.x - 40 - i, topPt.y + i);
@@ -398,6 +398,8 @@ try {
   await setPanel(page, "styles", true);
   await page.waitForTimeout(600);
   await focusOwner(page);
+  // Styles 패널을 열면 캔버스 폭이 바뀌어 3) 의 핸들 좌표가 어긋난다 — 다시 잰다
+  topPt = await handleScreenPoint(page, "padding:top");
   const styleBefore = await readStyle(page, boxId);
   const layoutBefore = {
     box: await readLayout(page, boxId),
@@ -598,6 +600,24 @@ try {
       styleEsc,
       left: dbg.bands?.find((b) => b.id === "padding:left")?.value,
     }),
+  );
+
+  // 7b) 취소 경로의 hover 복귀 — 띠를 따라 (값 축과 직교) 끌어 포인터가 띠 안에 머문 채 Escape
+  //   → 포인터를 움직이지 않아도 hover 사선이 돌아온다 (2026-09-26 simplify: cancel 은 즉시 재판정)
+  await focusOwner(page);
+  const leftAlong = await handleScreenPoint(page, "padding:left");
+  await drag(page, leftAlong, 0, 24);
+  await page.waitForTimeout(200);
+  const cancelDragging = (await spacingDebug(page)).active?.mode;
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(300);
+  const hoverAfterCancel = (await spacingDebug(page)).hoveredBandId;
+  await page.mouse.up();
+  await page.waitForTimeout(300);
+  record(
+    "Escape 취소 (포인터 정지 · 띠 안) → hover 사선 복귀",
+    cancelDragging === "drag" && hoverAfterCancel === "padding:left",
+    `mode=${cancelDragging} hoveredBandId=${hoverAfterCancel}`,
   );
 
   // 8) 클릭 (무이동) → 인라인 입력 열림 → 24 Enter → commit 1
