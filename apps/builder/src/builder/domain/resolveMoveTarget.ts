@@ -24,6 +24,7 @@ import {
 import { notifyOperationRejected } from "./canOperate";
 import { notifyNestingRejected } from "../workspace/canvas/interaction/nestingNotice";
 import { isSyntheticDescendantId } from "../stores/canonical/syntheticDescendantLookup";
+import { resolveSlotRegionTarget } from "../components/slotRegionInsert";
 import type { CanvasInteractionNode } from "../workspace/canvas/interaction/interactionNode";
 import {
   resolveNestingAwareTarget,
@@ -90,9 +91,13 @@ export function createEffectiveTypeResolver(
 export function resolveMoveTarget(input: MoveTargetInput): MoveTargetResult {
   const { targetParentId } = input;
   // instance 의 synthetic 자식은 store 노드가 아니다 — 부모로 고르면 자식이 origin 에 섞이거나
-  // 아무 데도 붙지 않는다 (E6, 명시 가드). render projection id (page-frame 투영 등) 는 거부하지
-  // 않는다 — 캔버스 드래그는 render-space id 로 판정한 뒤 `resolveCanonicalMoveTarget` 이 canonical 로 옮긴다.
-  if (isSyntheticDescendantId(targetParentId)) {
+  // 아무 데도 붙지 않는다 (E6, 명시 가드). 예외는 ADR-240 이름 영역 (`<instance>/Content` 등) —
+  // 캔버스 드래그의 정식 drop 대상이고 `resolveCanonicalMoveTarget` 이 instance 의 mode C 로 옮긴다.
+  // render projection id (page-frame 투영 등) 도 거부하지 않는다 — 같은 함수가 canonical 로 옮긴다.
+  if (
+    isSyntheticDescendantId(targetParentId) &&
+    !(input.doc && resolveSlotRegionTarget(input.doc, targetParentId))
+  ) {
     return { ok: false, reason: "synthetic" };
   }
   // 맵에 없는 대상은 판정하지 않고 넘긴다 — 조상 사슬이 비면 중첩 규칙을 읽을 수 없고, 종전

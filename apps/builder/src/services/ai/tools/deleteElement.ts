@@ -10,6 +10,7 @@ import type {
   ToolTranslate,
 } from "../../../types/integrations/ai.types";
 import { getAiToolReadModel } from "./canonicalToolReadModel";
+import { confirmStructuralOriginImpact } from "../../../builder/stores/utils/elementUpdate";
 import { resolveElementRef } from "./elementRef";
 import {
   canOperate,
@@ -65,6 +66,12 @@ export const deleteElementTool: ToolExecutor = {
             ? t(messageKey)
             : t("aiToolError.notDeleted", { id: targetId }),
         };
+      }
+
+      // origin 안 삭제는 모든 instance 를 바꾼다 — 편집과 같은 영향 확인 (ADR-236 E4).
+      const impactGate = confirmStructuralOriginImpact([targetId]);
+      if (impactGate !== true && !(await impactGate)) {
+        return { success: false, error: t("aiToolError.originImpactCancelled") };
       }
 
       await removeElement(targetId);

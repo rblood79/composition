@@ -1202,6 +1202,8 @@ const koKR: TranslationKeys = {
       "origin 은 입력할 수 없습니다 (호출 주체가 정합니다). ops 와 label 만 보내세요.",
     unknownAction: "알 수 없는 action: {action}. create/update/delete만 가능.",
     bodyUndeletable: "body 요소는 삭제할 수 없습니다.",
+    originImpactCancelled:
+      "사용자가 컴포넌트 원본 변경을 취소했습니다 — 모든 instance 에 반영되는 변경이라 확인이 필요합니다. 다시 시도하지 마세요.",
     subpartStyleOwned:
       "{id} 의 스타일은 부모 컴포넌트가 정합니다 — 부모 요소의 styles 를 바꾸세요.",
     notDeleted:
@@ -3156,6 +3158,8 @@ const enUS: TranslationKeys = {
     unknownAction:
       "Unknown action: {action}. Only create, update and delete are allowed.",
     bodyUndeletable: "The body element cannot be deleted.",
+    originImpactCancelled:
+      "The user cancelled a change to a component origin (it affects every instance). Do not retry.",
     subpartStyleOwned:
       "{id}'s style is set by its parent component — change the parent element's styles instead.",
     notDeleted:

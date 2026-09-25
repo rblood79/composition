@@ -14,6 +14,7 @@ import { getDefaultProps } from "../../../types/builder/unified.types";
 import { adaptPropsForElement } from "../styleAdapter";
 import { useAIVisualFeedbackStore } from "../../../builder/stores/aiVisualFeedback";
 import { getAiToolReadModel } from "./canonicalToolReadModel";
+import { confirmStructuralOriginImpact } from "../../../builder/stores/utils/elementUpdate";
 import { parseCanonicalFields } from "./canonicalNodeFields";
 import { createCompositeElement } from "./compositeCreation";
 import {
@@ -111,6 +112,11 @@ export const createElementTool: ToolExecutor = {
       const nestingError = findNestingErrorForParent(elements, parentId, type);
       if (nestingError) {
         return { success: false, error: nestingError };
+      }
+      // origin 안 생성은 모든 instance 를 바꾼다 — 편집과 같은 영향 확인 (ADR-236 E4).
+      const impactGate = confirmStructuralOriginImpact([parentId]);
+      if (impactGate !== true && !(await impactGate)) {
+        return { success: false, error: t("aiToolError.originImpactCancelled") };
       }
 
       // ADR-134 Phase 6: 합성 컴포넌트는 팔레트와 같은 분기로 만든다 — Select/ListBox 등

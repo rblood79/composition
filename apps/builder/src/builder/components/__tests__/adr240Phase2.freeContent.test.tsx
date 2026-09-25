@@ -26,6 +26,7 @@ import {
 import { withComponentInstanceMirror } from "../../../adapters/canonical/componentSemanticsMirror";
 import { createInspectorActionsSlice } from "../../stores/inspectorActions";
 import { resolveCanonicalMoveTarget } from "../../workspace/canvas/interaction/resolveCanonicalMutationTarget";
+import { resolveMoveTarget } from "../../domain/resolveMoveTarget";
 import {
   acceptsDraggedElement,
   type DropTargetReadModel,
@@ -687,6 +688,39 @@ describe("ADR-240 G2 — Canvas drop 대상 = 영역 host 만", () => {
       Array.isArray((tabList as { slot?: unknown } | undefined)?.slot),
     ).toBe(true);
     expect(acceptsDraggedElement(tabList!, tabsStore)).toBe(false);
+  });
+
+  it("드래그 대상 판정 (ADR-236 resolveMoveTarget) — 영역 host 는 통과 · 영역 아닌 synthetic 은 거부", () => {
+    const doc = withBodyChildren(seedDocument(), [
+      cardInstance([]),
+      {
+        id: "dlg",
+        type: "ref",
+        ref: "component-dialog",
+        props: { defaultOpen: true },
+      } as unknown as CanonicalNode,
+    ]);
+    const store = readModel(doc);
+    const judge = (targetParentId: string) =>
+      resolveMoveTarget({
+        targetParentId,
+        insertionIndex: 0,
+        movingTypes: ["Text"],
+        nodes: store.elementsById as never,
+        policy: "nearest-ancestor",
+        doc,
+      });
+    expect(judge(`${INST}/Content`)).toMatchObject({
+      ok: true,
+      parentId: `${INST}/Content`,
+    });
+    // 영역 안 노드는 그 영역으로 옮겨진다 (resolveCanonicalMoveTarget) — 거부하지 않는다.
+    expect(judge(`${INST}/Header/Title`)).toMatchObject({ ok: true });
+    // 영역 밖 고정 부품 (Dialog 제목) 은 거부.
+    expect(judge("dlg/component-dialog__2/component-dialog__2_1")).toEqual({
+      ok: false,
+      reason: "synthetic",
+    });
   });
 
   it("영역 drop → `ref-descendants` 이동 대상 · 페이지 Text 가 Content mode C 로 · 두 leg · 원래 자리에서 빠진다", () => {

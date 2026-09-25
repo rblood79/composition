@@ -8,9 +8,14 @@ import {
 import type { Element } from "../../../../types/core/store.types";
 import { useCanonicalDocumentStore } from "../../canonical/canonicalDocumentStore";
 import { useStore } from "../../elements";
+import { useStore as appStore } from "../../index";
 import { historyManager } from "../../history";
 import { useToastStore } from "../../toast";
 import { clearOriginImpactConfirmationCacheForTests } from "../elementUpdate";
+import {
+  deleteSelection,
+  groupSelection,
+} from "../../../workspace/canvas/actions/canvasActions";
 
 /**
  * Components 페이지의 system origin (`reusable` + `metadata.systemOwned`) 은 삭제 · 컴포넌트 해제
@@ -31,22 +36,22 @@ function makeElement(
   } as Element;
 }
 
-function seed(elements: Element[]): void {
-  useStore.setState({
+function seed(elements: Element[], store: typeof useStore = useStore): void {
+  store.setState({
     elements,
     elementsMap: new Map(elements.map((element) => [element.id, element])),
   } as never);
-  useStore.getState()._rebuildIndexes();
+  store.getState()._rebuildIndexes();
   registerCanonicalMutationStoreActions({
     getCurrentProjectId: () => "system-origin-guard",
     getCurrentLegacySnapshot: () => ({
-      elements: useStore.getState().elements,
+      elements: store.getState().elements,
       pages: [],
       layouts: [],
     }),
   });
   useCanonicalDocumentStore.getState().setCurrentProject("system-origin-guard");
-  mergeElementsCanonicalPrimary(useStore.getState().elements);
+  mergeElementsCanonicalPrimary(store.getState().elements);
 }
 
 const systemOrigin = () =>
@@ -153,41 +158,68 @@ describe("system origin 보호 — 삭제 · 컴포넌트 해제", () => {
   });
 
   // ADR-236 Phase 3 (E4) — origin 안의 구조 변경은 그 origin 의 instance 를 모두 바꾼다. 편집처럼 묻는다.
+  //   묻는 곳은 사용자 동작을 시작하는 표면이다. store 액션은 묻지 않는다 — 패널 · 묶기 · 드래그 복제가
+  //   그 액션을 병렬 · 트랜잭션 안에서 동기 완료를 전제로 부른다 (Phase 3 판독 HIGH-2).
   const originWithInstance = () => [
     makeElement("card", { type: "frame", reusable: true }),
     makeElement("card-title", { type: "Text", parent_id: "card" }),
+    makeElement("card-body", { type: "Text", parent_id: "card" }),
     makeElement("card-use", { type: "ref", ref: "card" }),
   ];
-
-  it("origin 자손 삭제는 영향 확인을 거친다 — 취소하면 남는다 (E4)", async () => {
-    seed(originWithInstance());
-    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
-    confirm.mockClear();
-    await useStore.getState().removeElement("card-title");
-    expect(confirm).toHaveBeenCalledTimes(1);
-    expect(useStore.getState().elementsMap.has("card-title")).toBe(true);
+  // 표면 (canvasActions) 은 앱 store (`stores/index`) 를 읽는다 — 이 파일의 slice store 와 다른 인스턴스.
+  const select = (ids: string[]) =>
+    appStore.setState({
+      currentPageId: "page-1",
+      selectedElementId: ids[0] ?? null,
+      selectedElementIds: ids,
+    } as never);
+  const actionContext = () => ({
+    elementsMap: appStore.getState().elementsMap as never,
   });
 
-  it("origin 안 추가는 영향 확인을 거친다 — 취소하면 추가되지 않는다 (E4)", async () => {
+  it("캔버스 삭제: origin 자손은 영향 확인을 거친다 — 취소하면 남는다 (E4)", async () => {
+    seed(originWithInstance(), appStore);
+    select(["card-title"]);
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    confirm.mockClear();
+    await deleteSelection(actionContext());
+    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(appStore.getState().elementsMap.has("card-title")).toBe(true);
+  });
+
+  it("캔버스 묶기: origin 안에서 취소하면 frame 도 자식 이동도 없다 (E4 · 판독 HIGH-2a)", async () => {
+    seed(originWithInstance(), appStore);
+    select(["card-title", "card-body"]);
+    const before = appStore.getState().elements.length;
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    confirm.mockClear();
+    await groupSelection(actionContext());
+    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(appStore.getState().elements.length).toBe(before);
+    expect(appStore.getState().elementsMap.get("card-title")?.parent_id).toBe(
+      "card",
+    );
+  });
+
+  it("store addElement 는 묻지 않고 바로 반영된다 — 병렬 · 트랜잭션 호출부 (판독 HIGH-2)", async () => {
     seed(originWithInstance());
     const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
     confirm.mockClear();
     await useStore
       .getState()
-      .addElement(
-        makeElement("card-body", { type: "Text", parent_id: "card" }),
-      );
-    expect(confirm).toHaveBeenCalledTimes(1);
-    expect(useStore.getState().elementsMap.has("card-body")).toBe(false);
+      .addElement(makeElement("card-extra", { type: "Text", parent_id: "card" }));
+    expect(confirm).not.toHaveBeenCalled();
+    expect(useStore.getState().elementsMap.has("card-extra")).toBe(true);
   });
 
   it("instance 가 없는 요소 삭제는 묻지 않는다 (대조군)", async () => {
-    seed([makeElement("plain", { type: "Text" })]);
+    seed([makeElement("plain", { type: "Text" })], appStore);
+    select(["plain"]);
     const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
     confirm.mockClear();
-    await useStore.getState().removeElement("plain");
+    await deleteSelection(actionContext());
     expect(confirm).not.toHaveBeenCalled();
-    expect(useStore.getState().elementsMap.has("plain")).toBe(false);
+    expect(appStore.getState().elementsMap.has("plain")).toBe(false);
   });
 
   it("사용자가 만든 origin 은 그대로 해제된다 (대조군)", async () => {

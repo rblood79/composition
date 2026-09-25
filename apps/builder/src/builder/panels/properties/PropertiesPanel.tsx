@@ -125,6 +125,7 @@ import {
   readSyntheticPanelNode,
 } from "./hooks/useCanonicalPropertyRead";
 import { getActiveCanonicalDocument } from "../../stores/canonical/canonicalElementsBridge";
+import { confirmStructuralOriginImpact } from "../../stores/utils/elementUpdate";
 import { getCanonicalPropertyReadIndex } from "./hooks/canonicalPropertyReadIndex";
 import { isComponentInstanceMirrorElement } from "../../../adapters/canonical/componentSemanticsMirror";
 import type { PanelNode } from "../panelNode";
@@ -736,6 +737,9 @@ const MultiSelectContent = memo(function MultiSelectContent({
       //   removeElements 는 단일 set + 단일 entry 다.
       // trackMultiDelete 는 제거했다 — executeRemoval 이 canonical remove event 를 이미
       //   기록하므로 중복이었다 (요소당 1개씩 더해져 실측 2N 엔트리: 2개 삭제 → 4 entry).
+      // origin 안 삭제는 모든 instance 를 바꾼다 (ADR-236 E4).
+      const gate = confirmStructuralOriginImpact(selectedElementIds);
+      if (gate !== true && !(await gate)) return;
       await removeElements(selectedElementIds);
       console.log(`✅ [DeleteAll] Deleted ${elementsToDelete.length} elements`);
     } catch (error) {

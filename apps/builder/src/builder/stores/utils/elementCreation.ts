@@ -1,7 +1,6 @@
 // 🚀 Phase 1: Immer 제거 - 함수형 업데이트로 전환
 // import { produce } from "immer"; // REMOVED
 import { guardCreationParent } from "../../domain/canOperate";
-import { confirmStructuralOriginImpact } from "./elementUpdate";
 import { persistActiveCanonicalDocument } from "../canonical/persistActiveCanonicalDocument";
 import type { StateCreator } from "zustand";
 import { Element } from "../../../types/core/store.types";
@@ -205,9 +204,6 @@ export const createAddElementAction =
     );
     // ADR-236 Phase 3 — 진입부 판정 (instance 안 요소는 부모가 될 수 없다, E6).
     if (!guardCreationParent(elementToAdd.parent_id)) return;
-    // origin 안에 추가하면 모든 instance 가 바뀐다 — 편집과 같은 영향 확인 (E4).
-    const impactGate = confirmStructuralOriginImpact([elementToAdd.parent_id]);
-    if (impactGate !== true && !(await impactGate)) return;
 
     // ADR-903 P3-D-2: canonical parent context 기반 분기
     // - 히스토리 조건: parent 가 page context 또는 reusable frame context 면 기록
@@ -292,8 +288,6 @@ export const createAddComplexElementAction =
   async (parentElement: Element, childElements: Element[]) => {
     // ADR-236 Phase 3 — 진입부 판정 (addElement 와 같다).
     if (!guardCreationParent(parentElement.parent_id)) return;
-    const impactGate = confirmStructuralOriginImpact([parentElement.parent_id]);
-    if (impactGate !== true && !(await impactGate)) return;
     const normalizedParent = normalizeExternalFillIngress(
       normalizeElementTagInElement(parentElement),
     );

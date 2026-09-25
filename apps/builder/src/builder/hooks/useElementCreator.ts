@@ -372,6 +372,10 @@ export const useElementCreator = (): UseElementCreatorReturn => {
                 layoutId || null,
               );
 
+              // origin 안 생성은 모든 instance 를 바꾼다 (E4) — 추가 전에 묻는다. store 액션은 묻지
+              //   않으므로 아래 동기 선택이 유효하다.
+              const refGate = confirmStructuralOriginImpact([parent.parentId]);
+              if (refGate !== true && !(await refGate)) return null;
               addElement(refElement);
               parent.notify();
               return refElement.id;
@@ -439,6 +443,9 @@ export const useElementCreator = (): UseElementCreatorReturn => {
                 layoutId || null,
               );
 
+              // origin 안 생성은 모든 instance 를 바꾼다 (E4) — 추가 전에 묻는다.
+              const simpleGate = confirmStructuralOriginImpact([parentId]);
+              if (simpleGate !== true && !(await simpleGate)) return null;
               // addElement 호출 (내부에서 DB 저장 처리)
               addElement(newElement);
               nested.notify();

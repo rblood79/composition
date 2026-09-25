@@ -270,8 +270,7 @@ export async function paste(context: CanvasActionContext): Promise<void> {
     { targetParentId },
   );
 
-  // origin 안에 붙여넣으면 모든 instance 가 바뀐다 (E4) — 추가 루프 전에 한 번 묻는다 (확인된 origin 은
-  //   캐시돼 store 진입부 게이트가 동기 통과한다. 병렬 추가가 대화상자를 겹쳐 띄우지 않게).
+  // origin 안에 붙여넣으면 모든 instance 가 바뀐다 (E4) — 추가 루프 전에 한 번 묻는다.
   const pasteGate = confirmStructuralOriginImpact(
     newElements.map((element) => element.parent_id),
   );
@@ -374,6 +373,9 @@ export async function deleteSelection(
     return;
   }
   const deletableIds = deletable.ids;
+  // origin 안 삭제는 모든 instance 를 바꾼다 (E4).
+  const deleteGate = confirmStructuralOriginImpact(deletableIds);
+  if (deleteGate !== true && !(await deleteGate)) return;
 
   setSelectedElement(null);
   await removeElements(deletableIds);
@@ -430,6 +432,10 @@ export async function groupSelection(
       return;
     }
   }
+
+  // origin 안에서 묶으면 모든 instance 가 바뀐다 (E4) — frame 추가 · 자식 이동 전에 묻는다.
+  const groupGate = confirmStructuralOriginImpact(groupableIds);
+  if (groupGate !== true && !(await groupGate)) return;
 
   await addElement(groupElement, { skipHistory: true });
   await Promise.all(
@@ -497,6 +503,10 @@ export async function ungroupSelection(
       return;
     }
   }
+
+  // origin 안 묶기 해제는 모든 instance 를 바꾼다 (E4) — history 기록 · 자식 이동 전에 묻는다.
+  const ungroupGate = confirmStructuralOriginImpact([selectedElementId]);
+  if (ungroupGate !== true && !(await ungroupGate)) return;
 
   if (groupElementForHistory) {
     trackUngroup(

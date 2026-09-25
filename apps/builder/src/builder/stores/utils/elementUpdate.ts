@@ -643,8 +643,12 @@ export function confirmOriginImpactForIds(
 /**
  * 구조 변경 영향 게이트 (ADR-236 Phase 3, E4) — 삭제 · 생성 · 붙여넣기 · 이동이 origin 안에서 일어나면
  * 그 origin 의 instance 가 모두 바뀐다. 편집 게이트 (`confirmOriginImpactForIds`) 는 origin 노드 자신만
- * 보므로, 대상마다 가장 가까운 origin (자기 포함) 을 찾아 넘긴다. 확인된 origin 은 캐시로 이후 호출이
- * 동기 통과한다 — 여러 요소를 한 번에 추가하는 표면 (붙여넣기 · 복제) 은 루프 전에 먼저 부른다.
+ * 보므로, 대상마다 가장 가까운 origin (자기 포함) 을 찾아 넘긴다.
+ *
+ * 사용자 동작 하나를 시작하는 표면이 첫 쓰기 전에 부른다 (삭제 · group · ungroup · 붙여넣기 · 복제 ·
+ * 팔레트 · Layers 이동 · AI). store 액션 (`addElement` · `removeElement`) 진입부에 두지 않는다 —
+ * 패널 · 묶기 · 드래그 복제가 그 액션을 `Promise.all` · 트랜잭션 안에서 동기 완료를 전제로 부르고,
+ * 대화상자 슬롯이 하나라 병렬 요청이 서로 취소한다 (Phase 3 판독 HIGH-2).
  */
 export function confirmStructuralOriginImpact(
   ids: Iterable<string | null | undefined>,

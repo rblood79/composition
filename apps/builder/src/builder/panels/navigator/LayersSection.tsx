@@ -18,6 +18,7 @@ import {
 } from "../../utils/scheduleTask";
 import type { PanelNode } from "../panelNode";
 import { useI18n } from "../../../i18n";
+import { confirmStructuralOriginImpact } from "../../stores/utils/elementUpdate";
 import { NAVIGATOR_SECTION_IDS } from "./navigatorSectionIds";
 import {
   buildLayerSectionElementMap,
@@ -150,6 +151,9 @@ export const LayersSection = memo(function LayersSection({
 
   const handleItemDelete = useCallback(
     async (element: { id: string }) => {
+      // origin 안 삭제는 모든 instance 를 바꾼다 (ADR-236 E4).
+      const gate = confirmStructuralOriginImpact([element.id]);
+      if (gate !== true && !(await gate)) return;
       await removeElement(element.id);
     },
     [removeElement],
