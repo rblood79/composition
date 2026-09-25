@@ -32,7 +32,7 @@ import { isSyntheticDescendantId } from "../../../stores/canonical/syntheticDesc
 import type { ElementBounds } from "../elementRegistry";
 import { resolveCatalogContainerStyles } from "../layout/engines/implicitStyles";
 import { getSceneBounds } from "../skia/renderCommands";
-import { isBodyType } from "@composition/shared";
+import { containerTypeSet, isBodyType } from "@composition/shared";
 
 // ============================================
 // Types
@@ -134,19 +134,9 @@ function findInsertionIndex(
   return fallback;
 }
 
-const STRUCTURAL_CONTAINER_TYPES = new Set([
-  "body",
-  "box",
-  "card",
-  "cardcontent",
-  "cardfooter",
-  "cardheader",
-  "cardpreview",
-  "container",
-  "frame",
-  "group",
-  "section",
-]);
+const STRUCTURAL_CONTAINER_TYPES = containerTypeSet("structural", {
+  lowercase: true,
+});
 
 function asRecord(value: unknown): Record<string, unknown> | undefined {
   return value && typeof value === "object" && !Array.isArray(value)

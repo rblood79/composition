@@ -13,7 +13,7 @@ import type { ComponentElementProps } from "../../../../types/core/store.types";
 import { getElementBoundsSimple } from "../elementRegistry";
 import { getFrameElementMirrorId } from "../../../../adapters/canonical/frameMirror";
 import type { CanvasInteractionNode } from "../interaction/interactionNode";
-import { isBodyType } from "@composition/shared";
+import { componentTypeSet, isBodyType } from "@composition/shared";
 
 interface SelectionModifiers {
   ctrlKey: boolean;
@@ -50,32 +50,7 @@ interface UseCanvasElementSelectionHandlersOptions {
   getInteractiveElementsMap: () => Map<string, CanvasInteractionNode>;
 }
 
-const TEXT_EDITABLE_TAGS = new Set([
-  "Text",
-  "Heading",
-  "Label",
-  "Paragraph",
-  "Link",
-  "Description",
-  "Strong",
-  "Em",
-  "Code",
-  "Button",
-  "ToggleButton",
-  "Tag",
-  "Badge",
-  "p",
-  "h1",
-  "h2",
-  "h3",
-  "h4",
-  "h5",
-  "h6",
-  "span",
-  "a",
-  "label",
-  "button",
-]);
+const TEXT_EDITABLE_TAGS = componentTypeSet("textHost");
 
 function syncReusableFrameSelectionForElement(
   element: CanvasInteractionNode | undefined,

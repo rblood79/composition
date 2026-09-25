@@ -11,6 +11,7 @@ import {
   TAG_ITEM_SELECTED_ORIGIN_ID,
   TREE_ITEM_DEFAULT_ORIGIN_ID,
 } from "./templateItemOriginIds";
+import { componentTypeSet } from "@composition/shared";
 
 // ADR-241 Phase 2 — Column origin id (tableOrigins 의 상수와 같은 값 — 순환 import 회피).
 const TABLE_COLUMN_ORIGIN_ID = "component-table-column";
@@ -33,19 +34,9 @@ export type SlotPolicyElement = {
   type: string;
 };
 
-export const FRAME_SLOT_HOST_TYPES = new Set([
-  "box",
-  "cardcontent",
-  "cardfooter",
-  "cardheader",
-  // ADR-240 Phase 1 — Card preview 영역 · 자유 내용 컨테이너 (RAC Popover · Tooltip — 이름 있는 slot 없음, R2).
-  "cardpreview",
-  "frame",
-  "group",
-  "popover",
-  "section",
-  "tooltip",
-]);
+export const FRAME_SLOT_HOST_TYPES = componentTypeSet("freeContentHost", {
+  lowercase: true,
+});
 
 /**
  * ADR-240 — 이름 영역 host (148 slotRole 어휘 P3). 영역의 계약 대상은 **채운 reusable instance** 뿐이다:
@@ -412,24 +403,22 @@ export const SLOT_HOST_RULES: readonly SlotHostRule[] = [
   },
   // ADR-238 Phase 3 — Select · ComboBox 는 자기가 목록 틀 (항목 = popover 안 ListBoxItem instance · section). Label ·
   //   SelectTrigger 는 항목이 아니다 (배치 요소 허용 · 계약 경고 밖).
-  ...(["select", "combobox"] as const).map(
-    (host): SlotHostRule => ({
-      host,
-      matches: byTypeWithSlot(host),
-      active: byTypeWithSlot(host),
-      candidate: templateCandidate(
-        new Set([
-          LISTBOX_ITEM_DEFAULT_ORIGIN_ID,
-          LISTBOX_ITEM_SELECTED_ORIGIN_ID,
-          LISTBOX_SECTION_ORIGIN,
-        ]),
-        "listboxitem/",
-      ),
-      insert: "list-item",
-      placedChildren: true,
-      itemTypes: new Set(["ListBoxItem", "ListBoxSection"]),
-    }),
-  ),
+  ...(["select", "combobox"] as const).map((host): SlotHostRule => ({
+    host,
+    matches: byTypeWithSlot(host),
+    active: byTypeWithSlot(host),
+    candidate: templateCandidate(
+      new Set([
+        LISTBOX_ITEM_DEFAULT_ORIGIN_ID,
+        LISTBOX_ITEM_SELECTED_ORIGIN_ID,
+        LISTBOX_SECTION_ORIGIN,
+      ]),
+      "listboxitem/",
+    ),
+    insert: "list-item",
+    placedChildren: true,
+    itemTypes: new Set(["ListBoxItem", "ListBoxSection"]),
+  })),
   // ADR-241 Phase 2 — TableHeader (Table · TableView) 는 열 목록 틀 (항목 = Column origin 의 instance). plain Column
   //   (quick connect · Preview 감지 · 이관 전 TableView) 은 배치 요소로 허용하고 계약 경고 밖.
   {

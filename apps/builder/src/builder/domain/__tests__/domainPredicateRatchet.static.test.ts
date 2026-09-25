@@ -1,5 +1,5 @@
 /**
- * @fileoverview ADR-236 Phase 1 — 도메인 술어 재구현 ratchet (G1).
+ * @fileoverview ADR-236 Phase 1 — 도메인 술어 재구현 ratchet (G1) · Phase 2 — 타입 특성 표 파생 (G2).
  *
  * 같은 판정 (body · synthetic id · Components 페이지) 을 파일마다 다시 쓰면 대소문자 · 제외
  * 조건이 갈린다 (Phase 0 인벤토리 — breakdown §8). 판정은 술어 하나를 부르고, 직접 구현은
@@ -119,5 +119,37 @@ describe("ADR-236 도메인 술어 ratchet", () => {
     );
     expect(format(helpers)).toBe("");
     expect(format(direct)).toBe("");
+  });
+  it("타입 특성 표 — 파생한 멤버십 집합을 리터럴로 다시 적지 않는다 (Phase 2)", () => {
+    // 표 (`packages/shared/src/domain/componentTraits.ts`) 에서 파생한 집합. 새 멤버는 표의 행에 적는다.
+    const derived = [
+      "STRUCTURAL_CONTAINER_TYPES",
+      "PADDING_CONTAINER_TYPES",
+      "FRAME_SLOT_HOST_TYPES",
+      "TEXT_EDITABLE_TAGS",
+      "TEXT_ELEMENT_TAGS",
+      "INPUT_VALUE_EDIT_TAGS",
+      "BUTTON_CHILD_HOST_TAGS",
+      "LABEL_EDIT_HOST_TAGS",
+      "ACTION_TAGS",
+      "DISABLING_GROUP_TYPES",
+      "SELECTION_FLAG_ITEM_TYPES",
+      "STATIC_ITEM_TYPES",
+      "ITEM_SLOT_COLLECTIONS",
+    ];
+    const literalDecl = new RegExp(
+      `const (${derived.join("|")})\\b[^=]*=\\s*new Set(?:<[^>]*>)?\\(\\s*\\[\\s*["']`,
+      "g",
+    );
+    const hits: string[] = [];
+    for (const root of [BUILDER_SRC, SHARED_SRC]) {
+      for (const file of collectSources(root)) {
+        const source = readFileSync(file, "utf8");
+        for (const match of source.matchAll(literalDecl)) {
+          hits.push(`${relative(resolve(root, ".."), file)}  ${match[1]}`);
+        }
+      }
+    }
+    expect(hits.join("\n")).toBe("");
   });
 });

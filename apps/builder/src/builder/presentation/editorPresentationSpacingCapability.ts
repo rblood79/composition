@@ -19,11 +19,12 @@
  */
 
 import {
+  containerTypeSet,
   getResponsiveValueWithCascade,
+  isBodyType,
   type BreakpointName,
   type ElementResponsiveConfig,
   type ResponsiveValue,
-  isBodyType,
 } from "@composition/shared";
 import { useStore } from "../stores";
 import { useCanonicalDocumentStore } from "../stores/canonical/canonicalDocumentStore";
@@ -196,19 +197,12 @@ function readRoutedSpacingRaw(
   return { value: raw[property], shadowed: cascaded !== undefined };
 }
 
-/** 구조 컨테이너 타입 — dropTargetResolver 의 STRUCTURAL_CONTAINER_TYPES 와 같은 집합 (body 제외). */
-const PADDING_CONTAINER_TYPES = new Set([
-  "box",
-  "card",
-  "cardcontent",
-  "cardfooter",
-  "cardheader",
-  "cardpreview",
-  "container",
-  "frame",
-  "group",
-  "section",
-]);
+/** 구조 컨테이너 타입 (소문자, body 제외). */
+const PADDING_CONTAINER_TYPES: ReadonlySet<string> = new Set(
+  [...containerTypeSet("structural", { lowercase: true })].filter(
+    (type) => !isBodyType(type),
+  ),
+);
 
 export function parseSpacingPx(value: unknown): number | null {
   if (typeof value === "number") {

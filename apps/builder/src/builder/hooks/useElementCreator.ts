@@ -3,6 +3,7 @@ import { useI18n } from "@/i18n";
 import { focusCanvasContainer } from "./useActiveScope";
 import type { CompositionDocument } from "@composition/shared";
 import {
+  componentTypeSet,
   createCanonicalNestingIndex,
   findCanonicalNodeById,
   findCanonicalNodeType,
@@ -236,13 +237,7 @@ export function resolveCreationParentForType(
   // Card + action component → CardFooter 자동 라우팅
   const parentEl = parentId ? elements.find((el) => el.id === parentId) : null;
   if (parentEl?.type === "Card") {
-    const ACTION_TAGS = new Set([
-      "Button",
-      "ToggleButton",
-      "Link",
-      "ActionButtonGroup",
-      "ButtonGroup",
-    ]);
+    const ACTION_TAGS = componentTypeSet("action");
     if (ACTION_TAGS.has(type)) {
       const cardFooter = elements.find(
         (el) =>

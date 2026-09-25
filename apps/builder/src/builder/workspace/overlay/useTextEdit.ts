@@ -34,6 +34,7 @@ import {
   resolveTextSourceText,
   textSourceOrder,
 } from "@composition/specs";
+import { componentTypeSet } from "@composition/shared";
 
 type TextEditNode = NonNullable<
   ReturnType<typeof getActiveCanonicalElementById>
@@ -81,38 +82,9 @@ export interface UseTextEditReturn {
 // Text Element Tags
 // ============================================
 
-const TEXT_ELEMENT_TAGS = new Set([
-  "Text",
-  "Heading",
-  "Label",
-  "Paragraph",
-  "Link",
-  // 소문자 태그 (handleElementDoubleClick의 textTags와 호환)
-  "p",
-  "h1",
-  "h2",
-  "h3",
-  "h4",
-  "h5",
-  "h6",
-  "span",
-  "a",
-  "label",
-  "button",
-  "Description",
-  "Strong",
-  "Em",
-  "Code",
-  "Tag",
-  "Badge",
-  // Input 관련
-  "Button",
-  "ToggleButton",
-  "Input",
-  "TextField",
-  "TextInput",
-  "SearchField",
-  "TextArea",
+const TEXT_ELEMENT_TAGS: ReadonlySet<string> = new Set([
+  ...componentTypeSet("textHost"),
+  ...componentTypeSet("inputValue"),
 ]);
 
 // ============================================
@@ -192,13 +164,7 @@ function silentUpdateTextProp(
  * 아무것도 안 그리는데 편집창에는 "Go" 가 떴고, 확정 시 `label` 에 다시 써서 계속 안 보였다.
  * 입력 계열 (value 편집) 만 종전대로 — TEXT_EDITABLE_TAGS 밖이라 도달하지 않지만 의미를 보존.
  */
-const INPUT_VALUE_EDIT_TAGS = new Set([
-  "Input",
-  "TextField",
-  "TextInput",
-  "SearchField",
-  "TextArea",
-]);
+const INPUT_VALUE_EDIT_TAGS = componentTypeSet("inputValue");
 
 export function extractText(
   type: string,

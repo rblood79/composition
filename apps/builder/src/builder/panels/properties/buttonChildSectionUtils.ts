@@ -2,16 +2,15 @@ import { getDefaultProps } from "../../../types/builder/unified.types";
 import { generateCustomId } from "../../utils/idGeneration";
 import { withFrameElementMirrorId } from "../../../adapters/canonical/frameMirror";
 import type { useStore } from "../../stores";
+import { componentTypeSet } from "@composition/shared";
 
 export type AddElementInput = Parameters<
   ReturnType<typeof useStore.getState>["addElement"]
 >[0];
 export type CustomIdElements = Parameters<typeof generateCustomId>[1];
 
-export const BUTTON_CHILD_HOST_TAGS: ReadonlySet<string> = new Set([
-  "Button",
-  "ToggleButton",
-]);
+export const BUTTON_CHILD_HOST_TAGS: ReadonlySet<string> =
+  componentTypeSet("buttonChildHost");
 
 export function findFirstIconChild<
   T extends { id: string; type: string; deleted?: boolean },

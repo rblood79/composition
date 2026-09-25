@@ -1,4 +1,4 @@
-import { isBodyType } from "@composition/shared";
+import { componentTypeSet, isBodyType } from "@composition/shared";
 /**
  * 계층적 선택 유틸리티
  *
@@ -63,7 +63,7 @@ export function resolveContextEntryTarget(
 }
 
 /** label 인라인 편집 시 button host 의 자식 Text 를 우선하는 대상 태그 */
-const LABEL_EDIT_HOST_TAGS = new Set(["Button", "ToggleButton"]);
+const LABEL_EDIT_HOST_TAGS = componentTypeSet("buttonChildHost");
 
 /**
  * 더블클릭 label 편집 대상 해석.

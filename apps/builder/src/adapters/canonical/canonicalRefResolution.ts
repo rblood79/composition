@@ -1,16 +1,17 @@
 import {
+  componentTypeSet,
+  hasStateTemplateSyntax,
+  isBoundListOwnerProps,
   mergeFillSizing,
   readPropsSchema,
-  isBoundListOwnerProps,
-  SECTION_TYPES,
+  resolveGroupExpandedDisclosureIds,
   resolveSectionItemKey,
-  resolveTreeItemKey,
-  STATIC_LIST_FAMILY_BY_OWNER,
   resolveTemplateBindingValues,
+  resolveTreeItemKey,
+  SECTION_TYPES,
+  STATIC_LIST_FAMILY_BY_OWNER,
   substituteTemplateBindingsInChildren,
   substituteTemplateBindingsInProps,
-  resolveGroupExpandedDisclosureIds,
-  hasStateTemplateSyntax,
 } from "@composition/shared";
 
 import { applyPropsPatch, composePropsPatches } from "./instanceResolver";
@@ -1292,15 +1293,7 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
  *   (`resolveStaticItemKey`) 매칭 → 자기 `isSelected` / `_isSelected` → 조상 RadioGroup `value` 매칭.
  * - disabled: 강제 상태 → 자기 `isDisabled` / `disabled` → 조상 그룹의 `isDisabled` (3단계).
  */
-const DISABLING_GROUP_TYPES = new Set([
-  "RadioGroup",
-  "CheckboxGroup",
-  "ToggleButtonGroup",
-  "TagGroup",
-  "Tabs",
-  "ListBox",
-  "GridList",
-]);
+const DISABLING_GROUP_TYPES = componentTypeSet("disablingGroup");
 
 function findAncestor<T extends CanonicalRefResolvableNode>(
   element: T,
@@ -1508,7 +1501,10 @@ function readLeafDeps<T extends CanonicalRefResolvableNode>(
   const isTreeItem = chain.originType === "TreeItem";
   if (hasOwnChildren && !isTreeItem) return null;
   const ownProps = (canonicalIdentity(element) as { props?: unknown })?.props;
-  if (ownProps && hasTemplateSyntaxCached(ownProps as Record<string, unknown>)) {
+  if (
+    ownProps &&
+    hasTemplateSyntaxCached(ownProps as Record<string, unknown>)
+  ) {
     return null;
   }
   const deps: unknown[] = [canonicalIdentity(element), ...chain.deps];
@@ -1777,7 +1773,8 @@ function applyPositionalStateLayers<T extends CanonicalRefResolvableNode>(
           (child) => (elementsMap.get(child.id) ?? child).type === "TreeItem",
         );
         const expanded =
-          hasItems && keys.includes(resolveCanvasTreeItemKey(node, elementsMap));
+          hasItems &&
+          keys.includes(resolveCanvasTreeItemKey(node, elementsMap));
         if (!expanded) relayer(parentId, index, { expanded: false }, true);
       });
     }
@@ -1832,10 +1829,8 @@ function resolveCanvasStateLayer<T extends CanonicalRefResolvableNode>(
  * ADR-234 Phase 3 — 선택 표시를 `isSelected` 로 그리는 목록 항목 (Skia `listbox_item` · `gridlist_card` shell —
  * projection 행이 싣던 값). owner (ListBox · GridList) 안의 정적 항목에만 owner key 로 싣는다.
  */
-const SELECTION_FLAG_ITEM_TYPES: ReadonlySet<string> = new Set([
-  "ListBoxItem",
-  "GridListItem",
-]);
+const SELECTION_FLAG_ITEM_TYPES: ReadonlySet<string> =
+  componentTypeSet("selectionItem");
 
 function withItemSelectionFlag<T extends CanonicalRefResolvableNode>(
   resolved: T,
