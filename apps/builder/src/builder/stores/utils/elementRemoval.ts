@@ -4,6 +4,7 @@ import {
   guardStoreOperation,
   type OperableNodeLookup,
 } from "../../domain/canOperate";
+import { confirmStructuralOriginImpact } from "./elementUpdate";
 import { persistActiveCanonicalDocument as persistCanonicalDocument } from "../canonical/persistActiveCanonicalDocument";
 import type { StateCreator } from "zustand";
 import { Element } from "../../../types/core/store.types";
@@ -428,6 +429,9 @@ export const createRemoveElementAction =
     ) {
       return;
     }
+    // origin 안 삭제는 모든 instance 를 바꾼다 — 편집과 같은 영향 확인 (E4).
+    const impactGate = confirmStructuralOriginImpact([elementId]);
+    if (impactGate !== true && !(await impactGate)) return;
     const result = collectElementsToRemove(elementId, sourceElements);
     if (!result) {
       if (import.meta.env.DEV) {
@@ -466,6 +470,10 @@ export const createRemoveElementsAction =
       removalLookup(sourceElements),
     );
     if (canonicalElementIds.length === 0) return;
+    // origin 안 삭제는 모든 instance 를 바꾼다 — 편집과 같은 영향 확인 (E4). 확인된 origin 은 캐시돼
+    //   아래 단일 경로가 다시 묻지 않는다.
+    const impactGate = confirmStructuralOriginImpact(canonicalElementIds);
+    if (impactGate !== true && !(await impactGate)) return;
 
     // 단일 요소면 기존 경로 사용
     if (canonicalElementIds.length === 1) {

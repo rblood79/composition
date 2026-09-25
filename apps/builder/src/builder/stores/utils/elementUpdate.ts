@@ -46,6 +46,7 @@ import {
   getActiveCanonicalDocumentElements,
 } from "../canonical/canonicalElementsView";
 import {
+  getAncestors,
   getCanonicalNodeOccurrenceCount,
   getFirstProjectableNodeById,
   getProjectableChildrenByParent,
@@ -637,6 +638,33 @@ export function confirmOriginImpactForIds(
     }
     return true;
   })();
+}
+
+/**
+ * 구조 변경 영향 게이트 (ADR-236 Phase 3, E4) — 삭제 · 생성 · 붙여넣기 · 이동이 origin 안에서 일어나면
+ * 그 origin 의 instance 가 모두 바뀐다. 편집 게이트 (`confirmOriginImpactForIds`) 는 origin 노드 자신만
+ * 보므로, 대상마다 가장 가까운 origin (자기 포함) 을 찾아 넘긴다. 확인된 origin 은 캐시로 이후 호출이
+ * 동기 통과한다 — 여러 요소를 한 번에 추가하는 표면 (붙여넣기 · 복제) 은 루프 전에 먼저 부른다.
+ */
+export function confirmStructuralOriginImpact(
+  ids: Iterable<string | null | undefined>,
+): boolean | Promise<boolean> {
+  const originIds = new Set<string>();
+  for (const id of ids) {
+    if (!id) continue;
+    const self = getFirstProjectableNodeById(id);
+    if (self && isEditingSemanticsOrigin(self)) {
+      originIds.add(id);
+      continue;
+    }
+    for (const ancestor of getAncestors(id)) {
+      if (isEditingSemanticsOrigin(ancestor)) {
+        originIds.add(ancestor.id);
+        break;
+      }
+    }
+  }
+  return originIds.size === 0 ? true : confirmOriginImpactForIds(originIds);
 }
 
 /**

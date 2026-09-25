@@ -30,6 +30,7 @@ import {
   COMPONENT_MASTER_ID_MIRROR_FIELD,
 } from "../../adapters/canonical/componentSemanticsMirror";
 import { useStore } from "../stores";
+import { confirmStructuralOriginImpact } from "../stores/utils/elementUpdate";
 
 /**
  * 팔레트 추가의 중첩 preflight. 선택된 요소 (= 생성 부모) 가 `type` 을 담을 수 없으면
@@ -384,6 +385,11 @@ export const useElementCreator = (): UseElementCreatorReturn => {
                 doc,
               );
               if (complexParent.rejected) return null;
+              // factory 는 store 액션을 거치지 않고 쓴다 — origin 안 생성의 영향 확인을 여기서 (E4).
+              const complexGate = confirmStructuralOriginImpact([
+                complexParent.parentId,
+              ]);
+              if (complexGate !== true && !(await complexGate)) return null;
               // ComponentFactory를 사용하여 복합 컴포넌트 생성
               const result = await ComponentFactory.createComplexComponent(
                 type,

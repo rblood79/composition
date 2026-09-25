@@ -152,6 +152,44 @@ describe("system origin 보호 — 삭제 · 컴포넌트 해제", () => {
     ).toBe(true);
   });
 
+  // ADR-236 Phase 3 (E4) — origin 안의 구조 변경은 그 origin 의 instance 를 모두 바꾼다. 편집처럼 묻는다.
+  const originWithInstance = () => [
+    makeElement("card", { type: "frame", reusable: true }),
+    makeElement("card-title", { type: "Text", parent_id: "card" }),
+    makeElement("card-use", { type: "ref", ref: "card" }),
+  ];
+
+  it("origin 자손 삭제는 영향 확인을 거친다 — 취소하면 남는다 (E4)", async () => {
+    seed(originWithInstance());
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    confirm.mockClear();
+    await useStore.getState().removeElement("card-title");
+    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(useStore.getState().elementsMap.has("card-title")).toBe(true);
+  });
+
+  it("origin 안 추가는 영향 확인을 거친다 — 취소하면 추가되지 않는다 (E4)", async () => {
+    seed(originWithInstance());
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    confirm.mockClear();
+    await useStore
+      .getState()
+      .addElement(
+        makeElement("card-body", { type: "Text", parent_id: "card" }),
+      );
+    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(useStore.getState().elementsMap.has("card-body")).toBe(false);
+  });
+
+  it("instance 가 없는 요소 삭제는 묻지 않는다 (대조군)", async () => {
+    seed([makeElement("plain", { type: "Text" })]);
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    confirm.mockClear();
+    await useStore.getState().removeElement("plain");
+    expect(confirm).not.toHaveBeenCalled();
+    expect(useStore.getState().elementsMap.has("plain")).toBe(false);
+  });
+
   it("사용자가 만든 origin 은 그대로 해제된다 (대조군)", async () => {
     seed([makeElement("mine", { reusable: true })]);
     await useStore.getState().toggleComponentOrigin("mine");

@@ -1,3 +1,4 @@
+import { confirmStructuralOriginImpact } from "../../../stores/utils/elementUpdate";
 import {
   createOperableLookup,
   filterOperable,
@@ -269,6 +270,13 @@ export async function paste(context: CanvasActionContext): Promise<void> {
     { targetParentId },
   );
 
+  // origin 안에 붙여넣으면 모든 instance 가 바뀐다 (E4) — 추가 루프 전에 한 번 묻는다 (확인된 origin 은
+  //   캐시돼 store 진입부 게이트가 동기 통과한다. 병렬 추가가 대화상자를 겹쳐 띄우지 않게).
+  const pasteGate = confirmStructuralOriginImpact(
+    newElements.map((element) => element.parent_id),
+  );
+  if (pasteGate !== true && !(await pasteGate)) return;
+
   // batch 경로는 trackMultiPaste 가 entry 하나를 남기므로 undo 1회가 붙여넣기 전체를
   //   되돌린다. 비-batch 경로는 element 마다 entry 라 단일일 때만 되돌리기를 준다.
   const notifyIfRelocated = (withUndo: boolean): void => {
@@ -330,6 +338,11 @@ export async function duplicateSelection(
     Array.from(elementsMap.values()),
   );
   if (newElements.length === 0) return;
+  // origin 안 복제는 모든 instance 를 바꾼다 (E4) — 병렬 추가 전에 한 번 묻는다.
+  const duplicateGate = confirmStructuralOriginImpact(
+    newElements.map((element) => element.parent_id),
+  );
+  if (duplicateGate !== true && !(await duplicateGate)) return;
 
   await Promise.all(
     newElements.map((element) => addElement(element, { skipHistory: true })),

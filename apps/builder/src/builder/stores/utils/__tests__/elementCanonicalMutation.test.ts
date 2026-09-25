@@ -20,6 +20,7 @@ import { withComponentInstanceMirror } from "@/adapters/canonical/componentSeman
 import { buildLegacyElementMetadata } from "@/adapters/canonical/legacyMetadata";
 import { createInspectorActionsSlice } from "../../inspectorActions";
 import { createRemoveElementsAction } from "../elementRemoval";
+import { clearOriginImpactConfirmationCacheForTests } from "../elementUpdate";
 import {
   createBatchUpdateElementPropsAction,
   createUpdateElementAction,
@@ -356,10 +357,15 @@ describe("element mutations keep canonical document primary", () => {
       ],
     });
 
+    // ADR-236 Phase 3 (E4) — instance 가 있는 origin 삭제는 편집과 같은 영향 확인을 거친다.
+    clearOriginImpactConfirmationCacheForTests();
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
     await createRemoveElementsAction(
       createSetMock(state) as never,
       () => state as never,
     )(["origin"]);
+    expect(confirmSpy).toHaveBeenCalledTimes(1);
+    confirmSpy.mockRestore();
 
     const pageNode = useCanonicalDocumentStore
       .getState()
