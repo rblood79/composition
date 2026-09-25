@@ -332,3 +332,17 @@ ratchet 이 0 이어도 정리가 끝난 것은 아니다. 아래는 이 ADR 이
 Phase 4 판독 (reviewer, 2026-09-25, `f88304c3d`): 이슈 0 → 닫힘. ratchet 수치 (가드 13 · 우회 2 · 래퍼 호출 함수 11) · 상대 링크 · anchor · README 증감 · live report 대조 일치. LOW 3 — `typeof x.ref` 시작값 한정어 누락 · ADR Live Exercise 의 "해제" 가 origin 해제와 instance 분리 둘로 읽힘 (둘 다 문구 수정) · README 열린 개수가 실제 파일 수와 다른 기존 drift (이번 커밋 증감은 일관, 다음 README 정리 때 재집계).
 
 ADR-236 종결: Phase 0–4 · G0–G4, 실행자 닫힘 선언.
+
+## 13. 종결 뒤 후속 — E4 잔여 (2026-09-25)
+
+사용자 지시 "E4 후속 진행". §11 후속 목록의 캔버스 드래그 · 패널 내부 구조 쓰기 · Alt 드래그 복제를 닫는다. 커밋 `c9d79d678`.
+
+- `runAfterStructuralOriginImpact(ids, run)` — 확인이 필요 없으면 같은 틱에 동기로 `run`, 필요하면 확인 뒤 실행. 캔버스 드래그의 동기 트랜잭션 (`runInTransaction`) 을 깨지 않고 확인을 앞에 둔다.
+- `structuralMoveImpactIds(moving, targets)` — 이동의 영향 대상은 출발 · 도착 부모다. origin 루트 자리 이동 (Components 페이지 재배열 등) 은 instance 가 그 내용을 그대로 그려 묻지 않는다. Phase 3 의 Layers 이동 · 묶기는 옮기는 요소 자신을 넣어 루트 이동에도 물었다 — 같은 규칙으로 정정.
+- 캔버스 드래그: 다중 · 절대배치 재부모화 · flow 이동이 커밋 전에 묻는다. 같은 부모 안 좌표만 바꾸는 이동은 스타일 편집이라 묻지 않는다 (편집 게이트와 같은 축). Alt 드래그 복제는 병렬 추가 전에.
+- 패널: FrameSlotSection 7 경로 · Button 아이콘 설정/해제 · 항목 역할 추가 · 자식 항목 · 컬렉션 항목 추가/삭제. 기존 편집 게이트 (origin 자신만) 를 구조 영향 확인 (조상 origin 포함) 으로.
+- 범위 밖: 프리셋 적용 (page body 대상 — origin 안에 올 수 없다) · quick connect (반환 계약이 `DataTable` 이라 취소를 넣으려면 호출부 오류 계약을 바꿔야 한다. 바인딩 축).
+- ratchet: `structuralStoreActionGuard` — 표면 구조 쓰기 12 파일 × 영향 확인 선행 · 드래그 canonical 이동 행. 원복 RED: 드래그 · FrameSlotSection 8 · ItemSlotRoles 1 · ChildItem 2 · 컬렉션 2 · Button 아이콘 테스트 2.
+- live (`adr236-e4-followup-live.mjs`, Components 페이지 Form origin + 홈 instance, 실제 마우스 드래그): 필드 드래그 → 대화상자 → 취소 순서 그대로 · 확인 순서 바뀜 · Form 루트 재배열은 묻지 않고 이동 · Alt 복제는 확인된 origin 이라 바로 +1 · 삭제 대조 대화상자. Phase 3 live A–E · 수리 F–H 재실행 결과 동일. pageerror 0.
+- 판독 (reviewer, `c9d79d678`): HIGH 1 · LOW 2. HIGH — 묶기 대상을 부모로 줄이자 안쪽 `updateElement(parent_id)` 의 편집 게이트가 origin 루트마다 병렬로 대화상자를 요청해 서로 취소했다 (일부만 frame 에 · history 는 전부로 기록). 전에는 루트 자신을 구조 게이트에 넣어 캐시로 가려졌다. 수리 `fix(adr-236): 위치만 바꾸는 updateElement …` — 위치 필드만 바꾸는 update 는 편집 게이트를 걸지 않는다. 회귀 테스트 원복 RED · live M (Form · Toolbar 루트 ⌘G → 대화상자 0 · 같은 새 frame). LOW deferred — ratchet `findUnguardedWrites` 가 조상 함수 끝까지 올라가 같은 컴포넌트의 형제 handler guard 가 서로를 덮는다 (파일 단위 원복만 RED, production 재현 없음) · 절대배치 확인 뒤 이동도 좌표 patch 도 없으면 flow 경로로 넘어가지 않음 (delta 0 + 무변화 이동이라 도달 불가). 실행자 닫힘 선언.
+- 관찰 (이번 범위 밖, 기존 동작): 홈 페이지의 사용자 frame 을 컴포넌트로 만들면 (`toggleComponentOrigin`) `page_id` 가 null 이 되고 캔버스에서 사라진다 — reusable frame 이 재사용 레이아웃 frame 과 같은 모양이라 page 투영에서 빠지는 것으로 보인다. 원인 확정은 하지 않았다.

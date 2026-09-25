@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [원본 안 드래그 · 패널 추가도 영향 확인 — ADR-236 E4 후속] - 2026-09-25
+
+### Changed
+
+- **캔버스 드래그 · Alt 드래그 복제 · Properties 패널의 추가/삭제도 원본 (컴포넌트) 영향 확인을 묻는다** — 원본 안에서 요소를 끌어 순서 · 부모를 바꾸거나, Alt 로 끌어 복제하거나, 패널의 "+" (Table 열 · 행, 목록 항목, slot 채우기), Button 아이콘, 항목 역할, 자식 항목 추가 · 삭제를 하면 그 원본의 instance 가 모두 바뀐다. 편집과 같은 확인 대화상자가 뜨고, 취소하면 아무것도 바뀌지 않는다. 한 번 확인한 원본은 다시 묻지 않는다.
+- **원본 자체를 옮기는 것은 묻지 않는다** — Components 페이지에서 원본 순서를 바꾸거나 Layers 로 원본을 다른 자리로 옮겨도 instance 모습은 그대로라 확인하지 않는다 (전에는 Layers 이동 · 묶기가 물었다). 같은 부모 안에서 좌표만 바꾸는 드래그도 묻지 않는다.
+  - 위치: `stores/utils/elementUpdate.ts` (`runAfterStructuralOriginImpact` · `structuralMoveImpactIds`) · `useDragBridge.ts` · `FrameSlotSection.tsx` · `ButtonChildSection.tsx` · `ItemSlotRolesSection.tsx` · `ChildItemManager.tsx` · `useCollectionItemManager.ts`
+  - 가드: `structuralStoreActionGuard.static.test.ts` (표면 구조 쓰기 12 파일)
+
 ## [ADR-236 Implemented — 빌더 도메인 규칙 정리 종결] - 2026-09-25
 
 ### Changed
