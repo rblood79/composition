@@ -252,3 +252,101 @@ describe("Button child origin impact atomicity", () => {
     },
   );
 });
+
+// ADR-236 E4 — Button 자신은 origin 이 아니어도 origin 자손이면 아이콘 · 텍스트 자식 추가는 모든
+//   instance 를 바꾼다. 트랜잭션 안 병렬 추가 전에 한 번 묻는다 (store 액션은 묻지 않는다).
+function seedButtonInsideOrigin(): void {
+  const document = {
+    version: "composition-1.0",
+    children: [
+      {
+        id: "card-origin",
+        type: "frame",
+        reusable: true,
+        props: {},
+        children: [
+          { id: "inner-button", type: "Button", props: { children: "Go" } },
+        ],
+      },
+      { id: "card-instance", type: "ref", ref: "card-origin", props: {} },
+    ],
+  } as unknown as CompositionDocument;
+  useCanonicalDocumentStore.setState({
+    documents: new Map([["button-impact-project", document]]),
+    currentProjectId: "button-impact-project",
+    documentVersion: 1,
+  });
+  useStore.setState({
+    currentPageId: "page-1",
+    elements: [],
+    elementsMap: new Map(),
+    childrenMap: new Map(),
+    selectedElementId: "inner-button",
+    selectedElementProps: { children: "Go" },
+    dirtyElementIds: new Set<string>(),
+  } as never);
+  registerCanonicalMutationStoreActions({
+    getCurrentProjectId: () => "button-impact-project",
+    getCurrentLegacySnapshot: () => ({
+      elements: useStore.getState().elements,
+      pages: [],
+      layouts: [],
+    }),
+  });
+  __resetTraversalCache_TEST_ONLY__();
+}
+
+describe("Button child — origin 자손의 구조 변경 영향 확인 (ADR-236 E4)", () => {
+  beforeEach(() => {
+    resetCanonicalMutationStoreActions();
+    clearOriginImpactConfirmationCacheForTests();
+    historyManager.clearPageHistory("page-1");
+    historyManager.setCurrentPage("page-1");
+    seedButtonInsideOrigin();
+  });
+
+  afterEach(() => {
+    resolveEditingSemanticsImpactConfirmation(false);
+    cleanup();
+    resetCanonicalMutationStoreActions();
+    vi.restoreAllMocks();
+  });
+
+  const iconChildren = () =>
+    [...getNodeMap().values()].filter((node) => node.type === "Icon");
+
+  it("취소하면 아이콘이 추가되지 않는다", async () => {
+    render(
+      <>
+        <ButtonChildFields elementId="inner-button" />
+        <EditingSemanticsImpactDialogHost />
+      </>,
+    );
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Choose activity" }));
+      fireEvent.click(await screen.findByRole("button", { name: "Cancel" }));
+    });
+    expect(iconChildren()).toHaveLength(0);
+    expect(historyManager.getCurrentPageHistory().totalEntries).toBe(0);
+  });
+
+  it("확인하면 한 번만 묻고 아이콘 · 텍스트가 모두 추가된다 (병렬 추가가 서로 취소하지 않는다)", async () => {
+    render(
+      <>
+        <ButtonChildFields elementId="inner-button" />
+        <EditingSemanticsImpactDialogHost />
+      </>,
+    );
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Choose activity" }));
+      const dialogs = await screen.findAllByRole("dialog");
+      expect(dialogs).toHaveLength(1);
+      resolveEditingSemanticsImpactConfirmation(true);
+    });
+    await waitFor(() => expect(iconChildren()).toHaveLength(1));
+    expect(
+      [...getNodeMap().values()].filter((node) => node.type === "Text"),
+    ).toHaveLength(1);
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+});

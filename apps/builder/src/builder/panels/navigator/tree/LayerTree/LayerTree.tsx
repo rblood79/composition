@@ -13,7 +13,10 @@ import { useFocusManagement } from "../hooks";
 import { LAYER_TREE_ROW_SIZE_PX } from "./virtualization";
 import { isBodyType } from "@composition/shared";
 import { useStore } from "../../../../stores";
-import { confirmStructuralOriginImpact } from "../../../../stores/utils/elementUpdate";
+import {
+  confirmStructuralOriginImpact,
+  structuralMoveImpactIds,
+} from "../../../../stores/utils/elementUpdate";
 import { getActiveCanonicalDocument } from "../../../../stores/canonical/canonicalElementsBridge";
 import type { MoveTargetNode } from "../../../../domain/resolveMoveTarget";
 
@@ -176,12 +179,15 @@ export function LayerTree({
         // DnD 후 포커스 유지
         handleAfterMove(payload.keys);
       };
-      // origin 안팎으로 옮기면 그 origin 의 instance 가 모두 바뀐다 (ADR-236 Phase 3, E4) — 옮기는
-      //   요소와 새 부모 양쪽의 가장 가까운 origin 을 묻는다. 확인이 필요 없으면 동기로 바로 반영한다.
-      const gate = confirmStructuralOriginImpact([
-        ...[...payload.keys].map(String),
-        ...updates.map((update) => update.parentId),
-      ]);
+      // origin 안팎으로 옮기면 그 origin 의 instance 가 모두 바뀐다 (ADR-236 Phase 3, E4) — 출발 부모와
+      //   새 부모의 가장 가까운 origin 을 묻는다 (origin 루트 자체의 자리 이동은 instance 를 바꾸지 않는다).
+      //   확인이 필요 없으면 동기로 바로 반영한다.
+      const gate = confirmStructuralOriginImpact(
+        structuralMoveImpactIds(
+          [...payload.keys].map(String),
+          updates.map((update) => update.parentId),
+        ),
+      );
       if (gate === true) {
         commit();
         return;

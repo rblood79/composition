@@ -20,6 +20,10 @@
 
 import { useState, useMemo, useCallback } from "react";
 import { useStore } from "../stores";
+import {
+  confirmStructuralOriginImpact,
+  runAfterStructuralOriginImpact,
+} from "../stores/utils/elementUpdate";
 import { canonicalNodeToElement } from "../stores/canonical/canonicalElementsView";
 import { useActiveCanonicalDocument } from "../stores/canonical/canonicalElementsBridge";
 import { getProjectableNodeLookups } from "../stores/canonical/canonicalTraversalHelpers";
@@ -155,7 +159,12 @@ export function useCollectionItemManager(
       };
 
       // IndexedDB persistence via addElement
-      useStore.getState().addElement(newItem as CollectionItemNode);
+      // 목록이 origin 자손이면 모든 instance 가 바뀐다 (ADR-236 E4).
+      runAfterStructuralOriginImpact(
+        [elementId],
+        () =>
+          void useStore.getState().addElement(newItem as CollectionItemNode),
+      );
       console.log(`새 ${childTag} 추가됨:`, newItem);
     } catch (error) {
       console.error(`${childTag} 추가 중 오류:`, error);
@@ -171,6 +180,8 @@ export function useCollectionItemManager(
   const deleteItem = useCallback(
     async (itemId: string) => {
       try {
+        const gate = confirmStructuralOriginImpact([itemId]);
+        if (gate !== true && !(await gate)) return;
         // IndexedDB persistence via removeElement
         await useStore.getState().removeElement(itemId);
         setSelectedItemIndex(null);

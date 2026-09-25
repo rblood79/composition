@@ -1,6 +1,7 @@
 import { memo, useMemo, useCallback } from "react";
 import type { ChildrenManagerField } from "@composition/specs";
 import { useStore } from "../../../stores";
+import { runAfterStructuralOriginImpact } from "../../../stores/utils/elementUpdate";
 import { ElementUtils } from "../../../../utils/element/elementUtils";
 import { generateCustomId } from "../../../utils/idGeneration";
 import {
@@ -71,7 +72,11 @@ export const ChildItemManager = memo(function ChildItemManager({
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
-    void addElement(newElement);
+    // 부모가 origin 자손이면 모든 instance 가 바뀐다 (ADR-236 E4).
+    runAfterStructuralOriginImpact(
+      [elementId],
+      () => void addElement(newElement),
+    );
   }, [
     elementId,
     childTag,
@@ -91,7 +96,10 @@ export const ChildItemManager = memo(function ChildItemManager({
 
   const handleDelete = useCallback(
     (childId: string) => {
-      void removeElements([childId]);
+      runAfterStructuralOriginImpact(
+        [childId],
+        () => void removeElements([childId]),
+      );
     },
     [removeElements],
   );

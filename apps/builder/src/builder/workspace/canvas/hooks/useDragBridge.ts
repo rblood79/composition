@@ -58,6 +58,7 @@ import { isDragSnapSuppressed } from "../interaction/dragModifiers";
 import type { BoundingBox } from "../selection/types";
 import {
   moveElementToCanonicalTarget,
+  type CanonicalMoveTarget,
   moveElementsToCanonicalTarget,
 } from "../../../../adapters/canonical/canonicalMutations";
 import type { CanvasInteractionNode } from "../interaction/interactionNode";
@@ -81,6 +82,11 @@ import {
   pasteMultipleElements,
 } from "../../../utils/multiElementCopy";
 import { trackMultiPaste } from "../../../stores/utils/historyHelpers";
+import {
+  confirmStructuralOriginImpact,
+  runAfterStructuralOriginImpact,
+  structuralMoveImpactIds,
+} from "../../../stores/utils/elementUpdate";
 import { resolveAbsoluteFlowReparentProps } from "../../../utils/absolutePositioning";
 import { attachCanonicalStateToCopy } from "../../../utils/canonicalCopyState";
 import { getActiveCanonicalDocument } from "../../../stores/canonical/canonicalElementsBridge";
@@ -184,6 +190,18 @@ function resolveDragMoveTarget(
     policy,
     doc,
   });
+}
+
+/**
+ * 영향 확인 대상 — 출발 부모와 새 부모 (ADR-236 E4). 이름 영역 (mode C) 이면 그 instance 가 부모다.
+ */
+function dragMoveImpactIds(
+  moveIds: readonly string[],
+  target: CanonicalMoveTarget,
+): (string | null | undefined)[] {
+  return structuralMoveImpactIds(moveIds, [
+    target.kind === "node-children" ? target.parentId : target.refNodeId,
+  ]);
 }
 
 export function resolveDragReadModel(
@@ -358,6 +376,11 @@ async function cloneDragTargetsAtDrop(
     state.elements,
   );
   if (newElements.length === 0) return;
+  // origin 안 복제는 모든 instance 를 바꾼다 (ADR-236 E4) — 병렬 추가 전에 한 번 묻는다.
+  const cloneGate = confirmStructuralOriginImpact(
+    newElements.map((element) => element.parent_id),
+  );
+  if (cloneGate !== true && !(await cloneGate)) return;
 
   await Promise.all(
     newElements.map((element) =>
@@ -568,75 +591,87 @@ function commitMultiDragDrop({
     return;
   }
 
-  let didCanonicalMove = false;
-  historyManager.runInTransaction({ type: "move", elementId: leaderId }, () => {
-    if (canonicalTarget && moveIds.length > 0) {
-      const fromLocations = captureCanonicalNodeLocations(moveIds);
-      const refCaptures = captureRefDescendantsMoveSources(
-        moveIds,
-        canonicalTarget,
-      );
-      const moveResult = moveElementsToCanonicalTarget(
-        moveIds,
-        canonicalTarget,
-      );
-      if (moveResult.document) {
-        useStore.getState()._rebuildIndexes?.();
-      }
-      if (moveResult.changed) {
-        didCanonicalMove = true;
-        if (nestingAware?.ok && nestingAware.relocation) {
-          notifyNestingRelocation(
-            nestingAware.relocation,
-            dragStore.elementsById.get(nestingAware.parentId)?.type ??
-              nestingAware.parentId,
-          );
-        }
-        // 기록은 from index **내림차순** — undo 는 events 를 역순 적용하므로
-        // (applyCanonicalHistoryEventsToDocument) 복원이 from index 오름차순
-        // (작은 자리부터 삽입) 이 되어 원 순서가 정확히 재현된다. 오름차순
-        // 기록이면 undo 가 형제 순서를 뒤집는다 (live 실측 — [Nav, refA]
-        // 복원 시 refA 가 형제 뒤로 밀림). redo (정순 적용) 도 내림차순이
-        // 정확 — to index 가 최종 문서 기준이라 큰 자리부터 재적용해야 한다.
-        const trackOrder = [...moveResult.movedIds].sort(
-          (left, right) =>
-            (fromLocations.get(right)?.index ?? 0) -
-            (fromLocations.get(left)?.index ?? 0),
-        );
-        if (refCaptures && canonicalTarget.kind === "ref-descendants") {
-          trackCanonicalMoveIntoRefDescendants(
-            moveResult.movedIds,
-            refCaptures,
-            canonicalTarget.refNodeId,
-          );
-        } else {
-          for (const id of trackOrder) {
-            trackCanonicalMove(id, fromLocations.get(id));
+  // origin 안팎 이동은 모든 instance 를 바꾼다 (ADR-236 E4) — 트랜잭션 전에 묻는다. 확인이 필요 없으면
+  //   같은 틱에 커밋한다. 좌표 patch 만 (부모 그대로) 이면 스타일 편집이라 묻지 않는다 (대상 없음).
+  runAfterStructuralOriginImpact(
+    canonicalTarget && moveIds.length > 0
+      ? dragMoveImpactIds(moveIds, canonicalTarget)
+      : [],
+    () => {
+      let didCanonicalMove = false;
+      historyManager.runInTransaction(
+        { type: "move", elementId: leaderId },
+        () => {
+          if (canonicalTarget && moveIds.length > 0) {
+            const fromLocations = captureCanonicalNodeLocations(moveIds);
+            const refCaptures = captureRefDescendantsMoveSources(
+              moveIds,
+              canonicalTarget,
+            );
+            const moveResult = moveElementsToCanonicalTarget(
+              moveIds,
+              canonicalTarget,
+            );
+            if (moveResult.document) {
+              useStore.getState()._rebuildIndexes?.();
+            }
+            if (moveResult.changed) {
+              didCanonicalMove = true;
+              if (nestingAware?.ok && nestingAware.relocation) {
+                notifyNestingRelocation(
+                  nestingAware.relocation,
+                  dragStore.elementsById.get(nestingAware.parentId)?.type ??
+                    nestingAware.parentId,
+                );
+              }
+              // 기록은 from index **내림차순** — undo 는 events 를 역순 적용하므로
+              // (applyCanonicalHistoryEventsToDocument) 복원이 from index 오름차순
+              // (작은 자리부터 삽입) 이 되어 원 순서가 정확히 재현된다. 오름차순
+              // 기록이면 undo 가 형제 순서를 뒤집는다 (live 실측 — [Nav, refA]
+              // 복원 시 refA 가 형제 뒤로 밀림). redo (정순 적용) 도 내림차순이
+              // 정확 — to index 가 최종 문서 기준이라 큰 자리부터 재적용해야 한다.
+              const trackOrder = [...moveResult.movedIds].sort(
+                (left, right) =>
+                  (fromLocations.get(right)?.index ?? 0) -
+                  (fromLocations.get(left)?.index ?? 0),
+              );
+              if (refCaptures && canonicalTarget.kind === "ref-descendants") {
+                trackCanonicalMoveIntoRefDescendants(
+                  moveResult.movedIds,
+                  refCaptures,
+                  canonicalTarget.refNodeId,
+                );
+              } else {
+                for (const id of trackOrder) {
+                  trackCanonicalMove(id, fromLocations.get(id));
+                }
+              }
+            }
           }
-        }
+
+          if (absoluteUpdates.length > 0) {
+            // 이동과 한 몸인 좌표 patch — 트랜잭션 안이라 영향 대화상자를 기다릴 수 없다.
+            void useStore.getState().batchUpdateElementProps(absoluteUpdates, {
+              skipOriginImpactGate: true,
+            });
+          }
+        },
+      );
+
+      if (didCanonicalMove) {
+        queueMicrotask(() => {
+          void (async () => {
+            try {
+              const db = await getDB();
+              await persistActiveCanonicalDocument(db);
+            } catch (error) {
+              console.error("[DragBridge] multi-drop DB persist:", error);
+            }
+          })();
+        });
       }
-    }
-
-    if (absoluteUpdates.length > 0) {
-      // 이동과 한 몸인 좌표 patch — 트랜잭션 안이라 영향 대화상자를 기다릴 수 없다.
-      void useStore.getState().batchUpdateElementProps(absoluteUpdates, {
-        skipOriginImpactGate: true,
-      });
-    }
-  });
-
-  if (didCanonicalMove) {
-    queueMicrotask(() => {
-      void (async () => {
-        try {
-          const db = await getDB();
-          await persistActiveCanonicalDocument(db);
-        } catch (error) {
-          console.error("[DragBridge] multi-drop DB persist:", error);
-        }
-      })();
-    });
-  }
+    },
+  );
 }
 
 export function useDragBridge({
@@ -945,6 +980,21 @@ export function useDragBridge({
       }
 
       const dragged = dragStore.elementsById.get(elementId);
+      // 같은 부모 안 좌표 이동 (absolute) — 스타일 편집이라 구조 영향 확인은 묻지 않는다.
+      const applyManualDragPatch = (): boolean => {
+        const manualPositionProps = resolveManualPositionDragProps(
+          dragged,
+          effectiveDelta,
+        );
+        if (!manualPositionProps) return false;
+        void useStore.getState().batchUpdateElementProps([
+          {
+            elementId,
+            props: manualPositionProps,
+          },
+        ]);
+        return true;
+      };
       const manualDropTarget = resolveManualPositionDropTarget(
         dragged,
         finalTarget,
@@ -986,61 +1036,67 @@ export function useDragBridge({
           elementsMap: dragStore.elementsById,
         });
 
-        let didMove = false;
         if (manualPositionProps && canonicalTarget) {
-          historyManager.runInTransaction({ type: "move", elementId }, () => {
-            const fromLocations = captureCanonicalNodeLocations([elementId]);
-            const refCaptures = captureRefDescendantsMoveSources(
-              [elementId],
-              canonicalTarget,
-            );
-            const moveResult = moveElementToCanonicalTarget(
-              elementId,
-              canonicalTarget,
-            );
-            if (moveResult.document) {
-              useStore.getState()._rebuildIndexes?.();
-            }
-            if (!moveResult.changed) return;
-
-            didMove = true;
-            if (refCaptures && canonicalTarget.kind === "ref-descendants") {
-              trackCanonicalMoveIntoRefDescendants(
+          // 다른 컨테이너로 옮기는 drop — origin 안팎이면 모든 instance 가 바뀐다 (ADR-236 E4).
+          const impactGate = confirmStructuralOriginImpact(
+            dragMoveImpactIds([elementId], canonicalTarget),
+          );
+          let didMove = false;
+          const commitManualMove = (): void => {
+            historyManager.runInTransaction({ type: "move", elementId }, () => {
+              const fromLocations = captureCanonicalNodeLocations([elementId]);
+              const refCaptures = captureRefDescendantsMoveSources(
                 [elementId],
-                refCaptures,
-                canonicalTarget.refNodeId,
+                canonicalTarget,
               );
-            } else {
-              trackCanonicalMove(elementId, fromLocations.get(elementId));
-            }
-            void useStore.getState().batchUpdateElementProps(
-              [
-                {
-                  elementId,
-                  props: manualPositionProps,
-                },
-              ],
-              { skipOriginImpactGate: true },
-            );
-          });
-        }
+              const moveResult = moveElementToCanonicalTarget(
+                elementId,
+                canonicalTarget,
+              );
+              if (moveResult.document) {
+                useStore.getState()._rebuildIndexes?.();
+              }
+              if (!moveResult.changed) return;
 
-        if (didMove) {
-          return;
+              didMove = true;
+              if (refCaptures && canonicalTarget.kind === "ref-descendants") {
+                trackCanonicalMoveIntoRefDescendants(
+                  [elementId],
+                  refCaptures,
+                  canonicalTarget.refNodeId,
+                );
+              } else {
+                trackCanonicalMove(elementId, fromLocations.get(elementId));
+              }
+              void useStore.getState().batchUpdateElementProps(
+                [
+                  {
+                    elementId,
+                    props: manualPositionProps,
+                  },
+                ],
+                { skipOriginImpactGate: true },
+              );
+            });
+          };
+          if (impactGate === false) return;
+          if (impactGate !== true) {
+            // 확인 뒤 커밋 — 이동이 일어나지 않으면 아래 동기 경로처럼 좌표만 옮긴다.
+            void impactGate.then((confirmed) => {
+              if (!confirmed) return;
+              commitManualMove();
+              if (!didMove) applyManualDragPatch();
+            });
+            return;
+          }
+          commitManualMove();
+          if (didMove) {
+            return;
+          }
         }
       }
 
-      const manualPositionProps = resolveManualPositionDragProps(
-        dragged,
-        effectiveDelta,
-      );
-      if (manualPositionProps) {
-        void state.batchUpdateElementProps([
-          {
-            elementId,
-            props: manualPositionProps,
-          },
-        ]);
+      if (applyManualDragPatch()) {
         return;
       }
 
@@ -1048,7 +1104,6 @@ export function useDragBridge({
       // (형제 순서 변화는 canonical children[] 이 SSOT 라 move event 하나로 복원,
       //  ADR-118. 과거 요소 스냅샷 배열 방식은 flat Element[] → canonical 전체
       //  교체 fallback 을 유발했다)
-      let didMove = false;
       if (finalTarget && !finalTarget.isAdjacentInsertion) {
         // 중첩 preflight 는 순서 계산 **앞** — 옮겨진 컨테이너 기준으로 순서를 계산해야
         //   좌표·순서·이동이 같은 target 을 본다 (리뷰 HIGH).
@@ -1082,52 +1137,62 @@ export function useDragBridge({
             insertionIndex: effectiveTarget.insertionIndex,
             elementsMap: dragStore.elementsById,
           });
-          // from-location 은 mutation 전에 캡처
-          const fromLocations = captureCanonicalNodeLocations([elementId]);
-          const refCaptures = captureRefDescendantsMoveSources(
-            [elementId],
-            canonicalTarget,
-          );
-          const moveResult = canonicalTarget
-            ? moveElementToCanonicalTarget(elementId, canonicalTarget)
-            : { changed: false, document: null };
-          if (moveResult.document) {
-            useStore.getState()._rebuildIndexes?.();
-          }
-          if (moveResult.changed) {
-            didMove = true;
-            if (refCaptures && canonicalTarget?.kind === "ref-descendants") {
-              trackCanonicalMoveIntoRefDescendants(
-                [elementId],
-                refCaptures,
-                canonicalTarget.refNodeId,
-              );
-            } else {
-              trackCanonicalMove(elementId, fromLocations.get(elementId));
-            }
-            if (flowNesting.relocation) {
-              notifyNestingRelocation(
-                flowNesting.relocation,
-                dragStore.elementsById.get(flowNesting.parentId)?.type ??
-                  flowNesting.parentId,
-              );
-            }
+          if (canonicalTarget) {
+            // origin 안팎 이동 · 재배열은 모든 instance 를 바꾼다 (ADR-236 E4) — 확인이 필요 없으면
+            //   같은 틱에 커밋한다.
+            runAfterStructuralOriginImpact(
+              dragMoveImpactIds([elementId], canonicalTarget),
+              () => {
+                // from-location 은 mutation 전에 캡처
+                const fromLocations = captureCanonicalNodeLocations([
+                  elementId,
+                ]);
+                const refCaptures = captureRefDescendantsMoveSources(
+                  [elementId],
+                  canonicalTarget,
+                );
+                const moveResult = moveElementToCanonicalTarget(
+                  elementId,
+                  canonicalTarget,
+                );
+                if (moveResult.document) {
+                  useStore.getState()._rebuildIndexes?.();
+                }
+                if (!moveResult.changed) return;
+                if (refCaptures && canonicalTarget.kind === "ref-descendants") {
+                  trackCanonicalMoveIntoRefDescendants(
+                    [elementId],
+                    refCaptures,
+                    canonicalTarget.refNodeId,
+                  );
+                } else {
+                  trackCanonicalMove(elementId, fromLocations.get(elementId));
+                }
+                if (flowNesting.relocation) {
+                  notifyNestingRelocation(
+                    flowNesting.relocation,
+                    dragStore.elementsById.get(flowNesting.parentId)?.type ??
+                      flowNesting.parentId,
+                  );
+                }
+                // DB Persist — 실제 이동이 있었을 때만
+                queueMicrotask(() => {
+                  void (async () => {
+                    try {
+                      const db = await getDB();
+                      await persistActiveCanonicalDocument(db);
+                    } catch (error) {
+                      console.error(
+                        "[DragBridge] reorder/reparent DB persist:",
+                        error,
+                      );
+                    }
+                  })();
+                });
+              },
+            );
           }
         }
-      }
-
-      // DB Persist — 실제 이동이 있었을 때만
-      if (didMove) {
-        queueMicrotask(() => {
-          void (async () => {
-            try {
-              const db = await getDB();
-              await persistActiveCanonicalDocument(db);
-            } catch (error) {
-              console.error("[DragBridge] reorder/reparent DB persist:", error);
-            }
-          })();
-        });
       }
     },
   });

@@ -1,4 +1,7 @@
-import { confirmStructuralOriginImpact } from "../../../stores/utils/elementUpdate";
+import {
+  confirmStructuralOriginImpact,
+  structuralMoveImpactIds,
+} from "../../../stores/utils/elementUpdate";
 import {
   createOperableLookup,
   filterOperable,
@@ -433,8 +436,11 @@ export async function groupSelection(
     }
   }
 
-  // origin 안에서 묶으면 모든 instance 가 바뀐다 (E4) — frame 추가 · 자식 이동 전에 묻는다.
-  const groupGate = confirmStructuralOriginImpact(groupableIds);
+  // origin 안에서 묶으면 모든 instance 가 바뀐다 (E4) — frame 추가 · 자식 이동 전에 묻는다. 대상은
+  //   선택이 빠지는 부모와 새 frame 의 부모 (origin 루트끼리 묶어도 그 내용은 그대로다).
+  const groupGate = confirmStructuralOriginImpact(
+    structuralMoveImpactIds(groupableIds, [groupElement.parent_id]),
+  );
   if (groupGate !== true && !(await groupGate)) return;
 
   await addElement(groupElement, { skipHistory: true });

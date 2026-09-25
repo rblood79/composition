@@ -55,10 +55,93 @@ const BYPASS_WRITES: readonly {
     guard: /^resolveDragMoveTarget$/,
   },
   {
+    // 캔버스 드래그의 origin 영향 확인 (E4) — 부모 · 순서가 바뀌는 이동은 커밋 전에 묻는다.
+    file: "workspace/canvas/hooks/useDragBridge.ts",
+    write: /^(moveElementToCanonicalTarget|moveElementsToCanonicalTarget)$/,
+    guard: /^(runAfterStructuralOriginImpact|confirmStructuralOriginImpact)$/,
+  },
+  {
     // factory 생성 — useStore.setState 를 직접 부른다.
     file: "factories/utils/elementCreation.ts",
     write: /^runCanonicalMutation$/,
     guard: /^guardCreationParent$/,
+  },
+];
+
+/**
+ * 사용자 동작 하나를 시작하는 표면의 구조 쓰기 (E4) — store 액션은 origin 영향 확인을 묻지 않으므로
+ * (병렬 · 트랜잭션 호출부가 동기 완료를 전제로 부른다) 표면이 첫 쓰기 전에 부른다. 경로는
+ * `apps/builder/src/builder` 기준 (`../` 는 src).
+ */
+const IMPACT_GUARD =
+  /^(confirmStructuralOriginImpact|runAfterStructuralOriginImpact)$/;
+const STRUCTURAL_WRITE = /^(addElement|addComplexElement|removeElements?)$/;
+const SURFACE_STRUCTURAL_WRITES: readonly {
+  file: string;
+  write: RegExp;
+  guard: RegExp;
+}[] = [
+  {
+    file: "workspace/canvas/actions/canvasActions.ts",
+    write: STRUCTURAL_WRITE,
+    guard: IMPACT_GUARD,
+  },
+  {
+    file: "panels/navigator/LayersSection.tsx",
+    write: STRUCTURAL_WRITE,
+    guard: IMPACT_GUARD,
+  },
+  {
+    file: "panels/properties/PropertiesPanel.tsx",
+    write: STRUCTURAL_WRITE,
+    guard: IMPACT_GUARD,
+  },
+  {
+    file: "hooks/useElementCreator.ts",
+    write: STRUCTURAL_WRITE,
+    guard: IMPACT_GUARD,
+  },
+  {
+    file: "panels/properties/FrameSlotSection.tsx",
+    write:
+      /^(addElement|removeElements?|applyTableColumnInsertPlan|applyTableRowInsertPlan)$/,
+    guard: IMPACT_GUARD,
+  },
+  {
+    // 쓰기 전 `prepareButtonChildMutation` 이 영향 확인과 편집 승인을 같이 받는다.
+    file: "panels/properties/ButtonChildSection.tsx",
+    write: STRUCTURAL_WRITE,
+    guard: /^prepareButtonChildMutation$/,
+  },
+  {
+    file: "panels/properties/ItemSlotRolesSection.tsx",
+    write: STRUCTURAL_WRITE,
+    guard: IMPACT_GUARD,
+  },
+  {
+    file: "panels/properties/generic/ChildItemManager.tsx",
+    write: STRUCTURAL_WRITE,
+    guard: IMPACT_GUARD,
+  },
+  {
+    file: "hooks/useCollectionItemManager.ts",
+    write: STRUCTURAL_WRITE,
+    guard: IMPACT_GUARD,
+  },
+  {
+    file: "workspace/canvas/hooks/useDragBridge.ts",
+    write: /^addElement$/,
+    guard: IMPACT_GUARD,
+  },
+  {
+    file: "../services/ai/tools/createElement.ts",
+    write: STRUCTURAL_WRITE,
+    guard: IMPACT_GUARD,
+  },
+  {
+    file: "../services/ai/tools/deleteElement.ts",
+    write: STRUCTURAL_WRITE,
+    guard: IMPACT_GUARD,
   },
 ];
 
@@ -204,6 +287,58 @@ function firstCalls(body: ts.Node): {
   return { guard, mutation };
 }
 
+/** `file` 안의 `write` 호출 중, 감싼 함수 어디에도 그보다 앞선 `guard` 호출이 없는 것 (`파일:줄`). */
+function findUnguardedWrites(
+  file: string,
+  write: RegExp,
+  guard: RegExp,
+): { writes: number; unguarded: string[] } {
+  const sourceFile = parse(resolve(STORES, "..", file));
+  const writes: ts.CallExpression[] = [];
+  const visit = (node: ts.Node) => {
+    if (ts.isCallExpression(node)) {
+      const name = calleeName(node);
+      if (name && write.test(name)) writes.push(node);
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+  const unguarded = writes.filter((call) => {
+    for (let parent = call.parent; parent; parent = parent.parent) {
+      if (
+        !ts.isFunctionDeclaration(parent) &&
+        !ts.isMethodDeclaration(parent) &&
+        !ts.isArrowFunction(parent) &&
+        !ts.isFunctionExpression(parent)
+      ) {
+        continue;
+      }
+      let guarded = false;
+      const find = (node: ts.Node) => {
+        if (guarded) return;
+        if (ts.isCallExpression(node)) {
+          const name = calleeName(node);
+          if (name && guard.test(name) && node.getStart() < call.getStart()) {
+            guarded = true;
+            return;
+          }
+        }
+        ts.forEachChild(node, find);
+      };
+      find(parent);
+      if (guarded) return false;
+    }
+    return true;
+  });
+  return {
+    writes: writes.length,
+    unguarded: unguarded.map(
+      (call) =>
+        `${file}:${sourceFile.getLineAndCharacterOfPosition(call.getStart()).line + 1}`,
+    ),
+  };
+}
+
 describe("ADR-236 구조 변경 store 액션 진입부 가드", () => {
   it.each(GUARDED_ACTIONS)("%s — 가드가 첫 변경보다 먼저", (entry) => {
     const [file, name] = entry.split(" :: ");
@@ -217,53 +352,18 @@ describe("ADR-236 구조 변경 store 액션 진입부 가드", () => {
   it.each(BYPASS_WRITES)(
     "store 우회 쓰기 $file — 쓰기마다 감싼 함수가 가드를 먼저 부른다 (E8)",
     ({ file, write, guard }) => {
-      const sourceFile = parse(resolve(STORES, "..", file));
-      const writes: ts.CallExpression[] = [];
-      const visit = (node: ts.Node) => {
-        if (ts.isCallExpression(node)) {
-          const name = calleeName(node);
-          if (name && write.test(name)) writes.push(node);
-        }
-        ts.forEachChild(node, visit);
-      };
-      visit(sourceFile);
-      expect(writes.length).toBeGreaterThan(0);
-      const unguarded = writes.filter((call) => {
-        for (let parent = call.parent; parent; parent = parent.parent) {
-          if (
-            !ts.isFunctionDeclaration(parent) &&
-            !ts.isArrowFunction(parent) &&
-            !ts.isFunctionExpression(parent)
-          ) {
-            continue;
-          }
-          let guarded = false;
-          const find = (node: ts.Node) => {
-            if (guarded) return;
-            if (ts.isCallExpression(node)) {
-              const name = calleeName(node);
-              if (
-                name &&
-                guard.test(name) &&
-                node.getStart() < call.getStart()
-              ) {
-                guarded = true;
-                return;
-              }
-            }
-            ts.forEachChild(node, find);
-          };
-          find(parent);
-          if (guarded) return false;
-        }
-        return true;
-      });
-      expect(
-        unguarded.map(
-          (call) =>
-            `${file}:${sourceFile.getLineAndCharacterOfPosition(call.getStart()).line + 1}`,
-        ),
-      ).toEqual([]);
+      const { writes, unguarded } = findUnguardedWrites(file, write, guard);
+      expect(writes).toBeGreaterThan(0);
+      expect(unguarded).toEqual([]);
+    },
+  );
+
+  it.each(SURFACE_STRUCTURAL_WRITES)(
+    "표면 구조 쓰기 $file — 쓰기마다 감싼 함수가 origin 영향 확인을 먼저 부른다 (E4)",
+    ({ file, write, guard }) => {
+      const { writes, unguarded } = findUnguardedWrites(file, write, guard);
+      expect(writes).toBeGreaterThan(0);
+      expect(unguarded).toEqual([]);
     },
   );
 

@@ -44,7 +44,10 @@ import {
   applyTableRowInsertPlan,
 } from "../../components/tableColumnWrite";
 import { historyManager } from "../../stores/history";
-import { confirmOriginImpactForIds } from "../../stores/utils/elementUpdate";
+import {
+  confirmStructuralOriginImpact,
+  runAfterStructuralOriginImpact,
+} from "../../stores/utils/elementUpdate";
 import { getActiveCanonicalDocument } from "../../stores/canonical/canonicalElementsBridge";
 import { ACTION_ICONS } from "../../config/actionIcons";
 import { useI18n } from "@/i18n";
@@ -277,7 +280,8 @@ export const FrameSlotSection = memo(function FrameSlotSection({
       const mirrorId = getFrameElementMirrorId(latestElement);
       const pageId = latestElement.page_id ?? null;
       void (async () => {
-        const gate = confirmOriginImpactForIds([
+        // host 자신이나 조상이 origin 이면 모든 instance 가 바뀐다 (ADR-236 E4).
+        const gate = confirmStructuralOriginImpact([
           plan.hostId,
           ...plan.propsUpdates.map((update) => update.id),
         ]);
@@ -322,8 +326,9 @@ export const FrameSlotSection = memo(function FrameSlotSection({
       const mirrorId = getFrameElementMirrorId(latestElement);
       const pageId = latestElement.page_id ?? null;
       void (async () => {
+        // 열 추가 · 셀 동기화를 병렬로 쓰기 전에 한 번 묻는다 — header 가 origin 자손이어도 (ADR-236 E4).
         if (plan.kind === "plain") {
-          const gate = confirmOriginImpactForIds([plan.headerId]);
+          const gate = confirmStructuralOriginImpact([plan.headerId]);
           if (gate !== true && !(await gate)) return;
         }
         await applyTableColumnInsertPlan(
@@ -345,7 +350,7 @@ export const FrameSlotSection = memo(function FrameSlotSection({
       const pageId = latestElement.page_id ?? null;
       void (async () => {
         if (plan.kind === "plain") {
-          const gate = confirmOriginImpactForIds([plan.bodyId]);
+          const gate = confirmStructuralOriginImpact([plan.bodyId]);
           if (gate !== true && !(await gate)) return;
         }
         await applyTableRowInsertPlan(
@@ -378,6 +383,11 @@ export const FrameSlotSection = memo(function FrameSlotSection({
       const mirrorId = getFrameElementMirrorId(latestElement);
       const pageId = latestElement.page_id ?? null;
       void (async () => {
+        const gate = confirmStructuralOriginImpact([
+          plan.tabListId,
+          plan.tabPanelsId,
+        ]);
+        if (gate !== true && !(await gate)) return;
         await addElement(
           withFrameElementMirrorId(
             {
@@ -410,41 +420,47 @@ export const FrameSlotSection = memo(function FrameSlotSection({
       })();
       return;
     }
-    void addElement(
-      withFrameElementMirrorId(
-        {
-          id: crypto.randomUUID(),
-          type: "ref",
-          ref: candidate.id,
-          componentName: getElementLabel(candidate),
-          parent_id: latestElement.id,
-          page_id: latestElement.page_id ?? null,
-          props: {},
-        } as AddElementInput,
-        getFrameElementMirrorId(latestElement),
-      ),
-    );
+    const hostId = latestElement.id;
+    runAfterStructuralOriginImpact([hostId], () => {
+      void addElement(
+        withFrameElementMirrorId(
+          {
+            id: crypto.randomUUID(),
+            type: "ref",
+            ref: candidate.id,
+            componentName: getElementLabel(candidate),
+            parent_id: hostId,
+            page_id: latestElement.page_id ?? null,
+            props: {},
+          } as AddElementInput,
+          getFrameElementMirrorId(latestElement),
+        ),
+      );
+    });
   };
 
   const handleInsertPrimitive = (type: string) => {
     if (!rawElement) return;
-    void addElement(
-      withFrameElementMirrorId(
-        {
-          id: crypto.randomUUID(),
-          type,
-          parent_id: rawElement.id,
-          page_id: rawElement.page_id ?? null,
-          props: buildSlotFillPrimitiveProps(type),
-        } as AddElementInput,
-        getFrameElementMirrorId(rawElement),
-      ),
-    );
+    runAfterStructuralOriginImpact([rawElement.id], () => {
+      void addElement(
+        withFrameElementMirrorId(
+          {
+            id: crypto.randomUUID(),
+            type,
+            parent_id: rawElement.id,
+            page_id: rawElement.page_id ?? null,
+            props: buildSlotFillPrimitiveProps(type),
+          } as AddElementInput,
+          getFrameElementMirrorId(rawElement),
+        ),
+      );
+    });
   };
 
   const handleClearOwnChildren = () => {
     const ids = ownChildren.map((child) => child.id);
-    if (ids.length > 0) void removeElements(ids);
+    if (ids.length === 0) return;
+    runAfterStructuralOriginImpact(ids, () => void removeElements(ids));
   };
 
   return (

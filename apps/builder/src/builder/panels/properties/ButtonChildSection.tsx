@@ -15,6 +15,7 @@ import {
 } from "./hooks/useCanonicalPropertyRead";
 import { collectCanonicalCustomIdCandidates } from "../../../adapters/canonical/legacyMetadata";
 import {
+  confirmStructuralOriginImpact,
   requestOriginImpactApprovalIfNeeded,
   type OriginImpactApproval,
 } from "../../stores/utils/elementUpdate";
@@ -68,6 +69,10 @@ async function prepareButtonChildMutation(
   const node = getNodeMap().get(elementId);
   if (!node) return null;
 
+  // 아이콘 · 텍스트 자식 추가/삭제는 구조 변경이다 — Button 이 origin 자손이어도 모든 instance 가
+  //   바뀐다 (ADR-236 E4). Button 자신이 origin 이면 여기서 확인된 키로 아래 승인이 동기 통과한다.
+  const structuralGate = confirmStructuralOriginImpact([elementId]);
+  if (structuralGate !== true && !(await structuralGate)) return null;
   const approvalResult = requestOriginImpactApprovalIfNeeded(node);
   const approval = isPendingOriginImpactApproval(approvalResult)
     ? await approvalResult

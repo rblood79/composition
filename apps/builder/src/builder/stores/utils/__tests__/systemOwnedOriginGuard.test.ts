@@ -11,7 +11,12 @@ import { useStore } from "../../elements";
 import { useStore as appStore } from "../../index";
 import { historyManager } from "../../history";
 import { useToastStore } from "../../toast";
-import { clearOriginImpactConfirmationCacheForTests } from "../elementUpdate";
+import {
+  clearOriginImpactConfirmationCacheForTests,
+  confirmStructuralOriginImpact,
+  runAfterStructuralOriginImpact,
+  structuralMoveImpactIds,
+} from "../elementUpdate";
 import {
   deleteSelection,
   groupSelection,
@@ -207,9 +212,61 @@ describe("system origin 보호 — 삭제 · 컴포넌트 해제", () => {
     confirm.mockClear();
     await useStore
       .getState()
-      .addElement(makeElement("card-extra", { type: "Text", parent_id: "card" }));
+      .addElement(
+        makeElement("card-extra", { type: "Text", parent_id: "card" }),
+      );
     expect(confirm).not.toHaveBeenCalled();
     expect(useStore.getState().elementsMap.has("card-extra")).toBe(true);
+  });
+
+  it("runAfterStructuralOriginImpact — 확인이 필요 없으면 같은 틱에 실행한다 (드래그 커밋 · 동기 트랜잭션)", () => {
+    seed([makeElement("plain", { type: "Text" })]);
+    const run = vi.fn();
+    runAfterStructuralOriginImpact(["plain"], run);
+    expect(run).toHaveBeenCalledTimes(1);
+  });
+
+  it("runAfterStructuralOriginImpact — origin 자손이면 묻고, 취소하면 실행하지 않는다 (E4)", async () => {
+    seed(originWithInstance());
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    confirm.mockClear();
+    const run = vi.fn();
+    runAfterStructuralOriginImpact(["card-title"], run);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(run).not.toHaveBeenCalled();
+  });
+
+  it("runAfterStructuralOriginImpact — 확인하면 한 번 실행하고, 같은 origin 은 다시 묻지 않는다", async () => {
+    seed(originWithInstance());
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+    confirm.mockClear();
+    const run = vi.fn();
+    runAfterStructuralOriginImpact(["card-title"], run);
+    await vi.waitFor(() => expect(run).toHaveBeenCalledTimes(1));
+    runAfterStructuralOriginImpact(["card-body"], run);
+    expect(run).toHaveBeenCalledTimes(2);
+    expect(confirm).toHaveBeenCalledTimes(1);
+  });
+
+  it("이동 영향 대상은 출발 · 도착 부모 — origin 루트 자리 이동은 묻지 않고, 자식을 빼면 묻는다", () => {
+    seed([...originWithInstance(), makeElement("shelf", { type: "frame" })]);
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    confirm.mockClear();
+    // origin 루트를 다른 컨테이너로 — instance 는 origin 내용을 그대로 그린다.
+    expect(
+      confirmStructuralOriginImpact(
+        structuralMoveImpactIds(["card"], ["shelf"]),
+      ),
+    ).toBe(true);
+    expect(confirm).not.toHaveBeenCalled();
+    // origin 자식을 밖으로 — 출발 부모 (origin) 의 내용이 바뀐다.
+    expect(
+      confirmStructuralOriginImpact(
+        structuralMoveImpactIds(["card-title"], ["shelf"]),
+      ),
+    ).toBeInstanceOf(Promise);
   });
 
   it("instance 가 없는 요소 삭제는 묻지 않는다 (대조군)", async () => {

@@ -24,6 +24,7 @@ import {
   type ItemRoleSurface,
 } from "../../components/itemSlotRoles";
 import { withFrameElementMirrorId } from "../../../adapters/canonical/frameMirror";
+import { runAfterStructuralOriginImpact } from "../../stores/utils/elementUpdate";
 import { ACTION_ICONS } from "../../config/actionIcons";
 import { useI18n } from "@/i18n";
 
@@ -82,7 +83,8 @@ export const ItemSlotRolesSection = memo(function ItemSlotRolesSection({
   const document = useActiveCanonicalDocument();
   // 항목 type (ref 는 origin type) 이 아니면 문서를 읽지 않는다 — 모든 선택에 붙는 절.
   const elementType = useCanonicalPropertyElementType(elementId);
-  const isItemType = elementType !== null && elementType in ITEM_SLOT_ROLE_TABLE;
+  const isItemType =
+    elementType !== null && elementType in ITEM_SLOT_ROLE_TABLE;
   const read = useMemo(
     () =>
       document && isItemType
@@ -113,27 +115,30 @@ export const ItemSlotRolesSection = memo(function ItemSlotRolesSection({
     const pageId =
       (state.elementsMap.get(origin.id) as { page_id?: string } | undefined)
         ?.page_id ?? null;
-    // 추가 + 표 순서 위치로 이동 = 되돌리기 1회 (창은 동기 — await 는 창 밖).
-    const writes = historyManager.runInTransaction(
-      { type: "add", elementId: plan.node.id },
-      () => {
-        const added = state.addElement(
-          withFrameElementMirrorId(
-            {
-              ...plan.node,
-              parent_id: origin.id,
-              page_id: pageId,
-            } as unknown as AddElementInput,
-            null,
-          ),
-        );
-        useStore
-          .getState()
-          .moveElementToContainer(plan.node.id, origin.id, plan.index);
-        return added;
-      },
-    );
-    void writes;
+    // 추가 + 표 순서 위치로 이동 = 되돌리기 1회 (창은 동기 — await 는 창 밖). origin 에 역할을 더하면
+    //   모든 instance 가 바뀐다 (ADR-236 E4) — 창을 열기 전에 묻는다.
+    runAfterStructuralOriginImpact([origin.id], () => {
+      const writes = historyManager.runInTransaction(
+        { type: "add", elementId: plan.node.id },
+        () => {
+          const added = state.addElement(
+            withFrameElementMirrorId(
+              {
+                ...plan.node,
+                parent_id: origin.id,
+                page_id: pageId,
+              } as unknown as AddElementInput,
+              null,
+            ),
+          );
+          useStore
+            .getState()
+            .moveElementToContainer(plan.node.id, origin.id, plan.index);
+          return added;
+        },
+      );
+      void writes;
+    });
   };
 
   return (

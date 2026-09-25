@@ -672,6 +672,41 @@ export function confirmStructuralOriginImpact(
 }
 
 /**
+ * 이동의 영향 확인 대상 — 옮기는 요소 **자신이 아니라** 출발 부모와 도착 부모. origin 루트를 다른
+ * 자리로 옮겨도 instance 는 그 내용을 그대로 그리므로 바뀌지 않는다 (Components 페이지 안 재배열 등).
+ * 바뀌는 것은 요소가 빠지는 부모 · 들어가는 부모가 속한 origin 이다.
+ */
+export function structuralMoveImpactIds(
+  movingIds: Iterable<string>,
+  targetParentIds: Iterable<string | null | undefined>,
+): (string | null | undefined)[] {
+  return [
+    ...[...movingIds].map((id) => getAncestors(id)[0]?.id ?? null),
+    ...targetParentIds,
+  ];
+}
+
+/**
+ * 영향 확인 뒤 실행 — 확인이 필요 없으면 (instance 없음 · 이미 확인됨) **같은 틱에 동기로** `run` 을
+ * 부른다. 캔버스 드래그 커밋처럼 동기 트랜잭션 (`runInTransaction`) 을 여는 표면과, 결과를 기다리지
+ * 않는 패널 버튼이 쓴다. 취소하면 `run` 을 부르지 않는다.
+ */
+export function runAfterStructuralOriginImpact(
+  ids: Iterable<string | null | undefined>,
+  run: () => void,
+): void {
+  const gate = confirmStructuralOriginImpact(ids);
+  if (gate === true) {
+    run();
+    return;
+  }
+  if (gate === false) return;
+  void gate.then((confirmed) => {
+    if (confirmed) run();
+  });
+}
+
+/**
  * UpdateElementProps 액션 생성 팩토리
  *
  * 요소의 props만 업데이트하는 로직을 처리합니다.
