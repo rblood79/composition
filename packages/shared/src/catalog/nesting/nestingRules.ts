@@ -23,6 +23,11 @@
  * 소비처가 `resolveRefType` 로 넘길 수 있다.
  */
 
+import {
+  componentContractMap,
+  containerTypeSet,
+} from "../../domain/componentTraits";
+
 export type NestingLayer = "pen-structure" | "rac-composition" | "html-content";
 
 export interface NestingViolation {
@@ -63,28 +68,18 @@ export const PEN_LEAF_TYPES: ReadonlySet<string> = new Set(["Text", "Icon"]);
 // 층 2 — RAC 합성
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * 컬렉션·합성 컨테이너가 직계 자식으로 읽는 타입. RAC 는 이 밖의 자식을 collection
- * 으로 인식하지 않는다 (렌더는 되더라도 선택·키보드·상태에서 빠진다).
- *
- * 항목은 RAC 문서의 합성 계약 + composition 팩토리가 실제로 만드는 트리로 검증한다
- * (`apps/builder/src/builder/factories/__tests__/factoryNestingOracle.test.ts`).
- */
+// 층 2 의 세 표 (strict 컬렉션 · 직계 자식 · 소유자) 는 타입 특성 표 (`domain/componentTraits.ts`) 의
+// `container: "collection"` · `children` · `owners` 열에서 파생한다 (ADR-236 Phase 2). 항목은 RAC 문서의
+// 합성 계약 + composition 팩토리가 실제로 만드는 트리로 검증한다
+// (`apps/builder/src/builder/factories/__tests__/factoryNestingOracle.test.ts`).
+
 /**
  * item 만 읽는 진짜 컬렉션 — 레이아웃 래퍼도 못 들어간다 (RAC collection 은 직계 자식을
  * item 으로 해석한다). 그 밖의 합성 컨테이너 (RadioGroup · Slider · Tabs …) 는 context
  * 기반이라 `frame` 같은 레이아웃 래퍼를 사이에 둬도 된다 — `NESTING_PASSTHROUGH_TYPES`.
  */
-export const STRICT_COLLECTION_PARENT_TYPES: ReadonlySet<string> = new Set([
-  "ListBox",
-  "Menu",
-  "GridList",
-  "TagList",
-  "Breadcrumbs",
-  "ToggleButtonGroup",
-  "TabList",
-  "TabPanels",
-]);
+export const STRICT_COLLECTION_PARENT_TYPES: ReadonlySet<string> =
+  containerTypeSet("collection");
 
 /** 어느 합성 컨테이너 안에서도 레이아웃 용도로 허용되는 래퍼 (strict 컬렉션 제외). */
 export const NESTING_PASSTHROUGH_TYPES: ReadonlySet<string> = new Set([
@@ -94,39 +89,13 @@ export const NESTING_PASSTHROUGH_TYPES: ReadonlySet<string> = new Set([
   "Slot",
 ]);
 
+/**
+ * 컬렉션·합성 컨테이너가 직계 자식으로 읽는 타입. RAC 는 이 밖의 자식을 collection
+ * 으로 인식하지 않는다 (렌더는 되더라도 선택·키보드·상태에서 빠진다).
+ */
 export const RAC_COLLECTION_CHILD_TYPES: Readonly<
   Record<string, readonly string[]>
-> = {
-  Tabs: ["TabList", "TabPanels", "TabPanel"],
-  TabList: ["Tab"],
-  TabPanels: ["TabPanel"],
-  // ADR-238 Phase 2 — section 층 (RAC `ListBoxSection` · `MenuSection` · `GridListSection` + `Header`).
-  ListBox: ["ListBoxItem", "ListBoxSection", "Section", "Header"],
-  ListBoxSection: ["Header", "ListBoxItem"],
-  Menu: ["MenuItem", "MenuSection", "Section", "Separator", "Header"],
-  MenuSection: ["Header", "MenuItem"],
-  GridList: ["GridListItem", "GridListSection"],
-  GridListSection: ["Header", "GridListItem"],
-  TagGroup: ["Label", "TagList", "Description", "FieldError"],
-  TagList: ["Tag"],
-  Breadcrumbs: ["Breadcrumb"],
-  ToggleButtonGroup: ["ToggleButton"],
-  RadioGroup: ["Label", "Radio", "RadioItems", "Description", "FieldError"],
-  CheckboxGroup: [
-    "Label",
-    "Checkbox",
-    "CheckboxItems",
-    "Description",
-    "FieldError",
-  ],
-  DisclosureGroup: ["Disclosure"],
-  Slider: ["Label", "SliderOutput", "SliderTrack"],
-  SliderTrack: ["SliderThumb"],
-  Meter: ["Label", "MeterValue", "MeterTrack"],
-  ProgressBar: ["Label", "ProgressBarValue", "ProgressBarTrack"],
-  Calendar: ["CalendarHeader", "CalendarGrid"],
-  RangeCalendar: ["CalendarHeader", "CalendarGrid"],
-};
+> = componentContractMap("children");
 
 /**
  * 합성 부품이 뜻을 갖기 위해 조상 어딘가에 있어야 하는 소유자. 직계가 아니어도 된다
@@ -134,92 +103,7 @@ export const RAC_COLLECTION_CHILD_TYPES: Readonly<
  */
 export const RAC_SUBPART_OWNER_TYPES: Readonly<
   Record<string, readonly string[]>
-> = {
-  Tab: ["TabList"],
-  TabList: ["Tabs"],
-  TabPanels: ["Tabs"],
-  TabPanel: ["Tabs"],
-  ListBoxItem: ["ListBox", "Select", "ComboBox"],
-  MenuItem: ["Menu"],
-  GridListItem: ["GridList"],
-  ListBoxSection: ["ListBox", "Select", "ComboBox"],
-  MenuSection: ["Menu"],
-  GridListSection: ["GridList"],
-  Tag: ["TagList"],
-  TagList: ["TagGroup"],
-  Breadcrumb: ["Breadcrumbs"],
-  Radio: ["RadioGroup"],
-  RadioItems: ["RadioGroup"],
-  CheckboxItems: ["CheckboxGroup"],
-  SliderOutput: ["Slider"],
-  SliderTrack: ["Slider"],
-  SliderThumb: ["SliderTrack"],
-  MeterTrack: ["Meter"],
-  MeterValue: ["Meter"],
-  ProgressBarTrack: ["ProgressBar"],
-  ProgressBarValue: ["ProgressBar"],
-  CalendarGrid: ["Calendar", "RangeCalendar"],
-  CalendarHeader: ["Calendar", "RangeCalendar"],
-  CardHeader: ["Card"],
-  CardContent: ["Card"],
-  CardFooter: ["Card"],
-  CardPreview: ["Card"],
-  DisclosureHeader: ["Disclosure"],
-  SelectTrigger: [
-    "Select",
-    "ComboBox",
-    "SearchField",
-    "NumberField",
-    "DatePicker",
-    "DateRangePicker",
-  ],
-  // SelectTrigger 래퍼를 쓰는 필드 전부가 소유자다 — 팩토리 오라클이 DatePicker ·
-  // DateRangePicker · NumberField 의 트리거 안 SelectIcon/SelectValue 를 실증했다.
-  SelectValue: [
-    "Select",
-    "ComboBox",
-    "SearchField",
-    "NumberField",
-    "DatePicker",
-    "DateRangePicker",
-  ],
-  SelectIcon: [
-    "Select",
-    "ComboBox",
-    "SearchField",
-    "NumberField",
-    "DatePicker",
-    "DateRangePicker",
-  ],
-  DateInput: ["DateField", "TimeField", "DatePicker", "DateRangePicker"],
-  FieldError: [
-    "TextField",
-    "TextArea",
-    "NumberField",
-    "SearchField",
-    "DateField",
-    "TimeField",
-    "DatePicker",
-    "DateRangePicker",
-    "ColorField",
-    "ComboBox",
-    "Select",
-    "RadioGroup",
-    "CheckboxGroup",
-    "TagGroup",
-    "Slider",
-    "Field",
-  ],
-  Input: [
-    "TextField",
-    "TextArea",
-    "NumberField",
-    "SearchField",
-    "ColorField",
-    "ComboBox",
-    "Field",
-  ],
-};
+> = componentContractMap("owners");
 
 /**
  * DOM 렌더러가 canonical 자식을 **인식하는 sub-part 만** 그리는 self-compose 컨테이너

@@ -49,6 +49,7 @@ import {
   type SizeSpec,
 } from "@composition/specs";
 import {
+  componentOwnerTypes,
   componentTypeSet,
   isCatalogCutover,
   getPrimitiveBinding,
@@ -372,7 +373,9 @@ const PARENT_LABEL_PROP_SOURCE_TAGS = new Set([
   "ColorField",
 ]);
 
-const DATE_INPUT_PARENT_TAGS = componentTypeSet("dateField");
+const DATE_INPUT_PARENT_TAGS: ReadonlySet<string> = new Set(
+  componentOwnerTypes("DateInput"),
+);
 
 // ---------------------------------------------------------------------------
 // Parent Lookup Helpers (pure functions — no hooks)

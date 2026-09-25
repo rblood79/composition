@@ -140,6 +140,7 @@ describe("ADR-236 도메인 술어 ratchet", () => {
       "DATE_INPUT_PARENT_TAGS",
       "IMAGE_TAGS",
       "IMAGE_INTRINSIC_TAGS",
+      "STRICT_COLLECTION_PARENT_TYPES",
     ];
     const literalDecl = new RegExp(
       `const (${derived.join("|")})\\b[^=]*=\\s*new Set(?:<[^>]*>)?\\(\\s*\\[\\s*["']`,
@@ -152,6 +153,15 @@ describe("ADR-236 도메인 술어 ratchet", () => {
         for (const match of source.matchAll(literalDecl)) {
           hits.push(`${relative(resolve(root, ".."), file)}  ${match[1]}`);
         }
+      }
+    }
+    // nestingRules 층 2 의 맵 — 값은 표의 `children` · `owners` 열이다.
+    const literalMap =
+      /const (RAC_COLLECTION_CHILD_TYPES|RAC_SUBPART_OWNER_TYPES)\b[^=]*=\s*\{/g;
+    for (const file of collectSources(SHARED_SRC)) {
+      const source = readFileSync(file, "utf8");
+      for (const match of source.matchAll(literalMap)) {
+        hits.push(`${relative(resolve(SHARED_SRC, ".."), file)}  ${match[1]}`);
       }
     }
     expect(hits.join("\n")).toBe("");

@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  componentContractMap,
+  componentOwnerTypes,
   componentTypeSet,
   containerTypeSet,
   getComponentTraits,
@@ -181,8 +183,8 @@ describe("componentTraits — 파생 집합 == 옛 리터럴", () => {
     );
   });
 
-  it("dateField (buildSpecNodeData DATE_INPUT_PARENT_TAGS)", () => {
-    expect(sorted(componentTypeSet("dateField"))).toEqual(
+  it("DateInput 소유자 (buildSpecNodeData DATE_INPUT_PARENT_TAGS)", () => {
+    expect([...componentOwnerTypes("DateInput")].sort()).toEqual(
       literal(["DateField", "TimeField", "DatePicker", "DateRangePicker"]),
     );
   });
@@ -217,6 +219,144 @@ describe("componentTraits — 파생 집합 == 옛 리터럴", () => {
         "GridList",
       ]),
     );
+  });
+});
+
+describe("componentTraits — nestingRules 층 2 파생 == 옛 리터럴", () => {
+  it("strict 컬렉션 (STRICT_COLLECTION_PARENT_TYPES)", () => {
+    expect(sorted(containerTypeSet("collection"))).toEqual(
+      literal([
+        "ListBox",
+        "Menu",
+        "GridList",
+        "TagList",
+        "Breadcrumbs",
+        "ToggleButtonGroup",
+        "TabList",
+        "TabPanels",
+      ]),
+    );
+  });
+
+  // 값 배열 순서까지 같아야 한다 — 위반 메시지 (`allowed.join` · `owners.join`) 가 이 순서로 나간다.
+  it("직계 자식 (RAC_COLLECTION_CHILD_TYPES)", () => {
+    expect(componentContractMap("children")).toStrictEqual({
+      Tabs: ["TabList", "TabPanels", "TabPanel"],
+      TabList: ["Tab"],
+      TabPanels: ["TabPanel"],
+      ListBox: ["ListBoxItem", "ListBoxSection", "Section", "Header"],
+      ListBoxSection: ["Header", "ListBoxItem"],
+      Menu: ["MenuItem", "MenuSection", "Section", "Separator", "Header"],
+      MenuSection: ["Header", "MenuItem"],
+      GridList: ["GridListItem", "GridListSection"],
+      GridListSection: ["Header", "GridListItem"],
+      TagGroup: ["Label", "TagList", "Description", "FieldError"],
+      TagList: ["Tag"],
+      Breadcrumbs: ["Breadcrumb"],
+      ToggleButtonGroup: ["ToggleButton"],
+      RadioGroup: ["Label", "Radio", "RadioItems", "Description", "FieldError"],
+      CheckboxGroup: [
+        "Label",
+        "Checkbox",
+        "CheckboxItems",
+        "Description",
+        "FieldError",
+      ],
+      DisclosureGroup: ["Disclosure"],
+      Slider: ["Label", "SliderOutput", "SliderTrack"],
+      SliderTrack: ["SliderThumb"],
+      Meter: ["Label", "MeterValue", "MeterTrack"],
+      ProgressBar: ["Label", "ProgressBarValue", "ProgressBarTrack"],
+      Calendar: ["CalendarHeader", "CalendarGrid"],
+      RangeCalendar: ["CalendarHeader", "CalendarGrid"],
+    });
+  });
+
+  it("소유자 (RAC_SUBPART_OWNER_TYPES)", () => {
+    expect(componentContractMap("owners")).toStrictEqual({
+      Tab: ["TabList"],
+      TabList: ["Tabs"],
+      TabPanels: ["Tabs"],
+      TabPanel: ["Tabs"],
+      ListBoxItem: ["ListBox", "Select", "ComboBox"],
+      MenuItem: ["Menu"],
+      GridListItem: ["GridList"],
+      ListBoxSection: ["ListBox", "Select", "ComboBox"],
+      MenuSection: ["Menu"],
+      GridListSection: ["GridList"],
+      Tag: ["TagList"],
+      TagList: ["TagGroup"],
+      Breadcrumb: ["Breadcrumbs"],
+      Radio: ["RadioGroup"],
+      RadioItems: ["RadioGroup"],
+      CheckboxItems: ["CheckboxGroup"],
+      SliderOutput: ["Slider"],
+      SliderTrack: ["Slider"],
+      SliderThumb: ["SliderTrack"],
+      MeterTrack: ["Meter"],
+      MeterValue: ["Meter"],
+      ProgressBarTrack: ["ProgressBar"],
+      ProgressBarValue: ["ProgressBar"],
+      CalendarGrid: ["Calendar", "RangeCalendar"],
+      CalendarHeader: ["Calendar", "RangeCalendar"],
+      CardHeader: ["Card"],
+      CardContent: ["Card"],
+      CardFooter: ["Card"],
+      CardPreview: ["Card"],
+      DisclosureHeader: ["Disclosure"],
+      SelectTrigger: [
+        "Select",
+        "ComboBox",
+        "SearchField",
+        "NumberField",
+        "DatePicker",
+        "DateRangePicker",
+      ],
+      SelectValue: [
+        "Select",
+        "ComboBox",
+        "SearchField",
+        "NumberField",
+        "DatePicker",
+        "DateRangePicker",
+      ],
+      SelectIcon: [
+        "Select",
+        "ComboBox",
+        "SearchField",
+        "NumberField",
+        "DatePicker",
+        "DateRangePicker",
+      ],
+      DateInput: ["DateField", "TimeField", "DatePicker", "DateRangePicker"],
+      FieldError: [
+        "TextField",
+        "TextArea",
+        "NumberField",
+        "SearchField",
+        "DateField",
+        "TimeField",
+        "DatePicker",
+        "DateRangePicker",
+        "ColorField",
+        "ComboBox",
+        "Select",
+        "RadioGroup",
+        "CheckboxGroup",
+        "TagGroup",
+        "Slider",
+        "Field",
+      ],
+      Input: [
+        "TextField",
+        "TextArea",
+        "NumberField",
+        "SearchField",
+        "ColorField",
+        "ComboBox",
+        "Field",
+      ],
+    });
   });
 });
 
