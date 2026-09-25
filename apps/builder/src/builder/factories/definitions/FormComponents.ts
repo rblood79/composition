@@ -42,9 +42,7 @@ export function createTextFieldDefinition(
         isDisabled: false,
         isReadOnly: false,
         isInvalid: false,
-        style: {
-          width: "100%",
-        },
+        // 공통 기본 스타일은 catalog에서 파생한다.
       } as ComponentElementProps,
       parent_id: parentId,
     },
@@ -118,9 +116,7 @@ export function createTextAreaDefinition(
         isDisabled: false,
         isReadOnly: false,
         isInvalid: false,
-        style: {
-          width: "100%",
-        },
+        // 공통 기본 스타일은 catalog에서 파생한다.
       } as ComponentElementProps,
       parent_id: parentId,
     },
@@ -275,17 +271,7 @@ export function createNumberFieldDefinition(
         isInvalid: false,
         isReadOnly: false,
         isRequired: false,
-        // ADR-913 후속 fix (2026-06-19): inline display/flexDirection 제거 — labelPosition="side"
-        //   차단 근본. inline flexDirection:column 은 (a) CSS specificity(1-0-0)가 generated CSS
-        //   `[data-label-position="side"]`(0-2-0)를 이겨 side selector 무력화 (b) Skia
-        //   getSideLabelParentStyle 의 `...rawParentStyle` 마지막 spread 로 row 를 column 으로 덮음.
-        //   DateField/TimeField(inline 에 display/flexDir 없음)가 정상이던 패턴으로 통일 — top 모드
-        //   기본 column 은 catalog rule(NumberField base archetype) + Skia specFallback 이 담당.
-        //   gap=6 catalog(sizes.md.gap=6) 정본 (2026-06-23 전수 정정 — factory gap:4 ≠ CSS gap:6).
-        style: {
-          width: "100%",
-          gap: 6,
-        },
+        // 공통 기본 스타일은 catalog에서 파생한다.
       } as ComponentElementProps,
       parent_id: parentId,
     },
@@ -393,14 +379,7 @@ export function createSearchFieldDefinition(
         isInvalid: false,
         isReadOnly: false,
         isRequired: false,
-        // ADR-913 후속 fix (2026-06-19): inline display/flexDirection 제거 — labelPosition="side"
-        //   차단 근본 (NumberField 와 동일 — CSS specificity + Skia rawParentStyle spread). top 모드
-        //   기본 column 은 catalog rule + Skia specFallback 담당.
-        //   gap=8 catalog(sizes.md.gap=8) 정본 (2026-06-23 전수 정정 — factory gap:4 ≠ CSS gap:8).
-        style: {
-          width: "100%",
-          gap: 8,
-        },
+        // 공통 기본 스타일은 catalog에서 파생한다.
       } as ComponentElementProps,
       parent_id: parentId,
     },

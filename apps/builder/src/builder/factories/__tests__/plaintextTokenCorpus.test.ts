@@ -112,7 +112,7 @@ describe("ADR-201 G4 — 정적 corpus 에 평문 토큰 0", () => {
     const props = getDefaultProps("FileUpload") as Record<string, unknown>;
     expect(props.endpoint).toBeUndefined();
     expect(Object.keys(props)).toEqual(
-      expect.arrayContaining(["chunkSize", "autoProceed", "style"]),
+      expect.arrayContaining(["chunkSize", "autoProceed"]),
     );
   });
 

@@ -4770,6 +4770,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       // ADR-171 Phase 1 (2026-07-29): 수동 `overlays.css` 의 실효값을 catalog 로 이관.
       //   generated CSS root 는 overflow 미선언이었고 실효는 `auto` 였다 — 값 자체는 불변.
       containerStyles: {
+        display: "flex",
+        flexDirection: "column",
+        width: "100%",
         overflow: "auto",
       },
       states: {},

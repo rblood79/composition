@@ -44,19 +44,7 @@ export function createSelectDefinition(
         isReadOnly: false,
         isRequired: false,
         items,
-        // ADR-913 후속 fix (2026-06-30): inline display/flexDirection 제거 — labelPosition="side"
-        //   차단 근본. inline flexDirection:column 은 (a) CSS specificity(1-0-0)가 generated CSS
-        //   `[data-label-position="side"]`(@layer components)를 이겨 side selector 무력화 (b) Skia
-        //   getSideLabelParentStyle 의 `...rawParentStyle` 마지막 spread 로 row 를 column 으로 덮음.
-        //   NumberField/DateField(inline 에 display/flexDir 없음)가 정상이던 패턴으로 통일 — top 모드
-        //   기본 column 은 catalog composition.layout:flex-column + Skia specFallback(select/combobox
-        //   분기 effectiveParent, implicitStyles ~1440)이 담당. ("Skia 찌부러짐" 옛 주석은 ADR-912
-        //   Phase 3-A-3a 로 specFallback=catalog base 처리되며 stale.)
-        //   gap=6 / width:100% catalog(sizes.md.gap=6) 정본 (2026-06-23 전수 정정).
-        style: {
-          width: "100%",
-          gap: 6,
-        },
+        // 공통 기본 스타일은 catalog에서 파생한다.
       } as ComponentElementProps,
       parent_id: parentId,
     },
@@ -147,14 +135,7 @@ export function createComboBoxDefinition(
         isReadOnly: false,
         isRequired: false,
         items,
-        // ADR-913 후속 fix (2026-06-30): inline display/flexDirection 제거 (Select 동형) —
-        //   labelPosition="side" 차단 근본. catalog composition.layout:flex-column + Skia
-        //   specFallback(combobox 분기, implicitStyles ~1440)이 base column 담당.
-        //   gap=6 catalog(sizes.md.gap=6) 정본 (2026-06-23 전수 정정).
-        style: {
-          width: "100%",
-          gap: 6,
-        },
+        // 공통 기본 스타일은 catalog에서 파생한다.
       } as ComponentElementProps,
       parent_id: parentId,
     },
@@ -252,27 +233,7 @@ export function createListBoxDefinition(
         orientation: "vertical",
         selectionMode: "single",
         items,
-        // ADR-079 P3: 중복 주입 해체 — display/flex-direction/gap/padding 은 Spec SSOT.
-        //   Style Panel = useLayoutAuxiliary hook read-through (P2)
-        //   Preview CSS = generated/ListBox.css (Generator)
-        //   Canvas Skia = implicitStyles.listbox 분기 (layout engine 전용 경로)
-        //   factory 는 사용자 커스터마이징 기본값 (width) 만 보유.
-        //
-        //   overflow 는 예외로 real props.style 에 둔다: catalog containerStyles 는
-        //   layout(resolveContainerStylesFallback) + 패널만 소비하고, 스크롤 동작
-        //   (collectionVirtualization 가상화 window resolver) / 휠(useScrollWheelInteraction) /
-        //   scrollbar·clip shape(buildSpecNodeData)는 전부 raw props.style 를 읽는다. real
-        //   style 1곳이 그 4 소비자를 동시 충족한다(시스템 페이지 body 선례 20ac5e60d).
-        //
-        //   2026-07-29 사용자 결정: `maxHeight:"300px"` 는 여기서도 제거. catalog 에서만
-        //   빼면 **인스턴스 생성 시 factory 가 다시 심어** origin 은 풀렸는데 새로 추가한
-        //   ListBox 만 300 으로 잘리는 비대칭이 남는다(사용자 보고). 높이 상한이 없으므로
-        //   가상화가 unbounded(auto-height)로 판정하는 것이 이제 **맞는 판정**이고, 사용자가
-        //   높이를 저작하면 남아 있는 overflow 가 그때 4 소비자를 켠다.
-        style: {
-          width: "100%",
-          overflow: "auto",
-        },
+        // 공통 기본 스타일은 catalog에서 파생한다.
       } as ComponentElementProps,
       parent_id: parentId,
     } as ComponentDefinition["parent"] & {
@@ -339,9 +300,7 @@ export function createGridListDefinition(
         columns: 2,
         selectionMode: "none",
         items,
-        style: {
-          width: "100%",
-        },
+        // 공통 기본 스타일은 catalog에서 파생한다.
       } as ComponentElementProps,
       parent_id: parentId,
     } as ComponentDefinition["parent"] & {

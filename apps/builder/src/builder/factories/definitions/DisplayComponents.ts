@@ -228,7 +228,6 @@ export function createProgressBarDefinition(
         //   catalog structure.containerStyles(display:grid + gridTemplate) + Skia
         //   resolveContainerStylesFallback 이 담당. store 는 longhand (rowGap/columnGap) 만 유지.
         style: {
-          width: "100%",
           rowGap: 4,
           columnGap: 12,
         },
@@ -317,7 +316,6 @@ export function createMeterDefinition(
         //   (ProgressBar 와 동일). top 모드 grid 는 catalog structure.containerStyles + Skia
         //   resolveContainerStylesFallback 담당. store 는 longhand (rowGap/columnGap) 만 유지.
         style: {
-          width: "100%",
           rowGap: 4,
           columnGap: 12,
         },
@@ -522,18 +520,7 @@ export function createIllustratedMessageDefinition(
         size: "md",
         heading: "No results",
         description: "Try another search term.",
-        // 2026-06-24 잔존 catalog 이관 — alignItems center→flex-start, 고정 width:320/height:280 제거
-        //   → width:100%. catalog/generated IllustratedMessage.css(align-items:flex-start, width:100%)
-        //   가 D3 정본. factory center+고정크기는 CSS↔Skia 비대칭 + false dirty 였음. justifyContent:center
-        //   도 catalog 미보유라 제거. gap:12/padding:24 는 catalog md(gap12/paddingX24/paddingY24) 정합.
-        style: {
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "flex-start",
-          gap: 12,
-          padding: 24,
-          width: "100%",
-        },
+        // 공통 기본 스타일은 catalog에서 파생한다.
       } as ComponentElementProps,
       parent_id: parentId,
     },

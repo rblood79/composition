@@ -395,10 +395,24 @@ export function resolveContainerStylesFallback(
   const rule = resolveComponentRule(pascalKey);
   const topLevelBox = rule?.containerStyles as
     Record<string, string | number> | undefined;
+  const sizeAxisSkip = catalogSizeAxisSkip(rule?.structure);
+  const sizeRecord =
+    (sizeAxisSkip ? true : !topLevelBox) &&
+    ruleSizeRecord(type, sizeName ?? "");
   for (const [rawKey, rawValue] of Object.entries(
     topLevelBox ?? resolveCatalogContainerBase(pascalKey),
   )) {
-    assign(rawKey, rawValue);
+    // 생성 CSS의 size 블록은 composition base gap보다 뒤에 온다.
+    // 필드의 고정 인라인을 제거해도 top/side 모두 같은 size 값을 읽어야 한다.
+    const value =
+      rawKey === "gap" &&
+      !topLevelBox &&
+      !sizeAxisSkip?.gap &&
+      sizeRecord &&
+      typeof sizeRecord.gap === "number"
+        ? sizeRecord.gap
+        : rawValue;
+    assign(rawKey, value);
   }
 
   // L3 — size 축: catalog 는 layout 을 두 곳에 나눠 갖는다. box 축(display/alignItems…)은
@@ -416,10 +430,6 @@ export function resolveContainerStylesFallback(
   //   TagGroup 태그 padding 12)는 그 type 들에 `structure` 가 없어 새 규칙에서도 걸러진다.
   //
   //   `structure` 부재 type(생성 CSS 없음 = 수동 CSS 가 실효값)만 Phase 3 게이트를 유지한다.
-  const sizeAxisSkip = catalogSizeAxisSkip(rule?.structure);
-  const sizeRecord =
-    (sizeAxisSkip ? true : !topLevelBox) &&
-    ruleSizeRecord(type, sizeName ?? "");
   if (sizeRecord) {
     // shorthand 가 이미 공급됐으면 longhand 를 얹지 않는다. 둘이 공존하면 React
     //   rerender 경고 + 엔진 어댑터 적용 순서 경합이 생긴다 (style-ssot.md). 값이 이미

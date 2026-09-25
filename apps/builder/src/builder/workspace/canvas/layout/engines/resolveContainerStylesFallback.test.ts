@@ -317,13 +317,13 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
   //   2. kebab→camel: resolveCatalogContainerBase 출력은 kebab(flex-direction), wrapper 는 camelCase
   //   3. gap CSS-var: catalog gap='var(--spacing-xs)' (isValidTokenRef reject) → cssVarToTokenRef
   describe("field류 — catalog structure.composition base 재배선 (Phase 3-A-3a)", () => {
-    it("textfield → flex-column base (camelCase) + gap 숫자 4 + width:100%", () => {
+    it("textfield → flex-column base (camelCase) + size md gap 6 + width:100%", () => {
       const fb = resolveContainerStylesFallback("textfield", {});
       expect(fb.display).toBe("flex");
       expect(fb.flexDirection).toBe("column");
       expect(fb.alignItems).toBe("flex-start");
-      // gap: 'var(--spacing-xs)' → cssVarToTokenRef → {spacing.xs} → 4 (number)
-      expect(fb.gap).toBe(4);
+      // CSS size 블록이 composition base gap보다 우선한다.
+      expect(fb.gap).toBe(6);
       expect(fb.width).toBe("100%");
       // kebab key 가 누출되면 안 됨 (camelCase 정규화 필수)
       expect(fb).not.toHaveProperty("flex-direction");
@@ -340,19 +340,19 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
     });
 
     it.each([
-      ["searchfield"],
-      ["numberfield"],
-      ["datefield"],
-      ["timefield"],
-      ["datepicker"],
-      ["daterangepicker"],
-      ["combobox"],
-      ["select"],
-    ])("%s → flex-column base + gap 숫자 4 (camelCase 정규화)", (tag) => {
+      ["searchfield", 8],
+      ["numberfield", 6],
+      ["datefield", 6],
+      ["timefield", 6],
+      ["datepicker", 4],
+      ["daterangepicker", 4],
+      ["combobox", 6],
+      ["select", 6],
+    ] as const)("%s → flex-column base + size md gap %s", (tag, gap) => {
       const fb = resolveContainerStylesFallback(tag, {});
       expect(fb.display).toBe("flex");
       expect(fb.flexDirection).toBe("column");
-      expect(fb.gap).toBe(4);
+      expect(fb.gap).toBe(gap);
       expect(fb).not.toHaveProperty("flex-direction");
     });
 

@@ -216,16 +216,7 @@ function createCardOrigin(): CanonicalNode {
       variant: "primary",
       size: "md",
       orientation: "vertical",
-      // ADR-171 Phase 6: layout 5선언(display / flexDirection / padding / gap / overflow →
-      //   live 9키)을 제거했다. catalog `card` containerStyles 가 두 소비자에게 같은 값을
-      //   공급한다 — 3자 대조 실측: 인라인 = 실효 DOM(`flex column · gap 12 · pad 16 ·
-      //   overflow hidden`) = catalog resolver. 남긴 둘은 이유가 다르다:
-      //   width 는 요소별 저작 값(ADR-171 범위 밖) · borderWidth 는 catalog 미보유라
-      //   인라인이 캔버스 유일 공급원이다(Phase 4 "catalog 미보유" 존치 사유와 동형).
-      style: {
-        width: "100%",
-        borderWidth: "1px",
-      },
+      // 공통 기본 스타일은 catalog에서 파생한다.
     },
     children: cardOriginChildren(),
     metadata: {

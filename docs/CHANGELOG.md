@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [컴포넌트 기본 스타일 — catalog 소비 통합] - 2026-09-26
+
+### Fixed
+
+- **Dialog 본문의 기본 너비를 100%로 복구했다.** column 배치와 너비를 catalog에서 공급하고 생성 코드·기본 props의 400px/최대 너비 미러를 제거했다. DialogTrigger 조합은 유지한다.
+- **필드의 크기를 바꿔도 간격이 md에 고정되던 생성값을 제거했다.** Select·ComboBox·NumberField·SearchField·ColorField는 size별 catalog gap을 읽는다. Canvas의 라벨 옆 배치에서도 생성 CSS와 같은 size 우선순위를 적용한다.
+- **새 Card의 테두리가 테마 thin을 따르게 했다.** origin의 1px 인라인을 제거했다. IllustratedMessage의 React 기본 배치도 catalog를 직접 읽도록 맞췄다.
+
+### Changed
+
+- TextField·TextArea·DateField·TimeField·ListBox·GridList·FileUpload·IllustratedMessage·ProgressBar·Meter 등의 공통 너비와 배치 미러, Card 부품의 중복 기본 배치, ProgressCircle의 32px 기본값 잔재를 정리했다. 템플릿별 설정과 기존 문서의 명시 스타일은 보존한다.
+  - 검증: 생성·기본값·origin·레이아웃 회귀 검사 및 headed Chromium의 CSS/Canvas 입력·Dialog WASM 배치 대조. 범위와 잔여 항목은 [전수 조사 후속 기록](explanation/audits/component-style-defaults-2026-09-26.md) 참조.
+
 ## [캔버스 — 라벨 옆 필드에 인라인 배치가 있을 때의 자식 위치] - 2026-09-25
 
 ### Fixed

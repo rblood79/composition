@@ -21,7 +21,8 @@
  *
  * D1: composition `<div role="status">` (internal source, INTERNAL_RENDERERS 어댑터).
  * D2: heading + description + variant(default) + size(sm/md/lg) 편집.
- * D3: 시각(placeholder dim/text 색)은 인라인 style + 부모 CSS 변수(--bg-muted/--fg/--fg-muted).
+ * D3: root 배치는 catalog containerStyles, size 간격은 catalog metric을 직접 읽는다.
+ *     placeholder dim/text 색은 metric 및 부모 CSS 변수(--bg-muted/--fg/--fg-muted).
  *     Skia escape(illustrated_message)와 metric SSOT 로 시각 대칭.
  */
 
@@ -32,6 +33,7 @@ import {
 } from "@composition/specs";
 import type { IllustratedMessageSizeLike } from "@composition/specs";
 import { resolveComponentRule } from "../catalog/resolvers/resolveComponentRule";
+import { resolveCatalogContainerBase } from "../catalog/resolvers/resolveCatalogContainer";
 
 export interface IllustratedMessageProps {
   /** 헤딩 텍스트 */
@@ -87,9 +89,7 @@ export function IllustratedMessage({
       {...rest}
       role="status"
       style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
+        ...resolveCatalogContainerBase("IllustratedMessage"),
         justifyContent: "center",
         gap: m.gap,
         padding: `${m.paddingY}px ${m.paddingX}px`,

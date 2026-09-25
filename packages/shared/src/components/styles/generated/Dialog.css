@@ -13,7 +13,10 @@
     font-family: var(--font-sans);
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  width: 100%;
   overflow: auto;
+  display: flex;
+  flex-direction: column;
 
   /* Default variant */
   background: var(--bg-overlay);

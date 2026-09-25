@@ -1191,8 +1191,7 @@ export function createDefaultTextFieldProps(): TextFieldElementProps {
     isDisabled: false,
     isReadOnly: false,
     isInvalid: false,
-    // dirty/reset baseline — factory(FormComponents) props.style 미러 (width:100%, catalog 미채움).
-    style: { width: "100%" },
+    // 공통 기본 스타일은 catalog에서 파생한다.
   };
 }
 
@@ -1270,10 +1269,7 @@ export function createDefaultSelectProps(): SelectElementProps {
     isDisabled: false,
     isInvalid: false,
     selectionMode: "single",
-    // dirty/reset baseline — factory(SelectionComponents) props.style 미러. catalog 가 width
-    //   를 안 채워(sizes.md.width 없음) legacyStyle 만이 baseline → 누락 시 false dirty.
-    //   gap=6 은 catalog(sizes.md.gap=6) 정본. SelectTrigger 선례(createDefaultSelectTriggerProps).
-    style: { width: "100%", display: "flex", flexDirection: "column", gap: 6 },
+    // 공통 기본 스타일은 catalog에서 파생한다.
   };
 }
 
@@ -1284,7 +1280,7 @@ export function createDefaultComboBoxProps(): ComboBoxElementProps {
     isDisabled: false,
     isInvalid: false,
     allowsCustomValue: false,
-    style: { width: "100%", display: "flex", flexDirection: "column", gap: 6 },
+    // 공통 기본 스타일은 catalog에서 파생한다.
   };
 }
 
@@ -1521,15 +1517,7 @@ export function createDefaultCardProps(): CardElementProps {
     orientation: "vertical",
     title: "Card Title",
     description: "Card description text goes here.",
-    // dirty/reset baseline — Card reusable composite origin(cardTemplateOrigins.createCardOrigin)
-    //   의 루트 style 미러. ADR-171 Phase 6 에서 origin 이 layout 5선언(display/flexDirection/
-    //   padding/gap/overflow)을 catalog 로 넘겼으므로 미러도 같이 비운다 — 그 키들의 baseline 은
-    //   이제 catalog(`resolveSpecStyleDefaults` 의 layout/appearance preset)가 공급한다.
-    //   한쪽만 고치면 reset 목적지가 없는 값을 가리킨다(R7, factoryInlineDirtyBaseline.test.ts).
-    style: {
-      width: "100%", // catalog 미채움 → false dirty 정정 (2026-06-23)
-      borderWidth: "1px",
-    },
+    // 공통 기본 스타일은 catalog에서 파생한다.
   };
 }
 
@@ -1550,11 +1538,7 @@ export function createDefaultSliderTrackProps(): BaseElementProps {
 export function createDefaultCardPreviewProps(): BaseElementProps {
   return {
     style: {
-      display: "flex",
-      flexDirection: "column",
-      width: "100%",
       height: "fit-content",
-      overflow: "hidden",
       // 2026-06-24 S2 정합: borderRadius 제거 — root Card overflow:clip+radius.lg 가 상단 모서리 처리
       //   (catalog sizes.*.borderRadius={radius.none} 일치 → reset dirty=0). factory 미러.
     },
@@ -1562,34 +1546,17 @@ export function createDefaultCardPreviewProps(): BaseElementProps {
 }
 export function createDefaultCardHeaderProps(): BaseElementProps {
   return {
-    style: {
-      display: "flex",
-      flexDirection: "row",
-      alignItems: "center",
-      gap: "4px",
-      width: "100%",
-    },
+    // 공통 기본 스타일은 catalog에서 파생한다.
   };
 }
 export function createDefaultCardContentProps(): BaseElementProps {
   return {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: "8px",
-      width: "100%",
-    },
+    // 공통 기본 스타일은 catalog에서 파생한다.
   };
 }
 export function createDefaultCardFooterProps(): BaseElementProps {
   return {
     style: {
-      display: "flex",
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "flex-end",
-      gap: "4px",
-      width: "100%",
       paddingTop: "8px",
       borderTopWidth: "1px",
     },
@@ -1694,12 +1661,7 @@ export function createDefaultListBoxProps(): ListBoxElementProps {
     height: 300,
     overscan: 5,
     orientation: "vertical",
-    // CSS base: display:flex; flex-direction:column; width:100%
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      width: "100%",
-    },
+    // 공통 기본 스타일은 catalog에서 파생한다.
   };
 }
 
@@ -1734,9 +1696,7 @@ export function createDefaultGridListProps(): GridListElementProps {
     autoFocus: false,
     allowsDragging: false,
     renderEmptyState: false,
-    style: {
-      width: "100%",
-    },
+    // 공통 기본 스타일은 catalog에서 파생한다.
   };
 }
 
@@ -1855,15 +1815,7 @@ export function createDefaultDescriptionProps(): BaseElementProps {
 
 export function createDefaultDialogProps(): DialogElementProps {
   return {
-    // factory 인라인 (`createDialogContentDefinition`) 의 dirty baseline 미러 — display/flexDirection ·
-    //   width 400 (RSP size M modal 폭) · maxWidth 100% (2026-09-23 `3f50bcf6c` 가 인라인에 다시 넣은 값 — 미러
-    //   누락으로 갓 만든 Dialog 가 "수정 2"). padding/gap 은 catalog size 에서 파생한다.
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      width: "400px",
-      maxWidth: "100%",
-    },
+    // 공통 기본 스타일은 catalog에서 파생한다.
   };
 }
 
@@ -1887,26 +1839,19 @@ export function createDefaultMenuProps(): MenuElementProps {
 
 export function createDefaultNumberFieldProps(): NumberFieldElementProps {
   return {
-    // dirty/reset baseline — factory(FormComponents) props.style 미러 (width:100%, gap:6 catalog 정본).
-    //   display 는 factory 미주입(labelPosition=side 차단, ADR-913) → spec preset SSOT 담당.
-    style: {
-      width: "100%",
-      gap: 6,
-    },
+    // 공통 기본 스타일은 catalog에서 파생한다.
   };
 }
 
 export function createDefaultSearchFieldProps(): SearchFieldElementProps {
   return {
-    // dirty/reset baseline — factory(FormComponents) props.style 미러 (width:100%, gap:8 catalog 정본).
-    style: { width: "100%", gap: 8 },
+    // 공통 기본 스타일은 catalog에서 파생한다.
   };
 }
 
 // ProgressBar/Meter grid layout — factory(DisplayComponents) props.style 미러 (store longhand 정책:
-//   rowGap/columnGap). 누락 시 rowGap/columnGap/display/width false dirty (2026-06-23 전수 정정).
+//   rowGap/columnGap). 공통 width는 catalog에서 읽고 문서 기본값으로 저장하지 않는다.
 const PROGRESS_GRID_STYLE = {
-  width: "100%",
   display: "grid",
   gridTemplateColumns: "1fr auto",
   gridTemplateRows: "auto auto",
@@ -1935,39 +1880,19 @@ export function createDefaultMeterProps(): MeterElementProps {
 
 export function createDefaultDateFieldProps(): BaseElementProps {
   return {
-    // CSS base: display:flex; flex-direction:column; Group border:1px
-    //   width:100% 는 factory(DateColorComponents) props.style 미러 (catalog 미채움 → false dirty 정정).
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      width: "100%",
-    },
+    // 공통 기본 스타일은 catalog에서 파생한다.
   };
 }
 
 export function createDefaultTimeFieldProps(): BaseElementProps {
   return {
-    // CSS base: display:flex; flex-direction:column; Group border:1px
-    //   width:100% 는 factory(DateColorComponents) props.style 미러 (catalog 미채움 → false dirty 정정).
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      width: "100%",
-    },
+    // 공통 기본 스타일은 catalog에서 파생한다.
   };
 }
 
 export function createDefaultColorFieldProps(): ColorFieldElementProps {
   return {
-    // dirty/reset baseline — factory(DateColorComponents createColorFieldDefinition)
-    //   props.style 미러. factory 는 row 축 inline 을 제거하고(catalog composition.layout
-    //   "flex-row" 가 담당) width:100% + gap 만 남겼다. gap 은 catalog sizes.md.gap=8 이
-    //   dirty resolver 의 실제 source 이므로 factory 와 동일하게 8 — NumberField(width:100%/
-    //   gap:6) 미러 선례와 동형으로 정합.
-    style: {
-      width: "100%",
-      gap: 8,
-    },
+    // 공통 기본 스타일은 catalog에서 파생한다.
   };
 }
 
@@ -2208,16 +2133,7 @@ export function createDefaultIllustratedMessageProps(): BaseElementProps {
     size: "md",
     heading: "No results",
     description: "Try another search term.",
-    // 2026-06-24: factory(DisplayComponents) props.style 미러 — alignItems:flex-start/width:100%
-    //   (catalog/generated CSS 정본). 구 center+320×280 고정은 false dirty + CSS↔Skia 비대칭.
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "flex-start",
-      gap: 12,
-      padding: 24,
-      width: "100%",
-    },
+    // 공통 기본 스타일은 catalog에서 파생한다.
   };
 }
 
@@ -2241,7 +2157,7 @@ export function createDefaultProgressCircleProps(): BaseElementProps {
     size: "md",
     isIndeterminate: false,
     isDisabled: false,
-    style: { width: 32, height: 32 },
+    // 공통 기본 스타일은 catalog에서 파생한다.
   };
 }
 
@@ -2293,7 +2209,7 @@ export function createDefaultTextAreaProps(): BaseElementProps {
     placeholder: "Enter text...",
     value: "",
     rows: 3,
-    style: { width: "100%" },
+    // 공통 기본 스타일은 catalog에서 파생한다.
   };
 }
 

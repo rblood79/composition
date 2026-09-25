@@ -1,3 +1,4 @@
+import { resolveContainerStylesFallback } from "../../../workspace/canvas/layout/engines/implicitStyles";
 import { describe, expect, it } from "vitest";
 
 import { LISTBOX_ORIGIN_ID } from "../../../components/listbox/listBoxTemplateOrigins";
@@ -42,23 +43,12 @@ describe("createListBoxDefinition (Option B anchor-less)", () => {
     expect(definition.children).toEqual([]);
   });
 
-  // 2026-07-22 사용자 보고 회귀 방지: 스크롤 동작/휠/scrollbar 4 소비자가 raw props.style 를
-  //   읽으므로(catalog fallback 미도달), instance 가 real props.style 로 overflow 를 가져야
-  //   사용자가 높이를 저작한 순간 스크롤바가 나온다.
-  // 2026-07-29 사용자 보고 회귀 방지: `maxHeight:"300px"` 는 **심지 않는다**. catalog 에서만
-  //   빼면 factory 가 인스턴스 생성 시 다시 심어 "origin 은 풀렸는데 새로 추가한 ListBox 만
-  //   300 으로 잘리는" 비대칭이 남는다.
-  it("instance props.style 에 overflow 는 심고 maxHeight 는 심지 않는다", () => {
+  it("width와 overflow는 catalog에서 읽고 새 문서에 고정하지 않는다", () => {
     const definition = createListBoxDefinition(makeContext());
-    const style = (
-      definition.parent as { props?: { style?: Record<string, unknown> } }
-    ).props?.style;
-
-    expect(style).toMatchObject({
-      width: "100%",
-      overflow: "auto",
-    });
-    expect(style).not.toHaveProperty("maxHeight");
+    expect(definition.parent.props?.style).toBeUndefined();
+    const fallback = resolveContainerStylesFallback("listbox", {});
+    expect(fallback).toMatchObject({ width: "100%", overflow: "auto" });
+    expect(fallback).not.toHaveProperty("maxHeight");
   });
 
   it("uses component names for the generated custom id and creates no child elements", () => {
