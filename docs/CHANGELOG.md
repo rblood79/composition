@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Styles 패널 — instance 안 요소의 스타일 편집 · 초기화] - 2026-09-25
+
+### Fixed
+
+- **Form 같은 컴포넌트 instance 안의 요소에서 스타일을 하나만 바꿔도 원본의 스타일 전체가 그 요소로 복사되던 문제** — padding 하나, Fill 하나를 바꾸면 원본 요소의 width 등 모든 인라인 값이 그 instance 의 override 로 저장돼, 이후 원본을 고쳐도 그 요소에는 반영되지 않았다. 이제 바꾼 값만 저장한다.
+- **instance 안 요소에서 절 헤더의 초기화 버튼이 아무 일도 하지 않던 문제** — 버튼은 보였지만 눌러도 변화가 없었다. 이제 그 요소에 덮어쓴 값을 지워 원본 값으로 돌아간다 (Fill 초기화도 같다). 원본 자체에 값이 있으면 초기화 뒤에도 그 값이 남는다.
+  - 위치: `stores/inspectorActions.ts` (`toWrittenStyle` · `dropUndefinedPatchKeys`) · `panels/styles/hooks/useResetStyles.ts` · `sections/FillSection.tsx` · `components/slotFillEdit.ts`
+
 ## [라벨을 옆에 둔 필드 — 인라인 방향이 캔버스와 Preview 에서 갈리던 문제] - 2026-09-25
 
 ### Fixed

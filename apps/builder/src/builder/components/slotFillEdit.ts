@@ -47,7 +47,17 @@ function patchFillNode(
       isRecord(node.props) ? node.props : {},
       propsPatch,
     );
-    const stripped = stripDeletedPatchValues(merged);
+    // style 의 `undefined` (synthetic 쓰기의 "patch 에서 지움") — 채운 노드는 instance 소유라 지움 = 삭제.
+    const stripped = stripDeletedPatchValues(
+      isRecord(merged.style)
+        ? {
+            ...merged,
+            style: Object.fromEntries(
+              Object.entries(merged.style).filter(([, v]) => v !== undefined),
+            ),
+          }
+        : merged,
+    );
     const style = stripped.style;
     next.props =
       isRecord(style) && Object.values(style).includes(null)

@@ -1275,3 +1275,85 @@ describe("useResetStyles — ADR-154 non-desktop responsive override dirty/reset
     expect(dirty).not.toContain("borderWidth");
   });
 });
+
+describe("useResetStyles — instance 안 synthetic 자식 (`<instance>/<path>`)", () => {
+  const originalState = useStore.getState();
+  const INSTANCE_ID = "card-1";
+  const CHILD_PATH = "component-card__title";
+  const SYNTHETIC_ID = `${INSTANCE_ID}/${CHILD_PATH}`;
+
+  beforeEach(() => {
+    useCanonicalDocumentStore.setState({
+      documents: new Map([
+        [
+          CANONICAL_TEST_PROJECT_ID,
+          {
+            version: "composition-1.0",
+            children: [
+              {
+                id: "page-components",
+                type: "frame",
+                metadata: { type: "legacy-page", pageId: "page-components" },
+                children: [
+                  {
+                    id: "component-card",
+                    type: "Card",
+                    reusable: true,
+                    props: {},
+                    children: [
+                      {
+                        id: CHILD_PATH,
+                        type: "Heading",
+                        props: { children: "Title" },
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                id: "page-1",
+                type: "frame",
+                metadata: { type: "legacy-page", pageId: "page-1" },
+                children: [
+                  {
+                    id: INSTANCE_ID,
+                    type: "ref",
+                    ref: "component-card",
+                    props: {},
+                    descendants: {
+                      [CHILD_PATH]: { style: { paddingTop: 8 } },
+                    },
+                  },
+                ],
+              },
+            ],
+          } as unknown as CompositionDocument,
+        ],
+      ]),
+      currentProjectId: CANONICAL_TEST_PROJECT_ID,
+      documentVersion: 1,
+    });
+  });
+
+  afterEach(() => {
+    useStore.setState(originalState, true);
+  });
+
+  it("reset 은 해석 노드를 읽어 쓰기를 보낸다 (canonical 맵에 없다고 조기 return 하지 않는다)", () => {
+    const updateSelectedStyles = vi.fn();
+    useStore.setState({
+      selectedElementId: SYNTHETIC_ID,
+      activeBreakpoint: "desktop",
+      elementsMap: new Map(),
+      updateSelectedStyles,
+    } as never);
+    const { result } = renderHook(() => useResetStyles());
+    act(() => {
+      result.current(["paddingTop"]);
+    });
+    expect(updateSelectedStyles).toHaveBeenCalledTimes(1);
+    expect(Object.keys(updateSelectedStyles.mock.calls[0][0])).toContain(
+      "paddingTop",
+    );
+  });
+});

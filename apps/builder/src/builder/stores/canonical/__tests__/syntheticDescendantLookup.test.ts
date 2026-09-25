@@ -65,6 +65,7 @@ function makeElement(
 
 function makeDocument(
   instanceDescendants?: Record<string, Record<string, unknown>>,
+  actionStyle?: Record<string, unknown>,
 ): CompositionDocument {
   return {
     version: "composition-1.0",
@@ -102,7 +103,11 @@ function makeDocument(
                     id: ACTION_ID,
                     type: "ref",
                     ref: "component-button",
-                    props: { children: "Save", variant: "accent" },
+                    props: {
+                      children: "Save",
+                      variant: "accent",
+                      ...(actionStyle ? { style: actionStyle } : {}),
+                    },
                   },
                 ],
               },
@@ -339,6 +344,107 @@ describe("ADR-229 Phase 2 (F15) — synthetic 자식 lookup", () => {
       children: "Go",
       variant: "secondary",
       style: { borderRadius: 14 },
+    });
+  });
+
+  describe("style 쓰기 — 바뀐 키만 patch 에 (해석 style 전체를 굳히지 않는다)", () => {
+    const fill = {
+      id: "fill-1",
+      type: "color",
+      color: "#ff0000ff",
+      enabled: true,
+      opacity: 1,
+      blendMode: "normal",
+    };
+
+    it("updateSelectedFills 는 fills 만 쓴다 — origin style (width) 이 patch 로 복사되지 않는다", async () => {
+      useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+      useCanonicalDocumentStore
+        .getState()
+        .setDocument(
+          "project-1",
+          makeDocument(undefined, { width: "100%", borderRadius: 4 }),
+        );
+      const { inspectorActions } = setUpStore(SYNTHETIC_ID);
+
+      inspectorActions.updateSelectedFills([fill] as never);
+      await vi.waitFor(() => {
+        expect(readInstanceNode()?.descendants?.[ACTION_ID]).toBeDefined();
+      });
+      expect(readInstanceNode()?.descendants).toEqual({
+        [ACTION_ID]: { fills: [fill] },
+      });
+    });
+
+    it("updateSelectedStyle 는 그 키만 쓴다 — origin 값은 patch 에 없다", async () => {
+      useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+      useCanonicalDocumentStore
+        .getState()
+        .setDocument("project-1", makeDocument(undefined, { width: "100%" }));
+      const { inspectorActions } = setUpStore(SYNTHETIC_ID);
+
+      inspectorActions.updateSelectedStyle("borderRadius", "8px");
+      await vi.waitFor(() => {
+        expect(readInstanceNode()?.descendants?.[ACTION_ID]).toBeDefined();
+      });
+      const style = readInstanceNode()?.descendants?.[ACTION_ID]?.style as
+        | Record<string, unknown>
+        | undefined;
+      expect(style && "width" in style).toBe(false);
+      expect(style?.borderRadius).toBeDefined();
+    });
+
+    it("키 지우기 (reset 의 \"\") 는 patch 에서 그 키를 빼 origin 값으로 돌아간다", async () => {
+      useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+      useCanonicalDocumentStore
+        .getState()
+        .setDocument(
+          "project-1",
+          makeDocument(
+            { [ACTION_ID]: { children: "Go", style: { borderRadius: 14 } } },
+            { borderRadius: 4 },
+          ),
+        );
+      const { inspectorActions } = setUpStore(SYNTHETIC_ID);
+
+      inspectorActions.updateSelectedStyles({ borderRadius: "" });
+      await vi.waitFor(() => {
+        expect(readInstanceNode()?.descendants?.[ACTION_ID]?.style).toBeUndefined();
+      });
+      expect(readInstanceNode()?.descendants).toEqual({
+        [ACTION_ID]: { children: "Go" },
+      });
+      expect(
+        (getSyntheticDescendantLookup(SYNTHETIC_ID)?.node.props as {
+          style?: Record<string, unknown>;
+        })?.style?.borderRadius,
+      ).toBe(4);
+    });
+
+    it("updateSelectedFills(null) 은 patch 의 fills override 를 지운다 (origin fills 복귀)", async () => {
+      useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+      useCanonicalDocumentStore
+        .getState()
+        .setDocument(
+          "project-1",
+          makeDocument({
+            [ACTION_ID]: { fills: [fill], style: { borderRadius: 14 } },
+          }),
+        );
+      const { inspectorActions } = setUpStore(SYNTHETIC_ID);
+
+      inspectorActions.updateSelectedFills(null);
+      await vi.waitFor(() => {
+        expect(readInstanceNode()?.descendants?.[ACTION_ID]?.fills).toBeUndefined();
+      });
+      expect(readInstanceNode()?.descendants).toEqual({
+        [ACTION_ID]: { style: { borderRadius: 14 } },
+      });
+      // 마지막 키를 지우면 경로째 빠진다 (reset 뒤 빈 `{}` 잔재 없음).
+      inspectorActions.updateSelectedStyles({ borderRadius: "" });
+      await vi.waitFor(() => {
+        expect(readInstanceNode()?.descendants?.[ACTION_ID]).toBeUndefined();
+      });
     });
   });
 });

@@ -13,6 +13,7 @@ import { useCallback, useMemo, type CSSProperties } from "react";
 import { adaptStyleWithFills, isBodyType } from "@composition/shared";
 import { useStore } from "../../../stores";
 import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
+import { getSyntheticDescendantLookup } from "../../../stores/canonical/syntheticDescendantLookup";
 import {
   getNodeMap,
   getParent,
@@ -99,11 +100,30 @@ function toResetHierarchyNode(node: CanonicalNode): ResetHierarchyNode {
   };
 }
 
+/**
+ * canonical 노드 — instance 안 synthetic 자식 (`<instance>/<path>`) 은 맵에 없어 해석 노드로 읽는다
+ * (표시 · dirty 가 읽는 노드와 같다). 없으면 reset 이 조기 return 해 버튼이 무동작이었다.
+ */
+function readCanonicalResetNode(elementId: string): CanonicalNode | undefined {
+  return (
+    getNodeMap().get(elementId) ??
+    getSyntheticDescendantLookup(elementId)?.node ??
+    undefined
+  );
+}
+
 function getActiveCanonicalResetElement(
   elementId: string,
 ): ResetHierarchyNode | null {
-  const node = getNodeMap().get(elementId);
+  const node = readCanonicalResetNode(elementId);
   return node ? toResetHierarchyNode(node) : null;
+}
+
+function getCanonicalResetParent(elementId: string): CanonicalNode | null {
+  const parent = getParent(elementId);
+  if (parent) return parent;
+  const parentId = getSyntheticDescendantLookup(elementId)?.parentId;
+  return (parentId && readCanonicalResetNode(parentId)) || null;
 }
 
 function normalizeStyleValue(prop: string, value: unknown): string | undefined {
@@ -1010,7 +1030,7 @@ export function useResetStyles() {
       ? elementsMap.get(legacyParentNode.parent_id)
       : undefined;
     const canonicalParentNode = hasCanonicalDocument
-      ? getParent(selectedId)
+      ? getCanonicalResetParent(selectedId)
       : null;
     const parentNode = hasCanonicalDocument
       ? canonicalParentNode
@@ -1019,7 +1039,7 @@ export function useResetStyles() {
       : legacyParentNode;
     const canonicalGrandParentNode =
       hasCanonicalDocument && canonicalParentNode
-        ? getParent(canonicalParentNode.id)
+        ? getCanonicalResetParent(canonicalParentNode.id)
         : null;
     const grandParentNode = hasCanonicalDocument
       ? canonicalGrandParentNode

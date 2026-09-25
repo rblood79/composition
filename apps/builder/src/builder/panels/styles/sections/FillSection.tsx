@@ -45,6 +45,10 @@ import {
 } from "../utils/fillPresentation";
 import { useAppearanceValues } from "../hooks/useAppearanceValues";
 import { useStore as useComposedStore } from "../../../stores";
+import {
+  getSyntheticDescendantLookup,
+  isSyntheticDescendantId,
+} from "../../../stores/canonical/syntheticDescendantLookup";
 import { useResetStyles, useHasDirtyStyles } from "../hooks/useResetStyles";
 import { FILL_PROPS } from "./styleSectionProps";
 
@@ -414,11 +418,18 @@ export const FillSection = memo(function FillSection() {
     resetStyles(FILL_PROPS);
     // fills(배경 canonical SSOT)는 style reset 대상이 아니므로 별도로 비운다. 단, 비어있으면
     //   호출 자체가 스퍼리어스 history entry/mutation 을 만들므로 non-empty 일 때만 실행(M2a).
+    //   instance 안 synthetic 자식은 맵에 없어 해석 노드로 읽고, `null` 로 patch override 를 지운다
+    //   (origin fills 복귀 — 빈 배열이면 "fill 없음" 을 override 로 굳힌다).
     const state = useComposedStore.getState();
-    const el = selectedId ? state.elementsMap.get(selectedId) : undefined;
+    const el = selectedId
+      ? (state.elementsMap.get(selectedId) ??
+        getSyntheticDescendantLookup(selectedId)?.node)
+      : undefined;
     const currentFills = (el as { fills?: unknown[] } | undefined)?.fills;
     if (Array.isArray(currentFills) && currentFills.length > 0) {
-      state.updateSelectedFills([]);
+      state.updateSelectedFills(
+        selectedId && isSyntheticDescendantId(selectedId) ? null : [],
+      );
     }
   }, [resetStyles, selectedId]);
 

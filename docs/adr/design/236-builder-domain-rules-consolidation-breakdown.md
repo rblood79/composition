@@ -389,3 +389,9 @@ side 인라인 근거: 인라인 display · flexDirection 이 이기는 쪽이 c
 
 판독 (reviewer 2, 2026-09-25): Canvas side 인라인 (`488ff31e8`) HIGH 0 · MEDIUM 2 수리. M1 — side 에서 래퍼 (SelectTrigger) width 100% 를 빼는 것은 부모 row 전제인데 인라인 column 이 이기면 래퍼가 내용 폭으로 줄었다 (DOM 래퍼는 width 100%) → `isSideRowLayout` (side ∧ 인라인이 flex row) 일 때만 뺀다. M2 — "옛 잔재는 migration 이 지운다" 가 대상 밖 타입에서 거짓: DateField/TimeField (`35347982a`) · DatePicker/DateRangePicker (`4f557528e`) 의 flex column, ProgressBar/Meter (`68c567dd0`) · Slider (`c85d4dc25`) 의 grid + template 이 옛 factory 인라인이었다 (git 이력 확인) → `migrateFieldInlineLayout` 이 **factory 형태일 때만** 지운다. 단위 RED 3 + 7 → GREEN · live J (DatePicker side + 인라인 column: 래퍼 폭 1920 = 전폭, 인라인 없으면 x 180 · 폭 1740). migration 은 plain 노드 대상이라 live 는 생략 (팔레트 요소는 instance 이고 새 factory 는 잔재를 쓰지 않는다). 스위트 builder 7,671 · type-check 0. LOW deferred: side + 인라인 block 에서 자식 재정렬 (입력원 없음) · column 에서 FieldError marginLeft (종전부터) · 새 테스트가 column 자식 주입 일부만 검사.
 
+
+## 17. LOW 후속 병렬 조사 (2026-09-25)
+
+§15 · §16 의 LOW deferred 를 병렬 조사 6건으로 다시 판정했다 (가설 1 + 반증 1). production 재현이 나온 항목은 수리하고, 나머지는 판정 근거와 함께 남긴다.
+
+- **synthetic 자식 스타일 쓰기 (재현 있음 → 수리)** — store style 쓰기 3종 (`updateSelectedStyle` · `updateSelectedStyles` · `updateSelectedFills`) 이 해석 style 전체를 `descendants[path]` 에 병합했다. 원본 값이 patch 로 굳고 (이후 원본 편집 미반영), 병합이라 키 지우기도 반영되지 않았다. reset 은 그 앞에서 canonical 맵 lookup 이 null 이라 조기 return 했다. → 바뀐 키만 쓰고 빠진 키는 `undefined` 로 patch 에서 지운다 (`toWrittenStyle` · `dropUndefinedPatchKeys`, 원본 복귀). mode C 채운 노드는 그 노드 자체라 삭제. reset 은 해석 노드를 읽고, Fill 초기화는 `updateSelectedFills(null)` 로 patch fills 를 지운다. 단위 RED 5 (store 4 · reset hook 1) · live (`scripts/synthetic-style-write-live.mjs`: Form 안 TextField — Fill 추가 뒤 patch `{fills}` 만 · Fill reset `{}` · paddingTop 24 → patch `{style:{paddingTop:24}}` 높이 80 · Spacing reset → 높이 56). 남는 것: 원본에 값이 있는 키는 reset 뒤에도 dirty (dirty baseline 이 catalog 기준) · fills 외 prop 의 `undefined` 는 종전 의미 유지.

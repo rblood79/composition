@@ -478,6 +478,49 @@ function getSyntheticDescendantPath(
   return path.length > 0 ? path : null;
 }
 
+/**
+ * synthetic 자식 (`<instance>/<path>`) 에 쓸 style — 해석 style 전체가 아니라 **바뀐 키만**. 빠진 키는
+ * `undefined` 로 실어 patch 에서 그 키를 지운다 (origin 값으로 복귀 — `dropUndefinedStyleKeys`).
+ * 해석 style 전체를 실으면 origin 값이 patch 로 복사돼 굳고 (이후 origin 편집이 안 닿는다), 병합이라
+ * 키 지우기 (reset 의 "") 도 반영되지 않았다. plain 요소는 종전대로 전체 style.
+ */
+function toWrittenStyle(
+  elementId: string,
+  resolvedElement: Element,
+  nextStyle: Record<string, unknown>,
+): Record<string, unknown> {
+  if (!isSyntheticDescendantId(elementId)) return nextStyle;
+  const before = (resolvedElement.props?.style ?? {}) as Record<string, unknown>;
+  const patch: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(nextStyle)) {
+    if (!Object.is(before[key], value)) patch[key] = value;
+  }
+  for (const key of Object.keys(before)) {
+    if (!(key in nextStyle)) patch[key] = undefined;
+  }
+  return patch;
+}
+
+/**
+ * style 의 `undefined` 키와 `fills: undefined` (= patch 에서 지움 — origin 복귀) 를 없애고, 빈 style 은
+ * 키째 뺀다. 다른 prop 의 `undefined` 는 종전대로 둔다 (해석 결과에서 그 prop 을 비우는 기존 의미).
+ */
+function dropUndefinedPatchKeys(
+  patch: Record<string, unknown>,
+): Record<string, unknown> {
+  const rest = Object.fromEntries(
+    Object.entries(patch).filter(
+      ([key, value]) =>
+        key !== "style" && !(key === "fills" && value === undefined),
+    ),
+  );
+  if (!isRecord(patch.style)) return rest;
+  const style = Object.fromEntries(
+    Object.entries(patch.style).filter(([, value]) => value !== undefined),
+  );
+  return Object.keys(style).length > 0 ? { ...rest, style } : rest;
+}
+
 function buildInstanceDescendantPatches(
   element: Element,
   childUpdates: BatchPropsUpdate[],
@@ -518,10 +561,15 @@ function buildInstanceDescendantPatches(
     const previousPatch = isRecord(next[descendantPath])
       ? next[descendantPath]
       : {};
-    next[descendantPath] = mergePropsWithStyleDeep(
-      previousPatch,
-      update.props as Record<string, unknown>,
+    const merged = dropUndefinedPatchKeys(
+      mergePropsWithStyleDeep(
+        previousPatch,
+        update.props as Record<string, unknown>,
+      ),
     );
+    // 지우기로 빈 patch 가 되면 경로째 뺀다 (reset 뒤 `{}` 잔재 없음).
+    if (Object.keys(merged).length > 0) next[descendantPath] = merged;
+    else delete next[descendantPath];
     hasMappedChildPatch = true;
   }
 
@@ -719,7 +767,8 @@ export interface InspectorActionsState {
   ) => void;
   // Fill Actions (Color Picker Phase 1)
   /** fills 배열 업데이트 + style.backgroundColor 동기화 + 히스토리/DB 저장 */
-  updateSelectedFills: (fills: FillItem[]) => void;
+  /** `null` = 이 요소 자신의 fills 를 지움 — instance 안 synthetic 자식은 patch override 제거 (origin 복귀). */
+  updateSelectedFills: (fills: FillItem[] | null) => void;
 
   // ComputedStyle은 DB 저장 없이 메모리만 업데이트 (런타임 값)
   updateSelectedComputedStyle: (computedStyle: Record<string, string>) => void;
@@ -885,7 +934,12 @@ export const createInspectorActionsSlice: StateCreator<
           elementId,
           props: {
             ...(propsUpdate as Record<string, unknown>),
-            ...(Array.isArray(fills) ? { fills } : {}),
+            // `fills: null` = 이 자식의 fills override 를 patch 에서 지움 (origin fills 로 복귀).
+            ...(Array.isArray(fills)
+              ? { fills }
+              : fills === null
+                ? { fills: undefined }
+                : {}),
           } as ComponentElementProps,
         },
       ]);
@@ -1147,7 +1201,7 @@ export const createInspectorActionsSlice: StateCreator<
 
       updateAndSave(
         element.id,
-        { style: currentStyle },
+        { style: toWrittenStyle(element.id, resolvedBaseElement, currentStyle) },
         clearedResponsive ? { responsive: clearedResponsive } : undefined,
         savedPrePreview && savedPrePreview.id === element.id
           ? savedPrePreview
@@ -1689,7 +1743,7 @@ export const createInspectorActionsSlice: StateCreator<
 
         updateAndSave(
           element.id,
-          { style: baseStyle },
+          { style: toWrittenStyle(element.id, resolvedBaseElement, baseStyle) },
           { responsive: finalResponsive },
           savedPrePreview && savedPrePreview.id === element.id
             ? savedPrePreview
@@ -1714,7 +1768,7 @@ export const createInspectorActionsSlice: StateCreator<
 
       updateAndSave(
         element.id,
-        { style: currentStyle },
+        { style: toWrittenStyle(element.id, resolvedBaseElement, currentStyle) },
         undefined,
         savedPrePreview && savedPrePreview.id === element.id
           ? savedPrePreview
@@ -1858,9 +1912,13 @@ export const createInspectorActionsSlice: StateCreator<
     // Fill Actions (Color Picker Phase 1)
     // ============================================
 
-    updateSelectedFills: (fills) => {
+    updateSelectedFills: (requestedFills) => {
       const element = getSelectedElement();
       if (!element) return;
+      const fills =
+        requestedFills === null && !isSyntheticDescendantId(element.id)
+          ? []
+          : requestedFills;
 
       // 프리뷰 상태에서 커밋 시, 원본 요소 기반으로 변경
       const savedPrePreview = prePreviewElement;
@@ -1882,8 +1940,9 @@ export const createInspectorActionsSlice: StateCreator<
 
       updateAndSave(
         element.id,
-        { style: currentStyle },
-        { fills },
+        { style: toWrittenStyle(element.id, resolvedBaseElement, currentStyle) },
+        // `null` 은 synthetic 자식에만 남는다 (위에서 plain 은 [] 로) — updateAndSave 의 synthetic 분기가 읽는다.
+        { fills } as Partial<Element>,
         savedPrePreview && savedPrePreview.id === element.id
           ? savedPrePreview
           : undefined,
