@@ -206,6 +206,26 @@ describe("system origin 보호 — 삭제 · 컴포넌트 해제", () => {
     );
   });
 
+  it("origin 루트 둘을 묶으면 묻지 않고 둘 다 frame 안으로 — 자리 이동은 instance 를 바꾸지 않는다 (E4 후속 판독 HIGH)", async () => {
+    seed(
+      [
+        makeElement("card-a", { type: "frame", reusable: true }),
+        makeElement("card-a-use", { type: "ref", ref: "card-a" }),
+        makeElement("card-b", { type: "frame", reusable: true }),
+        makeElement("card-b-use", { type: "ref", ref: "card-b" }),
+      ],
+      appStore,
+    );
+    select(["card-a", "card-b"]);
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    confirm.mockClear();
+    await groupSelection(actionContext());
+    expect(confirm).not.toHaveBeenCalled();
+    const parentA = appStore.getState().elementsMap.get("card-a")?.parent_id;
+    expect(parentA).toBeTruthy();
+    expect(appStore.getState().elementsMap.get("card-b")?.parent_id).toBe(parentA);
+  });
+
   it("store addElement 는 묻지 않고 바로 반영된다 — 병렬 · 트랜잭션 호출부 (판독 HIGH-2)", async () => {
     seed(originWithInstance());
     const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);

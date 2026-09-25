@@ -227,6 +227,7 @@ try {
   });
   // Card instance 를 홈에 두어 Components 페이지 Card origin 에 instance 가 생기게 한다.
   const cardInstanceId = await addFromPalette(page, "Form", bodyId);
+  const toolbarInstanceId = await addFromPalette(page, "Toolbar", bodyId);
   const origin = await storeRead(page, () => {
     const st = window.__composition_STORE__.getState();
     const all = [...st.elementsMap.values()];
@@ -356,6 +357,25 @@ try {
     dialog: kDialog,
     childDelta: afterKids.length - beforeKids.length,
     toasts: await toastTexts(page),
+  };
+
+  // M. origin 루트 둘 (Form · Toolbar, 각각 instance 있음) 을 ⌘G — 자리 이동이라 묻지 않고 둘 다 frame 안으로.
+  await storeRead(page, () => window.__composition_STORE__.getState().setEditingContext(null));
+  await focusCanvas(page);
+  await selectIds(page, [frameId, "component-toolbar"]);
+  await page.waitForTimeout(400);
+  await page.keyboard.press("Meta+g");
+  const mDialog = await answerDialog(page, false);
+  await page.waitForTimeout(800);
+  const parents = await storeRead(page, () => {
+    const st = window.__composition_STORE__.getState();
+    return ["component-form", "component-toolbar"].map((id) => st.elementsMap.get(id)?.parent_id ?? null);
+  });
+  report.checks.M_groupOriginRoots = {
+    toolbarInstanceId,
+    dialog: mDialog,
+    parents,
+    sameNewParent: parents[0] === parents[1] && parents[0] !== "page-components-body",
   };
 } finally {
   await writeFile(`${OUT}/report.json`, JSON.stringify(report, null, 2));

@@ -879,6 +879,16 @@ export const createUpdateElementPropsAction =
  * @param get - Zustand getState 함수
  * @returns updateElement 액션 함수
  */
+const LOCATION_UPDATE_KEYS: ReadonlySet<string> = new Set([
+  "parent_id",
+  "page_id",
+  "order_num",
+]);
+
+function isLocationOnlyUpdate(updates: Partial<Element>): boolean {
+  return Object.keys(updates).every((key) => LOCATION_UPDATE_KEYS.has(key));
+}
+
 export const createUpdateElementAction =
   (set: SetState, get: GetState) =>
   async (
@@ -891,8 +901,13 @@ export const createUpdateElementAction =
 
     const initialCanonicalNode = getFirstProjectableNodeById(elementId);
     if (!initialCanonicalNode) return;
-    // 동기 통과(대화상자 불필요) 경로는 await 하지 않는다 — 게이트 주석 참조.
-    const originGate = confirmOriginImpactIfNeeded(initialCanonicalNode);
+    // 동기 통과(대화상자 불필요) 경로는 await 하지 않는다 — 게이트 주석 참조. 위치만 바꾸는 update
+    //   (묶기 · 묶기 해제 · 이동의 parent_id) 는 origin 의 내용을 바꾸지 않아 편집 게이트를 걸지 않는다 —
+    //   위치 변경의 영향 (빠지는 · 들어가는 부모의 origin) 은 표면의 구조 영향 확인이 묻는다 (ADR-236 E4).
+    //   걸면 묶기가 origin 루트마다 병렬로 대화상자를 요청해 서로 취소하고 일부만 반영된다.
+    const originGate = isLocationOnlyUpdate(sanitizedUpdates)
+      ? true
+      : confirmOriginImpactIfNeeded(initialCanonicalNode);
     if (originGate !== true && !(await originGate)) return;
 
     // origin confirmation만 실제 async 경계다. dialog 대기 중 다른 mutation이
