@@ -97,7 +97,7 @@ D3 SSOT(catalog, 잔존 spec 3개는 예외)가 어디까지 관여하는지의 
 
 ### 4-1. 대칭 검증 수단
 
-- **runtime**: `/cross-check` skill (단일 컴포넌트), `parallel-verify` skill (패밀리 일괄)
+- **runtime**: `/cross-check` skill (단일 컴포넌트 · 패밀리는 영향 컴포넌트마다 반복)
 - **검증 대상**: 시각 결과 일치 — Builder Skia 렌더와 Preview DOM/CSS 렌더의 스크린샷 or 구조적 비교
 - **build-time 자동화**: 미완성. 향후 과제
 
@@ -134,7 +134,7 @@ D3 SSOT(catalog, 잔존 spec 3개는 예외)가 어디까지 관여하는지의 
 - ✅ Skia 렌더가 catalog(또는 잔존 spec)를 shape로 변환
 - ✅ RAC 컴포넌트를 그대로 사용 + CSS로 스타일 적용
 - ✅ RSP props를 custom 구현으로 catalog binding에 추가
-- ✅ `parallel-verify` / `/cross-check`로 시각 대칭 확인
+- ✅ `/cross-check`로 시각 대칭 확인
 - ✅ 의심스러운 회색지대는 "시각적으로 달라질 수 있나" 기준으로 판정
 
 ## 8. 참조
@@ -142,4 +142,4 @@ D3 SSOT(catalog, 잔존 spec 3개는 예외)가 어디까지 관여하는지의 
 - 역사적 맥락 확장: [auto-memory: ssot-chain-definition.md]
 - ADR 현황: [docs/adr/README.md]
 - composition 패턴: [.claude/skills/composition-patterns/SKILL.md]
-- 대칭 검증 skill: [.claude/skills/cross-check/SKILL.md], [.claude/skills/parallel-verify/SKILL.md]
+- 대칭 검증 skill: [.claude/skills/cross-check/SKILL.md]

@@ -72,7 +72,7 @@ if echo "$PROMPT" | grep -qiE "Page.*Frame|Frame.*Page|page-bound|selectedElemen
 fi
 
 if echo "$PROMPT" | grep -qiE "전체 검증|일괄|패밀리|컴포넌트 전체|parallel|sweep|서브에이전트|병렬"; then
-  add_hint "parallel: only spawn sub-agents when explicitly requested; use parallel-verify for component-family sweeps"
+  add_hint "parallel: only spawn sub-agents when explicitly requested; use cross-check per component for family sweeps"
 fi
 
 echo "=== Codex Route Hints ==="

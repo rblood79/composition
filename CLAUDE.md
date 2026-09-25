@@ -54,7 +54,7 @@ env: `apps/builder/.env.example` → `.env` (필수 키 없음 — 인증은 로
 - **버그 수정**: `/fix` (`debugger` agent → `/cross-check`) — 증상 수정 금지, root cause 확정 후 수정. 도메인 병인은 `.claude/rules/` 의 실측 "Why" 기록이 정본
 - **구현**: TDD (RED-GREEN-REFACTOR) 기본 — 메인 세션이 직접 (구현·테스트를 서브에이전트에 위임하면 컨텍스트만 잃는다)
 - **렌더링 수정 후**: `/cross-check` 최종 검증
-- **ADR 생성**: 사용자가 `/create-adr` 직접 입력 — create-adr / execute-adr / match-target 은 모델 자동 호출 비활성 (사용자 전용)
+- **ADR 생성**: 사용자가 `/create-adr` 직접 입력 — create-adr / execute-adr 는 모델 자동 호출 비활성 (사용자 전용)
 - **다단계 계획**: ADR design breakdown (`docs/adr/design/*-breakdown.md`) 이 정본 — 별도 계획 문서 계층 신설 금지
 - **완료 직전 검증**: 아래 §완료 기준 자가 적용 + `/review` (reviewer 격리 fork) · 사용자-가시 변경은 `/evaluate` (런타임 4축 채점, 격리 fork)
 - **단순 작업** (한 줄 수정, 설정 변경): 위 절차 스킵 가능
