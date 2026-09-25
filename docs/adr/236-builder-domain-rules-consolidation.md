@@ -43,7 +43,7 @@ Proposed — 2026-09-24
 
 - Phase 1 · 2 는 동작 변경 0 — builder 패키지 스위트 실패 집합이 전후 같다.
 - 문서 저장 형식 변경 0 — 재직렬화 대상 프로젝트 0% (규칙은 코드 데이터이고 canonical 노드에 필드를 더하지 않는다).
-- initial 번들 상한 = ADR-201 (Builder ≤ 1,328,315 B · Preview ≤ 601,346 B, 만료 2026-10-17).
+- initial 번들 상한 = ADR-201 (Builder ≤ 1,415,000 B · Preview ≤ 622,000 B, 만료 2026-10-25 — 2026-09-25 재승인).
 - `canX` 는 선택 변경마다 불린다 — `canX` 자체 비용 (perf 라벨) 이 호출당 p95 ≤ 0.1 ms · 선택 변경당 합 ≤ 1 ms (선택 600 문서). 전체 선택 · 편집 lane 은 회귀 확인용 (run 편차 병기).
 - ADR-184 러너 계약 (canonical → set → rebuild → history → persist) 과 기존 경로 allowlist (`adapters/canonical/__tests__/canonicalMutationRunner.static.test.ts:40`, 이관 비스코프) · ADR-234 의 ref 체인 모델은 바꾸지 않는다. 구조 변경 쓰기 대부분 (`updateElementProps` · `removeElement` · `moveElementToContainer` · `batchUpdateElementProps` · inspector `updateAndSave`) 이 이 allowlist 경로라 러너 한 곳에 가드를 두면 닿지 않는다.
 

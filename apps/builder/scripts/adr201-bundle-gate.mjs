@@ -15,19 +15,19 @@
  *      ADR-201 후속) 가 builder·preview initial closure 밖
  *   ② 등록 8지점 + renderer shell 의 initial Δ 가 201 허용치 안 (Builder ≤ +4,096 · Preview ≤ +3,584 —
  *      2026-09-17 실측 +3,875 / +3,507 을 올림한 값, 등록 구조상 Δ 0 은 불가)
- *   ③ 절대 상한 = ADR-201 initial 상한 재승인 (Builder ≤ 1,328,315 / Preview ≤ 601,346 B gzip,
- *      만료 2026-10-17 — 202 상한 1,319,829 / 592,000 을 대체). `APPROVED` 는 사용자 재승인 기록 (2026-09-17 true) —
- *      실행자가 임의로 켜지 않는다.
+ *   ③ 절대 상한 = ADR-201 initial 상한 재승인 (Builder ≤ 1,415,000 / Preview ≤ 622,000 B gzip,
+ *      만료 2026-10-25 — 2026-09-25 재승인, 09-17 값 1,328,315 / 601,346 대체). `APPROVED` 는 사용자 재승인
+ *      기록 (2026-09-25 true) — 실행자가 임의로 켜지 않는다.
  *   ④ 202 lazy 조건 (AIPanel · runCommand) 보존 · before/after 각각 같은 revision
  *   sameLockfile 은 검사하지 않는다 — 201 은 workspace package 를 추가하므로 lockfile 이 달라지는 것이
  *   정상이다 (대신 lockfile diff 가 upload-engine 항목뿐임을 통합 세션이 `git diff pnpm-lock.yaml` 로 확인).
  */
 import { readFileSync, writeFileSync } from "node:fs";
 
-export const APPROVED = true; // 2026-09-17 사용자 재승인 — ADR-201 §initial 번들 상한 재승인 절 (202 상한 대체)
-export const BUILDER_CEILING = 1_328_315;
-export const PREVIEW_CEILING = 601_346;
-export const CEILING_EXPIRES = "2026-10-17";
+export const APPROVED = true; // 2026-09-25 사용자 재승인 (09-17 값 대체) — ADR-201 §initial 번들 상한 재승인 절
+export const BUILDER_CEILING = 1_415_000;
+export const PREVIEW_CEILING = 622_000;
+export const CEILING_EXPIRES = "2026-10-25";
 export const BUILDER_DELTA_LIMIT = 4_096;
 export const PREVIEW_DELTA_LIMIT = 3_584;
 const UPLOAD_ENGINE_KEY = /packages\/upload-engine\/dist\//;
@@ -185,7 +185,7 @@ export function selfTest() {
         afterBuilder: closure(1_324_440 + BUILDER_DELTA_LIMIT + 1, initial),
       }).checks.builderDelta === false,
     expiredFails:
-      judge({ ...base, approved: true, today: "2026-10-18" }).checks
+      judge({ ...base, approved: true, today: "2026-10-26" }).checks
         .budgetCurrent === false,
   };
   return { results, pass: Object.values(results).every(Boolean) };
