@@ -2,7 +2,10 @@ import { useMemo } from "react";
 import { resolveLayoutSpecPreset } from "../utils/specPresetResolver";
 import { firstDefined } from "../utils/styleValueHelpers";
 import { useElementStyleContext } from "./useElementStyleContext";
-import { resolveDrivenFlexDirection } from "../utils/orientationDrivenTags";
+import {
+  resolveDirectionDrivenProp,
+  resolveDrivenFlexDirection,
+} from "../utils/orientationDrivenTags";
 
 interface ResolvedLayoutFields {
   display: string;
@@ -34,10 +37,33 @@ function useResolvedLayoutFields(id: string | null): ResolvedLayoutFields {
     // RadioGroup/CheckboxGroup=labelPosition)는 그룹 root flexDirection SSOT 가
     // 별도 prop 이라, 패널 Direction 표시도 그 prop 을 inline style.flexDirection
     // 보다 우선해야 SSOT 와 일치(stale inline 잔재로 토글이 어긋나는 것 방지).
-    const drivenFlexDirection = resolveDrivenFlexDirection(type, props);
+    //   표시 축은 **렌더가 실제로 따르는 축** 이다 — prop 에서 옮긴 고정 규칙 (top=column · side=row)
+    //   은 catalog 가 방향을 정하지 않을 때 (grid 인 ProgressBar · Meter · Slider 의 top) 만 쓴다.
+    //   · catalog base + 변형의 flex 방향이 먼저 — ColorField 는 base 가 row 라 top 도 row 로 그린다.
+    //   · 라벨 위치 컨테이너는 인라인 방향이 더 먼저 — DOM (root 인라인 > `[data-label-position]`) ·
+    //     Canvas (implicitStyles 가 인라인을 마지막에 얹는다) 둘 다 인라인을 따른다. 인라인은 스타일
+    //     붙여넣기로 지금도 들어온다. orientation 컨테이너는 Canvas 가 prop 으로 덮어 인라인을 보지 않는다.
+    //   Alignment 도 같은 축으로 매핑한다 — 다르면 정렬 점이 가로 · 세로가 뒤바뀐 칸에 쓰였다.
+    const drivenProp = resolveDirectionDrivenProp(type);
+    const premiseFlexDirection = resolveDrivenFlexDirection(type, props);
+    const resolvedDisplay = firstDefined(
+      s.display,
+      asString(specPreset.display),
+      "block",
+    );
+    const renderedFlexDirection = isFlexDisplay(resolvedDisplay)
+      ? toFlexAxis(
+          (drivenProp === "labelPosition" ? asString(s.flexDirection) : undefined) ??
+            asString(specPreset.flexDirection),
+        )
+      : undefined;
+    const drivenFlexDirection =
+      premiseFlexDirection === undefined
+        ? undefined
+        : (renderedFlexDirection ?? premiseFlexDirection);
 
     return {
-      display: firstDefined(s.display, asString(specPreset.display), "block"),
+      display: resolvedDisplay,
       directionDriven: drivenFlexDirection !== undefined,
       flexDirection:
         drivenFlexDirection ??
@@ -72,6 +98,14 @@ function useResolvedLayoutFields(id: string | null): ResolvedLayoutFields {
  * 사용자가 지정한 `inline-flex` 요소를 block 으로 표시해 Direction/Alignment 토글이 죽었다
  * (2026-06-27 회귀와 같은 표면). catalog 가 아직 `flex` 라 Button 표시는 무변경.
  */
+/** `row` · `row-reverse` → row, `column*` → column, 그 외 undefined. */
+function toFlexAxis(value: string | undefined): "row" | "column" | undefined {
+  if (!value) return undefined;
+  if (value.startsWith("column")) return "column";
+  if (value.startsWith("row")) return "row";
+  return undefined;
+}
+
 function isFlexDisplay(display: string): boolean {
   const d = display.trim().toLowerCase();
   return d === "flex" || d === "inline-flex";

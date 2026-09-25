@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Styles 패널 — Direction · Alignment 가 실제 배치 축을 표시] - 2026-09-25
+
+### Fixed
+
+- **ColorField 의 Direction 이 라벨 위 (top) 에서 Column 으로 표시되던 문제** — ColorField 는 라벨 · 입력 · 색 견본을 가로로 놓는 디자인이라 라벨 위에서도 실제로는 가로 배치인데, 패널은 "라벨 위 = 세로" 라는 고정 규칙으로 표시했다. 정렬 점도 세로 축으로 매핑돼 칸이 뒤바뀌었다. 이제 catalog 가 정한 실제 방향을 표시한다.
+- **TextField · RadioGroup 같은 라벨 위치 요소에 인라인 방향이 있으면 정렬 점의 가로 · 세로가 뒤바뀌던 문제** — 스타일 붙여넣기로 인라인 `flex-direction: row` 가 들어오면 화면은 가로인데, 패널은 라벨 위치로 세로 축을 가정해 "오른쪽 위" 를 누르면 왼쪽 아래 값이 저장됐다. 이제 Direction · Alignment 모두 화면이 따르는 인라인 축을 쓴다.
+  - 위치: `panels/styles/hooks/useLayoutAuxiliary.ts` (`useResolvedLayoutFields`)
+
 ## [Styles 패널 — instance 안 요소의 스타일 편집 · 초기화] - 2026-09-25
 
 ### Fixed

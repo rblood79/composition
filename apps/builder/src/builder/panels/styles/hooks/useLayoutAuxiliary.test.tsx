@@ -48,6 +48,29 @@ const CATALOG_RULES = vi.hoisted(
           },
         },
       },
+      // 라벨 위치 축 (driven) 컨테이너 — ColorField 는 base 가 row (top 도 row), TextField 는 column.
+      ColorField: {
+        structure: {
+          containerStyles: { display: "flex", flexDirection: "row" },
+        },
+        containerVariants: {
+          "label-position": {
+            side: {
+              styles: { "flex-direction": "row", "align-items": "flex-start" },
+            },
+          },
+        },
+      },
+      TextField: {
+        structure: {
+          containerStyles: { display: "flex", flexDirection: "column" },
+        },
+        containerVariants: {
+          "label-position": {
+            side: { styles: { "flex-direction": "row" } },
+          },
+        },
+      },
       VariantFlexSpec: {
         structure: {
           containerStyles: { display: "flex", flexDirection: "column" },
@@ -327,6 +350,59 @@ describe("useFlexDirectionKeys — labelPosition 축 컨테이너", () => {
       "column",
     ]);
     setElement("e", {}, "Slider", { labelPosition: "side" });
+    expect(renderHook(() => useFlexDirectionKeys("e")).result.current).toEqual([
+      "row",
+    ]);
+  });
+});
+
+describe("useFlexDirectionKeys · useFlexAlignmentKeys — 렌더가 따르는 축", () => {
+  it("catalog 기본이 row 인 ColorField 는 top 에서도 Row 로 표시한다 (고정 규칙 top=column 이 아니라)", () => {
+    setElement("e", {}, "ColorField", { labelPosition: "top" });
+    expect(renderHook(() => useFlexDirectionKeys("e")).result.current).toEqual([
+      "row",
+    ]);
+  });
+
+  it("TextField 는 top=Column · side=Row 그대로", () => {
+    setElement("e", {}, "TextField", { labelPosition: "top" });
+    expect(renderHook(() => useFlexDirectionKeys("e")).result.current).toEqual([
+      "column",
+    ]);
+    setElement("e", {}, "TextField", { labelPosition: "side" });
+    expect(renderHook(() => useFlexDirectionKeys("e")).result.current).toEqual([
+      "row",
+    ]);
+  });
+
+  it("라벨 위치 컨테이너에 인라인 방향이 있으면 두 렌더가 따르는 인라인 축으로 표시 · 정렬한다", () => {
+    // 스타일 붙여넣기로 들어온 인라인 row — DOM · Canvas 둘 다 인라인이 라벨 위치 규칙을 이긴다.
+    setElement(
+      "e",
+      {
+        display: "flex",
+        flexDirection: "row",
+        justifyContent: "flex-end",
+        alignItems: "flex-start",
+      },
+      "TextField",
+      { labelPosition: "top" },
+    );
+    expect(renderHook(() => useFlexDirectionKeys("e")).result.current).toEqual([
+      "row",
+    ]);
+    expect(renderHook(() => useFlexAlignmentKeys("e")).result.current).toEqual([
+      "rightTop",
+    ]);
+  });
+
+  it("orientation 컨테이너 (ToggleButtonGroup) 는 prop 이 인라인을 이긴다 — Canvas 가 prop 으로 덮는다", () => {
+    setElement(
+      "e",
+      { display: "flex", flexDirection: "column" },
+      "ToggleButtonGroup",
+      { orientation: "horizontal" },
+    );
     expect(renderHook(() => useFlexDirectionKeys("e")).result.current).toEqual([
       "row",
     ]);
