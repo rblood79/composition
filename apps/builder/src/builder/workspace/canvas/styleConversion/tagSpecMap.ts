@@ -14,6 +14,7 @@
 
 import type { ComponentSpec } from "@composition/specs";
 import { TAG_SPEC_MAP } from "@composition/specs";
+import { componentTypeSet } from "@composition/shared";
 
 export { TAG_SPEC_MAP };
 
@@ -23,4 +24,4 @@ export function getSpecForTag(type: string): ComponentSpec<any> | null {
 }
 
 /** 이미지 렌더링 대상 태그 (ImageSprite / buildImageNodeData 경로) */
-export const IMAGE_TAGS = new Set(["Image", "Avatar", "Logo", "Thumbnail"]);
+export const IMAGE_TAGS = componentTypeSet("image");

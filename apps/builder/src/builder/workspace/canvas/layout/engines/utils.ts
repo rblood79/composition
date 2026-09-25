@@ -84,6 +84,7 @@ import {
 import type { ComponentRuleSize } from "@composition/shared";
 // ADR-923 r22m1 — prop 부재 기본 size 의 단일 원천 (catalog defaultSize, lowercase 태그 허용).
 import {
+  componentTypeSet,
   resolveComponentRuleByTag,
   resolveStaticItemKey,
 } from "@composition/shared";
@@ -1676,9 +1677,7 @@ export function findTabListChildren(
   getChildElements: ((id: string) => CanvasLayoutNode[]) | undefined,
 ): CanvasLayoutNode[] | undefined {
   const tabList = tabsChildren.find((child) => child.type === "TabList");
-  return tabList && getChildElements
-    ? getChildElements(tabList.id)
-    : undefined;
+  return tabList && getChildElements ? getChildElements(tabList.id) : undefined;
 }
 
 const BUTTON_TEXT_LEAF_TAGS = new Set([
@@ -5125,7 +5124,7 @@ export function isEngineIntrinsicKeyword(value: unknown): value is string {
 const INTRINSIC_SIZE_KEYWORDS = new Set([...ENGINE_INTRINSIC_KEYWORDS, "auto"]);
 
 /** replaced element 태그 — 자연 치수(natural size)를 가져야 하는 요소 */
-const IMAGE_INTRINSIC_TAGS = new Set(["image", "avatar", "logo", "thumbnail"]);
+const IMAGE_INTRINSIC_TAGS = componentTypeSet("image", { lowercase: true });
 
 /** spec shapes 기반 입력 컴포넌트 — contentHeight=0이어도 height 주입이 필요한 태그 */
 const SPEC_SHAPES_INPUT_TAGS = new Set([
@@ -5342,7 +5341,8 @@ export function enrichWithIntrinsicSize(
   //   width 는 주입하지 않고 텍스트 leaf 와 같은 측정 스칼라만 싣는다 (block stretch 는 그대로).
   const scalarTextLeaf =
     TEXT_LEAF_TAGS.has(type) ||
-    (type === "disclosurecontent" && !(childElements && childElements.length > 0));
+    (type === "disclosurecontent" &&
+      !(childElements && childElements.length > 0));
   const percentMeasuredLeaf =
     INTRINSIC_MEASURE_TAGS.has(type) &&
     !TEXT_LEAF_TAGS.has(type) &&

@@ -49,6 +49,7 @@ import {
   type SizeSpec,
 } from "@composition/specs";
 import {
+  componentTypeSet,
   isCatalogCutover,
   getPrimitiveBinding,
   isDisclosureExpandedInContext,
@@ -344,12 +345,7 @@ const SIDE_LABEL_COLUMN_TAGS = new Set([
  * Form 까지 올라가면 그 6종에서 DOM 에 없는 정렬이 캔버스에만 생긴다 — 렌더러별 상속 범위를
  * 그대로 복제해 둔다. (labelPosition 자체의 상속 범위 불일치는 본 축 밖 관찰 항목.)
  */
-const FORM_INHERITING_FIELD_TAGS = new Set([
-  "TextField",
-  "TextArea",
-  "NumberField",
-  "SearchField",
-]);
+const FORM_INHERITING_FIELD_TAGS = componentTypeSet("textInputField");
 
 /**
  * RSP `labelAlign`(start|center|end) → Skia text shape align(left|center|right).
@@ -376,12 +372,7 @@ const PARENT_LABEL_PROP_SOURCE_TAGS = new Set([
   "ColorField",
 ]);
 
-const DATE_INPUT_PARENT_TAGS = new Set([
-  "DateField",
-  "TimeField",
-  "DatePicker",
-  "DateRangePicker",
-]);
+const DATE_INPUT_PARENT_TAGS = componentTypeSet("dateField");
 
 // ---------------------------------------------------------------------------
 // Parent Lookup Helpers (pure functions — no hooks)
