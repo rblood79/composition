@@ -7,6 +7,7 @@ import type {
   CompositionDocument,
   RefNode,
 } from "@composition/shared";
+import { CATALOG_ORIGIN_METADATA_TYPE } from "./catalogOriginMarker";
 import {
   NESTED_REUSABLE_ORIGIN_TYPES,
   PALETTE_REUSABLE_ORIGIN_TYPES,
@@ -47,7 +48,7 @@ import { ensureTemplateOrigins } from "./ensureTemplateOrigins";
  * type 의 catalog accepts 를 직접 읽는다 (passthrough schema 와 동치, breakdown §8.4-1).
  */
 
-export const CATALOG_ORIGIN_METADATA_TYPE = "catalog-origin";
+export { CATALOG_ORIGIN_METADATA_TYPE } from "./catalogOriginMarker";
 
 const SEED_CONTEXT: ComponentCreationContext = {
   parentElement: null,

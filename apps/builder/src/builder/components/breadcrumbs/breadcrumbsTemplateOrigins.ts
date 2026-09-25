@@ -15,8 +15,9 @@ import type { CanonicalNode, CompositionDocument } from "@composition/shared";
 
 import { COMPONENTS_SYSTEM_BODY_ID } from "../../pages/systemComponentsPage";
 
-export const BREADCRUMB_ITEM_DEFAULT_ORIGIN_ID =
-  "component-breadcrumb-item-default";
+import { BREADCRUMB_ITEM_DEFAULT_ORIGIN_ID } from "../templateItemOriginIds";
+
+export { BREADCRUMB_ITEM_DEFAULT_ORIGIN_ID };
 export const BREADCRUMBS_ORIGIN_ID = "component-breadcrumbs";
 
 export function createBreadcrumbItemOrigin(): CanonicalNode {

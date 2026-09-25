@@ -2,9 +2,15 @@ import type { CanonicalNode, CompositionDocument } from "@composition/shared";
 import { isSelectedStateOrigin } from "../stateVariantOrigins";
 import { ensureTemplateOrigins } from "../ensureTemplateOrigins";
 
-export const LISTBOX_ITEM_DEFAULT_ORIGIN_ID = "component-listbox-item-default";
-export const LISTBOX_ITEM_SELECTED_ORIGIN_ID =
-  "component-listbox-item-selected";
+import {
+  LISTBOX_ITEM_DEFAULT_ORIGIN_ID,
+  LISTBOX_ITEM_SELECTED_ORIGIN_ID,
+} from "../templateItemOriginIds";
+
+export {
+  LISTBOX_ITEM_DEFAULT_ORIGIN_ID,
+  LISTBOX_ITEM_SELECTED_ORIGIN_ID,
+};
 export const LISTBOX_ORIGIN_ID = "component-listbox";
 export const LISTBOX_TEMPLATE_ANCHOR_ROLE = "listbox-item-template-anchor";
 

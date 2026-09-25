@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Preview 초기 번들 −29.8 KB — builder 저작 코드 분리] - 2026-09-25
+
+### Fixed
+
+- **Preview 초기 로딩 번들에 builder 전용 코드가 섞여 들어가던 회귀를 고쳤다** — Preview 가 읽는 슬롯 판정 · 상태 변형 모듈이 origin id 상수 하나씩을 origin 빌더 모듈에서 가져와, factory 정의 전체와 hydration 이관 코드가 Preview 초기 번들에 실렸다 (ADR-229 ~ 239 기간 누적). id 를 의존 없는 모듈로 옮겨 Preview initial JS gzip 649,439 → 619,679 B (**−29,760 B**). 동작 변경 없음.
+  - 위치: `apps/builder/src/builder/components/{templateItemOriginIds,catalogOriginMarker}.ts` (새 leaf) · `slotHostPolicy.ts` · `stateVariantOrigins.ts` · 항목 `*TemplateOrigins.ts` 7 (re-export)
+  - 가드: `apps/builder/src/preview/previewBuilderAuthoringImport.static.test.ts` — Preview entry 에서 factory · catalog origin · template origin · 이관 · `unified.types` 로 가는 정적 import 경로 0 (수리 한 줄 원복 시 5 RED).
+  - 남은 것: Preview 는 아직 ADR-201 상한 (601,346 B) 위 — 후속 판단 대상.
+
 ## [프로젝트 진입 시 초기 페이지 표시 — viewport 저장 범위] - 2026-09-25
 
 ### Fixed

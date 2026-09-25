@@ -18,8 +18,15 @@ import { ensureTemplateOrigins } from "../ensureTemplateOrigins";
  * (breakdown §3 Phase 1: slot 보유자가 origin 자식이라 generic 경로가 표현하지 못해 손 ensurer.)
  */
 
-export const TAG_ITEM_DEFAULT_ORIGIN_ID = "component-tag-item-default";
-export const TAG_ITEM_SELECTED_ORIGIN_ID = "component-tag-item-selected";
+import {
+  TAG_ITEM_DEFAULT_ORIGIN_ID,
+  TAG_ITEM_SELECTED_ORIGIN_ID,
+} from "../templateItemOriginIds";
+
+export {
+  TAG_ITEM_DEFAULT_ORIGIN_ID,
+  TAG_ITEM_SELECTED_ORIGIN_ID,
+};
 export const TAGGROUP_ORIGIN_ID = catalogReusableOriginId("TagGroup");
 
 export const TAG_ITEM_TEMPLATE_SLOT = [

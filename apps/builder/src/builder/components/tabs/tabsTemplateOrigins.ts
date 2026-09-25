@@ -17,8 +17,15 @@ import { ensureTemplateOrigins } from "../ensureTemplateOrigins";
  * 모듈은 root slot 만 얹는다. ADR-066 은 유지: Tab element 를 canonical Tabs 자식으로 되살리지 않는다.
  */
 
-export const TAB_ITEM_DEFAULT_ORIGIN_ID = "component-tab-item-default";
-export const TAB_ITEM_SELECTED_ORIGIN_ID = "component-tab-item-selected";
+import {
+  TAB_ITEM_DEFAULT_ORIGIN_ID,
+  TAB_ITEM_SELECTED_ORIGIN_ID,
+} from "../templateItemOriginIds";
+
+export {
+  TAB_ITEM_DEFAULT_ORIGIN_ID,
+  TAB_ITEM_SELECTED_ORIGIN_ID,
+};
 export const TABS_ORIGIN_ID = catalogReusableOriginId("Tabs");
 
 export const TAB_ITEM_TEMPLATE_SLOT = [

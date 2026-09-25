@@ -27,7 +27,9 @@ import {
 import { COMPONENTS_SYSTEM_BODY_ID } from "../../pages/systemComponentsPage";
 import { ensureTemplateOrigins } from "../ensureTemplateOrigins";
 
-export const TREE_ITEM_DEFAULT_ORIGIN_ID = "component-tree-item-default";
+import { TREE_ITEM_DEFAULT_ORIGIN_ID } from "../templateItemOriginIds";
+
+export { TREE_ITEM_DEFAULT_ORIGIN_ID };
 export const TREE_ORIGIN_ID = catalogReusableOriginId("Tree");
 
 /** Tree · TreeItem origin 의 추천 항목 (Slot "+") — 휴지 모양 · 선택 모양. */

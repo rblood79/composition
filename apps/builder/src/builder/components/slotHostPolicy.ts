@@ -1,19 +1,16 @@
+// id 만 쓴다 — `*TemplateOrigins` 모듈은 origin 빌더 (factory 정의 전체) 를 끌고 와 Preview 번들을 키운다.
 import {
+  BREADCRUMB_ITEM_DEFAULT_ORIGIN_ID,
+  GRIDLIST_ITEM_DEFAULT_ORIGIN_ID,
   LISTBOX_ITEM_DEFAULT_ORIGIN_ID,
   LISTBOX_ITEM_SELECTED_ORIGIN_ID,
-} from "./listbox/listBoxTemplateOrigins";
-import { GRIDLIST_ITEM_DEFAULT_ORIGIN_ID } from "./gridlist/gridListTemplateOrigins";
-import { MENU_ITEM_DEFAULT_ORIGIN_ID } from "./menu/menuTemplateOrigins";
-import {
-  TAG_ITEM_DEFAULT_ORIGIN_ID,
-  TAG_ITEM_SELECTED_ORIGIN_ID,
-} from "./taggroup/tagGroupTemplateOrigins";
-import {
+  MENU_ITEM_DEFAULT_ORIGIN_ID,
   TAB_ITEM_DEFAULT_ORIGIN_ID,
   TAB_ITEM_SELECTED_ORIGIN_ID,
-} from "./tabs/tabsTemplateOrigins";
-import { BREADCRUMB_ITEM_DEFAULT_ORIGIN_ID } from "./breadcrumbs/breadcrumbsTemplateOrigins";
-import { TREE_ITEM_DEFAULT_ORIGIN_ID } from "./tree/treeTemplateOrigins";
+  TAG_ITEM_DEFAULT_ORIGIN_ID,
+  TAG_ITEM_SELECTED_ORIGIN_ID,
+  TREE_ITEM_DEFAULT_ORIGIN_ID,
+} from "./templateItemOriginIds";
 
 // ADR-241 Phase 2 — Column origin id (tableOrigins 의 상수와 같은 값 — 순환 import 회피).
 const TABLE_COLUMN_ORIGIN_ID = "component-table-column";

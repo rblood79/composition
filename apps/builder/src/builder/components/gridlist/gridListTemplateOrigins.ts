@@ -1,8 +1,9 @@
 import type { CanonicalNode, CompositionDocument } from "@composition/shared";
 import { ensureTemplateOrigins } from "../ensureTemplateOrigins";
 
-export const GRIDLIST_ITEM_DEFAULT_ORIGIN_ID =
-  "component-gridlist-item-default";
+import { GRIDLIST_ITEM_DEFAULT_ORIGIN_ID } from "../templateItemOriginIds";
+
+export { GRIDLIST_ITEM_DEFAULT_ORIGIN_ID };
 
 /**
  * ADR-161 Phase 1: GridList 컨테이너 재사용 origin (ListBox `component-listbox` 동형).

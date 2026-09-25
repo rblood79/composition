@@ -1,7 +1,9 @@
 import type { CanonicalNode, CompositionDocument } from "@composition/shared";
 import { ensureTemplateOrigins } from "../ensureTemplateOrigins";
 
-export const MENU_ITEM_DEFAULT_ORIGIN_ID = "component-menu-item-default";
+import { MENU_ITEM_DEFAULT_ORIGIN_ID } from "../templateItemOriginIds";
+
+export { MENU_ITEM_DEFAULT_ORIGIN_ID };
 
 /**
  * ADR-148 Phase 4: MenuItem reusable origin 의 조합 자식

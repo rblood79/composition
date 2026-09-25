@@ -14,7 +14,7 @@
 import type { CanonicalNode, CompositionDocument } from "@composition/shared";
 import { catalogReusableOriginId } from "@composition/shared";
 import { COMPONENTS_SYSTEM_BODY_ID } from "../pages/systemComponentsPage";
-import { CATALOG_ORIGIN_METADATA_TYPE } from "./catalogOrigins";
+import { CATALOG_ORIGIN_METADATA_TYPE } from "./catalogOriginMarker";
 
 /**
  * 선언적 상태 (Phase 1 — 두 leg 유효 상태로 해소) 와 interaction 상태 (Phase 2 — Preview DOM
