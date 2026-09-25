@@ -233,6 +233,19 @@ try {
     await layersCheck("component-listbox-item-default--hover"),
   ];
 
+  // C2. 상태 변형 분리를 store 로 직접 (단축키 · agent 경로) — 거부 + 이유, ref 유지.
+  await clearToasts(page);
+  // 토스트는 B 와 같은 messageKey 라 5분 쿨다운 (toast.ts COOLDOWN_MS) 에 걸려 보이지 않는다 —
+  //   판정은 노드가 ref · reusable 로 남는지로 한다.
+  report.checks.C2_variantDetachStore = await storeRead(page, (id) => {
+    const st = window.__composition_STORE__.getState();
+    st.detachInstance(id);
+    const el = window.__composition_STORE__.getState().elementsMap.get(id);
+    return { id, type: el?.type ?? null, ref: el?.ref ?? null, reusable: el?.reusable ?? null };
+  }, "component-listbox-item-default--hover");
+  await page.waitForTimeout(500);
+  report.checks.C2_variantDetachStore.toasts = await toastTexts(page);
+
   // 대조군 — 홈 페이지에 팔레트로 추가한 frame (일반 요소) 행에는 삭제 버튼 · 메뉴 삭제 · ungroup 이 있다.
   const homePageId = await storeRead(
     page,

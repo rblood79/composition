@@ -114,7 +114,13 @@ export function canOperate(
       if (isSystemOwnedOrigin(node)) return reject("systemOwned");
       return OK;
     case "detach":
-      return canDetachInstance(node) ? OK : reject("notInstance");
+      if (!canDetachInstance(node)) return reject("notInstance");
+      // ADR-234 상태 변형 (`<origin>--<state>`) 은 origin 의 reusable ref 다 — 분리하면 ref 와 reusable 을
+      //   잃어 상태 층이 분리 시점 원본 값으로 굳고 (이후 원본 편집이 그 상태에 닿지 않는다), 삭제 · 해제
+      //   보호가 풀리며, Components 페이지 복구 (`ensureStateVariantOrigins`) 는 같은 id 를 건너뛰어 되돌리지
+      //   않는다. 삭제 · 해제와 같은 보호.
+      if (isSystemOwnedOrigin(node)) return reject("systemOwned");
+      return OK;
     case "copy":
     case "duplicate":
     case "group":

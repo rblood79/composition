@@ -26,6 +26,16 @@ const nodes: Record<string, OperableNode> = {
     metadata: { templateRole: LISTBOX_TEMPLATE_ANCHOR_ROLE },
   },
   instance: { id: "instance", type: "Button", ref: "userOrigin" },
+  // ADR-234 상태 변형 — origin 의 reusable ref (dual 노드), Components 페이지 system 소유.
+  systemVariant: {
+    id: "systemOrigin--hover",
+    type: "ref",
+    ref: "systemOrigin",
+    reusable: true,
+    metadata: { systemOwned: true, variant: "hover" },
+  },
+  // system origin 안의 ref 자식 (Form 의 field) — 원본 편집 범위라 분리할 수 있다.
+  systemOriginChildRef: { id: "field", type: "ref", ref: "userOrigin" },
 };
 const lookup = (id: string) => nodes[id];
 const ALL_OPS: StructuralOp[] = [
@@ -111,6 +121,14 @@ describe("canOperate", () => {
       ok: false,
       reason: "systemOwned",
     });
+  });
+
+  it("detach — system 상태 변형은 거부한다 (분리하면 ref 를 잃어 상태 층이 원본 값으로 굳고 복구되지 않는다)", () => {
+    expect(canOperate("detach", "systemVariant", lookup)).toEqual({
+      ok: false,
+      reason: "systemOwned",
+    });
+    expect(canOperate("detach", "systemOriginChildRef", lookup).ok).toBe(true);
   });
 
   it("detach — instance 만", () => {

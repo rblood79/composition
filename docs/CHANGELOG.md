@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Components 페이지 상태 변형의 "인스턴스 분리" 차단] - 2026-09-25
+
+### Fixed
+
+- **Components 페이지 기본 컴포넌트의 상태 변형 (`Button/Hover` 등) 에 "인스턴스 분리" 가 서던 문제** — 분리하면 변형이 원본 참조 (`ref`) 와 `reusable` 을 잃은 원본 전체 복사본이 되어, 그 상태의 모습이 분리 시점 원본 값으로 굳었다 (이후 원본을 고쳐도 hover · pressed 등에는 옛 값이 덮였다). 삭제 · 해제 보호도 풀리고, 새로고침 때 Components 페이지 복구는 같은 id 를 건너뛰어 되돌리지 않았다. 이제 메뉴 · Layers · 단축키 · AI 모두 분리를 받지 않고 이유를 보인다 (삭제 · 해제와 같은 보호). 기본 컴포넌트 안의 instance 자식 (Form 의 필드 등) 은 원본 편집 범위라 그대로 분리할 수 있다.
+  - 위치: `builder/domain/canOperate.ts` (`detach` 판정) · 안내 문구 "삭제 · 풀기 · 분리할 수 없습니다"
+
 ## [컴포넌트로 만든 frame 이 캔버스에서 사라지던 문제] - 2026-09-25
 
 ### Fixed
