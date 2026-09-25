@@ -350,3 +350,16 @@ ADR-236 종결: Phase 0–4 · G0–G4, 실행자 닫힘 선언.
 ## 14. 종결 뒤 후속 — system 상태 변형 분리 (2026-09-25)
 
 §11 후속 "system 상태 변형에 `detach-instance` 가 선다" 판정: 결함 — 차단. `canDetachInstance` 는 `ref` 만 보고 system 상태 변형 (dual 노드 `ref` + `reusable` + `systemOwned`) 을 분리 대상으로 받았다. 분리 스냅샷은 `reusable` 을 지우고 metadata 는 남긴다 → `readStateVariantSelf` 는 `ref` 로 소속을 읽어 null, 상태 층 조회는 id (`<origin>--<state>`) 로 계속 찾아 ADR-230 복제본 경로 (관리 키만) 로 읽는다 — 그 상태가 분리 시점 원본 값으로 굳는다. `isSystemOwnedOrigin` 은 `reusable` 을 요구해 삭제 · 해제 보호가 풀리고, `ensureStateVariantOrigins` 는 같은 id 를 건너뛰며 이관 (`migrateVariantsToOriginInstances`) 도 `variantOf` 가 없어 잡지 않는다 — 영구. `canOperate("detach")` 가 system origin 을 거부 (삭제 · 해제와 같은 사유 `systemOwned`). system origin 안의 ref 자식 (Form field 등) 은 원본 편집 범위라 허용. 테스트 원복 RED 1 · live (`adr236-phase3-live.mjs` C · C2): 변형 행 메뉴에 `detach-instance` 없음 · store 직접 호출도 ref · reusable 유지 (토스트는 B 와 같은 messageKey 라 5분 쿨다운).
+
+## 15. 종결 뒤 후속 — labelPosition 멤버십 (2026-09-25)
+
+§10 멤버십 차이 (Meter · ProgressBar · Slider) 판정: 결함 — 집합에 넣는다. live (`apps/builder/scripts/labelposition-direction-live.mjs`, 대조군 TextField) 에서 결함이 둘 나왔다.
+
+- **ref instance 판정 누락 (13 타입 전부)**: 팔레트는 Components 페이지 origin 의 instance (`type: "ref"`) 를 만든다. `handleFlexDirection` · `LayoutSection` 은 원 `element.type` 으로 판정해 instance 에서 늘 style 경로를 탔다. 패널 표시 (`useResolvedLayoutFields`) 는 origin 타입으로 판정해 TextField 는 Column 표시 · 캔버스 Row · Column 클릭 무반응이었다. 판정을 `resolveStyleSpecType` (패널 style 문맥과 같은 해석) 으로 바꿨다.
+- **세 타입 멤버십**: style 경로로 쓴 인라인 `flexDirection` 을 implicitStyles side 분기가 덮어 (`display: flex` · `flexDirection: row` 가 parentStyle 뒤에 온다) side + Column 에서 Canvas row · DOM column (인라인이 `[data-label-position="side"]` 를 이긴다) 으로 갈렸다. `LABEL_POSITION_NOT_DRIVEN` 은 Form 만 남긴다. top 은 grid 라 `useFlexDirectionKeys` 가 display 로 판정해 비활성 block 을 보였다 — 그룹 축 컨테이너는 prop 값으로 표시한다.
+- **남은 인라인 정리**: 위 두 경로로 이미 저장된 인라인 `flexDirection` · `display` (flex · block) 는 토글이 prop 과 같은 `updateSelectedProperties` 로 지운다.
+
+근거: 단위 RED 7 → GREEN · live 4 타입 × 6 단계 (top 표시 · Row · Column · 옛 인라인 + side · 그 상태에서 Column · 깨끗한 side) — 수정 뒤 Row → side 한 줄 (label > track > value) · Column → top grid · 인라인 0 · block 비활성 · pageerror 0. 스위트 builder 7,649 통과 (jsdom 종료 시점 unhandled 3 은 `GenericFieldRenderer` · `pageStateHistoryRoundtrip` 단독 재실행 통과) · type-check 0.
+
+남은 것 (범위 밖): 붙여넣기 · AI 가 라벨 위치 컨테이너에 인라인 `flexDirection` 을 쓰면 side 에서 Canvas (row 고정) 와 DOM (인라인) 이 여전히 갈린다. Alignment 토글은 grid 기본 (ProgressBar top) 에 `display: flex` 를 쓴다.
+

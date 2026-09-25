@@ -35,6 +35,9 @@
  *    `structure.composition.containerVariants` 에 이미 존재(top-level 아님 — derive
  *    `resolveCatalogContainerVariants` 가 structure 경유 read). binding labelPosition
  *    accepts 를 후속 추가하여 Properties dropdown 편집 진입점 확보).
+ *  - Meter, ProgressBar, Slider (2026-09-25 — top 은 grid · side 는 label-track-value 한 줄.
+ *    implicitStyles 가 labelPosition 으로 side 를 판정하고 인라인 flexDirection 을 덮으므로,
+ *    종전처럼 style 에 쓰면 side 에서 Canvas 는 row 인데 DOM 은 인라인 column 이 이겼다)
  *
  * ⚠️ 제외:
  *  - ButtonGroup: SSOT 가 정반대(style.flexDirection 이 Skia/레이아웃 엔진 직접 read,
@@ -84,15 +87,9 @@ export const ORIENTATION_DRIVEN_TAGS: ReadonlySet<string> =
   directionDrivenTypes("orientation", "orientation");
 
 /**
- * 식은 맞지만 현행 집합에 없는 타입 — Form 은 위 ⚠️ 제외 사유. Meter · ProgressBar · Slider 는
- * 제외 사유 기록이 없다 (ADR-236 Phase 2 에서 멤버십 차이로 기록, live 판정 전 현행 유지).
+ * 식은 맞지만 현행 집합에 없는 타입 — Form 은 위 ⚠️ 제외 사유.
  */
-const LABEL_POSITION_NOT_DRIVEN: ReadonlySet<string> = new Set([
-  "form",
-  "meter",
-  "progressbar",
-  "slider",
-]);
+const LABEL_POSITION_NOT_DRIVEN: ReadonlySet<string> = new Set(["form"]);
 
 /** Direction 토글이 `props.labelPosition` 으로 번역되는 컨테이너. */
 export const LABEL_POSITION_DRIVEN_TAGS: ReadonlySet<string> =

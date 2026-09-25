@@ -187,12 +187,12 @@ describe("useFlexAlignmentKeys", () => {
       alignItems: "flex-end",
       justifyContent: "space-between",
     });
-    expect(renderHook(() => useFlexAlignmentKeys("e")).result.current).toEqual(
-      ["centerBottom"],
+    expect(renderHook(() => useFlexAlignmentKeys("e")).result.current).toEqual([
+      "centerBottom",
+    ]);
+    expect(renderHook(() => useFlexDistributionAxis("e")).result.current).toBe(
+      "row",
     );
-    expect(
-      renderHook(() => useFlexDistributionAxis("e")).result.current,
-    ).toBe("row");
 
     setElement("e", {
       display: "flex",
@@ -200,12 +200,12 @@ describe("useFlexAlignmentKeys", () => {
       alignItems: "flex-start",
       justifyContent: "space-evenly",
     });
-    expect(renderHook(() => useFlexAlignmentKeys("e")).result.current).toEqual(
-      ["leftCenter"],
+    expect(renderHook(() => useFlexAlignmentKeys("e")).result.current).toEqual([
+      "leftCenter",
+    ]);
+    expect(renderHook(() => useFlexDistributionAxis("e")).result.current).toBe(
+      "column",
     );
-    expect(
-      renderHook(() => useFlexDistributionAxis("e")).result.current,
-    ).toBe("column");
 
     setElement("e", { display: "flex", justifyContent: "center" });
     expect(
@@ -305,6 +305,20 @@ describe("useFlexAlignmentKeys — ADR-082 P4 Spec fallback (ADR-079 P2 완결)"
     const { result } = renderHook(() => useFlexAlignmentKeys("e"));
     // Div 는 mock 에 없음 → spec fallback "" → inline 만 사용
     expect(result.current).toEqual(["Center"]);
+  });
+});
+
+describe("useFlexDirectionKeys — labelPosition 축 컨테이너", () => {
+  // ProgressBar · Meter · Slider 의 top 은 grid 다. Direction 은 display 가 아니라 labelPosition 을 보인다.
+  it("grid 기본인 ProgressBar 도 labelPosition 으로 표시한다 (top → column · side → row)", () => {
+    setElement("e", {}, "ProgressBar");
+    expect(renderHook(() => useFlexDirectionKeys("e")).result.current).toEqual([
+      "column",
+    ]);
+    setElement("e", {}, "Slider", { labelPosition: "side" });
+    expect(renderHook(() => useFlexDirectionKeys("e")).result.current).toEqual([
+      "row",
+    ]);
   });
 });
 

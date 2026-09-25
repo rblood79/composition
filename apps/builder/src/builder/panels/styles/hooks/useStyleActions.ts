@@ -20,6 +20,29 @@ import {
   resolveDirectionDrivenProp,
   flexDirectionToDrivenValue,
 } from "../utils/orientationDrivenTags";
+import { resolveStyleSpecType } from "./useElementStyleContext";
+
+/** Direction 토글이 style 경로에서 쓰는 display 값 — 사용자가 따로 고른 grid 등은 남긴다. */
+const DIRECTION_TOGGLE_DISPLAYS = new Set(["flex", "block"]);
+
+/**
+ * 그룹 축 prop 컨테이너의 인라인에 Direction 토글이 남긴 `flexDirection` · `display` 가 있으면
+ * 그 둘을 뺀 style 을, 없으면 null 을 준다.
+ */
+function withoutStaleDirectionStyle(
+  style: unknown,
+): Record<string, unknown> | null {
+  if (!style || typeof style !== "object") return null;
+  const current = style as Record<string, unknown>;
+  const staleDisplay =
+    typeof current.display === "string" &&
+    DIRECTION_TOGGLE_DISPLAYS.has(current.display);
+  if (current.flexDirection === undefined && !staleDisplay) return null;
+  const next = { ...current };
+  delete next.flexDirection;
+  if (staleDisplay) delete next.display;
+  return next;
+}
 
 export function useStyleActions() {
   // onPaste 는 getState() 만 쓰므로 안정 참조로 고정한다. 렌더마다 새 클로저를
@@ -119,14 +142,24 @@ export function useStyleActions() {
     const selected = selectedElementId
       ? elementsMap.get(selectedElementId)
       : undefined;
-    const drivenProp = resolveDirectionDrivenProp(selected?.type);
+    const drivenProp = resolveDirectionDrivenProp(
+      resolveStyleSpecType(selected, elementsMap),
+    );
     if (drivenProp) {
-      useStore
-        .getState()
-        .updateSelectedProperty(
-          drivenProp,
-          flexDirectionToDrivenValue(drivenProp, value),
-        );
+      const drivenValue = flexDirectionToDrivenValue(drivenProp, value);
+      const staleStyle = withoutStaleDirectionStyle(selected?.props?.style);
+      if (staleStyle) {
+        // 이 토글이 prop 번역 전에 (ref instance 판정 누락 · 멤버십 밖) 쓴 인라인이 남아 있으면
+        // DOM 에서 인라인이 variant 를 이긴다 — prop 과 같은 쓰기에서 지운다.
+        useStore
+          .getState()
+          .updateSelectedProperties({
+            [drivenProp]: drivenValue,
+            style: staleStyle,
+          });
+        return;
+      }
+      useStore.getState().updateSelectedProperty(drivenProp, drivenValue);
       return;
     }
     if (value === "block") {

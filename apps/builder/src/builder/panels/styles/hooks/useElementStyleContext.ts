@@ -88,7 +88,11 @@ function resolveStyleOriginElement(
   return origin;
 }
 
-function resolveStyleSpecType(
+/**
+ * 패널이 컴포넌트 규칙을 찾을 타입 — ref instance 는 origin 타입 (팔레트가 만드는 요소는 instance 다).
+ * Direction 토글의 labelPosition · orientation 판정도 이 타입을 읽는다.
+ */
+export function resolveStyleSpecType(
   element: PanelNode | undefined,
   elementsMap: ReadonlyMap<string, PanelNode>,
 ): string | undefined {

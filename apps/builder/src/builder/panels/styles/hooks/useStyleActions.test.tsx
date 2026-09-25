@@ -292,6 +292,105 @@ describe("useStyleActions", () => {
       );
     });
 
+    it.each([
+      ["ProgressBar", "row", "side"],
+      ["Meter", "column", "top"],
+      ["Slider", "row", "side"],
+    ])(
+      "%s %s → labelPosition:%s (catalog side variant + accepts — field 동형)",
+      (type, direction, expected) => {
+        const { updateSelectedStyles, updateSelectedProperty } =
+          setupSelection(type);
+        const { result } = renderHook(() => useStyleActions());
+
+        act(() => {
+          result.current.handleFlexDirection(direction);
+        });
+
+        expect(updateSelectedProperty).toHaveBeenCalledWith(
+          "labelPosition",
+          expected,
+        );
+        expect(updateSelectedStyles).not.toHaveBeenCalled();
+      },
+    );
+
+    it("팔레트가 만든 ref instance 는 origin 타입으로 판정한다 (TextField instance → labelPosition)", () => {
+      const updateSelectedStyles = vi.fn();
+      const updateSelectedProperty = vi.fn();
+      useStore.setState({
+        selectedElementId: "inst",
+        elementsMap: new Map<string, Element>([
+          [
+            "component-textfield",
+            { id: "component-textfield", type: "TextField", props: {} },
+          ],
+          [
+            "inst",
+            {
+              id: "inst",
+              type: "ref",
+              ref: "component-textfield",
+              props: {},
+            } as Element,
+          ],
+        ]),
+        updateSelectedStyles,
+        updateSelectedProperty,
+      });
+      const { result } = renderHook(() => useStyleActions());
+
+      act(() => {
+        result.current.handleFlexDirection("row");
+      });
+
+      expect(updateSelectedProperty).toHaveBeenCalledWith(
+        "labelPosition",
+        "side",
+      );
+      expect(updateSelectedStyles).not.toHaveBeenCalled();
+    });
+
+    it("옛 토글이 남긴 인라인 display · flexDirection 은 같은 쓰기에서 지운다", () => {
+      const updateSelectedStyles = vi.fn();
+      const updateSelectedProperty = vi.fn();
+      const updateSelectedProperties = vi.fn();
+      useStore.setState({
+        selectedElementId: "el1",
+        elementsMap: new Map<string, Element>([
+          [
+            "el1",
+            {
+              id: "el1",
+              type: "ProgressBar",
+              props: {
+                style: {
+                  display: "flex",
+                  flexDirection: "column",
+                  width: "240px",
+                },
+              },
+            },
+          ],
+        ]),
+        updateSelectedStyles,
+        updateSelectedProperty,
+        updateSelectedProperties,
+      });
+      const { result } = renderHook(() => useStyleActions());
+
+      act(() => {
+        result.current.handleFlexDirection("row");
+      });
+
+      expect(updateSelectedProperties).toHaveBeenCalledWith({
+        labelPosition: "side",
+        style: { width: "240px" },
+      });
+      expect(updateSelectedProperty).not.toHaveBeenCalled();
+      expect(updateSelectedStyles).not.toHaveBeenCalled();
+    });
+
     it("Form 은 그룹 root derive 아님(자식 상속 hint) → 기존 flexDirection 경로 유지", () => {
       const { updateSelectedStyles, updateSelectedProperty } =
         setupSelection("Form");

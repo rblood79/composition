@@ -6,6 +6,8 @@ import { resolveDrivenFlexDirection } from "../utils/orientationDrivenTags";
 
 interface ResolvedLayoutFields {
   display: string;
+  /** Direction 이 그룹 축 prop (orientation · labelPosition) 을 따르는가. */
+  directionDriven: boolean;
   flexDirection: string;
   alignItems: string;
   justifyContent: string;
@@ -36,6 +38,7 @@ function useResolvedLayoutFields(id: string | null): ResolvedLayoutFields {
 
     return {
       display: firstDefined(s.display, asString(specPreset.display), "block"),
+      directionDriven: drivenFlexDirection !== undefined,
       flexDirection:
         drivenFlexDirection ??
         firstDefined(
@@ -78,12 +81,16 @@ function isFlexDisplay(display: string): boolean {
  * Flex Direction 토글 키 — display 가 flex | inline-flex 이면 column|row, 아니면 block
  */
 export function useFlexDirectionKeys(id: string | null): string[] {
-  const { display, flexDirection } = useResolvedLayoutFields(id);
+  const { display, flexDirection, directionDriven } =
+    useResolvedLayoutFields(id);
   return useMemo(() => {
+    // 그룹 축 prop 컨테이너는 display 와 무관하게 그 prop 을 보인다 — ProgressBar · Meter · Slider 의
+    //   top 은 grid 라, display 로 판정하면 disable 된 block 이 선택돼 보였다.
+    if (directionDriven) return [flexDirection === "column" ? "column" : "row"];
     if (!isFlexDisplay(display)) return ["block"];
     if (flexDirection === "column") return ["column"];
     return ["row"];
-  }, [display, flexDirection]);
+  }, [display, flexDirection, directionDriven]);
 }
 
 const V_MAP: Record<string, string> = {

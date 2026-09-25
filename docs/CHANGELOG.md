@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Style 패널 Direction 토글 — instance · Meter · ProgressBar · Slider 의 라벨 위치] - 2026-09-25
+
+### Fixed
+
+- **팔레트로 추가한 요소에서 Direction 토글이 라벨 위치 (labelPosition) 를 바꾸지 않던 문제** — 팔레트는 Components 페이지 원본의 instance 를 만드는데, 토글은 instance 의 타입 ("ref") 으로 판정해 TextField · RadioGroup · Select 등 라벨 위치로 방향을 정하는 컴포넌트에서도 인라인 `display` · `flex-direction` 을 썼다. 패널 표시는 원본 타입으로 판정해 Column 으로 보이는데 캔버스는 Row 로 그려졌고, Column 을 다시 눌러도 바뀌지 않았다. 이제 instance 도 원본 타입으로 판정해 Row → 옆 (side) · Column → 위 (top) 로 기록하고, Block 은 비활성이다.
+- **Meter · ProgressBar · Slider 의 Direction 토글** — 라벨 위치를 따르는 컴포넌트인데 목록에서 빠져 인라인 방향을 썼다. 라벨이 옆일 때 Column 을 누르면 캔버스는 한 줄 그대로인데 DOM 은 인라인이 이겨 세로로 쌓였다. 이제 다른 필드와 같이 라벨 위치로 기록한다. 기본 (위) 은 격자라 패널이 비활성 Block 을 선택된 것처럼 보이던 것도 Column 으로 보인다.
+- **이전 토글이 남긴 인라인 방향 정리** — 위 두 경우로 이미 저장된 인라인 `display` (flex · block) · `flex-direction` 은 Direction 을 다시 누를 때 라벨 위치와 같은 쓰기에서 지운다.
+  - 위치: `panels/styles/hooks/useStyleActions.ts` · `sections/LayoutSection.tsx` · `hooks/useLayoutAuxiliary.ts` · `utils/orientationDrivenTags.ts`
+
 ## [Components 페이지 상태 변형의 "인스턴스 분리" 차단] - 2026-09-25
 
 ### Fixed

@@ -18,7 +18,7 @@ describe("orientationDrivenTags", () => {
       ]);
     });
 
-    it("LABEL_POSITION_DRIVEN_TAGS = RadioGroup / CheckboxGroup / field 8종 / TagGroup / ComboBox·Select·DateRangePicker", () => {
+    it("LABEL_POSITION_DRIVEN_TAGS = RadioGroup / CheckboxGroup / field 8종 / TagGroup / ComboBox·Select·DateRangePicker / Meter·ProgressBar·Slider", () => {
       expect([...LABEL_POSITION_DRIVEN_TAGS].sort()).toEqual([
         "checkboxgroup",
         "colorfield",
@@ -26,10 +26,13 @@ describe("orientationDrivenTags", () => {
         "datefield",
         "datepicker",
         "daterangepicker",
+        "meter",
         "numberfield",
+        "progressbar",
         "radiogroup",
         "searchfield",
         "select",
+        "slider",
         "taggroup",
         "textarea",
         "textfield",
