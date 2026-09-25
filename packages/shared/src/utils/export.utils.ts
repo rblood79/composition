@@ -34,6 +34,10 @@ import type { FontRegistryV2 } from "../types/font.types";
 import type { VariableDef } from "../state/variable.types";
 import { collectResponsiveCss } from "./responsiveCss";
 import { isBodyType } from "../domain/predicates";
+import {
+  componentsPageFieldsOfNode,
+  isComponentsPage,
+} from "../domain/componentsPage";
 
 // ============================================
 // Constants
@@ -222,19 +226,10 @@ export interface ProjectRenderModel {
   currentPageId: string | null;
 }
 
-export const COMPONENTS_PAGE_ROLE = "components";
-export const COMPONENTS_PAGE_SLUG = "/__components";
-
 export type ProjectRenderAudience = "editor" | "runtime";
 
 export interface DeriveProjectRenderModelOptions {
   audience?: ProjectRenderAudience;
-}
-
-export function isComponentsPageMetadata(
-  metadata: CanonicalNode["metadata"] | undefined,
-): boolean {
-  return metadata?.pageRole === COMPONENTS_PAGE_ROLE;
 }
 
 export function isEditorPageNode(node: CanonicalNode): boolean {
@@ -248,7 +243,7 @@ export function isEditorPageNode(node: CanonicalNode): boolean {
 
 export function isRuntimePageNode(node: CanonicalNode): boolean {
   if (!isEditorPageNode(node)) return false;
-  return !isComponentsPageMetadata(node.metadata);
+  return !isComponentsPage(componentsPageFieldsOfNode(node));
 }
 
 function extractPageLayoutBinding(node: CanonicalNode): string | null {

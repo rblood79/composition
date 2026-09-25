@@ -3,11 +3,10 @@ import type { PageElementIndex } from "../../../stores/utils/elementIndexer";
 import { getPageElements } from "../../../stores/utils/elementIndexer";
 import type { Page } from "../../../../types/core/store.types";
 import type { CanvasSceneNode } from "./canvasSceneNode";
-import { isComponentsPageMirror } from "../../../pages/systemComponentsPage";
 import { readPageFrameSize } from "./pageFrameSize";
 import { resolvePageWithFrame } from "./resolvePageWithFrame";
 import type { ScenePageData, ScenePageFrame } from "./sceneSnapshotTypes";
-import { isBodyType } from "@composition/shared";
+import { isBodyType, isComponentsPage } from "@composition/shared";
 
 export function buildDepthMap(
   elements: CanvasSceneNode[],
@@ -67,7 +66,7 @@ export function buildPageDataMap(
       bodyElement: resolved.bodyElement,
       pageElements: projectDialogVisibility(
         resolved.pageElements,
-        isComponentsPageMirror(page),
+        isComponentsPage(page),
       ),
     });
   }
@@ -100,7 +99,7 @@ export function buildPageFrames(
 
     // 페이지 frame = body 저작 크기 (없으면 breakpoint) — 테두리·선택·히트·가이드가 같이 읽는다.
     //   Components 페이지 (ADR-231) 는 breakpoint 중립: 1920 × max(1080, 발행 높이).
-    const neutral = isComponentsPageMirror(page);
+    const neutral = isComponentsPage(page);
     const size = readPageFrameSize(
       page.id,
       pageIndex.elementsByPage,

@@ -19,8 +19,11 @@
  * **조용한 변환 0**: unresolved 가 1건이라도 있으면 프로젝트당 warn 1회 + 배지
  * (`migrationStatus`), C 자동 귀속이 1건이라도 있으면 info 1회.
  */
-import { OWNER_UNRESOLVED, type VariableOwner } from "@composition/shared";
-import { isComponentsPageMirror } from "../../pages/systemComponentsPage";
+import {
+  OWNER_UNRESOLVED,
+  type VariableOwner,
+  isComponentsPage,
+} from "@composition/shared";
 import type {
   Variable,
   VariableScope,
@@ -201,9 +204,7 @@ let pageIdsSource: (() => readonly string[]) | null = null;
 export function selectUserPageIds(
   pages: readonly { id: string; slug?: string | null }[],
 ): string[] {
-  return pages
-    .filter((page) => !isComponentsPageMirror(page))
-    .map((page) => page.id);
+  return pages.filter((page) => !isComponentsPage(page)).map((page) => page.id);
 }
 
 export function registerVariableOwnerPageSource(

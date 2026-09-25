@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { ResolvedField } from "@composition/shared";
-import {
-  isComponentsPageNode,
-  omitDataBindingOnComponentsPage,
-} from "./componentsPageFields";
+import { isOnComponentsPage, type ResolvedField } from "@composition/shared";
+import { omitDataBindingOnComponentsPage } from "./componentsPageFields";
 
 const field = (key: string, kind: ResolvedField["kind"]): ResolvedField => ({
   key,
@@ -28,7 +25,7 @@ describe("Components 페이지 origin — dataBinding 필드 제외", () => {
   ];
 
   it("Components 페이지 노드면 binding 필드만 빠진다", () => {
-    expect(isComponentsPageNode({ page_id: "page-components" })).toBe(true);
+    expect(isOnComponentsPage({ page_id: "page-components" })).toBe(true);
     expect(
       omitDataBindingOnComponentsPage(fields, {
         page_id: "page-components",
@@ -37,7 +34,7 @@ describe("Components 페이지 origin — dataBinding 필드 제외", () => {
   });
 
   it("사용자 페이지 · 노드 없음 은 그대로", () => {
-    expect(isComponentsPageNode({ page_id: "page-1" })).toBe(false);
+    expect(isOnComponentsPage({ page_id: "page-1" })).toBe(false);
     expect(
       omitDataBindingOnComponentsPage(fields, { page_id: "page-1" }),
     ).toEqual(fields);

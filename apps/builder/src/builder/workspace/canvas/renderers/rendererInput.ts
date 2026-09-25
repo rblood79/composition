@@ -15,7 +15,7 @@ import {
   SkiaPresentationProjectionIndexBuilder,
   type SkiaPresentationProjectionIndex,
 } from "../../../presentation/skiaPresentationProjectionIndex";
-import { isBodyType } from "@composition/shared";
+import { isBodyType, splitSyntheticId } from "@composition/shared";
 
 export interface LayoutPublisherInput {
   bodyElement: CanvasLayoutNode | null;
@@ -289,11 +289,11 @@ function addPresentationProjection(
   }
   // canonical ref descendant는 renderer synthetic id를 protocol로 노출하지 않고
   // `<refId>/<stable path>`를 semantic target index로 환원한다.
-  const syntheticSeparator = element.id.indexOf("/");
-  if (syntheticSeparator > 0 && !element.id.startsWith("projection:")) {
+  const syntheticParts = splitSyntheticId(element.id);
+  if (syntheticParts && !element.id.startsWith("projection:")) {
     builder.addRefDescendantProjection(
-      element.id.slice(0, syntheticSeparator),
-      element.id.slice(syntheticSeparator + 1),
+      syntheticParts.rootId,
+      syntheticParts.pathKey,
       element.id,
     );
   }

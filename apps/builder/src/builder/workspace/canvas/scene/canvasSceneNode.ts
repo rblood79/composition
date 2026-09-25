@@ -27,6 +27,7 @@ import {
   resolveVisibleVariablesForElement,
   type StateTemplateEnv,
   isBodyType,
+  hasSyntheticIdPath,
 } from "@composition/shared";
 // ADR-148 Phase 0 — slotRole 공용 vocabulary (설계도 §2-1, builder-local 상수 re-home).
 // ADR-159 P2 — 행 텍스트 `{field}` 템플릿 단일 resolver (G2: consumer 자체 파싱 금지).
@@ -3643,7 +3644,7 @@ export function appendRefInstanceChildProjections(
       const sourceNode =
         (node.sourceNode as CanonicalNode | undefined) ??
         (node as unknown as CanonicalNode);
-      if (sourceNode.type !== "ref" && !node.id.includes("/")) continue;
+      if (sourceNode.type !== "ref" && !hasSyntheticIdPath(node.id)) continue;
       if (
         graph.nodesMap.has(toCollectionRowsGroupProjectionId("table", node.id))
       ) {
@@ -3665,7 +3666,7 @@ export function appendRefInstanceChildProjections(
       }
       continue;
     }
-    if (!node.id.includes("/")) continue;
+    if (!hasSyntheticIdPath(node.id)) continue;
     if (node.type !== "TagList" && node.type !== "TabList") continue;
     const ownerId = graph.parentById.get(node.id) ?? node.parentId;
     const owner = ownerId ? graph.nodesMap.get(ownerId) : undefined;

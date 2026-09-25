@@ -1,4 +1,10 @@
-import type { CanonicalNode, CompositionDocument } from "@composition/shared";
+import {
+  hasSyntheticIdPath,
+  splitSyntheticId,
+  SYNTHETIC_ID_SEPARATOR,
+  type CanonicalNode,
+  type CompositionDocument,
+} from "@composition/shared";
 import {
   resolveCanonicalRefTree,
   type ResolvedCanonicalRefTree,
@@ -25,14 +31,12 @@ import {
  * 문서 참조당 instance 별 1회 해소 (WeakMap). 문서 mutation 은 참조 교체라 캐시가 자연 무효.
  */
 
-const SYNTHETIC_SEPARATOR = "/";
-
 export function isSyntheticDescendantId(
   elementId: string | null | undefined,
 ): elementId is string {
   return (
     typeof elementId === "string" &&
-    elementId.includes(SYNTHETIC_SEPARATOR) &&
+    hasSyntheticIdPath(elementId) &&
     !elementId.startsWith("projection:") &&
     !elementId.includes("::page-frame::")
   );
@@ -43,8 +47,7 @@ export function getSyntheticDescendantRootId(
   elementId: string | null | undefined,
 ): string | null {
   if (!isSyntheticDescendantId(elementId)) return null;
-  const separator = elementId.indexOf(SYNTHETIC_SEPARATOR);
-  return separator > 0 ? elementId.slice(0, separator) : null;
+  return splitSyntheticId(elementId)?.rootId ?? null;
 }
 
 /** `<instance>/<path>` 의 path (descendants 키 — 바깥 instance 기준 전체 path). */
@@ -52,8 +55,7 @@ export function getSyntheticDescendantPathKey(
   elementId: string | null | undefined,
 ): string | null {
   if (!isSyntheticDescendantId(elementId)) return null;
-  const separator = elementId.indexOf(SYNTHETIC_SEPARATOR);
-  const path = elementId.slice(separator + 1);
+  const path = elementId.slice(elementId.indexOf(SYNTHETIC_ID_SEPARATOR) + 1);
   return path.length > 0 ? path : null;
 }
 

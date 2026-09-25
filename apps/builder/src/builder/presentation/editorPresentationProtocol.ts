@@ -4,6 +4,7 @@ import type {
   EditorMutationDescriptor,
   EditorPresentationTargetRef,
 } from "./editorPresentationTypes";
+import { hasSyntheticIdPath } from "@composition/shared";
 
 export interface UpdateCanonicalDocumentMessage {
   readonly type: "UPDATE_CANONICAL_DOCUMENT";
@@ -91,14 +92,14 @@ function isSemanticTarget(
   if (value.kind === "canonical-node") {
     return (
       isNonEmptyString(value.nodeId) &&
-      !value.nodeId.includes("/") &&
+      !hasSyntheticIdPath(value.nodeId) &&
       !value.nodeId.startsWith("projection:")
     );
   }
   if (value.kind !== "ref-descendant") return false;
   return (
     isNonEmptyString(value.refId) &&
-    !value.refId.includes("/") &&
+    !hasSyntheticIdPath(value.refId) &&
     !value.refId.startsWith("projection:") &&
     isNonEmptyString(value.pathKey) &&
     !value.pathKey.startsWith("projection:")

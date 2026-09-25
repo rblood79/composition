@@ -61,7 +61,7 @@ export interface PlacementEditContext {
 /**
  * Home = **첫 사용자 페이지** (시스템 페이지 제외). 이동 불가 — placement 를 갖지 않는다.
  *
- * `isSystemPage` 는 호출자가 준다 (`isComponentsPageMirror`) — 이 모듈은 페이지 정체를
+ * `isSystemPage` 는 호출자가 준다 (`isComponentsPage`) — 이 모듈은 페이지 정체를
  * 모른다. 주지 않으면 첫 페이지가 Home 이며, 그 경로는 테스트 fixture 전용이다.
  */
 export function resolveHomePageId<T extends { id: string }>(

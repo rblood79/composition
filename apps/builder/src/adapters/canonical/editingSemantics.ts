@@ -1,3 +1,4 @@
+import { getSyntheticAncestorIds } from "@composition/shared";
 export type EditingSemanticsRole = "origin" | "instance";
 export type EditingSemanticsOverrideItem = {
   descendantPath?: string;
@@ -142,12 +143,9 @@ export function getEditingSlotMarkerRole(
         : null;
   }
 
-  if (typeof candidate.id === "string" && candidate.id.includes("/")) {
-    const segments = candidate.id.split("/");
-    while (segments.length > 1) {
-      segments.pop();
-      const ancestor = elementsById.get(segments.join("/"));
-      const role = getEditingSemanticsRole(ancestor);
+  if (typeof candidate.id === "string") {
+    for (const ancestorId of getSyntheticAncestorIds(candidate.id)) {
+      const role = getEditingSemanticsRole(elementsById.get(ancestorId));
       if (role) return role;
     }
   }

@@ -58,6 +58,7 @@ import {
   presentationGapLonghands,
   presentationPaddingLonghands,
 } from "./editorPresentationStyleNormalization";
+import { hasSyntheticIdPath, splitSyntheticId } from "@composition/shared";
 
 interface IndexedCanonicalNode {
   readonly indexPath: readonly number[];
@@ -253,16 +254,18 @@ export function resolveEditorPresentationTarget(
   projectId: string,
   selectedElementId: string,
 ): EditorPresentationTargetRef | null {
-  if (!selectedElementId.includes("/")) {
+  if (!hasSyntheticIdPath(selectedElementId)) {
     const target = {
       kind: "canonical-node",
       nodeId: selectedElementId,
     } as const;
     return getEditorPresentationTargetNode(projectId, target) ? target : null;
   }
-  const separator = selectedElementId.indexOf("/");
-  const refId = selectedElementId.slice(0, separator);
-  const pathKey = selectedElementId.slice(separator + 1);
+  // 구분자가 맨 앞이면 refId 는 빈 문자열 — 대상 노드가 없어 null 로 끝난다 (종전과 같다).
+  const { rootId: refId, pathKey } = splitSyntheticId(selectedElementId) ?? {
+    rootId: "",
+    pathKey: selectedElementId.slice(1),
+  };
   const target = { kind: "ref-descendant", refId, pathKey } as const;
   return getEditorPresentationTargetNode(projectId, target) ? target : null;
 }

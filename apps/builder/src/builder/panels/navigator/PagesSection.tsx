@@ -28,7 +28,6 @@ import { filterPagesByQuery } from "./filterPagesByQuery";
 import { getDB } from "../../../lib/db";
 import type { Page } from "../../../types/builder/unified.types";
 import { panToPage } from "../../workspace/canvas/viewport/panToPage";
-import { isComponentsPageMirror } from "../../pages/systemComponentsPage";
 import { enqueuePagePersistence } from "../../utils/pagePersistenceQueue";
 import { useCanonicalDocumentStore } from "../../stores/canonical/canonicalDocumentStore";
 import {
@@ -41,7 +40,7 @@ import { ACTION_ICONS } from "../../config/actionIcons";
 import { useI18n } from "../../../i18n";
 import { setPanelWorkspacePanelVisibility } from "../../layout/panelWorkspaceVisibility";
 import { useStateSectionFocus } from "../properties/state/stateSectionFocus";
-import { isBodyType } from "@composition/shared";
+import { isBodyType, isComponentsPage } from "@composition/shared";
 
 /** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
 const AddIcon = ACTION_ICONS.add;
@@ -225,7 +224,7 @@ export const PagesSection = memo(function PagesSection({
 
   const handlePageRename = useCallback(
     (page: Page, title: string) => {
-      if (isComponentsPageMirror(page)) return;
+      if (isComponentsPage(page)) return;
       renamePageTitle(page.id, title);
     },
     [renamePageTitle],
@@ -246,7 +245,7 @@ export const PagesSection = memo(function PagesSection({
   // 페이지 삭제 핸들러
   const handlePageDelete = useCallback(
     async (page: Page) => {
-      if (isComponentsPageMirror(page)) return;
+      if (isComponentsPage(page)) return;
 
       const currentState = useStore.getState();
       const deletingCurrentPage = currentState.currentPageId === page.id;
@@ -429,7 +428,7 @@ export const PagesSection = memo(function PagesSection({
             const target = event.target;
             if (target instanceof HTMLElement && target.closest("input"))
               return;
-            if (isComponentsPageMirror(singlePage)) return;
+            if (isComponentsPage(singlePage)) return;
             singlePageRenameCancelRef.current = false;
             setIsRenamingSinglePage(true);
           }}
@@ -472,7 +471,7 @@ export const PagesSection = memo(function PagesSection({
               singlePage.title || "Untitled"
             )}
           </div>
-          {!isComponentsPageMirror(singlePage) && (
+          {!isComponentsPage(singlePage) && (
             <div className="elementItemActions">
               <ActionIconButton
                 aria-label={`Settings for ${singlePage.title || "Untitled"}`}

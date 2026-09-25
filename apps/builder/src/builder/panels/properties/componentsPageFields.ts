@@ -1,5 +1,5 @@
 import type { ResolvedField } from "@composition/shared";
-import { COMPONENTS_SYSTEM_PAGE_ID } from "../../pages/systemComponentsPage";
+import { isOnComponentsPage } from "@composition/shared";
 
 /**
  * Components 페이지는 등록된 컴포넌트 (origin) 를 테마처럼 손보는 자리다 — collection 의 외부 데이터
@@ -8,16 +8,10 @@ import { COMPONENTS_SYSTEM_PAGE_ID } from "../../pages/systemComponentsPage";
  * (Data 절 + 「새 테이블」 액션) 를 뺀다. 정적 `items` 편집 (chip/행의 견본) 은 그대로 — origin 의 시각
  * 견본이고 instance 가 상속한다.
  */
-export function isComponentsPageNode(
-  node: { page_id?: string | null } | null | undefined,
-): boolean {
-  return node?.page_id === COMPONENTS_SYSTEM_PAGE_ID;
-}
-
 export function omitDataBindingOnComponentsPage<T extends ResolvedField>(
   fields: readonly T[],
   node: { page_id?: string | null } | null | undefined,
 ): T[] {
-  if (!isComponentsPageNode(node)) return [...fields];
+  if (!isOnComponentsPage(node)) return [...fields];
   return fields.filter((field) => field.kind !== "binding");
 }

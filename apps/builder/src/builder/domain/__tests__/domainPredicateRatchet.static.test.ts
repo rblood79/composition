@@ -3,7 +3,7 @@
  *
  * 같은 판정 (body · synthetic id · Components 페이지) 을 파일마다 다시 쓰면 대소문자 · 제외
  * 조건이 갈린다 (Phase 0 인벤토리 — breakdown §8). 판정은 술어 하나를 부르고, 직접 구현은
- * 아래 상한을 넘지 못한다. 술어를 하나 옮길 때마다 그 행의 상한을 0 으로 내린다.
+ * 0 이다 (허용 목록은 사유와 함께 둔다).
  *
  * 한계 (의도): 문자열 패턴 가드라 별칭 변수를 거친 비교는 못 잡는다. 목적은 재도입을 리뷰
  * 신호로 올리는 것이다.
@@ -93,21 +93,31 @@ describe("ADR-236 도메인 술어 ratchet", () => {
     expect(format(hits)).toBe("");
   });
 
-  it("synthetic id — `/` 직접 파싱은 Phase 0 상한 이하", () => {
+  it("synthetic id — `/` 직접 파싱 0 (shared syntheticId 경유)", () => {
     const hits = findHits(
       [BUILDER_SRC],
       /(\.id|Id)\.(includes|indexOf|split|lastIndexOf)\(\s*["']\/["']\s*\)/,
     );
-    expect(hits.length, format(hits)).toBeLessThanOrEqual(9);
+    expect(format(hits)).toBe("");
   });
 
-  it("Components 페이지 — 판정 헬퍼 · pageRole 직접 비교는 Phase 0 상한 이하", () => {
+  it("Components 페이지 — 판정은 shared isComponentsPage 하나", () => {
+    const allow = new Set([
+      "src/domain/componentsPage.ts",
+      // export HTML 에 박히는 인라인 런타임 스크립트 문자열 — import 불가.
+      "src/utils/export.utils.ts",
+    ]);
     const helpers = findHits(
       [BUILDER_SRC, SHARED_SRC],
-      /function isComponentsPage\w*\s*\(/,
+      /function is\w*ComponentsPage\w*\s*\(/,
+      new Set(["src/domain/componentsPage.ts"]),
     );
-    const direct = findHits([BUILDER_SRC, SHARED_SRC], /pageRole\s*(===|!==)/);
-    expect(helpers.length, format(helpers)).toBeLessThanOrEqual(4);
-    expect(direct.length, format(direct)).toBeLessThanOrEqual(3);
+    const direct = findHits(
+      [BUILDER_SRC, SHARED_SRC],
+      /pageRole\s*(===|!==)|(===|!==)\s*(COMPONENTS_SYSTEM_PAGE_ID|COMPONENTS_PAGE_SLUG|COMPONENTS_PAGE_ROLE)\b/,
+      allow,
+    );
+    expect(format(helpers)).toBe("");
+    expect(format(direct)).toBe("");
   });
 });

@@ -5,7 +5,11 @@ import { create } from "zustand";
 import { StateCreator } from "zustand";
 import type { StoredMenuItem } from "@composition/specs";
 import type { SerializedDataBinding } from "@composition/shared";
-import { isVariableDefList, isBodyType } from "@composition/shared";
+import {
+  isVariableDefList,
+  isBodyType,
+  isComponentsPage,
+} from "@composition/shared";
 import { Element, ComponentElementProps } from "../../types/core/store.types";
 import { Page } from "../../types/builder/unified.types";
 import {
@@ -558,7 +562,6 @@ import {
 } from "./canonical/pageTitleMutation";
 import { setActiveCanonicalPageState } from "./canonical/pageStateMutation";
 import { enqueuePagePersistence } from "../utils/pagePersistenceQueue";
-import { isComponentsPageMirror } from "../pages/systemComponentsPage";
 import { resolveAutoPageColumnCount } from "../workspace/canvas/pageLayoutConstants";
 import { readPageFrameSize } from "../workspace/canvas/scene/pageFrameSize";
 import { useViewportSyncStore } from "../workspace/canvas/stores/viewportSync";
@@ -602,7 +605,7 @@ export function resolveSystemPageIds(
 ): ReadonlySet<string> {
   const ids = new Set<string>();
   for (const page of pages) {
-    if (isComponentsPageMirror(page)) ids.add(page.id);
+    if (isComponentsPage(page)) ids.add(page.id);
   }
   return ids;
 }
@@ -1284,7 +1287,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
 
       const state = get();
       const page = state.pages.find((candidate) => candidate.id === pageId);
-      if (!page || isComponentsPageMirror(page) || page.title === title) {
+      if (!page || isComponentsPage(page) || page.title === title) {
         return false;
       }
 

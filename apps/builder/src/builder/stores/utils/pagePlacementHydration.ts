@@ -17,7 +17,6 @@ import type {
 } from "@composition/shared";
 import { BREAKPOINT_ORDER } from "../../../types/builder/responsive.types";
 import { CANVAS_VIEWPORT } from "../../workspace/canvasBreakpoints";
-import { isComponentsPageMirror } from "../../pages/systemComponentsPage";
 import { readPageFrameSize } from "../../workspace/canvas/scene/pageFrameSize";
 import {
   derivePagePositions,
@@ -30,6 +29,7 @@ import {
 } from "../../workspace/canvas/scene/pagePlacementMigration";
 import { resolveHomePageId } from "../../workspace/canvas/scene/pagePlacementEdit";
 import type { Page } from "../../../types/core/store.types";
+import { isComponentsPage } from "@composition/shared";
 
 /** `readPageFrameSize` 가 읽는 최소 모양 (store `elementsMap` · scene node 둘 다 만족). */
 interface BodyLookupNode {
@@ -67,7 +67,7 @@ function buildPageSizes(
   const tier = CANVAS_VIEWPORT[breakpoint];
   const sizes: Record<string, { width: number; height: number }> = {};
   for (const page of input.pages) {
-    const neutral = isComponentsPageMirror(page);
+    const neutral = isComponentsPage(page);
     sizes[page.id] = readPageFrameSize(
       page.id,
       input.elementsByPage,
@@ -97,7 +97,7 @@ export function resolvePagePlacementHydration(
   }
   const pagePositions = input.document.pagePositions;
   const systemPageIds = new Set(
-    input.pages.filter(isComponentsPageMirror).map((page) => page.id),
+    input.pages.filter(isComponentsPage).map((page) => page.id),
   );
   const hasUserPositions =
     pagePositions !== undefined &&
@@ -128,7 +128,7 @@ export function resolvePagePlacementHydration(
 
   const report = migratePagePositionsToPlacements({
     pages: input.pages,
-    homePageId: resolveHomePageId(input.pages, isComponentsPageMirror),
+    homePageId: resolveHomePageId(input.pages, isComponentsPage),
     systemPageIds,
     pagePositions: pagePositions ?? {},
     tiers: Object.fromEntries(
@@ -185,9 +185,9 @@ export function buildLegacyFallback(
   const pageLayout = input.document.pageLayout;
   const pagePositions = input.document.pagePositions ?? {};
   const systemPageIds = new Set(
-    input.pages.filter(isComponentsPageMirror).map((page) => page.id),
+    input.pages.filter(isComponentsPage).map((page) => page.id),
   );
-  const homePageId = resolveHomePageId(input.pages, isComponentsPageMirror);
+  const homePageId = resolveHomePageId(input.pages, isComponentsPage);
   const out: Partial<
     Record<BreakpointName, Record<string, PagePositionPoint>>
   > = {};

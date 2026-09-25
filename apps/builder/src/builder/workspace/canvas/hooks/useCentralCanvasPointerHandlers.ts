@@ -6,7 +6,6 @@ import {
 } from "react";
 import { useStore } from "../../../stores";
 import { readPageFrameSize } from "../scene/pageFrameSize";
-import { isComponentsPageMirror } from "../../../pages/systemComponentsPage";
 import { useViewportSyncStore } from "../stores";
 import type {
   BoundingBox,
@@ -37,7 +36,7 @@ import { observe, PERF_LABEL } from "../../../utils/perfMarks";
 import type { CanvasInteractionNode } from "../interaction/interactionNode";
 import type { CanvasGestureSession } from "../interaction/canvasGestureSession";
 import { dismissCanvasSelectionPanels } from "../../../layout/panelWorkspaceVisibility";
-import { isBodyType } from "@composition/shared";
+import { isBodyType, isComponentsPage } from "@composition/shared";
 
 interface ModifierState {
   ctrlKey: boolean;
@@ -328,7 +327,7 @@ export function useCentralCanvasPointerHandlers({
       const pageContentHeights =
         useViewportSyncStore.getState().pageContentHeights;
       const neutralPageIds = new Set(
-        state.pages.filter(isComponentsPageMirror).map((p) => p.id),
+        state.pages.filter(isComponentsPage).map((p) => p.id),
       );
       const pageSizeReader = (pageId: string) =>
         readPageFrameSize(

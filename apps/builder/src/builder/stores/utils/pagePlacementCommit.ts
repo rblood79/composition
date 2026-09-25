@@ -15,7 +15,10 @@ import type {
   PagePlacement,
   PagePositionPoint,
 } from "@composition/shared";
-import { PAGE_PLACEMENT_STYLE_KEYS } from "@composition/shared";
+import {
+  PAGE_PLACEMENT_STYLE_KEYS,
+  isComponentsPage,
+} from "@composition/shared";
 import { useStore } from "../index";
 import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
 import { persistActiveCanonicalDocument } from "../canonical/persistActiveCanonicalDocument";
@@ -35,7 +38,6 @@ import {
   type PagePlacementEditEntry,
   type PlacementEditContext,
 } from "../../workspace/canvas/scene/pagePlacementEdit";
-import { isComponentsPageMirror } from "../../pages/systemComponentsPage";
 import { getDB } from "../../../lib/db";
 import {
   buildLegacyFallback,
@@ -92,7 +94,7 @@ export function buildPlacementEditContext(
   const { canvasSize, pageContentHeights } = useViewportSyncStore.getState();
   const pageSizes: Record<string, { width: number; height: number }> = {};
   for (const page of state.pages) {
-    const neutral = isComponentsPageMirror(page);
+    const neutral = isComponentsPage(page);
     pageSizes[page.id] = readPageFrameSize(
       page.id,
       state.pageIndex.elementsByPage,
@@ -113,7 +115,7 @@ export function buildPlacementEditContext(
     pageLayout,
     activeBreakpoint,
     systemPageIds: new Set(
-      state.pages.filter(isComponentsPageMirror).map((page) => page.id),
+      state.pages.filter(isComponentsPage).map((page) => page.id),
     ),
     legacyPositions: doc?.pagePositions,
   });
@@ -123,7 +125,7 @@ export function buildPlacementEditContext(
   return {
     pages: state.pages,
     // store 순서는 시스템 Components 페이지가 앞에 온다 — Home 은 첫 **사용자** 페이지다.
-    homePageId: resolveHomePageId(state.pages, isComponentsPageMirror),
+    homePageId: resolveHomePageId(state.pages, isComponentsPage),
     positions,
     pageSizes,
     layout: resolvePageLayout(pageLayout, activeBreakpoint),
@@ -257,7 +259,7 @@ export function isPagePlacementEditable(pageId: string): boolean {
   const pages = useStore.getState().pages;
   return isPlacementEditable(
     pageId,
-    resolveHomePageId(pages, isComponentsPageMirror),
+    resolveHomePageId(pages, isComponentsPage),
   );
 }
 

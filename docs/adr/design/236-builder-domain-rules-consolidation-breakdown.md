@@ -154,7 +154,18 @@ builder 스위트: 7,309 중 실패 6. 전부 이번 작업 전부터 있던 것
 | 술어         | 상태                  | 내용                                                                                                                                                                                                                                                                  |
 | ------------ | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `isBodyType` | 완료 (2026-09-25)     | shared `domain/predicates.ts` (대소문자 무시). builder · shared 직접 비교 92 + shared 4 → 0, 로컬 헬퍼 12 → 0 (합성 술어 `isFrameBodyElement` 만 남김). ratchet `builder/domain/__tests__/domainPredicateRatchet.static.test.ts` — 직접 비교 재도입 시 RED 확인. publish (`useBodyElement.ts:52`) 는 범위 밖 |
-| synthetic id | 대기 (상한 9)         | rebase 뒤 `canvasSceneNode.ts` 가 1행 늘어 Phase 0 의 8 → 9                                                                                                                                                                                                           |
-| Components 페이지 | 대기 (헬퍼 4 · 직접 비교 3) |                                                                                                                                                                                                                                                                       |
+| synthetic id | 완료 (2026-09-25) | shared `domain/syntheticId.ts` — 구분자 · `hasSyntheticIdPath` · `splitSyntheticId` · `getSyntheticAncestorIds` (문자열 형태만). builder 직접 파싱 9행 → 0, `syntheticDescendantLookup` 도 이 원시 함수 위로. 호출처별 projection 제외 조건 (`projection:` · `::page-frame::`) 은 그대로 둔다 — 아래 후속 |
+| Components 페이지 | 완료 (2026-09-25) | shared `domain/componentsPage.ts` — `isComponentsPage` (pageRole · 시스템 id · slug) + 입력 어댑터 `componentsPageFieldsOfNode` · 소속 판정 `isOnComponentsPage`. 상수 3개 (`COMPONENTS_PAGE_ROLE` · `COMPONENTS_PAGE_SLUG` · `COMPONENTS_SYSTEM_PAGE_ID`) 도 이 파일로. 헬퍼 4 → 1, 허용 목록은 export HTML 인라인 스크립트 (`export.utils.ts`) 하나 |
 
 `isBodyType` 커밋의 동작 차이: 대소문자를 그대로 비교하던 43행이 `"Body"` 도 body 로 본다. 대문자 입력은 export 런타임 모델 안에서만 생기고 (`export.utils.ts:405` 가 `"body"` 로 정규화), `elementIndexer` 의 `rootsByPage` 는 소비처 0 이다. builder 스위트 실패 집합은 커밋 전후 같다 (`adr238Phase3.pickers` · `textAxisGate` — 이 커밋을 뺀 상태에서도 실패). 옛 소스 문자열을 검사하던 static 테스트 2개 (`BuilderCore.static` · `styleReadCanonical.static`) 는 새 형태로 갱신.
+
+synthetic id · Components 페이지 커밋의 동작 차이:
+
+- synthetic id: 0. 각 호출처의 제외 조건을 그대로 옮겼다.
+- Components 페이지: role 만 보던 shared 2곳 (`isRuntimePageNode` · preview `App.tsx`) 과 metadata slug 를 정확히 비교하던 builder `repairComponentsPageNode` 탐색이 이제 id · 정규화 slug 도 본다. 차이는 `pageRole` 이 없는 (repair 전) 문서에서만 나고, builder 는 문서를 열 때 repair 한다. builder 스위트 실패 0, shared 는 기존 catalog `Modal` 1건.
+
+Phase 1 후속 (범위 기준으로 남긴 것):
+
+- synthetic id 의 projection 제외 조건 통일 — `editingSemantics.ts` (제외 없음) · `rendererInput.ts` (`projection:` 만) · `canvasSceneNode.ts` · `editorPresentation*` 가 정본 `isSyntheticDescendantId` 와 다르다. page-frame id (`page::page-frame::<frame 요소 id>`) 는 frame 요소가 synthetic 이면 `/` 를 품어 통일은 동작 변경이다 → Phase 3 또는 별도 커밋 + live.
+- `slotHostPolicy.ts:79,109,137` 의 `reusable || systemOwned` 는 system origin 판정이 아니라 "slot 정책이 켜지는 origin" 판정 — 이름 분리.
+- `typeof x.ref === "string"` 정본 파일 밖 7행 · `getEditingSemanticsOriginId` 합치기 (`resolveOriginRef`).

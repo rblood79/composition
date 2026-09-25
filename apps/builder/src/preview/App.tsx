@@ -34,7 +34,8 @@ import {
   adaptElementStyle,
   collectResponsiveCss,
   getCatalogCutoverTypes,
-  isComponentsPageMetadata,
+  isComponentsPage,
+  componentsPageFieldsOfNode,
   isRuntimePageNode,
   resolveBodyDomClassName,
   resolveBodyDomPresentation,
@@ -1237,7 +1238,7 @@ function CanvasContent() {
                 : node.id;
             return (
               resolvedPageId === currentPageId &&
-              isComponentsPageMetadata(node.metadata)
+              isComponentsPage(componentsPageFieldsOfNode(node))
             );
           });
         if (isComponentsSystemPage) {

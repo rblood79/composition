@@ -4,11 +4,13 @@ import {
   type CanonicalNode,
   type CompositionDocument,
   isEditorPageNode,
-  isComponentsPageMetadata,
   isBodyType,
+  isComponentsPage,
+  componentsPageFieldsOfNode,
+  COMPONENTS_SYSTEM_PAGE_ID,
 } from "@composition/shared";
 
-export const COMPONENTS_SYSTEM_PAGE_ID = "page-components";
+export { COMPONENTS_SYSTEM_PAGE_ID };
 export const COMPONENTS_SYSTEM_PAGE_TITLE = "Components";
 export const COMPONENTS_SYSTEM_BODY_ID = "page-components-body";
 
@@ -19,11 +21,6 @@ type PageLike = {
   pageRole?: unknown;
   systemOwned?: unknown;
 };
-
-function normalizeSlug(slug: string | null | undefined): string {
-  if (!slug) return "";
-  return slug.startsWith("/") ? slug : `/${slug}`;
-}
 
 // 시스템 페이지 body 기본 style — overflow:auto 를 **실제 props.style 로** 부여.
 //   Why: 스크롤 동작/렌더/휠 4 소비자(fullTreeLayout GAP4 maxScroll / buildSpecNodeData
@@ -84,18 +81,8 @@ function ensureBodyOverflowAuto(
   return mutated ? next : children;
 }
 
-export function isComponentsPageMirror(page: PageLike): boolean {
-  return (
-    page.pageRole === COMPONENTS_PAGE_ROLE ||
-    (page.systemOwned === true &&
-      normalizeSlug(page.slug) === COMPONENTS_PAGE_SLUG) ||
-    page.id === COMPONENTS_SYSTEM_PAGE_ID ||
-    normalizeSlug(page.slug) === COMPONENTS_PAGE_SLUG
-  );
-}
-
 export function countUserPagesForAutoName(pages: PageLike[]): number {
-  return pages.filter((page) => !isComponentsPageMirror(page)).length;
+  return pages.filter((page) => !isComponentsPage(page)).length;
 }
 
 function createComponentsPageNode(): CanonicalNode {
@@ -150,17 +137,6 @@ function createFallbackHomePageNode(): CanonicalNode {
   };
 }
 
-function isComponentsPageNodeCandidate(node: CanonicalNode): boolean {
-  const metadata = node.metadata;
-  return (
-    isComponentsPageMetadata(metadata) ||
-    node.id === COMPONENTS_SYSTEM_PAGE_ID ||
-    (metadata?.systemOwned === true &&
-      metadata.slug === COMPONENTS_PAGE_SLUG) ||
-    metadata?.slug === COMPONENTS_PAGE_SLUG
-  );
-}
-
 function repairComponentsPageNode(node: CanonicalNode): CanonicalNode {
   const metadata = {
     ...(node.metadata ?? { type: "legacy-page" }),
@@ -189,7 +165,7 @@ export function ensureComponentsSystemPage(
   document: CompositionDocument,
 ): CompositionDocument {
   const existingComponentsIndex = document.children.findIndex(
-    isComponentsPageNodeCandidate,
+    (node: CanonicalNode) => isComponentsPage(componentsPageFieldsOfNode(node)),
   );
   const componentsNode =
     existingComponentsIndex >= 0

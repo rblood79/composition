@@ -126,6 +126,7 @@ import {
   getElementDataBinding,
   resolveStoreCollection,
   isBodyType,
+  isComponentsPage,
 } from "@composition/shared";
 import { resolveCollectionBadgeStatus } from "../../panels/datatable/utils/collectionBadgeStatus";
 import type {
@@ -166,7 +167,6 @@ import {
   resolveAutoPageColumnCount,
   resolvePageLayoutBounds,
 } from "./pageLayoutConstants";
-import { isComponentsPageMirror } from "../../pages/systemComponentsPage";
 import { CANVAS_VIEWPORT } from "../canvasBreakpoints";
 
 import { useGPUProfiler } from "./utils/gpuProfilerCore";
@@ -615,7 +615,7 @@ export function BuilderCanvas({
     if (!isDerivedPlacement) return EMPTY_PAGE_FRAME_SIZES;
     const sizes: Record<string, { width: number; height: number }> = {};
     for (const page of pages) {
-      const neutral = isComponentsPageMirror(page);
+      const neutral = isComponentsPage(page);
       sizes[page.id] = readPageFrameSize(
         page.id,
         scenePageIndex.elementsByPage,
@@ -903,7 +903,7 @@ export function BuilderCanvas({
       .map((page) => {
         // ADR-231 — Components 페이지는 breakpoint 뷰포트 대신 desktop 상수 (1920×1080) 로
         //   레이아웃한다. dimension key 도 상수라 breakpoint 전환만으로는 캐시 miss 0.
-        const neutral = isComponentsPageMirror(page);
+        const neutral = isComponentsPage(page);
         const input = buildPageLayoutPublisherInput({
           elementById,
           pageHeight: neutral ? CANVAS_VIEWPORT.desktop.height : pageHeight,
@@ -1732,7 +1732,7 @@ export function BuilderCanvas({
       const page = useStore
         .getState()
         .pages.find((candidate) => candidate.id === pageId);
-      return Boolean(page) && !isComponentsPageMirror(page!);
+      return Boolean(page) && !isComponentsPage(page!);
     },
     [isFrameEditMode],
   );
