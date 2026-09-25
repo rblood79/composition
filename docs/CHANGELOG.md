@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **팔레트로 넣은 Card · Form · Tabs · ListBox · TextField · Select 등에서 padding · gap 드래그 핸들이 나오지 않던 문제를 고쳤다.** 이 요소들은 origin instance 로 배치되는데 캔버스 spacing 판정이 instance 의 origin 타입과 엔진이 배치한 자식을 읽지 못했다. 드래그 값은 instance 자신의 style 에 저장되고 origin 은 바뀌지 않는다 (ADR-222 후속).
 - **padding 드래그 방향이 bottom 외 세 변에서 반대로 동작하던 문제를 고쳤다.** 이제 값이 커질 때 실제로 움직이는 띠 가장자리가 포인터를 따라간다 — top · left 는 안쪽으로 끌면 커지고, bottom · right 는 박스가 그 축으로 내용에 맞춰 늘어나면 바깥으로, 크기가 고정이면 안쪽으로 끌면 커진다.
 
+### Changed
+
+- **padding · gap 은 핸들만 끌 수 있다.** 여백 띠 영역 전체가 드래그 대상이라 그 위에서 요소를 잡아 옮길 수 없었다. 띠 영역은 hover 사선 표시만 하고 누르면 일반 선택 · 이동으로 동작하며, resize 커서와 드래그 · 클릭 입력은 핸들에서만 열린다.
+
 ## [컴포넌트 기본 스타일 — catalog 소비 통합] - 2026-09-26
 
 ### Fixed

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildSpacingBands,
   hitTestSpacingBands,
+  hitTestSpacingHandles,
   resolveSpacingHandleRect,
   spacingDeltaFromPointer,
 } from "./spacingGeometry";
@@ -223,6 +224,20 @@ describe("hitTestSpacingBands", () => {
     });
     // content area (inside all paddings)
     expect(hitTestSpacingBands({ x: 250, y: 280 }, bands, 1)).toBeNull();
+  });
+
+  it("drag target = handle square only — band area away from the handle is not draggable (2026-09-26)", () => {
+    const top = bands.find((b) => b.id === "padding:top")!;
+    const cx = top.rect.x + top.rect.width / 2;
+    const cy = top.rect.y + top.rect.height / 2;
+    expect(hitTestSpacingHandles({ x: cx + 5, y: cy + 5 }, bands, 1)).toBe(top);
+    // 띠 영역 (핸들 밖) · 코너 · content → 드래그 대상 아님
+    expect(hitTestSpacingHandles({ x: 110, y: 300 }, bands, 1)).toBeNull();
+    expect(hitTestSpacingHandles({ x: 102 + 5, y: 202 + 5 }, bands, 1)).toBeNull();
+    expect(hitTestSpacingHandles({ x: 250, y: 280 }, bands, 1)).toBeNull();
+    // zoom 2 → 화면 12px = scene 6px
+    expect(hitTestSpacingHandles({ x: cx + 5, y: cy }, bands, 2)).toBeNull();
+    expect(hitTestSpacingHandles({ x: cx + 2, y: cy }, bands, 2)).toBe(top);
   });
 
   it("gives a zero-thickness band a minimal 4px hit strip", () => {

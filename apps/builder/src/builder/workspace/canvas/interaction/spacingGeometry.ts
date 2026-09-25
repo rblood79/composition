@@ -239,14 +239,14 @@ export interface SpacingHit {
 }
 
 /**
- * 핸들 (화면 12×12 px 정사각) → 띠 영역 (두께 0 은 최소 4 px) 순으로 판정한다.
- * 겹치면 먼저 만난 것 — 띠 배열 순서는 padding 4변 → gap 이다.
+ * 드래그 대상 판정 — 핸들 (화면 12×12 px 정사각) 만 잡힌다 (2026-09-26 사용자 지시: 띠 영역
+ * 전체가 드래그 영역이던 것을 핸들로 한정). 겹치면 먼저 만난 것 — 띠 배열 순서는 padding 4변 → gap.
  */
-export function hitTestSpacingBands(
+export function hitTestSpacingHandles(
   point: { x: number; y: number },
   bands: readonly SpacingBand[],
   zoom: number,
-): SpacingHit | null {
+): SpacingBand | null {
   const hit = SPACING_HANDLE_HIT / zoom;
   for (const band of bands) {
     const cx = band.rect.x + band.rect.width / 2;
@@ -259,9 +259,23 @@ export function hitTestSpacingBands(
         height: hit,
       })
     ) {
-      return { band, onHandle: true };
+      return band;
     }
   }
+  return null;
+}
+
+/**
+ * hover 판정 — 핸들 → 띠 영역 (두께 0 은 최소 4 px) 순. 띠 영역 hover 는 사선 표시만이고
+ * 드래그·커서는 `onHandle` 일 때뿐이다.
+ */
+export function hitTestSpacingBands(
+  point: { x: number; y: number },
+  bands: readonly SpacingBand[],
+  zoom: number,
+): SpacingHit | null {
+  const handleBand = hitTestSpacingHandles(point, bands, zoom);
+  if (handleBand) return { band: handleBand, onHandle: true };
   const minHit = SPACING_BAND_MIN_HIT / zoom;
   for (const band of bands) {
     const rect = band.rect;

@@ -7,7 +7,8 @@
  * 1. **owner 동기화** — 선택·layout publish 마다 `resolveSpacingCapability` 로 지원
  *    컨테이너를 판정해 `setSpacingOwner`. 활성 세션 중에는 교체하지 않고, 선택이
  *    바뀌면 세션을 취소한다.
- * 2. **hover** — window pointermove (RAF 스로틀) 로 띠 히트 → `setSpacingHover` + 커서.
+ * 2. **hover** — window pointermove (RAF 스로틀) 로 띠 히트 → `setSpacingHover` (사선). resize 커서는
+ *    핸들 위에서만 (2026-09-26 — 드래그 대상은 핸들뿐).
  * 3. **드래그** — BuilderCanvas 의 pointerdown capture 가 `resolveSpacingPointerDown` 을
  *    먼저 부른다. 히트면 gesture owner 를 spacing 으로 승격하고 `SpacingPresentationSession`
  *    을 연다. move 는 시작 zoom 기준 scene delta → `setDelta` (프레임당 publish 는 세션이
@@ -100,7 +101,7 @@ interface UseSpacingInteractionOptions {
 
 export interface SpacingInteractionApi {
   /**
-   * pointerdown capture 에서 호출. 띠/핸들 히트면 gesture owner 를 spacing 으로
+   * pointerdown capture 에서 호출. 핸들 히트면 gesture owner 를 spacing 으로
    * 승격하고 세션을 연 뒤 true. 코너 resize 핸들은 호출부가 먼저 거른다.
    */
   resolveSpacingPointerDown: (
@@ -365,9 +366,14 @@ export function useSpacingInteraction({
           clearHover();
           return;
         }
-        const cursor = resolveSpacingCursor(hit.band);
-        spacingHoverCursor = cursor;
-        container.style.cursor = cursor;
+        // 띠 영역 hover 는 사선만 — 끌 수 있는 곳은 핸들뿐이라 resize 커서도 핸들에서만
+        if (hit.onHandle) {
+          const cursor = resolveSpacingCursor(hit.band);
+          spacingHoverCursor = cursor;
+          container.style.cursor = cursor;
+        } else {
+          spacingHoverCursor = null;
+        }
         if (setSpacingHover(hit.band.id)) requestCanvasFrame();
       });
     };
@@ -395,7 +401,8 @@ export function useSpacingInteraction({
       if (!owner) return false;
       const zoom = useViewportSyncStore.getState().zoom;
       const hit = hitSpacing(scenePoint, zoom);
-      if (!hit) return false;
+      // 드래그·클릭 (인라인 입력) 은 핸들에서만 — 띠 영역 press 는 요소 선택·이동으로 흘린다
+      if (!hit?.onHandle) return false;
 
       // gesture owner — element 로 시작한 같은 pointer 를 spacing 으로 원자 승격
       if (

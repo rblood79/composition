@@ -351,15 +351,48 @@ try {
     dbg = await spacingDebug(page);
     if (dbg.hoveredBandId === "padding:top") break;
   }
-  const cursor = await page.evaluate(
-    () => document.querySelector(".canvas-container")?.style.cursor ?? "",
-  );
+  const readCursor = () =>
+    page.evaluate(
+      () => document.querySelector(".canvas-container")?.style.cursor ?? "",
+    );
+  const cursor = await readCursor();
+  // 드래그 대상은 핸들뿐 (2026-09-26) — 띠 영역 hover 는 사선만, resize 커서는 핸들 위에서만
   record(
-    "띠 hover → hoveredBandId padding:top + 커서 ns-resize",
-    dbg.hoveredBandId === "padding:top" && cursor === "ns-resize",
+    "띠 영역 hover → hoveredBandId padding:top (사선) · 커서 resize 아님",
+    dbg.hoveredBandId === "padding:top" && cursor !== "ns-resize",
     `${dbg.hoveredBandId} / ${cursor}`,
   );
   await page.screenshot({ path: resolve(OUT_DIR, "2-hover.png") });
+  await page.mouse.move(topPt.x, topPt.y);
+  await page.waitForTimeout(250);
+  const handleCursor = await readCursor();
+  record(
+    "핸들 hover → 커서 ns-resize",
+    handleCursor === "ns-resize",
+    handleCursor,
+  );
+  // 띠 영역 press + 이동 → spacing 세션 없음 · padding 무변경 (요소 선택·이동으로 흘린다)
+  const styleBandPress = await readStyle(page, boxId);
+  await page.mouse.move(topPt.x - 40, topPt.y);
+  await page.mouse.down();
+  await page.mouse.move(topPt.x - 40, topPt.y - 3, { steps: 2 });
+  const bandPressDbg = await spacingDebug(page);
+  await page.keyboard.press("Escape");
+  await page.mouse.up();
+  await page.waitForTimeout(400);
+  record(
+    "띠 영역 press → spacing 세션 없음 · padding 무변경",
+    bandPressDbg.session === null &&
+      bandPressDbg.active === null &&
+      JSON.stringify(await readStyle(page, boxId)) ===
+        JSON.stringify(styleBandPress),
+    JSON.stringify({ session: bandPressDbg.session, active: bandPressDbg.active }),
+  );
+  await page.evaluate(
+    (id) => window.__composition_STORE__.getState().setSelectedElement(id),
+    boxId,
+  );
+  await page.waitForTimeout(600);
 
   // 4) paddingTop 드래그 +24 (scene) — 화면 px = 24 * zoom (Styles 패널 열어 동기 강조 확인)
   await setPanel(page, "styles", true);

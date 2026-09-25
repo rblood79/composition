@@ -1552,7 +1552,7 @@ export function BuilderCanvas({
         return;
       }
 
-      // ── ADR-222: padding·gap 띠/핸들 — 코너 resize 핸들보다는 뒤, 엣지 resize 보다는
+      // ── ADR-222: padding·gap 핸들 (띠 영역은 아님 — 2026-09-26) — 코너 resize 핸들보다는 뒤, 엣지 resize 보다는
       // 앞 (breakdown §3.4). 히트면 spacing owner 로 승격하고 중앙 핸들러를 막는다.
       if (
         !canvasGestureSession.spacePressed &&
