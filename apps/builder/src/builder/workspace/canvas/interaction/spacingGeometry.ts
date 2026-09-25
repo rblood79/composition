@@ -34,6 +34,8 @@ export interface SpacingBand {
   readonly value: number;
   /** 포인터를 +축 방향으로 끌 때 값이 커지면 +1 */
   readonly sign: 1 | -1;
+  /** 드래그 중 핸들을 띠 중앙에서 조절 축으로 옮기는 거리 (scene) — `shiftDraggedHandles` */
+  readonly handleShift?: number;
 }
 
 export interface SpacingGapGeometryInput {
@@ -206,7 +208,49 @@ export function buildSpacingBands(
   return bands;
 }
 
-/** 띠 중앙의 핸들 rect (scene) — 길이·두께는 화면 px 고정 */
+/** 핸들 중심 (scene) — 띠 중앙 + 드래그 보정 (`handleShift`). 그리기·히트·인라인 입력이 같이 읽는다 */
+function spacingHandleCenter(band: SpacingBand): { x: number; y: number } {
+  const shift = band.handleShift ?? 0;
+  return {
+    x: band.rect.x + band.rect.width / 2 + (band.axis === "x" ? shift : 0),
+    y: band.rect.y + band.rect.height / 2 + (band.axis === "y" ? shift : 0),
+  };
+}
+
+/**
+ * 드래그 중 움직이는 띠의 핸들을 포인터와 1:1 로 — 값이 d 변하면 띠 중앙은 d/2 만 움직여
+ * 핸들이 포인터의 절반 속도로 따라왔다 (2026-09-26 사용자 신고). 남은 d/2 를 `sign` 방향으로
+ * 더해 핸들을 움직이는 가장자리에 붙인다. 값은 포인터와 1:1 그대로 (step · 0 하한이 핸들에도
+ * 보인다). 드래그가 끝나면 보정이 빠져 핸들은 띠 중앙으로 돌아간다.
+ *
+ * 잡은 핸들 (`grabbed`) 은 띠가 아니라 **시작 위치 + sign·값 변화량** 에 둔다 — Alt 양쪽 편집에서
+ * 반대 변 증가가 박스를 키워 띠 자체를 밀면 (hug 축의 bottom·right) 중앙 기준 보정은 포인터를
+ * 앞지른다. 값 기준이라 step · 0 하한은 그대로 보인다.
+ */
+export function shiftDraggedHandles(
+  bands: readonly SpacingBand[],
+  bandIds: readonly string[],
+  startValues: Readonly<Record<string, number>>,
+  grabbed?: { readonly bandId: string; readonly center: number },
+): readonly SpacingBand[] {
+  const moving = new Set(bandIds);
+  return bands.map((band) => {
+    const start = startValues[band.id];
+    if (!moving.has(band.id) || start === undefined) return band;
+    const delta = band.sign * (band.value - start);
+    let shift = delta / 2;
+    if (grabbed?.bandId === band.id) {
+      const center =
+        band.axis === "y"
+          ? band.rect.y + band.rect.height / 2
+          : band.rect.x + band.rect.width / 2;
+      shift = grabbed.center + delta - center;
+    }
+    return shift === 0 ? band : { ...band, handleShift: shift };
+  });
+}
+
+/** 핸들 rect (scene) — 띠 중앙 (+ 드래그 보정), 길이·두께는 화면 px 고정 */
 export function resolveSpacingHandleRect(
   band: SpacingBand,
   zoom: number,
@@ -216,8 +260,7 @@ export function resolveSpacingHandleRect(
   const thickness =
     (active ? SPACING_HANDLE_THICKNESS_ACTIVE : SPACING_HANDLE_THICKNESS) /
     zoom;
-  const cx = band.rect.x + band.rect.width / 2;
-  const cy = band.rect.y + band.rect.height / 2;
+  const { x: cx, y: cy } = spacingHandleCenter(band);
   return band.axis === "y"
     ? {
         x: cx - length / 2,
@@ -249,8 +292,7 @@ export function hitTestSpacingHandles(
 ): SpacingBand | null {
   const hit = SPACING_HANDLE_HIT / zoom;
   for (const band of bands) {
-    const cx = band.rect.x + band.rect.width / 2;
-    const cy = band.rect.y + band.rect.height / 2;
+    const { x: cx, y: cy } = spacingHandleCenter(band);
     if (
       pointInBox(point, {
         x: cx - hit / 2,

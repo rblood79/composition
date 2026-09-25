@@ -74,6 +74,13 @@ Implemented — 2026-09-17 (Proposed 09-17 → [reviews/222.md](../reviews/222.m
   (인라인 입력) 대상이었다. `hitTestSpacingHandles` (핸들 12px 정사각) 만 pointerdown 을 받고, 띠 영역 press 는
   요소 선택 · 이동으로 흘린다. 띠 영역 hover 는 사선 · 배지 표시만 남기고 resize 커서는 핸들 위에서만. live 하니스
   +2 (핸들 hover 커서 · 띠 영역 press 세션 0) → 28/29 (Preview 1 항목 제외).
+- **후속 — 드래그 중 핸들 = 포인터 (2026-09-26, 사용자 신고 "핸들 위치와 마우스 위치가 일치하지 않는다")**:
+  핸들은 띠 중앙에 그려지는데 값이 d 변하면 띠 중앙은 d/2 만 움직여 핸들이 포인터의 절반 속도였다 (실측
+  마우스 +40 → 핸들 +20, 5 띠 모두). `shiftDraggedHandles` 가 drag 중 움직이는 띠 핸들을 sign·Δv/2 옮겨 움직이는
+  가장자리에 붙이고, 잡은 핸들은 시작 중심 + sign·Δv 에 둔다 (Alt 양쪽에서 hug 축 뒤쪽 변은 반대 변 증가가 띠를
+  민다 — 보강 전 +40 앞지름). 값은 포인터 1:1 그대로. 그리기 · 히트 · 인라인 입력 anchor 가 같은
+  `resolveSpacingHandleRect` 를 읽는다. 놓으면 핸들은 띠 중앙으로 돌아간다 (끈 거리의 절반만큼). live: frame · Card
+  · frame+Alt × padding 4 + gap = 14 경우 드래그 중 편차 0.0 · 하니스 +1 (dy 0.00) → 29/30 (Preview 1 항목 제외).
 
 ## Context
 

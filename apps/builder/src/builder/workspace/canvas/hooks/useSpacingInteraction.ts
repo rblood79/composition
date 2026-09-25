@@ -83,6 +83,8 @@ interface SpacingDragState {
   readonly session: SpacingPresentationSession;
   readonly band: SpacingBand;
   readonly bandIds: readonly string[];
+  /** 시작 시 띠 값 — drag 중 핸들 보정 (`shiftDraggedHandles`) */
+  readonly startValues: Readonly<Record<string, number>>;
   readonly startClientX: number;
   readonly startClientY: number;
   readonly startZoom: number;
@@ -294,6 +296,11 @@ export function useSpacingInteraction({
       bandId: drag.band.id,
       bandIds: drag.bandIds,
       mode: "drag",
+      startValues: drag.startValues,
+      startHandleCenter:
+        drag.band.axis === "y"
+          ? drag.band.rect.y + drag.band.rect.height / 2
+          : drag.band.rect.x + drag.band.rect.width / 2,
     });
   }, []);
   const onMove = useCallback(
@@ -453,6 +460,11 @@ export function useSpacingInteraction({
         session,
         band,
         bandIds,
+        startValues: Object.fromEntries(
+          (set?.bands ?? [])
+            .filter((b) => bandIds.includes(b.id))
+            .map((b) => [b.id, b.value]),
+        ),
         startClientX: event.clientX,
         startClientY: event.clientY,
         startZoom: zoom === 0 ? 1 : zoom,

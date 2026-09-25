@@ -179,8 +179,12 @@ const handleScreenPoint = (page, bandId) =>
     if (!band) return null;
     const vp = window.__composition_VIEWPORT__();
     const rect = document.querySelector("canvas").getBoundingClientRect();
-    const cx = band.rect.x + band.rect.width / 2;
-    const cy = band.rect.y + band.rect.height / 2;
+    // 드래그 중 보정 (handleShift) 까지 — 그려지는 핸들과 같은 중심
+    const shift = band.handleShift ?? 0;
+    const cx =
+      band.rect.x + band.rect.width / 2 + (band.axis === "x" ? shift : 0);
+    const cy =
+      band.rect.y + band.rect.height / 2 + (band.axis === "y" ? shift : 0);
     return {
       x: cx * vp.zoom + vp.panOffset.x + rect.left,
       y: cy * vp.zoom + vp.panOffset.y + rect.top,
@@ -410,6 +414,14 @@ try {
   await page.waitForTimeout(300);
   dbg = await spacingDebug(page);
   const styleMid = await readStyle(page, boxId);
+  // 핸들이 포인터와 1:1 (2026-09-26 — 종전 띠 중앙이라 절반 속도로 따라왔다)
+  const topMid = await handleScreenPoint(page, "padding:top");
+  const followDy = topMid.y - (topPt.y + 24 * topPt.zoom);
+  record(
+    "드래그 중 핸들 = 포인터 위치 (편차 < 1px)",
+    Math.abs(followDy) < 1 && Math.abs(topMid.x - topPt.x) < 1,
+    `dy ${followDy.toFixed(2)}`,
+  );
   record(
     "드래그 중: active drag · 확정값 paddingTop 40 · canonical 무변경",
     dbg.active?.mode === "drag" &&

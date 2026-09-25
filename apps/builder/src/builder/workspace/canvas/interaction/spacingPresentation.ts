@@ -17,7 +17,11 @@ import type {
 } from "../../../presentation/editorPresentationSpacingCapability";
 import { getActiveSpacingSession } from "../../../presentation/editorPresentationSpacingSession";
 import { getSceneBounds, getSceneHitBounds } from "../skia/renderCommands";
-import { buildSpacingBands, type SpacingBand } from "./spacingGeometry";
+import {
+  buildSpacingBands,
+  shiftDraggedHandles,
+  type SpacingBand,
+} from "./spacingGeometry";
 
 /** press = pointerdown 이후 임계값 미만 (사선 제거·핸들 강조), drag = 이동 중, input = 인라인 입력 */
 export type SpacingActiveMode = "press" | "drag" | "input";
@@ -28,6 +32,10 @@ export interface SpacingActiveTarget {
   /** 같이 움직이는 띠 전부 (Option/Alt 양쪽 · 4변) */
   readonly bandIds: readonly string[];
   readonly mode: SpacingActiveMode;
+  /** 드래그 시작 시 띠 값 (bandId → px) — drag 중 핸들을 포인터에 붙이는 보정 입력 */
+  readonly startValues?: Readonly<Record<string, number>>;
+  /** 잡은 띠 핸들의 시작 중심 (조절 축 scene 좌표) — `shiftDraggedHandles` 의 grabbed */
+  readonly startHandleCenter?: number;
 }
 
 export interface SpacingPresentationSnapshot {
@@ -159,16 +167,26 @@ export function resolveSpacingBands(
             .filter((b): b is BoundingBox => b !== undefined),
         }
       : null;
+  const bands = buildSpacingBands({
+    ownerBounds,
+    border: owner.border,
+    padding,
+    paddingGrowth: owner.padding.supported ? owner.padding.growth : undefined,
+    gap: gapInput,
+  });
+  const active = snapshot.active;
   return {
-    bands: buildSpacingBands({
-      ownerBounds,
-      border: owner.border,
-      padding,
-      paddingGrowth: owner.padding.supported
-        ? owner.padding.growth
-        : undefined,
-      gap: gapInput,
-    }),
+    bands:
+      active?.mode === "drag" && active.startValues
+        ? shiftDraggedHandles(
+            bands,
+            active.bandIds,
+            active.startValues,
+            active.startHandleCenter === undefined
+              ? undefined
+              : { bandId: active.bandId, center: active.startHandleCenter },
+          )
+        : bands,
     clipRect: getSceneHitBounds(owner.target.nodeId) ?? null,
   };
 }
