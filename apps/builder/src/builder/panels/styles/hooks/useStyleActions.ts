@@ -25,6 +25,7 @@ import {
   resolveStyleSpecType,
 } from "./useElementStyleContext";
 import { isSyntheticDescendantId } from "../../../stores/canonical/syntheticDescendantLookup";
+import { resolveLayoutSpecPreset } from "../utils/specPresetResolver";
 
 /** Direction 토글이 style 경로에서 쓰는 display 값 — 사용자가 따로 고른 grid 등은 남긴다. */
 const DIRECTION_TOGGLE_DISPLAYS = new Set(["flex", "block"]);
@@ -75,6 +76,27 @@ function isSelectedDirectionDriven(): boolean {
       ),
     ) !== undefined
   );
+}
+
+/**
+ * 정렬 · 방향 · 간격 · 줄바꿈 토글이 함께 쓰는 `display` — 이미 `inline-flex` (인라인 또는 catalog —
+ * Button 등) 면 쓰지 않는다. `flex` 로 바꾸면 outer 가 inline → block 이 돼 block 부모 안에서 한 줄에
+ * 서던 요소가 다른 줄로 떨어진다. inner 는 둘 다 flex 라 토글 의미는 같다.
+ */
+function selectedFlexDisplayPatch(): Record<string, string> {
+  const { selectedElementId, elementsMap } = useStore.getState();
+  const node = readStyleTargetNode(selectedElementId, elementsMap);
+  const props = (node?.props ?? {}) as Record<string, unknown>;
+  const inline = (props.style as Record<string, unknown> | undefined)?.display;
+  const display =
+    typeof inline === "string" && inline
+      ? inline
+      : resolveLayoutSpecPreset(
+          resolveStyleSpecType(node, elementsMap),
+          typeof props.size === "string" ? props.size : undefined,
+          props,
+        ).display;
+  return display === "inline-flex" ? {} : { display: "flex" };
 }
 
 export function useStyleActions() {
@@ -134,7 +156,7 @@ export function useStyleActions() {
     };
 
     useStore.getState().updateSelectedStyles({
-      display: "flex",
+      ...selectedFlexDisplayPatch(),
       alignItems: alignItemsMap[value] || "flex-start",
     });
   }, []);
@@ -150,7 +172,7 @@ export function useStyleActions() {
     };
 
     useStore.getState().updateSelectedStyles({
-      display: "flex",
+      ...selectedFlexDisplayPatch(),
       justifyContent: justifyContentMap[value] || "flex-start",
     });
   }, []);
@@ -209,15 +231,10 @@ export function useStyleActions() {
         flexWrap: "",
         gap: "",
       });
-    } else if (value === "row") {
+    } else if (value === "row" || value === "column") {
       useStore.getState().updateSelectedStyles({
-        display: "flex",
-        flexDirection: "row",
-      });
-    } else if (value === "column") {
-      useStore.getState().updateSelectedStyles({
-        display: "flex",
-        flexDirection: "column",
+        ...selectedFlexDisplayPatch(),
+        flexDirection: value,
       });
     }
   }, []);
@@ -254,7 +271,7 @@ export function useStyleActions() {
         // 라벨 위치 컨테이너는 축만 매핑한다 (방향은 호출측이 prop 에서 읽어 넘긴다).
         const layoutMode: Record<string, string> = isSelectedDirectionDriven()
           ? {}
-          : { display: "flex", flexDirection };
+          : { ...selectedFlexDisplayPatch(), flexDirection };
 
         // For row: horizontal = justifyContent, vertical = alignItems
         // For column: horizontal = alignItems, vertical = justifyContent
@@ -287,7 +304,7 @@ export function useStyleActions() {
    */
   const handleJustifyContentSpacing = useCallback((value: string) => {
     useStore.getState().updateSelectedStyles({
-      ...(isSelectedDirectionDriven() ? {} : { display: "flex" }),
+      ...(isSelectedDirectionDriven() ? {} : selectedFlexDisplayPatch()),
       justifyContent: value, // space-around, space-between, space-evenly
     });
   }, []);
@@ -297,7 +314,7 @@ export function useStyleActions() {
    */
   const handleFlexWrap = useCallback((value: string) => {
     useStore.getState().updateSelectedStyles({
-      ...(isSelectedDirectionDriven() ? {} : { display: "flex" }),
+      ...(isSelectedDirectionDriven() ? {} : selectedFlexDisplayPatch()),
       flexWrap: value, // wrap, wrap-reverse, nowrap
     });
   }, []);

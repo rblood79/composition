@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Styles 패널 — Button 등 inline-flex 요소의 정렬 편집] - 2026-09-25
+
+### Fixed
+
+- **Button 처럼 한 줄에 나란히 서는 요소에서 정렬 점 · Direction · Space · Wrap 을 누르면 그 요소만 다음 줄로 떨어지던 문제** — 토글이 `display: flex` 를 함께 써서 `inline-flex` (Button · Badge 등 catalog 기본, 또는 인라인) 가 block 수준으로 바뀌었다. 이제 이미 inline-flex 면 display 를 쓰지 않는다.
+  - 위치: `panels/styles/hooks/useStyleActions.ts` (`selectedFlexDisplayPatch`)
+
 ## [Styles 패널 — Direction · Alignment 가 실제 배치 축을 표시] - 2026-09-25
 
 ### Fixed

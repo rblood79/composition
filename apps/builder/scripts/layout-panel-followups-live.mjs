@@ -191,6 +191,36 @@ try {
     report.checks.B_TextFieldInlineRow = { id, before, after };
     await page.screenshot({ path: `${OUT}/B-textfield-inline-row.png` });
   }
+  // C. block Frame 안 Button 2 개 — 정렬 점을 눌러도 inline-flex 가 유지돼 한 줄에 선다.
+  if (SECTIONS.includes("C")) {
+    const frameId = await addFromPalette(page, "frame", bodyId);
+    await seed(page, frameId, { style: { display: "block", width: "600px" } });
+    const b1 = await addFromPalette(page, "Button", frameId);
+    const b2 = await addFromPalette(page, "Button", frameId);
+    const rects = () =>
+      page.evaluate(
+        (ids) => {
+          const lm = window.__composition_LAYOUT_DEBUG__.getSharedLayoutMap();
+          return ids.map((id) => {
+            const r = lm.get(id);
+            return r ? { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width) } : null;
+          });
+        },
+        [b1, b2],
+      );
+    const before = await rects();
+    await select(page, b1);
+    await page.locator(".flex-alignment button[aria-label='Top left']").click();
+    await page.waitForTimeout(1000);
+    const after = await rects();
+    const node = await page.evaluate((id) => {
+      const el = window.__composition_STORE__.getState().elementsMap.get(id);
+      return { type: el?.type, props: el?.props };
+    }, b1);
+    const alignment = await alignmentSelected(page);
+    report.checks.C_ButtonInlineFlex = { frameId, b1, b2, before, after, node, alignment };
+    await page.screenshot({ path: `${OUT}/C-button-inline-flex.png` });
+  }
 } finally {
   await writeFile(`${OUT}/report.json`, JSON.stringify(report, null, 2));
   console.log(JSON.stringify(report, null, 2));

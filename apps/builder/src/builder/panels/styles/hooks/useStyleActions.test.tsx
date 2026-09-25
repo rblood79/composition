@@ -609,4 +609,52 @@ describe("useStyleActions", () => {
       expect(updateSelectedProperty).not.toHaveBeenCalled();
     });
   });
+
+  describe("inline-flex 보존 — outer inline 을 block 으로 바꾸지 않는다", () => {
+    function setup(type: string, style: Record<string, unknown> = {}) {
+      const updateSelectedStyles = vi.fn();
+      useStore.setState({
+        selectedElementId: "el1",
+        elementsMap: new Map<string, Element>([
+          ["el1", { id: "el1", type, props: { style } } as Element],
+        ]),
+        updateSelectedStyles,
+      });
+      return updateSelectedStyles;
+    }
+
+    it("catalog 기본이 inline-flex 인 Button — 정렬 · Direction · Space · Wrap 이 display 를 쓰지 않는다", () => {
+      const updateSelectedStyles = setup("Button");
+      const { result } = renderHook(() => useStyleActions());
+      act(() => {
+        result.current.handleFlexAlignment("centerCenter", "row");
+        result.current.handleFlexDirection("column");
+        result.current.handleJustifyContentSpacing("space-between");
+        result.current.handleFlexWrap("wrap");
+      });
+      expect(updateSelectedStyles).toHaveBeenCalledTimes(4);
+      for (const [patch] of updateSelectedStyles.mock.calls) {
+        expect(patch).not.toHaveProperty("display");
+      }
+    });
+
+    it("인라인 inline-flex 도 보존 · block 요소는 종전대로 flex 를 쓴다", () => {
+      let updateSelectedStyles = setup("frame", { display: "inline-flex" });
+      const { result } = renderHook(() => useStyleActions());
+      act(() => {
+        result.current.handleFlexAlignment("leftTop", "row");
+      });
+      expect(updateSelectedStyles.mock.calls[0][0]).not.toHaveProperty(
+        "display",
+      );
+      updateSelectedStyles = setup("frame", { display: "block" });
+      act(() => {
+        result.current.handleFlexAlignment("leftTop", "row");
+      });
+      expect(updateSelectedStyles.mock.calls[0][0]).toMatchObject({
+        display: "flex",
+      });
+    });
+  });
 });
+
