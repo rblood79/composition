@@ -175,6 +175,34 @@ describe("side-label implicit styles", () => {
     expect(parentStyle.gap).toBe(4);
   });
 
+  it.each(["Select", "NumberField", "DatePicker"])(
+    "%s side + 인라인 column 이면 입력 래퍼는 전폭 (DOM 래퍼 width 100%) · row 면 flex 가 폭을 정한다",
+    (type) => {
+      const children = [
+        makeChild("lbl", "Label"),
+        makeChild("wrap", "SelectTrigger"),
+        makeChild("err", "FieldError"),
+      ];
+      const column = applyContainer(
+        type,
+        {
+          label: "L",
+          labelPosition: "side",
+          style: { display: "flex", flexDirection: "column" },
+        },
+        children,
+      );
+      expect(getChildStyle(column, "SelectTrigger").width).toBe("100%");
+
+      const row = applyContainer(
+        type,
+        { label: "L", labelPosition: "side" },
+        children,
+      );
+      expect(getChildStyle(row, "SelectTrigger").width).toBe(undefined);
+    },
+  );
+
   it.each([
     ["ProgressBar", ["Label", "ProgressBarValue", "ProgressBarTrack"]],
     ["Meter", ["Label", "MeterValue", "MeterTrack"]],

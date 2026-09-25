@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **라벨 위치를 "옆 (side)" 으로 둔 TextField · NumberField · Select · ComboBox · DateField · DatePicker · ProgressBar · Meter · Slider 등에 인라인 `flex-direction` 이 있으면 캔버스와 Preview 가 다르게 그려지던 문제** — Preview (DOM) 는 요소의 인라인 스타일이 라벨 위치 규칙을 이겨 세로로 쌓였는데, 캔버스는 인라인을 무시하고 한 줄로 그렸다. 인라인 방향은 스타일 붙여넣기 · AI 스타일 편집 · 이전의 정렬 토글로 들어왔다. 이제 캔버스도 인라인을 따른다 (CheckboxGroup · RadioGroup · TagGroup 은 이미 그랬다). 새로 추가하는 요소에는 인라인 방향이 없어 모습이 바뀌지 않는다.
   - 위치: `workspace/canvas/layout/engines/implicitStyles.ts` (`getSideLabelParentStyle` · `sideTrackRowStyle`)
+- **옛 문서의 DateField · TimeField · DatePicker · DateRangePicker · ProgressBar · Meter · Slider 에서 라벨 위치 "옆" 이 먹지 않던 문제** — 예전 버전이 이 요소들에 넣어 둔 인라인 배치 (날짜 필드의 세로 flex · 진행 막대의 grid) 가 라벨 위치 규칙을 이겼다. 프로젝트를 열 때 그 형태의 인라인을 지운다 (다른 값은 둔다).
+- **라벨을 옆에 두고 인라인 세로 방향이 있는 Select · ComboBox · NumberField · DatePicker 의 입력 상자가 캔버스에서만 내용 폭으로 줄던 문제** — Preview 처럼 전폭으로 그린다.
+  - 위치: `adapters/canonical/fieldInlineLayoutMigration.ts` · `implicitStyles.ts` (`isSideRowLayout`)
 
 ## [Styles 패널 — grid 컨테이너의 정렬 · 간격 · 줄바꿈] - 2026-09-25
 

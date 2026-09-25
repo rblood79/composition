@@ -289,6 +289,25 @@ try {
     await setPanel(page, "styles", false);
   }
 
+  // J. DatePicker side + 인라인 flex column — 입력 래퍼가 전폭 (DOM 래퍼 width 100% 와 같게).
+  {
+    const id = await addFromPalette(page, "DatePicker", bodyId);
+    const measure = () =>
+      page.evaluate((id) => {
+        const lm = window.__composition_LAYOUT_DEBUG__.getSharedLayoutMap();
+        const root = lm.get(id);
+        const kids = [...lm.keys()]
+          .filter((k) => k.startsWith(`${id}/`) && !k.slice(id.length + 1).includes("/"))
+          .map((k) => [k.slice(id.length + 1), Math.round(lm.get(k).x), Math.round(lm.get(k).y), Math.round(lm.get(k).width)]);
+        return { rootW: root ? Math.round(root.width) : null, kids };
+      }, id);
+    await seed(page, id, { label: "Date", labelPosition: "side", style: { display: "flex", flexDirection: "column" } });
+    const sideColumn = await measure();
+    await seed(page, id, { labelPosition: "side", style: {} });
+    const sideRow = await measure();
+    report.checks.DatePickerWrapper = { id, sideColumn, sideRow };
+  }
+
   // G. instance 안 자식 (synthetic `<form>/<path>`) — Form 안 TextField 에서 Direction 이 labelPosition 을 쓴다.
   {
     const formId = await addFromPalette(page, "Form", bodyId);

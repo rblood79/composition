@@ -730,19 +730,37 @@ const B22_CSS_FULL_WIDTH_TAGS = new Set([
 //   CSS padding 형식 top right bottom left 에서 right=top(paddingY), left=paddingLeft 매핑 유지.
 
 /**
+ * side 컨테이너가 실제로 한 줄 (row) 로 놓이는가. 인라인 display · flexDirection 은 DOM 처럼 side 를
+ * 이기므로 (`getSideLabelParentStyle`), 인라인 column · block · grid 면 row 전제 주입 (래퍼 폭을 flex 에
+ * 맡김) 을 하지 않는다 — DOM 래퍼는 width 100% 로 전폭이다.
+ */
+function isSideRowLayout(
+  sideMode: boolean,
+  rawParentStyle: Record<string, unknown>,
+): boolean {
+  if (!sideMode) return false;
+  const display = rawParentStyle.display;
+  if (display !== undefined && display !== "flex" && display !== "inline-flex") {
+    return false;
+  }
+  const direction = rawParentStyle.flexDirection;
+  return direction === undefined || direction === "row" || direction === "row-reverse";
+}
+
+/**
  * field-trigger 래퍼 (SelectTrigger) 의 base-axis — row flex · 폭 100% (side 모드 제외) · gap 4. Select/ComboBox/
  * SearchField/NumberField 분기와 DatePicker/DateRangePicker 분기가 같이 쓴다 (Δ11 의도 잔존 — 한 곳). 래퍼는
  * read-only sub-part (2026-09-03 판정 A) 라 factory 인라인이 layout 에 실리지 않으므로 이 주입이 유일 채널이다.
  */
 function fieldTriggerRowStyle(
   cs: Record<string, unknown>,
-  sideMode: boolean,
+  sideRow: boolean,
 ): Record<string, unknown> {
   return {
     ...cs,
     display: cs.display ?? "flex",
     flexDirection: cs.flexDirection ?? "row",
-    width: sideMode ? cs.width : (cs.width ?? "100%"),
+    width: sideRow ? cs.width : (cs.width ?? "100%"),
     gap: cs.gap ?? 4,
   };
 }
@@ -2667,7 +2685,9 @@ export function applyImplicitStyles(
               ...cs,
               display: cs.display ?? "flex",
               flexDirection: cs.flexDirection ?? "row",
-              width: sideMode ? cs.width : (cs.width ?? "100%"),
+              width: isSideRowLayout(sideMode, rawParentStyle)
+                ? cs.width
+                : (cs.width ?? "100%"),
               gap: cs.gap ?? 4, // CSS: gap: var(--spacing-xs) = 4px
               ...withSpecPadding(cs, sizeName),
             },
@@ -2749,7 +2769,10 @@ export function applyImplicitStyles(
           props: {
             ...child.props,
             style: {
-              ...fieldTriggerRowStyle(cs, sideMode),
+              ...fieldTriggerRowStyle(
+                cs,
+                isSideRowLayout(sideMode, rawParentStyle),
+              ),
               ...withSpecPadding(cs, sizeName),
             },
           },
@@ -3504,7 +3527,13 @@ export function applyImplicitStyles(
         const cs = (child.props?.style || {}) as Record<string, unknown>;
         return {
           ...child,
-          props: { ...child.props, style: fieldTriggerRowStyle(cs, sideMode) },
+          props: {
+            ...child.props,
+            style: fieldTriggerRowStyle(
+              cs,
+              isSideRowLayout(sideMode, rawParentStyle),
+            ),
+          },
         } as CanvasLayoutNode;
       }
       if (child.type === "DateInput") {

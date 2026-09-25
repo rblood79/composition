@@ -191,3 +191,52 @@ describe("migrateFieldInlineLayout", () => {
     expect(style?.gap).toBe(4);
   });
 });
+
+describe("옛 factory 잔재 — 날짜 필드 · ProgressBar · Meter · Slider (2026-09-25)", () => {
+  // Canvas 가 side 에서도 인라인을 따르게 되며 (DOM 과 같게) 잔재가 두 렌더 모두에서 side 를 막는다.
+  it.each(["DateField", "TimeField", "DatePicker", "DateRangePicker"])(
+    "%s 의 인라인 flex column 잔재를 지운다 (그 외 인라인 보존)",
+    (type) => {
+      const out = migrateFieldInlineLayout(
+        doc([
+          node(type, "a", {
+            style: { display: "flex", flexDirection: "column", width: "240px" },
+          }),
+        ]),
+      );
+      expect(out.children[0].props?.style).toEqual({ width: "240px" });
+    },
+  );
+
+  it.each(["ProgressBar", "Meter", "Slider"])(
+    "%s 의 인라인 grid 잔재 (display · template) 를 지운다",
+    (type) => {
+      const out = migrateFieldInlineLayout(
+        doc([
+          node(type, "a", {
+            style: {
+              display: "grid",
+              gridTemplateColumns: "1fr auto",
+              gridTemplateRows: "auto auto",
+              gridTemplateAreas: '"label value" "bar bar"',
+              width: "240px",
+            },
+          }),
+        ]),
+      );
+      expect(out.children[0].props?.style).toEqual({ width: "240px" });
+    },
+  );
+
+  it("잔재 형태가 아닌 사용자 인라인은 둔다 (ProgressBar flex row · DatePicker flex row)", () => {
+    const input = doc([
+      node("ProgressBar", "a", {
+        style: { display: "flex", flexDirection: "row" },
+      }),
+      node("DatePicker", "b", {
+        style: { display: "flex", flexDirection: "row" },
+      }),
+    ]);
+    expect(migrateFieldInlineLayout(input)).toBe(input);
+  });
+});
