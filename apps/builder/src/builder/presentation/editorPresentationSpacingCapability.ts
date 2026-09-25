@@ -16,6 +16,12 @@
  * tier override 가 cascade 로 덮고 있으면 base 쓰기가 화면에 안 보이므로 편집을 열지
  * 않는다 (`cascade-shadowed`) — "편집 가능해 보이는데 아무 일도 안 일어남" 을 금지한
  * ADR-222 R5 와 같은 원칙.
+ *
+ * instance 루트 (2026-09-26 사용자 승인 — scope 확장): 팔레트 배치 요소 대부분이 `type: "ref"`
+ * 다. 쓰기는 instance 자신의 `props.style` (origin ⊕ instance patch 의 instance 쪽) 이라 origin
+ * 우회 쓰기가 아니다. 판정 입력만 instance 를 알아야 한다 — 타입은 origin 타입, 자식은 store 에
+ * 없는 synthetic 노드라 엔진이 배치한 자식 목록에서 읽는다 (`resolveSpacingOwnerStructure`).
+ * instance 안쪽 synthetic 자식 (`ref-descendant`) 은 여전히 범위 밖이다.
  */
 
 import {
@@ -37,7 +43,11 @@ import {
 } from "./editorPresentationCommitAdapter";
 import { normalizePresentationSpacingStyle } from "./editorPresentationStyleNormalization";
 import type { EditorPresentationTargetRef } from "./editorPresentationTypes";
-import { readPersistentEngineStyle } from "../workspace/canvas/layout/engines/fullTreeLayout";
+import {
+  getSharedFilteredChildrenMap,
+  readPersistentEngineStyle,
+} from "../workspace/canvas/layout/engines/fullTreeLayout";
+import { getCanonicalRefTarget } from "../../adapters/canonical/canonicalRefResolution";
 
 export type SpacingSide = "top" | "right" | "bottom" | "left";
 export const SPACING_SIDES: readonly SpacingSide[] = [
@@ -407,6 +417,45 @@ export function resolveSpacingCapabilityFromInputs(
   };
 }
 
+interface SpacingOwnerNodeLike {
+  readonly id: string;
+  readonly type: string;
+  /** instance 의 origin id (canonical `ref`) */
+  readonly ref?: string;
+}
+
+export interface SpacingOwnerStructureInputs {
+  readonly node: SpacingOwnerNodeLike;
+  readonly lookupNode: (id: string) => SpacingOwnerNodeLike | null;
+  /** store `childrenMap` 의 자식 — plain 노드의 자식 정본 */
+  readonly storeChildIds: readonly string[];
+  /** 엔진이 이 노드 아래 배치한 자식 (filtered children map) — instance 의 synthetic 자식 */
+  readonly layoutChildIds: readonly string[] | null;
+}
+
+/**
+ * 판정 입력의 타입 · 자식. instance (`ref`) 는 origin 타입 (ref 사슬 끝, 순환은 `ref` 로
+ * 끝나 not-container) 과 엔진 배치 자식을 쓴다 — store 에는 자식이 없다.
+ */
+export function resolveSpacingOwnerStructure(
+  input: SpacingOwnerStructureInputs,
+): { readonly nodeType: string; readonly childIds: readonly string[] } {
+  if (input.node.type !== "ref") {
+    return { nodeType: input.node.type, childIds: input.storeChildIds };
+  }
+  let current: SpacingOwnerNodeLike = input.node;
+  const visited = new Set<string>([current.id]);
+  while (current.type === "ref") {
+    const masterId = getCanonicalRefTarget(current);
+    if (!masterId || visited.has(masterId)) break;
+    const master = input.lookupNode(masterId);
+    if (!master) break;
+    visited.add(masterId);
+    current = master;
+  }
+  return { nodeType: current.type, childIds: input.layoutChildIds ?? [] };
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
@@ -454,19 +503,34 @@ export function resolveSpacingCapability(
     ancestorEngineStyles.push(readPersistentEngineStyle(rootKey, cursor));
     cursor = state.elementsMap.get(cursor)?.parent_id ?? null;
   }
-  const children = (state.childrenMap.get(target.nodeId) ?? []).map(
-    (child) => ({
-      id: child.id,
-      engineStyle: readPersistentEngineStyle(rootKey, child.id),
-      rawStyle: isRecord(child.props?.style) ? child.props.style : {},
-    }),
-  );
+  const storeChildren = state.childrenMap.get(target.nodeId) ?? [];
+  const structure = resolveSpacingOwnerStructure({
+    node,
+    lookupNode: (id) =>
+      getEditorPresentationTargetNode(projectId, {
+        kind: "canonical-node",
+        nodeId: id,
+      }),
+    storeChildIds: storeChildren.map((child) => child.id),
+    layoutChildIds:
+      node.type === "ref"
+        ? (getSharedFilteredChildrenMap()?.get(target.nodeId) ?? null)
+        : null,
+  });
+  const children = structure.childIds.map((id) => {
+    const storeChild = storeChildren.find((child) => child.id === id);
+    return {
+      id,
+      engineStyle: readPersistentEngineStyle(rootKey, id),
+      rawStyle: isRecord(storeChild?.props?.style) ? storeChild.props.style : {},
+    };
+  });
   const props = isRecord(element.props) ? element.props : {};
 
   return resolveSpacingCapabilityFromInputs({
     projectId,
     nodeId: target.nodeId,
-    nodeType: node.type,
+    nodeType: structure.nodeType,
     rootKey,
     rawStyle,
     engineStyle: readPersistentEngineStyle(rootKey, target.nodeId),

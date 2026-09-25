@@ -51,6 +51,17 @@ Implemented — 2026-09-17 (Proposed 09-17 → [reviews/222.md](../reviews/222.m
   코너 resize 핸들 우선 (세션 0) · Space+띠 드래그 = pan (세션 0 · canonical 무변경) · overflow:hidden 조상 밖
   bottom 띠 hover·pointerdown 없음 (clipRect 44px) · 인라인 입력 접근 이름 "Top padding". 사용자 지적 반영: 드래그
   중 값 배지는 **잡은 띠 하나** 에만 (같은 속성의 다른 gap 띠 · Option 양쪽 변은 핸들 강조만 — Figma·Framer 동형).
+- **후속 — instance 루트 확장 (2026-09-26, 사용자 승인 "넓혀")**: 사용자 신고 "padding·gap 드래그가 동작하지 않는다".
+  원인 — 팔레트 배치 요소 대부분이 origin instance (`type: "ref"`, ADR-148·228·233·234·237) 가 됐는데 capability
+  바인딩이 `node.type` ("ref") 과 store `childrenMap` (instance 자식은 synthetic 이라 비어 있다) 을 읽어
+  `not-container` / `fewer-than-two-children` 으로 띠 0개였다 (breakdown 지원표의 "ref/instance 최초 제공 제외" 가
+  명시 사유 없이 우연 차단으로 남아 있었다). 수정 — `resolveSpacingOwnerStructure` 가 instance 의 판정 입력을
+  origin 타입 (ref 사슬 끝) + 엔진 배치 자식 (`getSharedFilteredChildrenMap`, synthetic id) 으로 만든다. 쓰기는
+  instance 자신의 `props.style` 이라 origin 우회 쓰기 금지 원칙은 그대로다. instance 안쪽 synthetic 자식
+  (`ref-descendant`) 은 여전히 범위 밖. live: Card instance padding top 16→36 · gap 12→22 (gap 띠 3 · 높이 322→372)
+  · origin `component-card` style 무변경 · Undo 2 회 원복 · 팔레트 17 종 판정 (Card·Form·Tabs·ListBox·TextField·
+  Select 등 지원, GridList grid · Button leaf 는 기존 규칙대로 차단) · 기존 하니스 26/27 (Preview 간격 1 항목은
+  Compare Mode 비개방으로 제외 — 캔버스 쪽 rowGap 22 PASS).
 
 ## Context
 

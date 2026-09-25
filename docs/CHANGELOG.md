@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [캔버스 — instance 요소의 padding · gap 드래그] - 2026-09-26
+
+### Fixed
+
+- **팔레트로 넣은 Card · Form · Tabs · ListBox · TextField · Select 등에서 padding · gap 드래그 핸들이 나오지 않던 문제를 고쳤다.** 이 요소들은 origin instance 로 배치되는데 캔버스 spacing 판정이 instance 의 origin 타입과 엔진이 배치한 자식을 읽지 못했다. 드래그 값은 instance 자신의 style 에 저장되고 origin 은 바뀌지 않는다 (ADR-222 후속).
+
 ## [컴포넌트 기본 스타일 — catalog 소비 통합] - 2026-09-26
 
 ### Fixed

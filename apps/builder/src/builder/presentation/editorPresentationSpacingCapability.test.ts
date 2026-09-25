@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   resolveSpacingCapabilityFromInputs,
+  resolveSpacingOwnerStructure,
   type SpacingCapabilityInputs,
 } from "./editorPresentationSpacingCapability";
 
@@ -283,6 +284,90 @@ describe("resolveSpacingCapabilityFromInputs (ADR-222 G0 capability table)", () 
         }),
       );
       expect(cap.padding.supported).toBe(true);
+    });
+  });
+});
+
+describe("resolveSpacingOwnerStructure (instance 루트 — 2026-09-26 사용자 승인 범위 확장)", () => {
+  const nodes: Record<string, { id: string; type: string; ref?: string }> = {
+    "component-card": { id: "component-card", type: "Card" },
+    "alias-card": { id: "alias-card", type: "ref", ref: "component-card" },
+    "loop-a": { id: "loop-a", type: "ref", ref: "loop-b" },
+    "loop-b": { id: "loop-b", type: "ref", ref: "loop-a" },
+  };
+  const lookup = (id: string) => nodes[id] ?? null;
+
+  it("plain node: 자기 타입 · store 자식", () => {
+    expect(
+      resolveSpacingOwnerStructure({
+        node: { id: "f", type: "frame" },
+        lookupNode: lookup,
+        storeChildIds: ["a", "b"],
+        layoutChildIds: ["x"],
+      }),
+    ).toEqual({ nodeType: "frame", childIds: ["a", "b"] });
+  });
+
+  it("instance: origin 타입 · 엔진이 배치한 자식 (synthetic id) — store 자식은 비어 있다", () => {
+    expect(
+      resolveSpacingOwnerStructure({
+        node: { id: "i", type: "ref", ref: "component-card" },
+        lookupNode: lookup,
+        storeChildIds: [],
+        layoutChildIds: ["i/Header", "i/Content"],
+      }),
+    ).toEqual({ nodeType: "Card", childIds: ["i/Header", "i/Content"] });
+  });
+
+  it("instance: origin 이 다시 ref 면 끝까지 따라간다 · 순환은 ref 로 끝난다", () => {
+    expect(
+      resolveSpacingOwnerStructure({
+        node: { id: "i", type: "ref", ref: "alias-card" },
+        lookupNode: lookup,
+        storeChildIds: [],
+        layoutChildIds: null,
+      }),
+    ).toEqual({ nodeType: "Card", childIds: [] });
+    expect(
+      resolveSpacingOwnerStructure({
+        node: { id: "i", type: "ref", ref: "loop-a" },
+        lookupNode: lookup,
+        storeChildIds: [],
+        layoutChildIds: [],
+      }).nodeType,
+    ).toBe("ref");
+  });
+
+  it("instance 판정이 capability 까지 이어진다 — Card instance 는 padding · gap 지원", () => {
+    const structure = resolveSpacingOwnerStructure({
+      node: { id: "i", type: "ref", ref: "component-card" },
+      lookupNode: lookup,
+      storeChildIds: [],
+      layoutChildIds: ["i/Header", "i/Content"],
+    });
+    const cap = resolveSpacingCapabilityFromInputs(
+      inputs({
+        nodeId: "i",
+        nodeType: structure.nodeType,
+        engineStyle: {
+          display: "flex",
+          flexDirection: "column",
+          paddingTop: "16px",
+          rowGap: "12px",
+        },
+        children: structure.childIds.map((id) => ({
+          id,
+          engineStyle: { display: "flex" },
+          rawStyle: {},
+        })),
+      }),
+    );
+    expect(cap.padding.supported).toBe(true);
+    expect(cap.gap).toMatchObject({
+      supported: true,
+      property: "rowGap",
+      value: 12,
+      flowChildIds: ["i/Header", "i/Content"],
     });
   });
 });
