@@ -28,14 +28,21 @@ const record = (name, pass, detail) => {
   );
 };
 
+const step = (m) => console.log(`[adr239 swatch] step ${m}`);
+setTimeout(async () => {
+  step("watchdog 240s — 중단");
+  await page?.screenshot({ path: resolve(OUT, "watchdog.png") }).catch(() => {});
+  process.exit(2);
+}, 240000).unref();
+let page;
 const browser = await chromium.launch({ headless: false });
-const { page } = await createInstrumentedContext(browser, {
+({ page } = await createInstrumentedContext(browser, {
   storageState: loadStorageState(
     resolve("apps/builder/scripts/.auth-session.json"),
   ),
   cpuThrottle: 1,
   deviceScaleFactor: 1,
-});
+}));
 const errors = [];
 page.on("pageerror", (e) => errors.push(String(e.stack ?? e).slice(0, 600)));
 const { projectUrl } = await createIsolatedProject(page, BASE);
@@ -154,6 +161,7 @@ const canvasSwatches = (pickerId) =>
     });
   }, pickerId);
 
+step("compare on");
 // ── Compare Mode ON ────────────────────────────────────────────────────────
 await ev(() =>
   document
@@ -241,6 +249,7 @@ const sameGeometry = (pv, cv) =>
   );
 const radiusPx = (r) => Number.parseFloat(r);
 
+step("preview ready");
 // 1) picker instance
 const instPv = await previewSwatches("pv-csp-inst");
 const instCv = await canvasSwatches("pv-csp-inst");
@@ -297,13 +306,14 @@ await shot("pv-csp-wrap", "2b-wrap.png");
 await ev(() => {
   const st = window.__composition_STORE__.getState();
   const origin = st.elementsMap.get("component-colorswatch");
-  return st.updateElementProps("component-colorswatch", {
+  // origin 편집 영향 대화상자 (Component impact → Continue) 가 promise 를 붙잡는다 — 기다리지 않는다.
+  void st.updateElementProps("component-colorswatch", {
     style: { ...(origin?.props?.style ?? {}), borderRadius: 3 },
   });
 });
 await page.waitForTimeout(2500);
 const confirmBtn = page
-  .getByRole("button", { name: /apply|confirm|확인|적용/i })
+  .getByRole("button", { name: /^(continue|apply|confirm|확인|적용|계속)$/i })
   .first();
 if (await confirmBtn.count()) {
   await confirmBtn.click().catch(() => {});

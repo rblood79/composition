@@ -88,6 +88,13 @@
   pointer-events: none;
 }
 
+/* ── Tier 2: Composite Delegation ── */
+
+.react-aria-ColorSwatchPicker > .react-aria-ColorSwatchPickerItem {
+  display: flex;
+}
+
+
 @media (forced-colors: active) {
   .react-aria-ColorSwatch {
     forced-color-adjust: auto;

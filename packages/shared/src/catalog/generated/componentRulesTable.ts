@@ -2648,6 +2648,20 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           focusRing: "{focus.ring.default}",
         },
       },
+      // Preview ColorSwatchPicker 항목 틀 = swatch 상자 (2026-09-25 Preview 확인). RAC `ColorSwatchPickerItem` 은 block
+      //   div 이고 swatch 는 inline-flex 라 줄 상자 (line-height 24 + baseline 아래 여백) 가 생겨 항목이 28 → 35 로 커졌다
+      //   — picker 줄바꿈 2 행이 Canvas 보다 7px 아래. flex 로 두면 swatch 가 flex item 이 되어 줄 상자가 없다 (origin style 의
+      //   `display: inline-flex` 인라인도 blockify). Canvas 는 swatch 를 picker 의 직접 자식으로 쌓는다 (항목 틀 없음).
+      composition: {
+        delegation: [],
+        externalStyles: [
+          {
+            selector:
+              ".react-aria-ColorSwatchPicker > .react-aria-ColorSwatchPickerItem",
+            styles: { display: "flex" },
+          },
+        ],
+      },
     },
   },
   ColorSwatchPicker: {
@@ -7009,7 +7023,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         delegation: [],
         externalStyles: [
           {
-            selector: '.react-aria-Popover[data-trigger="MenuTrigger"][data-size]',
+            selector:
+              '.react-aria-Popover[data-trigger="MenuTrigger"][data-size]',
             styles: {
               padding: "0",
               border: "none",
@@ -7024,7 +7039,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             ],
           },
           {
-            selector: '.react-aria-Popover[data-trigger="SubmenuTrigger"][data-size]',
+            selector:
+              '.react-aria-Popover[data-trigger="SubmenuTrigger"][data-size]',
             styles: {
               padding: "0",
               border: "none",

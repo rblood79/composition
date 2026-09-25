@@ -40,6 +40,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Preview · Publish 메뉴 목록의 이중 테두리** — 메뉴 popover 가 일반 Popover 틀 (여백 16 · 테두리) 로 Menu 틀을 한 겹 더 감쌌다 (최상위 · 하위 메뉴 모두, 239 전부터). 이제 목록 틀 한 겹 (catalog Menu 규칙) 이고 그림자도 목록에. builder 크롬 메뉴는 대상 밖.
 - **Preview · Publish 에서 Menu 트리거가 놓은 자리에 그려지지 않던 문제** — Menu 에 준 위치 · 폭 (style) 이 트리거 버튼이 아니라 펼친 목록에 실려, 트리거는 문서 흐름 자리에 · 목록은 popover 밖에 따로 그려졌다 (Canvas 는 트리거를 그 자리에 그린다). 이제 style 은 트리거 버튼에 — Canvas 와 같은 자리 · 폭.
   - 위치: `packages/shared/src/components/Menu.tsx` · `packages/shared/src/catalog/generated/componentRulesTable.ts` (Menu `structure.composition.externalStyles`) · `styles/generated/Menu.css`
+- **Preview · Publish 에서 ColorSwatchPicker 가 줄바꿈하면 다음 줄이 Canvas 보다 아래에 그려지던 문제** — 항목 틀 (RAC `ColorSwatchPickerItem`) 이 swatch 28px 보다 큰 35px 이라 (줄 높이 여백) 2 행 y 가 7px 벌어지고 picker 높이도 13px 컸다 (239 전부터). 이제 항목 틀 = swatch 상자 — 크기 · 위치 · radius 가 Canvas 와 같다.
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` (ColorSwatch `structure.composition.externalStyles`) · `styles/generated/ColorSwatch.css`
   - 위치: `apps/builder/src/builder/components/tree/` · `components/colorswatch/` · `components/itemOriginSnapshots.ts` · `adapters/canonical/canonicalRefResolution.ts` · `workspace/canvas/treeItemRow.ts` · `packages/shared/src/renderers/CollectionRenderers.tsx` · `LayoutRenderers.tsx` · `components/Menu.tsx`
   - 성능: 중첩 Tree 편집의 `scene.build` p95 가 +1.3 ~ 3.5 ms (Tree 20 × 30 항목 fixture) — 항목 글자 노드만큼의 구조 비용, 사용자 판정으로 예외 (ADR-239 R4). Menu 는 +0.7 ms 이하. Preview 는 unit 으로 확인 — 사용자 확인 대상.
 
