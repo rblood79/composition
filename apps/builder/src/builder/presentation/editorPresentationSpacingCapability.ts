@@ -119,8 +119,15 @@ export type SpacingPaddingCapability =
       readonly values: SpacingBoxMetrics;
       /** raw canonical 에 있는 변 (없으면 catalog/기본값 유래) */
       readonly rawSides: ReadonlySet<SpacingSide>;
+      /** padding 을 늘리면 박스가 그 축으로 커지는가 (hug) — 드래그 부호 입력 (`resolvePaddingGrowth`) */
+      readonly growth: SpacingPaddingGrowth;
     }
   | { readonly supported: false; readonly reason: SpacingUnsupportedReason };
+
+export interface SpacingPaddingGrowth {
+  readonly x: boolean;
+  readonly y: boolean;
+}
 
 export interface SpacingCapability {
   readonly projectId: string;
@@ -274,6 +281,59 @@ function hasAutoMargin(
   return keys.some((key) => style[key] === "auto") || style.margin === "auto";
 }
 
+const INTRINSIC_SIZE_KEYWORDS: ReadonlySet<string> = new Set([
+  "auto",
+  "fit-content",
+  "max-content",
+  "min-content",
+]);
+
+function isDefiniteSize(value: unknown): boolean {
+  if (typeof value === "number") return Number.isFinite(value);
+  if (typeof value !== "string") return false;
+  const trimmed = value.trim();
+  return trimmed !== "" && !INTRINSIC_SIZE_KEYWORDS.has(trimmed);
+}
+
+/**
+ * padding 을 늘리면 박스가 그 축으로 커지는가 (hug) — 엔진 style + 부모 엔진 style 로 판정한다.
+ * 드래그 부호가 이 값을 읽는다: 움직이는 띠 가장자리가 포인터를 따라가야 한다 (2026-09-26 사용자
+ * 신고 — 고정 폭 · hug 높이 Card 에서 bottom 만 맞고 나머지가 반대였다). 박스는 시작 (좌·상)
+ * 쪽에 붙어 있다고 본다 — 부모 정렬이 center/end 로 박스를 미는 경우는 구분하지 않는다.
+ */
+export function resolvePaddingGrowth(
+  style: Readonly<Record<string, unknown>>,
+  parentStyle: Readonly<Record<string, unknown>> | null,
+): SpacingPaddingGrowth {
+  const grows = (axis: "x" | "y"): boolean => {
+    const size = axis === "x" ? style.width : style.height;
+    if (isDefiniteSize(size)) return false;
+    const intrinsic = typeof size === "string" && size.trim() !== "auto";
+    const parentDisplay = parentStyle?.display;
+    if (parentDisplay === "flex" || parentDisplay === "inline-flex") {
+      const mainIsY = String(parentStyle?.flexDirection ?? "row").startsWith(
+        "column",
+      );
+      if ((axis === "y") === mainIsY) {
+        if (Number(style.flexGrow ?? 0) > 0) return false;
+        return !isDefiniteSize(style.flexBasis);
+      }
+      if (intrinsic) return true;
+      const alignSelf = String(style.alignSelf ?? "auto");
+      const align =
+        alignSelf === "auto"
+          ? String(parentStyle?.alignItems ?? "stretch")
+          : alignSelf;
+      return align !== "stretch" && align !== "normal";
+    }
+    if (axis === "y") return true;
+    if (intrinsic) return true;
+    const display = String(style.display ?? "");
+    return display.startsWith("inline");
+  };
+  return { x: grows("x"), y: grows("y") };
+}
+
 function resolvePaddingCapability(
   input: SpacingCapabilityInputs,
   engineStyle: Readonly<Record<string, unknown>>,
@@ -308,6 +368,10 @@ function resolvePaddingCapability(
     supported: true,
     values: readBox(engineStyle, "padding"),
     rawSides,
+    growth: resolvePaddingGrowth(
+      engineStyle,
+      input.ancestorEngineStyles[0] ?? null,
+    ),
   };
 }
 

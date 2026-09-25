@@ -10,6 +10,7 @@
 import { pointInBox, type BoundingBox } from "../selection/types";
 import type {
   SpacingBoxMetrics,
+  SpacingPaddingGrowth,
   SpacingProperty,
   SpacingSide,
 } from "../../../presentation/editorPresentationSpacingCapability";
@@ -47,8 +48,12 @@ export interface SpacingGeometryInput {
   readonly ownerBounds: BoundingBox;
   readonly border: SpacingBoxMetrics;
   readonly padding: SpacingBoxMetrics | null;
+  /** padding 을 늘리면 박스가 그 축으로 커지는가 — 없으면 block 흐름 기본 (고정 폭 · hug 높이) */
+  readonly paddingGrowth?: SpacingPaddingGrowth;
   readonly gap: SpacingGapGeometryInput | null;
 }
+
+const DEFAULT_PADDING_GROWTH: SpacingPaddingGrowth = { x: false, y: true };
 
 /** 상시 핸들 길이·두께 (화면 px, breakdown §1.2 초기 제안값) */
 export const SPACING_HANDLE_LENGTH = 12;
@@ -74,6 +79,7 @@ function paddingBox(
 function buildPaddingBands(
   pb: BoundingBox,
   padding: SpacingBoxMetrics,
+  growth: SpacingPaddingGrowth,
 ): SpacingBand[] {
   const band = (
     side: SpacingSide,
@@ -95,12 +101,16 @@ function buildPaddingBands(
   // 같다, 2026-09-20 사용자 지적: 좌·우 사선이 상·하 padding 만큼 짧았다). 코너는 겹치지만
   // 히트는 배열 순서 (상·하 먼저) 라 코너 소유는 종전대로 상·하 띠다 (§3.2).
   return [
-    // 바깥쪽으로 끌면 커진다 (2026-09-17 사용자 지적 — top 은 위로, right 는 오른쪽으로)
+    // 부호 = 값이 커질 때 **움직이는 띠 가장자리** 의 방향 — 그 가장자리가 포인터를 따라간다
+    //   (2026-09-26 사용자 신고: 고정 폭 · hug 높이에서 bottom 만 맞고 나머지가 반대였다; 09-17 의
+    //   "4변 바깥 = +" 는 크기 방식을 보지 않았다). 박스는 좌·상에 붙어 있다 — top·left 는 늘리면
+    //   안쪽 가장자리가 안쪽으로 가고, bottom·right 는 그 축이 hug 면 바깥 가장자리가 바깥으로,
+    //   고정이면 안쪽 가장자리가 안쪽으로 간다.
     band(
       "top",
       { x: pb.x, y: pb.y, width: pb.width, height: padding.top },
       "y",
-      -1,
+      1,
     ),
     band(
       "bottom",
@@ -111,13 +121,13 @@ function buildPaddingBands(
         height: padding.bottom,
       },
       "y",
-      1,
+      growth.y ? 1 : -1,
     ),
     band(
       "left",
       { x: pb.x, y: pb.y, width: padding.left, height: pb.height },
       "x",
-      -1,
+      1,
     ),
     band(
       "right",
@@ -128,7 +138,7 @@ function buildPaddingBands(
         height: pb.height,
       },
       "x",
-      1,
+      growth.x ? 1 : -1,
     ),
   ];
 }
@@ -183,7 +193,15 @@ export function buildSpacingBands(
 ): readonly SpacingBand[] {
   const pb = paddingBox(input.ownerBounds, input.border);
   const bands: SpacingBand[] = [];
-  if (input.padding) bands.push(...buildPaddingBands(pb, input.padding));
+  if (input.padding) {
+    bands.push(
+      ...buildPaddingBands(
+        pb,
+        input.padding,
+        input.paddingGrowth ?? DEFAULT_PADDING_GROWTH,
+      ),
+    );
+  }
   if (input.gap) bands.push(...buildGapBands(pb, input.padding, input.gap));
   return bands;
 }

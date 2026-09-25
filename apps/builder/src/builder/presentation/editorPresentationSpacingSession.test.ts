@@ -116,6 +116,7 @@ function capability(): SpacingCapability {
       supported: true,
       values: { top: 8, right: 8, bottom: 8, left: 8 },
       rawSides: new Set(),
+      growth: { x: false, y: true },
     },
     gap: {
       supported: true,
@@ -314,6 +315,7 @@ describe("SpacingPresentationSession (ADR-222 G0 first-nail)", () => {
           supported: true,
           values: { top: 8, right: 20, bottom: 8, left: 4 },
           rawSides: new Set(),
+          growth: { x: false, y: true },
         },
       },
       kind: "padding",
@@ -346,6 +348,7 @@ describe("SpacingPresentationSession (ADR-222 G0 first-nail)", () => {
           supported: true,
           values: { top: 8, right: 20, bottom: 8, left: 4 },
           rawSides: new Set(),
+          growth: { x: false, y: true },
         },
       },
       kind: "padding",

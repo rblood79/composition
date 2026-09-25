@@ -164,6 +164,9 @@ export function resolveSpacingBands(
       ownerBounds,
       border: owner.border,
       padding,
+      paddingGrowth: owner.padding.supported
+        ? owner.padding.growth
+        : undefined,
       gap: gapInput,
     }),
     clipRect: getSceneHitBounds(owner.target.nodeId) ?? null,

@@ -157,9 +157,12 @@ reverse에서도 저장 속성은 동일하고 포인터 진행 방향만 반전
    `beginPointer`의 element 예약을 spacing으로 원자 승격한다. pan이면 승격하지 않는다.
 2. 첫 publish 전 capability와 targeted layout의 affected ancestry를 검사한다.
    계산/소비가 불가능하면 시작을 취소한다. move마다 canonical fallback하지 않는다.
-3. client delta를 시작 zoom으로 scene delta로 변환한다. padding 4변은 **바깥쪽 이동이 +**
-   (상은 위, 우는 오른쪽 — 2026-09-17 사용자 지적으로 안쪽 + 에서 뒤집음). gap은 주축 진행
-   방향이 +. 범위는 0 이상, 1px/큰 단위 step.
+3. client delta를 시작 zoom으로 scene delta로 변환한다. padding 부호는 **값이 커질 때 움직이는
+   띠 가장자리의 방향**이다 — 그 가장자리가 포인터를 따라간다 (2026-09-26 사용자 신고: 고정 폭 ·
+   hug 높이 Card 에서 bottom 만 맞고 나머지가 반대. 09-17 의 "4변 바깥 +" 는 크기 방식을 보지
+   않았다). 상·좌는 항상 안쪽 +, 하·우는 그 축이 hug 면 바깥 +, 고정 (명시 크기 · flex-grow ·
+   교차축 stretch) 이면 안쪽 + (`resolvePaddingGrowth`, 박스는 시작 쪽에 붙어 있다고 본다). gap은
+   주축 진행 방향이 +. 범위는 0 이상, 1px/큰 단위 step.
    시작 fractional 값은 무이동이면 그대로 유지하고 실제 delta에 step을 적용한다.
    수정키 집합은 pointerdown에 고정해 드래그 중 축 확장으로 값이 튀지 않게 한다.
 4. 한 RAF에 마지막 patch만 publish한다. 여러 padding 변은 동일 시작 snapshot 기준으로

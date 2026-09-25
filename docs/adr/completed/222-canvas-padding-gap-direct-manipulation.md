@@ -62,6 +62,14 @@ Implemented — 2026-09-17 (Proposed 09-17 → [reviews/222.md](../reviews/222.m
   · origin `component-card` style 무변경 · Undo 2 회 원복 · 팔레트 17 종 판정 (Card·Form·Tabs·ListBox·TextField·
   Select 등 지원, GridList grid · Button leaf 는 기존 규칙대로 차단) · 기존 하니스 26/27 (Preview 간격 1 항목은
   Compare Mode 비개방으로 제외 — 캔버스 쪽 rowGap 22 PASS).
+- **후속 — padding 드래그 부호 = 움직이는 가장자리 (2026-09-26)**: 사용자 신고 "bottom 만 정상이고 나머지는 반대".
+  09-17 의 "4변 바깥 = +" 는 크기 방식을 보지 않았다 — 고정 폭 · hug 높이 Card 에서 top 을 늘리면 안쪽
+  가장자리가 아래로, right 를 늘리면 (폭 고정) 안쪽 가장자리가 왼쪽으로 움직이는데 부호는 반대였다.
+  수정 — capability 가 축별 성장 여부 (`resolvePaddingGrowth`: 명시 크기 · flex 주축 grow/basis · 교차축
+  stretch · block 흐름) 를 싣고, 띠 부호는 상·좌 안쪽 +, 하·우는 hug 면 바깥 + / 고정이면 안쪽 +. live:
+  Card (100% · hug) · frame (320 · 200 고정) · frame (hug · hug) × 4변 = 12 조합 모두 부호 = 값 +20 시
+  띠 가장자리 실측 이동 방향, 부호 방향 드래그 16→31. 하니스 방향 6 곳 갱신 (코너 resize 뒤 고정 높이
+  bottom = 위 +) 26/27 (Preview 1 항목 `ADR222_NO_COMPARE` 로 제외).
 
 ## Context
 

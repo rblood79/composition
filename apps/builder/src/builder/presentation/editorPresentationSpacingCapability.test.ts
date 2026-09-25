@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   resolveSpacingCapabilityFromInputs,
   resolveSpacingOwnerStructure,
+  resolvePaddingGrowth,
   type SpacingCapabilityInputs,
 } from "./editorPresentationSpacingCapability";
 
@@ -369,5 +370,34 @@ describe("resolveSpacingOwnerStructure (instance 루트 — 2026-09-26 사용자
       value: 12,
       flowChildIds: ["i/Header", "i/Content"],
     });
+  });
+});
+
+describe("resolvePaddingGrowth (padding 을 늘리면 박스가 그 축으로 커지는가 — 드래그 부호 입력)", () => {
+  it("명시 크기 (px · %) 는 고정", () => {
+    expect(resolvePaddingGrowth({ width: "320px", height: "100%" }, null)).toEqual({ x: false, y: false });
+  });
+  it("block 흐름: 폭은 채움 (고정) · 높이는 hug · fit-content 폭은 hug", () => {
+    expect(resolvePaddingGrowth({ display: "flex" }, { display: "block" })).toEqual({ x: false, y: true });
+    expect(resolvePaddingGrowth({ width: "fit-content" }, { display: "block" })).toEqual({ x: true, y: true });
+    expect(resolvePaddingGrowth({ display: "inline-flex" }, { display: "block" })).toEqual({ x: true, y: true });
+  });
+  it("flex column 부모: 주축 (y) 은 flex-grow 없으면 hug · 교차축 (x) 은 stretch 면 고정", () => {
+    const parent = { display: "flex", flexDirection: "column" };
+    expect(resolvePaddingGrowth({ width: "100%" }, parent)).toEqual({ x: false, y: true });
+    expect(resolvePaddingGrowth({ flexGrow: 1 }, parent)).toEqual({ x: false, y: false });
+    expect(resolvePaddingGrowth({}, { ...parent, alignItems: "flex-start" })).toEqual({ x: true, y: true });
+    expect(resolvePaddingGrowth({ alignSelf: "stretch" }, { ...parent, alignItems: "center" })).toEqual({ x: false, y: true });
+  });
+  it("flex row 부모: 주축 (x) hug · 교차축 (y) 기본 stretch 고정 · flex-basis 명시는 고정", () => {
+    const parent = { display: "flex", flexDirection: "row" };
+    expect(resolvePaddingGrowth({}, parent)).toEqual({ x: true, y: false });
+    expect(resolvePaddingGrowth({ flexBasis: "200px" }, parent)).toEqual({ x: false, y: false });
+  });
+  it("capability 가 padding 지원 시 growth 를 싣는다", () => {
+    const cap = resolveSpacingCapabilityFromInputs(
+      inputs({ ancestorEngineStyles: [{ display: "flex", flexDirection: "column" }] }),
+    );
+    expect(cap.padding.supported && cap.padding.growth).toEqual({ x: false, y: true });
   });
 });

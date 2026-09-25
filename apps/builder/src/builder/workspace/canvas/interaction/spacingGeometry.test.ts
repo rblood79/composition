@@ -46,19 +46,47 @@ describe("buildSpacingBands (ADR-222 §3)", () => {
       width: 20,
       height: 156,
     });
-    // 바깥쪽으로 끌면 커진다 — top 은 위(−y), right 는 오른쪽(+x)
+    // 움직이는 띠 가장자리가 포인터를 따라간다 (2026-09-26) — 기본 (고정 폭 · hug 높이):
+    //   top·left 는 안쪽 가장자리가 안쪽으로, bottom 은 바깥 가장자리가 아래로, right 는 안쪽으로
     expect(byId["padding:top"]).toMatchObject({
       axis: "y",
-      sign: -1,
+      sign: 1,
       property: "paddingTop",
       value: 10,
     });
     expect(byId["padding:bottom"]).toMatchObject({ axis: "y", sign: 1 });
-    expect(byId["padding:left"]).toMatchObject({ axis: "x", sign: -1 });
+    expect(byId["padding:left"]).toMatchObject({ axis: "x", sign: 1 });
     expect(byId["padding:right"]).toMatchObject({
       axis: "x",
-      sign: 1,
+      sign: -1,
       value: 20,
+    });
+  });
+
+  it("flips bottom · right by whether the box grows on that axis (hug) or keeps its size (fixed)", () => {
+    const signs = (grows: { x: boolean; y: boolean }) =>
+      Object.fromEntries(
+        buildSpacingBands({
+          ownerBounds: owner,
+          border,
+          padding,
+          paddingGrowth: grows,
+          gap: null,
+        }).map((b) => [b.id, b.sign]),
+      );
+    // hug 폭 · 고정 높이: right 는 바깥 가장자리가 오른쪽으로 (+x), bottom 은 안쪽 가장자리가 위로 (−y)
+    expect(signs({ x: true, y: false })).toEqual({
+      "padding:top": 1,
+      "padding:bottom": -1,
+      "padding:left": 1,
+      "padding:right": 1,
+    });
+    // 양축 고정: 네 변 모두 안쪽으로 끌면 커진다
+    expect(signs({ x: false, y: false })).toEqual({
+      "padding:top": 1,
+      "padding:bottom": -1,
+      "padding:left": 1,
+      "padding:right": -1,
     });
   });
 
@@ -216,10 +244,10 @@ describe("hitTestSpacingBands", () => {
     const bottom = bands.find((b) => b.id === "padding:bottom")!;
     expect(spacingDeltaFromPointer(bottom, 7, 10)).toBe(10);
     const top = bands.find((b) => b.id === "padding:top")!;
-    expect(spacingDeltaFromPointer(top, 7, -10)).toBe(10);
+    expect(spacingDeltaFromPointer(top, 7, 10)).toBe(10);
     const right = bands.find((b) => b.id === "padding:right")!;
-    expect(spacingDeltaFromPointer(right, 4, 99)).toBe(4);
+    expect(spacingDeltaFromPointer(right, -4, 99)).toBe(4);
     const left = bands.find((b) => b.id === "padding:left")!;
-    expect(spacingDeltaFromPointer(left, -4, 99)).toBe(4);
+    expect(spacingDeltaFromPointer(left, 4, 99)).toBe(4);
   });
 });
