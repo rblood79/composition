@@ -11,6 +11,8 @@
 
 ---
 
+> **2026-09-25 ADR-236 Accepted → Phase 0 완료**: 사용자 `/execute-adr 236` (review round 2 이슈 0). G0 — 타입 집합 144 (파생 대상 23 · 렌더 특수 27 · 로컬 정당 11 · 타입 외 83) · body 직접 비교 92행 + 로컬 헬퍼 12 · synthetic 직접 파싱 8행 · 강제 지점 × 표면 불일치 12 (toggle body 가드 · AI `reusable` 직접 쓰기 · store 우회 쓰기 2 등). breakdown 예시 4개 재분류 · sub-part 재구현 실측 0. 열림 10 (Proposed 8 · Accepted 2), 합계 268.
+
 > **2026-09-25 ADR-239 Implemented**: Tree · Menu 하위 메뉴 · ColorSwatchPicker 항목 origin (Phase 0~5 / G0~G6, worktree `adr-239`). TreeItem origin + 상태 변형 (접힘 포함) · Tree/TreeItem slot · 재귀 key · Canvas 중첩 행 쌓기 · 펼침 정본 `expandedKeys` 두 leg 대칭 + 기존 문서 1회 채움 (G0 사용자 판정 "A 유지: 전부 펼침") · Menu 하위 메뉴 (MenuItem 자식 = SubmenuTrigger · `children` 행 이관) · ColorSwatch/ColorSwatchPicker origin (swatch 이관 · 색 유일 삽입 · binding props Preview 도달). G5 menu 통과 · tree +1.3~3.5 ms 는 사용자 판정 "예외로 기록 후 종결" (Label Text 노드 구조 비용 — 자식 있는 TreeItem 해석 재사용으로 9.6 → 6.7 ms). G6 보존 영역 픽셀 0 · 재hydration Δ0 · 이관 전 Components body 스냅샷 Undo 의 새 origin 유실 수리 · 깊은 Tree 선택 · 접힘 누락 수리. live 13/13. 열림 10 (Proposed 9 · Accepted 1), 합계 268 (241 과 함께 main 병합).
 
 > **2026-09-25 ADR-241 Implemented**: Table 열 · 행 origin — 2차원 collection · 두 leg 열 원천 통일 (Phase 0~4 / G0~G5, worktree `adr-241`). Canvas 데이터 Table 이 Preview 와 같은 열 원천 (해석된 TableHeader 의 Column 요소 · 유효 폭 clamp) · Column · Row origin + Table/TableView TableHeader · TableBody slot · 팔레트 Table instance 의 자기 열 (Slot "+" · quick connect · Preview 열 감지 — mode C) · TableView 정적 행 셀 동기화 (열 추가 · 삭제 · 순서 · 행 "+") · TableView plain 열/행 → ref 이관 (id 유지, 셀 수 어긋난 TableView 제외) · 해석기 수리 (mode C 항목 ref 자기 자식) · 삭제 history 수리 (동기화로 지운 셀). G4 bench Δ p95 +0.68 ms (TableView ref 해석) · G5 BC 7/7 (Δbyte +828 · 재hydration Δ0). 렌더러 RAC 전환은 범위 밖 (별도 결정).
@@ -107,8 +109,8 @@
 | ├ Superseded                  |      14 |
 | └ Deprecated                  |       9 |
 | 열려 있는 것 (`adr/*.md`)     |      10 |
-| ├ Proposed                    |       9 |
-| ├ Accepted (미착수·일부 착수) |       1 |
+| ├ Proposed                    |       8 |
+| ├ Accepted (미착수·일부 착수) |       2 |
 | └ 부분 완료                   |       0 |
 | **합계**                      | **268** |
 
@@ -132,8 +134,8 @@
 
 #### [236](236-builder-domain-rules-consolidation.md) — 빌더 도메인 규칙 정리 — 술어 모듈 · 타입 특성 표 · store 액션 진입부 강제
 
-- **상태**: Proposed (2026-09-24)
-- **규모**: Phase 0~4 ([breakdown](design/236-builder-domain-rules-consolidation-breakdown.md)) — 인벤토리 (타입 집합 125 · body 직접 비교 78행) → 술어 모듈 + ratchet (동작 0) → shared 특성 표 + 집합 파생 (동등성 게이트) → `canX` · `resolveMoveTarget` · 구조 변경 store 액션 진입부 가드 (표면별 원복 RED + live) → 종결. layout · skia 렌더 분기는 상시 규칙 (일괄 이관 없음)
+- **상태**: Accepted (2026-09-24, 사용자 `/execute-adr 236`) — Phase 0 완료 (G0: 집합 144 · 파생 대상 23 · body 직접 비교 92행 · 강제 지점 불일치 12, [breakdown §8](design/236-builder-domain-rules-consolidation-breakdown.md#8-phase-0-결과-2026-09-24))
+- **규모**: Phase 0~4 ([breakdown](design/236-builder-domain-rules-consolidation-breakdown.md)) — 인벤토리 (타입 집합 144 · body 직접 비교 92행) → 술어 모듈 + ratchet (동작 0) → shared 특성 표 + 집합 파생 (동등성 게이트) → `canX` · `resolveMoveTarget` · 구조 변경 store 액션 진입부 가드 (표면별 원복 RED + live) → 종결. layout · skia 렌더 분기는 상시 규칙 (일괄 이관 없음)
 - **우선순위**: 사용자 요청 2026-09-24 (도메인 규칙 최적화 C 단계, 특성 표 위치 = shared 사용자 확정 09-24)
 
 #### [235](235-local-project-storage-v2-asset-store-directory-format.md) — 로컬 프로젝트 저장 v2 — 해시 자산 저장소 · 디렉토리 형식 · IndexedDB 작업본

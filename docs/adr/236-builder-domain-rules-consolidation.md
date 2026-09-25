@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-09-24
+Accepted — 2026-09-24 (사용자 `/execute-adr 236`, review round 2 이슈 0) · Phase 0 완료 (G0 PASS — [breakdown §8](design/236-builder-domain-rules-consolidation-breakdown.md#8-phase-0-결과-2026-09-24))
 
 ## Context
 
@@ -138,6 +138,8 @@ Proposed — 2026-09-24
 | G2   | Phase 2 종료 | 파생 집합마다 동등성 테스트 GREEN (R1) · skia · layout 소비처는 해당 컴포넌트 Skia 픽셀 · layout rect 무변경 (R1) · Builder · Preview initial 이 ADR-201 상한 안 (R4)                                                                                          | 차이는 별도 커밋 + live 로 의도 확인, 번들 초과 시 lazy 분리 |
 | G3   | Phase 3 종료 | 구조 변경 store 액션 목록 × 진입부 `canX` 호출 정적 테스트 GREEN (R7) · 가드마다 원복 RED 1행 · live (Skia · store): Layers 중첩 위반 · 원본 분리 · 변형 삭제 · instance 안 요소 메뉴 · 단축키 삭제 · 위임 sub-part resize · AI body 판정 · 붙여넣기 대상 (R2) | 막힌 흐름은 해당 표면 policy 를 `nearest-ancestor` 로 조정   |
 | G4   | Phase 3 종료 | `canX` perf 라벨: 호출당 p95 ≤ 0.1 ms · 선택 변경당 합 ≤ 1 ms (선택 600 문서 · 사람이 만든 문서 1개 병행 · 대조군 = 변경 전 빌드 같은 조작 · visibilityState visible) · 전체 선택 · 편집 lane 은 변경 전 대비 run 편차 안 (R3)                                 | `canX` 결과를 선택 · 문서 버전 키로 memo                     |
+
+G0 결과 (2026-09-24): PASS — 집합 144 (파생 대상 23) · body 직접 비교 92행 + 로컬 헬퍼 12 · synthetic 직접 파싱 8행 · 강제 지점 불일치 12건 (E1~E12). 상세는 breakdown §8.
 
 ### Live Exercise
 

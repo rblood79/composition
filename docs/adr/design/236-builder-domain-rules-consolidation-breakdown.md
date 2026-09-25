@@ -87,3 +87,64 @@
 | 1     | `domainPredicateRatchet.static.test.ts`                         | `editingSemantics.ts` · `syntheticDescendantLookup.ts` · 술어 재구현 파일들 · shared 술어                                                                                                                                                                                    |
 | 2     | `packages/shared/src/domain/componentTraits.ts` + 동등성 테스트 | 파생 대상 집합 선언 파일 · `nestingRules.ts`                                                                                                                                                                                                                                 |
 | 3     | `builder/domain/canOperate.ts` · `resolveMoveTarget.ts`         | `canvasContextMenuProviders.ts` · `actionBarPolicy` · `commandMeta` · Layers · AI 도구 · 구조 변경 store 액션 진입부 (`elements.ts` · `elementRemoval.ts` · `instanceActions.ts` · `elementUpdate.ts` · `inspectorActions.ts`) · `structuralStoreActionGuard.static.test.ts` |
+
+## 8. Phase 0 결과 (2026-09-24)
+
+G0 PASS. 전문은 로컬 evidence `docs/adr/evidence/236-domain-rules-inventory.md` (커밋 대상 아님). 기준 커밋 `be0b657d2`.
+
+### 8.1 ratchet 시작값
+
+| 항목                                                      | 시작값                       | 목표                                     |
+| --------------------------------------------------------- | ---------------------------- | ---------------------------------------- |
+| `new Set([` 대문자 상수 (테스트 · bench 제외)             | 144 (파생 대상 23)           | 파생 대상 → 0 (Phase 2)                  |
+| body 타입 직접 비교 (builder)                             | 92행 (lower 49 · 그대로 43)  | 0, 허용 목록 제외 (Phase 1)              |
+| body 파일 로컬 헬퍼                                       | builder 11 · shared 1        | 0 (Phase 1)                              |
+| synthetic id 직접 파싱                                    | 8행 / 5파일                  | 0 (Phase 1)                              |
+| Components 페이지 판정 헬퍼                               | 4 (+ shared 직접 비교 1)     | 판정 1 + 입력 어댑터 (Phase 1)           |
+| role 우선순위 함수를 액션 판정에 쓰는 곳                  | 1 (`instanceActions.ts:698`) | 0 (Phase 3 — 동작 변경)                  |
+| store 를 우회하는 구조 쓰기                               | 2 (드래그 · factory 생성)    | Phase 3 가드 목록에 포함                 |
+
+144 는 ADR Context 의 125 를 대체한다 (125 는 명령이 기록되지 않았다). 집합 분류: 타입 외 83 · 파생 대상 23 · 렌더 특수 27 · 로컬 정당 11.
+
+### 8.2 §2 · §4 정정
+
+- 로컬 정당으로 재분류: `fieldInlineLayoutMigration.ts:38` `FIELD_FAMILY_TAGS` · `circleLeafInlineSizeMigration.ts:32`. migration 대상은 과거 문서 형태에 고정이라 표에서 파생하지 않는다.
+- 렌더 특수로 재분류: `buildSpecNodeData.ts:209` `SHELL_ONLY_CONTAINER_TAGS` · `editorPresentationTextColor.ts:10` · `fullTreeLayout.ts:113` `LABEL_DELEGATION_PARENT_TAGS`. 이름이 효과를 말한다.
+- `ORIENTATION_DRIVEN_TAGS` · `LABEL_POSITION_DRIVEN_TAGS` 는 파생 출처가 특성 표가 아니라 D2 prop 스키마다.
+- `resolveSubpartOwner` 재구현 5곳: 실측 0. 소유자 판정은 이미 shared 술어 하나이고, 남은 직접 비교는 렌더 분기와 reset 기본값 분기다. Phase 1 표에서 뺀다.
+- `isBodyType` 은 대소문자를 무시한다. 대문자 `"Body"` 를 만드는 곳이 shared `export.utils.ts:423` 에 있다. 지금 대소문자를 그대로 비교하는 43행은 교체 때 행마다 입력 경로를 확인한다.
+- `elementIndexer.ts:210` 은 `=== "Body"` 라 항상 false 다. 소비처가 0 (`rootsByPage` 를 읽는 곳 없음) 이라 production 영향은 0 이다. Phase 1 에서 이 인덱스가 dead 인지 같이 판정한다.
+
+### 8.3 같은 사실을 다시 적은 집합 (Phase 2 입력)
+
+- textHost: `TEXT_ELEMENT_TAGS` (29) 는 `TEXT_EDITABLE_TAGS` (24) 와 `INPUT_VALUE_EDIT_TAGS` (5) 의 정확한 합집합이다.
+- structural: 파생 관계는 다음과 같다.
+  - PADDING = STRUCTURAL − {body}
+  - FRAME_SLOT = STRUCTURAL − {body, card, cardpreview, container}
+  - AI `CONTAINER_TYPES` 는 frame · Slot · Section · Nav 뿐이라 다른 구조 집합과 거의 겹치지 않는다. 멤버십 차이 커밋과 live 가 필요하다.
+- image: 두 집합이 대소문자만 다르다.
+- buttonChildHost: 두 집합이 같다.
+- listOwner: preview 쪽에만 TagGroup 이 더 있다.
+
+### 8.4 강제 지점 불일치 (Phase 3 입력)
+
+| #   | 불일치                                                                                                                                                         |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| E1  | toggle 의 body 가드가 메뉴 · 바에만 있다. 단축키 (`useGlobalKeyboardShortcuts.ts:230-239`) · agent · store (`instanceActions.ts:844-851`) 에 없다 → body 가 origin 이 될 수 있다 |
+| E2  | AI `canonical.reusable` 이 `updateNode` 를 직접 부른다 (`canonicalNodeFields.ts:130-139`). systemOwned 가드 · 영향 확인 · instance 분리를 전부 우회한다        |
+| E3  | systemOwned origin 의 삭제 · 해제가 메뉴 · Layers 에 노출된다. store 결과는 셋으로 갈린다 (삭제 무음 no-op · toggle toast · AI `notDeleted`)                   |
+| E4  | origin 영향 확인이 props 편집에만 있다. 삭제 (자동 분리) · 생성 · 붙여넣기 · 이동 · 드래그에는 없다                                                            |
+| E5  | ungroup 이 frame origin 을 가리지 않는다 (`canvasActions.ts:415,455`). systemOwned frame 이면 자식만 빠지고 빈 origin 이 남는다                               |
+| E6  | synthetic 자식 명시 가드가 드래그 · 단축키 reorder · AI create 부모에 없다. store 맵에 없어서 우연히 걸러질 뿐이다                                              |
+| E7  | Layers DnD 에 중첩 preflight 가 없다. AI create 는 ref 의 origin 타입을 해석하지 않지만 팔레트는 해석한다                                                     |
+| E8  | store 를 우회하는 쓰기: 드래그 (`useDragBridge.ts:544,951,1036` adapter 직접) · factory 생성 (`factories/utils/elementCreation.ts:146-178` `setState` 직접)    |
+| E9  | group 의 `multiSelectMode` 조건이 메뉴 · 바와 action · agent 에서 다르다 → 메뉴 항목이 no-op 이 될 수 있다                                                     |
+| E10 | body 판정 대소문자가 AI · Layers (그대로) 와 store · canvasActions (`toLowerCase`) 에서 다르다                                                                  |
+| E11 | ListBox template anchor 삭제 금지가 store 에만 있다. 메뉴에는 보이지만 누르면 무음 no-op 이다                                                                  |
+| E12 | Components 페이지 판정이 구조 변경 경로에 0 이다. 보호는 systemOwned 루트 (삭제 · toggle) 하나에 의존한다                                                     |
+
+Phase 3 `canX` 의 op 목록과 store 가드 목록 (§5) 은 이 표를 입력으로 한다. E8 의 두 경로는 `structuralStoreActionGuard` 목록에 넣는다.
+
+### 8.5 회귀 기준
+
+builder 스위트: 7,309 중 실패 6. 전부 이번 작업 전부터 있던 것이다 (`propertyFieldIcons.static` · `adr113DescendantsGrepGate` · `factoryInlineDirtyBaseline` · `historyActions.static` · `componentCatalog` · `textAxisGate` — 마지막은 worktree 환경 한정). Phase 1 · 2 게이트는 이 실패 집합이 커밋 전후 같은지 본다.
