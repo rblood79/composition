@@ -11,6 +11,8 @@
 
 ---
 
+> **2026-09-26 ADR-235 Accepted → Phase 0 완료**: 사용자 `/execute-adr 235` (review round 2 pending 0). G0 — 이미지 요청 지점 3 (Skia `fetchAndDecode` · DOM `fillToCssLayer` · `<img>` 렌더러) · 폰트 2 · writer `readAsDataURL` 2 · GC root 9 보유처 (문자열 전수 순회 — `metadata.legacyProps` 이중 보관 실측) · Preview/publish 같은 origin IndexedDB 직접 읽기 · 폰트 4MB 저장 실패 RED (jsdom + Chrome 153) · 용량 기준선 (이미지 447 KB → 문서 1.33 MB · 스냅샷 · history 각 한 벌, 합 5.53 MB). 기존 결함: Canvas 가 image fill 을 그리지 않음 (Phase 1 수리).
+
 > **2026-09-25 ADR-236 Implemented**: 빌더 도메인 규칙 정리 (Phase 0–4 · G0–G4). body · synthetic id · Components 페이지 술어를 shared `domain/` 하나로 (직접 구현 0 ratchet) · shared 타입 특성 표 `componentTraits.ts` 에서 집합 17 + nestingRules 층 2 표 3, D2 스키마에서 Direction 토글 2 파생 (동등성 · live rect/픽셀 0) · 구조 변경 판정 `canOperate` · 대상 판정 `resolveMoveTarget` 을 표면과 store 진입부 13 액션 · 우회 쓰기 2 경로가 같이 부른다 (AST ratchet). 강제 지점 불일치 12 중 11 닫힘 · E4 (origin 안 구조 변경 영향 확인) 는 표면 선행 확인, 드래그 · 패널 내부 추가 · Alt 복제는 후속. 판독 HIGH 2 수리 (이름 영역 드래그 · store 대화상자 → 표면). live 9 · G4 호출당 p95 ≈ 0.0003 ms · 번들 Builder 1,411,505 / Preview 621,472 (상한 안). 범위 밖: 렌더 특수 분기 27 (상시 규칙). 열림 9 (Proposed 8 · Accepted 1), 합계 268.
 
 > **2026-09-25 ADR-236 Phase 3 완료 (G3 · G4)**: 구조 변경 판정 `builder/domain/canOperate.ts` · 대상 판정 `resolveMoveTarget.ts` 를 표면 (메뉴 · 액션 바 · 단축키 · Layers · AI · 드래그 · 팔레트 · 붙여넣기) 과 구조 변경 store 액션 진입부 13 · store 우회 쓰기 2 경로가 같이 부른다 (ratchet `structuralStoreActionGuard`). 강제 지점 불일치 E1~E12 중 11 닫힘 · E12 판정 (새 가드 없음) · E4 는 캔버스 드래그만 후속. live 5 (body toggle 단축키 · system origin 삭제 · Layers 노출 · 중첩 드롭 · instance 붙여넣기) · 판정 호출당 p95 ≈ 0.0003 ms.
@@ -139,8 +141,8 @@
 
 #### [235](235-local-project-storage-v2-asset-store-directory-format.md) — 로컬 프로젝트 저장 v2 — 해시 자산 저장소 · 디렉토리 형식 · IndexedDB 작업본
 
-- **상태**: Proposed (2026-09-23)
-- **규모**: Phase 0~6 ([breakdown](design/235-local-project-storage-v2-breakdown.md)) — 자산 저장소 (IndexedDB `assets` · SHA-256 · 해석 함수 단일화, 폰트 localStorage 5MB 한도 해소) → 인라인 dataURL 이관 · GC → 형식 v2 reader/writer · publish 로더 → 웹 보호 → Chromium 디렉토리 연결 → live
+- **상태**: Accepted (2026-09-26 — 사용자 `/execute-adr 235`) · Phase 0 완료 ([G0](design/235-local-project-storage-v2-breakdown.md#6-phase-기록))
+- **규모**: Phase 0~7 ([breakdown](design/235-local-project-storage-v2-breakdown.md)) — 자산 저장소 (IndexedDB `assets` · SHA-256 · 해석 함수 단일화, 폰트 localStorage 5MB 한도 해소) → 인라인 dataURL 이관 · GC → 형식 v2 reader/writer · publish 로더 → 웹 보호 → Chromium 디렉토리 연결 → live
 - **우선순위**: 사용자 요청 2026-09-23 (AskUserQuestion — 저장만 1개 ADR, Electron 후속 분리)
 
 #### [162](162-gridlist-template-subtree-projection.md) — GridList 카드 템플릿 임의 자식 실체화 + row-data 동적 매핑

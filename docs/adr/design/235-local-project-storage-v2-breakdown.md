@@ -103,3 +103,94 @@ Phase 5 는 1~4 와 독립이라 먼저 착수해도 된다 (가장 작은 작�
 - 왕복 비교 (G5): canonical document 외에 collections 3종 · 폰트 · `currentPageId` · `metadata` — 현재 페이지가 첫 페이지가 아닌 fixture 필수.
 - 브라우저 매트릭스: Chromium (디렉토리 · zip · Storage Buckets) · Firefox 또는 Safari 1종 (zip · bucket 미지원 경로).
 - CHANGELOG: Phase 1 (자립 내보내기) · Phase 2 (폰트 저장 한도 해소) · Phase 4 (형식 v2) · Phase 6 (디렉토리 연결) 각각 사용자-가시 변경.
+
+## 6. Phase 기록
+
+### Phase 0 — inventory (G0 통과, 2026-09-26)
+
+기준 커밋 `5ff5e167a`. 로컬 근거 사본: `docs/adr/evidence/235-phase0-inventory.md` (gitignore).
+
+#### (a) 이미지 · 폰트 URL consumer
+
+#### 이미지 — 요청 지점은 3 개로 모인다
+
+| 경로        | 지점                                                                                                                                                                               | 덮는 consumer                                                                                                                                                                                                                                                                                                                 |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Skia        | `workspace/canvas/skia/imageCache.ts:384` `fetchAndDecode` (키: 원본 URL — `getSkImage` :275 · `releaseSkImage` :291)                                                              | image fill (`fillToSkia.ts:312`) · CSS `backgroundImage` (`buildBoxNodeData.ts:195` → `fillToSkia.ts:385`) · Image/Avatar `src` (`StoreRenderBridge.ts:2016` `getImageSrc`) · leading avatar (`specShapeConverter.ts:1175`) · auto 크기 (`layout/engines/utils.ts:2533`, :4581) · mask (`renderCommands.ts:2305`, producer 0) |
+| DOM 배경    | `packages/shared/src/utils/fillAdapter.ts:171` `fillToCssLayer` image case                                                                                                         | Preview (`preview/App.tsx:477` · :898 · :1082 · :1176, `CanonicalNodeRenderer.tsx:597`, `itemTemplates.ts:56`, `stateLayerRender.ts:95`) · publish (`ElementRenderer.tsx:103`, `useBodyElement.ts:58`) · 패널 swatch (`fillPresentation.ts:28`) · AI 파생 style (`services/ai/styleAdapter.ts:71`)                            |
+| DOM `<img>` | 흩어짐 — `LayoutRenderers.tsx:2112` (Image) · :1500 (Avatar) · `Avatar.tsx:122` · `tagLeadingSlot.tsx:57` · `Card.tsx:189` · `Field.tsx:155` · publish `ComponentRegistry.tsx:217` | 데이터 행 값 (Tag avatar · Field image · Card preview) 은 문서 자산이 아니다                                                                                                                                                                                                                                                  |
+
+- 해석 함수 삽입 = `fetchAndDecode` (fetch 대상만 해석, 캐시 키는 원본 ref 유지) · `fillToCssLayer` · `adaptElementStyle` 확장이 아닌 Image/Avatar 렌더러 2 곳 + publish `Image` 1 곳.
+- AI `fillContract.ts:63` 은 `url` 문자열 형식을 검사하지 않는다 — `asset:` 도 통과 (그대로 둔다).
+
+#### 폰트 — 지점 2 개
+
+- `packages/shared/src/utils/fontRegistry.ts:199` `buildRegistryFontFaceCss` — builder 문서 (`customFonts.ts:89`) · Preview iframe (`preview/index.tsx:35`, 부팅 1회) · publish (`App.tsx:293`) · 정적 HTML (`export.utils.ts:1083`).
+- `builder/fonts/loadCustomFontsToSkia.ts:116` `loadSingleFontToSkia` — Skia (`fontManager.loadFontFromBuffer`) + `FontFace` 등록.
+
+#### writer (문서 · 레지스트리에 URL 을 쓰는 곳)
+
+- `readAsDataURL` 은 2 곳뿐 — `ImageFillEditor.tsx:87` (→ `fills[i].url`) · `customFonts.ts:270` (→ `composition.font-registry`, `data-url-temp`).
+- 그 밖 URL writer — URL 직접 입력 (`ImageFillEditor.tsx:63`) · CSS ingress (`fillCssIngressParser.ts:114`) · AI (`toolFills.ts`) · Properties `src` 편집 · dev fixture (`pathHeavy117Fixture.ts:327`).
+
+#### 발견 — 기존 결함 3
+
+1. **Canvas 가 image fill 을 그리지 않는다.** `fillsToSkiaFillStyle` 은 image FillStyle 을 만들지만 `buildBoxNodeData.ts:176-190` · :322 와 `buildSpecNodeData.ts:1994-2022` 가 gradient · mesh 만 `box.fill` 에 싣는다 (82e00f301 이후 동일). Preview 는 `url()` 로 그린다 — D3 비대칭. G1 cross-check (image fill stretch/fill/fit) 의 선결 조건이라 Phase 1 에서 수리한다.
+2. **정적 HTML 이 fills 를 적용하지 않는다** — 인라인 런타임 (`export.utils.ts:1235` · :1243) 은 `props.style` · `props.src` 만 쓴다. `exportProject` · `downloadStaticHtml` 호출처는 앱에 0 (현재 쓰이는 내보내기는 `downloadProjectAsJson` 하나).
+3. **Preview iframe 폰트 CSS 는 부팅 1회만** 주입된다 (갱신 메시지 없음).
+
+#### (b) 자산 참조 보유처 (GC root)
+
+| 보유처                              | 위치                                                                                         | 모양                                                                     | 전수 읽기                                        |
+| ----------------------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------ |
+| 현행 문서                           | IDB `composition` `document_parts` (`[project_id,key]`) · legacy `documents`                 | node 조각 JSON 문자열                                                    | `incrementalDocuments.ts:241` (전 프로젝트 조립) |
+| 백업 ring                           | `documents_backup` (index `project_id`)                                                      | 문서 전체, 프로젝트당 5 세대 · 60 초 간격 (`documentPersistGuard.ts:33`) | store `getAll()` (API 추가)                      |
+| collections · variables             | `collections` · `variables`                                                                  | 행 값 · `defaultValue` 문자열                                            | `getAll()` 있음                                  |
+| history entry                       | IDB `composition-history` v4 `history-entries` (index `pageId` — projectId 없음)             | insert/remove 는 node 전체, update 는 병합된 전체 prev/nextProps         | cursor 추가 필요                                 |
+| 스냅샷                              | 같은 DB `snapshots` (index `projectId`)                                                      | 문서 전체 (user 10 · system 5)                                           | 프로젝트 단위 있음                               |
+| 메모리 history · transaction buffer | `stores/history.ts:251` `pageHistories` · :264 `transactionBuffer`                           | HistoryEntry · node event                                                | private — 수집 API 추가                          |
+| 메모리 문서 · 스냅샷                | `canonicalDocumentStore.ts:52` `documents` · `snapshots.ts:77`                               | 문서 전체                                                                | state 순회                                       |
+| 폰트 레지스트리                     | localStorage `composition.font-registry` (브라우저 전역) · legacy `composition.custom-fonts` | faces[].source.url                                                       | `loadFontRegistry()`                             |
+| Preview 핸드오프                    | sessionStorage `composition-preview-data` (`BuilderCore.tsx:1205`)                           | 문서 전체 + 레지스트리 (탭 세션)                                         | —                                                |
+
+- **문서 안 참조 위치는 필드 목록이 아니라 문자열 전수 순회로 수집한다.** 실측 (e) 에서 같은 dataURL 이 `node.fills[].url` 과 `node.metadata.legacyProps.fills[].url` 두 곳에 있었다. `descendants` override · `state[].defaultValue` · `responsive` 도 참조를 품는다.
+- root 아님 (파생 캐시): Skia `imageCache` · `composition-fonts` IDB · `collection_runtime` (API 응답) · `composition-query-cache` (import 0 — 실행되지 않는 모듈).
+- 삭제된 프로젝트의 백업 · 스냅샷 · history entry 가 남는다 (`dashboard/index.tsx:510-538` 이 지우지 않는다). GC root 는 "살아 있는 프로젝트" 의 보유처만이다 — 고아 사본은 root 가 아니다.
+- history IDB 는 메모리 상한 50 을 따르지 않는다 (`history.ts:650` · :661 이 IDB 를 지우지 않음) — 90 일 정리까지 root.
+- 폰트 레지스트리가 전역이라 폰트 자산 root 는 레지스트리 자체다 (문서가 아니다).
+
+#### (c) Preview · publish 실행 문맥의 자산 바이트 경로
+
+- Preview iframe (`preview.html`, fallback) · publish 새 탭 (`/publish/*`, builder 번들 lazy route) 모두 **같은 origin · sandbox 없음** → 같은 IndexedDB 를 직접 읽는다. builder 의 `blob:` URL 은 builder 탭 수명에 묶여 publish 탭 새로고침 시 죽으므로 쓰지 않는다.
+- 해석기 계약: 동기 조회 (`resolveSync`) · 비동기 준비 (`ensure`) · 재렌더 알림 (`subscribe`). 소비 지점 (`fillToCssLayer` · `buildRegistryFontFaceCss`) 이 동기 함수라서다. 미해석 `asset:` 은 문자열 그대로 두어 요청 0 (CSS `url(asset:…)` 은 네트워크로 나가지 않는다 — G1 에서 확인).
+- 설치 지점: builder `main.tsx` (builder + 같은 탭 publish route) · preview `index.tsx` · standalone publish `apps/publish/src/main.tsx` (Phase 4 — project 파일 base 기준 상대 경로). 정적 HTML 은 내보내기 시점 치환.
+- reader 는 lazy 소형 모듈 (adapter 전체 import 금지 — HC2) · `objectStoreNames.contains("assets")` 가 거짓이면 미해석 · `onversionchange` 에서 `close()`. **기존 adapter 에도 `onversionchange` 가 없어** 다른 탭이 열려 있으면 v23 업그레이드가 막힌다 → Phase 1 에서 함께 추가.
+- `loadProjectFromUrl` 은 base URL 을 들고 있지 않다 — Phase 4 에서 v2 해석기가 base 를 받는다.
+
+#### (d) 폰트 localStorage 한도 초과 재현 (RED)
+
+- unit: `apps/builder/src/builder/fonts/__tests__/fontRegistryQuota.test.ts` — 4MB 폰트 레지스트리 `saveFontRegistry` throw (현재 결함 재현, Phase 2 에서 성공으로 뒤집는다).
+- live: Chrome 153 · localhost:5173 · `persisted=false` — 4MB 폰트 base64 레지스트리 `setItem` → `QuotaExceededError`.
+
+#### (e) 저장 용량 기준선
+
+하니스 `apps/builder/scripts/adr235-storage-baseline.mjs` — 격리 프로젝트 (headless Chrome, `visibility=visible`, `persisted=false`) 에 frame 5 + 결정적 노이즈 PNG 5 장 (각 ≈ 89.5 KB, 합 447 KB) image fill (`updateSelectedFills`) · 사용자 폰트 2 개 (InterVariable woff2 352 KB · ttf 880 KB, `createFontFaceFromFile` + `saveRegistryAndNotify`) · user 스냅샷 1 개.
+
+| 항목                           | count |         bytes |
+| ------------------------------ | ----: | ------------: |
+| 원본 문서 (`document_parts`)   |     – |     1,332,005 |
+| 백업 ring                      |     1 |        76,318 |
+| 스냅샷                         |     1 |     1,273,951 |
+| history entry                  |     6 |     1,206,152 |
+| 폰트 레지스트리 (localStorage) |     – |     1,643,291 |
+| 자산 store                     |     0 |             0 |
+| **합계**                       |       | **5,531,717** |
+
+- 이미지 447 KB 가 원본 문서에서 1.33 MB (2.98 배 — base64 1.33 × 이중 보관 2), 스냅샷 1 개 · history 6 entry 에서 각각 한 벌 더.
+- 백업은 60 초 간격이라 짧은 시나리오에서 1 세대 (이미지 반영 전 문서). 상한 시나리오 = 문서 × (1 + 백업 5 + 스냅샷 15) + history.
+- G2 는 같은 하니스를 writer 활성 뒤에 돌려 비교한다.
+
+#### 측정 조건 · 한계
+
+- (e) 는 사람이 만든 문서가 아니라 **규모 전용** 합성 fixture (measurement-validity Q1) — 복제 배수 (문서 · 스냅샷 · history 마다 한 벌) 만 인용한다.
+- Chrome MCP 창이 최소화 (hidden, RAF 정지) 라 캔버스 시각 확인은 이 단계에서 하지 않았다. Canvas image fill 미렌더는 코드 경로 확정 (위 (a) 발견 1) — Phase 1 RED 테스트로 고정한다.

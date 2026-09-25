@@ -2,7 +2,9 @@
 
 ## Status
 
-Proposed — 2026-09-23
+Accepted — 2026-09-26 (사용자 `/execute-adr 235` "모든phase완료까지 착수해" · review round 2 pending 0) · Proposed 2026-09-23
+
+- Phase 0 완료 2026-09-26 — [G0 inventory](design/235-local-project-storage-v2-breakdown.md#6-phase-기록). 기존 결함 발견: Canvas 가 image fill 을 그리지 않음 (G1 선결, Phase 1 에서 수리) · 정적 HTML fills 미적용 · 같은 dataURL 이 `fills` 와 `metadata.legacyProps.fills` 에 이중 보관.
 
 - 추가 개정 2026-09-26 — 수리 검증 round 2 h2 반영: 기존 자산 재참조도 공개 전 pin 확보, 참조 epoch와 pin을 최종 삭제와 같은 IndexedDB 트랜잭션에서 확인. R2 · G3 · breakdown §3.1에 순서·실패 처리 명시.
 
