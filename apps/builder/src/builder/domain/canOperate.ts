@@ -18,6 +18,7 @@ import {
 import { isListBoxTemplateAnchor } from "../components/listbox/listBoxTemplateOrigins";
 import { isRenderProjectionId } from "../projection/renderProjectionIds";
 import { isSyntheticDescendantId } from "../stores/canonical/syntheticDescendantLookup";
+import { resolveSubpartStyleOwnerTypeById } from "../stores/canonical/subpartOwnerLookup";
 import { isFrameOrLegacyGroup } from "../stores/utils/elementGrouping";
 import { globalToast } from "../stores/toast";
 
@@ -29,7 +30,8 @@ export type StructuralOp =
   | "ungroup"
   | "detach"
   | "toggleOrigin"
-  | "move";
+  | "move"
+  | "editStyle";
 
 export type OperationRejectReason =
   | "notFound"
@@ -39,7 +41,8 @@ export type OperationRejectReason =
   | "systemOwned"
   | "templateAnchor"
   | "notGroup"
-  | "notInstance";
+  | "notInstance"
+  | "delegatedSubpart";
 
 export type OperationVerdict =
   { ok: true } | { ok: false; reason: OperationRejectReason };
@@ -51,6 +54,7 @@ export interface OperableNode {
   ref?: string;
   reusable?: boolean;
   metadata?: unknown;
+  parent_id?: string | null;
 }
 
 export type OperableNodeLookup = (id: string) => OperableNode | undefined;
@@ -75,6 +79,15 @@ export function canOperate(
   id: string,
   lookup: OperableNodeLookup,
 ): OperationVerdict {
+  // 스타일 편집은 구조 변경과 규칙이 다르다 — body 스타일 · instance synthetic 자식 (루트 `descendants`
+  //   override) 은 정상 편집이다. 막는 것은 style 을 owner rule 이 정하는 위임 sub-part 뿐이다 (쓴 값을
+  //   layout · Skia · DOM 이 모두 무시한다 — A-2).
+  if (op === "editStyle") {
+    const owner = resolveSubpartStyleOwnerTypeById(id, {
+      get: (candidate) => lookup(candidate),
+    });
+    return owner ? reject("delegatedSubpart") : OK;
+  }
   // instance 의 synthetic 자식은 store 노드가 아니다 — 자식은 origin · `descendants` 에서 온다 (B-3).
   if (isSyntheticDescendantId(id)) return reject("synthetic");
   if (PROJECTION_REJECTED.has(op) && isRenderProjectionId(id)) {
@@ -147,6 +160,7 @@ export function getOperationRejectMessageKey(
     case "projection":
     case "notGroup":
     case "notInstance":
+    case "delegatedSubpart":
       return null;
   }
 }

@@ -4,6 +4,7 @@
  * 기존 요소의 속성/스타일 수정 (AIPanel.tsx의 executeIntent modify case 추출)
  */
 
+import { canOperate } from "../../../builder/domain/canOperate";
 import type {
   ToolExecutionResult,
   ToolExecutor,
@@ -72,6 +73,18 @@ export const updateElementTool: ToolExecutor = {
       if ("error" in ref) return { success: false, error: ref.error };
       const targetId = ref.id;
       const element = elementsById.get(targetId)!;
+
+      // 위임 sub-part (TextField 의 Label 등) 의 style 은 owner rule 이 정한다 — 쓰면 layout · Skia · DOM
+      //   이 모두 무시하고 성공만 보고된다. 캔버스 resize · spacing 과 같은 판정 (ADR-236 Phase 3, A-2).
+      if (
+        (Object.keys(newStyles).length > 0 || newFills) &&
+        !canOperate("editStyle", targetId, (id) => elementsById.get(id)).ok
+      ) {
+        return {
+          success: false,
+          error: t("aiToolError.subpartStyleOwned", { id: targetId }),
+        };
+      }
 
       // 업데이트 객체 구성
       const updates: Record<string, unknown> = { ...newProps };

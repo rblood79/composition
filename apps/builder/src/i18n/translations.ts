@@ -1202,6 +1202,8 @@ const koKR: TranslationKeys = {
       "origin 은 입력할 수 없습니다 (호출 주체가 정합니다). ops 와 label 만 보내세요.",
     unknownAction: "알 수 없는 action: {action}. create/update/delete만 가능.",
     bodyUndeletable: "body 요소는 삭제할 수 없습니다.",
+    subpartStyleOwned:
+      "{id} 의 스타일은 부모 컴포넌트가 정합니다 — 부모 요소의 styles 를 바꾸세요.",
     notDeleted:
       "삭제되지 않았습니다: {id}. 보호된 요소이거나 편집이 차단된 상태일 수 있습니다. get_editor_state 로 현재 상태를 확인하세요.",
     selectionEmpty: "선택된 요소가 없습니다.",
@@ -3154,6 +3156,8 @@ const enUS: TranslationKeys = {
     unknownAction:
       "Unknown action: {action}. Only create, update and delete are allowed.",
     bodyUndeletable: "The body element cannot be deleted.",
+    subpartStyleOwned:
+      "{id}'s style is set by its parent component — change the parent element's styles instead.",
     notDeleted:
       "Not deleted: {id}. The element may be protected, or editing may be blocked. Check the current state with get_editor_state.",
     selectionEmpty: "Nothing is selected.",
@@ -5341,6 +5345,8 @@ const formattedMessages: Record<
       `알 수 없는 action: ${String(args?.action ?? "")}. create/update/delete만 가능.`,
     "aiToolError.notDeleted": (args) =>
       `삭제되지 않았습니다: ${String(args?.id ?? "")}. 보호된 요소이거나 편집이 차단된 상태일 수 있습니다. get_editor_state 로 현재 상태를 확인하세요.`,
+    "aiToolError.subpartStyleOwned": (args) =>
+      `${String(args?.id ?? "")} 의 스타일은 부모 컴포넌트가 정합니다 — 부모 요소의 styles 를 바꾸세요.`,
     "aiRuntime.propDefault": (args) => `기본 ${String(args?.value ?? "")}`,
     "aiExec.stepOk": (args) =>
       `단계 ${String(args?.index ?? 0)}: ${String(args?.tool ?? "")} → 성공`,
@@ -5826,6 +5832,8 @@ const formattedMessages: Record<
       `Unknown action: ${String(args?.action ?? "")}. Only create, update and delete are allowed.`,
     "aiToolError.notDeleted": (args) =>
       `Not deleted: ${String(args?.id ?? "")}. The element may be protected, or editing may be blocked. Check the current state with get_editor_state.`,
+    "aiToolError.subpartStyleOwned": (args) =>
+      `${String(args?.id ?? "")}'s style is set by its parent component — change the parent element's styles instead.`,
     "aiRuntime.propDefault": (args) => `default ${String(args?.value ?? "")}`,
     "aiExec.stepOk": (args) =>
       `Step ${String(args?.index ?? 0)}: ${String(args?.tool ?? "")} → ok`,

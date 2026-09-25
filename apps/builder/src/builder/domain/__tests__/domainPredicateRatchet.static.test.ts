@@ -168,4 +168,11 @@ describe("ADR-236 도메인 술어 ratchet", () => {
     }
     expect(hits.join("\n")).toBe("");
   });
+  it("role 우선순위 함수를 store 액션 판정에 쓰지 않는다 (Phase 3 — 시각 마커 전용, dual 노드를 놓친다)", () => {
+    const hits = findHits(
+      [resolve(BUILDER_SRC, "builder/stores")],
+      /getEditingSemanticsRole\(/,
+    );
+    expect(format(hits)).toBe("");
+  });
 });

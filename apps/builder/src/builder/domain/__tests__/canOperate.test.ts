@@ -149,3 +149,26 @@ describe("getOperationRejectMessageKey", () => {
     expect(getOperationRejectMessageKey("notFound")).toBeNull();
   });
 });
+
+describe("canOperate — editStyle (위임 sub-part, A-2)", () => {
+  const fieldNodes: Record<string, OperableNode> = {
+    body: { id: "body", type: "body" },
+    field: { id: "field", type: "TextField", parent_id: "body" },
+    label: { id: "label", type: "Label", parent_id: "field" },
+    free: { id: "free", type: "Label", parent_id: "body" },
+  };
+  const fieldLookup = (id: string) => fieldNodes[id];
+
+  it("style 을 owner rule 이 정하는 sub-part 는 거부한다 (TextField 의 Label)", () => {
+    expect(canOperate("editStyle", "label", fieldLookup)).toEqual({
+      ok: false,
+      reason: "delegatedSubpart",
+    });
+  });
+
+  it("body · 독립 요소는 스타일 편집이 정상이다 (구조 변경 규칙을 따르지 않는다)", () => {
+    expect(canOperate("editStyle", "body", fieldLookup)).toEqual({ ok: true });
+    expect(canOperate("editStyle", "free", fieldLookup)).toEqual({ ok: true });
+    expect(canOperate("editStyle", "field", fieldLookup)).toEqual({ ok: true });
+  });
+});

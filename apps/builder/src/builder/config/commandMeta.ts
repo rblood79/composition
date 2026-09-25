@@ -101,6 +101,7 @@ const REJECT_REASON: Readonly<Record<OperationRejectReason, string>> = {
   templateAnchor: "template-anchor",
   notGroup: "not-a-frame",
   notInstance: "not-an-instance",
+  delegatedSubpart: "delegated-subpart",
 };
 const singleTarget = (s: AgentReadModel) =>
   s.selectedElementIds.length > 1

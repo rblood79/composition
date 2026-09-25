@@ -547,6 +547,38 @@ describe("create_element 부모 판정 = 팔레트와 같은 resolveMoveTarget (
   });
 });
 
+describe("update_element 스타일 — 위임 sub-part 는 쓰지 않는다 (ADR-236 Phase 3, A-2)", () => {
+  beforeEach(() => {
+    seed();
+  });
+
+  it("TextField 의 Label 에 styles 를 쓰면 이유와 함께 실패한다 (쓴 값은 무시되고 성공만 보고됐다)", async () => {
+    // 팔레트 · AI 가 만드는 TextField 는 ref instance 라 Label 이 synthetic 자식이고, AI 는 그 id 를
+    //   대상으로 받지 않는다. plain TextField 트리 (legacy 문서 · 분리한 instance) 에서 판정을 본다.
+    const base = { props: {}, page_id: "page-1", order_num: 0 };
+    await useStore.getState().addElement({
+      ...base,
+      id: "plain-field",
+      type: "TextField",
+      parent_id: "body",
+    } as Element);
+    await useStore.getState().addElement({
+      ...base,
+      id: "plain-field-label",
+      type: "Label",
+      parent_id: "plain-field",
+    } as Element);
+    expect(useStore.getState().elementsMap.has("plain-field-label")).toBe(true);
+
+    const result = await updateElementTool.execute(
+      { elementId: "plain-field-label", styles: { width: "300px" } },
+      tt,
+    );
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("plain-field-label");
+  });
+});
+
 describe("batch_design history 단위 (G3 실측)", () => {
   beforeEach(() => {
     seed();

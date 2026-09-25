@@ -14,7 +14,7 @@
 import { useCallback, useEffect, useRef, type RefObject } from "react";
 import { useStore } from "../../../stores";
 import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
-import { resolveSubpartStyleOwnerTypeById } from "../../../stores/canonical/subpartOwnerLookup";
+import { canOperate } from "../../../domain/canOperate";
 import { useViewportSyncStore } from "../stores";
 import { requestCanvasFrame } from "../skia/frameScheduler";
 import { getSceneBounds } from "../skia/renderCommands";
@@ -164,7 +164,10 @@ export function useResizeInteraction({
       const store = useStore.getState();
       // read-only sub-part (TextField 의 Label 등) 의 크기는 owner rule 이 정한다 — 여기서 쓴 값은
       //   layout · Skia · DOM 이 모두 무시한다. 패널과 같은 판정으로 세션을 열지 않는다.
-      if (resolveSubpartStyleOwnerTypeById(elementId, store.elementsMap)) {
+      if (
+        !canOperate("editStyle", elementId, (id) => store.elementsMap.get(id))
+          .ok
+      ) {
         return false;
       }
       const sizing = store.readCanvasSizingContext(elementId);

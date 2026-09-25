@@ -28,7 +28,7 @@ import {
 } from "@composition/shared";
 import { useStore } from "../stores";
 import { useCanonicalDocumentStore } from "../stores/canonical/canonicalDocumentStore";
-import { resolveSubpartStyleOwnerTypeById } from "../stores/canonical/subpartOwnerLookup";
+import { canOperate } from "../domain/canOperate";
 import { shouldWriteBreakpointOverride } from "../stores/utils/responsiveWriteRouting";
 import {
   editorPresentationCanonicalRuntimeOptions,
@@ -438,7 +438,10 @@ export function resolveSpacingCapability(
   const element = state.elementsMap.get(target.nodeId);
   if (!element) return null;
   // read-only sub-part (SelectTrigger 래퍼 등) 의 padding · gap 은 owner rule 이 정한다 — 띠를 내지 않는다.
-  if (resolveSubpartStyleOwnerTypeById(target.nodeId, state.elementsMap)) {
+  if (
+    !canOperate("editStyle", target.nodeId, (id) => state.elementsMap.get(id))
+      .ok
+  ) {
     return null;
   }
   const rootKey = element.page_id ?? null;

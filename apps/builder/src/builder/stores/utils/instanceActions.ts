@@ -32,7 +32,7 @@ import {
 import { buildIdPathContext } from "../../../adapters/canonical/idPath";
 import {
   getEditingSemanticsImpactInstanceIds,
-  getEditingSemanticsRole,
+  isEditingSemanticsInstance,
   isEditingSemanticsOrigin,
   isSystemOwnedOrigin,
 } from "../../utils/editingSemantics";
@@ -700,7 +700,14 @@ export function createInstance(
   const state = withInstanceActionSourceState(get());
   const { elements: sourceElements } = state;
   const master = findInstanceActionElement(sourceElements, masterRefId);
-  if (!master || getEditingSemanticsRole(master) !== "origin") {
+  // 축 술어로 판정한다 (ADR-236 Phase 3 — role 우선순위 함수는 시각 마커 전용). dual 노드 (ADR-234
+  //   상태 변형 `<origin>--<state>` = origin 의 ref + reusable) 는 state 층이지 배치 원본이 아니다 — 거부를
+  //   명시한다 (종전에는 role 이 instance 를 먼저 골라 우연히 거부됐다).
+  if (
+    !master ||
+    !isEditingSemanticsOrigin(master) ||
+    isEditingSemanticsInstance(master)
+  ) {
     console.warn("[Instance] master not found or not a master:", masterRefId);
     return null;
   }

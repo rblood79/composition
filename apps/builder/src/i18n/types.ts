@@ -1112,6 +1112,7 @@ export interface TranslationKeys {
     bindLegacySourceUnsupported: string;
     unknownAction: string;
     bodyUndeletable: string;
+    subpartStyleOwned: string;
     notDeleted: string;
     selectionEmpty: string;
     selectionMissing: string;
