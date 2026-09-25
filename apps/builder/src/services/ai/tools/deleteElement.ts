@@ -11,7 +11,10 @@ import type {
 } from "../../../types/integrations/ai.types";
 import { getAiToolReadModel } from "./canonicalToolReadModel";
 import { resolveElementRef } from "./elementRef";
-import { isBodyType } from "@composition/shared";
+import {
+  canOperate,
+  getOperationRejectMessageKey,
+} from "../../../builder/domain/canOperate";
 
 export const deleteElementTool: ToolExecutor = {
   name: "delete_element",
@@ -45,9 +48,23 @@ export const deleteElementTool: ToolExecutor = {
       const targetId = ref.id;
       const element = elementsById.get(targetId)!;
 
-      // body 요소 보호
-      if (isBodyType(element.type)) {
-        return { success: false, error: t("aiToolError.bodyUndeletable") };
+      // 구조 변경 판정 (ADR-236 Phase 3 — 메뉴 · 단축키 · Layers 와 같은 `canOperate`). body 는 전용 문구,
+      // systemOwned origin · ListBox template anchor 는 store 가 지우지 않으므로 여기서 이유와 함께 거부한다.
+      const verdict = canOperate("delete", targetId, (id) =>
+        elementsById.get(id),
+      );
+      if (!verdict.ok) {
+        switch (verdict.reason) {
+          case "body":
+            return { success: false, error: t("aiToolError.bodyUndeletable") };
+        }
+        const messageKey = getOperationRejectMessageKey(verdict.reason);
+        return {
+          success: false,
+          error: messageKey
+            ? t(messageKey)
+            : t("aiToolError.notDeleted", { id: targetId }),
+        };
       }
 
       await removeElement(targetId);

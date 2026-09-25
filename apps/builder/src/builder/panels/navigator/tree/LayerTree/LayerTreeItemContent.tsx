@@ -22,6 +22,7 @@ import {
 import type { PanelNode } from "../../../panelNode";
 import { ACTION_ICONS } from "../../../../config/actionIcons";
 import { isBodyType } from "@composition/shared";
+import { canOperate } from "../../../../domain/canOperate";
 
 /** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
 const DeleteIcon = ACTION_ICONS.delete;
@@ -141,6 +142,15 @@ const NormalItemContent = memo(function NormalItemContent({
   const { open: openContextMenu } = useContextMenu();
   const semanticsRole = getEditingSemanticsRole(element);
   const semanticsLabel = getEditingSemanticsLabel(semanticsRole);
+  // 삭제 버튼은 store 가 지울 수 있는 노드에만 — systemOwned origin · ListBox template anchor 는
+  // 눌러도 무음 no-op 이었다 (ADR-236 Phase 3, E3 · E11). 판정은 메뉴 · 단축키와 같은 `canOperate`.
+  const canDelete =
+    !isSyntheticRefChild &&
+    canOperate("delete", element.id, (id) =>
+      id === element.id
+        ? (useStore.getState().elementsMap.get(id) ?? { id, type })
+        : undefined,
+    ).ok;
 
   const handleContextMenu = (event: React.MouseEvent) => {
     // ADR-138 A-2: instance 뿐 아니라 일반 element 도 우클릭 메뉴 노출
@@ -241,7 +251,7 @@ const NormalItemContent = memo(function NormalItemContent({
             />
           </Button>
         )}
-        {!isBodyType(type) && !isSyntheticRefChild && (
+        {canDelete && (
           <Button
             className="iconButton"
             aria-label={`Delete ${type}`}

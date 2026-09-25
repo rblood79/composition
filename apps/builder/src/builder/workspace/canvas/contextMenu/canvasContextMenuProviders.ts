@@ -25,10 +25,7 @@ import {
   type ComponentSemanticsActionId,
 } from "../../../config/componentSemanticsActions";
 import { useStore } from "../../../stores";
-import {
-  canDetachInstance,
-  getEditingSemanticsOriginId,
-} from "../../../utils/editingSemantics";
+import { getEditingSemanticsOriginId } from "../../../utils/editingSemantics";
 import { runComponentSemanticsAction } from "../../../utils/componentSemanticsRunner";
 import { registerContextMenuProvider } from "../../../components/overlay/contextMenu";
 import type {
@@ -50,11 +47,10 @@ import {
   distributeSelection,
   groupSelection,
   paste,
-  selectableWithoutBody,
+  selectOperable,
   ungroupSelection,
 } from "../actions/canvasActions";
-import { isFrameOrLegacyGroup } from "../../../stores/utils/elementGrouping";
-import { isRenderProjectionId } from "../../../projection/renderProjectionIds";
+import type { StructuralOp } from "../../../domain/canOperate";
 import { isSyntheticDescendantId } from "../../../stores/canonical/syntheticDescendantLookup";
 import type { CanvasActionElement } from "../actions/canvasActions";
 import {
@@ -235,35 +231,39 @@ function buildElementMenuItems(
   const selectedElements = targetElementIds
     .map((id) => elementsMap.get(id))
     .filter((element): element is CanvasActionElement => element !== undefined);
-  // action 층과 같은 관문(`selectableWithoutBody`)으로 body 를 거른 개수 —
-  // 노출 판정과 실행 판정이 같은 함수에서 나온다.
-  const nonBodyCount = selectableWithoutBody(
-    targetElementIds,
-    elementsMap,
-  ).length;
-  // `groupSelection` 은 body 를 거른 뒤 `GROUP_MIN_SELECTION` 이상에서만
-  // 실행한다 — 단일 선택 group 은 결정적 no-op 이었다 (code-review #10).
+  // action 층과 같은 관문 (`selectOperable` → `canOperate`, ADR-236 Phase 3) 을 지나는 개수 —
+  // 노출 판정과 실행 판정이 같은 함수에서 나온다. 삭제는 systemOwned origin · ListBox template
+  // anchor 도 빠진다 (눌러도 무음 no-op 이던 항목, E3 · E11).
+  const operableCount = (op: StructuralOp, ids = targetElementIds) =>
+    selectOperable(op, ids, elementsMap).ids.length;
+  const copyableCount = operableCount("copy");
+  const duplicableCount = operableCount("duplicate");
+  const deletableCount = operableCount("delete");
+  const movableCount = operableCount("move");
+  // `groupSelection` 은 거른 뒤 `GROUP_MIN_SELECTION` 이상에서만 실행한다 — 단일 선택 group 은
+  // 결정적 no-op 이었다 (code-review #10).
   const canGroupSelection =
     selectedElements.length >= GROUP_MIN_SELECTION &&
-    nonBodyCount === selectedElements.length;
+    operableCount("group") === selectedElements.length;
   const primaryElement = selectedElements[0];
   const isSingleSelection = selectedElements.length === 1;
+  const primaryIds = primaryElement ? [primaryElement.id] : [];
+  // systemOwned frame 은 ungroup 하면 빈 origin 이 남는다 (E5).
   const isGroupSelection =
-    isSingleSelection && isFrameOrLegacyGroup(primaryElement?.type);
+    isSingleSelection && operableCount("ungroup", primaryIds) === 1;
   const originId = isSingleSelection
     ? getEditingSemanticsOriginId(primaryElement)
     : null;
   const originElement = originId ? elementsMap.get(originId) : undefined;
   const detachableElement = selectedElements.find(
-    (element) =>
-      !isSyntheticDescendantId(element.id) && canDetachInstance(element),
+    (element) => operableCount("detach", [element.id]) === 1,
   );
   const context = () => actionContext(options);
 
-  // 복사·복제는 구조 변경 관문 (`selectableWithoutBody`) 을 지나는 대상이 있을 때만 — body 와
+  // 복사·복제는 구조 변경 관문 (`selectOperable`) 을 지나는 대상이 있을 때만 — body 와
   // instance 의 synthetic 자식만 고른 선택에서는 실행 층이 아무것도 하지 않는다 (B-3).
   const items: ContextMenuItem[] = [];
-  if (nonBodyCount > 0) {
+  if (copyableCount > 0) {
     items.push(
       actionItem(
         "copy",
@@ -288,7 +288,7 @@ function buildElementMenuItems(
       { icon: ACTION_ICONS.paste },
     ),
   );
-  if (nonBodyCount > 0) {
+  if (duplicableCount > 0) {
     items.push(
       actionItem(
         "duplicate",
@@ -304,8 +304,7 @@ function buildElementMenuItems(
   if (
     isSingleSelection &&
     primaryElement &&
-    !isRenderProjectionId(primaryElement.id) &&
-    !isSyntheticDescendantId(primaryElement.id) &&
+    operableCount("move", primaryIds) === 1 &&
     hasReorderableSiblings(primaryElement, elementsMap)
   ) {
     items.push(...buildZOrderItems(primaryElement));
@@ -341,7 +340,7 @@ function buildElementMenuItems(
   // body 는 정렬·분배 대상이 아니다 (canvasActions 가 거른다) — ⌘A 처럼 body 가
   // 섞인 선택에서 남는 개수로 판정해야 조건 미충족 항목이 노출되지 않는다
   // (2026-08-27 관찰: dead 항목 계열).
-  if (nonBodyCount >= ALIGN_MIN_SELECTION) {
+  if (movableCount >= ALIGN_MIN_SELECTION) {
     items.push({
       kind: "submenu",
       id: "align",
@@ -349,7 +348,7 @@ function buildElementMenuItems(
       icon: ACTION_ICONS.align,
       items: buildAlignmentItems(
         options,
-        nonBodyCount >= DISTRIBUTE_MIN_SELECTION,
+        movableCount >= DISTRIBUTE_MIN_SELECTION,
       ),
     });
   }
@@ -369,9 +368,11 @@ function buildElementMenuItems(
   const primaryIsSynthetic =
     isSingleSelection && isSyntheticDescendantId(primaryElement?.id);
   const componentAxisTarget =
-    isSingleSelection && (nonBodyCount === 1 || primaryIsSynthetic)
+    isSingleSelection && (copyableCount === 1 || primaryIsSynthetic)
       ? toEditingSemanticsTarget(primaryElement)
       : null;
+  // 컴포넌트 만들기/해제는 systemOwned origin 에서 서지 않는다 (store 는 토스트로 거부한다).
+  const canToggleOrigin = operableCount("toggleOrigin", primaryIds) === 1;
   const detachTarget = toEditingSemanticsTarget(detachableElement);
   const semanticsContext = {
     hasResolvedOrigin: Boolean(originElement),
@@ -402,6 +403,7 @@ function buildElementMenuItems(
   for (const action of COMPONENT_SEMANTICS_ACTIONS) {
     if (!action.surfaces.includes("context-menu")) continue;
     if (primaryIsSynthetic && action.id !== "go-to-origin") continue;
+    if (action.id === "toggle-component-origin" && !canToggleOrigin) continue;
     const target =
       action.id === "detach-instance" ? detachTarget : componentAxisTarget;
     if (!target) continue;
@@ -429,7 +431,7 @@ function buildElementMenuItems(
   }
   items.push(...componentItems);
 
-  if (nonBodyCount > 0) {
+  if (deletableCount > 0) {
     items.push({ kind: "separator", id: "delete-separator" });
     items.push(
       actionItem(

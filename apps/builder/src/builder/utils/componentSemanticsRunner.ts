@@ -14,6 +14,12 @@
  * 단축키는 `elementsMap`) 그건 각 표면이 옳게 아는 것이므로, 가진 element 를
  * 넘기면 payload 조립과 store 호출은 이 모듈이 한 벌로 처리한다.
  */
+import {
+  canOperate,
+  createOperableLookup,
+  notifyOperationRejected,
+  type StructuralOp,
+} from "../domain/canOperate";
 import { useStore } from "../stores";
 import type { ComponentSemanticsActionId } from "../config/componentSemanticsActions";
 import {
@@ -106,6 +112,15 @@ function readOrigin(
   };
 }
 
+/** store 노드로 구조 변경 판정 (ADR-236 Phase 3) — 거부면 이유를 토스트로 보인다. */
+function operableHere(op: StructuralOp, targetId: string): boolean {
+  const { elementsMap } = useStore.getState();
+  const verdict = canOperate(op, targetId, createOperableLookup(elementsMap));
+  if (verdict.ok) return true;
+  notifyOperationRejected([verdict]);
+  return false;
+}
+
 /**
  * 액션 1건을 실행한다. 반환값은 **store 를 실제로 건드렸는가** —
  * 확인 취소 · 조건 미충족은 `false` 다.
@@ -164,6 +179,8 @@ export async function runComponentSemanticsAction(
     }
 
     case "toggle-component-origin": {
+      // 단축키 · agent · 패널이 모두 이 경로로 온다 — 메뉴만 막던 body 가드 (E1) 를 여기서도 본다.
+      if (!operableHere("toggleOrigin", targetId)) return false;
       await useStore.getState().toggleComponentOrigin(targetId);
       return true;
     }

@@ -19,6 +19,7 @@ import { isListBoxTemplateAnchor } from "../components/listbox/listBoxTemplateOr
 import { isRenderProjectionId } from "../projection/renderProjectionIds";
 import { isSyntheticDescendantId } from "../stores/canonical/syntheticDescendantLookup";
 import { isFrameOrLegacyGroup } from "../stores/utils/elementGrouping";
+import { globalToast } from "../stores/toast";
 
 export type StructuralOp =
   | "delete"
@@ -43,15 +44,13 @@ export type OperationRejectReason =
 export type OperationVerdict =
   { ok: true } | { ok: false; reason: OperationRejectReason };
 
-/** store 노드에서 판정이 읽는 필드. */
+/** store 노드에서 판정이 읽는 필드. legacy mirror 필드 (instance 판정) 는 어댑터 술어가 런타임에 읽는다 (ADR-116 G5). */
 export interface OperableNode {
   id: string;
   type: string;
   ref?: string;
   reusable?: boolean;
   metadata?: unknown;
-  componentRole?: string;
-  masterId?: string;
 }
 
 export type OperableNodeLookup = (id: string) => OperableNode | undefined;
@@ -150,4 +149,29 @@ export function getOperationRejectMessageKey(
     case "notInstance":
       return null;
   }
+}
+
+/**
+ * 표면의 맵과 store 맵을 겹친 조회 — 대상은 표면 맵에 있는 id 만 (표면이 보지 않는 노드는
+ * 고르지 않는다), 필드는 store 노드 (canonical 타입 · `reusable` · `metadata`) 를 먼저 읽는다.
+ */
+export function createOperableLookup(
+  surfaceMap: ReadonlyMap<string, OperableNode>,
+  storeMap?: ReadonlyMap<string, OperableNode>,
+): OperableNodeLookup {
+  return (id) =>
+    surfaceMap.has(id) ? (storeMap?.get(id) ?? surfaceMap.get(id)) : undefined;
+}
+
+/** 거부된 대상 중 사유를 보일 첫 항목을 토스트로 알린다. 알렸으면 true. */
+export function notifyOperationRejected(
+  rejected: readonly { reason: OperationRejectReason }[],
+): boolean {
+  for (const { reason } of rejected) {
+    const messageKey = getOperationRejectMessageKey(reason);
+    if (!messageKey) continue;
+    globalToast.info(messageKey, { messageKey });
+    return true;
+  }
+  return false;
 }

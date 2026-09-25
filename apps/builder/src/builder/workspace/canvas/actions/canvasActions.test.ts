@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useStore } from "../../../stores";
+import { globalToast } from "../../../stores/toast";
 import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
 import type { CanvasActionElement } from "./canvasActions";
 import {
@@ -610,5 +611,42 @@ describe("groupSelection 중첩 preflight", () => {
 
     expect(updateElement).not.toHaveBeenCalled();
     expect(removeElement).not.toHaveBeenCalled();
+  });
+});
+
+describe("canvasActions — canOperate 관문 (ADR-236 Phase 3)", () => {
+  const systemOrigin = (id: string, type = "Button") =>
+    makeElement(id, {
+      type,
+      reusable: true,
+      metadata: { systemOwned: true },
+    } as Partial<CanvasActionElement>);
+
+  it("삭제 — systemOwned origin 만 고른 선택은 store 를 부르지 않고 이유를 알린다 (E3)", async () => {
+    const removeElements = vi.spyOn(useStore.getState(), "removeElements");
+    const toast = vi.spyOn(globalToast, "info");
+    useStore.setState({
+      selectedElementId: "origin",
+      selectedElementIds: ["origin"],
+    } as never);
+    await deleteSelection({
+      elementsMap: new Map([["origin", systemOrigin("origin")]]),
+    });
+    expect(removeElements).not.toHaveBeenCalled();
+    expect(toast).toHaveBeenCalledWith("operation.systemOriginLocked", {
+      messageKey: "operation.systemOriginLocked",
+    });
+  });
+
+  it("ungroup — systemOwned frame 은 자식을 옮기지 않는다 (E5)", async () => {
+    const updateElement = vi.spyOn(useStore.getState(), "updateElement");
+    useStore.setState({ selectedElementId: "frame" } as never);
+    await ungroupSelection({
+      elementsMap: new Map([
+        ["frame", systemOrigin("frame", "frame")],
+        ["child", makeElement("child", { parent_id: "frame" })],
+      ]),
+    });
+    expect(updateElement).not.toHaveBeenCalled();
   });
 });

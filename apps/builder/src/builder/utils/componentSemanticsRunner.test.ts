@@ -176,6 +176,32 @@ describe("runComponentSemanticsAction", () => {
     expect(toggleComponentOrigin).toHaveBeenCalledWith(ORIGIN.id);
   });
 
+  // ADR-236 Phase 3 (E1) — 단축키 · agent · 패널이 모두 이 경로로 온다. body 가드가 메뉴에만 있어
+  //   단축키로 body 가 reusable origin 이 됐다.
+  it("toggle 은 body · systemOwned origin 에서 store 를 부르지 않는다", async () => {
+    useStore.setState({
+      elementsMap: new Map<string, never>([
+        ["body-1", { id: "body-1", type: "body" } as never],
+        [
+          "system-1",
+          {
+            id: "system-1",
+            type: "Button",
+            reusable: true,
+            metadata: { systemOwned: true },
+          } as never,
+        ],
+      ]),
+    } as never);
+    for (const targetId of ["body-1", "system-1"]) {
+      const ran = await runComponentSemanticsAction("toggle-component-origin", {
+        targetId,
+      });
+      expect(ran).toBe(false);
+    }
+    expect(toggleComponentOrigin).not.toHaveBeenCalled();
+  });
+
   it("select-instances 는 패널이 소유한다 — 러너는 실행하지 않는다", async () => {
     const ran = await runComponentSemanticsAction("select-instances", {
       targetId: ORIGIN.id,

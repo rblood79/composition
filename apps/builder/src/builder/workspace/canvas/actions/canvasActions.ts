@@ -1,3 +1,11 @@
+import {
+  createOperableLookup,
+  filterOperable,
+  notifyOperationRejected,
+  type OperableNode,
+  type OperableSelection,
+  type StructuralOp,
+} from "../../../domain/canOperate";
 import { useStore } from "../../../stores";
 import { isSyntheticDescendantId } from "../../../stores/canonical/syntheticDescendantLookup";
 import type { CanvasInteractionNode } from "../interaction/interactionNode";
@@ -15,7 +23,6 @@ import {
 } from "../../../utils/multiElementCopy";
 import {
   createGroupFromSelection,
-  isFrameOrLegacyGroup,
   ungroupElement,
 } from "../../../stores/utils/elementGrouping";
 import { alignElements } from "../../../stores/utils/elementAlignment";
@@ -30,7 +37,6 @@ import {
 } from "../../../stores/utils/historyHelpers";
 import { attachCanonicalStateToCopy } from "../../../utils/canonicalCopyState";
 import { getActiveCanonicalDocument } from "../../../stores/canonical/canonicalElementsBridge";
-import { isBodyType } from "@composition/shared";
 
 type CanvasActionElementsMap = Parameters<typeof copyMultipleElements>[1];
 type CanvasActionStoreElement = NonNullable<
@@ -135,28 +141,24 @@ function getActionElements(
 }
 
 /**
- * body 를 제외한 선택 id — 선택을 문서 구조로 바꾸는 모든 행동의 공통 관문.
+ * 선택 중 이 작업을 할 수 있는 id — 선택을 문서 구조로 바꾸는 모든 행동의 공통 관문 (ADR-236
+ * Phase 3). 판정은 `canOperate` 하나다: body (페이지 루트 — ⌘A 가 같이 고른다) · instance 의
+ * synthetic 자식 (store 노드가 아니다, B-3) 은 모든 작업에서, systemOwned origin · ListBox template
+ * anchor 는 삭제에서 빠진다. 컨텍스트 메뉴 · 액션 바 · 단축키 판정 (`commandMeta`) 도 같은 함수를
+ * 읽어 노출 판정과 실행 판정이 갈리지 않는다.
  *
- * body 는 페이지 루트라 복제·삭제·그룹·정렬·분배 어느 쪽도 대상이 될 수 없다.
- * ⌘A 는 body 까지 선택하므로 필터가 없으면 body 가 조용히 대상에 섞인다
- * (2026-08-27: 복제는 두 번째 body 를 만들었고 — code-review #1 —,
- * 정렬/분배는 페이지 루트에 left/top 을 쓰고, 그룹은 body 를 새 frame 의
- * 자식으로 reparent 한다).
- *
- * instance 의 synthetic 자식 (`<instance>/<path>`) 도 뺀다 — 캔버스 대화형 맵에는 있지만 store
- * 노드가 아니라 (자식은 origin · `descendants` 에서 온다) 삭제는 no-op 이고, 복제는 ref instance
- * 아래에 실제 자식을 만들었다 (B-3, 2026-09-24 live). 단축키 판정 (`commandMeta` — store 맵) 은
- * 이미 이 노드를 못 찾아 대상에서 뺀다.
+ * 필드는 store 노드에서 읽는다 — 표면 맵 (캔버스 상호작용 맵) 에는 `reusable` · `metadata` 가 없다.
  */
-export function selectableWithoutBody(
+export function selectOperable(
+  op: StructuralOp,
   ids: readonly string[],
-  elementsMap: ReadonlyMap<string, { type: string }>,
-): string[] {
-  return ids.filter((id) => {
-    if (isSyntheticDescendantId(id)) return false;
-    const element = elementsMap.get(id);
-    return element !== undefined && !isBodyType(element.type);
-  });
+  elementsMap: ReadonlyMap<string, OperableNode>,
+): OperableSelection {
+  return filterOperable(
+    op,
+    ids,
+    createOperableLookup(elementsMap, useStore.getState().elementsMap),
+  );
 }
 
 /**
@@ -182,7 +184,11 @@ export async function copySelection(
   // ⌘A→⌘C→⌘V 는 복제와 같은 경로로 두 번째 body 를 문서에 넣는다 — 복제·삭제와
   // 같은 관문을 지난다. body 만 선택된 경우는 복사할 것이 없다 (cut 은 이 false
   // 로 삭제도 건너뛴다).
-  const copyableIds = selectableWithoutBody(selectedElementIds, elementsMap);
+  const copyableIds = selectOperable(
+    "copy",
+    selectedElementIds,
+    elementsMap,
+  ).ids;
   if (copyableIds.length === 0) return false;
 
   // ADR-214: state 는 canonical 노드에서 읽는다 (read model 값은 버린다 — 정본 하나).
@@ -295,7 +301,11 @@ export async function duplicateSelection(
   // body 를 버려 자손이 고아가 되는데도 문서·IndexedDB 에는 남고,
   // deleteSelection 이 body 를 거부해 undo 외엔 지울 수 없다. 삭제 경로와 같은
   // 필터를 복제에도 적용한다 (2026-08-27 code-review #1).
-  const duplicableIds = selectableWithoutBody(selectedElementIds, elementsMap);
+  const duplicableIds = selectOperable(
+    "duplicate",
+    selectedElementIds,
+    elementsMap,
+  ).ids;
   if (duplicableIds.length === 0) return;
 
   // ADR-214: state 는 canonical 노드에서 읽고, paste 의 id 재발급 pass 가 새 id 를 발급한다.
@@ -334,8 +344,13 @@ export async function deleteSelection(
     selectedIdsForDelete.unshift(selectedElementId);
   }
 
-  const deletableIds = selectableWithoutBody(selectedIdsForDelete, elementsMap);
-  if (deletableIds.length === 0) return;
+  const deletable = selectOperable("delete", selectedIdsForDelete, elementsMap);
+  if (deletable.ids.length === 0) {
+    // 메뉴는 이 선택에 삭제를 세우지 않지만 단축키 · agent 는 판정 없이 온다 — 무음 no-op 대신 이유를 보인다 (E3 · E11).
+    notifyOperationRejected(deletable.rejected);
+    return;
+  }
+  const deletableIds = deletable.ids;
 
   setSelectedElement(null);
   await removeElements(deletableIds);
@@ -345,20 +360,24 @@ export async function groupSelection(
   context: CanvasActionContext,
 ): Promise<void> {
   const {
-    multiSelectMode,
     selectedElementIds,
     currentPageId,
     addElement,
     updateElement,
     setSelectedElement,
   } = useStore.getState();
-  if (!multiSelectMode || !currentPageId) return;
+  // 개수로만 판정한다 — `multiSelectMode` 를 따로 요구하면 메뉴 (개수 판정) 에 선 항목이 no-op 이 된다 (E9).
+  if (!currentPageId) return;
 
   const elementsMap = getActionElements(context);
   // 컨텍스트 메뉴는 body 가 섞인 선택에 group 항목을 만들지 않지만 ⌘G 는 그
   // 관문을 거치지 않는다 — 필터가 없으면 `createGroupFromSelection` 이 페이지
   // 루트를 새 frame 의 자식으로 reparent 한다 (2026-08-27 관찰의 같은 계열).
-  const groupableIds = selectableWithoutBody(selectedElementIds, elementsMap);
+  const groupableIds = selectOperable(
+    "group",
+    selectedElementIds,
+    elementsMap,
+  ).ids;
   if (groupableIds.length < GROUP_MIN_SELECTION) return;
 
   // 필터를 통과한 id 는 map 에 있다
@@ -413,7 +432,14 @@ export async function ungroupSelection(
 
   const elementsMap = getActionElements(context);
   const selectedElement = elementsMap.get(selectedElementId);
-  if (!selectedElement || !isFrameOrLegacyGroup(selectedElement.type)) return;
+  if (!selectedElement) return;
+  // frame 이 아니면 조용히 끝내고, systemOwned frame 은 이유를 보인다 — ungroup 은 frame 을 지우는데
+  // 지울 수 없는 origin 이면 자식만 빠지고 빈 origin 이 남는다 (E5).
+  const verdict = selectOperable("ungroup", [selectedElementId], elementsMap);
+  if (verdict.ids.length === 0) {
+    notifyOperationRejected(verdict.rejected);
+    return;
+  }
 
   const groupElementForHistory = elementsMap.get(selectedElementId);
   const previousChildren = Array.from(elementsMap.values()).filter(
@@ -466,15 +492,17 @@ export async function alignSelection(
   context: CanvasActionContext,
   type: AlignmentType,
 ): Promise<void> {
-  const { multiSelectMode, selectedElementIds, batchUpdateElementProps } =
-    useStore.getState();
-  if (!multiSelectMode) return;
+  const { selectedElementIds, batchUpdateElementProps } = useStore.getState();
 
   const elementsMap = getActionElements(context);
   // ⌘A 선택에는 body 가 섞인다 — 정렬 대상에 들어가면 페이지 루트에 left/top 을
   // 쓰고, body 의 bounding box 가 전체를 덮어 나머지 요소의 정렬 기준까지
   // 무너뜨린다 (2026-08-27 관찰).
-  const alignableIds = selectableWithoutBody(selectedElementIds, elementsMap);
+  const alignableIds = selectOperable(
+    "move",
+    selectedElementIds,
+    elementsMap,
+  ).ids;
   if (alignableIds.length < ALIGN_MIN_SELECTION) return;
 
   const updates = alignElements(alignableIds, elementsMap, type);
@@ -503,17 +531,16 @@ export async function distributeSelection(
   context: CanvasActionContext,
   type: DistributionType,
 ): Promise<void> {
-  const { multiSelectMode, selectedElementIds, batchUpdateElementProps } =
-    useStore.getState();
-  if (!multiSelectMode) return;
+  const { selectedElementIds, batchUpdateElementProps } = useStore.getState();
 
   const elementsMap = getActionElements(context);
   // 정렬과 같은 이유 — 분배는 양 끝 요소를 고정점으로 잡는데 body 가 섞이면
   // 페이지 루트가 고정점이 된다.
-  const distributableIds = selectableWithoutBody(
+  const distributableIds = selectOperable(
+    "move",
     selectedElementIds,
     elementsMap,
-  );
+  ).ids;
   if (distributableIds.length < DISTRIBUTE_MIN_SELECTION) return;
 
   const updates = distributeElements(distributableIds, elementsMap, type);

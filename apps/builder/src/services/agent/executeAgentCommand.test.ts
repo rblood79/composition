@@ -120,12 +120,14 @@ describe("executeAgentCommand — 게이트 분기", () => {
     expect(r).toMatchObject({ status: "denied", reason: "not-agent-callable" });
   });
 
-  it("precondition-failed — alignLeft 는 multiSelectMode 없이는 adapter 를 부르지 않는다", async () => {
-    seed(["a", "b"], false);
+  // ADR-236 Phase 3 (E9) — 판정은 개수만 본다. `multiSelectMode` 를 따로 요구하면 메뉴 (개수 판정) 에
+  //   선 항목이 no-op 이 된다.
+  it("precondition-failed — alignLeft 는 이동 가능한 선택이 2 개 미만이면 adapter 를 부르지 않는다", async () => {
+    seed(["a"], false);
     const r = await executeAgentCommand("alignLeft", undefined, ctx());
     expect(r).toMatchObject({
       status: "precondition-failed",
-      reason: "multi-select-mode-off",
+      reason: "selection-lt-2",
     });
     expect(spies.alignLeft).not.toHaveBeenCalled();
     expect(log()[0]).toMatchObject({
@@ -209,7 +211,7 @@ describe("executeAgentCommand — 게이트 분기", () => {
   });
 
   it("기록 1:1 — 호출 5건 (5 status) = 기록 5건, seq 단조 증가, host 기록", async () => {
-    seed(["a", "b"], false);
+    seed(["a"], false);
     await executeAgentCommand("nope", undefined, ctx()); // denied
     await executeAgentCommand("alignLeft", undefined, ctx()); // precondition-failed
     await executeAgentCommand("delete", undefined, ctx(false)); // declined
@@ -388,7 +390,7 @@ describe("executeAgentCommand — data.* (ADR-213 Phase 5) 같은 게이트", ()
     const c = ctx(false);
     const r = await executeAgentCommand(
       "data.importPaste",
-      { text: "[{\"a\":1}]", name: "T" },
+      { text: '[{"a":1}]', name: "T" },
       c,
     );
     expect(c.requestConfirm).not.toHaveBeenCalled();
@@ -407,7 +409,7 @@ describe("executeAgentCommand — data.* (ADR-213 Phase 5) 같은 게이트", ()
     });
     const r2 = await executeAgentCommand(
       "data.importPaste",
-      { text: "[{\"a\":1}]", name: "T" },
+      { text: '[{"a":1}]', name: "T" },
       c,
     );
     expect(r2).toMatchObject({ status: "declined", reason: "user-declined" });
@@ -415,7 +417,11 @@ describe("executeAgentCommand — data.* (ADR-213 Phase 5) 같은 게이트", ()
   });
 
   it("precondition — importPaste 필수 인자 (text · name|collectionId) 는 adapter 전에 막힌다", async () => {
-    const r = await executeAgentCommand("data.importPaste", { name: "T" }, ctx());
+    const r = await executeAgentCommand(
+      "data.importPaste",
+      { name: "T" },
+      ctx(),
+    );
     expect(r).toMatchObject({
       status: "precondition-failed",
       reason: "text-required",

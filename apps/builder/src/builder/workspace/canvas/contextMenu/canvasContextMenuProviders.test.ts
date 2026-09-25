@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { CanvasActionElement } from "../actions/canvasActions";
 import { buildCanvasContextMenuItems } from "./canvasContextMenuProviders";
+import { LISTBOX_TEMPLATE_ANCHOR_ROLE } from "../../../components/listbox/listBoxTemplateOrigins";
 
 function element(
   id: string,
@@ -284,5 +285,36 @@ describe("canvas context-menu providers", () => {
       "show-rulers",
       "snap-to-objects",
     ]);
+  });
+});
+
+describe("canvas context-menu providers — canOperate 로 노출 판정 (ADR-236 Phase 3)", () => {
+  const systemOrigin = (id: string, type = "Button") =>
+    element(id, type, {
+      reusable: true,
+      metadata: { systemOwned: true },
+    } as Partial<CanvasActionElement>);
+  const ids = (targets: string[], pool: CanvasActionElement[]) =>
+    menuItems(targets, pool).map((item) => item.id);
+
+  it("systemOwned origin 에는 삭제 · 컴포넌트 해제를 세우지 않는다 (E3 — 눌러도 무음 no-op 이었다)", () => {
+    const menu = ids(["origin"], [systemOrigin("origin")]);
+    expect(menu).not.toContain("delete");
+    expect(menu).not.toContain("toggle-component-origin");
+    expect(menu).toContain("copy");
+  });
+
+  it("ListBox template anchor 에는 삭제를 세우지 않는다 (E11)", () => {
+    const anchor = element("anchor", "ListBoxItem", {
+      metadata: { templateRole: LISTBOX_TEMPLATE_ANCHOR_ROLE },
+    } as Partial<CanvasActionElement>);
+    expect(ids(["anchor"], [anchor])).not.toContain("delete");
+  });
+
+  it("systemOwned frame 에는 ungroup 을 세우지 않는다 (E5 — 빈 origin 이 남는다)", () => {
+    expect(ids(["frame"], [systemOrigin("frame", "frame")])).not.toContain(
+      "ungroup",
+    );
+    expect(ids(["frame"], [element("frame", "frame")])).toContain("ungroup");
   });
 });
