@@ -58,6 +58,7 @@ import {
   moveCanonicalChildToDescendants,
   resolveNestingViolation,
   type NestingViolation,
+  isBodyType,
 } from "@composition/shared";
 import { useCanonicalDocumentStore } from "../../builder/stores/canonical/canonicalDocumentStore";
 import {
@@ -2120,7 +2121,7 @@ function isFullReplaceShellNode(node: CanonicalNode): boolean {
 }
 
 function shouldPreserveOmittedFullReplaceNode(node: CanonicalNode): boolean {
-  return isFullReplaceShellNode(node) || node.type.toLowerCase() === "body";
+  return isFullReplaceShellNode(node) || isBodyType(node.type);
 }
 
 function hasFullReplaceChildrenPayload(node: CanonicalNode): boolean {

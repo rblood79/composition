@@ -4,6 +4,7 @@ import type {
   FrameNode,
 } from "@composition/shared";
 import { getReusableFrameMirrorId } from "./frameMirror";
+import { isBodyType } from "@composition/shared";
 
 export interface CanonicalFrameScopedNode {
   id: string;
@@ -28,10 +29,6 @@ const frameElementScopesCache = new WeakMap<
 
 function isReusableFrameNode(node: CanonicalNode): node is FrameNode {
   return node.type === "frame" && (node as FrameNode).reusable === true;
-}
-
-function isBodyNode(node: CanonicalNode): boolean {
-  return node.type.toLowerCase() === "body";
 }
 
 function isLegacySlotHoistedNode(node: CanonicalNode): boolean {
@@ -80,7 +77,7 @@ function collectElementScopeIds(
     isRenderableRefNode(node)
   ) {
     elementIds.add(node.id);
-    if (!bodyElementId && isBodyNode(node)) {
+    if (!bodyElementId && isBodyType(node.type)) {
       bodyElementId = node.id;
     }
   }

@@ -5,7 +5,7 @@ import { create } from "zustand";
 import { StateCreator } from "zustand";
 import type { StoredMenuItem } from "@composition/specs";
 import type { SerializedDataBinding } from "@composition/shared";
-import { isVariableDefList } from "@composition/shared";
+import { isVariableDefList, isBodyType } from "@composition/shared";
 import { Element, ComponentElementProps } from "../../types/core/store.types";
 import { Page } from "../../types/builder/unified.types";
 import {
@@ -470,7 +470,7 @@ function findPageActivationBodyElement(
   elements: readonly Element[] | undefined,
 ): Element | null {
   return (
-    elements?.find((element) => element.type.toLowerCase() === "body") ??
+    elements?.find((element) => isBodyType(element.type)) ??
     elements?.[0] ??
     null
   );
@@ -678,10 +678,6 @@ function createPageActivationPatch(
   };
 }
 
-function isPageActivationBodyElement(element: Element | null): boolean {
-  return element?.type.toLowerCase() === "body";
-}
-
 function hasAppliedPageActivationPatch(
   state: ElementsState,
   pageId: string,
@@ -689,7 +685,7 @@ function hasAppliedPageActivationPatch(
 ): boolean {
   const selectedElementId = targetElement?.id ?? null;
   const shouldPreserveSelectionSet =
-    targetElement !== null && !isPageActivationBodyElement(targetElement);
+    targetElement !== null && !isBodyType(targetElement.type);
   const hasExpectedSelectionSet = selectedElementId
     ? shouldPreserveSelectionSet
       ? state.selectedElementIds[0] === selectedElementId &&

@@ -21,7 +21,7 @@
 
 import type { Page } from "../../../../types/core/store.types";
 import type { CanvasSceneNode } from "./canvasSceneNode";
-import { toPageFrameElementId } from "@composition/shared";
+import { toPageFrameElementId, isBodyType } from "@composition/shared";
 import { isLegacyFrameElementForFrame } from "../../../../adapters/canonical/frameElementLoader";
 import {
   getFrameElementMirrorId,
@@ -60,10 +60,6 @@ export { toPageFrameElementId };
 
 function isProjectedPageFrameElementId(pageId: string, elementId: string) {
   return elementId.startsWith(toPageFrameElementId(pageId, ""));
-}
-
-function isBodyType(type: string): boolean {
-  return type.toLowerCase() === "body";
 }
 
 function isHydratedPageFrameElement(

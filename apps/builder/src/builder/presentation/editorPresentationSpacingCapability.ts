@@ -23,6 +23,7 @@ import {
   type BreakpointName,
   type ElementResponsiveConfig,
   type ResponsiveValue,
+  isBodyType,
 } from "@composition/shared";
 import { useStore } from "../stores";
 import { useCanonicalDocumentStore } from "../stores/canonical/canonicalDocumentStore";
@@ -381,7 +382,7 @@ export function resolveSpacingCapabilityFromInputs(
     rawStyle: input.rawStyle,
   });
 
-  if (input.nodeType.toLowerCase() === "body") return unsupported("body");
+  if (isBodyType(input.nodeType)) return unsupported("body");
   if (input.locked) return unsupported("locked");
   const engineStyle = input.engineStyle;
   if (!engineStyle) return unsupported("engine-style-missing");

@@ -28,6 +28,7 @@ import { useI18n } from "../../../../i18n";
 import { TreeBase, VirtualizedTree } from "../tree/TreeBase";
 import type { BaseTreeNode, TreeItemState } from "../tree/TreeBase";
 import type { PanelNode } from "../../panelNode";
+import { isBodyType } from "@composition/shared";
 
 interface LayoutElementTreeNode extends BaseTreeNode {
   type: string;
@@ -302,7 +303,7 @@ function LayoutElementTreeItemContent({
       </div>
       <div className="elementItemLabel">{getFrameElementDisplayName(node)}</div>
       <div className="elementItemActions">
-        {node.type === "body" && (
+        {isBodyType(node.type) && (
           <Button className="iconButton" aria-label="Settings">
             <Settings2
               color={iconProps.color}
@@ -311,7 +312,7 @@ function LayoutElementTreeItemContent({
             />
           </Button>
         )}
-        {node.type !== "body" && (
+        {!isBodyType(node.type) && (
           <Button
             className="iconButton"
             aria-label={`Delete ${node.type}`}

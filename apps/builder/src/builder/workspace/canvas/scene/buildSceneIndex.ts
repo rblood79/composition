@@ -7,6 +7,7 @@ import { isComponentsPageMirror } from "../../../pages/systemComponentsPage";
 import { readPageFrameSize } from "./pageFrameSize";
 import { resolvePageWithFrame } from "./resolvePageWithFrame";
 import type { ScenePageData, ScenePageFrame } from "./sceneSnapshotTypes";
+import { isBodyType } from "@composition/shared";
 
 export function buildDepthMap(
   elements: CanvasSceneNode[],
@@ -23,7 +24,7 @@ export function buildDepthMap(
     }
 
     const element = elementsMap.get(id);
-    if (!element || element.type.toLowerCase() === "body") {
+    if (!element || isBodyType(element.type)) {
       cache.set(id, 0);
       return 0;
     }

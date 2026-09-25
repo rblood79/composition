@@ -21,6 +21,7 @@ import {
 } from "../../../../utils/editingSemantics";
 import type { PanelNode } from "../../../panelNode";
 import { ACTION_ICONS } from "../../../../config/actionIcons";
+import { isBodyType } from "@composition/shared";
 
 /** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
 const DeleteIcon = ACTION_ICONS.delete;
@@ -144,7 +145,7 @@ const NormalItemContent = memo(function NormalItemContent({
   const handleContextMenu = (event: React.MouseEvent) => {
     // ADR-138 A-2: instance 뿐 아니라 일반 element 도 우클릭 메뉴 노출
     // ("Add as component" 진입점). body / synthetic ref child 만 제외.
-    if (isSyntheticRefChild || type === "body") return;
+    if (isSyntheticRefChild || isBodyType(type)) return;
     const disposition = resolveContextMenuDisposition({
       altKey: event.altKey,
       target: event.target,
@@ -217,13 +218,13 @@ const NormalItemContent = memo(function NormalItemContent({
         <Button
           slot="drag"
           className={`iconButton layer-drag-handle${
-            type === "body" || isSyntheticRefChild
+            isBodyType(type) || isSyntheticRefChild
               ? " layer-drag-handle--hidden"
               : ""
           }`}
           aria-label={`Drag ${name}`}
-          aria-hidden={type === "body" || isSyntheticRefChild}
-          isDisabled={type === "body" || isSyntheticRefChild}
+          aria-hidden={isBodyType(type) || isSyntheticRefChild}
+          isDisabled={isBodyType(type) || isSyntheticRefChild}
         >
           <GripVertical
             color={ICON_EDIT_PROPS.color}
@@ -231,7 +232,7 @@ const NormalItemContent = memo(function NormalItemContent({
             size={ICON_EDIT_PROPS.size}
           />
         </Button>
-        {type === "body" && (
+        {isBodyType(type) && (
           <Button className="iconButton" aria-label="Settings">
             <Settings2
               color={ICON_EDIT_PROPS.color}
@@ -240,7 +241,7 @@ const NormalItemContent = memo(function NormalItemContent({
             />
           </Button>
         )}
-        {type !== "body" && !isSyntheticRefChild && (
+        {!isBodyType(type) && !isSyntheticRefChild && (
           <Button
             className="iconButton"
             aria-label={`Delete ${type}`}

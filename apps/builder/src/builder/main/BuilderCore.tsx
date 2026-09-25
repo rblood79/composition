@@ -3,6 +3,7 @@ import {
   toRuntimeApiEndpoint,
   toRuntimeCollection,
   toExportCollection,
+  isBodyType,
 } from "@composition/shared";
 import { startLocalWebVitals } from "../performance/localWebVitals";
 import React, { useState, useCallback, useEffect, useRef } from "react";
@@ -187,7 +188,7 @@ function getCanonicalOrBootstrapBuilderElements(state: {
     const missingPageBodyShells = bootstrapElements.filter(
       (element) =>
         !canonicalIds.has(element.id) &&
-        element.type === "body" &&
+        isBodyType(element.type) &&
         element.parent_id == null &&
         typeof element.page_id === "string" &&
         pageIds.has(element.page_id),

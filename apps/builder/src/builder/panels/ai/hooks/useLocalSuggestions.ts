@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { resolveEditContract } from "@composition/shared";
+import { resolveEditContract, isBodyType } from "@composition/shared";
 import { useI18n, semanticLabelKeys, translateKey } from "@/i18n";
 import { useStore } from "../../../stores";
 import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
@@ -27,10 +27,9 @@ export function useLocalSuggestions() {
     const target = node
       ? context.nodes.find((node) => node.id === selectedId)
       : undefined;
-    const selectedType =
-      target?.type === "body"
-        ? undefined
-        : (target?.componentType ?? target?.type);
+    const selectedType = isBodyType(target?.type)
+      ? undefined
+      : (target?.componentType ?? target?.type);
     return {
       selectedType,
       suggestions: getLocalSuggestions({

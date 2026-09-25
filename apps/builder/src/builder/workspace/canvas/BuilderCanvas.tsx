@@ -125,6 +125,7 @@ import type { DataBadgeBounds } from "./skia/bindingBadgeRenderer";
 import {
   getElementDataBinding,
   resolveStoreCollection,
+  isBodyType,
 } from "@composition/shared";
 import { resolveCollectionBadgeStatus } from "../../panels/datatable/utils/collectionBadgeStatus";
 import type {
@@ -1670,7 +1671,7 @@ export function BuilderCanvas({
         if (pageElementIds) {
           for (const candidateId of pageElementIds) {
             const candidate = state.elementsMap.get(candidateId);
-            if (candidate?.type?.toLowerCase() === "body") {
+            if (isBodyType(candidate?.type)) {
               bodyElementId = candidateId;
               break;
             }

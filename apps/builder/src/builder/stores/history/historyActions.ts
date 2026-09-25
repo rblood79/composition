@@ -28,6 +28,7 @@ import {
   isWebGLCanvas,
   isCanvasCompareMode,
 } from "../../../utils/featureFlags";
+import { isBodyType } from "@composition/shared";
 
 /**
  * Undo/Redo 액션 로직
@@ -409,7 +410,7 @@ function applyPageLifecycleHistoryEntry(
   const nextBodyElement =
     nextElements.find(
       (element) =>
-        element.page_id === nextCurrentPageId && element.type === "body",
+        element.page_id === nextCurrentPageId && isBodyType(element.type),
     ) ?? null;
 
   set(() => ({

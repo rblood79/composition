@@ -18,7 +18,7 @@ import {
   withFrameElementMirrorId,
 } from "../../adapters/canonical/frameMirror";
 import { generateCustomId, getCustomIdBase } from "./idGeneration";
-import { remapClonedState } from "@composition/shared";
+import { remapClonedState, isBodyType } from "@composition/shared";
 
 /**
  * Copied elements data structure
@@ -50,10 +50,6 @@ function hasExplicitTargetParent(
   return Object.prototype.hasOwnProperty.call(options, "targetParentId");
 }
 
-function isBodyElement(element: Element): boolean {
-  return element.type.toLowerCase() === "body";
-}
-
 export function resolvePasteTargetParentId({
   currentPageId,
   selectedElementId,
@@ -79,7 +75,7 @@ export function resolvePasteTargetParentId({
       (element) =>
         !element.deleted &&
         element.page_id === currentPageId &&
-        isBodyElement(element),
+        isBodyType(element.type),
     )?.id ?? null
   );
 }

@@ -30,6 +30,7 @@ import {
 } from "../../../stores/utils/historyHelpers";
 import { attachCanonicalStateToCopy } from "../../../utils/canonicalCopyState";
 import { getActiveCanonicalDocument } from "../../../stores/canonical/canonicalElementsBridge";
+import { isBodyType } from "@composition/shared";
 
 type CanvasActionElementsMap = Parameters<typeof copyMultipleElements>[1];
 type CanvasActionStoreElement = NonNullable<
@@ -154,7 +155,7 @@ export function selectableWithoutBody(
   return ids.filter((id) => {
     if (isSyntheticDescendantId(id)) return false;
     const element = elementsMap.get(id);
-    return element !== undefined && element.type.toLowerCase() !== "body";
+    return element !== undefined && !isBodyType(element.type);
   });
 }
 

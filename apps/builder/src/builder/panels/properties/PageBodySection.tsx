@@ -29,6 +29,7 @@ import { useEditModeStore } from "../../stores/editMode";
 import { PageBodyEditor } from "./editors/PageBodyEditor";
 import { LayoutBodyEditor } from "./editors/LayoutBodyEditor";
 import { useCanonicalPropertyElement } from "./hooks/useCanonicalPropertyRead";
+import { isBodyType } from "@composition/shared";
 
 /**
  * 비-catalog 오소링 섹션이 편집 축을 전담하는 노드 타입.
@@ -57,7 +58,7 @@ export const PageBodySection = memo(function PageBodySection({
     useStore.getState().updateSelectedProperties(updatedProps);
   }, []);
 
-  if (!element || element.type !== "body") return null;
+  if (!element || !isBodyType(element.type)) return null;
 
   return editMode === "layout" ? (
     <LayoutBodyEditor

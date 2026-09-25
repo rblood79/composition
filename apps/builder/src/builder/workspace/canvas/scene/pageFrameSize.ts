@@ -15,6 +15,7 @@
  */
 
 import { CANVAS_VIEWPORT } from "../../canvasBreakpoints";
+import { isBodyType } from "@composition/shared";
 
 export interface PageFrameSize {
   width: number;
@@ -109,7 +110,7 @@ export function readPageFrameSize(
   if (ids && elementsMap) {
     for (const id of ids) {
       const node = elementsMap.get(id);
-      if (node && !node.deleted && node.type.toLowerCase() === "body") {
+      if (node && !node.deleted && isBodyType(node.type)) {
         const style = node.props?.style as StyleLike;
         return neutral
           ? resolveNeutralPageFrameSize(style, options?.publishedContentHeight)

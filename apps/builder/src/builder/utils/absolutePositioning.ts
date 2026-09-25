@@ -1,3 +1,4 @@
+import { isBodyType } from "@composition/shared";
 interface PositioningNode {
   type: string;
   props?: {
@@ -15,7 +16,7 @@ export function resolveAbsoluteFlowReparentProps(
     typeof style !== "object" ||
     Array.isArray(style) ||
     (style as Record<string, unknown>).position !== "absolute" ||
-    targetContainer.type.toLowerCase() === "body"
+    isBodyType(targetContainer.type)
   ) {
     return null;
   }

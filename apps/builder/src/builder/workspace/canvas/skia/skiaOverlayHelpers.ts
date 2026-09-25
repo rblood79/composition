@@ -28,6 +28,7 @@ import {
   readPagePositionDelta,
   type PagePositionPresentationSnapshot,
 } from "../interaction/pagePositionPresentation";
+import { isBodyType } from "@composition/shared";
 
 export interface HoverHighlightTarget {
   dashed: boolean;
@@ -173,7 +174,7 @@ function resolvePageBodyBounds(
   pagePositionSnapshot?: PagePositionPresentationSnapshot,
 ): BoundingBox | null {
   const element = elementsMap.get(elementId);
-  if (element?.type.toLowerCase() !== "body" || !element.page_id) {
+  if (!element || !isBodyType(element.type) || !element.page_id) {
     return null;
   }
 

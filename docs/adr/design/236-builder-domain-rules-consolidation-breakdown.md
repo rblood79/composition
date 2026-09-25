@@ -148,3 +148,13 @@ Phase 3 `canX` 의 op 목록과 store 가드 목록 (§5) 은 이 표를 입력�
 ### 8.5 회귀 기준
 
 builder 스위트: 7,309 중 실패 6. 전부 이번 작업 전부터 있던 것이다 (`propertyFieldIcons.static` · `adr113DescendantsGrepGate` · `factoryInlineDirtyBaseline` · `historyActions.static` · `componentCatalog` · `textAxisGate` — 마지막은 worktree 환경 한정). Phase 1 · 2 게이트는 이 실패 집합이 커밋 전후 같은지 본다.
+
+## 9. Phase 1 기록
+
+| 술어         | 상태                  | 내용                                                                                                                                                                                                                                                                  |
+| ------------ | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `isBodyType` | 완료 (2026-09-25)     | shared `domain/predicates.ts` (대소문자 무시). builder · shared 직접 비교 92 + shared 4 → 0, 로컬 헬퍼 12 → 0 (합성 술어 `isFrameBodyElement` 만 남김). ratchet `builder/domain/__tests__/domainPredicateRatchet.static.test.ts` — 직접 비교 재도입 시 RED 확인. publish (`useBodyElement.ts:52`) 는 범위 밖 |
+| synthetic id | 대기 (상한 9)         | rebase 뒤 `canvasSceneNode.ts` 가 1행 늘어 Phase 0 의 8 → 9                                                                                                                                                                                                           |
+| Components 페이지 | 대기 (헬퍼 4 · 직접 비교 3) |                                                                                                                                                                                                                                                                       |
+
+`isBodyType` 커밋의 동작 차이: 대소문자를 그대로 비교하던 43행이 `"Body"` 도 body 로 본다. 대문자 입력은 export 런타임 모델 안에서만 생기고 (`export.utils.ts:405` 가 `"body"` 로 정규화), `elementIndexer` 의 `rootsByPage` 는 소비처 0 이다. builder 스위트 실패 집합은 커밋 전후 같다 (`adr238Phase3.pickers` · `textAxisGate` — 이 커밋을 뺀 상태에서도 실패). 옛 소스 문자열을 검사하던 static 테스트 2개 (`BuilderCore.static` · `styleReadCanonical.static`) 는 새 형태로 갱신.

@@ -41,6 +41,7 @@ import { ACTION_ICONS } from "../../config/actionIcons";
 import { useI18n } from "../../../i18n";
 import { setPanelWorkspacePanelVisibility } from "../../layout/panelWorkspaceVisibility";
 import { useStateSectionFocus } from "../properties/state/stateSectionFocus";
+import { isBodyType } from "@composition/shared";
 
 /** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
 const AddIcon = ACTION_ICONS.add;
@@ -51,7 +52,7 @@ interface PagesSectionProps {
 
 function findPageBodyElement(elements: readonly PanelNode[] | undefined) {
   return (
-    elements?.find((element) => element.type.toLowerCase() === "body") ??
+    elements?.find((element) => isBodyType(element.type)) ??
     elements?.[0] ??
     null
   );

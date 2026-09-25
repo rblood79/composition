@@ -40,6 +40,7 @@ import type { ElementProps } from "../../../../types/builder/elementProps.types"
 import type { PanelNode } from "../../panelNode";
 import { buildTreeFromElements } from "../../../utils/treeUtils";
 import { useTreeExpandState } from "@/builder/hooks";
+import { isBodyType } from "@composition/shared";
 
 type LegacyFrameElement = Parameters<typeof buildTreeFromElements>[0][number];
 
@@ -57,9 +58,7 @@ function findFrameBodyElement(
   elements: readonly PanelNode[],
 ): PanelNode | null {
   return (
-    elements.find((element) => element.type.toLowerCase() === "body") ??
-    elements[0] ??
-    null
+    elements.find((element) => isBodyType(element.type)) ?? elements[0] ?? null
   );
 }
 

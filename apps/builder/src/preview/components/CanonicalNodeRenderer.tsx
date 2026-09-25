@@ -41,6 +41,7 @@ import {
   toRacProps,
   toReactStyle,
   type EventHandlerMap,
+  isBodyType,
 } from "@composition/shared";
 import {
   isSpecOrCatalogBacked,
@@ -962,19 +963,18 @@ function CanonicalNodeRendererBody({
         props: adaptedEl.props as Record<string, unknown> | undefined,
         ref: node._resolvedFrom,
       };
-      const sectionChildren = !isSection
-        ? null
-        : typeof itemChildren === "function"
-          ? (renderProps: RacStateRenderProps) => (
-              <CollectionSectionContext.Provider value={sectionValue}>
-                {itemChildren(renderProps)}
-              </CollectionSectionContext.Provider>
-            )
-          : (
-              <CollectionSectionContext.Provider value={sectionValue}>
-                {itemChildren as React.ReactNode}
-              </CollectionSectionContext.Provider>
-            );
+      const sectionChildren = !isSection ? null : typeof itemChildren ===
+        "function" ? (
+        (renderProps: RacStateRenderProps) => (
+          <CollectionSectionContext.Provider value={sectionValue}>
+            {itemChildren(renderProps)}
+          </CollectionSectionContext.Provider>
+        )
+      ) : (
+        <CollectionSectionContext.Provider value={sectionValue}>
+          {itemChildren as React.ReactNode}
+        </CollectionSectionContext.Provider>
+      );
       const primitive = hostOrphanRadio(
         type,
         collectionAncestor,
@@ -1068,10 +1068,9 @@ function CanonicalNodeRendererBody({
       : resolveBackedRootClassName(type)
     : undefined;
   const userClassName = adaptedEl.props?.className as string | undefined;
-  const mergedClassName =
-    type === "body"
-      ? resolveBodyDomClassName(type, userClassName)
-      : [specClassName, userClassName].filter(Boolean).join(" ") || undefined;
+  const mergedClassName = isBodyType(type)
+    ? resolveBodyDomClassName(type, userClassName)
+    : [specClassName, userClassName].filter(Boolean).join(" ") || undefined;
   const specDataAttrs: Record<string, string> = {};
   if (specBacked) {
     const sizeProp = adaptedEl.props?.size as string | undefined;

@@ -25,6 +25,7 @@ import {
   BODY_DOM_CLASS_NAME,
   isCatalogCutover,
   resolveComponentRule,
+  isBodyType,
 } from "@composition/shared";
 import { hasSpec, getDefaultSizeForTag } from "@composition/specs";
 
@@ -65,7 +66,7 @@ export function resolveBackedDefaultVariant(type: string): string | undefined {
 
 /** generated CSS selector의 실제 root class. lowercase canonical body는 PascalCase CSS를 쓴다. */
 export function resolveBackedRootClassName(type: string): string {
-  return type === "body" ? BODY_DOM_CLASS_NAME : `react-aria-${type}`;
+  return isBodyType(type) ? BODY_DOM_CLASS_NAME : `react-aria-${type}`;
 }
 
 /**

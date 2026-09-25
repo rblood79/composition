@@ -19,6 +19,7 @@ import {
   readPagePositionDelta,
   type PagePositionPresentationSnapshot,
 } from "../interaction/pagePositionPresentation";
+import { isBodyType } from "@composition/shared";
 
 export interface SelectionRenderResult {
   bounds: BoundingBox | null;
@@ -220,7 +221,7 @@ export function buildSelectionRenderData(
         continue;
       }
 
-      if (element.type.toLowerCase() === "body" && pageFrames) {
+      if (isBodyType(element.type) && pageFrames) {
         const pageFrame = pageFrames.find((frame) => frame.id === pageId);
         if (pageFrame) {
           boxes.push(

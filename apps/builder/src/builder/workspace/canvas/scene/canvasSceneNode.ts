@@ -26,6 +26,7 @@ import {
   resolveStateTemplateProps,
   resolveVisibleVariablesForElement,
   type StateTemplateEnv,
+  isBodyType,
 } from "@composition/shared";
 // ADR-148 Phase 0 — slotRole 공용 vocabulary (설계도 §2-1, builder-local 상수 re-home).
 // ADR-159 P2 — 행 텍스트 `{field}` 템플릿 단일 resolver (G2: consumer 자체 파싱 금지).
@@ -3385,7 +3386,7 @@ export function buildCanvasScenePageIndex(
     elements.add(node.id);
 
     const parent = node.parentId ? graph.nodesMap.get(node.parentId) : null;
-    const parentIsBody = parent?.type.toLowerCase() === "body";
+    const parentIsBody = isBodyType(parent?.type);
     if (!node.parentId || parentIsBody) {
       let roots = rootsByPage.get(node.pageId);
       if (!roots) {

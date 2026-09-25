@@ -10,7 +10,7 @@
  */
 
 import { useCallback, useMemo, type CSSProperties } from "react";
-import { adaptStyleWithFills } from "@composition/shared";
+import { adaptStyleWithFills, isBodyType } from "@composition/shared";
 import { useStore } from "../../../stores";
 import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
 import {
@@ -505,7 +505,7 @@ function resolveAppliedPresetBaselineStyle(
 ): Record<string, unknown> {
   const type = element.type.toLowerCase();
 
-  if (type === "body") {
+  if (isBodyType(type)) {
     const preset =
       LAYOUT_PRESETS[readAppliedPreset(element.props?.appliedPreset) ?? ""];
     if (!preset) return {};
@@ -545,7 +545,7 @@ function resolvePresetResponsiveBaselineStyle(
   if (breakpoint === "desktop") return {};
   const type = element.type.toLowerCase();
 
-  if (type === "body") {
+  if (isBodyType(type)) {
     const preset =
       LAYOUT_PRESETS[readAppliedPreset(element.props?.appliedPreset) ?? ""];
     return (preset?.responsiveContainerStyle?.[breakpoint] ?? {}) as Record<
@@ -875,10 +875,7 @@ function computeBaseResetObj(
   //   지우기만은 "그 칸을 base 로" 편집으로 읽는다 — 절 reset 은 전자여야 base 값이
   //   override 로 다시 저장되지 않는다 (breakdown §2.2 reset 그룹).
   for (const [shorthand, longhands] of BORDER_AXIS_RESET_GROUPS) {
-    if (
-      !(shorthand in resetObj) &&
-      longhands.some((key) => key in resetObj)
-    ) {
+    if (!(shorthand in resetObj) && longhands.some((key) => key in resetObj)) {
       resetObj[shorthand] = "";
     }
   }

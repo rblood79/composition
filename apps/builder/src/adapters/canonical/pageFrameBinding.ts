@@ -19,6 +19,7 @@ import {
 } from "./frameMirror";
 import { getPageOwnedChildrenFromFrameRef } from "./pageFrameRefChildren";
 import { withSlotMirrorName } from "./slotMirror";
+import { isBodyType } from "@composition/shared";
 
 export { getPageFrameBindingId } from "./frameMirror";
 
@@ -185,7 +186,7 @@ function buildDescendantsFromDirectChildren(
 
   const descendants: RefNode["descendants"] = {};
   for (const child of children) {
-    if (isBodyElementNode(child)) continue;
+    if (isBodyType(child.type)) continue;
     const descendantPath = readPageFrameDescendantPath(child) ?? "content";
     const current = descendants[descendantPath];
     const currentChildren =
@@ -203,14 +204,6 @@ function buildDescendantsFromDirectChildren(
   return Object.keys(descendants).length > 0 ? descendants : undefined;
 }
 
-function isBodyElementNode(node: CanonicalNode): boolean {
-  return node.type.toLowerCase() === "body";
-}
-
-function isBodyElement(element: Element): boolean {
-  return element.type.toLowerCase() === "body";
-}
-
 function findPageOwnedBodyElement(
   elementsMap: ReadonlyMap<string, Element> | undefined,
   pageId: string,
@@ -221,7 +214,7 @@ function findPageOwnedBodyElement(
       element.page_id === pageId &&
       getFrameElementMirrorId(element) == null &&
       !element.deleted &&
-      isBodyElement(element)
+      isBodyType(element.type)
     ) {
       return element;
     }
@@ -238,7 +231,7 @@ function getPageBindingBodyNode(
   const doc = projectId ? canonical.getDocument(projectId) : null;
   if (doc) {
     for (const lookup of getProjectableNodeLookupsByPage(pageId)) {
-      if (lookup.layoutId == null && isBodyElementNode(lookup.node)) {
+      if (lookup.layoutId == null && isBodyType(lookup.node.type)) {
         return lookup.node;
       }
     }
@@ -270,7 +263,7 @@ function ensurePageBodyChild(
   updatedPage: Page,
   bootstrapBody?: CanonicalNode | null,
 ): CanonicalNode[] {
-  if (children.some(isBodyElementNode)) return children;
+  if (children.some((node) => isBodyType(node.type))) return children;
 
   const bodyNode = bootstrapBody ?? makeDefaultPageBodyNode(updatedPage.id);
 
@@ -304,7 +297,7 @@ function buildPageNode(
         : undefined;
     const directChildren = existingNode?.children ?? [];
     const pageBodyChildren = ensurePageBodyChild(
-      directChildren.filter(isBodyElementNode),
+      directChildren.filter((node) => isBodyType(node.type)),
       updatedPage,
       bootstrapBody,
     );

@@ -43,6 +43,7 @@ const ResetIcon = ACTION_ICONS.reset;
 import { buildActionBarItems } from "./buildActionBarItems";
 import { useActionBarPlacement } from "./useActionBarPlacement";
 import "./actionBar.css";
+import { isBodyType } from "@composition/shared";
 
 const ICON_SIZE = 16;
 const MENU_ICON_SIZE = 14;
@@ -227,7 +228,7 @@ export function ContextualActionBar() {
     if (state.selectedElementIds.length !== 1) return false;
     const selected = state.elementsMap.get(state.selectedElementIds[0]);
     const type = selected?.type.toLowerCase();
-    return type === "body" || type === "page";
+    return isBodyType(type) || type === "page";
   });
   const selectedPageId = useStore((state) => {
     let firstPageId: string | null = null;
@@ -243,7 +244,7 @@ export function ContextualActionBar() {
     if (state.selectedElementIds.length !== 1) return null;
     const selected = state.elementsMap.get(state.selectedElementIds[0]);
     const type = selected?.type.toLowerCase();
-    return type === "body" || type === "page" ? state.currentPageId : null;
+    return isBodyType(type) || type === "page" ? state.currentPageId : null;
   });
   // `elements` 배열은 요소 변경(컴포넌트 토글·재부모화·삭제)마다 교체된다 —
   // 항목 라벨/조건이 갈리는 모든 경우를 덮는 가장 단순한 재산출 트리거.

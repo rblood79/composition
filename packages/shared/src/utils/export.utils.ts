@@ -33,6 +33,7 @@ import { buildRegistryFontFaceCss } from "./fontRegistry";
 import type { FontRegistryV2 } from "../types/font.types";
 import type { VariableDef } from "../state/variable.types";
 import { collectResponsiveCss } from "./responsiveCss";
+import { isBodyType } from "../domain/predicates";
 
 // ============================================
 // Constants
@@ -391,10 +392,6 @@ function getRefDescendantChildren(pageNode: CanonicalNode): CanonicalNode[] {
   return children;
 }
 
-function isBodyNode(node: CanonicalNode): boolean {
-  return node.type.toLowerCase() === "body";
-}
-
 function isLegacySlotHoistedNode(node: CanonicalNode): boolean {
   const metadata = node.metadata as CanonicalMetadata | undefined;
   return metadata?.type === "legacy-slot-hoisted";
@@ -402,7 +399,7 @@ function isLegacySlotHoistedNode(node: CanonicalNode): boolean {
 
 function getRuntimeElementType(node: CanonicalNode): string {
   if (isLegacySlotHoistedNode(node)) return "Slot";
-  return isBodyNode(node) ? "body" : node.type;
+  return isBodyType(node.type) ? "body" : node.type;
 }
 
 function getRuntimeElementProps(node: CanonicalNode): Record<string, unknown> {
@@ -679,9 +676,10 @@ function collectPageOwnedRuntimeElements(
 ): void {
   const descendantChildren = getRefDescendantChildren(pageNode);
   const directChildren = pageNode.children ?? [];
-  const directBody = directChildren.find(isBodyNode) ?? null;
+  const directBody =
+    directChildren.find((node) => isBodyType(node.type)) ?? null;
 
-  if (!directBody && descendantChildren.some(isBodyNode)) {
+  if (!directBody && descendantChildren.some((node) => isBodyType(node.type))) {
     collectRuntimeElements(
       document,
       descendantChildren,
@@ -699,7 +697,7 @@ function collectPageOwnedRuntimeElements(
   const seenIds = new Set([pageBody.id]);
   const pageOwnedChildren: CanonicalNode[] = [];
   for (const child of [...directChildren, ...descendantChildren]) {
-    if (seenIds.has(child.id) || isBodyNode(child)) continue;
+    if (seenIds.has(child.id) || isBodyType(child.type)) continue;
     pageOwnedChildren.push(child);
     seenIds.add(child.id);
   }

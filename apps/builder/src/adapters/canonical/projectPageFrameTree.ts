@@ -26,7 +26,7 @@ import type {
   RefNode,
   ResolvedNode,
 } from "@composition/shared";
-import { toPageFrameElementId } from "@composition/shared";
+import { toPageFrameElementId, isBodyType } from "@composition/shared";
 
 import {
   mergePageBodyResponsive,
@@ -44,10 +44,6 @@ type PropsBag = Record<string, unknown> | undefined;
 
 function readProps(node: CanonicalNode): Record<string, unknown> {
   return (node.props ?? {}) as Record<string, unknown>;
-}
-
-function isBodyNode(node: CanonicalNode): boolean {
-  return node.type.toLowerCase() === "body";
 }
 
 /**
@@ -114,8 +110,8 @@ export function projectPageFrameNode(
     (pageOwnedIds.has(child.id) ? pageChildren : frameChildren).push(child);
   }
 
-  const frameBody = frameChildren.find(isBodyNode);
-  const pageBody = pageChildren.find(isBodyNode);
+  const frameBody = frameChildren.find((node) => isBodyType(node.type));
+  const pageBody = pageChildren.find((node) => isBodyType(node.type));
   // 프레임 body 와 page body 가 **둘 다** 있어야 이 합성이 성립한다. 하나라도 없으면
   // 프레임 미바인딩(또는 다른 ref 형태)이므로 손대지 않는다.
   if (!frameBody || !pageBody) return node;

@@ -1,6 +1,7 @@
 /** ADR-202: 실제 catalog/command descriptor를 받는 host 중립 manifest와 semantic 검증. */
 import { validateCommandArgs } from "./commandArgs";
 import { programContract, type BuilderCommandProgram } from "./contracts";
+import { isBodyType } from "@composition/shared";
 
 export interface ManifestField {
   name: string;
@@ -131,7 +132,7 @@ export function validateProgram(
   if (op.op !== "create_element" && !target)
     return { ok: false, error: "missing-target" };
   if (op.op === "delete_element") {
-    if (target?.type === "body")
+    if (isBodyType(target?.type))
       return { ok: false, error: "protected-target" };
     return { ok: true, program: parsed.data };
   }

@@ -15,6 +15,7 @@ import {
   SkiaPresentationProjectionIndexBuilder,
   type SkiaPresentationProjectionIndex,
 } from "../../../presentation/skiaPresentationProjectionIndex";
+import { isBodyType } from "@composition/shared";
 
 export interface LayoutPublisherInput {
   bodyElement: CanvasLayoutNode | null;
@@ -144,11 +145,7 @@ export function buildFrameLayoutPublisherInput({
   const bodyElement = frameElementScope.bodyElementId
     ? (layoutElementById.get(frameElementScope.bodyElementId) ?? null)
     : null;
-  if (
-    !bodyElement ||
-    bodyElement.deleted ||
-    bodyElement.type.toLowerCase() !== "body"
-  ) {
+  if (!bodyElement || bodyElement.deleted || !isBodyType(bodyElement.type)) {
     return null;
   }
 
@@ -158,7 +155,7 @@ export function buildFrameLayoutPublisherInput({
   for (const elementId of frameElementScope.elementIds) {
     if (elementId === bodyElement.id) continue;
     const el = layoutElementById.get(elementId);
-    if (!el || el.deleted || el.type.toLowerCase() === "body") continue;
+    if (!el || el.deleted || isBodyType(el.type)) continue;
     pageElements.push(el as CanvasSceneNode);
   }
 

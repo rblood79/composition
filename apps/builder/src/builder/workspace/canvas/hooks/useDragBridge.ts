@@ -81,6 +81,7 @@ import { trackMultiPaste } from "../../../stores/utils/historyHelpers";
 import { resolveAbsoluteFlowReparentProps } from "../../../utils/absolutePositioning";
 import { attachCanonicalStateToCopy } from "../../../utils/canonicalCopyState";
 import { getActiveCanonicalDocument } from "../../../stores/canonical/canonicalElementsBridge";
+import { isBodyType } from "@composition/shared";
 
 type SceneBoundsResolver = (
   elementId: string,
@@ -187,7 +188,7 @@ export function isManualPositionDragTarget(
 function isManualPositionFlowContainer(
   element: CanvasInteractionNode | undefined,
 ): boolean {
-  return element != null && element.type.toLowerCase() !== "body";
+  return element != null && !isBodyType(element.type);
 }
 
 export function resolveManualPositionDragProps(
@@ -283,7 +284,7 @@ export function resolveManualPositionDropTarget(
   const isCrossPage = sourcePageId !== targetPageId;
   const isFlowContainer = isManualPositionFlowContainer(targetContainer);
   const isBodyEscape =
-    targetContainer.type.toLowerCase() === "body" &&
+    isBodyType(targetContainer.type) &&
     element?.parent_id !== targetContainer.id;
 
   if (isFlowContainer) {
@@ -592,11 +593,9 @@ function commitMultiDragDrop({
 
     if (absoluteUpdates.length > 0) {
       // 이동과 한 몸인 좌표 patch — 트랜잭션 안이라 영향 대화상자를 기다릴 수 없다.
-      void useStore
-        .getState()
-        .batchUpdateElementProps(absoluteUpdates, {
-          skipOriginImpactGate: true,
-        });
+      void useStore.getState().batchUpdateElementProps(absoluteUpdates, {
+        skipOriginImpactGate: true,
+      });
     }
   });
 

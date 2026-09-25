@@ -3,6 +3,7 @@ import type {
   BreakpointName,
   ElementResponsiveConfig,
 } from "../types/responsive.types";
+import { isBodyType } from "../domain/predicates";
 
 export interface FillSizingSource {
   sizing?: FillAxes;
@@ -94,7 +95,7 @@ export function hasDefiniteAxisSize(
   breakpoint: BreakpointName = "desktop",
   grandparent?: FillParentContext,
 ): boolean {
-  if (node.type?.toLowerCase() === "body") return true;
+  if (isBodyType(node.type)) return true;
   const value = style[axis];
   if (typeof value === "number") return true;
   if (typeof value === "string" && !AUTO_SIZE_VALUES.has(value.trim()))

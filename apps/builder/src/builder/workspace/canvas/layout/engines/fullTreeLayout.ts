@@ -76,6 +76,7 @@ import {
 import { getNecessityIndicatorSuffix } from "@composition/shared/components";
 import { useScrollState } from "../../../../stores/scrollState";
 import type { PresentationLayoutComputeRequest } from "../../../../presentation/editorPresentationLayoutLane";
+import { isBodyType } from "@composition/shared";
 
 // ─── 모듈 수준 상수 ──────────────────────────────────────────────────
 
@@ -2780,7 +2781,7 @@ function resolveLayoutViewport(
   availableWidth: number,
   availableHeight: number,
 ): { width: number; height: number } {
-  if (rootEl.type.toLowerCase() !== "body") {
+  if (!isBodyType(rootEl.type)) {
     return { width: availableWidth, height: availableHeight };
   }
   const rootStyle = (rootEl.props?.style ?? {}) as Record<string, unknown>;
@@ -2924,7 +2925,7 @@ export function calculateFullTreeLayout(
   const rootIdx = indexMap.get(rootElementId);
   if (rootIdx !== undefined) {
     const rootEl = elementsMap.get(rootElementId);
-    if (rootEl && rootEl.type.toLowerCase() === "body") {
+    if (rootEl && isBodyType(rootEl.type)) {
       const rootStyle = (rootEl.props?.style ?? {}) as Record<string, unknown>;
       // Step 0.5 의 resolveLayoutViewport 가 같은 root 로 이미 계산한 border-box 페이지 크기
       const pageW = layoutViewport.width;

@@ -48,6 +48,7 @@ import {
 } from "../workspace/canvas/interaction/guideEmphasis";
 import { deletePageGuide } from "../workspace/canvas/viewport/pageGuideActions";
 import type { SiblingEdge } from "../stores/utils/siblingReorder";
+import { isBodyType } from "@composition/shared";
 
 // ============================================
 // Constants
@@ -368,7 +369,7 @@ export function useGlobalKeyboardShortcuts() {
     const targetId = selectedElementId ?? selectedElementIds[0] ?? null;
     if (!targetId) return null;
     const element = elementsMap.get(targetId);
-    if (!element || element.type.toLowerCase() !== "body") return null;
+    if (!element || !isBodyType(element.type)) return null;
     return element.page_id ?? null;
   }, []);
 

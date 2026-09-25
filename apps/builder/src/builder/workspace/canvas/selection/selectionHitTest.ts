@@ -8,6 +8,7 @@ import type { CanvasInteractionNode } from "../interaction/interactionNode";
 // (import 0건 leaf 모듈). 종전에 구조가 같은 인덱스 시그니처를 이 파일에
 // 다시 선언하고 있었다 — 재수출해 호출부 import 경로는 그대로 둔다.
 import type { PagePositionMap } from "../interaction/pagePositionPresentation";
+import { isBodyType } from "@composition/shared";
 
 export type { PagePositionMap };
 
@@ -60,7 +61,7 @@ function findFrameBodySelectionAtCanvasPoint({
 
     for (const element of elementsMap.values()) {
       if (element.deleted) continue;
-      if (element.type.toLowerCase() !== "body") continue;
+      if (!isBodyType(element.type)) continue;
       if (!isLegacyFrameElementForFrame(element, area.frameId)) continue;
       return {
         bodyElementId: element.id,
@@ -152,7 +153,7 @@ export function pickTopmostHitElementId(
 
   for (const candidateId of hitCandidates) {
     const candidate = elementsMap.get(candidateId);
-    if (!candidate || candidate.type.toLowerCase() === "body") {
+    if (!candidate || isBodyType(candidate.type)) {
       continue;
     }
 
@@ -421,7 +422,7 @@ export function findBodySelectionAtCanvasPoint({
 
   for (const elementId of pageElementIds) {
     const element = elementsMap.get(elementId);
-    if (element?.type.toLowerCase() === "body") {
+    if (element && isBodyType(element.type)) {
       return {
         bodyElementId: element.id,
         pageId,

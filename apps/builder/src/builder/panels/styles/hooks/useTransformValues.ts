@@ -6,6 +6,7 @@ import {
   type TransformSpecPreset,
 } from "../utils/specPresetResolver";
 import { useCanonicalPropertyElement } from "../../properties/hooks/useCanonicalPropertyRead";
+import { isBodyType } from "@composition/shared";
 
 /**
  * picker(DatePicker/DateRangePicker) 안 DateInput 여부 판정.
@@ -79,7 +80,7 @@ export function useTransformValues(
   const effLeft = useLayoutValue(positionId, "x");
   const effTop = useLayoutValue(positionId, "y");
 
-  const isBody = type?.toLowerCase() === "body";
+  const isBody = isBodyType(type);
   const isPickerDateInput = useIsPickerDateInput(id, type);
 
   const specPreset = useMemo<TransformSpecPreset>(

@@ -11,6 +11,7 @@ import { isValidDrop } from "./validation";
 import { LayerTreeItemContent } from "./LayerTreeItemContent";
 import { useFocusManagement } from "../hooks";
 import { LAYER_TREE_ROW_SIZE_PX } from "./virtualization";
+import { isBodyType } from "@composition/shared";
 
 const LAYER_TREE_LAYOUT_OPTIONS = { rowSize: LAYER_TREE_ROW_SIZE_PX };
 const getLayerTreeKey = (node: LayerTreeNode) => node.id;
@@ -168,7 +169,7 @@ export function LayerTree({
     return (
       !node.virtualChildType &&
       !node.isSyntheticRefChild &&
-      node.type !== "body"
+      !isBodyType(node.type)
     );
   }, []);
 

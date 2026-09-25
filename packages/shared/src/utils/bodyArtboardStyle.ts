@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { isBodyType } from "../domain/predicates";
 
 export const BODY_DOM_CLASS_NAME = "react-aria-Body";
 
@@ -39,7 +40,7 @@ export function resolveBodyDomPresentation(
   type: string,
   style: CSSProperties | undefined,
 ): BodyDomPresentation {
-  if (type !== "body" || !style) return { style };
+  if (!isBodyType(type) || !style) return { style };
 
   const normalized = { ...style };
   if (normalized.display === "block") delete normalized.display;
@@ -61,7 +62,7 @@ export function resolveBodyDomClassName(
   type: string,
   authoredClassName: string | undefined,
 ): string | undefined {
-  if (type !== "body") return authoredClassName;
+  if (!isBodyType(type)) return authoredClassName;
 
   const authoredTokens = authoredClassName?.split(/\s+/).filter(Boolean) ?? [];
   const tokens = [

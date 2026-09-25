@@ -28,6 +28,7 @@ import { ElementUtils } from "../../utils/element/elementUtils";
 import {
   deriveProjectEditorPageModelFromDocument,
   type CompositionDocument,
+  isBodyType,
 } from "@composition/shared";
 import { canonicalDocumentToElements } from "../stores/canonical/canonicalElementsView";
 import { countUserPagesForAutoName } from "../pages/systemComponentsPage";
@@ -166,7 +167,7 @@ export const usePageManager = (): UsePageManagerReturn => {
         setSelectedPageId(pageId);
 
         const bodyElement =
-          existingPageElements.find((el) => el.type === "body") ??
+          existingPageElements.find((el) => isBodyType(el.type)) ??
           existingPageElements[0];
 
         if (bodyElement) {
@@ -434,7 +435,7 @@ export const usePageManager = (): UsePageManagerReturn => {
             (el) => el.page_id === pageToSelect.id,
           );
           const bodyElement =
-            pageBodyCandidates.find((el) => el.type === "body") ??
+            pageBodyCandidates.find((el) => isBodyType(el.type)) ??
             pageBodyCandidates[0];
 
           observe("boot.page.activate", () =>

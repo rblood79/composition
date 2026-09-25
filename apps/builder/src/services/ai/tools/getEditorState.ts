@@ -13,6 +13,7 @@ import { readCanonicalFields } from "./canonicalNodeFields";
 import { useCanonicalDocumentStore } from "../../../builder/stores/canonical/canonicalDocumentStore";
 import { summarizeCollections } from "../data/collectionReadModel";
 import { getDataToolReadModel } from "../data/dataToolReadModel";
+import { isBodyType } from "@composition/shared";
 
 export const getEditorStateTool: ToolExecutor = {
   name: "get_editor_state",
@@ -40,7 +41,7 @@ export const getEditorStateTool: ToolExecutor = {
         const children = parentId
           ? childrenByParent.get(parentId) || []
           : pageElements.filter(
-              (el) => el.parent_id === null || el.type === "body",
+              (el) => el.parent_id === null || isBodyType(el.type),
             );
 
         return children.map((child) => {

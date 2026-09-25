@@ -1,6 +1,7 @@
 import {
   CollectionDataProvider,
   createCollectionSnapshotServices,
+  isBodyType,
 } from "@composition/shared";
 /**
  * Canvas App - Canvas Runtime 메인 컴포넌트
@@ -451,7 +452,7 @@ function CanvasContent() {
       // Layout 모드: Layout의 body 사용
       bodyElement = elements.find(
         (el) =>
-          el.type === "body" &&
+          isBodyType(el.type) &&
           isLegacyFrameElementForFrame(el, currentLayoutId) &&
           !el.parent_id,
       );
@@ -459,7 +460,7 @@ function CanvasContent() {
       // Layout 편집 모드: Layout의 body 사용
       bodyElement = elements.find(
         (el) =>
-          el.type === "body" &&
+          isBodyType(el.type) &&
           isLegacyFrameElementForFrame(el, currentLayoutId) &&
           !el.parent_id,
       );
@@ -467,7 +468,7 @@ function CanvasContent() {
       // Page 모드: Page의 body 사용 (Layout 없음)
       bodyElement = elements.find(
         (el) =>
-          el.type === "body" && !el.parent_id && !hasFrameElementMirrorId(el),
+          isBodyType(el.type) && !el.parent_id && !hasFrameElementMirrorId(el),
       );
     }
 
@@ -1086,7 +1087,7 @@ function CanvasContent() {
 
         // ⭐ Page의 body 찾기 (body는 렌더링하지 않고 자식만 사용)
         const pageBody = pageElements.find(
-          (pe) => pe.type === "body" && !pe.parent_id,
+          (pe) => isBodyType(pe.type) && !pe.parent_id,
         );
 
         // ⭐ Slot에 들어갈 실제 콘텐츠: slot_name이 일치하는 요소들만
@@ -1104,7 +1105,7 @@ function CanvasContent() {
         } else {
           // body가 없으면 기존 로직 (slot_name으로 찾기, body 제외)
           slotContent = pageElements.filter((pe) => {
-            if (pe.type === "body") return false; // body는 제외
+            if (isBodyType(pe.type)) return false; // body는 제외
             const peSlotName = getSlotMirrorName(pe.props) || "content";
             return peSlotName === slotName && !pe.parent_id;
           });
@@ -1322,7 +1323,7 @@ function CanvasContent() {
 
       // Layout의 root element (body) 찾기
       const layoutBody = layoutElements.find(
-        (el) => el.type === "body" && !el.parent_id,
+        (el) => isBodyType(el.type) && !el.parent_id,
       );
 
       if (layoutBody) {
@@ -1348,7 +1349,7 @@ function CanvasContent() {
         isLegacyFrameElementForFrame(el, currentLayoutId),
       );
       const layoutBody = layoutElements.find(
-        (el) => el.type === "body" && !el.parent_id,
+        (el) => isBodyType(el.type) && !el.parent_id,
       );
 
       if (layoutBody) {
@@ -1362,7 +1363,7 @@ function CanvasContent() {
 
     // ⭐ Layout이 없는 경우 (Page만 있음)
     const bodyElement = resolvedElements.find(
-      (el) => el.type === "body" && !el.parent_id,
+      (el) => isBodyType(el.type) && !el.parent_id,
     );
 
     if (bodyElement) {

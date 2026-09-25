@@ -5,6 +5,7 @@ import {
   getNodeMap,
   getParent,
 } from "./canonical/canonicalTraversalHelpers";
+import { isBodyType } from "@composition/shared";
 // 🚀 Phase 1: Immer 제거 - 함수형 업데이트로 전환
 // import { produce } from 'immer'; // REMOVED
 
@@ -226,10 +227,9 @@ export const createSelectionSlice: StateCreator<
     }
 
     // body 직계 자식이면 루트로, 아니면 부모로 이동
-    const newContextId =
-      contextEntry.parentType === "body"
-        ? null
-        : (contextEntry.parent_id ?? null);
+    const newContextId = isBodyType(contextEntry.parentType)
+      ? null
+      : (contextEntry.parent_id ?? null);
 
     // 빠져나온 컨테이너를 선택 상태로
     set({

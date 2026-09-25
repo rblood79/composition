@@ -22,7 +22,7 @@ import {
 } from "./mutationVerification";
 import { normalizeToolFills } from "./toolFills";
 import { rememberCreatedElement } from "./elementRef";
-import { resolveNestingViolation } from "@composition/shared";
+import { resolveNestingViolation, isBodyType } from "@composition/shared";
 
 /**
  * 중첩 preflight — 캔버스는 RAC 를 그리는 도구라 Pen 구조 · RAC 합성 · HTML 의미 세
@@ -96,7 +96,7 @@ export const createElementTool: ToolExecutor = {
         if (selectedElementId) {
           parentId = selectedElementId;
         } else {
-          const bodyElement = elements.find((el) => el.type === "body");
+          const bodyElement = elements.find((el) => isBodyType(el.type));
           if (bodyElement) {
             parentId = bodyElement.id;
           }

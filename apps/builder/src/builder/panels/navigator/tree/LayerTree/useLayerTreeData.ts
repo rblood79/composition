@@ -21,6 +21,7 @@ import {
 } from "../helpers";
 import type { LayerTreeNode, VirtualChildType } from "./types";
 import type { PanelNode } from "../../../panelNode";
+import { isBodyType } from "@composition/shared";
 
 type LegacyTreeElement = Parameters<typeof buildTreeFromElements>[0][number];
 
@@ -97,7 +98,7 @@ export function useLayerTreeData(elements: PanelNode[]) {
     }
 
     const resolvedPageElements = resolvedPage.pageElements.filter(
-      (element) => element.type.toLowerCase() !== "body",
+      (element) => !isBodyType(element.type),
     );
 
     return [
@@ -297,7 +298,10 @@ function convertToLayerTreeNodes(
 
     const baseNode: LayerTreeNode = {
       id: item.id,
-      name: item.type === "Chart" ? (element.name || getChartDescriptor(item.props?.chartType).label) : getDisplayName(item),
+      name:
+        item.type === "Chart"
+          ? element.name || getChartDescriptor(item.props?.chartType).label
+          : getDisplayName(item),
       type: item.type,
       parentId: item.parent_id ?? null,
       depth,

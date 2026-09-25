@@ -40,6 +40,7 @@ import {
 } from "./hooks/useCanonicalPropertyRead";
 import { semanticLabelKeys, translateKey, useI18n } from "@/i18n";
 import type { PanelNode } from "../panelNode";
+import { isBodyType } from "@composition/shared";
 
 /**
  * Component 섹션 레이아웃 — pencil 어법 두 줄 (2026-09-16 사용자 판정 「제안 A」,
@@ -128,10 +129,7 @@ const STATE_VARIANT_BADGE_KEY: Record<
 };
 
 function isFrameBodyElement(element: PanelNode): boolean {
-  return (
-    element.type.toLowerCase() === "body" &&
-    getFrameElementMirrorId(element) !== null
-  );
+  return isBodyType(element.type) && getFrameElementMirrorId(element) !== null;
 }
 
 export const ComponentSemanticsSection = memo(

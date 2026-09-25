@@ -27,6 +27,7 @@ import {
   type VariableDefType,
   type VariableOwner,
   type VisibleVariable,
+  isBodyType,
 } from "@composition/shared";
 
 import { useI18n } from "@/i18n";
@@ -74,7 +75,7 @@ export const StateSection = memo(function StateSection({
   const pages = useStore((s) => s.pages);
   const projectDefs = useProjectVariableDefs();
 
-  const isBody = element?.type === "body";
+  const isBody = isBodyType(element?.type);
   const ownerNodeId = isBody ? currentPageId : elementId;
   type OwnerTarget =
     { kind: "page"; pageId: string } | { kind: "element"; elementId: string };
@@ -193,8 +194,12 @@ export const StateSection = memo(function StateSection({
     return (variableId: string) => {
       let count = counts.get(variableId);
       if (count === undefined) {
-        count = collectVariableUsages(doc, doc?.events, variableId, projectDefs)
-          .length;
+        count = collectVariableUsages(
+          doc,
+          doc?.events,
+          variableId,
+          projectDefs,
+        ).length;
         counts.set(variableId, count);
       }
       return count;

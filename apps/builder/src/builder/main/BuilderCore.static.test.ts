@@ -175,7 +175,7 @@ describe("BuilderCore canonical document direct cutover contract", () => {
       "setElementsCanonicalPrimary(getPageShellBridgeElements(state))",
     );
     expect(source).toContain("missingPageBodyShells");
-    expect(source).toMatch(/element\.type === "body"/);
+    expect(source).toMatch(/isBodyType\(element\.type\)/);
     expect(source).toMatch(/pageIds\.has\(element\.page_id\)/);
     expect(source).toContain("copyCanonicalDocumentElementProjection");
     expect(source).not.toContain("visitCanonicalDocumentElements");

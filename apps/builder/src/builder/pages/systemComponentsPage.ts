@@ -5,6 +5,7 @@ import {
   type CompositionDocument,
   isEditorPageNode,
   isComponentsPageMetadata,
+  isBodyType,
 } from "@composition/shared";
 
 export const COMPONENTS_SYSTEM_PAGE_ID = "page-components";
@@ -64,7 +65,7 @@ function ensureBodyOverflowAuto(
   const next = children.map((child) => {
     // "body" 는 ComponentTag 리터럴 유니온 밖(생성부도 `as CanonicalNode["type"]` 캐스트) →
     //   비교는 string 으로 좁힌다.
-    if ((child.type as string) !== "body") return child;
+    if (!isBodyType(child.type as string)) return child;
     const style = (child.props?.style ?? {}) as Record<string, unknown>;
     const nextStyle: Record<string, unknown> = { ...style };
     if (style.overflow == null) nextStyle.overflow = "auto";

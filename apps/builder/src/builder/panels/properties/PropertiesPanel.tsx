@@ -2,6 +2,7 @@ import {
   readDataBindingRows,
   resolveComponentRule,
   type ResolvedField,
+  isBodyType,
 } from "@composition/shared";
 import {
   CHART_DEFAULT_SERIES_COUNT,
@@ -998,7 +999,7 @@ function PropertiesPanelContent() {
   const editLayoutId = useEditModeStore((state) => state.layoutId);
   const frameLayouts = useCanonicalReusableLayouts();
   const frameTitle =
-    editMode === "layout" && selectedElementType === "body" && editLayoutId
+    editMode === "layout" && isBodyType(selectedElementType) && editLayoutId
       ? (frameLayouts.find((layout) => layout.id === editLayoutId)?.name ??
         null)
       : null;

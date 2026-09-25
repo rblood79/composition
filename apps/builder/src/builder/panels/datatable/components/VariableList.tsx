@@ -23,6 +23,7 @@ import {
   resolveAncestorChainIds,
   type VariableDef,
   type VisibleVariable,
+  isBodyType,
 } from "@composition/shared";
 import {
   useDataStore,
@@ -103,8 +104,12 @@ export function VariableList({ projectId }: VariableListProps) {
     return (variableId: string) => {
       let count = counts.get(variableId);
       if (count === undefined) {
-        count = collectVariableUsages(doc, doc?.events, variableId, projectDefs)
-          .length;
+        count = collectVariableUsages(
+          doc,
+          doc?.events,
+          variableId,
+          projectDefs,
+        ).length;
         counts.set(variableId, count);
       }
       return count;
@@ -132,7 +137,11 @@ export function VariableList({ projectId }: VariableListProps) {
     };
     for (const entry of collectDocumentVariables(doc)) {
       if (entry.owner.kind === "page") {
-        groupFor(entry.owner.pageId).entries.push({ kind: "doc", entry, ownerLabel: null });
+        groupFor(entry.owner.pageId).entries.push({
+          kind: "doc",
+          entry,
+          ownerLabel: null,
+        });
       } else if (entry.owner.kind === "element" && doc) {
         const chain = resolveAncestorChainIds(doc, entry.owner.elementId);
         const pageId = chain[chain.length - 1] ?? "";
@@ -151,7 +160,11 @@ export function VariableList({ projectId }: VariableListProps) {
           projectDefs,
           variable.id,
         ) !== null;
-      groupFor(variable.owner.pageId).entries.push({ kind: "legacy", variable, conflict });
+      groupFor(variable.owner.pageId).entries.push({
+        kind: "legacy",
+        variable,
+        conflict,
+      });
     }
     return [...groups.values()].sort((a, b) => a.title.localeCompare(b.title));
   }, [doc, legacyPageVariables, pageTitle, projectDefs]);
@@ -163,28 +176,32 @@ export function VariableList({ projectId }: VariableListProps) {
       const pageId =
         owner.kind === "page"
           ? owner.pageId
-          : (resolveAncestorChainIds(doc, owner.elementId).slice(-1)[0] ?? null);
+          : (resolveAncestorChainIds(doc, owner.elementId).slice(-1)[0] ??
+            null);
       if (!pageId) return;
       const store = useStore.getState();
       const targetId =
         owner.kind === "element"
           ? owner.elementId
-          : (store.pageElementsSnapshot[pageId]?.find(
-              (element) => element.type.toLowerCase() === "body",
+          : (store.pageElementsSnapshot[pageId]?.find((element) =>
+              isBodyType(element.type),
             )?.id ?? null);
       const activate = () => {
         const latest = useStore.getState();
         const selectId =
           targetId ??
-          latest.pageElementsSnapshot[pageId]?.find(
-            (element) => element.type.toLowerCase() === "body",
+          latest.pageElementsSnapshot[pageId]?.find((element) =>
+            isBodyType(element.type),
           )?.id ??
           null;
         latest.activatePage(pageId, selectId);
         setPanelWorkspacePanelVisibility("properties", true);
         useStateSectionFocus
           .getState()
-          .requestFocus(owner.kind === "page" ? pageId : owner.elementId, entry.def.id);
+          .requestFocus(
+            owner.kind === "page" ? pageId : owner.elementId,
+            entry.def.id,
+          );
       };
       if (store.lazyLoadingEnabled && !store.isPageLoaded(pageId)) {
         void store.lazyLoadPageElements(pageId).then(activate);
@@ -205,12 +222,19 @@ export function VariableList({ projectId }: VariableListProps) {
         id: variable.id,
         name: variable.name,
         type: variable.type,
-        ...(variable.defaultValue !== undefined ? { defaultValue: variable.defaultValue } : {}),
+        ...(variable.defaultValue !== undefined
+          ? { defaultValue: variable.defaultValue }
+          : {}),
       };
       if (!useStore.getState().setPageState(pageId, [...current, def])) return;
       try {
         await deleteVariable(variable.id);
-        announce(t("variableMigrated", { name: variable.name, page: pageTitle(pageId) }));
+        announce(
+          t("variableMigrated", {
+            name: variable.name,
+            page: pageTitle(pageId),
+          }),
+        );
       } catch (error) {
         console.error("Variable 이관 실패:", error);
       }
@@ -307,7 +331,8 @@ export function VariableList({ projectId }: VariableListProps) {
           <div className="list-item-content">
             <div className="list-item-name">{variable.name}</div>
             <div className="list-item-meta">
-              {variable.type} · {localize("variableLegacyPage", "Legacy page variable")}
+              {variable.type} ·{" "}
+              {localize("variableLegacyPage", "Legacy page variable")}
             </div>
           </div>
           <div className="list-item-actions">
@@ -317,7 +342,10 @@ export function VariableList({ projectId }: VariableListProps) {
               disabled={conflict}
               title={
                 conflict
-                  ? localize("variableMigrateConflict", "Name already exists on the page")
+                  ? localize(
+                      "variableMigrateConflict",
+                      "Name already exists on the page",
+                    )
                   : undefined
               }
               onClick={() => void migrateLegacyToPage(variable)}
@@ -347,7 +375,9 @@ export function VariableList({ projectId }: VariableListProps) {
           <div className="list-item-name">{entry.def.name}</div>
           <div className="list-item-meta">
             {entry.def.type}
-            {implicit ? ` · ${localize("variableImplicit", "implicit")} ${implicit}` : ""}
+            {implicit
+              ? ` · ${localize("variableImplicit", "implicit")} ${implicit}`
+              : ""}
             {" · "}
             {t("variableUsageCount", { count: usageCount(entry.def.id) })}
           </div>
@@ -362,7 +392,10 @@ export function VariableList({ projectId }: VariableListProps) {
     );
   };
 
-  const indexCount = indexGroups.reduce((sum, group) => sum + group.entries.length, 0);
+  const indexCount = indexGroups.reduce(
+    (sum, group) => sum + group.entries.length,
+    0,
+  );
 
   return (
     <Section
@@ -388,7 +421,10 @@ export function VariableList({ projectId }: VariableListProps) {
         {projectVariables.length === 0 ? (
           <EmptyState
             icon={<Variable size={32} />}
-            message={localize("variableEmpty", "No variables. Add a new variable.")}
+            message={localize(
+              "variableEmpty",
+              "No variables. Add a new variable.",
+            )}
           />
         ) : (
           <div className="list-group" role="list">
@@ -411,14 +447,21 @@ export function VariableList({ projectId }: VariableListProps) {
         <div className="list-subgroup" data-variable-group="index">
           <div className="list-subgroup-header">
             <span className="list-subgroup-title">
-              {localize("variableIndexGroup", "Page · component index · edit at owner")}
+              {localize(
+                "variableIndexGroup",
+                "Page · component index · edit at owner",
+              )}
             </span>
             <span className="list-subgroup-count">
               {t("countItems", { count: indexCount })}
             </span>
           </div>
           {indexGroups.map((group) => (
-            <div key={group.pageId} className="list-subgroup" data-index-page={group.pageId}>
+            <div
+              key={group.pageId}
+              className="list-subgroup"
+              data-index-page={group.pageId}
+            >
               <div className="list-subgroup-header">
                 <span className="list-subgroup-title">{group.title}</span>
                 <span className="list-subgroup-count">

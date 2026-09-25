@@ -36,6 +36,7 @@ import { isListBoxTemplateAnchor } from "../../components/listbox/listBoxTemplat
 import { emitStoreStructureCommitDescriptors } from "../../presentation/storeCommitEmitter";
 import { isRenderProjectionId } from "../../projection/renderProjectionIds";
 import { isSystemOwnedOrigin } from "../../../adapters/canonical/editingSemantics";
+import { isBodyType } from "@composition/shared";
 
 type SetState = Parameters<StateCreator<ElementsState>>[0];
 type GetState = Parameters<StateCreator<ElementsState>>[1];
@@ -145,7 +146,7 @@ function collectElementsToRemove<TElement extends Element>(
 
   const element = elementsById.get(elementId);
   if (!element) return null;
-  if (element.type.toLowerCase() === "body") return null;
+  if (isBodyType(element.type)) return null;
   if (isListBoxTemplateAnchor(element)) return null;
   // ADR-228 Decision 4: systemOwned reusable origin root (Components 페이지의 catalog·손 seed
   //   origin) 는 삭제 불가 — 지우면 그 ref instance 전부가 세션 안에서 빈 노드가 되고 재로드

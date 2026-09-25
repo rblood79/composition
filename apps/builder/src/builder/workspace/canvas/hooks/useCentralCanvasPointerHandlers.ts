@@ -37,6 +37,7 @@ import { observe, PERF_LABEL } from "../../../utils/perfMarks";
 import type { CanvasInteractionNode } from "../interaction/interactionNode";
 import type { CanvasGestureSession } from "../interaction/canvasGestureSession";
 import { dismissCanvasSelectionPanels } from "../../../layout/panelWorkspaceVisibility";
+import { isBodyType } from "@composition/shared";
 
 interface ModifierState {
   ctrlKey: boolean;
@@ -712,10 +713,7 @@ export function useCentralCanvasPointerHandlers({
             state.selectedElementIds.length === 1
               ? getHitElementsMap?.().get(state.selectedElementIds[0])
               : null;
-          if (
-            pageSelectionEnabled &&
-            selectedElement?.type.toLowerCase() === "body"
-          ) {
+          if (pageSelectionEnabled && isBodyType(selectedElement?.type)) {
             setCursor("move");
             return;
           }

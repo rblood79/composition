@@ -11,6 +11,7 @@ import type {
 } from "../../../types/integrations/ai.types";
 import { getAiToolReadModel } from "./canonicalToolReadModel";
 import { resolveElementRef } from "./elementRef";
+import { isBodyType } from "@composition/shared";
 
 export const deleteElementTool: ToolExecutor = {
   name: "delete_element",
@@ -45,7 +46,7 @@ export const deleteElementTool: ToolExecutor = {
       const element = elementsById.get(targetId)!;
 
       // body 요소 보호
-      if (element.type === "body") {
+      if (isBodyType(element.type)) {
         return { success: false, error: t("aiToolError.bodyUndeletable") };
       }
 

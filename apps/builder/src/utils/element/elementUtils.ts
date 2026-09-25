@@ -9,6 +9,7 @@
 import type { CompositionDocument } from "@composition/shared";
 import { Element } from "../../types/core/store.types";
 import { frameNodeIdForLegacyLayout } from "../../adapters/canonical";
+import { isBodyType } from "@composition/shared";
 
 interface ElementLookup {
   byId: Map<string, Element>;
@@ -56,7 +57,7 @@ export class ElementUtils {
     T extends { id: string; type: string; page_id?: string | null },
   >(elements: readonly T[], pageId: string): string | null {
     const bodyElement = elements.find(
-      (el) => el.page_id === pageId && el.type === "body",
+      (el) => el.page_id === pageId && isBodyType(el.type),
     );
     return bodyElement?.id || null;
   }
@@ -77,7 +78,7 @@ export class ElementUtils {
     const frameNodeId = frameNodeIdForLegacyLayout(layoutId, doc);
     if (!frameNodeId) return null;
     const bodyElement = elements.find(
-      (el) => el.parent_id === frameNodeId && el.type === "body",
+      (el) => el.parent_id === frameNodeId && isBodyType(el.type),
     );
     return bodyElement?.id || null;
   }
@@ -136,7 +137,7 @@ export class ElementUtils {
 
     for (const element of elements) {
       if (element.page_id !== pageId) continue;
-      if (element.type === "body") {
+      if (isBodyType(element.type)) {
         bodyElement = element;
         continue;
       }

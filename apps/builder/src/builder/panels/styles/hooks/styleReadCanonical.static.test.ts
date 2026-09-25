@@ -35,7 +35,7 @@ describe("style hooks canonical read contract", () => {
 
     expect(fillSource).toContain("useElementStyleContext(selectedId)");
     expect(fillSource).not.toContain("s.elementsMap.get(selectedId)");
-    expect(transformSource).toContain('type?.toLowerCase() === "body"');
+    expect(transformSource).toContain("isBodyType(type)");
     expect(transformSource).not.toContain("s.elementsMap.get(id)?.type");
   });
 

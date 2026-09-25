@@ -2,6 +2,7 @@ import type { Key } from "react-stately";
 import { getFrameElementMirrorId } from "../../../../../adapters/canonical/frameMirror";
 import { isRenderProjectionId } from "../../../../projection/renderProjectionIds";
 import type { LayerTreeNode } from "./types";
+import { isBodyType } from "@composition/shared";
 
 type TreeDataLike = {
   getItem: (key: Key | string) => { value: LayerTreeNode } | null | undefined;
@@ -40,7 +41,7 @@ export function isValidDrop(
     return { valid: false, reason: "synthetic-ref-child" };
   }
 
-  if (draggedNode.type === "body") {
+  if (isBodyType(draggedNode.type)) {
     return { valid: false, reason: "body-immutable" };
   }
 

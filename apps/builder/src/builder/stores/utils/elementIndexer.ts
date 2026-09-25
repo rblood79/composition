@@ -20,6 +20,7 @@ import {
   isComponentInstanceMirrorElement as isInstanceElement,
   isComponentOriginMirrorElement as isMasterElement,
 } from "../../../adapters/canonical/componentSemanticsMirror";
+import { isBodyType } from "@composition/shared";
 
 /**
  * 페이지별 요소 인덱스
@@ -88,7 +89,7 @@ export function indexElement<TElement extends Element>(
   index.elementsByPage.get(page_id)!.add(id);
 
   // 2. 루트 요소 확인 (parent_id가 없거나 body인 경우)
-  const isRoot = !parent_id || isBodyElement(parent_id, elementsMap);
+  const isRoot = !parent_id || isBodyType(elementsMap.get(parent_id)?.type);
   if (isRoot) {
     if (!index.rootsByPage.has(page_id)) {
       index.rootsByPage.set(page_id, []);
@@ -202,17 +203,6 @@ export function getRootElements<TElement extends Element>(
   }
 
   return roots;
-}
-
-/**
- * Body 요소인지 확인
- */
-function isBodyElement<TElement extends Pick<Element, "type">>(
-  elementId: string,
-  elementsMap: ReadonlyMap<string, TElement>,
-): boolean {
-  const element = elementsMap.get(elementId);
-  return element?.type === "Body";
 }
 
 // ============================================
@@ -333,9 +323,10 @@ export function updateElementParent<TElement extends Element>(
   if (!page_id) return;
 
   // 이전에 루트였는지 확인
-  const wasRoot = !oldParentId || isBodyElement(oldParentId, elementsMap);
+  const wasRoot =
+    !oldParentId || isBodyType(elementsMap.get(oldParentId)?.type);
   // 현재 루트인지 확인
-  const isRoot = !newParentId || isBodyElement(newParentId, elementsMap);
+  const isRoot = !newParentId || isBodyType(elementsMap.get(newParentId)?.type);
 
   const roots = index.rootsByPage.get(page_id) ?? [];
 

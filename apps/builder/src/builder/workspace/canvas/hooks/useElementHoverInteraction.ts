@@ -36,6 +36,7 @@ import {
   publishMeasureGuides,
 } from "../interaction/measureGuidePresentation";
 import { useGestureHoverSuppression } from "./useGestureHoverSuppression";
+import { isBodyType } from "@composition/shared";
 
 // ============================================
 // Types
@@ -157,7 +158,7 @@ export function resolveFrameBodyHoverTarget({
 
     for (const element of elementsMap.values()) {
       if (element.deleted) continue;
-      if (element.type.toLowerCase() !== "body") continue;
+      if (!isBodyType(element.type)) continue;
       if (!isLegacyFrameElementForFrame(element, area.frameId)) continue;
       if (!boundsMap.has(element.id)) continue;
       return element.id;
@@ -191,7 +192,7 @@ export function resolvePageBodyHoverTarget({
 
     for (const element of elementsMap.values()) {
       if (element.deleted) continue;
-      if (element.type.toLowerCase() !== "body") continue;
+      if (!isBodyType(element.type)) continue;
       if (element.page_id !== frame.id) continue;
       return element.id;
     }
@@ -227,7 +228,7 @@ export function resolveHoverGroupState({
     return { hoveredLeafIds: [], isGroupHover: false };
   }
 
-  if (elementsMap.get(contextHitId)?.type.toLowerCase() === "body") {
+  if (isBodyType(elementsMap.get(contextHitId)?.type)) {
     return { hoveredLeafIds: [], isGroupHover: false };
   }
 
@@ -428,7 +429,7 @@ export function useElementHoverInteraction({
           pagePaintRank = buildPagePaintRank(state.pages, state.currentPageId);
           const bodies: Array<{ rank: number; el: CanvasInteractionNode }> = [];
           for (const [, el] of elementsMap) {
-            if (el.type.toLowerCase() !== "body") continue;
+            if (!isBodyType(el.type)) continue;
             const pageId = el.page_id ?? el.pageId ?? null;
             const rank = pageId ? (pagePaintRank.get(pageId) ?? -1) : -1;
             bodies.push({ rank, el });

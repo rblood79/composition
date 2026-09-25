@@ -47,3 +47,6 @@ export * from "./components/selectionStyle";
 
 // ADR-227 — 문서 소유 토큰 세트 컬렉션 (pure)
 export * from "./theme";
+
+// ADR-236 — 편집기 도메인 술어 (body 등 타입 판정 한 곳, pure)
+export * from "./domain";

@@ -18,6 +18,7 @@
  */
 
 import type { SkiaRendererInput } from "../renderers";
+import { isBodyType } from "@composition/shared";
 
 export interface VisibleFrameRootBuildResult {
   /** frame body element id → { x, y } — `visiblePageRoots` 와 동일 shape */
@@ -45,11 +46,7 @@ export function collectVisibleFrameRoots(
     const bodyId = frameScope?.bodyElementId ?? null;
     if (!bodyId) continue;
     const bodyElement = rendererInput.renderNodesMap.get(bodyId);
-    if (
-      !bodyElement ||
-      bodyElement.deleted ||
-      bodyElement.type.toLowerCase() !== "body"
-    ) {
+    if (!bodyElement || bodyElement.deleted || !isBodyType(bodyElement.type)) {
       continue;
     }
 

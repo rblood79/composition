@@ -32,6 +32,7 @@ import { isSyntheticDescendantId } from "../../../stores/canonical/syntheticDesc
 import type { ElementBounds } from "../elementRegistry";
 import { resolveCatalogContainerStyles } from "../layout/engines/implicitStyles";
 import { getSceneBounds } from "../skia/renderCommands";
+import { isBodyType } from "@composition/shared";
 
 // ============================================
 // Types
@@ -229,10 +230,6 @@ function detectIsHorizontal(element: DropTargetNode): boolean {
   return false;
 }
 
-function isBodyElement(element: DropTargetNode): boolean {
-  return element.type?.toLowerCase() === "body";
-}
-
 function hasCanonicalRef(element: DropTargetNode): boolean {
   return (
     typeof (element as DropTargetNode & { ref?: unknown }).ref === "string"
@@ -295,7 +292,7 @@ export function acceptsDraggedElement(
   candidate: DropTargetNode,
   store: DropTargetReadModel,
 ): boolean {
-  if (isBodyElement(candidate)) return true;
+  if (isBodyType(candidate.type)) return true;
   // ADR-240 Phase 2 (F20) — instance 안 (synthetic) 은 자유 내용 slot host (이름 영역 · frame 가족 slot) 만 받는다
   //   (drop = 그 host 의 mode C). 목록 틀 · inherited · 고정 부품 (Dialog 제목 · Close) 은 거부 — canonical 부모가 없어
   //   이동이 조용히 무시되던 자리.
@@ -398,7 +395,7 @@ function resolveCrossContainerDrop(
     const hitEl = store.elementsById.get(hitId);
     if (!hitEl) continue;
     if (hitId === dragged.parent_id) continue; // 현재 부모는 same-parent 로직이 처리
-    const isBody = isBodyElement(hitEl);
+    const isBody = isBodyType(hitEl.type);
     if (!isBody && !hitEl.parent_id) continue; // body 외 root 제외
 
     if (!acceptsDraggedElement(hitEl, store)) continue;

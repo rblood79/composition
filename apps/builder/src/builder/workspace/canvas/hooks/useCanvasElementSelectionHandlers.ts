@@ -13,6 +13,7 @@ import type { ComponentElementProps } from "../../../../types/core/store.types";
 import { getElementBoundsSimple } from "../elementRegistry";
 import { getFrameElementMirrorId } from "../../../../adapters/canonical/frameMirror";
 import type { CanvasInteractionNode } from "../interaction/interactionNode";
+import { isBodyType } from "@composition/shared";
 
 interface SelectionModifiers {
   ctrlKey: boolean;
@@ -158,7 +159,7 @@ function handleUnresolvedTarget(
     targetPageId: string | null,
   ) => void,
 ): void {
-  if (clickedElement?.type.toLowerCase() !== "body") {
+  if (!clickedElement || !isBodyType(clickedElement.type)) {
     return;
   }
 

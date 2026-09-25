@@ -30,6 +30,7 @@ import {
   getPagePositionPresentationSnapshot,
   readPagePositionForInteraction,
 } from "./pagePositionPresentation";
+import { isBodyType } from "@composition/shared";
 
 interface ResolveSelectedElementsForPageInput {
   currentPageId: string | null;
@@ -141,7 +142,7 @@ export function computeSelectionBounds({
   const boxes: BoundingBox[] = [];
 
   for (const element of selectedElements) {
-    if (element.type.toLowerCase() === "body") {
+    if (isBodyType(element.type)) {
       const frameId =
         element.page_id == null ? getFrameElementMirrorId(element) : null;
       const frameArea = frameId
@@ -239,7 +240,7 @@ export function resolveSelectionDragIntent({
 
   const singleSelected =
     selectedIds.length === 1 ? elementsMap.get(selectedIds[0]) : null;
-  if (singleSelected?.type.toLowerCase() === "body") {
+  if (isBodyType(singleSelected?.type)) {
     return false;
   }
 
@@ -290,7 +291,7 @@ export function resolveMultiDragTargets({
   for (const id of selectedIds) {
     const element = elementsMap.get(id);
     if (!element || element.deleted) continue;
-    if (element.type.toLowerCase() === "body") continue;
+    if (isBodyType(element.type)) continue;
     eligible.push(element);
     eligibleIds.add(id);
   }
@@ -339,9 +340,8 @@ export function resolveSelectedPageIds({
   const seen = new Set<string>();
   for (const id of selectedIds) {
     const element = elementsMap.get(id) as
-      | (CanvasInteractionNode & { pageId?: string | null })
-      | undefined;
-    if (!element || element.type.toLowerCase() !== "body") {
+      (CanvasInteractionNode & { pageId?: string | null }) | undefined;
+    if (!element || !isBodyType(element.type)) {
       return [];
     }
     const pageId =

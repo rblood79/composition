@@ -1,3 +1,4 @@
+import { isBodyType } from "@composition/shared";
 /**
  * 계층적 선택 유틸리티
  *
@@ -110,7 +111,7 @@ export function resolveModifierClickTarget(
   if (!boundaryTarget || boundaryTarget === clickedElementId) return null;
 
   const clickedElement = elementsMap.get(clickedElementId);
-  if (!clickedElement || isBodyElement(clickedElement)) return null;
+  if (!clickedElement || isBodyType(clickedElement.type)) return null;
 
   return clickedElementId;
 }
@@ -126,16 +127,12 @@ function isRootSelectableElement(
     visited.add(parentId);
     const parentElement = elementsMap.get(parentId);
     if (!parentElement) return false;
-    if (isBodyElement(parentElement)) return true;
+    if (isBodyType(parentElement.type)) return true;
     if (!isTransparentSelectionContainer(parentElement)) return false;
     parentId = parentElement.parent_id ?? null;
   }
 
   return false;
-}
-
-function isBodyElement(element: MinimalElement): boolean {
-  return element.type.toLowerCase() === "body";
 }
 
 function isTransparentSelectionContainer(element: MinimalElement): boolean {
@@ -190,7 +187,7 @@ export function resolveEditingContextForTreeSelection(
   if (!parentId) return null;
 
   const parentElement = elementsMap.get(parentId);
-  if (parentElement?.type === "body") return null;
+  if (isBodyType(parentElement?.type)) return null;
 
   return parentId;
 }
