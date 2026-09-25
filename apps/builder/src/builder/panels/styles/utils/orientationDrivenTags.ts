@@ -3,8 +3,9 @@
  *
  * 일부 컨테이너는 그룹 root 의 flexDirection SSOT 가 `props.style.flexDirection`
  * 이 아니라 별도 layout prop 이다. 렌더 derive 경로(fullTreeLayout / implicitStyles
- * / CSS generated)가 그 prop → flexDirection 을 단방향 도출하고 inline
- * style.flexDirection 을 무시한다. 따라서 Style 패널 Direction 토글은:
+ * / CSS generated)가 그 prop → flexDirection 을 단방향 도출한다. 인라인
+ * style.flexDirection 이 있으면 두 경로 모두 인라인이 이긴다 (DOM cascade · Canvas 도 같게,
+ * 2026-09-25) — 그래서 이 토글과 정렬 토글은 인라인 방향을 쓰지 않는다. Style 패널 Direction 토글은:
  *  1) 편집 입력을 style 이 아닌 해당 prop 으로 번역해야 양방향 동기화 + 화면 반영이
  *     된다(이중 저장 아님 — 단일 SSOT 유지).
  *  2) `block` 은 이 모델들에 없는 상태이므로 토글에서 disable.

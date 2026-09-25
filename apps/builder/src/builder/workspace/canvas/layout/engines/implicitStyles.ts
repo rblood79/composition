@@ -1312,20 +1312,35 @@ function injectSideLabelLabelAndContentStyles(
   });
 }
 
+/**
+ * ProgressBar · Meter · Slider 의 side — grid 를 label · track · value 한 줄 flex 로 바꾼다. 사용자 인라인
+ * (display · flexDirection · alignItems) 은 DOM 처럼 이긴다 (root 인라인 > `[data-label-position="side"]`).
+ * 결과가 grid 가 아니면 gridTemplate* 은 무효라 지운다.
+ */
+function sideTrackRowStyle(
+  rawParentStyle: Record<string, unknown>,
+): Record<string, unknown> {
+  const display = rawParentStyle.display ?? "flex";
+  const isGrid = display === "grid" || display === "inline-grid";
+  return {
+    display,
+    flexDirection: rawParentStyle.flexDirection ?? "row",
+    alignItems: rawParentStyle.alignItems ?? "center",
+    ...(isGrid
+      ? {}
+      : { gridTemplateAreas: undefined, gridTemplateColumns: undefined }),
+  };
+}
+
 function getSideLabelParentStyle(
   specFallback: Record<string, unknown>,
   rawParentStyle: Record<string, unknown>,
 ): Record<string, unknown> {
-  // ADR-913 후속 fix (2026-06-19): side 모드에서 rawParentStyle 의 display/flexDirection 을 strip.
-  //   기존 NumberField/SearchField store element 는 factory 가 inline 으로 박은
-  //   display:flex/flexDirection:column 을 보유한다(factory 신규 분은 제거됐으나 기존 문서는 잔존).
-  //   `...rawParentStyle` 가 마지막 spread 라 side 의 flexDirection:row 를 column 으로 덮어
-  //   Label 이 위로 쌓이던 근본. side 는 사용자가 명시 선택한 축이므로 display/flexDirection 충돌
-  //   inline 값은 무시(row 강제) — 그 외 inline(width/gap/padding 등)은 보존. CSS 측은 generated
-  //   CSS selector specificity 가 inline 에 지지만, store longhand 제거(아래 sideMode 분기에서
-  //   직접 set 안 함) 대신 layout 시점 strip 으로 Skia 만 교정(CSS 는 catalog flex-row + Inspector
-  //   가 side 전환 시 inline display/flexDir 제거하는 별도 경로가 정본).
-  const { display: _d, flexDirection: _fd, ...restRaw } = rawParentStyle;
+  // side 기본값 (row · wrap · flex-start) 위에 인라인을 그대로 얹는다 — display · flexDirection 포함.
+  //   DOM 은 root 인라인이 generated `[data-label-position="side"]` 를 이긴다 (특이도). 종전에는 여기서
+  //   인라인 display · flexDirection 을 걷어내 side + 인라인 column 에서 Canvas row · DOM column 으로
+  //   갈렸다 (2026-09-25). 옛 factory 잔재 (field 가족 inline flex column) 는 hydration
+  //   `migrateFieldInlineLayout` 이 지우고, Styles 패널 Direction · 정렬은 이 컨테이너에 방향을 쓰지 않는다.
   return {
     ...specFallback,
     display: "flex",
@@ -1333,7 +1348,7 @@ function getSideLabelParentStyle(
     flexWrap: "wrap",
     alignItems: "flex-start",
     gap: specFallback.gap ?? 4,
-    ...restRaw,
+    ...rawParentStyle,
   };
 }
 
@@ -3198,15 +3213,7 @@ export function applyImplicitStyles(
       ...parentStyle,
       // side: grid → flex-row 전환 (자식 order 로 label-track-value 재배치). gridTemplate* 는
       //   flex 에서 무효라 명시 제거 — display 전환은 layoutVersion/full-rebuild 로 반영됨.
-      ...(isSideLabel
-        ? {
-            display: "flex",
-            flexDirection: "row",
-            alignItems: "center",
-            gridTemplateAreas: undefined,
-            gridTemplateColumns: undefined,
-          }
-        : {}),
+      ...(isSideLabel ? sideTrackRowStyle(rawParentStyle) : {}),
       rowGap:
         parentStyle.rowGap ?? specSizeField(containerTag, sizeName, "gap") ?? 4,
       columnGap: progressGap,
@@ -3385,15 +3392,7 @@ export function applyImplicitStyles(
       // side: grid → flex-row 전환 (자식 배열 재정렬로 label-track-value). gridTemplate* 는
       //   flex 에서 무효라 명시 제거 — display 전환은 layoutVersion/full-rebuild 로 반영됨
       //   (ProgressBar/Meter 분기 동형).
-      ...(isSideLabel
-        ? {
-            display: "flex",
-            flexDirection: "row",
-            alignItems: "center",
-            gridTemplateAreas: undefined,
-            gridTemplateColumns: undefined,
-          }
-        : {}),
+      ...(isSideLabel ? sideTrackRowStyle(rawParentStyle) : {}),
       rowGap: parentStyle.rowGap ?? sliderRowGap,
       columnGap: parentStyle.columnGap ?? sliderColGap,
     });

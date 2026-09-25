@@ -145,18 +145,15 @@ describe("side-label implicit styles", () => {
     expect(typeof fieldErrorStyle.marginLeft).toBe("number");
   });
 
-  it("NumberField side variant는 inline flexDirection:column 이 있어도 parent row 를 강제한다", () => {
-    // ADR-913 후속 fix (2026-06-19): 기존 store element 는 factory 가 박은 inline
-    //   display:flex/flexDirection:column 을 보유한다(신규 분은 factory 에서 제거됐으나 기존
-    //   문서 잔존). getSideLabelParentStyle 의 `...rawParentStyle` 마지막 spread 가 side 의
-    //   flexDirection:row 를 column 으로 덮어 Label 이 위로 쌓이던 근본. side 모드에서 inline
-    //   display/flexDirection 을 strip 하여 row 강제(그 외 inline 은 보존)하는지 가드.
+  it("side 에서도 인라인 display · flexDirection 은 인라인이 이긴다 (DOM cascade 와 같게)", () => {
+    // DOM 은 root 인라인이 generated `[data-label-position="side"]` 를 이긴다 (특이도). Canvas 가
+    //   인라인을 걷어내면 side + 인라인 column 에서 Canvas row · DOM column 으로 갈렸다 (2026-09-25).
+    //   옛 factory 잔재 (NumberField 등 inline flex column) 는 hydration `migrateFieldInlineLayout` 이 지운다.
     const result = applyContainer(
       "NumberField",
       {
         label: "Count",
         labelPosition: "side",
-        // 기존 element 가 보유하던 inline 충돌 값
         style: {
           display: "flex",
           flexDirection: "column",
@@ -172,14 +169,40 @@ describe("side-label implicit styles", () => {
     );
 
     const parentStyle = getParentStyle(result);
-    // inline column 무시하고 row 강제
-    expect(parentStyle.flexDirection).toBe("row");
+    expect(parentStyle.flexDirection).toBe("column");
     expect(parentStyle.display).toBe("flex");
-    expect(parentStyle.alignItems).toBe("flex-start");
-    // 충돌 안 하는 inline 은 보존 (width/gap)
     expect(parentStyle.width).toBe("100%");
     expect(parentStyle.gap).toBe(4);
   });
+
+  it.each([
+    ["ProgressBar", ["Label", "ProgressBarValue", "ProgressBarTrack"]],
+    ["Meter", ["Label", "MeterValue", "MeterTrack"]],
+    ["Slider", ["Label", "SliderOutput", "SliderTrack"]],
+  ])(
+    "%s side 도 인라인 flexDirection 을 따른다 · 인라인이 없으면 row",
+    (type, childTypes) => {
+      const children = childTypes.map((t, i) => makeChild(`c${i}`, t));
+      const withInline = getParentStyle(
+        applyContainer(
+          type,
+          {
+            label: "L",
+            labelPosition: "side",
+            style: { display: "flex", flexDirection: "column" },
+          },
+          children,
+        ),
+      );
+      expect(withInline.flexDirection).toBe("column");
+
+      const clean = getParentStyle(
+        applyContainer(type, { label: "L", labelPosition: "side" }, children),
+      );
+      expect(clean.display).toBe("flex");
+      expect(clean.flexDirection).toBe("row");
+    },
+  );
 
   it("DateField side variant는 DateInput 보정과 parent row 레이아웃을 유지한다", () => {
     const result = applyContainer(
