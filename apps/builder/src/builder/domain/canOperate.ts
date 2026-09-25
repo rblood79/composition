@@ -191,3 +191,19 @@ export function guardStoreOperation(
   if (selection.ids.length === 0) notifyOperationRejected(selection.rejected);
   return selection.ids;
 }
+
+/**
+ * store 생성 액션 진입부 가드 (ADR-236 Phase 3) — 표면 밖 호출 (AI · 내부 경로) 이 instance 안 요소를
+ * 부모로 넘기면 거부하고 알린다 (E6). 중첩 규칙은 canonical guard 가 같은 자리에서 본다. 대상 결정
+ * 전체 (`resolveMoveTarget`) 가 아니라 여기 두는 이유: store 모듈이 import 하므로 캔버스 · 알림 모듈을
+ * 끌어오면 store 초기화 순환이 생긴다.
+ */
+export function guardCreationParent(
+  parentId: string | null | undefined,
+): boolean {
+  if (parentId && isSyntheticDescendantId(parentId)) {
+    notifyOperationRejected([{ reason: "synthetic" }]);
+    return false;
+  }
+  return true;
+}

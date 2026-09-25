@@ -18,7 +18,7 @@ import { describe, expect, it } from "vitest";
 const STORES = resolve(__dirname, "../../stores");
 
 const GUARD_CALL =
-  /^(canOperate|guardStoreOperation|filterOperable|confirmOriginImpactIfNeeded|confirmOriginImpactForIds)$/;
+  /^(canOperate|guardStoreOperation|filterOperable|guardCreationParent|resolveMoveTarget|confirmOriginImpactIfNeeded|confirmOriginImpactForIds)$/;
 const MUTATION_CALL =
   /^(set|executeRemoval|applyElementSnapshotBatch|runCanonicalMutation|[a-zA-Z]+CanonicalPrimary|sync[A-Za-z]*ToCanonical|updateNode|buildDetachSnapshot)$/;
 
@@ -35,6 +35,31 @@ const GUARDED_ACTIONS: readonly string[] = [
   "utils/elementUpdate.ts :: createUpdateElementAction",
   "utils/elementUpdate.ts :: createBatchUpdateElementPropsAction",
   "inspectorActions.ts :: updateAndSave",
+  "utils/elementCreation.ts :: createAddElementAction",
+  "utils/elementCreation.ts :: createAddComplexElementAction",
+];
+
+/**
+ * store 액션을 거치지 않는 구조 쓰기 (E8) — 쓰기 호출마다 그것을 감싼 함수 중 하나가 가드를 먼저
+ * 부른다. 경로는 `apps/builder/src/builder` 기준.
+ */
+const BYPASS_WRITES: readonly {
+  file: string;
+  write: RegExp;
+  guard: RegExp;
+}[] = [
+  {
+    // 캔버스 드래그 — adapter 의 canonical 이동을 직접 부른다.
+    file: "workspace/canvas/hooks/useDragBridge.ts",
+    write: /^(moveElementToCanonicalTarget|moveElementsToCanonicalTarget)$/,
+    guard: /^resolveDragMoveTarget$/,
+  },
+  {
+    // factory 생성 — useStore.setState 를 직접 부른다.
+    file: "factories/utils/elementCreation.ts",
+    write: /^runCanonicalMutation$/,
+    guard: /^guardCreationParent$/,
+  },
 ];
 
 /**
@@ -53,7 +78,7 @@ const WRAPPER_CALLERS: Readonly<Record<string, string>> = {
   "utils/instanceActions.ts :: syncInstanceElementsToCanonical":
     "guarded — detach · toggle 뒤",
   "utils/elementCreation.ts :: mergeCreatedElementsIntoCanonicalDocument":
-    "Phase 3d — 생성 대상 판정 (resolveMoveTarget) 에서 가드",
+    "guarded — addElement · addComplexElement 진입부 (guardCreationParent)",
   "elements.ts :: applyCanonicalDataBindingPatch":
     "allowed — props 축 (데이터 바인딩), 구조 변경 아님",
   "elements.ts :: applyCanonicalExtensionPatch":
@@ -188,6 +213,59 @@ describe("ADR-236 구조 변경 store 액션 진입부 가드", () => {
     expect(guard, `${entry} 에 가드 호출이 없다`).not.toBeNull();
     if (mutation !== null) expect(guard!).toBeLessThan(mutation);
   });
+
+  it.each(BYPASS_WRITES)(
+    "store 우회 쓰기 $file — 쓰기마다 감싼 함수가 가드를 먼저 부른다 (E8)",
+    ({ file, write, guard }) => {
+      const sourceFile = parse(resolve(STORES, "..", file));
+      const writes: ts.CallExpression[] = [];
+      const visit = (node: ts.Node) => {
+        if (ts.isCallExpression(node)) {
+          const name = calleeName(node);
+          if (name && write.test(name)) writes.push(node);
+        }
+        ts.forEachChild(node, visit);
+      };
+      visit(sourceFile);
+      expect(writes.length).toBeGreaterThan(0);
+      const unguarded = writes.filter((call) => {
+        for (let parent = call.parent; parent; parent = parent.parent) {
+          if (
+            !ts.isFunctionDeclaration(parent) &&
+            !ts.isArrowFunction(parent) &&
+            !ts.isFunctionExpression(parent)
+          ) {
+            continue;
+          }
+          let guarded = false;
+          const find = (node: ts.Node) => {
+            if (guarded) return;
+            if (ts.isCallExpression(node)) {
+              const name = calleeName(node);
+              if (
+                name &&
+                guard.test(name) &&
+                node.getStart() < call.getStart()
+              ) {
+                guarded = true;
+                return;
+              }
+            }
+            ts.forEachChild(node, find);
+          };
+          find(parent);
+          if (guarded) return false;
+        }
+        return true;
+      });
+      expect(
+        unguarded.map(
+          (call) =>
+            `${file}:${sourceFile.getLineAndCharacterOfPosition(call.getStart()).line + 1}`,
+        ),
+      ).toEqual([]);
+    },
+  );
 
   it("canonical 변경 래퍼를 부르는 stores 함수 집합이 표와 같다 (새 경로는 가드 목록 또는 사유 등재)", () => {
     const callers = new Set<string>();

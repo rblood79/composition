@@ -67,12 +67,15 @@ import {
   isDragAltCloneArmed,
   resolveCanonicalMoveTarget,
   resolveMultiDragTargets,
-  resolveNestingAwareTarget,
 } from "../interaction";
+import { notifyNestingRelocation } from "../interaction/nestingNotice";
 import {
-  notifyNestingRejected,
-  notifyNestingRelocation,
-} from "../interaction/nestingNotice";
+  createEffectiveTypeResolver,
+  notifyMoveTargetRejected,
+  resolveMoveTarget,
+  type MoveTargetPolicy,
+  type MoveTargetResult,
+} from "../../../domain/resolveMoveTarget";
 import {
   copyMultipleElements,
   pasteMultipleElements,
@@ -154,6 +157,33 @@ function parsePx(value: unknown): number | null {
 function formatPx(value: number): string {
   const rounded = Math.round(value * 1000) / 1000;
   return `${Number.isInteger(rounded) ? rounded : rounded.toFixed(3).replace(/0+$/, "").replace(/\.$/, "")}px`;
+}
+
+/**
+ * 드래그 이동 대상 판정 (ADR-236 Phase 3) — 팔레트 · 붙여넣기 · Layers 와 같은 `resolveMoveTarget`.
+ * 옮기는 요소 타입은 ref instance 면 원본 타입으로 읽는다 (E7). instance 안 요소 (synthetic 자식)
+ * 위로 떨어뜨리면 거부한다 (E6 — 전에는 store 맵에 없어서 우연히 걸러졌다).
+ */
+function resolveDragMoveTarget(
+  containerId: string,
+  insertionIndex: number,
+  movingIds: readonly string[],
+  nodes: ReadonlyMap<string, CanvasInteractionNode>,
+  policy: MoveTargetPolicy,
+): MoveTargetResult {
+  const doc = getActiveCanonicalDocument();
+  const typeOf = createEffectiveTypeResolver(nodes, doc);
+  return resolveMoveTarget({
+    targetParentId: containerId,
+    insertionIndex,
+    movingTypes: movingIds
+      .map((id) => nodes.get(id))
+      .filter((node): node is CanvasInteractionNode => node !== undefined)
+      .map(typeOf),
+    nodes,
+    policy,
+    doc,
+  });
 }
 
 export function resolveDragReadModel(
@@ -472,27 +502,23 @@ function commitMultiDragDrop({
       : null;
   // 중첩 preflight — 거부 대신 가까운 유효 조상으로 옮기고, 어디에도 못 두면 취소
   const nestingAware = rawReparentTarget
-    ? resolveNestingAwareTarget({
-        renderTargetId: rawReparentTarget.containerId,
-        insertionIndex: rawReparentTarget.insertionIndex,
-        movingTypes: session.ids
-          .map((id) => dragStore.elementsById.get(id)?.type)
-          .filter((t): t is string => typeof t === "string"),
-        elementsMap: dragStore.elementsById,
-      })
+    ? resolveDragMoveTarget(
+        rawReparentTarget.containerId,
+        rawReparentTarget.insertionIndex,
+        session.ids,
+        dragStore.elementsById,
+        "nearest-ancestor",
+      )
     : null;
-  if (
-    nestingAware?.relocation &&
-    nestingAware.relocation.relocatedToId === null
-  ) {
-    notifyNestingRejected(nestingAware.relocation.violation);
+  if (nestingAware && !nestingAware.ok) {
+    notifyMoveTargetRejected(nestingAware);
     return;
   }
   const reparentTarget =
     rawReparentTarget && nestingAware
       ? {
           ...rawReparentTarget,
-          containerId: nestingAware.renderTargetId,
+          containerId: nestingAware.parentId,
           insertionIndex: nestingAware.insertionIndex,
         }
       : rawReparentTarget;
@@ -559,11 +585,11 @@ function commitMultiDragDrop({
       }
       if (moveResult.changed) {
         didCanonicalMove = true;
-        if (nestingAware?.relocation) {
+        if (nestingAware?.ok && nestingAware.relocation) {
           notifyNestingRelocation(
             nestingAware.relocation,
-            dragStore.elementsById.get(nestingAware.renderTargetId)?.type ??
-              nestingAware.renderTargetId,
+            dragStore.elementsById.get(nestingAware.parentId)?.type ??
+              nestingAware.parentId,
           );
         }
         // 기록은 from index **내림차순** — undo 는 events 를 역순 적용하므로
@@ -940,17 +966,18 @@ export function useDragBridge({
           dragStore,
           effectiveDelta,
         );
-        const manualNesting = resolveNestingAwareTarget({
-          renderTargetId: manualDropTarget.containerId,
-          insertionIndex: manualDropTarget.insertionIndex,
-          movingTypes: dragged ? [dragged.type] : [],
-          elementsMap: dragStore.elementsById,
-        });
         // 절대배치 drop 은 left/top 이 컨테이너 기준이라 조상으로 옮기면 좌표가 튄다
         //   (`resolveManualPositionDropProps` 가 원래 컨테이너 bounds 로 계산) — 이 경로는
-        //   옮기지 않고 취소한다 (리뷰 HIGH). flow drop 은 아래에서 옮긴다.
-        if (manualNesting.relocation) {
-          notifyNestingRejected(manualNesting.relocation.violation);
+        //   옮기지 않고 취소한다 (리뷰 HIGH, policy `reject`). flow drop 은 아래에서 옮긴다.
+        const manualNesting = resolveDragMoveTarget(
+          manualDropTarget.containerId,
+          manualDropTarget.insertionIndex,
+          [elementId],
+          dragStore.elementsById,
+          "reject",
+        );
+        if (!manualNesting.ok) {
+          notifyMoveTargetRejected(manualNesting);
           return;
         }
         const canonicalTarget = resolveCanonicalMoveTarget({
@@ -1025,23 +1052,21 @@ export function useDragBridge({
       if (finalTarget && !finalTarget.isAdjacentInsertion) {
         // 중첩 preflight 는 순서 계산 **앞** — 옮겨진 컨테이너 기준으로 순서를 계산해야
         //   좌표·순서·이동이 같은 target 을 본다 (리뷰 HIGH).
-        const flowNesting = resolveNestingAwareTarget({
-          renderTargetId: finalTarget.containerId,
-          insertionIndex: finalTarget.insertionIndex,
-          movingTypes: dragged ? [dragged.type] : [],
-          elementsMap: dragStore.elementsById,
-        });
-        if (
-          flowNesting.relocation &&
-          flowNesting.relocation.relocatedToId === null
-        ) {
-          notifyNestingRejected(flowNesting.relocation.violation);
+        const flowNesting = resolveDragMoveTarget(
+          finalTarget.containerId,
+          finalTarget.insertionIndex,
+          [elementId],
+          dragStore.elementsById,
+          "nearest-ancestor",
+        );
+        if (!flowNesting.ok) {
+          notifyMoveTargetRejected(flowNesting);
           return;
         }
         const effectiveTarget = flowNesting.relocation
           ? {
               ...finalTarget,
-              containerId: flowNesting.renderTargetId,
+              containerId: flowNesting.parentId,
               insertionIndex: flowNesting.insertionIndex,
             }
           : finalTarget;
@@ -1083,8 +1108,8 @@ export function useDragBridge({
             if (flowNesting.relocation) {
               notifyNestingRelocation(
                 flowNesting.relocation,
-                dragStore.elementsById.get(flowNesting.renderTargetId)?.type ??
-                  flowNesting.renderTargetId,
+                dragStore.elementsById.get(flowNesting.parentId)?.type ??
+                  flowNesting.parentId,
               );
             }
           }

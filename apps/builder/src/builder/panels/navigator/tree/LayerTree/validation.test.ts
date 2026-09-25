@@ -67,3 +67,40 @@ describe("LayerTree drop validation", () => {
     });
   });
 });
+
+describe("LayerTree drop validation — 중첩 preflight (ADR-236 Phase 3, E7)", () => {
+  // body > frame > instance (ref → Button origin) · 끌고 오는 Button.
+  const nodes = new Map(
+    [
+      { id: "body", type: "body", props: {}, parent_id: null },
+      { id: "frame", type: "frame", props: {}, parent_id: "body" },
+      {
+        id: "inst",
+        type: "ref",
+        ref: "origin-button",
+        props: {},
+        parent_id: "frame",
+      },
+      { id: "origin-button", type: "Button", props: {}, parent_id: null },
+      { id: "dragged", type: "Button", props: {}, parent_id: "body" },
+    ].map((n) => [n.id, n]),
+  );
+  const tree = makeTree([
+    makeNode({ id: "dragged", parentId: "body" }),
+    makeNode({ id: "inst", type: "ref", parentId: "frame" }),
+    makeNode({ id: "frame", type: "frame", parentId: "body" }),
+  ]);
+
+  it("Button 을 Button instance 안에 떨어뜨리면 거부 — 전에는 store 가 드롭 뒤에 조용히 거부했다", () => {
+    expect(isValidDrop("dragged", "inst", "on", tree, { nodes })).toEqual({
+      valid: false,
+      reason: "nesting",
+    });
+  });
+
+  it("유효한 부모 (frame) 는 그대로 허용 (대조군)", () => {
+    expect(isValidDrop("dragged", "frame", "on", tree, { nodes })).toEqual({
+      valid: true,
+    });
+  });
+});

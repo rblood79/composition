@@ -12,6 +12,9 @@ import { LayerTreeItemContent } from "./LayerTreeItemContent";
 import { useFocusManagement } from "../hooks";
 import { LAYER_TREE_ROW_SIZE_PX } from "./virtualization";
 import { isBodyType } from "@composition/shared";
+import { useStore } from "../../../../stores";
+import { getActiveCanonicalDocument } from "../../../../stores/canonical/canonicalElementsBridge";
+import type { MoveTargetNode } from "../../../../domain/resolveMoveTarget";
 
 const LAYER_TREE_LAYOUT_OPTIONS = { rowSize: LAYER_TREE_ROW_SIZE_PX };
 const getLayerTreeKey = (node: LayerTreeNode) => node.id;
@@ -131,9 +134,19 @@ export function LayerTree({
   // DnD 유효성 검사 (클로저로 tree 캡처)
   const handleIsValidDrop = useCallback(
     (draggedKey: Key, targetKey: Key, position: "before" | "after" | "on") => {
-      return isValidDrop(String(draggedKey), String(targetKey), position, {
-        getItem: (key) => tree.getItem(key),
-      }).valid;
+      return isValidDrop(
+        String(draggedKey),
+        String(targetKey),
+        position,
+        { getItem: (key) => tree.getItem(key) },
+        {
+          nodes: useStore.getState().elementsMap as ReadonlyMap<
+            string,
+            MoveTargetNode
+          >,
+          doc: getActiveCanonicalDocument(),
+        },
+      ).valid;
     },
     [tree],
   );

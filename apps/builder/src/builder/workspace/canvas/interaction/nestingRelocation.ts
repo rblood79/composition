@@ -39,6 +39,7 @@ function parentIdOf(node: CanvasInteractionNode | undefined): string | null {
 export function collectInteractionAncestorChain(
   startId: string,
   elementsMap: ReadonlyMap<string, CanvasInteractionNode>,
+  typeOf: (node: CanvasInteractionNode) => string = (node) => node.type,
 ): Array<{ id: string; type: string }> {
   const chain: Array<{ id: string; type: string }> = [];
   const seen = new Set<string>();
@@ -47,7 +48,7 @@ export function collectInteractionAncestorChain(
     seen.add(cursor);
     const node = elementsMap.get(cursor);
     if (!node) break;
-    chain.push({ id: node.id, type: node.type });
+    chain.push({ id: node.id, type: typeOf(node) });
     cursor = parentIdOf(node);
   }
   return chain;
@@ -68,10 +69,13 @@ export function resolveNestingAwareTarget(input: {
   insertionIndex: number;
   movingTypes: readonly string[];
   elementsMap: ReadonlyMap<string, CanvasInteractionNode>;
+  /** 조상 타입 해석 — ref instance 를 원본 타입으로 읽을 때 (`resolveMoveTarget`). 생략 = `node.type`. */
+  typeOf?: (node: CanvasInteractionNode) => string;
 }): NestingAwareTarget {
   const chain = collectInteractionAncestorChain(
     input.renderTargetId,
     input.elementsMap,
+    input.typeOf,
   );
   const chainTypes = chain.map((n) => n.type);
   const base: NestingAwareTarget = {

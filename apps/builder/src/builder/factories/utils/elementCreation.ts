@@ -1,4 +1,5 @@
 import { Element } from "../../../types/core/store.types";
+import { guardCreationParent } from "../../domain/canOperate";
 import { ElementUtils } from "../../../utils/element/elementUtils";
 import { useStore } from "../../stores";
 import { ComponentDefinition, ChildDefinition } from "../types";
@@ -147,6 +148,8 @@ export function addElementsToStore(
   parent: Element,
   children: Element[],
 ): Element[] {
+  // ADR-236 Phase 3 — store 액션을 거치지 않는 쓰기라 같은 진입부 판정을 여기서 부른다 (E8).
+  if (!guardCreationParent(parent.parent_id)) return [];
   const store = useStore.getState();
   const currentElements = store.elements;
   // 중첩 규칙이 거부한 element 는 store · history · 반환값 어디에도 넣지 않는다 —

@@ -2,12 +2,7 @@ import { useCallback, useRef, useEffect } from "react";
 import { useI18n } from "@/i18n";
 import { focusCanvasContainer } from "./useActiveScope";
 import type { CompositionDocument } from "@composition/shared";
-import {
-  componentTypeSet,
-  createCanonicalNestingIndex,
-  findCanonicalNodeById,
-  findCanonicalNodeType,
-} from "@composition/shared";
+import { componentTypeSet, findCanonicalNodeById } from "@composition/shared";
 import {
   Element,
   ComponentElementProps,
@@ -17,11 +12,12 @@ import { ComponentFactory } from "../factories/ComponentFactory";
 import { composeCreationProps } from "../factories/creationStyleDefaults";
 import type { ComponentCreationSourceNode } from "../factories/types";
 import type { CanvasInteractionNode } from "../workspace/canvas/interaction/interactionNode";
-import { resolveNestingAwareTarget } from "../workspace/canvas/interaction/nestingRelocation";
 import {
-  notifyNestingRejected,
-  notifyNestingRelocation,
-} from "../workspace/canvas/interaction/nestingNotice";
+  createEffectiveTypeResolver,
+  notifyMoveTargetRejected,
+  resolveMoveTarget,
+} from "../domain/resolveMoveTarget";
+import { notifyNestingRelocation } from "../workspace/canvas/interaction/nestingNotice";
 
 import { COMPLEX_COMPONENT_TAGS } from "../factories/constants";
 import { getReusableCompositeOriginId } from "../components/reusableCompositeOrigins";
@@ -52,31 +48,24 @@ function resolveNestedCreationParent(
   relocated: boolean;
   notify: () => void;
 } {
-  // ADR-228: ref instance 는 원본 root 의 타입으로 판정한다 — 팔레트 배치가 전부 instance 라
-  //   "ref" 를 그대로 두면 preflight 가 opaque 통과해 Button 안 Button 같은 규칙이 무력해진다
-  //   (canonical guard 의 `canonicalNestingContext.effectiveType` 과 같은 규칙).
-  //   origin 은 Components 페이지에 있어 page-scoped `elements` 에 없다 — 문서에서 읽는다
-  //   (codex round 3 h1: elements 만 보던 첫 구현이 headed 에서 Button 안 Button 을 만들었다).
-  const rawById = new Map(elements.map((el) => [el.id, el]));
-  const nestingIndex = createCanonicalNestingIndex(doc);
-  const effectiveType = (el: ComponentCreationSourceNode): string => {
-    const ref = (el as { ref?: unknown }).ref;
-    if (el.type !== "ref" || typeof ref !== "string") return el.type;
-    const origin = rawById.get(ref);
-    if (origin && origin.type !== "ref") return origin.type;
-    return findCanonicalNodeType(nestingIndex, ref) ?? el.type;
-  };
+  // 판정은 `resolveMoveTarget` 하나 (ADR-236 Phase 3) — ref instance 는 원본 root 의 타입으로 읽는다
+  //   (ADR-228: 팔레트 배치가 전부 instance 라 "ref" 를 그대로 두면 Button 안 Button 이 통과한다).
+  //   origin 은 Components 페이지에 있어 page-scoped `elements` 에 없다 — 문서에서 읽는다.
   const byId = new Map<string, CanvasInteractionNode>(
-    elements.map((el) => [
-      el.id,
-      {
-        id: el.id,
-        type: effectiveType(el),
-        props: el.props ?? {},
-        parent_id: el.parent_id ?? null,
-        page_id: el.page_id ?? null,
-      },
-    ]),
+    elements.map((el) => {
+      const ref = (el as { ref?: unknown }).ref;
+      return [
+        el.id,
+        {
+          id: el.id,
+          type: el.type,
+          props: el.props ?? {},
+          parent_id: el.parent_id ?? null,
+          page_id: el.page_id ?? null,
+          ...(typeof ref === "string" ? { ref } : {}),
+        },
+      ];
+    }),
   );
   const passthrough = {
     parentId,
@@ -89,29 +78,32 @@ function resolveNestedCreationParent(
   };
   if (!parentId) return passthrough;
 
-  const nesting = resolveNestingAwareTarget({
-    renderTargetId: parentId,
+  const target = resolveMoveTarget({
+    targetParentId: parentId,
     insertionIndex: Number.MAX_SAFE_INTEGER,
     movingTypes: [type],
-    elementsMap: byId,
+    nodes: byId,
+    policy: "nearest-ancestor",
+    doc,
   });
-  if (!nesting.relocation) return passthrough;
-  if (nesting.relocation.relocatedToId === null) {
-    notifyNestingRejected(nesting.relocation.violation);
+  if (!target.ok) {
+    // instance 안 요소를 부모로 고른 경우 (E6) 도 여기서 알린다 — 자식은 origin 에서 편집한다.
+    notifyMoveTargetRejected(target);
     return { ...passthrough, rejected: true };
   }
-  const relocation = nesting.relocation;
-  const nextParentId = nesting.renderTargetId;
+  if (!target.relocation) return passthrough;
+  const relocation = target.relocation;
+  const nextParentId = target.parentId;
+  const typeOf = createEffectiveTypeResolver(byId, doc);
   return {
     parentId: nextParentId,
     parentElement: elements.find((el) => el.id === nextParentId) ?? null,
     rejected: false,
     relocated: true,
-    notify: () =>
-      notifyNestingRelocation(
-        relocation,
-        byId.get(nextParentId)?.type ?? nextParentId,
-      ),
+    notify: () => {
+      const next = byId.get(nextParentId);
+      notifyNestingRelocation(relocation, next ? typeOf(next) : nextParentId);
+    },
   };
 }
 

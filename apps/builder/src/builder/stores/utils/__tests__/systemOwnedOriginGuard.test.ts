@@ -137,6 +137,21 @@ describe("system origin 보호 — 삭제 · 컴포넌트 해제", () => {
     expect(reusableOf("page-body")).toBeFalsy();
   });
 
+  it("instance 안 요소 (synthetic 자식) 를 부모로 한 addElement 는 거부하고 알린다 (E6)", async () => {
+    seed([makeElement("inst", { type: "ref", ref: "btn" }), systemOrigin()]);
+    await useStore
+      .getState()
+      .addElement(
+        makeElement("new-text", { type: "Text", parent_id: "inst/label" }),
+      );
+    expect(useStore.getState().elementsMap.has("new-text")).toBe(false);
+    expect(
+      useToastStore
+        .getState()
+        .toasts.some((t) => t.messageKey === "operation.instanceChildLocked"),
+    ).toBe(true);
+  });
+
   it("사용자가 만든 origin 은 그대로 해제된다 (대조군)", async () => {
     seed([makeElement("mine", { reusable: true })]);
     await useStore.getState().toggleComponentOrigin("mine");

@@ -9,11 +9,12 @@ import {
 import { useStore } from "../../../stores";
 import { isSyntheticDescendantId } from "../../../stores/canonical/syntheticDescendantLookup";
 import type { CanvasInteractionNode } from "../interaction/interactionNode";
-import { resolveNestingAwareTarget } from "../interaction/nestingRelocation";
 import {
-  notifyNestingRejected,
-  notifyNestingRelocation,
-} from "../interaction/nestingNotice";
+  createEffectiveTypeResolver,
+  notifyMoveTargetRejected,
+  resolveMoveTarget,
+} from "../../../domain/resolveMoveTarget";
+import { notifyNestingRelocation } from "../interaction/nestingNotice";
 import {
   copyMultipleElements,
   deserializeCopiedElements,
@@ -233,24 +234,32 @@ export async function paste(context: CanvasActionContext): Promise<void> {
     elements: elementsMap.values(),
   });
 
-  // 중첩 preflight — 붙여넣는 루트 타입들이 대상 안에 못 들어가면 가까운 유효 조상으로
-  // 옮기고, 어디에도 못 두면 취소한다 (canonical guard 가 조용히 거부하기 전에 알린다).
+  // 대상 판정 (`resolveMoveTarget`, nearest-ancestor) — 붙여넣는 루트 타입들이 대상 안에 못 들어가면
+  // 가까운 유효 조상으로 옮기고, 어디에도 못 두면 취소한다 (canonical guard 가 조용히 거부하기 전에
+  // 알린다). ref instance 는 원본 타입으로 읽는다 — 팔레트와 같은 규칙 (ADR-236 Phase 3, E7).
+  const nodes = elementsMap as ReadonlyMap<string, CanvasInteractionNode>;
+  const doc = getActiveCanonicalDocument();
+  const typeOf = createEffectiveTypeResolver(nodes, doc);
   const rootTypes = copiedData.rootIds
-    .map((id) => copiedData.elements.find((el) => el.id === id)?.type)
-    .filter((t): t is string => typeof t === "string");
-  const nesting = rawTargetParentId
-    ? resolveNestingAwareTarget({
-        renderTargetId: rawTargetParentId,
+    .map((id) => copiedData.elements.find((el) => el.id === id))
+    .filter((el): el is NonNullable<typeof el> => el !== undefined)
+    .map((el) => typeOf(el as unknown as CanvasInteractionNode));
+  const target = rawTargetParentId
+    ? resolveMoveTarget({
+        targetParentId: rawTargetParentId,
         insertionIndex: Number.MAX_SAFE_INTEGER,
         movingTypes: rootTypes,
-        elementsMap: elementsMap as ReadonlyMap<string, CanvasInteractionNode>,
+        nodes,
+        policy: "nearest-ancestor",
+        doc,
       })
     : null;
-  if (nesting?.relocation && nesting.relocation.relocatedToId === null) {
-    notifyNestingRejected(nesting.relocation.violation);
+  if (target && !target.ok) {
+    notifyMoveTargetRejected(target);
     return;
   }
-  const targetParentId = nesting ? nesting.renderTargetId : rawTargetParentId;
+  const relocation = target?.relocation ?? null;
+  const targetParentId = target ? target.parentId : rawTargetParentId;
 
   const newElements = pasteMultipleElements(
     copiedData,
@@ -263,10 +272,11 @@ export async function paste(context: CanvasActionContext): Promise<void> {
   // batch 경로는 trackMultiPaste 가 entry 하나를 남기므로 undo 1회가 붙여넣기 전체를
   //   되돌린다. 비-batch 경로는 element 마다 entry 라 단일일 때만 되돌리기를 준다.
   const notifyIfRelocated = (withUndo: boolean): void => {
-    if (!nesting?.relocation || newElements.length === 0) return;
+    if (!relocation || !targetParentId || newElements.length === 0) return;
+    const parent = nodes.get(targetParentId);
     notifyNestingRelocation(
-      nesting.relocation,
-      elementsMap.get(nesting.renderTargetId)?.type ?? nesting.renderTargetId,
+      relocation,
+      parent ? typeOf(parent) : targetParentId,
       { withUndo },
     );
   };
@@ -394,14 +404,16 @@ export async function groupSelection(
   // 거부하고, 이어지는 parent_id patch 가 자식을 없는 부모 아래로 보낸다. 묶기 전에
   // 판정한다 — 다른 조상으로 옮기면 선택이 제자리를 떠나므로 relocation 없이 거부.
   if (groupElement.parent_id) {
-    const nesting = resolveNestingAwareTarget({
-      renderTargetId: groupElement.parent_id,
+    const target = resolveMoveTarget({
+      targetParentId: groupElement.parent_id,
       insertionIndex: Number.MAX_SAFE_INTEGER,
       movingTypes: [groupElement.type],
-      elementsMap: elementsMap as ReadonlyMap<string, CanvasInteractionNode>,
+      nodes: elementsMap as ReadonlyMap<string, CanvasInteractionNode>,
+      policy: "reject",
+      doc: getActiveCanonicalDocument(),
     });
-    if (nesting.relocation) {
-      notifyNestingRejected(nesting.relocation.violation);
+    if (!target.ok) {
+      notifyMoveTargetRejected(target);
       return;
     }
   }
@@ -454,14 +466,21 @@ export async function ungroupSelection(
   // 아래 removeElement 가 frame 을 지우면 남은 자식이 frame 과 함께 삭제된다.
   const releaseParentId = selectedElement.parent_id;
   if (releaseParentId && updatedChildren.length > 0) {
-    const nesting = resolveNestingAwareTarget({
-      renderTargetId: releaseParentId,
+    const nodes = elementsMap as ReadonlyMap<string, CanvasInteractionNode>;
+    const doc = getActiveCanonicalDocument();
+    const typeOf = createEffectiveTypeResolver(nodes, doc);
+    const target = resolveMoveTarget({
+      targetParentId: releaseParentId,
       insertionIndex: Number.MAX_SAFE_INTEGER,
-      movingTypes: updatedChildren.map((child) => child.type),
-      elementsMap: elementsMap as ReadonlyMap<string, CanvasInteractionNode>,
+      movingTypes: updatedChildren.map((child) =>
+        typeOf(child as CanvasInteractionNode),
+      ),
+      nodes,
+      policy: "reject",
+      doc,
     });
-    if (nesting.relocation) {
-      notifyNestingRejected(nesting.relocation.violation);
+    if (!target.ok) {
+      notifyMoveTargetRejected(target);
       return;
     }
   }

@@ -517,6 +517,36 @@ describe("reusable 변경은 store toggleComponentOrigin 을 지난다 (ADR-236 
   });
 });
 
+describe("create_element 부모 판정 = 팔레트와 같은 resolveMoveTarget (ADR-236 Phase 3)", () => {
+  beforeEach(() => {
+    seed();
+  });
+
+  it("Button instance 안에 Button 을 만들지 않는다 — ref 부모를 원본 타입으로 읽는다 (E7)", async () => {
+    const outer = await createElementTool.execute(
+      { type: "Button", parentId: "body" },
+      tt,
+    );
+    expect(outer.success).toBe(true);
+    const outerId = (outer.data as { elementId: string }).elementId;
+    const inner = await createElementTool.execute(
+      { type: "Button", parentId: outerId },
+      tt,
+    );
+    expect(inner.success).toBe(false);
+    expect(inner.error).toMatch(/^Cannot place Button under Button/);
+  });
+
+  it("instance 안 요소 (synthetic 자식) 는 부모가 될 수 없다 (E6)", async () => {
+    const result = await createElementTool.execute(
+      { type: "Text", parentId: "seeded-frame/child" },
+      tt,
+    );
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/inside an instance/);
+  });
+});
+
 describe("batch_design history 단위 (G3 실측)", () => {
   beforeEach(() => {
     seed();

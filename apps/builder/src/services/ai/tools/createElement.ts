@@ -22,37 +22,42 @@ import {
 } from "./mutationVerification";
 import { normalizeToolFills } from "./toolFills";
 import { rememberCreatedElement } from "./elementRef";
-import { resolveNestingViolation, isBodyType } from "@composition/shared";
+import { isBodyType } from "@composition/shared";
+import {
+  resolveMoveTarget,
+  type MoveTargetNode,
+} from "../../../builder/domain/resolveMoveTarget";
+import { getActiveCanonicalDocument } from "../../../builder/stores/canonical/canonicalElementsBridge";
 
 /**
  * 중첩 preflight — 캔버스는 RAC 를 그리는 도구라 Pen 구조 · RAC 합성 · HTML 의미 세
  * 층을 상속한다. canonical guard 가 조용히 거부하기 전에 에이전트에게 이유를 돌려준다
- * (에이전트는 toast 를 못 본다). 부모 사슬은 flat element 의 `parent_id` 를 따른다.
+ * (에이전트는 toast 를 못 본다). 판정은 팔레트 · 붙여넣기와 같은 `resolveMoveTarget` (ADR-236
+ * Phase 3) — ref instance 부모는 원본 타입으로 읽고 (E7), instance 안 요소는 부모가 될 수 없다 (E6).
+ * policy 는 `reject`: 옮기지 않고 에이전트가 다른 부모를 고른다.
  */
 function findNestingErrorForParent(
   elements: readonly Element[],
   parentId: string | null,
   childType: string,
 ): string | null {
-  const byId = new Map(elements.map((el) => [el.id, el] as const));
-  const ancestorTypes: string[] = [];
-  const seen = new Set<string>();
-  let cursor: string | null = parentId;
-  while (cursor && !seen.has(cursor)) {
-    seen.add(cursor);
-    const node = byId.get(cursor);
-    if (!node) break;
-    ancestorTypes.push(node.type);
-    cursor = node.parent_id ?? null;
-  }
-  const violation = resolveNestingViolation({
-    parentType: ancestorTypes[0] ?? null,
-    childType,
-    ancestorTypes,
+  if (!parentId) return null;
+  const nodes = new Map(
+    elements.map((el) => [el.id, el as unknown as MoveTargetNode] as const),
+  );
+  const target = resolveMoveTarget({
+    targetParentId: parentId,
+    insertionIndex: Number.MAX_SAFE_INTEGER,
+    movingTypes: [childType],
+    nodes,
+    policy: "reject",
+    doc: getActiveCanonicalDocument(),
   });
-  return violation
-    ? `Cannot place ${childType} under ${violation.parentType}: ${violation.reason}. Choose a different parentId.`
-    : null;
+  if (target.ok) return null;
+  if (target.reason === "nesting" && target.violation) {
+    return `Cannot place ${childType} under ${target.violation.parentType}: ${target.violation.reason}. Choose a different parentId.`;
+  }
+  return `Cannot place ${childType} under ${parentId}: it is inside an instance (edit its component instead). Choose a different parentId.`;
 }
 
 export const createElementTool: ToolExecutor = {
