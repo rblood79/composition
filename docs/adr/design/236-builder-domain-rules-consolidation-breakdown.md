@@ -276,19 +276,19 @@ Phase 기록 정본은 §9 ~ 11. 이 절은 Phase 0 ratchet 시작값 (§8.1 · 
 
 ### 12.1 ratchet 최종값
 
-| 항목                                               | 시작값 (§8.1)        | 최종값                                                                                          | 지키는 테스트                                                            |
-| -------------------------------------------------- | -------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| 파생 대상 집합                                     | 23                   | 표 17 · D2 2 · 이미 파생 1 · 재분류 2 · 파생하지 않음 1 (AI `CONTAINER_TYPES`, 사유 §12.5)      | `domainPredicateRatchet` (리터럴 재선언 0 — 집합 20 · nestingRules 맵 2) |
-| body 타입 직접 비교                                | 92 (+ shared 4)      | 0                                                                                               | `domainPredicateRatchet`                                                 |
-| body 파일 로컬 헬퍼                                | 12                   | 0 (합성 술어 `isFrameBodyElement` 만)                                                           | `domainPredicateRatchet`                                                 |
-| synthetic id 직접 파싱                             | 8행 (Phase 1 실측 9) | 0                                                                                               | `domainPredicateRatchet`                                                 |
-| Components 페이지 판정 헬퍼                        | 4                    | 1 + 허용 1 (export HTML 인라인 스크립트)                                                        | `domainPredicateRatchet`                                                 |
-| `getEditingSemanticsRole` 을 액션 판정에 쓰는 호출 | 1                    | 0 (stores 안 0)                                                                                 | `domainPredicateRatchet`                                                 |
-| `typeof x.ref === "string"`                        | 7                    | 판정 — 대부분 ref 값을 읽는 필드 접근이라 술어 대상 아님 (§9 후속)                              | —                                                                        |
-| 구조 변경 store 액션 진입부 가드                   | 공통 가드 없음       | 13 액션이 첫 변경 전에 `canOperate` 계열 호출                                                   | `structuralStoreActionGuard` (AST)                                       |
-| store 우회 쓰기                                    | 2                    | 2 경로 모두 쓰기마다 가드 선행 (드래그 `resolveDragMoveTarget` · factory `guardCreationParent`) | `structuralStoreActionGuard`                                             |
-| canonical 변경 래퍼를 부르는 stores 함수           | 미집계               | 11 (가드된 8 · 사유 등재 3 — props 축 2 · layout 삭제 1)                                        | `structuralStoreActionGuard` (새 호출 함수 → 등재 요구)                  |
-| 강제 지점 불일치 (§8.4)                            | 12                   | 닫힘 11 · E4 부분 (드래그 · 패널 내부 추가 · Alt 복제 후속) · E12 판정                          | 표면별 · store 단위 테스트                                               |
+| 항목                                               | 시작값 (§8.1)              | 최종값                                                                                          | 지키는 테스트                                                            |
+| -------------------------------------------------- | -------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| 파생 대상 집합                                     | 23                         | 표 17 · D2 2 · 이미 파생 1 · 재분류 2 · 파생하지 않음 1 (AI `CONTAINER_TYPES`, 사유 §12.5)      | `domainPredicateRatchet` (리터럴 재선언 0 — 집합 20 · nestingRules 맵 2) |
+| body 타입 직접 비교                                | 92 (+ shared 4)            | 0                                                                                               | `domainPredicateRatchet`                                                 |
+| body 파일 로컬 헬퍼                                | 12                         | 0 (합성 술어 `isFrameBodyElement` 만)                                                           | `domainPredicateRatchet`                                                 |
+| synthetic id 직접 파싱                             | 8행 (Phase 1 실측 9)       | 0                                                                                               | `domainPredicateRatchet`                                                 |
+| Components 페이지 판정 헬퍼                        | 4                          | 1 + 허용 1 (export HTML 인라인 스크립트)                                                        | `domainPredicateRatchet`                                                 |
+| `getEditingSemanticsRole` 을 액션 판정에 쓰는 호출 | 1                          | 0 (stores 안 0)                                                                                 | `domainPredicateRatchet`                                                 |
+| `typeof x.ref === "string"` (정본 파일 밖)         | 7 (Phase 1 실측 전체 13행) | 판정 — 대부분 ref 값을 읽는 필드 접근이라 술어 대상 아님 (§9 후속)                              | —                                                                        |
+| 구조 변경 store 액션 진입부 가드                   | 공통 가드 없음             | 13 액션이 첫 변경 전에 `canOperate` 계열 호출                                                   | `structuralStoreActionGuard` (AST)                                       |
+| store 우회 쓰기                                    | 2                          | 2 경로 모두 쓰기마다 가드 선행 (드래그 `resolveDragMoveTarget` · factory `guardCreationParent`) | `structuralStoreActionGuard`                                             |
+| canonical 변경 래퍼를 부르는 stores 함수           | 미집계                     | 11 (가드된 8 · 사유 등재 3 — props 축 2 · layout 삭제 1)                                        | `structuralStoreActionGuard` (새 호출 함수 → 등재 요구)                  |
+| 강제 지점 불일치 (§8.4)                            | 12                         | 닫힘 11 · E4 부분 (드래그 · 패널 내부 추가 · Alt 복제 후속) · E12 판정                          | 표면별 · store 단위 테스트                                               |
 
 ### 12.2 동등성 · 원복 RED
 
@@ -328,3 +328,7 @@ ratchet 이 0 이어도 정리가 끝난 것은 아니다. 아래는 이 ADR 이
 | 렌더 특수 (layout · skia 이름 분기) |   27 | `buildSpecNodeData.ts` · `layout/engines/*` · `canvasSceneNode.ts` · `specPresetResolver.ts` |
 | 로컬 정당                           |   11 | migration 고정 · HTML 태그 · 레지스트리 키 · 기본 props cohort                               |
 | AI `CONTAINER_TYPES`                |    1 | 구조 컨테이너 표로 바꾸면 AI 계획 어휘가 바뀐다 — AI 품질 판단으로 별도                      |
+
+Phase 4 판독 (reviewer, 2026-09-25, `f88304c3d`): 이슈 0 → 닫힘. ratchet 수치 (가드 13 · 우회 2 · 래퍼 호출 함수 11) · 상대 링크 · anchor · README 증감 · live report 대조 일치. LOW 3 — `typeof x.ref` 시작값 한정어 누락 · ADR Live Exercise 의 "해제" 가 origin 해제와 instance 분리 둘로 읽힘 (둘 다 문구 수정) · README 열린 개수가 실제 파일 수와 다른 기존 drift (이번 커밋 증감은 일관, 다음 README 정리 때 재집계).
+
+ADR-236 종결: Phase 0–4 · G0–G4, 실행자 닫힘 선언.

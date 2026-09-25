@@ -146,7 +146,7 @@ G0 결과 (2026-09-24): PASS — 집합 144 (파생 대상 23) · body 직접 �
 실제 builder (headed Playwright · 새 프로젝트 · Compare Mode · Preview iframe 미개방 — 사용자 지시) 에서 Skia layout · 픽셀 · store · DOM 메뉴로 확인했다 (2026-09-25). 표 전체: [breakdown §12.3](../design/236-builder-domain-rules-consolidation-breakdown.md#123-live).
 
 - `adr236-phase2-live.mjs` (G2): Form 안 필드 · DateField · DatePicker · Image · Avatar 의 파생 전후 layout rect 차이 0/8 · Skia 픽셀 차이 0 (감도: image family 제거 시 55,380 px).
-- `adr236-phase3-live.mjs` A–E (G3): ⌥⌘K body 거부 + 토스트 · system origin Backspace 거부 + 토스트 · Layers system origin 행 삭제/해제 없음 (대조군 있음) · Layers Button → ListBox 드롭 거부 (대조군 이동) · Button instance 붙여넣기 → frame 으로 옮김 + 알림.
+- `adr236-phase3-live.mjs` A–E (G3): ⌥⌘K body 거부 + 토스트 · system origin Backspace 거부 + 토스트 · Layers system origin 행 삭제 · origin 해제 없음 (대조군 있음) · Layers Button → ListBox 드롭 거부 (대조군 이동) · Button instance 붙여넣기 → frame 으로 옮김 + 알림.
 - `adr236-phase3-repair-live.mjs` F–H (판독 수리): origin 안 Backspace · ⌘G 가 영향 확인 대화상자 → 취소 시 변화 0 · 확인 시 frame 1 + 두 Text 이동.
 - `adr236-phase3-perf.mjs` (G4): 호출당 p95 ≈ 0.0003 ms · 선택 변경당 0.4 ms.
 - pageerror 0. AI 도구 판정 · 위임 sub-part resize 는 단위 테스트 (AI 는 모델 실행 필요).
