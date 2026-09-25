@@ -385,3 +385,5 @@ side 인라인 근거: 인라인 display · flexDirection 이 이기는 쪽이 c
 
 남은 것 (LOW): ColorField 는 catalog base 가 flex-row 라 top 도 row 인데 Direction 은 top → column 으로 표시한다 · 정렬 토글의 grid 3×3 → `justifyItems` 매핑은 사용자 grid 프리셋 한정 후속 · 핸들러가 `inline-flex` 를 `flex` 로 바꿔 쓴다 (현 catalog 에 inline-flex 없음) · AI instance 루트 자식 추가 시 Preview 가 origin 자식을 대체할 가능성 (가설, 미확인).
 
+판독 (reviewer 2, 2026-09-25): 패널 (`dca8b9265` · `3b281b211`) HIGH 0 · MEDIUM 1 수리 — synthetic 표시가 해석 노드를 읽게 되자 Fill 액션의 현재 값 (`getCurrentFills`, canonical 맵만) 이 빈 목록이라 토글 · 추가 · 타입 변경이 fills 를 지웠다 → 해석 노드 (`getSyntheticDescendantLookup`) 를 같이 읽는다. 단위 RED 1 · live I (Form 안 TextField 에 Add fill 2회 → 1 · 2 개). LOW deferred: synthetic reset 버튼 무동작 (종전부터) · `updateSelectedFills` 가 해석 style 을 patch 에 굳힘 (종전부터) · 옛 인라인 방향이 남은 요소의 Alignment 축 (가설) · 세 grid 타입은 side 에서도 정렬 비활성 (의도).
+

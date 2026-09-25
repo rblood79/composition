@@ -24,6 +24,7 @@ import {
 } from "../../../../types/builder/fill.types";
 import { getActiveCanonicalDocument } from "../../../stores/canonical/canonicalElementsBridge";
 import { getNodeMap } from "../../../stores/canonical/canonicalTraversalHelpers";
+import { getSyntheticDescendantLookup } from "../../../stores/canonical/syntheticDescendantLookup";
 import { readCanonicalNodeFillPayload } from "../../../../adapters/canonical/canonicalFillPayload";
 import {
   resolveElementFills,
@@ -98,7 +99,10 @@ function getCurrentFills(): FillItem[] {
 
   const doc = getActiveCanonicalDocument();
   if (doc) {
-    const node = getNodeMap().get(selectedElementId);
+    // instance 안 자식 (synthetic) 은 canonical 맵에 없다 — 표시 (readStyleTargetNode) 와 같은 해석 노드.
+    const node =
+      getNodeMap().get(selectedElementId) ??
+      getSyntheticDescendantLookup(selectedElementId)?.node;
     const source: FillReadSource | undefined = node
       ? {
           fills: readCanonicalNodeFillPayload(node) as FillItem[] | undefined,

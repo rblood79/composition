@@ -351,6 +351,25 @@ try {
       r.staleSeeded = { ...(await readChild()), direction: await directionState(page) };
       await clickDirection(page, "column");
       r.afterColumn = { ...(await readChild()), direction: await directionState(page) };
+      // I. Fill — 추가를 두 번 눌러도 앞 fill 이 남는다 (종전: 액션이 빈 베이스를 읽어 매번 교체).
+      const readFills = () =>
+        page.evaluate(
+          ({ formId, childId }) => {
+            const form = window.__composition_STORE__.getState().elementsMap.get(formId);
+            return form?.descendants?.[childId.slice(formId.length + 1)]?.fills ?? null;
+          },
+          { formId, childId },
+        );
+      await page.locator(".styles-panel-groups [role='tab']").nth(1).click();
+      await page.waitForTimeout(600);
+      const addFill = page.locator("button[aria-label='Add fill']").first();
+      const addLabel = await addFill.getAttribute("aria-label");
+      await addFill.click();
+      await page.waitForTimeout(900);
+      const afterOne = await readFills();
+      await addFill.click();
+      await page.waitForTimeout(900);
+      r.fill = { addLabel, afterOne: afterOne?.length ?? null, afterTwo: (await readFills())?.length ?? null };
       await page.screenshot({ path: `${OUT}/form-child.png` });
     }
   }

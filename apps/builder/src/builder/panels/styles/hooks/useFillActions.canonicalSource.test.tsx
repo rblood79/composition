@@ -207,3 +207,83 @@ describe("useFillActions — 표시·액션 동일 소스 (canonical 우선)", (
     expect(committed[0]).toEqual(CANONICAL_FILL);
   });
 });
+
+describe("useFillActions — instance 안 자식 (synthetic)", () => {
+  it("현재 fills 를 해석 노드 (origin ⊕ descendants) 에서 읽는다 — 표시와 같은 소스", () => {
+    __resetTraversalCache_TEST_ONLY__();
+    const updateSelectedFills = vi.fn();
+    useCanonicalDocumentStore.setState({
+      documents: new Map(),
+      currentProjectId: null,
+      documentVersion: 0,
+    });
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore.getState().setDocument(
+      "project-1",
+      makeDocument([
+        {
+          id: "page-components",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-components" },
+          children: [
+            {
+              id: "page-components-body",
+              type: "body",
+              props: {},
+              children: [
+                {
+                  id: "component-form",
+                  type: "Form",
+                  reusable: true,
+                  props: {},
+                  children: [
+                    {
+                      id: "field-1",
+                      type: "TextField",
+                      props: { style: {} },
+                      fills: [CANONICAL_FILL],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: "body",
+              type: "body",
+              props: {},
+              children: [
+                { id: "form-1", type: "ref", ref: "component-form", props: {} },
+              ],
+            },
+          ],
+        },
+      ]),
+    );
+    // synthetic 노드는 store 에 없다.
+    useStore.setState({
+      selectedElementId: "form-1/field-1",
+      elements: [],
+      elementsMap: new Map(),
+      updateSelectedFills: updateSelectedFills as unknown as ReturnType<
+        typeof useStore.getState
+      >["updateSelectedFills"],
+    } as unknown as Parameters<typeof useStore.setState>[0]);
+
+    const { result } = renderHook(() => useFillActions());
+    act(() => {
+      result.current.addFill(FillType.LinearGradient);
+    });
+
+    // 종전: 빈 베이스 → 새 fill 하나만 저장해 origin fill 을 지웠다.
+    const committed = updateSelectedFills.mock.calls[0][0] as FillItem[];
+    expect(committed).toHaveLength(2);
+    expect(committed[0]).toEqual(CANONICAL_FILL);
+  });
+});
