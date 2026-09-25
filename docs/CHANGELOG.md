@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [구조 변경 판정을 한 곳으로 — 메뉴 · 단축키 · Layers · AI 가 같은 규칙 (ADR-236 Phase 3)] - 2026-09-25
+
+### Changed
+
+- **삭제 · 복제 · 그룹 · 해제 · 컴포넌트 만들기/분리 · 이동의 가능 여부를 표면마다 따로 정하지 않는다** — 캔버스 메뉴 · 액션 바 · 단축키 · Layers · AI 도구 · store 액션이 같은 판정을 읽는다.
+  - Components 페이지의 기본 컴포넌트 (상태 변형 포함) 와 ListBox 항목 템플릿에는 메뉴 · Layers 의 삭제 · 컴포넌트 분리가 서지 않는다. 단축키 · AI 로 시도하면 조용히 무시되던 것이 이유를 토스트로 보인다.
+  - 페이지 body 는 단축키 (⌥⌘K) · agent 로도 컴포넌트가 되지 않는다 (메뉴에서만 막혀 있었다).
+  - Components 페이지 기본 frame 은 그룹 해제되지 않는다 (자식만 빠지고 빈 원본이 남았다).
+  - 그룹 · 정렬 · 분배는 선택 개수로만 판정한다 — 메뉴에 보이는데 눌러도 아무 일 없던 경우가 없어진다.
+- **원본 (컴포넌트) 안의 구조 변경도 영향 확인을 묻는다** — 원본의 자손을 삭제 · 묶기 · 묶기 해제하거나, 원본 안에 붙여넣기 · 복제 · 팔레트/AI 로 추가하거나, Layers 로 원본 안팎으로 옮기면 그 원본의 instance 가 모두 바뀐다. 편집과 같은 확인 대화상자가 뜨고, 취소하면 아무것도 바뀌지 않는다 (instance 가 없으면 묻지 않는다). 캔버스 드래그 · 패널 안 추가 (Table "+" · Button 아이콘 등) · Alt 드래그 복제는 아직 묻지 않는다.
+- **생성 · 붙여넣기 · 이동 대상을 한 규칙으로 정한다** — instance 부모는 원본 타입으로 읽는다. AI 가 Button instance 안에 Button 을 만들던 것 · 붙여넣기가 instance 안으로 들어가던 것이 팔레트처럼 가까운 유효 부모로 옮겨지거나 거부된다. Layers 드롭은 중첩 규칙에 어긋나면 드롭 자체가 서지 않는다. instance 안 요소 (원본에서 온 자식) 는 새 요소의 부모가 되지 않는다.
+- **AI 도구**: `update_element` 의 `canonical.reusable` 이 컴포넌트 만들기/분리와 같은 경로를 지난다 (기본 컴포넌트 보호 · 영향 확인 · instance 분리). 필드 컴포넌트의 Label 처럼 부모가 스타일을 정하는 요소에 styles 를 쓰면 무시된 채 성공으로 보고하던 것이 이유와 함께 실패한다.
+  - 위치: `apps/builder/src/builder/domain/{canOperate,resolveMoveTarget}.ts` · 표면 (`canvasActions.ts` · `canvasContextMenuProviders.ts` · `commandMeta.ts` · `componentSemanticsRunner.ts` · Layers · AI 도구) · store 진입부 (`elementRemoval.ts` · `elementCreation.ts` · `elements.ts` · `instanceActions.ts`)
+  - 가드: `structuralStoreActionGuard.static.test.ts` (구조 변경 store 액션 13 · store 우회 쓰기 2 경로의 진입부 판정) · `domainPredicateRatchet.static.test.ts`
+  - 성능: 판정 호출당 p95 ≈ 0.0003 ms · 전체 선택 600 의 선택 변경당 0.4 ms
+
 ## [Preview 초기 번들 −29.8 KB — builder 저작 코드 분리] - 2026-09-25
 
 ### Fixed

@@ -11,6 +11,8 @@
 
 ---
 
+> **2026-09-25 ADR-236 Phase 3 완료 (G3 · G4)**: 구조 변경 판정 `builder/domain/canOperate.ts` · 대상 판정 `resolveMoveTarget.ts` 를 표면 (메뉴 · 액션 바 · 단축키 · Layers · AI · 드래그 · 팔레트 · 붙여넣기) 과 구조 변경 store 액션 진입부 13 · store 우회 쓰기 2 경로가 같이 부른다 (ratchet `structuralStoreActionGuard`). 강제 지점 불일치 E1~E12 중 11 닫힘 · E12 판정 (새 가드 없음) · E4 는 캔버스 드래그만 후속. live 5 (body toggle 단축키 · system origin 삭제 · Layers 노출 · 중첩 드롭 · instance 붙여넣기) · 판정 호출당 p95 ≈ 0.0003 ms.
+
 > **2026-09-25 ADR-236 Phase 2 완료 (G2)**: shared 타입 특성 표 `domain/componentTraits.ts` (container · families · children · owners). 멤버십 집합 17 개와 `nestingRules` 층 2 의 세 표를 표에서, Direction 토글 집합 2 개를 D2 스키마 (binding accepts ∧ catalog variant) 에서 파생 — 옛 리터럴 동등성 테스트 · ratchet · skia/layout live rect 0/8 · 픽셀 차이 0. 번들 Builder 1,408,955 · Preview 621,472 (상한 안, Preview 여유 528 B). 재분류 2 (`COMPLEX_COMPONENT_TAGS` ADR-914 정본 · slot host 레지스트리) · AI `CONTAINER_TYPES` 는 Phase 3 으로.
 
 > **2026-09-25 ADR-236 Accepted → Phase 0 완료**: 사용자 `/execute-adr 236` (review round 2 이슈 0). G0 — 타입 집합 144 (파생 대상 23 · 렌더 특수 27 · 로컬 정당 11 · 타입 외 83) · body 직접 비교 92행 + 로컬 헬퍼 12 · synthetic 직접 파싱 8행 · 강제 지점 × 표면 불일치 12 (toggle body 가드 · AI `reusable` 직접 쓰기 · store 우회 쓰기 2 등). breakdown 예시 4개 재분류 · sub-part 재구현 실측 0. 열림 10 (Proposed 8 · Accepted 2), 합계 268.
@@ -135,7 +137,7 @@
 
 #### [236](236-builder-domain-rules-consolidation.md) — 빌더 도메인 규칙 정리 — 술어 모듈 · 타입 특성 표 · store 액션 진입부 강제
 
-- **상태**: Accepted (2026-09-24, 사용자 `/execute-adr 236`) — Phase 0 · 1 · 2 완료 (G0: 집합 144 · body 직접 비교 92행 · 강제 지점 불일치 12 · G1 2026-09-25: body · synthetic id · Components 페이지 술어를 shared `domain/` 하나로, 직접 구현 0 ratchet · G2 2026-09-25: shared 타입 특성 표 `domain/componentTraits.ts` 에서 집합 17 + nestingRules 층 2 표 3 · D2 스키마에서 Direction 토글 집합 2 파생, 동등성 · live rect/픽셀 0, [breakdown §8~10](design/236-builder-domain-rules-consolidation-breakdown.md#10-phase-2-기록))
+- **상태**: Accepted (2026-09-24, 사용자 `/execute-adr 236`) — Phase 0 · 1 · 2 · 3 완료 (G0: 집합 144 · body 직접 비교 92행 · 강제 지점 불일치 12 · G1 2026-09-25: body · synthetic id · Components 페이지 술어를 shared `domain/` 하나로, 직접 구현 0 ratchet · G2 2026-09-25: shared 타입 특성 표 `domain/componentTraits.ts` 에서 집합 17 + nestingRules 층 2 표 3 · D2 스키마에서 Direction 토글 집합 2 파생, 동등성 · live rect/픽셀 0 · G3/G4 2026-09-25: canOperate · resolveMoveTarget 를 표면과 store 진입부가 같이 부른다, E1~E12 중 11 닫힘, [breakdown §8~11](design/236-builder-domain-rules-consolidation-breakdown.md#11-phase-3-기록))
 - **규모**: Phase 0~4 ([breakdown](design/236-builder-domain-rules-consolidation-breakdown.md)) — 인벤토리 (타입 집합 144 · body 직접 비교 92행) → 술어 모듈 + ratchet (동작 0) → shared 특성 표 + 집합 파생 (동등성 게이트) → `canX` · `resolveMoveTarget` · 구조 변경 store 액션 진입부 가드 (표면별 원복 RED + live) → 종결. layout · skia 렌더 분기는 상시 규칙 (일괄 이관 없음)
 - **우선순위**: 사용자 요청 2026-09-24 (도메인 규칙 최적화 C 단계, 특성 표 위치 = shared 사용자 확정 09-24)
 
