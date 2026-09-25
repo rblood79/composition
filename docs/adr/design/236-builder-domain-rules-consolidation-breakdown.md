@@ -94,15 +94,15 @@ G0 PASS. 전문은 로컬 evidence `docs/adr/evidence/236-domain-rules-inventory
 
 ### 8.1 ratchet 시작값
 
-| 항목                                                      | 시작값                       | 목표                                     |
-| --------------------------------------------------------- | ---------------------------- | ---------------------------------------- |
-| `new Set([` 대문자 상수 (테스트 · bench 제외)             | 144 (파생 대상 23)           | 파생 대상 → 0 (Phase 2)                  |
-| body 타입 직접 비교 (builder)                             | 92행 (lower 49 · 그대로 43)  | 0, 허용 목록 제외 (Phase 1)              |
-| body 파일 로컬 헬퍼                                       | builder 11 · shared 1        | 0 (Phase 1)                              |
-| synthetic id 직접 파싱                                    | 8행 / 5파일                  | 0 (Phase 1)                              |
-| Components 페이지 판정 헬퍼                               | 4 (+ shared 직접 비교 1)     | 판정 1 + 입력 어댑터 (Phase 1)           |
-| role 우선순위 함수를 액션 판정에 쓰는 곳                  | 1 (`instanceActions.ts:698`) | 0 (Phase 3 — 동작 변경)                  |
-| store 를 우회하는 구조 쓰기                               | 2 (드래그 · factory 생성)    | Phase 3 가드 목록에 포함                 |
+| 항목                                          | 시작값                       | 목표                           |
+| --------------------------------------------- | ---------------------------- | ------------------------------ |
+| `new Set([` 대문자 상수 (테스트 · bench 제외) | 144 (파생 대상 23)           | 파생 대상 → 0 (Phase 2)        |
+| body 타입 직접 비교 (builder)                 | 92행 (lower 49 · 그대로 43)  | 0, 허용 목록 제외 (Phase 1)    |
+| body 파일 로컬 헬퍼                           | builder 11 · shared 1        | 0 (Phase 1)                    |
+| synthetic id 직접 파싱                        | 8행 / 5파일                  | 0 (Phase 1)                    |
+| Components 페이지 판정 헬퍼                   | 4 (+ shared 직접 비교 1)     | 판정 1 + 입력 어댑터 (Phase 1) |
+| role 우선순위 함수를 액션 판정에 쓰는 곳      | 1 (`instanceActions.ts:698`) | 0 (Phase 3 — 동작 변경)        |
+| store 를 우회하는 구조 쓰기                   | 2 (드래그 · factory 생성)    | Phase 3 가드 목록에 포함       |
 
 144 는 ADR Context 의 125 를 대체한다 (125 는 명령이 기록되지 않았다). 집합 분류: 타입 외 83 · 파생 대상 23 · 렌더 특수 27 · 로컬 정당 11.
 
@@ -128,20 +128,20 @@ G0 PASS. 전문은 로컬 evidence `docs/adr/evidence/236-domain-rules-inventory
 
 ### 8.4 강제 지점 불일치 (Phase 3 입력)
 
-| #   | 불일치                                                                                                                                                         |
-| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| #   | 불일치                                                                                                                                                                           |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | E1  | toggle 의 body 가드가 메뉴 · 바에만 있다. 단축키 (`useGlobalKeyboardShortcuts.ts:230-239`) · agent · store (`instanceActions.ts:844-851`) 에 없다 → body 가 origin 이 될 수 있다 |
-| E2  | AI `canonical.reusable` 이 `updateNode` 를 직접 부른다 (`canonicalNodeFields.ts:130-139`). systemOwned 가드 · 영향 확인 · instance 분리를 전부 우회한다        |
-| E3  | systemOwned origin 의 삭제 · 해제가 메뉴 · Layers 에 노출된다. store 결과는 셋으로 갈린다 (삭제 무음 no-op · toggle toast · AI `notDeleted`)                   |
-| E4  | origin 영향 확인이 props 편집에만 있다. 삭제 (자동 분리) · 생성 · 붙여넣기 · 이동 · 드래그에는 없다                                                            |
-| E5  | ungroup 이 frame origin 을 가리지 않는다 (`canvasActions.ts:415,455`). systemOwned frame 이면 자식만 빠지고 빈 origin 이 남는다                               |
-| E6  | synthetic 자식 명시 가드가 드래그 · 단축키 reorder · AI create 부모에 없다. store 맵에 없어서 우연히 걸러질 뿐이다                                              |
-| E7  | Layers DnD 에 중첩 preflight 가 없다. AI create 는 ref 의 origin 타입을 해석하지 않지만 팔레트는 해석한다                                                     |
-| E8  | store 를 우회하는 쓰기: 드래그 (`useDragBridge.ts:544,951,1036` adapter 직접) · factory 생성 (`factories/utils/elementCreation.ts:146-178` `setState` 직접)    |
-| E9  | group 의 `multiSelectMode` 조건이 메뉴 · 바와 action · agent 에서 다르다 → 메뉴 항목이 no-op 이 될 수 있다                                                     |
-| E10 | body 판정 대소문자가 AI · Layers (그대로) 와 store · canvasActions (`toLowerCase`) 에서 다르다                                                                  |
-| E11 | ListBox template anchor 삭제 금지가 store 에만 있다. 메뉴에는 보이지만 누르면 무음 no-op 이다                                                                  |
-| E12 | Components 페이지 판정이 구조 변경 경로에 0 이다. 보호는 systemOwned 루트 (삭제 · toggle) 하나에 의존한다                                                     |
+| E2  | AI `canonical.reusable` 이 `updateNode` 를 직접 부른다 (`canonicalNodeFields.ts:130-139`). systemOwned 가드 · 영향 확인 · instance 분리를 전부 우회한다                          |
+| E3  | systemOwned origin 의 삭제 · 해제가 메뉴 · Layers 에 노출된다. store 결과는 셋으로 갈린다 (삭제 무음 no-op · toggle toast · AI `notDeleted`)                                     |
+| E4  | origin 영향 확인이 props 편집에만 있다. 삭제 (자동 분리) · 생성 · 붙여넣기 · 이동 · 드래그에는 없다                                                                              |
+| E5  | ungroup 이 frame origin 을 가리지 않는다 (`canvasActions.ts:415,455`). systemOwned frame 이면 자식만 빠지고 빈 origin 이 남는다                                                  |
+| E6  | synthetic 자식 명시 가드가 드래그 · 단축키 reorder · AI create 부모에 없다. store 맵에 없어서 우연히 걸러질 뿐이다                                                               |
+| E7  | Layers DnD 에 중첩 preflight 가 없다. AI create 는 ref 의 origin 타입을 해석하지 않지만 팔레트는 해석한다                                                                        |
+| E8  | store 를 우회하는 쓰기: 드래그 (`useDragBridge.ts:544,951,1036` adapter 직접) · factory 생성 (`factories/utils/elementCreation.ts:146-178` `setState` 직접)                      |
+| E9  | group 의 `multiSelectMode` 조건이 메뉴 · 바와 action · agent 에서 다르다 → 메뉴 항목이 no-op 이 될 수 있다                                                                       |
+| E10 | body 판정 대소문자가 AI · Layers (그대로) 와 store · canvasActions (`toLowerCase`) 에서 다르다                                                                                   |
+| E11 | ListBox template anchor 삭제 금지가 store 에만 있다. 메뉴에는 보이지만 누르면 무음 no-op 이다                                                                                    |
+| E12 | Components 페이지 판정이 구조 변경 경로에 0 이다. 보호는 systemOwned 루트 (삭제 · toggle) 하나에 의존한다                                                                        |
 
 Phase 3 `canX` 의 op 목록과 store 가드 목록 (§5) 은 이 표를 입력으로 한다. E8 의 두 경로는 `structuralStoreActionGuard` 목록에 넣는다.
 
@@ -151,10 +151,10 @@ builder 스위트: 7,309 중 실패 6. 전부 이번 작업 전부터 있던 것
 
 ## 9. Phase 1 기록
 
-| 술어         | 상태                  | 내용                                                                                                                                                                                                                                                                  |
-| ------------ | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `isBodyType` | 완료 (2026-09-25)     | shared `domain/predicates.ts` (대소문자 무시). builder · shared 직접 비교 92 + shared 4 → 0, 로컬 헬퍼 12 → 0 (합성 술어 `isFrameBodyElement` 만 남김). ratchet `builder/domain/__tests__/domainPredicateRatchet.static.test.ts` — 직접 비교 재도입 시 RED 확인. publish (`useBodyElement.ts:52`) 는 범위 밖 |
-| synthetic id | 완료 (2026-09-25) | shared `domain/syntheticId.ts` — 구분자 · `hasSyntheticIdPath` · `splitSyntheticId` · `getSyntheticAncestorIds` (문자열 형태만). builder 직접 파싱 9행 → 0, `syntheticDescendantLookup` 도 이 원시 함수 위로. 호출처별 projection 제외 조건 (`projection:` · `::page-frame::`) 은 그대로 둔다 — 아래 후속 |
+| 술어              | 상태              | 내용                                                                                                                                                                                                                                                                                                                                                  |
+| ----------------- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `isBodyType`      | 완료 (2026-09-25) | shared `domain/predicates.ts` (대소문자 무시). builder · shared 직접 비교 92 + shared 4 → 0, 로컬 헬퍼 12 → 0 (합성 술어 `isFrameBodyElement` 만 남김). ratchet `builder/domain/__tests__/domainPredicateRatchet.static.test.ts` — 직접 비교 재도입 시 RED 확인. publish (`useBodyElement.ts:52`) 는 범위 밖                                          |
+| synthetic id      | 완료 (2026-09-25) | shared `domain/syntheticId.ts` — 구분자 · `hasSyntheticIdPath` · `splitSyntheticId` · `getSyntheticAncestorIds` (문자열 형태만). builder 직접 파싱 9행 → 0, `syntheticDescendantLookup` 도 이 원시 함수 위로. 호출처별 projection 제외 조건 (`projection:` · `::page-frame::`) 은 그대로 둔다 — 아래 후속                                             |
 | Components 페이지 | 완료 (2026-09-25) | shared `domain/componentsPage.ts` — `isComponentsPage` (pageRole · 시스템 id · slug) + 입력 어댑터 `componentsPageFieldsOfNode` · 소속 판정 `isOnComponentsPage`. 상수 3개 (`COMPONENTS_PAGE_ROLE` · `COMPONENTS_PAGE_SLUG` · `COMPONENTS_SYSTEM_PAGE_ID`) 도 이 파일로. 헬퍼 4 → 1, 허용 목록은 export HTML 인라인 스크립트 (`export.utils.ts`) 하나 |
 
 `isBodyType` 커밋의 동작 차이: 대소문자를 그대로 비교하던 43행이 `"Body"` 도 body 로 본다. 대문자 입력은 export 런타임 모델 안에서만 생기고 (`export.utils.ts:405` 가 `"body"` 로 정규화), `elementIndexer` 의 `rootsByPage` 는 소비처 0 이다. builder 스위트 실패 집합은 커밋 전후 같다 (`adr238Phase3.pickers` · `textAxisGate` — 이 커밋을 뺀 상태에서도 실패). 옛 소스 문자열을 검사하던 static 테스트 2개 (`BuilderCore.static` · `styleReadCanonical.static`) 는 새 형태로 갱신.
@@ -178,3 +178,38 @@ Phase 1 판독 (reviewer, 2026-09-25, `18b8928e8` · `f85a6c9bf`): merge 를 막
 
 - `componentsPage.ts` `normalizeSlug` 때문에 앞 `/` 없는 `__components` slug 도 Components 페이지로 잡힌다. 사용자 페이지가 흡수될 수 있다는 가설은 `validateSlug` 가 `_` 를 막아서 재현되지 않는다.
 - dev fixture `pathHeavy117Fixture.ts` 의 `type: "Body"` 가 이제 builder 전역에서 body 로 인식된다. 원래보다 일관된 쪽으로 바뀐 것이고 dev 전용이다.
+
+## 10. Phase 2 기록
+
+표: `packages/shared/src/domain/componentTraits.ts` — 타입 한 행에 `container` (`structural` · `collection`) · `families` · `children` · `owners`. 소비처는 `componentTypeSet(family)` · `containerTypeSet(kind)` · `componentContractMap(column)` · `componentOwnerTypes(type)` 로 집합을 얻는다.
+
+파생 대상 23 판정 (Phase 0 이후 main 이 바뀐 곳은 현재 코드 기준):
+
+| 판정                 | 수  | 집합                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| -------------------- | --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 표에서 파생          | 17  | `STRUCTURAL_CONTAINER_TYPES` · `PADDING_CONTAINER_TYPES` (structural − body) · `FRAME_SLOT_HOST_TYPES` (freeContentHost — ADR-240 이 popover · tooltip 추가) · `TEXT_EDITABLE_TAGS` · `TEXT_ELEMENT_TAGS` (textHost ∪ inputValue) · `INPUT_VALUE_EDIT_TAGS` · `BUTTON_CHILD_HOST_TAGS` · `LABEL_EDIT_HOST_TAGS` · `ACTION_TAGS` · `DISABLING_GROUP_TYPES` · `SELECTION_FLAG_ITEM_TYPES` · `STATIC_ITEM_TYPES` · `ITEM_SLOT_COLLECTIONS` · `FORM_INHERITING_FIELD_TAGS` · `DATE_INPUT_PARENT_TAGS` (DateInput 의 `owners`) · `IMAGE_TAGS` · `IMAGE_INTRINSIC_TAGS` |
+| D2 스키마에서 파생   | 2   | `ORIENTATION_DRIVEN_TAGS` · `LABEL_POSITION_DRIVEN_TAGS` — binding `props.accepts` ∧ catalog containerVariants                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| 이미 파생            | 1   | preview `COLLECTION_HOST_TYPES` — renderer 레지스트리 (`ORPHAN_ITEM_HOST` · `COLLECTION_ONLY_INTERNAL_RENDERERS`) 합성                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| 로컬 정당으로 재분류 | 2   | `COMPLEX_COMPONENT_TAGS` — ADR-914 사용자 결정 (2026-06-21) 으로 이 집합 자체가 creation facet 정본이고 `entryUniverseContract.test.ts` 가 양방향 parity 를 지킨다. `SELF_LIST_SLOT_HOST_TYPES` — 인벤토리의 `SELF_LIST_OWNER_TYPES` 는 ADR-237 · 239 가 slot host 규칙 레지스트리로 다시 짰다 (`GROUP_SLOT_HOSTS` · `ROOT_REGION_SLOT_HOST_TYPES` 합성). 남은 리터럴은 slot 정책이다                                                                                                                                                                             |
+| Phase 3 으로 이월    | 1   | AI `CONTAINER_TYPES` (frame · Slot · Section · Nav) — structural 과 멤버가 달라 파생하면 AI 동작이 바뀐다. AI 표면의 live 를 Phase 3 에서 어차피 돌리므로 그때 멤버십 차이 커밋으로 다룬다                                                                                                                                                                                                                                                                                                                                                                        |
+
+`nestingRules.ts` 층 2 의 세 표 (`STRICT_COLLECTION_PARENT_TYPES` · `RAC_COLLECTION_CHILD_TYPES` · `RAC_SUBPART_OWNER_TYPES`) 도 표의 `container: "collection"` · `children` · `owners` 열에서 파생한다. 값 배열 순서까지 옛 표와 같다 — 위반 메시지 (`allowed.join` · `owners.join`) 가 이 순서로 나간다.
+
+커밋: `81ef3e588` (편집 · 패널 · preview 13) · `23aa747e3` (skia · layout 4) · `68965dd4b` (nestingRules 3 + DateInput) · `ee41d01ad` (Direction 토글 2).
+
+G2 근거:
+
+- 동등성: `componentTraits.test.ts` 가 옛 리터럴을 기대값으로 둔다 (조합 집합 · nestingRules 세 표 포함). Direction 토글은 기존 `orientationDrivenTags.test.ts` 의 기대값 그대로.
+- ratchet: `domainPredicateRatchet.static.test.ts` — 파생한 집합 20 개 · nestingRules 맵 2 개의 리터럴 재선언 0. 재도입 시 RED 를 확인했다.
+- skia · layout live (`apps/builder/scripts/adr236-phase2-live.mjs`, headed Playwright · Compare Mode 없음): Form 안 TextField · NumberField + DateField · DatePicker · Image · Avatar 를 팔레트로 추가하고 파생 전 (소비처 3 파일을 이전 판으로) · 후를 비교했다. layout rect 차이 0/8 · Skia 캔버스 픽셀 차이 0 (threshold 0). 감도: 표에서 `Image` 의 image family 를 빼면 픽셀 55,380 개가 달라진다.
+- 번들 (production 빌드 · `adr209-bundle-closure.mjs`, initial JS gzip): Builder 1,408,955 · Preview 621,472 — ADR-201 재승인 상한 (1,415,000 / 622,000) 안. 재승인 실측 (`4ad12dbe3`: 1,408,688 / 618,865) 대비 ADR-236 Phase 1 · 2 합계 +267 / +2,607 이다. 표 모듈 단독 minify+gzip 은 1,352 B. Preview 여유는 528 B 뿐이다.
+- 스위트: builder 실패 0 · shared 는 기존 catalog `Modal` 1건 · type-check 0.
+
+멤버십 차이 (후속, 동작 변경 전 live 판정 필요): D2 식으로는 Meter · ProgressBar · Slider 도 labelPosition 축 컨테이너다 (accepts + `label-position` variant 보유). 현행 Direction 토글은 이 셋에서 `style.flexDirection` 을 쓴다. 제외 사유 기록이 없어 `LABEL_POSITION_NOT_DRIVEN` 에 현행대로 두었다.
+
+Phase 2 판독 (reviewer, 2026-09-25, `81ef3e588` · `23aa747e3` · `68965dd4b` · `ee41d01ad`): merge 를 막을 이슈 0 → 닫힘. 대조 결과 17 집합 멤버십 · 대소문자 처리 · nestingRules 값 배열 순서가 같다. 바뀐 것은 Set 순회 순서와 맵 키 순서뿐이고 소비처는 전부 `.has` · key lookup 이다. `componentTraits.ts` 는 import 없는 leaf 라 순환 · 초기화 순서 문제가 없다. LOW deferred 2:
+
+- `useElementCreator.ts:239` 의 `componentTypeSet("action")` 이 함수 안에 있어 호출마다 표를 순회한다. 옛 코드도 호출마다 `new Set` 을 만들었고 Card 부모일 때만 실행된다.
+- `LABEL_POSITION_NOT_DRIVEN` 의 Meter · ProgressBar · Slider — 위 멤버십 차이 후속과 같은 항목.
+
+Phase 2 종결 (G2): 파생 대상 23 판정 완료 (표 17 · D2 2 · 이미 파생 1 · 재분류 2 · Phase 3 이월 1) + nestingRules 층 2 표 3. 동등성 · ratchet · skia/layout live 0 · 번들 상한 안.
