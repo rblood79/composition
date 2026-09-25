@@ -134,7 +134,7 @@
 
 #### [236](236-builder-domain-rules-consolidation.md) — 빌더 도메인 규칙 정리 — 술어 모듈 · 타입 특성 표 · store 액션 진입부 강제
 
-- **상태**: Accepted (2026-09-24, 사용자 `/execute-adr 236`) — Phase 0 완료 (G0: 집합 144 · 파생 대상 23 · body 직접 비교 92행 · 강제 지점 불일치 12, [breakdown §8](design/236-builder-domain-rules-consolidation-breakdown.md#8-phase-0-결과-2026-09-24))
+- **상태**: Accepted (2026-09-24, 사용자 `/execute-adr 236`) — Phase 0 · 1 완료 (G0: 집합 144 · body 직접 비교 92행 · 강제 지점 불일치 12 · G1 2026-09-25: body · synthetic id · Components 페이지 술어를 shared `domain/` 하나로, 직접 구현 0 ratchet, [breakdown §8~9](design/236-builder-domain-rules-consolidation-breakdown.md#9-phase-1-기록))
 - **규모**: Phase 0~4 ([breakdown](design/236-builder-domain-rules-consolidation-breakdown.md)) — 인벤토리 (타입 집합 144 · body 직접 비교 92행) → 술어 모듈 + ratchet (동작 0) → shared 특성 표 + 집합 파생 (동등성 게이트) → `canX` · `resolveMoveTarget` · 구조 변경 store 액션 진입부 가드 (표면별 원복 RED + live) → 종결. layout · skia 렌더 분기는 상시 규칙 (일괄 이관 없음)
 - **우선순위**: 사용자 요청 2026-09-24 (도메인 규칙 최적화 C 단계, 특성 표 위치 = shared 사용자 확정 09-24)
 

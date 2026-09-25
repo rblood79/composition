@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-09-24 (사용자 `/execute-adr 236`, review round 2 이슈 0) · Phase 0 완료 (G0 PASS — [breakdown §8](design/236-builder-domain-rules-consolidation-breakdown.md#8-phase-0-결과-2026-09-24))
+Accepted — 2026-09-24 (사용자 `/execute-adr 236`, review round 2 이슈 0) · Phase 0 완료 (G0 PASS) · Phase 1 완료 2026-09-25 (G1 PASS — [breakdown §9](design/236-builder-domain-rules-consolidation-breakdown.md#9-phase-1-기록))
 
 ## Context
 

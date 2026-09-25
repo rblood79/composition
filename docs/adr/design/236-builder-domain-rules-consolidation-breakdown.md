@@ -164,8 +164,17 @@ synthetic id · Components 페이지 커밋의 동작 차이:
 - synthetic id: 0. 각 호출처의 제외 조건을 그대로 옮겼다.
 - Components 페이지: role 만 보던 shared 2곳 (`isRuntimePageNode` · preview `App.tsx`) 과 metadata slug 를 정확히 비교하던 builder `repairComponentsPageNode` 탐색이 이제 id · 정규화 slug 도 본다. 차이는 `pageRole` 이 없는 (repair 전) 문서에서만 나고, builder 는 문서를 열 때 repair 한다. builder 스위트 실패 0, shared 는 기존 catalog `Modal` 1건.
 
-Phase 1 후속 (범위 기준으로 남긴 것):
+Phase 1 후속 — 판정 (2026-09-25, 코드 변경 없음):
 
-- synthetic id 의 projection 제외 조건 통일 — `editingSemantics.ts` (제외 없음) · `rendererInput.ts` (`projection:` 만) · `canvasSceneNode.ts` · `editorPresentation*` 가 정본 `isSyntheticDescendantId` 와 다르다. page-frame id (`page::page-frame::<frame 요소 id>`) 는 frame 요소가 synthetic 이면 `/` 를 품어 통일은 동작 변경이다 → Phase 3 또는 별도 커밋 + live.
-- `slotHostPolicy.ts:79,109,137` 의 `reusable || systemOwned` 는 system origin 판정이 아니라 "slot 정책이 켜지는 origin" 판정 — 이름 분리.
-- `typeof x.ref === "string"` 정본 파일 밖 7행 · `getEditingSemanticsOriginId` 합치기 (`resolveOriginRef`).
+- synthetic id 제외 조건 통일 → **하지 않는다.** 제외 조건이 다른 것은 id 네임스페이스가 달라서다. `getEditingSlotMarkerRole` (`editingSemantics.ts`) 은 캔버스 맵에서 경로 조상을 거슬러 올라가는데, 이 맵에는 page-frame 키 (`p::page-frame::inst`) 도 실제로 있다. 정본처럼 page-frame 을 빼면 page-frame 에 투영된 instance 자식의 slot 표식 역할이 `origin` 으로 틀어진다. 구분자는 이제 한 곳 (`syntheticId.ts`) 이 안다.
+- `slotHostPolicy` 의 `reusable || systemOwned` → main 에서 이미 `isReusableOrSystemOwned` 로 이름이 분리됐다 (ADR-237). 판정을 그대로 말하는 이름이라 닫는다.
+- `typeof x.ref === "string"` 13행 → 대부분 ref 값을 읽는 필드 접근이라 술어 대상이 아니다. 다른 두 곳도 편집 축과 질문이 다르다.
+  - `storeBridge.ts:72` `isInstanceNode` 는 해석할 대상이 있는 instance 만 본다 (masterId · ref 가 비지 않아야 함). 편집 축 `isEditingSemanticsInstance` 는 셋 중 하나만 있으면 된다.
+  - legacy `getInstanceMasterReference` 는 legacy instance 가드 뒤 호출처 1곳 (`instanceActions.ts:517`) 뿐이라 `getEditingSemanticsOriginId` 와 합치지 않는다.
+
+Phase 1 종결 (G1): 술어 3종 (body · synthetic id · Components 페이지) 의 직접 구현 0 — ratchet 이 지키고 재도입 시 RED 를 확인했다. builder 스위트 실패 0 · type-check 0. instance · origin · systemOwned 술어는 Phase 0 에 이미 한 곳이라 옮길 것이 없었다 (role 우선순위 함수를 액션 판정에 쓰는 `instanceActions.ts:698` 은 동작 변경이라 Phase 3).
+
+Phase 1 판독 (reviewer, 2026-09-25, `18b8928e8` · `f85a6c9bf`): merge 를 막을 이슈 0 → 닫힘. LOW deferred 2:
+
+- `componentsPage.ts` `normalizeSlug` 때문에 앞 `/` 없는 `__components` slug 도 Components 페이지로 잡힌다. 사용자 페이지가 흡수될 수 있다는 가설은 `validateSlug` 가 `_` 를 막아서 재현되지 않는다.
+- dev fixture `pathHeavy117Fixture.ts` 의 `type: "Body"` 가 이제 builder 전역에서 body 로 인식된다. 원래보다 일관된 쪽으로 바뀐 것이고 dev 전용이다.
