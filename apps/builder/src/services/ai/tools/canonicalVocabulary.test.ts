@@ -469,6 +469,54 @@ describe("reusable: true 의 구조적 부작용 (Phase 3 실측)", () => {
   });
 });
 
+describe("reusable 변경은 store toggleComponentOrigin 을 지난다 (ADR-236 Phase 3, E2)", () => {
+  beforeEach(() => {
+    seed();
+  });
+
+  it("system origin 을 reusable:false 로 만들지 못한다 — 문서에 직접 쓰면 instance 가 원본을 잃었다", async () => {
+    const systemOrigin = [
+      ...useCanonicalDocumentStore.getState().documents.values(),
+    ]
+      .flatMap((doc) => {
+        const out: Array<{
+          id: string;
+          reusable?: boolean;
+          metadata?: unknown;
+        }> = [];
+        const walk = (nodes: readonly unknown[] = []) => {
+          for (const node of nodes as Array<{
+            id: string;
+            reusable?: boolean;
+            metadata?: { systemOwned?: boolean };
+            children?: unknown[];
+          }>) {
+            out.push(node);
+            walk(node.children);
+          }
+        };
+        walk(doc.children);
+        return out;
+      })
+      .find(
+        (node) =>
+          node.reusable === true &&
+          (node.metadata as { systemOwned?: boolean } | undefined)
+            ?.systemOwned === true,
+      );
+    expect(systemOrigin).toBeDefined();
+
+    const result = await updateElementTool.execute(
+      { elementId: systemOrigin!.id, canonical: { reusable: false } },
+      tt,
+    );
+    expect(result.success).toBe(false);
+    expect(readCanonicalFields(systemOrigin!.id)).toMatchObject({
+      reusable: true,
+    });
+  });
+});
+
 describe("batch_design history 단위 (G3 실측)", () => {
   beforeEach(() => {
     seed();

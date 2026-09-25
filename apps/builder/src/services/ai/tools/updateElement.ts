@@ -104,7 +104,10 @@ export const updateElementTool: ToolExecutor = {
       } else if (Object.keys(updates).length > 0) {
         await updateElementProps(targetId, updates);
       }
-      const canonicalApplied = applyCanonicalFields(targetId, canonicalPatch);
+      const canonicalApplied = await applyCanonicalFields(
+        targetId,
+        canonicalPatch,
+      );
 
       // 반영 확인 — 스토어 액션은 반환값이 없고 조용히 return 하는 경로가 여럿이다
       // (`mutationVerification.ts` 주석). 확인 없이 성공을 보고하면 모델이 반영됐다는

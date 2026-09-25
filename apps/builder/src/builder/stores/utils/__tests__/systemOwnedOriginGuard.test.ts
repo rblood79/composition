@@ -98,7 +98,9 @@ describe("system origin 보호 — 삭제 · 컴포넌트 해제", () => {
     expect(
       useToastStore
         .getState()
-        .toasts.some((t) => t.messageKey === "componentAction.systemOriginLocked"),
+        .toasts.some(
+          (t) => t.messageKey === "componentAction.systemOriginLocked",
+        ),
     ).toBe(true);
   });
 
@@ -115,6 +117,24 @@ describe("system origin 보호 — 삭제 · 컴포넌트 해제", () => {
     seed([systemOrigin(), systemVariant()]);
     await useStore.getState().removeElement("btn--hover");
     expect(useStore.getState().elementsMap.has("btn--hover")).toBe(true);
+  });
+
+  // ADR-236 Phase 3 — store 진입부 가드. 표면을 거치지 않는 호출 (AI · 내부 경로) 에도 같은 판정.
+  it("system 상태 변형 삭제 거부는 이유를 알린다 (E3 — 무음 no-op 이었다)", async () => {
+    seed([systemOrigin(), systemVariant()]);
+    await useStore.getState().removeElement("btn--hover");
+    expect(
+      useToastStore
+        .getState()
+        .toasts.some((t) => t.messageKey === "operation.systemOriginLocked"),
+    ).toBe(true);
+  });
+
+  it("body 는 컴포넌트로 만들어지지 않는다 (E1 — 생성 방향 가드가 0 이었다)", async () => {
+    seed([makeElement("page-body", { type: "body" })]);
+    const result = await useStore.getState().toggleComponentOrigin("page-body");
+    expect(result).toBeNull();
+    expect(reusableOf("page-body")).toBeFalsy();
   });
 
   it("사용자가 만든 origin 은 그대로 해제된다 (대조군)", async () => {

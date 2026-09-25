@@ -1,5 +1,9 @@
 // 🚀 Phase 1: Immer 제거 - 함수형 업데이트로 전환
 // import { produce } from "immer"; // REMOVED
+import {
+  guardStoreOperation,
+  type OperableNodeLookup,
+} from "../../domain/canOperate";
 import { persistActiveCanonicalDocument as persistCanonicalDocument } from "../canonical/persistActiveCanonicalDocument";
 import type { StateCreator } from "zustand";
 import { Element } from "../../../types/core/store.types";
@@ -403,6 +407,11 @@ async function executeRemoval(
   }
 }
 
+function removalLookup(sourceElements: readonly Element[]): OperableNodeLookup {
+  const byId = new Map(sourceElements.map((element) => [element.id, element]));
+  return (id) => byId.get(id);
+}
+
 /**
  * RemoveElement 액션 생성 팩토리 (단일 요소 삭제)
  */
@@ -411,6 +420,14 @@ export const createRemoveElementAction =
   async (elementId: string, options?: { skipHistory?: boolean }) => {
     if (isRenderProjectionId(elementId)) return;
     const sourceElements = getElementRemovalSourceElements();
+    // ADR-236 Phase 3 — 진입부 판정 (body · systemOwned origin · template anchor · synthetic). 아래
+    //   `collectElementsToRemove` 의 같은 조기 반환은 무음이었다 — 거부 이유를 여기서 알린다.
+    if (
+      guardStoreOperation("delete", [elementId], removalLookup(sourceElements))
+        .length === 0
+    ) {
+      return;
+    }
     const result = collectElementsToRemove(elementId, sourceElements);
     if (!result) {
       if (import.meta.env.DEV) {
@@ -437,8 +454,16 @@ export const createRemoveElementAction =
 export const createRemoveElementsAction =
   (set: SetState, get: GetState) =>
   async (elementIds: string[], options?: { skipHistory?: boolean }) => {
-    const canonicalElementIds = elementIds.filter(
+    const projectionFree = elementIds.filter(
       (elementId) => !isRenderProjectionId(elementId),
+    );
+    if (projectionFree.length === 0) return;
+    const sourceElements = getElementRemovalSourceElements();
+    // ADR-236 Phase 3 — 진입부 판정 (단일 삭제와 같은 함수).
+    const canonicalElementIds = guardStoreOperation(
+      "delete",
+      projectionFree,
+      removalLookup(sourceElements),
     );
     if (canonicalElementIds.length === 0) return;
 
@@ -448,7 +473,6 @@ export const createRemoveElementsAction =
       return removeElement(canonicalElementIds[0], options);
     }
 
-    const sourceElements = getElementRemovalSourceElements();
     const rootElements: Element[] = [];
     const allElementsMap: ElementRemovalLookup = new Map();
 

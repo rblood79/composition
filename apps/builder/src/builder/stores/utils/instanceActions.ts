@@ -10,6 +10,11 @@
  * @see docs/WASM_DOC_IMPACT_ANALYSIS.md §G.1
  */
 
+import {
+  canOperate,
+  guardStoreOperation,
+  notifyOperationRejected,
+} from "../../domain/canOperate";
 import type { Element } from "../../../types/core/store.types";
 import type { ElementsState } from "../elements";
 import { applyPropsPatch } from "../../../utils/component/instanceResolver";
@@ -768,6 +773,14 @@ export function detachInstance(
   instanceId: string,
 ): { previousState: Element } | null {
   const state = withInstanceActionSourceState(get());
+  // ADR-236 Phase 3 — 진입부 판정 (instance 만 · synthetic · projection · body).
+  if (
+    guardStoreOperation("detach", [instanceId], (id) =>
+      findInstanceActionElement(state.elements, id),
+    ).length === 0
+  ) {
+    return null;
+  }
   const snapshot = buildDetachSnapshot(state, instanceId);
   if (!snapshot) {
     console.warn("[Instance] element is not an instance:", instanceId);
@@ -828,6 +841,16 @@ export async function toggleComponentOrigin(
   const initialState = withInstanceActionSourceState(get());
   const element = findInstanceActionElement(initialState.elements, elementId);
   if (!element) return null;
+
+  // ADR-236 Phase 3 — 진입부 판정. 생성 방향은 가드가 0 이라 body 가 reusable origin 이 될 수
+  //   있었다 (E1). systemOwned 는 아래 전용 문구로 알린다.
+  const verdict = canOperate("toggleOrigin", elementId, (id) =>
+    findInstanceActionElement(initialState.elements, id),
+  );
+  if (!verdict.ok && verdict.reason !== "systemOwned") {
+    notifyOperationRejected([verdict]);
+    return null;
+  }
 
   // 판정 축은 `reusable` 하나 — 인스턴스이면서 동시에 재사용 원본인 노드는
   // 여기서 원본 해제로 들어가야 한다 (role 판정 시 instance 가 먼저 잡혀

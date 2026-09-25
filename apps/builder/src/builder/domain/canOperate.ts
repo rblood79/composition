@@ -175,3 +175,19 @@ export function notifyOperationRejected(
   }
   return false;
 }
+
+/**
+ * 구조 변경 store 액션의 진입부 가드 — 표면을 거치지 않는 호출 (AI · 붙여넣기 · 단축키 · 내부
+ * 경로) 도 같은 판정을 지난다. 통과한 id 만 돌려주고, 하나도 통과하지 못하면 이유를 알린다
+ * (표면은 이미 걸렀으므로 여기 닿는 거부는 표면 밖 호출이다). 액션 목록은
+ * `structuralStoreActionGuard.static.test.ts` 가 고정한다.
+ */
+export function guardStoreOperation(
+  op: StructuralOp,
+  ids: readonly string[],
+  lookup: OperableNodeLookup,
+): string[] {
+  const selection = filterOperable(op, ids, lookup);
+  if (selection.ids.length === 0) notifyOperationRejected(selection.rejected);
+  return selection.ids;
+}

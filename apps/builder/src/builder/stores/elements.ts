@@ -1,3 +1,4 @@
+import { guardStoreOperation } from "../domain/canOperate";
 import { persistActiveCanonicalDocument } from "./canonical/persistActiveCanonicalDocument";
 import { create } from "zustand";
 // 🚀 Phase 1: Immer 제거 - 함수형 업데이트로 전환
@@ -1680,6 +1681,14 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
       const sourceIndexes = buildIndexes(prevState.elements);
       const sourceElementsById = sourceIndexes.elementsMap;
       const sourceChildrenByParent = sourceIndexes.childrenMap;
+      // ADR-236 Phase 3 — 진입부 판정 (body · synthetic · projection).
+      if (
+        guardStoreOperation("move", [elementId], (id) =>
+          sourceElementsById.get(id),
+        ).length === 0
+      ) {
+        return;
+      }
       const element = sourceElementsById.get(elementId);
       if (!element || !element.parent_id) return;
 
@@ -1880,6 +1889,14 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
     // 소유하므로 "이동" = canonical children[] 순서 변경 (ADR-118).
     reorderElementWithinParent: (elementId, direction) => {
       if (isRenderProjectionId(elementId)) return false;
+      // ADR-236 Phase 3 — 진입부 판정 (body · synthetic · projection — 단축키 reorder 에 synthetic 가드가 없었다, E6).
+      if (
+        guardStoreOperation("move", [elementId], (id) =>
+          get().elementsMap.get(id),
+        ).length === 0
+      ) {
+        return false;
+      }
       if (!areCanonicalMutationStoreActionsRegistered()) return false;
 
       const doc = selectActiveCanonicalDocument();
@@ -1941,6 +1958,14 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
     // 경로가 그 형태를 복제하면 안 된다.
     moveElementToSiblingEdge: (elementId, edge) => {
       if (isRenderProjectionId(elementId)) return false;
+      // ADR-236 Phase 3 — 진입부 판정 (reorder 와 같다).
+      if (
+        guardStoreOperation("move", [elementId], (id) =>
+          get().elementsMap.get(id),
+        ).length === 0
+      ) {
+        return false;
+      }
       if (!areCanonicalMutationStoreActionsRegistered()) return false;
       if (!isCanonicalMutationRunnerBridgeRegistered()) return false;
 

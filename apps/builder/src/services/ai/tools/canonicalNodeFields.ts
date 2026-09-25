@@ -16,6 +16,7 @@
 import type { CanonicalNode } from "@composition/shared";
 import { useCanonicalDocumentStore } from "../../../builder/stores/canonical/canonicalDocumentStore";
 import { getNodeMap } from "../../../builder/stores/canonical/canonicalTraversalHelpers";
+import { useStore } from "../../../builder/stores";
 import type { ToolTranslate } from "../../../types/integrations/ai.types";
 
 /** 도구가 읽고 쓰는 canonical 1차 필드. */
@@ -126,17 +127,37 @@ export function parseCanonicalFields(
   return { patch, rejected };
 }
 
-/** patch 를 canonical document 에 적용. 빈 patch 면 아무 것도 하지 않는다. */
-export function applyCanonicalFields(
+/**
+ * patch 를 canonical document 에 적용. 빈 patch 면 아무 것도 하지 않는다.
+ *
+ * `reusable` 변경은 문서에 직접 쓰지 않고 store `toggleComponentOrigin` 을 지난다 (ADR-236 Phase 3,
+ * E2) — 직접 쓰면 systemOwned 가드 · 영향 확인 · instance 분리를 모두 건너뛰어, AI 가 system
+ * origin 을 `reusable:false` 로 만들면 instance 가 원본을 잃었다. 거부되면 `reusable` 은 반영되지
+ * 않고 호출자의 반영 확인이 잡는다.
+ */
+export async function applyCanonicalFields(
   nodeId: string,
   patch: CanonicalFieldPatch,
-): boolean {
-  const keys = Object.keys(patch);
-  if (keys.length === 0) return false;
-  useCanonicalDocumentStore
-    .getState()
-    .updateNode(nodeId, patch as Partial<CanonicalNode>);
-  return true;
+): Promise<boolean> {
+  const { reusable, ...rest } = patch;
+  let applied = false;
+  if (Object.keys(rest).length > 0) {
+    useCanonicalDocumentStore
+      .getState()
+      .updateNode(nodeId, rest as Partial<CanonicalNode>);
+    applied = true;
+  }
+  if (reusable !== undefined) {
+    const current = getNodeMap().get(nodeId) as
+      { reusable?: boolean } | undefined;
+    if ((current?.reusable === true) !== reusable) {
+      const result = await useStore.getState().toggleComponentOrigin(nodeId);
+      if (result) applied = true;
+    } else {
+      applied = true;
+    }
+  }
+  return applied;
 }
 
 /** 노드의 현재 canonical 1차 필드 — 도구 응답에 싣는 읽기 표면. */
