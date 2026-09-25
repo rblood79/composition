@@ -141,6 +141,43 @@ function resolveTierStyle(
   return resolveResponsiveStyleMap(style ?? {}, responsive, activeBreakpoint);
 }
 
+/**
+ * 패널 표시와 같은 해석 style · props (hook 밖 action 용) — ref instance 는 origin 을 깔고 자기 값을
+ * 얹고, style 은 tier 별로 activeBreakpoint 를 해석한다 (`useElementStyleContext` 와 같은 규칙).
+ * action 이 자기 `props.style` 만 읽으면 origin 인라인 · responsive 값이 빠져 표시와 판정이 갈린다.
+ */
+export function readResolvedStyleTarget(
+  id: string | null | undefined,
+  elementsMap: ReadonlyMap<string, PanelNode>,
+  activeBreakpoint: BreakpointName,
+): {
+  type: string | undefined;
+  style: Record<string, unknown>;
+  props: Record<string, unknown>;
+} {
+  const element = readStyleTargetNode(id, elementsMap);
+  const origin = resolveStyleOriginElement(element, elementsMap);
+  const ownProps = (element?.props ?? {}) as Record<string, unknown>;
+  const originProps = (origin?.props ?? {}) as Record<string, unknown>;
+  const own = resolveTierStyle(
+    ownProps.style as Record<string, unknown> | undefined,
+    element?.responsive,
+    activeBreakpoint,
+  );
+  const master = origin
+    ? resolveTierStyle(
+        originProps.style as Record<string, unknown> | undefined,
+        origin.responsive,
+        activeBreakpoint,
+      )
+    : undefined;
+  return {
+    type: resolveStyleSpecType(element, elementsMap),
+    style: { ...(master ?? {}), ...(own ?? {}) },
+    props: origin ? applyPropsPatch(originProps, ownProps) : ownProps,
+  };
+}
+
 function readNodeAccentColor(
   element: PanelNode,
   elementsMap: ReadonlyMap<string, PanelNode>,

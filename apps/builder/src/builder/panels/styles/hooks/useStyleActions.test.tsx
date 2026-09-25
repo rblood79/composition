@@ -638,6 +638,59 @@ describe("useStyleActions", () => {
       }
     });
 
+    it("ref instance 는 origin 인라인 inline-flex 를, tablet 은 그 tier 값을 본다 (패널 표시와 같은 해석)", () => {
+      const updateSelectedStyles = vi.fn();
+      useStore.setState({
+        selectedElementId: "inst",
+        activeBreakpoint: "desktop",
+        elementsMap: new Map<string, Element>([
+          [
+            "origin",
+            {
+              id: "origin",
+              type: "frame",
+              props: { style: { display: "inline-flex" } },
+            } as Element,
+          ],
+          [
+            "inst",
+            { id: "inst", type: "ref", ref: "origin", props: {} } as Element,
+          ],
+        ]),
+        updateSelectedStyles,
+      } as never);
+      const { result } = renderHook(() => useStyleActions());
+      act(() => {
+        result.current.handleFlexAlignment("leftTop", "row");
+      });
+      expect(updateSelectedStyles.mock.calls[0][0]).not.toHaveProperty(
+        "display",
+      );
+
+      useStore.setState({
+        selectedElementId: "el1",
+        activeBreakpoint: "tablet",
+        elementsMap: new Map<string, Element>([
+          [
+            "el1",
+            {
+              id: "el1",
+              type: "frame",
+              props: { style: { display: "block" } },
+              responsive: { styles: { display: { tablet: "inline-flex" } } },
+            } as unknown as Element,
+          ],
+        ]),
+      } as never);
+      act(() => {
+        result.current.handleFlexAlignment("leftTop", "row");
+      });
+      expect(updateSelectedStyles.mock.calls[1][0]).not.toHaveProperty(
+        "display",
+      );
+      useStore.setState({ activeBreakpoint: "desktop" } as never);
+    });
+
     it("인라인 inline-flex 도 보존 · block 요소는 종전대로 flex 를 쓴다", () => {
       let updateSelectedStyles = setup("frame", { display: "inline-flex" });
       const { result } = renderHook(() => useStyleActions());

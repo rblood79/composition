@@ -502,7 +502,7 @@ function toWrittenStyle(
 }
 
 /**
- * style 의 `undefined` 키와 `fills: undefined` (= patch 에서 지움 — origin 복귀) 를 없애고, 빈 style 은
+ * style 의 `undefined` 키와 `fills: undefined | null` (= patch 에서 지움 — origin 복귀) 를 없애고, 빈 style 은
  * 키째 뺀다. 다른 prop 의 `undefined` 는 종전대로 둔다 (해석 결과에서 그 prop 을 비우는 기존 의미).
  */
 function dropUndefinedPatchKeys(
@@ -511,7 +511,8 @@ function dropUndefinedPatchKeys(
   const rest = Object.fromEntries(
     Object.entries(patch).filter(
       ([key, value]) =>
-        key !== "style" && !(key === "fills" && value === undefined),
+        key !== "style" &&
+        !(key === "fills" && (value === undefined || value === null)),
     ),
   );
   if (!isRecord(patch.style)) return rest;
@@ -934,16 +935,21 @@ export const createInspectorActionsSlice: StateCreator<
           elementId,
           props: {
             ...(propsUpdate as Record<string, unknown>),
-            // `fills: null` = 이 자식의 fills override 를 patch 에서 지움 (origin fills 로 복귀).
-            ...(Array.isArray(fills)
-              ? { fills }
-              : fills === null
-                ? { fills: undefined }
-                : {}),
+            // `fills: null` = 이 자식의 fills 를 지움 — mode A patch 는 키를 빼 origin fills 로 복귀
+            //   (`dropUndefinedPatchKeys`), mode C 채운 노드는 그 노드의 fills 삭제 (`patchFillNode`).
+            ...(Array.isArray(fills) || fills === null ? { fills } : {}),
           } as ComponentElementProps,
         },
       ]);
       if (!patches) return;
+      // 결과 patch 가 지금과 같으면 쓰지 않는다 — origin 에만 있는 키의 reset (patch 에서 지울 것이 없음)
+      //   이 빈 history · 재레이아웃을 쌓았다.
+      if (
+        JSON.stringify(patches) ===
+        JSON.stringify(getComponentDescendantsMirror(root) ?? {})
+      ) {
+        return;
+      }
       if (selectedElementId === elementId) {
         get()._cancelHydrateSelectedProps();
       }

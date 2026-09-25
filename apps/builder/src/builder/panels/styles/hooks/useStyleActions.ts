@@ -21,6 +21,7 @@ import {
   flexDirectionToDrivenValue,
 } from "../utils/orientationDrivenTags";
 import {
+  readResolvedStyleTarget,
   readStyleTargetNode,
   resolveStyleSpecType,
 } from "./useElementStyleContext";
@@ -84,15 +85,20 @@ function isSelectedDirectionDriven(): boolean {
  * 서던 요소가 다른 줄로 떨어진다. inner 는 둘 다 flex 라 토글 의미는 같다.
  */
 function selectedFlexDisplayPatch(): Record<string, string> {
-  const { selectedElementId, elementsMap } = useStore.getState();
-  const node = readStyleTargetNode(selectedElementId, elementsMap);
-  const props = (node?.props ?? {}) as Record<string, unknown>;
-  const inline = (props.style as Record<string, unknown> | undefined)?.display;
+  const { selectedElementId, elementsMap, activeBreakpoint } =
+    useStore.getState();
+  // 패널 표시와 같은 해석값 — ref instance 의 origin 인라인 · 활성 breakpoint 값을 포함한다.
+  const { type, style, props } = readResolvedStyleTarget(
+    selectedElementId,
+    elementsMap,
+    activeBreakpoint,
+  );
+  const inline = style.display;
   const display =
     typeof inline === "string" && inline
       ? inline
       : resolveLayoutSpecPreset(
-          resolveStyleSpecType(node, elementsMap),
+          type,
           typeof props.size === "string" ? props.size : undefined,
           props,
         ).display;

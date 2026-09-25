@@ -446,5 +446,50 @@ describe("ADR-229 Phase 2 (F15) — synthetic 자식 lookup", () => {
         expect(readInstanceNode()?.descendants?.[ACTION_ID]).toBeUndefined();
       });
     });
+
+    it("origin 에만 있는 키의 초기화는 patch 가 그대로라 쓰지 않는다 (빈 history · 재레이아웃 없음)", async () => {
+      useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+      useCanonicalDocumentStore
+        .getState()
+        .setDocument("project-1", makeDocument(undefined, { width: "100%" }));
+      const { state, inspectorActions } = setUpStore(SYNTHETIC_ID);
+
+      inspectorActions.updateSelectedStyles({ width: "" });
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(readInstanceNode()?.descendants).toBeUndefined();
+      expect(state.layoutVersion).toBe(0);
+    });
+
+    it("Slot 으로 채운 노드 (mode C) 의 Fill 초기화는 그 노드의 fills 를 지운다", async () => {
+      const FILL_ID = "fill-a";
+      useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+      useCanonicalDocumentStore.getState().setDocument(
+        "project-1",
+        makeDocument({
+          [ACTION_ID]: {
+            children: [
+              {
+                id: FILL_ID,
+                type: "Text",
+                props: { children: "x" },
+                fills: [fill],
+              },
+            ],
+          },
+        }),
+      );
+      const { inspectorActions } = setUpStore(
+        `${INSTANCE_ID}/${ACTION_ID}/${FILL_ID}`,
+      );
+
+      inspectorActions.updateSelectedFills(null);
+      await vi.waitFor(() => {
+        const host = readInstanceNode()?.descendants?.[ACTION_ID] as
+          | { children?: Array<Record<string, unknown>> }
+          | undefined;
+        expect(host?.children?.[0]?.fills).toBeUndefined();
+      });
+    });
   });
 });
+
