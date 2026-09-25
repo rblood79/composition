@@ -363,3 +363,5 @@ ADR-236 종결: Phase 0–4 · G0–G4, 실행자 닫힘 선언.
 
 남은 것 (범위 밖): 붙여넣기 · AI 가 라벨 위치 컨테이너에 인라인 `flexDirection` 을 쓰면 side 에서 Canvas (row 고정) 와 DOM (인라인) 이 여전히 갈린다. Alignment 토글은 grid 기본 (ProgressBar top) 에 `display: flex` 를 쓴다.
 
+
+판독 (reviewer, 2026-09-25, `84a7a8d12`): HIGH 0 · MEDIUM 1 수리 → 닫힘. M1 — Direction 그룹에 `disallowEmptySelection` 이 없어 선택된 버튼 재클릭이 `undefined` 를 보낸다. style 경로에서는 무동작이었지만 prop 번역은 column 외를 side · horizontal 로 흡수해 top 이 side 로 뒤집혔다 (이 커밋으로 팔레트 instance 전부가 이 경로에 들어왔다). `handleFlexDirection` 이 block · row · column 외 값을 거른다 — 단위 RED 1 → GREEN · live C2 (Column 재클릭 → 4 타입 모두 top 유지). LOW deferred: instance 안 synthetic 자식 (`<instance>/<path>`) 은 여전히 style 경로 (커밋 전과 같음) · 비-desktop tier override 의 옛 `responsive.styles` 방향은 정리 대상 아님 · 인라인이 방향 두 키뿐이면 빈 `style` override 가 남음 (렌더 무영향) · vertical Slider + side 미확인 · DOM leg 는 CSS 특이도 추론.

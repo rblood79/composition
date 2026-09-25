@@ -25,6 +25,9 @@ import { resolveStyleSpecType } from "./useElementStyleContext";
 /** Direction 토글이 style 경로에서 쓰는 display 값 — 사용자가 따로 고른 grid 등은 남긴다. */
 const DIRECTION_TOGGLE_DISPLAYS = new Set(["flex", "block"]);
 
+/** Direction 토글이 보내는 값 — 그 밖 (빈 선택) 은 쓰지 않는다. */
+const DIRECTION_VALUES = new Set(["block", "row", "column"]);
+
 /**
  * 그룹 축 prop 컨테이너의 인라인에 Direction 토글이 남긴 `flexDirection` · `display` 가 있으면
  * 그 둘을 뺀 style 을, 없으면 null 을 준다.
@@ -138,6 +141,9 @@ export function useStyleActions() {
    * 도달하지 않지만, 방어적으로 row 쪽 흡수. 대상 정본: orientationDrivenTags.
    */
   const handleFlexDirection = useCallback((value: string) => {
+    // 선택된 버튼을 다시 누르면 토글 그룹이 빈 선택 (undefined) 을 준다 — prop 번역은 column 외를
+    //   side / horizontal 로 흡수하므로 여기서 걸러야 top 이 side 로 뒤집히지 않는다.
+    if (!DIRECTION_VALUES.has(value)) return;
     const { selectedElementId, elementsMap } = useStore.getState();
     const selected = selectedElementId
       ? elementsMap.get(selectedElementId)

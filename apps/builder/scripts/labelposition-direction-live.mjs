@@ -235,6 +235,13 @@ try {
       direction: await directionState(page),
     };
 
+    // C2. 이미 선택된 Column 을 다시 클릭 — 빈 선택이 side 로 번역되지 않는다 (판독 M1).
+    await clickDirection(page, "column");
+    r.C2_reclickColumn = {
+      layout: await arrangement(page, id),
+      direction: await directionState(page),
+    };
+
     // D. 옛 토글이 남긴 인라인 (flex column) + labelPosition side — DOM 은 인라인이 이긴다 (column).
     await seed(page, id, {
       labelPosition: "side",

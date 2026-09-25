@@ -351,6 +351,21 @@ describe("useStyleActions", () => {
       expect(updateSelectedStyles).not.toHaveBeenCalled();
     });
 
+    it("선택된 버튼 재클릭 (빈 선택 → undefined) 은 아무것도 쓰지 않는다", () => {
+      // ToggleButtonGroup 에 disallowEmptySelection 이 없어 재클릭이 빈 Set 을 준다. prop 번역은
+      //   column 외를 side / horizontal 로 흡수하므로 가드가 없으면 top → side 로 뒤집힌다.
+      const { updateSelectedStyles, updateSelectedProperty } =
+        setupSelection("TextField");
+      const { result } = renderHook(() => useStyleActions());
+
+      act(() => {
+        result.current.handleFlexDirection(undefined as unknown as string);
+      });
+
+      expect(updateSelectedProperty).not.toHaveBeenCalled();
+      expect(updateSelectedStyles).not.toHaveBeenCalled();
+    });
+
     it("옛 토글이 남긴 인라인 display · flexDirection 은 같은 쓰기에서 지운다", () => {
       const updateSelectedStyles = vi.fn();
       const updateSelectedProperty = vi.fn();
