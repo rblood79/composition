@@ -60,6 +60,23 @@ function withoutStaleDirectionStyle(
   return next;
 }
 
+/**
+ * 선택 요소가 그룹 축 prop (labelPosition · orientation) 으로 방향이 정해지는 컨테이너인가.
+ * 그러면 정렬 계열 토글은 `display` · `flexDirection` 을 쓰지 않는다 — 인라인 방향은 DOM 에서
+ * variant 를 이겨 Canvas 와 갈린다.
+ */
+function isSelectedDirectionDriven(): boolean {
+  const { selectedElementId, elementsMap } = useStore.getState();
+  return (
+    resolveDirectionDrivenProp(
+      resolveStyleSpecType(
+        readStyleTargetNode(selectedElementId, elementsMap),
+        elementsMap,
+      ),
+    ) !== undefined
+  );
+}
+
 export function useStyleActions() {
   // onPaste 는 getState() 만 쓰므로 안정 참조로 고정한다. 렌더마다 새 클로저를
   // 넘기면 useCopyPaste 의 `paste` 가 렌더마다 바뀌고, 그 소비자
@@ -234,6 +251,10 @@ export function useStyleActions() {
       if (position) {
         const flexDirection =
           currentFlexDirection === "column" ? "column" : "row";
+        // 라벨 위치 컨테이너는 축만 매핑한다 (방향은 호출측이 prop 에서 읽어 넘긴다).
+        const layoutMode: Record<string, string> = isSelectedDirectionDriven()
+          ? {}
+          : { display: "flex", flexDirection };
 
         // For row: horizontal = justifyContent, vertical = alignItems
         // For column: horizontal = alignItems, vertical = justifyContent
@@ -242,16 +263,14 @@ export function useStyleActions() {
         const preserveMainAxis = options?.preserveMainAxis === true;
         if (flexDirection === "column") {
           useStore.getState().updateSelectedStyles({
-            display: "flex",
-            flexDirection,
+            ...layoutMode,
             ...(preserveMainAxis ? {} : { justifyContent: position.vertical }),
             alignItems: position.horizontal,
           });
         } else {
           // row or default
           useStore.getState().updateSelectedStyles({
-            display: "flex",
-            flexDirection,
+            ...layoutMode,
             ...(preserveMainAxis
               ? {}
               : { justifyContent: position.horizontal }),
@@ -268,7 +287,7 @@ export function useStyleActions() {
    */
   const handleJustifyContentSpacing = useCallback((value: string) => {
     useStore.getState().updateSelectedStyles({
-      display: "flex",
+      ...(isSelectedDirectionDriven() ? {} : { display: "flex" }),
       justifyContent: value, // space-around, space-between, space-evenly
     });
   }, []);
@@ -278,7 +297,7 @@ export function useStyleActions() {
    */
   const handleFlexWrap = useCallback((value: string) => {
     useStore.getState().updateSelectedStyles({
-      display: "flex",
+      ...(isSelectedDirectionDriven() ? {} : { display: "flex" }),
       flexWrap: value, // wrap, wrap-reverse, nowrap
     });
   }, []);

@@ -38,6 +38,16 @@ const CATALOG_RULES = vi.hoisted(
           "label-position": { side: { styles: { display: "grid" } } },
         },
       },
+      GridBaseSpec: {
+        structure: {
+          containerStyles: { display: "grid" },
+        },
+        containerVariants: {
+          "label-position": {
+            side: { styles: { display: "flex", "flex-direction": "row" } },
+          },
+        },
+      },
       VariantFlexSpec: {
         structure: {
           containerStyles: { display: "flex", flexDirection: "column" },
@@ -85,6 +95,7 @@ import {
   useFlexDistributionAxis,
   useJustifyContentSpacingKeys,
   useFlexWrapKeys,
+  useLayoutAlignmentDisabled,
 } from "./useLayoutAuxiliary";
 import { seedPanelElements } from "../../../__tests__/panelFixture";
 import type { Element } from "../../../../types/core/store.types";
@@ -319,6 +330,35 @@ describe("useFlexDirectionKeys — labelPosition 축 컨테이너", () => {
     expect(renderHook(() => useFlexDirectionKeys("e")).result.current).toEqual([
       "row",
     ]);
+  });
+});
+
+describe("useLayoutAlignmentDisabled — grid 컨테이너", () => {
+  // Alignment · Space · Wrap 은 display:flex 를 쓴다 — grid 에서 누르면 grid 가 조용히 flex 가 된다.
+  it("catalog 기본이 grid 면 variant (side flex) 에서도 비활성", () => {
+    setElement("e", {}, "GridBaseSpec");
+    expect(
+      renderHook(() => useLayoutAlignmentDisabled("e")).result.current,
+    ).toBe(true);
+    setElement("e", {}, "GridBaseSpec", { labelPosition: "side" });
+    expect(
+      renderHook(() => useLayoutAlignmentDisabled("e")).result.current,
+    ).toBe(true);
+  });
+
+  it("인라인 grid (레이아웃 프리셋) 도 비활성 · flex · block 은 활성", () => {
+    setElement("e", { display: "grid" });
+    expect(
+      renderHook(() => useLayoutAlignmentDisabled("e")).result.current,
+    ).toBe(true);
+    setElement("e", { display: "flex" });
+    expect(
+      renderHook(() => useLayoutAlignmentDisabled("e")).result.current,
+    ).toBe(false);
+    setElement("e", { display: "block" });
+    expect(
+      renderHook(() => useLayoutAlignmentDisabled("e")).result.current,
+    ).toBe(false);
   });
 });
 

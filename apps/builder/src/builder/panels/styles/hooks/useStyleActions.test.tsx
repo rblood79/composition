@@ -531,6 +531,34 @@ describe("useStyleActions", () => {
       expect(updateSelectedStyles).not.toHaveBeenCalled();
     });
 
+    it("라벨 위치 컨테이너의 Alignment · Space · Wrap 은 display · flexDirection 을 쓰지 않는다", () => {
+      // 방향은 labelPosition 이 정한다 — 인라인 flexDirection 은 DOM 에서 side variant 를 이긴다.
+      const { updateSelectedStyles } = setupSelection("TextField");
+      const { result } = renderHook(() => useStyleActions());
+
+      act(() => {
+        result.current.handleFlexAlignment("rightTop", "column");
+      });
+      expect(updateSelectedStyles).toHaveBeenLastCalledWith({
+        justifyContent: "flex-start",
+        alignItems: "flex-end",
+      });
+
+      act(() => {
+        result.current.handleJustifyContentSpacing("space-between");
+      });
+      expect(updateSelectedStyles).toHaveBeenLastCalledWith({
+        justifyContent: "space-between",
+      });
+
+      act(() => {
+        result.current.handleFlexWrap("wrap");
+      });
+      expect(updateSelectedStyles).toHaveBeenLastCalledWith({
+        flexWrap: "wrap",
+      });
+    });
+
     it("Form 은 그룹 root derive 아님(자식 상속 hint) → 기존 flexDirection 경로 유지", () => {
       const { updateSelectedStyles, updateSelectedProperty } =
         setupSelection("Form");

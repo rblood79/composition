@@ -170,6 +170,32 @@ export function useJustifyContentSpacingKeys(id: string | null): string[] {
 /**
  * Flex Wrap 토글 키
  */
+function isGridDisplay(display: unknown): boolean {
+  if (typeof display !== "string") return false;
+  const d = display.trim().toLowerCase();
+  return d === "grid" || d === "inline-grid";
+}
+
+/**
+ * Alignment · Space · Wrap 비활성 — grid 컨테이너. 세 핸들러는 flex 속성과 `display: flex` 를 쓰므로
+ * grid 에서 누르면 grid 가 조용히 flex 가 된다 (ProgressBar · Meter · Slider 는 막대가 폭 0 으로
+ * 사라졌다). 판정: 해석된 display 가 grid 이거나, catalog 기본이 grid (side variant 로 flex 가 된
+ * 상태도 — 그 방향은 labelPosition 이 정한다). 모드 전환은 Direction 이 맡는다.
+ */
+export function useLayoutAlignmentDisabled(id: string | null): boolean {
+  const { style, type, size, props } = useElementStyleContext(id);
+  return useMemo(() => {
+    const inlineDisplay = style?.display;
+    if (inlineDisplay !== undefined && inlineDisplay !== "") {
+      return isGridDisplay(inlineDisplay);
+    }
+    if (isGridDisplay(resolveLayoutSpecPreset(type, size).display)) {
+      return true;
+    }
+    return isGridDisplay(resolveLayoutSpecPreset(type, size, props).display);
+  }, [style, type, size, props]);
+}
+
 export function useFlexWrapKeys(id: string | null): string[] {
   const { flexWrap } = useResolvedLayoutFields(id);
   return useMemo(() => [flexWrap || "nowrap"], [flexWrap]);

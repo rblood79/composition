@@ -265,6 +265,26 @@ try {
       layout: await arrangement(page, id),
       direction: await directionState(page),
     };
+    // H. 정렬 계열 — grid 기본 (ProgressBar · Meter · Slider) 은 비활성, 라벨 위치 flex (TextField) 는
+    //   점을 눌러도 display · flexDirection 을 쓰지 않는다.
+    await seed(page, id, { labelPosition: "top", style: {} });
+    const alignGroup = page.locator(".flex-alignment [role='radiogroup'], .flex-alignment .react-aria-ToggleButtonGroup").first();
+    const alignDisabled = (await alignGroup.getAttribute("data-disabled")) === "true";
+    const firstDot = page.locator(".flex-alignment button").first();
+    const dotDisabled = (await firstDot.getAttribute("data-disabled")) === "true";
+    if (!dotDisabled) {
+      await firstDot.click();
+      await page.waitForTimeout(900);
+    }
+    r.H_alignment = {
+      alignDisabled,
+      dotDisabled,
+      layout: await arrangement(page, id),
+      style: await page.evaluate(
+        (id) => window.__composition_STORE__.getState().elementsMap.get(id)?.props?.style ?? null,
+        id,
+      ),
+    };
     await page.screenshot({ path: `${OUT}/${type}.png` });
     await setPanel(page, "styles", false);
   }

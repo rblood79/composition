@@ -379,3 +379,5 @@ ADR-236 종결: Phase 0–4 · G0–G4, 실행자 닫힘 선언.
 
 synthetic 근거: 단위 RED 3 → GREEN · live (`labelposition-direction-live.mjs` G — 팔레트 Form 의 `<form>/TextField/Name`): 패널 Column 표시 (종전 block) · Row → `descendants[path].labelPosition = "side"` · Input x 0 → 180 · 옛 patch 인라인 + Column → `style: { display: null, flexDirection: null }` · 다시 세로.
 
+grid 정렬 근거: 세 핸들러 (`handleFlexAlignment` · Space · Wrap) 가 `display: flex` 를 무조건 썼고 패널은 선택 표시만 비웠다. catalog grid 기본은 Meter · ProgressBar · Slider (구조 3칸) 와 leaf 6 (Track · Value · ProgressCircle) — 레이아웃 프리셋의 인라인 grid (body · Slot) 도 같은 경로. `useLayoutAlignmentDisabled` (해석 display grid 또는 catalog 기본 grid) 로 세 그룹 비활성. 라벨 위치 · orientation 컨테이너는 세 핸들러가 display · flexDirection 을 빼고, Alignment 축은 Direction 표시값 (prop 해석) 으로 매핑. 단위 RED 3 → GREEN · live H: 세 타입 점 비활성 · grid 유지 / TextField 점 클릭 → `justifyContent` · `alignItems` 만, 세로 유지. 기각: grid 3×3 → `justifyItems` · `alignItems` 매핑 (ProgressBar DOM `.bar` 가 다시 폭 0) — 사용자 grid 프리셋 한정 후속.
+

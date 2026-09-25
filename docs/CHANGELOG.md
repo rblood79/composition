@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Styles 패널 — grid 컨테이너의 정렬 · 간격 · 줄바꿈] - 2026-09-25
+
+### Fixed
+
+- **grid 로 배치되는 요소에서 Alignment 점 · Space · Wrap 을 누르면 grid 가 flex 로 바뀌던 문제** — 세 컨트롤이 `display: flex` 를 함께 썼다. ProgressBar · Meter · Slider 는 라벨 · 값 · 막대가 한 줄로 무너지고 (DOM 에서는 막대가 폭 0 으로 사라졌다), 레이아웃 프리셋으로 만든 grid 페이지 골격도 한 줄이 됐다. 패널은 선택 표시만 비워 두고 버튼은 눌리게 두었다. 이제 grid 컨테이너에서는 세 컨트롤이 비활성이다 (flex 로 바꾸려면 Direction 을 쓴다).
+- **라벨 위치로 방향이 정해지는 요소 (TextField · RadioGroup 등) 에서 정렬 · 간격 · 줄바꿈이 인라인 방향을 쓰던 문제** — 정렬 점을 누르면 `flex-direction` 이 인라인으로 남아, 뒤에 라벨을 옆으로 바꾸면 DOM 에서만 세로로 남았다. 이제 정렬 값만 쓰고, 축은 라벨 위치에서 읽는다.
+  - 위치: `panels/styles/hooks/useLayoutAuxiliary.ts` (`useLayoutAlignmentDisabled`) · `useStyleActions.ts` · `sections/LayoutSection.tsx`
+
 ## [Styles 패널 — 컴포넌트 instance 안 요소 선택] - 2026-09-25
 
 ### Fixed

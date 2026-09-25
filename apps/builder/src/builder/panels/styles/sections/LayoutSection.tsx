@@ -35,6 +35,7 @@ import {
   useFlexDistributionAxis,
   useJustifyContentSpacingKeys,
   useFlexWrapKeys,
+  useLayoutAlignmentDisabled,
 } from "../hooks/useLayoutAuxiliary";
 import { useResetStyles, useHasDirtyStyles } from "../hooks/useResetStyles";
 import { useStore } from "../../../stores";
@@ -89,6 +90,8 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
   const flexDistributionAxis = useFlexDistributionAxis(selectedId);
   const justifyContentSpacingKeys = useJustifyContentSpacingKeys(selectedId);
   const flexWrapKeys = useFlexWrapKeys(selectedId);
+  // grid 컨테이너는 정렬 계열이 display 를 flex 로 바꾼다 — 비활성 (모드 전환은 Direction).
+  const isAlignmentDisabled = useLayoutAlignmentDisabled(selectedId);
 
   // ADR-222 §4.1: 단일 행/열 flex 는 Gap 필드가 주축 longhand 하나를 읽고 쓴다
   // (row → columnGap · column → rowGap). 그 밖 (wrap · grid · block) 은 종전 shorthand.
@@ -167,6 +170,7 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
               가 되고 클릭은 교차축만 쓴다 (panel-ui 01, 2026-09-14) */}
           <ToggleButtonGroup
             aria-label={localize("Flex alignment")}
+            isDisabled={isAlignmentDisabled}
             indicator
             selectionMode="single"
             selectedKeys={flexAlignmentKeys}
@@ -175,9 +179,14 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
               const value = Array.from(keys)[0] as string;
               if (value) {
                 // 🚀 Phase 3: styleValues에서 직접 값 사용
-                handleFlexAlignment(value, styleValues.flexDirection, {
-                  preserveMainAxis: flexDistributionAxis !== null,
-                });
+                // 라벨 위치 컨테이너의 방향은 prop 이 정한다 — Direction 표시와 같은 값으로 축을 매핑.
+                handleFlexAlignment(
+                  value,
+                  isDirectionDriven
+                    ? flexDirectionKeys[0]
+                    : styleValues.flexDirection,
+                  { preserveMainAxis: flexDistributionAxis !== null },
+                );
               } else if (flexDistributionAxis !== null) {
                 updateStyles({ alignItems: "" });
               } else {
@@ -233,6 +242,7 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
           <legend className="fieldset-legend">{localize("Space")}</legend>
           <ToggleButtonGroup
             aria-label={localize("Justify content alignment")}
+            isDisabled={isAlignmentDisabled}
             indicator
             selectionMode="single"
             selectedKeys={justifyContentSpacingKeys}
@@ -282,6 +292,7 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
           <legend className="fieldset-legend">{localize("Wrap")}</legend>
           <ToggleButtonGroup
             aria-label={localize("Flex wrap")}
+            isDisabled={isAlignmentDisabled}
             indicator
             selectionMode="single"
             selectedKeys={flexWrapKeys}
