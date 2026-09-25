@@ -179,12 +179,8 @@ const handleScreenPoint = (page, bandId) =>
     if (!band) return null;
     const vp = window.__composition_VIEWPORT__();
     const rect = document.querySelector("canvas").getBoundingClientRect();
-    // 드래그 중 보정 (handleShift) 까지 — 그려지는 핸들과 같은 중심
-    const shift = band.handleShift ?? 0;
-    const cx =
-      band.rect.x + band.rect.width / 2 + (band.axis === "x" ? shift : 0);
-    const cy =
-      band.rect.y + band.rect.height / 2 + (band.axis === "y" ? shift : 0);
+    const cx = band.rect.x + band.rect.width / 2;
+    const cy = band.rect.y + band.rect.height / 2;
     return {
       x: cx * vp.zoom + vp.panOffset.x + rect.left,
       y: cy * vp.zoom + vp.panOffset.y + rect.top,
@@ -409,19 +405,20 @@ try {
     follow: await readLayout(page, followId),
   };
   const histBefore = await historyCount(page);
-  // top 은 안쪽 (아래) 으로 끌면 커진다. 핸들 = 포인터 · 핸들은 값의 절반 위치 (2026-09-26) →
-  //   한 변은 값이 포인터의 2배 — 포인터 12 = paddingTop +24
-  await drag(page, topPt, 0, 12 * topPt.zoom);
+  // 움직이는 띠 가장자리가 포인터를 따라간다 (2026-09-26) — top 은 안쪽 (아래) 으로 끌면 커진다
+  await drag(page, topPt, 0, 24 * topPt.zoom);
   await page.waitForTimeout(300);
   dbg = await spacingDebug(page);
   const styleMid = await readStyle(page, boxId);
-  // 핸들 (띠 중앙) 이 포인터와 같은 자리 (2026-09-26 — 종전 값 1:1 이라 핸들이 절반 속도였다)
-  const topMid = await handleScreenPoint(page, "padding:top");
-  const followDy = topMid.y - (topPt.y + 12 * topPt.zoom);
+  // 드래그 중 핸들 숨김 (2026-09-26 Figma 어법 — 값 1:1 · 핸들 = 값/2 라 포인터와 어긋난다)
+  const handlesDuringDrag = await page.evaluate(() =>
+    window.__composition_SPACING_DEBUG__.handlesVisible(),
+  );
+  await page.screenshot({ path: resolve(OUT_DIR, "3-dragging-handles-hidden.png") });
   record(
-    "드래그 중 핸들 = 포인터 위치 (편차 < 1px)",
-    Math.abs(followDy) < 1 && Math.abs(topMid.x - topPt.x) < 1,
-    `dy ${followDy.toFixed(2)}`,
+    "드래그 중 핸들 숨김 (값 배지는 유지)",
+    handlesDuringDrag === false,
+    `handlesVisible=${handlesDuringDrag}`,
   );
   record(
     "드래그 중: active drag · 확정값 paddingTop 40 · canonical 무변경",
@@ -456,6 +453,15 @@ try {
   );
   await page.screenshot({ path: resolve(OUT_DIR, "3-dragging.png") });
   await page.mouse.up();
+  await page.waitForTimeout(300);
+  const handlesAfterDrag = await page.evaluate(() =>
+    window.__composition_SPACING_DEBUG__.handlesVisible(),
+  );
+  record(
+    "드래그 종료 → 핸들 다시 보임",
+    handlesAfterDrag === true,
+    `handlesVisible=${handlesAfterDrag}`,
+  );
   await page.waitForTimeout(1200);
   const styleAfter = await readStyle(page, boxId);
   const histAfter = await historyCount(page);
@@ -514,7 +520,7 @@ try {
   await page.waitForTimeout(900);
   await focusOwner(page);
   const gapPt = await handleScreenPoint(page, "gap:0");
-  await drag(page, gapPt, 0, 5 * gapPt.zoom);
+  await drag(page, gapPt, 0, 10 * gapPt.zoom);
   await page.mouse.up();
   await page.waitForTimeout(1500);
   const styleGap = await readStyle(page, boxId);
@@ -550,7 +556,7 @@ try {
   await focusOwner(page);
   const histEsc = await historyCount(page);
   const leftPt = await handleScreenPoint(page, "padding:left");
-  await drag(page, leftPt, 15 * leftPt.zoom, 0);
+  await drag(page, leftPt, 30 * leftPt.zoom, 0);
   await page.waitForTimeout(200);
   dbg = await spacingDebug(page);
   const midLeft = dbg.session?.confirmedValues?.paddingLeft;
@@ -652,8 +658,7 @@ try {
 
   // 10) zoom 25% / 200% — 화면 px 델타 / zoom = scene 델타 (G1 zoom 축)
   for (const [scale, sceneDelta] of [
-    // 화면 이동이 드래그 임계값 이상이어야 한다 — 25% 에서 +40 = 화면 5px
-    [0.25, 40],
+    [0.25, 20],
     [2, 10],
   ]) {
     await page.evaluate((scale) => {
@@ -669,12 +674,12 @@ try {
     await page.waitForTimeout(700);
     const pt = await handleScreenPoint(page, "padding:top");
     const before = (await readStyle(page, boxId)).paddingTop ?? "16px";
-    await drag(page, pt, 0, (sceneDelta / 2) * pt.zoom, 8);
+    await drag(page, pt, 0, sceneDelta * pt.zoom, 8);
     await page.mouse.up();
     await page.waitForTimeout(1000);
     const after = (await readStyle(page, boxId)).paddingTop;
     record(
-      `zoom ${scale * 100}%: 화면 ${(sceneDelta / 2) * scale}px 드래그 → paddingTop +${sceneDelta} (${before} → ${parseFloat(before) + sceneDelta}px)`,
+      `zoom ${scale * 100}%: 화면 ${sceneDelta * scale}px 드래그 → paddingTop +${sceneDelta} (${before} → ${parseFloat(before) + sceneDelta}px)`,
       after === `${parseFloat(before) + sceneDelta}px`,
       `after = ${after}`,
     );
@@ -881,7 +886,7 @@ try {
   // 11) 코너 resize 가 박스를 height 116px 고정으로 만들었다 — 고정 높이의 bottom 띠는 안쪽 (위)
   //   으로 끌어야 커진다 (안쪽 가장자리가 위로 움직인다) — 화면 −8*zoom
   const bottomM = await handleScreenPoint(page, "padding:bottom");
-  await drag(page, bottomM, 0, -4 * bottomM.zoom);
+  await drag(page, bottomM, 0, -8 * bottomM.zoom);
   await page.mouse.up();
   await page.waitForTimeout(1200);
   const baseAfterOff = await readStyle(page, boxId);
@@ -907,7 +912,7 @@ try {
   const respSeeded = await readResponsive(page, boxId);
   const baseTopBefore = px(baseAfterOff.paddingTop);
   const topM = await handleScreenPoint(page, "padding:top");
-  await drag(page, topM, 0, 6 * topM.zoom);
+  await drag(page, topM, 0, 12 * topM.zoom);
   await page.mouse.up();
   await page.waitForTimeout(1200);
   const baseAfterOn = await readStyle(page, boxId);
@@ -970,7 +975,7 @@ try {
   const styleLinkBefore = await readStyle(page, boxId);
   const rightL = await handleScreenPoint(page, "padding:right");
   // right 띠는 고정 폭 (314px) 이라 안쪽 (왼쪽, −x) 으로 끌어야 커진다
-  await drag(page, rightL, -3 * rightL.zoom, 0);
+  await drag(page, rightL, -6 * rightL.zoom, 0);
   await page.waitForTimeout(250);
   const dbgLink = await spacingDebug(page);
   await page.mouse.up();

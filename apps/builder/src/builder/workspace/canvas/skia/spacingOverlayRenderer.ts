@@ -28,6 +28,7 @@ import { OVERLAY_BLUE_RGB, OVERLAY_PINK_RGB } from "./semanticOverlayColors";
 import { HATCH_ALPHA, drawDiagonalHatch } from "./hatchPattern";
 import {
   resolveSpacingHandleRect,
+  spacingHandlesVisible,
   type SpacingBand,
 } from "../interaction/spacingGeometry";
 import type { SpacingActiveTarget } from "../interaction/spacingPresentation";
@@ -199,11 +200,14 @@ export function renderSpacingOverlay(
   // 1) hover 사선 — hover 띠 하나만
   if (hovered) drawHatch(ck, canvas, hovered.rect, bandColor(hovered), zoom);
 
-  // 2) 상시 핸들 — 활성/hover 는 두껍게
-  for (const band of bands) {
-    const emphasized =
-      activeIds.has(band.id) || (!active && band.id === hoveredBandId);
-    drawHandle(ck, canvas, band, zoom, emphasized);
+  // 2) 상시 핸들 — 활성/hover 는 두껍게. drag 중에는 숨긴다 (값 1:1 · 핸들 = 값/2 라 포인터와
+  //    어긋난다 — Figma 어법, `spacingHandlesVisible`). 값 배지는 아래에서 계속 그린다.
+  if (spacingHandlesVisible(active?.mode ?? null)) {
+    for (const band of bands) {
+      const emphasized =
+        activeIds.has(band.id) || (!active && band.id === hoveredBandId);
+      drawHandle(ck, canvas, band, zoom, emphasized);
+    }
   }
   canvas.restore();
 

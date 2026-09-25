@@ -60,10 +60,8 @@ import {
 import {
   hitTestSpacingBands,
   resolveSpacingCursor,
-  estimateSpacingHandleRate,
-  measureSpacingHandleRate,
   resolveSpacingHandleRect,
-  spacingDeltaForPointer,
+  spacingDeltaFromPointer,
   type SpacingBand,
   type SpacingHit,
 } from "../interaction/spacingGeometry";
@@ -90,8 +88,6 @@ interface SpacingDragState {
   readonly startZoom: number;
   readonly shift: boolean;
   dragging: boolean;
-  /** 값 +1 당 핸들 중심 이동 — 추정으로 시작, 드래그 중 실측으로 갱신 (핸들 = 포인터) */
-  rate: number;
 }
 
 interface UseSpacingInteractionOptions {
@@ -302,23 +298,12 @@ export function useSpacingInteraction({
   }, []);
   const onMove = useCallback(
     (drag: SpacingDragState, dxClient: number, dyClient: number) => {
-      // 핸들 (띠 중앙 = 값/2) 이 포인터와 같은 자리에 있게 값을 정한다 (2026-09-26 사용자 규칙).
-      //   rate 는 마지막으로 그려진 띠 (확정값 반영) 에서 다시 잰다.
-      const current = resolveSpacingBands()?.bands.find(
-        (band) => band.id === drag.band.id,
+      const delta = spacingDeltaFromPointer(
+        drag.band,
+        dxClient / drag.startZoom,
+        dyClient / drag.startZoom,
       );
-      const measured = current
-        ? measureSpacingHandleRate(drag.band, current)
-        : null;
-      if (measured !== null) drag.rate = measured;
-      const pointer =
-        (drag.band.axis === "y" ? dyClient : dxClient) / drag.startZoom;
-      drag.session.setDelta(
-        applySpacingStep(
-          spacingDeltaForPointer(drag.band, pointer, drag.rate),
-          drag.shift,
-        ),
-      );
+      drag.session.setDelta(applySpacingStep(delta, drag.shift));
     },
     [],
   );
@@ -473,10 +458,6 @@ export function useSpacingInteraction({
         startZoom: zoom === 0 ? 1 : zoom,
         shift: event.shiftKey,
         dragging: false,
-        rate: estimateSpacingHandleRate(band, {
-          sides,
-          gapCount: bandIds.length,
-        }),
       };
       spacingHoverCursor = null;
       setSpacingActive({ bandId: band.id, bandIds, mode: "press" });

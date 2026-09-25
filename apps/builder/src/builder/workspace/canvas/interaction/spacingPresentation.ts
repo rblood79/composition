@@ -17,7 +17,11 @@ import type {
 } from "../../../presentation/editorPresentationSpacingCapability";
 import { getActiveSpacingSession } from "../../../presentation/editorPresentationSpacingSession";
 import { getSceneBounds, getSceneHitBounds } from "../skia/renderCommands";
-import { buildSpacingBands, type SpacingBand } from "./spacingGeometry";
+import {
+  buildSpacingBands,
+  spacingHandlesVisible,
+  type SpacingBand,
+} from "./spacingGeometry";
 
 /** press = pointerdown 이후 임계값 미만 (사선 제거·핸들 강조), drag = 이동 중, input = 인라인 입력 */
 export type SpacingActiveMode = "press" | "drag" | "input";
@@ -182,5 +186,8 @@ if (typeof window !== "undefined" && import.meta.env?.DEV) {
       getSnapshot: getSpacingPresentationSnapshot,
       resolveBands: () => resolveSpacingBands(),
       getActiveSession: () => getActiveSpacingSession()?.getSnapshot() ?? null,
+      // 렌더러와 같은 판정 — live 하니스가 드래그 중 핸들 숨김을 읽는다
+      handlesVisible: () =>
+        spacingHandlesVisible(getSpacingPresentationSnapshot().active?.mode ?? null),
     };
 }

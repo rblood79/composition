@@ -3,10 +3,9 @@ import {
   buildSpacingBands,
   hitTestSpacingBands,
   hitTestSpacingHandles,
-  estimateSpacingHandleRate,
-  measureSpacingHandleRate,
   resolveSpacingHandleRect,
-  spacingDeltaForPointer,
+  spacingDeltaFromPointer,
+  spacingHandlesVisible,
 } from "./spacingGeometry";
 
 const owner = { x: 100, y: 200, width: 300, height: 160 };
@@ -257,65 +256,25 @@ describe("hitTestSpacingBands", () => {
     expect(hitTestSpacingBands({ x: 120, y: 206 }, zero, 1)).toBeNull();
   });
 
-  it("falls back to 1:1 along axis·sign when the handle does not move with the value (rate ≈ 0)", () => {
+  it("maps pointer movement through axis and sign", () => {
     const bottom = bands.find((b) => b.id === "padding:bottom")!;
-    expect(spacingDeltaForPointer(bottom, 10, 0)).toBe(10);
+    expect(spacingDeltaFromPointer(bottom, 7, 10)).toBe(10);
+    const top = bands.find((b) => b.id === "padding:top")!;
+    expect(spacingDeltaFromPointer(top, 7, 10)).toBe(10);
     const right = bands.find((b) => b.id === "padding:right")!;
-    expect(spacingDeltaForPointer(right, -4, 0.05)).toBe(4);
+    expect(spacingDeltaFromPointer(right, -4, 99)).toBe(4);
+    const left = bands.find((b) => b.id === "padding:left")!;
+    expect(spacingDeltaFromPointer(left, 4, 99)).toBe(4);
   });
 });
 
-describe("핸들 = 포인터 · 핸들은 값의 절반 위치 (2026-09-26 사용자 규칙)", () => {
-  const bands = buildSpacingBands({ ownerBounds: owner, border, padding, gap: null });
-  // 핸들은 띠 중앙 (값/2) 에 고정 — 핸들이 포인터와 같은 자리에 있도록 값 변화량을 정한다.
-  //   rate = 값 +1 당 핸들 중심 이동 (조절 축 +방향). delta = 포인터 이동 / rate.
-  const center = (b: { rect: { x: number; y: number; width: number; height: number }; axis: "x" | "y" }) =>
-    b.axis === "y" ? b.rect.y + b.rect.height / 2 : b.rect.x + b.rect.width / 2;
-
-  it("한 변: 핸들은 값의 절반만 움직인다 → rate ±0.5 → 포인터 10 = 값 20", () => {
-    const top = bands.find((b) => b.id === "padding:top")!;
-    expect(estimateSpacingHandleRate(top, { sides: ["top"] })).toBe(0.5);
-    expect(spacingDeltaForPointer(top, 10, 0.5)).toBe(20);
-    const right = bands.find((b) => b.id === "padding:right")!; // 기본 고정 폭 → sign −1
-    expect(estimateSpacingHandleRate(right, { sides: ["right"] })).toBe(-0.5);
-    expect(spacingDeltaForPointer(right, -10, -0.5)).toBe(20);
-  });
-
-  it("Alt 양쪽 · hug 축의 뒤쪽 변: 앞쪽 변 증가가 띠를 민다 → rate 1.5", () => {
-    const grown = buildSpacingBands({
-      ownerBounds: owner,
-      border,
-      padding,
-      paddingGrowth: { x: true, y: true },
-      gap: null,
-    });
-    const bottom = grown.find((b) => b.id === "padding:bottom")!;
-    const right = grown.find((b) => b.id === "padding:right")!;
-    expect(estimateSpacingHandleRate(bottom, { sides: ["top", "bottom"] })).toBe(1.5);
-    expect(estimateSpacingHandleRate(right, { sides: ["left", "right"] })).toBe(1.5);
-    expect(estimateSpacingHandleRate(bottom, { sides: ["bottom"] })).toBe(0.5);
-  });
-
-  it("gap k 번째: 앞의 gap 들이 같이 늘어 띠를 민다 → rate k + 0.5 (reverse 는 뒤에서부터 · 음수)", () => {
-    const gapBand = (gapIndex: number, sign: 1 | -1) =>
-      ({ kind: "gap", gapIndex, sign, axis: "y", side: null }) as never;
-    expect(estimateSpacingHandleRate(gapBand(0, 1), { gapCount: 3 })).toBe(0.5);
-    expect(estimateSpacingHandleRate(gapBand(2, 1), { gapCount: 3 })).toBe(2.5);
-    expect(estimateSpacingHandleRate(gapBand(2, -1), { gapCount: 3 })).toBe(-0.5);
-    expect(estimateSpacingHandleRate(gapBand(0, -1), { gapCount: 3 })).toBe(-2.5);
-  });
-
-  it("실측 rate: 시작 · 현재 띠의 핸들 중심 이동 / 값 변화 (|Δ값| < 2 는 미측정)", () => {
-    const start = bands.find((b) => b.id === "padding:top")!;
-    const at = (top: number) =>
-      buildSpacingBands({ ownerBounds: { ...owner, y: owner.y - 10 }, border, padding: { ...padding, top }, gap: null })
-        .find((b) => b.id === "padding:top")!;
-    // 부모 가운데 정렬처럼 박스가 위로 −10 밀린 채 값 +20: 중심 이동 = −10 + 10 = 0 → rate 0
-    expect(measureSpacingHandleRate(start, at(padding.top + 20))).toBe(0);
-    expect(measureSpacingHandleRate(start, at(padding.top + 1))).toBeNull();
-    const plain = buildSpacingBands({ ownerBounds: owner, border, padding: { ...padding, top: padding.top + 20 }, gap: null })
-      .find((b) => b.id === "padding:top")!;
-    expect(measureSpacingHandleRate(start, plain)).toBe(0.5);
-    expect(center(plain) - center(start)).toBe(10);
+describe("spacingHandlesVisible — 드래그 중 핸들 숨김 (2026-09-26, Figma 어법)", () => {
+  // 값은 포인터와 1:1 이고 핸들은 값의 절반 위치라 드래그 중에는 둘이 어긋난다 — Figma 는 드래그
+  //   시작에 핸들을 숨기고 끝나면 다시 보인다. 값 배지는 드래그 중에도 보인다 (렌더러).
+  it("idle · hover · press · 인라인 입력은 보이고 drag 중만 숨긴다", () => {
+    expect(spacingHandlesVisible(null)).toBe(true);
+    expect(spacingHandlesVisible("press")).toBe(true);
+    expect(spacingHandlesVisible("input")).toBe(true);
+    expect(spacingHandlesVisible("drag")).toBe(false);
   });
 });

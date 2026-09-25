@@ -293,73 +293,23 @@ export function hitTestSpacingBands(
 }
 
 /**
- * 핸들 = 포인터 (2026-09-26 사용자 규칙) — 핸들은 띠 중앙 (값의 절반) 에 고정되고, 드래그 중
- * 포인터와 같은 자리에 있어야 한다. 그래서 값 변화량은 포인터 이동이 아니라 "핸들을 포인터까지
- * 옮기는 값" 이다: delta = 포인터 이동 / rate, rate = 값 +1 당 핸들 중심 이동 (조절 축 +방향, scene).
- * 한 변이면 rate ±0.5 (값은 포인터의 2배). rate 는 추정값으로 시작해 드래그 중 실측
- * (`measureSpacingHandleRate`) 으로 바뀐다 — Alt 양쪽 · 여러 gap · 부모 가운데 정렬처럼 띠 자체가
- * 밀리는 배치를 식으로 다 담지 않는다.
+ * 핸들을 그리는가 — drag 중에는 숨긴다 (2026-09-26 사용자 확인한 Figma 어법). 값은 포인터와 1:1
+ * 이고 핸들은 값의 절반 위치 (띠 중앙) 라 드래그 중 둘이 어긋난다. 핸들 쪽을 옮기거나 (놓을 때 튄다)
+ * 값을 2배로 매핑하면 (조작감이 나쁘다) 둘 다 사용자에게 거절됐다. 드래그가 끝나면 다시 보인다.
  */
-export const SPACING_MIN_HANDLE_RATE = 0.1;
-
-function spacingHandleCenterOnAxis(band: SpacingBand): number {
-  return band.axis === "y"
-    ? band.rect.y + band.rect.height / 2
-    : band.rect.x + band.rect.width / 2;
+export function spacingHandlesVisible(
+  mode: "press" | "drag" | "input" | null,
+): boolean {
+  return mode !== "drag";
 }
 
-/** 시작 배치 추정 rate — 박스가 시작 (좌·상) 에 붙어 있다고 본다 */
-export function estimateSpacingHandleRate(
-  band: Pick<SpacingBand, "kind" | "gapIndex" | "sign" | "side">,
-  context: {
-    readonly sides?: readonly SpacingSide[];
-    readonly gapCount?: number;
-  },
+/** 띠 축 기준 pointer 이동량 → 값 delta (scene px, zoom 은 호출부가 나눈다) */
+export function spacingDeltaFromPointer(
+  band: SpacingBand,
+  dx: number,
+  dy: number,
 ): number {
-  if (band.kind === "gap") {
-    // gap 은 전부 같이 변한다 — 앞 (진행 방향 반대쪽) 의 gap 들이 이 띠를 민다
-    const index = band.gapIndex ?? 0;
-    const before =
-      band.sign > 0
-        ? index
-        : Math.max(0, (context.gapCount ?? index + 1) - 1 - index);
-    return band.sign * (before + 0.5);
-  }
-  // padding 띠 중앙 = 고정 가장자리 + 값/2. hug 축의 뒤쪽 변 (sign +1 인 bottom·right) 은 같이
-  // 늘어나는 앞쪽 변 (Alt 양쪽 · link) 이 띠를 통째로 민다.
-  const pushedBy =
-    band.side === "bottom" ? "top" : band.side === "right" ? "left" : null;
-  const pushed =
-    band.sign > 0 && pushedBy !== null && context.sides?.includes(pushedBy);
-  return band.sign * 0.5 + (pushed ? 1 : 0);
-}
-
-/** 드래그 중 실측 rate — 시작 띠와 현재 (확정값 반영) 띠의 핸들 중심 이동 / 값 변화. |Δ값| < 2 면 null */
-export function measureSpacingHandleRate(
-  start: SpacingBand,
-  current: SpacingBand,
-): number | null {
-  const deltaValue = current.value - start.value;
-  if (Math.abs(deltaValue) < 2) return null;
-  const rate =
-    (spacingHandleCenterOnAxis(current) - spacingHandleCenterOnAxis(start)) /
-    deltaValue;
-  return Number.isFinite(rate) ? rate : null;
-}
-
-/**
- * 조절 축 포인터 이동 (scene) → 값 delta. 핸들이 값에 따라 거의 안 움직이는 배치 (|rate| <
- * 최소 — 예: 가운데 정렬 부모 안 hug 박스의 top) 는 따라갈 수 없으므로 종전 1:1 (축·부호) 로.
- */
-export function spacingDeltaForPointer(
-  band: Pick<SpacingBand, "sign">,
-  pointerAlongAxis: number,
-  rate: number,
-): number {
-  if (Math.abs(rate) < SPACING_MIN_HANDLE_RATE) {
-    return pointerAlongAxis * band.sign;
-  }
-  return pointerAlongAxis / rate;
+  return (band.axis === "y" ? dy : dx) * band.sign;
 }
 
 /** 조절 축에 맞는 커서 */
