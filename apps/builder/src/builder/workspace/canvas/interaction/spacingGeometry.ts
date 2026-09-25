@@ -32,7 +32,7 @@ export interface SpacingBand {
   readonly rect: BoundingBox;
   /** 현재 값 (px) */
   readonly value: number;
-  /** 포인터를 +축 방향으로 끌 때 값이 커지면 +1 */
+  /** 포인터를 +축 방향으로 끌 때 값이 커지면 +1 — padding bottom·right 는 그 축 growth (hug/고정) 로 갈린다 */
   readonly sign: 1 | -1;
 }
 

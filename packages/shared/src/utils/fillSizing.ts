@@ -84,6 +84,11 @@ const AUTO_SIZE_VALUES = new Set([
   "max-content",
 ]);
 
+/** 크기 문자열이 내용 기반 (비었거나 auto · fit/min/max-content) 인가 — 명시 길이/% 가 아니다 */
+export function isAutoSizeValue(value: string): boolean {
+  return AUTO_SIZE_VALUES.has(value.trim());
+}
+
 /**
  * 노드가 그 축에 크기를 갖는가 — 명시 길이/% (auto·fit/min/max-content 제외) · 자기 Fill marker ·
  * legacy grow/stretch (부모 문맥이 있을 때) · body. 부모 Fill 의 `definite` 입력을 만드는 데 쓴다.
@@ -98,8 +103,7 @@ export function hasDefiniteAxisSize(
   if (isBodyType(node.type)) return true;
   const value = style[axis];
   if (typeof value === "number") return true;
-  if (typeof value === "string" && !AUTO_SIZE_VALUES.has(value.trim()))
-    return true;
+  if (typeof value === "string" && !isAutoSizeValue(value)) return true;
   const fill = resolveEffectiveFill(node, breakpoint)?.[axis];
   if (fill && isValidFillFactor(fill.factor)) return true;
   if (grandparent) {

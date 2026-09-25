@@ -10,7 +10,7 @@
  * 2. **hover** — window pointermove (RAF 스로틀) 로 띠 히트 → `setSpacingHover` (사선). resize 커서는
  *    핸들 위에서만 (2026-09-26 — 드래그 대상은 핸들뿐).
  * 3. **드래그** — BuilderCanvas 의 pointerdown capture 가 `resolveSpacingPointerDown` 을
- *    먼저 부른다. 히트면 gesture owner 를 spacing 으로 승격하고 `SpacingPresentationSession`
+ *    먼저 부른다. 핸들 히트면 gesture owner 를 spacing 으로 승격하고 `SpacingPresentationSession`
  *    을 연다. move 는 시작 zoom 기준 scene delta → `setDelta` (프레임당 publish 는 세션이
  *    runtime scheduler 로 병합), up 은 `finish` (receipt 확인 후 commit 1), Escape/
  *    pointercancel/blur/선택 변경은 cancel. 임계값 미만 pointerup 은 클릭 — 인라인
@@ -218,7 +218,7 @@ export function useSpacingInteraction({
     requestCanvasFrame();
   }, []);
 
-  /** 클릭 (임계값 미만) — 세션은 열린 채 인라인 입력으로 넘긴다 (상태표 "핸들·띠 클릭") */
+  /** 클릭 (임계값 미만) — 세션은 열린 채 인라인 입력으로 넘긴다 (상태표 "핸들 클릭") */
   const openInlineInput = useCallback(
     (drag: SpacingDragState) => {
       const container = containerRef.current;
@@ -272,8 +272,7 @@ export function useSpacingInteraction({
       }
       setSpacingActive(null);
       // 포인터가 멈춰 있어도 놓은 자리가 띠 위면 hover 사선 · 배지를 되살린다 (2026-09-26) —
-      //   hover 는 pointermove 에서만 판정돼 다음 이동까지 비어 있었다. commit 뒤 띠 기하로 한 번 더.
-      refreshHoverRef.current?.();
+      //   hover 는 pointermove 에서만 판정돼 다음 이동까지 비어 있었다. finish 는 commit 뒤 띠 기하로.
       if (outcome === "finish") {
         void drag.session.finish().then(() => {
           if (getActiveSpacingSession() === drag.session) {
@@ -285,6 +284,7 @@ export function useSpacingInteraction({
       } else {
         drag.session.cancel(reason);
         setActiveSpacingSession(null);
+        refreshHoverRef.current?.();
       }
       requestCanvasFrame();
     },

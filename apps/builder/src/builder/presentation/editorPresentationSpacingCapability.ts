@@ -27,6 +27,7 @@
 import {
   containerTypeSet,
   getResponsiveValueWithCascade,
+  isAutoSizeValue,
   isBodyType,
   type BreakpointName,
   type ElementResponsiveConfig,
@@ -281,18 +282,9 @@ function hasAutoMargin(
   return keys.some((key) => style[key] === "auto") || style.margin === "auto";
 }
 
-const INTRINSIC_SIZE_KEYWORDS: ReadonlySet<string> = new Set([
-  "auto",
-  "fit-content",
-  "max-content",
-  "min-content",
-]);
-
 function isDefiniteSize(value: unknown): boolean {
   if (typeof value === "number") return Number.isFinite(value);
-  if (typeof value !== "string") return false;
-  const trimmed = value.trim();
-  return trimmed !== "" && !INTRINSIC_SIZE_KEYWORDS.has(trimmed);
+  return typeof value === "string" && !isAutoSizeValue(value);
 }
 
 /**
@@ -567,7 +559,6 @@ export function resolveSpacingCapability(
     ancestorEngineStyles.push(readPersistentEngineStyle(rootKey, cursor));
     cursor = state.elementsMap.get(cursor)?.parent_id ?? null;
   }
-  const storeChildren = state.childrenMap.get(target.nodeId) ?? [];
   const structure = resolveSpacingOwnerStructure({
     node,
     lookupNode: (id) =>
@@ -575,18 +566,21 @@ export function resolveSpacingCapability(
         kind: "canonical-node",
         nodeId: id,
       }),
-    storeChildIds: storeChildren.map((child) => child.id),
+    storeChildIds: (state.childrenMap.get(target.nodeId) ?? []).map(
+      (child) => child.id,
+    ),
     layoutChildIds:
       node.type === "ref"
         ? (getSharedFilteredChildrenMap()?.get(target.nodeId) ?? null)
         : null,
   });
+  // instance 의 synthetic 자식은 store 에 없다 → raw style 없음
   const children = structure.childIds.map((id) => {
-    const storeChild = storeChildren.find((child) => child.id === id);
+    const style = state.elementsMap.get(id)?.props?.style;
     return {
       id,
       engineStyle: readPersistentEngineStyle(rootKey, id),
-      rawStyle: isRecord(storeChild?.props?.style) ? storeChild.props.style : {},
+      rawStyle: isRecord(style) ? style : {},
     };
   });
   const props = isRecord(element.props) ? element.props : {};
