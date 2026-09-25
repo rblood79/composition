@@ -384,6 +384,13 @@ const koKR: TranslationKeys = {
     systemOriginLocked:
       "Components 페이지의 기본 컴포넌트는 분리할 수 없습니다",
   },
+  operation: {
+    bodyLocked: "페이지 body 에는 이 작업을 할 수 없습니다",
+    systemOriginLocked:
+      "Components 페이지의 기본 컴포넌트는 삭제하거나 풀 수 없습니다",
+    templateAnchorLocked: "목록의 항목 템플릿은 삭제할 수 없습니다",
+    instanceChildLocked: "인스턴스 안 요소는 원본에서 편집합니다",
+  },
   history: {
     title: "작업 내역",
     toolbarLabel: "작업 내역 도구",
@@ -2325,6 +2332,13 @@ const enUS: TranslationKeys = {
     detachComponent: "Detach component",
     systemOriginLocked:
       "Built-in components on the Components page can't be detached",
+  },
+  operation: {
+    bodyLocked: "This can't be done to the page body",
+    systemOriginLocked:
+      "Built-in components on the Components page can't be deleted or ungrouped",
+    templateAnchorLocked: "A list's item template can't be deleted",
+    instanceChildLocked: "Edit elements inside an instance on its component",
   },
   history: {
     title: "History",

@@ -224,6 +224,12 @@ export interface TranslationKeys {
     detachComponent: string;
     systemOriginLocked: string;
   };
+  operation: {
+    bodyLocked: string;
+    systemOriginLocked: string;
+    templateAnchorLocked: string;
+    instanceChildLocked: string;
+  };
   history: {
     title: string;
     toolbarLabel: string;
