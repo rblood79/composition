@@ -890,7 +890,7 @@ const koKR: TranslationKeys = {
     canonicalHeading:
       "## canonical 1차 필드 (create_element / update_element 의 canonical 인자)",
     canonicalBody:
-      '- clip / placeholder: type "frame" 에서만 유효합니다.\n- slot: false 또는 삽입 가능한 reusable component id 배열.\n- reusable: 재사용 원본 표시. frame 에 켜면 페이지 요소 목록에서 빠지고 layout 정의가 되므로,\n  화면에 보이는 컨테이너를 만들 때는 켜지 마세요.',
+      '- clip / placeholder: type "frame" 에서만 유효합니다.\n- slot: false 또는 삽입 가능한 reusable component id 배열.\n- reusable: 재사용 원본 (컴포넌트) 표시. 페이지에 그대로 보이고, 그 안의 구조 변경은\n  모든 instance 에 반영됩니다. 한 번만 쓰는 컨테이너에는 켜지 마세요.',
     bindingHeading: "## 데이터 바인딩 (bind_collection)",
     bindingBody:
       "ListBox / GridList / Table 같은 collection 컴포넌트에 데이터를 연결합니다.\nsource 는 static (config.data 배열) / api (config.baseUrl + endpoint).\n데이터 소스 자체를 만들지는 않습니다 — 이미 있는 데이터에 요소를 잇습니다.",
@@ -1012,7 +1012,7 @@ const koKR: TranslationKeys = {
     placeholder: "빈 frame placeholder UI 표시 (frame 전용).",
     slot: "slot 선언. false = 비활성, 문자열 배열 = 삽입 가능한 reusable component id 목록.",
     reusable:
-      "이 노드를 재사용 가능한 원본으로 표시. frame 에 켜면 페이지 요소 목록에서 빠지고 layout 정의가 된다 — 페이지에 보이는 컨테이너를 만들 때는 켜지 말 것.",
+      "이 노드를 재사용 가능한 원본 (컴포넌트) 으로 표시. 페이지에 그대로 보이고, 그 안의 구조 변경은 모든 instance 에 반영된다 — 한 번만 쓰는 컨테이너에는 켜지 말 것.",
     updateElement:
       "기존 요소의 속성이나 스타일을 수정합니다. props 와 styles 는 기존 값에 병합됩니다 (주지 않은 키는 유지). fills 는 주어지면 배열 전체가 교체됩니다. 요소의 type 은 바꿀 수 없습니다 — 다른 컴포넌트가 필요하면 delete_element 뒤 create_element 를 쓰세요.",
     updateProps:
@@ -2843,7 +2843,7 @@ const enUS: TranslationKeys = {
     canonicalHeading:
       "## Canonical first-class fields (the canonical argument of create_element / update_element)",
     canonicalBody:
-      '- clip / placeholder: valid only on type "frame".\n- slot: false, or an array of reusable component ids that may be inserted.\n- reusable: marks a reuse origin. Turning it on for a frame removes it from the page\'s element\n  list and makes it a layout definition, so leave it off for containers meant to be visible.',
+      '- clip / placeholder: valid only on type "frame".\n- slot: false, or an array of reusable component ids that may be inserted.\n- reusable: marks a reuse origin (component). It stays visible on the page, and structural changes\n  inside it reach every instance. Leave it off for one-off containers.',
     bindingHeading: "## Data binding (bind_collection)",
     bindingBody:
       "Connects data to a collection component such as ListBox, GridList or Table.\nsource is static (a config.data array) or api (config.baseUrl + endpoint).\nIt does not create the data source itself — it wires an element to data that already exists.",
@@ -2967,7 +2967,7 @@ const enUS: TranslationKeys = {
     placeholder: "Shows the empty-frame placeholder UI (frames only).",
     slot: "Slot declaration. false disables it; a string array lists reusable component ids that may be inserted.",
     reusable:
-      "Marks this node as a reuse origin. On a frame it drops out of the page element list and becomes a layout definition — leave it off for containers meant to be visible.",
+      "Marks this node as a reuse origin (component). It stays visible on the page, and structural changes inside it reach every instance — leave it off for one-off containers.",
     updateElement:
       "Updates the props or styles of an existing element. props and styles are merged into the current values (keys you omit are kept); fills, when given, replace the whole array. The element's type cannot be changed — use delete_element then create_element for a different component.",
     updateProps:

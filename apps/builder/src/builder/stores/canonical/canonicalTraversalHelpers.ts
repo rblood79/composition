@@ -183,7 +183,15 @@ export function getCanonicalProjectionScope(
     return { pageId: node.id, layoutId: null };
   }
 
-  if (node.type === "frame" && node.reusable === true) {
+  // 재사용 레이아웃은 문서 최상위 reusable frame 이다 (레이아웃 조회는 모두 `doc.children` 만 본다).
+  //   페이지 · 레이아웃 안의 reusable frame 은 사용자가 만든 컴포넌트 origin 이라 바깥 scope 를 잇는다 —
+  //   레이아웃 scope 로 바꾸면 `page_id` 가 null 이 되어 캔버스 페이지 투영에서 사라진다.
+  if (
+    node.type === "frame" &&
+    node.reusable === true &&
+    scope.pageId === null &&
+    scope.layoutId === null
+  ) {
     return {
       pageId: null,
       layoutId:

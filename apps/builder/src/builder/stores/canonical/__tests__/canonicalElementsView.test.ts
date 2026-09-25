@@ -301,6 +301,83 @@ describe("canonicalDocumentToElements", () => {
     ]);
   });
 
+  it("페이지 안 reusable frame (사용자가 만든 컴포넌트 origin) 은 페이지 scope 를 유지한다 — 레이아웃이 아니다", () => {
+    const doc = makeDoc([
+      {
+        id: "page-1",
+        type: "frame",
+        metadata: { type: "legacy-page", pageId: "page-1" },
+        children: [
+          {
+            id: "body-1",
+            type: "body" as CanonicalNode["type"],
+            props: {},
+            children: [
+              {
+                id: "card-origin",
+                type: "frame",
+                reusable: true,
+                props: {},
+                children: [{ id: "card-text", type: "Text", props: {} }],
+              } as CanonicalNode,
+            ],
+          },
+        ],
+      },
+    ]);
+
+    const elements = canonicalDocumentToElements(doc);
+
+    expect(elements).toEqual([
+      expect.objectContaining({ id: "body-1", page_id: "page-1" }),
+      expect.objectContaining({
+        id: "card-origin",
+        page_id: "page-1",
+        layout_id: null,
+      }),
+      expect.objectContaining({
+        id: "card-text",
+        page_id: "page-1",
+        layout_id: null,
+      }),
+    ]);
+  });
+
+  it("레이아웃 안에 중첩된 reusable frame 은 바깥 레이아웃 scope 를 유지한다", () => {
+    const doc = makeDoc([
+      {
+        id: "layout-frame-a",
+        type: "frame",
+        reusable: true,
+        metadata: { type: "legacy-layout", layoutId: "frame-a" },
+        children: [
+          {
+            id: "body-frame-a",
+            type: "body" as CanonicalNode["type"],
+            props: {},
+            children: [
+              {
+                id: "nested-origin",
+                type: "frame",
+                reusable: true,
+                props: {},
+              } as CanonicalNode,
+            ],
+          },
+        ],
+      },
+    ]);
+
+    expect(canonicalDocumentToElements(doc)).toEqual([
+      expect.objectContaining({ id: "body-frame-a", layout_id: "frame-a" }),
+      expect.objectContaining({
+        id: "nested-origin",
+        page_id: null,
+        layout_id: "frame-a",
+      }),
+    ]);
+  });
+
   it("restores composition extension fields", () => {
     const extension: CompositionExtension = {
       events: [{ kind: "click", actionRef: "action-1" }],

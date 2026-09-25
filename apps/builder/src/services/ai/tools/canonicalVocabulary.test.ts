@@ -435,12 +435,12 @@ describe("도구 실행 — canonical patch 가 문서에 반영된다", () => {
   });
 });
 
-describe("reusable: true 의 구조적 부작용 (Phase 3 실측)", () => {
+describe("reusable: true 는 페이지 scope 를 유지한다 (2026-09-25 — ADR-134 Phase 3 실측 부작용 수리)", () => {
   beforeEach(() => {
     seed();
   });
 
-  it("frame 에 reusable 을 켜면 page scope 를 벗어나 layout 정의가 된다", async () => {
+  it("페이지 안 frame 에 reusable 을 켜도 페이지 요소 목록에 남는다 — 레이아웃이 아니다", async () => {
     const before = await searchElementsTool.execute({}, tt);
     expect(
       (before.data as { elements: Array<{ id: string }> }).elements.map(
@@ -461,8 +461,7 @@ describe("reusable: true 의 구조적 부작용 (Phase 3 실측)", () => {
       (after.data as { elements: Array<{ id: string }> }).elements.map(
         (e) => e.id,
       ),
-    ).not.toContain("seeded-frame");
-    // 노드 자체는 살아 있다 — page 목록에서만 빠진다
+    ).toContain("seeded-frame");
     expect(readCanonicalFields("seeded-frame")).toMatchObject({
       reusable: true,
     });

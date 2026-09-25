@@ -28,11 +28,11 @@ export interface CanonicalFieldPatch {
   /** slot 선언: `false` (비활성) 또는 삽입 가능한 reusable component id 배열. */
   slot?: false | string[];
   /**
-   * 이 노드를 재사용 가능한 원본으로 표시.
+   * 이 노드를 재사용 가능한 원본 (컴포넌트) 으로 표시.
    *
-   * **구조적 부작용 (Phase 3 실측)**: `type: "frame"` 에 켜면 그 노드는 page scope 를
-   * 벗어나 layout 정의가 된다 (`canonicalElementsView.getNodeScope`) — 페이지 요소
-   * 목록·트리에서 사라진다. 노드가 지워지는 것은 아니다.
+   * 페이지 안의 reusable frame 은 페이지 scope 를 유지한다 — 레이아웃 scope 는 문서 최상위
+   * reusable frame 만이다 (`getCanonicalProjectionScope`). ADR-134 Phase 3 이 실측한 "page
+   * scope 를 벗어나 사라진다" 는 이 규칙이 깊이를 가리지 않던 결함이었다 (2026-09-25 수리).
    */
   reusable?: boolean;
 }

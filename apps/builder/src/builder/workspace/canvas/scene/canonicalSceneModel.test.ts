@@ -109,6 +109,42 @@ describe("buildCanonicalSceneModel — ADR-127 Phase 2 (canonical-native)", () =
     expect(body?.page_id).toBeNull();
   });
 
+  it("페이지 안 reusable frame (사용자 컴포넌트 origin) 은 페이지 scope — 레이아웃으로 빠지지 않는다", () => {
+    const document: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: "body-1",
+              type: "body",
+              props: {},
+              children: [
+                {
+                  id: "card-origin",
+                  type: "frame",
+                  reusable: true,
+                  props: {},
+                  children: [{ id: "card-text", type: "Text", props: {} }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument;
+
+    const model = buildCanonicalSceneModel(document);
+    for (const id of ["card-origin", "card-text"]) {
+      const node = model.sceneNodesMap.get(id);
+      expect(node?.pageId, id).toBe("page-1");
+      expect(node?.layoutId ?? null, id).toBeNull();
+    }
+  });
+
   it("does not route Skia scene model through canonicalElementSnapshot helper", async () => {
     const source = await readFile(
       resolve(__dirname, "canonicalSceneModel.ts"),

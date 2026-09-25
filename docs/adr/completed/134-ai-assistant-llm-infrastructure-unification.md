@@ -48,7 +48,7 @@ Implemented 판정과 당시 실측 기록은 보존한다.
 - **AI 가 `type: "frame"` 요소를 만든다** — 로컬 mock endpoint 를 물린 AI 패널에 "프레임 하나 만들어줘" 입력 → `create_element {"type":"frame","canonical":{"clip":true,"placeholder":true,"slot":["card"]}}` tool call → 문서 요소 **71 → 72**, 생성된 노드에서 `readCanonicalFields` 가 `{clip:true, placeholder:true, slot:["card"]}` 를 그대로 돌려준다. endpoint 로그로 도구 정의에 canonical 어휘가 실려 나간 것도 확인 (`canonicalVocab=true`).
 - **정리** — undo 1회로 72 → 71 복귀, 프로파일 설정 제거, mock 종료.
 - 실측으로 드러난 구조 사실 2개 (본문 반영):
-  - **`reusable: true` 는 frame 을 page scope 밖으로 옮긴다** (`canonicalElementsView.getNodeScope`) — 페이지 요소 목록·트리에서 사라진다 (노드는 살아 있다). 도구 설명에 경고를 넣었다.
+  - **`reusable: true` 는 frame 을 page scope 밖으로 옮긴다** (`canonicalElementsView.getNodeScope`) — 페이지 요소 목록·트리에서 사라진다 (노드는 살아 있다). 도구 설명에 경고를 넣었다. **2026-09-25 수리**: 레이아웃 scope 를 문서 최상위 reusable frame 으로 한정 — 페이지 안 reusable frame (사용자 컴포넌트 origin) 은 페이지에 남는다. 도구 설명 경고는 제거.
   - **`componentSemantics` 라는 1차 필드는 없다** — `adapters/canonical/componentSemanticsMirror.ts` 의 legacy mirror metadata 가 quarantine 으로 남아 있을 뿐이다. 컴포넌트 의미의 1차 필드는 `reusable` / `ref` / `descendants` 이고, 이 Phase 가 연 것은 `reusable` 하나다 (`ref` 인스턴스 생성은 ADR-161 표면).
 
 **2026-08-28 (3차) · Chrome MCP** — Phase 4 G4.

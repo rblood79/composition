@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [컴포넌트로 만든 frame 이 캔버스에서 사라지던 문제] - 2026-09-25
+
+### Fixed
+
+- **페이지의 frame 을 컴포넌트로 만들면 (메뉴 "Create component" · AI `canonical.reusable`) 캔버스와 Layers 에서 사라지던 문제** — 문서에는 남아 있었지만 페이지 요소로 투영되지 않았다. 원인은 투영 scope 규칙이 깊이와 상관없이 `reusable` frame 을 재사용 레이아웃으로 본 것. 레이아웃은 문서 최상위 reusable frame 뿐이므로 (레이아웃 조회는 전부 최상위만 본다) 페이지 · 레이아웃 안의 reusable frame 은 바깥 scope 를 잇게 했다. 새로고침 뒤에도 원본 · instance 가 같은 페이지에 그려진다.
+  - 위치: `stores/canonical/canonicalTraversalHelpers.ts` `getCanonicalProjectionScope` · `workspace/canvas/scene/canvasSceneNode.ts` (같은 규칙의 씬 사본)
+  - AI 도구 설명의 "frame 에 켜면 페이지에서 빠진다" 경고를 새 동작으로 바꿨다 (ADR-134 Phase 3 이 이 결함을 부작용으로 기록해 두었다)
+  - 범위 밖: HTML 내보내기 인라인 스크립트 (`export.utils.ts`) 는 여전히 reusable 자식을 건너뛴다 — publish 는 빌더 안정화 뒤 착수
+
 ## [원본 안 드래그 · 패널 추가도 영향 확인 — ADR-236 E4 후속] - 2026-09-25
 
 ### Changed

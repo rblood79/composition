@@ -457,7 +457,14 @@ function getNodeScope(
     };
   }
 
-  if (node.type === "frame" && node.reusable === true) {
+  // 재사용 레이아웃은 문서 최상위 reusable frame 뿐이다 — 페이지 · 레이아웃 안의 reusable frame 은
+  //   사용자 컴포넌트 origin 이라 바깥 scope 를 잇는다 (`getCanonicalProjectionScope` 와 같은 규칙).
+  if (
+    node.type === "frame" &&
+    node.reusable === true &&
+    scope.pageId === null &&
+    scope.layoutId === null
+  ) {
     const metadataLayoutId = metadata?.layoutId;
     const layoutId =
       normalizeFrameLayoutId(
