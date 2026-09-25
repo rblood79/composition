@@ -112,6 +112,7 @@ const browser = await chromium.launch({ headless: false });
 const context = await browser.newContext({
   storageState: resolve("apps/builder/scripts/.auth-session.json"),
   viewport: { width: 1440, height: 900 },
+  permissions: ["clipboard-read", "clipboard-write"],
 });
 const page = await context.newPage();
 const errors = [];
@@ -252,6 +253,83 @@ try {
   const controlId = await addFromPalette(page, "frame", bodyId);
   await setPanel(page, "navigator", true);
   report.checks.C_control = { controlId, ...(await layersCheck(controlId)) };
+
+  // ── D. Layers — Button 을 ListBox 안으로 끌면 드롭이 거부된다 (E7 — 전에는 드롭 뒤 store 가 조용히 거부) ──
+  await setPanel(page, "navigator", false);
+  const listBoxId = await addFromPalette(page, "ListBox", bodyId);
+  const buttonId = await addFromPalette(page, "Button", bodyId);
+  await setPanel(page, "navigator", true);
+  const parentOf = (id) =>
+    storeRead(
+      page,
+      (elementId) =>
+        window.__composition_STORE__.getState().elementsMap.get(elementId)
+          ?.parent_id ?? null,
+      id,
+    );
+  const buttonRow = page.locator(`[data-key="${buttonId}"]`).first();
+  const listBoxRow = page.locator(`[data-key="${listBoxId}"]`).first();
+  await buttonRow.waitFor({ state: "visible", timeout: 15000 });
+  await listBoxRow.waitFor({ state: "visible", timeout: 15000 });
+  const beforeParent = await parentOf(buttonId);
+  await buttonRow
+    .locator('[slot="drag"]')
+    .dragTo(listBoxRow, { targetPosition: { x: 60, y: 12 }, force: true });
+  await page.waitForTimeout(1000);
+  await page.screenshot({ path: `${OUT}/D-layers-drop.png` });
+  report.checks.D_layersNestingDrop = {
+    listBoxId,
+    buttonId,
+    beforeParent,
+    afterParent: await parentOf(buttonId),
+  };
+
+  // 대조군 — frame 행 위로 끌면 옮겨진다.
+  await buttonRow
+    .locator('[slot="drag"]')
+    .dragTo(page.locator(`[data-key="${controlId}"]`).first(), {
+      targetPosition: { x: 60, y: 12 },
+      force: true,
+    });
+  await page.waitForTimeout(1000);
+  report.checks.D_control = { afterParent: await parentOf(buttonId) };
+
+  // ── E. 붙여넣기 — Button instance 를 대상으로 고르면 가까운 유효 부모로 옮기고 알린다 (E7) ──
+  await clearToasts(page);
+  await focusCanvas(page);
+  await storeRead(
+    page,
+    (id) => window.__composition_STORE__.getState().setSelectedElement(id),
+    buttonId,
+  );
+  await page.keyboard.press("Meta+c");
+  await page.waitForTimeout(500);
+  const beforeIds = await storeRead(page, () =>
+    window.__composition_STORE__.getState().elements.map((e) => e.id),
+  );
+  await storeRead(
+    page,
+    (id) => window.__composition_STORE__.getState().setSelectedElement(id),
+    buttonId,
+  );
+  await focusCanvas(page);
+  await page.keyboard.press("Meta+v");
+  await page.waitForTimeout(1500);
+  const pasted = await storeRead(
+    page,
+    (before) =>
+      window.__composition_STORE__
+        .getState()
+        .elements.filter((e) => !before.includes(e.id))
+        .map((e) => ({ id: e.id, type: e.type, parent: e.parent_id })),
+    beforeIds,
+  );
+  report.checks.E_pasteIntoButtonInstance = {
+    target: buttonId,
+    targetParent: await parentOf(buttonId),
+    pastedRoots: pasted.filter((e) => !pasted.some((o) => o.id === e.parent)),
+    toasts: await toastTexts(page),
+  };
 } finally {
   await writeFile(`${OUT}/report.json`, JSON.stringify(report, null, 2));
   console.log(JSON.stringify(report, null, 2));
