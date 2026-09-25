@@ -221,6 +221,31 @@ try {
     report.checks.C_ButtonInlineFlex = { frameId, b1, b2, before, after, node, alignment };
     await page.screenshot({ path: `${OUT}/C-button-inline-flex.png` });
   }
+  // D. tablet — Responsive 「+」 메뉴: TextField (라벨 위치 요소) 에는 Direction 이 없고 frame 에는 있다.
+  if (SECTIONS.includes("D")) {
+    const tf = await addFromPalette(page, "TextField", bodyId);
+    const fr = await addFromPalette(page, "frame", bodyId);
+    await page.evaluate(() => window.__composition_STORE__.getState().setActiveBreakpoint("tablet"));
+    await page.waitForTimeout(900);
+    const menuItems = async (id) => {
+      await select(page, id);
+      await page.locator(".styles-panel-groups [role='tab']").nth(3).click();
+      await page.waitForTimeout(700);
+      await page.locator("button[aria-label='Add Tablet override']").click();
+      await page.waitForTimeout(500);
+      const items = await page.locator("[role='menuitem']").allInnerTexts();
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(300);
+      return items.map((t) => t.trim());
+    };
+    const textField = await menuItems(tf);
+    const frame = await menuItems(fr);
+    report.checks.D_TabletDirectionMenu = {
+      textFieldHasDirection: textField.includes("Direction"),
+      frameHasDirection: frame.includes("Direction"),
+      textField,
+    };
+  }
 } finally {
   await writeFile(`${OUT}/report.json`, JSON.stringify(report, null, 2));
   console.log(JSON.stringify(report, null, 2));

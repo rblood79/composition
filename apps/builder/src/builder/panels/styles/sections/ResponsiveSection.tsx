@@ -34,9 +34,12 @@ import { PropertyRowMenu, PropertySection } from "../../../components";
 import { SwatchIconButton } from "../../../components/ui";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import {
+  useStore,
   useUpdateResponsiveVisibility,
   useSetResponsiveStyleOverrideEnabled,
 } from "../../../stores";
+import { useElementStyleContext } from "../hooks/useElementStyleContext";
+import { resolveDirectionDrivenProp } from "../utils/orientationDrivenTags";
 import { BREAKPOINT_ORDER } from "../../../../types/builder/responsive.types";
 import { iconProps, iconSmall } from "../../../../utils/ui/uiConstants";
 import { useResponsiveOverrides } from "../hooks/useResponsiveOverrides";
@@ -90,6 +93,23 @@ const PRIMARY_ELIGIBLE: {
     longhands: ["marginTop", "marginRight", "marginBottom", "marginLeft"],
   },
 ];
+
+/**
+ * 「+」 메뉴가 추가할 수 있는 override 키 — 이미 켠 속성은 빼고, 라벨 위치 · orientation 으로 방향이
+ * 정해지는 요소 (orientationDrivenTags) 는 Direction 도 뺀다. 그 요소의 방향 정본은 tier 축이 없는 prop
+ * 이라, tier flexDirection 은 켜는 순간 seed 기본값 (row) 으로 라벨을 옆으로 옮기고 이후 Direction 토글
+ * (전역 prop) 이 그 tier 에 닿지 않았다. 이미 있는 tier 값은 아래 행에서 지울 수 있다.
+ */
+export function addableOverrideKeys(
+  overridden: ReadonlySet<string>,
+  directionDriven: boolean,
+): string[] {
+  return PRIMARY_ELIGIBLE.filter(
+    (p) =>
+      !(directionDriven && p.key === "flexDirection") &&
+      !p.longhands.some((lh) => overridden.has(lh)),
+  ).map((p) => p.key);
+}
 
 const PRIMARY_COVERED_KEYS = new Set(
   PRIMARY_ELIGIBLE.flatMap((p) => p.longhands),
@@ -166,13 +186,17 @@ export const ResponsiveSection = memo(function ResponsiveSection() {
     return [...primaries, ...uncovered];
   }, [activeOverriddenProps, activeOverrideValues, overriddenSet]);
 
-  const availableToAdd = useMemo(
-    () =>
-      PRIMARY_ELIGIBLE.filter(
-        (p) => !p.longhands.some((lh) => overriddenSet.has(lh)),
-      ).map((p) => ({ id: p.key, label: localize(p.label) })),
-    [overriddenSet, i18n],
-  );
+  const selectedId = useStore((state) => state.selectedElementId);
+  const directionDriven =
+    resolveDirectionDrivenProp(useElementStyleContext(selectedId).type) !==
+    undefined;
+  const availableToAdd = useMemo(() => {
+    const keys = new Set(addableOverrideKeys(overriddenSet, directionDriven));
+    return PRIMARY_ELIGIBLE.filter((p) => keys.has(p.key)).map((p) => ({
+      id: p.key,
+      label: localize(p.label),
+    }));
+  }, [overriddenSet, directionDriven, i18n]);
 
   const handleAddOverride = useCallback(
     (key: string) => {

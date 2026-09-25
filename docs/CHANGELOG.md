@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Styles 패널 — tablet · mobile 에서 라벨 위치 요소의 Direction override] - 2026-09-25
+
+### Fixed
+
+- **tablet · mobile 에서 TextField 같은 라벨 위치 요소에 Direction override 를 켜는 순간 라벨이 옆으로 가던 문제** — override 는 현재 값을 복사해 켜는데, 이 요소들의 방향은 인라인이 아니라 라벨 위치 속성에 있어 기본값 row 가 들어갔다. 그 뒤 Direction 을 눌러도 기기 구분이 없는 라벨 위치만 바뀌어 desktop 이 바뀌고 tablet 은 그대로였다. 이제 이 요소들의 Responsive 「+」 메뉴에는 Direction 이 없다 (이미 있는 값은 목록에서 지울 수 있다).
+  - 위치: `panels/styles/sections/ResponsiveSection.tsx` (`addableOverrideKeys`)
+
 ## [Styles 패널 — Button 등 inline-flex 요소의 정렬 편집] - 2026-09-25
 
 ### Fixed
