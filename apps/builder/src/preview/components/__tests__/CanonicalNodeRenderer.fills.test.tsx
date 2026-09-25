@@ -1,7 +1,11 @@
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import type { ResolvedNode } from "@composition/shared";
+import {
+  setAssetUrlResolver,
+  type AssetUrlResolver,
+  type ResolvedNode,
+} from "@composition/shared";
 import { FillType } from "../../../types/builder/fill.types";
 
 import type { RenderContext } from "../../types/index";
@@ -27,6 +31,7 @@ const ctx = {} as unknown as RenderContext;
 const FRAME_TYPE = "frame" as ResolvedNode["type"];
 
 afterEach(() => {
+  setAssetUrlResolver(null);
   cleanup();
   getRuntimeStore().setState({ editorPresentationOverrides: {} });
 });
@@ -524,5 +529,60 @@ describe("CanonicalNodeRenderer — canonical fills 배경 렌더", () => {
         },
       ]),
     ).toBe(base);
+  });
+
+  describe("ADR-235 — asset: image fill (Preview DOM leg, G1)", () => {
+    const REF = `asset:sha256-${"a".repeat(64)}`;
+    const imageNode = (id: string, mode: "fill" | "fit" | "stretch") =>
+      ({
+        id,
+        type: FRAME_TYPE,
+        props: { style: { display: "block" } },
+        fills: [
+          {
+            id: `${id}-img`,
+            type: "image",
+            enabled: true,
+            opacity: 1,
+            blendMode: "normal",
+            url: REF,
+            mode,
+          },
+        ],
+      }) as unknown as ResolvedNode;
+    const resolver = (ready: boolean): AssetUrlResolver => ({
+      resolveSync: (ref) => (ready && ref === REF ? "blob:http://x/img" : null),
+      ensure: async () => {},
+      subscribe: () => () => {},
+    });
+
+    it.each([
+      ["fill", "cover"],
+      ["fit", "contain"],
+      ["stretch", "100% 100%"],
+    ] as const)(
+      "준비된 참조 (%s) → blob: 층 · 중앙 · 반복 없음 · %s",
+      (mode, size) => {
+        setAssetUrlResolver(resolver(true));
+        const { container } = renderNode(imageNode(`img-${mode}`, mode));
+        const el = container.querySelector(
+          `[data-canonical-id='img-${mode}']`,
+        ) as HTMLElement;
+        expect(el.style.backgroundImage).toBe('url("blob:http://x/img")');
+        expect(el.style.backgroundSize).toBe(size);
+        expect(el.style.backgroundPosition).toBe("center center");
+        expect(el.style.backgroundRepeat).toBe("no-repeat");
+      },
+    );
+
+    it("준비 전 참조 → 배경 없음 (asset: 문자열이 CSS 로 새지 않는다)", () => {
+      setAssetUrlResolver(resolver(false));
+      const { container } = renderNode(imageNode("img-pending", "fill"));
+      const el = container.querySelector(
+        "[data-canonical-id='img-pending']",
+      ) as HTMLElement;
+      expect(el.style.backgroundImage).toBe("");
+      expect(container.innerHTML).not.toContain("asset:");
+    });
   });
 });

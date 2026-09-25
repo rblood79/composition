@@ -11,6 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [로컬 저장 v2 Phase 1 — 자산 참조 읽기 · 자립 내보내기 · 캔버스 이미지 채우기] - 2026-09-26
+
+### Fixed
+
+- **캔버스가 이미지 채우기 (Fill → Image) 를 그리지 않던 문제를 고쳤다.** Skia 노드 빌더 두 곳이 그라디언트 · 메시만 채우기 층에 실어 이미지가 버려졌다 (Preview 는 그렸다). 맨 위 채우기가 이미지면 그 층이 캔버스 채우기가 되고, 아래 색 · 그라디언트는 그 밑에 깔린다.
+- **이미지 채우기의 배치를 캔버스와 Preview 가 같게 맞췄다.** Preview 는 좌상단 정렬 + 반복이라 fit 에서 이미지가 타일로 반복됐고, 캔버스는 여백에 가장자리 픽셀이 번졌다. 두 경로 모두 중앙 정렬 · 반복 없음 · 여백 투명이다.
+
+### Added
+
+- **자산 참조 (`asset:sha256-…`) 읽기.** 이미지 · 폰트 바이트를 IndexedDB `assets` store (DB 버전 23) 에 원본 그대로 두고 문서는 참조만 드는 저장 방식의 읽기 쪽이다 — Canvas · Preview · publish · 폰트 CSS · Skia 폰트가 같은 해석 함수로 참조를 푼다. 쓰기 (업로드가 참조를 만드는 것) 는 다음 단계에서 켜진다 — 지금 업로드는 종전처럼 dataURL 이다 (ADR-235 Phase 1).
+- **프로젝트 내보내기 (JSON) 는 항상 자립 파일이다.** 문서 · 폰트 · 데이터에 자산 참조가 있으면 바이트를 dataURL 로 되살려 넣고, 바이트가 없는 참조가 하나라도 있으면 내보내기를 실패로 알린다 (참조만 든 파일을 만들지 않는다).
+
+### Changed
+
+- 다른 탭이 새 DB 버전으로 업그레이드를 기다리면 경고를 남긴다 (편집 중인 탭의 연결은 닫지 않는다 — 미저장 편집 보호).
+  - 검증: 실제 builder (Playwright Chrome) — `asset:` 이미지 채우기 캔버스 픽셀 (fit 2:1 중앙) · 같은 바이트 2회 = 자산 1 · 바이트 없는 참조 요청 0 · 사용자 폰트 (document.fonts · Skia · CSS `blob:`) · 내보내기 → 빈 브라우저 프로필 가져오기 픽셀 bbox 동일 (9/9). Preview 렌더러는 unit (fill · fit · stretch).
+
 ## [캔버스 — instance 요소의 padding · gap 드래그] - 2026-09-26
 
 ### Fixed

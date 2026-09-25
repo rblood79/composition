@@ -1,4 +1,9 @@
-import { CollectionDataProvider, createCollectionSnapshotServices, type DataTableDefinition, type ApiEndpointDefinition } from "@composition/shared";
+import {
+  CollectionDataProvider,
+  createCollectionSnapshotServices,
+  type DataTableDefinition,
+  type ApiEndpointDefinition,
+} from "@composition/shared";
 /**
  * Publish App
  *
@@ -15,6 +20,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import type { Element, Page } from "@composition/shared";
 import {
   deriveProjectRenderModelFromDocument,
+  ensureAssetRefs,
   loadProjectFromUrl,
   loadProjectFromFile,
   type ProjectExportData,
@@ -97,8 +103,8 @@ function ErrorDisplay({ error, errors, onRetry }: ErrorDisplayProps) {
       <h1>{t("loadTitle")}</h1>
       <div className="error-details">
         <p className="error-message">
-            {error.messageKey ? t(error.messageKey) : error.message}
-          </p>
+          {error.messageKey ? t(error.messageKey) : error.message}
+        </p>
         {error.field && (
           <p className="error-field">
             <strong>{t("loadFieldLabel")}</strong> {error.field}
@@ -212,12 +218,17 @@ function applyThemeVars(
     darkMode === "dark" ||
     (darkMode === "system" &&
       window.matchMedia("(prefers-color-scheme: dark)").matches);
-  document.documentElement.setAttribute("data-theme", isDark ? "dark" : "light");
+  document.documentElement.setAttribute(
+    "data-theme",
+    isDark ? "dark" : "light",
+  );
   if (base) {
     const apply = (el: HTMLElement) => {
       if (base.fontFamily) el.style.fontFamily = base.fontFamily;
-      if (typeof base.fontSize === "number") el.style.fontSize = `${base.fontSize}px`;
-      if (typeof base.lineHeight === "number") el.style.lineHeight = String(base.lineHeight);
+      if (typeof base.fontSize === "number")
+        el.style.fontSize = `${base.fontSize}px`;
+      if (typeof base.lineHeight === "number")
+        el.style.lineHeight = String(base.lineHeight);
     };
     apply(document.documentElement);
     if (document.body) apply(document.body);
@@ -302,7 +313,14 @@ export function App() {
   const t = usePublishStrings();
   usePublishDocumentLanguage();
   const [projectData, setProjectData] = useState<ProjectData | null>(null);
-  const collectionServices = useMemo(() => createCollectionSnapshotServices(projectData?.collections ?? [], projectData?.apiEndpoints ?? []), [projectData?.collections, projectData?.apiEndpoints]);
+  const collectionServices = useMemo(
+    () =>
+      createCollectionSnapshotServices(
+        projectData?.collections ?? [],
+        projectData?.apiEndpoints ?? [],
+      ),
+    [projectData?.collections, projectData?.apiEndpoints],
+  );
   const [loadingState, setLoadingState] = useState<LoadingState>("idle");
   const [loadFailure, setLoadFailure] = useState<LoadFailure | null>(null);
   const [warnings, setWarnings] = useState<ExportError[] | undefined>(
@@ -355,13 +373,17 @@ export function App() {
         document: data.document,
       };
 
-      // ADR-014 Phase D: fontRegistry → @font-face 주입
-      injectFontRegistryFromData(data.fontRegistry);
+      // ADR-235 — 문서 · 폰트의 `asset:` 참조를 먼저 준비한다. 렌더 중 해석은 동기
+      //   조회라 준비 전에 그리면 이미지 · 폰트가 빠진다. 없는 자산은 건너뛴다 (요청 0).
+      void ensureAssetRefs([data.document, data.fontRegistry]).finally(() => {
+        // ADR-014 Phase D: fontRegistry → @font-face 주입
+        injectFontRegistryFromData(data.fontRegistry);
 
-      setProjectData(projectData);
-      setWarnings(loadWarnings);
-      setLoadingState("loaded");
-      setLoadFailure(null);
+        setProjectData(projectData);
+        setWarnings(loadWarnings);
+        setLoadingState("loaded");
+        setLoadFailure(null);
+      });
     },
     [],
   );
@@ -421,7 +443,9 @@ export function App() {
       const previewData = sessionStorage.getItem("composition-preview-data");
       if (previewData) {
         try {
-          const parsed = JSON.parse(previewData) as Partial<ProjectExportData> & {
+          const parsed = JSON.parse(
+            previewData,
+          ) as Partial<ProjectExportData> & {
             themeConfig?: Parameters<typeof applyThemeConfig>[0];
             themeVars?: Parameters<typeof applyThemeVars>[0];
             themeBaseTypography?: Parameters<typeof applyThemeVars>[1];
@@ -588,56 +612,56 @@ export function App() {
   // (toast capability 를 위해 ToastProvider 가 바깥).
   return (
     <CollectionDataProvider services={collectionServices}>
-    <ToastProvider>
-      <RuntimeStateProvider
-        projectId={projectData.projectId}
-        variables={projectData.variables}
-        document={projectData.document}
-        currentPageId={currentPageId}
-      >
-      <InteractionRuntimeProvider
-        rules={projectData.events}
-        elements={projectData.elements}
-        pages={projectData.pages}
-        onNavigatePage={setCurrentPageId}
-      >
-        <div className="publish-app">
-          {/* 경고 표시 */}
-          {warnings && warnings.length > 0 && (
-            <div className="publish-warnings" role="status">
-              {warnings.map((w, i) => (
-                <div key={i} className="warning-item">
-                  ⚠️ {w.message}
+      <ToastProvider>
+        <RuntimeStateProvider
+          projectId={projectData.projectId}
+          variables={projectData.variables}
+          document={projectData.document}
+          currentPageId={currentPageId}
+        >
+          <InteractionRuntimeProvider
+            rules={projectData.events}
+            elements={projectData.elements}
+            pages={projectData.pages}
+            onNavigatePage={setCurrentPageId}
+          >
+            <div className="publish-app">
+              {/* 경고 표시 */}
+              {warnings && warnings.length > 0 && (
+                <div className="publish-warnings" role="status">
+                  {warnings.map((w, i) => (
+                    <div key={i} className="warning-item">
+                      ⚠️ {w.message}
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          )}
-
-          <div className="publish-layout">
-            {/* 페이지 네비게이션 */}
-            <PageNav
-              pages={projectData.pages}
-              currentPageId={currentPageId}
-              onPageChange={setCurrentPageId}
-            />
-
-            {/* 메인 콘텐츠 */}
-            <main className="publish-content">
-              {!hasCurrentElements ? (
-                <EmptyState message={t("emptyPage")} />
-              ) : (
-                <PageRenderer
-                  page={currentPage}
-                  elements={projectData.elements}
-                  className="publish-page"
-                />
               )}
-            </main>
-          </div>
-        </div>
-      </InteractionRuntimeProvider>
-      </RuntimeStateProvider>
-    </ToastProvider>
+
+              <div className="publish-layout">
+                {/* 페이지 네비게이션 */}
+                <PageNav
+                  pages={projectData.pages}
+                  currentPageId={currentPageId}
+                  onPageChange={setCurrentPageId}
+                />
+
+                {/* 메인 콘텐츠 */}
+                <main className="publish-content">
+                  {!hasCurrentElements ? (
+                    <EmptyState message={t("emptyPage")} />
+                  ) : (
+                    <PageRenderer
+                      page={currentPage}
+                      elements={projectData.elements}
+                      className="publish-page"
+                    />
+                  )}
+                </main>
+              </div>
+            </div>
+          </InteractionRuntimeProvider>
+        </RuntimeStateProvider>
+      </ToastProvider>
     </CollectionDataProvider>
   );
 }

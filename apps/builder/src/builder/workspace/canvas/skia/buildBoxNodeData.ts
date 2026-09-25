@@ -33,6 +33,7 @@ import {
 import {
   fillsToSkiaFillColor,
   fillsToSkiaFillUnderlays,
+  fillsToSkiaImageTopLayers,
   fillsToSkiaFillStyle,
   getTopEnabledFill,
   cssBgImageToSkia,
@@ -165,8 +166,15 @@ export function buildBoxNodeData(input: BoxBuildInput): SkiaNodeData | null {
         )
       : null;
 
-  const fillV2Style =
+  // 맨 위 enabled fill 이 image 면 그 층이 box.fill 이다 — 아래 층의 gradient/mesh 가
+  //   image 로딩 중에 box.fill 을 가로채지 않도록 먼저 가른다 (ADR-235 — Canvas image fill).
+  const imageTopLayers =
     fills && fills.length > 0
+      ? fillsToSkiaImageTopLayers(fills as FillItem[], w, h)
+      : null;
+
+  const fillV2Style =
+    fills && fills.length > 0 && !imageTopLayers
       ? fillsToSkiaFillStyle(
           fills as Parameters<typeof fillsToSkiaFillStyle>[0],
           w,
@@ -193,7 +201,7 @@ export function buildBoxNodeData(input: BoxBuildInput): SkiaNodeData | null {
   // CSS background-image: url(...)
   //   fills 가 shader 를 만들면(gradient/mesh) 그쪽이 이긴다 — 두 채널이 같은 box.fill 을 쓴다.
   const cssBgImageFill =
-    (gradientFill ?? meshFill)
+    (gradientFill ?? meshFill ?? imageTopLayers)
       ? undefined
       : (() => {
           const bgImg = style.backgroundImage as string | undefined;
@@ -310,23 +318,26 @@ export function buildBoxNodeData(input: BoxBuildInput): SkiaNodeData | null {
 
   // 다층 fill — enabled 가 2개 이상이고 맨 위가 color/gradient/mesh 일 때 아래 층만. 맨 위 층은
   //   종전 단층 채널 (box.fill shader 또는 box.fillColor) 이 그린다.
-  const fillUnderlays =
-    fills &&
-    fills.length >= 2 &&
-    !cssBgImageFill &&
-    topEnabledFill?.type !== FillType.Image
+  const fillUnderlays = imageTopLayers
+    ? imageTopLayers.underlays
+    : fills &&
+        fills.length >= 2 &&
+        !cssBgImageFill &&
+        topEnabledFill?.type !== FillType.Image
       ? fillsToSkiaFillUnderlays(fills as FillItem[], w, h)
       : undefined;
 
   const box: NonNullable<SkiaNodeData["box"]> = {
     fillColor,
-    ...(cssBgImageFill
-      ? { fill: cssBgImageFill }
-      : gradientFill
-        ? { fill: gradientFill }
-        : meshFill
-          ? { fill: meshFill }
-          : {}),
+    ...(imageTopLayers?.fill
+      ? { fill: imageTopLayers.fill }
+      : cssBgImageFill
+        ? { fill: cssBgImageFill }
+        : gradientFill
+          ? { fill: gradientFill }
+          : meshFill
+            ? { fill: meshFill }
+            : {}),
     ...(fillUnderlays ? { fillUnderlays } : {}),
     borderRadius: br,
     strokeColor,

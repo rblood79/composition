@@ -1213,7 +1213,7 @@ export const BuilderCore: React.FC = () => {
 
   const handlePlay = useCallback(() => {}, []);
 
-  const handleExportProject = useCallback(() => {
+  const handleExportProject = useCallback(async () => {
     const document = getActiveCanonicalDocument();
     if (!projectId || !document) {
       showToast("error", t("header.projectFileUnavailable"));
@@ -1221,21 +1221,31 @@ export const BuilderCore: React.FC = () => {
     }
 
     try {
+      // ADR-235 HC7 — 내보낸 파일은 자립적이다: `asset:` 참조를 바이트 dataURL 로 인라인.
+      //   자산이 없으면 실패 (참조만 든 파일을 만들지 않는다).
+      const { inlineAssetRefs } = await import("../../lib/assets/assetExport");
+      const exportable = await inlineAssetRefs({
+        document,
+        fontRegistry: loadFontRegistry(),
+        collections: Array.from(
+          useDataStore.getState().collections.values(),
+        ).map(toExportCollection),
+        apiEndpoints: Array.from(
+          useDataStore.getState().apiEndpoints.values(),
+        ).map(toRuntimeApiEndpoint),
+        // ADR-214 — 프로젝트 변수 정의 (import 에서 보존 · publish 런타임 입력)
+        variables: getProjectVariableDefinitions(),
+      });
       downloadProjectAsJson(
         projectId,
         projectInfo?.name || "Untitled Project",
-        document,
+        exportable.document,
         useStore.getState().currentPageId,
-        loadFontRegistry(),
+        exportable.fontRegistry,
         undefined,
-        Array.from(useDataStore.getState().collections.values()).map(
-          toExportCollection,
-        ),
-        Array.from(useDataStore.getState().apiEndpoints.values()).map(
-          toRuntimeApiEndpoint,
-        ),
-        // ADR-214 — 프로젝트 변수 정의 (import 에서 보존 · publish 런타임 입력)
-        getProjectVariableDefinitions(),
+        exportable.collections,
+        exportable.apiEndpoints,
+        exportable.variables,
       );
       showToast("success", t("header.exportProjectSuccess"));
     } catch (error) {

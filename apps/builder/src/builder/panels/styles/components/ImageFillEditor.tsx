@@ -18,6 +18,7 @@ import type {
 import { useStore } from "../../../stores";
 
 import "./ImageFillEditor.css";
+import { useResolvedAssetUrl } from "../../../../lib/assets/useResolvedAssetUrl";
 
 interface ImageFillEditorProps {
   fill: ImageFillItem;
@@ -129,6 +130,8 @@ export const ImageFillEditor = memo(function ImageFillEditor({
   );
 
   const hasImage = fill.url.length > 0;
+  // ADR-235 — `asset:` 참조는 해석기로 (준비 전이면 빈 미리보기)
+  const previewUrl = useResolvedAssetUrl(fill.url);
 
   return (
     <div className="image-fill-editor">
@@ -145,7 +148,7 @@ export const ImageFillEditor = memo(function ImageFillEditor({
         {hasImage ? (
           <img
             className="image-fill-editor__image"
-            src={fill.url}
+            src={previewUrl ?? undefined}
             alt="Fill preview"
             style={{
               objectFit:

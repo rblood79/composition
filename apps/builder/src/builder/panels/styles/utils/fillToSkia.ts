@@ -358,12 +358,14 @@ function imageFillItemToSkia(
     matrix = Float32Array.of(scale, 0, tx, 0, scale, ty, 0, 0, 1);
   }
 
+  // 이미지 밖은 투명 (Decal) — DOM 의 `background-repeat: no-repeat` 대칭 (ADR-235 G1).
+  //   Clamp 는 fit 여백에 가장자리 픽셀을 번지게 했다.
   return {
     type: "image",
     image: skImage,
-    tileModeX: ck.TileMode.Clamp,
-    tileModeY: ck.TileMode.Clamp,
-    tileMode: ck.TileMode.Clamp,
+    tileModeX: ck.TileMode.Decal,
+    tileModeY: ck.TileMode.Decal,
+    tileMode: ck.TileMode.Decal,
     sampling: ck.FilterMode.Linear,
     matrix,
   };
@@ -546,6 +548,35 @@ export function fillsToSkiaFillUnderlays(
     if (style) layers.push(style);
   }
   return layers.length > 1 ? layers.slice(0, -1) : undefined;
+}
+
+/**
+ * 맨 위 enabled fill 이 image 일 때의 Skia 층 (ADR-235 G0 발견 — 종전엔 box/spec 두 빌더가
+ * image FillStyle 을 버려 Canvas 가 image fill 을 그리지 않았다. DOM 은 `url()` 층으로 그린다).
+ *
+ * - `fill`: image shader (디코드 전이면 `null` — 로딩 후 재렌더에서 채워진다)
+ * - `underlays`: image 아래의 비-image enabled fill 전부 (아래 → 위, DOM 층 쌓기 대칭)
+ *
+ * 맨 위가 image 가 아니면 `null` — 기존 gradient/mesh/color 경로를 그대로 탄다.
+ */
+export function fillsToSkiaImageTopLayers(
+  fills: readonly FillItem[],
+  width: number,
+  height: number,
+): { fill: FillStyle | null; underlays?: FillStyle[] } | null {
+  const top = getTopEnabledFill(fills);
+  if (!top || top.type !== FillType.Image) return null;
+  const underlays: FillStyle[] = [];
+  for (const fill of fills) {
+    if (fill === top) break;
+    if (!fill?.enabled || fill.type === FillType.Image) continue;
+    const style = fillItemToFillStyle(fill, width, height);
+    if (style) underlays.push(style);
+  }
+  return {
+    fill: fillItemToFillStyle(top, width, height),
+    ...(underlays.length > 0 ? { underlays } : {}),
+  };
 }
 
 /**

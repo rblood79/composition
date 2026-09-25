@@ -67,3 +67,14 @@ export function enableDebugLogs(): boolean {
 export function isCanvasCompareMode(): boolean {
   return parseBoolean(import.meta.env.VITE_CANVAS_COMPARE_MODE, false);
 }
+
+/**
+ * ADR-235 — `asset:` writer (이미지 업로드 · 폰트 업로드 · 인라인 dataURL 이관 · v1 가져오기
+ * 자산화) 활성 여부. reader (dual-read) 는 항상 켜져 있다. G2 실패 시 이 기본값 하나로
+ * writer 만 끈다 — 이미 쓴 `asset:` 은 계속 읽힌다.
+ *
+ * Phase 1 (G1 전): 꺼짐 — 업로드는 여전히 dataURL.
+ */
+export function isAssetWriterEnabled(): boolean {
+  return parseBoolean(import.meta.env.VITE_ASSET_WRITER, false);
+}

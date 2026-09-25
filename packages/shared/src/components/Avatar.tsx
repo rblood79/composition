@@ -25,6 +25,7 @@
 import React from "react";
 import { resolveComponentRule } from "../catalog/resolvers/resolveComponentRule";
 import { colorTokenToCss } from "../catalog/resolvers/colorTokenToCss";
+import { resolveAssetUrl } from "../utils/assetRef";
 
 export interface AvatarProps {
   /** 이미지 URL (있으면 img, 없으면 initials fallback) */
@@ -98,6 +99,8 @@ export function Avatar({
 
   const label = initials || alt?.slice(0, 2).toUpperCase() || "?";
 
+  // ADR-235 — `asset:` 참조 해석 (준비 전이면 이니셜 표시)
+  const resolvedSrc = src ? resolveAssetUrl(src) : null;
   return (
     <div
       {...rest}
@@ -119,9 +122,9 @@ export function Avatar({
       }}
       className={className}
     >
-      {src ? (
+      {resolvedSrc ? (
         <img
-          src={src}
+          src={resolvedSrc}
           alt={alt || "Avatar"}
           style={{ width: "100%", height: "100%", objectFit: "cover" }}
         />

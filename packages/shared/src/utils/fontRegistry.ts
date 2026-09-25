@@ -14,6 +14,7 @@ import type {
   FontFormat,
 } from "../types/font.types";
 import { FONT_LIMITS } from "../types/font.types";
+import { resolveAssetUrl } from "./assetRef";
 
 // ============================================
 // Storage Key
@@ -185,9 +186,12 @@ export function buildRegistryFontFaceCss(registry: FontRegistryV2): string {
 
   return registry.faces
     .filter((face) => face.family.trim() && face.source.url.trim())
-    .map((face) => {
+    .flatMap((face) => {
+      // ADR-235 — `asset:` 은 실행 문맥 해석기로. 준비 전이면 이 face 는 건너뛴다 (요청 0);
+      // 호출자가 준비 후 다시 주입한다.
+      const src = resolveAssetUrl(face.source.url.trim());
+      if (!src) return [];
       const family = escapeCssString(face.family.trim());
-      const src = face.source.url.trim();
       const format = face.format ? ` format('${face.format}')` : "";
       const weight = face.weight ? `\n  font-weight: ${face.weight};` : "";
       const style =
@@ -196,7 +200,9 @@ export function buildRegistryFontFaceCss(registry: FontRegistryV2): string {
           : "";
       const display = face.display ?? "swap";
 
-      return `@font-face {\n  font-family: "${family}";\n  src: url("${src}")${format};${weight}${style}\n  font-display: ${display};\n}`;
+      return [
+        `@font-face {\n  font-family: "${family}";\n  src: url("${src}")${format};${weight}${style}\n  font-display: ${display};\n}`,
+      ];
     })
     .join("\n\n");
 }

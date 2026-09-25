@@ -112,7 +112,7 @@ Phase 5 는 1~4 와 독립이라 먼저 착수해도 된다 (가장 작은 작�
 
 #### (a) 이미지 · 폰트 URL consumer
 
-#### 이미지 — 요청 지점은 3 개로 모인다
+##### 이미지 — 요청 지점은 3 개로 모인다
 
 | 경로        | 지점                                                                                                                                                                               | 덮는 consumer                                                                                                                                                                                                                                                                                                                 |
 | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -123,17 +123,17 @@ Phase 5 는 1~4 와 독립이라 먼저 착수해도 된다 (가장 작은 작�
 - 해석 함수 삽입 = `fetchAndDecode` (fetch 대상만 해석, 캐시 키는 원본 ref 유지) · `fillToCssLayer` · `adaptElementStyle` 확장이 아닌 Image/Avatar 렌더러 2 곳 + publish `Image` 1 곳.
 - AI `fillContract.ts:63` 은 `url` 문자열 형식을 검사하지 않는다 — `asset:` 도 통과 (그대로 둔다).
 
-#### 폰트 — 지점 2 개
+##### 폰트 — 지점 2 개
 
 - `packages/shared/src/utils/fontRegistry.ts:199` `buildRegistryFontFaceCss` — builder 문서 (`customFonts.ts:89`) · Preview iframe (`preview/index.tsx:35`, 부팅 1회) · publish (`App.tsx:293`) · 정적 HTML (`export.utils.ts:1083`).
 - `builder/fonts/loadCustomFontsToSkia.ts:116` `loadSingleFontToSkia` — Skia (`fontManager.loadFontFromBuffer`) + `FontFace` 등록.
 
-#### writer (문서 · 레지스트리에 URL 을 쓰는 곳)
+##### writer (문서 · 레지스트리에 URL 을 쓰는 곳)
 
 - `readAsDataURL` 은 2 곳뿐 — `ImageFillEditor.tsx:87` (→ `fills[i].url`) · `customFonts.ts:270` (→ `composition.font-registry`, `data-url-temp`).
 - 그 밖 URL writer — URL 직접 입력 (`ImageFillEditor.tsx:63`) · CSS ingress (`fillCssIngressParser.ts:114`) · AI (`toolFills.ts`) · Properties `src` 편집 · dev fixture (`pathHeavy117Fixture.ts:327`).
 
-#### 발견 — 기존 결함 3
+##### 발견 — 기존 결함 3
 
 1. **Canvas 가 image fill 을 그리지 않는다.** `fillsToSkiaFillStyle` 은 image FillStyle 을 만들지만 `buildBoxNodeData.ts:176-190` · :322 와 `buildSpecNodeData.ts:1994-2022` 가 gradient · mesh 만 `box.fill` 에 싣는다 (82e00f301 이후 동일). Preview 는 `url()` 로 그린다 — D3 비대칭. G1 cross-check (image fill stretch/fill/fit) 의 선결 조건이라 Phase 1 에서 수리한다.
 2. **정적 HTML 이 fills 를 적용하지 않는다** — 인라인 런타임 (`export.utils.ts:1235` · :1243) 은 `props.style` · `props.src` 만 쓴다. `exportProject` · `downloadStaticHtml` 호출처는 앱에 0 (현재 쓰이는 내보내기는 `downloadProjectAsJson` 하나).
@@ -194,3 +194,32 @@ Phase 5 는 1~4 와 독립이라 먼저 착수해도 된다 (가장 작은 작�
 
 - (e) 는 사람이 만든 문서가 아니라 **규모 전용** 합성 fixture (measurement-validity Q1) — 복제 배수 (문서 · 스냅샷 · history 마다 한 벌) 만 인용한다.
 - Chrome MCP 창이 최소화 (hidden, RAF 정지) 라 캔버스 시각 확인은 이 단계에서 하지 않았다. Canvas image fill 미렌더는 코드 경로 확정 (위 (a) 발견 1) — Phase 1 RED 테스트로 고정한다.
+
+### Phase 1 — 자산 저장소 + reader + 자립 v1 내보내기 (G1 통과, 2026-09-26)
+
+**구현**
+
+- 참조 규약 · 해석기 registry — `packages/shared/src/utils/assetRef.ts`. `resolveAssetUrl` (동기 · 비참조 통과 · 준비 전 `null`) · `resolveAssetUrlAsync` · `ensureAssetRefs` · `collectAssetRefs` (문자열 전수 순회) · `mapAssetRefs` (부분 문자열 `url(asset:…)` 포함) · `sha256Hex` (`crypto.subtle`) · dataURL 변환.
+- 저장소 — `apps/builder/src/lib/assets/` (`assetSchema` · `assetDb` · `assetStore` · `assetUrlResolver` · `assetExport` · `useResolvedAssetUrl`). adapter DB_VERSION 23 이 `assets` (keyPath `hash`) · `asset_gc` store 를 만든다. `assetDb` 는 버전 없이 열고 DB 가 없으면 만들지 않는다 (upgrade abort) · store 없으면 미해석 · 다른 탭 업그레이드 시 즉시 닫는다.
+- 참조 준비 계약 (§3.1-1·2) — `storeAssetBytes` (바이트 저장 + 세션 pin + epoch 증가 + 후보 해제 = `assets`·`asset_gc` readwrite 트랜잭션 하나, 성공 = complete) · `prepareAssetReferences` (바이트 없으면 트랜잭션 abort + `AssetMissingError`). **진입점 배선 (URL 편집 · 붙여넣기 · undo/redo · 가져오기 · hydration) 은 Phase 3 에서 GC 와 함께** — sweep 은 배선 전 비활성이라 (§3.1-5) 보호 효과가 같고, 배선의 반증 (G3) 을 sweep 과 같은 phase 에서 돌린다.
+- consumer dual-read — Skia `imageCache.fetchAndDecode` (fetch 대상만 해석 · 캐시 키 원본 ref) · DOM `fillToCssLayer` · Image/Avatar 렌더러 (`LayoutRenderers` · `Avatar`) · publish `Image` · `buildRegistryFontFaceCss` · `loadSingleFontToSkia` · 패널 미리보기 (`ImageFillEditor` · `FillLayerRow`).
+- 실행 문맥 설치 — builder `main.tsx` (같은 탭 `/publish/*` 포함) · Preview `index.tsx` (문서 수신 시 `ensureAssetRefs` → 준비 알림에 resolve memo 재계산 · 폰트 CSS 재주입) · publish `setProject` (준비 후 렌더). `blob:` URL 은 자산 삭제 시 (`revoke`) 해제 — CSS `url()` · `<img>` 는 해제 시점을 알리지 않아 참조 카운트 대신 자산 수명에 묶는다.
+- 자립 v1 내보내기 — `BuilderCore.handleExportProject` 가 `inlineAssetRefs` 로 문서 · 폰트 레지스트리 · collections · API · 변수의 참조를 dataURL 로 되살린다. 바이트 없는 참조가 하나라도 있으면 실패.
+- writer flag — `utils/featureFlags.ts` `isAssetWriterEnabled()` (`VITE_ASSET_WRITER`, Phase 1 기본 꺼짐). 업로드 경로는 무변경 (dataURL).
+- **G0 발견 수리 (G1 선결)**: Canvas image fill — `fillsToSkiaImageTopLayers` 를 box · spec 두 빌더가 쓴다 (맨 위가 image 면 그 층이 `box.fill`, 아래 비-image 층은 underlay). 기하 대칭 — DOM 단층/다층 image 층에 `background-position: center` · `no-repeat`, Skia image shader 는 Decal (종전 Clamp · DOM 좌상단 repeat 로 fit 이 갈렸다).
+- adapter `onversionchange` — 편집 중 탭은 닫지 않고 경고 (닫으면 이후 백그라운드 저장이 조용히 실패), 업그레이드하는 탭은 `onblocked` 경고.
+
+**G1 증거**
+
+| 항목                                         | 결과                                                                                                                                      |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| writer 꺼짐                                  | 업로드 경로 코드 무변경 (`ImageFillEditor` `readAsDataURL`) · flag 기본 false                                                             |
+| Canvas image fill (live)                     | `asset:` fit → 마젠타 bbox 198×98 (2:1 중앙), 수리 전 코드로 unit RED 4/5 → GREEN 5/5 (`buildBoxNodeData.imageFill.test.ts`)              |
+| Preview DOM leg (unit)                       | `CanonicalNodeRenderer.fills.test.tsx` — fill/fit/stretch 모두 `blob:` · center · no-repeat, 준비 전 참조 배경 없음 · `asset:` DOM 누수 0 |
+| 사용자 폰트 (live)                           | builder document.fonts · Skia `hasFont` · CSS `src: url("blob:…")` · publish route document.fonts                                         |
+| 해석 누락 참조 (live)                        | `asset:`/`sha256-` 요청 0 · 그리지 않음                                                                                                   |
+| v1 내보내기 → 빈 프로필 가져오기 (live, HC7) | 파일에 참조 0 · PNG · woff2 dataURL 인라인 · 새 프로필 Canvas bbox 198×98 동일 · 바이트 없는 참조가 있으면 내보내기 실패                  |
+| 같은 바이트 2회 = 자산 1 (live + unit)       | 참조 동일 · `assets` 1 건                                                                                                                 |
+
+- 하니스: `apps/builder/scripts/adr235-g1-live.mjs` (Playwright Chrome headless · `visibility=visible` · `persisted=false`). Chrome MCP 창이 최소화 상태라 실제 builder 는 Playwright 로 부팅했다.
+- **범위 밖 기록**: publish 런타임 (`collectRuntimeElements`) 은 요소에 `fills` 를 싣지 않아 fill 을 전혀 그리지 않는다 — publish 는 기능 링크만 방침이라 이 ADR 에서 고치지 않는다 (fills DOM leg 은 Preview 렌더러 unit). builder 전체 테스트 실패 3 (`componentCatalog` Modal placeable · `originChildRefs` · `useTransformAuxiliary`) 은 HEAD `54acac192` worktree 에서도 같은 실패 — 이 변경과 무관.

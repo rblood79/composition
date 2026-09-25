@@ -78,6 +78,7 @@ import { hasFrameElementMirrorId } from "../adapters/canonical/frameMirror";
 import { getSlotMirrorName } from "../adapters/canonical/slotMirror";
 import { projectPageFrameNodes } from "../adapters/canonical/projectPageFrameTree";
 import { buildPreviewPresentationProjectionIndex } from "./presentation/editorPresentationProjectionIndex";
+import { ensureAssetRefs, subscribeAssetUrls } from "@composition/shared";
 
 /**
  * ADR-142 — catalog generic 렌더로 cutover 된 primitive type 집합 (componentCatalog 파생).
@@ -163,6 +164,8 @@ function CanvasContent() {
     (s) => s.setEditorPresentationProjectionIndex,
   );
   const [importRegistryVersion, bumpImportRegistryVersion] = useState(0);
+  // ADR-235 — `asset:` 참조가 준비되면 bump. 해석은 렌더 중 동기 조회라 준비 뒤 다시 그린다.
+  const [assetUrlsVersion, bumpAssetUrlsVersion] = useState(0);
   const navigate = useNavigate();
 
   // toast 는 context 값이 매 렌더 새로 잡히므로 ref 로 고정한다 —
@@ -231,6 +234,16 @@ function CanvasContent() {
     };
   }, [canonicalDocument]);
 
+  // ADR-235 — 문서의 자산 참조를 준비한다 (같은 origin IndexedDB 직접 읽기, G0 (c)).
+  useEffect(
+    () => subscribeAssetUrls(() => bumpAssetUrlsVersion((v) => v + 1)),
+    [],
+  );
+  useEffect(() => {
+    if (!canonicalDocument) return;
+    void ensureAssetRefs(canonicalDocument);
+  }, [canonicalDocument]);
+
   // ADR-116 canonical resolve — 문서 단위 1회 메모이제이션.
   //
   // 이전에는 (1) dev 전용 로깅 effect 가 순수 console.log 목적으로 full
@@ -245,6 +258,7 @@ function CanvasContent() {
   const resolvedCanonicalNodes = useMemo(() => {
     if (!USE_CANONICAL_RENDER || !canonicalDocument) return null;
     void importRegistryVersion;
+    void assetUrlsVersion;
     try {
       return resolveCanonicalDocument(
         canonicalDocument,
@@ -255,7 +269,7 @@ function CanvasContent() {
       console.warn("[ADR-116] preview canonical resolve failed", err);
       return null;
     }
-  }, [canonicalDocument, importRegistryVersion]);
+  }, [canonicalDocument, importRegistryVersion, assetUrlsVersion]);
 
   // Renderer와 semantic target index가 같은 visible projection tree를 소비해야
   // ref/page-frame fan-out과 traversal render key가 어긋나지 않는다.

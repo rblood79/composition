@@ -68,6 +68,7 @@ import {
   ProgressCircle,
   IllustratedMessage,
 } from "@composition/shared/components";
+import { resolveAssetUrl } from "@composition/shared/utils";
 
 type AnyComponent = ComponentType<Record<string, unknown>>;
 type HtmlComponent = FunctionComponent<Record<string, unknown>>;
@@ -100,6 +101,17 @@ function createHtmlElement(
   HtmlElement.displayName = `Html${type.charAt(0).toUpperCase() + type.slice(1)}`;
   return HtmlElement;
 }
+
+/**
+ * Image — `<img>` 에 props 를 그대로 펼치되 `src` 는 자산 해석기를 거친다 (ADR-235).
+ * 준비 전 `asset:` 은 src 없이 둔다 (요청 0 — publish 로더가 준비 후 다시 그린다).
+ */
+const ImageElement: HtmlComponent = (props: Record<string, unknown>) => {
+  const { children: _children, src, ...rest } = props;
+  const resolved = typeof src === "string" ? resolveAssetUrl(src) : null;
+  return <img {...rest} src={resolved ?? undefined} />;
+};
+ImageElement.displayName = "HtmlImg";
 
 /** Heading 요소 (level prop → h1~h6) */
 const HeadingElement: HtmlComponent = (props) => {
@@ -214,7 +226,7 @@ const SHARED_COMPONENTS: Record<string, ComponentType<never>> = {
   ButtonGroup: createHtmlElement("div"),
   CardView: createHtmlElement("div"),
   TableView: createHtmlElement("div"),
-  Image: createHtmlElement("img"),
+  Image: ImageElement,
   // Content (Card 등 복합 컴포넌트 자식)
   Text: createHtmlElement("span"),
   Heading: HeadingElement,

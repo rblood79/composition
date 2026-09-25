@@ -1,6 +1,9 @@
 import {
   type CustomFontAsset,
+  collectAssetRefs,
+  ensureAssetRefs,
   inferFontFormatFromName,
+  resolveAssetUrl,
   stripExtension,
 } from "@composition/shared/utils";
 import {
@@ -89,6 +92,18 @@ export async function createFontFaceFromFile(
 export function injectRegistryFontStyle(targetDoc: Document = document): void {
   const registry = loadFontRegistry();
   const css = buildRegistryFontFaceCss(registry);
+
+  // ADR-235 — 준비 전 `asset:` face 는 CSS 에서 빠진다. 준비되면 한 번 더 주입한다.
+  const pending = [...collectAssetRefs(registry)].some(
+    (ref) => resolveAssetUrl(ref) === null,
+  );
+  if (pending) {
+    void ensureAssetRefs(registry).then(() => {
+      if (buildRegistryFontFaceCss(registry) !== css) {
+        injectRegistryFontStyle(targetDoc);
+      }
+    });
+  }
 
   const existing = targetDoc.getElementById(STYLE_ID);
   if (!css) {

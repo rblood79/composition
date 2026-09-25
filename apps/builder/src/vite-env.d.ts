@@ -14,6 +14,8 @@ interface ImportMetaEnv {
   readonly VITE_ENABLE_DEBUG_LOGS?: string;
   /** 🚀 Phase 10: WebGL Canvas 활성화 Feature Flag */
   readonly VITE_USE_WEBGL_CANVAS?: string;
+  /** ADR-235 — `asset:` writer 활성 (utils/featureFlags.ts isAssetWriterEnabled) */
+  readonly VITE_ASSET_WRITER?: string;
   /** 캔버스 비교 모드 (iframe DOM ↔ Skia 캔버스 동시 표시 교차검증) */
   readonly VITE_CANVAS_COMPARE_MODE?: string;
 }

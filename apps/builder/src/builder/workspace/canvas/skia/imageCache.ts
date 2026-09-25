@@ -23,6 +23,7 @@ import {
   drainPendingWasmDisposals,
   scheduleWasmDisposal,
 } from "./deferredDisposal";
+import { resolveAssetUrlAsync } from "@composition/shared";
 
 // ============================================
 // 재렌더 트리거 콜백 레지스트리
@@ -385,8 +386,13 @@ async function fetchAndDecode(url: string): Promise<SkImage | null> {
   try {
     const ck: CanvasKit = getCanvasKit();
 
+    // ADR-235 — `asset:` 은 해석기로 (IndexedDB 바이트 → blob:). 캐시 키는 원본 ref 그대로.
+    //   해석되지 않는 참조는 요청을 내지 않는다.
+    const fetchUrl = await resolveAssetUrlAsync(url);
+    if (!fetchUrl) return null;
+
     // CORS 모드: 외부 이미지(CDN, 사용자 업로드)도 로드 가능하도록 설정
-    const response = await fetch(url, {
+    const response = await fetch(fetchUrl, {
       mode: "cors",
       credentials: "same-origin",
     });

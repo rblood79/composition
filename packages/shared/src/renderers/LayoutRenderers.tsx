@@ -40,6 +40,7 @@ import { resolvePropagatedText } from "./utils/propagatedLabel";
 /** ColorSwatch/ColorPicker 기본값 — 팔레트 단일 원천 (ADR-191 R8). */
 const DEFAULT_SWATCH_HEX = TAILWIND_PALETTE.blue[500];
 import { getElementDataBinding } from "../utils/compositionExtensionFields";
+import { resolveAssetUrl } from "../utils/assetRef";
 import {
   allowsMultipleExpanded,
   resolveGroupExpandedDisclosureIds,
@@ -1497,9 +1498,9 @@ export const renderAvatar = (
       }}
       className={element.props.className}
     >
-      {element.props.src ? (
+      {element.props.src && resolveAssetUrl(String(element.props.src)) ? (
         <img
-          src={element.props.src as string}
+          src={resolveAssetUrl(String(element.props.src)) ?? undefined}
           alt={(element.props.alt as string) || "Avatar"}
           style={{ width: "100%", height: "100%", objectFit: "cover" }}
         />
@@ -2109,7 +2110,10 @@ export const renderImage = (
   element: PreviewElement,
   _context: RenderContext,
 ): React.ReactNode => {
-  const src = element.props.src ? String(element.props.src) : "";
+  // ADR-235 — `asset:` 은 해석기로, 준비 전이면 그리지 않는다 (요청 0)
+  const src = element.props.src
+    ? (resolveAssetUrl(String(element.props.src)) ?? "")
+    : "";
   const alt = String(element.props.alt || "Image");
   const objectFit = String(
     element.props.objectFit || "cover",

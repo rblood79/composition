@@ -23,6 +23,7 @@ import { Popover } from "@composition/shared/components/Popover";
 import type {
   FillItem,
   ColorFillItem,
+  ImageFillItem,
 } from "../../../../types/builder/fill.types";
 import { FillType } from "../../../../types/builder/fill.types";
 import { FillDetailPopover } from "./FillDetailPopover";
@@ -35,6 +36,7 @@ import {
 import { useSemanticLabel } from "../../../../i18n";
 
 import "./FillLayerRow.css";
+import { useResolvedAssetUrl } from "../../../../lib/assets/useResolvedAssetUrl";
 
 /** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
 
@@ -90,7 +92,15 @@ export const FillLayerRow = memo(function FillLayerRow({
   const colorValue = isColor ? (fill as ColorFillItem).color : "#000000FF";
   const displayLabel = getFillDisplayLabel(fill);
   const opacityPercent = Math.round(fill.opacity * 100);
-  const swatchStyle = useMemo(() => buildFillSwatchStyle(fill), [fill]);
+  // ADR-235 — image fill 의 `asset:` 이 준비되면 swatch 를 다시 만든다
+  const imageUrl = useResolvedAssetUrl(
+    fill.type === FillType.Image ? (fill as ImageFillItem).url : null,
+  );
+  const swatchStyle = useMemo(
+    () => buildFillSwatchStyle(fill),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- imageUrl 은 해석 준비 신호
+    [fill, imageUrl],
+  );
 
   const handleToggle = useCallback(() => {
     onToggle(fill.id);

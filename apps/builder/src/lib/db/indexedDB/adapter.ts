@@ -30,9 +30,10 @@ import {
   DOCUMENT_PARTS,
 } from "./incrementalDocuments";
 import type { DocumentPersistOptions } from "./documentPersistGuard";
+import { ASSETS_STORE, ASSET_GC_STORE } from "../../assets/assetSchema";
 
 const DB_NAME = "composition";
-const DB_VERSION = 22; // 2026-09-12 (ADR-218): collection_runtime store — runtimeData(API 응답) 캐시 영속.
+const DB_VERSION = 23; // 2026-09-26 (ADR-235): assets · asset_gc store — 해시 자산 저장소.
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -167,7 +168,21 @@ export class IndexedDBAdapter implements DatabaseAdapter {
 
       request.onsuccess = () => {
         this.db = request.result;
+        // 다른 탭이 새 버전으로 업그레이드하려 해도 편집 중인 이 탭의 연결은 닫지 않는다 —
+        // 닫으면 이후 백그라운드 저장이 조용히 실패한다 (HC1). 업그레이드하는 탭이
+        // onblocked 로 기다리며 알린다. 읽기 전용 자산 reader 는 즉시 닫는다 (assetReader).
+        this.db.onversionchange = () => {
+          console.warn(
+            "[IndexedDB] 다른 탭이 새 DB 버전을 기다립니다 — 이 탭을 새로고침하면 진행됩니다.",
+          );
+        };
         resolve();
+      };
+
+      request.onblocked = () => {
+        console.warn(
+          "[IndexedDB] 다른 탭이 이전 DB 버전을 열고 있어 업그레이드가 대기 중입니다 — 다른 builder 탭을 닫거나 새로고침하세요.",
+        );
       };
 
       request.onupgradeneeded = (event) => {
@@ -299,6 +314,18 @@ export class IndexedDBAdapter implements DatabaseAdapter {
             unique: false,
           });
           console.log("[IndexedDB] Created store: collection_runtime");
+        }
+
+        // ADR-235 (DB_VERSION 23): 해시 자산 저장소. `assets` = 원본 바이트 (keyPath hash),
+        // `asset_gc` = 참조 epoch · 세션 pin · 후보 (breakdown §3.1). 참조 공개 · pin 해제 ·
+        // 삭제는 두 store 를 함께 포함하는 readwrite 트랜잭션 하나로 직렬화된다.
+        if (!db.objectStoreNames.contains(ASSETS_STORE)) {
+          db.createObjectStore(ASSETS_STORE, { keyPath: "hash" });
+          console.log("[IndexedDB] Created store: assets");
+        }
+        if (!db.objectStoreNames.contains(ASSET_GC_STORE)) {
+          db.createObjectStore(ASSET_GC_STORE, { keyPath: "hash" });
+          console.log("[IndexedDB] Created store: asset_gc");
         }
 
         // ApiEndpoints store

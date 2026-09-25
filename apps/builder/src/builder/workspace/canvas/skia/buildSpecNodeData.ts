@@ -67,6 +67,7 @@ import {
 import {
   fillsToSkiaFillColor,
   fillsToSkiaFillUnderlays,
+  fillsToSkiaImageTopLayers,
   fillsToSkiaFallbackColor,
   fillsToSkiaFillStyle,
   getTopEnabledFill,
@@ -1990,8 +1991,20 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
     effectiveFills.length > 0 &&
     specNode.box
   ) {
-    const fillStyle = fillsToSkiaFillStyle(effectiveFills, w, specHeight);
-    if (
+    // 맨 위 enabled fill 이 image 면 그 층이 box.fill (ADR-235 — Canvas image fill, box 경로와 같은 계약)
+    const imageTopLayers = fillsToSkiaImageTopLayers(
+      effectiveFills,
+      w,
+      specHeight,
+    );
+    const fillStyle = imageTopLayers
+      ? null
+      : fillsToSkiaFillStyle(effectiveFills, w, specHeight);
+    if (imageTopLayers) {
+      if (imageTopLayers.fill) specNode.box.fill = imageTopLayers.fill;
+      if (imageTopLayers.underlays)
+        specNode.box.fillUnderlays = imageTopLayers.underlays;
+    } else if (
       fillStyle &&
       (fillStyle.type === "linear-gradient" ||
         fillStyle.type === "radial-gradient" ||
@@ -2021,7 +2034,7 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
       specNode.box.fill = fillStyle;
     }
     // 다층 fill (box 경로 buildBoxNodeData 와 같은 계약) — 맨 위 층 아래만, 맨 위는 box.fill / fillColor
-    if (fillStyle && fillStyle.type !== "image") {
+    if (!imageTopLayers && fillStyle && fillStyle.type !== "image") {
       const underlays = fillsToSkiaFillUnderlays(effectiveFills, w, specHeight);
       if (underlays) specNode.box.fillUnderlays = underlays;
     }

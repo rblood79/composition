@@ -1,10 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import type { CSSProperties } from "react";
 
 import { darkShadows, lightShadows } from "@composition/specs";
 
 import { adaptElementStyle, fillsToCssBackgroundStyle } from "../fillAdapter";
+import { setAssetUrlResolver, type AssetUrlResolver } from "../assetRef";
 
 describe("fillAdapter", () => {
   it("color fill 을 backgroundColor 로 변환한다", () => {
@@ -253,8 +254,73 @@ describe("fillAdapter — 다층 fill (2026-09-15)", () => {
         { type: "color", enabled: true, opacity: 0.25, color: "#000000FF" },
       ]),
     ).toEqual({
-      backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.25)), url(a.png)",
+      backgroundImage:
+        "linear-gradient(rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.25)), url(a.png)",
       backgroundSize: "auto, contain",
+      backgroundPosition: "0% 0%, center",
+      backgroundRepeat: "repeat, no-repeat",
+    });
+  });
+
+  describe("ADR-235 image fill — 자산 참조 · 기하", () => {
+    afterEach(() => setAssetUrlResolver(null));
+
+    const resolverWith = (urls: Record<string, string>): AssetUrlResolver => ({
+      resolveSync: (ref) => urls[ref] ?? null,
+      ensure: async () => {},
+      subscribe: () => () => {},
+    });
+    const REF = `asset:sha256-${"a".repeat(64)}`;
+
+    it("단층 image fill 은 중앙 · 반복 없음 (Skia image shader 기하)", () => {
+      expect(
+        fillsToCssBackgroundStyle([
+          {
+            type: "image",
+            enabled: true,
+            opacity: 1,
+            url: "a.png",
+            mode: "fit",
+          },
+        ]),
+      ).toEqual({
+        backgroundImage: "url(a.png)",
+        backgroundSize: "contain",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+      });
+    });
+
+    it("준비된 asset: 참조는 해석기 URL 로 그린다", () => {
+      setAssetUrlResolver(resolverWith({ [REF]: "blob:http://x/1" }));
+      expect(
+        fillsToCssBackgroundStyle([
+          { type: "image", enabled: true, opacity: 1, url: REF, mode: "fill" },
+        ]).backgroundImage,
+      ).toBe("url(blob:http://x/1)");
+    });
+
+    it("준비 전 asset: 참조는 층을 만들지 않는다 (요청 0)", () => {
+      setAssetUrlResolver(resolverWith({}));
+      expect(
+        fillsToCssBackgroundStyle([
+          { type: "image", enabled: true, opacity: 1, url: REF, mode: "fill" },
+        ]),
+      ).toEqual({});
+    });
+
+    it("해석기가 없어도 dataURL · http 는 그대로 (dual-read)", () => {
+      expect(
+        fillsToCssBackgroundStyle([
+          {
+            type: "image",
+            enabled: true,
+            opacity: 1,
+            url: "data:image/png;base64,AA",
+            mode: "stretch",
+          },
+        ]).backgroundImage,
+      ).toBe("url(data:image/png;base64,AA)");
     });
   });
 

@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import { shadowLiteralToCssVar } from "@composition/specs";
+import { resolveAssetUrl } from "./assetRef";
 
 interface FillGradientStopLike {
   color?: unknown;
@@ -107,7 +108,13 @@ function gradientStopsToCss(
 /** fill 하나 → CSS 배경 층. color 는 backgroundColor (단층) / linear-gradient(c, c) (다층) 둘 다 낼 수 있게 색을 따로 준다. */
 type CssFillLayer =
   | { kind: "color"; color: string }
-  | { kind: "image"; image: string; size?: string };
+  | {
+      kind: "image";
+      image: string;
+      size?: string;
+      /** 사용자 이미지 fill 만 — 중앙 · 반복 없음 (Skia image shader 와 같은 기하) */
+      photo?: true;
+    };
 
 function fillToCssLayer(fill: FillLike): CssFillLayer | null {
   switch (fill?.type) {
@@ -162,13 +169,16 @@ function fillToCssLayer(fill: FillLike): CssFillLayer | null {
     }
     case "image": {
       if (typeof fill.url !== "string" || fill.url.length === 0) return null;
+      // ADR-235 — `asset:` 은 해석기로. 준비 전이면 층을 만들지 않는다 (요청 0).
+      const url = resolveAssetUrl(fill.url);
+      if (!url) return null;
       const size =
         fill.mode === "stretch"
           ? "100% 100%"
           : fill.mode === "fit"
             ? "contain"
             : "cover";
-      return { kind: "image", image: `url(${fill.url})`, size };
+      return { kind: "image", image: `url(${url})`, size, photo: true };
     }
     case "mesh-gradient": {
       const points = Array.isArray(fill.points) ? fill.points : [];
@@ -211,7 +221,11 @@ export function fillsToCssBackgroundStyle(
   fills: unknown[] | null | undefined,
 ): Pick<
   CSSProperties,
-  "backgroundColor" | "backgroundImage" | "backgroundSize"
+  | "backgroundColor"
+  | "backgroundImage"
+  | "backgroundSize"
+  | "backgroundPosition"
+  | "backgroundRepeat"
 > {
   if (!fills) return {};
 
@@ -230,21 +244,41 @@ export function fillsToCssBackgroundStyle(
       : {
           backgroundImage: only.image,
           ...(only.size ? { backgroundSize: only.size } : {}),
+          // 이미지 fill = 중앙 · 반복 없음 — Skia image shader (fillToSkia: 중앙 matrix ·
+          //   Decal) 와 같은 기하 (ADR-235 G1). 종전 기본값 (좌상단 · repeat) 은 fit 에서 타일로 갈렸다.
+          ...(only.photo
+            ? { backgroundPosition: "center", backgroundRepeat: "no-repeat" }
+            : {}),
         };
   }
 
   const top = [...layers].reverse();
   const hasImageSize = top.some((l) => l.kind === "image" && l.size);
+  const hasPhoto = top.some((l) => l.kind === "image" && l.photo);
   return {
     backgroundImage: top
       .map((l) =>
-        l.kind === "color" ? `linear-gradient(${l.color}, ${l.color})` : l.image,
+        l.kind === "color"
+          ? `linear-gradient(${l.color}, ${l.color})`
+          : l.image,
       )
       .join(", "),
     ...(hasImageSize
       ? {
           backgroundSize: top
             .map((l) => (l.kind === "image" && l.size ? l.size : "auto"))
+            .join(", "),
+        }
+      : {}),
+    ...(hasPhoto
+      ? {
+          backgroundPosition: top
+            .map((l) => (l.kind === "image" && l.photo ? "center" : "0% 0%"))
+            .join(", "),
+          backgroundRepeat: top
+            .map((l) =>
+              l.kind === "image" && l.photo ? "no-repeat" : "repeat",
+            )
             .join(", "),
         }
       : {}),

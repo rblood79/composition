@@ -7,7 +7,12 @@
  * 동일 패밀리의 여러 weight/style 변형을 개별 로드한다.
  */
 
-import { loadFontRegistry, type FontFaceAsset } from "@composition/shared";
+import {
+  isAssetRef,
+  loadFontRegistry,
+  resolveAssetUrlAsync,
+  type FontFaceAsset,
+} from "@composition/shared";
 import { skiaFontManager } from "../workspace/canvas/skia/fontManager";
 import { resolveFontUrl } from "../../fonts/builtinFonts";
 
@@ -124,7 +129,14 @@ async function loadSingleFontToSkia(face: FontFaceAsset): Promise<boolean> {
   if (skiaFontManager.hasFont(family, weight, style)) return true;
 
   try {
-    if (face.source.type === "data-url-temp") {
+    if (isAssetRef(face.source.url)) {
+      // ADR-235 — 자산 저장소 바이트 (IndexedDB) → Skia · document.fonts
+      const url = await resolveAssetUrlAsync(face.source.url);
+      if (!url) return false;
+      const buffer = await dataUrlToArrayBuffer(url);
+      skiaFontManager.loadFontFromBuffer(family, buffer, weight, style);
+      await registerFontInBrowser(family, url, weight, style);
+    } else if (face.source.type === "data-url-temp") {
       const buffer = await dataUrlToArrayBuffer(face.source.url);
       skiaFontManager.loadFontFromBuffer(family, buffer, weight, style);
       // Canvas 2D 측정 경로를 위해 document.fonts에도 등록 (weight/style descriptor 포함)
