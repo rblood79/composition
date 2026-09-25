@@ -460,3 +460,73 @@ describe("side-label implicit styles", () => {
     expect(order).toEqual(["Label", "SliderOutput", "SliderTrack"]);
   });
 });
+
+describe("side 보조 주입은 결과 레이아웃이 그 전제일 때만 (인라인이 side 변형을 이긴 뒤)", () => {
+  it("Slider · ProgressBar side + 인라인 display:block 은 source 순서를 유지한다 (block 에서 DOM order 무효)", () => {
+    const slider = applyContainer(
+      "Slider",
+      { label: "S", labelPosition: "side", style: { display: "block" } },
+      [
+        makeChild("l", "Label"),
+        makeChild("o", "SliderOutput"),
+        makeChild("t", "SliderTrack"),
+      ],
+    );
+    expect(slider.filteredChildren.map((c) => c.type)).toEqual([
+      "Label",
+      "SliderOutput",
+      "SliderTrack",
+    ]);
+    const bar = applyContainer(
+      "ProgressBar",
+      { label: "P", labelPosition: "side", style: { display: "block" } },
+      [
+        makeChild("l", "Label"),
+        makeChild("v", "ProgressBarValue"),
+        makeChild("t", "ProgressBarTrack"),
+      ],
+    );
+    expect(bar.filteredChildren.map((c) => c.type)).toEqual([
+      "Label",
+      "ProgressBarValue",
+      "ProgressBarTrack",
+    ]);
+  });
+
+  it("Slider side + 인라인 column 은 flex 라 재정렬을 유지한다 (DOM order 가 column 에서도 먹는다)", () => {
+    const slider = applyContainer(
+      "Slider",
+      { label: "S", labelPosition: "side", style: { flexDirection: "column" } },
+      [
+        makeChild("l", "Label"),
+        makeChild("o", "SliderOutput"),
+        makeChild("t", "SliderTrack"),
+      ],
+    );
+    expect(slider.filteredChildren.map((c) => c.type)).toEqual([
+      "Label",
+      "SliderTrack",
+      "SliderOutput",
+    ]);
+  });
+
+  it("TextField side + 인라인 column 에서 FieldError 는 들여쓰지 않는다 · side row 는 종전대로", () => {
+    const children = () => [
+      makeChild("l", "Label"),
+      makeChild("i", "Input"),
+      makeChild("e", "FieldError"),
+    ];
+    const column = applyContainer(
+      "TextField",
+      { label: "L", labelPosition: "side", style: { flexDirection: "column" } },
+      children(),
+    );
+    expect(getChildStyle(column, "FieldError").marginLeft).toBeUndefined();
+    const row = applyContainer(
+      "TextField",
+      { label: "L", labelPosition: "side" },
+      children(),
+    );
+    expect(getChildStyle(row, "FieldError").marginLeft).toBeDefined();
+  });
+});

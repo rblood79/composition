@@ -1280,6 +1280,12 @@ function injectSideLabelLabelAndWrapperStyles(
 function injectSideLabelLabelAndContentStyles(
   children: CanvasLayoutNode[],
   contentTags: ReadonlySet<string>,
+  /**
+   * 결과 컨테이너가 side 의 한 줄 (flex row) 인가 — 인라인 column · block 이 side 변형을 이기면 아니다.
+   *   FieldError · Description 의 라벨 폭 들여쓰기는 row 줄바꿈 전제라 그때만 준다 (DOM 에는 margin
+   *   규칙이 없어 column 에서 x 0 이다).
+   */
+  sideRow: boolean,
 ): CanvasLayoutNode[] {
   return children.map((child) => {
     const cs = (child.props?.style || {}) as Record<string, unknown>;
@@ -1307,8 +1313,13 @@ function injectSideLabelLabelAndContentStyles(
           style: {
             ...cs,
             width: cs.width ?? "100%",
-            marginLeft:
-              cs.marginLeft ?? FORM_SIDE_LABEL_WIDTH + FORM_SIDE_LABEL_GAP,
+            ...(sideRow
+              ? {
+                  marginLeft:
+                    cs.marginLeft ??
+                    FORM_SIDE_LABEL_WIDTH + FORM_SIDE_LABEL_GAP,
+                }
+              : {}),
           },
         },
       };
@@ -1348,6 +1359,21 @@ function sideTrackRowStyle(
       ? {}
       : { gridTemplateAreas: undefined, gridTemplateColumns: undefined }),
   };
+}
+
+/**
+ * ProgressBar · Meter · Slider side 의 자식 재정렬 (label → track → value) 이 DOM 과 같은가 — DOM 은
+ * `order` 로 순서를 바꾸는데, `order` 는 flex · grid 에서만 먹는다. 인라인 block 이 side 변형을 이기면
+ * source 순서 그대로다.
+ */
+function sideReorderApplies(rawParentStyle: Record<string, unknown>): boolean {
+  const display = rawParentStyle.display ?? "flex";
+  return (
+    display === "flex" ||
+    display === "inline-flex" ||
+    display === "grid" ||
+    display === "inline-grid"
+  );
 }
 
 function getSideLabelParentStyle(
@@ -2785,6 +2811,7 @@ export function applyImplicitStyles(
       filteredChildren = injectSideLabelLabelAndContentStyles(
         filteredChildren,
         new Set(["SelectTrigger"]),
+        isSideRowLayout(sideMode, rawParentStyle),
       );
     }
     effectiveParent = withParentStyle(
@@ -2999,6 +3026,7 @@ export function applyImplicitStyles(
       filteredChildren = injectSideLabelLabelAndContentStyles(
         filteredChildren,
         new Set(["Input"]),
+        isSideRowLayout(tfSideMode, rawParentStyle),
       );
       effectiveParent = withParentStyle(containerEl, {
         ...getSideLabelParentStyle(specFallback, rawParentStyle),
@@ -3075,6 +3103,7 @@ export function applyImplicitStyles(
       filteredChildren = injectSideLabelLabelAndContentStyles(
         filteredChildren,
         new Set(["DateInput"]),
+        isSideRowLayout(sideMode, rawParentStyle),
       );
     }
     effectiveParent = withParentStyle(
@@ -3209,7 +3238,7 @@ export function applyImplicitStyles(
     // side: canonical 순서(label→value→track)를 label→track→value 로 배열 재정렬. Skia order sort
     //   (fullTreeLayout getOrder)는 store 원본 style.order 만 읽어 implicitStyles 주입 order 를 못 보므로,
     //   배열 순서 자체를 바꿔 CSS(.bar order:1 / .value order:2)와 동일 시각 결과(label-track-value)를 만든다.
-    if (isSideLabel) {
+    if (isSideLabel && sideReorderApplies(rawParentStyle)) {
       const sideRank = (t: string): number =>
         t === "Label"
           ? 0
@@ -3396,7 +3425,7 @@ export function applyImplicitStyles(
     //   (fullTreeLayout getOrder)는 store 원본 style.order 만 읽어 implicitStyles 주입 order 를 못 보므로,
     //   배열 순서 자체를 바꿔 CSS(.react-aria-SliderTrack order:1 / .react-aria-SliderOutput order:2)와
     //   동일 시각 결과(Label · Track · Value)를 만든다 (ProgressBar/Meter side 선례 동형).
-    if (isSideLabel) {
+    if (isSideLabel && sideReorderApplies(rawParentStyle)) {
       const sideRank = (t: string): number =>
         t === "Label" ? 0 : t === "SliderTrack" ? 1 : 2;
       filteredChildren = [...filteredChildren].sort(
@@ -3571,6 +3600,7 @@ export function applyImplicitStyles(
         //   Group(RAC DatePicker 내부 trigger 래퍼) + frame(ADR-130): 구조 차이 호환 보존.
         //   DateInput(factory 직접 자식): 레거시/대체 구조 보존.
         new Set(["SelectTrigger", "Group", "frame", "DateInput"]),
+        isSideRowLayout(sideMode, rawParentStyle),
       );
     }
     effectiveParent = withParentStyle(

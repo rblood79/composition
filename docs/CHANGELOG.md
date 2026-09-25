@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [캔버스 — 라벨 옆 필드에 인라인 배치가 있을 때의 자식 위치] - 2026-09-25
+
+### Fixed
+
+- **라벨을 옆에 둔 Slider · ProgressBar · Meter 에 인라인 `display: block` 이 있으면 캔버스만 값 표시를 막대 아래로 옮기던 문제** — 캔버스는 라벨 옆일 때 자식을 라벨 · 막대 · 값 순서로 바꾸는데, Preview 의 순서 변경 (`order`) 은 block 에서 효과가 없다. 이제 flex · grid 일 때만 순서를 바꾼다.
+- **라벨을 옆에 두고 인라인 세로 방향이 있는 TextField 등에서 캔버스만 오류 문구를 라벨 폭만큼 들여쓰던 문제** — 들여쓰기는 한 줄 배치 전제라, 세로로 쌓이면 Preview 처럼 왼쪽 끝에 놓는다.
+  - 위치: `workspace/canvas/layout/engines/implicitStyles.ts` (`sideReorderApplies` · `injectSideLabelLabelAndContentStyles`)
+
 ## [Styles 패널 — tablet · mobile 에서 라벨 위치 요소의 Direction override] - 2026-09-25
 
 ### Fixed

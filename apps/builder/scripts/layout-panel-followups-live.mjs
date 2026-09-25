@@ -246,6 +246,25 @@ try {
       textField,
     };
   }
+  // E. Canvas side 보조 주입 — Slider side + 인라인 block (source 순서) · TextField side + 인라인 column (FieldError x 0).
+  if (SECTIONS.includes("E")) {
+    const slider = await addFromPalette(page, "Slider", bodyId);
+    await seed(page, slider, { label: "Volume", labelPosition: "side", style: { display: "block" } });
+    const sliderNode = await readNode(page, slider);
+    const tf = await addFromPalette(page, "TextField", bodyId);
+    await seed(page, tf, {
+      label: "Name",
+      labelPosition: "side",
+      isInvalid: true,
+      errorMessage: "Required",
+      style: { flexDirection: "column" },
+    });
+    const tfColumn = await readNode(page, tf);
+    await seed(page, tf, { style: {} });
+    const tfRow = await readNode(page, tf);
+    report.checks.E_CanvasSide = { sliderBlock: sliderNode.kids, tfColumn: tfColumn.kids, tfRow: tfRow.kids };
+    await page.screenshot({ path: `${OUT}/E-canvas-side.png` });
+  }
 } finally {
   await writeFile(`${OUT}/report.json`, JSON.stringify(report, null, 2));
   console.log(JSON.stringify(report, null, 2));
