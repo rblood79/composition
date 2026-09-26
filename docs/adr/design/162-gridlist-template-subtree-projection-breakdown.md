@@ -82,6 +82,8 @@
   - 아직 안 본 행 = 추정 (템플릿 공식 — 현행 stride 값).
   - offset = 시각 행 높이 누적합 (prefix sum, 실측 교체 시 해당 지점부터 갱신). window index 는 offset 에서 이분 탐색, spacer = window 앞뒤 누적합, maxScrollTop = 전체 합 − viewport (`collectionVirtualization.ts:389-404` 의 곱셈식 대체).
   - scroll anchoring: 추정 → 실측 교체로 화면 위쪽 합이 바뀌면 scrollTop 을 그 차이만큼 보정해 화면 첫 행의 화면 y 를 고정.
+  - 끝 고정 (round 3 h1): scrollTop 이 maxScrollTop 에 있으면 (thumb 을 끝으로 끈 경우 포함) 기준을 마지막 행으로 바꾼다 — 실측 교체 뒤 scrollTop = 새 총합 − viewport 로 다시 맞춰 마지막 시각 행이 아래 끝에 붙어 있게 한다. 중간 미방문 행은 추정으로 남아도 끝 도달은 보장된다.
+  - 총 높이 정확도 계약: 모든 시각 행이 측정됐을 때만 총 높이 = DOM `scrollHeight`. 그 전에는 Σ실측 + Σ추정 (오차 = 미측정 행의 실제 − 추정 합) — 게이트가 아니라 기록 대상 (G3 b · c).
   - 진동 차단: 한 행은 캐시 키가 같으면 한 번만 잰다 — 같은 스크롤 위치의 연속 build 는 같은 window · offset.
   - §1.55c 컨테이너 높이 = 같은 누적합 (가상화 없는 크기면 전부 실측).
 - G3 (반례 입력: 2 열 · 1 행 짧은 / 2 행 3 줄 `{title}` 교대 · 200 행).
