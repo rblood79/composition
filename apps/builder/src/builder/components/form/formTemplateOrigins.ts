@@ -73,7 +73,9 @@ function formOriginChildren(): CanonicalNode[] {
       isDisabled: false,
       isReadOnly: false,
       isInvalid: false,
-      style: { width: "100%" },
+      // 너비 100% 는 catalog `textfield` 기본값이 공급한다 — factory (`createTextFieldDefinition`)
+      //   와 같이 인라인 미러를 두지 않는다 (2026-09-26 45bf29ae3 통합). 두면 origin instance
+      //   변환에서 origin 과 다른 저작 값으로 읽혀 ref 에 style patch 가 남는다.
     },
     // `createTextFieldDefinition`(FormComponents.ts) 자식 트리 미러. TextField 는 leaf 가 아니라
     //   Label + Input(+ FieldError) 를 **자식 Element** 로 갖는 조합이라, 자식 없이 저작하면
