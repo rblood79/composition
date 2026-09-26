@@ -146,8 +146,10 @@ import {
   safeJsonParse,
 } from "../../utils/dataHelpers";
 import {
+  deriveProjectRenderModelFromDocument,
   downloadProjectAsJson,
   loadProjectFromFile,
+  type ProjectExportData,
 } from "@composition/shared/utils";
 import {
   DEFAULT_BASE_TYPOGRAPHY,
@@ -1214,9 +1216,58 @@ export const BuilderCore: React.FC = () => {
 
   const handlePlay = useCallback(() => {}, []);
 
-  const handleExportProject = useCallback(async () => {
+  /** 내보내기 공용 — 현재 프로젝트의 문서 · 문서 밖 상태 (ADR-235 v1 · v2 공통 입력) */
+  const collectExportContent = useCallback(() => {
     const document = getActiveCanonicalDocument();
-    if (!projectId || !document) {
+    if (!projectId || !document) return null;
+    return {
+      project: { id: projectId, name: projectInfo?.name || "Untitled Project" },
+      document,
+      currentPageId: useStore.getState().currentPageId,
+      fontRegistry: loadFontRegistry(),
+      collections: Array.from(useDataStore.getState().collections.values()).map(
+        toExportCollection,
+      ),
+      apiEndpoints: Array.from(
+        useDataStore.getState().apiEndpoints.values(),
+      ).map(toRuntimeApiEndpoint),
+      // ADR-214 — 프로젝트 변수 정의 (import 에서 보존 · publish 런타임 입력)
+      variables: getProjectVariableDefinitions(),
+    };
+  }, [projectId, projectInfo]);
+
+  /** ADR-235 Phase 4 — 기본 내보내기 = 형식 v2 zip (문서 · part · 자산 파일) */
+  const handleExportProject = useCallback(async () => {
+    const content = collectExportContent();
+    if (!content) {
+      showToast("error", t("header.projectFileUnavailable"));
+      return;
+    }
+    try {
+      const { exportProjectV2Zip } =
+        await import("../../lib/assets/assetProjectFile");
+      const blob = await exportProjectV2Zip(content);
+      const url = URL.createObjectURL(blob);
+      const link = window.document.createElement("a");
+      link.href = url;
+      link.download = `${content.project.name}.composition.zip`;
+      window.document.body.appendChild(link);
+      link.click();
+      window.document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      showToast("success", t("header.exportProjectSuccess"));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      showToast("error", t("header.exportProjectFailed", { message }), {
+        duration: 8000,
+      });
+    }
+  }, [collectExportContent, showToast, t]);
+
+  /** v1 JSON 내보내기 — 자산 참조를 dataURL 로 인라인한 자립 파일 (HC7) */
+  const handleExportProjectJson = useCallback(async () => {
+    const content = collectExportContent();
+    if (!content) {
       showToast("error", t("header.projectFileUnavailable"));
       return;
     }
@@ -1225,23 +1276,12 @@ export const BuilderCore: React.FC = () => {
       // ADR-235 HC7 — 내보낸 파일은 자립적이다: `asset:` 참조를 바이트 dataURL 로 인라인.
       //   자산이 없으면 실패 (참조만 든 파일을 만들지 않는다).
       const { inlineAssetRefs } = await import("../../lib/assets/assetExport");
-      const exportable = await inlineAssetRefs({
-        document,
-        fontRegistry: loadFontRegistry(),
-        collections: Array.from(
-          useDataStore.getState().collections.values(),
-        ).map(toExportCollection),
-        apiEndpoints: Array.from(
-          useDataStore.getState().apiEndpoints.values(),
-        ).map(toRuntimeApiEndpoint),
-        // ADR-214 — 프로젝트 변수 정의 (import 에서 보존 · publish 런타임 입력)
-        variables: getProjectVariableDefinitions(),
-      });
+      const exportable = await inlineAssetRefs(content);
       downloadProjectAsJson(
-        projectId,
-        projectInfo?.name || "Untitled Project",
+        content.project.id,
+        content.project.name,
         exportable.document,
-        useStore.getState().currentPageId,
+        content.currentPageId,
         exportable.fontRegistry,
         undefined,
         exportable.collections,
@@ -1255,7 +1295,73 @@ export const BuilderCore: React.FC = () => {
         duration: 8000,
       });
     }
-  }, [projectId, projectInfo, showToast, t]);
+  }, [collectExportContent, showToast, t]);
+
+  /** 가져온 envelope (v1 JSON · v2 zip 공통) 적용 — 문서 교체 · 폰트 · 현재 페이지 · history 정리 */
+  const applyImportedProject = useCallback(
+    async (data: ProjectExportData): Promise<void> => {
+      if (!projectId) return;
+      const previousPageIds = useStore.getState().pages.map((page) => page.id);
+      pageShellBridgeSuspendedRef.current = true;
+      try {
+        // 현재 프로젝트의 로컬 identity 는 유지하고 파일의 canonical document 만
+        // 전체 교체한다. 복원 SSOT 경로가 page/element 파생과 IndexedDB 저장까지
+        // 같은 순서로 수행한다.
+        const importedDocument = await importCollectionEnvelope(
+          projectId,
+          data,
+          useDataStore.getState(),
+        );
+        await applySnapshotDocument(
+          useStore.getState,
+          projectId,
+          importedDocument,
+        );
+
+        if (data.fontRegistry) {
+          saveRegistryAndNotify(data.fontRegistry);
+        }
+
+        const importedState = useStore.getState();
+        const importedPageIds = new Set(
+          importedState.pages.map((page) => page.id),
+        );
+        const importedCurrentPageId = data.currentPageId;
+        if (
+          importedCurrentPageId &&
+          importedPageIds.has(importedCurrentPageId)
+        ) {
+          importedState.activatePage(importedCurrentPageId);
+        } else if (importedCurrentPageId) {
+          // ADR-235 §2 — 저장된 현재 페이지가 문서에 없으면 첫 페이지 + 경고 1건. 첫 페이지 =
+          //   publish 와 같은 runtime 모델의 첫 페이지 (Components 페이지 제외).
+          const firstPageId = deriveProjectRenderModelFromDocument(
+            importedDocument,
+            projectId,
+            null,
+          ).currentPageId;
+          if (firstPageId && importedPageIds.has(firstPageId)) {
+            importedState.activatePage(firstPageId);
+          }
+          showToast("warning", t("header.importCurrentPageMissing"));
+        }
+
+        // 전체 문서 교체 후 과거 element diff 를 적용하면 다른 문서를 손상시킬 수
+        // 있으므로, 이 프로젝트가 가졌던 페이지와 새 페이지의 history 만 비운다.
+        const historyPageIds = new Set([
+          ...previousPageIds,
+          ...importedPageIds,
+        ]);
+        historyPageIds.forEach((pageId) => {
+          historyManager.clearPageHistory(pageId);
+        });
+      } finally {
+        pageShellBridgeSuspendedRef.current = false;
+      }
+      showToast("success", t("header.importProjectSuccess"));
+    },
+    [projectId, showToast, t],
+  );
 
   const handleImportProject = useCallback(
     async (file: File): Promise<void> => {
@@ -1265,6 +1371,20 @@ export const BuilderCore: React.FC = () => {
       }
 
       try {
+        // ADR-235 Phase 4 — v2 zip (자산 파일 포함) 이면 자산을 저장소에 넣고 v1 과 같은 envelope 로
+        const projectFile = await import("../../lib/assets/assetProjectFile");
+        if (await projectFile.isProjectZipFile(file)) {
+          const v2 = await projectFile.readProjectV2Zip(file);
+          if (v2.recovered) {
+            showToast("warning", t("header.importRecoveredGeneration"), {
+              duration: 8000,
+            });
+          }
+          await applyImportedProject(
+            v2.data as unknown as Parameters<typeof applyImportedProject>[0],
+          );
+          return;
+        }
         const loaded = await loadProjectFromFile(file);
         // ADR-235 Phase 2 — 가져온 v1 파일의 인라인 이미지 · 폰트를 자산으로 (저장 실패분은 인라인 유지)
         const result =
@@ -1290,55 +1410,7 @@ export const BuilderCore: React.FC = () => {
           return;
         }
 
-        const previousPageIds = useStore
-          .getState()
-          .pages.map((page) => page.id);
-        pageShellBridgeSuspendedRef.current = true;
-        try {
-          // 현재 프로젝트의 로컬 identity 는 유지하고 파일의 canonical document 만
-          // 전체 교체한다. 복원 SSOT 경로가 page/element 파생과 IndexedDB 저장까지
-          // 같은 순서로 수행한다.
-          const importedDocument = await importCollectionEnvelope(
-            projectId,
-            result.data,
-            useDataStore.getState(),
-          );
-          await applySnapshotDocument(
-            useStore.getState,
-            projectId,
-            importedDocument,
-          );
-
-          if (result.data.fontRegistry) {
-            saveRegistryAndNotify(result.data.fontRegistry);
-          }
-
-          const importedState = useStore.getState();
-          const importedPageIds = new Set(
-            importedState.pages.map((page) => page.id),
-          );
-          const importedCurrentPageId = result.data.currentPageId;
-          if (
-            importedCurrentPageId &&
-            importedPageIds.has(importedCurrentPageId)
-          ) {
-            importedState.activatePage(importedCurrentPageId);
-          }
-
-          // 전체 문서 교체 후 과거 element diff 를 적용하면 다른 문서를 손상시킬 수
-          // 있으므로, 이 프로젝트가 가졌던 페이지와 새 페이지의 history 만 비운다.
-          const historyPageIds = new Set([
-            ...previousPageIds,
-            ...importedPageIds,
-          ]);
-          historyPageIds.forEach((pageId) => {
-            historyManager.clearPageHistory(pageId);
-          });
-        } finally {
-          pageShellBridgeSuspendedRef.current = false;
-        }
-
-        showToast("success", t("header.importProjectSuccess"));
+        await applyImportedProject(result.data);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         showToast("error", t("header.importProjectFailed", { message }), {
@@ -1521,6 +1593,7 @@ export const BuilderCore: React.FC = () => {
             onPlay={handlePlay}
             onImportProject={handleImportProject}
             onExportProject={handleExportProject}
+            onExportProjectJson={handleExportProjectJson}
             onWorkflowOverlayToggle={toggleWorkflowOverlay}
           />
         }

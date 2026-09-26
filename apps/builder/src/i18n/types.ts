@@ -1171,6 +1171,9 @@ export interface TranslationKeys {
     exportProject: string;
     exportProjectSuccess: string;
     exportProjectFailed: string;
+    exportProjectJson: string;
+    importCurrentPageMissing: string;
+    importRecoveredGeneration: string;
     projectFileUnavailable: string;
     deleteProject: string;
     resetPanelLayout: string;

@@ -284,3 +284,28 @@ Phase 5 는 1~4 와 독립이라 먼저 착수해도 된다 (가장 작은 작�
 | 실제 삭제 (live)                                                                                 | H3 history 비움 · 요소 삭제 → GC 2 회 → 바이트 0 · tombstone · H4 지워진 참조 준비 거부                                                                                   |
 
 - 하니스: `apps/builder/scripts/adr235-g3-live.mjs` (4/4). 다른 탭 경쟁은 unit 의 세션 id 둘로 재현 (같은 트랜잭션 계약) — 실제 두 탭 live 는 Phase 7.
+
+### Phase 4 — 형식 v2 (G4 · G5 통과, 2026-09-26)
+
+**구현**
+
+- `packages/shared/src/assets/formatV2.ts` (`@composition/shared/assets`, lazy) — `buildV2Generation` (내용 → 불변 part `parts/<sha256>.json` × 5 · 자산 `assets/<hash>.<ext>` · manifest; 자산 바이트가 없으면 `V2AssetMissingError`) · `readV2Generation` (manifest.json → 실패 · part 누락 · 해시 불일치면 `manifests/` 를 revision 내림차순으로 훑어 첫 유효 세대, 없으면 `V2FormatError`; part · 자산 해시 전부 검증) · `packV2Zip` / `openV2Zip` (최상위 폴더로 묶인 zip 도 읽음, JSON part 만 DEFLATE) · `mapV2Source` · `v2AssetPathMap`. manifest = `formatVersion` · `project` · `revision` / `previousRevision` / `savedAt` · `parts` · `assets[]` · `editor.currentPageId` · `metadata`.
+- builder — 메뉴 "내보내기" = v2 zip (`<name>.composition.zip`), "JSON 으로 내보내기 (v1)" = 자산 인라인 v1. 가져오기는 zip 매직이면 v2 (자산 → 자산 저장소, pin) · 아니면 v1 (Phase 2 자산화). 두 경로가 같은 적용 함수 (`applyImportedProject`) 를 탄다. 저장된 현재 페이지가 없으면 runtime 모델의 첫 페이지 (Components 제외) + 경고, manifest 복구 시 경고. `lib/assets/assetProjectFile.ts`.
+- publish — `?project=` 가 zip · `manifest.json` · 폴더 URL 이면 v2 (`apps/publish/src/loadProjectV2.ts`, lazy): 디렉토리는 **manifest 위치 기준 상대 경로**로 part · 자산을 읽고 자산 참조를 그 절대 URL 로, zip 은 `blob:` 로 해석하는 정적 해석기를 설치. 기본 경로 `/project.json` 이 없으면 `/manifest.json` (v2 디렉토리 배포). 파일 드롭도 zip.
+- 정적 HTML — `exportProject` 의 `assetFiles` 로 문서 · 폰트의 참조를 `assets/<hash>.<ext>` 로 바꾸고 파일을 함께 쓴다 (디렉토리 · zip 모두, 하위 폴더 생성). 호출처는 여전히 앱 UI 에 없다 (기존) — 하니스가 직접 부른다.
+- currentPageId 검증은 reader 가 아니라 적용 쪽 (builder 가져오기 · publish `deriveProjectRenderModelFromDocument`) 이 한다 — 페이지 판정 함수를 lazy 모듈에 복제하지 않기 위해.
+
+**G4 · G5 증거** (`apps/builder/scripts/adr235-g4-live.mjs` 8/8 · `formatV2.test.ts` 6)
+
+| 항목                                         | 결과                                                                                                               |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| v2 zip 왕복 (unit)                           | 문서 · 자산 바이트 · collections · apiEndpoints · variables · 폰트 · currentPageId · metadata 동일 (현재 페이지 B) |
+| 세대 복구 (unit)                             | manifest.json 손상 → manifests/ 최신 · 최신 세대 part 누락 → 직전 세대 · 자산 해시 불일치 거부                     |
+| 내보내기 → 빈 프로필 가져오기 (live V2)      | 문서 동일 (키 순서 무관) · 현재 페이지 B · 폰트 로드 · Canvas 이미지                                               |
+| publish ← v2 디렉토리 (live V3, 상대 경로)   | 페이지 B · `<img>` 가 `…/dir/assets/<hash>.png` 로드 · 사용자 폰트 · `asset:` 누수 0 · Canvas 와 비율 2:1 동일     |
+| publish ← v2 zip · v1 JSON (live V4 · V5)    | 페이지 B · 이미지 (`blob:` · dataURL) · 폰트                                                                       |
+| 정적 HTML (live V6)                          | `<img src="assets/<hash>.png">` 로드 · `@font-face` 상대 경로 · 폰트 로드                                          |
+| 없는 currentPageId · 손상 zip (live V7 · V8) | 첫 페이지 + 경고 · 가져오기 실패 알림                                                                              |
+| v1 가져오기 기존 fixture                     | shared · builder · publish 스위트 통과 (기존 실패 3 은 무관 — Phase 1 기록)                                        |
+
+- G4 의 이미지는 Image 컴포넌트 (`src`) 로 쟀다 — publish 런타임은 fills 를 싣지 않아 (기존 결함, publish 기능 링크만 방침) 이미지 채우기는 publish 에서 그려지지 않는다. Canvas ↔ DOM 이미지 채우기 대칭은 Phase 1 (Preview 렌더러 unit + Canvas live) 이 확인했다.

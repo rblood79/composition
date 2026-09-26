@@ -330,7 +330,7 @@ async function main() {
     });
     await createIsolatedProject(b.page, baseUrl);
     await fitViewport(b.page);
-    await b.page.locator('input[type="file"][accept="application/json,.json"]').setInputFiles(exportPath);
+    await b.page.locator('input[type="file"][accept^="application/json"]').setInputFiles(exportPath);
     await b.page.waitForTimeout(4000);
     await waitReady(b.page);
     const importedShot = await b.page.screenshot();

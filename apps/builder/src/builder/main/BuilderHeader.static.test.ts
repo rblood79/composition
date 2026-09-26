@@ -38,7 +38,13 @@ describe("BuilderHeader chrome control groups", () => {
     expect(source).not.toContain('className="publish"');
     expect(source).toContain('if (key === "import")');
     expect(source).toContain('if (key === "export") void onExportProject()');
-    expect(source).toContain('accept="application/json,.json"');
+    // ADR-235 Phase 4 — v1 JSON + v2 zip 가져오기, v1 JSON 내보내기는 별도 항목
+    expect(source).toContain(
+      'accept="application/json,.json,application/zip,.zip"',
+    );
+    expect(source).toContain(
+      'if (key === "export-json") void onExportProjectJson()',
+    );
     expect(source).toContain("void onImportProject(file)");
   });
 

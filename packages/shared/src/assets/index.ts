@@ -3,3 +3,4 @@
  * barrel (`@composition/shared`) 에 넣지 않는다 — 이유는 assetBytes.ts 머리말.
  */
 export * from "./assetBytes";
+export * from "./formatV2";

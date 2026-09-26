@@ -410,9 +410,17 @@ export function App() {
   const loadFile = useCallback(
     async (file: File) => {
       setLoadingState("loading");
+      // ADR-235 Phase 4 — v2 zip 이면 자산을 blob: 으로 해석해 연다
+      const v2 = await import("./loadProjectV2")
+        .then((m) => m.loadProjectV2FromFile(file))
+        .catch(() => null);
+      if (v2) {
+        setProject(v2.data);
+        return;
+      }
       applyLoadResult(await loadProjectFromFile(file));
     },
-    [applyLoadResult],
+    [applyLoadResult, setProject],
   );
 
   // URL 파라미터에서 프로젝트 로드
@@ -423,6 +431,14 @@ export function App() {
 
       if (projectUrl) {
         setLoadingState("loading");
+        // ADR-235 Phase 4 — v2 (zip · manifest.json · 폴더 URL) 면 manifest 위치 기준으로 읽는다
+        const v2 = await import("./loadProjectV2")
+          .then((m) => m.loadProjectV2FromUrl(projectUrl))
+          .catch(() => null);
+        if (v2) {
+          setProject(v2.data);
+          return true;
+        }
         applyLoadResult(await loadProjectFromUrl(projectUrl));
         return true;
       }
@@ -435,6 +451,14 @@ export function App() {
 
       if (result.success) {
         setProject(result.data, result.warnings);
+        return true;
+      }
+      // ADR-235 Phase 4 — v2 디렉토리 배포 (`/manifest.json`)
+      const v2 = await import("./loadProjectV2")
+        .then((m) => m.loadProjectV2FromUrl("/manifest.json"))
+        .catch(() => null);
+      if (v2) {
+        setProject(v2.data);
         return true;
       }
       return false;
@@ -590,7 +614,7 @@ export function App() {
           <input
             ref={fileInputRef}
             type="file"
-            accept=".json"
+            accept=".json,.zip"
             onChange={handleFileSelect}
             style={{ display: "none" }}
           />

@@ -228,7 +228,10 @@ describe("BuilderCore canonical document direct cutover contract", () => {
     expect(source).toContain("downloadProjectAsJson");
     expect(source).toContain("loadProjectFromFile");
     expect(source).toContain("applySnapshotDocument(");
-    expect(source).toContain("saveRegistryAndNotify(result.data.fontRegistry)");
+    // ADR-235 Phase 4 — v1 JSON · v2 zip 이 같은 적용 경로 (applyImportedProject) 를 탄다
+    expect(source).toContain("saveRegistryAndNotify(data.fontRegistry)");
+    expect(source).toContain("readProjectV2Zip(file)");
+    expect(source).toContain("onExportProjectJson={handleExportProjectJson}");
     expect(source).toContain("historyManager.clearPageHistory(pageId)");
     expect(source).toContain("pageShellBridgeSuspendedRef.current = true");
     expect(source).toContain("onImportProject={handleImportProject}");

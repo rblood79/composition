@@ -1264,6 +1264,11 @@ const koKR: TranslationKeys = {
     exportProject: "내보내기",
     exportProjectSuccess: "프로젝트를 로컬 파일로 저장했습니다.",
     exportProjectFailed: "프로젝트를 저장하지 못했습니다: {message}",
+    exportProjectJson: "JSON 으로 내보내기 (v1)",
+    importCurrentPageMissing:
+      "파일에 저장된 현재 페이지가 문서에 없어 첫 페이지를 엽니다.",
+    importRecoveredGeneration:
+      "manifest.json 을 읽을 수 없어 직전 저장 세대로 복구했습니다.",
     projectFileUnavailable: "프로젝트가 아직 준비되지 않았습니다.",
     deleteProject: "프로젝트 삭제",
     resetPanelLayout: "패널 레이아웃 초기화",
@@ -3220,6 +3225,11 @@ const enUS: TranslationKeys = {
     exportProject: "Export",
     exportProjectSuccess: "Project saved to a local file.",
     exportProjectFailed: "Could not save the project: {message}",
+    exportProjectJson: "Export as JSON (v1)",
+    importCurrentPageMissing:
+      "The file's current page is not in the document — opened the first page.",
+    importRecoveredGeneration:
+      "manifest.json could not be read — recovered the previous saved generation.",
     projectFileUnavailable: "The project is not ready yet.",
     deleteProject: "Delete Project",
     resetPanelLayout: "Reset Panel Layout",

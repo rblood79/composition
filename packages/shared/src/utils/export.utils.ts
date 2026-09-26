@@ -1441,6 +1441,11 @@ interface ExportProjectOptions {
   currentPageId?: string | null;
   fontRegistry?: FontRegistryV2;
   themeCSS?: string;
+  /**
+   * ADR-235 — `asset:` 참조 → 같은 폴더의 상대 경로 파일 (`assets/<hash>.<ext>`). 문서 · 폰트의
+   * 참조를 그 경로로 바꾸고 파일을 함께 쓴다 (HC7 — 파일만으로 이미지 · 폰트를 연다).
+   */
+  assetFiles?: { ref: string; path: string; data: ArrayBuffer }[];
 }
 
 /**
@@ -1451,7 +1456,18 @@ interface ExportProjectOptions {
 export async function exportProject(
   options: ExportProjectOptions,
 ): Promise<void> {
-  const { fontRegistry } = options;
+  const assetFiles = options.assetFiles ?? [];
+  const toRelative = <T>(value: T): T =>
+    assetFiles.length === 0 || value === undefined
+      ? value
+      : (JSON.parse(
+          assetFiles.reduce(
+            (json, file) => json.split(file.ref).join(file.path),
+            JSON.stringify(value),
+          ),
+        ) as T);
+  const fontRegistry = toRelative(options.fontRegistry);
+  const projectDocument = toRelative(options.document);
 
   // 폰트 레지스트리 rewrite
   let exportRegistry: FontRegistryV2 | undefined;
@@ -1467,11 +1483,16 @@ export async function exportProject(
   const html = generateStaticHtml(
     options.projectId,
     options.projectName,
-    options.document,
+    projectDocument,
     options.currentPageId,
     exportRegistry,
     options.themeCSS || "",
   );
+
+  fontAssets = [
+    ...fontAssets,
+    ...assetFiles.map(({ path, data }) => ({ path, data })),
+  ];
 
   // 폰트가 없으면 단일 HTML 다운로드
   if (fontAssets.length === 0) {
@@ -1512,24 +1533,19 @@ async function exportToDirectory(
   await htmlWritable.write(html);
   await htmlWritable.close();
 
-  // assets/fonts/ 디렉터리 생성 후 폰트 파일 쓰기
-  if (fontAssets.length > 0) {
-    const assetsDir = await dirHandle.getDirectoryHandle("assets", {
-      create: true,
-    });
-    const fontsDir = await assetsDir.getDirectoryHandle("fonts", {
-      create: true,
-    });
-
-    for (const asset of fontAssets) {
-      const fileName = asset.path.split("/").pop()!;
-      const fileHandle = await fontsDir.getFileHandle(fileName, {
-        create: true,
-      });
-      const writable = await fileHandle.createWritable();
-      await writable.write(asset.data);
-      await writable.close();
+  // 자산 경로 (assets/fonts/… · assets/<hash>.<ext>) 대로 하위 디렉터리를 만들며 쓴다
+  for (const asset of fontAssets) {
+    const segments = asset.path.split("/");
+    let dir = dirHandle;
+    for (const segment of segments.slice(0, -1)) {
+      dir = await dir.getDirectoryHandle(segment, { create: true });
     }
+    const fileHandle = await dir.getFileHandle(segments.at(-1)!, {
+      create: true,
+    });
+    const writable = await fileHandle.createWritable();
+    await writable.write(asset.data);
+    await writable.close();
   }
 
   console.log(

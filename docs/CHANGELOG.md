@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [로컬 저장 v2 Phase 4 — 프로젝트 파일 형식 v2] - 2026-09-26
+
+### Changed
+
+- **"내보내기" 는 이제 `.composition.zip` 파일을 만든다 (형식 v2).** 안에 `manifest.json` · 문서 조각 (`parts/`) · 이미지 · 폰트 원본 파일 (`assets/`) 이 들어 있어 탐색기에서 자산을 알아볼 수 있다. 종전 JSON 은 메뉴의 "JSON 으로 내보내기 (v1)" 로 계속 만들 수 있다 (이미지 · 폰트 인라인).
+- **가져오기는 v1 JSON 과 v2 zip 을 모두 연다.** 저장된 현재 페이지로 열리고, 그 페이지가 문서에 없으면 첫 페이지를 열고 알린다. `manifest.json` 이 손상돼도 저장 기록 (`manifests/`) 이 있으면 직전 세대로 복구한다.
+
+### Added
+
+- **publish 가 v2 를 읽는다** — `?project=` 에 zip · `manifest.json` · 폴더 URL 을 주면 자산을 manifest 위치 기준 상대 경로로 읽는다. 기본 `/project.json` 이 없으면 `/manifest.json` 을 찾는다. 파일 드롭도 zip 을 받는다.
+- 정적 HTML 내보내기 (`exportProject`) 가 자산을 `assets/` 파일로 함께 쓰고 상대 경로로 가리킨다.
+  - 검증: 실제 builder · publish (Playwright Chrome) — 내보내기 → 빈 브라우저 가져오기 (문서 동일 · 현재 페이지) · publish v2 폴더 · zip · v1 · 정적 HTML 에서 이미지 · 사용자 폰트 로드 · 없는 현재 페이지 · 손상 파일 8/8.
+
 ## [로컬 저장 v2 Phase 3 — 쓰지 않는 자산 정리] - 2026-09-26
 
 ### Added

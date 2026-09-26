@@ -347,7 +347,7 @@ async function main() {
       const b = await createInstrumentedContext(browser, { storageState, frameCapture: false });
       await createIsolatedProject(b.page, baseUrl);
       await fitViewport(b.page);
-      await b.page.locator('input[type="file"][accept="application/json,.json"]').setInputFiles(importFile);
+      await b.page.locator('input[type="file"][accept^="application/json"]').setInputFiles(importFile);
       await b.page.waitForTimeout(5000);
       const imported = await b.page.evaluate(() => {
         const canonical = window.__canonical_STORE__.getState();

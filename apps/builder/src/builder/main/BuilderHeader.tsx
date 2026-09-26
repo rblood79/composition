@@ -66,6 +66,8 @@ export interface BuilderHeaderProps {
   onPlay: () => void;
   onImportProject: (file: File) => void | Promise<void>;
   onExportProject: () => void | Promise<void>;
+  /** ADR-235 — v1 JSON (자산 인라인) 내보내기. 기본 내보내기는 v2 zip */
+  onExportProjectJson: () => void | Promise<void>;
   onWorkflowOverlayToggle: () => void;
 }
 
@@ -78,6 +80,7 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
   onPreview,
   onImportProject,
   onExportProject,
+  onExportProjectJson,
   onWorkflowOverlayToggle,
 }) => {
   const { t } = useI18n();
@@ -149,6 +152,7 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
                 if (key === "open") handleOpenProject();
                 if (key === "import") importInputRef.current?.click();
                 if (key === "export") void onExportProject();
+                if (key === "export-json") void onExportProjectJson();
                 if (key === "reset-panel-layout") resetWorkspaceLayout();
                 if (key === "workflow") onWorkflowOverlayToggle();
                 if (key === "settings") togglePanel("settings");
@@ -168,6 +172,10 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
               <MenuItem id="export" className="header-menu-item">
                 <Download size={14} />
                 <span>{t("header.exportProject")}</span>
+              </MenuItem>
+              <MenuItem id="export-json" className="header-menu-item">
+                <Download size={14} />
+                <span>{t("header.exportProjectJson")}</span>
               </MenuItem>
               <Separator className="header-menu-separator" />
               <MenuItem id="delete" className="header-menu-item">
@@ -211,7 +219,7 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
         <input
           ref={importInputRef}
           type="file"
-          accept="application/json,.json"
+          accept="application/json,.json,application/zip,.zip"
           hidden
           onChange={handleImportFileChange}
         />
