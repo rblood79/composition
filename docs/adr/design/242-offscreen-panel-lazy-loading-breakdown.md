@@ -1,0 +1,43 @@
+# ADR-242 breakdown — 초기 화면 밖 패널 lazy 분리
+
+> 본문: [ADR-242](../242-offscreen-panel-lazy-loading.md)
+
+## 1. 전제 lock-in (fork 4 질문)
+
+1. **base / 응용**: ADR-212 의 `lazyPanel` 경계 (`panels/core/lazyPanel.tsx`, Implemented) 가 base, 본 ADR 은 그 경계를 다른 패널에 적용하는 응용이다. base 를 바꾸는 것은 오류 경계 추가 하나 (Phase 1) 뿐이고 기존 두 lazy 패널 (datatable 편집기 · 필드) 의 동작은 유지한다.
+2. **schema 직교성**: 저장 스키마 · 패널 레이아웃 persist 키 (`composition-panel-layout`, 패널 id) · D1/D2/D3 어느 것도 바꾸지 않는다. 번들 경계만 바꾼다.
+3. **선행 전제 역검증**: ADR-201 재승인 절 (2026-09-25 사용자 판정 "재승인 + 패널 lazy 감량", "패널 lazy 분리는 새 ADR 로") 이 본 ADR 의 출처다. 201 이 적은 대상 목록 (datatable · themes · history · interactions · fonts) 은 코드 실측으로 다시 확정했다 — 등록 패널이 아닌 fonts 는 Styles 패널 안의 대화상자 경계로, settings 를 추가 (§2).
+4. **판독 시점**: 본문 판독 전에 위 1~3 을 고정한다. 사용자 요청 `/create-adr 패널 lazy 분리` (2026-09-26) = 작성 승인. Accepted 는 판독 뒤 사용자 판정.
+
+## 2. 대상 — 실측 (2026-09-26, `9c55fa477`+`b18bba835` 트리, `vite build --sourcemap` + `adr209-bundle-closure` + `adr212-editor-initial-bytes --match`)
+
+initial Builder closure 에 실린 원본 모듈 raw 바이트 (minified, sourcemap 귀속 — gzip 아님).
+
+| 대상                  | initial raw | lazy 로 보낼 것                                                                                     | initial 에 남는 것 (패널 밖 값 import)                                                                                                                                                                                            |
+| --------------------- | ----------: | --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `panels/datatable`    |      25,803 | `DataTablePanel` 과 그 목록 UI (`VariableList` · `ApiEndpointList` · `DataTableList` …)             | `stores/dataTableEditorStore` (Canvas 배지 · 바인딩 UI · agent · AI) · `hooks/useExecutionPolicyScheduler` (BuilderCore) · `utils/{quickConnect,secretVault,sourceRev,columnDetector,pasteRows}` · `resolveCollectionBadgeStatus` |
+| `panels/themes`       |      13,982 | `ThemesPanel` · `ThemeListSection` · `ThemeTokensSection` · `MiniThemePreview` · `themeTokenEditor` | `themeActions.applyActiveThemeToRuntime` (BuilderCore 부팅)                                                                                                                                                                       |
+| `panels/history`      |      11,643 | `HistoryPanel` · `historyEntryLabel`                                                                | 없음 (외부 값 import 0)                                                                                                                                                                                                           |
+| `panels/interactions` |       9,300 | `InteractionsPanel` 과 하위 picker · `RuleRow` · `StateActionFields`                                | `labels.ts` (`workflowEdges.ts:18` — Canvas)                                                                                                                                                                                      |
+| `panels/fonts`        |       7,711 | `FontManagerDialog` · `FontManagerBody` · `FontUploadZone` · `FontFamilyGroup`                      | `FontFamilyPicker` · `useFontRegistry` (Styles `TypographySection.tsx:47-48`)                                                                                                                                                     |
+| `panels/settings`     |       3,730 | `SettingsPanel`                                                                                     | Phase 0 에서 확인                                                                                                                                                                                                                 |
+
+**정적 경로 (끊어야 할 것)**: `panels/core/panelConfigs.ts:24-37` (패널 컴포넌트 정적 import) · `panels/index.ts:18-32` (barrel 정적 re-export, `BuilderCore.tsx:55` `import "../panels"` 가 값으로 import) · `FontFamilyPicker.tsx:45` (`FontManagerDialog` 정적).
+
+**범위 밖 (정적 유지)**: navigator (48,584) · properties (119,557) · styles (148,817) · components (10,540) — 편집 세션 대부분이 여는 핵심 저작 표면 (ADR 본문 Decision). AI 는 이미 lazy.
+
+## 3. Phase
+
+| Phase | 내용                                                                                                                                                                                                                                                                                              | Gate      |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| 0     | inventory freeze — 대상 6 의 패널 밖 값 import 전수 (settings 포함) · `panels` barrel 의 named export 소비처 전수 · 기준 측정 (별도 worktree clean 빌드: Builder / Preview initial gzip, 대상별 raw 귀속) · 첫 열림 지연 기준 (정적 상태의 패널 열기 → 내용 표시)                                 | G0        |
+| 1     | `lazyPanel` 에 chunk 로드 실패 경계 (패널 골격 안 오류 + 다시 시도 — 성공 시 내용, 다른 패널 · Canvas 무영향) · 정적 가드 확장 (`lazyPanelBoundary.static.test.ts` — 대상 구현을 panelConfigs · barrel · 패널 밖에서 값 import 하면 실패)                                                         | G3        |
+| 2     | 패널 전환 — history · settings · interactions · themes 를 `lazyPanel(() => import(...).then(m => ({ default: m.X })))` 로 (panelConfigs 상수 이름 유지 — `panelCloseActions.static.test.ts`), barrel 정적 re-export 제거 또는 type 로 · 패널마다 번들 Δ 기록 (Δ ≥ 0 인 패널은 되돌리고 원인 기록) | G1 (부분) |
+| 3     | datatable 목록 패널 · fonts 대화상자 — datatable 은 `DataTablePanel` 만 경계로 (store · hook · utils 는 initial 유지), fonts 는 `FontFamilyPicker` 안에서 `FontManagerDialog` 를 열 때 로드                                                                                                       | G1        |
+| 4     | live · 지연 측정 · closure (README · CHANGELOG · ADR-201 재승인 절에 결과)                                                                                                                                                                                                                        | G2 · G4   |
+
+## 4. 측정 규약
+
+- 번들: 같은 커밋 기준 별도 worktree clean 빌드 (before) vs 작업 트리 (after), `adr209-bundle-closure.mjs` gzip (level 9, mtime 0) — Builder `index.html`, Preview `preview.html`. 귀속: `vite build --sourcemap` 산출물에 `adr212-editor-initial-bytes.mjs --match <dir>`. sourcemap 빌드는 gzip 이 달라 귀속에만 쓴다.
+- 첫 열림 지연: production 빌드 (`vite preview`) · Chrome foreground · 캐시 비움 cold 5회 + warm 10회 · 레일 버튼 클릭 → 패널 내용 첫 요소 표시까지 (fallback 아님). CPU throttle 1x · 4x 둘 다 기록 (사용자 Chrome 은 4x — 메모리 `user-chrome-cpu-throttle-4x`).
+- 공유 chunk 분리 확인: 패널 하나를 바꿀 때마다 initial 파일 목록 diff — 새 파일이 initial 에 생기면 원인 모듈 (RAC · i18n · lucide 아이콘 등 공용) 을 기록하고 `vite.config.ts` `codeSplitting.groups` 조정 또는 해당 패널 제외.

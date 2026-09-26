@@ -11,6 +11,8 @@
 
 ---
 
+> **2026-09-26 ADR-242 Proposed**: 초기 화면 밖 패널 lazy 분리 (사용자 `/create-adr 패널 lazy 분리`, 출처 ADR-201 재승인 절 09-25 "재승인 + 패널 lazy 감량"). Builder initial 1,420,999 / 상한 1,421,000 (여유 1 B) — history · settings · interactions · themes · datatable 목록 패널을 ADR-212 `lazyPanel` 경계로, 폰트 관리 대화상자를 첫 열림 로드로 (대상 initial raw 72,169 B), 로드 실패 경계 추가. 목표 Builder Δ ≤ −8,000 B gzip · Preview Δ ≤ 0. → 같은 날 **Accepted** (사용자 지시 "설계 본래 목적에 맞는 패턴으로 결정해서 진행해"). 열림 6 (Proposed 4 · Accepted 2), 합계 269.
+>
 > **2026-09-26 ADR-235 후속**: Decision 4 의 "오래 닫힌 연결 프로젝트 내용 비우기" 구현 (사용자 판정 "삭제해도 된다") — 30일 · IndexedDB 도장 (폴더 세대 쓰기 전후 대조) · 열림 (Web Locks) · 폴더 세대 해시 읽기를 모두 통과할 때만 비우고 `projects` 행은 남긴다. 비운 프로젝트는 "폴더 내용으로 열기" 로 복원. live 6/6 · G6 회귀 6/6 · 번들 Builder 1,420,983 (상한 안).
 >
 > **2026-09-26 ADR-235 Implemented**: 로컬 프로젝트 저장 v2 (Phase 0~~7 / G0~~G6, 같은 날). 원본 바이트를 IndexedDB `assets` 에 SHA-256 으로 한 벌 (`asset:sha256-…` 참조 · 해석 함수 하나를 Canvas · Preview · publish 가 같이 읽는다 — dual-read) · 폰트 localStorage 5MB 한도 해소 · 인라인 dataURL 1회 이관 (백업 선행) · 자산 GC (참조 공개 = pin + epoch 한 트랜잭션 · 탭 생존 Web Locks) · 형식 v2 (`manifest.json` · `parts/` · `assets/`, zip 교환 + v1 JSON 내보내기 유지) · publish v2 로더 · 웹 보호 (persist · 사용량 표시 · quota 재시도 · 캐시 `composition-cache` bucket · 스냅샷 50MB) · Chromium 폴더 연결 (세대 전환 쓰기 · 충돌 감지 · 권한 흐름). 기존 결함 수리: Canvas 가 image fill 을 그리지 않음. live P7 6/6 (Chrome 153 + WebKit 26.5 — WebKit 비공개 저장소 Blob 거부 → ArrayBuffer 저장 수리) · G1 9/9 · G2 7/7 · G3 4/4 · G4 8/8 · G6 6/6. 번들 Builder 1,420,882 / Preview 622,556 (ADR-201 상한 재승인 1,421,000 / 623,000 안). 사용자 확인 대상: 실제 폴더 선택창 · 권한 요청 · Preview · Safari · Firefox. 열림 5 (Proposed 4 · Accepted 1), 합계 268 (파일 실측으로 정정).
@@ -120,11 +122,11 @@
 | ├ Accepted                    |      13 |
 | ├ Superseded                  |      14 |
 | └ Deprecated                  |       9 |
-| 열려 있는 것 (`adr/*.md`)     |       5 |
+| 열려 있는 것 (`adr/*.md`)     |       6 |
 | ├ Proposed                    |       4 |
-| ├ Accepted (미착수·일부 착수) |       1 |
+| ├ Accepted (미착수·일부 착수) |       2 |
 | └ 부분 완료                   |       0 |
-| **합계**                      | **268** |
+| **합계**                      | **269** |
 
 > 2026-09-26 파일 실측 (ADR-235 승격 때): `completed/` 파일 268 − 비-ADR 5 = ADR 263 · `adr/` 직속 ADR 5 (150 Accepted · 162 · 910 · 911 · 921 Proposed) — 직전 표의 열림 9 · 완료 259 는 이동 누락으로 어긋나 있었다. 완료 내역 4 줄의 합 (260) 은 263 과 3 차이 — 개별 Status 재대조는 다음 정리 때.
 >
@@ -144,6 +146,12 @@
 - **상태**: Accepted (전체) · **A1 철회 2026-07-20** · A2 delivered(시각 확인 대기) · A3 미착수
 - **규모**: **Phase A1(Skia hover/pressed/focusVisible 상태 threading) 철회 2026-07-20 (재판정)** — 빌더(Skia)가 pointer 연동으로 hover/pressed/focus 를 실시간 재현한 것은 **D1/D3 경계 오판**(그 역할은 Preview DOM 소관, RAC 자동 소유). A1 커밋 4건 역순 revert(`5e635ebbc`), 편집 보조 hover outline·선언적 상태(selected/disabled) 시각은 보존. 911 R-4 HIGH→MED / G-state 를 선언적 상태 parity 로 재정의. **A2(collection 가상화)/A3(drill-in·data edit)은 상호작용 시뮬레이션이 아니라 빌더의 대용량 표시·깊은 편집이라 유효 — 진행 유지.** G-A2/G-A3 (HIGH 2: window 동기화 / projected id 경계 — G-A1/R1 은 철회). design breakdown `design/150-rac-pencil-residual-interaction-execution-breakdown.md`
 - **우선순위**: 사용자 확정 2026-07-13 (AskUserQuestion — 단일 실행 ADR)
+
+#### [242](242-offscreen-panel-lazy-loading.md) — 초기 화면 밖 패널 lazy 분리 — history · settings · interactions · themes · datatable 목록 · 폰트 관리
+
+- **상태**: Accepted (2026-09-26 — 사용자 지시 "설계 본래 목적에 맞는 패턴으로 결정해서 진행해", 착수)
+- **규모**: Phase 0~4 ([breakdown](design/242-offscreen-panel-lazy-loading-breakdown.md)) — inventory · 기준 측정 → `lazyPanel` 로드 실패 경계 + 정적 가드 → 패널 4 전환 (패널별 Δ, Δ ≥ 0 이면 되돌림) → datatable 목록 · 폰트 대화상자 → live · 첫 열림 지연 · closure
+- **우선순위**: 사용자 요청 2026-09-26 (ADR-201 재승인 절 09-25 판정의 후속) — initial 상한 만료 2026-10-25 전
 
 #### [162](162-gridlist-template-subtree-projection.md) — GridList 카드 템플릿 임의 자식 실체화 + row-data 동적 매핑
 
