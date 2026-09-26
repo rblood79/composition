@@ -24,8 +24,12 @@
 import {
   FIELD_ERROR_CHILD_SELECTOR,
   resolveDelegatedChildFontSize,
+  resolveDelegatedChildMaxWidth,
   resolveSubpartStyleOwnerType,
 } from "@composition/shared";
+import { fontFamily as specFontFamily } from "@composition/specs";
+
+import { getTextMeasurer } from "../../utils/textMeasure";
 
 import type { CanvasLayoutNode } from "../layoutNode";
 
@@ -80,6 +84,26 @@ export function projectReadOnlySubpartStyle(
     directParentType === owner.type
   ) {
     projected.width = "100%";
+    // owner delegation 이 bridge 로 거는 max-width (ColorField `--cf-input-max-width` md 12ch) — DOM 은 이
+    //   값으로 입력칸을 좁힌다. ch 는 그 글자 크기의 "0" 폭 (Pretendard 0.63em) 이라 측정기로 푼다 —
+    //   `fontSize × 0.5` 근사는 md 에서 22 px 어긋난다 (ADR-236 후속 2026-09-26).
+    const maxWidth = resolveDelegatedChildMaxWidth(
+      owner.type,
+      ".react-aria-Input",
+      (owner.props as Record<string, unknown> | undefined)?.size as
+        string | undefined,
+    );
+    if (maxWidth) {
+      projected.maxWidth =
+        maxWidth.unit === "px"
+          ? maxWidth.amount
+          : maxWidth.amount *
+            getTextMeasurer().measureWidth("0", {
+              fontSize: maxWidth.fontSize ?? 14,
+              fontFamily: specFontFamily.sans,
+              fontWeight: 400,
+            });
+    }
   }
   return projected;
 }

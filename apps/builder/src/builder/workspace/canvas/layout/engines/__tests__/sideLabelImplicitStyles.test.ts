@@ -380,6 +380,18 @@ describe("side-label implicit styles", () => {
     expect(getChildStyle(result, "Label").width).toBeUndefined();
   });
 
+  it("ColorField 의 ColorSwatch 자식은 Canvas 에서도 그리지 않는다 (DOM · RAC · catalog 에 없음)", () => {
+    const result = applyContainer("ColorField", { labelPosition: "top" }, [
+      makeChild("lbl", "Label"),
+      makeChild("input", "Input"),
+      makeChild("swatch", "ColorSwatch"),
+    ]);
+    expect(result.filteredChildren.map((c) => c.type)).toEqual([
+      "Label",
+      "Input",
+    ]);
+  });
+
   it("ColorField top 은 catalog base 정렬 (center) 을 유지한다", () => {
     const result = applyContainer("ColorField", { labelPosition: "top" }, [
       makeChild("lbl", "Label"),

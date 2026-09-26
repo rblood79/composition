@@ -294,14 +294,11 @@ function findDeclaringEntryVariables(
   // TextArea 처럼 DOM root 클래스를 다른 rule 에서 빌려오는 타입은 그 rule 의 delegation 이 선언한다.
   const alias = DOM_ROOT_RULE_ALIAS[parentType.toLowerCase()];
   const entriesOf = (type: string): DelegationLike[] => {
-    const d = resolveComponentRuleByTag(type)?.structure?.composition
-      ?.delegation;
+    const d =
+      resolveComponentRuleByTag(type)?.structure?.composition?.delegation;
     return Array.isArray(d) ? (d as DelegationLike[]) : [];
   };
-  const list = [
-    ...entriesOf(parentType),
-    ...(alias ? entriesOf(alias) : []),
-  ];
+  const list = [...entriesOf(parentType), ...(alias ? entriesOf(alias) : [])];
   if (list.length === 0) return undefined;
   for (const d of list) {
     const vars = d?.variables;
@@ -358,4 +355,59 @@ export function resolveDelegatedChildFontSize(
           (k) => k.endsWith("-size") && !k.includes("line-height"),
         );
   return key ? cssTextVarToPx(sizeVars[key]) : undefined;
+}
+
+/** delegation bridge 가 자식에 거는 `max-width` — 단위를 보존해 돌려준다 (ch 는 글꼴 의존이라 소비처가 푼다). */
+export interface DelegatedChildMaxWidth {
+  amount: number;
+  unit: "ch" | "px";
+  /** 그 자식의 글자 크기 (px) — `ch` 를 "0" 글자 폭으로 풀 때 쓴다 */
+  fontSize?: number;
+}
+
+/**
+ * parent rule delegation 이 자식 selector 에 bridge 로 거는 `max-width: var(--x)` 를 size 별 변수값으로 푼다
+ * (2026-09-26, ADR-236 후속). 예: ColorField `.react-aria-Input` 의 `--cf-input-max-width` (md `12ch`) — DOM 은
+ * 이 값으로 입력칸을 좁히는데 Canvas read-only 투영은 font-size 만 운반해 입력칸이 전폭 (1842 vs 106) 이었다.
+ * 없으면 undefined.
+ */
+export function resolveDelegatedChildMaxWidth(
+  parentType: string,
+  childSelector: string,
+  size?: string | null,
+): DelegatedChildMaxWidth | undefined {
+  const found =
+    findDelegation(parentType, childSelector) ??
+    (() => {
+      const alias = DOM_ROOT_RULE_ALIAS[parentType.toLowerCase()];
+      return alias ? findDelegation(alias, childSelector) : undefined;
+    })();
+  if (!found) return undefined;
+  const { entry, defaultSize } = found;
+  const bridges = entry.bridges as Record<string, unknown> | undefined;
+  const maxVar = cssVarName(bridges?.["max-width"]);
+  if (!maxVar) return undefined;
+  const variables = entry.variables;
+  if (!variables || typeof variables !== "object") return undefined;
+  const bySize = variables as Record<
+    string,
+    Record<string, unknown> | undefined
+  >;
+  const sizeVars =
+    (size ? bySize[size] : undefined) ??
+    (defaultSize ? bySize[defaultSize] : undefined) ??
+    bySize.md;
+  const raw = sizeVars?.[maxVar];
+  if (typeof raw !== "string") return undefined;
+  const m = /^(\d+(?:\.\d+)?)(ch|px)$/.exec(raw.trim());
+  if (!m) return undefined;
+  const fontVar =
+    cssVarName(bridges?.["font-size"]) ??
+    cssVarName(bridges?.["--input-font-size"]);
+  const fontSize = fontVar ? cssTextVarToPx(sizeVars?.[fontVar]) : undefined;
+  return {
+    amount: Number(m[1]),
+    unit: m[2] as "ch" | "px",
+    ...(fontSize != null ? { fontSize } : {}),
+  };
 }

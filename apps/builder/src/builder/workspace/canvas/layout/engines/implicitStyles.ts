@@ -1410,6 +1410,13 @@ function getSideLabelParentStyle(
   };
 }
 
+/** ColorField 자식 swatch — 직접 ColorSwatch 이거나 ColorSwatch origin 의 instance (`ref`, ADR-239). */
+function isColorSwatchChild(child: CanvasLayoutNode): boolean {
+  if (child.type === "ColorSwatch") return true;
+  const ref = (child as { ref?: unknown }).ref;
+  return typeof ref === "string" && ref === "component-colorswatch";
+}
+
 function resolveActiveContainerVariants(
   containerTag: string,
   containerProps: Record<string, unknown> | undefined,
@@ -2322,6 +2329,13 @@ export function applyImplicitStyles(
   //   (`getSideLabelParentStyle` 의 wrap · Label 폭 176) 은 DOM ColorField side 규칙에 없어 쓰지 않는다.
   //   인라인이 이긴다 (DOM cascade 와 같다).
   if (containerTag === "colorfield") {
+    // ColorSwatch 자식은 그리지 않는다 (ADR-236 후속 2026-09-26) — DOM `renderColorField` 는 canonical 자식을
+    //   읽지 않고 Label · Input · 도움말 · 오류만 self-compose 하며, RAC ColorField (D1) 와 catalog (D3) 어디에도
+    //   swatch 가 없다. Canvas 만 그리던 것은 Skia 전용 시각이었다. 기존 문서의 노드는 지우지 않는다 (새
+    //   origin 은 factory 가 만들지 않음).
+    filteredChildren = filteredChildren.filter(
+      (child) => !isColorSwatchChild(child),
+    );
     const variantStyles: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(
       resolveActiveContainerVariants(containerTag, containerProps).styles,

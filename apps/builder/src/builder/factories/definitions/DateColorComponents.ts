@@ -528,21 +528,8 @@ export function createColorFieldDefinition(
           },
         } as ComponentElementProps,
       },
-      {
-        type: "ColorSwatch",
-        props: {
-          color: "#000000",
-          // 2026-06-24 잔존 catalog 이관 — height 24→28(catalog md sizes.height), borderRadius
-          //   4px→9999px(catalog md {radius.full}, RAC ColorSwatch.css border-radius:9999px 정본).
-          //   정사각이라 width 도 28. 구 24/4px 은 catalog/RAC 와 어긋난 false dirty + 형태 비대칭.
-          //   부모 컨텍스트 의존(ColorField) → resolveSubpartContextDefaultStyle ColorField 분기 동시 갱신.
-          style: {
-            width: "28px",
-            height: "28px",
-            borderRadius: "9999px",
-          },
-        } as ComponentElementProps,
-      },
+      // ColorSwatch 자식은 두지 않는다 (ADR-236 후속 2026-09-26) — DOM 은 그리지 않고 RAC ColorField (D1) ·
+      //   catalog (D3) 에도 없어 Canvas 에서만 보이던 Skia 전용 시각이었다.
     ],
   };
 }
