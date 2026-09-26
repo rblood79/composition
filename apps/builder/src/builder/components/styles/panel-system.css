@@ -817,3 +817,10 @@
     }
   }
 }
+
+/* lazy 패널 골격 (ADR-212 HC5 · ADR-242 HC4) — 로드 중 스피너 · 로드 실패 문구 + 다시 시도 */
+.panel-lazy-fallback .panel-lazy-error {
+  margin: 0 0 var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  color: var(--fg-muted);
+}

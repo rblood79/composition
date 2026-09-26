@@ -1,29 +1,64 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { join, relative, resolve } from "node:path";
 
 /**
- * ADR-212 HC5 — 편집기 구현은 `panelConfigs` 에 정적 import 로 들어오지 않는다. 정적 import
- * 하나면 chunk 분리가 무효가 되고 G5 (initial 안 editor bytes 0) 가 조용히 깨진다. 실제
- * 바이트는 `scripts/adr212-editor-initial-bytes.mjs` 가 production dist 로 잰다.
+ * lazy 패널 경계 — ADR-212 HC5 · ADR-242 R2.
+ *
+ * 대상 구현 모듈은 자기 패널 디렉토리 밖 어디서도 값으로 import 되지 않고 (`panelConfigs` 정적 import ·
+ * `panels/index.ts` barrel · 패널 밖 소비처 전부 이 검사 하나), dynamic import 한 곳 (`panelConfigs`
+ * 또는 lazy 래퍼) 으로만 온다. 정적 import 하나면 chunk 분리가 무효가 되고 initial 바이트 게이트가
+ * 조용히 깨진다. 실제 바이트는 `scripts/adr212-editor-initial-bytes.mjs --match <dir>` 가 잰다.
  */
-describe("panelConfigs lazy 경계 (ADR-212 HC5)", () => {
-  const source = readFileSync(resolve(__dirname, "panelConfigs.ts"), "utf8");
+const SRC = resolve(__dirname, "../../..");
+const PANELS = resolve(__dirname, "..");
 
-  it("DataTableEditorPanel · DataTableFieldPanel 은 dynamic import 로만 온다", () => {
-    for (const name of ["DataTableEditorPanel", "DataTableFieldPanel"]) {
-      expect(source).not.toMatch(
-        new RegExp(`import\\s*\\{[^}]*\\b${name}\\b[^}]*\\}\\s*from`),
-      );
-      expect(source).toMatch(
-        new RegExp(`import\\("\\.\\./datatable/${name}"\\)`),
-      );
+/** lazy 대상 — `dir` 은 값 import 가 허용되는 패널 디렉토리, `module` 은 구현 파일 basename */
+const LAZY_TARGETS = [
+  { dir: "datatable", module: "DataTableEditorPanel" },
+  { dir: "datatable", module: "DataTableFieldPanel" },
+  { dir: "ai", module: "AIPanel" },
+];
+
+function walk(dir: string, out: string[] = []): string[] {
+  for (const name of readdirSync(dir)) {
+    const path = join(dir, name);
+    if (statSync(path).isDirectory()) {
+      if (name !== "node_modules") walk(path, out);
+    } else if (/\.(ts|tsx)$/.test(name) && !/\.test\.tsx?$/.test(name)) {
+      out.push(path);
     }
-  });
+  }
+  return out;
+}
+
+const FILES = walk(SRC).map((file) => ({
+  file,
+  source: readFileSync(file, "utf8"),
+}));
+
+describe("lazy 패널 경계", () => {
+  it.each(LAZY_TARGETS.map((t) => [`${t.dir}/${t.module}`, t] as const))(
+    "%s — 패널 밖 값 import 0 · dynamic import 1+",
+    (_name, { dir, module }) => {
+      const allowed = resolve(PANELS, dir) + "/";
+      const valueImport = new RegExp(
+        `^import\\s+(?!type\\b)[^;]*?from\\s+"[^"]*/${module}";`,
+        "m",
+      );
+      const dynamicImport = new RegExp(`import\\("[^"]*/${module}"\\)`);
+      const offenders = FILES.filter(
+        ({ file, source }) =>
+          !file.startsWith(allowed) && valueImport.test(source),
+      ).map(({ file }) => relative(SRC, file));
+      expect(offenders).toEqual([]);
+      expect(FILES.some(({ source }) => dynamicImport.test(source))).toBe(true);
+    },
+  );
 
   it("목록 패널 (DataTablePanel) 은 editors 를 import 하지 않는다", () => {
     const panel = readFileSync(
-      resolve(__dirname, "../datatable/DataTablePanel.tsx"),
+      resolve(PANELS, "datatable/DataTablePanel.tsx"),
       "utf8",
     );
     expect(panel).not.toMatch(/from "\.\/editors/);

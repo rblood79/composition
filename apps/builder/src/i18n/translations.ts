@@ -1338,6 +1338,10 @@ const koKR: TranslationKeys = {
     fill: "화면 채우기",
     align: "화면 정렬",
   },
+  panel: {
+    loadFailed: "패널을 불러오지 못했습니다",
+    retry: "다시 시도",
+  },
   panels: {
     navigator: "탐색기",
     components: "컴포넌트",
@@ -3315,6 +3319,10 @@ const enUS: TranslationKeys = {
     fit: "Fit to screen",
     fill: "Fill screen",
     align: "Align pages",
+  },
+  panel: {
+    loadFailed: "Couldn't load this panel",
+    retry: "Retry",
   },
   panels: {
     navigator: "Navigator",

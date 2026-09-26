@@ -1241,6 +1241,10 @@ export interface TranslationKeys {
     fill: string;
     align: string;
   };
+  panel: {
+    loadFailed: string;
+    retry: string;
+  };
   panels: {
     navigator: string;
     components: string;
