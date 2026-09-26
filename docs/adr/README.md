@@ -11,6 +11,8 @@
 
 ---
 
+> **2026-09-26 ADR-242 Implemented (같은 날)**: 초기 화면 밖 패널 lazy 분리 — history · settings · interactions · themes · datatable 목록을 `lazyPanel` 로, 폰트 관리 대화상자를 첫 클릭 로드로 (패널 밖 소비 모듈은 initial 유지, 정적 가드 대상 6). Builder initial **1,420,999 → 1,403,816 (−17,183)** · Preview 622,556 → 622,496. live 7/7 (레일 · 단축키 · 팔레트 · 탭 상태 · 폰트 대화상자 · chunk 차단 격리 → 다시 시도 · page error 0). G4 에서 React Suspense fallback throttle (첫 열림 320~~350 ms, 네트워크 무관) 을 잡아 idle 선로드 + 직접 렌더로 15~~40 ms (4x theme 88, 정적 대조군 59~68). Chrome 이 실패한 module fetch 를 기억해 다시 시도는 새로고침으로 복구. 열림 5 (Proposed 4 · Accepted 1), 완료 264, 합계 269.
+>
 > **2026-09-26 ADR-242 Proposed**: 초기 화면 밖 패널 lazy 분리 (사용자 `/create-adr 패널 lazy 분리`, 출처 ADR-201 재승인 절 09-25 "재승인 + 패널 lazy 감량"). Builder initial 1,420,999 / 상한 1,421,000 (여유 1 B) — history · settings · interactions · themes · datatable 목록 패널을 ADR-212 `lazyPanel` 경계로, 폰트 관리 대화상자를 첫 열림 로드로 (대상 initial raw 72,169 B), 로드 실패 경계 추가. 목표 Builder Δ ≤ −8,000 B gzip · Preview Δ ≤ 0. → 같은 날 **Accepted** (사용자 지시 "설계 본래 목적에 맞는 패턴으로 결정해서 진행해"). 열림 6 (Proposed 4 · Accepted 2), 합계 269.
 >
 > **2026-09-26 ADR-235 후속**: Decision 4 의 "오래 닫힌 연결 프로젝트 내용 비우기" 구현 (사용자 판정 "삭제해도 된다") — 30일 · IndexedDB 도장 (폴더 세대 쓰기 전후 대조) · 열림 (Web Locks) · 폴더 세대 해시 읽기를 모두 통과할 때만 비우고 `projects` 행은 남긴다. 비운 프로젝트는 "폴더 내용으로 열기" 로 복원. live 6/6 · G6 회귀 6/6 · 번들 Builder 1,420,983 (상한 안).
@@ -117,14 +119,14 @@
 
 | 구분                          |    개수 |
 | ----------------------------- | ------: |
-| 완료 (`completed/`)           |     263 |
-| ├ Implemented                 |     224 |
+| 완료 (`completed/`)           |     264 |
+| ├ Implemented                 |     225 |
 | ├ Accepted                    |      13 |
 | ├ Superseded                  |      14 |
 | └ Deprecated                  |       9 |
-| 열려 있는 것 (`adr/*.md`)     |       6 |
+| 열려 있는 것 (`adr/*.md`)     |       5 |
 | ├ Proposed                    |       4 |
-| ├ Accepted (미착수·일부 착수) |       2 |
+| ├ Accepted (미착수·일부 착수) |       1 |
 | └ 부분 완료                   |       0 |
 | **합계**                      | **269** |
 
@@ -146,12 +148,6 @@
 - **상태**: Accepted (전체) · **A1 철회 2026-07-20** · A2 delivered(시각 확인 대기) · A3 미착수
 - **규모**: **Phase A1(Skia hover/pressed/focusVisible 상태 threading) 철회 2026-07-20 (재판정)** — 빌더(Skia)가 pointer 연동으로 hover/pressed/focus 를 실시간 재현한 것은 **D1/D3 경계 오판**(그 역할은 Preview DOM 소관, RAC 자동 소유). A1 커밋 4건 역순 revert(`5e635ebbc`), 편집 보조 hover outline·선언적 상태(selected/disabled) 시각은 보존. 911 R-4 HIGH→MED / G-state 를 선언적 상태 parity 로 재정의. **A2(collection 가상화)/A3(drill-in·data edit)은 상호작용 시뮬레이션이 아니라 빌더의 대용량 표시·깊은 편집이라 유효 — 진행 유지.** G-A2/G-A3 (HIGH 2: window 동기화 / projected id 경계 — G-A1/R1 은 철회). design breakdown `design/150-rac-pencil-residual-interaction-execution-breakdown.md`
 - **우선순위**: 사용자 확정 2026-07-13 (AskUserQuestion — 단일 실행 ADR)
-
-#### [242](242-offscreen-panel-lazy-loading.md) — 초기 화면 밖 패널 lazy 분리 — history · settings · interactions · themes · datatable 목록 · 폰트 관리
-
-- **상태**: Accepted (2026-09-26 — 사용자 지시 "설계 본래 목적에 맞는 패턴으로 결정해서 진행해", 착수)
-- **규모**: Phase 0~4 ([breakdown](design/242-offscreen-panel-lazy-loading-breakdown.md)) — inventory · 기준 측정 → `lazyPanel` 로드 실패 경계 + 정적 가드 → 패널 4 전환 (패널별 Δ, Δ ≥ 0 이면 되돌림) → datatable 목록 · 폰트 대화상자 → live · 첫 열림 지연 · closure
-- **우선순위**: 사용자 요청 2026-09-26 (ADR-201 재승인 절 09-25 판정의 후속) — initial 상한 만료 2026-10-25 전
 
 #### [162](162-gridlist-template-subtree-projection.md) — GridList 카드 템플릿 임의 자식 실체화 + row-data 동적 매핑
 
@@ -240,7 +236,7 @@
 
 ---
 
-## 완료 ADR (255)
+## 완료 ADR (256)
 
 > 상세는 각 본문이 정본이다. 구 README 의 **비고** 열 서술 (최장 셀 14KB — ADR-912 행이 표
 > 전체를 그 폭으로 채워 3.2MB 를 만들었다) 은
@@ -265,6 +261,7 @@
 | [239](completed/239-tree-submenu-swatch-item-origins.md) | Tree · Menu 하위 메뉴 · ColorSwatchPicker 항목 origin — TreeItem origin · Tree/TreeItem slot · 재귀 key · Canvas 중첩 행 쌓기 · `expandedKeys` 두 leg 대칭 + 이관 · Menu 하위 메뉴 (SubmenuTrigger) · swatch origin · 자식 있는 TreeItem 해석 재사용 · history 스냅샷 새 origin 유지 | Implemented | 2026-09-25 |
 | [241](completed/241-table-column-row-origins.md) | Table 열 · 행 origin — 두 leg 열 원천 통일 (Column 요소 · 유효 폭 clamp) · Column · Row origin + TableHeader · TableBody slot · instance 자기 열 (Slot "+" · quick connect · Preview 열 감지) · TableView 셀 동기화 (추가 · 삭제 · 순서 · 행 "+") · TableView plain 열/행 → ref 이관 (id 유지) · mode C 항목 ref 자기 자식 해석 · 삭제 history 셀 | Implemented | 2026-09-25 |
 | [236](completed/236-builder-domain-rules-consolidation.md) | 빌더 도메인 규칙 정리 — body · synthetic id · Components 페이지 술어 shared 하나 (ratchet) · shared 타입 특성 표 `componentTraits.ts` (집합 17 + nestingRules 층 2 표 3 파생 · D2 Direction 토글 2) · 구조 변경 판정 `canOperate` · 대상 판정 `resolveMoveTarget` 를 표면 + store 진입부 13 액션 · 우회 쓰기 2 가 같이 부름 (AST ratchet) · origin 안 구조 변경 영향 확인 (표면 선행) · AI reusable 은 store 경유 | Implemented | 2026-09-25 |
+| [242](completed/242-offscreen-panel-lazy-loading.md) | 초기 화면 밖 패널 lazy 분리 — history · settings · interactions · themes · datatable 목록 `lazyPanel` · 폰트 관리 대화상자 첫 클릭 로드 · 로드 실패 경계 (다시 시도 → Chrome 실패 캐시면 새로고침) · idle 선로드로 Suspense 300 ms throttle 회피 · Builder initial −17,183 B gz | Implemented | 2026-09-26 |
 | [235](completed/235-local-project-storage-v2-asset-store-directory-format.md) | 로컬 프로젝트 저장 v2 — 원본 바이트 IndexedDB `assets` 한 벌 (SHA-256 `asset:` 참조 · 해석 함수 하나 · dual-read) · 폰트 5MB 한도 해소 · 인라인 dataURL 이관 · 자산 GC (pin + epoch · Web Locks) · 형식 v2 zip/디렉토리 (세대 전환 쓰기) · publish v2 로더 · 웹 보호 (persist · 사용량 · quota 재시도 · 캐시 bucket) · Chromium 폴더 연결 | Implemented | 2026-09-26 |
 | [027](completed/027-inline-text-editing.md) | Canvas 인라인 텍스트 편집 — Phase A~~C (TextEditOverlay + Quill · 멀티페이지 좌표 · Spec 컴포넌트 텍스트) + **Phase D 전환 무결성** (2026-09-20 "리치 텍스트" 에서 재정의): D0 `.workspace` overflow clip + Quill focus preventScroll (캔버스 변위 0) · D1 오버레이 white-space 를 Skia paragraph 입력에서 파생 (`overlayWrap.ts`, Enter = pre 계열만 줄바꿈) · D2 Skia 텍스트 draw 원점 기록 → 첫 글리프·baseline 끼리 nudge (`overlayNudge.ts`) · D3 픽셀 게이트 `adr027-text-edit-parity.mjs` (타입 8 × 줌 2, 텍스트 지도 shift + 반치 bbox ≤ 1 CSS px) 16/16 + live 7. 게이트가 잡은 Canvas 결함 수리: CJK 단일행 descent 만큼 위 (ideographic 원점) · 고정 px 폭 텍스트 leaf 높이를 부모 폭으로 측정 · pre 계열 `\n` 높이 (레이아웃 측정기 · shape 변환기) · 오버레이 font-feature-settings / wrapWidthExtra / 첫 렌더 카메라. 보류: 리치 텍스트·툴바 (canonical 텍스트 모델 ADR 선행) | Implemented | 2026-09-20 |
 | [223](completed/223-generated-css-default-archetype-neutralization.md) | 생성 CSS archetype 미지정 기본값 중립화 — `DEFAULT_BASE_STYLES` (inline-flex · align/justify center · cursor pointer · user-select none · transition) 를 `container` 와 같은 중립 상자 (block · box-sizing · font-family) 로. Skia 가 읽지 않는 DOM 전용 채널이 Section/Toolbar/TableView/GridListItem 정렬 발산의 기제였다. catalog entry 3 이관 (Pagination `containerStyles.alignItems` · Card `rootSelectors["&"]` cursor · Tab `rootSelectors["&"]` cursor/user-select/transition) · 생성 CSS 12 파일 (catalog 11 + 잔존 spec Slot; layout 17 byte-identical) · 정적 ratchet (미지정 11 pin). 실측: 생성기 5 (원복 4 RED) · `catalogComponentBox` Toolbar/TableView 불리 케이스 + GridListItem 기존 Δ18 GREEN (원복 Δ114/Δ79/Δ18 RED) · 실제 Card·Tab·Toolbar before/after root Δ0 (원복 2 RED) · live 7종 (`adr223-archetype-live.mjs`, Skia↔DOM 부모 기준 rect · computed interaction). 이 ADR 밖 기존 발산 5 기록 (Pagination preview class 미부여 · Disclosure border-style · Tabs TabPanels padding · Toolbar Skia 높이 · Tooltip Δ20) | Implemented | 2026-09-18 |

@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-09-26 (사용자 "결정해야할 부분은 설계 본래 목적에 가장 맞는 패턴으로 결정해서 진행해" — 대안 A 채택 · 착수) · Proposed — 2026-09-26 (사용자 `/create-adr 패널 lazy 분리` — 출처: ADR-201 재승인 절 2026-09-25 사용자 판정 "재승인 + 패널 lazy 감량", "패널 lazy 분리는 새 ADR 로")
+Implemented — 2026-09-26 (Phase 0~~4 · G0~~G4 통과 · [Live Exercise](#live-exercise)) · Accepted — 2026-09-26 (사용자 "결정해야할 부분은 설계 본래 목적에 가장 맞는 패턴으로 결정해서 진행해" — 대안 A 채택 · 착수) · Proposed — 2026-09-26 (사용자 `/create-adr 패널 lazy 분리` — 출처: ADR-201 재승인 절 2026-09-25 사용자 판정 "재승인 + 패널 lazy 감량", "패널 lazy 분리는 새 ADR 로")
 
 ## Context
 
@@ -77,7 +77,7 @@ HIGH 없는 대안 A 가 있어 루프 불필요.
 
 ## Decision
 
-**대안 A 를 채택한다.** history · settings · interactions (`events`) · themes · datatable 목록 패널을 `lazyPanel` 로, 폰트 관리 대화상자를 첫 열림 로드로 옮긴다. 경계는 패널 UI 컴포넌트에서 끊고, 패널 밖이 값으로 쓰는 store · hook · utils (`themeActions.applyActiveThemeToRuntime` · datatable `dataTableEditorStore` · `useExecutionPolicyScheduler` · interactions `labels` · `FontFamilyPicker` 등) 는 initial 에 남긴다. `lazyPanel` 에 로드 실패 경계 (HC4) 를 더한다.
+**대안 A 를 채택한다.** history · settings · interactions (`events`) · themes · datatable 목록 패널을 `lazyPanel` 로, 폰트 관리 대화상자를 첫 열림 로드로 옮긴다. 경계는 패널 UI 컴포넌트에서 끊고, 패널 밖이 값으로 쓰는 store · hook · utils (`themeActions.applyActiveThemeToRuntime` · datatable `dataTableEditorStore` · `useExecutionPolicyScheduler` · interactions `labels` · `FontFamilyPicker` 등) 는 initial 에 남긴다. `lazyPanel` 에 로드 실패 경계 (HC4) 를 더한다. **Phase 4 실측 뒤 보강**: Suspense fallback 이 한 번 그려지면 React 가 내용 공개를 ~300 ms 늦추므로 (G4 실측), 부팅 뒤 idle 에 대상 패널 chunk 를 미리 받고 (initial closure 밖) 받은 패널은 Suspense 없이 바로 그린다 — G4 실패 대안 (레일 hover/focus 선호출) 보다 단축키 · 팔레트 경로까지 덮는 쪽을 택했다. AI (100 KB) · datatable 편집기/필드는 첫 열림에 받는다.
 
 **위험 수용 근거**: 남는 위험은 성능 M 둘이다. 첫 열림 지연은 대상이 초기 화면 밖 (새 사용자 기본 닫힘) 이고 chunk 가 작아 (패널당 raw 3~15 KB) HC3 으로 측정해 관리한다. 공용 chunk 분리는 패널마다 Δ 를 따로 재고, Δ ≥ 0 인 패널은 되돌리는 절차 (G1) 로 initial 증가를 원천 차단한다 — 최악의 결과는 "그 패널은 정적 유지" 다.
 
@@ -89,7 +89,7 @@ HIGH 없는 대안 A 가 있어 루프 불필요.
 
 **범위 밖**: 상한 값 조정 (종결 뒤 ADR-201 재승인 절에서 사용자 판정) · 패널 밖 공용 모듈의 위치 이동 · navigator · properties · styles · components.
 
-> 구현 상세: [242-offscreen-panel-lazy-loading-breakdown.md](design/242-offscreen-panel-lazy-loading-breakdown.md)
+> 구현 상세: [242-offscreen-panel-lazy-loading-breakdown.md](../design/242-offscreen-panel-lazy-loading-breakdown.md)
 
 ## Risks
 
@@ -113,7 +113,13 @@ HIGH 없는 대안 A 가 있어 루프 불필요.
 
 ### Live Exercise
 
-(Implemented 승격 시 기재 — 실제 builder 에서 exercise 한 시나리오 · 결과 · 날짜 · Chrome MCP / 사용자 confirm 구분)
+production 빌드 (`vite build` → `vite preview --base /composition/` :4173 — preview 는 `command === "serve"` 라 config `base` 가 `/` 로 떨어져 `--base` 가 필요하다) 를 Playwright Chrome 153 · 새 프로젝트 · Compare Mode · Preview iframe 미개방으로 확인했다 (2026-09-26, `apps/builder/scripts/adr242-live.mjs`, 기록 `/private/tmp/adr242-live/`). Chrome MCP · 사용자 confirm 은 쓰지 않았다.
+
+- **동작 7/7 (G2 · G3)**: L1 레일 클릭 → history · events · theme · datatable 실제 내용 (fallback 아님) · L2 Alt+8/7/4/3 토글 (열림 → 닫힘) + Cmd+, 설정 · L3 커맨드 팔레트 (Cmd+/ "history" Enter) → 패널 · L4 datatable 탭 전환 → 닫기 → 다시 열기 → 같은 탭 (`Activity` 유지) · L5 Text 요소 선택 → Styles 「텍스트」 탭 → Font Family → 「폰트 관리」 → 모달 (첫 클릭에 chunk) · L6 `HistoryPanel-*.js` 요청 차단 → 그 패널 안 `role=alert` + 다시 시도, Canvas · Properties (Alt+5) 정상 → 차단 해제 → 다시 시도 → 재요청 1 → 내용 · L7 page error 0.
+- **첫 열림 지연 (G4, `--latency`, cold = HTTP 캐시 비움 + 새로고침 5 · warm 5, 레일 클릭 → 내용 가시)**: 선로드 전 실측은 cold · warm · CPU 1x · 4x 모두 **320~350 ms** (정적 대조군 properties 30~46) — 네트워크가 아니라 React Suspense 가 fallback 을 한 번 그린 뒤 내용 공개를 ~300 ms 늦추는 throttle 이었다. 부팅 뒤 idle 선로드 + 받은 패널은 Suspense 없이 렌더로 바꾼 뒤: 1x history 15 · events 17 · theme 37 · datatable 23 (properties 26) / **4x history 30 · events 28 · theme 88 · datatable 40 (properties 59)** ms p95 — 전 패널 ≤ 300 통과, 정적 대조군과 같은 급.
+- **번들 (G1, in-tree clean 빌드 기준 `548845e93` = 1,420,999 / 622,556)**: Builder **1,403,816 (Δ −17,183)** · Preview **622,496 (Δ −60)**. 패널별 Δ — history −2,637 · settings −828 · interactions −1,771 · themes −2,678 · datatable −3,868 · fonts −423 (선로드 배선 뒤 chunk 재그룹으로 −4,978 추가). sourcemap 귀속 (대상 디렉토리 initial 잔여) — history 0 · settings 0 · interactions `labels` 817 · themes `themeActions` 1,908 · datatable store/hooks/utils 9,289 · fonts `FontFamilyPicker`/`useFontRegistry` 4,351 raw — 전부 패널 밖이 값으로 쓰는 모듈, 패널 구현 0.
+- **live 에서 잡은 것 (수리)**: Suspense fallback throttle (위) · Chrome 이 실패한 module fetch 를 module map 에 기억해 다시 시도가 재요청 없이 즉시 실패 (재요청 0) → 다시 시도는 loader 재호출이 즉시 실패하면 새로고침으로 복구 · 커맨드 팔레트가 Enter 실행 뒤 열린 채 남아 레일 클릭을 가로막음 (하니스: 입력 포커스 Escape 로 닫음 — 제품 동작 여부는 사용자 확인 대상).
+- **사용자 확인 대상**: 실제 프로필 (저장된 레이아웃에 lazy 패널이 열린 채 부팅 → 부팅 직후 chunk 로드) · Firefox · Safari 의 다시 시도 (실패 캐시 여부가 달라 새로고침 없이 복구될 수 있음) · production 에서 `/composition/assets/woff/*.woff` 폰트 디코드 경고 (preview 서버에서 관측 — 이 ADR 범위 밖, 기존 경로 문제 가능).
 
 ## Consequences
 
