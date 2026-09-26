@@ -71,3 +71,9 @@ export const iconLarge = {
     strokeWidth: 2,
     size: 24
 };
+
+/**
+ * 앱 아이콘 (`public/appIcon.svg`) URL — 배포 base (production `/composition/`) 를 붙인다.
+ * JS 에서 루트 절대 경로로 적으면 production 에서 404 다 (`appIcon.static.test.ts` 가 막는다).
+ */
+export const APP_ICON_URL = `${import.meta.env.BASE_URL}appIcon.svg`;

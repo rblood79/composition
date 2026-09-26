@@ -29,7 +29,7 @@ import {
 } from "@composition/shared/components";
 import { useCallback, useMemo, useRef, type ReactNode } from "react";
 import { useNavigate } from "react-router";
-import { iconProps } from "../../utils/ui/uiConstants";
+import { iconProps, APP_ICON_URL } from "../../utils/ui/uiConstants";
 import { usePanelLayout } from "../layout";
 import { ActionIconButton } from "../components/ui/ActionIconButton";
 import { StorageStatusButton } from "./StorageStatusButton";
@@ -238,7 +238,7 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
           onChange={handleImportFileChange}
         />
         <div className="logo-container">
-          <img src="/appIcon.svg" alt={t("header.logo")} />
+          <img src={APP_ICON_URL} alt={t("header.logo")} />
         </div>
         <div className="project-info">
           {projectName && <span className="project-name">{projectName}</span>}

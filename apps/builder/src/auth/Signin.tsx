@@ -30,6 +30,7 @@ import {
   resetAttempts,
   saveAuth,
 } from "./license/localAuth";
+import { APP_ICON_URL } from "../utils/ui/uiConstants";
 import "./index.css";
 
 type LicenseSource =
@@ -121,7 +122,7 @@ const Signin = () => {
       <header className="auth-header">
         <div className="auth-brand">
           <span className="auth-logo">
-            <img src="/appIcon.svg" alt="" aria-hidden />
+            <img src={APP_ICON_URL} alt="" aria-hidden />
           </span>
           <span className="auth-brand-title">composition</span>
         </div>

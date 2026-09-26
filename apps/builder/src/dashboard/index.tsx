@@ -1,3 +1,4 @@
+import { APP_ICON_URL } from "../utils/ui/uiConstants";
 import React, {
   useState,
   useEffect,
@@ -624,7 +625,7 @@ function Dashboard() {
       <header className="dashboard-header">
         <div className="dashboard-brand">
           <span className="dashboard-logo">
-            <img src="/appIcon.svg" alt="" aria-hidden />
+            <img src={APP_ICON_URL} alt="" aria-hidden />
           </span>
           <h1 className="dashboard-title">composition</h1>
         </div>

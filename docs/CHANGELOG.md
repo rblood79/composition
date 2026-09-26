@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [배포판 앱 아이콘 경로] - 2026-09-26
+
+### Fixed
+
+- **배포판 (production, `/composition/` 아래) 에서 빌더 헤더 · 대시보드 · 로그인 화면의 앱 로고가 깨지던 문제.** 세 화면이 아이콘을 사이트 루트 (`/appIcon.svg`) 에서 찾아 404 였다. 이제 배포 경로를 붙인 주소 하나 (`APP_ICON_URL`) 를 쓰고, 정적 테스트가 루트 절대 경로를 다시 쓰지 못하게 막는다. 파비콘은 원래 정상이었다.
+  - 검증: production 빌드에서 로그인 · 대시보드 · 빌더 로고 로드 · 4xx 0.
+
 ## [Safari 패널 로드 복구 · 레이아웃 저장 유실 · production Pretendard 폰트] - 2026-09-26
 
 ### Fixed
