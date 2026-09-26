@@ -115,6 +115,8 @@ export interface DatabaseAdapter {
     delete(projectId: string): Promise<void>;
     getAll(): Promise<CanonicalDocumentRecord[]>;
     getBackups(projectId: string): Promise<CanonicalDocumentBackupRecord[]>;
+    /** 저장된 현재 문서를 백업 ring 에 즉시 기록 (ADR-235 이관 전 백업) */
+    backupNow(projectId: string): Promise<boolean>;
   };
 
   // Data Tables (Data Panel System)

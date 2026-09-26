@@ -162,7 +162,8 @@ describe("assetRef (ADR-235)", () => {
     expect(loads).toBe(0); // 참조가 없으면 불러오지 않는다
     await ensureAssetRefs([REF_A]);
     expect(loads).toBe(1);
-    expect(notified).toBe(1);
+    // 설치 알림 1 (writer 가 먼저 등록한 참조 대비) + 준비 알림 1
+    expect(notified).toBe(2);
     expect(resolveAssetUrl(REF_A)).toBe(`blob:test/${REF_A.slice(-4)}`);
     expect(await loadAssetUrlResolver()).toBe(withNotify);
     expect(loads).toBe(1);
@@ -191,7 +192,7 @@ describe("assetRef (ADR-235)", () => {
     expect(resolveAssetUrl(REF_C)).toBeNull(); // 같은 참조 재요청 없음
     await new Promise((r) => setTimeout(r, 0));
     expect(ensured).toEqual([[REF_C, REF_D]]);
-    expect(notified).toBe(1);
+    expect(notified).toBe(2); // 설치 알림 + 준비 알림
     expect(resolveAssetUrl(REF_C)).toBe(`blob:test/${REF_C.slice(-4)}`);
   });
 });

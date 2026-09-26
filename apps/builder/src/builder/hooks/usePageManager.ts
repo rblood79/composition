@@ -38,6 +38,7 @@ import {
   resolvePagePlacementHydration,
   resolveMigrationPanCorrection,
 } from "../stores/utils/pagePlacementHydration";
+import { isAssetWriterEnabled } from "../../utils/featureFlags";
 
 function normalizePageSlug(slug: string | null | undefined): string {
   if (!slug) return "";
@@ -100,6 +101,47 @@ export interface UsePageManagerReturn {
  * }
  * ```
  */
+/**
+ * ADR-235 Phase 2 — 프로젝트 문서의 인라인 dataURL 을 자산으로 옮긴다 (lazy 모듈, store 는 주입).
+ * 치환은 canonical 1차 (`setDocument`) → 파생 요소 갱신 → 기존 영속 구독 순서이고, history 에는
+ * 남기지 않는다 (되돌림 경로 = 치환 전 강제 백업).
+ */
+function scheduleInlineAssetMigration(projectId: string): void {
+  const run = () =>
+    void import("../../lib/assets/assetMigration").then(
+      async ({ migrateProjectInlineAssets }) => {
+        const db = await getDB();
+        const readCurrent = () => {
+          const canonical = useCanonicalDocumentStore.getState();
+          return canonical.currentProjectId === projectId
+            ? canonical.documents.get(projectId)
+            : null;
+        };
+        const result = await migrateProjectInlineAssets({
+          getDocument: readCurrent,
+          backupNow: () => db.documents.backupNow(projectId),
+          apply: (next) => {
+            useCanonicalDocumentStore.getState().setDocument(projectId, next);
+            // 요소 mirror 를 새 문서의 projection 으로 (boot hydrate 와 같은 경로 — 선택 상태 무관)
+            useStore
+              .getState()
+              .hydrateProjectSnapshot(
+                canonicalDocumentToElements(next) as Element[],
+              );
+          },
+        });
+        if (result.status !== "none") {
+          console.info("[assets] 인라인 자산 이관", projectId, result);
+        }
+      },
+    );
+  if (typeof requestIdleCallback === "function") {
+    requestIdleCallback(run, { timeout: 3000 });
+  } else {
+    setTimeout(run, 500);
+  }
+}
+
 export const usePageManager = (): UsePageManagerReturn => {
   const { t } = useI18n();
   // 1. pages 관리: useListData (append/remove 자동)
@@ -442,6 +484,11 @@ export const usePageManager = (): UsePageManagerReturn => {
             useStore.getState().activatePage(pageToSelect.id, bodyElement?.id),
           );
           setSelectedPageId(pageToSelect.id);
+        }
+
+        // ADR-235 Phase 2 — 인라인 dataURL → 자산 이관 (로드 뒤 백그라운드 · 멱등 · 치환 전 백업).
+        if (persistedDocument && isAssetWriterEnabled()) {
+          scheduleInlineAssetMigration(projectId);
         }
 
         initializingRef.current = null;

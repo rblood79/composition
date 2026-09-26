@@ -2,8 +2,10 @@
  * ADR-235 Phase 0 (d) — 폰트 레지스트리 localStorage 한도 초과 재현.
  *
  * FONT_LIMITS.MAX_FILE_SIZE (5MB) 안의 4MB 폰트 1개가 base64 (1.33 배) 로
- * localStorage 한도 (origin 당 약 5MB) 를 넘는다. Phase 2 에서 레지스트리가
- * 자산 참조만 들게 되면 이 저장이 성공해야 한다 (G2).
+ * localStorage 한도 (origin 당 약 5MB) 를 넘는다 — 레지스트리에 dataURL 을 넣는 한 계속
+ * 실패한다 (이 파일은 그 전제를 고정한다). Phase 2 부터 업로드 · 기존 레지스트리는 바이트를
+ * 자산 저장소에 두고 참조만 레지스트리에 넣어 이 경로를 타지 않는다 — 4MB 저장 성공은
+ * `lib/assets/__tests__/assetMigration.test.ts` 와 live G2 가 확인한다.
  */
 import { afterEach, describe, expect, it } from "vitest";
 import {

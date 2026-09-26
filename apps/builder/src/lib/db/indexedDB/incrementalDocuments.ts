@@ -222,6 +222,56 @@ export class IncrementalDocuments {
     return work;
   }
 
+  /**
+   * 저장된 현재 문서를 시간 버킷과 무관하게 백업 ring 에 기록한다 (ADR-235 G2 — 인라인
+   * dataURL 이관의 "치환 전 백업 강제"). 같은 세대가 이미 있으면 새로 쓰지 않는다.
+   * @returns 백업이 존재하게 되면 true (저장된 문서가 없으면 false)
+   */
+  backupNow(projectId: string): Promise<boolean> {
+    const work = this.tail.then(async () => {
+      const tx = this.database().transaction(STORES, "readwrite");
+      const done = completion(tx);
+      const heads = tx.objectStore(DOCUMENT_HEADS);
+      const head = (await request(heads.get(projectId))) as Head | undefined;
+      const legacy = head
+        ? undefined
+        : ((await request(tx.objectStore("documents").get(projectId))) as
+            CanonicalDocumentRecord | undefined);
+      if (!head && !legacy) {
+        await done;
+        return false;
+      }
+      const updatedAt = head?.updated_at ?? legacy!.updated_at;
+      const store = tx.objectStore("documents_backup");
+      const backupId = `${projectId}::${updatedAt}`;
+      const existing = await request(store.getKey(backupId));
+      if (existing === undefined) {
+        const document = head
+          ? joinDocument(await this.readParts(tx, projectId, head))
+          : legacy!.document;
+        store.put({
+          backup_id: backupId,
+          project_id: projectId,
+          updated_at: updatedAt,
+          document,
+        } satisfies CanonicalDocumentBackupRecord);
+        const backups = (await request(
+          store.index("project_id").getAll(projectId),
+        )) as CanonicalDocumentBackupRecord[];
+        backups.sort((a, b) => b.updated_at.localeCompare(a.updated_at));
+        for (const stale of backups
+          .filter((item) => item.backup_id !== backupId)
+          .slice(BACKUP_GENERATIONS - 1))
+          store.delete(stale.backup_id);
+        if (head) heads.put({ ...head, backupAt: updatedAt });
+      }
+      await done;
+      return true;
+    });
+    this.tail = work.catch(() => undefined);
+    return work;
+  }
+
   async get(projectId: string): Promise<CompositionDocument | null> {
     await this.tail;
     const tx = this.database().transaction(STORES, "readonly");

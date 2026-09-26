@@ -64,7 +64,11 @@ export function loadAssetUrlResolver(): Promise<AssetUrlResolver | null> {
   if (activeResolver || !resolverLoader) return Promise.resolve(activeResolver);
   resolverLoading ??= resolverLoader().then(
     (resolver) => {
-      if (activeResolver !== resolver) setAssetUrlResolver(resolver);
+      if (activeResolver !== resolver) {
+        setAssetUrlResolver(resolver);
+        // writer 가 설치 전에 등록해 둔 참조가 있을 수 있다 — 한 번 알려 다시 그리게 한다.
+        for (const listener of [...listeners]) listener();
+      }
       return resolver;
     },
     () => null,

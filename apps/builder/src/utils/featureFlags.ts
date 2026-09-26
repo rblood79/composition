@@ -73,8 +73,8 @@ export function isCanvasCompareMode(): boolean {
  * 자산화) 활성 여부. reader (dual-read) 는 항상 켜져 있다. G2 실패 시 이 기본값 하나로
  * writer 만 끈다 — 이미 쓴 `asset:` 은 계속 읽힌다.
  *
- * Phase 1 (G1 전): 꺼짐 — 업로드는 여전히 dataURL.
+ * Phase 2 (G1 통과 뒤) 부터 켜짐. 끄려면 `VITE_ASSET_WRITER=false`.
  */
 export function isAssetWriterEnabled(): boolean {
-  return parseBoolean(import.meta.env.VITE_ASSET_WRITER, false);
+  return parseBoolean(import.meta.env.VITE_ASSET_WRITER, true);
 }

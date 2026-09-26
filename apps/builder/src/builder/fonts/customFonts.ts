@@ -16,6 +16,7 @@ import {
   type FontRegistryV2,
 } from "@composition/shared";
 import type { FontFormat } from "@composition/shared";
+import { isAssetWriterEnabled } from "../../utils/featureFlags";
 
 const STYLE_ID = "composition-custom-fonts";
 
@@ -48,7 +49,26 @@ export async function createFontFaceFromFile(
   /** 읽기 실패 문구 — 순수 모듈이라 호출부가 해소해 넘긴다 (ADR-200 후속). */
   unreadableMessage = "Could not read the font file.",
 ): Promise<FontFaceAsset> {
-  const source = await readFileAsDataUrl(file, unreadableMessage);
+  // ADR-235 writer — 폰트 바이트는 자산 저장소, 레지스트리 (localStorage) 엔 참조만. 참조는 수십
+  //   바이트라 localStorage 한도 (~5MB) 에 걸리지 않는다. 저장 실패 시 종전 dataURL.
+  let buffer: ArrayBuffer;
+  let sourceRef: { type: "project-asset" | "data-url-temp"; url: string };
+  const stored = isAssetWriterEnabled()
+    ? await import("../../lib/assets/assetWriter")
+        .then(({ storeUploadedFile }) => storeUploadedFile(file))
+        .catch((error: unknown) => {
+          console.warn("[assets] 폰트 자산 저장 실패 — dataURL 로 저장", error);
+          return null;
+        })
+    : null;
+  if (stored) {
+    buffer = await stored.blob.arrayBuffer();
+    sourceRef = { type: "project-asset", url: stored.ref };
+  } else {
+    const dataUrl = await readFileAsDataUrl(file, unreadableMessage);
+    buffer = await (await fetch(dataUrl)).arrayBuffer();
+    sourceRef = { type: "data-url-temp", url: dataUrl };
+  }
   const legacyFormat = inferFontFormatFromName(file.name);
   const format: FontFormat | undefined =
     legacyFormat === "embedded-opentype" || legacyFormat === "svg"
@@ -57,7 +77,7 @@ export async function createFontFaceFromFile(
   const now = new Date().toISOString();
 
   // 폰트 바이너리에서 family/weight/style 추출
-  const meta = await extractFontMetadata(source);
+  const meta = await extractFontMetadata(buffer);
   const resolvedFamily = family || meta.family || stripExtension(file.name);
 
   // 바이너리 메타 우선, fallback으로 파일명 추론
@@ -73,8 +93,7 @@ export async function createFontFaceFromFile(
     format,
     display: "swap",
     source: {
-      type: "data-url-temp",
-      url: source,
+      ...sourceRef,
       originalFileName: file.name,
       mimeType: file.type || undefined,
       byteSize: file.size,
@@ -139,13 +158,10 @@ interface FontMetadata {
  * CanvasKit 미초기화 시 family=null → 파일명 fallback.
  * OS/2 테이블 파싱 실패 시 weight/style=undefined → 파일명 추론 fallback.
  */
-async function extractFontMetadata(dataUrl: string): Promise<FontMetadata> {
+async function extractFontMetadata(buffer: ArrayBuffer): Promise<FontMetadata> {
   const result: FontMetadata = { family: null };
 
   try {
-    const response = await fetch(dataUrl);
-    const buffer = await response.arrayBuffer();
-
     // 1) OS/2 테이블에서 weight/style 추출 (CanvasKit 불필요)
     const os2 = parseOS2Table(buffer);
     if (os2) {

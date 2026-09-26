@@ -118,6 +118,7 @@ import {
   readLegacyThemeConfig,
   useThemeConfigStore,
 } from "../../stores/themeConfigStore";
+import { isAssetWriterEnabled } from "../../utils/featureFlags";
 import { isThemesCollection, migrateThemesField } from "@composition/shared";
 import { applyActiveThemeToRuntime } from "../panels/themes/themeActions";
 import {
@@ -1264,7 +1265,20 @@ export const BuilderCore: React.FC = () => {
       }
 
       try {
-        const result = await loadProjectFromFile(file);
+        const loaded = await loadProjectFromFile(file);
+        // ADR-235 Phase 2 — 가져온 v1 파일의 인라인 이미지 · 폰트를 자산으로 (저장 실패분은 인라인 유지)
+        const result =
+          loaded.success && isAssetWriterEnabled()
+            ? {
+                ...loaded,
+                data: (
+                  await import("../../lib/assets/assetMigration").then(
+                    ({ migrateValueInlineAssets }) =>
+                      migrateValueInlineAssets(loaded.data),
+                  )
+                ).value,
+              }
+            : loaded;
         if (!result.success) {
           showToast(
             "error",

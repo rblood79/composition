@@ -106,11 +106,28 @@ async function main() {
           ctx.putImageData(data, 0, 0);
           const blob = await new Promise((r) => canvas.toBlob(r, "image/png"));
           imageBytes.push(blob.size);
-          const dataUrl = await new Promise((r) => {
-            const reader = new FileReader();
-            reader.onload = () => r(reader.result);
-            reader.readAsDataURL(blob);
-          });
+          // ADR-235 writer 가 있으면 업로드와 같은 경로 (자산 저장 → 참조), 없으면 dataURL (기준선)
+          const writerUrl = performance
+            .getEntriesByType("resource")
+            .map((entry) => entry.name)
+            .find((name) => name.includes("/lib/assets/assetWriter.ts"));
+          let writer = null;
+          try {
+            writer = await import(writerUrl ?? "/src/lib/assets/assetWriter.ts");
+          } catch {
+            writer = null;
+          }
+          const dataUrl = writer
+            ? (
+                await writer.storeUploadedFile(
+                  new File([blob], `noise-${i}.png`, { type: "image/png" }),
+                )
+              ).ref
+            : await new Promise((r) => {
+                const reader = new FileReader();
+                reader.onload = () => r(reader.result);
+                reader.readAsDataURL(blob);
+              });
           store.getState().setSelectedElement(frames[i].id);
           await wait(50);
           store.getState().updateSelectedFills([

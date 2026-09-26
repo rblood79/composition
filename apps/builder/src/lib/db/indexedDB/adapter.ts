@@ -598,6 +598,9 @@ export class IndexedDBAdapter implements DatabaseAdapter {
       return backups.sort((a, b) => b.updated_at.localeCompare(a.updated_at));
     },
 
+    backupNow: (projectId: string) =>
+      this.incrementalDocuments.backupNow(projectId),
+
     get: (projectId: string) => this.incrementalDocuments.get(projectId),
     delete: (projectId: string) => this.incrementalDocuments.delete(projectId),
     getAll: () => this.incrementalDocuments.getAll(),

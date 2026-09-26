@@ -234,3 +234,29 @@ Phase 5 는 1~4 와 독립이라 먼저 착수해도 된다 (가장 작은 작�
 | 상한 재승인 (2026-09-26 사용자 판정) | 1,421,000 | 623,000 | 만료 2026-10-25 유지 — ADR-235 이후 phase 몫 포함, ADR-201 §initial 번들 상한 재승인 절 |
 
 - 축소에서 확인한 함정: lazy chunk 가 shared barrel (`@composition/shared` · `/utils`) 을 값으로 import 하면 rolldown 이 barrel 이 닿는 initial 공용 chunk 를 쪼개 gzip 이 커진다 (Preview +1 파일 · 공용 코드 재배치). lazy 모듈은 shared 값 import 0 또는 barrel 아닌 서브경로 (`@composition/shared/assets`) 만 쓴다. builder · Preview 공용 chunk 에는 두 entry 가 쓰는 export 합집합이 실리므로 builder 전용 함수는 별도 파일 (`assetRefAsync.ts`) 로 둔다. sourcemap 빌드는 파일마다 `sourceMappingURL` 주석이 붙어 gzip 이 부풀어 측정에 쓰지 않는다 (모듈 귀속 분석 전용).
+
+### Phase 2 — writer 활성화 · 이관 (G2 통과, 2026-09-26)
+
+**구현**
+
+- writer — `lib/assets/assetWriter.ts` `storeUploadedFile` (원본 바이트 저장 + 세션 pin + 해석기 즉시 등록). 이미지 채우기 업로드 (`ImageFillEditor`) · 폰트 업로드 (`createFontFaceFromFile` — 메타데이터는 버퍼에서 추출) 가 `isAssetWriterEnabled()` (기본 true, `VITE_ASSET_WRITER=false` 로 끔) 일 때 lazy import 로 부른다. 저장 실패 시 종전 dataURL.
+- 이관 — `lib/assets/assetMigration.ts`. 대상 = 이미지 · 폰트 dataURL (문자열 전체 값 + CSS `url(data:…)`). 저장 성공분만 치환 · 실패분 인라인 유지 · 치환 전 `documents.backupNow` (새 adapter API — 저장된 현재 문서를 시간 버킷과 무관하게 백업 ring 에 기록) 가 true 일 때만 · 저장이 끝난 시점의 최신 문서에 치환 (저장 중 편집 보존). 적용은 `setDocument` (history 밖 — 되돌림 = 백업) → `hydrateProjectSnapshot` (boot 와 같은 mirror 경로) → 기존 영속 구독.
+- 진입점 — boot (`usePageManager.initializeProject` 끝, requestIdleCallback) · JSON 가져오기 (`BuilderCore.handleImportProject`, 적용 전 envelope 자산화) · 폰트 레지스트리 (`initCustomFonts`, localStorage 에 `data:` 가 있을 때).
+- 폰트 레지스트리는 localStorage 에 남는다 (동기 소비처 다수 — 참조만 들면 수백 바이트, 실측 383 B). 바이트만 자산 저장소로, 원본 레지스트리 문자열은 자산으로 백업하고 참조를 `composition.font-registry.backup-ref` 에 둔다 (R7 — GC root, Phase 3). breakdown 표의 "localStorage → IndexedDB" 는 바이트 이동으로 구현했다 (한도 해소 목적 동일).
+- lazy 모듈의 builder store · DB 는 호출부가 주입 (DI) — lazy chunk 가 builder/shared 공용 모듈을 값으로 import 하지 않게 (Phase 1 번들 함정).
+- shared `loadAssetUrlResolver` 가 설치 시 구독자에게 한 번 알린다 — writer 가 설치 전에 등록한 참조를 다시 그리게.
+
+**G2 증거**
+
+| 항목                                          | 결과                                                                                                                                             |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 원복 RED (a) 저장 강제 실패 → 인라인 유지     | 실패 처리 제거 시 2 테스트 실패 (`assetMigration.test.ts`)                                                                                       |
+| 원복 RED (b) 2회 결과 동일 · (최신 문서 치환) | 처음 문서에 치환하도록 바꾸면 "저장 중 편집 보존" 실패 · 멱등 테스트 + live M2                                                                   |
+| 원복 RED (c) 이관 전 백업                     | 백업 확인 제거 시 실패 · adapter `backupNow` 테스트 (이관 전 문서가 ring 에 남음) · live M1 백업에 dataURL 문서                                  |
+| 이관 전후 시각 동일 (live M1)                 | 새로고침 이관 전후 Canvas 마젠타 bbox 198×98 동일 · 요소 mirror 도 참조로 동기                                                                   |
+| 4MB 폰트 저장 (live W2 + unit)                | 오류 0 · 레지스트리 383 B · 참조 · unit (localStorage 한도 대역) 저장 성공 · 원본 백업                                                           |
+| 용량 (같은 하니스, G0 대비)                   | 백업+스냅샷+history 2,556,421 → 171,535 · 문서 1,332,005 → 139,563 · 레지스트리 1,643,291 → 801 · 합 5,531,717 → 1,991,213 (자산 1,679,314 포함) |
+| 그 밖의 live                                  | W1 실제 UI (Styles → 채우기 탭 → 이미지 파일 입력) 업로드 → 참조 · Canvas · M3 레지스트리 base64 이관 · M4 v1 가져오기 자산화 (7/7)              |
+
+- 하니스: `apps/builder/scripts/adr235-g2-live.mjs` (7 시나리오) · `adr235-storage-baseline.mjs` (writer 경로 자동 사용).
+- **미확정 1건**: live M1 의 한 실행에서 이관 후 Canvas 픽셀 0 (10 초) — 이후 11 회 PASS. 가설 "image fill 로드 완료가 노드 재빌드를 못 부른다" 는 반증 R1 (후속 store 변경 0 으로 로드 완료만 대기) 이 fix 없이 GREEN 이라 기각, 시도한 `StoreRenderBridge` 변경은 되돌렸다. R1 · M1 을 하니스에 유지 (review-loop-closure §2 — LOW deferred).

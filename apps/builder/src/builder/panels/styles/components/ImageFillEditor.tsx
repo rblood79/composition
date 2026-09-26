@@ -19,6 +19,7 @@ import { useStore } from "../../../stores";
 
 import "./ImageFillEditor.css";
 import { useResolvedAssetUrl } from "../../../../lib/assets/useResolvedAssetUrl";
+import { isAssetWriterEnabled } from "../../../../utils/featureFlags";
 
 interface ImageFillEditorProps {
   fill: ImageFillItem;
@@ -81,10 +82,8 @@ export const ImageFillEditor = memo(function ImageFillEditor({
     [onUpdateEnd],
   );
 
-  const handleFileSelect = useCallback(
+  const readAsDataUrlFallback = useCallback(
     (file: File) => {
-      if (!file.type.startsWith("image/")) return;
-
       const reader = new FileReader();
       reader.onload = () => {
         const dataUrl = reader.result as string;
@@ -94,6 +93,35 @@ export const ImageFillEditor = memo(function ImageFillEditor({
       reader.readAsDataURL(file);
     },
     [onUpdateEnd],
+  );
+
+  const handleFileSelect = useCallback(
+    (file: File) => {
+      if (!file.type.startsWith("image/")) return;
+
+      // ADR-235 writer — 원본 바이트를 자산 저장소에 두고 문서엔 참조만. 저장이 실패하면
+      //   종전처럼 dataURL 로 (데이터를 잃지 않는 쪽).
+      if (isAssetWriterEnabled()) {
+        void import("../../../../lib/assets/assetWriter")
+          .then(({ storeUploadedFile }) => storeUploadedFile(file))
+          .then(
+            (stored) => {
+              setUrlInput(stored.ref);
+              onUpdateEnd({ url: stored.ref } as Partial<ImageFillItem>);
+            },
+            (error) => {
+              console.warn(
+                "[assets] 이미지 자산 저장 실패 — dataURL 로 저장",
+                error,
+              );
+              readAsDataUrlFallback(file);
+            },
+          );
+        return;
+      }
+      readAsDataUrlFallback(file);
+    },
+    [onUpdateEnd, readAsDataUrlFallback],
   );
 
   const handleDrop = useCallback(
