@@ -21,7 +21,7 @@ import { FontManagerBody } from "./components/FontManagerBody";
 import { useFontRegistry } from "./useFontRegistry";
 import { useI18n } from "@/i18n";
 
-interface FontManagerDialogProps {
+export interface FontManagerDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
 }

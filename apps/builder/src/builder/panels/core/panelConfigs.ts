@@ -25,7 +25,6 @@ import { NavigatorPanel } from "../navigator/NavigatorPanel";
 import { ACTION_ICONS } from "../../config/actionIcons";
 import { ComponentsPanel } from "../components/ComponentsPanel";
 import { AIPanel } from "../ai/lazyAIPanel";
-import { DataTablePanel } from "../datatable/DataTablePanel";
 import { lazyPanel } from "./lazyPanel";
 
 // Editor panels
@@ -64,6 +63,12 @@ const InteractionsPanel = lazyPanel(() =>
 
 const ThemesPanel = lazyPanel(() =>
   import("../themes/ThemesPanel").then((m) => ({ default: m.ThemesPanel })),
+);
+
+const DataTablePanel = lazyPanel(() =>
+  import("../datatable/DataTablePanel").then((m) => ({
+    default: m.DataTablePanel,
+  })),
 );
 
 // Bottom panels

@@ -24,7 +24,13 @@
  * 헤더("기본" / "내 폰트")로 컨트롤 없이 읽힌다.
  */
 
-import { memo, useCallback, useMemo, useState } from "react";
+import {
+  memo,
+  useCallback,
+  useMemo,
+  useState,
+  type ComponentType,
+} from "react";
 import { Button } from "react-aria-components/Button";
 import { Dialog, DialogTrigger } from "react-aria-components/Dialog";
 import { Header } from "react-aria-components/Header";
@@ -42,7 +48,7 @@ import { iconProps } from "../../../utils/ui/uiConstants";
 import { useControlPopoverMetrics } from "../../components/property/useControlPopoverMetrics";
 import { DEFAULT_FONT_OPTIONS } from "../../fonts/customFonts";
 import { useFontRegistry } from "./useFontRegistry";
-import { FontManagerDialog } from "./FontManagerDialog";
+import type { FontManagerDialogProps } from "./FontManagerDialog";
 import "./FontFamilyPicker.css";
 import { useI18n } from "@/i18n";
 
@@ -75,6 +81,10 @@ export const FontFamilyPicker = memo(function FontFamilyPicker({
   const { t } = useI18n();
   const [isPickerOpen, setPickerOpen] = useState(false);
   const [isManagerOpen, setManagerOpen] = useState(false);
+  // ADR-242 — 폰트 관리 대화상자는 처음 열 때 chunk 를 받는다 (저빈도 · Styles 패널이 정적으로 끌던
+  //   7.7 KB raw). 로드 실패는 대화상자를 닫는 것으로 끝나고 다음 클릭이 다시 시도한다.
+  const [ManagerDialog, setManagerDialog] =
+    useState<ComponentType<FontManagerDialogProps> | null>(null);
   const [query, setQuery] = useState("");
   const { familyGroups, faceCount } = useFontRegistry();
   // 좌측 정렬은 패널 공통 규약 (PropertySelect 와 같은 소스). 폭은 CSS 233 (색 · 아이콘
@@ -127,7 +137,15 @@ export const FontFamilyPicker = memo(function FontFamilyPicker({
     // 팝오버를 먼저 닫는다 — 오버레이 두 겹이 겹치면 dismiss 대상이 모호해진다.
     setPickerOpen(false);
     setManagerOpen(true);
-  }, []);
+    if (ManagerDialog) return;
+    import("./FontManagerDialog").then(
+      (m) => setManagerDialog(() => m.FontManagerDialog),
+      (error) => {
+        console.warn("[fonts] 폰트 관리 대화상자 로드 실패", error);
+        setManagerOpen(false);
+      },
+    );
+  }, [ManagerDialog]);
 
   const ManageIcon = faceCount === 0 ? AddIcon : Settings2;
 
@@ -237,7 +255,9 @@ export const FontFamilyPicker = memo(function FontFamilyPicker({
         </DialogTrigger>
       </div>
 
-      <FontManagerDialog isOpen={isManagerOpen} onOpenChange={setManagerOpen} />
+      {ManagerDialog && (
+        <ManagerDialog isOpen={isManagerOpen} onOpenChange={setManagerOpen} />
+      )}
     </fieldset>
   );
 });
