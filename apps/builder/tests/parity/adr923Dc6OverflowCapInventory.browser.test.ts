@@ -14,8 +14,10 @@ import { getComponentRulesTable } from "@composition/shared";
 import {
   allPaletteCreationTrees,
   paletteCreationFacets,
+  seededOriginElements,
   type ProductionTree,
 } from "./adr923ProductionTrees";
+import { getReusableCompositeOriginId } from "@/builder/components/reusableCompositeOrigins";
 
 // production 진입점 `ComponentFactory.createComplexComponent` 는 트리를 만든 뒤 store 에 기록한다
 //   (`addElementsToStore` → canonical mutation runner, bridge 필요). 기록 단계만 no-op — 트리 형태는
@@ -254,10 +256,21 @@ describe("ADR-923 Phase 4 — DC-6 overflow cap 인벤토리 (Q4 소비 경로 �
       "palette:none",
       "palette:ref",
     ]);
+    // leaf origin (Badge · Button 등, ADR-237 leaf 재사용) 은 자손이 없다 — origin 이 자식을 가질 때만
+    //   instance 쪽 자손 materialize 를 요구한다.
+    const seeded = seededOriginElements();
+    let compositeRefs = 0;
     for (const t of byArm.get("palette:ref") ?? []) {
       expect(t.root.type, `${t.type} resolved root`).not.toBe("ref");
-      expect(t.elements.length, `${t.type} origin 자손`).toBeGreaterThan(1);
+      const originId = getReusableCompositeOriginId(t.type);
+      const originHasChildren = seeded.some((el) => el.parent_id === originId);
+      if (originHasChildren) {
+        compositeRefs++;
+        expect(t.elements.length, `${t.type} origin 자손`).toBeGreaterThan(1);
+      }
     }
+    console.log(`ADR923DC6COMPOSITEREFS ${compositeRefs}`);
+    expect(compositeRefs, "자식 있는 origin 이 하나도 없으면 위 판정이 비어 있다").toBeGreaterThan(10);
     for (const t of byArm.get("palette:complex") ?? []) {
       expect(t.root.type, `${t.type} factory root`).toBeTruthy();
     }
@@ -301,75 +314,81 @@ describe("ADR-923 Phase 4 — DC-6 overflow cap 인벤토리 (Q4 소비 경로 �
   });
 });
 
-/** 팔레트 type → creation facet (production SSOT 파생값의 고정 — 팔레트 추가/facet 변경 = RED). */
+/**
+ * 팔레트 type → creation facet (production SSOT 파생값의 고정 — 팔레트 추가/facet 변경 = RED).
+ *
+ * 2026-09-26 갱신: ADR-228 (`25866715f`) 이 팔레트 RAC 전 항목을 reusable origin 으로 등록해 complex ·
+ * none 대부분이 reusableOrigin 이 됐고 (남은 complex 는 IllustratedMessage 하나), Modal 은 팔레트에서
+ * 빠졌다 (`922f11583` — 기존 문서 ref 해소용 legacy-only). 아래 ratchet 의 도달 · cap 은 그대로이고
+ * 생성 경로 이름만 `palette:complex` → `palette:ref` 로 바뀌었다.
+ */
 const EXPECTED_FACETS: Record<string, "reusableOrigin" | "complex" | "none"> = {
   Text: "none",
   Icon: "none",
   Separator: "none",
-  Badge: "none",
-  ProgressBar: "complex",
+  Badge: "reusableOrigin",
+  ProgressBar: "reusableOrigin",
   Skeleton: "none",
-  Avatar: "none",
-  AvatarGroup: "complex",
-  StatusLight: "none",
+  Avatar: "reusableOrigin",
+  AvatarGroup: "reusableOrigin",
+  StatusLight: "reusableOrigin",
   InlineAlert: "reusableOrigin",
-  ProgressCircle: "none",
+  ProgressCircle: "reusableOrigin",
   Image: "none",
   IllustratedMessage: "complex",
   Card: "reusableOrigin",
   frame: "none",
-  Tabs: "complex",
-  Breadcrumbs: "complex",
-  Link: "none",
-  Nav: "complex",
-  Pagination: "complex",
-  DisclosureGroup: "complex",
-  Disclosure: "complex",
-  CardView: "complex",
+  Tabs: "reusableOrigin",
+  Breadcrumbs: "reusableOrigin",
+  Link: "reusableOrigin",
+  Nav: "reusableOrigin",
+  Pagination: "reusableOrigin",
+  DisclosureGroup: "reusableOrigin",
+  Disclosure: "reusableOrigin",
+  CardView: "reusableOrigin",
   Slot: "none",
-  Button: "none",
+  Button: "reusableOrigin",
   IconButton: "reusableOrigin",
-  ToggleButton: "none",
-  ToggleButtonGroup: "complex",
+  ToggleButton: "reusableOrigin",
+  ToggleButtonGroup: "reusableOrigin",
   Toolbar: "reusableOrigin",
-  ButtonGroup: "complex",
-  Menu: "complex",
-  TextField: "complex",
-  TextArea: "complex",
-  NumberField: "complex",
-  SearchField: "complex",
-  ColorField: "complex",
-  Checkbox: "complex",
-  CheckboxGroup: "complex",
-  RadioGroup: "complex",
-  Select: "complex",
-  ComboBox: "complex",
-  Switch: "complex",
-  Slider: "complex",
-  Meter: "complex",
+  ButtonGroup: "reusableOrigin",
+  Menu: "reusableOrigin",
+  TextField: "reusableOrigin",
+  TextArea: "reusableOrigin",
+  NumberField: "reusableOrigin",
+  SearchField: "reusableOrigin",
+  ColorField: "reusableOrigin",
+  Checkbox: "reusableOrigin",
+  CheckboxGroup: "reusableOrigin",
+  RadioGroup: "reusableOrigin",
+  Select: "reusableOrigin",
+  ComboBox: "reusableOrigin",
+  Switch: "reusableOrigin",
+  Slider: "reusableOrigin",
+  Meter: "reusableOrigin",
   // TailSwatch 는 2026-09-04 팔레트에서 제거 (ComponentFactory creator 부재 — 사용자 판정).
-  DropZone: "none",
-  FileTrigger: "none",
+  DropZone: "reusableOrigin",
+  FileTrigger: "reusableOrigin",
   // ADR-201 (2026-09-17) — 팔레트 추가. complex (Skia projection + 자식 sub-part).
-  FileUpload: "complex",
+  FileUpload: "reusableOrigin",
   Form: "reusableOrigin",
-  Table: "complex",
-  ListBox: "complex",
-  GridList: "complex",
-  Tree: "complex",
-  TagGroup: "complex",
+  Table: "reusableOrigin",
+  ListBox: "reusableOrigin",
+  GridList: "reusableOrigin",
+  Tree: "reusableOrigin",
+  TagGroup: "reusableOrigin",
   Section: "none",
-  TableView: "complex",
-  Calendar: "complex",
-  DatePicker: "complex",
-  DateRangePicker: "complex",
-  DateField: "complex",
-  TimeField: "complex",
-  RangeCalendar: "complex",
-  Dialog: "complex",
-  Modal: "none",
-  Popover: "complex",
-  Tooltip: "complex",
+  TableView: "reusableOrigin",
+  Calendar: "reusableOrigin",
+  DatePicker: "reusableOrigin",
+  DateRangePicker: "reusableOrigin",
+  DateField: "reusableOrigin",
+  TimeField: "reusableOrigin",
+  RangeCalendar: "reusableOrigin",
+  Dialog: "reusableOrigin",
+  Popover: "reusableOrigin",
+  Tooltip: "reusableOrigin",
   // ADR-194/217 (2026-09-08~12) — 차트 팔레트 7 (chartType 별 entry, 전부 leaf).
   "chart-area": "none",
   "chart-bar": "none",
@@ -414,17 +433,17 @@ const EXPECTED_FACETS: Record<string, "reusableOrigin" | "complex" | "none"> = {
 const EXPECTED: string[] = [
   "palette:ref Card > CardPreview overflow:hidden H= W=",
   "palette:ref Card > Card overflow:hidden H= W=",
-  "palette:complex DisclosureGroup > DisclosureGroup overflow:hidden H= W=",
-  "palette:complex CardView > Card overflow:hidden H= W=",
-  "palette:complex CardView > Card overflow:hidden H= W=",
-  "palette:complex CardView > Card overflow:hidden H= W=",
-  "palette:complex NumberField > SelectValue overflow:hidden H= W=",
-  "palette:complex SearchField > SelectValue overflow:hidden H= W=",
-  "palette:complex Select > SelectValue overflow:hidden H= W=",
-  "palette:complex ComboBox > SelectValue overflow:hidden H= W=",
-  "palette:complex ListBox > ListBox overflow:auto H= W=",
-  "palette:complex Tree > Tree overflow:auto H= W=",
-  "palette:complex Dialog > Dialog overflow:auto H= W=",
+  "palette:ref DisclosureGroup > DisclosureGroup overflow:hidden H= W=",
+  "palette:ref CardView > Card overflow:hidden H= W=",
+  "palette:ref CardView > Card overflow:hidden H= W=",
+  "palette:ref CardView > Card overflow:hidden H= W=",
+  "palette:ref NumberField > SelectValue overflow:hidden H= W=",
+  "palette:ref SearchField > SelectValue overflow:hidden H= W=",
+  "palette:ref Select > SelectValue overflow:hidden H= W=",
+  "palette:ref ComboBox > SelectValue overflow:hidden H= W=",
+  "palette:ref ListBox > ListBox overflow:auto H= W=",
+  "palette:ref Tree > Tree overflow:auto H= W=",
+  "palette:ref Dialog > Dialog overflow:auto H= W=",
   "inline div overflow:hidden > div overflow:hidden H= W=",
   "inline div overflow:clip > div overflow:clip H= W=",
   "inline div overflow:auto > div overflow:auto H= W=",

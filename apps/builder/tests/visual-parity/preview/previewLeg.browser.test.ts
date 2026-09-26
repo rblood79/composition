@@ -161,8 +161,11 @@ describe("ADR-198 Phase 0 — Preview leg (task 4)", () => {
 
     expect(errors).toEqual([]);
     expect(previewReady).toBe(true);
-    // page 노드는 통합 fixture 에서도 도달한다.
-    expect(rendered.page).toBeTruthy();
+    // page 노드는 DOM 래퍼를 만들지 않는다 — 2026-09-18 (`9229506fb`, CanonicalNodeRenderer
+    //   `isCanonicalPageShell`) 부터 page shell 은 문서 · state scope 경계일 뿐이고 layout 상자는 자식 body
+    //   가 소유한다 (Canvas 와 같다). 대신 body 가 도달해야 한다.
+    expect(rendered.page, idoc!.body.innerHTML.slice(0, 800)).toBeNull();
+    expect(rendered.body, idoc!.body.innerHTML.slice(0, 800)).toBeTruthy();
     // 3/3 도달. body 노드 타입을 소문자 `"body"` 로 고친 뒤부터다 —
     // Preview 는 `el.type === "body"` 로 찾는다 (`preview/App.tsx:1289,435`).
     // 이 축은 shape probe (S4 대문자 실패 vs S5 소문자 성공) 가 단독 변수로 확정했다.

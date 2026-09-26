@@ -542,16 +542,21 @@ const HC2: Record<
     box: ".react-aria-ColorSwatchPicker",
   },
   GridList: {
-    canvas: "flex",
+    // 2026-09-26 갱신: ADR-234 Phase 3e (`c93e781e3`) 부터 팔레트 GridList 는 정적 카드 (GridListItem instance
+    //   자식) 를 가져 Canvas OWNER 가 곧 grid (repeat(columns, minmax(0, 1fr))) — 종전 flex column + 투영 행
+    //   묶음은 정적 카드가 없는 (바인딩) 경로만.
+    canvas: "grid",
     dom: "grid (GridList.css:4)",
-    verdict: "일치(outer)",
-    box: ".react-aria-GridList — Canvas 는 implicitStyles gridlist 분기가 행을 자체 배치 (가상화), inner 는 투영",
+    verdict: "일치",
+    box: ".react-aria-GridList — 정적 카드는 implicitStyles gridlist 분기가 OWNER 를 grid 로 (DOM inline grid-template-columns 와 같음)",
   },
   Label: {
-    canvas: "block",
+    // 2026-09-26 갱신: `ff172727e` 가 catalog Label `structure.containerStyles` 에 display 정본 (inline-flex) 을
+    //   두어 Canvas 도 inline-flex — block 부모 (Slider `display: block`) 에서 한 줄을 차지하던 발산 수리.
+    canvas: "inline-flex",
     dom: "inline-flex (Label.css:27)",
-    verdict: "예외(inert)",
-    box: ".react-aria-Label — production 형태 전부 flex 부모 (TextField/ProgressBar …) 의 자식이라 양쪽 blockify",
+    verdict: "일치",
+    box: ".react-aria-Label — catalog structure.containerStyles 를 두 렌더러가 읽는다 (flex 부모에서는 양쪽 blockify)",
   },
   Slot: {
     canvas: "block",
@@ -560,10 +565,12 @@ const HC2: Record<
     box: ".react-aria-Slot — Phase 5 후속 전환 (2026-09-03): 잔존 spec Slot.spec containerStyles 에 display block 명시 (종전 archetype default 기본값 inline-flex ↔ Canvas 기본 block). 부모 (frame body) 가 block 이라 값이 배치에 영향 — page 모드 `.preview-slot` (UA block) · Canvas block 과 같은 block 으로",
   },
   Tag: {
-    canvas: "block",
+    // 2026-09-26 갱신: ADR-234 (정적 Tag = TagList 의 Tag instance 자식, `5100240dd` · `600d4f975`) 부터 Tag 가
+    //   Canvas 실제 자식 상자라 catalog flex 를 그대로 읽는다 — 종전 TagList self-render chip 의 block 경계 아님.
+    canvas: "flex",
     dom: "flex (TagGroup.css:61)",
-    verdict: "일치(outer)",
-    box: ".react-aria-Tag — Canvas 는 TagList self-render chip (standalone 만 열린 writer)",
+    verdict: "일치",
+    box: ".react-aria-Tag — 정적 Tag instance 자식 상자 (catalog flex)",
   },
   TagList: {
     canvas: "flex",
@@ -706,9 +713,15 @@ describe("ADR-923 Phase 5 — HC2 판정표 (Canvas 전용 display override 33 r
 
   it("판정표 — 33 rule 전부 판정 (미판정 0), Canvas 값은 캡처와 일치, live 값은 표와 일치", () => {
     expect(Object.keys(HC2).sort()).toEqual([...ALL].sort());
+    // 불일치는 한 번에 모아 보인다 (첫 행에서 멈추면 뒤 행의 drift 가 가려진다).
+    expect(
+      captures
+        .filter((c) => HC2[c.type].canvas !== c.canvas)
+        .map((c) => `${c.type}: 표 ${HC2[c.type].canvas} · 캡처 ${c.canvas} (${c.form})`),
+      "Canvas 값 drift",
+    ).toEqual([]);
     for (const c of captures) {
       const row = HC2[c.type];
-      expect(row.canvas, `${c.type} canvas`).toBe(c.canvas);
       expect(row.verdict, `${c.type} verdict`).not.toMatch(/미판정/);
       expect(row.box.length, `${c.type} box`).toBeGreaterThan(3);
       if (c.live !== undefined) {
@@ -721,10 +734,11 @@ describe("ADR-923 Phase 5 — HC2 판정표 (Canvas 전용 display override 33 r
     console.log(`ADR923HC2 verdicts ${JSON.stringify(counts)}`);
     expect(counts).toEqual({
       "전환(Phase 5)": 2,
-      일치: 11,
-      "일치(outer)": 14,
+      // 2026-09-26: GridList · Tag (일치(outer) → 일치) · Label (예외(inert) → 일치) — 각 행 주석
+      일치: 14,
+      "일치(outer)": 12,
       "예외(투영)": 2,
-      "예외(inert)": 4,
+      "예외(inert)": 3,
     });
   });
 

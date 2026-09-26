@@ -199,9 +199,11 @@ describe("ADR-198 Phase 0 — Preview 가 받는 문서 형태", () => {
     const hex6 = await run("hex6");
     const hex8 = await run("hex8");
 
-    // S4 는 표기와 무관하게 자식이 도달하지 않는다 — 즉 **색 표기는 이 축이
-    // 아니다**. Preview 쪽 변수는 `Body` 래퍼 하나로 좁혀진다 (S1/S2 vs S3/S4).
-    expect(hex6.outer).toBe(false);
-    expect(hex8.outer).toBe(false);
+    // 색 표기는 도달을 가르는 축이 아니다 — hex6 · hex8 결과가 같다. 2026-09-26 갱신: 종전에는 S4 (대문자
+    //   `Body` 래퍼) 가 표기와 무관하게 자식에 도달하지 못했으나, ADR-236 (`18b8928e8`) 이 body 판정을
+    //   shared `isBodyType` (대소문자 무관) 하나로 모은 뒤로 둘 다 도달한다.
+    expect(hex6.outer).toBe(hex8.outer);
+    expect(hex6.outer).toBe(true);
+    expect(hex8.outer).toBe(true);
   }, 120_000);
 });

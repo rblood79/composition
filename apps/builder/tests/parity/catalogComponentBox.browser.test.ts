@@ -404,12 +404,28 @@ describe("ADR-171 Phase 5 — catalog 전달 축 parity (G3)", () => {
  * 로 빠져 배치가 무너진다 — Menu 트리거 박스(ADR-151 B7)와 같은 종류의 의도된
  * 소비자별 차이라 catalog 로 이관하지 않았다.
  *
- * 따라서 이 3종은 DOM(fixed) ↔ pipeline(in-flow) 의 **y 좌표가 다른 것이 정상**이다.
+ * 따라서 이 종류는 DOM(fixed) ↔ pipeline(in-flow) 의 **y 좌표가 다른 것이 정상**이다 (2026-09-26 부터
+ * Modal · Popover 2종 — Dialog 는 container 로 바뀌어 양쪽 in-flow).
  * 여기서 발산이 사라지면 누군가 `position` 을 전달하기 시작한 것이므로, 그 변경이
  * 의도적인지 확인해야 한다.
  */
 describe("ADR-171 — overlay position:fixed 의도적 잔존 (스냅샷)", () => {
-  it.each(["Dialog", "Modal", "Popover"] as const)(
+  // 2026-09-26: Dialog 는 목록에서 빠졌다 — `3f50bcf6c` (DialogTrigger 도입) 부터 Dialog 는 Modal 안의 내용
+  //   상자 (catalog archetype container, RAC 와 같음) 이고 fixed 는 Modal 이 맡는다. 두 렌더러 모두 in-flow.
+  it("Dialog — DOM · 캔버스 모두 in-flow (archetype container)", () => {
+    const host = document.createElement("div");
+    host.className = "react-aria-Dialog";
+    document.body.appendChild(host);
+    const pos = getComputedStyle(host).position;
+    document.body.removeChild(host);
+    expect(pos).toBe("static");
+    const c: CatalogCase = { type: "Dialog", children: KIDS_1, availW: 320 };
+    const nodes = catalogNodes(c);
+    const pipe = pipelineLeg(nodes, c.availW, -1);
+    expect(pipe[nodes.length - 2].y).toBe(0);
+  });
+
+  it.each(["Modal", "Popover"] as const)(
     "%s — DOM 은 fixed, 캔버스는 in-flow",
     (type) => {
       const c: CatalogCase = { type, children: KIDS_1, availW: 320 };
