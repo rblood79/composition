@@ -32,6 +32,7 @@ import {
   adaptElementStyle,
   componentTypeSet,
   getPrimitiveBinding,
+  interpolateRowTemplateTree,
   isBodyType,
   resolveAuthoredAriaLabel,
   resolveAuthoredDomId,
@@ -770,6 +771,26 @@ function CanonicalNodeRendererBody({
                   renderContext.resolveGridListTemplate(node),
               }
             : {}),
+          // ADR-162 Phase 3 — 항목 origin 에 역할 없는 자식이 있으면 데이터 행 카드 = origin 자식을 행
+          //   데이터로 보간해 그린 것 (Canvas 가 행을 origin 가상 instance 로 펼치는 것과 대칭).
+          ...(type === "GridList"
+            ? {
+                renderGridListRowTemplate: createGridListRowTemplateRenderer(
+                  renderContext.resolveGridListRowTemplateChildren?.(node) ??
+                    null,
+                  (child, key) => (
+                    <CanonicalNodeRenderer
+                      key={key}
+                      node={child}
+                      renderContext={renderContext}
+                      parentPath={currentPath}
+                      cutoverPrimitives={cutoverPrimitives}
+                      collectionAncestor={nextCollectionAncestor}
+                    />
+                  ),
+                ),
+              }
+            : {}),
         };
         return (
           <div key={node.id} {...markerProps} style={{ display: "contents" }}>
@@ -1184,4 +1205,20 @@ function resolveGenericHtmlTag(type: string): string {
     ref: "div",
   };
   return KNOWN_HTML[type] ?? type.toLowerCase();
+}
+
+/**
+ * ADR-162 Phase 3 — 항목 origin 자식 (해석된 노드) → 행 데이터로 보간해 그리는 함수. 자식이 없으면
+ * (origin 이 전부 slot) undefined — 렌더러가 종전 label · 설명 두 칸을 쓴다.
+ */
+function createGridListRowTemplateRenderer(
+  children: readonly unknown[] | null,
+  renderChild: (child: ResolvedNode, key: string) => React.ReactNode,
+): RenderContext["renderGridListRowTemplate"] {
+  if (!children || children.length === 0) return undefined;
+  const nodes = children as readonly ResolvedNode[];
+  return (item, roles) =>
+    interpolateRowTemplateTree(nodes, item, roles).map((child) =>
+      renderChild(child, child.id),
+    );
 }

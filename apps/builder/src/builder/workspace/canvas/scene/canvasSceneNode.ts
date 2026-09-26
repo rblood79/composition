@@ -37,7 +37,10 @@ import {
   flattenStaticPickerEntries,
   readStaticPickerEntries,
   compileFieldTemplate,
+  ROW_TEMPLATE_BINDABLE_PROP_KEYS,
+  type CompiledTemplate,
   getSlotRole,
+  shouldExpandRowTemplate,
   shouldFoldSlotChildren,
   interpolateFieldTemplate,
   resolveComponentRule,
@@ -1530,6 +1533,56 @@ function resolveDataBoundGridListProjection(
  * value)를 props 로 받아 `gridlist_card` escape 가 카드를 자체 렌더. rowsGroup 은 GridList 의
  * layout(grid/stack) + columns 를 flex 로 반영하여 카드가 grid 배치되게 한다(배치는 layout 엔진 담당).
  */
+/** ADR-162 Phase 2 — origin 자식 경로의 prop 하나에 걸린 `{field}` 템플릿 (행 루프 밖 1 회 compile). */
+interface RowDescendantTemplate {
+  path: string;
+  key: string;
+  compiled: CompiledTemplate;
+}
+
+/**
+ * origin 자식 트리에서 허용표 (`ROW_TEMPLATE_BINDABLE_PROP_KEYS`) prop 의 `{field}` 템플릿을 모은다. 경로는
+ * 해석기가 synthetic 자식 id 를 만드는 segment (`customId || name || id` — `getCanonicalRefPathSegment` 와
+ * scene node 의 필드 대응) 와 같다.
+ */
+function compileRowDescendantTemplates(
+  children: readonly CanonicalNode[],
+  compile: (source: string) => CompiledTemplate | null,
+  pathPrefix = "",
+): RowDescendantTemplate[] {
+  const out: RowDescendantTemplate[] = [];
+  for (const child of children) {
+    const segment =
+      readLegacyMetadataCustomId(child.metadata) || child.name || child.id;
+    const path = pathPrefix ? `${pathPrefix}/${segment}` : segment;
+    const props = isRecord(child.props) ? child.props : null;
+    if (props) {
+      for (const key of ROW_TEMPLATE_BINDABLE_PROP_KEYS) {
+        const value = props[key];
+        if (typeof value !== "string") continue;
+        const compiled = compile(value);
+        if (compiled) out.push({ path, key, compiled });
+      }
+    }
+    if (child.children?.length) {
+      out.push(...compileRowDescendantTemplates(child.children, compile, path));
+    }
+  }
+  return out;
+}
+
+function buildRowDescendantsPatch(
+  templates: readonly RowDescendantTemplate[],
+  rowItem: Record<string, unknown> | null,
+): Record<string, DescendantOverride> {
+  const patch: Record<string, Record<string, unknown>> = {};
+  if (!rowItem) return patch as Record<string, DescendantOverride>;
+  for (const { path, key, compiled } of templates) {
+    (patch[path] ??= {})[key] = interpolateFieldTemplate(compiled, rowItem);
+  }
+  return patch as Record<string, DescendantOverride>;
+}
+
 function appendGridListRowProjection(
   gridListSceneNode: CanvasSceneNode,
   projection: {
@@ -1593,6 +1646,25 @@ function appendGridListRowProjection(
   };
   const labelTemplate = compileCardTemplate("label");
   const descriptionTemplate = compileCardTemplate("description");
+  // ADR-162 Phase 2 — origin 에 역할 없는 자식 (Image 등) 이 있으면 데이터 행 = origin 의 가상 instance:
+  //   행 노드가 `ref` 를 가져 해석기 (`materializeSyntheticDescendants`) 가 정적 카드처럼 origin 자식을
+  //   펼치고, 글자 자식은 행 데이터로 보간한 값을 `descendants` 로 받는다 (ADR-147 이 피한 `{label}` 틀
+  //   글자 겹침은 이 보간이 막는다). 자식이 전부 slot 이면 종전 경로 (escape 가 카드 전체 — BC).
+  const expandRowsFromOrigin =
+    templateOriginNode != null &&
+    templateOriginId != null &&
+    shouldExpandRowTemplate(templateOriginNode.children);
+  const rowDescendantTemplates = expandRowsFromOrigin
+    ? compileRowDescendantTemplates(
+        templateOriginNode?.children ?? [],
+        (source) => {
+          const env = stateEnvFor?.(gridListSceneNode.id, scope.pageId);
+          return compileFieldTemplate(
+            env ? resolveStateTemplate(source, env) : source,
+          );
+        },
+      )
+    : [];
   // ADR-157 Phase 4 (배치 진실성 — GridList 확산): sample mode(auto-height data-bound) owner 는
   //   layout §1.55c 가 props.items 만 순회해 순수 dataBinding 소유자에서 4-item fallback 으로
   //   clip 된다. scene 이 visualRows 전체 높이(= ceil(totalRows/columns) × rowHeight — samples +
@@ -1600,7 +1672,14 @@ function appendGridListRowProjection(
   //   한다(layout = scene 정합). ListBox(§1.55b) 선례 동형이나 열 수(grid numCols)를 반영해
   //   visual row 공간으로 환산한다. scroll mode(explicit height)/legacy(window null)는 무주입.
   const gridOwnerWindow = projection.windowResolution;
+  // ADR-162 Phase 2 — 펼친 행은 카드 높이가 자식 크기 · 행 데이터에 달린다. 컨테이너 높이 공식
+  //   (§1.55c) · sample 높이 주입을 끄고 엔진이 행 묶음을 재게 한다 (행 간격 실측은 Phase 4).
+  if (expandRowsFromOrigin) {
+    (gridListSceneNode.props as Record<string, unknown>)._expandedTemplateRows =
+      true;
+  }
   if (
+    !expandRowsFromOrigin &&
     gridOwnerWindow?.mode === "sample" &&
     gridOwnerWindow.totalRows > 0 &&
     gridOwnerWindow.rowHeight > 0
@@ -1715,7 +1794,7 @@ function appendGridListRowProjection(
     );
     // ADR-159 P2: 템플릿 존재 시 row.item(+가상 필드) 보간 — ListBox 행 동형.
     const templateItem =
-      labelTemplate || descriptionTemplate
+      labelTemplate || descriptionTemplate || expandRowsFromOrigin
         ? buildCollectionRowTemplateItem(row)
         : null;
     const rowLabel =
@@ -1770,6 +1849,15 @@ function appendGridListRowProjection(
           templateAnchorId: null,
           templateOriginId,
         },
+        ...(expandRowsFromOrigin && templateOriginId
+          ? {
+              ref: templateOriginId,
+              descendants: buildRowDescendantsPatch(
+                rowDescendantTemplates,
+                templateItem,
+              ),
+            }
+          : {}),
         sourceNode,
       },
       graph,
@@ -3629,6 +3717,25 @@ export function appendStaticTagRemoveButtons(graph: CanvasSceneGraph): void {
         },
         graph,
       );
+    }
+  }
+}
+
+/**
+ * ADR-162 Phase 2 — `ref` 를 가진 데이터 행 (origin 을 펼친 GridList 카드) 의 synthetic 자식은 해석기가
+ * scene visit 뒤에 만들므로 projection 이 없다. 행 projection 을 물려줘 클릭 · 쓰기 대상이 owner
+ * GridList · 행 데이터로 가게 한다 (투영 id 가 선택 · 문서로 들어가지 않게 — canvas-rendering §9).
+ */
+export function inheritCollectionRowProjectionToSyntheticChildren(
+  graph: Pick<CanvasSceneGraph, "nodes" | "childrenByParent">,
+): void {
+  for (const row of graph.nodes) {
+    if (row.projection?.kind !== "gridlist-row" || !row.ref) continue;
+    const stack = [...(graph.childrenByParent.get(row.id) ?? [])];
+    while (stack.length > 0) {
+      const child = stack.pop()!;
+      if (!child.projection) child.projection = row.projection;
+      stack.push(...(graph.childrenByParent.get(child.id) ?? []));
     }
   }
 }

@@ -3035,7 +3035,13 @@ export function calculateContentHeight(
   // 신규 GridList 는 자식 GridListItem element 없이 props.items 로 카드 목록을 렌더한다.
   // 따라서 layout 도 spec.render.shapes 와 동일하게 entries/items + section/header +
   // layout(stack|grid) 를 기준으로 높이를 계산해야 item 수 변화가 즉시 반영된다.
-  if (tag1 === "gridlist") {
+  // ADR-162 Phase 2 — scene 이 항목 origin 을 펼친 데이터 행 (`_expandedTemplateRows`) 은 카드 높이가
+  //   자식 크기 · 행 데이터에 달려 이 공식이 맞지 않는다 — 일반 컨테이너 경로 (엔진이 행 묶음을 잰다).
+  if (
+    tag1 === "gridlist" &&
+    (element.props as Record<string, unknown> | undefined)
+      ?._expandedTemplateRows !== true
+  ) {
     const props = element.props as Record<string, unknown> | undefined;
     const rawEntries = props?.items;
     // ADR-923 r20m1 — 빈 집합은 카드 0 (§1.55b ListBox 동형). 종전 4-card sample fallback 은 DOM
@@ -5324,7 +5330,12 @@ export function enrichWithIntrinsicSize(
     (childElements?.length ?? 0) > 0 &&
     !tsMeasuredLeaf &&
     (isEngineIntrinsicKeyword(rawHeight) ||
-      percentageHeightMayNeedIntrinsicFallback);
+      percentageHeightMayNeedIntrinsicFallback ||
+      // ADR-162 Phase 2 — origin 을 펼친 데이터 GridList: 카드가 실제 자식이라 엔진이 행 묶음을 잰다
+      //   (§1.55c 공식 · sample 주입 없음).
+      (type === "gridlist" &&
+        (element.props as Record<string, unknown> | undefined)
+          ?._expandedTemplateRows === true));
   const needsHeightMeasurement =
     !engineOwnsContainerHeight &&
     (needsHeight || percentageHeightMayNeedIntrinsicFallback);

@@ -10,6 +10,7 @@
 import type { ReactNode, CSSProperties } from "react";
 import type { DataBinding } from "./element.types";
 import type { SlotComposition } from "../catalog/slotRoles";
+import type { CollectionFieldRoles } from "../collections/resolveCollectionItems";
 
 // ============================================
 // Element Props Types
@@ -235,6 +236,23 @@ export interface RenderContext {
     slot?: unknown;
     _resolvedFrom?: string;
   }) => SlotComposition | null;
+  /**
+   * ADR-162 Phase 3 — GridList 의 항목 origin 에 역할 없는 자식이 있으면 그 자식 (해석된 노드) 을 돌려준다
+   * (전부 slot 이면 null). `CanonicalNodeRenderer` 가 이것으로 `renderGridListRowTemplate` 을 만든다.
+   */
+  resolveGridListRowTemplateChildren?: (owner: {
+    slot?: unknown;
+    _resolvedFrom?: string;
+  }) => readonly unknown[] | null;
+  /**
+   * ADR-162 Phase 3 — 데이터 행 카드 내용 = 항목 origin 자식을 행 데이터로 보간해 그린 것 (Canvas 가
+   * 행을 origin 가상 instance 로 펼치는 것과 대칭). 정의돼 있으면 데이터 경로 (Path 1 · 2 · 내부 렌더) 가
+   * label · 설명 두 칸 대신 쓴다.
+   */
+  renderGridListRowTemplate?: (
+    item: Record<string, unknown>,
+    roles?: CollectionFieldRoles,
+  ) => ReactNode;
 }
 
 /** ADR-229 Phase 1 — Tag chip item template 의 DOM 소비 형태 (renderContext → TagGroup prop). */

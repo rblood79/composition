@@ -992,25 +992,31 @@ export const renderGridList = (
                     />
                   );
                 })
-              : // ADR-159 P3: 데이터 행 보간 — 구 코드는 template props.label literal 을
-                //   모든 카드에 반복 표시했다 (행 데이터 미소비). 템플릿 없으면 휴리스틱 (BC).
-                renderGridListItemSlotContent({
-                  label: cardLabelTemplate
-                    ? interpolateRowTemplate(
-                        cardLabelTemplate,
-                        item,
-                        resolveFieldRoles(element.props.dataBinding),
-                      )
-                    : getItemLabel(item, String(item.id ?? ""), 0),
-                  description: cardDescriptionTemplate
-                    ? interpolateRowTemplate(
-                        cardDescriptionTemplate,
-                        item,
-                        resolveFieldRoles(element.props.dataBinding),
-                      )
-                    : getItemDescription(item),
-                  slotComposition: templateSlotComposition,
-                })}
+              : // ADR-162 Phase 3 — origin 에 역할 없는 자식이 있으면 origin 자식을 행 데이터로.
+                context.renderGridListRowTemplate
+                ? context.renderGridListRowTemplate(
+                    item,
+                    resolveFieldRoles(element.props.dataBinding),
+                  )
+                : // ADR-159 P3: 데이터 행 보간 — 구 코드는 template props.label literal 을
+                  //   모든 카드에 반복 표시했다 (행 데이터 미소비). 템플릿 없으면 휴리스틱 (BC).
+                  renderGridListItemSlotContent({
+                    label: cardLabelTemplate
+                      ? interpolateRowTemplate(
+                          cardLabelTemplate,
+                          item,
+                          resolveFieldRoles(element.props.dataBinding),
+                        )
+                      : getItemLabel(item, String(item.id ?? ""), 0),
+                    description: cardDescriptionTemplate
+                      ? interpolateRowTemplate(
+                          cardDescriptionTemplate,
+                          item,
+                          resolveFieldRoles(element.props.dataBinding),
+                        )
+                      : getItemDescription(item),
+                    slotComposition: templateSlotComposition,
+                  })}
           </GridListItem>
         );
       }
@@ -1029,22 +1035,27 @@ export const renderGridList = (
               isDisabled={Boolean(item.isDisabled)}
               isQuiet={cardIsQuiet}
             >
-              {/* ADR-159 P3: 정적 items 카드에도 slot 템플릿 적용 (Skia 대칭). */}
-              {renderGridListItemSlotContent({
-                label: cardLabelTemplate
-                  ? interpolateRowTemplate(
-                      cardLabelTemplate,
-                      item as unknown as Record<string, unknown>,
-                    )
-                  : item.label,
-                description: cardDescriptionTemplate
-                  ? interpolateRowTemplate(
-                      cardDescriptionTemplate,
-                      item as unknown as Record<string, unknown>,
-                    )
-                  : (item.description ?? null),
-                slotComposition: templateSlotComposition,
-              })}
+              {/* ADR-162 Phase 3: origin 에 역할 없는 자식이 있으면 origin 자식을 행 데이터로.
+                  ADR-159 P3: 정적 items 카드에도 slot 템플릿 적용 (Skia 대칭). */}
+              {context.renderGridListRowTemplate
+                ? context.renderGridListRowTemplate(
+                    item as unknown as Record<string, unknown>,
+                  )
+                : renderGridListItemSlotContent({
+                    label: cardLabelTemplate
+                      ? interpolateRowTemplate(
+                          cardLabelTemplate,
+                          item as unknown as Record<string, unknown>,
+                        )
+                      : item.label,
+                    description: cardDescriptionTemplate
+                      ? interpolateRowTemplate(
+                          cardDescriptionTemplate,
+                          item as unknown as Record<string, unknown>,
+                        )
+                      : (item.description ?? null),
+                    slotComposition: templateSlotComposition,
+                  })}
             </GridListItem>
           );
 
@@ -1120,6 +1131,8 @@ export const renderGridList = (
         label: cardLabelTemplate?.source ?? null,
         description: cardDescriptionTemplate?.source ?? null,
       }}
+      // ADR-162 Phase 3 — 내부 기본 렌더 (dataBinding) 도 같은 origin 자식 카드.
+      renderRowTemplate={context.renderGridListRowTemplate}
       onSelectionChange={(selectedKeys) => {
         const updatedProps = {
           ...element.props,

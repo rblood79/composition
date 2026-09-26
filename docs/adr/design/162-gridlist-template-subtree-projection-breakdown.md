@@ -70,10 +70,14 @@
 
 ### Phase 2 — Canvas 데이터 행 펼침 (HIGH)
 
+- ✅ 2026-09-26 — 펼침 판정 shared `shouldExpandRowTemplate` (Canvas · Preview 공용). 행 노드에 `ref: <항목 origin>` + 행별 `descendants` (허용표 `ROW_TEMPLATE_BINDABLE_PROP_KEYS` prop 의 `{field}` 를 159 compile · 행 item 으로 보간) → 해석기가 정적 카드처럼 origin 자식을 펼친다 (새 해석 코드 없음). 펼친 자식은 `inheritCollectionRowProjectionToSyntheticChildren` 이 행 projection 을 물려준다. 컨테이너 높이: scene 이 owner 에 `_expandedTemplateRows` → §1.55c 공식 · sample 주입을 끄고 `engineOwnsContainerHeight` 로 엔진이 행 묶음을 잰다 (live 에서 공식 164 vs 행 264 넘침 확인 후 수리). 가상화 행 간격은 여전히 공식 (Phase 4).
+
 - `appendGridListRowProjection`: 행 노드를 §3 조건으로 분기. 펼침이면 origin 해석 자식을 행마다 복제 (id `${rowId}::${childId}`), §4 보간. 해석은 기존 해석기 호출 — 새 해석 코드 금지.
 - 펼친 자식에 행 projection (`gridlist-row` + rowIndex) 을 물려 owner redirect. 투영 id 문서 유입 negative test.
 
 ### Phase 3 — DOM 데이터 행 (HIGH)
+
+- ✅ 2026-09-26 — Preview 해석기 `rowTemplateChildrenForOwner` → `renderContext.resolveGridListRowTemplateChildren` → `CanonicalNodeRenderer` 가 GridList 마다 `renderGridListRowTemplate` (shared `interpolateRowTemplateTree` 로 보간한 origin 자식을 CanonicalNodeRenderer 로) 을 넣고, Path 1 (Field 없음) · Path 2 · `GridList.tsx` 내부 렌더 (dataBinding) 가 두 칸 대신 쓴다. Field 템플릿은 Path 1 Field 분기가 먼저라 legacy 그대로. G2 (b) — `tests/parity/adr162DataRowCardDom.browser.test.ts` DOM oracle = 실제 builder Canvas (live `adr162-p2-data-rows-live.mjs`, static collection dataBinding) ±1: 컨테이너 400×264 · 카드 194×126 · label (17,13,160,24) · 설명 (17,39,160,24) · Image (17,65,48,48). 발견: 정적 `items` 는 ADR-234 이관으로 자식이 되므로 production 데이터 목록 = dataBinding (측정도 그 모양으로). 곁가지: src 없는 Image 는 Canvas 아이콘 / DOM alt 글자 (기존 차이, 범위 밖).
 
 - Path 1/2 · `GridList.tsx` 내부 렌더: §3 조건이 펼침이면 행마다 origin 해석 자식을 `context.renderElement` (보간된 props). RAC `GridListItem` 의 `textValue` = 행 label 유지. 비-slot 자식에 slot 속성 금지 (ADR-238).
 - Preview 채널: Phase 1 의 소유자별 맵에서 자기 origin 자식 (펼침일 때만) 을 읽는다 — 전역 단일 채널에 싣지 않는다.

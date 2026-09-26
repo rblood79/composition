@@ -322,6 +322,7 @@ function CanvasContent() {
         tab: null,
         resolveTabTemplate: undefined,
         resolveGridListTemplate: undefined,
+        resolveGridListRowTemplateChildren: undefined,
       };
     }
     const byId = indexTemplateOriginRecords(resolvedCanonicalNodes);
@@ -419,8 +420,10 @@ function CanvasContent() {
       readTabsTemplateSlot(byId.get("component-tabs")),
     );
     const resolveTabTemplate = tabTemplates.forOwner;
-    const resolveGridListTemplate =
-      createGridListTemplateResolver(byId).forOwner;
+    const gridListTemplates = createGridListTemplateResolver(byId);
+    const resolveGridListTemplate = gridListTemplates.forOwner;
+    const resolveGridListRowTemplateChildren =
+      gridListTemplates.rowTemplateChildrenForOwner;
     return {
       listBox: compositionOf(listBoxOriginId),
       // 행 root style — base(default origin) + selected(variant origin) overlay 층.
@@ -434,6 +437,7 @@ function CanvasContent() {
       tab: tabTemplate,
       resolveTabTemplate,
       resolveGridListTemplate,
+      resolveGridListRowTemplateChildren,
     };
   }, [resolvedCanonicalNodes]);
   const listBoxTemplateSlotComposition = templateSlotCompositions.listBox;
@@ -880,6 +884,8 @@ function CanvasContent() {
       tabTemplate: templateSlotCompositions.tab,
       resolveTabTemplate: templateSlotCompositions.resolveTabTemplate,
       resolveGridListTemplate: templateSlotCompositions.resolveGridListTemplate,
+      resolveGridListRowTemplateChildren:
+        templateSlotCompositions.resolveGridListRowTemplateChildren,
       // ADR-214 Phase 3 — collection 행 템플릿의 `{{ }}` 를 런타임 값으로 (소유자 요소 기준 가시성).
       //   store 를 호출 시점에 읽어 값 변경 시 renderContext 참조를 바꾸지 않는다 — 소유자
       //   노드는 자식 템플릿 참조로 의존 인덱스에 구독되어 (useStateTemplateProps) 스스로 다시 렌더한다.

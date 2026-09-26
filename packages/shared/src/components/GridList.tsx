@@ -24,7 +24,10 @@ import {
   compileFieldTemplate,
   interpolateCollectionRowTemplate,
 } from "../collections/fieldTemplate";
-import { resolveFieldRoles } from "../collections/resolveCollectionItems";
+import {
+  resolveFieldRoles,
+  type CollectionFieldRoles,
+} from "../collections/resolveCollectionItems";
 
 import { useComponentStrings } from "../i18n";
 
@@ -74,6 +77,13 @@ interface ExtendedGridListProps<T extends object> extends Omit<
    */
   rowTemplateSources?: { label?: string | null; description?: string | null };
   /**
+   * ADR-162 Phase 3 — 데이터 행 카드 내용 (항목 origin 자식을 행 데이터로 보간). 없으면 label · 설명 두 칸.
+   */
+  renderRowTemplate?: (
+    item: Record<string, unknown>,
+    roles?: CollectionFieldRoles,
+  ) => React.ReactNode;
+  /**
    * RSP ListView `selectionStyle` (2026-08-21) — 선택을 **무엇으로 표시하는가**.
    * - `"checkbox"`(기본): 행에 선택 체크박스를 그린다.
    * - `"highlight"`: 체크박스 없이 배경 강조만으로 표시하고, 클릭이 선택을 교체한다.
@@ -107,6 +117,7 @@ export function GridList<T extends object>({
   filterText,
   filterFields = ["label", "name", "title"] as (keyof T)[],
   rowTemplateSources,
+  renderRowTemplate,
   selectionStyle,
   isQuiet,
   ...restProps
@@ -477,9 +488,15 @@ export function GridList<T extends object>({
                       label 은 default slot Text 로 렌더하고 CSS 로 스타일(GridList.css
                       `.react-aria-Text:not([slot="description"])`). accessible name 은
                       AriaGridListItem `textValue` 가 담당. */}
-                    <Text>{rowLabel}</Text>
-                    {rowDescription && (
-                      <Text slot="description">{rowDescription}</Text>
+                    {renderRowTemplate ? (
+                      renderRowTemplate(itemRecord, fieldRoles)
+                    ) : (
+                      <>
+                        <Text>{rowLabel}</Text>
+                        {rowDescription && (
+                          <Text slot="description">{rowDescription}</Text>
+                        )}
+                      </>
                     )}
                   </>
                 )}

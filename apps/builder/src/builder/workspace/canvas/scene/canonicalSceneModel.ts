@@ -15,6 +15,7 @@ import type { PageElementIndex } from "../../../stores/utils/elementIndexer";
 import {
   type CanvasSceneGraph,
   appendRefInstanceChildProjections,
+  inheritCollectionRowProjectionToSyntheticChildren,
   appendStaticTagShowAllChips,
   appendStaticTagRemoveButtons,
   annotateStaticBreadcrumbItems,
@@ -177,6 +178,8 @@ function resolveSceneGraph(
     nodesMap: resolved.elementsMap,
     parentById: buildSceneParentById(resolved.childrenMap),
   };
+  // ADR-162 Phase 2: origin 을 펼친 데이터 행의 synthetic 자식에 행 projection.
+  inheritCollectionRowProjectionToSyntheticChildren(resolvedGraph);
   // ADR-228: ref instance 의 synthetic 자식 (TagList/TabList) 은 실체화가 scene visit 뒤라 자식 소유
   //   projection 을 못 받는다 — resolved owner (instance) props 로 여기서 붙인다.
   appendRefInstanceChildProjections(

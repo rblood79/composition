@@ -2,6 +2,7 @@ import {
   fillsToCssBackgroundStyle,
   resolveItemTemplateChipStyle,
   resolveSlotComposition,
+  shouldExpandRowTemplate,
 } from "@composition/shared";
 import type { SlotComposition } from "@composition/shared";
 import type { TagItemTemplate } from "@composition/shared/types";
@@ -68,8 +69,7 @@ export function resolveTemplateOriginRootStyle(
  */
 export function readTabsTemplateSlot(
   owner:
-    | { slot?: unknown; children?: readonly unknown[] | unknown[] }
-    | undefined,
+    { slot?: unknown; children?: readonly unknown[] | unknown[] } | undefined,
 ): unknown {
   if (Array.isArray(owner?.slot)) return owner.slot;
   const tabList = (owner?.children ?? []).find(
@@ -171,18 +171,25 @@ export function createGridListTemplateResolver(
     slot?: unknown;
     _resolvedFrom?: string;
   }) => SlotComposition | null;
+  /** ADR-162 Phase 3 — origin 자식을 데이터 행마다 펼칠 때만 그 자식 (아니면 null). */
+  rowTemplateChildrenForOwner: (owner: {
+    slot?: unknown;
+    _resolvedFrom?: string;
+  }) => readonly unknown[] | null;
 } {
   const cache = new Map<string, SlotComposition | null>();
+  const originIdOf = (owner: { slot?: unknown; _resolvedFrom?: string }) => {
+    const slotOwner = owner._resolvedFrom
+      ? byId.get(owner._resolvedFrom)
+      : owner;
+    const slot = slotOwner?.slot;
+    return Array.isArray(slot) && typeof slot[0] === "string"
+      ? slot[0]
+      : GRIDLIST_ITEM_DEFAULT_ORIGIN_ID;
+  };
   return {
     forOwner: (owner) => {
-      const slotOwner = owner._resolvedFrom
-        ? byId.get(owner._resolvedFrom)
-        : owner;
-      const slot = slotOwner?.slot;
-      const originId =
-        Array.isArray(slot) && typeof slot[0] === "string"
-          ? slot[0]
-          : GRIDLIST_ITEM_DEFAULT_ORIGIN_ID;
+      const originId = originIdOf(owner);
       if (!cache.has(originId)) {
         const origin = byId.get(originId);
         cache.set(
@@ -191,6 +198,10 @@ export function createGridListTemplateResolver(
         );
       }
       return cache.get(originId) ?? null;
+    },
+    rowTemplateChildrenForOwner: (owner) => {
+      const children = byId.get(originIdOf(owner))?.children;
+      return shouldExpandRowTemplate(children) ? (children ?? null) : null;
     },
   };
 }

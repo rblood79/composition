@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [데이터 GridList 카드 = 항목 origin 자식] - 2026-09-26
+
+### Changed
+
+- **데이터 바인딩 GridList 도 카드 템플릿 (항목 origin) 에 추가한 Image · Button 등을 카드마다 그린다.** 전에는 두 렌더러 모두 label · 설명 두 칸만 그려 템플릿의 다른 자식이 빠졌다. 이제 항목 origin 에 역할 없는 자식이 있으면 데이터 행 카드가 정적 카드와 같은 모양 (origin 의 가상 instance) 이 되고, 자식의 글자 · 속성 (children · src · alt · href 등) 의 `{field}` 는 행 데이터로 채운다. 자식이 전부 label · 설명 slot 이면 종전 그대로. ADR-162 Phase 2 · 3.
+  - 펼친 카드의 높이는 엔진이 자식으로 잰다 (컨테이너가 카드보다 작게 잘리지 않는다). 스크롤 가상화 행 간격의 실측은 후속 (Phase 4).
+  - 카드 안 자식을 클릭하면 GridList 가 선택된다 (행 projection 을 물려받음).
+  - 검증: 원복 RED (scene 펼침 · DOM 카드) · Preview DOM 상자 = 실제 builder Canvas 상자 ±1 (컨테이너 400×264 · 카드 194×126 · label · 설명 · Image) · canvas/preview unit 292 · shared 146 · parity 80.
+
 ## [GridList 카드 — 소유자별 항목 origin · 섞인 자식 카드의 설명] - 2026-09-26
 
 ### Fixed

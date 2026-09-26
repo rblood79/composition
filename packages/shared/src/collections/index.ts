@@ -10,6 +10,7 @@
 export * from "./cellValue";
 export * from "./fieldTemplate";
 export * from "./fieldTemplateStorage";
+export * from "./rowTemplateBindableProps";
 export * from "./resolveBoundCollection";
 export * from "./normalizeDataBinding";
 export * from "./resolveCollectionItems";
