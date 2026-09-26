@@ -25,18 +25,21 @@
 | `{field}`     | —                                                                                                                                        | label · description 만 (Canvas `canvasSceneNode.ts:1580-1594, 1720-1727` · DOM `SelectionRenderers.tsx:79, 933-944`)                                                                                                                             |
 | interaction   | 문서 노드                                                                                                                                | `gridlist-row(s)` owner redirect (`resolveCanvasInteractionTarget.ts:131-158`)                                                                                                                                                                   |
 
-**정적 카드 가설 (G0 로 확인)**: 비-slot 자식이 scene 자식이 되면 `_hasChildren` (`buildSpecNodeData.ts:1764-1772`) → escape shell, 그런데 slot 자식은 접혀 있어 label · description 이 아무도 안 그린다. 반증: 정적 카드 origin 에 Image 추가 → Canvas 에 label 이 보이면 가설 기각.
+**정적 카드 가설 — G0 로 기각 (2026-09-26, [evidence](../evidence/162-phase0-inventory-g0-live.md))**: 정적 카드는 canonical `type: "ref"` 라 접기 조건 (canonical `node.type === "GridListItem"`) 에 걸리지 않고 해석기가 origin scene 자식을 복제한다 — slot-only 카드도 **항상 펼침** (escape = shell). live 에서 Image 추가 뒤 label · description · Image 모두 그려진다. 가설은 ref 가 아닌 · reusable 이 아닌 카드 (detach · legacy) 에서만 성립 (Image 만 scene 노드, slot 자식 접힘 → label 소실) — Phase 1 수리 대상.
 
-## 3. 접기 규칙 (정적 · 데이터 · origin 공용)
+## 3. 접기 규칙
+
+정적 ref 카드 (ADR-234 항목 instance) 는 해석기가 자식을 복제해 **항상 펼침** — 이 규칙 밖이다 (G0). 아래 조건은 **ref 가 아닌 카드 (detach · legacy GridListItem) 와 데이터 행** 이 공유한다.
 
 ```
-카드의 (해석된) 자식이 전부 slot 역할 (getSlotRole(child) != null)
+카드 자식이 전부 slot 역할 (getSlotRole(child) != null)
   → 접기: slot 자식은 `_slots` 로, scene 자식 0, escape 가 카드 전체 (현행 — BC)
 비-slot 자식이 하나라도 있음 또는 reusable origin
   → 펼침: 자식 전부 scene 노드 (label 은 injectCollectionLabelWeight), escape = shell (현행 origin 경로)
 ```
 
-- 규칙 위치는 `canvasSceneNode.ts:3288-3301` 의 접기 조건 하나. 데이터 행 투영도 이 조건을 호출한다 (복사 금지).
+- 규칙 위치는 `canvasSceneNode.ts:3292-3301` 의 접기 조건 하나 — 지금은 "slot 자식이면 접는다" 를 자식마다 판단해서, 비-slot 자식이 섞인 detach 카드는 slot 자식만 접히고 escape 는 shell 이라 label 이 사라진다. 카드 단위 판단 (전부 slot 이어야 접기) 으로 바꾼다. 데이터 행 투영도 이 조건을 호출한다 (복사 금지).
+- slot-only 에서 정적 ref 카드 (펼침) 와 데이터 행 (escape) 은 경로가 달라도 시각이 같다 — ADR-234 G5 (items → 자식 이관 픽셀 Δ0) 가 선례. G1 이 다시 잰다.
 - DOM 도 같은 조건: 접기 = `renderGridListItemSlotContent`, 펼침 = `renderGridListItem` 자식 렌더. 조건 함수는 shared 에 두고 두 leg 가 import.
 - **Field 우선 (round 2 m1)**: 템플릿 자식에 `type: "Field"` 가 하나라도 있으면 위 규칙보다 먼저 legacy — DOM Path 1 Field 분기 (`SelectionRenderers.tsx:953-994`) · Canvas 현행 투영 그대로, 펼침 없음. Field 와 비-slot 자식의 병합 규칙은 만들지 않는다 (ADR-147/148 폐기 모델). Field 템플릿 문서가 있으면 Field → Text `{key}` 이관은 별도 결정.
 
@@ -50,6 +53,7 @@
 
 ### Phase 0 — inventory · G0 (LOW)
 
+- ✅ 2026-09-26 — G0 PASS (가설 기각) · inventory 고정 · Field 쓰기 경로 = AI `create_element` 잠재 1 · 소유자별 origin 저작 경로 있음 (Slot 절). [evidence](../evidence/162-phase0-inventory-g0-live.md)
 - G0 live: 정적 GridList 카드 origin 에 Image 추가 → Canvas 카드 확인 (실제 builder, 팔레트 경로, breakpoint 는 헤더 토글).
 - 데이터 행 소비처 전수 grep 고정 (투영 · escape · §1.55b2/c · stride · DOM Path 1/2 · `GridList.tsx` 내부 렌더 · Preview 채널 · interaction).
 - 허용표 후보: origin 에 들어갈 수 있는 leaf 타입 × string prop 전수.
