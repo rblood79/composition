@@ -1,119 +1,106 @@
-# ADR-162 구현 상세: GridList 카드 템플릿 임의 자식 실체화 + row-data 동적 매핑
+# ADR-162 구현 상세: 데이터 바인딩 GridList 카드 = 항목 origin instance
 
-> 본문: [162-gridlist-template-subtree-projection.md](../162-gridlist-template-subtree-projection.md)
+> 본문: [162-gridlist-template-subtree-projection.md](../162-gridlist-template-subtree-projection.md) · 2026-09-26 재작성 (07-24 판의 composed 모드 설계는 git 이력 `docs/adr/design/162-*` 로 본다)
 
-## 1. 전제 lock-in (adr-writing.md fork checkpoint 4 질문)
+## 1. 전제 확정 기록 (fork checkpoint 4 질문)
 
-1. **base/응용 분류**: 본 ADR 은 **응용(구조 축)** — base 는 3개: [ADR-159](../completed/159-collection-field-template-binding.md)(`{field}` 보간 기계·오소링·dataTable 단일화), ADR-148(slot 구성 SSOT = origin 문서), ADR-161(GridList ref-composite). **2026-07-24 사용자 confirm (AskUserQuestion "159 base 의존 재획정")**: 보간·오소링은 159 소관을 소비하고, 본 ADR 은 구조 축(서브트리 실체화 + 카드 높이 실측 + escape gate)만 소유한다. 보간 엔진 제2 구현 금지 (159 grep gate: 소비처는 `compileFieldTemplate`/`interpolateFieldTemplate` 2심볼만 import).
-2. **schema 직교성**: 신규 canonical schema 필드 없음 — composed 판정은 origin 자식 구성에서 파생, 바인딩 표현은 159 의 `{field}` 문법 그대로. 직교 위반 없음.
-3. **선행 ADR 전제 reverse 검증**: ADR-148 Decision 3("구성 SSOT = origin 문서의 자식 구성") 방향 유지 — 반전 아님, 적용 범위 확대. ADR-159 의 consumer 분리(Skia=샘플 정적 배치 / DOM=실데이터+RAC 동작)도 그대로 승계.
-4. **codex 1차 진입 전 위 3 질문 통과** — 본 문서 §1 lock-in 으로 충족.
+1. **base / 응용**: 본 ADR 은 응용. base = [ADR-234](../completed/234-variant-instances-and-slot-filled-collections.md) (목록 = 항목 origin instance, 데이터 목록은 `items` + 항목 origin 템플릿) · [ADR-159](../completed/159-collection-field-template-binding.md) (`{field}` 보간 · 컬럼 피커) · ADR-239/241 (instance 해석기의 origin 펼침). 07-24 판의 base ADR-148 ("slot = 템플릿 역할 표") 은 ADR-234 가 정적 목록에서 대체했다.
+2. **schema 직교성**: 신규 canonical 필드 0. 바인딩 표현은 origin 자식 prop 안의 159 `{field}` 문자열 그대로.
+3. **선행 ADR 전제 reverse 검증**: 234 의 경계 (데이터 목록은 `items`) 를 뒤집지 않는다 — 행을 문서에 쓰지 않고 render-space 에서만 펼친다. 159 의 consumer 분리 (Skia = 샘플/데이터 정적 배치, DOM = 실데이터 + RAC 동작) 승계.
+4. **사용자 confirm**: 2026-09-26 AskUserQuestion "ADR-162 를 어떻게 처리할까요?" → "본문 재작성 (권장)" — 범위 = 데이터 바인딩 목록의 행 = 항목 origin 가상 instance + `{field}`, 판정 심볼 · 별도 투영 제거, 정적 카드 Canvas live 를 Phase 0 에, 150 A2 의존 유지.
 
-**선행 의존 (진입 조건)**: Phase 2 진입 전 ADR-159 P1(shared resolver `fieldTemplate.ts`) Implemented 필수. Phase 5 진입 전 ADR-159 P4(오소링 ComboBox + dataTable 단일화) Implemented 필수.
+**진입 조건**: ADR-159 P1 · P4 Implemented (해소). Phase 4 (stride) 는 ADR-150 A2 시각 확인 뒤 — README 실행 순서표 "150 A2 확정 후" 유지. Phase 0 ~ 3 은 A2 와 독립.
 
-## 2. 현행 병목 (Phase 0 조사 결과, 2026-07-24 라이브 실측)
+## 2. 현행 (2026-09-26 실측)
 
-- 사용자가 `component-gridlist-item-default` 에 Image 추가 → 자식 = [Image(무 slotRole), Text(description), Text(label)].
-- `resolveSlotComposition`(packages/shared/src/catalog/slotRoles.ts:162)이 **인식된 slotRole 만 추출** → Image 드롭.
-- 카드 렌더러 양측이 label/description 고정 재구성:
-  - Skia: `gridlist_card` escape (packages/specs/src/renderers/skiaPrimitives.ts:468 `stackEntries: Array<"label"|"description">`, replace 모드 :3122)
-  - DOM: `renderGridListItemSlotContent` (packages/shared/src/renderers/SelectionRenderers.tsx:162)
-- projection(`appendGridListRowProjection`, canvasSceneNode.ts:1333)은 카드를 flat 합성 노드(label/description 문자열)로만 생성 — 서브트리 미실체화.
-- **재사용 자산 (본 ADR 이 소비)**:
-  - 보간: ADR-159 P1 `packages/shared/src/collections/fieldTemplate.ts` (`compileFieldTemplate`/`interpolateFieldTemplate`) — 예약/임의 필드·literal 혼합·미지 필드 정책 전부 159 정의를 따름
-  - raw 데이터 행: `CollectionProjectionRow.item` (packages/shared/src/collections/resolveCollectionItems.ts:156)
-  - ref 서브트리 실체화: `resolveCanonicalRefTree` (ADR-161)
-  - instance root props 치환: `templateBinding.ts` propsSchema gate (ADR-148 P2 — 변경 없이 공존)
+| 층           | 정적 카드 (ADR-234)                                                                                                                      | 데이터 행                                                                                                                                                                                             |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Canvas scene | 일반 visit — 비-reusable GridListItem 의 slot 자식은 접힘 (`canvasSceneNode.ts:3288-3301`), 비-slot 자식은 scene 노드                    | `appendGridListRowProjection` (`canvasSceneNode.ts:1532-1812`) — origin 은 `props.style` (`:1565`) 과 `resolveSlotComposition(children)` (`:1568`) 만 읽고 자식 없는 GridListItem 노드 (`:1754-1775`) |
+| Skia         | `gridlist_card` escape — `_hasChildren` 이면 shell 만 (`skiaPrimitives.ts:411-415`), 아니면 `_slots` 로 label · description (`:489-503`) | 같은 escape, 자식 없음 → 항상 flat                                                                                                                                                                    |
+| 레이아웃     | §1.55b2 카드 metric 은 자식 있으면 skip (`utils.ts:2955-3030`) → 엔진이 자식으로 잰다                                                    | §1.55b2 공식 · §1.55c 컨테이너 (`utils.ts:3034` 이후)                                                                                                                                                 |
+| 가상화       | —                                                                                                                                        | stride `resolveGridListRowStride` (`collectionVirtualization.ts:169-224`) — 공식, origin 은 상수 id (`:183`)                                                                                          |
+| DOM          | `renderGridListItem` → 자식 전부 `context.renderElement` (`SelectionRenderers.tsx:1172`)                                                 | Path 1 (`:947-1016`, Field 자식 · 그 외 slot 두 칸) · Path 2 (`:1017-1066`) · 내부 렌더 (`GridList.tsx:421-490`) — label · description 두 칸                                                          |
+| Preview 채널 | 해석기가 `master.children` 펼침 (`resolvers/canonical/index.ts:217`)                                                                     | `templateSlotCompositions.gridList` = slot 구성만 (`preview/App.tsx:358-361, 427, 871`)                                                                                                               |
+| `{field}`    | —                                                                                                                                        | label · description 만 (Canvas `canvasSceneNode.ts:1580-1594, 1720-1727` · DOM `SelectionRenderers.tsx:79, 933-944`)                                                                                  |
+| interaction  | 문서 노드                                                                                                                                | `gridlist-row(s)` owner redirect (`resolveCanvasInteractionTarget.ts:131-158`)                                                                                                                        |
 
-## 3. Composed 판정 (BC gate)
+**정적 카드 가설 (G0 로 확인)**: 비-slot 자식이 scene 자식이 되면 `_hasChildren` (`buildSpecNodeData.ts:1764-1772`) → escape shell, 그런데 slot 자식은 접혀 있어 label · description 이 아무도 안 그린다. 반증: 정적 카드 origin 에 Image 추가 → Canvas 에 label 이 보이면 가설 기각.
+
+## 3. 접기 규칙 (정적 · 데이터 · origin 공용)
 
 ```
-템플릿 origin(component-gridlist slot[0])의 자식 중
-비-slot 자식(getSlotRole(child) === null)이 1개 이상 존재
-  → composed 모드 (본 ADR 신규 경로)
-전부 slot 자식(label/description/icon) 또는 자식 0
-  → legacy slot 모드 (현행 escape/renderGridListItemSlotContent 무변경)
+카드의 (해석된) 자식이 전부 slot 역할 (getSlotRole(child) != null)
+  → 접기: slot 자식은 `_slots` 로, scene 자식 0, escape 가 카드 전체 (현행 — BC)
+비-slot 자식이 하나라도 있음 또는 reusable origin
+  → 펼침: 자식 전부 scene 노드 (label 은 injectCollectionLabelWeight), escape = shell (현행 origin 경로)
 ```
 
-- 판정 함수는 shared 단일 심볼(`isComposedCollectionTemplate(children)`)로 두고 Skia projection / DOM renderer / layout 3 소비처가 공유 (Layer D 대칭 원칙).
-- 기존 문서는 전부 slot-only → **BC 영향 0% (opt-in)**. 비-slot 자식을 추가하는 순간부터 composed.
+- 규칙 위치는 `canvasSceneNode.ts:3288-3301` 의 접기 조건 하나. 데이터 행 투영도 이 조건을 호출한다 (복사 금지).
+- DOM 도 같은 조건: 접기 = `renderGridListItemSlotContent`, 펼침 = `renderGridListItem` 자식 렌더. 조건 함수는 shared 에 두고 두 leg 가 import.
 
-## 4. 치환 적용 계약 (159 소비 — 순서만 본 ADR 이 규정)
+## 4. 보간 적용 계약
 
-- composed 카드 실체화 시 각 템플릿 자식의 **string prop** 에 159 resolver 적용: `compileFieldTemplate(prop)` (행 루프 밖 1회) → `interpolateFieldTemplate(compiled, row.item)` (행별). 문법·예약 키·미지 필드 정책은 159 정본 — 본 ADR 은 재정의하지 않는다.
-- **치환 순서 계약**: ① propsSchema 템플릿 바인딩(instance root props — ADR-148 기존, `_resolvedFrom` 재귀 중단 규칙 유지, schema 키 한정) → ② 159 row-data 보간(카드 실체화 시점, 행별). ①은 schema 키 한정이라 row 필드와 충돌 없음. 토큰 없는 prop 은 원형 (compile null → 무비용 skip).
-- 바인딩 가능 prop 판정(어느 prop 에 보간을 적용하나)은 §Phase 5 허용표와 동일 상수 공유.
+- 순서: ① instance `descendants` 적용 (해석기) → ② 행별 159 보간 (`compileFieldTemplate` 행 루프 밖 1 회 · `interpolateFieldTemplate(compiled, row.item)` 행마다). 토큰 없는 prop 은 compile null → skip.
+- 대상 prop = 허용표 하나 (shared 상수 — Canvas 투영 · DOM 렌더 · 패널 공유): Text `children` · Image `src`/`alt` · Button · Badge · Link `children` · Link `href` … (Phase 0 에서 origin 에 둘 수 있는 leaf 전수로 확정).
+- label · description 은 기존 경로 (`resolveRowTemplateSource` 우선순위) 를 그대로 쓴다 — 허용표가 이를 포함해도 경로는 하나.
 
-## 5. Phase 분해
+## 5. Phase
 
-### Phase 0 — Inventory freeze (LOW)
+### Phase 0 — inventory · G0 (LOW)
 
-- composed 판정 소비처 전수 grep 고정: projection / DOM renderer / layout §1.55c / rowMetric / 패널.
-- 기존 gridlist 테스트 목록 고정 (spacing/dataBound/escape) — slot 모드 회귀 gate 기준선.
-- ADR-159 P1 산출물(fieldTemplate 심볼 시그니처) 확인 — 미구현이면 본 ADR Phase 2 이후 보류.
+- G0 live: 정적 GridList 카드 origin 에 Image 추가 → Canvas 카드 확인 (실제 builder, 팔레트 경로, breakpoint 는 헤더 토글).
+- 데이터 행 소비처 전수 grep 고정 (투영 · escape · §1.55b2/c · stride · DOM Path 1/2 · `GridList.tsx` 내부 렌더 · Preview 채널 · interaction).
+- 허용표 후보: origin 에 들어갈 수 있는 leaf 타입 × string prop 전수.
+- stride 상수 id (`collectionVirtualization.ts:183`) vs slot[0] 해석 불일치가 production 에서 갈리는지 1 건 확인.
 
-### Phase 1 — composed 판정 primitive (LOW)
+### Phase 1 — 접기 규칙 공용화 (MED)
 
-- `packages/shared/src/catalog/slotRoles.ts` 인접: `isComposedCollectionTemplate`.
-- 단위 테스트: slot-only/혼합/자식 0/비정형 shape 판정.
+- §3 조건을 shared 함수로. 정적 카드 경로가 호출. G0 가 가설을 확인했으면 여기서 수리 (펼침 시 slot 자식도 scene 노드).
+- unit: slot-only / 혼합 / origin / 자식 0. G1 (정적 카드 부분).
 
-### Phase 2 — Skia projection composed 모드 (HIGH) — 선행: 159 P1
+### Phase 2 — Canvas 데이터 행 펼침 (HIGH)
 
-- `appendGridListRowProjection`(canvasSceneNode.ts): composed 시 카드 노드를 box shell 컨테이너로 두고, 템플릿 서브트리를 행별 scene 자식으로 실체화 (ID: `${projectionId}::${templateChildId}`), string prop 에 159 보간 적용. slot-only 는 현행 경로 그대로.
-- projected 자식 노드는 기존 traversal/layout 엔진 경로로 측정·렌더 (rows-group 은 이미 엔진 실측 — 신규 자식도 동일).
-- `gridlist_card` escape: composed 카드에는 미적용(카드 = 일반 컨테이너 box), slot-only 에만 replace 유지.
-- **interaction 계약 (리뷰 round 1 MED#2)**: 실체화 자식 scene 노드에 `projection.kind: "gridlist-card-child"`(신규) 부여 + `resolveCanvasInteractionTarget.ts` owner-redirect OR 목록·`ProjectionLike` union **동시 갱신** (:143 주석 계약 — 클릭 시 owner GridList 선택). render-space 경계 준수: projected 자식 ID 는 canonical mutation/영속 유입 금지 (canvas-rendering.md §9). 미등록 시 클릭 무반응(:127 `kind:"none"`) 또는 projected ID selection 유입.
+- `appendGridListRowProjection`: 행 노드를 §3 조건으로 분기. 펼침이면 origin 해석 자식을 행마다 복제 (id `${rowId}::${childId}`), §4 보간. 해석은 기존 해석기 호출 — 새 해석 코드 금지.
+- 펼친 자식에 행 projection (`gridlist-row` + rowIndex) 을 물려 owner redirect. 투영 id 문서 유입 negative test.
 
-### Phase 3 — DOM composed 모드 (HIGH) — 선행: 159 P1
+### Phase 3 — DOM 데이터 행 (HIGH)
 
-- `renderGridList`(SelectionRenderers.tsx): composed 시 행별로 템플릿 서브트리 렌더(`context.renderElement` 재귀 + 보간된 props) — RAC `GridListItem` 자식으로 배치, `textValue` 는 row.label 유지.
-- preview App.tsx `templateSlotCompositions.gridList` 채널에 composed 서브트리 전달 (기존 provider 채널 확장) — anchor-less ref 인스턴스에서 childrenByParent 로 origin 자식 접근 불가 문제 재사용 해결.
+- Path 1/2 · `GridList.tsx` 내부 렌더: §3 조건이 펼침이면 행마다 origin 해석 자식을 `context.renderElement` (보간된 props). RAC `GridListItem` 의 `textValue` = 행 label 유지. 비-slot 자식에 slot 속성 금지 (ADR-238).
+- Preview 채널: `templateSlotCompositions.gridList` 옆에 해석된 origin 자식 (펼침일 때만) 을 싣는다.
+- G2 parity test (`tests/parity/`, 실 브라우저 oracle). G1 (데이터 행 부분).
 
-### Phase 4 — 카드 높이/가상화 실측 전환 (HIGH — 최대 위험)
+### Phase 4 — stride 실측 (HIGH, ADR-150 A2 뒤)
 
-- composed 모드: §1.55c(utils.ts) formula/`resolveCollectionRowMetric`(ADR-160) 대신 **대표 카드(템플릿 서브트리) 측정 높이** 사용. 템플릿 균일 → 행 높이 균일 가정(1차 범위, 행별 가변 높이는 후속).
-- **측정 메커니즘 (리뷰 round 1 MED#1 — 타이밍 순환 정정)**: "scene 실체화 후 엔진 실측 주입" 은 불가 — scene build 는 layout **전**이라 엔진 산출이 없다 (현행 주입값도 `windowResolution.rowHeight` = formula, canvasSceneNode.ts:1380-1391). 대신 **단일 순수 측정 resolver `resolveComposedCardMetric(templateChildren)`** 를 신설한다: 엔진 후행 결과에 의존하지 않는 순수 함수(텍스트 측정 + 스택 합산 — `resolveCollectionRowMetric` 의 subtree 일반화)로, scene 주입(`_projectedRowsContentHeight`)·§1.55c·window stride 3소비처가 **공동 호출** (ADR-160 SSOT 원칙 동형). 엔진 실측과의 일치는 산출 후 G3 parity test 가 검증 (resolver 출력 = 엔진 실측 = DOM 실측).
-- window stride(ADR-150 A2 `rowHeight`)도 동일 resolver 산출 소비 — 이원화 금지.
-- spacing test 신설: composed 카드 높이 = 서브트리 엔진 실측 = DOM 실측 (parity oracle).
+- 접기: 현행 공식 (BC).
+- 펼침: stride = 직전 layout 의 window 첫 행 엔진 높이 + rowGap. 캐시 키 = GridList id + origin 해석 결과 revision, 무효화는 기존 layout publish / projectionVersion 신호 (독립 캐시 금지 — ADR-150 R5). 첫 프레임은 공식. §1.55c 컨테이너 높이도 같은 값.
+- G3.
 
-### Phase 5 — Content-Data 패널: 임의 자식 prop 오소링 확장 (MED) — 선행: 159 P4
+### Phase 5 — 패널 컬럼 연결 (MED)
 
-- 159 P4 오소링(ComboBox 자유 입력 + 컬럼 피커 → `{key}` 삽입)을 **임의 템플릿 자식의 바인딩 가능 prop** 으로 확장: GridList 패널 Data 섹션에 템플릿 서브트리의 leaf prop 목록 (type별 허용표: Text.text/children, Image.src/alt, Button.children, Badge.children …) 을 나열하고 각각 159 오소링 입력을 부착 → origin 자식 props 에 `{컬럼}` 기록.
-- 신규 UI 패턴 발명 금지 — 159 P4 컴포넌트 재사용. 저장 위치 = **origin 문서** (모든 인스턴스 공유 — ADR-148 Decision 3 정합). 인스턴스별 상이 매핑은 본 ADR 범위 외 (Consequences 에 기록).
-- 컬럼 후보 = dataBinding 소스(dataTable 단일 — 159 P4b 이후)의 첫 행 키 (columnTypeInference 재사용).
+- GridList (데이터 바인딩) Properties 에 "카드 필드" 절: origin 해석 자식 중 허용표 prop 을 나열하고 159 `PropertyFieldTemplateInput` (+ `useOwnerCollectionColumns` 의 소유자 = 선택된 GridList) 을 붙인다. 쓰기 위치 = origin 문서 (모든 instance 공유).
+- 신규 입력 컴포넌트 금지 — 159 것을 재사용.
 
-### Phase 6 — cross-check + live 검증 + closure (MED)
+### Phase 6 — cross-check · live · closure (MED)
 
-- `/cross-check` gridlist (slot 모드 + composed 모드 각 1회).
-- live: Image+Button 추가 → 인스턴스 카드 반영 + 패널 컬럼 매핑 → 행별 값 확인 (Chrome MCP).
-- CHANGELOG + ADR closure 5단계.
+- `/cross-check` gridlist (접기 · 펼침 각 1). live: 데이터 GridList + origin 에 Image (src `{image}`) · Button → 행별 값 확인 (Canvas). Preview 는 사용자 확인.
+- G4 성능 A/B. CHANGELOG · README · ADR Live Exercise.
 
-## 6. 파일 변경 요약 (추정)
+## 6. 파일 (추정 — Phase 0 에서 고정)
 
-| 영역             | 파일                                                                                                                           | Phase |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------ | ----- |
-| composed 판정    | packages/shared/src/catalog/slotRoles.ts(인접 신규 심볼)                                                                       | 1     |
-| Skia projection  | apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts                                                             | 2     |
-| interaction      | apps/builder/src/builder/workspace/canvas/interaction/resolveCanvasInteractionTarget.ts (kind OR + ProjectionLike union)       | 2     |
-| 높이 resolver    | packages/specs/src/renderers/utils/collectionItemMetrics.ts (`resolveComposedCardMetric` 신설)                                 | 4     |
-| Skia escape gate | packages/specs/src/renderers/skiaPrimitives.ts                                                                                 | 2     |
-| DOM renderer     | packages/shared/src/renderers/SelectionRenderers.tsx                                                                           | 3     |
-| preview 채널     | apps/builder/src/preview/App.tsx, types/index.ts                                                                               | 3     |
-| layout/높이      | apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts, packages/specs/src/renderers/utils/collectionItemMetrics.ts | 4     |
-| 패널             | apps/builder/src/builder/panels/properties/… (GridList Data 섹션 — 159 P4 컴포넌트 재사용), columnTypeInference                | 5     |
-| 테스트           | composed 판정/spacing/escape/renderer contract (보간 자체 테스트는 159 소관)                                                   | 1–4   |
+| 영역          | 파일                                                                                                      | Phase     |
+| ------------- | --------------------------------------------------------------------------------------------------------- | --------- |
+| 접기 조건     | `packages/shared/src/catalog/slotRoles.ts` 인접                                                           | 1         |
+| Canvas scene  | `apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts`                                      | 1 · 2     |
+| interaction   | `apps/builder/src/builder/workspace/canvas/interaction/resolveCanvasInteractionTarget.ts` (필요 시)       | 2         |
+| DOM           | `packages/shared/src/renderers/SelectionRenderers.tsx` · `packages/shared/src/components/GridList.tsx`    | 3         |
+| Preview 채널  | `apps/builder/src/preview/App.tsx`                                                                        | 3         |
+| stride · 높이 | `apps/builder/src/builder/workspace/canvas/scene/collectionVirtualization.ts` · `layout/engines/utils.ts` | 4         |
+| 패널          | `apps/builder/src/builder/panels/properties/…` · `hooks/useOwnerCollectionColumns.ts`                     | 5         |
+| 허용표        | `packages/shared/src/collections/` 인접                                                                   | 2 · 3 · 5 |
 
-## 7. 테스트 전략
+## 7. 범위 밖
 
-- Phase 1: composed 판정 단위 테스트 (RED 먼저). 보간 순서·문법 테스트는 159 소관 — 본 ADR 은 "치환 순서 계약 (§4)" 통합 테스트 1건만 (propsSchema 선행 + row 보간 후행).
-- Phase 2/3: composed 판정 시 slot-only 경로 무변경 정적 가드 (기존 테스트 전량 GREEN 유지가 gate).
-- Phase 4: composed 카드 높이 parity 테스트 (엔진 실측 = rowHeight resolver 출력).
-- Phase 6: live behavior — 무엇을 exercise 했는지 커밋 검증 블록에 명시 (CLAUDE.md 완료 기준).
-
-## 8. 명시적 범위 외 (후속)
-
-- ListBox/Menu 로의 composed 모드 확산 (GridList proof 후 별도 phase 또는 별도 ADR).
-- 행별 가변 카드 높이 (템플릿 균일 가정 해제).
-- 인스턴스별 상이 컬럼 매핑 (origin 공유 매핑만 1차 지원).
-- Button 등 인터랙티브 자식의 행 컨텍스트 이벤트 (row item 을 이벤트 payload 로 전달) — 이벤트 런타임(ADR-149 Wave 2 backlog)과 교차 지점.
-- array/object 필드의 컴포넌트 placeholder — ADR-159 P5 소관 (본 ADR 은 실체화된 자식이 그 placeholder 를 담을 그릇만 제공).
+- ListBox 데이터 경로 (같은 규칙 이식 — 후속).
+- Menu 정적 경로의 비-slot 자식 제외 (`CollectionRenderers.tsx:1052-1130`) — 별도 판단.
+- 행별 가변 높이 · instance 별 매핑 · 인터랙티브 자식의 행 이벤트 (ADR-149 Wave 2 backlog 교차).
+- publish leg (README 결정 지점 (1) 그대로 — publish 방침 해제 시).
