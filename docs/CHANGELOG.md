@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [한 줄에 놓인 버튼 · 배지 · 링크의 세로 정렬] - 2026-09-26
+
+### Fixed
+
+- **display block 인 Frame 안에서 Button · ToggleButton · Badge · Link 가 라벨 · 다른 inline 요소와 한 줄에 놓일 때 캔버스에서만 아래 가장자리로 맞춰지던 문제** (Preview 는 글자 baseline 정렬). 줄이 부풀고 옆 요소가 최대 12 px 내려갔다 (Label + Button: 캔버스 줄 36.5 / Preview 30). 이제 두 렌더러가 글자 baseline 으로 맞춘다.
+  - 검증: 새 parity (Label + 4종, 캔버스 · DOM 대조) 수정 전 실패 → 통과 · 실제 builder 에서 block Frame > Button + Badge (Badge y 4.5, 줄 30) · 전체 parity · 캔버스 unit · 시각 smoke 통과.
+  - 남은 차이: Badge · Link 만 한 줄에 있을 때 Preview 는 부모의 상속 줄 높이 (24) 를 최소 줄 높이로 쓰는데 캔버스는 쓰지 않아 줄이 2~4 px 낮다 — 별도 원인으로 기록.
+
 ## [Select 도움말 줄 높이] - 2026-09-26
 
 ### Fixed

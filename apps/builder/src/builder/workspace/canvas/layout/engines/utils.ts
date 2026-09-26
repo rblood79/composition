@@ -5833,6 +5833,61 @@ export function enrichWithIntrinsicSize(
     }
   }
 
+  // 2026-09-26 (LOW 조사 2-a) — 글자를 그리는 inline leaf (Button · ToggleButton · Badge · Link 등, spec 텍스트
+  //   style 이 있는 비-텍스트 leaf) 의 첫 줄 baseline. 텍스트 leaf 목록 밖이라 위 분기가 `leafBaseline` 을 싣지
+  //   않았고, 엔진 인라인 흐름은 baseline 원천이 없는 atomic inline 을 아래 margin 가장자리로 폴백한다 (CSS
+  //   와 같은 규칙). 그래서 block 부모의 같은 줄 Label 이 (높이 − 글자 baseline) 만큼 내려갔다 (Label + Button
+  //   md: Canvas 부모 36.5 · Label y 16.5 / DOM 30 · 4.2). 값은 content-box 상단 기준 — 한 줄 글자를 content
+  //   높이 안에서 세로 가운데 (catalog inline-flex · align-items center) 에 두고 half-leading + ascent.
+  //   높이를 모르면 (주입 · 명시 px 둘 다 없음) 공급하지 않는다 — 종전 폴백 유지.
+  if (
+    !scalarTextLeaf &&
+    injectedStyle.leafBaseline === undefined &&
+    !(childElements && childElements.length > 0)
+  ) {
+    const leafProps = element.props as Record<string, unknown> | undefined;
+    const glyphText = extractTextContent(type, leafProps);
+    const specText = glyphText.trim()
+      ? extractSpecTextStyle(type, leafProps ?? {})
+      : null;
+    const rawBoxHeight = injectedStyle.height;
+    const boxHeight =
+      typeof rawBoxHeight === "number"
+        ? rawBoxHeight
+        : typeof rawBoxHeight === "string" && /^-?[\d.]+px$/.test(rawBoxHeight)
+          ? parseFloat(rawBoxHeight)
+          : undefined;
+    if (specText && boxHeight !== undefined && Number.isFinite(boxHeight)) {
+      const glyphFontSize =
+        resolveTextRenderStyle(style).fontSize ?? specText.fontSize;
+      const fm = measureFontMetrics(
+        (typeof style?.fontFamily === "string" && style.fontFamily) ||
+          specText.fontFamily,
+        glyphFontSize,
+        (style?.fontWeight as number | string | undefined) ??
+          specText.fontWeight,
+      );
+      const lineHeightPx =
+        parseLineHeight(style, glyphFontSize) ??
+        specText.lineHeight ??
+        fm.lineHeight;
+      const contentHeight = Math.max(
+        0,
+        boxHeight -
+          box.padding.top -
+          box.padding.bottom -
+          box.border.top -
+          box.border.bottom,
+      );
+      injectedStyle.leafBaseline = Math.max(
+        0,
+        (contentHeight - lineHeightPx) / 2 +
+          (lineHeightPx - fm.fontHeight) / 2 +
+          fm.ascent,
+      );
+    }
+  }
+
   // 변경이 없으면 원본 반환.
   //   minWidth 도 비교 대상 — growsInFlex 경로는 width 를 주입하지 않으므로(위) minWidth 만
   //   바뀔 수 있고, width/height 만 보면 그 주입이 조용히 버려진다.
