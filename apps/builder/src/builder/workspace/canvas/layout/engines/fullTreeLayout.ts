@@ -33,13 +33,21 @@ import {
   resolveEngineBoxEdges,
   calculateContentHeight,
   calculateContentWidth,
-  parseBoxModel,
+  resolveLeafBoxEdges,
   parseCSSPropWithContext,
   parseLineHeight,
   measureTextWidth,
   parseNumericValue,
   isEngineIntrinsicKeyword,
 } from "./utils";
+import {
+  SIZE_STYLE_KEYS,
+  hasIntrinsicSizeConstraint,
+  isAutoOrIntrinsicSize,
+  resolveRemeasureStyle,
+  sizeMayDependOnContent,
+  toEngineDimension as dim,
+} from "./sizeProperties";
 import { measureFontMetrics } from "../../utils/textMeasure";
 import { setLayoutViewport } from "./cssValueParser";
 import { resolveStyle, getRootComputedStyle } from "./cssResolver";
@@ -112,6 +120,21 @@ const TEXT_MEASURE_STYLE_KEYS = [
   "wordBreak",
   "overflowWrap",
   "fontVariant",
+] as const;
+
+const POSTORDER_MEASURE_KEYS = [
+  "height",
+  ...ENGINE_MEASURE_SCALAR_KEYS,
+  "minWidth",
+  "maxWidth",
+  "minHeight",
+  "maxHeight",
+] as const;
+const HEIGHT_MEASURE_KEYS = [
+  "height",
+  "contentHeight",
+  "contentMinHeight",
+  "leafBaseline",
 ] as const;
 
 /** traversePostOrder 최대 재귀 깊이 (ADR-006 P0-4) */
@@ -820,12 +843,7 @@ const DIM_FIELDS = [
   "borderRight",
   "borderBottom",
   "borderLeft",
-  "width",
-  "height",
-  "minWidth",
-  "minHeight",
-  "maxWidth",
-  "maxHeight",
+  ...SIZE_STYLE_KEYS,
   "marginTop",
   "marginRight",
   "marginBottom",
@@ -843,7 +861,7 @@ const DIM_FIELDS = [
 function normalizeDimFields(partial: Record<string, unknown>): void {
   for (const key of DIM_FIELDS) {
     const v = partial[key];
-    if (typeof v === "number") partial[key] = `${v}px`;
+    if (typeof v === "number") partial[key] = dim(v);
   }
 }
 
@@ -871,12 +889,7 @@ const GRID_REBUILD_TRIGGER_KEYS = [
   "gap",
   "rowGap",
   "columnGap",
-  "width",
-  "height",
-  "minWidth",
-  "maxWidth",
-  "minHeight",
-  "maxHeight",
+  ...SIZE_STYLE_KEYS,
 ] as const;
 
 function isGridDisplay(display: unknown): boolean {
@@ -900,12 +913,7 @@ const IMPLICIT_DIM_PROPS = new Set([
   "paddingRight",
   "paddingTop",
   "paddingBottom",
-  "width",
-  "height",
-  "minWidth",
-  "minHeight",
-  "maxWidth",
-  "maxHeight",
+  ...SIZE_STYLE_KEYS,
   "gap",
   "rowGap",
   "columnGap",
@@ -926,6 +934,7 @@ function patchBatchStyleFromImplicit(
   batchStyle: Record<string, unknown>,
   modStyle: Record<string, unknown>,
   computedFontSize?: number,
+  keys: readonly string[] = Object.keys(modStyle),
 ): void {
   // 각 modStyle key 를 엔진 형식 (targetKey, coercedVal) 로 정규화한 뒤
   // batchStyle 의 현재 값과 비교해 달라진 경우에만 패치한다.
@@ -936,7 +945,7 @@ function patchBatchStyleFromImplicit(
   // modStyle.width(18) === origStyle.width(18, factory baked) 로 skip → batchStyle 은
   // "14px" 유지 → position:absolute/left 상호작용으로 box 가 block(x=0,w=100%,h=0) degrade.
   // batchStyle 기준 비교는 그 stale 을 잡으면서 (14px ≠ 18px → patch) 동일 값 재설정도 피한다.
-  for (const key of Object.keys(modStyle)) {
+  for (const key of keys) {
     const val = modStyle[key];
     if (val === undefined) continue;
 
@@ -955,7 +964,7 @@ function patchBatchStyleFromImplicit(
     let targetKey = key;
     let coercedVal: unknown;
     if (IMPLICIT_DIM_PROPS.has(key)) {
-      coercedVal = typeof val === "number" ? `${val}px` : val;
+      coercedVal = typeof val === "number" ? dim(val) : val;
     } else if (key === "flexGrow" || key === "flexShrink" || key === "order") {
       coercedVal = Number(val);
     } else if (key === "position") {
@@ -1034,11 +1043,6 @@ function patchBatchStyleFromImplicit(
 function engineStyleToRecord(style: EngineStyle): Record<string, unknown> {
   const result: Record<string, unknown> = {};
 
-  // dimension 값을 string으로 정규화하는 내부 헬퍼
-  function dim(v: string | number): string {
-    return typeof v === "number" ? `${v}px` : v;
-  }
-
   // Display & position
   if (style.display !== undefined) result.display = style.display;
   if (style.position !== undefined) result.position = style.position;
@@ -1088,12 +1092,9 @@ function engineStyleToRecord(style: EngineStyle): Record<string, unknown> {
     result.gridRowEnd = String(style.gridRowEnd);
 
   // Size
-  if (style.width !== undefined) result.width = dim(style.width);
-  if (style.height !== undefined) result.height = dim(style.height);
-  if (style.minWidth !== undefined) result.minWidth = dim(style.minWidth);
-  if (style.minHeight !== undefined) result.minHeight = dim(style.minHeight);
-  if (style.maxWidth !== undefined) result.maxWidth = dim(style.maxWidth);
-  if (style.maxHeight !== undefined) result.maxHeight = dim(style.maxHeight);
+  for (const key of SIZE_STYLE_KEYS) {
+    if (style[key] !== undefined) result[key] = dim(style[key]);
+  }
 
   // Margin
   if (style.marginTop !== undefined) result.marginTop = dim(style.marginTop);
@@ -2361,24 +2362,11 @@ function traversePostOrder(
       string,
       unknown
     >;
-    const textHeightMayDependOnContent =
-      processedStyle.height == null ||
-      processedStyle.height === "auto" ||
-      (typeof processedStyle.height === "string" &&
-        (processedStyle.height.trim().endsWith("%") ||
-          isEngineIntrinsicKeyword(processedStyle.height)));
-    const textWidthMayDependOnContent =
-      processedStyle.width == null ||
-      processedStyle.width === "auto" ||
-      isEngineIntrinsicKeyword(processedStyle.width) ||
-      (typeof processedStyle.width === "string" &&
-        processedStyle.width.trim().endsWith("%")) ||
-      isEngineIntrinsicKeyword(processedStyle.minWidth) ||
-      isEngineIntrinsicKeyword(processedStyle.maxWidth);
     if (
       (textMeasureStyleChanged || textContentChanged) &&
       isTextLeaf &&
-      (textHeightMayDependOnContent || textWidthMayDependOnContent)
+      (sizeMayDependOnContent(processedStyle, "height") ||
+        sizeMayDependOnContent(processedStyle, "width"))
     ) {
       const processedComputed = resolveStyle(processedStyle, computedStyle);
       const measured = enrichWithIntrinsicSize(
@@ -2407,21 +2395,9 @@ function traversePostOrder(
       }
       patchBatchStyleFromImplicit(
         batch[batchIdx].style,
-        Object.fromEntries(
-          [
-            "height",
-            "contentHeight",
-            "contentMinHeight",
-            "contentMinWidth",
-            "contentMaxWidth",
-            "minWidth",
-            "maxWidth",
-            "leafBaseline",
-          ]
-            .filter((key) => measuredStyle[key] !== undefined)
-            .map((key) => [key, measuredStyle[key]]),
-        ),
+        measuredStyle,
         processedComputed.fontSize,
+        POSTORDER_MEASURE_KEYS,
       );
     } else if (!isTextLeaf && fontSizeChanged && modStyle.height == null) {
       // 비텍스트 자식의 기존 단일 line box 보정. 명시 height 는 보존한다.
@@ -2643,7 +2619,7 @@ function traversePostOrder(
         computedStyle,
       );
       if (intrinsicHeight > 0) {
-        const box = parseBoxModel(element, availableWidth, availableHeight);
+        const box = resolveLeafBoxEdges(element, availableWidth);
         const borderBoxHeight =
           intrinsicHeight +
           box.padding.top +
@@ -2744,11 +2720,7 @@ function traversePostOrder(
           fontWeight,
         );
         if (maxContentW > 0) {
-          const box = parseBoxModel(
-            rawElement,
-            availableWidth,
-            availableHeight,
-          );
+          const box = resolveLeafBoxEdges(rawElement, availableWidth);
           const borderBoxMinW = Math.ceil(
             maxContentW +
               box.padding.left +
@@ -3284,12 +3256,8 @@ export function calculateFullTreeLayout(
         // min/max-content 도 블록 축에서는 내용 높이다. 1-pass 폭보다 flex 실배치 폭이
         // 좁아지면 줄 수가 늘어나므로 fit-content/auto 와 같은 재측정 대상이다.
         if (
-          rawH !== undefined &&
-          rawH !== null &&
-          rawH !== "auto" &&
-          rawH !== "fit-content" &&
-          rawH !== "min-content" &&
-          rawH !== "max-content" &&
+          !isAutoOrIntrinsicSize(rawH) &&
+          !hasIntrinsicSizeConstraint(childStyle, "height") &&
           !percentHeightMeasuredLeaf
         )
           continue;
@@ -3493,6 +3461,9 @@ export function calculateFullTreeLayout(
             filteredChildIds?.length === 1 &&
             filteredChildIds[0].includes("-rows:");
           if (isContainer && !onlyProjectionRowsChild2) {
+            // 고정 height + intrinsic min/max-height도 후보가 될 수 있다. 저작 높이는 보존하고
+            // 컨테이너의 내용 제약은 엔진이 확정된 폭에서 측정한다.
+            if (!isAutoOrIntrinsicSize(childStyle.height)) continue;
             // 지우는 건 1-pass 가 넣은 근사 px 뿐 — 엔진 소유 키워드 (`fit-content` 등, 2026-09-19
             //   통과) 를 지우면 auto 가 되어 flex 부모에서 stretch 된다.
             const h = node.style.height;
@@ -3507,17 +3478,8 @@ export function calculateFullTreeLayout(
             continue;
           }
 
-          // implicitStyles가 주입한 width를 element에 반영하여 re-enrich
-          const batchWidth = node.style.width;
-          const storeStyle = (elementsMap.get(node.elementId)?.props?.style ??
-            {}) as Record<string, unknown>;
-
-          const mergedStyle = resolveRemeasureStyle(
-            childStyle,
-            batchWidth,
-            storeStyle.width,
-            actualWidth,
-          );
+          // %·px·intrinsic 모두 엔진의 확정 폭에서 높이를 잰다. 저작 폭은 변경하지 않는다.
+          const mergedStyle = resolveRemeasureStyle(childStyle, actualWidth);
           const mergedEl =
             mergedStyle !== childStyle
               ? ({
@@ -3550,12 +3512,9 @@ export function calculateFullTreeLayout(
             node.style,
             // 이 패스는 확정된 폭에서 높이만 재측정한다. 재측정 과정의
             // width/minWidth를 다시 쓰면 1차 패스의 auto/Fill 선언을 잃는다.
-            Object.fromEntries(
-              ["height", "contentHeight", "contentMinHeight", "leafBaseline"]
-                .filter((key) => reStyle[key] !== undefined)
-                .map((key) => [key, reStyle[key]]),
-            ),
+            reStyle,
             childComputed.fontSize,
+            HEIGHT_MEASURE_KEYS,
           );
           const styleChanged = persistentTree.updateNodeStyle(
             node.elementId,
@@ -3947,25 +3906,4 @@ export function calculateFullTreeLayoutFromSceneModel(
     accessor,
     options,
   );
-}
-
-/**
- * Step 4.5 재측정용 style — 1차 enrich 는 `availableWidth` = 부모 폭이라 `%` 를 그 비율로 풀지만
- * (`resolveEnrichMeasureWidth`), 2차는 `actualWidth` = **자기** 확정 폭이다. `%` 를 그대로 두면 자기
- * 폭에 비율을 또 곱해 (50% → 85.5) 줄이 늘어난다 (사용자 live 2026-09-20: pre-wrap 50% Text 상자
- * 226 ↔ Skia 192). 확정 폭을 px 로 박아 그 폭에서 잰다 — 이 패스는 height 키만 되돌려 쓰므로 width
- * 출력엔 영향이 없다. implicit 주입 폭 (batchWidth) 은 store 에 폭이 없을 때만 (종전 그대로).
- */
-export function resolveRemeasureStyle(
-  childStyle: Record<string, unknown>,
-  batchWidth: unknown,
-  storeWidth: unknown,
-  actualWidth: number,
-): Record<string, unknown> {
-  const w = childStyle.width;
-  if (typeof w === "string" && w.trim().endsWith("%")) {
-    return { ...childStyle, width: actualWidth };
-  }
-  if (batchWidth && !storeWidth) return { ...childStyle, width: batchWidth };
-  return childStyle;
 }

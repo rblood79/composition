@@ -11,6 +11,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Canvas 크기 속성 공통화와 측정 최적화] - 2026-09-26
+
+### Changed
+
+- **`width`·`height`·양 축의 `min/max` 선언을 `sizeProperties`로 공통화.** 단위 파싱, intrinsic 키워드 보존, 내용 변경에 따른 재측정 판정과 엔진 전달 키를 공유한다. 폭 intrinsic 계산과 폭에 따른 높이 측정은 축별 계약을 유지한다.
+
+### Fixed
+
+- **`min-height/max-height`의 intrinsic 키워드가 무시되던 문제.** 고정 높이에도 독립된 내용 높이 제약을 적용하고, Flex/Grid 분배로 폭이 바뀐 컨테이너는 확정 폭에서 높이를 측정한다. 저작 크기 선언은 보존한다.
+- **명시 폭에 min/max 폭 제약을 적용한 Text의 자동 높이가 원래 폭에 머물던 문제.** 높이 재측정용 임시 스타일은 항상 엔진의 확정 폭을 사용한다. 실제 Builder에서 300px 폭을 max-width 100px로 제한한 긴 글자의 높이가 48px에 머물던 조건을 재현했고, 수정 후 144px로 일치했다. Max W 200px 변경 시 200×72px, Undo 시 100×144px 복원과 숫자 Min H·Max H 적용도 확인했다.
+
+### Performance
+
+- **박스 여백 조회의 내용 측정과 후처리 임시 객체 생성을 제거.** 고정 폭·자동 높이 Text의 줄바꿈 측정은 2회에서 1회로 감소하고, 고정 크기 Text는 내용 크기를 재측정하지 않고 baseline만 공급한다. 전체 레이아웃 시간 개선율은 별도로 측정하지 않았다.
+
+### Tests
+
+- 엔진 인접 Vitest 563건, Rust 439건, Chromium Canvas·DOM 대조 1,563건 통과 (기존 skip 2건). `codex:preflight`와 TypeScript 검사 통과.
+
 ## [데이터 GridList 카드 = 항목 origin 자식] - 2026-09-26
 
 ### Added

@@ -119,6 +119,17 @@ import {
   parseBorderShorthand,
 } from "./cssValueParser";
 import type { CSSValueContext, CSSVariableScope } from "./cssValueParser";
+import {
+  applyEngineSizeProperties,
+  hasIntrinsicSizeConstraint,
+  isAutoOrIntrinsicSize,
+  isEngineIntrinsicKeyword,
+  parseCSSPropWithContext,
+} from "./sizeProperties";
+export {
+  isEngineIntrinsicKeyword,
+  parseCSSPropWithContext,
+} from "./sizeProperties";
 import { ENGINE_MEASURE_SCALAR_KEYS } from "../../wasm-bindings/layoutTypes";
 import { resolveStyle, getRootComputedStyle } from "./cssResolver";
 import type { ComputedStyle } from "./cssResolver";
@@ -2049,7 +2060,7 @@ export function calculateContentWidth(
           getChildElements,
         );
         // border-box: enrichWithIntrinsicSize 와 동일하게 padding + border 추가
-        const childBox = parseBoxModel(child, 0, -1);
+        const childBox = resolveLeafBoxEdges(child, 0);
         const bw =
           contentW +
           childBox.padding.left +
@@ -2157,7 +2168,7 @@ export function calculateContentWidth(
           ? explicitW
           : calculateContentWidth(child, grandChildren, getChildElements);
       // 자식 border-box (Icon/Text 는 padding/border 0 이지만 generic 하게 가산)
-      const childBox = parseBoxModel(child, 0, -1);
+      const childBox = resolveLeafBoxEdges(child, 0);
       const childBoxW =
         childContent +
         childBox.padding.left +
@@ -2203,7 +2214,7 @@ export function calculateContentWidth(
         );
         // border-box 산출: enrichWithIntrinsicSize와 동일하게 padding + border 추가
         // (Tag, Badge 등 INTRINSIC_MEASURE_TAGS의 spec padding/border가 포함되어야 함)
-        const childBox = parseBoxModel(child, 0, -1);
+        const childBox = resolveLeafBoxEdges(child, 0);
         return (
           contentW +
           childBox.padding.left +
@@ -3618,7 +3629,7 @@ export function calculateContentHeight(
         if (childExplicitH !== undefined && childIsBorderBox) {
           return childExplicitH;
         }
-        const childBox = parseBoxModel(child, 0, -1);
+        const childBox = resolveLeafBoxEdges(child, 0);
         return (
           contentH +
           childBox.padding.top +
@@ -4269,7 +4280,7 @@ export function calculateContentHeight(
           getChildElements,
           computedStyle,
         );
-        const childBox = parseBoxModel(child, 0, -1);
+        const childBox = resolveLeafBoxEdges(child, 0);
         const childStyle = child.props?.style as
           Record<string, unknown> | undefined;
         const childExplicitH = parseNumericValue(childStyle?.height);
@@ -4369,7 +4380,7 @@ export function calculateContentHeight(
           panelGrandChildren,
           getChildElements,
         );
-        const panelBox = parseBoxModel(activePanel, 0, -1);
+        const panelBox = resolveLeafBoxEdges(activePanel, 0);
         const panelBorderBox =
           panelHeight +
           panelBox.padding.top +
@@ -4426,7 +4437,7 @@ export function calculateContentHeight(
           return childExplicitH;
         }
         // content-box: padding + border 추가
-        const childBox = parseBoxModel(child, 0, -1);
+        const childBox = resolveLeafBoxEdges(child, 0);
         return (
           contentH +
           childBox.padding.top +
@@ -4471,7 +4482,7 @@ export function calculateContentHeight(
             grandChildren,
             getChildElements,
           );
-          const childBox = parseBoxModel(child, 0, -1);
+          const childBox = resolveLeafBoxEdges(child, 0);
           const borderBoxH =
             contentH +
             childBox.padding.top +
@@ -4510,7 +4521,7 @@ export function calculateContentHeight(
         if (childExplicitH !== undefined && childIsBorderBox) {
           return childExplicitH;
         }
-        const childBox = parseBoxModel(child, 0, -1);
+        const childBox = resolveLeafBoxEdges(child, 0);
         return (
           contentH +
           childBox.padding.top +
@@ -5171,23 +5182,6 @@ export const TEXT_LEAF_TAGS = new Set([
   "progressbarvalue",
 ]);
 
-/**
- * 엔진이 문자열 그대로 해석하는 intrinsic 크기 키워드 (CSS-SIZING-3 §5) — 숫자 파서는 undefined 로
- * 두고 `applyCommonEngineStyle` 이 복원하며, 2-pass 는 이 키워드를 지우지 않는다.
- */
-const ENGINE_INTRINSIC_KEYWORDS: ReadonlySet<string> = new Set([
-  "fit-content",
-  "min-content",
-  "max-content",
-]);
-
-export function isEngineIntrinsicKeyword(value: unknown): value is string {
-  return typeof value === "string" && ENGINE_INTRINSIC_KEYWORDS.has(value);
-}
-
-/** intrinsic 크기 키워드 — height/width에서 enrichWithIntrinsicSize가 개입해야 하는 값 */
-const INTRINSIC_SIZE_KEYWORDS = new Set([...ENGINE_INTRINSIC_KEYWORDS, "auto"]);
-
 /** replaced element 태그 — 자연 치수(natural size)를 가져야 하는 요소 */
 const IMAGE_INTRINSIC_TAGS = componentTypeSet("image", { lowercase: true });
 
@@ -5223,7 +5217,7 @@ const SPEC_SHAPES_INPUT_TAGS = new Set([
  * Button, Badge 등은 텍스트/인디케이터가 props에만 있어
  * 엔진이 콘텐츠 크기를 계산할 수 없다.
  *
- * parseBoxModel()의 contentWidth/contentHeight + spec padding/border를
+ * 축별 내용 측정값과 resolveLeafBoxEdges()의 padding/border를
  * 사용하여 border-box 크기를 CSS width/height로 주입한다.
  *
  * @param computedStyle - 상속 적용 후 해당 요소의 computed style (fontSize 등 활용)
@@ -5369,8 +5363,11 @@ export function enrichWithIntrinsicSize(
   // 부모 높이가 definite면 엔진이 percentage를 정상 해소하므로 이 스칼라는 소비되지 않는다.
   const percentageHeightMayNeedIntrinsicFallback =
     typeof rawHeight === "string" && rawHeight.includes("%");
-  const needsHeight =
-    !rawHeight || INTRINSIC_SIZE_KEYWORDS.has(rawHeight as string);
+  const hasIntrinsicHeightConstraint = hasIntrinsicSizeConstraint(
+    style,
+    "height",
+  );
+  const needsHeight = isAutoOrIntrinsicSize(rawHeight);
   // **자식 있는 비-측정 컨테이너의 키워드·`%` 높이는 엔진 소유** (2026-09-19): TS 의
   //   `calculateContentHeight` 는 근사다 (block 안에 block-level Button 2 를 30 으로 — Chrome 60).
   //   `height: fit-content` frame 은 1-pass 가 근사 px 를 넣고 2-pass 가 지워 (폭 불일치 후보만)
@@ -5391,7 +5388,9 @@ export function enrichWithIntrinsicSize(
           ?._expandedTemplateRows === true));
   const needsHeightMeasurement =
     !engineOwnsContainerHeight &&
-    (needsHeight || percentageHeightMayNeedIntrinsicFallback);
+    (needsHeight ||
+      percentageHeightMayNeedIntrinsicFallback ||
+      hasIntrinsicHeightConstraint);
 
   // 기본 Button의 fit-content와 Fill이 명시한 auto를 구별한다.
   // inline 부재를 auto로 취급하면 Column의 Height Fill이 Width까지 stretch된다.
@@ -5401,17 +5400,11 @@ export function enrichWithIntrinsicSize(
   const rawWidth = style?.width ?? declaredWidth;
   // C1: 모든 요소에서 intrinsic width keyword(fit-content/min-content/max-content) 처리
   // INLINE_BLOCK 태그의 width:auto 자동 주입은 기존 동작 유지
-  const hasExplicitIntrinsicWidthKeyword =
-    typeof rawWidth === "string" &&
-    rawWidth !== "auto" &&
-    INTRINSIC_SIZE_KEYWORDS.has(rawWidth);
-  const hasIntrinsicWidthConstraint =
-    style?.minWidth === "min-content" ||
-    style?.minWidth === "max-content" ||
-    style?.minWidth === "fit-content" ||
-    style?.maxWidth === "min-content" ||
-    style?.maxWidth === "max-content" ||
-    style?.maxWidth === "fit-content";
+  const hasExplicitIntrinsicWidthKeyword = isEngineIntrinsicKeyword(rawWidth);
+  const hasIntrinsicWidthConstraint = hasIntrinsicSizeConstraint(
+    style,
+    "width",
+  );
   // 2026-09-24 사용자 신고 (Disclosure 크기) — DisclosureContent 는 전용 높이 분기 때문에 TEXT_LEAF 밖이지만
   //   (위 1.53), 자식 없는 본문은 글자가 내용이다. 스칼라가 없으면 shrink-to-fit 부모 (flex column
   //   align-items:flex-start 안 Disclosure) 가 본문 폭을 몰라 헤더 폭으로만 접혔다 (DOM 168 · Canvas 128).
@@ -5435,8 +5428,7 @@ export function enrichWithIntrinsicSize(
     (scalarTextLeaf && hasIntrinsicWidthConstraint) ||
     // ADR-923 Phase 4 (G5): 측정 capability 는 INTRINSIC_MEASURE_TAGS (명시 목록) 가 원천 —
     //   INTRINSIC_MEASURE_TAGS 의 display 역할과 분리. 멤버십 동일 → 출력 diff 0 (분리 전 baseline 게이트).
-    (INTRINSIC_MEASURE_TAGS.has(type) &&
-      (!rawWidth || INTRINSIC_SIZE_KEYWORDS.has(rawWidth as string))) ||
+    (INTRINSIC_MEASURE_TAGS.has(type) && isAutoOrIntrinsicSize(rawWidth)) ||
     // **자식 없는 측정 leaf 의 `%` 폭도 대상** (2026-09-24 사용자 신고 — Disclosure 크기): 텍스트
     //   leaf 와 같은 사유 (아래 TEXT_LEAF 주석 §5.1 순환 백분율). DisclosureHeader (`width:100%`,
     //   chevron + 제목을 spec 이 그려 layout 자식 0) 가 자동 폭 부모 (그룹 안 Disclosure · absolute
@@ -5446,8 +5438,7 @@ export function enrichWithIntrinsicSize(
     // 정원형 leaf(ProgressCircle/Avatar): width = diameter = catalog sizes.height.
     //   progresscircle 은 INTRINSIC_MEASURE_TAGS 로도 커버되지만 avatar 는 IMAGE_INTRINSIC_TAGS 소속이라
     //   아래 조건(문자열 키워드 한정)에 안 걸린다 — width 미주입 시 layout 0 → 명시 분기 필요.
-    (CIRCLE_LEAF_TAGS.has(type) &&
-      (!rawWidth || INTRINSIC_SIZE_KEYWORDS.has(rawWidth as string))) ||
+    (CIRCLE_LEAF_TAGS.has(type) && isAutoOrIntrinsicSize(rawWidth)) ||
     // "auto" 명시 포함 (ADR-165): inline width:auto 는 CSS 에서 generated base
     //   width:100%(B22) 를 이기고 intrinsic sizing 으로 돌아간다 — 스칼라 공급이
     //   없으면 엔진 leaf w=0 붕괴 (미공급 시 기존에도 동일 붕괴 경로).
@@ -5476,13 +5467,11 @@ export function enrichWithIntrinsicSize(
     //   Chrome 82.4 / 엔진 **0**. stretch 부모에서는 여전히 무해 (block.rs AUTO 분기는
     //   content_w 를 안 읽는다). 부모 종류 게이트는 여기서만 풀고 `isFlexChild` 자체는 그대로.
     (scalarTextLeaf &&
-      (!rawWidth ||
-        rawWidth === "auto" ||
-        (typeof rawWidth === "string" && rawWidth.trim().endsWith("%")) ||
-        INTRINSIC_SIZE_KEYWORDS.has(rawWidth as string))) ||
+      (isAutoOrIntrinsicSize(rawWidth) ||
+        (typeof rawWidth === "string" && rawWidth.trim().endsWith("%")))) ||
     (IMAGE_INTRINSIC_TAGS.has(type) &&
       typeof rawWidth === "string" &&
-      INTRINSIC_SIZE_KEYWORDS.has(rawWidth));
+      isAutoOrIntrinsicSize(rawWidth));
 
   // ADR-923 P3 r10h1 — 텍스트 leaf 의 `leafBaseline` 은 엔진의 **line box 존재 신호**
   //   (§8.3.1 self-collapsing 제외) 이기도 하다. width/height 가 둘 다 명시돼 크기 주입이
@@ -5507,7 +5496,9 @@ export function enrichWithIntrinsicSize(
   if (!needsHeightMeasurement && !needsWidth && !textLeafHasLineBox)
     return element;
 
-  const box = parseBoxModel(element, availableWidth, availableHeight);
+  const box = resolveLeafBoxEdges(element, availableWidth);
+  // 박스 edge를 읽기 위해 폭/높이 내용을 먼저 측정하지 않는다. 일반 fallback만 지연 계산한다.
+  let fallbackContentHeight: number | undefined;
 
   // min-content / max-content 너비 직접 계산
   let resolvedIntrinsicWidth: number | undefined;
@@ -5555,7 +5546,6 @@ export function enrichWithIntrinsicSize(
   // r10h1: 텍스트 leaf 는 height:0 이라 contentHeight 0 이어도 line box 신호(leafBaseline)
   //   공급을 위해 통과 (위 early return 과 같은 사유).
   if (
-    box.contentHeight <= 0 &&
     !needsWidth &&
     !textLeafHasLineBox &&
     !SPEC_SHAPES_INPUT_TAGS.has(type) &&
@@ -5563,7 +5553,14 @@ export function enrichWithIntrinsicSize(
     !IMAGE_INTRINSIC_TAGS.has(type) &&
     !(childElements && childElements.length > 0)
   ) {
-    return element;
+    const parsedWidth = parseSize(style?.width, availableWidth);
+    fallbackContentHeight = calculateContentHeight(
+      element,
+      parsedWidth !== undefined && parsedWidth !== FIT_CONTENT
+        ? parsedWidth
+        : availableWidth,
+    );
+    if (fallbackContentHeight <= 0) return element;
   }
 
   // 항상 border-box 값을 주입:
@@ -5579,10 +5576,19 @@ export function enrichWithIntrinsicSize(
   // Height 주입
   // childElements가 있으면 재계산 (CheckboxGroup 등 자식 기반 높이 필요)
   // Image: 자식은 없지만 자연 치수가 필요하므로 calculateContentHeight 호출
-  const childResolvedHeight =
-    childElements && childElements.length > 0
+  // intrinsic 높이 제약은 authored height와 독립된 내용 높이를 요구한다.
+  const heightMeasureElement =
+    hasIntrinsicHeightConstraint && rawHeight != null
+      ? ({
+          ...element,
+          props: { ...element.props, style: { ...style, height: undefined } },
+        } as CanvasLayoutNode)
+      : element;
+  const childResolvedHeight = !needsHeightMeasurement
+    ? 0
+    : childElements && childElements.length > 0
       ? calculateContentHeight(
-          element,
+          heightMeasureElement,
           availableWidth,
           childElements,
           getChildElements,
@@ -5594,7 +5600,7 @@ export function enrichWithIntrinsicSize(
           TEXT_LEAF_TAGS.has(type) ||
           type === "disclosurecontent"
         ? calculateContentHeight(
-            element,
+            heightMeasureElement,
             // INLINE_BLOCK 태그에 명시적 고정 너비(px)가 있으면 자신의 border-box 너비로
             // 텍스트 줄바꿈을 계산해야 함. 부모의 availableWidth를 사용하면 버튼 크기를
             // 초과한 너비로 측정되어 줄바꿈이 발생하지 않고 높이가 늘어나지 않는 버그 발생.
@@ -5615,7 +5621,8 @@ export function enrichWithIntrinsicSize(
             getChildElements,
             _computedStyle,
           )
-        : box.contentHeight;
+        : (fallbackContentHeight ??
+          calculateContentHeight(heightMeasureElement, availableWidth));
   // ADR-923 r20 sweep — button 가족은 content 0 (빈 글자) 도 주입 대상: 엔진은 catalog padding/border
   //   (sizeConfig 경유 parseBoxModel) 를 모르므로 미주입이면 0 이 된다. Chrome 은 padding + border 상자.
   if (
@@ -5691,7 +5698,8 @@ export function enrichWithIntrinsicSize(
       !CIRCLE_LEAF_TAGS.has(type);
     if (
       (measuredAutoLeaf && (rawHeight == null || rawHeight === "auto")) ||
-      percentHeightScalarLeaf
+      percentHeightScalarLeaf ||
+      hasIntrinsicHeightConstraint
     ) {
       injectedStyle.contentHeight = Math.max(
         0,
@@ -5728,7 +5736,7 @@ export function enrichWithIntrinsicSize(
   // Width 주입 (inline-block 태그의 fit-content / min-content / max-content 에뮬레이션)
   // childElements가 있으면 재계산 (ToggleButtonGroup 등 자식이 CanvasLayoutNode로 저장된 경우)
   // childElements가 없어도 INTRINSIC_MEASURE_TAGS(Tag, Badge 등)는 텍스트 기반 너비 계산 필요:
-  // box.contentWidth는 availableWidth 기반이므로 fit-content 시 부모 전체 너비를 차지하는 버그 발생
+  // fit-content 폭은 부모 availableWidth 대신 내용의 intrinsic 폭에서 구한다.
   const intrinsicConstraintMeasureElement =
     scalarTextLeaf &&
     hasIntrinsicWidthConstraint &&
@@ -5741,8 +5749,9 @@ export function enrichWithIntrinsicSize(
           },
         } as CanvasLayoutNode)
       : element;
-  const childResolvedWidth =
-    childElements && childElements.length > 0
+  const childResolvedWidth = !needsWidth
+    ? 0
+    : childElements && childElements.length > 0
       ? calculateContentWidth(
           element,
           childElements,
@@ -5759,7 +5768,7 @@ export function enrichWithIntrinsicSize(
             getChildElements,
             _computedStyle,
           )
-        : box.contentWidth;
+        : calculateContentWidth(element);
   const baseContentWidth = resolvedIntrinsicWidth ?? childResolvedWidth;
   // ADR-165: 순수 텍스트 leaf 는 폭 주입 대신 **측정 스칼라 2종**(content-box, ceil)을
   //   공급한다 — 엔진이 CSS-SIZING-3 §5 공식(fit/min/max-content clamp)과 §4.5 floor 의
@@ -6247,40 +6256,6 @@ export function calculateMaxContentWidth(
 // ─── 엔진 공용 유틸리티 ─────────────────────────────────────────
 
 /**
- * RC-3: CSS prop → number | string 파서 (단위 정규화 적용)
- *
- * rem, em, vh, vw, calc() 등을 resolveCSSSizeValue()로 해석.
- * % 값은 엔진 네이티브 % 처리를 위해 문자열 그대로 반환.
- *
- * flexStyleAdapter, gridStyleAdapter 공용
- */
-export function parseCSSPropWithContext(
-  value: unknown,
-  ctx: CSSValueContext = {},
-): number | string | undefined {
-  if (value === undefined || value === null || value === "" || value === "auto")
-    return undefined;
-  if (typeof value === "number") return value;
-  if (typeof value === "string") {
-    // % 값은 엔진이 네이티브로 처리
-    if (value.endsWith("%")) return value;
-    // intrinsic sizing 키워드는 본 파서에선 undefined — 숫자 파서 계약 유지.
-    //   ADR-165: 키워드의 엔진 통과는 applyCommonEngineStyle 의 문자열 복원 분기가
-    //   담당한다 (텍스트 leaf 는 enrichment 가 스칼라 contentMin/MaxWidth 동반 공급,
-    //   컨테이너는 enrichment numeric 선해석이 잔존해 키워드가 남는 경우만 통과).
-    //   구 전역 drop 사유(2-pass 상호작용, 2026-07-13)는 스칼라 계약 도입으로 해소.
-    if (isEngineIntrinsicKeyword(value)) return undefined;
-    // resolveCSSSizeValue: rem, em, vh, vw, calc(), clamp(), min(), max() 해석
-    const px = resolveCSSSizeValue(value, ctx);
-    if (px !== undefined && px >= 0) return px;
-    // fallback: parseFloat (순수 숫자 문자열)
-    const num = parseFloat(value);
-    if (!isNaN(num)) return num;
-  }
-  return undefined;
-}
-
-/**
  * 엔진 공통 스타일 적용: Size + Min/Max + Padding + Border + Gap
  *
  * flexStyleAdapter과 gridStyleAdapter 양쪽에서 동일한 Box model + Gap 변환을
@@ -6294,27 +6269,7 @@ export function applyCommonEngineStyle(
   ctx: CSSValueContext,
   computedFontSize?: number,
 ): void {
-  // Size — parseCSSPropWithContext가 number|string|undefined 반환
-  // normalizeStyle.dimToString()이 JSON 직렬화 시 number → "Npx" 변환
-  const widthVal = parseCSSPropWithContext(style.width, ctx);
-  const heightVal = parseCSSPropWithContext(style.height, ctx);
-  if (widthVal !== undefined) result.width = widthVal;
-  if (heightVal !== undefined) result.height = heightVal;
-
-  // ADR-165: 폭 intrinsic 키워드(fit/min/max-content)는 엔진 센티넬로 통과.
-  //   parseCSSPropWithContext 는 키워드를 drop 하므로(선해석 전제 시절 계약) 여기서
-  //   문자열 그대로 복원 — 엔진이 스칼라(contentMin/MaxWidth) + CSS-SIZING-3 §5
-  //   공식으로 해석한다. 컨테이너는 enrichment 가 px 로 선해석해 키워드가 남지
-  //   않으므로(잔존 경로) 실제 통과 대상은 텍스트 leaf + 미해석 컨테이너뿐.
-  if (widthVal === undefined && isEngineIntrinsicKeyword(style.width)) {
-    result.width = style.width;
-  }
-  // 높이 키워드도 같은 통과 (2026-09-19): 엔진은 cross 축 CONTENT 센티넬 (`resolve_cross_dimension_opt`
-  //   — stretch 안 함) · block 축 content · grid `size_is_intrinsic_keyword` 로 해석한다. 종전엔 drop 되어
-  //   `height: fit-content` 가 auto 와 같아져 flex 부모에서 stretch 됐다.
-  if (heightVal === undefined && isEngineIntrinsicKeyword(style.height)) {
-    result.height = style.height;
-  }
+  applyEngineSizeProperties(result, style, ctx);
 
   // ADR-165: 측정 스칼라 공급 채널 (enrichWithIntrinsicSize 가 텍스트 leaf 에 주입).
   //   (contentMin/MaxWidth ADR-165 · contentMinHeight ADR-204 가상화 collection owner ·
@@ -6344,20 +6299,6 @@ export function applyCommonEngineStyle(
     const lineHeightPx = parseLineHeight(style, fs ?? computedFontSize);
     if (lineHeightPx !== undefined) result.lineHeight = lineHeightPx;
   }
-
-  // Min/Max size
-  const minW = parseCSSPropWithContext(style.minWidth, ctx);
-  const minH = parseCSSPropWithContext(style.minHeight, ctx);
-  const maxW = parseCSSPropWithContext(style.maxWidth, ctx);
-  const maxH = parseCSSPropWithContext(style.maxHeight, ctx);
-  if (minW !== undefined) result.minWidth = minW;
-  else if (isEngineIntrinsicKeyword(style.minWidth))
-    result.minWidth = style.minWidth;
-  if (minH !== undefined) result.minHeight = minH;
-  if (maxW !== undefined) result.maxWidth = maxW;
-  else if (isEngineIntrinsicKeyword(style.maxWidth))
-    result.maxWidth = style.maxWidth;
-  if (maxH !== undefined) result.maxHeight = maxH;
 
   // Padding — px 는 숫자, `%` 는 문자열 그대로 (엔진이 containing block 폭으로 푼다 — resolveEngineBoxEdges)
   const padding = resolveEngineBoxEdges(style, "padding");

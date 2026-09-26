@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { SIZE_STYLE_KEYS } from "./sizeProperties";
 
 describe("fullTreeLayout shared filtered children key contract", () => {
   it("uses the same page/layout/id fallback key for filtered children as layout maps", async () => {
@@ -119,6 +120,8 @@ describe("fullTreeLayout grid dimension-change full rebuild contract", () => {
         .map((line) => line.match(/^"([^"]+)",?$/)?.[1])
         .filter((k): k is string => Boolean(k)),
     );
+    expect(body).toMatch(/^\s*\.\.\.SIZE_STYLE_KEYS,/m);
+    for (const key of SIZE_STYLE_KEYS) activeKeys.add(key);
 
     for (const key of DIMENSION_KEYS) {
       expect(activeKeys).toContain(key);
@@ -159,9 +162,8 @@ describe("fullTreeLayout grid dimension-change full rebuild contract", () => {
       /JSON\.stringify\(prevParsed\[k\]\) !==\s*JSON\.stringify\(node\.style\[k\]\)/,
     );
     // engineStyleToRecord 가 width/height/min/max 를 camelCase 단일 키로 emit (비교 키와 1:1)
-    expect(source).toMatch(/result\.width =/);
-    expect(source).toMatch(/result\.minWidth =/);
-    expect(source).toMatch(/result\.maxHeight =/);
+    expect(source).toMatch(/for \(const key of SIZE_STYLE_KEYS\)/);
+    expect(source).toContain("result[key] = dim(style[key])");
   });
 });
 
