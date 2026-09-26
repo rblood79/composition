@@ -302,7 +302,7 @@ async function main() {
     await page.locator(".header-menu-button").click();
     const failedDownload = await Promise.race([
       page.waitForEvent("download", { timeout: 4000 }).then(() => true).catch(() => false),
-      page.locator('.header-menu-item[data-key="export"]').click().then(() => new Promise((r) => setTimeout(() => r(false), 4500))),
+      page.locator('.header-menu-item[data-key="export-json"]').click().then(() => new Promise((r) => setTimeout(() => r(false), 4500))),
     ]);
     record("S5a 없는 자산 참조가 있으면 내보내기 실패 (HC7)", failedDownload === false, { downloaded: failedDownload });
     await page.evaluate(async () => {
@@ -313,7 +313,7 @@ async function main() {
     await page.locator(".header-menu-button").click();
     const [download] = await Promise.all([
       page.waitForEvent("download"),
-      page.locator('.header-menu-item[data-key="export"]').click(),
+      page.locator('.header-menu-item[data-key="export-json"]').click(),
     ]);
     const exportPath = resolve(out, "export-v1.json");
     await download.saveAs(exportPath);

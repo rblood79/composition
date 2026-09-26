@@ -8,7 +8,11 @@
  * - store 가 없으면 (`assets` 미생성 = 구버전 DB) `null` — 호출자는 "미해석" 으로 처리한다.
  * - 다른 탭이 업그레이드하면 즉시 닫는다 (짧은 트랜잭션만 쓰므로 다음 호출이 다시 연다).
  */
-import type { AssetGcRecord, AssetRecord } from "./assetSchema";
+import type {
+  AssetGcRecord,
+  AssetRecord,
+  StoredAssetRecord,
+} from "./assetSchema";
 import { ASSET_DB_NAME, ASSET_GC_STORE, ASSETS_STORE } from "./assetSchema";
 
 let dbPromise: Promise<IDBDatabase | null> | null = null;
@@ -86,13 +90,26 @@ export async function readAssetRecords(
   const store = tx.objectStore(ASSETS_STORE);
   const records = await Promise.all(
     list.map((hash) =>
-      requestResult(store.get(hash) as IDBRequest<AssetRecord | undefined>),
+      requestResult(
+        store.get(hash) as IDBRequest<StoredAssetRecord | undefined>,
+      ),
     ),
   );
   records.forEach((record) => {
-    if (record?.blob) result.set(record.hash, record);
+    const normalized = record ? toAssetRecord(record) : null;
+    if (normalized) result.set(normalized.hash, normalized);
   });
   return result;
+}
+
+/** 저장 모양 → 읽은 모양 (ArrayBuffer → Blob, 옛 Blob 레코드는 그대로) */
+export function toAssetRecord(record: StoredAssetRecord): AssetRecord | null {
+  const blob =
+    record.blob ??
+    (record.data ? new Blob([record.data], { type: record.mime }) : null);
+  if (!blob) return null;
+  const { data: _data, ...rest } = record;
+  return { ...rest, blob };
 }
 
 export async function readAllAssetGcRecords(): Promise<AssetGcRecord[]> {

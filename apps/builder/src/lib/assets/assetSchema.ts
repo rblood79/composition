@@ -10,7 +10,17 @@ export const ASSET_DB_NAME = "composition";
 export const ASSETS_STORE = "assets";
 export const ASSET_GC_STORE = "asset_gc";
 
-/** 원본 바이트 그대로 (재인코딩 없음). keyPath `hash`. */
+/**
+ * IndexedDB 에 저장하는 모양 — 바이트는 ArrayBuffer (`data`). Blob 은 WebKit 비공개 (임시) 저장소가
+ * IndexedDB 에 넣기를 거부해 (Playwright WebKit 26.5 실측 — ArrayBuffer 는 정상) Safari 에서 데이터를
+ * 잃는 경로가 된다 (HC5). `blob` 은 초기 (2026-09-26 Phase 1~6) 레코드 호환 읽기용.
+ */
+export interface StoredAssetRecord extends Omit<AssetRecord, "blob"> {
+  data?: ArrayBuffer;
+  blob?: Blob;
+}
+
+/** 읽은 뒤의 모양 — 바이트를 Blob 으로 준다. keyPath `hash`. 원본 바이트 그대로 (재인코딩 없음). */
 export interface AssetRecord {
   /** 내용 SHA-256 hex */
   hash: string;

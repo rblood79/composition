@@ -167,4 +167,36 @@ describe("assetStore (ADR-235 Phase 1)", () => {
       inlineAssetRefs({ document: { src: missing } }),
     ).rejects.toBeInstanceOf(AssetMissingError);
   });
+
+  it("바이트는 ArrayBuffer 로 저장하고 (WebKit 비공개 저장소 호환) 옛 Blob 레코드도 읽는다", async () => {
+    const stored = await storeAssetBytes({ bytes: PNG, mime: "image/png" });
+    const db = await openAssetDb();
+    const raw = await new Promise<Record<string, unknown>>((resolve) => {
+      const req = db!
+        .transaction(ASSETS_STORE)
+        .objectStore(ASSETS_STORE)
+        .get(stored.hash);
+      req.onsuccess = () => resolve(req.result);
+    });
+    expect(raw.data).toBeInstanceOf(ArrayBuffer);
+    expect(raw.blob).toBeUndefined();
+    // 옛 모양 (Blob) 레코드
+    const legacyHash = "9".repeat(64);
+    await new Promise<void>((resolve) => {
+      const tx = db!.transaction(ASSETS_STORE, "readwrite");
+      tx.objectStore(ASSETS_STORE).put({
+        hash: legacyHash,
+        mime: "image/png",
+        bytes: 3,
+        ext: "png",
+        blob: new Blob([new Uint8Array([1, 2, 3])], { type: "image/png" }),
+        createdAt: 0,
+      });
+      tx.oncomplete = () => resolve();
+    });
+    const legacy = await readAssetBlob(assetRefFromHash(legacyHash));
+    expect(new Uint8Array(await legacy!.arrayBuffer())).toEqual(
+      new Uint8Array([1, 2, 3]),
+    );
+  });
 });

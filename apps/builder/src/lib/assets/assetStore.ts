@@ -13,9 +13,14 @@ import {
   refFromHash as assetRefFromHash,
   sha256Hex,
 } from "@composition/shared/assets";
-import type { AssetGcRecord, AssetRecord } from "./assetSchema";
+import type { AssetGcRecord, StoredAssetRecord } from "./assetSchema";
 import { ASSET_GC_STORE, ASSETS_STORE } from "./assetSchema";
-import { openAssetDb, requestResult, transactionDone } from "./assetDb";
+import {
+  openAssetDb,
+  requestResult,
+  toAssetRecord,
+  transactionDone,
+} from "./assetDb";
 
 /** 이 탭 (세션) 의 pin 소유자 id */
 export const ASSET_SESSION_ID: string =
@@ -117,17 +122,19 @@ export async function storeAssetBytes(
   const tx = db.transaction([ASSETS_STORE, ASSET_GC_STORE], "readwrite");
   const assets = tx.objectStore(ASSETS_STORE);
   const gc = tx.objectStore(ASSET_GC_STORE);
-  const existing = await requestResult(
-    assets.get(hash) as IDBRequest<AssetRecord | undefined>,
+  const stored = await requestResult(
+    assets.get(hash) as IDBRequest<StoredAssetRecord | undefined>,
   );
+  const existing = stored ? toAssetRecord(stored) : null;
   if (!existing) {
-    const record: AssetRecord = {
+    // 바이트는 ArrayBuffer 로 저장한다 (WebKit 비공개 저장소는 Blob 을 거부 — assetSchema 주석)
+    const record: StoredAssetRecord = {
       hash,
       mime,
       bytes: input.bytes.byteLength,
       ext,
       ...(input.name ? { name: input.name } : {}),
-      blob,
+      data: input.bytes.slice().buffer as ArrayBuffer,
       createdAt: Date.now(),
     };
     assets.put(record);
@@ -193,8 +200,8 @@ export async function readAssetBlob(ref: string): Promise<Blob | null> {
   const tx = db.transaction(ASSETS_STORE, "readonly");
   const record = await requestResult(
     tx.objectStore(ASSETS_STORE).get(hash) as IDBRequest<
-      AssetRecord | undefined
+      StoredAssetRecord | undefined
     >,
   );
-  return record?.blob ?? null;
+  return record ? (toAssetRecord(record)?.blob ?? null) : null;
 }
