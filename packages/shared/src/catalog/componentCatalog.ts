@@ -1335,6 +1335,17 @@ const NESTED_REUSABLE_ORIGIN_TYPE_SET: ReadonlySet<string> = new Set(
   NESTED_REUSABLE_ORIGIN_TYPES,
 );
 
+/**
+ * 기존 문서의 ref 해소용으로만 남긴 reusable origin — 등록 (catalog entry · origin id) 은 유지하되 신규
+ * 삽입 대상이 아니다 (reusable 도 placeable:false). Modal 은 2026-09-23 `922f11583` 에서 팔레트 ·
+ * seed 에서 빠졌다. 동명 primitive/reusable 의 "placeable 은 reusable 한쪽" 단일성 규칙의 유일한 예외다.
+ */
+export const LEGACY_ONLY_REUSABLE_ORIGIN_TYPES: readonly string[] = ["Modal"];
+
+const LEGACY_ONLY_REUSABLE_ORIGIN_TYPE_SET: ReadonlySet<string> = new Set(
+  LEGACY_ONLY_REUSABLE_ORIGIN_TYPES,
+);
+
 /** ADR-228: type → reusableId 규약 (R③ `component-<kebab>`; 대문자 없는 소문자 접합). */
 export function catalogReusableOriginId(type: string): string {
   return `component-${type.toLowerCase()}`;
@@ -1364,26 +1375,26 @@ const CATALOG_DERIVED_REUSABLE_ENTRIES: ComponentCatalogEntry[] = [
   ...PALETTE_REUSABLE_ORIGIN_TYPES,
   ...NESTED_REUSABLE_ORIGIN_TYPES,
 ].map((type) => {
-    const primitive = PRIMITIVE_ENTRIES.find(
-      (entry) => entry.type === type && entry.kind === "primitive",
+  const primitive = PRIMITIVE_ENTRIES.find(
+    (entry) => entry.type === type && entry.kind === "primitive",
+  );
+  if (!primitive) {
+    throw new Error(
+      `[componentCatalog] ADR-228 PALETTE_REUSABLE_ORIGIN_TYPES "${type}" 의 primitive entry 부재`,
     );
-    if (!primitive) {
-      throw new Error(
-        `[componentCatalog] ADR-228 PALETTE_REUSABLE_ORIGIN_TYPES "${type}" 의 primitive entry 부재`,
-      );
-    }
-    const { placeable: _placeable, ...panel } = primitive.panel;
-    const entry = reusableEntry(
-      type,
-      primitive.family,
-      catalogReusableOriginId(type),
-      panel,
-    );
-    // 기존 문서의 ref 해소용 등록은 유지하되 신규 삽입 대상에서는 제외한다.
-    return type === "Modal"
-      ? { ...entry, panel: { ...entry.panel, placeable: false } }
-      : entry;
-  });
+  }
+  const { placeable: _placeable, ...panel } = primitive.panel;
+  const entry = reusableEntry(
+    type,
+    primitive.family,
+    catalogReusableOriginId(type),
+    panel,
+  );
+  // 기존 문서의 ref 해소용 등록은 유지하되 신규 삽입 대상에서는 제외한다.
+  return LEGACY_ONLY_REUSABLE_ORIGIN_TYPE_SET.has(type)
+    ? { ...entry, panel: { ...entry.panel, placeable: false } }
+    : entry;
+});
 
 export const componentCatalog: readonly ComponentCatalogEntry[] = [
   // ADR-228: 동명 reusable 이 palette 정본인 primitive 는 placeable:false (HC#3).

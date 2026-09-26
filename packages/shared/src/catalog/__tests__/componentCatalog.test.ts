@@ -5,6 +5,7 @@ import {
   componentCatalog,
   getCatalogCutoverTypes,
   getCatalogEntry,
+  LEGACY_ONLY_REUSABLE_ORIGIN_TYPES,
 } from "../componentCatalog";
 
 /**
@@ -45,6 +46,12 @@ describe("componentCatalog — entry 무결성", () => {
     for (const [type, entries] of byType) {
       if (entries.length < 2) continue;
       const placeables = entries.filter((e) => e.panel.placeable);
+      // 기존 문서 ref 해소용으로만 남긴 reusable (Modal — 2026-09-23 `922f11583`) 은 어느 쪽도 삽입 대상이 아니다.
+      if (LEGACY_ONLY_REUSABLE_ORIGIN_TYPES.includes(type)) {
+        expect(placeables, `legacy-only "${type}" 는 placeable 0`).toEqual([]);
+        expect(entries.some((e) => e.kind === "reusable")).toBe(true);
+        continue;
+      }
       expect(
         placeables.length,
         `동명 type "${type}" 의 placeable entry 는 정확히 1개여야 함`,
