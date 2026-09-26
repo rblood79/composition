@@ -9,9 +9,15 @@
 //   L6 로드 실패 격리 (G3) — history chunk 요청 차단 → 그 패널 안 오류 · Canvas · 다른 패널 동작 → 차단 해제 → 다시 시도 → 내용
 //   L7 page error 0
 //   --latency: L8 첫 열림 지연 (G4) — cold (HTTP 캐시 비움 + 새로고침) 5 · warm 5, CPU 1x · 4x, 레일 클릭 → 내용
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  writeFileSync,
+} from "node:fs";
 import { resolve } from "node:path";
-import { chromium } from "playwright";
+import { chromium, webkit } from "playwright";
 import { createIsolatedProject, waitReady } from "./perf-baseline.mjs";
 
 const BASE = "http://localhost:4173/composition";
@@ -64,10 +70,14 @@ async function newContext(browser, opts = {}) {
   return { context, page, errors };
 }
 
-const browser = await chromium.launch({
-  channel: "chrome",
-  headless: !process.argv.includes("--headed"),
-});
+// --webkit: Safari 엔진 (L6 재시도 경로 — Chrome 은 실패한 module 요청을 기억해 새로고침으로 복구)
+const useWebkit = process.argv.includes("--webkit");
+const browser = useWebkit
+  ? await webkit.launch({ headless: !process.argv.includes("--headed") })
+  : await chromium.launch({
+      channel: "chrome",
+      headless: !process.argv.includes("--headed"),
+    });
 try {
   if (process.argv.includes("--latency")) {
     await latency(browser);
@@ -91,13 +101,16 @@ process.stdout.write(
 process.exit(failed.length ? 1 : 0);
 
 async function behavior(browser) {
-  const { page, errors } = await newContext(browser);
-  const { projectUrl } = await createIsolatedProject(page, BASE);
   if (process.argv.includes("--only-l6")) {
-    const l6 = await failureIsolation(browser, projectUrl);
-    record("L6 (only)", l6.retried, l6);
+    // 차단을 건 컨텍스트에서 프로젝트를 만든다 — 다른 컨텍스트는 IndexedDB 가 비어 새로고침
+    // 복구 뒤 프로젝트를 못 찾고 (WebKit 에서 실제로 났다), 차단 전에 부팅하면 idle 선로드가
+    // 패널을 이미 받아 둬 실패 경로를 타지 않는다.
+    const l6 = await failureIsolation(browser, null);
+    record("L6 (only)", l6.retried || l6.reopenedByRail, l6);
     return;
   }
+  const { page, errors } = await newContext(browser);
+  const { projectUrl } = await createIsolatedProject(page, BASE);
 
   // L1 — 레일 클릭
   const l1 = {};
@@ -289,20 +302,50 @@ async function behavior(browser) {
   record("L7 page error 0", errors.length === 0, errors.slice(0, 3));
 }
 
+/** projectUrl 이 null 이면 차단을 건 뒤 이 컨텍스트에서 프로젝트를 만든다 */
 async function failureIsolation(browser, projectUrl) {
   const { context, page, errors } = await newContext(browser);
   let blocked = 0;
   let passed = 0;
   let blocking = true;
+  // --fail-disk: 가로채기 없이 서버에서 chunk 파일을 치웠다가 되돌린다 (브라우저 캐시 동작을
+  // Playwright route 와 분리해 본다)
+  const failDisk = process.argv.includes("--fail-disk");
+  const assetsDir = resolve("apps/builder/dist/assets");
+  const chunk = failDisk
+    ? readdirSync(assetsDir).find((f) => /^HistoryPanel-[^.]+\.js$/.test(f))
+    : null;
+  const restoreChunk = () => {
+    if (chunk) {
+      try {
+        renameSync(
+          resolve(assetsDir, chunk + ".off"),
+          resolve(assetsDir, chunk),
+        );
+      } catch {}
+    }
+  };
+  if (chunk)
+    renameSync(resolve(assetsDir, chunk), resolve(assetsDir, chunk + ".off"));
+  process.on("exit", restoreChunk);
   await context.route(/\/assets\/HistoryPanel-[^/]+\.js$/, (route) => {
+    if (failDisk) {
+      if (blocking) blocked += 1;
+      else passed += 1;
+      return route.continue();
+    }
     if (blocking) {
       blocked += 1;
-      return route.abort("failed");
+      // --fail-404: 배포 교체 뒤 옛 chunk 가 404 인 경우 (기본은 네트워크 실패)
+      return process.argv.includes("--fail-404")
+        ? route.fulfill({ status: 404, body: "not found" })
+        : route.abort("failed");
     }
     passed += 1;
     return route.continue();
   });
-  await page.goto(projectUrl, { waitUntil: "networkidle" });
+  if (projectUrl) await page.goto(projectUrl, { waitUntil: "networkidle" });
+  else await createIsolatedProject(page, BASE);
   await waitReady(page);
   await rail(page, "history").click();
   const alert = await page
@@ -322,6 +365,7 @@ async function failureIsolation(browser, projectUrl) {
     .then(() => true)
     .catch(() => false);
   blocking = false;
+  restoreChunk();
   const warnings = [];
   page.on("console", (m) => {
     if (m.type() === "warning" || m.type() === "error")
@@ -332,6 +376,10 @@ async function failureIsolation(browser, projectUrl) {
     .first();
   const retryVisible = await retryButton.isVisible().catch(() => false);
   const requestsBefore = blocked + passed;
+  let reloads = 0;
+  page.on("framenavigated", (frame) => {
+    if (frame === page.mainFrame()) reloads += 1;
+  });
   await retryButton
     .click()
     .catch((e) => warnings.push("click: " + String(e).slice(0, 100)));
@@ -339,6 +387,40 @@ async function failureIsolation(browser, projectUrl) {
     .waitForSelector(content("history"), { timeout: 15_000 })
     .then(() => true)
     .catch(() => false);
+  // 새로고침 복구 뒤 패널이 닫혀 있으면 (레이아웃 저장 전에 새로고침) 레일로 다시 연다
+  let reopenedByRail = null;
+  if (!retried && reloads > 0) {
+    await waitReady(page).catch(() => {});
+    await rail(page, "history").click();
+    reopenedByRail = await page
+      .waitForSelector(content("history"), { timeout: 15_000 })
+      .then(() => true)
+      .catch(() => false);
+  }
+  // 진단: 같은 URL 을 fetch · import 로 다시 받으면 요청이 서버에 닿는가
+  let probe = null;
+  if (!retried && process.argv.includes("--probe")) {
+    probe = await page.evaluate(async () => {
+      const url = [...performance.getEntriesByType("resource")]
+        .map((e) => e.name)
+        .find((n) => /HistoryPanel-[^/]+\.js$/.test(n));
+      const out = { url };
+      if (!url) return out;
+      out.fetchStatus = await fetch(url).then(
+        (r) => r.status,
+        (e) => String(e),
+      );
+      out.importSame = await import(/* @vite-ignore */ url).then(
+        () => "ok",
+        (e) => String(e).slice(0, 80),
+      );
+      out.importQuery = await import(/* @vite-ignore */ url + "?r=1").then(
+        () => "ok",
+        (e) => String(e).slice(0, 80),
+      );
+      return out;
+    });
+  }
   const alertAfter = await page
     .locator('[data-panel="history"] [role="alert"]')
     .count();
@@ -346,12 +428,17 @@ async function failureIsolation(browser, projectUrl) {
     blocked,
     passed,
     requestsBefore,
+    reloads,
+    engine: useWebkit ? "webkit" : "chrome",
     retryVisible,
     alertAfter,
     alert,
     canvas,
     otherPanel,
     retried,
+    reopenedByRail,
+    probe,
+    passedAfterProbe: passed,
     warnings: warnings.slice(0, 4),
     pageErrors: errors.length,
     errors: errors.slice(0, 2),

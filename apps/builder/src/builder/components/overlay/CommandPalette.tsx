@@ -21,6 +21,7 @@ import {
   useEffect,
   useSyncExternalStore,
 } from "react";
+import { Autocomplete } from "react-aria-components/Autocomplete";
 import { Modal, ModalOverlay } from "react-aria-components/Modal";
 import { Dialog } from "react-aria-components/Dialog";
 import { ListBox, ListBoxItem } from "react-aria-components/ListBox";
@@ -405,56 +406,60 @@ export function CommandPalette({
             className="panel-contents command-palette-contents"
             onKeyDown={handleKeyDown}
           >
-            <BuilderSearchField
-              ref={inputRef}
-              appearance="control"
-              value={search}
-              onChange={setSearch}
-              placeholder={t("commandPalette.searchPlaceholder")}
-              aria-label={t("commandPalette.searchLabel")}
-            />
-
-            {/* Command List */}
-            {filteredCommands.length > 0 ? (
-              <ListBox
-                aria-label={t("commandPalette.listLabel")}
-                className="command-palette-list"
-                selectionMode="single"
-                onAction={handleAction}
-                items={filteredCommands}
-              >
-                {(cmd) => (
-                  <ListBoxItem
-                    key={cmd.id}
-                    id={cmd.id}
-                    textValue={cmd.label}
-                    className="command-palette-item"
-                    data-executable={cmd.availability === "executable"}
-                    data-availability={cmd.availability}
-                    aria-disabled={
-                      cmd.availability === "executable" ? undefined : true
-                    }
-                  >
-                    <div className="command-palette-item-content">
-                      <span className="command-palette-item-label">
-                        {cmd.label}
-                      </span>
-                      <span className="command-palette-item-category">
-                        {cmd.hint
-                          ? t(cmd.hint)
-                          : t(CATEGORY_LABEL_KEYS[cmd.category])}
-                      </span>
-                    </div>
-                    <kbd className="command-palette-kbd">{cmd.shortcut}</kbd>
-                  </ListBoxItem>
-                )}
-              </ListBox>
-            ) : (
-              <EmptyState
-                icon={<SearchX size={32} />}
-                message={t("commandPalette.noResults", { query: search })}
+            {/* 검색 입력 ↔ 목록 연결 — 포커스는 입력에 둔 채 ↑↓ 가 목록의 가상 포커스를
+                움직이고 Enter 가 그 항목을 실행한다 (APG combobox/listbox, footer 안내와 같은
+                동작). 타이핑하면 첫 결과가 가상 포커스를 받는다. 필터는 `filteredCommands`
+                가 한다 — Autocomplete 는 입력 값과 키보드만 잇는다. */}
+            <Autocomplete inputValue={search} onInputChange={setSearch}>
+              <BuilderSearchField
+                ref={inputRef}
+                appearance="control"
+                placeholder={t("commandPalette.searchPlaceholder")}
+                aria-label={t("commandPalette.searchLabel")}
               />
-            )}
+
+              {/* Command List */}
+              {filteredCommands.length > 0 ? (
+                <ListBox
+                  aria-label={t("commandPalette.listLabel")}
+                  className="command-palette-list"
+                  selectionMode="single"
+                  onAction={handleAction}
+                  items={filteredCommands}
+                >
+                  {(cmd) => (
+                    <ListBoxItem
+                      key={cmd.id}
+                      id={cmd.id}
+                      textValue={cmd.label}
+                      className="command-palette-item"
+                      data-executable={cmd.availability === "executable"}
+                      data-availability={cmd.availability}
+                      aria-disabled={
+                        cmd.availability === "executable" ? undefined : true
+                      }
+                    >
+                      <div className="command-palette-item-content">
+                        <span className="command-palette-item-label">
+                          {cmd.label}
+                        </span>
+                        <span className="command-palette-item-category">
+                          {cmd.hint
+                            ? t(cmd.hint)
+                            : t(CATEGORY_LABEL_KEYS[cmd.category])}
+                        </span>
+                      </div>
+                      <kbd className="command-palette-kbd">{cmd.shortcut}</kbd>
+                    </ListBoxItem>
+                  )}
+                </ListBox>
+              ) : (
+                <EmptyState
+                  icon={<SearchX size={32} />}
+                  message={t("commandPalette.noResults", { query: search })}
+                />
+              )}
+            </Autocomplete>
 
             {/* Footer */}
             <div className="command-palette-footer">

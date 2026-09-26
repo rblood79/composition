@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [커맨드 팔레트 — 검색 입력에서 ↑↓ · Enter 로 실행] - 2026-09-26
+
+### Fixed
+
+- **커맨드 팔레트에서 검색어를 입력하고 Enter 를 눌러도 아무 명령도 실행되지 않고 팔레트가 열린 채 남던 문제.** 하단 안내 ("↑↓ 이동 · ↵ 실행") 와 달리 입력에 포커스가 있는 동안 방향키와 Enter 가 목록에 닿지 않았고, 마우스 클릭만 동작했다.
+  - 수리: 검색 입력과 목록을 RAC `Autocomplete` 로 잇는다. 타이핑하면 첫 결과가 강조되고 ↑↓ 로 옮기며 Enter 로 실행한 뒤 팔레트가 닫힌다. 위치: `apps/builder/src/builder/components/overlay/CommandPalette.tsx`.
+  - 검증: 실제 builder (dev) 에서 "history" 입력 뒤 Enter · ↓+Enter · 클릭 세 경로 모두 히스토리 패널이 열리고 팔레트가 닫힘. 초기 번들 +9 B.
+
 ## [ADR-242 Implemented — 초기 화면 밖 패널은 필요할 때 불러온다] - 2026-09-26
 
 ### Performance

@@ -79,23 +79,28 @@ vi.mock("../ui/ActionIconButton", () => ({
     <button type="button">{children}</button>
   ),
 }));
-vi.mock("../ui/SearchField", () => ({
-  SearchField: ({
-    value,
-    onChange,
-    "aria-label": ariaLabel,
-  }: {
-    value: string;
-    onChange: (next: string) => void;
-    "aria-label": string;
-  }) => (
-    <input
-      aria-label={ariaLabel}
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
-    />
-  ),
-}));
+/**
+ * 실제 RAC `SearchField` + `Input` — 팔레트가 검색 입력과 목록을 `Autocomplete` 로
+ * 잇는지 (↑↓ · Enter) 는 RAC context 가 있어야 드러난다. 아이콘만 뺀 최소 구성.
+ */
+vi.mock("../ui/SearchField", async () => {
+  const { forwardRef } = await import("react");
+  const { SearchField: AriaSearchField } =
+    await import("react-aria-components/SearchField");
+  const { Input } = await import("react-aria-components/Input");
+  return {
+    SearchField: forwardRef<
+      HTMLInputElement,
+      { placeholder?: string; appearance?: string; "aria-label"?: string }
+    >(function SearchField({ placeholder, appearance: _a, ...props }, ref) {
+      return (
+        <AriaSearchField {...props}>
+          <Input ref={ref} placeholder={placeholder} />
+        </AriaSearchField>
+      );
+    }),
+  };
+});
 
 /**
  * RAC `usePress` 는 pointer 이벤트로 동작하는데 jsdom 에 `PointerEvent` 가 없다.
@@ -146,6 +151,17 @@ async function flushFrame(): Promise<void> {
   await act(async () => {
     await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
   });
+}
+
+/**
+ * 타이핑 — RAC `Autocomplete` 는 `beforeinput` 의 `inputType` 이 insertText 일 때만 첫 결과에
+ * 가상 포커스를 준다 (붙여넣기 · 지우기는 비움). jsdom 은 이 이벤트를 내지 않아 직접 보낸다.
+ */
+function typeInto(input: HTMLElement, value: string): void {
+  input.dispatchEvent(
+    new InputEvent("beforeinput", { inputType: "insertText", bubbles: true }),
+  );
+  fireEvent.change(input, { target: { value } });
 }
 
 function itemFor(label: string): HTMLElement {
@@ -374,6 +390,71 @@ describe("CommandPalette — registry 소비", () => {
 
     expect(high).toHaveBeenCalledTimes(1);
     expect(low).not.toHaveBeenCalled();
+  });
+
+  it("검색 입력에서 Enter 가 첫 결과를 실행하고 닫는다 (포커스는 입력에 둔 채)", async () => {
+    const handler = vi.fn();
+    const onOpenChange = vi.fn();
+    registerCommand({
+      id: "duplicate",
+      handler,
+      scope: ["canvas-focused", "panel:navigator"],
+      priority: 70,
+      allowInInput: false,
+      disabled: false,
+    });
+
+    renderWithI18n(<CommandPalette isOpen onOpenChange={onOpenChange} />);
+    const input = screen.getByRole("searchbox");
+    act(() => input.focus());
+    typeInto(input, "Duplicate");
+    await flushFrame();
+    fireEvent.keyDown(input, { key: "Enter" });
+    fireEvent.keyUp(input, { key: "Enter" });
+
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    await flushFrame();
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
+
+  it("검색 입력의 ↓ 가 목록의 다음 항목으로 옮기고 Enter 가 그것을 실행한다", async () => {
+    const first = vi.fn();
+    const second = vi.fn();
+    registerCommand({
+      id: "undo",
+      handler: first,
+      scope: "global",
+      priority: 100,
+      allowInInput: true,
+      disabled: false,
+    });
+    registerCommand({
+      id: "redo",
+      handler: second,
+      scope: "global",
+      priority: 100,
+      allowInInput: true,
+      disabled: false,
+    });
+
+    renderWithI18n(<CommandPalette isOpen onOpenChange={() => {}} />);
+    const input = screen.getByRole("searchbox");
+    act(() => input.focus());
+    typeInto(input, "do");
+    await flushFrame();
+    const labels = [...document.querySelectorAll(".command-palette-item-label")]
+      .map((node) => node.textContent)
+      .filter((label) => label === "Undo" || label === "Redo");
+    expect(labels).toEqual(["Undo", "Redo"]);
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+    fireEvent.keyUp(input, { key: "ArrowDown" });
+    fireEvent.keyDown(input, { key: "Enter" });
+    fireEvent.keyUp(input, { key: "Enter" });
+    await flushFrame();
+
+    expect(second).toHaveBeenCalledTimes(1);
+    expect(first).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(input);
   });
 
   it("footer 는 실행 가능 수 / 전체 를 센다", () => {
