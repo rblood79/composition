@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **고정 height 컨테이너가 catalog 기본 height 에 intrinsic `min-height`/`max-height` 를 함께 가질 때 2-pass 가 그 catalog height 를 지우던 문제.** 이제 이런 컨테이너는 2-pass 후보에서 빠지고, 내용 높이 제약은 엔진이 확정 폭에서 다시 잰다. 앞 엔트리에서 생긴 경로로, 2026-09-17 의 "catalog height 보존" 계약과 맞춘 것이다. 코드 대조로 찾은 경로이며 실제 문서에서 재현하지는 않았다.
+- **고정 height 컨테이너가 catalog 기본 height 에 intrinsic `min-height`/`max-height` 를 함께 가질 때 2-pass 가 그 catalog height 를 지우던 문제.** 이제 이런 컨테이너는 2-pass 후보에서 빠지고, 내용 높이 제약은 엔진이 확정 폭에서 다시 잰다. 앞 엔트리에서 생긴 경로로, 2026-09-17 의 "catalog height 보존" 계약과 맞춘 것이다. 실제 Builder 에서 row flex 안 폭 없는 Nav (md) 에 `minHeight: min-content` 를 주면 이전 코드는 엔진 입력의 `height: 56px` 을 지웠다. Nav 상자는 옆 요소에 맞춰 늘어나 56 으로 보였지만 안쪽 Text 는 32 → 24 로 줄었다. 수정 후에는 `height: 56px` 이 남고 Text 도 32 (minHeight 없는 대조군과 같음) 다.
 - **앞뒤 공백이 붙은 크기 값 (`" auto"` 등) 을 auto 로 판정.** Canvas 레이아웃의 auto·intrinsic 판정이 `@composition/shared` 의 `isAutoSizeValue` 를 함께 쓴다.
 
 ### Changed
@@ -28,7 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
-- 엔진 인접 Vitest 580건, Rust 전체, Chromium Canvas·DOM 대조 1,563건 통과 (기존 skip 2건). TypeScript 검사와 pre-push 시각 parity smoke 101건 통과. 실제 Builder 에서는 확인하지 않았다.
+- 엔진 인접 Vitest 580건, Rust 전체, Chromium Canvas·DOM 대조 1,563건 통과 (기존 skip 2건). TypeScript 검사와 pre-push 시각 parity smoke 101건 통과.
+- 실제 Builder (`apps/builder/scripts/size-properties-followup-live.mjs`, headless Playwright): 위 Nav 사례 (가드를 되돌리면 RED) · Text `width:300px` + `maxWidth:100px` → 100×168 · Text 고정 `height:20px` + `minHeight:min-content` (flex:1) → 192×96 · 같은 조건의 frame 컨테이너 → 192×96 (자식 Text 와 같음) · `height:" auto"` = `auto` (150×96). 페이지 에러 0.
 
 ## [Canvas 크기 속성 공통화와 측정 최적화] - 2026-09-26
 
