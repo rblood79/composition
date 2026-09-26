@@ -382,6 +382,8 @@ function buildVirtualSpecs(): ComponentSpec<unknown>[] {
       }) as ComponentSpec<unknown>["states"],
       // cssEmitMode: Button/ToggleButton 의 button-base(변수 + color-mix 파생). 미설정 시 direct.
       ...(meta.cssEmitMode ? { cssEmitMode: meta.cssEmitMode } : {}),
+      // skipCSSGeneration: DOM 시각을 수동 CSS 가 소유 (Label) — structure 는 Canvas 정본으로만.
+      ...(meta.skipCSSGeneration ? { skipCSSGeneration: true } : {}),
       // composition: rule 에 없는 CSS selector 메타(Link underline 등). 미설정 시 미적용.
       //   density (2026-08-21): `rule.densities` 를 `containerVariants.density` 로 합성해
       //   기존 emit 경로를 재사용한다 (`[data-density="compact"] { gap: 0px }`). Skia 는 같은

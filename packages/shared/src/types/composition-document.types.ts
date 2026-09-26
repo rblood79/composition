@@ -671,6 +671,12 @@ export interface ComponentRuleStructure {
   /** CSS emit 모드. button-base = `--button-color` 변수 + utility color-mix 자동 파생. */
   cssEmitMode?: "direct" | "button-base";
   /**
+   * DOM 시각을 수동 CSS 가 소유해 생성 CSS 를 만들지 않는다 — `structure` 는 Canvas 가 읽는 정본
+   * (display 등) 으로만 쓴다. 예: Label (`Label.css` 가 base.css `--label-font-size` 상속을 위해 수동).
+   * 생성기는 이 값을 virtual spec 의 `skipCSSGeneration` 으로 넘긴다.
+   */
+  skipCSSGeneration?: boolean;
+  /**
    * `.button-base` utility 착용 대상 명시 선언 — CSS emit 은 direct 인데 markup 클래스와
    * Skia 자식 color 상속 게이트만 필요한 컴포넌트용 (ToggleButtonGroup). `cssEmitMode:
    * "button-base"` 는 이 선언을 함의하므로 중복 지정 불요. 소비는 `usesButtonBaseUtility()`.
