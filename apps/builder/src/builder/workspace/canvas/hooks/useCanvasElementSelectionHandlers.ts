@@ -55,6 +55,11 @@ interface UseCanvasElementSelectionHandlersOptions {
   ) => void;
   getInteractiveChildrenMap: () => Map<string, CanvasInteractionNode[]>;
   getInteractiveElementsMap: () => Map<string, CanvasInteractionNode>;
+  /**
+   * ADR-150 A3' — 데이터 행 더블클릭이 다른 페이지 origin 을 선택한 뒤 카메라를 새 선택으로 옮긴다
+   * (화면 밖일 때만, 배율 유지).
+   */
+  revealSelection?: () => void;
 }
 
 const TEXT_EDITABLE_TAGS = componentTypeSet("textHost");
@@ -200,6 +205,7 @@ export function useCanvasElementSelectionHandlers({
   startEdit,
   getInteractiveChildrenMap,
   getInteractiveElementsMap,
+  revealSelection,
 }: UseCanvasElementSelectionHandlersOptions) {
   // setCurrentPageId는 ADR-069 이전 API 호환을 위해 options에 유지하되,
   // 본 hook 내부에서는 selectElementWithPageTransition으로 전환되어 직접 사용하지 않는다.
@@ -324,6 +330,7 @@ export function useCanvasElementSelectionHandlers({
             editingContextId:
               origin.targetId === origin.originId ? null : origin.originId,
           });
+          revealSelection?.();
           return;
         }
       }
@@ -390,6 +397,7 @@ export function useCanvasElementSelectionHandlers({
       clearSelection,
       getInteractiveChildrenMap,
       getInteractiveElementsMap,
+      revealSelection,
       selectElementWithPageTransition,
       setSelectedElement,
       setSelectedElements,

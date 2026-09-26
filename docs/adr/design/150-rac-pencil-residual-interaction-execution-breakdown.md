@@ -223,9 +223,11 @@ LOW deferred (production 증상 없음): L1 목록 입력이면 스크롤마다 
 
 원복 RED: 연속성 키 → owner id — dataRowDoubleClick 4 + Phase0Red 1 RED (두 분기 각각). 변형 origin → 기본 origin 해석 제거 — 해석기 unit RED (live 에서 먼저 잡힘).
 
-#### §4-3 사용자 확인 대기 (R3)
+#### §4-3 카메라 추종 (R3 — 사용자 판정 2026-09-27 "카메라 추종 추가해")
 
-- 페이지 이동 뒤 **카메라는 그대로**다 — 선택은 Components 페이지 origin 자식으로 바뀌지만 화면은 원래 페이지를 비춰 선택 요소가 화면 밖일 수 있다 (live 스크린샷). 선택 요소로 카메라를 옮기는 기존 기능은 단축키 (zoomToSelection) 뿐이다. 더블클릭 진입에서 카메라를 따라가게 할지는 사용자 판단 (R3).
+- 처음 구현은 페이지 이동 뒤 **카메라가 그대로**였다 — 선택은 Components 페이지 origin 자식인데 화면은 원래 페이지를 비췄다.
+- 반영: 해석 성공 진입 뒤 `revealSelection` (BuilderCanvas) 이 다음 프레임에 선택 bounds 를 새로 계산해 `panToCanvasRect` 로 옮긴다. 화면 안 (여백 24px) 에 이미 다 보이면 움직이지 않고, 아니면 **배율 그대로** rect 중심을 화면 중심으로 300ms ease-out (`panToPage` 와 같은 애니메이션 · 공용 `animatePanTo`). 확대 · 축소는 하지 않는다 — 더블클릭 한 번에 배율이 튀지 않게 (맞춤 확대는 zoomToSelection 단축키 몫).
+- 증거: unit `viewport/panToPage.test.ts` 4 (화면 안 → null · 밖 → 중심 · 가장자리 · 컨테이너 0) · live 두 분기 (경계 밖 · 안) 선택 요소 화면 rect 가 컨테이너 안, 배율 1 유지 — 10/10. 원복 (호출 제거) → live R3 2 건 FAIL (8/10).
 
 ## §5 Phase 3 — closure (G3)
 

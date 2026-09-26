@@ -107,6 +107,7 @@ import { getElementBoundsSimple } from "./elementRegistry";
 import { buildPagePaintRank } from "./scene/pagePaintOrder";
 import { readPageFrameSize } from "./scene/pageFrameSize";
 import { readCanvasRailInset } from "./viewport/canvasChromeInset";
+import { panToCanvasRect } from "./viewport/panToPage";
 import {
   derivePagePositionsMemo,
   pagePlacementVersion,
@@ -1396,6 +1397,18 @@ export function BuilderCanvas({
     });
   }, [computeSelectionBoundsForHitTest]);
 
+  /**
+   * ADR-150 A3' — 데이터 행 더블클릭이 다른 페이지 origin 을 선택하면 카메라가 새 선택을 따라간다
+   * (화면 밖일 때만 · 배율 유지 · 300ms). 선택 · 페이지 전환이 반영된 다음 프레임에 bounds 를 새로 계산한다.
+   */
+  const handleRevealSelection = useCallback(() => {
+    requestAnimationFrame(() => {
+      const bounds = computeSelectionBoundsForHitTest();
+      if (!bounds || bounds.width <= 0 || bounds.height <= 0) return;
+      panToCanvasRect(bounds);
+    });
+  }, [computeSelectionBoundsForHitTest]);
+
   const zoomShortcuts = useMemo(
     () =>
       bindHandlersToDefinitions(["zoomToSelection"], {
@@ -1690,6 +1703,7 @@ export function BuilderCanvas({
       startEdit,
       getInteractiveChildrenMap,
       getInteractiveElementsMap,
+      revealSelection: handleRevealSelection,
     });
 
   // Ref 동기화: 최신 핸들러를 ref에 할당 (중앙 DOM 이벤트 핸들러에서 사용)

@@ -90,12 +90,45 @@ async function focusPoint(id) {
   };
 }
 
+/** 선택 요소의 화면 rect 가 캔버스 컨테이너 안에 다 보이는가 (카메라 추종, R3). */
+async function selectionOnScreen(id) {
+  return page.evaluate((id) => {
+    const hb =
+      window.__composition_RENDER_COMMAND_DEBUG__.readNode(id)?.hitBounds;
+    const v = window.__composition_VIEWPORT__?.();
+    const cs = window.__composition_VIEWPORT_SYNC__?.getState().containerSize;
+    if (!hb || !v || !cs) return { inside: false, hb, v, cs };
+    const pan = v.panOffset ?? { x: 0, y: 0 };
+    const rect = {
+      left: hb.x * v.zoom + pan.x,
+      top: hb.y * v.zoom + pan.y,
+      right: (hb.x + hb.width) * v.zoom + pan.x,
+      bottom: (hb.y + hb.height) * v.zoom + pan.y,
+    };
+    const inside =
+      rect.left >= 0 &&
+      rect.top >= 0 &&
+      rect.right <= cs.width &&
+      rect.bottom <= cs.height;
+    return { inside, rect, zoom: v.zoom, cs };
+  }, id);
+}
+
 async function backToUserPage(userPage) {
   await page.evaluate((userPage) => {
     const st = window.__composition_STORE__.getState();
     st.setCurrentPageId(userPage);
     st.setEditingContext?.(null);
     st.setSelectedElement(null);
+    // 진입이 카메라를 origin 페이지로 옮기므로 (R3) 사용자 페이지로 카메라도 되돌린다 — 화면 밖 페이지는
+    //   render command 가 없어 다음 focusPoint 가 hit bounds 를 못 읽는다.
+    const pos = st.derivedPagePositions?.[userPage];
+    if (pos)
+      window.__composition_APPLY_VIEWPORT__?.({
+        scale: 1,
+        x: 100 - pos.x,
+        y: 100 - pos.y,
+      });
   }, userPage);
   await page.waitForTimeout(1200);
 }
@@ -242,6 +275,12 @@ try {
       s1.page !== userPage,
     { s1, originLabel, point: p },
   );
+  const cam1 = await selectionOnScreen(s1.selected);
+  record(
+    "(R3) 경계 밖 진입 뒤 카메라가 origin label 을 따라가 화면 안에 보인다 (배율 유지)",
+    cam1.inside && cam1.zoom === 1,
+    cam1,
+  );
   // Properties 패널을 열어 안내 절을 읽는다 (rail 7번째 = Properties).
   const propertiesBtn = page.locator(".panel-toggle-rail button").nth(6);
   if ((await propertiesBtn.getAttribute("aria-pressed")) !== "true") {
@@ -283,6 +322,12 @@ try {
       s2.selected !== s1.selected &&
       s2.page === originDesc?.page,
     { s2, originDesc },
+  );
+  const cam2 = await selectionOnScreen(s2.selected);
+  record(
+    "(R3) 경계 안 진입 뒤 카메라가 origin description 을 따라가 화면 안에 보인다",
+    cam2.inside,
+    cam2,
   );
 
   // (b) 서로 다른 카드 단일 클릭 두 번 (150ms) — double-click 아님.
