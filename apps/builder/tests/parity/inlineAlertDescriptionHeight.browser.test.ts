@@ -95,6 +95,14 @@ describe("InlineAlert Description 내용 높이", () => {
     expect(result.canvasAlert).toBeCloseTo(result.domAlert, 0);
   });
 
+  it("명시적 auto도 설명 줄 수에 따라 늘고 DOM과 일치한다", () => {
+    const short = measure("A short description.", "auto");
+    const long = measure(LONG_DESCRIPTION, "auto");
+    expect(long.canvasDescription).toBeGreaterThan(short.canvasDescription);
+    expect(long.canvasDescription).toBeCloseTo(long.domDescription, 0);
+    expect(long.canvasAlert).toBeCloseTo(long.domAlert, 0);
+  });
+
   it("명시한 고정 높이는 설명이 길어도 보존한다", () => {
     const result = measure(LONG_DESCRIPTION, "24px");
     expect(result.canvasDescription).toBe(24);

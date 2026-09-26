@@ -15,7 +15,12 @@
  * 설계: docs/adr/design/142-starter-spec-component-system-cutover-breakdown.md §3 (`skiaPrimitive`)
  */
 
-import { parseBorderWidth, parsePxValue, parseShadow } from "../primitives";
+import {
+  parseBorderWidth,
+  parsePadding4Way,
+  parsePxValue,
+  parseShadow,
+} from "../primitives";
 import {
   fontFamily,
   getTextLineHeight,
@@ -75,7 +80,10 @@ import {
   resolveSelectionSlot,
   resolveTreeIndent,
 } from "./buildCatalogShapes";
-import { measureSpecTextWidth } from "./utils/measureText";
+import {
+  measureSpecTextWidth,
+  measureSpecWrappedTextHeight,
+} from "./utils/measureText";
 import { breadcrumbSeparatorAfterPaddingXPx } from "../primitives/spacing";
 
 /**
@@ -3019,18 +3027,16 @@ const illustratedMessage: SkiaPrimitiveDrawFn = ({
   const m = resolveIllustratedMessageMetric(sizeName, size);
 
   // element style 소비 (store longhand 정책: longhand → shorthand → metric fallback).
-  const padTop = parsePxValue(
-    (style?.paddingTop ?? style?.padding) as string | number | undefined,
-    m.paddingY,
-  );
-  const padLeft = parsePxValue(
-    (style?.paddingLeft ?? style?.padding) as string | number | undefined,
-    m.paddingX,
-  );
-  const padRight = parsePxValue(
-    (style?.paddingRight ?? style?.padding) as string | number | undefined,
-    m.paddingX,
-  );
+  const padding = parsePadding4Way({
+    padding: style?.padding ?? `${m.paddingY}px ${m.paddingX}px`,
+    paddingTop: style?.paddingTop,
+    paddingRight: style?.paddingRight,
+    paddingBottom: style?.paddingBottom,
+    paddingLeft: style?.paddingLeft,
+  });
+  const padTop = padding.top;
+  const padLeft = padding.left;
+  const padRight = padding.right;
   const gap = parsePxValue(
     (style?.rowGap ?? style?.gap) as string | number | undefined,
     m.gap,
@@ -3042,7 +3048,7 @@ const illustratedMessage: SkiaPrimitiveDrawFn = ({
       ? (props._containerWidth as number)
       : m.box + padLeft + padRight;
   const contentX = padLeft;
-  const contentW = Math.max(containerWidth - padLeft - padRight, m.box);
+  const contentW = Math.max(0, containerWidth - padLeft - padRight);
   const boxX =
     alignItems === "flex-start"
       ? contentX
@@ -3062,6 +3068,15 @@ const illustratedMessage: SkiaPrimitiveDrawFn = ({
   // ADR-923 r19m1 — 텍스트 원천 단일 지점 (부재 → 기본 글자, "" → 줄 자체를 접는다; Preview div
   //   미렌더 · layout illustratedmessage 높이 차감과 동일).
   const { heading, description } = resolveIllustratedMessageText(props);
+  const headingHeight =
+    measureSpecWrappedTextHeight(
+      heading,
+      m.headingFs,
+      600,
+      ff,
+      contentW,
+      m.headingLine,
+    ) ?? m.headingLine;
 
   const shapes: Shape[] = [];
 
@@ -3113,7 +3128,7 @@ const illustratedMessage: SkiaPrimitiveDrawFn = ({
       baseline: "middle" as const,
       maxWidth: contentW,
     });
-    cursorY += m.headingLine;
+    cursorY += headingHeight;
   }
 
   // Description 텍스트 — DOM var(--fg-muted), lineHeight 1.5 밴드 세로 중앙.

@@ -40,6 +40,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **InlineAlert 설명이 여러 줄이어도 Canvas의 설명 상자와 알림 높이가 한 줄 크기에 머물던 문제.** 부모가 글꼴 크기와 줄 높이를 주입한 뒤 기존 레이아웃이 측정된 텍스트 높이를 한 줄 높이로 덮어썼다. 이제 최종 텍스트 스타일로 내용 높이를 다시 측정해 `auto` 높이가 설명 길이에 따라 늘어난다. `100%` 높이를 지정한 기존 문서도 DOM과 같은 내용 높이를 사용한다.
   - 검증: Chromium에서 생성 CSS와 Canvas 레이아웃을 비교하는 짧은 설명·긴 설명·`100%` 회귀 케이스가 수정 전 실패, 수정 후 통과.
+- **부모가 자식 텍스트를 측정한 뒤 바꾸는 경우의 Canvas 크기를 최종 내용에 맞춤.** 명시적 `height: auto`인 InlineAlert 설명, ProgressBar 값 표시, GridListItem 글꼴 굵기 주입을 최종 props로 다시 측정한다. 값 표시를 비우면 이전 높이 스칼라도 제거하며, 폭 확정 뒤 재측정할 때 부모의 텍스트 상속값을 유지한다.
+  - 검증: Chromium 회귀 테스트에서 명시적 `auto`의 Canvas 192px / DOM 252px 불일치를 수정 후 일치시킴. 최종 값 텍스트·빈 값·굵기 주입·상속 `whiteSpace` 경로 통과.
+
+## [Canvas intrinsic 폭 제약] - 2026-09-26
+
+### Fixed
+
+- **`min-width`·`max-width`의 `min-content`·`max-content`·`fit-content`가 Canvas에서 무시되던 문제.** Text와 자식이 있는 컨테이너 모두에서 원래 선언을 보존한 채 엔진이 내용 폭을 측정해 제약을 적용한다. `fit-content`는 중첩 부모의 사용 가능한 폭을 반영한다.
+- **고정 높이인 ProgressBar 값 표시의 내용이 부모에서 바뀌어도 폭 측정값이 이전 글자에 머물던 문제.** 최종 투영된 글자로 폭 스칼라를 다시 계산한다.
+  - 검증: Chromium Canvas·DOM 폭 대조 20건 및 기존 높이·intrinsic 크기 회귀 27건 통과. Rust 엔진의 내용 변경·반복 계산·원래 선언 복원 테스트 통과.
+
+## [텍스트 컴포넌트의 줄바꿈 높이] - 2026-09-26
+
+### Fixed
+
+- **Link·DisclosureContent의 긴 글자가 줄바꿈되어도 Canvas 높이가 한 줄에 머물던 문제.** 콘텐츠 박스 폭으로 실제 줄 수를 측정한다. DisclosureContent는 기존 block stretch를 유지하면서 명시 폭도 높이 측정에 사용한다.
+- **IllustratedMessage의 긴 설명·제목이 Canvas 상자 밖으로 넘치고 제목 아래 설명이 겹치던 문제.** catalog 치수와 실제 폭으로 두 텍스트의 높이를 측정하고 Skia 설명 위치에도 제목의 여러 줄 높이를 반영한다.
+- **flex 배치에서 `height:min-content`·`max-content`인 텍스트가 확정된 폭으로 다시 측정되지 않던 문제.** 고정 폭에서는 DOM과 일치했지만 flex 폭이 줄어들면 140px로 남아 DOM 300px과 달랐다. 폭 확정 후 재측정 후보에 두 키워드를 포함한다.
+  - 검증: Chromium Canvas·DOM 9개 parity 테스트 (수정 전 각 후보 실패, 수정 후 통과), Skia 설명 위치와 DOM 위치 대조.
 
 ## [한 줄에 놓인 버튼 · 배지 · 링크의 세로 정렬] - 2026-09-26
 

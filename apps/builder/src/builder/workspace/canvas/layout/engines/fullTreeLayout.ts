@@ -23,6 +23,7 @@ import { ENGINE_MEASURE_SCALAR_KEYS } from "../../wasm-bindings/layoutTypes";
 import {
   enrichWithIntrinsicSize,
   TEXT_LEAF_TAGS,
+  resolveTextLeafContent,
   setTagGroupAllowsRemovingContext,
   applyCommonEngineStyle,
   applyFlexItemProperties,
@@ -98,6 +99,20 @@ const FLEX_GRID_DISPLAYS = new Set([
   "grid",
   "inline-grid",
 ]);
+
+/** 부모 implicit 주입 뒤 텍스트 높이 또는 폭 스칼라를 다시 재야 하는 스타일 축. */
+const TEXT_MEASURE_STYLE_KEYS = [
+  "fontSize",
+  "lineHeight",
+  "fontWeight",
+  "fontFamily",
+  "letterSpacing",
+  "wordSpacing",
+  "whiteSpace",
+  "wordBreak",
+  "overflowWrap",
+  "fontVariant",
+] as const;
 
 /** traversePostOrder 최대 재귀 깊이 (ADR-006 P0-4) */
 const MAX_TREE_DEPTH = 100;
@@ -1549,6 +1564,7 @@ interface DFSContext {
   indexMap: Map<string, number>;
   visiting: Set<string>;
   processedElementsMap: Map<string, CanvasLayoutNode>;
+  computedStyleByElement: Map<string, ComputedStyle>;
   /**
    * ADR-205 Phase 5 — 요소별 **조상 선언** 텍스트 축. Step 5 가 `ComputedLayout.textAxes`
    * 로 실어 Skia scene build 까지 운반한다 (scene build 에는 ComputedStyle 이 없다, F20).
@@ -1580,6 +1596,7 @@ function traversePostOrder(
     indexMap,
     visiting,
     processedElementsMap,
+    computedStyleByElement,
     inheritedTextAxes,
   } = ctx;
   // 1. 중복 방문 방지 (이미 post-order 완료된 노드)
@@ -2062,6 +2079,7 @@ function traversePostOrder(
   const effectiveDisplay = getElementDisplay(element);
 
   const computedStyle = resolveStyle(elementStyle, parentComputed);
+  computedStyleByElement.set(elementId, computedStyle);
 
   // ADR-205 Phase 5 — 조상 체인이 **선언한** 텍스트 축을 누적한다. `computedStyle` 을 그대로
   //   쓰지 않는 이유: `resolveStyle` 은 미선언과 CSS 초기값을 구별하지 못해서, 초기값까지
@@ -2259,8 +2277,21 @@ function traversePostOrder(
     const originalEl = elementsMap.get(filteredChild.id);
     if (!originalEl) continue;
 
-    // props.style 참조 비교 — 동일하면 applyImplicitStyles가 수정하지 않은 것
-    if (filteredChild.props?.style === originalEl.props?.style) continue;
+    const isTextLeaf = TEXT_LEAF_TAGS.has(filteredChild.type.toLowerCase());
+    const parentTextChanged =
+      isTextLeaf &&
+      resolveTextLeafContent(
+        filteredChild.props as Record<string, unknown> | undefined,
+      ) !==
+        resolveTextLeafContent(
+          originalEl.props as Record<string, unknown> | undefined,
+        );
+    // 부모가 style 없이 children만 투영한 경우도 자식 batch의 측정값을 갱신한다.
+    if (
+      filteredChild.props?.style === originalEl.props?.style &&
+      !parentTextChanged
+    )
+      continue;
 
     // read-only sub-part (2026-09-03 판정 A): implicitStyles 는 자식 style 을 `{...cs, 주입}` 으로 복사하므로
     //   modStyle 에 자식의 인라인 (DOM 미도달 junk) 이 그대로 실려 있다. 자식 visit 에서 걷어낸 인라인이
@@ -2276,11 +2307,16 @@ function traversePostOrder(
       const { style: dfsStyle, ...dfsNonStyleProps } =
         (existingProcessed.props ?? {}) as Record<string, unknown>;
       const implicitStyle = subpartAwareModStyle;
+      const parentChildrenChanged =
+        filteredChild.props?.children !== originalEl.props?.children;
       processedElementsMap.set(filteredChild.id, {
         ...filteredChild,
         props: {
           ...filteredChild.props,
           ...dfsNonStyleProps,
+          ...(parentChildrenChanged
+            ? { children: filteredChild.props?.children }
+            : {}),
           style: {
             ...((dfsStyle ?? {}) as Record<string, unknown>),
             ...implicitStyle,
@@ -2307,25 +2343,43 @@ function traversePostOrder(
     // 최종 스타일로 같은 폭에서 다시 측정하고, 폭 확정 후 재줄바꿈은 Step 4.5 에 맡긴다.
     const fontSizeChanged =
       modStyle.fontSize != null && modStyle.fontSize !== origStyle.fontSize;
-    const lineHeightChanged =
-      modStyle.lineHeight != null &&
-      modStyle.lineHeight !== origStyle.lineHeight;
-    const isTextLeaf = TEXT_LEAF_TAGS.has(filteredChild.type.toLowerCase());
-    const textHeightMayDependOnContent =
-      modStyle.height == null ||
-      (typeof modStyle.height === "string" &&
-        (modStyle.height.trim().endsWith("%") ||
-          isEngineIntrinsicKeyword(modStyle.height)));
-    if (
-      (fontSizeChanged || lineHeightChanged) &&
+    const textMeasureStyleChanged = TEXT_MEASURE_STYLE_KEYS.some(
+      (key) => modStyle[key] != null && modStyle[key] !== origStyle[key],
+    );
+    const processedChild = processedElementsMap.get(filteredChild.id)!;
+    const priorText = resolveTextLeafContent(
+      (existingProcessed?.props ?? originalEl.props) as
+        Record<string, unknown> | undefined,
+    );
+    const textContentChanged =
       isTextLeaf &&
-      textHeightMayDependOnContent
+      priorText !==
+        resolveTextLeafContent(
+          processedChild.props as Record<string, unknown> | undefined,
+        );
+    const processedStyle = (processedChild.props?.style ?? {}) as Record<
+      string,
+      unknown
+    >;
+    const textHeightMayDependOnContent =
+      processedStyle.height == null ||
+      processedStyle.height === "auto" ||
+      (typeof processedStyle.height === "string" &&
+        (processedStyle.height.trim().endsWith("%") ||
+          isEngineIntrinsicKeyword(processedStyle.height)));
+    const textWidthMayDependOnContent =
+      processedStyle.width == null ||
+      processedStyle.width === "auto" ||
+      isEngineIntrinsicKeyword(processedStyle.width) ||
+      (typeof processedStyle.width === "string" &&
+        processedStyle.width.trim().endsWith("%")) ||
+      isEngineIntrinsicKeyword(processedStyle.minWidth) ||
+      isEngineIntrinsicKeyword(processedStyle.maxWidth);
+    if (
+      (textMeasureStyleChanged || textContentChanged) &&
+      isTextLeaf &&
+      (textHeightMayDependOnContent || textWidthMayDependOnContent)
     ) {
-      const processedChild = processedElementsMap.get(filteredChild.id)!;
-      const processedStyle = (processedChild.props?.style ?? {}) as Record<
-        string,
-        unknown
-      >;
       const processedComputed = resolveStyle(processedStyle, computedStyle);
       const measured = enrichWithIntrinsicSize(
         processedChild,
@@ -2341,7 +2395,14 @@ function traversePostOrder(
         string,
         unknown
       >;
-      if (modStyle.height == null && measuredStyle.height == null) {
+      // 텍스트가 비워지면 enrich는 높이·baseline 스칼라를 생략한다. 이전 DFS 측정값을
+      // 남기면 빈 ProgressBarValue 같은 leaf가 한 줄 높이를 계속 차지한다.
+      for (const key of ENGINE_MEASURE_SCALAR_KEYS) {
+        if (measuredStyle[key] === undefined) {
+          delete batch[batchIdx].style[key];
+        }
+      }
+      if (processedStyle.height == null && measuredStyle.height == null) {
         delete batch[batchIdx].style.height;
       }
       patchBatchStyleFromImplicit(
@@ -2353,6 +2414,8 @@ function traversePostOrder(
             "contentMinHeight",
             "contentMinWidth",
             "contentMaxWidth",
+            "minWidth",
+            "maxWidth",
             "leafBaseline",
           ]
             .filter((key) => measuredStyle[key] !== undefined)
@@ -2360,7 +2423,7 @@ function traversePostOrder(
         ),
         processedComputed.fontSize,
       );
-    } else if (fontSizeChanged && modStyle.height == null) {
+    } else if (!isTextLeaf && fontSizeChanged && modStyle.height == null) {
       // 비텍스트 자식의 기존 단일 line box 보정. 명시 height 는 보존한다.
       const childFs =
         typeof modStyle.fontSize === "number"
@@ -2969,6 +3032,7 @@ export function calculateFullTreeLayout(
     indexMap: new Map<string, number>(),
     visiting: new Set<string>(),
     processedElementsMap: new Map<string, CanvasLayoutNode>(),
+    computedStyleByElement: new Map<string, ComputedStyle>(),
     inheritedTextAxes: new Map<string, TextRenderComputedInput>(),
   };
   const { batch, indexMap, processedElementsMap } = dfsCtx;
@@ -3183,7 +3247,7 @@ export function calculateFullTreeLayout(
         // root(body) 노드는 Step 1.5에서 pageWidth/Height를 명시적으로 설정하므로 스킵
         if (node.elementId === rootElementId) continue;
 
-        // auto height가 아닌 요소는 스킵 (고정 height는 줄바꿈 영향 없음)
+        // auto/축 intrinsic 높이는 확정 폭에서 다시 잰다 (고정 height만 줄바꿈과 무관).
         const childStyle = (childEl.props?.style ?? {}) as Record<
           string,
           unknown
@@ -3217,11 +3281,15 @@ export function calculateFullTreeLayout(
           typeof rawH === "string" &&
           rawH.trim().endsWith("%") &&
           typeof batchStyle.contentHeight === "number";
+        // min/max-content 도 블록 축에서는 내용 높이다. 1-pass 폭보다 flex 실배치 폭이
+        // 좁아지면 줄 수가 늘어나므로 fit-content/auto 와 같은 재측정 대상이다.
         if (
           rawH !== undefined &&
           rawH !== null &&
           rawH !== "auto" &&
           rawH !== "fit-content" &&
+          rawH !== "min-content" &&
+          rawH !== "max-content" &&
           !percentHeightMeasuredLeaf
         )
           continue;
@@ -3459,7 +3527,10 @@ export function calculateFullTreeLayout(
               : childEl;
           const childComputed = resolveStyle(
             mergedStyle,
-            getRootComputedStyle(),
+            childEl.parent_id
+              ? (dfsCtx.computedStyleByElement.get(childEl.parent_id) ??
+                  getRootComputedStyle())
+              : getRootComputedStyle(),
           );
           const reEnriched = enrichWithIntrinsicSize(
             mergedEl,

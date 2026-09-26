@@ -2666,10 +2666,47 @@ export function calculateContentHeight(
     // ADR-923 r19m1 — "" 줄은 접는다 (Preview div 미렌더 · Skia illustrated_message y 동일);
     //   부재는 기본 글자 줄 유지. 텍스트 원천은 specs 단일 지점.
     const imText = resolveIllustratedMessageText(props);
+    const pad = parsePadding(s, availableWidth);
+    const contentWidth =
+      availableWidth != null && availableWidth > 0
+        ? Math.max(
+            0,
+            availableWidth -
+              (s.padding != null || s.paddingLeft != null
+                ? pad.left
+                : m.paddingX) -
+              (s.padding != null || s.paddingRight != null
+                ? pad.right
+                : m.paddingX),
+          )
+        : 0;
+    const ff = (s.fontFamily as string) ?? specFontFamily.sans;
+    const headingHeight =
+      imText.heading !== "" && contentWidth > 0
+        ? measureWrappedTextHeight(
+            imText.heading,
+            m.headingFs,
+            600,
+            ff,
+            contentWidth,
+            m.headingLine,
+          )
+        : m.headingLine;
+    const descriptionHeight =
+      imText.description !== "" && contentWidth > 0
+        ? measureWrappedTextHeight(
+            imText.description,
+            m.descFs,
+            400,
+            ff,
+            contentWidth,
+            m.descLine,
+          )
+        : m.descLine;
     const contentHeight =
       m.box +
-      (imText.heading !== "" ? gap + m.headingLine : 0) +
-      (imText.description !== "" ? gap + m.descLine : 0);
+      (imText.heading !== "" ? gap + headingHeight : 0) +
+      (imText.description !== "" ? gap + descriptionHeight : 0);
     const hasStylePadding =
       s.padding != null || s.paddingTop != null || s.paddingBottom != null;
     return hasStylePadding ? contentHeight : contentHeight + m.paddingY * 2;
@@ -2700,31 +2737,47 @@ export function calculateContentHeight(
     if (typeof ruleH === "number" && ruleH > 0) return ruleH;
   }
 
-  // 1.53. DisclosureContent: catalog rule fontSize/lineHeight 텍스트 높이.
-  //   CSS panel 은 텍스트 라인만(md 20px) — `.react-aria-DisclosurePanel > div` padding 은
-  //   display:contents 마커 div 에 걸려 미적용. 분기 부재 시 TEXT_LEAF 미분류 → 최종
-  //   fallback fontSize 16*1.5=24 로 CSS 대비 +4 drift (2026-07-14 sweep).
-  //   TEXT_LEAF_TAGS 등록 대신 전용 분기: 등록 시 enrichWithIntrinsicSize 가 intrinsic
-  //   width 를 주입해 full-width stretch 가 깨진다 (Link 분기 동형 패턴).
-  if (tag1 === "disclosurecontent") {
+  // DisclosureContent 는 block stretch 를 유지해야 하므로 TEXT_LEAF_TAGS 에 넣지 않는다.
+  // Link 도 별도 catalog lineHeight 를 갖는다. 두 leaf 모두 폭에 따른 줄 수를 재야 한다.
+  if (tag1 === "disclosurecontent" || tag1 === "link") {
     const props = element.props as Record<string, unknown> | undefined;
-    const specStyle = extractSpecTextStyle("disclosurecontent", props ?? {});
+    const specStyle = extractSpecTextStyle(tag1, props ?? {});
     const fontSize =
       resolveTextRenderStyle(style).fontSize ?? specStyle?.fontSize ?? 14;
     const lh = parseLineHeight(style, fontSize) ?? specStyle?.lineHeight;
-    return estimateTextHeight(fontSize, lh);
-  }
-
-  // 1.55. Link: padding/border 없는 텍스트 전용 인라인 요소 — fontSize/lineHeight 기반 높이
-  // ADR-151 B4 (2026-07-16): catalog Link.sizes.lineHeight(typography pair) read-through —
-  //   undefined 고정 전달은 estimateTextHeight fallback(md 16) 으로 CSS(20)와 발산.
-  if (tag1 === "link") {
-    const props = element.props as Record<string, unknown> | undefined;
-    const specStyle = extractSpecTextStyle("link", props ?? {});
-    const fontSize =
-      resolveTextRenderStyle(style).fontSize ?? specStyle?.fontSize ?? 14;
-    const lh = parseLineHeight(style, fontSize) ?? specStyle?.lineHeight;
-    return estimateTextHeight(fontSize, lh);
+    const text = resolveTextSourceText(tag1, props);
+    if (!text) return 0;
+    if (!availableWidth || availableWidth <= 0)
+      return estimateTextHeight(fontSize, lh);
+    const pad = parsePadding(style, availableWidth);
+    const border = parseBorder(style);
+    const textWidth =
+      availableWidth - pad.left - pad.right - border.left - border.right;
+    const ws = resolveTextLeafWhiteSpace(style, computedStyle);
+    return textWidth > 0
+      ? measureWrappedTextHeight(
+          text,
+          fontSize,
+          parseNumericValue(style?.fontWeight) ??
+            computedStyle?.fontWeight ??
+            specStyle?.fontWeight ??
+            400,
+          (style?.fontFamily as string) ??
+            computedStyle?.fontFamily ??
+            specStyle?.fontFamily ??
+            specFontFamily.sans,
+          ws === "pre" || ws === "nowrap" ? 100000 : textWidth,
+          lh,
+          style?.wordBreak as "normal" | "break-all" | "keep-all" | undefined,
+          style?.overflowWrap as
+            "normal" | "break-word" | "anywhere" | undefined,
+          resolveTextRenderStyle(style, computedStyle).letterSpacing,
+          ws,
+          parseNumericValue(style?.wordSpacing) ?? computedStyle?.wordSpacing,
+          (style?.fontVariant ?? computedStyle?.fontVariant) as
+            string | undefined,
+        )
+      : estimateTextHeight(fontSize, lh);
   }
 
   // 1.56. Column/Cell (TableView 자식 텍스트 leaf): border-box height = 텍스트 높이 + 세로 padding.
@@ -5352,6 +5405,13 @@ export function enrichWithIntrinsicSize(
     typeof rawWidth === "string" &&
     rawWidth !== "auto" &&
     INTRINSIC_SIZE_KEYWORDS.has(rawWidth);
+  const hasIntrinsicWidthConstraint =
+    style?.minWidth === "min-content" ||
+    style?.minWidth === "max-content" ||
+    style?.minWidth === "fit-content" ||
+    style?.maxWidth === "min-content" ||
+    style?.maxWidth === "max-content" ||
+    style?.maxWidth === "fit-content";
   // 2026-09-24 사용자 신고 (Disclosure 크기) — DisclosureContent 는 전용 높이 분기 때문에 TEXT_LEAF 밖이지만
   //   (위 1.53), 자식 없는 본문은 글자가 내용이다. 스칼라가 없으면 shrink-to-fit 부모 (flex column
   //   align-items:flex-start 안 Disclosure) 가 본문 폭을 몰라 헤더 폭으로만 접혔다 (DOM 168 · Canvas 128).
@@ -5372,6 +5432,7 @@ export function enrichWithIntrinsicSize(
   // Image: replaced element — auto/fit-content 시 자연 치수 사용 필요
   const needsWidth =
     hasExplicitIntrinsicWidthKeyword ||
+    (scalarTextLeaf && hasIntrinsicWidthConstraint) ||
     // ADR-923 Phase 4 (G5): 측정 capability 는 INTRINSIC_MEASURE_TAGS (명시 목록) 가 원천 —
     //   INTRINSIC_MEASURE_TAGS 의 display 역할과 분리. 멤버십 동일 → 출력 diff 0 (분리 전 baseline 게이트).
     (INTRINSIC_MEASURE_TAGS.has(type) &&
@@ -5530,7 +5591,8 @@ export function enrichWithIntrinsicSize(
       : IMAGE_INTRINSIC_TAGS.has(type) ||
           SPEC_SHAPES_INPUT_TAGS.has(type) ||
           INTRINSIC_MEASURE_TAGS.has(type) ||
-          TEXT_LEAF_TAGS.has(type)
+          TEXT_LEAF_TAGS.has(type) ||
+          type === "disclosurecontent"
         ? calculateContentHeight(
             element,
             // INLINE_BLOCK 태그에 명시적 고정 너비(px)가 있으면 자신의 border-box 너비로
@@ -5544,7 +5606,9 @@ export function enrichWithIntrinsicSize(
             //   availableWidth × % 로 쟀다" 고 추정하므로 (fullTreeLayout enrichedWidth) 여기서도
             //   같은 식으로 풀어야 재측정 판정과 가정이 일치한다 — 종전엔 % 를 거부해 부모 폭 (2줄)
             //   으로 잰 뒤 Step 4.5 가 171 == 171 로 건너뛰어 Skia 3줄이 상자 밖이었다.
-            INTRINSIC_MEASURE_TAGS.has(type) || TEXT_LEAF_TAGS.has(type)
+            INTRINSIC_MEASURE_TAGS.has(type) ||
+              TEXT_LEAF_TAGS.has(type) ||
+              type === "disclosurecontent"
               ? resolveEnrichMeasureWidth(rawWidth, availableWidth)
               : availableWidth,
             undefined,
@@ -5665,6 +5729,18 @@ export function enrichWithIntrinsicSize(
   // childElements가 있으면 재계산 (ToggleButtonGroup 등 자식이 CanvasLayoutNode로 저장된 경우)
   // childElements가 없어도 INTRINSIC_MEASURE_TAGS(Tag, Badge 등)는 텍스트 기반 너비 계산 필요:
   // box.contentWidth는 availableWidth 기반이므로 fit-content 시 부모 전체 너비를 차지하는 버그 발생
+  const intrinsicConstraintMeasureElement =
+    scalarTextLeaf &&
+    hasIntrinsicWidthConstraint &&
+    parseNumericValue(rawWidth) !== undefined
+      ? ({
+          ...element,
+          props: {
+            ...element.props,
+            style: { ...style, width: undefined },
+          },
+        } as CanvasLayoutNode)
+      : element;
   const childResolvedWidth =
     childElements && childElements.length > 0
       ? calculateContentWidth(
@@ -5675,9 +5751,10 @@ export function enrichWithIntrinsicSize(
         )
       : INTRINSIC_MEASURE_TAGS.has(type) ||
           CIRCLE_LEAF_TAGS.has(type) ||
-          hasExplicitIntrinsicWidthKeyword
+          hasExplicitIntrinsicWidthKeyword ||
+          (scalarTextLeaf && hasIntrinsicWidthConstraint)
         ? calculateContentWidth(
-            element,
+            intrinsicConstraintMeasureElement,
             undefined,
             getChildElements,
             _computedStyle,
@@ -6274,8 +6351,12 @@ export function applyCommonEngineStyle(
   const maxW = parseCSSPropWithContext(style.maxWidth, ctx);
   const maxH = parseCSSPropWithContext(style.maxHeight, ctx);
   if (minW !== undefined) result.minWidth = minW;
+  else if (isEngineIntrinsicKeyword(style.minWidth))
+    result.minWidth = style.minWidth;
   if (minH !== undefined) result.minHeight = minH;
   if (maxW !== undefined) result.maxWidth = maxW;
+  else if (isEngineIntrinsicKeyword(style.maxWidth))
+    result.maxWidth = style.maxWidth;
   if (maxH !== undefined) result.maxHeight = maxH;
 
   // Padding — px 는 숫자, `%` 는 문자열 그대로 (엔진이 containing block 폭으로 푼다 — resolveEngineBoxEdges)
