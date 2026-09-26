@@ -1,4 +1,4 @@
-import { JSX, lazy, Suspense } from "react";
+import { JSX, lazy, Suspense, useLayoutEffect } from "react";
 import ReactDOM from "react-dom/client";
 import {
   BrowserRouter,
@@ -11,6 +11,7 @@ import { initPerformanceDiagnostics } from "./utils/performance/diagnostics";
 import { cleanupLegacyStorage } from "./lib/legacyStorageCleanup";
 import { setAssetUrlResolverLoader } from "@composition/shared/utils";
 import { startRuntimeErrorLog } from "./builder/performance/runtimeErrorLog";
+import { notifyRouteCommitted } from "./utils/ui/viewTransition";
 
 // 잡히지 않은 오류를 페이지 안에 모은다 — dev 는 __composition_RUNTIME_ERRORS__ 로 읽힌다.
 startRuntimeErrorLog();
@@ -68,6 +69,8 @@ export const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
 
 function AppLayout() {
   const location = useLocation();
+  // 화면 전환 View Transition 이 새 경로 commit 을 기다린다 (utils/ui/viewTransition)
+  useLayoutEffect(() => notifyRouteCommitted(), [location.key]);
   const shouldShowBackground =
     location.pathname === "/" ||
     location.pathname === "/signin" ||

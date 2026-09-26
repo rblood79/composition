@@ -41,3 +41,10 @@
   bottom: auto !important;
   transform: translateY(-50%);
 }
+
+/* 화면 전환 (로그인 → 프로젝트 목록 → 빌더) crossfade — navigateWithTransition 이 건다.
+   기본 250ms 는 빌더 진입을 늦게 느끼게 해 줄인다. reduced motion 은 JS 가 전환 자체를 건너뛴다. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 160ms;
+}

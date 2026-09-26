@@ -52,6 +52,7 @@ import type { ProjectListItem } from "../types/dashboard.types";
 import { deriveProjectRenderModelFromDocument } from "@composition/shared";
 import "./index.css";
 import { ACTION_ICONS } from "../builder/config/actionIcons";
+import { navigateWithTransition } from "../utils/ui/viewTransition";
 /** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
 const AddIcon = ACTION_ICONS.add;
 
@@ -503,7 +504,7 @@ function Dashboard() {
         setIsCreating(false);
         setIsLoadingProjects(true);
         void loadProjects();
-        navigate(`/builder/${newProject.id}`);
+        navigateWithTransition(() => navigate(`/builder/${newProject.id}`));
       },
     },
   );
@@ -593,7 +594,8 @@ function Dashboard() {
   const error = createProjectMutation.error || deleteProjectMutation.error;
   const isBusy = createProjectMutation.isLoading;
   const hasNoProjectsAtAll = !isLoadingProjects && projects.length === 0;
-  const openProject = (id: string) => navigate(`/builder/${id}`);
+  const openProject = (id: string) =>
+    navigateWithTransition(() => navigate(`/builder/${id}`));
 
   const createTile = (
     <CreateProjectTile

@@ -31,6 +31,7 @@ import {
   saveAuth,
 } from "./license/localAuth";
 import { APP_ICON_URL } from "../utils/ui/uiConstants";
+import { navigateWithTransition } from "../utils/ui/viewTransition";
 import "./index.css";
 
 type LicenseSource =
@@ -97,7 +98,7 @@ const Signin = () => {
       const payload = await verifyLicenseToken(token, code, publicKey);
       resetAttempts();
       saveAuth(payload);
-      navigate("/dashboard");
+      navigateWithTransition(() => navigate("/dashboard"));
     } catch (err) {
       const reason =
         err instanceof LicenseVerifyError ? err.reason : "malformed";

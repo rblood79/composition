@@ -43,6 +43,7 @@ import { ZoomControls } from "../workspace/ZoomControls";
 import { useCompareModeStore } from "../workspace/canvas/stores";
 import { ACTION_ICONS } from "../config/actionIcons";
 import { useI18n } from "../../i18n";
+import { navigateWithTransition } from "../../utils/ui/viewTransition";
 
 /** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
 const DeleteIcon = ACTION_ICONS.delete;
@@ -107,7 +108,7 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
 
   // 프로젝트 목록으로 나간다 — 헤더 메뉴 항목과 ⌘O 가 같은 동작을 부른다.
   const handleOpenProject = useCallback(() => {
-    navigate("/dashboard");
+    navigateWithTransition(() => navigate("/dashboard"));
   }, [navigate]);
 
   const headerShortcuts = useMemo(
