@@ -103,6 +103,7 @@
 
 - GridList (데이터 바인딩) Properties 에 "카드 필드" 절: origin 해석 자식 중 허용표 prop 을 나열하고 159 `PropertyFieldTemplateInput` (+ `useOwnerCollectionColumns` 의 소유자 = 선택된 GridList) 을 붙인다. 쓰기 위치 = origin 문서 (모든 instance 공유).
 - 신규 입력 컴포넌트 금지 — 159 것을 재사용.
+- ✅ 2026-09-26 — `GridListCardFieldsSection` (Properties, `ItemSlotRolesSection` 뒤): 선택이 데이터 GridList (dataBinding 보유 — ref 는 origin type) 일 때만 선다. 목록은 순수 판정 `readGridListCardFields` — origin 해석은 Canvas scene · 가상화와 같은 `resolveGridListTemplateOriginId` (scene 모듈을 패널에 싣지 않도록 의존 0 모듈 `components/gridlist/gridListTemplateOriginId.ts` 로 옮기고 scene 은 re-export), 키는 shared `rowTemplateBindableKeysFor` (허용표 안 타입별 키 — Image `src` 처럼 값이 아직 없는 prop 도 연결 대상, 표에 없는 타입은 이미 string 값인 허용표 키만). 컬럼 = `fieldsFromOwner(선택된 GridList)`, 입력 = 159 `PropertyFieldTemplateInput`, 쓰기 = `updateElementProps(origin 자손 id)` (origin 영향 확인은 기존 게이트). 원복 RED 2 (쓰기 대상을 owner 로 · origin 을 기본 상수로) · unit 1017 + shared 104 · live (`adr162-p5-card-fields-live.mjs` — 절에 Label · Description children · Image src · alt, 설명을 `{tag}` 로 바꾸자 Canvas 행이 TAG-1 · 2 · 3, page error 0).
 
 ### Phase 6 — cross-check · live · closure (MED)
 

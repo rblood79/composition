@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [데이터 GridList 카드 = 항목 origin 자식] - 2026-09-26
 
+### Added
+
+- **데이터 GridList Properties 에 「카드 필드」 절.** 데이터가 연결된 GridList 를 선택하면 카드 템플릿 (항목 origin) 자식의 글자 · 속성 (Text 글자 · Image src/alt · Link href 등) 마다 필드 입력이 서고, 필드 삽입 버튼이 그 GridList 의 데이터 컬럼을 보여 준다. 값은 카드 템플릿에 저장돼 모든 카드가 공유한다. 전에는 Components 페이지에서 템플릿 자식을 직접 고쳐야 했고, 거기서는 데이터 소유자를 못 찾아 컬럼 목록이 서지 않는 경우가 있었다. ADR-162 Phase 5.
+  - 검증: 원복 RED (쓰기 대상 · origin 해석) · 실제 builder 에서 설명 Text 를 `{tag}` 로 바꾸자 Canvas 행이 행마다 tag 값을 그림.
+
 ### Changed
 
 - **데이터 바인딩 GridList 도 카드 템플릿 (항목 origin) 에 추가한 Image · Button 등을 카드마다 그린다.** 전에는 두 렌더러 모두 label · 설명 두 칸만 그려 템플릿의 다른 자식이 빠졌다. 이제 항목 origin 에 역할 없는 자식이 있으면 데이터 행 카드가 정적 카드와 같은 모양 (origin 의 가상 instance) 이 되고, 자식의 글자 · 속성 (children · src · alt · href 등) 의 `{field}` 는 행 데이터로 채운다. 자식이 전부 label · 설명 slot 이면 종전 그대로. ADR-162 Phase 2 · 3.

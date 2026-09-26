@@ -151,7 +151,7 @@
 
 #### [162](162-gridlist-template-subtree-projection.md) — 데이터 바인딩 GridList 카드 = 항목 origin instance (임의 자식 + 행별 `{field}`)
 
-- **상태**: Proposed
+- **상태**: In Progress — Phase 0 ~ 3 · 5 완료 2026-09-26 (`c5bc86163` · `3b957e17b` · `fced56e42` · Phase 5). Phase 4 는 150 A2 확정 뒤, Phase 6 closure 남음
 - **규모**: **2026-09-26 본문 재작성 (사용자 판정)** — ADR-234 가 정적 목록을 항목 instance 자식으로 바꾼 뒤라 07-24 판의 composed 모드 (판정 심볼 · 별도 투영) 를 버리고, 데이터 행을 정적 카드와 같은 모양 (항목 origin 가상 instance + 159 `{field}` 행별 보간) 으로 만든다. 접기 규칙 하나를 정적 · 데이터 · origin 카드가 공유, slot-only 템플릿 Δ0. Phase 0~~6 (Phase 0 = 정적 카드 비-slot 자식 Canvas live G0), R1 HIGH (비-slot 템플릿 stride 실측) / R2~~R6 / G0~~G4. round 2 (codex) h1 시각 행별 높이 · h2 소유자별 origin · m1 Field legacy · round 3 G3 총 높이는 전 행 측정 뒤로 한정 + 끝 고정 anchoring 반영 — 전제 확정 (pending 0). design breakdown `design/162-gridlist-template-subtree-projection-breakdown.md`
 - **우선순위**: 사용자 제안 2026-07-24
 

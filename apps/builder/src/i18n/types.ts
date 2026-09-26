@@ -594,6 +594,8 @@ export interface TranslationKeys {
     slotDisable: string;
     /** ADR-238 — 항목 안 역할 (icon · label · description · shortcut · avatar) on/off 절. */
     itemRolesSection: string;
+    /** ADR-162 Phase 5 — 데이터 GridList 의 카드 (항목 origin) 자식 prop ↔ 컬럼 연결 절. */
+    cardFieldsSection: string;
     itemRoleRequired: string;
     itemRoleAdd: string;
     itemRoleIcon: string;

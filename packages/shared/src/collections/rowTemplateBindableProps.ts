@@ -29,6 +29,37 @@ export type RowTemplateBindablePropKey =
   (typeof ROW_TEMPLATE_BINDABLE_PROP_KEYS)[number];
 
 /**
+ * 패널 「카드 필드」 절이 컴포넌트마다 보여 줄 키 (Phase 0 inventory — 값이 아직 없어도 연결할 수 있게 타입으로
+ * 정한다). 표에 없는 타입은 허용표 키 중 이미 string 값을 가진 것만 보인다.
+ */
+const ROW_TEMPLATE_BINDABLE_PROPS_BY_TYPE: Readonly<
+  Record<string, readonly RowTemplateBindablePropKey[]>
+> = {
+  Text: ["children"],
+  Heading: ["children"],
+  Paragraph: ["children"],
+  Button: ["children"],
+  Badge: ["children"],
+  StatusLight: ["children"],
+  Link: ["children", "href"],
+  Avatar: ["src", "alt", "initials"],
+  Icon: ["iconName"],
+  Image: ["src", "alt"],
+};
+
+/** 한 노드에서 행 데이터로 연결할 수 있는 prop 키 (허용표 안). */
+export function rowTemplateBindableKeysFor(
+  type: string,
+  props: Readonly<Record<string, unknown>> | null | undefined,
+): readonly RowTemplateBindablePropKey[] {
+  const byType = ROW_TEMPLATE_BINDABLE_PROPS_BY_TYPE[type];
+  if (byType) return byType;
+  return ROW_TEMPLATE_BINDABLE_PROP_KEYS.filter(
+    (key) => typeof props?.[key] === "string",
+  );
+}
+
+/**
  * 항목 origin 자식을 데이터 행마다 펼치는가 — 자식이 있고 전부 slot 역할은 아닐 때 (Canvas 투영 ·
  * Preview 렌더 · layout 이 같은 판정). 전부 slot 이면 종전 경로 (escape · label/설명 두 칸 — BC).
  */
