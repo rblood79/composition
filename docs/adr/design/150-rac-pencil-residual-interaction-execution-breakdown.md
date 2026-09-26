@@ -57,14 +57,16 @@
 2. **raw hit 전달 (round 3 h1)**: owner redirect 이전의 hit 정보를 double-click handler 까지 보존한다.
    - `CanvasInteractionTarget` 의 `select` 에 선택 id (owner) 와 별도로 `sourceHit?: { nodeId, projection }` 필드를 둔다. collection projection 을 owner 로 돌릴 때 (`resolveCanvasInteractionTarget.ts:160-164`) 그 필드를 채운다.
    - pointer handler (`useCentralCanvasPointerHandlers.ts`) 는 `hitElementId` 옆에 `sourceHit` 을 보관한다. double-click 두 분기 — 선택 경계 밖 (`:430`), 선택 경계 안 (`:476-494`, `resolveDoubleClickTargetId`) — 모두 `handleElementDoubleClickRef.current(targetId, { sourceHit })` 로 넘긴다.
-   - double-click 판정 키는 owner id 를 그대로 쓴다. 해석은 두 번째 클릭의 `sourceHit` 으로 한다. 단일 클릭 · 드래그 · hover 경로는 `sourceHit` 을 읽지 않는다.
+   - **double-click 연속성 키 (round 4 h1)**: 키 함수 `resolvePointerClickKey(sourceHit, targetId)` 하나를 둔다. `sourceHit` 이 있으면 그 노드 id (예: `projection:gridlist-row:grid:a/heading` — 카드 · 자식 단위) 를, 없으면 지금처럼 선택 id 를 돌려준다. 두 분기의 `commitPointerClick` (기록) 과 `isPointerDoubleClick` (판정, `pointerSession.ts:8-22` 는 키 문자열만 비교한다) 이 모두 이 키를 쓴다. owner id 를 키로 두면 서로 다른 카드의 연속 단일 클릭이 300ms 안에서 double-click 이 된다.
+   - 해석은 두 번째 클릭의 `sourceHit` 으로 한다. 선택 id 는 owner 를 유지한다. 단일 클릭 · 드래그 · hover 경로는 `sourceHit` 을 읽지 않는다. `sourceHit` 이 없는 요소 (데이터 행 밖) 는 키가 지금과 같아 동작 변경 0 이다.
    - `sourceHit.nodeId` 는 해석 입력으로만 쓰고 selection · mutation · history 에 넣지 않는다 (HC3).
 3. **진입점**: 더블클릭 handler (`useCanvasElementSelectionHandlers.ts` `handleElementDoubleClick`) 는 `sourceHit` 이 데이터 행 projection 이면 해석기를 부른다. 성공하면 `selectElementWithPageTransition(originChildId, originPageId)` 을 호출한다. 실패하거나 `sourceHit` 이 없으면 지금의 진입 동작을 그대로 쓴다.
 4. **안내**: Properties 에서 선택 요소가 데이터 목록 템플릿 origin 의 자식이면 "이 원본을 쓰는 카드 전체에 적용" 을 표시한다. ADR-162 Phase 5 카드 필드 절과 같은 문구 체계를 쓴다.
 5. **대상 가족**: §2-4 표에서 템플릿 origin 이 있는 가족만 대상이다. 나머지는 owner 선택을 유지한다.
 6. **검증**:
    - unit: 해석기 (성공 · path 불일치 · origin 없음), 가상 id 가 selection · mutation 에 들어가지 않음 (negative), 단일 클릭 owner 회귀.
-   - unit (h1 반례): 펼친 카드의 서로 다른 Text 자식 두 개를 각각 hit → 두 double-click 분기 각각에서 서로 다른 origin 자식으로 해석된다.
+   - unit (round 3 h1 반례): 펼친 카드의 서로 다른 Text 자식 두 개를 각각 hit → 두 double-click 분기 각각에서 서로 다른 origin 자식으로 해석된다.
+   - unit (round 4 h1 반례): 카드 A `a/heading` 클릭 t=1000 → 카드 B `b/detail` 클릭 t=1200 → double-click 아님 · 페이지 이동 0. 같은 카드의 `a/heading` → `a/detail` 도 아님. 같은 자식 두 번 (t=1000 · 1200) 만 double-click. 두 분기 각각, 원복 (owner 키) 시 RED.
    - live: 펼친 카드의 서로 다른 Text 두 개를 각각 더블클릭 → Components 페이지 origin 자식 선택 → 스타일 변경 → 원래 페이지 모든 카드 반영. 페이지 이동 UX 는 사용자 확인 (R3).
 
 ## §5 Phase 3 — closure (G3)
