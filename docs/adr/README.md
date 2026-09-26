@@ -11,6 +11,8 @@
 
 ---
 
+> **2026-09-26 ADR-235 Implemented**: 로컬 프로젝트 저장 v2 (Phase 0~~7 / G0~~G6, 같은 날). 원본 바이트를 IndexedDB `assets` 에 SHA-256 으로 한 벌 (`asset:sha256-…` 참조 · 해석 함수 하나를 Canvas · Preview · publish 가 같이 읽는다 — dual-read) · 폰트 localStorage 5MB 한도 해소 · 인라인 dataURL 1회 이관 (백업 선행) · 자산 GC (참조 공개 = pin + epoch 한 트랜잭션 · 탭 생존 Web Locks) · 형식 v2 (`manifest.json` · `parts/` · `assets/`, zip 교환 + v1 JSON 내보내기 유지) · publish v2 로더 · 웹 보호 (persist · 사용량 표시 · quota 재시도 · 캐시 `composition-cache` bucket · 스냅샷 50MB) · Chromium 폴더 연결 (세대 전환 쓰기 · 충돌 감지 · 권한 흐름). 기존 결함 수리: Canvas 가 image fill 을 그리지 않음. live P7 6/6 (Chrome 153 + WebKit 26.5 — WebKit 비공개 저장소 Blob 거부 → ArrayBuffer 저장 수리) · G1 9/9 · G2 7/7 · G3 4/4 · G4 8/8 · G6 6/6. 번들 Builder 1,420,882 / Preview 622,556 (ADR-201 상한 재승인 1,421,000 / 623,000 안). 사용자 확인 대상: 실제 폴더 선택창 · 권한 요청 · Preview · Safari · Firefox. 열림 5 (Proposed 4 · Accepted 1), 합계 268 (파일 실측으로 정정).
+>
 > **2026-09-26 ADR-235 Accepted → Phase 0 완료**: 사용자 `/execute-adr 235` (review round 2 pending 0). G0 — 이미지 요청 지점 3 (Skia `fetchAndDecode` · DOM `fillToCssLayer` · `<img>` 렌더러) · 폰트 2 · writer `readAsDataURL` 2 · GC root 9 보유처 (문자열 전수 순회 — `metadata.legacyProps` 이중 보관 실측) · Preview/publish 같은 origin IndexedDB 직접 읽기 · 폰트 4MB 저장 실패 RED (jsdom + Chrome 153) · 용량 기준선 (이미지 447 KB → 문서 1.33 MB · 스냅샷 · history 각 한 벌, 합 5.53 MB). 기존 결함: Canvas 가 image fill 을 그리지 않음 (Phase 1 수리).
 
 > **2026-09-25 ADR-236 Implemented**: 빌더 도메인 규칙 정리 (Phase 0–4 · G0–G4). body · synthetic id · Components 페이지 술어를 shared `domain/` 하나로 (직접 구현 0 ratchet) · shared 타입 특성 표 `componentTraits.ts` 에서 집합 17 + nestingRules 층 2 표 3, D2 스키마에서 Direction 토글 2 파생 (동등성 · live rect/픽셀 0) · 구조 변경 판정 `canOperate` · 대상 판정 `resolveMoveTarget` 을 표면과 store 진입부 13 액션 · 우회 쓰기 2 경로가 같이 부른다 (AST ratchet). 강제 지점 불일치 12 중 11 닫힘 · E4 (origin 안 구조 변경 영향 확인) 는 표면 선행 확인, 드래그 · 패널 내부 추가 · Alt 복제는 후속. 판독 HIGH 2 수리 (이름 영역 드래그 · store 대화상자 → 표면). live 9 · G4 호출당 p95 ≈ 0.0003 ms · 번들 Builder 1,411,505 / Preview 621,472 (상한 안). 범위 밖: 렌더 특수 분기 27 (상시 규칙). 열림 9 (Proposed 8 · Accepted 1), 합계 268.
@@ -111,17 +113,19 @@
 
 | 구분                          |    개수 |
 | ----------------------------- | ------: |
-| 완료 (`completed/`)           |     259 |
-| ├ Implemented                 |     223 |
+| 완료 (`completed/`)           |     263 |
+| ├ Implemented                 |     224 |
 | ├ Accepted                    |      13 |
 | ├ Superseded                  |      14 |
 | └ Deprecated                  |       9 |
-| 열려 있는 것 (`adr/*.md`)     |       9 |
-| ├ Proposed                    |       8 |
+| 열려 있는 것 (`adr/*.md`)     |       5 |
+| ├ Proposed                    |       4 |
 | ├ Accepted (미착수·일부 착수) |       1 |
 | └ 부분 완료                   |       0 |
 | **합계**                      | **268** |
 
+> 2026-09-26 파일 실측 (ADR-235 승격 때): `completed/` 파일 268 − 비-ADR 5 = ADR 263 · `adr/` 직속 ADR 5 (150 Accepted · 162 · 910 · 911 · 921 Proposed) — 직전 표의 열림 9 · 완료 259 는 이동 누락으로 어긋나 있었다. 완료 내역 4 줄의 합 (260) 은 263 과 3 차이 — 개별 Status 재대조는 다음 정리 때.
+>
 > 2026-09-22 파일 실측: `completed/` ADR 파일 253 (비-ADR 5 제외) · `adr/` 직속 ADR 6 (09-22 232 추가). 완료 내역 (Implemented/Accepted/Superseded/Deprecated) 은 09-10 대조값에 그 뒤 Implemented 5 (224~~227 · 231) 를 더한 것 — 개별 Status 재대조는 다음 정리 때.
 
 `completed/` 에는 ADR 외에 Phase 0 baseline 4건과 참조 자료 1건이 함께 있다 (완료 절 끝 참조).
@@ -138,12 +142,6 @@
 - **상태**: Accepted (전체) · **A1 철회 2026-07-20** · A2 delivered(시각 확인 대기) · A3 미착수
 - **규모**: **Phase A1(Skia hover/pressed/focusVisible 상태 threading) 철회 2026-07-20 (재판정)** — 빌더(Skia)가 pointer 연동으로 hover/pressed/focus 를 실시간 재현한 것은 **D1/D3 경계 오판**(그 역할은 Preview DOM 소관, RAC 자동 소유). A1 커밋 4건 역순 revert(`5e635ebbc`), 편집 보조 hover outline·선언적 상태(selected/disabled) 시각은 보존. 911 R-4 HIGH→MED / G-state 를 선언적 상태 parity 로 재정의. **A2(collection 가상화)/A3(drill-in·data edit)은 상호작용 시뮬레이션이 아니라 빌더의 대용량 표시·깊은 편집이라 유효 — 진행 유지.** G-A2/G-A3 (HIGH 2: window 동기화 / projected id 경계 — G-A1/R1 은 철회). design breakdown `design/150-rac-pencil-residual-interaction-execution-breakdown.md`
 - **우선순위**: 사용자 확정 2026-07-13 (AskUserQuestion — 단일 실행 ADR)
-
-#### [235](235-local-project-storage-v2-asset-store-directory-format.md) — 로컬 프로젝트 저장 v2 — 해시 자산 저장소 · 디렉토리 형식 · IndexedDB 작업본
-
-- **상태**: Accepted (2026-09-26 — 사용자 `/execute-adr 235`) · Phase 0 완료 ([G0](design/235-local-project-storage-v2-breakdown.md#6-phase-기록))
-- **규모**: Phase 0~7 ([breakdown](design/235-local-project-storage-v2-breakdown.md)) — 자산 저장소 (IndexedDB `assets` · SHA-256 · 해석 함수 단일화, 폰트 localStorage 5MB 한도 해소) → 인라인 dataURL 이관 · GC → 형식 v2 reader/writer · publish 로더 → 웹 보호 → Chromium 디렉토리 연결 → live
-- **우선순위**: 사용자 요청 2026-09-23 (AskUserQuestion — 저장만 1개 ADR, Electron 후속 분리)
 
 #### [162](162-gridlist-template-subtree-projection.md) — GridList 카드 템플릿 임의 자식 실체화 + row-data 동적 매핑
 
@@ -232,7 +230,7 @@
 
 ---
 
-## 완료 ADR (254)
+## 완료 ADR (255)
 
 > 상세는 각 본문이 정본이다. 구 README 의 **비고** 열 서술 (최장 셀 14KB — ADR-912 행이 표
 > 전체를 그 폭으로 채워 3.2MB 를 만들었다) 은
@@ -257,6 +255,7 @@
 | [239](completed/239-tree-submenu-swatch-item-origins.md) | Tree · Menu 하위 메뉴 · ColorSwatchPicker 항목 origin — TreeItem origin · Tree/TreeItem slot · 재귀 key · Canvas 중첩 행 쌓기 · `expandedKeys` 두 leg 대칭 + 이관 · Menu 하위 메뉴 (SubmenuTrigger) · swatch origin · 자식 있는 TreeItem 해석 재사용 · history 스냅샷 새 origin 유지 | Implemented | 2026-09-25 |
 | [241](completed/241-table-column-row-origins.md) | Table 열 · 행 origin — 두 leg 열 원천 통일 (Column 요소 · 유효 폭 clamp) · Column · Row origin + TableHeader · TableBody slot · instance 자기 열 (Slot "+" · quick connect · Preview 열 감지) · TableView 셀 동기화 (추가 · 삭제 · 순서 · 행 "+") · TableView plain 열/행 → ref 이관 (id 유지) · mode C 항목 ref 자기 자식 해석 · 삭제 history 셀 | Implemented | 2026-09-25 |
 | [236](completed/236-builder-domain-rules-consolidation.md) | 빌더 도메인 규칙 정리 — body · synthetic id · Components 페이지 술어 shared 하나 (ratchet) · shared 타입 특성 표 `componentTraits.ts` (집합 17 + nestingRules 층 2 표 3 파생 · D2 Direction 토글 2) · 구조 변경 판정 `canOperate` · 대상 판정 `resolveMoveTarget` 를 표면 + store 진입부 13 액션 · 우회 쓰기 2 가 같이 부름 (AST ratchet) · origin 안 구조 변경 영향 확인 (표면 선행) · AI reusable 은 store 경유 | Implemented | 2026-09-25 |
+| [235](completed/235-local-project-storage-v2-asset-store-directory-format.md) | 로컬 프로젝트 저장 v2 — 원본 바이트 IndexedDB `assets` 한 벌 (SHA-256 `asset:` 참조 · 해석 함수 하나 · dual-read) · 폰트 5MB 한도 해소 · 인라인 dataURL 이관 · 자산 GC (pin + epoch · Web Locks) · 형식 v2 zip/디렉토리 (세대 전환 쓰기) · publish v2 로더 · 웹 보호 (persist · 사용량 · quota 재시도 · 캐시 bucket) · Chromium 폴더 연결 | Implemented | 2026-09-26 |
 | [027](completed/027-inline-text-editing.md) | Canvas 인라인 텍스트 편집 — Phase A~~C (TextEditOverlay + Quill · 멀티페이지 좌표 · Spec 컴포넌트 텍스트) + **Phase D 전환 무결성** (2026-09-20 "리치 텍스트" 에서 재정의): D0 `.workspace` overflow clip + Quill focus preventScroll (캔버스 변위 0) · D1 오버레이 white-space 를 Skia paragraph 입력에서 파생 (`overlayWrap.ts`, Enter = pre 계열만 줄바꿈) · D2 Skia 텍스트 draw 원점 기록 → 첫 글리프·baseline 끼리 nudge (`overlayNudge.ts`) · D3 픽셀 게이트 `adr027-text-edit-parity.mjs` (타입 8 × 줌 2, 텍스트 지도 shift + 반치 bbox ≤ 1 CSS px) 16/16 + live 7. 게이트가 잡은 Canvas 결함 수리: CJK 단일행 descent 만큼 위 (ideographic 원점) · 고정 px 폭 텍스트 leaf 높이를 부모 폭으로 측정 · pre 계열 `\n` 높이 (레이아웃 측정기 · shape 변환기) · 오버레이 font-feature-settings / wrapWidthExtra / 첫 렌더 카메라. 보류: 리치 텍스트·툴바 (canonical 텍스트 모델 ADR 선행) | Implemented | 2026-09-20 |
 | [223](completed/223-generated-css-default-archetype-neutralization.md) | 생성 CSS archetype 미지정 기본값 중립화 — `DEFAULT_BASE_STYLES` (inline-flex · align/justify center · cursor pointer · user-select none · transition) 를 `container` 와 같은 중립 상자 (block · box-sizing · font-family) 로. Skia 가 읽지 않는 DOM 전용 채널이 Section/Toolbar/TableView/GridListItem 정렬 발산의 기제였다. catalog entry 3 이관 (Pagination `containerStyles.alignItems` · Card `rootSelectors["&"]` cursor · Tab `rootSelectors["&"]` cursor/user-select/transition) · 생성 CSS 12 파일 (catalog 11 + 잔존 spec Slot; layout 17 byte-identical) · 정적 ratchet (미지정 11 pin). 실측: 생성기 5 (원복 4 RED) · `catalogComponentBox` Toolbar/TableView 불리 케이스 + GridListItem 기존 Δ18 GREEN (원복 Δ114/Δ79/Δ18 RED) · 실제 Card·Tab·Toolbar before/after root Δ0 (원복 2 RED) · live 7종 (`adr223-archetype-live.mjs`, Skia↔DOM 부모 기준 rect · computed interaction). 이 ADR 밖 기존 발산 5 기록 (Pagination preview class 미부여 · Disclosure border-style · Tabs TabPanels padding · Toolbar Skia 높이 · Tooltip Δ20) | Implemented | 2026-09-18 |
 | [222](completed/222-canvas-padding-gap-direct-manipulation.md) | 캔버스 Padding·Gap 직접 편집 — 선택 컨테이너의 padding 4변 + 단일 행/열 flex 주축 gap 을 캔버스 띠·핸들로 드래그/클릭 편집 (발견성 Framer · 피드백 Figma 조합: 선택 즉시 얇은 핸들 (0값 포함) · hover 사선+값 배지 · 드래그 중 잡은 띠 배지 하나 · 클릭 = RAC 인라인 숫자 입력). 공급원 = 엔진 소비 style (`readPersistentEngineStyle`, catalog 기본값·미지정 0 도 편집) · capability 표 (Grid/wrap/space-\*/비-desktop/ref/회전/단위 보존 값 차단) · planner h1 (`isSpacingSizeInvariant` — hug/auto 부모 승격 + 외부 형제) · m2 receipt 채널 (bridge rejected 사유 · 확정값만 표시 · 1초 초과/rejected cancel) · 세션 어댑터 (finish commit 1 · 시작값 복귀 no-op) · gesture "spacing" owner · Option 양쪽/Option+Shift 4변/Shift 10px · Styles 패널 동기 강조+read-only · Gap 필드 주축 longhand. 실측: unit 40+ · live 22/22 (hug→following +24 · Undo 1 · Preview gap 22 · Escape 선택 유지 · zoom 25/200 · 코너 우선 · Space pan · overflow clip) · G4 Δp95 +0.6ms (100 자식) | Implemented | 2026-09-17 |

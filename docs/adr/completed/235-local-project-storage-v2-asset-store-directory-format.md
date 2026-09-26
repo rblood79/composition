@@ -2,13 +2,13 @@
 
 ## Status
 
-Accepted — 2026-09-26 (사용자 `/execute-adr 235` "모든phase완료까지 착수해" · review round 2 pending 0) · Proposed 2026-09-23
+Implemented — 2026-09-26 (Phase 0~7 완료 · [Live Exercise](#live-exercise)) · Accepted — 2026-09-26 (사용자 `/execute-adr 235` "모든phase완료까지 착수해" · review round 2 pending 0) · Proposed 2026-09-23
 
-- Phase 0 완료 2026-09-26 — [G0 inventory](design/235-local-project-storage-v2-breakdown.md#6-phase-기록). 기존 결함 발견: Canvas 가 image fill 을 그리지 않음 (G1 선결, Phase 1 에서 수리) · 정적 HTML fills 미적용 · 같은 dataURL 이 `fills` 와 `metadata.legacyProps.fills` 에 이중 보관.
+- Phase 0 완료 2026-09-26 — [G0 inventory](../design/235-local-project-storage-v2-breakdown.md#6-phase-기록). 기존 결함 발견: Canvas 가 image fill 을 그리지 않음 (G1 선결, Phase 1 에서 수리) · 정적 HTML fills 미적용 · 같은 dataURL 이 `fills` 와 `metadata.legacyProps.fills` 에 이중 보관.
 
 - 추가 개정 2026-09-26 — 수리 검증 round 2 h2 반영: 기존 자산 재참조도 공개 전 pin 확보, 참조 epoch와 pin을 최종 삭제와 같은 IndexedDB 트랜잭션에서 확인. R2 · G3 · breakdown §3.1에 순서·실패 처리 명시.
 
-- 개정 2026-09-26 — [review round 1](reviews/235.md) h1 · h2 · h3 · m1 · m2 반영. 변경 섹션: Hard constraints HC2 · Risk Threshold Check · Decision 3 (세대 전환 쓰기) · Decision 5 (캐시 퇴거 보장 범위) · 위험 수용 근거 · Risks (R2 확장, R9 ~ R11 추가) · Gates 전면 재배치 · Consequences. 구현 순서 (reader 먼저 · writer 나중) 는 breakdown §3.
+- 개정 2026-09-26 — [review round 1](../reviews/235.md) h1 · h2 · h3 · m1 · m2 반영. 변경 섹션: Hard constraints HC2 · Risk Threshold Check · Decision 3 (세대 전환 쓰기) · Decision 5 (캐시 퇴거 보장 범위) · 위험 수용 근거 · Risks (R2 확장, R9 ~ R11 추가) · Gates 전면 재배치 · Consequences. 구현 순서 (reader 먼저 · writer 나중) 는 breakdown §3.
 - 같은 날 유지 섹션 인용 재측정 — 정정: `export.utils.ts` 라인 전부 (`ProjectExportData` :108 · `CURRENT_VERSION` :46 · `downloadProjectAsJson` :876 · `parseProjectData` :919 · `loadProjectFromFile` :1018 · `generateStaticHtml` :1065 · `exportProject` :1451 · JSZip :1548), `BuilderCore.tsx` :1224 · :1257, `MAX_AGE_DAYS = 90` 은 history entry 전용 (스냅샷은 개수 상한), `QuotaExceededError` 는 테스트 mock 1건뿐 (production 0), QueryPersister 는 이미 별도 DB. 무변경 확인: `ImageFillEditor.tsx:93` · `fill.types.ts:84` · `documentPersistGuard.ts:36` · `incrementalDocuments.ts:179` · `fontRegistry.ts:57` · `font.types.ts:56` · `adapter.ts:295` · `imageCache.ts:389` · `:400` · `apps/publish/src/App.tsx:411`.
 
 ## Context
@@ -120,7 +120,7 @@ composition 은 서버 없이 도는 local-first 빌더다. 프로젝트 원본�
 - D: 문서 모델과 맞지 않는 SQL 층 + 전 store 이관 비용에 비해 얻는 것이 없고, OPFS 도 퇴거 위험이 같다. `lib/db/index.ts` 의 PGlite 주석 계획은 이 ADR 로 대체된다.
 - E: 서버 0 · 로컬 라이선스 모델 (HC4) 위반.
 
-> 구현 상세: [235-local-project-storage-v2-breakdown.md](design/235-local-project-storage-v2-breakdown.md)
+> 구현 상세: [235-local-project-storage-v2-breakdown.md](../design/235-local-project-storage-v2-breakdown.md)
 
 ## Risks
 
@@ -154,7 +154,17 @@ composition 은 서버 없이 도는 local-first 빌더다. 프로젝트 원본�
 
 ### Live Exercise
 
-(Implemented 승격 시 기재 — 실제 builder 에서 exercise 한 시나리오 · 결과 · 날짜 · Chrome MCP / 사용자 confirm 구분)
+실제 builder (dev 서버 5173 · Playwright — Chrome 153 `channel: "chrome"` · WebKit 26.5 · 새 프로젝트, Compare Mode · Preview iframe 미개방 — 사용자 지시) 에서 UI · store · IndexedDB · 폴더 파일 · Skia 픽셀로 확인했다 (2026-09-26). 기록 JSON 은 `/private/tmp/adr235-*-live/` (로컬). Chrome MCP · 사용자 confirm 은 쓰지 않았다 — 사용자 확인 대상은 아래 끝 항목.
+
+- `adr235-p7-live.mjs` **6/6** (Phase 7 종합): E1 UI 업로드 (이미지 채우기 · 사용자 폰트) → `asset:` 참조 2 · 새로고침 뒤 Canvas 이미지 픽셀 · 폰트 유지 · E2 요소 삭제 → GC 2회 (history root) 에도 바이트 유지 → undo → 같은 픽셀로 다시 그림 · E3 v2 zip 내보내기 → 빈 프로필 새 프로젝트 가져오기 → 현재 페이지 B · 이미지 · 폰트 · E4 publish (헤더 Preview 버튼 → 새 탭 런타임) → 페이지 B Image `blob:` 로드 (naturalWidth 100) · 폰트 · `asset:` 문자열 누수 0 · E5 두 탭 — 살아 있는 탭의 pin 은 다른 탭 GC 가 존중 · 탭이 닫힌 뒤 (Web Locks 해제) 정리 · E6 WebKit (Safari 엔진, Storage Buckets 미지원 경로) — Chrome 에서 만든 v2 zip 가져오기 · Canvas 이미지 · 다시 내보낸 zip 의 자산 해시 동일.
+- `adr235-g1-live.mjs` **9/9** (G1 · HC7): writer 꺼짐 시 dataURL · `asset:` fixture 이미지 채우기 3 모드 · 폰트 · 해석 누락 참조 네트워크 요청 0 · v1 JSON (메뉴 「JSON 으로 내보내기」) → 빈 프로필 가져오기 시각 동일 · 같은 바이트 2회 = 자산 1.
+- `adr235-g2-live.mjs` **7/7** (G2): 인라인 이관 (백업 선행 · 2회 동일 · 강제 실패 시 인라인 유지) · 4MB 폰트 저장 · 백업 + 스냅샷 + history bytes 감소.
+- `adr235-g3-live.mjs` **4/4** (G3): 백업 · 스냅샷 · 다른 프로젝트 · history 에만 남은 자산이 GC 뒤 유지 · undo/redo 복원.
+- `adr235-g4-live.mjs` **8/8** (G4 · G5): v2 zip 왕복 (문서 · 자산 · collections · 폰트 · `currentPageId` 페이지 B · metadata) · 없는 페이지 → 첫 페이지 + 경고 · 손상 manifest 복구 경고 · publish v1 · v2 현재 페이지.
+- `adr235-p5-live.mjs` (Phase 5): 첫 저장 뒤 persist 요청 · 헤더 사용량 표시 · 캐시가 `composition-cache` bucket (persisted:false) 으로 · 원본 DB 캐시 0.
+- `adr235-g6-live.mjs` **6/6** (G6, 폴더 선택창 대신 OPFS 디렉토리 핸들을 같은 연결 경로로): 연결 → 1세대 · 편집 → DB 저장 뒤 2세대 (직전 보존) · 외부 수정 → conflict · 덮어쓰기 · `manifest.json` 손상 → `manifests/` 복구 · 권한 없음 → 쓰지 않음 · 허용 → 씀 · 영속 프로필 재시작 뒤 연결 복원. 중단 주입 5 지점은 unit (`formatV2Directory.test.ts`).
+- live 에서 잡은 결함 (수리): Canvas 가 image fill 을 그리지 않음 (기존 결함) · 이관 뒤 mirror 에 dataURL 잔존 · 사용량 문구 `{used}` 미치환 (+ 기존 가져오기/내보내기 실패 `{message}`) · bucket IndexedDB 장기 연결이 몇 초 idle 뒤 멈춤 · `manifest.json` 손상 뒤 revision 이 1 로 되돌아감 · WebKit 비공개 저장소가 Blob 을 IndexedDB 에 넣지 못함 (ArrayBuffer 로 저장).
+- 사용자 확인 대상 (자동화 불가): 실제 Chrome 폴더 선택창 · 새로고침 뒤 권한 요청 흐름 · Preview iframe · 실제 Safari · Firefox (이 환경에서 Playwright Firefox 실행 불가 — WebKit 으로 대체).
 
 ## Consequences
 

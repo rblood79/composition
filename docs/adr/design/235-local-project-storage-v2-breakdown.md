@@ -1,6 +1,6 @@
 # ADR-235 구현 상세 — 로컬 프로젝트 저장 v2
 
-> 본문: [ADR-235](../235-local-project-storage-v2-asset-store-directory-format.md)
+> 본문: [ADR-235](../completed/235-local-project-storage-v2-asset-store-directory-format.md)
 >
 > 개정 2026-09-26 — [review round 1](../reviews/235.md) 반영: §2 레이아웃·쓰기 순서 (h1 세대 전환 · m2 `currentPageId`) · §3 Phase 재배치 (h3 reader 먼저 · h2 GC root · m1 캐시 보장 범위) · §4 · §5. §1 전제 기록은 무변경 (scope 무변경 — 순서·쓰기 방식만 바뀜).
 

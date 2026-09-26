@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-235 Implemented — 로컬 프로젝트 저장 v2] - 2026-09-26
+
+### Fixed
+
+- **Safari (WebKit) 에서 이미지 · 폰트가 든 프로젝트 가져오기가 "The operation was aborted" 로 실패하던 문제.** WebKit 비공개 저장소가 IndexedDB 에 Blob 을 넣지 못해, 자산 바이트를 ArrayBuffer 로 저장한다 (이미 Blob 으로 저장된 자산은 그대로 읽힌다).
+
+### Changed
+
+- 로컬 저장 v2 (Phase 1~6, 아래 엔트리) 전체 종결 — 업로드 이미지 · 폰트는 원본 바이트 한 벌을 IndexedDB 에 두고 문서는 참조만 든다 · 기존 인라인 데이터 이관 · 쓰지 않는 자산 정리 · 형식 v2 zip · publish v2 · 브라우저 저장소 보호 · Chromium 폴더 연결.
+  - 검증: 실제 builder 종합 시나리오 6/6 (Playwright Chrome 153 — 업로드 → 새로고침 · 삭제 → 정리 2회 → undo · v2 zip → 빈 프로필 가져오기 · publish Preview 버튼 · 두 탭 정리 / WebKit 26.5 — zip 가져오기 · Canvas 이미지 · 다시 내보낸 자산 해시 동일). 실제 폴더 선택창 · 권한 요청 · Preview · Safari · Firefox 는 사용자 확인 대상.
+
 ## [로컬 저장 v2 Phase 6 — 프로젝트를 폴더에 연결 (Chrome · Edge)] - 2026-09-26
 
 ### Added
