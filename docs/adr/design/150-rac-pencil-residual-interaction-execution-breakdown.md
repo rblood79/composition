@@ -22,23 +22,31 @@
 
 1. **가족별 행 metric 입력 대조표**: ListBox · GridList (slot-only) · Table 각각에 대해 layout 쪽 (`utils.ts` §1.55b-2 · §1.55b2 · §1.55c, `canvasSceneNode.ts` 행 묶음 style) 과 window 쪽 (`collectionVirtualization.ts` resolver) 이 행 높이 · gap · padding · 헤더 높이를 어디서 읽는지 적는다. 대조 결과는 "같음" · "값만 같음 (소스 둘)" · "다름" 으로 표기한다. 이 가운데 layout 전에 알 수 있는 입력과 엔진 결과가 필요한 입력 (R1) 을 나눈다.
 2. **GridList grid spacer live 1 회**: 높이 고정 + overflow scroll 을 가진 2 열 데이터 GridList 200 행을 준비한다. 스크롤 중간에서 lead spacer 옆 칸에 카드가 붙는지 확인한다 (R2 가설). 엔진이 `gridColumn: 1 / -1` (또는 span) 을 지원하는지도 확인한다 (`packages/engine` grid placement).
-3. **gap 결함 재현 기록**: ListBox scroll 모드에서 행 100 · gap 2px 로 `maxScrollTop` 부족분을 unit 으로 기록한다 (Phase 1 RED 로 그대로 쓴다).
+3. **결함 재현 기록 (Phase 1 · 2 RED 로 그대로 쓴다)**:
+   - ListBox scroll 모드에서 행 100 · gap 2px 로 `maxScrollTop` 부족분을 unit 으로 기록한다.
+   - round 3 probe 2 개를 저장소 unit 으로 옮긴다 (원본 `/private/tmp/adr150-review-20260926-probe.test.ts`). 하나는 description 교대 ListBox 100 행 (32 · 50px, resolver 3200 대 실제 4100) 이고, 다른 하나는 펼친 GridList 카드의 서로 다른 Text 자식 두 개가 모두 owner id 로 도착하는 경로다.
 4. **데이터 행 템플릿 origin 표**: 데이터 바인딩 행 projection 중 `templateOriginId` 를 가진 가족과, 행 자식의 가상 id → origin path 가 복원되는 가족을 적는다. 후보는 GridList 펼친 카드 · ListBox 행 · Table · Tag · Tab · Breadcrumb 이다. A3' 대상은 이 표가 정한다.
 5. **`resolveCollectionWriteTarget` 처분**: production 호출 0 을 재확인한다. A3' 해석기가 그 일부 (path 해석 · `assertCanonicalWriteTarget`) 를 쓰면 흡수하고, 나머지 route (data · item-override on collection 노드) 는 삭제 대상으로 둔다. 삭제는 사용자 승인 후 진행한다.
 6. **stale 표기 목록**: `collectionVirtualization.ts:165-167` 주석, ADR-162 Context 의 "stride 는 상수 origin id" 서술 (Phase 1 에서 해소됨), 메모리 `feedback-skia-builder-not-frontend-interaction-belongs-to-preview` 의 "FillStateTokens + racStateAttrs 로 이미 표시됨".
 
 ## §3 Phase 1 — A2' 행 offset 함수 (G1)
 
-1. **함수 계약**: 입력은 가족, 시각 행 수, 행 높이 (균일 값 또는 시각 행별 목록), gap, 헤더 높이, viewport, scrollTop, overscan, columns 다. 출력은 window (시작 · 끝 index), lead · trail spacer 높이, contentHeight, maxScrollTop, 행별 offset 조회다. 균일 입력은 곱셈으로, 목록 입력은 누적합 + 이분 탐색으로 계산한다. 목록 경로는 162 Phase 4 가 쓰고, 이 phase 는 계약과 unit 만 둔다.
-2. **gap 포함**: spacer = 행 수 × 높이 + (행 수 − 1) × gap. 그리고 spacer 와 인접 행 사이 gap 을 행 묶음 rowGap 이 넣는 것까지 합산이 맞도록 한다. ADR-157 sample 모드 hatch 공식 (`canvasSceneNode.ts` ListBox hatch) 과 같은 규칙이다. contentHeight 와 maxScrollTop 도 같은 결과를 쓴다.
-3. **입력 소스 정렬** (§2-1 표 기준):
+1. **함수 계약**: 입력은 가족, 시각 행 수, 행 높이 (균일 값 또는 시각 행별 목록), gap, 헤더 높이, viewport, scrollTop, overscan, columns 다. 출력은 window (시작 · 끝 index), lead · trail spacer 높이, contentHeight, maxScrollTop, 행별 offset 조회다. 균일 입력은 곱셈으로, 목록 입력은 누적합 + 이분 탐색으로 계산한다. **목록 경로는 이 phase 에서 production 으로 연결한다** (아래 2).
+2. **행별 높이 공급자 (round 3 h2)**: layout 전에 알 수 있는 행별 차이를 layout 과 같은 metric 함수로 행마다 계산한다.
+   - ListBox: 행마다 description 유무 · 선택 variant style (`selectedOriginStyle`) 을 넣어 `resolveListBoxItemRowHeightFromStyle` 로 높이를 구한다. 이 함수는 layout §1.55b-2 와 같은 함수다.
+   - slot-only GridList: 카드마다 description 유무로 카드 높이를 구하고, 시각 행 높이는 그 행 카드들의 최대로 둔다 (DOM grid stretch 와 같다).
+   - Table: 행 높이는 균일 (catalog `TableRow.sizes`) 이고, 헤더만 따로 둔다.
+   - 목록은 행 데이터 (collection 버전) · owner metric · 선택 상태가 바뀔 때만 다시 만든다. scroll 은 목록을 다시 만들지 않는다 (HC5). 모든 값이 같으면 균일 경로로 내린다.
+   - 펼친 GridList 카드 (엔진 실측) 는 이 공급자 밖이며 ADR-162 Phase 4 가 같은 목록 입력에 실측값을 넣는다.
+3. **gap 포함**: spacer = 행 수 × 높이 + (행 수 − 1) × gap. 그리고 spacer 와 인접 행 사이 gap 을 행 묶음 rowGap 이 넣는 것까지 합산이 맞도록 한다. ADR-157 sample 모드 hatch 공식 (`canvasSceneNode.ts` ListBox hatch) 과 같은 규칙이다. contentHeight 와 maxScrollTop 도 같은 결과를 쓴다.
+4. **입력 소스 정렬** (§2-1 표 기준):
    - ListBox 는 명시 `height` · selected variant · inset 을 resolver 입력에 넣는다.
    - GridList 는 카드 padding · gap 을 렌더와 같은 소스 (카드 origin style · owner gap) 에서 읽는다.
    - Table 은 상수 미러를 catalog `TableRow.sizes` 읽기로 바꾸고, 요소 헤더 높이는 Column 셀 metric 함수로 계산한다 (R4).
-4. **grid spacer**: §2-2 결과에 따라 두 가지 중 하나를 쓴다. 엔진이 지원하면 spacer 에 전체 열 span 을 준다. 지원하지 않으면 spacer 를 행 묶음 밖 scroll content 여백으로 옮긴다.
-5. **wrap 제약 (R1)**: 균일 stride 가족의 단일 줄 가정은 함수 문서에 명시 제약으로 적는다. 줄바꿈으로 높이가 달라지는 입력은 목록 경로 (162 Phase 4) 의 소관이다.
-6. **검증**:
-   - unit: 함수 계약, 가족별 반례 3 개 (원복 RED).
+5. **grid spacer**: §2-2 결과에 따라 두 가지 중 하나를 쓴다. 엔진이 지원하면 spacer 에 전체 열 span 을 준다. 지원하지 않으면 spacer 를 행 묶음 밖 scroll content 여백으로 옮긴다.
+6. **wrap 제약 (R1)**: 줄바꿈으로 높이가 달라지는 입력은 이 phase 의 지원 범위 밖이다. 공급자 문서에 "단일 줄 가정" 을 명시 제약으로 적고, G1 fixture 는 단일 줄로 둔다. 해소 owner 는 150 후속 항목이다. ADR-162 Phase 4 의 실측 캐시가 들어온 뒤 ListBox · slot-only GridList 에 연결하며, closure (§5) 에 잔여로 기록한다.
+7. **검증**:
+   - unit: 함수 계약, 가족별 반례 4 개 (description 교대 ListBox · description 교대 2 열 GridList · 요소 헤더 Table · 균일 ListBox 회귀) (원복 RED).
    - `tests/parity/` browser test: 행 y 와 끝 도달 — 실 브라우저 DOM overflow scroll 을 oracle 로 쓴다.
    - live Canvas 1 회: 끝 행까지 스크롤한다.
    - 노드 수 unit 은 기존 것을 그대로 쓴다.
@@ -46,16 +54,22 @@
 ## §4 Phase 2 — A3' 데이터 행 origin 진입 (G2)
 
 1. **해석기**: 입력은 hit 노드 (가상 · projected id) 와 그 행 projection (`templateOriginId` · 행 id) 이다. 출력은 origin 의 대응 자식 canonical id 이거나 null 이다. path 는 행 id 뒤 `/<path>` 로 origin 서브트리를 따라간다 (synthetic 자식 규칙 `syntheticDescendantLookup.ts` 와 같은 path 문법). null 이면 호출자는 owner 선택으로 돌아간다 (R5).
-2. **진입점**: 더블클릭 handler (`useCanvasElementSelectionHandlers.ts` `handleElementDoubleClick`) 가 hit 가 데이터 행 안일 때 해석기를 부른다. 성공하면 `selectElementWithPageTransition(originChildId, originPageId)` 을 호출한다. 단일 클릭 경로 (`resolveCanvasInteractionTarget` owner 선택) 는 바꾸지 않는다.
-3. **안내**: Properties 에서 선택 요소가 데이터 목록 템플릿 origin 의 자식이면 "이 원본을 쓰는 카드 전체에 적용" 을 표시한다. ADR-162 Phase 5 카드 필드 절과 같은 문구 체계를 쓴다.
-4. **대상 가족**: §2-4 표에서 템플릿 origin 이 있는 가족만 대상이다. 나머지는 owner 선택을 유지한다.
-5. **검증**:
+2. **raw hit 전달 (round 3 h1)**: owner redirect 이전의 hit 정보를 double-click handler 까지 보존한다.
+   - `CanvasInteractionTarget` 의 `select` 에 선택 id (owner) 와 별도로 `sourceHit?: { nodeId, projection }` 필드를 둔다. collection projection 을 owner 로 돌릴 때 (`resolveCanvasInteractionTarget.ts:160-164`) 그 필드를 채운다.
+   - pointer handler (`useCentralCanvasPointerHandlers.ts`) 는 `hitElementId` 옆에 `sourceHit` 을 보관한다. double-click 두 분기 — 선택 경계 밖 (`:430`), 선택 경계 안 (`:476-494`, `resolveDoubleClickTargetId`) — 모두 `handleElementDoubleClickRef.current(targetId, { sourceHit })` 로 넘긴다.
+   - double-click 판정 키는 owner id 를 그대로 쓴다. 해석은 두 번째 클릭의 `sourceHit` 으로 한다. 단일 클릭 · 드래그 · hover 경로는 `sourceHit` 을 읽지 않는다.
+   - `sourceHit.nodeId` 는 해석 입력으로만 쓰고 selection · mutation · history 에 넣지 않는다 (HC3).
+3. **진입점**: 더블클릭 handler (`useCanvasElementSelectionHandlers.ts` `handleElementDoubleClick`) 는 `sourceHit` 이 데이터 행 projection 이면 해석기를 부른다. 성공하면 `selectElementWithPageTransition(originChildId, originPageId)` 을 호출한다. 실패하거나 `sourceHit` 이 없으면 지금의 진입 동작을 그대로 쓴다.
+4. **안내**: Properties 에서 선택 요소가 데이터 목록 템플릿 origin 의 자식이면 "이 원본을 쓰는 카드 전체에 적용" 을 표시한다. ADR-162 Phase 5 카드 필드 절과 같은 문구 체계를 쓴다.
+5. **대상 가족**: §2-4 표에서 템플릿 origin 이 있는 가족만 대상이다. 나머지는 owner 선택을 유지한다.
+6. **검증**:
    - unit: 해석기 (성공 · path 불일치 · origin 없음), 가상 id 가 selection · mutation 에 들어가지 않음 (negative), 단일 클릭 owner 회귀.
-   - live: 펼친 카드 Text 더블클릭 → Components 페이지 origin 자식 선택 → 스타일 변경 → 원래 페이지 모든 카드 반영. 페이지 이동 UX 는 사용자 확인 (R3).
+   - unit (h1 반례): 펼친 카드의 서로 다른 Text 자식 두 개를 각각 hit → 두 double-click 분기 각각에서 서로 다른 origin 자식으로 해석된다.
+   - live: 펼친 카드의 서로 다른 Text 두 개를 각각 더블클릭 → Components 페이지 origin 자식 선택 → 스타일 변경 → 원래 페이지 모든 카드 반영. 페이지 이동 UX 는 사용자 확인 (R3).
 
 ## §5 Phase 3 — closure (G3)
 
 1. [ADR-911](../911-rac-pencil-target-component-architecture.md) R-3 / G-projected 문구를 본 ADR 게이트로 재정의하고 닫힘으로 표기한다. [ADR-910](../910-rac-pencil-component-architecture.md) T-7 / G-state 에 A1 철회 1 줄을 남긴다.
-2. §2-6 stale 표기를 정정한다.
+2. §2-6 stale 표기를 정정하고, wrap 잔여 (R1) 를 후속 항목으로 기록한다.
 3. README 현황 · 실행 순서 행을 갱신한다. ADR-162 Phase 4 의 선행 조건을 "150 A2 시각 확인" 에서 "150 Phase 1 함수 계약" 으로 바꾼다. CHANGELOG 와 `### Live Exercise` 절도 채운다.
 4. `/cross-check` 를 가족당 1 회 돌린다. 판독은 phase 당 1 + 수리 검증 1 로 한다 (`.claude/rules/review-loop-closure.md`).

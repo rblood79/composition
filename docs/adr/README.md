@@ -147,7 +147,7 @@
 
 - **상태**: Proposed — **본문 재작성 2026-09-26** (사용자 판정 "본문 재작성" · 데이터 행 진입 = "origin 자식 선택"). 이전 판 Accepted 2026-07-18 (3축 A1·A2·A3) 은 git `7519dee51`. 리뷰 round 3 필요
 - **재작성 사유**: A1 철회 (07-20) + 선언적 상태는 ADR-230 → 234 가 실행. A2 window 는 가동 중이나 행 위치 단일 소스가 세 가족 모두 불성립 (ListBox scroll 모드 spacer · contentHeight 에 rowGap 누락 → 끝 행 미도달 · GridList grid 전환 뒤 spacer 가 한 칸만 점유 가능 · Table 상수 미러 + 요소 헤더 높이 가정) — 07-19 부터의 "시각 확인 대기" 는 닫을 수 없는 게이트였다. A3 원 설계 (가장 깊은 projected 선택 · drill stack · 3-route) 는 ADR-234 계열 이후 불변식 · 저장 모델과 충돌, 남은 공백은 데이터 바인딩 행. R6 (916 sweep) 은 ADR-151 로 해소
-- **규모**: Phase 0 inventory (G0) → Phase 1 A2' 행 offset 함수 하나 (G1, 실 브라우저 oracle) → Phase 2 A3' 데이터 행 더블클릭 → origin 자식으로 이동해 선택 (G2) → Phase 3 closure (911 R-3 · 910 T-7 종결 조항). schema · catalog 변경 0. 잔존 HIGH 1 (R1 wrap 입력). design breakdown `design/150-rac-pencil-residual-interaction-execution-breakdown.md`
+- **규모**: Phase 0 inventory (G0) → Phase 1 A2' 행 offset 함수 하나 (G1, 실 브라우저 oracle) → Phase 2 A3' 데이터 행 더블클릭 → origin 자식으로 이동해 선택 (G2) → Phase 3 closure (911 R-3 · 910 T-7 종결 조항). schema · catalog 변경 0. 잔존 HIGH 2 (R1 행별 높이 공급 — wrap 은 범위 밖 · R7 double-click raw hit 전달). round 3 (codex) HIGH 2 반영 — 수리 검증 대기. design breakdown `design/150-rac-pencil-residual-interaction-execution-breakdown.md`
 
 #### [162](162-gridlist-template-subtree-projection.md) — 데이터 바인딩 GridList 카드 = 항목 origin instance (임의 자식 + 행별 `{field}`)
 
