@@ -18,6 +18,10 @@ const LAZY_TARGETS = [
   { dir: "datatable", module: "DataTableEditorPanel" },
   { dir: "datatable", module: "DataTableFieldPanel" },
   { dir: "ai", module: "AIPanel" },
+  { dir: "history", module: "HistoryPanel" },
+  { dir: "themes", module: "ThemesPanel" },
+  { dir: "interactions", module: "InteractionsPanel" },
+  { dir: "settings", module: "SettingsPanel" },
 ];
 
 function walk(dir: string, out: string[] = []): string[] {

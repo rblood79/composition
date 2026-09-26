@@ -24,17 +24,13 @@ import { PanelRegistry } from "./PanelRegistry";
 import { NavigatorPanel } from "../navigator/NavigatorPanel";
 import { ACTION_ICONS } from "../../config/actionIcons";
 import { ComponentsPanel } from "../components/ComponentsPanel";
-import { ThemesPanel } from "../themes/ThemesPanel";
 import { AIPanel } from "../ai/lazyAIPanel";
-import { SettingsPanel } from "../settings/SettingsPanel";
 import { DataTablePanel } from "../datatable/DataTablePanel";
 import { lazyPanel } from "./lazyPanel";
 
 // Editor panels
 import { PropertiesPanel } from "../properties/PropertiesPanel";
 import { StylesPanel } from "../styles/StylesPanel";
-import { InteractionsPanel } from "../interactions/InteractionsPanel";
-import { HistoryPanel } from "../history/HistoryPanel";
 
 // ADR-131 Phase 8 (2026-05-13): DataPanel 제거 — DataTablePanel (기존) 가 data SSOT.
 // ADR-149 Phase 2c (2026-07-19): ActionsPanel 제거 — cross-event reuse 는 EventsPanel
@@ -46,6 +42,28 @@ const DataTableEditorPanel = lazyPanel(
 );
 const DataTableFieldPanel = lazyPanel(
   () => import("../datatable/DataTableFieldPanel"),
+);
+
+// ADR-242 — 초기 화면 밖 패널은 첫 열림에 chunk 를 받는다 (패널 밖이 값으로 쓰는 store · utils 는
+//   그대로 initial). 상수 이름은 등록 인벤토리 검사 (`panelCloseActions.static`) 가 읽는다.
+const HistoryPanel = lazyPanel(() =>
+  import("../history/HistoryPanel").then((m) => ({ default: m.HistoryPanel })),
+);
+
+const SettingsPanel = lazyPanel(() =>
+  import("../settings/SettingsPanel").then((m) => ({
+    default: m.SettingsPanel,
+  })),
+);
+
+const InteractionsPanel = lazyPanel(() =>
+  import("../interactions/InteractionsPanel").then((m) => ({
+    default: m.InteractionsPanel,
+  })),
+);
+
+const ThemesPanel = lazyPanel(() =>
+  import("../themes/ThemesPanel").then((m) => ({ default: m.ThemesPanel })),
 );
 
 // Bottom panels

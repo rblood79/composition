@@ -19,17 +19,14 @@ export { NavigatorPanel } from "./navigator/NavigatorPanel";
 export { ComponentsPanel } from "./components/ComponentsPanel";
 
 // Tool panels
-export { ThemesPanel } from "./themes/ThemesPanel";
 export { AIPanel } from "./ai/lazyAIPanel";
 
 // System panels
-export { SettingsPanel } from "./settings/SettingsPanel";
 
 // Editor panels
 export { PropertiesPanel } from "./properties/PropertiesPanel";
 export { StylesPanel } from "./styles/StylesPanel";
-export { InteractionsPanel } from "./interactions/InteractionsPanel";
-export { HistoryPanel } from "./history/HistoryPanel";
+// ADR-242 — history · settings · interactions · themes 는 lazy (panelConfigs 의 loader 만)
 
 // Side effect: Register all panels when this module is imported
 import "./core/panelConfigs";
