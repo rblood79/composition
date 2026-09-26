@@ -104,3 +104,33 @@ describe("자식 있는 컨테이너의 height 키워드·% 는 엔진 소유", 
     expect(record.width).toBe("max-content");
   });
 });
+
+// 2026-09-26 (ADR-236 후속) — 값 텍스트 leaf 3종 (SliderOutput · MeterValue · ProgressBarValue) 은 글자를
+// 그리는 leaf 인데 측정 목록 밖이라, 6f0aedc03 이후 factory 인라인 `width: fit-content` 가 "빈 컨테이너
+// 키워드 = 엔진 소유" 로 분류돼 폭 0 이 됐다 (Canvas 값 상자 w 0 · Skia 글자가 트랙 끝에서 넘침, DOM 은
+// 글자 폭). 텍스트 leaf 스칼라 계약 (contentMin/MaxWidth) 으로 폭을 공급해야 한다.
+describe("값 텍스트 leaf (SliderOutput · MeterValue · ProgressBarValue) 는 글자 폭을 공급한다", () => {
+  for (const type of ["SliderOutput", "MeterValue", "ProgressBarValue"]) {
+    for (const isFlexChild of [true, false]) {
+      it(`${type} (${isFlexChild ? "flex" : "grid/block"} 자식) — contentMaxWidth > 0`, () => {
+        const style = (enrichWithIntrinsicSize(
+          {
+            id: `${type}-1`,
+            type,
+            props: {
+              children: "50",
+              style: { width: "fit-content", fontSize: 14, lineHeight: "20px" },
+            },
+          } as CanvasLayoutNode,
+          400,
+          300,
+          undefined,
+          [],
+          () => [],
+          isFlexChild,
+        ).props?.style ?? {}) as Record<string, unknown>;
+        expect(Number(style.contentMaxWidth ?? 0), JSON.stringify(style)).toBeGreaterThan(0);
+      });
+    }
+  }
+});

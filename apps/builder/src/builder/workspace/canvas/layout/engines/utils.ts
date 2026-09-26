@@ -5104,6 +5104,12 @@ export const TEXT_LEAF_TAGS = new Set([
   "code",
   // ADR-238 Phase 2 — 목록 section 제목 (RAC `Header`) — 글자 폭 · 줄 높이 측정 (inline-flex 상자 = 글자 + padding).
   "header",
+  // 값 텍스트 leaf (2026-09-26, ADR-236 후속) — Slider · Meter · ProgressBar 의 값 표시. 글자를 그리는 leaf 인데
+  //   목록 밖이라 factory 인라인 `width: fit-content` 가 "빈 컨테이너 키워드 = 엔진 소유" (6f0aedc03) 로
+  //   분류돼 폭 0 이었다 (Skia 글자가 트랙 끝에서 넘치고 side 트랙이 DOM 보다 넓음). 스칼라 계약으로 공급.
+  "slideroutput",
+  "metervalue",
+  "progressbarvalue",
 ]);
 
 /**
