@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-150 Implemented — 데이터 바인딩 목록의 Canvas 정합] - 2026-09-27
+
+### Changed
+
+- **스크롤하는 데이터 목록 (ListBox · GridList · Table) 이 끝 행까지 닿고, 보이는 행 위치가 Preview 와 같다.** 행마다 높이가 다른 목록 (설명이 있는 행 · 없는 행), 행 간격, 요소 헤더가 있는 Table 을 한 계산 (행 위치 단일 소스) 이 처리한다 (Phase 1, 2026-09-27). 데이터 행 더블클릭 → 템플릿 origin 자식 선택 · 카메라 추종은 아래 Phase 2 엔트리.
+  - live: 실제 builder 에서 ListBox 1000 · GridList 2 열 400 · Table 500 · 요소 헤더 Table 을 top · mid · end 스크롤 — 15/15, 실 브라우저 DOM 대조 3/3. 더블클릭 진입 10/10.
+  - **Why**: 가상화 window 는 07-19 부터 가동했지만 window · spacer · 스크롤 범위 · 행 배치가 서로 다른 식을 써서 행 간격이 있거나 행 높이가 섞이면 끝 행에 닿지 못했고, 2 열 GridList 는 스크롤 중 카드 열이 뒤바뀌었다.
+  - 알려진 한계 (후속): 줄바꿈으로 높이가 바뀌는 ListBox · slot-only GridList 행은 근사로 남는다 (ADR-162 실측 캐시 연결 예정).
+  - 위치: [ADR-150](adr/completed/150-rac-pencil-residual-interaction-execution.md) · `scene/collectionRowOffsets.ts` · `interaction/resolveDataRowOriginTarget.ts` · `apps/builder/scripts/adr150-*-live.mjs`
+
 ## [ADR-150 Phase 2 — 데이터 행 더블클릭 → 템플릿 origin 편집] - 2026-09-27
 
 ### Added

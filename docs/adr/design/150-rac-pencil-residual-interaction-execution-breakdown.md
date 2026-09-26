@@ -1,6 +1,6 @@
 # ADR-150 Breakdown: 데이터 바인딩 목록의 Canvas 정합
 
-> [ADR-150](../150-rac-pencil-residual-interaction-execution.md) 의 구현 상세다. 2026-09-26 본문 재작성과 함께 새로 썼다. 이전 판 (3축 A1 · A2 · A3, 07-13 ~ 07-20 실행 기록) 은 git `7519dee51` 의 이 파일에 있다.
+> [ADR-150](../completed/150-rac-pencil-residual-interaction-execution.md) 의 구현 상세다. 2026-09-26 본문 재작성과 함께 새로 썼다. 이전 판 (3축 A1 · A2 · A3, 07-13 ~ 07-20 실행 기록) 은 git `7519dee51` 의 이 파일에 있다.
 
 ## §1 Fork 확인 (2026-09-26)
 
@@ -235,3 +235,21 @@ LOW deferred (production 증상 없음): L1 목록 입력이면 스크롤마다 
 2. §2-6 stale 표기를 정정하고, wrap 잔여 (R1) 를 후속 항목으로 기록한다.
 3. README 현황 · 실행 순서 행을 갱신한다. ADR-162 Phase 4 의 선행 조건을 "150 A2 시각 확인" 에서 "150 Phase 1 함수 계약" 으로 바꾼다. CHANGELOG 와 `### Live Exercise` 절도 채운다.
 4. `/cross-check` 를 가족당 1 회 돌린다. 판독은 phase 당 1 + 수리 검증 1 로 한다 (`.claude/rules/review-loop-closure.md`).
+
+### §5 Phase 3 결과 (2026-09-27)
+
+1. **910/911 종결 조항**: [ADR-911](../911-rac-pencil-target-component-architecture.md) R-3 행 · G-projected 행 · 잔존 HIGH 요약에 "닫힘 2026-09-27 — ADR-150 G1 · G2 로 재정의" (10k 행 → window 노드 상한 + 행 위치 = DOM · 가장 깊은 선택 / drill-in → 데이터 행 origin 진입 · projected id 유입 0). 911 Status 는 바꾸지 않는다 (비실행 목표 참조 — R-1 · R-2 는 여전히 미증명). [ADR-910](../910-rac-pencil-component-architecture.md) T-7 행에 A1 철회 1 줄 (`5e635ebbc` · ADR-230 → 234).
+2. **stale 정정**:
+   - §2-6 의 `canvasSceneNode.ts` spacer wrap-flow 서술 · "rowsGroup gap 0" 은 Phase 1 이 주석을 이미 새로 썼다 (`COLLECTION_FILLER_STYLE` · ListBox gap 배선 주석) — 남은 stale 0.
+   - `collectionVirtualization.ts` `resolveGridListRowStride` 의 "§1.55c 와 동일 공식" → 카드 border 를 더하지 않는 대표값 근사로 정정 (window · spacer · 스크롤 범위는 border 포함 행별 plan 이 만든다 — 값 무변경).
+   - ADR-162 Context 의 "stride 는 상수 id" 는 완료 ADR 의 당시 상태 기록이라 두고, 메모리 `feedback-skia-builder-not-frontend-interaction-belongs-to-preview` 의 "FillStateTokens + racStateAttrs 로 이미 표시됨" 은 상태 변형 origin (230 → 234) 으로 정정.
+   - ADR-162 Phase 4 선행 조건은 이미 "150 Phase 1 (행 offset 함수 계약)" (162 breakdown · README).
+3. **`/cross-check` 가족당 1 회**: Compare Mode · Preview iframe 미개방 (사용자 지시) 이라 실 브라우저 DOM oracle `tests/parity/adr150RowPositionsDom.browser.test.ts` (ListBox · GridList · Table) 3/3 재실행으로 대신한다. live 재실행 G1 15/15 · G2 10/10.
+4. **판독**: Phase 3 는 문서 + 주석 1 곳 (동작 변경 0) — `.claude/rules/review-loop-closure.md` §3 축소 절차 (evidence 이 절).
+
+#### §5-1 후속 항목 (150 범위 밖 · 기록)
+
+- **R1 wrap 잔여**: 줄바꿈으로 높이가 바뀌는 ListBox · slot-only GridList 행은 행별 높이 목록이 근사다 (단일 줄 metric). ADR-162 Phase 4 의 실측 캐시 + scroll anchoring 을 두 가족에 연결하는 150 후속.
+- 구간 이름 규칙 3 갈래 통합 (scene 합성 id = metadata customId ‖ name ‖ id · Preview resolver = name ‖ id · insert 쓰기 키 혼합) — Phase 2 판독 MEDIUM 의 근원.
+- GridList 혼합 행 짧은 카드 stretch (Canvas 50 vs DOM 76, §3-3) · DOM 100 행 cap vs Canvas 전 행 가상화 · anchor 없는 data-bound ListBox 행 모양 · 같은 이름 형제 synthetic id 충돌 (§3-3).
+- `catalogOrigins.test.ts` 139 → 138 선행 실패 (150 무관).

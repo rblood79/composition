@@ -2,20 +2,20 @@
 
 ## Status
 
-In Progress — Accepted 2026-09-26 (리뷰 round 3 · 4 pending 0 + 실행자 종결 선언, 사용자 `/execute-adr 150`) · Phase 0 완료 2026-09-27 (G0 PASS — R2 가설 live 성립 · RED 4 고정 · breakdown §2 결과 고정). **Phase 1 완료 2026-09-27** (G1 PASS — 실 브라우저 DOM oracle 3/3 · live Canvas 15/15 · 원복 RED 6/7 (GAP 4 skip 무반응 사유 기록) · 판독 HIGH 0 · MEDIUM 3 수리 · breakdown §3 결과). **Phase 2 완료 2026-09-27** (G2 PASS — 데이터 행 더블클릭 → 템플릿 origin 자식 선택 · 연속성 키 = raw hit · live 8/8 · 원복 RED 5 · 판독 HIGH 0 · MEDIUM 1 수리 (insert walker 되돌림) · breakdown §4 결과 · R3 카메라 추종 추가 — 사용자 판정 "카메라 추종 추가해", 배율 유지 pan · live 10/10 · 원복 RED 2). **본문 재작성 2026-09-26**. 사용자 판정은 두 가지다: "본문 재작성", 그리고 데이터 행 진입을 "origin 자식 선택" 으로 한다. 이전 판은 Accepted 2026-07-18 로 3축 (A1 상태 threading · A2 가상화 · A3 drill-in) 이었고, 본문 원문은 git `7519dee51` 에 있다. 재작성 본문은 리뷰 round 3 이 필요하다.
+Implemented — 2026-09-27 (Phase 0 ~ 3 / G0 ~ G3 · `b2916bde2` · `b58c3c45e` · `1553628f9` · `77ee08ddb` + Phase 3 closure — 911 R-3 / G-projected 닫힘 · 910 T-7 A1 철회 기록 · wrap 잔여 후속) · Accepted 2026-09-26 (리뷰 round 3 · 4 pending 0 + 실행자 종결 선언, 사용자 `/execute-adr 150`) · Phase 0 완료 2026-09-27 (G0 PASS — R2 가설 live 성립 · RED 4 고정 · breakdown §2 결과 고정). **Phase 1 완료 2026-09-27** (G1 PASS — 실 브라우저 DOM oracle 3/3 · live Canvas 15/15 · 원복 RED 6/7 (GAP 4 skip 무반응 사유 기록) · 판독 HIGH 0 · MEDIUM 3 수리 · breakdown §3 결과). **Phase 2 완료 2026-09-27** (G2 PASS — 데이터 행 더블클릭 → 템플릿 origin 자식 선택 · 연속성 키 = raw hit · live 8/8 · 원복 RED 5 · 판독 HIGH 0 · MEDIUM 1 수리 (insert walker 되돌림) · breakdown §4 결과 · R3 카메라 추종 추가 — 사용자 판정 "카메라 추종 추가해", 배율 유지 pan · live 10/10 · 원복 RED 2). **본문 재작성 2026-09-26**. 사용자 판정은 두 가지다: "본문 재작성", 그리고 데이터 행 진입을 "origin 자식 선택" 으로 한다. 이전 판은 Accepted 2026-07-18 로 3축 (A1 상태 threading · A2 가상화 · A3 drill-in) 이었고, 본문 원문은 git `7519dee51` 에 있다. 재작성 본문은 리뷰 round 3 이 필요하다.
 
 > **재작성 사유** (2026-09-26 코드 실측 — 조사 3 갈래와 직접 대조):
 >
-> - **A1** (Skia hover/pressed/focusVisible 상태 threading): 2026-07-20 에 철회했다 (`5e635ebbc`, D1/D3 경계 오판). 선언적 상태 (selected/disabled) 는 [ADR-230](completed/230-base-element-state-variant-origins.md) 이 실행했고, [ADR-234](completed/234-variant-instances-and-slot-filled-collections.md) 에서 상태 변형 origin 의 ref + 층으로 다시 실행했다 (`stateVariantLayers.ts` · `canonicalRefResolution.ts` `resolveActiveStateLayer`). 그래서 150 이 가질 몫이 없다. 이전 판 HC#3 과 Consequences 의 "상태 시각 = catalog `FillStateTokens` 단일 소스 · 신규 정본 없음" 은 현재 코드와 반대다.
+> - **A1** (Skia hover/pressed/focusVisible 상태 threading): 2026-07-20 에 철회했다 (`5e635ebbc`, D1/D3 경계 오판). 선언적 상태 (selected/disabled) 는 [ADR-230](230-base-element-state-variant-origins.md) 이 실행했고, [ADR-234](234-variant-instances-and-slot-filled-collections.md) 에서 상태 변형 origin 의 ref + 층으로 다시 실행했다 (`stateVariantLayers.ts` · `canonicalRefResolution.ts` `resolveActiveStateLayer`). 그래서 150 이 가질 몫이 없다. 이전 판 HC#3 과 Consequences 의 "상태 시각 = catalog `FillStateTokens` 단일 소스 · 신규 정본 없음" 은 현재 코드와 반대다.
 > - **A2** (가상화 window, 2026-07-19~20 `b9698aa4c` · `90dd52b32` · `73e7b367b` · `360a12201` · `34c56ea70` · `4a29fcf5a` · `e994822b9`): 코드는 ListBox · GridList · Table 에서 가동 중이다. 노드 수 상한은 성립한다. 반면 **행 위치 단일 소스는 세 가족 모두 성립하지 않는다** (Context 2). 07-19 부터 걸려 있던 "시각 최종 확인 대기" 는 이 상태로는 닫을 수 없는 게이트였다.
 > - **A3** (가장 깊은 projected 노드 선택 · drill stack · template/data/override 3-route registry): ADR-234 계열 (234 · 237 · 238 · 239 · 241) 로 정적 목록 항목이 canonical instance 자식이 됐다. 그래서 editingContext 더블클릭 진입 · Esc 복귀 · synthetic 자식 선택 · `descendants[origin path]` override 가 이미 동작한다. 원 설계는 현재 불변식 두 가지와 충돌한다. ① projected id 는 selection 에 들어가지 않는다 (`resolveCanvasInteractionTarget.ts:22-24`). ② override 는 항목 instance 자신에 저장한다 (원 설계는 collection 노드의 `descendants[itemKey]`). 남은 공백은 **데이터 바인딩 행** 뿐이다.
-> - **R6** (ADR-916 사후 parity sweep 의 collection 축 선행): [ADR-151](completed/151-builder-residual-parity-defect-remediation.md) (Implemented 2026-07-17) 로 해소됐다. 남은 잔존은 Disclosure percent-in-intrinsic 1 건으로 collection 축이 아니다.
+> - **R6** (ADR-916 사후 parity sweep 의 collection 축 선행): [ADR-151](151-builder-residual-parity-defect-remediation.md) (Implemented 2026-07-17) 로 해소됐다. 남은 잔존은 Disclosure percent-in-intrinsic 1 건으로 collection 축이 아니다.
 
 ## Context
 
 **도메인 (ADR-063)**: D3 시각과 render-space interaction (ADR-135/136 경계) 이다. D3 시각은 행 위치와 스크롤 범위다. 두 가지 모두 Builder (Skia) 와 Preview (DOM) 에서 시각 결과가 달라질 수 있는 요소다. D1 · D2 는 건드리지 않는다. schema · prop · catalog 변경은 0 이다.
 
-**제품 전제**: 빌더는 정의 · 구성 도구이고, 데이터 전체 재현은 목표가 아니다 ([ADR-157](completed/157-collection-builder-display-policy.md)).
+**제품 전제**: 빌더는 정의 · 구성 도구이고, 데이터 전체 재현은 목표가 아니다 ([ADR-157](157-collection-builder-display-policy.md)).
 
 - 데이터 행 입력 경로 상한은 DataTable 100 (`DataTableCreator.tsx:818-823`) 과 AI 50 (`services/ai/data/tableSpec.ts:25`) 이다. 붙여넣기 · API 저장 경로에는 상한이 없다.
 - `pnpm perf:baseline` 의 레버 순위에 canvas collection 스크롤은 없다 (`BUILDER_PERF_BASELINE_2026-09.md` §4).
@@ -49,18 +49,18 @@ In Progress — Accepted 2026-09-26 (리뷰 round 3 · 4 pending 0 + 실행자 �
    - `resolveCollectionWriteTarget` (ADR-912 단계 4, 3-route) 은 production 호출이 0 이다.
    - origin 이동 인프라는 이미 있다: `selectElementWithPageTransition` (`stores/elements.ts:1594`), "원본으로 이동" 액션 (`componentSemanticsActions.ts:128`).
 4. **910/911**:
-   - [ADR-911](911-rac-pencil-target-component-architecture.md) R-3 HIGH / G-projected (10k draw/hit · 가장 깊은 선택 · drill-in/data edit) 를 증명할 곳은 150 뿐이다. 그런데 150 이 닫힐 때 911 Status 를 바꾸는 조항이 없다.
-   - [ADR-910](910-rac-pencil-component-architecture.md) T-7/G-state 는 A1 철회를 반영하지 않았다.
+   - [ADR-911](../911-rac-pencil-target-component-architecture.md) R-3 HIGH / G-projected (10k draw/hit · 가장 깊은 선택 · drill-in/data edit) 를 증명할 곳은 150 뿐이다. 그런데 150 이 닫힐 때 911 Status 를 바꾸는 조항이 없다.
+   - [ADR-910](../910-rac-pencil-component-architecture.md) T-7/G-state 는 A1 철회를 반영하지 않았다.
 
 **인접 ADR**:
 
-- [ADR-162](completed/162-gridlist-template-subtree-projection.md) Phase 4 (펼친 카드의 시각 행별 높이 가상화) 는 본 ADR A2' 뒤에 온다. 의존 방향은 그대로 162 Phase 4 → 150 A2' 이다. 150 은 행 offset 함수를 정하고, 162 Phase 4 는 그 함수에 실측 · 추정 행 높이를 공급한다.
+- [ADR-162](162-gridlist-template-subtree-projection.md) Phase 4 (펼친 카드의 시각 행별 높이 가상화) 는 본 ADR A2' 뒤에 온다. 의존 방향은 그대로 162 Phase 4 → 150 A2' 이다. 150 은 행 offset 함수를 정하고, 162 Phase 4 는 그 함수에 실측 · 추정 행 높이를 공급한다.
 - ADR-162 Phase 5 (GridList 카드 필드 패널) 는 A3' 와 같은 Properties 표면을 쓴다. 쓰기 대상도 origin 문서로 같다.
 
 ### Hard Constraints
 
 1. **노드 수**: draw/hit 투영 행 ≤ window + overscan (현행 유지).
-2. **행 위치 한 곳**: 다음 값들이 같은 행 높이 · gap · 헤더 값을 읽는다 — window index, spacer, contentHeight, maxScrollTop, 실제 행 배치 ([ADR-160](completed/160-collection-projection-metric-ssot.md) 원칙).
+2. **행 위치 한 곳**: 다음 값들이 같은 행 높이 · gap · 헤더 값을 읽는다 — window index, spacer, contentHeight, maxScrollTop, 실제 행 배치 ([ADR-160](160-collection-projection-metric-ssot.md) 원칙).
 3. **id 경계**: projected · 가상 id 는 selection · canonical mutation · history · IndexedDB 에 들어가지 않는다 (ADR-135/136, ADR-236 `canOperate`).
 4. **쓰기 대상**: 데이터 행 편집은 origin 문서 하나에만 쓴다. 행별 저장을 새로 만들지 않는다 (schema 변경 0).
 5. **pointer hot path**: scene rebuild · signature 계산 금지 (`.claude/rules/canvas-rendering.md` §9).
@@ -139,7 +139,7 @@ A2' (행 위치) 와 A3' (데이터 행 진입) 는 독립 축이라 대안을 �
 - 대안 D 기각: 페이지 밖 selection 계약이라는 새 경계가 필요하다.
 - 대안 F 기각: 현재 불변식과 저장 모델에 역행한다.
 
-> 구현 상세: [150-rac-pencil-residual-interaction-execution-breakdown.md](design/150-rac-pencil-residual-interaction-execution-breakdown.md) — §1 fork 확인 / §2 Phase 0 inventory / §3 Phase 1 (A2') / §4 Phase 2 (A3') / §5 Phase 3 closure.
+> 구현 상세: [150-rac-pencil-residual-interaction-execution-breakdown.md](../design/150-rac-pencil-residual-interaction-execution-breakdown.md) — §1 fork 확인 / §2 Phase 0 inventory / §3 Phase 1 (A2') / §4 Phase 2 (A3') / §5 Phase 3 closure.
 
 ## Risks
 
@@ -163,6 +163,15 @@ A2' (행 위치) 와 A3' (데이터 행 진입) 는 독립 축이라 대안을 �
 | G1   | Phase 1 후 | 반례 입력: (1) description 유무가 교대하는 scroll ListBox 100 행 (32 · 50px, gap 2px) · (2) description 유무가 교대하는 2 열 slot-only GridList 200 행 (시각 행 높이 = 그 행 카드 최대) · (3) 요소 헤더 Table 200 행 · (4) 모든 행이 같은 ListBox (균일 경로 회귀). (a) 스크롤 끝에서 마지막 행 하단 = viewport 하단 (±1). (b) 중간 스크롤 위치 3 곳에서 보이는 행의 y = DOM 같은 행 y (±1, `tests/parity/` browser test — oracle 은 실 브라우저 overflow scroll). (c) contentHeight = DOM `scrollHeight` (±1). (d) draw/hit 노드 수 ≤ window + overscan 유지. (e) 원복 RED. 불리 입력 포함: gap ≠ 0 · 교대 높이 · selected 행 · 요소 헤더 · 끝 이동 (중간 행 건너뜀). 측정 조건: 실 브라우저 oracle · visibilityState visible 기록 · 행 데이터는 규모 전용 합성 (분포 주장 없음) · 모든 행 단일 줄 (wrap 은 R1 범위 밖). live Canvas 1 회 | 가족 단위 hold — 통과한 가족만 새 함수로 전환, 나머지는 현행 유지 + 기록 |
 | G2   | Phase 2 후 | (a) 펼친 GridList 데이터 카드 안의 서로 다른 자식 두 개 (예: 제목 Text · 설명 Text) 를 각각 더블클릭 → 각자 다른 origin 자식 선택. 선택 경계 밖 (처음 더블클릭) · 안 (owner 선택 후 더블클릭) 두 분기 모두 (unit + live 1 회 + 사용자 확인). (b) 단일 클릭 · 드래그 owner 선택 회귀 0. 카드 A 클릭 → 200ms 뒤 카드 B 단일 클릭 · 같은 카드의 다른 자식 연속 클릭은 double-click 이 아니다 (페이지 이동 0, 두 분기 각각 unit). (c) 가상 · projected id 의 selection · mutation 유입 0 (negative unit). (d) origin 편집 → 모든 데이터 카드 반영 (live). (e) 해석 실패 입력은 owner 선택 (unit)                                                                                                                                                                                                                                               | owner 선택 유지 + Phase 2 hold                                           |
 | G3   | closure    | 911 R-3 / G-projected · 910 T-7 / G-state 문구 반영, wrap 잔여 (R1) 기록, README · CHANGELOG 갱신, `### Live Exercise` 절                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | —                                                                        |
+
+### Live Exercise
+
+실제 builder (dev 서버 5173 · headed Playwright · 격리 새 프로젝트 · 팔레트 요소 = ref instance · 실제 마우스, Compare Mode · Preview iframe 미개방 — 사용자 지시) 에서 Skia layout map · scene 노드 · store 선택 · viewport 로 확인했다. Preview 채널은 DOM parity test (실 브라우저 overflow scroll · `getBoundingClientRect`) 로 고정 — 사용자 확인 대상.
+
+- **G0 (2026-09-27)** GridList grid spacer — 2 열 200 행 스크롤 중간에서 카드 열이 뒤바뀌는 것을 live 로 재현 (R2 가설 성립) → 엔진 grid span 지원 확인 (breakdown §2-2).
+- **G1 (2026-09-27, 15/15 · Phase 3 재실행 15/15)** `adr150-p1-row-positions-live.mjs` — ListBox 1000 행 (32 · 50 교대) · GridList 2 열 400 (50 · 76 교대) · Table 500 · 요소 헤더 Table (quick connect Contacts) 각각 top · mid · end 스크롤에서 행 위치 = 행 위치 단일 소스, 끝 행 하단 = viewport 하단, page error 0. DOM oracle `tests/parity/adr150RowPositionsDom.browser.test.ts` 3/3 (가족당 1 — Phase 3 `/cross-check` 대체, Preview iframe 미개방).
+- **G2 (2026-09-27, 10/10 · Phase 3 재실행 10/10)** `adr150-p2-origin-entry-live.mjs` — 펼친 데이터 카드의 제목 · 설명을 더블클릭 (선택 경계 밖 · 안) → Components 페이지 origin 의 서로 다른 자식 선택 · 카메라가 따라가 화면 안 (배율 유지) · 카드 두 장 150ms 연속 단일 클릭은 이동 0 · 선택 id 에 projection id 0 · origin 글자색 편집 → 카드 3 장 반영 · Properties 「항목 원본」 안내 · page error 0.
+- 원복 RED: 행 위치 6/7 (GAP 4 skip 무반응 사유 기록) · 연속성 키 5 · 카메라 추종 live 2.
 
 ## Consequences
 

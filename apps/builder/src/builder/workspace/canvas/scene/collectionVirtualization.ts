@@ -284,13 +284,14 @@ function resolveTableRowPlan(
 
 /**
  * GridList 의 **시각 행 stride**(px) + 열 수(numCols). stride = 카드 높이 + rowGap 이며,
- * grid 모드는 한 시각 행에 numCols 카드가 배치된다(stack 은 numCols 1). 카드 높이는 layout
- * `calculateContentHeight` gridlist 분기(utils.ts §1.55c)와 **동일 공식**:
- * `cardPaddingY*2 + labelLine + (desc? descLine + descGap : 0)` (Layer D 대칭). description 유무는
- * 소유자 항목 origin (`resolveGridListTemplateOriginId`) 의 slot 구성으로 gating — appendGridListRowProjection 동형.
+ * grid 모드는 한 시각 행에 numCols 카드가 배치된다(stack 은 numCols 1). 카드 높이는
+ * `cardPaddingY*2 + 선택 블록 + labelLine + (desc? descLine + descGap : 0)` 근사 — layout §1.55c 의
+ * border-box 높이와 달리 카드 border 를 더하지 않는다. description 유무는 소유자 항목 origin
+ * (`resolveGridListTemplateOriginId`) 의 slot 구성으로 gating — appendGridListRowProjection 동형.
  *
- * ADR-150 A2' 뒤로 이 값은 resolution 의 대표 `rowHeight` · 열 수만 채운다. spacer · 스크롤 범위 ·
- * 주입 높이는 시각 행별 높이 목록 (`resolveGridListRowPlan`) 과 행 위치 단일 소스가 만든다.
+ * ADR-150 A2' 뒤로 이 값은 resolution 의 대표 `rowHeight` · 열 수만 채운다 (근사로 충분한 이유).
+ * window · spacer · 스크롤 범위 · 주입 높이는 border 를 포함한 시각 행별 높이 목록
+ * (`resolveGridListRowPlan`) 과 행 위치 단일 소스가 만든다.
  */
 function resolveGridListRowStride(
   node: CanonicalNode,
