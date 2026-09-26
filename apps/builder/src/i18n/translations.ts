@@ -1283,7 +1283,7 @@ const koKR: TranslationKeys = {
     folderOpen: "폴더 내용으로 열기",
     folderOverwrite: "내 변경으로 폴더 덮어쓰기",
     folderDisconnect: "폴더 연결 해제",
-    folderCleared: "폴더에만 있음 — 폴더 내용으로 여세요",
+    folderCleared: "폴더에만 있음",
     storageQuotaExceeded:
       "저장 공간이 부족해 변경을 저장하지 못했습니다. 파일로 내보내 보관하세요.",
     projectFileUnavailable: "프로젝트가 아직 준비되지 않았습니다.",
@@ -3261,7 +3261,7 @@ const enUS: TranslationKeys = {
     folderOpen: "Open the folder's version",
     folderOverwrite: "Overwrite the folder with my changes",
     folderDisconnect: "Disconnect folder",
-    folderCleared: "Only in the folder — open its version",
+    folderCleared: "Only in the folder",
     storageQuotaExceeded:
       "Out of storage space — changes were not saved. Export the project to a file.",
     projectFileUnavailable: "The project is not ready yet.",

@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [로컬 저장 v2 — 폴더 연결 판독 수리 (다른 프로젝트 내용이 연결 폴더에 써짐)] - 2026-09-26
+
+### Fixed
+
+- **폴더에 연결한 프로젝트에서 대시보드를 거쳐 다른 프로젝트로 옮긴 뒤, 다른 프로젝트의 내용이 원래 프로젝트의 연결 폴더에 저장되던 문제** (ADR-235 Phase 6 부터).
+  - **Why**: 폴더 연결이 화면 이동 뒤에도 남아, 폰트 변경 같은 쓰기 계기에 "지금 열린 프로젝트" 의 내용을 모아 자기 폴더에 썼다.
+  - 수리: 폴더에 쓸 내용은 그 프로젝트가 지금 열려 있고 데이터까지 다 올라왔을 때만 모은다. 위치: `apps/builder/src/builder/main/BuilderCore.tsx` (`collectExportContent`).
+- 오래 열지 않은 연결 프로젝트 비우기를 더 보수적으로: 데이터 (collections · API · 변수) 가 있는 프로젝트는 비우지 않는다 (폴더 형식이 그 필드를 다 담지 않음) · 불러오기가 실패하면 비운 상태를 유지 · 여는 탭과 비우기가 겹칠 때 순서 보장 · 비우기 표식만 남은 경우 자동 해제.
+  - 검증: 실제 builder 7/7 (추가 V6 — 수리 전 실패 재현) · 폴더 연결 회귀 6/6.
+
 ## [로컬 저장 v2 후속 — 오래 열지 않은 폴더 연결 프로젝트의 브라우저 사본 비우기] - 2026-09-26
 
 ### Added

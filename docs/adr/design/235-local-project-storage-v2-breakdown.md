@@ -361,6 +361,17 @@ Phase 5 는 1~4 와 독립이라 먼저 착수해도 된다 (가장 작은 작�
 3. 어느 탭에서도 열려 있지 않다 — 연결이 살아 있는 탭이 Web Lock `composition-project-open:<id>` 를 shared 로 잡고, 비우기는 exclusive `ifAvailable` 로 확인한다
 4. 폴더 읽기 권한이 이미 있다 (권한 창을 띄우지 않는다 — 브라우저가 기억하는 폴더만) · 폴더의 `manifest.json` revision · 수정 시각이 기록과 같다 · 현재 세대가 part · 자산 해시까지 읽힌다 (복구 세대 아님)
 
+**판독 수리 (2026-09-26, 판독 HIGH 2 · MEDIUM 4 — 첫 커밋 `9c55fa477` 뒤)**
+
+- HIGH-1 — 폴더 세대는 export 투영이라 API endpoint (`targetCollectionId` · `serverConfig` · `retryCount` …) · collection (`description` · 복원 시 `executionPolicy`) · page 소유 변수 필드를 버린다. 행 도장은 "DB 가 안 바뀜" 만 증명하므로, **collections · API · 변수 행이 하나라도 있는 프로젝트는 비우지 않는다** (`has-data`, fail-closed). 무손실 데이터 형식은 별도 작업.
+- HIGH-2 — 연결이 SPA 이동 뒤에도 남아 활성 store (다른 프로젝트) 내용을 이 폴더에 쓰던 **Phase 6 부터의 결함** (live V6 원복 RED: C 폴더에 D 내용이 3세대로 써짐). `collectExportContent` 가 canonical · data store 의 활성 프로젝트가 자기이고 데이터 로드가 끝났을 때만 내용을 준다. 도장은 이 탭의 성공 저장 revision 과 같을 때만 (직전 도장 이월 제거 · 급감 가드 차단 이벤트면 무효).
+- MEDIUM-3 — 복원 적용이 성공한 뒤에만 `clearedAt` 을 푼다 (실패하면 cleared 유지 + 오류 표시).
+- MEDIUM-4 — resume 이 열림 잠금을 **잡은 뒤** 기록을 읽는다 (비우기가 도는 중이면 끝난 뒤의 표식을 본다) · 비우기 표식은 같은 트랜잭션에서 기록이 시작 때와 같을 때만 쓴다 · `write` 는 쓰기 전에 기록의 `clearedAt` 을 다시 읽는다.
+- MEDIUM-5 — 표식만 남고 삭제가 없었으면 (DB 문서가 도장 그대로) resume 이 표식을 푼다.
+- MEDIUM-6 — sweep sentinel 은 `pagehide` 에서 지운다 (탭 닫기 ≠ 끝나지 못한 실행).
+- 원복 RED: has-data · 표식 비교 후 쓰기 · resume 표식 해제 각 1 실패 (unit 17) · live V6. 번들 Builder 1,420,999 (상한까지 1 B) · Preview 622,556 — lazy 모듈이 store 를 import 하면 청크가 갈라져 +278 / +411 B 라 검사는 BuilderCore 의 `collectExportContent` 에 두었다.
+- LOW deferred: 비운 프로젝트에서 연결 해제 → 다시 연결하면 conflict 메뉴에 "덮어쓰기" 가 뜬다 (사용자 명시 선택) · 복원 시 endpoint 가 새 id 로 만들어질 때 문서 참조 (가설, 미확인).
+
 **지우는 것** — `projectLocalEviction.clearProjectLocalContent`: 한 readwrite 트랜잭션 안에서 도장을 다시 대조한 뒤 `documents` · `document_heads` · `document_parts` · `documents_backup` · `collections` · `collection_runtime` · `api_endpoints` · `variables` · `events` · `actions` (문서 root mirror) 의 그 프로젝트 행, 이어서 history DB 의 스냅샷 (projectId) · entry · page meta (문서 node id). **남기는 것**: `projects` 행 (이름 — 목록 요약) · 연결 기록 (`clearedAt`). 자산 바이트는 root 가 사라져 이후 GC 가 (유예 7일) 회수한다.
 
 **순서 · 중단** — 연결 기록에 `clearedAt` 을 먼저 쓰고 지운다 (삭제 직후 중단돼도 열 때 빈 문서로 폴더를 덮지 않는다). 대조가 어긋나면 DB 에 문서가 남아 있을 때만 표식을 되돌린다. sweep 도 핸들을 읽으므로 복원과 같은 crash sentinel (`composition.dir-link.evicting` = 시작 시각 — 5분 안이면 다른 탭 실행, 넘으면 끝나지 못한 실행 → `evict-disabled`).
@@ -372,6 +383,6 @@ Phase 5 는 1~4 와 독립이라 먼저 착수해도 된다 (가장 작은 작�
 **증거**
 
 - unit `projectLocalEviction.test.ts` 14: 도장 같으면 그 프로젝트만 비움 (다른 프로젝트 · history 유지, `projects` 행 유지) · 문서/collection 변경 뒤 "changed" · sweep 조건별 (recent · unsynced · folder-changed · no-permission · open · folder-unreadable · changed) 비우지 않음 · 비운 프로젝트 resume = cleared · 폴더 쓰기 없음 · sentinel 3. 원복 RED 5/5 (트랜잭션 안 도장 재대조 · write 의 clearedAt 가드 · 폴더 revision 대조 · 기간 조건 · 폴더 세대 읽기 검증 — 각각 끄면 1 실패).
-- live `adr235-evict-live.mjs` **6/6** (Chrome 153 영속 프로필 · OPFS 폴더): V1 편집 → 폴더 세대 + 도장 (= DB head) · V2 A 가 다른 탭에서 열려 있으면 비우지 않음 · V3 닫힌 뒤 기간 경과 → 문서 · 백업 비움 · `projects` 행 유지 · `clearedAt` · V4 열면 cleared · 편집해도 폴더 revision 그대로 → "폴더 내용으로 열기" → 요소 복원 · 다시 폴더에 씀 (revision 3) · V5 폴더에 없는 DB 변경 (도장 불일치) → 비우지 않음 · page error 0. 회귀: G6 6/6.
+- live `adr235-evict-live.mjs` **7/7** (Chrome 153 영속 프로필 · OPFS 폴더, V6 = 판독 수리 뒤 추가 — SPA 이동 뒤 쓰기 계기에도 이전 연결이 폴더에 쓰지 않음): V1 편집 → 폴더 세대 + 도장 (= DB head) · V2 A 가 다른 탭에서 열려 있으면 비우지 않음 · V3 닫힌 뒤 기간 경과 → 문서 · 백업 비움 · `projects` 행 유지 · `clearedAt` · V4 열면 cleared · 편집해도 폴더 revision 그대로 → "폴더 내용으로 열기" → 요소 복원 · 다시 폴더에 씀 (revision 3) · V5 폴더에 없는 DB 변경 (도장 불일치) → 비우지 않음 · page error 0. 회귀: G6 6/6.
 - 번들: Builder 1,420,983 · Preview 622,556 (상한 1,421,000 / 623,000 안 — Builder 여유 17 B). 줄인 과정: BuilderCore 트리거 → GC 스케줄러 (중첩 dynamic import) · 열림 잠금을 lazy 연결 모듈로 · 새 i18n 키 1 (메뉴는 기존 "폴더 내용으로 열기" 재사용) · 열 때 토스트 없음 (버튼 경고로 대체).
 - 한계: 권한을 기억하지 않는 브라우저 설정이면 (Chrome 기본은 탭을 닫으면 권한 초기화 — "방문할 때마다 허용" 을 고른 폴더만) 조건 4 에서 비우지 않는다 — 폴더를 확인할 수 없으면 지우지 않는 쪽을 택했다.

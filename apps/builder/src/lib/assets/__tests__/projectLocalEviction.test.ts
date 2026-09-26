@@ -41,7 +41,7 @@ const doc = (pageId: string) =>
     children: [{ id: pageId, type: "page", children: [] }],
   }) as unknown as CompositionDocument;
 
-async function seedProject(id: string) {
+async function seedProject(id: string, data = true) {
   await adapter.projects.insert({
     id,
     name: id,
@@ -50,6 +50,8 @@ async function seedProject(id: string) {
   } as never);
   await adapter.documents.put(id, doc(`${id}-page`));
   await adapter.documents.backupNow(id);
+  await adapter.events.insert({ id: `${id}-e`, project_id: id } as never);
+  if (!data) return;
   await adapter.collections.insert({
     id: `${id}-c`,
     project_id: id,
@@ -60,7 +62,6 @@ async function seedProject(id: string) {
     project_id: id,
     name: "v",
   } as never);
-  await adapter.events.insert({ id: `${id}-e`, project_id: id } as never);
 }
 
 async function seedHistory(projectId: string, pageId: string) {
@@ -223,8 +224,11 @@ async function folderAt(revision: number) {
   return dir;
 }
 
-async function linkedStaleProject(overrides: Partial<TestRecord> = {}) {
-  await seedProject("a");
+async function linkedStaleProject(
+  overrides: Partial<TestRecord> = {},
+  data = false,
+) {
+  await seedProject("a", data);
   const record: TestRecord = {
     projectId: "a",
     handle: { name: "folder" },
@@ -285,6 +289,31 @@ describe("evictStaleDirectoryProjects", () => {
     },
   );
 
+  it("has-data — collections · API · 변수 행이 있으면 (export 투영이 필드를 버림) 지우지 않는다", async () => {
+    await linkedStaleProject({}, true);
+    expect(await sweep(await folderAt(3))).toEqual([
+      { projectId: "a", result: "has-data" },
+    ]);
+    expect(await adapter.documents.get("a")).not.toBeNull();
+  });
+
+  it("open — 확인하는 동안 누가 열었으면 (기록 변경) 표식하지 않는다", async () => {
+    await linkedStaleProject();
+    const result = await sweep(await folderAt(3), {
+      withClosedProject: async (_id: string, run: () => Promise<string>) => {
+        const current = await getLink("a");
+        await putLink({
+          ...current!,
+          lastOpenedAt: new Date(NOW).toISOString(),
+        });
+        return run();
+      },
+    });
+    expect(result).toEqual([{ projectId: "a", result: "open" }]);
+    expect(await adapter.documents.get("a")).not.toBeNull();
+    expect((await getLink("a"))?.clearedAt ?? null).toBeNull();
+  });
+
   it("folder-unreadable — 폴더 part 가 손상됐으면 지우지 않는다", async () => {
     await linkedStaleProject();
     const dir = await folderAt(3);
@@ -308,7 +337,7 @@ describe("evictStaleDirectoryProjects", () => {
 });
 
 describe("비운 프로젝트 열기", () => {
-  it("resume → status cleared · 폴더에 쓰지 않는다 (빈 문서로 폴더를 덮지 않음)", async () => {
+  function stubWindow() {
     const storage = new Map<string, string>([["composition.dir-link.a", "1"]]);
     vi.stubGlobal("localStorage", {
       getItem: (k: string) => storage.get(k) ?? null,
@@ -331,7 +360,14 @@ describe("비운 프로젝트 열기", () => {
         }
       },
     );
-    await linkedStaleProject({ clearedAt: OLD });
+  }
+
+  it("resume → status cleared · 폴더에 쓰지 않는다 (빈 문서로 폴더를 덮지 않음)", async () => {
+    stubWindow();
+    const record = await linkedStaleProject({ clearedAt: OLD });
+    expect(await clearProjectLocalContent("a", record.syncedStamp!)).toBe(
+      "cleared",
+    );
     const { resumeProjectDirectoryLink, getDirectoryLink } =
       await import("../projectDirectoryLink");
     const collectContent = vi.fn(() => null);
@@ -342,6 +378,19 @@ describe("비운 프로젝트 열기", () => {
     expect(getDirectoryLink("a")!.state.status).toBe("cleared");
     // 열었다는 기록
     expect((await getLink("a"))?.lastOpenedAt).not.toBe(OLD);
+    getDirectoryLink("a")!.dispose();
+  });
+
+  it("표식만 남고 삭제가 없었으면 (표식 직후 중단) resume 이 표식을 푼다", async () => {
+    stubWindow();
+    await linkedStaleProject({ clearedAt: OLD });
+    const { resumeProjectDirectoryLink, getDirectoryLink } =
+      await import("../projectDirectoryLink");
+    const state = await resumeProjectDirectoryLink("a", {
+      collectContent: () => null,
+    });
+    expect(state?.status).not.toBe("cleared");
+    expect((await getLink("a"))?.clearedAt ?? null).toBeNull();
     getDirectoryLink("a")!.dispose();
   });
 });

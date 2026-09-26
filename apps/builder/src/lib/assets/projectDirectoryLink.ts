@@ -32,6 +32,7 @@ import { storeAssetBytes } from "./assetStore";
 import { installIndexedDbAssetUrlResolver } from "./assetUrlResolver";
 import {
   clearProjectLocalContent,
+  hasProjectDataRows,
   PROJECT_EVICT_AFTER_MS,
   readProjectLocalStamp,
   sameProjectLocalStamp,
@@ -65,6 +66,7 @@ const LINKS_STORE = "links";
 const WRITE_DEBOUNCE_MS = 1500;
 /** 열린 연결 프로젝트 표시 — 연결이 살아 있는 동안 shared 로 잡는다 (비우기는 exclusive 로 확인) */
 export const PROJECT_OPEN_LOCK_PREFIX = "composition-project-open:";
+const PERSIST_BLOCKED_EVENT = "composition:document-persist-blocked";
 
 interface LinkRecord {
   projectId: string;
@@ -202,17 +204,46 @@ async function linksTx<T>(
 // ============================================
 
 export interface DirectoryLinkDeps {
+  /**
+   * 이 프로젝트가 이 탭의 활성 · 로드 완료 프로젝트일 때만 내용, 아니면 null. 연결은 SPA 이동 뒤에도
+   * 남을 수 있고 부팅 중에는 collections 가 아직 비어 있다 — 그때 쓰면 다른 프로젝트 / 덜 로드된
+   * 내용이 이 폴더의 세대가 된다 (판독 HIGH-2). store 를 이 모듈에서 import 하지 않는다 (청크 분리 —
+   * 실측 Builder +278 · Preview +411 B).
+   */
   collectContent(): ProjectContentV2 | null;
 }
 
 const links = new Map<string, DirectoryLink>();
+
+/** 열린 연결 프로젝트 표시 (shared) — `granted` 는 잠금을 실제로 잡은 뒤 풀린다 (비우기와 순서 보장) */
+function holdProjectOpenLock(projectId: string): {
+  granted: Promise<void>;
+  release: () => void;
+} {
+  const locks = (globalThis.navigator as Navigator | undefined)?.locks;
+  if (!locks) return { granted: Promise.resolve(), release: () => {} };
+  let release = () => {};
+  let markGranted = () => {};
+  const granted = new Promise<void>((resolve) => (markGranted = resolve));
+  const held = new Promise<void>((resolve) => (release = resolve));
+  void locks
+    .request(
+      `${PROJECT_OPEN_LOCK_PREFIX}${projectId}`,
+      { mode: "shared" },
+      () => {
+        markGranted();
+        return held;
+      },
+    )
+    .catch(() => markGranted());
+  return { granted, release };
+}
 
 class DirectoryLink {
   state: DirectoryLinkState;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private writing = false;
   private dirty = false;
-  private releaseOpenLock: () => void = () => {};
   /** 이 탭이 마지막으로 저장한 문서 head revision — 도장이 이 탭의 저장인지 확인한다 */
   private persistedRevision: string | null = null;
   private readonly onPersisted = (event: Event) => {
@@ -224,10 +255,18 @@ class DirectoryLink {
       this.schedule();
     }
   };
+  /** 급감 가드가 저장을 막았다 — DB 에 보호된 문서가 메모리와 다르다. 다음 성공 저장까지 도장 금지 */
+  private readonly onPersistBlocked = (event: Event) => {
+    const detail = (event as CustomEvent<{ projectId?: string }>).detail;
+    if (!detail?.projectId || detail.projectId === this.record.projectId)
+      this.persistedRevision = null;
+  };
 
   constructor(
     private record: LinkRecord,
     private deps: DirectoryLinkDeps,
+    private releaseOpenLock: () => void = holdProjectOpenLock(record.projectId)
+      .release,
   ) {
     this.state = {
       projectId: record.projectId,
@@ -240,19 +279,7 @@ class DirectoryLink {
       "composition:custom-fonts-updated",
       this.onPersisted,
     );
-    const locks = (globalThis.navigator as Navigator | undefined)?.locks;
-    if (locks) {
-      const held = new Promise<void>((resolve) => {
-        this.releaseOpenLock = resolve;
-      });
-      void locks
-        .request(
-          `${PROJECT_OPEN_LOCK_PREFIX}${record.projectId}`,
-          { mode: "shared" },
-          () => held,
-        )
-        .catch(() => {});
-    }
+    window.addEventListener(PERSIST_BLOCKED_EVENT, this.onPersistBlocked);
   }
 
   dispose(): void {
@@ -263,6 +290,7 @@ class DirectoryLink {
       "composition:custom-fonts-updated",
       this.onPersisted,
     );
+    window.removeEventListener(PERSIST_BLOCKED_EVENT, this.onPersistBlocked);
   }
 
   private publish(next: Partial<DirectoryLinkState>): void {
@@ -312,7 +340,13 @@ class DirectoryLink {
       this.dirty = true;
       return;
     }
-    // 비운 프로젝트 — 지금 문서는 폴더 내용이 아니다 (빈 문서로 폴더를 덮지 않는다)
+    // 비운 프로젝트 — 지금 문서는 폴더 내용이 아니다 (빈 문서로 폴더를 덮지 않는다). 다른 탭의 비우기가
+    //   이 탭이 연 뒤에 표식을 남겼을 수 있어 기록을 다시 읽는다.
+    const stored = await linksTx<LinkRecord | undefined>("readonly", (store) =>
+      store.get(this.record.projectId),
+    ).catch(() => undefined);
+    if (stored?.clearedAt)
+      this.record = { ...this.record, clearedAt: stored.clearedAt };
     if (this.record.clearedAt) {
       this.publish({ status: "cleared" });
       return;
@@ -360,15 +394,18 @@ class DirectoryLink {
         await nextV2Revision(target, this.record.lastRevision),
       );
       await writeV2Directory(target, generation, { keepPrevious: 1 });
-      // 도장은 "IndexedDB 내용 ⊆ 이번 세대" 가 확인될 때만 남긴다 — 쓰는 동안 DB 가 바뀌지 않았고,
-      //   DB 문서가 이 탭의 저장이거나 (메모리 = 그 뒤 상태) 직전 확인 뒤 DB 가 그대로일 때.
+      // 도장은 "IndexedDB 문서 ⊆ 이번 세대" 가 확인될 때만 남긴다 — 쓰는 동안 DB 가 바뀌지 않았고, DB
+      //   문서가 이 탭이 (가드에 막히지 않고) 마지막으로 저장한 것이며 (메모리 = 그 뒤 상태), 그동안 이
+      //   프로젝트가 계속 활성이었을 때. 데이터 행 (collections · API · 변수) 은 export 투영이 필드를
+      //   버려 폴더에 다 담기지 않는다 — 비우기가 행이 있는 프로젝트를 건너뛴다 (`hasProjectDataRows`).
       const stampAfter = await readProjectLocalStamp(projectId).catch(
         () => null,
       );
       const verified =
         sameProjectLocalStamp(stampBefore, stampAfter) &&
-        (stampBefore!.documentRevision === this.persistedRevision ||
-          sameProjectLocalStamp(stampBefore, this.record.syncedStamp));
+        this.persistedRevision !== null &&
+        stampBefore!.documentRevision === this.persistedRevision &&
+        this.deps.collectContent() !== null;
       this.record = {
         ...this.record,
         lastRevision: generation.manifest.revision,
@@ -396,7 +433,11 @@ class DirectoryLink {
     }
   }
 
-  /** 폴더의 현재 세대를 읽어 자산을 저장소에 넣고 envelope 로 (충돌 해소 — 폴더 내용으로 열기) */
+  /**
+   * 폴더의 현재 세대를 읽어 자산을 저장소에 넣고 envelope 로 (충돌 해소 · 비운 프로젝트 복원). 비운
+   * 프로젝트는 `clearedAt` 을 여기서 풀지 않는다 — 적용이 성공한 뒤 `finishRestore` 가 푼다 (적용이
+   * 실패하면 기본 문서로 폴더를 덮지 않게 cleared 유지).
+   */
   async readFromDirectory() {
     const read = await readV2Generation(directoryV2Source(this.target));
     const resolver = installIndexedDbAssetUrlResolver();
@@ -412,12 +453,27 @@ class DirectoryLink {
       ...this.record,
       lastRevision: read.manifest.revision,
       lastModified: (await this.target.lastModified?.("manifest.json")) ?? null,
-      clearedAt: null,
       syncedStamp: null,
     };
     await linksTx("readwrite", (store) => store.put(this.record));
-    this.publish({ status: "synced", lastRevision: read.manifest.revision });
+    if (!this.record.clearedAt)
+      this.publish({ status: "synced", lastRevision: read.manifest.revision });
     return read;
+  }
+
+  /** 비운 프로젝트 복원 적용 성공 뒤 — 표식을 풀고 평소처럼 쓴다 */
+  async finishRestore(): Promise<void> {
+    this.record = { ...this.record, clearedAt: null };
+    await linksTx("readwrite", (store) => store.put(this.record));
+    this.publish({ status: "synced", lastRevision: this.record.lastRevision });
+  }
+
+  /** 복원 적용 실패 — cleared 유지 */
+  failRestore(error: unknown): void {
+    this.publish({
+      status: "cleared",
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 }
 
@@ -480,21 +536,35 @@ export async function resumeProjectDirectoryLink(
     );
     return state;
   }
+  // 열림 잠금을 먼저 잡는다 — 다른 탭의 비우기가 도는 중이면 끝난 뒤의 기록 (clearedAt) 을 읽는다
+  links.get(projectId)?.dispose();
+  links.delete(projectId);
+  const lock = holdProjectOpenLock(projectId);
+  await lock.granted;
   localStorage.setItem(sentinel, "1");
   const stored = await linksTx<LinkRecord | undefined>("readonly", (store) =>
     store.get(projectId),
   ).finally(() => localStorage.removeItem(sentinel));
   if (!stored) {
+    lock.release();
     localStorage.removeItem(directoryLinkFlagKey(projectId));
     return null;
   }
-  const record: LinkRecord = {
+  let record: LinkRecord = {
     ...stored,
     lastOpenedAt: new Date().toISOString(),
   };
+  // 표식만 남고 삭제가 일어나지 않은 경우 (표식 직후 중단) — DB 가 기록한 도장 그대로면 표식을 푼다
+  if (record.clearedAt) {
+    const stamp = await readProjectLocalStamp(projectId).catch(() => null);
+    if (
+      stamp?.documentRevision &&
+      sameProjectLocalStamp(stamp, record.syncedStamp)
+    )
+      record = { ...record, clearedAt: null };
+  }
   await linksTx("readwrite", (store) => store.put(record)).catch(() => {});
-  links.get(projectId)?.dispose();
-  const link = new DirectoryLink(record, deps);
+  const link = new DirectoryLink(record, deps, lock.release);
   links.set(projectId, link);
   if (record.clearedAt) {
     // 비운 프로젝트 — 사용자가 "폴더에서 불러오기" 를 누를 때까지 쓰지 않는다
@@ -576,12 +646,19 @@ export async function runDirectoryLinkAction(
       return;
   }
   if (action === "open" || action === "restore") {
-    const read = await link.readFromDirectory();
-    await applyImported({
-      version: read.manifest.formatVersion,
-      exportedAt: read.manifest.savedAt,
-      ...read.content,
-    });
+    const cleared = link.state.status === "cleared";
+    try {
+      const read = await link.readFromDirectory();
+      await applyImported({
+        version: read.manifest.formatVersion,
+        exportedAt: read.manifest.savedAt,
+        ...read.content,
+      });
+      if (cleared) await link.finishRestore();
+    } catch (error) {
+      if (cleared) link.failRestore(error);
+      else throw error;
+    }
   }
 }
 
@@ -597,6 +674,7 @@ export type DirectoryEvictionResult =
   | "no-permission"
   | "folder-changed"
   | "folder-unreadable"
+  | "has-data"
   | "changed";
 
 export interface DirectoryEvictionOptions {
@@ -675,6 +753,11 @@ export async function evictStaleDirectoryProjects(
       results.push({ projectId, result: "unsynced" });
       continue;
     }
+    // collections · API · 변수 행은 export 투영이 필드를 버려 폴더에 다 담기지 않는다 — 비우지 않는다
+    if (hasProjectDataRows(stamp)) {
+      results.push({ projectId, result: "has-data" });
+      continue;
+    }
     const result = await withClosed(projectId, async () => {
       if (!(await canRead(record).catch(() => false))) return "no-permission";
       const target = targetFor(record);
@@ -693,12 +776,13 @@ export async function evictStaleDirectoryProjects(
       }
       if (!sameProjectLocalStamp(await readProjectLocalStamp(projectId), stamp))
         return "changed";
-      // 비운다는 표식을 먼저 — 삭제 직후 중단돼도 열 때 빈 문서로 폴더를 덮지 않는다
-      const marked: LinkRecord = {
-        ...record,
-        clearedAt: new Date(now).toISOString(),
-      };
-      await linksTx("readwrite", (store) => store.put(marked));
+      // 비운다는 표식을 먼저 — 삭제 직후 중단돼도 열 때 빈 문서로 폴더를 덮지 않는다. 시작 뒤 기록이
+      //   바뀌었으면 (누가 열었거나 썼다) 표식하지 않는다 (같은 트랜잭션의 비교 후 쓰기).
+      const marked = await markClearedIfUnchanged(
+        record,
+        new Date(now).toISOString(),
+      );
+      if (!marked) return "open";
       const cleared = await clearProjectLocalContent(projectId, stamp).catch(
         () => "unavailable" as const,
       );
@@ -739,10 +823,48 @@ export async function evictStaleDirectoryProjectsIfLinked() {
     return [];
   }
   localStorage.setItem(sentinel, String(Date.now()));
-  const results = await evictStaleDirectoryProjects().finally(() =>
-    localStorage.removeItem(sentinel),
-  );
+  // 탭을 닫는 것은 "끝나지 못한 실행" 이 아니다 — 닫힐 때 표식을 지운다 (브라우저 종료만 남긴다)
+  const clearSentinel = () => localStorage.removeItem(sentinel);
+  globalThis.addEventListener?.("pagehide", clearSentinel);
+  const results = await evictStaleDirectoryProjects().finally(() => {
+    globalThis.removeEventListener?.("pagehide", clearSentinel);
+    clearSentinel();
+  });
   const cleared = results.filter((entry) => entry.result === "cleared");
   if (cleared.length > 0) console.info("[directory-link] 비움", cleared);
   return results;
+}
+
+async function markClearedIfUnchanged(
+  record: LinkRecord,
+  clearedAt: string,
+): Promise<boolean> {
+  const db = await openLinksDb();
+  return new Promise<boolean>((resolve, reject) => {
+    const tx = db.transaction(LINKS_STORE, "readwrite");
+    const store = tx.objectStore(LINKS_STORE);
+    let marked = false;
+    const request = store.get(record.projectId);
+    request.onsuccess = () => {
+      const current = request.result as LinkRecord | undefined;
+      if (
+        current &&
+        !current.clearedAt &&
+        (current.lastOpenedAt ?? null) === (record.lastOpenedAt ?? null) &&
+        (current.syncedAt ?? null) === (record.syncedAt ?? null) &&
+        current.lastRevision === record.lastRevision
+      ) {
+        store.put({ ...current, clearedAt });
+        marked = true;
+      }
+    };
+    tx.oncomplete = () => {
+      db.close();
+      resolve(marked);
+    };
+    tx.onerror = () => {
+      db.close();
+      reject(tx.error);
+    };
+  });
 }

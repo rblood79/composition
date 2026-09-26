@@ -291,6 +291,43 @@ try {
     v5r.head && v5r.clearedAt === null,
     v5r,
   );
+  // V6 — 판독 HIGH-2 반증: 연결 프로젝트 C 에서 SPA 로 다른 프로젝트 D 로 옮긴 뒤 폰트 이벤트 (프로젝트
+  //   id 없는 쓰기 계기) → C 의 남은 연결이 D 내용을 C 폴더에 쓰지 않는다
+  const pageC = await ctx.newPage();
+  pageC.on("pageerror", (e) => errors.push(String(e)));
+  await createIsolatedProject(pageC, BASE);
+  const revC = await pageC.evaluate(async () => {
+    await window.__composition_CONNECT_FOLDER__(
+      await window.__ev.dir("evict-c"),
+    );
+    await window.__ev.addElement("c-el");
+    await window.__ev.waitFor(
+      async () => (await window.__ev.manifestRevision("evict-c")) >= 2,
+    );
+    return window.__ev.manifestRevision("evict-c");
+  });
+  await pageC.evaluate(() => {
+    history.pushState({}, "", "/dashboard");
+    dispatchEvent(new PopStateEvent("popstate"));
+  });
+  const create = pageC.locator("button.dashboard-create-button").first();
+  await create.waitFor({ state: "visible", timeout: 15_000 });
+  await create.click();
+  await pageC.locator("#new-project-name").fill(`evict-d-${Date.now()}`);
+  await pageC.locator("#new-project-name").press("Enter");
+  await pageC.waitForURL(/\/builder\/[^/?]+$/, { timeout: 60_000 });
+  await waitReady(pageC);
+  const v6 = await pageC.evaluate(async () => {
+    await window.__ev.addElement("d-el");
+    window.dispatchEvent(new CustomEvent("composition:custom-fonts-updated"));
+    await new Promise((r) => setTimeout(r, 4000));
+    return { revision: await window.__ev.manifestRevision("evict-c") };
+  });
+  record(
+    "V6 SPA 로 다른 프로젝트로 옮긴 뒤 쓰기 계기 → 이전 연결이 폴더에 쓰지 않음",
+    revC >= 2 && v6.revision === revC,
+    { revC, ...v6 },
+  );
   record("page error 0", errors.length === 0, errors.slice(0, 3));
 } finally {
   await ctx.close();

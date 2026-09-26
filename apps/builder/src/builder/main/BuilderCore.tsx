@@ -1230,18 +1230,28 @@ export const BuilderCore: React.FC = () => {
   /** 내보내기 공용 — 현재 프로젝트의 문서 · 문서 밖 상태 (ADR-235 v1 · v2 공통 입력) */
   const collectExportContent = useCallback(() => {
     const document = getActiveCanonicalDocument();
-    if (!projectId || !document) return null;
+    const data = useDataStore.getState();
+    // 활성 · 로드 완료 프로젝트만 — SPA 이동 뒤 남은 폴더 연결이 다른 프로젝트 · 덜 로드된 내용을
+    //   이 프로젝트 폴더에 쓰지 않게 (ADR-235 판독 HIGH-2)
+    if (
+      !projectId ||
+      !document ||
+      useCanonicalDocumentStore.getState().currentProjectId !== projectId ||
+      data.currentProjectId !== projectId ||
+      !data.isInitialized
+    )
+      return null;
     return {
       project: { id: projectId, name: projectInfo?.name || "Untitled Project" },
       document,
       currentPageId: useStore.getState().currentPageId,
       fontRegistry: loadFontRegistry(),
-      collections: Array.from(useDataStore.getState().collections.values()).map(
+      collections: Array.from(data.collections.values()).map(
         toExportCollection,
       ),
-      apiEndpoints: Array.from(
-        useDataStore.getState().apiEndpoints.values(),
-      ).map(toRuntimeApiEndpoint),
+      apiEndpoints: Array.from(data.apiEndpoints.values()).map(
+        toRuntimeApiEndpoint,
+      ),
       // ADR-214 — 프로젝트 변수 정의 (import 에서 보존 · publish 런타임 입력)
       variables: getProjectVariableDefinitions(),
     };

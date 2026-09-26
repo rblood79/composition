@@ -134,6 +134,13 @@ export function sameProjectLocalStamp(
   );
 }
 
+/** collections · api_endpoints · variables 에 이 프로젝트의 행이 있는가 (도장의 행 수) */
+export function hasProjectDataRows(stamp: ProjectLocalStamp): boolean {
+  return stamp.dataStamp
+    .split("|")
+    .some((group) => Number(group.split(":")[0]) > 0);
+}
+
 /** 이 프로젝트의 IndexedDB 내용 도장. DB 가 없으면 null */
 export async function readProjectLocalStamp(
   projectId: string,
@@ -248,9 +255,7 @@ async function clearProjectHistory(
       if (!stores.includes(HISTORY_ENTRIES)) continue;
       const os = tx.objectStore(HISTORY_ENTRIES);
       if (!os.indexNames.contains("pageId")) continue;
-      const keys = await requestResult(
-        os.index("pageId").getAllKeys(pageId),
-      );
+      const keys = await requestResult(os.index("pageId").getAllKeys(pageId));
       for (const key of keys) os.delete(key);
     }
     await done;
