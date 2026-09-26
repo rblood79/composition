@@ -1,8 +1,9 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import type { CompositionDocument } from "@composition/shared";
+import type { CanonicalNode, CompositionDocument } from "@composition/shared";
 
 import { buildCanonicalSceneModel } from "./canonicalSceneModel";
+import { ensureReusableCompositeOrigins } from "../../../components/reusableCompositeOrigins";
 import { toCollectionRowProjectionId } from "../../../projection/renderProjectionIds";
 
 /**
@@ -151,5 +152,75 @@ describe("ADR-162 Phase 2 — 데이터 행 = 항목 origin 가상 instance (Can
 
   it("자식이 전부 slot 인 origin — 행은 자식 없이 escape 가 그린다 (BC)", () => {
     expect(kidsOf("gl-slots", "a")).toEqual([]);
+  });
+});
+
+/**
+ * 팔레트 모양 (ref instance → `component-gridlist`, master slot[0] = 상태 변형 origin
+ * `component-gridlist-item-default--unselected` — ADR-234, 자기 자식 없는 ref) — 변형 origin 을 체인으로 펼쳐
+ * 기본 origin 에 넣은 Image 까지 읽어야 데이터 행이 펼쳐진다 (ADR-162 Phase 4 live 에서 발견).
+ */
+describe("ADR-162 — 팔레트 GridList (변형 항목 origin) 데이터 행 펼침", () => {
+  function paletteDoc(): CompositionDocument {
+    const doc = ensureReusableCompositeOrigins({
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-home",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-home", slug: "/" },
+          children: [
+            {
+              id: "body-home",
+              type: "body",
+              children: [
+                {
+                  id: "gl-pal",
+                  type: "ref",
+                  ref: "component-gridlist",
+                  dataBinding: {
+                    type: "collection",
+                    source: "static",
+                    config: { data: ITEMS },
+                  },
+                  props: {},
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument);
+    const find = (nodes: readonly CanonicalNode[]): CanonicalNode | undefined => {
+      for (const n of nodes) {
+        if (n.id === "component-gridlist-item-default") return n;
+        const hit = find(n.children ?? []);
+        if (hit) return hit;
+      }
+      return undefined;
+    };
+    const origin = find(doc.children)!;
+    origin.children = [
+      ...(origin.children ?? []),
+      {
+        id: "pal-image",
+        type: "Image",
+        props: { alt: "{label}" },
+      } as unknown as CanonicalNode,
+    ];
+    return doc;
+  }
+
+  it("행마다 origin 자식 (label · 설명 · Image) 을 펼치고 글자는 행 데이터", () => {
+    const model = buildCanonicalSceneModel(paletteDoc());
+    const kids =
+      model.sceneChildrenByParent.get(
+        toCollectionRowProjectionId("gridlist", "gl-pal", "a"),
+      ) ?? [];
+    expect(kids.map((k) => k.type)).toEqual(["Text", "Text", "Image"]);
+    expect(kids[2]?.props.alt).toBe("Alpha");
+    expect(model.sceneNodesMap.get("gl-pal")?.props._expandedTemplateRows).toBe(
+      true,
+    );
   });
 });

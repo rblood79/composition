@@ -19,6 +19,7 @@ import {
   useRef,
   useMemo,
   useState,
+  useSyncExternalStore,
   lazy,
   Suspense,
 } from "react";
@@ -156,6 +157,13 @@ import {
   resolveVirtualizedCollectionWindows,
   collectionWindowSignature,
 } from "./scene/collectionVirtualization";
+// ADR-162 Phase 4: 펼친 GridList 카드의 layout 실측 → 가상화 행 높이 (layout publish 뒤 수확).
+import {
+  getExpandedCardHeightsVersion,
+  harvestExpandedCardHeights,
+  subscribeExpandedCardHeights,
+} from "./scene/expandedCardHeights";
+import { getSharedLayoutMap, onLayoutPublished } from "./layout";
 import { useScrollState } from "../../stores/scrollState";
 import {
   computeWorkflowEdges,
@@ -329,6 +337,29 @@ export function BuilderCanvas({
   //   변수 Map 이 바뀌면 scene 재빌드 → 소비 노드만 signature 가 변한다 (미사용 편집은 +0).
   //   가상화 resolver 도 같은 값으로 행 템플릿의 `{{ }}` 를 푼다 (ADR-150 A2').
   const projectVariables = useProjectVariableDefs();
+  // ADR-162 Phase 4: 펼친 카드 실측이 바뀌면 (수확 version) resolver 가 행 높이 목록을 다시 만든다.
+  const expandedCardHeightsVersion = useSyncExternalStore(
+    subscribeExpandedCardHeights,
+    getExpandedCardHeightsVersion,
+  );
+  useEffect(
+    () =>
+      onLayoutPublished(() => {
+        harvestExpandedCardHeights(getSharedLayoutMap(), {
+          get: (id) => useScrollState.getState().scrollMap.get(id),
+          apply: (id, maxScrollTop, scrollTop) => {
+            const scroll = useScrollState.getState();
+            scroll.updateMaxScroll(id, maxScrollTop, 0);
+            scroll.setScroll(
+              id,
+              scrollTop,
+              scroll.scrollMap.get(id)?.scrollLeft ?? 0,
+            );
+          },
+        });
+      }),
+    [],
+  );
   const collectionWindows = useMemo(() => {
     if (!activeCanonicalDocument) return undefined;
     const scrollTops = new Map<string, number>();
@@ -348,6 +379,7 @@ export function BuilderCanvas({
     scrollMap,
     sceneActiveBreakpoint,
     projectVariables,
+    expandedCardHeightsVersion,
   ]);
   // window [start,end) 경계 signature — overscan slack 안 스크롤은 불변 → scene rebuild 억제(HC#1).
   const collectionWindowSig = collectionWindows

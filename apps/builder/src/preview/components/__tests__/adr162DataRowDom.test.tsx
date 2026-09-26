@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   getCatalogCutoverTypes,
+  type CanonicalNode,
   type CompositionDocument,
   type ResolvedNode,
 } from "@composition/shared";
@@ -14,6 +15,7 @@ import {
   indexTemplateOriginRecords,
 } from "../../utils/itemTemplates";
 import { resolveCanonicalDocument } from "../../../resolvers/canonical";
+import { ensureReusableCompositeOrigins } from "../../../builder/components/reusableCompositeOrigins";
 
 /**
  * ADR-162 Phase 3 — Preview 데이터 GridList 카드 = 항목 origin 자식 (행 데이터로 보간).
@@ -170,5 +172,67 @@ describe("ADR-162 Phase 3 — Preview 데이터 행 = 항목 origin 자식", () 
     expect(cards).toHaveLength(2);
     expect(cards[0]?.textContent).toContain("Alpha");
     expect(cards[0]?.querySelector("img")).toBeNull();
+  });
+});
+
+describe("ADR-162 — 팔레트 GridList (변형 항목 origin) Preview 데이터 행", () => {
+  it("master slot[0] = `--unselected` 변형 origin 이어도 해석기가 기본 origin 자식 (Image 포함) 을 행 템플릿으로 준다", () => {
+    const doc = ensureReusableCompositeOrigins({
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-home",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-home", slug: "/" },
+          children: [
+            {
+              id: "body-home",
+              type: "body",
+              children: [
+                {
+                  id: "gl-pal",
+                  type: "ref",
+                  ref: "component-gridlist",
+                  dataBinding: {
+                    type: "collection",
+                    source: "static",
+                    config: { data: ITEMS },
+                  },
+                  props: {},
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument);
+    const find = (nodes: readonly CanonicalNode[]): CanonicalNode | undefined => {
+      for (const n of nodes) {
+        if (n.id === "component-gridlist-item-default") return n;
+        const hit = find(n.children ?? []);
+        if (hit) return hit;
+      }
+      return undefined;
+    };
+    const origin = find(doc.children)!;
+    origin.children = [
+      ...(origin.children ?? []),
+      {
+        id: "pal-image",
+        type: "Image",
+        props: { alt: "{label} 사진", src: "data:image/png;base64,AA" },
+      } as unknown as CanonicalNode,
+    ];
+    // Preview 해석기 — 팔레트 instance (`_resolvedFrom` = master) 의 slot[0] 변형 origin 을 해석된 트리에서
+    //   읽는다. (legacy `{type:"collection"}` 바인딩은 Preview 가 상속 정적 카드 (Path 3) 를 그리는 별도 경로라
+    //   DOM 렌더 대신 해석기 결과를 본다 — production 바인딩 `{source:"dataTable"}` 은 Path 1.)
+    const resolved = resolveCanonicalDocument(doc) as ResolvedNode[];
+    const resolver = createGridListTemplateResolver(
+      indexTemplateOriginRecords(resolved),
+    );
+    const kids = (resolver.rowTemplateChildrenForOwner({
+      _resolvedFrom: "component-gridlist",
+    }) ?? []) as { type?: string }[];
+    expect(kids.map((k) => k.type)).toContain("Image");
   });
 });

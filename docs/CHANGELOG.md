@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-162 Phase 4 — 펼친 GridList 카드의 스크롤 행 높이 실측] - 2026-09-27
+
+### Fixed
+
+- **스크롤되는 데이터 GridList 에서 카드 템플릿에 Image 등을 넣어 카드가 커지면 스크롤 범위 · 뒤쪽 카드 위치가 틀리던 문제.** 가상화가 펼친 카드 높이를 label · 설명 두 칸 공식 (76) 으로 셈해 실제 카드 (126 · 3 줄 제목이면 174) 보다 짧게 잡았다. 이제 화면에 그려진 카드의 실제 높이를 기억해 ADR-150 행 위치 함수에 넣고, 아직 안 본 카드는 첫 실측 높이로 추정한다. 실측이 들어와 위쪽 합이 바뀌면 보고 있던 행이 제자리에 머물게 스크롤 위치를 옮기고, 끝에 있었으면 새 끝에 붙인다. ADR-162 Phase 4.
+  - **Why**: 펼친 카드 높이는 자식 크기와 줄바꿈에 달려 layout 전에는 알 수 없다 — 공식 추정만 쓰던 가상화가 유일한 소스였다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/scene/expandedCardHeights.ts` · `collectionVirtualization.ts` · `BuilderCanvas.tsx`
+- **팔레트에서 추가한 GridList 는 카드 템플릿에 Image 등을 넣어도 데이터 카드가 펼쳐지지 않던 문제 (Canvas).** 팔레트 GridList 의 카드 템플릿은 상태 변형 origin (`--unselected`, 기본 origin 을 참조) 인데 Canvas 가 참조를 펼치지 않은 노드를 읽어 "자식 없음" 으로 판정했다. ListBox · Tag · Tab 과 같은 변형 origin 해석을 쓴다. ADR-162 Phase 4 live 에서 발견.
+  - **Why**: ADR-234 Phase 2 가 행 template origin 조회를 변형 체인 해석으로 바꿀 때 GridList 카드 context 만 빠졌다.
+  - 위치: `canvasSceneNode.ts` `resolveGridListCardContext`
+- 검증: 실 브라우저 DOM (2 열 · 100 카드, 짧은 / 3 줄 제목 교대 — 카드 126 · 174, scrollHeight 8088) 과 실제 builder Canvas 가 전 행 실체화 · 끝으로 바로 이동 · 미방문 중간 이동 · 맨 위부터 순차 스크롤 네 경우 모두 행 y · 높이 ±1, 전 행을 본 뒤 총 높이 8088 = DOM (live 9/9). 중간 이동 때 보던 행의 화면 위치 변화 0 · 같은 위치 재계산 진동 0. 원복 RED 6 종.
+
 ## [ADR-150 Phase 1 — 스크롤 데이터 목록의 행 위치 단일 소스] - 2026-09-27
 
 ### Fixed

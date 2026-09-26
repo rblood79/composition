@@ -2,7 +2,7 @@
 
 ## Status
 
-In Progress — Phase 0 ~ 3 · 5 완료 2026-09-26 (Phase 4 는 ADR-150 Phase 1 행 offset 함수 뒤 — 150 재작성 2026-09-26 으로 선행 조건 변경 · Phase 6 closure 남음) · Proposed 2026-07-24 · **본문 재작성 2026-09-26** (사용자 판정 "본문 재작성": [ADR-234](completed/234-variant-instances-and-slot-filled-collections.md) 이후 모델 기준으로 범위와 설계를 다시 정함)
+In Progress — Phase 0 ~ 3 · 5 완료 2026-09-26 · Phase 4 완료 2026-09-27 (ADR-150 Phase 1 행 offset 함수에 실측 공급, G3 live 9/9) · Phase 6 closure 남음 · Proposed 2026-07-24 · **본문 재작성 2026-09-26** (사용자 판정 "본문 재작성": [ADR-234](completed/234-variant-instances-and-slot-filled-collections.md) 이후 모델 기준으로 범위와 설계를 다시 정함)
 
 > 재작성 사유: 07-24 판의 대안 A (composed 모드 — 별도 판정 심볼 `isComposedCollectionTemplate` + 새 투영 경로) 는 ADR-148 의 "slot = 템플릿 역할 표" 모델을 전제로 했다. ADR-234 (Implemented 2026-09-23) 가 그 모델을 정적 목록에서 "항목 origin 의 instance 를 자식으로 채운다" 로 대체했고, 데이터 바인딩 목록만 `items` + 항목 origin 템플릿으로 남겼다 (ADR-234 Decision · CHANGELOG 2026-09-23 "데이터 바인딩 GridList 는 그대로 `items`"). 07-24 판을 그대로 실행하면 같은 카드에 규칙이 둘 (정적 = instance, 데이터 = composed) 생긴다. 리뷰 기록 [reviews/162.md](reviews/162.md) round 1 (승인) 은 07-24 판 기준이라 착수 전 round 2 가 필요하다.
 

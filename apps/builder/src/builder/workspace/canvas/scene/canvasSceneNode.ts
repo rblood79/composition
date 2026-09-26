@@ -1754,8 +1754,13 @@ export function resolveGridListCardContext(input: {
   // ADR-161 Phase 3 — 컨테이너 origin(component-gridlist)의 slot[0] 을 소비해 item origin 을
   //   해석한다(리터럴 하드코딩 제거). resolveGridListTemplateOriginId 는 preview(App.tsx
   //   component-gridlist master 해석)와 동일 SSOT — ref-composite 컨테이너 origin authoritative.
-  const templateOriginNode = getDocumentNodesById().get(
+  // ADR-234 Phase 2 — slot 항목이 상태 변형 origin (`--unselected`, 기본 origin 의 ref) 이면 체인을 펼친
+  //   노드 (ListBox · Tag · Tab 과 같은 `resolveTemplateOriginNode`) — 자식 · style · slot 구성을 기본 origin
+  //   에서 읽는다. 팔레트 GridList (ref instance) 의 master slot[0] 이 이 모양이다 (ADR-162 Phase 4 live 발견 —
+  //   raw 노드는 자식이 없어 펼침 판정 · slot 구성이 비었다). id 는 변형 id 그대로 (행 `ref`).
+  const templateOriginNode = resolveTemplateOriginNode(
     resolveGridListTemplateOriginId(sourceNode, getDocumentNodesById),
+    getDocumentNodesById(),
   );
   const templateOriginId = templateOriginNode ? templateOriginNode.id : null;
   const originStyle =

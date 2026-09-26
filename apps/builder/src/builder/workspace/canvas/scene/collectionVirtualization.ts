@@ -78,6 +78,13 @@ import { applyPropsPatch } from "../../../../adapters/canonical/instanceResolver
 import { readTableHeaderColumnNodes } from "../../../components/tableColumnInsert";
 import { flattenCanonicalDocumentNodes } from "./canonicalSceneModel";
 import {
+  expandedCardHeightsVersionOf,
+  noteExpandedCardWindow,
+  pruneExpandedCardOwners,
+  resolveExpandedCardHeights,
+  toVisualRowHeights,
+} from "./expandedCardHeights";
+import {
   resolveCollectionRowOffsets,
   type CollectionRowOffsets,
 } from "./collectionRowOffsets";
@@ -658,8 +665,9 @@ function resolveListBoxRowPlan(
  * 시각 행 높이 = 그 행 카드들 중 최대 (DOM grid stretch 와 같다). gap 은 scene 행 묶음 rowGap 과
  * 같은 값 (`ctx.gap` — owner `style.rowGap ?? style.gap`, DOM 과 같은 축) 이다.
  *
- * 펼친 카드 (ADR-162 — origin 에 역할 없는 자식) 는 높이가 자식 크기에 달려 여기서는 같은 공식으로
- * 추정만 한다 — 실측 공급은 ADR-162 Phase 4. wrap 은 ListBox 와 같이 범위 밖 (R1).
+ * 펼친 카드 (ADR-162 — origin 에 역할 없는 자식) 는 높이가 자식 크기에 달려 공식으로 알 수 없다 —
+ * ADR-162 Phase 4 `expandedCardHeights` 가 window 카드의 layout 실측 (없으면 첫 실측 · 공식 추정) 을
+ * 공급하고, 그 version 이 plan 캐시 조건이다. slot-only 카드의 wrap 은 ListBox 와 같이 범위 밖 (R1).
  */
 const gridListRowPlanCache = new WeakMap<
   CanonicalNode,
@@ -668,7 +676,8 @@ const gridListRowPlanCache = new WeakMap<
     doc: CompositionDocument;
     collections: readonly CollectionDataSource[];
     projectVariables: ResolveVirtualizedWindowsInput["projectVariables"];
-    plan: ListBoxRowPlan & { columns: number };
+    measuredVersion: number;
+    plan: ListBoxRowPlan & { columns: number; expanded: boolean };
   }
 >();
 
@@ -677,7 +686,7 @@ function resolveGridListRowPlan(
   totalRows: number,
   input: ResolveVirtualizedWindowsInput,
   getDocNodes: () => Map<string, CanonicalNode>,
-): ListBoxRowPlan & { columns: number } {
+): ListBoxRowPlan & { columns: number; expanded: boolean } {
   const breakpoint = input.activeBreakpoint ?? "desktop";
   const cached = gridListRowPlanCache.get(node);
   if (
@@ -686,6 +695,7 @@ function resolveGridListRowPlan(
     cached.doc === input.doc &&
     cached.collections === input.collections &&
     cached.projectVariables === input.projectVariables &&
+    cached.measuredVersion === expandedCardHeightsVersionOf(node.id) &&
     cached.plan.heights.length === Math.ceil(totalRows / cached.plan.columns)
   ) {
     return cached.plan;
@@ -769,26 +779,53 @@ function resolveGridListRowPlan(
       ),
   );
   const columns = Math.max(1, ctx.numCols);
-  const heights: number[] = [];
-  for (let i = 0; i < cardHeights.length; i += columns) {
-    let max = 0;
-    for (let j = i; j < Math.min(cardHeights.length, i + columns); j += 1) {
-      if (cardHeights[j] > max) max = cardHeights[j];
-    }
-    heights.push(max);
+  const leadingExtent = ownerMetric.borderWidth + ownerMetric.paddingTop;
+  const trailingExtent = ownerMetric.paddingBottom + ownerMetric.borderWidth;
+  // ADR-162 Phase 4 — 펼친 카드: 카드마다 실측 ?? 추정 (공식 목록은 첫 실측 전 추정으로만 쓴다).
+  const expanded = ctx.expandRowsFromOrigin && ctx.templateOriginNode != null;
+  let effectiveCardHeights: readonly number[] = cardHeights;
+  if (expanded) {
+    const rows = getListBoxProjectionRows(
+      {
+        collections: input.collections,
+        dataBinding: getElementDataBinding(node),
+        props,
+      },
+      { startIndex: 0, endIndex: totalRows },
+    );
+    effectiveCardHeights = resolveExpandedCardHeights({
+      ownerId: node.id,
+      templateSig: JSON.stringify([
+        ctx.templateOriginNode!.id,
+        ctx.templateOriginNode!.props ?? null,
+        ctx.templateOriginNode!.children ?? null,
+        breakpoint,
+      ]),
+      itemKeys: rows.map((row) => row.itemKey),
+      items: rows.map((row) => row.item),
+      formulaCardHeights: cardHeights,
+      columns,
+      gap: ctx.gap,
+      leadingExtent,
+      trailingExtent,
+      viewportHeight: 0,
+    });
   }
+  const heights = toVisualRowHeights(effectiveCardHeights, columns);
   const plan = {
     heights,
     gap: ctx.gap,
     columns,
-    leadingExtent: ownerMetric.borderWidth + ownerMetric.paddingTop,
-    trailingExtent: ownerMetric.paddingBottom + ownerMetric.borderWidth,
+    expanded,
+    leadingExtent,
+    trailingExtent,
   };
   gridListRowPlanCache.set(node, {
     breakpoint,
     doc: input.doc,
     collections: input.collections,
     projectVariables: input.projectVariables,
+    measuredVersion: expandedCardHeightsVersionOf(node.id),
     plan,
   });
   return plan;
@@ -969,6 +1006,8 @@ export function resolveVirtualizedCollectionWindows(
 
   // 이번 문서에 있는 가상화 owner — 끝에서 나머지 (삭제된 owner) 의 행 높이 서명 캐시를 지운다.
   const liveOwnerIds = new Set<string>();
+  // 이번에 펼친 카드 수확 구간을 받은 scroll owner — 나머지는 수확에서 뺀다.
+  const expandedWindowOwnerIds = new Set<string>();
   const visit = (docNode: CanonicalNode): void => {
     const family = resolveCollectionOwnerKind(docNode);
     const node = family
@@ -1099,12 +1138,23 @@ export function resolveVirtualizedCollectionWindows(
             scrollTop: rawScrollTop,
             overscan: input.overscan ?? DEFAULT_COLLECTION_OVERSCAN,
           });
+          const fields = applyListBoxOffsets(
+            offsets,
+            plan,
+            totalRows,
+            plan.columns,
+          );
           result.set(node.id, {
-            ...applyListBoxOffsets(offsets, plan, totalRows, plan.columns),
+            ...fields,
             totalRows,
             columns: plan.columns,
             viewportHeight,
           });
+          // ADR-162 Phase 4 — 펼친 카드 수확 구간 (scroll 소유자만 — sample 모드는 스크롤 범위가 없다).
+          if ("expanded" in plan && plan.expanded) {
+            noteExpandedCardWindow(node.id, fields.window, viewportHeight);
+            expandedWindowOwnerIds.add(node.id);
+          }
           node.children?.forEach(visit);
           return;
         }
@@ -1241,6 +1291,7 @@ export function resolveVirtualizedCollectionWindows(
   };
   input.doc.children.forEach(visit);
   pruneRowHeightCache(liveOwnerIds);
+  pruneExpandedCardOwners(liveOwnerIds, expandedWindowOwnerIds);
   return result;
 }
 
@@ -1253,8 +1304,10 @@ export function collectionWindowSignature(
 ): string {
   const parts: string[] = [];
   for (const [ownerId, resolution] of windows) {
+    // spacer · 행 영역은 window 가 같으면 스크롤과 무관하다 — 넣어도 스크롤 중 rebuild 는 늘지 않고,
+    //   window 는 그대로인데 행 높이 목록만 바뀐 경우 (ADR-162 Phase 4 실측 교체) spacer 를 다시 투영한다.
     parts.push(
-      `${ownerId}:${resolution.window.startIndex}:${resolution.window.endIndex}`,
+      `${ownerId}:${resolution.window.startIndex}:${resolution.window.endIndex}:${resolution.leadSpacerHeight ?? ""}:${resolution.trailSpacerHeight ?? ""}:${resolution.rowsExtent ?? ""}`,
     );
   }
   // owner 삽입 순서는 doc walk 순서로 안정적 — 정렬 불필요.
