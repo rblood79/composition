@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [InlineAlert 설명의 자동 높이] - 2026-09-26
+
+### Fixed
+
+- **InlineAlert 설명이 여러 줄이어도 Canvas의 설명 상자와 알림 높이가 한 줄 크기에 머물던 문제.** 부모가 글꼴 크기와 줄 높이를 주입한 뒤 기존 레이아웃이 측정된 텍스트 높이를 한 줄 높이로 덮어썼다. 이제 최종 텍스트 스타일로 내용 높이를 다시 측정해 `auto` 높이가 설명 길이에 따라 늘어난다. `100%` 높이를 지정한 기존 문서도 DOM과 같은 내용 높이를 사용한다.
+  - 검증: Chromium에서 생성 CSS와 Canvas 레이아웃을 비교하는 짧은 설명·긴 설명·`100%` 회귀 케이스가 수정 전 실패, 수정 후 통과.
+
 ## [한 줄에 놓인 버튼 · 배지 · 링크의 세로 정렬] - 2026-09-26
 
 ### Fixed

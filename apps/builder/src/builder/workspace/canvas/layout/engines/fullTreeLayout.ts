@@ -22,6 +22,7 @@ import type { PersistentBatchNode } from "./persistentLayoutTree";
 import { ENGINE_MEASURE_SCALAR_KEYS } from "../../wasm-bindings/layoutTypes";
 import {
   enrichWithIntrinsicSize,
+  TEXT_LEAF_TAGS,
   setTagGroupAllowsRemovingContext,
   applyCommonEngineStyle,
   applyFlexItemProperties,
@@ -2301,14 +2302,66 @@ function traversePostOrder(
       resolveStyle(modStyle, computedStyle).fontSize,
     );
 
-    // DFS post-order: 자식이 부모보다 먼저 enrichment → fontSize 미주입 상태로 계산됨
-    // implicitStyles가 fontSize를 주입하면 height(lineHeight 기반) + fit-content width 재계산
-    // 부모가 준 명시 height (ListBoxItem icon slot 상자 등) 는 줄 높이로 덮지 않는다.
+    // DFS post-order 에서 텍스트 leaf 는 부모의 fontSize/lineHeight 주입 전에 측정된다.
+    // 한 줄 높이를 직접 쓰면 여러 줄의 contentHeight 를 명시 height 가 덮는다.
+    // 최종 스타일로 같은 폭에서 다시 측정하고, 폭 확정 후 재줄바꿈은 Step 4.5 에 맡긴다.
+    const fontSizeChanged =
+      modStyle.fontSize != null && modStyle.fontSize !== origStyle.fontSize;
+    const lineHeightChanged =
+      modStyle.lineHeight != null &&
+      modStyle.lineHeight !== origStyle.lineHeight;
+    const isTextLeaf = TEXT_LEAF_TAGS.has(filteredChild.type.toLowerCase());
+    const textHeightMayDependOnContent =
+      modStyle.height == null ||
+      (typeof modStyle.height === "string" &&
+        (modStyle.height.trim().endsWith("%") ||
+          isEngineIntrinsicKeyword(modStyle.height)));
     if (
-      modStyle.fontSize != null &&
-      modStyle.fontSize !== origStyle.fontSize &&
-      modStyle.height == null
+      (fontSizeChanged || lineHeightChanged) &&
+      isTextLeaf &&
+      textHeightMayDependOnContent
     ) {
+      const processedChild = processedElementsMap.get(filteredChild.id)!;
+      const processedStyle = (processedChild.props?.style ?? {}) as Record<
+        string,
+        unknown
+      >;
+      const processedComputed = resolveStyle(processedStyle, computedStyle);
+      const measured = enrichWithIntrinsicSize(
+        processedChild,
+        batch[batchIdx].enrichAvailWidth ?? childAvail.width,
+        childAvail.height,
+        processedComputed,
+        getChildElements(filteredChild.id),
+        getChildElements,
+        effectiveDisplay === "flex" || effectiveDisplay === "inline-flex",
+        effectiveDisplay === "grid" || effectiveDisplay === "inline-grid",
+      );
+      const measuredStyle = (measured.props?.style ?? {}) as Record<
+        string,
+        unknown
+      >;
+      if (modStyle.height == null && measuredStyle.height == null) {
+        delete batch[batchIdx].style.height;
+      }
+      patchBatchStyleFromImplicit(
+        batch[batchIdx].style,
+        Object.fromEntries(
+          [
+            "height",
+            "contentHeight",
+            "contentMinHeight",
+            "contentMinWidth",
+            "contentMaxWidth",
+            "leafBaseline",
+          ]
+            .filter((key) => measuredStyle[key] !== undefined)
+            .map((key) => [key, measuredStyle[key]]),
+        ),
+        processedComputed.fontSize,
+      );
+    } else if (fontSizeChanged && modStyle.height == null) {
+      // 비텍스트 자식의 기존 단일 line box 보정. 명시 height 는 보존한다.
       const childFs =
         typeof modStyle.fontSize === "number"
           ? modStyle.fontSize
