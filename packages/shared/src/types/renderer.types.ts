@@ -226,6 +226,15 @@ export interface RenderContext {
     slot?: unknown;
     _resolvedFrom?: string;
   }) => TagItemTemplate | null;
+  /**
+   * ADR-162 Phase 1 — GridList 마다 자기 slot 의 항목 origin 구성을 고른다 (builder
+   * `resolveGridListTemplateOriginId` 와 같은 규칙). 렌더러 (`CanonicalNodeRenderer`) 가 GridList 노드마다 불러
+   * `gridListTemplateSlotComposition` 을 바꿔 넘긴다.
+   */
+  resolveGridListTemplate?: (owner: {
+    slot?: unknown;
+    _resolvedFrom?: string;
+  }) => SlotComposition | null;
 }
 
 /** ADR-229 Phase 1 — Tag chip item template 의 DOM 소비 형태 (renderContext → TagGroup prop). */

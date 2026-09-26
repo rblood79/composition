@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [GridList 카드 — 소유자별 항목 origin · 섞인 자식 카드의 설명] - 2026-09-26
+
+### Fixed
+
+- **Slot 절로 다른 카드 origin 을 둔 데이터 GridList 가 Preview 에서 기본 카드 모양으로 그려지던 문제.** Canvas 는 GridList 마다 자기 slot 의 항목 origin 을 읽었지만 Preview 는 문서 전역 `component-gridlist` 의 slot 하나를 모든 GridList 에 넘겼고, 가상화 행 간격도 기본 origin 상수를 읽었다. 이제 세 곳이 같은 소유자별 해석을 쓴다 (Tabs 의 ADR-233 수리와 같은 형태). ADR-162 Phase 1.
+  - 검증: 자기 slot custom · slot 없음 · custom master instance 세 GridList 에서 Canvas `_slots` 와 Preview DOM 설명 스타일이 같다 (수정 전 DOM 실패) · custom origin (설명 slot 없음) 의 행 간격 86 → 60 (수정 전 실패).
+- **Image 처럼 역할 없는 자식이 섞인 항목 카드 (detach 한 GridList 카드 등) 에서 Canvas 설명이 사라지던 문제.** slot 자식을 자식마다 접어 escape 가 카드 틀만 그리는 동안 설명을 아무도 그리지 않았다. 이제 자식이 전부 slot 일 때만 접는다 — ListBoxItem · MenuItem 도 같은 규칙.
+  - 검증: scene unit (수정 전 실패) · 실제 builder 에서 detach 카드에 설명 · Image 를 넣어 label · 설명 · Image 가 모두 그려짐.
+
 ## [InlineAlert 설명의 자동 높이] - 2026-09-26
 
 ### Fixed

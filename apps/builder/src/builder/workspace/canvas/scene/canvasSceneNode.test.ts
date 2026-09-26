@@ -1462,6 +1462,67 @@ describe("buildCanvasSceneGraph — page + reusable frame 시나리오", () => {
     expect(graph.nodesMap.get("plain-item-1__label")).toBeUndefined();
   });
 
+  // ADR-162 Phase 1 — 접기는 카드 단위: 자식이 전부 slot 역할일 때만 접는다. 비-slot 자식 (Image ·
+  //   역할 없는 label Text) 이 섞인 비-reusable 카드 (detach · legacy) 는 자식 수만큼 `_hasChildren` 이라
+  //   escape 가 shell 만 그리는데, slot 자식만 접으면 description 을 아무도 그리지 않는다.
+  it("folds a non-reusable card only when every child is a slot child (ADR-162 Phase 1)", () => {
+    const text = (id: string, slot: string | null, children: string) => ({
+      id,
+      type: "Text",
+      props: slot ? { slot, children } : { children },
+    });
+    const doc: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: "body-1",
+              type: "Body",
+              props: {},
+              children: [
+                {
+                  id: "mixed-card",
+                  type: "GridListItem",
+                  props: { children: "Docs", description: "12 files" },
+                  children: [
+                    text("mixed-card__label", null, "Docs"),
+                    text("mixed-card__description", "description", "12 files"),
+                    { id: "mixed-card__image", type: "Image", props: { alt: "x" } },
+                  ],
+                },
+                {
+                  id: "slot-card",
+                  type: "GridListItem",
+                  props: { children: "Docs", description: "12 files" },
+                  children: [
+                    text("slot-card__label", "label", "Docs"),
+                    text("slot-card__description", "description", "12 files"),
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument;
+
+    const graph = buildCanvasSceneGraph(doc, { includeReusableFrames: true });
+
+    expect(
+      (graph.childrenByParent.get("mixed-card") ?? []).map((c) => c.id),
+    ).toEqual([
+      "mixed-card__label",
+      "mixed-card__description",
+      "mixed-card__image",
+    ]);
+    // 전부 slot 이면 종전대로 접힘 (escape 가 flat props 로 그린다 — BC).
+    expect(graph.childrenByParent.get("slot-card") ?? []).toEqual([]);
+  });
+
   it("projects a data-bound Table into 2D RowsGroup → Row → Cell tree (ADR-912 C1)", () => {
     const doc: CompositionDocument = {
       version: "composition-1.0",

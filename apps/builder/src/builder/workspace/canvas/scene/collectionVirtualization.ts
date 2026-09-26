@@ -39,10 +39,10 @@ import {
 } from "@composition/specs";
 
 import { getElementDataBinding } from "../../../../adapters/canonical/compositionExtensionFields";
-import { GRIDLIST_ITEM_DEFAULT_ORIGIN_ID } from "../../../components/gridlist/gridListTemplateOrigins";
 import { resolveListBoxItemRowHeightFromStyle } from "../layout/engines/utils";
 import {
   getListBoxTemplateAnchor,
+  resolveGridListTemplateOriginId,
   resolveListBoxTemplateOriginId,
   resolveTemplateOriginNode,
   type CollectionWindowResolution,
@@ -160,7 +160,7 @@ function resolveTableRowHeight(
  * grid 모드는 한 시각 행에 numCols 카드가 배치된다(stack 은 numCols 1). 카드 높이는 layout
  * `calculateContentHeight` gridlist 분기(utils.ts §1.55c)와 **동일 공식**:
  * `cardPaddingY*2 + labelLine + (desc? descLine + descGap : 0)` (Layer D 대칭). description 유무는
- * origin(GRIDLIST_ITEM_DEFAULT_ORIGIN_ID) 의 slot 구성으로 gating — appendGridListRowProjection 동형.
+ * 소유자 항목 origin (`resolveGridListTemplateOriginId`) 의 slot 구성으로 gating — appendGridListRowProjection 동형.
  *
  * **근사(GridList 한정)**: 총 content height = totalVisualRows × stride 는 마지막 시각 행 뒤의
  * gap 을 1개 더 센다(실제 = 행수×카드 + (행수-1)×gap). 스크롤바가 gap 1개만큼 길다 — proof 허용
@@ -180,7 +180,10 @@ function resolveGridListRowStride(
     layout,
     columns: Number(props?.columns ?? 2) || 2,
   });
-  const origin = getDocNodes().get(GRIDLIST_ITEM_DEFAULT_ORIGIN_ID);
+  // ADR-162 Phase 1 — 소유자 자기 항목 origin (scene 투영과 같은 해석 — 상수 기본 origin 아님).
+  const origin = getDocNodes().get(
+    resolveGridListTemplateOriginId(node, getDocNodes),
+  );
   const slotComposition = resolveSlotComposition(origin?.children);
   const hasDescription =
     typeof sampleDescription === "string" &&

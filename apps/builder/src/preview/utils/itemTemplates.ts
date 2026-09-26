@@ -3,7 +3,9 @@ import {
   resolveItemTemplateChipStyle,
   resolveSlotComposition,
 } from "@composition/shared";
+import type { SlotComposition } from "@composition/shared";
 import type { TagItemTemplate } from "@composition/shared/types";
+import { GRIDLIST_ITEM_DEFAULT_ORIGIN_ID } from "../../builder/components/templateItemOriginIds";
 
 /** Preview 가 item template origin 에서 읽는 필드 (resolve 된 canonical 노드). */
 export interface TemplateOriginRecord {
@@ -152,6 +154,43 @@ export function createTabTemplateResolver(
         : owner;
       // ADR-234 Phase 3 — slot 은 목록 틀 (TabList) 이 갖는다. root 는 이관 전 문서.
       return forSlot(readTabsTemplateSlot(slotOwner));
+    },
+  };
+}
+
+/**
+ * ADR-162 Phase 1 (round 2 h2) — GridList 데이터 카드의 항목 origin 은 소유자마다 고른다 (Canvas
+ * `resolveGridListTemplateOriginId` 와 같은 규칙: ref instance 는 master (`_resolvedFrom`) 의 slot[0], 문서
+ * GridList 는 자기 slot[0], 없으면 표준 origin 상수). `CanonicalNodeRenderer` 가 GridList 노드마다 불러
+ * `gridListTemplateSlotComposition` 을 바꿔 넘긴다 — Tabs `createTabTemplateResolver.forOwner` 와 같은 형태.
+ */
+export function createGridListTemplateResolver(
+  byId: ReadonlyMap<string, TemplateOriginRecord>,
+): {
+  forOwner: (owner: {
+    slot?: unknown;
+    _resolvedFrom?: string;
+  }) => SlotComposition | null;
+} {
+  const cache = new Map<string, SlotComposition | null>();
+  return {
+    forOwner: (owner) => {
+      const slotOwner = owner._resolvedFrom
+        ? byId.get(owner._resolvedFrom)
+        : owner;
+      const slot = slotOwner?.slot;
+      const originId =
+        Array.isArray(slot) && typeof slot[0] === "string"
+          ? slot[0]
+          : GRIDLIST_ITEM_DEFAULT_ORIGIN_ID;
+      if (!cache.has(originId)) {
+        const origin = byId.get(originId);
+        cache.set(
+          originId,
+          origin ? resolveSlotComposition(origin.children) : null,
+        );
+      }
+      return cache.get(originId) ?? null;
     },
   };
 }

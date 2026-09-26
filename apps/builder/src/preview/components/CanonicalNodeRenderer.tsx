@@ -762,6 +762,14 @@ function CanonicalNodeRendererBody({
           ...(type === "Tabs" && renderContext.resolveTabTemplate
             ? { tabTemplate: renderContext.resolveTabTemplate(node) }
             : {}),
+          // ADR-162 Phase 1 — GridList 데이터 카드의 항목 origin 도 이 GridList 의 slot 으로 (Canvas
+          //   `resolveGridListTemplateOriginId` 와 같은 규칙).
+          ...(type === "GridList" && renderContext.resolveGridListTemplate
+            ? {
+                gridListTemplateSlotComposition:
+                  renderContext.resolveGridListTemplate(node),
+              }
+            : {}),
         };
         return (
           <div key={node.id} {...markerProps} style={{ display: "contents" }}>

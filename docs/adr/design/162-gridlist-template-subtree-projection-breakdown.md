@@ -62,6 +62,8 @@
 
 ### Phase 1 — 접기 규칙 공용화 (MED)
 
+- ✅ 2026-09-26 — `shouldFoldSlotChildren` (shared, 카드 단위) 를 scene 접기가 호출 · `resolveGridListTemplateOriginId` 를 가상화 stride 가 호출 (상수 제거) · Preview `createGridListTemplateResolver.forOwner` → `renderContext.resolveGridListTemplate` → `CanonicalNodeRenderer` 가 GridList 마다 구성을 바꿔 넘김 (Tabs 형태). 원복 RED 3 (scene 접기 · DOM 소유자 origin · stride 86→60) · canvas unit 245 · shared 146 · parity 78 · live (detach 카드 + 설명 + Image, 하니스 `adr162-p1-detach-card-live.mjs`). 곁가지 발견: detach 뒤 카드 label 이 `{label}` 원문 (범위 밖 — 따로 기록).
+
 - §3 조건을 shared 함수로. 정적 카드 경로가 호출. G0 가 가설을 확인했으면 여기서 수리 (펼침 시 slot 자식도 scene 노드).
 - unit: slot-only / 혼합 / origin / 자식 0 / Field 포함. G1 (정적 카드 부분).
 - **소유자별 origin 해석 한 곳 (round 2 h2)**: `resolveGridListTemplateOriginId` (`canvasSceneNode.ts:811`) 를 shared 로 옮겨 Canvas scene · 가상화 (`collectionVirtualization.ts:183` 상수 제거) · Preview (`App.tsx:349` 전역 해석 제거) 가 호출. Preview 채널은 소유자 id → {slot 구성, 해석된 origin 자식} 맵으로 바꾸고 renderer 는 자기 element id 로 찾는다. G2 (a) — 기본 origin · custom origin 두 소유자 반례, 원복 RED. 지금의 slot 구성 비대칭도 여기서 같이 닫힌다.

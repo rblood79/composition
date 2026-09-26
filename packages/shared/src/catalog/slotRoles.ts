@@ -164,6 +164,19 @@ function resolveSlotChildFillBackground(child: unknown): string | undefined {
 }
 
 /**
+ * ADR-162 Phase 1 — collection 항목 카드의 slot 자식 접기는 **카드 단위** 로 판정한다: 자식이 있고
+ * 전부 slot 역할일 때만 접는다 (escape 가 flat props 로 카드 전체를 그린다). 역할 없는 자식이 하나라도
+ * 섞이면 자식 전부 scene 노드로 둔다 — 그 카드는 `_hasChildren` 로 escape 가 shell 만 그리므로 slot
+ * 자식만 접으면 그 내용을 아무도 그리지 않는다. 데이터 행 투영도 같은 판정을 쓴다.
+ */
+export function shouldFoldSlotChildren(
+  children: readonly unknown[] | null | undefined,
+): boolean {
+  if (!children || children.length === 0) return false;
+  return children.every((child) => getSlotRole(child) != null);
+}
+
+/**
  * 자식 배열에서 slot 구성을 추출한다. slot 자식이 하나도 없으면 **null** — consumer 는
  * 이를 "구성 정보 없음(legacy/비배선 문서)" 신호로 받아 기존 flat-props 동작으로
  * fallback 한다 (BC). 같은 role 중복 시 첫 자식이 이긴다.

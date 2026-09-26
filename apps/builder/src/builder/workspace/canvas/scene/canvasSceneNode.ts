@@ -38,6 +38,7 @@ import {
   readStaticPickerEntries,
   compileFieldTemplate,
   getSlotRole,
+  shouldFoldSlotChildren,
   interpolateFieldTemplate,
   resolveComponentRule,
   resolveRowTemplateSource,
@@ -3254,6 +3255,16 @@ export function buildCanvasSceneGraph(
     const suppressBreadcrumbChildren =
       breadcrumbProjection != null && node.type === "Breadcrumbs";
 
+    // ADR-148 Phase 0 · ADR-162 Phase 1 — 비-reusable 항목 카드의 slot 자식 접기는 카드 단위: 자식이 전부
+    //   slot 역할일 때만 접는다. 역할 없는 자식 (Image · 역할 없는 label Text) 이 섞이면 전부 scene 노드
+    //   (escape 는 `_hasChildren` shell) — 자식 단위로 접으면 접힌 slot 내용을 아무도 안 그린다.
+    const foldSlotChildren =
+      (node.type === "ListBoxItem" ||
+        node.type === "GridListItem" ||
+        node.type === "MenuItem") &&
+      node.reusable !== true &&
+      shouldFoldSlotChildren(node.children);
+
     // ADR-238 G4 — popover 내용 (선택 안 된 Select · ComboBox 항목 · Menu 항목) 은 scene 노드로 세우지 않는다 (Canvas 는
     //   트리거만 그린다). 선택 행은 남아 트리거 글자를 만든다 (`annotateStaticPickerItems`). origin 의 자식은
     //   instance 가 실체화할 원본이라 남긴다 (해석 뒤 prune).
@@ -3289,13 +3300,7 @@ export function buildCanvasSceneGraph(
       //   scene/interaction node 로 서야 더블클릭 drill/선택/편집이 가능하다 (Card origin ·
       //   DOM renderer children-first 와 동형 authoring 표면). 이중 렌더는 escape 의
       //   `_hasChildren` shell gating 이 차단 (buildSpecNodeData 가 자식 실재 시만 주입).
-      if (
-        (node.type === "ListBoxItem" ||
-          node.type === "GridListItem" ||
-          node.type === "MenuItem") &&
-        node.reusable !== true &&
-        getSlotRole(child) != null
-      ) {
+      if (foldSlotChildren && getSlotRole(child) != null) {
         // ADR-148 Phase 4: GridListItem/MenuItem origin 의 slot 조합 자식도 동일 접힘 —
         //   gridlist_card escape / DOM emit 이 `_slots` 로 소비 (독립 scene 노드 금지).
         return;

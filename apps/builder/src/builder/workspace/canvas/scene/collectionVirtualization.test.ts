@@ -690,6 +690,51 @@ describe("resolveVirtualizedCollectionWindows — GridList 확산", () => {
     expect(map.get("gridlist-1")?.rowHeight).toBe(86);
   });
 
+  // ADR-162 Phase 1 (round 2 h2) — stride 도 소유자 자기 항목 origin 으로 (scene 투영
+  //   `resolveGridListTemplateOriginId` 와 같은 규칙). 종전은 상수 기본 origin 을 읽어, description slot
+  //   을 끈 custom origin 의 GridList 에서 stride (86) 가 카드 (60) 와 갈렸다.
+  it("소유자 slot 의 custom origin (description slot 없음) → description 행도 stride 60", () => {
+    const doc = gridListDoc({
+      itemCount: 1000,
+      style: SCROLLABLE,
+      layout: "stack",
+      withDescription: true,
+    });
+    const body = (
+      doc.children[0] as unknown as { children: { children: unknown[] }[] }
+    ).children[0];
+    const owner = body.children[0] as { slot?: string[] };
+    owner.slot = ["user-card"];
+    const originOf = (id: string, withDescriptionSlot: boolean) => ({
+      id,
+      type: "GridListItem",
+      reusable: true,
+      props: {},
+      children: [
+        { id: `${id}__label`, type: "Text", props: { slot: "label" } },
+        ...(withDescriptionSlot
+          ? [
+              {
+                id: `${id}__description`,
+                type: "Text",
+                props: { slot: "description" },
+              },
+            ]
+          : []),
+      ],
+    });
+    body.children.push(
+      originOf("component-gridlist-item-default", true),
+      originOf("user-card", false),
+    );
+    const map = resolveVirtualizedCollectionWindows({
+      doc,
+      collections: [],
+      scrollTops: new Map(),
+    });
+    expect(map.get("gridlist-1")?.rowHeight).toBe(60);
+  });
+
   it("ref 인스턴스 GridService(type:'ref' + name:'GridList')도 가상화 대상", () => {
     const map = resolveVirtualizedCollectionWindows({
       doc: gridListDoc({
