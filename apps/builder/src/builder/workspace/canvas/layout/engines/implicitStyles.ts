@@ -2311,6 +2311,26 @@ export function applyImplicitStyles(
   //     - group(effectiveParent) flex-direction = labelPosition 축 (top→column, side→row)
   //     - wrapper flex-direction = orientation 축 (vertical→column, horizontal→row)
   //   이로써 labelPosition × orientation 4조합이 CSS 2단과 동일 좌표를 산출한다.
+  // ColorField — catalog `containerVariants["label-position"].side` (row · align-items flex-start)
+  //   를 그대로 읽는다. 공용 `resolveContainerStylesFallback` 은 props 를 받지 않아 변형을 못 보고,
+  //   ColorField 에는 타입 분기가 없어 side 에서도 base `align-items: center` 로 Label 이 세로
+  //   가운데 (y 5 vs DOM y 0) 였다 (ADR-236 후속, 2026-09-26 live). field 가족의 side 보정
+  //   (`getSideLabelParentStyle` 의 wrap · Label 폭 176) 은 DOM ColorField side 규칙에 없어 쓰지 않는다.
+  //   인라인이 이긴다 (DOM cascade 와 같다).
+  if (containerTag === "colorfield") {
+    const variantStyles: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(
+      resolveActiveContainerVariants(containerTag, containerProps).styles,
+    )) {
+      variantStyles[kebabToCamel(key)] = value;
+    }
+    effectiveParent = withParentStyle(containerEl, {
+      ...specFallback,
+      ...variantStyles,
+      ...rawParentStyle,
+    });
+  }
+
   if (containerTag === "checkboxgroup" || containerTag === "radiogroup") {
     const hasLabel = !!containerProps?.label;
     const itemTag = containerTag === "checkboxgroup" ? "Checkbox" : "Radio";

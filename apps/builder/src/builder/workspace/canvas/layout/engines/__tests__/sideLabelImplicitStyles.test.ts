@@ -366,6 +366,37 @@ describe("side-label implicit styles", () => {
     expect(typeof fieldErrorStyle.marginLeft).toBe("number");
   });
 
+  it("ColorField side 는 catalog 변형 (row · align-items flex-start) 을 읽는다 — Label 폭 주입 · wrap 없음", () => {
+    const result = applyContainer("ColorField", { labelPosition: "side" }, [
+      makeChild("lbl", "Label"),
+      makeChild("input", "Input"),
+      makeChild("swatch", "ColorSwatch"),
+    ]);
+    const parentStyle = getParentStyle(result);
+    expect(parentStyle.flexDirection).toBe("row");
+    expect(parentStyle.alignItems).toBe("flex-start");
+    // DOM side 규칙에는 wrap · Label 폭이 없다 (field 가족 side 보정과 다름)
+    expect(parentStyle.flexWrap).toBeUndefined();
+    expect(getChildStyle(result, "Label").width).toBeUndefined();
+  });
+
+  it("ColorField top 은 catalog base 정렬 (center) 을 유지한다", () => {
+    const result = applyContainer("ColorField", { labelPosition: "top" }, [
+      makeChild("lbl", "Label"),
+      makeChild("input", "Input"),
+    ]);
+    expect(getParentStyle(result).alignItems).toBe("center");
+  });
+
+  it("ColorField side 에서도 인라인 alignItems 가 이긴다", () => {
+    const result = applyContainer(
+      "ColorField",
+      { labelPosition: "side", style: { alignItems: "flex-end" } },
+      [makeChild("lbl", "Label"), makeChild("input", "Input")],
+    );
+    expect(getParentStyle(result).alignItems).toBe("flex-end");
+  });
+
   it("TagGroup side variant는 spec containerVariants 기반 row 정렬을 사용한다", () => {
     const result = applyContainer(
       "TagGroup",
