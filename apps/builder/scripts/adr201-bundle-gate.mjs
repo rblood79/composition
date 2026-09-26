@@ -15,7 +15,8 @@
  *      ADR-201 후속) 가 builder·preview initial closure 밖
  *   ② 등록 8지점 + renderer shell 의 initial Δ 가 201 허용치 안 (Builder ≤ +4,096 · Preview ≤ +3,584 —
  *      2026-09-17 실측 +3,875 / +3,507 을 올림한 값, 등록 구조상 Δ 0 은 불가)
- *   ③ 절대 상한 = ADR-201 initial 상한 재승인 (Builder ≤ 1,415,000 / Preview ≤ 622,000 B gzip,
+ *   ③ 절대 상한 = ADR-201 initial 상한 재승인 (Builder ≤ 1,421,000 / Preview ≤ 623,000 B gzip —
+ *      2026-09-26 ADR-235 재승인, 09-25 값 1,415,000 / 622,000 대체,
  *      만료 2026-10-25 — 2026-09-25 재승인, 09-17 값 1,328,315 / 601,346 대체). `APPROVED` 는 사용자 재승인
  *      기록 (2026-09-25 true) — 실행자가 임의로 켜지 않는다.
  *   ④ 202 lazy 조건 (AIPanel · runCommand) 보존 · before/after 각각 같은 revision
@@ -24,9 +25,9 @@
  */
 import { readFileSync, writeFileSync } from "node:fs";
 
-export const APPROVED = true; // 2026-09-25 사용자 재승인 (09-17 값 대체) — ADR-201 §initial 번들 상한 재승인 절
-export const BUILDER_CEILING = 1_415_000;
-export const PREVIEW_CEILING = 622_000;
+export const APPROVED = true; // 2026-09-26 사용자 재승인 (ADR-235, 09-25 값 대체) — ADR-201 §initial 번들 상한 재승인 절
+export const BUILDER_CEILING = 1_421_000;
+export const PREVIEW_CEILING = 623_000;
 export const CEILING_EXPIRES = "2026-10-25";
 export const BUILDER_DELTA_LIMIT = 4_096;
 export const PREVIEW_DELTA_LIMIT = 3_584;

@@ -223,3 +223,14 @@ Phase 5 는 1~4 와 독립이라 먼저 착수해도 된다 (가장 작은 작�
 
 - 하니스: `apps/builder/scripts/adr235-g1-live.mjs` (Playwright Chrome headless · `visibility=visible` · `persisted=false`). Chrome MCP 창이 최소화 상태라 실제 builder 는 Playwright 로 부팅했다.
 - **범위 밖 기록**: publish 런타임 (`collectRuntimeElements`) 은 요소에 `fills` 를 싣지 않아 fill 을 전혀 그리지 않는다 — publish 는 기능 링크만 방침이라 이 ADR 에서 고치지 않는다 (fills DOM leg 은 Preview 렌더러 unit). builder 전체 테스트 실패 3 (`componentCatalog` Modal placeable · `originChildRefs` · `useTransformAuxiliary`) 은 HEAD `54acac192` worktree 에서도 같은 실패 — 이 변경과 무관.
+
+**번들 (HC2)** — 별도 worktree clean 빌드 · `adr209-bundle-closure.mjs` · `adr201-bundle-gate.mjs` PASS.
+
+| 측정                                 | Builder   | Preview | 비고                                                                                    |
+| ------------------------------------ | --------- | ------- | --------------------------------------------------------------------------------------- |
+| 기준 `54acac192`                     | 1,413,248 | 621,691 | 09-25 상한 1,415,000 / 622,000 — Preview 여유 309                                       |
+| 첫 구현 `b63d4b9a5`                  | 1,415,673 | 623,533 | 두 상한 초과                                                                            |
+| 축소 `e9342df40`                     | 1,414,765 | 622,352 | Δ +1,517 / +661                                                                         |
+| 상한 재승인 (2026-09-26 사용자 판정) | 1,421,000 | 623,000 | 만료 2026-10-25 유지 — ADR-235 이후 phase 몫 포함, ADR-201 §initial 번들 상한 재승인 절 |
+
+- 축소에서 확인한 함정: lazy chunk 가 shared barrel (`@composition/shared` · `/utils`) 을 값으로 import 하면 rolldown 이 barrel 이 닿는 initial 공용 chunk 를 쪼개 gzip 이 커진다 (Preview +1 파일 · 공용 코드 재배치). lazy 모듈은 shared 값 import 0 또는 barrel 아닌 서브경로 (`@composition/shared/assets`) 만 쓴다. builder · Preview 공용 chunk 에는 두 entry 가 쓰는 export 합집합이 실리므로 builder 전용 함수는 별도 파일 (`assetRefAsync.ts`) 로 둔다. sourcemap 빌드는 파일마다 `sourceMappingURL` 주석이 붙어 gzip 이 부풀어 측정에 쓰지 않는다 (모듈 귀속 분석 전용).
