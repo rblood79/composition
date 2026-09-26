@@ -210,3 +210,38 @@ describe("ADR-224 Fill 의도와 문맥", () => {
     expect(fixedRule).toContain("flex-basis:0px !important");
   });
 });
+
+describe("mergeFillSizing — tier styles · visibility 는 키 × tier 로 상속 (ADR-236 후속)", () => {
+  it("override 의 한 키 · tier 가 origin 의 다른 키 · tier 를 가리지 않는다", () => {
+    const merged = mergeFillSizing(
+      {
+        responsive: {
+          styles: { gap: { tablet: 12 }, paddingTop: { mobile: 4 } },
+          visibility: { mobile: false },
+        },
+      },
+      {
+        responsive: {
+          styles: { paddingTop: { tablet: 24 } },
+          visibility: { tablet: true },
+        },
+      },
+    );
+    expect(merged.responsive?.styles).toEqual({
+      gap: { tablet: 12 },
+      paddingTop: { mobile: 4, tablet: 24 },
+    });
+    expect(merged.responsive?.visibility).toEqual({
+      mobile: false,
+      tablet: true,
+    });
+  });
+
+  it("같은 키 · tier 는 override 가 이긴다", () => {
+    const merged = mergeFillSizing(
+      { responsive: { styles: { gap: { tablet: 12 } } } },
+      { responsive: { styles: { gap: { tablet: 4 } } } },
+    );
+    expect(merged.responsive?.styles).toEqual({ gap: { tablet: 4 } });
+  });
+});

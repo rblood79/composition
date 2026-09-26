@@ -478,6 +478,83 @@ function getSyntheticDescendantPath(
   return path.length > 0 ? path : null;
 }
 
+type TierMap = Record<string, unknown>;
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
+ * synthetic 자식의 tier (tablet · mobile) 쓰기 — 해석된 `responsive` (origin ⊕ patch) 와 액션이 만든
+ * 다음 값의 **차이만** 기존 patch 의 `responsive` 에 옮긴다. 해석값 전체를 실으면 origin 자식의 tier
+ * 값이 patch 로 복사돼 굳는다 (style 의 `toWrittenStyle` 과 같은 원칙). 사라진 tier 값은 patch 에서
+ * 지운다 = origin 값으로 복귀. 비면 undefined.
+ */
+function diffResponsiveIntoPatch(
+  existing: unknown,
+  current: ElementResponsiveConfig | undefined,
+  next: ElementResponsiveConfig | undefined,
+): Record<string, unknown> | undefined {
+  const out: Record<string, unknown> = isPlainRecord(existing)
+    ? structuredClone(existing)
+    : {};
+  const same = (a: unknown, b: unknown) =>
+    JSON.stringify(a) === JSON.stringify(b);
+  const applyTier = (
+    target: Record<string, unknown>,
+    field: string,
+    tier: string,
+    value: unknown,
+  ) => {
+    const bucket = isPlainRecord(target[field])
+      ? (target[field] as TierMap)
+      : {};
+    if (value === undefined) delete bucket[tier];
+    else bucket[tier] = value;
+    if (Object.keys(bucket).length > 0) target[field] = bucket;
+    else delete target[field];
+  };
+
+  // styles — 키 × tier
+  const currentStyles = (current?.styles ?? {}) as Record<string, TierMap>;
+  const nextStyles = (next?.styles ?? {}) as Record<string, TierMap>;
+  const styles: Record<string, unknown> = isPlainRecord(out.styles)
+    ? (out.styles as Record<string, unknown>)
+    : {};
+  for (const key of new Set([
+    ...Object.keys(currentStyles),
+    ...Object.keys(nextStyles),
+  ])) {
+    const before = currentStyles[key] ?? {};
+    const after = nextStyles[key] ?? {};
+    for (const tier of new Set([
+      ...Object.keys(before),
+      ...Object.keys(after),
+    ])) {
+      if (!same(before[tier], after[tier])) {
+        applyTier(styles, key, tier, after[tier]);
+      }
+    }
+  }
+  if (Object.keys(styles).length > 0) out.styles = styles;
+  else delete out.styles;
+
+  // visibility · sizing — tier 단위
+  for (const field of ["visibility", "sizing"] as const) {
+    const before = (current?.[field] ?? {}) as TierMap;
+    const after = (next?.[field] ?? {}) as TierMap;
+    for (const tier of new Set([
+      ...Object.keys(before),
+      ...Object.keys(after),
+    ])) {
+      if (!same(before[tier], after[tier])) {
+        applyTier(out, field, tier, after[tier]);
+      }
+    }
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
 /**
  * synthetic 자식 (`<instance>/<path>`) 에 쓸 style — 해석 style 전체가 아니라 **바뀐 키만**. 빠진 키는
  * `undefined` 로 실어 patch 에서 그 키를 지운다 (origin 값으로 복귀 — `dropUndefinedStyleKeys`).
@@ -490,7 +567,10 @@ function toWrittenStyle(
   nextStyle: Record<string, unknown>,
 ): Record<string, unknown> {
   if (!isSyntheticDescendantId(elementId)) return nextStyle;
-  const before = (resolvedElement.props?.style ?? {}) as Record<string, unknown>;
+  const before = (resolvedElement.props?.style ?? {}) as Record<
+    string,
+    unknown
+  >;
   const patch: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(nextStyle)) {
     if (!Object.is(before[key], value)) patch[key] = value;
@@ -930,7 +1010,7 @@ export const createInspectorActionsSlice: StateCreator<
       const root = rootId ? getInspectorElementById(elements, rootId) : null;
       if (!root || !isInspectorInstanceElement(root)) return;
       const fills = additionalUpdates?.fills;
-      const patches = buildInstanceDescendantPatches(root, [
+      let patches = buildInstanceDescendantPatches(root, [
         {
           elementId,
           props: {
@@ -941,6 +1021,34 @@ export const createInspectorActionsSlice: StateCreator<
           } as ComponentElementProps,
         },
       ]);
+      // tier (tablet · mobile) 쓰기 — 토글 켜기/끄기 · tier 편집 · 가시성은 `responsive` 만 바꾼다.
+      //   종전엔 props 밖이라 버려져, 켠 토글이 기록되지 않고 이후 tablet 편집이 base (전 breakpoint)
+      //   로 가 desktop 값을 바꿨다 (ADR-236 후속, 2026-09-26 live). patch 의 `responsive` 는 해석기
+      //   (`mergeFillSizing`) 가 origin 위에 키 · tier 단위로 얹는다.
+      if (additionalUpdates && "responsive" in additionalUpdates) {
+        const path = getSyntheticDescendantPath(root.id, elementId);
+        if (path) {
+          const base: Record<string, Record<string, unknown>> = {
+            ...(patches ??
+              (getComponentDescendantsMirror(root) as
+                Record<string, Record<string, unknown>> | undefined) ??
+              {}),
+          };
+          const currentPatch = { ...(base[path] ?? {}) };
+          const current = getInspectorElementById(elements, elementId)
+            ?.responsive as ElementResponsiveConfig | undefined;
+          const responsive = diffResponsiveIntoPatch(
+            currentPatch.responsive,
+            current,
+            additionalUpdates.responsive as ElementResponsiveConfig | undefined,
+          );
+          if (responsive) currentPatch.responsive = responsive;
+          else delete currentPatch.responsive;
+          if (Object.keys(currentPatch).length > 0) base[path] = currentPatch;
+          else delete base[path];
+          patches = base;
+        }
+      }
       if (!patches) return;
       // 결과 patch 가 지금과 같으면 쓰지 않는다 — origin 에만 있는 키의 reset (patch 에서 지울 것이 없음)
       //   이 빈 history · 재레이아웃을 쌓았다.
@@ -1207,7 +1315,9 @@ export const createInspectorActionsSlice: StateCreator<
 
       updateAndSave(
         element.id,
-        { style: toWrittenStyle(element.id, resolvedBaseElement, currentStyle) },
+        {
+          style: toWrittenStyle(element.id, resolvedBaseElement, currentStyle),
+        },
         clearedResponsive ? { responsive: clearedResponsive } : undefined,
         savedPrePreview && savedPrePreview.id === element.id
           ? savedPrePreview
@@ -1774,7 +1884,9 @@ export const createInspectorActionsSlice: StateCreator<
 
       updateAndSave(
         element.id,
-        { style: toWrittenStyle(element.id, resolvedBaseElement, currentStyle) },
+        {
+          style: toWrittenStyle(element.id, resolvedBaseElement, currentStyle),
+        },
         undefined,
         savedPrePreview && savedPrePreview.id === element.id
           ? savedPrePreview
@@ -1946,7 +2058,9 @@ export const createInspectorActionsSlice: StateCreator<
 
       updateAndSave(
         element.id,
-        { style: toWrittenStyle(element.id, resolvedBaseElement, currentStyle) },
+        {
+          style: toWrittenStyle(element.id, resolvedBaseElement, currentStyle),
+        },
         // `null` 은 synthetic 자식에만 남는다 (위에서 plain 은 [] 로) — updateAndSave 의 synthetic 분기가 읽는다.
         { fills } as Partial<Element>,
         savedPrePreview && savedPrePreview.id === element.id

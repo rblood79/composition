@@ -261,14 +261,12 @@ describe("ADR-229 Phase 2 (F15) — synthetic 자식 lookup", () => {
 
   it("해소된 노드 = Button origin ⊕ 조합 자식 patch ⊕ 바깥 instance descendants · 자식도 해소", () => {
     useCanonicalDocumentStore.getState().setCurrentProject("project-1");
-    useCanonicalDocumentStore
-      .getState()
-      .setDocument(
-        "project-1",
-        makeDocument({
-          [ACTION_ID]: { children: "Go", style: { borderRadius: 14 } },
-        }),
-      );
+    useCanonicalDocumentStore.getState().setDocument(
+      "project-1",
+      makeDocument({
+        [ACTION_ID]: { children: "Go", style: { borderRadius: 14 } },
+      }),
+    );
     const lookup = getSyntheticDescendantLookup(SYNTHETIC_ID);
     expect(lookup?.node.id).toBe(SYNTHETIC_ID);
     expect(lookup?.node.type).toBe("Button");
@@ -347,6 +345,80 @@ describe("ADR-229 Phase 2 (F15) — synthetic 자식 lookup", () => {
     });
   });
 
+  describe("tier (tablet · mobile) override — synthetic 도 descendants patch 의 responsive 로", () => {
+    const readPatch = () =>
+      readInstanceNode()?.descendants?.[ACTION_ID] as
+        Record<string, unknown> | undefined;
+
+    it("tablet override 켜기 → patch.responsive 에 그 키 · tier 만, desktop style 은 그대로", async () => {
+      useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+      useCanonicalDocumentStore
+        .getState()
+        .setDocument("project-1", makeDocument(undefined, { paddingTop: 8 }));
+      const { state, inspectorActions } = setUpStore(SYNTHETIC_ID);
+      state.activeBreakpoint = "tablet";
+
+      inspectorActions.setResponsiveStyleOverrideEnabled("paddingTop", true);
+      await vi.waitFor(() => {
+        expect(readPatch()?.responsive).toBeDefined();
+      });
+      expect(readPatch()).toEqual({
+        responsive: { styles: { paddingTop: { tablet: 8 } } },
+      });
+
+      // 켠 뒤 tablet 편집은 tier 로 — desktop (style) 은 바뀌지 않는다
+      inspectorActions.updateSelectedStyle("paddingTop", "24px");
+      await vi.waitFor(() => {
+        expect(
+          (readPatch()?.responsive as { styles: Record<string, unknown> })
+            ?.styles?.paddingTop,
+        ).toEqual({ tablet: 24 });
+      });
+      expect(readPatch()?.style).toBeUndefined();
+      expect(
+        (
+          getSyntheticDescendantLookup(SYNTHETIC_ID)?.node.props?.style as
+            Record<string, unknown> | undefined
+        )?.paddingTop,
+      ).toBe(8);
+
+      // 끄기 → patch 에서 tier 키가 빠진다 (origin 복귀)
+      inspectorActions.setResponsiveStyleOverrideEnabled("paddingTop", false);
+      await vi.waitFor(() => {
+        expect(readPatch()?.responsive).toBeUndefined();
+      });
+    });
+
+    it("origin 자식의 tier 값은 patch 로 복사되지 않고 해석에서 함께 보인다", async () => {
+      useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+      const doc = makeDocument(undefined, { paddingTop: 8, gap: 4 });
+      const action = (
+        doc.children[0].children![0].children![1].children as unknown as Array<
+          Record<string, unknown>
+        >
+      )[0];
+      action.responsive = { styles: { gap: { tablet: 12 } } };
+      useCanonicalDocumentStore.getState().setDocument("project-1", doc);
+      const { state, inspectorActions } = setUpStore(SYNTHETIC_ID);
+      state.activeBreakpoint = "tablet";
+
+      inspectorActions.setResponsiveStyleOverrideEnabled("paddingTop", true);
+      await vi.waitFor(() => {
+        expect(readPatch()?.responsive).toBeDefined();
+      });
+      expect(readPatch()).toEqual({
+        responsive: { styles: { paddingTop: { tablet: 8 } } },
+      });
+      const resolved = getSyntheticDescendantLookup(SYNTHETIC_ID)?.node as {
+        responsive?: { styles?: Record<string, unknown> };
+      };
+      expect(resolved.responsive?.styles).toEqual({
+        gap: { tablet: 12 },
+        paddingTop: { tablet: 8 },
+      });
+    });
+  });
+
   describe("style 쓰기 — 바뀐 키만 patch 에 (해석 style 전체를 굳히지 않는다)", () => {
     const fill = {
       id: "fill-1",
@@ -388,13 +460,12 @@ describe("ADR-229 Phase 2 (F15) — synthetic 자식 lookup", () => {
         expect(readInstanceNode()?.descendants?.[ACTION_ID]).toBeDefined();
       });
       const style = readInstanceNode()?.descendants?.[ACTION_ID]?.style as
-        | Record<string, unknown>
-        | undefined;
+        Record<string, unknown> | undefined;
       expect(style && "width" in style).toBe(false);
       expect(style?.borderRadius).toBeDefined();
     });
 
-    it("키 지우기 (reset 의 \"\") 는 patch 에서 그 키를 빼 origin 값으로 돌아간다", async () => {
+    it('키 지우기 (reset 의 "") 는 patch 에서 그 키를 빼 origin 값으로 돌아간다', async () => {
       useCanonicalDocumentStore.getState().setCurrentProject("project-1");
       useCanonicalDocumentStore
         .getState()
@@ -409,33 +480,37 @@ describe("ADR-229 Phase 2 (F15) — synthetic 자식 lookup", () => {
 
       inspectorActions.updateSelectedStyles({ borderRadius: "" });
       await vi.waitFor(() => {
-        expect(readInstanceNode()?.descendants?.[ACTION_ID]?.style).toBeUndefined();
+        expect(
+          readInstanceNode()?.descendants?.[ACTION_ID]?.style,
+        ).toBeUndefined();
       });
       expect(readInstanceNode()?.descendants).toEqual({
         [ACTION_ID]: { children: "Go" },
       });
       expect(
-        (getSyntheticDescendantLookup(SYNTHETIC_ID)?.node.props as {
-          style?: Record<string, unknown>;
-        })?.style?.borderRadius,
+        (
+          getSyntheticDescendantLookup(SYNTHETIC_ID)?.node.props as {
+            style?: Record<string, unknown>;
+          }
+        )?.style?.borderRadius,
       ).toBe(4);
     });
 
     it("updateSelectedFills(null) 은 patch 의 fills override 를 지운다 (origin fills 복귀)", async () => {
       useCanonicalDocumentStore.getState().setCurrentProject("project-1");
-      useCanonicalDocumentStore
-        .getState()
-        .setDocument(
-          "project-1",
-          makeDocument({
-            [ACTION_ID]: { fills: [fill], style: { borderRadius: 14 } },
-          }),
-        );
+      useCanonicalDocumentStore.getState().setDocument(
+        "project-1",
+        makeDocument({
+          [ACTION_ID]: { fills: [fill], style: { borderRadius: 14 } },
+        }),
+      );
       const { inspectorActions } = setUpStore(SYNTHETIC_ID);
 
       inspectorActions.updateSelectedFills(null);
       await vi.waitFor(() => {
-        expect(readInstanceNode()?.descendants?.[ACTION_ID]?.fills).toBeUndefined();
+        expect(
+          readInstanceNode()?.descendants?.[ACTION_ID]?.fills,
+        ).toBeUndefined();
       });
       expect(readInstanceNode()?.descendants).toEqual({
         [ACTION_ID]: { style: { borderRadius: 14 } },
@@ -485,11 +560,9 @@ describe("ADR-229 Phase 2 (F15) — synthetic 자식 lookup", () => {
       inspectorActions.updateSelectedFills(null);
       await vi.waitFor(() => {
         const host = readInstanceNode()?.descendants?.[ACTION_ID] as
-          | { children?: Array<Record<string, unknown>> }
-          | undefined;
+          { children?: Array<Record<string, unknown>> } | undefined;
         expect(host?.children?.[0]?.fills).toBeUndefined();
       });
     });
   });
 });
-

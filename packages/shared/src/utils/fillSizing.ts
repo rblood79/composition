@@ -40,7 +40,12 @@ export function resolveEffectiveFill(
   };
 }
 
-/** ref의 축·tier별 상속. 기존 CSS/visibility 병합은 호출자가 소유한다. */
+/**
+ * ref의 축·tier별 상속. `responsive.styles` 는 **키 × tier**, `visibility` 는 tier 단위로 origin 위에
+ * 얹는다 — instance (또는 조합 자식 patch) 가 한 키의 tier 값을 쓰면 origin 의 다른 키 · 다른 tier 는
+ * 그대로 상속된다 (style 의 키 단위 병합과 같은 규칙, ADR-236 후속 2026-09-26). 종전엔 얕은 병합이라
+ * override 에 styles 가 하나라도 있으면 origin 의 tier styles 전체가 가려졌다.
+ */
 export function mergeFillSizing(
   origin: FillSizingSource,
   override: FillSizingSource,
@@ -51,11 +56,31 @@ export function mergeFillSizing(
       : undefined;
   const a = origin.responsive?.sizing;
   const b = override.responsive?.sizing;
+  const originStyles = origin.responsive?.styles as
+    Record<string, Record<string, unknown> | undefined> | undefined;
+  const overrideStyles = override.responsive?.styles as
+    Record<string, Record<string, unknown> | undefined> | undefined;
+  let styles: Record<string, Record<string, unknown>> | undefined;
+  if (originStyles || overrideStyles) {
+    styles = {};
+    for (const key of new Set([
+      ...Object.keys(originStyles ?? {}),
+      ...Object.keys(overrideStyles ?? {}),
+    ])) {
+      styles[key] = { ...originStyles?.[key], ...overrideStyles?.[key] };
+    }
+  }
+  const visibility =
+    origin.responsive?.visibility || override.responsive?.visibility
+      ? { ...origin.responsive?.visibility, ...override.responsive?.visibility }
+      : undefined;
   const responsive =
     origin.responsive || override.responsive
       ? {
           ...origin.responsive,
           ...override.responsive,
+          ...(styles ? { styles } : {}),
+          ...(visibility ? { visibility } : {}),
           ...(a || b
             ? {
                 sizing: {
