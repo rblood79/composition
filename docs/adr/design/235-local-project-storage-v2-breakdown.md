@@ -311,3 +311,14 @@ Phase 5 는 1~4 와 독립이라 먼저 착수해도 된다 (가장 작은 작�
 - G4 의 이미지는 Image 컴포넌트 (`src`) 로 쟀다 — publish 런타임은 fills 를 싣지 않아 (기존 결함, publish 기능 링크만 방침) 이미지 채우기는 publish 에서 그려지지 않는다. Canvas ↔ DOM 이미지 채우기 대칭은 Phase 1 (Preview 렌더러 unit + Canvas live) 이 확인했다.
 
 **번들 (Phase 4)** — 첫 커밋 `4554f1be7` 에서 Preview 623,236 (재승인 상한 623,000 초과 236 B, 같은 명령에서 push 가 먼저 실행됨). 원인: publish lazy `loadProjectV2.ts` 가 `@composition/shared/utils` barrel 에서 `setAssetUrlResolver` 를 값으로 import → 공용 `src` chunk 에서 `utils` 29.6 KB chunk 가 갈라지고 runtime +199 (Phase 1 과 같은 함정 재발). 해석기 설치 함수를 호출부 주입으로 바꿔 Preview 622,551 · Builder 1,417,676 (둘 다 상한 안). 재발 가드 `lib/assets/__tests__/lazyBarrelImport.static.test.ts` (lazy 자산 모듈 11 개 + publish 로더 — barrel 값 import 를 넣으면 실패함을 확인). `adr201-bundle-gate` 의 `builderDelta` (ADR-201 등록 Δ ≤ 4,096 — 201 자기 기준선 조건) 는 ADR-235 누적 Δ +4,428 에 걸리지만 HC2 판정은 절대 상한 (Builder ≤ 1,421,000 · Preview ≤ 623,000) 이다.
+
+### Phase 5 — 웹 보호 (2026-09-26)
+
+- `lib/storage/storageProtection.ts` — 첫 성공 저장 (`adapter.documents.put`) 에서 `persist()` 1회 (이미 persisted 면 묻지 않음) · `estimate()` · 상태 이벤트. 헤더 `StorageStatusButton` — 보호됨 / 위험 (거부 · 미지원) 을 상시 표시, 위험이면 누르면 v2 내보내기.
+- quota — `documents.put` 을 `withQuotaRetry` 로 감싸 `QuotaExceededError` 면 캐시 (`clearCaches`) 를 비우고 1회 재시도, 그래도 실패하면 `composition:storage-quota-exceeded` → BuilderCore 토스트 (내보내기 권유). 모든 문서 저장 호출처가 이 관문을 지난다.
+- 캐시 — `collection_runtime` 은 Storage Buckets 지원 시 `persisted: false` · `durability: "relaxed"` bucket (`composition-cache`) 의 DB, 미지원이면 원본 DB 의 같은 store. 둘 다 25 MB 상한 (오래된 행부터 삭제). bucket 으로 처음 옮길 때 원본 DB 의 옛 캐시는 비운다. **bucket 연결은 연산마다 새로 열고 닫는다** — Chrome 153 실측: 유지한 bucket IndexedDB 연결은 수 초 유휴 뒤 트랜잭션이 complete · error 없이 멈췄다 (새 연결 정상, close 이벤트 없음 — 트랜잭션 계측으로 확인).
+- 부팅 시 사용률 ≥ 80% 면 캐시 선제 정리. 스냅샷 총량 상한 50 MB (`SNAPSHOT_BYTES_LIMIT` — user 는 생성 차단, system 은 오래된 system 부터).
+- `QueryPersister` (`composition-query-cache`) 는 import 0 인 모듈이라 (G0 (b)) 옮기지 않았다.
+- i18n — 인자 있는 키는 `formattedMessages` 함수로 등록해야 치환된다: 새 `header.storageUsage` 와 함께, 같은 누락이던 기존 `header.importProjectFailed` · `exportProjectFailed` (`{message}` 원문 노출) 를 등록했다.
+
+**증거** — live (`apps/builder/scripts/adr235-p5-live.mjs` 2/2, headless Chrome — persist 거부 환경): 첫 저장 뒤 헤더 라벨 "브라우저가 이 프로젝트를 지울 수 있습니다 … · 사용량 436 KB / 4.0 GB" (위험 표시) · 캐시 행이 `composition-cache` bucket (`persisted() === false`) 에 있고 원본 DB 캐시 0. unit: quota 1회 재시도 성공 · 재시도 실패 시 이벤트 · quota 아닌 오류는 재시도 안 함 · persist 1회만 · 사용률 판정 · adapter 저장 재시도 (캐시 비워짐) · 캐시 상한 · 스냅샷 상한 (user 차단 · system 순환). 번들 (`e60761f35`): Builder 1,419,751 · Preview 622,551 (상한 안).
