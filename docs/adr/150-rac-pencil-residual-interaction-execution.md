@@ -54,7 +54,7 @@ In Progress — Accepted 2026-09-26 (리뷰 round 3 · 4 pending 0 + 실행자 �
 
 **인접 ADR**:
 
-- [ADR-162](162-gridlist-template-subtree-projection.md) Phase 4 (펼친 카드의 시각 행별 높이 가상화) 는 본 ADR A2' 뒤에 온다. 의존 방향은 그대로 162 Phase 4 → 150 A2' 이다. 150 은 행 offset 함수를 정하고, 162 Phase 4 는 그 함수에 실측 · 추정 행 높이를 공급한다.
+- [ADR-162](completed/162-gridlist-template-subtree-projection.md) Phase 4 (펼친 카드의 시각 행별 높이 가상화) 는 본 ADR A2' 뒤에 온다. 의존 방향은 그대로 162 Phase 4 → 150 A2' 이다. 150 은 행 offset 함수를 정하고, 162 Phase 4 는 그 함수에 실측 · 추정 행 높이를 공급한다.
 - ADR-162 Phase 5 (GridList 카드 필드 패널) 는 A3' 와 같은 Properties 표면을 쓴다. 쓰기 대상도 origin 문서로 같다.
 
 ### Hard Constraints

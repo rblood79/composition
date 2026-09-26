@@ -1,6 +1,6 @@
 # ADR-162 구현 상세: 데이터 바인딩 GridList 카드 = 항목 origin instance
 
-> 본문: [162-gridlist-template-subtree-projection.md](../162-gridlist-template-subtree-projection.md) · 2026-09-26 재작성 (07-24 판의 composed 모드 설계는 git 이력 `docs/adr/design/162-*` 로 본다)
+> 본문: [162-gridlist-template-subtree-projection.md](../completed/162-gridlist-template-subtree-projection.md) · 2026-09-26 재작성 (07-24 판의 composed 모드 설계는 git 이력 `docs/adr/design/162-*` 로 본다)
 
 ## 1. 전제 확정 기록 (fork checkpoint 4 질문)
 
@@ -117,6 +117,14 @@
 - `/cross-check` gridlist (접기 · 펼침 각 1). live: 데이터 GridList + origin 에 Image (src `{image}`) · Button → 행별 값 확인 (Canvas). Preview 는 사용자 확인.
 - G4 성능 A/B. CHANGELOG · README · ADR Live Exercise.
 - ◐ 2026-09-26 — `/cross-check` 2 arm (Phase 4 와 독립인 부분 선행): 같은 데이터 GridList (static collection dataBinding 3 행 · 폭 400) 를 실제 builder 에서 origin 에 Image 넣기 전 (접기) · 뒤 (펼침) 로 잼 (`adr162-crosscheck-live.mjs`, page error 0) — 접기 컨테이너 400×164 · 카드 194×76 · 둘째 시각 행 y 88 / 펼침 400×264 · 194×126 · 138 · label (17,13) · 설명 (17,39) · Image (17,65,48,48) (P3 live 값과 같음). DOM oracle `tests/parity/adr162DataRowCardDom.browser.test.ts` 3 case 가 두 arm 모두 ±1 통과. 접은 카드 안 글자 위치는 escape 가 그려 layout map 에 없어 상자 · 글자 내용만 대조 (픽셀 위치 미측정). G4 · Live Exercise · closure 는 Phase 4 뒤.
+- ✅ 2026-09-27 — **live 행별 값** `apps/builder/scripts/adr162-p6-row-values-live.mjs` (headed, 팔레트 GridList ref instance · static 3 행 · 2 열, page error 0) **5/5**: origin 에 Image (src `{image}` · alt `{label}`) · Button (`{action}`) → Canvas 카드마다 scene props Image src/alt · Button 글자 = 그 행 값, 자식 상자 (Image 48×48 · Button 30 높이) 가 서고 보간 안 된 `{field}` 원문 0. 카드 194×158 (label · 설명 · Image · Button). Image 그림은 placeholder (svg src — 값은 scene props 로 대조).
+- ✅ 2026-09-27 — **G3 불리 케이스 live** (P4 하니스에 추가, **13/13**): (e) 스크롤 3000 에서 origin Image 48 → 64 — 보이는 시각 행 간격 = 행 최대 + gap · 연속 읽기 동일, 순차 재방문 뒤 총 높이 8888 = DOM 8088 + 50 × 16 · (f) 스크롤 2000 에서 열 수 2 → 3 (owner 폭 그대로 · 카드 폭만 바뀜) — 간격 일관 · 진동 0, 재방문 뒤 끝 창 일관. (f) 는 판독 LOW (카드 폭만 바꾸는 입력이 캐시 서명 밖) 의 반증 케이스 — GREEN 이라 LOW deferred 유지 (window 카드는 다음 publish 에서 다시 재고 anchoring). (f) 총 높이 8488 은 DOM 과 대조하지 않았다 (3 열 줄바꿈 oracle 없음).
+- ✅ 2026-09-27 — **G4** (사용자 판정 "승격 + 후속 분리" — 60Hz floor 는 대조군도 못 지켜 162 비용이 아니다, window 교체 layout 비용은 README 보류 항목) `apps/builder/scripts/adr162-g4-perf-ab.mjs` (같은 빌드 · 같은 세션 headed · arm 교대 pair 3 · warm-up 3 · 표본 7 · DPR 1 · CPU throttle 1 · visibilityState visible · idle rAF p95 9.9 ms = 120Hz 화면 · page error 0). arm 마다 격리 프로젝트 (origin 이 프로젝트 공용): slot = 항목 origin 그대로 (접기) · expanded = origin 에 역할 없는 자식 3 (Image `{image}` · Button `{action}` · Text `{tag}`). 팔레트 GridList 300 행 · 1 열 · overflow auto, viewport 는 window 카드 20 (±2) 이 되게 arm 별로 맞춤 (slot 385 → 22 카드 · expanded 600 → 20 카드).
+  - `scene.build` p95 median — originEdit (label Text padding 교대, expanded 는 템플릿 서명이 바뀌어 다시 잰다) **2.6 → 4.6 ms (Δ +2.0)**, build 1 → 2 (수확 뒤 재빌드) · scroll (±900 점프, window 전부 교체) **2.8 → 2.8 (Δ 0)**. 두 조작 모두 한 프레임 예산 (16.7) 안.
+  - 노드 수: 카드 투영 노드 = window 카드 × 카드당 노드 (slot 22 × 1 — 접힌 slot 글자는 escape · expanded 20 × 6) + owner · rows 묶음 · trail spacer 3. 상한 = 실측.
+  - **연속 스크롤 cadence (매 프레임 40px × 90, rAF 간격)** — p95 slot **41.6** · expanded **50.1 ms** (p50 32.5 · 8.5). **60Hz floor 는 두 arm 모두 못 지킨다.** 분해 (90 프레임 span 합): window 가 바뀌는 프레임의 `layout.publish` 가 지배 — slot 65 회 × ~12 ms · expanded 20 회 × ~22 ms (노드 6 배), `scene.build` 는 1.3 · 1.5 ms. 대조군이 이미 window 교체마다 floor 를 넘으므로 162 가 만든 비용이 아니며, 같은 거리 layout 총합은 expanded 가 적다 (443 vs 774 ms — 카드가 커서 window 교체가 적음). 162 가 더하는 것 = 교체 프레임 하나의 layout +10 ms.
+  - 참고 (게이트 아님): 표본별 가장 긴 프레임 p95 — originEdit 92 → 125 · scroll 점프 50 → 67 ms.
+- ✅ 2026-09-27 — **closure**: ADR 본문 `### Live Exercise` · Implemented · `completed/` 이동 (링크 5 곳) · README (완료 표 · 열린 절 · 실행 순서 · 보류 항목) · CHANGELOG. 판독 루프: Phase 6 은 하니스 · 문서만 (src 동작 변경 0) — 축소 절차.
 
 ## 6. 파일 (추정 — Phase 0 에서 고정)
 

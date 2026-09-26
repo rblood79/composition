@@ -11,7 +11,7 @@
 
 아래는 4 질문 확인 결과다.
 
-1. **base / 응용 분류**: 150 A2' 는 행 offset 함수이고 base 다. [ADR-162](../162-gridlist-template-subtree-projection.md) Phase 4 는 펼친 카드의 행 높이를 공급하고 응용이다. 150 A3' 와 162 Phase 5 는 같은 Properties 표면을 쓰는 형제 관계이고, 쓰기 대상은 둘 다 origin 문서다.
+1. **base / 응용 분류**: 150 A2' 는 행 offset 함수이고 base 다. [ADR-162](../completed/162-gridlist-template-subtree-projection.md) Phase 4 는 펼친 카드의 행 높이를 공급하고 응용이다. 150 A3' 와 162 Phase 5 는 같은 Properties 표면을 쓰는 형제 관계이고, 쓰기 대상은 둘 다 origin 문서다.
 2. **schema 직교성**: canonical schema · catalog · prop 변경이 모두 0 이다. 새 타입은 render-space 전용이다 (행 offset 결과, 가상 id → origin 자식 해석).
 3. **선행 ADR 전제 역방향 검증**: ADR-234 계열이 정적 목록 항목을 instance 자식으로 바꿨다. 그래서 원 A3 의 문제 표면이 데이터 바인딩 행으로 줄었다 (본문 Context 3). 의존 방향은 150 → 234 · 157 · 160 · 241 (완결 상태) 이고, 162 Phase 4 → 150 A2' 이다. 역방향은 없다.
 4. **리뷰 순서**: 본문 재작성 뒤 리뷰 round 3 을 거친다. Phase 0 은 round 3 종결 뒤에 착수한다.

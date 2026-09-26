@@ -312,6 +312,80 @@ try {
     total: final.maxScrollTop + DOM.viewport,
     dom: DOM.scrollHeight,
   });
+  // G3 불리 케이스 (Phase 6 추가) — 스크롤 중 origin 편집 · 열 수 변경. 판정: 편집 직후 보이는 카드끼리 시각 행
+  //   간격 = 행 최대 높이 + gap (일관), 연속 읽기 동일 (진동 0), 순차 재방문 뒤 총 높이 = 기대 (origin 편집은 Image 48 → 64
+  //   로 모든 카드 +16 = DOM 8088 + 50 × 16).
+  const consistent = (snap, cols) => {
+    const rows = new Map();
+    for (const c of snap.cards) {
+      const j = Math.floor(c.i / cols);
+      const r = rows.get(j) ?? { y: c.y, h: 0 };
+      r.y = Math.min(r.y, c.y);
+      r.h = Math.max(r.h, c.h);
+      rows.set(j, r);
+    }
+    const js = [...rows.keys()].sort((a, b) => a - b);
+    const off = [];
+    for (let k = 1; k < js.length; k += 1) {
+      const a = rows.get(js[k - 1]);
+      const b = rows.get(js[k]);
+      if (js[k] === js[k - 1] + 1 && Math.abs(b.y - (a.y + a.h + DOM.gap)) > 1)
+        off.push(`row ${js[k]} y ${b.y} vs ${a.y + a.h + DOM.gap}`);
+    }
+    return off;
+  };
+  const settleAndCheck = async (label, cols) => {
+    await page.waitForTimeout(1500);
+    const s1 = await read(bigId);
+    await page.waitForTimeout(1500);
+    const s2 = await read(bigId);
+    const stable = JSON.stringify(s1.cards) === JSON.stringify(s2.cards) && s1.scrollTop === s2.scrollTop;
+    record(`${label}: 보이는 시각 행 간격 일관 · 연속 읽기 동일`, s1.cards.length > 0 && consistent(s1, cols).length === 0 && stable, {
+      cards: s1.cards.length,
+      off: consistent(s1, cols).slice(0, 4),
+      scrollTop: [s1.scrollTop, s2.scrollTop],
+      max: s1.maxScrollTop,
+    });
+  };
+  const fullPass = async () => {
+    await scrollTo(bigId, 0);
+    for (let target = 300, n = 0; n < 60; target += 300, n += 1) {
+      await scrollTo(bigId, target);
+      const snap = await read(bigId);
+      if (snap.scrollTop >= snap.maxScrollTop - 0.5) break;
+    }
+    return read(bigId);
+  };
+
+  // (e) 스크롤 중 origin 편집 — Image 높이 48 → 64.
+  await scrollTo(bigId, 3000);
+  await page.evaluate(() => {
+    const st = window.__composition_STORE__.getState();
+    const el = st.elementsMap.get("p4-image");
+    st.updateElement("p4-image", {
+      props: { ...el.props, style: { ...(el.props?.style ?? {}), height: "64px" } },
+    });
+  });
+  await settleAndCheck("(e) 스크롤 중 origin 편집 (Image 48 → 64)", 2);
+  const e = await fullPass();
+  const eExpected = DOM.scrollHeight + 50 * 16;
+  record("(e) 재방문 뒤 총 높이 = 8088 + 50 × 16 (±1)", Math.abs(e.maxScrollTop + DOM.viewport - eExpected) <= 1, {
+    total: e.maxScrollTop + DOM.viewport,
+    expected: eExpected,
+  });
+
+  // (f) 스크롤 중 열 수 변경 2 → 3 (owner 폭 그대로 · 카드 폭만 바뀜).
+  await scrollTo(bigId, 2000);
+  await page.evaluate((bigId) => {
+    window.__composition_STORE__.getState().updateElementProps(bigId, { columns: 3 });
+  }, bigId);
+  await settleAndCheck("(f) 스크롤 중 열 수 2 → 3", 3);
+  const f = await fullPass();
+  // 재방문 뒤 — 끝 창의 카드도 일관, 총 높이 = 방문한 카드로 다시 합한 값 (행 최대 + gap).
+  record("(f) 재방문 뒤 끝 창 시각 행 간격 일관", consistent(f, 3).length === 0, {
+    off: consistent(f, 3).slice(0, 4),
+    total: f.maxScrollTop + DOM.viewport,
+  });
   if (SHOT_DIR) await page.screenshot({ path: join(SHOT_DIR, "adr162-p4-end.png") });
 } catch (e) {
   record("script", false, String(e.stack ?? e).slice(0, 1500));

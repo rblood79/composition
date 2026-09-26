@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-162 Implemented — 데이터 GridList 카드 = 항목 origin instance] - 2026-09-27
+
+### Added
+
+- **데이터 바인딩 GridList 의 카드가 카드 템플릿 (항목 origin) 에 넣은 요소를 그대로 그린다.** Image · Button · Frame 등 label · 설명 밖 자식이 카드마다 나오고, 자식의 글자 · Image `src` · `alt` 등에 `{field}` 를 쓰면 행마다 그 열 값으로 바뀐다 (Canvas · Preview 같은 허용표). 정적 카드와 같은 접기/펼침 규칙 하나 · Properties "카드 필드" 절 (Phase 0 ~ 5, 2026-09-26) · 스크롤 행 높이 실측 (Phase 4, 아래 엔트리).
+  - live: 실제 builder 에서 Image (`{image}` · `{label}`) · Button (`{action}`) 카드 3 행이 행별 값 (5/5) · 가변 높이 스크롤 13/13 (스크롤 중 템플릿 편집 · 열 수 변경 포함). 성능 A/B — 카드 템플릿 편집 `scene.build` p95 +2.0 ms · 스크롤 +0.
+  - **Why**: ADR-234 가 정적 목록을 항목 instance 로 바꾼 뒤 데이터 목록만 label · 설명 두 칸 공식으로 남아, 템플릿에 넣은 요소가 데이터 카드에 나오지 않았다.
+  - 알려진 한계 (후속): 가상화 목록을 연속 스크롤하면 window 가 바뀌는 프레임마다 전체 layout (~12 ms, 펼친 카드 ~22 ms) 이 돌아 60Hz 를 못 지킨다 — 162 전부터 있던 비용 ([ADR README 보류 항목](adr/README.md#보류-항목)).
+  - 위치: [ADR-162](adr/completed/162-gridlist-template-subtree-projection.md) · `apps/builder/scripts/adr162-*-live.mjs` · `adr162-g4-perf-ab.mjs`
+
 ## [ADR-162 Phase 4 — 펼친 GridList 카드의 스크롤 행 높이 실측] - 2026-09-27
 
 ### Fixed

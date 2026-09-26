@@ -2,9 +2,9 @@
 
 ## Status
 
-In Progress — Phase 0 ~ 3 · 5 완료 2026-09-26 · Phase 4 완료 2026-09-27 (ADR-150 Phase 1 행 offset 함수에 실측 공급, G3 live 9/9) · Phase 6 closure 남음 · Proposed 2026-07-24 · **본문 재작성 2026-09-26** (사용자 판정 "본문 재작성": [ADR-234](completed/234-variant-instances-and-slot-filled-collections.md) 이후 모델 기준으로 범위와 설계를 다시 정함)
+Implemented — 2026-09-27 (Phase 0 ~ 6 / G0 ~ G4 · `c5bc86163` · `3b957e17b` · `fced56e42` · `9d86676b5` · `5b1f9a128` + Phase 6 closure) · G4 사용자 판정 "승격 + 후속 분리" (2026-09-27 — 연속 스크롤 60Hz floor 는 대조군도 못 지킨다, window 교체 layout 비용은 후속) · Proposed 2026-07-24 · **본문 재작성 2026-09-26** (사용자 판정 "본문 재작성": [ADR-234](234-variant-instances-and-slot-filled-collections.md) 이후 모델 기준으로 범위와 설계를 다시 정함)
 
-> 재작성 사유: 07-24 판의 대안 A (composed 모드 — 별도 판정 심볼 `isComposedCollectionTemplate` + 새 투영 경로) 는 ADR-148 의 "slot = 템플릿 역할 표" 모델을 전제로 했다. ADR-234 (Implemented 2026-09-23) 가 그 모델을 정적 목록에서 "항목 origin 의 instance 를 자식으로 채운다" 로 대체했고, 데이터 바인딩 목록만 `items` + 항목 origin 템플릿으로 남겼다 (ADR-234 Decision · CHANGELOG 2026-09-23 "데이터 바인딩 GridList 는 그대로 `items`"). 07-24 판을 그대로 실행하면 같은 카드에 규칙이 둘 (정적 = instance, 데이터 = composed) 생긴다. 리뷰 기록 [reviews/162.md](reviews/162.md) round 1 (승인) 은 07-24 판 기준이라 착수 전 round 2 가 필요하다.
+> 재작성 사유: 07-24 판의 대안 A (composed 모드 — 별도 판정 심볼 `isComposedCollectionTemplate` + 새 투영 경로) 는 ADR-148 의 "slot = 템플릿 역할 표" 모델을 전제로 했다. ADR-234 (Implemented 2026-09-23) 가 그 모델을 정적 목록에서 "항목 origin 의 instance 를 자식으로 채운다" 로 대체했고, 데이터 바인딩 목록만 `items` + 항목 origin 템플릿으로 남겼다 (ADR-234 Decision · CHANGELOG 2026-09-23 "데이터 바인딩 GridList 는 그대로 `items`"). 07-24 판을 그대로 실행하면 같은 카드에 규칙이 둘 (정적 = instance, 데이터 = composed) 생긴다. 리뷰 기록 [reviews/162.md](../reviews/162.md) round 1 (승인) 은 07-24 판 기준이라 착수 전 round 2 가 필요하다.
 
 ## Context
 
@@ -25,11 +25,11 @@ In Progress — Phase 0 ~ 3 · 5 완료 2026-09-26 · Phase 4 완료 2026-09-27 
 
 **선행 결정 대조**:
 
-- [ADR-234](completed/234-variant-instances-and-slot-filled-collections.md): 정적 목록 = 항목 instance 자식, 데이터 바인딩 목록 = `items` + 항목 origin 템플릿 유지 ("행마다 같은 변형 규칙"). 본 ADR 은 후자의 **행 모양** 을 전자와 같게 만든다 — 234 의 경계 (데이터 목록은 `items`) 는 유지.
-- [ADR-159](completed/159-collection-field-template-binding.md) (Implemented 2026-07-24): `{field}` 보간 `compileFieldTemplate` / `interpolateFieldTemplate` (`packages/shared/src/collections/fieldTemplate.ts`) 과 컬럼 피커 (`useOwnerCollectionColumns.ts` · `PropertyFieldTemplateInput`). 07-24 판의 선행 의존은 해소됐다. 피커는 편집 중인 Text 의 **조상** 에서 데이터 소유자를 찾으므로, Components 페이지 origin 자식 편집에서는 뜨지 않는다 (Components 페이지는 데이터 바인딩 없음 — 09-21 사용자 판정).
+- [ADR-234](234-variant-instances-and-slot-filled-collections.md): 정적 목록 = 항목 instance 자식, 데이터 바인딩 목록 = `items` + 항목 origin 템플릿 유지 ("행마다 같은 변형 규칙"). 본 ADR 은 후자의 **행 모양** 을 전자와 같게 만든다 — 234 의 경계 (데이터 목록은 `items`) 는 유지.
+- [ADR-159](159-collection-field-template-binding.md) (Implemented 2026-07-24): `{field}` 보간 `compileFieldTemplate` / `interpolateFieldTemplate` (`packages/shared/src/collections/fieldTemplate.ts`) 과 컬럼 피커 (`useOwnerCollectionColumns.ts` · `PropertyFieldTemplateInput`). 07-24 판의 선행 의존은 해소됐다. 피커는 편집 중인 Text 의 **조상** 에서 데이터 소유자를 찾으므로, Components 페이지 origin 자식 편집에서는 뜨지 않는다 (Components 페이지는 데이터 바인딩 없음 — 09-21 사용자 판정).
 - ADR-239 / 241: 두 해석기 (DOM `resolvers/canonical/index.ts:217` `applyDescendantsToTree` · Canvas `materializeSyntheticDescendants`) 가 origin 안 중첩 ref 의 자기 자식까지 펼친다. **정적 instance 트리 전용** — 데이터 행마다 origin 을 펼치는 곳은 없다 (ListBox · Table · Tag · Tab 포함 선례 0).
 - ADR-238: RAC 는 역할마다 받는 slot 이름이 정해져 있어 아무 slot 이나 실으면 "Invalid slot" 크래시 (GridListItem label 실측). 비-slot 자식에 slot 속성을 달면 안 된다.
-- [ADR-150](150-rac-pencil-residual-interaction-execution.md) (2026-09-26 본문 재작성): A2' = 가상화 window · spacer · contentHeight · maxScrollTop · 행 배치가 읽는 **행 offset 함수 하나** (균일 입력 = 곱셈, 시각 행별 높이 목록 = 누적합 + 이분 탐색 — 목록 경로의 계약 · unit 은 150 Phase 1). 본 ADR Phase 4 는 그 함수에 펼친 카드의 실측 · 추정 행 높이를 공급한다 (의존 방향 162 Phase 4 → 150 Phase 1). 카드 stride 의 origin 은 Phase 1 (`3b957e17b`) 에서 상수 대신 소유자별 `resolveGridListTemplateOriginId` 로 바뀌었다.
+- [ADR-150](../150-rac-pencil-residual-interaction-execution.md) (2026-09-26 본문 재작성): A2' = 가상화 window · spacer · contentHeight · maxScrollTop · 행 배치가 읽는 **행 offset 함수 하나** (균일 입력 = 곱셈, 시각 행별 높이 목록 = 누적합 + 이분 탐색 — 목록 경로의 계약 · unit 은 150 Phase 1). 본 ADR Phase 4 는 그 함수에 펼친 카드의 실측 · 추정 행 높이를 공급한다 (의존 방향 162 Phase 4 → 150 Phase 1). 카드 stride 의 origin 은 Phase 1 (`3b957e17b`) 에서 상수 대신 소유자별 `resolveGridListTemplateOriginId` 로 바뀌었다.
 
 **SSOT 3-domain 분류**: D3 중심 — 카드 구성 · 크기의 Skia ↔ DOM 대칭. 카드 안 콘텐츠는 RAC GridListItem 이 허용하는 자식 범위라 D1 무변경 (slot 속성은 RAC 가 받는 역할 자식에만 — ADR-238). 데이터 매핑은 159 의 `{field}` 문법 소비로 D2 신규 prop 없음.
 
@@ -105,7 +105,7 @@ In Progress — Phase 0 ~ 3 · 5 완료 2026-09-26 · Phase 4 완료 2026-09-27 
 - **대안 B 기각**: ADR-234 이후 같은 origin 을 두 규칙이 읽는다 — 유지보수 HIGH. 정적 카드 수리가 데이터 카드에 전파되지 않는다.
 - **대안 C 기각**: 투영 id 가 문서에 들어가고 (render-space 경계), 대량 데이터에서 문서가 커진다. RAC 데이터 경로를 버린다.
 
-> 구현 상세: [162-gridlist-template-subtree-projection-breakdown.md](design/162-gridlist-template-subtree-projection-breakdown.md)
+> 구현 상세: [162-gridlist-template-subtree-projection-breakdown.md](../design/162-gridlist-template-subtree-projection-breakdown.md)
 
 ## Risks
 
@@ -129,6 +129,17 @@ In Progress — Phase 0 ~ 3 · 5 완료 2026-09-26 · Phase 4 완료 2026-09-27 
 | G2   | Phase 1 · 3 후 | (a) 소유자별 origin: 기본 origin 과 custom origin 을 slot 에 둔 데이터 GridList 2 개 — 두 leg 가 각자 자기 origin 자식을 그린다 (Canvas scene unit + DOM render unit, 원복 RED) · 가상화도 같은 origin 을 읽는다. (b) 비-slot 템플릿 (Image + Button + 중첩 Frame) 데이터 카드: Skia 상자 = DOM `getBoundingClientRect` (±1, `tests/parity/` browser test — oracle 은 실 브라우저) + live Canvas 1 회 + Preview 는 사용자 확인                                                                                                                                                                                                                                                                                                                                                                                                                             | 비대칭 축 root cause 후 재검증                                                                             |
 | G3   | Phase 4 후     | 반례 입력 = 2 열 GridList, 1 행 짧은 `{title}` · 2 행 3 줄 `{title}` 교대, 200 행. (a) 가상화가 모든 행을 실체화하는 크기 (window ≥ 행 수) 에서 시각 행 y · 높이 = DOM (±1). (b) **중간 행을 건너뛴 끝 이동** (스크롤 thumb 을 끝으로 — 중간 행은 추정으로 남는다): 마지막 시각 행이 viewport 아래 끝에 완전히 보이고 (끝 고정 anchoring), 보이는 행들의 상대 y · 높이 = DOM 의 같은 행들 (±1). 이때 총 높이는 게이트가 아니다 — Σ실측 + Σ추정 과 DOM `scrollHeight` 의 차이를 기록만 한다. (c) **모든 행을 측정한 뒤** (처음부터 끝까지 순차 스크롤): content 총 높이 = DOM `scrollHeight` (±1). (d) 추정 → 실측 교체 때 기준 행 (끝 도달 상태면 마지막 행, 아니면 화면 첫 행) 의 화면 y 변화 0 · 같은 스크롤 위치에서 두 번 연속 build 의 window · offset 동일 (진동 0). 불리 케이스: 스크롤 중 origin 편집 · breakpoint 전환 (열 수 변경 = 캐시 무효화) | 비-slot 템플릿에 카드 높이 고정 (템플릿 높이 + 줄 수 제한, 두 leg) 또는 가상화 끄기 (window cap 정적 상한) |
 | G4   | Phase 6        | 같은 세션 headed A/B — 대조 arm = slot-only 같은 행 수 · 실험 arm = 비-slot 3 자식 템플릿 · 20 행 window · 불리 조작 (origin 편집 · 스크롤로 가시 집합 변경) · warm-up 3 · visibilityState visible · `scene.build` p95 median Δ 기록, 60Hz floor p95 유지 · 노드 수 ≤ window 행 × 템플릿 노드                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | window overscan 축소 또는 펼침 노드 상한                                                                   |
+
+### Live Exercise
+
+실제 builder (dev 서버 5173 · headed Playwright · 격리 새 프로젝트 · 팔레트 GridList ref instance, Compare Mode · Preview iframe 미개방 — 사용자 지시) 에서 Skia layout map · scene props · scroll state 로 확인했다. Preview 채널은 DOM parity test (실 브라우저 `getBoundingClientRect`) 로 고정 — 사용자 확인 대상.
+
+- **G0 (2026-09-26)** 정적 카드 origin 에 Image → Canvas 카드가 label · description · Image 를 그린다 ([evidence](../evidence/162-phase0-inventory-g0-live.md)).
+- **Phase 2 · 3 (2026-09-26)** 데이터 행 펼침 · 행별 `{field}` · 접기/펼침 2 arm `/cross-check` (`adr162-p2-data-rows-live.mjs` · `adr162-crosscheck-live.mjs`, DOM oracle 3 case ±1).
+- **Phase 5 (2026-09-26)** Properties "카드 필드" 절에서 설명을 `{tag}` 로 바꾸자 Canvas 행이 TAG-1 · 2 · 3 (`adr162-p5-card-fields-live.mjs`).
+- **Phase 4 · G3 (2026-09-27, 13/13)** `adr162-p4-variable-rows-live.mjs` — 2 열 100 카드 (짧은 · 3 줄 label 교대, 높이 400): (a) 전 행 실체화 = DOM oracle · (b) 끝 이동 마지막 행 하단 = viewport 하단 · (d) 미방문 중간 이동 anchoring 기준 행 화면 y 0 → 0 · 진동 0 · (c) 순차 39 걸음 = oracle, 총 높이 8088 = DOM · (e) 스크롤 중 origin Image 48 → 64 — 간격 일관 · 재방문 뒤 8888 = 8088 + 50 × 16 · (f) 스크롤 중 열 수 2 → 3 — 간격 일관 · 진동 0.
+- **Phase 6 행별 값 (2026-09-27, 5/5)** `adr162-p6-row-values-live.mjs` — origin 에 Image (src `{image}` · alt `{label}`) · Button (`{action}`): 카드마다 scene props 가 그 행 값, 보간 안 된 원문 0.
+- **G4 (2026-09-27)** `adr162-g4-perf-ab.mjs` (pair 3 · warm-up 3 · 표본 7 · visible · page error 0): `scene.build` p95 median — origin 편집 2.6 → 4.6 ms (Δ +2.0, 수확 뒤 재빌드 1) · 스크롤 점프 2.8 → 2.8 (Δ 0) · 카드 투영 노드 = window 카드 × 카드당 노드 (20 × 6). 연속 스크롤 rAF p95 slot 41.6 · expanded 50.1 ms — **60Hz floor 는 대조군도 못 지킨다** (window 교체 프레임의 `layout.publish` ~12 ms, expanded ~22 ms). 사용자 판정 "승격 + 후속 분리" — 가상화 스크롤의 window 교체 layout 비용은 후속 ([README 보류 항목](../README.md#보류-항목)).
 
 ## Consequences
 
