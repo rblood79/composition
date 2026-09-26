@@ -1178,6 +1178,16 @@ export interface TranslationKeys {
     storageAtRisk: string;
     storageUsage: string;
     storageQuotaExceeded: string;
+    connectFolder: string;
+    folderSynced: string;
+    folderWriting: string;
+    folderNeedsPermission: string;
+    folderConflict: string;
+    folderError: string;
+    folderAllow: string;
+    folderOpen: string;
+    folderOverwrite: string;
+    folderDisconnect: string;
     projectFileUnavailable: string;
     deleteProject: string;
     resetPanelLayout: string;

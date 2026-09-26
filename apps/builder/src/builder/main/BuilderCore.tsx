@@ -6,7 +6,14 @@ import {
   isBodyType,
 } from "@composition/shared";
 import { startLocalWebVitals } from "../performance/localWebVitals";
-import React, { useState, useCallback, useEffect, useRef } from "react";
+import React, {
+  lazy,
+  Suspense,
+  useState,
+  useCallback,
+  useEffect,
+  useRef,
+} from "react";
 import { useParams } from "react-router";
 import { Key } from "react-aria-components/Collection";
 
@@ -238,6 +245,9 @@ function hasPageShellTopologyChanged(
   }
   return false;
 }
+
+/** ADR-235 Phase 6 — 연결된 프로젝트에서만 싣는다 */
+const LazyDirectoryLinkButton = lazy(() => import("./DirectoryLinkButton"));
 
 export const BuilderCore: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -1372,6 +1382,96 @@ export const BuilderCore: React.FC = () => {
     [projectId, showToast, t],
   );
 
+  // ============================================
+  // ADR-235 Phase 6 — 폴더 연결 (Chromium File System Access)
+  // ============================================
+  const [folderLinked, setFolderLinked] = useState(false);
+  const linkModule = () => import("../../lib/assets/projectDirectoryLink");
+
+  // 연결된 프로젝트 부팅 — 기록된 연결을 되살린다 (권한이 없으면 클릭 대기 상태)
+  useEffect(() => {
+    if (!projectId) return;
+    const linked =
+      localStorage.getItem(`composition.dir-link.${projectId}`) === "1";
+    setFolderLinked(linked);
+    if (!linked) return;
+    void linkModule().then((m) =>
+      m.resumeProjectDirectoryLink(projectId, {
+        collectContent: collectExportContent,
+      }),
+    );
+    // collectExportContent 는 projectId 에 묶인다
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId]);
+
+  const handleConnectFolder = useCallback(async () => {
+    if (!projectId) return;
+    const picker = (
+      window as unknown as {
+        showDirectoryPicker?: (options: {
+          mode: "readwrite";
+          id: string;
+        }) => Promise<FileSystemDirectoryHandle>;
+      }
+    ).showDirectoryPicker;
+    if (!picker) return;
+    let handle: FileSystemDirectoryHandle;
+    try {
+      handle = await picker({ mode: "readwrite", id: "composition-project" });
+    } catch {
+      return; // 사용자가 취소
+    }
+    const m = await linkModule();
+    setFolderLinked(true);
+    await m.connectProjectDirectory(projectId, handle, {
+      collectContent: collectExportContent,
+    });
+  }, [projectId, collectExportContent]);
+
+  // DEV — live 하니스가 폴더 선택창 없이 같은 연결 경로를 탄다 (OPFS 핸들 주입)
+  useEffect(() => {
+    if (!import.meta.env.DEV || !projectId) return;
+    (
+      window as unknown as Record<string, unknown>
+    ).__composition_CONNECT_FOLDER__ = async (
+      handle: FileSystemDirectoryHandle,
+    ) => {
+      const m = await linkModule();
+      setFolderLinked(true);
+      return m.connectProjectDirectory(projectId, handle, {
+        collectContent: collectExportContent,
+      });
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, collectExportContent]);
+
+  const handleDirectoryLinkAction = useCallback(
+    async (action: "permission" | "open" | "overwrite" | "disconnect") => {
+      if (!projectId) return;
+      const m = await linkModule();
+      const link = m.getDirectoryLink(projectId);
+      if (action === "disconnect") {
+        await m.disconnectProjectDirectory(projectId);
+        setFolderLinked(false);
+        return;
+      }
+      if (!link) return;
+      if (action === "permission") await link.requestPermission();
+      if (action === "overwrite") await link.write(true);
+      if (action === "open") {
+        const read = await link.readFromDirectory();
+        await applyImportedProject({
+          version: read.manifest.formatVersion,
+          exportedAt: read.manifest.savedAt,
+          ...read.content,
+        } as unknown as ProjectExportData);
+      }
+    },
+    // applyImportedProject 는 아래 정의 — 호출 시점에 최신
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [projectId],
+  );
+
   const handleImportProject = useCallback(
     async (file: File): Promise<void> => {
       if (!projectId) {
@@ -1603,6 +1703,19 @@ export const BuilderCore: React.FC = () => {
             onImportProject={handleImportProject}
             onExportProject={handleExportProject}
             onExportProjectJson={handleExportProjectJson}
+            onConnectFolder={handleConnectFolder}
+            directoryLink={
+              folderLinked && projectId ? (
+                <Suspense fallback={null}>
+                  <LazyDirectoryLinkButton
+                    projectId={projectId}
+                    onAction={(action) =>
+                      void handleDirectoryLinkAction(action)
+                    }
+                  />
+                </Suspense>
+              ) : null
+            }
             onWorkflowOverlayToggle={toggleWorkflowOverlay}
           />
         }

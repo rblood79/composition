@@ -370,3 +370,157 @@ export function mapV2Source(files: ReadonlyMap<string, Uint8Array>): V2Source {
     },
   };
 }
+
+// ============================================
+// 디렉토리 (작업) — 세대 전환 쓰기 (breakdown §2)
+// ============================================
+
+/** 디렉토리 추상 — FSA 핸들 · 메모리 (테스트 · 중단 주입) */
+export interface V2DirectoryTarget {
+  read(path: string): Promise<Uint8Array | null>;
+  write(path: string, bytes: Uint8Array): Promise<void>;
+  remove(path: string): Promise<void>;
+  /** `parts` · `assets` · `manifests` 폴더의 파일 이름 */
+  list(dir: "parts" | "assets" | "manifests"): Promise<string[]>;
+  /** manifest.json 수정 시각 (충돌 감지) — 모르면 null */
+  lastModified?(path: string): Promise<number | null>;
+}
+
+export interface V2DirectoryWriteOptions {
+  /** 현재 세대 말고 남길 직전 세대 수 (최소 1) */
+  keepPrevious?: number;
+  /** 쓰기 단계 사이 삽입 지점 (G6 중단 주입 테스트) */
+  checkpoint?: (
+    step: "assets" | "parts" | "manifest-record" | "manifest" | "cleanup",
+  ) => Promise<void>;
+}
+
+async function verifyFile(
+  target: V2DirectoryTarget,
+  path: string,
+  bytes: Uint8Array,
+): Promise<void> {
+  const back = await target.read(path);
+  if (!back || back.byteLength !== bytes.byteLength) {
+    throw new V2FormatError(`쓴 파일 확인 실패 (크기): ${path}`);
+  }
+  if ((await sha256Hex(back)) !== (await sha256Hex(bytes))) {
+    throw new V2FormatError(`쓴 파일 확인 실패 (해시): ${path}`);
+  }
+}
+
+/**
+ * 새 세대를 디렉토리에 쓴다 — (1) 없는 자산 · part 파일 (불변 경로, 덮어쓰지 않음) → (2) 크기 ·
+ * 해시 재확인 → (3) `manifests/<revision>.json` → (4) `manifest.json` 교체 → (5) 보존 세대 밖 파일
+ * 정리. 어느 단계에서 중단돼도 읽기 결과는 직전 세대 전체 또는 새 세대 전체다.
+ */
+export async function writeV2Directory(
+  target: V2DirectoryTarget,
+  generation: V2Generation,
+  options: V2DirectoryWriteOptions = {},
+): Promise<void> {
+  const keep = Math.max(1, options.keepPrevious ?? 1);
+  const existing = new Set([
+    ...(await target.list("assets")).map((name) => `assets/${name}`),
+    ...(await target.list("parts")).map((name) => `parts/${name}`),
+  ]);
+  const ordered = [...generation.files.entries()].sort(([a], [b]) =>
+    a.startsWith("assets/") === b.startsWith("assets/")
+      ? 0
+      : a.startsWith("assets/")
+        ? -1
+        : 1,
+  );
+  let partsStarted = false;
+  for (const [path, bytes] of ordered) {
+    if (!partsStarted && path.startsWith("parts/")) {
+      partsStarted = true;
+      await options.checkpoint?.("assets");
+    }
+    if (existing.has(path)) continue;
+    await target.write(path, bytes);
+    await verifyFile(target, path, bytes);
+  }
+  await options.checkpoint?.("parts");
+  const manifestBytes = encodeManifest(generation.manifest);
+  await target.write(manifestPath(generation.manifest.revision), manifestBytes);
+  await options.checkpoint?.("manifest-record");
+  await target.write("manifest.json", manifestBytes);
+  await options.checkpoint?.("manifest");
+
+  // 보존 세대 (현재 + 직전 keep 개) 가 가리키는 파일만 남긴다
+  const records = (await target.list("manifests")).sort().reverse();
+  const kept = records.slice(0, keep + 1);
+  const referenced = new Set<string>(["manifest.json"]);
+  for (const name of kept) {
+    referenced.add(`manifests/${name}`);
+    const parsed = parseManifest(await target.read(`manifests/${name}`));
+    if (!parsed) continue;
+    for (const ref of Object.values(parsed.parts))
+      if (ref) referenced.add(ref.path);
+    for (const entry of parsed.assets) referenced.add(assetPath(entry));
+  }
+  await options.checkpoint?.("cleanup");
+  for (const dir of ["parts", "assets", "manifests"] as const) {
+    for (const name of await target.list(dir)) {
+      const path = `${dir}/${name}`;
+      if (!referenced.has(path)) await target.remove(path);
+    }
+  }
+}
+
+/** 디렉토리 → `V2Source` (읽기 · 복구) */
+export function directoryV2Source(target: V2DirectoryTarget): V2Source {
+  return {
+    read: (path) => target.read(path),
+    listManifests: () => target.list("manifests"),
+  };
+}
+
+/** 현재 `manifest.json` 의 revision (없거나 손상이면 null) */
+export async function readManifestRevision(
+  target: V2DirectoryTarget,
+): Promise<number | null> {
+  return parseManifest(await target.read("manifest.json"))?.revision ?? null;
+}
+
+/** 메모리 디렉토리 (테스트 · 중단 주입) */
+export function memoryV2Directory(
+  files = new Map<string, Uint8Array>(),
+): V2DirectoryTarget & {
+  files: Map<string, Uint8Array>;
+} {
+  return {
+    files,
+    async read(path) {
+      return files.get(path) ?? null;
+    },
+    async write(path, bytes) {
+      files.set(path, bytes);
+    },
+    async remove(path) {
+      files.delete(path);
+    },
+    async list(dir) {
+      return [...files.keys()]
+        .filter((path) => path.startsWith(`${dir}/`))
+        .map((path) => path.slice(dir.length + 1));
+    },
+  };
+}
+
+/**
+ * 다음 세대 번호 — `manifest.json` · `manifests/` 기록 · 호출자가 마지막으로 쓴 값 중 최댓값 + 1.
+ * `manifest.json` 만 보면 그것이 손상됐을 때 번호가 되돌아가 (예: 100 → 1) 복구가 옛 세대를 고른다.
+ */
+export async function nextV2Revision(
+  target: V2DirectoryTarget,
+  lastWritten: number | null = null,
+): Promise<{ revision: number; previousRevision: number | null }> {
+  const current = await readManifestRevision(target);
+  const recorded = (await target.list("manifests"))
+    .map((name) => Number.parseInt(name, 10))
+    .filter((value) => Number.isFinite(value));
+  const top = Math.max(0, current ?? 0, lastWritten ?? 0, ...recorded);
+  return { revision: top + 1, previousRevision: top > 0 ? top : null };
+}

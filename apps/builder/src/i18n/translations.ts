@@ -1273,6 +1273,16 @@ const koKR: TranslationKeys = {
     storageAtRisk:
       "브라우저가 이 프로젝트를 지울 수 있습니다 — 눌러서 파일로 내보내기",
     storageUsage: "사용량 {used} / {quota}",
+    connectFolder: "폴더에 연결…",
+    folderSynced: "폴더에 저장됨",
+    folderWriting: "폴더에 저장 중…",
+    folderNeedsPermission: "폴더 권한이 필요합니다",
+    folderConflict: "폴더가 다른 곳에서 바뀌어 저장을 멈췄습니다",
+    folderError: "폴더 저장 실패",
+    folderAllow: "폴더 권한 허용",
+    folderOpen: "폴더 내용으로 열기",
+    folderOverwrite: "내 변경으로 폴더 덮어쓰기",
+    folderDisconnect: "폴더 연결 해제",
     storageQuotaExceeded:
       "저장 공간이 부족해 변경을 저장하지 못했습니다. 파일로 내보내 보관하세요.",
     projectFileUnavailable: "프로젝트가 아직 준비되지 않았습니다.",
@@ -3240,6 +3250,16 @@ const enUS: TranslationKeys = {
     storageAtRisk:
       "The browser may delete this project — press to export it to a file",
     storageUsage: "Using {used} of {quota}",
+    connectFolder: "Connect to folder…",
+    folderSynced: "Saved to folder",
+    folderWriting: "Saving to folder…",
+    folderNeedsPermission: "Folder permission needed",
+    folderConflict: "The folder changed elsewhere — saving paused",
+    folderError: "Could not save to folder",
+    folderAllow: "Allow folder access",
+    folderOpen: "Open the folder's version",
+    folderOverwrite: "Overwrite the folder with my changes",
+    folderDisconnect: "Disconnect folder",
     storageQuotaExceeded:
       "Out of storage space — changes were not saved. Export the project to a file.",
     projectFileUnavailable: "The project is not ready yet.",

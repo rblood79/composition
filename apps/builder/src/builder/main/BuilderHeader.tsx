@@ -27,7 +27,7 @@ import {
   ToggleButton,
   Group,
 } from "@composition/shared/components";
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useMemo, useRef, type ReactNode } from "react";
 import { useNavigate } from "react-router";
 import { iconProps } from "../../utils/ui/uiConstants";
 import { usePanelLayout } from "../layout";
@@ -69,6 +69,10 @@ export interface BuilderHeaderProps {
   onExportProject: () => void | Promise<void>;
   /** ADR-235 — v1 JSON (자산 인라인) 내보내기. 기본 내보내기는 v2 zip */
   onExportProjectJson: () => void | Promise<void>;
+  /** ADR-235 Phase 6 — 프로젝트를 폴더에 연결 (Chromium File System Access) */
+  onConnectFolder: () => void | Promise<void>;
+  /** 연결된 프로젝트면 폴더 상태 버튼 (lazy) — 없으면 null */
+  directoryLink: ReactNode;
   onWorkflowOverlayToggle: () => void;
 }
 
@@ -82,6 +86,8 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
   onImportProject,
   onExportProject,
   onExportProjectJson,
+  onConnectFolder,
+  directoryLink,
   onWorkflowOverlayToggle,
 }) => {
   const { t } = useI18n();
@@ -154,6 +160,7 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
                 if (key === "import") importInputRef.current?.click();
                 if (key === "export") void onExportProject();
                 if (key === "export-json") void onExportProjectJson();
+                if (key === "connect-folder") void onConnectFolder();
                 if (key === "reset-panel-layout") resetWorkspaceLayout();
                 if (key === "workflow") onWorkflowOverlayToggle();
                 if (key === "settings") togglePanel("settings");
@@ -178,6 +185,12 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
                 <Download size={14} />
                 <span>{t("header.exportProjectJson")}</span>
               </MenuItem>
+              {"showDirectoryPicker" in window && (
+                <MenuItem id="connect-folder" className="header-menu-item">
+                  <FolderOpen size={14} />
+                  <span>{t("header.connectFolder")}</span>
+                </MenuItem>
+              )}
               <Separator className="header-menu-separator" />
               <MenuItem id="delete" className="header-menu-item">
                 <DeleteIcon size={14} />
@@ -344,6 +357,7 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
               </ActionTooltipTrigger>
             )}
           </ToggleButtonGroup>
+          {directoryLink}
           <StorageStatusButton onExport={() => void onExportProject()} />
           <ActionIconButton
             aria-label={t("header.preview")}
