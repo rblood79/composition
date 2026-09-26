@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-236 후속 — 반응형 override · side 라벨 · Label 표시] - 2026-09-26
+
+### Fixed
+
+- **instance 안쪽 요소 (예: Form 안 TextField) 를 tablet · mobile 에서 고치면 desktop 값까지 바뀌던 문제.** override 켜기가 기록되지 않아 이후 편집이 전 breakpoint 로 갔다. 이제 그 tier 값만 instance 의 자식 patch 에 저장하고, origin 의 다른 tier 값은 그대로 상속한다.
+- **tablet · mobile 「+ override」 를 켜는 순간 모양이 바뀌던 문제.** 현재 값 대신 CSS 초기값 (가로 · 늘이기 · 0) 이 들어가 DisclosureGroup · Card · FileUpload 가 가로로 눕고 Button 여백이 0 이 됐다. 이제 그 요소의 catalog 기본값을 복사한다.
+- **ColorField 라벨을 옆 (side) 에 둘 때 캔버스에서 라벨이 세로 가운데로 내려가던 문제** (Preview 는 위 정렬).
+- **Slider · Meter · ProgressBar 에 display block 을 붙여넣으면 캔버스에서 라벨이 한 줄을 통째로 차지하던 문제** (Preview 는 라벨과 값이 한 줄). Label 의 표시 방식을 catalog 정본으로 두었다.
+  - 검증: 실제 builder 에서 각 경로 live (메뉴 클릭 · 헤더 breakpoint 토글) · 수정을 되돌리면 새 테스트 실패 · builder · shared 전체 통과.
+
 ## [배포판 앱 아이콘 경로] - 2026-09-26
 
 ### Fixed
