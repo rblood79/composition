@@ -351,6 +351,33 @@
     cursor: not-allowed;
   }
 
+  /* 폴더 권한 필요 — 상태 아이콘 옆에 허용 버튼을 바로 둔다 (DirectoryLinkButton) */
+  .header_contents .directory-link-group {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+  }
+
+  .header_contents .react-aria-Button.directory-link-allow {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--bg-raised);
+    color: var(--fg);
+    font-size: var(--text-xs);
+    white-space: nowrap;
+    cursor: pointer;
+  }
+
+  .header_contents .react-aria-Button.directory-link-allow[data-hovered] {
+    background: var(--accent-subtle);
+  }
+
+  .header_contents .react-aria-Button.directory-link-allow[data-focus-visible] {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+
   /* ========================================
    * Zoom Controls (Adobe Style Menu)
    * ======================================== */

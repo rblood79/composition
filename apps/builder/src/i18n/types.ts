@@ -1190,6 +1190,8 @@ export interface TranslationKeys {
     folderConflict: string;
     folderError: string;
     folderAllow: string;
+    folderAllowAgain: string;
+    folderPermissionDenied: string;
     folderOpen: string;
     folderOverwrite: string;
     folderDisconnect: string;

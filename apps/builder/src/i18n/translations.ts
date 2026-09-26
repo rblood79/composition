@@ -1279,10 +1279,14 @@ const koKR: TranslationKeys = {
     connectFolder: "폴더에 연결…",
     folderSynced: "폴더에 저장됨",
     folderWriting: "폴더에 저장 중…",
-    folderNeedsPermission: "폴더 권한이 필요합니다",
+    folderNeedsPermission:
+      "폴더 권한이 필요합니다 — 편집은 이 브라우저에 저장되고, 허용하면 폴더에 다시 씁니다",
+    folderPermissionDenied:
+      "폴더 권한이 거부되었습니다 — 편집은 이 브라우저에 저장됩니다. 다시 허용하거나 연결을 해제하세요",
     folderConflict: "폴더가 다른 곳에서 바뀌어 저장을 멈췄습니다",
     folderError: "폴더 저장 실패",
     folderAllow: "폴더 권한 허용",
+    folderAllowAgain: "다시 허용",
     folderOpen: "폴더 내용으로 열기",
     folderOverwrite: "내 변경으로 폴더 덮어쓰기",
     folderDisconnect: "폴더 연결 해제",
@@ -3264,10 +3268,14 @@ const enUS: TranslationKeys = {
     connectFolder: "Connect to folder…",
     folderSynced: "Saved to folder",
     folderWriting: "Saving to folder…",
-    folderNeedsPermission: "Folder permission needed",
+    folderNeedsPermission:
+      "Folder permission needed — edits are kept in this browser and written to the folder once allowed",
+    folderPermissionDenied:
+      "Folder permission was denied — edits are kept in this browser. Allow again or disconnect the folder",
     folderConflict: "The folder changed elsewhere — saving paused",
     folderError: "Could not save to folder",
     folderAllow: "Allow folder access",
+    folderAllowAgain: "Allow again",
     folderOpen: "Open the folder's version",
     folderOverwrite: "Overwrite the folder with my changes",
     folderDisconnect: "Disconnect folder",

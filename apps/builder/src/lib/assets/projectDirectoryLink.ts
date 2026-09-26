@@ -54,6 +54,11 @@ export interface DirectoryLinkState {
   directoryName: string;
   lastRevision: number | null;
   error?: string;
+  /**
+   * 사용자가 권한 창에서 거부했거나 창을 닫았다 (`needs-permission` 에서만 의미). 헤더가
+   * "눌렀는데 변화 없음" 대신 거부 사실과 다시 허용 · 연결 해제를 보여 준다.
+   */
+  permissionDenied?: boolean;
 }
 
 export const DIRECTORY_LINK_EVENT = "composition:directory-link";
@@ -328,8 +333,11 @@ class DirectoryLink {
       !handle.requestPermission ||
       (await handle.requestPermission({ mode: "readwrite" })) === "granted";
     if (granted) {
-      this.publish({ status: "idle" });
+      this.publish({ status: "idle", permissionDenied: false });
       await this.write();
+    } else {
+      // denied 와 창 닫기 (prompt) 를 같이 다룬다 — 어느 쪽이든 폴더 쓰기는 멈춘 상태다.
+      this.publish({ status: "needs-permission", permissionDenied: true });
     }
     return granted;
   }
