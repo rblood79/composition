@@ -107,6 +107,8 @@ export class OpenAICompatibleProvider implements LLMProvider {
     options: LLMCompletionOptions = {},
   ): Record<string, unknown> {
     const tools = toOpenAITools(options);
+    const reasoningEffort =
+      options.reasoningEffort ?? this.config.reasoningEffort;
     return {
       model: this.config.model,
       messages: toOpenAIMessages(messages),
@@ -114,9 +116,7 @@ export class OpenAICompatibleProvider implements LLMProvider {
       temperature: options.temperature ?? LLM_DEFAULTS.temperature,
       max_tokens: options.maxTokens ?? LLM_DEFAULTS.maxTokens,
       ...(tools ? { tools, tool_choice: options.toolChoice ?? "auto" } : {}),
-      ...(options.reasoningEffort
-        ? { reasoning_effort: options.reasoningEffort }
-        : {}),
+      ...(reasoningEffort ? { reasoning_effort: reasoningEffort } : {}),
     };
   }
 

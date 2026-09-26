@@ -54,7 +54,13 @@ export type AgentProfilePresetId = "anthropic" | "openai" | "local-ollama";
 
 const ANTHROPIC_BASE_URL = "https://api.anthropic.com";
 const OPENAI_BASE_URL = "https://api.openai.com/v1";
-/** Ollama 의 OpenAI 호환 endpoint — 전용 어댑터 없이 base URL 로 포섭한다. */
+/**
+ * Ollama 의 OpenAI 호환 endpoint — 전용 어댑터 없이 base URL 로 포섭한다.
+ *
+ * 프리셋의 빠른 경로 (main · executor · fast) 는 `reasoningEffort: "none"` 으로 thinking 을
+ * 끈다. "버튼 생성해" 한 줄이 prompt 평가 22.5초 + 기본 thinking 약 8초였다 (2026-09-01).
+ * planner · verifier 는 모델 기본값을 둔다.
+ */
 const OLLAMA_BASE_URL = "http://localhost:11434/v1";
 
 /**
@@ -141,6 +147,7 @@ export const AGENT_PROFILE_PRESETS: Record<
       provider: "openai-compatible",
       baseUrl: OLLAMA_BASE_URL,
       model: "",
+      reasoningEffort: "none",
     },
     planner: {
       provider: "openai-compatible",
@@ -151,6 +158,7 @@ export const AGENT_PROFILE_PRESETS: Record<
       provider: "openai-compatible",
       baseUrl: OLLAMA_BASE_URL,
       model: "",
+      reasoningEffort: "none",
     },
     verifier: {
       provider: "openai-compatible",
@@ -161,6 +169,7 @@ export const AGENT_PROFILE_PRESETS: Record<
       provider: "openai-compatible",
       baseUrl: OLLAMA_BASE_URL,
       model: "",
+      reasoningEffort: "none",
     },
   },
 };
@@ -220,6 +229,9 @@ export function createAgentProfileRegistry(
         ...(options.apiKey ? { apiKey: options.apiKey } : {}),
         ...(options.headers ? { headers: options.headers } : {}),
         ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}),
+        ...(config.reasoningEffort
+          ? { reasoningEffort: config.reasoningEffort }
+          : {}),
       };
 
       return config.provider === "anthropic"

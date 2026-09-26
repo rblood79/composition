@@ -26,8 +26,18 @@ export type LLMProviderId = "anthropic" | "openai-compatible";
  * Claude 5 계열의 `effort` 5단계 (`xhigh` · `max` 포함, 기본 `high`) 와 OpenAI
  * `reasoning_effort` 를 같은 이름으로 받는다. effort 파라미터가 없는 모델 (Haiku 4.5 등)
  * 은 프로파일에서 비워 둔다 — 보내면 400 이다.
+ *
+ * `none` 은 OpenAI 호환 endpoint 전용이다 — Ollama 는 이 값으로 thinking 을 끈다 (Qwen3
+ * 기본 thinking 이 요청마다 약 8초를 더했다, 2026-09-01 실측). Anthropic effort 에는 none
+ * 단계가 없어 어댑터가 보내지 않는다.
  */
-export type ReasoningEffort = "low" | "medium" | "high" | "xhigh" | "max";
+export type ReasoningEffort =
+  | "none"
+  | "low"
+  | "medium"
+  | "high"
+  | "xhigh"
+  | "max";
 
 /** 도구 정의 — JSON Schema 그대로. MCP tool schema 와 같은 형태 (ADR-134 D11). */
 export interface LLMToolDefinition {
@@ -129,6 +139,8 @@ export interface LLMProviderConfig {
   headers?: Record<string, string>;
   /** 테스트·프록시 주입용. 기본값은 전역 `fetch`. */
   fetchImpl?: typeof fetch;
+  /** 프로파일의 추론 강도 — 호출 옵션 `reasoningEffort` 가 없을 때 쓴다. */
+  reasoningEffort?: ReasoningEffort;
   /**
    * 원격 endpoint 직접 호출 허용 (개발 빌드 한정 — HC13/R12).
    *

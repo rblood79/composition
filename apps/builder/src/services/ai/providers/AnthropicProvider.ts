@@ -241,9 +241,11 @@ export class AnthropicProvider implements LLMProvider {
     const { system, messages: wire } = toAnthropicMessages(messages);
     const tools = toAnthropicTools(options);
 
-    // output_config 는 effort 와 format 이 같은 객체를 나눠 쓴다.
+    // output_config 는 effort 와 format 이 같은 객체를 나눠 쓴다. effort 에는 none 단계가
+    // 없다 — Claude 5 계열은 thinking 을 끌 수 없어 보내면 400 이다.
+    const effort = options.reasoningEffort ?? this.config.reasoningEffort;
     const outputConfig: Record<string, unknown> = {
-      ...(options.reasoningEffort ? { effort: options.reasoningEffort } : {}),
+      ...(effort && effort !== "none" ? { effort } : {}),
       ...(options.responseSchema
         ? { format: { type: "json_schema", schema: options.responseSchema } }
         : {}),

@@ -655,7 +655,56 @@ describe("에이전트 프로파일 레지스트리", () => {
       }
     }
   });
+
+  it("프로파일의 reasoningEffort 가 호출 옵션 없이도 요청 본문까지 간다", () => {
+    const registry = createAgentProfileRegistry();
+    registry.set("planner", {
+      provider: "openai-compatible",
+      baseUrl: "http://localhost:11434/v1",
+      model: "qwen3:14b",
+      reasoningEffort: "none",
+    });
+    registry.set("verifier", {
+      provider: "anthropic",
+      baseUrl: "https://api.anthropic.com",
+      model: "claude-sonnet-5",
+      reasoningEffort: "medium",
+    });
+
+    const ollama = registry.createProvider(
+      "planner",
+    ) as OpenAICompatibleProvider;
+    expect(ollama.buildRequestBody(userOnly).reasoning_effort).toBe("none");
+    // 호출 옵션이 있으면 호출 옵션이 이긴다
+    expect(
+      ollama.buildRequestBody(userOnly, { reasoningEffort: "high" })
+        .reasoning_effort,
+    ).toBe("high");
+
+    const anthropic = registry.createProvider("verifier") as AnthropicProvider;
+    expect(anthropic.buildRequestBody(userOnly).output_config).toEqual({
+      effort: "medium",
+    });
+  });
+
+  it("Anthropic 어댑터는 none 을 보내지 않는다 (effort 에 none 단계가 없다)", () => {
+    const provider = new AnthropicProvider({
+      baseUrl: "https://api.anthropic.com",
+      model: "claude-sonnet-5",
+      reasoningEffort: "none",
+    });
+    expect(provider.buildRequestBody(userOnly).output_config).toBeUndefined();
+  });
+
+  it("local-ollama 프리셋은 빠른 경로 프로파일의 thinking 을 끈다", () => {
+    const map = AGENT_PROFILE_PRESETS["local-ollama"];
+    expect(map.main?.reasoningEffort).toBe("none");
+    expect(map.executor?.reasoningEffort).toBe("none");
+    expect(map.fast?.reasoningEffort).toBe("none");
+  });
 });
+
+const userOnly: LLMMessage[] = [{ role: "user", content: "버튼 생성해" }];
 
 /**
  * Prompt caching · usage 계측 · refusal fallback · 구조화 출력 (PROMPT_AUDIT_2026-09 D1·D3·D6).
@@ -774,9 +823,7 @@ describe("Anthropic 어댑터 — caching · usage · fallback · structured out
       );
       expect(capture.body().fallbacks).toBe("default");
       const headers = capture.calls[0].init.headers as Record<string, string>;
-      expect(headers["anthropic-beta"]).toBe(
-        "server-side-fallback-2026-07-01",
-      );
+      expect(headers["anthropic-beta"]).toBe("server-side-fallback-2026-07-01");
     },
   );
 
