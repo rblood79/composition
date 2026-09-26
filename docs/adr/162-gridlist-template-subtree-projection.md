@@ -2,7 +2,7 @@
 
 ## Status
 
-In Progress — Phase 0 ~ 3 · 5 완료 2026-09-26 (Phase 4 는 ADR-150 A2 확정 뒤 · Phase 6 closure 남음) · Proposed 2026-07-24 · **본문 재작성 2026-09-26** (사용자 판정 "본문 재작성": [ADR-234](completed/234-variant-instances-and-slot-filled-collections.md) 이후 모델 기준으로 범위와 설계를 다시 정함)
+In Progress — Phase 0 ~ 3 · 5 완료 2026-09-26 (Phase 4 는 ADR-150 Phase 1 행 offset 함수 뒤 — 150 재작성 2026-09-26 으로 선행 조건 변경 · Phase 6 closure 남음) · Proposed 2026-07-24 · **본문 재작성 2026-09-26** (사용자 판정 "본문 재작성": [ADR-234](completed/234-variant-instances-and-slot-filled-collections.md) 이후 모델 기준으로 범위와 설계를 다시 정함)
 
 > 재작성 사유: 07-24 판의 대안 A (composed 모드 — 별도 판정 심볼 `isComposedCollectionTemplate` + 새 투영 경로) 는 ADR-148 의 "slot = 템플릿 역할 표" 모델을 전제로 했다. ADR-234 (Implemented 2026-09-23) 가 그 모델을 정적 목록에서 "항목 origin 의 instance 를 자식으로 채운다" 로 대체했고, 데이터 바인딩 목록만 `items` + 항목 origin 템플릿으로 남겼다 (ADR-234 Decision · CHANGELOG 2026-09-23 "데이터 바인딩 GridList 는 그대로 `items`"). 07-24 판을 그대로 실행하면 같은 카드에 규칙이 둘 (정적 = instance, 데이터 = composed) 생긴다. 리뷰 기록 [reviews/162.md](reviews/162.md) round 1 (승인) 은 07-24 판 기준이라 착수 전 round 2 가 필요하다.
 
@@ -29,7 +29,7 @@ In Progress — Phase 0 ~ 3 · 5 완료 2026-09-26 (Phase 4 는 ADR-150 A2 확�
 - [ADR-159](completed/159-collection-field-template-binding.md) (Implemented 2026-07-24): `{field}` 보간 `compileFieldTemplate` / `interpolateFieldTemplate` (`packages/shared/src/collections/fieldTemplate.ts`) 과 컬럼 피커 (`useOwnerCollectionColumns.ts` · `PropertyFieldTemplateInput`). 07-24 판의 선행 의존은 해소됐다. 피커는 편집 중인 Text 의 **조상** 에서 데이터 소유자를 찾으므로, Components 페이지 origin 자식 편집에서는 뜨지 않는다 (Components 페이지는 데이터 바인딩 없음 — 09-21 사용자 판정).
 - ADR-239 / 241: 두 해석기 (DOM `resolvers/canonical/index.ts:217` `applyDescendantsToTree` · Canvas `materializeSyntheticDescendants`) 가 origin 안 중첩 ref 의 자기 자식까지 펼친다. **정적 instance 트리 전용** — 데이터 행마다 origin 을 펼치는 곳은 없다 (ListBox · Table · Tag · Tab 포함 선례 0).
 - ADR-238: RAC 는 역할마다 받는 slot 이름이 정해져 있어 아무 slot 이나 실으면 "Invalid slot" 크래시 (GridListItem label 실측). 비-slot 자식에 slot 속성을 달면 안 된다.
-- [ADR-150](150-rac-pencil-residual-interaction-execution.md) A2 (가상화 window) delivered · 시각 최종 확인 대기. 카드 stride (`collectionVirtualization.ts:169-224`) 는 slot 공식이며 origin 을 상수 `GRIDLIST_ITEM_DEFAULT_ORIGIN_ID` 로 읽는다 (`:183` — scene 의 `resolveGridListTemplateOriginId` slot[0] 해석과 다를 수 있다).
+- [ADR-150](150-rac-pencil-residual-interaction-execution.md) (2026-09-26 본문 재작성): A2' = 가상화 window · spacer · contentHeight · maxScrollTop · 행 배치가 읽는 **행 offset 함수 하나** (균일 입력 = 곱셈, 시각 행별 높이 목록 = 누적합 + 이분 탐색 — 목록 경로의 계약 · unit 은 150 Phase 1). 본 ADR Phase 4 는 그 함수에 펼친 카드의 실측 · 추정 행 높이를 공급한다 (의존 방향 162 Phase 4 → 150 Phase 1). 카드 stride 의 origin 은 Phase 1 (`3b957e17b`) 에서 상수 대신 소유자별 `resolveGridListTemplateOriginId` 로 바뀌었다.
 
 **SSOT 3-domain 분류**: D3 중심 — 카드 구성 · 크기의 Skia ↔ DOM 대칭. 카드 안 콘텐츠는 RAC GridListItem 이 허용하는 자식 범위라 D1 무변경 (slot 속성은 RAC 가 받는 역할 자식에만 — ADR-238). 데이터 매핑은 159 의 `{field}` 문법 소비로 D2 신규 prop 없음.
 

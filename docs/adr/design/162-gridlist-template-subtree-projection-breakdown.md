@@ -9,7 +9,7 @@
 3. **선행 ADR 전제 reverse 검증**: 234 의 경계 (데이터 목록은 `items`) 를 뒤집지 않는다 — 행을 문서에 쓰지 않고 render-space 에서만 펼친다. 159 의 consumer 분리 (Skia = 샘플/데이터 정적 배치, DOM = 실데이터 + RAC 동작) 승계.
 4. **사용자 confirm**: (round 2 codex 리뷰 h1 · h2 · m1 반영 2026-09-26 — 균일 stride → 시각 행별 높이, 소유자별 origin 해석 한 곳, Field legacy 고정) 2026-09-26 AskUserQuestion "ADR-162 를 어떻게 처리할까요?" → "본문 재작성 (권장)" — 범위 = 데이터 바인딩 목록의 행 = 항목 origin 가상 instance + `{field}`, 판정 심볼 · 별도 투영 제거, 정적 카드 Canvas live 를 Phase 0 에, 150 A2 의존 유지.
 
-**진입 조건**: ADR-159 P1 · P4 Implemented (해소). Phase 4 (stride) 는 ADR-150 A2 시각 확인 뒤 — README 실행 순서표 "150 A2 확정 후" 유지. Phase 0 ~ 3 은 A2 와 독립.
+**진입 조건**: ADR-159 P1 · P4 Implemented (해소). Phase 4 (시각 행별 높이) 는 ADR-150 Phase 1 (행 offset 함수 계약 · G1) 뒤 — 2026-09-26 150 본문 재작성으로 "150 A2 시각 확인" 에서 바뀜 (README 실행 순서표 같음). 150 은 리뷰 round 3 → Phase 0 → Phase 1 순서. Phase 0 ~ 3 · 5 · 6 의 `/cross-check` 는 150 과 독립.
 
 ## 2. 현행 (2026-09-26 실측)
 
@@ -83,14 +83,14 @@
 - Preview 채널: Phase 1 의 소유자별 맵에서 자기 origin 자식 (펼침일 때만) 을 읽는다 — 전역 단일 채널에 싣지 않는다.
 - G2 parity test (`tests/parity/`, 실 브라우저 oracle). G1 (데이터 행 부분).
 
-### Phase 4 — 시각 행별 높이 가상화 (HIGH, ADR-150 A2 뒤)
+### Phase 4 — 시각 행별 높이 가상화 (HIGH, ADR-150 Phase 1 뒤)
 
 - 접기: 현행 공식 · 균일 stride (BC).
 - 펼침 (round 2 h1 — 균일 stride 폐기):
   - 시각 행 높이 = 그 시각 행 카드들의 최대 높이 (DOM grid `align-items: stretch` 와 같음). 카드 높이는 행 데이터 (`{title}` 길이) 에 따라 다르다.
   - 실체화된 행 (window 안) 은 엔진 실측을 캐시 — 키 = 소유자 id + origin 해석 revision + 열 수 · 카드 폭 + 행 key. 무효화는 기존 layout publish / projectionVersion 신호 (독립 캐시 금지 — ADR-150 R5). 열 수 · 폭이 바뀌면 (breakpoint) 캐시 전체 무효.
   - 아직 안 본 행 = 추정 (템플릿 공식 — 현행 stride 값).
-  - offset = 시각 행 높이 누적합 (prefix sum, 실측 교체 시 해당 지점부터 갱신). window index 는 offset 에서 이분 탐색, spacer = window 앞뒤 누적합, maxScrollTop = 전체 합 − viewport (`collectionVirtualization.ts:389-404` 의 곱셈식 대체).
+  - offset · window index · spacer · maxScrollTop 은 **ADR-150 Phase 1 의 행 offset 함수** 가 시각 행 높이 목록으로 산출한다 (누적합 + 이분 탐색 — 150 이 계약 · unit 소유). 본 Phase 는 그 함수에 목록 (실측 · 추정) 을 공급하고, 실측 교체 시 목록을 갱신한다. 착수 때 150 반영 상태를 재실측 (150 R6).
   - scroll anchoring: 추정 → 실측 교체로 화면 위쪽 합이 바뀌면 scrollTop 을 그 차이만큼 보정해 화면 첫 행의 화면 y 를 고정.
   - 끝 고정 (round 3 h1): scrollTop 이 maxScrollTop 에 있으면 (thumb 을 끝으로 끈 경우 포함) 기준을 마지막 행으로 바꾼다 — 실측 교체 뒤 scrollTop = 새 총합 − viewport 로 다시 맞춰 마지막 시각 행이 아래 끝에 붙어 있게 한다. 중간 미방문 행은 추정으로 남아도 끝 도달은 보장된다.
   - 총 높이 정확도 계약: 모든 시각 행이 측정됐을 때만 총 높이 = DOM `scrollHeight`. 그 전에는 Σ실측 + Σ추정 (오차 = 미측정 행의 실제 − 추정 합) — 게이트가 아니라 기록 대상 (G3 b · c).
@@ -109,6 +109,7 @@
 
 - `/cross-check` gridlist (접기 · 펼침 각 1). live: 데이터 GridList + origin 에 Image (src `{image}`) · Button → 행별 값 확인 (Canvas). Preview 는 사용자 확인.
 - G4 성능 A/B. CHANGELOG · README · ADR Live Exercise.
+- ◐ 2026-09-26 — `/cross-check` 2 arm (Phase 4 와 독립인 부분 선행): 같은 데이터 GridList (static collection dataBinding 3 행 · 폭 400) 를 실제 builder 에서 origin 에 Image 넣기 전 (접기) · 뒤 (펼침) 로 잼 (`adr162-crosscheck-live.mjs`, page error 0) — 접기 컨테이너 400×164 · 카드 194×76 · 둘째 시각 행 y 88 / 펼침 400×264 · 194×126 · 138 · label (17,13) · 설명 (17,39) · Image (17,65,48,48) (P3 live 값과 같음). DOM oracle `tests/parity/adr162DataRowCardDom.browser.test.ts` 3 case 가 두 arm 모두 ±1 통과. 접은 카드 안 글자 위치는 escape 가 그려 layout map 에 없어 상자 · 글자 내용만 대조 (픽셀 위치 미측정). G4 · Live Exercise · closure 는 Phase 4 뒤.
 
 ## 6. 파일 (추정 — Phase 0 에서 고정)
 

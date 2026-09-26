@@ -40,6 +40,14 @@ const CANVAS = {
   secondRowY: 138,
 } as const;
 
+// /cross-check (2026-09-26) — 같은 문서에서 origin 에 Image 를 넣기 전 (slot-only = 접기, escape 가 카드 전체).
+//   실제 builder live `apps/builder/scripts/adr162-crosscheck-live.mjs` 의 layout map 값.
+const CANVAS_FOLDED = {
+  container: { w: 400, h: 164 },
+  card: { w: 194, h: 76 },
+  secondRowY: 88,
+} as const;
+
 const ITEMS = [
   { id: "r1", label: "Row One", description: "first row" },
   { id: "r2", label: "Row Two", description: "second row" },
@@ -47,10 +55,11 @@ const ITEMS = [
 ];
 
 const roots: Root[] = [];
-let host: HTMLElement | undefined;
+const hosts: HTMLElement[] = [];
 let gridList: HTMLElement | null = null;
+let foldedGridList: HTMLElement | null = null;
 
-function makeDoc(): CompositionDocument {
+function makeDoc(withImage = true): CompositionDocument {
   const doc = ensureReusableCompositeOrigins({
     version: "composition-1.0",
     children: [
@@ -81,6 +90,7 @@ function makeDoc(): CompositionDocument {
   } as CompositionDocument);
   const origin = findNode(doc.children, "component-gridlist-item-default");
   if (!origin) throw new Error("GridListItem origin 없음");
+  if (!withImage) return doc;
   origin.children = [
     ...(origin.children ?? []),
     {
@@ -135,11 +145,17 @@ beforeAll(async () => {
   style.textContent = bundleCss;
   document.head.appendChild(style);
   injectPreviewBaseStyles(document);
-  host = document.createElement("div");
-  host.style.cssText = "position:absolute;top:0;left:0;width:400px;";
-  document.body.appendChild(host);
+  gridList = await mountCase(true, 0);
+  foldedGridList = await mountCase(false, 600);
+});
 
-  const resolved = resolveCanonicalDocument(makeDoc()) as ResolvedNode[];
+async function mountCase(withImage: boolean, top: number) {
+  const host = document.createElement("div");
+  host.style.cssText = `position:absolute;top:${top}px;left:0;width:400px;`;
+  document.body.appendChild(host);
+  hosts.push(host);
+
+  const resolved = resolveCanonicalDocument(makeDoc(withImage)) as ResolvedNode[];
   const resolver = createGridListTemplateResolver(
     indexTemplateOriginRecords(resolved),
   );
@@ -157,20 +173,21 @@ beforeAll(async () => {
       cutoverPrimitives: getCatalogCutoverTypes(),
     }),
   );
-  gridList = host.querySelector<HTMLElement>(".react-aria-GridList");
+  const list = host.querySelector<HTMLElement>(".react-aria-GridList");
   // dataBinding 행은 effect 뒤에 채워진다 — 카드가 설 때까지 (최대 2 초).
   for (let i = 0; i < 40; i++) {
-    if (gridList?.querySelector(".react-aria-GridListItem")) break;
+    if (list?.querySelector(".react-aria-GridListItem")) break;
     await new Promise((r) => setTimeout(r, 50));
   }
   await new Promise<void>((r) =>
     requestAnimationFrame(() => requestAnimationFrame(() => r())),
   );
-});
+  return list;
+}
 
 afterAll(() => {
   for (const r of roots) r.unmount();
-  host?.remove();
+  for (const h of hosts) h.remove();
   document.getElementById("adr162-bundle")?.remove();
 });
 
@@ -230,5 +247,36 @@ describe("ADR-162 G2 (b) — 펼친 데이터 카드 Skia 상자 = DOM 상자 (�
       }
     }
     expect(off, JSON.stringify(got)).toEqual([]);
+  });
+});
+
+describe("ADR-162 /cross-check — 접은 데이터 카드 (slot-only origin) Skia 상자 = DOM 상자 (±1)", () => {
+  it("컨테이너 · 카드 · 둘째 시각 행 위치 · 글자", () => {
+    expect(foldedGridList).not.toBeNull();
+    const cards = [
+      ...foldedGridList!.querySelectorAll<HTMLElement>(".react-aria-GridListItem"),
+    ];
+    expect(cards).toHaveLength(3);
+    expect(cards[0]!.querySelector('[role="img"]')).toBeNull();
+    expect(cards[0]!.textContent).toContain("Row One");
+    expect(cards[0]!.querySelector('[slot="description"]')?.textContent).toBe(
+      "first row",
+    );
+    const box = foldedGridList!.getBoundingClientRect();
+    const card0 = rel(cards[0]!, foldedGridList!);
+    const card2 = rel(cards[2]!, foldedGridList!);
+    const got = {
+      container: { w: box.width, h: box.height },
+      card: { w: card0.w, h: card0.h },
+      secondRowY: card2.y,
+    };
+    const off = [
+      Math.abs(got.container.w - CANVAS_FOLDED.container.w),
+      Math.abs(got.container.h - CANVAS_FOLDED.container.h),
+      Math.abs(got.card.w - CANVAS_FOLDED.card.w),
+      Math.abs(got.card.h - CANVAS_FOLDED.card.h),
+      Math.abs(got.secondRowY - CANVAS_FOLDED.secondRowY),
+    ];
+    expect(Math.max(...off), JSON.stringify(got)).toBeLessThanOrEqual(1);
   });
 });
