@@ -19,6 +19,7 @@ import {
   resetPointerClick,
   resolveBodySelection,
   resolveDoubleClickTargetId,
+  resolvePointerClickKey,
   applyAxisLock,
   armDragAltClone,
   setDragSnapSuppressed,
@@ -28,6 +29,7 @@ import {
   resolveSelectionDragIntent,
   resolveSelectionHit,
   resolveTopPageIdAtPoint,
+  type ElementDoubleClickOptions,
 } from "../interaction";
 import { hitTestPoint } from "../wasm-bindings/spatialIndex";
 import { buildPagePaintRank } from "../scene/pagePaintOrder";
@@ -56,7 +58,9 @@ interface UseCentralCanvasPointerHandlersOptions {
   handleElementClickRef: MutableRefObject<
     (elementId: string, modifiers?: ModifierState) => void
   >;
-  handleElementDoubleClickRef: MutableRefObject<(elementId: string) => void>;
+  handleElementDoubleClickRef: MutableRefObject<
+    (elementId: string, options?: ElementDoubleClickOptions) => void
+  >;
   frameAreas?: FrameBodySelectionArea[];
   getHitChildrenMap?: () => Map<string, CanvasInteractionNode[]>;
   getHitElementsMap?: () => Map<string, CanvasInteractionNode>;
@@ -397,6 +401,11 @@ export function useCentralCanvasPointerHandlers({
           : null;
       const hitTargetPageId =
         interactionTarget.kind === "select" ? interactionTarget.pageId : null;
+      // ADR-150 A3' — owner 로 돌린 collection 클릭의 원래 hit. 연속성 키 · double-click origin 해석 전용.
+      const sourceHit =
+        interactionTarget.kind === "select"
+          ? interactionTarget.sourceHit
+          : undefined;
 
       // 드래그 의도 판정은 선택 박스(bbox)가 아니라 **계층 정규화된 클릭 타깃** 기준이다.
       // bbox 기준이면 선택 박스에 겹쳐 있을 뿐인 다른 요소 클릭까지 삼켜서 선택이 무시된다.
@@ -414,24 +423,25 @@ export function useCentralCanvasPointerHandlers({
         : { inSelectionBounds: false };
 
       if (!inSelectionBounds && hitElementId) {
+        const clickKey = resolvePointerClickKey(sourceHit, hitElementId);
         if (
           isPointerDoubleClick(
             {
               lastClickTargetId: lastClickTargetRef.current,
               lastClickTime: lastClickTimeRef.current,
             },
-            hitElementId,
+            clickKey,
             now,
           )
         ) {
           const resetState = resetPointerClick();
           lastClickTargetRef.current = resetState.lastClickTargetId;
           lastClickTimeRef.current = resetState.lastClickTime;
-          handleElementDoubleClickRef.current(hitElementId);
+          handleElementDoubleClickRef.current(hitElementId, { sourceHit });
           return;
         }
 
-        const session = commitPointerClick(hitElementId, now);
+        const session = commitPointerClick(clickKey, now);
         lastClickTargetRef.current = session.lastClickTargetId;
         lastClickTimeRef.current = session.lastClickTime;
 
@@ -477,13 +487,17 @@ export function useCentralCanvasPointerHandlers({
             hitElementId,
             targetId,
           );
+          const clickKey = resolvePointerClickKey(
+            sourceHit,
+            doubleClickTargetId,
+          );
           if (
             isPointerDoubleClick(
               {
                 lastClickTargetId: lastClickTargetRef.current,
                 lastClickTime: lastClickTimeRef.current,
               },
-              doubleClickTargetId,
+              clickKey,
               now,
             )
           ) {
@@ -491,12 +505,14 @@ export function useCentralCanvasPointerHandlers({
             lastClickTargetRef.current = resetState.lastClickTargetId;
             lastClickTimeRef.current = resetState.lastClickTime;
             if (doubleClickTargetId) {
-              handleElementDoubleClickRef.current(doubleClickTargetId);
+              handleElementDoubleClickRef.current(doubleClickTargetId, {
+                sourceHit,
+              });
             }
             return;
           }
 
-          const session = commitPointerClick(doubleClickTargetId, now);
+          const session = commitPointerClick(clickKey, now);
           lastClickTargetRef.current = session.lastClickTargetId;
           lastClickTimeRef.current = session.lastClickTime;
 

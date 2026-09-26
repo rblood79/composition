@@ -138,7 +138,21 @@ describe("resolveCanvasInteractionTarget", () => {
         elementsMap: new Map([[row.id, row]]),
         childrenMap: new Map(),
       }),
-    ).toEqual({ kind: "select", elementId: "listbox-1", pageId: "page-1" });
+    ).toMatchObject({
+      kind: "select",
+      elementId: "listbox-1",
+      pageId: "page-1",
+      // ADR-150 A3' — 원래 hit (연속성 키 · origin 해석 입력). 선택 id 는 owner 그대로.
+      sourceHit: {
+        nodeId: row.id,
+        projection: {
+          kind: "listbox-row",
+          listBoxId: "listbox-1",
+          itemKey: "row-1",
+          templateOriginId: "origin-1",
+        },
+      },
+    });
   });
 
   it("selects the ListBox component when a listbox-rows group projection is clicked", () => {
@@ -158,7 +172,11 @@ describe("resolveCanvasInteractionTarget", () => {
         elementsMap: new Map([[group.id, group]]),
         childrenMap: new Map(),
       }),
-    ).toEqual({ kind: "select", elementId: "listbox-1", pageId: "page-1" });
+    ).toMatchObject({
+      kind: "select",
+      elementId: "listbox-1",
+      pageId: "page-1",
+    });
   });
 
   it("selects the ListBox when no template anchor exists", () => {
@@ -180,6 +198,10 @@ describe("resolveCanvasInteractionTarget", () => {
         elementsMap: new Map([[row.id, row]]),
         childrenMap: new Map(),
       }),
-    ).toEqual({ kind: "select", elementId: "listbox-1", pageId: "page-1" });
+    ).toMatchObject({
+      kind: "select",
+      elementId: "listbox-1",
+      pageId: "page-1",
+    });
   });
 });

@@ -1,0 +1,8 @@
+/* ADR-150 A3' — 항목 원본 안내 (StylesPanel `.responsive-hint` 와 같은 글줄). */
+.item-origin-notice {
+  margin: 0;
+  padding-block-end: var(--spacing-lg);
+  font-size: var(--text-2xs);
+  color: var(--fg-muted);
+  line-height: 1.4;
+}

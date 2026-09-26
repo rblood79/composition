@@ -196,6 +196,37 @@ LOW deferred (production 증상 없음): L1 목록 입력이면 스크롤마다 
    - unit (round 4 h1 반례): 카드 A `a/heading` 클릭 t=1000 → 카드 B `b/detail` 클릭 t=1200 → double-click 아님 · 페이지 이동 0. 같은 카드의 `a/heading` → `a/detail` 도 아님. 같은 자식 두 번 (t=1000 · 1200) 만 double-click. 두 분기 각각, 원복 (owner 키) 시 RED.
    - live: 펼친 카드의 서로 다른 Text 두 개를 각각 더블클릭 → Components 페이지 origin 자식 선택 → 스타일 변경 → 원래 페이지 모든 카드 반영. 페이지 이동 UX 는 사용자 확인 (R3).
 
+### §4 Phase 2 결과 (2026-09-27)
+
+#### §4-1 반영한 것
+
+- **해석기** `interaction/resolveDataRowOriginTarget.ts`: `sourceHit` (hit 노드 id · 행 projection) → `{ targetId, originId }` 또는 null. 행 노드 자체는 origin 루트, `<행 id>/<path>` 는 origin 서브트리를 구간 이름으로 따라간다 (행 id 는 `toCollectionRowProjectionId` 로 다시 만들어 뗀다). origin 안 ref 를 만나면 `<ref>/<나머지 path>`. 출력이 projection id 면 null. 대상 kind = listbox · gridlist · tag · tab 행 (Table · Breadcrumbs 는 templateOriginId 가 없어 null).
+- **live 가 잡은 입력 (같은 phase 수리)**: 데이터 카드의 `templateOriginId` 는 휴지 변형 origin (`component-gridlist-item-default--unselected` — 기본 origin 의 reusable ref, ADR-234) 이다. 처음 구현은 이 ref 의 synthetic 자식 (`--unselected/Label`) 을 골라 편집이 휴지 상태 카드에만 퍼지는 경로였다. origin 이 ref 면 체인 끝 기본 origin 에서 걷는다 (§2-4 "선택 행도 기본 origin" 과 같은 규칙).
+- **구간 이름** `adapters/canonical/canonicalPathWalk.ts` `getCanonicalNodePathSegment`: 문서 노드의 legacy metadata customId 까지 읽는다 (scene 합성 id 규칙과 같음). 해석기 전용이다. 처음에는 insert private walker 2 개 (`collectionItemInsert` · `tableColumnInsert`) 도 이것으로 바꿨으나 판독에서 되돌렸다 — 그 쓰기 키와 Preview resolver 는 name ‖ id 규칙이라, customId metadata 가 있는 origin 에서 insert 가 Canvas 에만 반영되는 경로가 새로 열린다. 구간 이름 규칙 3 갈래 (scene · Preview · 쓰기 키) 통합은 후속 항목.
+- **raw hit 전달**: `CanvasInteractionTarget` `select` 에 `sourceHit` (collection projection 을 owner 로 돌릴 때만). pointer handler 두 double-click 분기가 `handleElementDoubleClickRef.current(id, { sourceHit })`.
+- **연속성 키** `pointerSession.resolvePointerClickKey(sourceHit, targetId)` — 두 분기의 기록 · 판정이 같은 키. 원래 hit 가 없는 클릭은 선택 id 그대로 (동작 변경 0).
+- **진입**: `handleElementDoubleClick` 이 `sourceHit` 을 해석해 성공하면 `selectElementWithPageTransition(target, originPage, { editingContextId })` (origin 안쪽이면 origin 이 깊이 context). 실패 · 없음은 기존 진입.
+- **안내**: Properties 「항목 원본」 절 (`ItemOriginNoticeSection`) — 선택이 ListBoxItem · GridListItem · Tag · Tab reusable origin (변형 ref 포함) 이거나 그 안쪽이면 "이 원본을 쓰는 카드 전체에 적용됩니다."
+- **삭제 (사용자 승인 2026-09-27)**: `projection/resolveCollectionWriteTarget.ts` + 테스트, 호출처 0 이 된 `isCollectionRowProjectionKind` · `isCollectionRowsGroupProjectionKind` · `isCollectionCellProjectionKind`. 주석 참조 4 곳 정리.
+
+#### §4-2 G2 증거
+
+| 기준                                  | 증거                                                                                                                                                                                                                                 | 결과                |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------- |
+| (a) 서로 다른 자식 → 다른 origin 자식 | unit `resolveDataRowOriginTarget.test.ts` (펼친 카드 heading · detail × 카드 a · b, 교차 확인 sourceNode.id) · live 경계 밖 r1 Label → `__label` · 경계 안 (owner 선택 뒤) r2 Description → `__description`, 둘 다 Components 페이지 | PASS                |
+| (b) 연속성 키                         | unit `useCentralCanvasPointerHandlers.dataRowDoubleClick.test.tsx` 두 분기 × (카드 A→B 200ms · 같은 카드 다른 자식 · 같은 자식 2회) · live 카드 r1 → 150ms 뒤 r2 단일 클릭 = 페이지 이동 0 · 선택 owner                              | PASS                |
+| (c) projection id 유입 0              | 해석기 출력 자기 검사 + live 모든 선택 id                                                                                                                                                                                            | PASS                |
+| (d) origin 편집 → 모든 카드           | live origin label color → 카드 r1 · r2 · r3 label 같은 값                                                                                                                                                                            | PASS                |
+| (e) 해석 실패 → owner                 | unit 5 (path 불일치 · origin 없음 · Table · 다른 행 · rows 묶음) + sourceHit 없음                                                                                                                                                    | PASS                |
+| 안내                                  | unit `itemOriginNotice.test.ts` 7 · live Properties 「Item origin」 절 표시                                                                                                                                                          | PASS                |
+| live                                  | `apps/builder/scripts/adr150-p2-origin-entry-live.mjs` (headed, 실제 마우스 · 팔레트 ref instance · 펼친 카드)                                                                                                                       | 8/8 · 페이지 에러 0 |
+
+원복 RED: 연속성 키 → owner id — dataRowDoubleClick 4 + Phase0Red 1 RED (두 분기 각각). 변형 origin → 기본 origin 해석 제거 — 해석기 unit RED (live 에서 먼저 잡힘).
+
+#### §4-3 사용자 확인 대기 (R3)
+
+- 페이지 이동 뒤 **카메라는 그대로**다 — 선택은 Components 페이지 origin 자식으로 바뀌지만 화면은 원래 페이지를 비춰 선택 요소가 화면 밖일 수 있다 (live 스크린샷). 선택 요소로 카메라를 옮기는 기존 기능은 단축키 (zoomToSelection) 뿐이다. 더블클릭 진입에서 카메라를 따라가게 할지는 사용자 판단 (R3).
+
 ## §5 Phase 3 — closure (G3)
 
 1. [ADR-911](../911-rac-pencil-target-component-architecture.md) R-3 / G-projected 문구를 본 ADR 게이트로 재정의하고 닫힘으로 표기한다. [ADR-910](../910-rac-pencil-component-architecture.md) T-7 / G-state 에 A1 철회 1 줄을 남긴다.

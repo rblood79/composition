@@ -57,5 +57,11 @@ export {
   isPointerDoubleClick,
   resetPointerClick,
   resolveDoubleClickTargetId,
+  resolvePointerClickKey,
   type PointerSessionSnapshot,
 } from "./pointerSession";
+export {
+  resolveDataRowOriginTarget,
+  type CanvasSourceHit,
+  type ElementDoubleClickOptions,
+} from "./resolveDataRowOriginTarget";

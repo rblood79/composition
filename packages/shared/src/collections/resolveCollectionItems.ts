@@ -187,9 +187,9 @@ export type CollectionProjectionRowsInput = {
 /**
  * collection source 의 정규화 결과 — DOM wrapper / Skia projector 공통 소비 (설계 §2-C).
  *
- * `sourceKind` 는 render adapter 가 분기 없이 동일 처리하되, 디버깅/write 라우팅 보조용.
- * write target 변환은 본 계약에 포함하지 않고 `resolveCollectionWriteTarget(projection, intent)`
- * 단일 책임에 위임한다(중복 source of truth 방지).
+ * `sourceKind` 는 render adapter 가 분기 없이 동일 처리하되, 디버깅 보조용.
+ * 편집 대상 변환은 본 계약에 포함하지 않는다 — 데이터 행 편집은 템플릿 origin 편집으로 한다
+ * (ADR-150 A3', builder `resolveDataRowOriginTarget`).
  */
 export interface ResolvedCollectionItems {
   /** 정규화된 item 행 (kind:'item'|'section'). window 적용 시 window 슬라이스만. */

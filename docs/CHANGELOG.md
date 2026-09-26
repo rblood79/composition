@@ -11,6 +11,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-150 Phase 2 — 데이터 행 더블클릭 → 템플릿 origin 편집] - 2026-09-27
+
+### Added
+
+- **데이터 목록 행 (GridList 카드 · 카드 안 요소 · ListBox 행 · Tag · Tab) 을 더블클릭하면 그 행을 만드는 템플릿 origin 으로 이동해 대응 요소를 선택한다.** 카드 안 제목을 더블클릭하면 Components 페이지 origin 의 제목 Text, 설명을 더블클릭하면 설명 Text 가 선택된다. 여기서 편집하면 그 origin 을 쓰는 모든 카드에 반영된다. 해석할 수 없는 행 (Table · Breadcrumbs 등) 은 지금처럼 목록 자체를 선택한다.
+- **Properties 「항목 원본」 절** — 목록 항목 origin (또는 그 안쪽) 을 선택하면 "이 원본을 쓰는 카드 전체에 적용됩니다." 를 보여준다.
+
+### Fixed
+
+- **서로 다른 카드를 연달아 한 번씩 누르면 더블클릭으로 판정되던 문제.** 더블클릭 판정이 목록 id 로 이어져 300ms 안의 두 카드 클릭이 더블클릭이 됐다. 이제 카드 · 카드 안 요소 단위로 잇는다.
+
+### Removed
+
+- 호출처가 없던 `resolveCollectionWriteTarget` (ADR-912 단계 4 의 3-route 변환) 과 그것만 쓰던 projection kind 판정 함수 3개.
+
+### Tests
+
+- 실제 Builder (`apps/builder/scripts/adr150-p2-origin-entry-live.mjs`, headed · 실제 마우스): 펼친 카드 제목 · 설명 더블클릭 (선택 경계 밖 · 안) → 서로 다른 origin 자식 선택 · Components 페이지 이동, 카드 두 장 150ms 연속 클릭 → 이동 0, origin 편집 → 모든 카드 반영, Properties 안내 표시. 8/8, 페이지 에러 0.
+
 ## [ADR-162 Implemented — 데이터 GridList 카드 = 항목 origin instance] - 2026-09-27
 
 ### Added

@@ -34,8 +34,12 @@ describe("useCentralCanvasPointerHandlers frame body fallback", () => {
     );
     expect(source).toContain("hitElementId,");
     expect(source).toContain(
-      "handleElementDoubleClickRef.current(doubleClickTargetId);",
+      "handleElementDoubleClickRef.current(doubleClickTargetId, {",
     );
-    expect(source).toContain("commitPointerClick(doubleClickTargetId, now);");
+    // ADR-150 A3' — 기록 · 판정은 같은 연속성 키 (원래 hit 가 없으면 double-click 대상 id 그대로).
+    expect(source).toContain(
+      "resolvePointerClickKey(\n            sourceHit,\n            doubleClickTargetId,",
+    );
+    expect(source).toContain("commitPointerClick(clickKey, now);");
   });
 });

@@ -65,6 +65,7 @@ import { ComponentSlotFillSection } from "./ComponentSlotFillSection";
 import { FrameSlotSection } from "./FrameSlotSection";
 import { ItemSlotRolesSection } from "./ItemSlotRolesSection";
 import { GridListCardFieldsSection } from "./GridListCardFieldsSection";
+import { ItemOriginNoticeSection } from "./ItemOriginNoticeSection";
 import { ButtonChildFields } from "./ButtonChildSection";
 import { BUTTON_CHILD_HOST_TAGS } from "./buttonChildSectionUtils";
 import { ElementAttributesSection } from "./ElementAttributesSection";
@@ -1092,6 +1093,9 @@ function PropertiesPanelContent() {
 
             {/* ADR-238 Phase 1 — 목록 항목 안 역할 (icon · description …) on/off · origin 역할 추가 */}
             <ItemSlotRolesSection elementId={selectedElementId} />
+
+            {/* ADR-150 A3' — 데이터 행 템플릿 origin (또는 그 안쪽) 편집은 이 origin 을 쓰는 카드 전체에 퍼진다 */}
+            <ItemOriginNoticeSection elementId={selectedElementId} />
 
             {/* ADR-162 Phase 5 — 데이터 GridList 카드 (항목 origin) 자식 prop ↔ 컬럼 연결 */}
             <GridListCardFieldsSection elementId={selectedElementId} />

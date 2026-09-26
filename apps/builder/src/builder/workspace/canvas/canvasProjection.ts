@@ -68,8 +68,7 @@ export type CanvasProjectionMetadata =
   // ADR-912 단계 4 C1 (GridList projection): listbox-row/rows 동형 메타.
   //   `listBoxId` 는 collection owner id 의미로 일반화(GridList node id). GridList 는 origin/anchor
   //   인프라 부재(factory children:[])라 templateAnchorId/templateOriginId 는 항상 null.
-  //   downstream(write-target/interaction) 은 generic helper `isCollectionRowProjectionKind` 로
-  //   listbox/gridlist 를 같은 handler 로 처리(본문 복제 0, OR 판정만 단일 진입점).
+  //   interaction 은 listbox/gridlist 를 같은 owner redirect 로 처리한다 (resolveCanvasInteractionTarget).
   | {
       kind: "gridlist-rows";
       listBoxId: string;

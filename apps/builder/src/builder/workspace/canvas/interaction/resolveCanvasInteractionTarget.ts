@@ -1,12 +1,18 @@
 import type { PageProjectionMetadata } from "../canvasProjection";
 import type { CanvasInteractionNode } from "./interactionNode";
 import { resolveTopmostHitElementId } from "./selectionModel";
+import type { CanvasSourceHit } from "./resolveDataRowOriginTarget";
 
 export type CanvasInteractionTarget =
   | {
       kind: "select";
       elementId: string;
       pageId: string | null;
+      /**
+       * ADR-150 A3' — collection projection 을 owner 로 돌렸을 때 원래 hit 노드. double-click 연속성 키 ·
+       * 데이터 행 origin 해석 입력 전용 — 선택 · mutation 에는 쓰지 않는다.
+       */
+      sourceHit?: CanvasSourceHit;
     }
   | {
       kind: "slot-guard";
@@ -52,7 +58,7 @@ type ProjectionLike =
       templateOriginId?: string | null;
     }
   // ADR-912 단계 4 C1 (Table 2D): cell 은 columnId 차원 추가. 단일클릭은 owner Table 선택
-  //   (row/rows 동형), columnId 는 write-target(resolveCollectionWriteTarget) 라우팅 전용.
+  //   (row/rows 동형). Table 은 템플릿 origin 이 없어 더블클릭 origin 진입 대상이 아니다 (ADR-150 §2-4).
   | {
       kind: "table-cell";
       listBoxId: string;
@@ -161,6 +167,18 @@ export function resolveCanvasInteractionTarget(input: {
         kind: "select",
         elementId: projection.listBoxId,
         pageId: readPageId(hitNode),
+        sourceHit: {
+          nodeId: hitNode.id,
+          projection: {
+            kind: projection.kind,
+            listBoxId: projection.listBoxId,
+            itemKey: "itemKey" in projection ? projection.itemKey : undefined,
+            templateOriginId:
+              "templateOriginId" in projection
+                ? projection.templateOriginId
+                : undefined,
+          },
+        },
       };
     }
 

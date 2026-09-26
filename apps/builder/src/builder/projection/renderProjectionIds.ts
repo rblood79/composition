@@ -9,8 +9,8 @@
  * (`assertCanonicalMoveTarget`)/canonical mutation 차단이 자동 적용된다(추가 등록 0).
  *
  * **boundary 계약**: projected id 는 canonical document / IndexedDB / history payload 에
- * 절대 저장 금지(canonical-rendering.md §9). 변환 함수(`resolveCollectionWriteTarget`)의
- * 입력으로만 쓰고, 출력에는 canonical id 만 둔다.
+ * 절대 저장 금지(canonical-rendering.md §9). 해석 함수 (데이터 행 origin 진입 —
+ * `resolveDataRowOriginTarget`, ADR-150 A3') 의 입력으로만 쓰고, 출력에는 canonical id 만 둔다.
  */
 
 /** 모든 render-space projection id 의 공통 prefix (단일 namespace root). */
@@ -127,61 +127,4 @@ export function isRenderProjectionId(id: string | null | undefined): boolean {
     (id.startsWith(RENDER_PROJECTION_PREFIX) ||
       id.includes(PAGE_FRAME_PROJECTION_INFIX))
   );
-}
-
-/**
- * collection **row** projection kind 판정 (단일 진입점, ADR-912 단계 4 C1).
- *
- * listbox/gridlist 등 family 가 늘어도 downstream(write-target/interaction)은 본 helper 1곳만
- * 갱신하면 같은 handler 로 처리된다(본문 복제 0 — no-classification). family 차이는 projectionId
- * prefix + node.type 에 있고, metadata 변환 로직은 동형(listBoxId/itemKey/templateOriginId).
- */
-export function isCollectionRowProjectionKind(
-  kind: string | undefined | null,
-): boolean {
-  return (
-    kind === "listbox-row" ||
-    kind === "gridlist-row" ||
-    kind === "table-row" ||
-    // ADR-912 영역 B (A): TagGroup chip = collection row 동형(items SSOT, owner=TagList).
-    //   chip 1개 = tag-row 노드(1단 row family, listbox/gridlist 동형 메타).
-    kind === "tag-row" ||
-    // ADR-912 영역 B (A): TabList tab = collection row 동형(items SSOT, owner=TabList).
-    //   tab 1개 = tab-row 노드(1단 row family, tag 동형 메타). owner=Tabs select redirect.
-    kind === "tab-row" ||
-    // ADR-912 영역 B (A): Breadcrumbs crumb = collection row 동형(items SSOT, owner=Breadcrumbs).
-    //   crumb 1개 = breadcrumb-row 노드(1단 row family, 중간 컨테이너 없는 직접). owner=Breadcrumbs
-    //   select redirect. crumb 시각은 Breadcrumb.spec(separator/isLast) — generic box 아님.
-    kind === "breadcrumb-row"
-  );
-}
-
-/** collection **rows-group**(행 컨테이너) projection kind 판정. */
-export function isCollectionRowsGroupProjectionKind(
-  kind: string | undefined | null,
-): boolean {
-  return (
-    kind === "listbox-rows" ||
-    kind === "gridlist-rows" ||
-    kind === "table-rows" ||
-    // ADR-912 영역 B (A): TagGroup chip 컨테이너(flexWrap row → wrap-flow).
-    kind === "tag-rows" ||
-    // ADR-912 영역 B (A): TabList tab 컨테이너(한 줄 flex row, vertical 시 column).
-    kind === "tab-rows" ||
-    // ADR-912 영역 B (A): Breadcrumbs crumb 컨테이너(한 줄 flex row nowrap).
-    kind === "breadcrumb-rows"
-  );
-}
-
-/**
- * collection **cell** projection kind 판정 (ADR-912 단계 4 C1 — Table 2D 전용).
- *
- * cell 은 columnId write-target 라우팅이 필요해 row 와 별도 kind. row 1단 family(listbox/
- * gridlist/tag)에는 없고 Table 만 가진다 — family 가 늘어도 본 helper 1곳만 갱신
- * (no-classification).
- */
-export function isCollectionCellProjectionKind(
-  kind: string | undefined | null,
-): boolean {
-  return kind === "table-cell";
 }

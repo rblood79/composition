@@ -596,6 +596,9 @@ export interface TranslationKeys {
     itemRolesSection: string;
     /** ADR-162 Phase 5 — 데이터 GridList 의 카드 (항목 origin) 자식 prop ↔ 컬럼 연결 절. */
     cardFieldsSection: string;
+    /** ADR-150 A3' — 선택 요소가 데이터 행 템플릿 origin (또는 그 안쪽) 일 때의 안내 절. */
+    itemOriginSection: string;
+    itemOriginNotice: string;
     itemRoleRequired: string;
     itemRoleAdd: string;
     itemRoleIcon: string;

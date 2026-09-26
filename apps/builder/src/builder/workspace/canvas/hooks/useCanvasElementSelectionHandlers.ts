@@ -11,6 +11,13 @@ import {
 } from "../../../utils/hierarchicalSelection";
 import type { ComponentElementProps } from "../../../../types/core/store.types";
 import { getElementBoundsSimple } from "../elementRegistry";
+import {
+  resolveDataRowOriginTarget,
+  type ElementDoubleClickOptions,
+} from "../interaction/resolveDataRowOriginTarget";
+import { getActiveCanonicalDocument } from "../../../stores/canonical/canonicalElementsBridge";
+import { getLastProjectableNodeLookupById } from "../../../stores/canonical/canonicalTraversalHelpers";
+import { flattenCanonicalDocumentNodes } from "../scene/canonicalSceneModel";
 import { getFrameElementMirrorId } from "../../../../adapters/canonical/frameMirror";
 import type { CanvasInteractionNode } from "../interaction/interactionNode";
 import { componentTypeSet, isBodyType } from "@composition/shared";
@@ -291,8 +298,35 @@ export function useCanvasElementSelectionHandlers({
   );
 
   const handleElementDoubleClick = useCallback(
-    (elementId: string) => {
+    (elementId: string, options?: ElementDoubleClickOptions) => {
       const state = useStore.getState();
+      // ADR-150 A3' — 데이터 행 (펼친 카드 자식 · 접힌 카드 · ListBox 행 · chip · tab) 더블클릭은 그 행을
+      //   만든 템플릿 origin 의 대응 노드로 이동해 선택한다 (Components 페이지). origin 편집이 모든 행에
+      //   반영되는 경로다. 해석 실패 · 원래 hit 없음은 아래 기존 진입 그대로.
+      if (options?.sourceHit) {
+        const doc = getActiveCanonicalDocument();
+        const origin = doc
+          ? resolveDataRowOriginTarget(
+              options.sourceHit,
+              new Map(
+                flattenCanonicalDocumentNodes(doc).map((node) => [
+                  node.id,
+                  node,
+                ]),
+              ),
+            )
+          : null;
+        if (origin) {
+          const originPageId =
+            getLastProjectableNodeLookupById(origin.originId)?.pageId ?? null;
+          selectElementWithPageTransition(origin.targetId, originPageId, {
+            // origin 안쪽 자식이면 origin 을 깊이 context 로 — 이어지는 단일 클릭이 origin 안에서 선택된다.
+            editingContextId:
+              origin.targetId === origin.originId ? null : origin.originId,
+          });
+          return;
+        }
+      }
       const interactiveElementsMap = getInteractiveElementsMap();
       const interactiveChildrenMap = getInteractiveChildrenMap();
       const resolvedTarget = resolveClickTarget(

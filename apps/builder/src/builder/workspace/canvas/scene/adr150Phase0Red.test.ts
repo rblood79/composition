@@ -2,7 +2,7 @@
 /**
  * ADR-150 Phase 0 — 결함 재현 RED 고정 (breakdown §2-3).
  *
- * 각 케이스는 **고친 뒤의 기대 동작**을 단언하고 `it.fails` 로 현재 실패를 고정한다.
+ * 각 케이스는 **고친 뒤의 기대 동작**을 단언한다 (Phase 0 에 `it.fails` 로 고정 → Phase 1 · 2 에서 `it` 로 전환).
  * Phase 1 (A2' 행 offset 함수) · Phase 2 (A3' 데이터 행 origin 진입) 이 해당 결함을 고치면
  * `it.fails` 가 실패로 뒤집히므로, 그 phase 에서 `it` 으로 바꿔 회귀 테스트로 쓴다.
  * 원본: 리뷰 round 3 · 4 probe (`/private/tmp/adr150-review-20260926-probe.test.ts`).
@@ -16,6 +16,7 @@ import { resolveCanvasInteractionTarget } from "../interaction/resolveCanvasInte
 import {
   isPointerDoubleClick,
   resolveDoubleClickTargetId,
+  resolvePointerClickKey,
 } from "../interaction/pointerSession";
 import { toListBoxRowsGroupProjectionId } from "../../../projection/renderProjectionIds";
 
@@ -139,50 +140,48 @@ describe("ADR-150 Phase 1 — A2' 행 위치 단일 소스 (G1, Phase 0 RED 에�
   });
 });
 
-describe("ADR-150 Phase 0 RED — A3' 데이터 행 origin 진입 (G2)", () => {
-  it.fails(
-    "owner 로 넘어가는 interaction target 이 원래 hit 노드를 sourceHit 으로 싣는다",
-    () => {
-      const { model, hits } = expandedTextHits();
-      expect(hits.length).toBeGreaterThanOrEqual(2);
-      for (const hit of hits) {
-        const target = resolveCanvasInteractionTarget({
-          candidateIds: [hit.id],
-          elementsMap: model.sceneNodesMap,
-          childrenMap: model.sceneChildrenByParent,
-        });
-        expect(target.kind).toBe("select");
-        const sourceHit = (target as { sourceHit?: { nodeId?: string } })
-          .sourceHit;
-        expect(sourceHit?.nodeId).toBe(hit.id);
-      }
-    },
-  );
+describe("ADR-150 Phase 2 — A3' 데이터 행 origin 진입 (G2, Phase 0 RED 에서 전환)", () => {
+  it("owner 로 넘어가는 interaction target 이 원래 hit 노드를 sourceHit 으로 싣는다", () => {
+    const { model, hits } = expandedTextHits();
+    expect(hits.length).toBeGreaterThanOrEqual(2);
+    for (const hit of hits) {
+      const target = resolveCanvasInteractionTarget({
+        candidateIds: [hit.id],
+        elementsMap: model.sceneNodesMap,
+        childrenMap: model.sceneChildrenByParent,
+      });
+      expect(target.kind).toBe("select");
+      const sourceHit = (target as { sourceHit?: { nodeId?: string } })
+        .sourceHit;
+      expect(sourceHit?.nodeId).toBe(hit.id);
+    }
+  });
 
-  it.fails(
-    "서로 다른 카드를 300ms 안에 한 번씩 누르면 double-click 이 아니다",
-    () => {
-      const { model, hits } = expandedTextHits();
-      const cardA = hits.find((n) => n.id.includes(":a/"));
-      const cardB = hits.find((n) => n.id.includes(":b/"));
-      expect(cardA && cardB).toBeTruthy();
-      const keyOf = (hitId: string) => {
-        const target = resolveCanvasInteractionTarget({
-          candidateIds: [hitId],
-          elementsMap: model.sceneNodesMap,
-          childrenMap: model.sceneChildrenByParent,
-        });
-        const elementId = target.kind === "select" ? target.elementId : null;
-        return resolveDoubleClickTargetId(elementId, "grid");
-      };
-      const second = isPointerDoubleClick(
-        { lastClickTargetId: keyOf(cardA!.id), lastClickTime: 1000 },
-        keyOf(cardB!.id),
-        1200,
+  it("서로 다른 카드를 300ms 안에 한 번씩 누르면 double-click 이 아니다", () => {
+    const { model, hits } = expandedTextHits();
+    const cardA = hits.find((n) => n.id.includes(":a/"));
+    const cardB = hits.find((n) => n.id.includes(":b/"));
+    expect(cardA && cardB).toBeTruthy();
+    const keyOf = (hitId: string) => {
+      const target = resolveCanvasInteractionTarget({
+        candidateIds: [hitId],
+        elementsMap: model.sceneNodesMap,
+        childrenMap: model.sceneChildrenByParent,
+      });
+      const elementId = target.kind === "select" ? target.elementId : null;
+      const sourceHit = target.kind === "select" ? target.sourceHit : undefined;
+      return resolvePointerClickKey(
+        sourceHit,
+        resolveDoubleClickTargetId(elementId, "grid"),
       );
-      expect(second).toBe(false);
-    },
-  );
+    };
+    const second = isPointerDoubleClick(
+      { lastClickTargetId: keyOf(cardA!.id), lastClickTime: 1000 },
+      keyOf(cardB!.id),
+      1200,
+    );
+    expect(second).toBe(false);
+  });
 });
 
 describe("ADR-150 Phase 1 — GridList 시각 행별 높이 · spacer 전체 열 (G1)", () => {

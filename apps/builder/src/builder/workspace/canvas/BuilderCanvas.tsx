@@ -93,6 +93,7 @@ import {
   resolveSelectedElementsForPage,
   resolveSelectedPageIds,
   resolveTopPageIdAtPoint,
+  type ElementDoubleClickOptions,
 } from "./interaction";
 import {
   buildFrameLayoutPublisherInput,
@@ -1435,9 +1436,9 @@ export function BuilderCanvas({
       modifiers?: { metaKey: boolean; shiftKey: boolean; ctrlKey: boolean },
     ) => void
   >(() => {});
-  const handleElementDoubleClickRef = useRef<(elementId: string) => void>(
-    () => {},
-  );
+  const handleElementDoubleClickRef = useRef<
+    (elementId: string, options?: ElementDoubleClickOptions) => void
+  >(() => {});
   // 텍스트 편집 상태를 handleCentralPointerDown에서 참조하기 위한 ref
   // (useTextEdit()보다 앞에 정의되므로 closure로 접근 불가 → ref 필요)
   const isEditingRef = useRef(false);
