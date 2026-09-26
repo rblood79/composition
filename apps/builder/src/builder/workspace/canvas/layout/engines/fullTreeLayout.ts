@@ -19,7 +19,10 @@ import { isEngineReady } from "../../wasm-bindings/engineWasm";
 import { PersistentLayoutTree } from "./persistentLayoutTree";
 import { installLayoutExplain } from "./layoutExplain";
 import type { PersistentBatchNode } from "./persistentLayoutTree";
-import { ENGINE_MEASURE_SCALAR_KEYS } from "../../wasm-bindings/layoutTypes";
+import {
+  ENGINE_MEASURE_SCALAR_AXIS,
+  ENGINE_MEASURE_SCALAR_KEYS,
+} from "../../wasm-bindings/layoutTypes";
 import {
   enrichWithIntrinsicSize,
   TEXT_LEAF_TAGS,
@@ -34,16 +37,16 @@ import {
   calculateContentHeight,
   calculateContentWidth,
   resolveLeafBoxEdges,
-  parseCSSPropWithContext,
   parseLineHeight,
   measureTextWidth,
   parseNumericValue,
-  isEngineIntrinsicKeyword,
 } from "./utils";
 import {
   SIZE_STYLE_KEYS,
   hasIntrinsicSizeConstraint,
   isAutoOrIntrinsicSize,
+  isEngineIntrinsicKeyword,
+  parseCSSPropWithContext,
   resolveRemeasureStyle,
   sizeMayDependOnContent,
   toEngineDimension as dim,
@@ -122,20 +125,16 @@ const TEXT_MEASURE_STYLE_KEYS = [
   "fontVariant",
 ] as const;
 
-const POSTORDER_MEASURE_KEYS = [
-  "height",
+const POSTORDER_MEASURE_KEYS: readonly string[] = [
+  ...SIZE_STYLE_KEYS.filter((key) => key !== "width"),
   ...ENGINE_MEASURE_SCALAR_KEYS,
-  "minWidth",
-  "maxWidth",
-  "minHeight",
-  "maxHeight",
-] as const;
-const HEIGHT_MEASURE_KEYS = [
+];
+const HEIGHT_MEASURE_KEYS: readonly string[] = [
   "height",
-  "contentHeight",
-  "contentMinHeight",
-  "leafBaseline",
-] as const;
+  ...ENGINE_MEASURE_SCALAR_KEYS.filter(
+    (key) => ENGINE_MEASURE_SCALAR_AXIS[key] === "height",
+  ),
+];
 
 /** traversePostOrder 최대 재귀 깊이 (ADR-006 P0-4) */
 const MAX_TREE_DEPTH = 100;
@@ -3254,13 +3253,17 @@ export function calculateFullTreeLayout(
           rawH.trim().endsWith("%") &&
           typeof batchStyle.contentHeight === "number";
         // min/max-content 도 블록 축에서는 내용 높이다. 1-pass 폭보다 flex 실배치 폭이
-        // 좁아지면 줄 수가 늘어나므로 fit-content/auto 와 같은 재측정 대상이다.
-        if (
-          !isAutoOrIntrinsicSize(rawH) &&
-          !hasIntrinsicSizeConstraint(childStyle, "height") &&
-          !percentHeightMeasuredLeaf
-        )
-          continue;
+        // 좁아지면 줄 수가 늘어나므로 fit-content/auto 와 같은 재측정 대상이다. 단 고정 height
+        // 컨테이너의 내용 제약은 엔진이 확정 폭에서 다시 잰다 (tree.rs
+        // refresh_intrinsic_height_constraints) — TS 2-pass 는 leaf 만 맡는다.
+        if (!isAutoOrIntrinsicSize(rawH) && !percentHeightMeasuredLeaf) {
+          if (!hasIntrinsicSizeConstraint(childStyle, "height")) continue;
+          if (
+            getChildElements(node.elementId).length > 0 ||
+            (filteredChildIdsMap.get(node.elementId)?.length ?? 0) > 0
+          )
+            continue;
+        }
 
         const handle = persistentTree.getHandle(node.elementId);
         if (handle === undefined) continue;
@@ -3461,9 +3464,6 @@ export function calculateFullTreeLayout(
             filteredChildIds?.length === 1 &&
             filteredChildIds[0].includes("-rows:");
           if (isContainer && !onlyProjectionRowsChild2) {
-            // 고정 height + intrinsic min/max-height도 후보가 될 수 있다. 저작 높이는 보존하고
-            // 컨테이너의 내용 제약은 엔진이 확정된 폭에서 측정한다.
-            if (!isAutoOrIntrinsicSize(childStyle.height)) continue;
             // 지우는 건 1-pass 가 넣은 근사 px 뿐 — 엔진 소유 키워드 (`fit-content` 등, 2026-09-19
             //   통과) 를 지우면 auto 가 되어 flex 부모에서 stretch 된다.
             const h = node.style.height;

@@ -5,7 +5,7 @@ import {
   resolveCSSSizeValue,
   setLayoutViewport,
 } from "../cssValueParser";
-import { parseCSSPropWithContext } from "../utils";
+import { parseCSSPropWithContext } from "../sizeProperties";
 
 // vw/vh 기준 = breakpoint page 크기. `calculateFullTreeLayout` 이 run 시작 시 `setLayoutViewport`
 // 로 넣는 값이 viewport 인자를 안 넘기는 parse 호출처 (applyCommonEngineStyle →

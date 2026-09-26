@@ -1075,14 +1075,7 @@ impl LayoutTree {
             if has_w || available_width <= 0.0 {
                 available_width
             } else {
-                let mut w = available_width;
-                if let Some(mx) = resolve_dimension_opt(style.max_width.as_deref(), &ctx_w) {
-                    w = w.min(mx);
-                }
-                if let Some(mn) = resolve_dimension_opt(style.min_width.as_deref(), &ctx_w) {
-                    w = w.max(mn);
-                }
-                w
+                clamp_width_to_constraints(&style, &ctx_w, available_width)
             }
         };
         self.solve_node(root, solve_w, available_height);
@@ -1117,14 +1110,11 @@ impl LayoutTree {
                 stack.push((handle, true, containing_width));
                 if let Some(node) = self.get(handle) {
                     let ctx = self.ctx_for(containing_width);
-                    let mut own_width = resolve_dimension_opt(node.style.width.as_deref(), &ctx)
-                        .unwrap_or(containing_width);
-                    if let Some(mx) = resolve_dimension_opt(node.style.max_width.as_deref(), &ctx) {
-                        own_width = own_width.min(mx);
-                    }
-                    if let Some(mn) = resolve_dimension_opt(node.style.min_width.as_deref(), &ctx) {
-                        own_width = own_width.max(mn);
-                    }
+                    let own_width = clamp_width_to_constraints(
+                        &node.style,
+                        &ctx,
+                        resolve_dimension_opt(node.style.width.as_deref(), &ctx).unwrap_or(containing_width),
+                    );
                     let child_width =
                         (own_width - axis_pad_border(&node.style, &ctx, true)).max(0.0);
                     for &child in node.children.iter().rev() {
@@ -1146,13 +1136,9 @@ impl LayoutTree {
                 containing_width,
                 measured_width: None,
             };
-            let width_constrained = size_is_intrinsic_keyword(original.min_width.as_deref())
-                || size_is_intrinsic_keyword(original.max_width.as_deref());
-            let height_constrained = size_is_intrinsic_keyword(original.min_height.as_deref())
-                || size_is_intrinsic_keyword(original.max_height.as_deref());
-            let ctx = self.ctx_for(containing_width);
-            let pad_border_w = axis_pad_border(&node.style, &ctx, true);
-            let pad_border_h = axis_pad_border(&node.style, &ctx, false);
+            let width_constrained = has_intrinsic_axis_constraint(&node.style, true);
+            let height_constrained = has_intrinsic_axis_constraint(&node.style, false);
+            let pad_border_w = axis_pad_border(&node.style, &self.ctx_for(containing_width), true);
             if width_constrained {
                 let original_width = node.style.width.clone();
                 if let Some(node) = self.get_mut(handle) {
@@ -1173,12 +1159,11 @@ impl LayoutTree {
                 }
             }
             if height_constrained {
-                let (width, content_height) = self.measure_intrinsic_height(handle, containing_width, None);
+                let (width, min_height, max_height) = self.measure_height_constraints(&original, None);
                 original.measured_width = Some(width);
-                let height = content_height + pad_border_h;
                 if let Some(node) = self.get_mut(handle) {
-                    node.style.min_height = materialized_constraint(&original.min_height, height, height, height);
-                    node.style.max_height = materialized_constraint(&original.max_height, height, height, height);
+                    node.style.min_height = min_height;
+                    node.style.max_height = max_height;
                 }
             }
             restore.push(original);
@@ -1196,32 +1181,43 @@ impl LayoutTree {
         let height = node.style.height.clone();
         let min_height = node.style.min_height.clone();
         let max_height = node.style.max_height.clone();
-        let mut snapshot = Vec::new();
-        self.snapshot_subtree(handle, &mut snapshot);
-        if let Some(sink) = self.trace.as_mut() {
-            sink.enter_measure();
-        }
-        if let Some(node) = self.get_mut(handle) {
-            if let Some(used_width) = used_width {
-                node.style.width = Some(format!("{used_width}px"));
+        self.with_measure_pass(handle, |tree| {
+            if let Some(node) = tree.get_mut(handle) {
+                if let Some(used_width) = used_width {
+                    node.style.width = Some(format!("{used_width}px"));
+                }
+                node.style.height = None;
+                node.style.min_height = None;
+                node.style.max_height = None;
             }
-            node.style.height = None;
-            node.style.min_height = None;
-            node.style.max_height = None;
-        }
-        self.mark_subtree_dirty(handle);
-        let measured = self.solve_node(handle, containing_width, INDEFINITE_AVAIL);
-        if let Some(node) = self.get_mut(handle) {
-            node.style.width = width;
-            node.style.height = height;
-            node.style.min_height = min_height;
-            node.style.max_height = max_height;
-        }
-        self.restore_subtree(&snapshot);
-        if let Some(sink) = self.trace.as_mut() {
-            sink.exit_measure();
-        }
-        measured
+            tree.mark_subtree_dirty(handle);
+            let measured = tree.solve_node(handle, containing_width, INDEFINITE_AVAIL);
+            if let Some(node) = tree.get_mut(handle) {
+                node.style.width = width;
+                node.style.height = height;
+                node.style.min_height = min_height;
+                node.style.max_height = max_height;
+            }
+            measured
+        })
+    }
+
+    /// 블록 축 intrinsic 제약은 min/max/fit-content 모두 해당 폭에서의 auto border-box 높이다.
+    /// 반환: (측정 폭, min-height, max-height)
+    fn measure_height_constraints(
+        &mut self, original: &IntrinsicConstraintRestore, used_width: Option<f32>,
+    ) -> (f32, Option<String>, Option<String>) {
+        let pad_border = self
+            .get(original.handle)
+            .map_or(0.0, |n| axis_pad_border(&n.style, &self.ctx_for(original.containing_width), false));
+        let (width, content_height) =
+            self.measure_intrinsic_height(original.handle, original.containing_width, used_width);
+        let h = content_height + pad_border;
+        (
+            width,
+            materialized_constraint(&original.min_height, h, h, h),
+            materialized_constraint(&original.max_height, h, h, h),
+        )
     }
 
     fn refresh_intrinsic_height_constraints(&mut self, originals: &[IntrinsicConstraintRestore]) -> bool {
@@ -1236,13 +1232,7 @@ impl LayoutTree {
                 continue;
             }
             let used_width = node.layout.width;
-            let pad_border = axis_pad_border(&node.style, &self.ctx_for(original.containing_width), false);
-            let (_, content_height) = self.measure_intrinsic_height(
-                original.handle, original.containing_width, Some(used_width),
-            );
-            let height = content_height + pad_border;
-            let min = materialized_constraint(&original.min_height, height, height, height);
-            let max = materialized_constraint(&original.max_height, height, height, height);
+            let (_, min, max) = self.measure_height_constraints(original, Some(used_width));
             if let Some(node) = self.get_mut(original.handle) {
                 if node.style.min_height == min && node.style.max_height == max {
                     continue;
@@ -1650,6 +1640,22 @@ impl LayoutTree {
         }
     }
 
+    /// 측정 전용 가상 solve 의 공통 틀 — 서브트리 layout 을 스냅샷하고 trace 를 측정 구간으로
+    /// 태그한 뒤 `f` 를 돌리고 원상 복구한다. 측정이 본 배치 캐시를 오염시키지 않는 계약이다.
+    fn with_measure_pass<R>(&mut self, handle: usize, f: impl FnOnce(&mut Self) -> R) -> R {
+        let mut snap = Vec::new();
+        self.snapshot_subtree(handle, &mut snap);
+        if let Some(sink) = self.trace.as_mut() {
+            sink.enter_measure();
+        }
+        let result = f(self);
+        self.restore_subtree(&snap);
+        if let Some(sink) = self.trace.as_mut() {
+            sink.exit_measure();
+        }
+        result
+    }
+
     /// 노드의 폭 축 intrinsic `(min_content, max_content)` 측정 — 값은 auto 폭 solve 의 반환이라
     /// **content-box** (자기 pad/border 는 소비처가 더한다).
     ///
@@ -1684,26 +1690,17 @@ impl LayoutTree {
                 return Some((min_w, max_w));
             }
         }
-        let mut snap = Vec::new();
-        self.snapshot_subtree(handle, &mut snap);
-
-        // 이 아래 두 번의 solve 는 **센티넬 available 로 도는 가상 solve** 다. 그
-        // 구간 이벤트를 본 solve 와 같은 줄에 놓으면 판독이 오도되므로 태그를 건다 (R5).
-        if let Some(sink) = self.trace.as_mut() {
-            sink.enter_measure();
-        }
-
-        // 측정 전 dirty 강제 — clean 서브트리면 `solve_node` 가 저장된 layout 을
-        // 그대로 돌려줘 측정이 아니라 **직전 배치 결과**를 읽게 된다.
-        self.mark_subtree_dirty(handle);
-        let (min_w, _) = self.solve_node(handle, MIN_CONTENT_AVAIL, INDEFINITE_AVAIL);
-        self.mark_subtree_dirty(handle);
-        let (max_w, _) = self.solve_node(handle, MAX_CONTENT_AVAIL, INDEFINITE_AVAIL);
-
-        self.restore_subtree(&snap);
-        if let Some(sink) = self.trace.as_mut() {
-            sink.exit_measure();
-        }
+        // 이 아래 두 번의 solve 는 **센티넬 available 로 도는 가상 solve** 다 (R5 — trace 태그는
+        // `with_measure_pass` 가 건다).
+        let (min_w, max_w) = self.with_measure_pass(handle, |tree| {
+            // 측정 전 dirty 강제 — clean 서브트리면 `solve_node` 가 저장된 layout 을
+            // 그대로 돌려줘 측정이 아니라 **직전 배치 결과**를 읽게 된다.
+            tree.mark_subtree_dirty(handle);
+            let (min_w, _) = tree.solve_node(handle, MIN_CONTENT_AVAIL, INDEFINITE_AVAIL);
+            tree.mark_subtree_dirty(handle);
+            let (max_w, _) = tree.solve_node(handle, MAX_CONTENT_AVAIL, INDEFINITE_AVAIL);
+            (min_w, max_w)
+        });
         // min ≤ max 불변식 — 집계 근사라 역전이 원리상 가능하다(§9.9.3 미구현, R4).
         let result = (min_w.min(max_w), max_w);
         if let Some(node) = self.get_mut(handle) {
@@ -6230,11 +6227,29 @@ struct IntrinsicConstraintRestore {
     measured_width: Option<f32>,
 }
 
+fn has_intrinsic_axis_constraint(style: &NodeStyle, horizontal: bool) -> bool {
+    let (min, max) = if horizontal {
+        (&style.min_width, &style.max_width)
+    } else {
+        (&style.min_height, &style.max_height)
+    };
+    size_is_intrinsic_keyword(min.as_deref()) || size_is_intrinsic_keyword(max.as_deref())
+}
+
 fn has_intrinsic_size_constraint(style: &NodeStyle) -> bool {
-    size_is_intrinsic_keyword(style.min_width.as_deref())
-        || size_is_intrinsic_keyword(style.max_width.as_deref())
-        || size_is_intrinsic_keyword(style.min_height.as_deref())
-        || size_is_intrinsic_keyword(style.max_height.as_deref())
+    has_intrinsic_axis_constraint(style, true) || has_intrinsic_axis_constraint(style, false)
+}
+
+/// CSS 2.1 §10.4 — max 먼저, 그다음 min (min 이 이긴다). 키워드·미지정 제약은 None 이라 건너뛴다.
+fn clamp_width_to_constraints(style: &NodeStyle, ctx: &CssValueContext, width: f32) -> f32 {
+    let mut w = width;
+    if let Some(mx) = resolve_dimension_opt(style.max_width.as_deref(), ctx) {
+        w = w.min(mx);
+    }
+    if let Some(mn) = resolve_dimension_opt(style.min_width.as_deref(), ctx) {
+        w = w.max(mn);
+    }
+    w
 }
 
 fn materialized_constraint(value: &Option<String>, min: f32, max: f32, fit: f32) -> Option<String> {

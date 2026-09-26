@@ -1,4 +1,7 @@
+import { isAutoSizeValue, type SizeAxis } from "@composition/shared";
 import { resolveCSSSizeValue, type CSSValueContext } from "./cssValueParser";
+
+export type { SizeAxis };
 
 /** CSS 크기 선언의 공통 키. 측정 스칼라는 WASM layoutTypes 계약을 따른다. */
 export const SIZE_STYLE_KEYS = [
@@ -9,8 +12,6 @@ export const SIZE_STYLE_KEYS = [
   "maxWidth",
   "maxHeight",
 ] as const;
-
-export type SizeAxis = "width" | "height";
 
 const CONSTRAINT_KEYS = {
   width: ["minWidth", "maxWidth"],
@@ -26,12 +27,7 @@ export function isEngineIntrinsicKeyword(value: unknown): value is string {
 }
 
 export function isAutoOrIntrinsicSize(value: unknown): boolean {
-  return (
-    value == null ||
-    value === "" ||
-    value === "auto" ||
-    isEngineIntrinsicKeyword(value)
-  );
+  return value == null || (typeof value === "string" && isAutoSizeValue(value));
 }
 
 export function hasIntrinsicSizeConstraint(

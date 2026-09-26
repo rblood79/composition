@@ -126,10 +126,6 @@ import {
   isEngineIntrinsicKeyword,
   parseCSSPropWithContext,
 } from "./sizeProperties";
-export {
-  isEngineIntrinsicKeyword,
-  parseCSSPropWithContext,
-} from "./sizeProperties";
 import { ENGINE_MEASURE_SCALAR_KEYS } from "../../wasm-bindings/layoutTypes";
 import { resolveStyle, getRootComputedStyle } from "./cssResolver";
 import type { ComputedStyle } from "./cssResolver";
@@ -5536,7 +5532,7 @@ export function enrichWithIntrinsicSize(
 
   // contentHeight <= 0이면 컨테이너 요소 (div, section 등) — 스킵
   // 단, ComboBox/Select 등 spec shapes 기반 입력 컴포넌트는 예외:
-  // flex container 스타일(flexDirection: column)로 parseBoxModel이 contentHeight=0을 반환하지만,
+  // 일반 fallback 측정(calculateContentHeight)은 0을 반환하지만,
   // calculateContentHeight에서 spec size 기반 높이를 산출하므로 height 주입이 필요함
   // 또한, childElements가 있는 컨테이너(CardHeader/CardContent 등)도 예외:
   // 자체 텍스트는 없지만 자식 요소의 높이를 합산해야 하므로 calculateContentHeight가 필요함
@@ -5624,7 +5620,7 @@ export function enrichWithIntrinsicSize(
         : (fallbackContentHeight ??
           calculateContentHeight(heightMeasureElement, availableWidth));
   // ADR-923 r20 sweep — button 가족은 content 0 (빈 글자) 도 주입 대상: 엔진은 catalog padding/border
-  //   (sizeConfig 경유 parseBoxModel) 를 모르므로 미주입이면 0 이 된다. Chrome 은 padding + border 상자.
+  //   (`resolveLeafBoxEdges` 가 읽는 catalog 값) 를 모르므로 미주입이면 0 이 된다. Chrome 은 padding + border 상자.
   if (
     needsHeightMeasurement &&
     (childResolvedHeight > 0 || BUTTON_TEXT_LEAF_TAGS.has(type))
@@ -5664,7 +5660,7 @@ export function enrichWithIntrinsicSize(
     } else if (!isSpecShapesInput) {
       // BUTTON_LIKE_BOX_TAGS(button 등): inline padding이 설정된 경우
       // applyCommonEngineStyle은 parsePadding(style)로 inline 값을 엔진에 전달하지만,
-      // box.padding은 parseBoxModel 내부 sizeConfig 로직으로 spec 값을 반환할 수 있다.
+      // box.padding은 resolveLeafBoxEdges 가 catalog(spec) 값으로 채울 수 있다.
       // 이 불일치로 인해 injectHeight(spec 기반)와 엔진 padding(inline)이 달라져
       // content area가 좁아지고 텍스트가 잘리는 버그 발생.
       // 따라서 inline padding이 설정된 경우 parsePadding(style)을 직접 사용하여

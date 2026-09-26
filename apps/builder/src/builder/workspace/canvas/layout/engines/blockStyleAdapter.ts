@@ -13,11 +13,8 @@
 
 import type { CanvasLayoutNode } from "../layoutNode";
 import type { EngineStyle } from "../../wasm-bindings/layoutTypes";
-import {
-  resolveEngineBoxEdges,
-  applyCommonEngineStyle,
-  parseCSSPropWithContext,
-} from "./utils";
+import { resolveEngineBoxEdges, applyCommonEngineStyle } from "./utils";
+import { parseCSSPropWithContext } from "./sizeProperties";
 import type { CSSValueContext } from "./cssValueParser";
 import type { EngineDisplayConfig } from "./displayAdapter";
 

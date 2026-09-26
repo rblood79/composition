@@ -11,11 +11,8 @@
 
 import type { CanvasLayoutNode } from "../layoutNode";
 import type { EngineStyle } from "../../wasm-bindings/layoutTypes";
-import {
-  resolveEngineBoxEdges,
-  parseCSSPropWithContext,
-  applyCommonEngineStyle,
-} from "./utils";
+import { resolveEngineBoxEdges, applyCommonEngineStyle } from "./utils";
+import { parseCSSPropWithContext } from "./sizeProperties";
 import type { ComputedStyle } from "./cssResolver";
 import type { CSSValueContext } from "./cssValueParser";
 

@@ -210,5 +210,14 @@ export const ENGINE_MEASURE_SCALAR_KEYS = [
 ] as const satisfies readonly (keyof EngineStyle)[];
 export type EngineMeasureScalarKey = (typeof ENGINE_MEASURE_SCALAR_KEYS)[number];
 
+/** 각 측정 스칼라가 속한 축 — 한 축만 재측정하는 patch (2-pass 높이) 가 이 표로 키를 거른다. */
+export const ENGINE_MEASURE_SCALAR_AXIS = {
+  contentMinWidth: "width",
+  contentMaxWidth: "width",
+  contentMinHeight: "height",
+  contentHeight: "height",
+  leafBaseline: "height",
+} as const satisfies Record<EngineMeasureScalarKey, "width" | "height">;
+
 /** Opaque handle to a layout node. (구 EngineNodeHandle — 자체 엔진 handle 과 동일 규약) */
 export type EngineNodeHandle = number;
