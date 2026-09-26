@@ -6,18 +6,27 @@
  * 결과 map 은 `buildCanvasSceneGraph(options.collectionWindows)` 의 단일 소스로 주입되어
  * draw/hit tree 가 **동일 window** 를 공유한다(R2). 미포함 owner 는 legacy 정적 cap 투영(BC).
  *
- * **행 높이 측정 (ADR-150 A2 delivered `34c56ea70`)**: rowHeight 는 template row style(origin ◁
- * anchor override) + description 유무를 layout `calculateContentHeight` 와 **동일 심볼**
- * (`resolveListBoxItemRowHeightFromStyle`, `resolveListBoxRowHeight` 경유)로 산출한다 — spacer /
- * 총 content height(스크롤바)가 실제 렌더 행 높이와 정합. 잔존 한계는 template style/description
- * 밖의 **임의 자식 구성 콘텐츠 높이** 미반영 (ADR-157 R1 과 동일 후속 트랙에서 정밀화).
+ * **행 위치 (ADR-150 A2')**: 행 높이는 행마다 잰다 — ListBox 는 행 style (origin ◁ anchor ◁ 선택
+ * variant) + description 유무, GridList 는 시각 행의 카드 최대, Table 은 catalog `TableRow.sizes`.
+ * layout `calculateContentHeight` 와 같은 metric 함수를 쓰고, window · spacer · 스크롤 범위는
+ * `resolveCollectionRowOffsets` 한 곳이 만든다. owner props 는 ref instance 면 origin props 위에
+ * instance patch 를 얹은 값이다 (scene 과 같은 규칙). 잔존 한계: label · description **줄바꿈 (wrap)**
+ * 과 템플릿 밖 임의 자식 콘텐츠 높이는 layout 전에 알 수 없어 반영하지 않는다 (ADR-150 R1).
  *
  * **비-데이터 ListBox 무영향**: totalRows 0(자식 ListBoxItem 직접 구성)이면 map 에 미포함 →
  * projection 자체가 없어 window 도 무의미. scene 빌더가 data-bound 여부로 실제 투영을 gating 한다.
  */
 
-import type { CanonicalNode, CompositionDocument } from "@composition/shared";
+import type {
+  BreakpointName,
+  CanonicalNode,
+  CompositionDocument,
+  StateTemplateEnv,
+  VariableDef,
+} from "@composition/shared";
 import {
+  createDefaultValueEnv,
+  resolveVisibleVariablesForElement,
   resolveCollectionItems,
   resolveCollectionWindow,
   resolveBindingSelectionMode,
@@ -27,6 +36,7 @@ import {
   isSlotEnabled,
   getTableProjectionRows,
   COLLECTION_ROW_PROJECTION_SAMPLE_LIMIT,
+  DEFAULT_COLLECTION_OVERSCAN,
   type CollectionDataSource,
   type CollectionWindow,
 } from "@composition/shared";
@@ -36,18 +46,41 @@ import {
   resolveGridListSpacingMetric,
   getTextLineHeight,
   COLLECTION_TEXT_DEFAULT_FONT_SIZE,
+  parsePadding4Way,
+  parsePxValue,
+  resolveListBoxSpacingMetric,
 } from "@composition/specs";
 
 import { getElementDataBinding } from "../../../../adapters/canonical/compositionExtensionFields";
-import { resolveListBoxItemRowHeightFromStyle } from "../layout/engines/utils";
+import {
+  calculateContentHeight,
+  resolveListBoxItemRowHeightFromStyle,
+} from "../layout/engines/utils";
+import { resolveSkiaRule } from "../skia/resolveSkiaVisualRule";
+import { resolveBorderGeometry } from "../styleConversion/borderGeometry";
+import { resolveResponsiveStyleMap } from "../layout/resolveResponsive";
+import { getListBoxProjectionRows } from "../../../components/listbox/listBoxRowProjectionModel";
 import {
   getListBoxTemplateAnchor,
+  resolveGridListCardContext,
+  resolveCollectionRowDescription,
+  resolveListBoxRowContext,
+  resolveListBoxRowLayoutStyle,
+  isListBoxRowSelected,
+  type ListBoxRowContext,
   resolveGridListTemplateOriginId,
   resolveListBoxTemplateOriginId,
   resolveTemplateOriginNode,
+  resolveSceneRefChain,
   type CollectionWindowResolution,
 } from "./canvasSceneNode";
+import { applyPropsPatch } from "../../../../adapters/canonical/instanceResolver";
+import { readTableHeaderColumnNodes } from "../../../components/tableColumnInsert";
 import { flattenCanonicalDocumentNodes } from "./canonicalSceneModel";
+import {
+  resolveCollectionRowOffsets,
+  type CollectionRowOffsets,
+} from "./collectionRowOffsets";
 
 /**
  * catalog ListBoxItem 기본 행 높이(description 없음) = paddingY*2 + label line box = 4*2 + 24 = 32.
@@ -126,6 +159,45 @@ function isTableOwnerNode(node: CanonicalNode): boolean {
   return record.name === "Table" || record.componentName === "Table";
 }
 
+/**
+ * owner 의 유효 props — ref instance (팔레트 요소) 는 origin props 위에 instance patch 를 얹는다.
+ * scene 이 owner scene node props 를 만드는 규칙 (canvasSceneNode visit, ADR-228/234) 과 같다.
+ * raw instance props 만 읽으면 origin 에만 있는 `size` (Table origin "sm") · `columns` · `gap` 을
+ * 놓쳐 spacer · 스크롤 범위가 Canvas layout 과 갈린다 (ADR-150 Phase 1 live, 2026-09-27).
+ */
+// view 는 문서 identity 로 캐시한다 — 아래 plan 캐시가 owner 노드 객체를 key 로 쓰므로 스크롤마다
+//   새 view 를 만들면 행 높이 목록을 매번 다시 잰다.
+const ownerPropsViewCache = new WeakMap<
+  CanonicalNode,
+  { doc: CompositionDocument; view: CanonicalNode }
+>();
+
+function resolveOwnerPropsView(
+  node: CanonicalNode,
+  doc: CompositionDocument,
+  nodesById: ReadonlyMap<string, CanonicalNode>,
+): CanonicalNode {
+  if (node.type !== "ref") return node;
+  const cached = ownerPropsViewCache.get(node);
+  if (cached && cached.doc === doc) return cached.view;
+  const chain = resolveSceneRefChain(
+    (node as unknown as { ref: string }).ref,
+    nodesById,
+  );
+  const view =
+    !chain?.props || chain.master.type === "ref"
+      ? node
+      : ({
+          ...node,
+          props: applyPropsPatch(
+            chain.props,
+            (node.props ?? {}) as Record<string, unknown>,
+          ),
+        } as CanonicalNode);
+  ownerPropsViewCache.set(node, { doc, view });
+  return view;
+}
+
 /** 가상화 대상 collection owner family 판정 (미해당 = null). */
 function resolveCollectionOwnerKind(
   node: CanonicalNode,
@@ -137,22 +209,70 @@ function resolveCollectionOwnerKind(
 }
 
 /**
- * Table 행 높이(px) — catalog TableRow.sizes 정합(sm 36 / md 44 / lg 52). header·data 행 모두
- * 동일 size 이므로 균일. SSOT = `componentRulesTable.TableRow.sizes` (값 변경 시 동반 갱신 —
- * ListBox/GridList 가 metric resolver 를 쓰는 것과 달리 Table 은 전용 resolver 부재라 상수 미러).
+ * Table 행 높이(px) — catalog `TableRow.sizes[size].height` 를 직접 읽는다 (ADR-150 A2' — 구 상수
+ * 미러 36/44/52 는 값만 같은 두 번째 소스였다). header·data 행 모두 같은 size.
  */
-const TABLE_ROW_HEIGHT_BY_SIZE: Record<string, number> = {
-  sm: 36,
-  md: 44,
-  lg: 52,
-};
-
 function resolveTableRowHeight(
   props: Record<string, unknown> | undefined,
 ): number {
   const size = props?.size;
   const key = size === "sm" || size === "lg" ? size : "md";
-  return TABLE_ROW_HEIGHT_BY_SIZE[key];
+  const sizes = resolveSkiaRule("TableRow")?.sizes as
+    Record<string, { height?: unknown }> | undefined;
+  const height = sizes?.[key]?.height;
+  return typeof height === "number" && height > 0 ? height : 44;
+}
+
+/**
+ * ADR-150 A2' — ADR-241 요소 헤더 (TableHeader > Column) 의 높이. layout 이 Column 셀 높이를 재는
+ * 같은 함수 (`calculateContentHeight` §1.56 — catalog Column md = lineHeight 24 + paddingY 8·2 = 40)
+ * 로 Column 마다 재고 최대를 쓴다. 열은 Preview · quick connect 와 같은 reader (`readTableHeaderColumnNodes`)
+ * 로 읽는다 — ref instance (팔레트 · quick connect) 는 문서 자식이 없고 열이 origin 또는 mode C
+ * `descendants` 에 있다 (2026-09-27 live: 헤더 40 인데 36 으로 읽어 스크롤 범위 4px 부족).
+ * 요소 헤더가 없으면 null (projection 헤더 행 = 행 높이).
+ */
+function resolveTableElementHeaderHeight(
+  node: CanonicalNode,
+  nodesById: ReadonlyMap<string, CanonicalNode>,
+): number | null {
+  const columns = readTableHeaderColumnNodes(node, nodesById);
+  if (columns.length === 0) return null;
+  let max = 0;
+  for (const column of columns) {
+    const height = calculateContentHeight(
+      column as unknown as Parameters<typeof calculateContentHeight>[0],
+      undefined,
+    );
+    if (height > max) max = height;
+  }
+  return max > 0 ? max : null;
+}
+
+/** Table 한 장의 행 위치 입력 — data 행 균일 높이, 헤더는 행 영역 앞 여백 (행 묶음 rowGap 없음). */
+function resolveTableRowPlan(
+  node: CanonicalNode,
+  props: Record<string, unknown> | undefined,
+  nodesById: ReadonlyMap<string, CanonicalNode>,
+  breakpoint: BreakpointName,
+): ListBoxRowPlan & { rowHeight: number } {
+  const rowHeight = resolveTableRowHeight(props);
+  const headerHeight =
+    resolveTableElementHeaderHeight(node, nodesById) ?? rowHeight;
+  // owner 여백은 layout 과 같이 responsive override 반영.
+  const style = resolveResponsiveStyleMap(
+    (props?.style as Record<string, unknown> | undefined) ?? {},
+    node.responsive,
+    breakpoint,
+  );
+  const padding = parsePadding4Way(style);
+  const [borderTop, , borderBottom] = resolveBorderGeometry(style).widths;
+  return {
+    heights: [],
+    gap: 0,
+    rowHeight,
+    leadingExtent: borderTop + padding.top + headerHeight,
+    trailingExtent: padding.bottom + borderBottom,
+  };
 }
 
 /**
@@ -162,9 +282,8 @@ function resolveTableRowHeight(
  * `cardPaddingY*2 + labelLine + (desc? descLine + descGap : 0)` (Layer D 대칭). description 유무는
  * 소유자 항목 origin (`resolveGridListTemplateOriginId`) 의 slot 구성으로 gating — appendGridListRowProjection 동형.
  *
- * **근사(GridList 한정)**: 총 content height = totalVisualRows × stride 는 마지막 시각 행 뒤의
- * gap 을 1개 더 센다(실제 = 행수×카드 + (행수-1)×gap). 스크롤바가 gap 1개만큼 길다 — proof 허용
- * 오차(ListBox/Table 은 rowsGroup gap 0 이라 정확).
+ * ADR-150 A2' 뒤로 이 값은 resolution 의 대표 `rowHeight` · 열 수만 채운다. spacer · 스크롤 범위 ·
+ * 주입 높이는 시각 행별 높이 목록 (`resolveGridListRowPlan`) 과 행 위치 단일 소스가 만든다.
  */
 function resolveGridListRowStride(
   node: CanonicalNode,
@@ -267,6 +386,448 @@ export interface ResolveVirtualizedWindowsInput {
   rowHeight?: number;
   /** viewport 상/하 여유 행 수. 기본은 resolveCollectionWindow 의 DEFAULT_COLLECTION_OVERSCAN. */
   overscan?: number;
+  /** scene projection 과 같은 breakpoint 로 owner · 행 style 을 해석한다 (기본 desktop). */
+  activeBreakpoint?: BreakpointName;
+  /**
+   * ADR-214 프로젝트 변수 — 행 템플릿의 `{{ }}` 를 scene 과 같은 기본값 env 로 먼저 푼다 (행 높이를
+   * 가르는 description 유무가 여기에 달린다 — ADR-150 Phase 1 판독 M2).
+   */
+  projectVariables?: readonly VariableDef[];
+}
+
+/**
+ * owner 기준 기본값 env — scene `stateEnvFor` 와 같은 shared 함수 (요소 사슬 + 프로젝트). page 보강은
+ * 요소 사슬이 page 를 지나지 않는 경우 (layout slot) 만 다르다 — 여기서는 page id 를 넘기지 않는다.
+ */
+function ownerStateEnv(
+  input: ResolveVirtualizedWindowsInput,
+  ownerId: string,
+): StateTemplateEnv {
+  return createDefaultValueEnv(
+    resolveVisibleVariablesForElement(
+      input.doc,
+      ownerId,
+      null,
+      input.projectVariables ?? [],
+    ),
+  );
+}
+
+/**
+ * ADR-150 A2' — ListBox 의 **행별 높이 목록 + 행 묶음 gap + owner inset**. scene 투영과 같은
+ * `resolveListBoxRowContext` / `resolveListBoxRowLayoutStyle` · `resolveCollectionRowDescription` 로 행마다 style · description 을
+ * 얻고, layout §1.55b-2 와 같은 `resolveListBoxItemRowHeightFromStyle` 로 높이를 잰다 (description
+ * 유무 · 선택 variant · 명시 height · 행 border 가 행마다 다를 수 있다 — round 3 h2).
+ *
+ * 단일 줄 가정: wrap (label · description 줄바꿈) 은 행 폭이 layout 뒤에 정해져 여기서 알 수 없다
+ * (ADR-150 R1 — Phase 1 지원 범위 밖). 목록은 문서 · collections · breakpoint 가 바뀔 때만
+ * 다시 만든다 — 스크롤은 캐시를 쓴다.
+ */
+interface ListBoxRowPlan {
+  heights: number[];
+  gap: number;
+  leadingExtent: number;
+  trailingExtent: number;
+}
+
+/**
+ * 행 높이 목록의 입력 서명 — 편집마다 문서가 통째로 복제돼 (canonicalDocumentStore `cloneNode`) 노드
+ * identity 로는 캐시가 안 맞는다. 복제는 얕아서 props 값 · dataBinding config 값 (행 데이터 배열) 은
+ * 다른 요소를 편집해도 같은 참조다. owner props · dataBinding · config 의 값 참조와 collections,
+ * 그리고 행 높이를 가르는 ctx 값 (`extra`) 이 같으면 같은 높이 목록이다 (ADR-150 Phase 1 판독 M1).
+ */
+function rowInputSignature(
+  node: CanonicalNode,
+  props: Record<string, unknown>,
+  input: ResolveVirtualizedWindowsInput,
+  extra: readonly unknown[],
+): unknown[] {
+  const binding = getElementDataBinding(node) as unknown as
+    Record<string, unknown> | undefined;
+  const out: unknown[] = [input.collections, ...extra];
+  for (const source of [props, binding, binding?.config]) {
+    if (!source || typeof source !== "object") {
+      out.push(undefined);
+      continue;
+    }
+    const record = source as Record<string, unknown>;
+    const keys = Object.keys(record).sort();
+    out.push(keys.length);
+    // ref instance view 는 style 을 깊은 병합해 (applyPropsPatch) 매번 새 객체라 내용으로 비교한다.
+    for (const key of keys) {
+      // binding.config 객체는 store 가 복제한다 — 그 값들은 다음 단계 (config) 에서 비교한다.
+      if (source === binding && key === "config") continue;
+      out.push(
+        key,
+        key === "style" ? JSON.stringify(record[key] ?? null) : record[key],
+      );
+    }
+  }
+  return out;
+}
+
+function sameSignature(a: readonly unknown[], b: readonly unknown[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i += 1) {
+    if (!Object.is(a[i], b[i])) return false;
+  }
+  return true;
+}
+
+/** owner id → 마지막 행 높이 목록과 그 입력 서명 (문서가 바뀌어도 서명이 같으면 재사용). */
+const rowHeightsBySignature = new Map<
+  string,
+  { signature: unknown[]; heights: number[] }
+>();
+
+/**
+ * 문서에서 사라진 owner 의 항목을 지운다 — 서명이 collections · 행 데이터 배열을 잡고 있어 남기면
+ * 삭제된 목록의 데이터가 세션 끝까지 보유된다 (ADR-150 Phase 1 수리 검증 M-a). window resolver 한
+ * 번이 문서 전체를 돌므로 그 끝에서 부른다 (oracle `resolveCollectionRowPositions` 는 지우지 않는다).
+ */
+function pruneRowHeightCache(liveOwnerIds: ReadonlySet<string>): void {
+  for (const ownerId of rowHeightsBySignature.keys()) {
+    if (!liveOwnerIds.has(ownerId)) rowHeightsBySignature.delete(ownerId);
+  }
+}
+
+/** 테스트 전용 — 서명 캐시 항목 수. */
+export function __rowHeightCacheSizeForTest(): number {
+  return rowHeightsBySignature.size;
+}
+
+function reuseRowHeights(
+  ownerId: string,
+  signature: unknown[],
+  build: () => number[],
+): number[] {
+  const prev = rowHeightsBySignature.get(ownerId);
+  if (prev && sameSignature(prev.signature, signature)) return prev.heights;
+  const heights = build();
+  rowHeightsBySignature.set(ownerId, { signature, heights });
+  return heights;
+}
+
+const listBoxRowPlanCache = new WeakMap<
+  CanonicalNode,
+  {
+    doc: CompositionDocument;
+    collections: readonly CollectionDataSource[];
+    projectVariables: ResolveVirtualizedWindowsInput["projectVariables"];
+    breakpoint: BreakpointName;
+    plan: ListBoxRowPlan;
+  }
+>();
+
+/** 행 하나의 border-box 높이 — layout (§1 명시 height · §1.55b-2 + enrich 행 border) 과 같은 규칙. */
+function measureListBoxRow(
+  ctx: ListBoxRowContext,
+  rowLayoutStyle: Record<string, unknown>,
+  rowDescription: string,
+): number {
+  const explicit = parsePxValue(rowLayoutStyle.height, Number.NaN);
+  if (Number.isFinite(explicit)) return explicit;
+  const hasDescription =
+    rowDescription.length > 0 &&
+    isSlotEnabled(ctx.slotComposition, "description");
+  const slotFontOf = (role: "label" | "description"): number | undefined => {
+    const fs = ctx.slotComposition?.slots[role]?.style?.fontSize;
+    return typeof fs === "number" ? fs : undefined;
+  };
+  const [borderTop, , borderBottom] =
+    resolveBorderGeometry(rowLayoutStyle).widths;
+  const border = borderTop + borderBottom;
+  return (
+    resolveListBoxItemRowHeightFromStyle(rowLayoutStyle, hasDescription, {
+      label: slotFontOf("label"),
+      description: slotFontOf("description"),
+    }) + border
+  );
+}
+
+/** ListBox 전 행 높이 — 행 높이는 (선택 여부, description 유무) 로만 갈려 조합마다 한 번 잰다 (scene 과 같은 함수). */
+function measureListBoxRows(
+  ctx: ListBoxRowContext,
+  props: Record<string, unknown>,
+  node: CanonicalNode,
+  input: ResolveVirtualizedWindowsInput,
+  totalRows: number,
+): number[] {
+  const rows = getListBoxProjectionRows(
+    {
+      collections: input.collections,
+      dataBinding: getElementDataBinding(node),
+      props,
+    },
+    { startIndex: 0, endIndex: totalRows },
+  );
+  const heightByKey = new Map<number, number>();
+  return rows.map((row) => {
+    const isRowSelected = isListBoxRowSelected(
+      props,
+      row.itemKey,
+      row.rowIndex,
+    );
+    const hasDescription = resolveCollectionRowDescription(ctx, row).length > 0;
+    const key = (isRowSelected ? 2 : 0) + (hasDescription ? 1 : 0);
+    let height = heightByKey.get(key);
+    if (height == null) {
+      height = measureListBoxRow(
+        ctx,
+        resolveListBoxRowLayoutStyle(ctx, isRowSelected),
+        hasDescription ? "x" : "",
+      );
+      heightByKey.set(key, height);
+    }
+    return height;
+  });
+}
+
+function resolveListBoxRowPlan(
+  node: CanonicalNode,
+  totalRows: number,
+  input: ResolveVirtualizedWindowsInput,
+  getDocNodes: () => Map<string, CanonicalNode>,
+): ListBoxRowPlan {
+  const breakpoint = input.activeBreakpoint ?? "desktop";
+  const cached = listBoxRowPlanCache.get(node);
+  if (
+    cached &&
+    cached.doc === input.doc &&
+    cached.collections === input.collections &&
+    cached.projectVariables === input.projectVariables &&
+    cached.breakpoint === breakpoint &&
+    cached.plan.heights.length === totalRows
+  ) {
+    return cached.plan;
+  }
+  const props = (node.props ?? {}) as Record<string, unknown>;
+  const ctx = resolveListBoxRowContext({
+    ownerProps: props,
+    ownerResponsive: node.responsive,
+    sourceNode: node,
+    templateAnchor: getListBoxTemplateAnchor(node.children),
+    getDocumentNodesById: getDocNodes,
+    activeBreakpoint: breakpoint,
+    stateEnv: ownerStateEnv(input, node.id),
+  });
+  // 행 높이를 가르는 ctx 값 — style 은 호출마다 새 객체라 내용으로, 템플릿은 텍스트별 캐시라 참조로 비교한다.
+  const ctxKey = JSON.stringify([
+    ctx.templateAnchorStyle,
+    ctx.selectedOriginStyle,
+    ctx.slotComposition,
+  ]);
+  const heights = reuseRowHeights(
+    node.id,
+    rowInputSignature(node, props, input, [
+      "listbox",
+      totalRows,
+      ctxKey,
+      ctx.descriptionTemplate,
+    ]),
+    () => measureListBoxRows(ctx, props, node, input, totalRows),
+  );
+  // owner box — layout 이 쓰는 ListBox spacing metric (catalog padding 4 · border 1 기본).
+  const ownerStyle = resolveResponsiveStyleMap(
+    (props.style as Record<string, unknown> | undefined) ?? {},
+    node.responsive,
+    breakpoint,
+  );
+  const ownerMetric = resolveListBoxSpacingMetric({ style: ownerStyle });
+  const plan: ListBoxRowPlan = {
+    heights,
+    gap: ctx.rowGapPx,
+    leadingExtent: ownerMetric.borderWidth + ownerMetric.paddingTop,
+    trailingExtent: ownerMetric.paddingBottom + ownerMetric.borderWidth,
+  };
+  listBoxRowPlanCache.set(node, {
+    doc: input.doc,
+    collections: input.collections,
+    projectVariables: input.projectVariables,
+    breakpoint,
+    plan,
+  });
+  return plan;
+}
+
+/**
+ * ADR-150 A2' — GridList (접힌 카드 = slot-only) 의 **시각 행별 높이 목록 + 행 묶음 gap + owner
+ * inset**. scene 투영과 같은 `resolveGridListCardContext` / `resolveCollectionRowDescription` 로 카드마다
+ * description · 선택 체크박스를 얻고, 카드 높이 = layout §1.55b2 content (label · description ·
+ * 선택 블록, 단일 줄) + 카드 padding · border (카드 origin style, 없으면 catalog metric) 로 잰다.
+ * 시각 행 높이 = 그 행 카드들 중 최대 (DOM grid stretch 와 같다). gap 은 scene 행 묶음 rowGap 과
+ * 같은 값 (`ctx.gap` — owner `style.rowGap ?? style.gap`, DOM 과 같은 축) 이다.
+ *
+ * 펼친 카드 (ADR-162 — origin 에 역할 없는 자식) 는 높이가 자식 크기에 달려 여기서는 같은 공식으로
+ * 추정만 한다 — 실측 공급은 ADR-162 Phase 4. wrap 은 ListBox 와 같이 범위 밖 (R1).
+ */
+const gridListRowPlanCache = new WeakMap<
+  CanonicalNode,
+  {
+    breakpoint: BreakpointName;
+    doc: CompositionDocument;
+    collections: readonly CollectionDataSource[];
+    projectVariables: ResolveVirtualizedWindowsInput["projectVariables"];
+    plan: ListBoxRowPlan & { columns: number };
+  }
+>();
+
+function resolveGridListRowPlan(
+  node: CanonicalNode,
+  totalRows: number,
+  input: ResolveVirtualizedWindowsInput,
+  getDocNodes: () => Map<string, CanonicalNode>,
+): ListBoxRowPlan & { columns: number } {
+  const breakpoint = input.activeBreakpoint ?? "desktop";
+  const cached = gridListRowPlanCache.get(node);
+  if (
+    cached &&
+    cached.breakpoint === breakpoint &&
+    cached.doc === input.doc &&
+    cached.collections === input.collections &&
+    cached.projectVariables === input.projectVariables &&
+    cached.plan.heights.length === Math.ceil(totalRows / cached.plan.columns)
+  ) {
+    return cached.plan;
+  }
+  const props = (node.props ?? {}) as Record<string, unknown>;
+  const ctx = resolveGridListCardContext({
+    ownerProps: props,
+    sourceNode: node,
+    getDocumentNodesById: getDocNodes,
+    stateEnv: ownerStateEnv(input, node.id),
+  });
+  // owner 여백은 layout 과 같이 responsive override 반영 (ListBox plan 과 같은 해석).
+  const ownerMetric = resolveGridListSpacingMetric({
+    style: resolveResponsiveStyleMap(
+      (props.style as Record<string, unknown> | undefined) ?? {},
+      node.responsive,
+      breakpoint,
+    ),
+    layout: ctx.layout === "grid" ? "grid" : "stack",
+    columns: ctx.numCols,
+  });
+  const slotFontOf = (role: "label" | "description"): number | undefined => {
+    const fs = ctx.slotComposition?.slots[role]?.style?.fontSize;
+    return typeof fs === "number" ? fs : undefined;
+  };
+  const labelFs = slotFontOf("label") ?? COLLECTION_TEXT_DEFAULT_FONT_SIZE;
+  const descFs = slotFontOf("description") ?? COLLECTION_TEXT_DEFAULT_FONT_SIZE;
+  const itemMetric = resolveGridListItemMetric(labelFs);
+  const selectionExtra = resolveCardSelectionExtra({
+    visible: ctx.showSelectionCheckbox,
+    selectionBoxSize: itemMetric.selectionBoxSize,
+    gap: itemMetric.descGap,
+  });
+  // 카드 box — origin style 이 주면 그 값, 아니면 catalog metric (엔진 implicit 과 같은 값).
+  const originStyle = ctx.originStyle;
+  const hasOriginPadding =
+    originStyle.padding != null ||
+    originStyle.paddingTop != null ||
+    originStyle.paddingBottom != null;
+  const cardPadding = hasOriginPadding
+    ? parsePadding4Way(originStyle)
+    : { top: ownerMetric.cardPaddingY, bottom: ownerMetric.cardPaddingY };
+  const cardWidths = resolveBorderGeometry(originStyle, {
+    borderWidth: ownerMetric.cardBorderWidth,
+  }).widths;
+  const cardBorder = cardWidths[0] + cardWidths[2];
+  const descriptionSlotEnabled = isSlotEnabled(
+    ctx.slotComposition,
+    "description",
+  );
+  const cardBase =
+    cardPadding.top +
+    cardPadding.bottom +
+    cardBorder +
+    selectionExtra +
+    getTextLineHeight(labelFs);
+  const descriptionExtra = itemMetric.descGap + getTextLineHeight(descFs);
+  const cardHeights = reuseRowHeights(
+    node.id,
+    rowInputSignature(node, props, input, [
+      "gridlist",
+      totalRows,
+      cardBase,
+      descriptionExtra,
+      descriptionSlotEnabled,
+      ctx.descriptionTemplate,
+    ]),
+    () =>
+      getListBoxProjectionRows(
+        {
+          collections: input.collections,
+          dataBinding: getElementDataBinding(node),
+          props,
+        },
+        { startIndex: 0, endIndex: totalRows },
+      ).map((row) =>
+        descriptionSlotEnabled &&
+        resolveCollectionRowDescription(ctx, row).length > 0
+          ? cardBase + descriptionExtra
+          : cardBase,
+      ),
+  );
+  const columns = Math.max(1, ctx.numCols);
+  const heights: number[] = [];
+  for (let i = 0; i < cardHeights.length; i += columns) {
+    let max = 0;
+    for (let j = i; j < Math.min(cardHeights.length, i + columns); j += 1) {
+      if (cardHeights[j] > max) max = cardHeights[j];
+    }
+    heights.push(max);
+  }
+  const plan = {
+    heights,
+    gap: ctx.gap,
+    columns,
+    leadingExtent: ownerMetric.borderWidth + ownerMetric.paddingTop,
+    trailingExtent: ownerMetric.paddingBottom + ownerMetric.borderWidth,
+  };
+  gridListRowPlanCache.set(node, {
+    breakpoint,
+    doc: input.doc,
+    collections: input.collections,
+    projectVariables: input.projectVariables,
+    plan,
+  });
+  return plan;
+}
+
+/** offsets → resolution 의 A2' 필드 (window 는 시각 행 = item index, ListBox 1 열). */
+function applyListBoxOffsets(
+  offsets: CollectionRowOffsets,
+  plan: ListBoxRowPlan,
+  totalRows?: number,
+  columns = 1,
+): Pick<
+  CollectionWindowResolution,
+  | "window"
+  | "rowHeight"
+  | "leadSpacerHeight"
+  | "trailSpacerHeight"
+  | "rowsExtent"
+  | "maxScrollTop"
+  | "contentHeight"
+> {
+  return {
+    // 시각 행 → item index (GridList grid 는 열 수 배수 — 카드가 열 0 에서 시작).
+    window: {
+      startIndex: offsets.startVisual * columns,
+      endIndex:
+        totalRows != null
+          ? Math.min(totalRows, offsets.endVisual * columns)
+          : offsets.endVisual * columns,
+    },
+    // legacy 소비자 (spacer 행 수 > 0 판정) 용 — 위치 계산에는 쓰지 않는다.
+    rowHeight: plan.heights[0] ?? DEFAULT_LISTBOX_ROW_HEIGHT,
+    leadSpacerHeight: offsets.leadSpacer,
+    trailSpacerHeight: offsets.trailSpacer,
+    rowsExtent: offsets.rowsExtent,
+    maxScrollTop: offsets.maxScrollTop,
+    contentHeight:
+      plan.leadingExtent + offsets.rowsExtent + plan.trailingExtent,
+  };
 }
 
 /**
@@ -311,6 +872,87 @@ function resolveListBoxRowHeight(
 }
 
 /**
+ * ADR-150 A2' — owner 하나의 **전체 행 위치** (시각 행 top · 높이 · 앞 여백 · 행 영역 · 스크롤 범위).
+ * window map 과 같은 plan 으로 만든다. G1 oracle 대조 (실 브라우저 DOM · live Canvas layout) 가
+ * "window 가 아니라 전 행이 제자리에 있는가" 를 재는 데 쓴다 — 가상화 경로 자체는 이 함수를 부르지 않는다.
+ */
+export function resolveCollectionRowPositions(
+  input: ResolveVirtualizedWindowsInput & { ownerId: string },
+): {
+  family: "listbox" | "gridlist" | "table";
+  columns: number;
+  tops: number[];
+  heights: number[];
+  leadingExtent: number;
+  rowsExtent: number;
+  maxScrollTop: number;
+} | null {
+  const nodes = flattenCanonicalDocumentNodes(input.doc);
+  const docNodesById = new Map<string, CanonicalNode>(
+    nodes.map((n) => [n.id, n]),
+  );
+  const getDocNodes = () => docNodesById;
+  const docNode = docNodesById.get(input.ownerId);
+  if (!docNode) return null;
+  const family = resolveCollectionOwnerKind(docNode);
+  if (!family) return null;
+  const node = resolveOwnerPropsView(docNode, input.doc, docNodesById);
+  const props = node.props as Record<string, unknown> | undefined;
+  const style = (props?.style as Record<string, unknown> | undefined) ?? {};
+  const viewportHeight = readBoundedHeightPx(style) ?? 0;
+  const dataBinding = getElementDataBinding(node);
+  let plan: ListBoxRowPlan & { columns: number };
+  if (family === "table") {
+    const { totalDataRows } = getTableProjectionRows(
+      { collections: input.collections, dataBinding, props },
+      { startIndex: 0, endIndex: 1 },
+    );
+    const tablePlan = resolveTableRowPlan(
+      node,
+      props,
+      docNodesById,
+      input.activeBreakpoint ?? "desktop",
+    );
+    plan = {
+      ...tablePlan,
+      heights: Array(totalDataRows).fill(tablePlan.rowHeight),
+      columns: 1,
+    };
+  } else {
+    const { totalRows } = resolveCollectionItems(
+      { collections: input.collections, dataBinding, props },
+      { startIndex: 0, endIndex: 1 },
+    );
+    plan =
+      family === "gridlist"
+        ? resolveGridListRowPlan(node, totalRows, input, getDocNodes)
+        : {
+            ...resolveListBoxRowPlan(node, totalRows, input, getDocNodes),
+            columns: 1,
+          };
+  }
+  const tops: number[] = [];
+  let y = 0;
+  for (const h of plan.heights) {
+    tops.push(y);
+    y += h + plan.gap;
+  }
+  const rowsExtent = plan.heights.length > 0 ? y - plan.gap : 0;
+  return {
+    family,
+    columns: plan.columns,
+    tops,
+    heights: plan.heights,
+    leadingExtent: plan.leadingExtent,
+    rowsExtent,
+    maxScrollTop: Math.max(
+      0,
+      plan.leadingExtent + rowsExtent + plan.trailingExtent - viewportHeight,
+    ),
+  };
+}
+
+/**
  * 가상화 대상 ListBox owner 의 window map 산출. `buildCanonicalSceneModel(collectionWindows)`
  * 로 주입. scroll 변화마다 재호출되지만 doc walk + O(1) count 라 저렴 —
  * rebuild 게이팅은 결과 window 의 [start,end) signature 로 상위에서 처리(BuilderCanvas).
@@ -325,9 +967,15 @@ export function resolveVirtualizedCollectionWindows(
   );
   const getDocNodes = () => docNodesById;
 
-  const visit = (node: CanonicalNode): void => {
-    const family = resolveCollectionOwnerKind(node);
+  // 이번 문서에 있는 가상화 owner — 끝에서 나머지 (삭제된 owner) 의 행 높이 서명 캐시를 지운다.
+  const liveOwnerIds = new Set<string>();
+  const visit = (docNode: CanonicalNode): void => {
+    const family = resolveCollectionOwnerKind(docNode);
+    const node = family
+      ? resolveOwnerPropsView(docNode, input.doc, docNodesById)
+      : docNode;
     if (family) {
+      liveOwnerIds.add(node.id);
       // collection 가상화는 raw props.style 만 읽는다(ADR-157 표시 정책 보존): catalog maxHeight
       //   fallback 을 여기서 병합하면 bare ListBox 가 auto-height sample/hatch 대신 bounded 300 으로
       //   바뀌어 ADR-157 정책을 변경한다. ListBox 의 bounded-scroll 기본값은 factory/hydration
@@ -358,7 +1006,8 @@ export function resolveVirtualizedCollectionWindows(
           columns = 1;
           // header 행(=1 row 높이)이 스크롤 content 최상단을 차지 → data 행 window 는 header 만큼
           //   내려간 위치. scrollTop 에서 header 높이를 빼 data 행 index 공간으로 정렬한다
-          //   (header sticky 아님, overscan 이 잔여 오차 흡수).
+          //   (header sticky 아님, overscan 이 잔여 오차 흡수). ADR-150 A2' 경로는 헤더를
+          //   leadingExtent 로 다루므로 이 보정은 rowHeight override (테스트) 경로에만 남는다.
           scrollTop = Math.max(0, rawScrollTop - rowHeight);
         } else {
           // ListBox/GridList: props.items/dataBinding 1행 sample 로 totalRows + description 동시 획득.
@@ -388,6 +1037,78 @@ export function resolveVirtualizedCollectionWindows(
           }
         }
 
+        // ADR-150 A2' — Table: data 행 균일 · 헤더 = 행 영역 앞 여백 (요소 헤더면 Column 높이).
+        if (family === "table" && totalRows > 0 && input.rowHeight == null) {
+          const plan = resolveTableRowPlan(
+            node,
+            props,
+            docNodesById,
+            input.activeBreakpoint ?? "desktop",
+          );
+          const offsets = resolveCollectionRowOffsets({
+            visualRowCount: totalRows,
+            rowHeights: plan.rowHeight,
+            gap: 0,
+            leadingExtent: plan.leadingExtent,
+            trailingExtent: plan.trailingExtent,
+            viewportHeight,
+            scrollTop: rawScrollTop,
+            overscan: input.overscan ?? DEFAULT_COLLECTION_OVERSCAN,
+          });
+          result.set(node.id, {
+            window: {
+              startIndex: offsets.startVisual,
+              endIndex: offsets.endVisual,
+            },
+            rowHeight: plan.rowHeight,
+            leadSpacerHeight: offsets.leadSpacer,
+            trailSpacerHeight: offsets.trailSpacer,
+            rowsExtent: offsets.rowsExtent,
+            maxScrollTop: offsets.maxScrollTop,
+            contentHeight:
+              plan.leadingExtent + offsets.rowsExtent + plan.trailingExtent,
+            totalRows,
+            columns: 1,
+            viewportHeight,
+          });
+          node.children?.forEach(visit);
+          return;
+        }
+
+        // ADR-150 A2' — ListBox · GridList 는 (시각) 행별 높이 목록 + gap + owner inset 으로 행 위치를
+        //   한 함수가 정한다.
+        if (
+          (family === "listbox" || family === "gridlist") &&
+          totalRows > 0 &&
+          input.rowHeight == null
+        ) {
+          const plan =
+            family === "gridlist"
+              ? resolveGridListRowPlan(node, totalRows, input, getDocNodes)
+              : {
+                  ...resolveListBoxRowPlan(node, totalRows, input, getDocNodes),
+                  columns: 1,
+                };
+          const offsets = resolveCollectionRowOffsets({
+            visualRowCount: plan.heights.length,
+            rowHeights: plan.heights,
+            gap: plan.gap,
+            leadingExtent: plan.leadingExtent,
+            trailingExtent: plan.trailingExtent,
+            viewportHeight,
+            scrollTop: rawScrollTop,
+            overscan: input.overscan ?? DEFAULT_COLLECTION_OVERSCAN,
+          });
+          result.set(node.id, {
+            ...applyListBoxOffsets(offsets, plan, totalRows, plan.columns),
+            totalRows,
+            columns: plan.columns,
+            viewportHeight,
+          });
+          node.children?.forEach(visit);
+          return;
+        }
+
         if (totalRows > 0) {
           const window = resolveWindowWithColumns({
             totalRows,
@@ -397,10 +1118,9 @@ export function resolveVirtualizedCollectionWindows(
             overscan: input.overscan,
             columns,
           });
-          // ADR-150 A2 스크롤 입력 배선: data-bound collection 은 childrenMap element 자식이
-          //   0개라 GAP 4(fullTreeLayout.ts maxScroll)가 스크롤 범위를 못 구한다. 투영 총 content
-          //   height(visual row 수 × stride, table 은 header 1행 가산)에서 viewport 를 빼
-          //   maxScrollTop 을 직접 산출 → BuilderCanvas 가 updateMaxScroll 로 주입.
+          // legacy 균일 식 — 호출자가 `input.rowHeight` 를 고정했을 때만 온다 (위 A2' 두 분기가
+          //   production 경로). 투영 총 content height (visual row 수 × rowHeight, table 은 header
+          //   1행 가산) 에서 viewport 를 빼 maxScrollTop 을 산출 → BuilderCanvas 가 updateMaxScroll 로 주입.
           const visualRows = Math.ceil(totalRows / Math.max(1, columns));
           const headerRows = family === "table" ? 1 : 0;
           const contentHeight = (visualRows + headerRows) * rowHeight;
@@ -460,7 +1180,50 @@ export function resolveVirtualizedCollectionWindows(
           }
         }
 
-        if (totalRows > COLLECTION_ROW_PROJECTION_SAMPLE_LIMIT) {
+        if (
+          (family === "listbox" || family === "gridlist") &&
+          totalRows > COLLECTION_ROW_PROJECTION_SAMPLE_LIMIT &&
+          input.rowHeight == null
+        ) {
+          const plan =
+            family === "gridlist"
+              ? resolveGridListRowPlan(node, totalRows, input, getDocNodes)
+              : {
+                  ...resolveListBoxRowPlan(node, totalRows, input, getDocNodes),
+                  columns: 1,
+                };
+          const sampleVisualRows = Math.ceil(
+            COLLECTION_ROW_PROJECTION_SAMPLE_LIMIT / plan.columns,
+          );
+          const offsets = resolveCollectionRowOffsets({
+            visualRowCount: plan.heights.length,
+            rowHeights: plan.heights,
+            gap: plan.gap,
+            leadingExtent: plan.leadingExtent,
+            trailingExtent: plan.trailingExtent,
+            viewportHeight: 0,
+            scrollTop: 0,
+            overscan: 0,
+            fixedWindow: { startVisual: 0, endVisual: sampleVisualRows },
+          });
+          const fields = applyListBoxOffsets(
+            offsets,
+            plan,
+            totalRows,
+            plan.columns,
+          );
+          // sample 모드는 스크롤 범위가 없다 (auto-height 소유자) — maxScrollTop 주입 제외.
+          result.set(node.id, {
+            window: fields.window,
+            rowHeight: fields.rowHeight,
+            leadSpacerHeight: fields.leadSpacerHeight,
+            trailSpacerHeight: fields.trailSpacerHeight,
+            rowsExtent: fields.rowsExtent,
+            totalRows,
+            columns: plan.columns,
+            mode: "sample",
+          });
+        } else if (totalRows > COLLECTION_ROW_PROJECTION_SAMPLE_LIMIT) {
           result.set(node.id, {
             window: {
               startIndex: 0,
@@ -477,6 +1240,7 @@ export function resolveVirtualizedCollectionWindows(
     node.children?.forEach(visit);
   };
   input.doc.children.forEach(visit);
+  pruneRowHeightCache(liveOwnerIds);
   return result;
 }
 

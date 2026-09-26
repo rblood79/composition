@@ -11,6 +11,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-150 Phase 1 — 스크롤 데이터 목록의 행 위치 단일 소스] - 2026-09-27
+
+### Fixed
+
+- **높이 고정 + 스크롤인 데이터 ListBox · GridList · Table 이 Canvas 에서 끝까지 스크롤되지 않거나 행이 제자리를 벗어나던 문제.** 가상화 window · 앞뒤 spacer · 스크롤 범위를 한 함수 (`resolveCollectionRowOffsets`) 가 행마다의 높이 · 행 간격 · 목록 안쪽 여백으로 만든다. 이전에는 첫 행 높이 하나로 전 행을 셌고 행 간격과 padding · border 를 빼서, description 이 행마다 다른 ListBox 100 행은 끝 행이 900px 가까이 모자랐다.
+- **GridList 2 열 데이터 목록을 스크롤하면 카드 열이 뒤바뀌던 문제.** spacer 가 grid 한 칸만 차지해 첫 카드가 오른쪽 열에 붙었다. spacer 가 한 시각 행 전체를 차지한다.
+- **팔레트로 놓은 Table 의 스크롤 범위가 행 높이를 잘못 셌던 문제.** Table origin 의 size (sm, 행 36) 를 읽지 않고 md (44) 로 셌다. 목록 owner 는 origin props 위에 instance 값을 얹어 읽는다. quick connect 로 열을 만든 Table 은 헤더 (40) 를 행 높이로 잘못 읽어 마지막 행이 4px 잘렸다.
+- **GridList 카드 간격이 Styles 의 gap 을 따르지 않던 문제.** Canvas 가 DOM 이 읽지 않는 `props.gap` 을 읽었다. 이제 `style.gap` (rowGap · columnGap) 을 먼저 읽어 Preview 와 같은 간격이다.
+- **행 템플릿에 프로젝트 변수 (`{{ subtitle }}`) 를 쓴 목록과 mobile · tablet 에서만 padding 을 준 GridList · Table 의 스크롤 범위.** 변수 기본값으로 푼 뒤 description 유무를 판정하고, owner 여백은 현재 breakpoint 값으로 센다.
+
+### Performance
+
+- 가상화 목록의 행 높이 목록은 행 데이터 · 선택 · 템플릿 입력이 그대로면 다른 요소를 편집해도 다시 만들지 않는다 (10k 행 목록, 편집 1회 추가 비용 약 4ms → 0.1ms 미만, node 측정).
+
+### Tests
+
+- 실 브라우저 DOM oracle (`tests/parity/adr150RowPositionsDom.browser.test.ts`) 3건: ListBox 100 행 · GridList 100 카드 · GridList gap 20px 의 모든 행 y · 높이 · 스크롤 범위가 단일 소스와 ±1.
+- 실제 Builder (`apps/builder/scripts/adr150-p1-row-positions-live.mjs`, headed): 팔레트 ListBox 1000 · GridList 400 · Table 500 을 맨 위 · 중간 · 끝에서 layout 행 y · 스크롤 범위 오차 0, quick connect Table 끝 행 하단 = viewport 하단. 15/15, 페이지 에러 0.
+
 ## [Canvas 크기 속성 정리 후속] - 2026-09-26
 
 ### Fixed

@@ -141,9 +141,9 @@ describe("ADR-162 Phase 2 — 데이터 행 = 항목 origin 가상 instance (Can
   });
 
   it("펼친 GridList 는 컨테이너 높이 공식을 끄는 신호를 받는다 (slot-only 는 안 받는다)", () => {
-    expect(model.sceneNodesMap.get("gl-image")?.props._expandedTemplateRows).toBe(
-      true,
-    );
+    expect(
+      model.sceneNodesMap.get("gl-image")?.props._expandedTemplateRows,
+    ).toBe(true);
     expect(
       model.sceneNodesMap.get("gl-slots")?.props._expandedTemplateRows,
     ).toBeUndefined();

@@ -1,9 +1,13 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import type { CompositionDocument } from "@composition/shared";
+import type { CompositionDocument, VariableDef } from "@composition/shared";
+import { ensureListBoxTemplateOrigins } from "../../../components/listbox/listBoxTemplateOrigins";
+import { flattenCanonicalDocumentNodes } from "./canonicalSceneModel";
 
 import {
   resolveVirtualizedCollectionWindows,
+  resolveCollectionRowPositions,
+  __rowHeightCacheSizeForTest,
   collectionWindowSignature,
   DEFAULT_LISTBOX_ROW_HEIGHT,
 } from "./collectionVirtualization";
@@ -159,8 +163,9 @@ describe("resolveVirtualizedCollectionWindows — 가상화 대상 판정 + wind
     expect(entry).toBeDefined();
     expect(entry?.rowHeight).toBe(32);
     expect(entry?.totalRows).toBe(1000);
-    // scrollTop 0, viewport 400, rowHeight 32 → visibleCount ceil(400/32)=13, overscan 6.
-    expect(entry?.window).toEqual({ startIndex: 0, endIndex: 19 });
+    // ADR-150 A2' (2026-09-27): 행 위치 = resolveCollectionRowOffsets — 행 32 + 행 묶음 gap 2 (catalog) = stride 34, owner inset border 1 + padding 4 = 5.
+    //   scrollTop 0 → 보이는 행 영역 [-5, 395) → 끝 행 ceil(395/34)=12, overscan 6 → 18.
+    expect(entry?.window).toEqual({ startIndex: 0, endIndex: 18 });
   });
 
   it("스크롤 시 window 가 firstVisible ± overscan 로 이동", () => {
@@ -169,10 +174,11 @@ describe("resolveVirtualizedCollectionWindows — 가상화 대상 판정 + wind
       collections: [],
       scrollTops: new Map([["listbox-1", 2800]]),
     });
-    // rowHeight 32: firstVisible = floor(2800/32)=87, start=81, end=87+13+6=106.
+    // ADR-150 A2' (2026-09-27): 행 위치 = resolveCollectionRowOffsets — 행 32 + 행 묶음 gap 2 (catalog) = stride 34, owner inset border 1 + padding 4 = 5.
+    //   보이는 행 영역 [2795, 3195) → 첫 행 floor((2795−32)/34)+1=82 (start 76), 끝 ceil(3195/34)=94 (end 100).
     expect(map.get("listbox-1")?.window).toEqual({
-      startIndex: 81,
-      endIndex: 106,
+      startIndex: 76,
+      endIndex: 100,
     });
   });
 
@@ -280,7 +286,8 @@ describe("resolveVirtualizedCollectionWindows — 가상화 대상 판정 + wind
     const entry = map.get("listbox-instance-1");
     expect(entry).toBeDefined();
     expect(entry?.totalRows).toBe(60);
-    expect(entry?.window).toEqual({ startIndex: 0, endIndex: 19 });
+    // ADR-150 A2' stride 34 · inset 5 → 끝 행 ceil(395/34)=12 + overscan 6.
+    expect(entry?.window).toEqual({ startIndex: 0, endIndex: 18 });
   });
 
   it("description 있는 행은 taller rowHeight(50) + 그에 맞는 window", () => {
@@ -389,9 +396,9 @@ describe("scene model 통합 — G-A2 핵심: 투영 노드 수 ≤ window+overs
     const rowNodes = model.sceneNodes.filter(
       (n) => n.projection?.kind === "listbox-row",
     );
-    // scrollTop 0 → window {0,19}(rowHeight 32) → 19 행만 투영 (10000 아님).
-    expect(rowNodes).toHaveLength(19);
-    // 전체 scene 노드도 10k 수준이 아님 (page/body/listbox/rowsGroup/19행/trailing spacer 등).
+    // scrollTop 0 → window {0,18} (ADR-150 A2' stride 34 · inset 5) → 18 행만 투영 (10000 아님).
+    expect(rowNodes).toHaveLength(18);
+    // 전체 scene 노드도 10k 수준이 아님 (page/body/listbox/rowsGroup/18행/trailing spacer 등).
     expect(model.sceneNodes.length).toBeLessThan(100);
   });
 
@@ -624,19 +631,18 @@ function gridListDoc(opts: {
 }
 
 describe("resolveVirtualizedCollectionWindows — GridList 확산", () => {
-  it("stack 모드: 카드 stride 60(pad24+label24+rowGap12), columns 1, window", () => {
+  it("stack 모드: 카드 높이 50 (pad24+border2+label24) + gap 12, columns 1, window", () => {
     const map = resolveVirtualizedCollectionWindows({
       doc: gridListDoc({ itemCount: 1000, style: SCROLLABLE, layout: "stack" }),
       collections: [],
       scrollTops: new Map(),
     });
     const entry = map.get("gridlist-1");
-    // 2026-07-22 parity sweep: label = react-aria-Text 16 → getTextLineHeight 24 (과거 14/20),
-    //   descGap 2. no-desc 카드 = pad24 + label24 = 48, + rowGap12 = stride 60.
-    expect(entry?.rowHeight).toBe(60);
+    // ADR-150 A2' (2026-09-27): rowHeight = 시각 행 높이 (카드 = padding 12·2 + border 1·2 + label 24 = 50 — 구 stride 60 은 카드 border 2 를 빼먹고 gap 12 를 더한 값). gap 은 행 위치 함수 (resolveCollectionRowOffsets) 가 따로 넣는다 — stride 62.
+    expect(entry?.rowHeight).toBe(50);
     expect(entry?.columns).toBe(1);
     expect(entry?.totalRows).toBe(1000);
-    // viewport 400 / 60 = ceil 7 visible, overscan 6 → end 13.
+    // viewport 400 / stride 62 = ceil 7 visible, overscan 6 → end 13.
     expect(entry?.window).toEqual({ startIndex: 0, endIndex: 13 });
   });
 
@@ -652,7 +658,7 @@ describe("resolveVirtualizedCollectionWindows — GridList 확산", () => {
       scrollTops: new Map(),
     });
     const entry = map.get("gridlist-1");
-    expect(entry?.rowHeight).toBe(60);
+    expect(entry?.rowHeight).toBe(50);
     expect(entry?.columns).toBe(2);
     // 시각 행 window {0,13} × numCols 2 → item {0,26}.
     expect(entry?.window).toEqual({ startIndex: 0, endIndex: 26 });
@@ -676,7 +682,7 @@ describe("resolveVirtualizedCollectionWindows — GridList 확산", () => {
     });
   });
 
-  it("description 카드는 taller stride 86(pad24+label24+desc24+gap2+rowGap12)", () => {
+  it("description 카드는 taller 76 (pad24+border2+label24+descGap2+desc24)", () => {
     const map = resolveVirtualizedCollectionWindows({
       doc: gridListDoc({
         itemCount: 1000,
@@ -687,13 +693,13 @@ describe("resolveVirtualizedCollectionWindows — GridList 확산", () => {
       collections: [],
       scrollTops: new Map(),
     });
-    expect(map.get("gridlist-1")?.rowHeight).toBe(86);
+    expect(map.get("gridlist-1")?.rowHeight).toBe(76);
   });
 
   // ADR-162 Phase 1 (round 2 h2) — stride 도 소유자 자기 항목 origin 으로 (scene 투영
   //   `resolveGridListTemplateOriginId` 와 같은 규칙). 종전은 상수 기본 origin 을 읽어, description slot
   //   을 끈 custom origin 의 GridList 에서 stride (86) 가 카드 (60) 와 갈렸다.
-  it("소유자 slot 의 custom origin (description slot 없음) → description 행도 stride 60", () => {
+  it("소유자 slot 의 custom origin (description slot 없음) → description 행도 카드 50", () => {
     const doc = gridListDoc({
       itemCount: 1000,
       style: SCROLLABLE,
@@ -732,7 +738,7 @@ describe("resolveVirtualizedCollectionWindows — GridList 확산", () => {
       collections: [],
       scrollTops: new Map(),
     });
-    expect(map.get("gridlist-1")?.rowHeight).toBe(60);
+    expect(map.get("gridlist-1")?.rowHeight).toBe(50);
   });
 
   it("ref 인스턴스 GridService(type:'ref' + name:'GridList')도 가상화 대상", () => {
@@ -822,11 +828,12 @@ describe("scene model 통합 — GridList G-A2: 카드 노드 수 ≤ window (10
         pos: (n.projection as { position?: string } | undefined)?.position,
         h: (n.props?.style as Record<string, unknown> | undefined)?.height,
       }));
-    // window item {6,44} → lead 시각 행 = ceil(6/2)=3 × 60 = 180, trail = (5000-22) × 60.
+    // ADR-150 A2': window item {6,44} → 시각 행 [3,22). lead = top(3) − gap = 3×62 − 12 = 174,
+    //   trail = 행 영역 − top(22) (행 영역 = 5000×50 + 4999×12). spacer 뒤 gap 은 행 묶음 rowGap 이 넣는다.
     const lead = spacers.find((s) => s.pos === "lead");
     const trail = spacers.find((s) => s.pos === "trail");
-    expect(lead?.h).toBe(3 * 60);
-    expect(trail?.h).toBe((5000 - 22) * 60);
+    expect(lead?.h).toBe(3 * 62 - 12);
+    expect(trail?.h).toBe(5000 * 50 + 4999 * 12 - 22 * 62);
   });
 });
 
@@ -837,6 +844,8 @@ function tableDoc(opts: {
   style?: Record<string, unknown>;
   size?: "sm" | "md" | "lg";
   asRefInstance?: boolean;
+  /** origin (`component-table`) props — ref instance 가 상속한다. */
+  originProps?: Record<string, unknown>;
 }): CompositionDocument {
   const columns = [
     { id: "a", label: "A", width: 100 },
@@ -847,7 +856,13 @@ function tableDoc(opts: {
     a: `a${i}`,
     b: `b${i}`,
   }));
-  const commonProps = { columns, rows, size: opts.size, style: opts.style };
+  // 값 없는 키는 싣지 않는다 — `size: undefined` 는 ref instance patch 에서 origin 값을 덮는다.
+  const commonProps = {
+    columns,
+    rows,
+    ...(opts.size ? { size: opts.size } : {}),
+    ...(opts.style ? { style: opts.style } : {}),
+  };
   const owner = opts.asRefInstance
     ? {
         id: "table-1",
@@ -869,7 +884,19 @@ function tableDoc(opts: {
             id: "body-1",
             type: "Body",
             props: {},
-            children: [owner],
+            children: [
+              ...(opts.originProps
+                ? [
+                    {
+                      id: "component-table",
+                      type: "Table",
+                      props: opts.originProps,
+                      children: [],
+                    },
+                  ]
+                : []),
+              owner,
+            ],
           },
         ],
       },
@@ -888,8 +915,9 @@ describe("resolveVirtualizedCollectionWindows — Table 확산", () => {
     expect(entry?.rowHeight).toBe(44);
     expect(entry?.columns).toBe(1);
     expect(entry?.totalRows).toBe(10000); // data 행만 (header 제외)
-    // scrollTop 0 → header offset 후 0. visibleCount ceil(400/44)=10, overscan 6 → {0,16}.
-    expect(entry?.window).toEqual({ startIndex: 0, endIndex: 16 });
+    // ADR-150 A2': 헤더 44 가 행 영역 앞 여백 → 보이는 data 영역 [−44, 356) → 끝 ceil(356/44)=9,
+    //   overscan 6 → {0,15} (구 {0,16} 은 헤더가 viewport 를 차지하는 것을 무시했다).
+    expect(entry?.window).toEqual({ startIndex: 0, endIndex: 15 });
   });
 
   it("스크롤: header 높이 보정 후 data 행 firstVisible±overscan", () => {
@@ -931,6 +959,110 @@ describe("resolveVirtualizedCollectionWindows — Table 확산", () => {
     expect(entry?.totalRows).toBe(500);
   });
 
+  it("ref 인스턴스는 origin 의 size 를 상속한다 — 팔레트 Table (origin sm) 행 36 (ADR-150 Phase 1 live)", () => {
+    const doc = tableDoc({
+      rowCount: 500,
+      style: SCROLLABLE,
+      asRefInstance: true,
+      originProps: { size: "sm" },
+    });
+    const entry = resolveVirtualizedCollectionWindows({
+      doc,
+      collections: [],
+      scrollTops: new Map(),
+    }).get("table-1");
+    expect(entry?.rowHeight).toBe(36);
+    const positions = resolveCollectionRowPositions({
+      doc,
+      collections: [],
+      scrollTops: new Map(),
+      ownerId: "table-1",
+    });
+    expect(positions?.heights[0]).toBe(36);
+    // 헤더 (projection 헤더 행 = 행 높이) 36 + 500 × 36 − viewport 400.
+    expect(positions?.maxScrollTop).toBe(36 + 500 * 36 - 400);
+  });
+
+  it("quick connect 모양 (ref instance + mode C 자기 열) 은 요소 헤더 = Column 셀 높이 (ADR-150 Phase 1 live)", () => {
+    const rows = Array.from({ length: 500 }, (_, i) => ({
+      id: `r${i}`,
+      a: `a${i}`,
+    }));
+    const doc = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: "body-1",
+              type: "Body",
+              props: {},
+              children: [
+                {
+                  id: "component-table",
+                  type: "Table",
+                  props: { size: "sm" },
+                  children: [
+                    {
+                      id: "component-table__1",
+                      type: "TableHeader",
+                      props: {},
+                      children: [],
+                    },
+                    {
+                      id: "component-table__2",
+                      type: "TableBody",
+                      props: {},
+                      children: [],
+                    },
+                  ],
+                },
+                {
+                  id: "component-table-column",
+                  type: "Column",
+                  props: {},
+                  children: [],
+                },
+                {
+                  id: "table-1",
+                  type: "ref",
+                  name: "Table",
+                  ref: "component-table",
+                  props: { rows, style: SCROLLABLE },
+                  descendants: {
+                    "component-table__1": {
+                      children: [
+                        {
+                          id: "col-a",
+                          type: "ref",
+                          ref: "component-table-column",
+                          props: { key: "a", children: "A" },
+                        },
+                      ],
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument;
+    const positions = resolveCollectionRowPositions({
+      doc,
+      collections: [],
+      scrollTops: new Map(),
+      ownerId: "table-1",
+    });
+    // 헤더 = Column md 셀 (lineHeight 24 + paddingY 8·2) 40 · data 행 = origin sm 36.
+    expect(positions?.leadingExtent).toBe(40);
+    expect(positions?.heights[0]).toBe(36);
+    expect(positions?.maxScrollTop).toBe(40 + 500 * 36 - 400);
+  });
+
   it("data 0행 → 제외", () => {
     const map = resolveVirtualizedCollectionWindows({
       doc: tableDoc({ rowCount: 0, style: SCROLLABLE }),
@@ -968,9 +1100,9 @@ describe("scene model 통합 — Table G-A2: header 상시 + data 행 ≤ window
     const spacers = model.sceneNodes.filter(
       (n) => n.projection?.kind === "table-spacer",
     );
-    // header 는 항상 1개, data 행은 window 16개 (10000 아님).
+    // header 는 항상 1개, data 행은 window 15개 (10000 아님 — ADR-150 A2' 헤더 여백 반영).
     expect(headerRows).toHaveLength(1);
-    expect(dataRows).toHaveLength(16);
+    expect(dataRows).toHaveLength(15);
     // scrollTop 0 → lead spacer 없음, trailing spacer 1개.
     expect(spacers).toHaveLength(1);
     expect(
@@ -1020,16 +1152,18 @@ describe("scene model 통합 — Table G-A2: header 상시 + data 행 ≤ window
 // useScrollState.updateMaxScroll 로 주입해 휠 스크롤을 활성화한다(설계 breakdown §4 line 53).
 
 describe("resolveVirtualizedCollectionWindows — maxScrollTop (스크롤 입력 배선)", () => {
-  it("ListBox: contentHeight(totalRows×rowHeight) − viewportHeight", () => {
+  it("ListBox: maxScrollTop = inset + 행 영역 (행 + gap) + inset − viewportHeight", () => {
     const entry = resolveVirtualizedCollectionWindows({
       doc: listBoxDoc({ itemCount: 1000, style: SCROLLABLE }),
       collections: [],
       scrollTops: new Map(),
     }).get("listbox-1");
-    // rowHeight 32, viewport 400 → contentHeight 32000, maxScrollTop 31600.
+    // ADR-150 A2': 행 영역 1000×32 + 999×2 = 33998, scroll content 5 + 33998 + 5 = 34008,
+    //   maxScrollTop 34008 − 400 = 33608 (구 계약 32000 / 31600 은 gap · inset 을 빼먹었다 — 끝 행 미도달).
     expect(entry?.viewportHeight).toBe(400);
-    expect(entry?.contentHeight).toBe(32000);
-    expect(entry?.maxScrollTop).toBe(31600);
+    expect(entry?.rowsExtent).toBe(33998);
+    expect(entry?.contentHeight).toBe(34008);
+    expect(entry?.maxScrollTop).toBe(33608);
   });
 
   it("content 가 viewport 안에 들어가면 maxScrollTop 0 (스크롤 불가)", () => {
@@ -1038,8 +1172,8 @@ describe("resolveVirtualizedCollectionWindows — maxScrollTop (스크롤 입력
       collections: [],
       scrollTops: new Map(),
     }).get("listbox-1");
-    // contentHeight 10×32=320 < viewport 400 → max(0, 320−400)=0.
-    expect(entry?.contentHeight).toBe(320);
+    // ADR-150 A2': scroll content 5 + (10×32 + 9×2) + 5 = 348 < viewport 400 → max(0, 348−400)=0.
+    expect(entry?.contentHeight).toBe(348);
     expect(entry?.maxScrollTop).toBe(0);
   });
 
@@ -1055,8 +1189,8 @@ describe("resolveVirtualizedCollectionWindows — maxScrollTop (스크롤 입력
       collections: [],
       scrollTops: new Map([["listbox-1", 2800]]),
     }).get("listbox-1")?.maxScrollTop;
-    expect(at0).toBe(31600);
-    expect(at2800).toBe(31600);
+    expect(at0).toBe(33608);
+    expect(at2800).toBe(33608);
   });
 
   it("GridList grid(cols 2): 시각 행 수 ceil(totalRows/columns)×rowHeight 기반", () => {
@@ -1070,9 +1204,9 @@ describe("resolveVirtualizedCollectionWindows — maxScrollTop (스크롤 입력
       collections: [],
       scrollTops: new Map(),
     }).get("gridlist-1");
-    // visualRows ceil(1000/2)=500, rowHeight 60 → contentHeight 30000, maxScrollTop 29600.
-    expect(entry?.contentHeight).toBe(30000);
-    expect(entry?.maxScrollTop).toBe(29600);
+    // ADR-150 A2': 시각 행 500 × 카드 50 + 499 × gap 12 = 30988 (owner inset 0), maxScrollTop 30588.
+    expect(entry?.contentHeight).toBe(30988);
+    expect(entry?.maxScrollTop).toBe(30588);
   });
 
   it("Table: header 1행 가산 (visualRows+1)×rowHeight", () => {
@@ -1104,7 +1238,7 @@ describe("resolveVirtualizedCollectionWindows — ADR-157 Phase 4 sample (GridLi
     expect(entry?.mode).toBe("sample");
     expect(entry?.window).toEqual({ startIndex: 0, endIndex: 10 });
     expect(entry?.totalRows).toBe(1000);
-    expect(entry?.rowHeight).toBe(60);
+    expect(entry?.rowHeight).toBe(50);
     expect(entry?.columns).toBe(1);
     // sample 은 스크롤 아님 → viewport/maxScroll 미설정.
     expect(entry?.maxScrollTop).toBeUndefined();
@@ -1125,7 +1259,7 @@ describe("resolveVirtualizedCollectionWindows — ADR-157 Phase 4 sample (GridLi
     expect(entry?.mode).toBe("sample");
     expect(entry?.window).toEqual({ startIndex: 0, endIndex: 10 });
     expect(entry?.columns).toBe(2);
-    expect(entry?.rowHeight).toBe(60);
+    expect(entry?.rowHeight).toBe(50);
   });
 
   it("GridList auto-height ≤10 → 전량 투영(sample resolution 없음)", () => {
@@ -1195,21 +1329,21 @@ describe("ADR-157 Phase 4 — GridList/Table 샘플 + hatch remainder (scene emi
       model.sceneNodes.filter((n) => n.projection?.kind === "gridlist-spacer"),
     ).toHaveLength(0);
     expect(remainder[0]?.id.startsWith("projection:")).toBe(true);
-    // hatch height = trail 시각 행 × stride. totalVisualRows=500, endVisual=ceil(10/2)=5 → trail 495.
+    // ADR-150 A2': hatch height = 행 영역 − top(5) (시각 행 500, sample 5 시각 행, stride 62). hiddenRows 495.
     const style = remainder[0]?.props?.style as { height?: number } | undefined;
-    expect(style?.height).toBe(495 * 60);
+    expect(style?.height).toBe(500 * 50 + 499 * 12 - 5 * 62);
     expect(
       (remainder[0]?.projection as { hiddenRows?: number } | undefined)
         ?.hiddenRows,
     ).toBe(495);
-    // owner 주입 = ceil(totalRows/columns) × rowHeight = 500 × 60 (§1.55c 소비, 배치 진실성).
+    // owner 주입 = 행 영역 = 500 × 50 + 499 × 12 (§1.55c 소비, 배치 진실성 — 구 500 × 60 은 gap 1 개를 더 셌다).
     const owner = model.sceneNodes.find(
       (n) => (n.type ?? "").toLowerCase() === "gridlist",
     );
     expect(
       (owner?.props as { _projectedRowsContentHeight?: number } | undefined)
         ?._projectedRowsContentHeight,
-    ).toBe(500 * 60);
+    ).toBe(500 * 50 + 499 * 12);
   });
 
   it("Table sample → header + 10 data 행 + hatch 1개, owner 주입 없음(child-sum)", () => {
@@ -1257,5 +1391,211 @@ describe("ADR-157 Phase 4 — GridList/Table 샘플 + hatch remainder (scene emi
       (owner?.props as { _projectedRowsContentHeight?: number } | undefined)
         ?._projectedRowsContentHeight,
     ).toBeUndefined();
+  });
+});
+
+describe("ADR-150 Phase 1 판독 M1 — 행 높이 목록 캐시 (문서 복제 뒤 재사용 · 입력 변경 시 갱신)", () => {
+  const COLLECTIONS: never[] = [];
+  function listDoc(
+    items: Array<Record<string, unknown>>,
+    extraProps: Record<string, unknown> = {},
+  ): CompositionDocument {
+    return {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: "cache-list",
+              type: "ListBox",
+              props: {
+                items,
+                style: { height: 400, width: 400, overflowY: "auto" },
+                ...extraProps,
+              },
+              children: [],
+            },
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument;
+  }
+  const extentOf = (doc: CompositionDocument) =>
+    resolveVirtualizedCollectionWindows({
+      doc,
+      collections: COLLECTIONS,
+      scrollTops: new Map(),
+    }).get("cache-list")!.rowsExtent!;
+  const plain = Array.from({ length: 200 }, (_, i) => ({
+    id: `k${i}`,
+    label: `Item ${i}`,
+  }));
+
+  it("행 데이터가 바뀌면 (새 배열) 높이 목록을 다시 만든다", () => {
+    const before = extentOf(listDoc(plain));
+    const withDescription = plain.map((row, i) =>
+      i === 0 ? { ...row, description: "added" } : row,
+    );
+    expect(extentOf(listDoc(withDescription))).toBe(before + 18);
+    // 같은 배열 참조로 되돌리면 원래 값.
+    expect(extentOf(listDoc(plain))).toBe(before);
+  });
+
+  it("다른 prop 만 바뀐 복제 문서는 같은 값 (서명의 값 참조 비교)", () => {
+    const before = extentOf(listDoc(plain));
+    expect(extentOf(listDoc(plain, { "aria-label": "edited" }))).toBe(before);
+  });
+});
+
+describe("ADR-150 Phase 1 판독 M2 — 행 템플릿의 state 템플릿 `{{ }}` 은 scene 과 같은 env 로 푼다", () => {
+  function docWithDescriptionTemplate(
+    text: string | null,
+  ): CompositionDocument {
+    const doc = ensureListBoxTemplateOrigins({
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: "state-list",
+              type: "ListBox",
+              props: {
+                items: Array.from({ length: 100 }, (_, i) => ({
+                  id: `k${i}`,
+                  label: `Item ${i}`,
+                })),
+                style: { height: 400, width: 400, overflowY: "auto" },
+              },
+              children: [
+                {
+                  id: "state-anchor",
+                  type: "ref",
+                  ref: "component-listbox-item-default",
+                  props: {},
+                  metadata: {
+                    type: "legacy-element-props",
+                    templateRole: "listbox-item-template-anchor",
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument);
+    if (text != null) {
+      const origin = flattenCanonicalDocumentNodes(doc).find(
+        (n) => n.id === "component-listbox-item-default",
+      )!;
+      const description = origin.children!.find(
+        (c) =>
+          (c.props as { slot?: string } | undefined)?.slot === "description",
+      )!;
+      (description.props as Record<string, unknown>).children = text;
+    }
+    return doc;
+  }
+  const extent = (doc: CompositionDocument, projectVariables?: VariableDef[]) =>
+    resolveVirtualizedCollectionWindows({
+      doc,
+      collections: [],
+      scrollTops: new Map(),
+      projectVariables,
+    }).get("state-list")!.rowsExtent!;
+
+  it('description 슬롯 `{{ subtitle }}` (기본값 "") → 행에 description 없음 = 32 행', () => {
+    const variables: VariableDef[] = [
+      { id: "v-subtitle", name: "subtitle", type: "string", defaultValue: "" },
+    ];
+    const baseline = extent(docWithDescriptionTemplate(null));
+    expect(
+      extent(docWithDescriptionTemplate("{{ subtitle }}"), variables),
+    ).toBe(baseline);
+  });
+});
+
+describe("ADR-150 Phase 1 판독 M3 — GridList · Table owner 여백은 responsive override 를 반영한다", () => {
+  function ownerDoc(type: "GridList" | "Table"): CompositionDocument {
+    const rows = Array.from({ length: 200 }, (_, i) => ({
+      id: `r${i}`,
+      label: `Row ${i}`,
+      a: `a${i}`,
+    }));
+    return {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: "resp-owner",
+              type,
+              props: {
+                ...(type === "Table"
+                  ? { rows, columns: [{ id: "a", label: "A", width: 100 }] }
+                  : { items: rows, layout: "grid", columns: 2 }),
+                style: { height: 300, width: 400, overflowY: "auto" },
+              },
+              responsive: {
+                styles: {
+                  paddingTop: { mobile: "16px" },
+                  paddingBottom: { mobile: "16px" },
+                },
+              },
+              children: [],
+            },
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument;
+  }
+  it.each(["GridList", "Table"] as const)(
+    "%s: mobile 에서 앞 여백 +16 · 스크롤 범위 +32",
+    (type) => {
+      const at = (activeBreakpoint: "desktop" | "mobile") =>
+        resolveCollectionRowPositions({
+          doc: ownerDoc(type),
+          collections: [],
+          scrollTops: new Map(),
+          ownerId: "resp-owner",
+          activeBreakpoint,
+        })!;
+      const desktop = at("desktop");
+      const mobile = at("mobile");
+      expect(mobile.leadingExtent - desktop.leadingExtent).toBe(16);
+      expect(mobile.maxScrollTop - desktop.maxScrollTop).toBe(32);
+    },
+  );
+});
+
+describe("ADR-150 Phase 1 수리 검증 M-a — 삭제된 owner 의 행 높이 서명 캐시는 지운다", () => {
+  it("owner 가 문서에서 빠지면 다음 resolver 호출에서 항목이 사라진다", () => {
+    const withOwner = listBoxDoc({
+      itemCount: 200,
+      style: { height: 400, width: 400, overflowY: "auto" },
+    });
+    resolveVirtualizedCollectionWindows({
+      doc: withOwner,
+      collections: [],
+      scrollTops: new Map(),
+    });
+    expect(__rowHeightCacheSizeForTest()).toBeGreaterThan(0);
+    resolveVirtualizedCollectionWindows({
+      doc: {
+        version: "composition-1.0",
+        children: [],
+      } as unknown as CompositionDocument,
+      collections: [],
+      scrollTops: new Map(),
+    });
+    expect(__rowHeightCacheSizeForTest()).toBe(0);
   });
 });

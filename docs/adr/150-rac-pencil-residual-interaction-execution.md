@@ -2,7 +2,7 @@
 
 ## Status
 
-In Progress — Accepted 2026-09-26 (리뷰 round 3 · 4 pending 0 + 실행자 종결 선언, 사용자 `/execute-adr 150`) · Phase 0 완료 2026-09-27 (G0 PASS — R2 가설 live 성립 · RED 4 고정 · breakdown §2 결과 고정). **본문 재작성 2026-09-26**. 사용자 판정은 두 가지다: "본문 재작성", 그리고 데이터 행 진입을 "origin 자식 선택" 으로 한다. 이전 판은 Accepted 2026-07-18 로 3축 (A1 상태 threading · A2 가상화 · A3 drill-in) 이었고, 본문 원문은 git `7519dee51` 에 있다. 재작성 본문은 리뷰 round 3 이 필요하다.
+In Progress — Accepted 2026-09-26 (리뷰 round 3 · 4 pending 0 + 실행자 종결 선언, 사용자 `/execute-adr 150`) · Phase 0 완료 2026-09-27 (G0 PASS — R2 가설 live 성립 · RED 4 고정 · breakdown §2 결과 고정). **Phase 1 완료 2026-09-27** (G1 PASS — 실 브라우저 DOM oracle 3/3 · live Canvas 15/15 · 원복 RED 6/7 (GAP 4 skip 무반응 사유 기록) · 판독 HIGH 0 · MEDIUM 3 수리 · breakdown §3 결과). **본문 재작성 2026-09-26**. 사용자 판정은 두 가지다: "본문 재작성", 그리고 데이터 행 진입을 "origin 자식 선택" 으로 한다. 이전 판은 Accepted 2026-07-18 로 3축 (A1 상태 threading · A2 가상화 · A3 drill-in) 이었고, 본문 원문은 git `7519dee51` 에 있다. 재작성 본문은 리뷰 round 3 이 필요하다.
 
 > **재작성 사유** (2026-09-26 코드 실측 — 조사 3 갈래와 직접 대조):
 >

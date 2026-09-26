@@ -9,7 +9,13 @@ const node = (
   page_id: string,
   style?: Record<string, unknown>,
 ): CanvasSceneNode =>
-  ({ id, type, page_id, parent_id: null, props: style ? { style } : {} }) as unknown as CanvasSceneNode;
+  ({
+    id,
+    type,
+    page_id,
+    parent_id: null,
+    props: style ? { style } : {},
+  }) as unknown as CanvasSceneNode;
 
 describe("buildPageFrames — 페이지 frame 크기는 body 저작 크기 (Styles Size) 를 따른다", () => {
   it("body height 1600px 인 페이지는 1920×1600, 나머지는 breakpoint 1920×1080", () => {
@@ -57,7 +63,13 @@ describe("buildPageFrames — ADR-231 Components 페이지 frame 은 breakpoint 
       { id: "p1", title: "Home" },
     ] as unknown as Page[];
     const elementsMap = new Map<string, CanvasSceneNode>([
-      ["bc", node("bc", "body", "page-components", { overflow: "auto", display: "flex" })],
+      [
+        "bc",
+        node("bc", "body", "page-components", {
+          overflow: "auto",
+          display: "flex",
+        }),
+      ],
       ["b1", node("b1", "body", "p1")],
     ]);
     const pageIndex = {
@@ -67,18 +79,29 @@ describe("buildPageFrames — ADR-231 Components 페이지 frame 은 breakpoint 
       ]),
       rootsByPage: new Map(),
     };
-    const positions = { "page-components": { x: -2000, y: 0 }, p1: { x: 0, y: 0 } };
+    const positions = {
+      "page-components": { x: -2000, y: 0 },
+      p1: { x: 0, y: 0 },
+    };
     expect(
-      buildPageFrames(pages, pageIndex, elementsMap, positions, 390, 844, new Map([["page-components", 3000]])).map(
-        (f) => [f.id, f.width, f.height],
-      ),
+      buildPageFrames(
+        pages,
+        pageIndex,
+        elementsMap,
+        positions,
+        390,
+        844,
+        new Map([["page-components", 3000]]),
+      ).map((f) => [f.id, f.width, f.height]),
     ).toEqual([
       ["page-components", 1920, 3000],
       ["p1", 390, 844],
     ]);
     // 발행 전 (채널 없음) 은 floor 1080
     expect(
-      buildPageFrames(pages, pageIndex, elementsMap, positions, 390, 844).map((f) => [f.id, f.width, f.height]),
+      buildPageFrames(pages, pageIndex, elementsMap, positions, 390, 844).map(
+        (f) => [f.id, f.width, f.height],
+      ),
     ).toEqual([
       ["page-components", 1920, 1080],
       ["p1", 390, 844],

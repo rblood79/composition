@@ -124,6 +124,60 @@ production import 0 (주석 참조 4 곳뿐), 테스트 1 파일 (it 9). path �
    - live Canvas 1 회: 끝 행까지 스크롤한다.
    - 노드 수 unit 은 기존 것을 그대로 쓴다.
 
+### §3 Phase 1 결과 (2026-09-27)
+
+약칭은 §2 와 같다 (S · V · U), R = `scene/collectionRowOffsets.ts`.
+
+#### §3-1 반영한 것
+
+- **행 위치 단일 소스** `resolveCollectionRowOffsets` (R, 신규): 입력 = 시각 행 수 · 행 높이 (균일 값 또는 목록) · gap · 앞/뒤 여백 · viewport · scrollTop · overscan (· sample 모드 고정 window). 출력 = window · lead/trail spacer · 행 영역 · maxScrollTop. 행 top = Σ(h + gap), lead = top(s) − gap, trail = 행 영역 − top(e). 균일은 O(1), 목록은 누적합 + 이분 탐색.
+- **행별 높이 공급자** (V): ListBox 는 행마다 description · 선택 variant · 명시 height · responsive · 행 border 를 넣어 layout 과 같은 `resolveListBoxItemRowHeightFromStyle` 로 잰다 (S 에서 행 context · 표시 해석을 export 해 scene 과 같은 함수를 쓴다). GridList 는 카드마다 같은 방식으로 재고 시각 행 = 그 행 카드 최대, 카드 padding · border 는 카드 origin style (없으면 catalog metric). Table 은 catalog `TableRow.sizes` (상수 미러 삭제) + 요소 헤더 = Column 셀 `calculateContentHeight` 최대. 목록은 문서 · collections · breakpoint 가 같으면 캐시를 쓴다 (스크롤은 재계산 안 함).
+- **owner inset**: ListBox 4/1 · GridList 0/0 (spacing metric) 을 앞/뒤 여백으로 넣는다. `contentHeight` 는 이제 inset 포함 전 scroll content 다.
+- **scene 소비** (S): ListBox · GridList · Table 의 spacer · sample hatch · `_projectedRowsContentHeight` 가 resolution 필드를 먼저 쓴다 (legacy 균일 식은 필드 없을 때만).
+- **grid spacer**: `COLLECTION_FILLER_STYLE` (`width 100%` · `flexShrink 0` · `gridColumnStart "1"` · `gridColumnEnd "-1"`) 를 spacer 와 hatch 가 같이 쓴다.
+- **GridList gap 축**: `style.rowGap/columnGap ?? style.gap ?? props.gap ?? 12` — DOM 이 읽는 style 축을 먼저 (ListBox rowGapPx 와 같은 순서). 행 묶음 rowGap · columnGap 과 단일 소스 gap 이 같은 값.
+- **스크롤 범위 writer 하나**: fullTreeLayout GAP 4 가 projection 행 묶음 (`*-rows`) 을 가진 가상화 owner 를 건너뛴다. BuilderCanvas 는 resolver 에 `activeBreakpoint` 를 넘긴다.
+- **live 가 잡은 결함 2 (같은 phase 에서 수리)**: (1) ref instance owner (팔레트 요소) 를 raw instance props 로 읽어 origin 에만 있는 값을 놓쳤다 — 팔레트 Table 은 origin `size: "sm"` 이라 Canvas 행 36 인데 resolver 44 → resolver 입구에서 scene 과 같은 `applyPropsPatch(origin chain props, instance props)` view 를 쓴다 (문서 identity 로 캐시). (2) quick connect Table (ref instance + mode C 자기 열) 은 문서 자식이 없어 요소 헤더를 못 찾았다 — Canvas 헤더 40 인데 36 으로 읽어 스크롤 범위 4px 부족 → `tableColumnInsert.readTableHeaderColumnNodes` (quick connect · Preview 와 같은 열 reader) 로 읽는다.
+
+#### §3-2 G1 증거
+
+| 기준                          | 증거                                                                                                                                                                                                                                                                                | 결과                              |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| (b)(c) 실 브라우저 DOM oracle | `tests/parity/adr150RowPositionsDom.browser.test.ts` — CanonicalNodeRenderer 로 그린 ListBox 100 행 (32 · 50 교대) · GridList 2 열 100 카드 (시각 행 50 · 76 교대) · GridList `style.gap 20px` 40 카드. 모든 행 (카드) y · 높이 · `scrollHeight − clientHeight` 를 단일 소스와 대조 | 3/3 PASS (±1)                     |
+| (a) live Canvas               | `apps/builder/scripts/adr150-p1-row-positions-live.mjs` (headed, 팔레트 ref instance): ListBox 1000 · GridList 400 · Table 500 을 top · 중간 · 끝에서 layout map window 행 y · 높이 · scroll state maxScrollTop 대조 + quick connect Table (요소 헤더 40, dataTable 바인딩) 끝 도달 | 15/15 PASS, 오차 0, 페이지 에러 0 |
+| (d) 노드 수                   | 기존 10k 노드 수 unit (ListBox 18 · GridList · Table 15 data 행)                                                                                                                                                                                                                    | PASS                              |
+| unit                          | `collectionRowOffsets.test.ts` 10 · `adr150Phase0Red.test.ts` (Phase 1 describe 5) · `collectionVirtualization.test.ts` 57 (판독 수리 5 포함)                                                                                                                                       | PASS                              |
+
+(e) 원복 RED (백업 복사로 원복, git checkout 미사용):
+
+| 원복                              | 반응                                                                                                                                                                                     |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| spacer `gridColumnStart/End` 제거 | Phase 1 spacer 전체 열 unit RED                                                                                                                                                          |
+| 단일 소스 gap = 0                 | offsets unit 8 + window unit 2 RED                                                                                                                                                       |
+| 행별 높이 → 첫 행 균일            | ListBox · GridList 교대 높이 unit 2 RED                                                                                                                                                  |
+| ref instance props 병합 제거      | 팔레트 Table origin sm unit RED                                                                                                                                                          |
+| 요소 헤더 reader → 문서 자식만    | quick connect 모양 unit RED                                                                                                                                                              |
+| GridList gap → `props.gap` 축     | gap 축 unit RED + DOM oracle `style.gap 20px` RED                                                                                                                                        |
+| GAP 4 skip 제거                   | **반응 없음** (live 13/13) — spacer 가 정확해져 두 writer 가 같은 값을 낸다. skip 은 예측 ≠ layout 인 입력 (wrap, R1) 에서 값이 window 마다 흔들리는 것을 막는 단일 writer 규약으로 둔다 |
+
+#### §3-2b Phase 1 판독 (reviewer 1회, 2026-09-27) — HIGH 0 · MEDIUM 3 수리
+
+| #   | 판독                                                                                                                                          | 수리                                                                                                                                                                                                                                                                                                                                                                                                                                                            | 원복 RED                                    |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| M1  | plan 캐시 key 가 문서 identity 라 다른 요소를 편집할 때마다 가상화 목록 전 행을 다시 잰다 (10k 행 +6 ~ 8ms)                                   | store 는 편집마다 문서를 얕게 복제한다 (`cloneNode` — props · dataBinding.config 값 참조 유지). 문서가 바뀌면 입력 서명 (collections · owner props 값 참조, style 만 내용 · dataBinding · config 값 · ctx 의 style 내용 · 템플릿 참조) 이 같을 때 높이 목록을 재사용한다. 행 높이는 (선택, description) 조합마다 한 번만 잰다 (scene 과 같은 `resolveListBoxRowLayoutStyle` · `resolveCollectionRowDescription`). node 벤치 10k 행: 편집 1회 4.2 → 0.03 ~ 0.1ms | 서명 무조건 적중 → unit 8 RED               |
+| M2  | resolver 가 ADR-214 state 템플릿 (`{{ }}`) 을 풀지 않아 description `{{ subtitle }}` (기본값 "") 행을 50 으로 봤다 (scene 32)                 | resolver 입력 `projectVariables` → scene `stateEnvFor` 와 같은 shared 함수로 owner env (page 보강 제외) → ctx `stateEnv`. BuilderCanvas 가 넘기고 plan 캐시 조건에 넣었다                                                                                                                                                                                                                                                                                       | env 제거 → 5198 ≠ 3398 RED                  |
+| M3  | GridList · Table 은 owner 여백을 raw style 로 읽어 responsive padding 을 놓쳤다 (layout 은 반영) — mobile padding 16 이면 스크롤 범위 32 부족 | ListBox 와 같이 `resolveResponsiveStyleMap(style, node.responsive, breakpoint)`. GridList plan 캐시에 breakpoint                                                                                                                                                                                                                                                                                                                                                | responsive 제거 → GridList · Table unit RED |
+
+LOW deferred (production 증상 없음): L1 목록 입력이면 스크롤마다 `allEqual` · 누적합 할당 O(n) (50k 행 0.2ms 미만) · L2 legacy `resolveListBoxRowHeight` / `resolveGridListRowStride` 가 대표 `rowHeight` 용으로 남음 (두 번째 metric 소스) · L3 Table plan 캐시 없음 (열 수만큼) · L4 GridList sample 모드 3 열이면 샘플 카드 10 → 12 (hatch 와 정합) · L5 oracle 전용 `resolveCollectionRowPositions` 가 overflow 를 확인하지 않음. 수리 뒤 live 15/15 · DOM oracle 3/3 · builder 전체 7895 통과 재확인.
+
+#### §3-3 범위 밖 발견 (기록만)
+
+- **GridList 혼합 행 카드 stretch**: 한 시각 행에 description 카드 (76) 와 없는 카드가 섞이면 DOM 은 grid stretch 로 두 카드 모두 76, Canvas 는 짧은 카드가 50 그대로 (live 매 위치 5 ~ 8 장). 행 위치 · 스크롤 범위는 맞다 (시각 행 높이 = 최대). 카드 상자 높이의 D3 비대칭이라 layout (카드 높이 enrich) 쪽 별도 수리 대상.
+- DOM ListBox · GridList 는 가상화하지 않을 때 100 행에서 자른다 (`useResolvedCollectionItems` windowLimit) — Canvas 는 전 행을 가상화한다. 100 행 초과 데이터 목록의 DOM↔Canvas 행 수 비대칭.
+- template anchor 없는 data-bound ListBox 는 DOM 이 평문 행 (28, description 없음) 을 그리고 Canvas 는 slot 행 (32 · 50) 을 그린다. production 에서 anchor 없는 모양이 생기는지 미확인.
+- 같은 이름 형제 segment 의 synthetic id 충돌 (Phase 2 path walk 에서 다시 본다).
+- `catalogOrigins.test.ts` (ADR-228 G4 descendants 개수 138 ≠ 139) 실패 — Phase 1 과 무관한 다른 세션 변경 이후 상태.
+
 ## §4 Phase 2 — A3' 데이터 행 origin 진입 (G2)
 
 1. **해석기**: 입력은 hit 노드 (가상 · projected id) 와 그 행 projection (`templateOriginId` · 행 id) 이다. 출력은 origin 의 대응 자식 canonical id 이거나 null 이다. path 는 행 id 뒤 `/<path>` 로 origin 서브트리를 따라간다 (synthetic 자식 규칙 `syntheticDescendantLookup.ts` 와 같은 path 문법). null 이면 호출자는 owner 선택으로 돌아간다 (R5).

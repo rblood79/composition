@@ -322,6 +322,13 @@ export function BuilderCanvas({
   // ADR-150 A2 (ListBox 가상화): bounded height + overflow scroll/auto data-bound ListBox 의
   //   scrollOffset 기반 window map. scrollMap 변화마다 재계산되나 doc walk + O(1) count 라 저렴.
   const scrollMap = useScrollState((state) => state.scrollMap);
+  // ADR-154 Bug3 · ADR-150 A2': scene projection 과 window resolver 가 같은 activeBreakpoint 로
+  //   owner · 행 style 을 해석한다 (행 높이 예측 = 그려지는 행). dep 에 포함해 전환 시 재빌드.
+  const sceneActiveBreakpoint = useStore((state) => state.activeBreakpoint);
+  // ADR-214: 프로젝트 변수 정의 — `{{ name }}` 소비 노드의 stateDeps 해석 입력 (R8).
+  //   변수 Map 이 바뀌면 scene 재빌드 → 소비 노드만 signature 가 변한다 (미사용 편집은 +0).
+  //   가상화 resolver 도 같은 값으로 행 템플릿의 `{{ }}` 를 푼다 (ADR-150 A2').
+  const projectVariables = useProjectVariableDefs();
   const collectionWindows = useMemo(() => {
     if (!activeCanonicalDocument) return undefined;
     const scrollTops = new Map<string, number>();
@@ -332,8 +339,16 @@ export function BuilderCanvas({
       doc: activeCanonicalDocument,
       collections,
       scrollTops,
+      activeBreakpoint: sceneActiveBreakpoint,
+      projectVariables,
     });
-  }, [activeCanonicalDocument, collections, scrollMap]);
+  }, [
+    activeCanonicalDocument,
+    collections,
+    scrollMap,
+    sceneActiveBreakpoint,
+    projectVariables,
+  ]);
   // window [start,end) 경계 signature — overscan slack 안 스크롤은 불변 → scene rebuild 억제(HC#1).
   const collectionWindowSig = collectionWindows
     ? collectionWindowSignature(collectionWindows)
@@ -360,13 +375,6 @@ export function BuilderCanvas({
     //   maxScrollTop 값 불변이면 effect skip.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [collectionMaxScrollSig]);
-
-  // ADR-154 Bug3: collection projection(gap/padding)이 owner responsive override 를
-  //   activeBreakpoint 로 resolve 하도록 주입. dep 에 포함해 breakpoint 전환 시 scene 재빌드.
-  const sceneActiveBreakpoint = useStore((state) => state.activeBreakpoint);
-  // ADR-214: 프로젝트 변수 정의 — `{{ name }}` 소비 노드의 stateDeps 해석 입력 (R8).
-  //   변수 Map 이 바뀌면 scene 재빌드 → 소비 노드만 signature 가 변한다 (미사용 편집은 +0).
-  const projectVariables = useProjectVariableDefs();
 
   const canonicalSceneModel = useMemo(() => {
     if (!activeCanonicalDocument) return null;

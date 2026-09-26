@@ -2871,9 +2871,9 @@ export function calculateContentHeight(
     //   미접근이라 순수 dataBinding 소유자는 items 가 없어 행 0 으로 읽힌다 (r20m1 뒤 sample fallback
     //   없음 — 과거의 3-item fallback 은 scene 의 sample(N행) + hatch(remainder) totalRows 투영과
     //   어긋나 owner clip 을 냈다). scene 이 sample mode owner 에 주입한 `_projectedRowsContentHeight`
-    //   (= totalRows × rowHeight, window resolver 출력 = samples/hatch 와 동일 rowHeight) 가 dataBinding
-    //   행 높이의 유일한 원천이며, 이를 소비해 padding + 전체 높이 + border 를 반환한다.
-    //   rowsGroup gap=0 이라 inter-row gap 없음(주입값 = 순수 행 합). 캐시: layoutCache.ts
+    //   (= 행 위치 단일 소스 `rowsExtent` — 행별 높이 합 + 행 사이 rowGap, samples/hatch 와 같은 값) 가
+    //   dataBinding 행 높이의 유일한 원천이며, 이를 소비해 padding + 전체 높이 + border 를 반환한다.
+    //   캐시: layoutCache.ts
     //   LAYOUT_PROP_KEYS 에 등재(행 수 변화 시 owner 시그니처 무효화 — height/isExpanded 선례).
     const projectedRowsContentHeight = parseNumericValue(
       props?._projectedRowsContentHeight,

@@ -531,26 +531,75 @@ export function readTableHeaderColumns(
       patches = instance.descendants ?? {};
     }
   }
+  return visibleColumnNodes(columns, patches, headerPath, byId).map(
+    (node, index) => ({
+      id: node.id,
+      key: resolveTableColumnKey(node.props, index),
+      label: String(
+        node.props.label ?? node.props.children ?? node.props.key ?? "",
+      ),
+    }),
+  );
+}
+
+/** 지금 보이는 열 (삭제 표시 제외) — 유효 props = origin ⊕ 자기 props ⊕ 바깥 instance patch. */
+function visibleColumnNodes(
+  columns: readonly CanonicalNode[],
+  patches: Record<string, unknown>,
+  headerPath: string,
+  byId: ReadonlyMap<string, CanonicalNode>,
+): Array<{ id: string; type: "Column"; props: Record<string, unknown> }> {
   return columns
     .filter(
       (node) =>
         isColumnNode(node, byId) &&
         (node as { deleted?: boolean }).deleted !== true,
     )
-    .map((node, index) => {
+    .map((node) => {
       const patch = headerPath
         ? patches[`${headerPath}/${getCanonicalRefPathSegment(node)}`]
         : undefined;
-      const props = {
-        ...effectiveProps(node, byId),
-        ...(isRecord(patch) ? patch : {}),
-      };
       return {
         id: node.id,
-        key: resolveTableColumnKey(props, index),
-        label: String(props.label ?? props.children ?? props.key ?? ""),
+        type: "Column" as const,
+        props: {
+          ...effectiveProps(node, byId),
+          ...(isRecord(patch) ? patch : {}),
+        },
       };
     });
+}
+
+/**
+ * ADR-150 A2' — Table (plain · ref instance) 의 요소 헤더 열을 layout 전에 읽는다 (가상화 resolver 의 헤더 높이 입력).
+ * `readTableHeaderColumns` 와 같은 규칙: instance 는 mode C 자기 열 (`descendants[headerPath].children`) 이 있으면 그것,
+ * 없으면 origin 열에 바깥 글자 patch. 요소 헤더가 없으면 빈 배열.
+ */
+export function readTableHeaderColumnNodes(
+  table: CanonicalNode,
+  byId: ReadonlyMap<string, CanonicalNode>,
+): Array<{ id: string; type: "Column"; props: Record<string, unknown> }> {
+  if (table.type !== "ref") {
+    const header = childOfType(table, "TableHeader");
+    return header
+      ? visibleColumnNodes(header.children ?? [], {}, "", byId)
+      : [];
+  }
+  const instance = table as RefLike;
+  const master = instance.ref ? resolveChainEnd(instance.ref, byId) : null;
+  const header = childOfType(master, "TableHeader");
+  if (!header) return [];
+  const headerPath = getCanonicalRefPathSegment(header);
+  const descendants = instance.descendants ?? {};
+  const entry = descendants[headerPath];
+  return isRecord(entry) && Array.isArray(entry.children)
+    ? visibleColumnNodes(
+        entry.children as CanonicalNode[],
+        {},
+        headerPath,
+        byId,
+      )
+    : visibleColumnNodes(header.children ?? [], descendants, headerPath, byId);
 }
 
 /**

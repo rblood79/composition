@@ -1491,7 +1491,11 @@ describe("buildCanvasSceneGraph — page + reusable frame 시나리오", () => {
                   children: [
                     text("mixed-card__label", null, "Docs"),
                     text("mixed-card__description", "description", "12 files"),
-                    { id: "mixed-card__image", type: "Image", props: { alt: "x" } },
+                    {
+                      id: "mixed-card__image",
+                      type: "Image",
+                      props: { alt: "x" },
+                    },
                   ],
                 },
                 {
@@ -2652,7 +2656,11 @@ describe("ADR-229 Phase 1 — TagGroup chip item template origin", () => {
         return {
           id: `${originId}__icon`,
           type: "Icon",
-          props: { slot: "icon", iconName: "{icon}", ...(iconStyle ? { style: iconStyle } : {}) },
+          props: {
+            slot: "icon",
+            iconName: "{icon}",
+            ...(iconStyle ? { style: iconStyle } : {}),
+          },
           metadata: { slotRole: "icon", optional: true },
         } as unknown as CanonicalNode;
       }
@@ -2667,7 +2675,11 @@ describe("ADR-229 Phase 1 — TagGroup chip item template origin", () => {
       return {
         id: `${originId}__label`,
         type: "Text",
-        props: { slot: "label", children: "{label}", ...(labelStyle ? { style: labelStyle } : {}) },
+        props: {
+          slot: "label",
+          children: "{label}",
+          ...(labelStyle ? { style: labelStyle } : {}),
+        },
         metadata: { slotRole: "label" },
       } as unknown as CanonicalNode;
     });
@@ -2724,7 +2736,9 @@ describe("ADR-229 Phase 1 — TagGroup chip item template origin", () => {
     const rootSlot =
       input.tagListSlot && slotOn === "root" ? { slot: input.tagListSlot } : {};
     const listSlot =
-      input.tagListSlot && slotOn === "tagList" ? { slot: input.tagListSlot } : {};
+      input.tagListSlot && slotOn === "tagList"
+        ? { slot: input.tagListSlot }
+        : {};
     const tagGroupOrigin: CanonicalNode = {
       id: "component-taggroup",
       type: "TagGroup",
@@ -2755,7 +2769,11 @@ describe("ADR-229 Phase 1 — TagGroup chip item template origin", () => {
           {
             id: "taggroup-1",
             type: "TagGroup",
-            props: { items: ITEMS, selectedKeys: ["b"], selectionMode: "multiple" },
+            props: {
+              items: ITEMS,
+              selectedKeys: ["b"],
+              selectionMode: "multiple",
+            },
             ...rootSlot,
             children: [
               { id: "label-1", type: "Label", props: {} },
@@ -2821,11 +2839,20 @@ describe("ADR-229 Phase 1 — TagGroup chip item template origin", () => {
           borderRadius: 999,
         },
         defaultFills: [
-          { id: "f1", type: "color", enabled: true, opacity: 1, color: "#11223344" },
+          {
+            id: "f1",
+            type: "color",
+            enabled: true,
+            opacity: 1,
+            color: "#11223344",
+          },
         ],
         selectedStyle: { borderColor: "#ff0000" },
       }),
-      tagListSlot: ["component-tag-item-default", "component-tag-item-selected"],
+      tagListSlot: [
+        "component-tag-item-default",
+        "component-tag-item-selected",
+      ],
     });
     const { a, b, tagList } = chipsOf(doc, "taglist-1");
     expect(a.projection).toMatchObject({
@@ -2869,7 +2896,10 @@ describe("ADR-229 Phase 1 — TagGroup chip item template origin", () => {
   it("slot 존재 gating — origin 에 Avatar slot 이 없으면 chip 의 avatar 데이터를 버리고 icon 은 남긴다 · icon slot 만 없으면 avatar 는 그대로", () => {
     const noAvatar = makeDoc({
       origins: tagOrigins({ defaultRoles: ["icon", "label"] }),
-      tagListSlot: ["component-tag-item-default", "component-tag-item-selected"],
+      tagListSlot: [
+        "component-tag-item-default",
+        "component-tag-item-selected",
+      ],
     });
     const chips1 = chipsOf(noAvatar, "taglist-1");
     expect(chips1.a.props.avatar).toBeUndefined();
@@ -2878,7 +2908,10 @@ describe("ADR-229 Phase 1 — TagGroup chip item template origin", () => {
 
     const noIcon = makeDoc({
       origins: tagOrigins({ defaultRoles: ["avatar", "label"] }),
-      tagListSlot: ["component-tag-item-default", "component-tag-item-selected"],
+      tagListSlot: [
+        "component-tag-item-default",
+        "component-tag-item-selected",
+      ],
     });
     const chips2 = chipsOf(noIcon, "taglist-1");
     expect(chips2.a.props.avatar).toBe("https://x/a.png");
@@ -2892,7 +2925,10 @@ describe("ADR-229 Phase 1 — TagGroup chip item template origin", () => {
         labelStyle: { fontSize: 18, fontWeight: 700, color: "#123456" },
         iconStyle: { fontSize: 20 },
       }),
-      tagListSlot: ["component-tag-item-default", "component-tag-item-selected"],
+      tagListSlot: [
+        "component-tag-item-default",
+        "component-tag-item-selected",
+      ],
     });
     const { a, b, c, tagList } = chipsOf(doc, "taglist-1");
     expect(a.props.style).toMatchObject({
@@ -2916,14 +2952,23 @@ describe("ADR-229 Phase 1 — TagGroup chip item template origin", () => {
   it("ref instance — synthetic TagList 는 master(component-taggroup) 의 TagList slot 으로 같은 origin 을 읽는다", () => {
     const doc = makeDoc({
       origins: tagOrigins({ defaultStyle: { paddingLeft: 20 } }),
-      tagListSlot: ["component-tag-item-default", "component-tag-item-selected"],
+      tagListSlot: [
+        "component-tag-item-default",
+        "component-tag-item-selected",
+      ],
       instance: true,
     });
     // instance 의 synthetic 자식 projection 은 `buildCanonicalSceneModel` (ref 해소 뒤 pass) 이 붙인다.
-    const model = buildCanonicalSceneModel(doc, { activeBreakpoint: "desktop" });
+    const model = buildCanonicalSceneModel(doc, {
+      activeBreakpoint: "desktop",
+    });
     const byKey = (key: string) =>
       model.sceneNodesMap.get(
-        toCollectionRowProjectionId("tag", "tg-inst/component-taggroup__2", key),
+        toCollectionRowProjectionId(
+          "tag",
+          "tg-inst/component-taggroup__2",
+          key,
+        ),
       )!;
     const a = byKey("a");
     const b = byKey("b");
@@ -2968,7 +3013,10 @@ describe("ADR-229 Phase 1 — TagGroup chip item template origin", () => {
         defaultStyle: { display: "flex", paddingLeft: 20 },
         labelStyle: { fontSize: 18 },
       }),
-      tagListSlot: ["component-tag-item-default", "component-tag-item-selected"],
+      tagListSlot: [
+        "component-tag-item-default",
+        "component-tag-item-selected",
+      ],
     });
     const walk = (n: CanonicalNode) => {
       nodes.set(n.id, n);
@@ -2977,7 +3025,9 @@ describe("ADR-229 Phase 1 — TagGroup chip item template origin", () => {
     doc.children.forEach(walk);
     const get = () => nodes;
     // owner TagGroup root 의 slot (부모 탐색) 이 정본.
-    expect(resolveTagTemplateOriginIds(nodes.get("taglist-1")!, get, null)).toEqual({
+    expect(
+      resolveTagTemplateOriginIds(nodes.get("taglist-1")!, get, null),
+    ).toEqual({
       defaultOriginId: "component-tag-item-default",
       selectedOriginId: "component-tag-item-selected",
     });
@@ -2988,23 +3038,40 @@ describe("ADR-229 Phase 1 — TagGroup chip item template origin", () => {
       slot: ["component-tag-item-selected", "component-tag-item-default"],
     } as CanonicalNode);
     expect(
-      resolveTagTemplateOriginIds(nodes.get("taglist-1")!, () => flippedNodes, null),
+      resolveTagTemplateOriginIds(
+        nodes.get("taglist-1")!,
+        () => flippedNodes,
+        null,
+      ),
     ).toEqual({
       defaultOriginId: "component-tag-item-selected",
       selectedOriginId: "component-tag-item-selected",
     });
     // legacy 폴백 — root slot 없이 TagList 자식만 slot 을 가진 문서 (Phase 1 당일 시드).
     const legacyNodes = new Map<string, CanonicalNode>(nodes);
-    const legacyList = { ...nodes.get("taglist-1")!, slot: ["component-tag-item-default", "component-tag-item-selected"] } as CanonicalNode;
-    const legacyOwner = (({ slot: _s, ...rest }) => rest)(nodes.get("taggroup-1")! as CanonicalNode & { slot?: unknown });
-    legacyNodes.set("taggroup-1", { ...(legacyOwner as CanonicalNode), children: [nodes.get("label-1")!, legacyList] });
+    const legacyList = {
+      ...nodes.get("taglist-1")!,
+      slot: ["component-tag-item-default", "component-tag-item-selected"],
+    } as CanonicalNode;
+    const legacyOwner = (({ slot: _s, ...rest }) => rest)(
+      nodes.get("taggroup-1")! as CanonicalNode & { slot?: unknown },
+    );
+    legacyNodes.set("taggroup-1", {
+      ...(legacyOwner as CanonicalNode),
+      children: [nodes.get("label-1")!, legacyList],
+    });
     legacyNodes.set("taglist-1", legacyList);
-    expect(resolveTagTemplateOriginIds(legacyList, () => legacyNodes, null)).toEqual({
+    expect(
+      resolveTagTemplateOriginIds(legacyList, () => legacyNodes, null),
+    ).toEqual({
       defaultOriginId: "component-tag-item-default",
       selectedOriginId: "component-tag-item-selected",
     });
     expect(
-      resolveTagItemTemplateStyle(nodes.get("component-tag-item-default"), "desktop"),
+      resolveTagItemTemplateStyle(
+        nodes.get("component-tag-item-default"),
+        "desktop",
+      ),
     ).toEqual({ paddingLeft: 20, fontSize: 18 });
     expect(resolveTagItemTemplateStyle(undefined, "desktop")).toBeNull();
   });

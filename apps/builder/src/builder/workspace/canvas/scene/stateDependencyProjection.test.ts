@@ -194,7 +194,9 @@ describe("stateDeps 투영 — 소비 정의만 signature 에 든다", () => {
     expect(graph.nodesMap.get("greeting")?.props.children).toBe("Hello guest");
     expect(graph.nodesMap.get("other")?.props.children).toBe("static");
     const none = buildCanvasSceneGraph(makeDoc({}));
-    expect(none.nodesMap.get("greeting")?.props.children).toBe("Hello {{ userName }}");
+    expect(none.nodesMap.get("greeting")?.props.children).toBe(
+      "Hello {{ userName }}",
+    );
     // 요소 state 가 가까우면 그 기본값 · 페이지 state 도 사슬 안
     const near = signatureOf(
       makeDoc({
@@ -212,7 +214,9 @@ describe("stateDeps 투영 — 소비 정의만 signature 에 든다", () => {
     const after = signatureOf(makeDoc({}), [
       def("v_user", "userName", { defaultValue: "Ana" }),
     ]);
-    expect(after.graph.nodesMap.get("greeting")?.props.children).toBe("Hello Ana");
+    expect(after.graph.nodesMap.get("greeting")?.props.children).toBe(
+      "Hello Ana",
+    );
     expect(after.signature).not.toBe(before.signature);
   });
 });

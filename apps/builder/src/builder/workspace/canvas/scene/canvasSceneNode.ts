@@ -212,8 +212,8 @@ export interface CollectionWindowResolution {
   /** 절대 index [startIndex, endIndex) — 이 구간 행만 투영. */
   window: CollectionWindow;
   /**
-   * 균일 **visual row 높이**(px, stride) — leading/trailing spacer 높이 산출.
-   * ListBox/Table(1열)은 item 높이 그대로. GridList grid 모드는 카드 높이+rowGap(=시각 행 stride).
+   * 대표 행 높이 (px, 첫 시각 행). spacer · 주입 높이는 아래 `leadSpacerHeight` · `trailSpacerHeight`
+   * · `rowsExtent` (행 위치 단일 소스) 가 우선이고, 이 값은 그 필드가 없는 legacy 식의 입력이다.
    */
   rowHeight: number;
   /** window 전 원본 전체 행 수 — 총 content height(스크롤바) + trailing spacer. */
@@ -230,8 +230,8 @@ export interface CollectionWindowResolution {
    */
   viewportHeight?: number;
   /**
-   * 전 행 투영 총 content height(px) = (visual row 수 + table header) × rowHeight.
-   * 스크롤바 범위 + trailing spacer 총 높이의 단일 소스.
+   * 전 행 scroll content 높이 (px) = 앞 여백 (border · padding · 헤더) + 행 영역 + 뒤 여백.
+   * `maxScrollTop = contentHeight − viewportHeight`.
    */
   contentHeight?: number;
   /**
@@ -247,6 +247,15 @@ export interface CollectionWindowResolution {
    * spacer 아님). scene 이 trailing 을 hatch 로 emit 할지 spacer 로 emit 할지 판별한다.
    */
   mode?: "scroll" | "sample";
+  /**
+   * ADR-150 A2' — 행 위치 단일 소스 (`resolveCollectionRowOffsets`) 결과. 있으면 scene 의 lead ·
+   * trail spacer (sample 모드는 hatch) · 주입 높이가 이 값을 쓴다. 행별 높이와 행 묶음 gap 을
+   * 반영한 값이라 `rowHeight × 행 수` 식을 대신한다. 없으면 legacy 균일 식.
+   */
+  leadSpacerHeight?: number;
+  trailSpacerHeight?: number;
+  /** 행 영역 높이 = Σ 행 높이 + (행 수 − 1) × gap. */
+  rowsExtent?: number;
 }
 
 interface BuildCanvasSceneGraphOptions {
@@ -921,7 +930,7 @@ function isListBoxSceneSource(
   );
 }
 
-function isListBoxRowSelected(
+export function isListBoxRowSelected(
   props: Record<string, unknown>,
   itemKey: string,
   rowIndex: number,
@@ -940,6 +949,21 @@ function isListBoxRowSelected(
 }
 
 /**
+ * ADR-150 A2' — 가상화 spacer · ADR-157 hatch 의 layout style. 행 묶음이 flex column (ListBox · Table ·
+ * GridList stack) 이면 width 100% 로 한 줄을 차지하고, **GridList grid 모드 (`display:grid`)** 에서는
+ * grid 한 칸이 아니라 전체 열을 차지해야 한다 — 한 칸만 차지하면 첫 window 카드가 spacer 옆 칸에 붙어
+ * 스크롤할 때 카드 열이 뒤바뀐다 (2026-09-27 live). 엔진은 shorthand `gridColumn` 을 운반하지 않아
+ * longhand 로 준다 (`fullTreeLayout` 직렬화 · `packages/engine/src/grid.rs` `-1` = 마지막 명시 라인).
+ * flex 부모에서는 grid 배치 속성이 무시된다.
+ */
+const COLLECTION_FILLER_STYLE = {
+  width: "100%",
+  flexShrink: 0,
+  gridColumnStart: "1",
+  gridColumnEnd: "-1",
+} as const;
+
+/**
  * ADR-150 A2 (ListBox proof → GridList/Table 확산): window resolution → **visual row(시각 행)**
  * 단위 leading/trailing spacer 행 수. spacer 는 시각 행 단위로 높이를 채워 window 행이 절대
  * 위치에 오도록 밀어내고 총 content height(스크롤바)를 보존한다.
@@ -949,7 +973,8 @@ function isListBoxRowSelected(
  * - GridList grid (columns=numCols) → 시각 한 줄 = numCols 카드. lead=startIndex/numCols 줄.
  *
  * window 은 resolver 에서 columns 경계로 정렬돼 있어(startIndex/endIndex 가 numCols 배수, tail
- * clamp 예외) ceil 이 정확한 시각 행 수를 준다. spacer 높이 = 반환값 × resolution.rowHeight(stride).
+ * clamp 예외) ceil 이 정확한 시각 행 수를 준다. 반환값은 spacer **유무** 판정에 쓰고, 높이는
+ * `resolution.leadSpacerHeight` · `trailSpacerHeight` (행 위치 단일 소스) 가 우선이다.
  */
 function resolveCollectionSpacerVisualRows(
   resolution: CollectionWindowResolution,
@@ -966,9 +991,9 @@ function resolveCollectionSpacerVisualRows(
 
 /**
  * ADR-150 A2: 가상화 spacer(비-hit·비-render layout-only Box) 노드 생성. family 별 projection
- * id/kind 만 다르고 구조는 동형(width:100% + 고정 height + flexShrink:0). GridList grid 모드에서
- * width:100% 는 wrap-flow 에서 spacer 가 자체 시각 행을 점유하게 해 window 카드가 올바른 열에서
- * 시작하도록 정렬한다.
+ * id/kind 만 다르고 구조는 동형 (`COLLECTION_FILLER_STYLE` + 고정 height). GridList 행 묶음은
+ * `display:grid` 라 width 가 아니라 `gridColumnStart 1 / End -1` 이 spacer 를 한 시각 행 전체로 펴서
+ * window 첫 카드가 0 열에서 시작한다 (ADR-150 Phase 0 live — width 만으로는 grid 한 칸).
  */
 function createCollectionSpacerNode(input: {
   family: "listbox" | "gridlist" | "table";
@@ -988,7 +1013,7 @@ function createCollectionSpacerNode(input: {
     ),
     type: "Box",
     props: {
-      style: { width: "100%", height: input.height, flexShrink: 0 },
+      style: { ...COLLECTION_FILLER_STYLE, height: input.height },
     },
     parentId: input.rowsGroupId,
     pageId: input.scope.pageId,
@@ -1023,7 +1048,7 @@ function createCollectionRemainderNode(input: {
     id: toCollectionRemainderProjectionId(input.family, input.ownerId),
     type: "Box",
     props: {
-      style: { width: "100%", height: input.height, flexShrink: 0 },
+      style: { ...COLLECTION_FILLER_STYLE, height: input.height },
     },
     parentId: input.rowsGroupId,
     pageId: input.scope.pageId,
@@ -1093,24 +1118,36 @@ function resolveDataBoundListBoxProjection(
   };
 }
 
-function appendListBoxRowProjection(
-  listBoxSceneNode: CanvasSceneNode,
-  projection: {
-    rows: ListBoxProjectionRow[];
-    templateAnchor: CanonicalNode | null;
-    sourceNode: CanonicalNode;
-    windowResolution: CollectionWindowResolution | null;
-  },
-  scope: SceneScopeContext,
-  graph: Pick<CanvasSceneGraph, "childrenByParent" | "nodes" | "nodesMap"> & {
-    parentById: Map<string, string>;
-  },
-  getDocumentNodesById: () => Map<string, CanonicalNode>,
-  activeBreakpoint: BreakpointName,
-  stateEnvFor?: StateEnvFor,
-): void {
-  const props = listBoxSceneNode.props;
-  const { rows, templateAnchor, sourceNode } = projection;
+/**
+ * ADR-150 A2' — ListBox 행 조립 context (행 style · slot 구성 · 텍스트 템플릿 · 행 gap · origin fills).
+ * scene 투영 (`appendListBoxRowProjection`) 과 가상화 resolver (`collectionVirtualization`) 가 **같은
+ * 함수**로 얻는다 — 행 높이를 예측하는 쪽과 행을 그리는 쪽이 입력을 따로 조립하지 않는다.
+ */
+export interface ListBoxRowContext {
+  templateAnchorId: string | null;
+  templateOriginId: string | null;
+  templateAnchorStyle: Record<string, unknown>;
+  selectedOriginStyle: Record<string, unknown>;
+  defaultOriginFills: ReturnType<typeof readCanonicalNodeFills>;
+  selectedOriginFills: ReturnType<typeof readCanonicalNodeFills>;
+  slotComposition: ReturnType<typeof resolveSlotComposition>;
+  labelTemplate: ReturnType<typeof compileFieldTemplate>;
+  descriptionTemplate: ReturnType<typeof compileFieldTemplate>;
+  /** 행 묶음 rowGap (px). */
+  rowGapPx: number;
+}
+
+export function resolveListBoxRowContext(input: {
+  ownerProps: Record<string, unknown>;
+  ownerResponsive: CanonicalNode["responsive"] | undefined;
+  sourceNode: CanonicalNode;
+  templateAnchor: CanonicalNode | null;
+  getDocumentNodesById: () => Map<string, CanonicalNode>;
+  activeBreakpoint: BreakpointName;
+  stateEnv?: StateTemplateEnv;
+}): ListBoxRowContext {
+  const { sourceNode, templateAnchor, getDocumentNodesById, activeBreakpoint } =
+    input;
   const templateAnchorId = templateAnchor?.id ?? null;
   const templateOriginId = resolveListBoxTemplateOriginId(
     sourceNode,
@@ -1176,12 +1213,6 @@ function appendListBoxRowProjection(
       ? templateAnchor.children
       : templateOriginNode?.children,
   );
-  if (slotComposition) {
-    // 컨테이너 layout(utils.ts §1.55b listbox 분기)이 행 높이(description 유무)를 같은
-    //   구성으로 gating 하도록 owner ListBox scene props 에도 주입 (Layer D 대칭).
-    (listBoxSceneNode.props as Record<string, unknown>)._slots =
-      slotComposition;
-  }
   // ADR-159 P2: 행 텍스트 템플릿 compile — 행 루프 밖 1회 (R5). 소스 precedence 는
   //   shared 단일 헬퍼(§2-3-1): slot text > item children/textValue > null(휴리스틱).
   //   item-level 은 anchor(인스턴스 override) 우선, origin fallback. compile null(토큰
@@ -1198,7 +1229,7 @@ function appendListBoxRowProjection(
       resolveRowTemplateSource(null, role, originItemProps);
     // ADR-214 Phase 3 — `{{ }}` 를 소유자 (ListBox) 기준 기본값 env 로 먼저 (state → field 순서)
     if (!source) return null;
-    const env = stateEnvFor?.(listBoxSceneNode.id, scope.pageId);
+    const env = input.stateEnv;
     return compileFieldTemplate(
       env ? resolveStateTemplate(source, env) : source,
     );
@@ -1209,14 +1240,14 @@ function appendListBoxRowProjection(
   //   무시됐다(GridList 는 rowGap:gap 적용 — 패밀리 비대칭, 사용자 보고). 소유자 gap 을 해석해
   //   rowsGroup rowGap + injection/hatch 공식에 반영한다. style longhand(rowGap) 우선 + shorthand
   //   fallback(style-ssot 정책) + props.gap(GridList 규약) 커버. 기본 0 (RAC ListBox 행 인접).
-  const listBoxOwnerProps = listBoxSceneNode.props as Record<string, unknown>;
+  const listBoxOwnerProps = input.ownerProps;
   // ADR-154 Bug3: mobile/tablet 편집은 owner.responsive.styles 로 저장된다. layout/render
   //   경로는 resolveResponsiveLayoutNode 로 반영하지만 scene projection 은 raw style 을 읽어
   //   projected row gap/padding 이 desktop 값으로 떨어졌다 → 동일 merge 로 activeBreakpoint
   //   override 를 흡수(desktop 또는 responsive 부재면 identity, 무비용).
   const listBoxOwnerStyle = resolveResponsiveStyleMap(
     (listBoxOwnerProps?.style as Record<string, unknown> | undefined) ?? {},
-    listBoxSceneNode.responsive,
+    input.ownerResponsive,
     activeBreakpoint,
   );
   // 2026-07-22 (사용자 보고): ref 인스턴스가 자체 gap override 를 안 주면 CSS 는 origin ListBox 의
@@ -1258,12 +1289,136 @@ function appendListBoxRowProjection(
       listBoxContainerFallback.gap,
     0,
   );
+  return {
+    templateAnchorId,
+    templateOriginId,
+    templateAnchorStyle,
+    selectedOriginStyle,
+    defaultOriginFills,
+    selectedOriginFills,
+    slotComposition,
+    labelTemplate,
+    descriptionTemplate,
+    rowGapPx,
+  };
+}
+
+/**
+ * ADR-150 A2' — ListBox 행 하나의 표시 입력 (선택 · 행 style · label · description). scene 투영과
+ * 가상화 resolver 의 행별 높이 공급자가 같이 읽는다.
+ */
+export function resolveListBoxRowPresentation(
+  ctx: ListBoxRowContext,
+  ownerProps: Record<string, unknown>,
+  row: ListBoxProjectionRow,
+): {
+  isRowSelected: boolean;
+  rowLayoutStyle: Record<string, unknown>;
+  rowLabel: string;
+  rowDescription: string;
+} {
+  const isRowSelected = isListBoxRowSelected(
+    ownerProps,
+    row.itemKey,
+    row.rowIndex,
+  );
+  const rowLayoutStyle = resolveListBoxRowLayoutStyle(ctx, isRowSelected);
+  // ADR-159 P2: 템플릿 존재 시 row.item(+가상 필드 label/description/icon/value) 보간.
+  //   없으면 기존 휴리스틱 산출(row.label) 그대로 — 문서/시각 BC.
+  const templateItem =
+    ctx.labelTemplate || ctx.descriptionTemplate
+      ? buildCollectionRowTemplateItem(row)
+      : null;
+  const rowLabel =
+    ctx.labelTemplate && templateItem
+      ? interpolateFieldTemplate(ctx.labelTemplate, templateItem)
+      : row.label;
+  const rowDescription = resolveCollectionRowDescription(ctx, row);
+  return { isRowSelected, rowLayoutStyle, rowLabel, rowDescription };
+}
+
+/**
+ * 행 layout style — anchor style 위에 선택 행이면 Selected variant origin style. 행 폭 기본 100%
+ * (list 행 stretch) — origin ListBoxItem 이 명시 width(예: 50%)를 주면 그 값 존중 (CSS 는 origin
+ * width 를 각 행에 적용 — 2026-07-22 사용자 보고). 행 높이는 이 style 과 description 유무로만 갈려
+ * 가상화 resolver (ADR-150 A2') 가 같은 함수로 선택 여부별 한 번씩만 잰다.
+ */
+export function resolveListBoxRowLayoutStyle(
+  ctx: Pick<ListBoxRowContext, "templateAnchorStyle" | "selectedOriginStyle">,
+  isRowSelected: boolean,
+): Record<string, unknown> {
+  const rowLayoutStyle: Record<string, unknown> = {
+    ...ctx.templateAnchorStyle,
+    ...(isRowSelected ? ctx.selectedOriginStyle : {}),
+  };
+  if (rowLayoutStyle.width == null) rowLayoutStyle.width = "100%";
+  return rowLayoutStyle;
+}
+
+/**
+ * 행 description — description 템플릿이 있으면 행 데이터로 보간, 없으면 휴리스틱 `row.description`.
+ * ListBox 행 · GridList 카드 공용 (ADR-159 P2). 가상화 resolver 가 행 높이 판정에 같은 값을 쓴다.
+ */
+export function resolveCollectionRowDescription(
+  ctx: { descriptionTemplate: ReturnType<typeof compileFieldTemplate> },
+  row: ListBoxProjectionRow,
+): string {
+  return ctx.descriptionTemplate
+    ? interpolateFieldTemplate(
+        ctx.descriptionTemplate,
+        buildCollectionRowTemplateItem(row),
+      )
+    : (row.description ?? "");
+}
+
+function appendListBoxRowProjection(
+  listBoxSceneNode: CanvasSceneNode,
+  projection: {
+    rows: ListBoxProjectionRow[];
+    templateAnchor: CanonicalNode | null;
+    sourceNode: CanonicalNode;
+    windowResolution: CollectionWindowResolution | null;
+  },
+  scope: SceneScopeContext,
+  graph: Pick<CanvasSceneGraph, "childrenByParent" | "nodes" | "nodesMap"> & {
+    parentById: Map<string, string>;
+  },
+  getDocumentNodesById: () => Map<string, CanonicalNode>,
+  activeBreakpoint: BreakpointName,
+  stateEnvFor?: StateEnvFor,
+): void {
+  const props = listBoxSceneNode.props;
+  const { rows, templateAnchor, sourceNode } = projection;
+  const ctx = resolveListBoxRowContext({
+    ownerProps: listBoxSceneNode.props as Record<string, unknown>,
+    ownerResponsive: listBoxSceneNode.responsive,
+    sourceNode,
+    templateAnchor,
+    getDocumentNodesById,
+    activeBreakpoint,
+    stateEnv: stateEnvFor?.(listBoxSceneNode.id, scope.pageId),
+  });
+  const {
+    templateAnchorId,
+    templateOriginId,
+    defaultOriginFills,
+    selectedOriginFills,
+    slotComposition,
+    rowGapPx,
+  } = ctx;
+  if (slotComposition) {
+    // 컨테이너 layout(utils.ts §1.55b listbox 분기)이 행 높이(description 유무)를 같은
+    //   구성으로 gating 하도록 owner ListBox scene props 에도 주입 (Layer D 대칭).
+    (listBoxSceneNode.props as Record<string, unknown>)._slots =
+      slotComposition;
+  }
+  const listBoxOwnerProps = listBoxSceneNode.props as Record<string, unknown>;
 
   // ADR-157 Phase 3 (배치 진실성): sample mode(auto-height data-bound) owner 는 layout §1.55b 가
   //   props.items 만 순회해 순수 dataBinding 소유자에서 3-item fallback 으로 clip 된다. scene 이
   //   totalRows 전체 높이를 owner props 에 주입해 §1.55b(또는 ref 소유자는 fix b early-check)가
-  //   이를 소비하도록 한다(layout = scene 정합). gap 있으면 inter-row gap 포함:
-  //   totalRows × rowHeight + (totalRows-1) × rowGap (= rowsGroup flex 산출 높이).
+  //   이를 소비하도록 한다(layout = scene 정합). 값은 행 위치 단일 소스의 `rowsExtent`
+  //   (Σ 행 높이 + (행 수 − 1) × rowGap = rowsGroup flex 산출 높이). 균일 식은 legacy 폴백.
   //   scroll mode 는 explicit height(§1 우선)라 무시되고, legacy(window null)는 기존 items 경로.
   const ownerWindow = projection.windowResolution;
   if (
@@ -1272,8 +1427,9 @@ function appendListBoxRowProjection(
     ownerWindow.rowHeight > 0
   ) {
     listBoxOwnerProps._projectedRowsContentHeight =
+      ownerWindow.rowsExtent ??
       ownerWindow.totalRows * ownerWindow.rowHeight +
-      Math.max(0, ownerWindow.totalRows - 1) * rowGapPx;
+        Math.max(0, ownerWindow.totalRows - 1) * rowGapPx;
   }
   const rowsGroupId = toListBoxRowsGroupProjectionId(listBoxSceneNode.id);
   const rowsGroup: CanvasSceneNode = {
@@ -1304,11 +1460,11 @@ function appendListBoxRowProjection(
   };
   addSceneNode(rowsGroup, graph);
 
-  // ADR-150 A2 (ListBox 가상화): window 활성 시 leading/trailing spacer 로 window 밖 행
-  //   높이를 채운다 — window 행이 절대 위치(startIndex*rowHeight)에 오도록 밀어내고, 총
-  //   content height = totalRows*rowHeight 를 flex column 자식 합으로 보존(스크롤바 정확).
+  // ADR-150 A2' (ListBox 가상화): window 활성 시 leading/trailing spacer 로 window 밖 행
+  //   높이를 채운다 — spacer 높이는 행 위치 단일 소스 (`resolveCollectionRowOffsets`) 가 행별 높이 ·
+  //   rowGap 으로 구한 값이라 window 행이 전 행 배치와 같은 y 에 오고, 행 묶음 높이 = 전 행 영역이다.
   //   spacer 는 fills 없는 layout-only Box (비-hit/비-시각). window 없으면(legacy cap) 미삽입.
-  //   ListBox 는 1열(rowsGroup gap 0)이라 columns 미지정 → visual row = item index.
+  //   ListBox 는 1열이라 columns 미지정 → visual row = item index.
   const { windowResolution } = projection;
   const rowHeight = windowResolution?.rowHeight ?? 0;
   const spacerRows = windowResolution
@@ -1326,7 +1482,13 @@ function appendListBoxRowProjection(
       sourceNode: templateAnchor ?? sourceNode,
     });
   if (spacerRows.lead > 0 && rowHeight > 0) {
-    addSceneNode(createSpacerNode("lead", spacerRows.lead * rowHeight), graph);
+    addSceneNode(
+      createSpacerNode(
+        "lead",
+        windowResolution?.leadSpacerHeight ?? spacerRows.lead * rowHeight,
+      ),
+      graph,
+    );
   }
 
   for (const row of rows) {
@@ -1334,35 +1496,8 @@ function appendListBoxRowProjection(
       listBoxSceneNode.id,
       row.itemKey,
     );
-    const isRowSelected = isListBoxRowSelected(
-      props,
-      row.itemKey,
-      row.rowIndex,
-    );
-    // ADR-147: anchor layout style overlay. 행 폭 기본 100%(list 행 stretch) — 단, origin
-    //   ListBoxItem 이 명시 width(예: 50%)를 주면 그 값 존중. CSS(DOM)는 origin width 를 각 행에
-    //   적용하므로 Skia 가 100% 를 무조건 강제하면 Skia↔CSS parity 위반(2026-07-22 사용자 보고:
-    //   width:50% 인데 Skia 만 100% 렌더). selected 행은 Selected variant origin style overlay
-    //   (2026-07-20) — 그쪽 width 도 동일 존중.
-    const rowLayoutStyle: Record<string, unknown> = {
-      ...templateAnchorStyle,
-      ...(isRowSelected ? selectedOriginStyle : {}),
-    };
-    if (rowLayoutStyle.width == null) rowLayoutStyle.width = "100%";
-    // ADR-159 P2: 템플릿 존재 시 row.item(+가상 필드 label/description/icon/value) 보간.
-    //   없으면 기존 휴리스틱 산출(row.label) 그대로 — 문서/시각 BC.
-    const templateItem =
-      labelTemplate || descriptionTemplate
-        ? buildCollectionRowTemplateItem(row)
-        : null;
-    const rowLabel =
-      labelTemplate && templateItem
-        ? interpolateFieldTemplate(labelTemplate, templateItem)
-        : row.label;
-    const rowDescription =
-      descriptionTemplate && templateItem
-        ? interpolateFieldTemplate(descriptionTemplate, templateItem)
-        : (row.description ?? "");
+    const { isRowSelected, rowLayoutStyle, rowLabel, rowDescription } =
+      resolveListBoxRowPresentation(ctx, props, row);
     const rowProps: Record<string, unknown> = {
       children: rowLabel,
       description: rowDescription,
@@ -1427,8 +1562,9 @@ function appendListBoxRowProjection(
           //   samples/hatch 사이에 이미 gap 을 넣으므로, hatch 자체는 hidden 행 사이 gap
           //   (trail-1)개만 포함 → 합산 시 owner injection(totalRows-1 gap)과 정확 정합.
           height:
+            windowResolution.trailSpacerHeight ??
             spacerRows.trail * rowHeight +
-            Math.max(0, spacerRows.trail - 1) * rowGapPx,
+              Math.max(0, spacerRows.trail - 1) * rowGapPx,
           hiddenRows: spacerRows.trail,
           scope,
           sourceNode: templateAnchor ?? sourceNode,
@@ -1437,7 +1573,10 @@ function appendListBoxRowProjection(
       );
     } else {
       addSceneNode(
-        createSpacerNode("trail", spacerRows.trail * rowHeight),
+        createSpacerNode(
+          "trail",
+          windowResolution?.trailSpacerHeight ?? spacerRows.trail * rowHeight,
+        ),
         graph,
       );
     }
@@ -1561,27 +1700,52 @@ function buildRowDescendantsPatch(
   return patch as Record<string, DescendantOverride>;
 }
 
-function appendGridListRowProjection(
-  gridListSceneNode: CanvasSceneNode,
-  projection: {
-    rows: ListBoxProjectionRow[];
-    sourceNode: CanonicalNode;
-    windowResolution: CollectionWindowResolution | null;
-  },
-  scope: SceneScopeContext,
-  graph: Pick<CanvasSceneGraph, "childrenByParent" | "nodes" | "nodesMap"> & {
-    parentById: Map<string, string>;
-  },
-  getDocumentNodesById: () => Map<string, CanonicalNode>,
-  stateEnvFor?: StateEnvFor,
-): void {
-  const props = gridListSceneNode.props;
-  const { rows, sourceNode } = projection;
+/**
+ * ADR-150 A2' — GridList 카드 조립 context (열 · gap · origin style · slot · 텍스트 템플릿 · 펼침 여부 ·
+ * 선택 체크박스). scene 투영 (`appendGridListRowProjection`) 과 가상화 resolver 가 같은 함수로 얻는다.
+ */
+export interface GridListCardContext {
+  layout: string;
+  numCols: number;
+  /** 시각 행 사이 간격 (행 묶음 rowGap · 행 위치 단일 소스 gap). */
+  gap: number;
+  /** 열 사이 간격 (행 묶음 columnGap). */
+  columnGap: number;
+  templateOriginNode: CanonicalNode | undefined;
+  templateOriginId: string | null;
+  originStyle: Record<string, unknown>;
+  slotComposition: ReturnType<typeof resolveSlotComposition>;
+  labelTemplate: ReturnType<typeof compileFieldTemplate>;
+  descriptionTemplate: ReturnType<typeof compileFieldTemplate>;
+  expandRowsFromOrigin: boolean;
+  showSelectionCheckbox: boolean;
+}
+
+export function resolveGridListCardContext(input: {
+  ownerProps: Record<string, unknown>;
+  sourceNode: CanonicalNode;
+  getDocumentNodesById: () => Map<string, CanonicalNode>;
+  stateEnv?: StateTemplateEnv;
+}): GridListCardContext {
+  const props = input.ownerProps;
+  const { sourceNode, getDocumentNodesById } = input;
   // 2026-07-29: prop 부재 fallback 도 grid (catalog `GridList.binding.ts` layout.default 정합).
   const layout = (props.layout as string) ?? "grid";
   const numCols =
     layout === "grid" ? Math.max(1, Number(props.columns) || 2) : 1;
-  const gap = typeof props.gap === "number" ? (props.gap as number) : 12;
+  // ADR-150 A2' — 간격은 DOM 과 같은 축 (owner `style.rowGap/columnGap ?? style.gap`, 없으면
+  //   GridList.css `--spacing-md` 12) 을 먼저 읽는다. `props.gap` 은 DOM 이 읽지 않는 legacy 축이라
+  //   style 이 없을 때만 쓴다 (ListBox rowGapPx 와 같은 순서).
+  const ownerStyle = (props.style as Record<string, unknown> | undefined) ?? {};
+  const legacyGap = typeof props.gap === "number" ? props.gap : undefined;
+  const gap = parsePxValue(
+    ownerStyle.rowGap ?? ownerStyle.gap ?? legacyGap ?? 12,
+    12,
+  );
+  const columnGap = parsePxValue(
+    ownerStyle.columnGap ?? ownerStyle.gap ?? legacyGap ?? 12,
+    12,
+  );
 
   // ADR-148 Phase 4 — ADR-147 모델 복제 (appendListBoxRowProjection 동형): Components
   //   페이지의 GridListItem 기본 origin 에서 slot 구성(존재·순서·slot 자식 style)과
@@ -1598,12 +1762,6 @@ function appendGridListRowProjection(
     (templateOriginNode?.props?.style as Record<string, unknown> | undefined) ??
     {};
   const slotComposition = resolveSlotComposition(templateOriginNode?.children);
-  if (slotComposition) {
-    // 컨테이너 layout(utils.ts §1.55c gridlist 분기)이 카드 높이(description 유무)를
-    //   같은 구성으로 gating 하도록 owner GridList scene props 에도 주입 (Layer D 대칭).
-    (gridListSceneNode.props as Record<string, unknown>)._slots =
-      slotComposition;
-  }
   // ADR-159 P2: 카드 텍스트 템플릿 compile — 행 루프 밖 1회 (R5). ListBox 동형이나
   //   GridList 는 anchor 축이 없어 origin props 단독 fallback (§2-3-1 precedence).
   const gridOriginItemProps = isRecord(templateOriginNode?.props)
@@ -1617,7 +1775,7 @@ function appendGridListRowProjection(
     );
     if (!source) return null;
     // ADR-214 Phase 3 — `{{ }}` 를 소유자 기준 기본값 env 로 먼저 (state → field 순서)
-    const env = stateEnvFor?.(gridListSceneNode.id, scope.pageId);
+    const env = input.stateEnv;
     return compileFieldTemplate(
       env ? resolveStateTemplate(source, env) : source,
     );
@@ -1632,6 +1790,101 @@ function appendGridListRowProjection(
     templateOriginNode != null &&
     templateOriginId != null &&
     shouldExpandRowTemplate(templateOriginNode.children);
+  // 선택 체크박스 가시성 — RAC 는 selectionMode!=="none" && selectionBehavior==="toggle" 일 때만
+  //   카드 첫 자식으로 `<Checkbox slot="selection">` 을 낸다. renderGridList 가 넘기는 기본값
+  //   ("none" / "toggle")과 같은 인자를 써야 두 표면이 같은 조건에서 체크박스를 그린다.
+  const showSelectionCheckbox = resolveSelectionCheckboxVisible({
+    selectionMode: props.selectionMode,
+    // ADR-923 r24m1 — style 축도 기본값 원천은 catalog binding. 아래 `fallback` 은
+    //   binding 미선언 타입용 최후 폴백으로만 남는다.
+    selectionStyle:
+      props.selectionStyle ?? resolveBindingSelectionStyle("GridList"),
+    selectionBehavior: props.selectionBehavior,
+    // ADR-923 r23m1 — 기본값 원천은 catalog binding (layout·virtualization 과 같은 값).
+    defaultSelectionMode: resolveBindingSelectionMode("GridList", "none"),
+    // GridList.tsx 게이트 = `selectionMode === "multiple"` (RAC starter 원본) → single 제외.
+    //   Tree 규칙(single 포함)을 여기 쓰면 DOM 에 없는 체크박스를 그리고 카드가 22px 높아진다.
+    checkboxModes: ["multiple"],
+    fallback: "toggle",
+  });
+  return {
+    layout,
+    numCols,
+    gap,
+    columnGap,
+    templateOriginNode,
+    templateOriginId,
+    originStyle,
+    slotComposition,
+    labelTemplate,
+    descriptionTemplate,
+    expandRowsFromOrigin,
+    showSelectionCheckbox,
+  };
+}
+
+/** ADR-150 A2' — GridList 카드 하나의 label · description (행 템플릿 보간). */
+export function resolveGridListCardText(
+  ctx: GridListCardContext,
+  row: ListBoxProjectionRow,
+): {
+  rowLabel: string;
+  rowDescription: string;
+  templateItem: ReturnType<typeof buildCollectionRowTemplateItem> | null;
+} {
+  // ADR-159 P2: 템플릿 존재 시 row.item(+가상 필드) 보간 — ListBox 행 동형.
+  const templateItem =
+    ctx.labelTemplate || ctx.descriptionTemplate || ctx.expandRowsFromOrigin
+      ? buildCollectionRowTemplateItem(row)
+      : null;
+  const rowLabel =
+    ctx.labelTemplate && templateItem
+      ? interpolateFieldTemplate(ctx.labelTemplate, templateItem)
+      : row.label;
+  const rowDescription = resolveCollectionRowDescription(ctx, row);
+  return { rowLabel, rowDescription, templateItem };
+}
+
+function appendGridListRowProjection(
+  gridListSceneNode: CanvasSceneNode,
+  projection: {
+    rows: ListBoxProjectionRow[];
+    sourceNode: CanonicalNode;
+    windowResolution: CollectionWindowResolution | null;
+  },
+  scope: SceneScopeContext,
+  graph: Pick<CanvasSceneGraph, "childrenByParent" | "nodes" | "nodesMap"> & {
+    parentById: Map<string, string>;
+  },
+  getDocumentNodesById: () => Map<string, CanonicalNode>,
+  stateEnvFor?: StateEnvFor,
+): void {
+  const props = gridListSceneNode.props;
+  const { rows, sourceNode } = projection;
+  const cardCtx = resolveGridListCardContext({
+    ownerProps: props,
+    sourceNode,
+    getDocumentNodesById,
+    stateEnv: stateEnvFor?.(gridListSceneNode.id, scope.pageId),
+  });
+  const {
+    layout,
+    numCols,
+    gap,
+    columnGap,
+    templateOriginNode,
+    templateOriginId,
+    originStyle,
+    slotComposition,
+    expandRowsFromOrigin,
+    showSelectionCheckbox,
+  } = cardCtx;
+  if (slotComposition) {
+    // 컨테이너 layout(utils.ts §1.55c gridlist 분기)이 카드 높이(description 유무)를
+    //   같은 구성으로 gating 하도록 owner GridList scene props 에도 주입 (Layer D 대칭).
+    (gridListSceneNode.props as Record<string, unknown>)._slots =
+      slotComposition;
+  }
   const rowDescendantTemplates = expandRowsFromOrigin
     ? compileRowDescendantTemplates(
         templateOriginNode?.children ?? [],
@@ -1645,8 +1898,8 @@ function appendGridListRowProjection(
     : [];
   // ADR-157 Phase 4 (배치 진실성 — GridList 확산): sample mode(auto-height data-bound) owner 는
   //   layout §1.55c 가 props.items 만 순회해 순수 dataBinding 소유자에서 4-item fallback 으로
-  //   clip 된다. scene 이 visualRows 전체 높이(= ceil(totalRows/columns) × rowHeight — samples +
-  //   hatch 와 동일 window resolver stride)를 owner props 에 주입해 §1.55c 가 이를 소비하도록
+  //   clip 된다. scene 이 visual row 전체 높이 (행 위치 단일 소스 `rowsExtent` — samples ·
+  //   hatch 와 같은 시각 행별 높이 · rowGap) 를 owner props 에 주입해 §1.55c 가 이를 소비하도록
   //   한다(layout = scene 정합). ListBox(§1.55b) 선례 동형이나 열 수(grid numCols)를 반영해
   //   visual row 공간으로 환산한다. scroll mode(explicit height)/legacy(window null)는 무주입.
   const gridOwnerWindow = projection.windowResolution;
@@ -1666,7 +1919,8 @@ function appendGridListRowProjection(
     const visualRows = Math.ceil(gridOwnerWindow.totalRows / cols);
     (
       gridListSceneNode.props as Record<string, unknown>
-    )._projectedRowsContentHeight = visualRows * gridOwnerWindow.rowHeight;
+    )._projectedRowsContentHeight =
+      gridOwnerWindow.rowsExtent ?? visualRows * gridOwnerWindow.rowHeight;
   }
 
   const rowsGroupId = toCollectionRowsGroupProjectionId(
@@ -1688,7 +1942,7 @@ function appendGridListRowProjection(
               display: "grid",
               gridTemplateColumns: Array(numCols).fill("1fr"),
               rowGap: gap,
-              columnGap: gap,
+              columnGap,
               width: "100%",
             }
           : {
@@ -1696,7 +1950,7 @@ function appendGridListRowProjection(
               flexDirection: "column",
               flexWrap: "nowrap",
               rowGap: gap,
-              columnGap: gap,
+              columnGap,
               width: "100%",
             },
     },
@@ -1715,10 +1969,10 @@ function appendGridListRowProjection(
   };
   addSceneNode(rowsGroup, graph);
 
-  // ADR-150 A2 (GridList 확산): 가상화 window 활성 시 leading/trailing spacer. grid 모드는
-  //   width:100% spacer 가 wrap-flow 에서 자체 시각 행을 점유해 window 카드가 올바른 열(0번)에서
-  //   시작하도록 정렬한다 — resolveCollectionSpacerVisualRows 가 columns=numCols 로 item index →
-  //   시각 행 수를 환산. window 없으면(legacy cap) 미삽입.
+  // ADR-150 A2' (GridList 확산): 가상화 window 활성 시 leading/trailing spacer. grid 모드는
+  //   spacer 가 `gridColumnStart 1 / End -1` 로 한 시각 행 전체를 차지해 window 카드가 0 열에서
+  //   시작한다. 높이는 행 위치 단일 소스 (시각 행별 높이 = 그 행 카드 최대 + rowGap). window
+  //   없으면(legacy cap) 미삽입.
   const { windowResolution } = projection;
   const rowHeight = windowResolution?.rowHeight ?? 0;
   const spacerRows = windowResolution
@@ -1732,7 +1986,8 @@ function appendGridListRowProjection(
         ownerId: gridListSceneNode.id,
         rowsGroupId,
         position: "lead",
-        height: spacerRows.lead * rowHeight,
+        height:
+          windowResolution?.leadSpacerHeight ?? spacerRows.lead * rowHeight,
         scope,
         sourceNode,
       }),
@@ -1749,20 +2004,6 @@ function appendGridListRowProjection(
   //   카드 첫 자식으로 `<Checkbox slot="selection">` 을 낸다. renderGridList 가 넘기는 기본값
   //   ("none" / "toggle")과 같은 인자를 써야 두 표면이 같은 조건에서 체크박스를 그린다.
   const cardIsQuiet = props.isQuiet === true;
-  const showSelectionCheckbox = resolveSelectionCheckboxVisible({
-    selectionMode: props.selectionMode,
-    // ADR-923 r24m1 — style 축도 기본값 원천은 catalog binding. 아래 `fallback` 은
-    //   binding 미선언 타입용 최후 폴백으로만 남는다.
-    selectionStyle:
-      props.selectionStyle ?? resolveBindingSelectionStyle("GridList"),
-    selectionBehavior: props.selectionBehavior,
-    // ADR-923 r23m1 — 기본값 원천은 catalog binding (layout·virtualization 과 같은 값).
-    defaultSelectionMode: resolveBindingSelectionMode("GridList", "none"),
-    // GridList.tsx 게이트 = `selectionMode === "multiple"` (RAC starter 원본) → single 제외.
-    //   Tree 규칙(single 포함)을 여기 쓰면 DOM 에 없는 체크박스를 그리고 카드가 22px 높아진다.
-    checkboxModes: ["multiple"],
-    fallback: "toggle",
-  });
 
   for (const row of rows) {
     const projectionId = toCollectionRowProjectionId(
@@ -1770,19 +2011,10 @@ function appendGridListRowProjection(
       gridListSceneNode.id,
       row.itemKey,
     );
-    // ADR-159 P2: 템플릿 존재 시 row.item(+가상 필드) 보간 — ListBox 행 동형.
-    const templateItem =
-      labelTemplate || descriptionTemplate || expandRowsFromOrigin
-        ? buildCollectionRowTemplateItem(row)
-        : null;
-    const rowLabel =
-      labelTemplate && templateItem
-        ? interpolateFieldTemplate(labelTemplate, templateItem)
-        : row.label;
-    const rowDescription =
-      descriptionTemplate && templateItem
-        ? interpolateFieldTemplate(descriptionTemplate, templateItem)
-        : (row.description ?? "");
+    const { rowLabel, rowDescription, templateItem } = resolveGridListCardText(
+      cardCtx,
+      row,
+    );
     const rowProps: Record<string, unknown> = {
       children: rowLabel,
       description: rowDescription,
@@ -1853,7 +2085,8 @@ function appendGridListRowProjection(
           family: "gridlist",
           ownerId: gridListSceneNode.id,
           rowsGroupId,
-          height: spacerRows.trail * rowHeight,
+          height:
+            windowResolution.trailSpacerHeight ?? spacerRows.trail * rowHeight,
           hiddenRows: spacerRows.trail,
           scope,
           sourceNode,
@@ -1868,7 +2101,8 @@ function appendGridListRowProjection(
           ownerId: gridListSceneNode.id,
           rowsGroupId,
           position: "trail",
-          height: spacerRows.trail * rowHeight,
+          height:
+            windowResolution?.trailSpacerHeight ?? spacerRows.trail * rowHeight,
           scope,
           sourceNode,
         }),
@@ -2238,9 +2472,9 @@ function appendTableRowProjection(
   };
 
   // ADR-150 A2 (Table 확산): header 는 항상 투영 + data 행만 window. 첫 data 행 직전에 lead
-  //   spacer, 마지막 뒤에 trail spacer 로 window 밖 data 행 높이를 채운다 — window data 행이
-  //   절대 위치(startIndex*rowHeight)에 오도록 밀어내고 총 content height(header + 전체 data)를
-  //   보존(스크롤바 정확). header 는 스크롤 content 의 일부(sticky 아님)라 spacer 는 header 아래.
+  //   spacer, 마지막 뒤에 trail spacer 로 window 밖 data 행 높이를 채운다 — 높이는 행 위치 단일
+  //   소스 값이라 window data 행이 전 행 배치와 같은 y 에 오고 총 content height (header + 전체
+  //   data) 가 보존된다. header 는 스크롤 content 의 일부(sticky 아님)라 spacer 는 header 아래.
   //   Table 은 1열(columns 미지정) — visual row = data row index.
   const rowHeight = windowResolution?.rowHeight ?? 0;
   const spacerRows = windowResolution
@@ -2277,7 +2511,10 @@ function appendTableRowProjection(
         ownerId: tableSceneNode.id,
         rowsGroupId,
         position,
-        height: visualRows * rowHeight,
+        height:
+          (position === "lead"
+            ? windowResolution?.leadSpacerHeight
+            : windowResolution?.trailSpacerHeight) ?? visualRows * rowHeight,
         scope,
         sourceNode,
       }),

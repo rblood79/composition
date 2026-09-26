@@ -3789,7 +3789,24 @@ export function calculateFullTreeLayout(
             A2_WINDOWED_COLLECTION_TAGS.has(el.type)) ||
           (typeof elWithName?.componentName === "string" &&
             A2_WINDOWED_COLLECTION_TAGS.has(elWithName.componentName));
-        if (scrollChildIds.length === 0 && isWindowedCollection) {
+        // ADR-150 A2' — projection 행 묶음 (`*-rows`) 을 가진 소유자도 같다: 스크롤 범위의 유일한
+        //   writer 는 행 위치 단일 소스 (`resolveCollectionRowOffsets` → BuilderCanvas 주입) 다. 여기서
+        //   window 행 · spacer 의 layout extent 로 다시 쓰면 window 가 움직일 때마다 값이 흔들린다
+        //   (2026-09-27 live: GridList 200 행 maxScrollTop 8320 ↔ 8256).
+        const ownsProjectedRows = [
+          ...scrollChildIds,
+          ...(filteredChildIdsMap.get(elementId) ?? []),
+        ].some((id) => {
+          const kind = (
+            elementsMap.get(id) as
+              { projection?: { kind?: unknown } } | undefined
+          )?.projection?.kind;
+          return typeof kind === "string" && kind.endsWith("-rows");
+        });
+        if (
+          isWindowedCollection &&
+          (scrollChildIds.length === 0 || ownsProjectedRows)
+        ) {
           continue;
         }
         // ADR-239 Phase 1 — 자손 rect 는 **layout 부모** 기준이라 누적도 layout 자식표 (filtered) 로 돈다. canonical

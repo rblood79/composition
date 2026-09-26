@@ -542,17 +542,19 @@ describe("buildCanonicalSceneModel — ADR-127 Phase 2 (canonical-native)", () =
     ).toEqual([]);
     // origin 자신의 projection 은 그대로 유지 (Components 페이지 렌더)
     expect(
-      model.sceneNodesMap.get(toListBoxRowProjectionId("component-listbox", "inbox")),
+      model.sceneNodesMap.get(
+        toListBoxRowProjectionId("component-listbox", "inbox"),
+      ),
     ).toMatchObject({ type: "ListBoxItem", props: { children: "Inbox" } });
     // 인스턴스 행은 인스턴스 items 3개만
     expect(
-      (model.sceneChildrenByParent.get("projection:listbox-rows:listbox-1") ?? []).map(
-        (node) => node.props?.children,
-      ),
+      (
+        model.sceneChildrenByParent.get("projection:listbox-rows:listbox-1") ??
+        []
+      ).map((node) => node.props?.children),
     ).toEqual(["Aardvark", "Cat", "Kangaroo"]);
   });
 });
-
 
 describe("ADR-228 — 자식 소유 projection (TagGroup › TagList) 의 ref instance override", () => {
   // 재현 (2026-09-21 사용자 보고): home 에 TagGroup instance 를 놓고 Properties 「Add Tag」 → instance
@@ -634,16 +636,23 @@ describe("ADR-228 — 자식 소유 projection (TagGroup › TagList) 의 ref in
     [...model.sceneNodesMap.values()]
       .filter(
         (n) =>
-          n.projection?.kind === "tag-row" && String(n.id).startsWith(ownerPrefix),
+          n.projection?.kind === "tag-row" &&
+          String(n.id).startsWith(ownerPrefix),
       )
       .map((n) => String((n.props as { children?: unknown }).children));
 
   it("instance 의 TagList chip 은 instance override items 로 그린다 (origin chip 상속 0)", () => {
     const model = buildCanonicalSceneModel(document);
-    const originChips = chipLabelsUnder(model, "projection:tag-row:component-taggroup__2");
+    const originChips = chipLabelsUnder(
+      model,
+      "projection:tag-row:component-taggroup__2",
+    );
     expect(originChips.sort()).toEqual(["Alpha", "Beta", "Gamma"]);
     const instanceChips = [...model.sceneNodesMap.values()]
-      .filter((n) => n.projection?.kind === "tag-row" && String(n.id).includes("tg-inst"))
+      .filter(
+        (n) =>
+          n.projection?.kind === "tag-row" && String(n.id).includes("tg-inst"),
+      )
       .map((n) => String((n.props as { children?: unknown }).children));
     expect(instanceChips).toEqual(["New Tag"]);
   });
@@ -656,12 +665,22 @@ describe("ADR-228 — 자식 소유 projection (TagGroup › TagList) 의 ref in
           id: "component-tabs",
           type: "Tabs",
           reusable: true,
-          props: { items: [{ id: "t1", label: "One" }, { id: "t2", label: "Two" }] },
+          props: {
+            items: [
+              { id: "t1", label: "One" },
+              { id: "t2", label: "Two" },
+            ],
+          },
           children: [
             {
               id: "component-tabs__1",
               type: "TabList",
-              props: { items: [{ id: "t1", label: "One" }, { id: "t2", label: "Two" }] },
+              props: {
+                items: [
+                  { id: "t1", label: "One" },
+                  { id: "t2", label: "Two" },
+                ],
+              },
             },
           ],
         },
@@ -689,19 +708,31 @@ describe("ADR-228 — 자식 소유 projection (TagGroup › TagList) 의 ref in
     } as unknown as CompositionDocument;
     const model = buildCanonicalSceneModel(tabsDoc);
     const tabs = [...model.sceneNodesMap.values()]
-      .filter((n) => n.projection?.kind === "tab-row" && String(n.id).includes("tabs-inst"))
+      .filter(
+        (n) =>
+          n.projection?.kind === "tab-row" &&
+          String(n.id).includes("tabs-inst"),
+      )
       .map((n) => String((n.props as { children?: unknown }).children));
     expect(tabs).toEqual(["Only"]);
   });
 
   it("override 가 없으면 instance chip = origin items (상속)", () => {
-    const noOverride = JSON.parse(JSON.stringify(document)) as CompositionDocument;
-    const inst = (noOverride.children[1] as { children: { children: { props: unknown }[] }[] })
-      .children[0].children[0];
+    const noOverride = JSON.parse(
+      JSON.stringify(document),
+    ) as CompositionDocument;
+    const inst = (
+      noOverride.children[1] as {
+        children: { children: { props: unknown }[] }[];
+      }
+    ).children[0].children[0];
     inst.props = {};
     const model = buildCanonicalSceneModel(noOverride);
     const instanceChips = [...model.sceneNodesMap.values()]
-      .filter((n) => n.projection?.kind === "tag-row" && String(n.id).includes("tg-inst"))
+      .filter(
+        (n) =>
+          n.projection?.kind === "tag-row" && String(n.id).includes("tg-inst"),
+      )
       .map((n) => String((n.props as { children?: unknown }).children));
     expect(instanceChips.sort()).toEqual(["Alpha", "Beta", "Gamma"]);
   });

@@ -219,8 +219,10 @@ function markPopoverContentOwners(
 ): CanvasSceneGraph {
   const typeOf = (node: CanonicalNode): string =>
     node.type === "ref"
-      ? (resolveSceneRefChain((node as unknown as { ref: string }).ref, documentNodesById)
-          ?.master.type ?? "ref")
+      ? (resolveSceneRefChain(
+          (node as unknown as { ref: string }).ref,
+          documentNodesById,
+        )?.master.type ?? "ref")
       : node.type;
   for (const owner of [...graph.nodes]) {
     const types = POPOVER_CONTENT_CHILD_TYPES.get(owner.type);
@@ -250,12 +252,14 @@ function markPopoverContentOwners(
 }
 
 /** owner type → Canvas 가 그리지 않는 popover 내용 자식 type (F10 — Canvas 는 트리거만). */
-const POPOVER_CONTENT_CHILD_TYPES: ReadonlyMap<string, ReadonlySet<string>> =
-  new Map([
-    ["Select", new Set(["ListBoxItem", "ListBoxSection"])],
-    ["ComboBox", new Set(["ListBoxItem", "ListBoxSection"])],
-    ["Menu", new Set(["MenuItem", "MenuSection", "Separator"])],
-  ]);
+const POPOVER_CONTENT_CHILD_TYPES: ReadonlyMap<
+  string,
+  ReadonlySet<string>
+> = new Map([
+  ["Select", new Set(["ListBoxItem", "ListBoxSection"])],
+  ["ComboBox", new Set(["ListBoxItem", "ListBoxSection"])],
+  ["Menu", new Set(["MenuItem", "MenuSection", "Separator"])],
+]);
 
 /**
  * ADR-238 G4 — popover 내용 subtree 를 scene 에서 뺀다. layout (`implicitStyles` 의 Select · Menu 분기) 과 Skia

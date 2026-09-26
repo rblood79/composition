@@ -223,12 +223,19 @@ describe("ADR-233 Phase 1 — Tab 항목 템플릿 origin (Skia 행 projection)"
     );
     const byKey = (key: string) =>
       model.sceneNodesMap.get(
-        toCollectionRowProjectionId("tab", "tabs-inst/component-tabs__list", key),
+        toCollectionRowProjectionId(
+          "tab",
+          "tabs-inst/component-tabs__list",
+          key,
+        ),
       )!;
     expect(byKey("t1").projection).toMatchObject({
       templateOriginId: "component-tab-item-default",
     });
-    expect(byKey("t1").props.style).toMatchObject({ paddingLeft: 20, fontWeight: 700 });
+    expect(byKey("t1").props.style).toMatchObject({
+      paddingLeft: 20,
+      fontWeight: 700,
+    });
     expect(byKey("t2").projection).toMatchObject({
       templateOriginId: "component-tab-item-selected",
     });
