@@ -22,6 +22,7 @@ import {
   deriveProjectRenderModelFromDocument,
   ensureAssetRefs,
   resolveAssetUrl,
+  setAssetUrlResolver,
   loadProjectFromUrl,
   loadProjectFromFile,
   type ProjectExportData,
@@ -412,7 +413,7 @@ export function App() {
       setLoadingState("loading");
       // ADR-235 Phase 4 — v2 zip 이면 자산을 blob: 으로 해석해 연다
       const v2 = await import("./loadProjectV2")
-        .then((m) => m.loadProjectV2FromFile(file))
+        .then((m) => m.loadProjectV2FromFile(file, setAssetUrlResolver))
         .catch(() => null);
       if (v2) {
         setProject(v2.data);
@@ -433,7 +434,7 @@ export function App() {
         setLoadingState("loading");
         // ADR-235 Phase 4 — v2 (zip · manifest.json · 폴더 URL) 면 manifest 위치 기준으로 읽는다
         const v2 = await import("./loadProjectV2")
-          .then((m) => m.loadProjectV2FromUrl(projectUrl))
+          .then((m) => m.loadProjectV2FromUrl(projectUrl, setAssetUrlResolver))
           .catch(() => null);
         if (v2) {
           setProject(v2.data);
@@ -455,7 +456,9 @@ export function App() {
       }
       // ADR-235 Phase 4 — v2 디렉토리 배포 (`/manifest.json`)
       const v2 = await import("./loadProjectV2")
-        .then((m) => m.loadProjectV2FromUrl("/manifest.json"))
+        .then((m) =>
+          m.loadProjectV2FromUrl("/manifest.json", setAssetUrlResolver),
+        )
         .catch(() => null);
       if (v2) {
         setProject(v2.data);

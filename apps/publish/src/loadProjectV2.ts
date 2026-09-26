@@ -22,7 +22,10 @@ import type {
   AssetUrlResolver,
   ProjectExportData,
 } from "@composition/shared";
-import { setAssetUrlResolver } from "@composition/shared/utils";
+
+/** 해석기 설치 — 호출부 (App) 가 준다. 이 lazy 모듈이 shared barrel 을 값으로 import 하면
+ *  initial 공용 chunk 가 쪼개진다 (ADR-235 HC2 — Phase 1 · 4 실측). */
+export type InstallAssetUrlResolver = (resolver: AssetUrlResolver) => void;
 
 export interface LoadedProjectV2 {
   data: ProjectExportData;
@@ -45,16 +48,18 @@ function toExportData(read: V2ReadResult): ProjectExportData {
   } as ProjectExportData;
 }
 
-function installStaticResolver(urls: Map<AssetRef, string>): void {
-  const resolver: AssetUrlResolver = {
+function staticResolver(urls: Map<AssetRef, string>): AssetUrlResolver {
+  return {
     resolveSync: (ref) => urls.get(ref) ?? null,
     ensure: async () => {},
     subscribe: () => () => {},
   };
-  setAssetUrlResolver(resolver);
 }
 
-async function fromZip(bytes: Uint8Array): Promise<LoadedProjectV2> {
+async function fromZip(
+  bytes: Uint8Array,
+  install: InstallAssetUrlResolver,
+): Promise<LoadedProjectV2> {
   const read = await readV2Generation(await openV2Zip(bytes));
   const urls = new Map<AssetRef, string>();
   for (const [hash, asset] of read.assets) {
@@ -65,11 +70,14 @@ async function fromZip(bytes: Uint8Array): Promise<LoadedProjectV2> {
       ),
     );
   }
-  installStaticResolver(urls);
+  install(staticResolver(urls));
   return { data: toExportData(read), recovered: read.recovered };
 }
 
-async function fromDirectory(manifestUrl: URL): Promise<LoadedProjectV2> {
+async function fromDirectory(
+  manifestUrl: URL,
+  install: InstallAssetUrlResolver,
+): Promise<LoadedProjectV2> {
   const source: V2Source = {
     async read(path) {
       const response = await fetch(new URL(path, manifestUrl));
@@ -83,13 +91,14 @@ async function fromDirectory(manifestUrl: URL): Promise<LoadedProjectV2> {
       new URL(assetPath(entry), manifestUrl).href,
     ]),
   );
-  installStaticResolver(urls);
+  install(staticResolver(urls));
   return { data: toExportData(read), recovered: read.recovered };
 }
 
 /** URL 이 v2 (zip · manifest · 폴더) 면 읽는다. 아니면 null. */
 export async function loadProjectV2FromUrl(
   url: string,
+  install: InstallAssetUrlResolver,
 ): Promise<LoadedProjectV2 | null> {
   const base = new URL(url, window.location.href);
   const candidates = base.pathname.endsWith("/")
@@ -99,12 +108,13 @@ export async function loadProjectV2FromUrl(
     const response = await fetch(candidate).catch(() => null);
     if (!response?.ok) continue;
     const bytes = new Uint8Array(await response.arrayBuffer());
-    if (isZipBytes(bytes)) return fromZip(bytes);
+    if (isZipBytes(bytes)) return fromZip(bytes, install);
     try {
       const json = JSON.parse(new TextDecoder().decode(bytes)) as {
         formatVersion?: string;
       };
-      if (json?.formatVersion === "2.0.0") return fromDirectory(candidate);
+      if (json?.formatVersion === "2.0.0")
+        return fromDirectory(candidate, install);
     } catch {
       /* JSON 이 아니면 v2 아님 */
     }
@@ -114,7 +124,8 @@ export async function loadProjectV2FromUrl(
 
 export async function loadProjectV2FromFile(
   file: File,
+  install: InstallAssetUrlResolver,
 ): Promise<LoadedProjectV2 | null> {
   const bytes = new Uint8Array(await file.arrayBuffer());
-  return isZipBytes(bytes) ? fromZip(bytes) : null;
+  return isZipBytes(bytes) ? fromZip(bytes, install) : null;
 }

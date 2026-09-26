@@ -309,3 +309,5 @@ Phase 5 는 1~4 와 독립이라 먼저 착수해도 된다 (가장 작은 작�
 | v1 가져오기 기존 fixture                     | shared · builder · publish 스위트 통과 (기존 실패 3 은 무관 — Phase 1 기록)                                        |
 
 - G4 의 이미지는 Image 컴포넌트 (`src`) 로 쟀다 — publish 런타임은 fills 를 싣지 않아 (기존 결함, publish 기능 링크만 방침) 이미지 채우기는 publish 에서 그려지지 않는다. Canvas ↔ DOM 이미지 채우기 대칭은 Phase 1 (Preview 렌더러 unit + Canvas live) 이 확인했다.
+
+**번들 (Phase 4)** — 첫 커밋 `4554f1be7` 에서 Preview 623,236 (재승인 상한 623,000 초과 236 B, 같은 명령에서 push 가 먼저 실행됨). 원인: publish lazy `loadProjectV2.ts` 가 `@composition/shared/utils` barrel 에서 `setAssetUrlResolver` 를 값으로 import → 공용 `src` chunk 에서 `utils` 29.6 KB chunk 가 갈라지고 runtime +199 (Phase 1 과 같은 함정 재발). 해석기 설치 함수를 호출부 주입으로 바꿔 Preview 622,551 · Builder 1,417,676 (둘 다 상한 안). 재발 가드 `lib/assets/__tests__/lazyBarrelImport.static.test.ts` (lazy 자산 모듈 11 개 + publish 로더 — barrel 값 import 를 넣으면 실패함을 확인). `adr201-bundle-gate` 의 `builderDelta` (ADR-201 등록 Δ ≤ 4,096 — 201 자기 기준선 조건) 는 ADR-235 누적 Δ +4,428 에 걸리지만 HC2 판정은 절대 상한 (Builder ≤ 1,421,000 · Preview ≤ 623,000) 이다.
