@@ -57,19 +57,40 @@ function createDefaultV4(
   return created.value;
 }
 
-function scheduleV4Write(layout: PanelWorkspaceLayoutV4): void {
-  if (saveTimer !== null) clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => {
+let pendingLayout: PanelWorkspaceLayoutV4 | null = null;
+let pagehideBound = false;
+
+function flushPendingV4Write(): void {
+  if (saveTimer !== null) {
+    clearTimeout(saveTimer);
     saveTimer = null;
-    try {
-      localStorage.setItem(
-        PANEL_WORKSPACE_LAYOUT_PRIMARY_KEY,
-        JSON.stringify(layout),
-      );
-    } catch (error) {
-      console.error("[PanelWorkspace] Failed to persist v4 layout:", error);
-    }
-  }, 300);
+  }
+  const layout = pendingLayout;
+  pendingLayout = null;
+  if (!layout) return;
+  try {
+    localStorage.setItem(
+      PANEL_WORKSPACE_LAYOUT_PRIMARY_KEY,
+      JSON.stringify(layout),
+    );
+  } catch (error) {
+    console.error("[PanelWorkspace] Failed to persist v4 layout:", error);
+  }
+}
+
+/**
+ * 연속 조작은 300 ms 뒤 한 번 저장한다. 그 사이 페이지를 떠나면 (새로고침 · 탭 닫기 · lazy
+ * 패널 로드 실패 복구의 `location.reload()`) 대기 중인 저장을 `pagehide` 에서 즉시 쓴다 —
+ * 그렇지 않으면 방금 연 패널이 새로고침 뒤 닫혀 있다 (ADR-242 후속, WebKit live 실측).
+ */
+function scheduleV4Write(layout: PanelWorkspaceLayoutV4): void {
+  pendingLayout = layout;
+  if (!pagehideBound && typeof window !== "undefined") {
+    pagehideBound = true;
+    window.addEventListener("pagehide", flushPendingV4Write);
+  }
+  if (saveTimer !== null) clearTimeout(saveTimer);
+  saveTimer = setTimeout(flushPendingV4Write, 300);
 }
 
 function writeV4Now(layout: PanelWorkspaceLayoutV4): boolean {
@@ -77,6 +98,8 @@ function writeV4Now(layout: PanelWorkspaceLayoutV4): boolean {
     clearTimeout(saveTimer);
     saveTimer = null;
   }
+  // 즉시 저장이 대기 중인 옛 레이아웃보다 새롭다 — pagehide 가 되돌려 쓰지 않게
+  pendingLayout = null;
   try {
     localStorage.setItem(
       PANEL_WORKSPACE_LAYOUT_PRIMARY_KEY,

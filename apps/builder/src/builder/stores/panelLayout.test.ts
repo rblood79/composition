@@ -198,6 +198,46 @@ describe("ADR-186 Phase 5 production panel layout store", () => {
     expect(hasPersistedPosition(persisted)).toBe(false);
   });
 
+  it("debounce 중 페이지를 떠나면 (새로고침 · 탭 닫기) 대기 중인 저장을 즉시 쓴다", () => {
+    const raw = JSON.stringify(createPanelWorkspaceLayoutV2());
+    localStorage.setItem(PANEL_WORKSPACE_LAYOUT_PRIMARY_KEY, raw);
+    const store = createPanelLayoutStore();
+    expect(initialize(store)).toBe(true);
+    const next = structuredClone(store.getState().panelWorkspaceLayout!);
+    next.visibility.history = true;
+
+    expect(store.getState().setPanelWorkspaceLayout(next)).toBe(true);
+    vi.advanceTimersByTime(100);
+    window.dispatchEvent(new Event("pagehide"));
+
+    const persisted = JSON.parse(
+      localStorage.getItem(PANEL_WORKSPACE_LAYOUT_PRIMARY_KEY)!,
+    ) as { visibility: Record<string, boolean> };
+    expect(persisted.visibility.history).toBe(true);
+    // 즉시 쓴 뒤 timer 가 같은 값을 한 번 더 쓰지 않는다
+    const setItem = vi.spyOn(Storage.prototype, "setItem");
+    vi.advanceTimersByTime(300);
+    expect(setItem).not.toHaveBeenCalled();
+  });
+
+  it("debounce 중 reset 뒤 페이지를 떠나도 reset 결과가 남는다", () => {
+    const raw = JSON.stringify(createPanelWorkspaceLayoutV2());
+    localStorage.setItem(PANEL_WORKSPACE_LAYOUT_PRIMARY_KEY, raw);
+    const store = createPanelLayoutStore();
+    expect(initialize(store)).toBe(true);
+    const next = structuredClone(store.getState().panelWorkspaceLayout!);
+    next.visibility.history = true;
+    expect(store.getState().setPanelWorkspaceLayout(next)).toBe(true);
+    expect(store.getState().resetPanelWorkspaceLayout()).toBe(true);
+    const afterReset = localStorage.getItem(PANEL_WORKSPACE_LAYOUT_PRIMARY_KEY);
+
+    window.dispatchEvent(new Event("pagehide"));
+    vi.advanceTimersByTime(300);
+    expect(localStorage.getItem(PANEL_WORKSPACE_LAYOUT_PRIMARY_KEY)).toBe(
+      afterReset,
+    );
+  });
+
   it("visibility, zone, size, cluster focus order를 v4 refresh에서 그대로 복원한다", () => {
     const initial = createPanelWorkspaceLayoutV4Fixture(SURFACE_RECT);
     localStorage.setItem(

@@ -14,8 +14,9 @@
  */
 @layer theme, dashboard, base, preview-system, components, shared-tokens, builder-system, utilities;
 
-/* External dependencies */
-@import "pretendard/dist/web/static/pretendard.css";
+/* External dependencies
+ * Pretendard 는 `main.tsx` 에서 JS 로 싣는다 — 여기서 @import 하면 Tailwind 가 URL 을 고치지
+ * 않은 채 인라인해 `./woff2/*` 상대 경로가 404 가 된다 (production `/composition/assets/woff2/`). */
 @import "tailwindcss";
 
 /* Tailwind base styles (includes :root, @font-face, @layer base, @layer components) */

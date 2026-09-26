@@ -26,6 +26,9 @@ setAssetUrlResolverLoader(() =>
 import "./fonts/initBuiltinFonts";
 import "./builder/fonts/initCustomFonts";
 
+// Pretendard @font-face — JS import 라야 Vite 가 woff/woff2 를 해시 자산 URL 로 고친다 (index.css
+// 머리말 참조, Preview 와 같은 경로).
+import "pretendard/dist/web/static/pretendard.css";
 // Single CSS entry point - all imports handled in index.css via @import
 import "./index.css";
 import App from "./App.tsx";

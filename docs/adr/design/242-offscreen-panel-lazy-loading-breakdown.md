@@ -54,4 +54,4 @@ initial Builder closure 에 실린 원본 모듈 raw 바이트 (minified, source
 
 **측정 규약 이탈 기록**: §4 의 "별도 worktree clean 빌드" 대신 in-tree `vite build` (dist 비움) — worktree 생성 명령이 환경에서 거부됐고 기준 커밋과 작업 트리의 lockfile 이 같아 결과는 같다. 지연 측정은 production `vite preview` (dev 서버 아님) · Chrome headless · CDP `Emulation.setCPUThrottlingRate` 1x/4x · `Network.clearBrowserCache` (cold) · 레일 클릭 → `checkVisibility()` 되는 패널 내용까지 rAF 폴링. 측정 뒤 패널을 닫고 레이아웃 persist 를 1 s 기다린다 (그러지 않으면 다음 새로고침에 이미 열려 있어 2 ms 로 잘못 잰다 — 첫 실행에서 실제로 났다).
 
-**미룬 것 (LOW)**: ~~커맨드 팔레트가 명령 실행 뒤 열린 채 남는 동작~~ → 수리 (입력 ↔ 목록 미연결, 본문 §후속) · WebKit 다시 시도 미복구 (본문 §후속 — 수리 방향 사용자 판단) · production 폰트 경로 `/composition/assets/woff/*` 디코드 경고 (범위 밖) · AI 패널 첫 열림도 같은 300 ms throttle 을 받는다 (100 KB 라 idle 선로드 제외 — hover 선호출은 후속 판단).
+**미룬 것 (LOW)**: ~~커맨드 팔레트가 명령 실행 뒤 열린 채 남는 동작~~ → 수리 (입력 ↔ 목록 미연결, 본문 §후속) · ~~WebKit 다시 시도 미복구~~ → 수리 (동적 import 의 JS modulepreload 제거 + 레이아웃 pagehide 저장, 본문 §후속) · ~~production 폰트 경로 `/composition/assets/woff/*` 디코드 경고~~ → 수리 (JS import, 본문 §후속) · AI 패널 첫 열림도 같은 300 ms throttle 을 받는다 (100 KB 라 idle 선로드 제외 — hover 선호출은 후속 판단).

@@ -152,6 +152,17 @@ export default defineConfig(({ command }) => {
       target: "baseline-widely-available",
       // Vite 8 기본 Lightning CSS는 Tailwind v4 @utility 등을 미지원 → esbuild 유지
       cssMinify: "esbuild",
+      // 동적 import 의 JS 는 `<link rel=modulepreload>` 로 미리 받지 않는다 (CSS 는 유지).
+      // WebKit 은 실패한 modulepreload 를 메모리 캐시에 남겨, 이후 같은 URL 의 `import()` 가
+      // 요청 없이 실패한다 — 새로고침 뒤에도 (ADR-242 후속, Playwright WebKit 실측). 그러면
+      // lazy chunk 로드가 한 번 실패한 탭은 다시 시도 · 새로고침으로 복구되지 않는다. 링크 없이
+      // `import()` 만 쓰면 실패가 남지 않는다. 대가는 lazy chunk 의 하위 의존 JS 가 병렬이 아닌
+      // 순차로 받아지는 것 — initial 공유 chunk 는 이미 실려 있고, 초기 화면 밖 패널은 idle 에
+      // 미리 받으므로 체감이 없다.
+      modulePreload: {
+        resolveDependencies: (_filename, deps) =>
+          deps.filter((dep) => dep.endsWith(".css")),
+      },
       rolldownOptions: {
         output: {
           codeSplitting: {

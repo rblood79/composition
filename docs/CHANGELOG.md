@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Safari 패널 로드 복구 · 레이아웃 저장 유실 · production Pretendard 폰트] - 2026-09-26
+
+### Fixed
+
+- **Safari 에서 패널 코드를 한 번 불러오지 못하면 "다시 시도" · 새로고침으로도 그 패널이 열리지 않던 문제.** WebKit 은 실패한 미리 받기 (`modulepreload`) 를 기억해 같은 파일을 다시 요청하지 않는다. 이제 lazy 코드는 미리 받기 링크 없이 불러와 실패가 남지 않는다.
+  - 검증: WebKit · Chrome 에서 네트워크 실패 · 404 · 서버 파일 제거 세 방식 모두 다시 시도 → 복구. 첫 열림 지연은 그대로 (CPU 4배 감속 최대 98 ms).
+- **패널을 열거나 옮긴 직후 (0.3초 안) 새로고침하면 그 변경이 사라지던 문제.** 페이지를 떠날 때 대기 중인 레이아웃 저장을 바로 쓴다.
+- **배포판 (production) 빌더에서 Pretendard 폰트 파일이 404 로 받아지지 않아 UI 와 캔버스 텍스트 측정이 시스템 폰트로 돌던 문제** (브라우저 콘솔의 폰트 디코드 경고). 개발 서버는 정상이었다. 폰트 CSS 를 JS 에서 불러와 경로가 배포 자산으로 풀린다.
+  - 검증: production 빌드에서 폰트 응답 오류 0 · 경고 0 · 캔버스 측정 폭이 개발 서버와 같음.
+- 초기 번들 Builder 1,403,816 → 1,401,576 B · Preview 622,496 → 622,126 B (미리 받기 목록이 짧아짐).
+
 ## [커맨드 팔레트 — 검색 입력에서 ↑↓ · Enter 로 실행] - 2026-09-26
 
 ### Fixed

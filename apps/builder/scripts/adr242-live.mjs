@@ -376,6 +376,19 @@ async function failureIsolation(browser, projectUrl) {
     .first();
   const retryVisible = await retryButton.isVisible().catch(() => false);
   const requestsBefore = blocked + passed;
+  const layoutSnap = () =>
+    page
+      .evaluate(() => {
+        const out = {};
+        for (const key of Object.keys(localStorage))
+          if (/panel-layout/.test(key) && !/backup/.test(key))
+            out[key] = (localStorage.getItem(key) ?? "").slice(0, 700);
+        return out;
+      })
+      .catch(() => null);
+  const layoutBefore = process.argv.includes("--probe")
+    ? await layoutSnap()
+    : null;
   let reloads = 0;
   page.on("framenavigated", (frame) => {
     if (frame === page.mainFrame()) reloads += 1;
@@ -388,6 +401,10 @@ async function failureIsolation(browser, projectUrl) {
     .then(() => true)
     .catch(() => false);
   // 새로고침 복구 뒤 패널이 닫혀 있으면 (레이아웃 저장 전에 새로고침) 레일로 다시 연다
+  if (process.argv.includes("--probe")) await page.waitForTimeout(3_000);
+  const layoutAfter = process.argv.includes("--probe")
+    ? await layoutSnap()
+    : null;
   let reopenedByRail = null;
   if (!retried && reloads > 0) {
     await waitReady(page).catch(() => {});
@@ -438,6 +455,8 @@ async function failureIsolation(browser, projectUrl) {
     retried,
     reopenedByRail,
     probe,
+    layoutBefore,
+    layoutAfter,
     passedAfterProbe: passed,
     warnings: warnings.slice(0, 4),
     pageErrors: errors.length,
