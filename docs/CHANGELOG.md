@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [로컬 저장 v2 Phase 3 — 쓰지 않는 자산 정리] - 2026-09-26
+
+### Added
+
+- **어디에서도 참조하지 않는 이미지 · 폰트 자산을 정리한다 (하루 한 번, 빌더가 한가할 때).** 문서 · 백업 · 스냅샷 · undo 기록 · 폰트 목록 · 열린 탭의 메모리까지 전부 확인하고, 두 번 연속 참조가 없고 7 일이 지난 자산만 지운다. 정리와 동시에 다른 곳에서 다시 참조하면 삭제를 취소한다 (undo 로 되살린 이미지도 그대로 보인다).
+- 지워진 자산을 가리키는 붙여넣기 · 이미지 URL 입력은 적용하지 않는다 (깨진 이미지가 문서에 들어가지 않는다).
+
 ## [로컬 저장 v2 Phase 2 — 업로드 자산 저장 · 기존 데이터 이관 · 폰트 한도 해소] - 2026-09-26
 
 ### Fixed

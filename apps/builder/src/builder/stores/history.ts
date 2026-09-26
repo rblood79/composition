@@ -248,6 +248,17 @@ function isThenable(value: unknown): boolean {
 }
 
 export class HistoryManager {
+  /**
+   * ADR-235 GC root — 메모리 history (페이지별 entry · 진행 중 transaction). IndexedDB 에 아직
+   * 없는 entry 와 트랜잭션 도중의 node event 가 참조하는 자산을 보호한다. 읽기 전용 순회용.
+   */
+  getAssetRootPayloads(): unknown[] {
+    return [
+      [...this.pageHistories.values()].map((history) => history.entries),
+      this.transactionBuffer,
+    ];
+  }
+
   private pageHistories: Map<string, PageHistory> = new Map();
   private currentPageId: string | null = null;
   private readonly defaultMaxSize = 50;

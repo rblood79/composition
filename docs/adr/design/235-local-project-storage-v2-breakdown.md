@@ -261,3 +261,26 @@ Phase 5 는 1~4 와 독립이라 먼저 착수해도 된다 (가장 작은 작�
 - 하니스: `apps/builder/scripts/adr235-g2-live.mjs` (7 시나리오) · `adr235-storage-baseline.mjs` (writer 경로 자동 사용).
 - 번들 (`9bc4b4bc2`, clean worktree): Builder 1,416,174 (Phase 2 Δ +1,409) · Preview 622,363 (+11) — 재승인 상한 안, `adr201-bundle-gate` PASS.
 - **미확정 1건**: live M1 의 한 실행에서 이관 후 Canvas 픽셀 0 (10 초) — 이후 11 회 PASS. 가설 "image fill 로드 완료가 노드 재빌드를 못 부른다" 는 반증 R1 (후속 store 변경 0 으로 로드 완료만 대기) 이 fix 없이 GREEN 이라 기각, 시도한 `StoreRenderBridge` 변경은 되돌렸다. R1 · M1 을 하니스에 유지 (review-loop-closure §2 — LOW deferred).
+
+### Phase 3 — GC (G3 통과, 2026-09-26)
+
+**구현**
+
+- `lib/assets/assetGc.ts` `runAssetGc` — §3.1 순서 그대로: (0) pin 해제 → (1) root 수집 **전** epoch 읽기 → (2) root 수집 (영속 + 이 탭 메모리) → (3) 미참조 · epoch 불변 · pin 없음이면 후보 `{ epoch, since }`, 참조되면 후보 해제 → (4) 이미 같은 epoch 후보였던 것만 최종 보호 트랜잭션 (`assets` · `asset_gc` readwrite) 에서 `현재 epoch = 시작 epoch = 후보 epoch` · pin 0 · 유예 경과를 확인하고 바이트 삭제 · epoch 증가 · tombstone (`deletedAt`) 을 함께 확정. 삭제 시 해석기 `blob:` revoke. 유예 기본 7 일 (`ASSET_GC_GRACE_MS`).
+- pin 해제 — 이 세션 pin 은 참조가 영속 root 에서 읽힐 때 (저장 complete 증거), 다른 세션 pin 은 Web Locks 로 그 세션 lock 이 잡혀 있지 않음을 확인할 때만 (소유권 종료 증명). 조회 불가면 풀지 않는다. 해제는 epoch 증가 · 후보 해제와 한 트랜잭션. 세션 lock (`holdAssetSessionLock`) 은 첫 pin 을 쓰기 전에 잡아 탭 수명 동안 유지.
+- 영속 root (`assetGcRoots.ts`) — 살아 있는 프로젝트의 문서 (`document_parts` · legacy) · 백업 ring · 스냅샷, `collections` · `variables`, `history-entries` 전부, localStorage 폰트 레지스트리 · 백업 참조 · legacy 폰트, sessionStorage Preview 핸드오프. 지운 프로젝트의 백업 · 스냅샷은 root 아님.
+- 메모리 root (`stores/assetGcScheduler.ts` 주입) — canonical 문서 map · `historyManager.getAssetRootPayloads()` (페이지 entry · transaction buffer) · `snapshotManager.getAssetRootPayloads()`.
+- 참조 공개 전 준비 (§3.1-2) 배선 — 새 바이트 경로 (업로드 · 이관 · 가져오기) 는 `storeAssetBytes` 가 pin. 바이트 없이 기존 참조를 공개하는 경로: 붙여넣기 (`useCopyPaste.paste` — 요소 · 스타일 · props 공용 choke point) · fill URL 직접 입력 (`ImageFillEditor`) 이 `prepareAssetReferences` 후 적용, 실패하면 공개 거부. undo/redo · hydration · 복제는 참조가 이미 영속 root (history entry · 문서) 또는 이 탭 메모리 root 에 있어 준비가 필요 없다. 그 밖의 prop 편집기에 `asset:` 을 손으로 입력하는 경로는 이 탭 메모리 root 로만 보호된다 (다른 탭 GC 는 두 번 mark + 7 일 유예 안에 영속된다) — LOW 로 기록.
+- 실행 — builder 부팅 idle 에 하루 한 번 (`composition.asset-gc.last-run`). DEV 훅 `window.__composition_ASSET_GC__({ graceMs })`.
+
+**G3 증거**
+
+| 항목                                                                                             | 결과                                                                                                                                                                      |
+| ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| root 반증 — 백업 · 스냅샷 · 다른 프로젝트 · history entry · 메모리 history · 폰트 레지스트리에만 | 두 번 GC 뒤 유지 (`assetGc.test.ts`, 6 케이스) · 영속 root 수집이 살아 있는 프로젝트 문서 · history 를 모으고 지운 프로젝트 백업을 뺌                                     |
+| history entry 에만 → GC → undo 복원 (live)                                                       | H1 요소 삭제 뒤 GC 2 회 유지 · H2 undo 로 요소 · 이미지 복원 (Canvas 19,404 px)                                                                                           |
+| §3.1 경쟁 (a) pin 선행 / (b) 삭제 선행 / (c) 영속 뒤 pin 해제                                    | (a) 두 번째 mark 와 삭제 사이 재참조 → 삭제 취소 · (b) 삭제 뒤 준비 → `AssetMissingError`, 재업로드는 새 epoch · (c) 재참조 → 해제까지 끝나도 취소 · 해제가 epoch 를 올림 |
+| 원복 RED                                                                                         | 삭제 tx epoch 확인 · pin 확인 · pin 해제 epoch 증가 · 끝난 세션 판정 — 각각 제거 시 실패 (조건별 단독 반례: epoch 만 오른 후보 · epoch 없이 쓴 pin)                       |
+| 실제 삭제 (live)                                                                                 | H3 history 비움 · 요소 삭제 → GC 2 회 → 바이트 0 · tombstone · H4 지워진 참조 준비 거부                                                                                   |
+
+- 하니스: `apps/builder/scripts/adr235-g3-live.mjs` (4/4). 다른 탭 경쟁은 unit 의 세션 id 둘로 재현 (같은 트랜잭션 계약) — 실제 두 탭 live 는 Phase 7.

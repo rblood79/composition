@@ -127,6 +127,11 @@ export class SnapshotManager {
     }
   }
 
+  /** ADR-235 GC root — 메모리에 올라온 모든 프로젝트의 스냅샷 */
+  getAssetRootPayloads(): unknown[] {
+    return [...this.snapshots.values()];
+  }
+
   /** 최신순 목록 (user + system — 패널은 kind 로 필터) */
   getSnapshots(projectId: string): HistorySnapshot[] {
     return this.getList(projectId);

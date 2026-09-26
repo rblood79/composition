@@ -14,7 +14,7 @@
  * ```
  */
 
-import { useCallback } from 'react';
+import { useCallback } from "react";
 
 export interface UseCopyPasteOptions {
   /** 붙여넣기 성공 시 호출되는 콜백 */
@@ -50,7 +50,7 @@ export interface UseCopyPasteReturn {
 export function useCopyPaste({
   onPaste,
   validate,
-  name = 'data',
+  name = "data",
   transform,
 }: UseCopyPasteOptions): UseCopyPasteReturn {
   /**
@@ -70,7 +70,7 @@ export function useCopyPaste({
         return false;
       }
     },
-    [name]
+    [name],
   );
 
   /**
@@ -89,7 +89,7 @@ export function useCopyPaste({
         return false;
       }
     },
-    [name]
+    [name],
   );
 
   /**
@@ -102,8 +102,10 @@ export function useCopyPaste({
       const data = JSON.parse(text);
 
       // 기본 검증: 객체 타입 확인
-      if (typeof data !== 'object' || data === null) {
-        throw new Error(`Invalid ${name} format: expected object, got ${typeof data}`);
+      if (typeof data !== "object" || data === null) {
+        throw new Error(
+          `Invalid ${name} format: expected object, got ${typeof data}`,
+        );
       }
 
       // 커스텀 검증
@@ -113,6 +115,15 @@ export function useCopyPaste({
 
       // 데이터 변환 (선택사항)
       const transformedData = transform ? transform(data) : data;
+
+      // ADR-235 §3.1 — 붙여넣을 값의 `asset:` 참조는 공개 전에 바이트 존재 확인 + pin.
+      //   바이트가 없으면 (다른 브라우저 · 지워진 자산) 붙여넣지 않는다 — 깨진 참조 공개 금지.
+      if (text.includes("asset:sha256-")) {
+        const refs = text.match(/asset:sha256-[0-9a-f]{64}/g) ?? [];
+        const { prepareAssetReferences } =
+          await import("../../lib/assets/assetStore");
+        await prepareAssetReferences(refs);
+      }
 
       // 붙여넣기 콜백 실행
       onPaste(transformedData as Record<string, unknown>);

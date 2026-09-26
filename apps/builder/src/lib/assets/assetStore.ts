@@ -23,6 +23,37 @@ export const ASSET_SESSION_ID: string =
     ? crypto.randomUUID()
     : `session-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
+export const ASSET_SESSION_LOCK_PREFIX = "composition-asset-session:";
+
+let sessionLock: Promise<boolean> | null = null;
+
+/**
+ * 이 세션 (탭) 의 Web Lock — pin 을 처음 쓰기 전에 잡고 탭이 끝날 때까지 유지한다. GC 는 lock 이
+ * 잡혀 있는 세션의 pin 을 끝난 것으로 보지 않는다 (소유권 종료 증명, §3.1-5). Web Locks 가 없으면
+ * false — 그 경우 GC 는 다른 세션의 pin 을 정리하지 않는다.
+ */
+export function holdAssetSessionLock(
+  sessionId: string = ASSET_SESSION_ID,
+): Promise<boolean> {
+  const locks = (
+    globalThis.navigator as
+      | (Navigator & {
+          locks?: {
+            request(name: string, callback: () => Promise<void>): Promise<void>;
+          };
+        })
+      | undefined
+  )?.locks;
+  if (!locks?.request) return Promise.resolve(false);
+  sessionLock ??= new Promise<boolean>((resolve) => {
+    void locks.request(`${ASSET_SESSION_LOCK_PREFIX}${sessionId}`, () => {
+      resolve(true);
+      return new Promise<void>(() => {}); // 탭 수명 동안 유지
+    });
+  });
+  return sessionLock;
+}
+
 export class AssetStoreUnavailableError extends Error {
   constructor() {
     super("자산 저장소를 열 수 없습니다 (IndexedDB assets store 없음)");
@@ -79,6 +110,7 @@ export async function storeAssetBytes(
   const mime = input.mime || "application/octet-stream";
   const ext = extensionForMime(mime, input.name);
   const blob = new Blob([input.bytes as BlobPart], { type: mime });
+  if (sessionId === ASSET_SESSION_ID) await holdAssetSessionLock();
   const db = await openAssetDb();
   if (!db) throw new AssetStoreUnavailableError();
 
@@ -129,6 +161,7 @@ export async function prepareAssetReferences(
     throw new AssetMissingError(String([...refs][hashes.indexOf(null)]));
   }
   if (hashes.length === 0) return;
+  if (sessionId === ASSET_SESSION_ID) await holdAssetSessionLock();
   const db = await openAssetDb();
   if (!db) throw new AssetStoreUnavailableError();
   const tx = db.transaction([ASSETS_STORE, ASSET_GC_STORE], "readwrite");

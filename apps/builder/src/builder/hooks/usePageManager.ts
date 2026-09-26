@@ -39,6 +39,7 @@ import {
   resolveMigrationPanCorrection,
 } from "../stores/utils/pagePlacementHydration";
 import { isAssetWriterEnabled } from "../../utils/featureFlags";
+import { scheduleAssetGc } from "../stores/assetGcScheduler";
 
 function normalizePageSlug(slug: string | null | undefined): string {
   if (!slug) return "";
@@ -490,6 +491,8 @@ export const usePageManager = (): UsePageManagerReturn => {
         if (persistedDocument && isAssetWriterEnabled()) {
           scheduleInlineAssetMigration(projectId);
         }
+        // ADR-235 Phase 3 — 자산 GC (idle · 하루 한 번)
+        scheduleAssetGc();
 
         initializingRef.current = null;
         return { success: true, data: apiPages };

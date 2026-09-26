@@ -61,9 +61,23 @@ export const ImageFillEditor = memo(function ImageFillEditor({
     }
 
     const trimmed = urlInput.trim();
-    if (trimmed !== fill.url) {
-      onUpdateEnd({ url: trimmed } as Partial<ImageFillItem>);
+    if (trimmed === fill.url) return;
+    // ADR-235 §3.1 — 직접 입력한 `asset:` 참조는 공개 전에 바이트 존재 확인 + pin. 없으면
+    //   적용하지 않고 입력을 되돌린다 (깨진 참조 공개 금지).
+    if (trimmed.startsWith("asset:")) {
+      const previous = fill.url;
+      void import("../../../../lib/assets/assetStore")
+        .then(({ prepareAssetReferences }) => prepareAssetReferences([trimmed]))
+        .then(
+          () => onUpdateEnd({ url: trimmed } as Partial<ImageFillItem>),
+          (error) => {
+            console.warn("[assets] 없는 자산 참조 — 적용하지 않음", error);
+            setUrlInput(previous);
+          },
+        );
+      return;
     }
+    onUpdateEnd({ url: trimmed } as Partial<ImageFillItem>);
   }, [urlInput, fill.url, onUpdateEnd]);
 
   const handleUrlKeyDown = useCallback(
