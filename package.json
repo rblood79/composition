@@ -12,6 +12,7 @@
     "build:all": "turbo run build:all",
     "build:specs": "pnpm -F @composition/specs build",
     "dev:specs": "pnpm -F @composition/specs dev",
+    "gate:catalog-errors": "node apps/builder/scripts/catalog-error-sweep.mjs",
     "cache:clean": "rm -rf .turbo/cache",
     "generate:css": "pnpm -F @composition/specs generate:css",
     "generate:palette": "pnpm -F @composition/specs generate:palette",

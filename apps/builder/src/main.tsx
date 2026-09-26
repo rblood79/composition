@@ -10,6 +10,10 @@ import {
 import { initPerformanceDiagnostics } from "./utils/performance/diagnostics";
 import { cleanupLegacyStorage } from "./lib/legacyStorageCleanup";
 import { setAssetUrlResolverLoader } from "@composition/shared/utils";
+import { startRuntimeErrorLog } from "./builder/performance/runtimeErrorLog";
+
+// 잡히지 않은 오류를 페이지 안에 모은다 — dev 는 __composition_RUNTIME_ERRORS__ 로 읽힌다.
+startRuntimeErrorLog();
 
 // Phase 9: Performance monitors are opt-in diagnostics in dev mode.
 initPerformanceDiagnostics();
