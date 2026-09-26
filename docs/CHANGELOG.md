@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [로컬 저장 v2 Phase 6 — 프로젝트를 폴더에 연결 (Chrome · Edge)] - 2026-09-26
+
+### Added
+
+- **메뉴 "폴더에 연결…" 로 프로젝트를 내 컴퓨터 폴더에 연결할 수 있다 (Chrome · Edge 등 Chromium).** 연결하면 저장할 때마다 폴더에 v2 형식 (`manifest.json` · `parts/` · `assets/`) 으로 백그라운드 저장한다. 저장 중 끊겨도 폴더는 직전 저장 또는 새 저장 중 하나로 온전하고, `manifest.json` 이 손상되면 기록 (`manifests/`) 에서 복구한다. 직전 저장 1 세대를 남긴다.
+- 헤더에 폴더 상태 버튼이 생긴다 — 새로고침 뒤 폴더 권한이 필요하면 눌러서 허용하고, 폴더가 다른 곳에서 바뀌었으면 자동 저장을 멈추고 "폴더 내용으로 열기" / "내 변경으로 덮어쓰기" 를 고르게 한다. 연결 해제도 여기서 한다.
+  - 검증: 실제 builder (Playwright Chrome, 같은 File System Access API 의 OPFS 폴더) — 연결 · 편집 반영 · 외부 수정 충돌 · 손상 복구 · 권한 없음 · 브라우저 재시작 뒤 복원 6/6. 폴더 선택창 · 권한 창은 자동화할 수 없어 사용자 확인 대상.
+
 ## [로컬 저장 v2 Phase 5 — 브라우저 저장소 보호] - 2026-09-26
 
 ### Added

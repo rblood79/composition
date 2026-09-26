@@ -11,10 +11,11 @@ import type { Key } from "react-aria-components/Collection";
 import { useEffect, useState } from "react";
 import { iconProps } from "../../utils/ui/uiConstants";
 import { useI18n } from "../../i18n";
-import {
-  DIRECTORY_LINK_EVENT,
-  type DirectoryLinkState,
-} from "../../lib/assets/projectDirectoryLink";
+// 타입만 — 값 import 는 lazy 연결 모듈 전체를 initial 로 끌어온다 (ADR-235 HC2)
+import type { DirectoryLinkState } from "../../lib/assets/projectDirectoryLink";
+
+/** `projectDirectoryLink.DIRECTORY_LINK_EVENT` 와 같은 값 */
+const DIRECTORY_LINK_EVENT = "composition:directory-link";
 
 export type DirectoryLinkAction =
   "permission" | "open" | "overwrite" | "disconnect";

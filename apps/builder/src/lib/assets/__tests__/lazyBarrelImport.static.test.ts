@@ -27,3 +27,31 @@ describe("lazy 자산 모듈 — shared barrel 값 import 금지 (HC2)", () => {
     expect(offenders).toEqual([]);
   });
 });
+
+/** lazy 자산 모듈을 builder 코드가 **정적으로 값** import 하면 그 모듈 전체가 initial 로 끌려온다
+ *  (Phase 6 실측 — 헤더 버튼이 이벤트 상수 하나를 값으로 import 해 Builder +7.9 KB). 타입 import 와
+ *  initial 전용 훅 (`useResolvedAssetUrl`) 만 된다. */
+function walk(dir: string, out: string[] = []): string[] {
+  for (const name of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, name.name);
+    if (name.isDirectory()) {
+      if (name.name !== "node_modules" && full !== ASSETS_DIR) walk(full, out);
+    } else if (/\.(ts|tsx)$/.test(name.name) && !/\.test\./.test(name.name)) {
+      out.push(full);
+    }
+  }
+  return out;
+}
+const STATIC_LAZY =
+  /^import\s+(?!type\b)[^;]*?from\s+"[./]*(?:\.\.\/)*lib\/assets\/(?!useResolvedAssetUrl")[^"]+";/gms;
+
+describe("builder 코드 — lazy 자산 모듈 정적 값 import 금지 (HC2)", () => {
+  it("apps/builder/src (lib/assets 밖)", () => {
+    const offenders = walk(resolve(__dirname, "../../..")).flatMap((file) =>
+      [...readFileSync(file, "utf8").matchAll(STATIC_LAZY)].map(
+        (match) => `${file.split("/src/")[1]}: ${match[0].split("\n")[0]}`,
+      ),
+    );
+    expect(offenders).toEqual([]);
+  });
+});

@@ -322,3 +322,30 @@ Phase 5 는 1~4 와 독립이라 먼저 착수해도 된다 (가장 작은 작�
 - i18n — 인자 있는 키는 `formattedMessages` 함수로 등록해야 치환된다: 새 `header.storageUsage` 와 함께, 같은 누락이던 기존 `header.importProjectFailed` · `exportProjectFailed` (`{message}` 원문 노출) 를 등록했다.
 
 **증거** — live (`apps/builder/scripts/adr235-p5-live.mjs` 2/2, headless Chrome — persist 거부 환경): 첫 저장 뒤 헤더 라벨 "브라우저가 이 프로젝트를 지울 수 있습니다 … · 사용량 436 KB / 4.0 GB" (위험 표시) · 캐시 행이 `composition-cache` bucket (`persisted() === false`) 에 있고 원본 DB 캐시 0. unit: quota 1회 재시도 성공 · 재시도 실패 시 이벤트 · quota 아닌 오류는 재시도 안 함 · persist 1회만 · 사용률 판정 · adapter 저장 재시도 (캐시 비워짐) · 캐시 상한 · 스냅샷 상한 (user 차단 · system 순환). 번들 (`e60761f35`): Builder 1,419,751 · Preview 622,551 (상한 안).
+
+### Phase 6 — 디렉토리 연결 (G6 통과, 2026-09-26)
+
+**구현**
+
+- shared `writeV2Directory(target, generation, { keepPrevious: 1 })` — §2 순서 그대로 (없는 자산 → part, 각 파일 크기 · 해시 재확인 → `manifests/<rev>.json` → `manifest.json` → 보존 세대 밖 정리). 대상 추상 `V2DirectoryTarget` (FSA · 메모리). `nextV2Revision` — manifest.json · manifests/ 기록 · 마지막으로 쓴 값의 최댓값 + 1. `directoryV2Source` 로 읽기 · 복구.
+- `lib/assets/projectDirectoryLink.ts` (lazy) — 프로젝트별 opt-in (헤더 메뉴 "폴더에 연결…", `showDirectoryPicker` 가 있을 때만), 핸들은 별도 DB `composition-links` (원본 DB 버전 무관), 연결 표식 `composition.dir-link.<id>`. 쓰기 계기 = 커밋된 문서 저장 (`incrementalDocuments.put` 성공 뒤 `composition:document-persisted` — 급감 가드로 막힌 저장은 알리지 않아 폴더도 보호) · 폰트 변경, 1.5 초 debounce, 쓰기 중 변경은 다음 쓰기로.
+- 권한 — `queryPermission` 이 granted 가 아니면 쓰지 않고 `needs-permission` (헤더 폴더 버튼 → "폴더 권한 허용" 클릭이 `requestPermission`). 편집은 IndexedDB 에 남는다.
+- 충돌 — 쓰기 전 `manifest.json` revision · `lastModified` 가 마지막으로 쓴 값과 다르면 `conflict` 로 멈춘다 ("폴더 내용으로 열기" = v2 읽기 → 자산 저장 → 가져오기 적용 / "덮어쓰기" = 강제 쓰기). 다른 프로젝트의 세대가 이미 든 폴더에 연결해도 충돌로 시작한다 (덮어쓰지 않음).
+- 부팅 복원 + crash sentinel — 핸들을 읽기 전에 표식, 표식이 남은 채 다시 부팅하면 복원을 건너뛰고 연결 해제 (`error: relink`). Chrome 153 실측: Playwright 의 비영속 컨텍스트에서 OPFS 디렉토리 핸들을 IndexedDB 에서 읽으면 브라우저가 종료됐다 (raw IndexedDB 로 재현; 영속 프로필은 정상 복원).
+- 보존 세대 수 = 현재 + 직전 1 (확정).
+- **보류**: "오래 닫힌 연결 프로젝트의 IndexedDB 내용 비우기" (Decision 4 의 "비울 수 있다") — IndexedDB 사본 삭제라 자동화하지 않았다. 필요하면 사용자 판정 뒤 수동 동작으로.
+
+**G6 증거**
+
+| 항목                                        | 결과                                                                                                                                                                |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 중단 주입 5지점 (unit, 메모리 대상)         | 자산 뒤 · part 뒤 · manifests/ 뒤 · manifest.json 뒤 · 정리 중 — 읽기 결과가 직전 또는 새 세대 전체 (문서 · 자산 같은 세대), manifest.json 교체 전 = 직전 · 뒤 = 새 |
+| manifest.json 손상 (unit + live F4)         | 부분 쓰기 · 손상 → manifests/ 최신 유효 세대로 복구 (live: revision 100, 복구 표시)                                                                                 |
+| 원복 RED                                    | 불변 경로 재사용 · 보존 세대 · 세대 기록 — 각각 제거 시 실패                                                                                                        |
+| 편집 → 파일 반영 (live F1 · F2)             | 연결 → 1세대, 요소 추가 → DB 저장 뒤 2세대 · 직전 세대 보존 · 문서에 새 요소                                                                                        |
+| 외부 수정 충돌 (live F3)                    | 폴더 revision 을 99 로 바꾸면 편집해도 쓰지 않고 conflict · 덮어쓰기 → 100                                                                                          |
+| 권한 없음 (live F5)                         | 쓰지 않고 needs-permission · 허용 → 101 (**발견 · 수리**: manifest.json 손상 뒤 revision 이 1 로 되돌아가던 결함 → `nextV2Revision`)                                |
+| 브라우저 재시작 복원 (live F6, 영속 프로필) | 연결 표식 유지 · 헤더 폴더 버튼 `synced` · sentinel 비어 있음                                                                                                       |
+
+- 하니스 `apps/builder/scripts/adr235-g6-live.mjs` (6/6) — 폴더 선택창은 자동화할 수 없어 OPFS 디렉토리 핸들 (같은 File System Access API) 을 DEV 훅 `__composition_CONNECT_FOLDER__` 로 같은 연결 경로에 넣었다. 실제 폴더 선택 · 새로고침 뒤 권한 창은 Phase 7 사용자 확인 대상.
+- 번들 — lazy 폴더 버튼이 공용 모듈 (RAC Menu · i18n) 을 import 해 chunk 가 쪼개졌고 (Builder 1,421,654 · Preview 623,236), 정적으로 바꾸자 버튼이 lazy 모듈 상수를 값으로 import 해 모듈 전체가 initial 로 끌려왔다 (Builder 1,428,747). 버튼은 정적 · 타입만 import, 선택창 · 동작 분기는 lazy 모듈로 옮겨 Builder 1,420,877 · Preview 622,551 (상한 안, Builder 여유 123 B). 가드 확장: builder 코드의 lazy 자산 모듈 정적 값 import 금지 (`lazyBarrelImport.static.test.ts`).

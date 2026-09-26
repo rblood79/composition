@@ -453,3 +453,53 @@ export async function disconnectProjectDirectory(
 export function getDirectoryLink(projectId: string): DirectoryLink | undefined {
   return links.get(projectId);
 }
+
+/** 메뉴 "폴더에 연결…" — 선택창 (사용자 클릭 안) → 연결. 취소면 null */
+export async function pickAndConnectProjectDirectory(
+  projectId: string,
+  deps: DirectoryLinkDeps,
+): Promise<DirectoryLinkState | null> {
+  const picker = (
+    window as unknown as {
+      showDirectoryPicker?: (options: {
+        mode: "readwrite";
+        id: string;
+      }) => Promise<FileSystemDirectoryHandle>;
+    }
+  ).showDirectoryPicker;
+  if (!picker) return null;
+  let handle: FileSystemDirectoryHandle;
+  try {
+    handle = await picker({ mode: "readwrite", id: "composition-project" });
+  } catch {
+    return null; // 사용자가 취소
+  }
+  return connectProjectDirectory(projectId, handle, deps);
+}
+
+export type DirectoryLinkAction =
+  "permission" | "open" | "overwrite" | "disconnect";
+
+/** 헤더 폴더 버튼 동작 — "폴더 내용으로 열기" 는 읽은 envelope 를 호출부 적용 함수로 넘긴다 */
+export async function runDirectoryLinkAction(
+  projectId: string,
+  action: DirectoryLinkAction,
+  applyImported: (data: unknown) => Promise<void>,
+): Promise<void> {
+  if (action === "disconnect") {
+    await disconnectProjectDirectory(projectId);
+    return;
+  }
+  const link = links.get(projectId);
+  if (!link) return;
+  if (action === "permission") await link.requestPermission();
+  if (action === "overwrite") await link.write(true);
+  if (action === "open") {
+    const read = await link.readFromDirectory();
+    await applyImported({
+      version: read.manifest.formatVersion,
+      exportedAt: read.manifest.savedAt,
+      ...read.content,
+    });
+  }
+}

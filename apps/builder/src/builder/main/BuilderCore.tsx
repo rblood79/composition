@@ -6,14 +6,7 @@ import {
   isBodyType,
 } from "@composition/shared";
 import { startLocalWebVitals } from "../performance/localWebVitals";
-import React, {
-  lazy,
-  Suspense,
-  useState,
-  useCallback,
-  useEffect,
-  useRef,
-} from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import { useParams } from "react-router";
 import { Key } from "react-aria-components/Collection";
 
@@ -146,6 +139,8 @@ import type { Element } from "../../types/core/store.types";
 import { MessageService } from "../../utils/messaging";
 import { isValidPreviewMessage } from "../../utils/messageValidation";
 import { STORAGE_QUOTA_EVENT } from "../../lib/storage/storageProtection";
+// ADR-235 Phase 6 — 정적 import: lazy chunk 가 공용 모듈 (RAC Menu · i18n) 을 import 하면 initial 공용 chunk 가 쪼개진다
+import DirectoryLinkButton from "./DirectoryLinkButton";
 import {
   getValueByPath,
   upsertData,
@@ -245,9 +240,6 @@ function hasPageShellTopologyChanged(
   }
   return false;
 }
-
-/** ADR-235 Phase 6 — 연결된 프로젝트에서만 싣는다 */
-const LazyDirectoryLinkButton = lazy(() => import("./DirectoryLinkButton"));
 
 export const BuilderCore: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -1406,26 +1398,12 @@ export const BuilderCore: React.FC = () => {
 
   const handleConnectFolder = useCallback(async () => {
     if (!projectId) return;
-    const picker = (
-      window as unknown as {
-        showDirectoryPicker?: (options: {
-          mode: "readwrite";
-          id: string;
-        }) => Promise<FileSystemDirectoryHandle>;
-      }
-    ).showDirectoryPicker;
-    if (!picker) return;
-    let handle: FileSystemDirectoryHandle;
-    try {
-      handle = await picker({ mode: "readwrite", id: "composition-project" });
-    } catch {
-      return; // 사용자가 취소
-    }
-    const m = await linkModule();
-    setFolderLinked(true);
-    await m.connectProjectDirectory(projectId, handle, {
+    const state = await (
+      await linkModule()
+    ).pickAndConnectProjectDirectory(projectId, {
       collectContent: collectExportContent,
     });
+    if (state) setFolderLinked(true);
   }, [projectId, collectExportContent]);
 
   // DEV — live 하니스가 폴더 선택창 없이 같은 연결 경로를 탄다 (OPFS 핸들 주입)
@@ -1448,24 +1426,12 @@ export const BuilderCore: React.FC = () => {
   const handleDirectoryLinkAction = useCallback(
     async (action: "permission" | "open" | "overwrite" | "disconnect") => {
       if (!projectId) return;
-      const m = await linkModule();
-      const link = m.getDirectoryLink(projectId);
-      if (action === "disconnect") {
-        await m.disconnectProjectDirectory(projectId);
-        setFolderLinked(false);
-        return;
-      }
-      if (!link) return;
-      if (action === "permission") await link.requestPermission();
-      if (action === "overwrite") await link.write(true);
-      if (action === "open") {
-        const read = await link.readFromDirectory();
-        await applyImportedProject({
-          version: read.manifest.formatVersion,
-          exportedAt: read.manifest.savedAt,
-          ...read.content,
-        } as unknown as ProjectExportData);
-      }
+      await (
+        await linkModule()
+      ).runDirectoryLinkAction(projectId, action, (data) =>
+        applyImportedProject(data as ProjectExportData),
+      );
+      if (action === "disconnect") setFolderLinked(false);
     },
     // applyImportedProject 는 아래 정의 — 호출 시점에 최신
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1706,14 +1672,10 @@ export const BuilderCore: React.FC = () => {
             onConnectFolder={handleConnectFolder}
             directoryLink={
               folderLinked && projectId ? (
-                <Suspense fallback={null}>
-                  <LazyDirectoryLinkButton
-                    projectId={projectId}
-                    onAction={(action) =>
-                      void handleDirectoryLinkAction(action)
-                    }
-                  />
-                </Suspense>
+                <DirectoryLinkButton
+                  projectId={projectId}
+                  onAction={(action) => void handleDirectoryLinkAction(action)}
+                />
               ) : null
             }
             onWorkflowOverlayToggle={toggleWorkflowOverlay}
