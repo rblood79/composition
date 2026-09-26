@@ -1,131 +1,176 @@
-# ADR-150: RAC·Pencil 잔여 상호작용 3축 실행 — Skia 상태 threading · collection 가상화 스크롤 · projected drill-in edit (ADR-912 후속)
+# ADR-150: 데이터 바인딩 목록의 Canvas 정합 — 행 위치 단일 소스 · 데이터 행 origin 진입 (ADR-912 잔여 재작성)
 
 ## Status
 
-Accepted — 2026-07-18 (리뷰 round 2 승인 — 이슈 0건, 합의 완료 → Accepted 승격 · execute-adr A1 착수)
+Proposed — **본문 재작성 2026-09-26**. 사용자 판정은 두 가지다: "본문 재작성", 그리고 데이터 행 진입을 "origin 자식 선택" 으로 한다. 이전 판은 Accepted 2026-07-18 로 3축 (A1 상태 threading · A2 가상화 · A3 drill-in) 이었고, 본문 원문은 git `7519dee51` 에 있다. 재작성 본문은 리뷰 round 3 이 필요하다.
 
-> 진행 로그:
+> **재작성 사유** (2026-09-26 코드 실측 — 조사 3 갈래와 직접 대조):
 >
-> - Proposed 2026-07-13 (리뷰 round 1 반영 개정 2026-07-14) → Accepted 2026-07-18 (reviews/150.md round 2 이슈 0건)
-> - **Phase A1 철회 (재판정 2026-07-20 · 사용자 재제기 — D1/D3 경계 오판)** — Skia 화면은 **빌더(화면 정의·구성 surface, Pencil app 동형)이지 프론트엔드가 아니다.** hover/pressed/focusVisible 를 pointer 이동에 연동해 실시간 재현하는 것은 **Preview(CSS/DOM)의 역할**(D1 — RAC 가 `:hover`/`data-*` 자동 소유)이며, 빌더 캔버스가 이를 시뮬레이션한 A1 은 **D1(DOM/접근성) 을 D3(시각) 소비 경로로 끌어온 경계 오판**이었다. 상태(default/selected 등)는 Pencil 방식대로 노드가 어느 variant·state 를 나타내는지 **선언적으로 정의(origin=base, ref+descendants=override)해 "보여주는"** 것이지, 빌더에서 pointer 로 실행하는 것이 아니다. A1 커밋 4건 역순 revert(`5e635ebbc`): hover fill(`d2b7a1b2f`)·pressed fill(`99947f241`)·focus ring(`e98ab8887`/`433ba3a6c`) 제거. **보존**: 편집 보조 hover outline(`buildHoverHighlightTargets`, A1 이전부터 존재) + 선언적 상태 시각(racStateAttrs disabled 분기 + catalog `FillStateTokens` — 빌더가 "이 노드가 어느 state variant 인가"를 보여주는 것) + ADR-154 render-visual(독립 영역). type-check PASS(baseline 63) + overlay 테스트 16 pass + dangling 참조 0. **A2/A3 은 상호작용 시뮬레이션이 아니라 빌더의 대용량 표시·깊은 편집이라 유효 — 유지.** 아래 A1 착수 기록·R1·G-A1 은 철회된 접근의 이력(historical) 으로 보존.
-> - ~~**Phase A1 (Skia hover/pressed/focusVisible 상태 threading) Implemented 2026-07-19**~~ (위 재판정으로 **철회**) — S2 hover(`d2b7a1b2f`) · S3 pressed(`99947f241`) · S4 focusVisible+focus ring(`e98ab8887`, cross-check 색 정정 `433ba3a6c`). 무효화 채널 = hovered/pressed/focused 노드 한정 overlay draw pass(`overlayVersion` 재사용, sceneVersion signature 미변경 → scene rebuild 0). 개념적으로는 빌더 캔버스가 런타임 프론트엔드처럼 상태를 실행한 것이라 철회.
-> - **Phase A2 (collection 가상화 스크롤 — ListBox 선행 proof) delivered · 시각 최종 확인 대기 2026-07-19** — sub-1 순수 window resolver(`b9698aa4c`) · sub-2 scene 빌더 window 투영+spacer(`90dd52b32`) · sub-3 BuilderCanvas 활성화+경계 게이팅(`73e7b367b`) · ref 인스턴스 ListBox 감지 수정(`360a12201`, live 검증 발견 — 페이지 ListBox 는 `type:"ref"` 라 `type:"ListBox"` 직접 매칭이 실제 인스턴스를 놓쳤다) · 정확 행 높이(template style + description, `34c56ea70`). window = `resolveCollectionWindow`(scrollOffset + 측정 행 높이 + overscan 6), draw/hit 가 동일 window 단일 소스 공유(R2). **G-A2 핵심(draw/hit 노드 수 ≤ window+overscan)은 실행 중 builder HMR 모듈 합성 probe(10k 행, 프로젝트 store/DOM 무mutation)로 확증**: 어느 스크롤 위치에서도 투영 행 노드 21~27(10000 아님), 스크롤 → window `firstVisible±overscan` 재투영, lead/trail spacer 가 총 content height 불변 유지(rowHeight 28 → 280000 / 50 → 50000, 스크롤바 길이 정합), 절대 rowIndex 보존(hit 정확도), window 경계 넘을 때만 signature 변경(rebuild 게이팅 — overscan slack 내 스크롤 억제), 정확 행 높이(기본 28 · description 50, layout `calculateContentHeight` 와 동일 resolver). LayerTree 패널은 window 와 분리 정책(가상화는 캔버스 draw/hit 전용) 확정. **시각 최종(실제 canvas 60fps 스크롤 픽셀)은 실제 대량 요소 canvas 렌더가 필요해 foreground 사용자 확인 대기** — 사용자 결정 2026-07-19: 로직 검증으로 A2 mechanism/activation/rowHeight 충분, 시각 확인 후 승격(실제 요소 무접촉 지시 준수). A3 미착수 — ADR Status 는 Accepted 유지.
-> - **Phase A2 확산 (GridList + Table) delivered · 시각 최종 확인 대기 2026-07-20** — ListBox proof 를 나머지 collection family 로 확산(사용자 요청 "GridList/Table 도 같은 방식"). GridList(`4a29fcf5a`): 공유 인프라 일반화 — `CollectionWindowResolution.columns` + `resolveCollectionSpacerVisualRows`/`createCollectionSpacerNode` 공유 helper(ListBox spacer 를 이를 통해 재구현, columns 1 동작 불변) + `toCollectionSpacerProjectionId` generic. GridList grid 모드는 **시각 행(visual row) 공간**에서 window 를 구한 뒤 numCols 배수로 item index 환산(카드가 열 0에서 시작, spacer width:100% 가 wrap-flow 자체 행 점유). 카드 stride = `cardPaddingY*2 + label + desc?` + rowGap(layout `calculateContentHeight` 동일 공식). Table(`e994822b9`): `getTableProjectionRows` window 위드닝 — **header 행 항상 투영** + data 행만 window, 절대 rowIndex 보존, header 높이만큼 scrollTop 보정(header 는 sticky 아닌 스크롤 content). 행 높이 균일(catalog TableRow.sizes sm36/md44/lg52). 검증: 30/30 유닛(ListBox 15 + GridList 7 + Table 8) + scene 100/100 + table 관련 26 회귀 0 + 실행 중 builder HMR 모듈 합성 probe(10k, 프로젝트 무mutation) — GridList grid(cols2) 28 카드·stack 14·cols3+desc 36, Table md 16/sm 18/lg 14 data행(header 항상 1), 스크롤 재투영·절대 idx·spacer 총 높이(GridList totalVisualRows×stride / Table header+전체 data) 보존. GridList grid 는 rowGap 1개 근사(스크롤바 미소 오차, ListBox/Table 은 gap 0 정확). **시각 최종(실제 canvas 60fps 스크롤)은 ListBox 와 동일하게 foreground 사용자 확인 대기**. A3 미착수 — ADR Status 는 Accepted 유지.
-
-> **문서 위상: 실행 ADR (ADR-912 후속)**. [ADR-912](completed/912-rac-pencil-rebuild-cutover.md)(백지 직행, Implemented 2026-06-18)가 승격 시점에 명시 기록한 잔여 — [ADR-911](911-rac-pencil-target-component-architecture.md) R-3 잔여(가상화 스크롤 60fps + drill-in data edit UI) + R-4 잔여(hover/pressed/focusVisible interaction threading) — 를 단일 scope 로 실행한다. 사용자 결정 2026-07-13 (AskUserQuestion "새 실행 ADR 1건 작성"). 910/911 은 비실행 참조 위상 그대로 존속한다. **단 R-4/G-state 의 hover/pressed/focusVisible 축은 재판정(2026-07-20)으로 철회** — 빌더가 아니라 Preview(DOM) 소관이라 911 G-state 는 선언적 상태(selected/disabled) parity 로 재정의된다(ADR-911 R-4/G-state 참조). 본 ADR 은 A2(가상화)/A3(drill-in)로 911 의 G-projected(R-3) 잔여 증명을 충족한다.
+> - **A1** (Skia hover/pressed/focusVisible 상태 threading): 2026-07-20 에 철회했다 (`5e635ebbc`, D1/D3 경계 오판). 선언적 상태 (selected/disabled) 는 [ADR-230](completed/230-base-element-state-variant-origins.md) 이 실행했고, [ADR-234](completed/234-variant-instances-and-slot-filled-collections.md) 에서 상태 변형 origin 의 ref + 층으로 다시 실행했다 (`stateVariantLayers.ts` · `canonicalRefResolution.ts` `resolveActiveStateLayer`). 그래서 150 이 가질 몫이 없다. 이전 판 HC#3 과 Consequences 의 "상태 시각 = catalog `FillStateTokens` 단일 소스 · 신규 정본 없음" 은 현재 코드와 반대다.
+> - **A2** (가상화 window, 2026-07-19~20 `b9698aa4c` · `90dd52b32` · `73e7b367b` · `360a12201` · `34c56ea70` · `4a29fcf5a` · `e994822b9`): 코드는 ListBox · GridList · Table 에서 가동 중이다. 노드 수 상한은 성립한다. 반면 **행 위치 단일 소스는 세 가족 모두 성립하지 않는다** (Context 2). 07-19 부터 걸려 있던 "시각 최종 확인 대기" 는 이 상태로는 닫을 수 없는 게이트였다.
+> - **A3** (가장 깊은 projected 노드 선택 · drill stack · template/data/override 3-route registry): ADR-234 계열 (234 · 237 · 238 · 239 · 241) 로 정적 목록 항목이 canonical instance 자식이 됐다. 그래서 editingContext 더블클릭 진입 · Esc 복귀 · synthetic 자식 선택 · `descendants[origin path]` override 가 이미 동작한다. 원 설계는 현재 불변식 두 가지와 충돌한다. ① projected id 는 selection 에 들어가지 않는다 (`resolveCanvasInteractionTarget.ts:22-24`). ② override 는 항목 instance 자신에 저장한다 (원 설계는 collection 노드의 `descendants[itemKey]`). 남은 공백은 **데이터 바인딩 행** 뿐이다.
+> - **R6** (ADR-916 사후 parity sweep 의 collection 축 선행): [ADR-151](completed/151-builder-residual-parity-defect-remediation.md) (Implemented 2026-07-17) 로 해소됐다. 남은 잔존은 Disclosure percent-in-intrinsic 1 건으로 collection 축이 아니다.
 
 ## Context
 
-ADR-912 완결로 catalog 단일 SSOT 전환·spec 전수 삭제·`skiaLegacy` 플래그 제거는 끝났으나, Skia editor surface 의 상호작용 3축이 미완으로 남아 실행 owner 가 부재하다 (2026-07-13 활성 ADR 전수 확인 — 148 reusable·slot / 915 prop parity / 149 events panel 모두 직교):
+**도메인 (ADR-063)**: D3 시각과 render-space interaction (ADR-135/136 경계) 이다. D3 시각은 행 위치와 스크롤 범위다. 두 가지 모두 Builder (Skia) 와 Preview (DOM) 에서 시각 결과가 달라질 수 있는 요소다. D1 · D2 는 건드리지 않는다. schema · prop · catalog 변경은 0 이다.
 
-1. ~~**Skia hover/pressed/focusVisible 상태 시각 부재**~~ **(재판정 2026-07-20 — 문제 정의 자체가 오판. 철회)** — 이 항목은 "빌더 캔버스가 hover/pressed/focusVisible 를 표시해야 한다"를 전제했으나, 그것은 **Preview(CSS/DOM, D1 RAC 자동 소유)의 역할**이지 빌더의 역할이 아니다. 빌더(Skia)는 화면을 정의·구성하는 surface(Pencil app 동형)이고, pointer 상호작용을 실시간 동작하는 프론트엔드가 아니다. `racStateAttrs.ts` 가 disabled 만 derive 하고 hover/pressed 를 "후속"으로 둔 것은 결함이 아니라 **의도된 경계**였다 — 빌더가 표시할 것은 노드가 선언적으로 나타내는 state variant(selected/disabled)이지, 마우스를 올렸을 때의 hover 재현이 아니다. (아래 원문은 철회된 전제의 이력으로 보존:) 시각 데이터 자체는 catalog `FillStateTokens`(ADR-908)에 이미 존재하고 threading 만 없다 — 그러나 그 threading 을 잇는 것이 A1 의 오류였다.
-2. **collection 가상화 스크롤 부재** — `packages/shared/src/collections/resolveCollectionItems.ts:28` 의 `COLLECTION_ROW_PROJECTION_WINDOW_LIMIT = 100` 정적 cap. 910 breakdown §4.7 이 "slice(0,N) 은 culling 이 아니다"로 규정한 바로 그 상태라 대용량 row 에서 성능·정확성이 성립하지 않는다. window 소비자는 캔버스 draw/hit 외에 **LayerTree 패널**(`useLayerTreeData.ts:12` → 동일 LIMIT 재export 체인)이 있어 패널 정책 분리가 필요하다 (R2).
-3. **projected 깊은 노드 편집 부재** — `apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts:1077,1254` "독립 hit/remove mutation 은 후속(현 slice 는 시각 대칭)". row projection 은 시각 대칭까지만 도달했고 drill-in/data edit route 가 없어 "빌더 Skia 화면 = 직접 조작 editor" 요구(910/911 HC#7)가 미충족이다. 기존 land 패턴은 deepest 선택이 아니라 **owner select redirect**(chip/cell 클릭 → 소유 컨테이너 선택)이므로 selection read 계약 재설계가 동반된다 (R4).
+**제품 전제**: 빌더는 정의 · 구성 도구이고, 데이터 전체 재현은 목표가 아니다 ([ADR-157](completed/157-collection-builder-display-policy.md)).
 
-**선행 의존 (리뷰 round 1 반영, 2026-07-14)**: ADR-916 사후 parity sweep 에서 라이브 발산 백로그(collection family 포함 — Table/Tree/Card 계열)가 확정돼 있다(메모리 `project-adr916-post-cutover-parity-sweep-inventory`, 재현 하니스 adr916-parity-sweep). A2 의 row height 측정·content height 정확성·G-A2 판정 환경이 이 엔진 layout 결과에 의존하므로, **A2 착수 전 collection 축 발산 정리 또는 fixture 격리 확인이 선행**돼야 한다 (R6).
+- 데이터 행 입력 경로 상한은 DataTable 100 (`DataTableCreator.tsx:818-823`) 과 AI 50 (`services/ai/data/tableSpec.ts:25`) 이다. 붙여넣기 · API 저장 경로에는 상한이 없다.
+- `pnpm perf:baseline` 의 레버 순위에 canvas collection 스크롤은 없다 (`BUILDER_PERF_BASELINE_2026-09.md` §4).
+- 그래서 목표는 "10k 행 60fps" 가 아니다. 목표는 두 가지다. **스크롤 소유자에서 보이는 행이 DOM 과 같은 자리에 있고 끝 행까지 스크롤이 닿는 것.** 그리고 노드 수가 window 에 묶이는 것.
 
-**3-domain 분류 (ADR-063)**: D3 시각(상태 fill 은 기존 catalog rule 소비 — schema 확장 0) + render-space interaction(ADR-135/136 Render-Space Boundary 계약 준수). D1 은 침범하지 않는다 — DOM 쪽 hover/pressed 는 RAC 가 자동 소유하며, 본 ADR 은 Skia editor surface 한정.
+**현재 코드 (2026-09-26 working tree 실측)**:
 
-**Generator 선언 (선차단 #2)**: catalog rule schema·CSS generator 확장 없음 — `FillStateTokens.hover/pressed/selected` 는 ADR-908 로 기존재하고 CSS 경로는 이미 소비 중. 본 ADR 은 Skia 소비 경로만 잇는다.
+1. **가상화 대상**: 가족은 listbox · gridlist · table 3 개다 (`collectionVirtualization.ts:130-137`). 그중 높이 고정 + overflow scroll 소유자만 대상이다 (`BuilderCanvas.tsx:322-336`). auto-height 소유자는 ADR-157 방식 (샘플 10 행 + hatch) 을 따른다. TagGroup · Tab · Breadcrumb 은 window 가 없고 정적 cap 100 을 쓴다 (`resolveCollectionItems.ts:36`).
+2. **행 위치 단일 소스 불성립**:
+   - **ListBox**:
+     - scene 행 묶음은 `rowGap: rowGapPx` 를 쓴다. 기본값은 catalog `{spacing.2xs}` = 2px 이다 (`canvasSceneNode.ts:1252-1288`).
+     - 그런데 scroll 모드 trailing spacer 는 `trail × rowHeight` 뿐이다 (`:1440`). resolver 의 `contentHeight = (visualRows + headerRows) × rowHeight` (`collectionVirtualization.ts:404-406`) 에도 gap 이 빠져 있다.
+     - 그 결과 `maxScrollTop` 이 (행 수 − 1) × gap 만큼 짧다. 100 행이면 약 198px 이라 끝 행에 스크롤이 닿지 않는다.
+     - 행 높이 resolver 는 layout 과 같은 함수를 쓰지만 입력이 다르다: wrap · inset · 명시 `height` · selected variant (`utils.ts:2947-2995` 대 `:401-418`).
+   - **GridList**:
+     - 2026-07-23 `2a7002cd6` 에서 행 묶음이 `display:grid` + `1fr × numCols` 로 바뀌었다 (`canvasSceneNode.ts:1686-1694`).
+     - 그런데 spacer 는 여전히 `{width:100%, height, flexShrink:0}` 이다 (`:991`). grid 에서는 한 칸만 차지할 수 있다 (live 미확인).
+     - stride 는 고정 공식이다 (`collectionVirtualization.ts:221-226`). padding 과 gap 도 렌더 경로와 다른 소스에서 읽는다: `resolveGridListItemMetric` 대 카드 style, `resolveGridListSpacingMetric` 대 `props.gap`.
+     - 펼친 카드 (ADR-162 Phase 2) 는 엔진이 실측한다. 그 가변 높이는 ADR-162 Phase 4 범위다.
+   - **Table**:
+     - 행 높이는 상수 미러 36/44/52 다 (`collectionVirtualization.ts:144-156`). catalog `TableRow.sizes` 와 값만 같은 두 번째 소스다.
+     - ADR-241 요소 헤더 (`headerFromElements`) 의 높이를 rowHeight 로 가정한다 (`collectionVirtualization.ts:362, 405-406`).
+   - 주석 `collectionVirtualization.ts:165-167` 의 "ListBox/Table 은 rowsGroup gap 0 이라 정확" 은 ADR-157 gap 배선 이후 틀린 서술이다.
+   - window 테스트는 노드 수와 spacer 값만 본다. gap 이 있는 ListBox · grid 좌표 · 끝 행 도달을 보는 테스트는 0 이다.
+3. **데이터 행 진입 부재**:
+   - 데이터 바인딩 행 클릭은 owner 로 넘어간다 (ListBox · GridList · Table · Tag · Tab · Breadcrumb, `resolveCanvasInteractionTarget.ts:132-165`). ADR-162 Phase 2 에서 펼친 카드의 자식도 `inheritCollectionRowProjectionToSyntheticChildren` (`canvasSceneNode.ts:3707-3719`) 을 거쳐 owner 로 간다.
+   - 더블클릭하면 owner 로 진입하지만, 다음 클릭도 owner id 로 바뀌어 context 가 풀린다. 막다른 길이다 (코드 판독).
+   - 데이터 행 `descendants` 는 `{field}` 보간으로 scene 시점에 만들고 저장하지 않는다. 행별 override 를 저장할 곳이 없다. 카드 모양 편집은 origin (Components 페이지) 편집뿐이다.
+   - `resolveCollectionWriteTarget` (ADR-912 단계 4, 3-route) 은 production 호출이 0 이다.
+   - origin 이동 인프라는 이미 있다: `selectElementWithPageTransition` (`stores/elements.ts:1594`), "원본으로 이동" 액션 (`componentSemanticsActions.ts:128`).
+4. **910/911**:
+   - [ADR-911](911-rac-pencil-target-component-architecture.md) R-3 HIGH / G-projected (10k draw/hit · 가장 깊은 선택 · drill-in/data edit) 를 증명할 곳은 150 뿐이다. 그런데 150 이 닫힐 때 911 Status 를 바꾸는 조항이 없다.
+   - [ADR-910](910-rac-pencil-component-architecture.md) T-7/G-state 는 A1 철회를 반영하지 않았다.
 
-**BC 수식화 (선차단 #3)**: additive — canonical 문서 schema 무변경, 기존 프로젝트 재직렬화 0건, props/public API 변경 0.
+**인접 ADR**:
+
+- [ADR-162](162-gridlist-template-subtree-projection.md) Phase 4 (펼친 카드의 시각 행별 높이 가상화) 는 본 ADR A2' 뒤에 온다. 의존 방향은 그대로 162 Phase 4 → 150 A2' 이다. 150 은 행 offset 함수를 정하고, 162 Phase 4 는 그 함수에 실측 · 추정 행 높이를 공급한다.
+- ADR-162 Phase 5 (GridList 카드 필드 패널) 는 A3' 와 같은 Properties 표면을 쓴다. 쓰기 대상도 origin 문서로 같다.
 
 ### Hard Constraints
 
-1. **60fps 무회귀**: pointer hot path(pointermove)에서 전체 scene rebuild 금지 — sceneVersion signature 계산은 pointer hot path 금지(ADR-136, `.claude/rules/canvas-rendering.md` §9).
-2. **projected id canonical 비유입**: projected render id 는 canonical mutation/history/IndexedDB 유입 0건 (ADR-135/136 계약, negative fixture 로 강제).
-3. **상태 시각 대칭 (재판정 2026-07-20 — 선언적 상태로 한정)**: 빌더(Skia)가 표시하는 상태는 **노드가 선언적으로 나타내는 state variant(selected/disabled)** 에 한하며, catalog `FillStateTokens` + racStateAttrs 로 derive 한다. ~~data-hovered/data-pressed~~ 는 pointer 실시간 재현이라 **Preview(DOM, D1 RAC 자동 소유)의 영역** — 빌더가 시뮬레이션하지 않는다(A1 철회). 독자 상태 모델 금지는 유지.
-4. **기존 collection 기능 회귀 0**: row 편집·selection·정렬 등 기존 동작이 window/drill-in 전환 후 회귀 없음 (910 G-parity collection 승계).
-
-### Soft Constraints
-
-- 축 간 공유 인프라(hit tree ↔ draw tree 동일 window)는 중복 설계 없이 단일 소스.
-- ListBox 선행 proof 후 GridList/Table 확산 (910 roadmap 순서 승계).
-- ADR-148 Phase 4(collection item slot 이식)와 A2/A3 이 동일 projection 표면(`canvasSceneNode.ts`)을 공유 — 후행 착수 측이 선행 측 land 상태를 phase 진입 시 재실측 (148 breakdown Phase 4 조정 조항과 대칭).
+1. **노드 수**: draw/hit 투영 행 ≤ window + overscan (현행 유지).
+2. **행 위치 한 곳**: 다음 값들이 같은 행 높이 · gap · 헤더 값을 읽는다 — window index, spacer, contentHeight, maxScrollTop, 실제 행 배치 ([ADR-160](completed/160-collection-projection-metric-ssot.md) 원칙).
+3. **id 경계**: projected · 가상 id 는 selection · canonical mutation · history · IndexedDB 에 들어가지 않는다 (ADR-135/136, ADR-236 `canOperate`).
+4. **쓰기 대상**: 데이터 행 편집은 origin 문서 하나에만 쓴다. 행별 저장을 새로 만들지 않는다 (schema 변경 0).
+5. **pointer hot path**: scene rebuild · signature 계산 금지 (`.claude/rules/canvas-rendering.md` §9).
 
 ## Alternatives Considered
 
-### 대안 A: 단일 실행 ADR — 3축 phase 순차 (A1 상태 → A2 window → A3 drill-in)
+A2' (행 위치) 와 A3' (데이터 행 진입) 는 독립 축이라 대안을 따로 둔다.
 
-- 설명: 본 ADR 하나가 3축을 소유하고 A1(독립) → A2(토대) → A3(A2 hit tree 의존) 순으로 실행.
-- 근거: 910/912 의 phase 실행 패턴 재사용. A2/A3 은 hit tree·window 를 공유하므로 한 문서에서 설계 일관성 유지. RAC 는 hover/press 를 hook(useHover/usePress) 데이터 속성으로 노출하는 것이 공식 패턴이라 A1 은 그 vocabulary 재사용으로 좁게 끝난다.
-- 위험: 기술 H — pointer hot path 성능 + window↔layout 동기화 미검증 (본질 위험, 어느 대안이든 동일) / 성능 M / 유지보수 L — 잔여 기록·게이트·리뷰가 한 곳 / 마이그레이션 L — additive.
+### 대안 A (A2'): 행 offset 함수 하나
 
-### 대안 B: 축별 독립 ADR 3건 분리
+- 설명: resolver 가 scene 행 묶음과 같은 metric 입력 (행 높이 · gap · 헤더 높이) 으로 시각 행 높이 목록을 만든다. 그 목록에서 offset · spacer · contentHeight · maxScrollTop 을 한 함수가 산출한다. scene spacer 와 BuilderCanvas 주입도 이 결과만 읽는다. 균일 입력이면 곱셈 경로로 끝나고, 가변 높이 (ADR-162 Phase 4) 는 같은 함수에 행별 높이를 넣는다.
+- 근거: react-window `VariableSizeList` · TanStack Virtual 이 쓰는 구조 (크기 목록 → offset 누적합) 와 같다. ADR-160 "행 metric 한 곳" 원칙을 window 경로까지 넓힌다.
+- 위험: 기술 M — 세 가족의 metric 입력을 layout 과 맞춰야 하고, grid spacer 가 전체 열을 차지하게 해야 한다 / 성능 L — 균일 입력은 O(1) 을 유지한다 / 유지보수 L / 마이그레이션 L — 문서 변경 0.
 
-- 설명: 상태 threading / 가상화 / drill-in 을 각각 별도 ADR 로.
-- 근거: 축별 리뷰 격리. 업계에서 virtualization 과 interaction 을 별개 모듈로 두는 사례(react-window 류) 존재.
-- 위험: 기술 H — 동일 본질 위험이 3 문서로 분산돼 축간 공유 인프라(hit tree/window) 계약이 문서 간 drift / 성능 M / 유지보수 H — 게이트·리뷰 3배 + A2↔A3 의존이 ADR 경계를 가로질러 추적 비용 증가 / 마이그레이션 L.
+### 대안 B (A2'): 가족별 개별 수리
 
-### 대안 C: 실행 보류 (현행 유지)
+- 설명: ListBox spacer 와 contentHeight 에 gap 을 더하고, GridList spacer 에 `gridColumn` span 을 주고, Table 헤더 상수를 보정한다. 함수 분리 구조는 그대로 둔다.
+- 근거: 수정 범위가 가장 작다.
+- 위험: 기술 L / 성능 L / 유지보수 **H** — resolver 와 scene 이 값을 따로 계산하는 구조가 남는다. 같은 축의 어긋남이 07-23 (grid 전환) · ADR-157 (gap 배선) · ADR-241 (요소 헤더) 에서 세 번 생겼다. ADR-162 Phase 4 는 세 곳을 다시 고쳐야 한다 / 마이그레이션 L.
 
-- 설명: 912 잔여 기록 + 910/911 reference 로만 남기고 착수하지 않음.
-- 근거: 변경 비용 0.
-- 위험: 기술 L / 성능 H — 정적 cap 100 초과 데이터에서 성능·hit 정확성 미성립 영구화 / 유지보수 H — "Skia 화면 = 직접 조작 editor" 요구(HC#7) 미충족 영구화 + hover/pressed 시각 부재로 빌더 UX 열위 지속 / 마이그레이션 L.
+### 대안 C (A2'): canvas 가상화 폐기 — scroll 소유자도 샘플 + hatch
+
+- 설명: ADR-157 의 샘플 N 행 + hatch 를 scroll 소유자에도 적용하고 window 코드를 지운다.
+- 근거: 빌더 = 정의 도구 전제와 맞고, 코드가 줄어든다.
+- 위험: 기술 **H** — DOM 은 스크롤로 전체 행을 보여 주는데 Canvas 는 스크롤해도 뒤 행을 보여 주지 않는다. D3 대칭이 성립하지 않는다 / 성능 L / 유지보수 L / 마이그레이션 L.
+
+### 대안 D (A3'): 제자리 선택 — 현재 페이지에서 origin 자식을 선택
+
+- 설명: 데이터 행 자식을 더블클릭하면 현재 페이지에 머문 채 selection 을 origin 자식 canonical id (Components 페이지 요소) 로 둔다. 캔버스는 모든 카드의 같은 자리를 강조한다.
+- 근거: 편집 맥락을 떠나지 않는다.
+- 위험: 기술 **H** — selection 이 현재 페이지 밖 요소를 가리키는 계약이 정해져 있지 않다 (ADR-137 스냅샷 · 페이지 필터 · Pointer→Move · Properties 페이지 판정) / 성능 L / 유지보수 M — 강조 overlay 를 새로 만들어야 한다 / 마이그레이션 L.
+
+### 대안 E (A3'): origin 으로 이동해 자식 선택
+
+- 설명: 데이터 행 자식을 더블클릭하면 가상 id 의 path 로 origin 자식을 찾는다. 그 자식을 `selectElementWithPageTransition(origin 자식, Components 페이지)` 로 선택한다. Properties 는 "이 원본을 쓰는 카드 전체에 적용" 을 안내한다. 단일 클릭은 지금처럼 owner 를 선택한다.
+- 근거: "원본으로 이동" 과 같은 기존 경로다. 데이터 행에는 행별 저장이 없으므로, 편집 대상이 origin 이라는 사실을 표면이 그대로 보여 준다. Pencil 의 "Go to component" 와 같은 동작이다.
+- 위험: 기술 L — 기존 인프라를 재사용한다 / 성능 L / 유지보수 L / 마이그레이션 L. 제품 측면에서는 작업 페이지를 떠난다 (R3).
+
+### 대안 F (A3'): 원 설계 유지
+
+- 설명: 가장 깊은 projected id 선택, drill stack, template/data/override 3-route registry 를 쓴다.
+- 근거: 2026-07 판 설계와 ADR-910 §5.11.
+- 위험: 기술 **H** — projected id selection 금지 불변식, instance 저장 모델과 충돌한다 / 성능 L / 유지보수 **H** — editingContext 와 drill 모델이 둘이 된다 / 마이그레이션 L.
 
 ### Risk Threshold Check
 
-| 대안 | 기술  | 성능  | 유지보수 | 마이그레이션 | HIGH+ 개수 |
-| ---- | :---: | :---: | :------: | :----------: | :--------: |
-| A    | **H** |   M   |    L     |      L       |     1      |
-| B    | **H** |   M   |  **H**   |      L       |     2      |
-| C    |   L   | **H** |  **H**   |      L       |     2      |
+| 대안 | 기술  | 성능 | 유지보수 | 마이그레이션 | HIGH+ |
+| ---- | :---: | :--: | :------: | :----------: | :---: |
+| A    |   M   |  L   |    L     |      L       |   0   |
+| B    |   L   |  L   |  **H**   |      L       |   1   |
+| C    | **H** |  L   |    L     |      L       |   1   |
+| D    | **H** |  L   |    M     |      L       |   1   |
+| E    |   L   |  L   |    L     |      L       |   0   |
+| F    | **H** |  L   |  **H**   |      L       |   2   |
 
-루프 판정: A/B 의 기술 HIGH 는 동일한 본질 위험(미검증 영역 실행)이라 대안 선택으로 제거 불가하며, phase gate 로 관리 가능한 1회성이다. C 의 HIGH 2건은 요구 미충족의 영구 비용. HIGH 최소(1)이며 그 HIGH 가 gate 관리 가능한 A 채택 — 추가 대안 불요.
+루프 판정: A2' 는 A, A3' 는 E 가 HIGH 0 이라 추가 대안이 필요 없다. D 의 HIGH 는 페이지 밖 selection 계약이 미정이라서 생긴다. E 로 운영한 뒤 사용자가 제자리 편집을 요구하면 별도 판단으로 다시 연다.
 
 ## Decision
 
-**대안 A: 단일 실행 ADR — 3축 phase 순차** 를 선택한다.
+**A2' = 대안 A (행 offset 함수 하나), A3' = 대안 E (origin 으로 이동해 자식 선택)** 를 채택한다.
 
-선택 근거(위험 수용):
+1. **A2'**: 세 가족의 window · spacer · contentHeight · maxScrollTop · 행 배치가 한 함수의 결과를 읽는다. 균일 stride 는 그 함수의 특수 경우다. ADR-162 Phase 4 는 같은 함수에 펼친 카드의 실측 · 추정 높이를 공급한다 (의존 방향 162 → 150 유지).
+2. **A3'**: 데이터 행 (펼친 GridList 카드와, 항목 origin 템플릿을 가진 가족) 안을 더블클릭하면 origin 의 대응 자식으로 이동해 선택한다. 단일 클릭은 owner 선택을 유지한다. 행별 저장은 만들지 않는다.
+3. **철회 · 폐기**:
+   - A1 은 철회 상태를 유지한다 (선언적 상태 = ADR-230 → 234).
+   - 원 A3 의 가장 깊은 projected 선택 · drill stack · 3-route registry 는 폐기한다. `resolveCollectionWriteTarget` 의 처분 (삭제 또는 A3' 경로에 흡수) 은 Phase 0 inventory 가 정한다.
+   - TagGroup chip remove · Tab selection 의 "후속" 주석 (`canvasSceneNode.ts` TagList · TabList 투영) 은 범위 밖이다. 데이터 바인딩 chip 삭제는 데이터 편집이고 빌더 캔버스의 조작 대상이 아니다.
+4. **910/911 종결 조항**: 150 이 Implemented 가 될 때 다음을 반영한다.
+   - 911 R-3 / G-projected 를 본 ADR 게이트로 재정의한 뒤 닫힘으로 표기한다: 10k 행 → window 노드 상한 + 행 위치 = DOM, 가장 깊은 선택 · drill-in → 데이터 행 origin 진입.
+   - 910 T-7 / G-state 에 A1 철회 1 줄을 남긴다.
 
-1. **기술 HIGH 는 phase gate 로 격리 가능** — A1/A2/A3 각각 독립 게이트(G-A1~G-A3)와 1:1 대응하고, phase 실패는 해당 축 hold 로 국한된다(A1 은 완전 독립, A3 만 A2 에 의존).
-2. **축간 공유 인프라의 단일 설계** — draw tree ↔ hit tree 의 동일 window 공유(A2)와 deepest hit-test(A3)는 같은 소스를 쓰므로 한 문서 소유가 drift 를 차단한다.
-3. **사용자 결정 정합** — 2026-07-13 AskUserQuestion 에서 "새 실행 ADR 1건 작성" 확정.
+선택 근거:
 
-기각 사유:
+- 대안 B 기각: 같은 축의 결함이 세 번 생긴 구조를 그대로 둔다.
+- 대안 C 기각: Canvas 가 DOM 과 다른 행 집합을 보여 주는 대칭 위반이다.
+- 대안 D 기각: 페이지 밖 selection 계약이라는 새 경계가 필요하다.
+- 대안 F 기각: 현재 불변식과 저장 모델에 역행한다.
 
-- **대안 B 기각**: 게이트·리뷰 비용 3배에 축간 계약이 문서 경계를 가로질러 drift 위험이 커진다. 사용자가 축별 분리 옵션을 명시 기각했다.
-- **대안 C 기각**: HC#7(Skia = 직접 조작 editor) 미충족과 상태 시각 부재가 영구화된다 — 회복 불가능한 유지보수·성능 HIGH.
-
-> 구현 상세: [150-rac-pencil-residual-interaction-execution-breakdown.md](design/150-rac-pencil-residual-interaction-execution-breakdown.md) — §1 fork 4 질문 lock-in / §2 Phase 0 실측 inventory / §3~§5 Phase A1·A2·A3 / §6 게이트 검증 절차.
+> 구현 상세: [150-rac-pencil-residual-interaction-execution-breakdown.md](design/150-rac-pencil-residual-interaction-execution-breakdown.md) — §1 fork 확인 / §2 Phase 0 inventory / §3 Phase 1 (A2') / §4 Phase 2 (A3') / §5 Phase 3 closure.
 
 ## Risks
 
-> ID 는 910 위험축과의 승계 관계를 병기한다. 본 표는 대안 A 이행 중 관리할 잔존 운영 위험이다. R4/R6 보강과 R1 무효화 채널 명세는 리뷰 round 1 (2026-07-14, reviews/150.md) 반영.
-
-| ID     | 위험                                                                                                                                                                                                                                                                                                                                                                                                                                              |    심각도     | 대응                                                                                                                                                                                                 |
-| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :-----------: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ~~R1~~ | **철회 (재판정 2026-07-20)** — pointer hot path 성능 + 상태 도달 경로 부재. 이 위험은 "빌더가 hover 상태를 pointer 에 연동해 그린다"를 전제했으나, 그 전제 자체가 D1/D3 경계 오판이라 철회됐다. hover/pressed 실시간 재현은 Preview(DOM) 소관이고 빌더는 선언적 상태만 표시하므로 pointer hot path 상태 도달 채널 자체가 불요. (원문 이력 보존: command stream 캐시 4중 키 단독이라 hover 변화 도달 경로 0 → overlay draw pass 로 우회했던 접근.) | ~~HIGH~~ 철회 | ~~Gate G-A1~~ — 철회. 빌더 상태 시각은 props(variant/state) 변경 시 자연 scene rebuild 로 반영(pointer hot path 아님).                                                                               |
-| R2     | window ↔ layout/hit/panel 동기화 실패 (910 T-4 실행면) — scrollOffset 기반 window 전환 시 content height·hit bounds·스크롤 좌표가 어긋나면 클릭 오배정/유령 row. window 소비자는 draw/hit tree 외 **LayerTree 패널**(`useLayerTreeData.ts:12` → `LISTBOX_ROW_PROJECTION_WINDOW_LIMIT` 공유) 3경로                                                                                                                                                 |   **HIGH**    | Gate G-A2. draw/hit 동일 window 단일 소스 + 10k row fixture 노드 수 상한 assert + 스크롤 후 hit 정확성 + **패널 소비자 정책 분리 명시**(window 는 캔버스 전용 — LayerTree 는 별도 정책 결정 후 검증) |
-| R3     | projected id canonical 유입 (910 T-PROJECT 승계) — drill-in 편집 도입으로 projected render id 가 canonical mutation/history/IndexedDB 에 유입되면 데이터 corruption. 관련 경로: `canvasSceneNode.ts:1077,1254`, ADR-135/136 `resolveCanonicalMoveTarget` 계열                                                                                                                                                                                     |   **HIGH**    | Gate G-A3. edit route(template/data/override) 명시 변환만 허용 + negative fixture PASS + refresh 후 synthetic projected id 0건                                                                       |
-| R4     | drill-in 의 기존 기능 회귀 + **selection read 계약 미정** (910 T-PARITY/T-DEEP 인접) — 기존 land 패턴은 deepest 가 아니라 owner select redirect(`canvasSceneNode.ts:1077` chip, 912:188 Table cell live 검증). deepest 선택이 `selectedElementIds` 에 projected id 를 넣는 정책은 ADR-137 Selection Consumer Contract·Pointer→Move 계약(canvas-rendering.md §6)과 정합 필요                                                                       |      MED      | G-A3 통과 조건에 selection 계약 검증 포함 — 정책(redirect 유지 + drill-in 시 deepest 등)을 A3 설계 항목으로 확정(breakdown §5) + 기존 collection 동작 회귀 0 (910 G-parity 승계)                     |
-| R5     | template row height cache stale (910 T-TPL 승계) — 독립 cache 도입 시 stale Skia/Layer Tree                                                                                                                                                                                                                                                                                                                                                       |      MED      | row height 측정 cache 무효화를 기존 layout publish/projectionVersion/synthetic invalidation 신호에 연결 (독립 cache 금지). G-A2 에 흡수                                                              |
-| R6     | A2 판정 환경의 선행 의존 (2026-07-14 신설) — row height/content height 가 엔진 layout 결과 기반인데 ADR-916 사후 parity sweep 의 collection 축 발산(Table/Tree/Card 잔여 백로그)이 미정리면 G-A2 fixture 가 흔들리는 기반 위에서 검증됨                                                                                                                                                                                                           |      MED      | A2 착수 전 sweep 백로그 중 collection 축 정리 **또는** 10k fixture 에서 발산 영향 격리 확인 — G-A2 선행 조건으로 명시                                                                                |
-
-잔존 HIGH 위험: ~~R1~~(철회 — D1/D3 경계 오판) / R2 / R3 — R2/R3 은 각각 G-A2 / G-A3 과 1:1 대응하며 phase 단위 격리 가능. R4/R5/R6(MED)은 G-A3/G-A2 통과 조건에 흡수.
+| ID  | 위험                                                                                                                                                                                                                                    |  심각도  | 대응                                                                                                                                                                                                                                           |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | 행 높이 입력 정렬 — layout 의 행 높이는 wrap · inset · 명시 `height` · selected variant 를 읽는다. window 는 scene build 시점 (layout 전) 이라 wrap 폭을 모른다. 단일 줄 가정이 남으면 긴 label 이 줄바꿈되는 행에서 offset 이 어긋난다 | **HIGH** | G1. 입력 중 layout 전에 알 수 있는 것 (명시 height · selected variant · inset · gap) 은 같은 함수로 맞춘다. wrap 으로 높이가 달라지는 입력은 가변 높이 경로 (ADR-162 Phase 4 의 실측 캐시) 로 넘기고 균일 stride 가족의 명시 제약으로 기록한다 |
+| R2  | GridList grid spacer — spacer 가 전체 열을 차지해야 하는데 (`gridColumn: 1 / -1` 류) 엔진 grid 배치가 그 표현을 DOM 과 같게 처리하는지 미확인                                                                                           |   MED    | G0 에서 live 1 회 (가설: 첫 window 카드가 spacer 옆 칸에 붙는다) + 엔진 지원 확인. 불가하면 spacer 를 행 묶음 밖 (scroll content padding) 으로 옮긴다                                                                                          |
+| R3  | 페이지 이동 UX — 데이터 카드를 더블클릭하면 작업 페이지를 떠난다                                                                                                                                                                        |   MED    | G2 live 사용자 확인. 돌아오기는 기존 페이지 이동을 쓴다. 제자리 편집 요구가 나오면 대안 D 를 별도 판단으로 연다                                                                                                                                |
+| R4  | Table 요소 헤더 높이 — `headerFromElements` 헤더 높이는 엔진 결과인데 resolver 는 layout 전에 돈다                                                                                                                                      |   MED    | G1. layout 이 쓰는 같은 catalog Column 셀 metric 함수로 산출한다. 상수 미러 `TABLE_ROW_HEIGHT_BY_SIZE` 는 catalog `TableRow.sizes` 읽기로 바꾼다                                                                                               |
+| R5  | 가상 id → origin 자식 해석 실패 — path 가 origin 구조와 어긋나거나 (origin 편집 후) 템플릿 origin 이 없는 가족                                                                                                                          |   MED    | G2. 해석 실패 시 지금처럼 owner 를 선택하고 안내 없음. 가상 id 는 해석 입력으로만 쓰고 selection 에 넣지 않는다 (HC3 negative unit)                                                                                                            |
+| R6  | ADR-162 Phase 4 와의 경계 — 두 ADR 이 같은 파일 (`collectionVirtualization.ts`) 을 고친다                                                                                                                                               |   LOW    | 함수 계약 (시각 행 높이 목록 입력 → offset 결과) 을 150 Phase 1 이 고정하고 162 Phase 4 는 공급만 한다. 후행 측이 착수 때 선행 측 반영 상태를 재실측한다                                                                                       |
 
 ## Gates
 
-phase 순서 A1 → A2 → A3. A1 은 독립(실패해도 A2 진행 가능), A3 은 A2 의 hit tree 에 의존(A2 실패 시 A3 hold). 모든 게이트는 live behavior 검증(Chrome MCP 1회 exercise) 포함 — test/type-check PASS 단독 종결 금지.
-
-| Gate     | 시점                              | 통과 조건                                                                                                                                                                                                                                                                                                                                                                                                                                           | 실패 시 대안                                             |
-| -------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| ~~G-A1~~ | **철회 (재판정 2026-07-20)**      | ~~Phase A1 상태 threading~~ — 철회. hover/pressed/focusVisible 실시간 재현은 Preview(DOM, D1 RAC) 소관이지 빌더 소관이 아니라는 D1/D3 경계 오판으로 A1 자체를 철회. 빌더가 표시하는 상태는 **선언적 state variant(selected/disabled)** 에 한하며 이는 catalog `FillStateTokens` + racStateAttrs 로 이미 표시됨(별도 게이트 불요 — props 변경 시 자연 scene rebuild).                                                                                | — (철회)                                                 |
-| G-A2     | Phase A2 가상화 window (R2/R5/R6) | **선행**: R6 — ADR-916 sweep collection 축 발산 정리 또는 fixture 영향 격리 확인. 통과: 10k row ListBox fixture — draw/hit 노드 수 ≤ window+overscan assert + 스크롤 중 60fps + 스크롤 후 hit 정확성 + content height 스크롤바 정확 + row height cache 가 기존 무효화 신호에 연결 + **LayerTree 패널 정책(window 와 분리) 명시·검증**. ListBox proof 후 GridList/Table 동일 통과                                                                    | A2 hold — 정적 cap 유지, A3 hold                         |
-| G-A3     | Phase A3 drill-in/edit (R3/R4)    | row 내부 Text/Icon 클릭 → deepest projected 선택 + 더블클릭 → drill-in/data edit route 진입(live) + **selection read 계약 검증**(deepest 선택 정책이 `selectedElementIds`/ADR-137 스냅샷/Pointer→Move 계약과 정합 — projected id 의 page-bound mutation 유입은 route 변환 경유만) + projected id → canonical API 직접 유입 negative fixture PASS + refresh 후 `elementsMap` synthetic projected id 0건 + 기존 collection 편집·selection·정렬 회귀 0 | flat row selection 유지 + A3 hold(시각 대칭 상태로 잔존) |
+| Gate | 시점       | 통과 조건                                                                                                                                                                                                                                                                                                                                                                                   | 실패 시 대안                                                             |
+| ---- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| G0   | Phase 0 후 | 가족별 행 높이 · gap · 헤더 입력 표 (layout 쪽 · window 쪽 소스 대조) 고정. GridList grid spacer live 1 회 (R2 가설 판정). 템플릿 origin 을 가진 데이터 행 가족 표. `resolveCollectionWriteTarget` 처분 확정                                                                                                                                                                                | —                                                                        |
+| G1   | Phase 1 후 | 반례 입력: gap 이 있는 scroll ListBox 200 행 · 2 열 GridList (slot-only 카드) 200 행 · 요소 헤더 Table 200 행. (a) 스크롤 끝에서 마지막 행 하단 = viewport 하단 (±1). (b) 중간 스크롤 위치 3 곳에서 보이는 행의 y = DOM 같은 행 y (±1, `tests/parity/` browser test — oracle 은 실 브라우저 overflow scroll). (c) draw/hit 노드 수 ≤ window + overscan 유지. (d) 원복 RED. 불리 입력 포함: gap ≠ 0 · selected 행 · 요소 헤더 · 끝 이동 (중간 행 건너뜀). 측정 조건: 실 브라우저 oracle · visibilityState visible 기록 · 행 데이터는 규모 전용 합성 (분포 주장 없음). live Canvas 1 회 | 가족 단위 hold — 통과한 가족만 새 함수로 전환, 나머지는 현행 유지 + 기록 |
+| G2   | Phase 2 후 | (a) 펼친 GridList 데이터 카드 안 Text 더블클릭 → Components 페이지 origin 의 대응 자식 선택 (live 1 회 + 사용자 확인). (b) 단일 클릭 owner 선택 회귀 0. (c) 가상 · projected id 의 selection · mutation 유입 0 (negative unit). (d) origin 편집 → 모든 데이터 카드 반영 (live). (e) 해석 실패 입력은 owner 선택 (unit)                                                                      | owner 선택 유지 + Phase 2 hold                                           |
+| G3   | closure    | 911 R-3 / G-projected · 910 T-7 / G-state 문구 반영, README · CHANGELOG 갱신, `### Live Exercise` 절                                                                                                                                                                                                                                                                                        | —                                                                        |
 
 ## Consequences
 
 ### Positive
 
-- "빌더 Skia 화면 = 직접 조작 editor"(910/911 HC#7) 요구가 실제로 충족된다 — collection 깊은 노드 선택·편집 + 상태 시각 + 대용량 row 성능.
-- ADR-911 proof gate G-state/G-projected 의 잔여 증명이 충족되어 910/911/912 계열의 미증명 HIGH 영역이 소진된다.
-- 상태 시각이 catalog `FillStateTokens` 단일 소스에서 DOM/Skia 대칭으로 소비된다 — 신규 스키마·정본 없음.
+- 스크롤 소유자의 데이터 목록이 끝 행까지 닿고, 보이는 행 위치가 DOM 과 같아진다. 같은 축의 결함이 생길 구조적 자리 (resolver · scene 이중 계산) 가 사라진다.
+- ADR-162 Phase 4 가 새 가상화를 만들지 않고 행 높이만 공급하면 된다.
+- 데이터 카드 안을 더블클릭하면 그 모양을 정하는 origin 자식으로 바로 간다. 막다른 길이 사라진다.
+- 911 R-3 에 종결 경로가 생기고, 910/911/912 계열의 미결 기록이 정리된다.
 
 ### Negative
 
-- pointer hot path 와 스크롤 hot path 를 동시에 건드린다 — 성능 회귀 감시 비용이 phase 마다 발생(FPS 실측 게이트 의무).
-- window 전환으로 projection 경로(`appendXxxRowProjection` 계열)와 layout §8 계약 코드, LayerTree 패널 소비 정책이 광범위하게 수정된다 — collection family 회귀 fixture 유지 부담.
-- drill-in UX 는 신규 상호작용 표면이라 사용자 검증(live) 없이는 완료 선언 불가 — 자동 게이트만으로 종결할 수 없다.
-- A2 는 ADR-916 sweep collection 축 정리에 선행 의존(R6) — 착수 시점이 외부 백로그에 결합된다.
+- 데이터 카드 편집은 항상 모든 카드에 적용된다. 한 행만 다르게 만드는 수단은 없다 (행별 저장 0 — 의도된 제약).
+- 더블클릭 진입이 페이지를 바꾼다 (R3).
+- wrap 으로 높이가 달라지는 행은 균일 stride 가족에서 계속 근사로 남고, 가변 높이 경로가 생길 때까지 해소되지 않는다 (R1).
+- 이전 판의 10k 행 60fps 목표는 목표에서 빠진다. 노드 수 상한은 유지하지만 대용량 스크롤 프레임은 게이트가 아니다.
