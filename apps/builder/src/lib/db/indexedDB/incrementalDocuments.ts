@@ -208,11 +208,12 @@ export class IncrementalDocuments {
           value: { revision: next.revision, parts },
         };
         // ADR-235 Phase 6 — 커밋된 저장만 알린다 (급감 가드로 막힌 쓰기는 알리지 않는다) —
-        //   연결 폴더의 백그라운드 세대 쓰기가 이 신호 뒤에 돈다 (HC1 — DB 단계 뒤).
+        //   연결 폴더의 백그라운드 세대 쓰기가 이 신호 뒤에 돈다 (HC1 — DB 단계 뒤). revision = 이 탭이
+        //   쓴 head — 연결 기록의 비우기 도장이 "DB 문서 = 이 탭의 저장" 을 확인한다.
         if (typeof window !== "undefined") {
           window.dispatchEvent(
             new CustomEvent("composition:document-persisted", {
-              detail: { projectId },
+              detail: { projectId, revision: next.revision },
             }),
           );
         }

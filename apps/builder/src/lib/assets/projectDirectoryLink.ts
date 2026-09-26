@@ -10,6 +10,11 @@
  * - 충돌 — 쓰기 전 `manifest.json` 의 revision · 수정 시각이 마지막으로 쓴 값과 다르면 (다른 곳에서
  *   수정) 자동 쓰기를 멈추고 `conflict` 로 알린다. 사용자가 "폴더 내용으로 열기" 또는 "덮어쓰기" 를 고른다.
  *
+ * - 비우기 — 오래 닫힌 연결 프로젝트는 IndexedDB 내용을 비울 수 있다 (Decision 4 · 사용자 판정
+ *   2026-09-26). 폴더 세대를 쓸 때 IndexedDB 도장을 함께 기록하고, `evictStaleDirectoryProjects` 가
+ *   도장 · 폴더 세대 · 열림 여부를 모두 확인한 뒤에만 지운다. 비운 프로젝트는 "폴더에서 불러오기"
+ *   전까지 폴더에 쓰지 않는다 (빈 문서로 폴더를 덮지 않는다).
+ *
  * lazy 전용 — builder 상태는 호출부가 주입한다 (`collectContent`).
  */
 import {
@@ -25,9 +30,22 @@ import {
 import { readAssetRecords } from "./assetDb";
 import { storeAssetBytes } from "./assetStore";
 import { installIndexedDbAssetUrlResolver } from "./assetUrlResolver";
+import {
+  clearProjectLocalContent,
+  PROJECT_EVICT_AFTER_MS,
+  readProjectLocalStamp,
+  sameProjectLocalStamp,
+  type ProjectLocalStamp,
+} from "./projectLocalEviction";
 
 export type DirectoryLinkStatus =
-  "idle" | "writing" | "synced" | "needs-permission" | "conflict" | "error";
+  | "idle"
+  | "writing"
+  | "synced"
+  | "needs-permission"
+  | "conflict"
+  | "cleared"
+  | "error";
 
 export interface DirectoryLinkState {
   projectId: string;
@@ -45,6 +63,8 @@ export const directoryLinkFlagKey = (projectId: string) =>
 const LINKS_DB = "composition-links";
 const LINKS_STORE = "links";
 const WRITE_DEBOUNCE_MS = 1500;
+/** 열린 연결 프로젝트 표시 — 연결이 살아 있는 동안 shared 로 잡는다 (비우기는 exclusive 로 확인) */
+export const PROJECT_OPEN_LOCK_PREFIX = "composition-project-open:";
 
 interface LinkRecord {
   projectId: string;
@@ -52,6 +72,12 @@ interface LinkRecord {
   lastRevision: number | null;
   lastModified: number | null;
   linkedAt: string;
+  /** 마지막 폴더 세대를 쓸 때의 IndexedDB 도장 — DB 내용이 그 세대에 다 들어 있음이 확인될 때만 */
+  syncedStamp?: ProjectLocalStamp | null;
+  syncedAt?: string | null;
+  lastOpenedAt?: string | null;
+  /** IndexedDB 내용을 비운 시각 — 폴더에서 불러오기 전까지 폴더에 쓰지 않는다 */
+  clearedAt?: string | null;
 }
 
 // ============================================
@@ -186,9 +212,15 @@ class DirectoryLink {
   private timer: ReturnType<typeof setTimeout> | null = null;
   private writing = false;
   private dirty = false;
+  private releaseOpenLock: () => void = () => {};
+  /** 이 탭이 마지막으로 저장한 문서 head revision — 도장이 이 탭의 저장인지 확인한다 */
+  private persistedRevision: string | null = null;
   private readonly onPersisted = (event: Event) => {
-    const detail = (event as CustomEvent<{ projectId?: string }>).detail;
+    const detail = (
+      event as CustomEvent<{ projectId?: string; revision?: string }>
+    ).detail;
     if (!detail?.projectId || detail.projectId === this.record.projectId) {
+      if (detail?.revision) this.persistedRevision = detail.revision;
       this.schedule();
     }
   };
@@ -199,7 +231,7 @@ class DirectoryLink {
   ) {
     this.state = {
       projectId: record.projectId,
-      status: "idle",
+      status: record.clearedAt ? "cleared" : "idle",
       directoryName: record.handle.name,
       lastRevision: record.lastRevision,
     };
@@ -208,9 +240,23 @@ class DirectoryLink {
       "composition:custom-fonts-updated",
       this.onPersisted,
     );
+    const locks = (globalThis.navigator as Navigator | undefined)?.locks;
+    if (locks) {
+      const held = new Promise<void>((resolve) => {
+        this.releaseOpenLock = resolve;
+      });
+      void locks
+        .request(
+          `${PROJECT_OPEN_LOCK_PREFIX}${record.projectId}`,
+          { mode: "shared" },
+          () => held,
+        )
+        .catch(() => {});
+    }
   }
 
   dispose(): void {
+    this.releaseOpenLock();
     if (this.timer) clearTimeout(this.timer);
     window.removeEventListener(DOCUMENT_PERSISTED_EVENT, this.onPersisted);
     window.removeEventListener(
@@ -229,7 +275,8 @@ class DirectoryLink {
   schedule(): void {
     if (
       this.state.status === "conflict" ||
-      this.state.status === "needs-permission"
+      this.state.status === "needs-permission" ||
+      this.state.status === "cleared"
     )
       return;
     if (this.timer) clearTimeout(this.timer);
@@ -265,10 +312,19 @@ class DirectoryLink {
       this.dirty = true;
       return;
     }
+    // 비운 프로젝트 — 지금 문서는 폴더 내용이 아니다 (빈 문서로 폴더를 덮지 않는다)
+    if (this.record.clearedAt) {
+      this.publish({ status: "cleared" });
+      return;
+    }
     if (!(await this.hasPermission())) {
       this.publish({ status: "needs-permission" });
       return;
     }
+    const projectId = this.record.projectId;
+    const stampBefore = await readProjectLocalStamp(projectId).catch(
+      () => null,
+    );
     const content = this.deps.collectContent();
     if (!content) return;
     this.writing = true;
@@ -304,10 +360,21 @@ class DirectoryLink {
         await nextV2Revision(target, this.record.lastRevision),
       );
       await writeV2Directory(target, generation, { keepPrevious: 1 });
+      // 도장은 "IndexedDB 내용 ⊆ 이번 세대" 가 확인될 때만 남긴다 — 쓰는 동안 DB 가 바뀌지 않았고,
+      //   DB 문서가 이 탭의 저장이거나 (메모리 = 그 뒤 상태) 직전 확인 뒤 DB 가 그대로일 때.
+      const stampAfter = await readProjectLocalStamp(projectId).catch(
+        () => null,
+      );
+      const verified =
+        sameProjectLocalStamp(stampBefore, stampAfter) &&
+        (stampBefore!.documentRevision === this.persistedRevision ||
+          sameProjectLocalStamp(stampBefore, this.record.syncedStamp));
       this.record = {
         ...this.record,
         lastRevision: generation.manifest.revision,
         lastModified: (await target.lastModified?.("manifest.json")) ?? null,
+        syncedStamp: verified ? stampBefore : null,
+        syncedAt: new Date().toISOString(),
       };
       await linksTx("readwrite", (store) => store.put(this.record));
       this.publish({
@@ -345,6 +412,8 @@ class DirectoryLink {
       ...this.record,
       lastRevision: read.manifest.revision,
       lastModified: (await this.target.lastModified?.("manifest.json")) ?? null,
+      clearedAt: null,
+      syncedStamp: null,
     };
     await linksTx("readwrite", (store) => store.put(this.record));
     this.publish({ status: "synced", lastRevision: read.manifest.revision });
@@ -412,17 +481,24 @@ export async function resumeProjectDirectoryLink(
     return state;
   }
   localStorage.setItem(sentinel, "1");
-  const record = await linksTx<LinkRecord | undefined>("readonly", (store) =>
+  const stored = await linksTx<LinkRecord | undefined>("readonly", (store) =>
     store.get(projectId),
   ).finally(() => localStorage.removeItem(sentinel));
-  if (!record) {
+  if (!stored) {
     localStorage.removeItem(directoryLinkFlagKey(projectId));
     return null;
   }
+  const record: LinkRecord = {
+    ...stored,
+    lastOpenedAt: new Date().toISOString(),
+  };
+  await linksTx("readwrite", (store) => store.put(record)).catch(() => {});
   links.get(projectId)?.dispose();
   const link = new DirectoryLink(record, deps);
   links.set(projectId, link);
-  if (await link.hasPermission()) link.schedule();
+  if (record.clearedAt) {
+    // 비운 프로젝트 — 사용자가 "폴더에서 불러오기" 를 누를 때까지 쓰지 않는다
+  } else if (await link.hasPermission()) link.schedule();
   else link.state = { ...link.state, status: "needs-permission" };
   window.dispatchEvent(
     new CustomEvent(DIRECTORY_LINK_EVENT, { detail: link.state }),
@@ -478,7 +554,7 @@ export async function pickAndConnectProjectDirectory(
 }
 
 export type DirectoryLinkAction =
-  "permission" | "open" | "overwrite" | "disconnect";
+  "permission" | "open" | "overwrite" | "restore" | "disconnect";
 
 /** 헤더 폴더 버튼 동작 — "폴더 내용으로 열기" 는 읽은 envelope 를 호출부 적용 함수로 넘긴다 */
 export async function runDirectoryLinkAction(
@@ -494,7 +570,12 @@ export async function runDirectoryLinkAction(
   if (!link) return;
   if (action === "permission") await link.requestPermission();
   if (action === "overwrite") await link.write(true);
-  if (action === "open") {
+  // 비운 프로젝트 — 권한 (사용자 클릭 안) → 폴더 세대 읽기 → 적용
+  if (action === "restore") {
+    if (!(await link.hasPermission()) && !(await link.requestPermission()))
+      return;
+  }
+  if (action === "open" || action === "restore") {
     const read = await link.readFromDirectory();
     await applyImported({
       version: read.manifest.formatVersion,
@@ -502,4 +583,166 @@ export async function runDirectoryLinkAction(
       ...read.content,
     });
   }
+}
+
+// ============================================
+// 비우기 — 오래 닫힌 연결 프로젝트 (Decision 4)
+// ============================================
+
+export type DirectoryEvictionResult =
+  | "cleared"
+  | "recent"
+  | "unsynced"
+  | "open"
+  | "no-permission"
+  | "folder-changed"
+  | "folder-unreadable"
+  | "changed";
+
+export interface DirectoryEvictionOptions {
+  now?: number;
+  olderThanMs?: number;
+  /** 이 탭에서 열린 프로젝트 — 잠금과 별개로 제외 */
+  openProjectId?: string | null;
+  /** 테스트 주입 — 기본은 Web Locks (열린 탭이 shared 로 잡은 `PROJECT_OPEN_LOCK_PREFIX`) */
+  withClosedProject?: (
+    projectId: string,
+    run: () => Promise<DirectoryEvictionResult>,
+  ) => Promise<DirectoryEvictionResult>;
+  /** 테스트 주입 — 기본은 핸들의 FSA 대상 · 권한 조회 */
+  targetFor?: (record: LinkRecord) => V2DirectoryTarget;
+  canRead?: (record: LinkRecord) => Promise<boolean>;
+}
+
+async function defaultWithClosedProject(
+  projectId: string,
+  run: () => Promise<DirectoryEvictionResult>,
+): Promise<DirectoryEvictionResult> {
+  const locks = (globalThis.navigator as Navigator | undefined)?.locks;
+  if (!locks) return "open"; // 열림 여부를 확인할 수 없으면 비우지 않는다
+  return locks.request(
+    `${PROJECT_OPEN_LOCK_PREFIX}${projectId}`,
+    { mode: "exclusive", ifAvailable: true },
+    async (lock) => (lock ? run() : "open"),
+  );
+}
+
+async function defaultCanRead(record: LinkRecord): Promise<boolean> {
+  const handle = record.handle as PermissionHandle & {
+    queryPermission?(descriptor: { mode: "read" }): Promise<PermissionState>;
+  };
+  if (!handle.queryPermission) return false;
+  // 권한 창은 띄우지 않는다 — 이미 허용된 (브라우저가 기억하는) 폴더만 확인할 수 있다
+  return (await handle.queryPermission({ mode: "read" })) === "granted";
+}
+
+/**
+ * 오래 닫힌 연결 프로젝트의 IndexedDB 내용을 비운다. 조건 (전부):
+ * 1. 마지막으로 열거나 폴더에 쓴 뒤 `olderThanMs` (기본 30일) 경과 · 이미 비우지 않음
+ * 2. 마지막 폴더 세대가 IndexedDB 내용을 다 담는다 (도장 기록 있음 · 지금 도장과 같음)
+ * 3. 어느 탭에서도 열려 있지 않다 (Web Locks)
+ * 4. 폴더 읽기 권한이 이미 있고, 폴더의 현재 세대가 기록한 세대와 같으며 part · 자산 해시까지 읽힌다
+ * 확인과 삭제는 같은 트랜잭션에서 도장을 다시 대조한다 (`clearProjectLocalContent`).
+ */
+export async function evictStaleDirectoryProjects(
+  options: DirectoryEvictionOptions = {},
+): Promise<{ projectId: string; result: DirectoryEvictionResult }[]> {
+  const now = options.now ?? Date.now();
+  const olderThan = options.olderThanMs ?? PROJECT_EVICT_AFTER_MS;
+  const withClosed = options.withClosedProject ?? defaultWithClosedProject;
+  const targetFor =
+    options.targetFor ?? ((record) => fsaDirectoryTarget(record.handle));
+  const canRead = options.canRead ?? defaultCanRead;
+  const records = await linksTx<LinkRecord[]>("readonly", (store) =>
+    store.getAll(),
+  );
+  const results: { projectId: string; result: DirectoryEvictionResult }[] = [];
+  for (const record of records) {
+    const { projectId } = record;
+    if (record.clearedAt) continue;
+    if (projectId === options.openProjectId || links.has(projectId)) continue;
+    const lastTouched = Math.max(
+      Date.parse(record.lastOpenedAt ?? "") || 0,
+      Date.parse(record.syncedAt ?? "") || 0,
+      Date.parse(record.linkedAt) || 0,
+    );
+    if (now - lastTouched < olderThan) {
+      results.push({ projectId, result: "recent" });
+      continue;
+    }
+    const stamp = record.syncedStamp;
+    if (!stamp || record.lastRevision === null) {
+      results.push({ projectId, result: "unsynced" });
+      continue;
+    }
+    const result = await withClosed(projectId, async () => {
+      if (!(await canRead(record).catch(() => false))) return "no-permission";
+      const target = targetFor(record);
+      const modified = (await target.lastModified?.("manifest.json")) ?? null;
+      if (
+        (await readManifestRevision(target)) !== record.lastRevision ||
+        (record.lastModified !== null && modified !== record.lastModified)
+      )
+        return "folder-changed";
+      try {
+        const read = await readV2Generation(directoryV2Source(target));
+        if (read.recovered || read.manifest.revision !== record.lastRevision)
+          return "folder-unreadable";
+      } catch {
+        return "folder-unreadable";
+      }
+      if (!sameProjectLocalStamp(await readProjectLocalStamp(projectId), stamp))
+        return "changed";
+      // 비운다는 표식을 먼저 — 삭제 직후 중단돼도 열 때 빈 문서로 폴더를 덮지 않는다
+      const marked: LinkRecord = {
+        ...record,
+        clearedAt: new Date(now).toISOString(),
+      };
+      await linksTx("readwrite", (store) => store.put(marked));
+      const cleared = await clearProjectLocalContent(projectId, stamp).catch(
+        () => "unavailable" as const,
+      );
+      if (cleared === "cleared") return "cleared";
+      // 표식은 DB 에 문서가 남아 있을 때만 되돌린다 (이미 비워졌으면 표식이 폴더 덮어쓰기를 막는다)
+      const remaining = await readProjectLocalStamp(projectId).catch(
+        () => null,
+      );
+      if (remaining?.documentRevision)
+        await linksTx("readwrite", (store) => store.put(record));
+      return "changed";
+    });
+    results.push({ projectId, result });
+  }
+  return results;
+}
+
+/** 자산 GC 앞 — 연결 표식이 있을 때만 연결 DB 를 연다 (연결을 쓰지 않는 사용자는 비용 0) */
+export async function evictStaleDirectoryProjectsIfLinked() {
+  const linked = Object.keys(localStorage).some(
+    (key) =>
+      key.startsWith("composition.dir-link.") &&
+      !key.startsWith("composition.dir-link.resuming.") &&
+      !key.startsWith("composition.dir-link.evict") &&
+      localStorage.getItem(key) === "1",
+  );
+  if (!linked) return [];
+  // crash sentinel (복원과 같은 이유) — 연결 기록을 읽는 동안 브라우저가 죽은 적이 있으면 다시 돌지
+  //   않는다. 값 = 시작 시각: 최근이면 다른 탭이 도는 중 (이번만 건너뜀), 오래됐으면 끝나지 못한 실행.
+  const sentinel = "composition.dir-link.evicting";
+  const disabled = "composition.dir-link.evict-disabled";
+  if (localStorage.getItem(disabled)) return [];
+  const started = Number(localStorage.getItem(sentinel) ?? 0);
+  if (started) {
+    if (Date.now() - started < 5 * 60 * 1000) return [];
+    localStorage.removeItem(sentinel);
+    localStorage.setItem(disabled, "1");
+    return [];
+  }
+  localStorage.setItem(sentinel, String(Date.now()));
+  const results = await evictStaleDirectoryProjects().finally(() =>
+    localStorage.removeItem(sentinel),
+  );
+  const cleared = results.filter((entry) => entry.result === "cleared");
+  if (cleared.length > 0) console.info("[directory-link] 비움", cleared);
+  return results;
 }

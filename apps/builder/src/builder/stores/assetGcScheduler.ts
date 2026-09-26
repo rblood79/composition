@@ -3,6 +3,8 @@
  *
  * builder 부팅 뒤 idle 에 하루 한 번 (`composition.asset-gc.last-run`). GC 구현 · 영속 root 수집은
  * lazy 모듈이고, 이 탭의 메모리 root (canonical 문서 · history · 스냅샷 캐시) 만 여기서 넘긴다.
+ * GC 앞에서 오래 닫힌 폴더 연결 프로젝트의 IndexedDB 내용을 비운다 (ADR-235 Decision 4 — 비운
+ * 프로젝트의 자산은 이 GC 부터 root 가 아니다).
  */
 import { useCanonicalDocumentStore } from "./canonical/canonicalDocumentStore";
 import { historyManager } from "./history";
@@ -20,10 +22,14 @@ function collectMemoryAssetRoots(): unknown[] {
 }
 
 export async function runAssetGcNow(options: { graceMs?: number } = {}) {
-  const [{ runAssetGc }, { collectDurableAssetRoots }] = await Promise.all([
+  const [
+    { runAssetGc },
+    { collectDurableAssetRoots, evictStaleDirectoryProjectsIfLinked },
+  ] = await Promise.all([
     import("../../lib/assets/assetGc"),
     import("../../lib/assets/assetGcRoots"),
   ]);
+  await evictStaleDirectoryProjectsIfLinked();
   const report = await runAssetGc({
     roots: {
       durable: collectDurableAssetRoots,

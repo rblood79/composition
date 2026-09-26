@@ -11,6 +11,8 @@
 
 ---
 
+> **2026-09-26 ADR-235 후속**: Decision 4 의 "오래 닫힌 연결 프로젝트 내용 비우기" 구현 (사용자 판정 "삭제해도 된다") — 30일 · IndexedDB 도장 (폴더 세대 쓰기 전후 대조) · 열림 (Web Locks) · 폴더 세대 해시 읽기를 모두 통과할 때만 비우고 `projects` 행은 남긴다. 비운 프로젝트는 "폴더 내용으로 열기" 로 복원. live 6/6 · G6 회귀 6/6 · 번들 Builder 1,420,983 (상한 안).
+>
 > **2026-09-26 ADR-235 Implemented**: 로컬 프로젝트 저장 v2 (Phase 0~~7 / G0~~G6, 같은 날). 원본 바이트를 IndexedDB `assets` 에 SHA-256 으로 한 벌 (`asset:sha256-…` 참조 · 해석 함수 하나를 Canvas · Preview · publish 가 같이 읽는다 — dual-read) · 폰트 localStorage 5MB 한도 해소 · 인라인 dataURL 1회 이관 (백업 선행) · 자산 GC (참조 공개 = pin + epoch 한 트랜잭션 · 탭 생존 Web Locks) · 형식 v2 (`manifest.json` · `parts/` · `assets/`, zip 교환 + v1 JSON 내보내기 유지) · publish v2 로더 · 웹 보호 (persist · 사용량 표시 · quota 재시도 · 캐시 `composition-cache` bucket · 스냅샷 50MB) · Chromium 폴더 연결 (세대 전환 쓰기 · 충돌 감지 · 권한 흐름). 기존 결함 수리: Canvas 가 image fill 을 그리지 않음. live P7 6/6 (Chrome 153 + WebKit 26.5 — WebKit 비공개 저장소 Blob 거부 → ArrayBuffer 저장 수리) · G1 9/9 · G2 7/7 · G3 4/4 · G4 8/8 · G6 6/6. 번들 Builder 1,420,882 / Preview 622,556 (ADR-201 상한 재승인 1,421,000 / 623,000 안). 사용자 확인 대상: 실제 폴더 선택창 · 권한 요청 · Preview · Safari · Firefox. 열림 5 (Proposed 4 · Accepted 1), 합계 268 (파일 실측으로 정정).
 >
 > **2026-09-26 ADR-235 Accepted → Phase 0 완료**: 사용자 `/execute-adr 235` (review round 2 pending 0). G0 — 이미지 요청 지점 3 (Skia `fetchAndDecode` · DOM `fillToCssLayer` · `<img>` 렌더러) · 폰트 2 · writer `readAsDataURL` 2 · GC root 9 보유처 (문자열 전수 순회 — `metadata.legacyProps` 이중 보관 실측) · Preview/publish 같은 origin IndexedDB 직접 읽기 · 폰트 4MB 저장 실패 RED (jsdom + Chrome 153) · 용량 기준선 (이미지 447 KB → 문서 1.33 MB · 스냅샷 · history 각 한 벌, 합 5.53 MB). 기존 결함: Canvas 가 image fill 을 그리지 않음 (Phase 1 수리).

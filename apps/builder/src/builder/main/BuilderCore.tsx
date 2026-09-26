@@ -1387,6 +1387,7 @@ export const BuilderCore: React.FC = () => {
       localStorage.getItem(`composition.dir-link.${projectId}`) === "1";
     setFolderLinked(linked);
     if (!linked) return;
+    // 비운 프로젝트면 헤더 폴더 버튼이 경고 상태 + "폴더 내용으로 열기" 를 보인다
     void linkModule().then((m) =>
       m.resumeProjectDirectoryLink(projectId, {
         collectContent: collectExportContent,
@@ -1424,7 +1425,9 @@ export const BuilderCore: React.FC = () => {
   }, [projectId, collectExportContent]);
 
   const handleDirectoryLinkAction = useCallback(
-    async (action: "permission" | "open" | "overwrite" | "disconnect") => {
+    async (
+      action: "permission" | "open" | "overwrite" | "restore" | "disconnect",
+    ) => {
       if (!projectId) return;
       await (
         await linkModule()

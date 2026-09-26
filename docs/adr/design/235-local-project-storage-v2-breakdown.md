@@ -333,7 +333,7 @@ Phase 5 는 1~4 와 독립이라 먼저 착수해도 된다 (가장 작은 작�
 - 충돌 — 쓰기 전 `manifest.json` revision · `lastModified` 가 마지막으로 쓴 값과 다르면 `conflict` 로 멈춘다 ("폴더 내용으로 열기" = v2 읽기 → 자산 저장 → 가져오기 적용 / "덮어쓰기" = 강제 쓰기). 다른 프로젝트의 세대가 이미 든 폴더에 연결해도 충돌로 시작한다 (덮어쓰지 않음).
 - 부팅 복원 + crash sentinel — 핸들을 읽기 전에 표식, 표식이 남은 채 다시 부팅하면 복원을 건너뛰고 연결 해제 (`error: relink`). Chrome 153 실측: Playwright 의 비영속 컨텍스트에서 OPFS 디렉토리 핸들을 IndexedDB 에서 읽으면 브라우저가 종료됐다 (raw IndexedDB 로 재현; 영속 프로필은 정상 복원).
 - 보존 세대 수 = 현재 + 직전 1 (확정).
-- **보류**: "오래 닫힌 연결 프로젝트의 IndexedDB 내용 비우기" (Decision 4 의 "비울 수 있다") — IndexedDB 사본 삭제라 자동화하지 않았다. 필요하면 사용자 판정 뒤 수동 동작으로.
+- ~~보류~~ → **후속 완료 2026-09-26** (사용자 판정 "삭제해도 된다"): "오래 닫힌 연결 프로젝트의 IndexedDB 내용 비우기" — 아래 §후속.
 
 **G6 증거**
 
@@ -349,3 +349,29 @@ Phase 5 는 1~4 와 독립이라 먼저 착수해도 된다 (가장 작은 작�
 
 - 하니스 `apps/builder/scripts/adr235-g6-live.mjs` (6/6) — 폴더 선택창은 자동화할 수 없어 OPFS 디렉토리 핸들 (같은 File System Access API) 을 DEV 훅 `__composition_CONNECT_FOLDER__` 로 같은 연결 경로에 넣었다. 실제 폴더 선택 · 새로고침 뒤 권한 창은 Phase 7 사용자 확인 대상.
 - 번들 — lazy 폴더 버튼이 공용 모듈 (RAC Menu · i18n) 을 import 해 chunk 가 쪼개졌고 (Builder 1,421,654 · Preview 623,236), 정적으로 바꾸자 버튼이 lazy 모듈 상수를 값으로 import 해 모듈 전체가 initial 로 끌려왔다 (Builder 1,428,747). 버튼은 정적 · 타입만 import, 선택창 · 동작 분기는 lazy 모듈로 옮겨 Builder 1,420,877 · Preview 622,551 (상한 안, Builder 여유 123 B). 가드 확장: builder 코드의 lazy 자산 모듈 정적 값 import 금지 (`lazyBarrelImport.static.test.ts`).
+
+### 후속 — 오래 닫힌 연결 프로젝트 비우기 (Decision 4, 2026-09-26)
+
+사용자 판정 2026-09-26 "오랫동안 열지 않은 폴더 연결 프로젝트의 IndexedDB 내용 삭제해도 된다".
+
+**비우는 조건 (전부)** — `projectDirectoryLink.evictStaleDirectoryProjects`
+
+1. 마지막으로 열거나 폴더에 쓴 뒤 30일 (`PROJECT_EVICT_AFTER_MS`) · 아직 비우지 않음
+2. IndexedDB 내용이 마지막 폴더 세대에 다 들어 있다 — 폴더 세대를 쓸 때 IndexedDB 도장 (`document_heads.revision` + collections · API · 변수 행 해시) 을 쓰기 전후로 읽어 같고, DB 문서가 이 탭의 저장 (`composition:document-persisted` 의 `revision`) 이거나 직전 확인 뒤 그대로일 때만 연결 기록에 남긴다. 비울 때 지금 도장이 기록과 같아야 한다
+3. 어느 탭에서도 열려 있지 않다 — 연결이 살아 있는 탭이 Web Lock `composition-project-open:<id>` 를 shared 로 잡고, 비우기는 exclusive `ifAvailable` 로 확인한다
+4. 폴더 읽기 권한이 이미 있다 (권한 창을 띄우지 않는다 — 브라우저가 기억하는 폴더만) · 폴더의 `manifest.json` revision · 수정 시각이 기록과 같다 · 현재 세대가 part · 자산 해시까지 읽힌다 (복구 세대 아님)
+
+**지우는 것** — `projectLocalEviction.clearProjectLocalContent`: 한 readwrite 트랜잭션 안에서 도장을 다시 대조한 뒤 `documents` · `document_heads` · `document_parts` · `documents_backup` · `collections` · `collection_runtime` · `api_endpoints` · `variables` · `events` · `actions` (문서 root mirror) 의 그 프로젝트 행, 이어서 history DB 의 스냅샷 (projectId) · entry · page meta (문서 node id). **남기는 것**: `projects` 행 (이름 — 목록 요약) · 연결 기록 (`clearedAt`). 자산 바이트는 root 가 사라져 이후 GC 가 (유예 7일) 회수한다.
+
+**순서 · 중단** — 연결 기록에 `clearedAt` 을 먼저 쓰고 지운다 (삭제 직후 중단돼도 열 때 빈 문서로 폴더를 덮지 않는다). 대조가 어긋나면 DB 에 문서가 남아 있을 때만 표식을 되돌린다. sweep 도 핸들을 읽으므로 복원과 같은 crash sentinel (`composition.dir-link.evicting` = 시작 시각 — 5분 안이면 다른 탭 실행, 넘으면 끝나지 못한 실행 → `evict-disabled`).
+
+**비운 프로젝트 열기** — 연결 복원이 `cleared` 상태 (헤더 폴더 버튼 경고 · "연결 폴더에만 있음") 로 시작하고 폴더에 쓰지 않는다. 메뉴 "폴더 내용으로 열기" = 권한 (클릭 안) → 폴더 세대 읽기 → 가져오기 적용 → `clearedAt` 해제 → 이후 평소처럼 폴더에 쓴다. 불러오기 전 편집은 불러오기가 대체한다.
+
+**실행 시점** — 자산 GC (부팅 뒤 idle, 하루 1회) 앞. 연결 표식이 없으면 연결 DB 를 열지 않는다. lazy 경계: `assetGcRoots` 안의 중첩 dynamic import — scheduler (initial) 에 import 지점을 더하면 preload 목록이 initial 에 붙었다 (실측 +108 B).
+
+**증거**
+
+- unit `projectLocalEviction.test.ts` 14: 도장 같으면 그 프로젝트만 비움 (다른 프로젝트 · history 유지, `projects` 행 유지) · 문서/collection 변경 뒤 "changed" · sweep 조건별 (recent · unsynced · folder-changed · no-permission · open · folder-unreadable · changed) 비우지 않음 · 비운 프로젝트 resume = cleared · 폴더 쓰기 없음 · sentinel 3. 원복 RED 5/5 (트랜잭션 안 도장 재대조 · write 의 clearedAt 가드 · 폴더 revision 대조 · 기간 조건 · 폴더 세대 읽기 검증 — 각각 끄면 1 실패).
+- live `adr235-evict-live.mjs` **6/6** (Chrome 153 영속 프로필 · OPFS 폴더): V1 편집 → 폴더 세대 + 도장 (= DB head) · V2 A 가 다른 탭에서 열려 있으면 비우지 않음 · V3 닫힌 뒤 기간 경과 → 문서 · 백업 비움 · `projects` 행 유지 · `clearedAt` · V4 열면 cleared · 편집해도 폴더 revision 그대로 → "폴더 내용으로 열기" → 요소 복원 · 다시 폴더에 씀 (revision 3) · V5 폴더에 없는 DB 변경 (도장 불일치) → 비우지 않음 · page error 0. 회귀: G6 6/6.
+- 번들: Builder 1,420,983 · Preview 622,556 (상한 1,421,000 / 623,000 안 — Builder 여유 17 B). 줄인 과정: BuilderCore 트리거 → GC 스케줄러 (중첩 dynamic import) · 열림 잠금을 lazy 연결 모듈로 · 새 i18n 키 1 (메뉴는 기존 "폴더 내용으로 열기" 재사용) · 열 때 토스트 없음 (버튼 경고로 대체).
+- 한계: 권한을 기억하지 않는 브라우저 설정이면 (Chrome 기본은 탭을 닫으면 권한 초기화 — "방문할 때마다 허용" 을 고른 폴더만) 조건 4 에서 비우지 않는다 — 폴더를 확인할 수 없으면 지우지 않는 쪽을 택했다.

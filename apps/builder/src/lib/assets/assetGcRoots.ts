@@ -78,3 +78,20 @@ export async function collectDurableAssetRoots(): Promise<unknown[]> {
   }
   return roots;
 }
+
+/**
+ * GC 앞 — 오래 닫힌 폴더 연결 프로젝트의 IndexedDB 내용 비우기 (ADR-235 Decision 4). 비운 프로젝트의
+ * 문서 · 백업은 이번 수집부터 root 가 아니다. 던지지 않는다. 연결 모듈은 중첩 dynamic import 로만
+ * 싣는다 — scheduler (initial) 에 import 지점을 더하면 preload 목록이 initial 에 붙는다 (HC2, 실측
+ * +108 B).
+ */
+export async function evictStaleDirectoryProjectsIfLinked(): Promise<void> {
+  try {
+    const { evictStaleDirectoryProjectsIfLinked: run } =
+      await import("./projectDirectoryLink");
+    await run();
+  } catch (error) {
+    // 비우기 실패는 공간 회수만 미룬다 — GC 는 그대로 돈다
+    console.warn("[directory-link] 연결 프로젝트 비우기 실패", error);
+  }
+}

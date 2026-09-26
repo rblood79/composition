@@ -18,7 +18,7 @@ import type { DirectoryLinkState } from "../../lib/assets/projectDirectoryLink";
 const DIRECTORY_LINK_EVENT = "composition:directory-link";
 
 export type DirectoryLinkAction =
-  "permission" | "open" | "overwrite" | "disconnect";
+  "permission" | "open" | "overwrite" | "restore" | "disconnect";
 
 export default function DirectoryLinkButton({
   projectId,
@@ -42,17 +42,20 @@ export default function DirectoryLinkButton({
   const problem =
     status === "needs-permission" ||
     status === "conflict" ||
+    status === "cleared" ||
     status === "error";
   const label =
     status === "needs-permission"
       ? t("header.folderNeedsPermission")
       : status === "conflict"
         ? t("header.folderConflict")
-        : status === "error"
-          ? `${t("header.folderError")}: ${state?.error ?? ""}`
-          : status === "writing"
-            ? t("header.folderWriting")
-            : `${t("header.folderSynced")} · ${state?.directoryName ?? ""}`;
+        : status === "cleared"
+          ? t("header.folderCleared")
+          : status === "error"
+            ? `${t("header.folderError")}: ${state?.error ?? ""}`
+            : status === "writing"
+              ? t("header.folderWriting")
+              : `${t("header.folderSynced")} · ${state?.directoryName ?? ""}`;
   const Icon = problem ? AlertTriangle : FolderSync;
   return (
     <MenuTrigger>
@@ -78,6 +81,11 @@ export default function DirectoryLinkButton({
           {status === "needs-permission" && (
             <MenuItem id="permission" className="header-menu-item">
               {t("header.folderAllow")}
+            </MenuItem>
+          )}
+          {status === "cleared" && (
+            <MenuItem id="restore" className="header-menu-item">
+              {t("header.folderOpen")}
             </MenuItem>
           )}
           {status === "conflict" && (

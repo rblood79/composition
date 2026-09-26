@@ -1188,6 +1188,7 @@ export interface TranslationKeys {
     folderOpen: string;
     folderOverwrite: string;
     folderDisconnect: string;
+    folderCleared: string;
     projectFileUnavailable: string;
     deleteProject: string;
     resetPanelLayout: string;

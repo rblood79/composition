@@ -4,6 +4,8 @@
 
 Implemented — 2026-09-26 (Phase 0~7 완료 · [Live Exercise](#live-exercise)) · Accepted — 2026-09-26 (사용자 `/execute-adr 235` "모든phase완료까지 착수해" · review round 2 pending 0) · Proposed 2026-09-23
 
+- 후속 2026-09-26 — Decision 4 의 "오래 닫힌 연결 프로젝트 내용 비우기" 구현 (사용자 판정 "삭제해도 된다"): 30일 · 도장 · 열림 (Web Locks) · 폴더 세대 확인을 모두 통과할 때만 비우고, 비운 프로젝트는 "폴더 내용으로 열기" 로 복원. live 6/6 — [breakdown §후속](../design/235-local-project-storage-v2-breakdown.md#후속--오래-닫힌-연결-프로젝트-비우기-decision-4-2026-09-26)
+
 - Phase 0 완료 2026-09-26 — [G0 inventory](../design/235-local-project-storage-v2-breakdown.md#6-phase-기록). 기존 결함 발견: Canvas 가 image fill 을 그리지 않음 (G1 선결, Phase 1 에서 수리) · 정적 HTML fills 미적용 · 같은 dataURL 이 `fills` 와 `metadata.legacyProps.fills` 에 이중 보관.
 
 - 추가 개정 2026-09-26 — 수리 검증 round 2 h2 반영: 기존 자산 재참조도 공개 전 pin 확보, 참조 epoch와 pin을 최종 삭제와 같은 IndexedDB 트랜잭션에서 확인. R2 · G3 · breakdown §3.1에 순서·실패 처리 명시.
