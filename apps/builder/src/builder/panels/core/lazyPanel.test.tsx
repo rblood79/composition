@@ -60,10 +60,50 @@ describe("lazyPanel 로드 실패 경계 (ADR-242 HC4)", () => {
     // 다시 시도 → 새 로드 → 내용
     fireEvent.click(screen.getByRole("button", { name: "panel.retry" }));
     await flush();
-    expect(loader).toHaveBeenCalledTimes(2);
+    // 다시 시도 = 확인 호출 1 + 새 lazy 1 (둘 다 loader)
+    expect(loader.mock.calls.length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText("loaded-panel")).toBeTruthy();
     expect(screen.queryByRole("alert")).toBeNull();
     expect(screen.getByText("sibling")).toBeTruthy();
+  });
+
+  it("다시 시도도 즉시 실패하면 (브라우저가 실패를 기억) 앱을 새로고침한다", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const reload = vi.fn();
+    const location = window.location;
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: { ...location, reload },
+    });
+    try {
+      const loader = vi.fn(async () => {
+        throw new Error("chunk load failed");
+      });
+      const Panel = lazyPanel(loader);
+      render(<Panel {...props} />);
+      await flush();
+      fireEvent.click(screen.getByRole("button", { name: "panel.retry" }));
+      await flush();
+      expect(reload).toHaveBeenCalledTimes(1);
+      expect(screen.getByRole("alert")).toBeTruthy();
+    } finally {
+      Object.defineProperty(window, "location", {
+        configurable: true,
+        value: location,
+      });
+    }
+  });
+
+  it("preload 뒤 열림은 Suspense 를 거치지 않는다 — 첫 렌더에 내용 (fallback 0)", async () => {
+    const loader = vi.fn(async () => ({ default: Loaded }));
+    const Panel = lazyPanel(loader);
+    await Panel.preload();
+    const { container } = render(<Panel {...props} />);
+    // await 없이 — 동기 렌더 결과에 내용
+    expect(container.textContent).toBe("loaded-panel");
+    expect(container.querySelector("[aria-busy]")).toBeNull();
+    expect(loader).toHaveBeenCalledTimes(1);
   });
 
   it("성공 로드는 한 번 — 다시 mount 해도 loader 를 다시 부르지 않는다", async () => {

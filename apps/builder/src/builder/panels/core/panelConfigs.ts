@@ -25,7 +25,7 @@ import { NavigatorPanel } from "../navigator/NavigatorPanel";
 import { ACTION_ICONS } from "../../config/actionIcons";
 import { ComponentsPanel } from "../components/ComponentsPanel";
 import { AIPanel } from "../ai/lazyAIPanel";
-import { lazyPanel } from "./lazyPanel";
+import { lazyPanel, preloadLazyPanels } from "./lazyPanel";
 
 // Editor panels
 import { PropertiesPanel } from "../properties/PropertiesPanel";
@@ -274,6 +274,20 @@ export const PANEL_CONFIGS: PanelConfig[] = [
   // Font Family 피커가 여는 모달(`FontManagerDialog`)이 담당한다. 저빈도 작업이라
   // 인스펙터 레일 한 칸을 상주로 차지할 이유가 없다 (Figma/Pen 도 그렇게 안 한다).
 ];
+
+/**
+ * ADR-242 HC3 — 부팅 뒤 idle 에 초기 화면 밖 패널 chunk 를 미리 받는다 (받은 패널은 fallback 없이
+ * 바로 열린다). AI (100 KB) · datatable 편집기/필드 (목록 패널에서 여는 2차 표면) 는 첫 열림에 받는다.
+ */
+export function preloadOffscreenPanels(): void {
+  preloadLazyPanels([
+    HistoryPanel,
+    SettingsPanel,
+    InteractionsPanel,
+    ThemesPanel,
+    DataTablePanel,
+  ]);
+}
 
 /**
  * PanelRegistry에 모든 패널 등록
