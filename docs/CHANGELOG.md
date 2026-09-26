@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Select 도움말 줄 높이] - 2026-09-26
+
+### Fixed
+
+- **Select 의 도움말 (description) 줄 높이가 다른 field 보다 작던 문제** (Preview · publish, md 16 → 18 px). Select 만 단독 Description 요소의 클래스를 빌려 써 줄 높이가 달랐다 — 이제 TextField 등과 같다. 캔버스는 원래 18 이라 두 렌더러가 같아졌다.
+  - 검증: side 라벨 parity (10 field × 3 상태) 의 Select 허용 차이를 없애고 수정 전 실패 → 통과.
+
 ## [ADR-236 후속 2 — side 라벨 오류 문구 · 값 표시 · ColorField] - 2026-09-26
 
 ### Fixed

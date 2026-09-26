@@ -396,15 +396,18 @@ export function Select<T extends object>({
             </span>
           </Button>
 
+          {/* 도움말은 다른 field 와 같은 RAC Text 기본 클래스 (`.react-aria-Text`) — `.react-aria-Description`
+              (단독 Description 요소의 클래스) 을 붙이면 줄 높이가 1.333 으로 갈려 Canvas · 다른 field (1.5) 와
+              md 에서 2 px 달랐다 (2026-09-26). */}
           {description && String(description).trim() && (
-            <Text slot="description" className="react-aria-Description">
+            <Text slot="description">
               {String(description)}
             </Text>
           )}
 
           {/* Show loading message */}
           {hasDataBinding && loading && (
-            <Text slot="description" className="react-aria-Description">
+            <Text slot="description">
               {t("loadingData")}
             </Text>
           )}

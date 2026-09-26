@@ -112,11 +112,11 @@ interface Measured {
 }
 
 /**
- * 알려진 기존 높이 차 (이번 배치 수리와 별개, ADR-236 breakdown §19 기록): Select 의 DOM 도움말은
- * `.react-aria-Description` 클래스라 generated Description 의 줄 높이 16 을 받고, Canvas 합성 도움말은
- * root 상속 1.5 (18) 로 잰다 — 다른 field 도움말은 RAC Text 라 1.5 상속으로 같다.
+ * 알려진 높이 차 — 없음. 2026-09-26 까지 Select 만 도움말에 `.react-aria-Description` 을 붙여 generated
+ * Description 줄 높이 (1.333 → md 16) 를 받았고, 다른 field 는 RAC Text 기본 클래스 (`.react-aria-Text` 1.5 →
+ * 18) 라 Canvas 와 같았다. Select 도 같은 형태로 맞췄다.
  */
-const KNOWN_HEIGHT_GAP: Record<string, number> = { "Select/description": 2 };
+const KNOWN_HEIGHT_GAP: Record<string, number> = {};
 
 const measured: Measured[] = [];
 let host: HTMLElement | undefined;

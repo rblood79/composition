@@ -3979,8 +3979,9 @@ export function applyImplicitStyles(
           display: "block",
           width: "100%",
           fontSize: descFontSize,
-          // 활성 bundle 에 `[slot="description"]` 줄 높이 규칙이 없다 — DOM 은 root `line-height: 1.5`
-          //   를 상속한다 (FieldError 와 같은 실측 근거).
+          // field 도움말은 RAC Text 기본 클래스라 DOM 줄 높이는 `.react-aria-Text` 선언 (generated Text.css
+          //   `--text-base--line-height` = 1.5) 이다 — 상속이 아니다. 값이 root 1.5 와 같아 여기 배율이 맞지만,
+          //   catalog Text lineHeight 가 바뀌면 이 줄도 같이 봐야 한다 (2026-09-26 Select 조사).
           lineHeight: `${resolveInheritedLineHeight(descFontSize)}px`,
         },
       },
