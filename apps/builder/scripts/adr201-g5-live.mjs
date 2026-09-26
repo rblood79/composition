@@ -38,7 +38,7 @@ const arg = (name, fallback) => {
   const a = process.argv.find((x) => x.startsWith(`--${name}=`));
   return a ? a.slice(name.length + 3) : fallback;
 };
-const BASE_URL = arg("base", "http://localhost:5173");
+const BASE_URL = arg("base", process.env.BUILDER_URL ?? "http://localhost:5173");
 const SERVER = arg("server", "http://localhost:8080/upload");
 const FILE = arg("file", "/tmp/adr201-g5/g5-1g.zip");
 const STORAGE_DIR = arg("storage-dir", "/tmp/adr201-g5/uploads");

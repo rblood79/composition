@@ -7,7 +7,7 @@ import { chromium } from "playwright";
 import { randomUUID } from "node:crypto";
 import { waitReady } from "./perf-baseline.mjs";
 
-const BASE_URL = process.env.M5_BASE_URL ?? "http://localhost:5173";
+const BASE_URL = process.env.M5_BASE_URL ?? process.env.BUILDER_URL ?? "http://localhost:5173";
 const STORAGE_STATE = resolve(
   process.env.M5_STORAGE ?? "apps/builder/scripts/.auth-session.json",
 );

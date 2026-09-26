@@ -24,7 +24,7 @@ const restore = () => {
   else fs.rmSync(deployedPath, { force: true });
 };
 process.on("exit", restore);
-const base = "http://localhost:5173";
+const base = process.env.BUILDER_URL ?? "http://localhost:5173";
 const results = [];
 const check = (name, ok, detail = "") => {
   results.push({ name, ok, detail });

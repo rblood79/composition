@@ -11,7 +11,7 @@ import { resolve } from "node:path";
 import { chromium } from "playwright";
 import { waitReady } from "./perf-baseline.mjs";
 
-const BASE_URL = "http://localhost:5173";
+const BASE_URL = process.env.BUILDER_URL ?? "http://localhost:5173";
 const OLLAMA = "http://localhost:11434";
 const MODEL = process.env.OLLAMA_MODEL ?? "qwen3:14b";
 const STORAGE_STATE = resolve("apps/builder/scripts/.auth-session.json");

@@ -33,7 +33,7 @@ import { execFileSync } from "node:child_process";
 import { chromium } from "playwright";
 
 const DEFAULTS = {
-  baseUrl: "http://localhost:5173",
+  baseUrl: process.env.BUILDER_URL ?? "http://localhost:5173",
   storageState: resolve("apps/builder/scripts/.auth-session.json"),
   saveStorageState: null,
   pointerExercise: false,

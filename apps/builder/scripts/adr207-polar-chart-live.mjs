@@ -19,7 +19,7 @@ import { resolve } from "node:path";
 import { chromium } from "playwright";
 import { waitReady, createInstrumentedContext } from "./perf-baseline.mjs";
 
-const BASE_URL = "http://localhost:5173";
+const BASE_URL = process.env.BUILDER_URL ?? "http://localhost:5173";
 const STORAGE_STATE = resolve("apps/builder/scripts/.auth-session.json");
 const OUT_DIR = "/private/tmp/adr207-polar-live";
 const headed = process.argv.includes("--headed");

@@ -19,7 +19,7 @@ const require = createRequire(import.meta.url);
 const { PNG } = require(resolve("node_modules/.pnpm/pngjs@7.0.0/node_modules/pngjs"));
 
 const args = process.argv.slice(2);
-const BASE = args.includes("--base") ? args[args.indexOf("--base") + 1] : "http://localhost:5173";
+const BASE = args.includes("--base") ? args[args.indexOf("--base") + 1] : process.env.BUILDER_URL ?? "http://localhost:5173";
 const OUT = args.includes("--out") ? args[args.indexOf("--out") + 1] : null;
 const findings = [];
 const record = (name, pass, detail) => {

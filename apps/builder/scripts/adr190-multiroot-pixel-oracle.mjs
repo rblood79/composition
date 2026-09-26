@@ -14,7 +14,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { chromium } from "playwright";
 
-const BASE_URL = process.env.ADR190_BASE_URL ?? "http://localhost:5173";
+const BASE_URL = process.env.ADR190_BASE_URL ?? process.env.BUILDER_URL ?? "http://localhost:5173";
 const OUT =
   process.env.ADR190_OUT ?? "/private/tmp/adr190-multiroot-pixel-oracle.json";
 const NODE_COUNT = Number(process.env.ADR190_NODES ?? "258");

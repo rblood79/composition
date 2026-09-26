@@ -19,7 +19,7 @@ import { chromium } from "playwright";
 
 function parseArgs(argv) {
   const options = {
-    baseUrl: "http://localhost:5173",
+    baseUrl: process.env.BUILDER_URL ?? "http://localhost:5173",
     out: "/private/tmp/adr190-phase1-g1.json",
     repeats: 8,
     storageState: resolve("apps/builder/scripts/.auth-session.json"),

@@ -14,7 +14,7 @@ import { chromium } from "playwright";
 
 function parseArgs(argv) {
   const options = {
-    baseUrl: "http://localhost:5173/composition",
+    baseUrl: `${process.env.BUILDER_URL ?? "http://localhost:5173"}/composition`,
     durationMs: 5000,
     distDir: resolve("apps/builder/dist"),
     fixtureProfile: "dense",

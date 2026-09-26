@@ -120,7 +120,7 @@ page.on("pageerror", (e) => errors.push(String(e)));
 const report = { checks: {}, errors };
 
 try {
-  await page.goto("http://localhost:5173/dashboard", {
+  await page.goto(`${process.env.BUILDER_URL ?? "http://localhost:5173"}/dashboard`, {
     waitUntil: "networkidle",
   });
   await page.locator("button.dashboard-create-button").first().click();

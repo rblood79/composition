@@ -17,7 +17,7 @@ import {
 const args = process.argv.slice(2);
 const BASE = args.includes("--base")
   ? args[args.indexOf("--base") + 1]
-  : "http://localhost:5173";
+  : process.env.BUILDER_URL ?? "http://localhost:5173";
 const SHOT_DIR = args.includes("--shot-dir")
   ? args[args.indexOf("--shot-dir") + 1]
   : null;

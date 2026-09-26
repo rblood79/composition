@@ -21,7 +21,7 @@ const opt = (n, d) => {
   return i >= 0 ? args[i + 1] : d;
 };
 const BEFORE = opt("before", "http://127.0.0.1:5174");
-const AFTER = opt("after", "http://localhost:5173");
+const AFTER = opt("after", process.env.BUILDER_URL ?? "http://localhost:5173");
 const AUTH = opt("auth", resolve("apps/builder/scripts/.auth-session.json"));
 const OUT_DIR = opt("out", "/private/tmp/adr234-g5");
 const log = (...a) => console.log("[adr234 G5]", ...a);

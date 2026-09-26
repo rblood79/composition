@@ -25,7 +25,7 @@ const argValue = (name, fallback) => {
   const i = args.indexOf(name);
   return i >= 0 ? args[i + 1] : fallback;
 };
-const baseUrl = argValue("--base-url", "http://localhost:5173");
+const baseUrl = argValue("--base-url", process.env.BUILDER_URL ?? "http://localhost:5173");
 const out = argValue("--out", "/private/tmp/adr235-g1-live");
 const headed = args.includes("--headed");
 const storageState = JSON.parse(

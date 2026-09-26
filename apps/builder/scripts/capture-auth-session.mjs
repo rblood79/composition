@@ -17,7 +17,7 @@ const opt = (flag, fallback) => {
   const i = args.indexOf(flag);
   return i >= 0 && args[i + 1] ? args[i + 1] : fallback;
 };
-const base = opt("--base", "http://localhost:5173");
+const base = opt("--base", process.env.BUILDER_URL ?? "http://localhost:5173");
 const out = resolve(
   opt("--out", resolve(dirname(fileURLToPath(import.meta.url)), ".auth-session.json")),
 );

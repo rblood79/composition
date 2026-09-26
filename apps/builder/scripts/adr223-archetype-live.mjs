@@ -7,7 +7,7 @@
 import { chromium } from "playwright";
 import { resolve } from "node:path";
 import { waitReady } from "./perf-baseline.mjs";
-const BASE_URL = "http://localhost:5173";
+const BASE_URL = process.env.BUILDER_URL ?? "http://localhost:5173";
 const STORAGE_STATE = resolve("apps/builder/scripts/.auth-session.json");
 const log = (...a) => console.log("[adr223 live]", ...a);
 const RAIL = ["navigator","components","datatable","datatableEditor","theme","ai","properties","styles","interactions","history"];

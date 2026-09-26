@@ -16,7 +16,7 @@ import {
 const args = process.argv.slice(2);
 const BASE = args.includes("--base")
   ? args[args.indexOf("--base") + 1]
-  : "http://localhost:5173";
+  : process.env.BUILDER_URL ?? "http://localhost:5173";
 const findings = [];
 const record = (name, pass, detail) => {
   findings.push({ name, pass, detail });

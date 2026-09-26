@@ -39,7 +39,7 @@ const opt = (name, def) => {
   const i = args.indexOf(name);
   return i >= 0 ? args[i + 1] : def;
 };
-const baseUrl = opt("--base-url", "http://localhost:5173");
+const baseUrl = opt("--base-url", process.env.BUILDER_URL ?? "http://localhost:5173");
 const outDir = opt("--out", "/private/tmp/adr027-text-edit-parity");
 const headless = args.includes("--headless");
 mkdirSync(outDir, { recursive: true });

@@ -22,7 +22,7 @@ const opt = (n, d) => {
   const i = args.indexOf(`--${n}`);
   return i >= 0 ? args[i + 1] : d;
 };
-const BASE_URL = opt("base", "http://localhost:5173");
+const BASE_URL = opt("base", process.env.BUILDER_URL ?? "http://localhost:5173");
 const ITEMS_BASE_URL = opt("items-base", BASE_URL);
 const PREBUILD = ITEMS_BASE_URL !== BASE_URL;
 /** `--profile originEdit` — 그 조작 표본 구간의 CPU 프로파일 자체 시간 상위 (진단용, 판정과 무관). */

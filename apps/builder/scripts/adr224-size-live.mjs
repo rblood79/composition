@@ -146,7 +146,7 @@ async function ensureComparePreview(elementId) {
   );
 }
 try {
-  await page.goto("http://localhost:5173/dashboard", {
+  await page.goto(`${process.env.BUILDER_URL ?? "http://localhost:5173"}/dashboard`, {
     waitUntil: "networkidle",
   });
   await page.locator("button.dashboard-create-button").first().click();

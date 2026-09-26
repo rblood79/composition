@@ -14,7 +14,7 @@ import {
 const args = process.argv.slice(2);
 const arg = (name, fallback) =>
   args.includes(name) ? args[args.indexOf(name) + 1] : fallback;
-const BASE = arg("--base", "http://localhost:5173");
+const BASE = arg("--base", process.env.BUILDER_URL ?? "http://localhost:5173");
 const AUTH = arg("--auth", resolve("apps/builder/scripts/.auth-session.json"));
 const SHOT_DIR = arg("--shot-dir", null);
 

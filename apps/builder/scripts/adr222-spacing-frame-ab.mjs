@@ -22,7 +22,7 @@ const opt = (name, fallback) => {
   const i = args.indexOf(`--${name}`);
   return i >= 0 ? args[i + 1] : fallback;
 };
-const BASE_URL = opt("base", "http://localhost:5173");
+const BASE_URL = opt("base", process.env.BUILDER_URL ?? "http://localhost:5173");
 const PAIRS = Number(opt("pairs", "3"));
 const headed = args.includes("--headed");
 const OUT_DIR = opt("out", "/private/tmp/adr222-g4");

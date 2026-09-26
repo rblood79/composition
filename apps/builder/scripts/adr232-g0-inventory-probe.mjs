@@ -19,7 +19,7 @@ const opt = (n, d) => {
   const i = args.indexOf(n);
   return i >= 0 ? args[i + 1] : d;
 };
-const baseUrl = opt("--base-url", "http://localhost:5173");
+const baseUrl = opt("--base-url", process.env.BUILDER_URL ?? "http://localhost:5173");
 
 // 부팅 계측 — 앱 스크립트보다 먼저 실행돼 frame 첫 관측과 engine ready 시점을 기록한다.
 const BOOT_PROBE = `

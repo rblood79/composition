@@ -113,7 +113,7 @@ const check = (label, cond, detail) => {
   if (!cond) bad++;
 };
 try {
-  await createIsolatedProject(page, "http://localhost:5173");
+  await createIsolatedProject(page, process.env.BUILDER_URL ?? "http://localhost:5173");
   const id = await addFromPalette(page, "text");
   await page.evaluate(
     (id) =>

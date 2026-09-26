@@ -25,7 +25,7 @@ const opt = (name, fallback) => {
 };
 const OUT_DIR = opt("out", "/private/tmp/adr224-g6");
 const ARM = opt("arm", "after");
-const BASE_URL = opt("base", "http://localhost:5173");
+const BASE_URL = opt("base", process.env.BUILDER_URL ?? "http://localhost:5173");
 const SIZES = [100, 1000];
 const WARMUP = 5;
 const RUNS = 30;

@@ -17,7 +17,7 @@ import {
 const here = dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
 const opt = (n, d) => (args.indexOf(`--${n}`) >= 0 ? args[args.indexOf(`--${n}`) + 1] : d);
-const baseUrl = opt("base", "http://localhost:5173");
+const baseUrl = opt("base", process.env.BUILDER_URL ?? "http://localhost:5173");
 const settle = (page, ms) => page.waitForTimeout(ms);
 const BP = { desktop: { w: 1920, h: 1080 }, tablet: { w: 768, h: 1024 }, mobile: { w: 390, h: 844 } };
 const BP_INDEX = { desktop: 0, tablet: 1, mobile: 2 };

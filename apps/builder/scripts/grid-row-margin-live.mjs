@@ -9,7 +9,7 @@ const REPO = "/Users/admin/work/composition";
 const { waitReady, createIsolatedProject } = await import(
   `${REPO}/apps/builder/scripts/perf-baseline.mjs`
 );
-const BASE_URL = "http://localhost:5173";
+const BASE_URL = process.env.BUILDER_URL ?? "http://localhost:5173";
 const STORAGE_STATE = resolve(REPO, "apps/builder/scripts/.auth-session.json");
 const headless = process.argv.includes("--headless");
 const log = (...a) => console.log("[grid-probe]", ...a);

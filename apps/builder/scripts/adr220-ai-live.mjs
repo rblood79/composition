@@ -11,7 +11,7 @@ import { resolve } from "node:path";
 import { chromium } from "playwright";
 import { waitReady } from "./perf-baseline.mjs";
 
-const BASE = "http://localhost:5173";
+const BASE = process.env.BUILDER_URL ?? "http://localhost:5173";
 const OUT = process.env.ADR220_AI_OUT ?? "/private/tmp/adr220-ai-live";
 const storageState = JSON.parse(
   readFileSync(resolve("apps/builder/scripts/.auth-session.json"), "utf8"),

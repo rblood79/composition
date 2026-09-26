@@ -11,7 +11,7 @@ import { resolve } from "node:path";
 import { chromium } from "playwright";
 import { waitReady } from "./perf-baseline.mjs";
 
-const BASE = "http://localhost:5173";
+const BASE = process.env.BUILDER_URL ?? "http://localhost:5173";
 const OUT = process.env.ADR202_OUT ?? "/private/tmp/adr202-promotion-live";
 const storageState = JSON.parse(
   readFileSync(

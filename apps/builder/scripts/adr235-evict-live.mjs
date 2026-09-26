@@ -16,7 +16,7 @@ import { resolve } from "node:path";
 import { chromium } from "playwright";
 import { createIsolatedProject, waitReady } from "./perf-baseline.mjs";
 
-const BASE = "http://localhost:5173";
+const BASE = process.env.BUILDER_URL ?? "http://localhost:5173";
 const out = "/private/tmp/adr235-evict-live";
 mkdirSync(out, { recursive: true });
 const storageState = JSON.parse(

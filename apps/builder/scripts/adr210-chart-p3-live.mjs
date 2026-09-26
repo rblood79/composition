@@ -18,7 +18,7 @@ import { resolve } from "node:path";
 import { chromium } from "playwright";
 import { waitReady, createInstrumentedContext } from "./perf-baseline.mjs";
 
-const BASE_URL = "http://localhost:5173";
+const BASE_URL = process.env.BUILDER_URL ?? "http://localhost:5173";
 const PUBLISH_URL = "http://localhost:3001";
 const STORAGE_STATE = resolve("apps/builder/scripts/.auth-session.json");
 const OUT_DIR = "/private/tmp/adr210-chart-p3-live";

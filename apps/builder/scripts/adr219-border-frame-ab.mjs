@@ -31,7 +31,7 @@ const opt = (name, fallback) => {
   return i >= 0 ? args[i + 1] : fallback;
 };
 const BEFORE = opt("before", "http://localhost:5174");
-const AFTER = opt("after", "http://localhost:5173");
+const AFTER = opt("after", process.env.BUILDER_URL ?? "http://localhost:5173");
 const PAIRS = Number(opt("pairs", "3"));
 const headed = args.includes("--headed");
 const OUT_DIR = opt("out", "/private/tmp/adr219-g4");

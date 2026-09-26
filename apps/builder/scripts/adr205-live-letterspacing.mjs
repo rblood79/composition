@@ -21,7 +21,7 @@
 
 import { chromium } from "playwright";
 
-const BASE_URL = process.env.BASE_URL ?? "http://localhost:5173";
+const BASE_URL = process.env.BASE_URL ?? process.env.BUILDER_URL ?? "http://localhost:5173";
 const HEADED = process.argv.includes("--headed");
 
 const TEXT = "ab cd ef gh ij kl mn op";

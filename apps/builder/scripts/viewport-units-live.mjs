@@ -132,7 +132,7 @@ const check = (name, ok, detail) => {
   console.log(`${ok ? "PASS" : "FAIL"} ${name} ${JSON.stringify(detail)}`);
 };
 try {
-  await page.goto("http://localhost:5173/dashboard", {
+  await page.goto(`${process.env.BUILDER_URL ?? "http://localhost:5173"}/dashboard`, {
     waitUntil: "networkidle",
   });
   await page.locator("button.dashboard-create-button").first().click();

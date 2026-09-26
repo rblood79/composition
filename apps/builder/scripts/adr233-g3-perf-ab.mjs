@@ -25,7 +25,7 @@ const opt = (n, d) => {
   const i = args.indexOf(`--${n}`);
   return i >= 0 ? args[i + 1] : d;
 };
-const BASE_URL = opt("base", "http://localhost:5173");
+const BASE_URL = opt("base", process.env.BUILDER_URL ?? "http://localhost:5173");
 const PAIRS = Number(opt("pairs", "3"));
 const OUT_DIR = opt("out", "/private/tmp/adr233-g3");
 const STORAGE_STATE = resolve("apps/builder/scripts/.auth-session.json");

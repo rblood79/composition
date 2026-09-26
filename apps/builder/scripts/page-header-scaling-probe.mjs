@@ -30,7 +30,7 @@ const zoom = Number(opt("--zoom", "0.1"));
 const out = resolve(opt("--out", "/private/tmp/perf-baseline/adr226-g1"));
 const panMs = Number(opt("--pan-ms", "3000"));
 const scenarios = opt("--scenarios", "pan-h,pan-v").split(",");
-const baseUrl = opt("--base-url", "http://localhost:5173");
+const baseUrl = opt("--base-url", process.env.BUILDER_URL ?? "http://localhost:5173");
 mkdirSync(out, { recursive: true });
 
 const DRIVERS = {

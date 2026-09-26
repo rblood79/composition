@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "turbo run dev --filter=@composition/builder",
     "dev:lean": "turbo run dev --filter=@composition/builder --cache=local:r",
-    "dev:kill": "for port in 5173 5174 5175 5176 5177; do lsof -ti :$port 2>/dev/null | xargs kill -9 2>/dev/null; done; echo 'Dev servers killed'",
+    "dev:kill": "for port in ${DEV_PORTS:-5173}; do lsof -ti :$port 2>/dev/null | xargs kill -9 2>/dev/null; done; echo \"Dev servers killed: ${DEV_PORTS:-5173}\"",
     "build": "turbo run build",
     "build:preview": "turbo run build:preview",
     "build:all": "turbo run build:all",

@@ -25,7 +25,7 @@ function saveSession(storageState) {
 }
 
 // 수동 로그인으로 세션 생성
-async function createSession(baseUrl = "http://localhost:5173") {
+async function createSession(baseUrl = process.env.BUILDER_URL ?? "http://localhost:5173") {
   console.log("\n🔐 로그인 세션 생성 모드");
   console.log("   브라우저가 열립니다. 로그인 후 빌더 화면(/builder)까지 이동하세요.");
   console.log("   빌더 URL 감지 시 자동으로 세션이 저장됩니다.\n");
@@ -69,7 +69,7 @@ async function createSession(baseUrl = "http://localhost:5173") {
   return storageState;
 }
 
-async function checkPage(url = "http://localhost:5173", options = {}) {
+async function checkPage(url = process.env.BUILDER_URL ?? "http://localhost:5173", options = {}) {
   const { quick = false, screenshot = true, json = false, login = false } = options;
 
   // --login 옵션: 세션 생성 모드
@@ -418,7 +418,7 @@ if (args.includes("--help") || args.includes("-h")) {
   process.exit(0);
 }
 
-const url = args.find((a) => !a.startsWith("--")) || "http://localhost:5173";
+const url = args.find((a) => !a.startsWith("--")) || (process.env.BUILDER_URL ?? "http://localhost:5173");
 const options = {
   quick: args.includes("--quick") || args.includes("-q"),
   screenshot: !args.includes("--no-screenshot"),

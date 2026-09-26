@@ -23,7 +23,7 @@ const require = createRequire(resolve("packages/shared/package.json"));
 const JSZip = require("jszip");
 
 const args = process.argv.slice(2);
-const baseUrl = args.includes("--base-url") ? args[args.indexOf("--base-url") + 1] : "http://localhost:5173";
+const baseUrl = args.includes("--base-url") ? args[args.indexOf("--base-url") + 1] : process.env.BUILDER_URL ?? "http://localhost:5173";
 const out = "/private/tmp/adr235-g4-live";
 const headed = args.includes("--headed");
 const storageState = JSON.parse(readFileSync(resolve("apps/builder/scripts/.auth-session.json"), "utf8"));

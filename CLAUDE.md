@@ -11,12 +11,12 @@ composition는 **노코드 웹 빌더** 애플리케이션입니다 (pnpm monore
 ```bash
 pnpm install                                        # postinstall: canvaskit wasm 복사 + specs 빌드
 pnpm wasm:build:engine                              # Rust 엔진 → wasm (산출물 gitignored, Rust+wasm-pack 필요 — fresh clone·엔진 변경 후 필수)
-pnpm dev                                            # builder dev 서버 (5173) · 포트 충돌 시 pnpm dev:kill
+pnpm dev                                            # builder dev 서버 (5173) · 포트 충돌 시 pnpm dev:kill (기본 5173 만 — 병렬 worktree 서버는 DEV_PORTS="5174" 로 지정)
 pnpm type-check                                     # Stop hook 이 같은 명령 실행
 pnpm -F @composition/builder exec vitest run <path> # 단일 테스트 (실패 count 는 per-package 만 정확)
 pnpm -F @composition/builder test:parity            # browser vitest · visual smoke 는 pnpm gate:visual-parity
 pnpm codex:preflight                                # guard + format + typecheck + registration gate
-pnpm perf:baseline -- --lane leak|frame             # 누수·프레임 기준선 하니스 (Playwright+CDP, docs/explanation/research/BUILDER_PERF_BASELINE_2026-09.md)
+pnpm perf:baseline -- --lane leak|frame             # 누수·프레임 기준선 하니스 · apps/builder/scripts 하니스는 BUILDER_URL=http://localhost:5174 로 대상 서버 지정 (기본 5173) (Playwright+CDP, docs/explanation/research/BUILDER_PERF_BASELINE_2026-09.md)
 ```
 
 env: `apps/builder/.env.example` → `.env` (필수 키 없음 — 인증은 로컬 라이선스: 발급기 공개키 소스 내장 · 토큰은 `apps/builder/public/license`). `VITE_USE_WEBGL_CANVAS=false` 면 iframe Preview 폴백.

@@ -86,7 +86,7 @@ try {
   page.on("crash", () => process.stderr.write("[page crash]\n"));
   page.on("close", () => process.stderr.write("[page close]\n"));
   page.on("dialog", (d) => { process.stderr.write(`[dialog] ${d.type()} ${d.message()}\n`); void d.accept(); });
-  await createIsolatedProject(page, "http://localhost:5173");
+  await createIsolatedProject(page, process.env.BUILDER_URL ?? "http://localhost:5173");
 
   const f1 = await page.evaluate(async () => {
     const dir = await window.__g6.dir();
@@ -181,7 +181,7 @@ try {
   };
   let ctx = await launch();
   let page = ctx.pages()[0] ?? (await ctx.newPage());
-  await createIsolatedProject(page, "http://localhost:5173");
+  await createIsolatedProject(page, process.env.BUILDER_URL ?? "http://localhost:5173");
   const url = page.url();
   const projectId = await page.evaluate(async () => {
     await window.__composition_CONNECT_FOLDER__(await window.__g6.dir());

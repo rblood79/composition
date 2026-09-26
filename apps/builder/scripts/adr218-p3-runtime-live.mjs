@@ -11,7 +11,7 @@ import { chromium } from "playwright";
 import { randomUUID } from "node:crypto";
 import { waitReady } from "./perf-baseline.mjs";
 
-const BASE_URL = "http://localhost:5173";
+const BASE_URL = process.env.BUILDER_URL ?? "http://localhost:5173";
 const STORAGE_STATE = resolve("apps/builder/scripts/.auth-session.json");
 const OUT_DIR = process.env.ADR218_OUT ?? "/private/tmp/adr218-p3";
 const headless = process.argv.includes("--headless");

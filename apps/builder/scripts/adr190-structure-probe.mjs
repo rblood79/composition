@@ -16,7 +16,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { chromium } from "playwright";
 
-const BASE_URL = process.env.ADR190_BASE_URL ?? "http://localhost:5173";
+const BASE_URL = process.env.ADR190_BASE_URL ?? process.env.BUILDER_URL ?? "http://localhost:5173";
 const OUT = process.env.ADR190_OUT ?? "/private/tmp/adr190-phase2-g2.json";
 const DOC_SIZE = Number(process.env.ADR190_DOC ?? "1000");
 

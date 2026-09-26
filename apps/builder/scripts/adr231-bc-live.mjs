@@ -7,7 +7,7 @@ import {
   loadStorageState,
   createIsolatedProject,
 } from "./perf-baseline.mjs";
-const BASE_URL = process.argv[2] ?? "http://localhost:5173";
+const BASE_URL = process.argv[2] ?? process.env.BUILDER_URL ?? "http://localhost:5173";
 const browser = await chromium.launch({ headless: true });
 const storageState = loadStorageState(
   resolve("apps/builder/scripts/.auth-session.json"),

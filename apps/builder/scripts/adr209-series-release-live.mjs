@@ -21,7 +21,7 @@ const opt = (name, fallback) => {
   const index = process.argv.indexOf(`--${name}`);
   return index >= 0 ? process.argv[index + 1] : fallback;
 };
-const BASE_URL = opt("base", "http://localhost:5173");
+const BASE_URL = opt("base", process.env.BUILDER_URL ?? "http://localhost:5173");
 const STORAGE_STATE = resolve("apps/builder/scripts/.auth-session.json");
 const OUT_DIR = opt("out", "/private/tmp/adr209-live");
 const headed = process.argv.includes("--headed");

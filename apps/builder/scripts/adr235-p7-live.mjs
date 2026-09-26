@@ -17,7 +17,7 @@ import { createInstrumentedContext, createIsolatedProject, openPanels, waitReady
 
 const require = createRequire(resolve("packages/shared/package.json"));
 const JSZip = require("jszip");
-const BASE = "http://localhost:5173";
+const BASE = process.env.BUILDER_URL ?? "http://localhost:5173";
 const out = "/private/tmp/adr235-p7-live";
 mkdirSync(out, { recursive: true });
 const headed = process.argv.includes("--headed");

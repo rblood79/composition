@@ -20,7 +20,7 @@ const errors = [];
 page.on("pageerror", (e) => errors.push(String(e)));
 
 try {
-  await createIsolatedProject(page, "http://localhost:5173");
+  await createIsolatedProject(page, process.env.BUILDER_URL ?? "http://localhost:5173");
   await page.bringToFront();
   await seedDocument(page, 600, "mixed");
   await page.waitForTimeout(3000);

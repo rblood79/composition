@@ -18,7 +18,7 @@ import { waitReady, createInstrumentedContext } from "./perf-baseline.mjs";
 
 const baseIdx = process.argv.indexOf("--base");
 const BASE_URL =
-  baseIdx >= 0 ? process.argv[baseIdx + 1] : "http://localhost:5173";
+  baseIdx >= 0 ? process.argv[baseIdx + 1] : process.env.BUILDER_URL ?? "http://localhost:5173";
 const STORAGE_STATE = resolve("apps/builder/scripts/.auth-session.json");
 const outIdx = process.argv.indexOf("--out");
 const OUT_DIR = outIdx >= 0 ? process.argv[outIdx + 1] : "/private/tmp/adr209-f3/t13";

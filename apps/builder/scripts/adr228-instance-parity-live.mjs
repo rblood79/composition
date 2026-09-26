@@ -23,7 +23,7 @@ const { PNG } = require(
   resolve("node_modules/.pnpm/pngjs@7.0.0/node_modules/pngjs"),
 );
 
-const BASE_URL = "http://localhost:5173";
+const BASE_URL = process.env.BUILDER_URL ?? "http://localhost:5173";
 const STORAGE_STATE = resolve("apps/builder/scripts/.auth-session.json");
 const OUT_DIR = process.env.ADR228_OUT ?? "/private/tmp/adr228-instance-parity";
 const headed = process.argv.includes("--headed");

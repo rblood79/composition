@@ -28,7 +28,7 @@ async function main() {
       storageState, cpuThrottle: 1, frameCapture: false,
       onPageError: (e) => process.stderr.write(`[pageerror] ${e}\n`),
     });
-    const project = await createIsolatedProject(page, "http://localhost:5173");
+    const project = await createIsolatedProject(page, process.env.BUILDER_URL ?? "http://localhost:5173");
     process.stderr.write(`[boot] ${project.projectUrl}\n`);
     await settle(page, 2500);
     await openPanels(page, ["Navigator"]);

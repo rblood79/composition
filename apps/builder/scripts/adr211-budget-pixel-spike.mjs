@@ -19,7 +19,7 @@ const REPO = process.cwd();
 const pngjsDir = readdirSync(`${REPO}/node_modules/.pnpm`).find((d) => d.startsWith("pngjs@"));
 const { PNG } = createRequire(import.meta.url)(`${REPO}/node_modules/.pnpm/${pngjsDir}/node_modules/pngjs/lib/png.js`);
 
-const BASE_URL = "http://localhost:5173";
+const BASE_URL = process.env.BUILDER_URL ?? "http://localhost:5173";
 const STORAGE_STATE = resolve("apps/builder/scripts/.auth-session.json");
 const OUT_DIR = "/private/tmp/adr211-p0/pixel";
 const SPECS = `/@fs${REPO}/packages/specs/src/chart/index.ts`;

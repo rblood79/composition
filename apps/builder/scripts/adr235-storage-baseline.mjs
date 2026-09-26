@@ -22,7 +22,7 @@ const argValue = (name, fallback) => {
   const index = args.indexOf(name);
   return index >= 0 ? args[index + 1] : fallback;
 };
-const baseUrl = argValue("--base-url", "http://localhost:5173");
+const baseUrl = argValue("--base-url", process.env.BUILDER_URL ?? "http://localhost:5173");
 const out = argValue("--out", "/private/tmp/adr235-storage-baseline");
 const headed = args.includes("--headed");
 const storageStatePath = resolve("apps/builder/scripts/.auth-session.json");

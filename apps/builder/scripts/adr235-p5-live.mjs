@@ -19,7 +19,7 @@ const record = (id, pass, detail) => {
 };
 try {
   const { page, context } = await createInstrumentedContext(browser, { storageState, frameCapture: false, initScript: () => performance.setResourceTimingBufferSize(20000) });
-  await createIsolatedProject(page, "http://localhost:5173");
+  await createIsolatedProject(page, process.env.BUILDER_URL ?? "http://localhost:5173");
   // 저장 한 번 (요소 추가)
   await page.evaluate(async () => {
     const st = window.__composition_STORE__.getState();

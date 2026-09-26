@@ -17,7 +17,7 @@ import {
 
 const args = process.argv.slice(2);
 const opt = (n, d) => (args.includes(`--${n}`) ? args[args.indexOf(`--${n}`) + 1] : d);
-const BASE = opt("base", "http://localhost:5173");
+const BASE = opt("base", process.env.BUILDER_URL ?? "http://localhost:5173");
 const OUT = opt("out", "/private/tmp/adr239-swatch-preview");
 mkdirSync(OUT, { recursive: true });
 const results = [];

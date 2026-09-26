@@ -18,7 +18,7 @@ import {
 const args = process.argv.slice(2);
 const BASE = args.includes("--base")
   ? args[args.indexOf("--base") + 1]
-  : "http://localhost:5173";
+  : process.env.BUILDER_URL ?? "http://localhost:5173";
 const LONG =
   "The quick brown fox jumps over the lazy dog again and again until the line wraps";
 
