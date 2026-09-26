@@ -11,6 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Chrome case study 적용 — 소형 개선 6건] - 2026-09-27
+
+### Fixed
+
+- **AI 패널 프로파일의 추론 강도 (`reasoningEffort`) 가 어느 요청에도 실리지 않던 문제.** provider 를 만들 때 값이 버려져 Anthropic planner (high) · verifier (medium) 는 모델 기본값으로, Ollama 는 Qwen3 기본 thinking 으로 돌았다. 이제 호출 옵션이 없으면 프로파일 값을 보낸다. `local-ollama` 프리셋의 main · executor · fast 는 `none` (thinking off — 요청마다 약 8초 절감, 2026-09-01 실측) 이고 planner · verifier 는 모델 기본값이다. 이미 저장된 프로파일은 프리셋을 다시 적용해야 `none` 이 들어간다.
+  - live: AI 패널 모호 요청의 첫 요청 본문에 프로파일 값 확인 (`apps/builder/scripts/ai-reasoning-effort-live.mjs`)
+- **폴더 권한 창에서 거부하거나 닫으면 아무 변화가 없던 문제.** 거부 사실과 "편집은 이 브라우저에 저장됩니다" 를 알리고, 권한이 필요하면 헤더 경고 아이콘 옆에 허용 버튼 (거부 뒤는 "다시 허용") 을 바로 둔다 — 종전에는 아이콘 → 메뉴 → 항목을 거쳐야 했다.
+  - live: 권한 필요 · 거부 · 다시 허용 → 저장 4/4 (`folder-permission-denied-live.mjs`)
+- **패널을 최소 폭으로 줄이면 History 제목이 "Hist…" 로, 팔레트 이름 5개 ("illustrated message" 등) 가 말줄임으로 잘리던 문제.** History 는 290px 미만에서 제목을 시각만 숨기고 아이콘을 남기며 (container query), 팔레트 이름은 2줄까지 감싼다. 패널 10개 최소 폭 실측에서 나머지는 잘림 0.
+
+### Added
+
+- **로그인 → 프로젝트 목록 → 빌더 화면 전환에 View Transition (160ms crossfade).** 지원하지 않는 브라우저 · reduced motion 은 그냥 이동한다. `BrowserRouter` 가 경로 갱신을 React transition 으로 돌려, 전환 콜백이 라우트 commit 을 기다린다.
+  - live: Chromium · WebKit 각 3/3 — 전환 콜백 안에서 새 화면 (`view-transition-nav-live.mjs`)
+- **개발 도구**: 런타임 오류 목록 (dev `__composition_RUNTIME_ERRORS__`) · 팔레트 전체 오류 sweep `pnpm gate:catalog-errors` (live 70 컴포넌트 · 오류 0) · 하니스 대상 서버 `BUILDER_URL` · `dev:kill` 은 `DEV_PORTS` (기본 5173) 만 종료.
+  - **Why**: Chrome for Developers case study 30건 조사 (CyberAgent · P2ER · `<permission>` · container queries · View Transitions) 에서 ADR 없이 적용할 수 있는 항목.
+
 ## [ADR-150 Implemented — 데이터 바인딩 목록의 Canvas 정합] - 2026-09-27
 
 ### Changed
