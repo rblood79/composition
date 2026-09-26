@@ -389,6 +389,41 @@ describe("ADR-229 Phase 2 (F15) — synthetic 자식 lookup", () => {
       });
     });
 
+    it("켤 때 인라인이 없으면 메뉴가 넘긴 catalog 기본값을 seed 로 (CSS 초기값 row 가 아니다)", async () => {
+      useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+      useCanonicalDocumentStore
+        .getState()
+        .setDocument("project-1", makeDocument(undefined, { paddingTop: 8 }));
+      const { state, inspectorActions } = setUpStore(SYNTHETIC_ID);
+      state.activeBreakpoint = "tablet";
+
+      inspectorActions.setResponsiveStyleOverrideEnabled(
+        "flexDirection",
+        true,
+        {
+          flexDirection: "column",
+          paddingTop: "4",
+        },
+      );
+      await vi.waitFor(() => {
+        expect(readPatch()?.responsive).toBeDefined();
+      });
+      expect(readPatch()?.responsive).toEqual({
+        styles: { flexDirection: { tablet: "column" } },
+      });
+
+      // 인라인 (origin 자식의 paddingTop 8) 이 있으면 catalog 값보다 인라인
+      inspectorActions.setResponsiveStyleOverrideEnabled("paddingTop", true, {
+        paddingTop: "4",
+      });
+      await vi.waitFor(() => {
+        expect(
+          (readPatch()?.responsive as { styles: Record<string, unknown> })
+            ?.styles?.paddingTop,
+        ).toEqual({ tablet: 8 });
+      });
+    });
+
     it("origin 자식의 tier 값은 patch 로 복사되지 않고 해석에서 함께 보인다", async () => {
       useCanonicalDocumentStore.getState().setCurrentProject("project-1");
       const doc = makeDocument(undefined, { paddingTop: 8, gap: 4 });

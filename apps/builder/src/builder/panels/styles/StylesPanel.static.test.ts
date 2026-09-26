@@ -60,7 +60,10 @@ describe("StylesPanel canonical selected data contract", () => {
     expect(source).not.toContain("<ResponsiveVisibilityEditor");
     // ADR-154 개정 1: override 추가/제거는 명시적 opt-in 토글 액션 경유
     expect(source).toContain("useSetResponsiveStyleOverrideEnabled");
-    expect(source).toContain("setOverrideEnabled(key, true)");
+    // 켤 때 catalog 기본값 seed 를 함께 넘긴다 (ADR-236 후속 — 켜는 순간 시각 변화 0)
+    expect(source).toMatch(
+      /setOverrideEnabled\(\s*key,\s*true,\s*resolveTierSeedDefaults\(/,
+    );
     expect(source).toContain("setOverrideEnabled(key, false)");
     // 추가는 Overrides 절 헤더 「+」 메뉴 (PropertyRowMenu icon=add) — select/chip 아님
     expect(source).toContain("PropertyRowMenu");

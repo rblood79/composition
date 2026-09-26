@@ -40,6 +40,7 @@ import {
 } from "../../../stores";
 import { useElementStyleContext } from "../hooks/useElementStyleContext";
 import { resolveDirectionDrivenProp } from "../utils/orientationDrivenTags";
+import { resolveTierSeedDefaults } from "../utils/tierSeedDefaults";
 import { BREAKPOINT_ORDER } from "../../../../types/builder/responsive.types";
 import { iconProps, iconSmall } from "../../../../utils/ui/uiConstants";
 import { useResponsiveOverrides } from "../hooks/useResponsiveOverrides";
@@ -187,9 +188,9 @@ export const ResponsiveSection = memo(function ResponsiveSection() {
   }, [activeOverriddenProps, activeOverrideValues, overriddenSet]);
 
   const selectedId = useStore((state) => state.selectedElementId);
+  const styleContext = useElementStyleContext(selectedId);
   const directionDriven =
-    resolveDirectionDrivenProp(useElementStyleContext(selectedId).type) !==
-    undefined;
+    resolveDirectionDrivenProp(styleContext.type) !== undefined;
   const availableToAdd = useMemo(() => {
     const keys = new Set(addableOverrideKeys(overriddenSet, directionDriven));
     return PRIMARY_ELIGIBLE.filter((p) => keys.has(p.key)).map((p) => ({
@@ -198,11 +199,17 @@ export const ResponsiveSection = memo(function ResponsiveSection() {
     }));
   }, [overriddenSet, directionDriven, i18n]);
 
+  // 켜는 순간 seed = 그 요소의 현재 값. 인라인 · tier 가 없으면 catalog 기본값 (Canvas 엔진과 같은 해석)
+  //   을 넘긴다 — 없으면 액션이 CSS 초기값을 넣어 켜는 순간 모양이 바뀌었다 (ADR-236 후속).
   const handleAddOverride = useCallback(
     (key: string) => {
-      setOverrideEnabled(key, true);
+      setOverrideEnabled(
+        key,
+        true,
+        resolveTierSeedDefaults(styleContext.type, styleContext.size),
+      );
     },
-    [setOverrideEnabled],
+    [setOverrideEnabled, styleContext.type, styleContext.size],
   );
 
   const handleRemoveOverride = useCallback(

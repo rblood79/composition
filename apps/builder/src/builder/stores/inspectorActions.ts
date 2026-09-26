@@ -825,6 +825,11 @@ export interface InspectorActionsState {
   setResponsiveStyleOverrideEnabled: (
     property: string,
     enabled: boolean,
+    /**
+     * 켤 때 인라인 · 자기 tier 값이 없으면 쓸 그 요소의 catalog 기본값 (longhand 키). 메뉴가
+     * `resolveTierSeedDefaults` 로 계산해 넘긴다 — 없으면 CSS 초기값 (종전).
+     */
+    seedDefaults?: Partial<Record<string, string>>,
   ) => void;
   updateSelectedProperty: (key: string, value: unknown) => void;
   updateSelectedProperties: (properties: Record<string, unknown>) => void;
@@ -1463,7 +1468,7 @@ export const createInspectorActionsSlice: StateCreator<
       updateAndSave(element.id, {}, { responsive: next });
     },
 
-    setResponsiveStyleOverrideEnabled: (property, enabled) => {
+    setResponsiveStyleOverrideEnabled: (property, enabled, seedDefaults) => {
       const activeBreakpoint = get().activeBreakpoint;
       // desktop = base 그 자체 (토글 무의미), non-eligible = 항상 전역 → 둘 다 no-op.
       if (activeBreakpoint === "desktop") return;
@@ -1498,7 +1503,9 @@ export const createInspectorActionsSlice: StateCreator<
       const resolved = getResolvedInspectorElement(element, get().elements);
       const baseStyle =
         (resolved.props?.style as Record<string, unknown>) || {};
-      const respStyles = element.responsive?.styles as
+      // tier cascade 는 해석값 (ref 면 origin tier ⊕ 자기 tier) 으로 읽는다 — 자기 `responsive` 만 보면
+      //   origin 에 tablet 값이 있을 때 그 대신 base 값을 복사했다.
+      const respStyles = (resolved.responsive ?? element.responsive)?.styles as
         Record<string, ResponsiveValue<unknown>> | undefined;
 
       let nextResponsive = element.responsive;
@@ -1514,9 +1521,14 @@ export const createInspectorActionsSlice: StateCreator<
                 baseValue,
               )
             : baseValue;
+        // 인라인 · tier 값이 없으면 그 요소의 catalog 기본값 (메뉴가 넘김) → CSS 초기값 순. CSS 초기값만
+        //   쓰면 catalog 가 기본값을 주는 타입에서 켜는 순간 모양이 바뀌었다 (ADR-236 후속 2026-09-26
+        //   live: DisclosureGroup · Card · FileUpload 가 가로로, Button padding 0).
         const seed =
           effective === undefined || effective === null || effective === ""
-            ? resolveEligibleSeedDefault(key)
+            ? (seedDefaults?.[key] ??
+              (property !== key ? seedDefaults?.[property] : undefined) ??
+              resolveEligibleSeedDefault(key))
             : String(effective);
         nextResponsive = buildResponsiveStyleOverride(
           nextResponsive,
