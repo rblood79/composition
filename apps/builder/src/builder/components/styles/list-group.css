@@ -211,6 +211,19 @@
   text-overflow: ellipsis;
 }
 
+/* 컴포넌트 팔레트 — 패널 기본 폭 (233px) 의 2칸 격자에서 "illustrated message" ·
+   "toggle button group" 같은 이름 5개가 말줄임으로 잘렸다 (2026-09-27 실측). 칸 수를 줄이면
+   목록이 두 배로 길어지므로 이름을 2줄까지 감싼다. */
+.panel-wrapper[data-panel="components"] .list-item-name {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  white-space: normal;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
 /* Card 레이아웃 이름 */
 .list-item--card .list-item-name {
   font-size: var(--text-xs);

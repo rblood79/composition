@@ -3,6 +3,24 @@
     width: 100%;
     min-width: 0;
     overflow: hidden;
+    container: history-panel / inline-size;
+  }
+
+  /* 헤더 액션이 많아 패널을 좁히면 제목이 "Hist…" · "작업 …" 로 잘린다 (실측: en 270px ·
+     ko 약 285px 아래). 그 폭에서는 제목을 시각만 숨기고 아이콘을 남긴다 — DataTable 탭과
+     같은 방식이고 heading 의 접근 가능한 이름은 그대로다. */
+  @container history-panel (max-width: 289px) {
+    .history-panel .panel-title-text {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: -1px;
+      padding: 0;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+      border: 0;
+    }
   }
 
   .history-actions {
