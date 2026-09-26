@@ -130,6 +130,9 @@ describe("값 텍스트 leaf (SliderOutput · MeterValue · ProgressBarValue) �
           isFlexChild,
         ).props?.style ?? {}) as Record<string, unknown>;
         expect(Number(style.contentMaxWidth ?? 0), JSON.stringify(style)).toBeGreaterThan(0);
+        // line box 신호 — 없으면 인라인 흐름에서 엔진이 아래 가장자리 baseline 으로 폴백해 옆 Label 이
+        //   (높이 − 글자 baseline) 만큼 내려간다 (Slider `display: block` 에서 root h34 · Label y6, DOM h28 · y0).
+        expect(Number(style.leafBaseline ?? 0), JSON.stringify(style)).toBeGreaterThan(0);
       });
     }
   }

@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-236 후속 2 — side 라벨 오류 문구 · 값 표시 · ColorField] - 2026-09-26
+
+### Fixed
+
+- **라벨을 옆 (side) 에 둔 field 의 오류 문구 · 도움말이 입력칸 옆으로 붙어 입력칸을 줄이던 문제** (Preview · publish). 이제 입력칸 아래, 입력칸과 같은 x 에서 시작한다. 캔버스도 같은 규칙을 읽고, SearchField · Select · ComboBox · DatePicker · DateRangePicker 는 캔버스에 오류 문구가 아예 없던 것도 함께 고쳤다. 대상: TextField · TextArea · NumberField · DateField · TimeField · SearchField · Select · ComboBox · DatePicker · DateRangePicker.
+- **Slider · Meter · ProgressBar 의 값 글자가 캔버스에서 트랙 끝 밖으로 넘치던 문제.** 값 표시 상자의 폭이 0 이었다.
+- **ColorField 입력칸이 캔버스에서 부모 폭을 다 차지하던 문제** (Preview 는 12 글자 폭). 캔버스에만 보이던 색 견본 (swatch) 도 그리지 않는다.
+  - 검증: 실제 builder 에서 각 항목 live · 새 parity (10 field × 3 상태) 가 수정 전 실패 → 통과 · builder · shared 테스트 통과.
+
 ## [ADR-236 후속 — 반응형 override · side 라벨 · Label 표시] - 2026-09-26
 
 ### Fixed
