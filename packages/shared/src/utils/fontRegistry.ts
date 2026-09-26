@@ -14,7 +14,6 @@ import type {
   FontFormat,
 } from "../types/font.types";
 import { FONT_LIMITS } from "../types/font.types";
-import { resolveAssetUrl } from "./assetRef";
 
 // ============================================
 // Storage Key
@@ -181,7 +180,16 @@ function escapeCssString(value: string): string {
   return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
 
-export function buildRegistryFontFaceCss(registry: FontRegistryV2): string {
+/**
+ * @param resolveUrl ADR-235 — face URL 해석 (실행 문맥의 `resolveAssetUrl`). `null` 이면 그 face 를
+ *   건너뛴다 (준비 전 `asset:` — 요청 0). 기본값은 `asset:` 만 건너뛴다. 해석 함수를 인자로 받는
+ *   이유: 이 모듈이 `assetRef` 를 import 하면 폰트 모듈이 별도 chunk 로 갈라져 initial 이 커진다 (HC2).
+ */
+export function buildRegistryFontFaceCss(
+  registry: FontRegistryV2,
+  resolveUrl: (url: string) => string | null = (url) =>
+    url.startsWith("asset:") ? null : url,
+): string {
   if (registry.faces.length === 0) return "";
 
   return registry.faces
@@ -189,7 +197,7 @@ export function buildRegistryFontFaceCss(registry: FontRegistryV2): string {
     .flatMap((face) => {
       // ADR-235 — `asset:` 은 실행 문맥 해석기로. 준비 전이면 이 face 는 건너뛴다 (요청 0);
       // 호출자가 준비 후 다시 주입한다.
-      const src = resolveAssetUrl(face.source.url.trim());
+      const src = resolveUrl(face.source.url.trim());
       if (!src) return [];
       const family = escapeCssString(face.family.trim());
       const format = face.format ? ` format('${face.format}')` : "";

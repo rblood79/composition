@@ -237,19 +237,9 @@ export function fillsToCssBackgroundStyle(
     if (layer) layers.push(layer);
   }
   if (layers.length === 0) return {};
-  if (layers.length === 1) {
-    const only = layers[0]!;
-    return only.kind === "color"
-      ? { backgroundColor: only.color }
-      : {
-          backgroundImage: only.image,
-          ...(only.size ? { backgroundSize: only.size } : {}),
-          // 이미지 fill = 중앙 · 반복 없음 — Skia image shader (fillToSkia: 중앙 matrix ·
-          //   Decal) 와 같은 기하 (ADR-235 G1). 종전 기본값 (좌상단 · repeat) 은 fit 에서 타일로 갈렸다.
-          ...(only.photo
-            ? { backgroundPosition: "center", backgroundRepeat: "no-repeat" }
-            : {}),
-        };
+  // 단층 color 만 backgroundColor — 그 외 단층은 아래 층 쌓기 경로가 같은 값을 낸다.
+  if (layers.length === 1 && layers[0]!.kind === "color") {
+    return { backgroundColor: layers[0]!.color };
   }
 
   const top = [...layers].reverse();
@@ -270,6 +260,8 @@ export function fillsToCssBackgroundStyle(
             .join(", "),
         }
       : {}),
+    // 이미지 fill = 중앙 · 반복 없음 — Skia image shader (fillToSkia: 중앙 matrix · Decal) 와
+    //   같은 기하 (ADR-235 G1). 종전 기본값 (좌상단 · repeat) 은 fit 에서 타일로 갈렸다.
     ...(hasPhoto
       ? {
           backgroundPosition: top

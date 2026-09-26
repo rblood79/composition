@@ -23,6 +23,10 @@ export default defineConfig({
         replacement: `${resolve(import.meta.dirname, "../../packages/shared/src/components/index.ts")}`,
       },
       {
+        find: "@composition/shared/assets",
+        replacement: `${resolve(import.meta.dirname, "../../packages/shared/src/assets/index.ts")}`,
+      },
+      {
         find: "@composition/shared/utils",
         replacement: `${resolve(import.meta.dirname, "../../packages/shared/src/utils/index.ts")}`,
       },

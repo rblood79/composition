@@ -9,13 +9,17 @@
  * 동기 consumer 는 해제 시점을 알리지 않으므로, 자산 수명에 묶는 것이 유일하게 안전한
  * 기준이다 (URL 1개당 메모리는 핸들뿐, 바이트는 Blob 이 공유).
  */
-import {
-  assetHashFromRef,
-  assetRefFromHash,
-  setAssetUrlResolver,
-  type AssetRef,
-  type AssetUrlResolver,
-} from "@composition/shared";
+import type { AssetRef, AssetUrlResolver } from "@composition/shared";
+
+// shared 값 import 0 — 이 lazy chunk 가 shared barrel 을 import 하면 initial 공용 chunk 가
+// 쪼개진다 (HC2, assetBytes.ts 머리말). 참조 ↔ hash 변환만 여기 둔다.
+const PREFIX = "asset:sha256-";
+const assetHashFromRef = (ref: string): string | null =>
+  ref.startsWith(PREFIX) && ref.length === PREFIX.length + 64
+    ? ref.slice(PREFIX.length)
+    : null;
+const assetRefFromHash = (hash: string): AssetRef =>
+  `${PREFIX}${hash}` as AssetRef;
 
 export interface IndexedDbAssetUrlResolver extends AssetUrlResolver {
   /** writer 가 방금 저장한 바이트를 즉시 해석 가능하게 한다 (IndexedDB 왕복 없이). */
@@ -98,12 +102,12 @@ export function createIndexedDbAssetUrlResolver(): IndexedDbAssetUrlResolver {
 
 let installed: IndexedDbAssetUrlResolver | null = null;
 
-/** 실행 문맥당 1회. 이미 설치돼 있으면 그 해석기를 돌려준다. */
+/**
+ * 실행 문맥당 1회. 이미 만들었으면 그 해석기를 돌려준다. 설치 (`setAssetUrlResolver`) 는
+ * shared `loadAssetUrlResolver` 가 loader 결과로 한다 — 이 모듈은 shared 값을 import 하지 않는다.
+ */
 export function installIndexedDbAssetUrlResolver(): IndexedDbAssetUrlResolver {
-  if (!installed) {
-    installed = createIndexedDbAssetUrlResolver();
-    setAssetUrlResolver(installed);
-  }
+  installed ??= createIndexedDbAssetUrlResolver();
   return installed;
 }
 

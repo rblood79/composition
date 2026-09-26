@@ -6,13 +6,13 @@
  * `asset_gc` 를 함께 포함하는 readwrite 트랜잭션 하나라 GC 의 최종 삭제와 서로
  * 끼어들지 않는다. 성공은 transaction complete 로 판정한다.
  */
+import type { AssetRef } from "@composition/shared";
 import {
-  assetHashFromRef,
-  assetRefFromHash,
   extensionForMime,
+  hashFromRef as assetHashFromRef,
+  refFromHash as assetRefFromHash,
   sha256Hex,
-  type AssetRef,
-} from "@composition/shared";
+} from "@composition/shared/assets";
 import type { AssetGcRecord, AssetRecord } from "./assetSchema";
 import { ASSET_GC_STORE, ASSETS_STORE } from "./assetSchema";
 import { openAssetDb, requestResult, transactionDone } from "./assetDb";

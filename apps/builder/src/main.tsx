@@ -9,15 +9,20 @@ import {
 } from "react-router";
 import { initPerformanceDiagnostics } from "./utils/performance/diagnostics";
 import { cleanupLegacyStorage } from "./lib/legacyStorageCleanup";
-import { installIndexedDbAssetUrlResolver } from "./lib/assets/assetUrlResolver";
+import { setAssetUrlResolverLoader } from "@composition/shared/utils";
 
 // Phase 9: Performance monitors are opt-in diagnostics in dev mode.
 initPerformanceDiagnostics();
 
 // 제거된 기능이 사용자 브라우저에 남긴 localStorage 키 정리 (idempotent).
 cleanupLegacyStorage();
-// ADR-235 — 이 실행 문맥 (builder + 같은 탭의 /publish route) 의 자산 해석기
-installIndexedDbAssetUrlResolver();
+// ADR-235 — 이 실행 문맥 (builder + 같은 탭의 /publish route) 의 자산 해석기.
+//   구현은 첫 `asset:` 참조를 만났을 때 불러온다 (initial 밖 — HC2).
+setAssetUrlResolverLoader(() =>
+  import("./lib/assets/assetUrlResolver").then((m) =>
+    m.installIndexedDbAssetUrlResolver(),
+  ),
+);
 import "./fonts/initBuiltinFonts";
 import "./builder/fonts/initCustomFonts";
 

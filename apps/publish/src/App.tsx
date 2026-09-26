@@ -21,6 +21,7 @@ import type { Element, Page } from "@composition/shared";
 import {
   deriveProjectRenderModelFromDocument,
   ensureAssetRefs,
+  resolveAssetUrl,
   loadProjectFromUrl,
   loadProjectFromFile,
   type ProjectExportData,
@@ -301,7 +302,7 @@ const CUSTOM_FONTS_CSS_ID = "composition-publish-custom-fonts";
 
 function injectFontRegistryFromData(fontRegistry?: FontRegistryV2) {
   if (!fontRegistry || !fontRegistry.faces?.length) return;
-  const css = buildRegistryFontFaceCss(fontRegistry);
+  const css = buildRegistryFontFaceCss(fontRegistry, resolveAssetUrl);
   if (css) replaceStyleTag(CUSTOM_FONTS_CSS_ID, css);
 }
 

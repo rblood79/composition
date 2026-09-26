@@ -78,7 +78,7 @@ import { hasFrameElementMirrorId } from "../adapters/canonical/frameMirror";
 import { getSlotMirrorName } from "../adapters/canonical/slotMirror";
 import { projectPageFrameNodes } from "../adapters/canonical/projectPageFrameTree";
 import { buildPreviewPresentationProjectionIndex } from "./presentation/editorPresentationProjectionIndex";
-import { ensureAssetRefs, subscribeAssetUrls } from "@composition/shared";
+import { subscribeAssetUrls } from "@composition/shared";
 
 /**
  * ADR-142 — catalog generic 렌더로 cutover 된 primitive type 집합 (componentCatalog 파생).
@@ -234,15 +234,12 @@ function CanvasContent() {
     };
   }, [canonicalDocument]);
 
-  // ADR-235 — 문서의 자산 참조를 준비한다 (같은 origin IndexedDB 직접 읽기, G0 (c)).
+  // ADR-235 — 렌더 중 해석 miss 가 준비를 요청하고 (같은 origin IndexedDB 직접 읽기, G0 (c)),
+  //   준비되면 다시 그린다.
   useEffect(
     () => subscribeAssetUrls(() => bumpAssetUrlsVersion((v) => v + 1)),
     [],
   );
-  useEffect(() => {
-    if (!canonicalDocument) return;
-    void ensureAssetRefs(canonicalDocument);
-  }, [canonicalDocument]);
 
   // ADR-116 canonical resolve — 문서 단위 1회 메모이제이션.
   //

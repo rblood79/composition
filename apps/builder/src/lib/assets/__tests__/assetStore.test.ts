@@ -6,12 +6,14 @@
 import { IDBFactory } from "fake-indexeddb";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
-  assetRefFromHash,
   resolveAssetUrl,
   resolveAssetUrlAsync,
   setAssetUrlResolver,
-  sha256Hex,
 } from "@composition/shared";
+import {
+  refFromHash as assetRefFromHash,
+  sha256Hex,
+} from "@composition/shared/assets";
 import { IndexedDBAdapter } from "../../db/indexedDB/adapter";
 import { closeAssetDb, openAssetDb, readAllAssetGcRecords } from "../assetDb";
 import {
@@ -23,7 +25,8 @@ import {
 import { createIndexedDbAssetUrlResolver } from "../assetUrlResolver";
 import { ASSETS_STORE } from "../assetSchema";
 import { inlineAssetRefs } from "../assetExport";
-import { collectAssetRefs, decodeDataUrl } from "@composition/shared";
+import { collectAssetRefs } from "@composition/shared";
+import { decodeDataUrl } from "@composition/shared/assets";
 
 const PNG = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 1, 2, 3]);
 

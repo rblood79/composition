@@ -3,13 +3,13 @@
  * dataURL 로 되살려 인라인한다 (문서 · 폰트 레지스트리 · collections · 변수 모두).
  * 자산을 찾지 못하면 실패 — 참조만 든 파일을 만들지 않는다.
  */
+import type { AssetRef } from "@composition/shared";
 import {
-  assetHashFromRef,
-  collectAssetRefs,
   encodeDataUrl,
+  findAssetRefs as collectAssetRefs,
+  hashFromRef as assetHashFromRef,
   mapAssetRefs,
-  type AssetRef,
-} from "@composition/shared";
+} from "@composition/shared/assets";
 import { readAssetRecords } from "./assetDb";
 import { AssetMissingError } from "./assetStore";
 

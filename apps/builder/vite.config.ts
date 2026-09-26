@@ -190,6 +190,10 @@ export default defineConfig(({ command }) => {
           replacement: `${import.meta.dirname}/../../packages/shared/src/components/index.ts`,
         },
         {
+          find: "@composition/shared/assets",
+          replacement: `${import.meta.dirname}/../../packages/shared/src/assets/index.ts`,
+        },
+        {
           find: "@composition/shared/utils",
           replacement: `${import.meta.dirname}/../../packages/shared/src/utils/index.ts`,
         },

@@ -1,22 +1,29 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
-  assetHashFromRef,
-  assetRefFromHash,
-  collectAssetRefs,
-  decodeDataUrl,
-  encodeDataUrl,
-  ensureAssetRefs,
-  extensionForMime,
   isAssetRef,
-  mapAssetRefs,
+  loadAssetUrlResolver,
   resolveAssetUrl,
-  resolveAssetUrlAsync,
   setAssetUrlResolver,
-  sha256Hex,
+  setAssetUrlResolverLoader,
+  subscribeAssetUrls,
   type AssetRef,
   type AssetUrlResolver,
 } from "../assetRef";
+import {
+  collectAssetRefs,
+  ensureAssetRefs,
+  resolveAssetUrlAsync,
+} from "../assetRefAsync";
+import {
+  hashFromRef as assetHashFromRef,
+  refFromHash as assetRefFromHash,
+  decodeDataUrl,
+  encodeDataUrl,
+  extensionForMime,
+  mapAssetRefs,
+  sha256Hex,
+} from "../../assets/assetBytes";
 
 const HASH_A = "a".repeat(64);
 const HASH_B = "b".repeat(64);
@@ -39,7 +46,10 @@ function fakeResolver(ready: Record<string, string> = {}) {
 }
 
 describe("assetRef (ADR-235)", () => {
-  afterEach(() => setAssetUrlResolver(null));
+  afterEach(() => {
+    setAssetUrlResolver(null);
+    setAssetUrlResolverLoader(null);
+  });
 
   it("참조 규약: asset:sha256-<64 hex> 만 참조다", () => {
     expect(isAssetRef(REF_A)).toBe(true);
@@ -124,5 +134,64 @@ describe("assetRef (ADR-235)", () => {
     expect(a).toBe(b);
     const ref: AssetRef = assetRefFromHash(a);
     expect(isAssetRef(ref)).toBe(true);
+  });
+
+  it("해석기는 첫 비동기 준비 때 loader 로 설치된다 (initial 밖) · 설치 전 구독도 알림을 받는다", async () => {
+    const { resolver } = fakeResolver();
+    let notifySubscribers: () => void = () => {};
+    const withNotify: AssetUrlResolver = {
+      ...resolver,
+      ensure: async (refs) => {
+        await resolver.ensure(refs);
+        notifySubscribers();
+      },
+      subscribe: (listener) => {
+        notifySubscribers = listener;
+        return () => {};
+      },
+    };
+    let loads = 0;
+    setAssetUrlResolverLoader(async () => {
+      loads += 1;
+      return withNotify;
+    });
+    let notified = 0;
+    subscribeAssetUrls(() => (notified += 1));
+    await ensureAssetRefs({ nothing: "here" });
+    expect(resolveAssetUrl("https://x/y.png")).toBe("https://x/y.png");
+    expect(loads).toBe(0); // 참조가 없으면 불러오지 않는다
+    await ensureAssetRefs([REF_A]);
+    expect(loads).toBe(1);
+    expect(notified).toBe(1);
+    expect(resolveAssetUrl(REF_A)).toBe(`blob:test/${REF_A.slice(-4)}`);
+    expect(await loadAssetUrlResolver()).toBe(withNotify);
+    expect(loads).toBe(1);
+  });
+
+  it("동기 조회 miss 는 준비를 한 번만 요청하고 (microtask 묶음) 준비되면 알린다", async () => {
+    const REF_C = assetRefFromHash("c".repeat(64));
+    const REF_D = assetRefFromHash("d".repeat(64));
+    const { resolver, ensured } = fakeResolver();
+    let notifySubscribers: () => void = () => {};
+    setAssetUrlResolverLoader(async () => ({
+      ...resolver,
+      ensure: async (refs) => {
+        await resolver.ensure(refs);
+        notifySubscribers();
+      },
+      subscribe: (listener) => {
+        notifySubscribers = listener;
+        return () => {};
+      },
+    }));
+    let notified = 0;
+    subscribeAssetUrls(() => (notified += 1));
+    expect(resolveAssetUrl(REF_C)).toBeNull();
+    expect(resolveAssetUrl(REF_D)).toBeNull();
+    expect(resolveAssetUrl(REF_C)).toBeNull(); // 같은 참조 재요청 없음
+    await new Promise((r) => setTimeout(r, 0));
+    expect(ensured).toEqual([[REF_C, REF_D]]);
+    expect(notified).toBe(1);
+    expect(resolveAssetUrl(REF_C)).toBe(`blob:test/${REF_C.slice(-4)}`);
   });
 });
