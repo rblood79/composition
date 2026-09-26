@@ -259,4 +259,5 @@ Phase 5 는 1~4 와 독립이라 먼저 착수해도 된다 (가장 작은 작�
 | 그 밖의 live                                  | W1 실제 UI (Styles → 채우기 탭 → 이미지 파일 입력) 업로드 → 참조 · Canvas · M3 레지스트리 base64 이관 · M4 v1 가져오기 자산화 (7/7)              |
 
 - 하니스: `apps/builder/scripts/adr235-g2-live.mjs` (7 시나리오) · `adr235-storage-baseline.mjs` (writer 경로 자동 사용).
+- 번들 (`9bc4b4bc2`, clean worktree): Builder 1,416,174 (Phase 2 Δ +1,409) · Preview 622,363 (+11) — 재승인 상한 안, `adr201-bundle-gate` PASS.
 - **미확정 1건**: live M1 의 한 실행에서 이관 후 Canvas 픽셀 0 (10 초) — 이후 11 회 PASS. 가설 "image fill 로드 완료가 노드 재빌드를 못 부른다" 는 반증 R1 (후속 store 변경 0 으로 로드 완료만 대기) 이 fix 없이 GREEN 이라 기각, 시도한 `StoreRenderBridge` 변경은 되돌렸다. R1 · M1 을 하니스에 유지 (review-loop-closure §2 — LOW deferred).
