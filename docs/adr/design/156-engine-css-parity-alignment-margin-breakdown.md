@@ -87,6 +87,8 @@
 
 **후속 입력 계약 (2026-09-18, ADR-224 부분 수리)**: `NodeStyle`은 56필드·소비 56·미소비 0이다. `contentHeight`는 CSS 속성이 아닌 TS 콘텐츠 높이(content-box)이며 `enrichWithIntrinsicSize` → `applyCommonEngineStyle` → `engineStyleToRecord` → JSON → `solve_node`의 auto leaf 제안값으로 소비한다. 명시 height를 대체하지 않는다. 기존 width 스칼라와 같은 JSON 경로이고 현재 비활성 binary 경로에는 등재하지 않는다. 전수 구조분해·serde 이름 표 검사를 함께 갱신했다. Ratio의 border-box 및 분배 후 leaf 재계산 정합은 ADR-224 차단으로 별도 기록했다.
 
+**후속 입력 계약 (2026-09-26, 컨테이너 strut)**: `NodeStyle`은 57필드·소비 57·미소비 0이다. `strutBaseline`은 CSS 속성이 아닌 TS 측정 스칼라 — 컨테이너 폰트의 ascent + half-leading (content-box 상단이 아니라 line box 안 baseline 위 높이) 이며 `buildNodeStyle` block 분기 (`applyContainerStrut`, inline-level 자식이 있을 때만) → JSON → `solve_block` → `block_layout_with_strut` 의 strut ascent 로 소비한다. 짝인 `lineHeight` 는 이제 **상속** computed 값도 싣는다 (종전 컨테이너 자기 선언만). 값이 없으면 종전 lh/2 근사. 전수 구조분해·serde 이름 표 검사를 함께 갱신했다.
+
 `LAYOUT_STYLE_KEYS`(`layoutCache.ts:49-110`, 60키)는 `createElementLayoutSignature`(`:185-190`)의 style 시그니처 입력이다. **여기 없으면 해당 키만 바뀐 편집이 캐시 히트로 흡수되어 재배치 자체가 일어나지 않는다** — 엔진을 고쳐도 무반영. 발산 필드의 등재 현황:
 
 | 필드                                                                                                                                                                        | LAYOUT_STYLE_KEYS |          관련 발산           | 조치 Phase |

@@ -38,6 +38,7 @@ import {
   parseNumericValue,
   isEngineIntrinsicKeyword,
 } from "./utils";
+import { measureFontMetrics } from "../../utils/textMeasure";
 import { setLayoutViewport } from "./cssValueParser";
 import { resolveStyle, getRootComputedStyle } from "./cssResolver";
 import {
@@ -1343,7 +1344,44 @@ function buildNodeStyle(
     normalizeDimFields(record);
   }
 
+  applyContainerStrut(record, computedStyle, childDisplays);
+
   return record;
+}
+
+/**
+ * block 계열 컨테이너의 strut (CSS §10.8, 2026-09-26) — inline-level 자식이 line box 를 만들 때 컨테이너
+ * 폰트 · 줄 높이의 zero-width inline box 가 모든 line 에 참여한다. 줄 높이는 **상속** 값이다 (root 1.5 →
+ * 16px 기준 24): 종전엔 컨테이너가 lineHeight 를 직접 선언할 때만 실렸고, 엔진은 strut 을 lh/2 씩 나눴다.
+ * 그래서 block Frame 안 Badge (22) · Link (20) 한 줄이 DOM 24 보다 낮고 위로 붙었다 (2~4 px).
+ * 줄 높이 px 와 ascent (A + half-leading — 텍스트 leaf `leafBaseline` 과 같은 식) 를 짝으로 싣는다.
+ * inline-level 자식이 없으면 line box 가 없어 strut 이 무의미하므로 싣지 않는다.
+ */
+function applyContainerStrut(
+  record: Record<string, unknown>,
+  computedStyle: ComputedStyle,
+  childDisplays: string[],
+): void {
+  if (!childDisplays.some((d) => d.trim().toLowerCase().startsWith("inline"))) {
+    return;
+  }
+  const fontSize = computedStyle.fontSize;
+  const fm = measureFontMetrics(
+    computedStyle.fontFamily,
+    fontSize,
+    computedStyle.fontWeight,
+  );
+  const lineHeightPx =
+    typeof record.lineHeight === "number"
+      ? record.lineHeight
+      : (parseLineHeight({ lineHeight: computedStyle.lineHeight }, fontSize) ??
+        fm.lineHeight);
+  if (!Number.isFinite(lineHeightPx) || lineHeightPx < 0) return;
+  record.lineHeight = lineHeightPx;
+  record.strutBaseline = Math.max(
+    0,
+    (lineHeightPx - fm.fontHeight) / 2 + fm.ascent,
+  );
 }
 
 // ─── Fix 6: 자식 available size 추정 ────────────────────────────────

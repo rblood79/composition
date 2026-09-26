@@ -62,15 +62,11 @@ interface Measured {
 }
 
 /**
- * 부모 strut 잔차 (별도 원인, 이번 수리 밖 — 2026-09-26 기록): DOM 은 부모의 상속 line-height (root 1.5 →
- * 16px 기준 24) 로 strut 을 두지만 엔진 strut 은 컨테이너 자기 lineHeight 만 본다 (`packages/engine/src/
- * tree.rs` `strut_line_height`). 글자 leaf 가 strut 보다 낮은 Badge (22) · Link (20) 만 줄 전체가 그만큼
- * 갈린다 (부모 높이 · 두 상자 y 가 같이 밀림). 두 상자의 상대 정렬 (baseline) 은 이 잔차와 무관하게 같다.
+ * 부모 strut (2026-09-26 수리): DOM 은 부모의 상속 line-height (root 1.5 → 16px 기준 24) 로 strut 을 둔다.
+ * 종전 엔진은 컨테이너가 lineHeight 를 직접 선언할 때만 strut 을 두고 lh/2 로 나눠, 글자 leaf 가 strut 보다
+ * 낮은 Badge (22) · Link (20) 줄이 2~4 px 낮았다. 이제 차이 허용 없음.
  */
-const KNOWN_STRUT_GAP: Partial<Record<LeafType, number>> = {
-  Badge: 2,
-  Link: 4,
-};
+const KNOWN_STRUT_GAP: Partial<Record<LeafType, number>> = {};
 
 const measured: Measured[] = [];
 let host: HTMLElement | undefined;

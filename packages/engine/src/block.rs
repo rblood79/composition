@@ -157,6 +157,7 @@ pub fn block_layout(
         can_collapse_bottom,
         prev_sibling_margin_bottom,
         AUTO,
+        AUTO,
     )
 }
 
@@ -173,6 +174,7 @@ pub fn block_layout_with_strut(
     can_collapse_bottom: bool,
     prev_sibling_margin_bottom: f32,
     strut_line_height: f32,
+    strut_ascent: f32,
 ) -> Box<[f32]> {
     let _ = available_height; // reserved for future use
     let child_count = data.len() / FIELD_COUNT;
@@ -268,7 +270,7 @@ pub fn block_layout_with_strut(
 
             // Line wrap check
             if current_x + total_width > available_width && current_x > 0.0 {
-                let m = flush_line_box(&line_items, current_y, &mut out, strut_line_height);
+                let m = flush_line_box(&line_items, current_y, &mut out, strut_line_height, strut_ascent);
                 last_line_baseline = current_y + m.baseline;
                 current_y += m.height;
                 current_x = 0.0;
@@ -305,7 +307,7 @@ pub fn block_layout_with_strut(
         } else if display == DISPLAY_EMPTY_BLOCK {
             // Empty block: self-collapse top/bottom margins
             if !line_items.is_empty() {
-                let m = flush_line_box(&line_items, current_y, &mut out, strut_line_height);
+                let m = flush_line_box(&line_items, current_y, &mut out, strut_line_height, strut_ascent);
                 last_line_baseline = current_y + m.baseline;
                 current_y += m.height;
                 current_x = 0.0;
@@ -337,7 +339,7 @@ pub fn block_layout_with_strut(
         } else {
             // Block: vertical stacking + margin collapse
             if !line_items.is_empty() {
-                let m = flush_line_box(&line_items, current_y, &mut out, strut_line_height);
+                let m = flush_line_box(&line_items, current_y, &mut out, strut_line_height, strut_ascent);
                 last_line_baseline = current_y + m.baseline;
                 current_y += m.height;
                 current_x = 0.0;
@@ -382,7 +384,7 @@ pub fn block_layout_with_strut(
 
     // Flush remaining line box
     if !line_items.is_empty() {
-        let m = flush_line_box(&line_items, current_y, &mut out, strut_line_height);
+        let m = flush_line_box(&line_items, current_y, &mut out, strut_line_height, strut_ascent);
         last_line_baseline = current_y + m.baseline;
         current_y += m.height; // r8h2 — 마지막 line box 높이를 in-flow bottom 에 반영 (Chrome strut-last-line)
     }
@@ -435,15 +437,21 @@ struct LineMetrics {
     baseline: f32,
 }
 
-fn line_metrics(items: &[LineItem], strut_line_height: f32) -> LineMetrics {
+fn line_metrics(items: &[LineItem], strut_line_height: f32, strut_ascent: f32) -> LineMetrics {
     if items.is_empty() {
         return LineMetrics { height: 0.0, baseline: 0.0 };
     }
     let mut asc: f32 = 0.0;
     let mut desc: f32 = 0.0;
     if strut_line_height >= 0.0 {
-        asc = strut_line_height / 2.0;
-        desc = strut_line_height / 2.0;
+        // 2026-09-26: 실폰트 ascent 공급 채널 — strut ascent = A + half-leading (TS 측정). 없으면
+        //   lh/2 근사 (fontSize 0 기준, 종전 동작).
+        asc = if strut_ascent >= 0.0 {
+            strut_ascent.min(strut_line_height)
+        } else {
+            strut_line_height / 2.0
+        };
+        desc = strut_line_height - asc;
     }
     let mut max_top: f32 = 0.0;
     let mut max_bottom: f32 = 0.0;
@@ -479,8 +487,9 @@ fn flush_line_box(
     start_y: f32,
     out: &mut [f32],
     strut_line_height: f32,
+    strut_ascent: f32,
 ) -> LineMetrics {
-    let m = line_metrics(items, strut_line_height);
+    let m = line_metrics(items, strut_line_height, strut_ascent);
     for item in items {
         let final_y = match item.vertical_align {
             VALIGN_TOP => start_y + item.margin_top,
@@ -593,10 +602,23 @@ mod tests {
     #[test]
     fn adr923_p3_last_line_strut_in_flow_bottom() {
         let data = make_inline_block(60.0, 20.0, VALIGN_BASELINE);
-        let out = block_layout_with_strut(&data, 300.0, 600.0, false, false, 0.0, 40.0);
+        let out = block_layout_with_strut(&data, 300.0, 600.0, false, false, 0.0, 40.0, AUTO);
         // strut asc=desc=20 · item asc 16/desc 4 → H 40, baseline 20.
         assert_eq!(out[1], 4.0, "item y = baseline 20 - 16");
         assert_eq!(out[OUT_FIELDS + 3], 40.0, "in-flow bottom = 마지막 line box 포함 40");
+    }
+
+    /// 2026-09-26 — strut ascent 공급 (A + half-leading, TS 측정). Chrome: 부모 line-height 24 (16px
+    /// Pretendard → ascent 17.5 · descent 6.5) 안의 20 높이 inline-block (baseline 16) → line 24,
+    /// item y 1.5. lh/2 근사 (12/12) 면 line 28 (asc 16 · desc 12) · y 0 이었다.
+    #[test]
+    fn strut_ascent_supplied_splits_line_height_by_font() {
+        let data = make_inline_block(60.0, 20.0, VALIGN_BASELINE); // baseline 16
+        let out = block_layout_with_strut(&data, 300.0, 600.0, false, false, 0.0, 24.0, 17.5);
+        assert_eq!(out[1], 1.5, "item y = strut ascent 17.5 - 16");
+        assert_eq!(out[OUT_FIELDS + 3], 24.0, "line = 17.5 + 6.5");
+        let approx = block_layout_with_strut(&data, 300.0, 600.0, false, false, 0.0, 24.0, AUTO);
+        assert_eq!(approx[OUT_FIELDS + 3], 28.0, "근사 (asc 16 · desc 12) 는 28");
     }
 
     /// baseline 센티널(<0) = 원천 없음 → bottom margin edge(child_h+m_bottom) 폴백 (§10.8.1).
