@@ -277,6 +277,26 @@
   color: var(--fg-muted);
 }
 
+.react-aria-NumberField[data-size="xs"] {
+  --nf-side-gap: 2px;
+}
+
+.react-aria-NumberField[data-size="sm"] {
+  --nf-side-gap: 4px;
+}
+
+.react-aria-NumberField[data-size="md"] {
+  --nf-side-gap: 6px;
+}
+
+.react-aria-NumberField[data-size="lg"] {
+  --nf-side-gap: 8px;
+}
+
+.react-aria-NumberField[data-size="xl"] {
+  --nf-side-gap: 10px;
+}
+
 .react-aria-NumberField[data-disabled="true"] .react-aria-Group {
   background: color-mix(in srgb, var(--fg) 4%, transparent);
   border-color: color-mix(in srgb, var(--fg) 12%, transparent);
@@ -286,12 +306,28 @@
 .react-aria-NumberField[data-label-position="side"] {
   flex-direction: row;
   align-items: flex-start;
+  flex-wrap: wrap;
 }
 
 .react-aria-NumberField[data-label-position="side"] > .react-aria-Label {
   width: var(--form-label-width, 11rem);
   flex-shrink: 0;
   text-align: var(--form-label-align, start);
+}
+
+.react-aria-NumberField[data-label-position="side"] > :not(.react-aria-Label, .react-aria-FieldError, [slot="description"]) {
+  flex: 1 1 0%;
+  min-width: 0;
+}
+
+.react-aria-NumberField[data-label-position="side"] > .react-aria-FieldError {
+  flex-basis: 100%;
+  margin-inline-start: calc(var(--form-label-width, 11rem) + var(--nf-side-gap));
+}
+
+.react-aria-NumberField[data-label-position="side"] > [slot="description"] {
+  flex-basis: 100%;
+  margin-inline-start: calc(var(--form-label-width, 11rem) + var(--nf-side-gap));
 }
 
 .react-aria-NumberField[data-label-align="center"] {

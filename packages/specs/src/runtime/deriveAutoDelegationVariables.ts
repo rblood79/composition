@@ -37,6 +37,9 @@ export function deriveAutoDelegationVariables<Props>(
   delegation: DelegationSpec,
 ): Record<string, Record<string, string>> {
   const { prefix, variables } = delegation;
+  const keys = new Set(
+    delegation.autoKeys ?? ["padding", "height", "fontSize", "gap", "radius"],
+  );
 
   if (variables !== "auto") {
     throw new Error(
@@ -61,21 +64,21 @@ export function deriveAutoDelegationVariables<Props>(
     const { paddingX, paddingY, height, fontSize, gap, borderRadius } = bucket;
 
     // padding: 두 값 중 하나라도 유의미하면 emit
-    if ((paddingX ?? 0) > 0 || (paddingY ?? 0) > 0) {
+    if (keys.has("padding") && ((paddingX ?? 0) > 0 || (paddingY ?? 0) > 0)) {
       vars[`--${prefix}-padding`] = `${paddingY ?? 0}px ${paddingX ?? 0}px`;
     }
-    if ((height ?? 0) > 0) {
+    if (keys.has("height") && (height ?? 0) > 0) {
       vars[`--${prefix}-height`] = `${height}px`;
     }
-    if (fontSize !== undefined) {
+    if (keys.has("fontSize") && fontSize !== undefined) {
       vars[`--${prefix}-font-size`] = isTokenRef(fontSize)
         ? tokenToCSSVar(fontSize)
         : `${fontSize}px`;
     }
-    if ((gap ?? 0) > 0) {
+    if (keys.has("gap") && (gap ?? 0) > 0) {
       vars[`--${prefix}-gap`] = `${gap}px`;
     }
-    if (borderRadius !== undefined) {
+    if (keys.has("radius") && borderRadius !== undefined) {
       vars[`--${prefix}-radius`] = isTokenRef(borderRadius)
         ? tokenToCSSVar(borderRadius)
         : `${borderRadius}px`;

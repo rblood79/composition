@@ -652,6 +652,14 @@ export interface DelegationSpec {
   variables?: "auto" | Record<string, Record<string, string>>;
 
   /**
+   * `variables: "auto"` 가 파생할 키를 고른다 (생략 = 전부). 한 축만 필요한 delegation 이 쓰지 않는
+   * 변수를 root 에 쌓지 않게 한다 — 예: side 라벨 들여쓰기는 `["gap"]` 만 (ADR-236 후속 2026-09-26).
+   */
+  autoKeys?: ReadonlyArray<
+    "padding" | "height" | "fontSize" | "gap" | "radius"
+  >;
+
+  /**
    * Bridge 변수 — size에 의존하지 않는 변수 재노출 (ADR-059 v2 Pre-Phase 0-D.1)
    *
    * `childSelector` 범위 내에서 `{ 신규변수명: 값 }` 을 그대로 발행.

@@ -2813,6 +2813,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           styles: {
             "flex-direction": "row",
             "align-items": "flex-start",
+            "flex-wrap": "wrap",
           },
         },
       },
@@ -2848,6 +2849,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               styles: {
                 "flex-direction": "row",
                 "align-items": "flex-start",
+                "flex-wrap": "wrap",
               },
               // side label 컬럼 (2026-08-21, design-data 감사 §1-2 축①): Skia 는 이미
               //   injectSideLabelLabelAndWrapperStyles / ...AndContentStyles 로 Label 에
@@ -2865,6 +2867,35 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                     width: "var(--form-label-width, 11rem)",
                     "flex-shrink": "0",
                     "text-align": "var(--form-label-align, start)",
+                  },
+                },
+                {
+                  // side: 라벨 옆 내용 (입력칸 · 트리거 · 그룹) 은 남은 폭을 채우고 줄어들 수 있다 — 줄바꿈이 켜져도
+                  //   라벨과 한 줄에 남는다 (Canvas `injectSideLabelLabelAnd*Styles` 의 flex 1 · minWidth 0 과 같은 값).
+                  selector:
+                    '> :not(.react-aria-Label, .react-aria-FieldError, [slot="description"])',
+                  styles: {
+                    flex: "1 1 0%",
+                    "min-width": "0",
+                  },
+                },
+                {
+                  // side: 오류 문구 · 도움말은 입력칸 아래 줄, 입력칸과 같은 x (라벨 폭 + 크기별 gap) — RSP
+                  //   side 라벨과 같은 모양 (ADR-236 후속 2026-09-26). 종전엔 Canvas 만 이 배치를 주입했고 DOM 은
+                  //   nowrap 세 번째 item 으로 입력칸을 줄였다. gap 은 아래 delegation `--combo-side-gap` (sizes 파생).
+                  selector: "> .react-aria-FieldError",
+                  styles: {
+                    "flex-basis": "100%",
+                    "margin-inline-start":
+                      "calc(var(--form-label-width, 11rem) + var(--combo-side-gap))",
+                  },
+                },
+                {
+                  selector: '> [slot="description"]',
+                  styles: {
+                    "flex-basis": "100%",
+                    "margin-inline-start":
+                      "calc(var(--form-label-width, 11rem) + var(--combo-side-gap))",
                   },
                 },
               ],
@@ -3254,6 +3285,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               color: "var(--fg-muted)",
             },
           },
+          {
+            // side 라벨 배치 (ADR-236 후속 2026-09-26) — 크기별 gap 을 root 에 `--combo-side-gap` 으로 (sizes
+            //   파생, `variables: "auto"`). side 변형의 오류 문구 · 도움말 들여쓰기가 읽는다.
+            childSelector: ':is(.react-aria-FieldError, [slot="description"])',
+            prefix: "combo-side",
+            variables: "auto",
+            autoKeys: ["gap"],
+          },
         ],
       },
     },
@@ -3304,6 +3343,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           styles: {
             "flex-direction": "row",
             "align-items": "flex-start",
+            "flex-wrap": "wrap",
           },
         },
       },
@@ -3339,6 +3379,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               styles: {
                 "flex-direction": "row",
                 "align-items": "flex-start",
+                "flex-wrap": "wrap",
               },
               // side label 컬럼 (2026-08-21, design-data 감사 §1-2 축①): Skia 는 이미
               //   injectSideLabelLabelAndWrapperStyles / ...AndContentStyles 로 Label 에
@@ -3356,6 +3397,35 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                     width: "var(--form-label-width, 11rem)",
                     "flex-shrink": "0",
                     "text-align": "var(--form-label-align, start)",
+                  },
+                },
+                {
+                  // side: 라벨 옆 내용 (입력칸 · 트리거 · 그룹) 은 남은 폭을 채우고 줄어들 수 있다 — 줄바꿈이 켜져도
+                  //   라벨과 한 줄에 남는다 (Canvas `injectSideLabelLabelAnd*Styles` 의 flex 1 · minWidth 0 과 같은 값).
+                  selector:
+                    '> :not(.react-aria-Label, .react-aria-FieldError, [slot="description"])',
+                  styles: {
+                    flex: "1 1 0%",
+                    "min-width": "0",
+                  },
+                },
+                {
+                  // side: 오류 문구 · 도움말은 입력칸 아래 줄, 입력칸과 같은 x (라벨 폭 + 크기별 gap) — RSP
+                  //   side 라벨과 같은 모양 (ADR-236 후속 2026-09-26). 종전엔 Canvas 만 이 배치를 주입했고 DOM 은
+                  //   nowrap 세 번째 item 으로 입력칸을 줄였다. gap 은 아래 delegation `--df-side-gap` (sizes 파생).
+                  selector: "> .react-aria-FieldError",
+                  styles: {
+                    "flex-basis": "100%",
+                    "margin-inline-start":
+                      "calc(var(--form-label-width, 11rem) + var(--df-side-gap))",
+                  },
+                },
+                {
+                  selector: '> [slot="description"]',
+                  styles: {
+                    "flex-basis": "100%",
+                    "margin-inline-start":
+                      "calc(var(--form-label-width, 11rem) + var(--df-side-gap))",
                   },
                 },
               ],
@@ -3579,6 +3649,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               color: "var(--fg-muted)",
             },
           },
+          {
+            // side 라벨 배치 (ADR-236 후속 2026-09-26) — 크기별 gap 을 root 에 `--df-side-gap` 으로 (sizes
+            //   파생, `variables: "auto"`). side 변형의 오류 문구 · 도움말 들여쓰기가 읽는다.
+            childSelector: ':is(.react-aria-FieldError, [slot="description"])',
+            prefix: "df-side",
+            variables: "auto",
+            autoKeys: ["gap"],
+          },
         ],
       },
     },
@@ -3709,6 +3787,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           styles: {
             "flex-direction": "row",
             "align-items": "flex-start",
+            "flex-wrap": "wrap",
           },
         },
       },
@@ -3746,6 +3825,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               styles: {
                 "flex-direction": "row",
                 "align-items": "flex-start",
+                "flex-wrap": "wrap",
               },
               // side label 컬럼 (2026-08-21, design-data 감사 §1-2 축①): Skia 는 이미
               //   injectSideLabelLabelAndWrapperStyles / ...AndContentStyles 로 Label 에
@@ -3763,6 +3843,35 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                     width: "var(--form-label-width, 11rem)",
                     "flex-shrink": "0",
                     "text-align": "var(--form-label-align, start)",
+                  },
+                },
+                {
+                  // side: 라벨 옆 내용 (입력칸 · 트리거 · 그룹) 은 남은 폭을 채우고 줄어들 수 있다 — 줄바꿈이 켜져도
+                  //   라벨과 한 줄에 남는다 (Canvas `injectSideLabelLabelAnd*Styles` 의 flex 1 · minWidth 0 과 같은 값).
+                  selector:
+                    '> :not(.react-aria-Label, .react-aria-FieldError, [slot="description"])',
+                  styles: {
+                    flex: "1 1 0%",
+                    "min-width": "0",
+                  },
+                },
+                {
+                  // side: 오류 문구 · 도움말은 입력칸 아래 줄, 입력칸과 같은 x (라벨 폭 + 크기별 gap) — RSP
+                  //   side 라벨과 같은 모양 (ADR-236 후속 2026-09-26). 종전엔 Canvas 만 이 배치를 주입했고 DOM 은
+                  //   nowrap 세 번째 item 으로 입력칸을 줄였다. gap 은 아래 delegation `--dp-side-gap` (sizes 파생).
+                  selector: "> .react-aria-FieldError",
+                  styles: {
+                    "flex-basis": "100%",
+                    "margin-inline-start":
+                      "calc(var(--form-label-width, 11rem) + var(--dp-side-gap))",
+                  },
+                },
+                {
+                  selector: '> [slot="description"]',
+                  styles: {
+                    "flex-basis": "100%",
+                    "margin-inline-start":
+                      "calc(var(--form-label-width, 11rem) + var(--dp-side-gap))",
                   },
                 },
               ],
@@ -4128,6 +4237,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               color: "var(--fg-muted)",
             },
           },
+          {
+            // side 라벨 배치 (ADR-236 후속 2026-09-26) — 크기별 gap 을 root 에 `--dp-side-gap` 으로 (sizes
+            //   파생, `variables: "auto"`). side 변형의 오류 문구 · 도움말 들여쓰기가 읽는다.
+            childSelector: ':is(.react-aria-FieldError, [slot="description"])',
+            prefix: "dp-side",
+            variables: "auto",
+            autoKeys: ["gap"],
+          },
         ],
       },
     },
@@ -4181,6 +4298,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           styles: {
             "flex-direction": "row",
             "align-items": "flex-start",
+            "flex-wrap": "wrap",
           },
         },
       },
@@ -4218,6 +4336,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               styles: {
                 "flex-direction": "row",
                 "align-items": "flex-start",
+                "flex-wrap": "wrap",
               },
               // side label 컬럼 (2026-08-21, design-data 감사 §1-2 축①): Skia 는 이미
               //   injectSideLabelLabelAndWrapperStyles / ...AndContentStyles 로 Label 에
@@ -4235,6 +4354,35 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                     width: "var(--form-label-width, 11rem)",
                     "flex-shrink": "0",
                     "text-align": "var(--form-label-align, start)",
+                  },
+                },
+                {
+                  // side: 라벨 옆 내용 (입력칸 · 트리거 · 그룹) 은 남은 폭을 채우고 줄어들 수 있다 — 줄바꿈이 켜져도
+                  //   라벨과 한 줄에 남는다 (Canvas `injectSideLabelLabelAnd*Styles` 의 flex 1 · minWidth 0 과 같은 값).
+                  selector:
+                    '> :not(.react-aria-Label, .react-aria-FieldError, [slot="description"])',
+                  styles: {
+                    flex: "1 1 0%",
+                    "min-width": "0",
+                  },
+                },
+                {
+                  // side: 오류 문구 · 도움말은 입력칸 아래 줄, 입력칸과 같은 x (라벨 폭 + 크기별 gap) — RSP
+                  //   side 라벨과 같은 모양 (ADR-236 후속 2026-09-26). 종전엔 Canvas 만 이 배치를 주입했고 DOM 은
+                  //   nowrap 세 번째 item 으로 입력칸을 줄였다. gap 은 아래 delegation `--drp-side-gap` (sizes 파생).
+                  selector: "> .react-aria-FieldError",
+                  styles: {
+                    "flex-basis": "100%",
+                    "margin-inline-start":
+                      "calc(var(--form-label-width, 11rem) + var(--drp-side-gap))",
+                  },
+                },
+                {
+                  selector: '> [slot="description"]',
+                  styles: {
+                    "flex-basis": "100%",
+                    "margin-inline-start":
+                      "calc(var(--form-label-width, 11rem) + var(--drp-side-gap))",
                   },
                 },
               ],
@@ -4612,6 +4760,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               "font-size": "var(--drp-hint-size)",
               color: "var(--fg-muted)",
             },
+          },
+          {
+            // side 라벨 배치 (ADR-236 후속 2026-09-26) — 크기별 gap 을 root 에 `--drp-side-gap` 으로 (sizes
+            //   파생, `variables: "auto"`). side 변형의 오류 문구 · 도움말 들여쓰기가 읽는다.
+            childSelector: ':is(.react-aria-FieldError, [slot="description"])',
+            prefix: "drp-side",
+            variables: "auto",
+            autoKeys: ["gap"],
           },
         ],
       },
@@ -7779,6 +7935,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           styles: {
             "flex-direction": "row",
             "align-items": "flex-start",
+            "flex-wrap": "wrap",
           },
         },
       },
@@ -7832,6 +7989,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               styles: {
                 "flex-direction": "row",
                 "align-items": "flex-start",
+                "flex-wrap": "wrap",
               },
               // side label 컬럼 (2026-08-21, design-data 감사 §1-2 축①): Skia 는 이미
               //   injectSideLabelLabelAndWrapperStyles / ...AndContentStyles 로 Label 에
@@ -7849,6 +8007,35 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                     width: "var(--form-label-width, 11rem)",
                     "flex-shrink": "0",
                     "text-align": "var(--form-label-align, start)",
+                  },
+                },
+                {
+                  // side: 라벨 옆 내용 (입력칸 · 트리거 · 그룹) 은 남은 폭을 채우고 줄어들 수 있다 — 줄바꿈이 켜져도
+                  //   라벨과 한 줄에 남는다 (Canvas `injectSideLabelLabelAnd*Styles` 의 flex 1 · minWidth 0 과 같은 값).
+                  selector:
+                    '> :not(.react-aria-Label, .react-aria-FieldError, [slot="description"])',
+                  styles: {
+                    flex: "1 1 0%",
+                    "min-width": "0",
+                  },
+                },
+                {
+                  // side: 오류 문구 · 도움말은 입력칸 아래 줄, 입력칸과 같은 x (라벨 폭 + 크기별 gap) — RSP
+                  //   side 라벨과 같은 모양 (ADR-236 후속 2026-09-26). 종전엔 Canvas 만 이 배치를 주입했고 DOM 은
+                  //   nowrap 세 번째 item 으로 입력칸을 줄였다. gap 은 아래 delegation `--nf-side-gap` (sizes 파생).
+                  selector: "> .react-aria-FieldError",
+                  styles: {
+                    "flex-basis": "100%",
+                    "margin-inline-start":
+                      "calc(var(--form-label-width, 11rem) + var(--nf-side-gap))",
+                  },
+                },
+                {
+                  selector: '> [slot="description"]',
+                  styles: {
+                    "flex-basis": "100%",
+                    "margin-inline-start":
+                      "calc(var(--form-label-width, 11rem) + var(--nf-side-gap))",
                   },
                 },
               ],
@@ -8152,6 +8339,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               "font-size": "var(--nf-hint-size)",
               color: "var(--fg-muted)",
             },
+          },
+          {
+            // side 라벨 배치 (ADR-236 후속 2026-09-26) — 크기별 gap 을 root 에 `--nf-side-gap` 으로 (sizes
+            //   파생, `variables: "auto"`). side 변형의 오류 문구 · 도움말 들여쓰기가 읽는다.
+            childSelector: ':is(.react-aria-FieldError, [slot="description"])',
+            prefix: "nf-side",
+            variables: "auto",
+            autoKeys: ["gap"],
           },
         ],
       },
@@ -9338,6 +9533,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           styles: {
             "flex-direction": "row",
             "align-items": "flex-start",
+            "flex-wrap": "wrap",
           },
         },
       },
@@ -9373,6 +9569,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               styles: {
                 "flex-direction": "row",
                 "align-items": "flex-start",
+                "flex-wrap": "wrap",
               },
               // side label 컬럼 (2026-08-21, design-data 감사 §1-2 축①): Skia 는 이미
               //   injectSideLabelLabelAndWrapperStyles / ...AndContentStyles 로 Label 에
@@ -9390,6 +9587,35 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                     width: "var(--form-label-width, 11rem)",
                     "flex-shrink": "0",
                     "text-align": "var(--form-label-align, start)",
+                  },
+                },
+                {
+                  // side: 라벨 옆 내용 (입력칸 · 트리거 · 그룹) 은 남은 폭을 채우고 줄어들 수 있다 — 줄바꿈이 켜져도
+                  //   라벨과 한 줄에 남는다 (Canvas `injectSideLabelLabelAnd*Styles` 의 flex 1 · minWidth 0 과 같은 값).
+                  selector:
+                    '> :not(.react-aria-Label, .react-aria-FieldError, [slot="description"])',
+                  styles: {
+                    flex: "1 1 0%",
+                    "min-width": "0",
+                  },
+                },
+                {
+                  // side: 오류 문구 · 도움말은 입력칸 아래 줄, 입력칸과 같은 x (라벨 폭 + 크기별 gap) — RSP
+                  //   side 라벨과 같은 모양 (ADR-236 후속 2026-09-26). 종전엔 Canvas 만 이 배치를 주입했고 DOM 은
+                  //   nowrap 세 번째 item 으로 입력칸을 줄였다. gap 은 아래 delegation `--sf-side-gap` (sizes 파생).
+                  selector: "> .react-aria-FieldError",
+                  styles: {
+                    "flex-basis": "100%",
+                    "margin-inline-start":
+                      "calc(var(--form-label-width, 11rem) + var(--sf-side-gap))",
+                  },
+                },
+                {
+                  selector: '> [slot="description"]',
+                  styles: {
+                    "flex-basis": "100%",
+                    "margin-inline-start":
+                      "calc(var(--form-label-width, 11rem) + var(--sf-side-gap))",
                   },
                 },
               ],
@@ -9711,6 +9937,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               },
             },
           },
+          {
+            // side 라벨 배치 (ADR-236 후속 2026-09-26) — 크기별 gap 을 root 에 `--sf-side-gap` 으로 (sizes
+            //   파생, `variables: "auto"`). side 변형의 오류 문구 · 도움말 들여쓰기가 읽는다.
+            childSelector: ':is(.react-aria-FieldError, [slot="description"])',
+            prefix: "sf-side",
+            variables: "auto",
+            autoKeys: ["gap"],
+          },
         ],
       },
     },
@@ -9917,6 +10151,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               styles: {
                 "flex-direction": "row",
                 "align-items": "flex-start",
+                "flex-wrap": "wrap",
               },
               // side label 컬럼 (2026-08-21, design-data 감사 §1-2 축①): Skia 는 이미
               //   injectSideLabelLabelAndWrapperStyles / ...AndContentStyles 로 Label 에
@@ -9934,6 +10169,35 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                     width: "var(--form-label-width, 11rem)",
                     "flex-shrink": "0",
                     "text-align": "var(--form-label-align, start)",
+                  },
+                },
+                {
+                  // side: 라벨 옆 내용 (입력칸 · 트리거 · 그룹) 은 남은 폭을 채우고 줄어들 수 있다 — 줄바꿈이 켜져도
+                  //   라벨과 한 줄에 남는다 (Canvas `injectSideLabelLabelAnd*Styles` 의 flex 1 · minWidth 0 과 같은 값).
+                  selector:
+                    '> :not(.react-aria-Label, .react-aria-FieldError, [slot="description"])',
+                  styles: {
+                    flex: "1 1 0%",
+                    "min-width": "0",
+                  },
+                },
+                {
+                  // side: 오류 문구 · 도움말은 입력칸 아래 줄, 입력칸과 같은 x (라벨 폭 + 크기별 gap) — RSP
+                  //   side 라벨과 같은 모양 (ADR-236 후속 2026-09-26). 종전엔 Canvas 만 이 배치를 주입했고 DOM 은
+                  //   nowrap 세 번째 item 으로 입력칸을 줄였다. gap 은 아래 delegation `--select-side-gap` (sizes 파생).
+                  selector: "> .react-aria-FieldError",
+                  styles: {
+                    "flex-basis": "100%",
+                    "margin-inline-start":
+                      "calc(var(--form-label-width, 11rem) + var(--select-side-gap))",
+                  },
+                },
+                {
+                  selector: '> [slot="description"]',
+                  styles: {
+                    "flex-basis": "100%",
+                    "margin-inline-start":
+                      "calc(var(--form-label-width, 11rem) + var(--select-side-gap))",
                   },
                 },
               ],
@@ -10263,6 +10527,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               "font-size": "var(--select-hint-size)",
               color: "var(--fg-muted)",
             },
+          },
+          {
+            // side 라벨 배치 (ADR-236 후속 2026-09-26) — 크기별 gap 을 root 에 `--select-side-gap` 으로 (sizes
+            //   파생, `variables: "auto"`). side 변형의 오류 문구 · 도움말 들여쓰기가 읽는다.
+            childSelector: ':is(.react-aria-FieldError, [slot="description"])',
+            prefix: "select-side",
+            variables: "auto",
+            autoKeys: ["gap"],
           },
         ],
       },
@@ -12696,6 +12968,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           styles: {
             "flex-direction": "row",
             "align-items": "flex-start",
+            "flex-wrap": "wrap",
           },
         },
       },
@@ -12732,6 +13005,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               styles: {
                 "flex-direction": "row",
                 "align-items": "flex-start",
+                "flex-wrap": "wrap",
               },
               // side label 컬럼 (2026-08-21, design-data 감사 §1-2 축①): Skia 는 이미
               //   injectSideLabelLabelAndWrapperStyles / ...AndContentStyles 로 Label 에
@@ -12878,6 +13152,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           styles: {
             "flex-direction": "row",
             "align-items": "flex-start",
+            "flex-wrap": "wrap",
           },
         },
       },
@@ -12918,6 +13193,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               styles: {
                 "flex-direction": "row",
                 "align-items": "flex-start",
+                "flex-wrap": "wrap",
               },
               // side label 컬럼 (2026-08-21, design-data 감사 §1-2 축①): Skia 는 이미
               //   injectSideLabelLabelAndWrapperStyles / ...AndContentStyles 로 Label 에
@@ -12935,6 +13211,35 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                     width: "var(--form-label-width, 11rem)",
                     "flex-shrink": "0",
                     "text-align": "var(--form-label-align, start)",
+                  },
+                },
+                {
+                  // side: 라벨 옆 내용 (입력칸 · 트리거 · 그룹) 은 남은 폭을 채우고 줄어들 수 있다 — 줄바꿈이 켜져도
+                  //   라벨과 한 줄에 남는다 (Canvas `injectSideLabelLabelAnd*Styles` 의 flex 1 · minWidth 0 과 같은 값).
+                  selector:
+                    '> :not(.react-aria-Label, .react-aria-FieldError, [slot="description"])',
+                  styles: {
+                    flex: "1 1 0%",
+                    "min-width": "0",
+                  },
+                },
+                {
+                  // side: 오류 문구 · 도움말은 입력칸 아래 줄, 입력칸과 같은 x (라벨 폭 + 크기별 gap) — RSP
+                  //   side 라벨과 같은 모양 (ADR-236 후속 2026-09-26). 종전엔 Canvas 만 이 배치를 주입했고 DOM 은
+                  //   nowrap 세 번째 item 으로 입력칸을 줄였다. gap 은 아래 delegation `--tf-side-gap` (sizes 파생).
+                  selector: "> .react-aria-FieldError",
+                  styles: {
+                    "flex-basis": "100%",
+                    "margin-inline-start":
+                      "calc(var(--form-label-width, 11rem) + var(--tf-side-gap))",
+                  },
+                },
+                {
+                  selector: '> [slot="description"]',
+                  styles: {
+                    "flex-basis": "100%",
+                    "margin-inline-start":
+                      "calc(var(--form-label-width, 11rem) + var(--tf-side-gap))",
                   },
                 },
               ],
@@ -13115,6 +13420,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               color: "var(--fg-muted)",
             },
           },
+          {
+            // side 라벨 배치 (ADR-236 후속 2026-09-26) — 크기별 gap 을 root 에 `--tf-side-gap` 으로 (sizes
+            //   파생, `variables: "auto"`). side 변형의 오류 문구 · 도움말 들여쓰기가 읽는다.
+            childSelector: ':is(.react-aria-FieldError, [slot="description"])',
+            prefix: "tf-side",
+            variables: "auto",
+            autoKeys: ["gap"],
+          },
         ],
       },
     },
@@ -13161,6 +13474,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           styles: {
             "flex-direction": "row",
             "align-items": "flex-start",
+            "flex-wrap": "wrap",
           },
         },
       },
@@ -13196,6 +13510,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               styles: {
                 "flex-direction": "row",
                 "align-items": "flex-start",
+                "flex-wrap": "wrap",
               },
               // side label 컬럼 (2026-08-21, design-data 감사 §1-2 축①): Skia 는 이미
               //   injectSideLabelLabelAndWrapperStyles / ...AndContentStyles 로 Label 에
@@ -13213,6 +13528,35 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                     width: "var(--form-label-width, 11rem)",
                     "flex-shrink": "0",
                     "text-align": "var(--form-label-align, start)",
+                  },
+                },
+                {
+                  // side: 라벨 옆 내용 (입력칸 · 트리거 · 그룹) 은 남은 폭을 채우고 줄어들 수 있다 — 줄바꿈이 켜져도
+                  //   라벨과 한 줄에 남는다 (Canvas `injectSideLabelLabelAnd*Styles` 의 flex 1 · minWidth 0 과 같은 값).
+                  selector:
+                    '> :not(.react-aria-Label, .react-aria-FieldError, [slot="description"])',
+                  styles: {
+                    flex: "1 1 0%",
+                    "min-width": "0",
+                  },
+                },
+                {
+                  // side: 오류 문구 · 도움말은 입력칸 아래 줄, 입력칸과 같은 x (라벨 폭 + 크기별 gap) — RSP
+                  //   side 라벨과 같은 모양 (ADR-236 후속 2026-09-26). 종전엔 Canvas 만 이 배치를 주입했고 DOM 은
+                  //   nowrap 세 번째 item 으로 입력칸을 줄였다. gap 은 아래 delegation `--time-field-side-gap` (sizes 파생).
+                  selector: "> .react-aria-FieldError",
+                  styles: {
+                    "flex-basis": "100%",
+                    "margin-inline-start":
+                      "calc(var(--form-label-width, 11rem) + var(--time-field-side-gap))",
+                  },
+                },
+                {
+                  selector: '> [slot="description"]',
+                  styles: {
+                    "flex-basis": "100%",
+                    "margin-inline-start":
+                      "calc(var(--form-label-width, 11rem) + var(--time-field-side-gap))",
                   },
                 },
               ],
@@ -13441,6 +13785,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               "font-size": "var(--time-field-hint-size)",
               color: "var(--fg-muted)",
             },
+          },
+          {
+            // side 라벨 배치 (ADR-236 후속 2026-09-26) — 크기별 gap 을 root 에 `--time-field-side-gap` 으로 (sizes
+            //   파생, `variables: "auto"`). side 변형의 오류 문구 · 도움말 들여쓰기가 읽는다.
+            childSelector: ':is(.react-aria-FieldError, [slot="description"])',
+            prefix: "time-field-side",
+            variables: "auto",
+            autoKeys: ["gap"],
           },
         ],
       },

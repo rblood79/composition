@@ -37,8 +37,7 @@ describe("ADR-913 후속 — field family labelPosition='side' flex-row 통일 �
     "%s 의 catalog side variant 는 flex-row (grid 비대칭 회귀 차단)",
     (type) => {
       const rule = COMPONENT_RULES_TABLE[type] as
-        | { containerVariants?: Record<string, unknown> }
-        | undefined;
+        { containerVariants?: Record<string, unknown> } | undefined;
       const side = (
         rule?.containerVariants as
           | {
@@ -69,11 +68,15 @@ describe("ADR-913 후속 — field family labelPosition='side' flex-row 통일 �
   );
 
   it("7 field 의 side styles 가 모두 byte-identical (DateField 정본 1:1 통일)", () => {
-    const canonical = { "flex-direction": "row", "align-items": "flex-start" };
+    // flex-wrap (ADR-236 후속 2026-09-26): 오류 문구 · 도움말 다음 줄 배치
+    const canonical = {
+      "flex-direction": "row",
+      "align-items": "flex-start",
+      "flex-wrap": "wrap",
+    };
     for (const type of FIELD_FAMILY) {
       const rule = COMPONENT_RULES_TABLE[type] as
-        | { containerVariants?: Record<string, unknown> }
-        | undefined;
+        { containerVariants?: Record<string, unknown> } | undefined;
       const side = (
         rule?.containerVariants as
           | {
@@ -83,7 +86,12 @@ describe("ADR-913 후속 — field family labelPosition='side' flex-row 통일 �
             }
           | undefined
       )?.["label-position"]?.side?.styles;
-      expect(side, `${type} side styles == DateField 정본`).toEqual(canonical);
+      // ColorField 는 top 에서도 가로 배치인 별도 설계 (라벨 폭 컬럼 · 문구 들여쓰기 규칙 없음) — 줄바꿈 없음.
+      expect(side, `${type} side styles == DateField 정본`).toEqual(
+        type === "ColorField"
+          ? { "flex-direction": "row", "align-items": "flex-start" }
+          : canonical,
+      );
     }
   });
 });

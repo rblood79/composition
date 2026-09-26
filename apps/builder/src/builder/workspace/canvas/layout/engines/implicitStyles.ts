@@ -913,6 +913,24 @@ const NECESSITY_INDICATOR_TAGS = new Set([
 export const FORM_SIDE_LABEL_WIDTH = 176;
 export const FORM_SIDE_LABEL_GAP = 16;
 
+/**
+ * side 라벨 field 가족 — catalog side 변형이 오류 문구 · 도움말 nested 규칙을 갖는 타입 (+ TextArea, DOM
+ * 컨테이너가 TextField). 오류 문구 줄 합성 · side 배치가 같은 집합을 읽는다 (ADR-236 후속 2026-09-26).
+ */
+const SIDE_MESSAGE_FIELD_TAGS: ReadonlySet<string> = new Set([
+  "textfield",
+  "textarea",
+  "numberfield",
+  "datefield",
+  "timefield",
+  "searchfield",
+  "select",
+  "combobox",
+  "datepicker",
+  "daterangepicker",
+]);
+const FIELD_ERROR_CHILD_SELECTOR = ".react-aria-FieldError";
+
 // ─── 내부 헬퍼 ──────────────────────────────────────────────────────
 
 /**
@@ -1290,12 +1308,6 @@ function injectSideLabelLabelAndWrapperStyles(
 function injectSideLabelLabelAndContentStyles(
   children: CanvasLayoutNode[],
   contentTags: ReadonlySet<string>,
-  /**
-   * 결과 컨테이너가 side 의 한 줄 (flex row) 인가 — 인라인 column · block 이 side 변형을 이기면 아니다.
-   *   FieldError · Description 의 라벨 폭 들여쓰기는 row 줄바꿈 전제라 그때만 준다 (DOM 에는 margin
-   *   규칙이 없어 column 에서 x 0 이다).
-   */
-  sideRow: boolean,
 ): CanvasLayoutNode[] {
   return children.map((child) => {
     const cs = (child.props?.style || {}) as Record<string, unknown>;
@@ -1315,22 +1327,14 @@ function injectSideLabelLabelAndContentStyles(
       };
     }
 
+    // FieldError · Description 의 side 배치 (다음 줄 · 들여쓰기) 는 합성 도움말 · 합성 오류까지 붙은 뒤
+    //   `applySideMessagePlacement` 한 곳에서 준다 (ADR-236 후속 2026-09-26 — catalog side 변형 정본).
     if (child.type === "FieldError" || child.type === "Description") {
       return {
         ...child,
         props: {
           ...child.props,
-          style: {
-            ...cs,
-            width: cs.width ?? "100%",
-            ...(sideRow
-              ? {
-                  marginLeft:
-                    cs.marginLeft ??
-                    FORM_SIDE_LABEL_WIDTH + FORM_SIDE_LABEL_GAP,
-                }
-              : {}),
-          },
+          style: { ...cs, width: cs.width ?? "100%" },
         },
       };
     }
@@ -2841,7 +2845,6 @@ export function applyImplicitStyles(
       filteredChildren = injectSideLabelLabelAndContentStyles(
         filteredChildren,
         new Set(["SelectTrigger"]),
-        isSideRowLayout(sideMode, rawParentStyle),
       );
     }
     effectiveParent = withParentStyle(
@@ -3056,7 +3059,6 @@ export function applyImplicitStyles(
       filteredChildren = injectSideLabelLabelAndContentStyles(
         filteredChildren,
         new Set(["Input"]),
-        isSideRowLayout(tfSideMode, rawParentStyle),
       );
       effectiveParent = withParentStyle(containerEl, {
         ...getSideLabelParentStyle(specFallback, rawParentStyle),
@@ -3133,7 +3135,6 @@ export function applyImplicitStyles(
       filteredChildren = injectSideLabelLabelAndContentStyles(
         filteredChildren,
         new Set(["DateInput"]),
-        isSideRowLayout(sideMode, rawParentStyle),
       );
     }
     effectiveParent = withParentStyle(
@@ -3630,7 +3631,6 @@ export function applyImplicitStyles(
         //   Group(RAC DatePicker 내부 trigger 래퍼) + frame(ADR-130): 구조 차이 호환 보존.
         //   DateInput(factory 직접 자식): 레거시/대체 구조 보존.
         new Set(["SelectTrigger", "Group", "frame", "DateInput"]),
-        isSideRowLayout(sideMode, rawParentStyle),
       );
     }
     effectiveParent = withParentStyle(
@@ -3983,6 +3983,93 @@ export function applyImplicitStyles(
       ];
     } else {
       filteredChildren = [...filteredChildren, syntheticDescription];
+    }
+  }
+
+  // ── 오류 문구 줄 합성 (ADR-236 후속, 2026-09-26) ──
+  //
+  // DOM 은 parent `isInvalid` · `errorMessage` 로 RAC `FieldError` 를 self-compose 한다. TextField 등 5
+  // field 는 factory 가 canonical FieldError 자식을 두고 read-time 투영이 읽지만, SearchField · Select ·
+  // ComboBox · DatePicker · DateRangePicker 는 그 자식이 없어 Canvas 에 오류 문구가 아예 없었다 (DOM 은
+  // 그림). description 줄 합성과 같은 방식 — parent props 가 텍스트 정본, Canvas 는 합성 노드로 그린다.
+  if (
+    SIDE_MESSAGE_FIELD_TAGS.has(containerTag) &&
+    containerProps?.isInvalid === true &&
+    !filteredChildren.some((c) => c.type === "FieldError")
+  ) {
+    const errorFontSize =
+      resolveDelegatedChildFontSize(
+        containerEl.type,
+        FIELD_ERROR_CHILD_SELECTOR,
+        containerProps?.size as string | undefined,
+      ) ?? 12;
+    const errorText =
+      typeof containerProps.errorMessage === "string"
+        ? containerProps.errorMessage
+        : "";
+    filteredChildren = [
+      ...filteredChildren,
+      {
+        id: `${containerEl.id}__synerr`,
+        type: "FieldError",
+        props: {
+          children: errorText,
+          style: {
+            display: "block",
+            width: "100%",
+            fontSize: errorFontSize,
+            lineHeight: `${resolveInheritedLineHeight(errorFontSize)}px`,
+          },
+        },
+        parent_id: containerEl.id,
+        page_id: containerEl.page_id,
+      } as CanvasLayoutNode,
+    ];
+  }
+
+  // ── side 라벨의 오류 문구 · 도움말 배치 (ADR-236 후속, 2026-09-26) ──
+  //
+  // 정본은 catalog side 변형 nested 규칙 — FieldError · `[slot="description"]` 는 flex-basis 100% 로 다음
+  // 줄, 입력칸과 같은 x (`--form-label-width` 11rem + 크기별 gap `--{prefix}-side-gap`). 종전엔 Canvas
+  // 만 라벨 폭 + 16 으로 들여썼고 (입력칸 x 와 10 px 어긋남) 합성 도움말은 들여쓰지 않았으며, DOM 은
+  // nowrap 세 번째 item 으로 입력칸을 줄였다. 인라인 column · block 이 side 를 이기면 (DOM 도 한 줄이
+  // 아님) 들여쓰지 않는다.
+  if (SIDE_MESSAGE_FIELD_TAGS.has(containerTag)) {
+    const messageVariant = resolveActiveContainerVariants(
+      containerTag,
+      containerProps,
+    );
+    if (
+      isSideRowLayout(
+        hasResolvedSideLabelVariant(messageVariant.styles),
+        rawParentStyle,
+      )
+    ) {
+      // TextArea 의 DOM 컨테이너는 `.react-aria-TextField` 라 gap 도 TextField 값이다.
+      const gapTag = containerTag === "textarea" ? "textfield" : containerTag;
+      const sideGap =
+        specSizeField(
+          gapTag,
+          (containerProps?.size as string) ?? "md",
+          "gap",
+        ) ?? 4;
+      filteredChildren = filteredChildren.map((child) => {
+        if (child.type !== "FieldError" && child.type !== "Description") {
+          return child;
+        }
+        const cs = (child.props?.style || {}) as Record<string, unknown>;
+        return {
+          ...child,
+          props: {
+            ...child.props,
+            style: {
+              ...cs,
+              width: "100%",
+              marginLeft: FORM_SIDE_LABEL_WIDTH + sideGap,
+            },
+          },
+        } as CanvasLayoutNode;
+      });
     }
   }
 

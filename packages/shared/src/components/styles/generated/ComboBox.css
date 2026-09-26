@@ -298,6 +298,26 @@
   color: var(--fg-muted);
 }
 
+.react-aria-ComboBox[data-size="xs"] {
+  --combo-side-gap: 2px;
+}
+
+.react-aria-ComboBox[data-size="sm"] {
+  --combo-side-gap: 4px;
+}
+
+.react-aria-ComboBox[data-size="md"] {
+  --combo-side-gap: 6px;
+}
+
+.react-aria-ComboBox[data-size="lg"] {
+  --combo-side-gap: 8px;
+}
+
+.react-aria-ComboBox[data-size="xl"] {
+  --combo-side-gap: 10px;
+}
+
 .react-aria-Popover[data-trigger="ComboBox"] {
   width: var(--trigger-width);
   max-width: none;
@@ -321,12 +341,28 @@
 .react-aria-ComboBox[data-label-position="side"] {
   flex-direction: row;
   align-items: flex-start;
+  flex-wrap: wrap;
 }
 
 .react-aria-ComboBox[data-label-position="side"] > .react-aria-Label {
   width: var(--form-label-width, 11rem);
   flex-shrink: 0;
   text-align: var(--form-label-align, start);
+}
+
+.react-aria-ComboBox[data-label-position="side"] > :not(.react-aria-Label, .react-aria-FieldError, [slot="description"]) {
+  flex: 1 1 0%;
+  min-width: 0;
+}
+
+.react-aria-ComboBox[data-label-position="side"] > .react-aria-FieldError {
+  flex-basis: 100%;
+  margin-inline-start: calc(var(--form-label-width, 11rem) + var(--combo-side-gap));
+}
+
+.react-aria-ComboBox[data-label-position="side"] > [slot="description"] {
+  flex-basis: 100%;
+  margin-inline-start: calc(var(--form-label-width, 11rem) + var(--combo-side-gap));
 }
 
 .react-aria-ComboBox[data-label-align="center"] {

@@ -198,13 +198,20 @@ describe("resolveCatalogContainerVariants — labelPosition=side (kebab styles)"
     ["DatePicker"],
     ["ComboBox"],
     ["Select"],
-  ])("%s side → flex-direction:row + align-items:flex-start", (type) => {
-    const v = resolveCatalogContainerVariants(type, { labelPosition: "side" });
-    expect(v.styles).toEqual({
-      "flex-direction": "row",
-      "align-items": "flex-start",
-    });
-  });
+  ])(
+    "%s side → flex-direction:row + align-items:flex-start + flex-wrap:wrap",
+    (type) => {
+      const v = resolveCatalogContainerVariants(type, {
+        labelPosition: "side",
+      });
+      // flex-wrap (ADR-236 후속 2026-09-26): 오류 문구 · 도움말이 입력칸 아래 줄로 (nested flex-basis 100%)
+      expect(v.styles).toEqual({
+        "flex-direction": "row",
+        "align-items": "flex-start",
+        "flex-wrap": "wrap",
+      });
+    },
+  );
 
   // ADR-912 Phase 4 nested variant fallback 가드 — variant 를 nested(structure.composition.
   //   containerVariants)에만 보유한 컴포넌트가 top-level 부재로 silent 누락되지 않음을 회귀 차단.

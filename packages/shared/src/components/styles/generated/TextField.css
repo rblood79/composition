@@ -193,15 +193,51 @@
   color: var(--fg-muted);
 }
 
+.react-aria-TextField[data-size="xs"] {
+  --tf-side-gap: 2px;
+}
+
+.react-aria-TextField[data-size="sm"] {
+  --tf-side-gap: 4px;
+}
+
+.react-aria-TextField[data-size="md"] {
+  --tf-side-gap: 6px;
+}
+
+.react-aria-TextField[data-size="lg"] {
+  --tf-side-gap: 8px;
+}
+
+.react-aria-TextField[data-size="xl"] {
+  --tf-side-gap: 10px;
+}
+
 .react-aria-TextField[data-label-position="side"] {
   flex-direction: row;
   align-items: flex-start;
+  flex-wrap: wrap;
 }
 
 .react-aria-TextField[data-label-position="side"] > .react-aria-Label {
   width: var(--form-label-width, 11rem);
   flex-shrink: 0;
   text-align: var(--form-label-align, start);
+}
+
+.react-aria-TextField[data-label-position="side"] > :not(.react-aria-Label, .react-aria-FieldError, [slot="description"]) {
+  flex: 1 1 0%;
+  min-width: 0;
+}
+
+.react-aria-TextField[data-label-position="side"] > .react-aria-FieldError {
+  flex-basis: 100%;
+  margin-inline-start: calc(var(--form-label-width, 11rem) + var(--tf-side-gap));
+}
+
+.react-aria-TextField[data-label-position="side"] > [slot="description"] {
+  flex-basis: 100%;
+  margin-inline-start: calc(var(--form-label-width, 11rem) + var(--tf-side-gap));
 }
 
 .react-aria-TextField[data-label-align="center"] {
