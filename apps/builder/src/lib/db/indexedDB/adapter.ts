@@ -31,6 +31,12 @@ import {
 } from "./incrementalDocuments";
 import type { DocumentPersistOptions } from "./documentPersistGuard";
 import { ASSETS_STORE, ASSET_GC_STORE } from "../../assets/assetSchema";
+import {
+  CACHE_BYTES_LIMIT,
+  openCacheDatabase,
+  requestPersistenceOnce,
+  withQuotaRetry,
+} from "../../storage/storageProtection";
 
 const DB_NAME = "composition";
 const DB_VERSION = 23; // 2026-09-26 (ADR-235): assets · asset_gc store — 해시 자산 저장소.
@@ -583,7 +589,14 @@ export class IndexedDBAdapter implements DatabaseAdapter {
       document: CompositionDocument,
       options?: DocumentPersistOptions,
     ): Promise<CompositionDocument> => {
-      return this.incrementalDocuments.put(projectId, document, options);
+      // ADR-235 Phase 5 — quota 초과면 캐시를 비우고 1회 재시도, 그래도 실패하면 알림 이벤트.
+      //   첫 성공 저장에서 persist() 를 한 번 요청한다.
+      const saved = await withQuotaRetry(
+        () => this.incrementalDocuments.put(projectId, document, options),
+        () => this.clearCaches(),
+      );
+      void requestPersistenceOnce();
+      return saved;
     },
 
     /** 백업 ring 조회 (최신순) — 사고 시 콘솔 복구용 진입점 */
@@ -669,32 +682,125 @@ export class IndexedDBAdapter implements DatabaseAdapter {
 
   // === Collection Runtime Cache (ADR-218) ===
   // runtimeData(API 응답) 캐시 — collections 정의와 분리 영속, History 밖.
+  // ADR-235 Phase 5 — Storage Buckets 지원 시 `persisted: false` bucket 의 캐시 DB (브라우저가
+  //   원본과 따로 비운다), 미지원이면 원본 DB 의 같은 store + 용량 상한.
+  private cacheMoved = false;
+
+  /** 이번 연산의 캐시 DB — bucket 이면 새 연결 (연산 뒤 닫는다), 아니면 원본 DB 연결 */
+  private async runtimeCacheDb(): Promise<{ db: IDBDatabase; close: boolean }> {
+    const bucketDb = await openCacheDatabase();
+    if (!bucketDb) return { db: this.ensureDB(), close: false };
+    if (!this.cacheMoved) {
+      this.cacheMoved = true;
+      // bucket 으로 옮긴 뒤 원본 DB 의 옛 캐시는 비운다 (캐시라 이관하지 않는다)
+      await this.clearStore(this.ensureDB(), "collection_runtime").catch(
+        () => {},
+      );
+    }
+    return { db: bucketDb, close: true };
+  }
+
+  private clearStore(db: IDBDatabase, storeName: string): Promise<void> {
+    if (!db.objectStoreNames.contains(storeName)) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(storeName, "readwrite");
+      tx.objectStore(storeName).clear();
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  private runtimeRequest<T>(
+    mode: IDBTransactionMode,
+    run: (store: IDBObjectStore) => IDBRequest<T>,
+  ): Promise<T> {
+    return this.runtimeCacheDb().then(
+      ({ db, close }) =>
+        new Promise<T>((resolve, reject) => {
+          const tx = db.transaction("collection_runtime", mode);
+          const request = run(tx.objectStore("collection_runtime"));
+          tx.oncomplete = () => {
+            if (close) db.close();
+            resolve(request.result);
+          };
+          tx.onerror = () => {
+            if (close) db.close();
+            reject(tx.error ?? request.error);
+          };
+        }),
+    );
+  }
+
+  /** 캐시 용량 상한 — 넘으면 오래된 행부터 지운다 (CACHE_BYTES_LIMIT) */
+  private async trimRuntimeCache(): Promise<void> {
+    const rows = await this.runtimeRequest(
+      "readonly",
+      (store) => store.getAll() as IDBRequest<CollectionRuntimeRow[]>,
+    );
+    let total = rows.reduce((sum, row) => sum + JSON.stringify(row).length, 0);
+    if (total <= CACHE_BYTES_LIMIT) return;
+    const oldest = [...rows].sort((a, b) =>
+      String(a.updated_at ?? "").localeCompare(String(b.updated_at ?? "")),
+    );
+    for (const row of oldest) {
+      if (total <= CACHE_BYTES_LIMIT) break;
+      await this.runtimeRequest("readwrite", (store) =>
+        store.delete(row.collectionId),
+      );
+      total -= JSON.stringify(row).length;
+    }
+  }
+
+  /** 버려도 되는 캐시 전부 비우기 — quota 재시도 · 사용률 선제 정리 */
+  async clearCaches(): Promise<void> {
+    await this.clearStore(this.ensureDB(), "collection_runtime").catch(
+      () => {},
+    );
+    const bucketDb = await openCacheDatabase();
+    if (bucketDb) {
+      await this.clearStore(bucketDb, "collection_runtime").finally(() =>
+        bucketDb.close(),
+      );
+    }
+  }
+
   collection_runtime = {
     get: async (collectionId: string): Promise<CollectionRuntimeRow | null> => {
-      return this.getFromStore<CollectionRuntimeRow>(
-        "collection_runtime",
-        collectionId,
+      const row = await this.runtimeRequest(
+        "readonly",
+        (store) =>
+          store.get(collectionId) as IDBRequest<
+            CollectionRuntimeRow | undefined
+          >,
       );
+      return row ?? null;
     },
 
     put: async (row: CollectionRuntimeRow): Promise<void> => {
-      await this.putToStore("collection_runtime", {
-        ...row,
-        updated_at: row.updated_at || new Date().toISOString(),
-      });
+      await this.runtimeRequest("readwrite", (store) =>
+        store.put({
+          ...row,
+          updated_at: row.updated_at || new Date().toISOString(),
+        }),
+      );
+      await this.trimRuntimeCache();
     },
 
     delete: async (collectionId: string): Promise<void> => {
-      await this.deleteFromStore("collection_runtime", collectionId);
+      await this.runtimeRequest("readwrite", (store) =>
+        store.delete(collectionId),
+      );
     },
 
     getByProject: async (
       projectId: string,
     ): Promise<CollectionRuntimeRow[]> => {
-      return this.getAllByIndex<CollectionRuntimeRow>(
-        "collection_runtime",
-        "project_id",
-        projectId,
+      return this.runtimeRequest(
+        "readonly",
+        (store) =>
+          store.index("project_id").getAll(projectId) as IDBRequest<
+            CollectionRuntimeRow[]
+          >,
       );
     },
   };

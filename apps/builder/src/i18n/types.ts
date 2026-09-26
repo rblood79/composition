@@ -1174,6 +1174,10 @@ export interface TranslationKeys {
     exportProjectJson: string;
     importCurrentPageMissing: string;
     importRecoveredGeneration: string;
+    storageProtected: string;
+    storageAtRisk: string;
+    storageUsage: string;
+    storageQuotaExceeded: string;
     projectFileUnavailable: string;
     deleteProject: string;
     resetPanelLayout: string;

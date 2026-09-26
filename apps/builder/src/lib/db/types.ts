@@ -94,6 +94,9 @@ export interface DatabaseAdapter {
   // Close database
   close(): Promise<void>;
 
+  /** ADR-235 Phase 5 — 버려도 되는 캐시 (collection_runtime) 비우기 */
+  clearCaches(): Promise<void>;
+
   // Projects
   projects: {
     insert(project: Project): Promise<Project>;

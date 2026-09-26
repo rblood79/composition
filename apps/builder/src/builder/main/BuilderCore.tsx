@@ -138,6 +138,7 @@ import type { Element } from "../../types/core/store.types";
 
 import { MessageService } from "../../utils/messaging";
 import { isValidPreviewMessage } from "../../utils/messageValidation";
+import { STORAGE_QUOTA_EVENT } from "../../lib/storage/storageProtection";
 import {
   getValueByPath,
   upsertData,
@@ -1215,6 +1216,14 @@ export const BuilderCore: React.FC = () => {
   }, [projectId, projectInfo]);
 
   const handlePlay = useCallback(() => {}, []);
+
+  // ADR-235 Phase 5 — 원본 저장이 캐시 비우기 · 재시도 뒤에도 quota 로 실패하면 알린다
+  useEffect(() => {
+    const onQuota = () =>
+      showToast("error", t("header.storageQuotaExceeded"), { duration: 12000 });
+    window.addEventListener(STORAGE_QUOTA_EVENT, onQuota);
+    return () => window.removeEventListener(STORAGE_QUOTA_EVENT, onQuota);
+  }, [showToast, t]);
 
   /** 내보내기 공용 — 현재 프로젝트의 문서 · 문서 밖 상태 (ADR-235 v1 · v2 공통 입력) */
   const collectExportContent = useCallback(() => {

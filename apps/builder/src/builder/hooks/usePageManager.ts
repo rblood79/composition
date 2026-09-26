@@ -40,6 +40,7 @@ import {
 } from "../stores/utils/pagePlacementHydration";
 import { isAssetWriterEnabled } from "../../utils/featureFlags";
 import { scheduleAssetGc } from "../stores/assetGcScheduler";
+import { shouldPreemptivelyClearCaches } from "../../lib/storage/storageProtection";
 
 function normalizePageSlug(slug: string | null | undefined): string {
   if (!slug) return "";
@@ -493,6 +494,10 @@ export const usePageManager = (): UsePageManagerReturn => {
         }
         // ADR-235 Phase 3 — 자산 GC (idle · 하루 한 번)
         scheduleAssetGc();
+        // ADR-235 Phase 5 — 사용률이 높으면 캐시를 먼저 비운다 (원본 쓰기 실패 확률을 낮춘다)
+        void shouldPreemptivelyClearCaches().then((high) =>
+          high ? db.clearCaches() : undefined,
+        );
 
         initializingRef.current = null;
         return { success: true, data: apiPages };

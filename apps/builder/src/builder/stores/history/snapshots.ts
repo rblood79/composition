@@ -53,6 +53,12 @@ export interface SnapshotStorage {
 
 export const USER_SNAPSHOT_LIMIT = 10;
 export const SYSTEM_SNAPSHOT_ROLLING_LIMIT = 5;
+/**
+ * ADR-235 Phase 5 — 프로젝트당 스냅샷 총 크기 상한 (JSON 문자 수 근사). 자산은 참조만 들어
+ * 문서가 작아졌지만 인라인 dataURL 이 남은 옛 문서 대비. user 는 생성 차단, system 은 오래된
+ * system 부터 지운다.
+ */
+export const SNAPSHOT_BYTES_LIMIT = 50 * 1024 * 1024;
 
 /** createSnapshot 상한 차단 식별 코드 — 패널이 catch 후 삭제 유도 안내 */
 export const SNAPSHOT_LIMIT_ERROR = "SNAPSHOT_USER_LIMIT_EXCEEDED";
@@ -170,6 +176,27 @@ export class SnapshotManager {
     // JSON round-trip 1회 = 격리 사본 + estimatedSize 동시 획득 (모듈 주석)
     const json = JSON.stringify(doc);
     const docCopy = JSON.parse(json) as CompositionDocument;
+
+    // 용량 상한 — user 는 차단 (삭제 유도), system 은 오래된 system 부터 비운다
+    const used = () =>
+      this.getList(projectId).reduce(
+        (sum, item) => sum + item.estimatedSize,
+        0,
+      );
+    if (used() + json.length > SNAPSHOT_BYTES_LIMIT) {
+      if (kind === "user") throw new Error(SNAPSHOT_LIMIT_ERROR);
+      const systems = this.getList(projectId)
+        .filter((item) => item.kind === "system")
+        .reverse(); // 오래된 것부터
+      for (const old of systems) {
+        if (used() + json.length <= SNAPSHOT_BYTES_LIMIT) break;
+        this.snapshots.set(
+          projectId,
+          this.getList(projectId).filter((item) => item.id !== old.id),
+        );
+        void this.storage.deleteSnapshot(old.id).catch(() => {});
+      }
+    }
 
     const snapshot: HistorySnapshot = {
       id: `snapshot_${crypto.randomUUID()}`,

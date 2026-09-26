@@ -1269,6 +1269,12 @@ const koKR: TranslationKeys = {
       "파일에 저장된 현재 페이지가 문서에 없어 첫 페이지를 엽니다.",
     importRecoveredGeneration:
       "manifest.json 을 읽을 수 없어 직전 저장 세대로 복구했습니다.",
+    storageProtected: "브라우저 저장소 보호됨",
+    storageAtRisk:
+      "브라우저가 이 프로젝트를 지울 수 있습니다 — 눌러서 파일로 내보내기",
+    storageUsage: "사용량 {used} / {quota}",
+    storageQuotaExceeded:
+      "저장 공간이 부족해 변경을 저장하지 못했습니다. 파일로 내보내 보관하세요.",
     projectFileUnavailable: "프로젝트가 아직 준비되지 않았습니다.",
     deleteProject: "프로젝트 삭제",
     resetPanelLayout: "패널 레이아웃 초기화",
@@ -3230,6 +3236,12 @@ const enUS: TranslationKeys = {
       "The file's current page is not in the document — opened the first page.",
     importRecoveredGeneration:
       "manifest.json could not be read — recovered the previous saved generation.",
+    storageProtected: "Browser storage protected",
+    storageAtRisk:
+      "The browser may delete this project — press to export it to a file",
+    storageUsage: "Using {used} of {quota}",
+    storageQuotaExceeded:
+      "Out of storage space — changes were not saved. Export the project to a file.",
     projectFileUnavailable: "The project is not ready yet.",
     deleteProject: "Delete Project",
     resetPanelLayout: "Reset Panel Layout",
@@ -4910,6 +4922,12 @@ const formattedMessages: Record<
   Record<string, (args: FormatterVariables | undefined) => string>
 > = {
   "ko-KR": {
+    "header.storageUsage": (args) =>
+      `사용량 ${String(args?.used ?? "–")} / ${String(args?.quota ?? "–")}`,
+    "header.importProjectFailed": (args) =>
+      `프로젝트를 불러오지 못했습니다: ${String(args?.message ?? "")}`,
+    "header.exportProjectFailed": (args) =>
+      `프로젝트를 저장하지 못했습니다: ${String(args?.message ?? "")}`,
     "auth.errorLocked": (args) =>
       `시도 횟수를 초과했습니다. ${String(args?.seconds ?? 0)}초 후 다시 시도하세요`,
     "chart.rowCapHint": (args) =>
@@ -5393,6 +5411,12 @@ const formattedMessages: Record<
     "messages.itemCount": (args) => `${String(args?.count ?? 0)}개`,
   },
   "en-US": {
+    "header.storageUsage": (args) =>
+      `Using ${String(args?.used ?? "–")} of ${String(args?.quota ?? "–")}`,
+    "header.importProjectFailed": (args) =>
+      `Could not load the project: ${String(args?.message ?? "")}`,
+    "header.exportProjectFailed": (args) =>
+      `Could not save the project: ${String(args?.message ?? "")}`,
     "auth.errorLocked": (args) =>
       `Too many attempts. Try again in ${String(args?.seconds ?? 0)}s`,
     "chart.rowCapHint": (args) =>

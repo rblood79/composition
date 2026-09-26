@@ -32,6 +32,7 @@ import { useNavigate } from "react-router";
 import { iconProps } from "../../utils/ui/uiConstants";
 import { usePanelLayout } from "../layout";
 import { ActionIconButton } from "../components/ui/ActionIconButton";
+import { StorageStatusButton } from "./StorageStatusButton";
 import { ActionTooltipTrigger } from "../components/ui/ActionTooltip";
 import { shortcutDisplayFor } from "../components/ui/actionTooltipUtils";
 import {
@@ -343,6 +344,7 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
               </ActionTooltipTrigger>
             )}
           </ToggleButtonGroup>
+          <StorageStatusButton onExport={() => void onExportProject()} />
           <ActionIconButton
             aria-label={t("header.preview")}
             tooltip={t("header.preview")}

@@ -550,4 +550,9 @@
   .workflow-sub-toggles .react-aria-Checkbox[data-selected="false"] {
     opacity: 0.5;
   }
+
+  /* ADR-235 Phase 5 — persist 거부 · 미지원: 브라우저가 프로젝트를 지울 수 있음을 상시 표시 */
+  .storage-status--at-risk {
+    color: var(--notice);
+  }
 }
