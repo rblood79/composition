@@ -6580,6 +6580,20 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
       },
     },
+    // Label 의 display 정본 (ADR-236 후속, 2026-09-26). DOM 은 수동 `Label.css` (skipCSSGeneration —
+    //   base.css 의 --label-font-size 상속) 의 inline-flex · align-items center · width fit-content 를
+    //   쓰는데 catalog 에 display 가 없어 Canvas 는 기본 block 이었다. flex · grid 부모 안에서는
+    //   blockify 로 차이가 없고, block 부모 (인라인 display block 인 Slider · Meter · ProgressBar 등)
+    //   에서만 Canvas Label 이 한 줄을 차지해 DOM (값과 한 줄) 과 갈렸다. CSS 생성은 계속 건너뛴다.
+    structure: {
+      archetype: "simple",
+      element: "label",
+      containerStyles: {
+        display: "inline-flex",
+        alignItems: "center",
+        width: "fit-content",
+      },
+    },
   },
   Link: {
     defaultVariant: "primary",
