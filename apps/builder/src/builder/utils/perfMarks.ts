@@ -21,6 +21,8 @@
  *   window.__composition_PERF__.snapshotLongTasks();
  */
 
+import { getPersistActivityState } from "./persistActivity";
+
 // ============================================================
 // Label constants
 // ============================================================
@@ -469,6 +471,7 @@ if (typeof window !== "undefined") {
       setUserTiming: typeof setUserTiming;
       setRecordingEnabled: typeof setRecordingEnabled;
       isRecordingEnabled: typeof isRecordingEnabled;
+      persistState: typeof getPersistActivityState;
     };
   };
   w.__composition_PERF__ = {
@@ -482,6 +485,7 @@ if (typeof window !== "undefined") {
     setUserTiming,
     setRecordingEnabled,
     isRecordingEnabled,
+    persistState: getPersistActivityState,
   };
   initLongTaskObserver();
 }

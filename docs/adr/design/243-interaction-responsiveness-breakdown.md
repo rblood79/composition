@@ -1,6 +1,6 @@
 # ADR-243 구현 상세 — 상호작용 응답성: 측정 지점 한정 분할
 
-> 본문: [243-interaction-responsiveness-long-task-yield.md](../243-interaction-responsiveness-long-task-yield.md)
+> 본문: [243-interaction-responsiveness-long-task-yield.md](../completed/243-interaction-responsiveness-long-task-yield.md)
 > 이 문서는 Phase · 파일 변경표 · 측정 절차 · 후보 목록만 담는다. 결정·위험·Gate 정본은 ADR 본문.
 
 ## 0. 전제 lock-in (fork 아님)
@@ -123,3 +123,114 @@ LoAF `scripts[]` 를 sourcemap 으로 원 소스 위치에 되돌린 뒤 (produc
 | `apps/builder/src/adapters/canonical/canonicalMutationRunner.static.test.ts` |   1   | 가드                                  |
 | G0 후보 경계 파일 (2-4 표에서 측정으로 남는 것)                              |   2   | 동작 변경 (타이밍만)                  |
 | `apps/builder/src/builder/performance/localWebVitals.ts`                     | 선택  | 성능 보고서에 script 귀속 top-N (LOW) |
+
+## 8. Phase 0 결과 — G0 분기 ② (2026-09-28)
+
+> **판정: 분기 ②** — 대상 상호작용 다수가 HC2 기준을 넘지만 long task 의 지배 구간은 입력 이벤트 task (핸들러 · 러너 · React 동기 커밋) 와 rAF 렌더다. 다음 paint 에 불필요한 작업 (버킷 d) 은 30% 문턱에 한참 못 미친다. 분할 Phase 1 ~ 3 은 구현하지 않고, 작업 감소 후속 ADR 도 두지 않는다 (사용자 결정 2026-09-28 — "243 은 측정 기록으로 종결해"). 측정은 사용자 지시로 일부 중단했다 ("측정은 그만해라") — §8-6. raw 17 run 은 local-only (`/private/tmp/adr243-phase0/`, `docs/adr/evidence/` 는 gitignore).
+
+### 8-1. 조건
+
+| 항목      | 값                                                                                                                                                                                                                                                    |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 빌드      | production (`vite build --sourcemap`, 작업 트리 = `f80a0146e` + Phase 0 저장 호출 계측). 정적 서버 base `/composition/`                                                                                                                                 |
+| 브라우저  | Chrome 154 (Playwright `channel: "chrome"`) **headed** · foreground (`visibilityState=visible` 전 입력 확인, hidden 0) · occlusion/background throttling off 플래그 / Playwright WebKit 26.5 headed                                                  |
+| CPU       | Chrome 4x · 1x (CDP `Emulation.setCPUThrottlingRate`). run 앞뒤 고정 루프 probe: 1x 18 ~ 33 ms · 4x 58 ~ 69 ms (약 2배 — probe 가 짧아 4배로 재지지 않는다. 같은 입력의 지연 비는 600 에서 2.3배 · 5k 에서 3.4배). WebKit 1x                       |
+| 문서      | 합성 시드 600 · 5,000 (Text/frame 격자 + 페이지 3). **규모 전용** — 분포 지표 인용 없음. 실제 프로젝트 참고 열은 없다 (§8-6)                                                                                                                           |
+| 패널      | Navigator · Properties · Styles 열림, Layers 루트 펼침                                                                                                                                                                                                |
+| 반복      | 상호작용당 30 입력 (+ warm-up 2, 기록 제외) · burst 는 5회 × 10 입력. fresh browser run 3회. 순서 고정: run 마다 600 → 5k, 4x → 1x                                                                                                                    |
+| 입력 구동 | Playwright 실제 mouse · keyboard. store 직접 호출은 준비 (대상 선택 · 포커스) 에만                                                                                                                                                                   |
+| 하니스    | `apps/builder/scripts/adr243-interaction.mjs` (setup · run · summarize). raw 17 run: `/private/tmp/adr243-phase0/` (local-only)                                                                                                                       |
+
+지표 정의는 breakdown §2-1 그대로다 — 지연 = Event Timing `duration` (같은 interactionId 항목 중 최대, 항목 없으면 16 ms 로 채움, 분모 = 구동 입력 수) · 완료 = max(지연 끝, 입력 뒤 마지막 저장 호출 종료, 겹치는 마지막 LoAF 끝) − 입력 시작 (5 s 상한, 대기 저장 0 · 활동 없음 1 s 면 조기 종료). 관측률은 전 조건 95 ~ 100% (WebKit layers-expand 600 만 69%).
+
+드라이버 메모 (측정 전 확인한 것):
+
+- Properties 에는 Text/frame 의 숫자 필드가 없어 `props-commit` 은 Text 내용 필드 (Properties `fieldset` "Text") 의 Enter commit 이다. commit 이 필드 포커스를 놓으므로 burst 는 입력마다 필드를 클릭한다 — 4x 에서 10 입력이 50 ms 간격이 아니라 약 2.7 s 에 걸친다 (CDP 입력이 main thread 를 기다림).
+- Navigator 는 떠 있는 패널이라 Layers 행이 2 ~ 3개만 보인다 — `layers-select` 는 실제로 보이는 행만 고른다.
+- `clearSelection` 은 Layers 선택을 비우지 못해 자식 선택이 body 를 다시 펼친다 — `layers-expand` 는 body 를 선택한 상태에서 잰다.
+
+### 8-2. 기준선 — Chrome 4x (판정 조건)
+
+p95 는 run 3회 p95 의 중앙값, 편차 = (max − min) / 중앙값. 단위 ms.
+
+| 상호작용        | 600 p50 | 600 p95 | 편차 | 600 완료 p95 | 600 판정 (>100) | 5k p50 | 5k p95 | 편차 | 5k 완료 p95 | 5k 판정 (>200) | 5k 분해 delay/proc/pres |
+| --------------- | ------: | ------: | ---: | -----------: | :-------------: | -----: | -----: | ---: | ----------: | :------------: | ----------------------- |
+| canvas-select   |      88 |     104 |  31% |          104 |      초과       |    104 |    120 |  13% |         120 |      이내      | 2 / 83 / 43             |
+| layers-select   |     128 |     152 |  11% |          152 |      초과       |    144 |    160 |  40% |         160 |      이내      | 3 / 9 / 148             |
+| layers-expand   |      48 |      56 |  14% |           56 |      이내       |     72 |     88 |  18% |          88 |      이내      | 2 / 13 / 80             |
+| props-keystroke |      48 |      48 |   0% |           48 |      이내       |     64 |     80 |  10% |          80 |      이내      | 1 / 49 / 38             |
+| props-commit    |     184 |     200 |  12% |          200 |      초과       |    800 |    872 |  16% |         937 |      초과      | 1 / 805 / 81            |
+| style-commit    |     184 |     208 |  19% |          225 |      초과       |    784 |    896 |   8% |       1,098 |      초과      | 1 / 840 / 70            |
+| undo (⌘Z · ⌘⇧Z) |     176 |     184 |   4% |          192 |      초과       |     48 |    864 |  14% |         972 |      초과      | 48 / 1 / 863            |
+| page-switch     |     152 |     168 |  10% |          168 |      초과       |    344 |    664 |   4% |         837 |      초과      | 4 / 6 / 656             |
+| burst (마지막)  |     168 |     184 |   4% |          294 |      초과       |    776 |    928 |  21% |       1,415 |      초과      | 9 / 859 / 67            |
+
+- 5k undo 는 두 모양이 섞였다: ⌘Z p50 40 / p95 856, ⌘⇧Z p50 832 / p95 968 (각 45 입력). 600 은 둘 다 176 / ~190.
+- 같은 코드 3 run 편차는 4x 에서 0 ~ 40% — G2 허용치 (최소 5%) 는 행마다 이 편차 이상이어야 한다.
+
+#### 참고 열 — Chrome 1x · WebKit 1x (p95)
+
+| 상호작용      | Chrome 1x 600 | Chrome 1x 5k | WebKit 600 (3 run) | WebKit 5k (2 run) |
+| ------------- | ------------: | -----------: | -----------------: | ----------------: |
+| canvas-select |            56 |           56 |                 32 |                48 |
+| layers-select |            64 |           72 |                 48 |                64 |
+| layers-expand |            32 |           40 |                 16 |                24 |
+| props-commit  |            88 |          256 |                 64 |               272 |
+| style-commit  |            72 |          240 |                 64 |               264 |
+| undo          |            80 |          256 |                 72 |               264 |
+| page-switch   |            72 |          168 |                 64 |               168 |
+| burst         |            56 |          216 |                 48 |               240 |
+
+WebKit 26.5 는 Event Timing 을 지원한다 (`supportedEntryTypes` 에 `event`) — 근사 지표 (capture `timeStamp` → rAF → 다음 task) 와 Event Timing 의 p95 차는 Chrome · WebKit 모두 대부분 ±15 ms 안이다 (summary.json `approxP95`). LoAF 는 WebKit 에 없다.
+
+### 8-3. 귀속 (LoAF `scripts[]` → sourcemap, Chrome 4x)
+
+상호작용 창과 겹친 LoAF 의 script 진입점 합 (30 입력 합, ms). 진입점 하나가 그 콜백 안 동기 작업 전부를 담는다.
+
+| 상호작용 (5k)  | 입력 이벤트 task                                          | rAF 렌더 (`frameScheduler.ts`) | 저장 콜백 (IDB · yield) | 그 밖                                                           |
+| -------------- | --------------------------------------------------------- | -----------------------------: | ----------------------: | --------------------------------------------------------------- |
+| props-commit   | 66,484 (`react-dom` onkeydown) — 93%                      |                     3,734 — 5% |          1,096 — 1.5%   | —                                                               |
+| style-commit   | 66,621 — 92%                                              |                     3,531 — 5% |          1,851 — 2.6%   | —                                                               |
+| undo           | 71,467 (`useKeyboardShortcutsRegistry.ts` keydown) — 94% |                     3,573 — 5% |          1,172 — 1.5%   | —                                                               |
+| page-switch    | 29,601 (`react-dom` onclick) — 53%                        |                     4,380 — 8% |                       — | `panToPage.ts` rAF 11,821 — 21% · React scheduler 6,266 — 11%   |
+| canvas-select  | 6,453 (`useCentralCanvasPointerHandlers.ts` pointerdown) — 87% |                    73 — 1% |                       — | 강제 style/layout 403 · render 644                               |
+| layers-select  | 5,668 onclick + 1,773 onfocusin — 60%                     |                       344 — 3% |                       — | 미귀속 2,087 · render 1,234 · 강제 style/layout 645              |
+
+600 도 같은 모양이다 (commit 계열 입력 이벤트 task 93 ~ 94%, rAF 5%).
+
+**버킷 판정 (breakdown §2-3)**:
+
+- **a + b (입력 이벤트 task)**: commit · undo 에서 92 ~ 94%. Event Timing 분해도 같다 — 5k props-commit p95 872 중 processing 805. 핸들러 · 러너 (a) 와 React 동기 커밋 (b) 은 같은 task 안이라 LoAF 로는 나뉘지 않는다. 그 비율을 가를 CPU profile run 은 중단으로 없다 (§8-6). 다만 스모크 profile (시드 60 · 4x · 같은 빌드) 에서 commit 계열 pre-paint 시간의 약 70% 가 React work loop (b), 러너 · 핸들러 (a) 5 ~ 7%, rAF (c) 약 20% 였고, b 의 상위 파일은 `BuilderCanvas.tsx` · `buildSceneSnapshot.ts` · `canonicalSceneModel.ts` · `useLayoutPublisher.ts` (캔버스 scene · layout 재구성 — 다음 paint 에 필요) 였다.
+- **c (rAF 렌더)**: 5 ~ 8%. page-switch 는 `panToPage` 카메라 이동 rAF 가 21% 더 있다 — 그 프레임 자체라 분할 대상이 아니다.
+- **d (다음 paint 에 불필요)**: 입력 task 밖의 저장 콜백은 1.5 ~ 2.6% 이고 대부분 paint 뒤에 돈다. 입력 task 안의 저장 첫 조각은 `splitDocument` 의 8 ms 조각 하나가 상한이다 (`incrementalDocuments.ts:49-79`, 두 번째 저장 호출은 `tail` 에 줄서 다음 task 로 간다) — 5k commit 의 pre-paint 872 ms 중 약 1%. 스모크 profile 의 d 도 pre-paint 2 ~ 3%. **30% 문턱에 닿는 경계가 없다.**
+- **e**: 강제 style/layout 은 select 계열에서만 보인다 (canvas-select 403 · layers-select 645 ms / 30 입력) — DOM 축, 범위 밖.
+
+### 8-4. G0 분기 판정
+
+| 분기 | 조건                                                            | 결과                                                                                                                                                         |
+| ---- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| ①    | 모든 대상이 HC2 기준 이내                                       | **아님** — 4x · 600 에서 7종 초과 (canvas-select 104 는 경계), 4x · 5k 에서 5종 초과 (commit · undo · page-switch · burst)                                  |
+| ③    | 기준 초과 + 다음 paint 에 불필요한 작업이 long task 의 30% 이상 | **아님** — 버킷 d 상한 약 1 ~ 3%                                                                                                                             |
+| ②    | 기준 초과 + 지배 버킷이 다음 paint 에 필요한 작업               | **해당** — 지배 구간이 입력 이벤트 task (러너 · React 동기 커밋, 캔버스 scene/layout 재구성) 와 rAF 렌더. 이 ADR 에서 구현하지 않고 작업 감소 후속을 사용자 결정으로 |
+
+b 중 "다음 paint 에 필요 없는 구독자" (Layers · 헤더 등) 는 이 데이터로 크기를 가를 수 없다. 그러나 그 구독자도 Zustand `useSyncExternalStore` 구독이라 transition lane 으로 미뤄지지 않고 (ADR-069, `useCanvasElementSelectionHandlers.ts:79-83`), 분리하려면 구독 구조를 줄이는 것 — 대안 D (작업 감소) — 이 된다. 어느 쪽이든 분할 (대안 A) 의 대상이 아니므로 분기는 ②로 같다.
+
+규모 의존이 분명하다: 같은 commit 이 600 → 5k 에서 4x 200 → 872 ms (4.4배), 1x 88 → 256 ms. 입력마다 도는 작업이 문서 크기에 비례한다 (메모리 `project-mutation-cost-scales-with-document-size` 와 같은 방향).
+
+### 8-5. 기존 `startTransition` 래핑 (R7) — 도달 경로
+
+| 위치                                                                  | 이번 8종에서 도달? | 기록                                                                                                                                  |
+| --------------------------------------------------------------------- | :----------------: | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `useIframeMessenger.ts` 7곳                                           |         ✗          | Preview → builder 메시지 (Preview 상호작용) 전용. Preview 는 열지 않았다                                                              |
+| `BuilderCanvas.tsx:1694` 주석 "Phase 18: startTransition … INP 개선" |         ✗          | 주석만 남음 — 핸들러는 ADR-069 에서 래핑을 제거했다 (`useCanvasElementSelectionHandlers.ts:79-83`)                                   |
+| `useOptimizedStyleActions.ts:254` `updateStylesTransition`            |         ✗          | 호출처 0                                                                                                                              |
+| `PagesSection.tsx` 6곳                                                |    ✓ (page-switch) | 켬/끔 대조 미수행 (§8-6). 5k page-switch 에는 React scheduler task 6,266 ms / 30 입력이 따로 잡힌다 — 래핑된 render 가 paint 전에 돈다 |
+
+### 8-6. 수행하지 않은 것 (측정 중단)
+
+- CPU profile 귀속 run 2개 (Chrome 4x · 600 / 5k) — a · b 비율과 b 의 구독자별 크기. 판정은 LoAF 진입점 + 코드상 d 상한 + 스모크 profile 로 했다.
+- WebKit 5k run 3 (2 run 만 있음).
+- `PagesSection` `startTransition` 켬/끔 대조.
+- 실제 프로젝트 참고 열.
+
+이 넷은 분기 판정을 바꾸지 않는다 — d 의 상한이 코드 구조 (첫 8 ms 조각) 로 정해지고, 나머지는 a/b/c 내부 비율이다.

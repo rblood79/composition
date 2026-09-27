@@ -11,6 +11,8 @@
 
 ---
 
+> **2026-09-28 ADR-243 Implemented — 측정 기록으로 종결 (분기 ②)**: 사용자 `/execute-adr 243` → 기준 확정 (4x · 600 p95 > 100 ms / 5k > 200 ms · G2 ratio ≤ 0.8) → Phase 0 production · headed · 실제 입력 하니스 (`adr243-interaction.mjs`, Chrome 4x/1x · WebKit, 600/5k, Event Timing + LoAF 귀속). 기준 초과 (4x · 5k props/style commit p95 872 / 896 · undo 864 · page-switch 664 ms) 이나 long task 92 ~ 94% 가 입력 이벤트 task (러너 · React 동기 커밋 — 캔버스 scene/layout 재구성) · rAF 5 ~ 8% 이고 다음 paint 에 불필요한 작업은 1 ~ 3% → 분할 Phase 1 ~ 3 skip, 작업 감소 후속 ADR 없음 (사용자 결정 "측정 기록으로 종결"). 측정은 사용자 지시로 일부 중단. 남긴 것: 저장 호출 추적 `persistState()` (동작 변경 0). 열림 −1, 완료 +1.
+>
 > **2026-09-27 ADR-247 Implemented (Phase 0 ~ 3 / G0 ~ G3, 같은 날)**: 사용자 `/execute-adr 247` → G3 사용자 confirm "확인했어" · HC5 +267 B 수용. 빌더 URL 직접 진입에 `index.html` 인라인 셸 (앱과 같은 class 로 그려 값 복제 0) — 첫 paint Chromium 4x 72 ~ 80 ms (셸 없는 빌드 496 ~ 500 ms) · 다크 흰 프레임 0/40 (대조군 23/40) · 10 Mbps 380 vs 2,244 ms. presented 순간 chrome 을 스냅샷으로 남겨 다음 진입이 같은 조건이면 헤더 섬 · 패널 · 레일 골격을 그리고 presented 프레임에 교체 — 288 진입 (Chromium · WebKit × viewport 4 × 배율 3 × 테마 2 × 배치 3) 골격 ↔ 실제 최대 0.02 px · 빈틈 · 겹침 · 부팅 layout-shift 0, 불리 케이스 3 (viewport · 빌드 · 배치) 은 최소 셸. 원복 RED (교체 늦춤 → 겹침 2 · 앞당김 → 빈틈 33). W0 · presented 는 대조군과 같음. initial JS +267 B (HC5 Δ ≤ 0 미달, ADR-201 상한 안 — 사용자 수용). 열림 6 (Proposed 6), 완료 268, 합계 274.
 >
 > **2026-09-27 ADR-247 Proposed**: cold entry 정적 셸 (사용자 `/create-adr`, 출처: claude.dev "How we made claude.ai faster" 제안 5 — ADR-244 와 별도 ADR, 사용자 판정). 빌더 URL 직접 진입은 JS 실행 전 흰 화면 (index.html body = `#root` 뿐) → 첫 commit 뒤 점 배경 + 진행 막대 (chrome 은 presented 까지 `visibility:hidden`) 를 지난다. 대안 C 채택: 앱이 presented 때 실제 chrome 의 계산된 사각형 · 색을 `composition-shell-snapshot` 에 쓰고, `index.html` 인라인 script 가 builder 경로 · 뷰포트 · UI 배율 · 빌드 id 일치 시 헤더 · 패널 골격 · 빈 캔버스를 그려 presented 프레임에 교체 (불일치 → 최소 셸 = 테마 배경 · 점 배경 · 진행 막대). solver · 토큰 값을 인라인에 다시 쓰지 않는다. Phase 0 go/no-go (Chromium 4x W0 p50 ≥ 300 ms 또는 다크 첫 paint 흰색, 아니면 Rejected) · G1/G2 layout shift 0 · 사각형 ±1 px · 가짜 ready 금지. 사용자 결정 2 (W1 패널 골격 표시 · go/no-go 기준). 열림 7 (Proposed 7), 완료 267, 합계 274.
@@ -133,13 +135,13 @@
 
 | 구분                          |    개수 |
 | ----------------------------- | ------: |
-| 완료 (`completed/`)           |     267 |
-| ├ Implemented                 |     228 |
+| 완료 (`completed/`)           |     268 |
+| ├ Implemented                 |     229 |
 | ├ Accepted                    |      13 |
 | ├ Superseded                  |      14 |
 | └ Deprecated                  |       9 |
-| 열려 있는 것 (`adr/*.md`)     |       8 |
-| ├ Proposed                    |       8 |
+| 열려 있는 것 (`adr/*.md`)     |       7 |
+| ├ Proposed                    |       7 |
 | ├ Accepted (미착수·일부 착수) |       0 |
 | └ 부분 완료                   |       0 |
 | **합계**                      | **275** |
@@ -161,11 +163,6 @@
 
 - **상태**: Proposed — 2026-09-28 · 리뷰 round 1 (HIGH 6) → round 2 수리 검증 HIGH 0 · 사용자 판정 H1/H2/H4 확정. Accepted 는 사용자 지시 대기.
 - **규모**: 대안 E — 코드 catalog 라이브러리 read-only 참조 + 프로젝트 override/사용자 definition 을 하나의 typed graph·transaction 으로 관리하고 Builder 의 canonical·잔존 spec (Frame/Group/Slot) 을 제거. collections·api_endpoints·project variables 는 ADR-131 별도 data SSOT 유지 (ID 참조만). `apps/publish` 는 후속 — Implemented 는 Publish 전환 뒤. 구 데이터 migration·호환 adapter·dual-write 제외. main 미연결 새 모듈 → 단일 entry 전환. [리뷰](reviews/248.md) · [design/248](design/248-unified-catalog-document-breakdown.md)
-
-#### [243](243-interaction-responsiveness-long-task-yield.md) — 상호작용 응답성: LoAF 귀속으로 분할 지점을 찾고 측정된 경계에서만 long task 를 나눈다
-
-- **상태**: Proposed — 2026-09-27
-- **규모**: Phase 0 측정 (실제 입력 구동 하니스 · production · Chrome 4x/1x · WebKit · 600/5k, Event Timing + LoAF 귀속 버킷표) 뒤 3 분기 — 기준 이내면 구현 없이 종결 · 다음 paint 에 필요한 작업이 지배적이면 작업 감소 후속 (사용자 결정) · 불필요한 작업 30% 이상인 경계만 `afterNextPaint`/`yieldToMain` + 세대 토큰. 사용자 결정: 판정 기준 (4x 600 요소 p95 100ms · 5k 200ms) · G2 ratio 0.8. breakdown: [design/243](design/243-interaction-responsiveness-breakdown.md)
 
 #### [244](244-canvaskit-wasm-early-fetch-and-service-worker-cache.md) — 초기 로드: CanvasKit wasm 미리 받기 · 고유 경로화 (Service Worker precache 는 측정 조건부 보류)
 
@@ -283,6 +280,7 @@
 | [246](completed/246-deterministic-count-ratchet-and-begin-frame-harness.md) | 결정적 카운트 ratchet 게이트 — 경로 스코프 pre-push 가 고정 입력 하니스 카운트 (파이프라인 label · 캐시 · React measure · Layout/RecalcStyle · 함수별 V8 호출 수) 를 `apps/builder/perf/ratchet.json` 과 비교 (등급 A 정확 · 초과는 재실행 같을 때만 차단 · B 밴드 1.05 경고 · 하향만 자동 · 올리기는 승인 + 만료일) · 빠른 경로 / 전용 worktree 경로 · `SKIP_PERF_RATCHET=1` · 첫 하향 `selectCanonicalNode` id 인덱스 · Phase 3 begin-frame Deferred (macOS) | Implemented | 2026-09-27 |
 | [162](completed/162-gridlist-template-subtree-projection.md) | 데이터 바인딩 GridList 카드 = 항목 origin instance — 행 노드가 origin 을 ref 로 가리키고 행별 `{field}` 보간 (허용표 한 곳, Canvas · Preview · 패널 공용) · 접기/펼침 판정 하나 · 소유자별 origin 해석 한 곳 · Properties "카드 필드" 절 · 펼친 카드 행 높이 실측 캐시 + 추정 → ADR-150 행 offset 함수, scroll anchoring · 팔레트 GridList 상태 변형 origin 해석 | Implemented | 2026-09-27 |
 | [247](completed/247-cold-entry-static-shell.md) | cold entry 정적 셸 — 빌더 URL 직접 진입에 `index.html` 셸 (앱과 같은 class · 인라인 boot 가 테마 · UI 배율 해석 · builder 경로 한정) 을 CSS 도착 즉시 그리고 React 첫 commit 이 같은 자리에서 이어받음 · presented 순간 chrome (헤더 섬 · 패널 · 레일) 스냅샷 → 다음 진입 조건 (빌드 · viewport · 배율 · 테마 · 배치) 일치 시 골격을 그려 presented 프레임에 교체 · 부팅 mark 2 · 하니스 `cold-entry-shell.mjs` · 첫 paint 4x 72 ~ 80 ms (종전 496 ~ 500) · 다크 흰 프레임 0/40 · 288 진입 골격 0.02 px · layout-shift 0 | Implemented | 2026-09-27 |
+| [243](completed/243-interaction-responsiveness-long-task-yield.md) | 상호작용 응답성 기준선 — 실제 입력 · production · Chrome 4x/1x · WebKit · 600/5k 의 Event Timing 지연 · 완료 시간 · LoAF 귀속. 기준 초과이나 지배 구간이 다음 paint 에 필요한 작업 (분기 ②) → 분할 구현 없이 측정 기록으로 종결 · 저장 호출 추적 `persistState()` | Implemented | 2026-09-28 |
 | [236](completed/236-builder-domain-rules-consolidation.md) | 빌더 도메인 규칙 정리 — body · synthetic id · Components 페이지 술어 shared 하나 (ratchet) · shared 타입 특성 표 `componentTraits.ts` (집합 17 + nestingRules 층 2 표 3 파생 · D2 Direction 토글 2) · 구조 변경 판정 `canOperate` · 대상 판정 `resolveMoveTarget` 를 표면 + store 진입부 13 액션 · 우회 쓰기 2 가 같이 부름 (AST ratchet) · origin 안 구조 변경 영향 확인 (표면 선행) · AI reusable 은 store 경유 | Implemented | 2026-09-25 |
 | [242](completed/242-offscreen-panel-lazy-loading.md) | 초기 화면 밖 패널 lazy 분리 — history · settings · interactions · themes · datatable 목록 `lazyPanel` · 폰트 관리 대화상자 첫 클릭 로드 · 로드 실패 경계 (다시 시도 → Chrome 실패 캐시면 새로고침) · idle 선로드로 Suspense 300 ms throttle 회피 · Builder initial −17,183 B gz | Implemented | 2026-09-26 |
 | [150](completed/150-rac-pencil-residual-interaction-execution.md) | 데이터 바인딩 목록의 Canvas 정합 — 행 위치 단일 소스 (`resolveCollectionRowOffsets` · 행별 높이 · gap · 요소 헤더 · GridList grid spacer 전체 열) · 데이터 행 더블클릭 → 템플릿 origin 자식 선택 (raw hit 연속성 키 · 변형 origin → 기본 origin · 카메라 추종 · Properties 「항목 원본」) · `resolveCollectionWriteTarget` 삭제 · 911 R-3 닫힘 · 910 T-7 A1 철회 기록 · 후속 R1 줄바꿈 행 높이 (실측 캐시 · anchoring) | Implemented | 2026-09-27 |

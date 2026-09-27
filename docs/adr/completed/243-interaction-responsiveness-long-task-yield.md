@@ -2,6 +2,10 @@
 
 ## Status
 
+Implemented — 2026-09-28 (**측정 기록으로 종결** — 사용자 "243 은 측정 기록으로 종결해". Phase 0 G0 **분기 ②**: 기준 초과이나 지배 구간이 다음 paint 에 필요한 작업이라 분할 Phase 1 ~ 3 구현 skip · 작업 감소 후속 ADR 없음 (사용자 결정). ADR-075 종결 패턴. 제품 코드 변경은 저장 호출 계측 (동작 변경 0) 하나 — 아래 Addendum 1)
+
+Accepted — 2026-09-27 (사용자 `/execute-adr 243` — 판정 기준 확정: HC2 분할 대상 = 4x · 600 p95 > 100 ms 또는 4x · 5k p95 > 200 ms · G2 대상 지연 ratio ≤ 0.8. 측정 전 고정)
+
 Proposed — 2026-09-27 (사용자 `/create-adr` — "병렬로 한번에 설계해". 출처: Chrome/web.dev INP case study 대조 — Taboola · Trendyol · QuintoAndar)
 
 ## Context
@@ -11,9 +15,9 @@ Proposed — 2026-09-27 (사용자 `/create-adr` — "병렬로 한번에 설계
 단발 상호작용 (캔버스 선택 · Properties/Styles 편집 commit · Layers 행 선택/펼침 · 페이지 전환 · ⌘Z) 의 **입력 → 다음 paint** 지연을 이 저장소는 한 번도 직접 잰 적이 없다. 있는 숫자는 모두 다른 지표다.
 
 - `pnpm perf:baseline` 의 `select` · `edit` 부류는 store 를 직접 호출한다 (`apps/builder/scripts/perf-baseline.mjs:990-1033`, `:1909-1991` — `setSelectedElement` · `updateElementProps`). 입력 이벤트 · hit-test · React 이벤트 배칭을 지나지 않고, 결과는 rAF gap 이다.
-- 그 하니스의 "600 요소 선택 ≈ 240 ms · 편집 ≈ 500 ms" 는 **dev 빌드 · headless · ADR-203 이전** 값이다 ([BUILDER_PERF_BASELINE_2026-09.md](../explanation/research/BUILDER_PERF_BASELINE_2026-09.md) §3-2). ADR-203 뒤 선택은 600 요소 p50 16.6 ms · longtask 0, persistent 5k 는 p95 36.5–43.7 ms · run 당 longtask 1 이 남았다 (§3-2a · §7).
-- production 600 요소 편집 50회 (CPU 1x, M4 Pro) 는 frame p99 42 ms · 10 초당 longtask 중앙값 14 였다 ([frame-performance-reference-scheduler-20260906.md](evidence/frame-performance-reference-scheduler-20260906.md)). 사용자 Chrome 은 DevTools CPU 4x 상태로 쓰인다 (메모리 `user-chrome-cpu-throttle-4x`) — 4x 에서의 값은 없다.
-- dev → production 차이가 크다: ADR-069 · 075 에서 `longtask.input` p95 가 dev 621 → prod 87 ms (−86%) 였다 ([075](completed/075-render-longtask-fanout-decomposition.md) Addendum 1).
+- 그 하니스의 "600 요소 선택 ≈ 240 ms · 편집 ≈ 500 ms" 는 **dev 빌드 · headless · ADR-203 이전** 값이다 ([BUILDER_PERF_BASELINE_2026-09.md](../../explanation/research/BUILDER_PERF_BASELINE_2026-09.md) §3-2). ADR-203 뒤 선택은 600 요소 p50 16.6 ms · longtask 0, persistent 5k 는 p95 36.5–43.7 ms · run 당 longtask 1 이 남았다 (§3-2a · §7).
+- production 600 요소 편집 50회 (CPU 1x, M4 Pro) 는 frame p99 42 ms · 10 초당 longtask 중앙값 14 였다 ([frame-performance-reference-scheduler-20260906.md](../evidence/frame-performance-reference-scheduler-20260906.md)). 사용자 Chrome 은 DevTools CPU 4x 상태로 쓰인다 (메모리 `user-chrome-cpu-throttle-4x`) — 4x 에서의 값은 없다.
+- dev → production 차이가 크다: ADR-069 · 075 에서 `longtask.input` p95 가 dev 621 → prod 87 ms (−86%) 였다 ([075](075-render-longtask-fanout-decomposition.md) Addendum 1).
 
 진단 도구도 절반만 있다. `localWebVitals.ts:71-93` 가 LoAF observer 를 등록하지만 엔트리마다 `scriptDuration` · `forcedStyleAndLayoutDuration` **합계만** 남기고 `scripts[]` 의 `invoker` · `sourceURL` · `sourceFunctionName` 은 버린다. INP 항목 (`:45-63`) 과 LoAF 를 잇지 않으므로 "어느 상호작용의 long task 가 어느 코드에 몰렸는가" 를 답할 수 없다. `perfMarks.ts:13-15` 의 `longtask.input` / `longtask.render` 분류는 `observe()` 라벨과 시간이 겹치는지만 본다.
 
@@ -114,7 +118,7 @@ HIGH 없는 대안 A 가 있어 루프 불필요.
 
 **범위 밖**: 연속 상호작용 (팬 · 줌 · Layers 스크롤 · 가상화 목록 window 교체) · cold entry (research 문서 Track A) · Preview/publish 런타임 · Firefox.
 
-> 구현 상세: [243-interaction-responsiveness-breakdown.md](design/243-interaction-responsiveness-breakdown.md)
+> 구현 상세: [243-interaction-responsiveness-breakdown.md](../design/243-interaction-responsiveness-breakdown.md)
 
 ## Risks
 
@@ -139,6 +143,20 @@ HIGH 없는 대안 A 가 있어 루프 불필요.
 | G2   | Phase 2 각 경계 | 대상 상호작용 4x 지연 p95 ratio ≤ **0.8** 이고 (기준 초과였던 경우) 절대값이 HC2 기준 이내 · 완료 시간 p95 ratio ≤ **1.10** · 비대상 상호작용 지연 ratio ≤ 1 + 허용치 · 불리 케이스 (5k · burst 10회 50 ms) 에서 마지막 입력 완료 시간 ratio ≤ 1.10 · 최종 canonical 문서 · history 스택이 동기 arm 과 바이트 동일 · **원복 RED**: 그 경계만 되돌리면 ratio > 0.9 로 돌아간다                      | 원복으로 개선이 사라지지 않으면 그 변경은 원인이 아님 → 되돌리고 기록. 완료 시간 초과면 그 경계 되돌림 |
 | G3   | Phase 3         | WebKit (Playwright, production, 1x): 폴백 두 arm (setTimeout · MessageChannel) 의 연속 양보 20회 총 지연 · 대기 입력 선처리 여부 · rAF 순서 기록 후 선택 · 대상 상호작용 지연 ratio ≤ 1 + 허용치 · 완료 시간 ratio ≤ 1.10 · 순서 시나리오 (대기 중 ⌘Z · 재편집 · 삭제 · 페이지 전환) 최종 문서 · history 바이트 동일                                                                               | 폴백 교체 후 재측정. WebKit 만 악화면 그 경계를 scheduler 있는 브라우저 한정으로 좁히고 기록           |
 | G4   | Phase 4         | live (실제 builder — 사용자 Chrome 4x 상태 기록 또는 headed Playwright): 대상 상호작용 · ⌘Z/⌘⇧Z · 새로고침 뒤 문서 동일 · page error 0 · Live Exercise 절 기록                                                                                                                                                                                                                                     | 경로별 수리                                                                                            |
+
+## Addendum 1 — Phase 0 결과 · G0 분기 ② (2026-09-28)
+
+측정 상세 (조건 · 표 · 귀속 · 수행하지 않은 것) 는 [design/243 §8](../design/243-interaction-responsiveness-breakdown.md#8-phase-0-결과--g0-분기--2026-09-28) 에 있다. 요지:
+
+- **기준 초과**: Chrome 4x · 600 에서 7종 (commit ~200 · undo 184 · page-switch 168 · layers-select 152 · canvas-select 104 ms, p95) · 4x · 5k 에서 5종 (props/style commit 872 / 896 · undo 864 · page-switch 664 · burst 928 ms). 같은 commit 이 600 → 5k 에서 200 → 872 ms — 입력마다 도는 작업이 문서 크기에 비례한다.
+- **귀속 (LoAF → sourcemap)**: commit · undo 의 long task 92 ~ 94% 가 입력 이벤트 task (핸들러 · 러너 · React 동기 커밋 — 캔버스 scene · layout 재구성), rAF 렌더 5 ~ 8%. 다음 paint 에 불필요한 작업 (저장 첫 조각 — `splitDocument` 8 ms 조각 하나가 상한 · paint 뒤 저장 콜백) 은 1 ~ 3% — **30% 문턱에 닿는 분할 경계가 없다**. page-switch 는 입력 task 53% · `panToPage` 카메라 rAF 21% · React render 11%.
+- **분기 ②**: 이 ADR 에서 분할 (대안 A) 을 구현하지 않는다. 작업 감소 (대안 D) 후속 ADR 은 두지 않는다 (사용자 결정 2026-09-28). 재개 조건: 사용자 재제기 또는 5k 편집 지연을 줄이는 작업이 다른 ADR 로 착수될 때 이 기준선을 대조군으로 쓴다.
+- **남긴 것**: 저장 호출 추적 `persistActivity.ts` (`IncrementalDocuments.put` 호출 순간 ~ 종료, `__composition_PERF__.persistState()` — 동작 변경 0, unit 원복 RED 1) · 하니스 `apps/builder/scripts/adr243-interaction.mjs` (실제 입력 · Event Timing · LoAF · 완료 시간 · CPU profile 귀속 · WebKit).
+- **측정은 사용자 지시로 일부 중단**: CPU profile 귀속 run · WebKit 5k 세 번째 run · PagesSection `startTransition` 켬/끔 대조 · 실제 프로젝트 참고 열 미수행. 분기 판정은 바뀌지 않는다 — 불필요 작업의 상한이 코드 구조로 정해지고, 빠진 것은 필요한 작업 내부의 비율이다.
+
+### Live Exercise
+
+2026-09-27 ~ 28, headed Playwright (Chrome 154 · WebKit 26.5) 로 production 빌드 builder 를 실제 입력 (mouse · keyboard) 으로 구동 — 17 run × 상호작용 8종 (캔버스 선택 · Layers 선택/펼침 · Properties Text commit · Styles Width commit · ⌘Z/⌘⇧Z · burst · 페이지 전환) × 30 입력. 매 입력의 결과를 store 로 확인 (선택 id · props · width · currentPageId · undo 전후 width 변화) — 실패 0 · page error 0 · hidden 0. 저장 호출 계측 `persistState()` 는 모든 commit 입력에서 저장 시작 2 · 종료를 live 로 기록했다 (편집 · undo 마다 저장 경로 2개). 사용자 confirm 아님 (하니스 exercise).
 
 ## Consequences
 

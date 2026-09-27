@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [상호작용 응답성 기준선 — 측정 기록으로 종결] - 2026-09-28
+
+### Added
+
+- **편집 · 선택 · 페이지 전환의 입력 → 다음 화면 지연 기준선 (ADR-243).** production 빌드를 실제 마우스 · 키보드로 구동해 Event Timing 지연 · 완료 시간 · long task 귀속을 쟀다 (Chrome CPU 4x/1x · WebKit, 요소 600 / 5,000). 4x · 5,000 요소에서 Text · Width commit 이 p95 872 / 896 ms · undo 864 ms · 페이지 전환 664 ms 로 기준을 넘지만, 그 시간의 92 ~ 94% 가 다음 화면에 필요한 작업 (입력 처리 · 캔버스 장면 · 레이아웃 재구성) 이라 작업을 뒤로 미루는 분할은 하지 않고 측정 기록으로 종결했다. 동작 변경 없음.
+  - 하니스 `apps/builder/scripts/adr243-interaction.mjs` (setup · run · summarize) · 문서 저장 호출 추적 `__composition_PERF__.persistState()` (저장 호출 시작 ~ 종료, 동작 변경 0)
+
 ## [빌더 직접 진입 정적 셸 · 패널 골격] - 2026-09-27
 
 ### Added

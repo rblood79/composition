@@ -11,6 +11,7 @@ import {
   shouldWriteBackup,
 } from "./documentPersistGuard";
 import { yieldToMain } from "../../../builder/utils/scheduleTask";
+import { trackPersistCall } from "../../../builder/utils/persistActivity";
 
 export const DOCUMENT_PARTS = "document_parts";
 export const DOCUMENT_HEADS = "document_heads";
@@ -229,7 +230,8 @@ export class IncrementalDocuments {
       }
     });
     this.tail = work.catch(() => undefined);
-    return work;
+    // ADR-243 HC3 — 호출 순간 (직렬화 전) 부터 종료까지 추적. 결과는 그대로.
+    return trackPersistCall(() => work);
   }
 
   /**

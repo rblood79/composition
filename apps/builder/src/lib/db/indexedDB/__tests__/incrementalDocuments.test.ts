@@ -8,6 +8,7 @@ import {
   joinDocument,
   splitDocument,
 } from "../incrementalDocuments";
+import { getPersistActivityState } from "../../../../builder/utils/persistActivity";
 
 let db: IDBDatabase;
 let documents: IncrementalDocuments;
@@ -152,5 +153,28 @@ describe("incremental document persistence", () => {
     expect(transaction).not.toHaveBeenCalled();
     await saving;
     expect(await documents.get("p")).toEqual(doc(10));
+  });
+});
+
+describe("ADR-243 HC3 — 저장 호출 추적", () => {
+  it("put 호출 순간 (직렬화 전) 대기 +1, 성공 · 차단 · 실패 모두 종료 시 −1", async () => {
+    const before = getPersistActivityState();
+    const first = documents.put("p", doc(3));
+    const queued = documents.put("p", doc(3, 20));
+    // 직렬화 · 트랜잭션이 시작되기 전인 동기 시점에 이미 센다
+    expect(getPersistActivityState().pending).toBe(before.pending + 2);
+    expect(getPersistActivityState().started).toBe(before.started + 2);
+    await Promise.all([first, queued]);
+    // 급감 가드로 막힌 쓰기도 종료로 센다
+    await documents.put("p", doc(0));
+    vi.spyOn(IDBObjectStore.prototype, "put").mockImplementation(() => {
+      throw new Error("boom");
+    });
+    await expect(documents.put("p", doc(4))).rejects.toThrow("boom");
+    const after = getPersistActivityState();
+    expect(after.pending).toBe(before.pending);
+    expect(after.started).toBe(before.started + 4);
+    expect(after.lastEndAt).not.toBeNull();
+    expect(after.lastEndAt!).toBeGreaterThanOrEqual(after.lastStartAt!);
   });
 });

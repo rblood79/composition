@@ -18,7 +18,7 @@ Implemented — 2026-09-27 (Phase 0 · 1 · 2 · 4 / G0 · G1 · G2 · G4 · `ba
 
 ### 이 ADR 이 다루지 않는 것 — ADR-243 과의 경계
 
-[ADR-243](../243-interaction-responsiveness-long-task-yield.md) 의 판정 지표는 **Event Timing (입력 → 다음 paint) — 실제 입력 · production · CPU 4x** 다. 그것은 사용자 체감의 외부 oracle 이고 (measurement-validity Q5), 본 ADR 의 카운트는 **회귀 감지용 내부 지표** 다. 카운트가 줄었다고 체감이 좋아졌다고 판정하지 않으며 (Q3 — 총비용 A/B 병기), 카운트가 같다고 체감 회귀가 없다고 판정하지 않는다. 두 ADR 은 서로 의존하지 않는다 — 243 의 Phase 0 하니스가 생기면 본 ADR 의 Phase 2 taskMs 참고 열을 Event Timing 으로 바꿀 수 있다.
+[ADR-243](243-interaction-responsiveness-long-task-yield.md) 의 판정 지표는 **Event Timing (입력 → 다음 paint) — 실제 입력 · production · CPU 4x** 다. 그것은 사용자 체감의 외부 oracle 이고 (measurement-validity Q5), 본 ADR 의 카운트는 **회귀 감지용 내부 지표** 다. 카운트가 줄었다고 체감이 좋아졌다고 판정하지 않으며 (Q3 — 총비용 A/B 병기), 카운트가 같다고 체감 회귀가 없다고 판정하지 않는다. 두 ADR 은 서로 의존하지 않는다 — 243 의 Phase 0 하니스가 생기면 본 ADR 의 Phase 2 taskMs 참고 열을 Event Timing 으로 바꿀 수 있다.
 
 ### SSOT 3-Domain 판정
 
