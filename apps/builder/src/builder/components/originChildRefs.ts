@@ -4,7 +4,10 @@ import {
   isDelegatedSubpartChild,
 } from "@composition/shared";
 import { applyPropsPatch } from "../../adapters/canonical/instanceResolver";
-import { getCanonicalRefPathSegment } from "../../adapters/canonical/canonicalRefResolution";
+import {
+  getCanonicalRefChildSegments,
+  getCanonicalRefPathSegment,
+} from "../../adapters/canonical/canonicalRefResolution";
 import { diffEffectiveProps } from "./stateVariantMigration";
 import { applyFactoryPropagation } from "../utils/propagationEngine";
 import { COMPONENTS_SYSTEM_BODY_ID } from "../pages/systemComponentsPage";
@@ -265,6 +268,7 @@ function diffSubtree(
   if (actual.length !== expected.length) {
     return `${pathPrefix || "<root>"}: 자식 수 ${actual.length} ≠ origin ${expected.length}`;
   }
+  const expectedSegments = getCanonicalRefChildSegments(expected);
   for (let index = 0; index < actual.length; index += 1) {
     const node = actual[index]!;
     const target = expected[index]!;
@@ -279,7 +283,7 @@ function diffSubtree(
         return `${pathPrefix}${node.id}: ${field} 가 origin 과 갈린다`;
       }
     }
-    const path = `${pathPrefix}${pathSegmentOf(target)}`;
+    const path = `${pathPrefix}${expectedSegments[index]!}`;
     const propsPatch = diffPropsAgainstOrigin(node.props, target.props);
     const reserved = unpatchablePropKey(propsPatch);
     if (reserved) {
@@ -299,11 +303,6 @@ function diffSubtree(
     if (nested) return nested;
   }
   return null;
-}
-
-/** 해소기 (`getCanonicalRefPathSegment`) 와 같은 segment — canonical 노드는 name → id. */
-function pathSegmentOf(node: CanonicalNode): string {
-  return node.name || node.id;
 }
 
 function isRefNode(node: CanonicalNode): boolean {
@@ -414,8 +413,8 @@ export function toChildlessOriginRef(
   origin: CanonicalNode,
 ): CanonicalNode {
   const descendants = Object.fromEntries(
-    (origin.children ?? []).map((child) => [
-      getCanonicalRefPathSegment(child),
+    getCanonicalRefChildSegments(origin.children ?? []).map((segment) => [
+      segment,
       { enabled: false },
     ]),
   );
@@ -500,10 +499,11 @@ export function repairOriginChildPropagationPatches(
       base: readonly CanonicalNode[],
       prefix: string,
     ) => {
+      const fullSegments = getCanonicalRefChildSegments(full);
       full.forEach((target, index) => {
         const source = base[index];
         if (!source) return;
-        const path = `${prefix}${pathSegmentOf(target)}`;
+        const path = `${prefix}${fullSegments[index]!}`;
         const diff = diffPropsAgainstOrigin(target.props, source.props);
         const current = existing[path] ?? {};
         const add: Record<string, unknown> = {};

@@ -39,6 +39,7 @@ import {
 } from "./editorPresentationTextMetricValue";
 import {
   getCanonicalRefDescendantOverride,
+  getCanonicalRefChildSegments,
   getCanonicalRefPathSegment,
   getCanonicalRefTarget,
   withCanonicalRefDescendantFills,
@@ -184,8 +185,10 @@ function findDescendantNode(
   //   같은 문자열 규약). 같은 부모 안에서는 긴 segment 부터.
   let remaining = pathKey;
   while (remaining.length > 0) {
-    const candidates = (current.children ?? [])
-      .map((child) => ({ child, segment: getCanonicalRefPathSegment(child) }))
+    const siblings = current.children ?? [];
+    const siblingSegments = getCanonicalRefChildSegments(siblings);
+    const candidates = siblings
+      .map((child, index) => ({ child, segment: siblingSegments[index]! }))
       .filter(
         ({ segment }) =>
           remaining === segment || remaining.startsWith(`${segment}/`),

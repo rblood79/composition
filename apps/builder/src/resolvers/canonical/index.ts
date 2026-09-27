@@ -12,7 +12,10 @@ import { mergeFillSizing } from "@composition/shared";
  * @see docs/adr/903-ref-descendants-slot-composition-format-migration-plan.md
  */
 
-import { getCanonicalRefPathSegment } from "../../adapters/canonical/canonicalRefResolution";
+import {
+  getCanonicalRefChildSegments,
+  translateLegacyDescendantKeys,
+} from "../../adapters/canonical/canonicalRefResolution";
 import type {
   CompositionDocument,
   CanonicalNode,
@@ -213,9 +216,24 @@ function _resolveRefNodeUncached(
   };
 
   // ── Step 2: descendants 3-mode apply ──────────────────────────────────────
+  // 옛 규칙 키 (ADR-150 후속 F2 이전 name ‖ id) 도 읽는다 — Canvas 해석기와 같은 변환.
+  const childrenOfOrigin = (node: CanonicalNode): readonly CanonicalNode[] => {
+    const nested =
+      node.type === "ref"
+        ? findReusableMaster(doc, (node as RefNode).ref, imports)
+        : undefined;
+    return nested
+      ? [...(nested.children ?? []), ...(node.children ?? [])]
+      : (node.children ?? []);
+  };
+  const currentDescendants = translateLegacyDescendantKeys(
+    refNode.descendants,
+    master.children ?? [],
+    childrenOfOrigin,
+  ) as Record<string, DescendantOverride> | undefined;
   const resolvedOriginChildren = applyDescendantsToTree(
     master.children ?? [],
-    refNode.descendants,
+    currentDescendants,
     doc,
     cache,
     imports,
@@ -338,15 +356,17 @@ function applyDescendantsToTree(
   imports: ImportResolverContext | undefined,
   parentPath: string,
 ): ResolvedNode[] {
+  // 형제 단위 segment (같은 이름 형제 `~N`, ADR-150 후속 F3) — Canvas 해석기와 같은 함수.
+  const segments = getCanonicalRefChildSegments(children);
   return children
-    .map((child): ResolvedNode => {
+    .map((child, index): ResolvedNode => {
       // path 키는 두 규약이 공존한다 — canonical 스키마의 **id path** (`"Box/Slot"`, page-frame slot fill 이
       //   `convertPageLayout` 로 만든다) 와 builder Skia/store 축의 **segment path** (`getCanonicalRefPathSegment`
-      //   — canonical 노드는 name → id; synthetic id · Properties/Styles 쓰기 키). ADR-229 Phase 2 (live
+      //   — customId ‖ name ‖ id; synthetic id · Properties/Styles 쓰기 키). ADR-229 Phase 2 (live
       //   실측): name 을 가진 조합 자식 (Form 의 "ButtonGroup" · "TextField/Name") 의 patch 를 Preview 만
       //   못 읽었다 — id 를 먼저 보고 segment 로도 맞춘다 (name 이 없으면 둘은 같다).
       const idPath = parentPath ? `${parentPath}/${child.id}` : child.id;
-      const segment = getCanonicalRefPathSegment(child);
+      const segment = segments[index]!;
       const segmentPath = parentPath ? `${parentPath}/${segment}` : segment;
       const currentPath =
         descendants && Object.prototype.hasOwnProperty.call(descendants, idPath)

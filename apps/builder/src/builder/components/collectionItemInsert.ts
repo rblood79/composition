@@ -19,7 +19,10 @@ import type {
 } from "@composition/shared";
 import { resolveTreeItemKey } from "@composition/shared";
 
-import { getCanonicalRefPathSegment } from "../../adapters/canonical/canonicalRefResolution";
+import {
+  findCanonicalRefChildBySegment,
+  getCanonicalRefPathSegment,
+} from "../../adapters/canonical/canonicalRefResolution";
 import {
   getSyntheticDescendantPathKey,
   getSyntheticDescendantRootId,
@@ -122,8 +125,9 @@ function findBySegmentPath(
   let parent = root;
   const segments = path.split("/");
   for (let index = 0; index < segments.length; index += 1) {
-    const node = (parent.children ?? []).find(
-      (child) => getCanonicalRefPathSegment(child) === segments[index],
+    const node = findCanonicalRefChildBySegment(
+      parent.children ?? [],
+      segments[index]!,
     );
     if (!node) return null;
     if (index === segments.length - 1) return { node, parent };

@@ -12,7 +12,11 @@
 import type { CanonicalNode, CompositionDocument } from "@composition/shared";
 import { resolveTableColumnKey } from "@composition/shared";
 
-import { getCanonicalRefPathSegment } from "../../adapters/canonical/canonicalRefResolution";
+import {
+  findCanonicalRefChildBySegment,
+  getCanonicalRefChildSegments,
+  getCanonicalRefPathSegment,
+} from "../../adapters/canonical/canonicalRefResolution";
 import {
   getSyntheticDescendantPathKey,
   getSyntheticDescendantRootId,
@@ -61,9 +65,7 @@ function findBySegmentPath(
 ): CanonicalNode | null {
   let current: CanonicalNode | undefined = root;
   for (const segment of path.split("/")) {
-    current = (current?.children ?? []).find(
-      (child) => getCanonicalRefPathSegment(child) === segment,
-    );
+    current = findCanonicalRefChildBySegment(current?.children ?? [], segment);
     if (!current) return null;
   }
   return current ?? null;
@@ -213,8 +215,9 @@ function cloneWithOuterPatches(
   descendants: Record<string, unknown>,
   taken: Set<string>,
 ): CanonicalNode[] {
-  return nodes.map((node) => {
-    const path = `${basePath}/${getCanonicalRefPathSegment(node)}`;
+  const segments = getCanonicalRefChildSegments(nodes);
+  return nodes.map((node, index) => {
+    const path = `${basePath}/${segments[index]!}`;
     const patch = descendants[path];
     let next = node;
     if (isRecord(patch) && !Array.isArray(patch.children)) {
@@ -549,6 +552,10 @@ function visibleColumnNodes(
   headerPath: string,
   byId: ReadonlyMap<string, CanonicalNode>,
 ): Array<{ id: string; type: "Column"; props: Record<string, unknown> }> {
+  const segments = getCanonicalRefChildSegments(columns);
+  const segmentOf = new Map(
+    columns.map((node, index) => [node, segments[index]!]),
+  );
   return columns
     .filter(
       (node) =>
@@ -557,7 +564,7 @@ function visibleColumnNodes(
     )
     .map((node) => {
       const patch = headerPath
-        ? patches[`${headerPath}/${getCanonicalRefPathSegment(node)}`]
+        ? patches[`${headerPath}/${segmentOf.get(node)!}`]
         : undefined;
       return {
         id: node.id,

@@ -20,6 +20,7 @@ import {
   resolveReference,
 } from "../../utils/component/referenceResolution";
 import type { LegacyElementMirrorFields } from "./legacyElementFields";
+import { readLegacyMetadataCustomId } from "./legacyMetadata";
 import { isRenderProjectionId } from "../../builder/projection/renderProjectionIds";
 import { createPopoverChildFilter } from "./popoverContent";
 import {
@@ -66,20 +67,120 @@ type CanonicalRefFields = {
 
 type OverrideNode = Record<string, unknown>;
 
+type PathSegmentNode = Pick<CanonicalRefResolvableNode, "id"> & {
+  customId?: string | null;
+  componentName?: string | null;
+  name?: string;
+  metadata?: unknown;
+};
+
 /**
  * Reusable descendant의 canonical path segment SSOT.
  * DOM, Skia, commit adapter가 customId/componentName/name/id를 서로 다르게
  * 선택하면 같은 semantic target이 한 renderer에서만 갱신되므로 resolver와
  * presentation projection이 이 helper를 공유한다.
+ *
+ * customId 는 최상위 (element · scene 노드) 와 legacy metadata (canonical 문서 노드) 둘 다 읽는다 (ADR-150
+ * 후속 F2, 사용자 판정 "Canvas 규칙"). 종전 문서 노드는 metadata 를 안 봐 Preview · 패널 조회 · insert 쓰기가
+ * name ‖ id, Canvas scene 이 customId ‖ name ‖ id 로 갈렸다 — 팔레트 요소는 customId 를 받으므로 origin 에
+ * 추가한 자식의 instance override 가 Canvas 에만 보였다. 형제 목록 안의 segment 는
+ * `getCanonicalRefChildSegments` (같은 segment 두 번째부터 `~N`) 로 만든다.
  */
-export function getCanonicalRefPathSegment<
-  T extends Pick<CanonicalRefResolvableNode, "id"> & {
-    customId?: string | null;
-    componentName?: string | null;
-    name?: string;
-  },
->(node: T): string {
-  return node.customId || node.componentName || node.name || node.id;
+export function getCanonicalRefPathSegment<T extends PathSegmentNode>(
+  node: T,
+): string {
+  return (
+    node.customId ||
+    readLegacyMetadataCustomId(node.metadata) ||
+    node.componentName ||
+    node.name ||
+    node.id
+  );
+}
+
+/**
+ * F2 이전 문서 노드 규칙 — 옛 descendants 키를 새 키로 옮길 때만 읽는다. customId 는 아예 보지 않는다: customId
+ * 로 쓴 키는 현재 segment 로 이미 맞고, Canvas scene 노드는 metadata customId 를 최상위로 올려 두므로 여기서
+ * customId 를 보면 name ‖ id 로 쓴 옛 키를 scene 에서만 못 찾는다 (F2 판독 HIGH-1).
+ */
+function getLegacyRefPathSegment(node: PathSegmentNode): string {
+  return node.componentName || node.name || node.id;
+}
+
+/** descendants 속성 patch (mode A — `type` · 배열 `children` 없음) 인지. */
+function isPropsPatch(value: unknown): value is Record<string, unknown> {
+  return isRecord(value) && !("type" in value) && !Array.isArray(value.children);
+}
+
+/**
+ * 형제 목록의 path segment — 같은 segment 가 두 번째부터 `<segment>~N` (ADR-150 후속 F3). 종전엔 같은 이름
+ * 형제가 한 synthetic id 를 나눠 Canvas 가 두 번째 형제를 잃고 (첫 형제를 두 번 그림) patch 하나가 둘에
+ * 걸렸다. 첫 형제의 키는 그대로라 기존 키와 호환된다.
+ */
+export function getCanonicalRefChildSegments(
+  children: readonly PathSegmentNode[],
+): string[] {
+  const seen = new Map<string, number>();
+  return children.map((child) => {
+    const base = getCanonicalRefPathSegment(child);
+    const count = (seen.get(base) ?? 0) + 1;
+    seen.set(base, count);
+    return count === 1 ? base : `${base}~${count}`;
+  });
+}
+
+/** `getCanonicalRefChildSegments` 기준으로 형제 중 segment 가 같은 자식. */
+export function findCanonicalRefChildBySegment<T extends PathSegmentNode>(
+  children: readonly T[],
+  segment: string,
+): T | undefined {
+  const index = getCanonicalRefChildSegments(children).indexOf(segment);
+  return index < 0 ? undefined : children[index];
+}
+
+/**
+ * 옛 규칙으로 쓴 descendants 키를 현재 규칙 키로 옮긴 사본 (읽기 전용 — 문서는 바꾸지 않는다, ADR-150 후속
+ * F2). 키를 master 자식 트리에서 구간마다 현재 segment → 옛 segment 순으로 맞춰 걷고, 현재 규칙 경로가 다르고
+ * 아직 없으면 그 경로에도 같은 patch 를 둔다. 트리에서 못 찾는 키 (id path · mode C 배열 경로) 는 그대로.
+ * 옮길 것이 없으면 같은 객체를 돌려준다.
+ */
+export function translateLegacyDescendantKeys<N extends PathSegmentNode>(
+  descendants: unknown,
+  rootChildren: readonly N[],
+  childrenOf: (node: N) => readonly N[],
+): unknown {
+  if (!isRecord(descendants)) return descendants;
+  let out: Record<string, unknown> | null = null;
+  for (const key of Object.keys(descendants)) {
+    const parts = key.split("/");
+    let children = rootChildren;
+    const translated: string[] = [];
+    for (const part of parts) {
+      const segments = getCanonicalRefChildSegments(children);
+      let index = segments.indexOf(part);
+      if (index < 0) {
+        index = children.findIndex(
+          (child) => getLegacyRefPathSegment(child) === part,
+        );
+      }
+      if (index < 0) break;
+      translated.push(segments[index]!);
+      children = childrenOf(children[index]!);
+    }
+    if (translated.length !== parts.length) continue;
+    const next = translated.join("/");
+    if (next === key) continue;
+    out ??= { ...descendants };
+    const legacy = descendants[key];
+    if (!Object.prototype.hasOwnProperty.call(out, next)) {
+      out[next] = legacy;
+    } else if (isPropsPatch(legacy) && isPropsPatch(out[next])) {
+      // 옛 키 · 현재 키가 같이 있으면 (F2 이전 Canvas 가 customId 키, 패널 · insert 가 name 키로 쓴 문서)
+      //   옛 patch 를 아래에 깔고 현재 patch 가 이긴다 — 한쪽을 버리면 그 필드 (enabled 등) 가 사라진다.
+      out[next] = composePropsPatches(legacy, out[next] as Record<string, unknown>);
+    }
+  }
+  return out ?? descendants;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -956,6 +1057,15 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
     ((ref: string) =>
       resolveCanonicalRefMaster(ref, resultElementsMap.values()));
 
+  // 형제 단위 segment (같은 이름 형제 `~N`) — projection 은 저작 자식이 아니라 세지 않는다.
+  const authoredChildren = sourceChildren.filter(
+    (child) => !isRenderProjectionId(child.id),
+  );
+  const authoredSegments = getCanonicalRefChildSegments(authoredChildren);
+  const segmentBySource = new Map<T, string>(
+    authoredChildren.map((child, index) => [child, authoredSegments[index]!]),
+  );
+
   sourceChildren.forEach((sourceChild) => {
     // render projection(`projection:` prefix — collection rows/cells/spacer/remainder, page-frame)은
     //   owner 노드에서 파생되는 scene 산출물이지 master 의 저작 자식이 아니다. master 의 projection
@@ -964,7 +1074,7 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
     //   320 = 164 + 156, DOM 164). 인스턴스의 projection 은 scene builder 가 resolved props 로
     //   별도 산출하므로 여기서는 건너뛴다.
     if (isRenderProjectionId(sourceChild.id)) return;
-    const segment = getCanonicalRefPathSegment(sourceChild);
+    const segment = segmentBySource.get(sourceChild)!;
     const path = pathPrefix ? `${pathPrefix}/${segment}` : segment;
     const patch = getStackedDescendantPatch(patchOwners, path);
     const syntheticId = `${refElement.id}/${path}`;
@@ -2147,6 +2257,30 @@ export function resolveCanonicalRefTree<
     }
 
     if (!ref || !chain) continue;
+    // 옛 규칙 키 (F2 이전 name ‖ id) 도 읽는다 — origin 자식 트리 기준으로 현재 규칙 키 사본을 둔다.
+    const authoredChildrenOf = (node: T): readonly T[] =>
+      (sourceChildrenMap.get(node.id) ?? []).filter(
+        (child) => !isRenderProjectionId(child.id),
+      );
+    const childrenOfSource = (node: T): readonly T[] => {
+      const target = getCanonicalRefTarget(node);
+      const nested = target ? lookupMaster(target) : undefined;
+      return nested
+        ? [...authoredChildrenOf(nested), ...authoredChildrenOf(node)]
+        : authoredChildrenOf(node);
+    };
+    const originChildren = authoredChildrenOf(chain.origin);
+    const withCurrentDescendantKeys = (owner: T): T => {
+      const descendants = asCanonicalRefFields(owner).descendants;
+      const current = translateLegacyDescendantKeys(
+        descendants,
+        originChildren,
+        childrenOfSource,
+      );
+      return current === descendants
+        ? owner
+        : ({ ...owner, descendants: current } as T);
+    };
     materializeSyntheticDescendants(
       element,
       chain.origin,
@@ -2163,9 +2297,12 @@ export function resolveCanonicalRefTree<
         lookupMaster,
         lookupResult,
         patchOwners: [
-          { owner: element, mountPath: "" },
+          { owner: withCurrentDescendantKeys(element), mountPath: "" },
           ...stateLayerOwner(element, stateLayer),
-          ...chain.intermediates.map((owner) => ({ owner, mountPath: "" })),
+          ...chain.intermediates.map((owner) => ({
+            owner: withCurrentDescendantKeys(owner),
+            mountPath: "",
+          })),
         ],
         ...(input.prunePopoverContent
           ? {

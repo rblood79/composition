@@ -19,6 +19,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - live: production 빌드를 Pages 와 같은 방식 (없는 경로 → `404.html`, 404 상태) 으로 제공 — 대시보드 직접 진입 · builder 직접 진입 (캔버스 부팅) · builder 새로고침 Chromium · WebKit 4/4, 대조군 (404.html 없음) 1/3 (`apps/builder/scripts/spa-deep-link-live.mjs`)
   - 관련: [ADR-244](adr/244-canvaskit-wasm-early-fetch-and-service-worker-cache.md) 옛 배포 복구가 이 동작 위에서 `location.reload()` 를 쓴다
 
+## [ADR-150 남은 후속 — 목록 카드 · 행 · instance 편집 정합] - 2026-09-27
+
+### Fixed
+
+- **origin 에 추가한 자식을 instance 에서 편집하면 저장되지 않거나 Canvas 에만 보이던 문제.** 팔레트로 추가한 요소는 customId 를 받는데, Canvas 는 그 customId 로 자식 경로를 만들고 Properties · Styles 조회 · Preview 는 이름 ‖ id 로 찾았다 — 편집이 사라졌다. 경로 규칙을 하나 (customId ‖ 이름 ‖ id) 로 통일하고, 옛 규칙으로 저장된 키도 읽는다 (문서는 바꾸지 않음). 같은 이름 형제는 두 번째부터 `~2` 로 구분한다 (종전 Canvas 는 두 번째 형제를 잃었다).
+  - live: origin 에 Text 추가 → 팔레트 GridList 항목 안 그 자식 색 편집 → Preview 해석기 = Canvas (4/4, `adr150-f2-segment-rule-live.mjs`)
+- **GridList 한 줄에 설명 있는 카드와 없는 카드가 섞이면 Canvas 의 짧은 카드가 늘어나지 않던 문제** (Preview 는 행 높이로 늘림, 50 vs 76).
+- **Preview 의 데이터 ListBox · GridList 가 100 행에서 잘리던 문제** — Canvas · Table 처럼 전 행.
+- **팔레트 ListBox 에 데이터를 연결하면 Preview 가 설명 없는 한 줄 행만 그리던 문제** — Canvas 처럼 label · 설명 slot 행.
+  - 검증: 실 브라우저 DOM oracle 150 행 (anchor 있음 · 없음 ListBox · GridList) · live 카드 높이 = 행 높이 11/11
+  - 위치: [ADR-150](adr/completed/150-rac-pencil-residual-interaction-execution.md) breakdown §7
+
 ## [Chrome case study 적용 — 소형 개선 6건] - 2026-09-27
 
 ### Fixed

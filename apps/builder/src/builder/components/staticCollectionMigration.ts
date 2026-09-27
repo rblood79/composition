@@ -15,7 +15,10 @@
 import type { CanonicalNode, CompositionDocument } from "@composition/shared";
 import { getElementDataBinding } from "@composition/shared";
 
-import { getCanonicalRefPathSegment } from "../../adapters/canonical/canonicalRefResolution";
+import {
+  getCanonicalRefChildSegments,
+  getCanonicalRefPathSegment,
+} from "../../adapters/canonical/canonicalRefResolution";
 import { TAB_ITEM_DEFAULT_ORIGIN_ID } from "./tabs/tabsTemplateOrigins";
 import { TAG_ITEM_DEFAULT_ORIGIN_ID } from "./taggroup/tagGroupTemplateOrigins";
 import { LISTBOX_ITEM_DEFAULT_ORIGIN_ID } from "./listbox/listBoxTemplateOrigins";
@@ -808,8 +811,7 @@ function migrateSelfListInstance(
   const descendants: Record<string, unknown> = {
     ...(instance.descendants ?? {}),
   };
-  for (const child of originItems) {
-    const key = getCanonicalRefPathSegment(child);
+  for (const key of getCanonicalRefChildSegments(originItems)) {
     descendants[key] = {
       ...((descendants[key] as Record<string, unknown>) ?? {}),
       enabled: false,

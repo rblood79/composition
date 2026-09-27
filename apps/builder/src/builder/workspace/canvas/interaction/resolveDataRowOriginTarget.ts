@@ -1,5 +1,5 @@
 import type { CanonicalNode } from "@composition/shared";
-import { getCanonicalNodePathSegment } from "../../../../adapters/canonical/canonicalPathWalk";
+import { findCanonicalRefChildBySegment } from "../../../../adapters/canonical/canonicalRefResolution";
 import {
   isRenderProjectionId,
   toCollectionRowProjectionId,
@@ -83,8 +83,9 @@ export function resolveDataRowOriginTarget(
         resolved = `${current.id}/${segments.slice(index).join("/")}`;
         break;
       }
-      const child = (current.children ?? []).find(
-        (node) => getCanonicalNodePathSegment(node) === segments[index],
+      const child = findCanonicalRefChildBySegment(
+        current.children ?? [],
+        segments[index]!,
       );
       if (!child) return null;
       current = child;

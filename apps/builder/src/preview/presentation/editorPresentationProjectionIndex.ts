@@ -1,5 +1,5 @@
 import type { ResolvedNode } from "@composition/shared";
-import { getCanonicalRefPathSegment } from "../../adapters/canonical/canonicalRefResolution";
+import { getCanonicalRefChildSegments } from "../../adapters/canonical/canonicalRefResolution";
 
 import {
   toEditorPresentationTargetKey,
@@ -83,8 +83,9 @@ export function buildPreviewPresentationProjectionIndex(
     const nextRefContext = node._resolvedFrom
       ? { refId: node.id, pathKey: "" }
       : refContext;
-    for (const child of node.children ?? []) {
-      const segment = getCanonicalRefPathSegment(child);
+    const childSegments = getCanonicalRefChildSegments(node.children ?? []);
+    for (const [childIndex, child] of (node.children ?? []).entries()) {
+      const segment = childSegments[childIndex]!;
       const childRefContext = nextRefContext
         ? {
             refId: nextRefContext.refId,

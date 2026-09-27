@@ -250,9 +250,9 @@ LOW deferred (production 증상 없음): L1 목록 입력이면 스크롤마다 
 #### §5-1 후속 항목 (150 범위 밖 · 기록)
 
 - ~~**R1 wrap 잔여**~~ — **반영 2026-09-27 (§6)**: ADR-162 Phase 4 실측 캐시 + scroll anchoring 을 ListBox · slot-only GridList 에 연결.
-- 구간 이름 규칙 3 갈래 통합 (scene 합성 id = metadata customId ‖ name ‖ id · Preview resolver = name ‖ id · insert 쓰기 키 혼합) — Phase 2 판독 MEDIUM 의 근원.
-- GridList 혼합 행 짧은 카드 stretch (Canvas 50 vs DOM 76, §3-3) · DOM 100 행 cap vs Canvas 전 행 가상화 · anchor 없는 data-bound ListBox 행 모양 · 같은 이름 형제 synthetic id 충돌 (§3-3).
-- `catalogOrigins.test.ts` 139 → 138 선행 실패 (150 무관).
+- ~~구간 이름 규칙 3 갈래 통합~~ · ~~같은 이름 형제 synthetic id 충돌~~ — **반영 2026-09-27 (§7 F2 · F3)**.
+- ~~GridList 혼합 행 짧은 카드 stretch~~ · ~~DOM 100 행 cap~~ · ~~anchor 없는 data-bound ListBox 행 모양~~ — **반영 2026-09-27 (§7 F1 · F4 · F5)**.
+- ~~`catalogOrigins.test.ts` 139 → 138 선행 실패~~ — **정정 2026-09-27 (§7 F6)**.
 
 ## §6 후속 R1 — 줄바꿈 행 높이 (2026-09-27, 사용자 지시 "ADR-150 후속 진행해")
 
@@ -278,3 +278,59 @@ LOW deferred (production 증상 없음): L1 목록 입력이면 스크롤마다 
   - N2 `deferred` (LOW) — 템플릿 컴파일 캐시가 한도 (500) 로 비워진 직후 한 번 같은 원문이 새 참조가 되어 실측을 한 번 버린다. 재현 문서 미확인.
   - 규칙 §1 (판독 1 + 수리 검증 1) — 수리 검증이 HIGH 0 이라 이 후속은 닫힌다. N1 수리는 원복 RED + live 재실행으로 확인.
 - **남는 것**: 안 본 행은 공식 (단일 줄) 추정이라, 긴 행이 많은 구간으로 처음 점프하면 한 번 anchoring 으로 자리를 잡는다 (ADR-162 G3 와 같은 방식). Canvas 와 DOM 의 줄바꿈 위치 (텍스트 측정) 대칭은 이 항목 범위 밖이다.
+
+## §7 남은 후속 F1 ~ F6 (2026-09-27, 사용자 지시 "ADR-150에 남은 후속 수정 시작해")
+
+§5-1 의 범위 밖 항목 6 개. 조사는 병렬 agent 3 (근거는 파일 · 라인으로 직접 확인).
+
+### F1 — GridList 혼합 행 짧은 카드 stretch
+
+- **원인**: layout enrich 가 자식 없는 GridListItem (slot-only 데이터 카드) 에 명시 `height` 를 넣었다 (`engines/utils.ts` injectHeight). 엔진은 명시 높이가 있으면 grid stretch 를 끈다 (`tree.rs` `explicit` → `place_grid_axis`). DOM 은 `align-items` 기본 stretch 라 한 시각 행의 카드가 모두 가장 긴 카드 높이다 (50 vs 76).
+- **반영**: auto 높이 · flex/grid 자식인 자식 없는 카드는 `height` 대신 content-box 스칼라 `contentHeight` (Step 4.5 재측정은 `isFlexChild = contentHeight 있음` 으로 같은 판정). Skia 카드 상자는 buildSpecNodeData 가 layout 높이를 `style.height` 로 넘겨 metric `explicitHeight` 가 되므로 그리기도 따라온다 (위쪽 정렬 = DOM grid 모드 `justify-content: flex-start`).
+- **수확 부작용 차단**: stretch 된 카드의 layout 높이 = 그 행의 최대라 자기 높이가 아니다. 실측 항목에 그 시각 행 카드들의 데이터 참조 (`rowMates`) 를 두고 행 구성이 같을 때만 적중 — 앞쪽 삽입 · 삭제로 카드가 다른 행으로 밀리면 공식 추정으로 돌아간다.
+- **증거**: unit `gridListCardStretch.test.ts` 3 · `expandedCardHeights.test.ts` F1 1 · live `adr150-r1-wrap-rows-live.mjs` 에 description 카드 혼합 행 + "카드 상자 높이 = 시각 행 높이" 판정 추가 → 11/11 (카드 높이 50 이 모두 행 높이 76 · 146 · 170 으로) · GridList parity 9 파일 34 · canvas 스위트 2256.
+- **원복 RED**: 스칼라 분기 제거 → live 9/11 (늘어나지 않은 카드 9 · 15 장) · rowMates 무조건 적중 → unit 1.
+
+### F4 — DOM 100 행 cap
+
+- **원인**: `COLLECTION_ROW_PROJECTION_WINDOW_LIMIT = 100` 은 옛 Skia 투영 cap 인데 `useResolvedCollectionItems` 의 DOM 기본값으로 따라왔다 (의도를 적은 ADR 없음 — ADR-157 이 "legacy 정적 cap (Skia)" 로 부른다). ListBox 는 `enableVirtualization` 일 때만, GridList 는 늘 100 에서 잘렸다. Table 은 이미 전 행.
+- **반영**: ListBox · GridList 도 `windowLimit: Number.MAX_SAFE_INTEGER` (Table 과 같음). Canvas 는 스크롤 소유자의 전 행을 가상화하고, auto 높이 소유자는 sample 모드 (10 행 + hatch, 높이는 전 행) 라 시각 대칭은 새로 갈리지 않는다.
+- **증거**: DOM oracle `adr150RowPositionsDom.browser.test.ts` 를 150 행으로 — 100 초과 구간까지 행 y · 높이 · 스크롤 범위 = 단일 소스 4/4. 원복 (cap 100) → 3 FAIL.
+- **남는 것 (LOW)**: Preview 가 가상화 없이 전 행을 DOM 에 그린다 (Table 과 같은 비용). 대량 행 성능은 RAC `Virtualizer` 도입 후속 — 측정 전.
+
+### F5 — anchor 없는 data-bound ListBox 행 모양
+
+- **원인**: 팔레트 ListBox 는 anchor 자식 없는 bare ref 가 표준 shape 인데 (`SelectionComponents.ts` Option B), renderer 의 Path 1 (행 slot 렌더) 은 anchor 가 있어야 탔다. anchor 가 없으면 Path 2 → wrapper 기본 렌더가 label 평문 행 (28, description 없음) 만 그려 Canvas slot 행 (32 · 50) 과 갈렸다.
+- **반영**: 데이터 바인딩 (collection · property · columnMapping) 이 있으면 anchor 없이도 Path 1 — slot 구성 · origin 행 style 은 context 의 기본 origin 값. anchor 가 없는 행은 `data-element-id` 를 두지 않는다 (owner id 를 물려받으면 responsive @media 규칙이 행에 전가 — Path 2 와 같은 규칙).
+- **증거**: unit `listBoxAdr146Template.test.tsx` (anchor 없는 행 slot) · DOM oracle 에 anchor 없는 ListBox 150 행 (y · 높이 · 스크롤 범위 = 단일 소스). 원복 → unit 1 · oracle y 오차 1278.
+- 범위 밖: publish 런타임은 renderer 를 거치지 않는다 (publish 는 작업 대상 아님 — 메모리 `project-publish-link-only-defer-until-builder-stable`).
+
+### F6 — `catalogOrigins.test.ts` 139 → 138
+
+- `f435623ff` 가 ColorField origin 의 ColorSwatch 자식을 뺐다 (DOM · RAC · catalog 에 없는 Canvas 전용 시각). 의도된 감소라 기대값을 138 로 고쳤다 (26/26). 커밋은 다른 경로가 `5ea029138` 로 먼저 push.
+
+### F1 · F4 · F5 판독 (reviewer 1 회) — HIGH 0
+
+- MEDIUM 0. LOW deferred 4: F4 대량 행 DOM 비용 · F5 + `enableVirtualization` (factory 기본 false · 편집기 없음 — 도달 0, anchor 있는 Path 1 에도 있던 문제) · F5 + collection · property 가 아닌 binding shape (builder 에 생산자 0) · rowMates 는 이웃 데이터 참조만 비교 (window 에 들어오면 수확이 고침).
+- 절차: F1 · F4 · F5 코드는 다른 세션 커밋 `44dc2d57f` 가 영어 일반 메시지로 함께 push 했다 (병렬 세션의 전체 staging — 메모리 `feedback-git-add-all-swallows-parallel-session-wip`). 되돌리지 않고 기록한다.
+- 규칙 §1 — 판독 HIGH 0 · MEDIUM 0 이라 F1 · F4 · F5 는 닫힌다.
+
+### F2 · F3 — descendants 키 규칙 하나 (사용자 판정 2026-09-27 "Canvas 규칙")
+
+- **원인 (F2)**: 한 함수 `getCanonicalRefPathSegment` (customId ‖ componentName ‖ name ‖ id) 가 입력 모양에 따라 두 규칙이 됐다. scene 노드는 customId 를 최상위로 올려 (canvasSceneNode) customId 가 먼저였고, 문서 노드는 customId 를 legacy metadata 에 두어 Preview resolver · Properties/Styles 조회 (`syntheticDescendantLookup` → `resolveCanonicalRefTree`) · insert · migration 쓰기가 name ‖ id 였다. 팔레트 · store 로 추가한 요소는 customId 를 받으므로 (시드 origin 186 자손은 0), origin 에 추가한 자식을 instance 에서 편집하면 **쓰기 자체가 사라졌다** — live 원복에서 Styles 쓰기 뒤 descendants 키 0 (패널 조회가 Canvas id 를 못 찾음).
+- **원인 (F3)**: 같은 segment 형제가 한 synthetic id 를 나눠 Canvas 는 두 번째 형제를 잃고 첫 형제를 두 번 그렸고 (`existingSyntheticChild`), patch 하나가 둘에 걸렸다.
+- **반영**:
+  - `getCanonicalRefPathSegment` 가 metadata customId 도 읽는다 — 호출처 약 25 곳 (Preview · 패널 조회 · insert · migration · presentation) 이 한 번에 Canvas 규칙.
+  - 형제 목록 segment `getCanonicalRefChildSegments` (같은 segment 두 번째부터 `~N`, 첫 형제 키는 그대로) · `findCanonicalRefChildBySegment` — Canvas materializer · Preview `applyDescendantsToTree` · 행 템플릿 경로 · origin 진입 해석 · insert walker · originChildRefs (private name ‖ id 규칙 제거) · staticCollectionMigration · presentation index · commit adapter.
+  - `adapters/canonical/canonicalPathWalk.ts` (Phase 2 의 해석기 전용 walker) 는 호출처가 전부 공용 helper 로 옮겨 삭제 (사용자 승인 2026-09-27).
+  - 옛 규칙 키: `translateLegacyDescendantKeys` 가 해석 입구 (Canvas instance 루트 · 변형 체인 · Preview ref) 에서 origin 자식 트리를 걸어 옛 키의 현재 규칙 사본을 둔다 (읽기 전용 — 문서는 바꾸지 않는다, 옮길 것이 없으면 같은 객체).
+- **증거**: unit `pathSegmentUnification.test.ts` 6 (metadata customId segment · Canvas 키를 Preview 도 · 옛 키를 두 해석기 모두 · scene 모양 노드의 옛 키 · 옛 키 + 현재 키 합치기 · 같은 이름 두 번째 형제만) · live `adr150-f2-segment-rule-live.mjs` 4/4 — origin 에 store 로 Text 추가 (customId 자동) → 팔레트 GridList 정적 항목 안 synthetic 자식 `<instance>/component-gridlist__item-1/text_1` 이 layout map 에 있고, Styles 쓰기 → 바깥 instance 키 `component-gridlist__item-1/text_1` · Preview 해석기 = Canvas · 패널 해석기 (같은 색). builder 전체 7953 · type-check PASS.
+- **원복 RED**: metadata customId 읽기 제거 → unit 3 · live 2/4 (쓰기 사라짐) · 옛 키 변환 끔 → unit 1 · 형제 접미사 끔 → unit 2.
+- F3 는 live 로 만들 수 없다 — store 가 모든 요소에 customId 를 붙여 같은 이름 형제가 생기지 않는다 (옛 문서 · import 전용).
+
+### F2 · F3 판독 (reviewer 1 회) — HIGH 1 · MEDIUM 2
+
+- HIGH-1 `fixed`: 옛 규칙 segment 가 customId 를 먼저 봐 Canvas scene 노드 (metadata customId 를 최상위로 올림) 에서는 옛 규칙 = 현재 규칙 → name ‖ id 옛 키를 Canvas 만 못 읽었다. 테스트가 원시 문서 노드로 Canvas 축을 대신해 놓쳤다. 옛 규칙 = componentName ‖ name ‖ id 로 수리, 테스트에 scene 모양 노드 추가.
+- MEDIUM-2 `fixed`: 옛 키 · 현재 키 공존 시 옛 patch 를 버렸다 → 둘 다 속성 patch 면 옛 patch 위에 현재 patch 를 합친다.
+- MEDIUM-3 `deferred`: Preview presentation index 가 걸러진 목록으로 `~N` 을 센다 — 같은 segment 형제가 production 에서 생기지 않아 (store customId 문서 단위 고유 · 시드 중복 0) LOW.
+- 수리 뒤: unit 6/6 (수리 전 추가 2 건 RED) · builder 전체 7955 · tsc 0 · live 4/4. 번역은 reuse 적중 판정 뒤에서만 돌아 캐시 적중에 영향 없음.

@@ -57,6 +57,7 @@ import {
 // ADR-157 gap 배선 (②): ListBox 소유자 gap 을 px 로 해석 (style longhand/shorthand + props.gap).
 import { parsePxValue } from "@composition/specs";
 
+import { getCanonicalRefChildSegments } from "../../../../adapters/canonical/canonicalRefResolution";
 import { readLegacyMetadataCustomId } from "../../../../adapters/canonical/legacyMetadata";
 import type { FillItem } from "../../../../types/builder/fill.types";
 import type { PageElementIndex } from "../../../stores/utils/elementIndexer";
@@ -1659,8 +1660,8 @@ interface RowDescendantTemplate {
 
 /**
  * origin 자식 트리에서 허용표 (`ROW_TEMPLATE_BINDABLE_PROP_KEYS`) prop 의 `{field}` 템플릿을 모은다. 경로는
- * 해석기가 synthetic 자식 id 를 만드는 segment (`customId || name || id` — `getCanonicalRefPathSegment` 와
- * scene node 의 필드 대응) 와 같다.
+ * 해석기가 synthetic 자식 id 를 만드는 형제 단위 segment (`getCanonicalRefChildSegments` — customId ‖ name ‖ id,
+ * 같은 이름 형제 `~N`) 와 같다.
  */
 function compileRowDescendantTemplates(
   children: readonly CanonicalNode[],
@@ -1668,9 +1669,9 @@ function compileRowDescendantTemplates(
   pathPrefix = "",
 ): RowDescendantTemplate[] {
   const out: RowDescendantTemplate[] = [];
-  for (const child of children) {
-    const segment =
-      readLegacyMetadataCustomId(child.metadata) || child.name || child.id;
+  const segments = getCanonicalRefChildSegments(children);
+  for (const [index, child] of children.entries()) {
+    const segment = segments[index]!;
     const path = pathPrefix ? `${pathPrefix}/${segment}` : segment;
     const props = isRecord(child.props) ? child.props : null;
     if (props) {
