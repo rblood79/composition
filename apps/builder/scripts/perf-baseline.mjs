@@ -22,6 +22,15 @@
 //     [--classes idle,pan,zoom,select,multi-select-edit,edit,panel-resize,page-switch,panel-toggle,layers-scroll]
 //     [--pages N] (시드 페이지 수, 기본 2 — ADR-221 G2 는 22)
 //     [--zoom Z] (시드 뒤 초기 줌 0.1~5 — DEV 훅 __composition_APPLY_VIEWPORT__, 22 페이지 전부 뷰포트 안 = 0.1)
+//     [--call-counts] (CDP precise coverage 로 부류당 V8 함수 호출 수 — 결정적 카운트. 커버리지가
+//        최적화를 막아 wall-clock 이 부풀므로 이 run 의 gap/taskMs 는 비교 인용 금지)
+//
+// 결정적 카운트 (`results.<부류>.counts`, 2026-09-27): wall-clock 은 실행마다 흔들려 ratchet
+//   게이트가 못 된다 (claude.dev "how we made claude.ai faster" — Valgrind Ir · React commit ·
+//   layout/style-recalc · DOM mutation 카운트로 hill-climb). 같은 시드 + --fixed-inputs 면 실행
+//   간 동일해야 하는 값만 모은다: perf 라벨 count · Skia 캐시 hit/miss · CDP LayoutCount /
+//   RecalcStyleCount · DOM mutation · React dev "Components ⚛" measure 수 · layout version delta ·
+//   (--call-counts) V8 함수 호출 수 + 앱 코드 상위 함수.
 //
 // 결과: <out>/leak-<ts>.json + stdout 마크다운 표. 판정 기준 (warm-up 제외):
 //   기울기 > 지표별 문턱 AND 증가 스텝 비율 ≥ 0.6 → LEAK? (조사 대상)
@@ -63,6 +72,7 @@ const DEFAULTS = {
   pages: 2,
   zoom: null,
   fixedInputs: false,
+  callCounts: false,
   coldEntries: 0,
   selectionDriver: "external-props",
   classes: [
@@ -125,6 +135,9 @@ export function parseArgs(argv) {
       continue;
     } else if (value === "--fixed-inputs") {
       options.fixedInputs = true;
+      continue;
+    } else if (value === "--call-counts") {
+      options.callCounts = true;
       continue;
     } else if (value === "--open-panels")
       options.openPanels = next ? next.split(",").filter(Boolean) : [];
@@ -1605,6 +1618,20 @@ export const RECORDER_SCRIPT = `(() => {
       const lt = typeof PerformanceObserver !== "undefined" && PerformanceObserver.supportedEntryTypes.includes("longtask")
         ? new PerformanceObserver((list) => { for (const e of list.getEntries()) { longTasks.push(e.duration); longTaskEntries.push({ start: e.startTime, duration: e.duration }); } }) : null;
       lt?.observe({ type: "longtask" });
+      // 결정적 카운트 — DOM mutation (패널 재렌더 대리) · React 19.2 dev 의 "Components ⚛" measure
+      // (컴포넌트 렌더마다 1개, 하니스가 시작 전 clearMeasures 로 분리) · layout version delta.
+      const domMutations = { childList: 0, attributes: 0, characterData: 0 };
+      const mo = typeof MutationObserver !== "undefined"
+        ? new MutationObserver((list) => { for (const m of list) domMutations[m.type] = (domMutations[m.type] ?? 0) + 1; }) : null;
+      mo?.observe(document, { subtree: true, childList: true, attributes: true, characterData: true });
+      const measures = { total: 0, reactComponents: 0 };
+      const measureTrack = (e) => e.detail?.devtools?.track ?? "";
+      const measureObserver = typeof PerformanceObserver !== "undefined" && PerformanceObserver.supportedEntryTypes.includes("measure")
+        ? new PerformanceObserver((list) => { for (const e of list.getEntries()) { measures.total += 1; if (measureTrack(e).startsWith("Components")) measures.reactComponents += 1; } }) : null;
+      performance.clearMeasures?.();
+      measureObserver?.observe({ type: "measure" });
+      const layoutVersionAt = () => window.__composition_LAYOUT_DEBUG__?.getSharedLayoutVersion?.() ?? null;
+      const layoutVersion0 = layoutVersionAt();
       let last = performance.now(); let running = true;
       const tick = (timestamp) => { if (!running) return; const now = performance.now();
         const callbackGap = now - last; const rafGap = lastTimestamp === null ? null : timestamp - lastTimestamp;
@@ -1623,6 +1650,10 @@ export const RECORDER_SCRIPT = `(() => {
       this._stop = async () => { running = false; const ms = performance.now() - t0; if (lt) { for (const e of lt.takeRecords()) { longTasks.push(e.duration); longTaskEntries.push({ start: e.startTime, duration: e.duration }); } lt.disconnect(); }
         document.removeEventListener?.("visibilitychange", visibilityChanged);
         document.removeEventListener?.("wheel", inputPhase, true);
+        if (mo) { for (const m of mo.takeRecords()) domMutations[m.type] = (domMutations[m.type] ?? 0) + 1; mo.disconnect(); }
+        if (measureObserver) { for (const e of measureObserver.takeRecords()) { measures.total += 1; if (measureTrack(e).startsWith("Components")) measures.reactComponents += 1; } measureObserver.disconnect(); }
+        const layoutVersion1 = layoutVersionAt();
+        const layoutVersionDelta = layoutVersion0 == null || layoutVersion1 == null ? null : layoutVersion1 - layoutVersion0;
         // profiler.stop()을 기다리는 동안 발생한 프레임은 측정 구간에 포함하지 않는다.
         const perf = window.__composition_PERF__?.snapshotAll?.() ?? [];
         const frameCapture = window.__composition_FRAME_CAPTURE__?.snapshot() ?? null;
@@ -1642,6 +1673,7 @@ export const RECORDER_SCRIPT = `(() => {
         const layerTreeRows = document.querySelectorAll('.layer-tree--rac-virtualized [role="row"]').length;
         return { ms, gaps, rafGaps, callbackDelays, gapEvents, allocBytes, gcCount, longTasks, profile, layerTreeRows,
           perf, caches, frameCapture, visibility, inputPhases, frameTimes, markers, longTaskEntries, t0,
+          domMutations, measures, layoutVersionDelta,
           dpr: window.devicePixelRatio ?? null }; };
     },
     stop() { return this._stop(); },
@@ -2005,7 +2037,8 @@ export const FRAME_CLASSES = {
     await page.mouse.down();
     const t0 = Date.now();
     let i = 0;
-    while (Date.now() - t0 < ms) {
+    // fixedInputs: 고정 이동 횟수 (ms/16) — 결정적 카운트용. 그 외: 벽시계.
+    while (ctx.fixedInputs ? i < Math.ceil(ms / 16) : Date.now() - t0 < ms) {
       const dx = 60 * Math.sin((i++ / 30) * Math.PI);
       await page.mouse.move(x0 + dx, y0);
       await page.waitForTimeout(16);
@@ -2015,19 +2048,26 @@ export const FRAME_CLASSES = {
   },
   "page-switch": (page, ctx, ms) =>
     page.evaluate(
-      async ({ pageIds, home, ms }) => {
+      async ({ pageIds, home, ms, fixedInputs }) => {
         const other = pageIds.find((p) => p !== home);
         const store = window.__composition_STORE__;
         const t0 = performance.now();
         let i = 0;
-        while (performance.now() - t0 < ms) {
+        while (
+          fixedInputs ? i < Math.ceil(ms / 300) : performance.now() - t0 < ms
+        ) {
           store.getState().activatePage(i++ % 2 ? home : other);
           await new Promise((r) => setTimeout(r, 300));
         }
         store.getState().activatePage(home);
         store.getState().setSelectedElement(null);
       },
-      { pageIds: ctx.pageIds, home: ctx.homePageId, ms },
+      {
+        pageIds: ctx.pageIds,
+        home: ctx.homePageId,
+        ms,
+        fixedInputs: ctx.fixedInputs,
+      },
     ),
   "panel-toggle": async (page, ctx, ms) => {
     const buttons = page.locator(".panel-toggle-rail button[aria-pressed]");
@@ -2045,7 +2085,9 @@ export const FRAME_CLASSES = {
     if (target < 0) throw new Error("토글 버튼 없음");
     const t0 = Date.now();
     let clicks = 0;
-    while (Date.now() - t0 < ms) {
+    while (
+      ctx.fixedInputs ? clicks < Math.ceil(ms / 300) : Date.now() - t0 < ms
+    ) {
       await buttons.nth(target).click();
       clicks += 1;
       await page.waitForTimeout(300);
@@ -2060,7 +2102,7 @@ export const FRAME_CLASSES = {
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     const t0 = Date.now();
     let i = 0;
-    while (Date.now() - t0 < ms) {
+    while (ctx.fixedInputs ? i < Math.ceil(ms / 16) : Date.now() - t0 < ms) {
       await page.mouse.wheel(0, (Math.floor(i++ / 20) % 2 ? -1 : 1) * 40);
       await page.waitForTimeout(16);
     }
@@ -2078,6 +2120,15 @@ async function runFrameLane(page, cdp, seed, options) {
     );
     await page.waitForTimeout(500);
     const before = await cdp.send("Performance.getMetrics");
+    if (options.callCounts) {
+      await cdp.send("Profiler.enable");
+      await cdp.send("Profiler.startPreciseCoverage", {
+        callCount: true,
+        detailed: false,
+        allowTriggeredUpdates: false,
+      });
+      await cdp.send("Profiler.takePreciseCoverage"); // 카운터 reset
+    }
     await page.evaluate((opts) => window.__perfRecorder.start(opts), {
       profile: options.profile,
       instrumentation: options.instrumentation,
@@ -2096,9 +2147,18 @@ async function runFrameLane(page, cdp, seed, options) {
       cls === "pan" || cls === "zoom" ? await waitForCameraSettle(page) : null;
     const rec = await page.evaluate(() => window.__perfRecorder.stop());
     if (settle) rec.settleWait = settle;
+    let coverage = null;
+    if (options.callCounts) {
+      coverage = summarizeCoverage(
+        await cdp.send("Profiler.takePreciseCoverage"),
+      );
+      await cdp.send("Profiler.stopPreciseCoverage");
+      await cdp.send("Profiler.disable");
+    }
     const after = await cdp.send("Performance.getMetrics");
     results[cls] = summarizeRecording(rec);
     results[cls].raw = rec;
+    results[cls].counts = buildCounts(rec, before.metrics, after.metrics, coverage);
     results[cls].mainThread = summarizeTaskMetrics(
       before.metrics,
       after.metrics,
@@ -2109,6 +2169,75 @@ async function runFrameLane(page, cdp, seed, options) {
     await page.waitForTimeout(400);
   }
   return results;
+}
+
+// ── 결정적 카운트 ─────────────────────────────────────────────────────────────
+// wall-clock 대신 ratchet 게이트가 될 수 있는 값. 같은 시드 + --fixed-inputs 면 실행 간
+// 동일해야 한다 (동일성 확인 절차: 같은 옵션 2회 → counts 필드 diff 0).
+// Nodes · JSEventListeners · Documents 는 카운터가 아니라 게이지 (GC 시점에 따라 음수) 라 제외
+// (2026-09-27 60 요소 2회 실측: edit JSEventListeners +1396 → −1011).
+const CDP_COUNT_METRICS = ["LayoutCount", "RecalcStyleCount"];
+
+export function buildCounts(rec, beforeMetrics, afterMetrics, coverage) {
+  const a = Object.fromEntries(beforeMetrics.map((m) => [m.name, m.value]));
+  const b = Object.fromEntries(afterMetrics.map((m) => [m.name, m.value]));
+  const cdp = Object.fromEntries(
+    CDP_COUNT_METRICS.filter((k) => k in a && k in b).map((k) => [
+      k,
+      b[k] - a[k],
+    ]),
+  );
+  // longtask.* 는 wall-clock 파생 (50ms 문턱) — 카운트가 아니다
+  const perfLabels = Object.fromEntries(
+    rec.perf
+      .filter((p) => !p.label.startsWith("longtask."))
+      .map((p) => [p.label, p.count]),
+  );
+  const caches = Object.fromEntries(
+    rec.caches.map((c) => [
+      c.name,
+      { hits: c.hits, misses: c.misses, missReasons: c.missReasons },
+    ]),
+  );
+  return {
+    perfLabels,
+    caches,
+    cdp,
+    domMutations: rec.domMutations ?? null,
+    reactRenderMeasures: rec.measures?.reactComponents ?? null,
+    measuresTotal: rec.measures?.total ?? null,
+    layoutVersionDelta: rec.layoutVersionDelta ?? null,
+    v8: coverage,
+  };
+}
+
+/** CDP Profiler.takePreciseCoverage (callCount, detailed:false) → 함수 호출 수 합계 + 앱 상위 함수. */
+export function summarizeCoverage(payload) {
+  let total = 0;
+  let app = 0;
+  let deps = 0;
+  const perFn = [];
+  for (const script of payload.result ?? []) {
+    const url = String(script.url ?? "");
+    const short = url
+      .replace(/^.*[/]src[/]/, "src/")
+      .replace(/^.*[/]node_modules[/]/, "nm/")
+      .replace(/[?].*$/, "");
+    const isApp = short.startsWith("src/");
+    const isDep = short.startsWith("nm/");
+    for (const fn of script.functions ?? []) {
+      // detailed:false — 함수당 range 1개 (전체 함수), count = 호출 수
+      const n = fn.ranges?.[0]?.count ?? 0;
+      if (!n) continue;
+      total += n;
+      if (isApp) {
+        app += n;
+        perFn.push({ fn: fn.functionName || "(anonymous)", file: short, n });
+      } else if (isDep) deps += n;
+    }
+  }
+  perFn.sort((x, y) => y.n - x.n);
+  return { total, app, deps, topApp: perFn.slice(0, 20) };
 }
 
 export function summarizeTaskMetrics(before, after) {
@@ -2172,6 +2301,29 @@ function renderFrameTable(results) {
     lines.push(
       `| ${cls} / ${r.selectionDriver ?? "-"} | ${raf.p95} / ${raf.max} | ${raf.overThreshold} / ${raf.overThresholdPct} | ${r.callbackDelay.p95} / ${r.callbackDelay.max} | ${r.layerTreeRows} |`,
     );
+  }
+  // 결정적 카운트 표 — ratchet 후보. `(n)` 은 wall-clock 이 아니라 횟수.
+  const counted = Object.entries(results).filter(([, r]) => r.counts);
+  if (counted.length) {
+    lines.push(
+      "\n### 결정적 카운트 (ratchet 후보 — 같은 시드·--fixed-inputs 면 실행 간 동일)",
+      "| 부류 | render.frame | scene.build | layout.publish | record.content | layout ver Δ | stream hit/miss | picture hit/miss | paragraph hit/miss | Layout / RecalcStyle | DOM mut (child/attr/text) | React render measure | V8 calls total / app |",
+      "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+    );
+    const hm = (c) => (c ? `${c.hits}/${c.misses}` : "-");
+    for (const [cls, r] of counted) {
+      const c = r.counts;
+      const dm = c.domMutations;
+      lines.push(
+        `| ${cls} | ${c.perfLabels["render.frame"] ?? "-"} | ${c.perfLabels["scene.build"] ?? "-"} | ${c.perfLabels["layout.publish"] ?? "-"} | ${c.perfLabels["render.skia.record.content"] ?? "-"} | ${c.layoutVersionDelta ?? "-"} | ${hm(c.caches.commandStream)} | ${hm(c.caches.nodePicture)} | ${hm(c.caches.paragraph)} | ${c.cdp.LayoutCount ?? "-"} / ${c.cdp.RecalcStyleCount ?? "-"} | ${dm ? `${dm.childList}/${dm.attributes}/${dm.characterData}` : "-"} | ${c.reactRenderMeasures ?? "-"} | ${c.v8 ? `${c.v8.total} / ${c.v8.app}` : "-"} |`,
+      );
+    }
+    for (const [cls, r] of counted) {
+      if (!r.counts.v8) continue;
+      lines.push(`\n${cls} — V8 호출 수 상위 (앱 코드):`);
+      for (const f of r.counts.v8.topApp.slice(0, 10))
+        lines.push(`  ${String(f.n).padStart(8)}  ${f.fn}  ${f.file}`);
+    }
   }
   // ADR-226 G2: 휠 부류의 gesture 창 (gate-off 이전) / settle 창 (gate-off → 2 rAF) 분리
   const windowed = Object.entries(results).filter(([, r]) => r.windows);
@@ -2436,6 +2588,8 @@ async function main() {
             "callback or RAF interval >25ms; page performance time origin",
           layerTreeRows:
             '.layer-tree--rac-virtualized [role="row"] count at recording stop',
+          counts:
+            "결정적 카운트 (ratchet 후보). perfLabels = perfMarks reset 이후 호출 수 · caches = Skia 캐시 hit/miss · cdp = Performance.getMetrics before/after 차 (LayoutCount·RecalcStyleCount 는 renderer 누적 카운터) · domMutations = document subtree MutationObserver record 수 · reactRenderMeasures = React 19.2 dev 'Components ⚛' track measure 수 (dev 빌드 전용, 컴포넌트 렌더 1 = 1) · layoutVersionDelta = __composition_LAYOUT_DEBUG__.getSharedLayoutVersion 차 · v8 = --call-counts 일 때 CDP precise coverage 함수 호출 수 (커버리지가 최적화를 막으므로 그 run 의 wall-clock 은 인용 금지)",
         },
         at: new Date().toISOString(),
         chrome: browser.version(),
