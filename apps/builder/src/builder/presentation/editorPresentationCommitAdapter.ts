@@ -40,7 +40,6 @@ import {
 import {
   getCanonicalRefDescendantOverride,
   getCanonicalRefChildSegments,
-  getCanonicalRefPathSegment,
   getCanonicalRefTarget,
   withCanonicalRefDescendantFills,
   withCanonicalRefDescendantStylePatch,

@@ -14,7 +14,7 @@ import type {
   RefNode,
 } from "@composition/shared";
 
-import { getCanonicalRefPathSegment } from "../../adapters/canonical/canonicalRefResolution";
+import { getCanonicalRefChildSegment } from "../../adapters/canonical/canonicalRefResolution";
 
 export const DIALOG_ORIGIN_ID = "component-dialog";
 export const DIALOG_CONTENT_REGION_ID = `${DIALOG_ORIGIN_ID}__content-region`;
@@ -29,8 +29,11 @@ export interface DialogRegionPathRewrite {
   pairs: ReadonlyArray<{ from: string; to: string }>;
 }
 
-function segmentForms(node: CanonicalNode): string[] {
-  const segment = getCanonicalRefPathSegment(node);
+function segmentForms(
+  siblings: readonly CanonicalNode[],
+  node: CanonicalNode,
+): string[] {
+  const segment = getCanonicalRefChildSegment(siblings, node)!;
   return segment === node.id ? [segment] : [segment, node.id];
 }
 
@@ -46,10 +49,13 @@ export function buildDialogRegionPathRewrite(
       (child) => child.metadata?.slotRole === "content",
     );
     if (!region) continue;
-    const regionSegment = getCanonicalRefPathSegment(region);
-    for (const bodySegment of segmentForms(body)) {
+    const regionSegment = getCanonicalRefChildSegment(
+      body.children ?? [],
+      region,
+    )!;
+    for (const bodySegment of segmentForms(origin.children ?? [], body)) {
       for (const moved of region.children ?? []) {
-        for (const movedSegment of segmentForms(moved)) {
+        for (const movedSegment of segmentForms(region.children ?? [], moved)) {
           pairs.push({
             from: `${bodySegment}/${movedSegment}`,
             to: `${bodySegment}/${regionSegment}/${movedSegment}`,

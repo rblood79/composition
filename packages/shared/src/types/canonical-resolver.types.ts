@@ -113,6 +113,19 @@ export interface ResolvedNode extends CanonicalNode {
    * Properties 패널 "원본과 다름" dot 마커 표시에 사용.
    */
   _overrides?: string[];
+  /**
+   * 원본 형제 목록 기준 descendants 경로 segment (ADR-150 후속 MEDIUM-3). 해석 노드는 ref 자식이 master `name` 을
+   * 물려받고 metadata customId 를 잃으며, 목록도 걸러지고 instance 자식과 합쳐진다 — 해석 노드로 segment 를 다시 세면
+   * 편집기 · Canvas 키와 어긋난다. resolver 가 원본 목록 (거르기 전 · origin 과 instance 자식 따로) 으로 세어 싣고,
+   * 소비처 (Preview presentation index) 는 이 값만 읽는다.
+   */
+  _pathSegment?: string;
+  /**
+   * ref instance 의 **자기 자식** (origin 에서 받지 않은 자식) 표식. 편집기에서 이 자식은 그 instance 기준 synthetic
+   * 이 아니다 (최상위 instance 면 실제 노드, 중첩 ref 면 바깥 instance 기준 경로) — Preview index 는 소유 instance
+   * 문맥에 등록하지 않는다 (같은 segment origin 자식과 키가 겹친다).
+   */
+  _instanceOwnChild?: boolean;
   /** 자식도 ResolvedNode */
   children?: ResolvedNode[];
 }

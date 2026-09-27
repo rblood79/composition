@@ -17,7 +17,7 @@
  */
 import type { CanonicalNode, CompositionDocument } from "@composition/shared";
 
-import { getCanonicalRefPathSegment } from "../../adapters/canonical/canonicalRefResolution";
+import { getCanonicalRefChildSegments } from "../../adapters/canonical/canonicalRefResolution";
 import { GROUP_SLOT_HOSTS } from "./slotHostPolicy";
 import { indexNodes, resolveChainEnd } from "./staticCollectionMigration";
 
@@ -169,8 +169,9 @@ export function planGroupItemInsert(input: {
 
   const siblings: Sibling[] = [];
   if (isInstance) {
-    for (const child of groupNode.children ?? []) {
-      const path = getCanonicalRefPathSegment(child);
+    const segments = getCanonicalRefChildSegments(groupNode.children ?? []);
+    for (const [index, child] of (groupNode.children ?? []).entries()) {
+      const path = segments[index]!;
       const endType = resolveChainEnd(child.id, byId)?.type ?? child.type;
       siblings.push({
         ownId: null,
@@ -215,7 +216,8 @@ export function planGroupItemInsert(input: {
     );
     props.color = pickUnusedSwatchColor(taken);
     const last = swatches.at(-1);
-    if (last && isRecord(last.props.style)) props.style = { ...last.props.style };
+    if (last && isRecord(last.props.style))
+      props.style = { ...last.props.style };
   }
 
   const propsUpdates: GroupItemInsertPlan["propsUpdates"] = [];

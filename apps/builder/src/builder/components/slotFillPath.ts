@@ -1,12 +1,12 @@
 /**
  * ADR-240 Phase 1 — instance slot 채우기 (mode C `descendants[path].children`) 의 경로 키.
  *
- * 키 = **경로 segment** (`getCanonicalRefPathSegment` — name 우선). Canvas scene 해석 (`materializeSyntheticDescendants`)
+ * 키 = **경로 segment** (`getCanonicalRefChildSegments` — 형제 목록 기준, customId 우선). Canvas scene 해석 (`materializeSyntheticDescendants`)
  * 과 Properties/Styles 쓰기 (synthetic id) 가 segment 만 쓰고, Preview 해석기는 id · segment 둘 다 받는다. 종전 UI
  * (`customId ?? id`) 는 name 을 가진 host (Card 영역 `Content` …) 에서 id 키를 써 Canvas 만 상속 자식을 그렸다 (G0 F14 ·
  * 진단 (g)). 옛 id 키 채움은 읽을 때 폴백하고, 다음 채우기 · 비우기에서 segment 키로 옮긴다.
  */
-import { getCanonicalRefPathSegment } from "../../adapters/canonical/canonicalRefResolution";
+import { getCanonicalRefChildSegments } from "../../adapters/canonical/canonicalRefResolution";
 
 export type SlotFillPathNode = {
   id: string;
@@ -43,13 +43,13 @@ export function collectSlotFillHosts<T extends SlotFillPathNode>(
   prefix: { path: string; legacyPath: string } = { path: "", legacyPath: "" },
 ): SlotFillHost<T>[] {
   const hosts: SlotFillHost<T>[] = [];
-  for (const child of childrenByParent.get(parentId) ?? []) {
-    const segment = getCanonicalRefPathSegment({
-      id: child.id,
-      customId: child.customId,
-      componentName: child.componentName,
-      name: child.name ?? undefined,
-    });
+  const children = childrenByParent.get(parentId) ?? [];
+  // 노드를 그대로 넘긴다 — 필드를 골라 새 객체를 만들면 metadata customId (문서 노드) 가 빠진다.
+  const segments = getCanonicalRefChildSegments(
+    children.map((child) => ({ ...child, name: child.name ?? undefined })),
+  );
+  for (const [index, child] of children.entries()) {
+    const segment = segments[index]!;
     const path = prefix.path ? `${prefix.path}/${segment}` : segment;
     const legacy = prefix.legacyPath
       ? `${prefix.legacyPath}/${legacySegment(child)}`

@@ -1,5 +1,4 @@
 import type { ResolvedNode } from "@composition/shared";
-import { getCanonicalRefChildSegments } from "../../adapters/canonical/canonicalRefResolution";
 
 import {
   toEditorPresentationTargetKey,
@@ -53,10 +52,11 @@ export function buildPreviewPresentationProjectionIndex(
       Object.prototype.hasOwnProperty.call(style, "color")
     );
   };
+  type RefContext = { readonly refId: string; readonly pathKey: string };
   const visit = (
     node: ResolvedNode,
     parentPath: string,
-    refContext?: { readonly refId: string; readonly pathKey: string },
+    refContexts: readonly RefContext[] = [],
     inheritedColorRoots: readonly string[] = [],
   ): void => {
     const renderKey = parentPath ? `${parentPath}/${node.id}` : node.id;
@@ -80,27 +80,37 @@ export function buildPreviewPresentationProjectionIndex(
       }
     }
 
-    const nextRefContext = node._resolvedFrom
-      ? { refId: node.id, pathKey: "" }
-      : refContext;
-    const childSegments = getCanonicalRefChildSegments(node.children ?? []);
-    for (const [childIndex, child] of (node.children ?? []).entries()) {
-      const segment = childSegments[childIndex]!;
-      const childRefContext = nextRefContext
-        ? {
-            refId: nextRefContext.refId,
-            pathKey: nextRefContext.pathKey
-              ? `${nextRefContext.pathKey}/${segment}`
-              : segment,
-          }
-        : undefined;
+    // ref instance 아래 자손은 모든 조상 instance 기준 경로로 등록한다 — 편집기 synthetic id 는 가장 바깥
+    //   instance 기준 (`<instance>/<중첩 ref>/<자식>`) 이고, 중첩 ref 자체를 편집할 때는 그 ref 기준이다.
+    //   segment 는 해석기가 원본 형제 목록으로 센 `_pathSegment` 만 읽는다 — 해석 노드로 다시 세면 master name ·
+    //   걸러진 목록 · instance 자식 합침 때문에 편집기 키와 어긋난다 (ADR-150 후속 MEDIUM-3).
+    const nextRefContexts: readonly RefContext[] = node._resolvedFrom
+      ? [...refContexts, { refId: node.id, pathKey: "" }]
+      : refContexts;
+    for (const child of node.children ?? []) {
+      const segment = child._pathSegment;
+      // instance 자기 자식은 소유 instance 문맥에 넣지 않는다 — 편집기에서 실제 노드 (최상위) 이거나 바깥 instance
+      //   기준 경로 (중첩 ref) 다. 같은 segment origin 자식과 키가 겹친다 (MEDIUM-3 판독 1).
+      const contexts =
+        child._instanceOwnChild && node._resolvedFrom
+          ? refContexts
+          : nextRefContexts;
+      const childRefContexts: readonly RefContext[] =
+        segment === undefined
+          ? []
+          : contexts.map((context) => ({
+              refId: context.refId,
+              pathKey: context.pathKey
+                ? `${context.pathKey}/${segment}`
+                : segment,
+            }));
       const childRenderKey = `${renderKey}/${child.id}`;
-      if (childRefContext) {
+      for (const context of childRefContexts) {
         add(
           {
             kind: "ref-descendant",
-            refId: childRefContext.refId,
-            pathKey: childRefContext.pathKey,
+            refId: context.refId,
+            pathKey: context.pathKey,
           },
           childRenderKey,
         );
@@ -108,7 +118,7 @@ export function buildPreviewPresentationProjectionIndex(
       visit(
         child,
         renderKey,
-        childRefContext,
+        childRefContexts,
         ownColor
           ? [node.id, ...(node._resolvedFrom ? [node._resolvedFrom] : [])]
           : inheritedColorRoots,

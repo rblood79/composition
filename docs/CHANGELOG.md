@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Preview 에서 instance 안 목록 항목 · 중첩 요소의 편집 중 표시가 반영되지 않던 문제.** Preview 는 해석이 끝난 노드로 대상 경로를 다시 세어, 이름 없는 항목 instance 를 원본 origin 이름 (`Item/Default`, `~2`) 으로 등록하고 중첩 instance 에서 경로가 끊겼다 — 편집기는 id 경로로 찾아 못 맞췄다. 해석기가 원본 형제 목록 기준 경로를 노드에 싣고 Preview 는 그 값만 읽는다. 경로를 노드 하나로 구하던 13 곳도 형제 목록 기준으로 바꿨다 (같은 이름 형제 `~2` · slot 채우기 경로의 customId 누락).
+
 - **origin 에 추가한 자식을 instance 에서 편집하면 저장되지 않거나 Canvas 에만 보이던 문제.** 팔레트로 추가한 요소는 customId 를 받는데, Canvas 는 그 customId 로 자식 경로를 만들고 Properties · Styles 조회 · Preview 는 이름 ‖ id 로 찾았다 — 편집이 사라졌다. 경로 규칙을 하나 (customId ‖ 이름 ‖ id) 로 통일하고, 옛 규칙으로 저장된 키도 읽는다 (문서는 바꾸지 않음). 같은 이름 형제는 두 번째부터 `~2` 로 구분한다 (종전 Canvas 는 두 번째 형제를 잃었다).
   - live: origin 에 Text 추가 → 팔레트 GridList 항목 안 그 자식 색 편집 → Preview 해석기 = Canvas (4/4, `adr150-f2-segment-rule-live.mjs`)
 - **GridList 한 줄에 설명 있는 카드와 없는 카드가 섞이면 Canvas 의 짧은 카드가 늘어나지 않던 문제** (Preview 는 행 높이로 늘림, 50 vs 76).

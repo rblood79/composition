@@ -6,7 +6,6 @@ import {
 import { applyPropsPatch } from "../../adapters/canonical/instanceResolver";
 import {
   getCanonicalRefChildSegments,
-  getCanonicalRefPathSegment,
 } from "../../adapters/canonical/canonicalRefResolution";
 import { diffEffectiveProps } from "./stateVariantMigration";
 import { applyFactoryPropagation } from "../utils/propagationEngine";

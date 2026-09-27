@@ -21,7 +21,7 @@ import { resolveTreeItemKey } from "@composition/shared";
 
 import {
   findCanonicalRefChildBySegment,
-  getCanonicalRefPathSegment,
+  getCanonicalRefChildSegment,
 } from "../../adapters/canonical/canonicalRefResolution";
 import {
   getSyntheticDescendantPathKey,
@@ -182,7 +182,11 @@ function treeHostExpansion(
   );
   let current: unknown = ownerProps?.expandedKeys;
   let cursor: CanonicalNode | undefined = owner;
-  for (let depth = 0; !Array.isArray(current) && cursor && depth < 8; depth += 1) {
+  for (
+    let depth = 0;
+    !Array.isArray(current) && cursor && depth < 8;
+    depth += 1
+  ) {
     current = (cursor.props as Record<string, unknown> | undefined)
       ?.expandedKeys;
     cursor =
@@ -220,7 +224,8 @@ function findTreeItemOwner(
   index(roots);
   const chainType = (node: CanonicalNode) =>
     node.type === "ref" ? resolveChainEnd(node.id, byId)?.type : node.type;
-  const isItem = (node: CanonicalNode) => String(chainType(node)) === "TreeItem";
+  const isItem = (node: CanonicalNode) =>
+    String(chainType(node)) === "TreeItem";
   const host = byId.get(hostId) ?? findInRoots(roots, hostId);
   if (!host) return null;
   let owner = parents.get(hostId);
@@ -346,7 +351,8 @@ export function planTabItemInsert(input: {
       const countOf = (nodes: readonly CanonicalNode[] | undefined) =>
         isItemHost(family, master.type)
           ? (nodes ?? []).filter(
-              (child) => resolveChainEnd(child.id, byId)?.type === family.itemType,
+              (child) =>
+                resolveChainEnd(child.id, byId)?.type === family.itemType,
             ).length
           : (nodes ?? []).length;
       const count = countOf(master.children) + countOf(host.children);
@@ -459,7 +465,10 @@ export function planTabItemInsert(input: {
       : undefined;
   const parentPath = listPath.split("/").slice(0, -1).join("/");
   const tabPanelsPath = tabPanels
-    ? [parentPath, getCanonicalRefPathSegment(tabPanels)]
+    ? [
+        parentPath,
+        getCanonicalRefChildSegment(listHit.parent.children ?? [], tabPanels),
+      ]
         .filter(Boolean)
         .join("/")
     : null;

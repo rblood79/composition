@@ -14,6 +14,7 @@ import { mergeFillSizing } from "@composition/shared";
 
 import {
   getCanonicalRefChildSegments,
+  getOverrideChildSegments,
   translateLegacyDescendantKeys,
 } from "../../adapters/canonical/canonicalRefResolution";
 import type {
@@ -241,18 +242,23 @@ function _resolveRefNodeUncached(
   );
   // ADR-241 선행 — origin 안 중첩 ref 의 자기 자식 (TableView origin 안 Row ref 의 Cell) 에도 바깥 instance 의
   //   `<중첩 ref>/<자기 자식>` patch 를 적용한다 (Canvas `materializeSyntheticDescendants` 와 같은 범위).
-  const resolvedInstanceChildren = ownChildrenDescendants
-    ? applyDescendantsToTree(
-        refNode.children ?? [],
-        ownChildrenDescendants,
-        doc,
-        cache,
-        imports,
-        "",
-      )
-    : (refNode.children ?? []).map((child) =>
-        resolveNode(child, doc, cache, imports),
-      );
+  const resolvedInstanceChildren = markInstanceOwnChildren(
+    ownChildrenDescendants
+      ? applyDescendantsToTree(
+          refNode.children ?? [],
+          ownChildrenDescendants,
+          doc,
+          cache,
+          imports,
+          "",
+        )
+      : withPathSegments(
+          (refNode.children ?? []).map((child) =>
+            resolveNode(child, doc, cache, imports),
+          ),
+          getCanonicalRefChildSegments(refNode.children ?? []),
+        ),
+  );
   // ADR-148 Phase 2 — 템플릿 바인딩 `{키}` 치환 (propsSchema gate).
   //   origin 이 metadata.propsSchema 를 선언한 reusable 에 한해, resolved instance root
   //   props(= origin 기본 + override merge)를 schema 키로 좁힌 바인딩으로 자식 placeholder
@@ -359,60 +365,150 @@ function applyDescendantsToTree(
   // 형제 단위 segment (같은 이름 형제 `~N`, ADR-150 후속 F3) — Canvas 해석기와 같은 함수.
   const segments = getCanonicalRefChildSegments(children);
   return children
-    .map((child, index): ResolvedNode => {
-      // path 키는 두 규약이 공존한다 — canonical 스키마의 **id path** (`"Box/Slot"`, page-frame slot fill 이
-      //   `convertPageLayout` 로 만든다) 와 builder Skia/store 축의 **segment path** (`getCanonicalRefPathSegment`
-      //   — customId ‖ name ‖ id; synthetic id · Properties/Styles 쓰기 키). ADR-229 Phase 2 (live
-      //   실측): name 을 가진 조합 자식 (Form 의 "ButtonGroup" · "TextField/Name") 의 patch 를 Preview 만
-      //   못 읽었다 — id 를 먼저 보고 segment 로도 맞춘다 (name 이 없으면 둘은 같다).
-      const idPath = parentPath ? `${parentPath}/${child.id}` : child.id;
-      const segment = segments[index]!;
-      const segmentPath = parentPath ? `${parentPath}/${segment}` : segment;
-      const currentPath =
-        descendants && Object.prototype.hasOwnProperty.call(descendants, idPath)
-          ? idPath
-          : segmentPath;
+    .map((child, index): ResolvedNode =>
+      withPathSegment(resolveDescendantChild(child, index), segments[index]!),
+    )
+    .filter(isResolvedEnabled);
 
-      if (
-        descendants &&
-        Object.prototype.hasOwnProperty.call(descendants, currentPath)
-      ) {
-        const override = descendants[currentPath]!;
-        return applyOverrideToNode(
-          child,
-          override,
-          currentPath,
-          doc,
-          cache,
-          imports,
-          descendants,
-        );
-      }
+  function resolveDescendantChild(
+    child: CanonicalNode,
+    index: number,
+  ): ResolvedNode {
+    // path 키는 두 규약이 공존한다 — canonical 스키마의 **id path** (`"Box/Slot"`, page-frame slot fill 이
+    //   `convertPageLayout` 로 만든다) 와 builder Skia/store 축의 **segment path** (`getCanonicalRefPathSegment`
+    //   — customId ‖ name ‖ id; synthetic id · Properties/Styles 쓰기 키). ADR-229 Phase 2 (live
+    //   실측): name 을 가진 조합 자식 (Form 의 "ButtonGroup" · "TextField/Name") 의 patch 를 Preview 만
+    //   못 읽었다 — id 를 먼저 보고 segment 로도 맞춘다 (name 이 없으면 둘은 같다).
+    const idPath = parentPath ? `${parentPath}/${child.id}` : child.id;
+    const segment = segments[index]!;
+    const segmentPath = parentPath ? `${parentPath}/${segment}` : segment;
+    const currentPath =
+      descendants && Object.prototype.hasOwnProperty.call(descendants, idPath)
+        ? idPath
+        : segmentPath;
 
-      // 매칭 없음 — ref 자식은 자체 master 로 재귀 resolve. ADR-229: 바깥 instance 의
-      // 깊은 path patch (`<자식 ref path>/<nested master 자식>`) 는 그 ref 의 범위로 좁혀 넘긴다.
-      if (child.type === "ref") {
-        return resolveNestedRefChild(
-          child as RefNode,
-          undefined,
-          descendants,
-          idPath === segmentPath ? idPath : [idPath, segmentPath],
-          doc,
-          cache,
-          imports,
-        );
-      }
-
-      return resolveFrameOrPlain(
+    if (
+      descendants &&
+      Object.prototype.hasOwnProperty.call(descendants, currentPath)
+    ) {
+      const override = descendants[currentPath]!;
+      return applyOverrideToNode(
         child,
+        override,
+        currentPath,
         doc,
         cache,
         imports,
         descendants,
-        currentPath,
       );
-    })
-    .filter(isResolvedEnabled);
+    }
+
+    // 매칭 없음 — ref 자식은 자체 master 로 재귀 resolve. ADR-229: 바깥 instance 의
+    // 깊은 path patch (`<자식 ref path>/<nested master 자식>`) 는 그 ref 의 범위로 좁혀 넘긴다.
+    if (child.type === "ref") {
+      return resolveNestedRefChild(
+        child as RefNode,
+        undefined,
+        descendants,
+        idPath === segmentPath ? idPath : [idPath, segmentPath],
+        doc,
+        cache,
+        imports,
+      );
+    }
+
+    return resolveFrameOrPlain(
+      child,
+      doc,
+      cache,
+      imports,
+      descendants,
+      currentPath,
+    );
+  }
+}
+
+/**
+ * 해석 노드에 원본 형제 목록 기준 segment 를 싣는다 (`ResolvedNode._pathSegment`, ADR-150 후속 MEDIUM-3). 캐시에서 온
+ * 같은 해석 노드에는 같은 사본을 돌려준다 — segment 는 원본 노드 (캐시 키 = ref id · 문서 버전) 가 정하므로 매번
+ * 새 사본을 만들면 Preview 가 바뀌지 않은 서브트리를 다시 그린다.
+ */
+const pathSegmentCopies = new WeakMap<
+  ResolvedNode,
+  Map<string, ResolvedNode>
+>();
+
+function withResolverMeta(
+  node: ResolvedNode,
+  meta: { _pathSegment?: string; _instanceOwnChild?: boolean },
+): ResolvedNode {
+  const segment = meta._pathSegment ?? node._pathSegment;
+  const own = meta._instanceOwnChild ?? node._instanceOwnChild;
+  if (node._pathSegment === segment && node._instanceOwnChild === own) {
+    return node;
+  }
+  const key = `${own ? "own:" : ""}${segment ?? ""}`;
+  let copies = pathSegmentCopies.get(node);
+  if (!copies) {
+    copies = new Map();
+    pathSegmentCopies.set(node, copies);
+  }
+  let copy = copies.get(key);
+  if (!copy) {
+    copy = {
+      ...node,
+      ...(segment !== undefined ? { _pathSegment: segment } : {}),
+      ...(own ? { _instanceOwnChild: true } : {}),
+    };
+    copies.set(key, copy);
+  }
+  return copy;
+}
+
+function withPathSegment(node: ResolvedNode, segment: string): ResolvedNode {
+  return withResolverMeta(node, { _pathSegment: segment });
+}
+
+function markInstanceOwnChildren(
+  nodes: readonly ResolvedNode[],
+): ResolvedNode[] {
+  return nodes.map((node) =>
+    withResolverMeta(node, { _instanceOwnChild: true }),
+  );
+}
+
+function withPathSegments(
+  nodes: readonly ResolvedNode[],
+  segments: readonly string[],
+): ResolvedNode[] {
+  return nodes.map((node, index) => withPathSegment(node, segments[index]!));
+}
+
+/**
+ * mode C 교체 목록의 segment — 교체 목록 규칙 (`getOverrideChildSegments`, id 먼저) 을 plain 자손까지 싣는다 (Canvas
+ * `materializeOverrideChildren` 이 중첩 배열에도 같은 규칙). 해석 목록은 걸러져 있고 ref 는 origin 자식이 섞여
+ * 있으므로 원본 (교체 목록) 자식과 id 로 맞춘다.
+ */
+function withOverridePathSegments(
+  resolved: readonly ResolvedNode[],
+  raw: readonly CanonicalNode[],
+): ResolvedNode[] {
+  const segments = getOverrideChildSegments(raw);
+  const byId = new Map(raw.map((node, index) => [node.id, index]));
+  return resolved.map((node) => {
+    const index = byId.get(node.id);
+    if (index === undefined) return node;
+    const rawNode = raw[index]!;
+    const stamped = withPathSegment(node, segments[index]!);
+    // ref 노드도 내려간다 — 교체 목록에 적힌 자식 (ref 의 자기 자식) 만 id 로 맞아 교체 규칙을 받고, origin 에서
+    //   받은 자식은 id 가 달라 저작 규칙 값을 그대로 둔다 (Canvas `materializeOverrideChildren`, 판독 3).
+    if (!rawNode.children?.length) return stamped;
+    const children = withOverridePathSegments(
+      (stamped.children ?? []) as ResolvedNode[],
+      rawNode.children,
+    );
+    return { ...stamped, children };
+  });
 }
 
 /**
@@ -522,9 +618,10 @@ function applyOverrideToNode(
   if (hasChildren) {
     const childrenOverride = (override as { children: CanonicalNode[] })
       .children;
-    const resolvedChildren = childrenOverride
-      .map((c) => resolveNode(c, doc, cache, imports))
-      .filter(isResolvedEnabled);
+    const resolvedChildren = withOverridePathSegments(
+      childrenOverride.map((c) => resolveNode(c, doc, cache, imports)),
+      childrenOverride,
+    ).filter(isResolvedEnabled);
     // ADR-240 Phase 2 — 같은 항목의 props patch (채운 영역 host 자체의 style 편집 — `{ children, style }`) 도
     //   얹는다. Canvas (`applyDescendantPatchToElement`) 는 이미 싣는다 — 빠지면 영역 스타일이 Preview 만 사라진다.
     const { children: _replaced, ...hostPatch } = override as Record<

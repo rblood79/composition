@@ -72,6 +72,8 @@ type PathSegmentNode = Pick<CanonicalRefResolvableNode, "id"> & {
   componentName?: string | null;
   name?: string;
   metadata?: unknown;
+  /** resolver 가 원본 형제 목록으로 이미 센 segment (`ResolvedNode._pathSegment`) — 있으면 그대로 쓴다. */
+  _pathSegment?: string;
 };
 
 /**
@@ -83,12 +85,14 @@ type PathSegmentNode = Pick<CanonicalRefResolvableNode, "id"> & {
  * customId 는 최상위 (element · scene 노드) 와 legacy metadata (canonical 문서 노드) 둘 다 읽는다 (ADR-150
  * 후속 F2, 사용자 판정 "Canvas 규칙"). 종전 문서 노드는 metadata 를 안 봐 Preview · 패널 조회 · insert 쓰기가
  * name ‖ id, Canvas scene 이 customId ‖ name ‖ id 로 갈렸다 — 팔레트 요소는 customId 를 받으므로 origin 에
- * 추가한 자식의 instance override 가 Canvas 에만 보였다. 형제 목록 안의 segment 는
- * `getCanonicalRefChildSegments` (같은 segment 두 번째부터 `~N`) 로 만든다.
+ * 추가한 자식의 instance override 가 Canvas 에만 보였다.
+ *
+ * 노드 하나만으로는 segment 가 정해지지 않는다 (같은 segment 형제의 두 번째부터 `~N`) — 그래서 export 하지 않는다.
+ * 호출처는 형제 목록을 받는 `getCanonicalRefChildSegments` · `getCanonicalRefChildSegment` 만 쓴다 (MEDIUM-3 근본
+ * 수리 2026-09-27: 노드 하나로 segment 를 구하던 곳이 `~N` 을 놓치고, 해석 노드로 다시 세던 Preview index 가 master
+ * name 을 물려받은 항목 ref 를 `<Master>/Default` 로 등록해 편집기 키와 어긋났다).
  */
-export function getCanonicalRefPathSegment<T extends PathSegmentNode>(
-  node: T,
-): string {
+function getCanonicalRefPathSegment(node: PathSegmentNode): string {
   return (
     node.customId ||
     readLegacyMetadataCustomId(node.metadata) ||
@@ -109,7 +113,9 @@ function getLegacyRefPathSegment(node: PathSegmentNode): string {
 
 /** descendants 속성 patch (mode A — `type` · 배열 `children` 없음) 인지. */
 function isPropsPatch(value: unknown): value is Record<string, unknown> {
-  return isRecord(value) && !("type" in value) && !Array.isArray(value.children);
+  return (
+    isRecord(value) && !("type" in value) && !Array.isArray(value.children)
+  );
 }
 
 /**
@@ -122,11 +128,40 @@ export function getCanonicalRefChildSegments(
 ): string[] {
   const seen = new Map<string, number>();
   return children.map((child) => {
+    // 해석 노드 (변형 체인 master 의 자식 등) 는 원본 목록 기준 segment 를 이미 싣는다 — 걸러지고 이름이 바뀐
+    //   해석 목록으로 다시 세면 어긋난다 (MEDIUM-3 판독 2).
+    if (typeof child._pathSegment === "string") {
+      // 도장 값도 번호에 센다 — 도장 없는 같은 segment 형제가 섞여도 `~N` 이 겹치지 않게.
+      seen.set(child._pathSegment, (seen.get(child._pathSegment) ?? 0) + 1);
+      return child._pathSegment;
+    }
     const base = getCanonicalRefPathSegment(child);
     const count = (seen.get(base) ?? 0) + 1;
     seen.set(base, count);
     return count === 1 ? base : `${base}~${count}`;
   });
+}
+
+/** 형제 목록 안의 한 자식 segment (`getCanonicalRefChildSegments` 와 같은 값). 목록에 없으면 null. */
+export function getCanonicalRefChildSegment(
+  siblings: readonly PathSegmentNode[],
+  child: PathSegmentNode,
+): string | null {
+  const index = siblings.indexOf(child);
+  return index < 0 ? null : getCanonicalRefChildSegments(siblings)[index]!;
+}
+
+/**
+ * mode C (`descendants[path].children` 배열) 자식 목록의 segment — customId ‖ id ‖ name ‖ `child-<index>`. 저작
+ * 자식 규칙과 다르다 (교체 목록은 id 가 먼저 — Canvas `materializeOverrideChildren` 의 synthetic id 규칙). Preview
+ * 해석기도 이 함수로 해석 노드에 segment 를 싣는다.
+ */
+export function getOverrideChildSegments(
+  children: readonly unknown[],
+): string[] {
+  return children.map((child, index) =>
+    isRecord(child) ? getOverrideNodeSegment(child, index) : `child-${index}`,
+  );
 }
 
 /** `getCanonicalRefChildSegments` 기준으로 형제 중 segment 가 같은 자식. */
@@ -177,7 +212,10 @@ export function translateLegacyDescendantKeys<N extends PathSegmentNode>(
     } else if (isPropsPatch(legacy) && isPropsPatch(out[next])) {
       // 옛 키 · 현재 키가 같이 있으면 (F2 이전 Canvas 가 customId 키, 패널 · insert 가 name 키로 쓴 문서)
       //   옛 patch 를 아래에 깔고 현재 patch 가 이긴다 — 한쪽을 버리면 그 필드 (enabled 등) 가 사라진다.
-      out[next] = composePropsPatches(legacy, out[next] as Record<string, unknown>);
+      out[next] = composePropsPatches(
+        legacy,
+        out[next] as Record<string, unknown>,
+      );
     }
   }
   return out ?? descendants;
@@ -828,10 +866,11 @@ function materializeOverrideChildren<T extends CanonicalRefResolvableNode>(
     ((target: string) =>
       resolveCanonicalRefMaster(target, resultElementsMap.values()));
 
+  const overrideSegments = getOverrideChildSegments(overrideChildren);
   overrideChildren.forEach((child, index) => {
     if (!isRecord(child)) return;
 
-    const segment = getOverrideNodeSegment(child, index);
+    const segment = overrideSegments[index]!;
     const syntheticId = `${syntheticParentId}/${segment}`;
     const existingSyntheticChild = resultElementsMap.get(syntheticId);
 

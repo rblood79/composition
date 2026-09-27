@@ -16,7 +16,7 @@ import {
   type SlotRole,
 } from "@composition/shared";
 
-import { getCanonicalRefPathSegment } from "../../adapters/canonical/canonicalRefResolution";
+import { getCanonicalRefChildSegment } from "../../adapters/canonical/canonicalRefResolution";
 
 export interface ItemRoleRow {
   role: SlotRole;
@@ -68,7 +68,9 @@ export function buildItemRoleSurface(
         required: spec.required === true,
         enabled: visible.has(spec.role),
         present: child !== undefined,
-        segment: child ? getCanonicalRefPathSegment(child) : null,
+        segment: child
+          ? getCanonicalRefChildSegment(origin.children ?? [], child)
+          : null,
       };
     })
     // instance 는 origin 에 있는 역할만 (없는 역할은 origin 에서 더한다).

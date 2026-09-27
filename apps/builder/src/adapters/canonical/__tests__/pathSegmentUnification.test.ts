@@ -10,10 +10,11 @@
 import { describe, expect, it } from "vitest";
 import type { CanonicalNode, CompositionDocument } from "@composition/shared";
 
+import { collectSlotFillHosts } from "../../../builder/components/slotFillPath";
 import { resolveCanonicalDocument } from "../../../resolvers/canonical";
 import {
+  getCanonicalRefChildSegment,
   getCanonicalRefChildSegments,
-  getCanonicalRefPathSegment,
   resolveCanonicalRefTree,
 } from "../canonicalRefResolution";
 
@@ -162,7 +163,12 @@ function previewTitles(doc: CompositionDocument): Record<string, unknown> {
 describe("ADR-150 후속 F2 · F3 — descendants 키 규칙 하나", () => {
   it("segment: 문서 노드의 legacy metadata customId 를 읽는다 · 같은 segment 형제는 두 번째부터 ~N", () => {
     const origin = indexNodes(makeDoc({})).get(ORIGIN_ID)!;
-    expect(getCanonicalRefPathSegment(origin.children![0]!)).toBe("text_1");
+    expect(
+      getCanonicalRefChildSegment(origin.children!, origin.children![0]!),
+    ).toBe("text_1");
+    expect(
+      getCanonicalRefChildSegment(origin.children!, origin.children![2]!),
+    ).toBe("Dup~2");
     expect(getCanonicalRefChildSegments(origin.children!)).toEqual([
       "text_1",
       "Dup",
@@ -213,5 +219,28 @@ describe("ADR-150 후속 F2 · F3 — descendants 키 규칙 하나", () => {
     const preview = previewTitles(doc);
     expect(preview["o-a"]).toBe("A");
     expect(preview["o-b"]).toBe("second");
+  });
+
+  it("MEDIUM-3 근본: slot 채우기 경로도 문서 노드의 metadata customId 를 읽는다", () => {
+    const host = {
+      id: "o-region",
+      type: "frame",
+      slot: ["component-button"],
+      metadata: { type: "legacy-element-props", customId: "frame_3" },
+    } as unknown as CanonicalNode;
+    const hosts = collectSlotFillHosts<CanonicalNode>(
+      ORIGIN_ID,
+      new Map([[ORIGIN_ID, [host]]]),
+    );
+    expect(hosts.map((hit) => hit.path)).toEqual(["frame_3"]);
+  });
+
+  it("도장 (`_pathSegment`) 있는 형제와 없는 형제가 섞여도 segment 가 겹치지 않는다", () => {
+    expect(
+      getCanonicalRefChildSegments([
+        { id: "a", name: "Dup", _pathSegment: "Dup" },
+        { id: "b", name: "Dup" },
+      ]),
+    ).toEqual(["Dup", "Dup~2"]);
   });
 });

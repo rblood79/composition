@@ -335,3 +335,19 @@ LOW deferred (production 증상 없음): L1 목록 입력이면 스크롤마다 
 - MEDIUM-3 `deferred`: Preview presentation index 가 걸러진 목록으로 `~N` 을 센다 — 같은 segment 형제가 production 에서 생기지 않아 (store customId 문서 단위 고유 · 시드 중복 0) LOW.
 - 수리 뒤: unit 6/6 (수리 전 추가 2 건 RED) · builder 전체 7955 · tsc 0 · live 4/4. 번역은 reuse 적중 판정 뒤에서만 돌아 캐시 적중에 영향 없음.
 - **MEDIUM-3 재확인 (사용자 지시)**: deferred 전제가 틀렸다 — import (pencil · 프로젝트 파일) 는 customId 를 발급하지 않고, detach 는 nested master customId · componentName 을 형제마다 복사하며, customId 비우기는 componentName 으로 떨어진다. 또 Preview presentation index 는 해석 노드 (ref 자식이 master name 을 물려받고 customId 를 잃음) 로 segment 를 세 기본 목록 instance 에서도 편집기 키 (id) 와 어긋난다 — 원래부터 있던 불일치, Preview 편집 중 즉석 표시에만 영향. 수리 대기. 상세 `reviews/150.md`.
+
+### MEDIUM-3 근본 수리 (사용자 지시 2026-09-27 "MEDIUM-3을 바로 수정해, 같은 패턴이 재발하지않게 근본적인 오류수정을해")
+
+- **원인 (재발 패턴 2 개)**:
+  1. segment 를 **노드 하나로** 구하는 export (`getCanonicalRefPathSegment`) 가 열려 있어 호출처 13 곳이 형제 목록 없이 셌다 — 같은 segment 형제의 `~N` 을 놓치고, `slotFillPath` 는 필드를 골라 새 객체를 만들어 metadata customId (F2 규칙) 까지 빠뜨렸다.
+  2. Preview presentation index 가 **해석 노드로 segment 를 다시 셌다** — 해석된 ref 자식은 master `name` 을 물려받고 metadata customId 를 잃으며, 목록은 걸러지고 instance 자식과 합쳐진다. 기본 GridList instance 항목이 `Item/Default` · `~2` 로 등록돼 편집기 키 (`grid__item-1`) 로 못 찾았고, 중첩 ref 에서 경로가 끊겨 `grid__item-1/Label` 도 못 찾았다 (원래부터, F2 이전에도).
+- **반영**:
+  - 노드 하나 segment 함수는 export 하지 않는다 — 형제 목록 API (`getCanonicalRefChildSegments` · `getCanonicalRefChildSegment(siblings, child)`) 만. mode C 교체 목록 규칙 (customId ‖ id ‖ name) 도 `getOverrideChildSegments` 하나로 Canvas · Preview 가 같이 쓴다.
+  - resolver 가 원본 형제 목록 (거르기 전 · origin 자식과 instance 자기 자식 따로 · mode C 는 교체 규칙) 으로 센 segment 를 `ResolvedNode._pathSegment` 로 싣는다. 캐시에서 온 해석 노드는 WeakMap 으로 같은 사본을 돌려 identity 를 유지한다.
+  - index 는 `_pathSegment` 만 읽고 (segment 규칙 import 0 — 정적 검사), 모든 조상 instance 문맥으로 이어진 경로를 등록한다.
+  - 호출처 13 곳 목록 API 로 전환 — collectionItemInsert · dialogRegionPaths · groupItemInsert · itemSlotRoles · slotFillPath (노드 그대로) · stateVariantMigration (최종 목록 `[...defaults, ...extras]` 기준) · staticCollectionMigration · tableColumnInsert.
+- **증거**: unit — index 실제 resolver 경로 7 (이름 없는 항목 ref id · metadata customId · 중첩 이어진 경로 · 앞 형제 꺼짐 `Dup~2` · instance 자식 따로 · mode C 교체 규칙 · ref 문맥 자식 전부 `_pathSegment`) + 정적 검사 1 · slot 채우기 metadata customId 1. builder 전체 7964 · type-check PASS.
+- **원복 RED**: index = HEAD → 5 · stamping 끔 → 7 · mode C 규칙 끔 → 2 · instance 자식 stamping 끔 → 2 · 정적 검사 (HEAD index) → 1 · slotFillPath 필드 골라 만들기 → 1 (`o-region` ≠ `frame_3`).
+- **live (Canvas · 패널 축, Preview iframe 미개방)**: F2 segment 4/4 · ADR-241 중첩 ref 자기 자식 5/5 · ADR-241 표 열 · 행 7/7. 실패 3 은 이번 변경과 무관 (segment 의존 단언은 같은 스크립트에서 통과): ADR-229 composite `originButtonRect` null (Components origin 이 layout map 에 없음) · 진단 개수 · ADR-229 slot insert 옛 Slot 절 버튼 (TagGroup origin items 0) · ADR-240 Dialog Close 오른쪽 끝 — 삽입 **전** 부터 footer 가 내용 폭 (76) 이라 flex-end 전제가 깨져 있다 (catalog 이후 변경, 별도 확인 필요). Preview index 자체의 live 는 Preview 금지로 unit 만.
+- **판독 1 (MEDIUM 2 · LOW→결함 1, 전부 수리)**: 최상위 instance 자기 자식 키 겹침 (회귀) → `_instanceOwnChild` · 변형 체인 master 자식을 해석 노드로 다시 셈 (원래부터, Preview patch 조회도) → 목록 함수가 `_pathSegment` 를 그대로 씀 · mode C 안 ref 자기 자식 규칙 → 교체 규칙. 원복 RED 각 1~2 · builder 7968 · live 4/4 · 5/5 · 7/7. 상세 `reviews/150.md`.
+

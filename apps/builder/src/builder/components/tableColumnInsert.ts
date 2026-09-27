@@ -14,8 +14,8 @@ import { resolveTableColumnKey } from "@composition/shared";
 
 import {
   findCanonicalRefChildBySegment,
+  getCanonicalRefChildSegment,
   getCanonicalRefChildSegments,
-  getCanonicalRefPathSegment,
 } from "../../adapters/canonical/canonicalRefResolution";
 import {
   getSyntheticDescendantPathKey,
@@ -93,7 +93,9 @@ export function resolveTableHeaderHostId(
   const header = (master?.children ?? []).find(
     (child) => String(child.type) === "TableHeader",
   );
-  return header ? `${table.id}/${getCanonicalRefPathSegment(header)}` : null;
+  return header
+    ? `${table.id}/${getCanonicalRefChildSegment(master?.children ?? [], header)}`
+    : null;
 }
 
 /** 열 노드의 유효 props — ref 는 체인 끝 origin props 위에 자기 props. */
@@ -383,7 +385,10 @@ export function planTableColumnInsert(input: {
       ? childOfType(owner, "TableBody")
       : undefined;
   if (body && !replace) {
-    const bodyPath = [parentPath, getCanonicalRefPathSegment(body)]
+    const bodyPath = [
+      parentPath,
+      getCanonicalRefChildSegment(owner?.children ?? [], body),
+    ]
       .filter(Boolean)
       .join("/");
     const rows = currentModeCChildren(
@@ -482,7 +487,9 @@ export function planTableRowInsert(input: {
   if (String(owner?.type) !== "TableView") return null;
   const header = childOfType(owner, "TableHeader");
   const headerPath = header
-    ? [parentPath, getCanonicalRefPathSegment(header)].filter(Boolean).join("/")
+    ? [parentPath, getCanonicalRefChildSegment(owner?.children ?? [], header)]
+        .filter(Boolean)
+        .join("/")
     : null;
   const columnCount = headerPath
     ? (readTableHeaderColumns(document, `${instance.id}/${headerPath}`)
@@ -596,7 +603,10 @@ export function readTableHeaderColumnNodes(
   const master = instance.ref ? resolveChainEnd(instance.ref, byId) : null;
   const header = childOfType(master, "TableHeader");
   if (!header) return [];
-  const headerPath = getCanonicalRefPathSegment(header);
+  const headerPath = getCanonicalRefChildSegment(
+    master?.children ?? [],
+    header,
+  )!;
   const descendants = instance.descendants ?? {};
   const entry = descendants[headerPath];
   return isRecord(entry) && Array.isArray(entry.children)

@@ -30,7 +30,7 @@ import {
   type StateVariantState,
 } from "./stateVariantOrigins";
 import { readStateLayer } from "./stateVariantLayers";
-import { getCanonicalRefPathSegment } from "../../adapters/canonical/canonicalRefResolution";
+import { getCanonicalRefChildSegments } from "../../adapters/canonical/canonicalRefResolution";
 
 // ───────────────────────────── 유효값 차분 ─────────────────────────────
 
@@ -268,10 +268,18 @@ function mergeTemplateChildren(
   }
   const out: CanonicalNode[] = [];
   const used = new Set<CanonicalNode>();
-  for (const def of defaults) {
+  const matches = defaults.map((def) => {
     const match = byRole.get(slotRoleOf(def))?.find((c) => !used.has(c));
-    // descendants 키 = segment 경로 (name 우선 — Canvas 는 이것만 읽고 Preview 는 id · segment 둘 다).
-    const segment = getCanonicalRefPathSegment(def);
+    if (match) used.add(match);
+    return match;
+  });
+  const extras = selecteds.filter((child) => !used.has(child));
+  // descendants 키 = 최종 origin 자식 목록 (default 순서 + selected 에만 있는 자식) 기준 형제 segment — Canvas 는
+  //   이 목록으로 synthetic id 를 만든다 (같은 segment 형제 `~N`). merged 는 def 의 id · name · metadata 를 이어받는다.
+  const segments = getCanonicalRefChildSegments([...defaults, ...extras]);
+  for (const [index, def] of defaults.entries()) {
+    const match = matches[index];
+    const segment = segments[index]!;
     const path = pathPrefix ? `${pathPrefix}/${segment}` : segment;
     if (!match) {
       // default 에만 — origin 에 숨겨 두고 휴지 변형이 되살린다.
@@ -279,7 +287,6 @@ function mergeTemplateChildren(
       descendants[path] = { enabled: true };
       continue;
     }
-    used.add(match);
     const merged: CanonicalNode = {
       ...def,
       props: match.props ?? def.props,
@@ -303,11 +310,10 @@ function mergeTemplateChildren(
     if (Object.keys(patch).length > 0) descendants[path] = patch;
     out.push(merged);
   }
-  for (const extra of selecteds) {
-    if (used.has(extra)) continue;
+  for (const [index, extra] of extras.entries()) {
     // selected 에만 — origin 에 있고 휴지 변형이 숨긴다.
     out.push(extra);
-    const extraSegment = getCanonicalRefPathSegment(extra);
+    const extraSegment = segments[defaults.length + index]!;
     descendants[pathPrefix ? `${pathPrefix}/${extraSegment}` : extraSegment] = {
       enabled: false,
     };

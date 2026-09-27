@@ -16,8 +16,8 @@ import type { CanonicalNode, CompositionDocument } from "@composition/shared";
 import { getElementDataBinding } from "@composition/shared";
 
 import {
+  getCanonicalRefChildSegment,
   getCanonicalRefChildSegments,
-  getCanonicalRefPathSegment,
 } from "../../adapters/canonical/canonicalRefResolution";
 import { TAB_ITEM_DEFAULT_ORIGIN_ID } from "./tabs/tabsTemplateOrigins";
 import { TAG_ITEM_DEFAULT_ORIGIN_ID } from "./taggroup/tagGroupTemplateOrigins";
@@ -130,7 +130,9 @@ function findSlotChildKey(origin: CanonicalNode, role: string): string | null {
       (c.metadata as Record<string, unknown> | undefined)?.slotRole === role ||
       (c.props as Record<string, unknown> | undefined)?.slot === role,
   );
-  return child ? getCanonicalRefPathSegment(child) : null;
+  return child
+    ? getCanonicalRefChildSegment(origin.children ?? [], child)
+    : null;
 }
 
 /**
@@ -556,7 +558,14 @@ export function buildCollectionEntries(
   startIndex = 0,
 ): CanonicalNode[] {
   if (!family.sectionType) {
-    return buildItemInstances(family, items, idPrefix, origin, taken, startIndex);
+    return buildItemInstances(
+      family,
+      items,
+      idPrefix,
+      origin,
+      taken,
+      startIndex,
+    );
   }
   const out: CanonicalNode[] = [];
   let itemIndex = startIndex;
@@ -631,7 +640,10 @@ export function buildItemInstances(
   return items.map((item, offset) => {
     const index = startIndex + offset;
     const built = family.buildItem(item, origin);
-    const id = uniqueId(`${idPrefix}__${family.itemPrefix}-${index + 1}`, taken);
+    const id = uniqueId(
+      `${idPrefix}__${family.itemPrefix}-${index + 1}`,
+      taken,
+    );
     const key = String(
       item.id ??
         (submenuParentKey !== undefined
@@ -857,7 +869,8 @@ function migrateOwnerInstance(
   }
   const list = findListFrame(family, master);
   if (!list) return null;
-  const listPath = getCanonicalRefPathSegment(list);
+  const listPath = getCanonicalRefChildSegment(master.children ?? [], list);
+  if (listPath === null) return null;
   if (instance.descendants?.[listPath] !== undefined) {
     held.push(`${instance.id}: descendants["${listPath}"] 이미 있음`);
     return null;
