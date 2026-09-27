@@ -567,7 +567,7 @@ describe("ADR-228 G4 — 문서 증가량 (Δnode · Δbyte) 실측 기록", () 
     for (const node of nodes) n += 1 + countNodes(node.children ?? []);
     return n;
   }
-  it("Modal 제외 generic origin 48 + descendants 133 · Δbyte 는 예상 ±20%", () => {
+  it("Modal 제외 generic origin 50 + descendants 138 · Δbyte 는 예상 ±20%", () => {
     const base = makeDocument();
     // hand seed 5 + template origin 만 시드한 문서를 기준으로 generic 만의 증가를 잰다.
     const withoutGeneric = ensureReusableCompositeOrigins({
@@ -596,8 +596,9 @@ describe("ADR-228 G4 — 문서 증가량 (Δnode · Δbyte) 실측 기록", () 
     // ADR-233 Phase 1: Tabs (root 1 + TabList · TabPanels · TabPanel ×2 = desc 4) 가 손 ensurer 로 이동.
     // ADR-233 Phase 2: Radio (root 1 + Label 1) 합류.
     // ADR-239 Phase 4: ColorSwatchPicker (root 1 + swatch 6) · ColorSwatch (root 1) 합류.
+    // f435623ff: ColorField origin 의 ColorSwatch 자식 제거 (DOM · RAC · catalog 에 없는 Canvas 전용 시각) — desc −1.
     expect(roots).toBe(50);
-    expect(deltaNodes - roots).toBe(139);
+    expect(deltaNodes - roots).toBe(138);
     // G0 예상 ~28 KB 는 definition 직렬화 합 — 실측 37,952 B (id · name · metadata 가 더해진다,
     //   2026-09-21). 범위 밖이면 seed 모양이 바뀐 것이니 inventory (breakdown §8.5) 를 갱신할 것.
     expect(deltaBytes).toBeGreaterThan(30_000);
