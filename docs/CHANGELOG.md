@@ -28,6 +28,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **개발 도구**: 런타임 오류 목록 (dev `__composition_RUNTIME_ERRORS__`) · 팔레트 전체 오류 sweep `pnpm gate:catalog-errors` (live 70 컴포넌트 · 오류 0) · 하니스 대상 서버 `BUILDER_URL` · `dev:kill` 은 `DEV_PORTS` (기본 5173) 만 종료.
   - **Why**: Chrome for Developers case study 30건 조사 (CyberAgent · P2ER · `<permission>` · container queries · View Transitions) 에서 ADR 없이 적용할 수 있는 항목.
 
+## [ADR-150 후속 R1 — 줄바꿈되는 목록 행의 스크롤 위치] - 2026-09-27
+
+### Fixed
+
+- **긴 label 이 줄바꿈되는 ListBox 행 · GridList 카드가 있는 스크롤 목록에서 행이 겹치거나 밀리고 끝 행까지 스크롤되지 않던 문제.** 행 위치 계산이 모든 행을 한 줄 높이로 보고 있었다. 이제 화면에 들어온 행의 실제 높이를 기억해 행 위치 · 스크롤 범위에 반영하고, 높이가 바뀌면 화면 첫 행이 제자리에 있도록 스크롤 위치를 보정한다 (ADR-162 펼친 카드와 같은 방식).
+  - live: 폭 200 ListBox 60 행 (3 행마다 4 줄) · 폭 320 2 열 GridList 40 장 — 맨 위 · 안 본 중간으로 점프 · 끝에서 행 위치 = 계산 (±1), 전 행 스크롤 뒤 스크롤 범위 = 실제 행 높이 합, 폭 변경 뒤 다시 정합 (11/11).
+  - 위치: [ADR-150](adr/completed/150-rac-pencil-residual-interaction-execution.md) breakdown §6 · `scene/expandedCardHeights.ts` · `apps/builder/scripts/adr150-r1-wrap-rows-live.mjs`
+
 ## [ADR-150 Implemented — 데이터 바인딩 목록의 Canvas 정합] - 2026-09-27
 
 ### Changed
@@ -35,7 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **스크롤하는 데이터 목록 (ListBox · GridList · Table) 이 끝 행까지 닿고, 보이는 행 위치가 Preview 와 같다.** 행마다 높이가 다른 목록 (설명이 있는 행 · 없는 행), 행 간격, 요소 헤더가 있는 Table 을 한 계산 (행 위치 단일 소스) 이 처리한다 (Phase 1, 2026-09-27). 데이터 행 더블클릭 → 템플릿 origin 자식 선택 · 카메라 추종은 아래 Phase 2 엔트리.
   - live: 실제 builder 에서 ListBox 1000 · GridList 2 열 400 · Table 500 · 요소 헤더 Table 을 top · mid · end 스크롤 — 15/15, 실 브라우저 DOM 대조 3/3. 더블클릭 진입 10/10.
   - **Why**: 가상화 window 는 07-19 부터 가동했지만 window · spacer · 스크롤 범위 · 행 배치가 서로 다른 식을 써서 행 간격이 있거나 행 높이가 섞이면 끝 행에 닿지 못했고, 2 열 GridList 는 스크롤 중 카드 열이 뒤바뀌었다.
-  - 알려진 한계 (후속): 줄바꿈으로 높이가 바뀌는 ListBox · slot-only GridList 행은 근사로 남는다 (ADR-162 실측 캐시 연결 예정).
+  - 줄바꿈으로 높이가 바뀌는 행은 같은 날 후속 R1 (위 엔트리) 에서 반영.
   - 위치: [ADR-150](adr/completed/150-rac-pencil-residual-interaction-execution.md) · `scene/collectionRowOffsets.ts` · `interaction/resolveDataRowOriginTarget.ts` · `apps/builder/scripts/adr150-*-live.mjs`
 
 ## [ADR-150 Phase 2 — 데이터 행 더블클릭 → 템플릿 origin 편집] - 2026-09-27

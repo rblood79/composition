@@ -249,7 +249,32 @@ LOW deferred (production 증상 없음): L1 목록 입력이면 스크롤마다 
 
 #### §5-1 후속 항목 (150 범위 밖 · 기록)
 
-- **R1 wrap 잔여**: 줄바꿈으로 높이가 바뀌는 ListBox · slot-only GridList 행은 행별 높이 목록이 근사다 (단일 줄 metric). ADR-162 Phase 4 의 실측 캐시 + scroll anchoring 을 두 가족에 연결하는 150 후속.
+- ~~**R1 wrap 잔여**~~ — **반영 2026-09-27 (§6)**: ADR-162 Phase 4 실측 캐시 + scroll anchoring 을 ListBox · slot-only GridList 에 연결.
 - 구간 이름 규칙 3 갈래 통합 (scene 합성 id = metadata customId ‖ name ‖ id · Preview resolver = name ‖ id · insert 쓰기 키 혼합) — Phase 2 판독 MEDIUM 의 근원.
 - GridList 혼합 행 짧은 카드 stretch (Canvas 50 vs DOM 76, §3-3) · DOM 100 행 cap vs Canvas 전 행 가상화 · anchor 없는 data-bound ListBox 행 모양 · 같은 이름 형제 synthetic id 충돌 (§3-3).
 - `catalogOrigins.test.ts` 139 → 138 선행 실패 (150 무관).
+
+## §6 후속 R1 — 줄바꿈 행 높이 (2026-09-27, 사용자 지시 "ADR-150 후속 진행해")
+
+- **재현 (live)**: 폭 200 ListBox 의 긴 label 행은 Canvas layout 104 인데 행 위치 단일 소스는 단일 줄 공식 32 — 3 번째 행부터 y 가 72 씩 누적해 어긋나고 스크롤 범위 (1748) 가 짧아 끝 행에 못 닿는다. 폭 320 2 열 slot-only GridList 카드도 146 대 50 (조사용 probe — `adr150-r1-wrap-rows-live.mjs` 로 대체).
+- **반영**: ADR-162 Phase 4 의 실측 캐시 (`scene/expandedCardHeights.ts`) 를 ListBox 행 · slot-only 카드에 연결했다.
+  - plan 에 `family` (listbox · gridlist — 수확이 읽는 행 projection 상자) · `estimate` 를 둔다. 펼친 카드는 종전대로 첫 실측으로 추정하고, 두 가족은 **그 행의 공식값** 으로 추정한다 (줄바꿈 없는 행은 공식이 정확하므로 첫 실측으로 덮으면 틀린다).
+  - 수확의 변화 판정은 "시각 행 높이 목록이 달라짐" 으로 바꿨다 — 줄바꿈 없는 목록은 실측 = 공식이라 캐시만 채우고 version · 재빌드 · anchoring 0.
+  - `collectionVirtualization.ts` `resolveMeasuredRowHeights`: 행 key · 데이터 참조를 입력 서명 캐시 (`rowIdentityBySignature`) 로 재사용 — 편집마다 전 행 재투영 0 (Phase 1 M1 과 같은 이유). ListBox plan 캐시 조건에 `measuredVersion`. window 등록은 모든 ListBox · GridList scroll 소유자.
+- **증거**:
+  - live `apps/builder/scripts/adr150-r1-wrap-rows-live.mjs` 11/11 — 두 가족 각각 top · 안 본 중간 점프 · 끝 (anchoring 수렴, 마지막 항목 포함) 에서 window 행 y = 단일 소스 (±1) · 진동 0, 순차 스크롤로 모은 layout 상자 높이 합 (ListBox 104 · 32 → 3478 · GridList 146 · 50 · 170 → 2356) = 행 영역 길이, 폭 200 → 320 변경 뒤 실측 무효화 · top 재정합.
+  - 원복 RED: 두 가족 추정을 공식으로 고정 (실측 무시) → live 9/11 FAIL.
+  - unit `expandedCardHeights.test.ts` 11 (slot-only 실측 = 공식이면 변화 0 · 줄바꿈 카드만 교체 · ListBox 줄바꿈 행 → 행 영역 · 스크롤 범위 · 판독 M1 · M2 · M3 · 수리 검증 N1).
+  - 회귀: canvas 스위트 2248 · live G1 15/15 · G2 10/10 · ADR-162 G3 13/13 — 유효 실행 11 회 중 첫 1 회만 (f) "스크롤 중 열 수 2 → 3" FAIL, 이어진 10 회 PASS (실패 상세 미확보 · 재현 안 됨 — 파일 편집 중 HMR 이 끼어든 실행 1 회는 무효로 제외) · DOM oracle 3/3.
+- **판독 (reviewer 1 회) — HIGH 0 · MEDIUM 3 수리**: 셋 다 "화면 밖 행에 이전 조건의 실측이 남는다" 는 같은 성격이다. 실측 캐시의 키가 콘텐츠 (행 key · 데이터 참조) 뿐이고 측정 조건이 빠져 있었다.
+  - M1 `fixed` — label · description 템플릿 원문 변경 (slot text 가 아닌 item props 템플릿 · `{{ }}` 변수 기본값) 이 서명에 없었다 → plan `templateRefs` (컴파일된 템플릿 — 텍스트별 캐시라 원문이 같으면 같은 참조) 가 바뀌면 owner 실측을 버린다.
+  - M2 `fixed` — owner border-box 폭만 봐서 행 가용 폭 변화 (padding · gap · 열 수) 를 놓쳤다 → owner 단위 행 가용 폭 (`trackWidth` — ListBox 는 행 묶음 상자 폭, GridList 는 window 카드 폭) 이 바뀌면 버린다.
+  - M3 `fixed` — 선택 행 변경처럼 공식값이 바뀌어도 실측이 덮었다 → 실측 항목에 그때의 공식값을 두고 같을 때만 적중.
+  - LOW: L1 `fixed` (sample 모드 주석) · L2 `fixed` (쓰기 0 인 publish 는 시각 행 계산 없이 끝 — O(window)) · L3 `deferred` (oracle `resolveCollectionRowPositions` 가 캔버스 entry 의 plan 을 다시 등록 — 하니스 전용).
+  - 원복 RED: 세 수리 각각 제거 → 해당 unit 1 건씩 FAIL (M1 · M2 · M3).
+  - M2 첫 구현은 "window 안의 이미 잰 행" 만 비교해 처음 보는 행의 폭 변화를 놓쳤다 — unit 반증이 먼저 잡아 owner 단위 폭으로 바꿨다.
+- **수리 검증 (reviewer 1 회) — HIGH 0 · M1 ~ M3 닫힘 확인**. 수리가 만든 MEDIUM 1:
+  - N1 `fixed` — owner 단위 폭을 "마지막 행 상자 폭" 으로 잡아, 행 폭이 행마다 다른 ListBox (origin Hug 폭 · 선택 variant 폭) 에서 수확마다 실측을 비우고 anchoring 이 반복됐다 → 행 가용 폭 `readTrackWidth` (ListBox 행 묶음 폭 · GridList 카드 폭 — `1fr` 균등이라 columnGap 변화도 드러남). unit N1 + 원복 RED.
+  - N2 `deferred` (LOW) — 템플릿 컴파일 캐시가 한도 (500) 로 비워진 직후 한 번 같은 원문이 새 참조가 되어 실측을 한 번 버린다. 재현 문서 미확인.
+  - 규칙 §1 (판독 1 + 수리 검증 1) — 수리 검증이 HIGH 0 이라 이 후속은 닫힌다. N1 수리는 원복 RED + live 재실행으로 확인.
+- **남는 것**: 안 본 행은 공식 (단일 줄) 추정이라, 긴 행이 많은 구간으로 처음 점프하면 한 번 anchoring 으로 자리를 잡는다 (ADR-162 G3 와 같은 방식). Canvas 와 DOM 의 줄바꿈 위치 (텍스트 측정) 대칭은 이 항목 범위 밖이다.

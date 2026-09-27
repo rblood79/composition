@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented — 2026-09-27 (Phase 0 ~ 3 / G0 ~ G3 · `b2916bde2` · `b58c3c45e` · `1553628f9` · `77ee08ddb` + Phase 3 closure — 911 R-3 / G-projected 닫힘 · 910 T-7 A1 철회 기록 · wrap 잔여 후속) · Accepted 2026-09-26 (리뷰 round 3 · 4 pending 0 + 실행자 종결 선언, 사용자 `/execute-adr 150`) · Phase 0 완료 2026-09-27 (G0 PASS — R2 가설 live 성립 · RED 4 고정 · breakdown §2 결과 고정). **Phase 1 완료 2026-09-27** (G1 PASS — 실 브라우저 DOM oracle 3/3 · live Canvas 15/15 · 원복 RED 6/7 (GAP 4 skip 무반응 사유 기록) · 판독 HIGH 0 · MEDIUM 3 수리 · breakdown §3 결과). **Phase 2 완료 2026-09-27** (G2 PASS — 데이터 행 더블클릭 → 템플릿 origin 자식 선택 · 연속성 키 = raw hit · live 8/8 · 원복 RED 5 · 판독 HIGH 0 · MEDIUM 1 수리 (insert walker 되돌림) · breakdown §4 결과 · R3 카메라 추종 추가 — 사용자 판정 "카메라 추종 추가해", 배율 유지 pan · live 10/10 · 원복 RED 2). **본문 재작성 2026-09-26**. 사용자 판정은 두 가지다: "본문 재작성", 그리고 데이터 행 진입을 "origin 자식 선택" 으로 한다. 이전 판은 Accepted 2026-07-18 로 3축 (A1 상태 threading · A2 가상화 · A3 drill-in) 이었고, 본문 원문은 git `7519dee51` 에 있다. 재작성 본문은 리뷰 round 3 이 필요하다.
+Implemented — 2026-09-27 (Phase 0 ~ 3 / G0 ~ G3 · `b2916bde2` · `b58c3c45e` · `1553628f9` · `77ee08ddb` + Phase 3 closure — 911 R-3 / G-projected 닫힘 · 910 T-7 A1 철회 기록) · **후속 R1 반영 2026-09-27** (줄바꿈 행 높이 — ADR-162 실측 캐시를 ListBox · slot-only GridList 에 연결, live 11/11 · breakdown §6) · Accepted 2026-09-26 (리뷰 round 3 · 4 pending 0 + 실행자 종결 선언, 사용자 `/execute-adr 150`) · Phase 0 완료 2026-09-27 (G0 PASS — R2 가설 live 성립 · RED 4 고정 · breakdown §2 결과 고정). **Phase 1 완료 2026-09-27** (G1 PASS — 실 브라우저 DOM oracle 3/3 · live Canvas 15/15 · 원복 RED 6/7 (GAP 4 skip 무반응 사유 기록) · 판독 HIGH 0 · MEDIUM 3 수리 · breakdown §3 결과). **Phase 2 완료 2026-09-27** (G2 PASS — 데이터 행 더블클릭 → 템플릿 origin 자식 선택 · 연속성 키 = raw hit · live 8/8 · 원복 RED 5 · 판독 HIGH 0 · MEDIUM 1 수리 (insert walker 되돌림) · breakdown §4 결과 · R3 카메라 추종 추가 — 사용자 판정 "카메라 추종 추가해", 배율 유지 pan · live 10/10 · 원복 RED 2). **본문 재작성 2026-09-26**. 사용자 판정은 두 가지다: "본문 재작성", 그리고 데이터 행 진입을 "origin 자식 선택" 으로 한다. 이전 판은 Accepted 2026-07-18 로 3축 (A1 상태 threading · A2 가상화 · A3 drill-in) 이었고, 본문 원문은 git `7519dee51` 에 있다. 재작성 본문은 리뷰 round 3 이 필요하다.
 
 > **재작성 사유** (2026-09-26 코드 실측 — 조사 3 갈래와 직접 대조):
 >
@@ -171,6 +171,7 @@ A2' (행 위치) 와 A3' (데이터 행 진입) 는 독립 축이라 대안을 �
 - **G0 (2026-09-27)** GridList grid spacer — 2 열 200 행 스크롤 중간에서 카드 열이 뒤바뀌는 것을 live 로 재현 (R2 가설 성립) → 엔진 grid span 지원 확인 (breakdown §2-2).
 - **G1 (2026-09-27, 15/15 · Phase 3 재실행 15/15)** `adr150-p1-row-positions-live.mjs` — ListBox 1000 행 (32 · 50 교대) · GridList 2 열 400 (50 · 76 교대) · Table 500 · 요소 헤더 Table (quick connect Contacts) 각각 top · mid · end 스크롤에서 행 위치 = 행 위치 단일 소스, 끝 행 하단 = viewport 하단, page error 0. DOM oracle `tests/parity/adr150RowPositionsDom.browser.test.ts` 3/3 (가족당 1 — Phase 3 `/cross-check` 대체, Preview iframe 미개방).
 - **G2 (2026-09-27, 10/10 · Phase 3 재실행 10/10)** `adr150-p2-origin-entry-live.mjs` — 펼친 데이터 카드의 제목 · 설명을 더블클릭 (선택 경계 밖 · 안) → Components 페이지 origin 의 서로 다른 자식 선택 · 카메라가 따라가 화면 안 (배율 유지) · 카드 두 장 150ms 연속 단일 클릭은 이동 0 · 선택 id 에 projection id 0 · origin 글자색 편집 → 카드 3 장 반영 · Properties 「항목 원본」 안내 · page error 0.
+- **후속 R1 (2026-09-27, 11/11)** `adr150-r1-wrap-rows-live.mjs` — 폭 200 ListBox (3 행마다 4 줄) · 폭 320 2 열 GridList: top · 안 본 중간 점프 · 끝에서 window 행 y = 단일 소스, 순차 스크롤로 모은 layout 높이 합 = 행 영역 길이, 폭 변경 뒤 재정합. 원복 (실측 무시) 9/11 FAIL.
 - 원복 RED: 행 위치 6/7 (GAP 4 skip 무반응 사유 기록) · 연속성 키 5 · 카메라 추종 live 2.
 
 ## Consequences

@@ -15,14 +15,33 @@
  *
  * 무효화 신호는 layout publish (`onLayoutPublished`) 하나다 — 수확이 값을 바꿨을 때만 version 을 올리고
  * 가상화 resolver 가 그 version 으로 plan 캐시를 다시 만든다.
+ *
+ * ADR-150 후속 R1 — 같은 캐시가 **ListBox 행 · slot-only GridList 카드** 의 줄바꿈 높이도 받는다
+ * (`family` · `estimate: "formula"`). 이 두 가족은 공식이 단일 줄 높이를 정확히 주므로 안 본 행은 그
+ * 행의 공식값으로 추정하고 (첫 실측으로 모든 행을 덮으면 줄바꿈 없는 행이 틀린다), 본 행만 실측으로 바꾼다.
  */
-import { toCollectionRowProjectionId } from "../../../projection/renderProjectionIds";
+import {
+  toCollectionRowProjectionId,
+  toCollectionRowsGroupProjectionId,
+} from "../../../projection/renderProjectionIds";
 import { resolveCollectionRowOffsets } from "./collectionRowOffsets";
 
 export interface ExpandedCardPlanInput {
   ownerId: string;
+  /** 행 projection id 가족 — 수확이 읽는 layout 상자 (기본 gridlist 카드). */
+  family?: "gridlist" | "listbox";
+  /**
+   * 안 본 행의 추정 — `"first-measured"` (기본, 펼친 카드: 첫 실측 ?? 공식) · `"formula"` (ListBox 행 ·
+   * slot-only 카드: 그 행의 공식값 — 줄바꿈만 실측이 바꾼다).
+   */
+  estimate?: "first-measured" | "formula";
   /** origin 서브트리 서명 — 바뀌면 이 owner 의 실측을 모두 버린다. */
   templateSig: string;
+  /**
+   * 참조로 비교하는 템플릿 입력 (컴파일된 label · description 템플릿 — 텍스트별 캐시라 원문이 같으면 같은
+   * 참조). 하나라도 바뀌면 실측을 모두 버린다 (ADR-150 후속 R1 판독 M1).
+   */
+  templateRefs?: readonly unknown[];
   itemKeys: readonly string[];
   /** 행 데이터 참조 (item) — 같은 key 라도 데이터가 바뀌면 그 카드 실측을 버린다. */
   items: readonly unknown[];
@@ -35,10 +54,24 @@ export interface ExpandedCardPlanInput {
   viewportHeight: number;
 }
 
+/**
+ * 한 행 (카드) 의 실측 — 그때의 공식값을 같이 둔다. 공식값이 달라지면 (선택 여부 · description 유무 등
+ * 공식이 반영하는 상태) 그 실측은 적중하지 않는다 (판독 M3). 행 가용 폭은 owner 단위 (`trackWidth`) 로
+ * 두고, 달라지면 수확이 owner 실측을 모두 버린다 (padding · gap · 열 수 변경 — 판독 M2).
+ */
+interface MeasuredRow {
+  item: unknown;
+  height: number;
+  formula: number;
+}
+
 interface OwnerEntry {
   templateSig: string;
+  templateRefs: readonly unknown[];
   ownerWidth: number | null;
-  measured: Map<string, { item: unknown; height: number }>;
+  /** 마지막 수확의 행 가용 폭 (`readTrackWidth`) — 바뀌면 실측을 모두 버린다 (판독 M2). */
+  trackWidth: number | null;
+  measured: Map<string, MeasuredRow>;
   firstMeasured: number | null;
   plan: ExpandedCardPlanInput | null;
   window: { startIndex: number; endIndex: number } | null;
@@ -50,12 +83,22 @@ const owners = new Map<string, OwnerEntry>();
 let globalVersion = 0;
 const listeners = new Set<() => void>();
 
-function entryFor(ownerId: string, templateSig: string): OwnerEntry {
+function sameRefs(a: readonly unknown[], b: readonly unknown[]): boolean {
+  return a.length === b.length && a.every((v, i) => Object.is(v, b[i]));
+}
+
+function entryFor(
+  ownerId: string,
+  templateSig: string,
+  templateRefs: readonly unknown[],
+): OwnerEntry {
   let entry = owners.get(ownerId);
   if (!entry) {
     entry = {
       templateSig,
+      templateRefs,
       ownerWidth: null,
+      trackWidth: null,
       measured: new Map(),
       firstMeasured: null,
       plan: null,
@@ -63,8 +106,12 @@ function entryFor(ownerId: string, templateSig: string): OwnerEntry {
       version: 0,
     };
     owners.set(ownerId, entry);
-  } else if (entry.templateSig !== templateSig) {
+  } else if (
+    entry.templateSig !== templateSig ||
+    !sameRefs(entry.templateRefs, templateRefs)
+  ) {
     entry.templateSig = templateSig;
+    entry.templateRefs = templateRefs;
     entry.measured.clear();
     entry.firstMeasured = null;
     entry.version += 1;
@@ -78,7 +125,14 @@ function cardHeightsOf(
 ): number[] {
   return plan.itemKeys.map((key, i) => {
     const hit = entry.measured.get(key);
-    if (hit && hit.item === plan.items[i]) return hit.height;
+    if (
+      hit &&
+      hit.item === plan.items[i] &&
+      hit.formula === plan.formulaCardHeights[i]
+    ) {
+      return hit.height;
+    }
+    if (plan.estimate === "formula") return plan.formulaCardHeights[i] ?? 0;
     return entry.firstMeasured ?? plan.formulaCardHeights[i] ?? 0;
   });
 }
@@ -106,7 +160,11 @@ export function toVisualRowHeights(
 export function resolveExpandedCardHeights(
   plan: ExpandedCardPlanInput,
 ): number[] {
-  const entry = entryFor(plan.ownerId, plan.templateSig);
+  const entry = entryFor(
+    plan.ownerId,
+    plan.templateSig,
+    plan.templateRefs ?? [],
+  );
   entry.plan = plan;
   return cardHeightsOf(plan, entry);
 }
@@ -155,6 +213,36 @@ export function pruneExpandedCardOwners(
     if (!liveOwnerIds.has(id)) owners.delete(id);
     else if (!windowedOwnerIds.has(id)) entry.window = null;
   }
+}
+
+/**
+ * 행 가용 폭 — 줄바꿈을 가르는 폭. 행 상자 폭 자체는 쓰지 않는다: ListBox 행은 origin 이 Hug 폭이거나
+ * 선택 variant 가 폭을 주면 행마다 달라, 그것으로 판정하면 수확마다 실측을 비운다 (수리 검증 N1).
+ * - ListBox: 행 묶음 상자 폭 (owner content box — padding · border 변화가 여기 드러난다).
+ * - GridList: window 첫 카드 폭 (grid 열은 `1fr` 균등이라 모든 카드가 같은 폭 — 열 수 · columnGap ·
+ *   padding 변화가 드러난다. 행 묶음 폭은 columnGap 변화를 못 본다).
+ */
+function readTrackWidth(
+  layoutMap: ReadonlyMap<string, LayoutRect>,
+  plan: ExpandedCardPlanInput,
+  ownerId: string,
+  window: { startIndex: number; endIndex: number },
+  end: number,
+): number | null {
+  const family = plan.family ?? "gridlist";
+  if (family === "listbox") {
+    return (
+      layoutMap.get(toCollectionRowsGroupProjectionId("listbox", ownerId))
+        ?.width ?? null
+    );
+  }
+  for (let i = Math.max(0, window.startIndex); i < end; i += 1) {
+    const rect = layoutMap.get(
+      toCollectionRowProjectionId(family, ownerId, plan.itemKeys[i]),
+    );
+    if (rect && rect.width > 0) return rect.width;
+  }
+  return null;
 }
 
 export interface ExpandedCardScrollAccess {
@@ -259,47 +347,75 @@ export function harvestExpandedCardHeights(
     if (!plan || !window) continue;
     const ownerRect = layoutMap.get(ownerId);
     if (!ownerRect) continue;
-    const oldVisual = toVisualRowHeights(
-      cardHeightsOf(plan, entry),
-      plan.columns,
-    );
-    let changed = false;
-    // 폭 (열 폭 · wrap) 이 바뀌면 이전 실측은 모두 틀린다.
-    if (
+    // 교체 전 시각 행 높이 — 쓰기가 생길 때만 한 번 계산한다 (쓰기 0 인 publish 는 O(window) 로 끝난다).
+    const old: { visual: number[] | null } = { visual: null };
+    const snapshot = () => {
+      old.visual ??= toVisualRowHeights(
+        cardHeightsOf(plan, entry),
+        plan.columns,
+      );
+    };
+    // 폭 (owner 폭 · 행 가용 폭 — padding · gap · 열 수) 이 바뀌면 이전 실측은 모두 틀린다.
+    const end = Math.min(window.endIndex, plan.itemKeys.length);
+    let widthChanged =
       entry.ownerWidth != null &&
-      Math.abs(entry.ownerWidth - ownerRect.width) > 0.5
+      Math.abs(entry.ownerWidth - ownerRect.width) > 0.5;
+    const trackWidth = readTrackWidth(layoutMap, plan, ownerId, window, end);
+    if (
+      !widthChanged &&
+      entry.trackWidth != null &&
+      trackWidth != null &&
+      Math.abs(entry.trackWidth - trackWidth) > 0.5
     ) {
+      widthChanged = true;
+    }
+    if (trackWidth != null) entry.trackWidth = trackWidth;
+    if (widthChanged && entry.measured.size > 0) {
+      snapshot();
       entry.measured.clear();
       entry.firstMeasured = null;
-      changed = true;
     }
     entry.ownerWidth = ownerRect.width;
-    const end = Math.min(window.endIndex, plan.itemKeys.length);
     for (let i = Math.max(0, window.startIndex); i < end; i += 1) {
       const key = plan.itemKeys[i];
       const rect = layoutMap.get(
-        toCollectionRowProjectionId("gridlist", ownerId, key),
+        toCollectionRowProjectionId(plan.family ?? "gridlist", ownerId, key),
       );
       if (!rect || !(rect.height > 0)) continue;
+      const formula = plan.formulaCardHeights[i] ?? 0;
       const prev = entry.measured.get(key);
       if (
         prev &&
         prev.item === plan.items[i] &&
+        prev.formula === formula &&
         Math.abs(prev.height - rect.height) <= 0.5
       ) {
         continue;
       }
-      entry.measured.set(key, { item: plan.items[i], height: rect.height });
+      snapshot();
+      entry.measured.set(key, {
+        item: plan.items[i],
+        height: rect.height,
+        formula,
+      });
       if (entry.firstMeasured == null) entry.firstMeasured = rect.height;
-      changed = true;
     }
-    if (!changed) continue;
+    if (old.visual == null) continue;
+    const before = old.visual;
+    // 변화 = 시각 행 높이 목록이 달라졌을 때만 (ADR-150 후속 R1). 줄바꿈 없는 ListBox 행 · slot-only 카드는
+    //   실측 = 공식이라 캐시만 채우고 version 을 올리지 않는다 — 재빌드 · anchoring 0.
     const newVisual = toVisualRowHeights(
       cardHeightsOf(plan, entry),
       plan.columns,
     );
+    if (
+      newVisual.length === before.length &&
+      newVisual.every((h, i) => Math.abs(h - before[i]) <= 0.5)
+    ) {
+      continue;
+    }
     const current = scroll.get(ownerId)?.scrollTop ?? 0;
-    const anchored = anchorScrollTop(plan, oldVisual, newVisual, current);
+    const anchored = anchorScrollTop(plan, before, newVisual, current);
     scroll.apply(ownerId, anchored.maxScrollTop, anchored.scrollTop);
     recordAnchorEvent({
       ownerId,

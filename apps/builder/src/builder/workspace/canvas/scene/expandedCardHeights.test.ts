@@ -4,13 +4,19 @@ import type { CanonicalNode, CompositionDocument } from "@composition/shared";
 
 import { ensureReusableCompositeOrigins } from "../../../components/reusableCompositeOrigins";
 import { GRIDLIST_ITEM_DEFAULT_ORIGIN_ID } from "../../../components/templateItemOriginIds";
-import { toCollectionRowProjectionId } from "../../../projection/renderProjectionIds";
+import {
+  toCollectionRowProjectionId,
+  toCollectionRowsGroupProjectionId,
+} from "../../../projection/renderProjectionIds";
 import { resolveVirtualizedCollectionWindows } from "./collectionVirtualization";
 import {
   __resetExpandedCardHeightsForTest,
   anchorScrollTop,
   getExpandedCardHeightsVersion,
   harvestExpandedCardHeights,
+  noteExpandedCardWindow,
+  resolveExpandedCardHeights,
+  type ExpandedCardPlanInput,
   type ExpandedCardScrollAccess,
 } from "./expandedCardHeights";
 
@@ -270,15 +276,187 @@ describe("ADR-162 Phase 4 — 펼친 카드 실측 → 행 offset 함수", () =>
     expect(state.maxScrollTop).toBe(collapsed.maxScrollTop);
   });
 
-  it("slot-only origin (접기) 은 수확 대상이 아니다 — 행 위치는 150 공식 그대로", () => {
+  it("slot-only 카드: 실측 = 공식이면 변화 0, 줄바꿈된 카드만 실측으로 바꾸고 안 본 카드는 공식 (ADR-150 후속 R1)", () => {
     const doc = makeDoc({ withImage: false });
     const before = resolve(doc, 0);
+    const formula = before.rowHeight!;
+    // 줄바꿈 없음 — layout 이 공식 높이를 주면 캐시만 채우고 version · 행 위치는 그대로.
     expect(
       harvestExpandedCardHeights(
-        layoutFor(before.window, () => 126),
+        layoutFor(before.window, () => formula),
         scrollStub().access,
       ),
     ).toBe(false);
     expect(resolve(doc, 0).rowsExtent).toBe(before.rowsExtent);
+    // 카드 r0 만 두 줄 (+24) — 그 시각 행만 늘고, 안 본 카드는 첫 실측이 아니라 공식 그대로.
+    const { access } = scrollStub(0);
+    expect(
+      harvestExpandedCardHeights(
+        layoutFor(before.window, (i) => (i === 0 ? formula + 24 : formula)),
+        access,
+      ),
+    ).toBe(true);
+    const after = resolve(doc, 0);
+    expect(after.rowsExtent).toBe(before.rowsExtent! + 24);
+  });
+
+  it("ListBox 행: 줄바꿈된 행만 실측으로 바뀌고 window · 스크롤 범위가 그 높이를 읽는다 (ADR-150 후속 R1)", () => {
+    const items = Array.from({ length: 60 }, (_, i) => ({
+      id: `k${i}`,
+      label: `Row ${i}`,
+    }));
+    const doc = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-home",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-home", slug: "/" },
+          children: [
+            {
+              id: "body-home",
+              type: "body",
+              children: [
+                {
+                  id: "r1-lb",
+                  type: "ListBox",
+                  dataBinding: {
+                    type: "collection",
+                    source: "static",
+                    config: { data: items },
+                  },
+                  props: {
+                    style: {
+                      width: "200px",
+                      height: "300px",
+                      overflow: "auto",
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument;
+    const read = () =>
+      resolveVirtualizedCollectionWindows({
+        doc,
+        collections: COLLECTIONS,
+        scrollTops: new Map([["r1-lb", 0]]),
+      }).get("r1-lb")!;
+    const before = read();
+    const map = new Map<string, { width: number; height: number }>();
+    map.set("r1-lb", { width: 200, height: 300 });
+    for (let i = before.window.startIndex; i < before.window.endIndex; i += 1) {
+      map.set(toCollectionRowProjectionId("listbox", "r1-lb", `k${i}`), {
+        width: 190,
+        height: i % 3 === 0 ? 104 : before.rowHeight!,
+      });
+    }
+    const { state, access } = scrollStub(0);
+    expect(harvestExpandedCardHeights(map, access)).toBe(true);
+    const after = read();
+    const wrapped = Math.ceil(
+      (before.window.endIndex - before.window.startIndex) / 3,
+    );
+    expect(after.rowsExtent).toBe(
+      before.rowsExtent! + wrapped * (104 - before.rowHeight!),
+    );
+    expect(after.maxScrollTop).toBe(state.maxScrollTop);
+  });
+});
+
+describe("ADR-150 후속 R1 판독 — 실측의 측정 조건 (템플릿 · 행 폭 · 공식값)", () => {
+  const KEYS = Array.from({ length: 30 }, (_, i) => `k${i}`);
+  const ITEMS = KEYS.map((key) => ({ id: key }));
+  const LABEL_A = { text: "{label}" };
+  const LABEL_B = { text: "{id}" };
+  const planOf = (
+    over: Partial<ExpandedCardPlanInput> = {},
+  ): ExpandedCardPlanInput => ({
+    ownerId: "lb",
+    family: "listbox",
+    estimate: "formula",
+    templateSig: "sig",
+    templateRefs: [LABEL_A],
+    itemKeys: KEYS,
+    items: ITEMS,
+    formulaCardHeights: KEYS.map(() => 32),
+    columns: 1,
+    gap: 0,
+    leadingExtent: 0,
+    trailingExtent: 0,
+    viewportHeight: 0,
+    ...over,
+  });
+  const layout = (
+    from: number,
+    to: number,
+    height: (i: number) => number,
+    rowWidth = 190,
+  ) => {
+    const map = new Map<string, { width: number; height: number }>();
+    map.set("lb", { width: 200, height: 300 });
+    // 행 묶음 = owner content box (행 가용 폭).
+    map.set(toCollectionRowsGroupProjectionId("listbox", "lb"), {
+      width: rowWidth + 2,
+      height: 300,
+    });
+    for (let i = from; i < to; i += 1) {
+      map.set(toCollectionRowProjectionId("listbox", "lb", `k${i}`), {
+        width: rowWidth,
+        height: height(i),
+      });
+    }
+    return map;
+  };
+  /** k0 을 104 로 실측한 뒤 window 를 k20 ~ k30 으로 옮긴 상태 (k0 은 화면 밖). */
+  const measureK0ThenScrollAway = () => {
+    resolveExpandedCardHeights(planOf());
+    noteExpandedCardWindow("lb", { startIndex: 0, endIndex: 10 }, 300);
+    harvestExpandedCardHeights(
+      layout(0, 10, (i) => (i === 0 ? 104 : 32)),
+      scrollStub().access,
+    );
+    expect(resolveExpandedCardHeights(planOf())[0]).toBe(104);
+    noteExpandedCardWindow("lb", { startIndex: 20, endIndex: 30 }, 300);
+  };
+
+  it("M1 — 템플릿 원문이 바뀌면 (컴파일 참조 교체) 화면 밖 실측도 버린다", () => {
+    measureK0ThenScrollAway();
+    expect(
+      resolveExpandedCardHeights(planOf({ templateRefs: [LABEL_B] }))[0],
+    ).toBe(32);
+  });
+
+  it("M2 — 행 가용 폭이 바뀌면 (padding · 열 수) 화면 밖 실측도 버린다", () => {
+    measureK0ThenScrollAway();
+    harvestExpandedCardHeights(
+      layout(20, 30, () => 32, 150),
+      scrollStub().access,
+    );
+    expect(resolveExpandedCardHeights(planOf())[0]).toBe(32);
+  });
+
+  it("M3 — 그 행의 공식값이 바뀌면 (선택 variant 등) 실측이 적중하지 않는다", () => {
+    measureK0ThenScrollAway();
+    const formula = KEYS.map((_, i) => (i === 0 ? 40 : 32));
+    expect(
+      resolveExpandedCardHeights(planOf({ formulaCardHeights: formula }))[0],
+    ).toBe(40);
+  });
+  it("N1 — 행 폭이 행마다 달라도 (Hug 폭 · 선택 variant) 행 가용 폭이 같으면 실측을 유지한다", () => {
+    measureK0ThenScrollAway();
+    const map = layout(20, 30, () => 32);
+    // 행 묶음 폭은 그대로, 행 상자 폭만 행마다 다르다.
+    for (let i = 20; i < 30; i += 1) {
+      map.set(toCollectionRowProjectionId("listbox", "lb", `k${i}`), {
+        width: 80 + i,
+        height: 32,
+      });
+    }
+    harvestExpandedCardHeights(map, scrollStub().access);
+    expect(resolveExpandedCardHeights(planOf())[0]).toBe(104);
   });
 });

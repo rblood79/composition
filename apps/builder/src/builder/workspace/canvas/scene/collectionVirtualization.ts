@@ -10,8 +10,9 @@
  * variant) + description 유무, GridList 는 시각 행의 카드 최대, Table 은 catalog `TableRow.sizes`.
  * layout `calculateContentHeight` 와 같은 metric 함수를 쓰고, window · spacer · 스크롤 범위는
  * `resolveCollectionRowOffsets` 한 곳이 만든다. owner props 는 ref instance 면 origin props 위에
- * instance patch 를 얹은 값이다 (scene 과 같은 규칙). 잔존 한계: label · description **줄바꿈 (wrap)**
- * 과 템플릿 밖 임의 자식 콘텐츠 높이는 layout 전에 알 수 없어 반영하지 않는다 (ADR-150 R1).
+ * instance patch 를 얹은 값이다 (scene 과 같은 규칙). 공식은 단일 줄 높이다 — label · description
+ * **줄바꿈 (wrap)** 과 펼친 카드의 자식 크기는 layout 전에 알 수 없어, window 에 들어온 행의 layout 실측
+ * (`expandedCardHeights` — ADR-162 Phase 4 · ADR-150 후속 R1) 으로 바꾸고 scroll anchoring 한다.
  *
  * **비-데이터 ListBox 무영향**: totalRows 0(자식 ListBoxItem 직접 구성)이면 map 에 미포함 →
  * projection 자체가 없어 window 도 무의미. scene 빌더가 data-bound 여부로 실제 투영을 gating 한다.
@@ -427,9 +428,9 @@ function ownerStateEnv(
  * 얻고, layout §1.55b-2 와 같은 `resolveListBoxItemRowHeightFromStyle` 로 높이를 잰다 (description
  * 유무 · 선택 variant · 명시 height · 행 border 가 행마다 다를 수 있다 — round 3 h2).
  *
- * 단일 줄 가정: wrap (label · description 줄바꿈) 은 행 폭이 layout 뒤에 정해져 여기서 알 수 없다
- * (ADR-150 R1 — Phase 1 지원 범위 밖). 목록은 문서 · collections · breakpoint 가 바뀔 때만
- * 다시 만든다 — 스크롤은 캐시를 쓴다.
+ * 단일 줄 공식: wrap (label · description 줄바꿈) 은 행 폭이 layout 뒤에 정해져 여기서 알 수 없다 —
+ * `resolveListBoxRowPlan` 이 이 목록을 layout 실측으로 덮는다 (ADR-150 후속 R1). 목록은 문서 ·
+ * collections · breakpoint 가 바뀔 때만 다시 만든다 — 스크롤은 캐시를 쓴다.
  */
 interface ListBoxRowPlan {
   heights: number[];
@@ -482,6 +483,15 @@ function sameSignature(a: readonly unknown[], b: readonly unknown[]): boolean {
   return true;
 }
 
+/**
+ * owner id → 마지막 행 key · 행 데이터 목록과 그 입력 서명 — 실측 캐시 키 (ADR-150 후속 R1). 편집마다
+ * 전 행을 다시 투영하지 않는다 (M1 과 같은 이유).
+ */
+const rowIdentityBySignature = new Map<
+  string,
+  { signature: unknown[]; itemKeys: string[]; items: unknown[] }
+>();
+
 /** owner id → 마지막 행 높이 목록과 그 입력 서명 (문서가 바뀌어도 서명이 같으면 재사용). */
 const rowHeightsBySignature = new Map<
   string,
@@ -496,6 +506,9 @@ const rowHeightsBySignature = new Map<
 function pruneRowHeightCache(liveOwnerIds: ReadonlySet<string>): void {
   for (const ownerId of rowHeightsBySignature.keys()) {
     if (!liveOwnerIds.has(ownerId)) rowHeightsBySignature.delete(ownerId);
+  }
+  for (const ownerId of rowIdentityBySignature.keys()) {
+    if (!liveOwnerIds.has(ownerId)) rowIdentityBySignature.delete(ownerId);
   }
 }
 
@@ -523,6 +536,7 @@ const listBoxRowPlanCache = new WeakMap<
     collections: readonly CollectionDataSource[];
     projectVariables: ResolveVirtualizedWindowsInput["projectVariables"];
     breakpoint: BreakpointName;
+    measuredVersion: number;
     plan: ListBoxRowPlan;
   }
 >();
@@ -591,6 +605,64 @@ function measureListBoxRows(
   });
 }
 
+/**
+ * 행 (카드) 높이 공식 목록 → 실측 캐시 (`expandedCardHeights`) 를 거친 목록. 행 key · 데이터 참조가 캐시
+ * 키이고, 수확은 이 owner 가 scroll 소유자로 window 를 받았을 때만 돈다. sample 모드는 수확이 없어
+ * 공식을 읽되, 이전 scroll 모드에서 남은 실측 (같은 템플릿 · 공식 · 데이터) 이 있으면 그 값을 읽는다.
+ */
+function resolveMeasuredRowHeights(
+  node: CanonicalNode,
+  props: Record<string, unknown>,
+  input: ResolveVirtualizedWindowsInput,
+  totalRows: number,
+  formulaHeights: readonly number[],
+  options: {
+    family: "listbox" | "gridlist";
+    estimate?: "first-measured" | "formula";
+    templateSig: string;
+    /** 컴파일된 label · description 템플릿 — 원문이 바뀌면 참조가 바뀐다 (판독 M1). */
+    templateRefs: readonly unknown[];
+    columns: number;
+    gap: number;
+    leadingExtent: number;
+    trailingExtent: number;
+  },
+): number[] {
+  const signature = rowInputSignature(node, props, input, ["rows", totalRows]);
+  let identity = rowIdentityBySignature.get(node.id);
+  if (!identity || !sameSignature(identity.signature, signature)) {
+    const rows = getListBoxProjectionRows(
+      {
+        collections: input.collections,
+        dataBinding: getElementDataBinding(node),
+        props,
+      },
+      { startIndex: 0, endIndex: totalRows },
+    );
+    identity = {
+      signature,
+      itemKeys: rows.map((row) => row.itemKey),
+      items: rows.map((row) => row.item),
+    };
+    rowIdentityBySignature.set(node.id, identity);
+  }
+  return resolveExpandedCardHeights({
+    ownerId: node.id,
+    family: options.family,
+    estimate: options.estimate ?? "formula",
+    templateSig: options.templateSig,
+    templateRefs: options.templateRefs,
+    itemKeys: identity.itemKeys,
+    items: identity.items,
+    formulaCardHeights: formulaHeights,
+    columns: options.columns,
+    gap: options.gap,
+    leadingExtent: options.leadingExtent,
+    trailingExtent: options.trailingExtent,
+    viewportHeight: 0,
+  });
+}
+
 function resolveListBoxRowPlan(
   node: CanonicalNode,
   totalRows: number,
@@ -605,6 +677,7 @@ function resolveListBoxRowPlan(
     cached.collections === input.collections &&
     cached.projectVariables === input.projectVariables &&
     cached.breakpoint === breakpoint &&
+    cached.measuredVersion === expandedCardHeightsVersionOf(node.id) &&
     cached.plan.heights.length === totalRows
   ) {
     return cached.plan;
@@ -625,7 +698,7 @@ function resolveListBoxRowPlan(
     ctx.selectedOriginStyle,
     ctx.slotComposition,
   ]);
-  const heights = reuseRowHeights(
+  const formulaHeights = reuseRowHeights(
     node.id,
     rowInputSignature(node, props, input, [
       "listbox",
@@ -642,17 +715,38 @@ function resolveListBoxRowPlan(
     breakpoint,
   );
   const ownerMetric = resolveListBoxSpacingMetric({ style: ownerStyle });
+  const leadingExtent = ownerMetric.borderWidth + ownerMetric.paddingTop;
+  const trailingExtent = ownerMetric.paddingBottom + ownerMetric.borderWidth;
+  // ADR-150 후속 R1 — 공식은 단일 줄 높이다. label · description 이 줄바꿈된 행은 layout 실측
+  //   (window 에 들어온 행) 으로 바꾸고, 안 본 행은 그 행의 공식값으로 둔다 (ADR-162 캐시 · anchoring 공용).
+  const heights = resolveMeasuredRowHeights(
+    node,
+    props,
+    input,
+    totalRows,
+    formulaHeights,
+    {
+      family: "listbox",
+      templateSig: JSON.stringify([ctxKey, breakpoint]),
+      templateRefs: [ctx.labelTemplate, ctx.descriptionTemplate],
+      columns: 1,
+      gap: ctx.rowGapPx,
+      leadingExtent,
+      trailingExtent,
+    },
+  );
   const plan: ListBoxRowPlan = {
     heights,
     gap: ctx.rowGapPx,
-    leadingExtent: ownerMetric.borderWidth + ownerMetric.paddingTop,
-    trailingExtent: ownerMetric.paddingBottom + ownerMetric.borderWidth,
+    leadingExtent,
+    trailingExtent,
   };
   listBoxRowPlanCache.set(node, {
     doc: input.doc,
     collections: input.collections,
     projectVariables: input.projectVariables,
     breakpoint,
+    measuredVersion: expandedCardHeightsVersionOf(node.id),
     plan,
   });
   return plan;
@@ -668,7 +762,8 @@ function resolveListBoxRowPlan(
  *
  * 펼친 카드 (ADR-162 — origin 에 역할 없는 자식) 는 높이가 자식 크기에 달려 공식으로 알 수 없다 —
  * ADR-162 Phase 4 `expandedCardHeights` 가 window 카드의 layout 실측 (없으면 첫 실측 · 공식 추정) 을
- * 공급하고, 그 version 이 plan 캐시 조건이다. slot-only 카드의 wrap 은 ListBox 와 같이 범위 밖 (R1).
+ * 공급하고, 그 version 이 plan 캐시 조건이다. slot-only 카드의 줄바꿈도 같은 캐시가 받는다 (추정 = 그
+ * 카드의 공식 — ADR-150 후속 R1).
  */
 const gridListRowPlanCache = new WeakMap<
   CanonicalNode,
@@ -782,36 +877,41 @@ function resolveGridListRowPlan(
   const columns = Math.max(1, ctx.numCols);
   const leadingExtent = ownerMetric.borderWidth + ownerMetric.paddingTop;
   const trailingExtent = ownerMetric.paddingBottom + ownerMetric.borderWidth;
-  // ADR-162 Phase 4 — 펼친 카드: 카드마다 실측 ?? 추정 (공식 목록은 첫 실측 전 추정으로만 쓴다).
+  // 카드마다 실측 ?? 추정. ADR-162 Phase 4 펼친 카드는 높이가 자식 크기에 달려 첫 실측으로 추정하고,
+  //   ADR-150 후속 R1 slot-only 카드는 공식 (단일 줄) 으로 추정해 줄바꿈된 카드만 실측이 바꾼다.
   const expanded = ctx.expandRowsFromOrigin && ctx.templateOriginNode != null;
-  let effectiveCardHeights: readonly number[] = cardHeights;
-  if (expanded) {
-    const rows = getListBoxProjectionRows(
-      {
-        collections: input.collections,
-        dataBinding: getElementDataBinding(node),
-        props,
-      },
-      { startIndex: 0, endIndex: totalRows },
-    );
-    effectiveCardHeights = resolveExpandedCardHeights({
-      ownerId: node.id,
-      templateSig: JSON.stringify([
-        ctx.templateOriginNode!.id,
-        ctx.templateOriginNode!.props ?? null,
-        ctx.templateOriginNode!.children ?? null,
-        breakpoint,
-      ]),
-      itemKeys: rows.map((row) => row.itemKey),
-      items: rows.map((row) => row.item),
-      formulaCardHeights: cardHeights,
+  const effectiveCardHeights = resolveMeasuredRowHeights(
+    node,
+    props,
+    input,
+    totalRows,
+    cardHeights,
+    {
+      family: "gridlist",
+      estimate: expanded ? "first-measured" : "formula",
+      templateSig: expanded
+        ? JSON.stringify([
+            ctx.templateOriginNode!.id,
+            ctx.templateOriginNode!.props ?? null,
+            ctx.templateOriginNode!.children ?? null,
+            breakpoint,
+          ])
+        : JSON.stringify([
+            "slot",
+            cardBase,
+            descriptionExtra,
+            descriptionSlotEnabled,
+            ctx.slotComposition,
+            originStyle,
+            breakpoint,
+          ]),
+      templateRefs: [ctx.labelTemplate, ctx.descriptionTemplate],
       columns,
       gap: ctx.gap,
       leadingExtent,
       trailingExtent,
-      viewportHeight: 0,
-    });
-  }
+    },
+  );
   const heights = toVisualRowHeights(effectiveCardHeights, columns);
   const plan = {
     heights,
@@ -1151,11 +1251,10 @@ export function resolveVirtualizedCollectionWindows(
             columns: plan.columns,
             viewportHeight,
           });
-          // ADR-162 Phase 4 — 펼친 카드 수확 구간 (scroll 소유자만 — sample 모드는 스크롤 범위가 없다).
-          if ("expanded" in plan && plan.expanded) {
-            noteExpandedCardWindow(node.id, fields.window, viewportHeight);
-            expandedWindowOwnerIds.add(node.id);
-          }
+          // 실측 수확 구간 (scroll 소유자만 — sample 모드는 스크롤 범위가 없다). ADR-162 Phase 4 펼친 카드 +
+          //   ADR-150 후속 R1 ListBox 행 · slot-only 카드 (줄바꿈 높이).
+          noteExpandedCardWindow(node.id, fields.window, viewportHeight);
+          expandedWindowOwnerIds.add(node.id);
           node.children?.forEach(visit);
           return;
         }
