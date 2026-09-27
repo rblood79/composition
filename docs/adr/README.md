@@ -11,6 +11,8 @@
 
 ---
 
+> **2026-09-27 ADR-246 Proposed**: 결정적 카운트 ratchet 게이트 + 120Hz begin-frame 결정적 프레임 하니스 (사용자 `/create-adr 2단계 ratchet 게이트 + 120Hz begin-frame`, 출처: claude.dev "How we made claude.ai faster" 측정 원칙의 1단계 — research 문서 §8, 같은 날 `80a824e18` · `0ae25aba7`). wall-clock 은 같은 코드에서 600 요소가 60 보다 빠르게 잰 폭으로 흔들려 게이트가 못 되고, 같은 시드 + `--fixed-inputs` 카운트는 278 중 262 가 정확히 같았다 — 등급 A (정확 · 상한 = 값) / 등급 B (밴드 3%) 로 `ratchet.json` 을 두고 경로 스코프 pre-push 가 ≤ 90 초 안에 판정 (자기검증: 초과는 재실행이 같을 때만 차단 · 올리기는 사용자 승인 + 만료일). begin-frame 은 CDP 정본상 macOS 미지원 (`Target.createTarget.enableBeginFrameControl`) 이라 Phase 3 는 Linux 환경이 있을 때만, 없으면 Deferred. ADR-243 (Event Timing 체감 oracle) 과 직교. 사용자 결정 4 (Phase 2 첫 하향 1건 포함 여부 · 게이트 부류·시드 · 밴드 · Phase 3 실행 환경). round 1 리뷰 (codex) HIGH 4 · MEDIUM 2 → 같은 날 수리 (hook 재구성 · 측정 서버 확보 · tick/render 분리 · CDP 인자·플랫폼 · 재실행 예산 · engine/specs 스코프). 열림 7 (Proposed 7), 완료 266, 합계 273.
+>
 > **2026-09-27 ADR-243 · 244 · 245 Proposed**: Chrome for Developers case study 30건 조사에서 ADR 이 필요한 3건 (사용자 `/create-adr` — "병렬로 한번에 설계해"). **243** 상호작용 응답성 — 실제 입력 · production · 4x 에서 LoAF 귀속 버킷표로 long task 가 어디 몰렸는지 먼저 재고 (분할 경계를 가정하지 않음), 다음 paint 에 불필요한 작업이 30% 이상인 경계에만 양보 · WebKit 폴백 (setTimeout vs MessageChannel) 두 arm. **244** 초기 로드 — CanvasKit wasm 해시 경로화 (glue · wasm 한 쌍) + 네트워크 대기가 press → ready 의 30% 이상일 때만 의도 · idle 미리 받기, Service Worker precache 는 보류 (재개 조건 3). gh-pages 최종 배포 09-04 에서 멈춤 확인. **245** AI on-device (Prompt API + Translator) — 선택 경로, Phase 0 go/no-go (no-go 면 Rejected/Deferred 종결). Prompt API 는 한국어 미지원 · 원격 provider 는 브라우저 차단이라 fallback 은 Ollama 뿐. 셋 다 사용자 결정 지점이 본문에 있다. 열림 6 (Proposed 6), 완료 266, 합계 272.
 >
 > **2026-09-27 ADR-150 Implemented**: 데이터 바인딩 목록의 Canvas 정합 (Phase 0 ~ 3 / G0 ~ G3). 스크롤 소유자 ListBox · GridList · Table 의 window · spacer · 스크롤 범위 · 행 배치가 행 위치 단일 소스 하나를 읽어 끝 행까지 닿고 보이는 행 위치가 DOM 과 같다 (행별 높이 · gap · 요소 헤더) · 데이터 행 더블클릭 → 템플릿 origin 자식으로 이동해 선택 (연속성 키 = 원래 hit · 카메라 추종). live — G1 15/15 · G2 10/10 · DOM oracle 3/3. 911 R-3 / G-projected 닫힘 · 910 T-7 에 A1 철회 기록 · 후속 R1 (줄바꿈 행 높이 — 실측 캐시 · anchoring, live 11/11) 같은 날 반영. 열림 3 (910 · 911 · 921).
@@ -130,11 +132,11 @@
 | ├ Accepted                    |      13 |
 | ├ Superseded                  |      14 |
 | └ Deprecated                  |       9 |
-| 열려 있는 것 (`adr/*.md`)     |       6 |
-| ├ Proposed                    |       6 |
+| 열려 있는 것 (`adr/*.md`)     |       7 |
+| ├ Proposed                    |       7 |
 | ├ Accepted (미착수·일부 착수) |       0 |
 | └ 부분 완료                   |       0 |
-| **합계**                      | **272** |
+| **합계**                      | **273** |
 
 > 2026-09-26 파일 실측 (ADR-235 승격 때): `completed/` 파일 268 − 비-ADR 5 = ADR 263 · `adr/` 직속 ADR 5 (150 Accepted · 162 · 910 · 911 · 921 Proposed) — 직전 표의 열림 9 · 완료 259 는 이동 누락으로 어긋나 있었다. 완료 내역 4 줄의 합 (260) 은 263 과 3 차이 — 개별 Status 재대조는 다음 정리 때.
 >
@@ -148,6 +150,11 @@
 ## 지금 열려 있는 것
 
 ### 진행 중 / 미구현 (Proposed / In Progress)
+
+#### [246](246-deterministic-count-ratchet-and-begin-frame-harness.md) — 결정적 카운트 ratchet 게이트 + 120Hz begin-frame 결정적 프레임 하니스
+
+- **상태**: Proposed — 2026-09-27
+- **규모**: Phase 0 (3회 동일성 · call-counts 동일성 · 게이트 실행 시간 ≤ 90 초 · `apps/builder/perf/ratchet.json` 초기값 + recorder 해시) → Phase 1 `perf-ratchet-gate.mjs` (등급 A 초과 = 재실행 확인 뒤 차단 · B 단독 = 경고 · 하향 제안만 자동 · 올리기 = 승인 + 만료일) + `.githooks/pre-push` 경로 스코프 + `SKIP_PERF_RATCHET=1` → (사용자 결정) Phase 2 첫 하향 1건 (select `findNodeByIdInSubtree` 2,097/op) 으로 카운트 ↔ taskMs 상관 증명 → Phase 3 begin-frame (Linux 환경 있을 때만 — macOS 미지원, 없으면 Deferred; 240 beginFrame → rAF 240 · idle render 0 · pan render = 입력 수, 2회 동일) → Phase 4 설치된 hook 으로 push 차단 1회 실증. 사용자 결정: Phase 2 포함 · 게이트 부류·시드 · 등급 B 밴드 3% · Phase 3 실행 환경. 리뷰: round 1 HIGH 4 · MEDIUM 2 수리 완료 (`reviews/246.md`). breakdown: [design/246](design/246-deterministic-count-ratchet-breakdown.md)
 
 #### [243](243-interaction-responsiveness-long-task-yield.md) — 상호작용 응답성: LoAF 귀속으로 분할 지점을 찾고 측정된 경계에서만 long task 를 나눈다
 
