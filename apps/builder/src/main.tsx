@@ -12,6 +12,7 @@ import { cleanupLegacyStorage } from "./lib/legacyStorageCleanup";
 import { setAssetUrlResolverLoader } from "@composition/shared/utils";
 import { startRuntimeErrorLog } from "./builder/performance/runtimeErrorLog";
 import { notifyRouteCommitted } from "./utils/ui/viewTransition";
+import { releaseStaticShellOutsideBuilder } from "./staticShell/staticShellRelease";
 
 // 잡히지 않은 오류를 페이지 안에 모은다 — dev 는 __composition_RUNTIME_ERRORS__ 로 읽힌다.
 startRuntimeErrorLog();
@@ -71,6 +72,12 @@ function AppLayout() {
   const location = useLocation();
   // 화면 전환 View Transition 이 새 경로 commit 을 기다린다 (utils/ui/viewTransition)
   useLayoutEffect(() => notifyRouteCommitted(), [location.key]);
+  // ADR-247 — builder 깊은 링크가 다른 경로로 끝나면 (인증 없음 → /signin) 정적 셸을 치운다.
+  useLayoutEffect(() => {
+    if (!location.pathname.startsWith("/builder/")) {
+      releaseStaticShellOutsideBuilder();
+    }
+  }, [location.pathname]);
   const shouldShowBackground =
     location.pathname === "/" ||
     location.pathname === "/signin" ||

@@ -73,7 +73,18 @@
     align-items: center;
   }
 
+  /* 진행 막대만 흐름에 둔다 — 라벨 · 퍼센트는 막대 위아래에 띄워, 막대 사각형이 글꼴 · 문구와
+   * 무관하게 viewport 중앙에 고정된다. index.html 정적 셸 (ADR-247) 이 같은 class 로 막대만
+   * 그리고 React 첫 commit 이 같은 자리에서 이어받는다.
+   * 라벨 · 퍼센트 상자도 폭을 고정하고 글자만 가운데 정렬한다 — 문구 ("데이터 로딩" → "캔버스
+   * 초기화") · 자릿수 (15% → 100%) 가 바뀔 때 상자가 옆으로 움직이면 layout-shift 로 잡힌다. */
   .loading-text {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: -60px;
+    right: -60px;
+    text-align: center;
+    white-space: nowrap;
     font-size: 13px;
     font-weight: 500;
     color: var(--fg-muted);
@@ -81,10 +92,10 @@
   }
 
   .loading-status {
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
     min-width: 200px;
   }
 
@@ -121,6 +132,11 @@
   }
 
   .loading-percent {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    text-align: center;
     color: var(--fg-muted);
     font-size: 12px;
     font-variant-numeric: tabular-nums;

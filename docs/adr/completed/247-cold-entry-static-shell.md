@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-09-27 (사용자 `/create-adr cold entry 정적 셸 — CanvasKit 부팅 전 패널 골격 · 빈 캔버스 정적 HTML + layout shift 게이트`. 출처: claude.dev "How we made claude.ai faster" 제안 5 — 정적 composer + 드리프트 게이트. ADR-244 와 별도 ADR 로 두는 것은 사용자 판정 2026-09-27 "별도 ADR")
+Implemented — 2026-09-27 (Phase 0 ~ 3 / G0 ~ G3, 같은 날. G3 사용자 confirm "확인했어" · HC5 initial JS +267 B 사용자 수용 "+267B 수용") · In Progress — 2026-09-27 (사용자 `/execute-adr 247`) · Proposed — 2026-09-27 (사용자 `/create-adr cold entry 정적 셸 — CanvasKit 부팅 전 패널 골격 · 빈 캔버스 정적 HTML + layout shift 게이트`. 출처: claude.dev "How we made claude.ai faster" 제안 5 — 정적 composer + 드리프트 게이트. ADR-244 와 별도 ADR 로 두는 것은 사용자 판정 2026-09-27 "별도 ADR")
 
 ## Context
 
@@ -41,7 +41,7 @@ D1 · D2 · D3 어느 것도 아니다 — 사용자 문서가 아니라 **빌�
 - **HC2 layout shift 0** — 셸에서 앱으로 넘어갈 때 계속 보이는 요소 (배경 · 진행 막대 · 패널 골격 · 헤더) 의 사각형이 ±1 CSS px 안이고, 부팅 구간의 `layout-shift` entry 합 (hadRecentInput 제외) = 0. Chromium 과 WebKit.
 - **HC3 builder 경로 한정** — dashboard · signin · publish · 404 경로에서 셸이 그려지지 않는다 (DOM 에 남지도 않는다).
 - **HC4 값 복제 금지** — 셸의 geometry 와 색은 앱이 마지막으로 그린 결과 또는 빌드 시점에 토큰 원본에서 추출한 값만 쓴다. solver · 토큰 값을 인라인 코드로 다시 구현하지 않는다.
-- **HC5 initial 번들 Δ ≤ 0** — ADR-201 게이트 기준. 인라인 셸 (HTML + CSS + script) 은 gzip ≤ 4 KB.
+- **HC5 initial 번들 Δ ≤ 0** (실행 결과 +267 B gzip — 2026-09-27 사용자 수용) — ADR-201 게이트 기준. 인라인 셸 (HTML + CSS + script) 은 gzip ≤ 4 KB.
 - **HC6 저장 실패에 안전** — `localStorage` 가 비었거나 예외를 던지거나 (WebKit 사생활 모드) 값이 오래됐으면 패널 골격 없이 최소 셸로 그린다. 셸이 앱 부팅을 막거나 늦추지 않는다 (인라인 script 는 동기 1회 · 네트워크 0).
 
 ### Soft constraints
@@ -95,12 +95,12 @@ D1 · D2 · D3 어느 것도 아니다 — 사용자 문서가 아니라 **빌�
 
 **기각 사유**: A — 빌더 chrome 을 SSR 로 돌리는 비용 (기술 H) 에 비해 맞는 경우가 기본 배치 · 특정 뷰포트뿐이다. D — W0 (JS 전 흰 화면) 을 다루지 않고, "chrome 은 한 번에 같은 geometry 로" 라는 현재 부팅 설계를 뒤집는다.
 
-**사용자 결정 (Phase 착수 전)** — 2026-09-27 착수 전 측정 ([breakdown §7-1](design/247-cold-entry-static-shell-breakdown.md)) 뒤 사용자 "확정하고 커밋해" 로 두 항목 확정:
+**사용자 결정 (Phase 착수 전)** — 2026-09-27 착수 전 측정 ([breakdown §7-1](../design/247-cold-entry-static-shell-breakdown.md)) 뒤 사용자 "확정하고 커밋해" 로 두 항목 확정:
 
 1. **W1 동안 패널 골격을 보일 것인가** — 지금은 W1 에 점 배경 + 진행 막대만 보인다 (09-02 설계). Phase 2 는 그 구간에 빈 패널 골격 (테두리 · 배경 · 헤더 막대, 내용 없음) 을 보인다. 실제 패널은 여전히 presented 순간에 같은 자리에서 드러난다. **확정: 보인다** — W1 (10 Mbps 5.5 ~ 5.7 초 · 4x 무제한 0.93 초) 이 W0 의 2 ~ 3 배라 셸이 W0 만 덮으면 빈 구간 대부분이 남는다.
 2. **go/no-go 기준** — W0 p50 ≥ 300 ms (Chromium 4x) 또는 다크 흰 화면. **확정 · 착수 전 측정에서 go** — Chromium 4x W0 p50 438 ms (무제한) · 2,162 ms (10 Mbps), 다크 첫 paint 전 흰 프레임 관측 (4x 7/10 · 4/10). Phase 0 (G0) 는 부팅 mark 를 넣고 같은 조건으로 재확인한다.
 
-> 구현 상세: [247-cold-entry-static-shell-breakdown.md](design/247-cold-entry-static-shell-breakdown.md)
+> 구현 상세: [247-cold-entry-static-shell-breakdown.md](../design/247-cold-entry-static-shell-breakdown.md)
 
 ## Risks
 
@@ -128,7 +128,8 @@ D1 · D2 · D3 어느 것도 아니다 — 사용자 문서가 아니라 **빌�
 
 ### Live Exercise
 
-(Implemented 승격 시 기재 — G3 의 cold 진입 시나리오 · 결과 · 날짜 · headed 녹화 / 사용자 confirm 구분)
+- **2026-09-27 headed Chromium 녹화 (실행자)**: production build · Pages 흉내 서버 · 다크 · 저장 배치 (좌 Navigator · 우 AI 패널) · CPU 4x · 10 Mbps · 새 컨텍스트 cold 직접 진입. 365 ms 에 셸 + 패널 골격 (헤더 섬 · 패널 2 · 레일 2 · 빈 진행 막대, first-paint 380 ms — 셸 없는 빌드는 2,244 ms) → 첫 commit 2,145 ms 에 진행 막대 · 라벨 · 점 배경이 같은 자리로 이어짐 → presented 8,162 ms 에 실제 헤더 · 패널 · 레일이 골격 자리 그대로 드러남. 상세 · 게이트 수치: [breakdown §7-2](../design/247-cold-entry-static-shell-breakdown.md).
+- **사용자 confirm**: 2026-09-27 "확인했어" — 녹화 프레임 (셸 + 골격 365 ms · 부팅 중 · presented) 확인. 같은 응답에서 HC5 미달분 (initial JS gzip +267 B — 부팅 mark · 셸 해제 · 기록기 지연 import 호출, ADR-201 상한 안) 수용.
 
 ## Consequences
 

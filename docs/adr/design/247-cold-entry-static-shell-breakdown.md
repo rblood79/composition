@@ -1,6 +1,6 @@
 # ADR-247 breakdown — cold entry 정적 셸
 
-> 본문: [247-cold-entry-static-shell.md](../247-cold-entry-static-shell.md)
+> 본문: [247-cold-entry-static-shell.md](../completed/247-cold-entry-static-shell.md)
 
 ## 0. 전제 lock-in (fork 아님)
 
@@ -47,6 +47,8 @@
 - no-go: 둘 다 아님 → ADR Rejected, evidence 에 수치 · 조건 기록. mark 2 개는 남긴다 (ADR-244 가 쓴다).
 
 ## 3. Phase 1 — 최소 셸
+
+> 실행 시 바뀐 것 (셸 = 앱 class 재사용 · 점 배경 생략 · 오버레이 라벨 배치): §7-2.
 
 ### 3-1. 파일 변경표
 
@@ -95,6 +97,8 @@
 - 사각형은 `getBoundingClientRect` (zoom 반영 결과) · 색은 `getComputedStyle`. 크기 상한 8 KB (넘으면 쓰지 않음).
 
 ### 4-2. 기록 시점
+
+> 실행 시 바뀐 것: presented 직후 idle 1 회뿐 · 대상은 루트 아래 가장 바깥의 칠해진 상자 — §7-2.
 
 - `builder.presented` 직후 idle 1 회.
 - 패널 배치 커밋 (ADR-922 coordinator 의 interaction end persist) · 뷰포트 resize 종료 · UI 배율 · 테마 변경 뒤 idle (debounce 500 ms).
@@ -152,3 +156,61 @@ n: W0 · 흰 프레임 = Chromium 10 · WebKit 5 (없는 프로젝트 경로 —
 - **결정 1 (W1 패널 골격)**: W1 이 W0 의 2 ~ 3 배 (10 Mbps 5.5 초) 라 셸이 W0 만 덮으면 사용자가 보는 빈 구간의 대부분이 남는다 — 패널 골격을 W1 까지 유지해야 셸의 효과가 보인다.
 
 한계 (Q1 · Q8): 로컬 서버라 실제 Pages CDN 지연 · TLS 없음 · 네트워크 조건은 합성 · 신규 기본 프로젝트 · 저장 배치 없음 · headless. Phase 0 (G0) 는 부팅 mark 2 개를 넣고 같은 하니스로 재측정한다. 측정 스크립트는 세션 scratchpad (`p6/`).
+
+### 7-2. 실행 기록 — Phase 0 ~ 3 (2026-09-27, 사용자 `/execute-adr 247`)
+
+#### 설계에서 바꾼 것 (구현 중 실측으로)
+
+| 항목                  | breakdown 원안                                                                               | 실행                                                                                                                  | 근거                                                                                                                                                                                                                                                                                          |
+| --------------------- | -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 셸 색 · 크기 (§3-1)   | 플러그인이 `builder-system.css` 토큰 · `.dot-background--base` 규칙을 추출해 인라인 CSS 생성 | 셸을 **앱과 같은 class** (`.app` · `.canvas-container` · `.loading-*`) 로 그린다 — 인라인 CSS 0                       | main CSS 는 head 의 render-blocking stylesheet 라 첫 paint 전에 항상 도착한다 (빌드 산출물 확인: `.loading-progress` · 토큰 · `.app { zoom }` 전부 `main-*.css`). 인라인 CSS 를 따로 두어도 첫 paint 가 앞당겨지지 않고, 값 복제는 0 이 된다 (HC4 보다 강함)                                  |
+| 점 배경 (§3-3)        | 셸이 `.dot-background--base` 로 그림                                                         | 그리지 않는다                                                                                                         | 점 격자 (간격 · 위상) 는 캔버스 pan/zoom 에서 나온다 (`dotBackgroundMetrics.ts`) — 셸은 알 수 없다. 기본값으로 그리면 첫 commit 에 격자가 움직인다 (W1 실측 `--dot-gap 16px · --dot-ty 6px` ≠ fallback 20px · 0)                                                                              |
+| 진행 막대 자리 (§3-3) | 오버레이 규칙을 셸과 같게                                                                    | `.loading-text` · `.loading-percent` 를 막대 위아래에 띄워 (absolute) 막대만 흐름에 둔다                              | 막대 y 가 라벨 글꼴 높이와 무관해진다 (종전 가운데 정렬 column 은 라벨 19.5 px · 퍼센트 18 px 차로 막대가 0.75 px 아래)                                                                                                                                                                       |
+| 부팅 layout-shift     | 셸 교체 구간만                                                                               | 라벨 · 퍼센트를 문구 · 자릿수가 바뀔 때 새 노드로 (`key`) · 상자 폭 고정                                              | 기존 오버레이가 "데이터 로딩" → "캔버스 초기화" · 15% → 100% 에서 가운데 정렬 글자 시작점이 움직여 layout-shift 0.0001 (대조군도 같은 값) — HC2 합 0 을 위해 같이 고침                                                                                                                        |
+| 골격 대상 (§4-1)      | 헤더 · 패널 frame · 캔버스 영역                                                              | 루트 `.header` · `.panel-dock-stage` 아래 **가장 바깥의 칠해진 상자** (배경 · 테두리 · 그림자) — 안으로 내려가지 않음 | 헤더는 막대가 아니라 섬 (group) 들이고 (배경 투명), 레일도 섬이다. 캔버스 영역은 최소 셸 배경이 이미 그린다                                                                                                                                                                                   |
+| 기록 시점 (§4-2)      | presented idle + 배치 · resize · 배율 · 테마 변경 뒤 idle                                    | **presented 직후 idle 1 회뿐**                                                                                        | 세션 중 · 떠날 때 쓰면 저장되지 않는 상태가 섞인다 — 하니스가 Compare Mode 를 켠 채 쓴 스냅샷이 다음 진입 헤더 섬과 36 px 어긋났다. presented 순간의 chrome 은 영속 상태 + viewport 로만 정해진다. 배치 · viewport 를 바꾼 뒤 첫 진입은 일치 키가 달라 최소 셸이고 그 진입이 새 스냅샷을 쓴다 |
+| 빌드 id               | `import.meta.env`                                                                            | 플러그인이 빌드마다 id 를 만들어 `<meta name="composition-build">` (앱) 와 인라인 script 인자 (셸) 로 같이 넘긴다     | 두 쪽이 한 값을 읽는다                                                                                                                                                                                                                                                                        |
+| initial 번들          | Δ ≤ 0                                                                                        | 스냅샷 기록기를 presented idle 에 동적 import · 셸 해제 함수만 initial (`staticShellRelease.ts`)                      | 정적 import 면 +738 B, 공유 모듈 chunk 분리 해소 뒤 +267 B                                                                                                                                                                                                                                    |
+| 파일 (§3-1) | `apps/builder/shell/staticShell.js` · `main.tsx` 비 builder 제거 | `src/staticShell/` — `staticShell.ts` (마크업 · 인라인 boot · 일치 판정, `vite.config.ts` `staticShellPlugin()` 이 `toString()` 으로 주입) · `staticShellRelease.ts` (교체 · 정리) · `shellSnapshot.ts` (기록기, 지연 로드) · `scheduleShellSnapshotWrite.ts`. 비 builder 정리는 `AppLayout` layout effect | 인라인 boot 를 unit 으로 직접 부르고, 같은 함수가 주입된다 (해시 함수도 인자로 같이 주입) |
+| 배율 조건 (G2)        | {90 · 100 · 125}                                                                             | {80 · 100 · 120}                                                                                                      | 앱의 `UiScale` 값이 80 / 100 / 120 뿐이다 (`uiStore.ts`)                                                                                                                                                                                                                                      |
+#### 게이트 결과
+
+측정 공통: `apps/builder/scripts/cold-entry-shell.mjs` (신규 하니스) · 같은 커밋 트리의 `vite build` 두 arm — 셸 (`on`) 과 `COMPOSITION_STATIC_SHELL=off` 대조군 (`off`, 셸 마크업 · script 만 빠지고 나머지 동일) · Pages 흉내 서버 · 매 진입 새 브라우저 · 새 컨텍스트 (HTTP 캐시 빔) · headless · 조건마다 arm 교대.
+
+**G0 — go 재확인.** 부팅 mark 2 개 (`composition:builder.first-commit` · `composition:builder.presented`) 배선. 대조군 Chromium 4x W0 p50 380 ~ 382 ms (≥ 300 ms), 다크 첫 paint 전 흰 프레임 15/20 → go 유지.
+
+**G1 — 최소 셸 (n = 10, 없는 프로젝트 경로 = W0 · 첫 paint 전용).**
+
+| 조건 | 첫 paint p50 on / off (ms) | 셸 표시 p50 (ms) | W0 p50 on / off (ms) | 다크: 흰 프레임 실행 on / off | 막대 차 · CLS |
+| --- | ---: | ---: | ---: | --- | --- |
+| Chromium 1x · 1440 · 1920 | 28 ~ 44 / 148 ~ 152 | 13 ~ 16 | 109 ~ 112 / 110 ~ 111 | 0/20 / 5/20 | 0 px · 0 |
+| Chromium 4x · 1440 · 1920 | 72 ~ 80 / 496 ~ 500 | 49 ~ 50 | 381 ~ 384 / 379 ~ 382 | 0/20 / 15/20 | 0 px · 0 |
+| WebKit · 1440 · 1920 | (paint timing 없음) | 85 ~ 91 | 181 ~ 183 / 180 ~ 181 | 측정 불가 (screencast 없음) | 0 px · (API 없음) |
+
+- ① 다크 첫 paint = 셸 배경 (휘도 0.07 ~ 0.1), 흰 프레임 0/40 (Chromium). 라이트는 1/40 실행에 흰 프레임 1 장 (대조군 23/40).
+- ② 셸 막대 ↔ React 막대 사각형 차 0 px (전 실행) · 교체 전후 layout-shift 0.
+- ③ dashboard · signin · publish · `/` 에서 셸 · 골격 노드 없음 (live probe). dashboard · signin 의 `data-builder-theme` 는 그 화면 자체 훅 (`useBuilderChromeTheme`) 이 세운 기존 값이다.
+- ④ 저장 예외 · 빈 값 · 손상 JSON → 최소 셸 · 부팅 계속 (unit).
+- ⑤ 빌드 추출 색 — 해당 없음 (추출 없이 main CSS 를 그대로 씀, 위 표).
+- ⑥ initial JS gzip +267 B (1,413,113 → 1,413,380, ADR-201 상한 1,421,000 안). **Δ ≤ 0 은 못 맞췄다** — 부팅 mark 2 · 셸 해제 · 기록기 지연 import 호출 몫. 2026-09-27 사용자 수용 ("+267B 수용"). 인라인 셸 (마크업 + script) gzip +592 B (≤ 4 KB).
+- ⑦ 첫 paint 가 대조군보다 앞섬: 4x 에서 약 420 ms, 10 Mbps 에서 380 vs 2,244 ms.
+- W0 · presented 는 두 arm 이 같다 — 셸이 부팅을 늦추지 않는다 (HC6). 10 Mbps · 4x · 실제 프로젝트: presented p50 7,964 / 7,962 ms.
+
+**G2 — 스냅샷 골격 (Chromium · WebKit 각 72 조건 × n 2 = 288 진입).** viewport {1280×720 · 1440×900 · 1920×1080 · 2560×1440} × 배율 {80 · 100 · 120} × 테마 {light · dark} × 배치 {기본 · 좌 패널 · 좌우 패널}. 조건마다 같은 엔진으로 먼저 진입 → 배치 변형 → 새로고침 (presented 가 스냅샷 기록) → 그 저장 상태로 cold 진입.
+
+- 288/288 진입에서 골격이 그려짐 (상자 4 · 6 · 8) · 골격 ↔ presented 순간 실제 chrome 상자 최대 차 **0.02 px** · 상자 수 차 0 · presented 전 골격 없는 프레임 0 · presented 뒤 골격 남은 프레임 0 · 부팅 layout-shift 0 (Chromium).
+- 불리 케이스 (Chromium · WebKit 4x dark 1440 좌 패널, n 3): viewport 변경 · 빌드 id 변경 · 배치 원문 변경 → 셋 다 골격 0 · 최소 셸 · layout-shift 0.
+- 원복 RED (Chromium 4x dark 1440 좌 패널, n 3): 골격 제거를 2 rAF 늦춤 → 겹침 2 프레임 · 첫 commit 으로 앞당김 → 빈틈 33 프레임 · 정상 → 0 / 0. unit 원복: 일치 판정에서 빌드 · 배치 키를 빼면 2 FAIL.
+
+**G3 — live (headed Chromium) · 사용자 confirm "확인했어" (2026-09-27).** 아래 "live" 와 본문 `### Live Exercise`.
+
+한계: 로컬 서버 (CDN · TLS 없음) · 네트워크는 CDP 합성 · WebKit 첫 paint 색은 못 쟀다 (screencast 없음 · 셸 표시 rAF 시각만) · 신규 프로젝트 (패널 내용이 가벼움 — 골격은 frame 상자만 그리므로 내용과 무관).
+
+#### live — headed Chromium cold 진입 (2026-09-27)
+
+production build · Pages 흉내 서버 · 다크 · 저장 배치 (좌 Navigator · 우 AI 패널) · CPU 4x · 10 Mbps · 새 컨텍스트. screencast 121 프레임:
+
+- 353 ms: 흰 프레임 1 장 — 새 탭의 이전 문서 (about:blank). CSS 도착 전이라 페이지가 칠할 수 없는 구간.
+- 365 ms: 셸 + 패널 골격 (헤더 섬 2 · 패널 2 · 레일 2 · 빈 진행 막대). first-paint 380 ms.
+- 2,145 ms (첫 commit): 진행 막대 · 라벨 · 점 배경이 같은 자리에 붙는다. 골격은 남는다.
+- 8,162 ms (presented): 실제 헤더 · Navigator · AI 패널 · 레일이 골격 자리 그대로 드러난다.

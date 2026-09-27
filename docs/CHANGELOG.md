@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [빌더 직접 진입 정적 셸 · 패널 골격] - 2026-09-27
+
+### Added
+
+- **빌더 주소로 바로 들어오면 JS 가 오기 전부터 부팅 화면이 보인다 (ADR-247).** 종전에는 initial JS 실행 · 첫 React commit 까지 문서가 비어 있어 흰 화면이었고, 다크 테마면 흰색 → 어두운 화면으로 바뀌었다. `index.html` 이 사용자 테마의 캔버스 배경과 진행 막대를 CSS 도착 즉시 그리고, React 가 같은 자리에서 이어받는다. 셸은 앱과 같은 class 로 그려 색 · 크기 · UI 배율을 따로 적지 않는다. dashboard · signin · publish 에는 그리지 않는다.
+  - Chromium CPU 4x · 캐시 빔 첫 paint 72 ~ 80 ms (종전 496 ~ 500 ms) · 10 Mbps 380 ms (종전 2,244 ms) · 다크 흰 프레임 0/40 (종전 23/40). 부팅 완료 시각은 같다
+- **부팅 중에도 헤더 · 패널 · 레일 자리가 보인다.** 빌더가 화면을 드러낼 때 chrome 의 위치 · 색을 기억해 두고, 다음 진입의 창 크기 · UI 배율 · 테마 · 패널 배치 · 배포 버전이 같으면 그 골격 (상자만, 글자 · 버튼 없음) 을 부팅 내내 그린다. 실제 chrome 이 드러나는 프레임에 같은 자리에서 바뀐다. 하나라도 다르면 골격 없이 배경 · 진행 막대만 그린다.
+  - Chromium · WebKit 288 진입 (창 4 × 배율 3 × 테마 2 × 배치 3) 골격 ↔ 실제 최대 0.02 px · 부팅 layout shift 0
+
+### Changed
+
+- **부팅 오버레이의 라벨 · 퍼센트가 문구 · 자릿수가 바뀔 때 옆으로 움직이지 않는다.** 진행 막대가 화면 정중앙에 고정되고, 라벨 · 퍼센트는 막대 위아래에 가운데 정렬된다.
+- 부팅 경계 user timing `composition:builder.first-commit` · `composition:builder.presented` 를 항상 남긴다 (cold entry 하니스 `apps/builder/scripts/cold-entry-shell.mjs`).
+
 ## [결정적 카운트 ratchet 게이트 · 선택 조회 인덱스] - 2026-09-27
 
 ### Added

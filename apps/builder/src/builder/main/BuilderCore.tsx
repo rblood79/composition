@@ -6,7 +6,18 @@ import {
   isBodyType,
 } from "@composition/shared";
 import { startLocalWebVitals } from "../performance/localWebVitals";
-import React, { useState, useCallback, useEffect, useRef } from "react";
+import {
+  releaseStaticShell,
+  releaseStaticShellSkeleton,
+} from "../../staticShell/staticShellRelease";
+import { scheduleShellSnapshotWrite } from "../../staticShell/scheduleShellSnapshotWrite";
+import React, {
+  useState,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+} from "react";
 import { useParams } from "react-router";
 import { Key } from "react-aria-components/Collection";
 
@@ -1579,6 +1590,26 @@ export const BuilderCore: React.FC = () => {
   }, [bootstrapTargetKey, isBuilderReady]);
 
   const isBuilderPresented = isBuilderReady && hasPaintedBootstrapCompletion;
+  // ADR-247 — 부팅 경계 user timing. 항상 켜진다 (부팅당 2 회). cold entry 하니스
+  // (`scripts/cold-entry-shell.mjs`) 가 W0 (navigation → 첫 commit) · W1 (→ presented) 로 읽는다.
+  useLayoutEffect(() => {
+    performance.mark("composition:builder.first-commit");
+    // 같은 commit 이 그린 부팅 화면 (캔버스 배경 · 진행 막대) 이 셸과 같은 자리라 paint 전에 교체.
+    releaseStaticShell();
+  }, []);
+  useLayoutEffect(() => {
+    if (!isBuilderPresented) return;
+    performance.mark("composition:builder.presented");
+    // 실제 chrome 의 visibility:hidden 이 풀리는 commit — 셸 패널 골격을 같은 paint 에서 교체 (R4).
+    releaseStaticShellSkeleton();
+  }, [isBuilderPresented]);
+  // 골격이 남은 채 떠나면 (presented 전 경로 이동) 다음 화면을 덮지 않게 치운다.
+  useLayoutEffect(() => releaseStaticShellSkeleton, []);
+  // presented 순간의 chrome 을 다음 cold entry 의 패널 골격으로 기록한다 (ADR-247 Phase 2).
+  useEffect(() => {
+    if (!isBuilderPresented) return;
+    return scheduleShellSnapshotWrite();
+  }, [isBuilderPresented]);
   const bootstrapProgress = resolveBootstrapProgress(
     projectBootstrapPhase,
     canvasBootstrapPhase,
@@ -1640,7 +1671,11 @@ export const BuilderCore: React.FC = () => {
           ) : (
             <div className="loading-content">
               <div className="loading-status">
-                <div className="loading-text">{loadingLabel}</div>
+                {/* 문구 · 자릿수가 바뀌면 새 노드로 바꾼다 — 가운데 정렬 글자의 시작점 이동이
+                    부팅 layout-shift 로 잡히지 않게 (ADR-247 HC2) */}
+                <div key={loadingLabel} className="loading-text">
+                  {loadingLabel}
+                </div>
                 {!isPageOnlyLoading && (
                   <>
                     <div className="loading-progress">
@@ -1659,7 +1694,12 @@ export const BuilderCore: React.FC = () => {
                         onTransitionEnd={handleBootstrapProgressTransitionEnd}
                       />
                     </div>
-                    <div className="loading-percent">{bootstrapProgress}%</div>
+                    <div
+                      key={bootstrapProgress}
+                      className="loading-percent"
+                    >
+                      {bootstrapProgress}%
+                    </div>
                   </>
                 )}
               </div>

@@ -1,11 +1,23 @@
 import { copyFileSync } from "fs";
 import { resolve } from "path";
 import { defineConfig } from "vite";
-import type { Connect, ViteDevServer } from "vite";
+import type {
+  Connect,
+  HtmlTagDescriptor,
+  IndexHtmlTransformContext,
+  ResolvedConfig,
+  ViteDevServer,
+} from "vite";
 import react from "@vitejs/plugin-react";
 import optimizeLocales from "@react-aria/optimize-locales-plugin";
 import wasm from "vite-plugin-wasm";
 import type { IncomingMessage, ServerResponse } from "http";
+import {
+  SHELL_BUILD_META,
+  STATIC_SHELL_ATTRS,
+  STATIC_SHELL_MARKUP,
+  renderStaticShellScript,
+} from "./src/staticShell/staticShell";
 
 /** Builder UI i18n (`SupportedLocale`) 과 같은 en-US / ko-KR 만 RAC 문자열에 남긴다. */
 function racLocalesPlugin() {
@@ -179,6 +191,50 @@ function spaFallbackPlugin() {
   };
 }
 
+/**
+ * ADR-247 — cold entry 정적 셸. 빌더 `index.html` (빌드는 `404.html` 복사본도) 의 body 맨 앞에
+ * 셸 노드와 인라인 script 를 넣는다. 셸은 앱과 같은 class 로 그려 색 · 크기를 main CSS 가 준다
+ * (`src/staticShell/staticShell.ts`). preview.html 에는 넣지 않는다.
+ * `COMPOSITION_STATIC_SHELL=off` 는 측정 대조군 (셸 없는 같은 빌드) 전용 스위치.
+ */
+function staticShellPlugin() {
+  let base = "/";
+  // 빌드마다 새 id — 배포가 바뀌면 CSS 가 바뀌었을 수 있으므로 지난 스냅샷을 쓰지 않는다 (R1).
+  let build = "dev";
+  return {
+    name: "composition-static-shell",
+    configResolved(config: ResolvedConfig) {
+      base = config.base;
+      if (config.command === "build") build = Date.now().toString(36);
+    },
+    transformIndexHtml(
+      _html: string,
+      ctx: IndexHtmlTransformContext,
+    ): HtmlTagDescriptor[] {
+      if (process.env.COMPOSITION_STATIC_SHELL === "off") return [];
+      if (!/(^|[\\/])index\.html$/.test(ctx.filename)) return [];
+      return [
+        {
+          tag: "meta",
+          attrs: { name: SHELL_BUILD_META, content: build },
+          injectTo: "head",
+        },
+        {
+          tag: "div",
+          attrs: STATIC_SHELL_ATTRS,
+          children: STATIC_SHELL_MARKUP,
+          injectTo: "body-prepend",
+        },
+        {
+          tag: "script",
+          children: renderStaticShellScript(base, build),
+          injectTo: "body-prepend",
+        },
+      ];
+    },
+  };
+}
+
 // https://vite.dev/config/
 export default defineConfig(({ command }) => {
   return {
@@ -190,6 +246,7 @@ export default defineConfig(({ command }) => {
       apiProxyPlugin(),
       devIdentityPlugin(),
       react(),
+      staticShellPlugin(),
       spaFallbackPlugin(),
     ],
     worker: {
