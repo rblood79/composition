@@ -326,7 +326,7 @@ LOW deferred (production 증상 없음): L1 목록 입력이면 스크롤마다 
   - 옛 규칙 키: `translateLegacyDescendantKeys` 가 해석 입구 (Canvas instance 루트 · 변형 체인 · Preview ref) 에서 origin 자식 트리를 걸어 옛 키의 현재 규칙 사본을 둔다 (읽기 전용 — 문서는 바꾸지 않는다, 옮길 것이 없으면 같은 객체).
 - **증거**: unit `pathSegmentUnification.test.ts` 6 (metadata customId segment · Canvas 키를 Preview 도 · 옛 키를 두 해석기 모두 · scene 모양 노드의 옛 키 · 옛 키 + 현재 키 합치기 · 같은 이름 두 번째 형제만) · live `adr150-f2-segment-rule-live.mjs` 4/4 — origin 에 store 로 Text 추가 (customId 자동) → 팔레트 GridList 정적 항목 안 synthetic 자식 `<instance>/component-gridlist__item-1/text_1` 이 layout map 에 있고, Styles 쓰기 → 바깥 instance 키 `component-gridlist__item-1/text_1` · Preview 해석기 = Canvas · 패널 해석기 (같은 색). builder 전체 7953 · type-check PASS.
 - **원복 RED**: metadata customId 읽기 제거 → unit 3 · live 2/4 (쓰기 사라짐) · 옛 키 변환 끔 → unit 1 · 형제 접미사 끔 → unit 2.
-- F3 는 live 로 만들 수 없다 — store 가 모든 요소에 customId 를 붙여 같은 이름 형제가 생기지 않는다 (옛 문서 · import 전용).
+- F3 는 이 live 스크립트로는 만들지 않았다 — store 추가는 customId 를 붙인다. 다만 같은 segment 형제는 import · detach · customId 비우기로 생긴다 (아래 MEDIUM-3 재확인).
 
 ### F2 · F3 판독 (reviewer 1 회) — HIGH 1 · MEDIUM 2
 
@@ -334,3 +334,4 @@ LOW deferred (production 증상 없음): L1 목록 입력이면 스크롤마다 
 - MEDIUM-2 `fixed`: 옛 키 · 현재 키 공존 시 옛 patch 를 버렸다 → 둘 다 속성 patch 면 옛 patch 위에 현재 patch 를 합친다.
 - MEDIUM-3 `deferred`: Preview presentation index 가 걸러진 목록으로 `~N` 을 센다 — 같은 segment 형제가 production 에서 생기지 않아 (store customId 문서 단위 고유 · 시드 중복 0) LOW.
 - 수리 뒤: unit 6/6 (수리 전 추가 2 건 RED) · builder 전체 7955 · tsc 0 · live 4/4. 번역은 reuse 적중 판정 뒤에서만 돌아 캐시 적중에 영향 없음.
+- **MEDIUM-3 재확인 (사용자 지시)**: deferred 전제가 틀렸다 — import (pencil · 프로젝트 파일) 는 customId 를 발급하지 않고, detach 는 nested master customId · componentName 을 형제마다 복사하며, customId 비우기는 componentName 으로 떨어진다. 또 Preview presentation index 는 해석 노드 (ref 자식이 master name 을 물려받고 customId 를 잃음) 로 segment 를 세 기본 목록 instance 에서도 편집기 키 (id) 와 어긋난다 — 원래부터 있던 불일치, Preview 편집 중 즉석 표시에만 영향. 수리 대기. 상세 `reviews/150.md`.
