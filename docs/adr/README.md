@@ -11,6 +11,8 @@
 
 ---
 
+> **2026-09-27 ADR-243 · 244 · 245 Proposed**: Chrome for Developers case study 30건 조사에서 ADR 이 필요한 3건 (사용자 `/create-adr` — "병렬로 한번에 설계해"). **243** 상호작용 응답성 — 실제 입력 · production · 4x 에서 LoAF 귀속 버킷표로 long task 가 어디 몰렸는지 먼저 재고 (분할 경계를 가정하지 않음), 다음 paint 에 불필요한 작업이 30% 이상인 경계에만 양보 · WebKit 폴백 (setTimeout vs MessageChannel) 두 arm. **244** 초기 로드 — CanvasKit wasm 해시 경로화 (glue · wasm 한 쌍) + 네트워크 대기가 press → ready 의 30% 이상일 때만 의도 · idle 미리 받기, Service Worker precache 는 보류 (재개 조건 3). gh-pages 최종 배포 09-04 에서 멈춤 확인. **245** AI on-device (Prompt API + Translator) — 선택 경로, Phase 0 go/no-go (no-go 면 Rejected/Deferred 종결). Prompt API 는 한국어 미지원 · 원격 provider 는 브라우저 차단이라 fallback 은 Ollama 뿐. 셋 다 사용자 결정 지점이 본문에 있다. 열림 6 (Proposed 6), 완료 266, 합계 272.
+>
 > **2026-09-27 ADR-150 Implemented**: 데이터 바인딩 목록의 Canvas 정합 (Phase 0 ~ 3 / G0 ~ G3). 스크롤 소유자 ListBox · GridList · Table 의 window · spacer · 스크롤 범위 · 행 배치가 행 위치 단일 소스 하나를 읽어 끝 행까지 닿고 보이는 행 위치가 DOM 과 같다 (행별 높이 · gap · 요소 헤더) · 데이터 행 더블클릭 → 템플릿 origin 자식으로 이동해 선택 (연속성 키 = 원래 hit · 카메라 추종). live — G1 15/15 · G2 10/10 · DOM oracle 3/3. 911 R-3 / G-projected 닫힘 · 910 T-7 에 A1 철회 기록 · 후속 R1 (줄바꿈 행 높이 — 실측 캐시 · anchoring, live 11/11) 같은 날 반영. 열림 3 (910 · 911 · 921).
 >
 > **2026-09-27 ADR-162 Implemented**: 데이터 바인딩 GridList 카드 = 항목 origin instance (Phase 0 ~ 6 / G0 ~ G4). 데이터 행이 정적 카드와 같은 모양 — origin 에 넣은 Image · Button 등이 카드마다 나오고 행별 `{field}` 로 값이 바뀐다 · 펼친 카드의 스크롤 행 높이를 실측해 ADR-150 행 offset 함수에 공급 (scroll anchoring). live — G3 13/13 · 행별 값 5/5 · G4 `scene.build` Δ +2.0 (origin 편집) · 0 (스크롤). 연속 스크롤 60Hz floor 는 대조군도 미달 → 사용자 판정 "승격 + 후속 분리" (보류 항목). 열림 4 (150 In Progress · 910 · 911 · 921).
@@ -123,16 +125,16 @@
 
 | 구분                          |    개수 |
 | ----------------------------- | ------: |
-| 완료 (`completed/`)           |     264 |
-| ├ Implemented                 |     225 |
+| 완료 (`completed/`)           |     266 |
+| ├ Implemented                 |     227 |
 | ├ Accepted                    |      13 |
 | ├ Superseded                  |      14 |
 | └ Deprecated                  |       9 |
-| 열려 있는 것 (`adr/*.md`)     |       5 |
-| ├ Proposed                    |       4 |
-| ├ Accepted (미착수·일부 착수) |       1 |
+| 열려 있는 것 (`adr/*.md`)     |       6 |
+| ├ Proposed                    |       6 |
+| ├ Accepted (미착수·일부 착수) |       0 |
 | └ 부분 완료                   |       0 |
-| **합계**                      | **269** |
+| **합계**                      | **272** |
 
 > 2026-09-26 파일 실측 (ADR-235 승격 때): `completed/` 파일 268 − 비-ADR 5 = ADR 263 · `adr/` 직속 ADR 5 (150 Accepted · 162 · 910 · 911 · 921 Proposed) — 직전 표의 열림 9 · 완료 259 는 이동 누락으로 어긋나 있었다. 완료 내역 4 줄의 합 (260) 은 263 과 3 차이 — 개별 Status 재대조는 다음 정리 때.
 >
@@ -146,6 +148,21 @@
 ## 지금 열려 있는 것
 
 ### 진행 중 / 미구현 (Proposed / In Progress)
+
+#### [243](243-interaction-responsiveness-long-task-yield.md) — 상호작용 응답성: LoAF 귀속으로 분할 지점을 찾고 측정된 경계에서만 long task 를 나눈다
+
+- **상태**: Proposed — 2026-09-27
+- **규모**: Phase 0 측정 (실제 입력 구동 하니스 · production · Chrome 4x/1x · WebKit · 600/5k, Event Timing + LoAF 귀속 버킷표) 뒤 3 분기 — 기준 이내면 구현 없이 종결 · 다음 paint 에 필요한 작업이 지배적이면 작업 감소 후속 (사용자 결정) · 불필요한 작업 30% 이상인 경계만 `afterNextPaint`/`yieldToMain` + 세대 토큰. 사용자 결정: 판정 기준 (4x 600 요소 p95 100ms · 5k 200ms) · G2 ratio 0.8. breakdown: [design/243](design/243-interaction-responsiveness-breakdown.md)
+
+#### [244](244-canvaskit-wasm-early-fetch-and-service-worker-cache.md) — 초기 로드: CanvasKit wasm 미리 받기 · 고유 경로화 (Service Worker precache 는 측정 조건부 보류)
+
+- **상태**: Proposed — 2026-09-27
+- **규모**: Phase 0 (GitHub Pages 헤더 모사 서버 · Chromium/WebKit · 카드 press → `isCanvasReady` 구간 분해) · 대안 D (wasm `?url` 해시 경로 — glue 와 쌍) 무조건 · 대안 A (의도/idle 미리 받기) 조건부 · SW 보류. 사용자 결정: SW 보류로의 scope 변경 · 미리 받기 트리거 · 배포 실패 복구 선행 (gh-pages 09-04 멈춤) · `scripts/prepare-wasm.mjs` 삭제 · initial Δ. breakdown: [design/244](design/244-initial-load-breakdown.md)
+
+#### [245](245-ai-panel-on-device-model-path.md) — AI 패널 on-device 모델 경로 (Chrome built-in AI — 선택 경로)
+
+- **상태**: Proposed — 2026-09-27 (선택 경로 — Phase 0 no-go 면 Rejected/Deferred 가 정상 종결)
+- **규모**: Phase 0 go/no-go 계측 (수정 전후 Ollama · one-shot · Prompt API arm, 한국어 모호 요청 20+ · 정답 IR). go 면 `chrome-built-in` provider (IR 전용 · Translator ko→en · 동의 뒤 다운로드 · 상태 4단계). 사용자 결정: G0 절대 목표 (제안 5초) · 요청 세트 승인 · 서버 측 one-shot 이 이길 때의 소속 · 채택 근거 범위 · 자격 기기. breakdown: [design/245](design/245-ai-on-device-breakdown.md)
 
 #### [910](910-rac-pencil-component-architecture.md) — RAC core + Pencil format 1차 원리 컴포넌트 아키텍처
 
