@@ -1081,6 +1081,12 @@ function legacyElementToCanonicalNode(
     ? element.sizing
     : previousNode?.sizing;
   const sizingField = sizing ? { sizing } : {};
+  // ADR-234 숨김 필드 — Element 가 싣지 않으면 이전 노드 값을 지킨다 (sizing 과 같은 규칙). 종전엔 Element 재구성이
+  //   `enabled` 를 버려, detach 사본의 숨김 자식이 다시 보였다 (ADR-150 detach 노드 필드 2026-09-27).
+  const enabled = Object.hasOwn(element, "enabled")
+    ? element.enabled
+    : previousNode?.enabled;
+  const enabledField = typeof enabled === "boolean" ? { enabled } : {};
   const legacy = asElementWithLegacyMirror(element);
   const isReusableOrigin =
     legacy.componentRole === "master" ||
@@ -1114,6 +1120,7 @@ function legacyElementToCanonicalNode(
         },
         ...responsiveField,
         ...sizingField,
+        ...enabledField,
         metadata: {
           type: "legacy-slot-hoisted",
           slotName: slotName ?? "content",
@@ -1129,6 +1136,7 @@ function legacyElementToCanonicalNode(
       ...(previousNode?.children ? { children: previousNode.children } : {}),
       ...responsiveField,
       ...sizingField,
+      ...enabledField,
       metadata: {
         type: "legacy-slot",
         slot_name: legacyElement.slot_name,
@@ -1158,6 +1166,7 @@ function legacyElementToCanonicalNode(
       : element;
   const baseNode: CanonicalNode = {
     ...sizingField,
+    ...enabledField,
     id: previousNode?.id ?? element.id,
     type: tagToType(element.type),
     name: element.componentName,

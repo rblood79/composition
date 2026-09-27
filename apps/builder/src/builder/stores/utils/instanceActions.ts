@@ -67,7 +67,15 @@ import {
   generateCustomId,
   getCustomIdBase,
 } from "../../utils/idGeneration";
-import { getCanonicalRefChildSegments } from "../../../adapters/canonical/canonicalRefResolution";
+import {
+  applyDescendantPatchToElement,
+  getCanonicalRefChildSegments,
+} from "../../../adapters/canonical/canonicalRefResolution";
+import {
+  readPropsSchema,
+  resolveTemplateBindingValues,
+  substituteTemplateBindingsInProps,
+} from "@composition/shared";
 
 type CanonicalElementFields = {
   children?: unknown;
@@ -240,6 +248,38 @@ function scopeNestedRefDescendants(
   return merged;
 }
 
+/** ref 노드 자신의 노드 필드 (master 위에 얹는 값 — Preview `resolvedBase` 의 `...refNode` · `mergeFillSizing`). */
+function refNodeFieldPatch(ref: Element): Record<string, unknown> | null {
+  const patch: Record<string, unknown> = {};
+  if (Array.isArray(ref.fills) && ref.fills.length > 0) patch.fills = ref.fills;
+  if (ref.sizing) patch.sizing = ref.sizing;
+  if (ref.responsive) patch.responsive = ref.responsive;
+  if (typeof ref.enabled === "boolean") patch.enabled = ref.enabled;
+  return Object.keys(patch).length > 0 ? patch : null;
+}
+
+/**
+ * origin `propsSchema` 템플릿 (`{키}`) 의 바인딩 값 — detach 시점 instance 값으로 사본에 굳힌다 (ADR-148 · Preview
+ * `_resolveRefNodeUncached` 와 같은 값). propsSchema 없는 origin 은 undefined (placeholder 원형 보존).
+ */
+function detachTemplateBindings(
+  master: Element,
+  resolvedProps: Record<string, unknown>,
+): Record<string, unknown> | undefined {
+  const schema = readPropsSchema(master);
+  return schema ? resolveTemplateBindingValues(schema, resolvedProps) : undefined;
+}
+
+function withDetachTemplateBindings(
+  element: Element,
+  bindings: Record<string, unknown> | undefined,
+): Element {
+  if (!bindings) return element;
+  const props = getElementProps(element);
+  const substituted = substituteTemplateBindingsInProps(props, bindings);
+  return substituted === props ? element : { ...element, props: substituted };
+}
+
 function propsFromCanonicalOverride(
   override: Record<string, unknown>,
 ): Record<string, unknown> {
@@ -341,7 +381,17 @@ function createMaterializedElementFromOverride(
       typeof override.name === "string"
         ? override.name
         : fallback.componentName,
-  });
+    // 교체 노드 (mode B · mode C 목록) 는 canonical 노드 — 노드 필드는 교체 노드 것만 (Preview `resolveNode(replacement)`
+    //   와 같은 완전 교체). fallback (origin 자식) 의 숨김 · fills 등을 물려받지 않게 명시적으로 덮는다 (ADR-150 detach
+    //   노드 필드 판독 LOW-1: 숨긴 origin 자식을 mode B 로 바꾸면 사본이 숨었다).
+    fills: Array.isArray(override.fills) ? override.fills : undefined,
+    sizing: isRecord(override.sizing) ? override.sizing : undefined,
+    responsive: isRecord(override.responsive)
+      ? override.responsive
+      : undefined,
+    enabled:
+      typeof override.enabled === "boolean" ? override.enabled : undefined,
+  } as Element);
 }
 
 function getCanonicalChildren(
@@ -410,7 +460,8 @@ function buildCanonicalDetachSnapshot(
     sources: readonly Element[],
     parentId: string,
     pathPrefix: string | null,
-    activeLegacyDescendantMap?: Record<string, unknown>,
+    activeLegacyDescendantMap: Record<string, unknown> | undefined,
+    templateBindings: Record<string, unknown> | undefined,
   ) => {
     const segments = getCanonicalRefChildSegments(sources);
     const baseCounts = new Map<string, number>();
@@ -426,6 +477,7 @@ function buildCanonicalDetachSnapshot(
         pathPrefix ? `${pathPrefix}/${segment}` : segment,
         activeLegacyDescendantMap,
         (baseCounts.get(segment.replace(/~\d+$/, "")) ?? 0) > 1,
+        templateBindings,
       );
     });
   };
@@ -433,6 +485,7 @@ function buildCanonicalDetachSnapshot(
   const materializeCanonicalNode = (
     source: Record<string, unknown>,
     parentId: string,
+    templateBindings: Record<string, unknown> | undefined,
   ): Element => {
     const preferredId = typeof source.id === "string" ? source.id : undefined;
     const materializedId = nextId(preferredId);
@@ -450,10 +503,12 @@ function buildCanonicalDetachSnapshot(
       parentId,
       pageId,
     );
-    const created = pushCreated(element);
+    const created = pushCreated(
+      withDetachTemplateBindings(element, templateBindings),
+    );
 
     getCanonicalChildren(source).forEach((child) => {
-      materializeCanonicalNode(child, created.id);
+      materializeCanonicalNode(child, created.id, templateBindings);
     });
 
     return created;
@@ -466,7 +521,9 @@ function buildCanonicalDetachSnapshot(
     // 중첩 descendant 재귀는 현재 경로에서 해석한 legacy map을 이어받는다 (기본값 없음 — 중첩 ref 아래에서 바깥
     //   root map 으로 대체되면 안 된다).
     activeLegacyDescendantMap: Record<string, unknown> | undefined,
-    sharedSegment = false,
+    sharedSegment: boolean,
+    // 이 자식이 속한 ref 단계의 템플릿 바인딩 (중첩 ref 아래는 그 ref 의 값으로 바뀐다).
+    templateBindings: Record<string, unknown> | undefined,
   ): Element => {
     const override = getDescendantOverride(
       activeLegacyDescendantMap,
@@ -504,14 +561,29 @@ function buildCanonicalDetachSnapshot(
         : undefined;
     const id = nextId(replacementId);
     const baseProps = getElementProps(materializationSource);
-    // mode C (영역 채움) 항목도 `children` 밖의 host 편집 (`{ children, style }`) 을 적용한다 — Preview
-    //   `applyOverrideToNode` mode C host patch (ADR-240 P2) · Canvas 와 같다 (ADR-150 detach 공백 2026-09-27).
-    const patchProps =
-      override && !hasReplacement ? propsFromCanonicalOverride(override) : {};
-    const mergedProps = applyPropsPatch(
-      applyPropsPatch(baseProps, sourceOverrideProps),
-      patchProps,
-    );
+    const unpatched: CanonicalElement = {
+      ...materializationSource,
+      id,
+      parent_id: parentId,
+      page_id: pageId,
+      props: applyPropsPatch(baseProps, sourceOverrideProps),
+      reusable: undefined,
+      [COMPONENT_ROLE_MIRROR_FIELD]: undefined,
+      [COMPONENT_MASTER_ID_MIRROR_FIELD]: undefined,
+      [COMPONENT_OVERRIDES_MIRROR_FIELD]: undefined,
+      [COMPONENT_DESCENDANTS_MIRROR_FIELD]: undefined,
+    };
+    // 중첩 ref 자신의 노드 필드 (fills · sizing · responsive · enabled) 를 master 위에, 그 위에 이 경로의 patch
+    //   (mode A · mode C host) 를 — Canvas 해석기와 같은 함수 (노드 필드는 노드 필드로, 문자열 children 은 본문으로).
+    //   ADR-150 detach 노드 필드 (2026-09-27): 종전엔 노드 필드를 props 에 섞어 넣고 본문 patch 를 버렸다.
+    const refFields = nestedMaster ? refNodeFieldPatch(source) : null;
+    const withRefFields = refFields
+      ? applyDescendantPatchToElement(unpatched, refFields)
+      : unpatched;
+    const patched =
+      override && !hasReplacement
+        ? applyDescendantPatchToElement(withRefFields, override)
+        : withRefFields;
     const element = stripCanonicalRuntimeFields(
       hasReplacement
         ? createMaterializedElementFromOverride(
@@ -521,27 +593,26 @@ function buildCanonicalDetachSnapshot(
             parentId,
             pageId,
           )
-        : {
-            ...materializationSource,
-            id,
-            parent_id: parentId,
-            page_id: pageId,
-            props: mergedProps,
-            reusable: undefined,
-            [COMPONENT_ROLE_MIRROR_FIELD]: undefined,
-            [COMPONENT_MASTER_ID_MIRROR_FIELD]: undefined,
-            [COMPONENT_OVERRIDES_MIRROR_FIELD]: undefined,
-            [COMPONENT_DESCENDANTS_MIRROR_FIELD]: undefined,
-          },
+        : patched,
     );
 
-    const created = pushCreated(element, hasReplacement ? undefined : source);
+    // 템플릿 치환은 이 자식이 속한 ref 단계 값으로 — 중첩 ref 노드 자신은 바깥 값으로 치환하지 않는다 (Preview
+    //   `substituteTemplateBindingsInChildren` 가 해석된 ref 에서 멈춘다). 그 아래 자식은 그 ref 의 값으로.
+    const created = pushCreated(
+      nestedMaster
+        ? element
+        : withDetachTemplateBindings(element, templateBindings),
+      hasReplacement ? undefined : source,
+    );
+    const childBindings = nestedMaster
+      ? detachTemplateBindings(nestedMaster, getElementProps(created))
+      : templateBindings;
 
     if (hasReplacement) return created;
     if (hasChildrenReplacement) {
       ((override!.children as unknown[]) ?? []).forEach((childSource) => {
         if (isRecord(childSource)) {
-          materializeCanonicalNode(childSource, created.id);
+          materializeCanonicalNode(childSource, created.id, templateBindings);
         }
       });
       return created;
@@ -551,6 +622,7 @@ function buildCanonicalDetachSnapshot(
       created.id,
       nestedMaster ? null : relativePath,
       childDescendants,
+      childBindings,
     );
     if (nestedMaster) {
       // 중첩 ref 의 자기 자식 (TableView Row ref 의 Cell — ADR-241) 도 master 자식 뒤에 실체화한다. patch 는 바깥
@@ -565,6 +637,7 @@ function buildCanonicalDetachSnapshot(
           activeLegacyDescendantMap,
           relativePath,
         ),
+        childBindings,
       );
     }
     return created;
@@ -599,6 +672,7 @@ function buildCanonicalDetachSnapshot(
     detachedRoot.id,
     null,
     legacyDescendantMap,
+    detachTemplateBindings(master, rootProps),
   );
 
   const nextElements = [detachedRoot, ...createdChildren];

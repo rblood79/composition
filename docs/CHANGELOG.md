@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [detach 편집값 · 템플릿 보존] - 2026-09-27
+
+### Fixed
+
+- **instance 안 요소의 색 (Fill) · 본문 · 숨김 · breakpoint별 편집 · 크기 채움 (sizing) 이 detach 뒤 사라지던 문제.** detach 가 이 편집들을 요소 필드가 아니라 props 안에 넣거나 (색 · 숨김 · breakpoint · 크기) 버렸다 (Text/Label 본문). Canvas 해석기와 같은 함수로 적용한다. 숨김 (`enabled`) 은 요소 ↔ canonical 변환에서도 이어지게 했다 (종전엔 요소를 다시 저장하면 사라졌다).
+- **Card 처럼 템플릿 (`{title}` · `{description}`) 을 쓰는 instance 를 detach 하면 입력한 제목 대신 `{title}` 원문이 보이던 문제.** detach 시점 instance 값으로 사본에 굳힌다 (중첩 instance 는 그 instance 값으로).
+  - live: 팔레트 GridList 항목 Label 색 + 본문 편집 → detach 뒤 재해석 = detach 전 Preview · Card 제목 `Live title` 유지 (원복 시 각각 색 · 본문 유실 · `{title}`)
+
 ## [instance detach · 휴지 변형 편집 정합] - 2026-09-27
 
 ### Fixed

@@ -116,6 +116,8 @@ export interface Element {
    */
   responsive?: import("@composition/shared").ElementResponsiveConfig;
   sizing?: import("@composition/shared").FillAxes;
+  /** canonical `CanonicalNode.enabled` mirror (ADR-234 숨김 필드 — false = 렌더 안 함). */
+  enabled?: boolean;
 
   // --- ADR-214: 노드 소유 상태 정의 (페이지 · 요소 변수) ---
   /**

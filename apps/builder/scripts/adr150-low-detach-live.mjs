@@ -443,6 +443,140 @@ try {
     { cellsBefore, cellsAfter: cellsAfter.length, types: tableAfter.under.map((e) => e.type) },
   );
 
+  // (i) 팔레트 GridList 첫 항목 Label 에 Fill 색 + 본문 편집, 둘째 항목은 편집 없음 → detach 뒤 재해석이 detach 전
+  //     Preview 해석과 같다 (색 · 본문 · 템플릿 `{label}` · `{description}` 치환 값).
+  const listOwner = await addFromPalette("GridList");
+  await page.waitForTimeout(2500);
+  const firstLabel = await page.evaluate(
+    (owner) =>
+      [...window.__composition_LAYOUT_DEBUG__.getSharedLayoutMap().keys()].find(
+        (k) =>
+          k.startsWith(`${owner}/component-gridlist__item-1/`) &&
+          k.split("/").length === 3,
+      ) ?? null,
+    listOwner,
+  );
+  await page.evaluate((id) => {
+    const st = window.__composition_STORE__.getState();
+    st.setSelectedElement(id);
+    window.__composition_STORE__.getState().updateSelectedFills([
+      { id: "live-f", type: "color", color: "#ff0000", opacity: 1, enabled: true },
+    ]);
+  }, firstLabel);
+  await page.waitForTimeout(1000);
+  await page.evaluate((id) => {
+    const st = window.__composition_STORE__.getState();
+    st.setSelectedElement(id);
+    window.__composition_STORE__
+      .getState()
+      .updateSelectedProperty("children", "EDITED");
+  }, firstLabel);
+  await page.waitForTimeout(1200);
+  const readList = () =>
+    page.evaluate(async (owner) => {
+      const bridge =
+        await import("/src/builder/stores/canonical/canonicalElementsBridge.ts");
+      const resolver = await import("/src/resolvers/canonical/index.ts");
+      const find = (nodes) => {
+        for (const n of nodes) {
+          if (n.id === owner) return n;
+          const hit = find(n.children ?? []);
+          if (hit) return hit;
+        }
+        return null;
+      };
+      const inst = find(
+        resolver.resolveCanonicalDocument(bridge.getActiveCanonicalDocument()),
+      );
+      return (inst?.children ?? []).map((item) =>
+        (item.children ?? []).map((c) => ({
+          text: c.props?.children ?? null,
+          fill: c.fills?.[0]?.color ?? null,
+        })),
+      );
+    }, listOwner);
+  const listBefore = await readList();
+  await page.evaluate(
+    (id) => window.__composition_STORE__.getState().detachInstance(id),
+    listOwner,
+  );
+  await page.waitForTimeout(1500);
+  const listAfter = await readList();
+  record(
+    "(i) 항목 Fill 색 · 본문 편집 · 템플릿 치환이 detach 뒤 재해석 = detach 전 Preview",
+    listBefore.length > 0 &&
+      listBefore[0]?.[0]?.text === "EDITED" &&
+      listBefore[0]?.[0]?.fill === "#ff0000" &&
+      JSON.stringify(listAfter) === JSON.stringify(listBefore) &&
+      !/\{[a-zA-Z][\w-]*\}/.test(
+        listAfter.flat().map((c) => c.text ?? "").join(" "),
+      ),
+    { firstLabel, listBefore, listAfter },
+  );
+
+  // (j) Card instance (origin 템플릿 `{title}` · `{description}`, ADR-148) 에 제목 입력 → detach 뒤 재해석 텍스트가
+  //     detach 전 Preview 와 같고 자리표시자 원문이 없다.
+  const cardTexts = (id) =>
+    page.evaluate(async (id) => {
+      const bridge =
+        await import("/src/builder/stores/canonical/canonicalElementsBridge.ts");
+      const resolver = await import("/src/resolvers/canonical/index.ts");
+      const find = (nodes) => {
+        for (const n of nodes) {
+          if (n.id === id) return n;
+          const hit = find(n.children ?? []);
+          if (hit) return hit;
+        }
+        return null;
+      };
+      const out = [];
+      const walk = (n) => {
+        if (typeof n.props?.children === "string") out.push(n.props.children);
+        (n.children ?? []).forEach(walk);
+      };
+      const inst = find(
+        resolver.resolveCanonicalDocument(bridge.getActiveCanonicalDocument()),
+      );
+      (inst?.children ?? []).forEach(walk);
+      return out;
+    }, id);
+  await page.evaluate(async () => {
+    const st = window.__composition_STORE__.getState();
+    const body = st.elements.find(
+      (e) => e.type === "body" && e.page_id === st.currentPageId,
+    );
+    const now = new Date().toISOString();
+    await st.addComplexElement(
+      {
+        id: "tpl-card",
+        customId: "tpl-card",
+        type: "ref",
+        ref: "component-card",
+        parent_id: body.id,
+        page_id: st.currentPageId,
+        order_num: 0,
+        created_at: now,
+        updated_at: now,
+        props: { title: "Live title", description: "Live description" },
+      },
+      [],
+    );
+  });
+  await page.waitForTimeout(1200);
+  const cardTextsBefore = await cardTexts("tpl-card");
+  await page.evaluate(() =>
+    window.__composition_STORE__.getState().detachInstance("tpl-card"),
+  );
+  await page.waitForTimeout(1500);
+  const cardTextsAfter = await cardTexts("tpl-card");
+  record(
+    "(j) Card 템플릿 제목 · 설명이 detach 뒤에도 입력값 (자리표시자 원문 없음)",
+    cardTextsBefore.includes("Live title") &&
+      JSON.stringify(cardTextsAfter) === JSON.stringify(cardTextsBefore) &&
+      !cardTextsAfter.some((t) => /\{[a-zA-Z][\w-]*\}/.test(t)),
+    { cardTextsBefore, cardTextsAfter },
+  );
+
   const templateRead = await page.evaluate(async () => {
     const bridge =
       await import("/src/builder/stores/canonical/canonicalElementsBridge.ts");

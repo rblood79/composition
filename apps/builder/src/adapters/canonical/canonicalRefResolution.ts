@@ -778,7 +778,14 @@ function withTemplateBindings<T extends CanonicalRefResolvableNode>(
     : ({ ...element, props: substituted } as T);
 }
 
-function applyDescendantPatchToElement<T extends CanonicalRefResolvableNode>(
+/**
+ * descendants 속성 patch (mode A · mode C host) 를 노드 하나에 적용 — props 는 props 로, 노드 필드 (`fills` ·
+ * `sizing` · `responsive` · `enabled`) 는 노드 필드로, 문자열 `children` (Text 본문) 은 props 로. Canvas 해석기와
+ * detach 가 같이 쓴다 (ADR-150 detach 노드 필드 2026-09-27: detach 가 노드 필드를 props 에 섞어 넣고 본문을 버렸다).
+ */
+export function applyDescendantPatchToElement<
+  T extends CanonicalRefResolvableNode,
+>(
   element: T,
   patch: Record<string, unknown> | null,
 ): T {

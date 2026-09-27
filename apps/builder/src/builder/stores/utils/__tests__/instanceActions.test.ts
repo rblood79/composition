@@ -25,6 +25,7 @@ import {
   type EditingSemanticsConfirmationRequest,
 } from "../../../utils/editingSemanticsImpactConfirmation";
 import { useStore } from "../../elements";
+import { resolveCanonicalDocument } from "../../../../resolvers/canonical";
 import { historyManager } from "../../history";
 
 /**
@@ -929,6 +930,60 @@ describe("instance store actions", () => {
     ).toEqual(["First in source", "Second in source"]);
   });
 
+  // ADR-150 detach 노드 필드 판독 LOW-1 — mode B 교체 노드는 origin 자식의 숨김 · fills 를 물려받지 않는다.
+  it("does not inherit hidden origin child fields into a mode B replacement", () => {
+    const els = [
+      makeElement("m", { type: "Card", reusable: true, customId: "card_1" }),
+      makeElement("hidden", {
+        type: "Text",
+        parent_id: "m",
+        customId: "text_1",
+        enabled: false,
+        fills: [
+          {
+            id: "f",
+            type: "color",
+            color: "#00ff00",
+            opacity: 1,
+            enabled: true,
+          },
+        ],
+      } as never),
+      makeElement("inst", {
+        type: "ref",
+        ref: "m",
+        customId: "card_2",
+        descendants: {
+          text_1: { id: "swap", type: "Button", props: { children: "Go" } },
+        },
+      } as never),
+    ];
+    useStore.setState({
+      elements: els,
+      elementsMap: new Map(els.map((e) => [e.id, e])),
+    } as never);
+    useStore.getState()._rebuildIndexes();
+    seedCanonicalFromStore();
+
+    const resolved = () => {
+      const doc = useCanonicalDocumentStore
+        .getState()
+        .documents.get("instance-project")!;
+      const inst = findCanonicalNodeById(
+        resolveCanonicalDocument(doc) as CanonicalNode[],
+        "inst",
+      );
+      return (inst?.children ?? []).map((child) => ({
+        type: child.type,
+        fills: (child as CanonicalNode & { fills?: unknown }).fills,
+      }));
+    };
+    const before = resolved();
+    expect(before).toEqual([{ type: "Button", fills: undefined }]);
+    useStore.getState().detachInstance("inst");
+    expect(resolved()).toEqual(before);
+  });
+
   it("materializes canonical descendants mode B as subtree replacement", () => {
     const master = makeElement("master", { reusable: true });
     const child = makeElement("label", {
@@ -1298,6 +1353,162 @@ describe("instance store actions", () => {
         .filter((element) => element.parent_id === row?.id)
         .map((element) => element.props.text),
     ).toEqual(["ref-own patch", "a", "B"]);
+  });
+
+  // ADR-150 detach 노드 필드 (2026-09-27) — descendants patch 의 노드 필드 (fills · enabled · sizing · responsive) 와
+  //   문자열 children (Text 본문) 을 Canvas · Preview 와 같이 적용한다. 기준 = detach 전 Preview 해석 결과와 detach
+  //   뒤 문서 재해석 결과가 같다.
+  const FILL = [
+    { id: "f", type: "color", color: "#ff0000", opacity: 1, enabled: true },
+  ];
+  it.each([
+    ["fills", { fills: FILL }],
+    ["enabled false", { enabled: false }],
+    ["sizing", { sizing: { width: "fill" } }],
+    ["responsive", { responsive: { styles: { mobile: { color: "red" } } } }],
+    ["string children", { children: "edited body" }],
+  ])("detach keeps descendant node-field patch — %s", (_name, patch) => {
+    const els = [
+      makeElement("m", { type: "Card", reusable: true, customId: "card_1" }),
+      makeElement("a", {
+        type: "Text",
+        parent_id: "m",
+        customId: "text_a",
+        props: { children: "origin body" },
+      }),
+      makeElement("b", {
+        type: "Text",
+        parent_id: "m",
+        customId: "text_b",
+        props: { children: "b" },
+      }),
+      makeElement("inst", {
+        type: "ref",
+        ref: "m",
+        customId: "card_2",
+        descendants: { text_a: patch },
+      } as never),
+    ];
+    useStore.setState({
+      elements: els,
+      elementsMap: new Map(els.map((e) => [e.id, e])),
+    } as never);
+    useStore.getState()._rebuildIndexes();
+    seedCanonicalFromStore();
+
+    const resolvedChildren = () => {
+      const doc = useCanonicalDocumentStore
+        .getState()
+        .documents.get("instance-project")!;
+      const inst = findCanonicalNodeById(
+        resolveCanonicalDocument(doc) as CanonicalNode[],
+        "inst",
+      );
+      return (inst?.children ?? []).map((child) => {
+        const node = child as CanonicalNode & Record<string, unknown>;
+        return {
+          type: node.type,
+          children: node.props?.children,
+          fills: node.fills,
+          sizing: node.sizing,
+          responsive: node.responsive,
+        };
+      });
+    };
+    const before = resolvedChildren();
+    useStore.getState().detachInstance("inst");
+    expect(resolvedChildren()).toEqual(before);
+  });
+
+  // ADR-150 detach 템플릿 (2026-09-27) — origin propsSchema 템플릿 (`{label}`) 은 detach 시점 instance 값으로
+  //   굳힌다 (Preview `substituteTemplateBindingsInChildren` 결과와 같게 — instance 가 사라지면 값 출처가 없다).
+  //   중첩 ref 아래는 그 ref 의 값으로.
+  it("substitutes template bindings into detached copies per ref level", () => {
+    const schema = {
+      label: { kind: "string", default: "Item" },
+    };
+    const els = [
+      makeElement("item-m", {
+        type: "Badge",
+        reusable: true,
+        customId: "item_1",
+        props: { label: "origin label" },
+      }),
+      makeElement("item-text", {
+        type: "Text",
+        parent_id: "item-m",
+        customId: "text_1",
+        props: { children: "{label}" },
+      }),
+      makeElement("list-m", {
+        type: "Card",
+        reusable: true,
+        customId: "list_1",
+        props: { title: "origin title" },
+      }),
+      makeElement("list-title", {
+        type: "Text",
+        parent_id: "list-m",
+        customId: "text_2",
+        props: { children: "Title: {title}" },
+      }),
+      makeElement("item-ref", {
+        type: "ref",
+        ref: "item-m",
+        parent_id: "list-m",
+        customId: "item_2",
+        props: { label: "first item" },
+      } as never),
+      makeElement("inst", {
+        type: "ref",
+        ref: "list-m",
+        customId: "list_2",
+        props: { title: "My list" },
+      } as never),
+    ];
+    useStore.setState({
+      elements: els,
+      elementsMap: new Map(els.map((e) => [e.id, e])),
+    } as never);
+    useStore.getState()._rebuildIndexes();
+    seedCanonicalFromStore();
+
+    // propsSchema 는 canonical origin 의 metadata 에 산다 (seed 경로와 같게 문서에 직접 싣는다).
+    const seeded = useCanonicalDocumentStore
+      .getState()
+      .documents.get("instance-project")!;
+    for (const [id, propsSchema] of [
+      ["item-m", schema],
+      ["list-m", { title: { kind: "string" } }],
+    ] as const) {
+      const node = findCanonicalNodeById(seeded.children, id)!;
+      node.metadata = {
+        type: "legacy-element-props",
+        ...(node.metadata ?? {}),
+        propsSchema,
+      };
+    }
+
+    const texts = () => {
+      const doc = useCanonicalDocumentStore
+        .getState()
+        .documents.get("instance-project")!;
+      const out: unknown[] = [];
+      const walk = (node: CanonicalNode) => {
+        if (node.type === "Text") out.push(node.props?.children);
+        (node.children ?? []).forEach(walk);
+      };
+      const inst = findCanonicalNodeById(
+        resolveCanonicalDocument(doc) as CanonicalNode[],
+        "inst",
+      );
+      (inst?.children ?? []).forEach(walk);
+      return out;
+    };
+    const before = texts();
+    expect(before).toEqual(["Title: My list", "first item"]);
+    useStore.getState().detachInstance("inst");
+    expect(texts()).toEqual(before);
   });
 
   // ADR-150 LOW 재확인 (2026-09-27) — detach 사본은 origin 과 형제 사본의 customId 를 그대로 가져가지 않는다.
