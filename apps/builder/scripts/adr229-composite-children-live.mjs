@@ -9,8 +9,9 @@
 //         조합 origin · ButtonGroup origin · Button origin 무오염 · 두 leg 'Go'
 //   P2-d) TextField 자식 (`<inst>/TextField/Name` — name 에 '/' 포함) 선택 → label 편집 → 두 leg
 //   P2-e) Undo → 원상 · reload → 보존 · Components body Δ0 (재hydration)
-//   page error 0 · dialog 0
-// 사용: node apps/builder/scripts/adr229-composite-children-live.mjs [--headed]  (dev 5173 · .auth-session.json)
+//   page error 0 · dialog 0 · ADR-229 변환 보류 경고 0
+// 사용: node apps/builder/scripts/adr229-composite-children-live.mjs [--headed] [--preview]  (dev 5173 · .auth-session.json)
+//   Preview 단언 (Compare Mode · Preview iframe) 은 `--preview` 일 때만 — 기본은 Canvas · store · 패널만 (2026-09-27 갱신).
 import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { chromium } from "playwright";
@@ -20,6 +21,9 @@ const BASE_URL = process.env.BUILDER_URL ?? "http://localhost:5173";
 const STORAGE_STATE = resolve("apps/builder/scripts/.auth-session.json");
 const OUT_DIR = process.env.ADR229_OUT ?? "/private/tmp/adr229-p2-live";
 const headed = process.argv.includes("--headed");
+const WITH_PREVIEW = process.argv.includes("--preview");
+/** Preview 단언 — `--preview` 가 아니면 판정에서 뺀다 (Compare Mode 를 열지 않는다). */
+const pv = (ok) => !WITH_PREVIEW || ok;
 const log = (...a) => console.log("[adr229 p2]", ...a);
 const findings = [];
 const record = (name, pass, detail) => {
@@ -29,7 +33,7 @@ const record = (name, pass, detail) => {
 
 const INSTANCE_ID = "adr229-form-inst";
 const FORM_ORIGIN = "component-form";
-// Form seed 자식 segment = name (`getCanonicalRefPathSegment` — customId/componentName/name/id).
+// Form seed 자식 segment = name (`getCanonicalRefChildSegments` — 형제 목록 기준 customId ‖ name ‖ id).
 const ACTIONS_SEGMENT = "ButtonGroup";
 const SAVE_ID = "component-buttongroup__2";
 const NESTED_SAVE = `${INSTANCE_ID}/${ACTIONS_SEGMENT}/${SAVE_ID}`;
@@ -137,6 +141,7 @@ const componentsBodySnapshot = (page) =>
   });
 
 async function ensureCompareMode(page) {
+  if (!WITH_PREVIEW) return;
   const compare = page.locator(".header_right .builder-control-group button").first();
   if (
     (await compare.getAttribute("aria-pressed")) !== "true" &&
@@ -149,6 +154,7 @@ async function ensureCompareMode(page) {
 
 /** Preview iframe — instance wrapper 안의 텍스트/요소 (Preview 는 canonical id 축이라 wrapper 안 querySelector). */
 async function readPreview(page, instanceId, selector) {
+  if (!WITH_PREVIEW) return { found: false, items: [], skipped: true };
   return state(
     page,
     ({ instanceId, selector }) => {
@@ -173,6 +179,7 @@ async function readPreview(page, instanceId, selector) {
   );
 }
 async function waitPreview(page, instanceId, selector, predicate, ms = 12_000) {
+  if (!WITH_PREVIEW) return { found: false, items: [], skipped: true };
   const start = Date.now();
   let last = await readPreview(page, instanceId, selector);
   while (!predicate(last) && Date.now() - start < ms) {
@@ -183,6 +190,7 @@ async function waitPreview(page, instanceId, selector, predicate, ms = 12_000) {
 }
 
 mkdirSync(OUT_DIR, { recursive: true });
+if (!WITH_PREVIEW) log("Preview 단언 생략 (--preview 없음) — 이름의 Preview 항목은 판정에서 빠진다");
 const browser = await chromium.launch({ headless: !headed });
 const context = await browser.newContext({
   storageState: STORAGE_STATE,
@@ -262,6 +270,19 @@ try {
       created_at: now,
       updated_at: now,
     });
+    // 높이 기준 — 같은 페이지의 Button instance (origin 은 Components 페이지라 화면 밖이면 layout 이 없다).
+    st.addElement({
+      id: `${INSTANCE_ID}-button`,
+      customId: `${INSTANCE_ID}-button`,
+      type: "ref",
+      ref: "component-button",
+      componentName: "Button",
+      parent_id: pageBody?.id ?? null,
+      page_id: st.currentPageId,
+      props: {},
+      created_at: now,
+      updated_at: now,
+    });
   }, INSTANCE_ID);
   await page.waitForTimeout(1800);
   const nestedKeys = await layoutKeys(page, `${INSTANCE_ID}/`);
@@ -269,12 +290,12 @@ try {
   const cancelRect = await layoutRect(page, `${INSTANCE_ID}/${ACTIONS_SEGMENT}/component-buttongroup__1`);
   const fieldRect = await layoutRect(page, NESTED_FIELD);
   const fieldLabelRect = await layoutRect(page, `${NESTED_FIELD}/component-textfield__1`);
-  const originButtonRect = await layoutRect(page, "component-button");
+  const plainButtonRect = await layoutRect(page, `${INSTANCE_ID}-button`);
   record(
-    "P2-b: Skia — Form instance 안 3단 중첩 (ButtonGroup ref → Button ref) 실체화 rect · TextField ref 의 Label 까지 · 안쪽 Button 높이 = Button origin",
+    "P2-b: Skia — Form instance 안 3단 중첩 (ButtonGroup ref → Button ref) 실체화 rect · TextField ref 의 Label 까지 · 안쪽 Button 높이 = 같은 페이지 Button instance",
     !!saveRect?.w && !!cancelRect?.w && !!fieldRect?.w && !!fieldLabelRect?.w &&
-      !!originButtonRect && saveRect.h === originButtonRect.h,
-    JSON.stringify({ saveRect, cancelRect, fieldRect, fieldLabelRect, originButtonRect, nestedKeys: nestedKeys.length }),
+      !!plainButtonRect && saveRect.h === plainButtonRect.h,
+    JSON.stringify({ saveRect, cancelRect, fieldRect, fieldLabelRect, plainButtonRect, nestedKeys: nestedKeys.length }),
   );
   await ensureCompareMode(page);
   const previewButtons = await waitPreview(
@@ -285,7 +306,7 @@ try {
   );
   const previewInputs = await readPreview(page, INSTANCE_ID, "input");
   const previewLabels = await readPreview(page, INSTANCE_ID, "label");
-  record(
+  if (WITH_PREVIEW) record(
     "P2-b: Preview — Form instance 가 input 2 (label Name/Email) + BUTTON Cancel/Save (중첩 ref 해소)",
     previewButtons.found &&
       previewButtons.items.map((b) => b.text).join(",") === "Cancel,Save" &&
@@ -352,10 +373,9 @@ try {
       JSON.stringify(formOriginChildren) === JSON.stringify(formChildren) &&
       JSON.stringify(bgOriginChildren) === JSON.stringify(buttonGroupChildren) &&
       buttonOrigin?.props?.children === "Button" &&
-      !!previewGo &&
+      pv(!!previewGo && Math.abs(saveRectAfter?.w - previewGo.w) <= 1) &&
       skiaSaveText === "Go" &&
-      !!saveRectAfter?.w &&
-      Math.abs(saveRectAfter.w - previewGo.w) <= 1,
+      !!saveRectAfter?.w,
     JSON.stringify({ descendants: afterInstance?.descendants, previewAfter: previewAfter.items, saveRect, saveRectAfter, skiaSaveText, buttonOrigin: buttonOrigin?.props?.children }),
   );
   await page.screenshot({ path: resolve(OUT_DIR, "p2-c-after-edit.png") });
@@ -394,10 +414,9 @@ try {
     "P2-d: TextField 자식 (segment 'TextField/Name') 선택 → Properties Label 입력 → descendants['TextField/Name'].label · Preview label 'Full name' · Skia Label rect 폭 = Preview 폭",
     fieldPanelOk &&
       afterField?.descendants?.[FIELD_SEGMENT]?.label === "Full name" &&
-      !!previewFullName &&
+      pv(!!previewFullName && Math.abs(fieldLabelRectAfter?.w - previewFullName.w) <= 1) &&
       !!fieldLabelRectAfter?.w &&
-      fieldLabelRectAfter.w > fieldLabelRect.w &&
-      Math.abs(fieldLabelRectAfter.w - previewFullName.w) <= 1,
+      fieldLabelRectAfter.w > fieldLabelRect.w,
     JSON.stringify({ fieldPanelOk, descendants: afterField?.descendants, labels: previewLabelsAfter.items, fieldLabelRect, fieldLabelRectAfter, panel: fieldPanelText.slice(0, 120) }),
   );
   await page.screenshot({ path: resolve(OUT_DIR, "p2-d-field.png") });
@@ -426,7 +445,7 @@ try {
   record(
     "P2-e: Undo ×2 → descendants 원상 · Preview 'Save' · Redo ×2 → 'Go' + 'Full name'",
     undoClean &&
-      previewUndo.items.some((b) => b.text === "Save") &&
+      pv(previewUndo.items.some((b) => b.text === "Save")) &&
       afterRedo?.descendants?.[NESTED_SAVE_PATH]?.children === "Go" &&
       afterRedo?.descendants?.[FIELD_SEGMENT]?.label === "Full name",
     JSON.stringify({ undo: afterUndo?.descendants, redo: afterRedo?.descendants, previewUndo: previewUndo.items }),
@@ -454,7 +473,7 @@ try {
     reloadInstance?.descendants?.[NESTED_SAVE_PATH]?.children === "Go" &&
       reloadInstance?.descendants?.[FIELD_SEGMENT]?.label === "Full name" &&
       !!reloadRect?.w &&
-      reloadPreview.items.some((b) => b.text === "Go") &&
+      pv(reloadPreview.items.some((b) => b.text === "Go")) &&
       bodyBefore.n === bodyAfterReload.n &&
       bodyBefore.bytes === bodyAfterReload.bytes &&
       JSON.stringify(bodyBefore.tree) === JSON.stringify(bodyAfterReload.tree),
@@ -470,14 +489,11 @@ try {
   writeFileSync(resolve(OUT_DIR, "body-seed.json"), JSON.stringify(bodyBefore.tree, null, 1));
   await page.screenshot({ path: resolve(OUT_DIR, "p2-e-after-reload.png") });
 
-  // 변환 보류 진단은 CardView 의 Card 자식 3 (자식 0 ≠ Card origin 4 — 조용한 대체 대신 plain 유지) 만 기대.
-  const knownDeferral =
-    warnings.length === 1 &&
-    /보류 3건/.test(warnings[0]) &&
-    /component-cardview__1/.test(warnings[0]) &&
-    !/component-form|component-toolbar|component-buttongroup|component-pagination/.test(warnings[0]);
+  // 변환 보류 진단 0 기대 — seed 가 CardView 의 Card 자식도 `component-card` ref 로 바꾼다 (종전 기대 "CardView Card 3 보류"
+  //   는 Card origin 정렬 뒤 사라졌다, 2026-09-27 갱신).
+  const knownDeferral = warnings.length === 0;
   record(
-    "page error 0 · dialog 0 · ADR-229 변환 보류 진단 = CardView Card 3 만",
+    "page error 0 · dialog 0 · ADR-229 변환 보류 경고 0",
     errors.length === 0 && dialogs === 0 && knownDeferral,
     `${errors.length} / ${dialogs} / ${warnings.length} ${errors.slice(0, 2).join(" | ")} ${warnings.slice(0, 2).join(" | ")}`,
   );

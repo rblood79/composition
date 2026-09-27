@@ -1,13 +1,15 @@
 #!/usr/bin/env node
-// adr229-slot-insert-live.mjs — ADR-229 Phase 3 후속 (사용자 지적 2026-09-21): Components 페이지 TagGroup
-//   origin 의 Properties "Slot" 절에서 Tag/Default · Tag/Selected 의 "+" (Insert) 를 누르면 TagList 에 item 이
-//   등록되어 chip 이 두 leg 에 나타나야 한다 (ref 자식이 root 에 생기는 종전 동작은 TagGroup 에선 아무것도
-//   안 그렸다 — chip 은 `items[]` 데이터).
-//   S-a) origin 선택 → Slot 절 · Insert Tag/Default → origin items +1 ('New Tag') · selectedKeys 불변 · ref 자식 0
-//   S-b) Insert Tag/Selected → items +1 · selectedKeys 에 새 id · Skia chip 수 +2 · selected chip 1 증가
-//   S-c) 사용자 페이지 TagGroup instance (items 자체 소유) 는 불변 · Preview origin chip 수 = Skia
+// adr229-slot-insert-live.mjs — ADR-229 Phase 3 후속 (사용자 지적 2026-09-21): Components 페이지 TagGroup origin 에
+//   Slot "+" (Insert) 로 Tag 를 넣으면 chip 이 늘어야 한다.
+//   2026-09-27 갱신 — 항목은 `items[]` 가 아니라 TagList 의 **Tag ref 자식** (`component-tag-item-default` ·
+//   `--selected`, ADR-237/238 항목 origin) 이고 Slot 절은 TagList 에 선다. 페이지 전환은 `activatePage` + 카메라 이동
+//   (화면 밖 페이지는 layout 을 만들지 않는다).
+//   S-0) TagList 선택 → Slot 절 Insert Tag/Default · Insert Tag/Selected 버튼 · 기준 Tag 자식 4 · Skia chip 4
+//   S-a) Insert Tag/Default → Tag ref 자식 +1 · TagGroup selectedKeys 불변 · Skia chip 5
+//   S-b) Insert Tag/Selected → 자식 +1 · selectedKeys 에 새 자식 key (`props.id`) · Skia chip 6
+//   S-c) 상속 instance chip 6 (Skia) · items 소유 instance 불변 · (`--preview`) Preview chip = Skia
 //   page error 0
-// 사용: node apps/builder/scripts/adr229-slot-insert-live.mjs [--headed]  (dev 5173 · .auth-session.json)
+// 사용: node apps/builder/scripts/adr229-slot-insert-live.mjs [--headed] [--preview]  (dev 5173 · .auth-session.json)
 import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { chromium } from "playwright";
@@ -17,6 +19,7 @@ const BASE_URL = process.env.BUILDER_URL ?? "http://localhost:5173";
 const STORAGE_STATE = resolve("apps/builder/scripts/.auth-session.json");
 const OUT_DIR = process.env.ADR229_OUT ?? "/private/tmp/adr229-slot-insert";
 const headed = process.argv.includes("--headed");
+const WITH_PREVIEW = process.argv.includes("--preview");
 const log = (...a) => console.log("[adr229 slot]", ...a);
 const findings = [];
 const record = (name, pass, detail) => {
@@ -48,44 +51,69 @@ async function setPanel(page, panelId, open) {
   }
 }
 const state = (page, fn, arg) => page.evaluate(fn, arg);
+/** TagList 의 Tag ref 자식 + TagGroup origin selectedKeys. */
 const originShape = (page) =>
   state(
     page,
-    (id) => {
+    ({ group, list }) => {
       const st = window.__composition_STORE__.getState();
-      const e = st.elements.find((x) => x.id === id);
+      const kids = st.elements
+        .filter((x) => x.parent_id === list)
+        .sort((a, b) => (a.order_num ?? 0) - (b.order_num ?? 0));
       return {
-        items: (e?.props?.items ?? []).map((it) => ({
-          id: it.id,
-          label: it.label,
+        // key = 항목 instance 의 `props.id` (선택 key — collectionItemInsert selectionPatch).
+        children: kids.map((x) => ({
+          id: x.id,
+          ref: x.ref ?? null,
+          key: x.props?.id ?? x.id,
         })),
-        selectedKeys: e?.props?.selectedKeys ?? null,
-        children: st.elements
-          .filter((x) => x.parent_id === id)
-          .map((x) => `${x.type}:${x.ref ?? ""}`),
+        selectedKeys:
+          st.elements.find((x) => x.id === group)?.props?.selectedKeys ?? null,
       };
     },
-    TAGGROUP_ORIGIN,
+    { group: TAGGROUP_ORIGIN, list: TAGLIST_ID },
   );
-const skiaChips = (page, tagListId) =>
+/** Skia chip — TagList Tag 자식 중 layout map 에 rect 가 있는 것 (`prefix` = instance 면 synthetic 경로 접두). */
+const skiaChips = (page, prefix = "") =>
   state(
     page,
-    (tagListId) => {
+    ({ list, prefix }) => {
+      const st = window.__composition_STORE__.getState();
       const map = window.__composition_LAYOUT_DEBUG__.getSharedLayoutMap();
-      const prefix = `projection:tag-row:${tagListId}:`;
-      const out = [];
-      for (const key of map.keys()) {
-        if (!String(key).startsWith(prefix)) continue;
-        const itemKey = String(key).slice(prefix.length);
-        if (itemKey === "__show_all__") continue;
-        const t =
-          window.__composition_RENDER_DEBUG__?.resolveTextNodeDebug?.(key);
-        out.push({ itemKey, text: t?.content ?? null });
-      }
-      return out;
+      const kids = st.elements.filter((x) => x.parent_id === list);
+      if (!prefix) return kids.filter((k) => map.has(k.id)).map((k) => k.id);
+      // instance — synthetic id `<instance>/<TagList segment>/<Tag segment>`: 접두 아래 Tag 자식 id 로 끝나는 키.
+      const keys = [...map.keys()].filter((k) => String(k).startsWith(prefix));
+      return kids
+        .filter((k) =>
+          keys.some(
+            (key) =>
+              key.endsWith(`/${k.id}`) ||
+              (k.customId && key.endsWith(`/${k.customId}`)),
+          ),
+        )
+        .map((k) => k.id);
     },
-    tagListId,
+    { list: TAGLIST_ID, prefix },
   );
+async function showPage(page, pageId) {
+  await state(
+    page,
+    (pageId) => {
+      const st = window.__composition_STORE__.getState();
+      st.activatePage(pageId);
+      const pos = st.derivedPagePositions?.[pageId];
+      if (pos)
+        window.__composition_APPLY_VIEWPORT__?.({
+          scale: 0.5,
+          x: 100 - pos.x * 0.5,
+          y: 100 - pos.y * 0.5,
+        });
+    },
+    pageId,
+  );
+  await page.waitForTimeout(1500);
+}
 const previewChips = (page, elementId) =>
   state(
     page,
@@ -123,6 +151,7 @@ async function waitFor(page, read, predicate, ms = 12_000) {
   return last;
 }
 async function ensureCompareMode(page) {
+  if (!WITH_PREVIEW) return;
   const compare = page
     .locator(".header_right .builder-control-group button")
     .first();
@@ -215,23 +244,23 @@ try {
     INSTANCE_ID,
   );
 
-  // Components 페이지로 → origin 선택 → Properties
-  await state(page, () => {
-    const st = window.__composition_STORE__.getState();
-    (st.setCurrentPageId ?? st.setCurrentPage)?.("page-components");
-  });
-  await page.waitForTimeout(1500);
+  const homePageId = await state(
+    page,
+    () => window.__composition_STORE__.getState().currentPageId,
+  );
+  // Components 페이지로 (activatePage + 카메라) → TagList 선택 → Properties Slot 절
+  await showPage(page, "page-components");
   await state(
     page,
     (id) => window.__composition_STORE__.getState().setSelectedElement(id),
-    TAGGROUP_ORIGIN,
+    TAGLIST_ID,
   );
   await page.waitForTimeout(600);
   await setPanel(page, "properties", true);
   await page.waitForTimeout(800);
   const panel = page.locator('[data-panel-id="properties"]');
   const before = await originShape(page);
-  const skiaBefore = await skiaChips(page, TAGLIST_ID);
+  const skiaBefore = await skiaChips(page);
   const insertDefault = panel.getByRole("button", {
     name: "Insert Tag/Default",
   });
@@ -241,8 +270,11 @@ try {
   const hasButtons =
     (await insertDefault.count()) === 1 && (await insertSelected.count()) === 1;
   record(
-    "S-0: origin Properties Slot 절 — Insert Tag/Default · Insert Tag/Selected 버튼 · 기준 items 4 · Skia chip 4",
-    hasButtons && before.items.length === 4 && skiaBefore.length === 4,
+    "S-0: TagList Properties Slot 절 — Insert Tag/Default · Insert Tag/Selected 버튼 · 기준 Tag ref 자식 4 · Skia chip 4",
+    hasButtons &&
+      before.children.length === 4 &&
+      before.children.every((c) => c.ref === "component-tag-item-default") &&
+      skiaBefore.length === 4,
     JSON.stringify({ hasButtons, before, skiaBefore }),
   );
 
@@ -253,22 +285,22 @@ try {
   const afterDefault = await waitFor(
     page,
     () => originShape(page),
-    (s) => s.items.length === 5,
+    (s) => s.children.length === 5,
   );
   const skiaDefault = await waitFor(
     page,
-    () => skiaChips(page, TAGLIST_ID),
+    () => skiaChips(page),
     (c) => c.length === 5,
   );
   record(
-    "S-a: Insert Tag/Default → origin items +1 ('New Tag') · selectedKeys 불변 · ref 자식 0 · Skia chip 5 ('New Tag')",
-    afterDefault.items.length === 5 &&
-      afterDefault.items[4].label === "New Tag" &&
+    "S-a: Insert Tag/Default → Tag ref 자식 +1 (Default origin) · TagGroup selectedKeys 불변 · Skia chip 5",
+    afterDefault.children.length === 5 &&
+      afterDefault.children.every((c) =>
+        c.ref?.startsWith("component-tag-item-"),
+      ) &&
       JSON.stringify(afterDefault.selectedKeys) ===
         JSON.stringify(before.selectedKeys) &&
-      afterDefault.children.every((c) => !c.startsWith("ref:")) &&
-      skiaDefault.length === 5 &&
-      skiaDefault.some((c) => c.text === "New Tag"),
+      skiaDefault.length === 5,
     JSON.stringify({ afterDefault, skiaDefault }),
   );
 
@@ -279,37 +311,33 @@ try {
   const afterSelected = await waitFor(
     page,
     () => originShape(page),
-    (s) => s.items.length === 6,
+    (s) => s.children.length === 6,
   );
-  const newId = afterSelected.items[5]?.id;
+  const newKey = afterSelected.children.find(
+    (c) => !afterDefault.children.some((d) => d.id === c.id),
+  )?.key;
   const skiaSelected = await waitFor(
     page,
-    () => skiaChips(page, TAGLIST_ID),
+    () => skiaChips(page),
     (c) => c.length === 6,
   );
   record(
-    "S-b: Insert Tag/Selected → items +1 · selectedKeys 에 새 id · Skia chip 6",
-    afterSelected.items.length === 6 &&
+    "S-b: Insert Tag/Selected → Tag 자식 +1 · TagGroup selectedKeys 에 새 자식 key · Skia chip 6",
+    afterSelected.children.length === 6 &&
       Array.isArray(afterSelected.selectedKeys) &&
-      afterSelected.selectedKeys.includes(newId) &&
+      afterSelected.selectedKeys.includes(newKey) &&
       skiaSelected.length === 6,
-    JSON.stringify({ afterSelected, newId, skiaSelected }),
+    JSON.stringify({ afterSelected, newKey, skiaSelected }),
   );
   await page.screenshot({ path: resolve(OUT_DIR, "s-b-origin.png") });
 
-  // ── S-c: items 를 상속하는 instance — Preview chip 6 (New Tag 2 · 하나 selected) = Skia 6 · items 소유 instance 불변 ──
-  await ensureCompareMode(page);
-  const preview = await waitFor(
+  // ── S-c: 사용자 페이지 — 상속 instance chip 6 (Skia) · items 소유 instance 불변 · (--preview) Preview = Skia ──
+  await showPage(page, homePageId);
+  const skiaInherit = await waitFor(
     page,
-    () => previewChips(page, `${INSTANCE_ID}-inherit`),
-    (p) => p?.length === 6,
-    15_000,
+    () => skiaChips(page, `${INSTANCE_ID}-inherit/`),
+    (c) => c.length === 6,
   );
-  const skiaInherit = await skiaChips(
-    page,
-    `${INSTANCE_ID}-inherit/${TAGLIST_ID}`,
-  );
-  const previewNew = preview?.filter((c) => c.text === "New Tag") ?? [];
   const instanceAfter = await state(
     page,
     (id) =>
@@ -317,16 +345,24 @@ try {
         ?.props?.items ?? null,
     INSTANCE_ID,
   );
+  let preview = null;
+  if (WITH_PREVIEW) {
+    await ensureCompareMode(page);
+    preview = await waitFor(
+      page,
+      () => previewChips(page, `${INSTANCE_ID}-inherit`),
+      (p) => p?.length === 6,
+      15_000,
+    );
+  }
   record(
-    "S-c: items 상속 instance — Preview chip 6 · 'New Tag' 2 (하나 selected) · Skia chip 6 · items 소유 instance 불변 (Own 1)",
-    preview?.length === 6 &&
-      skiaInherit.length === 6 &&
-      previewNew.length === 2 &&
-      previewNew.filter((c) => c.selected).length === 1 &&
-      JSON.stringify(instanceAfter) === JSON.stringify(instanceBefore),
-    JSON.stringify({ preview, skiaInherit, instanceBefore, instanceAfter }),
+    `S-c: 상속 instance — Skia chip 6 · items 소유 instance 불변 (Own 1)${WITH_PREVIEW ? " · Preview chip 6" : " (Preview 단언 생략 — --preview)"}`,
+    skiaInherit.length === 6 &&
+      JSON.stringify(instanceAfter) === JSON.stringify(instanceBefore) &&
+      (!WITH_PREVIEW || preview?.length === 6),
+    JSON.stringify({ skiaInherit, instanceBefore, instanceAfter, preview }),
   );
-  await page.screenshot({ path: resolve(OUT_DIR, "s-c-compare.png") });
+  await page.screenshot({ path: resolve(OUT_DIR, "s-c-home.png") });
 
   record(
     "page error 0",
