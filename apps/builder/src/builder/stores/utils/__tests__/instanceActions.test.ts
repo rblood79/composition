@@ -1159,9 +1159,7 @@ describe("instance store actions", () => {
         ref: "badge-master",
         parent_id: "card-master",
         customId: "badge_2",
-        ...(withOwn
-          ? { descendants: { Label: { text: "badge-own" } } }
-          : {}),
+        ...(withOwn ? { descendants: { Label: { text: "badge-own" } } } : {}),
       } as never),
       makeElement("card-ref", {
         type: "ref",
@@ -1193,6 +1191,113 @@ describe("instance store actions", () => {
     if (withOwn) {
       expect(detachedTexts[1]?.props.style).toEqual({ color: "red" });
     }
+  });
+
+  // ADR-150 detach 공백 (2026-09-27) — 영역 채움 (mode C) 항목의 host 편집 (`{ children, style }`) 도 적용한다
+  //   (Preview `applyOverrideToNode` mode C host patch · ADR-240 P2).
+  it("applies the host patch of a mode C region fill on detach", () => {
+    const els = [
+      makeElement("m", { type: "Card", reusable: true, customId: "card_1" }),
+      makeElement("region", {
+        type: "frame",
+        parent_id: "m",
+        customId: "region_1",
+        props: { style: { padding: 4 } },
+      }),
+      makeElement("inst", {
+        type: "ref",
+        ref: "m",
+        customId: "card_2",
+        descendants: {
+          region_1: {
+            children: [{ id: "fill", type: "Text", props: { text: "fill" } }],
+            style: { color: "red" },
+          },
+        },
+      } as never),
+    ];
+    useStore.setState({
+      elements: els,
+      elementsMap: new Map(els.map((e) => [e.id, e])),
+    } as never);
+    useStore.getState()._rebuildIndexes();
+    seedCanonicalFromStore();
+
+    useStore.getState().detachInstance("inst");
+
+    const elements = useStore.getState().elements;
+    const region = elements.find((element) => element.parent_id === "inst");
+    expect(region?.props.style).toEqual({ padding: 4, color: "red" });
+    expect(
+      elements
+        .filter((element) => element.parent_id === region?.id)
+        .map((element) => element.props.text),
+    ).toEqual(["fill"]);
+  });
+
+  // ADR-150 detach 공백 (2026-09-27) — origin 안 중첩 ref 의 자기 자식 (TableView Row ref 의 Cell) 도 실체화한다.
+  //   순서는 master 자식 뒤, patch 는 바깥 instance 의 `<ref>/<자기 자식>` 키 (Preview `resolvedInstanceChildren`).
+  it("materializes a nested ref's own children after its master children", () => {
+    const els = [
+      makeElement("row-m", { type: "Row", reusable: true, customId: "row_1" }),
+      makeElement("row-m-cell", {
+        type: "Cell",
+        parent_id: "row-m",
+        componentName: "Base",
+        props: { text: "master cell" },
+      }),
+      makeElement("t-m", {
+        type: "Table",
+        reusable: true,
+        customId: "table_1",
+      }),
+      makeElement("row-ref", {
+        type: "ref",
+        ref: "row-m",
+        parent_id: "t-m",
+        customId: "row_2",
+        // `cell_1` 은 ref 자신의 map — master 자식 몫이라 자기 자식 Cell 에는 적용되지 않는다 (Preview 와 같음).
+        descendants: {
+          Base: { text: "ref-own patch" },
+          cell_1: { text: "leak" },
+        },
+      } as never),
+      makeElement("cell-a", {
+        type: "Cell",
+        parent_id: "row-ref",
+        customId: "cell_1",
+        props: { text: "a" },
+      }),
+      makeElement("cell-b", {
+        type: "Cell",
+        parent_id: "row-ref",
+        customId: "cell_2",
+        props: { text: "b" },
+      }),
+      makeElement("inst", {
+        type: "ref",
+        ref: "t-m",
+        customId: "table_2",
+        descendants: { "row_2/cell_2": { text: "B" } },
+      } as never),
+    ];
+    useStore.setState({
+      elements: els,
+      elementsMap: new Map(els.map((e) => [e.id, e])),
+    } as never);
+    useStore.getState()._rebuildIndexes();
+    seedCanonicalFromStore();
+
+    useStore.getState().detachInstance("inst");
+
+    const elements = useStore.getState().elements;
+    const row = elements.find((element) => element.parent_id === "inst");
+    expect(row?.type).toBe("Row");
+    expect(
+      elements
+        .filter((element) => element.parent_id === row?.id)
+        .map((element) => element.props.text),
+    ).toEqual(["ref-own patch", "a", "B"]);
   });
 
   // ADR-150 LOW 재확인 (2026-09-27) — detach 사본은 origin 과 형제 사본의 customId 를 그대로 가져가지 않는다.

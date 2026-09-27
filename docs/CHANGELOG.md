@@ -20,6 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **목록 항목의 선택 안 된 상태 (휴지 변형) 에 저장된 자식 편집이 Canvas 에만 빠지던 문제.** Canvas 가 id 경로만 읽고 편집기 · 변형 이관이 쓰는 이름 경로를 읽지 않아 Preview 와 갈렸다.
 - **instance 안 중첩 요소 (목록 항목의 Label 등) 를 Canvas 에서 편집한 뒤 detach 하면 편집이 사라지던 문제.** detach 가 중첩 instance 의 자기 편집만 읽고 바깥 instance 에 저장된 `<중첩 요소>/…` 편집을 버렸다. 반대로 중첩 instance 에 자기 편집이 없으면 바깥 편집 전체가 넘어가 같은 이름 자식에 잘못 적용됐다. Preview 와 같은 규칙 (바깥 편집을 그 중첩 요소 범위로 좁혀 합침) 으로 읽는다.
   - live: 팔레트 GridList 첫 항목 Label 색 편집 → detach → 사본 Label 색 유지 · 다른 항목 무변경 (원복 시 색 유실)
+- **팔레트 TableView 를 detach 하면 행의 셀이 전부 사라지던 문제.** detach 가 origin 안 중첩 instance (Row) 의 origin 자식만 만들고 그 instance 에 붙은 셀 (자기 자식) 을 만들지 않았다. Preview 와 같이 origin 자식 뒤에 이어 만들고, 바깥 instance 의 셀 편집도 적용한다.
+- **영역을 채운 뒤 그 영역 스타일을 편집한 instance 를 detach 하면 영역 스타일이 사라지던 문제** (Card Content 등). 채움과 스타일이 한 편집 항목에 같이 저장되는데 detach 가 채움만 읽었다.
+  - live: Card Content 채움 + 색 → detach 뒤 색 유지 · TableView detach 뒤 셀 3 = Preview 셀 3 (원복 시 각각 색 유실 · 셀 0)
 - Preview 해석 비용 감소 — 쓰이지 않던 해석 노드 사본 메모 (WeakMap) 제거, 합성 문서 p50 0.75 → 0.56 ms.
   - 검증: 원복 RED 5 · builder 7973 · live 6/6 (`adr150-low-detach-live.mjs` — 팔레트 GridList · 사용자 origin detach 뒤 ID 중복 0 · Undo/Redo · 휴지 변형 이름 경로 patch; 원복 시 사용자 origin 사본이 `text_low_a` · `text_low_b` 중복)
 

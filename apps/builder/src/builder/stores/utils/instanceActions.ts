@@ -504,10 +504,10 @@ function buildCanonicalDetachSnapshot(
         : undefined;
     const id = nextId(replacementId);
     const baseProps = getElementProps(materializationSource);
+    // mode C (영역 채움) 항목도 `children` 밖의 host 편집 (`{ children, style }`) 을 적용한다 — Preview
+    //   `applyOverrideToNode` mode C host patch (ADR-240 P2) · Canvas 와 같다 (ADR-150 detach 공백 2026-09-27).
     const patchProps =
-      override && !hasReplacement && !hasChildrenReplacement
-        ? propsFromCanonicalOverride(override)
-        : {};
+      override && !hasReplacement ? propsFromCanonicalOverride(override) : {};
     const mergedProps = applyPropsPatch(
       applyPropsPatch(baseProps, sourceOverrideProps),
       patchProps,
@@ -552,6 +552,21 @@ function buildCanonicalDetachSnapshot(
       nestedMaster ? null : relativePath,
       childDescendants,
     );
+    if (nestedMaster) {
+      // 중첩 ref 의 자기 자식 (TableView Row ref 의 Cell — ADR-241) 도 master 자식 뒤에 실체화한다. patch 는 바깥
+      //   instance 의 `<ref>/<자기 자식>` 키만 (ref 자신의 map 은 master 자식 몫) — Preview `resolvedInstanceChildren`
+      //   과 같은 범위 (ADR-150 detach 공백 2026-09-27: 셀이 전부 사라졌다).
+      materializeChildren(
+        getSortedChildren(source.id),
+        created.id,
+        null,
+        scopeNestedRefDescendants(
+          undefined,
+          activeLegacyDescendantMap,
+          relativePath,
+        ),
+      );
+    }
     return created;
   };
 

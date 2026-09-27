@@ -309,6 +309,140 @@ try {
     { labelSynthetic, ...itemChildren },
   );
 
+  // (g) Card instance Content 영역 채움 (팔레트 Text) + 같은 영역 색 편집 (`{ children, style }`) → detach 뒤 영역 색 유지.
+  const card = await page.evaluate(async () => {
+    const st = window.__composition_STORE__.getState();
+    const body = st.elements.find(
+      (e) => e.type === "body" && e.page_id === st.currentPageId,
+    );
+    const now = new Date().toISOString();
+    await st.addComplexElement(
+      {
+        id: "low-card",
+        customId: "low-card",
+        type: "ref",
+        ref: "component-card",
+        parent_id: body.id,
+        page_id: st.currentPageId,
+        order_num: 0,
+        created_at: now,
+        updated_at: now,
+        props: {},
+      },
+      [],
+    );
+    return "low-card";
+  });
+  await page.waitForTimeout(900);
+  await page.evaluate(
+    (id) =>
+      window.__composition_STORE__
+        .getState()
+        .setSelectedElement(`${id}/Content`, {}, {}, {}),
+    card,
+  );
+  await page.waitForTimeout(800);
+  await setPanel("components", true);
+  const cardSearch = page.locator('[data-panel-id="components"] input').first();
+  await cardSearch.fill("Text");
+  await page.waitForTimeout(400);
+  const cardItems = page.locator('[data-panel-id="components"] .list-item');
+  for (let i = 0; i < (await cardItems.count()); i++) {
+    const label =
+      (await cardItems.nth(i).locator(".list-item-name").textContent()) ?? "";
+    if (label.trim().toLowerCase() === "text") {
+      await cardItems.nth(i).click();
+      break;
+    }
+  }
+  await page.waitForTimeout(1500);
+  await cardSearch.fill("");
+  await setPanel("components", false);
+  await page.evaluate((id) => {
+    const st = window.__composition_STORE__.getState();
+    st.setSelectedElement(`${id}/Content`, {}, {}, {});
+    window.__composition_STORE__
+      .getState()
+      .updateSelectedStyle("color", "rgb(255, 0, 0)");
+  }, card);
+  await page.waitForTimeout(1200);
+  const cardEntry = await page.evaluate(
+    (id) =>
+      window.__composition_STORE__.getState().elementsMap.get(id)?.descendants
+        ?.Content ?? null,
+    card,
+  );
+  await page.evaluate(
+    (id) => window.__composition_STORE__.getState().detachInstance(id),
+    card,
+  );
+  await page.waitForTimeout(1500);
+  const cardAfter = await snapshot(card);
+  const contentColor = await page.evaluate((id) => {
+    const els = window.__composition_STORE__.getState().elements;
+    const content = els.find(
+      (e) => e.parent_id === id && e.type === "CardContent",
+    );
+    return {
+      color: content?.props?.style?.color ?? null,
+      fill: els
+        .filter((e) => e.parent_id === content?.id)
+        .map((e) => e.type),
+    };
+  }, card);
+  record(
+    "(g) 영역 채움 + 영역 색 편집 → detach 뒤 영역 색 · 채운 Text 유지",
+    Array.isArray(cardEntry?.children) &&
+      cardEntry?.style?.color === "rgb(255, 0, 0)" &&
+      cardAfter.rootType !== "ref" &&
+      contentColor.color === "rgb(255, 0, 0)" &&
+      contentColor.fill.includes("Text"),
+    { cardEntry, contentColor },
+  );
+
+  // (h) 팔레트 TableView (Row origin ref 의 셀 = 자기 자식, ADR-241) → detach 뒤 셀 수 = detach 전 Canvas 셀 수.
+  const tableView = await addFromPalette("TableView");
+  await page.waitForTimeout(2500);
+  // detach 전 기준 = Preview 해석기의 셀 수 (Canvas synthetic id 는 셀 customId 구간이라 type 을 드러내지 않는다).
+  const cellsBefore = await page.evaluate(async (id) => {
+    const bridge =
+      await import("/src/builder/stores/canonical/canonicalElementsBridge.ts");
+    const resolver = await import("/src/resolvers/canonical/index.ts");
+    const find = (nodes) => {
+      for (const n of nodes) {
+        if (n.id === id) return n;
+        const hit = find(n.children ?? []);
+        if (hit) return hit;
+      }
+      return null;
+    };
+    let count = 0;
+    const walk = (n) => {
+      if (n.type === "Cell") count += 1;
+      (n.children ?? []).forEach(walk);
+    };
+    walk(
+      find(
+        resolver.resolveCanonicalDocument(bridge.getActiveCanonicalDocument()),
+      ) ?? {},
+    );
+    return count;
+  }, tableView);
+  await page.evaluate(
+    (id) => window.__composition_STORE__.getState().detachInstance(id),
+    tableView,
+  );
+  await page.waitForTimeout(1500);
+  const tableAfter = await snapshot(tableView);
+  const cellsAfter = tableAfter.under.filter((e) => e.type === "Cell");
+  record(
+    "(h) TableView detach 뒤 셀 수 = detach 전 Preview 셀 수 · Canvas 에 그려짐",
+    cellsBefore > 0 &&
+      cellsAfter.length === cellsBefore &&
+      cellsAfter.every((e) => e.inLayout),
+    { cellsBefore, cellsAfter: cellsAfter.length, types: tableAfter.under.map((e) => e.type) },
+  );
+
   const templateRead = await page.evaluate(async () => {
     const bridge =
       await import("/src/builder/stores/canonical/canonicalElementsBridge.ts");
