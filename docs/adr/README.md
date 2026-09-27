@@ -158,7 +158,7 @@
 #### [247](247-cold-entry-static-shell.md) — cold entry 정적 셸: CanvasKit 부팅 전 패널 골격 · 빈 캔버스를 정적 HTML 로 먼저 그리고 layout shift 게이트로 지킨다
 
 - **상태**: Proposed — 2026-09-27 (사용자 `/create-adr`)
-- **규모**: Phase 0 production cold entry 측정 (W0 · W1 · 첫 paint 배경색 · 부팅 layout-shift · 부팅 mark 2) → go/no-go → Phase 1 최소 셸 (`index.html` 인라인 · 빌드 시 토큰 색 추출 · React 오버레이 이어받기) → Phase 2 스냅샷 셸 (presented 때 chrome 사각형 · 색 기록 → 다음 진입에 일치 시 골격 · presented 프레임 교체) → Phase 3 Live. ADR-244 (부팅 단축) 와 직교 — 측정 하니스만 공유. 사용자 결정: W1 패널 골격 표시 · go/no-go 기준. breakdown: [design/247](design/247-cold-entry-static-shell-breakdown.md)
+- **규모**: Phase 0 production cold entry 측정 (W0 · W1 · 첫 paint 배경색 · 부팅 layout-shift · 부팅 mark 2) → go/no-go → Phase 1 최소 셸 (`index.html` 인라인 · 빌드 시 토큰 색 추출 · React 오버레이 이어받기) → Phase 2 스냅샷 셸 (presented 때 chrome 사각형 · 색 기록 → 다음 진입에 일치 시 골격 · presented 프레임 교체) → Phase 3 Live. ADR-244 (부팅 단축) 와 직교 — 측정 하니스만 공유. 사용자 결정 2 확정 (09-27 착수 전 측정 뒤 — 패널 골격 표시 · go: Chromium 4x W0 p50 438 ms / 10 Mbps 2,162 ms · 다크 흰 프레임 관측, W1 10 Mbps 5.5 초). breakdown: [design/247](design/247-cold-entry-static-shell-breakdown.md)
 
 #### [243](243-interaction-responsiveness-long-task-yield.md) — 상호작용 응답성: LoAF 귀속으로 분할 지점을 찾고 측정된 경계에서만 long task 를 나눈다
 
