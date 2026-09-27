@@ -103,6 +103,48 @@ describe("ADR-146 ListBox Preview ref template rendering", () => {
     expect(description?.props.children).toBe("Burrowing mammal");
   });
 
+  it("anchor 없는 데이터 ListBox (팔레트 bare ref) 도 행 slot (label · description) 을 그린다 (ADR-150 후속 F5)", () => {
+    // 종전: Path 2 → wrapper 기본 렌더가 label 평문 행만 그려 Canvas slot 행 (description 50) 과 갈렸다.
+    const listBox: PreviewElement = {
+      id: "listbox",
+      type: "ListBox",
+      dataBinding: {
+        type: "collection",
+        source: "static",
+        config: { data: [{ id: "aardvark", label: "Aardvark" }] },
+      },
+      props: {},
+    };
+    const context: RenderContext = {
+      ...makeContext({ id: "unused", type: "Text", props: {} }),
+      childrenByParent: new Map(),
+    };
+    const rendered = renderListBox(listBox, context);
+    const renderItem = (rendered as { props: { children?: unknown } }).props
+      .children;
+    expect(typeof renderItem).toBe("function");
+    const row = (renderItem as (item: Record<string, unknown>) => unknown)({
+      id: "aardvark",
+      label: "Aardvark",
+      description: "Burrowing mammal",
+    }) as { props: Record<string, unknown> };
+    // 행은 owner id 를 물려받지 않는다 (responsive @media 전가 방지).
+    expect(row.props["data-element-id"]).toBeUndefined();
+    const content = (
+      row.props.children as (rp: { isSelected: boolean }) => unknown
+    )({ isSelected: false });
+    const kids = (content as { props: { children?: unknown } }).props.children;
+    const elements = (Array.isArray(kids) ? kids : [kids]).filter(
+      isValidElement,
+    ) as Array<{ props: Record<string, unknown> }>;
+    expect(elements.find((el) => el.props.slot === "label")?.props.children).toBe(
+      "Aardvark",
+    );
+    expect(
+      elements.find((el) => el.props.slot === "description")?.props.children,
+    ).toBe("Burrowing mammal");
+  });
+
   it("Path 2(items[]) 행은 컨테이너 element.id 를 data-element-id 로 갖지 않는다 (ADR-154 responsive @media 전가 방지)", () => {
     // buildResponsiveElementCss 는 `@media { [data-element-id="{owner}"] { ...!important } }` 를
     //   emit 한다. items[] 행이 owner element.id 를 data-element-id 로 물려받으면, 컨테이너의

@@ -327,10 +327,13 @@ export const renderListBox = (
     "name" in (dataBinding as object) &&
     !("type" in (dataBinding as object));
 
-  // ADR-076: Path 1 (템플릿, 영구 유지) — columnMapping 또는 PropertyDataBinding + ListBoxItem 자식 존재
-  const hasValidTemplate =
-    (columnMapping || isPropertyBinding || dataBinding) &&
-    listBoxTemplateChildren.length > 0;
+  // ADR-076: Path 1 (템플릿, 영구 유지) — columnMapping 또는 PropertyDataBinding + ListBoxItem 자식 존재.
+  //   ADR-150 후속 F5: anchor 없는 데이터 ListBox (팔레트 bare ref — 표준 shape) 도 Path 1 로 행 slot
+  //   (label · description · icon) · origin 행 style 을 그린다. 종전엔 Path 2 → wrapper 기본 렌더가
+  //   label 평문 행 (28) 만 그려 Canvas slot 행 (32 · 50) 과 갈렸다. 구성은 context 의 기본 origin.
+  const hasValidTemplate = Boolean(
+    columnMapping || isPropertyBinding || dataBinding,
+  );
 
   // ADR-076: Path 2 (items canonical) — props.items 배열 존재
   const storedItems = (element.props as { items?: StoredListBoxItem[] }).items;
@@ -417,21 +420,23 @@ export const renderListBox = (
 
   // Path 1: 템플릿 모드 — 영구 유지 (BC 보수)
   if (hasValidTemplate) {
-    const listBoxItemTemplate = listBoxTemplateChildren[0];
+    const listBoxItemTemplate = listBoxTemplateChildren[0] ?? null;
 
     // Field 자식들 찾기 - context.childrenByParent O(1) lookup
-    const fieldChildren = (
-      context.childrenByParent.get(listBoxItemTemplate.id) ?? []
-    ).filter((child) => child.type === "Field");
+    const fieldChildren = listBoxItemTemplate
+      ? (context.childrenByParent.get(listBoxItemTemplate.id) ?? []).filter(
+          (child) => child.type === "Field",
+        )
+      : [];
 
     // ADR-159 P3: 행 템플릿 compile — 행 루프 밖 1회 (R5). slot text > template item
     //   props 순 precedence (Skia projection 과 동일 shared 판정). 토큰 없는 소스는
     //   compile null → 휴리스틱 fallback (G3 BC — Skia 와 대칭. 구 resolveTemplateText
     //   는 literal 을 그대로 표시해 발산했다).
-    const templateItemProps = listBoxItemTemplate.props as Record<
+    const templateItemProps = (listBoxItemTemplate?.props ?? null) as Record<
       string,
       unknown
-    >;
+    > | null;
     const rowLabelTemplate = compileRowTemplateFor(
       templateSlotComposition,
       "label",
@@ -447,7 +452,7 @@ export const renderListBox = (
     // ADR-147 icon 채널: 소스는 template props.icon 단독 (Icon slot 자식은 text 미보유).
     //   토큰 없는 icon 문자열은 literal icon name 의미 유지 (heuristic 전환 아님).
     const iconTemplateSource =
-      typeof templateItemProps.icon === "string" &&
+      typeof templateItemProps?.icon === "string" &&
       templateItemProps.icon.length > 0
         ? templateItemProps.icon
         : null;
@@ -503,10 +508,12 @@ export const renderListBox = (
         <ListBoxItem
           key={String(item.id)}
           id={String(item.id ?? label)}
-          data-element-id={listBoxItemTemplate.id}
+          // anchor 없으면 행에 id 를 두지 않는다 — owner id 를 물려받으면 responsive @media 규칙이 행에
+          //   전가된다 (Path 2 renderListBoxLeaf 주석). 클릭은 상위 ListBox 루트가 받는다.
+          data-element-id={listBoxItemTemplate?.id}
           value={item}
-          isDisabled={Boolean(listBoxItemTemplate.props.isDisabled)}
-          className={listBoxItemTemplate.props.className}
+          isDisabled={Boolean(listBoxItemTemplate?.props.isDisabled)}
+          className={listBoxItemTemplate?.props.className}
           // ADR-147 (layout edit): template anchor 의 layout style 을 각 행에 적용.
           //   CSS 가 flex/gap/align 을 처리 → Skia render.shapes 와 D3 대칭.
           //   ADR-148: icon slot 크기 채널(--lb-icon-size) 을 행 스코프에 주입.
@@ -514,11 +521,11 @@ export const renderListBox = (
           style={composeRowStyle(
             rowSlotStyleVars
               ? {
-                  ...(listBoxItemTemplate.props.style as
+                  ...(listBoxItemTemplate?.props.style as
                     React.CSSProperties | undefined),
                   ...rowSlotStyleVars,
                 }
-              : (listBoxItemTemplate.props.style as
+              : (listBoxItemTemplate?.props.style as
                   React.CSSProperties | undefined),
           )}
           textValue={label}

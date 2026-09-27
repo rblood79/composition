@@ -33,18 +33,19 @@ import { mountPreviewNode, stubRenderContext } from "./adr923PreviewLeg";
  * live (`apps/builder/scripts/adr150-p1-row-positions-live.mjs`) 가 잰다 — 두 단계로 Canvas = DOM.
  *
  * 반례 입력 (round 3 h2): 단일 줄인데 description 유무가 교대해 행 높이가 둘로 갈린다. DOM ListBox ·
- * GridList 는 가상화하지 않으면 100 행에서 자르므로 (`useResolvedCollectionItems` windowLimit) 100 행 이하로 둔다.
+ * GridList 는 종전 100 행에서 잘랐다 (옛 Skia 투영 cap 이 DOM 기본값) — 후속 F4 로 전 행을 그리므로 150 행으로
+ * 100 초과 구간까지 대조한다.
  * 측정 조건: headless Chromium (vitest browser) · Pretendard 로드 뒤 · owner scrollTop 0.
  */
 
-const LISTBOX_ROWS = Array.from({ length: 100 }, (_, i) => ({
+const LISTBOX_ROWS = Array.from({ length: 150 }, (_, i) => ({
   id: `r${i}`,
   label: `Row ${i}`,
   ...(i % 2 ? { description: "Short description" } : {}),
 }));
 
 // 2 열: 시각 행 r 이 홀수면 그 행 첫 카드만 description (한 장만 있어도 행이 늘어난다 — grid stretch).
-const GRID_CARDS = Array.from({ length: 100 }, (_, i) => ({
+const GRID_CARDS = Array.from({ length: 150 }, (_, i) => ({
   id: `g${i}`,
   label: `Card ${i}`,
   ...(Math.floor(i / 2) % 2 === 1 && i % 2 === 0
@@ -95,6 +96,24 @@ function makeDoc(): CompositionDocument {
                       },
                     },
                   ],
+                },
+                {
+                  // ADR-150 후속 F5 — 팔레트 표준 shape (bare ref · anchor 자식 없음). 종전 DOM 은 label
+                  //   평문 행 (28, description 없음) 을 그려 Canvas slot 행 (32 · 50) 과 갈렸다.
+                  id: "p1-lb-bare",
+                  type: "ListBox",
+                  dataBinding: {
+                    type: "collection",
+                    source: "static",
+                    config: { data: LISTBOX_ROWS },
+                  },
+                  props: {
+                    style: {
+                      width: "400px",
+                      height: "400px",
+                      overflowY: "auto",
+                    },
+                  },
                 },
                 {
                   id: "p1-gl",
@@ -230,6 +249,12 @@ beforeAll(async () => {
     0,
     ".react-aria-ListBoxItem",
   );
+  owners.listboxBare = await mountOwner(
+    resolved,
+    "p1-lb-bare",
+    1300,
+    ".react-aria-ListBoxItem",
+  );
   owners.gridlist = await mountOwner(
     resolved,
     "p1-gl",
@@ -259,49 +284,55 @@ function domRows(owner: HTMLElement, itemSelector: string) {
 }
 
 describe("ADR-150 G1 (b)(c) — 행 위치 단일 소스 = 실 브라우저 DOM (±1)", () => {
-  it("ListBox 100 행 (description 교대 32 · 50): 모든 행 y · 높이 · 스크롤 범위", () => {
-    const owner = owners.listbox;
-    expect(owner).not.toBeNull();
-    const rows = domRows(owner!, ".react-aria-ListBoxItem");
-    expect(rows).toHaveLength(100);
-    const positions = resolveCollectionRowPositions({
-      doc,
-      collections: [],
-      scrollTops: new Map(),
-      ownerId: "p1-lb",
-    })!;
-    expect(new Set(positions.heights).size).toBe(2);
-    const worst = rows.reduce(
-      (acc, row, j) => {
-        const dy = Math.abs(
-          row.y - (positions.leadingExtent + positions.tops[j]),
-        );
-        const dh = Math.abs(row.h - positions.heights[j]);
-        return { dy: Math.max(acc.dy, dy), dh: Math.max(acc.dh, dh) };
-      },
-      { dy: 0, dh: 0 },
-    );
-    console.log(
-      "[ADR-150 G1 listbox]",
-      JSON.stringify({
-        worst,
-        domMaxScroll: owner!.scrollHeight - owner!.clientHeight,
-        maxScrollTop: positions.maxScrollTop,
-        last: rows[99],
-        predictedLast: positions.leadingExtent + positions.tops[99],
-      }),
-    );
-    expect(worst.dy).toBeLessThanOrEqual(1);
-    expect(worst.dh).toBeLessThanOrEqual(1);
-    expect(
-      Math.abs(
-        owner!.scrollHeight - owner!.clientHeight - positions.maxScrollTop,
-      ),
-    ).toBeLessThanOrEqual(1);
-  });
+  it.each([
+    ["listbox", "p1-lb", "template anchor"],
+    ["listboxBare", "p1-lb-bare", "anchor 없음 — 후속 F5"],
+  ] as const)(
+    "ListBox 150 행 (%s · %s — %s, description 교대 32 · 50): 모든 행 y · 높이 · 스크롤 범위",
+    (key, ownerId, _note) => {
+      const owner = owners[key];
+      expect(owner).not.toBeNull();
+      const rows = domRows(owner!, ".react-aria-ListBoxItem");
+      expect(rows).toHaveLength(150);
+      const positions = resolveCollectionRowPositions({
+        doc,
+        collections: [],
+        scrollTops: new Map(),
+        ownerId,
+      })!;
+      expect(new Set(positions.heights).size).toBe(2);
+      const worst = rows.reduce(
+        (acc, row, j) => {
+          const dy = Math.abs(
+            row.y - (positions.leadingExtent + positions.tops[j]),
+          );
+          const dh = Math.abs(row.h - positions.heights[j]);
+          return { dy: Math.max(acc.dy, dy), dh: Math.max(acc.dh, dh) };
+        },
+        { dy: 0, dh: 0 },
+      );
+      console.log(
+        `[ADR-150 G1 ${key}]`,
+        JSON.stringify({
+          worst,
+          domMaxScroll: owner!.scrollHeight - owner!.clientHeight,
+          maxScrollTop: positions.maxScrollTop,
+          last: rows[149],
+          predictedLast: positions.leadingExtent + positions.tops[149],
+        }),
+      );
+      expect(worst.dy).toBeLessThanOrEqual(1);
+      expect(worst.dh).toBeLessThanOrEqual(1);
+      expect(
+        Math.abs(
+          owner!.scrollHeight - owner!.clientHeight - positions.maxScrollTop,
+        ),
+      ).toBeLessThanOrEqual(1);
+    },
+  );
 
   it.each([
-    ["gridlist", "p1-gl", 100, "시각 행 50 · 76 교대, gap 기본 12"],
+    ["gridlist", "p1-gl", 150, "시각 행 50 · 76 교대, gap 기본 12"],
     ["gridlistGap", "p1-gl-gap", 40, "style.gap 20px"],
   ] as const)(
     "GridList 2 열 (%s · %s · %i 카드 — %s): 모든 카드 y · 행 높이 · 스크롤 범위",

@@ -63,6 +63,39 @@ interface MeasuredRow {
   item: unknown;
   height: number;
   formula: number;
+  /**
+   * 잴 때 같은 시각 행에 있던 카드들의 데이터 참조 (열 2 이상). grid stretch 로 카드 상자 높이 = 그 행의
+   * 최대라 자기 높이가 아니다 — 행 구성이 바뀌면 (앞쪽 삽입 · 삭제로 카드가 다른 행으로 밀림 · 이웃 데이터
+   * 변경) 그 값은 적중하지 않는다 (ADR-150 후속 F1).
+   */
+  rowMates: readonly unknown[] | null;
+}
+
+function rowMatesOf(
+  plan: ExpandedCardPlanInput,
+  index: number,
+): readonly unknown[] | null {
+  const cols = Math.max(1, plan.columns);
+  if (cols === 1) return null;
+  const start = index - (index % cols);
+  return plan.items.slice(start, Math.min(plan.items.length, start + cols));
+}
+
+function sameRowMates(
+  mates: readonly unknown[] | null,
+  plan: ExpandedCardPlanInput,
+  index: number,
+): boolean {
+  const cols = Math.max(1, plan.columns);
+  if (cols === 1) return mates == null;
+  if (mates == null) return false;
+  const start = index - (index % cols);
+  const end = Math.min(plan.items.length, start + cols);
+  if (mates.length !== end - start) return false;
+  for (let j = start; j < end; j += 1) {
+    if (!Object.is(mates[j - start], plan.items[j])) return false;
+  }
+  return true;
 }
 
 interface OwnerEntry {
@@ -128,7 +161,8 @@ function cardHeightsOf(
     if (
       hit &&
       hit.item === plan.items[i] &&
-      hit.formula === plan.formulaCardHeights[i]
+      hit.formula === plan.formulaCardHeights[i] &&
+      sameRowMates(hit.rowMates, plan, i)
     ) {
       return hit.height;
     }
@@ -388,6 +422,7 @@ export function harvestExpandedCardHeights(
         prev &&
         prev.item === plan.items[i] &&
         prev.formula === formula &&
+        sameRowMates(prev.rowMates, plan, i) &&
         Math.abs(prev.height - rect.height) <= 0.5
       ) {
         continue;
@@ -397,6 +432,7 @@ export function harvestExpandedCardHeights(
         item: plan.items[i],
         height: rect.height,
         formula,
+        rowMates: rowMatesOf(plan, i),
       });
       if (entry.firstMeasured == null) entry.firstMeasured = rect.height;
     }

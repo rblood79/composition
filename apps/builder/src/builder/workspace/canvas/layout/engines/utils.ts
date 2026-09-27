@@ -5692,8 +5692,17 @@ export function enrichWithIntrinsicSize(
       tsMeasuredLeaf &&
       !IMAGE_INTRINSIC_TAGS.has(type) &&
       !CIRCLE_LEAF_TAGS.has(type);
+    // slot-only GridList 카드 (자식 없는 GridListItem) 도 auto 높이면 스칼라 (ADR-150 후속 F1) — DOM 은 grid
+    //   stretch 로 한 시각 행의 카드가 모두 가장 긴 카드 높이인데, 명시 height 는 엔진 stretch 를 끈다
+    //   (tree.rs `explicit`). Step 4.5 재측정은 isGridChild 없이 `isFlexChild = contentHeight 있음` 으로
+    //   부르므로 두 호출 모두 `isFlexChild || isGridChild` 로 판정한다.
+    const autoHeightSlotCard =
+      type === "gridlistitem" &&
+      (isFlexChild || isGridChild) &&
+      !(childElements && childElements.length > 0);
     if (
-      (measuredAutoLeaf && (rawHeight == null || rawHeight === "auto")) ||
+      ((measuredAutoLeaf || autoHeightSlotCard) &&
+        (rawHeight == null || rawHeight === "auto")) ||
       percentHeightScalarLeaf ||
       hasIntrinsicHeightConstraint
     ) {

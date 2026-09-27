@@ -111,6 +111,8 @@ const LISTBOX_DATA = Array.from({ length: 60 }, (_, i) => ({
 const GRID_DATA = Array.from({ length: 40 }, (_, i) => ({
   id: `g${i}`,
   label: i % 4 === 0 ? `${i} ${LONG}` : `Card ${i}`,
+  // 후속 F1 — description 카드 (76) 와 label 만 카드 (50) 가 한 시각 행에 섞인다 (2 · 3 열).
+  ...(i % 4 === 2 ? { description: `detail ${i}` } : {}),
 }));
 
 const browser = await chromium.launch({ headless: false });
@@ -235,8 +237,8 @@ function compare(
       worstY = dy;
       worstRow = { key: row.key, relY, expected };
     }
-    // GridList 카드: 행 높이 (= 그 행 최대 카드) 는 y 로 검증된다. 카드 자신의 높이는 DOM grid
-    //   stretch 와 Canvas 가 다를 수 있어 (범위 밖 발견) 따로 센다.
+    // GridList 카드: DOM grid stretch 와 같게 카드 상자 높이 = 그 시각 행 높이 (후속 F1 — 종전엔 짧은 카드가
+    //   자기 높이 그대로라 따로 셌다).
     if (cardStretch) {
       if (dh > 1) unstretched += 1;
     } else worstH = Math.max(worstH, dh);
@@ -302,7 +304,12 @@ async function checkPositions(label, ownerId, opts) {
     ) <= 1;
   record(
     `${label} (scrollTop ${b.scroll?.scrollTop}): window 행 y = 단일 소스 (±1) · 스크롤 범위 writer 하나 · 진동 0`,
-    c.windowRows > 0 && c.worstY <= 1 && c.worstH <= 1 && rangeOk && stable,
+    c.windowRows > 0 &&
+      c.worstY <= 1 &&
+      c.worstH <= 1 &&
+      (c.unstretchedCards ?? 0) === 0 &&
+      rangeOk &&
+      stable,
     { ...c, scroll: b.scroll, planMax: b.positions?.maxScrollTop, stable },
   );
   return b;

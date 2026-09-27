@@ -179,6 +179,8 @@ export function GridList<T extends object>({
       { id: 1, name: "Item 1", description: "Description 1" },
       { id: 2, name: "Item 2", description: "Description 2" },
     ],
+    // ADR-150 후속 F4: 전 행 (ListBox · Table 과 같음 — Canvas 는 전 행을 가상화한다).
+    windowLimit: Number.MAX_SAFE_INTEGER,
   });
 
   // React Aria 1.13.0: 필터링 로직 (raw item 기반 — row.item 에 원본 보존).

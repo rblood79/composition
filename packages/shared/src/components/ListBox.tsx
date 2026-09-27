@@ -186,7 +186,9 @@ export function ListBox<T extends object>({
       { id: 1, name: "User 1", email: "user1@example.com", role: "Admin" },
       { id: 2, name: "User 2", email: "user2@example.com", role: "User" },
     ],
-    windowLimit: enableVirtualization ? Number.MAX_SAFE_INTEGER : undefined,
+    // ADR-150 후속 F4: 전 행 — Canvas 는 스크롤 소유자의 전 행을 가상화하고 (Table 과 같음) 100 은 옛 Skia 투영
+    //   cap 이 DOM 기본값으로 따라온 것이었다 (100 행 초과 데이터에서 행 수 · 스크롤 범위가 갈렸다).
+    windowLimit: Number.MAX_SAFE_INTEGER,
   });
 
   // 아이템 높이 고정값

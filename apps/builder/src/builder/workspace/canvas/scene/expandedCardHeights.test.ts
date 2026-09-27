@@ -460,3 +460,54 @@ describe("ADR-150 후속 R1 판독 — 실측의 측정 조건 (템플릿 · 행
     expect(resolveExpandedCardHeights(planOf())[0]).toBe(104);
   });
 });
+
+describe("ADR-150 후속 F1 — grid stretch 카드의 실측 = 그 행의 최대", () => {
+  const KEYS = Array.from({ length: 10 }, (_, i) => `k${i}`);
+  const ITEMS = KEYS.map((key) => ({ id: key }));
+  // k1 만 description (76), 나머지는 label 만 (50).
+  const FORMULA = KEYS.map((_, i) => (i === 1 ? 76 : 50));
+  const planOf = (
+    over: Partial<ExpandedCardPlanInput> = {},
+  ): ExpandedCardPlanInput => ({
+    ownerId: "gl",
+    family: "gridlist",
+    estimate: "formula",
+    templateSig: "sig",
+    templateRefs: [],
+    itemKeys: KEYS,
+    items: ITEMS,
+    formulaCardHeights: FORMULA,
+    columns: 2,
+    gap: 0,
+    leadingExtent: 0,
+    trailingExtent: 0,
+    viewportHeight: 0,
+    ...over,
+  });
+
+  it("앞쪽 삽입으로 카드가 다른 행으로 밀리면 stretch 된 실측 (이웃 높이) 이 적중하지 않는다", () => {
+    resolveExpandedCardHeights(planOf());
+    noteExpandedCardWindow("gl", { startIndex: 0, endIndex: 10 }, 300);
+    const map = new Map<string, { width: number; height: number }>();
+    map.set("gl", { width: 400, height: 300 });
+    // DOM grid stretch 와 같게 첫 행 두 카드 모두 76.
+    for (let i = 0; i < 10; i += 1) {
+      map.set(toCollectionRowProjectionId("gridlist", "gl", `k${i}`), {
+        width: 194,
+        height: i < 2 ? 76 : 50,
+      });
+    }
+    harvestExpandedCardHeights(map, scrollStub().access);
+    expect(resolveExpandedCardHeights(planOf()).slice(0, 2)).toEqual([76, 76]);
+
+    // 맨 앞에 label 만 있는 카드 n 삽입 → 첫 행 = n · k0 (둘 다 50), 둘째 행 = k1 · k2.
+    const inserted = planOf({
+      itemKeys: ["n", ...KEYS],
+      items: [{ id: "n" }, ...ITEMS],
+      formulaCardHeights: [50, ...FORMULA],
+    });
+    expect(resolveExpandedCardHeights(inserted).slice(0, 4)).toEqual([
+      50, 50, 76, 50,
+    ]);
+  });
+});
