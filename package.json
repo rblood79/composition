@@ -49,6 +49,7 @@
     "codex:session-start": "bash scripts/codex/session-start.sh",
     "gate:install": "bash scripts/install-git-hooks.sh",
     "gate:visual-parity": "pnpm -F @composition/builder test:visual-parity:smoke",
+    "gate:perf-ratchet": "node apps/builder/scripts/perf-ratchet-gate.mjs --run",
     "perf:baseline": "node apps/builder/scripts/perf-baseline.mjs"
   },
   "devDependencies": {

@@ -259,3 +259,15 @@ pnpm perf:baseline -- --lane frame --seed-count 60 --fixed-inputs --call-counts 
 ### 8-5. 결과 파일
 
 `/private/tmp/claude-501/.../scratchpad/counts/{r60-1,r60-2,r60-3,r60-4,r600-1,cc60}/frame-*.json` (세션 scratchpad — 재현은 §8-1 명령). HEAD `963430f05` + 다른 세션의 detach 수리 dirty 파일 (카운트 동일성에는 무관 — 두 실행이 같은 코드).
+
+## 9. ratchet 게이트 운용 (ADR-246, 2026-09-27)
+
+§8 카운트를 push 직전에 판정한다 — [ADR-246](../../adr/246-deterministic-count-ratchet-and-begin-frame-harness.md) · 결과 [breakdown §8](../../adr/design/246-deterministic-count-ratchet-breakdown.md).
+
+- **언제 도는가**: `.githooks/pre-push` 가 성능 경로 (`apps/builder/src/` · `packages/shared/src/` · `packages/engine/` · `packages/specs/src/` · 의존성 · 하니스 · `ratchet.json`) 가 바뀐 push 에서만. 테스트 파일만 바뀐 push 는 제외.
+- **무엇을 재는가**: 60 요소 call-counts × select · edit · page-switch · panel-toggle + 600 요소 × select · edit. 약 41초.
+- **어디서 재는가**: 메인 워킹트리가 push 대상과 같으면 메인 (5173 재사용 또는 5179). 다른 세션 WIP 가 있으면 push 대상 sha 를 `.cache/perf-ratchet/wt` 에 checkout 해 잰다 (재사용 시 준비 약 9초).
+- **판정**: 등급 A (반복 실행에서 정확히 같았던 값 — 파이프라인 label · 캐시 hit/miss · 함수별 V8 호출 수) 초과 → 같은 조건 재실행 → 같은 값이면 차단. 등급 B (React dev measure · layout/style recalc · rAF 경계 ±1) 는 밴드 1.05 · 여유 2, 단독 초과는 경고.
+- **상한 바꾸기**: 낮추기 `node apps/builder/scripts/perf-ratchet-gate.mjs --update 60=<frame.json> 600=<frame.json>`. 올리기는 사용자 승인 · 사유 · 만료일과 함께 `--raise` 만. 하니스 recorder 가 바뀌면 "기준 재설정 필요" 가 출력된다 (`--init`).
+- **탈출구**: `SKIP_PERF_RATCHET=1 git push …` — 시각 파리티 (`SKIP_VISUAL_PARITY`) 와 서로를 우회하지 않는다.
+- **한계**: 함수별 호출 수는 부류당 상위 20 함수만 등급 A 다 — 상위 밖 함수의 증가는 `v8.app` (등급 B, 경고) 로만 보인다. 카운트는 체감 oracle 이 아니다 (ADR-243 Event Timing 이 판정한다).

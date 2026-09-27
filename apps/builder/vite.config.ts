@@ -138,6 +138,31 @@ function apiProxyPlugin() {
 }
 
 /**
+ * ADR-246 — dev 서버 정체성. 성능 ratchet 게이트가 이 서버가 어느 워킹트리를 서빙하는지
+ * (`root`) 확인하고 준비 완료를 판정한다 (`logLevel: "warn"` 이라 URL 로그가 없다). dev 전용.
+ */
+function devIdentityPlugin() {
+  return {
+    name: "composition-dev-identity",
+    apply: "serve" as const,
+    configureServer(server: ViteDevServer) {
+      server.middlewares.use(
+        "/__composition_dev_root",
+        (_req: IncomingMessage, res: ServerResponse) => {
+          res.setHeader("Content-Type", "application/json");
+          res.end(
+            JSON.stringify({
+              root: resolve(import.meta.dirname, "../.."),
+              port: server.config.server.port,
+            }),
+          );
+        },
+      );
+    },
+  };
+}
+
+/**
  * GitHub Pages 깊은 링크 — Pages 는 없는 경로에 `404.html` 을 준다. `index.html` 을 그대로
  * 복사해 두면 `/composition/builder/<id>` · `/composition/dashboard` 로 바로 들어와도 SPA 가
  * 부팅하고 `BrowserRouter` 가 경로를 처리한다 (응답 상태는 404). 자산 경로는 base 절대 경로라
@@ -163,6 +188,7 @@ export default defineConfig(({ command }) => {
       racLocalesPlugin(),
       wasm(),
       apiProxyPlugin(),
+      devIdentityPlugin(),
       react(),
       spaFallbackPlugin(),
     ],
