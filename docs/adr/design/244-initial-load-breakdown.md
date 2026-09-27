@@ -25,7 +25,8 @@
   - `t_press` — 카드 `pointerdown` (RAC `onPress` 대상, `dashboard/index.tsx:191` · `:231`).
   - `useCanvasLifecycleStore.subscribe` 로 `bootstrapPhase` 전이 시각 (`wasm` · `fonts` · `surface` · `first-frame` · `ready`).
   - Resource Timing — `canvaskit*.wasm` · `engine_bg-*.wasm` · `*.ttf` 의 `startTime` · `responseEnd` · `transferSize`.
-- 구간: wasm 받기 = `responseEnd − max(startTime, t_press)`, 컴파일/instantiate ≈ `fonts 시작 − max(wasm responseEnd, engine responseEnd)`, 폰트 = `surface − fonts`, 나머지 = `ready − surface`.
+- 구간: wasm 받기 = `responseEnd − max(startTime, t_press)` (자산별 참고 열), 컴파일/instantiate ≈ `fonts 시작 − max(wasm responseEnd, engine responseEnd)`, 폰트 = `surface − fonts`, 나머지 = `ready − surface`.
+- **네트워크 대기 몫 (A 진행 판정의 분자)**: 부팅이 기다린 요청 (`canvaskit*.wasm` · `engine_bg-*.wasm` · 부팅 폰트 `*.ttf`) 마다 구간 `[max(startTime, t_press), responseEnd]` 을 `[t_press, t_ready]` 로 자른 뒤 **합집합 길이**를 잰다. engine · CanvasKit wasm 은 병렬로 초기화되므로 (`SkiaCanvas.tsx:609-610` · `wasm-bindings/init.ts:15-52`) 자산별 길이를 더하면 겹친 구간을 두 번 센다 — 합산 금지. 폰트는 wasm 뒤에 순차로 오므로 합집합이 그대로 이어 붙인다. 판정 = 합집합 길이 p50 / press → ready p50 ≥ 30 %. A 의 이득 상한 참고로 CanvasKit wasm 구간 중 engine wasm 과 겹치지 않는 길이를 따로 기록한다.
 - 조건 5 (본문 G0) × 브라우저 2 × 프로파일 2 × n ≥ 10. Chromium 은 CPU 1x/4x 추가.
 - 기록 manifest: SHA · `git status --porcelain` dirty 수 (> 0 이면 폐기 — 메모리 `feedback-baseline-build-separate-worktree-original-deps`) · 브라우저 버전 · `visibilityState` · 프로파일 · 프로젝트 종류.
 - 하니스 실행 중 소스 편집 금지 (HMR 무관한 production 빌드지만 dist 교체 방지).
@@ -47,6 +48,7 @@
 | `.github/workflows/deploy.yml:50`                                 | 경로 필터 `apps/builder/public/(fonts                                                                                 | wasm)/`→`apps/builder/public/fonts/`+`pnpm-lock.yaml` 의 canvaskit 변경 감지 추가 |
 | `docs/RENDERING_ARCHITECTURE.md` §5.2                             | 로드 경로 설명 갱신                                                                                                   |
 
+- **옛 탭 복구 (리뷰 244 R1 h1)**: `SkiaCanvas.tsx` 부팅 `catch` 에서 실패 원인이 요청 실패 (CanvasKit wasm 404 · 네트워크, 또는 부팅 chunk — `wasm-bindings/init.ts` 가 `import()` 하는 `initCanvasKit` · `engineWasm` chunk — 의 로드 실패) 이면 `failCanvasBootstrap` 앞에 **자동 새로고침 1 회**. 표식 = `sessionStorage` 의 build id (Vite `define` 상수) — 같은 build id 로 이미 새로고침했으면 반복하지 않고 기존 오류 표시로 간다. 캔버스 부팅 전이라 편집이 없어 새로고침에 따른 손실이 없다. unit: 첫 실패 → reload 호출 1 · 표식 있음 → reload 0 · 요청 실패가 아닌 오류 (instantiate · 폰트 파싱) → reload 0. 옛 탭은 wasm 보다 부팅 chunk 가 먼저 404 가 날 수 있다 — 이 경로는 D 이전부터 같은 방식으로 깨져 있었고, 이 새로고침이 함께 복구한다.
 - 확인: 빌드 산출물에 `assets/canvaskit-<hash>.wasm` 1 개 · `vite-plugin-wasm` 의 ESM 래퍼가 생기지 않음 · dev (`/@fs/` 경로) 부팅 · browser 테스트 (`vitest.browser.config.ts`) 부팅.
 - `?url` 이 막히면 대체: 작은 Vite 플러그인이 `generateBundle` 에서 wasm 을 `emitFile` (해시 이름) 하고 `import.meta` 상수로 URL 을 넘긴다.
 - G1 재배포 모사: 빌드 N 은 `bin/canvaskit.*`, 빌드 N+1 은 `bin/full/canvaskit.*` (glue · wasm 모두 다름) 를 쓰는 임시 변형 — 측정 전용 worktree 에서만, main 에 커밋하지 않는다.
