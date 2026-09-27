@@ -1050,6 +1050,132 @@ describe("instance store actions", () => {
     });
   });
 
+  // ADR-150 LOW 재확인 (2026-09-27) — detach 경로는 편집기 segment 규칙 (형제 목록 · `~N`) 을 따른다.
+  it("applies same-segment sibling overrides to their own sibling on detach", () => {
+    const master = makeElement("tags", {
+      type: "frame",
+      reusable: true,
+    });
+    const first = makeElement("tag-a", {
+      type: "Text",
+      parent_id: "tags",
+      componentName: "Tag",
+      props: { text: "a" },
+    });
+    const second = makeElement("tag-b", {
+      type: "Text",
+      parent_id: "tags",
+      componentName: "Tag",
+      props: { text: "b" },
+    });
+    // 자기 override 가 없는 세 번째 형제 — componentName 대체 조회로 첫 형제 patch 를 받으면 안 된다.
+    const third = makeElement("tag-c", {
+      type: "Text",
+      parent_id: "tags",
+      componentName: "Tag",
+      props: { text: "c" },
+    });
+    const ref = makeElement("ref", {
+      type: "ref",
+      ref: "tags",
+      descendants: {
+        Tag: { text: "first" },
+        "Tag~2": { text: "second" },
+      },
+    } as never);
+
+    useStore.setState({
+      elements: [master, first, second, third, ref],
+      elementsMap: new Map([
+        ["tags", master],
+        ["tag-a", first],
+        ["tag-b", second],
+        ["tag-c", third],
+        ["ref", ref],
+      ]),
+    } as never);
+    useStore.getState()._rebuildIndexes();
+    seedCanonicalFromStore();
+
+    useStore.getState().detachInstance("ref");
+
+    expect(
+      useStore
+        .getState()
+        .elements.filter((element) => element.parent_id === "ref")
+        .map((element) => element.props.text),
+    ).toEqual(["first", "second", "c"]);
+  });
+
+  // ADR-150 LOW 재확인 (2026-09-27) — detach 사본은 origin 과 형제 사본의 customId 를 그대로 가져가지 않는다.
+  it("issues fresh unique customIds to detached children", () => {
+    const badgeMaster = makeElement("badge-master", {
+      type: "Badge",
+      reusable: true,
+      customId: "badge_1",
+    });
+    const cardMaster = makeElement("card-master", {
+      type: "Card",
+      reusable: true,
+      customId: "card_1",
+    });
+    const heading = makeElement("heading", {
+      type: "Heading",
+      parent_id: "card-master",
+      customId: "heading_1",
+    });
+    const badgeA = makeElement("badge-a", {
+      type: "ref",
+      ref: "badge-master",
+      parent_id: "card-master",
+      customId: "badge_2",
+    } as never);
+    const badgeB = makeElement("badge-b", {
+      type: "ref",
+      ref: "badge-master",
+      parent_id: "card-master",
+      customId: "badge_3",
+    } as never);
+    const ref = makeElement("card-ref", {
+      type: "ref",
+      ref: "card-master",
+      customId: "card_2",
+    } as never);
+
+    useStore.setState({
+      elements: [badgeMaster, cardMaster, heading, badgeA, badgeB, ref],
+      elementsMap: new Map(
+        [badgeMaster, cardMaster, heading, badgeA, badgeB, ref].map((e) => [
+          e.id,
+          e,
+        ]),
+      ),
+    } as never);
+    useStore.getState()._rebuildIndexes();
+    seedCanonicalFromStore();
+
+    useStore.getState().detachInstance("card-ref");
+
+    const customIds = useStore
+      .getState()
+      .elements.map((element) => element.customId)
+      .filter((customId): customId is string => Boolean(customId));
+    expect(new Set(customIds).size).toBe(customIds.length);
+    const detached = useStore
+      .getState()
+      .elements.filter((element) => element.parent_id === "card-ref");
+    expect(detached.map((element) => element.type)).toEqual([
+      "Heading",
+      "Badge",
+      "Badge",
+    ]);
+    expect(detached.map((element) => element.customId)).toEqual([
+      "heading_2",
+      "badge_4",
+      "badge_5",
+    ]);
+  });
+
   it("creates a component origin from a standard element with undo", async () => {
     const button = makeElement("button", {
       customId: "primary-action",
@@ -1263,6 +1389,48 @@ describe("instance store actions", () => {
         .getState()
         .elements.filter((element) => element.parent_id === "instance"),
     ).toHaveLength(0);
+  });
+
+  // ADR-150 LOW 재확인 (2026-09-27) — 한 batch 로 detach 되는 instance 들도 서로 customId 가 겹치지 않는다.
+  it("issues distinct customIds across instances auto-detached in one batch", async () => {
+    const origin = makeElement("origin", {
+      reusable: true,
+      customId: "button_1",
+    });
+    const child = makeElement("label", {
+      type: "Text",
+      parent_id: "origin",
+      customId: "text_1",
+    });
+    const first = makeElement("instance-1", {
+      type: "ref",
+      ref: "origin",
+      customId: "button_2",
+    } as never);
+    const second = makeElement("instance-2", {
+      type: "ref",
+      ref: "origin",
+      customId: "button_3",
+    } as never);
+
+    useStore.setState({
+      currentPageId: "page-1",
+      elements: [origin, child, first, second],
+      elementsMap: new Map(
+        [origin, child, first, second].map((e) => [e.id, e]),
+      ),
+    } as never);
+    useStore.getState()._rebuildIndexes();
+    seedCanonicalFromStore();
+
+    await useStore.getState().removeElement("origin");
+
+    const textIds = useStore
+      .getState()
+      .elements.filter((element) => element.type === "Text")
+      .map((element) => element.customId);
+    expect(textIds).toHaveLength(2);
+    expect(new Set(textIds).size).toBe(2);
   });
 
   it("auto-detaches canonical instances when deleting their origin", async () => {

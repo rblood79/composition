@@ -429,15 +429,11 @@ function applyDescendantsToTree(
 }
 
 /**
- * 해석 노드에 원본 형제 목록 기준 segment 를 싣는다 (`ResolvedNode._pathSegment`, ADR-150 후속 MEDIUM-3). 캐시에서 온
- * 같은 해석 노드에는 같은 사본을 돌려준다 — segment 는 원본 노드 (캐시 키 = ref id · 문서 버전) 가 정하므로 매번
- * 새 사본을 만들면 Preview 가 바뀌지 않은 서브트리를 다시 그린다.
+ * 해석 노드에 원본 형제 목록 기준 segment 를 싣는다 (`ResolvedNode._pathSegment`, ADR-150 후속 MEDIUM-3). 값이
+ * 이미 같으면 노드를 그대로, 다르면 사본 하나를 돌려준다. 사본을 메모하지 않는다 — Preview 는 캐시 없이 해석해
+ * 매번 새 노드라 메모가 맞은 적이 없고 (ADR-150 LOW 재확인 2026-09-27 실측: WeakMap 이 p99 를 0.9 → 5.5 ms 로
+ * 늘림), Preview 에는 해석 노드 identity 로 재그림을 막는 소비처가 없다.
  */
-const pathSegmentCopies = new WeakMap<
-  ResolvedNode,
-  Map<string, ResolvedNode>
->();
-
 function withResolverMeta(
   node: ResolvedNode,
   meta: { _pathSegment?: string; _instanceOwnChild?: boolean },
@@ -447,22 +443,11 @@ function withResolverMeta(
   if (node._pathSegment === segment && node._instanceOwnChild === own) {
     return node;
   }
-  const key = `${own ? "own:" : ""}${segment ?? ""}`;
-  let copies = pathSegmentCopies.get(node);
-  if (!copies) {
-    copies = new Map();
-    pathSegmentCopies.set(node, copies);
-  }
-  let copy = copies.get(key);
-  if (!copy) {
-    copy = {
-      ...node,
-      ...(segment !== undefined ? { _pathSegment: segment } : {}),
-      ...(own ? { _instanceOwnChild: true } : {}),
-    };
-    copies.set(key, copy);
-  }
-  return copy;
+  return {
+    ...node,
+    ...(segment !== undefined ? { _pathSegment: segment } : {}),
+    ...(own ? { _instanceOwnChild: true } : {}),
+  };
 }
 
 function withPathSegment(node: ResolvedNode, segment: string): ResolvedNode {

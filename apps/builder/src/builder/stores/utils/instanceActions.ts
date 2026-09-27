@@ -59,7 +59,12 @@ import {
 } from "../../../adapters/canonical/frameMirror";
 import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
 import { getActiveCanonicalDocumentElementProjection } from "../canonical/canonicalElementsView";
-import { generateCustomId } from "../../utils/idGeneration";
+import {
+  createCustomIdAllocator,
+  generateCustomId,
+  getCustomIdBase,
+} from "../../utils/idGeneration";
+import { getCanonicalRefChildSegments } from "../../../adapters/canonical/canonicalRefResolution";
 
 type CanonicalElementFields = {
   children?: unknown;
@@ -178,16 +183,21 @@ function getComponentNameForElement(element: Element): string {
   );
 }
 
+/**
+ * detach 가 자식에 적용할 descendants patch. 경로 키가 먼저고, 옛 평면 키 (customId · componentName) 대체 조회는
+ * 형제 중 segment 가 겹치지 않을 때만 한다 — 같은 segment 형제 (`Tag` · `Tag~2`) 가 있으면 두 번째부터 첫 형제의
+ * patch 를 받는다 (ADR-150 LOW 재확인 2026-09-27).
+ */
 function getDescendantOverride(
   legacyOverrideMap: Record<string, unknown> | undefined,
   source: Element,
   relativePath: string,
+  sharedSegment = false,
 ): Record<string, unknown> | undefined {
   if (!legacyOverrideMap) return undefined;
   const candidates = [
     relativePath,
-    source.customId,
-    source.componentName,
+    ...(sharedSegment ? [] : [source.customId, source.componentName]),
     source.id,
   ].filter((candidate): candidate is string => Boolean(candidate));
   for (const candidate of candidates) {
@@ -315,6 +325,8 @@ function buildCanonicalDetachSnapshot(
   usedIds = new Set(
     getInstanceActionSourceElements().map((element) => element.id),
   ),
+  // 사본은 origin 과 다른 사본의 customId 를 가져가지 않는다 — batch detach 는 할당기를 공유한다.
+  allocateCustomId = createCustomIdAllocator(getInstanceActionSourceElements()),
 ): { elements: Element[]; previousElements: Element[] } | null {
   const sourceState = withInstanceActionSourceState(state);
   const refElement = findInstanceActionElement(sourceState.elements, refId);
@@ -347,6 +359,44 @@ function buildCanonicalDetachSnapshot(
     return id;
   };
 
+  // detach 로 새로 생긴 요소는 새 customId 를 받는다 (ADR-150 LOW 재확인 2026-09-27) — origin 자식 · 중첩 ref 의
+  //   master 값을 그대로 옮기면 origin 과, 같은 origin 을 가리키는 형제 사본끼리 customId 가 겹친다 (ID 중복
+  //   오류 · Preview/publish HTML id 중복). 번호 base 는 원래 노드 (중첩 ref 면 ref 자신) 의 customId 를 따른다.
+  const pushCreated = (element: Element, source?: Element): Element => {
+    const base =
+      getCustomIdBase(source?.customId ?? undefined) ??
+      getCustomIdBase(element.customId ?? undefined) ??
+      element.type;
+    const created = { ...element, customId: allocateCustomId(base) };
+    createdChildren.push(created);
+    return created;
+  };
+
+  // 형제 목록의 descendants 경로 segment — 편집기 · Canvas 와 같은 규칙 (`~N` 포함, ADR-150 후속 F3).
+  const materializeChildren = (
+    sources: readonly Element[],
+    parentId: string,
+    pathPrefix: string | null,
+    activeLegacyDescendantMap?: Record<string, unknown>,
+  ) => {
+    const segments = getCanonicalRefChildSegments(sources);
+    const baseCounts = new Map<string, number>();
+    for (const segment of segments) {
+      const base = segment.replace(/~\d+$/, "");
+      baseCounts.set(base, (baseCounts.get(base) ?? 0) + 1);
+    }
+    sources.forEach((childSource, index) => {
+      const segment = segments[index]!;
+      materializeChild(
+        childSource,
+        parentId,
+        pathPrefix ? `${pathPrefix}/${segment}` : segment,
+        activeLegacyDescendantMap,
+        (baseCounts.get(segment.replace(/~\d+$/, "")) ?? 0) > 1,
+      );
+    });
+  };
+
   const materializeCanonicalNode = (
     source: Record<string, unknown>,
     parentId: string,
@@ -367,13 +417,13 @@ function buildCanonicalDetachSnapshot(
       parentId,
       pageId,
     );
-    createdChildren.push(element);
+    const created = pushCreated(element);
 
     getCanonicalChildren(source).forEach((child) => {
-      materializeCanonicalNode(child, element.id);
+      materializeCanonicalNode(child, created.id);
     });
 
-    return element;
+    return created;
   };
 
   const materializeChild = (
@@ -383,11 +433,13 @@ function buildCanonicalDetachSnapshot(
     // 중첩 descendant 재귀는 현재 경로에서 해석한 legacy map을 이어받는다.
     activeLegacyDescendantMap:
       Record<string, unknown> | undefined = legacyDescendantMap,
+    sharedSegment = false,
   ): Element => {
     const override = getDescendantOverride(
       activeLegacyDescendantMap,
       source,
       relativePath,
+      sharedSegment,
     );
     const hasReplacement = Boolean(
       override && typeof override.type === "string",
@@ -446,30 +498,24 @@ function buildCanonicalDetachSnapshot(
           },
     );
 
-    createdChildren.push(element);
+    const created = pushCreated(element, hasReplacement ? undefined : source);
 
-    const childSources = hasReplacement
-      ? []
-      : hasChildrenReplacement
-        ? ((override!.children as unknown[]) ?? [])
-        : getSortedChildren(materializationSource.id);
-
-    childSources.forEach((childSource) => {
-      if (hasChildrenReplacement && isRecord(childSource)) {
-        materializeCanonicalNode(childSource, element.id);
-        return;
-      }
-
-      const childElement = childSource as Element;
-      const childSegment =
-        childElement.customId ?? childElement.componentName ?? childElement.id;
-      const childPath = nestedMaster
-        ? childSegment
-        : `${relativePath}/${childSegment}`;
-      materializeChild(childElement, element.id, childPath, childDescendants);
-    });
-
-    return element;
+    if (hasReplacement) return created;
+    if (hasChildrenReplacement) {
+      ((override!.children as unknown[]) ?? []).forEach((childSource) => {
+        if (isRecord(childSource)) {
+          materializeCanonicalNode(childSource, created.id);
+        }
+      });
+      return created;
+    }
+    materializeChildren(
+      getSortedChildren(materializationSource.id),
+      created.id,
+      nestedMaster ? null : relativePath,
+      childDescendants,
+    );
+    return created;
   };
 
   const rootProps = applyPropsPatch(
@@ -496,13 +542,7 @@ function buildCanonicalDetachSnapshot(
   );
   const previousState = { ...refElement };
 
-  getSortedChildren(master.id).forEach((child) => {
-    materializeChild(
-      child,
-      detachedRoot.id,
-      child.customId ?? child.componentName ?? child.id,
-    );
-  });
+  materializeChildren(getSortedChildren(master.id), detachedRoot.id, null);
 
   const nextElements = [detachedRoot, ...createdChildren];
 
@@ -557,11 +597,17 @@ function buildDetachSnapshot(
   state: ElementsState | InstanceActionSourceState,
   instanceId: string,
   usedIds?: Set<string>,
+  allocateCustomId?: (base: string) => string,
 ): { elements: Element[]; previousElements: Element[] } | null {
   const sourceState = withInstanceActionSourceState(state);
   const instance = findInstanceActionElement(sourceState.elements, instanceId);
   if (instance?.type === "ref") {
-    return buildCanonicalDetachSnapshot(sourceState, instanceId, usedIds);
+    return buildCanonicalDetachSnapshot(
+      sourceState,
+      instanceId,
+      usedIds,
+      allocateCustomId,
+    );
   }
   return buildLegacyDetachSnapshot(instanceId);
 }
@@ -573,6 +619,7 @@ export function buildDetachSnapshotsForOrigins(
 ): { elements: Element[]; previousElements: Element[] } {
   const sourceState = withInstanceActionSourceState(state);
   const usedIds = new Set(sourceState.elements.map((element) => element.id));
+  const allocateCustomId = createCustomIdAllocator(sourceState.elements);
   const seenInstanceIds = new Set<string>();
   const previousElements: Element[] = [];
   const elements: Element[] = [];
@@ -592,7 +639,12 @@ export function buildDetachSnapshotsForOrigins(
       if (excludedElementIds.has(instanceId)) continue;
       seenInstanceIds.add(instanceId);
 
-      const snapshot = buildDetachSnapshot(sourceState, instanceId, usedIds);
+      const snapshot = buildDetachSnapshot(
+        sourceState,
+        instanceId,
+        usedIds,
+        allocateCustomId,
+      );
       if (!snapshot) {
         console.warn("[Instance] cannot auto-detach impacted instance:", {
           originId: origin.id,
@@ -920,11 +972,17 @@ export async function toggleComponentOrigin(
     reusable: false,
   };
   const usedIds = new Set(latestState.elements.map((current) => current.id));
+  const allocateCustomId = createCustomIdAllocator(latestState.elements);
   const previousElements: Element[] = [latestElement];
   const nextElements: Element[] = [nextOrigin];
 
   for (const instanceId of t1Impact.impactedInstanceIds) {
-    const snapshot = buildDetachSnapshot(latestState, instanceId, usedIds);
+    const snapshot = buildDetachSnapshot(
+      latestState,
+      instanceId,
+      usedIds,
+      allocateCustomId,
+    );
     if (!snapshot) {
       console.warn("[Instance] cannot detach impacted instance:", instanceId);
       return null;

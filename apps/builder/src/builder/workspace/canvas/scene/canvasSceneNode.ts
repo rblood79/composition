@@ -580,8 +580,16 @@ export function resolveTemplateOriginNode(
   ): CanonicalNode[] | undefined => {
     if (!children) return undefined;
     const out: CanonicalNode[] = [];
-    for (const child of children) {
-      const path = prefix ? `${prefix}/${child.id}` : child.id;
+    // path 키는 id path 와 segment path (편집기 쓰기 키 · 변형 이관 `mergeTemplateChildren`) 가 공존한다 — Preview
+    //   해석기 (`resolveDescendantChild`) 와 같이 id 를 먼저 보고 segment 로도 맞춘다 (ADR-150 LOW 재확인
+    //   2026-09-27: id 만 봐 segment 키 patch 가 Canvas 에서만 빠졌다).
+    const segments = getCanonicalRefChildSegments(children);
+    for (const [index, child] of children.entries()) {
+      const idPath = prefix ? `${prefix}/${child.id}` : child.id;
+      const segmentPath = prefix
+        ? `${prefix}/${segments[index]!}`
+        : segments[index]!;
+      const path = descendants.has(idPath) ? idPath : segmentPath;
       const patch = descendants.get(path);
       let next = child;
       if (patch) {

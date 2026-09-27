@@ -64,3 +64,28 @@ export function generateCustomId(
 
   return `${tagLower}_${nextNumber}`;
 }
+
+/**
+ * 여러 요소에 customId 를 한꺼번에 발급하는 할당기 — 발급한 번호를 기억해 같은 batch 안에서도 겹치지 않는다
+ * (detach 가 여러 instance 를 한 번에 실체화할 때). base 마다 기존 목록을 한 번만 훑고 그 뒤로는 최댓값 + 1.
+ */
+export function createCustomIdAllocator(
+  existing: ReadonlyArray<{ customId?: string | null }>,
+): (base: string) => string {
+  const maxByBase = new Map<string, number>();
+  return (base) => {
+    const key = normalizeCustomIdBase(base);
+    let max = maxByBase.get(key);
+    if (max === undefined) {
+      max = 0;
+      const idPattern = new RegExp(`^${escapeRegExp(key)}_(\\d+)$`);
+      for (const element of existing) {
+        const match = element.customId?.match(idPattern);
+        if (match) max = Math.max(max, Number.parseInt(match[1], 10));
+      }
+    }
+    const next = max + 1;
+    maxByBase.set(key, next);
+    return `${key}_${next}`;
+  };
+}

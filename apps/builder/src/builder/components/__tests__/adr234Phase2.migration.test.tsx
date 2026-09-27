@@ -430,6 +430,41 @@ describe("ADR-234 G2 — 항목 템플릿 이관 (Tab · Tag · ListBoxItem)", (
       ).not.toHaveProperty("_isSelected");
     }
   });
+
+  // ADR-150 LOW 재확인 (2026-09-27) — 휴지 변형 descendants 는 segment 키 (편집기 쓰기 · `mergeTemplateChildren`)
+  //   로도 쓰인다. Canvas 가 id path 만 읽어 Preview 해석기와 갈렸다.
+  it("휴지 변형 descendants 를 segment 키와 id 키 둘 다로 읽는다", () => {
+    const origin: CanonicalNode = {
+      id: "o",
+      type: "ListBoxItem",
+      reusable: true,
+      children: [
+        {
+          id: "o-label",
+          type: "Text",
+          name: "Label",
+          props: { style: { color: "#fff" } },
+        },
+        { id: "o-check", type: "Icon", name: "Check" },
+        { id: "o-desc", type: "Text", name: "Desc", props: { text: "d" } },
+      ],
+    };
+    const variant = {
+      id: "o--unselected",
+      type: "ref",
+      ref: "o",
+      descendants: {
+        Label: { style: { color: "#111" } },
+        Check: { enabled: false },
+        "o-desc": { text: "id key" },
+      },
+    } as unknown as CanonicalNode;
+    const nodes = new Map([origin, variant].map((n) => [n.id, n]));
+    const resolved = resolveTemplateOriginNode("o--unselected", nodes)!;
+    expect(resolved.children?.map((c) => c.id)).toEqual(["o-label", "o-desc"]);
+    expect(resolved.children?.[0]?.props?.style).toEqual({ color: "#111" });
+    expect(resolved.children?.[1]?.props?.text).toBe("id key");
+  });
 });
 
 describe("ADR-234 G2 — 상태 층의 geometry 가 layout 입력에 닿는다 (R9)", () => {
