@@ -1,3 +1,4 @@
+import { copyFileSync } from "fs";
 import { resolve } from "path";
 import { defineConfig } from "vite";
 import type { Connect, ViteDevServer } from "vite";
@@ -136,12 +137,35 @@ function apiProxyPlugin() {
   };
 }
 
+/**
+ * GitHub Pages 깊은 링크 — Pages 는 없는 경로에 `404.html` 을 준다. `index.html` 을 그대로
+ * 복사해 두면 `/composition/builder/<id>` · `/composition/dashboard` 로 바로 들어와도 SPA 가
+ * 부팅하고 `BrowserRouter` 가 경로를 처리한다 (응답 상태는 404). 자산 경로는 base 절대 경로라
+ * 깊이와 무관하다.
+ */
+function spaFallbackPlugin() {
+  return {
+    name: "spa-fallback-404",
+    apply: "build" as const,
+    writeBundle(options: { dir?: string }) {
+      const dir = options.dir ?? resolve(import.meta.dirname, "dist");
+      copyFileSync(resolve(dir, "index.html"), resolve(dir, "404.html"));
+    },
+  };
+}
+
 // https://vite.dev/config/
 export default defineConfig(({ command }) => {
   return {
     logLevel: "warn", // HMR 로그 및 불필요한 콘솔 로그 최소화
     clearScreen: false, // 화면 클리어 비활성화
-    plugins: [racLocalesPlugin(), wasm(), apiProxyPlugin(), react()],
+    plugins: [
+      racLocalesPlugin(),
+      wasm(),
+      apiProxyPlugin(),
+      react(),
+      spaFallbackPlugin(),
+    ],
     worker: {
       format: "es",
       plugins: () => [wasm()],

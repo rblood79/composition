@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [GitHub Pages 주소창 직접 진입] - 2026-09-27
+
+### Fixed
+
+- **배포 사이트에서 `/composition/dashboard` · `/composition/builder/<id>` 로 바로 들어가거나 builder 를 새로고침하면 GitHub 404 페이지가 뜨던 문제.** GitHub Pages 는 없는 경로에 `404.html` 을 주는데 빌드에 그 파일이 없었다. 빌드가 `index.html` 을 `404.html` 로 복사해 내보낸다 (`vite.config.ts` `spaFallbackPlugin`) — SPA 가 부팅해 router 가 경로를 처리한다 (응답 상태는 404 그대로). 배포가 복구된 뒤부터 적용된다.
+  - live: production 빌드를 Pages 와 같은 방식 (없는 경로 → `404.html`, 404 상태) 으로 제공 — 대시보드 직접 진입 · builder 직접 진입 (캔버스 부팅) · builder 새로고침 Chromium · WebKit 4/4, 대조군 (404.html 없음) 1/3 (`apps/builder/scripts/spa-deep-link-live.mjs`)
+  - 관련: [ADR-244](adr/244-canvaskit-wasm-early-fetch-and-service-worker-cache.md) 옛 배포 복구가 이 동작 위에서 `location.reload()` 를 쓴다
+
 ## [Chrome case study 적용 — 소형 개선 6건] - 2026-09-27
 
 ### Fixed

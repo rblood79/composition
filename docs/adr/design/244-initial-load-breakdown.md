@@ -16,7 +16,7 @@
 - 서버측 대역폭 · RTT 제한 (`--rate 10mbps --rtt 100`) — Chromium CDP 제한과 달리 WebKit 에도 같은 조건을 준다.
 - 요청 기록 (경로 · 상태 · 전송 바이트 · 시각) 을 JSON 으로 — 이중 받기 · 재배포 모사 판정의 외부 oracle.
 - `--dist` 두 개를 받아 실행 중 교체 (재배포 모사, G1).
-- 주소창 직접 진입 조건: 서버가 `/composition/builder/*` 를 `index.html` 로 응답한다 (SPA fallback). 실제 GitHub Pages 는 이 경로가 404 (`404.html` 없음) 이므로 이 조건은 "빌더 URL 이 첫 문서인 경우" (새로고침 · 북마크 — 배포 복구와 깊은 링크 수리 뒤의 동작) 의 모사임을 기록에 적는다.
+- 주소창 직접 진입 조건: 서버는 실제 GitHub Pages 처럼 없는 경로 (`/composition/builder/*` · `/composition/dashboard`) 에 `dist/404.html` 을 **404 상태로** 응답한다. `404.html` 은 빌드가 `index.html` 을 복사해 내보낸다 (`vite.config.ts` `spaFallbackPlugin` — 2026-09-27 사용자 판정, 이 ADR 밖 별도 커밋. 그전에는 Pages 에서 이 경로가 404 로 끝나 직접 진입 자체가 되지 않았다). 서버 구현은 `spa-deep-link-live.mjs` 의 정적 서버를 재사용한다.
 
 ### 2.2 부팅 측정 하니스 `apps/builder/scripts/adr244-boot-latency.mjs` (신규)
 
@@ -51,10 +51,10 @@
 - **옛 탭 복구 (리뷰 244 R1 h1 · R2)** — 세 부분이 함께 있어야 동작한다.
   1. **오류 전달**: 지금 `initAllWasm` 은 오류를 로그만 남기고 삼킨다 (`wasm-bindings/init.ts:48-50`) — `SkiaCanvas.tsx` 의 `catch` 는 원래 404 가 아니라 뒤따르는 `getCanvasKit()` 오류를 받는다. `initAllWasm` 의 `catch` 가 로그 뒤 **다시 throw** 한다 (호출처는 `SkiaCanvas.tsx:610` 하나 — `wasmReady` 는 그대로 false).
   2. **옛 배포 판정 — 오류 종류를 해석하지 않는다**: 빌드가 `version.json` (`{ buildId }`) 을 dist 루트에 내보내고 같은 값을 `__BUILD_ID__` (Vite `define`) 로 번들에 넣는다. 부팅 실패 시 `fetch(import.meta.env.BASE_URL + "version.json", { cache: "no-store" })`로 서버의 buildId 를 읽어 **내 buildId 와 다르면 옛 배포**다. wasm 404 · 부팅 chunk 404 · glue/wasm 불일치가 모두 같은 판정으로 잡히고, 브라우저마다 다른 오류 문구 (Chrome`Failed to fetch dynamically imported module`· WebKit`Importing a module script failed`) 를 해석하지 않는다. 같은 buildId 이거나 probe 자체가 실패하면 배포 문제가 아니므로 기존 `failCanvasBootstrap` 오류 표시.
-  3. **복구 URL**: 실제 GitHub Pages 는 `/composition/builder/*` 가 404 다 (2026-09-27 확인 — `404.html` 없음). 그래서 현재 URL 새로고침 (`location.reload()`) 으로는 복구되지 않는다. 대신 루트로 `location.replace(BASE_URL + "?resume=" + encodeURIComponent("/builder/" + projectId))`한다 (루트는`index.html`200). 루트 라우트가`resume`을 읽어`^/builder/[A-Za-z0-9_-]+$`에 맞을 때만`navigate(resume, { replace: true })`하고 query 를 지운다 (그 밖의 값은 무시 — 임의 경로 이동 차단). 반복 차단 표식 =`sessionStorage` 에 서버 buildId — 같은 buildId 로 이미 복구를 시도했으면 반복하지 않고 오류 표시. 캔버스 부팅 전이라 편집 손실 없음.
-  - 기각한 방법: `404.html` = `index.html` 복사 (SPA fallback) 는 주소창 직접 진입까지 고치지만 모든 깊은 링크의 HTTP 상태 · 배포 산출물을 바꾸는 별도 결정이라 이 ADR 에서 하지 않는다 (필요하면 사용자 판정). `location.reload()` 는 위 404 때문에 탈락.
-  - unit: buildId 다름 → `replace` 1 회 (URL 검사) · 같음 → 0 · probe 실패 → 0 · 표식 있음 → 0 · `resume` 형식 밖 → 이동 0 · `initAllWasm` 이 원래 오류를 다시 throw.
-  - 모사 서버 (§2.1) 는 `version.json` 을 `no-store` 로 주고, 실제 Pages 처럼 `/composition/builder/*` 첫 문서 요청을 404 로 응답하는 모드 (`--pages-404`) 를 G1 재배포 모사에 쓴다.
+  3. **복구 URL**: 현재 URL 을 `location.reload()` 한다. 실제 Pages 는 `/composition/builder/*` 에 `404.html` (= `index.html`) 을 주므로 SPA 가 다시 부팅해 같은 프로젝트로 들어간다 (Chromium · WebKit 4/4 — `spa-deep-link-live.mjs`, 대조군 404.html 없음 1/3). 반복 차단 표식 = `sessionStorage` 에 서버 buildId — 같은 buildId 로 이미 복구를 시도했으면 반복하지 않고 오류 표시. 캔버스 부팅 전이라 편집 손실 없음.
+  - 기각한 방법: 루트 `?resume=/builder/<id>` 로 이동하고 루트 라우트가 경로를 복원하는 방식 — 404.html 이 생겨 필요 없어졌다 (제품 코드 추가 · 임의 경로 이동 검사 부담만 남는다). `keep_files` 로 옛 자산 보존은 위 R5 기각 사유 그대로.
+  - unit: buildId 다름 → `reload` 1 회 · 같음 → 0 · probe 실패 → 0 · 표식 있음 → 0 · `initAllWasm` 이 원래 오류를 다시 throw.
+  - 모사 서버 (§2.1) 는 `version.json` 을 `no-store` 로 주고, 없는 경로는 Pages 와 같이 `404.html` 을 404 상태로 응답한다 — G1 재배포 모사에서 새로고침 뒤 부팅까지 확인.
 - 확인: 빌드 산출물에 `assets/canvaskit-<hash>.wasm` 1 개 · `vite-plugin-wasm` 의 ESM 래퍼가 생기지 않음 · dev (`/@fs/` 경로) 부팅 · browser 테스트 (`vitest.browser.config.ts`) 부팅.
 - `?url` 이 막히면 대체: 작은 Vite 플러그인이 `generateBundle` 에서 wasm 을 `emitFile` (해시 이름) 하고 `import.meta` 상수로 URL 을 넘긴다.
 - G1 재배포 모사: 빌드 N 은 `bin/canvaskit.*`, 빌드 N+1 은 `bin/full/canvaskit.*` (glue · wasm 모두 다름) 를 쓰는 임시 변형 — 측정 전용 worktree 에서만, main 에 커밋하지 않는다.
