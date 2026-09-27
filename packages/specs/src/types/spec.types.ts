@@ -114,6 +114,8 @@ export interface ContainerStylesSchema {
 
   // 컨테이너 제약 — CSS 값 (SSOT 대상 아님)
   width?: string;
+  /** 폭 상한 (Dialog 본문 `100%` — 좁은 Modal 안에서 고정 폭이 넘치지 않게) */
+  maxWidth?: string;
   /** body 페이지 프레임 높이 fallback (`min-height: 100%`) — 저작 height/minHeight inline 이 덮는다 */
   minHeight?: string;
   maxHeight?: string;

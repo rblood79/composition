@@ -11,6 +11,7 @@
 사용자의 수정 요청에 따라 아래를 구현했다. 이후 전수 표는 **수정 전 HEAD의 조사 스냅샷**으로 유지한다.
 
 - Dialog 본문 width100%·flex column을 catalog로 이관하고 factory/default의 400px·maxWidth 미러를 제거했다. Trigger 구조는 유지했다.
+  - **2026-09-27 정정**: `width: 100%` 는 Canvas 부모 DialogTrigger (`fit-content`) 안에서 풀리지 않아 본문이 min-content (156) 로 찌그러졌다 (DOM 은 Modal shrink-to-fit). catalog 기본값을 `width: 400px` · `max-width: 100%` 로 복원 (사용자 판정). 이 감사의 parity 검사는 고정 390 부모만 재 실제 부모를 놓쳤다 — 검사를 실제 부모로 재작성.
 - field 5종의 root width/gap 인라인과 baseline을 제거했다. Canvas fallback의 composition gap보다 size gap이 우선하도록 고쳐 side 배치에서도 CSS와 일치하게 했다.
 - Card origin의 width/borderWidth 인라인과 기본 props를 제거했다. Card 부품의 catalog layout 기본값 미러와 ProgressCircle의 32px 미러를 제거했다.
 - TextField/TextArea/DateField/TimeField/ListBox/GridList/FileUpload/IllustratedMessage/ProgressBar/Meter/Tooltip 생성·기본값에서 검증된 공통 선언을 제거했다.

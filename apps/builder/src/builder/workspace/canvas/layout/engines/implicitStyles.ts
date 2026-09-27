@@ -682,6 +682,7 @@ const CONTAINER_STYLES_FALLBACK_KEYS = [
   "alignItems",
   "justifyContent",
   "width",
+  "maxWidth",
   "maxHeight",
   "overflow",
   "outline",

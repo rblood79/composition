@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Dialog 기본 폭 400 복원] - 2026-09-27
+
+### Fixed
+
+- **Canvas 에서 새 Dialog 본문이 가장 좁은 폭 (156) 으로 찌그러져 제목 · 설명이 여러 줄로 꺾이고 Close 가 오른쪽 끝에 서지 않던 문제** (`45bf29ae3` 회귀). 본문 기본 폭을 `width: 100%` 로 바꿨는데 Canvas 의 부모 DialogTrigger 는 `fit-content` 라 100% 가 풀리지 않았고, DOM 은 Modal shrink-to-fit 이라 두 렌더러 폭이 갈렸다. catalog 기본값을 `width: 400px` · `max-width: 100%` 로 복원 (사용자 판정) — `maxWidth` 는 container style 키로 추가 (스키마 · 생성 CSS · Canvas 두 목록).
+  - 검증: 실 브라우저 parity 를 실제 부모 (Canvas DialogTrigger · DOM Modal) 로 재작성 — 둘 다 400 (원복 시 Canvas 160) · builder 7969 · parity 1569 · live ADR-240 6/6 (Dialog Actions 채움 뒤 Close 오른쪽 끝 유지)
+
 ## [GitHub Pages 주소창 직접 진입] - 2026-09-27
 
 ### Fixed

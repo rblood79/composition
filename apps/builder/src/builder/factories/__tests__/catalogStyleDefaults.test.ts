@@ -102,8 +102,10 @@ describe("공통 기본값은 문서 인라인 대신 catalog에서 소비", () 
     expect(
       def.children.find((n) => n.type === "Dialog")?.props?.style,
     ).toBeUndefined();
+    // 기본 폭 400 · 상한 100% (2026-09-27 사용자 판정 — `width: 100%` 는 fit-content DialogTrigger 안에서 풀리지 않는다).
     expect(resolveContainerStylesFallback("dialog", {}, "md")).toMatchObject({
-      width: "100%",
+      width: "400px",
+      maxWidth: "100%",
       display: "flex",
       flexDirection: "column",
     });

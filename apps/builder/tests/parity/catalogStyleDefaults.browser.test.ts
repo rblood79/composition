@@ -4,6 +4,7 @@ import { flushSync } from "react-dom";
 import { IllustratedMessage } from "@composition/shared/components/IllustratedMessage";
 import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 import { pipelineLeg, type CaseNode } from "./harness";
+import { page } from "@vitest/browser/context";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { borderWidth } from "@composition/specs";
 import { resolveComponentRule } from "@composition/shared";
@@ -73,11 +74,24 @@ describe("catalog 기본값 실제 CSS와 Canvas 입력 정합", () => {
       }
     },
   );
-  it("Dialog 본문은 부모 폭 100%, column 배치", () => {
-    withHost("Dialog", { "data-size": "md" }, (host) => {
-      const child = document.createElement("div");
-      child.style.cssText = "width:80px;height:24px;flex-shrink:0";
-      host.appendChild(child);
+  // 실제 부모에서 잰다 (2026-09-27): Canvas 는 DialogTrigger (catalog `width: fit-content`) 안, DOM 은 RAC Modal (폭 없음 ·
+  //   `max-width: min(500px, 90vw)` shrink-to-fit) 안. `width: 100%` 는 두 부모 모두에서 풀리지 않아 Canvas 가
+  //   min-content 로 찌그러졌다 — 고정 부모 (390) 만 재던 종전 검사가 놓쳤다.
+  it("Dialog 본문은 실제 부모 (Canvas DialogTrigger · DOM Modal) 에서 둘 다 400", async () => {
+    // Modal 상한 min(500px, 90vw) 이 걸리지 않는 창 — 좁은 창의 상한은 DOM 전용 (Canvas 에는 Modal 이 없다).
+    await page.viewport(1280, 800);
+    const modal = document.createElement("div");
+    modal.className = "react-aria-Modal";
+    modal.setAttribute("data-size", "md");
+    const host = document.createElement("div");
+    host.className = "react-aria-Dialog";
+    host.setAttribute("data-size", "md");
+    const child = document.createElement("div");
+    child.style.cssText = "width:80px;height:24px;flex-shrink:0";
+    host.appendChild(child);
+    modal.appendChild(host);
+    document.body.appendChild(modal);
+    try {
       const nodes: CaseNode[] = [
         {
           label: "content",
@@ -91,27 +105,21 @@ describe("catalog 기본값 실제 CSS와 Canvas 입력 정합", () => {
           children: [0],
         },
         {
-          label: "root",
-          style: {
-            display: "flex",
-            flexDirection: "row",
-            alignItems: "flex-start",
-            width: "390px",
-          },
+          label: "trigger",
+          elementType: "DialogTrigger",
+          style: {},
           children: [1],
         },
       ];
-      const bounds = pipelineLeg(nodes, 390, -1);
-      expect(host.getBoundingClientRect().width).toBe(390);
-      expect(bounds[1].w).toBe(host.getBoundingClientRect().width);
-      expect(bounds[1].h).toBe(host.getBoundingClientRect().height);
+      const bounds = pipelineLeg(nodes, 1000, -1);
+      const dom = host.getBoundingClientRect();
+      expect(dom.width).toBe(400);
+      expect(bounds[1].w).toBe(dom.width);
+      expect(bounds[1].h).toBe(dom.height);
       expect(getComputedStyle(host).flexDirection).toBe("column");
-      expect(resolveContainerStylesFallback("dialog", {}, "md")).toMatchObject({
-        width: "100%",
-        display: "flex",
-        flexDirection: "column",
-      });
-    });
+    } finally {
+      modal.remove();
+    }
   });
   it.each(["Tooltip", "FileUpload"])(
     "%s 인라인 제거 후 catalog 배치와 CSS가 일치",

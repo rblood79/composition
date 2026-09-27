@@ -4925,10 +4925,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       element: "div",
       // ADR-171 Phase 1 (2026-07-29): 수동 `overlays.css` 의 실효값을 catalog 로 이관.
       //   generated CSS root 는 overflow 미선언이었고 실효는 `auto` 였다 — 값 자체는 불변.
+      // 기본 폭 400 · 상한 100% (2026-09-27 사용자 판정 "400px 로 복원"). `45bf29ae3` 가 `width: 100%` 로 바꿨으나
+      //   Canvas 의 부모 DialogTrigger 는 `width: fit-content` 라 100% 가 풀리지 않아 본문이 min-content (156) 로
+      //   찌그러졌고, DOM 은 Modal (폭 없음 · max-width min(500px, 90vw)) shrink-to-fit 이라 두 렌더러 폭이 갈렸다.
+      //   고정 폭이면 두 부모 모두에서 400 — `maxWidth` 는 좁은 Modal (90vw) 에서 넘치지 않게.
       containerStyles: {
         display: "flex",
         flexDirection: "column",
-        width: "100%",
+        width: "400px",
+        maxWidth: "100%",
         overflow: "auto",
       },
       states: {},
