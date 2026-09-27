@@ -262,7 +262,7 @@ pnpm perf:baseline -- --lane frame --seed-count 60 --fixed-inputs --call-counts 
 
 ## 9. ratchet 게이트 운용 (ADR-246, 2026-09-27)
 
-§8 카운트를 push 직전에 판정한다 — [ADR-246](../../adr/246-deterministic-count-ratchet-and-begin-frame-harness.md) · 결과 [breakdown §8](../../adr/design/246-deterministic-count-ratchet-breakdown.md).
+§8 카운트를 push 직전에 판정한다 — [ADR-246](../../adr/completed/246-deterministic-count-ratchet-and-begin-frame-harness.md) · 결과 [breakdown §8](../../adr/design/246-deterministic-count-ratchet-breakdown.md).
 
 - **언제 도는가**: `.githooks/pre-push` 가 성능 경로 (`apps/builder/src/` · `packages/shared/src/` · `packages/engine/` · `packages/specs/src/` · 의존성 · 하니스 · `ratchet.json`) 가 바뀐 push 에서만. 테스트 파일만 바뀐 push 는 제외.
 - **무엇을 재는가**: 60 요소 call-counts × select · edit · page-switch · panel-toggle + 600 요소 × select · edit. 약 41초.

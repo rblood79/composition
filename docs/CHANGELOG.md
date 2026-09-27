@@ -15,7 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **pre-push 성능 게이트 (ADR-246).** 캔버스 · store · 패널 · shared · engine · specs · 하니스 경로에 닿은 push 는 고정 입력 하니스로 조작별 카운트 (파이프라인 label · 캐시 · React 렌더 · 레이아웃 · 함수별 V8 호출 수) 를 재어 `apps/builder/perf/ratchet.json` 상한과 비교한다. 매번 같은 값인 카운트 (등급 A) 가 상한을 넘고 재실행도 같은 값이면 push 를 막는다. 흔들리는 카운트 (등급 B) 는 경고만 한다. 1회 약 42초 · `pnpm gate:perf-ratchet` · 건너뛰기 `SKIP_PERF_RATCHET=1`.
+- **pre-push 성능 게이트 (ADR-246).** 캔버스 · store · 패널 · shared · engine · specs · 하니스 경로에 닿은 push 는 고정 입력 하니스로 조작별 카운트 (파이프라인 label · 캐시 · React 렌더 · 레이아웃 · 함수별 V8 호출 수) 를 재어 `apps/builder/perf/ratchet.json` 상한과 비교한다. 매번 같은 값인 카운트 (등급 A) 가 상한을 넘고 재실행도 같은 값이면 push 를 막는다. 흔들리는 카운트 (등급 B) 는 경고만 한다. 1회 약 42초 · `pnpm gate:perf-ratchet` · 건너뛰기 `SKIP_PERF_RATCHET=1`. ADR-246 Implemented (begin-frame 하니스는 macOS 미지원으로 보류).
+  - live: 회귀 커밋 (선택 조회 최적화 되돌림) 실제 push → 등급 A 2 건 초과 · 재실행 같은 값 → 차단 92초 · 문서만 바꾼 push 는 게이트 없이 3초
 
 ### Changed
 

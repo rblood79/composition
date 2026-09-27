@@ -11,6 +11,8 @@
 
 ---
 
+> **2026-09-27 ADR-246 Implemented**: 결정적 카운트 ratchet 게이트 (Phase 0 · 1 · 2 · 4 / G0 · G1 · G2 · G4, 같은 날). 경로 스코프 pre-push 가 고정 입력 하니스 카운트를 `apps/builder/perf/ratchet.json` 과 비교 — 등급 A 초과는 재실행이 같을 때만 차단, B 는 경고 · push 대상 ≠ HEAD 또는 런타임 파일 dirty 면 전용 worktree 로 잰다 · 1회 약 42초. G2 첫 하향: 선택 시 `selectCanonicalNode` 가 약 700 노드 문서를 조작당 3번 선형 탐색 → id 인덱스 (`findNodeByIdInSubtree` 62,910 → 0 · select `v8.app` −11.4% · taskMs 방향만). G4: 회귀 커밋 실제 push 차단 (92초) · 스코프 밖 push 통과 (3초). Phase 3 begin-frame 은 macOS 미지원으로 Deferred (보류 항목). 열림 6 (Proposed 6), 완료 267, 합계 273.
+>
 > **2026-09-27 ADR-246 Proposed**: 결정적 카운트 ratchet 게이트 + 120Hz begin-frame 결정적 프레임 하니스 (사용자 `/create-adr 2단계 ratchet 게이트 + 120Hz begin-frame`, 출처: claude.dev "How we made claude.ai faster" 측정 원칙의 1단계 — research 문서 §8, 같은 날 `80a824e18` · `0ae25aba7`). wall-clock 은 같은 코드에서 600 요소가 60 보다 빠르게 잰 폭으로 흔들려 게이트가 못 되고, 같은 시드 + `--fixed-inputs` 카운트는 278 중 262 가 정확히 같았다 — 등급 A (정확 · 상한 = 값) / 등급 B (밴드 3%) 로 `ratchet.json` 을 두고 경로 스코프 pre-push 가 ≤ 90 초 안에 판정 (자기검증: 초과는 재실행이 같을 때만 차단 · 올리기는 사용자 승인 + 만료일). begin-frame 은 CDP 정본상 macOS 미지원 (`Target.createTarget.enableBeginFrameControl`) 이라 Phase 3 는 Linux 환경이 있을 때만, 없으면 Deferred. ADR-243 (Event Timing 체감 oracle) 과 직교. 사용자 결정 4 (Phase 2 첫 하향 1건 포함 여부 · 게이트 부류·시드 · 밴드 · Phase 3 실행 환경). round 1 리뷰 (codex) HIGH 4 · MEDIUM 2 → 같은 날 수리 (hook 재구성 · 측정 서버 확보 · tick/render 분리 · CDP 인자·플랫폼 · 재실행 예산 · engine/specs 스코프). 열림 7 (Proposed 7), 완료 266, 합계 273.
 >
 > **2026-09-27 ADR-243 · 244 · 245 Proposed**: Chrome for Developers case study 30건 조사에서 ADR 이 필요한 3건 (사용자 `/create-adr` — "병렬로 한번에 설계해"). **243** 상호작용 응답성 — 실제 입력 · production · 4x 에서 LoAF 귀속 버킷표로 long task 가 어디 몰렸는지 먼저 재고 (분할 경계를 가정하지 않음), 다음 paint 에 불필요한 작업이 30% 이상인 경계에만 양보 · WebKit 폴백 (setTimeout vs MessageChannel) 두 arm. **244** 초기 로드 — CanvasKit wasm 해시 경로화 (glue · wasm 한 쌍) + 네트워크 대기가 press → ready 의 30% 이상일 때만 의도 · idle 미리 받기, Service Worker precache 는 보류 (재개 조건 3). gh-pages 최종 배포 09-04 에서 멈춤 확인. **245** AI on-device (Prompt API + Translator) — 선택 경로, Phase 0 go/no-go (no-go 면 Rejected/Deferred 종결). Prompt API 는 한국어 미지원 · 원격 provider 는 브라우저 차단이라 fallback 은 Ollama 뿐. 셋 다 사용자 결정 지점이 본문에 있다. 열림 6 (Proposed 6), 완료 266, 합계 272.
@@ -127,14 +129,14 @@
 
 | 구분                          |    개수 |
 | ----------------------------- | ------: |
-| 완료 (`completed/`)           |     266 |
-| ├ Implemented                 |     227 |
+| 완료 (`completed/`)           |     267 |
+| ├ Implemented                 |     228 |
 | ├ Accepted                    |      13 |
 | ├ Superseded                  |      14 |
 | └ Deprecated                  |       9 |
-| 열려 있는 것 (`adr/*.md`)     |       7 |
+| 열려 있는 것 (`adr/*.md`)     |       6 |
 | ├ Proposed                    |       6 |
-| ├ Accepted (미착수·일부 착수) |       1 |
+| ├ Accepted (미착수·일부 착수) |       0 |
 | └ 부분 완료                   |       0 |
 | **합계**                      | **273** |
 
@@ -150,11 +152,6 @@
 ## 지금 열려 있는 것
 
 ### 진행 중 / 미구현 (Proposed / In Progress)
-
-#### [246](246-deterministic-count-ratchet-and-begin-frame-harness.md) — 결정적 카운트 ratchet 게이트 + 120Hz begin-frame 결정적 프레임 하니스
-
-- **상태**: Accepted — 2026-09-27 (사용자 `/execute-adr 246`) · **Phase 0 · 1 완료 (G0 · G1 PASS)** · Phase 2 완료 (G2 PASS — select `findNodeByIdInSubtree` 62,910 → 0) · Phase 3 Deferred (macOS 미지원) · Phase 4 남음 — 결과 [design/246 §8](design/246-deterministic-count-ratchet-breakdown.md)
-- **규모**: Phase 0 (3회 동일성 · call-counts 동일성 · 게이트 실행 시간 ≤ 90 초 · `apps/builder/perf/ratchet.json` 초기값 + recorder 해시) → Phase 1 `perf-ratchet-gate.mjs` (등급 A 초과 = 재실행 확인 뒤 차단 · B 단독 = 경고 · 하향 제안만 자동 · 올리기 = 승인 + 만료일) + `.githooks/pre-push` 경로 스코프 + `SKIP_PERF_RATCHET=1` → (사용자 결정) Phase 2 첫 하향 1건 (select `findNodeByIdInSubtree` 2,097/op) 으로 카운트 ↔ taskMs 상관 증명 → Phase 3 begin-frame (Linux 환경 있을 때만 — macOS 미지원, 없으면 Deferred; 240 beginFrame → rAF 240 · idle render 0 · pan render = 입력 수, 2회 동일) → Phase 4 설치된 hook 으로 push 차단 1회 실증. 사용자 결정: Phase 2 포함 · 게이트 부류·시드 · 등급 B 밴드 3% · Phase 3 실행 환경. 리뷰: round 1 HIGH 4 · MEDIUM 2 → round 2 수리 검증 HIGH 2 (visual 탈출구의 ratchet 우회 · 자체 서버 포트/revision) → 수리, 판독 루프 종결 (판독 1 + 검증 1 소진 · 해소 확인은 G1 실행 게이트) (`reviews/246.md`). breakdown: [design/246](design/246-deterministic-count-ratchet-breakdown.md)
 
 #### [243](243-interaction-responsiveness-long-task-yield.md) — 상호작용 응답성: LoAF 귀속으로 분할 지점을 찾고 측정된 경계에서만 long task 를 나눈다
 
@@ -250,7 +247,7 @@
 
 ---
 
-## 완료 ADR (256)
+## 완료 ADR (257)
 
 > 상세는 각 본문이 정본이다. 구 README 의 **비고** 열 서술 (최장 셀 14KB — ADR-912 행이 표
 > 전체를 그 폭으로 채워 3.2MB 를 만들었다) 은
@@ -274,6 +271,7 @@
 | [240](completed/240-named-regions-free-content-slots.md) | 이름 영역 · 자유 내용 slot — Card 영역 4 · Popover/Tooltip root slot · Dialog Content · Actions 영역 (경로 전치 · history 재생 전치) · 자유 내용 5종 채우기 · 채운 노드 편집 (mode C 배열) · 팔레트 영역 삽입 · Canvas drop 영역 이동 · 영역 style 두 leg 대칭 · mode C 빈 지우기 스캔 생략 | Implemented | 2026-09-24 |
 | [239](completed/239-tree-submenu-swatch-item-origins.md) | Tree · Menu 하위 메뉴 · ColorSwatchPicker 항목 origin — TreeItem origin · Tree/TreeItem slot · 재귀 key · Canvas 중첩 행 쌓기 · `expandedKeys` 두 leg 대칭 + 이관 · Menu 하위 메뉴 (SubmenuTrigger) · swatch origin · 자식 있는 TreeItem 해석 재사용 · history 스냅샷 새 origin 유지 | Implemented | 2026-09-25 |
 | [241](completed/241-table-column-row-origins.md) | Table 열 · 행 origin — 두 leg 열 원천 통일 (Column 요소 · 유효 폭 clamp) · Column · Row origin + TableHeader · TableBody slot · instance 자기 열 (Slot "+" · quick connect · Preview 열 감지) · TableView 셀 동기화 (추가 · 삭제 · 순서 · 행 "+") · TableView plain 열/행 → ref 이관 (id 유지) · mode C 항목 ref 자기 자식 해석 · 삭제 history 셀 | Implemented | 2026-09-25 |
+| [246](completed/246-deterministic-count-ratchet-and-begin-frame-harness.md) | 결정적 카운트 ratchet 게이트 — 경로 스코프 pre-push 가 고정 입력 하니스 카운트 (파이프라인 label · 캐시 · React measure · Layout/RecalcStyle · 함수별 V8 호출 수) 를 `apps/builder/perf/ratchet.json` 과 비교 (등급 A 정확 · 초과는 재실행 같을 때만 차단 · B 밴드 1.05 경고 · 하향만 자동 · 올리기는 승인 + 만료일) · 빠른 경로 / 전용 worktree 경로 · `SKIP_PERF_RATCHET=1` · 첫 하향 `selectCanonicalNode` id 인덱스 · Phase 3 begin-frame Deferred (macOS) | Implemented | 2026-09-27 |
 | [162](completed/162-gridlist-template-subtree-projection.md) | 데이터 바인딩 GridList 카드 = 항목 origin instance — 행 노드가 origin 을 ref 로 가리키고 행별 `{field}` 보간 (허용표 한 곳, Canvas · Preview · 패널 공용) · 접기/펼침 판정 하나 · 소유자별 origin 해석 한 곳 · Properties "카드 필드" 절 · 펼친 카드 행 높이 실측 캐시 + 추정 → ADR-150 행 offset 함수, scroll anchoring · 팔레트 GridList 상태 변형 origin 해석 | Implemented | 2026-09-27 |
 | [236](completed/236-builder-domain-rules-consolidation.md) | 빌더 도메인 규칙 정리 — body · synthetic id · Components 페이지 술어 shared 하나 (ratchet) · shared 타입 특성 표 `componentTraits.ts` (집합 17 + nestingRules 층 2 표 3 파생 · D2 Direction 토글 2) · 구조 변경 판정 `canOperate` · 대상 판정 `resolveMoveTarget` 를 표면 + store 진입부 13 액션 · 우회 쓰기 2 가 같이 부름 (AST ratchet) · origin 안 구조 변경 영향 확인 (표면 선행) · AI reusable 은 store 경유 | Implemented | 2026-09-25 |
 | [242](completed/242-offscreen-panel-lazy-loading.md) | 초기 화면 밖 패널 lazy 분리 — history · settings · interactions · themes · datatable 목록 `lazyPanel` · 폰트 관리 대화상자 첫 클릭 로드 · 로드 실패 경계 (다시 시도 → Chrome 실패 캐시면 새로고침) · idle 선로드로 Suspense 300 ms throttle 회피 · Builder initial −17,183 B gz | Implemented | 2026-09-26 |
@@ -688,6 +686,7 @@ ADR-098 Charter + ADR-099 (098-c Collection Section/Header) / ADR-100 (098-a Sel
 | ADR-010 P2                   | AI 이벤트 생성                                                                                                                                                                 | 장기 계획                                                                                                                              | AI 인프라 성숙 후                                                                                   |
 | ADR-152 P6 실측 (2026-09-11) | publish 의 canonical ref 확장 (reusable 인스턴스 · collection 템플릿) — 아래 초안                                                                                              | publish 는 기능 링크만 (메모리 `project-publish-link-only-defer-until-builder-stable`) · builder 4 모듈 이동이 필요해 `/fix` 급이 아님 | publish 방침 해제 시 별도 ADR 또는 ADR-162 publish leg phase 로 착수 — 결정 지점 (1)                |
 | ADR-162 G4 (2026-09-27)      | 가상화 목록 스크롤의 window 교체 프레임 비용 — 교체마다 `layout.publish` ~12 ms (접힌 카드) · ~22 ms (펼친 카드 6 노드) 로 연속 스크롤 rAF p95 41.6 · 50.1 ms, 60Hz floor 미달 | 162 가 만든 비용 아님 (대조군 = slot-only 카드도 미달) — 사용자 판정 "승격 + 후속 분리"                                                | window 교체 때 layout 범위 축소 (owner 부분 layout) 또는 overscan 조정 — ADR-150 또는 별도 성능 ADR |
+| ADR-246 P3 (2026-09-27)      | 120Hz begin-frame 결정적 프레임 하니스 (`HeadlessExperimental.beginFrame` × 240 → rAF 240 · idle render 0 · pan render = 입력 수)                                              | CDP `Target.createTarget.enableBeginFrameControl` 이 macOS 미지원 · Docker 없음 (사용자 결정 4 기본안 Deferred)                        | Linux 실행 환경 (CI 러너 또는 Linux 머신) 이 생기면 breakdown §5 로 재개                            |
 
 <details>
 <summary>ADR 초안 항목 — publish canonical ref 확장 (2026-09-11 실측, 착수 전 기록)</summary>

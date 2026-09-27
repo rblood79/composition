@@ -1,6 +1,6 @@
 # ADR-246 구현 상세 — 결정적 카운트 ratchet 게이트 + begin-frame 하니스
 
-> 본문: [246-deterministic-count-ratchet-and-begin-frame-harness.md](../246-deterministic-count-ratchet-and-begin-frame-harness.md)
+> 본문: [completed/246-deterministic-count-ratchet-and-begin-frame-harness.md](../completed/246-deterministic-count-ratchet-and-begin-frame-harness.md)
 > 이 문서는 Phase · 파일 변경표 · 측정 절차 · 판정 규칙만 담는다. 결정·위험·Gate 정본은 ADR 본문.
 
 ## 0. 전제 lock-in (fork 아님)

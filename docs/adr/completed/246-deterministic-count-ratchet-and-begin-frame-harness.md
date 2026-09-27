@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-09-27 · **Phase 0 · 1 완료 (G0 · G1 PASS) · Phase 2 완료 (사용자 결정 1 — G2 PASS: select `selectCanonicalNode` id 인덱스, `findNodeByIdInSubtree` 62,910 → 0 · 원복 RED · taskMs 방향만) · Phase 3 Deferred (macOS 미지원 — 사용자 결정 4 기본안) · Phase 4 (실제 push 차단 1회) 남음** — 결과 breakdown §8 (로컬 상세 `evidence/246-phase0-ratchet-baseline.md`, gitignored). Phase 1 실행 중 개정 2 (dirty 워킹트리 차단 → push 대상 sha worktree 측정 · dev define → dev endpoint `/__composition_dev_root`). (사용자 `/execute-adr 246` — round 2 수리 뒤 판독 종결, `reviews/246.md` pending 0). Proposed — 2026-09-27 (사용자 `/create-adr 2단계 ratchet 게이트 + 120Hz begin-frame`. 출처: claude.dev "How we made claude.ai faster" 의 측정 원칙 1단계 적용 — [BUILDER_PERF_BASELINE_2026-09.md §8](../explanation/research/BUILDER_PERF_BASELINE_2026-09.md) 2026-09-27)
+Implemented — 2026-09-27 (Phase 0 · 1 · 2 · 4 / G0 · G1 · G2 · G4 · `ba7fb9828` · `cfa012e55` · `15ae18924` + 승격) · **Phase 3 (begin-frame) Deferred** — CDP `enableBeginFrameControl` macOS 미지원 · Docker 없음, 사용자 결정 4 기본안 (재개 조건 = Linux 실행 환경, README 보류 항목) · G2: select `selectCanonicalNode` id 인덱스 — `findNodeByIdInSubtree` 62,910 → 0 · 원복 RED · taskMs 방향만 · G4: 설치된 hook 으로 실제 push 차단 1회 (92초) · 스코프 밖 push 통과 (3초) — 결과 breakdown §8. Phase 1 실행 중 개정 2 (dirty 워킹트리 차단 → push 대상 sha worktree 측정 · dev define → dev endpoint `/__composition_dev_root`) · Phase 2 중 게이트 수리 1 (상위 20 밖 `v8.fn.*` 키를 0 으로 읽던 판정). Accepted — 2026-09-27 (사용자 `/execute-adr 246` — round 2 수리 뒤 판독 종결, `reviews/246.md` pending 0). Proposed — 2026-09-27 (사용자 `/create-adr 2단계 ratchet 게이트 + 120Hz begin-frame`. 출처: claude.dev "How we made claude.ai faster" 의 측정 원칙 1단계 적용 — [BUILDER_PERF_BASELINE_2026-09.md §8](../../explanation/research/BUILDER_PERF_BASELINE_2026-09.md) 2026-09-27)
 
 ## Context
 
@@ -18,7 +18,7 @@ Accepted — 2026-09-27 · **Phase 0 · 1 완료 (G0 · G1 PASS) · Phase 2 완�
 
 ### 이 ADR 이 다루지 않는 것 — ADR-243 과의 경계
 
-[ADR-243](243-interaction-responsiveness-long-task-yield.md) 의 판정 지표는 **Event Timing (입력 → 다음 paint) — 실제 입력 · production · CPU 4x** 다. 그것은 사용자 체감의 외부 oracle 이고 (measurement-validity Q5), 본 ADR 의 카운트는 **회귀 감지용 내부 지표** 다. 카운트가 줄었다고 체감이 좋아졌다고 판정하지 않으며 (Q3 — 총비용 A/B 병기), 카운트가 같다고 체감 회귀가 없다고 판정하지 않는다. 두 ADR 은 서로 의존하지 않는다 — 243 의 Phase 0 하니스가 생기면 본 ADR 의 Phase 2 taskMs 참고 열을 Event Timing 으로 바꿀 수 있다.
+[ADR-243](../243-interaction-responsiveness-long-task-yield.md) 의 판정 지표는 **Event Timing (입력 → 다음 paint) — 실제 입력 · production · CPU 4x** 다. 그것은 사용자 체감의 외부 oracle 이고 (measurement-validity Q5), 본 ADR 의 카운트는 **회귀 감지용 내부 지표** 다. 카운트가 줄었다고 체감이 좋아졌다고 판정하지 않으며 (Q3 — 총비용 A/B 병기), 카운트가 같다고 체감 회귀가 없다고 판정하지 않는다. 두 ADR 은 서로 의존하지 않는다 — 243 의 Phase 0 하니스가 생기면 본 ADR 의 Phase 2 taskMs 참고 열을 Event Timing 으로 바꿀 수 있다.
 
 ### SSOT 3-Domain 판정
 
@@ -96,7 +96,7 @@ D1 · D2 · D3 어느 것도 아니다 — 측정 인프라 (하니스 · 게이
 3. **등급 B 밴드 3%** — §8-2 최대 편차 (panel-resize React measure 556 → 572, 2.9%) 로 정한 값. Phase 0 3회 실측이 더 크면 재설정. → **Phase 0 결과: 1.05 로 재설정** (게이트 부류 값 ≥ 20 의 최대 편차 4.2% — page-switch `RecalcStyleCount` 99/98/95). 사용자 확인 대상.
 4. **Phase 3 실행 환경** — begin-frame 제어는 macOS 미지원 (CDP `Target.createTarget.enableBeginFrameControl`) 이고 이 환경에 Docker 가 없다. 선택지: (a) Linux 러너 (GitHub Actions ubuntu · 별도 Linux 머신) 에 하니스 + dev 서버 + 라이선스 세션을 옮겨 Phase 3 실행 — 비용은 CI 환경 구축, (b) Phase 3 를 **Deferred** 로 닫고 프레임 축은 `--headed` 실측 유지 (재개 조건: Linux 실행 환경 확보). 기본 제안은 (b) — Phase 0~2 의 가치가 Phase 3 에 의존하지 않는다. → **기본안 (b) Deferred 적용** — Linux 러너를 원하면 재개.
 
-> 구현 상세: [246-deterministic-count-ratchet-breakdown.md](design/246-deterministic-count-ratchet-breakdown.md)
+> 구현 상세: [246-deterministic-count-ratchet-breakdown.md](../design/246-deterministic-count-ratchet-breakdown.md)
 
 ## Risks
 
@@ -125,7 +125,14 @@ D1 · D2 · D3 어느 것도 아니다 — 측정 인프라 (하니스 · 게이
 
 ### Live Exercise
 
-(Implemented 승격 시 기재 — G4 의 push 차단 1회 · 통과 1회 · 날짜 · Chrome MCP / 사용자 confirm 구분)
+2026-09-27 · 실제 `git push` (설치된 `.githooks/pre-push`, `core.hooksPath`) 와 실제 빌더 (dev 5173 · 5179 · headless Chrome 하니스) — Chrome MCP 아님:
+
+1. **회귀 push 차단** — Phase 2 수정을 되돌린 커밋 `1503aa323` (scratch worktree, main HEAD 미경유) 을 사용자가 main 으로 직접 push (Claude 세션의 push 보호 hook 이 `<sha>:refs/heads/main` 을 막아 사용자 실행). 게이트가 push 대상 ≠ HEAD 를 감지해 전용 worktree (준비 7초) · 5179 자체 서버 (1초) 로 측정 → 등급 A 2 건 초과 (`findNodeByIdInSubtree` select 0 → 62,910 · page-switch 0 → 10,050) → 재실행 같은 값 → **block** · 92초. 원격 main `cfa012e55` 그대로.
+2. **스코프 밖 push 통과** — 문서만 바꾼 `15ae18924` push: 게이트 미실행 · 3초 · push 됨.
+3. **스코프 안 push 통과 2회** — `ba7fb9828` (게이트 코드 · 기준) 42초 · `cfa012e55` (store 수정 · 낮춘 상한) 41초, 둘 다 빠른 경로 5173 재사용 · pass.
+4. **실제 빌더 구동** — 하니스가 select · edit · page-switch · panel-toggle (60) · select · edit (600) 를 매 게이트마다 실제 빌더에서 실행 — page error 0 · console error 0. Phase 2 수정 (선택 시 canonical 노드 조회) 은 이 경로에서 exercise 됨.
+
+사용자 confirm: 회귀 push 를 사용자가 직접 실행해 차단 출력 확인.
 
 ## Consequences
 
