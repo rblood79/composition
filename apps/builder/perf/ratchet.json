@@ -2,7 +2,7 @@
   "version": 1,
   "recorderSha256": "6f842d4bf2b5bf45c5be24dc60848be44aa683cb2eda2086617a57f026ad878a",
   "generatedAt": "2026-09-27",
-  "head": "60904d4981836bb82ebc47bf61a7e1cdb09edcc7",
+  "head": "ba7fb9828b4e2ec8b8d0ceaf052552d921287af9",
   "band": 1.05,
   "minSlack": 2,
   "runs": {
@@ -57,7 +57,7 @@
           "v8.fn.src/builder/components/slotHostPolicy.ts#normalizeType": 106137,
           "v8.fn.src/builder/panels/properties/FrameSlotSection.tsx#(anonymous)": 22110,
           "v8.fn.src/builder/panels/properties/FrameSlotSection.tsx#getElementLabel": 4050,
-          "v8.fn.src/builder/stores/canonical/canonicalDocumentStore.ts#findNodeByIdInSubtree": 62910,
+          "v8.fn.src/builder/stores/canonical/canonicalDocumentStore.ts#findNodeByIdInSubtree": 0,
           "v8.fn.src/builder/stores/canonical/canonicalDocumentStore.ts#selectActiveCanonicalDocument": 4051,
           "v8.fn.src/builder/stores/canonical/canonicalElementsBridge.ts#(anonymous)": 4051,
           "v8.fn.src/builder/stores/canonical/canonicalElementsBridge.ts#getActiveCanonicalDocument": 4051,
@@ -78,7 +78,8 @@
           "perfLabels.render.skia.flush.main": 31,
           "perfLabels.render.skia.overlay": 31,
           "reactRenderMeasures": 6064,
-          "v8.app": 550359
+          "v8.app": 487489,
+          "v8.fn.src/utils/compositionExtensionFields.ts#getElementDataBinding": 2011
         }
       },
       "edit": {
@@ -167,7 +168,7 @@
           "v8.fn.src/builder/components/slotHostPolicy.ts#normalizeType": 35397,
           "v8.fn.src/builder/components/stateVariantLayers.ts#(anonymous)": 10000,
           "v8.fn.src/builder/panels/navigator/tree/LayerTree/LayerTree.tsx#getLayerTreeKey": 11060,
-          "v8.fn.src/builder/stores/canonical/canonicalDocumentStore.ts#findNodeByIdInSubtree": 10050,
+          "v8.fn.src/builder/stores/canonical/canonicalDocumentStore.ts#findNodeByIdInSubtree": 0,
           "v8.fn.src/builder/workspace/canvas/renderers/rendererInput.ts#addElement": 15930,
           "v8.fn.src/builder/workspace/canvas/scene/buildSceneIndex.ts#computeDepth": 10600,
           "v8.fn.src/builder/workspace/canvas/scene/layoutCache.ts#serializeLayoutRelevantValue": 72590,
@@ -190,7 +191,8 @@
           "perfLabels.render.skia.flush.main": 11,
           "perfLabels.render.skia.overlay": 11,
           "reactRenderMeasures": 10421,
-          "v8.app": 866397
+          "v8.app": 866397,
+          "v8.fn.src/adapters/canonical/canonicalRefResolution.ts#getLayoutId": 9340
         }
       },
       "panel-toggle": {

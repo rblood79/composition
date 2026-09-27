@@ -204,3 +204,17 @@ test("revision — push 대상 ≠ HEAD · 런타임 tracked 변경은 문제, u
     1,
   );
 });
+
+test("v8.fn 키는 상위 목록에 없으면 판정하지 않는다 — 0 으로 읽어 하향 · 차단하지 않음", () => {
+  const r = ratchet();
+  r.seeds[60].select.A["v8.fn.src/a.ts#hot"] = 0;
+  r.seeds[60].select.B["v8.fn.src/b.ts#ranked"] = 900;
+  const absent = judge(r, measure());
+  assert.equal(absent.lowerable.length, 0);
+  assert.equal(absent.overA.length, 0);
+  const back = judge(r, measure({ "v8.fn.src/a.ts#hot": 62910 }));
+  assert.deepEqual(
+    back.overA.map((o) => o.path),
+    ["seeds.60.select.A.v8.fn.src/a.ts#hot"],
+  );
+});

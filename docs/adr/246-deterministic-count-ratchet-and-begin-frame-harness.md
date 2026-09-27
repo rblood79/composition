@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-09-27 · **Phase 0 · 1 완료 (G0 · G1 PASS) · Phase 2 포함 (사용자 결정 1 — 첫 하향 select `findNodeByIdInSubtree`, 진행 중) · Phase 3 Deferred (macOS 미지원 — 사용자 결정 4 기본안) · Phase 4 (실제 push 차단 1회) 남음** — 결과 breakdown §8 (로컬 상세 `evidence/246-phase0-ratchet-baseline.md`, gitignored). Phase 1 실행 중 개정 2 (dirty 워킹트리 차단 → push 대상 sha worktree 측정 · dev define → dev endpoint `/__composition_dev_root`). (사용자 `/execute-adr 246` — round 2 수리 뒤 판독 종결, `reviews/246.md` pending 0). Proposed — 2026-09-27 (사용자 `/create-adr 2단계 ratchet 게이트 + 120Hz begin-frame`. 출처: claude.dev "How we made claude.ai faster" 의 측정 원칙 1단계 적용 — [BUILDER_PERF_BASELINE_2026-09.md §8](../explanation/research/BUILDER_PERF_BASELINE_2026-09.md) 2026-09-27)
+Accepted — 2026-09-27 · **Phase 0 · 1 완료 (G0 · G1 PASS) · Phase 2 완료 (사용자 결정 1 — G2 PASS: select `selectCanonicalNode` id 인덱스, `findNodeByIdInSubtree` 62,910 → 0 · 원복 RED · taskMs 방향만) · Phase 3 Deferred (macOS 미지원 — 사용자 결정 4 기본안) · Phase 4 (실제 push 차단 1회) 남음** — 결과 breakdown §8 (로컬 상세 `evidence/246-phase0-ratchet-baseline.md`, gitignored). Phase 1 실행 중 개정 2 (dirty 워킹트리 차단 → push 대상 sha worktree 측정 · dev define → dev endpoint `/__composition_dev_root`). (사용자 `/execute-adr 246` — round 2 수리 뒤 판독 종결, `reviews/246.md` pending 0). Proposed — 2026-09-27 (사용자 `/create-adr 2단계 ratchet 게이트 + 120Hz begin-frame`. 출처: claude.dev "How we made claude.ai faster" 의 측정 원칙 1단계 적용 — [BUILDER_PERF_BASELINE_2026-09.md §8](../explanation/research/BUILDER_PERF_BASELINE_2026-09.md) 2026-09-27)
 
 ## Context
 

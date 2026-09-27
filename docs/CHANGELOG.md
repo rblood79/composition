@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [결정적 카운트 ratchet 게이트 · 선택 조회 인덱스] - 2026-09-27
+
+### Added
+
+- **pre-push 성능 게이트 (ADR-246).** 캔버스 · store · 패널 · shared · engine · specs · 하니스 경로에 닿은 push 는 고정 입력 하니스로 조작별 카운트 (파이프라인 label · 캐시 · React 렌더 · 레이아웃 · 함수별 V8 호출 수) 를 재어 `apps/builder/perf/ratchet.json` 상한과 비교한다. 매번 같은 값인 카운트 (등급 A) 가 상한을 넘고 재실행도 같은 값이면 push 를 막는다. 흔들리는 카운트 (등급 B) 는 경고만 한다. 1회 약 42초 · `pnpm gate:perf-ratchet` · 건너뛰기 `SKIP_PERF_RATCHET=1`.
+
+### Changed
+
+- **요소 선택 시 문서 전체를 반복 탐색하던 조회를 인덱스로 바꿨다.** Properties 편집 계약이 선택마다 canonical 노드를 3번 찾으며 매번 문서 (origin · 템플릿 포함 약 700 노드) 를 처음부터 훑었다. 문서 버전당 한 번 만든 id 인덱스를 쓴다 — 선택 60회 기준 탐색 함수 호출 62,910 → 0, 앱 함수 호출 −11.4%. 반환 노드는 종전과 같다 (같은 id 가 여럿이면 첫 일치).
+  - 선택 동작 main-thread 시간은 3쌍 중앙값 60 요소 −0.2% · 600 요소 −3.6% 로 방향만 줄었다 (측정 폭 안 — 크기는 주장하지 않음)
+
 ## [Tree detach 이름 · 변형 instance detach] - 2026-09-27
 
 ### Fixed

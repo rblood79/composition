@@ -1065,8 +1065,38 @@ export function selectCanonicalNode(nodeId: string): CanonicalNode | null {
   if (!state.currentProjectId) return null;
   const doc = state.documents.get(state.currentProjectId);
   if (!doc) return null;
-  const found = findNodeById(doc, nodeId);
-  return found?.node ?? null;
+  return getNodeIndex(doc, state.documentVersion).get(nodeId) ?? null;
+}
+
+/**
+ * ADR-246 Phase 2 — `selectCanonicalNode` 전용 id 인덱스. `useCanonicalNode` snapshot 이 렌더마다 문서 전체를
+ * 선형 탐색하던 비용 (선택 1회에 약 700 노드 × 3) 을 문서 버전당 1회 구축으로 바꾼다. `findNodeById` 와 같은
+ * 전위 DFS · 첫 일치 우선이라 같은 id 가 여럿인 문서에서도 반환 노드가 같다. 문서 identity 와 `documentVersion`
+ * 이 모두 같을 때만 재사용한다.
+ */
+let nodeIndexCache: {
+  doc: CompositionDocument;
+  version: number;
+  index: Map<string, CanonicalNode>;
+} | null = null;
+
+function getNodeIndex(
+  doc: CompositionDocument,
+  version: number,
+): Map<string, CanonicalNode> {
+  if (nodeIndexCache?.doc === doc && nodeIndexCache.version === version) {
+    return nodeIndexCache.index;
+  }
+  const index = new Map<string, CanonicalNode>();
+  const visit = (nodes: CanonicalNode[]) => {
+    for (const node of nodes) {
+      if (!index.has(node.id)) index.set(node.id, node);
+      if (node.children) visit(node.children);
+    }
+  };
+  if (doc.children) visit(doc.children);
+  nodeIndexCache = { doc, version, index };
+  return index;
 }
 
 /** 활성 document 자체를 반환. cold path 전용 (Phase 2 cutover 후). */

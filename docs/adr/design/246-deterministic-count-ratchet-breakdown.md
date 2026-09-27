@@ -40,7 +40,7 @@ for i in 1 2;   do pnpm perf:baseline -- --lane frame --seed-count 60 --fixed-in
 
 ### 2-2. 등급 판정 규칙 (판정 함수 `classifyCounts` 의 계약)
 
-| 등급 | 대상 (§8-2 실측 기준)                                                                                                                                              | 상한             | 초과 판정                                                        |
+| 등급 | 대상 (research 문서 §8-2 실측 기준)                                                                                                                                              | 상한             | 초과 판정                                                        |
 | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------- | ---------------------------------------------------------------- |
 | A    | `perfLabels.*` (longtask 제외) · `caches.*.hits/misses` · `layoutVersionDelta` · `domMutations.attributes/characterData` · (G0 통과 시) `v8.app` · `v8.topApp[].n` | 값 그대로        | 값 > 상한 → 초과 (재실행 확인 HC2)                               |
 | B    | `reactRenderMeasures` · `cdp.LayoutCount` · `cdp.RecalcStyleCount` · `domMutations.childList` · rAF 경계 부류의 `render.frame` (select · zoom)                     | 값 × 1.03 (올림) | 값 > 상한 → 초과 (등급 A 초과와 함께일 때만 차단, 단독이면 경고) |
@@ -146,7 +146,9 @@ G0 가 빠른 경로와 worktree 경로 각각의 준비 시간을 통과 경로
 | ①    | `findNodeByIdInSubtree` (canonicalDocumentStore) — 선택 경로   |   2,097 | `FrameSlotSection` 의 useMemo 들이 요소 목록을 돌며 매 요소에 서브트리 탐색 → 선택 1회에 O(N²) | `v8.topApp[findNodeByIdInSubtree]` · select `v8.app`      |
 | ②    | `serializeLayoutRelevantValue` · `stableSerialize` — 편집 경로 |  17,422 | 편집 1회에 전체 트리 직렬화 (layoutCache 키 · scene snapshot) — 바뀐 서브트리만이어야 한다     | `v8.topApp[serializeLayoutRelevantValue]` · edit `v8.app` |
 
-하나만 고른다 (기본 ①: 파일 2 · 600 요소에서 O(N²) 이면 taskMs 방향이 분명). 절차: 카운트 RED (현재 값 > 새 상한) 고정 → 수정 → unit (반환값 · canonical · history 동일) → `/cross-check` 1 → 60/600 taskMs before/after 교대 3쌍 → 원복 RED → `--update` 하향 커밋. ②는 후속 (본 ADR 범위 밖 — 착수는 §8-4 순서 · ADR-243 결과와 대조 뒤).
+하나만 고른다 (기본 ①: 파일 2 · 600 요소에서 O(N²) 이면 taskMs 방향이 분명).
+
+**① 실측 원인 (Phase 2 착수 시 — 가설 정정)**: 상위 3000 함수 호출 수 프로브로 호출자를 좁혔다. `FrameSlotSection` 은 `findNodeById` 를 부르지 않는다. 선택 60회에 `useEditContract` → `useCanonicalNode` → `selectCanonicalNode` 가 180회 (조작당 3 — `useSyncExternalStore` snapshot) 실행되고, 매번 문서 전체 (페이지 + origin · 템플릿 포함 약 700 노드) 를 선형 탐색한다 (조회당 `findNodeByIdInSubtree` 평균 349.5). O(N²) 가 아니라 **조회 수 × 문서 크기**다. 수정: `selectCanonicalNode` 전용 id 인덱스 — 문서 identity 와 `documentVersion` 이 같을 때만 재사용 (`canonicalTraversalHelpers.ensureCache` 와 같은 무효화 규칙), `findNodeById` 와 같은 전위 DFS · 첫 일치 우선. 기존 `getNodeMap()` 은 마지막 일치 우선이고 page ref descendants 까지 담아 반환 노드가 다를 수 있어 재사용하지 않았다. mutation 경로의 `findNodeById` (새 문서마다 1회) 는 그대로 둔다. 절차: 카운트 RED (현재 값 > 새 상한) 고정 → 수정 → unit (반환값 · canonical · history 동일) → `/cross-check` 1 → 60/600 taskMs before/after 교대 3쌍 → 원복 RED → `--update` 하향 커밋. ②는 후속 (본 ADR 범위 밖 — 착수는 §8-4 순서 · ADR-243 결과와 대조 뒤).
 
 ## 5. Phase 3 — begin-frame go/no-go
 
@@ -176,15 +178,32 @@ go 면 ratchet 에 `seeds.60.pan.A.beginFrame.rafCallbacks` · `…renderFrames`
 
 ## 8. 실행 결과 (2026-09-27)
 
-| Phase | 상태                 | 요약                                                                                                                                                                                                       |
-| ----- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0     | 완료 (G0 PASS)       | 3회 동일성: 60 전 부류 A 164 · B 71 / 600 A 37 · B 17 / 60 call-counts A 135 · B 38. 함수별 V8 호출 수 = 등급 A. zoom 제외. 밴드 1.05. 게이트 조합 41초 · worktree 경로 50초 · 재실행 포함 ≤ 101초         |
-| 1     | 완료 (G1 PASS)       | 판정 함수 9/9 · 상한 하향 FAIL · 중복 탐색 회귀 2배 → block · 원복 pass · hook 시나리오 S1 ~ S7 (skip 독립 · 포트 점유 차단 · dirty → worktree 측정 · wasm stale 차단 · 회귀 block 85초) · type-check PASS |
-| 2     | 포함 (사용자 결정 1) | 첫 하향 1건 = select `findNodeByIdInSubtree` — 진행 중                                                                                                                                                     |
-| 3     | Deferred             | begin-frame 제어는 macOS 미지원 · Docker 없음. 재개 조건 = Linux 실행 환경                                                                                                                                 |
-| 4     | 커밋 뒤              | 실제 push 차단 1회 · 스코프 밖 push 통과 1회 · 문서                                                                                                                                                        |
+| Phase | 상태           | 요약                                                                                                                                                                                                       |
+| ----- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0     | 완료 (G0 PASS) | 3회 동일성: 60 전 부류 A 164 · B 71 / 600 A 37 · B 17 / 60 call-counts A 135 · B 38. 함수별 V8 호출 수 = 등급 A. zoom 제외. 밴드 1.05. 게이트 조합 41초 · worktree 경로 50초 · 재실행 포함 ≤ 101초         |
+| 1     | 완료 (G1 PASS) | 판정 함수 9/9 · 상한 하향 FAIL · 중복 탐색 회귀 2배 → block · 원복 pass · hook 시나리오 S1 ~ S7 (skip 독립 · 포트 점유 차단 · dirty → worktree 측정 · wasm stale 차단 · 회귀 block 85초) · type-check PASS |
+| 2     | 완료 (G2 PASS) | select `selectCanonicalNode` id 인덱스 — `findNodeByIdInSubtree` select 62,910 → 0 · page-switch 10,050 → 0 · select `v8.app` −11.4% · 원복 RED exit 1 · taskMs 중앙값 방향만 감소 (§8-2)                  |
+| 3     | Deferred       | begin-frame 제어는 macOS 미지원 · Docker 없음. 재개 조건 = Linux 실행 환경                                                                                                                                 |
+| 4     | 진행 중        | Phase 0 · 1 커밋 `ba7fb9828` push 에서 게이트 첫 실전 통과 (5173 재사용 · 42초). 남은 것: 실제 push 차단 1회 · 스코프 밖 push 통과 1회 · 문서                                                              |
 
 `ratchet.json` 은 **게이트 코드와 같은 커밋**에서만 제자리 (`apps/builder/perf/ratchet.json`) 에 둔다. hook 은 워킹트리 파일이 곧 설치본이라, 기준만 먼저 생기면 다른 세션의 push 가 endpoint 없는 push 대상 sha 를 worktree 로 재다 60초 뒤 차단된다. 초기값은 Phase 0 의 3회 결과로 `--init` 한다 (60 = call-counts 3회 · 600 = 3회).
+
+### 8-2. G2 — 첫 하향 1건 (select `findNodeByIdInSubtree`)
+
+원인과 수정은 §4 ① 실측 원인. 결과:
+
+| 항목                          | 결과                                                                                                                                                                                                                                                                  |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 카운트 (60 · call-counts)     | `findNodeByIdInSubtree` select 62,910 → 0 · page-switch 10,050 → 0 (등급 A −100%) · select `v8.app` 550,359 → 487,489 (−11.4%) · 다른 등급 A 초과 0                                                                                                                   |
+| 상한 하향                     | `--update` — A 2 · B 1 하향, 새 지표 2 는 B (상위 20 에 새로 든 함수)                                                                                                                                                                                                 |
+| 원복 RED                      | 수정 전 코드를 낮춘 상한으로 판정 → 등급 A 2 건 초과 · exit 1. 복원 뒤 파일 바이트 동일 · exit 0                                                                                                                                                                      |
+| 동작 불변 (HC5)               | 반환 노드 identity = 선형 탐색 (같은 id 중복 시 첫 DFS 일치 · 문서 교체 · 프로젝트 전환) unit 2 추가 · canonical store 190/190 · builder 전체 7,991 PASS (teardown flake 1 — `ContextualActionBar.keyboard.test.tsx`, 단독 3/3 깨끗 · store 미사용) · type-check PASS |
+| 실제 빌더                     | 하니스가 실제 빌더에서 select · edit · page-switch · panel-toggle (60) · select · edit (600) 를 구동 — page error 0 · console error 0                                                                                                                                 |
+| taskMs A/B (select, 교대 3쌍) | 60: before 781.9 · 825.8 · 818.4 → after 821.0 · 760.1 · 816.8, 중앙값 818.4 → 816.8 (−0.2%). 600: before 671.5 · 841.0 · 862.9 → after 804.7 · 810.8 · 842.7, 중앙값 841.0 → 810.8 (−3.6%)                                                                           |
+
+판정: G2 의 wall-clock 조건은 **방향만** 충족한다. 크기는 주장하지 않는다 — 줄어든 호출은 짧은 함수 약 6만 3천 번 (선택 60회 합계 수 ms 규모) 이고, before 쪽 600 요소 3회의 폭만 191 ms 다. 카운트 ↔ wall-clock 상관은 이 크기의 변경에서는 wall-clock 으로 확인되지 않는다 — 카운트 게이트가 필요한 이유와 같은 관찰이다. `/cross-check` 는 이 변경이 렌더 경로를 바꾸지 않고 (store 조회 결과 identity 동일) Preview 를 열지 않는 작업 보호 조건이 있어 unit identity 검증으로 갈음했다.
+
+**Phase 2 중 게이트 수리 1**: 함수별 호출 수 (`v8.fn.*`) 는 상위 20 만 기록되는데, 판정이 목록에 없는 키를 0 으로 읽었다. 다른 함수에 밀려 순위 밖으로 나간 것만으로 "하향 → 0" 이 제안되고, `--update` 뒤 그 함수가 순위에 돌아오면 회귀 없이 차단된다 (값이 결정적이라 재실행도 같다). 원복 판정에서 새 지표 2 개가 "→ 0" 으로 잡혀 드러났다. 순위 밖 `v8.fn.*` 키는 판정하지 않는다 — 상한 0 은 "상위 20 밖에 머문다" 는 뜻 (판정 테스트 10/10).
 
 ### 8-1. G1 hook 시나리오 (push 없이 stdin 호출 — 검증용 detached worktree)
 

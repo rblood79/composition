@@ -130,6 +130,15 @@ export function effectiveCeiling(ratchet, seed, cls, grade, key, today) {
  * 판정. `measured` = { <seed>: { <cls>: flat counts } }.
  * 반환: overA (차단 후보) · overB (경고) · lowerable (--update 후보) · newKeys · missingClasses.
  */
+/**
+ * 함수별 호출 수 (`v8.fn.*`) 는 상위 20 만 기록된다. 목록에 없으면 0 이 아니라 "순위 밖" 이다 — 0 으로 읽으면 다른
+ * 함수에 밀려난 것만으로 하향 (→ 0) 이 기록되고, 다시 순위에 들면 회귀 없이 차단된다. 그래서 판정하지 않는다.
+ * 상한 0 은 "상위 20 밖에 머문다" 는 뜻이 된다.
+ */
+function isUnranked(actual, key) {
+  return key.startsWith("v8.fn.") && !(key in actual);
+}
+
 export function judge(ratchet, measured, { today = isoToday() } = {}) {
   const overA = [];
   const overB = [];
@@ -144,6 +153,7 @@ export function judge(ratchet, measured, { today = isoToday() } = {}) {
         continue;
       }
       for (const [key] of Object.entries(grades.A ?? {})) {
+        if (isUnranked(actual, key)) continue;
         const ceiling = effectiveCeiling(ratchet, seed, cls, "A", key, today);
         const value = actual[key] ?? 0;
         const path = `seeds.${seed}.${cls}.A.${key}`;
@@ -151,6 +161,7 @@ export function judge(ratchet, measured, { today = isoToday() } = {}) {
         else if (value < ceiling) lowerable.push({ path, ceiling, value });
       }
       for (const [key, base] of Object.entries(grades.B ?? {})) {
+        if (isUnranked(actual, key)) continue;
         const ceiling = effectiveCeiling(ratchet, seed, cls, "B", key, today);
         const limit = bLimit(ceiling, ratchet);
         const value = actual[key] ?? 0;

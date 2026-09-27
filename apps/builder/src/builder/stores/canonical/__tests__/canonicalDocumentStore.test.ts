@@ -1126,3 +1126,56 @@ describe("canonicalDocumentStore — setPageGuides (ADR-181)", () => {
     ).toBe(false);
   });
 });
+
+// ─────────────────────────────────────────────
+// ADR-246 Phase 2 — selectCanonicalNode id 인덱스
+// ─────────────────────────────────────────────
+
+describe("canonicalDocumentStore — selectCanonicalNode 인덱스", () => {
+  beforeEach(resetStore);
+
+  it("같은 id 가 여럿이면 선형 탐색과 같은 첫 DFS 일치를 반환한다", () => {
+    const deep = makeNode("dup", "Frame", { name: "deep-first" });
+    const later = makeNode("dup", "Frame", { name: "sibling-later" });
+    const store = useCanonicalDocumentStore.getState();
+    store.setDocument(
+      "p1",
+      makeDoc({
+        children: [
+          makeNode("a", "Frame", {
+            children: [makeNode("b", "Frame", { children: [deep] })],
+          }),
+          later,
+        ],
+      }),
+    );
+    store.setCurrentProject("p1");
+    expect(selectCanonicalNode("dup")).toBe(deep);
+    expect(selectCanonicalNode("b")?.children?.[0]).toBe(deep);
+    expect(selectCanonicalNode("missing")).toBeNull();
+  });
+
+  it("문서 교체 · 프로젝트 전환 뒤 이전 문서의 노드를 반환하지 않는다", () => {
+    const store = useCanonicalDocumentStore.getState();
+    store.setDocument(
+      "p1",
+      makeDoc({ children: [makeNode("x", "Frame", { name: "v1" })] }),
+    );
+    store.setCurrentProject("p1");
+    expect(selectCanonicalNode("x")?.name).toBe("v1");
+
+    store.setDocument(
+      "p1",
+      makeDoc({ children: [makeNode("x", "Frame", { name: "v2" })] }),
+    );
+    expect(selectCanonicalNode("x")?.name).toBe("v2");
+
+    store.setDocument(
+      "p2",
+      makeDoc({ children: [makeNode("y", "Frame", { name: "other" })] }),
+    );
+    store.setCurrentProject("p2");
+    expect(selectCanonicalNode("x")).toBeNull();
+    expect(selectCanonicalNode("y")?.name).toBe("other");
+  });
+});
