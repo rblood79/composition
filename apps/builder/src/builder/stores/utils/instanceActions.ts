@@ -17,7 +17,10 @@ import {
 } from "../../domain/canOperate";
 import type { Element } from "../../../types/core/store.types";
 import type { ElementsState } from "../elements";
-import { applyPropsPatch } from "../../../utils/component/instanceResolver";
+import {
+  applyPropsPatch,
+  mergePropsWithStyleDeep,
+} from "../../../utils/component/instanceResolver";
 import { historyManager } from "../history";
 import {
   buildCanonicalInsertEvents,
@@ -205,6 +208,36 @@ function getDescendantOverride(
     if (isRecord(override)) return override;
   }
   return undefined;
+}
+
+/**
+ * detach 의 중첩 ref 자식 descendants — ref 자신의 map 위에 바깥 instance map 의 `<ref 경로>/…` 키를 좁혀 얹는다
+ * (Preview `resolveNestedRefChild` · `scopeInheritedDescendants` 와 같은 규칙: 둘 다 속성 patch 면 깊게 합치고, 아니면
+ * 바깥이 이긴다). 바깥 map 의 나머지 키는 넘기지 않는다 — ADR-150 detach 후보 (2026-09-27): 종전엔 바깥 깊은 키를
+ * 버려 Canvas 에서 한 중첩 항목 편집이 detach 뒤 사라졌고, ref 자신의 map 이 없으면 바깥 root map 이 그대로 넘어가
+ * 같은 이름 자식에 새어 들었다.
+ */
+function scopeNestedRefDescendants(
+  own: Record<string, unknown> | undefined,
+  outer: Record<string, unknown> | undefined,
+  refPath: string,
+): Record<string, unknown> {
+  const merged: Record<string, unknown> = { ...(own ?? {}) };
+  const prefix = `${refPath}/`;
+  for (const [path, patch] of Object.entries(outer ?? {})) {
+    if (!path.startsWith(prefix)) continue;
+    const key = path.slice(prefix.length);
+    const ownPatch = merged[key];
+    merged[key] =
+      isRecord(ownPatch) &&
+      isRecord(patch) &&
+      !("type" in ownPatch) &&
+      !("type" in patch) &&
+      !Array.isArray(patch.children)
+        ? mergePropsWithStyleDeep(ownPatch, patch)
+        : patch;
+  }
+  return merged;
 }
 
 function propsFromCanonicalOverride(
@@ -430,9 +463,9 @@ function buildCanonicalDetachSnapshot(
     source: Element,
     parentId: string,
     relativePath: string,
-    // 중첩 descendant 재귀는 현재 경로에서 해석한 legacy map을 이어받는다.
-    activeLegacyDescendantMap:
-      Record<string, unknown> | undefined = legacyDescendantMap,
+    // 중첩 descendant 재귀는 현재 경로에서 해석한 legacy map을 이어받는다 (기본값 없음 — 중첩 ref 아래에서 바깥
+    //   root map 으로 대체되면 안 된다).
+    activeLegacyDescendantMap: Record<string, unknown> | undefined,
     sharedSegment = false,
   ): Element => {
     const override = getDescendantOverride(
@@ -459,7 +492,11 @@ function buildCanonicalDetachSnapshot(
       ? getRootOverrideProps(source)
       : {};
     const childDescendants = nestedMaster
-      ? getComponentDescendantsMirror(source)
+      ? scopeNestedRefDescendants(
+          getComponentDescendantsMirror(source),
+          activeLegacyDescendantMap,
+          relativePath,
+        )
       : activeLegacyDescendantMap;
     const replacementId =
       hasReplacement && typeof override?.id === "string"
@@ -542,7 +579,12 @@ function buildCanonicalDetachSnapshot(
   );
   const previousState = { ...refElement };
 
-  materializeChildren(getSortedChildren(master.id), detachedRoot.id, null);
+  materializeChildren(
+    getSortedChildren(master.id),
+    detachedRoot.id,
+    null,
+    legacyDescendantMap,
+  );
 
   const nextElements = [detachedRoot, ...createdChildren];
 

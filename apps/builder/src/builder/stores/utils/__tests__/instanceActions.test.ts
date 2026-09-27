@@ -1107,6 +1107,94 @@ describe("instance store actions", () => {
     ).toEqual(["first", "second", "c"]);
   });
 
+  // ADR-150 detach 후보 (2026-09-27) — 중첩 ref 자식의 descendants 는 Preview 해석기 (`resolveNestedRefChild`) 와
+  //   같이 ref 자신의 map 위에 바깥 instance 의 `<ref segment>/…` 키를 좁혀 얹는다. 바깥 root 키는 새어 들지 않는다.
+  it.each([
+    [
+      "바깥 깊은 키 badge_2/Label 을 중첩 자식에 적용",
+      { "badge_2/Label": { text: "deep" } },
+      ["card-origin", "deep"],
+    ],
+    [
+      "바깥 root 키 Label 은 중첩 ref 자식에 새지 않음",
+      { Label: { text: "top" } },
+      ["top", "badge-origin"],
+    ],
+    [
+      "ref 자신의 override 위에 바깥 깊은 키를 합침",
+      { "badge_2/Label": { style: { color: "red" } } },
+      ["card-origin", "badge-own"],
+    ],
+  ])("detach nested ref descendants — %s", (_name, descendants, texts) => {
+    const withOwn = Boolean(
+      (descendants as Record<string, { style?: unknown } | undefined>)[
+        "badge_2/Label"
+      ]?.style,
+    );
+    const els = [
+      makeElement("badge-master", {
+        type: "Badge",
+        reusable: true,
+        customId: "badge_1",
+      }),
+      makeElement("badge-label", {
+        type: "Text",
+        parent_id: "badge-master",
+        componentName: "Label",
+        props: { text: "badge-origin" },
+      }),
+      makeElement("card-master", {
+        type: "Card",
+        reusable: true,
+        customId: "card_1",
+      }),
+      makeElement("card-label", {
+        type: "Text",
+        parent_id: "card-master",
+        componentName: "Label",
+        props: { text: "card-origin" },
+      }),
+      makeElement("badge-ref", {
+        type: "ref",
+        ref: "badge-master",
+        parent_id: "card-master",
+        customId: "badge_2",
+        ...(withOwn
+          ? { descendants: { Label: { text: "badge-own" } } }
+          : {}),
+      } as never),
+      makeElement("card-ref", {
+        type: "ref",
+        ref: "card-master",
+        customId: "card_2",
+        descendants,
+      } as never),
+    ];
+    useStore.setState({
+      elements: els,
+      elementsMap: new Map(els.map((e) => [e.id, e])),
+    } as never);
+    useStore.getState()._rebuildIndexes();
+    seedCanonicalFromStore();
+
+    useStore.getState().detachInstance("card-ref");
+
+    const elements = useStore.getState().elements;
+    const detachedTexts: Element[] = [];
+    const visit = (parentId: string) =>
+      elements
+        .filter((element) => element.parent_id === parentId)
+        .forEach((element) => {
+          if (element.type === "Text") detachedTexts.push(element);
+          visit(element.id);
+        });
+    visit("card-ref");
+    expect(detachedTexts.map((element) => element.props.text)).toEqual(texts);
+    if (withOwn) {
+      expect(detachedTexts[1]?.props.style).toEqual({ color: "red" });
+    }
+  });
+
   // ADR-150 LOW 재확인 (2026-09-27) — detach 사본은 origin 과 형제 사본의 customId 를 그대로 가져가지 않는다.
   it("issues fresh unique customIds to detached children", () => {
     const badgeMaster = makeElement("badge-master", {

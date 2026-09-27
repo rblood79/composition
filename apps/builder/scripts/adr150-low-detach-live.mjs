@@ -269,6 +269,46 @@ try {
     { instanceId: userOrigin.instanceId, ...userAfter },
   );
 
+  // (f) 팔레트 GridList 항목 (중첩 ref) 의 Label 을 Canvas 에서 선택해 색 편집 (바깥 instance 키
+  //     `<항목>/Label`) → detach 뒤 사본 Label 에 색이 남는다 (종전: 중첩 분기가 바깥 깊은 키를 버림).
+  const editedOwner = await addFromPalette("GridList");
+  await page.waitForTimeout(2500);
+  const ITEM = "component-gridlist__item-1";
+  const labelSynthetic = await page.evaluate(
+    ({ owner, ITEM }) =>
+      [...window.__composition_LAYOUT_DEBUG__.getSharedLayoutMap().keys()].find(
+        (k) => k.startsWith(`${owner}/${ITEM}/`) && k.split("/").length === 3,
+      ) ?? null,
+    { owner: editedOwner, ITEM },
+  );
+  await page.evaluate((id) => {
+    const st = window.__composition_STORE__.getState();
+    st.setSelectedElement(id);
+    st.updateSelectedStyle("color", "rgb(255, 0, 0)");
+  }, labelSynthetic);
+  await page.waitForTimeout(1500);
+  await page.evaluate(
+    (id) => window.__composition_STORE__.getState().detachInstance(id),
+    editedOwner,
+  );
+  await page.waitForTimeout(1500);
+  const itemChildren = await page.evaluate((owner) => {
+    const els = window.__composition_STORE__.getState().elements;
+    const [firstItem, secondItem] = els.filter((e) => e.parent_id === owner);
+    const colors = (item) =>
+      els
+        .filter((e) => e.parent_id === item?.id)
+        .map((e) => e.props?.style?.color ?? null);
+    return { first: colors(firstItem), second: colors(secondItem) };
+  }, editedOwner);
+  record(
+    "(f) 중첩 항목 Label 편집 색이 detach 뒤 남음 · 다른 항목엔 없음",
+    !!labelSynthetic &&
+      itemChildren.first.includes("rgb(255, 0, 0)") &&
+      !itemChildren.second.includes("rgb(255, 0, 0)"),
+    { labelSynthetic, ...itemChildren },
+  );
+
   const templateRead = await page.evaluate(async () => {
     const bridge =
       await import("/src/builder/stores/canonical/canonicalElementsBridge.ts");

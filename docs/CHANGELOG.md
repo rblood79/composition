@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **instance 를 detach 하면 사본이 origin 자식과 같은 ID (customId) 를 가져가던 문제.** 사용자 origin 의 자식 ID 를 그대로 복사해 Properties ID 행에 중복 오류가 뜨고 Preview · publish 에 같은 HTML `id` 가 두 번 나왔다. 같은 origin 을 가리키는 중첩 instance 형제 둘은 서로 같은 ID 가 됐다. detach 로 생긴 요소는 새 ID 를 받는다 (번호 규칙은 원래 ID 를 따른다 · 한 번에 여러 instance 를 detach 해도 겹치지 않음).
 - **이름이 같은 형제 둘을 따로 편집한 instance 를 detach 하면 두 번째 형제가 첫 형제 편집값을 받던 문제.** detach 가 편집기의 형제 구분 (`~2`) 을 몰랐다 — 편집기와 같은 규칙으로 읽는다.
 - **목록 항목의 선택 안 된 상태 (휴지 변형) 에 저장된 자식 편집이 Canvas 에만 빠지던 문제.** Canvas 가 id 경로만 읽고 편집기 · 변형 이관이 쓰는 이름 경로를 읽지 않아 Preview 와 갈렸다.
+- **instance 안 중첩 요소 (목록 항목의 Label 등) 를 Canvas 에서 편집한 뒤 detach 하면 편집이 사라지던 문제.** detach 가 중첩 instance 의 자기 편집만 읽고 바깥 instance 에 저장된 `<중첩 요소>/…` 편집을 버렸다. 반대로 중첩 instance 에 자기 편집이 없으면 바깥 편집 전체가 넘어가 같은 이름 자식에 잘못 적용됐다. Preview 와 같은 규칙 (바깥 편집을 그 중첩 요소 범위로 좁혀 합침) 으로 읽는다.
+  - live: 팔레트 GridList 첫 항목 Label 색 편집 → detach → 사본 Label 색 유지 · 다른 항목 무변경 (원복 시 색 유실)
 - Preview 해석 비용 감소 — 쓰이지 않던 해석 노드 사본 메모 (WeakMap) 제거, 합성 문서 p50 0.75 → 0.56 ms.
   - 검증: 원복 RED 5 · builder 7973 · live 6/6 (`adr150-low-detach-live.mjs` — 팔레트 GridList · 사용자 origin detach 뒤 ID 중복 0 · Undo/Redo · 휴지 변형 이름 경로 patch; 원복 시 사용자 origin 사본이 `text_low_a` · `text_low_b` 중복)
 
