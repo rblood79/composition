@@ -585,7 +585,8 @@ export async function seedDocument(
           //   ref 는 palette-add 와 같은 instance 모양 — 명시 patch (위치·라벨) 만 소유.
           // ADR-230: `-stateful` 은 홀수 instance 에 `isDisabled:true` (상태 50%).
           const isRef = fixtureKind !== "buttons";
-          const stateful = fixtureKind === "button-refs-stateful" && i % 2 === 1;
+          const stateful =
+            fixtureKind === "button-refs-stateful" && i % 2 === 1;
           missingElements.push({
             id,
             customId: id,
@@ -2158,7 +2159,12 @@ async function runFrameLane(page, cdp, seed, options) {
     const after = await cdp.send("Performance.getMetrics");
     results[cls] = summarizeRecording(rec);
     results[cls].raw = rec;
-    results[cls].counts = buildCounts(rec, before.metrics, after.metrics, coverage);
+    results[cls].counts = buildCounts(
+      rec,
+      before.metrics,
+      after.metrics,
+      coverage,
+    );
     results[cls].mainThread = summarizeTaskMetrics(
       before.metrics,
       after.metrics,

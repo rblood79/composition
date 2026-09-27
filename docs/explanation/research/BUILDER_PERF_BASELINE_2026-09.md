@@ -198,3 +198,64 @@ pnpm perf:baseline -- --lane frame --headed ...                                 
 - cold entry는 기본 신규 프로젝트의 foreground Chrome 4회만 측정했다. hard reload/SPA 재진입/warm reload, production dist, 60·600·5k 문서, DPR·viewport별 surface 크기를 같은 하니스로 재측정해야 한다.
 - 실 포인터 요소 드래그 (합성 드래그 함정: 메모리 `reference-synthetic-pointer-drag-testing-traps`), 인스펙터 타이핑, 다이얼로그·팝오버, 미리보기 토글, 30분 soak.
 - 실제 pointer 단일 선택은 통과했지만 반복 pointer 선택/드래그의 input-to-presentation latency 분포는 아직 미측정이다.
+
+## 8. 결정적 카운트 — wall-clock 대신 ratchet 후보 (2026-09-27 추가)
+
+> **동기**: claude.dev "How we made claude.ai faster" (2026-08 sprint) 의 측정 원칙 — wall-clock 은 실행마다 흔들려 CI 게이트가 못 되므로 Valgrind 명령어 수 · React commit 수 · layout/style-recalc 수 · DOM mutation 수 같은 **결정적 카운트**로 hill-climb 하고, 상한이 내려가기만 하는 ratchet 을 둔다. 본 절은 그 1단계 — 하니스가 카운트를 내고 (`results.<부류>.counts`), 실행 간 동일성과 wall-clock 상관을 1회 확인한 기록이다. ratchet 파일·pre-push 게이트는 2단계 (별도 ADR).
+
+### 8-1. 수집 항목과 실행
+
+```bash
+pnpm perf:baseline -- --lane frame --seed-count 60 --fixed-inputs                 # 카운트 표 + JSON counts
+pnpm perf:baseline -- --lane frame --seed-count 60 --fixed-inputs --call-counts   # + V8 함수 호출 수 (wall-clock 인용 금지)
+```
+
+| 항목                           | 출처                                                                                                                              | 비고                                                                                                                                                    |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| perf 라벨 count                | `__composition_PERF__` reset 이후 호출 수 (`render.frame` · `scene.build` · `layout.publish` · `render.skia.record.content` …)    | `longtask.*` 제외 (50ms 문턱 = wall-clock 파생)                                                                                                         |
+| Skia 캐시 hit/miss             | `__composition_CACHE_METRICS__` (commandStream · nodePicture · paragraph · contentSurface · paintPool)                            | missReasons 포함                                                                                                                                        |
+| LayoutCount · RecalcStyleCount | CDP `Performance.getMetrics` before/after 차                                                                                      | `Nodes` · `JSEventListeners` · `Documents` 는 게이지 (GC 시점에 음수) 라 제외                                                                           |
+| DOM mutation                   | `document` subtree MutationObserver record 수 (childList / attributes / characterData)                                            | 패널 (DOM) 재렌더 대리                                                                                                                                  |
+| React 렌더 measure             | React 19.2 dev 의 "Components ⚛" track `PerformanceMeasure` 수                                                                    | dev 빌드 전용 · 컴포넌트 렌더 1 = 1 · DevTools hook 주입 없음 (ProfileMode 회피 — 메모리 `feedback-react-devtools-profilemode-dev-logger-getter-crash`) |
+| layout version Δ               | `__composition_LAYOUT_DEBUG__.getSharedLayoutVersion` 차                                                                          | 엔진 publish 횟수                                                                                                                                       |
+| V8 함수 호출 수                | `--call-counts`: CDP `Profiler.startPreciseCoverage({callCount:true, detailed:false})` — 함수당 첫 range count 합, `src/` 상위 20 | 커버리지가 최적화를 막아 **그 run 의 gap/taskMs 는 비교 인용 금지**                                                                                     |
+
+`--fixed-inputs` 가 전제다. 이전에는 select·edit·pan·zoom 만 고정 tick 이었고 panel-resize · page-switch · panel-toggle · layers-scroll 은 벽시계 루프라 반복 횟수가 실행마다 달랐다 — 이번에 네 드라이버도 `ms/period` 고정 반복으로 바꿨다 (벽시계 모드는 그대로).
+
+### 8-2. 실행 간 동일성 (60 요소 · headless · 같은 옵션 2회)
+
+| 라운드                                  | 동일 | 차이 | 차이의 원인                                                                                                                                  |
+| --------------------------------------- | ---: | ---: | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1 (드라이버 수정 전)                    |  256 |   53 | 게이지 3종 (Nodes 등, 예: edit JSEventListeners +1396 → −1011) · `longtask.*` · 벽시계 드라이버 4개 (panel-toggle React measure 3335 → 2674) |
+| 2 (게이지·longtask 제외, 드라이버 고정) |  262 |   16 | React measure ±0.1~~3% (5886 → 5899) · RecalcStyleCount ±1~~5 · LayoutCount ±1 · childList ±1 · select render.frame 61 → 60                  |
+
+판정 — 두 등급으로 나눠 쓴다:
+
+- **등급 A (정확히 동일 → 상한 = 값)**: perf 라벨 count · Skia 캐시 hit/miss 전부 · layout version Δ · DOM attributes/characterData · zoom 을 포함한 렌더 파이프라인 count.
+- **등급 B (밴드 ≤ 3% → 상한 = 값 × 1.03)**: React 렌더 measure · LayoutCount · RecalcStyleCount · childList · rAF 경계에 걸리는 ±1 프레임. 이 넷은 rAF/transition 배칭 시점에 의존한다.
+
+### 8-3. wall-clock 상관 (60 → 600 요소, 같은 부류 안에서)
+
+| 부류        |    taskMs 60 → 600 (배) |  React measure (배) | 등급 A 카운트                                                                             |
+| ----------- | ----------------------: | ------------------: | ----------------------------------------------------------------------------------------- |
+| edit        |       779 → 1408 (1.81) | 5826 → 16548 (2.84) | render.frame · scene.build · layout.publish 16 = 16 (입력 고정)                           |
+| page-switch |        826 → 991 (1.20) | 9192 → 12117 (1.32) | stream miss 10 = 10                                                                       |
+| select      |        744 → 782 (1.05) |  5853 → 5874 (1.00) | stream hit 32 = 32 (ADR-203 이후 선택 경로는 문서 크기 무관)                              |
+| pan · zoom  | 575 → 506 · 1757 → 1547 |         4 · 49 동일 | 전부 동일 — headless 에서 600 이 60 보다 **빠르게** 잰 것 자체가 wall-clock 노이즈의 증거 |
+
+부류 × 규모 18 관측의 Spearman ρ (taskMs 대비): paintPool hits 0.76 · contentSurface misses 0.74 · commandStream misses 0.72 · React measure 0.63. 같은 부류 안에서 문서 크기에 따라 커지는 비용은 React measure 가 방향·크기 모두 따라간다 (edit 2.84× vs 1.81×). 카운트가 고정인데 taskMs 가 움직이는 자리 (pan/zoom) 는 노이즈다. 변경 전/후 A/B 로 같은 확인을 첫 최적화 때 한 번 더 한다.
+
+### 8-4. `--call-counts` 가 바로 드러낸 hotspot (60 요소, 조작 1회당 앱 코드 호출 수)
+
+| 부류 (조작 수)    | 조작당 앱 호출 | 상위 함수 (조작당)                                                                                                                                                    |
+| ----------------- | -------------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| select (30)       |         18,356 | `normalizeType` 3,538 · slotHostPolicy 익명 3,510 + 2,723 · `findNodeByIdInSubtree` 2,097 (canonicalDocumentStore — 60 요소 문서에서 선택 1회에 서브트리 탐색 2천 회) |
+| edit (15)         |        222,114 | `serializeLayoutRelevantValue` 17,422 · `stableSerialize` 16,580 · buildSceneSnapshot 익명 15,386 · `skiaNodeContentEquals` 8,453 — 편집 1회에 전체 트리 직렬화       |
+| page-switch (10)  |        154,007 | `readLength` (borderGeometry) 10,004 · `skiaNodeContentEquals` 9,664 · `serializeLayoutRelevantValue` 7,259                                                           |
+| panel-toggle (10) |         36,772 | `readLength` 4,002 · `skiaNodeContentEquals` 3,866 · `serializeLayoutRelevantValue` 2,904 — 패널 토글에 캔버스 직렬화가 돈다                                          |
+
+글의 "같은 ID 를 세 번 해석" 과 같은 종류다 — 조작 1회당 호출 수가 요소 수의 상수배를 넘는 함수가 첫 ratchet 대상. 착수 순서는 §4 순위를 따르되 (edit 3순위), 각 항목은 **카운트 RED 고정 → 수정 → 상한 하향** 으로만 진행한다 (measurement-validity Q2·Q3 — 불리 케이스 600 요소 + taskMs A/B 병행).
+
+### 8-5. 결과 파일
+
+`/private/tmp/claude-501/.../scratchpad/counts/{r60-1,r60-2,r60-3,r60-4,r600-1,cc60}/frame-*.json` (세션 scratchpad — 재현은 §8-1 명령). HEAD `963430f05` + 다른 세션의 detach 수리 dirty 파일 (카운트 동일성에는 무관 — 두 실행이 같은 코드).
