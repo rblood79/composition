@@ -16,13 +16,13 @@
 
 ## 1. Phase 개요
 
-| Phase | 내용                                                                                | 산출                                                                         | Gate |
-| ----- | ----------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | ---- |
-| 0     | 3회 동일성 · call-counts 동일성 · 실행 시간 · 초기 ratchet · 스코프 대조            | evidence `246-phase0-ratchet-baseline.md` · `apps/builder/perf/ratchet.json` | G0   |
-| 1     | 게이트 스크립트 + 판정 단위 테스트 + pre-push 연동 + 탈출구                         | `perf-ratchet-gate.mjs` · `.githooks/pre-push` 블록 · `gate:perf-ratchet`    | G1   |
-| 2     | (사용자 결정 1) 첫 하향 1건 — 카운트 RED → 수정 → 상한 하향 + taskMs A/B            | 수정 커밋 + ratchet 하향 커밋 · evidence                                     | G2   |
-| 3     | begin-frame go/no-go — Linux 실행 환경이 있을 때만 (사용자 결정 4), 없으면 Deferred | `--begin-frame` 옵션 · evidence · §8 갱신 (또는 Deferred 사유)               | G3   |
-| 4     | Live Exercise (push 차단 1 · 통과 1) · 문서                                         | README · research §9 · (Phase 2 시) CHANGELOG · 메모리                       | G4   |
+| Phase | 내용                                                                                | 산출                                                                                                                                 | Gate |
+| ----- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ---- |
+| 0     | 3회 동일성 · call-counts 동일성 · 실행 시간 · 초기 ratchet · 스코프 대조            | evidence `246-phase0-ratchet-baseline.md` · `apps/builder/perf/ratchet.json`                                                         | G0   |
+| 1     | 게이트 스크립트 + 판정 단위 테스트 + pre-push 연동 + 탈출구                         | `perf-ratchet-gate.mjs` · `.githooks/pre-push` 블록 · `gate:perf-ratchet`                                                            | G1   |
+| 2     | (사용자 결정 1) 첫 하향 1건 — 카운트 RED → 수정 → 상한 하향 + taskMs A/B            | 수정 커밋 + ratchet 하향 커밋 · evidence                                                                                             | G2   |
+| 3     | begin-frame go/no-go — Linux 실행 환경이 있을 때만 (사용자 결정 4), 없으면 Deferred | `--begin-frame` 옵션 · evidence · §8 갱신 (또는 Deferred 사유)                                                                       | G3   |
+| 4     | 완료 (G4 PASS)                                                                      | 실제 push 차단 1회 (92초 · 재실행 같은 값) · 스코프 밖 push 통과 · 게이트 실전 통과 2회 (`ba7fb9828` 42초 · `cfa012e55` 41초) — §8-3 |
 
 Phase 0 → 1 → (2) → 3 → 4. Phase 3 no-go 는 정상 종결이며 Phase 4 로 진행한다.
 
@@ -40,7 +40,7 @@ for i in 1 2;   do pnpm perf:baseline -- --lane frame --seed-count 60 --fixed-in
 
 ### 2-2. 등급 판정 규칙 (판정 함수 `classifyCounts` 의 계약)
 
-| 등급 | 대상 (research 문서 §8-2 실측 기준)                                                                                                                                              | 상한             | 초과 판정                                                        |
+| 등급 | 대상 (research 문서 §8-2 실측 기준)                                                                                                                                | 상한             | 초과 판정                                                        |
 | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------- | ---------------------------------------------------------------- |
 | A    | `perfLabels.*` (longtask 제외) · `caches.*.hits/misses` · `layoutVersionDelta` · `domMutations.attributes/characterData` · (G0 통과 시) `v8.app` · `v8.topApp[].n` | 값 그대로        | 값 > 상한 → 초과 (재실행 확인 HC2)                               |
 | B    | `reactRenderMeasures` · `cdp.LayoutCount` · `cdp.RecalcStyleCount` · `domMutations.childList` · rAF 경계 부류의 `render.frame` (select · zoom)                     | 값 × 1.03 (올림) | 값 > 상한 → 초과 (등급 A 초과와 함께일 때만 차단, 단독이면 경고) |
@@ -204,6 +204,17 @@ go 면 ratchet 에 `seeds.60.pan.A.beginFrame.rafCallbacks` · `…renderFrames`
 판정: G2 의 wall-clock 조건은 **방향만** 충족한다. 크기는 주장하지 않는다 — 줄어든 호출은 짧은 함수 약 6만 3천 번 (선택 60회 합계 수 ms 규모) 이고, before 쪽 600 요소 3회의 폭만 191 ms 다. 카운트 ↔ wall-clock 상관은 이 크기의 변경에서는 wall-clock 으로 확인되지 않는다 — 카운트 게이트가 필요한 이유와 같은 관찰이다. `/cross-check` 는 이 변경이 렌더 경로를 바꾸지 않고 (store 조회 결과 identity 동일) Preview 를 열지 않는 작업 보호 조건이 있어 unit identity 검증으로 갈음했다.
 
 **Phase 2 중 게이트 수리 1**: 함수별 호출 수 (`v8.fn.*`) 는 상위 20 만 기록되는데, 판정이 목록에 없는 키를 0 으로 읽었다. 다른 함수에 밀려 순위 밖으로 나간 것만으로 "하향 → 0" 이 제안되고, `--update` 뒤 그 함수가 순위에 돌아오면 회귀 없이 차단된다 (값이 결정적이라 재실행도 같다). 원복 판정에서 새 지표 2 개가 "→ 0" 으로 잡혀 드러났다. 순위 밖 `v8.fn.*` 키는 판정하지 않는다 — 상한 0 은 "상위 20 밖에 머문다" 는 뜻 (판정 테스트 10/10).
+
+### 8-3. G4 — 설치된 hook 으로 실제 push
+
+| push                                                                                   | 대상                                                | 게이트 경로                                   | 결과                                                                                                                                                     |
+| -------------------------------------------------------------------------------------- | --------------------------------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `60904d498..ba7fb9828` (Phase 0 · 1)                                                   | 게이트 코드 · `ratchet.json` · vite 설정            | 빠른 경로 · 5173 재사용                       | pass · 42초 · push 됨                                                                                                                                    |
+| `ba7fb9828..cfa012e55` (Phase 2)                                                       | store 수정 · 낮춘 상한                              | 빠른 경로 · 5173 재사용                       | pass · 41초 · push 됨                                                                                                                                    |
+| `cfa012e55..1503aa323` (회귀 — Phase 2 수정을 되돌린 선형 탐색, scratch worktree 커밋) | 사용자가 `1503aa323:refs/heads/main` 으로 직접 push | worktree 경로 (준비 7초 · 5179 자체 기동 1초) | 등급 A 2 건 초과 (`findNodeByIdInSubtree` select 0 → 62,910 · page-switch 0 → 10,050) · 재실행 같은 값 → **block** · 92초 · 원격 main `cfa012e55` 그대로 |
+| 이 절을 담은 문서 커밋                                                                 | 문서만                                              | 스코프 밖                                     | 게이트 미실행 · push 됨 (소요 시간은 ADR Live Exercise)                                                                                                  |
+
+회귀 push 는 Claude 세션의 push 보호 hook (`<sha>:refs/heads/main` 형태를 main 외 branch push 로 판정) 에 막혀 사용자가 직접 실행했다. 회귀 커밋은 main 의 HEAD 를 거치지 않았다 (다른 세션이 그 위에 커밋할 여지 없음) — scratch worktree 는 확인 뒤 제거.
 
 ### 8-1. G1 hook 시나리오 (push 없이 stdin 호출 — 검증용 detached worktree)
 
