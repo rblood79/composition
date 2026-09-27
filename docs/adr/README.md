@@ -11,6 +11,8 @@
 
 ---
 
+> **2026-09-27 ADR-247 Proposed**: cold entry 정적 셸 (사용자 `/create-adr`, 출처: claude.dev "How we made claude.ai faster" 제안 5 — ADR-244 와 별도 ADR, 사용자 판정). 빌더 URL 직접 진입은 JS 실행 전 흰 화면 (index.html body = `#root` 뿐) → 첫 commit 뒤 점 배경 + 진행 막대 (chrome 은 presented 까지 `visibility:hidden`) 를 지난다. 대안 C 채택: 앱이 presented 때 실제 chrome 의 계산된 사각형 · 색을 `composition-shell-snapshot` 에 쓰고, `index.html` 인라인 script 가 builder 경로 · 뷰포트 · UI 배율 · 빌드 id 일치 시 헤더 · 패널 골격 · 빈 캔버스를 그려 presented 프레임에 교체 (불일치 → 최소 셸 = 테마 배경 · 점 배경 · 진행 막대). solver · 토큰 값을 인라인에 다시 쓰지 않는다. Phase 0 go/no-go (Chromium 4x W0 p50 ≥ 300 ms 또는 다크 첫 paint 흰색, 아니면 Rejected) · G1/G2 layout shift 0 · 사각형 ±1 px · 가짜 ready 금지. 사용자 결정 2 (W1 패널 골격 표시 · go/no-go 기준). 열림 7 (Proposed 7), 완료 267, 합계 274.
+>
 > **2026-09-27 ADR-246 Implemented**: 결정적 카운트 ratchet 게이트 (Phase 0 · 1 · 2 · 4 / G0 · G1 · G2 · G4, 같은 날). 경로 스코프 pre-push 가 고정 입력 하니스 카운트를 `apps/builder/perf/ratchet.json` 과 비교 — 등급 A 초과는 재실행이 같을 때만 차단, B 는 경고 · push 대상 ≠ HEAD 또는 런타임 파일 dirty 면 전용 worktree 로 잰다 · 1회 약 42초. G2 첫 하향: 선택 시 `selectCanonicalNode` 가 약 700 노드 문서를 조작당 3번 선형 탐색 → id 인덱스 (`findNodeByIdInSubtree` 62,910 → 0 · select `v8.app` −11.4% · taskMs 방향만). G4: 회귀 커밋 실제 push 차단 (92초) · 스코프 밖 push 통과 (3초). Phase 3 begin-frame 은 macOS 미지원으로 Deferred (보류 항목). 열림 6 (Proposed 6), 완료 267, 합계 273.
 >
 > **2026-09-27 ADR-246 Proposed**: 결정적 카운트 ratchet 게이트 + 120Hz begin-frame 결정적 프레임 하니스 (사용자 `/create-adr 2단계 ratchet 게이트 + 120Hz begin-frame`, 출처: claude.dev "How we made claude.ai faster" 측정 원칙의 1단계 — research 문서 §8, 같은 날 `80a824e18` · `0ae25aba7`). wall-clock 은 같은 코드에서 600 요소가 60 보다 빠르게 잰 폭으로 흔들려 게이트가 못 되고, 같은 시드 + `--fixed-inputs` 카운트는 278 중 262 가 정확히 같았다 — 등급 A (정확 · 상한 = 값) / 등급 B (밴드 3%) 로 `ratchet.json` 을 두고 경로 스코프 pre-push 가 ≤ 90 초 안에 판정 (자기검증: 초과는 재실행이 같을 때만 차단 · 올리기는 사용자 승인 + 만료일). begin-frame 은 CDP 정본상 macOS 미지원 (`Target.createTarget.enableBeginFrameControl`) 이라 Phase 3 는 Linux 환경이 있을 때만, 없으면 Deferred. ADR-243 (Event Timing 체감 oracle) 과 직교. 사용자 결정 4 (Phase 2 첫 하향 1건 포함 여부 · 게이트 부류·시드 · 밴드 · Phase 3 실행 환경). round 1 리뷰 (codex) HIGH 4 · MEDIUM 2 → 같은 날 수리 (hook 재구성 · 측정 서버 확보 · tick/render 분리 · CDP 인자·플랫폼 · 재실행 예산 · engine/specs 스코프). 열림 7 (Proposed 7), 완료 266, 합계 273.
@@ -134,11 +136,11 @@
 | ├ Accepted                    |      13 |
 | ├ Superseded                  |      14 |
 | └ Deprecated                  |       9 |
-| 열려 있는 것 (`adr/*.md`)     |       6 |
-| ├ Proposed                    |       6 |
+| 열려 있는 것 (`adr/*.md`)     |       7 |
+| ├ Proposed                    |       7 |
 | ├ Accepted (미착수·일부 착수) |       0 |
 | └ 부분 완료                   |       0 |
-| **합계**                      | **273** |
+| **합계**                      | **274** |
 
 > 2026-09-26 파일 실측 (ADR-235 승격 때): `completed/` 파일 268 − 비-ADR 5 = ADR 263 · `adr/` 직속 ADR 5 (150 Accepted · 162 · 910 · 911 · 921 Proposed) — 직전 표의 열림 9 · 완료 259 는 이동 누락으로 어긋나 있었다. 완료 내역 4 줄의 합 (260) 은 263 과 3 차이 — 개별 Status 재대조는 다음 정리 때.
 >
@@ -152,6 +154,11 @@
 ## 지금 열려 있는 것
 
 ### 진행 중 / 미구현 (Proposed / In Progress)
+
+#### [247](247-cold-entry-static-shell.md) — cold entry 정적 셸: CanvasKit 부팅 전 패널 골격 · 빈 캔버스를 정적 HTML 로 먼저 그리고 layout shift 게이트로 지킨다
+
+- **상태**: Proposed — 2026-09-27 (사용자 `/create-adr`)
+- **규모**: Phase 0 production cold entry 측정 (W0 · W1 · 첫 paint 배경색 · 부팅 layout-shift · 부팅 mark 2) → go/no-go → Phase 1 최소 셸 (`index.html` 인라인 · 빌드 시 토큰 색 추출 · React 오버레이 이어받기) → Phase 2 스냅샷 셸 (presented 때 chrome 사각형 · 색 기록 → 다음 진입에 일치 시 골격 · presented 프레임 교체) → Phase 3 Live. ADR-244 (부팅 단축) 와 직교 — 측정 하니스만 공유. 사용자 결정: W1 패널 골격 표시 · go/no-go 기준. breakdown: [design/247](design/247-cold-entry-static-shell-breakdown.md)
 
 #### [243](243-interaction-responsiveness-long-task-yield.md) — 상호작용 응답성: LoAF 귀속으로 분할 지점을 찾고 측정된 경계에서만 long task 를 나눈다
 
