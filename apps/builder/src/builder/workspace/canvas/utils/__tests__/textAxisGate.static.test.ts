@@ -3,7 +3,7 @@
  *
  * 두 축을 같이 본다.
  *
- * ① **집합 대조** — 격차표(`docs/adr/evidence/205-text-axis-gap-matrix.md`)가 코드와 어긋나면
+ * ① **집합 대조** — 격차표(`docs/reference/TEXT_AXIS_GAP_MATRIX.md`)가 코드와 어긋나면
  *    RED. 속성 집합의 출처는 손 목록이 아니라 코드 2곳의 합집합이다 (ADR-205 R4).
  * ② **도달 검사** — seam 이 선언한 축마다, 그 값이 두 소비자(layout wrap leg · Skia 텍스트
  *    노드)에 **실제로 실리는지** 를 값 수준에서 확인한다. 필드는 있는데 표면에 안 닿는

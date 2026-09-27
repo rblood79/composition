@@ -8,7 +8,7 @@ Implemented — 2026-09-05
   (HIGH 2 포함) → **Accepted 2026-09-05**. 전제 확정 종결 계약 성립
   (`.claude/rules/premise-decision-points.md`).
 - Phase 0 반영 2026-09-05 — 격차표 생성 (G0 통과):
-  [evidence/205-text-axis-gap-matrix.md](../evidence/205-text-axis-gap-matrix.md).
+  [reference/TEXT_AXIS_GAP_MATRIX.md](../../reference/TEXT_AXIS_GAP_MATRIX.md) (Phase 별 실측 절은 로컬 evidence `205-text-axis-gap-matrix.md`).
   측정 축 중 wrap leg·Skia 인라인 양쪽 미도달은 `letterSpacing`·`fontStyle`·`textTransform`
   3개뿐 → Phase 1 범위 `letterSpacing` 확정.
 - Phase 1 반영 2026-09-05 (`cd9762006`) — seam `resolveTextRenderStyle` 신설 + 소비자 3곳

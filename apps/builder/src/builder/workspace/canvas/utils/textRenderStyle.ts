@@ -4,7 +4,7 @@
  * Builder(Skia) 와 Preview(DOM/CSS) 는 D3 의 대등 consumer 인데, Skia 쪽에는 브라우저
  * cascade 가 없어 축마다 사람이 경로를 써야 했다. 그 결과 같은 축이 표면마다 다른 규칙으로
  * 해소되고, 빠뜨리면 "Preview 에만 반영" 이 조용히 생겼다 (letterSpacing 이 그 사례 —
- * `docs/adr/evidence/205-text-axis-gap-matrix.md`).
+ * `docs/reference/TEXT_AXIS_GAP_MATRIX.md`).
  *
  * 이 모듈이 그 해소를 한 곳으로 모은다. 규칙은 기존 선례
  * (`resolveTextLeafWhiteSpace` · `calculateContentWidth` 의 폭 leg) 와 같다:
@@ -16,7 +16,7 @@
  * 해소한다. cascade 를 scene build 로 끌어오는 작업은 ADR-205 Phase 5 다.
  *
  * 소비 축은 Phase 1 의 `letterSpacing`, Phase 4 의 `fontSize` 다. 축을 늘릴 때는 이 파일과
- * `docs/adr/evidence/205-text-axis-gap-matrix.md` 의 격차표가 같이 움직인다.
+ * `docs/reference/TEXT_AXIS_GAP_MATRIX.md` 의 격차표가 같이 움직인다.
  *
  * **초기값을 만드는 축과 만들지 않는 축이 있다.** `letterSpacing` 은 CSS 초기값 0 이 모든
  * 소비자에게 같아서 seam 이 끝까지 해소한다. `fontSize` 는 그렇지 않다 — 소비 지점마다

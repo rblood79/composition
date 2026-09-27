@@ -33,7 +33,7 @@ const SRC = {
   skiaBuild: `${CANVAS}/skia/buildSpecNodeData.ts`,
   gate: `${CANVAS}/utils/__tests__/textAxisGate.static.test.ts`,
 };
-const DOC = resolve(ROOT, "docs/adr/evidence/205-text-axis-gap-matrix.md");
+const DOC = resolve(ROOT, "docs/reference/TEXT_AXIS_GAP_MATRIX.md");
 const BEGIN = "<!-- text-axis-matrix:begin -->";
 const END = "<!-- text-axis-matrix:end -->";
 

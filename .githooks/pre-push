@@ -90,7 +90,7 @@ if [ "$RUN_PARITY" = "1" ] && [ -n "$D3_MATCHED" ]; then
   if ! node scripts/generate-text-axis-matrix.mjs --check; then
     echo ""
     echo "[ADR-205] push 를 막았다 — 텍스트 시각 축 격차표가 코드와 어긋난다."
-    echo "  고치기: node scripts/generate-text-axis-matrix.mjs && git add docs/adr/evidence/205-text-axis-gap-matrix.md"
+    echo "  고치기: node scripts/generate-text-axis-matrix.mjs && git add docs/reference/TEXT_AXIS_GAP_MATRIX.md"
     exit 1
   fi
 

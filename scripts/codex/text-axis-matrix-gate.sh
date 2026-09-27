@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ADR-205 G4 — 텍스트 시각 축 격차표 drift 게이트.
 #
-# `docs/adr/evidence/205-text-axis-gap-matrix.md` 의 생성 블록이 코드 (상속 속성 목록 ·
+# `docs/reference/TEXT_AXIS_GAP_MATRIX.md` 의 생성 블록이 코드 (상속 속성 목록 ·
 # ADR-057 블록 · 폭/wrap leg · Skia scene build) 와 어긋나면 실패한다. 새 텍스트 CSS 속성이
 # 한쪽 표면에만 생기는 것을 커밋 시점으로 앞당긴다.
 #

@@ -59,7 +59,7 @@
 
 ### Phase 0 산출물 — 반영 결과 (2026-09-05)
 
-**생성물**: [evidence/205-text-axis-gap-matrix.md](../evidence/205-text-axis-gap-matrix.md) —
+**생성물**: [reference/TEXT_AXIS_GAP_MATRIX.md](../../reference/TEXT_AXIS_GAP_MATRIX.md) (2026-09-27 evidence 에서 이동 — `docs/adr/evidence/` 가 gitignored 가 되어 새 checkout 에서 `--check` 가 실패했다) —
 `scripts/generate-text-axis-matrix.mjs` 가 코드에서 생성한다 (`--check` 로 drift 검사, Phase 2 에서 pre-push 배선).
 
 측정 결과: 속성 **22개** (A 16 ∪ B 14). 측정 축 중 **wrap leg 과 Skia 인라인 양쪽에 미도달**인 것은
