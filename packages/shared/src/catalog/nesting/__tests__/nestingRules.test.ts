@@ -94,6 +94,10 @@ describe("nestingRules — 층 2 RAC 합성", () => {
     expect(canNest("Row", "Cell", ["Row", "TableBody", "TableView"])).toBe(
       true,
     );
+    // TreeItem 은 하위 항목 + 역할 자식 Label (Text) — seed origin 모양 (detach 가 그대로 만든다)
+    expect(canNest("TreeItem", "TreeItem", ["TreeItem", "Tree"])).toBe(true);
+    expect(canNest("TreeItem", "Text", ["TreeItem", "Tree"])).toBe(true);
+    expect(canNest("TreeItem", "Button", ["TreeItem", "Tree"])).toBe(false);
   });
 
   it("DOM void/self-contained 타입은 자식을 가질 수 없다", () => {

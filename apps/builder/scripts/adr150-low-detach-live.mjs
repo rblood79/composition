@@ -6,6 +6,7 @@
 //   (c) Undo 가 ref 로 되돌리고 Redo 뒤에도 중복 0.
 //   (d) 실제 문서의 휴지 변형 (`component-listbox-item-default--unselected`) 에 segment 키 patch 를 얹으면 Canvas 해석
 //       (`resolveTemplateOriginNode`) 이 읽는다 (종전: id path 만 읽음).
+//   (e) ~ (j) detach 후속 수리 · (k) Tree detach 항목 이름 (중첩 규칙 TreeItem ⊃ Text).
 // 사용: node apps/builder/scripts/adr150-low-detach-live.mjs [--base http://localhost:5173]
 import { resolve } from "node:path";
 import { chromium } from "playwright";
@@ -51,6 +52,10 @@ const { page } = await createInstrumentedContext(browser, {
 const errors = [];
 page.on("pageerror", (e) => errors.push(String(e.stack ?? e).slice(0, 1200)));
 page.on("dialog", (d) => d.dismiss().catch(() => {}));
+const nestingRejections = [];
+page.on("console", (m) => {
+  if (m.text().includes("중첩 규칙이 element 를 거부")) nestingRejections.push(m.text().slice(0, 300));
+});
 
 async function setPanel(panelId, open) {
   const button = page
@@ -575,6 +580,61 @@ try {
       JSON.stringify(cardTextsAfter) === JSON.stringify(cardTextsBefore) &&
       !cardTextsAfter.some((t) => /\{[a-zA-Z][\w-]*\}/.test(t)),
     { cardTextsBefore, cardTextsAfter },
+  );
+
+  // (k) 팔레트 Tree detach — TreeItem 의 역할 자식 Label (Text) 이 중첩 규칙에 거부되지 않고 남아 항목 이름이
+  //     detach 전 Preview 해석과 같다 (종전: 규칙 TreeItem ⊃ TreeItem 만 → Text 3 개 거부 · 이름 전부 유실).
+  const treeId = await addFromPalette("Tree");
+  await page.waitForTimeout(2500);
+  const treeTexts = (id) =>
+    page.evaluate(async (id) => {
+      const bridge =
+        await import("/src/builder/stores/canonical/canonicalElementsBridge.ts");
+      const resolver = await import("/src/resolvers/canonical/index.ts");
+      const find = (nodes) => {
+        for (const n of nodes) {
+          if (n.id === id) return n;
+          const hit = find(n.children ?? []);
+          if (hit) return hit;
+        }
+        return null;
+      };
+      const texts = [];
+      const walk = (n) => {
+        if (n.type === "Text") texts.push(String(n.props?.children ?? ""));
+        (n.children ?? []).forEach(walk);
+      };
+      walk(
+        find(
+          resolver.resolveCanonicalDocument(bridge.getActiveCanonicalDocument()),
+        ) ?? {},
+      );
+      return texts;
+    }, id);
+  const treeTextsBefore = await treeTexts(treeId);
+  const rejectionsBefore = nestingRejections.length;
+  await page.evaluate(
+    (id) => window.__composition_STORE__.getState().detachInstance(id),
+    treeId,
+  );
+  await page.waitForTimeout(1500);
+  const treeTextsAfter = await treeTexts(treeId);
+  const treeAfter = await snapshot(treeId);
+  const treeStoreTexts = treeAfter.under.filter((e) => e.type === "Text");
+  record(
+    "(k) Tree detach 뒤 항목 이름 = detach 전 Preview · 중첩 규칙 거부 0 · Canvas 에 그려짐",
+    treeTextsBefore.length > 0 &&
+      JSON.stringify(treeTextsAfter) === JSON.stringify(treeTextsBefore) &&
+      nestingRejections.length === rejectionsBefore &&
+      treeStoreTexts.length === treeTextsBefore.length &&
+      treeAfter.rootType === "Tree" &&
+      treeAfter.under.every((e) => e.inLayout),
+    {
+      treeTextsBefore,
+      treeTextsAfter,
+      rejections: nestingRejections.slice(rejectionsBefore),
+      under: treeAfter.under.map((e) => `${e.type}:${e.inLayout}`),
+    },
   );
 
   const templateRead = await page.evaluate(async () => {

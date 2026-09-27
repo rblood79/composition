@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Tree detach 이름 · 변형 instance detach] - 2026-09-27
+
+### Fixed
+
+- **팔레트 Tree 를 detach 하면 항목 이름 (Node 1 · Node 1.1 · Node 2) 이 전부 사라지던 문제.** 중첩 규칙이 TreeItem 의 자식으로 TreeItem 만 허용해, 기본 TreeItem 이 가진 이름 Text 를 저장 단계에서 뺐다. TreeItem 안에 Text 를 허용한다 (기본 TreeItem 모양 · Preview 가 행 글자로 그리는 자식). 사용자가 Text 를 TreeItem 안에 직접 넣는 것도 이제 허용된다.
+- **변형 (예: Hover 상태) 을 가리키는 instance 를 detach 하면 가리키는 대상이 없는 노드가 남고 변형 편집이 사라지던 문제.** detach 가 변형을 그대로 원본으로 썼다. 변형을 끝 origin 까지 따라가 변형 값을 아래에 깔고 instance 편집을 위에 얹는다 (중첩 instance 도 같음).
+- **origin 과 instance 가 서로 다른 축의 크기 채움 · breakpoint 스타일을 가진 instance 를 detach 하면 origin 쪽 값이 사라지던 문제.** 축 · breakpoint 단위로 합친다 (Preview 와 같은 규칙).
+  - live: 팔레트 Tree detach 뒤 이름 3 개 = detach 전 Preview · 중첩 규칙 거부 0 (종전 거부 3 · 이름 0)
+
 ## [detach 편집값 · 템플릿 보존] - 2026-09-27
 
 ### Fixed

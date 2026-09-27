@@ -72,6 +72,7 @@ import {
   getCanonicalRefChildSegments,
 } from "../../../adapters/canonical/canonicalRefResolution";
 import {
+  mergeFillSizing,
   readPropsSchema,
   resolveTemplateBindingValues,
   substituteTemplateBindingsInProps,
@@ -182,6 +183,60 @@ function resolveRefMaster(ref: string): Element | undefined {
   );
 }
 
+/** ADR-234 — ref 체인 깊이 상한 (Preview resolver `MAX_REF_CHAIN_DEPTH` 와 같은 값). */
+const MAX_DETACH_REF_CHAIN_DEPTH = 8;
+
+interface DetachMaster {
+  /** 체인 끝 origin — 자식 · type · propsSchema 원천. */
+  origin: Element;
+  /** origin 위에 변형의 root props · 노드 필드를 안쪽 → 바깥 순서로 얹은 요소 (체인이 없으면 origin). */
+  effective: Element;
+  /** 변형들의 descendants 를 안쪽 → 바깥 순서로 합친 map (체인이 없으면 undefined). */
+  patches: Record<string, unknown> | undefined;
+}
+
+/**
+ * detach 의 master — 변형 (origin 의 reusable ref, ADR-234) 이면 체인 끝 origin 까지 따라가 변형의 root props ·
+ * 노드 필드 · descendants 를 접는다 (Preview `resolveChainMaster`). ADR-150 detach 관찰 1 (2026-09-27): 종전엔 변형
+ * 노드를 그대로 master 로 써 사본이 `type: "ref"` · ref 없는 노드로 남고 변형 descendants 가 빠졌다.
+ * 순환 · 깊이 초과 · 끊긴 체인은 null.
+ */
+function resolveDetachMaster(ref: string): DetachMaster | null {
+  const variants: Element[] = [];
+  const seen = new Set<string>();
+  let current = resolveRefMaster(ref);
+  while (current && current.type === "ref") {
+    if (seen.has(current.id) || seen.size >= MAX_DETACH_REF_CHAIN_DEPTH) {
+      return null;
+    }
+    seen.add(current.id);
+    variants.push(current);
+    const next = getCanonicalRef(current);
+    current = next ? resolveRefMaster(next) : undefined;
+  }
+  if (!current) return null;
+  let effective: Element = current;
+  let patches: Record<string, unknown> | undefined;
+  for (let index = variants.length - 1; index >= 0; index -= 1) {
+    const variant = variants[index]!;
+    effective = applyDescendantPatchToElement(
+      {
+        ...effective,
+        props: applyPropsPatch(
+          getElementProps(effective),
+          getRootOverrideProps(variant),
+        ),
+      },
+      refNodeFieldPatch(variant),
+    );
+    patches = overlayDescendants(
+      patches,
+      getComponentDescendantsMirror(variant),
+    );
+  }
+  return { origin: current, effective, patches };
+}
+
 function getSortedChildren(parentId: string): Element[] {
   return getInstanceActionSourceElements().filter(
     (element) => element.parent_id === parentId,
@@ -235,15 +290,32 @@ function scopeNestedRefDescendants(
   for (const [path, patch] of Object.entries(outer ?? {})) {
     if (!path.startsWith(prefix)) continue;
     const key = path.slice(prefix.length);
-    const ownPatch = merged[key];
-    merged[key] =
-      isRecord(ownPatch) &&
-      isRecord(patch) &&
-      !("type" in ownPatch) &&
-      !("type" in patch) &&
-      !Array.isArray(patch.children)
-        ? mergePropsWithStyleDeep(ownPatch, patch)
-        : patch;
+    merged[key] = mergeDescendantPatch(merged[key], patch);
+  }
+  return merged;
+}
+
+/** 같은 경로의 두 patch — 둘 다 속성 patch 면 깊게 합치고, 아니면 바깥이 이긴다. */
+function mergeDescendantPatch(ownPatch: unknown, patch: unknown): unknown {
+  return isRecord(ownPatch) &&
+    isRecord(patch) &&
+    !("type" in ownPatch) &&
+    !("type" in patch) &&
+    !Array.isArray(patch.children)
+    ? mergePropsWithStyleDeep(ownPatch, patch)
+    : patch;
+}
+
+/** 안쪽 (변형) descendants 위에 바깥 map 을 같은 경로 규칙으로 얹는다 — 경로는 둘 다 origin 기준. */
+function overlayDescendants(
+  inner: Record<string, unknown> | undefined,
+  outer: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
+  if (!inner) return outer;
+  if (!outer) return inner;
+  const merged: Record<string, unknown> = { ...inner };
+  for (const [path, patch] of Object.entries(outer)) {
+    merged[path] = mergeDescendantPatch(merged[path], patch);
   }
   return merged;
 }
@@ -267,7 +339,9 @@ function detachTemplateBindings(
   resolvedProps: Record<string, unknown>,
 ): Record<string, unknown> | undefined {
   const schema = readPropsSchema(master);
-  return schema ? resolveTemplateBindingValues(schema, resolvedProps) : undefined;
+  return schema
+    ? resolveTemplateBindingValues(schema, resolvedProps)
+    : undefined;
 }
 
 function withDetachTemplateBindings(
@@ -386,9 +460,7 @@ function createMaterializedElementFromOverride(
     //   노드 필드 판독 LOW-1: 숨긴 origin 자식을 mode B 로 바꾸면 사본이 숨었다).
     fills: Array.isArray(override.fills) ? override.fills : undefined,
     sizing: isRecord(override.sizing) ? override.sizing : undefined,
-    responsive: isRecord(override.responsive)
-      ? override.responsive
-      : undefined,
+    responsive: isRecord(override.responsive) ? override.responsive : undefined,
     enabled:
       typeof override.enabled === "boolean" ? override.enabled : undefined,
   } as Element);
@@ -421,13 +493,18 @@ function buildCanonicalDetachSnapshot(
     return null;
   }
 
-  const master = resolveRefMaster(ref);
-  if (!master) {
+  const detachMaster = resolveDetachMaster(ref);
+  if (!detachMaster) {
     console.warn("[Instance] canonical ref master not found:", ref);
     return null;
   }
+  // 변형 instance 면 master = 체인 끝 origin, 변형의 root 값 · descendants 는 instance 값 아래에 깐다.
+  const { origin: master, effective: effectiveMaster } = detachMaster;
 
-  const legacyDescendantMap = getComponentDescendantsMirror(refElement);
+  const legacyDescendantMap = overlayDescendants(
+    detachMaster.patches,
+    getComponentDescendantsMirror(refElement),
+  );
   const pageId = refElement.page_id ?? master.page_id ?? null;
   const createdChildren: Element[] = [];
 
@@ -543,14 +620,20 @@ function buildCanonicalDetachSnapshot(
       );
     }
     const nestedRef = !hasReplacement ? getCanonicalRef(source) : null;
-    const nestedMaster = nestedRef ? resolveRefMaster(nestedRef) : null;
+    const nestedDetachMaster = nestedRef
+      ? resolveDetachMaster(nestedRef)
+      : null;
+    const nestedMaster = nestedDetachMaster?.origin ?? null;
     const materializationSource = nestedMaster ?? source;
     const sourceOverrideProps = nestedMaster
       ? getRootOverrideProps(source)
       : {};
     const childDescendants = nestedMaster
       ? scopeNestedRefDescendants(
-          getComponentDescendantsMirror(source),
+          overlayDescendants(
+            nestedDetachMaster?.patches,
+            getComponentDescendantsMirror(source),
+          ),
           activeLegacyDescendantMap,
           relativePath,
         )
@@ -560,9 +643,11 @@ function buildCanonicalDetachSnapshot(
         ? override.id
         : undefined;
     const id = nextId(replacementId);
-    const baseProps = getElementProps(materializationSource);
+    // 중첩 ref 가 변형을 가리키면 변형 값을 얹은 origin 에서 시작한다.
+    const baseSource = nestedDetachMaster?.effective ?? materializationSource;
+    const baseProps = getElementProps(baseSource);
     const unpatched: CanonicalElement = {
-      ...materializationSource,
+      ...baseSource,
       id,
       parent_id: parentId,
       page_id: pageId,
@@ -644,13 +729,16 @@ function buildCanonicalDetachSnapshot(
   };
 
   const rootProps = applyPropsPatch(
-    getElementProps(master),
+    getElementProps(effectiveMaster),
     getRootOverrideProps(refElement),
   );
   const detachedRoot: Element = withFrameElementMirrorId(
     stripCanonicalRuntimeFields({
-      ...master,
+      ...effectiveMaster,
       ...refElement,
+      // sizing · responsive 는 축 · tier 단위로 master 위에 — Preview `resolvedBase` 의 `mergeFillSizing`. ADR-150
+      //   detach 관찰 2 (2026-09-27): 얕은 병합이라 instance 가 한 축만 써도 origin 의 다른 축 · tier 가 사라졌다.
+      ...mergeFillSizing(effectiveMaster, refElement),
       id: refElement.id,
       type: master.type,
       parent_id: refElement.parent_id ?? null,

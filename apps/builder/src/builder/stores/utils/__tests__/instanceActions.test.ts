@@ -1420,6 +1420,142 @@ describe("instance store actions", () => {
     expect(resolvedChildren()).toEqual(before);
   });
 
+  // ADR-150 detach 관찰 1 · 2 (2026-09-27) — 변형 (origin 의 reusable ref, ADR-234) 을 가리키는 instance 는 체인
+  //   끝 origin 으로 실체화하고 변형의 root props · descendants 를 instance 값 아래에 깐다 (root · 중첩 ref 둘 다).
+  //   root 의 sizing · responsive 는 축 · tier 단위로 합친다. 기준 = detach 전 Preview 해석 == detach 뒤 재해석.
+  const resolvedSnapshot = () => {
+    const doc = useCanonicalDocumentStore
+      .getState()
+      .documents.get("instance-project")!;
+    const shape = (node: CanonicalNode & Record<string, unknown>): unknown => ({
+      type: node.type,
+      // `_stateLayers` 같은 해석기 메타는 instance 에만 붙는다 (사본은 상태 전환을 갖지 않는다)
+      props: Object.fromEntries(
+        Object.entries(node.props ?? {}).filter(([key]) => !key.startsWith("_")),
+      ),
+      sizing: node.sizing,
+      responsive: node.responsive,
+      children: ((node.children ?? []) as never[]).map(shape),
+    });
+    return shape(
+      findCanonicalNodeById(
+        resolveCanonicalDocument(doc) as CanonicalNode[],
+        "inst",
+      ) as CanonicalNode & Record<string, unknown>,
+    );
+  };
+  const seedElements = (els: Element[]) => {
+    useStore.setState({
+      elements: els,
+      elementsMap: new Map(els.map((e) => [e.id, e])),
+    } as never);
+    useStore.getState()._rebuildIndexes();
+    seedCanonicalFromStore();
+  };
+  const variantOrigin = (): Element[] => [
+    makeElement("btn", {
+      type: "Card",
+      reusable: true,
+      customId: "card_1",
+      props: { tone: "base" },
+    }),
+    makeElement("btn-label", {
+      type: "Text",
+      parent_id: "btn",
+      customId: "text_1",
+      props: { children: "Go" },
+    }),
+    makeElement("btn--hover", {
+      type: "ref",
+      ref: "btn",
+      reusable: true,
+      customId: "card_hover",
+      props: { tone: "hover" },
+      descendants: { text_1: { children: "Hover" } },
+    } as never),
+  ];
+
+  it("detaches an instance of a variant through the chain to its origin", () => {
+    seedElements([
+      ...variantOrigin(),
+      makeElement("inst", {
+        type: "ref",
+        ref: "btn--hover",
+        customId: "card_2",
+      } as never),
+    ]);
+    const before = resolvedSnapshot();
+
+    useStore.getState().detachInstance("inst");
+
+    const root = useStore
+      .getState()
+      .elements.find((element) => element.id === "inst")!;
+    expect(root.type).toBe("Card");
+    expect((root as { ref?: string }).ref).toBeUndefined();
+    expect(root.props.tone).toBe("hover");
+    expect(resolvedSnapshot()).toEqual(before);
+  });
+
+  it("detaches a nested ref that points at a variant", () => {
+    seedElements([
+      ...variantOrigin(),
+      makeElement("bar", { type: "frame", reusable: true, customId: "bar_1" }),
+      makeElement("bar-item", {
+        type: "ref",
+        ref: "btn--hover",
+        parent_id: "bar",
+        customId: "card_3",
+      } as never),
+      makeElement("inst", {
+        type: "ref",
+        ref: "bar",
+        customId: "bar_2",
+      } as never),
+    ]);
+    const before = resolvedSnapshot();
+
+    useStore.getState().detachInstance("inst");
+
+    const elements = useStore.getState().elements;
+    const item = elements.find((element) => element.parent_id === "inst")!;
+    expect(item.type).toBe("Card");
+    expect(
+      elements.find((element) => element.parent_id === item.id)?.props.children,
+    ).toBe("Hover");
+    expect(resolvedSnapshot()).toEqual(before);
+  });
+
+  it("merges root sizing · responsive per axis and tier on detach", () => {
+    seedElements([
+      makeElement("m", {
+        type: "Card",
+        reusable: true,
+        customId: "card_1",
+        sizing: { width: "fill" },
+        responsive: {
+          styles: { mobile: { fontSize: 12 } },
+          sizing: { mobile: { width: "fill" } },
+        },
+      } as never),
+      makeElement("inst", {
+        type: "ref",
+        ref: "m",
+        customId: "card_2",
+        sizing: { height: "fill" },
+        responsive: { styles: { mobile: { color: "red" } } },
+      } as never),
+    ]);
+    const before = resolvedSnapshot();
+
+    useStore.getState().detachInstance("inst");
+
+    expect(before).toMatchObject({
+      sizing: { width: "fill", height: "fill" },
+    });
+    expect(resolvedSnapshot()).toEqual(before);
+  });
+
   // ADR-150 detach 템플릿 (2026-09-27) — origin propsSchema 템플릿 (`{label}`) 은 detach 시점 instance 값으로
   //   굳힌다 (Preview `substituteTemplateBindingsInChildren` 결과와 같게 — instance 가 사라지면 값 출처가 없다).
   //   중첩 ref 아래는 그 ref 의 값으로.

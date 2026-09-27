@@ -2,8 +2,10 @@ import { cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+  collectSubtreeNestingViolations,
   getCatalogCutoverTypes,
   type CanonicalNode,
+  type NestingTreeNode,
   type CompositionDocument,
   type ResolvedNode,
 } from "@composition/shared";
@@ -131,6 +133,35 @@ describe("ADR-239 Phase 1 — TreeItem origin · Tree origin (새 문서)", () =
       ],
       [TREE_ITEM_DEFAULT_ORIGIN_ID, "item-2", []],
     ]);
+  });
+
+  it("해석한 Tree origin (detach 가 실체화하는 모양) 은 중첩 규칙을 통과한다 — TreeItem > Label Text", () => {
+    const find = (
+      nodes: readonly ResolvedNode[],
+      id: string,
+    ): ResolvedNode | undefined => {
+      for (const node of nodes) {
+        if (node.id === id) return node;
+        const hit = find((node.children ?? []) as ResolvedNode[], id);
+        if (hit) return hit;
+      }
+      return undefined;
+    };
+    const tree = find(
+      resolveCanonicalDocument(seededDoc()) as ResolvedNode[],
+      TREE_ORIGIN_ID,
+    )!;
+    const types = (node: ResolvedNode): string[] => [
+      node.type,
+      ...((node.children ?? []) as ResolvedNode[]).flatMap(types),
+    ];
+    expect(types(tree)).toContain("Text");
+    expect(
+      collectSubtreeNestingViolations(
+        tree as unknown as NestingTreeNode,
+        ["body"],
+      ),
+    ).toEqual([]);
   });
 
   it("재hydration Δ0", () => {

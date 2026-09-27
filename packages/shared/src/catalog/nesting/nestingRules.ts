@@ -184,7 +184,9 @@ export const SELF_COMPOSED_CONTAINER_CHILD_TYPES: Readonly<
   TableBody: ["Row"],
   Row: ["Cell"],
   Tree: ["TreeItem"],
-  TreeItem: ["TreeItem"],
+  // ADR-239 — 역할 자식 Label (Text) 은 RAC TreeItemContent 의 자유 자식 (DOM 렌더러가 행 글자로 그린다) ·
+  // seed `TreeItem/Default` origin 이 이 모양이라 detach 가 그대로 만든다.
+  TreeItem: ["TreeItem", "Text"],
 };
 
 /**
