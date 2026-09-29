@@ -61,7 +61,9 @@ describe("BuilderHeader chrome control groups", () => {
     );
 
     expect(source).toContain('import("./headerMenu/HeaderMainMenu")');
-    expect(source).toContain("lazy(loadHeaderMainMenu)");
+    // 미리 받은 본문은 Suspense 를 거치지 않는다 (첫 열림 ~300 ms throttle 회피)
+    expect(source).toContain("preloadableLazy(");
+    expect(source).toContain("HeaderMainMenu.preload()");
     expect(source).toContain("onHoverStart={preloadHeaderMainMenu}");
     expect(source).not.toContain("<MenuItem");
     expect(source).not.toContain("onAction=");
@@ -81,7 +83,9 @@ describe("BuilderHeader chrome control groups", () => {
     );
 
     expect(source).toContain("<ConfirmDialog");
-    expect(source).toContain("onDeleteProject: () => setIsDeleteConfirmOpen(true)");
+    expect(source).toContain(
+      "onDeleteProject: () => setIsDeleteConfirmOpen(true)",
+    );
     expect(source).toContain("buildPendingProjectDeleteState(projectId)");
     // 빌더 안에서 DB 를 직접 지우지 않는다 — fire-and-forget persist 가 되살린다
     expect(source).not.toContain("getDB");

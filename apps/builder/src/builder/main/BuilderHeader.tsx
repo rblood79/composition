@@ -17,7 +17,6 @@ import {
   Group,
 } from "@composition/shared/components";
 import {
-  lazy,
   Suspense,
   useCallback,
   useMemo,
@@ -43,11 +42,15 @@ import { HEADER_MENU_RUNTIME } from "./headerMenu/headerMenuRuntime";
 import { buildPendingProjectDeleteState } from "../../dashboard/pendingProjectDelete";
 import { useI18n } from "../../i18n";
 import { navigateWithTransition } from "../../utils/ui/viewTransition";
+import { preloadableLazy } from "../../utils/ui/preloadableLazy";
 
-const loadHeaderMainMenu = () => import("./headerMenu/HeaderMainMenu");
-const HeaderMainMenu = lazy(loadHeaderMainMenu);
+// 트리거 hover · focus 에서 미리 받은 본문은 Suspense 없이 곧바로 그린다 — 받은 뒤에도 lazy 로
+// 그리면 첫 열림이 ~300 ms 늦는다 (`preloadableLazy.tsx`).
+const HeaderMainMenu = preloadableLazy(
+  () => import("./headerMenu/HeaderMainMenu"),
+);
 const preloadHeaderMainMenu = () => {
-  void loadHeaderMainMenu();
+  void HeaderMainMenu.preload().catch(() => {});
 };
 
 // `Breakpoint` 정본은 `../workspace/types` — `canvasBreakpoints.ts` 의

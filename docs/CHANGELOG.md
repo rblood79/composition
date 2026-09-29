@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [전체 메뉴 첫 열림 지연 수정 — ADR-249 후속] - 2026-09-29
+
+### Fixed
+
+- **헤더 전체 메뉴를 처음 열 때 두 번째부터보다 ~300 ms 늦게 뜨던 것.** 메뉴 본문 chunk 는 트리거 hover · focus 때 미리 받지만, `React.lazy` 가 받은 뒤에도 첫 렌더에서 한 번 suspend 해 React 의 Suspense fallback throttle (~300 ms) 이 걸렸다 (fallback 이 비어 있어 화면에는 아무 표시 없이 늦게 뜬다). 미리 받은 본문은 Suspense 를 거치지 않고 바로 그린다 (`utils/ui/preloadableLazy.tsx`, ADR-242 lazy 패널과 같은 규칙). production · CPU 4x 첫 열림 중앙값 436 → 168 ms (5회씩 교대), 이후 열림 98 ms 그대로. 초기 번들 JS gzip +86 B.
+
 ## [새로고침 부팅 화면에서 패널 골격 제거 — ADR-247 결정 변경] - 2026-09-29
 
 ### Changed
