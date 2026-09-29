@@ -308,18 +308,32 @@ it("preserves the HEAD product box clip, pixel, and hit boundary", async () => {
       const outsidePixel = [...image.pixels.slice(offset + 4, offset + 8)];
       expect(borderPixel).toEqual([224, 71, 71, 255]);
       expect(outsidePixel).toEqual([255, 255, 255, 255]);
-      const headRenderCommands = execFileSync(
+      // The border-inset clip is an opt-in field only the new runtime's Canvas binding writes;
+      // product builders never set it, so their child clip and hit boundary stay the full box
+      // (the pixels above). Readers: the field type and the render command consumer.
+      const clipInsetFiles = execFileSync(
         "git",
         [
-          "show",
-          "HEAD:apps/builder/src/builder/workspace/canvas/skia/renderCommands.ts",
+          "grep",
+          "-l",
+          "clipBorderInset",
+          "HEAD",
+          "--",
+          "apps/builder/src",
+          "packages",
+          ":!**/__tests__/**",
         ],
         { cwd: repo, encoding: "utf8" },
-      );
-      expect(headRenderCommands).toContain(
-        "const clipRect = ck.LTRBRect(0, 0, cmd.width, cmd.height)",
-      );
-      expect(headRenderCommands).not.toContain("clipBorderInset");
+      )
+        .split("\n")
+        .filter(Boolean)
+        .map((line) => line.replace(/^HEAD:/, ""))
+        .sort();
+      expect(clipInsetFiles).toEqual([
+        "apps/builder/src/builder/catalogRuntime/canvasBinding.ts",
+        "apps/builder/src/builder/workspace/canvas/skia/nodeRendererTypes.ts",
+        "apps/builder/src/builder/workspace/canvas/skia/renderCommands.ts",
+      ]);
       writeFileSync(
         join(design, "248-phase3-legacy-clip-isolation.json"),
         JSON.stringify(
@@ -346,9 +360,9 @@ it("preserves the HEAD product box clip, pixel, and hit boundary", async () => {
             borderPixel,
             outsidePixel,
             pngSha256: sha(bytes),
-            headRenderCommandsSha256: sha(Buffer.from(headRenderCommands)),
+            clipInsetFiles,
             headContract:
-              "HEAD renderCommands clips children to (0,0,width,height) without border inset",
+              "product builders never set clipBorderInset (only the new runtime Canvas binding writes it): children clip to (0,0,width,height)",
           },
           null,
           2,
