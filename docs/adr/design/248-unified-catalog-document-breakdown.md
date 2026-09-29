@@ -257,6 +257,17 @@ H5 수리안은 **main에 미연결 새 모듈을 추가한 뒤 제품 진입점
 
 4a 남은 항목: 페이지 schema (중첩 route `parentId` · reusable layout 참조 — 페이지 body 를 layout definition 인스턴스로 표현하는 안), Components 페이지 (definition 파생 view), `autoColumns` 갱신, `node.metadata` typed allowlist · `project.externalImports` (G0 목적지 미구현), 구조 전용 op 필요 여부 (현재 owner `put` 으로 충분 — 4b 명령 계층에서 판단).
 
+**4b 명령 계층 설계 (2026-09-30)**
+
+- 위치: `packages/shared/src/catalog/commands/` (순수 함수 `(ctx, input) => { label, ops, selectAfter? }`, Builder 의존 0) + `apps/builder/src/builder/catalogRuntime/commands/` (plan → 영향 확인 → dispatch, revision 충돌 시 1회 재계획). 불변식 검증은 `applyCatalogTransaction` 이 하고, 명령은 nesting·operable 같은 제품 사전 검사만 한다.
+- 대상: `EditTarget = node | descendant(ownerId, InstanceAddress)` — 선택 store 를 읽지 않고 commit 시점 snapshot 을 받는다. 다중 선택·batch 는 transaction 하나 (`composeCommands` 가 staged reader 로 이어 붙임).
+- 새 구조 op 는 추가하지 않는다 (owner `put`). 인스턴스의 collection 항목 추가·삭제는 `fillSlot` (host props·instance root·library patch 를 보존 — `replace` 는 이를 버리고, detach 는 library 갱신을 끊는다). 첫 추가 때 template 항목을 소유 node 로 물질화한다.
+- 선행 schema 보강: descendant patch 에 layout·fills·responsive, `node.metadata.htmlId` (G0 목적지 "node.metadata typed allowlist" — `props.id` 는 collection key 와 겹침), collection host 표시, Chart 배열 props 의 typed 구조 prop (G0 인벤토리 누락 흡수), `referrersOf` 조회 (clone 의 `exportDocument()` 전체 순회 대체).
+- 폐기: mirror/hydrate 계열, 파생 위치·preview 계열, legacy placement 모델, 타입 없는 writer (`updateNodeExtension` 등), `db.events/actions` fan-out, 미사용 menu item 액션. undo/redo 는 coordinator 기능.
+- 검증: family 마다 resolved 관계 판정 (ops 대조 아님) · forward/inverse 왕복 · 실패 원자성 · 전체 검증기 대조 · 조작당 history 1개 · 무작위 500단계 전체 undo · `commands/` 의 전체 순회 사용 0. G0 활성 자손 13경로마다 명령 1 + 구 oracle 표본 1. 약 129 이름 coverage manifest "미분류 0".
+
+**사용자 판정 (2026-09-30, AskUserQuestion)**: ① Undo/Redo = **프로젝트 단일 스택** (페이지 간 공유, theme·page·interaction 편집 포함, 새로고침 후 비움 — 구 페이지별 IDB 저장 제거). ② 선택 요소로 컴포넌트 만들기 = **template 은 Components 로, 원래 자리엔 인스턴스** (구 "그 자리 origin" 은 definition 의 template 소유와 동시 소유가 되어 불가).
+
 ## 6. 검증 상세
 
 | Gate | fixture/조작                                                                                                                                                                      | oracle                                                                                                                                                                                                    |
