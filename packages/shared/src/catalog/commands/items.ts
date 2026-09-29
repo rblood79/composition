@@ -67,24 +67,30 @@ function definitionDefault(
     : undefined;
 }
 
-/** The list a target shows now (see the module note). */
-export function currentItems(
+/**
+ * A prop value a target shows now: its own value, else (a template position) its path patch, the
+ * enclosing library patch, the template node's value; else the project and library defaults.
+ * `undefined` when none sets it.
+ */
+export function readTargetProp(
   reader: CatalogReader,
   target: EditTarget,
   key: string,
-): readonly ItemValue[] {
+): AuthoredValue | undefined {
   if (target.kind === "node") {
     const node = reader.getEntry(target.id);
     if (node?.kind !== "node") return fail("NODE_REQUIRED", target.id);
     const own = node.props[key];
-    if (own?.kind === "set") return asList(own.value) ?? [];
-    return asList(definitionDefault(reader, node.definitionId, key)) ?? [];
+    if (own?.kind === "set") return own.value;
+    if (own?.kind === "mask") return undefined;
+    return definitionDefault(reader, node.definitionId, key);
   }
   const owner = reader.getEntry(target.ownerId) as NodeEntry | undefined;
   if (owner?.kind !== "node") return fail("NODE_REQUIRED", target.ownerId);
   const patch = overrideAt(owner, target.address);
   const patched = patch?.kind === "patch" ? patch.props?.[key] : undefined;
-  if (patched?.kind === "set") return asList(patched.value) ?? [];
+  if (patched?.kind === "set") return patched.value;
+  if (patched?.kind === "mask") return undefined;
   const path = target.address.templatePath;
   const templateId = path[path.length - 1] as TemplateId;
   const instances = target.address.instances;
@@ -97,7 +103,7 @@ export function currentItems(
       (item) => item.templatePath.join() === path.join(),
     );
     const value = libraryPatch?.props?.[key];
-    if (value !== undefined) return asList(value) ?? [];
+    if (value !== undefined) return value;
   }
   const template = templateId.startsWith("lib:")
     ? reader.library.templates.get(templateId as `lib:template:${string}`)
@@ -106,16 +112,21 @@ export function currentItems(
     return fail("DANGLING_TEMPLATE", templateId);
   const own = template.props[key];
   if (own !== undefined) {
-    const value =
-      typeof own === "object" &&
-      own !== null &&
-      "kind" in own &&
-      own.kind === "set"
-        ? own.value
-        : (own as AuthoredValue);
-    return asList(value) ?? [];
+    if (typeof own === "object" && own !== null && "kind" in own) {
+      if (own.kind === "set") return own.value;
+      if (own.kind === "mask") return undefined;
+    } else return own as AuthoredValue;
   }
-  return asList(definitionDefault(reader, template.definitionId, key)) ?? [];
+  return definitionDefault(reader, template.definitionId, key);
+}
+
+/** The list a target shows now. */
+export function currentItems(
+  reader: CatalogReader,
+  target: EditTarget,
+  key: string,
+): readonly ItemValue[] {
+  return asList(readTargetProp(reader, target, key)) ?? [];
 }
 
 const indexOf = (

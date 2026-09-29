@@ -94,31 +94,32 @@ export class CommandDraft {
   }
 }
 
-/** A definition's type name; a project composite is named by its template root's type. */
+/**
+ * A definition's element type: a composite (library or project) is its template root's type,
+ * like the old ref chain end (an instance renders as its root element).
+ */
 export function definitionTypeName(
   reader: CatalogReader,
   definitionId: DefinitionId,
   seen: ReadonlySet<string> = new Set(),
 ): string {
-  if (definitionId.startsWith("lib:")) {
-    const definition = reader.library.definitions.get(
-      definitionId as `lib:definition:${string}`,
-    );
-    return definition?.name ?? fail("DANGLING_DEFINITION", definitionId);
-  }
-  const definition = reader.getEntry(definitionId);
-  if (definition?.kind !== "definition")
+  const definition = definitionId.startsWith("lib:")
+    ? reader.library.definitions.get(definitionId as `lib:definition:${string}`)
+    : reader.getEntry(definitionId);
+  if (!definition || ("kind" in definition && definition.kind !== "definition"))
     return fail("DANGLING_DEFINITION", definitionId);
-  if (!definition.templateRootId || seen.has(definitionId))
-    return definition.name;
-  const root = reader.getEntry(definition.templateRootId);
-  return root?.kind === "node"
-    ? definitionTypeName(
-        reader,
-        root.definitionId,
-        new Set([...seen, definitionId]),
-      )
-    : definition.name;
+  const { name, mode, templateRootId } = definition as {
+    name: string;
+    mode: string;
+    templateRootId?: string;
+  };
+  if (mode !== "composite" || !templateRootId || seen.has(definitionId))
+    return name;
+  return definitionTypeName(
+    reader,
+    templateDefinitionId(reader, templateRootId),
+    new Set([...seen, definitionId]),
+  );
 }
 
 /** Definition of a template position (a library template node or a project template node). */
