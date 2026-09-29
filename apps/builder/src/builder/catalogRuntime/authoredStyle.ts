@@ -132,6 +132,7 @@ export function applyCatalogAuthoredPaint(
   node: Pick<CatalogConsumerNode, "id" | "visual" | "fills">,
   data: SkiaNodeData,
   rect: { x: number; y: number; width: number; height: number },
+  theme: "light" | "dark" = "light",
 ): SkiaNodeData {
   if (!hasCatalogAuthoredPaint(node)) return data;
   const visual = node.visual;
@@ -168,6 +169,7 @@ export function applyCatalogAuthoredPaint(
       ...(fills ? { fills } : {}),
     } as unknown as CanvasSceneNode,
     layout: { ...rect, elementId: node.id } as never,
+    theme,
   });
   if (!built) return data;
   const next: SkiaNodeData = { ...data };

@@ -9,6 +9,9 @@ import type {
   PageEntry,
   ProjectEntry,
 } from "../../../../../../packages/shared/src/catalog/document/types";
+import { darkColors, lightColors } from "@composition/specs";
+import { getSkiaNode } from "../../workspace/canvas/skia/useSkiaNode";
+import { bindCatalogCanvas } from "../canvasBinding";
 import { CatalogCompositionRoot } from "../compositionRoot";
 import { CatalogRuntime } from "../controller";
 import { CatalogStorage } from "../storage";
@@ -45,6 +48,7 @@ async function scene(
   bodies: NodeEntry[],
   project: Partial<ProjectEntry>,
   breakpoint: "desktop" | "tablet" | "mobile" = "desktop",
+  colorMode: "light" | "dark" = "light",
 ) {
   const projectId = "project:project:pages" as const;
   const entries: Record<string, CatalogEntry> = {
@@ -85,7 +89,7 @@ async function scene(
     undefined,
     undefined,
     undefined,
-    { pageFrames: true, breakpoint },
+    { pageFrames: true, breakpoint, colorMode },
   );
 }
 
@@ -139,5 +143,26 @@ describe("ADR-248 Phase 4a-4 page frames", () => {
       (item) => item.sourceId === "project:node:box",
     )!;
     expect(root.getGeometry([box.id]).get(box.id)?.width).toBe(200);
+  });
+
+  it("resolves theme variables in the root's color mode on the Canvas", async () => {
+    const hex = (value: string) =>
+      [1, 3, 5].map((i) => Math.round((parseInt(value.slice(i, i + 2), 16) / 255) * 1000) / 1000);
+    for (const mode of ["light", "dark"] as const) {
+      const root = await scene(
+        [page("home")],
+        [body("homeBody", { visual: { fill: set("var(--accent)") } })],
+        {},
+        "desktop",
+        mode,
+      );
+      const bodyId = [...root.canvasInputs.values()][0].id;
+      const canvas = bindCatalogCanvas(root, [bodyId]);
+      const fill = Array.from(getSkiaNode(bodyId)!.box!.fillColor)
+        .slice(0, 3)
+        .map((v) => Math.round(v * 1000) / 1000);
+      expect(fill).toEqual(hex((mode === "dark" ? darkColors : lightColors).accent));
+      canvas.dispose();
+    }
   });
 });

@@ -56,12 +56,27 @@ type Binding = (
 ) => SkiaNodeData;
 const supportedVisualKeys = CATALOG_BINDING_VISUAL_KEYS;
 
+/**
+ * Color mode of the bind/update in progress (the root's `colorMode`): theme CSS variables resolve
+ * to that mode's token value, as the DOM consumer's `data-theme` scope resolves them. Set only for
+ * the synchronous span of one bind or update (`withColorMode`).
+ */
+let colorMode: "light" | "dark" = "light";
+function withColorMode<T>(mode: "light" | "dark", run: () => T): T {
+  const previous = colorMode;
+  colorMode = mode;
+  try {
+    return run();
+  } finally {
+    colorMode = previous;
+  }
+}
 function rgba(value: unknown): Float32Array {
   if (value === undefined || value === null) return Float32Array.of(0, 0, 0, 0);
   // An authored CSS color (rgb(a), hsl(a), hex8 …) goes through the old app's CSS color parser.
   if (!isTypedCatalogColor(value) && typeof value === "string")
     return catalogCssColorRgba(value);
-  value = cssVarColor(value, "light");
+  value = cssVarColor(value, colorMode);
   if (value === "black") value = "#000000";
   if (value === "white") value = "#ffffff";
   if (value === "transparent") return Float32Array.of(0, 0, 0, 0);
@@ -334,6 +349,7 @@ function ruleNodeData(
       type: node.ruleId!,
       authoredVisual: catalogAuthoredVisual(root, node),
       state: catalogNodeState(node.displayState, root.state),
+      theme: root.colorMode,
     }),
     x: rect.x,
     y: rect.y,
@@ -365,6 +381,7 @@ function paintedNodeData(
           )
         : ruleNodeData(root, node, rect),
       rect,
+      root.colorMode,
     ),
   );
 }
@@ -450,6 +467,21 @@ const sameRect = (left: Rect | undefined, right: Rect | undefined) =>
  * re-derives only those nodes and splices their subtree commands into the same stream.
  */
 export function bindCatalogCanvas(
+  root: CatalogCompositionRoot,
+  rootIds: readonly string[],
+  pageShell?: { id: string; rect: Rect; fill: string },
+  context: { slotMode?: "edit" | "page" } = {},
+) {
+  const bound = withColorMode(root.colorMode, () =>
+    bindInColorMode(root, rootIds, pageShell, context),
+  );
+  return {
+    ...bound,
+    update: () => withColorMode(root.colorMode, bound.update),
+  };
+}
+
+function bindInColorMode(
   root: CatalogCompositionRoot,
   rootIds: readonly string[],
   pageShell?: { id: string; rect: Rect; fill: string },

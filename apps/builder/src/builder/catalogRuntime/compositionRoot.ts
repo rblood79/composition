@@ -350,6 +350,8 @@ export interface CatalogRootOptions {
   pageFrames?: boolean;
   /** `columns: "auto"`: the integer column count the visible canvas fits (host-computed). */
   autoColumns?: number;
+  /** Theme color mode the Canvas resolves theme variables in (the DOM's `data-theme` scope). */
+  colorMode?: "light" | "dark";
 }
 /** The graph's page container declaration in the old placement derivation's input shape. */
 function catalogPageLayoutSettings(
@@ -842,6 +844,8 @@ export class CatalogCompositionRoot {
   /** Product layout: each page a frame on the ADR-232 page container grid. */
   private readonly pageFrames: boolean;
   private readonly autoColumns: number | undefined;
+  /** Theme color mode (a switch builds a new root, like a breakpoint switch). */
+  readonly colorMode: "light" | "dark";
   /** Page of each page root node (`pageRoots`). */
   private readonly rootPage = new Map<NodeId, EntryId<"page">>();
   private readonly records = new Map<string, CatalogConsumerNode>();
@@ -888,6 +892,7 @@ export class CatalogCompositionRoot {
     this.breakpoint = options.breakpoint ?? "desktop";
     this.pageFrames = options.pageFrames === true;
     this.autoColumns = options.autoColumns;
+    this.colorMode = options.colorMode ?? "light";
     // Definite-zero heights shrink their column children (CSS-FLEXBOX-1 §9.8). The engine keeps
     // this off by default so the current Builder's output is unchanged until the Phase 4 cutover.
     engine.setDefiniteZeroHeight?.(true);
