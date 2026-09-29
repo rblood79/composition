@@ -16,7 +16,7 @@ import {
   STATIC_SHELL_ATTRS,
   STATIC_SHELL_MARKUP,
   renderStaticShellScript,
-} from "./src/staticShell/staticShell";
+} from "./src/staticShell/staticShell.ts";
 
 /** Builder UI i18n (`SupportedLocale`) 과 같은 en-US / ko-KR 만 RAC 문자열에 남긴다. */
 function racLocalesPlugin() {

@@ -16,13 +16,13 @@
  * vite.config.ts `staticShellPlugin()` 이 이 파일로 `index.html` (→ `404.html`) 에 주입한다.
  */
 
-import { STATIC_SHELL_ID } from "./staticShellRelease";
+import { STATIC_SHELL_ID } from "./staticShellRelease.ts";
 
 export {
   STATIC_SHELL_ID,
   releaseStaticShell,
   releaseStaticShellOutsideBuilder,
-} from "./staticShellRelease";
+} from "./staticShellRelease.ts";
 
 /** 셸 노드 — `hidden` 으로 시작하고 builder 경로에서만 인라인 script 가 푼다. */
 export const STATIC_SHELL_MARKUP =
