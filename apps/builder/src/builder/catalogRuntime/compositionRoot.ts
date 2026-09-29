@@ -30,6 +30,11 @@ import {
 import { resolveTextSourceText } from "@composition/specs";
 import { applyTextTransform } from "../workspace/canvas/styleConversion/styleConverter";
 import {
+  catalogAspectRatio,
+  catalogFillDependents,
+  catalogFillLayout,
+} from "./fillLayout";
+import {
   racDateSegmentParts,
   type DateSegmentPart,
 } from "../../../../../packages/shared/src/catalog/document/dateSegments";
@@ -82,6 +87,8 @@ export interface CatalogConsumerNode {
   readonly props: ResolvedCatalogNode["props"];
   readonly visual: ResolvedCatalogNode["visual"];
   readonly layout: ResolvedCatalogNode["layout"];
+  /** Author-written layout keys (`ResolvedCatalogNode.authoredLayout`): the DOM inlines these. */
+  readonly authoredLayout?: ResolvedCatalogNode["authoredLayout"];
   readonly sizing: ResolvedCatalogNode["sizing"];
   readonly placement: ResolvedCatalogNode["placement"];
   /** Authored paint layers and fill intent (ADR-248 Phase 4a); absent = definition paint. */
@@ -116,6 +123,8 @@ export interface CatalogConsumerNode {
    * and the DOM inline style read one value instead of relying on the browser cascade.
    */
   readonly inheritedText?: Readonly<Record<string, string | number | boolean>>;
+  /** Fill intent projected against the parent box (`fillLayout.ts`); Rust and DOM apply it. */
+  readonly fillLayout?: Readonly<Record<string, string | number>>;
 }
 /** Text keys a text leaf takes from its nearest declaring ancestor (CSS inherited properties). */
 export const CATALOG_INHERITED_TEXT_KEYS = [
@@ -163,6 +172,21 @@ function textInheritors(
   for (const id of node.children) visit(id);
   return out;
 }
+/** Inputs of a record's own box that its fill children project against. */
+const boxInputsChanged = (
+  left: CatalogConsumerNode | undefined,
+  right: CatalogConsumerNode,
+): boolean =>
+  !left ||
+  !sameFields(left.layout, right.layout) ||
+  !sameFields(left.sizing, right.sizing) ||
+  JSON.stringify(left.fillSizing ?? null) !==
+    JSON.stringify(right.fillSizing ?? null) ||
+  left.placement?.kind !== right.placement?.kind ||
+  ["width", "height", "minWidth", "minHeight", "aspectRatio"].some(
+    (key) => left.visual[key] !== right.visual[key],
+  ) ||
+  left.bindingId !== right.bindingId;
 const textKeysChanged = (
   left: CatalogConsumerNode | undefined,
   right: CatalogConsumerNode,
@@ -173,11 +197,15 @@ const textKeysChanged = (
 /** The optional authored fields a record carries only when the resolved node declares them. */
 function authoredFields(
   node: ResolvedCatalogNode,
-): Pick<CatalogConsumerNode, "fills" | "fillSizing" | "themeOverride"> {
+): Pick<
+  CatalogConsumerNode,
+  "fills" | "fillSizing" | "themeOverride" | "authoredLayout"
+> {
   return {
     ...(node.fills ? { fills: node.fills } : {}),
     ...(node.fillSizing ? { fillSizing: node.fillSizing } : {}),
     ...(node.themeOverride ? { themeOverride: node.themeOverride } : {}),
+    ...(node.authoredLayout ? { authoredLayout: node.authoredLayout } : {}),
   };
 }
 export interface CatalogRootMetrics {
@@ -590,6 +618,10 @@ function styleOf(
       : {}),
     ...containerTracks(node, measure),
     ...itemLayout(node),
+    ...(node.fillLayout ?? {}),
+    ...(catalogAspectRatio(node.visual.aspectRatio) !== undefined
+      ? { aspectRatio: catalogAspectRatio(node.visual.aspectRatio) }
+      : {}),
     ...(contentText ?? {}),
     ...(glyph !== undefined
       ? { contentMinWidth: glyph, contentMaxWidth: glyph, contentHeight: glyph }
@@ -635,7 +667,9 @@ function containerTracks(
     if (value !== undefined) out[key] = parseGridTemplate(value);
   }
   for (const key of ["maxWidth", "maxHeight"] as const) {
-    const value = node.layout[key];
+    const sized = node.sizing[key];
+    const value =
+      node.layout[key] ?? (typeof sized === "number" ? `${sized}px` : undefined);
     if (value === undefined || value === "none") continue;
     // `ch` = the advance of "0" in the node's own font (CSS Values 4).
     const ch = /^(\d+(?:\.\d+)?)ch$/.exec(value);
@@ -673,6 +707,8 @@ const ITEM_LAYOUT_FIELDS = [
   "verticalAlign",
   "insetLeft",
   "insetTop",
+  "insetRight",
+  "insetBottom",
 ] as const;
 const NUMERIC_ITEM_FIELDS = new Set(["flexGrow", "flexShrink"]);
 function itemLayout(node: CatalogConsumerNode): Record<string, unknown> {
@@ -732,6 +768,8 @@ function sameRecord(
     left.hidden === right.hidden &&
     sameFields(left.derivedProps ?? {}, right.derivedProps ?? {}) &&
     sameFields(left.inheritedText ?? {}, right.inheritedText ?? {}) &&
+    sameFields(left.fillLayout ?? {}, right.fillLayout ?? {}) &&
+    sameFields(left.authoredLayout ?? {}, right.authoredLayout ?? {}) &&
     JSON.stringify(left.fills ?? null) === JSON.stringify(right.fills ?? null) &&
     JSON.stringify(left.fillSizing ?? null) ===
       JSON.stringify(right.fillSizing ?? null) &&
@@ -1007,6 +1045,10 @@ export class CatalogCompositionRoot {
     for (const [id, record] of output) {
       const inheritedText = inheritedTextOf(record, get);
       if (inheritedText) output.set(id, { ...record, inheritedText });
+    }
+    for (const [id, record] of output) {
+      const fillLayout = catalogFillLayout(record, get, this.typeOf);
+      if (fillLayout) output.set(id, { ...record, fillLayout });
     }
     return output;
   }
@@ -1806,6 +1848,7 @@ export class CatalogCompositionRoot {
         fills: _fills,
         fillSizing: _fillSizing,
         themeOverride: _themeOverride,
+        authoredLayout: _authoredLayout,
         ...kept
       } = before;
       const record: CatalogConsumerNode = {
@@ -1881,6 +1924,14 @@ export class CatalogCompositionRoot {
         textKeysChanged(this.records.get(update.id), update.record)
           ? textInheritors(update.record, get)
           : []),
+        // A fill child projects against this box (and its grandchildren against their parent).
+        ...(update.record.children.length > 0 &&
+        boxInputsChanged(this.records.get(update.id), update.record)
+          ? catalogFillDependents(update.record, get)
+          : []),
+        ...(update.record.fillSizing || update.record.fillLayout
+          ? [update.record]
+          : []),
         ...(this.records.get(update.id)?.props.size !== update.record.props.size
           ? update.record.children
               .map((id) => get(id))
@@ -1897,9 +1948,11 @@ export class CatalogCompositionRoot {
         const current = get(thumb.id)!;
         const derivedProps = this.derivedOf(current, get);
         const inheritedText = inheritedTextOf(current, get);
+        const fillLayout = catalogFillLayout(current, get, this.typeOf);
         const {
           derivedProps: _previous,
           inheritedText: _previousText,
+          fillLayout: _previousFill,
           ...rest
         } = current;
         const next = this.planRecord(
@@ -1908,6 +1961,7 @@ export class CatalogCompositionRoot {
             ...rest,
             ...(derivedProps ? { derivedProps } : {}),
             ...(inheritedText ? { inheritedText } : {}),
+            ...(fillLayout ? { fillLayout } : {}),
           },
           rootId,
           get,
@@ -1931,6 +1985,8 @@ export class CatalogCompositionRoot {
           "patchNodeProp",
           "patchNodeVisual",
           "patchNodeSizing",
+          "patchNodeLayout",
+          "setNodeField",
           "setNodePlacement",
           "setNodeBinding",
           "patchDefinitionOverride",

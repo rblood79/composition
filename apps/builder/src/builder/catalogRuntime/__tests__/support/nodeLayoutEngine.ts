@@ -21,22 +21,36 @@ type RawLayout = {
   nodeCount(): number;
 };
 
+type Glue = {
+  __wbg_set_wasm(value: WebAssembly.Exports): void;
+  LayoutEngine: new () => RawLayout;
+};
+/**
+ * The wasm-bindgen glue caches its memory views per module: instantiate once per process and
+ * create one `LayoutEngine` per call (a second instantiation leaves stale views → garbled strings).
+ */
+let loaded: Promise<Glue> | undefined;
+function loadGlue(): Promise<Glue> {
+  loaded ??= (async () => {
+    const directory = resolve(
+      process.cwd(),
+      "src/builder/workspace/canvas/wasm-bindings/engine-pkg",
+    );
+    const glue = (await import(
+      pathToFileURL(join(directory, "engine_bg.js")).href
+    )) as Glue;
+    const instance = await WebAssembly.instantiate(
+      readFileSync(join(directory, "engine_bg.wasm")),
+      { "./engine_bg.js": glue as unknown as WebAssembly.ModuleImports },
+    );
+    glue.__wbg_set_wasm(instance.instance.exports);
+    return glue;
+  })();
+  return loaded;
+}
+
 export async function nodeLayoutEngine(): Promise<LayoutEngineAPI> {
-  const directory = resolve(
-    process.cwd(),
-    "src/builder/workspace/canvas/wasm-bindings/engine-pkg",
-  );
-  const glue = (await import(
-    pathToFileURL(join(directory, "engine_bg.js")).href
-  )) as {
-    __wbg_set_wasm(value: WebAssembly.Exports): void;
-    LayoutEngine: new () => RawLayout;
-  };
-  const instance = await WebAssembly.instantiate(
-    readFileSync(join(directory, "engine_bg.wasm")),
-    { "./engine_bg.js": glue },
-  );
-  glue.__wbg_set_wasm(instance.instance.exports);
+  const glue = await loadGlue();
   const raw = new glue.LayoutEngine();
   return {
     isAvailable: () => true,

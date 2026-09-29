@@ -1,4 +1,8 @@
 import {
+  catalogAspectRatio,
+  catalogLayoutCss,
+} from "./fillLayout";
+import {
   CATALOG_AUTHORED_PAINT_KEYS,
   catalogAuthoredDomStyle,
   catalogAuthoredPaintCss,
@@ -106,6 +110,56 @@ function cssColor(value: unknown, alpha = 1): string | undefined {
   return `rgba(${channel(1)}, ${channel(3)}, ${channel(5)}, ${alpha})`;
 }
 
+/** Layout fields the box model does not carry, as the Rust input reads them. */
+const NODE_ITEM_LAYOUT_KEYS = [
+  "flexGrow",
+  "flexShrink",
+  "flexBasis",
+  "alignSelf",
+  "justifySelf",
+  "gridColumnStart",
+  "gridColumnEnd",
+  "gridRowStart",
+  "gridRowEnd",
+  "rowGap",
+  "columnGap",
+  "marginTop",
+  "marginRight",
+  "marginBottom",
+  "marginLeft",
+  "verticalAlign",
+  "insetLeft",
+  "insetTop",
+  "insetRight",
+  "insetBottom",
+  "gridTemplateColumns",
+  "gridTemplateRows",
+  "gridTemplateAreas",
+  "maxWidth",
+  "maxHeight",
+];
+function catalogNodeLayoutCss(node: CatalogConsumerNode): CSSProperties {
+  // Only author-written keys: definition/part-rule layout reaches the DOM through the component
+  // stylesheet (inlining it again double-applies, e.g. a ListBox item icon's margin).
+  const authored = node.authoredLayout ?? {};
+  const layout: Record<string, string> = {};
+  for (const key of NODE_ITEM_LAYOUT_KEYS)
+    if (authored[key] !== undefined) layout[key] = authored[key];
+  for (const key of ["maxWidth", "maxHeight"] as const)
+    if (layout[key] === undefined && typeof node.sizing[key] === "number")
+      layout[key] = `${node.sizing[key]}px`;
+  if (
+    !node.placement &&
+    (authored.position === "absolute" || authored.position === "relative")
+  )
+    layout.position = authored.position;
+  const css = catalogLayoutCss(layout) as CSSProperties;
+  if (node.fillLayout) Object.assign(css, catalogLayoutCss(node.fillLayout));
+  if (catalogAspectRatio(node.visual.aspectRatio) !== undefined)
+    css.aspectRatio = String(node.visual.aspectRatio);
+  return css;
+}
+
 /** Inline CSS from the shared box model plus resolved paint/text values. */
 export function catalogDomStyle(
   node: CatalogConsumerNode,
@@ -175,6 +229,9 @@ export function catalogDomStyle(
   // Authored paint (effects, per-corner radius, per-side width, fill layers): the same CSS
   // record the Canvas converts (`authoredStyle.ts`).
   Object.assign(style, catalogAuthoredDomStyle(node));
+  // Item/placement layout, max sizes, aspect ratio and the fill projection: the Rust input's own
+  // fields (`styleOf`), as CSS.
+  Object.assign(style, catalogNodeLayoutCss(node));
   if (
     !(borderWidth > 0) &&
     ["borderTopWidth", "borderRightWidth", "borderBottomWidth", "borderLeftWidth"].some(
@@ -843,10 +900,13 @@ function authoredStyle(
     if (typeof value === "number") style[key] = value;
   }
   // Template/instance-authored layout (origin style) inline over the class CSS.
-  for (const [key, value] of Object.entries(
-    noSheet ? node.layout : catalogAuthoredLayout(root, node),
-  ))
-    (style as Record<string, string>)[key] = value;
+  Object.assign(
+    style,
+    catalogLayoutCss(noSheet ? node.layout : catalogAuthoredLayout(root, node)),
+  );
+  if (node.fillLayout) Object.assign(style, catalogLayoutCss(node.fillLayout));
+  const ratio = catalogAspectRatio(node.visual.aspectRatio);
+  if (ratio !== undefined) style.aspectRatio = String(node.visual.aspectRatio);
   // Authored fill layers over the class CSS background.
   if (node.fills?.length)
     Object.assign(style, catalogAuthoredDomStyle({ visual: {}, fills: node.fills }));

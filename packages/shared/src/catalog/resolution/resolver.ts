@@ -33,6 +33,12 @@ export interface ResolvedCatalogNode {
   visual: Readonly<Record<string, Scalar>>;
   /** Typed box layout declarations (definition layout, then matching conditional/part rules). */
   layout: Readonly<Record<string, string>>;
+  /**
+   * The layout keys an author wrote (node/template layout, library template origin style, an
+   * instance position, responsive layers) — not the definition or rule layout, which a DOM
+   * consumer already gets from the component stylesheet. Absent when nothing was authored.
+   */
+  authoredLayout?: Readonly<Record<string, string>>;
   sizing: Readonly<Record<string, number | null>>;
   placement?: NodePlacement;
   /** Authored paint layers (Phase 4a); absent = the definition's fill. */
@@ -416,9 +422,12 @@ export function resolveCatalogNode(
     applyTypedRules(node.definitionId, props, visual, layout, parent);
     applyWrites(visual, node.visual);
     applyLayoutWrites(layout, node.layout);
+    const ownLayout: Record<string, string> = {};
+    applyLayoutWrites(ownLayout, node.layout);
     for (const layer of layers) {
       if (layer.visual) applyWrites(visual, layer.visual);
       applyLayoutWrites(layout, layer.layout);
+      applyLayoutWrites(ownLayout, layer.layout);
     }
     const self: ParentContext = {
       definitionId: node.definitionId,
@@ -477,6 +486,7 @@ export function resolveCatalogNode(
       layout,
       sizing,
       placement: node.placement,
+      ...(Object.keys(ownLayout).length ? { authoredLayout: ownLayout } : {}),
       ...authoredExtras(node, layers),
       slot: node.slot ?? inherited?.slot,
       name: node.name,
@@ -596,6 +606,7 @@ export function resolveCatalogNode(
     }
     Object.assign(layout, authoredLayout);
     if (root) Object.assign(layout, root.layout);
+    const templateAuthored = { ...authoredLayout, ...root?.layout };
     // Authored template visual is the node's own value: it wins over definition rules, the same
     // order as an authored node's visual writes in resolveOwned.
     if ("kind" in template) {
@@ -694,6 +705,9 @@ export function resolveCatalogNode(
       layout,
       sizing,
       placement: "kind" in template ? template.placement : undefined,
+      ...(Object.keys(templateAuthored).length
+        ? { authoredLayout: templateAuthored }
+        : {}),
       ...("kind" in template ? authoredExtras(template, templateLayers) : {}),
       slot: template.slot,
       ...(displayState ? { displayState } : {}),

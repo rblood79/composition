@@ -53,6 +53,7 @@ export const CATALOG_BINDING_VISUAL_KEYS: ReadonlySet<string> = new Set([
   ...CATALOG_AUTHORED_PAINT_KEYS,
   // Typography (Phase 4a-3c): text bindings paint and measure it; other nodes pass the inherited
   // keys down (`CatalogConsumerNode.inheritedText`).
+  "aspectRatio",
   "fontFamily",
   "fontStyle",
   "letterSpacing",
