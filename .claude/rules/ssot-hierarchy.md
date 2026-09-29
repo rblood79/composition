@@ -12,13 +12,14 @@ composition 아키텍처는 **3개의 독립 domain**으로 구성된다. 각 do
 
 | Domain              | 권위                                                       | 내용                                                      | Spec 개입                                               |
 | ------------------- | ---------------------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------- |
-| **D1. DOM/접근성**  | **Adobe RAC (절대)**                                       | HTML 구조, ARIA 속성, 키보드 동작, 포커스 관리, 접근성    | **금지 — 관찰·소비만**                                  |
+| **D1. DOM/접근성**  | **설치된 `react-aria-components` (절대)**                  | HTML 구조, ARIA 속성, 키보드 동작, 포커스 관리, 접근성    | **금지 — 관찰·소비만**                                  |
 | **D2. Props/API**   | **RSP 참조 + custom 확장**                                 | 사용자 편의 props (isQuiet, contextualHelp 등)            | 타입 선언만, 구현은 RAC + custom                        |
 | **D3. 시각 스타일** | **catalog(`COMPONENT_RULES_TABLE`) + theme/tokens (SSOT)** | 화면에 보여지는 style 전부 — 색상/크기/폰트/레이아웃/형태 | **잔존 spec 3개(Frame/Group/Slot) 한정, 그 외 catalog** |
 
 ### D1 (DOM/접근성)
 
-- **소유자**: React Aria Components (RAC) — unstyled primitive 라이브러리
+- **소유자**: 설치된 `react-aria-components` 패키지 — unstyled primitive 라이브러리. 버전은 `pnpm-workspace.yaml` `catalogs.default` 가 고정하고 `apps/builder` · `packages/shared` 가 소비한다
+- **정본 판정**: DOM·ARIA·동작 질문은 설치된 패키지 소스 (`node_modules/react-aria-components`) 로 답한다. 예제 코드 (RAC starter 등, 2026-09-29 저장소에서 제거) 는 권위가 없다
 - **composition 역할**: RAC가 출력하는 DOM 구조를 **그대로 사용**. 수정/확장 금지
 - **선택 이유**: RAC가 unstyled이므로 스타일 자유도 확보 가능 (← 이것이 RAC 선택의 본질적 이유)
 - **금지 사항**:

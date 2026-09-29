@@ -28,7 +28,7 @@ env: `apps/builder/.env.example` → `.env` (필수 키 없음 — 인증은 로
 
 ## SSOT 체인 정본 — 3-Domain 분할
 
-**D1 DOM/접근성** (Adobe RAC 절대 권위) / **D2 Props/API** (RSP 참조 + custom — 타입만) / **D3 시각 스타일** (catalog `COMPONENT_RULES_TABLE` + theme/tokens SSOT — 잔존 spec 3개 Frame/Group/Slot 예외). Builder(Skia) 와 Preview/Publish(DOM+CSS) 는 D3 의 **대등 symmetric consumer** — 대칭 = 시각 결과의 동일성.
+**D1 DOM/접근성** (설치된 `react-aria-components` 패키지 절대 권위 — catalog 버전 고정) / **D2 Props/API** (RSP 참조 + custom — 타입만) / **D3 시각 스타일** (catalog `COMPONENT_RULES_TABLE` + theme/tokens SSOT — 잔존 spec 3개 Frame/Group/Slot 예외). Builder(Skia) 와 Preview/Publish(DOM+CSS) 는 D3 의 **대등 symmetric consumer** — 대칭 = 시각 결과의 동일성.
 
 정본 규칙 (상시 로드): [.claude/rules/ssot-hierarchy.md](.claude/rules/ssot-hierarchy.md). 공식 결정: [ADR-063](docs/adr/completed/063-ssot-chain-charter.md) (charter), [ADR-142](docs/adr/completed/142-starter-spec-component-system-cutover.md) (D3 SSOT 재정의).
 
