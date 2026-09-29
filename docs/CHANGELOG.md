@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [빌더 헤더 메뉴의 동작하지 않던 항목 3개] - 2026-09-29
+
+### Fixed
+
+- **헤더 전체 메뉴의 "프로젝트 삭제" · "도움말" · "정보" 가 눌러도 메뉴만 닫히던 결함.** 2026-03 메뉴 도입 때 placeholder 로 들어간 뒤 분기가 연결되지 않았다. "프로젝트 삭제" 는 확인 대화상자를 거쳐 대시보드로 나간 뒤 대시보드의 기존 삭제 경로가 지운다 — 편집 저장이 fire-and-forget 이라 빌더가 열린 채로 지우면 삭제 뒤 편집이 문서를 되살릴 수 있다. "도움말" · "정보" 는 연결할 대상 (문서 URL · 버전 정보 화면) 이 없어 메뉴에서 뺐다. 메뉴 항목마다 `onAction` 분기가 있는지 정적 테스트가 검사한다.
+
 ## [캔버스 왼쪽 트랙패드 팬이 뒤로가기로 새던 결함] - 2026-09-29
 
 ### Fixed

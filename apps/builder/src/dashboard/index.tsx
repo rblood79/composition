@@ -6,8 +6,9 @@ import React, {
   useCallback,
   useRef,
 } from "react";
-import { useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { getDB } from "../lib/db";
+import { readPendingProjectDeleteId } from "./pendingProjectDelete";
 import { getDefaultProps } from "../types/builder/unified.types";
 import { ElementProps } from "../types/builder/elementProps.types";
 import { ElementUtils } from "../utils/element/elementUtils";
@@ -560,6 +561,28 @@ function Dashboard() {
     setIsCreating(true);
     window.requestAnimationFrame(() => createInputRef.current?.focus());
   };
+
+  // 빌더 헤더의 "프로젝트 삭제" — 확인은 빌더가 받았고, 빌더가 언마운트된 여기서
+  // 지운다 (`pendingProjectDelete.ts`). state 는 한 번 읽고 비워 새로고침·뒤로가기가
+  // 다시 지우지 않게 한다. ref 는 StrictMode 이중 effect 가드.
+  const location = useLocation();
+  const consumedDeleteStateRef = useRef<unknown>(null);
+  const pendingDeleteId = readPendingProjectDeleteId(location.state);
+  useEffect(() => {
+    if (!pendingDeleteId) return;
+    if (consumedDeleteStateRef.current === location.state) return;
+    consumedDeleteStateRef.current = location.state;
+    navigate(location.pathname, { replace: true, state: null });
+    void deleteProjectMutation.execute(pendingDeleteId).catch((err) => {
+      console.error("프로젝트 삭제 에러:", err);
+    });
+  }, [
+    pendingDeleteId,
+    location.state,
+    location.pathname,
+    navigate,
+    deleteProjectMutation,
+  ]);
 
   const handleDeleteProject = (id: string) => {
     if (!confirm(t("confirmDeleteProject"))) return;

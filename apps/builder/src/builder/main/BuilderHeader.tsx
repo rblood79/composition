@@ -9,8 +9,6 @@ import {
   FolderOpen,
   Download,
   Upload,
-  CircleHelp,
-  Info,
   Columns,
   Filter,
   LayoutDashboard,
@@ -27,7 +25,7 @@ import {
   ToggleButton,
   Group,
 } from "@composition/shared/components";
-import { useCallback, useMemo, useRef, type ReactNode } from "react";
+import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router";
 import { iconProps, APP_ICON_URL } from "../../utils/ui/uiConstants";
 import { usePanelLayout } from "../layout";
@@ -42,6 +40,8 @@ import {
 import { ZoomControls } from "../workspace/ZoomControls";
 import { useCompareModeStore } from "../workspace/canvas/stores";
 import { ACTION_ICONS } from "../config/actionIcons";
+import { ConfirmDialog } from "../components/overlay/ConfirmDialog";
+import { buildPendingProjectDeleteState } from "../../dashboard/pendingProjectDelete";
 import { useI18n } from "../../i18n";
 import { navigateWithTransition } from "../../utils/ui/viewTransition";
 
@@ -105,11 +105,24 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
     (state) => state.setCurrentPageFilter,
   );
   const importInputRef = useRef<HTMLInputElement>(null);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
   // 프로젝트 목록으로 나간다 — 헤더 메뉴 항목과 ⌘O 가 같은 동작을 부른다.
   const handleOpenProject = useCallback(() => {
     navigateWithTransition(() => navigate("/dashboard"));
   }, [navigate]);
+
+  // 열린 프로젝트를 여기서 지우지 않는다 — 대시보드가 빌더 언마운트 뒤 지운다
+  // (`dashboard/pendingProjectDelete.ts`).
+  const handleConfirmDeleteProject = useCallback(() => {
+    setIsDeleteConfirmOpen(false);
+    if (!projectId) return;
+    navigateWithTransition(() =>
+      navigate("/dashboard", {
+        state: buildPendingProjectDeleteState(projectId),
+      }),
+    );
+  }, [navigate, projectId]);
 
   const headerShortcuts = useMemo(
     () =>
@@ -156,12 +169,14 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
           >
             <Menu
               className="header-menu"
+              disabledKeys={projectId ? [] : ["delete"]}
               onAction={(key: Key) => {
                 if (key === "open") handleOpenProject();
                 if (key === "import") importInputRef.current?.click();
                 if (key === "export") void onExportProject();
                 if (key === "export-json") void onExportProjectJson();
                 if (key === "connect-folder") void onConnectFolder();
+                if (key === "delete") setIsDeleteConfirmOpen(true);
                 if (key === "reset-panel-layout") resetWorkspaceLayout();
                 if (key === "workflow") onWorkflowOverlayToggle();
                 if (key === "settings") togglePanel("settings");
@@ -220,17 +235,16 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
                 <span>{t("header.shortcuts")}</span>
                 <Keyboard>{shortcutDisplayFor("commandPalette")}</Keyboard>
               </MenuItem>
-              <MenuItem id="help" className="header-menu-item">
-                <CircleHelp size={14} />
-                <span>{t("header.help")}</span>
-              </MenuItem>
-              <MenuItem id="about" className="header-menu-item">
-                <Info size={14} />
-                <span>{t("header.about")}</span>
-              </MenuItem>
             </Menu>
           </Popover>
         </MenuTrigger>
+        <ConfirmDialog
+          isOpen={isDeleteConfirmOpen}
+          title={t("header.deleteProject")}
+          message={t("dashboard.confirmDeleteProject")}
+          onConfirm={handleConfirmDeleteProject}
+          onCancel={() => setIsDeleteConfirmOpen(false)}
+        />
         <input
           ref={importInputRef}
           type="file"

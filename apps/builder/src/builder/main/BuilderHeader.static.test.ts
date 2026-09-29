@@ -68,6 +68,40 @@ describe("BuilderHeader chrome control groups", () => {
     expect(workflowItemIndex).toBeLessThan(settingsItemIndex);
   });
 
+  // 2026-09-29: delete·help·about 3 항목이 2026-03 placeholder (`onAction={console.log}`)
+  // 그대로 남아 눌러도 메뉴만 닫혔다 — 항목과 분기는 짝이어야 한다.
+  it("전체 메뉴의 모든 MenuItem 은 onAction 분기를 가진다", async () => {
+    const source = await readFile(
+      resolve(__dirname, "BuilderHeader.tsx"),
+      "utf-8",
+    );
+    const menu = source.match(
+      /<Menu\s+className="header-menu"[\s\S]*?<\/Menu>/,
+    )?.[0];
+    expect(menu).toBeDefined();
+
+    const itemIds = [...menu!.matchAll(/<MenuItem id="([^"]+)"/g)].map(
+      (match) => match[1],
+    );
+    expect(itemIds.length).toBeGreaterThan(0);
+    const unhandled = itemIds.filter(
+      (id) => !menu!.includes(`if (key === "${id}")`),
+    );
+    expect(unhandled).toEqual([]);
+  });
+
+  it("프로젝트 삭제는 확인 후 대시보드로 나가 빌더 언마운트 뒤에 지운다", async () => {
+    const source = await readFile(
+      resolve(__dirname, "BuilderHeader.tsx"),
+      "utf-8",
+    );
+
+    expect(source).toContain("<ConfirmDialog");
+    expect(source).toContain("buildPendingProjectDeleteState(projectId)");
+    // 빌더 안에서 DB 를 직접 지우지 않는다 — fire-and-forget persist 가 되살린다
+    expect(source).not.toContain("getDB");
+  });
+
   it("Reset Panel Layout 메뉴는 LayoutDashboard 아이콘을 사용한다", async () => {
     const source = await readFile(
       resolve(__dirname, "BuilderHeader.tsx"),

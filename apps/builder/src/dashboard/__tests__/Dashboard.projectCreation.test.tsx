@@ -15,6 +15,7 @@ const mockGetAllProjects = vi.hoisted(() => vi.fn());
 
 vi.mock("react-router", () => ({
   useNavigate: () => vi.fn(),
+  useLocation: () => ({ pathname: "/dashboard", state: null }),
 }));
 
 vi.mock("../../lib/db", () => ({

@@ -1201,8 +1201,6 @@ export interface TranslationKeys {
     resetPanelLayout: string;
     settings: string;
     shortcuts: string;
-    help: string;
-    about: string;
     noProject: string;
     logo: string;
     emptyHistory: string;
