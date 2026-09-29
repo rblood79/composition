@@ -25,7 +25,7 @@ maxTurns: 50
 5. **검증 계획** → 회귀 없이 해결되는지 확인할 방법
 
 - 도메인 병인은 `.claude/rules/` 의 실측 "Why" 기록부터 조회 — 같은 증상이 이미 진단돼 있는 경우가 많다.
-- 자주 발생하는 패턴과 Error Recovery Protocol 은 preload 된 fix skill 본문을 따른다.
+- 도메인별 진단 시작점은 preload 된 fix skill 본문을 따른다.
 
 ## 출력
 

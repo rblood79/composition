@@ -100,4 +100,4 @@ PR/push 정책 의문 발생 시 **settings 4 파일 + protect-files hook 직접
 - 메모리: `~/.claude/projects/-Users-admin-work-composition/memory/feedback-pr-vs-direct-push.md`
 - 메모리: `~/.claude/projects/-Users-admin-work-composition/memory/feedback-settings-precedence-over-stale-memory.md`
 - CLAUDE.md §"Git Push 정책"
-- AGENTS.md §"Commit & Push Guidelines"
+- AGENTS.md §"Git·문서·보호 파일"

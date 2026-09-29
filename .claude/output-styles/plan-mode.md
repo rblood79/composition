@@ -46,7 +46,7 @@ description: 계획 전용 모드 — 코드 수정 금지. 구조/대안/위험
 
 - 다단계 계획 → ADR design breakdown (`docs/adr/design/*-breakdown.md`) 이 정본 템플릿 — 별도 계획 문서 계층 신설 금지
 - ADR 수준 결정 → 사용자가 `/create-adr` 직접 입력 (create-adr 은 사용자 전용, 모델 자동 호출 비활성)
-- 요구사항/대안 탐색 필요 → 대안 2개 이상 비교 후 선택, 아키텍처 판단이면 `architect` agent
+- 요구사항/대안 탐색 필요 → 대안 2개 이상 비교 후 선택, 아키텍처 판단이면 built-in `Plan` agent
 
 ## 전환 조건
 

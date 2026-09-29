@@ -40,7 +40,7 @@ composition 아키텍처는 **3개의 독립 domain**으로 구성된다. 각 do
 
 ### D3 (시각 스타일)
 
-> **2026-07-08 갱신**: 아래는 ADR-142 이전(spec 파일 기반) 메커니즘의 기록이다. 현재 SSOT는 catalog(`COMPONENT_RULES_TABLE`, `packages/shared/src/catalog/`) + theme/tokens root collection(ADR-110)이다. 잔존 spec 3개(Frame/Group/Slot)에 한해 아래 규칙이 여전히 유효.
+> 일반 컴포넌트의 SSOT 는 catalog(`COMPONENT_RULES_TABLE`, `packages/shared/src/catalog/`) + theme/tokens root collection(ADR-110)이다. 아래의 spec 규칙은 잔존 spec 3개(Frame/Group/Slot)에만 적용한다.
 
 - **SSOT (일반 컴포넌트)**: catalog `COMPONENT_RULES_TABLE` (`packages/shared/src/catalog/generated/componentRulesTable.ts`) + theme/tokens root collection. `PrimitiveBinding`(leaf RAC primitive ~35개)이 코드 정의를 담당
 - **SSOT (잔존 spec 3개 한정)**: `packages/specs/src/components/{Frame,Group,Slot}.spec.ts` + `packages/specs/src/primitives/*`

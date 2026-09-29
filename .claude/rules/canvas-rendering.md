@@ -128,10 +128,9 @@ production 측정기는 Canvas 2D 하나다 (`utils/textMeasure.ts` `Canvas2DTex
 
 ## 4. Spec-CSS 경계
 
-- Leaf 컴포넌트: Spec이 CSS 자동 생성 (Preview ↔ Canvas 정합성)
-- Container/Composite: `skipCSSGeneration: true` — 수동 CSS가 구조 담당, Spec shapes는 Skia 전용
+- 일반 컴포넌트의 CSS 는 catalog binding 이 만든다. Spec → CSS 생성 (`CSSGenerator`) 은 잔존 spec 3개(Frame/Group/Slot) 한정이며 `skipCSSGeneration` 은 각 spec 이 선언한다
 - Generated CSS는 `@layer components { ... }` 래핑 필수. **Why**: unlayered 시 수동 CSS override 실패
-- Label은 spec shapes 경로로 렌더링 (TEXT_TAGS 아님). **Why**: 중복 등록 시 이중 렌더링
+- Label은 catalog `COMPONENT_RULES_TABLE.Label` 경로로 렌더링 (TEXT_TAGS 아님). **Why**: 중복 등록 시 이중 렌더링
 - Label 기본 크기: fit-content (CSS + Factory + 레이아웃 엔진 3경로 동기화 필수)
 - Label size delegation: `LABEL_SIZE_STYLE` 단일 소스 (fullTreeLayout.ts — catalog `COMPONENT_RULES_TABLE.Label` 정합). DFS 주입 조건은 `lineHeight == null` 기준. **Why**: fontSize 조건 사용 시 factory 기본값과 충돌
 

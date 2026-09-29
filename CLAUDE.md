@@ -24,7 +24,7 @@ env: `apps/builder/.env.example` → `.env` (필수 키 없음 — 인증은 로
 
 **핵심 진입점**: `apps/builder/src/main.tsx` (빌더) · `apps/builder/src/builder/workspace/canvas/skia/` (Skia 렌더) · `apps/builder/src/builder/stores/` (Zustand) · `packages/shared/src/catalog/generated/componentRulesTable.ts` (D3 SSOT — ADR-912 로 freeze 후 **직접 편집** 정본, 생성기 삭제됨) · `apps/publish/src/main.tsx` (런타임)
 
-**테스트 배치**: unit 은 모듈 옆 `*.test.ts` / `__tests__/` (`vitest.config.ts`) · 엔진 parity 는 `apps/builder/tests/parity/` (browser, `vitest.browser.config.ts`) · 시각 parity 는 `scripts/visual-parity-gate.mjs` (smoke/full). 실패 count 는 `pnpm -F <pkg> test` 로만 정확 (turbo 합산 금지).
+**테스트 배치**: unit 은 모듈 옆 `*.test.ts` / `__tests__/` (`vitest.config.ts`) · 엔진 parity 는 `apps/builder/tests/parity/` (browser, `vitest.browser.config.ts`) · 시각 parity 는 `apps/builder/scripts/visual-parity-gate.mjs` (smoke/full). 실패 count 는 `pnpm -F <pkg> test` 로만 정확 (turbo 합산 금지).
 
 ## SSOT 체인 정본 — 3-Domain 분할
 
@@ -50,12 +50,12 @@ env: `apps/builder/.env.example` → `.env` (필수 키 없음 — 인증은 로
 ## 작업 워크플로
 
 - **복잡한 작업** (렌더링, drag-and-drop, 대규모 리팩토링): built-in `Plan` agent 로 접근 방식 탐색 후 선택 — 전제·관점 의문은 아래 §전제·관점 의문 처리 의 4개 결정 지점에서만 질문
-- **버그 수정**: `/fix` (`debugger` agent → `/cross-check`) — 증상 수정 금지, root cause 확정 후 수정. 도메인 병인은 `.claude/rules/` 의 실측 "Why" 기록이 정본
+- **버그 수정**: `/fix` → `/cross-check` — 증상 수정 금지, root cause 확정 후 수정. 도메인 병인은 `.claude/rules/` 의 실측 "Why" 기록이 정본
 - **구현**: TDD (RED-GREEN-REFACTOR) 기본 — 메인 세션이 직접 (구현·테스트를 서브에이전트에 위임하면 컨텍스트만 잃는다)
 - **렌더링 수정 후**: `/cross-check` 최종 검증
 - **ADR 생성**: 사용자가 `/create-adr` 직접 입력 — create-adr / execute-adr 는 모델 자동 호출 비활성 (사용자 전용)
 - **다단계 계획**: ADR design breakdown (`docs/adr/design/*-breakdown.md`) 이 정본 — 별도 계획 문서 계층 신설 금지
-- **완료 직전 검증**: 아래 §완료 기준 자가 적용 + `/review` (reviewer 격리 fork) · 사용자-가시 변경은 `/evaluate` (런타임 4축 채점, 격리 fork)
+- **완료 직전 검증**: 아래 §완료 기준 자가 적용 + `/review` (정적) · 사용자-가시 변경은 `/evaluate` (실제 브라우저 PASS/FAIL)
 - **단순 작업** (한 줄 수정, 설정 변경): 위 절차 스킵 가능
 - CRITICAL/HIGH 이슈: 즉시 수정, 스킵 금지
 - **판독 루프 종결**: phase 당 판독 1 + 수리 검증 1, HIGH 0 이면 실행자가 닫힘 선언 · production 재현 없는 커버리지 지적은 LOW deferred · 동작 변경 0 커밋은 축소 절차 — 정본 `.claude/rules/review-loop-closure.md` (상시 로드)
@@ -125,14 +125,14 @@ CSS/Skia 두 타겟 × 5 레이어 (spec/factory/CSS renderer/Skia renderer/edit
 ## 병렬 워크플로
 
 - 대규모 리팩토링: `isolation: "worktree"` 격리 에이전트. 독립 작업 2+ 개: Agent tool 병렬 호출 (단일 응답에 복수 agent)
-- 생성-평가 분리: 구현은 메인 세션, 검증은 `/review` (정적) · `/evaluate` (런타임) 격리 fork
+- 생성-평가 분리: 구현은 메인 세션, 검증은 `/review` (정적) · `/evaluate` (런타임)
 - 서브에이전트 보고는 받아들이기 전에 근거 (파일:라인 · 실행 출력) 를 직접 확인한다 — 결론만 옮겨 적지 않는다
 - worktree 통합은 main 직접 merge (PR 경유 금지) — 절차: `.claude/rules/git-workflow.md` §3
 - `/loop`: 렌더링 파리티 반복 검증에 적합
 
 ---
 
-**마지막 지침**: 항상 **Plan 먼저 → Execute → Verify (`/cross-check` + `type-check`)**. 불확실한 부분이 아래 4개 결정 지점에 해당하면 질문을 먼저 한다. 그 외의 불확실성은 가정 대신 코드·문서 실측으로 해소한 뒤 자율 진행 + 사후 보고한다. 진행 상황 메모는 다음 행동과 같은 메시지에 쓰고 (보고만 하고 멈추지 않는다), 파괴적 작업 — 데이터·파일 삭제 · force-push · 저장소 밖 변경 — 앞에서는 멈추고 확인한다.
+**마지막 지침**: 변경 뒤에는 **Verify (`/cross-check` + `type-check`)** 로 닫는다. 불확실한 부분이 아래 4개 결정 지점에 해당하면 질문을 먼저 한다. 그 외의 불확실성은 가정 대신 코드·문서 실측으로 해소한 뒤 자율 진행 + 사후 보고한다. 진행 상황 메모는 다음 행동과 같은 메시지에 쓰고 (보고만 하고 멈추지 않는다), 파괴적 작업 — 데이터·파일 삭제 · force-push · 저장소 밖 변경 — 앞에서는 멈추고 확인한다.
 
 **응답·문서 어휘 규칙**: 정본은 `~/.claude/CLAUDE.md` (글로벌 — 3단계 선택 순서 + 금지/대체 표, 모든 프로젝트 적용). 커밋 메시지는 `.claude/hooks/protect-commit-vocabulary.sh` 가 검사. 항목별 사유·지적 이력: 메모리 `feedback-vocabulary-hanja-coinage-history`.
 

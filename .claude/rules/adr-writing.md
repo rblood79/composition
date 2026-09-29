@@ -62,10 +62,6 @@ ADR 분리 결정을 commit 하기 **전에** 다음 4 질문을 ADR 본문 또�
 3. **선행 ADR 전제 reverse 검증**: 선행 ADR 의 의존 방향을 그대로 옮기는 것이 fork 후에도 valid 한가? grep + 사용자 1회 confirm. 선행 ADR 의 전제 자동 승계 금지.
 4. **codex 3차 review 까지 미루지 말 것**: 1차 (표면 이슈) / 2차 (gate 정합) 후 3차에 가서야 전제 결함이 잡히는 패턴 회피. fork 시점에 위 1-3 질문 통과 후 codex 1차 진입.
 
-### 깊은 사고(adaptive thinking) 진입 의무
-
-전제·관점 검증은 표면 사고로 처리 금지. ADR fork 결정 시 명시적으로 깊은 사고 모드 진입 후 4 질문 통과. token 효율 학습 압력 (짧은 답변 / plan→execute→done 사이클) 회피 — Anthropic 자체 가이드 정렬.
-
 ### sub-phase 분해 진입 차단 게이트
 
 본 4 질문이 ADR 본문 또는 design §1 에 lock-in 되지 않았으면 design breakdown 의 sub-phase α/β/γ/δ 분해 자체 차단. 분해된 sub-phase 가 많을수록 전제·관점 위반 인지 비용이 piecewise 분산 누적되어 본질 검증 trigger 못 걸림.

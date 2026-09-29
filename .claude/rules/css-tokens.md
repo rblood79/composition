@@ -247,5 +247,5 @@ Skia dark mode 적용 상세: canvas-rendering.md 참조.
 
 핵심 체크리스트:
 
-- `specShapesToSkia()` 두 번째 인자에 `skiaTheme` 전달 (하드코딩 `"light"` 금지)
+- `specShapesToSkia()` 두 번째 인자 `theme` 에 현재 테마 전달 (하드코딩 `"light"` 금지)
 - `setDarkMode` 시 `themeVersion++` + `notifyLayoutChange()` 호출 필수 (누락 시 Skia 무반응)

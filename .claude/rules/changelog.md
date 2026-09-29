@@ -139,5 +139,5 @@ git log --since="<위 날짜>" --oneline | wc -l
 - `docs/CHANGELOG-2026-Q3-archived.md` — 2026-07-01 ~ 08-31 아카이브 (append-only)
 - `docs/CHANGELOG-2026-H1-archived.md` — 2026-02-22 ~ 06-30 아카이브 (append-only)
 - `docs/CHANGELOG-2025-archived.md` — 2025 년 아카이브 (append-only)
-- `AGENTS.md` §Commit & Pull Request Guidelines — Codex 엔트리포인트 요약
+- `AGENTS.md` §Git·문서·보호 파일 — Codex 엔트리포인트 요약
 - `CLAUDE.md` §자동 품질 게이트 — Claude 엔트리포인트 요약
