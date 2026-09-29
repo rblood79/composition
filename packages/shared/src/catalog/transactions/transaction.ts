@@ -1,5 +1,7 @@
 import type {
   CatalogEntry,
+  LayoutField,
+  ResponsiveBreakpointName,
   DataBindingRef,
   DescendantOverride,
   EntryId,
@@ -32,13 +34,24 @@ export type CatalogOperation =
       id: NodeId;
       key: VisualField;
       write: WriteValue<AuthoredValue>;
+      /** Absent = the base (desktop) layer. */
+      breakpoint?: ResponsiveBreakpointName;
     }
   | {
       kind: "patchNodeSizing";
       id: NodeId;
       key: SizingField;
       write: WriteValue<number | null>;
+      breakpoint?: ResponsiveBreakpointName;
     }
+  | {
+      kind: "patchNodeLayout";
+      id: NodeId;
+      key: LayoutField;
+      write: WriteValue<string>;
+      breakpoint?: ResponsiveBreakpointName;
+    }
+  | NodeFieldOperation
   | { kind: "setNodeBinding"; id: NodeId; binding?: DataBindingRef }
   | { kind: "setNodePlacement"; id: NodeId; placement?: NodePlacement }
   | {
@@ -55,6 +68,23 @@ export type CatalogOperation =
       id: NodeId;
       address: DescendantOverride["address"];
     };
+/** Whole-value node fields a single edit replaces (Fill panel, fill intent, display, theme). */
+export type NodeFieldOperation = {
+  [F in NodeWholeField]: {
+    kind: "setNodeField";
+    id: NodeId;
+    field: F;
+    /** `undefined` removes the field. */
+    value?: NodeEntry[F];
+  };
+}[NodeWholeField];
+export type NodeWholeField = "fills" | "fillSizing" | "visibility" | "themeOverride";
+const NODE_WHOLE_FIELDS: readonly string[] = [
+  "fills",
+  "fillSizing",
+  "visibility",
+  "themeOverride",
+];
 export type HistoryIntent =
   | { kind: "record"; label: string }
   | { kind: "skip"; reason: "project-create" | "load" | "fixture" };
@@ -168,6 +198,8 @@ export function applyCatalogTransaction(
         "patchNodeProp",
         "patchNodeVisual",
         "patchNodeSizing",
+        "patchNodeLayout",
+        "setNodeField",
         "setNodeBinding",
         "setNodePlacement",
         "patchDefinitionOverride",
@@ -224,6 +256,71 @@ export function applyCatalogTransaction(
       continue;
     }
     const node = requireNode(get(op.id), op.id);
+    if (op.kind === "setNodeField") {
+      if (!NODE_WHOLE_FIELDS.includes(op.field))
+        throw new CatalogValidationError("UNKNOWN_NODE_FIELD", String(op.field));
+      inverse.unshift({
+        kind: "setNodeField",
+        id: node.id,
+        field: op.field,
+        value: node[op.field],
+      } as CatalogOperation);
+      const next = { ...node } as Record<string, unknown>;
+      if (op.value === undefined) delete next[op.field];
+      else next[op.field] = structuredClone(op.value);
+      stage(node.id, next as unknown as NodeEntry);
+      continue;
+    }
+    if (
+      (op.kind === "patchNodeVisual" ||
+        op.kind === "patchNodeSizing" ||
+        op.kind === "patchNodeLayout") &&
+      op.breakpoint !== undefined
+    ) {
+      if (op.breakpoint !== "tablet" && op.breakpoint !== "mobile")
+        throw new CatalogValidationError("RESPONSIVE_BREAKPOINT", String(op.breakpoint));
+      const scope =
+        op.kind === "patchNodeVisual"
+          ? "visual"
+          : op.kind === "patchNodeSizing"
+            ? "sizing"
+            : "layout";
+      const layer = node.responsive?.[op.breakpoint] ?? {};
+      const prior = (layer[scope] ?? {}) as Record<string, WriteValue<unknown>>;
+      inverse.unshift({
+        ...op,
+        write: prior[op.key] ?? { kind: "remove" },
+      } as CatalogOperation);
+      const nextScope = { ...prior };
+      if (op.write.kind === "remove") delete nextScope[op.key];
+      else nextScope[op.key] = op.write;
+      const nextLayer = { ...layer } as Record<string, unknown>;
+      if (Object.keys(nextScope).length) nextLayer[scope] = nextScope;
+      else delete nextLayer[scope];
+      const responsive = { ...node.responsive } as Record<string, unknown>;
+      if (Object.keys(nextLayer).length) responsive[op.breakpoint] = nextLayer;
+      else delete responsive[op.breakpoint];
+      const next = { ...node } as Record<string, unknown>;
+      if (Object.keys(responsive).length) next.responsive = responsive;
+      else delete next.responsive;
+      stage(node.id, next as unknown as NodeEntry);
+      continue;
+    }
+    if (op.kind === "patchNodeLayout") {
+      const prior = node.layout ?? {};
+      inverse.unshift({
+        ...op,
+        write: prior[op.key] ?? { kind: "remove" },
+      });
+      const next = { ...prior } as Record<string, WriteValue<string>>;
+      if (op.write.kind === "remove") delete next[op.key];
+      else next[op.key] = op.write;
+      const entry = { ...node } as Record<string, unknown>;
+      if (Object.keys(next).length) entry.layout = next;
+      else delete entry.layout;
+      stage(node.id, entry as unknown as NodeEntry);
+      continue;
+    }
     if (op.kind === "setNodePlacement") {
       inverse.unshift({
         kind: "setNodePlacement",

@@ -83,7 +83,33 @@ export type VisualField =
   | "paddingTop"
   | "paddingRight"
   | "paddingBottom"
-  | "paddingLeft";
+  | "paddingLeft"
+  // ADR-248 Phase 4a: the Style panel's node authoring surface (typography, effects,
+  // per-corner radius and per-side border width). CSS values keep their CSS text where the
+  // property has no finite typed form (`boxShadow`, `filter`, `transform`, background image).
+  | "fontFamily"
+  | "fontStyle"
+  | "letterSpacing"
+  | "textAlign"
+  | "textTransform"
+  | "textDecoration"
+  | "whiteSpace"
+  | "wordBreak"
+  | "boxShadow"
+  | "filter"
+  | "transform"
+  | "zIndex"
+  | "aspectRatio"
+  | "backgroundImage"
+  | "backgroundSize"
+  | "radiusTopLeft"
+  | "radiusTopRight"
+  | "radiusBottomRight"
+  | "radiusBottomLeft"
+  | "borderTopWidth"
+  | "borderRightWidth"
+  | "borderBottomWidth"
+  | "borderLeftWidth";
 /** Box layout declarations consumed by the Rust layout input and the isolated RAC DOM style. */
 export type LayoutField =
   | "display"
@@ -98,6 +124,9 @@ export type LayoutField =
   // `insetTop`) — a stylesheet-placed sub-part (a collection item's icon slot).
   | "insetLeft"
   | "insetTop"
+  // ADR-248 Phase 4a: node-authored absolute placement from the other two edges.
+  | "insetRight"
+  | "insetBottom"
   | "flexGrow"
   | "flexShrink"
   | "flexBasis"
@@ -121,6 +150,10 @@ export type LayoutField =
   | "maxWidth"
   | "maxHeight";
 export type LayoutValues = Readonly<Partial<Record<LayoutField, string>>>;
+/** Node-authored box layout writes (CSS text values, validated per field). */
+export type LayoutWrites = Readonly<
+  Partial<Record<LayoutField, WriteValue<string>>>
+>;
 export type SizingField =
   "width" | "height" | "minWidth" | "minHeight" | "maxWidth" | "maxHeight";
 export type StateName =
@@ -282,6 +315,91 @@ export interface ProjectEntry {
   activeThemeId?: EntryId<"theme">;
   pageLayout?: PageLayoutDeclaration;
 }
+/** Breakpoints below desktop: desktop is the node's base layer (desktop-first cascade). */
+export type ResponsiveBreakpointName = Exclude<BreakpointName, "desktop">;
+/**
+ * A tablet or mobile override layer. Resolution for mobile applies tablet then mobile over the
+ * base (the old `getResponsiveValueWithCascade` order).
+ */
+export interface NodeResponsiveLayer {
+  visual?: VisualWrites;
+  layout?: LayoutWrites;
+  sizing?: SizingWrites;
+  fillSizing?: FillSizing;
+}
+/** ADR-224 fill intent per axis: a weight, or `null` to release an inherited fill. */
+export type FillSizing = Readonly<
+  Partial<Record<"width" | "height", { factor: number } | null>>
+>;
+export type FillBlendMode =
+  | "normal"
+  | "multiply"
+  | "screen"
+  | "overlay"
+  | "darken"
+  | "lighten"
+  | "color-dodge"
+  | "color-burn"
+  | "hard-light"
+  | "soft-light"
+  | "difference"
+  | "exclusion";
+export interface CatalogGradientStop {
+  /** `#RRGGBBAA`. */
+  color: string;
+  /** 0–1. */
+  position: number;
+}
+interface FillLayerBase {
+  id: string;
+  enabled: boolean;
+  /** 0–1. */
+  opacity: number;
+  blendMode: FillBlendMode;
+}
+/** A node paint layer (the Fill panel's item), bottom to top. */
+export type CatalogFillLayer =
+  | (FillLayerBase & { kind: "color"; color: string })
+  | (FillLayerBase & {
+      kind: "linear-gradient";
+      stops: readonly CatalogGradientStop[];
+      rotation: number;
+    })
+  | (FillLayerBase & {
+      kind: "radial-gradient";
+      stops: readonly CatalogGradientStop[];
+      center: { x: number; y: number };
+      radius: { width: number; height: number };
+    })
+  | (FillLayerBase & {
+      kind: "angular-gradient";
+      stops: readonly CatalogGradientStop[];
+      center: { x: number; y: number };
+      rotation: number;
+    })
+  | (FillLayerBase & {
+      kind: "image";
+      url: string;
+      mode: "stretch" | "fill" | "fit";
+    })
+  | (FillLayerBase & {
+      kind: "mesh-gradient";
+      rows: number;
+      columns: number;
+      points: readonly {
+        position: readonly [number, number];
+        color: string;
+        leftHandle?: readonly [number, number];
+        rightHandle?: readonly [number, number];
+        topHandle?: readonly [number, number];
+        bottomHandle?: readonly [number, number];
+      }[];
+    });
+/** ADR-021 per-node tint/dark mode override. */
+export interface NodeThemeOverride {
+  mode?: "light" | "dark";
+  tint?: ThemePreset["tint"];
+}
 export interface PageEntry {
   kind: "page";
   id: EntryId<"page">;
@@ -333,6 +451,15 @@ export interface NodeEntry {
   placeholder?: boolean;
   /** `false` hides the node and its subtree from every consumer (canonical `enabled`, G0 map). */
   enabled?: boolean;
+  /** Authored box layout over the definition and rule layout (ADR-248 Phase 4a). */
+  layout?: LayoutWrites;
+  /** Paint layers; absent = the definition's fill. */
+  fills?: readonly CatalogFillLayer[];
+  fillSizing?: FillSizing;
+  responsive?: Partial<Record<ResponsiveBreakpointName, NodeResponsiveLayer>>;
+  /** Per-breakpoint display (cascades like the responsive layers); `false` hides the subtree. */
+  visibility?: Partial<Record<BreakpointName, boolean>>;
+  themeOverride?: NodeThemeOverride;
 }
 export interface ThemeEntry {
   kind: "theme";

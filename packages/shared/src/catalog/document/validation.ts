@@ -69,6 +69,60 @@ const visualFields = new Set<VisualField>([
   "paddingRight",
   "paddingBottom",
   "paddingLeft",
+  "fontFamily",
+  "fontStyle",
+  "letterSpacing",
+  "textAlign",
+  "textTransform",
+  "textDecoration",
+  "whiteSpace",
+  "wordBreak",
+  "boxShadow",
+  "filter",
+  "transform",
+  "zIndex",
+  "aspectRatio",
+  "backgroundImage",
+  "backgroundSize",
+  "radiusTopLeft",
+  "radiusTopRight",
+  "radiusBottomRight",
+  "radiusBottomLeft",
+  "borderTopWidth",
+  "borderRightWidth",
+  "borderBottomWidth",
+  "borderLeftWidth",
+]);
+/** Finite CSS keyword sets of the Phase 4a text keys (the Style panel's choices). */
+const visualChoices: Readonly<Record<string, readonly string[]>> = {
+  fontStyle: ["normal", "italic", "oblique"],
+  textAlign: ["left", "center", "right", "justify", "start", "end"],
+  textTransform: ["none", "uppercase", "lowercase", "capitalize"],
+  textDecoration: ["none", "underline", "line-through", "overline"],
+  whiteSpace: ["normal", "nowrap", "pre", "pre-wrap", "pre-line", "break-spaces"],
+  wordBreak: ["normal", "break-all", "keep-all", "break-word"],
+};
+/** Phase 4a keys whose value is CSS text (no finite typed form). */
+const visualCssTextKeys = new Set([
+  "fontFamily",
+  "boxShadow",
+  "filter",
+  "transform",
+  "backgroundImage",
+  "backgroundSize",
+]);
+/** Phase 4a keys whose value is a number (px or unitless). */
+const visualNumberKeys = new Set([
+  "letterSpacing",
+  "zIndex",
+  "radiusTopLeft",
+  "radiusTopRight",
+  "radiusBottomRight",
+  "radiusBottomLeft",
+  "borderTopWidth",
+  "borderRightWidth",
+  "borderBottomWidth",
+  "borderLeftWidth",
 ]);
 const keyword =
   (...choices: string[]) =>
@@ -112,6 +166,10 @@ const layoutValueChoices: Readonly<
   position: keyword("static", "relative", "absolute"),
   insetLeft: (value) => cssLength(value, true) || /^-?\d+(?:\.\d+)?%$/.test(value),
   insetTop: (value) => cssLength(value, true) || /^-?\d+(?:\.\d+)?%$/.test(value),
+  insetRight: (value) =>
+    cssLength(value, true) || /^-?\d+(?:\.\d+)?%$/.test(value),
+  insetBottom: (value) =>
+    cssLength(value, true) || /^-?\d+(?:\.\d+)?%$/.test(value),
   flexGrow: flexFactor,
   flexShrink: flexFactor,
   flexBasis: (value) =>
@@ -306,6 +364,29 @@ function visualLiteral(key: string, value: unknown, at: string): void {
     (typeof value !== "number" || value <= 0)
   )
     invalid("VISUAL_VALUE_RANGE", at);
+  if (visualChoices[key]) {
+    if (typeof value !== "string") invalid("VISUAL_VALUE_TYPE", at);
+    if (!visualChoices[key].includes(value))
+      invalid("VISUAL_VALUE_CHOICE", at);
+  }
+  if (visualCssTextKeys.has(key) && (typeof value !== "string" || !value.trim()))
+    invalid("VISUAL_VALUE_TYPE", at);
+  if (visualNumberKeys.has(key) && typeof value !== "number")
+    invalid("VISUAL_VALUE_TYPE", at);
+  if (
+    (key.startsWith("radius") || /^border[A-Z][a-z]+Width$/.test(key)) &&
+    typeof value === "number" &&
+    value < 0
+  )
+    invalid("VISUAL_VALUE_RANGE", at);
+  if (
+    key === "aspectRatio" &&
+    !(
+      (typeof value === "number" && value > 0) ||
+      (typeof value === "string" && /^\d+(?:\.\d+)?\s*\/\s*\d+(?:\.\d+)?$|^auto$/.test(value))
+    )
+  )
+    invalid("VISUAL_VALUE_RANGE", at);
 }
 function values(
   value: unknown,
@@ -364,6 +445,192 @@ function layoutValues(value: unknown, at: string): void {
     if (typeof item !== "string" || !accepts(item))
       invalid("INVALID_LAYOUT_VALUE", `${at}.${key}`);
   }
+}
+/** Node-authored layout writes: each `set` value is checked like a rule layout value. */
+function layoutWrites(value: unknown, at: string): void {
+  for (const [key, raw] of Object.entries(object(value, at))) {
+    const accepts = layoutValueChoices[key as LayoutField];
+    if (!accepts) invalid("UNKNOWN_FIELD", `${at}.${key}`);
+    const write = object(raw, `${at}.${key}`);
+    if (write.kind === "set") {
+      exact(write, ["kind", "value"], `${at}.${key}`);
+      if (typeof write.value !== "string" || !accepts(write.value))
+        invalid("INVALID_LAYOUT_VALUE", `${at}.${key}`);
+    } else if (write.kind === "mask") exact(write, ["kind"], `${at}.${key}`);
+    else if (write.kind === "remove")
+      invalid("WRITE_REMOVE_NOT_DURABLE", `${at}.${key}`);
+    else invalid("UNKNOWN_WRITE_KIND", `${at}.${key}`);
+  }
+}
+const unit = (value: unknown): boolean =>
+  typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 1;
+const fillColor = (value: unknown): boolean =>
+  typeof value === "string" && /^#[0-9a-fA-F]{8}$/.test(value);
+const fillBlendModes = new Set([
+  "normal",
+  "multiply",
+  "screen",
+  "overlay",
+  "darken",
+  "lighten",
+  "color-dodge",
+  "color-burn",
+  "hard-light",
+  "soft-light",
+  "difference",
+  "exclusion",
+]);
+function point(value: unknown, at: string): void {
+  if (
+    !Array.isArray(value) ||
+    value.length !== 2 ||
+    !value.every((axis) => typeof axis === "number" && Number.isFinite(axis))
+  )
+    invalid("FILL_POINT", at);
+}
+function fillLayers(value: unknown, at: string): void {
+  if (!Array.isArray(value)) invalid("ARRAY_REQUIRED", at);
+  const ids = new Set<string>();
+  value.forEach((raw, index) => {
+    const layerAt = `${at}[${index}]`;
+    const layer = object(raw, layerAt);
+    const base = ["kind", "id", "enabled", "opacity", "blendMode"];
+    const stops = () => {
+      if (!Array.isArray(layer.stops) || layer.stops.length < 2)
+        invalid("FILL_STOPS", `${layerAt}.stops`);
+      for (const [stopIndex, rawStop] of layer.stops.entries()) {
+        const stop = object(rawStop, `${layerAt}.stops[${stopIndex}]`);
+        exact(stop, ["color", "position"], `${layerAt}.stops[${stopIndex}]`);
+        if (!fillColor(stop.color) || !unit(stop.position))
+          invalid("FILL_STOP_VALUE", `${layerAt}.stops[${stopIndex}]`);
+      }
+    };
+    const center = () => {
+      const c = object(layer.center, `${layerAt}.center`);
+      exact(c, ["x", "y"], `${layerAt}.center`);
+      if (!unit(c.x) || !unit(c.y)) invalid("FILL_CENTER", `${layerAt}.center`);
+    };
+    const rotation = () => {
+      if (typeof layer.rotation !== "number" || !Number.isFinite(layer.rotation))
+        invalid("FILL_ROTATION", `${layerAt}.rotation`);
+    };
+    switch (layer.kind) {
+      case "color":
+        exact(layer, [...base, "color"], layerAt);
+        if (!fillColor(layer.color)) invalid("FILL_COLOR", `${layerAt}.color`);
+        break;
+      case "linear-gradient":
+        exact(layer, [...base, "stops", "rotation"], layerAt);
+        stops();
+        rotation();
+        break;
+      case "radial-gradient": {
+        exact(layer, [...base, "stops", "center", "radius"], layerAt);
+        stops();
+        center();
+        const radius = object(layer.radius, `${layerAt}.radius`);
+        exact(radius, ["width", "height"], `${layerAt}.radius`);
+        if (
+          typeof radius.width !== "number" ||
+          typeof radius.height !== "number" ||
+          radius.width < 0 ||
+          radius.height < 0
+        )
+          invalid("FILL_RADIUS", `${layerAt}.radius`);
+        break;
+      }
+      case "angular-gradient":
+        exact(layer, [...base, "stops", "center", "rotation"], layerAt);
+        stops();
+        center();
+        rotation();
+        break;
+      case "image":
+        exact(layer, [...base, "url", "mode"], layerAt);
+        string(layer.url, `${layerAt}.url`);
+        if (!["stretch", "fill", "fit"].includes(layer.mode as string))
+          invalid("FILL_IMAGE_MODE", `${layerAt}.mode`);
+        break;
+      case "mesh-gradient": {
+        exact(layer, [...base, "rows", "columns", "points"], layerAt);
+        for (const axis of ["rows", "columns"])
+          if (!Number.isInteger(layer[axis]) || (layer[axis] as number) < 1)
+            invalid("FILL_MESH_GRID", `${layerAt}.${axis}`);
+        if (!Array.isArray(layer.points)) invalid("ARRAY_REQUIRED", `${layerAt}.points`);
+        for (const [pointIndex, rawPoint] of layer.points.entries()) {
+          const pointAt = `${layerAt}.points[${pointIndex}]`;
+          const p = object(rawPoint, pointAt);
+          exact(
+            p,
+            ["position", "color", "leftHandle", "rightHandle", "topHandle", "bottomHandle"],
+            pointAt,
+          );
+          point(p.position, `${pointAt}.position`);
+          if (!fillColor(p.color)) invalid("FILL_COLOR", `${pointAt}.color`);
+          for (const handle of ["leftHandle", "rightHandle", "topHandle", "bottomHandle"])
+            if (p[handle] !== undefined) point(p[handle], `${pointAt}.${handle}`);
+        }
+        break;
+      }
+      default:
+        invalid("FILL_KIND", `${layerAt}.kind`);
+    }
+    const layerId = string(layer.id, `${layerAt}.id`);
+    if (ids.has(layerId)) invalid("DUPLICATE_ID", `${layerAt}.id`);
+    ids.add(layerId);
+    if (typeof layer.enabled !== "boolean")
+      invalid("FILL_ENABLED_BOOLEAN", `${layerAt}.enabled`);
+    if (!unit(layer.opacity)) invalid("FILL_OPACITY_RANGE", `${layerAt}.opacity`);
+    if (!fillBlendModes.has(layer.blendMode as string))
+      invalid("FILL_BLEND_MODE", `${layerAt}.blendMode`);
+  });
+}
+function fillSizing(value: unknown, at: string): void {
+  for (const [axis, raw] of Object.entries(object(value, at))) {
+    if (axis !== "width" && axis !== "height")
+      invalid("UNKNOWN_FIELD", `${at}.${axis}`);
+    if (raw === null) continue;
+    const intent = object(raw, `${at}.${axis}`);
+    exact(intent, ["factor"], `${at}.${axis}`);
+    if (
+      typeof intent.factor !== "number" ||
+      !Number.isFinite(intent.factor) ||
+      intent.factor <= 0
+    )
+      invalid("FILL_FACTOR_RANGE", `${at}.${axis}.factor`);
+  }
+}
+function responsiveLayers(value: unknown, at: string): void {
+  for (const [breakpoint, raw] of Object.entries(object(value, at))) {
+    if (breakpoint !== "tablet" && breakpoint !== "mobile")
+      invalid("RESPONSIVE_BREAKPOINT", `${at}.${breakpoint}`);
+    const layerAt = `${at}.${breakpoint}`;
+    const layer = object(raw, layerAt);
+    exact(layer, ["visual", "layout", "sizing", "fillSizing"], layerAt);
+    if (layer.visual !== undefined)
+      writes(layer.visual, `${layerAt}.visual`, visualFields);
+    if (layer.layout !== undefined) layoutWrites(layer.layout, `${layerAt}.layout`);
+    if (layer.sizing !== undefined)
+      writes(layer.sizing, `${layerAt}.sizing`, sizingFields, true);
+    if (layer.fillSizing !== undefined)
+      fillSizing(layer.fillSizing, `${layerAt}.fillSizing`);
+  }
+}
+function visibility(value: unknown, at: string): void {
+  for (const [breakpoint, shown] of Object.entries(object(value, at))) {
+    if (!breakpointNames.has(breakpoint))
+      invalid("UNKNOWN_BREAKPOINT", `${at}.${breakpoint}`);
+    if (typeof shown !== "boolean")
+      invalid("VISIBILITY_BOOLEAN", `${at}.${breakpoint}`);
+  }
+}
+function themeOverride(value: unknown, at: string): void {
+  const override = object(value, at);
+  exact(override, ["mode", "tint"], at);
+  if (override.mode !== undefined && override.mode !== "light" && override.mode !== "dark")
+    invalid("THEME_OVERRIDE_VALUE", `${at}.mode`);
+  if (override.tint !== undefined && !presetValues.tint.has(override.tint as never))
+    invalid("THEME_OVERRIDE_VALUE", `${at}.tint`);
 }
 function propCondition(
   value: unknown,
@@ -682,9 +949,25 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
           "regions",
           "placeholder",
           "enabled",
+          "layout",
+          "fills",
+          "fillSizing",
+          "responsive",
+          "visibility",
+          "themeOverride",
         ],
         "entry",
       );
+      if (item.layout !== undefined) layoutWrites(item.layout, "entry.layout");
+      if (item.fills !== undefined) fillLayers(item.fills, "entry.fills");
+      if (item.fillSizing !== undefined)
+        fillSizing(item.fillSizing, "entry.fillSizing");
+      if (item.responsive !== undefined)
+        responsiveLayers(item.responsive, "entry.responsive");
+      if (item.visibility !== undefined)
+        visibility(item.visibility, "entry.visibility");
+      if (item.themeOverride !== undefined)
+        themeOverride(item.themeOverride, "entry.themeOverride");
       if (item.enabled !== undefined && typeof item.enabled !== "boolean")
         invalid("ENABLED_BOOLEAN", "entry.enabled");
       const definitionId = id(item.definitionId, "", "entry.definitionId");

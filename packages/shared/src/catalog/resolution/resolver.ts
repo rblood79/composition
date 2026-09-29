@@ -1,6 +1,12 @@
 import type {
   AuthoredValue,
+  BreakpointName,
+  CatalogFillLayer,
   CatalogLibrary,
+  FillSizing,
+  LayoutWrites,
+  NodeResponsiveLayer,
+  NodeThemeOverride,
   DefinitionId,
   DisplayStateName,
   InstanceAddress,
@@ -29,6 +35,11 @@ export interface ResolvedCatalogNode {
   layout: Readonly<Record<string, string>>;
   sizing: Readonly<Record<string, number | null>>;
   placement?: NodePlacement;
+  /** Authored paint layers (Phase 4a); absent = the definition's fill. */
+  fills?: readonly CatalogFillLayer[];
+  /** ADR-224 fill intent after the breakpoint cascade. */
+  fillSizing?: FillSizing;
+  themeOverride?: NodeThemeOverride;
   slot?: { name: string; required: boolean };
   name?: string;
   regions?: readonly { name: string; required: boolean }[];
@@ -135,14 +146,71 @@ const same = (left: InstanceAddress, right: InstanceAddress): boolean =>
   left.instances.every((id, index) => id === right.instances[index]) &&
   left.templatePath.every((id, index) => id === right.templatePath[index]);
 
+/** Desktop-first cascade: the layers below desktop that apply at a breakpoint, in order. */
+const CASCADE: Readonly<Record<BreakpointName, readonly ("tablet" | "mobile")[]>> = {
+  desktop: [],
+  tablet: ["tablet"],
+  mobile: ["tablet", "mobile"],
+};
+const VISIBILITY_FALLBACK: Readonly<Record<BreakpointName, readonly BreakpointName[]>> = {
+  desktop: ["desktop"],
+  tablet: ["tablet", "desktop"],
+  mobile: ["mobile", "tablet", "desktop"],
+};
+/** A node's display at a breakpoint: its own value, else the next larger breakpoint's. */
+export function catalogNodeVisibleAt(
+  node: Pick<NodeEntry, "visibility">,
+  breakpoint: BreakpointName,
+): boolean {
+  for (const name of VISIBILITY_FALLBACK[breakpoint]) {
+    const shown = node.visibility?.[name];
+    if (shown !== undefined) return shown;
+  }
+  return true;
+}
+function applyLayoutWrites(
+  target: Record<string, string>,
+  writes: LayoutWrites | undefined,
+): void {
+  for (const [key, write] of Object.entries(writes ?? {})) {
+    if (!write || write.kind === "remove") continue;
+    if (write.kind === "mask") delete target[key];
+    else target[key] = write.value;
+  }
+}
+function cascadeFillSizing(
+  node: NodeEntry,
+  layers: readonly NodeResponsiveLayer[],
+): FillSizing | undefined {
+  let result: Record<string, { factor: number } | null> | undefined =
+    node.fillSizing ? { ...node.fillSizing } : undefined;
+  for (const layer of layers)
+    if (layer.fillSizing) result = { ...result, ...layer.fillSizing };
+  return result;
+}
+
 /** Project entry lookup and immutable code library are kept in separate ID spaces. */
 export function resolveCatalogNode(
   graph: CatalogGraph,
   id: NodeId,
   state?: StateName,
   selection?: CatalogResolutionSelection,
+  breakpoint: BreakpointName = "desktop",
 ): ResolvedCatalogNode {
   const library: CatalogLibrary = graph.library;
+  const responsiveLayers = (node: NodeEntry): NodeResponsiveLayer[] =>
+    CASCADE[breakpoint]
+      .map((name) => node.responsive?.[name])
+      .filter((layer): layer is NodeResponsiveLayer => !!layer);
+  /** Authored node output fields that only exist when the node declares them. */
+  const authoredExtras = (node: NodeEntry, layers: readonly NodeResponsiveLayer[]) => {
+    const fillSizing = cascadeFillSizing(node, layers);
+    return {
+      ...(node.fills ? { fills: node.fills } : {}),
+      ...(fillSizing ? { fillSizing } : {}),
+      ...(node.themeOverride ? { themeOverride: node.themeOverride } : {}),
+    };
+  };
   const source = graph.getEntry(id);
   if (source?.kind !== "node")
     throw new CatalogValidationError("NODE_REQUIRED", id);
@@ -331,6 +399,8 @@ export function resolveCatalogNode(
   ): ResolvedCatalogNode | undefined => {
     selection?.onVisit?.(node.id);
     if (node.enabled === false) return undefined;
+    if (!catalogNodeVisibleAt(node, breakpoint)) return undefined;
+    const layers = responsiveLayers(node);
     const { definition, props, visual, layout } = base(node.definitionId);
     const override = findOverride(node.definitionId);
     if (override) {
@@ -345,6 +415,11 @@ export function resolveCatalogNode(
     applyPropVisualRules(node.definitionId, props, visual);
     applyTypedRules(node.definitionId, props, visual, layout, parent);
     applyWrites(visual, node.visual);
+    applyLayoutWrites(layout, node.layout);
+    for (const layer of layers) {
+      if (layer.visual) applyWrites(visual, layer.visual);
+      applyLayoutWrites(layout, layer.layout);
+    }
     const self: ParentContext = {
       definitionId: node.definitionId,
       props,
@@ -352,6 +427,7 @@ export function resolveCatalogNode(
     };
     const sizing: Record<string, number | null> = {};
     applyWrites(sizing, node.sizing);
+    for (const layer of layers) if (layer.sizing) applyWrites(sizing, layer.sizing);
     const children: ResolvedCatalogNode[] = [];
     if (
       definition.mode === "composite" &&
@@ -370,7 +446,10 @@ export function resolveCatalogNode(
           instanceRoot(
             Object.keys(node.props),
             props,
-            Object.keys(node.visual),
+            [
+              ...Object.keys(node.visual),
+              ...layers.flatMap((layer) => Object.keys(layer.visual ?? {})),
+            ],
             visual,
             sizing,
           ),
@@ -398,6 +477,7 @@ export function resolveCatalogNode(
       layout,
       sizing,
       placement: node.placement,
+      ...authoredExtras(node, layers),
       slot: node.slot ?? inherited?.slot,
       name: node.name,
       regions: node.regions,
@@ -454,6 +534,9 @@ export function resolveCatalogNode(
       template.enabled ??
       true;
     if (!enabled) return undefined;
+    if ("kind" in template && !catalogNodeVisibleAt(template, breakpoint))
+      return undefined;
+    const templateLayers = "kind" in template ? responsiveLayers(template) : [];
     const { definition, props, visual, layout } = base(template.definitionId);
     const override = findOverride(template.definitionId);
     if (override) {
@@ -470,6 +553,11 @@ export function resolveCatalogNode(
       for (const [key, value] of Object.entries(root.props))
         if (key in definition.accepts) props[key] = value;
     const sizing: Record<string, number | null> = { ...root?.sizing };
+    if ("kind" in template) {
+      applyWrites(sizing, template.sizing);
+      for (const layer of templateLayers)
+        if (layer.sizing) applyWrites(sizing, layer.sizing);
+    }
     if (change?.kind === "patch") {
       if (change.props) applyWrites(props, change.props);
       if (change.sizing) applyWrites(sizing, change.sizing);
@@ -501,12 +589,20 @@ export function resolveCatalogNode(
       ...(!("kind" in template) ? template.layout : undefined),
       ...libraryPatch?.layout,
     };
+    if ("kind" in template) {
+      applyLayoutWrites(authoredLayout, template.layout);
+      for (const layer of templateLayers)
+        applyLayoutWrites(authoredLayout, layer.layout);
+    }
     Object.assign(layout, authoredLayout);
     if (root) Object.assign(layout, root.layout);
     // Authored template visual is the node's own value: it wins over definition rules, the same
     // order as an authored node's visual writes in resolveOwned.
-    if ("kind" in template) applyWrites(visual, template.visual);
-    else applyValues(visual, template.visual);
+    if ("kind" in template) {
+      applyWrites(visual, template.visual);
+      for (const layer of templateLayers)
+        if (layer.visual) applyWrites(visual, layer.visual);
+    } else applyValues(visual, template.visual);
     if (libraryPatch?.visual) applyValues(visual, libraryPatch.visual);
     if (root) Object.assign(visual, root.visual);
     const self: ParentContext = {
@@ -598,6 +694,7 @@ export function resolveCatalogNode(
       layout,
       sizing,
       placement: "kind" in template ? template.placement : undefined,
+      ...("kind" in template ? authoredExtras(template, templateLayers) : {}),
       slot: template.slot,
       ...(displayState ? { displayState } : {}),
       children,

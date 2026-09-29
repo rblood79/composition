@@ -25,6 +25,21 @@ const TEST_FILE = /(\.test\.[cm]?[tj]sx?$)|(\/__tests__\/)/;
 const REVIEWED_UNRELATED: Readonly<
   Record<string, { blob: string | null; reason: string }>
 > = {
+  "apps/builder/src/builder/components/styles/panel-system.css": {
+    blob: "f8ebc69a3168c4824465a2b06bfb68ac9b3aa671",
+    reason:
+      "e309ce75a: `.panel-tablist` fixed height removed (the row keeps its padding + 28px tabs); side panel chrome only — no canvas, layout, paint, DOM or storage output",
+  },
+  "apps/builder/src/builder/styles/layout/canvas.css": {
+    blob: "70cb4dc305ff9bafee41a33d303432aea31aa52e",
+    reason:
+      "e309ce75a: side panel / command palette `.panel-header` fixed height removed (min-height kept); the rule does not select the canvas surface — no canvas, layout, paint, DOM or storage output",
+  },
+  "apps/builder/src/builder/styles/modules/builder-menu-row.css": {
+    blob: "98a4ad509cd5995c374369e6dcc46944e50ecb5f",
+    reason:
+      "e309ce75a: menu row separator margin; header menu chrome only — no canvas, layout, paint, DOM or storage output",
+  },
   "apps/builder/src/builder/workspace/canvas/viewport/useViewportControl.ts": {
     blob: "65cb05b56322035c349db049ccf3551b10e31054",
     reason:
@@ -216,9 +231,9 @@ const REVIEWED_UNRELATED: Readonly<
       "6dd0c0965: canvas scrollbar hidden while .app.builder-booting only; G0 captures run after boot",
   },
   "apps/builder/src/staticShell/staticShell.ts": {
-    blob: "a112d8716b053b3f3b815f715dcefd7334adec09",
+    blob: "0a2ecb8784d2f448d79bd2f6f0e5649eb78b63e9",
     reason:
-      "6dd0c0965: cold-entry shell reduced to canvas background, progress bar and theme (no panel skeleton); released before the builder is presented, before any G0 capture",
+      "6dd0c0965: cold-entry shell reduced to canvas background, progress bar and theme (no panel skeleton); released before the builder is presented, before any G0 capture; a42c49328: `.ts` import specifiers only",
   },
   "apps/builder/src/staticShell/staticShellRelease.ts": {
     blob: "6dd1455926287539260da77e46a02a0c449e95b4",
