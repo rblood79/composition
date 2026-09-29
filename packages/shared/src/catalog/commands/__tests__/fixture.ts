@@ -29,7 +29,7 @@ export const library = () =>
     contractVersion: 1,
     revision: "phase4b-structure",
     bindingIds: ["section", "text", "listbox", "item"],
-    actionOpCodes: ["setState", "capability"],
+    actionOpCodes: ["setState", "capability", "navigate"],
     triggerIds: ["press"],
     capabilityIds: ["selectItem"],
     definitions: [
