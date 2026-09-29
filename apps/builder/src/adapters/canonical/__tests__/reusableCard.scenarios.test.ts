@@ -61,6 +61,48 @@ function regionOf(card: CanonicalNode, childId: string): CanonicalNode {
 // ─────────────────────────────────────────────
 
 describe("ADR-138 A-1 reusable Card — region(descendants) 시나리오", () => {
+  it("ADR-248 G0: 문자열 children은 자식 교체가 아닌 props patch로 해석한다", () => {
+    const child = cardChild("label", "Text", { children: "Origin" });
+    const descendants = {
+      label: { children: "Override" },
+    } as unknown as Record<string, DescendantOverride>;
+
+    const resolved = resolveCanonicalDescendantOverride(
+      child,
+      descendants,
+      "label",
+    );
+
+    expect(resolved.props?.children).toBe("Override");
+    expect(resolved.children).toBeUndefined();
+  });
+
+  it("ADR-248 G0: props/style null tombstone은 상속값을 가리고 sizing null은 보존한다", () => {
+    const child: CanonicalNode = {
+      ...cardChild("label", "Text", {
+        title: "Origin",
+        style: { color: "red", fontSize: 16 },
+      }),
+      sizing: { width: { factor: 2 } },
+    };
+    const descendants: Record<string, DescendantOverride> = {
+      label: {
+        title: null,
+        style: { color: null },
+        sizing: { width: null },
+      },
+    };
+
+    const resolved = resolveCanonicalDescendantOverride(
+      child,
+      descendants,
+      "label",
+    );
+
+    expect(resolved.props).toEqual({ style: { fontSize: 16 } });
+    expect(resolved.sizing?.width).toBeNull();
+  });
+
   it("region 인식 — Card origin 등록 + instance ref → 자식 subtree 의 stable id 가 addressable", () => {
     const card = cardOrigin("card-o");
     const ref: RefNode = {

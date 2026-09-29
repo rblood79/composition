@@ -26,6 +26,8 @@
   padding: 0px 0px;
   font-size: var(--text-base);
   border-radius: var(--radius-none);
+  gap: 2px;
+  --icon-size: 16px;
 }
 
 .react-aria-Breadcrumb[data-variant="default"] {
@@ -47,6 +49,7 @@
   padding: 0px 0px;
   font-size: var(--text-sm);
   border-radius: var(--radius-none);
+  --icon-size: 14px;
 }
 
 .react-aria-Breadcrumb[data-size="M"] {
@@ -54,6 +57,8 @@
   padding: 0px 0px;
   font-size: var(--text-base);
   border-radius: var(--radius-none);
+  gap: 2px;
+  --icon-size: 16px;
 }
 
 .react-aria-Breadcrumb[data-size="L"] {
@@ -61,6 +66,8 @@
   padding: 0px 0px;
   font-size: var(--text-lg);
   border-radius: var(--radius-none);
+  gap: 4px;
+  --icon-size: 18px;
 }
 
 .react-aria-Breadcrumb[data-focus-visible] {

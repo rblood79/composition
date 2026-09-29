@@ -141,9 +141,28 @@ describe("ADR-237 G3 — seed · 이관", () => {
       ["ref", BREADCRUMB_ITEM_DEFAULT_ORIGIN_ID],
       ["ref", BREADCRUMB_ITEM_DEFAULT_ORIGIN_ID],
     ]);
+    // 2026-09-29 — 조각 글자 = label 자식 patch (origin = [Text, 구분자 Icon]).
     expect(
       items.map((c) => (c.props as Record<string, unknown>).children),
+    ).toEqual([undefined, undefined, undefined]);
+    expect(
+      items.map(
+        (c) =>
+          (c as { descendants?: Record<string, { children?: unknown }> })
+            .descendants?.Label?.children,
+      ),
     ).toEqual(["Home", "Category", "Page"]);
+    const itemOrigin = find(doc.children, BREADCRUMB_ITEM_DEFAULT_ORIGIN_ID)!;
+    expect(
+      (itemOrigin.children ?? []).map((c) => [
+        c.type,
+        c.name,
+        (c.metadata as Record<string, unknown>).slotRole,
+      ]),
+    ).toEqual([
+      ["Text", "Label", "label"],
+      ["Icon", "Separator", "separator"],
+    ]);
     expect(items.map((c) => (c.props as Record<string, unknown>).href)).toEqual(
       ["/", "/category", null],
     );
@@ -160,14 +179,17 @@ describe("ADR-237 G3 — seed · 이관", () => {
     );
   });
 
-  it("기존 문서 (items 모양) → 이관 Δnode 5 (항목 3 + 항목 origin + 현재 변형) · 새 문서와 같은 모양", () => {
+  it("기존 문서 (items 모양) → 이관 Δnode 7 (항목 3 + 항목 origin + label · 구분자 자식 2 + 현재 변형) · 새 문서와 같은 모양", () => {
     const seeded = seedDocument();
     const origin = find(seeded.children, "component-breadcrumbs")!;
     const rows = (origin.children ?? []).map((c) => {
       const p = c.props as Record<string, unknown>;
       return {
         id: String(p.id),
-        label: String(p.children),
+        label: String(
+          (c as { descendants?: Record<string, { children?: unknown }> })
+            .descendants?.Label?.children,
+        ),
         ...(typeof p.href === "string" ? { href: p.href } : {}),
       };
     });
@@ -194,7 +216,7 @@ describe("ADR-237 G3 — seed · 이관", () => {
       return node;
     });
     const post = ensureReusableCompositeOrigins(pre);
-    expect(countNodes(post.children) - countNodes(pre.children)).toBe(5);
+    expect(countNodes(post.children) - countNodes(pre.children)).toBe(7);
     expect(JSON.stringify(post)).toBe(JSON.stringify(seeded));
   });
 
@@ -278,31 +300,39 @@ describe("ADR-237 G3 — 두 leg 가 자식을 그리고 마지막 = 현재 층"
     }
   });
 
-  it("Canvas: 정적 crumb 에 projection 과 같은 layout 입력 (`_isLast` 마지막만 · `_separator` · owner size) — 자동 폭 측정이 이관 전과 같다", () => {
+  it("Canvas: 정적 crumb 에 projection 과 같은 layout 입력 (`_isLast` 마지막만 · owner size) · 구분자 Icon 은 현재 조각에서만 빠진다", () => {
     const doc = withUser(seedDocument(), [
       {
         id: "bc-s",
         type: "ref",
         ref: "component-breadcrumbs",
-        props: { size: "L", separator: "/" },
+        props: { size: "L" },
       } as unknown as CanonicalNode,
     ]);
     const model = buildCanonicalSceneModel(doc);
+    const roleTypes = (id: string) =>
+      (model.sceneChildrenByParent.get(id) ?? []).map((k) => k.type);
     for (const parent of ["component-breadcrumbs", "bc-s"]) {
       const kids = model.sceneChildrenByParent.get(parent) ?? [];
       const props = kids.map((k) => model.sceneNodesMap.get(k.id)!.props as Record<string, unknown>);
-      // 측정기 기본값 (부재 = 마지막 아님 · "›" · "M") 은 싣지 않는다.
+      // 측정기 기본값 (부재 = 마지막 아님 · "M") 은 싣지 않는다.
       expect(props.map((p) => p._isLast === true), parent).toEqual([
         false,
         false,
         true,
       ]);
-      expect(
-        props.map((p) => p._separator ?? "›"),
-        parent,
-      ).toEqual(Array(3).fill(parent === "bc-s" ? "/" : "›"));
+      expect(props.some((p) => "_separator" in p), parent).toBe(false);
       if (parent === "bc-s") expect(props.every((p) => p.size === "L")).toBe(true);
+      // crumb · icon · crumb · icon · crumb (사용자 결정 2026-09-29).
+      expect(kids.map((k) => roleTypes(k.id)), parent).toEqual([
+        ["Text", "Icon"],
+        ["Text", "Icon"],
+        ["Text"],
+      ]);
     }
+    // Components 페이지의 단독 origin = 링크 모양 (구분자 있음) · `--current` 변형 = 현재 모양 (구분자 없음).
+    expect(roleTypes(BREADCRUMB_ITEM_DEFAULT_ORIGIN_ID)).toEqual(["Text", "Icon"]);
+    expect(roleTypes(CURRENT_ID)).toEqual(["Text"]);
   });
 
   it("Preview: 정적 자식이 RAC Breadcrumb 으로 그려지고 (무한 갱신 없음) 마지막만 data-current · 현재 층 · href", () => {
@@ -369,7 +399,8 @@ describe("ADR-237 G3 — instance 자기 자식은 상속 자식 뒤 (Canvas lay
             id: "bc-own",
             type: "ref",
             ref: BREADCRUMB_ITEM_DEFAULT_ORIGIN_ID,
-            props: { id: "own", children: "Own" },
+            props: { id: "own" },
+            descendants: { Label: { children: "Own" } },
           },
         ],
       } as unknown as CanonicalNode,
@@ -441,7 +472,8 @@ describe('ADR-237 G3 — Slot "+" = 항목 instance', () => {
       expect(plan.tab).toMatchObject({
         type: "ref",
         ref: BREADCRUMB_ITEM_DEFAULT_ORIGIN_ID,
-        props: { id: "k-new", children: "Breadcrumb 4" },
+        props: { id: "k-new" },
+        descendants: { Label: { children: "Breadcrumb 4" } },
       });
       expect(plan.selection).toBeNull();
     }

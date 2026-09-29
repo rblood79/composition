@@ -195,6 +195,10 @@ export interface ComponentRuleVariant {
   /** 텍스트 굵기 (CSS font-weight 동형 — DropZone 400 등 보편 D3 속성). */
   textWeight?: number;
   /**
+   * RAC `data-current` 항목의 텍스트 굵기 (Breadcrumb 현재 페이지 조각). 미지정 시 textWeight 를 쓴다.
+   */
+  currentTextWeight?: number;
+  /**
    * 폰트 패밀리 (CSS font-family 동형 — Code/Kbd 의 monospace 등 보편 D3 속성).
    * 미지정 시 consumer(buildCatalogShapes)가 sans fallback. ADR-912 위험군 해소 —
    * TEXT_LEAF box형(Code/Kbd) 의 mono 가 D3 SSOT(rule)에 귀속(이전엔 spec render.shapes

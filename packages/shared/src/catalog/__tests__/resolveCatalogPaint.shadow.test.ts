@@ -53,6 +53,7 @@ function toLegacyVisual(variant: ComponentRuleVariant): ComponentVisualRule {
     text: colors.text as ComponentVisualRule["text"],
     textHover: colors.textHover as ComponentVisualRule["textHover"],
     textWeight: variant.textWeight,
+    currentTextWeight: variant.currentTextWeight,
     fontFamily: variant.fontFamily,
     border: colors.border as ComponentVisualRule["border"],
     borderHover: colors.borderHover as ComponentVisualRule["borderHover"],

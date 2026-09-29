@@ -1,0 +1,80 @@
+{
+  "head": "400d09eaeecd5dd258080d2af1e80f9bcd274fd7",
+  "scope": "INDEPENDENT_DOCUMENT_BYTE_SUBGATE_ONLY",
+  "serializer": "TextEncoder(JSON.stringify(document))",
+  "fixture": "two-page mixed Text/Frame absolute 160x60 seed; source G0 old perf-baseline mixed; new typed graph",
+  "excluded": [
+    "collections",
+    "api_endpoints",
+    "project variables",
+    "asset binary"
+  ],
+  "librarySnapshotBytes": 0,
+  "libraryBundleCacheBytes": "UNVERIFIED",
+  "formula": "P0 <= B0 + 4096; Pn-P0 <= 1.20*(Bn-B0)+4096",
+  "samples": [
+    {
+      "count": 0,
+      "oldBytes": 76182,
+      "projectBytes": 641,
+      "librarySnapshotBytes": 0
+    },
+    {
+      "count": 1,
+      "oldBytes": 76823,
+      "projectBytes": 1010,
+      "librarySnapshotBytes": 0
+    },
+    {
+      "count": 60,
+      "oldBytes": 121583,
+      "projectBytes": 23069,
+      "librarySnapshotBytes": 0
+    },
+    {
+      "count": 600,
+      "oldBytes": 534201,
+      "projectBytes": 227583,
+      "librarySnapshotBytes": 0
+    },
+    {
+      "count": 5000,
+      "oldBytes": 3926667,
+      "projectBytes": 1913516,
+      "librarySnapshotBytes": 0
+    }
+  ],
+  "verdicts": [
+    {
+      "count": 0,
+      "measuredProjectBytes": 641,
+      "allowedProjectBytes": 80278,
+      "pass": true
+    },
+    {
+      "count": 1,
+      "measuredProjectBytes": 1010,
+      "allowedProjectBytes": 5506.2,
+      "pass": true
+    },
+    {
+      "count": 60,
+      "measuredProjectBytes": 23069,
+      "allowedProjectBytes": 59218.2,
+      "pass": true
+    },
+    {
+      "count": 600,
+      "measuredProjectBytes": 227583,
+      "allowedProjectBytes": 554359.7999999999,
+      "pass": true
+    },
+    {
+      "count": 5000,
+      "measuredProjectBytes": 1913516,
+      "allowedProjectBytes": 4625319,
+      "pass": true
+    }
+  ],
+  "wholeG5": "UNVERIFIED_PAIRED_P95_HEAP_BUNDLE_AND_ACTUAL_SAME_CONSUMER"
+}

@@ -1,0 +1,195 @@
+{
+  "sourceHead": "2a5c970994cb9de2f824a729b29c08cdcd647d7b",
+  "executionHead": "400d09eaeecd5dd258080d2af1e80f9bcd274fd7",
+  "scenarioId": "adr248-structural-baseline-v1",
+  "scenarioHash": "487150e08d7461803b14afeb2c56c2c1bbf9018f61d8cb765a468bd4791495e5",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "dpr": 1,
+  "font": "app-default",
+  "theme": "default-light",
+  "seed": 248,
+  "fontSha256": "02b09ca630e4833028600a9f958b2f72f0289b9ccfd00d2df34780a7592f8d41",
+  "wasmSha256": "0ca7b1ebb0a01ef762d7065536e4219f60962af178c4859a4b4b72f6df53430c",
+  "executionIdentity": "UNVERIFIED_OLD_PRODUCTION_VS_NEW_VITEST",
+  "sourceLibraryRevision": "7f1b671708ed978fcd654cc826c38940e77a1e824b1ed090e80e7cdebba9b8a7",
+  "scenarioLibraryRevision": "0d4d636269c0253cca4bdbc0aee191601147b2460deb0374209f10bdf5510042",
+  "sourceDerivedDefinitions": [
+    "Text",
+    "Heading"
+  ],
+  "executedSourceDefinitions": [
+    "Text",
+    "Heading"
+  ],
+  "nativeFixtureDefinitions": [
+    "frame",
+    "rectangle",
+    "group",
+    "slot"
+  ],
+  "oldTextGeometry": {
+    "elementId": "adr248-text",
+    "x": 180,
+    "y": 0,
+    "width": 160,
+    "height": 40,
+    "margin": {
+      "top": 0,
+      "right": 0,
+      "bottom": 0,
+      "left": 0
+    }
+  },
+  "newTextGeometry": {
+    "x": 180,
+    "y": 0,
+    "width": 160,
+    "height": 40,
+    "baseline": 40
+  },
+  "resolvedText": {
+    "sourceId": "project:node:text",
+    "instancePath": [
+      "project:node:text"
+    ],
+    "definitionId": "lib:definition:text",
+    "props": {
+      "size": "md",
+      "children": "저장"
+    },
+    "visual": {
+      "color": "#171717",
+      "fontWeight": 400,
+      "width": "100%",
+      "fontSize": 16,
+      "lineHeight": 1.5,
+      "radius": 0
+    },
+    "layout": {
+      "display": "block"
+    },
+    "sizing": {
+      "width": 160,
+      "height": 40
+    },
+    "placement": {
+      "kind": "absolute",
+      "x": 180,
+      "y": 0
+    },
+    "name": "text",
+    "children": []
+  },
+  "rustLayoutInput": {
+    "id": "project:node:frame/project:node:group/project:node:text::project:node:text",
+    "sourceId": "project:node:text",
+    "definitionId": "lib:definition:text",
+    "bindingId": "text",
+    "definitionMode": "primitive",
+    "parentId": "project:node:frame/project:node:group::project:node:group",
+    "children": [],
+    "props": {
+      "size": "md",
+      "children": "저장"
+    },
+    "visual": {
+      "color": "#171717",
+      "fontWeight": 400,
+      "width": "100%",
+      "fontSize": 16,
+      "lineHeight": 1.5,
+      "radius": 0
+    },
+    "layout": {
+      "display": "block"
+    },
+    "sizing": {
+      "width": 160,
+      "height": 40
+    },
+    "placement": {
+      "kind": "absolute",
+      "x": 180,
+      "y": 0
+    },
+    "name": "text",
+    "instancePath": [
+      "project:node:frame",
+      "project:node:group",
+      "project:node:text"
+    ]
+  },
+  "canvasDrawCount": 1,
+  "sceneNonwhitePixels": 114400,
+  "isolatedDomSemantic": "<div data-catalog-id=\"project:node:frame/project:node:group::project:node:group\" aria-label=\"group\" aria-orientation=\"horizontal\" role=\"group\" class=\"react-aria-Group\" style=\"box-sizing:border-box;display:flex;flex-direction:row;position:absolute;left:20px;top:20px;width:380px;height:120px;row-gap:8px;column-gap:8px\" data-rac=\"\"><span data-catalog-id=\"project:node:frame/project:node:group/project:node:text::project:node:text\" class=\"react-aria-Text\" data-size=\"md\" style=\"box-sizing:border-box;display:block;position:absolute;left:180px;top:0;width:160px;height:40px;border-radius:0;margin:0;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#171717;font-weight:400;line-height:1.5\">저장</span></div>",
+  "headingExtension": {
+    "oldG0Oracle": "UNVERIFIED_NO_DIRECT_HEADING_FIXTURE",
+    "transactionChangedIds": [
+      "project:node:sourceHeading",
+      "project:node:group"
+    ],
+    "resolved": {
+      "sourceId": "project:node:sourceHeading",
+      "instancePath": [
+        "project:node:sourceHeading"
+      ],
+      "definitionId": "lib:definition:heading",
+      "props": {
+        "size": "lg",
+        "children": "Source Heading"
+      },
+      "visual": {
+        "color": "#171717",
+        "fontWeight": 600,
+        "width": "100%",
+        "fontSize": 18,
+        "lineHeight": 1.5555555555555556,
+        "radius": 0
+      },
+      "layout": {
+        "display": "block"
+      },
+      "sizing": {
+        "width": 160,
+        "height": 40
+      },
+      "placement": {
+        "kind": "absolute",
+        "x": 180,
+        "y": 50
+      },
+      "name": "sourceHeading",
+      "children": []
+    },
+    "rustGeometry": {
+      "x": 180,
+      "y": 50,
+      "width": 160,
+      "height": 40,
+      "baseline": 40
+    },
+    "canvasTextDraws": 1,
+    "isolatedDomSemantic": "<div data-catalog-id=\"project:node:frame/project:node:group::project:node:group\" aria-label=\"group\" aria-orientation=\"horizontal\" role=\"group\" class=\"react-aria-Group\" style=\"box-sizing:border-box;display:flex;flex-direction:row;position:absolute;left:20px;top:20px;width:380px;height:120px;row-gap:8px;column-gap:8px\" data-rac=\"\"><span data-catalog-id=\"project:node:frame/project:node:group/project:node:text::project:node:text\" class=\"react-aria-Text\" data-size=\"md\" style=\"box-sizing:border-box;display:block;position:absolute;left:180px;top:0;width:160px;height:40px;border-radius:0;margin:0;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#171717;font-weight:400;line-height:1.5\">저장</span><h3 data-catalog-id=\"project:node:frame/project:node:group/project:node:sourceHeading::project:node:sourceHeading\" style=\"box-sizing:border-box;display:block;position:absolute;left:180px;top:50px;width:160px;height:40px;border-radius:0;margin:0;font-family:Pretendard, sans-serif;font-size:18px;white-space:normal;color:#171717;font-weight:600;line-height:1.5555555555555556\" class=\"react-aria-Heading\">Source Heading</h3></div>"
+  },
+  "leafEditDelta": {
+    "changedIds": [
+      "project:node:text"
+    ],
+    "graphEntriesTraversed": 0,
+    "graphEntryTableClones": 0,
+    "graphRecordReplacements": 1,
+    "fullSerializations": 0,
+    "layoutInputVisits": 1,
+    "resolverVisits": 3,
+    "traversedWholeInputGraph": false,
+    "unrelatedNotifications": 0
+  },
+  "groupResolved": {
+    "orientation": "horizontal",
+    "size": "md"
+  },
+  "g3": "PARTIAL_TEXT_BASE_GEOMETRY_AND_CONSUMER; OLD_NEW_PIXEL_AND_COMPOSITE_CATALOG_UNVERIFIED"
+}

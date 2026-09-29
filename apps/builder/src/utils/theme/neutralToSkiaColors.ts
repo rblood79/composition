@@ -35,7 +35,7 @@ export const NEUTRAL_PALETTES: Record<NeutralPreset, Record<number, string>> = {
 /** Light mode: S2 토큰 → palette step (또는 고정 hex) */
 const LIGHT_MAP: Record<string, number | string> = {
   neutral: 900,
-  "neutral-subdued": 700,
+  "neutral-subdued": 600, // S2 #505050 에 가장 가까운 단계 (2026-09-29, 종전 700)
   "neutral-subtle": 200,
   "neutral-hover": 300,
   "neutral-pressed": 400,

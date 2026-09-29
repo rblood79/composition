@@ -1,0 +1,553 @@
+/**
+ * ADR-248 Phase 3 G3 — old/new geometry differences the user approved per node type (2026-09-30,
+ * evidence "남은 FAIL 노드 종류별 판정 목록"):
+ *   - `decided`: a D3 answer made the new side canonical; the frozen old baseline keeps the old value.
+ *   - `oldDefect`: the catalog declaration equals the new side; only the old Canvas departs from it.
+ *   - `previewFollow`: the Preview departs from the declaration and the Phase 3 new side follows the
+ *     Preview (②); Phase 4 fixes the product and the new side together.
+ *   - `bothDeviate`: neither side draws the catalog value; the new side follows the Preview (②).
+ * A rule approves an over-1px pair only when the pair's owner (the case's type) and node type match
+ * and every axis that differs by more than 1 CSS px is listed in `axes`. The pair must also hold the
+ * Canvas ↔ isolated DOM contract (the row's DOM leg), unless `noDomBox` names a node the DOM leg
+ * has no box for. Unlisted pairs (FileUpload — Phase 4, new-side defects, unexplained cases) keep
+ * the geometry leg failing.
+ */
+export type ApprovedDifferenceClass =
+  "decided" | "oldDefect" | "previewFollow" | "bothDeviate";
+export type GeometryAxis = "x" | "y" | "width" | "height";
+
+export interface ApprovedDifference {
+  id: string;
+  class: ApprovedDifferenceClass;
+  owners: readonly string[];
+  nodes: readonly string[];
+  axes: readonly GeometryAxis[];
+  /** The node has no isolated DOM box (the DOM leg cannot arbitrate it). */
+  noDomBox?: boolean;
+  reason: string;
+}
+
+const ALL: readonly GeometryAxis[] = ["x", "y", "width", "height"];
+/** Field family whose Label line box follows the catalog `text-*--line-height` at xs/sm. */
+const FIELD_OWNERS = [
+  "CheckboxGroup",
+  "ColorField",
+  "ComboBox",
+  "DateField",
+  "NumberField",
+  "RadioGroup",
+  "SearchField",
+  "Select",
+  "TagGroup",
+  "TextArea",
+  "TextField",
+  "TimeField",
+] as const;
+
+export const APPROVED_DIFFERENCES: readonly ApprovedDifference[] = [
+  // ── A. decided (user D3 answers 2026-09-29) ─────────────────────────────
+  {
+    id: "label-fit-content",
+    class: "decided",
+    owners: ["ProgressBar", "Meter", "Slider"],
+    nodes: ["Label"],
+    axes: ["height", "width"],
+    reason: "② Label height fit-content (69 → 20)",
+  },
+  {
+    id: "form-necessity-indicator",
+    class: "decided",
+    owners: ["Form"],
+    nodes: ["Label"],
+    axes: ["width", "y", "height"],
+    reason: "⑤ empty necessityIndicator = icon (`*` widens the label)",
+  },
+  {
+    id: "value-family-weight",
+    class: "decided",
+    owners: ["Nav", "Link", "ProgressBar", "Slider", "Toolbar"],
+    nodes: ["Link", "ProgressBarValue", "SliderOutput", "Separator"],
+    axes: ["x", "width"],
+    reason: "① Link · value text weight 400 (1–2px width and the following x)",
+  },
+  {
+    id: "select-trigger-gap",
+    class: "decided",
+    owners: ["Select"],
+    nodes: ["SelectValue"],
+    axes: ["width", "y"],
+    reason: "④ Select trigger gap 4",
+  },
+  {
+    id: "disclosure-chevron",
+    class: "decided",
+    owners: ["Disclosure", "DisclosureGroup"],
+    nodes: ["DisclosureHeader", "Disclosure"],
+    axes: ["width", "height", "y"],
+    reason: "⑧ Disclosure chevron 18 · gap 4 inside the header padding",
+  },
+  {
+    id: "item-label-font",
+    class: "decided",
+    owners: ["Tabs"],
+    nodes: ["Text", "Tab"],
+    axes: ALL,
+    reason: "⑨ Tab label font = the item rule's",
+  },
+  {
+    id: "breadcrumb-separator-icon",
+    class: "decided",
+    owners: ["Breadcrumb"],
+    nodes: ["Breadcrumb"],
+    axes: ["width"],
+    reason: "⑦ separator = editable Icon (16 + gap 2)",
+  },
+  // ── B. old Canvas defects (catalog = new) ───────────────────────────────
+  {
+    id: "field-label-line-height",
+    class: "oldDefect",
+    owners: FIELD_OWNERS,
+    nodes: ["Label"],
+    axes: ["height", "y"],
+    reason:
+      "old fixes the Label line box at 16; catalog `text-2xs/xs--line-height` (14.3 · 17.1)",
+  },
+  {
+    id: "field-label-line-height-cascade",
+    class: "oldDefect",
+    owners: [...FIELD_OWNERS, "Form"],
+    nodes: [
+      "SelectTrigger",
+      "Input",
+      "DateInput",
+      "SelectIcon",
+      "Button",
+      "ButtonGroup",
+      "TextField",
+      "FieldError",
+    ],
+    axes: ["y"],
+    noDomBox: true,
+    reason: "rows below the Label move by its line-box difference",
+  },
+  {
+    id: "textarea-label-line-height-fill",
+    class: "oldDefect",
+    owners: ["TextArea"],
+    nodes: ["Input"],
+    axes: ["y", "height"],
+    reason:
+      "the fixed-height TextArea's Input absorbs the Label line-box difference",
+  },
+  {
+    id: "colorfield-input-size",
+    class: "oldDefect",
+    owners: ["ColorField"],
+    nodes: ["Input"],
+    axes: ["y", "height"],
+    reason:
+      "old keeps the md Input box (30) at every size; the owner's per-size `--cf-input-*` delegation sizes it",
+  },
+  {
+    id: "searchfield-icon-clear",
+    class: "oldDefect",
+    owners: ["SearchField"],
+    nodes: ["SelectIcon", "SelectValue"],
+    axes: ALL,
+    reason:
+      "old: SelectTrigger rule icon 18 · empty value keeps the clear button",
+  },
+  {
+    id: "checkboxgroup-items-width",
+    class: "oldDefect",
+    owners: ["CheckboxGroup"],
+    nodes: ["Checkbox"],
+    axes: ["width"],
+    reason: "old: items wrapper flex-start hard-coded",
+  },
+  {
+    id: "switch-label-weight",
+    class: "oldDefect",
+    owners: ["Switch"],
+    nodes: ["Label", "Switch"],
+    axes: ["width"],
+    noDomBox: true,
+    reason:
+      "old measures the Switch text with the Label rule 600 (product: Switch 400 text node)",
+  },
+  {
+    id: "slider-output-height",
+    class: "oldDefect",
+    owners: ["Slider"],
+    nodes: ["SliderOutput"],
+    axes: ["height", "width", "x"],
+    reason: "old: catalog md height 20 not injected",
+  },
+  {
+    id: "daterangepicker-label-measure",
+    class: "oldDefect",
+    owners: ["DateRangePicker"],
+    nodes: ["Label"],
+    axes: ["width"],
+    reason: "old measuring by-product",
+  },
+  {
+    id: "card-image-zero",
+    class: "oldDefect",
+    owners: ["Card"],
+    nodes: ["Image"],
+    axes: ["height"],
+    reason: "old engine reads a definite 0 height as unset (200)",
+  },
+  {
+    id: "breadcrumbs-authored-height",
+    class: "oldDefect",
+    owners: ["Breadcrumbs"],
+    nodes: ["Breadcrumbs", "Breadcrumb"],
+    axes: ALL,
+    reason:
+      "old overrides the authored height with the size height (24 → 130; crumbs center in it)",
+  },
+  {
+    id: "disclosure-content-padding",
+    class: "oldDefect",
+    owners: ["Disclosure", "DisclosureGroup"],
+    nodes: ["DisclosureContent"],
+    axes: ["height", "y", "width"],
+    reason: "old: staticSelector padding 8 not consumed",
+  },
+  {
+    id: "border-reservation",
+    class: "oldDefect",
+    owners: ["Table", "Popover"],
+    nodes: ["TableHeader", "TableBody", "Heading", "Description"],
+    axes: ALL,
+    noDomBox: true,
+    reason: "old reserves no inner border (1px)",
+  },
+  {
+    id: "tabs-list-panels",
+    class: "oldDefect",
+    owners: ["Tabs"],
+    nodes: ["TabList", "TabPanels", "TabPanel"],
+    axes: ["width", "height", "y"],
+    noDomBox: true,
+    reason: "old: TabList width 100% · TabPanels flexGrow hard-coded",
+  },
+  {
+    id: "listbox-item-slot-font",
+    class: "oldDefect",
+    owners: ["ListBoxItem"],
+    nodes: ["ListBoxItem", "Text"],
+    axes: ALL,
+    reason: "old: slot font without a collection ancestor",
+  },
+  {
+    id: "menu-item-empty-icon",
+    class: "oldDefect",
+    owners: ["MenuItem"],
+    nodes: ["MenuItem", "Text"],
+    axes: ALL,
+    reason: "old flows an empty `{icon}` as a 24 box",
+  },
+  // ── C. Preview defects the new side follows (Phase 4 fixes) ─────────────
+  {
+    id: "button-min-width-68",
+    class: "previewFollow",
+    owners: ["ComboBox", "DatePicker", "DateRangePicker"],
+    nodes: ["SelectIcon", "SelectValue"],
+    axes: ALL,
+    reason: "generic Button `min-width` 68 beats the catalog trigger button 18",
+  },
+  {
+    id: "breadcrumb-css-unloaded",
+    class: "previewFollow",
+    owners: ["Breadcrumbs"],
+    nodes: ["Breadcrumb"],
+    axes: ["height"],
+    reason: "generated Breadcrumb.css not loaded (22.9)",
+  },
+  {
+    id: "pagination-wrap",
+    class: "previewFollow",
+    owners: ["Pagination"],
+    nodes: ["Button"],
+    axes: ["x", "y"],
+    reason: "Table hand CSS wraps the Pagination",
+  },
+  {
+    id: "taglist-wrapper",
+    class: "previewFollow",
+    owners: ["TagGroup"],
+    nodes: ["TagList", "Tag", "Text"],
+    axes: ALL,
+    noDomBox: true,
+    reason:
+      "product wrapper outside the RAC structure: TagList 100% unresolved",
+  },
+  {
+    id: "standalone-tag-slot",
+    class: "previewFollow",
+    owners: ["Tag"],
+    nodes: ["Avatar", "Tag", "Text"],
+    axes: ALL,
+    reason: "a standalone Tag gets no slot (avatar 32)",
+  },
+  {
+    id: "standalone-gridlistitem-slot",
+    class: "previewFollow",
+    owners: ["GridListItem"],
+    nodes: ["GridListItem", "Text"],
+    axes: ALL,
+    reason: "a standalone item gets no slot",
+  },
+  {
+    id: "tree-chevron-shrink",
+    class: "previewFollow",
+    owners: ["Tree"],
+    nodes: ["Text"],
+    axes: ["x", "width"],
+    reason: "hand CSS chevron width shrinks",
+  },
+  {
+    id: "orphan-tree-host",
+    class: "previewFollow",
+    owners: ["TreeItem"],
+    nodes: ["TreeItem", "Text"],
+    axes: ALL,
+    reason:
+      "standalone host lacks `data-composition-tree` (hand Tree.css not applied)",
+  },
+  {
+    id: "listbox-section-header",
+    class: "previewFollow",
+    owners: ["ListBoxSection"],
+    nodes: ["Header"],
+    axes: ["y"],
+    reason: "generated CSS not loaded",
+  },
+  {
+    id: "group-size-not-propagated",
+    class: "previewFollow",
+    owners: ["ToggleButtonGroup", "RadioGroup", "CheckboxGroup"],
+    nodes: ["ToggleButton", "Radio", "Checkbox", "Label"],
+    axes: ALL,
+    reason:
+      "group `[data-size]` never reaches the items (generated blocks dead) — RSP propagates (user 2026-09-30)",
+  },
+  {
+    id: "slider-track-size-not-propagated",
+    class: "previewFollow",
+    owners: ["Slider"],
+    nodes: ["SliderTrack", "SliderThumb"],
+    axes: ["height", "y"],
+    reason:
+      "the product `<SliderTrack>` carries no `data-size`: its box stays the base 8 while `.slider-track-bg` draws the Slider size (sm 4) — size reaches the bar, not the box",
+  },
+  {
+    id: "numberfield-trigger-content-height",
+    class: "previewFollow",
+    owners: ["NumberField"],
+    nodes: ["SelectTrigger", "SelectValue", "SelectIcon"],
+    axes: ALL,
+    reason:
+      "no stylesheet reads the catalog trigger `sizes.height` (20/22/42/54): the product group is content-sized, the steppers are `--icon-size`",
+  },
+  {
+    id: "checkbox-label-size-not-propagated",
+    class: "previewFollow",
+    owners: ["Checkbox"],
+    nodes: ["Label"],
+    axes: ALL,
+    reason:
+      "the product label span (`.react-aria-Label`) keeps `--label-font-size` text-sm: the Checkbox size does not reach it",
+  },
+  // ── D. neither side draws the catalog value (new follows the Preview) ───
+  {
+    id: "calendar-header",
+    class: "bothDeviate",
+    owners: ["Calendar", "RangeCalendar"],
+    nodes: ["CalendarHeader", "CalendarGrid"],
+    axes: ALL,
+    noDomBox: true,
+    reason:
+      "old header 0 · Preview 68px nav buttons wrap the heading (42); catalog 30",
+  },
+  {
+    id: "datepicker-dateinput",
+    class: "bothDeviate",
+    owners: ["DatePicker", "DateRangePicker"],
+    nodes: ["DateInput"],
+    axes: ["width", "x"],
+    reason: "old-only paddingX 12 · Preview 68px button",
+  },
+  {
+    id: "gridlist-section-header",
+    class: "bothDeviate",
+    owners: ["GridListSection"],
+    nodes: ["Header"],
+    axes: ALL,
+    reason: "both sides depart from the catalog header",
+  },
+];
+
+/**
+ * A within-tolerance pair whose vertical edge still paints differently: the old Canvas rounds a
+ * fit-content box's intrinsic width up to a whole pixel (`layout/engines/utils.ts` `Math.ceil
+ * (injectWidth)` · text widths), the new Canvas keeps the measured width, which is the DOM box.
+ * Only the moved vertical edges are attributed.
+ */
+export const SUBPIXEL_INTRINSIC_WIDTH_CEIL = {
+  id: "subpixel-intrinsic-width-ceil",
+  class: "oldDefect",
+  reason: "old Canvas rounds the intrinsic width up (Math.ceil); new = DOM box",
+} as const satisfies {
+  id: string;
+  class: ApprovedDifferenceClass;
+  reason: string;
+};
+
+export function subpixelIntrinsicWidthCeil(
+  oldRect: { x: number; y: number; width: number; height: number },
+  newRect: { x: number; y: number; width: number; height: number },
+  dom: { x: number; y: number; width: number; height: number },
+): boolean {
+  const wider = oldRect.width - newRect.width;
+  return (
+    wider > 0.01 &&
+    wider < 1 &&
+    Math.abs(oldRect.height - newRect.height) <= 0.01 &&
+    Math.abs(dom.width - newRect.width) <= 0.05 &&
+    // The old box never grew by a whole pixel or more: exactly a round-up of the new width.
+    Math.ceil(newRect.width - 1e-6) - newRect.width >= wider - 0.05 &&
+    Math.abs(oldRect.y - newRect.y) <= 1
+  );
+}
+
+/**
+ * State origins whose old paint follows an old input the new model does not carry (user decision
+ * 2026-09-30, option 1): the old Tab/Tag origin keeps a legacy `_isSelected: true` prop (the
+ * pre-migration selected template) that its hover · pressed · focus · disabled variants inherit,
+ * so the old Canvas draws them selected; ListBoxItem · GridListItem · TreeItem · ToggleButton
+ * variants draw unselected. The new model draws every family's interaction/disabled variant
+ * unselected (display states are one layer), as the RAC reference draws a hovered Tab without the
+ * indicator.
+ */
+export interface ApprovedStatePaint {
+  id: string;
+  class: ApprovedDifferenceClass;
+  owners: readonly string[];
+  states: readonly string[];
+  reason: string;
+}
+
+export const APPROVED_STATE_PAINT: readonly ApprovedStatePaint[] = [
+  {
+    id: "item-variant-inherited-selection",
+    class: "oldDefect",
+    owners: ["Tab", "Tag"],
+    states: ["hover", "pressed", "focus-visible", "disabled"],
+    reason:
+      "old Tab/Tag origin's legacy `_isSelected` is inherited by its interaction/disabled variants (selected look); the new model draws them unselected like the other item families",
+  },
+];
+
+export function approvedStatePaint(
+  owner: string,
+  state: string,
+): ApprovedStatePaint | undefined {
+  return APPROVED_STATE_PAINT.find(
+    (rule) => rule.owners.includes(owner) && rule.states.includes(state),
+  );
+}
+
+/** The approving rule of one over-1px pair, or undefined. */
+export function approvedDifference(
+  owner: string,
+  node: string,
+  oldRect: { x: number; y: number; width: number; height: number },
+  newRect: { x: number; y: number; width: number; height: number },
+  hasDomBox: boolean,
+): ApprovedDifference | undefined {
+  const differing = (["x", "y", "width", "height"] as const).filter(
+    (axis) => Math.abs(oldRect[axis] - newRect[axis]) > 1,
+  );
+  return APPROVED_DIFFERENCES.find(
+    (rule) =>
+      rule.owners.includes(owner) &&
+      rule.nodes.includes(node) &&
+      (hasDomBox || rule.noDomBox === true) &&
+      differing.every((axis) => rule.axes.includes(axis)),
+  );
+}
+
+/**
+ * Nodes one side has and the other does not (structural pairing leaves them unpaired), approved
+ * per owner: the new side's node type, or the old side's path pattern.
+ */
+export interface ApprovedUnpaired {
+  id: string;
+  class: ApprovedDifferenceClass;
+  owners: readonly string[];
+  side: "new" | "old";
+  /** New side: node types. */
+  nodes?: readonly string[];
+  /** Old side: the old node path (last segment) pattern. */
+  oldPath?: RegExp;
+  reason: string;
+}
+
+export const APPROVED_UNPAIRED: readonly ApprovedUnpaired[] = [
+  {
+    id: "breadcrumb-separator-icon-children",
+    class: "decided",
+    owners: ["Breadcrumbs", "Breadcrumb"],
+    side: "new",
+    nodes: ["Text", "Icon"],
+    reason:
+      "⑦ crumb = [label Text, separator Icon] (old: a leaf crumb with `::after`)",
+  },
+  {
+    id: "searchfield-empty-clear-button",
+    class: "oldDefect",
+    owners: ["SearchField"],
+    side: "old",
+    oldPath: /^component-searchfield__2(\/component-searchfield__2)?_3$/,
+    reason: "old keeps the clear button for an empty value (RAC hides it)",
+  },
+  {
+    id: "tree-collapsed-row",
+    class: "oldDefect",
+    owners: ["Tree"],
+    side: "old",
+    oldPath: /^component-tree__item-2$/,
+    reason: "old draws the collapsed item's row",
+  },
+  {
+    id: "item-empty-icon-box",
+    class: "oldDefect",
+    owners: ["ListBoxItem", "MenuItem"],
+    side: "old",
+    // Origin `_icon`; a state variant names the same slot by its instance segment (`Icon`).
+    oldPath: /^(_icon|Icon)$/,
+    reason: "old flows an empty `{icon}` as a 24 box",
+  },
+];
+
+/** The approving rule of one unpaired node (`new:<id>` / `old:<path>`), or undefined. */
+export function approvedUnpaired(
+  owner: string,
+  entry: string,
+  newNodeType: (id: string) => string,
+): ApprovedUnpaired | undefined {
+  const [side, ...rest] = entry.split(":");
+  const key = rest.join(":");
+  return APPROVED_UNPAIRED.find(
+    (rule) =>
+      rule.side === side &&
+      rule.owners.includes(owner) &&
+      (side === "new"
+        ? (rule.nodes ?? []).includes(newNodeType(key))
+        : (rule.oldPath?.test(key) ?? false)),
+  );
+}

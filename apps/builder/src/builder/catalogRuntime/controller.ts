@@ -1,0 +1,403 @@
+import { CatalogGraph } from "../../../../../packages/shared/src/catalog/document/graph";
+import type {
+  CatalogDocument,
+  CatalogEntry,
+  NodeId,
+  StateName,
+} from "../../../../../packages/shared/src/catalog/document/types";
+import {
+  resolveCatalogNode,
+  type ResolvedCatalogNode,
+} from "../../../../../packages/shared/src/catalog/resolution/resolver";
+import {
+  applyCatalogTransaction,
+  type CatalogOperation,
+  type CatalogTransactionResult,
+} from "../../../../../packages/shared/src/catalog/transactions/transaction";
+import { CatalogStorage, type CatalogCommit } from "./storage";
+
+interface HistoryEntry {
+  label: string;
+  forward: readonly CatalogOperation[];
+  inverse: readonly CatalogOperation[];
+}
+interface Subscription {
+  id: string;
+  field: string;
+  source: "entry" | "resolved";
+  state?: StateName;
+  value: unknown;
+  notify: (value: unknown) => void;
+}
+interface ProjectSession {
+  graph: CatalogGraph;
+  durableRevision: number;
+  pending: CatalogCommit[];
+  saveTail: Promise<void>;
+  undo: HistoryEntry[];
+  redo: HistoryEntry[];
+  subscriptions: Map<string, Set<Subscription>>;
+  resolved: Map<string, Map<string, ResolvedCatalogNode>>;
+  invalidatedIds: readonly string[];
+}
+
+function readField(value: unknown, field: string): unknown {
+  return field
+    .split(".")
+    .reduce<unknown>(
+      (current, part) =>
+        current && typeof current === "object"
+          ? (current as Record<string, unknown>)[part]
+          : undefined,
+      value,
+    );
+}
+function sameValue(a: unknown, b: unknown): boolean {
+  return Object.is(a, b) || JSON.stringify(a) === JSON.stringify(b);
+}
+
+/**
+ * The step was not applied: a consumer could not take the new state. Graph content, revision,
+ * history, pending saves and consumer inputs are exactly as before; `revision` is that unchanged
+ * revision and `cause` the consumer failure.
+ */
+export class CatalogStepAbortedError extends Error {
+  constructor(
+    readonly label: string,
+    readonly revision: number,
+    cause: unknown,
+  ) {
+    super(
+      `CATALOG_STEP_ABORTED:${cause instanceof Error ? cause.message : String(cause)}`,
+      { cause },
+    );
+    this.name = "CatalogStepAbortedError";
+  }
+}
+/**
+ * The step is committed at `revision` — graph, history, pending saves and consumer inputs all
+ * hold it. Only subscriber callbacks threw (`errors`); every subscriber was still called.
+ */
+export class CatalogSubscriberError extends Error {
+  constructor(
+    readonly result: CatalogTransactionResult,
+    readonly errors: readonly unknown[],
+  ) {
+    super(
+      `CATALOG_SUBSCRIBER_FAILED@${result.revision}:${errors
+        .map((error) =>
+          error instanceof Error ? error.message : String(error),
+        )
+        .join("; ")}`,
+      { cause: errors[0] },
+    );
+    this.name = "CatalogSubscriberError";
+  }
+  get revision(): number {
+    return this.result.revision;
+  }
+}
+
+export interface CatalogStepContext {
+  readonly result: CatalogTransactionResult;
+  /** Entries whose resolved values may differ (before and after the step). */
+  readonly invalidatedIds: readonly string[];
+}
+/**
+ * Takes a step after the graph holds it and before anything is published (pending save,
+ * history, runtime subscribers). Throwing aborts the step: the graph returns to the previous
+ * revision, and the consumer must have left its own state as it was. The returned callback runs
+ * once the step is published; it returns the errors its subscribers threw.
+ */
+export type CatalogStepConsumer = (
+  step: CatalogStepContext,
+) => (() => readonly unknown[]) | void;
+
+/** Phase 2 only: an isolated command/history/storage harness, never a Builder singleton. */
+export class CatalogRuntime {
+  private readonly projects = new Map<string, ProjectSession>();
+  private activeId: CatalogDocument["projectId"];
+  constructor(
+    graph: CatalogGraph,
+    private readonly storage: CatalogStorage,
+  ) {
+    this.activeId = graph.projectId;
+    this.addProject(graph);
+  }
+
+  addProject(graph: CatalogGraph): void {
+    if (this.projects.has(graph.projectId))
+      throw new Error("PROJECT_ALREADY_OPEN");
+    this.projects.set(graph.projectId, {
+      graph,
+      durableRevision: graph.revision,
+      pending: [],
+      saveTail: Promise.resolve(),
+      undo: [],
+      redo: [],
+      subscriptions: new Map(),
+      resolved: new Map(),
+      invalidatedIds: [],
+    });
+  }
+  switchProject(projectId: CatalogDocument["projectId"]): void {
+    if (!this.projects.has(projectId)) throw new Error("PROJECT_NOT_OPEN");
+    this.activeId = projectId;
+  }
+  get projectId(): string {
+    return this.activeId;
+  }
+  get graph(): CatalogGraph {
+    return this.current().graph;
+  }
+  get durableRevision(): number {
+    return this.current().durableRevision;
+  }
+  get pendingCount(): number {
+    return this.current().pending.length;
+  }
+  get dirtyIds(): ReadonlySet<string> {
+    const ids = new Set<string>();
+    for (const commit of this.current().pending) {
+      for (const entry of commit.changed) ids.add(entry.id);
+      for (const id of commit.removedIds) ids.add(id);
+    }
+    return ids;
+  }
+  get historyDepth(): { undo: number; redo: number } {
+    const session = this.current();
+    return { undo: session.undo.length, redo: session.redo.length };
+  }
+  get lastInvalidatedIds(): readonly string[] {
+    return this.current().invalidatedIds;
+  }
+  private current(): ProjectSession {
+    return this.projects.get(this.activeId)!;
+  }
+
+  private resolved(
+    session: ProjectSession,
+    id: NodeId,
+    state?: StateName,
+  ): ResolvedCatalogNode {
+    let byState = session.resolved.get(id);
+    if (!byState) {
+      byState = new Map();
+      session.resolved.set(id, byState);
+    }
+    const key = state ?? "base";
+    let value = byState.get(key);
+    if (!value) {
+      value = resolveCatalogNode(session.graph, id, state);
+      byState.set(key, value);
+    }
+    return value;
+  }
+  selectEntryField(id: string, field: string): unknown {
+    return readField(this.graph.getEntry(id), field);
+  }
+  selectResolvedField(id: NodeId, field: string, state?: StateName): unknown {
+    return readField(this.resolved(this.current(), id, state), field);
+  }
+  subscribeEntryField(
+    id: string,
+    field: string,
+    notify: (value: unknown) => void,
+  ): () => void {
+    return this.subscribe({
+      id,
+      field,
+      source: "entry",
+      notify,
+      value: this.selectEntryField(id, field),
+    });
+  }
+  subscribeResolvedField(
+    id: NodeId,
+    field: string,
+    notify: (value: unknown) => void,
+    state?: StateName,
+  ): () => void {
+    return this.subscribe({
+      id,
+      field,
+      source: "resolved",
+      state,
+      notify,
+      value: this.selectResolvedField(id, field, state),
+    });
+  }
+  private subscribe(subscription: Subscription): () => void {
+    const session = this.current();
+    let set = session.subscriptions.get(subscription.id);
+    if (!set) {
+      set = new Set();
+      session.subscriptions.set(subscription.id, set);
+    }
+    set.add(subscription);
+    return () => {
+      set!.delete(subscription);
+      if (!set!.size) session.subscriptions.delete(subscription.id);
+    };
+  }
+
+  dispatch(
+    label: string,
+    ops: readonly CatalogOperation[],
+    expectedRevision = this.graph.revision,
+    consumer?: CatalogStepConsumer,
+  ): CatalogTransactionResult {
+    const session = this.current();
+    return this.step(session, label, ops, expectedRevision, consumer, (result) => {
+      session.undo.push({
+        label,
+        forward: result.forward,
+        inverse: result.inverse,
+      });
+      session.redo.length = 0;
+    });
+  }
+  undo(consumer?: CatalogStepConsumer): CatalogTransactionResult | undefined {
+    const session = this.current();
+    const entry = session.undo.at(-1);
+    if (!entry) return undefined;
+    return this.step(
+      session,
+      `Undo ${entry.label}`,
+      entry.inverse,
+      session.graph.revision,
+      consumer,
+      () => {
+        session.undo.pop();
+        session.redo.push(entry);
+      },
+    );
+  }
+  redo(consumer?: CatalogStepConsumer): CatalogTransactionResult | undefined {
+    const session = this.current();
+    const entry = session.redo.at(-1);
+    if (!entry) return undefined;
+    return this.step(
+      session,
+      `Redo ${entry.label}`,
+      entry.forward,
+      session.graph.revision,
+      consumer,
+      () => {
+        session.redo.pop();
+        session.undo.push(entry);
+      },
+    );
+  }
+  /**
+   * One step as a unit. The transaction is staged into the graph, then the consumer takes it; if
+   * the consumer throws, the graph commit is reverted and nothing is published (no pending save,
+   * no history change, no subscriber call). Otherwise the step is published — pending save,
+   * history, cache invalidation, runtime subscribers, then the consumer's own subscribers — and
+   * subscriber errors are raised together once all of it is done.
+   */
+  private step(
+    session: ProjectSession,
+    label: string,
+    ops: readonly CatalogOperation[],
+    expectedRevision: number,
+    consumer: CatalogStepConsumer | undefined,
+    record: (result: CatalogTransactionResult) => void,
+  ): CatalogTransactionResult {
+    const preAffected = session.graph.collectAffectedIds(
+      ops.map((op) => (op.kind === "put" ? op.entry.id : op.id)),
+    );
+    const result = applyCatalogTransaction(session.graph, {
+      projectId: session.graph.projectId,
+      expectedRevision,
+      ops,
+      history: { kind: "record", label },
+    });
+    const invalidatedIds = [
+      ...new Set([
+        ...preAffected,
+        ...session.graph.collectAffectedIds([
+          ...result.changedIds,
+          ...result.removedIds,
+        ]),
+      ]),
+    ];
+    let deliver: (() => readonly unknown[]) | void;
+    try {
+      deliver = consumer?.({ result, invalidatedIds });
+    } catch (cause) {
+      session.graph.revertCommit(result.revision);
+      throw new CatalogStepAbortedError(label, session.graph.revision, cause);
+    }
+    const changed = [...result.changedIds].map((id) => {
+      const entry = session.graph.getEntry(id) as CatalogEntry;
+      return { id, json: JSON.stringify(entry) };
+    });
+    session.pending.push({
+      projectId: session.graph.projectId,
+      expectedDurableRevision: result.revision - 1,
+      revision: result.revision,
+      changed,
+      removedIds: [...result.removedIds],
+    });
+    record(result);
+    session.invalidatedIds = invalidatedIds;
+    for (const id of invalidatedIds) session.resolved.delete(id);
+    const errors = this.notify(session, invalidatedIds);
+    if (deliver) errors.push(...deliver());
+    if (errors.length) throw new CatalogSubscriberError(result, errors);
+    return result;
+  }
+  /** Every subscriber is called; the errors they throw are returned, not raised. */
+  private notify(
+    session: ProjectSession,
+    ids: readonly string[],
+  ): unknown[] {
+    const errors: unknown[] = [];
+    for (const id of ids) {
+      const subscriptions = session.subscriptions.get(id);
+      if (!subscriptions) continue;
+      for (const subscription of subscriptions) {
+        try {
+          const next =
+            subscription.source === "entry"
+              ? readField(session.graph.getEntry(id), subscription.field)
+              : session.graph.getEntry(id)?.kind === "node"
+                ? readField(
+                    this.resolved(session, id as NodeId, subscription.state),
+                    subscription.field,
+                  )
+                : undefined;
+          if (!sameValue(next, subscription.value)) {
+            subscription.value = next;
+            subscription.notify(next);
+          }
+        } catch (error) {
+          errors.push(error);
+        }
+      }
+    }
+    return errors;
+  }
+
+  /** Each save is pinned to a project and revision; only IDB oncomplete advances durableRevision. */
+  save(projectId: CatalogDocument["projectId"] = this.activeId): Promise<void> {
+    const session = this.projects.get(projectId);
+    if (!session) return Promise.reject(new Error("PROJECT_NOT_OPEN"));
+    const targetRevision = session.graph.revision;
+    const run = async (): Promise<void> => {
+      while (
+        session.pending.length &&
+        session.pending[0].revision <= targetRevision
+      ) {
+        const commit = session.pending[0];
+        await this.storage.commit(commit);
+        session.durableRevision = commit.revision;
+        session.pending.shift();
+      }
+    };
+    const next = session.saveTail.then(run, run);
+    session.saveTail = next.catch(() => undefined);
+    return next;
+  }
+}

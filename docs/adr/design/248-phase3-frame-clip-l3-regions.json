@@ -1,0 +1,408 @@
+{
+  "scenarioId": "adr248-old-native-state-v1",
+  "scenarioHash": "49666f0564fb8bef1cf5eaed2c18cf54d16e9942249130f42206336effe9d7b1",
+  "head": "2a5c970994cb9de2f824a729b29c08cdcd647d7b",
+  "inputs": {
+    "pairJson": "docs/adr/design/248-phase3-frame-clip-pair.json",
+    "canvasSha256": "852ccbf2ee4c563cd4a5c8ca780cd2e9e7f97c0862a491ef7521f6f221bcefdc",
+    "domSha256": "fca60d815c110945a1be806a74ab16629c8a2244878df0bca5351e9c4738deb7"
+  },
+  "method": {
+    "source": "ADR-198 compareLegs region 규칙 (node ID 소속 · floor/ceil 상자 · pixelmatch 0.1 · ratio AND maxByte)",
+    "screenScale": 0.8,
+    "textNode": "child lib:definition:text children '1' → kind text (L4)",
+    "nonTextRegion": "Frame 노드 상자 − 자식 텍스트 노드 상자 (VisualParityRegion.mask 유한 사각형)",
+    "nonTextBudget": {
+      "maxDiffRatio": 0.001,
+      "maxByte": 2,
+      "source": "INITIAL_BUDGETS.nonText"
+    },
+    "edgeBudget": "적용 안 함 — Frame 승인 예산 없음"
+  },
+  "results": [
+    {
+      "id": "clip-true-overflow-visible",
+      "overflow": "visible",
+      "cropReproduction": {
+        "box": {
+          "x": 20,
+          "y": 20,
+          "width": 180,
+          "height": 110
+        },
+        "mask": null,
+        "denominator": 19800,
+        "differentPixels": 8,
+        "diffRatio": 0.00040404040404040404,
+        "maxByte": 77,
+        "meanByte": 0.029457070707070706,
+        "changedFraction": 0.008333333333333333,
+        "budget": {
+          "maxDiffRatio": 0.001,
+          "maxByte": 2
+        },
+        "blocked": false,
+        "diffCoordsSample": [
+          [
+            98,
+            54
+          ],
+          [
+            100,
+            54
+          ],
+          [
+            100,
+            56
+          ],
+          [
+            100,
+            57
+          ],
+          [
+            100,
+            58
+          ],
+          [
+            100,
+            59
+          ],
+          [
+            100,
+            60
+          ],
+          [
+            100,
+            61
+          ]
+        ]
+      },
+      "l3FrameNonTextMaskedTextNode": {
+        "box": {
+          "x": 24,
+          "y": 24,
+          "width": 104,
+          "height": 80
+        },
+        "mask": {
+          "x": 97,
+          "y": 49,
+          "width": 81,
+          "height": 33
+        },
+        "denominator": 7297,
+        "differentPixels": 0,
+        "diffRatio": 0,
+        "maxByte": 1,
+        "meanByte": 0.011066191585583116,
+        "changedFraction": 0.011066191585583116,
+        "budget": {
+          "maxDiffRatio": 0.001,
+          "maxByte": 2
+        },
+        "blocked": false,
+        "diffCoordsSample": []
+      },
+      "l3FrameNonTextUnmaskedCompareLegsBehavior": {
+        "box": {
+          "x": 24,
+          "y": 24,
+          "width": 104,
+          "height": 80
+        },
+        "mask": null,
+        "denominator": 8320,
+        "differentPixels": 8,
+        "diffRatio": 0.0009615384615384616,
+        "maxByte": 77,
+        "meanByte": 0.065234375,
+        "changedFraction": 0.014963942307692308,
+        "budget": {
+          "maxDiffRatio": 0.001,
+          "maxByte": 2
+        },
+        "blocked": false,
+        "diffCoordsSample": [
+          [
+            98,
+            54
+          ],
+          [
+            100,
+            54
+          ],
+          [
+            100,
+            56
+          ],
+          [
+            100,
+            57
+          ],
+          [
+            100,
+            58
+          ],
+          [
+            100,
+            59
+          ],
+          [
+            100,
+            60
+          ],
+          [
+            100,
+            61
+          ]
+        ]
+      },
+      "l4TextNodeReference": {
+        "box": {
+          "x": 97,
+          "y": 49,
+          "width": 81,
+          "height": 33
+        },
+        "mask": null,
+        "denominator": 2673,
+        "differentPixels": 7,
+        "diffRatio": 0.002618780396558174,
+        "maxByte": 77,
+        "meanByte": 0.18799102132435466,
+        "changedFraction": 0.03151889263000374,
+        "budget": {
+          "maxDiffRatio": 0.05,
+          "maxByte": 128
+        },
+        "blocked": false,
+        "diffCoordsSample": [
+          [
+            100,
+            54
+          ],
+          [
+            100,
+            56
+          ],
+          [
+            100,
+            57
+          ],
+          [
+            100,
+            58
+          ],
+          [
+            100,
+            59
+          ],
+          [
+            100,
+            60
+          ],
+          [
+            100,
+            61
+          ]
+        ]
+      },
+      "l3Verdict": "PASS",
+      "l3UnmaskedVerdict": "PASS",
+      "l3eVerdict": "UNVERIFIED_NO_APPROVED_FRAME_EDGE_BUDGET",
+      "l4Note": "L4 text 는 이번 범위 밖 — INITIAL_BUDGETS.text 는 파일럿 초기값이며 여기서는 참고 수치만 기록"
+    },
+    {
+      "id": "clip-false-overflow-hidden",
+      "overflow": "hidden",
+      "cropReproduction": {
+        "box": {
+          "x": 220,
+          "y": 20,
+          "width": 180,
+          "height": 110
+        },
+        "mask": null,
+        "denominator": 19800,
+        "differentPixels": 8,
+        "diffRatio": 0.00040404040404040404,
+        "maxByte": 77,
+        "meanByte": 0.027777777777777776,
+        "changedFraction": 0.006654040404040404,
+        "budget": {
+          "maxDiffRatio": 0.001,
+          "maxByte": 2
+        },
+        "blocked": false,
+        "diffCoordsSample": [
+          [
+            298,
+            54
+          ],
+          [
+            300,
+            54
+          ],
+          [
+            300,
+            56
+          ],
+          [
+            300,
+            57
+          ],
+          [
+            300,
+            58
+          ],
+          [
+            300,
+            59
+          ],
+          [
+            300,
+            60
+          ],
+          [
+            300,
+            61
+          ]
+        ]
+      },
+      "l3FrameNonTextMaskedTextNode": {
+        "box": {
+          "x": 224,
+          "y": 24,
+          "width": 104,
+          "height": 80
+        },
+        "mask": {
+          "x": 297,
+          "y": 49,
+          "width": 81,
+          "height": 33
+        },
+        "denominator": 7297,
+        "differentPixels": 0,
+        "diffRatio": 0,
+        "maxByte": 1,
+        "meanByte": 0.011066191585583116,
+        "changedFraction": 0.011066191585583116,
+        "budget": {
+          "maxDiffRatio": 0.001,
+          "maxByte": 2
+        },
+        "blocked": false,
+        "diffCoordsSample": []
+      },
+      "l3FrameNonTextUnmaskedCompareLegsBehavior": {
+        "box": {
+          "x": 224,
+          "y": 24,
+          "width": 104,
+          "height": 80
+        },
+        "mask": null,
+        "denominator": 8320,
+        "differentPixels": 8,
+        "diffRatio": 0.0009615384615384616,
+        "maxByte": 77,
+        "meanByte": 0.06610576923076923,
+        "changedFraction": 0.015835336538461538,
+        "budget": {
+          "maxDiffRatio": 0.001,
+          "maxByte": 2
+        },
+        "blocked": false,
+        "diffCoordsSample": [
+          [
+            298,
+            54
+          ],
+          [
+            300,
+            54
+          ],
+          [
+            300,
+            56
+          ],
+          [
+            300,
+            57
+          ],
+          [
+            300,
+            58
+          ],
+          [
+            300,
+            59
+          ],
+          [
+            300,
+            60
+          ],
+          [
+            300,
+            61
+          ]
+        ]
+      },
+      "l4TextNodeReference": {
+        "box": {
+          "x": 297,
+          "y": 49,
+          "width": 81,
+          "height": 33
+        },
+        "mask": null,
+        "denominator": 2673,
+        "differentPixels": 7,
+        "diffRatio": 0.002618780396558174,
+        "maxByte": 77,
+        "meanByte": 0.17555181444070334,
+        "changedFraction": 0.019079685746352413,
+        "budget": {
+          "maxDiffRatio": 0.05,
+          "maxByte": 128
+        },
+        "blocked": false,
+        "diffCoordsSample": [
+          [
+            300,
+            54
+          ],
+          [
+            300,
+            56
+          ],
+          [
+            300,
+            57
+          ],
+          [
+            300,
+            58
+          ],
+          [
+            300,
+            59
+          ],
+          [
+            300,
+            60
+          ],
+          [
+            300,
+            61
+          ]
+        ]
+      },
+      "l3Verdict": "PASS",
+      "l3UnmaskedVerdict": "PASS",
+      "l3eVerdict": "UNVERIFIED_NO_APPROVED_FRAME_EDGE_BUDGET",
+      "l4Note": "L4 text 는 이번 범위 밖 — INITIAL_BUDGETS.text 는 파일럿 초기값이며 여기서는 참고 수치만 기록"
+    }
+  ]
+}

@@ -40,6 +40,7 @@ function ruleVariantToVisual(v: ComponentRuleVariant): ComponentVisualRule {
     text: c.text as ComponentVisualRule["text"],
     textHover: c.textHover as ComponentVisualRule["textHover"],
     textWeight: v.textWeight,
+    currentTextWeight: v.currentTextWeight,
     fontFamily: v.fontFamily,
     border: c.border as ComponentVisualRule["border"],
     borderHover: c.borderHover as ComponentVisualRule["borderHover"],

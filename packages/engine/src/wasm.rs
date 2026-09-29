@@ -102,6 +102,12 @@ impl LayoutEngine {
         self.tree.set_strict_input(enabled);
     }
 
+    /// 높이 확정 0 판정 토글 (기본 false — ADR-248 새 runtime 전용, 현재 Builder 는 켜지 않는다).
+    #[wasm_bindgen(js_name = setDefiniteZeroHeight)]
+    pub fn set_definite_zero_height(&mut self, enabled: bool) {
+        self.tree.set_definite_zero_height(enabled);
+    }
+
     /// 현재 strict 입력 모드.
     #[wasm_bindgen(js_name = isStrictInput)]
     pub fn is_strict_input(&self) -> bool {

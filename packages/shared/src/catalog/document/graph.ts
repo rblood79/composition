@@ -1,0 +1,865 @@
+import type {
+  CatalogDocument,
+  CatalogEntry,
+  CatalogLibrary,
+  DefinitionEntry,
+  DefinitionId,
+  EntryId,
+  LibraryDefinition,
+  LibraryDefinitionId,
+  DefinitionOverrideEntry,
+  NodeEntry,
+  NodeId,
+  TokenId,
+  TokenType,
+  AuthoredValue,
+} from "./types";
+import {
+  validateCatalogDocument,
+  validateCatalogEntry,
+  CatalogValidationError,
+} from "./validation";
+import { validateInstanceAddress } from "../resolution/address";
+import { assertCatalogLibrary, instanceContract } from "./library";
+
+export interface GraphIndexes {
+  definitionToInstances: ReadonlyMap<DefinitionId, ReadonlySet<NodeId>>;
+  ownerToChildren: ReadonlyMap<string, ReadonlySet<NodeId>>;
+  childToOwner: ReadonlyMap<NodeId, string>;
+  tokenToConsumers: ReadonlyMap<TokenId, ReadonlySet<string>>;
+  collectionToBindings: ReadonlyMap<string, ReadonlySet<NodeId>>;
+}
+export interface GraphMetrics {
+  transactionEntryReads: number;
+  transactionEntriesTraversed: number;
+  transactionRecordReplacements: number;
+  transactionIndexEdgesUpdated: number;
+  transactionEntryTableClones: number;
+}
+export interface CatalogHistoryRecord {
+  label: string;
+  revision: number;
+  changedIds: readonly string[];
+  removedIds: readonly string[];
+}
+type MutableIndex = Map<string, Set<string>>;
+type EdgeType = "definition" | "owner" | "token" | "collection";
+interface Edge {
+  type: EdgeType;
+  key: string;
+  target: string;
+}
+
+function tokenRefs(value: unknown, target: Set<string>): void {
+  if (Array.isArray(value)) {
+    for (const item of value) tokenRefs(item, target);
+    return;
+  }
+  if (!value || typeof value !== "object") return;
+  const record = value as Record<string, unknown>;
+  if (record.kind === "token" && typeof record.tokenId === "string") {
+    target.add(record.tokenId);
+    return;
+  }
+  for (const item of Object.values(record)) tokenRefs(item, target);
+}
+function ownedChildren(entry: CatalogEntry): NodeId[] {
+  if (entry.kind === "page") return [...entry.children];
+  if (entry.kind === "definition")
+    return entry.templateRootId ? [entry.templateRootId] : [];
+  if (entry.kind !== "node") return [];
+  const ids = [...entry.children];
+  for (const override of entry.descendantOverrides) {
+    if (override.kind === "replace") ids.push(override.replacementId);
+    if (override.kind === "fillSlot") ids.push(...override.childIds);
+  }
+  return ids;
+}
+function edgesOf(entry: CatalogEntry): Edge[] {
+  const edges: Edge[] = [];
+  if (entry.kind === "node") {
+    edges.push({
+      type: "definition",
+      key: entry.definitionId,
+      target: entry.id,
+    });
+    if (entry.binding)
+      edges.push({
+        type: "collection",
+        key: entry.binding.collectionId,
+        target: entry.id,
+      });
+  }
+  for (const child of ownedChildren(entry))
+    edges.push({ type: "owner", key: entry.id, target: child });
+  const refs = new Set<string>();
+  if (entry.kind === "node") {
+    tokenRefs(entry.props, refs);
+    tokenRefs(entry.visual, refs);
+    tokenRefs(entry.stateRules, refs);
+    tokenRefs(entry.descendantOverrides, refs);
+  } else if (
+    entry.kind === "definition" ||
+    entry.kind === "definitionOverride"
+  ) {
+    tokenRefs(entry.defaults, refs);
+    tokenRefs(entry.visual, refs);
+    tokenRefs(entry.stateRules, refs);
+  }
+  for (const token of refs)
+    edges.push({ type: "token", key: token, target: entry.id });
+  return edges;
+}
+function edgeKey(edge: Edge): string {
+  return `${edge.type}\0${edge.key}\0${edge.target}`;
+}
+function add(index: MutableIndex, key: string, target: string): void {
+  let targets = index.get(key);
+  if (!targets) {
+    targets = new Set();
+    index.set(key, targets);
+  }
+  targets.add(target);
+}
+function remove(index: MutableIndex, key: string, target: string): void {
+  const targets = index.get(key);
+  if (!targets) return;
+  targets.delete(target);
+  if (targets.size === 0) index.delete(key);
+}
+function ownedRecord<T>(value: T): T {
+  const copy = structuredClone(value);
+  const freeze = (item: unknown): void => {
+    if (!item || typeof item !== "object" || Object.isFrozen(item)) return;
+    for (const child of Object.values(item)) freeze(child);
+    Object.freeze(item);
+  };
+  freeze(copy);
+  return copy;
+}
+
+/** One private mutable table with atomic commits; no product singleton or subscription. */
+export class CatalogGraph {
+  private readonly table = new Map<string, CatalogEntry>();
+  private readonly definitionIndex: MutableIndex = new Map();
+  private readonly ownerIndex: MutableIndex = new Map();
+  private readonly ownerOf = new Map<string, string>();
+  private readonly tokenIndex: MutableIndex = new Map();
+  private readonly collectionIndex: MutableIndex = new Map();
+  private readonly libraryDependents: MutableIndex = new Map();
+  private readonly overrideIndex = new Map<
+    LibraryDefinitionId,
+    EntryId<"definitionOverride">
+  >();
+  private readonly overrideTarget = new Map<
+    EntryId<"definitionOverride">,
+    LibraryDefinitionId
+  >();
+  private readonly historyRecords: CatalogHistoryRecord[] = [];
+  private readonly dirty = new Set<string>();
+  private currentRevision: number;
+  private lastCommit:
+    | {
+        revision: number;
+        previous: ReadonlyMap<string, CatalogEntry | null>;
+        newlyDirty: readonly string[];
+        recorded: boolean;
+        previousMetrics: GraphMetrics;
+      }
+    | undefined;
+  private lastMetrics: GraphMetrics = {
+    transactionEntryReads: 0,
+    transactionEntriesTraversed: 0,
+    transactionRecordReplacements: 0,
+    transactionIndexEdgesUpdated: 0,
+    transactionEntryTableClones: 0,
+  };
+  readonly projectId: EntryId<"project">;
+  readonly library: CatalogLibrary;
+
+  constructor(document: CatalogDocument, library: CatalogLibrary) {
+    validateCatalogDocument(document);
+    assertCatalogLibrary(library);
+    if (document.libraryContractVersion !== library.contractVersion)
+      throw new CatalogValidationError(
+        "UNSUPPORTED_LIBRARY_CONTRACT",
+        "document.libraryContractVersion",
+      );
+    this.projectId = document.projectId;
+    this.library = library;
+    this.currentRevision = document.revision;
+    for (const entry of Object.values(document.entries))
+      this.table.set(entry.id, ownedRecord(entry));
+    this.validateView((id) => this.table.get(id), [...this.table.values()]);
+    for (const entry of this.table.values()) {
+      for (const edge of edgesOf(entry)) this.addEdge(edge);
+      if (entry.kind === "definitionOverride") {
+        this.overrideIndex.set(entry.targetId, entry.id);
+        this.overrideTarget.set(entry.id, entry.targetId);
+      }
+    }
+    for (const definition of library.definitions.values()) {
+      if (!definition.templateRootId) continue;
+      const stack = [definition.templateRootId];
+      const seen = new Set<string>();
+      while (stack.length) {
+        const id = stack.pop()!;
+        if (seen.has(id)) continue;
+        seen.add(id);
+        const template = library.templates.get(id as `lib:template:${string}`);
+        if (!template) continue;
+        add(this.libraryDependents, template.definitionId, definition.id);
+        stack.push(...template.children);
+      }
+    }
+  }
+
+  get revision(): number {
+    return this.currentRevision;
+  }
+  get size(): number {
+    return this.table.size;
+  }
+  get history(): readonly CatalogHistoryRecord[] {
+    return [...this.historyRecords];
+  }
+  get dirtyIds(): ReadonlySet<string> {
+    return new Set(this.dirty);
+  }
+  get metrics(): GraphMetrics {
+    return { ...this.lastMetrics };
+  }
+  getEntry(id: string): CatalogEntry | undefined {
+    return this.table.get(id);
+  }
+  getDefinition(
+    id: DefinitionId,
+  ): DefinitionEntry | LibraryDefinition | undefined {
+    return id.startsWith("lib:")
+      ? this.library.definitions.get(id as `lib:definition:${string}`)
+      : (this.table.get(id) as DefinitionEntry | undefined);
+  }
+  getToken(
+    id: TokenId,
+  ): { tokenType: string; value: string | number | boolean } | undefined {
+    return id.startsWith("lib:")
+      ? this.library.tokens.get(id as `lib:token:${string}`)
+      : (this.table.get(id) as ReturnType<CatalogGraph["getToken"]>);
+  }
+  getDefinitionOverride(id: DefinitionId): DefinitionOverrideEntry | undefined {
+    if (!id.startsWith("lib:")) return undefined;
+    const overrideId = this.overrideIndex.get(id as LibraryDefinitionId);
+    return overrideId
+      ? (this.table.get(overrideId) as DefinitionOverrideEntry)
+      : undefined;
+  }
+  get indexes(): GraphIndexes {
+    const copy = (source: MutableIndex) =>
+      new Map([...source].map(([key, value]) => [key, new Set(value)]));
+    return {
+      definitionToInstances: copy(
+        this.definitionIndex,
+      ) as GraphIndexes["definitionToInstances"],
+      ownerToChildren: copy(this.ownerIndex) as GraphIndexes["ownerToChildren"],
+      childToOwner: new Map(this.ownerOf) as GraphIndexes["childToOwner"],
+      tokenToConsumers: copy(
+        this.tokenIndex,
+      ) as GraphIndexes["tokenToConsumers"],
+      collectionToBindings: copy(
+        this.collectionIndex,
+      ) as GraphIndexes["collectionToBindings"],
+    };
+  }
+  /** Called by the transaction reducer after all validation succeeds. */
+  commit(
+    staged: ReadonlyMap<string, CatalogEntry | null>,
+    label: string | null,
+    metrics: GraphMetrics,
+  ): void {
+    // Materialize caller-owned records before the first index or history mutation.
+    const prepared = new Map<string, CatalogEntry | null>();
+    for (const [id, entry] of staged)
+      prepared.set(id, entry === null ? null : ownedRecord(entry));
+    const previous = new Map<string, CatalogEntry | null>();
+    for (const id of staged.keys()) previous.set(id, this.table.get(id) ?? null);
+    const newlyDirty = [...staged.keys()].filter((id) => !this.dirty.has(id));
+    const previousMetrics = this.lastMetrics;
+    metrics.transactionIndexEdgesUpdated += this.replace(prepared);
+    metrics.transactionRecordReplacements = staged.size;
+    this.currentRevision++;
+    if (label !== null)
+      this.historyRecords.push({
+        label,
+        revision: this.currentRevision,
+        changedIds: [...staged]
+          .filter(([, value]) => value !== null)
+          .map(([id]) => id),
+        removedIds: [...staged]
+          .filter(([, value]) => value === null)
+          .map(([id]) => id),
+      });
+    this.lastMetrics = metrics;
+    this.lastCommit = {
+      revision: this.currentRevision,
+      previous,
+      newlyDirty,
+      recorded: label !== null,
+      previousMetrics,
+    };
+  }
+  /**
+   * Undo the most recent commit exactly — records, indexes, dirty set, history record, metrics
+   * and revision — in O(changed entries). Only the latest commit, and only before the next one.
+   */
+  revertCommit(revision: number): void {
+    const last = this.lastCommit;
+    if (!last || last.revision !== revision || revision !== this.currentRevision)
+      throw new Error("CATALOG_REVERT_UNAVAILABLE");
+    this.lastCommit = undefined;
+    this.replace(last.previous);
+    for (const id of last.newlyDirty) this.dirty.delete(id);
+    if (last.recorded) this.historyRecords.pop();
+    this.currentRevision--;
+    this.lastMetrics = last.previousMetrics;
+  }
+  /** Swap records in (null removes), keeping every index in step. Returns edges updated. */
+  private replace(next: ReadonlyMap<string, CatalogEntry | null>): number {
+    let edgesUpdated = 0;
+    const oldEdges = new Map<string, Edge>();
+    const nextEdges = new Map<string, Edge>();
+    for (const id of next.keys()) {
+      const entry = this.table.get(id);
+      if (entry)
+        for (const edge of edgesOf(entry)) oldEdges.set(edgeKey(edge), edge);
+    }
+    for (const entry of next.values())
+      if (entry)
+        for (const edge of edgesOf(entry)) nextEdges.set(edgeKey(edge), edge);
+    for (const [key, edge] of oldEdges)
+      if (!nextEdges.has(key)) {
+        this.removeEdge(edge);
+        edgesUpdated++;
+      }
+    for (const [key, edge] of nextEdges)
+      if (!oldEdges.has(key)) {
+        this.addEdge(edge);
+        edgesUpdated++;
+      }
+    for (const [id, entry] of next) {
+      const old = this.table.get(id);
+      if (old?.kind === "definitionOverride") {
+        this.overrideIndex.delete(old.targetId);
+        this.overrideTarget.delete(old.id);
+      }
+      if (entry === null) this.table.delete(id);
+      else this.table.set(id, entry);
+      if (entry?.kind === "definitionOverride") {
+        this.overrideIndex.set(entry.targetId, entry.id);
+        this.overrideTarget.set(entry.id, entry.targetId);
+      }
+      this.dirty.add(id);
+    }
+    return edgesUpdated;
+  }
+
+  validateView(
+    get: (id: string) => CatalogEntry | undefined,
+    entries: readonly CatalogEntry[],
+  ): void {
+    const root = get(this.projectId);
+    if (root?.kind !== "project")
+      throw new CatalogValidationError("PROJECT_ROOT_REQUIRED", this.projectId);
+    const listed = new Set<string>([root.id]);
+    for (const ids of [
+      root.pageIds,
+      root.definitionIds,
+      root.overrideIds,
+      root.themeIds,
+      root.tokenIds,
+      root.stateVariableIds,
+      root.interactionIds,
+      root.assetIds,
+    ])
+      for (const id of ids) {
+        if (listed.has(id))
+          throw new CatalogValidationError("DUPLICATE_OWNERSHIP", id);
+        listed.add(id);
+      }
+    for (const id of listed) {
+      const entry = get(id);
+      if (!entry || (id !== root.id && entry.kind === "project"))
+        throw new CatalogValidationError("DANGLING_PROJECT_ENTRY", id);
+    }
+    if (root.activeThemeId && !root.themeIds.includes(root.activeThemeId))
+      throw new CatalogValidationError("DANGLING_THEME", root.activeThemeId);
+    const owners = new Map<string, string>();
+    const overrides = new Set<string>();
+    const entryIds = new Set(entries.map((entry) => entry.id));
+    if (entries.length !== entryIds.size)
+      throw new CatalogValidationError("DUPLICATE_ID", "entries");
+    for (const entry of entries) {
+      validateCatalogEntry(entry);
+      if (entry.kind === "project" && entry.id !== this.projectId)
+        throw new CatalogValidationError("MULTIPLE_PROJECT_ROOTS", entry.id);
+      if (entry.kind === "definitionOverride") {
+        if (overrides.has(entry.targetId))
+          throw new CatalogValidationError(
+            "DUPLICATE_DEFINITION_OVERRIDE",
+            entry.targetId,
+          );
+        overrides.add(entry.targetId);
+      }
+      if (
+        entry.kind !== "node" &&
+        entry.kind !== "project" &&
+        !listed.has(entry.id)
+      )
+        throw new CatalogValidationError("UNOWNED_ENTRY", entry.id);
+      const children = ownedChildren(entry);
+      for (const child of children) {
+        if (owners.has(child))
+          throw new CatalogValidationError("DUPLICATE_OWNERSHIP", child);
+        owners.set(child, entry.id);
+        if (get(child)?.kind !== "node")
+          throw new CatalogValidationError("DANGLING_CHILD", child);
+      }
+      this.validateEntryReferences(entry, get);
+    }
+    for (const entry of entries)
+      if (entry.kind === "node" && !owners.has(entry.id))
+        throw new CatalogValidationError("UNOWNED_NODE", entry.id);
+    const visiting = new Set<string>();
+    const visited = new Set<string>();
+    const visitOwner = (id: string): void => {
+      if (visiting.has(id))
+        throw new CatalogValidationError("OWNERSHIP_CYCLE", id);
+      if (visited.has(id)) return;
+      visiting.add(id);
+      const entry = get(id);
+      if (entry) for (const child of ownedChildren(entry)) visitOwner(child);
+      visiting.delete(id);
+      visited.add(id);
+    };
+    for (const entry of entries) visitOwner(entry.id);
+    this.validateDefinitionCycles(get, entries);
+  }
+
+  validateEntryReferences(
+    entry: CatalogEntry,
+    get: (id: string) => CatalogEntry | undefined,
+  ): void {
+    const lookupDefinition = (id: DefinitionId) =>
+      id.startsWith("lib:")
+        ? this.library.definitions.get(id as `lib:definition:${string}`)
+        : (get(id) as DefinitionEntry | undefined);
+    // A composite instance is its template root: it takes the root's props plus its schema.
+    const contractOf = (definition: DefinitionEntry | LibraryDefinition) =>
+      instanceContract(
+        definition as LibraryDefinition,
+        (id) => lookupDefinition(id as DefinitionId) as LibraryDefinition,
+        (id) =>
+          id.startsWith("lib:")
+            ? this.library.templates.get(id as `lib:template:${string}`)
+            : (get(id) as { definitionId: string } | undefined),
+      );
+    if (entry.kind === "node") {
+      const found = lookupDefinition(entry.definitionId);
+      if (!found)
+        throw new CatalogValidationError(
+          "DANGLING_DEFINITION",
+          entry.definitionId,
+        );
+      const definition = { ...found, ...contractOf(found) };
+      this.validatePropWrites(entry.props, definition.accepts, entry.id);
+      this.validatePropChoices(entry.props, definition, get, entry.id);
+      this.validateTokenFields(entry.props, definition.accepts, get, entry.id);
+      this.validateTokenFields(entry.visual, undefined, get, entry.id);
+      this.validateStateTokenRules(entry.stateRules, get, entry.id);
+      for (const override of entry.descendantOverrides) {
+        const target = validateInstanceAddress(
+          entry,
+          override.address,
+          get,
+          this.library,
+        );
+        if (override.kind === "fillSlot" && !target.slot)
+          throw new CatalogValidationError("TARGET_NOT_SLOT", entry.id);
+        if (override.kind === "patch") {
+          const foundTarget = lookupDefinition(target.definitionId);
+          if (!foundTarget)
+            throw new CatalogValidationError(
+              "DANGLING_DEFINITION",
+              target.definitionId,
+            );
+          const targetDef = { ...foundTarget, ...contractOf(foundTarget) };
+          if (override.props)
+            this.validatePropWrites(
+              override.props,
+              targetDef.accepts,
+              entry.id,
+            );
+          if (override.props)
+            this.validatePropChoices(override.props, targetDef, get, entry.id);
+          if (override.props)
+            this.validateTokenFields(
+              override.props,
+              targetDef.accepts,
+              get,
+              entry.id,
+            );
+          if (override.visual)
+            this.validateTokenFields(override.visual, undefined, get, entry.id);
+          if (override.stateRules)
+            this.validateStateTokenRules(override.stateRules, get, entry.id);
+        }
+      }
+      if (
+        entry.binding &&
+        !entry.binding.collectionId.startsWith("data:collection:")
+      )
+        throw new CatalogValidationError("INVALID_COLLECTION_REF", entry.id);
+    }
+    if (entry.kind === "definition" || entry.kind === "definitionOverride") {
+      if (
+        entry.kind === "definition" &&
+        entry.bindingId &&
+        !this.library.execution.bindingIds.has(entry.bindingId)
+      )
+        throw new CatalogValidationError("UNKNOWN_BINDING_ID", entry.bindingId);
+      if (entry.kind === "definitionOverride") {
+        const target = this.library.definitions.get(entry.targetId);
+        if (!target)
+          throw new CatalogValidationError(
+            "DANGLING_DEFINITION",
+            entry.targetId,
+          );
+        this.validatePropWrites(entry.defaults, target.accepts, entry.id);
+        this.validatePropChoices(entry.defaults, target, get, entry.id);
+        this.validateTokenFields(entry.defaults, target.accepts, get, entry.id);
+        this.validateTokenFields(entry.visual, undefined, get, entry.id);
+        this.validateStateTokenRules(entry.stateRules, get, entry.id);
+      }
+      if (entry.kind === "definition") {
+        this.validatePropValues(entry.defaults, entry.accepts, entry.id);
+        this.validateTokenFields(entry.defaults, entry.accepts, get, entry.id);
+        this.validateTokenFields(entry.visual, undefined, get, entry.id);
+        this.validateStateTokenRules(entry.stateRules, get, entry.id);
+      }
+    }
+    if (entry.kind === "interaction") {
+      const owner = get(entry.ownerId);
+      if (owner?.kind !== "node")
+        throw new CatalogValidationError("DANGLING_OWNER", entry.ownerId);
+      if (entry.address)
+        validateInstanceAddress(owner, entry.address, get, this.library);
+      if (!this.library.execution.triggerIds.has(entry.trigger))
+        throw new CatalogValidationError("UNKNOWN_TRIGGER_ID", entry.trigger);
+      if (!this.library.execution.actionOpCodes.has(entry.action.opcode))
+        throw new CatalogValidationError(
+          "UNKNOWN_ACTION_OPCODE",
+          entry.action.opcode,
+        );
+      if (
+        entry.action.opcode === "navigate" &&
+        get(entry.action.pageId)?.kind !== "page"
+      )
+        throw new CatalogValidationError("DANGLING_PAGE", entry.action.pageId);
+      if (entry.action.opcode === "capability") {
+        if (get(entry.action.targetId)?.kind !== "node")
+          throw new CatalogValidationError(
+            "DANGLING_TARGET",
+            entry.action.targetId,
+          );
+        if (
+          !this.library.execution.capabilityIds.has(entry.action.capabilityId)
+        )
+          throw new CatalogValidationError(
+            "UNKNOWN_CAPABILITY_ID",
+            entry.action.capabilityId,
+          );
+      }
+      if (
+        entry.action.opcode === "setState" &&
+        entry.action.variableId.startsWith("project:") &&
+        get(entry.action.variableId)?.kind !== "stateVariable"
+      )
+        throw new CatalogValidationError(
+          "DANGLING_VARIABLE",
+          entry.action.variableId,
+        );
+      if (
+        entry.action.opcode === "setState" &&
+        entry.action.variableId.startsWith("project:")
+      ) {
+        const variable = get(entry.action.variableId);
+        if (variable?.kind === "stateVariable") {
+          if (
+            entry.action.op === "set" &&
+            typeof entry.action.value !== variable.valueType
+          )
+            throw new CatalogValidationError(
+              "STATE_VALUE_TYPE",
+              entry.action.variableId,
+            );
+          if (entry.action.op === "toggle" && variable.valueType !== "boolean")
+            throw new CatalogValidationError(
+              "STATE_OP_TYPE",
+              entry.action.variableId,
+            );
+          if (
+            entry.action.op === "increment" &&
+            variable.valueType !== "number"
+          )
+            throw new CatalogValidationError(
+              "STATE_OP_TYPE",
+              entry.action.variableId,
+            );
+        }
+      }
+    }
+    if (entry.kind === "stateVariable") {
+      const owner = get(entry.ownerId);
+      if (!owner || (owner.kind !== "page" && owner.kind !== "node"))
+        throw new CatalogValidationError("DANGLING_OWNER", entry.ownerId);
+    }
+    if (entry.kind === "theme")
+      for (const tokenId of entry.tokenIds)
+        if (get(tokenId)?.kind !== "token")
+          throw new CatalogValidationError("DANGLING_TOKEN", tokenId);
+    const tokenIds = new Set<string>();
+    tokenRefs(entry, tokenIds);
+    for (const token of tokenIds) {
+      const found = token.startsWith("lib:")
+        ? this.library.tokens.get(token as `lib:token:${string}`)
+        : (get(token) as { kind: string } | undefined);
+      if (!found || ("kind" in found && found.kind !== "token"))
+        throw new CatalogValidationError("DANGLING_TOKEN", token);
+    }
+  }
+
+  private validatePropWrites(
+    props: Readonly<Record<string, { kind: string; value?: unknown }>>,
+    accepts: Readonly<Record<string, string>>,
+    at: string,
+  ): void {
+    for (const [key, write] of Object.entries(props)) {
+      const type = accepts[key];
+      if (!type)
+        throw new CatalogValidationError("PROP_NOT_ACCEPTED", `${at}.${key}`);
+      if (
+        write.kind === "set" &&
+        typeof write.value !== "object" &&
+        typeof write.value !== type
+      )
+        throw new CatalogValidationError("PROP_TYPE_MISMATCH", `${at}.${key}`);
+    }
+  }
+  private validatePropChoices(
+    props: Readonly<Record<string, { kind: string; value?: unknown }>>,
+    definition: DefinitionEntry | LibraryDefinition,
+    get: (id: string) => CatalogEntry | undefined,
+    at: string,
+  ): void {
+    if (!("propChoices" in definition) || !definition.propChoices) return;
+    for (const [key, choices] of Object.entries(definition.propChoices)) {
+      const write = props[key];
+      if (write?.kind !== "set") continue;
+      const raw = write.value;
+      const value =
+        raw && typeof raw === "object" && "tokenId" in raw
+          ? (raw.tokenId as string).startsWith("lib:")
+            ? this.library.tokens.get(raw.tokenId as `lib:token:${string}`)
+                ?.value
+            : (get(raw.tokenId as string) as { value?: unknown } | undefined)
+                ?.value
+          : raw;
+      if (!choices.includes(value as never))
+        throw new CatalogValidationError(
+          "PROP_CHOICE_MISMATCH",
+          `${at}.${key}`,
+        );
+    }
+  }
+  private validatePropValues(
+    props: Readonly<Record<string, unknown>>,
+    accepts: Readonly<Record<string, string>>,
+    at: string,
+  ): void {
+    for (const [key, value] of Object.entries(props)) {
+      const type = accepts[key];
+      if (!type)
+        throw new CatalogValidationError("PROP_NOT_ACCEPTED", `${at}.${key}`);
+      if (typeof value !== "object" && typeof value !== type)
+        throw new CatalogValidationError("PROP_TYPE_MISMATCH", `${at}.${key}`);
+    }
+  }
+  private validateTokenFields(
+    fields: Readonly<Record<string, unknown>>,
+    accepts: Readonly<Record<string, string>> | undefined,
+    get: (id: string) => CatalogEntry | undefined,
+    at: string,
+  ): void {
+    for (const [key, raw] of Object.entries(fields)) {
+      const write = raw as { kind?: string; value?: AuthoredValue };
+      const value = write?.kind === "set" ? write.value : raw;
+      if (
+        !value ||
+        typeof value !== "object" ||
+        (value as { kind?: string }).kind !== "token"
+      )
+        continue;
+      const tokenId = (value as { tokenId: TokenId }).tokenId;
+      const token = tokenId.startsWith("lib:")
+        ? this.library.tokens.get(tokenId as `lib:token:${string}`)
+        : get(tokenId);
+      if (!token || !("tokenType" in token))
+        throw new CatalogValidationError("DANGLING_TOKEN", tokenId);
+      const actual = token.tokenType as TokenType;
+      const allowed: readonly TokenType[] = accepts
+        ? accepts[key] === "number"
+          ? ["number"]
+          : accepts[key] === "boolean"
+            ? ["boolean"]
+            : ["string"]
+        : ["color", "backgroundColor", "borderColor", "fill"].includes(key)
+          ? ["color"]
+          : ["opacity", "fontWeight"].includes(key)
+            ? ["number"]
+            : [
+                  "width",
+                  "height",
+                  "fontSize",
+                  "radius",
+                  "gap",
+                  "padding",
+                  "borderWidth",
+                  "thumbSize",
+                  "indentPerLevel",
+                  "iconGap",
+                ].includes(key)
+              ? ["length", "number"]
+              : ["string"];
+      if (!allowed.includes(actual))
+        throw new CatalogValidationError("TOKEN_TYPE_MISMATCH", `${at}.${key}`);
+    }
+  }
+  private validateStateTokenRules(
+    stateRules: Readonly<Record<string, unknown>> | undefined,
+    get: (id: string) => CatalogEntry | undefined,
+    at: string,
+  ): void {
+    if (!stateRules) return;
+    for (const [state, fields] of Object.entries(stateRules))
+      this.validateTokenFields(
+        fields as Readonly<Record<string, unknown>>,
+        undefined,
+        get,
+        `${at}.${state}`,
+      );
+  }
+  private validateDefinitionCycles(
+    get: (id: string) => CatalogEntry | undefined,
+    entries: readonly CatalogEntry[],
+  ): void {
+    const definitions = entries.filter(
+      (item): item is DefinitionEntry => item.kind === "definition",
+    );
+    const visiting = new Set<string>();
+    const visited = new Set<string>();
+    const visit = (id: string): void => {
+      if (visiting.has(id))
+        throw new CatalogValidationError("DEFINITION_CYCLE", id);
+      if (visited.has(id)) return;
+      visiting.add(id);
+      const definition = get(id) as DefinitionEntry | undefined;
+      if (definition?.templateRootId) {
+        const walk = (nodeId: NodeId, seen: Set<NodeId>): void => {
+          if (seen.has(nodeId)) return;
+          seen.add(nodeId);
+          const node = get(nodeId) as NodeEntry | undefined;
+          if (!node) return;
+          if (node.definitionId.startsWith("project:definition:"))
+            visit(node.definitionId);
+          for (const child of node.children) walk(child, seen);
+        };
+        walk(definition.templateRootId, new Set());
+      }
+      visiting.delete(id);
+      visited.add(id);
+    };
+    for (const definition of definitions) visit(definition.id);
+  }
+  private indexFor(type: EdgeType): MutableIndex {
+    if (type === "definition") return this.definitionIndex;
+    if (type === "owner") return this.ownerIndex;
+    if (type === "token") return this.tokenIndex;
+    return this.collectionIndex;
+  }
+  private addEdge(edge: Edge): void {
+    add(this.indexFor(edge.type), edge.key, edge.target);
+    if (edge.type === "owner") this.ownerOf.set(edge.target, edge.key);
+  }
+  private removeEdge(edge: Edge): void {
+    remove(this.indexFor(edge.type), edge.key, edge.target);
+    if (edge.type === "owner") this.ownerOf.delete(edge.target);
+  }
+  collectAffectedIds(changedIds: readonly string[]): ReadonlySet<string> {
+    const affected = new Set<string>();
+    const queue = changedIds.map((id) => ({ id, expandChildren: true }));
+    while (queue.length) {
+      const { id, expandChildren } = queue.shift()!;
+      if (affected.has(id)) continue;
+      affected.add(id);
+      for (const index of [
+        this.definitionIndex,
+        this.libraryDependents,
+        this.tokenIndex,
+        this.collectionIndex,
+      ])
+        for (const next of index.get(id) ?? [])
+          if (!affected.has(next))
+            queue.push({ id: next, expandChildren: false });
+      if (expandChildren)
+        for (const next of this.ownerIndex.get(id) ?? [])
+          if (!affected.has(next))
+            queue.push({ id: next, expandChildren: true });
+      const overrideTarget = this.overrideTarget.get(
+        id as EntryId<"definitionOverride">,
+      );
+      if (overrideTarget && !affected.has(overrideTarget))
+        queue.push({ id: overrideTarget, expandChildren: false });
+      const owner = this.ownerOf.get(id);
+      if (owner && !affected.has(owner))
+        queue.push({ id: owner, expandChildren: false });
+    }
+    return affected;
+  }
+  /** Explicit cold path for export, never used by leaf mutation. */
+  exportDocument(): CatalogDocument {
+    return {
+      format: "composition-catalog",
+      schemaVersion: 1,
+      libraryContractVersion: 1,
+      revision: this.currentRevision,
+      projectId: this.projectId,
+      rootId: this.projectId,
+      entries: Object.fromEntries(this.table),
+    };
+  }
+  static emptyMetrics(): GraphMetrics {
+    return {
+      transactionEntryReads: 0,
+      transactionEntriesTraversed: 0,
+      transactionRecordReplacements: 0,
+      transactionIndexEdgesUpdated: 0,
+      transactionEntryTableClones: 0,
+    };
+  }
+}
+
+export function createCatalogGraph(
+  value: unknown,
+  library: CatalogLibrary,
+): CatalogGraph {
+  return new CatalogGraph(validateCatalogDocument(value), library);
+}

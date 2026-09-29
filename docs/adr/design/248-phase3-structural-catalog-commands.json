@@ -1,0 +1,243 @@
+[
+  {
+    "type": 0,
+    "x": 0,
+    "y": 0,
+    "width": 1920,
+    "height": 1080,
+    "elementId": "project:page:main",
+    "visible": true
+  },
+  {
+    "type": 1,
+    "nodeType": "box",
+    "skiaData": {
+      "type": "box",
+      "elementId": "project:page:main",
+      "x": 0,
+      "y": 0,
+      "width": 1920,
+      "height": 1080,
+      "visible": true,
+      "box": {
+        "fillColor": {
+          "0": 1,
+          "1": 1,
+          "2": 1,
+          "3": 1
+        },
+        "borderRadius": 0
+      }
+    },
+    "width": 1920,
+    "height": 1080
+  },
+  {
+    "type": 2,
+    "clipChildren": false,
+    "width": 1920,
+    "height": 1080
+  },
+  {
+    "type": 0,
+    "x": 40,
+    "y": 40,
+    "width": 440,
+    "height": 260,
+    "elementId": "project:node:frame::project:node:frame",
+    "visible": true
+  },
+  {
+    "type": 1,
+    "nodeType": "box",
+    "skiaData": {
+      "type": "box",
+      "elementId": "project:node:frame::project:node:frame",
+      "x": 0,
+      "y": 0,
+      "width": 440,
+      "height": 260,
+      "baseline": 260,
+      "visible": true,
+      "clipChildren": false,
+      "box": {
+        "fillColor": {
+          "0": 0.8588235378265381,
+          "1": 0.9058823585510254,
+          "2": 1,
+          "3": 1
+        },
+        "borderRadius": 0,
+        "strokeColor": {
+          "0": 0.21960784494876862,
+          "1": 0.3176470696926117,
+          "2": 0.6431372761726379,
+          "3": 1
+        },
+        "strokeWidth": 2,
+        "strokeStyle": "solid"
+      }
+    },
+    "width": 440,
+    "height": 260
+  },
+  {
+    "type": 2,
+    "clipChildren": false,
+    "width": 440,
+    "height": 260
+  },
+  {
+    "type": 0,
+    "x": 22,
+    "y": 22,
+    "width": 380,
+    "height": 120,
+    "elementId": "project:node:frame/project:node:group::project:node:group",
+    "visible": true
+  },
+  {
+    "type": 2,
+    "clipChildren": false,
+    "width": 380,
+    "height": 120
+  },
+  {
+    "type": 0,
+    "x": 180,
+    "y": 0,
+    "width": 160,
+    "height": 40,
+    "elementId": "project:node:frame/project:node:group/project:node:text::project:node:text",
+    "visible": true
+  },
+  {
+    "type": 1,
+    "nodeType": "text",
+    "skiaData": {
+      "type": "text",
+      "elementId": "project:node:frame/project:node:group/project:node:text::project:node:text",
+      "x": 0,
+      "y": 0,
+      "width": 160,
+      "height": 40,
+      "baseline": 40,
+      "visible": true,
+      "clipChildren": false,
+      "box": {
+        "fillColor": {
+          "0": 0,
+          "1": 0,
+          "2": 0,
+          "3": 0
+        },
+        "borderRadius": 0
+      },
+      "text": {
+        "content": "저장",
+        "fontFamilies": [
+          "Pretendard"
+        ],
+        "fontSize": 16,
+        "color": {
+          "0": 0,
+          "1": 0,
+          "2": 0,
+          "3": 1
+        },
+        "paddingLeft": 0,
+        "paddingTop": 0,
+        "maxWidth": 160,
+        "whiteSpace": "nowrap"
+      }
+    },
+    "width": 160,
+    "height": 40
+  },
+  {
+    "type": 4,
+    "hasBlend": false,
+    "effectLayerCount": 0
+  },
+  {
+    "type": 3,
+    "clipChildren": false,
+    "hasClip": false,
+    "hasScrollOffset": false
+  },
+  {
+    "type": 4,
+    "hasBlend": false,
+    "effectLayerCount": 0
+  },
+  {
+    "type": 0,
+    "x": 22,
+    "y": 152,
+    "width": 160,
+    "height": 80,
+    "elementId": "project:node:frame/project:node:slot::project:node:slot",
+    "visible": true
+  },
+  {
+    "type": 1,
+    "nodeType": "box",
+    "skiaData": {
+      "type": "box",
+      "elementId": "project:node:frame/project:node:slot::project:node:slot",
+      "x": 0,
+      "y": 0,
+      "width": 160,
+      "height": 80,
+      "baseline": 80,
+      "visible": true,
+      "clipChildren": false,
+      "box": {
+        "fillColor": {
+          "0": 0.8980392217636108,
+          "1": 0.8980392217636108,
+          "2": 0.8980392217636108,
+          "3": 0.5
+        },
+        "borderRadius": 6,
+        "strokeColor": {
+          "0": 0.8980392217636108,
+          "1": 0.9058823585510254,
+          "2": 0.9215686321258545,
+          "3": 1
+        },
+        "strokeWidth": 1,
+        "strokeStyle": "dashed"
+      }
+    },
+    "width": 160,
+    "height": 80
+  },
+  {
+    "type": 4,
+    "hasBlend": false,
+    "effectLayerCount": 0
+  },
+  {
+    "type": 3,
+    "clipChildren": false,
+    "hasClip": false,
+    "hasScrollOffset": false
+  },
+  {
+    "type": 4,
+    "hasBlend": false,
+    "effectLayerCount": 0
+  },
+  {
+    "type": 3,
+    "clipChildren": false,
+    "hasClip": false,
+    "hasScrollOffset": false
+  },
+  {
+    "type": 4,
+    "hasBlend": false,
+    "effectLayerCount": 0
+  }
+]

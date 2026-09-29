@@ -212,6 +212,14 @@ export interface RenderContext {
    */
   tagTemplate?: TagItemTemplate | null;
   /**
+   * 2026-09-29 — 데이터 행 Breadcrumb 의 구분자 (owner `slot[0]` 항목 origin 의 편집 가능한 Icon 설정 —
+   * shared `resolveBreadcrumbSeparatorTemplate`). owner 자기 `slot` (없으면 master) 을 넘긴다. `undefined` =
+   * catalog 기본 · `null` = 없음. builder Skia `appendBreadcrumbRowProjection` 과 같은 해석.
+   */
+  resolveBreadcrumbSeparator?: (
+    ownerSlot: unknown,
+  ) => { iconName?: string } | null | undefined;
+  /**
    * ADR-233 Phase 1 — Tabs 의 Tab 항목 template (origin `component-tab-item-default` / `-selected`,
    * master `component-tabs` root `slot` 에서 해석). `renderTabs` 가 Tab 마다 `rootStyles.base` 를,
    * RAC `isSelected` Tab 에 `rootStyles.selected` 를 overlay 한다 (Tag chip 과 같은 형태 · 같은 shared

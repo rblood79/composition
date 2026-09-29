@@ -6,6 +6,10 @@ import {
 import { Link } from "react-aria-components/Link";
 import type { DataBinding, ColumnMapping, DataBindingValue } from "../types";
 
+import { catalogBreadcrumbSeparatorIcon } from "../catalog/resolvers/resolveCatalogRuleCanvasBox";
+import { Breadcrumb as BreadcrumbItem } from "./Breadcrumb";
+import { Icon } from "./Icon";
+
 import { useResolvedCollectionItems } from "../hooks";
 import { Skeleton } from "./Skeleton";
 import { useComponentStrings } from "../i18n";
@@ -48,8 +52,11 @@ export interface BreadcrumbsExtendedProps<
    * dataBinding 없을 때 source. useResolvedCollectionItems 가 dataBinding 과 동일 normalizer 로 흡수.
    */
   items?: unknown[];
-  /** Separator character (composition extension) */
-  separator?: string;
+  /**
+   * 데이터 행의 구분자 (항목 origin 의 편집 가능한 Icon 설정 — `resolveBreadcrumbSeparatorTemplate`).
+   * `undefined` = catalog 기본 Icon · `null` = 구분자 없음 · `iconName` = 그 Icon.
+   */
+  separatorTemplate?: { iconName?: string } | null;
 }
 
 /**
@@ -69,7 +76,7 @@ export function Breadcrumbs<T extends object>({
   isLoading: externalLoading,
   skeletonCount = 3,
   items,
-  separator: _separator,
+  separatorTemplate,
   children,
   ...props
 }: BreadcrumbsExtendedProps<T>) {
@@ -88,6 +95,13 @@ export function Breadcrumbs<T extends object>({
       { id: "bc-current", label: "Current" },
     ],
   });
+
+  // 조각 뒤 구분자 — 데이터 행 · 로딩 골격은 조합 자식이 없어 catalog 기본 Icon (정적 조각은 편집 가능한 Icon 자식).
+  const separatorIcon = catalogBreadcrumbSeparatorIcon(size);
+  const separator =
+    separatorTemplate === null ? undefined : (
+      <Icon iconName={separatorTemplate?.iconName ?? separatorIcon.name} />
+    );
 
   // 🚀 ClassNameOrFunction 타입 지원 - 문자열로 단순화
   const baseClassName =
@@ -113,7 +127,7 @@ export function Breadcrumbs<T extends object>({
           style={{
             display: "flex",
             alignItems: "center",
-            gap: "8px",
+            gap: `${separatorIcon.gap}px`,
             listStyle: "none",
             padding: 0,
             margin: 0,
@@ -122,12 +136,15 @@ export function Breadcrumbs<T extends object>({
           {Array.from({ length: skeletonCount }).map((_, i) => (
             <li
               key={i}
-              style={{ display: "flex", alignItems: "center", gap: "8px" }}
+              className="react-aria-Breadcrumb"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: `${separatorIcon.gap}px`,
+              }}
             >
               <Skeleton componentVariant="breadcrumb" size="md" index={i} />
-              {i < skeletonCount - 1 && (
-                <span style={{ color: "var(--color-gray-400)" }}>/</span>
-              )}
+              {i < skeletonCount - 1 && separator}
             </li>
           ))}
         </ol>
@@ -186,9 +203,14 @@ export function Breadcrumbs<T extends object>({
                 ? raw.url
                 : undefined;
           return (
-            <Breadcrumb key={row.itemKey}>
-              <Link href={href}>{row.label}</Link>
-            </Breadcrumb>
+            <BreadcrumbItem
+              key={row.itemKey}
+              id={row.itemKey}
+              href={href}
+              separator={separator}
+            >
+              {row.label}
+            </BreadcrumbItem>
           );
         })}
       </RACBreadcrumbs>

@@ -1,0 +1,6558 @@
+{
+  "adr": 248,
+  "phase": 3,
+  "check": "G3 old/new geometry leg — per-node old-defect ledger (decision material)",
+  "source": "docs/adr/design/248-phase3-state-origin-canvas.json",
+  "rule": "candidate = new↔DOM ≤1px AND old↔DOM >1px; verdicts unchanged",
+  "summary": {
+    "types": 42,
+    "pairs": 106,
+    "candidates": 100,
+    "noDomPair": 6,
+    "newSide": 0,
+    "unpaired": 14,
+    "allCandidateTypes": [
+      "component-gridlist-item-default",
+      "component-gridlist-item-default--unselected",
+      "component-gridlist-item-default--disabled",
+      "component-gridlist-item-default--hover",
+      "component-gridlist-item-default--pressed",
+      "component-gridlist-item-default--focus-visible",
+      "component-link--disabled",
+      "component-link--hover",
+      "component-link--pressed",
+      "component-link--focus-visible",
+      "component-tag-item-default",
+      "component-tag-item-default--unselected",
+      "component-tag-item-default--disabled",
+      "component-tag-item-default--hover",
+      "component-tag-item-default--pressed",
+      "component-tag-item-default--focus-visible",
+      "component-tree-item-default",
+      "component-tree-item-default--unselected",
+      "component-tree-item-default--disabled",
+      "component-tree-item-default--hover",
+      "component-tree-item-default--pressed",
+      "component-tree-item-default--focus-visible",
+      "component-tree-item-default--collapsed"
+    ],
+    "typesWithNoDomPair": [
+      "component-switch",
+      "component-switch--unselected",
+      "component-switch--disabled",
+      "component-switch--hover",
+      "component-switch--pressed",
+      "component-switch--focus-visible"
+    ],
+    "typesWithUnpaired": [
+      "component-listbox-item-default",
+      "component-listbox-item-default--unselected",
+      "component-listbox-item-default--disabled",
+      "component-listbox-item-default--hover",
+      "component-listbox-item-default--pressed",
+      "component-listbox-item-default--focus-visible",
+      "component-menu-item-default",
+      "component-menu-item-default--disabled",
+      "component-menu-item-default--hover",
+      "component-menu-item-default--pressed",
+      "component-menu-item-default--focus-visible",
+      "component-breadcrumb-item-default",
+      "component-breadcrumb-item-default--current"
+    ],
+    "typesWithNewSideNodes": []
+  },
+  "types": [
+    {
+      "id": "component-listbox-item-default",
+      "state": "selected",
+      "type": "ListBoxItem",
+      "failedLegs": [
+        "geometry",
+        "L3"
+      ],
+      "pairs": 3,
+      "candidates": 3,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [
+        {
+          "id": "old:_icon"
+        }
+      ],
+      "nodes": [
+        {
+          "old": "",
+          "new": "project:node:subject::project:node:subject",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 93,
+            "height": 50
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 114.69000244140625,
+            "height": 58
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 114.6875,
+            "height": 58
+          },
+          "oldNew": 21.69,
+          "newDom": 0.003,
+          "oldDom": 21.688,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "position",
+              "old": "relative",
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "_label",
+          "new": "project:node:subject::lib:template:component-listbox-item-default__label",
+          "oldRect": {
+            "x": 42,
+            "y": 34,
+            "width": 69,
+            "height": 24
+          },
+          "newRect": {
+            "x": 42,
+            "y": 34,
+            "width": 90.69000244140625,
+            "height": 24
+          },
+          "domRect": {
+            "x": 42,
+            "y": 34,
+            "width": 90.6875,
+            "height": 24
+          },
+          "oldNew": 21.69,
+          "newDom": 0.003,
+          "oldDom": 21.688,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "_label",
+              "key": "contentMinWidth",
+              "old": 48,
+              "new": 45.630001068115234
+            },
+            {
+              "path": "_label",
+              "key": "contentMaxWidth",
+              "old": 48,
+              "new": 45.630001068115234
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": "relative",
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "_description",
+          "new": "project:node:subject::lib:template:component-listbox-item-default__description",
+          "oldRect": {
+            "x": 42,
+            "y": 60,
+            "width": 69,
+            "height": 16
+          },
+          "newRect": {
+            "x": 42,
+            "y": 60,
+            "width": 90.69000244140625,
+            "height": 24
+          },
+          "domRect": {
+            "x": 42,
+            "y": 60,
+            "width": 90.6875,
+            "height": 24
+          },
+          "oldNew": 21.69,
+          "newDom": 0.003,
+          "oldDom": 21.688,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "_description",
+              "key": "contentMinWidth",
+              "old": 69,
+              "new": 90.69000244140625
+            },
+            {
+              "path": "_description",
+              "key": "contentMaxWidth",
+              "old": 69,
+              "new": 90.69000244140625
+            },
+            {
+              "path": "_description",
+              "key": "contentHeight",
+              "old": 16,
+              "new": 24
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": "relative",
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "component-listbox-item-default--unselected",
+      "state": "unselected",
+      "type": "ListBoxItem",
+      "failedLegs": [
+        "geometry",
+        "L3"
+      ],
+      "pairs": 3,
+      "candidates": 3,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [
+        {
+          "id": "old:Icon"
+        }
+      ],
+      "nodes": [
+        {
+          "old": "",
+          "new": "project:node:subject::project:node:subject",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 93,
+            "height": 50
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 114.69000244140625,
+            "height": 58
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 114.6875,
+            "height": 58
+          },
+          "oldNew": 21.69,
+          "newDom": 0.003,
+          "oldDom": 21.688,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "position",
+              "old": "relative",
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "Label",
+          "new": "project:node:subject/lib:template:component-listbox-item-default--unselected::lib:template:component-listbox-item-default__label",
+          "oldRect": {
+            "x": 42,
+            "y": 34,
+            "width": 69,
+            "height": 24
+          },
+          "newRect": {
+            "x": 42,
+            "y": 34,
+            "width": 90.69000244140625,
+            "height": 24
+          },
+          "domRect": {
+            "x": 42,
+            "y": 34,
+            "width": 90.6875,
+            "height": 24
+          },
+          "oldNew": 21.69,
+          "newDom": 0.003,
+          "oldDom": 21.688,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "Label",
+              "key": "contentMinWidth",
+              "old": 48,
+              "new": 45.630001068115234
+            },
+            {
+              "path": "Label",
+              "key": "contentMaxWidth",
+              "old": 48,
+              "new": 45.630001068115234
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": "relative",
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "Description",
+          "new": "project:node:subject/lib:template:component-listbox-item-default--unselected::lib:template:component-listbox-item-default__description",
+          "oldRect": {
+            "x": 42,
+            "y": 60,
+            "width": 69,
+            "height": 16
+          },
+          "newRect": {
+            "x": 42,
+            "y": 60,
+            "width": 90.69000244140625,
+            "height": 24
+          },
+          "domRect": {
+            "x": 42,
+            "y": 60,
+            "width": 90.6875,
+            "height": 24
+          },
+          "oldNew": 21.69,
+          "newDom": 0.003,
+          "oldDom": 21.688,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "Description",
+              "key": "contentMinWidth",
+              "old": 69,
+              "new": 90.69000244140625
+            },
+            {
+              "path": "Description",
+              "key": "contentMaxWidth",
+              "old": 69,
+              "new": 90.69000244140625
+            },
+            {
+              "path": "Description",
+              "key": "contentHeight",
+              "old": 16,
+              "new": 24
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": "relative",
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "component-listbox-item-default--disabled",
+      "state": "disabled",
+      "type": "ListBoxItem",
+      "failedLegs": [
+        "geometry",
+        "L3"
+      ],
+      "pairs": 3,
+      "candidates": 3,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [
+        {
+          "id": "old:Icon"
+        }
+      ],
+      "nodes": [
+        {
+          "old": "",
+          "new": "project:node:subject::project:node:subject",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 93,
+            "height": 50
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 114.69000244140625,
+            "height": 58
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 114.6875,
+            "height": 58
+          },
+          "oldNew": 21.69,
+          "newDom": 0.003,
+          "oldDom": 21.688,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "position",
+              "old": "relative",
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "Label",
+          "new": "project:node:subject/lib:template:component-listbox-item-default--disabled::lib:template:component-listbox-item-default__label",
+          "oldRect": {
+            "x": 42,
+            "y": 34,
+            "width": 69,
+            "height": 24
+          },
+          "newRect": {
+            "x": 42,
+            "y": 34,
+            "width": 90.69000244140625,
+            "height": 24
+          },
+          "domRect": {
+            "x": 42,
+            "y": 34,
+            "width": 90.6875,
+            "height": 24
+          },
+          "oldNew": 21.69,
+          "newDom": 0.003,
+          "oldDom": 21.688,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "Label",
+              "key": "contentMinWidth",
+              "old": 48,
+              "new": 45.630001068115234
+            },
+            {
+              "path": "Label",
+              "key": "contentMaxWidth",
+              "old": 48,
+              "new": 45.630001068115234
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": "relative",
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "Description",
+          "new": "project:node:subject/lib:template:component-listbox-item-default--disabled::lib:template:component-listbox-item-default__description",
+          "oldRect": {
+            "x": 42,
+            "y": 60,
+            "width": 69,
+            "height": 16
+          },
+          "newRect": {
+            "x": 42,
+            "y": 60,
+            "width": 90.69000244140625,
+            "height": 24
+          },
+          "domRect": {
+            "x": 42,
+            "y": 60,
+            "width": 90.6875,
+            "height": 24
+          },
+          "oldNew": 21.69,
+          "newDom": 0.003,
+          "oldDom": 21.688,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "Description",
+              "key": "contentMinWidth",
+              "old": 69,
+              "new": 90.69000244140625
+            },
+            {
+              "path": "Description",
+              "key": "contentMaxWidth",
+              "old": 69,
+              "new": 90.69000244140625
+            },
+            {
+              "path": "Description",
+              "key": "contentHeight",
+              "old": 16,
+              "new": 24
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": "relative",
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "component-listbox-item-default--hover",
+      "state": "hover",
+      "type": "ListBoxItem",
+      "failedLegs": [
+        "geometry",
+        "L3"
+      ],
+      "pairs": 3,
+      "candidates": 3,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [
+        {
+          "id": "old:Icon"
+        }
+      ],
+      "nodes": [
+        {
+          "old": "",
+          "new": "project:node:subject::project:node:subject",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 93,
+            "height": 50
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 114.69000244140625,
+            "height": 58
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 114.6875,
+            "height": 58
+          },
+          "oldNew": 21.69,
+          "newDom": 0.003,
+          "oldDom": 21.688,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "position",
+              "old": "relative",
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "Label",
+          "new": "project:node:subject/lib:template:component-listbox-item-default--hover::lib:template:component-listbox-item-default__label",
+          "oldRect": {
+            "x": 42,
+            "y": 34,
+            "width": 69,
+            "height": 24
+          },
+          "newRect": {
+            "x": 42,
+            "y": 34,
+            "width": 90.69000244140625,
+            "height": 24
+          },
+          "domRect": {
+            "x": 42,
+            "y": 34,
+            "width": 90.6875,
+            "height": 24
+          },
+          "oldNew": 21.69,
+          "newDom": 0.003,
+          "oldDom": 21.688,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "Label",
+              "key": "contentMinWidth",
+              "old": 48,
+              "new": 45.630001068115234
+            },
+            {
+              "path": "Label",
+              "key": "contentMaxWidth",
+              "old": 48,
+              "new": 45.630001068115234
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": "relative",
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "Description",
+          "new": "project:node:subject/lib:template:component-listbox-item-default--hover::lib:template:component-listbox-item-default__description",
+          "oldRect": {
+            "x": 42,
+            "y": 60,
+            "width": 69,
+            "height": 16
+          },
+          "newRect": {
+            "x": 42,
+            "y": 60,
+            "width": 90.69000244140625,
+            "height": 24
+          },
+          "domRect": {
+            "x": 42,
+            "y": 60,
+            "width": 90.6875,
+            "height": 24
+          },
+          "oldNew": 21.69,
+          "newDom": 0.003,
+          "oldDom": 21.688,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "Description",
+              "key": "contentMinWidth",
+              "old": 69,
+              "new": 90.69000244140625
+            },
+            {
+              "path": "Description",
+              "key": "contentMaxWidth",
+              "old": 69,
+              "new": 90.69000244140625
+            },
+            {
+              "path": "Description",
+              "key": "contentHeight",
+              "old": 16,
+              "new": 24
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": "relative",
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "component-listbox-item-default--pressed",
+      "state": "pressed",
+      "type": "ListBoxItem",
+      "failedLegs": [
+        "geometry",
+        "L3"
+      ],
+      "pairs": 3,
+      "candidates": 3,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [
+        {
+          "id": "old:Icon"
+        }
+      ],
+      "nodes": [
+        {
+          "old": "",
+          "new": "project:node:subject::project:node:subject",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 93,
+            "height": 50
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 114.69000244140625,
+            "height": 58
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 114.6875,
+            "height": 58
+          },
+          "oldNew": 21.69,
+          "newDom": 0.003,
+          "oldDom": 21.688,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "position",
+              "old": "relative",
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "Label",
+          "new": "project:node:subject/lib:template:component-listbox-item-default--pressed::lib:template:component-listbox-item-default__label",
+          "oldRect": {
+            "x": 42,
+            "y": 34,
+            "width": 69,
+            "height": 24
+          },
+          "newRect": {
+            "x": 42,
+            "y": 34,
+            "width": 90.69000244140625,
+            "height": 24
+          },
+          "domRect": {
+            "x": 42,
+            "y": 34,
+            "width": 90.6875,
+            "height": 24
+          },
+          "oldNew": 21.69,
+          "newDom": 0.003,
+          "oldDom": 21.688,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "Label",
+              "key": "contentMinWidth",
+              "old": 48,
+              "new": 45.630001068115234
+            },
+            {
+              "path": "Label",
+              "key": "contentMaxWidth",
+              "old": 48,
+              "new": 45.630001068115234
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": "relative",
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "Description",
+          "new": "project:node:subject/lib:template:component-listbox-item-default--pressed::lib:template:component-listbox-item-default__description",
+          "oldRect": {
+            "x": 42,
+            "y": 60,
+            "width": 69,
+            "height": 16
+          },
+          "newRect": {
+            "x": 42,
+            "y": 60,
+            "width": 90.69000244140625,
+            "height": 24
+          },
+          "domRect": {
+            "x": 42,
+            "y": 60,
+            "width": 90.6875,
+            "height": 24
+          },
+          "oldNew": 21.69,
+          "newDom": 0.003,
+          "oldDom": 21.688,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "Description",
+              "key": "contentMinWidth",
+              "old": 69,
+              "new": 90.69000244140625
+            },
+            {
+              "path": "Description",
+              "key": "contentMaxWidth",
+              "old": 69,
+              "new": 90.69000244140625
+            },
+            {
+              "path": "Description",
+              "key": "contentHeight",
+              "old": 16,
+              "new": 24
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": "relative",
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "component-listbox-item-default--focus-visible",
+      "state": "focus-visible",
+      "type": "ListBoxItem",
+      "failedLegs": [
+        "geometry",
+        "L3"
+      ],
+      "pairs": 3,
+      "candidates": 3,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [
+        {
+          "id": "old:Icon"
+        }
+      ],
+      "nodes": [
+        {
+          "old": "",
+          "new": "project:node:subject::project:node:subject",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 93,
+            "height": 50
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 114.69000244140625,
+            "height": 58
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 114.6875,
+            "height": 58
+          },
+          "oldNew": 21.69,
+          "newDom": 0.003,
+          "oldDom": 21.688,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "position",
+              "old": "relative",
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "Label",
+          "new": "project:node:subject/lib:template:component-listbox-item-default--focus-visible::lib:template:component-listbox-item-default__label",
+          "oldRect": {
+            "x": 42,
+            "y": 34,
+            "width": 69,
+            "height": 24
+          },
+          "newRect": {
+            "x": 42,
+            "y": 34,
+            "width": 90.69000244140625,
+            "height": 24
+          },
+          "domRect": {
+            "x": 42,
+            "y": 34,
+            "width": 90.6875,
+            "height": 24
+          },
+          "oldNew": 21.69,
+          "newDom": 0.003,
+          "oldDom": 21.688,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "Label",
+              "key": "contentMinWidth",
+              "old": 48,
+              "new": 45.630001068115234
+            },
+            {
+              "path": "Label",
+              "key": "contentMaxWidth",
+              "old": 48,
+              "new": 45.630001068115234
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": "relative",
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "Description",
+          "new": "project:node:subject/lib:template:component-listbox-item-default--focus-visible::lib:template:component-listbox-item-default__description",
+          "oldRect": {
+            "x": 42,
+            "y": 60,
+            "width": 69,
+            "height": 16
+          },
+          "newRect": {
+            "x": 42,
+            "y": 60,
+            "width": 90.69000244140625,
+            "height": 24
+          },
+          "domRect": {
+            "x": 42,
+            "y": 60,
+            "width": 90.6875,
+            "height": 24
+          },
+          "oldNew": 21.69,
+          "newDom": 0.003,
+          "oldDom": 21.688,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "Description",
+              "key": "contentMinWidth",
+              "old": 69,
+              "new": 90.69000244140625
+            },
+            {
+              "path": "Description",
+              "key": "contentMaxWidth",
+              "old": 69,
+              "new": 90.69000244140625
+            },
+            {
+              "path": "Description",
+              "key": "contentHeight",
+              "old": 16,
+              "new": 24
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": "relative",
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "component-gridlist-item-default",
+      "state": "selected",
+      "type": "GridListItem",
+      "failedLegs": [
+        "geometry",
+        "L3"
+      ],
+      "pairs": 3,
+      "candidates": 3,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "",
+          "new": "project:node:subject::project:node:subject",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 125,
+            "height": 76
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 129.66000366210938,
+            "height": 76
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 129.65625,
+            "height": 76
+          },
+          "oldNew": 4.66,
+          "newDom": 0.004,
+          "oldDom": 4.656,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "_label",
+          "new": "project:node:subject::lib:template:component-gridlist-item-default__label",
+          "oldRect": {
+            "x": 47,
+            "y": 43,
+            "width": 91,
+            "height": 24
+          },
+          "newRect": {
+            "x": 47,
+            "y": 43,
+            "width": 95.66000366210938,
+            "height": 24
+          },
+          "domRect": {
+            "x": 47,
+            "y": 43,
+            "width": 95.65625,
+            "height": 24
+          },
+          "oldNew": 4.66,
+          "newDom": 0.004,
+          "oldDom": 4.656,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "_description",
+          "new": "project:node:subject::lib:template:component-gridlist-item-default__description",
+          "oldRect": {
+            "x": 47,
+            "y": 69,
+            "width": 91,
+            "height": 24
+          },
+          "newRect": {
+            "x": 47,
+            "y": 69,
+            "width": 95.66000366210938,
+            "height": 24
+          },
+          "domRect": {
+            "x": 47,
+            "y": 69,
+            "width": 95.65625,
+            "height": 24
+          },
+          "oldNew": 4.66,
+          "newDom": 0.004,
+          "oldDom": 4.656,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "_description",
+              "key": "contentMinWidth",
+              "old": 91,
+              "new": 95.66000366210938
+            },
+            {
+              "path": "_description",
+              "key": "contentMaxWidth",
+              "old": 91,
+              "new": 95.66000366210938
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "component-gridlist-item-default--unselected",
+      "state": "unselected",
+      "type": "GridListItem",
+      "failedLegs": [
+        "geometry",
+        "L3"
+      ],
+      "pairs": 3,
+      "candidates": 3,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "",
+          "new": "project:node:subject::project:node:subject",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 125,
+            "height": 76
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 129.66000366210938,
+            "height": 76
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 129.65625,
+            "height": 76
+          },
+          "oldNew": 4.66,
+          "newDom": 0.004,
+          "oldDom": 4.656,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "Label",
+          "new": "project:node:subject/lib:template:component-gridlist-item-default--unselected::lib:template:component-gridlist-item-default__label",
+          "oldRect": {
+            "x": 47,
+            "y": 43,
+            "width": 91,
+            "height": 24
+          },
+          "newRect": {
+            "x": 47,
+            "y": 43,
+            "width": 95.66000366210938,
+            "height": 24
+          },
+          "domRect": {
+            "x": 47,
+            "y": 43,
+            "width": 95.65625,
+            "height": 24
+          },
+          "oldNew": 4.66,
+          "newDom": 0.004,
+          "oldDom": 4.656,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "Description",
+          "new": "project:node:subject/lib:template:component-gridlist-item-default--unselected::lib:template:component-gridlist-item-default__description",
+          "oldRect": {
+            "x": 47,
+            "y": 69,
+            "width": 91,
+            "height": 24
+          },
+          "newRect": {
+            "x": 47,
+            "y": 69,
+            "width": 95.66000366210938,
+            "height": 24
+          },
+          "domRect": {
+            "x": 47,
+            "y": 69,
+            "width": 95.65625,
+            "height": 24
+          },
+          "oldNew": 4.66,
+          "newDom": 0.004,
+          "oldDom": 4.656,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "Description",
+              "key": "contentMinWidth",
+              "old": 91,
+              "new": 95.66000366210938
+            },
+            {
+              "path": "Description",
+              "key": "contentMaxWidth",
+              "old": 91,
+              "new": 95.66000366210938
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "component-gridlist-item-default--disabled",
+      "state": "disabled",
+      "type": "GridListItem",
+      "failedLegs": [
+        "geometry",
+        "L3"
+      ],
+      "pairs": 3,
+      "candidates": 3,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "",
+          "new": "project:node:subject::project:node:subject",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 125,
+            "height": 76
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 129.66000366210938,
+            "height": 76
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 129.65625,
+            "height": 76
+          },
+          "oldNew": 4.66,
+          "newDom": 0.004,
+          "oldDom": 4.656,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "Label",
+          "new": "project:node:subject/lib:template:component-gridlist-item-default--disabled::lib:template:component-gridlist-item-default__label",
+          "oldRect": {
+            "x": 47,
+            "y": 43,
+            "width": 91,
+            "height": 24
+          },
+          "newRect": {
+            "x": 47,
+            "y": 43,
+            "width": 95.66000366210938,
+            "height": 24
+          },
+          "domRect": {
+            "x": 47,
+            "y": 43,
+            "width": 95.65625,
+            "height": 24
+          },
+          "oldNew": 4.66,
+          "newDom": 0.004,
+          "oldDom": 4.656,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "Description",
+          "new": "project:node:subject/lib:template:component-gridlist-item-default--disabled::lib:template:component-gridlist-item-default__description",
+          "oldRect": {
+            "x": 47,
+            "y": 69,
+            "width": 91,
+            "height": 24
+          },
+          "newRect": {
+            "x": 47,
+            "y": 69,
+            "width": 95.66000366210938,
+            "height": 24
+          },
+          "domRect": {
+            "x": 47,
+            "y": 69,
+            "width": 95.65625,
+            "height": 24
+          },
+          "oldNew": 4.66,
+          "newDom": 0.004,
+          "oldDom": 4.656,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "Description",
+              "key": "contentMinWidth",
+              "old": 91,
+              "new": 95.66000366210938
+            },
+            {
+              "path": "Description",
+              "key": "contentMaxWidth",
+              "old": 91,
+              "new": 95.66000366210938
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "component-gridlist-item-default--hover",
+      "state": "hover",
+      "type": "GridListItem",
+      "failedLegs": [
+        "geometry",
+        "L3"
+      ],
+      "pairs": 3,
+      "candidates": 3,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "",
+          "new": "project:node:subject::project:node:subject",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 125,
+            "height": 76
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 129.66000366210938,
+            "height": 76
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 129.65625,
+            "height": 76
+          },
+          "oldNew": 4.66,
+          "newDom": 0.004,
+          "oldDom": 4.656,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "Label",
+          "new": "project:node:subject/lib:template:component-gridlist-item-default--hover::lib:template:component-gridlist-item-default__label",
+          "oldRect": {
+            "x": 47,
+            "y": 43,
+            "width": 91,
+            "height": 24
+          },
+          "newRect": {
+            "x": 47,
+            "y": 43,
+            "width": 95.66000366210938,
+            "height": 24
+          },
+          "domRect": {
+            "x": 47,
+            "y": 43,
+            "width": 95.65625,
+            "height": 24
+          },
+          "oldNew": 4.66,
+          "newDom": 0.004,
+          "oldDom": 4.656,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "Description",
+          "new": "project:node:subject/lib:template:component-gridlist-item-default--hover::lib:template:component-gridlist-item-default__description",
+          "oldRect": {
+            "x": 47,
+            "y": 69,
+            "width": 91,
+            "height": 24
+          },
+          "newRect": {
+            "x": 47,
+            "y": 69,
+            "width": 95.66000366210938,
+            "height": 24
+          },
+          "domRect": {
+            "x": 47,
+            "y": 69,
+            "width": 95.65625,
+            "height": 24
+          },
+          "oldNew": 4.66,
+          "newDom": 0.004,
+          "oldDom": 4.656,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "Description",
+              "key": "contentMinWidth",
+              "old": 91,
+              "new": 95.66000366210938
+            },
+            {
+              "path": "Description",
+              "key": "contentMaxWidth",
+              "old": 91,
+              "new": 95.66000366210938
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "component-gridlist-item-default--pressed",
+      "state": "pressed",
+      "type": "GridListItem",
+      "failedLegs": [
+        "geometry",
+        "L3"
+      ],
+      "pairs": 3,
+      "candidates": 3,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "",
+          "new": "project:node:subject::project:node:subject",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 125,
+            "height": 76
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 129.66000366210938,
+            "height": 76
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 129.65625,
+            "height": 76
+          },
+          "oldNew": 4.66,
+          "newDom": 0.004,
+          "oldDom": 4.656,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "Label",
+          "new": "project:node:subject/lib:template:component-gridlist-item-default--pressed::lib:template:component-gridlist-item-default__label",
+          "oldRect": {
+            "x": 47,
+            "y": 43,
+            "width": 91,
+            "height": 24
+          },
+          "newRect": {
+            "x": 47,
+            "y": 43,
+            "width": 95.66000366210938,
+            "height": 24
+          },
+          "domRect": {
+            "x": 47,
+            "y": 43,
+            "width": 95.65625,
+            "height": 24
+          },
+          "oldNew": 4.66,
+          "newDom": 0.004,
+          "oldDom": 4.656,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "Description",
+          "new": "project:node:subject/lib:template:component-gridlist-item-default--pressed::lib:template:component-gridlist-item-default__description",
+          "oldRect": {
+            "x": 47,
+            "y": 69,
+            "width": 91,
+            "height": 24
+          },
+          "newRect": {
+            "x": 47,
+            "y": 69,
+            "width": 95.66000366210938,
+            "height": 24
+          },
+          "domRect": {
+            "x": 47,
+            "y": 69,
+            "width": 95.65625,
+            "height": 24
+          },
+          "oldNew": 4.66,
+          "newDom": 0.004,
+          "oldDom": 4.656,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "Description",
+              "key": "contentMinWidth",
+              "old": 91,
+              "new": 95.66000366210938
+            },
+            {
+              "path": "Description",
+              "key": "contentMaxWidth",
+              "old": 91,
+              "new": 95.66000366210938
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "component-gridlist-item-default--focus-visible",
+      "state": "focus-visible",
+      "type": "GridListItem",
+      "failedLegs": [
+        "geometry",
+        "L3"
+      ],
+      "pairs": 3,
+      "candidates": 3,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "",
+          "new": "project:node:subject::project:node:subject",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 125,
+            "height": 76
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 129.66000366210938,
+            "height": 76
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 129.65625,
+            "height": 76
+          },
+          "oldNew": 4.66,
+          "newDom": 0.004,
+          "oldDom": 4.656,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "Label",
+          "new": "project:node:subject/lib:template:component-gridlist-item-default--focus-visible::lib:template:component-gridlist-item-default__label",
+          "oldRect": {
+            "x": 47,
+            "y": 43,
+            "width": 91,
+            "height": 24
+          },
+          "newRect": {
+            "x": 47,
+            "y": 43,
+            "width": 95.66000366210938,
+            "height": 24
+          },
+          "domRect": {
+            "x": 47,
+            "y": 43,
+            "width": 95.65625,
+            "height": 24
+          },
+          "oldNew": 4.66,
+          "newDom": 0.004,
+          "oldDom": 4.656,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "Description",
+          "new": "project:node:subject/lib:template:component-gridlist-item-default--focus-visible::lib:template:component-gridlist-item-default__description",
+          "oldRect": {
+            "x": 47,
+            "y": 69,
+            "width": 91,
+            "height": 24
+          },
+          "newRect": {
+            "x": 47,
+            "y": 69,
+            "width": 95.66000366210938,
+            "height": 24
+          },
+          "domRect": {
+            "x": 47,
+            "y": 69,
+            "width": 95.65625,
+            "height": 24
+          },
+          "oldNew": 4.66,
+          "newDom": 0.004,
+          "oldDom": 4.656,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "Description",
+              "key": "contentMinWidth",
+              "old": 91,
+              "new": 95.66000366210938
+            },
+            {
+              "path": "Description",
+              "key": "contentMaxWidth",
+              "old": 91,
+              "new": 95.66000366210938
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "component-menu-item-default",
+      "state": "default",
+      "type": "MenuItem",
+      "failedLegs": [
+        "geometry",
+        "L3"
+      ],
+      "pairs": 4,
+      "candidates": 4,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [
+        {
+          "id": "old:_icon"
+        }
+      ],
+      "nodes": [
+        {
+          "old": "",
+          "new": "project:node:subject::project:node:subject",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 280,
+            "height": 32
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 247.4600067138672,
+            "height": 32
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 247.453125,
+            "height": 32
+          },
+          "oldNew": 32.54,
+          "newDom": 0.007,
+          "oldDom": 32.547,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "_label",
+          "new": "project:node:subject::lib:template:component-menu-item-default__label",
+          "oldRect": {
+            "x": 74,
+            "y": 34,
+            "width": 45,
+            "height": 24
+          },
+          "newRect": {
+            "x": 42,
+            "y": 34,
+            "width": 45.6300048828125,
+            "height": 24
+          },
+          "domRect": {
+            "x": 42,
+            "y": 34,
+            "width": 45.625,
+            "height": 24
+          },
+          "oldNew": 32,
+          "newDom": 0.005,
+          "oldDom": 32,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "_label",
+              "key": "contentMinWidth",
+              "old": 45,
+              "new": 45.630001068115234
+            },
+            {
+              "path": "_label",
+              "key": "contentMaxWidth",
+              "old": 45,
+              "new": 45.630001068115234
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "_shortcut",
+          "new": "project:node:subject::lib:template:component-menu-item-default__shortcut",
+          "oldRect": {
+            "x": 127,
+            "y": 34,
+            "width": 72,
+            "height": 24
+          },
+          "newRect": {
+            "x": 95.6300048828125,
+            "y": 34,
+            "width": 71.13999938964844,
+            "height": 24
+          },
+          "domRect": {
+            "x": 95.625,
+            "y": 34,
+            "width": 71.140625,
+            "height": 24
+          },
+          "oldNew": 31.37,
+          "newDom": 0.005,
+          "oldDom": 31.375,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "_shortcut",
+              "key": "contentMinWidth",
+              "old": 72,
+              "new": 71.13999938964844
+            },
+            {
+              "path": "_shortcut",
+              "key": "contentMaxWidth",
+              "old": 72,
+              "new": 71.13999938964844
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "_description",
+          "new": "project:node:subject::lib:template:component-menu-item-default__description",
+          "oldRect": {
+            "x": 207,
+            "y": 34,
+            "width": 91,
+            "height": 24
+          },
+          "newRect": {
+            "x": 174.77000427246094,
+            "y": 34,
+            "width": 90.69000244140625,
+            "height": 24
+          },
+          "domRect": {
+            "x": 174.765625,
+            "y": 34,
+            "width": 90.6875,
+            "height": 24
+          },
+          "oldNew": 32.23,
+          "newDom": 0.004,
+          "oldDom": 32.234,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "_description",
+              "key": "contentMinWidth",
+              "old": 91,
+              "new": 90.69000244140625
+            },
+            {
+              "path": "_description",
+              "key": "contentMaxWidth",
+              "old": 91,
+              "new": 90.69000244140625
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "component-menu-item-default--disabled",
+      "state": "disabled",
+      "type": "MenuItem",
+      "failedLegs": [
+        "geometry",
+        "L3"
+      ],
+      "pairs": 4,
+      "candidates": 4,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [
+        {
+          "id": "old:Icon"
+        }
+      ],
+      "nodes": [
+        {
+          "old": "",
+          "new": "project:node:subject::project:node:subject",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 280,
+            "height": 32
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 247.4600067138672,
+            "height": 32
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 247.453125,
+            "height": 32
+          },
+          "oldNew": 32.54,
+          "newDom": 0.007,
+          "oldDom": 32.547,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "Label",
+          "new": "project:node:subject/lib:template:component-menu-item-default--disabled::lib:template:component-menu-item-default__label",
+          "oldRect": {
+            "x": 74,
+            "y": 34,
+            "width": 45,
+            "height": 24
+          },
+          "newRect": {
+            "x": 42,
+            "y": 34,
+            "width": 45.6300048828125,
+            "height": 24
+          },
+          "domRect": {
+            "x": 42,
+            "y": 34,
+            "width": 45.625,
+            "height": 24
+          },
+          "oldNew": 32,
+          "newDom": 0.005,
+          "oldDom": 32,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "Label",
+              "key": "contentMinWidth",
+              "old": 45,
+              "new": 45.630001068115234
+            },
+            {
+              "path": "Label",
+              "key": "contentMaxWidth",
+              "old": 45,
+              "new": 45.630001068115234
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "Shortcut",
+          "new": "project:node:subject/lib:template:component-menu-item-default--disabled::lib:template:component-menu-item-default__shortcut",
+          "oldRect": {
+            "x": 127,
+            "y": 34,
+            "width": 72,
+            "height": 24
+          },
+          "newRect": {
+            "x": 95.6300048828125,
+            "y": 34,
+            "width": 71.13999938964844,
+            "height": 24
+          },
+          "domRect": {
+            "x": 95.625,
+            "y": 34,
+            "width": 71.140625,
+            "height": 24
+          },
+          "oldNew": 31.37,
+          "newDom": 0.005,
+          "oldDom": 31.375,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "Shortcut",
+              "key": "contentMinWidth",
+              "old": 72,
+              "new": 71.13999938964844
+            },
+            {
+              "path": "Shortcut",
+              "key": "contentMaxWidth",
+              "old": 72,
+              "new": 71.13999938964844
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "Description",
+          "new": "project:node:subject/lib:template:component-menu-item-default--disabled::lib:template:component-menu-item-default__description",
+          "oldRect": {
+            "x": 207,
+            "y": 34,
+            "width": 91,
+            "height": 24
+          },
+          "newRect": {
+            "x": 174.77000427246094,
+            "y": 34,
+            "width": 90.69000244140625,
+            "height": 24
+          },
+          "domRect": {
+            "x": 174.765625,
+            "y": 34,
+            "width": 90.6875,
+            "height": 24
+          },
+          "oldNew": 32.23,
+          "newDom": 0.004,
+          "oldDom": 32.234,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "Description",
+              "key": "contentMinWidth",
+              "old": 91,
+              "new": 90.69000244140625
+            },
+            {
+              "path": "Description",
+              "key": "contentMaxWidth",
+              "old": 91,
+              "new": 90.69000244140625
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "component-menu-item-default--hover",
+      "state": "hover",
+      "type": "MenuItem",
+      "failedLegs": [
+        "geometry",
+        "L3"
+      ],
+      "pairs": 4,
+      "candidates": 4,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [
+        {
+          "id": "old:Icon"
+        }
+      ],
+      "nodes": [
+        {
+          "old": "",
+          "new": "project:node:subject::project:node:subject",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 280,
+            "height": 32
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 247.4600067138672,
+            "height": 32
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 247.453125,
+            "height": 32
+          },
+          "oldNew": 32.54,
+          "newDom": 0.007,
+          "oldDom": 32.547,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "Label",
+          "new": "project:node:subject/lib:template:component-menu-item-default--hover::lib:template:component-menu-item-default__label",
+          "oldRect": {
+            "x": 74,
+            "y": 34,
+            "width": 45,
+            "height": 24
+          },
+          "newRect": {
+            "x": 42,
+            "y": 34,
+            "width": 45.6300048828125,
+            "height": 24
+          },
+          "domRect": {
+            "x": 42,
+            "y": 34,
+            "width": 45.625,
+            "height": 24
+          },
+          "oldNew": 32,
+          "newDom": 0.005,
+          "oldDom": 32,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "Label",
+              "key": "contentMinWidth",
+              "old": 45,
+              "new": 45.630001068115234
+            },
+            {
+              "path": "Label",
+              "key": "contentMaxWidth",
+              "old": 45,
+              "new": 45.630001068115234
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "Shortcut",
+          "new": "project:node:subject/lib:template:component-menu-item-default--hover::lib:template:component-menu-item-default__shortcut",
+          "oldRect": {
+            "x": 127,
+            "y": 34,
+            "width": 72,
+            "height": 24
+          },
+          "newRect": {
+            "x": 95.6300048828125,
+            "y": 34,
+            "width": 71.13999938964844,
+            "height": 24
+          },
+          "domRect": {
+            "x": 95.625,
+            "y": 34,
+            "width": 71.140625,
+            "height": 24
+          },
+          "oldNew": 31.37,
+          "newDom": 0.005,
+          "oldDom": 31.375,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "Shortcut",
+              "key": "contentMinWidth",
+              "old": 72,
+              "new": 71.13999938964844
+            },
+            {
+              "path": "Shortcut",
+              "key": "contentMaxWidth",
+              "old": 72,
+              "new": 71.13999938964844
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "Description",
+          "new": "project:node:subject/lib:template:component-menu-item-default--hover::lib:template:component-menu-item-default__description",
+          "oldRect": {
+            "x": 207,
+            "y": 34,
+            "width": 91,
+            "height": 24
+          },
+          "newRect": {
+            "x": 174.77000427246094,
+            "y": 34,
+            "width": 90.69000244140625,
+            "height": 24
+          },
+          "domRect": {
+            "x": 174.765625,
+            "y": 34,
+            "width": 90.6875,
+            "height": 24
+          },
+          "oldNew": 32.23,
+          "newDom": 0.004,
+          "oldDom": 32.234,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "Description",
+              "key": "contentMinWidth",
+              "old": 91,
+              "new": 90.69000244140625
+            },
+            {
+              "path": "Description",
+              "key": "contentMaxWidth",
+              "old": 91,
+              "new": 90.69000244140625
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "component-menu-item-default--pressed",
+      "state": "pressed",
+      "type": "MenuItem",
+      "failedLegs": [
+        "geometry",
+        "L3"
+      ],
+      "pairs": 4,
+      "candidates": 4,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [
+        {
+          "id": "old:Icon"
+        }
+      ],
+      "nodes": [
+        {
+          "old": "",
+          "new": "project:node:subject::project:node:subject",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 280,
+            "height": 32
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 247.4600067138672,
+            "height": 32
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 247.453125,
+            "height": 32
+          },
+          "oldNew": 32.54,
+          "newDom": 0.007,
+          "oldDom": 32.547,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "Label",
+          "new": "project:node:subject/lib:template:component-menu-item-default--pressed::lib:template:component-menu-item-default__label",
+          "oldRect": {
+            "x": 74,
+            "y": 34,
+            "width": 45,
+            "height": 24
+          },
+          "newRect": {
+            "x": 42,
+            "y": 34,
+            "width": 45.6300048828125,
+            "height": 24
+          },
+          "domRect": {
+            "x": 42,
+            "y": 34,
+            "width": 45.625,
+            "height": 24
+          },
+          "oldNew": 32,
+          "newDom": 0.005,
+          "oldDom": 32,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "Label",
+              "key": "contentMinWidth",
+              "old": 45,
+              "new": 45.630001068115234
+            },
+            {
+              "path": "Label",
+              "key": "contentMaxWidth",
+              "old": 45,
+              "new": 45.630001068115234
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "Shortcut",
+          "new": "project:node:subject/lib:template:component-menu-item-default--pressed::lib:template:component-menu-item-default__shortcut",
+          "oldRect": {
+            "x": 127,
+            "y": 34,
+            "width": 72,
+            "height": 24
+          },
+          "newRect": {
+            "x": 95.6300048828125,
+            "y": 34,
+            "width": 71.13999938964844,
+            "height": 24
+          },
+          "domRect": {
+            "x": 95.625,
+            "y": 34,
+            "width": 71.140625,
+            "height": 24
+          },
+          "oldNew": 31.37,
+          "newDom": 0.005,
+          "oldDom": 31.375,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "Shortcut",
+              "key": "contentMinWidth",
+              "old": 72,
+              "new": 71.13999938964844
+            },
+            {
+              "path": "Shortcut",
+              "key": "contentMaxWidth",
+              "old": 72,
+              "new": 71.13999938964844
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "Description",
+          "new": "project:node:subject/lib:template:component-menu-item-default--pressed::lib:template:component-menu-item-default__description",
+          "oldRect": {
+            "x": 207,
+            "y": 34,
+            "width": 91,
+            "height": 24
+          },
+          "newRect": {
+            "x": 174.77000427246094,
+            "y": 34,
+            "width": 90.69000244140625,
+            "height": 24
+          },
+          "domRect": {
+            "x": 174.765625,
+            "y": 34,
+            "width": 90.6875,
+            "height": 24
+          },
+          "oldNew": 32.23,
+          "newDom": 0.004,
+          "oldDom": 32.234,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "Description",
+              "key": "contentMinWidth",
+              "old": 91,
+              "new": 90.69000244140625
+            },
+            {
+              "path": "Description",
+              "key": "contentMaxWidth",
+              "old": 91,
+              "new": 90.69000244140625
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "component-menu-item-default--focus-visible",
+      "state": "focus-visible",
+      "type": "MenuItem",
+      "failedLegs": [
+        "geometry",
+        "L3"
+      ],
+      "pairs": 4,
+      "candidates": 4,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [
+        {
+          "id": "old:Icon"
+        }
+      ],
+      "nodes": [
+        {
+          "old": "",
+          "new": "project:node:subject::project:node:subject",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 280,
+            "height": 32
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 247.4600067138672,
+            "height": 32
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 247.453125,
+            "height": 32
+          },
+          "oldNew": 32.54,
+          "newDom": 0.007,
+          "oldDom": 32.547,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "Label",
+          "new": "project:node:subject/lib:template:component-menu-item-default--focus-visible::lib:template:component-menu-item-default__label",
+          "oldRect": {
+            "x": 74,
+            "y": 34,
+            "width": 45,
+            "height": 24
+          },
+          "newRect": {
+            "x": 42,
+            "y": 34,
+            "width": 45.6300048828125,
+            "height": 24
+          },
+          "domRect": {
+            "x": 42,
+            "y": 34,
+            "width": 45.625,
+            "height": 24
+          },
+          "oldNew": 32,
+          "newDom": 0.005,
+          "oldDom": 32,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "Label",
+              "key": "contentMinWidth",
+              "old": 45,
+              "new": 45.630001068115234
+            },
+            {
+              "path": "Label",
+              "key": "contentMaxWidth",
+              "old": 45,
+              "new": 45.630001068115234
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "Shortcut",
+          "new": "project:node:subject/lib:template:component-menu-item-default--focus-visible::lib:template:component-menu-item-default__shortcut",
+          "oldRect": {
+            "x": 127,
+            "y": 34,
+            "width": 72,
+            "height": 24
+          },
+          "newRect": {
+            "x": 95.6300048828125,
+            "y": 34,
+            "width": 71.13999938964844,
+            "height": 24
+          },
+          "domRect": {
+            "x": 95.625,
+            "y": 34,
+            "width": 71.140625,
+            "height": 24
+          },
+          "oldNew": 31.37,
+          "newDom": 0.005,
+          "oldDom": 31.375,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "Shortcut",
+              "key": "contentMinWidth",
+              "old": 72,
+              "new": 71.13999938964844
+            },
+            {
+              "path": "Shortcut",
+              "key": "contentMaxWidth",
+              "old": 72,
+              "new": 71.13999938964844
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "Description",
+          "new": "project:node:subject/lib:template:component-menu-item-default--focus-visible::lib:template:component-menu-item-default__description",
+          "oldRect": {
+            "x": 207,
+            "y": 34,
+            "width": 91,
+            "height": 24
+          },
+          "newRect": {
+            "x": 174.77000427246094,
+            "y": 34,
+            "width": 90.69000244140625,
+            "height": 24
+          },
+          "domRect": {
+            "x": 174.765625,
+            "y": 34,
+            "width": 90.6875,
+            "height": 24
+          },
+          "oldNew": 32.23,
+          "newDom": 0.004,
+          "oldDom": 32.234,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "Description",
+              "key": "contentMinWidth",
+              "old": 91,
+              "new": 90.69000244140625
+            },
+            {
+              "path": "Description",
+              "key": "contentMaxWidth",
+              "old": 91,
+              "new": 90.69000244140625
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "component-breadcrumb-item-default",
+      "state": "default",
+      "type": "Breadcrumb",
+      "failedLegs": [
+        "geometry",
+        "L3"
+      ],
+      "pairs": 1,
+      "candidates": 1,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [
+        {
+          "id": "new:project:node:subject::lib:template:component-breadcrumb-item-default__label"
+        },
+        {
+          "id": "new:project:node:subject::lib:template:component-breadcrumb-item-default__separator"
+        }
+      ],
+      "nodes": [
+        {
+          "old": "",
+          "new": "project:node:subject::project:node:subject",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 110,
+            "height": 24
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 106.68000030517578,
+            "height": 24
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 106.6875,
+            "height": 24
+          },
+          "oldNew": 3.32,
+          "newDom": 0.007,
+          "oldDom": 3.313,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "height",
+              "old": "24px",
+              "new": null
+            },
+            {
+              "path": "",
+              "key": "contentMinWidth",
+              "old": 110,
+              "new": null
+            },
+            {
+              "path": "",
+              "key": "contentMaxWidth",
+              "old": 110,
+              "new": null
+            },
+            {
+              "path": "",
+              "key": "contentHeight",
+              "old": 24,
+              "new": null
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "rowGap",
+              "old": null,
+              "new": "2px"
+            },
+            {
+              "path": "",
+              "key": "columnGap",
+              "old": null,
+              "new": "2px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "component-breadcrumb-item-default--current",
+      "state": "current",
+      "type": "Breadcrumb",
+      "failedLegs": [
+        "geometry"
+      ],
+      "pairs": 1,
+      "candidates": 1,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [
+        {
+          "id": "new:project:node:subject/lib:template:component-breadcrumb-item-default--current::lib:template:component-breadcrumb-item-default__label"
+        }
+      ],
+      "nodes": [
+        {
+          "old": "",
+          "new": "project:node:subject::project:node:subject",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 110,
+            "height": 24
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 93.55999755859375,
+            "height": 24
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 93.5625,
+            "height": 24
+          },
+          "oldNew": 16.44,
+          "newDom": 0.003,
+          "oldDom": 16.438,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "height",
+              "old": "24px",
+              "new": null
+            },
+            {
+              "path": "",
+              "key": "contentMinWidth",
+              "old": 110,
+              "new": null
+            },
+            {
+              "path": "",
+              "key": "contentMaxWidth",
+              "old": 110,
+              "new": null
+            },
+            {
+              "path": "",
+              "key": "contentHeight",
+              "old": 24,
+              "new": null
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "rowGap",
+              "old": null,
+              "new": "2px"
+            },
+            {
+              "path": "",
+              "key": "columnGap",
+              "old": null,
+              "new": "2px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "component-link--disabled",
+      "state": "disabled",
+      "type": "Link",
+      "failedLegs": [
+        "geometry"
+      ],
+      "pairs": 1,
+      "candidates": 1,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "",
+          "new": "project:node:subject::project:node:subject",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 27,
+            "height": 20
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 25.540000915527344,
+            "height": 20
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 25.546875,
+            "height": 20
+          },
+          "oldNew": 1.46,
+          "newDom": 0.007,
+          "oldDom": 1.453,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "contentMinWidth",
+              "old": 27,
+              "new": 25.540000915527344
+            },
+            {
+              "path": "",
+              "key": "contentMaxWidth",
+              "old": 27,
+              "new": 25.540000915527344
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "component-link--hover",
+      "state": "hover",
+      "type": "Link",
+      "failedLegs": [
+        "geometry"
+      ],
+      "pairs": 1,
+      "candidates": 1,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "",
+          "new": "project:node:subject::project:node:subject",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 27,
+            "height": 20
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 25.540000915527344,
+            "height": 20
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 25.546875,
+            "height": 20
+          },
+          "oldNew": 1.46,
+          "newDom": 0.007,
+          "oldDom": 1.453,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "contentMinWidth",
+              "old": 27,
+              "new": 25.540000915527344
+            },
+            {
+              "path": "",
+              "key": "contentMaxWidth",
+              "old": 27,
+              "new": 25.540000915527344
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "component-link--pressed",
+      "state": "pressed",
+      "type": "Link",
+      "failedLegs": [
+        "geometry"
+      ],
+      "pairs": 1,
+      "candidates": 1,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "",
+          "new": "project:node:subject::project:node:subject",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 27,
+            "height": 20
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 25.540000915527344,
+            "height": 20
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 25.546875,
+            "height": 20
+          },
+          "oldNew": 1.46,
+          "newDom": 0.007,
+          "oldDom": 1.453,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "contentMinWidth",
+              "old": 27,
+              "new": 25.540000915527344
+            },
+            {
+              "path": "",
+              "key": "contentMaxWidth",
+              "old": 27,
+              "new": 25.540000915527344
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "component-link--focus-visible",
+      "state": "focus-visible",
+      "type": "Link",
+      "failedLegs": [
+        "geometry"
+      ],
+      "pairs": 1,
+      "candidates": 1,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "",
+          "new": "project:node:subject::project:node:subject",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 27,
+            "height": 20
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 25.540000915527344,
+            "height": 20
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 25.546875,
+            "height": 20
+          },
+          "oldNew": 1.46,
+          "newDom": 0.007,
+          "oldDom": 1.453,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "contentMinWidth",
+              "old": 27,
+              "new": 25.540000915527344
+            },
+            {
+              "path": "",
+              "key": "contentMaxWidth",
+              "old": 27,
+              "new": 25.540000915527344
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "component-switch",
+      "state": "selected",
+      "type": "Switch",
+      "failedLegs": [
+        "geometry",
+        "L3"
+      ],
+      "pairs": 2,
+      "candidates": 1,
+      "noDomPair": 1,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "",
+          "new": "project:node:subject::project:node:subject",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 91,
+            "height": 28
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 88.4000015258789,
+            "height": 28
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 88.40625,
+            "height": 28
+          },
+          "oldNew": 2.6,
+          "newDom": 0.006,
+          "oldDom": 2.594,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "position",
+              "old": "relative",
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "width",
+              "old": "91px",
+              "new": null
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "_1",
+          "new": "project:node:subject::lib:template:component-switch__1",
+          "oldRect": {
+            "x": 76,
+            "y": 34,
+            "width": 45,
+            "height": 20
+          },
+          "newRect": {
+            "x": 76,
+            "y": 34,
+            "width": 42.400001525878906,
+            "height": 20
+          },
+          "domRect": null,
+          "oldNew": 2.6,
+          "newDom": null,
+          "oldDom": null,
+          "class": "noDomPair",
+          "inputDiffs": [
+            {
+              "path": "_1",
+              "key": "contentMinWidth",
+              "old": 43,
+              "new": 42.400001525878906
+            },
+            {
+              "path": "_1",
+              "key": "contentMaxWidth",
+              "old": 45,
+              "new": 42.400001525878906
+            },
+            {
+              "path": "_1",
+              "key": "height",
+              "old": null,
+              "new": "fit-content"
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": "relative",
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "width",
+              "old": "91px",
+              "new": null
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "component-switch--unselected",
+      "state": "unselected",
+      "type": "Switch",
+      "failedLegs": [
+        "geometry",
+        "L3"
+      ],
+      "pairs": 2,
+      "candidates": 1,
+      "noDomPair": 1,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "",
+          "new": "project:node:subject::project:node:subject",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 91,
+            "height": 28
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 88.4000015258789,
+            "height": 28
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 88.40625,
+            "height": 28
+          },
+          "oldNew": 2.6,
+          "newDom": 0.006,
+          "oldDom": 2.594,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "position",
+              "old": "relative",
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "width",
+              "old": "91px",
+              "new": null
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "component-switch__1",
+          "new": "project:node:subject/lib:template:component-switch--unselected::lib:template:component-switch__1",
+          "oldRect": {
+            "x": 76,
+            "y": 34,
+            "width": 45,
+            "height": 20
+          },
+          "newRect": {
+            "x": 76,
+            "y": 34,
+            "width": 42.400001525878906,
+            "height": 20
+          },
+          "domRect": null,
+          "oldNew": 2.6,
+          "newDom": null,
+          "oldDom": null,
+          "class": "noDomPair",
+          "inputDiffs": [
+            {
+              "path": "component-switch__1",
+              "key": "contentMinWidth",
+              "old": 43,
+              "new": 42.400001525878906
+            },
+            {
+              "path": "component-switch__1",
+              "key": "contentMaxWidth",
+              "old": 45,
+              "new": 42.400001525878906
+            },
+            {
+              "path": "component-switch__1",
+              "key": "height",
+              "old": null,
+              "new": "fit-content"
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": "relative",
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "width",
+              "old": "91px",
+              "new": null
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "component-switch--disabled",
+      "state": "disabled",
+      "type": "Switch",
+      "failedLegs": [
+        "geometry",
+        "L3"
+      ],
+      "pairs": 2,
+      "candidates": 1,
+      "noDomPair": 1,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "",
+          "new": "project:node:subject::project:node:subject",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 91,
+            "height": 28
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 88.4000015258789,
+            "height": 28
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 88.40625,
+            "height": 28
+          },
+          "oldNew": 2.6,
+          "newDom": 0.006,
+          "oldDom": 2.594,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "position",
+              "old": "relative",
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "width",
+              "old": "91px",
+              "new": null
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "component-switch__1",
+          "new": "project:node:subject/lib:template:component-switch--disabled::lib:template:component-switch__1",
+          "oldRect": {
+            "x": 76,
+            "y": 34,
+            "width": 45,
+            "height": 20
+          },
+          "newRect": {
+            "x": 76,
+            "y": 34,
+            "width": 42.400001525878906,
+            "height": 20
+          },
+          "domRect": null,
+          "oldNew": 2.6,
+          "newDom": null,
+          "oldDom": null,
+          "class": "noDomPair",
+          "inputDiffs": [
+            {
+              "path": "component-switch__1",
+              "key": "contentMinWidth",
+              "old": 43,
+              "new": 42.400001525878906
+            },
+            {
+              "path": "component-switch__1",
+              "key": "contentMaxWidth",
+              "old": 45,
+              "new": 42.400001525878906
+            },
+            {
+              "path": "component-switch__1",
+              "key": "height",
+              "old": null,
+              "new": "fit-content"
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": "relative",
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "width",
+              "old": "91px",
+              "new": null
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "component-switch--hover",
+      "state": "hover",
+      "type": "Switch",
+      "failedLegs": [
+        "geometry",
+        "L3"
+      ],
+      "pairs": 2,
+      "candidates": 1,
+      "noDomPair": 1,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "",
+          "new": "project:node:subject::project:node:subject",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 91,
+            "height": 28
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 88.4000015258789,
+            "height": 28
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 88.40625,
+            "height": 28
+          },
+          "oldNew": 2.6,
+          "newDom": 0.006,
+          "oldDom": 2.594,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "position",
+              "old": "relative",
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "width",
+              "old": "91px",
+              "new": null
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "component-switch__1",
+          "new": "project:node:subject/lib:template:component-switch--hover::lib:template:component-switch__1",
+          "oldRect": {
+            "x": 76,
+            "y": 34,
+            "width": 45,
+            "height": 20
+          },
+          "newRect": {
+            "x": 76,
+            "y": 34,
+            "width": 42.400001525878906,
+            "height": 20
+          },
+          "domRect": null,
+          "oldNew": 2.6,
+          "newDom": null,
+          "oldDom": null,
+          "class": "noDomPair",
+          "inputDiffs": [
+            {
+              "path": "component-switch__1",
+              "key": "contentMinWidth",
+              "old": 43,
+              "new": 42.400001525878906
+            },
+            {
+              "path": "component-switch__1",
+              "key": "contentMaxWidth",
+              "old": 45,
+              "new": 42.400001525878906
+            },
+            {
+              "path": "component-switch__1",
+              "key": "height",
+              "old": null,
+              "new": "fit-content"
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": "relative",
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "width",
+              "old": "91px",
+              "new": null
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "component-switch--pressed",
+      "state": "pressed",
+      "type": "Switch",
+      "failedLegs": [
+        "geometry",
+        "L3"
+      ],
+      "pairs": 2,
+      "candidates": 1,
+      "noDomPair": 1,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "",
+          "new": "project:node:subject::project:node:subject",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 91,
+            "height": 28
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 88.4000015258789,
+            "height": 28
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 88.40625,
+            "height": 28
+          },
+          "oldNew": 2.6,
+          "newDom": 0.006,
+          "oldDom": 2.594,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "position",
+              "old": "relative",
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "width",
+              "old": "91px",
+              "new": null
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "component-switch__1",
+          "new": "project:node:subject/lib:template:component-switch--pressed::lib:template:component-switch__1",
+          "oldRect": {
+            "x": 76,
+            "y": 34,
+            "width": 45,
+            "height": 20
+          },
+          "newRect": {
+            "x": 76,
+            "y": 34,
+            "width": 42.400001525878906,
+            "height": 20
+          },
+          "domRect": null,
+          "oldNew": 2.6,
+          "newDom": null,
+          "oldDom": null,
+          "class": "noDomPair",
+          "inputDiffs": [
+            {
+              "path": "component-switch__1",
+              "key": "contentMinWidth",
+              "old": 43,
+              "new": 42.400001525878906
+            },
+            {
+              "path": "component-switch__1",
+              "key": "contentMaxWidth",
+              "old": 45,
+              "new": 42.400001525878906
+            },
+            {
+              "path": "component-switch__1",
+              "key": "height",
+              "old": null,
+              "new": "fit-content"
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": "relative",
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "width",
+              "old": "91px",
+              "new": null
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "component-switch--focus-visible",
+      "state": "focus-visible",
+      "type": "Switch",
+      "failedLegs": [
+        "geometry",
+        "L3"
+      ],
+      "pairs": 2,
+      "candidates": 1,
+      "noDomPair": 1,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "",
+          "new": "project:node:subject::project:node:subject",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 91,
+            "height": 28
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 88.4000015258789,
+            "height": 28
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 88.40625,
+            "height": 28
+          },
+          "oldNew": 2.6,
+          "newDom": 0.006,
+          "oldDom": 2.594,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "position",
+              "old": "relative",
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "width",
+              "old": "91px",
+              "new": null
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "component-switch__1",
+          "new": "project:node:subject/lib:template:component-switch--focus-visible::lib:template:component-switch__1",
+          "oldRect": {
+            "x": 76,
+            "y": 34,
+            "width": 45,
+            "height": 20
+          },
+          "newRect": {
+            "x": 76,
+            "y": 34,
+            "width": 42.400001525878906,
+            "height": 20
+          },
+          "domRect": null,
+          "oldNew": 2.6,
+          "newDom": null,
+          "oldDom": null,
+          "class": "noDomPair",
+          "inputDiffs": [
+            {
+              "path": "component-switch__1",
+              "key": "contentMinWidth",
+              "old": 43,
+              "new": 42.400001525878906
+            },
+            {
+              "path": "component-switch__1",
+              "key": "contentMaxWidth",
+              "old": 45,
+              "new": 42.400001525878906
+            },
+            {
+              "path": "component-switch__1",
+              "key": "height",
+              "old": null,
+              "new": "fit-content"
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": "relative",
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "width",
+              "old": "91px",
+              "new": null
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "component-tag-item-default",
+      "state": "selected",
+      "type": "Tag",
+      "failedLegs": [
+        "geometry",
+        "L3"
+      ],
+      "pairs": 3,
+      "candidates": 3,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "",
+          "new": "project:node:subject::project:node:subject",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 86,
+            "height": 30
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 101.91999816894531,
+            "height": 30
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 101.921875,
+            "height": 30
+          },
+          "oldNew": 15.92,
+          "newDom": 0.002,
+          "oldDom": 15.922,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "_avatar",
+          "new": "project:node:subject::lib:template:component-tag-item-default__avatar",
+          "oldRect": {
+            "x": 43,
+            "y": 37,
+            "width": 16,
+            "height": 16
+          },
+          "newRect": {
+            "x": 43,
+            "y": 29,
+            "width": 32,
+            "height": 32
+          },
+          "domRect": {
+            "x": 43,
+            "y": 29,
+            "width": 32,
+            "height": 32
+          },
+          "oldNew": 16,
+          "newDom": 0,
+          "oldDom": 16,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "_avatar",
+              "key": "width",
+              "old": "16px",
+              "new": "32px"
+            },
+            {
+              "path": "_avatar",
+              "key": "height",
+              "old": "16px",
+              "new": "32px"
+            },
+            {
+              "path": "_avatar",
+              "key": "minWidth",
+              "old": "16px",
+              "new": null
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "_label",
+          "new": "project:node:subject::lib:template:component-tag-item-default__label",
+          "oldRect": {
+            "x": 63,
+            "y": 35,
+            "width": 40,
+            "height": 20
+          },
+          "newRect": {
+            "x": 79,
+            "y": 35,
+            "width": 39.91999816894531,
+            "height": 20
+          },
+          "domRect": {
+            "x": 79,
+            "y": 35,
+            "width": 39.921875,
+            "height": 20
+          },
+          "oldNew": 16,
+          "newDom": 0.002,
+          "oldDom": 16,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "component-tag-item-default--unselected",
+      "state": "unselected",
+      "type": "Tag",
+      "failedLegs": [
+        "geometry",
+        "L3"
+      ],
+      "pairs": 3,
+      "candidates": 3,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "",
+          "new": "project:node:subject::project:node:subject",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 86,
+            "height": 30
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 101.91999816894531,
+            "height": 30
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 101.921875,
+            "height": 30
+          },
+          "oldNew": 15.92,
+          "newDom": 0.002,
+          "oldDom": 15.922,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "Avatar",
+          "new": "project:node:subject/lib:template:component-tag-item-default--unselected::lib:template:component-tag-item-default__avatar",
+          "oldRect": {
+            "x": 43,
+            "y": 37,
+            "width": 16,
+            "height": 16
+          },
+          "newRect": {
+            "x": 43,
+            "y": 29,
+            "width": 32,
+            "height": 32
+          },
+          "domRect": {
+            "x": 43,
+            "y": 29,
+            "width": 32,
+            "height": 32
+          },
+          "oldNew": 16,
+          "newDom": 0,
+          "oldDom": 16,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "Avatar",
+              "key": "width",
+              "old": "16px",
+              "new": "32px"
+            },
+            {
+              "path": "Avatar",
+              "key": "height",
+              "old": "16px",
+              "new": "32px"
+            },
+            {
+              "path": "Avatar",
+              "key": "minWidth",
+              "old": "16px",
+              "new": null
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "Label",
+          "new": "project:node:subject/lib:template:component-tag-item-default--unselected::lib:template:component-tag-item-default__label",
+          "oldRect": {
+            "x": 63,
+            "y": 35,
+            "width": 40,
+            "height": 20
+          },
+          "newRect": {
+            "x": 79,
+            "y": 35,
+            "width": 39.91999816894531,
+            "height": 20
+          },
+          "domRect": {
+            "x": 79,
+            "y": 35,
+            "width": 39.921875,
+            "height": 20
+          },
+          "oldNew": 16,
+          "newDom": 0.002,
+          "oldDom": 16,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "component-tag-item-default--disabled",
+      "state": "disabled",
+      "type": "Tag",
+      "failedLegs": [
+        "geometry",
+        "L3"
+      ],
+      "pairs": 3,
+      "candidates": 3,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "",
+          "new": "project:node:subject::project:node:subject",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 86,
+            "height": 30
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 101.91999816894531,
+            "height": 30
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 101.921875,
+            "height": 30
+          },
+          "oldNew": 15.92,
+          "newDom": 0.002,
+          "oldDom": 15.922,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "Avatar",
+          "new": "project:node:subject/lib:template:component-tag-item-default--disabled::lib:template:component-tag-item-default__avatar",
+          "oldRect": {
+            "x": 43,
+            "y": 37,
+            "width": 16,
+            "height": 16
+          },
+          "newRect": {
+            "x": 43,
+            "y": 29,
+            "width": 32,
+            "height": 32
+          },
+          "domRect": {
+            "x": 43,
+            "y": 29,
+            "width": 32,
+            "height": 32
+          },
+          "oldNew": 16,
+          "newDom": 0,
+          "oldDom": 16,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "Avatar",
+              "key": "width",
+              "old": "16px",
+              "new": "32px"
+            },
+            {
+              "path": "Avatar",
+              "key": "height",
+              "old": "16px",
+              "new": "32px"
+            },
+            {
+              "path": "Avatar",
+              "key": "minWidth",
+              "old": "16px",
+              "new": null
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "Label",
+          "new": "project:node:subject/lib:template:component-tag-item-default--disabled::lib:template:component-tag-item-default__label",
+          "oldRect": {
+            "x": 63,
+            "y": 35,
+            "width": 40,
+            "height": 20
+          },
+          "newRect": {
+            "x": 79,
+            "y": 35,
+            "width": 39.91999816894531,
+            "height": 20
+          },
+          "domRect": {
+            "x": 79,
+            "y": 35,
+            "width": 39.921875,
+            "height": 20
+          },
+          "oldNew": 16,
+          "newDom": 0.002,
+          "oldDom": 16,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "component-tag-item-default--hover",
+      "state": "hover",
+      "type": "Tag",
+      "failedLegs": [
+        "geometry",
+        "L3"
+      ],
+      "pairs": 3,
+      "candidates": 3,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "",
+          "new": "project:node:subject::project:node:subject",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 86,
+            "height": 30
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 101.91999816894531,
+            "height": 30
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 101.921875,
+            "height": 30
+          },
+          "oldNew": 15.92,
+          "newDom": 0.002,
+          "oldDom": 15.922,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "Avatar",
+          "new": "project:node:subject/lib:template:component-tag-item-default--hover::lib:template:component-tag-item-default__avatar",
+          "oldRect": {
+            "x": 43,
+            "y": 37,
+            "width": 16,
+            "height": 16
+          },
+          "newRect": {
+            "x": 43,
+            "y": 29,
+            "width": 32,
+            "height": 32
+          },
+          "domRect": {
+            "x": 43,
+            "y": 29,
+            "width": 32,
+            "height": 32
+          },
+          "oldNew": 16,
+          "newDom": 0,
+          "oldDom": 16,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "Avatar",
+              "key": "width",
+              "old": "16px",
+              "new": "32px"
+            },
+            {
+              "path": "Avatar",
+              "key": "height",
+              "old": "16px",
+              "new": "32px"
+            },
+            {
+              "path": "Avatar",
+              "key": "minWidth",
+              "old": "16px",
+              "new": null
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "Label",
+          "new": "project:node:subject/lib:template:component-tag-item-default--hover::lib:template:component-tag-item-default__label",
+          "oldRect": {
+            "x": 63,
+            "y": 35,
+            "width": 40,
+            "height": 20
+          },
+          "newRect": {
+            "x": 79,
+            "y": 35,
+            "width": 39.91999816894531,
+            "height": 20
+          },
+          "domRect": {
+            "x": 79,
+            "y": 35,
+            "width": 39.921875,
+            "height": 20
+          },
+          "oldNew": 16,
+          "newDom": 0.002,
+          "oldDom": 16,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "component-tag-item-default--pressed",
+      "state": "pressed",
+      "type": "Tag",
+      "failedLegs": [
+        "geometry",
+        "L3"
+      ],
+      "pairs": 3,
+      "candidates": 3,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "",
+          "new": "project:node:subject::project:node:subject",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 86,
+            "height": 30
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 101.91999816894531,
+            "height": 30
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 101.921875,
+            "height": 30
+          },
+          "oldNew": 15.92,
+          "newDom": 0.002,
+          "oldDom": 15.922,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "Avatar",
+          "new": "project:node:subject/lib:template:component-tag-item-default--pressed::lib:template:component-tag-item-default__avatar",
+          "oldRect": {
+            "x": 43,
+            "y": 37,
+            "width": 16,
+            "height": 16
+          },
+          "newRect": {
+            "x": 43,
+            "y": 29,
+            "width": 32,
+            "height": 32
+          },
+          "domRect": {
+            "x": 43,
+            "y": 29,
+            "width": 32,
+            "height": 32
+          },
+          "oldNew": 16,
+          "newDom": 0,
+          "oldDom": 16,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "Avatar",
+              "key": "width",
+              "old": "16px",
+              "new": "32px"
+            },
+            {
+              "path": "Avatar",
+              "key": "height",
+              "old": "16px",
+              "new": "32px"
+            },
+            {
+              "path": "Avatar",
+              "key": "minWidth",
+              "old": "16px",
+              "new": null
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "Label",
+          "new": "project:node:subject/lib:template:component-tag-item-default--pressed::lib:template:component-tag-item-default__label",
+          "oldRect": {
+            "x": 63,
+            "y": 35,
+            "width": 40,
+            "height": 20
+          },
+          "newRect": {
+            "x": 79,
+            "y": 35,
+            "width": 39.91999816894531,
+            "height": 20
+          },
+          "domRect": {
+            "x": 79,
+            "y": 35,
+            "width": 39.921875,
+            "height": 20
+          },
+          "oldNew": 16,
+          "newDom": 0.002,
+          "oldDom": 16,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "component-tag-item-default--focus-visible",
+      "state": "focus-visible",
+      "type": "Tag",
+      "failedLegs": [
+        "geometry",
+        "L3"
+      ],
+      "pairs": 3,
+      "candidates": 3,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "",
+          "new": "project:node:subject::project:node:subject",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 86,
+            "height": 30
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 101.91999816894531,
+            "height": 30
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 101.921875,
+            "height": 30
+          },
+          "oldNew": 15.92,
+          "newDom": 0.002,
+          "oldDom": 15.922,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "Avatar",
+          "new": "project:node:subject/lib:template:component-tag-item-default--focus-visible::lib:template:component-tag-item-default__avatar",
+          "oldRect": {
+            "x": 43,
+            "y": 37,
+            "width": 16,
+            "height": 16
+          },
+          "newRect": {
+            "x": 43,
+            "y": 29,
+            "width": 32,
+            "height": 32
+          },
+          "domRect": {
+            "x": 43,
+            "y": 29,
+            "width": 32,
+            "height": 32
+          },
+          "oldNew": 16,
+          "newDom": 0,
+          "oldDom": 16,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "Avatar",
+              "key": "width",
+              "old": "16px",
+              "new": "32px"
+            },
+            {
+              "path": "Avatar",
+              "key": "height",
+              "old": "16px",
+              "new": "32px"
+            },
+            {
+              "path": "Avatar",
+              "key": "minWidth",
+              "old": "16px",
+              "new": null
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "Label",
+          "new": "project:node:subject/lib:template:component-tag-item-default--focus-visible::lib:template:component-tag-item-default__label",
+          "oldRect": {
+            "x": 63,
+            "y": 35,
+            "width": 40,
+            "height": 20
+          },
+          "newRect": {
+            "x": 79,
+            "y": 35,
+            "width": 39.91999816894531,
+            "height": 20
+          },
+          "domRect": {
+            "x": 79,
+            "y": 35,
+            "width": 39.921875,
+            "height": 20
+          },
+          "oldNew": 16,
+          "newDom": 0.002,
+          "oldDom": 16,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "component-tree-item-default",
+      "state": "selected",
+      "type": "TreeItem",
+      "failedLegs": [
+        "geometry",
+        "L3"
+      ],
+      "pairs": 2,
+      "candidates": 2,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "",
+          "new": "project:node:subject::project:node:subject",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 105,
+            "height": 32
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 82.94999694824219,
+            "height": 32
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 82.953125,
+            "height": 32
+          },
+          "oldNew": 22.05,
+          "newDom": 0.003,
+          "oldDom": 22.047,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "paddingLeft",
+              "old": "30px",
+              "new": "8px"
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "_label",
+          "new": "project:node:subject::lib:template:component-tree-item-default__label",
+          "oldRect": {
+            "x": 60,
+            "y": 34,
+            "width": 67,
+            "height": 24
+          },
+          "newRect": {
+            "x": 38,
+            "y": 34,
+            "width": 66.94999694824219,
+            "height": 24
+          },
+          "domRect": {
+            "x": 38,
+            "y": 34,
+            "width": 66.953125,
+            "height": 24
+          },
+          "oldNew": 22,
+          "newDom": 0.003,
+          "oldDom": 22,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "paddingLeft",
+              "old": "30px",
+              "new": "8px"
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "component-tree-item-default--unselected",
+      "state": "unselected",
+      "type": "TreeItem",
+      "failedLegs": [
+        "geometry",
+        "L3"
+      ],
+      "pairs": 2,
+      "candidates": 2,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "",
+          "new": "project:node:subject::project:node:subject",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 105,
+            "height": 32
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 82.94999694824219,
+            "height": 32
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 82.953125,
+            "height": 32
+          },
+          "oldNew": 22.05,
+          "newDom": 0.003,
+          "oldDom": 22.047,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "paddingLeft",
+              "old": "30px",
+              "new": "8px"
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "Label",
+          "new": "project:node:subject/lib:template:component-tree-item-default--unselected::lib:template:component-tree-item-default__label",
+          "oldRect": {
+            "x": 60,
+            "y": 34,
+            "width": 67,
+            "height": 24
+          },
+          "newRect": {
+            "x": 38,
+            "y": 34,
+            "width": 66.94999694824219,
+            "height": 24
+          },
+          "domRect": {
+            "x": 38,
+            "y": 34,
+            "width": 66.953125,
+            "height": 24
+          },
+          "oldNew": 22,
+          "newDom": 0.003,
+          "oldDom": 22,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "paddingLeft",
+              "old": "30px",
+              "new": "8px"
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "component-tree-item-default--disabled",
+      "state": "disabled",
+      "type": "TreeItem",
+      "failedLegs": [
+        "geometry",
+        "L3"
+      ],
+      "pairs": 2,
+      "candidates": 2,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "",
+          "new": "project:node:subject::project:node:subject",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 105,
+            "height": 32
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 82.94999694824219,
+            "height": 32
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 82.953125,
+            "height": 32
+          },
+          "oldNew": 22.05,
+          "newDom": 0.003,
+          "oldDom": 22.047,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "paddingLeft",
+              "old": "30px",
+              "new": "8px"
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "Label",
+          "new": "project:node:subject/lib:template:component-tree-item-default--disabled::lib:template:component-tree-item-default__label",
+          "oldRect": {
+            "x": 60,
+            "y": 34,
+            "width": 67,
+            "height": 24
+          },
+          "newRect": {
+            "x": 38,
+            "y": 34,
+            "width": 66.94999694824219,
+            "height": 24
+          },
+          "domRect": {
+            "x": 38,
+            "y": 34,
+            "width": 66.953125,
+            "height": 24
+          },
+          "oldNew": 22,
+          "newDom": 0.003,
+          "oldDom": 22,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "paddingLeft",
+              "old": "30px",
+              "new": "8px"
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "component-tree-item-default--hover",
+      "state": "hover",
+      "type": "TreeItem",
+      "failedLegs": [
+        "geometry",
+        "L3"
+      ],
+      "pairs": 2,
+      "candidates": 2,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "",
+          "new": "project:node:subject::project:node:subject",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 105,
+            "height": 32
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 82.94999694824219,
+            "height": 32
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 82.953125,
+            "height": 32
+          },
+          "oldNew": 22.05,
+          "newDom": 0.003,
+          "oldDom": 22.047,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "paddingLeft",
+              "old": "30px",
+              "new": "8px"
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "Label",
+          "new": "project:node:subject/lib:template:component-tree-item-default--hover::lib:template:component-tree-item-default__label",
+          "oldRect": {
+            "x": 60,
+            "y": 34,
+            "width": 67,
+            "height": 24
+          },
+          "newRect": {
+            "x": 38,
+            "y": 34,
+            "width": 66.94999694824219,
+            "height": 24
+          },
+          "domRect": {
+            "x": 38,
+            "y": 34,
+            "width": 66.953125,
+            "height": 24
+          },
+          "oldNew": 22,
+          "newDom": 0.003,
+          "oldDom": 22,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "paddingLeft",
+              "old": "30px",
+              "new": "8px"
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "component-tree-item-default--pressed",
+      "state": "pressed",
+      "type": "TreeItem",
+      "failedLegs": [
+        "geometry",
+        "L3"
+      ],
+      "pairs": 2,
+      "candidates": 2,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "",
+          "new": "project:node:subject::project:node:subject",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 105,
+            "height": 32
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 82.94999694824219,
+            "height": 32
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 82.953125,
+            "height": 32
+          },
+          "oldNew": 22.05,
+          "newDom": 0.003,
+          "oldDom": 22.047,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "paddingLeft",
+              "old": "30px",
+              "new": "8px"
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "Label",
+          "new": "project:node:subject/lib:template:component-tree-item-default--pressed::lib:template:component-tree-item-default__label",
+          "oldRect": {
+            "x": 60,
+            "y": 34,
+            "width": 67,
+            "height": 24
+          },
+          "newRect": {
+            "x": 38,
+            "y": 34,
+            "width": 66.94999694824219,
+            "height": 24
+          },
+          "domRect": {
+            "x": 38,
+            "y": 34,
+            "width": 66.953125,
+            "height": 24
+          },
+          "oldNew": 22,
+          "newDom": 0.003,
+          "oldDom": 22,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "paddingLeft",
+              "old": "30px",
+              "new": "8px"
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "component-tree-item-default--focus-visible",
+      "state": "focus-visible",
+      "type": "TreeItem",
+      "failedLegs": [
+        "geometry",
+        "L3"
+      ],
+      "pairs": 2,
+      "candidates": 2,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "",
+          "new": "project:node:subject::project:node:subject",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 105,
+            "height": 32
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 82.94999694824219,
+            "height": 32
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 82.953125,
+            "height": 32
+          },
+          "oldNew": 22.05,
+          "newDom": 0.003,
+          "oldDom": 22.047,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "paddingLeft",
+              "old": "30px",
+              "new": "8px"
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "Label",
+          "new": "project:node:subject/lib:template:component-tree-item-default--focus-visible::lib:template:component-tree-item-default__label",
+          "oldRect": {
+            "x": 60,
+            "y": 34,
+            "width": 67,
+            "height": 24
+          },
+          "newRect": {
+            "x": 38,
+            "y": 34,
+            "width": 66.94999694824219,
+            "height": 24
+          },
+          "domRect": {
+            "x": 38,
+            "y": 34,
+            "width": 66.953125,
+            "height": 24
+          },
+          "oldNew": 22,
+          "newDom": 0.003,
+          "oldDom": 22,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "paddingLeft",
+              "old": "30px",
+              "new": "8px"
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "component-tree-item-default--collapsed",
+      "state": "collapsed",
+      "type": "TreeItem",
+      "failedLegs": [
+        "geometry",
+        "L3"
+      ],
+      "pairs": 2,
+      "candidates": 2,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "",
+          "new": "project:node:subject::project:node:subject",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 105,
+            "height": 32
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 82.94999694824219,
+            "height": 32
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 82.953125,
+            "height": 32
+          },
+          "oldNew": 22.05,
+          "newDom": 0.003,
+          "oldDom": 22.047,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "paddingLeft",
+              "old": "30px",
+              "new": "8px"
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        },
+        {
+          "old": "Label",
+          "new": "project:node:subject/lib:template:component-tree-item-default--collapsed::lib:template:component-tree-item-default__label",
+          "oldRect": {
+            "x": 60,
+            "y": 34,
+            "width": 67,
+            "height": 24
+          },
+          "newRect": {
+            "x": 38,
+            "y": 34,
+            "width": 66.94999694824219,
+            "height": 24
+          },
+          "domRect": {
+            "x": 38,
+            "y": 34,
+            "width": 66.953125,
+            "height": 24
+          },
+          "oldNew": 22,
+          "newDom": 0.003,
+          "oldDom": 22,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "paddingLeft",
+              "old": "30px",
+              "new": "8px"
+            },
+            {
+              "path": "",
+              "key": "position",
+              "old": null,
+              "new": "absolute"
+            },
+            {
+              "path": "",
+              "key": "insetLeft",
+              "old": null,
+              "new": "30px"
+            },
+            {
+              "path": "",
+              "key": "insetTop",
+              "old": null,
+              "new": "30px"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

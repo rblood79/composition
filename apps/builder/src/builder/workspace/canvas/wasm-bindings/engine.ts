@@ -201,6 +201,12 @@ export class EngineLayout {
     this.engine.setStrictInput(enabled);
   }
 
+  /** 높이 확정 0 판정 토글 (기본 false — ADR-248 새 runtime 전용, 현재 Builder 는 켜지 않는다). */
+  setDefiniteZeroHeight(enabled: boolean): void {
+    if (!this.engine) return;
+    this.engine.setDefiniteZeroHeight(enabled);
+  }
+
   /**
    * batch payload 에서 엔진이 읽지 않는 키를 진단한다 — `[{index, keys}]`.
    *

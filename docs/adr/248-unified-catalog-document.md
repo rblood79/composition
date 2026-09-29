@@ -2,11 +2,11 @@
 
 ## Status
 
-Proposed — 2026-09-28
+Accepted — 2026-09-28 (사용자 "ADR-248 완료까지 착수 시작해")
 
-사용자 요청: catalog에 정의와 프로젝트 모델을 통합하여 canonical을 제거하는 설계. **기존 사용처와 보존할 프로젝트가 없는 개발 단계**라는 사용자 확인을 전제로 한다. 구 데이터 migration·하위 호환 adapter·dual-write는 범위에서 제외한다. 본 문서는 설계이며 구현·기존 DB 초기화·Accepted 승격을 수행하지 않는다.
+사용자 요청: catalog에 정의와 프로젝트 모델을 통합하여 canonical을 제거한다. **기존 사용처와 보존할 프로젝트가 없는 개발 단계**라는 사용자 확인을 전제로 한다. 구 데이터 migration·하위 호환 adapter·dual-write는 범위에서 제외한다. 2026-09-28 구현 착수 지시로 Accepted 승격했으며 제품 gate는 진행 중이다.
 
-> **리뷰 round 1·2 종결**: [리뷰 기록](reviews/248.md) round 1 HIGH 6 · MEDIUM 2 · LOW 1 → round 2 수리 검증 HIGH 0. H1/H2/H4는 2026-09-28 사용자 판정으로 확정했고 (아래 표), 본문·breakdown은 그 판정으로 정리했다. Accepted 승격은 사용자 지시 대기.
+> **리뷰 round 1·2 종결**: [리뷰 기록](reviews/248.md) round 1 HIGH 6 · MEDIUM 2 · LOW 1 → round 2 수리 검증 HIGH 0. H1/H2/H4는 2026-09-28 사용자 판정으로 확정했고 (아래 표), 본문·breakdown은 그 판정으로 정리했다. 같은 날 사용자 구현 지시로 Accepted 승격했다.
 
 ## Context
 
@@ -59,6 +59,8 @@ Publish 후속의 의미: `apps/publish`와 그것만 쓰는 shared canonical �
 | HC5 | Frame/Group/Slot까지 spec 기반 컴포넌트 정의 **0**. `packages/specs` 공용 실행 기능은 이동·재사용 후 패키지 의존 제거. JSON에 실행 함수나 eval을 저장하지 않음                                                                                                                 |
 | HC6 | 동일 fixture의 Canvas/DOM geometry 오차 ≤1 CSS px, 비텍스트 pixel diff 비율 ≤0.001. 성능은 동일 조건 paired p95 ≤ baseline ×1.10 +2ms, save/load +10ms; heap ≤1.20배; 저장 byte는 breakdown §6.2의 고정비·가변비 식                                                            |
 | HC7 | Preview iframe 격리와 origin 검증, publish의 Builder authoring import 0, 기존 AI 권한 검증 유지. runtime cache/selection/drag는 persistent entries에 매 프레임 기록하지 않음. collections·api_endpoints·project variables의 기존 저장·history 책임 불변                        |
+
+HC6의 Canvas–DOM 비텍스트 픽셀 판정은 [ADR-198 L3](completed/198-d3-renderer-pixel-parity-gate.md)의 cross-rasterizer 비교를 따른다. 정규화한 동일 영역에 `pixelmatch` threshold `0.1`을 적용하고 영역별 `maxDiffRatio`(비텍스트 `0.001`)와 `maxByte` 상한을 함께 기록하며, 두 상한을 모두 초과할 때 차단한다. 원시 RGB 차이는 진단값이고 same-rasterizer exact 검증과 구분한다. 3px 모서리 band(L3e)는 별도 영역으로 떼어 **기록만 하고 완료 조건에서 뺀다** (사용자 결정 2026-09-29 — 승인된 band 예산이 없어 모든 type 이 UNVERIFIED 에 머물던 상태를 끝낸다). geometry ≤1 CSS px · Canvas↔DOM 계약 · 비텍스트 L3 판정식은 그대로이고, L3e 차이는 얇은 상자의 도색 누락을 찾는 진단값으로 type 별로 함께 읽는다. old/new geometry 차이는 사용자가 노드 종류별로 승인한 규칙 (2026-09-30 — 결정 반영 · 구 Canvas 결함 · Preview 결함 추종 · 양쪽 이탈, `apps/builder/tests/adr248-g3/approvedDifferences.ts`) 에 맞을 때만 통과로 본다: 소유 컴포넌트 × 노드 종류 × 달라진 축이 규칙과 맞고 Canvas↔DOM 다리가 새 쪽을 중재해야 하며, 승인된 짝 상자 안의 비텍스트 차이만 그 차이로 귀속한다. Preview 결함 추종 통과는 Phase 4 에서 제품과 함께 고칠 목록이다. [Slot 9건 국소 재측정](design/248-phase3-g3-g5-evidence.md)만으로 G3를 PASS로 승격하지 않는다.
 
 현재 CSSGenerator는 variant·delegation의 child selector·externalStyles·rootSelectors emit을 지원한다. 라이브러리 CSS는 지금처럼 빌드 시 생성하고, 프로젝트 override·사용자 definition CSS는 같은 emitter 코어를 Builder lazy worker에서 실행한다. 새 definition을 구 `ComponentSpec`으로 조립하는 adapter를 최종 경로로 남기지 않는다.
 
@@ -123,7 +125,7 @@ Frame/Group/Slot의 시각 정의를 옮기고 기존 문서 모델을 유지한
 
 실행기는 별도 코드로 등록하고 데이터에 식별자로 연결한다. 컴포넌트 등록/기본값/시각 정의를 실행 레지스트리에 다시 복제하지 않는다. collections·api_endpoints·project variables는 ADR-131의 별도 data SSOT로 남고 graph는 ID로만 참조한다.
 
-기존 프로젝트는 변환하지 않는다. 새로운 저장 namespace·format marker로 시작하고 구 형식 입력은 명시적으로 거부한다. 새 포맷 자체의 진화는 `schemaVersion`/`libraryContractVersion`/`libraryRevision` 계약으로 다룬다. 새 프로젝트의 저장 안전성·회복·내보내기와 외부 Pencil 교환은 새 모델에서 지원한다. `apps/publish`는 본 ADR 실행 중 수정하지 않는다.
+기존 프로젝트는 변환하지 않는다. 새로운 저장 namespace·format marker로 시작하고 구 형식 입력은 명시적으로 거부한다. 새 포맷 자체의 진화는 `schemaVersion`/`libraryContractVersion`/`libraryRevision` 계약으로 다룬다. 새 프로젝트의 저장 안전성·회복과 새 catalog 포맷의 내보내기·가져오기는 새 모델에서 지원한다. 외부 `.pen`(pen.dev) 파일 상호운용은 현재 제품 요구사항이 아니다(사용자 범위 정정 2026-09-29). `apps/publish`는 본 ADR 실행 중 수정하지 않는다.
 
 기각 사유: A는 잔존 spec만 정리하여 요청 목표에 못 미친다. B는 프로젝트마다 라이브러리를 저장해 저장 비용이 크고, catalog 수정이 기존 프로젝트·fixture에 닿지 않아 D3 SSOT가 프로젝트 데이터로 옮겨 간다. C는 RAC·엔진 실행을 다시 구현하는 비용과 위험이 목표에 비해 크다. D는 구 모델을 내장해 이름만 통일하는 결과가 되므로 제거 기준을 충족하지 못한다.
 
@@ -144,17 +146,21 @@ Frame/Group/Slot의 시각 정의를 옮기고 기존 문서 모델을 유지한
 
 ## Gates
 
-| Gate | 시점           | 통과 조건                                                                                                                                                  | 실패 시 대안                                             |
-| ---- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| G0   | 구현 전        | 현재 persisted field·기능·소비자의 새 책임 매핑 미분류 0, fixture·baseline·삭제 목록 freeze (ADR-243 종결 뒤)                                              | 인벤토리/계약 보강; 부재 기능을 조용히 제외하지 않음     |
-| G1   | 모델 기반      | ID/ownership/ref/slot/type validator, library/override 해석·버전 검사, 외부 data ID 참조, clone·override·실행 ID 검증; 불법 입력 원자적 거부               | schema/reducer 수정, 소비자 전환 보류                    |
-| G2   | 편집 경로      | 생성·이동·삭제·reset·detach·override·binding 참조 편집 Undo/Redo 동일성, 실패 시 상태/history/revision 변화 0                                              | transaction/history 수리                                 |
-| G3   | 렌더 경로      | 전 등록 type/state manifest 및 Frame/Group/Slot Canvas live, Preview DOM unit + 사용자 확인, geometry/pixel HC6, RAC 접근성 동작 보존                      | resolver/binding/emitter 수리; spec fallback 재도입 금지 |
-| G4   | 저장·교환 경로 | 새 생성→편집→저장→refresh→export/import, 폴더/IDB/외부 pen, 실패·충돌·stale payload 처리; old format reader 0; Builder publish 진입점 명시 실패            | 해당 새 경계 수리, 제품 전환 보류                        |
-| G5   | 통합 후        | HC6 성능·메모리·저장 크기 및 유효 bundle budget, leaf 편집 전체 scan 0                                                                                     | index/storage 최적화; 예산 변경은 별도 결정              |
-| G6   | 제거·완료      | Builder import graph의 canonical/legacy alias/adapter/spec 정의 0, 공용 specs 의존 이동 완료, TS/build/인접 테스트/live 통과. 저장소 전체 0은 Publish 후속 | 잔존 소비자 전환 후 재검증, Implemented 보류             |
+| Gate | 시점           | 통과 조건                                                                                                                                                       | 실패 시 대안                                             |
+| ---- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| G0   | 구현 전        | 현재 persisted field·기능·소비자의 새 책임 매핑 미분류 0, fixture·baseline·삭제 목록 freeze (ADR-243 종결 뒤)                                                   | 인벤토리/계약 보강; 부재 기능을 조용히 제외하지 않음     |
+| G1   | 모델 기반      | ID/ownership/ref/slot/type validator, library/override 해석·버전 검사, 외부 data ID 참조, clone·override·실행 ID 검증; 불법 입력 원자적 거부                    | schema/reducer 수정, 소비자 전환 보류                    |
+| G2   | 편집 경로      | 생성·이동·삭제·reset·detach·override·binding 참조 편집 Undo/Redo 동일성, 실패 시 상태/history/revision 변화 0                                                   | transaction/history 수리                                 |
+| G3   | 렌더 경로      | 전 등록 type/state manifest 및 Frame/Group/Slot Canvas live, Preview DOM unit + 사용자 확인, geometry/pixel HC6, RAC 접근성 동작 보존                           | resolver/binding/emitter 수리; spec fallback 재도입 금지 |
+| G4   | 저장·교환 경로 | 새 catalog 포맷의 생성→편집→저장→refresh→export/import, IDB·JSON·폴더 저장, 실패·충돌·stale payload 처리; old format reader 0; Builder publish 진입점 명시 실패 | 해당 새 경계 수리, 제품 전환 보류                        |
+| G5   | 통합 후        | HC6 성능·메모리·저장 크기 및 유효 bundle budget, leaf 편집 전체 scan 0                                                                                          | index/storage 최적화; 예산 변경은 별도 결정              |
+| G6   | 제거·완료      | Builder import graph의 canonical/legacy alias/adapter/spec 정의 0, 공용 specs 의존 이동 완료, TS/build/인접 테스트/live 통과. 저장소 전체 0은 Publish 후속      | 잔존 소비자 전환 후 재검증, Implemented 보류             |
 
-R1→G0/G1/G3, R2→G2/G4, R3→G3, R4→G1/G5, R5→G0/G1/G4/G6, R7→G1/G4, R8→G4로 대응한다. **모든 실행 gate는 현재 UNVERIFIED**다. 문서 형식 검증은 제품 gate 통과를 의미하지 않는다.
+R1→G0/G1/G3, R2→G2/G4, R3→G3, R4→G1/G5, R5→G0/G1/G4/G6, R7→G1/G4, R8→G4로 대응한다. **Phase 0 G0는 [구 앱 기준선](design/248-baseline/g0-gate.json)에서 PASS, Phase 1 G1은 [독립 모델 근거](design/248-phase1-g1-evidence.md)에서 PASS, Phase 2 G2는 [독립 runtime 근거](design/248-phase2-g2-g4-evidence.md)에서 PASS다. [Phase 3 독립 소비자 점검](design/248-phase3-g3-g5-evidence.md)은 단일 root leaf 전체 순회 반례를 60/600/5k 결정적 카운트로 수리했다. 최신 등록 type/state census는 기본 type 12/130 실행, composite 64종 중 완전 template 1종, typed state rule 0/468로 G3 미충족을 확인했다. G3는 FAIL, 전체 G4/G5/G6는 UNVERIFIED**다. 제품 전환·시각/성능 gate 통과를 의미하지 않는다.
+
+**범위 정정 (사용자 2026-09-29)**: 외부 `.pen` 교환은 G4 필수 조건과 Phase 3 차단 항목에서 제외한다. G0의 `.pen` 표본 5개·해시·구 앱 교환 결과([pen-interchange.json](design/248-baseline/pen-interchange.json))는 역사적 기준선으로 보존하고 수정하지 않는다. Phase 3에서 수행한 Pencil 시험(표본 3개 직접 의미 왕복, `sample-descendants.pen`·`sample-imports.pen`의 명시 오류, 유효 descendants·imports fixture 왕복)은 수행 기록으로만 남기며 G4 PASS 근거로 계산하지 않는다. G4는 새 catalog 포맷의 IDB·JSON·폴더 저장, refresh, export/import, 실패·충돌 검증으로 판정한다.
+
+**Gate 판정 시점 (사용자 2026-09-29)**: Phase 3은 새 runtime의 독립 소비자 검증과 전환 준비까지다. Phase 3의 resolver·Canvas·DOM binding은 Phase 4에서 그대로 쓰는 제품 경로 코드이며 시험 전용 binding을 두지 않는다. 제품 Builder save/refresh·publish 진입점·production paired G5·실제 Builder live G3처럼 전환 후에만 측정 가능한 항목은 Phase 4의 단일 cutover 변경 안에서 검증하고, gate 통과 전 배포·완료 판정은 하지 않는다. G3의 범위와 HC6 수치는 완화하지 않으며, 전환 전 근거(Phase 3)와 제품 연결 후 최종 판정(Phase 4)을 구분해 기록한다.
 
 Status 전이: G0~G6 통과(Builder 전환 완료) 뒤에도 Status는 Accepted에 머문다. Implemented는 Publish 후속 전환이 끝나 저장소 전체 canonical 0이 확인된 뒤에 판정한다.
 

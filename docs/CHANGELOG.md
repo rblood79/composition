@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-248 Phase 3 G3 판정에 따른 컴포넌트 시각 정정 · 새 runtime 소비자 수리] - 2026-09-30
+
+### Changed
+
+- **컴포넌트 기본 모양을 RAC 구조 + theme 선언값 기준으로 맞춤 (사용자 판정 2026-09-29).** Button · ToggleButton 글자 굵기 500, Link 400 · Label 높이 fit-content · Select 트리거 gap 4 · 빈 필수 표시는 아이콘 · Breadcrumb 현재 항목 굵기 700 · Disclosure md 아이콘 18 과 헤더 chevron 간격 4 · GridListItem 제목 600 제거. 보조 글자색 (neutral-subdued) light 를 S2 값에 가까운 neutral-600 으로 (`--fg-muted` 와 Canvas 동일).
+- **Breadcrumb 구분자가 편집 가능한 Icon 자식이 됨.** 데이터 행 Breadcrumb 도 origin 의 구분자 설정을 따른다 (Canvas · Preview 공용).
+
+### Fixed
+
+- **Canvas 에서 ComboBox · DatePicker 류 트리거 오른쪽 여백이 Preview 보다 넓던 것** (paddingRight 12 → 4).
+
+### Added
+
+- ADR-248 Phase 3 (제품에 연결하지 않은 새 runtime): Tab 선택 막대 · Tag 선택 모양 · collection 이 정하는 항목 선택 · ListBoxItem 선택 배경 · Tab·Tag label 이 항목 글자색을 따름. G3 판정기 픽셀 귀속을 상자 변화가 쓸고 간 영역으로 좁힘. G3: base 62/64 · axis 372/386 · state 75/75 PASS (남은 FAIL = FileUpload, Phase 4). G0 oracle 을 현재 소스로 재측정 (native-state byte 동일 · storage +519 B 일정).
+
 ## [전체 메뉴 하위 메뉴 진입 시 상위 항목 활성 유지 — ADR-249 후속] - 2026-09-29
 
 ### Fixed
@@ -63,6 +78,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **빌더 캔버스에서 트랙패드를 왼쪽으로 밀면 캔버스 대신 대시보드로 돌아가던 결함.** 위 · 아래 · 오른쪽은 팬이 됐다. macOS 브라우저의 좌우 스와이프 history 이동은 캔버스 휠 핸들러의 `preventDefault` 로 막히지 않고 root 의 `overscroll-behavior-x` 만 본다. 캔버스 휠 핸들러가 붙어 있는 동안 root 에 `none` 을 걸고 떼면 이전 값으로 되돌린다. 대시보드 · 로그인의 스와이프 뒤로가기는 그대로다.
+
+## [ADR-248 Phase 3 독립 소비자 조립 점검 — 미완료] - 2026-09-28
+
+### Added
+
+- 제품에 연결하지 않은 composition root의 transaction delta → layout 입력 및 Canvas/DOM 입력 descriptor 경로와 130 type·1,333 시각 축·14 slot role coverage manifest를 추가했다. 단일 root 60/600/5k에서 leaf 편집 시 resolver 조상+대상 2개·layout 입력 1개만 방문하도록 수리했고 무관 구독 0을 확인했다. read-only Pencil fixture library와 typed 이름·named region·placeholder를 추가해 G0 Pencil 3/5 의미 왕복을 검증했다. 실제 Canvas/DOM parity, 나머지 Pencil 2개, G5 예산은 미검증이며 Phase 4 제품 전환은 시작하지 않았다.
+- G0 공개 insert의 자식 absolute px 좌표를 typed node placement로 옮기고 transaction·resolver·실제 Rust layout에 연결했다. test entry에서 Frame/Group/Text 구 geometry 3건, Chromium RAC Group/Slot 동작, 격리 native DOM 정적 markup 4/4를 확인했지만 CanvasKit PNG는 구 정본과 3,387/248,000픽셀 달라 G3는 미통과다. Pencil 3개도 원본을 유지한 채 실제 layout·CanvasKit probe에 연결했으며 시각 정본은 없다.
+- 같은 G0 native-state 공개 입력에서 Frame 3건의 Rust geometry와 실제 `renderCommands` clip 표본 3픽셀과 격리 RAC DOM 바깥 hit 3건은 일치했다. Group은 catalog의 orientation·size gap을 Rust와 격리 RAC에 전달해 horizontal/sm `(58,2)`·vertical/lg `(2,54)`를 확인했다. 구 Canvas는 둘 다 `(2,42)`여서 알려진 결함 수정과 기존 수치 gate의 충돌을 G3 FAIL로 기록했다. G0 구조 장면의 실제 `renderCommands` Text paint·페이지 테두리 overlay PNG는 구 정본과 2,829/248,000픽셀 다르다. 구 Slot `null`은 `legacy-slot`의 props 없는 저장 노드가 scene과 refresh hydration에서 제외되는 경로로 좁혔다. 전체 G3/G4/G5와 Phase 4는 미완료다.
+- Frame은 RAC 역할 없는 block 컨테이너, Group은 기존 RAC Group의 접근성과 Rust row/column·size gap을 공유하는 투명 컨테이너로 독립 binding을 좁혔다. 구조 scene의 불필요한 Group/Slot 자체 DRAW를 없애 command 19개로 재실행했지만 G0 PNG 차이는 2,829/248,000픽셀이다. 기존 Slot 편집 overlay hatch와 채운 Text paint는 각각 확인했으나 typed Slot 시각 입력과 Canvas/DOM 표시 동형은 미완성이다. 제품 경로는 변경하지 않았고 G3 FAIL/G5 UNVERIFIED를 유지한다.
+- Slot의 크기별 minHeight·padding·gap·radius와 alpha fill·dashed border를 read-only typed definition 및 검증기에 추가하고, 독립 Rust/CanvasKit/RAC 소비 9건을 확인했다. 실제 DOM 높이는 4/9건이 Rust와 1px 넘게 다르고 Canvas placeholder icon/name/required/description paint도 없어 G3 FAIL이다. 새 Slot paint가 포함된 구조 scene은 old PNG와 11,191/248,000픽셀 다르며 old 결함 자동 면제는 하지 않았다. 제품 경로와 Phase 4는 변경하지 않았다.
+- 편집 모드 Slot의 icon·이름·필수·설명 자식을 graph 밖의 일시 Rust layout 입력으로 만들고, 실제 font 폭·줄 수와 catalog line-height로 내용 기반 높이를 계산했다. sm/md/lg × empty/filled/description 9건의 Rust–RAC 높이가 모두 일치하고 CanvasKit icon/text paint 명령을 확인했다. Vitest iframe의 0.8 화면 변환을 캡처 순간에만 해제해 1× PNG를 비교했으나 Canvas–RAC 픽셀 차이는 9건 모두 남아 G3 FAIL이며 Phase 4는 시작하지 않았다.
+- Slot 9건의 Canvas scene과 격리 RAC 원본 PNG를 같은 160px 격자에서 텍스트 마스크·테두리·아이콘·배경으로 분해하고 heatmap과 색쌍/좌표를 남겼다. filled Text의 Slot 글자 크기·줄높이 상속과 md description SVG 아이콘의 DPR1 픽셀 정렬을 test-entry binding에서 수리했다. 9/9 geometry는 유지됐지만 비텍스트 차이 0.024899–0.079750으로 HC6 0.001을 초과해 G3 FAIL을 유지한다. 제품 entry와 Phase 4는 변경하지 않았다.
+- 실제 코드 catalog의 184등록·125고유 type과 rule 129 type의 합집합 130 type, 요구 축 1,333개, role 14개의 source/binding inventory를 재현 가능하게 고정했다. Text·Heading 2개만 등록/규칙/theme token에서 read-only `lib:*` definition과 revision 지문을 파생해 독립 transaction·resolver·Rust/CanvasKit·격리 DOM 경로로 부분 검증했다. 등록 composite template와 전체 old/new parity는 미검증이며 Slot HC6 및 G3 FAIL·G4 부분검증·G5 UNVERIFIED는 유지한다.
+- 등록 type/state를 현재 제품 binding 경로로 재집계하고 composite 인스턴스의 공통 컨테이너 binding, Label·Description·Paragraph의 source-derived text binding을 추가했다. 기본 type 8/130은 실행되지만 composite 64종은 template 자식 binding이 남고 typed state rule은 0/468이다. code library의 Text 편집·composite 저장/재로딩·JSON/폴더 교환과 60/600/5k leaf 결정적 카운트를 확인했다. G3 FAIL, 전체 G4/G5 UNVERIFIED, Phase 3 미완료·Phase 4 미착수 상태를 유지한다.
+- Button·Icon·SelectIcon·FieldError를 등록 rule에서 파생한 제품 Canvas·DOM 공통 binding에 연결했다. 기본 실행 census 12/130, composite 완전 template 1/64, typed state rule 0/468이며, `IconButton` placeholder와 부모 RAC가 흡수하는 `SelectTrigger`의 투영 계약은 미해결이다. 격리 Chromium Button·Icon·FieldError 및 독립 code catalog IDB·JSON·폴더 왕복을 확인했다. HC6/G3 FAIL·전체 G4/G5 UNVERIFIED, Phase 4 미착수다.
+
+## [ADR-248 독립 편집·저장 경로와 G2] - 2026-09-28
+
+### Added
+
+- 제품에 연결하지 않은 catalog runtime·history·새 IDB namespace를 추가했다. transaction delta가 resolver cache·ID/필드 구독·변경 record 저장을 구동하고, Undo/Redo·저장 실패·탭 충돌·프로젝트 전환을 독립 harness 14개로 확인했다. JSON/folder 및 직접 Pencil frame/text 부분집합 교환을 추가했다. 전체 Pencil 및 제품 소비자/Preview/Publish 검증은 후속 gate다.
+
+## [ADR-248 독립 catalog graph 기반과 G1] - 2026-09-28
+
+### Added
+
+- 제품 경로에 연결하지 않은 typed catalog document·immutable library·transaction·중첩 ref resolver를 추가했다. 실패한 transaction은 graph·인덱스·history·revision·dirty-set을 바꾸지 않으며, leaf 편집과 inverse는 전체 graph 순회 없이 변경 record만 교체한다. G1 독립 테스트 29개와 Builder build·격리 WebKit smoke를 통과했다. Builder 전환과 저장·렌더 소비 연결은 후속 gate다.
 
 ## [상호작용 응답성 기준선 — 측정 기록으로 종결] - 2026-09-28
 

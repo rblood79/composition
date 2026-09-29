@@ -30,8 +30,10 @@ import {
 } from "./stateTemplate";
 import {
   adaptElementStyle,
+  catalogBreadcrumbSeparatorIcon,
   componentTypeSet,
   getPrimitiveBinding,
+  getSlotRole,
   interpolateRowTemplateTree,
   isBodyType,
   resolveAuthoredAriaLabel,
@@ -60,6 +62,7 @@ import {
 } from "./canonicalRendererRegistry";
 import type { ResolvedNode } from "@composition/shared";
 import { ListBoxItemSelectionCheck } from "@composition/shared/components/listBoxItemSlotContent";
+import { Icon as SharedIcon } from "@composition/shared/components/Icon";
 // `../types/index` 가 shared 렌더 타입을 그대로 재수출하므로 별칭 import 와
 // `as unknown as` 이중 단언이 필요 없어졌다 (ADR 없이 타입 검사만 되살아난 자리).
 import { extractCanonicalPropsFromResolved } from "../../resolvers/canonical/storeBridge";
@@ -838,7 +841,17 @@ function CanonicalNodeRendererBody({
         racSourceNode,
         binding,
       );
-      const childNodes = node.children ?? [];
+      // 2026-09-29 — Breadcrumb 의 구분자 Icon 자식 (slot 역할 `separator`) 은 Link 밖 · 뒤에 두고 현재 조각에서는
+      //   그리지 않는다 (RAC `isCurrent` — shared `Breadcrumb` 의 `separator`). 나머지 (label Text) 는 Link 안.
+      const allChildNodes = node.children ?? [];
+      const separatorNodes =
+        type === "Breadcrumb"
+          ? allChildNodes.filter((child) => getSlotRole(child) === "separator")
+          : [];
+      const childNodes =
+        separatorNodes.length > 0
+          ? allChildNodes.filter((child) => !separatorNodes.includes(child))
+          : allChildNodes;
       // ADR-912 1A-(b): catalog generic(cutover) 경로의 props.style override 상실 seam 닫기.
       // base 색/size 는 generated CSS(react-aria-{Type}[data-*])가 적용 — toReactStyle 은
       // override(props.style) 전용. data-* 변형/사이즈는 racRest(toRacProps)가 emit.
@@ -1030,6 +1043,29 @@ function CanonicalNodeRendererBody({
           })()}
           {...eventHandlers}
           {...(cutoverClassName ? { className: cutoverClassName } : {})}
+          {...(separatorNodes.length > 0
+            ? {
+                separator: separatorNodes.map((child) => (
+                  <CanonicalNodeRenderer
+                    key={child.id}
+                    node={child}
+                    renderContext={renderContext}
+                    parentPath={currentPath}
+                    cutoverPrimitives={cutoverPrimitives}
+                    collectionAncestor={nextCollectionAncestor}
+                  />
+                )),
+              }
+            : type === "Breadcrumb" && allChildNodes.length === 0
+              ? {
+                  // 조합 자식이 없는 조각 (legacy plain) — catalog 기본 구분자 Icon (Canvas `breadcrumb_crumb` 동일).
+                  separator: (
+                    <SharedIcon
+                      iconName={catalogBreadcrumbSeparatorIcon(undefined).name}
+                    />
+                  ),
+                }
+              : {})}
           {...(STATIC_ITEM_TYPES.has(type)
             ? {
                 // ADR-234 Phase 3 — 정적 항목 (Tab · Tag · ListBoxItem) 의 RAC key (TabPanel `itemId` 짝 · owner 선택 key).

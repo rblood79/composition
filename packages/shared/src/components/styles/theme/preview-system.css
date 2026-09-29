@@ -177,7 +177,8 @@
     --fg-base: var(--color-text-base, var(--color-neutral-900));
     --fg-emphasis: var(--color-text-hover, var(--color-neutral-950));
     --fg-disabled: var(--color-text-disabled, var(--color-neutral-500));
-    --fg-muted: var(--color-text-placeholder, var(--color-neutral-700));
+    /* catalog neutral-subdued — S2 #505050 에 가장 가까운 단계 (2026-09-29, 종전 700) */
+    --fg-muted: var(--color-text-placeholder, var(--color-neutral-600));
     --fg-field: var(--color-field-text, var(--color-neutral-900));
     --fg-on-accent: var(--color-highlight-foreground, white);
     --fg-on-accent-pressed: var(

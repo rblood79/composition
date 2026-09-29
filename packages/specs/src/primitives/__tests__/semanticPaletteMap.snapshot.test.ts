@@ -24,7 +24,7 @@ const LIGHT_SNAPSHOT = {
   "on-accent": "#ffffff",
   "accent-subtle": "#dbeafe",
   neutral: "#171717",
-  "neutral-subdued": "#404040",
+  "neutral-subdued": "#525252",
   "neutral-subtle": "#e5e5e5",
   "neutral-hover": "#c3c3c3",
   "neutral-pressed": "#a8a8a8",

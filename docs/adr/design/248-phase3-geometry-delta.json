@@ -1,0 +1,681 @@
+{
+  "adr": 248,
+  "phase": 3,
+  "check": "layout-edit-geometry-delta",
+  "cases": [
+    {
+      "name": "self",
+      "initial": {
+        "canvasRegistered": 7,
+        "canvasCommands": 24,
+        "domNodeRenders": 7
+      },
+      "edit": {
+        "notifies": {
+          "canvas": 1,
+          "dom": 1
+        },
+        "canvas": {
+          "status": "patched",
+          "rebound": [
+            "project:node:frame/project:node:a::project:node:a"
+          ],
+          "geometryChanged": [
+            "project:node:frame/project:node:a::project:node:a"
+          ],
+          "geometryQueries": 2,
+          "patchRoots": [
+            "project:node:frame/project:node:a::project:node:a"
+          ],
+          "subtreeBuilds": 1,
+          "subtreeNodeVisits": 1,
+          "commandWrites": 3
+        },
+        "domNodeRenders": [
+          "project:node:frame/project:node:a::project:node:a"
+        ],
+        "moved": [
+          "a"
+        ]
+      },
+      "before": {
+        "frame": {
+          "x": 0,
+          "y": 0,
+          "width": 600,
+          "height": 300
+        },
+        "a": {
+          "x": 0,
+          "y": 0,
+          "width": 80,
+          "height": 20
+        },
+        "b": {
+          "x": 0,
+          "y": 20,
+          "width": 80,
+          "height": 20
+        },
+        "group": {
+          "x": 0,
+          "y": 40,
+          "width": 600,
+          "height": 20
+        },
+        "t1": {
+          "x": 0,
+          "y": 40,
+          "width": 80,
+          "height": 20
+        },
+        "t2": {
+          "x": 88,
+          "y": 40,
+          "width": 80,
+          "height": 20
+        },
+        "t3": {
+          "x": 176,
+          "y": 40,
+          "width": 80,
+          "height": 20
+        }
+      },
+      "after": {
+        "frame": {
+          "x": 0,
+          "y": 0,
+          "width": 600,
+          "height": 300
+        },
+        "a": {
+          "x": 0,
+          "y": 0,
+          "width": 120,
+          "height": 20
+        },
+        "b": {
+          "x": 0,
+          "y": 20,
+          "width": 80,
+          "height": 20
+        },
+        "group": {
+          "x": 0,
+          "y": 40,
+          "width": 600,
+          "height": 20
+        },
+        "t1": {
+          "x": 0,
+          "y": 40,
+          "width": 80,
+          "height": 20
+        },
+        "t2": {
+          "x": 88,
+          "y": 40,
+          "width": 80,
+          "height": 20
+        },
+        "t3": {
+          "x": 176,
+          "y": 40,
+          "width": 80,
+          "height": 20
+        }
+      },
+      "dom": {
+        "frame": {
+          "x": 0,
+          "y": 0,
+          "width": 600,
+          "height": 300
+        },
+        "a": {
+          "x": 0,
+          "y": 0,
+          "width": 120,
+          "height": 20
+        },
+        "b": {
+          "x": 0,
+          "y": 20,
+          "width": 80,
+          "height": 20
+        },
+        "group": {
+          "x": 0,
+          "y": 40,
+          "width": 600,
+          "height": 20
+        },
+        "t1": {
+          "x": 0,
+          "y": 40,
+          "width": 80,
+          "height": 20
+        },
+        "t2": {
+          "x": 88,
+          "y": 40,
+          "width": 80,
+          "height": 20
+        },
+        "t3": {
+          "x": 176,
+          "y": 40,
+          "width": 80,
+          "height": 20
+        }
+      }
+    },
+    {
+      "name": "siblings",
+      "initial": {
+        "canvasRegistered": 7,
+        "canvasCommands": 24,
+        "domNodeRenders": 7
+      },
+      "edit": {
+        "notifies": {
+          "canvas": 1,
+          "dom": 1
+        },
+        "canvas": {
+          "status": "patched",
+          "rebound": [
+            "project:node:frame/project:node:group/project:node:t1::project:node:t1",
+            "project:node:frame/project:node:group/project:node:t2::project:node:t2",
+            "project:node:frame/project:node:group/project:node:t3::project:node:t3"
+          ],
+          "geometryChanged": [
+            "project:node:frame/project:node:group/project:node:t1::project:node:t1",
+            "project:node:frame/project:node:group/project:node:t2::project:node:t2",
+            "project:node:frame/project:node:group/project:node:t3::project:node:t3"
+          ],
+          "geometryQueries": 4,
+          "patchRoots": [
+            "project:node:frame/project:node:group::project:node:group"
+          ],
+          "subtreeBuilds": 1,
+          "subtreeNodeVisits": 4,
+          "commandWrites": 13
+        },
+        "domNodeRenders": [
+          "project:node:frame/project:node:group/project:node:t1::project:node:t1"
+        ],
+        "moved": [
+          "t1",
+          "t2",
+          "t3"
+        ]
+      },
+      "before": {
+        "frame": {
+          "x": 0,
+          "y": 0,
+          "width": 600,
+          "height": 300
+        },
+        "a": {
+          "x": 0,
+          "y": 0,
+          "width": 80,
+          "height": 20
+        },
+        "b": {
+          "x": 0,
+          "y": 20,
+          "width": 80,
+          "height": 20
+        },
+        "group": {
+          "x": 0,
+          "y": 40,
+          "width": 600,
+          "height": 20
+        },
+        "t1": {
+          "x": 0,
+          "y": 40,
+          "width": 80,
+          "height": 20
+        },
+        "t2": {
+          "x": 88,
+          "y": 40,
+          "width": 80,
+          "height": 20
+        },
+        "t3": {
+          "x": 176,
+          "y": 40,
+          "width": 80,
+          "height": 20
+        }
+      },
+      "after": {
+        "frame": {
+          "x": 0,
+          "y": 0,
+          "width": 600,
+          "height": 300
+        },
+        "a": {
+          "x": 0,
+          "y": 0,
+          "width": 80,
+          "height": 20
+        },
+        "b": {
+          "x": 0,
+          "y": 20,
+          "width": 80,
+          "height": 20
+        },
+        "group": {
+          "x": 0,
+          "y": 40,
+          "width": 600,
+          "height": 20
+        },
+        "t1": {
+          "x": 0,
+          "y": 40,
+          "width": 120,
+          "height": 20
+        },
+        "t2": {
+          "x": 128,
+          "y": 40,
+          "width": 80,
+          "height": 20
+        },
+        "t3": {
+          "x": 216,
+          "y": 40,
+          "width": 80,
+          "height": 20
+        }
+      },
+      "dom": {
+        "frame": {
+          "x": 0,
+          "y": 0,
+          "width": 600,
+          "height": 300
+        },
+        "a": {
+          "x": 0,
+          "y": 0,
+          "width": 80,
+          "height": 20
+        },
+        "b": {
+          "x": 0,
+          "y": 20,
+          "width": 80,
+          "height": 20
+        },
+        "group": {
+          "x": 0,
+          "y": 40,
+          "width": 600,
+          "height": 20
+        },
+        "t1": {
+          "x": 0,
+          "y": 40,
+          "width": 120,
+          "height": 20
+        },
+        "t2": {
+          "x": 128,
+          "y": 40,
+          "width": 80,
+          "height": 20
+        },
+        "t3": {
+          "x": 216,
+          "y": 40,
+          "width": 80,
+          "height": 20
+        }
+      }
+    },
+    {
+      "name": "block-height",
+      "initial": {
+        "canvasRegistered": 7,
+        "canvasCommands": 24,
+        "domNodeRenders": 7
+      },
+      "edit": {
+        "notifies": {
+          "canvas": 1,
+          "dom": 1
+        },
+        "canvas": {
+          "status": "patched",
+          "rebound": [
+            "project:node:frame/project:node:a::project:node:a",
+            "project:node:frame/project:node:b::project:node:b",
+            "project:node:frame/project:node:group::project:node:group"
+          ],
+          "geometryChanged": [
+            "project:node:frame/project:node:a::project:node:a",
+            "project:node:frame/project:node:b::project:node:b",
+            "project:node:frame/project:node:group::project:node:group"
+          ],
+          "geometryQueries": 4,
+          "patchRoots": [
+            "project:node:frame::project:node:frame"
+          ],
+          "subtreeBuilds": 1,
+          "subtreeNodeVisits": 7,
+          "commandWrites": 24
+        },
+        "domNodeRenders": [
+          "project:node:frame/project:node:a::project:node:a"
+        ],
+        "moved": [
+          "a",
+          "b",
+          "group",
+          "t1",
+          "t2",
+          "t3"
+        ]
+      },
+      "before": {
+        "frame": {
+          "x": 0,
+          "y": 0,
+          "width": 600,
+          "height": 300
+        },
+        "a": {
+          "x": 0,
+          "y": 0,
+          "width": 80,
+          "height": 20
+        },
+        "b": {
+          "x": 0,
+          "y": 20,
+          "width": 80,
+          "height": 20
+        },
+        "group": {
+          "x": 0,
+          "y": 40,
+          "width": 600,
+          "height": 20
+        },
+        "t1": {
+          "x": 0,
+          "y": 40,
+          "width": 80,
+          "height": 20
+        },
+        "t2": {
+          "x": 88,
+          "y": 40,
+          "width": 80,
+          "height": 20
+        },
+        "t3": {
+          "x": 176,
+          "y": 40,
+          "width": 80,
+          "height": 20
+        }
+      },
+      "after": {
+        "frame": {
+          "x": 0,
+          "y": 0,
+          "width": 600,
+          "height": 300
+        },
+        "a": {
+          "x": 0,
+          "y": 0,
+          "width": 80,
+          "height": 40
+        },
+        "b": {
+          "x": 0,
+          "y": 40,
+          "width": 80,
+          "height": 20
+        },
+        "group": {
+          "x": 0,
+          "y": 60,
+          "width": 600,
+          "height": 20
+        },
+        "t1": {
+          "x": 0,
+          "y": 60,
+          "width": 80,
+          "height": 20
+        },
+        "t2": {
+          "x": 88,
+          "y": 60,
+          "width": 80,
+          "height": 20
+        },
+        "t3": {
+          "x": 176,
+          "y": 60,
+          "width": 80,
+          "height": 20
+        }
+      },
+      "dom": {
+        "frame": {
+          "x": 0,
+          "y": 0,
+          "width": 600,
+          "height": 300
+        },
+        "a": {
+          "x": 0,
+          "y": 0,
+          "width": 80,
+          "height": 40
+        },
+        "b": {
+          "x": 0,
+          "y": 40,
+          "width": 80,
+          "height": 20
+        },
+        "group": {
+          "x": 0,
+          "y": 60,
+          "width": 600,
+          "height": 20
+        },
+        "t1": {
+          "x": 0,
+          "y": 60,
+          "width": 80,
+          "height": 20
+        },
+        "t2": {
+          "x": 88,
+          "y": 60,
+          "width": 80,
+          "height": 20
+        },
+        "t3": {
+          "x": 176,
+          "y": 60,
+          "width": 80,
+          "height": 20
+        }
+      }
+    },
+    {
+      "name": "scene-root",
+      "initial": {
+        "canvasRegistered": 7,
+        "canvasCommands": 24,
+        "domNodeRenders": 7
+      },
+      "edit": {
+        "notifies": {
+          "canvas": 1,
+          "dom": 1
+        },
+        "canvas": {
+          "status": "rebind-required",
+          "id": "project:node:frame::project:node:frame",
+          "reason": "geometry-reaches-scene-root"
+        },
+        "domNodeRenders": [
+          "project:node:frame/project:node:group/project:node:t1::project:node:t1"
+        ],
+        "moved": []
+      },
+      "before": {
+        "frame": {
+          "x": 0,
+          "y": 0,
+          "width": 256,
+          "height": 900
+        },
+        "a": {
+          "x": 0,
+          "y": 0,
+          "width": 80,
+          "height": 20
+        },
+        "b": {
+          "x": 0,
+          "y": 20,
+          "width": 80,
+          "height": 20
+        },
+        "group": {
+          "x": 0,
+          "y": 40,
+          "width": 256,
+          "height": 20
+        },
+        "t1": {
+          "x": 0,
+          "y": 40,
+          "width": 80,
+          "height": 20
+        },
+        "t2": {
+          "x": 88,
+          "y": 40,
+          "width": 80,
+          "height": 20
+        },
+        "t3": {
+          "x": 176,
+          "y": 40,
+          "width": 80,
+          "height": 20
+        }
+      },
+      "after": {
+        "frame": {
+          "x": 0,
+          "y": 0,
+          "width": 256,
+          "height": 900
+        },
+        "a": {
+          "x": 0,
+          "y": 0,
+          "width": 80,
+          "height": 20
+        },
+        "b": {
+          "x": 0,
+          "y": 20,
+          "width": 80,
+          "height": 20
+        },
+        "group": {
+          "x": 0,
+          "y": 40,
+          "width": 256,
+          "height": 20
+        },
+        "t1": {
+          "x": 0,
+          "y": 40,
+          "width": 80,
+          "height": 20
+        },
+        "t2": {
+          "x": 88,
+          "y": 40,
+          "width": 80,
+          "height": 20
+        },
+        "t3": {
+          "x": 176,
+          "y": 40,
+          "width": 80,
+          "height": 20
+        }
+      },
+      "dom": {
+        "frame": {
+          "x": 0,
+          "y": 0,
+          "width": 296,
+          "height": 900
+        },
+        "a": {
+          "x": 0,
+          "y": 0,
+          "width": 80,
+          "height": 20
+        },
+        "b": {
+          "x": 0,
+          "y": 20,
+          "width": 80,
+          "height": 20
+        },
+        "group": {
+          "x": 0,
+          "y": 40,
+          "width": 296,
+          "height": 20
+        },
+        "t1": {
+          "x": 0,
+          "y": 40,
+          "width": 120,
+          "height": 20
+        },
+        "t2": {
+          "x": 128,
+          "y": 40,
+          "width": 80,
+          "height": 20
+        },
+        "t3": {
+          "x": 216,
+          "y": 40,
+          "width": 80,
+          "height": 20
+        }
+      }
+    }
+  ]
+}

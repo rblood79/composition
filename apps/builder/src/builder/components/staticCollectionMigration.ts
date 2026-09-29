@@ -363,7 +363,7 @@ export const MENU_STATIC_FAMILY: StaticCollectionFamily = {
 
 /**
  * ADR-237 Phase 3 — Breadcrumbs (목록 틀 = owner). 행 (`StoredBreadcrumbItem` — id · label · href) → Breadcrumb
- * instance 의 `children` · `href`. slot 은 [항목 origin, 현재 변형].
+ * instance 의 label 자식 글자 (`descendants.Label.children`) · `href`. slot 은 [항목 origin, 현재 변형].
  */
 export const BREADCRUMBS_STATIC_FAMILY: StaticCollectionFamily = {
   ownerType: "Breadcrumbs",
@@ -379,16 +379,19 @@ export const BREADCRUMBS_STATIC_FAMILY: StaticCollectionFamily = {
       `${BREADCRUMB_ITEM_DEFAULT_ORIGIN_ID}--current`,
     ];
   },
-  buildItem(item) {
+  buildItem(item, origin) {
     const label = item.label ?? item.textValue ?? item.title ?? item.name;
+    // 조각 글자 = origin label 자식 (2026-09-29 [Text, 구분자 Icon]). 이관 전 leaf origin 이면 자기 `children`.
+    const descendants = labelDescendant(origin, label);
+    const hasLabelChild = Object.keys(descendants).length > 0;
     return {
       props: {
-        children: String(label ?? ""),
+        ...(hasLabelChild ? {} : { children: String(label ?? "") }),
         // 행에 href 가 없으면 (현재 페이지) 빈 값 — origin 의 링크 href 를 상속하지 않는다.
         href: typeof item.href === "string" ? item.href : null,
         ...(item.isDisabled === true ? { isDisabled: true } : {}),
       },
-      descendants: {},
+      descendants,
     };
   },
 };

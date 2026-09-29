@@ -26,6 +26,7 @@ export interface RawEngineLayout {
   hasBinaryProtocol(): boolean;
   /** strict 입력 토글 — 하니스·진단 전용 (기본 false). */
   setStrictInput(enabled: boolean): void;
+  setDefiniteZeroHeight(enabled: boolean): void;
   /** 엔진이 읽지 않는 키 진단 — `[{index, keys}]` JSON 문자열. hot path 금지. */
   inspectUnknownKeys(nodesJson: string): string;
   createNodeRaw(styleJson: string): number;

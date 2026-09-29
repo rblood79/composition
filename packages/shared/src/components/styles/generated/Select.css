@@ -129,6 +129,7 @@
 .react-aria-Select .react-aria-Button {
   width: 100%;
   padding: var(--select-btn-padding);
+  gap: var(--spacing-xs);
   text-align: left;
   border: var(--border-width-thin) solid var(--border);
   border-radius: var(--border-radius);

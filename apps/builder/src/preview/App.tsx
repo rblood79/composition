@@ -40,6 +40,7 @@ import {
   resolveBodyDomClassName,
   resolveBodyDomPresentation,
   resolveItemTemplateChipStyle,
+  resolveBreadcrumbSeparatorTemplate,
   resolveSlotComposition,
   resolveStateTemplate,
 } from "@composition/shared";
@@ -323,6 +324,7 @@ function CanvasContent() {
         resolveTabTemplate: undefined,
         resolveGridListTemplate: undefined,
         resolveGridListRowTemplateChildren: undefined,
+        resolveBreadcrumbSeparator: undefined,
       };
     }
     const byId = indexTemplateOriginRecords(resolvedCanonicalNodes);
@@ -438,6 +440,15 @@ function CanvasContent() {
       resolveTabTemplate,
       resolveGridListTemplate,
       resolveGridListRowTemplateChildren,
+      // 2026-09-29 — 데이터 행 Breadcrumb 구분자 (owner slot 없으면 master `component-breadcrumbs`).
+      resolveBreadcrumbSeparator: (ownerSlot: unknown) =>
+        resolveBreadcrumbSeparatorTemplate(
+          ownerSlot ?? byId.get("component-breadcrumbs")?.slot,
+          (id) =>
+            byId.get(id) as
+              | { type?: unknown; ref?: unknown; children?: unknown[] }
+              | undefined,
+        ),
     };
   }, [resolvedCanonicalNodes]);
   const listBoxTemplateSlotComposition = templateSlotCompositions.listBox;
@@ -886,6 +897,8 @@ function CanvasContent() {
       resolveGridListTemplate: templateSlotCompositions.resolveGridListTemplate,
       resolveGridListRowTemplateChildren:
         templateSlotCompositions.resolveGridListRowTemplateChildren,
+      resolveBreadcrumbSeparator:
+        templateSlotCompositions.resolveBreadcrumbSeparator,
       // ADR-214 Phase 3 — collection 행 템플릿의 `{{ }}` 를 런타임 값으로 (소유자 요소 기준 가시성).
       //   store 를 호출 시점에 읽어 값 변경 시 renderContext 참조를 바꾸지 않는다 — 소유자
       //   노드는 자식 템플릿 참조로 의존 인덱스에 구독되어 (useStateTemplateProps) 스스로 다시 렌더한다.

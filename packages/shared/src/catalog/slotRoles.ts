@@ -32,6 +32,8 @@ export const SLOT_ROLES = [
   "label",
   "description",
   "shortcut",
+  // Breadcrumb 조각 뒤 구분자 Icon (현재 조각에서는 숨는다 — RAC `isCurrent`).
+  "separator",
   // P3 named-region (Card/Dialog 계열)
   "header",
   "content",
@@ -418,6 +420,8 @@ export const ITEM_SLOT_ROLE_TABLE: Readonly<
     { role: "label", required: true },
     { role: "description" },
   ],
+  // RAC Breadcrumb 은 slot context 가 없다 (label 은 Link 안 Text · 구분자는 Link 뒤 Icon — 현재 조각에서 숨는다).
+  Breadcrumb: [{ role: "label", required: true }, { role: "separator" }],
 };
 
 /** 항목 type 의 역할 한 행 (표에 없으면 null). */
@@ -565,4 +569,49 @@ export function isBoundListOwnerProps(
   props: Record<string, unknown> | null | undefined,
 ): boolean {
   return props?.dataBinding != null || props?.columnMapping != null;
+}
+
+/** Breadcrumb 항목 template origin 기본 id (builder `templateItemOriginIds` 와 같은 값). */
+const BREADCRUMB_ITEM_TEMPLATE_ORIGIN_ID = "component-breadcrumb-item-default";
+
+interface TemplateLookupNode {
+  type?: unknown;
+  ref?: unknown;
+  children?: readonly unknown[];
+}
+
+/**
+ * 2026-09-29 — 데이터 행 Breadcrumb (문서 노드가 없는 조각) 이 따르는 구분자: owner `slot[0]` (없으면 표준 항목
+ * origin) 의 ref 체인 끝 origin 에서 separator 역할 자식을 읽는다. Canvas projection · Preview 행이 같은 함수를
+ * 부른다 (정적 조각의 편집 가능한 Icon 과 같은 설정).
+ * - `undefined`: origin 이 없다 (legacy 문서) → 소비자는 catalog 기본 Icon.
+ * - `null`: 구분자 자식이 없거나 꺼졌다 (`enabled: false`) → 구분자 없음.
+ * - `{ iconName }`: 그 Icon 이름 (비었으면 소비자가 catalog 기본 이름).
+ */
+export function resolveBreadcrumbSeparatorTemplate(
+  ownerSlot: unknown,
+  lookup: (id: string) => TemplateLookupNode | undefined,
+): { iconName?: string } | null | undefined {
+  let id =
+    Array.isArray(ownerSlot) && typeof ownerSlot[0] === "string"
+      ? ownerSlot[0]
+      : BREADCRUMB_ITEM_TEMPLATE_ORIGIN_ID;
+  let origin: TemplateLookupNode | undefined;
+  for (let hop = 0; hop < 8; hop += 1) {
+    origin = lookup(id);
+    if (!origin || origin.type !== "ref" || typeof origin.ref !== "string")
+      break;
+    // 변형 ref 가 자기 자식을 해석해 둔 경우 (Preview 해석 노드) 그 자식이 정본.
+    if (origin.children && origin.children.length > 0) break;
+    id = origin.ref;
+  }
+  if (!origin) return undefined;
+  const separator = (origin.children ?? []).find(
+    (child) => getSlotRole(child) === "separator",
+  );
+  if (!isRecord(separator) || separator.enabled === false) return null;
+  const iconName = isRecord(separator.props)
+    ? separator.props.iconName
+    : undefined;
+  return typeof iconName === "string" && iconName ? { iconName } : {};
 }

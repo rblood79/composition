@@ -1,0 +1,6544 @@
+{
+  "adr": 248,
+  "phase": 3,
+  "check": "g3-type-state-census",
+  "note": "recount only; G3 verdicts unchanged. statesWithTypedStateRule counts the type definition's own stateRules; statesByChannel classifies every registered state axis by the new-runtime channel that paints it (rest, typed state rule incl. state conditional rules, rule executor paint, none)",
+  "summary": {
+    "registeredTypes": 130,
+    "registryEntries": 184,
+    "ruleTypes": 129,
+    "runnableTypes": 128,
+    "runnableTypeNames": [
+      "Avatar",
+      "AvatarGroup",
+      "Badge",
+      "Breadcrumb",
+      "Button",
+      "ButtonGroup",
+      "Calendar",
+      "CalendarGrid",
+      "CalendarHeader",
+      "Card",
+      "CardContent",
+      "CardFooter",
+      "CardHeader",
+      "CardPreview",
+      "CardView",
+      "Cell",
+      "Chart",
+      "Checkbox",
+      "CheckboxGroup",
+      "Code",
+      "ColorArea",
+      "ColorField",
+      "ColorPicker",
+      "ColorSwatch",
+      "ColorSwatchPicker",
+      "ColorWheel",
+      "Column",
+      "ComboBox",
+      "DateField",
+      "DateInput",
+      "DatePicker",
+      "DateRangePicker",
+      "Description",
+      "Dialog",
+      "DialogFooter",
+      "DialogTrigger",
+      "Disclosure",
+      "DisclosureContent",
+      "DisclosureGroup",
+      "DisclosureHeader",
+      "DropZone",
+      "Field",
+      "FieldError",
+      "FileTrigger",
+      "FileUpload",
+      "Form",
+      "FormField",
+      "GridList",
+      "GridListItem",
+      "GridListSection",
+      "Group",
+      "Header",
+      "Heading",
+      "Icon",
+      "IconButton",
+      "IllustratedMessage",
+      "Image",
+      "InlineAlert",
+      "Input",
+      "Kbd",
+      "Label",
+      "Link",
+      "ListBox",
+      "ListBoxItem",
+      "ListBoxSection",
+      "Menu",
+      "MenuItem",
+      "MenuSection",
+      "Meter",
+      "MeterTrack",
+      "MeterValue",
+      "Modal",
+      "Nav",
+      "NumberField",
+      "Pagination",
+      "Paragraph",
+      "Popover",
+      "ProgressBar",
+      "ProgressBarTrack",
+      "ProgressBarValue",
+      "ProgressCircle",
+      "Radio",
+      "RadioGroup",
+      "RangeCalendar",
+      "Row",
+      "SearchField",
+      "Section",
+      "Select",
+      "SelectIcon",
+      "SelectTrigger",
+      "SelectValue",
+      "Separator",
+      "Skeleton",
+      "Slider",
+      "SliderOutput",
+      "SliderThumb",
+      "SliderTrack",
+      "Slot",
+      "StatusLight",
+      "Switch",
+      "Tab",
+      "TabList",
+      "TabPanel",
+      "TabPanels",
+      "Table",
+      "TableBody",
+      "TableCell",
+      "TableHeader",
+      "TableRow",
+      "TableView",
+      "Tabs",
+      "Tag",
+      "TagGroup",
+      "TagList",
+      "TailSwatch",
+      "Text",
+      "TextArea",
+      "TextField",
+      "TimeField",
+      "Toast",
+      "ToggleButton",
+      "ToggleButtonGroup",
+      "Toolbar",
+      "Tooltip",
+      "Tree",
+      "TreeItem",
+      "body",
+      "frame"
+    ],
+    "byReason": {
+      "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS": 64,
+      "RUNS_DIRECT_CODE_DEFINITION": 29,
+      "FAILED_AT_DOM": 2,
+      "RUNS_IN_PARENT_CONTEXT": 33,
+      "RUNS_DIRECT_TEST_FIXTURE_DEFINITION": 2
+    },
+    "registeredStates": 468,
+    "statesWithTypedStateRule": 0,
+    "statesByChannel": {
+      "typedStateRule": 57,
+      "rest": 100,
+      "ruleExecutorPaint": 238,
+      "none": 73
+    },
+    "statesWithoutChannel": {
+      "disabled": 4,
+      "focusVisible": 45,
+      "hover": 12,
+      "pressed": 12
+    },
+    "statesOnRunnableTypes": 459,
+    "typesWithStateOriginVariants": 15,
+    "productBindings": [
+      "composite",
+      "frame",
+      "rectangle",
+      "group",
+      "slot",
+      "box",
+      "icon",
+      "selecticon",
+      "select",
+      "combobox",
+      "text",
+      "button",
+      "heading",
+      "label",
+      "description",
+      "paragraph",
+      "fielderror"
+    ],
+    "missingBindingIds": 0,
+    "compositeTypes": 65,
+    "compositeTypesUsingCommonWrapper": 0,
+    "compositesRunnableOnExistingTemplateBindings": 64
+  },
+  "blockers": {},
+  "types": [
+    {
+      "type": "Avatar",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-avatar"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:disabled": "typedStateRule",
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "structure-state:disabled",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 1,
+        "resolvedBindingIds": {
+          "avatar": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Avatar"
+        ],
+        "ruleExecutedBindingIds": [
+          "avatar"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "AvatarGroup",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-avatargroup"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:disabled": "typedStateRule",
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "structure-state:disabled",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 4,
+        "resolvedBindingIds": {
+          "avatar": 3,
+          "avatargroup": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Avatar",
+          "lib:definition:type-AvatarGroup"
+        ],
+        "ruleExecutedBindingIds": [
+          "avatar",
+          "avatargroup"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "Badge",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-badge"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:disabled": "typedStateRule",
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "structure-state:disabled",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 1,
+        "resolvedBindingIds": {
+          "badge": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Badge"
+        ],
+        "ruleExecutedBindingIds": [
+          "badge"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "Breadcrumb",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "direct",
+        "definitionId": "lib:definition:type-Breadcrumb"
+      },
+      "typedVisualFields": 2,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:hover": "ruleExecutorPaint",
+        "structure-state:disabled": "none",
+        "structure-state:focusVisible": "none",
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [
+        "Default",
+        "Default/Current"
+      ],
+      "registeredStates": [
+        "structure-state:hover",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 1,
+        "resolvedBindingIds": {
+          "breadcrumb": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Breadcrumb"
+        ],
+        "ruleExecutedBindingIds": [
+          "breadcrumb"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_DIRECT_CODE_DEFINITION"
+    },
+    {
+      "type": "Breadcrumbs",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-breadcrumbs"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:hover": "ruleExecutorPaint",
+        "structure-state:disabled": "none",
+        "structure-state:focusVisible": "none",
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "structure-state:hover",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "dom",
+        "resolvedNodes": 10,
+        "resolvedBindingIds": {
+          "text": 3,
+          "icon": 3,
+          "breadcrumb": 3,
+          "breadcrumbs": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:text",
+          "lib:definition:type-Breadcrumb",
+          "lib:definition:type-Breadcrumbs",
+          "lib:definition:type-Icon"
+        ],
+        "ruleExecutedBindingIds": [
+          "breadcrumb",
+          "breadcrumbs"
+        ],
+        "missingBindingIds": [],
+        "error": "CATALOG_DOM_NODE_NOT_RENDERED:project:node:subject/lib:template:component-breadcrumbs__item-3::lib:template:component-breadcrumb-item-default__separator"
+      },
+      "missingBindings": [],
+      "reason": "FAILED_AT_DOM"
+    },
+    {
+      "type": "Button",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-button"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:hover": "typedStateRule",
+        "structure-state:pressed": "typedStateRule",
+        "structure-state:disabled": "typedStateRule",
+        "structure-state:focusVisible": "none",
+        "paint-state:base": "rest",
+        "paint-state:hover": "typedStateRule",
+        "paint-state:pressed": "typedStateRule"
+      },
+      "stateOriginVariants": [
+        "Disabled",
+        "Hover",
+        "Pressed",
+        "Focus"
+      ],
+      "registeredStates": [
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 1,
+        "resolvedBindingIds": {
+          "button": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Button"
+        ],
+        "ruleExecutedBindingIds": [],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "ButtonGroup",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-buttongroup"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:disabled": "none",
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "structure-state:disabled",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 3,
+        "resolvedBindingIds": {
+          "button": 2,
+          "buttongroup": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Button",
+          "lib:definition:type-ButtonGroup"
+        ],
+        "ruleExecutedBindingIds": [
+          "buttongroup"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "Calendar",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-calendar"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:hover": "ruleExecutorPaint",
+        "structure-state:pressed": "ruleExecutorPaint",
+        "structure-state:disabled": "typedStateRule",
+        "structure-state:focusVisible": "none",
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 3,
+        "resolvedBindingIds": {
+          "calendarheader": 1,
+          "calendargrid": 1,
+          "calendar": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Calendar",
+          "lib:definition:type-CalendarGrid",
+          "lib:definition:type-CalendarHeader"
+        ],
+        "ruleExecutedBindingIds": [
+          "calendar",
+          "calendargrid",
+          "calendarheader"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "CalendarGrid",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "parent-context",
+        "definitionId": "lib:definition:origin-component-calendar",
+        "typeDefinitionId": "lib:definition:type-CalendarGrid"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 3,
+        "resolvedBindingIds": {
+          "calendarheader": 1,
+          "calendargrid": 1,
+          "calendar": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Calendar",
+          "lib:definition:type-CalendarGrid",
+          "lib:definition:type-CalendarHeader"
+        ],
+        "ruleExecutedBindingIds": [
+          "calendar",
+          "calendargrid",
+          "calendarheader"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_IN_PARENT_CONTEXT"
+    },
+    {
+      "type": "CalendarHeader",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "parent-context",
+        "definitionId": "lib:definition:origin-component-calendar",
+        "typeDefinitionId": "lib:definition:type-CalendarHeader"
+      },
+      "typedVisualFields": 1,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 3,
+        "resolvedBindingIds": {
+          "calendarheader": 1,
+          "calendargrid": 1,
+          "calendar": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Calendar",
+          "lib:definition:type-CalendarGrid",
+          "lib:definition:type-CalendarHeader"
+        ],
+        "ruleExecutedBindingIds": [
+          "calendar",
+          "calendargrid",
+          "calendarheader"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_IN_PARENT_CONTEXT"
+    },
+    {
+      "type": "Card",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-card"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint",
+        "paint-state:selected": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed",
+        "paint-state:selected"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 8,
+        "resolvedBindingIds": {
+          "image": 1,
+          "cardpreview": 1,
+          "heading": 1,
+          "cardheader": 1,
+          "description": 1,
+          "cardcontent": 1,
+          "cardfooter": 1,
+          "card": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:heading",
+          "lib:definition:type-Card",
+          "lib:definition:type-CardContent",
+          "lib:definition:type-CardFooter",
+          "lib:definition:type-CardHeader",
+          "lib:definition:type-CardPreview",
+          "lib:definition:type-Description",
+          "lib:definition:type-Image"
+        ],
+        "ruleExecutedBindingIds": [
+          "card",
+          "cardcontent",
+          "cardfooter",
+          "cardheader",
+          "cardpreview",
+          "image"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "CardContent",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "parent-context",
+        "definitionId": "lib:definition:origin-component-card",
+        "typeDefinitionId": "lib:definition:type-CardContent"
+      },
+      "typedVisualFields": 2,
+      "typedStateRules": [],
+      "stateChannels": {},
+      "stateOriginVariants": [],
+      "registeredStates": [],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 8,
+        "resolvedBindingIds": {
+          "image": 1,
+          "cardpreview": 1,
+          "heading": 1,
+          "cardheader": 1,
+          "description": 1,
+          "cardcontent": 1,
+          "cardfooter": 1,
+          "card": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:heading",
+          "lib:definition:type-Card",
+          "lib:definition:type-CardContent",
+          "lib:definition:type-CardFooter",
+          "lib:definition:type-CardHeader",
+          "lib:definition:type-CardPreview",
+          "lib:definition:type-Description",
+          "lib:definition:type-Image"
+        ],
+        "ruleExecutedBindingIds": [
+          "card",
+          "cardcontent",
+          "cardfooter",
+          "cardheader",
+          "cardpreview",
+          "image"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_IN_PARENT_CONTEXT"
+    },
+    {
+      "type": "CardFooter",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "parent-context",
+        "definitionId": "lib:definition:origin-component-card",
+        "typeDefinitionId": "lib:definition:type-CardFooter"
+      },
+      "typedVisualFields": 2,
+      "typedStateRules": [],
+      "stateChannels": {},
+      "stateOriginVariants": [],
+      "registeredStates": [],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 8,
+        "resolvedBindingIds": {
+          "image": 1,
+          "cardpreview": 1,
+          "heading": 1,
+          "cardheader": 1,
+          "description": 1,
+          "cardcontent": 1,
+          "cardfooter": 1,
+          "card": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:heading",
+          "lib:definition:type-Card",
+          "lib:definition:type-CardContent",
+          "lib:definition:type-CardFooter",
+          "lib:definition:type-CardHeader",
+          "lib:definition:type-CardPreview",
+          "lib:definition:type-Description",
+          "lib:definition:type-Image"
+        ],
+        "ruleExecutedBindingIds": [
+          "card",
+          "cardcontent",
+          "cardfooter",
+          "cardheader",
+          "cardpreview",
+          "image"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_IN_PARENT_CONTEXT"
+    },
+    {
+      "type": "CardHeader",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "parent-context",
+        "definitionId": "lib:definition:origin-component-card",
+        "typeDefinitionId": "lib:definition:type-CardHeader"
+      },
+      "typedVisualFields": 2,
+      "typedStateRules": [],
+      "stateChannels": {},
+      "stateOriginVariants": [],
+      "registeredStates": [],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 8,
+        "resolvedBindingIds": {
+          "image": 1,
+          "cardpreview": 1,
+          "heading": 1,
+          "cardheader": 1,
+          "description": 1,
+          "cardcontent": 1,
+          "cardfooter": 1,
+          "card": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:heading",
+          "lib:definition:type-Card",
+          "lib:definition:type-CardContent",
+          "lib:definition:type-CardFooter",
+          "lib:definition:type-CardHeader",
+          "lib:definition:type-CardPreview",
+          "lib:definition:type-Description",
+          "lib:definition:type-Image"
+        ],
+        "ruleExecutedBindingIds": [
+          "card",
+          "cardcontent",
+          "cardfooter",
+          "cardheader",
+          "cardpreview",
+          "image"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_IN_PARENT_CONTEXT"
+    },
+    {
+      "type": "CardPreview",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "parent-context",
+        "definitionId": "lib:definition:origin-component-card",
+        "typeDefinitionId": "lib:definition:type-CardPreview"
+      },
+      "typedVisualFields": 2,
+      "typedStateRules": [],
+      "stateChannels": {},
+      "stateOriginVariants": [],
+      "registeredStates": [],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 8,
+        "resolvedBindingIds": {
+          "image": 1,
+          "cardpreview": 1,
+          "heading": 1,
+          "cardheader": 1,
+          "description": 1,
+          "cardcontent": 1,
+          "cardfooter": 1,
+          "card": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:heading",
+          "lib:definition:type-Card",
+          "lib:definition:type-CardContent",
+          "lib:definition:type-CardFooter",
+          "lib:definition:type-CardHeader",
+          "lib:definition:type-CardPreview",
+          "lib:definition:type-Description",
+          "lib:definition:type-Image"
+        ],
+        "ruleExecutedBindingIds": [
+          "card",
+          "cardcontent",
+          "cardfooter",
+          "cardheader",
+          "cardpreview",
+          "image"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_IN_PARENT_CONTEXT"
+    },
+    {
+      "type": "CardView",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-cardview"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:disabled": "typedStateRule",
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "structure-state:disabled",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 4,
+        "resolvedBindingIds": {
+          "card": 3,
+          "cardview": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Card",
+          "lib:definition:type-CardView"
+        ],
+        "ruleExecutedBindingIds": [
+          "card",
+          "cardview"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "Cell",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "parent-context",
+        "definitionId": "lib:definition:origin-component-tableview",
+        "typeDefinitionId": "lib:definition:type-Cell"
+      },
+      "typedVisualFields": 2,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 10,
+        "resolvedBindingIds": {
+          "column": 3,
+          "tableheader": 1,
+          "cell": 3,
+          "row": 1,
+          "tablebody": 1,
+          "tableview": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Cell",
+          "lib:definition:type-Column",
+          "lib:definition:type-Row",
+          "lib:definition:type-TableBody",
+          "lib:definition:type-TableHeader",
+          "lib:definition:type-TableView"
+        ],
+        "ruleExecutedBindingIds": [
+          "cell",
+          "column",
+          "row",
+          "tablebody",
+          "tableheader",
+          "tableview"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_IN_PARENT_CONTEXT"
+    },
+    {
+      "type": "Chart",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-chart"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 1,
+        "resolvedBindingIds": {
+          "chart": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Chart"
+        ],
+        "ruleExecutedBindingIds": [
+          "chart"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "Checkbox",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-checkbox"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:hover": "ruleExecutorPaint",
+        "structure-state:pressed": "ruleExecutorPaint",
+        "structure-state:disabled": "typedStateRule",
+        "structure-state:focusVisible": "none",
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint",
+        "paint-state:selected": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [
+        "Unselected",
+        "Disabled",
+        "Hover",
+        "Pressed",
+        "Focus"
+      ],
+      "registeredStates": [
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed",
+        "paint-state:selected"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 2,
+        "resolvedBindingIds": {
+          "label": 1,
+          "checkbox": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Checkbox",
+          "lib:definition:type-Label"
+        ],
+        "ruleExecutedBindingIds": [
+          "checkbox"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "CheckboxGroup",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-checkboxgroup"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:hover": "ruleExecutorPaint",
+        "structure-state:pressed": "ruleExecutorPaint",
+        "structure-state:disabled": "typedStateRule",
+        "structure-state:focusVisible": "none",
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 6,
+        "resolvedBindingIds": {
+          "label": 3,
+          "checkbox": 2,
+          "checkboxgroup": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Checkbox",
+          "lib:definition:type-CheckboxGroup",
+          "lib:definition:type-Label"
+        ],
+        "ruleExecutedBindingIds": [
+          "checkbox",
+          "checkboxgroup"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "Code",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "direct",
+        "definitionId": "lib:definition:type-Code"
+      },
+      "typedVisualFields": 1,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 1,
+        "resolvedBindingIds": {
+          "code": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Code"
+        ],
+        "ruleExecutedBindingIds": [
+          "code"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_DIRECT_CODE_DEFINITION"
+    },
+    {
+      "type": "ColorArea",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "direct",
+        "definitionId": "lib:definition:type-ColorArea"
+      },
+      "typedVisualFields": 5,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 1,
+        "resolvedBindingIds": {
+          "colorarea": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-ColorArea"
+        ],
+        "ruleExecutedBindingIds": [
+          "colorarea"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_DIRECT_CODE_DEFINITION"
+    },
+    {
+      "type": "ColorField",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-colorfield"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:hover": "ruleExecutorPaint",
+        "structure-state:pressed": "ruleExecutorPaint",
+        "structure-state:disabled": "typedStateRule",
+        "structure-state:focusVisible": "none"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 3,
+        "resolvedBindingIds": {
+          "label": 1,
+          "input": 1,
+          "colorfield": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-ColorField",
+          "lib:definition:type-Input",
+          "lib:definition:type-Label"
+        ],
+        "ruleExecutedBindingIds": [
+          "colorfield",
+          "input"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "ColorPicker",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "direct",
+        "definitionId": "lib:definition:type-ColorPicker"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 1,
+        "resolvedBindingIds": {
+          "colorpicker": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-ColorPicker"
+        ],
+        "ruleExecutedBindingIds": [
+          "colorpicker"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_DIRECT_CODE_DEFINITION"
+    },
+    {
+      "type": "ColorSlider",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "direct",
+        "definitionId": "lib:definition:type-ColorSlider"
+      },
+      "typedVisualFields": 5,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "dom",
+        "resolvedNodes": 1,
+        "resolvedBindingIds": {
+          "colorslider": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-ColorSlider"
+        ],
+        "ruleExecutedBindingIds": [
+          "colorslider"
+        ],
+        "missingBindingIds": [],
+        "error": "useColorSliderState requires a value or defaultValue"
+      },
+      "missingBindings": [],
+      "reason": "FAILED_AT_DOM"
+    },
+    {
+      "type": "ColorSwatch",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-colorswatch"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:hover": "ruleExecutorPaint",
+        "structure-state:pressed": "ruleExecutorPaint",
+        "structure-state:disabled": "typedStateRule",
+        "structure-state:focusVisible": "none",
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 1,
+        "resolvedBindingIds": {
+          "colorswatch": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-ColorSwatch"
+        ],
+        "ruleExecutedBindingIds": [
+          "colorswatch"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "ColorSwatchPicker",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-colorswatchpicker"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 7,
+        "resolvedBindingIds": {
+          "colorswatch": 6,
+          "colorswatchpicker": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-ColorSwatch",
+          "lib:definition:type-ColorSwatchPicker"
+        ],
+        "ruleExecutedBindingIds": [
+          "colorswatch",
+          "colorswatchpicker"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "ColorWheel",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "direct",
+        "definitionId": "lib:definition:type-ColorWheel"
+      },
+      "typedVisualFields": 5,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 1,
+        "resolvedBindingIds": {
+          "colorwheel": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-ColorWheel"
+        ],
+        "ruleExecutedBindingIds": [
+          "colorwheel"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_DIRECT_CODE_DEFINITION"
+    },
+    {
+      "type": "Column",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-table-column"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 1,
+        "resolvedBindingIds": {
+          "column": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Column"
+        ],
+        "ruleExecutedBindingIds": [
+          "column"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "ComboBox",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-combobox"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:hover": "ruleExecutorPaint",
+        "structure-state:pressed": "ruleExecutorPaint",
+        "structure-state:disabled": "typedStateRule",
+        "structure-state:focusVisible": "none"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 13,
+        "resolvedBindingIds": {
+          "label": 1,
+          "selectvalue": 1,
+          "selecticon": 1,
+          "selecttrigger": 1,
+          "text": 4,
+          "listboxitem": 4,
+          "combobox": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:text",
+          "lib:definition:type-ComboBox",
+          "lib:definition:type-Label",
+          "lib:definition:type-ListBoxItem",
+          "lib:definition:type-SelectIcon",
+          "lib:definition:type-SelectTrigger",
+          "lib:definition:type-SelectValue"
+        ],
+        "ruleExecutedBindingIds": [
+          "listboxitem"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "DateField",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-datefield"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:hover": "ruleExecutorPaint",
+        "structure-state:pressed": "ruleExecutorPaint",
+        "structure-state:disabled": "typedStateRule",
+        "structure-state:focusVisible": "none"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 4,
+        "resolvedBindingIds": {
+          "label": 1,
+          "dateinput": 1,
+          "fielderror": 1,
+          "datefield": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-DateField",
+          "lib:definition:type-DateInput",
+          "lib:definition:type-FieldError",
+          "lib:definition:type-Label"
+        ],
+        "ruleExecutedBindingIds": [
+          "datefield",
+          "dateinput"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "DateInput",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "parent-context",
+        "definitionId": "lib:definition:origin-component-datefield",
+        "typeDefinitionId": "lib:definition:type-DateInput"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 4,
+        "resolvedBindingIds": {
+          "label": 1,
+          "dateinput": 1,
+          "fielderror": 1,
+          "datefield": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-DateField",
+          "lib:definition:type-DateInput",
+          "lib:definition:type-FieldError",
+          "lib:definition:type-Label"
+        ],
+        "ruleExecutedBindingIds": [
+          "datefield",
+          "dateinput"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_IN_PARENT_CONTEXT"
+    },
+    {
+      "type": "DatePicker",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-datepicker"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:hover": "ruleExecutorPaint",
+        "structure-state:pressed": "ruleExecutorPaint",
+        "structure-state:disabled": "typedStateRule",
+        "structure-state:focusVisible": "none"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 8,
+        "resolvedBindingIds": {
+          "label": 1,
+          "dateinput": 1,
+          "selecticon": 1,
+          "selecttrigger": 1,
+          "calendarheader": 1,
+          "calendargrid": 1,
+          "calendar": 1,
+          "datepicker": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Calendar",
+          "lib:definition:type-CalendarGrid",
+          "lib:definition:type-CalendarHeader",
+          "lib:definition:type-DateInput",
+          "lib:definition:type-DatePicker",
+          "lib:definition:type-Label",
+          "lib:definition:type-SelectIcon",
+          "lib:definition:type-SelectTrigger"
+        ],
+        "ruleExecutedBindingIds": [
+          "calendar",
+          "calendargrid",
+          "calendarheader",
+          "dateinput",
+          "datepicker"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "DateRangePicker",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-daterangepicker"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:hover": "ruleExecutorPaint",
+        "structure-state:pressed": "ruleExecutorPaint",
+        "structure-state:disabled": "typedStateRule",
+        "structure-state:focusVisible": "none"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 8,
+        "resolvedBindingIds": {
+          "label": 1,
+          "dateinput": 1,
+          "selecticon": 1,
+          "selecttrigger": 1,
+          "calendarheader": 1,
+          "calendargrid": 1,
+          "calendar": 1,
+          "daterangepicker": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Calendar",
+          "lib:definition:type-CalendarGrid",
+          "lib:definition:type-CalendarHeader",
+          "lib:definition:type-DateInput",
+          "lib:definition:type-DateRangePicker",
+          "lib:definition:type-Label",
+          "lib:definition:type-SelectIcon",
+          "lib:definition:type-SelectTrigger"
+        ],
+        "ruleExecutedBindingIds": [
+          "calendar",
+          "calendargrid",
+          "calendarheader",
+          "dateinput",
+          "daterangepicker"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "Description",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "parent-context",
+        "definitionId": "lib:definition:origin-component-card",
+        "typeDefinitionId": "lib:definition:type-Description"
+      },
+      "typedVisualFields": 3,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "none",
+        "paint-state:pressed": "none"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 8,
+        "resolvedBindingIds": {
+          "image": 1,
+          "cardpreview": 1,
+          "heading": 1,
+          "cardheader": 1,
+          "description": 1,
+          "cardcontent": 1,
+          "cardfooter": 1,
+          "card": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:heading",
+          "lib:definition:type-Card",
+          "lib:definition:type-CardContent",
+          "lib:definition:type-CardFooter",
+          "lib:definition:type-CardHeader",
+          "lib:definition:type-CardPreview",
+          "lib:definition:type-Description",
+          "lib:definition:type-Image"
+        ],
+        "ruleExecutedBindingIds": [
+          "card",
+          "cardcontent",
+          "cardfooter",
+          "cardheader",
+          "cardpreview",
+          "image"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_IN_PARENT_CONTEXT"
+    },
+    {
+      "type": "Dialog",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-dialog"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 9,
+        "resolvedBindingIds": {
+          "button": 2,
+          "heading": 1,
+          "description": 1,
+          "frame": 2,
+          "dialogfooter": 1,
+          "dialog": 1,
+          "dialogtrigger": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:heading",
+          "lib:definition:type-Button",
+          "lib:definition:type-Description",
+          "lib:definition:type-Dialog",
+          "lib:definition:type-DialogFooter",
+          "lib:definition:type-DialogTrigger",
+          "lib:definition:type-frame"
+        ],
+        "ruleExecutedBindingIds": [
+          "dialog",
+          "dialogfooter",
+          "dialogtrigger"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "DialogFooter",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "parent-context",
+        "definitionId": "lib:definition:origin-component-dialog",
+        "typeDefinitionId": "lib:definition:type-DialogFooter"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {},
+      "stateOriginVariants": [],
+      "registeredStates": [],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 9,
+        "resolvedBindingIds": {
+          "button": 2,
+          "heading": 1,
+          "description": 1,
+          "frame": 2,
+          "dialogfooter": 1,
+          "dialog": 1,
+          "dialogtrigger": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:heading",
+          "lib:definition:type-Button",
+          "lib:definition:type-Description",
+          "lib:definition:type-Dialog",
+          "lib:definition:type-DialogFooter",
+          "lib:definition:type-DialogTrigger",
+          "lib:definition:type-frame"
+        ],
+        "ruleExecutedBindingIds": [
+          "dialog",
+          "dialogfooter",
+          "dialogtrigger"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_IN_PARENT_CONTEXT"
+    },
+    {
+      "type": "DialogTrigger",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "direct",
+        "definitionId": "lib:definition:type-DialogTrigger"
+      },
+      "typedVisualFields": 4,
+      "typedStateRules": [],
+      "stateChannels": {},
+      "stateOriginVariants": [],
+      "registeredStates": [],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 1,
+        "resolvedBindingIds": {
+          "dialogtrigger": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-DialogTrigger"
+        ],
+        "ruleExecutedBindingIds": [
+          "dialogtrigger"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_DIRECT_CODE_DEFINITION"
+    },
+    {
+      "type": "Disclosure",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-disclosure"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:hover": "ruleExecutorPaint",
+        "structure-state:disabled": "typedStateRule",
+        "structure-state:focusVisible": "none"
+      },
+      "stateOriginVariants": [
+        "Collapsed"
+      ],
+      "registeredStates": [
+        "structure-state:hover",
+        "structure-state:disabled",
+        "structure-state:focusVisible"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 3,
+        "resolvedBindingIds": {
+          "disclosureheader": 1,
+          "disclosurecontent": 1,
+          "disclosure": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Disclosure",
+          "lib:definition:type-DisclosureContent",
+          "lib:definition:type-DisclosureHeader"
+        ],
+        "ruleExecutedBindingIds": [
+          "disclosure",
+          "disclosurecontent",
+          "disclosureheader"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "DisclosureContent",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "parent-context",
+        "definitionId": "lib:definition:origin-component-disclosure",
+        "typeDefinitionId": "lib:definition:type-DisclosureContent"
+      },
+      "typedVisualFields": 1,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 3,
+        "resolvedBindingIds": {
+          "disclosureheader": 1,
+          "disclosurecontent": 1,
+          "disclosure": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Disclosure",
+          "lib:definition:type-DisclosureContent",
+          "lib:definition:type-DisclosureHeader"
+        ],
+        "ruleExecutedBindingIds": [
+          "disclosure",
+          "disclosurecontent",
+          "disclosureheader"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_IN_PARENT_CONTEXT"
+    },
+    {
+      "type": "DisclosureGroup",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-disclosuregroup"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:disabled": "typedStateRule",
+        "structure-state:focusVisible": "none",
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 7,
+        "resolvedBindingIds": {
+          "disclosureheader": 2,
+          "disclosurecontent": 2,
+          "disclosure": 2,
+          "disclosuregroup": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Disclosure",
+          "lib:definition:type-DisclosureContent",
+          "lib:definition:type-DisclosureGroup",
+          "lib:definition:type-DisclosureHeader"
+        ],
+        "ruleExecutedBindingIds": [
+          "disclosure",
+          "disclosurecontent",
+          "disclosuregroup",
+          "disclosureheader"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "DisclosureHeader",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "parent-context",
+        "definitionId": "lib:definition:origin-component-disclosure",
+        "typeDefinitionId": "lib:definition:type-DisclosureHeader"
+      },
+      "typedVisualFields": 2,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 3,
+        "resolvedBindingIds": {
+          "disclosureheader": 1,
+          "disclosurecontent": 1,
+          "disclosure": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Disclosure",
+          "lib:definition:type-DisclosureContent",
+          "lib:definition:type-DisclosureHeader"
+        ],
+        "ruleExecutedBindingIds": [
+          "disclosure",
+          "disclosurecontent",
+          "disclosureheader"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_IN_PARENT_CONTEXT"
+    },
+    {
+      "type": "DropZone",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-dropzone"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:hover": "ruleExecutorPaint",
+        "structure-state:disabled": "typedStateRule",
+        "structure-state:focusVisible": "none",
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "structure-state:hover",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 1,
+        "resolvedBindingIds": {
+          "dropzone": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-DropZone"
+        ],
+        "ruleExecutedBindingIds": [
+          "dropzone"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "Field",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "direct",
+        "definitionId": "lib:definition:type-Field"
+      },
+      "typedVisualFields": 3,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 1,
+        "resolvedBindingIds": {
+          "field": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Field"
+        ],
+        "ruleExecutedBindingIds": [
+          "field"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_DIRECT_CODE_DEFINITION"
+    },
+    {
+      "type": "FieldError",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "parent-context",
+        "definitionId": "lib:definition:origin-component-datefield",
+        "typeDefinitionId": "lib:definition:type-FieldError"
+      },
+      "typedVisualFields": 2,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "none",
+        "paint-state:pressed": "none"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 4,
+        "resolvedBindingIds": {
+          "label": 1,
+          "dateinput": 1,
+          "fielderror": 1,
+          "datefield": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-DateField",
+          "lib:definition:type-DateInput",
+          "lib:definition:type-FieldError",
+          "lib:definition:type-Label"
+        ],
+        "ruleExecutedBindingIds": [
+          "datefield",
+          "dateinput"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_IN_PARENT_CONTEXT"
+    },
+    {
+      "type": "FileTrigger",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-filetrigger"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:hover": "ruleExecutorPaint",
+        "structure-state:pressed": "ruleExecutorPaint",
+        "structure-state:disabled": "typedStateRule",
+        "structure-state:focusVisible": "none",
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 1,
+        "resolvedBindingIds": {
+          "filetrigger": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-FileTrigger"
+        ],
+        "ruleExecutedBindingIds": [
+          "filetrigger"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "FileUpload",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-fileupload"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:disabled": "typedStateRule",
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "structure-state:disabled",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 11,
+        "resolvedBindingIds": {
+          "dropzone": 1,
+          "filetrigger": 1,
+          "label": 2,
+          "progressbarvalue": 2,
+          "progressbartrack": 2,
+          "progressbar": 2,
+          "fileupload": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-DropZone",
+          "lib:definition:type-FileTrigger",
+          "lib:definition:type-FileUpload",
+          "lib:definition:type-Label",
+          "lib:definition:type-ProgressBar",
+          "lib:definition:type-ProgressBarTrack",
+          "lib:definition:type-ProgressBarValue"
+        ],
+        "ruleExecutedBindingIds": [
+          "dropzone",
+          "filetrigger",
+          "fileupload",
+          "progressbar",
+          "progressbartrack",
+          "progressbarvalue"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "Form",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-form"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:hover": "ruleExecutorPaint",
+        "structure-state:pressed": "ruleExecutorPaint",
+        "structure-state:disabled": "typedStateRule",
+        "structure-state:focusVisible": "none",
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 12,
+        "resolvedBindingIds": {
+          "label": 2,
+          "input": 2,
+          "fielderror": 2,
+          "textfield": 2,
+          "button": 2,
+          "buttongroup": 1,
+          "form": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Button",
+          "lib:definition:type-ButtonGroup",
+          "lib:definition:type-FieldError",
+          "lib:definition:type-Form",
+          "lib:definition:type-Input",
+          "lib:definition:type-Label",
+          "lib:definition:type-TextField"
+        ],
+        "ruleExecutedBindingIds": [
+          "buttongroup",
+          "form",
+          "input",
+          "textfield"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "FormField",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "direct",
+        "definitionId": "lib:definition:type-FormField"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {},
+      "stateOriginVariants": [],
+      "registeredStates": [],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 1,
+        "resolvedBindingIds": {
+          "formfield": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-FormField"
+        ],
+        "ruleExecutedBindingIds": [
+          "formfield"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_DIRECT_CODE_DEFINITION"
+    },
+    {
+      "type": "GridList",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-gridlist"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 10,
+        "resolvedBindingIds": {
+          "text": 6,
+          "gridlistitem": 3,
+          "gridlist": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:text",
+          "lib:definition:type-GridList",
+          "lib:definition:type-GridListItem"
+        ],
+        "ruleExecutedBindingIds": [
+          "gridlist",
+          "gridlistitem"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "GridListItem",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "direct",
+        "definitionId": "lib:definition:type-GridListItem"
+      },
+      "typedVisualFields": 3,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [
+        "Default",
+        "Default/Unselected",
+        "Default/Disabled",
+        "Default/Hover",
+        "Default/Pressed",
+        "Default/Focus"
+      ],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 1,
+        "resolvedBindingIds": {
+          "gridlistitem": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-GridListItem"
+        ],
+        "ruleExecutedBindingIds": [
+          "gridlistitem"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_DIRECT_CODE_DEFINITION"
+    },
+    {
+      "type": "GridListSection",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-gridlist-section"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {},
+      "stateOriginVariants": [],
+      "registeredStates": [],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 6,
+        "resolvedBindingIds": {
+          "header": 1,
+          "text": 2,
+          "gridlistitem": 2,
+          "gridlistsection": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:text",
+          "lib:definition:type-GridListItem",
+          "lib:definition:type-GridListSection",
+          "lib:definition:type-Header"
+        ],
+        "ruleExecutedBindingIds": [
+          "gridlistitem",
+          "gridlistsection",
+          "header"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "Group",
+      "registration": [],
+      "visualRule": true,
+      "route": {
+        "library": "fixture",
+        "kind": "direct",
+        "definitionId": "lib:definition:group"
+      },
+      "typedVisualFields": 1,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "none",
+        "paint-state:pressed": "none"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 1,
+        "resolvedBindingIds": {
+          "group": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:group"
+        ],
+        "ruleExecutedBindingIds": [],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_DIRECT_TEST_FIXTURE_DEFINITION"
+    },
+    {
+      "type": "Header",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "parent-context",
+        "definitionId": "lib:definition:origin-component-gridlist-section",
+        "typeDefinitionId": "lib:definition:type-Header"
+      },
+      "typedVisualFields": 5,
+      "typedStateRules": [],
+      "stateChannels": {},
+      "stateOriginVariants": [],
+      "registeredStates": [],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 6,
+        "resolvedBindingIds": {
+          "header": 1,
+          "text": 2,
+          "gridlistitem": 2,
+          "gridlistsection": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:text",
+          "lib:definition:type-GridListItem",
+          "lib:definition:type-GridListSection",
+          "lib:definition:type-Header"
+        ],
+        "ruleExecutedBindingIds": [
+          "gridlistitem",
+          "gridlistsection",
+          "header"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_IN_PARENT_CONTEXT"
+    },
+    {
+      "type": "Heading",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "parent-context",
+        "definitionId": "lib:definition:origin-component-card",
+        "typeDefinitionId": "lib:definition:heading"
+      },
+      "typedVisualFields": 3,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "none",
+        "paint-state:pressed": "none"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 8,
+        "resolvedBindingIds": {
+          "image": 1,
+          "cardpreview": 1,
+          "heading": 1,
+          "cardheader": 1,
+          "description": 1,
+          "cardcontent": 1,
+          "cardfooter": 1,
+          "card": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:heading",
+          "lib:definition:type-Card",
+          "lib:definition:type-CardContent",
+          "lib:definition:type-CardFooter",
+          "lib:definition:type-CardHeader",
+          "lib:definition:type-CardPreview",
+          "lib:definition:type-Description",
+          "lib:definition:type-Image"
+        ],
+        "ruleExecutedBindingIds": [
+          "card",
+          "cardcontent",
+          "cardfooter",
+          "cardheader",
+          "cardpreview",
+          "image"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_IN_PARENT_CONTEXT"
+    },
+    {
+      "type": "Icon",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "direct",
+        "definitionId": "lib:definition:type-Icon"
+      },
+      "typedVisualFields": 1,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:hover": "none",
+        "structure-state:pressed": "none",
+        "structure-state:disabled": "none",
+        "structure-state:focusVisible": "none",
+        "paint-state:base": "rest",
+        "paint-state:hover": "none",
+        "paint-state:pressed": "none"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 1,
+        "resolvedBindingIds": {
+          "icon": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Icon"
+        ],
+        "ruleExecutedBindingIds": [],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_DIRECT_CODE_DEFINITION"
+    },
+    {
+      "type": "IconButton",
+      "registration": [
+        "reusable"
+      ],
+      "visualRule": false,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-iconbutton"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {},
+      "stateOriginVariants": [
+        "Disabled",
+        "Hover",
+        "Pressed",
+        "Focus"
+      ],
+      "registeredStates": [],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 3,
+        "resolvedBindingIds": {
+          "icon": 1,
+          "text": 1,
+          "button": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:text",
+          "lib:definition:type-Button",
+          "lib:definition:type-Icon"
+        ],
+        "ruleExecutedBindingIds": [],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "IllustratedMessage",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "direct",
+        "definitionId": "lib:definition:type-IllustratedMessage"
+      },
+      "typedVisualFields": 1,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 1,
+        "resolvedBindingIds": {
+          "illustratedmessage": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-IllustratedMessage"
+        ],
+        "ruleExecutedBindingIds": [
+          "illustratedmessage"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_DIRECT_CODE_DEFINITION"
+    },
+    {
+      "type": "Image",
+      "registration": [],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "direct",
+        "definitionId": "lib:definition:type-Image"
+      },
+      "typedVisualFields": 3,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 1,
+        "resolvedBindingIds": {
+          "image": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Image"
+        ],
+        "ruleExecutedBindingIds": [
+          "image"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_DIRECT_CODE_DEFINITION"
+    },
+    {
+      "type": "InlineAlert",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-inline-alert"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 3,
+        "resolvedBindingIds": {
+          "heading": 1,
+          "description": 1,
+          "inlinealert": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:heading",
+          "lib:definition:type-Description",
+          "lib:definition:type-InlineAlert"
+        ],
+        "ruleExecutedBindingIds": [
+          "inlinealert"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "Input",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "parent-context",
+        "definitionId": "lib:definition:origin-component-colorfield",
+        "typeDefinitionId": "lib:definition:type-Input"
+      },
+      "typedVisualFields": 4,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 3,
+        "resolvedBindingIds": {
+          "label": 1,
+          "input": 1,
+          "colorfield": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-ColorField",
+          "lib:definition:type-Input",
+          "lib:definition:type-Label"
+        ],
+        "ruleExecutedBindingIds": [
+          "colorfield",
+          "input"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_IN_PARENT_CONTEXT"
+    },
+    {
+      "type": "Kbd",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "direct",
+        "definitionId": "lib:definition:type-Kbd"
+      },
+      "typedVisualFields": 1,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 1,
+        "resolvedBindingIds": {
+          "kbd": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Kbd"
+        ],
+        "ruleExecutedBindingIds": [
+          "kbd"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_DIRECT_CODE_DEFINITION"
+    },
+    {
+      "type": "Label",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "parent-context",
+        "definitionId": "lib:definition:origin-component-checkbox",
+        "typeDefinitionId": "lib:definition:type-Label"
+      },
+      "typedVisualFields": 4,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "none",
+        "paint-state:pressed": "none"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 2,
+        "resolvedBindingIds": {
+          "label": 1,
+          "checkbox": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Checkbox",
+          "lib:definition:type-Label"
+        ],
+        "ruleExecutedBindingIds": [
+          "checkbox"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_IN_PARENT_CONTEXT"
+    },
+    {
+      "type": "Link",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-link"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [
+        "Disabled",
+        "Hover",
+        "Pressed",
+        "Focus"
+      ],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 1,
+        "resolvedBindingIds": {
+          "link": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Link"
+        ],
+        "ruleExecutedBindingIds": [
+          "link"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "ListBox",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-listbox"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:hover": "ruleExecutorPaint",
+        "structure-state:pressed": "ruleExecutorPaint",
+        "structure-state:disabled": "typedStateRule",
+        "structure-state:focusVisible": "none",
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 13,
+        "resolvedBindingIds": {
+          "icon": 3,
+          "text": 6,
+          "listboxitem": 3,
+          "listbox": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:text",
+          "lib:definition:type-Icon",
+          "lib:definition:type-ListBox",
+          "lib:definition:type-ListBoxItem"
+        ],
+        "ruleExecutedBindingIds": [
+          "listbox",
+          "listboxitem"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "ListBoxItem",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "direct",
+        "definitionId": "lib:definition:type-ListBoxItem"
+      },
+      "typedVisualFields": 4,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:hover": "ruleExecutorPaint",
+        "structure-state:focusVisible": "none",
+        "structure-state:disabled": "typedStateRule",
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:selected": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [
+        "Selected",
+        "Default",
+        "Selected/Disabled",
+        "Selected/Hover",
+        "Selected/Pressed",
+        "Selected/Focus"
+      ],
+      "registeredStates": [
+        "structure-state:hover",
+        "structure-state:focusVisible",
+        "structure-state:disabled",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:selected"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 1,
+        "resolvedBindingIds": {
+          "listboxitem": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-ListBoxItem"
+        ],
+        "ruleExecutedBindingIds": [
+          "listboxitem"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_DIRECT_CODE_DEFINITION"
+    },
+    {
+      "type": "ListBoxSection",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-listbox-section"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {},
+      "stateOriginVariants": [],
+      "registeredStates": [],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 6,
+        "resolvedBindingIds": {
+          "header": 1,
+          "text": 2,
+          "listboxitem": 2,
+          "listboxsection": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:text",
+          "lib:definition:type-Header",
+          "lib:definition:type-ListBoxItem",
+          "lib:definition:type-ListBoxSection"
+        ],
+        "ruleExecutedBindingIds": [
+          "header",
+          "listboxitem",
+          "listboxsection"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "Menu",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-menu"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:hover": "ruleExecutorPaint",
+        "structure-state:focusVisible": "none",
+        "structure-state:disabled": "typedStateRule",
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "structure-state:hover",
+        "structure-state:focusVisible",
+        "structure-state:disabled",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 7,
+        "resolvedBindingIds": {
+          "text": 3,
+          "menuitem": 3,
+          "menu": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:text",
+          "lib:definition:type-Menu",
+          "lib:definition:type-MenuItem"
+        ],
+        "ruleExecutedBindingIds": [
+          "menu",
+          "menuitem"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "MenuItem",
+      "registration": [],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "direct",
+        "definitionId": "lib:definition:type-MenuItem"
+      },
+      "typedVisualFields": 7,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:hover": "ruleExecutorPaint",
+        "structure-state:focusVisible": "none",
+        "structure-state:disabled": "typedStateRule"
+      },
+      "stateOriginVariants": [
+        "Default",
+        "Default/Disabled",
+        "Default/Hover",
+        "Default/Pressed",
+        "Default/Focus"
+      ],
+      "registeredStates": [
+        "structure-state:hover",
+        "structure-state:focusVisible",
+        "structure-state:disabled"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 1,
+        "resolvedBindingIds": {
+          "menuitem": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-MenuItem"
+        ],
+        "ruleExecutedBindingIds": [
+          "menuitem"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_DIRECT_CODE_DEFINITION"
+    },
+    {
+      "type": "MenuSection",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-menu-section"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {},
+      "stateOriginVariants": [],
+      "registeredStates": [],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 6,
+        "resolvedBindingIds": {
+          "header": 1,
+          "text": 2,
+          "menuitem": 2,
+          "menusection": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:text",
+          "lib:definition:type-Header",
+          "lib:definition:type-MenuItem",
+          "lib:definition:type-MenuSection"
+        ],
+        "ruleExecutedBindingIds": [
+          "header",
+          "menuitem",
+          "menusection"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "Meter",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-meter"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:hover": "ruleExecutorPaint",
+        "structure-state:pressed": "ruleExecutorPaint",
+        "structure-state:disabled": "typedStateRule",
+        "structure-state:focusVisible": "none",
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 4,
+        "resolvedBindingIds": {
+          "label": 1,
+          "metervalue": 1,
+          "metertrack": 1,
+          "meter": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Label",
+          "lib:definition:type-Meter",
+          "lib:definition:type-MeterTrack",
+          "lib:definition:type-MeterValue"
+        ],
+        "ruleExecutedBindingIds": [
+          "meter",
+          "metertrack",
+          "metervalue"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "MeterTrack",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "parent-context",
+        "definitionId": "lib:definition:origin-component-meter",
+        "typeDefinitionId": "lib:definition:type-MeterTrack"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:hover": "ruleExecutorPaint",
+        "structure-state:pressed": "ruleExecutorPaint",
+        "structure-state:disabled": "typedStateRule",
+        "structure-state:focusVisible": "none",
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 4,
+        "resolvedBindingIds": {
+          "label": 1,
+          "metervalue": 1,
+          "metertrack": 1,
+          "meter": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Label",
+          "lib:definition:type-Meter",
+          "lib:definition:type-MeterTrack",
+          "lib:definition:type-MeterValue"
+        ],
+        "ruleExecutedBindingIds": [
+          "meter",
+          "metertrack",
+          "metervalue"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_IN_PARENT_CONTEXT"
+    },
+    {
+      "type": "MeterValue",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "parent-context",
+        "definitionId": "lib:definition:origin-component-meter",
+        "typeDefinitionId": "lib:definition:type-MeterValue"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 4,
+        "resolvedBindingIds": {
+          "label": 1,
+          "metervalue": 1,
+          "metertrack": 1,
+          "meter": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Label",
+          "lib:definition:type-Meter",
+          "lib:definition:type-MeterTrack",
+          "lib:definition:type-MeterValue"
+        ],
+        "ruleExecutedBindingIds": [
+          "meter",
+          "metertrack",
+          "metervalue"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_IN_PARENT_CONTEXT"
+    },
+    {
+      "type": "Modal",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-modal"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 1,
+        "resolvedBindingIds": {
+          "modal": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Modal"
+        ],
+        "ruleExecutedBindingIds": [
+          "modal"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "Nav",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-nav"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:hover": "ruleExecutorPaint",
+        "structure-state:pressed": "ruleExecutorPaint",
+        "structure-state:disabled": "typedStateRule",
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 4,
+        "resolvedBindingIds": {
+          "link": 3,
+          "nav": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Link",
+          "lib:definition:type-Nav"
+        ],
+        "ruleExecutedBindingIds": [
+          "link",
+          "nav"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "NumberField",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-numberfield"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:hover": "ruleExecutorPaint",
+        "structure-state:pressed": "ruleExecutorPaint",
+        "structure-state:disabled": "typedStateRule",
+        "structure-state:focusVisible": "none"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 7,
+        "resolvedBindingIds": {
+          "label": 1,
+          "selectvalue": 1,
+          "selecticon": 2,
+          "selecttrigger": 1,
+          "fielderror": 1,
+          "numberfield": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-FieldError",
+          "lib:definition:type-Label",
+          "lib:definition:type-NumberField",
+          "lib:definition:type-SelectIcon",
+          "lib:definition:type-SelectTrigger",
+          "lib:definition:type-SelectValue"
+        ],
+        "ruleExecutedBindingIds": [
+          "numberfield"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "Pagination",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-pagination"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:disabled": "typedStateRule",
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "structure-state:disabled",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 6,
+        "resolvedBindingIds": {
+          "button": 5,
+          "pagination": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Button",
+          "lib:definition:type-Pagination"
+        ],
+        "ruleExecutedBindingIds": [
+          "pagination"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "Paragraph",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "direct",
+        "definitionId": "lib:definition:type-Paragraph"
+      },
+      "typedVisualFields": 3,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "none",
+        "paint-state:pressed": "none"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 1,
+        "resolvedBindingIds": {
+          "paragraph": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Paragraph"
+        ],
+        "ruleExecutedBindingIds": [],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_DIRECT_CODE_DEFINITION"
+    },
+    {
+      "type": "Popover",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-popover"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 3,
+        "resolvedBindingIds": {
+          "heading": 1,
+          "description": 1,
+          "popover": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:heading",
+          "lib:definition:type-Description",
+          "lib:definition:type-Popover"
+        ],
+        "ruleExecutedBindingIds": [
+          "popover"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "ProgressBar",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-progressbar"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:hover": "ruleExecutorPaint",
+        "structure-state:pressed": "ruleExecutorPaint",
+        "structure-state:disabled": "typedStateRule",
+        "structure-state:focusVisible": "none",
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 4,
+        "resolvedBindingIds": {
+          "label": 1,
+          "progressbarvalue": 1,
+          "progressbartrack": 1,
+          "progressbar": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Label",
+          "lib:definition:type-ProgressBar",
+          "lib:definition:type-ProgressBarTrack",
+          "lib:definition:type-ProgressBarValue"
+        ],
+        "ruleExecutedBindingIds": [
+          "progressbar",
+          "progressbartrack",
+          "progressbarvalue"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "ProgressBarTrack",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "parent-context",
+        "definitionId": "lib:definition:origin-component-progressbar",
+        "typeDefinitionId": "lib:definition:type-ProgressBarTrack"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:hover": "ruleExecutorPaint",
+        "structure-state:pressed": "ruleExecutorPaint",
+        "structure-state:disabled": "typedStateRule",
+        "structure-state:focusVisible": "none",
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 4,
+        "resolvedBindingIds": {
+          "label": 1,
+          "progressbarvalue": 1,
+          "progressbartrack": 1,
+          "progressbar": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Label",
+          "lib:definition:type-ProgressBar",
+          "lib:definition:type-ProgressBarTrack",
+          "lib:definition:type-ProgressBarValue"
+        ],
+        "ruleExecutedBindingIds": [
+          "progressbar",
+          "progressbartrack",
+          "progressbarvalue"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_IN_PARENT_CONTEXT"
+    },
+    {
+      "type": "ProgressBarValue",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "parent-context",
+        "definitionId": "lib:definition:origin-component-progressbar",
+        "typeDefinitionId": "lib:definition:type-ProgressBarValue"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 4,
+        "resolvedBindingIds": {
+          "label": 1,
+          "progressbarvalue": 1,
+          "progressbartrack": 1,
+          "progressbar": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Label",
+          "lib:definition:type-ProgressBar",
+          "lib:definition:type-ProgressBarTrack",
+          "lib:definition:type-ProgressBarValue"
+        ],
+        "ruleExecutedBindingIds": [
+          "progressbar",
+          "progressbartrack",
+          "progressbarvalue"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_IN_PARENT_CONTEXT"
+    },
+    {
+      "type": "ProgressCircle",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-progresscircle"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 1,
+        "resolvedBindingIds": {
+          "progresscircle": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-ProgressCircle"
+        ],
+        "ruleExecutedBindingIds": [
+          "progresscircle"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "Radio",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-radio"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:hover": "ruleExecutorPaint",
+        "structure-state:pressed": "ruleExecutorPaint",
+        "structure-state:disabled": "typedStateRule",
+        "structure-state:focusVisible": "none",
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint",
+        "paint-state:selected": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [
+        "Unselected",
+        "Disabled",
+        "Hover",
+        "Pressed",
+        "Focus"
+      ],
+      "registeredStates": [
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed",
+        "paint-state:selected"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 2,
+        "resolvedBindingIds": {
+          "label": 1,
+          "radio": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Label",
+          "lib:definition:type-Radio"
+        ],
+        "ruleExecutedBindingIds": [
+          "radio"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "RadioGroup",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-radiogroup"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:hover": "ruleExecutorPaint",
+        "structure-state:pressed": "ruleExecutorPaint",
+        "structure-state:disabled": "typedStateRule",
+        "structure-state:focusVisible": "none",
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 6,
+        "resolvedBindingIds": {
+          "label": 3,
+          "radio": 2,
+          "radiogroup": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Label",
+          "lib:definition:type-Radio",
+          "lib:definition:type-RadioGroup"
+        ],
+        "ruleExecutedBindingIds": [
+          "radio",
+          "radiogroup"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "RangeCalendar",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-rangecalendar"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:hover": "ruleExecutorPaint",
+        "structure-state:pressed": "ruleExecutorPaint",
+        "structure-state:disabled": "typedStateRule",
+        "structure-state:focusVisible": "none",
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 3,
+        "resolvedBindingIds": {
+          "calendarheader": 1,
+          "calendargrid": 1,
+          "rangecalendar": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-CalendarGrid",
+          "lib:definition:type-CalendarHeader",
+          "lib:definition:type-RangeCalendar"
+        ],
+        "ruleExecutedBindingIds": [
+          "calendargrid",
+          "calendarheader",
+          "rangecalendar"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "Row",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-table-row"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 1,
+        "resolvedBindingIds": {
+          "row": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Row"
+        ],
+        "ruleExecutedBindingIds": [
+          "row"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "SearchField",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-searchfield"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:hover": "ruleExecutorPaint",
+        "structure-state:pressed": "ruleExecutorPaint",
+        "structure-state:disabled": "typedStateRule",
+        "structure-state:focusVisible": "none"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 6,
+        "resolvedBindingIds": {
+          "label": 1,
+          "selecticon": 2,
+          "selectvalue": 1,
+          "selecttrigger": 1,
+          "searchfield": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Label",
+          "lib:definition:type-SearchField",
+          "lib:definition:type-SelectIcon",
+          "lib:definition:type-SelectTrigger",
+          "lib:definition:type-SelectValue"
+        ],
+        "ruleExecutedBindingIds": [
+          "searchfield"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "Section",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "direct",
+        "definitionId": "lib:definition:type-Section"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:hover": "ruleExecutorPaint",
+        "structure-state:pressed": "ruleExecutorPaint",
+        "structure-state:disabled": "typedStateRule",
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 1,
+        "resolvedBindingIds": {
+          "section": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Section"
+        ],
+        "ruleExecutedBindingIds": [
+          "section"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_DIRECT_CODE_DEFINITION"
+    },
+    {
+      "type": "Select",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-select"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:hover": "ruleExecutorPaint",
+        "structure-state:pressed": "ruleExecutorPaint",
+        "structure-state:disabled": "typedStateRule",
+        "structure-state:focusVisible": "none"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 13,
+        "resolvedBindingIds": {
+          "label": 1,
+          "selectvalue": 1,
+          "selecticon": 1,
+          "selecttrigger": 1,
+          "text": 4,
+          "listboxitem": 4,
+          "select": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:text",
+          "lib:definition:type-Label",
+          "lib:definition:type-ListBoxItem",
+          "lib:definition:type-Select",
+          "lib:definition:type-SelectIcon",
+          "lib:definition:type-SelectTrigger",
+          "lib:definition:type-SelectValue"
+        ],
+        "ruleExecutedBindingIds": [
+          "listboxitem"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "SelectIcon",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "parent-context",
+        "definitionId": "lib:definition:origin-component-combobox",
+        "typeDefinitionId": "lib:definition:type-SelectIcon"
+      },
+      "typedVisualFields": 1,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "none",
+        "paint-state:pressed": "none"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 13,
+        "resolvedBindingIds": {
+          "label": 1,
+          "selectvalue": 1,
+          "selecticon": 1,
+          "selecttrigger": 1,
+          "text": 4,
+          "listboxitem": 4,
+          "combobox": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:text",
+          "lib:definition:type-ComboBox",
+          "lib:definition:type-Label",
+          "lib:definition:type-ListBoxItem",
+          "lib:definition:type-SelectIcon",
+          "lib:definition:type-SelectTrigger",
+          "lib:definition:type-SelectValue"
+        ],
+        "ruleExecutedBindingIds": [
+          "listboxitem"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_IN_PARENT_CONTEXT"
+    },
+    {
+      "type": "SelectTrigger",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "parent-context",
+        "definitionId": "lib:definition:origin-component-combobox",
+        "typeDefinitionId": "lib:definition:type-SelectTrigger"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "none",
+        "paint-state:pressed": "none"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 13,
+        "resolvedBindingIds": {
+          "label": 1,
+          "selectvalue": 1,
+          "selecticon": 1,
+          "selecttrigger": 1,
+          "text": 4,
+          "listboxitem": 4,
+          "combobox": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:text",
+          "lib:definition:type-ComboBox",
+          "lib:definition:type-Label",
+          "lib:definition:type-ListBoxItem",
+          "lib:definition:type-SelectIcon",
+          "lib:definition:type-SelectTrigger",
+          "lib:definition:type-SelectValue"
+        ],
+        "ruleExecutedBindingIds": [
+          "listboxitem"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_IN_PARENT_CONTEXT"
+    },
+    {
+      "type": "SelectValue",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "parent-context",
+        "definitionId": "lib:definition:origin-component-combobox",
+        "typeDefinitionId": "lib:definition:type-SelectValue"
+      },
+      "typedVisualFields": 1,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "none",
+        "paint-state:pressed": "none"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 13,
+        "resolvedBindingIds": {
+          "label": 1,
+          "selectvalue": 1,
+          "selecticon": 1,
+          "selecttrigger": 1,
+          "text": 4,
+          "listboxitem": 4,
+          "combobox": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:text",
+          "lib:definition:type-ComboBox",
+          "lib:definition:type-Label",
+          "lib:definition:type-ListBoxItem",
+          "lib:definition:type-SelectIcon",
+          "lib:definition:type-SelectTrigger",
+          "lib:definition:type-SelectValue"
+        ],
+        "ruleExecutedBindingIds": [
+          "listboxitem"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_IN_PARENT_CONTEXT"
+    },
+    {
+      "type": "Separator",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "direct",
+        "definitionId": "lib:definition:type-Separator"
+      },
+      "typedVisualFields": 2,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 1,
+        "resolvedBindingIds": {
+          "separator": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Separator"
+        ],
+        "ruleExecutedBindingIds": [
+          "separator"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_DIRECT_CODE_DEFINITION"
+    },
+    {
+      "type": "Skeleton",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "direct",
+        "definitionId": "lib:definition:type-Skeleton"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 1,
+        "resolvedBindingIds": {
+          "skeleton": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Skeleton"
+        ],
+        "ruleExecutedBindingIds": [
+          "skeleton"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_DIRECT_CODE_DEFINITION"
+    },
+    {
+      "type": "Slider",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-slider"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:hover": "ruleExecutorPaint",
+        "structure-state:pressed": "ruleExecutorPaint",
+        "structure-state:disabled": "typedStateRule",
+        "structure-state:focusVisible": "none"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 5,
+        "resolvedBindingIds": {
+          "label": 1,
+          "slideroutput": 1,
+          "sliderthumb": 1,
+          "slidertrack": 1,
+          "slider": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Label",
+          "lib:definition:type-Slider",
+          "lib:definition:type-SliderOutput",
+          "lib:definition:type-SliderThumb",
+          "lib:definition:type-SliderTrack"
+        ],
+        "ruleExecutedBindingIds": [
+          "slider",
+          "slideroutput",
+          "sliderthumb",
+          "slidertrack"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "SliderOutput",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "parent-context",
+        "definitionId": "lib:definition:origin-component-slider",
+        "typeDefinitionId": "lib:definition:type-SliderOutput"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {},
+      "stateOriginVariants": [],
+      "registeredStates": [],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 5,
+        "resolvedBindingIds": {
+          "label": 1,
+          "slideroutput": 1,
+          "sliderthumb": 1,
+          "slidertrack": 1,
+          "slider": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Label",
+          "lib:definition:type-Slider",
+          "lib:definition:type-SliderOutput",
+          "lib:definition:type-SliderThumb",
+          "lib:definition:type-SliderTrack"
+        ],
+        "ruleExecutedBindingIds": [
+          "slider",
+          "slideroutput",
+          "sliderthumb",
+          "slidertrack"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_IN_PARENT_CONTEXT"
+    },
+    {
+      "type": "SliderThumb",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "parent-context",
+        "definitionId": "lib:definition:origin-component-slider",
+        "typeDefinitionId": "lib:definition:type-SliderThumb"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 5,
+        "resolvedBindingIds": {
+          "label": 1,
+          "slideroutput": 1,
+          "sliderthumb": 1,
+          "slidertrack": 1,
+          "slider": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Label",
+          "lib:definition:type-Slider",
+          "lib:definition:type-SliderOutput",
+          "lib:definition:type-SliderThumb",
+          "lib:definition:type-SliderTrack"
+        ],
+        "ruleExecutedBindingIds": [
+          "slider",
+          "slideroutput",
+          "sliderthumb",
+          "slidertrack"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_IN_PARENT_CONTEXT"
+    },
+    {
+      "type": "SliderTrack",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "parent-context",
+        "definitionId": "lib:definition:origin-component-slider",
+        "typeDefinitionId": "lib:definition:type-SliderTrack"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:hover": "ruleExecutorPaint",
+        "structure-state:pressed": "ruleExecutorPaint",
+        "structure-state:disabled": "typedStateRule",
+        "structure-state:focusVisible": "none",
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 5,
+        "resolvedBindingIds": {
+          "label": 1,
+          "slideroutput": 1,
+          "sliderthumb": 1,
+          "slidertrack": 1,
+          "slider": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Label",
+          "lib:definition:type-Slider",
+          "lib:definition:type-SliderOutput",
+          "lib:definition:type-SliderThumb",
+          "lib:definition:type-SliderTrack"
+        ],
+        "ruleExecutedBindingIds": [
+          "slider",
+          "slideroutput",
+          "sliderthumb",
+          "slidertrack"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_IN_PARENT_CONTEXT"
+    },
+    {
+      "type": "Slot",
+      "registration": [
+        "native"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "fixture",
+        "kind": "direct",
+        "definitionId": "lib:definition:slot"
+      },
+      "typedVisualFields": 13,
+      "typedStateRules": [],
+      "stateChannels": {},
+      "stateOriginVariants": [],
+      "registeredStates": [],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 1,
+        "resolvedBindingIds": {
+          "slot": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:slot"
+        ],
+        "ruleExecutedBindingIds": [],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_DIRECT_TEST_FIXTURE_DEFINITION"
+    },
+    {
+      "type": "StatusLight",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-statuslight"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:disabled": "typedStateRule",
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "structure-state:disabled",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 1,
+        "resolvedBindingIds": {
+          "statuslight": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-StatusLight"
+        ],
+        "ruleExecutedBindingIds": [
+          "statuslight"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "Switch",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-switch"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:hover": "ruleExecutorPaint",
+        "structure-state:pressed": "ruleExecutorPaint",
+        "structure-state:disabled": "typedStateRule",
+        "structure-state:focusVisible": "none",
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint",
+        "paint-state:selected": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [
+        "Unselected",
+        "Disabled",
+        "Hover",
+        "Pressed",
+        "Focus"
+      ],
+      "registeredStates": [
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed",
+        "paint-state:selected"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 2,
+        "resolvedBindingIds": {
+          "label": 1,
+          "switch": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Label",
+          "lib:definition:type-Switch"
+        ],
+        "ruleExecutedBindingIds": [
+          "switch"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "Tab",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "direct",
+        "definitionId": "lib:definition:type-Tab"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:disabled": "typedStateRule",
+        "structure-state:focusVisible": "none",
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [
+        "Selected",
+        "Default",
+        "Selected/Disabled",
+        "Selected/Hover",
+        "Selected/Pressed",
+        "Selected/Focus"
+      ],
+      "registeredStates": [
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 1,
+        "resolvedBindingIds": {
+          "tab": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Tab"
+        ],
+        "ruleExecutedBindingIds": [
+          "tab"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_DIRECT_CODE_DEFINITION"
+    },
+    {
+      "type": "TabList",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "parent-context",
+        "definitionId": "lib:definition:origin-component-tabs",
+        "typeDefinitionId": "lib:definition:type-TabList"
+      },
+      "typedVisualFields": 1,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:disabled": "typedStateRule"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "structure-state:disabled"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 9,
+        "resolvedBindingIds": {
+          "text": 2,
+          "tab": 2,
+          "tablist": 1,
+          "tabpanel": 2,
+          "tabpanels": 1,
+          "tabs": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:text",
+          "lib:definition:type-Tab",
+          "lib:definition:type-TabList",
+          "lib:definition:type-TabPanel",
+          "lib:definition:type-TabPanels",
+          "lib:definition:type-Tabs"
+        ],
+        "ruleExecutedBindingIds": [
+          "tab",
+          "tablist",
+          "tabpanel",
+          "tabpanels",
+          "tabs"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_IN_PARENT_CONTEXT"
+    },
+    {
+      "type": "TabPanel",
+      "registration": [],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "parent-context",
+        "definitionId": "lib:definition:origin-component-tabs",
+        "typeDefinitionId": "lib:definition:type-TabPanel"
+      },
+      "typedVisualFields": 4,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:disabled": "typedStateRule",
+        "structure-state:focusVisible": "none",
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 9,
+        "resolvedBindingIds": {
+          "text": 2,
+          "tab": 2,
+          "tablist": 1,
+          "tabpanel": 2,
+          "tabpanels": 1,
+          "tabs": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:text",
+          "lib:definition:type-Tab",
+          "lib:definition:type-TabList",
+          "lib:definition:type-TabPanel",
+          "lib:definition:type-TabPanels",
+          "lib:definition:type-Tabs"
+        ],
+        "ruleExecutedBindingIds": [
+          "tab",
+          "tablist",
+          "tabpanel",
+          "tabpanels",
+          "tabs"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_IN_PARENT_CONTEXT"
+    },
+    {
+      "type": "TabPanels",
+      "registration": [],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "parent-context",
+        "definitionId": "lib:definition:origin-component-tabs",
+        "typeDefinitionId": "lib:definition:type-TabPanels"
+      },
+      "typedVisualFields": 4,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:disabled": "typedStateRule",
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "structure-state:disabled",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 9,
+        "resolvedBindingIds": {
+          "text": 2,
+          "tab": 2,
+          "tablist": 1,
+          "tabpanel": 2,
+          "tabpanels": 1,
+          "tabs": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:text",
+          "lib:definition:type-Tab",
+          "lib:definition:type-TabList",
+          "lib:definition:type-TabPanel",
+          "lib:definition:type-TabPanels",
+          "lib:definition:type-Tabs"
+        ],
+        "ruleExecutedBindingIds": [
+          "tab",
+          "tablist",
+          "tabpanel",
+          "tabpanels",
+          "tabs"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_IN_PARENT_CONTEXT"
+    },
+    {
+      "type": "Table",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-table"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 3,
+        "resolvedBindingIds": {
+          "tableheader": 1,
+          "tablebody": 1,
+          "table": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Table",
+          "lib:definition:type-TableBody",
+          "lib:definition:type-TableHeader"
+        ],
+        "ruleExecutedBindingIds": [
+          "table",
+          "tablebody",
+          "tableheader"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "TableBody",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "parent-context",
+        "definitionId": "lib:definition:origin-component-table",
+        "typeDefinitionId": "lib:definition:type-TableBody"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 3,
+        "resolvedBindingIds": {
+          "tableheader": 1,
+          "tablebody": 1,
+          "table": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Table",
+          "lib:definition:type-TableBody",
+          "lib:definition:type-TableHeader"
+        ],
+        "ruleExecutedBindingIds": [
+          "table",
+          "tablebody",
+          "tableheader"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_IN_PARENT_CONTEXT"
+    },
+    {
+      "type": "TableCell",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "direct",
+        "definitionId": "lib:definition:type-TableCell"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 1,
+        "resolvedBindingIds": {
+          "tablecell": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-TableCell"
+        ],
+        "ruleExecutedBindingIds": [
+          "tablecell"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_DIRECT_CODE_DEFINITION"
+    },
+    {
+      "type": "TableHeader",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "parent-context",
+        "definitionId": "lib:definition:origin-component-table",
+        "typeDefinitionId": "lib:definition:type-TableHeader"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 3,
+        "resolvedBindingIds": {
+          "tableheader": 1,
+          "tablebody": 1,
+          "table": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Table",
+          "lib:definition:type-TableBody",
+          "lib:definition:type-TableHeader"
+        ],
+        "ruleExecutedBindingIds": [
+          "table",
+          "tablebody",
+          "tableheader"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_IN_PARENT_CONTEXT"
+    },
+    {
+      "type": "TableRow",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "direct",
+        "definitionId": "lib:definition:type-TableRow"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 1,
+        "resolvedBindingIds": {
+          "tablerow": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-TableRow"
+        ],
+        "ruleExecutedBindingIds": [
+          "tablerow"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_DIRECT_CODE_DEFINITION"
+    },
+    {
+      "type": "TableView",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-tableview"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 10,
+        "resolvedBindingIds": {
+          "column": 3,
+          "tableheader": 1,
+          "cell": 3,
+          "row": 1,
+          "tablebody": 1,
+          "tableview": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Cell",
+          "lib:definition:type-Column",
+          "lib:definition:type-Row",
+          "lib:definition:type-TableBody",
+          "lib:definition:type-TableHeader",
+          "lib:definition:type-TableView"
+        ],
+        "ruleExecutedBindingIds": [
+          "cell",
+          "column",
+          "row",
+          "tablebody",
+          "tableheader",
+          "tableview"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "Tabs",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-tabs"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:hover": "ruleExecutorPaint",
+        "structure-state:disabled": "typedStateRule",
+        "structure-state:focusVisible": "none",
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "structure-state:hover",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 9,
+        "resolvedBindingIds": {
+          "text": 2,
+          "tab": 2,
+          "tablist": 1,
+          "tabpanel": 2,
+          "tabpanels": 1,
+          "tabs": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:text",
+          "lib:definition:type-Tab",
+          "lib:definition:type-TabList",
+          "lib:definition:type-TabPanel",
+          "lib:definition:type-TabPanels",
+          "lib:definition:type-Tabs"
+        ],
+        "ruleExecutedBindingIds": [
+          "tab",
+          "tablist",
+          "tabpanel",
+          "tabpanels",
+          "tabs"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "Tag",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "direct",
+        "definitionId": "lib:definition:type-Tag"
+      },
+      "typedVisualFields": 1,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [
+        "Selected",
+        "Default",
+        "Selected/Disabled",
+        "Selected/Hover",
+        "Selected/Pressed",
+        "Selected/Focus"
+      ],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 1,
+        "resolvedBindingIds": {
+          "tag": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Tag"
+        ],
+        "ruleExecutedBindingIds": [
+          "tag"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_DIRECT_CODE_DEFINITION"
+    },
+    {
+      "type": "TagGroup",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-taggroup"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 11,
+        "resolvedBindingIds": {
+          "label": 1,
+          "text": 4,
+          "tag": 4,
+          "taglist": 1,
+          "taggroup": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:text",
+          "lib:definition:type-Label",
+          "lib:definition:type-Tag",
+          "lib:definition:type-TagGroup",
+          "lib:definition:type-TagList"
+        ],
+        "ruleExecutedBindingIds": [
+          "tag",
+          "taggroup",
+          "taglist"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "TagList",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "parent-context",
+        "definitionId": "lib:definition:origin-component-taggroup",
+        "typeDefinitionId": "lib:definition:type-TagList"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 11,
+        "resolvedBindingIds": {
+          "label": 1,
+          "text": 4,
+          "tag": 4,
+          "taglist": 1,
+          "taggroup": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:text",
+          "lib:definition:type-Label",
+          "lib:definition:type-Tag",
+          "lib:definition:type-TagGroup",
+          "lib:definition:type-TagList"
+        ],
+        "ruleExecutedBindingIds": [
+          "tag",
+          "taggroup",
+          "taglist"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_IN_PARENT_CONTEXT"
+    },
+    {
+      "type": "TailSwatch",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "direct",
+        "definitionId": "lib:definition:type-TailSwatch"
+      },
+      "typedVisualFields": 3,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 1,
+        "resolvedBindingIds": {
+          "tailswatch": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-TailSwatch"
+        ],
+        "ruleExecutedBindingIds": [
+          "tailswatch"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_DIRECT_CODE_DEFINITION"
+    },
+    {
+      "type": "Text",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "direct",
+        "definitionId": "lib:definition:text"
+      },
+      "typedVisualFields": 3,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "none",
+        "paint-state:pressed": "none"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 1,
+        "resolvedBindingIds": {
+          "text": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:text"
+        ],
+        "ruleExecutedBindingIds": [],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_DIRECT_CODE_DEFINITION"
+    },
+    {
+      "type": "TextArea",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-textarea"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:hover": "ruleExecutorPaint",
+        "structure-state:pressed": "ruleExecutorPaint",
+        "structure-state:disabled": "typedStateRule",
+        "structure-state:focusVisible": "none"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 4,
+        "resolvedBindingIds": {
+          "label": 1,
+          "input": 1,
+          "fielderror": 1,
+          "textarea": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-FieldError",
+          "lib:definition:type-Input",
+          "lib:definition:type-Label",
+          "lib:definition:type-TextArea"
+        ],
+        "ruleExecutedBindingIds": [
+          "input",
+          "textarea"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "TextField",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-textfield"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:hover": "ruleExecutorPaint",
+        "structure-state:pressed": "ruleExecutorPaint",
+        "structure-state:disabled": "typedStateRule",
+        "structure-state:focusVisible": "none"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 4,
+        "resolvedBindingIds": {
+          "label": 1,
+          "input": 1,
+          "fielderror": 1,
+          "textfield": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-FieldError",
+          "lib:definition:type-Input",
+          "lib:definition:type-Label",
+          "lib:definition:type-TextField"
+        ],
+        "ruleExecutedBindingIds": [
+          "input",
+          "textfield"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "TimeField",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-timefield"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:hover": "ruleExecutorPaint",
+        "structure-state:pressed": "ruleExecutorPaint",
+        "structure-state:disabled": "typedStateRule",
+        "structure-state:focusVisible": "none"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 4,
+        "resolvedBindingIds": {
+          "label": 1,
+          "dateinput": 1,
+          "fielderror": 1,
+          "timefield": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-DateInput",
+          "lib:definition:type-FieldError",
+          "lib:definition:type-Label",
+          "lib:definition:type-TimeField"
+        ],
+        "ruleExecutedBindingIds": [
+          "dateinput",
+          "timefield"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "Toast",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "direct",
+        "definitionId": "lib:definition:type-Toast"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:disabled": "typedStateRule",
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "structure-state:disabled",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 1,
+        "resolvedBindingIds": {
+          "toast": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Toast"
+        ],
+        "ruleExecutedBindingIds": [
+          "toast"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_DIRECT_CODE_DEFINITION"
+    },
+    {
+      "type": "ToggleButton",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-togglebutton"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:hover": "ruleExecutorPaint",
+        "structure-state:pressed": "ruleExecutorPaint",
+        "structure-state:disabled": "typedStateRule",
+        "structure-state:focusVisible": "none",
+        "paint-state:base": "rest",
+        "paint-state:emphasizedSelected": "ruleExecutorPaint",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint",
+        "paint-state:selected": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [
+        "Unselected",
+        "Disabled",
+        "Hover",
+        "Pressed",
+        "Focus"
+      ],
+      "registeredStates": [
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:emphasizedSelected",
+        "paint-state:hover",
+        "paint-state:pressed",
+        "paint-state:selected"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 1,
+        "resolvedBindingIds": {
+          "togglebutton": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-ToggleButton"
+        ],
+        "ruleExecutedBindingIds": [
+          "togglebutton"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "ToggleButtonGroup",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-togglebuttongroup"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:focusVisible": "none",
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 3,
+        "resolvedBindingIds": {
+          "togglebutton": 2,
+          "togglebuttongroup": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-ToggleButton",
+          "lib:definition:type-ToggleButtonGroup"
+        ],
+        "ruleExecutedBindingIds": [
+          "togglebutton",
+          "togglebuttongroup"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "Toolbar",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-toolbar"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:disabled": "typedStateRule",
+        "structure-state:focusVisible": "none",
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 5,
+        "resolvedBindingIds": {
+          "button": 3,
+          "separator": 1,
+          "toolbar": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Button",
+          "lib:definition:type-Separator",
+          "lib:definition:type-Toolbar"
+        ],
+        "ruleExecutedBindingIds": [
+          "separator",
+          "toolbar"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "Tooltip",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-tooltip"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "structure-state:disabled": "typedStateRule",
+        "structure-state:focusVisible": "none",
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 2,
+        "resolvedBindingIds": {
+          "description": 1,
+          "tooltip": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-Description",
+          "lib:definition:type-Tooltip"
+        ],
+        "ruleExecutedBindingIds": [
+          "tooltip"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "Tree",
+      "registration": [
+        "primitive",
+        "reusable"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "composite",
+        "definitionId": "lib:definition:origin-component-tree"
+      },
+      "typedVisualFields": 0,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest",
+        "paint-state:hover": "ruleExecutorPaint",
+        "paint-state:pressed": "ruleExecutorPaint"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 7,
+        "resolvedBindingIds": {
+          "text": 3,
+          "treeitem": 3,
+          "tree": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:text",
+          "lib:definition:type-Tree",
+          "lib:definition:type-TreeItem"
+        ],
+        "ruleExecutedBindingIds": [
+          "tree",
+          "treeitem"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+    },
+    {
+      "type": "TreeItem",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "direct",
+        "definitionId": "lib:definition:type-TreeItem"
+      },
+      "typedVisualFields": 4,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest"
+      },
+      "stateOriginVariants": [
+        "Default",
+        "Default/Unselected",
+        "Default/Disabled",
+        "Default/Hover",
+        "Default/Pressed",
+        "Default/Focus",
+        "Default/Collapsed"
+      ],
+      "registeredStates": [
+        "paint-state:base"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 1,
+        "resolvedBindingIds": {
+          "treeitem": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-TreeItem"
+        ],
+        "ruleExecutedBindingIds": [
+          "treeitem"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_DIRECT_CODE_DEFINITION"
+    },
+    {
+      "type": "body",
+      "registration": [
+        "primitive"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "direct",
+        "definitionId": "lib:definition:type-body"
+      },
+      "typedVisualFields": 4,
+      "typedStateRules": [],
+      "stateChannels": {
+        "paint-state:base": "rest"
+      },
+      "stateOriginVariants": [],
+      "registeredStates": [
+        "paint-state:base"
+      ],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 1,
+        "resolvedBindingIds": {
+          "body": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-body"
+        ],
+        "ruleExecutedBindingIds": [
+          "body"
+        ],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_DIRECT_CODE_DEFINITION"
+    },
+    {
+      "type": "frame",
+      "registration": [
+        "native"
+      ],
+      "visualRule": true,
+      "route": {
+        "library": "code",
+        "kind": "direct",
+        "definitionId": "lib:definition:type-frame"
+      },
+      "typedVisualFields": 2,
+      "typedStateRules": [],
+      "stateChannels": {},
+      "stateOriginVariants": [],
+      "registeredStates": [],
+      "execution": {
+        "stage": "pass",
+        "resolvedNodes": 1,
+        "resolvedBindingIds": {
+          "frame": 1
+        },
+        "resolvedDefinitionIds": [
+          "lib:definition:type-frame"
+        ],
+        "ruleExecutedBindingIds": [],
+        "missingBindingIds": []
+      },
+      "missingBindings": [],
+      "reason": "RUNS_DIRECT_CODE_DEFINITION"
+    }
+  ]
+}

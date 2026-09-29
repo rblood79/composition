@@ -169,7 +169,6 @@ export {
   // Spacing
   spacing,
   getSpacingToken,
-  breadcrumbSeparatorAfterPaddingXPx,
   normalizeBreadcrumbRspSizeKey,
   // Typography
   typography,
@@ -265,6 +264,8 @@ export {
   SKIA_PRIMITIVES,
   // ADR-142 Inc3 — overlay 패턴 z-order 합성
   composeCatalogShapes,
+  // ADR-248 Phase 3 — archetype base CSS (typed part-rule compiler reads the same declarations)
+  ARCHETYPE_BASE_STYLES,
 } from "./renderers";
 export type { SkiaPresentationMaterializationContext } from "./renderers";
 export type { TextSourceKey } from "./renderers";

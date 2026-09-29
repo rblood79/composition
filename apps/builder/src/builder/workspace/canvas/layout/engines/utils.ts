@@ -25,7 +25,6 @@ import {
   // ADR-912 단계5 step4 (2026-06-16): BreadcrumbsSpec import 제거 — breadcrumbs/breadcrumb height
   //   분기를 resolveSkiaRule("Breadcrumbs") read-through 로 이관(spec 삭제 선행).
   resolveToken,
-  breadcrumbSeparatorAfterPaddingXPx,
   normalizeBreadcrumbRspSizeKey,
   resolveListBoxSpacingMetric,
   resolveListBoxItemMetric,
@@ -84,6 +83,8 @@ import {
 import type { ComponentRuleSize } from "@composition/shared";
 // ADR-923 r22m1 — prop 부재 기본 size 의 단일 원천 (catalog defaultSize, lowercase 태그 허용).
 import {
+  catalogBreadcrumbSeparatorIcon,
+  catalogCurrentTextWeight,
   componentTypeSet,
   resolveComponentRuleByTag,
   resolveStaticItemKey,
@@ -1733,6 +1734,73 @@ function resolveDefaultSizeForTag(tag: string): string {
 }
 
 /**
+ * 2026-09-29 — Breadcrumb 조각 폭 (DOM `li[Link(label), Icon]` · `li { gap }`, 사용자 결정 crumb · icon · crumb):
+ * - 조합 자식 조각 (정적 항목 · Components origin — [label Text, 구분자 Icon], 현재 조각의 Icon 은 scene 에서 빠진다):
+ *   자식 폭 합 + catalog `Breadcrumb.sizes[size].gap` × (자식 수 − 1). label 굵기 = 현재면 catalog currentTextWeight.
+ * - 자식 없는 조각 (데이터 행 · legacy plain): label + (비-마지막) gap + catalog iconSize.
+ * 빈 라벨이어도 비-마지막 구분자 폭은 남는다 (ADR-923 r19m1 — 종전 "›" 와 같은 규칙).
+ */
+function measureBreadcrumbCrumbWidth(
+  crumb: CanvasLayoutNode,
+  isLast: boolean,
+  rspSize: "S" | "M" | "L",
+  crumbChildren: readonly CanvasLayoutNode[] | undefined,
+): number {
+  const specStyle = extractSpecTextStyle("breadcrumb", { size: rspSize });
+  const fontSize = specStyle?.fontSize ?? 16;
+  const ffamily = specStyle?.fontFamily ?? specFontFamily.sans;
+  const labelWeight = isLast
+    ? (catalogCurrentTextWeight("Breadcrumb") ?? 600)
+    : (specStyle?.fontWeight ?? 400);
+  const separator = catalogBreadcrumbSeparatorIcon(rspSize);
+  if (crumbChildren && crumbChildren.length > 0) {
+    let width = 0;
+    for (const child of crumbChildren) {
+      const childStyle = (child.props?.style ?? {}) as Record<string, unknown>;
+      const explicitW = parseNumericValue(childStyle.width);
+      if (explicitW !== undefined) {
+        width += explicitW;
+      } else if (String(child.type).toLowerCase() === "icon") {
+        width +=
+          typeof childStyle.fontSize === "number"
+            ? childStyle.fontSize
+            : separator.iconSize;
+      } else if (String(child.type).toLowerCase() === "text") {
+        width += measureTextWidth(
+          resolveTextSourceText(
+            "Text",
+            child.props as Record<string, unknown> | undefined,
+          ),
+          typeof childStyle.fontSize === "number"
+            ? childStyle.fontSize
+            : fontSize,
+          ffamily,
+          typeof childStyle.fontWeight === "number"
+            ? childStyle.fontWeight
+            : labelWeight,
+        );
+      } else {
+        width += calculateContentWidth(child);
+      }
+    }
+    return Math.ceil(width + separator.gap * (crumbChildren.length - 1));
+  }
+  const label = resolveTextSourceText(
+    "Breadcrumb",
+    crumb.props as Record<string, unknown> | undefined,
+  );
+  const textW = measureTextWidth(label, fontSize, ffamily, labelWeight);
+  // 데이터 행의 origin 구분자가 꺼졌으면 (`_separatorIcon: null`) 구분자 폭도 없다.
+  const hasSeparator =
+    !isLast &&
+    (crumb.props as Record<string, unknown> | undefined)?._separatorIcon !==
+      null;
+  return Math.ceil(
+    textW + (hasSeparator ? separator.gap + separator.iconSize : 0),
+  );
+}
+
+/**
  * 요소의 콘텐츠 너비 계산
  *
  * CSS width: auto 동작 모방:
@@ -1911,41 +1979,18 @@ export function calculateContentWidth(
     return cellBox * 7;
   }
 
-  // 1.17. Breadcrumb (child) — ADR-086 P5: implicitStyles 의 style 주입 제거 후
-  //   각 Breadcrumb 의 intrinsic width 를 여기서 산출. 부모 Breadcrumbs 는 자식 isLast 맥락을
-  //   가지고 있으나 utils.ts 는 element 단위 호출 → isLast 미지. 보수적으로 "항상 separator
-  //   포함" 최대 폭 산출 (last item 은 표시되지 않으므로 trailing whitespace 가 약간 남음).
+  // 1.17. Breadcrumb (child) — ADR-086 P5: 각 Breadcrumb 의 intrinsic width 를 여기서 산출. `_isLast` 는 scene
+  //   주석 (`annotateStaticBreadcrumbItems` · projection 행) 이 싣는다. 2026-09-29 — 구분자 = Icon (label + gap +
+  //   icon); 조합 자식 [Text, Icon] 조각은 자식 합 (`measureBreadcrumbCrumbWidth`).
   if (type === "breadcrumb") {
     const props = element.props as Record<string, unknown> | undefined;
-    const parentSize = String(props?.size ?? "M");
-    const rspSize = normalizeBreadcrumbRspSizeKey(parentSize);
-    // ADR-923 r18m1 sweep — 타입별 계약 (Skia `breadcrumb_crumb` · Preview 와 같은 단일 지점);
-    //   종전 `children ?? label ?? title` 은 이 측정만의 순서였다 (r15m1 형태).
-    const label = resolveTextSourceText("Breadcrumb", props);
-    // ADR-923 r19m1 — 빈 라벨이어도 non-last 의 separator 폭은 남는다 (DOM `::after` · Skia
-    //   breadcrumb_crumb 동일). 종전 `if (!label) return 0` 은 separator 를 잃어 다음 crumb 이 겹쳤다.
-    const specStyle = extractSpecTextStyle("breadcrumb", {
-      size: rspSize,
-    });
-    const fontSize = specStyle?.fontSize ?? 16;
-    const fontWeight = specStyle?.fontWeight ?? 400;
-    const ffamily = specStyle?.fontFamily ?? specFontFamily.sans;
-    // isLast 맥락이 없으므로 non-last 로 가정 (보수적 최대 폭).
-    //   실제 last 인 경우 separator 만큼 trailing whitespace 발생 — 시각상 무해.
-    const separator = String(props?._separator ?? "›");
-    const separatorPadding = breadcrumbSeparatorAfterPaddingXPx(rspSize);
-    const isLast = Boolean(props?._isLast);
-    const textW = measureTextWidth(
-      label,
-      fontSize,
-      ffamily,
-      isLast ? 600 : fontWeight,
+    const rspSize = normalizeBreadcrumbRspSizeKey(String(props?.size ?? "M"));
+    return measureBreadcrumbCrumbWidth(
+      element,
+      Boolean(props?._isLast),
+      rspSize,
+      childElements,
     );
-    const sepExtra = isLast
-      ? 0
-      : separatorPadding * 2 +
-        measureTextWidth(separator, fontSize, ffamily, 400);
-    return Math.ceil(textW + sepExtra);
   }
 
   // 1.2. Breadcrumbs: ToggleButtonGroup과 동일 패턴 — 자식 Breadcrumb 텍스트 실측 합산
@@ -1953,21 +1998,10 @@ export function calculateContentWidth(
   if (type === "breadcrumbs") {
     const props = element.props as Record<string, unknown> | undefined;
     const rspSize = normalizeBreadcrumbRspSizeKey(String(props?.size ?? "M"));
-    const separator = (props?.separator as string) ?? "›";
-
-    const specStyle = extractSpecTextStyle("breadcrumbs", {
-      size: rspSize,
-    });
-    const fontSize = specStyle?.fontSize ?? 16;
-    const fontWeight = specStyle?.fontWeight ?? 400;
-    const ffamily = specStyle?.fontFamily ?? specFontFamily.sans;
 
     // ADR-923 r19m1 — crumb 원천은 실제 그려지는 노드: items projection (Rows 그룹 아래 Breadcrumb
-    //   crumb — 라벨은 scene 이 toItemProjectionRow 로 정규화해 `children` 에 실었다) 또는 pre-migration
-    //   자식 Breadcrumb element. 종전 코드는 직접 자식만 봐서 projection 문서 (자식 = Rows) 에서
-    //   crumb 0 → 항상 "Home"/"Products"/"Detail" 폭 (M 192px) 을 컨테이너에 주입했다 — DOM/Skia 는
-    //   그 글자를 만들지 않는다. 기본 crumb 없음: crumb 0 → 0. 빈 라벨 crumb 도 non-last separator
-    //   폭은 남는다 (DOM `::after` · Skia breadcrumb_crumb, 위 1.17 단일 crumb 측정과 동일).
+    //   crumb — 라벨은 scene 이 toItemProjectionRow 로 정규화해 `children` 에 실었다) 또는 자식 Breadcrumb
+    //   element. 기본 crumb 없음: crumb 0 → 0.
     const crumbNodes: CanvasLayoutNode[] = [];
     for (const child of childElements ?? []) {
       const childTag = String(child.type).toLowerCase();
@@ -1983,30 +2017,25 @@ export function calculateContentWidth(
     }
     if (crumbNodes.length === 0) return 0;
 
-    const separatorPadding = breadcrumbSeparatorAfterPaddingXPx(rspSize);
-    const sepWidth = measureTextWidth(separator, fontSize, ffamily, 400);
-
-    // 실측 기반 폭 (모든 텍스트를 measureTextWidth로 계산) — 마지막 crumb 는 projection `_isLast`,
-    //   legacy 자식은 source order 의 마지막.
+    // 조각 사이 = catalog `Breadcrumbs.sizes[size].gap` (DOM `ol { gap }`). 마지막 crumb 는 projection `_isLast`,
+    //   정적 자식은 source order 의 마지막.
+    const crumbGap = catalogBreadcrumbSeparatorIcon(rspSize).gap;
     let measuredWidth = 0;
     for (let i = 0; i < crumbNodes.length; i++) {
       const crumbProps = crumbNodes[i].props as
         Record<string, unknown> | undefined;
-      const label = resolveTextSourceText("Breadcrumb", crumbProps);
       const isLast =
         typeof crumbProps?._isLast === "boolean"
           ? crumbProps._isLast
           : i === crumbNodes.length - 1;
-      measuredWidth += measureTextWidth(
-        label,
-        fontSize,
-        ffamily,
-        isLast ? 600 : fontWeight,
+      measuredWidth += measureBreadcrumbCrumbWidth(
+        crumbNodes[i],
+        isLast,
+        rspSize,
+        getChildElements?.(crumbNodes[i].id),
       );
-      if (!isLast) {
-        measuredWidth += separatorPadding + sepWidth + separatorPadding;
-      }
     }
+    measuredWidth += crumbGap * (crumbNodes.length - 1);
 
     return Math.ceil(measuredWidth);
   }

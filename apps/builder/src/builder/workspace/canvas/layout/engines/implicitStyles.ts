@@ -34,8 +34,6 @@ import {
   resolveBorderWidthPx,
   resolveContainerStylesFallback as _resolveContainerStylesFallback,
   resolveContainerVariants,
-  isValidTokenRef,
-  cssVarToTokenRef,
   getShadowToken,
   normalizeShadowForTheme,
 } from "@composition/specs";
@@ -49,19 +47,18 @@ import {
   resolveInheritedLineHeight,
 } from "@composition/shared";
 import {
+  catalogBreadcrumbSeparatorIcon,
   getComponentRulesTable,
   isDisclosureExpandedInContext,
-  resolveCatalogContainerBase,
+  catalogTextAreaInputHeight,
+  resolveCatalogRuleCanvasBox,
   resolveCatalogContainerVariants,
   resolveBindingPropDefault,
   resolveCatalogDensityField,
   resolveComponentRule,
   resolveTableColumnEffectiveWidth,
 } from "@composition/shared";
-import type {
-  ComponentRuleSize,
-  ComponentRuleStructure,
-} from "@composition/shared";
+import type { ComponentRuleSize } from "@composition/shared";
 import { findAncestorByTag } from "../../skia/ancestorLookup";
 import { resolveSkiaRule } from "../../skia/resolveSkiaVisualRule";
 import {
@@ -169,84 +166,12 @@ const LOWERCASE_TO_PASCAL_RULE_KEY: ReadonlyMap<string, string> = (() => {
   return m;
 })();
 
-/**
- * ADR-912 Phase 3-A-3a: catalog base layout 값 정규화 (specPresetResolver.resolveToNumber 선례).
- *
- * `resolveCatalogContainerBase` 출력값:
- *   - 숫자: 그대로
- *   - TokenRef (`{spacing.xs}`): resolveToken → 숫자
- *   - CSS-var 문자열 (`var(--spacing-xs)`): cssVarToTokenRef → resolveToken → 숫자
- *   - 그 외 문자열 (`flex`/`column`/`fit-content` 등): 그대로 (변환 불가 → 보존)
- *
- * **Why**: catalog field류 gap = `var(--spacing-xs)` (CSS-var 문자열). `isValidTokenRef` 가
- *   reject → raw 문자열이 엔진 로 유입되면 number 타입 깨짐(NaN layout). cssVarToTokenRef 가
- *   `{spacing.xs}` 로 역변환 후 resolveToken → 4. spacing 외(예: `var(--fg)` color) 는 null →
- *   raw 보존(layout 무관 색상값).
- */
-function resolveCatalogLayoutValue(value: string | number): string | number {
-  if (typeof value === "number") return value;
-  if (isValidTokenRef(value)) {
-    const resolved = resolveToken(value as TokenRef);
-    return typeof resolved === "number" ? resolved : value;
-  }
-  if (value.startsWith("var(--")) {
-    const tokenRef = cssVarToTokenRef(value);
-    if (tokenRef) {
-      const resolved = resolveToken(tokenRef);
-      if (typeof resolved === "number") return resolved;
-    }
-  }
-  return value;
-}
 
 /** ADR-912 Phase 3-A-3a: kebab-case CSS key → camelCase (`flex-direction` → `flexDirection`). */
 function kebabToCamel(key: string): string {
   return key.replace(/-([a-z])/g, (_m, ch: string) => ch.toUpperCase());
 }
 
-/**
- * ADR-171 Phase 3-b (2026-07-29): CSS 생성기의 `sizes` emit skip 규칙 미러.
- *
- * 생성기는 `sizes[size]` 의 height/padding/gap 을 무조건 emit 하지 않는다 —
- * composition 이 컨테이너 박스를 소유하거나(ADR-141 `compositionOwnsContainerBox`)
- * `containerStyles` 가 같은 키를 이미 선언하면 skip 한다(ADR-071). 캔버스가 그 규칙을
- * 모르면 DOM 이 안 내는 값을 넣거나(Toolbar/Form/Checkbox·RadioGroup padding 과잉)
- * DOM 이 내는 값을 빼먹는다(TabPanel padding 미도달).
- *
- * **입력은 `structure` 다.** 생성기의 virtual spec 은 `buildVirtualSpecs`
- * (`packages/specs/scripts/generate-css.ts`) 가 `containerStyles = structure.containerStyles` /
- * `composition = structure.composition` / `archetype = structure.archetype` 로 만든다 —
- * **top-level `rule.containerStyles` 는 virtual spec 에 들어가지 않는다**. Phase 3 의
- * "top-level 보유 → `sizes` 는 하위 부품" 휴리스틱이 생성기와 갈렸던 지점이 정확히 여기다.
- *
- * `structure` 부재 = 생성 CSS 부재 (`buildVirtualSpecs` 의 emit 멤버십 기준). 그 type 의
- * 실효 DOM 값은 수동 CSS 가 정하므로 생성기 규칙으로 판정할 수 없다 → `undefined` 를
- * 반환하고 호출부가 Phase 3 게이트를 유지한다.
- */
-function catalogSizeAxisSkip(
-  structure: ComponentRuleStructure | undefined,
-): { height: boolean; padding: boolean; gap: boolean } | undefined {
-  if (!structure) return undefined;
-  const composition = structure.composition;
-  const ownsContainerBox =
-    !!composition &&
-    (!!composition.layout ||
-      !!composition.containerStyles ||
-      !!composition.containerVariants);
-  const containerStyles = structure.containerStyles;
-  // progress/slider grid 컨테이너의 `sizes.height` 는 컨테이너 전체가 아니라 트랙 행
-  //   높이다 (`isTrackOwningGridContainer`). 단 트랙 leaf(SliderTrack — gridTemplateAreas
-  //   미보유)는 그 height 가 실제 트랙 높이라 emit 대상이다.
-  const trackOwningGrid =
-    structure.archetype === "progress" ||
-    (structure.archetype === "slider" &&
-      containerStyles?.gridTemplateAreas != null);
-  return {
-    height: ownsContainerBox || trackOwningGrid,
-    padding: ownsContainerBox || containerStyles?.padding != null,
-    gap: containerStyles?.gap != null,
-  };
-}
 
 function ruleSizeRecord(
   type: string,
@@ -299,33 +224,6 @@ function specSizeLineHeight(
   return typeof resolved === "number" ? resolved : undefined;
 }
 
-/**
- * TextArea 의 Input 자식 높이 (ADR-923 Phase 5 후속 착수 2, 2026-09-03).
- *
- * DOM 은 `<textarea rows>` — 높이 = rows × line-height + paddingY×2 + border×2 (md rows 3 = 70).
- * Canvas 는 leaf Input 을 한 줄 (catalog `Input.sizes[size].height`, md 30) 로만 재 root 56 vs DOM 96
- * 이었다. 한 줄 상자에서 paddingY·border 를 뺀 값이 줄 높이 (md 30 − 8 − 2 = 20 = text-sm line-height,
- * lg 42 − 16 − 2 = 24) 라 같은 catalog 상자로 rows 줄을 쌓는다. `rows` 는 D2 prop (shared 기본 3,
- * factory 3) — 1 미만·소수는 1 로 내림 (DOM `rows` 속성 규칙). catalog `TextArea.sizes[size].height`
- * (64/80/120/160) 는 DOM (rows 기반) 도 Skia 도 읽지 않는 dead 값이라 여기서도 읽지 않는다.
- */
-function textAreaInputHeight(
-  sizeName: string,
-  rawRows: unknown,
-): number | undefined {
-  const oneRow = specSizeField("input", sizeName, "height");
-  if (typeof oneRow !== "number") return undefined;
-  const padY = specSizeField("input", sizeName, "paddingY") ?? 0;
-  const border = resolveBorderWidthPx(
-    specSizeField("input", sizeName, "borderWidth"),
-  );
-  const lineHeight = oneRow - padY * 2 - border * 2;
-  const rows =
-    typeof rawRows === "number" && Number.isFinite(rawRows)
-      ? Math.max(1, Math.floor(rawRows))
-      : 3;
-  return oneRow + (rows - 1) * lineHeight;
-}
 
 /**
  * ADR-108 P0: packages/specs `resolveContainerStylesFallback` wrapper.
@@ -374,111 +272,17 @@ export function resolveContainerStylesFallback(
   //   먼저 세워(G1) 그 전제를 채웠다.
   const pascalKey = LOWERCASE_TO_PASCAL_RULE_KEY.get(type);
   if (!pascalKey) return specOut;
-  const out: Record<string, unknown> = { ...specOut };
-  const assign = (rawKey: string, rawValue: string | number): void => {
-    const key = kebabToCamel(rawKey);
-    if (!CONTAINER_STYLES_FALLBACK_KEYS.includes(key as never)) return;
-    if (parentStyle[key] !== undefined) return; // 사용자/factory 편집 우선
-    if (out[key] !== undefined) return; // spec fallback / 선행 주입 우선
-    out[key] = resolveCatalogLayoutValue(rawValue);
+  // The rule part (box axis replace-vs-merge, size axis generator mirror) is the shared pure
+  //   `resolveCatalogRuleCanvasBox` — the ADR-248 typed definition reads the same function.
+  //   User/factory style and the spec fallback win per key.
+  return {
+    ...specOut,
+    ...resolveCatalogRuleCanvasBox(
+      pascalKey,
+      sizeName,
+      (key) => parentStyle[key] !== undefined || specOut[key] !== undefined,
+    ),
   };
-
-  // L1 — box 축. **top-level `rule.containerStyles` 가 있으면 그것이 캔버스 박스 선언**이고,
-  //   없으면 catalog 4층 merge(`resolveCatalogContainerBase`)가 base 를 준다.
-  //
-  //   이 갈래는 legacy 잔재가 아니라 의미 구분이다. Menu 가 그 증거 — top-level 은
-  //   `inline-flex / center / fit-content`(트리거 박스, ADR-151 B7 사용자 결정)이고
-  //   `structure.containerStyles` 는 `flex column / maxHeight 300 / overflow auto`(popover
-  //   목록 패널)다. 캔버스의 Menu 는 트리거를 그리므로 두 층을 merge 하면 패널 메트릭이
-  //   새어 들어와 B7 결정이 뒤집힌다. 즉 top-level 은 override 가 아니라 **대체**다.
-  //   (CSS 생성기는 merge 쪽 의미를 쓴다 — DOM Menu root 는 popover 라 그게 맞다.)
-  const rule = resolveComponentRule(pascalKey);
-  const topLevelBox = rule?.containerStyles as
-    Record<string, string | number> | undefined;
-  const sizeAxisSkip = catalogSizeAxisSkip(rule?.structure);
-  const sizeRecord =
-    (sizeAxisSkip ? true : !topLevelBox) &&
-    ruleSizeRecord(type, sizeName ?? "");
-  for (const [rawKey, rawValue] of Object.entries(
-    topLevelBox ?? resolveCatalogContainerBase(pascalKey),
-  )) {
-    // 생성 CSS의 size 블록은 composition base gap보다 뒤에 온다.
-    // 필드의 고정 인라인을 제거해도 top/side 모두 같은 size 값을 읽어야 한다.
-    const value =
-      rawKey === "gap" &&
-      !topLevelBox &&
-      !sizeAxisSkip?.gap &&
-      sizeRecord &&
-      typeof sizeRecord.gap === "number"
-        ? sizeRecord.gap
-        : rawValue;
-    assign(rawKey, value);
-  }
-
-  // L3 — size 축: catalog 는 layout 을 두 곳에 나눠 갖는다. box 축(display/alignItems…)은
-  //   `containerStyles`, size 축(height/paddingX/paddingY/gap)은 `sizes[size]` 다. 생성 CSS 는
-  //   둘을 합쳐 emit 하는데 resolver 는 앞쪽만 읽고 있었다 — MenuItem 실효 6키 중 4키가 여기
-  //   있었고, `implicitStyles` 의 수기 배선 18분기가 그 공백을 손으로 메우고 있었다.
-  //   `padding`/`gap` shorthand 가 아니라 longhand 로 낸다 (store longhand 정책 — style-ssot.md).
-  //
-  //   **어느 필드를 실을지는 생성기 규칙을 미러한다** (Phase 3-b, `catalogSizeAxisSkip`).
-  //   Phase 3 은 "top-level containerStyles 보유 → `sizes` 는 하위 부품" 휴리스틱을 썼는데,
-  //   그건 생성기가 보는 축(= `structure`)이 아니라 캔버스 전용 축을 보는 것이라 6종에서
-  //   갈렸다 — Toolbar/Form/Checkbox·RadioGroup 은 `composition` 이 박스를 소유해 생성 CSS 가
-  //   padding 을 안 내는데 캔버스만 넣었고(과잉), TabPanel 은 생성 CSS 가 내는 padding 을
-  //   top-level 존재 때문에 못 받았다(미도달). 휴리스틱이 맞혔던 케이스(Tree 행 높이 36 ·
-  //   TagGroup 태그 padding 12)는 그 type 들에 `structure` 가 없어 새 규칙에서도 걸러진다.
-  //
-  //   `structure` 부재 type(생성 CSS 없음 = 수동 CSS 가 실효값)만 Phase 3 게이트를 유지한다.
-  if (sizeRecord) {
-    // shorthand 가 이미 공급됐으면 longhand 를 얹지 않는다. 둘이 공존하면 React
-    //   rerender 경고 + 엔진 어댑터 적용 순서 경합이 생긴다 (style-ssot.md). 값이 이미
-    //   있다는 뜻이기도 해서 주입 자체가 불필요하다.
-    const has = (k: string): boolean =>
-      parentStyle[k] !== undefined || out[k] !== undefined;
-
-    // height 0 = content-fit 관례(생성 CSS 가 `height: auto` 로 emit) → 주입하지 않는다.
-    if (
-      !sizeAxisSkip?.height &&
-      typeof sizeRecord.height === "number" &&
-      sizeRecord.height > 0
-    ) {
-      assign("height", sizeRecord.height);
-    }
-    if (!sizeAxisSkip?.padding && !has("padding")) {
-      if (typeof sizeRecord.paddingY === "number") {
-        assign("paddingTop", sizeRecord.paddingY);
-        assign("paddingBottom", sizeRecord.paddingY);
-      }
-      if (typeof sizeRecord.paddingX === "number") {
-        assign("paddingLeft", sizeRecord.paddingX);
-        assign("paddingRight", sizeRecord.paddingX);
-      }
-    }
-    // ADR-923 r22m1 sweep (2026-09-02) — border 축. 생성기는 `size.borderWidth` 를 size 블록마다
-    //   emit 한다 (CSSGenerator §border-width — `containerStyles.border` shorthand 가 있을 때만
-    //   skip). L3 미러는 height/padding/gap 만 옮겨 이 축이 빠져 있었고, top-level containerStyles
-    //   가 없는 타입 (Badge 등) 은 border 1px 이 캔버스에 도달하지 않아 DOM 보다 상하좌우 2px
-    //   작았다 (Badge sm: DOM 20 vs layout 18).
-    if (
-      !has("borderWidth") &&
-      !has("border") &&
-      topLevelBox?.border == null &&
-      rule?.structure?.containerStyles?.border == null &&
-      sizeRecord.borderWidth != null
-    ) {
-      // ADR-227 P3: 숫자 또는 `{border.width.*}` — 활성 테마 px 로 해석해 주입
-      assign("borderWidth", resolveBorderWidthPx(sizeRecord.borderWidth));
-    }
-    // `gap` 은 row 축이고 `columnGap` 은 column 축 override 다 (ComponentRuleSize 계약 —
-    //   생성 CSS 도 `gap: {gap}px; column-gap: {columnGap}px` 로 emit).
-    if (!sizeAxisSkip?.gap && !has("gap")) {
-      const columnGap = sizeRecord.columnGap ?? sizeRecord.gap;
-      if (typeof sizeRecord.gap === "number") assign("rowGap", sizeRecord.gap);
-      if (typeof columnGap === "number") assign("columnGap", columnGap);
-    }
-  }
-  return out;
 }
 
 /**
@@ -669,48 +473,6 @@ export function resolveEffectiveBoxShadow(
     : source;
 }
 
-/**
- * `resolveContainerStylesFallback` 의 catalog 보강 대상 layout primitive 키.
- * specs `CONTAINER_STYLES_FALLBACK_KEYS` 와 동일 집합 (camelCase) — spec ↔ catalog rule
- * containerStyles 양쪽이 같은 키를 쓰므로 보강이 1:1.
- */
-const CONTAINER_STYLES_FALLBACK_KEYS = [
-  "display",
-  "flex",
-  "flexDirection",
-  "flexWrap",
-  "alignItems",
-  "justifyContent",
-  "width",
-  "maxWidth",
-  "maxHeight",
-  "overflow",
-  "outline",
-  "gap",
-  "padding",
-  "gridTemplateAreas",
-  "gridTemplateColumns",
-  "gridTemplateRows",
-  "position",
-  // ADR-151 B1/B2 (2026-07-16): generated CSS `border: 1px solid` 를 layout 이 미반영하는
-  //   컴포넌트(Calendar/RangeCalendar)의 border-box 2px 발산 보정 채널. specs 측과 동일 집합.
-  "borderWidth",
-  // ADR-171 Phase 3 L2 (2026-07-29): catalog 가 값을 갖고 있어도 이 allowlist 에 없으면
-  //   필터에서 탈락한다 — L1 게이트를 열어도 MenuItem 실효 6키 중 height/gap/padding 4키가
-  //   여기서 막혔다. store longhand 정책(style-ssot.md)에 맞춰 shorthand 가 아닌 longhand 를
-  //   낸다 — `padding` shorthand 는 기존 spec 경로 호환으로 남겨 두고 신규 주입은 longhand.
-  "height",
-  "rowGap",
-  "columnGap",
-  "paddingTop",
-  "paddingRight",
-  "paddingBottom",
-  "paddingLeft",
-  // ADR-923 r21m1 (2026-09-02): 수동 Table.css `min-height: 40px` 의 layout 채널 (width:100% 와 같은
-  //   B22 형태). heightMode "auto" 의 빈 Table 이 DOM 40 vs layout 0 이었다 — fixed 는 implicitStyles
-  //   Table 분기가 height/minHeight 를 덮는다.
-  "minHeight",
-] as const;
 
 /**
  * ADR-151 B22 (2026-07-16): generated/수동 CSS 가 base 에 `width:100%` 를 주는 type.
@@ -2487,7 +2249,8 @@ export function applyImplicitStyles(
   //   - display/alignItems: Breadcrumb.spec containerStyles 가 inline-flex/center 담당
   //   - width/height: enrichWithIntrinsicSize → calculateContentWidth/Height 의 "breadcrumb"
   //     분기에서 label 실측 기반 intrinsic 산출 (utils.ts)
-  //   본 분기는 parent `height/minHeight/gap:0` 적용만 담당한다.
+  //   본 분기는 parent `height/minHeight/gap` 적용만 담당한다. gap = catalog `Breadcrumbs.sizes[size].gap`
+  //   (2026-09-29 구분자 Icon 뒤 → 다음 조각, DOM `ol { gap }` — 종전 "›" 는 조각 안 padding 이라 0).
   if (containerTag === "breadcrumbs") {
     const rspSize = normalizeBreadcrumbRspSizeKey(
       String(containerProps?.size ?? "M"),
@@ -2509,7 +2272,32 @@ export function applyImplicitStyles(
       ...parentStyle,
       height: breadcrumbsHeight,
       minHeight: breadcrumbsHeight,
-      gap: 0,
+      gap: catalogBreadcrumbSeparatorIcon(rspSize).gap,
+    });
+  }
+
+  // ── Breadcrumb (조각 = [label Text, 구분자 Icon], 2026-09-29) ─────────────
+  // 구분자 Icon 상자 = catalog iconSize 정사각 (`Breadcrumbs.css` `.react-aria-Breadcrumb > .react-aria-Icon`) —
+  //   Icon rule 의 size 높이 24 가 아니다 (글리프가 조각 가운데에 온다). 크기 = 조각 size (scene 주석이 owner size
+  //   를 싣는다) · 없으면 기본. 작성자 width/height 가 이긴다.
+  if (containerTag === "breadcrumb") {
+    const iconSize = catalogBreadcrumbSeparatorIcon(
+      normalizeBreadcrumbRspSizeKey(String(containerProps?.size ?? "M")),
+    ).iconSize;
+    filteredChildren = filteredChildren.map((child) => {
+      if (getSlotRole(child) !== "separator") return child;
+      const cs = (child.props?.style ?? {}) as Record<string, unknown>;
+      return {
+        ...child,
+        props: {
+          ...child.props,
+          style: {
+            ...cs,
+            width: cs.width ?? iconSize,
+            height: cs.height ?? iconSize,
+          },
+        },
+      };
     });
   }
 
@@ -3030,7 +2818,7 @@ export function applyImplicitStyles(
     // TextArea: Input 자식 높이 = rows 줄 (DOM `<textarea rows>` 동형) — read-time 주입이 유일 채널
     //   (Input 은 read-only sub-part 라 factory 인라인 height 는 투영이 걷어낸다). 사용자 명시 height 우선.
     if (containerTag === "textarea") {
-      const taHeight = textAreaInputHeight(
+      const taHeight = catalogTextAreaInputHeight(
         (containerProps?.size as string) ?? "md",
         containerProps?.rows,
       );
@@ -3597,17 +3385,23 @@ export function applyImplicitStyles(
     filteredChildren = filteredChildren.map((child) => {
       // 입력 box 래퍼 (SelectTrigger) 의 row flex · 폭 100% · gap — Select/ComboBox 분기와 같은 값. read-only
       //   sub-part (2026-09-03 판정 A) 라 factory 인라인이 layout 에 실리지 않으므로 여기서 주입한다 (height ·
-      //   padding · border 는 `selecttrigger` 컨테이너 분기 소유).
+      //   border 는 `selecttrigger` 컨테이너 분기 소유). padding 은 Select/ComboBox 분기와 같은 catalog 여백
+      //   (왼쪽 paddingX · 오른쪽 paddingY) — catalog `--dp-group-padding` (md `4 4 4 12`) 의 오른쪽도 ComboBox
+      //   (`--combo-container-padding-right`) 와 같다 (2026-09-30 사용자 지시: 트리거 오른쪽 여백 = ComboBox).
+      //   종전엔 주입하지 않아 SelectTrigger 기본 여백 (좌우 12) 이 남았다.
       if (child.type === "SelectTrigger") {
         const cs = (child.props?.style || {}) as Record<string, unknown>;
         return {
           ...child,
           props: {
             ...child.props,
-            style: fieldTriggerRowStyle(
-              cs,
-              isSideRowLayout(sideMode, rawParentStyle),
-            ),
+            style: {
+              ...fieldTriggerRowStyle(
+                cs,
+                isSideRowLayout(sideMode, rawParentStyle),
+              ),
+              ...withSpecPadding(cs, sizeName),
+            },
           },
         } as CanvasLayoutNode;
       }

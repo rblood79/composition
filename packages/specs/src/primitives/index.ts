@@ -49,7 +49,6 @@ export type {
 export {
   spacing,
   getSpacingToken,
-  breadcrumbSeparatorAfterPaddingXPx,
   normalizeBreadcrumbRspSizeKey,
 } from "./spacing";
 

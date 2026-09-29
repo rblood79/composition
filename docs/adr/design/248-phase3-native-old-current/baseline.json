@@ -1,0 +1,611 @@
+{
+  "head": "2a5c970994cb9de2f824a729b29c08cdcd647d7b",
+  "executionBuildIdentity": "dev-source:565566c0d865580db267c208147288cbb0dbbec5ab9b2c2ba6a4824c7c23b10e:index:34e68bb9aff135d1ab9888d549357b1a1c7bcab1d7cb6e0d849ea8331840d33d",
+  "buildIndexSha256": "a3e33abb92a025bf2e0d007c23a0dfb7b149d487db50158af583bc807c5633cd",
+  "scenarioHash": "49666f0564fb8bef1cf5eaed2c18cf54d16e9942249130f42206336effe9d7b1",
+  "scenario": {
+    "id": "adr248-old-native-state-v1",
+    "seed": 248,
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "dpr": 1,
+    "theme": "default-light",
+    "font": "app-default",
+    "operations": [
+      {
+        "op": "insertFrameWithOverflowChild",
+        "id": "clip-true-overflow-visible",
+        "x": 30,
+        "y": 30,
+        "clip": true,
+        "overflow": "visible"
+      },
+      {
+        "op": "insertFrameWithOverflowChild",
+        "id": "clip-false-overflow-hidden",
+        "x": 280,
+        "y": 30,
+        "clip": false,
+        "overflow": "hidden"
+      },
+      {
+        "op": "insertFrameWithOverflowChild",
+        "id": "clip-true-overflow-hidden",
+        "x": 530,
+        "y": 30,
+        "clip": true,
+        "overflow": "hidden"
+      },
+      {
+        "op": "insertGroupWithChildren",
+        "id": "group-horizontal",
+        "x": 30,
+        "y": 220,
+        "orientation": "horizontal",
+        "size": "sm"
+      },
+      {
+        "op": "insertGroupWithChildren",
+        "id": "group-vertical",
+        "x": 280,
+        "y": 220,
+        "orientation": "vertical",
+        "size": "lg"
+      }
+    ]
+  },
+  "runtimeEnvironment": {
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "dpr": 1,
+    "theme": "default-light",
+    "font": "Pretendard, -apple-system, \"system-ui\", system-ui, Roboto, \"Helvetica Neue\", \"Segoe UI\", sans-serif",
+    "fontLoadStatus": "loaded"
+  },
+  "screenshots": {
+    "before": "f100bdabcc33ea40b66914a7592bece2951c4a41e32b268d8220727d387a8fc5",
+    "afterRefresh": "f100bdabcc33ea40b66914a7592bece2951c4a41e32b268d8220727d387a8fc5"
+  },
+  "viewportState": {
+    "zoom": 0.8,
+    "panOffset": {
+      "x": 300,
+      "y": 180
+    }
+  },
+  "fontState": {
+    "bodyFamily": "Pretendard, -apple-system, \"system-ui\", system-ui, Roboto, \"Helvetica Neue\", \"Segoe UI\", sans-serif",
+    "loadStatus": "loaded"
+  },
+  "observations": [
+    {
+      "semanticId": "clip-true-overflow-visible",
+      "canonical": {
+        "type": "frame",
+        "clip": true
+      },
+      "mirror": {
+        "type": "frame",
+        "clip": true,
+        "overflow": "visible",
+        "orientation": null
+      },
+      "scene": {
+        "props": {
+          "style": {
+            "position": "absolute",
+            "left": "30px",
+            "top": "30px",
+            "width": "130px",
+            "height": "100px",
+            "border": "2px solid #3851a4",
+            "overflow": "visible"
+          }
+        },
+        "stateDeps": null
+      },
+      "layout": {
+        "x": 30,
+        "y": 30,
+        "width": 130,
+        "height": 100
+      },
+      "children": [
+        {
+          "parentIsExpected": true,
+          "layout": {
+            "x": 92,
+            "y": 32,
+            "width": 100,
+            "height": 40
+          }
+        }
+      ]
+    },
+    {
+      "semanticId": "clip-false-overflow-hidden",
+      "canonical": {
+        "type": "frame",
+        "clip": false
+      },
+      "mirror": {
+        "type": "frame",
+        "clip": false,
+        "overflow": "hidden",
+        "orientation": null
+      },
+      "scene": {
+        "props": {
+          "style": {
+            "position": "absolute",
+            "left": "280px",
+            "top": "30px",
+            "width": "130px",
+            "height": "100px",
+            "border": "2px solid #3851a4",
+            "overflow": "hidden"
+          }
+        },
+        "stateDeps": null
+      },
+      "layout": {
+        "x": 280,
+        "y": 30,
+        "width": 130,
+        "height": 100
+      },
+      "children": [
+        {
+          "parentIsExpected": true,
+          "layout": {
+            "x": 92,
+            "y": 32,
+            "width": 100,
+            "height": 40
+          }
+        }
+      ]
+    },
+    {
+      "semanticId": "clip-true-overflow-hidden",
+      "canonical": {
+        "type": "frame",
+        "clip": true
+      },
+      "mirror": {
+        "type": "frame",
+        "clip": true,
+        "overflow": "hidden",
+        "orientation": null
+      },
+      "scene": {
+        "props": {
+          "style": {
+            "position": "absolute",
+            "left": "530px",
+            "top": "30px",
+            "width": "130px",
+            "height": "100px",
+            "border": "2px solid #3851a4",
+            "overflow": "hidden"
+          }
+        },
+        "stateDeps": null
+      },
+      "layout": {
+        "x": 530,
+        "y": 30,
+        "width": 130,
+        "height": 100
+      },
+      "children": [
+        {
+          "parentIsExpected": true,
+          "layout": {
+            "x": 92,
+            "y": 32,
+            "width": 100,
+            "height": 40
+          }
+        }
+      ]
+    },
+    {
+      "semanticId": "group-horizontal",
+      "canonical": {
+        "type": "Group",
+        "clip": null
+      },
+      "mirror": {
+        "type": "Group",
+        "clip": null,
+        "overflow": null,
+        "orientation": "horizontal"
+      },
+      "scene": {
+        "props": {
+          "orientation": "horizontal",
+          "size": "sm",
+          "style": {
+            "position": "absolute",
+            "left": "30px",
+            "top": "220px",
+            "width": "170px",
+            "height": "110px",
+            "border": "2px solid #3851a4"
+          }
+        },
+        "stateDeps": null
+      },
+      "layout": {
+        "x": 30,
+        "y": 220,
+        "width": 170,
+        "height": 110
+      },
+      "children": [
+        {
+          "parentIsExpected": true,
+          "layout": {
+            "x": 2,
+            "y": 2,
+            "width": 50,
+            "height": 40
+          }
+        },
+        {
+          "parentIsExpected": true,
+          "layout": {
+            "x": 2,
+            "y": 42,
+            "width": 50,
+            "height": 40
+          }
+        }
+      ]
+    },
+    {
+      "semanticId": "group-vertical",
+      "canonical": {
+        "type": "Group",
+        "clip": null
+      },
+      "mirror": {
+        "type": "Group",
+        "clip": null,
+        "overflow": null,
+        "orientation": "vertical"
+      },
+      "scene": {
+        "props": {
+          "orientation": "vertical",
+          "size": "lg",
+          "style": {
+            "position": "absolute",
+            "left": "280px",
+            "top": "220px",
+            "width": "170px",
+            "height": "110px",
+            "border": "2px solid #3851a4"
+          }
+        },
+        "stateDeps": null
+      },
+      "layout": {
+        "x": 280,
+        "y": 220,
+        "width": 170,
+        "height": 110
+      },
+      "children": [
+        {
+          "parentIsExpected": true,
+          "layout": {
+            "x": 2,
+            "y": 2,
+            "width": 50,
+            "height": 40
+          }
+        },
+        {
+          "parentIsExpected": true,
+          "layout": {
+            "x": 2,
+            "y": 42,
+            "width": 50,
+            "height": 40
+          }
+        }
+      ]
+    }
+  ],
+  "afterRefresh": [
+    {
+      "semanticId": "clip-true-overflow-visible",
+      "canonical": {
+        "type": "frame",
+        "clip": true
+      },
+      "mirror": {
+        "type": "frame",
+        "clip": null,
+        "overflow": "visible",
+        "orientation": null
+      },
+      "scene": {
+        "props": {
+          "style": {
+            "position": "absolute",
+            "left": "30px",
+            "top": "30px",
+            "width": "130px",
+            "height": "100px",
+            "border": "2px solid #3851a4",
+            "overflow": "visible"
+          }
+        },
+        "stateDeps": null
+      },
+      "layout": {
+        "x": 30,
+        "y": 30,
+        "width": 130,
+        "height": 100
+      },
+      "children": [
+        {
+          "parentIsExpected": true,
+          "layout": {
+            "x": 92,
+            "y": 32,
+            "width": 100,
+            "height": 40
+          }
+        }
+      ]
+    },
+    {
+      "semanticId": "clip-false-overflow-hidden",
+      "canonical": {
+        "type": "frame",
+        "clip": false
+      },
+      "mirror": {
+        "type": "frame",
+        "clip": null,
+        "overflow": "hidden",
+        "orientation": null
+      },
+      "scene": {
+        "props": {
+          "style": {
+            "position": "absolute",
+            "left": "280px",
+            "top": "30px",
+            "width": "130px",
+            "height": "100px",
+            "border": "2px solid #3851a4",
+            "overflow": "hidden"
+          }
+        },
+        "stateDeps": null
+      },
+      "layout": {
+        "x": 280,
+        "y": 30,
+        "width": 130,
+        "height": 100
+      },
+      "children": [
+        {
+          "parentIsExpected": true,
+          "layout": {
+            "x": 92,
+            "y": 32,
+            "width": 100,
+            "height": 40
+          }
+        }
+      ]
+    },
+    {
+      "semanticId": "clip-true-overflow-hidden",
+      "canonical": {
+        "type": "frame",
+        "clip": true
+      },
+      "mirror": {
+        "type": "frame",
+        "clip": null,
+        "overflow": "hidden",
+        "orientation": null
+      },
+      "scene": {
+        "props": {
+          "style": {
+            "position": "absolute",
+            "left": "530px",
+            "top": "30px",
+            "width": "130px",
+            "height": "100px",
+            "border": "2px solid #3851a4",
+            "overflow": "hidden"
+          }
+        },
+        "stateDeps": null
+      },
+      "layout": {
+        "x": 530,
+        "y": 30,
+        "width": 130,
+        "height": 100
+      },
+      "children": [
+        {
+          "parentIsExpected": true,
+          "layout": {
+            "x": 92,
+            "y": 32,
+            "width": 100,
+            "height": 40
+          }
+        }
+      ]
+    },
+    {
+      "semanticId": "group-horizontal",
+      "canonical": {
+        "type": "Group",
+        "clip": null
+      },
+      "mirror": {
+        "type": "Group",
+        "clip": null,
+        "overflow": null,
+        "orientation": "horizontal"
+      },
+      "scene": {
+        "props": {
+          "orientation": "horizontal",
+          "size": "sm",
+          "style": {
+            "position": "absolute",
+            "left": "30px",
+            "top": "220px",
+            "width": "170px",
+            "height": "110px",
+            "border": "2px solid #3851a4"
+          }
+        },
+        "stateDeps": null
+      },
+      "layout": {
+        "x": 30,
+        "y": 220,
+        "width": 170,
+        "height": 110
+      },
+      "children": [
+        {
+          "parentIsExpected": true,
+          "layout": {
+            "x": 2,
+            "y": 2,
+            "width": 50,
+            "height": 40
+          }
+        },
+        {
+          "parentIsExpected": true,
+          "layout": {
+            "x": 2,
+            "y": 42,
+            "width": 50,
+            "height": 40
+          }
+        }
+      ]
+    },
+    {
+      "semanticId": "group-vertical",
+      "canonical": {
+        "type": "Group",
+        "clip": null
+      },
+      "mirror": {
+        "type": "Group",
+        "clip": null,
+        "overflow": null,
+        "orientation": "vertical"
+      },
+      "scene": {
+        "props": {
+          "orientation": "vertical",
+          "size": "lg",
+          "style": {
+            "position": "absolute",
+            "left": "280px",
+            "top": "220px",
+            "width": "170px",
+            "height": "110px",
+            "border": "2px solid #3851a4"
+          }
+        },
+        "stateDeps": null
+      },
+      "layout": {
+        "x": 280,
+        "y": 220,
+        "width": 170,
+        "height": 110
+      },
+      "children": [
+        {
+          "parentIsExpected": true,
+          "layout": {
+            "x": 2,
+            "y": 2,
+            "width": 50,
+            "height": 40
+          }
+        },
+        {
+          "parentIsExpected": true,
+          "layout": {
+            "x": 2,
+            "y": 42,
+            "width": 50,
+            "height": 40
+          }
+        }
+      ]
+    }
+  ],
+  "clipPixelSamples": {
+    "before": {
+      "clipTrueVisibleOutside": [
+        224,
+        71,
+        71,
+        255
+      ],
+      "clipFalseHiddenOutside": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "clipTrueHiddenOutside": [
+        255,
+        255,
+        255,
+        255
+      ]
+    },
+    "afterRefresh": {
+      "clipTrueVisibleOutside": [
+        224,
+        71,
+        71,
+        255
+      ],
+      "clipFalseHiddenOutside": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "clipTrueHiddenOutside": [
+        255,
+        255,
+        255,
+        255
+      ]
+    }
+  },
+  "errors": []
+}

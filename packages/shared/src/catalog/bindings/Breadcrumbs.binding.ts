@@ -32,11 +32,7 @@ export const breadcrumbsBinding: PrimitiveBinding = {
         section: "appearance",
         default: "M",
       },
-      separator: {
-        kind: "string",
-        label: "Separator",
-        section: "appearance",
-      },
+      // separator (문자) 는 2026-09-29 제거 — 구분자는 조각의 편집 가능한 Icon 자식 (사용자 결정).
       // showRoot/isMultiline 은 2026-09-10 제거 — RSP v3 개념이나 DOM·Skia 어느 쪽도 읽지 않는
       //   미구현 surface 였다. 채택하려면 collapse/multiline 렌더를 두 leg 에 같이 구현한 뒤 되살린다.
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },

@@ -28,6 +28,7 @@
   padding: 0px 0px;
   font-size: var(--text-base);
   border-radius: var(--radius-none);
+  gap: 2px;
 }
 
 .react-aria-Breadcrumbs[data-variant="default"] {
@@ -56,6 +57,7 @@
   padding: 0px 0px;
   font-size: var(--text-base);
   border-radius: var(--radius-none);
+  gap: 2px;
 }
 
 .react-aria-Breadcrumbs[data-size="L"] {
@@ -63,6 +65,7 @@
   padding: 0px 0px;
   font-size: var(--text-lg);
   border-radius: var(--radius-none);
+  gap: 4px;
 }
 
 .react-aria-Breadcrumbs[data-focus-visible] {

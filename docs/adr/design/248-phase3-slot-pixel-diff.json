@@ -1,0 +1,4296 @@
+{
+  "head": "2a5c970994cb9de2f824a729b29c08cdcd647d7b",
+  "scenarioId": "adr248-slot-typed-matrix-v1",
+  "scenarioHash": "15ed15da99b59e537f95e860f0cf97a2add58f1c218abc05e69299ec8937262b",
+  "viewport": { "width": 1440, "height": 900 },
+  "dpr": 1,
+  "fontSha256": "02b09ca630e4833028600a9f958b2f72f0289b9ccfd00d2df34780a7592f8d41",
+  "theme": "default-light",
+  "seed": 248,
+  "sceneOnly": true,
+  "colorSpace": "sRGB 8-bit RGB exact",
+  "rows": [
+    {
+      "size": "sm",
+      "state": "empty",
+      "width": 160,
+      "height": 42,
+      "sceneSha256": "4c4c29cc7df887309c9b1de3883bd49602472aa6ea3b038a386996880ef40a22",
+      "racSha256": "051d89cda4011b44eba219fd3e8b03f8315373db0688d82608efa86d009ee432",
+      "rawDifferent": 759,
+      "totalPixels": 6720,
+      "textMaskPixels": 1980,
+      "textDifferent": 548,
+      "nontextDifferent": 211,
+      "nontextDenominator": 4740,
+      "nontextRatio": 0.04451476793248945,
+      "canvasTextCommands": [
+        {
+          "id": "project:node:slotsmempty::project:node:slotsmempty::editor-name",
+          "x": 0,
+          "y": 0,
+          "width": 41.244140625,
+          "height": 18,
+          "fontSize": 12,
+          "lineHeight": 18,
+          "fontWeight": 400,
+          "content": "content"
+        },
+        {
+          "id": "project:node:slotsmempty::project:node:slotsmempty::editor-required",
+          "x": 0,
+          "y": 0,
+          "width": 68.755859375,
+          "height": 18,
+          "fontSize": 12,
+          "lineHeight": 18,
+          "fontWeight": 400,
+          "content": "Required"
+        }
+      ],
+      "filledInkBounds": null,
+      "l3Nontext": {
+        "method": "pixelmatch threshold 0.1; full aligned RGBA with existing text mask excluded from result and denominator",
+        "differentPixels": 0,
+        "denominator": 4740,
+        "diffRatio": 0,
+        "maxByte": 12,
+        "meanByte": 0.12035864978902953,
+        "changedBytes": 609,
+        "totalBytes": 18960,
+        "changedFraction": 0.03212025316455696,
+        "budget": { "maxDiffRatio": 0.001, "maxByte": 2 },
+        "budgetSource": "ADR-198 INITIAL_BUDGETS.nonText",
+        "verdict": "PASS_LOCAL_L3_NONTEXT_ONLY"
+      },
+      "l3eCornerBand": {
+        "widthCssPx": 3,
+        "verdict": "UNVERIFIED_NO_APPROVED_SLOT_BAND_RATIO_AND_MAXBYTE_BUDGET"
+      },
+      "borderEdges": { "top": 63, "right": 13, "bottom": 94, "left": 36 },
+      "heatmap": "248-phase3-slot-pixel-heatmap-sm-empty.png",
+      "categories": {
+        "border": {
+          "pixels": 792,
+          "different": 206,
+          "deltaBuckets": { "1-2": 48, "3-15": 158, "16-63": 0, "64+": 0 },
+          "topPairs": [
+            { "pair": "236,237,239→229,231,235", "count": 10 },
+            { "pair": "236,237,239→242,242,242", "count": 9 },
+            { "pair": "235,236,238→242,242,242", "count": 8 },
+            { "pair": "235,236,238→229,231,235", "count": 7 },
+            { "pair": "229,231,235→239,239,240", "count": 6 },
+            { "pair": "242,242,242→231,233,236", "count": 5 },
+            { "pair": "240,240,241→239,239,240", "count": 5 },
+            { "pair": "229,231,235→230,232,235", "count": 4 }
+          ],
+          "examples": [
+            {
+              "x": 3,
+              "y": 0,
+              "canvas": [242, 243, 244],
+              "rac": [249, 249, 250]
+            },
+            {
+              "x": 4,
+              "y": 0,
+              "canvas": [234, 236, 238],
+              "rac": [246, 246, 246]
+            },
+            {
+              "x": 5,
+              "y": 0,
+              "canvas": [243, 243, 243],
+              "rac": [235, 236, 239]
+            },
+            {
+              "x": 19,
+              "y": 0,
+              "canvas": [242, 242, 242],
+              "rac": [241, 241, 241]
+            },
+            {
+              "x": 21,
+              "y": 0,
+              "canvas": [229, 231, 235],
+              "rac": [229, 230, 234]
+            },
+            {
+              "x": 24,
+              "y": 0,
+              "canvas": [242, 242, 242],
+              "rac": [240, 241, 241]
+            },
+            {
+              "x": 29,
+              "y": 0,
+              "canvas": [242, 242, 242],
+              "rac": [241, 241, 241]
+            },
+            {
+              "x": 31,
+              "y": 0,
+              "canvas": [229, 231, 235],
+              "rac": [230, 232, 235]
+            },
+            {
+              "x": 34,
+              "y": 0,
+              "canvas": [242, 242, 242],
+              "rac": [240, 240, 241]
+            },
+            {
+              "x": 36,
+              "y": 0,
+              "canvas": [229, 231, 235],
+              "rac": [230, 231, 235]
+            },
+            {
+              "x": 39,
+              "y": 0,
+              "canvas": [242, 242, 242],
+              "rac": [239, 240, 240]
+            },
+            {
+              "x": 44,
+              "y": 0,
+              "canvas": [241, 242, 242],
+              "rac": [240, 240, 241]
+            }
+          ]
+        },
+        "icon": {
+          "pixels": 576,
+          "different": 1,
+          "deltaBuckets": { "1-2": 1, "3-15": 0, "16-63": 0, "64+": 0 },
+          "topPairs": [{ "pair": "85,85,85→86,86,86", "count": 1 }],
+          "examples": [
+            { "x": 12, "y": 30, "canvas": [85, 85, 85], "rac": [86, 86, 86] }
+          ]
+        },
+        "text": {
+          "pixels": 1980,
+          "different": 548,
+          "deltaBuckets": { "1-2": 26, "3-15": 113, "16-63": 309, "64+": 100 },
+          "topPairs": [
+            { "pair": "242,242,242→238,238,238", "count": 11 },
+            { "pair": "242,242,242→240,240,240", "count": 10 },
+            { "pair": "47,47,47→0,0,0", "count": 9 },
+            { "pair": "216,216,216→194,194,194", "count": 8 },
+            { "pair": "216,216,216→137,137,137", "count": 8 },
+            { "pair": "88,88,88→99,99,99", "count": 7 },
+            { "pair": "242,242,242→227,227,227", "count": 7 },
+            { "pair": "84,84,84→0,0,0", "count": 7 }
+          ],
+          "examples": [
+            {
+              "x": 110,
+              "y": 15,
+              "canvas": [214, 214, 214],
+              "rac": [224, 224, 224]
+            },
+            {
+              "x": 111,
+              "y": 15,
+              "canvas": [203, 203, 203],
+              "rac": [217, 217, 217]
+            },
+            {
+              "x": 61,
+              "y": 16,
+              "canvas": [241, 241, 241],
+              "rac": [235, 235, 235]
+            },
+            {
+              "x": 62,
+              "y": 16,
+              "canvas": [156, 156, 156],
+              "rac": [153, 153, 153]
+            },
+            {
+              "x": 63,
+              "y": 16,
+              "canvas": [242, 242, 242],
+              "rac": [237, 237, 237]
+            },
+            {
+              "x": 79,
+              "y": 16,
+              "canvas": [199, 199, 199],
+              "rac": [190, 190, 190]
+            },
+            {
+              "x": 80,
+              "y": 16,
+              "canvas": [200, 200, 200],
+              "rac": [192, 192, 192]
+            },
+            { "x": 83, "y": 16, "canvas": [88, 88, 88], "rac": [99, 99, 99] },
+            { "x": 86, "y": 16, "canvas": [37, 37, 37], "rac": [0, 0, 0] },
+            {
+              "x": 87,
+              "y": 16,
+              "canvas": [112, 112, 112],
+              "rac": [61, 61, 61]
+            },
+            {
+              "x": 88,
+              "y": 16,
+              "canvas": [222, 222, 222],
+              "rac": [189, 189, 189]
+            },
+            {
+              "x": 110,
+              "y": 16,
+              "canvas": [155, 155, 155],
+              "rac": [93, 93, 93]
+            }
+          ]
+        },
+        "background": {
+          "pixels": 3372,
+          "different": 4,
+          "deltaBuckets": { "1-2": 3, "3-15": 1, "16-63": 0, "64+": 0 },
+          "topPairs": [
+            { "pair": "239,239,240→240,240,241", "count": 1 },
+            { "pair": "237,238,239→239,239,240", "count": 1 },
+            { "pair": "235,237,239→239,240,241", "count": 1 },
+            { "pair": "237,238,240→238,238,239", "count": 1 }
+          ],
+          "examples": [
+            {
+              "x": 2,
+              "y": 2,
+              "canvas": [239, 239, 240],
+              "rac": [240, 240, 241]
+            },
+            {
+              "x": 157,
+              "y": 2,
+              "canvas": [237, 238, 239],
+              "rac": [239, 239, 240]
+            },
+            {
+              "x": 2,
+              "y": 39,
+              "canvas": [235, 237, 239],
+              "rac": [239, 240, 241]
+            },
+            {
+              "x": 157,
+              "y": 39,
+              "canvas": [237, 238, 240],
+              "rac": [238, 238, 239]
+            }
+          ]
+        }
+      },
+      "textRoles": {
+        "name": {
+          "pixels": 738,
+          "different": 232,
+          "topPairs": [
+            { "pair": "242,242,242→240,240,240", "count": 8 },
+            { "pair": "47,47,47→0,0,0", "count": 8 },
+            { "pair": "118,118,118→66,66,66", "count": 6 },
+            { "pair": "242,242,242→227,227,227", "count": 5 },
+            { "pair": "239,239,239→224,224,224", "count": 4 },
+            { "pair": "153,153,153→108,108,108", "count": 4 },
+            { "pair": "156,156,156→113,113,113", "count": 4 },
+            { "pair": "232,232,232→213,213,213", "count": 4 }
+          ],
+          "examples": [
+            {
+              "x": 61,
+              "y": 16,
+              "canvas": [241, 241, 241],
+              "rac": [235, 235, 235]
+            },
+            {
+              "x": 62,
+              "y": 16,
+              "canvas": [156, 156, 156],
+              "rac": [153, 153, 153]
+            },
+            {
+              "x": 63,
+              "y": 16,
+              "canvas": [242, 242, 242],
+              "rac": [237, 237, 237]
+            },
+            {
+              "x": 79,
+              "y": 16,
+              "canvas": [199, 199, 199],
+              "rac": [190, 190, 190]
+            },
+            {
+              "x": 80,
+              "y": 16,
+              "canvas": [200, 200, 200],
+              "rac": [192, 192, 192]
+            },
+            {
+              "x": 61,
+              "y": 17,
+              "canvas": [239, 239, 239],
+              "rac": [224, 224, 224]
+            },
+            {
+              "x": 63,
+              "y": 17,
+              "canvas": [242, 242, 242],
+              "rac": [227, 227, 227]
+            },
+            {
+              "x": 79,
+              "y": 17,
+              "canvas": [153, 153, 153],
+              "rac": [108, 108, 108]
+            },
+            {
+              "x": 80,
+              "y": 17,
+              "canvas": [156, 156, 156],
+              "rac": [113, 113, 113]
+            },
+            {
+              "x": 42,
+              "y": 18,
+              "canvas": [202, 202, 202],
+              "rac": [190, 190, 190]
+            },
+            { "x": 43, "y": 18, "canvas": [86, 86, 86], "rac": [66, 66, 66] },
+            { "x": 44, "y": 18, "canvas": [39, 39, 39], "rac": [13, 13, 13] }
+          ]
+        },
+        "required": {
+          "pixels": 1242,
+          "different": 316,
+          "topPairs": [
+            { "pair": "216,216,216→194,194,194", "count": 8 },
+            { "pair": "216,216,216→137,137,137", "count": 8 },
+            { "pair": "88,88,88→99,99,99", "count": 7 },
+            { "pair": "84,84,84→0,0,0", "count": 7 },
+            { "pair": "242,242,242→238,238,238", "count": 7 },
+            { "pair": "242,242,242→211,211,211", "count": 6 },
+            { "pair": "168,168,168→127,127,127", "count": 6 },
+            { "pair": "144,144,144→97,97,97", "count": 6 }
+          ],
+          "examples": [
+            {
+              "x": 110,
+              "y": 15,
+              "canvas": [214, 214, 214],
+              "rac": [224, 224, 224]
+            },
+            {
+              "x": 111,
+              "y": 15,
+              "canvas": [203, 203, 203],
+              "rac": [217, 217, 217]
+            },
+            { "x": 83, "y": 16, "canvas": [88, 88, 88], "rac": [99, 99, 99] },
+            { "x": 86, "y": 16, "canvas": [37, 37, 37], "rac": [0, 0, 0] },
+            {
+              "x": 87,
+              "y": 16,
+              "canvas": [112, 112, 112],
+              "rac": [61, 61, 61]
+            },
+            {
+              "x": 88,
+              "y": 16,
+              "canvas": [222, 222, 222],
+              "rac": [189, 189, 189]
+            },
+            {
+              "x": 110,
+              "y": 16,
+              "canvas": [155, 155, 155],
+              "rac": [93, 93, 93]
+            },
+            {
+              "x": 111,
+              "y": 16,
+              "canvas": [128, 128, 128],
+              "rac": [56, 56, 56]
+            },
+            { "x": 128, "y": 16, "canvas": [75, 75, 75], "rac": [13, 13, 13] },
+            {
+              "x": 129,
+              "y": 16,
+              "canvas": [216, 216, 216],
+              "rac": [195, 195, 195]
+            },
+            { "x": 83, "y": 17, "canvas": [88, 88, 88], "rac": [99, 99, 99] },
+            {
+              "x": 84,
+              "y": 17,
+              "canvas": [198, 198, 198],
+              "rac": [107, 107, 107]
+            }
+          ]
+        },
+        "description": {
+          "pixels": 0,
+          "different": 0,
+          "topPairs": [],
+          "examples": []
+        },
+        "filled": {
+          "pixels": 0,
+          "different": 0,
+          "topPairs": [],
+          "examples": []
+        }
+      },
+      "mask": {
+        "definition": "Union of Canvas text DRAW dimensions at Rust layout positions and RAC DOM text element bounds; outer 2px border and icon union always excluded from text mask",
+        "canvasText": [
+          { "x": 41, "y": 12, "width": 41.244140625, "height": 18 },
+          { "x": 82.244140625, "y": 12, "width": 68.755859375, "height": 18 },
+          { "x": 41, "y": 30, "width": 110, "height": 0 }
+        ],
+        "domText": [
+          {
+            "x": 41,
+            "y": 12,
+            "width": 89.171875,
+            "height": 18,
+            "fontFamily": "Pretendard, sans-serif",
+            "fontSize": "12px",
+            "lineHeight": "18px",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)"
+          },
+          {
+            "x": 82.390625,
+            "y": 14,
+            "width": 47.78125,
+            "height": 14,
+            "fontFamily": "Pretendard, sans-serif",
+            "fontSize": "12px",
+            "lineHeight": "18px",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)"
+          },
+          null,
+          null
+        ],
+        "iconBounds": [
+          { "x": 9, "y": 9, "width": 24, "height": 24 },
+          {
+            "x": 9,
+            "y": 9,
+            "width": 24,
+            "height": 24,
+            "fontFamily": "Pretendard, sans-serif",
+            "fontSize": "12px",
+            "lineHeight": "18px",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)"
+          }
+        ]
+      }
+    },
+    {
+      "size": "sm",
+      "state": "filled",
+      "width": 160,
+      "height": 40,
+      "sceneSha256": "cc6d15006d482e8dbf93205765b75d8f8068b18912d5fae7674446a8342dece4",
+      "racSha256": "1da28d792490e062999794749e941f155b4f52f7424f67106aaf431674b016d2",
+      "rawDifferent": 500,
+      "totalPixels": 6400,
+      "textMaskPixels": 2400,
+      "textDifferent": 181,
+      "nontextDifferent": 319,
+      "nontextDenominator": 4000,
+      "nontextRatio": 0.07975,
+      "canvasTextCommands": [
+        {
+          "id": "project:node:slotsmfilled/project:node:textsmfilled::project:node:textsmfilled",
+          "x": 0,
+          "y": 0,
+          "width": 120,
+          "height": 20,
+          "fontSize": 12,
+          "lineHeight": 18,
+          "fontWeight": 400,
+          "content": "Filled"
+        }
+      ],
+      "filledInkBounds": {
+        "canvas": { "x": 10, "y": 13, "width": 26, "height": 9 },
+        "rac": { "x": 10, "y": 13, "width": 26, "height": 9 }
+      },
+      "l3Nontext": {
+        "method": "pixelmatch threshold 0.1; full aligned RGBA with existing text mask excluded from result and denominator",
+        "differentPixels": 0,
+        "denominator": 4000,
+        "diffRatio": 0,
+        "maxByte": 13,
+        "meanByte": 0.2845625,
+        "changedBytes": 921,
+        "totalBytes": 16000,
+        "changedFraction": 0.0575625,
+        "budget": { "maxDiffRatio": 0.001, "maxByte": 2 },
+        "budgetSource": "ADR-198 INITIAL_BUDGETS.nonText",
+        "verdict": "PASS_LOCAL_L3_NONTEXT_ONLY"
+      },
+      "l3eCornerBand": {
+        "widthCssPx": 3,
+        "verdict": "UNVERIFIED_NO_APPROVED_SLOT_BAND_RATIO_AND_MAXBYTE_BUDGET"
+      },
+      "borderEdges": { "top": 120, "right": 39, "bottom": 120, "left": 36 },
+      "heatmap": "248-phase3-slot-pixel-heatmap-sm-filled.png",
+      "categories": {
+        "border": {
+          "pixels": 784,
+          "different": 315,
+          "deltaBuckets": { "1-2": 74, "3-15": 241, "16-63": 0, "64+": 0 },
+          "topPairs": [
+            { "pair": "229,231,235→242,242,242", "count": 15 },
+            { "pair": "242,242,242→235,236,238", "count": 10 },
+            { "pair": "242,242,242→229,231,235", "count": 10 },
+            { "pair": "229,231,235→235,236,238", "count": 9 },
+            { "pair": "240,240,241→242,242,242", "count": 8 },
+            { "pair": "235,236,238→242,242,242", "count": 8 },
+            { "pair": "232,234,237→229,231,235", "count": 7 },
+            { "pair": "231,233,236→229,231,235", "count": 6 }
+          ],
+          "examples": [
+            {
+              "x": 3,
+              "y": 0,
+              "canvas": [242, 243, 244],
+              "rac": [249, 249, 249]
+            },
+            {
+              "x": 4,
+              "y": 0,
+              "canvas": [234, 236, 238],
+              "rac": [246, 246, 246]
+            },
+            {
+              "x": 5,
+              "y": 0,
+              "canvas": [243, 243, 243],
+              "rac": [235, 236, 239]
+            },
+            {
+              "x": 15,
+              "y": 0,
+              "canvas": [242, 242, 242],
+              "rac": [241, 241, 241]
+            },
+            {
+              "x": 20,
+              "y": 0,
+              "canvas": [242, 242, 242],
+              "rac": [241, 241, 242]
+            },
+            {
+              "x": 21,
+              "y": 0,
+              "canvas": [230, 232, 235],
+              "rac": [229, 231, 235]
+            },
+            {
+              "x": 23,
+              "y": 0,
+              "canvas": [229, 231, 235],
+              "rac": [229, 230, 234]
+            },
+            {
+              "x": 24,
+              "y": 0,
+              "canvas": [241, 242, 242],
+              "rac": [242, 242, 242]
+            },
+            {
+              "x": 25,
+              "y": 0,
+              "canvas": [242, 242, 242],
+              "rac": [241, 241, 241]
+            },
+            {
+              "x": 26,
+              "y": 0,
+              "canvas": [230, 232, 236],
+              "rac": [229, 231, 235]
+            },
+            {
+              "x": 29,
+              "y": 0,
+              "canvas": [241, 241, 241],
+              "rac": [242, 242, 242]
+            },
+            {
+              "x": 30,
+              "y": 0,
+              "canvas": [242, 242, 242],
+              "rac": [240, 240, 241]
+            }
+          ]
+        },
+        "icon": {
+          "pixels": 0,
+          "different": 0,
+          "deltaBuckets": { "1-2": 0, "3-15": 0, "16-63": 0, "64+": 0 },
+          "topPairs": [],
+          "examples": []
+        },
+        "text": {
+          "pixels": 2400,
+          "different": 181,
+          "deltaBuckets": { "1-2": 17, "3-15": 29, "16-63": 123, "64+": 12 },
+          "topPairs": [
+            { "pair": "242,242,242→240,240,240", "count": 12 },
+            { "pair": "47,47,47→0,0,0", "count": 10 },
+            { "pair": "232,232,232→214,214,214", "count": 9 },
+            { "pair": "232,232,232→213,213,213", "count": 9 },
+            { "pair": "212,212,212→186,186,186", "count": 8 },
+            { "pair": "88,88,88→27,27,27", "count": 8 },
+            { "pair": "174,174,174→137,137,137", "count": 8 },
+            { "pair": "168,168,168→127,127,127", "count": 6 }
+          ],
+          "examples": [
+            {
+              "x": 16,
+              "y": 12,
+              "canvas": [214, 214, 214],
+              "rac": [224, 224, 224]
+            },
+            {
+              "x": 17,
+              "y": 12,
+              "canvas": [203, 203, 203],
+              "rac": [217, 217, 217]
+            },
+            {
+              "x": 9,
+              "y": 13,
+              "canvas": [232, 232, 232],
+              "rac": [214, 214, 214]
+            },
+            {
+              "x": 15,
+              "y": 13,
+              "canvas": [234, 234, 234],
+              "rac": [217, 217, 217]
+            },
+            {
+              "x": 16,
+              "y": 13,
+              "canvas": [155, 155, 155],
+              "rac": [93, 93, 93]
+            },
+            {
+              "x": 17,
+              "y": 13,
+              "canvas": [128, 128, 128],
+              "rac": [56, 56, 56]
+            },
+            {
+              "x": 18,
+              "y": 13,
+              "canvas": [242, 242, 242],
+              "rac": [240, 240, 240]
+            },
+            { "x": 19, "y": 13, "canvas": [47, 47, 47], "rac": [0, 0, 0] },
+            {
+              "x": 20,
+              "y": 13,
+              "canvas": [232, 232, 232],
+              "rac": [213, 213, 213]
+            },
+            {
+              "x": 21,
+              "y": 13,
+              "canvas": [212, 212, 212],
+              "rac": [187, 187, 187]
+            },
+            { "x": 22, "y": 13, "canvas": [88, 88, 88], "rac": [33, 33, 33] },
+            { "x": 35, "y": 13, "canvas": [135, 135, 135], "rac": [86, 86, 86] }
+          ]
+        },
+        "background": {
+          "pixels": 3216,
+          "different": 4,
+          "deltaBuckets": { "1-2": 3, "3-15": 1, "16-63": 0, "64+": 0 },
+          "topPairs": [
+            { "pair": "239,239,240→239,240,241", "count": 1 },
+            { "pair": "236,236,238→241,241,242", "count": 1 },
+            { "pair": "241,241,241→242,242,242", "count": 1 },
+            { "pair": "238,238,240→237,238,239", "count": 1 }
+          ],
+          "examples": [
+            {
+              "x": 2,
+              "y": 2,
+              "canvas": [239, 239, 240],
+              "rac": [239, 240, 241]
+            },
+            {
+              "x": 157,
+              "y": 2,
+              "canvas": [236, 236, 238],
+              "rac": [241, 241, 242]
+            },
+            {
+              "x": 2,
+              "y": 37,
+              "canvas": [241, 241, 241],
+              "rac": [242, 242, 242]
+            },
+            {
+              "x": 157,
+              "y": 37,
+              "canvas": [238, 238, 240],
+              "rac": [237, 238, 239]
+            }
+          ]
+        }
+      },
+      "textRoles": {
+        "name": { "pixels": 0, "different": 0, "topPairs": [], "examples": [] },
+        "required": {
+          "pixels": 0,
+          "different": 0,
+          "topPairs": [],
+          "examples": []
+        },
+        "description": {
+          "pixels": 0,
+          "different": 0,
+          "topPairs": [],
+          "examples": []
+        },
+        "filled": {
+          "pixels": 2400,
+          "different": 181,
+          "topPairs": [
+            { "pair": "242,242,242→240,240,240", "count": 12 },
+            { "pair": "47,47,47→0,0,0", "count": 10 },
+            { "pair": "232,232,232→214,214,214", "count": 9 },
+            { "pair": "232,232,232→213,213,213", "count": 9 },
+            { "pair": "212,212,212→186,186,186", "count": 8 },
+            { "pair": "88,88,88→27,27,27", "count": 8 },
+            { "pair": "174,174,174→137,137,137", "count": 8 },
+            { "pair": "168,168,168→127,127,127", "count": 6 }
+          ],
+          "examples": [
+            {
+              "x": 16,
+              "y": 12,
+              "canvas": [214, 214, 214],
+              "rac": [224, 224, 224]
+            },
+            {
+              "x": 17,
+              "y": 12,
+              "canvas": [203, 203, 203],
+              "rac": [217, 217, 217]
+            },
+            {
+              "x": 9,
+              "y": 13,
+              "canvas": [232, 232, 232],
+              "rac": [214, 214, 214]
+            },
+            {
+              "x": 15,
+              "y": 13,
+              "canvas": [234, 234, 234],
+              "rac": [217, 217, 217]
+            },
+            {
+              "x": 16,
+              "y": 13,
+              "canvas": [155, 155, 155],
+              "rac": [93, 93, 93]
+            },
+            {
+              "x": 17,
+              "y": 13,
+              "canvas": [128, 128, 128],
+              "rac": [56, 56, 56]
+            },
+            {
+              "x": 18,
+              "y": 13,
+              "canvas": [242, 242, 242],
+              "rac": [240, 240, 240]
+            },
+            { "x": 19, "y": 13, "canvas": [47, 47, 47], "rac": [0, 0, 0] },
+            {
+              "x": 20,
+              "y": 13,
+              "canvas": [232, 232, 232],
+              "rac": [213, 213, 213]
+            },
+            {
+              "x": 21,
+              "y": 13,
+              "canvas": [212, 212, 212],
+              "rac": [187, 187, 187]
+            },
+            { "x": 22, "y": 13, "canvas": [88, 88, 88], "rac": [33, 33, 33] },
+            { "x": 35, "y": 13, "canvas": [135, 135, 135], "rac": [86, 86, 86] }
+          ]
+        }
+      },
+      "mask": {
+        "definition": "Union of Canvas text DRAW dimensions at Rust layout positions and RAC DOM text element bounds; outer 2px border and icon union always excluded from text mask",
+        "canvasText": [{ "x": 9, "y": 9, "width": 120, "height": 20 }],
+        "domText": [
+          null,
+          null,
+          null,
+          {
+            "x": 9,
+            "y": 9,
+            "width": 120,
+            "height": 20,
+            "fontFamily": "Pretendard, sans-serif",
+            "fontSize": "12px",
+            "lineHeight": "18px",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)"
+          }
+        ],
+        "iconBounds": [null, null]
+      }
+    },
+    {
+      "size": "sm",
+      "state": "description",
+      "width": 160,
+      "height": 54,
+      "sceneSha256": "cc54ca09956e089cee810e9ac34418ced87487f3ba729bf4ec8cbd9ad1fad12b",
+      "racSha256": "5f91046d650b01213bd0b09c8a6cb5ce4428f1f9d989ecc5ac790db187c58e7c",
+      "rawDifferent": 1337,
+      "totalPixels": 8640,
+      "textMaskPixels": 3960,
+      "textDifferent": 1077,
+      "nontextDifferent": 260,
+      "nontextDenominator": 4680,
+      "nontextRatio": 0.05555555555555555,
+      "canvasTextCommands": [
+        {
+          "id": "project:node:slotsmdescription::project:node:slotsmdescription::editor-name",
+          "x": 0,
+          "y": 0,
+          "width": 41.244140625,
+          "height": 18,
+          "fontSize": 12,
+          "lineHeight": 18,
+          "fontWeight": 400,
+          "content": "content"
+        },
+        {
+          "id": "project:node:slotsmdescription::project:node:slotsmdescription::editor-required",
+          "x": 0,
+          "y": 0,
+          "width": 68.755859375,
+          "height": 18,
+          "fontSize": 12,
+          "lineHeight": 18,
+          "fontWeight": 400,
+          "content": "Required"
+        },
+        {
+          "id": "project:node:slotsmdescription::project:node:slotsmdescription::editor-description",
+          "x": 0,
+          "y": 0,
+          "width": 110,
+          "height": 18,
+          "fontSize": 12,
+          "lineHeight": 18,
+          "fontWeight": 400,
+          "content": "Two line note here"
+        }
+      ],
+      "filledInkBounds": null,
+      "l3Nontext": {
+        "method": "pixelmatch threshold 0.1; full aligned RGBA with existing text mask excluded from result and denominator",
+        "differentPixels": 0,
+        "denominator": 4680,
+        "diffRatio": 0,
+        "maxByte": 12,
+        "meanByte": 0.13386752136752136,
+        "changedBytes": 731,
+        "totalBytes": 18720,
+        "changedFraction": 0.0390491452991453,
+        "budget": { "maxDiffRatio": 0.001, "maxByte": 2 },
+        "budgetSource": "ADR-198 INITIAL_BUDGETS.nonText",
+        "verdict": "PASS_LOCAL_L3_NONTEXT_ONLY"
+      },
+      "l3eCornerBand": {
+        "widthCssPx": 3,
+        "verdict": "UNVERIFIED_NO_APPROVED_SLOT_BAND_RATIO_AND_MAXBYTE_BUDGET"
+      },
+      "borderEdges": { "top": 106, "right": 28, "bottom": 74, "left": 47 },
+      "heatmap": "248-phase3-slot-pixel-heatmap-sm-description.png",
+      "categories": {
+        "border": {
+          "pixels": 840,
+          "different": 255,
+          "deltaBuckets": { "1-2": 111, "3-15": 144, "16-63": 0, "64+": 0 },
+          "topPairs": [
+            { "pair": "241,241,241→242,242,242", "count": 10 },
+            { "pair": "230,232,236→229,231,235", "count": 9 },
+            { "pair": "237,238,239→239,239,240", "count": 8 },
+            { "pair": "234,235,238→231,233,236", "count": 8 },
+            { "pair": "240,240,241→242,242,242", "count": 7 },
+            { "pair": "230,232,235→229,231,235", "count": 6 },
+            { "pair": "231,233,236→229,231,235", "count": 6 },
+            { "pair": "238,238,240→242,242,242", "count": 6 }
+          ],
+          "examples": [
+            {
+              "x": 3,
+              "y": 0,
+              "canvas": [242, 243, 244],
+              "rac": [249, 249, 250]
+            },
+            {
+              "x": 4,
+              "y": 0,
+              "canvas": [234, 235, 238],
+              "rac": [246, 246, 246]
+            },
+            {
+              "x": 5,
+              "y": 0,
+              "canvas": [243, 243, 243],
+              "rac": [235, 236, 239]
+            },
+            {
+              "x": 21,
+              "y": 0,
+              "canvas": [229, 231, 235],
+              "rac": [229, 230, 234]
+            },
+            {
+              "x": 26,
+              "y": 0,
+              "canvas": [229, 231, 235],
+              "rac": [229, 231, 234]
+            },
+            {
+              "x": 29,
+              "y": 0,
+              "canvas": [242, 242, 242],
+              "rac": [241, 241, 241]
+            },
+            {
+              "x": 35,
+              "y": 0,
+              "canvas": [241, 242, 242],
+              "rac": [242, 242, 242]
+            },
+            {
+              "x": 38,
+              "y": 0,
+              "canvas": [230, 232, 235],
+              "rac": [229, 231, 235]
+            },
+            {
+              "x": 40,
+              "y": 0,
+              "canvas": [241, 242, 242],
+              "rac": [242, 242, 242]
+            },
+            {
+              "x": 41,
+              "y": 0,
+              "canvas": [229, 231, 235],
+              "rac": [230, 232, 235]
+            },
+            {
+              "x": 43,
+              "y": 0,
+              "canvas": [230, 232, 235],
+              "rac": [229, 231, 235]
+            },
+            {
+              "x": 44,
+              "y": 0,
+              "canvas": [242, 242, 242],
+              "rac": [241, 241, 242]
+            }
+          ]
+        },
+        "icon": {
+          "pixels": 576,
+          "different": 1,
+          "deltaBuckets": { "1-2": 1, "3-15": 0, "16-63": 0, "64+": 0 },
+          "topPairs": [{ "pair": "85,85,85→86,86,86", "count": 1 }],
+          "examples": [
+            { "x": 12, "y": 36, "canvas": [85, 85, 85], "rac": [86, 86, 86] }
+          ]
+        },
+        "text": {
+          "pixels": 3960,
+          "different": 1077,
+          "deltaBuckets": { "1-2": 67, "3-15": 194, "16-63": 686, "64+": 130 },
+          "topPairs": [
+            { "pair": "242,242,242→240,240,240", "count": 30 },
+            { "pair": "242,242,242→238,238,238", "count": 29 },
+            { "pair": "47,47,47→0,0,0", "count": 24 },
+            { "pair": "242,242,242→231,231,231", "count": 20 },
+            { "pair": "168,168,168→127,127,127", "count": 18 },
+            { "pair": "232,232,232→213,213,213", "count": 16 },
+            { "pair": "60,60,60→0,0,0", "count": 16 },
+            { "pair": "118,118,118→66,66,66", "count": 15 }
+          ],
+          "examples": [
+            {
+              "x": 110,
+              "y": 12,
+              "canvas": [214, 214, 214],
+              "rac": [224, 224, 224]
+            },
+            {
+              "x": 111,
+              "y": 12,
+              "canvas": [203, 203, 203],
+              "rac": [217, 217, 217]
+            },
+            {
+              "x": 61,
+              "y": 13,
+              "canvas": [241, 241, 241],
+              "rac": [235, 235, 235]
+            },
+            {
+              "x": 62,
+              "y": 13,
+              "canvas": [156, 156, 156],
+              "rac": [153, 153, 153]
+            },
+            {
+              "x": 63,
+              "y": 13,
+              "canvas": [242, 242, 242],
+              "rac": [237, 237, 237]
+            },
+            {
+              "x": 79,
+              "y": 13,
+              "canvas": [199, 199, 199],
+              "rac": [190, 190, 190]
+            },
+            {
+              "x": 80,
+              "y": 13,
+              "canvas": [200, 200, 200],
+              "rac": [192, 192, 192]
+            },
+            { "x": 83, "y": 13, "canvas": [88, 88, 88], "rac": [99, 99, 99] },
+            { "x": 86, "y": 13, "canvas": [37, 37, 37], "rac": [0, 0, 0] },
+            {
+              "x": 87,
+              "y": 13,
+              "canvas": [112, 112, 112],
+              "rac": [61, 61, 61]
+            },
+            {
+              "x": 88,
+              "y": 13,
+              "canvas": [222, 222, 222],
+              "rac": [189, 189, 189]
+            },
+            {
+              "x": 110,
+              "y": 13,
+              "canvas": [155, 155, 155],
+              "rac": [93, 93, 93]
+            }
+          ]
+        },
+        "background": {
+          "pixels": 3264,
+          "different": 4,
+          "deltaBuckets": { "1-2": 3, "3-15": 1, "16-63": 0, "64+": 0 },
+          "topPairs": [
+            { "pair": "239,239,240→238,239,240", "count": 1 },
+            { "pair": "239,239,240→237,238,239", "count": 1 },
+            { "pair": "241,241,241→240,240,241", "count": 1 },
+            { "pair": "238,238,240→242,242,242", "count": 1 }
+          ],
+          "examples": [
+            {
+              "x": 2,
+              "y": 2,
+              "canvas": [239, 239, 240],
+              "rac": [238, 239, 240]
+            },
+            {
+              "x": 157,
+              "y": 2,
+              "canvas": [239, 239, 240],
+              "rac": [237, 238, 239]
+            },
+            {
+              "x": 2,
+              "y": 51,
+              "canvas": [241, 241, 241],
+              "rac": [240, 240, 241]
+            },
+            {
+              "x": 157,
+              "y": 51,
+              "canvas": [238, 238, 240],
+              "rac": [242, 242, 242]
+            }
+          ]
+        }
+      },
+      "textRoles": {
+        "name": {
+          "pixels": 738,
+          "different": 232,
+          "topPairs": [
+            { "pair": "242,242,242→240,240,240", "count": 8 },
+            { "pair": "47,47,47→0,0,0", "count": 8 },
+            { "pair": "118,118,118→66,66,66", "count": 6 },
+            { "pair": "242,242,242→227,227,227", "count": 5 },
+            { "pair": "239,239,239→224,224,224", "count": 4 },
+            { "pair": "153,153,153→108,108,108", "count": 4 },
+            { "pair": "156,156,156→113,113,113", "count": 4 },
+            { "pair": "232,232,232→213,213,213", "count": 4 }
+          ],
+          "examples": [
+            {
+              "x": 61,
+              "y": 13,
+              "canvas": [241, 241, 241],
+              "rac": [235, 235, 235]
+            },
+            {
+              "x": 62,
+              "y": 13,
+              "canvas": [156, 156, 156],
+              "rac": [153, 153, 153]
+            },
+            {
+              "x": 63,
+              "y": 13,
+              "canvas": [242, 242, 242],
+              "rac": [237, 237, 237]
+            },
+            {
+              "x": 79,
+              "y": 13,
+              "canvas": [199, 199, 199],
+              "rac": [190, 190, 190]
+            },
+            {
+              "x": 80,
+              "y": 13,
+              "canvas": [200, 200, 200],
+              "rac": [192, 192, 192]
+            },
+            {
+              "x": 61,
+              "y": 14,
+              "canvas": [239, 239, 239],
+              "rac": [224, 224, 224]
+            },
+            {
+              "x": 63,
+              "y": 14,
+              "canvas": [242, 242, 242],
+              "rac": [227, 227, 227]
+            },
+            {
+              "x": 79,
+              "y": 14,
+              "canvas": [153, 153, 153],
+              "rac": [108, 108, 108]
+            },
+            {
+              "x": 80,
+              "y": 14,
+              "canvas": [156, 156, 156],
+              "rac": [113, 113, 113]
+            },
+            {
+              "x": 42,
+              "y": 15,
+              "canvas": [202, 202, 202],
+              "rac": [190, 190, 190]
+            },
+            { "x": 43, "y": 15, "canvas": [86, 86, 86], "rac": [66, 66, 66] },
+            { "x": 44, "y": 15, "canvas": [39, 39, 39], "rac": [13, 13, 13] }
+          ]
+        },
+        "required": {
+          "pixels": 1242,
+          "different": 316,
+          "topPairs": [
+            { "pair": "216,216,216→194,194,194", "count": 8 },
+            { "pair": "216,216,216→137,137,137", "count": 8 },
+            { "pair": "88,88,88→99,99,99", "count": 7 },
+            { "pair": "84,84,84→0,0,0", "count": 7 },
+            { "pair": "242,242,242→238,238,238", "count": 7 },
+            { "pair": "242,242,242→211,211,211", "count": 6 },
+            { "pair": "168,168,168→127,127,127", "count": 6 },
+            { "pair": "144,144,144→97,97,97", "count": 6 }
+          ],
+          "examples": [
+            {
+              "x": 110,
+              "y": 12,
+              "canvas": [214, 214, 214],
+              "rac": [224, 224, 224]
+            },
+            {
+              "x": 111,
+              "y": 12,
+              "canvas": [203, 203, 203],
+              "rac": [217, 217, 217]
+            },
+            { "x": 83, "y": 13, "canvas": [88, 88, 88], "rac": [99, 99, 99] },
+            { "x": 86, "y": 13, "canvas": [37, 37, 37], "rac": [0, 0, 0] },
+            {
+              "x": 87,
+              "y": 13,
+              "canvas": [112, 112, 112],
+              "rac": [61, 61, 61]
+            },
+            {
+              "x": 88,
+              "y": 13,
+              "canvas": [222, 222, 222],
+              "rac": [189, 189, 189]
+            },
+            {
+              "x": 110,
+              "y": 13,
+              "canvas": [155, 155, 155],
+              "rac": [93, 93, 93]
+            },
+            {
+              "x": 111,
+              "y": 13,
+              "canvas": [128, 128, 128],
+              "rac": [56, 56, 56]
+            },
+            { "x": 128, "y": 13, "canvas": [75, 75, 75], "rac": [13, 13, 13] },
+            {
+              "x": 129,
+              "y": 13,
+              "canvas": [216, 216, 216],
+              "rac": [195, 195, 195]
+            },
+            { "x": 83, "y": 14, "canvas": [88, 88, 88], "rac": [99, 99, 99] },
+            {
+              "x": 84,
+              "y": 14,
+              "canvas": [198, 198, 198],
+              "rac": [107, 107, 107]
+            }
+          ]
+        },
+        "description": {
+          "pixels": 1980,
+          "different": 529,
+          "topPairs": [
+            { "pair": "242,242,242→240,240,240", "count": 20 },
+            { "pair": "242,242,242→238,238,238", "count": 18 },
+            { "pair": "47,47,47→0,0,0", "count": 15 },
+            { "pair": "242,242,242→231,231,231", "count": 13 },
+            { "pair": "232,232,232→213,213,213", "count": 12 },
+            { "pair": "168,168,168→127,127,127", "count": 12 },
+            { "pair": "212,212,212→186,186,186", "count": 10 },
+            { "pair": "118,118,118→66,66,66", "count": 9 }
+          ],
+          "examples": [
+            {
+              "x": 69,
+              "y": 30,
+              "canvas": [241, 241, 241],
+              "rac": [242, 242, 242]
+            },
+            {
+              "x": 70,
+              "y": 30,
+              "canvas": [180, 180, 180],
+              "rac": [201, 201, 201]
+            },
+            {
+              "x": 71,
+              "y": 30,
+              "canvas": [236, 236, 236],
+              "rac": [239, 239, 239]
+            },
+            {
+              "x": 41,
+              "y": 31,
+              "canvas": [150, 150, 150],
+              "rac": [107, 107, 107]
+            },
+            { "x": 47, "y": 31, "canvas": [70, 70, 70], "rac": [13, 13, 13] },
+            {
+              "x": 67,
+              "y": 31,
+              "canvas": [118, 118, 118],
+              "rac": [66, 66, 66]
+            },
+            {
+              "x": 68,
+              "y": 31,
+              "canvas": [190, 190, 190],
+              "rac": [158, 158, 158]
+            },
+            {
+              "x": 69,
+              "y": 31,
+              "canvas": [232, 232, 232],
+              "rac": [209, 209, 209]
+            },
+            { "x": 70, "y": 31, "canvas": [56, 56, 56], "rac": [0, 0, 0] },
+            {
+              "x": 71,
+              "y": 31,
+              "canvas": [214, 214, 214],
+              "rac": [179, 179, 179]
+            },
+            {
+              "x": 102,
+              "y": 31,
+              "canvas": [220, 220, 220],
+              "rac": [213, 213, 213]
+            },
+            {
+              "x": 103,
+              "y": 31,
+              "canvas": [178, 178, 178],
+              "rac": [171, 171, 171]
+            }
+          ]
+        },
+        "filled": {
+          "pixels": 0,
+          "different": 0,
+          "topPairs": [],
+          "examples": []
+        }
+      },
+      "mask": {
+        "definition": "Union of Canvas text DRAW dimensions at Rust layout positions and RAC DOM text element bounds; outer 2px border and icon union always excluded from text mask",
+        "canvasText": [
+          { "x": 41, "y": 9, "width": 41.244140625, "height": 18 },
+          { "x": 82.244140625, "y": 9, "width": 68.755859375, "height": 18 },
+          { "x": 41, "y": 27, "width": 110, "height": 18 }
+        ],
+        "domText": [
+          {
+            "x": 41,
+            "y": 9,
+            "width": 98.25,
+            "height": 18,
+            "fontFamily": "Pretendard, sans-serif",
+            "fontSize": "12px",
+            "lineHeight": "18px",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)"
+          },
+          {
+            "x": 82.390625,
+            "y": 11,
+            "width": 47.78125,
+            "height": 14,
+            "fontFamily": "Pretendard, sans-serif",
+            "fontSize": "12px",
+            "lineHeight": "18px",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)"
+          },
+          {
+            "x": 41,
+            "y": 27,
+            "width": 98.25,
+            "height": 18,
+            "fontFamily": "Pretendard, sans-serif",
+            "fontSize": "12px",
+            "lineHeight": "18px",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)"
+          },
+          null
+        ],
+        "iconBounds": [
+          { "x": 9, "y": 15, "width": 24, "height": 24 },
+          {
+            "x": 9,
+            "y": 15,
+            "width": 24,
+            "height": 24,
+            "fontFamily": "Pretendard, sans-serif",
+            "fontSize": "12px",
+            "lineHeight": "18px",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)"
+          }
+        ]
+      }
+    },
+    {
+      "size": "md",
+      "state": "empty",
+      "width": 160,
+      "height": 60,
+      "sceneSha256": "2ea4fea234a1e56c654a312b1b0f6c530c298723cbf25d809bdf54305eac9dcc",
+      "racSha256": "9dbbde1e71acbc55ac07c7aedcf2b5d2b00aa557061cd60ddc96998e9c63d2c5",
+      "rawDifferent": 1009,
+      "totalPixels": 9600,
+      "textMaskPixels": 2174,
+      "textDifferent": 648,
+      "nontextDifferent": 361,
+      "nontextDenominator": 7426,
+      "nontextRatio": 0.048612981416644226,
+      "canvasTextCommands": [
+        {
+          "id": "project:node:slotmdempty::project:node:slotmdempty::editor-name",
+          "x": 0,
+          "y": 0,
+          "width": 48.1181640625,
+          "height": 21,
+          "fontSize": 14,
+          "lineHeight": 21,
+          "fontWeight": 400,
+          "content": "content"
+        },
+        {
+          "id": "project:node:slotmdempty::project:node:slotmdempty::editor-required",
+          "x": 0,
+          "y": 0,
+          "width": 53.8818359375,
+          "height": 21,
+          "fontSize": 14,
+          "lineHeight": 21,
+          "fontWeight": 400,
+          "content": "Required"
+        }
+      ],
+      "filledInkBounds": null,
+      "l3Nontext": {
+        "method": "pixelmatch threshold 0.1; full aligned RGBA with existing text mask excluded from result and denominator",
+        "differentPixels": 0,
+        "denominator": 7426,
+        "diffRatio": 0,
+        "maxByte": 13,
+        "meanByte": 0.1726030164287638,
+        "changedBytes": 1047,
+        "totalBytes": 29704,
+        "changedFraction": 0.03524777807702666,
+        "budget": { "maxDiffRatio": 0.001, "maxByte": 2 },
+        "budgetSource": "ADR-198 INITIAL_BUDGETS.nonText",
+        "verdict": "PASS_LOCAL_L3_NONTEXT_ONLY"
+      },
+      "l3eCornerBand": {
+        "widthCssPx": 3,
+        "verdict": "UNVERIFIED_NO_APPROVED_SLOT_BAND_RATIO_AND_MAXBYTE_BUDGET"
+      },
+      "borderEdges": { "top": 121, "right": 60, "bottom": 124, "left": 51 },
+      "heatmap": "248-phase3-slot-pixel-heatmap-md-empty.png",
+      "categories": {
+        "border": {
+          "pixels": 864,
+          "different": 356,
+          "deltaBuckets": { "1-2": 88, "3-15": 268, "16-63": 0, "64+": 0 },
+          "topPairs": [
+            { "pair": "229,231,235→242,242,242", "count": 24 },
+            { "pair": "242,242,242→229,231,235", "count": 15 },
+            { "pair": "229,231,235→235,236,238", "count": 13 },
+            { "pair": "242,242,242→235,236,238", "count": 10 },
+            { "pair": "231,233,236→229,231,235", "count": 9 },
+            { "pair": "232,234,237→229,231,235", "count": 9 },
+            { "pair": "240,240,241→242,242,242", "count": 8 },
+            { "pair": "242,242,242→239,239,240", "count": 8 }
+          ],
+          "examples": [
+            {
+              "x": 3,
+              "y": 0,
+              "canvas": [242, 243, 244],
+              "rac": [249, 249, 249]
+            },
+            {
+              "x": 4,
+              "y": 0,
+              "canvas": [234, 236, 238],
+              "rac": [246, 246, 246]
+            },
+            {
+              "x": 5,
+              "y": 0,
+              "canvas": [243, 243, 243],
+              "rac": [235, 236, 239]
+            },
+            {
+              "x": 15,
+              "y": 0,
+              "canvas": [242, 242, 242],
+              "rac": [241, 241, 241]
+            },
+            {
+              "x": 18,
+              "y": 0,
+              "canvas": [229, 231, 235],
+              "rac": [229, 231, 234]
+            },
+            {
+              "x": 20,
+              "y": 0,
+              "canvas": [242, 242, 242],
+              "rac": [241, 241, 241]
+            },
+            {
+              "x": 21,
+              "y": 0,
+              "canvas": [230, 232, 235],
+              "rac": [229, 231, 235]
+            },
+            {
+              "x": 23,
+              "y": 0,
+              "canvas": [229, 231, 235],
+              "rac": [229, 230, 234]
+            },
+            {
+              "x": 24,
+              "y": 0,
+              "canvas": [241, 242, 242],
+              "rac": [242, 242, 242]
+            },
+            {
+              "x": 25,
+              "y": 0,
+              "canvas": [242, 242, 242],
+              "rac": [241, 241, 241]
+            },
+            {
+              "x": 26,
+              "y": 0,
+              "canvas": [230, 232, 235],
+              "rac": [229, 231, 235]
+            },
+            {
+              "x": 28,
+              "y": 0,
+              "canvas": [229, 231, 235],
+              "rac": [229, 231, 234]
+            }
+          ]
+        },
+        "icon": {
+          "pixels": 576,
+          "different": 1,
+          "deltaBuckets": { "1-2": 1, "3-15": 0, "16-63": 0, "64+": 0 },
+          "topPairs": [{ "pair": "85,85,85→86,86,86", "count": 1 }],
+          "examples": [
+            { "x": 16, "y": 34, "canvas": [85, 85, 85], "rac": [86, 86, 86] }
+          ]
+        },
+        "text": {
+          "pixels": 2174,
+          "different": 648,
+          "deltaBuckets": { "1-2": 27, "3-15": 114, "16-63": 343, "64+": 164 },
+          "topPairs": [
+            { "pair": "88,88,88→27,27,27", "count": 22 },
+            { "pair": "242,242,242→240,240,240", "count": 17 },
+            { "pair": "178,178,178→141,141,141", "count": 12 },
+            { "pair": "222,222,222→112,112,112", "count": 12 },
+            { "pair": "70,70,70→0,0,0", "count": 11 },
+            { "pair": "121,121,121→0,0,0", "count": 10 },
+            { "pair": "144,144,144→96,96,96", "count": 10 },
+            { "pair": "171,171,171→66,66,66", "count": 9 }
+          ],
+          "examples": [
+            {
+              "x": 94,
+              "y": 19,
+              "canvas": [60, 60, 60],
+              "rac": [233, 233, 233]
+            },
+            { "x": 95, "y": 19, "canvas": [0, 0, 0], "rac": [229, 229, 229] },
+            { "x": 96, "y": 19, "canvas": [0, 0, 0], "rac": [229, 229, 229] },
+            {
+              "x": 97,
+              "y": 19,
+              "canvas": [21, 21, 21],
+              "rac": [230, 230, 230]
+            },
+            {
+              "x": 98,
+              "y": 19,
+              "canvas": [78, 78, 78],
+              "rac": [242, 242, 242]
+            },
+            {
+              "x": 99,
+              "y": 19,
+              "canvas": [177, 177, 177],
+              "rac": [242, 242, 242]
+            },
+            {
+              "x": 126,
+              "y": 19,
+              "canvas": [78, 78, 78],
+              "rac": [180, 180, 180]
+            },
+            {
+              "x": 127,
+              "y": 19,
+              "canvas": [167, 167, 167],
+              "rac": [215, 215, 215]
+            },
+            {
+              "x": 146,
+              "y": 19,
+              "canvas": [153, 153, 153],
+              "rac": [238, 238, 238]
+            },
+            {
+              "x": 147,
+              "y": 19,
+              "canvas": [121, 121, 121],
+              "rac": [230, 230, 230]
+            },
+            {
+              "x": 69,
+              "y": 20,
+              "canvas": [190, 190, 190],
+              "rac": [211, 211, 211]
+            },
+            { "x": 70, "y": 20, "canvas": [70, 70, 70], "rac": [166, 166, 166] }
+          ]
+        },
+        "background": {
+          "pixels": 5986,
+          "different": 4,
+          "deltaBuckets": { "1-2": 3, "3-15": 1, "16-63": 0, "64+": 0 },
+          "topPairs": [
+            { "pair": "239,239,240→239,240,241", "count": 1 },
+            { "pair": "236,236,238→242,242,243", "count": 1 },
+            { "pair": "241,241,242→242,242,242", "count": 1 },
+            { "pair": "238,238,240→237,238,239", "count": 1 }
+          ],
+          "examples": [
+            {
+              "x": 2,
+              "y": 2,
+              "canvas": [239, 239, 240],
+              "rac": [239, 240, 241]
+            },
+            {
+              "x": 157,
+              "y": 2,
+              "canvas": [236, 236, 238],
+              "rac": [242, 242, 243]
+            },
+            {
+              "x": 2,
+              "y": 57,
+              "canvas": [241, 241, 242],
+              "rac": [242, 242, 242]
+            },
+            {
+              "x": 157,
+              "y": 57,
+              "canvas": [238, 238, 240],
+              "rac": [237, 238, 239]
+            }
+          ]
+        }
+      },
+      "textRoles": {
+        "name": {
+          "pixels": 1008,
+          "different": 274,
+          "topPairs": [
+            { "pair": "70,70,70→0,0,0", "count": 10 },
+            { "pair": "190,190,190→155,155,155", "count": 8 },
+            { "pair": "88,88,88→27,27,27", "count": 8 },
+            { "pair": "144,144,144→96,96,96", "count": 6 },
+            { "pair": "84,84,84→21,21,21", "count": 6 },
+            { "pair": "168,168,168→139,139,139", "count": 4 },
+            { "pair": "239,239,239→209,209,209", "count": 4 },
+            { "pair": "242,242,242→232,232,232", "count": 4 }
+          ],
+          "examples": [
+            {
+              "x": 69,
+              "y": 20,
+              "canvas": [190, 190, 190],
+              "rac": [211, 211, 211]
+            },
+            {
+              "x": 70,
+              "y": 20,
+              "canvas": [70, 70, 70],
+              "rac": [166, 166, 166]
+            },
+            {
+              "x": 89,
+              "y": 20,
+              "canvas": [190, 190, 190],
+              "rac": [211, 211, 211]
+            },
+            {
+              "x": 90,
+              "y": 20,
+              "canvas": [70, 70, 70],
+              "rac": [166, 166, 166]
+            },
+            {
+              "x": 69,
+              "y": 21,
+              "canvas": [190, 190, 190],
+              "rac": [155, 155, 155]
+            },
+            { "x": 70, "y": 21, "canvas": [70, 70, 70], "rac": [0, 0, 0] },
+            {
+              "x": 89,
+              "y": 21,
+              "canvas": [190, 190, 190],
+              "rac": [155, 155, 155]
+            },
+            { "x": 90, "y": 21, "canvas": [70, 70, 70], "rac": [0, 0, 0] },
+            {
+              "x": 46,
+              "y": 22,
+              "canvas": [233, 233, 233],
+              "rac": [231, 231, 231]
+            },
+            {
+              "x": 47,
+              "y": 22,
+              "canvas": [132, 132, 132],
+              "rac": [107, 107, 107]
+            },
+            { "x": 48, "y": 22, "canvas": [47, 47, 47], "rac": [33, 33, 33] },
+            { "x": 49, "y": 22, "canvas": [50, 50, 50], "rac": [27, 27, 27] }
+          ]
+        },
+        "required": {
+          "pixels": 1166,
+          "different": 374,
+          "topPairs": [
+            { "pair": "242,242,242→240,240,240", "count": 14 },
+            { "pair": "88,88,88→27,27,27", "count": 14 },
+            { "pair": "121,121,121→0,0,0", "count": 10 },
+            { "pair": "171,171,171→66,66,66", "count": 9 },
+            { "pair": "178,178,178→141,141,141", "count": 9 },
+            { "pair": "60,60,60→71,71,71", "count": 8 },
+            { "pair": "222,222,222→112,112,112", "count": 8 },
+            { "pair": "193,193,193→158,158,158", "count": 6 }
+          ],
+          "examples": [
+            {
+              "x": 94,
+              "y": 19,
+              "canvas": [60, 60, 60],
+              "rac": [233, 233, 233]
+            },
+            { "x": 95, "y": 19, "canvas": [0, 0, 0], "rac": [229, 229, 229] },
+            { "x": 96, "y": 19, "canvas": [0, 0, 0], "rac": [229, 229, 229] },
+            {
+              "x": 97,
+              "y": 19,
+              "canvas": [21, 21, 21],
+              "rac": [230, 230, 230]
+            },
+            {
+              "x": 98,
+              "y": 19,
+              "canvas": [78, 78, 78],
+              "rac": [242, 242, 242]
+            },
+            {
+              "x": 99,
+              "y": 19,
+              "canvas": [177, 177, 177],
+              "rac": [242, 242, 242]
+            },
+            {
+              "x": 126,
+              "y": 19,
+              "canvas": [78, 78, 78],
+              "rac": [180, 180, 180]
+            },
+            {
+              "x": 127,
+              "y": 19,
+              "canvas": [167, 167, 167],
+              "rac": [215, 215, 215]
+            },
+            {
+              "x": 146,
+              "y": 19,
+              "canvas": [153, 153, 153],
+              "rac": [238, 238, 238]
+            },
+            {
+              "x": 147,
+              "y": 19,
+              "canvas": [121, 121, 121],
+              "rac": [230, 230, 230]
+            },
+            { "x": 94, "y": 20, "canvas": [60, 60, 60], "rac": [71, 71, 71] },
+            { "x": 95, "y": 20, "canvas": [169, 169, 169], "rac": [0, 0, 0] }
+          ]
+        },
+        "description": {
+          "pixels": 0,
+          "different": 0,
+          "topPairs": [],
+          "examples": []
+        },
+        "filled": {
+          "pixels": 0,
+          "different": 0,
+          "topPairs": [],
+          "examples": []
+        }
+      },
+      "mask": {
+        "definition": "Union of Canvas text DRAW dimensions at Rust layout positions and RAC DOM text element bounds; outer 2px border and icon union always excluded from text mask",
+        "canvasText": [
+          { "x": 45, "y": 14.5, "width": 48.1181640625, "height": 21 },
+          {
+            "x": 93.1181640625,
+            "y": 14.5,
+            "width": 53.8818359375,
+            "height": 21
+          },
+          { "x": 45, "y": 35.5, "width": 102, "height": 0 }
+        ],
+        "domText": [
+          {
+            "x": 45,
+            "y": 14.5,
+            "width": 102,
+            "height": 21,
+            "fontFamily": "Pretendard, sans-serif",
+            "fontSize": "14px",
+            "lineHeight": "21px",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)"
+          },
+          {
+            "x": 93.28125,
+            "y": 16.5,
+            "width": 55.75,
+            "height": 16,
+            "fontFamily": "Pretendard, sans-serif",
+            "fontSize": "14px",
+            "lineHeight": "21px",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)"
+          },
+          null,
+          null
+        ],
+        "iconBounds": [
+          { "x": 13, "y": 13, "width": 24, "height": 24 },
+          {
+            "x": 13,
+            "y": 13,
+            "width": 24,
+            "height": 24,
+            "fontFamily": "Pretendard, sans-serif",
+            "fontSize": "14px",
+            "lineHeight": "21px",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)"
+          }
+        ]
+      }
+    },
+    {
+      "size": "md",
+      "state": "filled",
+      "width": 160,
+      "height": 60,
+      "sceneSha256": "a46581f31fbc754a41657ac0396168244a8efe93146cfd32d2a566ac3f957317",
+      "racSha256": "86a78a8e4e2bd7304c0815b0a07c6894da8ef283aaa56a97783bc47c65af15eb",
+      "rawDifferent": 590,
+      "totalPixels": 9600,
+      "textMaskPixels": 2400,
+      "textDifferent": 230,
+      "nontextDifferent": 360,
+      "nontextDenominator": 7200,
+      "nontextRatio": 0.05,
+      "canvasTextCommands": [
+        {
+          "id": "project:node:slotmdfilled/project:node:textmdfilled::project:node:textmdfilled",
+          "x": 0,
+          "y": 0,
+          "width": 120,
+          "height": 20,
+          "fontSize": 14,
+          "lineHeight": 21,
+          "fontWeight": 400,
+          "content": "Filled"
+        }
+      ],
+      "filledInkBounds": {
+        "canvas": { "x": 14, "y": 17, "width": 31, "height": 11 },
+        "rac": { "x": 14, "y": 18, "width": 31, "height": 10 }
+      },
+      "l3Nontext": {
+        "method": "pixelmatch threshold 0.1; full aligned RGBA with existing text mask excluded from result and denominator",
+        "differentPixels": 0,
+        "denominator": 7200,
+        "diffRatio": 0,
+        "maxByte": 13,
+        "meanByte": 0.17791666666666667,
+        "changedBytes": 1044,
+        "totalBytes": 28800,
+        "changedFraction": 0.03625,
+        "budget": { "maxDiffRatio": 0.001, "maxByte": 2 },
+        "budgetSource": "ADR-198 INITIAL_BUDGETS.nonText",
+        "verdict": "PASS_LOCAL_L3_NONTEXT_ONLY"
+      },
+      "l3eCornerBand": {
+        "widthCssPx": 3,
+        "verdict": "UNVERIFIED_NO_APPROVED_SLOT_BAND_RATIO_AND_MAXBYTE_BUDGET"
+      },
+      "borderEdges": { "top": 121, "right": 60, "bottom": 124, "left": 51 },
+      "heatmap": "248-phase3-slot-pixel-heatmap-md-filled.png",
+      "categories": {
+        "border": {
+          "pixels": 864,
+          "different": 356,
+          "deltaBuckets": { "1-2": 88, "3-15": 268, "16-63": 0, "64+": 0 },
+          "topPairs": [
+            { "pair": "229,231,235→242,242,242", "count": 24 },
+            { "pair": "242,242,242→229,231,235", "count": 15 },
+            { "pair": "229,231,235→235,236,238", "count": 13 },
+            { "pair": "242,242,242→235,236,238", "count": 10 },
+            { "pair": "231,233,236→229,231,235", "count": 9 },
+            { "pair": "232,234,237→229,231,235", "count": 9 },
+            { "pair": "240,240,241→242,242,242", "count": 8 },
+            { "pair": "242,242,242→239,239,240", "count": 8 }
+          ],
+          "examples": [
+            {
+              "x": 3,
+              "y": 0,
+              "canvas": [242, 243, 244],
+              "rac": [249, 249, 249]
+            },
+            {
+              "x": 4,
+              "y": 0,
+              "canvas": [234, 236, 238],
+              "rac": [246, 246, 246]
+            },
+            {
+              "x": 5,
+              "y": 0,
+              "canvas": [243, 243, 243],
+              "rac": [235, 236, 239]
+            },
+            {
+              "x": 15,
+              "y": 0,
+              "canvas": [242, 242, 242],
+              "rac": [241, 241, 241]
+            },
+            {
+              "x": 18,
+              "y": 0,
+              "canvas": [229, 231, 235],
+              "rac": [229, 231, 234]
+            },
+            {
+              "x": 20,
+              "y": 0,
+              "canvas": [242, 242, 242],
+              "rac": [241, 241, 241]
+            },
+            {
+              "x": 21,
+              "y": 0,
+              "canvas": [230, 232, 235],
+              "rac": [229, 231, 235]
+            },
+            {
+              "x": 23,
+              "y": 0,
+              "canvas": [229, 231, 235],
+              "rac": [229, 230, 234]
+            },
+            {
+              "x": 24,
+              "y": 0,
+              "canvas": [241, 242, 242],
+              "rac": [242, 242, 242]
+            },
+            {
+              "x": 25,
+              "y": 0,
+              "canvas": [242, 242, 242],
+              "rac": [241, 241, 241]
+            },
+            {
+              "x": 26,
+              "y": 0,
+              "canvas": [230, 232, 235],
+              "rac": [229, 231, 235]
+            },
+            {
+              "x": 28,
+              "y": 0,
+              "canvas": [229, 231, 235],
+              "rac": [229, 231, 234]
+            }
+          ]
+        },
+        "icon": {
+          "pixels": 0,
+          "different": 0,
+          "deltaBuckets": { "1-2": 0, "3-15": 0, "16-63": 0, "64+": 0 },
+          "topPairs": [],
+          "examples": []
+        },
+        "text": {
+          "pixels": 2400,
+          "different": 230,
+          "deltaBuckets": { "1-2": 15, "3-15": 22, "16-63": 150, "64+": 43 },
+          "topPairs": [
+            { "pair": "70,70,70→13,13,13", "count": 17 },
+            { "pair": "190,190,190→155,155,155", "count": 15 },
+            { "pair": "242,242,242→240,240,240", "count": 12 },
+            { "pair": "60,60,60→0,0,0", "count": 10 },
+            { "pair": "53,53,53→0,0,0", "count": 10 },
+            { "pair": "232,232,232→212,212,212", "count": 9 },
+            { "pair": "222,222,222→198,198,198", "count": 9 },
+            { "pair": "0,0,0→229,229,229", "count": 6 }
+          ],
+          "examples": [
+            {
+              "x": 14,
+              "y": 17,
+              "canvas": [60, 60, 60],
+              "rac": [230, 230, 230]
+            },
+            { "x": 15, "y": 17, "canvas": [0, 0, 0], "rac": [229, 229, 229] },
+            { "x": 16, "y": 17, "canvas": [0, 0, 0], "rac": [229, 229, 229] },
+            { "x": 17, "y": 17, "canvas": [0, 0, 0], "rac": [229, 229, 229] },
+            { "x": 18, "y": 17, "canvas": [0, 0, 0], "rac": [229, 229, 229] },
+            { "x": 19, "y": 17, "canvas": [0, 0, 0], "rac": [229, 229, 229] },
+            {
+              "x": 20,
+              "y": 17,
+              "canvas": [232, 232, 232],
+              "rac": [241, 241, 241]
+            },
+            {
+              "x": 21,
+              "y": 17,
+              "canvas": [179, 179, 179],
+              "rac": [220, 220, 220]
+            },
+            {
+              "x": 22,
+              "y": 17,
+              "canvas": [66, 66, 66],
+              "rac": [175, 175, 175]
+            },
+            {
+              "x": 23,
+              "y": 17,
+              "canvas": [236, 236, 236],
+              "rac": [242, 242, 242]
+            },
+            {
+              "x": 24,
+              "y": 17,
+              "canvas": [190, 190, 190],
+              "rac": [238, 238, 238]
+            },
+            { "x": 25, "y": 17, "canvas": [70, 70, 70], "rac": [230, 230, 230] }
+          ]
+        },
+        "background": {
+          "pixels": 6336,
+          "different": 4,
+          "deltaBuckets": { "1-2": 3, "3-15": 1, "16-63": 0, "64+": 0 },
+          "topPairs": [
+            { "pair": "239,239,240→239,240,241", "count": 1 },
+            { "pair": "236,236,238→242,242,243", "count": 1 },
+            { "pair": "241,241,242→242,242,242", "count": 1 },
+            { "pair": "238,238,240→237,238,239", "count": 1 }
+          ],
+          "examples": [
+            {
+              "x": 2,
+              "y": 2,
+              "canvas": [239, 239, 240],
+              "rac": [239, 240, 241]
+            },
+            {
+              "x": 157,
+              "y": 2,
+              "canvas": [236, 236, 238],
+              "rac": [242, 242, 243]
+            },
+            {
+              "x": 2,
+              "y": 57,
+              "canvas": [241, 241, 242],
+              "rac": [242, 242, 242]
+            },
+            {
+              "x": 157,
+              "y": 57,
+              "canvas": [238, 238, 240],
+              "rac": [237, 238, 239]
+            }
+          ]
+        }
+      },
+      "textRoles": {
+        "name": { "pixels": 0, "different": 0, "topPairs": [], "examples": [] },
+        "required": {
+          "pixels": 0,
+          "different": 0,
+          "topPairs": [],
+          "examples": []
+        },
+        "description": {
+          "pixels": 0,
+          "different": 0,
+          "topPairs": [],
+          "examples": []
+        },
+        "filled": {
+          "pixels": 2400,
+          "different": 230,
+          "topPairs": [
+            { "pair": "70,70,70→13,13,13", "count": 17 },
+            { "pair": "190,190,190→155,155,155", "count": 15 },
+            { "pair": "242,242,242→240,240,240", "count": 12 },
+            { "pair": "60,60,60→0,0,0", "count": 10 },
+            { "pair": "53,53,53→0,0,0", "count": 10 },
+            { "pair": "232,232,232→212,212,212", "count": 9 },
+            { "pair": "222,222,222→198,198,198", "count": 9 },
+            { "pair": "0,0,0→229,229,229", "count": 6 }
+          ],
+          "examples": [
+            {
+              "x": 14,
+              "y": 17,
+              "canvas": [60, 60, 60],
+              "rac": [230, 230, 230]
+            },
+            { "x": 15, "y": 17, "canvas": [0, 0, 0], "rac": [229, 229, 229] },
+            { "x": 16, "y": 17, "canvas": [0, 0, 0], "rac": [229, 229, 229] },
+            { "x": 17, "y": 17, "canvas": [0, 0, 0], "rac": [229, 229, 229] },
+            { "x": 18, "y": 17, "canvas": [0, 0, 0], "rac": [229, 229, 229] },
+            { "x": 19, "y": 17, "canvas": [0, 0, 0], "rac": [229, 229, 229] },
+            {
+              "x": 20,
+              "y": 17,
+              "canvas": [232, 232, 232],
+              "rac": [241, 241, 241]
+            },
+            {
+              "x": 21,
+              "y": 17,
+              "canvas": [179, 179, 179],
+              "rac": [220, 220, 220]
+            },
+            {
+              "x": 22,
+              "y": 17,
+              "canvas": [66, 66, 66],
+              "rac": [175, 175, 175]
+            },
+            {
+              "x": 23,
+              "y": 17,
+              "canvas": [236, 236, 236],
+              "rac": [242, 242, 242]
+            },
+            {
+              "x": 24,
+              "y": 17,
+              "canvas": [190, 190, 190],
+              "rac": [238, 238, 238]
+            },
+            { "x": 25, "y": 17, "canvas": [70, 70, 70], "rac": [230, 230, 230] }
+          ]
+        }
+      },
+      "mask": {
+        "definition": "Union of Canvas text DRAW dimensions at Rust layout positions and RAC DOM text element bounds; outer 2px border and icon union always excluded from text mask",
+        "canvasText": [{ "x": 13, "y": 13, "width": 120, "height": 20 }],
+        "domText": [
+          null,
+          null,
+          null,
+          {
+            "x": 13,
+            "y": 13,
+            "width": 120,
+            "height": 20,
+            "fontFamily": "Pretendard, sans-serif",
+            "fontSize": "14px",
+            "lineHeight": "21px",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)"
+          }
+        ],
+        "iconBounds": [null, null]
+      }
+    },
+    {
+      "size": "md",
+      "state": "description",
+      "width": 160,
+      "height": 89,
+      "sceneSha256": "ef9c038cd48eef3a8bbb6eb9de8d9ebb40dea49e3137da085ef8a5688ec85ed3",
+      "racSha256": "038a66ec43c37443823c93fa11744601e75c946c579c47fd9ffba98ee6a02e95",
+      "rawDifferent": 1583,
+      "totalPixels": 14240,
+      "textMaskPixels": 6458,
+      "textDifferent": 1282,
+      "nontextDifferent": 301,
+      "nontextDenominator": 7782,
+      "nontextRatio": 0.03867900282703675,
+      "canvasTextCommands": [
+        {
+          "id": "project:node:slotmddescription::project:node:slotmddescription::editor-name",
+          "x": 0,
+          "y": 0,
+          "width": 48.1181640625,
+          "height": 21,
+          "fontSize": 14,
+          "lineHeight": 21,
+          "fontWeight": 400,
+          "content": "content"
+        },
+        {
+          "id": "project:node:slotmddescription::project:node:slotmddescription::editor-required",
+          "x": 0,
+          "y": 0,
+          "width": 53.8818359375,
+          "height": 21,
+          "fontSize": 14,
+          "lineHeight": 21,
+          "fontWeight": 400,
+          "content": "Required"
+        },
+        {
+          "id": "project:node:slotmddescription::project:node:slotmddescription::editor-description",
+          "x": 0,
+          "y": 0,
+          "width": 102,
+          "height": 42,
+          "fontSize": 14,
+          "lineHeight": 21,
+          "fontWeight": 400,
+          "content": "Two line note\nhere"
+        }
+      ],
+      "filledInkBounds": null,
+      "l3Nontext": {
+        "method": "pixelmatch threshold 0.1; full aligned RGBA with existing text mask excluded from result and denominator",
+        "differentPixels": 0,
+        "denominator": 7782,
+        "diffRatio": 0,
+        "maxByte": 12,
+        "meanByte": 0.09926754047802622,
+        "changedBytes": 848,
+        "totalBytes": 31128,
+        "changedFraction": 0.027242354150603956,
+        "budget": { "maxDiffRatio": 0.001, "maxByte": 2 },
+        "budgetSource": "ADR-198 INITIAL_BUDGETS.nonText",
+        "verdict": "PASS_LOCAL_L3_NONTEXT_ONLY"
+      },
+      "l3eCornerBand": {
+        "widthCssPx": 3,
+        "verdict": "UNVERIFIED_NO_APPROVED_SLOT_BAND_RATIO_AND_MAXBYTE_BUDGET"
+      },
+      "borderEdges": { "top": 104, "right": 42, "bottom": 75, "left": 75 },
+      "heatmap": "248-phase3-slot-pixel-heatmap-md-description.png",
+      "categories": {
+        "border": {
+          "pixels": 980,
+          "different": 296,
+          "deltaBuckets": { "1-2": 124, "3-15": 172, "16-63": 0, "64+": 0 },
+          "topPairs": [
+            { "pair": "234,235,238→231,233,236", "count": 12 },
+            { "pair": "241,241,241→242,242,242", "count": 11 },
+            { "pair": "237,238,239→239,239,240", "count": 11 },
+            { "pair": "229,231,235→239,239,240", "count": 11 },
+            { "pair": "242,242,242→231,233,236", "count": 11 },
+            { "pair": "230,232,236→229,231,235", "count": 10 },
+            { "pair": "234,235,238→229,231,235", "count": 8 },
+            { "pair": "230,232,235→229,231,235", "count": 7 }
+          ],
+          "examples": [
+            {
+              "x": 3,
+              "y": 0,
+              "canvas": [242, 243, 244],
+              "rac": [249, 250, 250]
+            },
+            {
+              "x": 4,
+              "y": 0,
+              "canvas": [234, 235, 238],
+              "rac": [246, 246, 246]
+            },
+            {
+              "x": 5,
+              "y": 0,
+              "canvas": [243, 243, 243],
+              "rac": [235, 236, 239]
+            },
+            {
+              "x": 26,
+              "y": 0,
+              "canvas": [229, 231, 235],
+              "rac": [229, 230, 234]
+            },
+            {
+              "x": 29,
+              "y": 0,
+              "canvas": [242, 242, 242],
+              "rac": [241, 242, 242]
+            },
+            {
+              "x": 34,
+              "y": 0,
+              "canvas": [242, 242, 242],
+              "rac": [241, 241, 241]
+            },
+            {
+              "x": 40,
+              "y": 0,
+              "canvas": [241, 242, 242],
+              "rac": [242, 242, 242]
+            },
+            {
+              "x": 43,
+              "y": 0,
+              "canvas": [230, 232, 235],
+              "rac": [229, 231, 235]
+            },
+            {
+              "x": 45,
+              "y": 0,
+              "canvas": [241, 242, 242],
+              "rac": [242, 242, 242]
+            },
+            {
+              "x": 46,
+              "y": 0,
+              "canvas": [229, 231, 235],
+              "rac": [230, 232, 235]
+            },
+            {
+              "x": 48,
+              "y": 0,
+              "canvas": [230, 232, 235],
+              "rac": [229, 231, 235]
+            },
+            {
+              "x": 49,
+              "y": 0,
+              "canvas": [242, 242, 242],
+              "rac": [241, 241, 242]
+            }
+          ]
+        },
+        "icon": {
+          "pixels": 600,
+          "different": 1,
+          "deltaBuckets": { "1-2": 1, "3-15": 0, "16-63": 0, "64+": 0 },
+          "topPairs": [{ "pair": "85,85,85→86,86,86", "count": 1 }],
+          "examples": [
+            { "x": 16, "y": 54, "canvas": [85, 85, 85], "rac": [86, 86, 86] }
+          ]
+        },
+        "text": {
+          "pixels": 6458,
+          "different": 1282,
+          "deltaBuckets": { "1-2": 50, "3-15": 193, "16-63": 763, "64+": 276 },
+          "topPairs": [
+            { "pair": "222,222,222→112,112,112", "count": 29 },
+            { "pair": "88,88,88→27,27,27", "count": 26 },
+            { "pair": "190,190,190→155,155,155", "count": 23 },
+            { "pair": "47,47,47→94,94,94", "count": 21 },
+            { "pair": "232,232,232→212,212,212", "count": 21 },
+            { "pair": "242,242,242→240,240,240", "count": 20 },
+            { "pair": "70,70,70→13,13,13", "count": 18 },
+            { "pair": "144,144,144→96,96,96", "count": 16 }
+          ],
+          "examples": [
+            {
+              "x": 94,
+              "y": 17,
+              "canvas": [60, 60, 60],
+              "rac": [233, 233, 233]
+            },
+            { "x": 95, "y": 17, "canvas": [0, 0, 0], "rac": [229, 229, 229] },
+            { "x": 96, "y": 17, "canvas": [0, 0, 0], "rac": [229, 229, 229] },
+            {
+              "x": 97,
+              "y": 17,
+              "canvas": [21, 21, 21],
+              "rac": [230, 230, 230]
+            },
+            {
+              "x": 98,
+              "y": 17,
+              "canvas": [78, 78, 78],
+              "rac": [242, 242, 242]
+            },
+            {
+              "x": 99,
+              "y": 17,
+              "canvas": [177, 177, 177],
+              "rac": [242, 242, 242]
+            },
+            {
+              "x": 126,
+              "y": 17,
+              "canvas": [78, 78, 78],
+              "rac": [180, 180, 180]
+            },
+            {
+              "x": 127,
+              "y": 17,
+              "canvas": [167, 167, 167],
+              "rac": [215, 215, 215]
+            },
+            {
+              "x": 146,
+              "y": 17,
+              "canvas": [153, 153, 153],
+              "rac": [238, 238, 238]
+            },
+            {
+              "x": 147,
+              "y": 17,
+              "canvas": [121, 121, 121],
+              "rac": [230, 230, 230]
+            },
+            {
+              "x": 69,
+              "y": 18,
+              "canvas": [190, 190, 190],
+              "rac": [211, 211, 211]
+            },
+            { "x": 70, "y": 18, "canvas": [70, 70, 70], "rac": [166, 166, 166] }
+          ]
+        },
+        "background": {
+          "pixels": 6202,
+          "different": 4,
+          "deltaBuckets": { "1-2": 3, "3-15": 1, "16-63": 0, "64+": 0 },
+          "topPairs": [
+            { "pair": "239,239,240→238,239,240", "count": 2 },
+            { "pair": "241,241,241→240,240,241", "count": 1 },
+            { "pair": "238,238,240→242,242,242", "count": 1 }
+          ],
+          "examples": [
+            {
+              "x": 2,
+              "y": 2,
+              "canvas": [239, 239, 240],
+              "rac": [238, 239, 240]
+            },
+            {
+              "x": 157,
+              "y": 2,
+              "canvas": [239, 239, 240],
+              "rac": [238, 239, 240]
+            },
+            {
+              "x": 2,
+              "y": 86,
+              "canvas": [241, 241, 241],
+              "rac": [240, 240, 241]
+            },
+            {
+              "x": 157,
+              "y": 86,
+              "canvas": [238, 238, 240],
+              "rac": [242, 242, 242]
+            }
+          ]
+        }
+      },
+      "textRoles": {
+        "name": {
+          "pixels": 1008,
+          "different": 274,
+          "topPairs": [
+            { "pair": "70,70,70→0,0,0", "count": 10 },
+            { "pair": "190,190,190→155,155,155", "count": 8 },
+            { "pair": "88,88,88→27,27,27", "count": 8 },
+            { "pair": "144,144,144→96,96,96", "count": 6 },
+            { "pair": "84,84,84→21,21,21", "count": 6 },
+            { "pair": "168,168,168→139,139,139", "count": 4 },
+            { "pair": "239,239,239→209,209,209", "count": 4 },
+            { "pair": "242,242,242→232,232,232", "count": 4 }
+          ],
+          "examples": [
+            {
+              "x": 69,
+              "y": 18,
+              "canvas": [190, 190, 190],
+              "rac": [211, 211, 211]
+            },
+            {
+              "x": 70,
+              "y": 18,
+              "canvas": [70, 70, 70],
+              "rac": [166, 166, 166]
+            },
+            {
+              "x": 89,
+              "y": 18,
+              "canvas": [190, 190, 190],
+              "rac": [211, 211, 211]
+            },
+            {
+              "x": 90,
+              "y": 18,
+              "canvas": [70, 70, 70],
+              "rac": [166, 166, 166]
+            },
+            {
+              "x": 69,
+              "y": 19,
+              "canvas": [190, 190, 190],
+              "rac": [155, 155, 155]
+            },
+            { "x": 70, "y": 19, "canvas": [70, 70, 70], "rac": [0, 0, 0] },
+            {
+              "x": 89,
+              "y": 19,
+              "canvas": [190, 190, 190],
+              "rac": [155, 155, 155]
+            },
+            { "x": 90, "y": 19, "canvas": [70, 70, 70], "rac": [0, 0, 0] },
+            {
+              "x": 46,
+              "y": 20,
+              "canvas": [233, 233, 233],
+              "rac": [231, 231, 231]
+            },
+            {
+              "x": 47,
+              "y": 20,
+              "canvas": [132, 132, 132],
+              "rac": [107, 107, 107]
+            },
+            { "x": 48, "y": 20, "canvas": [47, 47, 47], "rac": [33, 33, 33] },
+            { "x": 49, "y": 20, "canvas": [50, 50, 50], "rac": [27, 27, 27] }
+          ]
+        },
+        "required": {
+          "pixels": 1166,
+          "different": 374,
+          "topPairs": [
+            { "pair": "242,242,242→240,240,240", "count": 14 },
+            { "pair": "88,88,88→27,27,27", "count": 14 },
+            { "pair": "121,121,121→0,0,0", "count": 10 },
+            { "pair": "171,171,171→66,66,66", "count": 9 },
+            { "pair": "178,178,178→141,141,141", "count": 9 },
+            { "pair": "60,60,60→71,71,71", "count": 8 },
+            { "pair": "222,222,222→112,112,112", "count": 8 },
+            { "pair": "193,193,193→158,158,158", "count": 6 }
+          ],
+          "examples": [
+            {
+              "x": 94,
+              "y": 17,
+              "canvas": [60, 60, 60],
+              "rac": [233, 233, 233]
+            },
+            { "x": 95, "y": 17, "canvas": [0, 0, 0], "rac": [229, 229, 229] },
+            { "x": 96, "y": 17, "canvas": [0, 0, 0], "rac": [229, 229, 229] },
+            {
+              "x": 97,
+              "y": 17,
+              "canvas": [21, 21, 21],
+              "rac": [230, 230, 230]
+            },
+            {
+              "x": 98,
+              "y": 17,
+              "canvas": [78, 78, 78],
+              "rac": [242, 242, 242]
+            },
+            {
+              "x": 99,
+              "y": 17,
+              "canvas": [177, 177, 177],
+              "rac": [242, 242, 242]
+            },
+            {
+              "x": 126,
+              "y": 17,
+              "canvas": [78, 78, 78],
+              "rac": [180, 180, 180]
+            },
+            {
+              "x": 127,
+              "y": 17,
+              "canvas": [167, 167, 167],
+              "rac": [215, 215, 215]
+            },
+            {
+              "x": 146,
+              "y": 17,
+              "canvas": [153, 153, 153],
+              "rac": [238, 238, 238]
+            },
+            {
+              "x": 147,
+              "y": 17,
+              "canvas": [121, 121, 121],
+              "rac": [230, 230, 230]
+            },
+            { "x": 94, "y": 18, "canvas": [60, 60, 60], "rac": [71, 71, 71] },
+            { "x": 95, "y": 18, "canvas": [169, 169, 169], "rac": [0, 0, 0] }
+          ]
+        },
+        "description": {
+          "pixels": 4284,
+          "different": 634,
+          "topPairs": [
+            { "pair": "232,232,232→212,212,212", "count": 21 },
+            { "pair": "70,70,70→13,13,13", "count": 18 },
+            { "pair": "222,222,222→112,112,112", "count": 17 },
+            { "pair": "190,190,190→155,155,155", "count": 15 },
+            { "pair": "47,47,47→94,94,94", "count": 12 },
+            { "pair": "242,242,242→239,239,239", "count": 11 },
+            { "pair": "222,222,222→198,198,198", "count": 11 },
+            { "pair": "80,80,80→13,13,13", "count": 10 }
+          ],
+          "examples": [
+            {
+              "x": 45,
+              "y": 38,
+              "canvas": [165, 165, 165],
+              "rac": [236, 236, 236]
+            },
+            { "x": 46, "y": 38, "canvas": [0, 0, 0], "rac": [229, 229, 229] },
+            { "x": 47, "y": 38, "canvas": [0, 0, 0], "rac": [229, 229, 229] },
+            { "x": 48, "y": 38, "canvas": [0, 0, 0], "rac": [229, 229, 229] },
+            { "x": 49, "y": 38, "canvas": [0, 0, 0], "rac": [229, 229, 229] },
+            { "x": 50, "y": 38, "canvas": [0, 0, 0], "rac": [229, 229, 229] },
+            { "x": 51, "y": 38, "canvas": [0, 0, 0], "rac": [229, 229, 229] },
+            { "x": 52, "y": 38, "canvas": [0, 0, 0], "rac": [229, 229, 229] },
+            {
+              "x": 53,
+              "y": 38,
+              "canvas": [239, 239, 239],
+              "rac": [242, 242, 242]
+            },
+            {
+              "x": 75,
+              "y": 38,
+              "canvas": [190, 190, 190],
+              "rac": [238, 238, 238]
+            },
+            {
+              "x": 76,
+              "y": 38,
+              "canvas": [70, 70, 70],
+              "rac": [230, 230, 230]
+            },
+            {
+              "x": 78,
+              "y": 38,
+              "canvas": [179, 179, 179],
+              "rac": [220, 220, 220]
+            }
+          ]
+        },
+        "filled": {
+          "pixels": 0,
+          "different": 0,
+          "topPairs": [],
+          "examples": []
+        }
+      },
+      "mask": {
+        "definition": "Union of Canvas text DRAW dimensions at Rust layout positions and RAC DOM text element bounds; outer 2px border and icon union always excluded from text mask",
+        "canvasText": [
+          { "x": 45, "y": 13, "width": 48.1181640625, "height": 21 },
+          { "x": 93.1181640625, "y": 13, "width": 53.8818359375, "height": 21 },
+          { "x": 45, "y": 34, "width": 102, "height": 42 }
+        ],
+        "domText": [
+          {
+            "x": 45,
+            "y": 13,
+            "width": 102,
+            "height": 21,
+            "fontFamily": "Pretendard, sans-serif",
+            "fontSize": "14px",
+            "lineHeight": "21px",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)"
+          },
+          {
+            "x": 93.28125,
+            "y": 15,
+            "width": 55.75,
+            "height": 16,
+            "fontFamily": "Pretendard, sans-serif",
+            "fontSize": "14px",
+            "lineHeight": "21px",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)"
+          },
+          {
+            "x": 45,
+            "y": 34,
+            "width": 102,
+            "height": 42,
+            "fontFamily": "Pretendard, sans-serif",
+            "fontSize": "14px",
+            "lineHeight": "21px",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)"
+          },
+          null
+        ],
+        "iconBounds": [
+          { "x": 13, "y": 33, "width": 24, "height": 24 },
+          {
+            "x": 13,
+            "y": 32.5,
+            "width": 24,
+            "height": 24,
+            "fontFamily": "Pretendard, sans-serif",
+            "fontSize": "14px",
+            "lineHeight": "21px",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)"
+          }
+        ]
+      }
+    },
+    {
+      "size": "lg",
+      "state": "empty",
+      "width": 160,
+      "height": 80,
+      "sceneSha256": "f1dda210242f0f91d80648f49a420b16d74dc05aacea515350676672e3bc025b",
+      "racSha256": "09e057b9ef69ea10d6917ca5533984bb0b0bfba30d5568c3d7c1b32681879805",
+      "rawDifferent": 1106,
+      "totalPixels": 12800,
+      "textMaskPixels": 2541,
+      "textDifferent": 838,
+      "nontextDifferent": 268,
+      "nontextDenominator": 10259,
+      "nontextRatio": 0.026123403840530267,
+      "canvasTextCommands": [
+        {
+          "id": "project:node:slotlgempty::project:node:slotlgempty::editor-name",
+          "x": 0,
+          "y": 0,
+          "width": 54.9921875,
+          "height": 24,
+          "fontSize": 16,
+          "lineHeight": 24,
+          "fontWeight": 400,
+          "content": "content"
+        },
+        {
+          "id": "project:node:slotlgempty::project:node:slotlgempty::editor-required",
+          "x": 0,
+          "y": 0,
+          "width": 39.0078125,
+          "height": 24,
+          "fontSize": 16,
+          "lineHeight": 24,
+          "fontWeight": 400,
+          "content": "Required"
+        }
+      ],
+      "filledInkBounds": null,
+      "l3Nontext": {
+        "method": "pixelmatch threshold 0.1; full aligned RGBA with existing text mask excluded from result and denominator",
+        "differentPixels": 5,
+        "denominator": 10259,
+        "diffRatio": 0.00048737693732332587,
+        "maxByte": 96,
+        "meanByte": 0.08555902134710985,
+        "changedBytes": 770,
+        "totalBytes": 41036,
+        "changedFraction": 0.018764012086948046,
+        "budget": { "maxDiffRatio": 0.001, "maxByte": 2 },
+        "budgetSource": "ADR-198 INITIAL_BUDGETS.nonText",
+        "verdict": "PASS_LOCAL_L3_NONTEXT_ONLY"
+      },
+      "l3eCornerBand": {
+        "widthCssPx": 3,
+        "verdict": "UNVERIFIED_NO_APPROVED_SLOT_BAND_RATIO_AND_MAXBYTE_BUDGET"
+      },
+      "borderEdges": { "top": 71, "right": 42, "bottom": 74, "left": 68 },
+      "heatmap": "248-phase3-slot-pixel-heatmap-lg-empty.png",
+      "categories": {
+        "border": {
+          "pixels": 944,
+          "different": 255,
+          "deltaBuckets": { "1-2": 103, "3-15": 145, "16-63": 4, "64+": 3 },
+          "topPairs": [
+            { "pair": "229,231,235→235,236,238", "count": 13 },
+            { "pair": "242,242,242→235,236,238", "count": 13 },
+            { "pair": "240,240,241→242,242,242", "count": 10 },
+            { "pair": "231,233,236→229,231,235", "count": 9 },
+            { "pair": "235,236,238→229,231,235", "count": 8 },
+            { "pair": "235,236,238→242,242,242", "count": 8 },
+            { "pair": "239,239,240→242,242,242", "count": 7 },
+            { "pair": "232,234,237→229,231,235", "count": 7 }
+          ],
+          "examples": [
+            {
+              "x": 4,
+              "y": 0,
+              "canvas": [250, 250, 250],
+              "rac": [249, 249, 250]
+            },
+            {
+              "x": 5,
+              "y": 0,
+              "canvas": [237, 238, 241],
+              "rac": [246, 246, 246]
+            },
+            {
+              "x": 6,
+              "y": 0,
+              "canvas": [240, 241, 242],
+              "rac": [245, 245, 245]
+            },
+            {
+              "x": 7,
+              "y": 0,
+              "canvas": [243, 243, 243],
+              "rac": [232, 233, 236]
+            },
+            {
+              "x": 17,
+              "y": 0,
+              "canvas": [241, 242, 242],
+              "rac": [242, 242, 242]
+            },
+            {
+              "x": 20,
+              "y": 0,
+              "canvas": [230, 232, 235],
+              "rac": [229, 231, 235]
+            },
+            {
+              "x": 22,
+              "y": 0,
+              "canvas": [241, 241, 242],
+              "rac": [242, 242, 242]
+            },
+            {
+              "x": 25,
+              "y": 0,
+              "canvas": [230, 232, 235],
+              "rac": [229, 231, 235]
+            },
+            {
+              "x": 27,
+              "y": 0,
+              "canvas": [241, 241, 241],
+              "rac": [242, 242, 242]
+            },
+            {
+              "x": 30,
+              "y": 0,
+              "canvas": [230, 232, 236],
+              "rac": [229, 231, 235]
+            },
+            {
+              "x": 32,
+              "y": 0,
+              "canvas": [241, 241, 241],
+              "rac": [242, 242, 242]
+            },
+            {
+              "x": 35,
+              "y": 0,
+              "canvas": [230, 232, 236],
+              "rac": [229, 231, 235]
+            }
+          ]
+        },
+        "icon": {
+          "pixels": 576,
+          "different": 1,
+          "deltaBuckets": { "1-2": 1, "3-15": 0, "16-63": 0, "64+": 0 },
+          "topPairs": [{ "pair": "85,85,85→86,86,86", "count": 1 }],
+          "examples": [
+            { "x": 20, "y": 38, "canvas": [85, 85, 85], "rac": [86, 86, 86] }
+          ]
+        },
+        "text": {
+          "pixels": 2541,
+          "different": 838,
+          "deltaBuckets": { "1-2": 18, "3-15": 123, "16-63": 282, "64+": 415 },
+          "topPairs": [
+            { "pair": "242,242,242→0,0,0", "count": 22 },
+            { "pair": "242,242,242→232,232,232", "count": 15 },
+            { "pair": "53,53,53→0,0,0", "count": 14 },
+            { "pair": "0,0,0→214,214,214", "count": 13 },
+            { "pair": "212,212,212→242,242,242", "count": 12 },
+            { "pair": "242,242,242→27,27,27", "count": 11 },
+            { "pair": "115,115,115→0,0,0", "count": 11 },
+            { "pair": "103,103,103→107,107,107", "count": 10 }
+          ],
+          "examples": [
+            {
+              "x": 141,
+              "y": 21,
+              "canvas": [242, 242, 242],
+              "rac": [233, 233, 233]
+            },
+            {
+              "x": 142,
+              "y": 21,
+              "canvas": [242, 242, 242],
+              "rac": [180, 180, 180]
+            },
+            {
+              "x": 143,
+              "y": 21,
+              "canvas": [242, 242, 242],
+              "rac": [232, 232, 232]
+            },
+            {
+              "x": 77,
+              "y": 22,
+              "canvas": [242, 242, 242],
+              "rac": [201, 201, 201]
+            },
+            {
+              "x": 78,
+              "y": 22,
+              "canvas": [242, 242, 242],
+              "rac": [217, 217, 217]
+            },
+            {
+              "x": 100,
+              "y": 22,
+              "canvas": [242, 242, 242],
+              "rac": [201, 201, 201]
+            },
+            {
+              "x": 101,
+              "y": 22,
+              "canvas": [242, 242, 242],
+              "rac": [217, 217, 217]
+            },
+            {
+              "x": 105,
+              "y": 22,
+              "canvas": [242, 242, 242],
+              "rac": [109, 109, 109]
+            },
+            { "x": 106, "y": 22, "canvas": [242, 242, 242], "rac": [0, 0, 0] },
+            { "x": 107, "y": 22, "canvas": [242, 242, 242], "rac": [0, 0, 0] },
+            { "x": 108, "y": 22, "canvas": [242, 242, 242], "rac": [0, 0, 0] },
+            { "x": 109, "y": 22, "canvas": [242, 242, 242], "rac": [0, 0, 0] }
+          ]
+        },
+        "background": {
+          "pixels": 8739,
+          "different": 12,
+          "deltaBuckets": { "1-2": 7, "3-15": 5, "16-63": 0, "64+": 0 },
+          "topPairs": [
+            { "pair": "236,237,239→235,236,238", "count": 2 },
+            { "pair": "244,244,244→243,243,244", "count": 1 },
+            { "pair": "240,240,241→235,236,239", "count": 1 },
+            { "pair": "239,239,240→242,242,242", "count": 1 },
+            { "pair": "239,239,241→235,237,239", "count": 1 },
+            { "pair": "237,238,240→242,242,242", "count": 1 },
+            { "pair": "240,240,241→242,242,242", "count": 1 },
+            { "pair": "235,236,239→234,235,237", "count": 1 }
+          ],
+          "examples": [
+            {
+              "x": 2,
+              "y": 2,
+              "canvas": [244, 244, 244],
+              "rac": [243, 243, 244]
+            },
+            {
+              "x": 3,
+              "y": 2,
+              "canvas": [240, 240, 241],
+              "rac": [235, 236, 239]
+            },
+            {
+              "x": 156,
+              "y": 2,
+              "canvas": [239, 239, 240],
+              "rac": [242, 242, 242]
+            },
+            {
+              "x": 157,
+              "y": 2,
+              "canvas": [239, 239, 241],
+              "rac": [235, 237, 239]
+            },
+            {
+              "x": 2,
+              "y": 3,
+              "canvas": [237, 238, 240],
+              "rac": [242, 242, 242]
+            },
+            {
+              "x": 157,
+              "y": 3,
+              "canvas": [236, 237, 239],
+              "rac": [235, 236, 238]
+            },
+            {
+              "x": 2,
+              "y": 76,
+              "canvas": [240, 240, 241],
+              "rac": [242, 242, 242]
+            },
+            {
+              "x": 157,
+              "y": 76,
+              "canvas": [235, 236, 239],
+              "rac": [234, 235, 237]
+            },
+            {
+              "x": 2,
+              "y": 77,
+              "canvas": [240, 240, 242],
+              "rac": [241, 241, 243]
+            },
+            {
+              "x": 3,
+              "y": 77,
+              "canvas": [236, 237, 239],
+              "rac": [235, 236, 238]
+            },
+            {
+              "x": 156,
+              "y": 77,
+              "canvas": [234, 236, 238],
+              "rac": [235, 236, 238]
+            },
+            {
+              "x": 157,
+              "y": 77,
+              "canvas": [239, 239, 241],
+              "rac": [233, 235, 238]
+            }
+          ]
+        }
+      },
+      "textRoles": {
+        "name": {
+          "pixels": 1320,
+          "different": 390,
+          "topPairs": [
+            { "pair": "75,75,75→13,13,13", "count": 10 },
+            { "pair": "214,214,214→185,185,185", "count": 10 },
+            { "pair": "156,156,156→107,107,107", "count": 8 },
+            { "pair": "242,242,242→0,0,0", "count": 8 },
+            { "pair": "171,171,171→126,126,126", "count": 7 },
+            { "pair": "212,212,212→242,242,242", "count": 7 },
+            { "pair": "242,242,242→27,27,27", "count": 6 },
+            { "pair": "242,242,242→241,241,241", "count": 5 }
+          ],
+          "examples": [
+            {
+              "x": 77,
+              "y": 22,
+              "canvas": [242, 242, 242],
+              "rac": [201, 201, 201]
+            },
+            {
+              "x": 78,
+              "y": 22,
+              "canvas": [242, 242, 242],
+              "rac": [217, 217, 217]
+            },
+            {
+              "x": 100,
+              "y": 22,
+              "canvas": [242, 242, 242],
+              "rac": [201, 201, 201]
+            },
+            {
+              "x": 101,
+              "y": 22,
+              "canvas": [242, 242, 242],
+              "rac": [217, 217, 217]
+            },
+            {
+              "x": 77,
+              "y": 23,
+              "canvas": [242, 242, 242],
+              "rac": [13, 13, 13]
+            },
+            {
+              "x": 78,
+              "y": 23,
+              "canvas": [242, 242, 242],
+              "rac": [107, 107, 107]
+            },
+            {
+              "x": 100,
+              "y": 23,
+              "canvas": [242, 242, 242],
+              "rac": [13, 13, 13]
+            },
+            {
+              "x": 101,
+              "y": 23,
+              "canvas": [242, 242, 242],
+              "rac": [107, 107, 107]
+            },
+            {
+              "x": 53,
+              "y": 24,
+              "canvas": [242, 242, 242],
+              "rac": [241, 241, 241]
+            },
+            {
+              "x": 62,
+              "y": 24,
+              "canvas": [242, 242, 242],
+              "rac": [241, 241, 241]
+            },
+            {
+              "x": 71,
+              "y": 24,
+              "canvas": [242, 242, 242],
+              "rac": [241, 241, 241]
+            },
+            { "x": 77, "y": 24, "canvas": [75, 75, 75], "rac": [13, 13, 13] }
+          ]
+        },
+        "required": {
+          "pixels": 1221,
+          "different": 448,
+          "topPairs": [
+            { "pair": "242,242,242→232,232,232", "count": 15 },
+            { "pair": "242,242,242→0,0,0", "count": 14 },
+            { "pair": "115,115,115→0,0,0", "count": 11 },
+            { "pair": "103,103,103→107,107,107", "count": 10 },
+            { "pair": "53,53,53→0,0,0", "count": 10 },
+            { "pair": "0,0,0→214,214,214", "count": 9 },
+            { "pair": "153,153,153→36,36,36", "count": 8 },
+            { "pair": "124,124,124→0,0,0", "count": 7 }
+          ],
+          "examples": [
+            {
+              "x": 141,
+              "y": 21,
+              "canvas": [242, 242, 242],
+              "rac": [233, 233, 233]
+            },
+            {
+              "x": 142,
+              "y": 21,
+              "canvas": [242, 242, 242],
+              "rac": [180, 180, 180]
+            },
+            {
+              "x": 143,
+              "y": 21,
+              "canvas": [242, 242, 242],
+              "rac": [232, 232, 232]
+            },
+            {
+              "x": 105,
+              "y": 22,
+              "canvas": [242, 242, 242],
+              "rac": [109, 109, 109]
+            },
+            { "x": 106, "y": 22, "canvas": [242, 242, 242], "rac": [0, 0, 0] },
+            { "x": 107, "y": 22, "canvas": [242, 242, 242], "rac": [0, 0, 0] },
+            { "x": 108, "y": 22, "canvas": [242, 242, 242], "rac": [0, 0, 0] },
+            { "x": 109, "y": 22, "canvas": [242, 242, 242], "rac": [0, 0, 0] },
+            {
+              "x": 110,
+              "y": 22,
+              "canvas": [242, 242, 242],
+              "rac": [58, 58, 58]
+            },
+            {
+              "x": 111,
+              "y": 22,
+              "canvas": [242, 242, 242],
+              "rac": [124, 124, 124]
+            },
+            {
+              "x": 112,
+              "y": 22,
+              "canvas": [242, 242, 242],
+              "rac": [238, 238, 238]
+            },
+            {
+              "x": 141,
+              "y": 22,
+              "canvas": [242, 242, 242],
+              "rac": [140, 140, 140]
+            }
+          ]
+        },
+        "description": {
+          "pixels": 0,
+          "different": 0,
+          "topPairs": [],
+          "examples": []
+        },
+        "filled": {
+          "pixels": 0,
+          "different": 0,
+          "topPairs": [],
+          "examples": []
+        }
+      },
+      "mask": {
+        "definition": "Union of Canvas text DRAW dimensions at Rust layout positions and RAC DOM text element bounds; outer 2px border and icon union always excluded from text mask",
+        "canvasText": [
+          { "x": 49, "y": 17, "width": 54.9921875, "height": 24 },
+          { "x": 103.9921875, "y": 17, "width": 39.0078125, "height": 24 },
+          { "x": 49, "y": 41, "width": 94, "height": 0 }
+        ],
+        "domText": [
+          {
+            "x": 49,
+            "y": 17,
+            "width": 94,
+            "height": 24,
+            "fontFamily": "Pretendard, sans-serif",
+            "fontSize": "16px",
+            "lineHeight": "24px",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)"
+          },
+          {
+            "x": 104.171875,
+            "y": 19,
+            "width": 63.703125,
+            "height": 19,
+            "fontFamily": "Pretendard, sans-serif",
+            "fontSize": "16px",
+            "lineHeight": "24px",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)"
+          },
+          null,
+          null
+        ],
+        "iconBounds": [
+          { "x": 17, "y": 17, "width": 24, "height": 24 },
+          {
+            "x": 17,
+            "y": 17,
+            "width": 24,
+            "height": 24,
+            "fontFamily": "Pretendard, sans-serif",
+            "fontSize": "16px",
+            "lineHeight": "24px",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)"
+          }
+        ]
+      }
+    },
+    {
+      "size": "lg",
+      "state": "filled",
+      "width": 160,
+      "height": 80,
+      "sceneSha256": "d31714feafa3f62d1f10153c3096c9026b4bd6cba016cb5f7c153333bcdf9aed",
+      "racSha256": "622b470bce34bd5a38847e023cb8b25341ca47eee680d166a812d4f1558e5d75",
+      "rawDifferent": 587,
+      "totalPixels": 12800,
+      "textMaskPixels": 2400,
+      "textDifferent": 329,
+      "nontextDifferent": 258,
+      "nontextDenominator": 10400,
+      "nontextRatio": 0.02480769230769231,
+      "canvasTextCommands": [
+        {
+          "id": "project:node:slotlgfilled/project:node:textlgfilled::project:node:textlgfilled",
+          "x": 0,
+          "y": 0,
+          "width": 120,
+          "height": 20,
+          "fontSize": 16,
+          "lineHeight": 24,
+          "fontWeight": 400,
+          "content": "Filled"
+        }
+      ],
+      "filledInkBounds": {
+        "canvas": { "x": 18, "y": 23, "width": 35, "height": 12 },
+        "rac": { "x": 18, "y": 22, "width": 35, "height": 12 }
+      },
+      "l3Nontext": {
+        "method": "pixelmatch threshold 0.1; full aligned RGBA with existing text mask excluded from result and denominator",
+        "differentPixels": 0,
+        "denominator": 10400,
+        "diffRatio": 0,
+        "maxByte": 11,
+        "meanByte": 0.05454326923076923,
+        "changedBytes": 740,
+        "totalBytes": 41600,
+        "changedFraction": 0.017788461538461538,
+        "budget": { "maxDiffRatio": 0.001, "maxByte": 2 },
+        "budgetSource": "ADR-198 INITIAL_BUDGETS.nonText",
+        "verdict": "PASS_LOCAL_L3_NONTEXT_ONLY"
+      },
+      "l3eCornerBand": {
+        "widthCssPx": 3,
+        "verdict": "UNVERIFIED_NO_APPROVED_SLOT_BAND_RATIO_AND_MAXBYTE_BUDGET"
+      },
+      "borderEdges": { "top": 71, "right": 33, "bottom": 74, "left": 68 },
+      "heatmap": "248-phase3-slot-pixel-heatmap-lg-filled.png",
+      "categories": {
+        "border": {
+          "pixels": 944,
+          "different": 246,
+          "deltaBuckets": { "1-2": 103, "3-15": 143, "16-63": 0, "64+": 0 },
+          "topPairs": [
+            { "pair": "229,231,235→235,236,238", "count": 13 },
+            { "pair": "242,242,242→235,236,238", "count": 13 },
+            { "pair": "240,240,241→242,242,242", "count": 10 },
+            { "pair": "231,233,236→229,231,235", "count": 9 },
+            { "pair": "235,236,238→229,231,235", "count": 8 },
+            { "pair": "235,236,238→242,242,242", "count": 8 },
+            { "pair": "236,237,239→235,236,238", "count": 8 },
+            { "pair": "239,239,240→242,242,242", "count": 7 }
+          ],
+          "examples": [
+            {
+              "x": 4,
+              "y": 0,
+              "canvas": [250, 250, 250],
+              "rac": [249, 249, 250]
+            },
+            {
+              "x": 5,
+              "y": 0,
+              "canvas": [237, 238, 241],
+              "rac": [246, 246, 246]
+            },
+            {
+              "x": 6,
+              "y": 0,
+              "canvas": [240, 241, 242],
+              "rac": [245, 245, 245]
+            },
+            {
+              "x": 7,
+              "y": 0,
+              "canvas": [243, 243, 243],
+              "rac": [232, 233, 236]
+            },
+            {
+              "x": 17,
+              "y": 0,
+              "canvas": [241, 242, 242],
+              "rac": [242, 242, 242]
+            },
+            {
+              "x": 20,
+              "y": 0,
+              "canvas": [230, 232, 235],
+              "rac": [229, 231, 235]
+            },
+            {
+              "x": 22,
+              "y": 0,
+              "canvas": [241, 241, 242],
+              "rac": [242, 242, 242]
+            },
+            {
+              "x": 25,
+              "y": 0,
+              "canvas": [230, 232, 235],
+              "rac": [229, 231, 235]
+            },
+            {
+              "x": 27,
+              "y": 0,
+              "canvas": [241, 241, 241],
+              "rac": [242, 242, 242]
+            },
+            {
+              "x": 30,
+              "y": 0,
+              "canvas": [230, 232, 236],
+              "rac": [229, 231, 235]
+            },
+            {
+              "x": 32,
+              "y": 0,
+              "canvas": [241, 241, 241],
+              "rac": [242, 242, 242]
+            },
+            {
+              "x": 35,
+              "y": 0,
+              "canvas": [230, 232, 236],
+              "rac": [229, 231, 235]
+            }
+          ]
+        },
+        "icon": {
+          "pixels": 0,
+          "different": 0,
+          "deltaBuckets": { "1-2": 0, "3-15": 0, "16-63": 0, "64+": 0 },
+          "topPairs": [],
+          "examples": []
+        },
+        "text": {
+          "pixels": 2400,
+          "different": 329,
+          "deltaBuckets": { "1-2": 11, "3-15": 46, "16-63": 163, "64+": 109 },
+          "topPairs": [
+            { "pair": "242,242,242→239,239,239", "count": 34 },
+            { "pair": "53,53,53→0,0,0", "count": 30 },
+            { "pair": "171,171,171→126,126,126", "count": 27 },
+            { "pair": "242,242,242→0,0,0", "count": 14 },
+            { "pair": "103,103,103→40,40,40", "count": 10 },
+            { "pair": "165,165,165→120,120,120", "count": 10 },
+            { "pair": "0,0,0→145,145,145", "count": 5 },
+            { "pair": "190,190,190→242,242,242", "count": 5 }
+          ],
+          "examples": [
+            {
+              "x": 27,
+              "y": 21,
+              "canvas": [242, 242, 242],
+              "rac": [187, 187, 187]
+            },
+            {
+              "x": 28,
+              "y": 21,
+              "canvas": [242, 242, 242],
+              "rac": [219, 219, 219]
+            },
+            {
+              "x": 18,
+              "y": 22,
+              "canvas": [242, 242, 242],
+              "rac": [44, 44, 44]
+            },
+            { "x": 19, "y": 22, "canvas": [242, 242, 242], "rac": [0, 0, 0] },
+            { "x": 20, "y": 22, "canvas": [242, 242, 242], "rac": [0, 0, 0] },
+            { "x": 21, "y": 22, "canvas": [242, 242, 242], "rac": [0, 0, 0] },
+            { "x": 22, "y": 22, "canvas": [242, 242, 242], "rac": [0, 0, 0] },
+            { "x": 23, "y": 22, "canvas": [242, 242, 242], "rac": [0, 0, 0] },
+            { "x": 24, "y": 22, "canvas": [242, 242, 242], "rac": [0, 0, 0] },
+            {
+              "x": 25,
+              "y": 22,
+              "canvas": [242, 242, 242],
+              "rac": [209, 209, 209]
+            },
+            {
+              "x": 26,
+              "y": 22,
+              "canvas": [242, 242, 242],
+              "rac": [192, 192, 192]
+            },
+            { "x": 27, "y": 22, "canvas": [242, 242, 242], "rac": [0, 0, 0] }
+          ]
+        },
+        "background": {
+          "pixels": 9456,
+          "different": 12,
+          "deltaBuckets": { "1-2": 7, "3-15": 5, "16-63": 0, "64+": 0 },
+          "topPairs": [
+            { "pair": "236,237,239→235,236,238", "count": 2 },
+            { "pair": "244,244,244→243,243,244", "count": 1 },
+            { "pair": "240,240,241→235,236,239", "count": 1 },
+            { "pair": "239,239,240→242,242,242", "count": 1 },
+            { "pair": "239,239,241→235,237,239", "count": 1 },
+            { "pair": "237,238,240→242,242,242", "count": 1 },
+            { "pair": "240,240,241→242,242,242", "count": 1 },
+            { "pair": "235,236,239→234,235,237", "count": 1 }
+          ],
+          "examples": [
+            {
+              "x": 2,
+              "y": 2,
+              "canvas": [244, 244, 244],
+              "rac": [243, 243, 244]
+            },
+            {
+              "x": 3,
+              "y": 2,
+              "canvas": [240, 240, 241],
+              "rac": [235, 236, 239]
+            },
+            {
+              "x": 156,
+              "y": 2,
+              "canvas": [239, 239, 240],
+              "rac": [242, 242, 242]
+            },
+            {
+              "x": 157,
+              "y": 2,
+              "canvas": [239, 239, 241],
+              "rac": [235, 237, 239]
+            },
+            {
+              "x": 2,
+              "y": 3,
+              "canvas": [237, 238, 240],
+              "rac": [242, 242, 242]
+            },
+            {
+              "x": 157,
+              "y": 3,
+              "canvas": [236, 237, 239],
+              "rac": [235, 236, 238]
+            },
+            {
+              "x": 2,
+              "y": 76,
+              "canvas": [240, 240, 241],
+              "rac": [242, 242, 242]
+            },
+            {
+              "x": 157,
+              "y": 76,
+              "canvas": [235, 236, 239],
+              "rac": [234, 235, 237]
+            },
+            {
+              "x": 2,
+              "y": 77,
+              "canvas": [240, 240, 242],
+              "rac": [241, 241, 243]
+            },
+            {
+              "x": 3,
+              "y": 77,
+              "canvas": [236, 237, 239],
+              "rac": [235, 236, 238]
+            },
+            {
+              "x": 156,
+              "y": 77,
+              "canvas": [234, 236, 238],
+              "rac": [235, 236, 238]
+            },
+            {
+              "x": 157,
+              "y": 77,
+              "canvas": [239, 239, 241],
+              "rac": [233, 235, 238]
+            }
+          ]
+        }
+      },
+      "textRoles": {
+        "name": { "pixels": 0, "different": 0, "topPairs": [], "examples": [] },
+        "required": {
+          "pixels": 0,
+          "different": 0,
+          "topPairs": [],
+          "examples": []
+        },
+        "description": {
+          "pixels": 0,
+          "different": 0,
+          "topPairs": [],
+          "examples": []
+        },
+        "filled": {
+          "pixels": 2400,
+          "different": 329,
+          "topPairs": [
+            { "pair": "242,242,242→239,239,239", "count": 34 },
+            { "pair": "53,53,53→0,0,0", "count": 30 },
+            { "pair": "171,171,171→126,126,126", "count": 27 },
+            { "pair": "242,242,242→0,0,0", "count": 14 },
+            { "pair": "103,103,103→40,40,40", "count": 10 },
+            { "pair": "165,165,165→120,120,120", "count": 10 },
+            { "pair": "0,0,0→145,145,145", "count": 5 },
+            { "pair": "190,190,190→242,242,242", "count": 5 }
+          ],
+          "examples": [
+            {
+              "x": 27,
+              "y": 21,
+              "canvas": [242, 242, 242],
+              "rac": [187, 187, 187]
+            },
+            {
+              "x": 28,
+              "y": 21,
+              "canvas": [242, 242, 242],
+              "rac": [219, 219, 219]
+            },
+            {
+              "x": 18,
+              "y": 22,
+              "canvas": [242, 242, 242],
+              "rac": [44, 44, 44]
+            },
+            { "x": 19, "y": 22, "canvas": [242, 242, 242], "rac": [0, 0, 0] },
+            { "x": 20, "y": 22, "canvas": [242, 242, 242], "rac": [0, 0, 0] },
+            { "x": 21, "y": 22, "canvas": [242, 242, 242], "rac": [0, 0, 0] },
+            { "x": 22, "y": 22, "canvas": [242, 242, 242], "rac": [0, 0, 0] },
+            { "x": 23, "y": 22, "canvas": [242, 242, 242], "rac": [0, 0, 0] },
+            { "x": 24, "y": 22, "canvas": [242, 242, 242], "rac": [0, 0, 0] },
+            {
+              "x": 25,
+              "y": 22,
+              "canvas": [242, 242, 242],
+              "rac": [209, 209, 209]
+            },
+            {
+              "x": 26,
+              "y": 22,
+              "canvas": [242, 242, 242],
+              "rac": [192, 192, 192]
+            },
+            { "x": 27, "y": 22, "canvas": [242, 242, 242], "rac": [0, 0, 0] }
+          ]
+        }
+      },
+      "mask": {
+        "definition": "Union of Canvas text DRAW dimensions at Rust layout positions and RAC DOM text element bounds; outer 2px border and icon union always excluded from text mask",
+        "canvasText": [{ "x": 17, "y": 17, "width": 120, "height": 20 }],
+        "domText": [
+          null,
+          null,
+          null,
+          {
+            "x": 17,
+            "y": 17,
+            "width": 120,
+            "height": 20,
+            "fontFamily": "Pretendard, sans-serif",
+            "fontSize": "16px",
+            "lineHeight": "24px",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)"
+          }
+        ],
+        "iconBounds": [null, null]
+      }
+    },
+    {
+      "size": "lg",
+      "state": "description",
+      "width": 160,
+      "height": 106,
+      "sceneSha256": "1af7db06de6c6029ee43f287f2619d4503c1dc99b7d3e2eebde6902121a4692d",
+      "racSha256": "339a75cf9c1a3fb6e4daa9c52d1cbcb89f290ab15c225bd13e111237ad07d7a6",
+      "rawDifferent": 2004,
+      "totalPixels": 16960,
+      "textMaskPixels": 7053,
+      "textDifferent": 1739,
+      "nontextDifferent": 265,
+      "nontextDenominator": 9907,
+      "nontextRatio": 0.02674876350055516,
+      "canvasTextCommands": [
+        {
+          "id": "project:node:slotlgdescription::project:node:slotlgdescription::editor-name",
+          "x": 0,
+          "y": 0,
+          "width": 54.9921875,
+          "height": 24,
+          "fontSize": 16,
+          "lineHeight": 24,
+          "fontWeight": 400,
+          "content": "content"
+        },
+        {
+          "id": "project:node:slotlgdescription::project:node:slotlgdescription::editor-required",
+          "x": 0,
+          "y": 0,
+          "width": 39.0078125,
+          "height": 24,
+          "fontSize": 16,
+          "lineHeight": 24,
+          "fontWeight": 400,
+          "content": "Required"
+        },
+        {
+          "id": "project:node:slotlgdescription::project:node:slotlgdescription::editor-description",
+          "x": 0,
+          "y": 0,
+          "width": 94,
+          "height": 48,
+          "fontSize": 16,
+          "lineHeight": 24,
+          "fontWeight": 400,
+          "content": "Two line\nnote here"
+        }
+      ],
+      "filledInkBounds": null,
+      "l3Nontext": {
+        "method": "pixelmatch threshold 0.1; full aligned RGBA with existing text mask excluded from result and denominator",
+        "differentPixels": 5,
+        "denominator": 9907,
+        "diffRatio": 0.000504693650953871,
+        "maxByte": 95,
+        "meanByte": 0.09627031391945089,
+        "changedBytes": 744,
+        "totalBytes": 39628,
+        "changedFraction": 0.018774603815484,
+        "budget": { "maxDiffRatio": 0.001, "maxByte": 2 },
+        "budgetSource": "ADR-198 INITIAL_BUDGETS.nonText",
+        "verdict": "PASS_LOCAL_L3_NONTEXT_ONLY"
+      },
+      "l3eCornerBand": {
+        "widthCssPx": 3,
+        "verdict": "UNVERIFIED_NO_APPROVED_SLOT_BAND_RATIO_AND_MAXBYTE_BUDGET"
+      },
+      "borderEdges": { "top": 67, "right": 59, "bottom": 74, "left": 53 },
+      "heatmap": "248-phase3-slot-pixel-heatmap-lg-description.png",
+      "categories": {
+        "border": {
+          "pixels": 1048,
+          "different": 253,
+          "deltaBuckets": { "1-2": 98, "3-15": 148, "16-63": 4, "64+": 3 },
+          "topPairs": [
+            { "pair": "238,238,240→239,239,240", "count": 12 },
+            { "pair": "229,231,235→239,239,240", "count": 12 },
+            { "pair": "242,242,242→231,233,236", "count": 12 },
+            { "pair": "233,235,237→231,233,236", "count": 11 },
+            { "pair": "229,231,235→235,236,238", "count": 9 },
+            { "pair": "242,242,242→235,236,238", "count": 9 },
+            { "pair": "255,255,255→254,254,254", "count": 5 },
+            { "pair": "233,235,237→235,236,238", "count": 5 }
+          ],
+          "examples": [
+            {
+              "x": 4,
+              "y": 0,
+              "canvas": [250, 250, 250],
+              "rac": [249, 249, 250]
+            },
+            {
+              "x": 5,
+              "y": 0,
+              "canvas": [237, 238, 240],
+              "rac": [247, 247, 248]
+            },
+            {
+              "x": 6,
+              "y": 0,
+              "canvas": [240, 241, 242],
+              "rac": [245, 245, 245]
+            },
+            {
+              "x": 7,
+              "y": 0,
+              "canvas": [243, 243, 243],
+              "rac": [232, 233, 236]
+            },
+            {
+              "x": 18,
+              "y": 0,
+              "canvas": [229, 231, 235],
+              "rac": [229, 230, 234]
+            },
+            {
+              "x": 28,
+              "y": 0,
+              "canvas": [229, 231, 235],
+              "rac": [229, 230, 234]
+            },
+            {
+              "x": 33,
+              "y": 0,
+              "canvas": [229, 231, 235],
+              "rac": [229, 231, 234]
+            },
+            {
+              "x": 36,
+              "y": 0,
+              "canvas": [242, 242, 242],
+              "rac": [241, 241, 241]
+            },
+            {
+              "x": 38,
+              "y": 0,
+              "canvas": [229, 231, 235],
+              "rac": [230, 231, 235]
+            },
+            {
+              "x": 41,
+              "y": 0,
+              "canvas": [242, 242, 242],
+              "rac": [240, 241, 241]
+            },
+            {
+              "x": 43,
+              "y": 0,
+              "canvas": [229, 231, 235],
+              "rac": [230, 232, 235]
+            },
+            {
+              "x": 46,
+              "y": 0,
+              "canvas": [242, 242, 242],
+              "rac": [241, 241, 242]
+            }
+          ]
+        },
+        "icon": {
+          "pixels": 576,
+          "different": 1,
+          "deltaBuckets": { "1-2": 1, "3-15": 0, "16-63": 0, "64+": 0 },
+          "topPairs": [{ "pair": "85,85,85→86,86,86", "count": 1 }],
+          "examples": [
+            { "x": 20, "y": 62, "canvas": [85, 85, 85], "rac": [86, 86, 86] }
+          ]
+        },
+        "text": {
+          "pixels": 7053,
+          "different": 1739,
+          "deltaBuckets": { "1-2": 45, "3-15": 261, "16-63": 622, "64+": 811 },
+          "topPairs": [
+            { "pair": "242,242,242→239,239,239", "count": 57 },
+            { "pair": "53,53,53→0,0,0", "count": 57 },
+            { "pair": "242,242,242→0,0,0", "count": 49 },
+            { "pair": "171,171,171→126,126,126", "count": 33 },
+            { "pair": "0,0,0→214,214,214", "count": 33 },
+            { "pair": "212,212,212→242,242,242", "count": 23 },
+            { "pair": "242,242,242→190,190,190", "count": 20 },
+            { "pair": "242,242,242→241,241,241", "count": 17 }
+          ],
+          "examples": [
+            {
+              "x": 141,
+              "y": 21,
+              "canvas": [242, 242, 242],
+              "rac": [233, 233, 233]
+            },
+            {
+              "x": 142,
+              "y": 21,
+              "canvas": [242, 242, 242],
+              "rac": [180, 180, 180]
+            },
+            {
+              "x": 143,
+              "y": 21,
+              "canvas": [242, 242, 242],
+              "rac": [232, 232, 232]
+            },
+            {
+              "x": 77,
+              "y": 22,
+              "canvas": [242, 242, 242],
+              "rac": [201, 201, 201]
+            },
+            {
+              "x": 78,
+              "y": 22,
+              "canvas": [242, 242, 242],
+              "rac": [217, 217, 217]
+            },
+            {
+              "x": 100,
+              "y": 22,
+              "canvas": [242, 242, 242],
+              "rac": [201, 201, 201]
+            },
+            {
+              "x": 101,
+              "y": 22,
+              "canvas": [242, 242, 242],
+              "rac": [217, 217, 217]
+            },
+            {
+              "x": 105,
+              "y": 22,
+              "canvas": [242, 242, 242],
+              "rac": [109, 109, 109]
+            },
+            { "x": 106, "y": 22, "canvas": [242, 242, 242], "rac": [0, 0, 0] },
+            { "x": 107, "y": 22, "canvas": [242, 242, 242], "rac": [0, 0, 0] },
+            { "x": 108, "y": 22, "canvas": [242, 242, 242], "rac": [0, 0, 0] },
+            { "x": 109, "y": 22, "canvas": [242, 242, 242], "rac": [0, 0, 0] }
+          ]
+        },
+        "background": {
+          "pixels": 8283,
+          "different": 11,
+          "deltaBuckets": { "1-2": 6, "3-15": 5, "16-63": 0, "64+": 0 },
+          "topPairs": [
+            { "pair": "244,244,244→241,242,242", "count": 1 },
+            { "pair": "239,240,241→236,237,239", "count": 1 },
+            { "pair": "241,241,242→242,242,242", "count": 1 },
+            { "pair": "242,243,243→243,244,244", "count": 1 },
+            { "pair": "238,238,240→242,242,242", "count": 1 },
+            { "pair": "235,236,238→236,237,238", "count": 1 },
+            { "pair": "240,240,241→241,241,242", "count": 1 },
+            { "pair": "234,235,238→234,235,237", "count": 1 }
+          ],
+          "examples": [
+            {
+              "x": 2,
+              "y": 2,
+              "canvas": [244, 244, 244],
+              "rac": [241, 242, 242]
+            },
+            {
+              "x": 3,
+              "y": 2,
+              "canvas": [239, 240, 241],
+              "rac": [236, 237, 239]
+            },
+            {
+              "x": 156,
+              "y": 2,
+              "canvas": [241, 241, 242],
+              "rac": [242, 242, 242]
+            },
+            {
+              "x": 157,
+              "y": 2,
+              "canvas": [242, 243, 243],
+              "rac": [243, 244, 244]
+            },
+            {
+              "x": 2,
+              "y": 3,
+              "canvas": [238, 238, 240],
+              "rac": [242, 242, 242]
+            },
+            {
+              "x": 157,
+              "y": 3,
+              "canvas": [235, 236, 238],
+              "rac": [236, 237, 238]
+            },
+            {
+              "x": 2,
+              "y": 102,
+              "canvas": [240, 240, 241],
+              "rac": [241, 241, 242]
+            },
+            {
+              "x": 157,
+              "y": 102,
+              "canvas": [234, 235, 238],
+              "rac": [234, 235, 237]
+            },
+            {
+              "x": 2,
+              "y": 103,
+              "canvas": [238, 239, 240],
+              "rac": [234, 236, 238]
+            },
+            {
+              "x": 3,
+              "y": 103,
+              "canvas": [234, 235, 238],
+              "rac": [235, 236, 238]
+            },
+            {
+              "x": 157,
+              "y": 103,
+              "canvas": [239, 240, 241],
+              "rac": [233, 235, 238]
+            }
+          ]
+        }
+      },
+      "textRoles": {
+        "name": {
+          "pixels": 1320,
+          "different": 390,
+          "topPairs": [
+            { "pair": "75,75,75→13,13,13", "count": 10 },
+            { "pair": "214,214,214→185,185,185", "count": 10 },
+            { "pair": "156,156,156→107,107,107", "count": 8 },
+            { "pair": "242,242,242→0,0,0", "count": 8 },
+            { "pair": "171,171,171→126,126,126", "count": 7 },
+            { "pair": "212,212,212→242,242,242", "count": 7 },
+            { "pair": "242,242,242→27,27,27", "count": 6 },
+            { "pair": "242,242,242→241,241,241", "count": 5 }
+          ],
+          "examples": [
+            {
+              "x": 77,
+              "y": 22,
+              "canvas": [242, 242, 242],
+              "rac": [201, 201, 201]
+            },
+            {
+              "x": 78,
+              "y": 22,
+              "canvas": [242, 242, 242],
+              "rac": [217, 217, 217]
+            },
+            {
+              "x": 100,
+              "y": 22,
+              "canvas": [242, 242, 242],
+              "rac": [201, 201, 201]
+            },
+            {
+              "x": 101,
+              "y": 22,
+              "canvas": [242, 242, 242],
+              "rac": [217, 217, 217]
+            },
+            {
+              "x": 77,
+              "y": 23,
+              "canvas": [242, 242, 242],
+              "rac": [13, 13, 13]
+            },
+            {
+              "x": 78,
+              "y": 23,
+              "canvas": [242, 242, 242],
+              "rac": [107, 107, 107]
+            },
+            {
+              "x": 100,
+              "y": 23,
+              "canvas": [242, 242, 242],
+              "rac": [13, 13, 13]
+            },
+            {
+              "x": 101,
+              "y": 23,
+              "canvas": [242, 242, 242],
+              "rac": [107, 107, 107]
+            },
+            {
+              "x": 53,
+              "y": 24,
+              "canvas": [242, 242, 242],
+              "rac": [241, 241, 241]
+            },
+            {
+              "x": 62,
+              "y": 24,
+              "canvas": [242, 242, 242],
+              "rac": [241, 241, 241]
+            },
+            {
+              "x": 71,
+              "y": 24,
+              "canvas": [242, 242, 242],
+              "rac": [241, 241, 241]
+            },
+            { "x": 77, "y": 24, "canvas": [75, 75, 75], "rac": [13, 13, 13] }
+          ]
+        },
+        "required": {
+          "pixels": 1221,
+          "different": 448,
+          "topPairs": [
+            { "pair": "242,242,242→232,232,232", "count": 15 },
+            { "pair": "242,242,242→0,0,0", "count": 14 },
+            { "pair": "115,115,115→0,0,0", "count": 11 },
+            { "pair": "103,103,103→107,107,107", "count": 10 },
+            { "pair": "53,53,53→0,0,0", "count": 10 },
+            { "pair": "0,0,0→214,214,214", "count": 9 },
+            { "pair": "153,153,153→36,36,36", "count": 8 },
+            { "pair": "124,124,124→0,0,0", "count": 7 }
+          ],
+          "examples": [
+            {
+              "x": 141,
+              "y": 21,
+              "canvas": [242, 242, 242],
+              "rac": [233, 233, 233]
+            },
+            {
+              "x": 142,
+              "y": 21,
+              "canvas": [242, 242, 242],
+              "rac": [180, 180, 180]
+            },
+            {
+              "x": 143,
+              "y": 21,
+              "canvas": [242, 242, 242],
+              "rac": [232, 232, 232]
+            },
+            {
+              "x": 105,
+              "y": 22,
+              "canvas": [242, 242, 242],
+              "rac": [109, 109, 109]
+            },
+            { "x": 106, "y": 22, "canvas": [242, 242, 242], "rac": [0, 0, 0] },
+            { "x": 107, "y": 22, "canvas": [242, 242, 242], "rac": [0, 0, 0] },
+            { "x": 108, "y": 22, "canvas": [242, 242, 242], "rac": [0, 0, 0] },
+            { "x": 109, "y": 22, "canvas": [242, 242, 242], "rac": [0, 0, 0] },
+            {
+              "x": 110,
+              "y": 22,
+              "canvas": [242, 242, 242],
+              "rac": [58, 58, 58]
+            },
+            {
+              "x": 111,
+              "y": 22,
+              "canvas": [242, 242, 242],
+              "rac": [124, 124, 124]
+            },
+            {
+              "x": 112,
+              "y": 22,
+              "canvas": [242, 242, 242],
+              "rac": [238, 238, 238]
+            },
+            {
+              "x": 141,
+              "y": 22,
+              "canvas": [242, 242, 242],
+              "rac": [140, 140, 140]
+            }
+          ]
+        },
+        "description": {
+          "pixels": 4512,
+          "different": 901,
+          "topPairs": [
+            { "pair": "242,242,242→239,239,239", "count": 51 },
+            { "pair": "53,53,53→0,0,0", "count": 43 },
+            { "pair": "242,242,242→0,0,0", "count": 27 },
+            { "pair": "171,171,171→126,126,126", "count": 26 },
+            { "pair": "0,0,0→214,214,214", "count": 20 },
+            { "pair": "121,121,121→63,63,63", "count": 16 },
+            { "pair": "242,242,242→190,190,190", "count": 12 },
+            { "pair": "212,212,212→242,242,242", "count": 11 }
+          ],
+          "examples": [
+            {
+              "x": 87,
+              "y": 45,
+              "canvas": [242, 242, 242],
+              "rac": [220, 220, 220]
+            },
+            {
+              "x": 88,
+              "y": 45,
+              "canvas": [242, 242, 242],
+              "rac": [186, 186, 186]
+            },
+            {
+              "x": 49,
+              "y": 46,
+              "canvas": [242, 242, 242],
+              "rac": [140, 140, 140]
+            },
+            { "x": 50, "y": 46, "canvas": [242, 242, 242], "rac": [0, 0, 0] },
+            { "x": 51, "y": 46, "canvas": [242, 242, 242], "rac": [0, 0, 0] },
+            { "x": 52, "y": 46, "canvas": [242, 242, 242], "rac": [0, 0, 0] },
+            { "x": 53, "y": 46, "canvas": [242, 242, 242], "rac": [0, 0, 0] },
+            { "x": 54, "y": 46, "canvas": [242, 242, 242], "rac": [0, 0, 0] },
+            { "x": 55, "y": 46, "canvas": [242, 242, 242], "rac": [0, 0, 0] },
+            { "x": 56, "y": 46, "canvas": [242, 242, 242], "rac": [0, 0, 0] },
+            { "x": 57, "y": 46, "canvas": [242, 242, 242], "rac": [0, 0, 0] },
+            {
+              "x": 58,
+              "y": 46,
+              "canvas": [242, 242, 242],
+              "rac": [189, 189, 189]
+            }
+          ]
+        },
+        "filled": {
+          "pixels": 0,
+          "different": 0,
+          "topPairs": [],
+          "examples": []
+        }
+      },
+      "mask": {
+        "definition": "Union of Canvas text DRAW dimensions at Rust layout positions and RAC DOM text element bounds; outer 2px border and icon union always excluded from text mask",
+        "canvasText": [
+          { "x": 49, "y": 17, "width": 54.9921875, "height": 24 },
+          { "x": 103.9921875, "y": 17, "width": 39.0078125, "height": 24 },
+          { "x": 49, "y": 41, "width": 94, "height": 48 }
+        ],
+        "domText": [
+          {
+            "x": 49,
+            "y": 17,
+            "width": 94,
+            "height": 24,
+            "fontFamily": "Pretendard, sans-serif",
+            "fontSize": "16px",
+            "lineHeight": "24px",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)"
+          },
+          {
+            "x": 104.171875,
+            "y": 19,
+            "width": 63.703125,
+            "height": 19,
+            "fontFamily": "Pretendard, sans-serif",
+            "fontSize": "16px",
+            "lineHeight": "24px",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)"
+          },
+          {
+            "x": 49,
+            "y": 41,
+            "width": 94,
+            "height": 48,
+            "fontFamily": "Pretendard, sans-serif",
+            "fontSize": "16px",
+            "lineHeight": "24px",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)"
+          },
+          null
+        ],
+        "iconBounds": [
+          { "x": 17, "y": 41, "width": 24, "height": 24 },
+          {
+            "x": 17,
+            "y": 41,
+            "width": 24,
+            "height": 24,
+            "fontFamily": "Pretendard, sans-serif",
+            "fontSize": "16px",
+            "lineHeight": "24px",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)"
+          }
+        ]
+      }
+    }
+  ]
+}

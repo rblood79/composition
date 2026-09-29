@@ -1,0 +1,176 @@
+[
+  {
+    "fixture": "sample-minimal.pen",
+    "executionHead": "2a5c970994cb9de2f824a729b29c08cdcd647d7b",
+    "currentBuilderBuildIndexSha256": "d74d3e813c7b5820b91c196f2d32e8994d1e34ec5cc9dbdc3f675d39d3695cff",
+    "sourceSha256": "5b7bd7c5d264b7ea9efe99f3d4ef14f555d488aff076f4c450465636d43605db",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "dpr": 1,
+    "theme": "default-light",
+    "font": "app-default",
+    "seed": 248,
+    "sourceBytes": 276,
+    "originalInputCount": 2,
+    "originalGeometry": [
+      {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "baseline": 0
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 900,
+        "baseline": 900
+      }
+    ],
+    "supplementalPublicOperation": "patchNodeSizing width=200 height=120 on first page root",
+    "actualGeometry": {
+      "x": 0,
+      "y": 0,
+      "width": 200,
+      "height": 120,
+      "baseline": 120
+    },
+    "centerPixel": [
+      255,
+      255,
+      255,
+      255
+    ],
+    "regionNames": [],
+    "regionMarkup": [],
+    "canvasKitRenderBoxExecuted": true,
+    "oldVisualComparison": "UNVERIFIED: G0 Pencil oracle is external JSON interchange only"
+  },
+  {
+    "fixture": "sample-slots.pen",
+    "executionHead": "2a5c970994cb9de2f824a729b29c08cdcd647d7b",
+    "currentBuilderBuildIndexSha256": "d74d3e813c7b5820b91c196f2d32e8994d1e34ec5cc9dbdc3f675d39d3695cff",
+    "sourceSha256": "ad997b94cee69cadf72ddffc1d618482a516b225ee867dae677d2da79c79a85e",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "dpr": 1,
+    "theme": "default-light",
+    "font": "app-default",
+    "seed": 248,
+    "sourceBytes": 333,
+    "originalInputCount": 2,
+    "originalGeometry": [
+      {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "baseline": 0
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 900,
+        "baseline": 900
+      }
+    ],
+    "supplementalPublicOperation": "patchNodeSizing width=200 height=120 on first page root",
+    "actualGeometry": {
+      "x": 0,
+      "y": 0,
+      "width": 200,
+      "height": 120,
+      "baseline": 120
+    },
+    "centerPixel": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "regionNames": [
+      "title",
+      "actions"
+    ],
+    "regionMarkup": [
+      "<div class=\"react-aria-Slot\" data-slot-name=\"title\" data-slot-required=\"false\" data-empty=\"true\"><div class=\"react-aria-Slot-placeholder\"><div class=\"react-aria-Slot-icon\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"></rect><path d=\"M9 3v18\"></path><path d=\"M15 3v18\"></path><path d=\"M3 9h18\"></path><path d=\"M3 15h18\"></path></svg></div><div class=\"react-aria-Slot-info\"><span class=\"react-aria-Slot-name\">title</span></div></div></div>",
+      "<div class=\"react-aria-Slot\" data-slot-name=\"actions\" data-slot-required=\"false\" data-empty=\"true\"><div class=\"react-aria-Slot-placeholder\"><div class=\"react-aria-Slot-icon\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"></rect><path d=\"M9 3v18\"></path><path d=\"M15 3v18\"></path><path d=\"M3 9h18\"></path><path d=\"M3 15h18\"></path></svg></div><div class=\"react-aria-Slot-info\"><span class=\"react-aria-Slot-name\">actions</span></div></div></div>"
+    ],
+    "canvasKitRenderBoxExecuted": true,
+    "oldVisualComparison": "UNVERIFIED: G0 Pencil oracle is external JSON interchange only"
+  },
+  {
+    "fixture": "sample-ref.pen",
+    "executionHead": "2a5c970994cb9de2f824a729b29c08cdcd647d7b",
+    "currentBuilderBuildIndexSha256": "d74d3e813c7b5820b91c196f2d32e8994d1e34ec5cc9dbdc3f675d39d3695cff",
+    "sourceSha256": "adcce9226cda4cc64eb68c61b4f0e3e30c7f5886a353e325f45bdeb7e272d91a",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "dpr": 1,
+    "theme": "default-light",
+    "font": "app-default",
+    "seed": 248,
+    "sourceBytes": 237,
+    "originalInputCount": 4,
+    "originalGeometry": [
+      {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 900,
+        "baseline": 900
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 900,
+        "baseline": 900
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 900,
+        "baseline": 900
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 900,
+        "baseline": 900
+      }
+    ],
+    "supplementalPublicOperation": "patchNodeSizing width=200 height=120 on first page root",
+    "actualGeometry": {
+      "x": 0,
+      "y": 0,
+      "width": 200,
+      "height": 120,
+      "baseline": 120
+    },
+    "centerPixel": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "regionNames": [
+      "label"
+    ],
+    "regionMarkup": [
+      "<div class=\"react-aria-Slot\" data-slot-name=\"label\" data-slot-required=\"false\" data-empty=\"true\"><div class=\"react-aria-Slot-placeholder\"><div class=\"react-aria-Slot-icon\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"></rect><path d=\"M9 3v18\"></path><path d=\"M15 3v18\"></path><path d=\"M3 9h18\"></path><path d=\"M3 15h18\"></path></svg></div><div class=\"react-aria-Slot-info\"><span class=\"react-aria-Slot-name\">label</span></div></div></div>"
+    ],
+    "canvasKitRenderBoxExecuted": true,
+    "oldVisualComparison": "UNVERIFIED: G0 Pencil oracle is external JSON interchange only"
+  }
+]

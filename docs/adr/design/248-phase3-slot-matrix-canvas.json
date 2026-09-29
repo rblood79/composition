@@ -1,0 +1,1054 @@
+{
+  "head": "400d09eaeecd5dd258080d2af1e80f9bcd274fd7",
+  "scenarioId": "adr248-slot-typed-matrix-v1",
+  "scenarioHash": "15ed15da99b59e537f95e860f0cf97a2add58f1c218abc05e69299ec8937262b",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "dpr": 1,
+  "font": "Pretendard",
+  "fontSha256": "02b09ca630e4833028600a9f958b2f72f0289b9ccfd00d2df34780a7592f8d41",
+  "theme": "default-light",
+  "seed": 248,
+  "libraryRevision": "adr248-pencil-fixture-v3-slot-typed",
+  "rows": [
+    {
+      "size": "sm",
+      "state": "empty",
+      "visual": {
+        "minHeight": 40,
+        "padding": 8,
+        "gap": 4,
+        "iconGap": 8,
+        "iconSize": 24,
+        "fontSize": 12,
+        "lineHeight": 1.5,
+        "radius": 6,
+        "fill": "#e5e5e5",
+        "fillAlpha": 0.5,
+        "borderColor": "#e5e7eb",
+        "borderWidth": 1,
+        "borderStyle": "dashed"
+      },
+      "sizing": {
+        "width": 160
+      },
+      "geometry": {
+        "x": 10,
+        "y": 10,
+        "width": 160,
+        "height": 42,
+        "baseline": 42
+      },
+      "chrome": {
+        "id": "project:node:slotsmempty::project:node:slotsmempty::editor-placeholder",
+        "slotId": "project:node:slotsmempty::project:node:slotsmempty",
+        "iconId": "project:node:slotsmempty::project:node:slotsmempty::editor-icon",
+        "infoId": "project:node:slotsmempty::project:node:slotsmempty::editor-info",
+        "nameId": "project:node:slotsmempty::project:node:slotsmempty::editor-name",
+        "requiredId": "project:node:slotsmempty::project:node:slotsmempty::editor-required",
+        "descriptionId": "project:node:slotsmempty::project:node:slotsmempty::editor-description",
+        "name": "content",
+        "requiredLabel": "Required",
+        "descriptionLines": [],
+        "iconSize": 24,
+        "iconGap": 8,
+        "fontSize": 12,
+        "lineHeight": 1.5,
+        "contentWidth": 142,
+        "textWidth": 110,
+        "nameHeight": 18,
+        "nameWidth": 41.244140625,
+        "descriptionHeight": 0,
+        "height": 24
+      },
+      "chromeGeometry": {
+        "x": 9,
+        "y": 9,
+        "width": 142,
+        "height": 24,
+        "baseline": 24
+      },
+      "canvas": {
+        "png": "248-phase3-slot-matrix-sm-empty.png",
+        "scenePng": "248-phase3-slot-matrix-sm-empty-scene.png",
+        "nonwhite": 6700,
+        "textDraws": 2,
+        "filledTextPixelDiff": 0,
+        "overlayPixelDiff": 1106,
+        "chromePaintBounds": {
+          "icon": {
+            "x": 19,
+            "y": 19,
+            "width": 24,
+            "height": 24
+          },
+          "name": {
+            "x": 51,
+            "y": 22,
+            "width": 41.244140625,
+            "height": 18
+          },
+          "required": {
+            "x": 92.244140625,
+            "y": 22,
+            "width": 68.755859375,
+            "height": 18
+          },
+          "description": {
+            "x": 51,
+            "y": 40,
+            "width": 110,
+            "height": 0
+          }
+        },
+        "textPaintCommands": [
+          {
+            "id": "project:node:slotsmempty::project:node:slotsmempty::editor-name",
+            "x": 0,
+            "y": 0,
+            "width": 41.244140625,
+            "height": 18,
+            "fontSize": 12,
+            "lineHeight": 18,
+            "fontWeight": 400,
+            "content": "content"
+          },
+          {
+            "id": "project:node:slotsmempty::project:node:slotsmempty::editor-required",
+            "x": 0,
+            "y": 0,
+            "width": 68.755859375,
+            "height": 18,
+            "fontSize": 12,
+            "lineHeight": 18,
+            "fontWeight": 400,
+            "content": "Required"
+          }
+        ],
+        "chromeDarkPixels": {
+          "icon": 252,
+          "name": 79,
+          "required": 111,
+          "description": 0
+        },
+        "chromePaintCommands": []
+      },
+      "overlayTargets": [
+        {
+          "id": "project:node:slotsmempty::project:node:slotsmempty",
+          "bounds": {
+            "x": 18,
+            "y": 18,
+            "width": 144,
+            "height": 26
+          },
+          "role": "origin"
+        }
+      ],
+      "canvasPlaceholderIconNameRequiredDescription": "PAINT_COMMANDS_PRESENT"
+    },
+    {
+      "size": "sm",
+      "state": "filled",
+      "visual": {
+        "minHeight": 40,
+        "padding": 8,
+        "gap": 4,
+        "iconGap": 8,
+        "iconSize": 24,
+        "fontSize": 12,
+        "lineHeight": 1.5,
+        "radius": 6,
+        "fill": "#e5e5e5",
+        "fillAlpha": 0.5,
+        "borderColor": "#e5e7eb",
+        "borderWidth": 1,
+        "borderStyle": "dashed"
+      },
+      "sizing": {
+        "width": 160
+      },
+      "geometry": {
+        "x": 10,
+        "y": 10,
+        "width": 160,
+        "height": 40,
+        "baseline": 40
+      },
+      "canvas": {
+        "png": "248-phase3-slot-matrix-sm-filled.png",
+        "scenePng": "248-phase3-slot-matrix-sm-filled-scene.png",
+        "nonwhite": 6380,
+        "textDraws": 1,
+        "filledTextPixelDiff": 1409,
+        "overlayPixelDiff": 0,
+        "filledTextBounds": {
+          "x": 19,
+          "y": 19,
+          "width": 120,
+          "height": 20
+        },
+        "textPaintCommands": [
+          {
+            "id": "project:node:slotsmfilled/project:node:textsmfilled::project:node:textsmfilled",
+            "x": 0,
+            "y": 0,
+            "width": 120,
+            "height": 20,
+            "fontSize": 12,
+            "lineHeight": 18,
+            "fontWeight": 400,
+            "content": "Filled"
+          }
+        ],
+        "chromePaintCommands": []
+      },
+      "overlayTargets": [],
+      "canvasPlaceholderIconNameRequiredDescription": "NOT_APPLICABLE"
+    },
+    {
+      "size": "sm",
+      "state": "description",
+      "visual": {
+        "minHeight": 40,
+        "padding": 8,
+        "gap": 4,
+        "iconGap": 8,
+        "iconSize": 24,
+        "fontSize": 12,
+        "lineHeight": 1.5,
+        "radius": 6,
+        "fill": "#e5e5e5",
+        "fillAlpha": 0.5,
+        "borderColor": "#e5e7eb",
+        "borderWidth": 1,
+        "borderStyle": "dashed"
+      },
+      "sizing": {
+        "width": 160
+      },
+      "geometry": {
+        "x": 10,
+        "y": 10,
+        "width": 160,
+        "height": 54,
+        "baseline": 54
+      },
+      "chrome": {
+        "id": "project:node:slotsmdescription::project:node:slotsmdescription::editor-placeholder",
+        "slotId": "project:node:slotsmdescription::project:node:slotsmdescription",
+        "iconId": "project:node:slotsmdescription::project:node:slotsmdescription::editor-icon",
+        "infoId": "project:node:slotsmdescription::project:node:slotsmdescription::editor-info",
+        "nameId": "project:node:slotsmdescription::project:node:slotsmdescription::editor-name",
+        "requiredId": "project:node:slotsmdescription::project:node:slotsmdescription::editor-required",
+        "descriptionId": "project:node:slotsmdescription::project:node:slotsmdescription::editor-description",
+        "name": "content",
+        "requiredLabel": "Required",
+        "description": "Two line note here",
+        "descriptionLines": [
+          "Two line note here"
+        ],
+        "iconSize": 24,
+        "iconGap": 8,
+        "fontSize": 12,
+        "lineHeight": 1.5,
+        "contentWidth": 142,
+        "textWidth": 110,
+        "nameHeight": 18,
+        "nameWidth": 41.244140625,
+        "descriptionHeight": 18,
+        "height": 36
+      },
+      "chromeGeometry": {
+        "x": 9,
+        "y": 9,
+        "width": 142,
+        "height": 36,
+        "baseline": 36
+      },
+      "canvas": {
+        "png": "248-phase3-slot-matrix-sm-description.png",
+        "scenePng": "248-phase3-slot-matrix-sm-description-scene.png",
+        "nonwhite": 8620,
+        "textDraws": 3,
+        "filledTextPixelDiff": 0,
+        "overlayPixelDiff": 1368,
+        "chromePaintBounds": {
+          "icon": {
+            "x": 19,
+            "y": 25,
+            "width": 24,
+            "height": 24
+          },
+          "name": {
+            "x": 51,
+            "y": 19,
+            "width": 41.244140625,
+            "height": 18
+          },
+          "required": {
+            "x": 92.244140625,
+            "y": 19,
+            "width": 68.755859375,
+            "height": 18
+          },
+          "description": {
+            "x": 51,
+            "y": 37,
+            "width": 110,
+            "height": 18
+          }
+        },
+        "textPaintCommands": [
+          {
+            "id": "project:node:slotsmdescription::project:node:slotsmdescription::editor-name",
+            "x": 0,
+            "y": 0,
+            "width": 41.244140625,
+            "height": 18,
+            "fontSize": 12,
+            "lineHeight": 18,
+            "fontWeight": 400,
+            "content": "content"
+          },
+          {
+            "id": "project:node:slotsmdescription::project:node:slotsmdescription::editor-required",
+            "x": 0,
+            "y": 0,
+            "width": 68.755859375,
+            "height": 18,
+            "fontSize": 12,
+            "lineHeight": 18,
+            "fontWeight": 400,
+            "content": "Required"
+          },
+          {
+            "id": "project:node:slotsmdescription::project:node:slotsmdescription::editor-description",
+            "x": 0,
+            "y": 0,
+            "width": 110,
+            "height": 18,
+            "fontSize": 12,
+            "lineHeight": 18,
+            "fontWeight": 400,
+            "content": "Two line note here"
+          }
+        ],
+        "chromeDarkPixels": {
+          "icon": 252,
+          "name": 79,
+          "required": 111,
+          "description": 179
+        },
+        "chromePaintCommands": []
+      },
+      "overlayTargets": [
+        {
+          "id": "project:node:slotsmdescription::project:node:slotsmdescription",
+          "bounds": {
+            "x": 18,
+            "y": 18,
+            "width": 144,
+            "height": 38
+          },
+          "role": "origin"
+        }
+      ],
+      "canvasPlaceholderIconNameRequiredDescription": "PAINT_COMMANDS_PRESENT"
+    },
+    {
+      "size": "md",
+      "state": "empty",
+      "visual": {
+        "minHeight": 60,
+        "padding": 12,
+        "gap": 8,
+        "iconGap": 8,
+        "iconSize": 24,
+        "fontSize": 14,
+        "lineHeight": 1.5,
+        "radius": 6,
+        "fill": "#e5e5e5",
+        "fillAlpha": 0.5,
+        "borderColor": "#e5e7eb",
+        "borderWidth": 1,
+        "borderStyle": "dashed"
+      },
+      "sizing": {
+        "width": 160
+      },
+      "geometry": {
+        "x": 10,
+        "y": 10,
+        "width": 160,
+        "height": 60,
+        "baseline": 60
+      },
+      "chrome": {
+        "id": "project:node:slotmdempty::project:node:slotmdempty::editor-placeholder",
+        "slotId": "project:node:slotmdempty::project:node:slotmdempty",
+        "iconId": "project:node:slotmdempty::project:node:slotmdempty::editor-icon",
+        "infoId": "project:node:slotmdempty::project:node:slotmdempty::editor-info",
+        "nameId": "project:node:slotmdempty::project:node:slotmdempty::editor-name",
+        "requiredId": "project:node:slotmdempty::project:node:slotmdempty::editor-required",
+        "descriptionId": "project:node:slotmdempty::project:node:slotmdempty::editor-description",
+        "name": "content",
+        "requiredLabel": "Required",
+        "descriptionLines": [],
+        "iconSize": 24,
+        "iconGap": 8,
+        "fontSize": 14,
+        "lineHeight": 1.5,
+        "contentWidth": 134,
+        "textWidth": 102,
+        "nameHeight": 21,
+        "nameWidth": 48.1181640625,
+        "descriptionHeight": 0,
+        "height": 24
+      },
+      "chromeGeometry": {
+        "x": 13,
+        "y": 13,
+        "width": 134,
+        "height": 24,
+        "baseline": 24
+      },
+      "canvas": {
+        "png": "248-phase3-slot-matrix-md-empty.png",
+        "scenePng": "248-phase3-slot-matrix-md-empty-scene.png",
+        "nonwhite": 9580,
+        "textDraws": 2,
+        "filledTextPixelDiff": 0,
+        "overlayPixelDiff": 1258,
+        "chromePaintBounds": {
+          "icon": {
+            "x": 23,
+            "y": 23,
+            "width": 24,
+            "height": 24
+          },
+          "name": {
+            "x": 55,
+            "y": 24.5,
+            "width": 48.1181640625,
+            "height": 21
+          },
+          "required": {
+            "x": 103.1181640625,
+            "y": 24.5,
+            "width": 53.8818359375,
+            "height": 21
+          },
+          "description": {
+            "x": 55,
+            "y": 45.5,
+            "width": 102,
+            "height": 0
+          }
+        },
+        "textPaintCommands": [
+          {
+            "id": "project:node:slotmdempty::project:node:slotmdempty::editor-name",
+            "x": 0,
+            "y": 0,
+            "width": 48.1181640625,
+            "height": 21,
+            "fontSize": 14,
+            "lineHeight": 21,
+            "fontWeight": 400,
+            "content": "content"
+          },
+          {
+            "id": "project:node:slotmdempty::project:node:slotmdempty::editor-required",
+            "x": 0,
+            "y": 0,
+            "width": 53.8818359375,
+            "height": 21,
+            "fontSize": 14,
+            "lineHeight": 21,
+            "fontWeight": 400,
+            "content": "Required"
+          }
+        ],
+        "chromeDarkPixels": {
+          "icon": 252,
+          "name": 101,
+          "required": 133,
+          "description": 0
+        },
+        "chromePaintCommands": []
+      },
+      "overlayTargets": [
+        {
+          "id": "project:node:slotmdempty::project:node:slotmdempty",
+          "bounds": {
+            "x": 22,
+            "y": 22,
+            "width": 136,
+            "height": 36
+          },
+          "role": "origin"
+        }
+      ],
+      "canvasPlaceholderIconNameRequiredDescription": "PAINT_COMMANDS_PRESENT"
+    },
+    {
+      "size": "md",
+      "state": "filled",
+      "visual": {
+        "minHeight": 60,
+        "padding": 12,
+        "gap": 8,
+        "iconGap": 8,
+        "iconSize": 24,
+        "fontSize": 14,
+        "lineHeight": 1.5,
+        "radius": 6,
+        "fill": "#e5e5e5",
+        "fillAlpha": 0.5,
+        "borderColor": "#e5e7eb",
+        "borderWidth": 1,
+        "borderStyle": "dashed"
+      },
+      "sizing": {
+        "width": 160
+      },
+      "geometry": {
+        "x": 10,
+        "y": 10,
+        "width": 160,
+        "height": 60,
+        "baseline": 60
+      },
+      "canvas": {
+        "png": "248-phase3-slot-matrix-md-filled.png",
+        "scenePng": "248-phase3-slot-matrix-md-filled-scene.png",
+        "nonwhite": 9580,
+        "textDraws": 1,
+        "filledTextPixelDiff": 972,
+        "overlayPixelDiff": 0,
+        "filledTextBounds": {
+          "x": 23,
+          "y": 23,
+          "width": 120,
+          "height": 20
+        },
+        "textPaintCommands": [
+          {
+            "id": "project:node:slotmdfilled/project:node:textmdfilled::project:node:textmdfilled",
+            "x": 0,
+            "y": 0,
+            "width": 120,
+            "height": 20,
+            "fontSize": 14,
+            "lineHeight": 21,
+            "fontWeight": 400,
+            "content": "Filled"
+          }
+        ],
+        "chromePaintCommands": []
+      },
+      "overlayTargets": [],
+      "canvasPlaceholderIconNameRequiredDescription": "NOT_APPLICABLE"
+    },
+    {
+      "size": "md",
+      "state": "description",
+      "visual": {
+        "minHeight": 60,
+        "padding": 12,
+        "gap": 8,
+        "iconGap": 8,
+        "iconSize": 24,
+        "fontSize": 14,
+        "lineHeight": 1.5,
+        "radius": 6,
+        "fill": "#e5e5e5",
+        "fillAlpha": 0.5,
+        "borderColor": "#e5e7eb",
+        "borderWidth": 1,
+        "borderStyle": "dashed"
+      },
+      "sizing": {
+        "width": 160
+      },
+      "geometry": {
+        "x": 10,
+        "y": 10,
+        "width": 160,
+        "height": 89,
+        "baseline": 89
+      },
+      "chrome": {
+        "id": "project:node:slotmddescription::project:node:slotmddescription::editor-placeholder",
+        "slotId": "project:node:slotmddescription::project:node:slotmddescription",
+        "iconId": "project:node:slotmddescription::project:node:slotmddescription::editor-icon",
+        "infoId": "project:node:slotmddescription::project:node:slotmddescription::editor-info",
+        "nameId": "project:node:slotmddescription::project:node:slotmddescription::editor-name",
+        "requiredId": "project:node:slotmddescription::project:node:slotmddescription::editor-required",
+        "descriptionId": "project:node:slotmddescription::project:node:slotmddescription::editor-description",
+        "name": "content",
+        "requiredLabel": "Required",
+        "description": "Two line note here",
+        "descriptionLines": [
+          "Two line note",
+          "here"
+        ],
+        "iconSize": 24,
+        "iconGap": 8,
+        "fontSize": 14,
+        "lineHeight": 1.5,
+        "contentWidth": 134,
+        "textWidth": 102,
+        "nameHeight": 21,
+        "nameWidth": 48.1181640625,
+        "descriptionHeight": 42,
+        "height": 63
+      },
+      "chromeGeometry": {
+        "x": 13,
+        "y": 13,
+        "width": 134,
+        "height": 63,
+        "baseline": 63
+      },
+      "canvas": {
+        "png": "248-phase3-slot-matrix-md-description.png",
+        "scenePng": "248-phase3-slot-matrix-md-description-scene.png",
+        "nonwhite": 14220,
+        "textDraws": 3,
+        "filledTextPixelDiff": 0,
+        "overlayPixelDiff": 1860,
+        "chromePaintBounds": {
+          "icon": {
+            "x": 23,
+            "y": 43,
+            "width": 24,
+            "height": 24
+          },
+          "name": {
+            "x": 55,
+            "y": 23,
+            "width": 48.1181640625,
+            "height": 21
+          },
+          "required": {
+            "x": 103.1181640625,
+            "y": 23,
+            "width": 53.8818359375,
+            "height": 21
+          },
+          "description": {
+            "x": 55,
+            "y": 44,
+            "width": 102,
+            "height": 42
+          }
+        },
+        "textPaintCommands": [
+          {
+            "id": "project:node:slotmddescription::project:node:slotmddescription::editor-name",
+            "x": 0,
+            "y": 0,
+            "width": 48.1181640625,
+            "height": 21,
+            "fontSize": 14,
+            "lineHeight": 21,
+            "fontWeight": 400,
+            "content": "content"
+          },
+          {
+            "id": "project:node:slotmddescription::project:node:slotmddescription::editor-required",
+            "x": 0,
+            "y": 0,
+            "width": 53.8818359375,
+            "height": 21,
+            "fontSize": 14,
+            "lineHeight": 21,
+            "fontWeight": 400,
+            "content": "Required"
+          },
+          {
+            "id": "project:node:slotmddescription::project:node:slotmddescription::editor-description",
+            "x": 0,
+            "y": 0,
+            "width": 102,
+            "height": 42,
+            "fontSize": 14,
+            "lineHeight": 21,
+            "fontWeight": 400,
+            "content": "Two line note\nhere"
+          }
+        ],
+        "chromeDarkPixels": {
+          "icon": 252,
+          "name": 101,
+          "required": 133,
+          "description": 252
+        },
+        "chromePaintCommands": []
+      },
+      "overlayTargets": [
+        {
+          "id": "project:node:slotmddescription::project:node:slotmddescription",
+          "bounds": {
+            "x": 22,
+            "y": 22,
+            "width": 136,
+            "height": 65
+          },
+          "role": "origin"
+        }
+      ],
+      "canvasPlaceholderIconNameRequiredDescription": "PAINT_COMMANDS_PRESENT"
+    },
+    {
+      "size": "lg",
+      "state": "empty",
+      "visual": {
+        "minHeight": 80,
+        "padding": 16,
+        "gap": 12,
+        "iconGap": 8,
+        "iconSize": 24,
+        "fontSize": 16,
+        "lineHeight": 1.5,
+        "radius": 8,
+        "fill": "#e5e5e5",
+        "fillAlpha": 0.5,
+        "borderColor": "#e5e7eb",
+        "borderWidth": 1,
+        "borderStyle": "dashed"
+      },
+      "sizing": {
+        "width": 160
+      },
+      "geometry": {
+        "x": 10,
+        "y": 10,
+        "width": 160,
+        "height": 80,
+        "baseline": 80
+      },
+      "chrome": {
+        "id": "project:node:slotlgempty::project:node:slotlgempty::editor-placeholder",
+        "slotId": "project:node:slotlgempty::project:node:slotlgempty",
+        "iconId": "project:node:slotlgempty::project:node:slotlgempty::editor-icon",
+        "infoId": "project:node:slotlgempty::project:node:slotlgempty::editor-info",
+        "nameId": "project:node:slotlgempty::project:node:slotlgempty::editor-name",
+        "requiredId": "project:node:slotlgempty::project:node:slotlgempty::editor-required",
+        "descriptionId": "project:node:slotlgempty::project:node:slotlgempty::editor-description",
+        "name": "content",
+        "requiredLabel": "Required",
+        "descriptionLines": [],
+        "iconSize": 24,
+        "iconGap": 8,
+        "fontSize": 16,
+        "lineHeight": 1.5,
+        "contentWidth": 126,
+        "textWidth": 94,
+        "nameHeight": 24,
+        "nameWidth": 54.9921875,
+        "descriptionHeight": 0,
+        "height": 24
+      },
+      "chromeGeometry": {
+        "x": 17,
+        "y": 17,
+        "width": 126,
+        "height": 24,
+        "baseline": 24
+      },
+      "canvas": {
+        "png": "248-phase3-slot-matrix-lg-empty.png",
+        "scenePng": "248-phase3-slot-matrix-lg-empty-scene.png",
+        "nonwhite": 12816,
+        "textDraws": 2,
+        "filledTextPixelDiff": 0,
+        "overlayPixelDiff": 1430,
+        "chromePaintBounds": {
+          "icon": {
+            "x": 27,
+            "y": 27,
+            "width": 24,
+            "height": 24
+          },
+          "name": {
+            "x": 59,
+            "y": 27,
+            "width": 54.9921875,
+            "height": 24
+          },
+          "required": {
+            "x": 113.9921875,
+            "y": 27,
+            "width": 39.0078125,
+            "height": 24
+          },
+          "description": {
+            "x": 59,
+            "y": 51,
+            "width": 94,
+            "height": 0
+          }
+        },
+        "textPaintCommands": [
+          {
+            "id": "project:node:slotlgempty::project:node:slotlgempty::editor-name",
+            "x": 0,
+            "y": 0,
+            "width": 54.9921875,
+            "height": 24,
+            "fontSize": 16,
+            "lineHeight": 24,
+            "fontWeight": 400,
+            "content": "content"
+          },
+          {
+            "id": "project:node:slotlgempty::project:node:slotlgempty::editor-required",
+            "x": 0,
+            "y": 0,
+            "width": 39.0078125,
+            "height": 24,
+            "fontSize": 16,
+            "lineHeight": 24,
+            "fontWeight": 400,
+            "content": "Required"
+          }
+        ],
+        "chromeDarkPixels": {
+          "icon": 252,
+          "name": 139,
+          "required": 128,
+          "description": 0
+        },
+        "chromePaintCommands": []
+      },
+      "overlayTargets": [
+        {
+          "id": "project:node:slotlgempty::project:node:slotlgempty",
+          "bounds": {
+            "x": 26,
+            "y": 26,
+            "width": 128,
+            "height": 48
+          },
+          "role": "origin"
+        }
+      ],
+      "canvasPlaceholderIconNameRequiredDescription": "PAINT_COMMANDS_PRESENT"
+    },
+    {
+      "size": "lg",
+      "state": "filled",
+      "visual": {
+        "minHeight": 80,
+        "padding": 16,
+        "gap": 12,
+        "iconGap": 8,
+        "iconSize": 24,
+        "fontSize": 16,
+        "lineHeight": 1.5,
+        "radius": 8,
+        "fill": "#e5e5e5",
+        "fillAlpha": 0.5,
+        "borderColor": "#e5e7eb",
+        "borderWidth": 1,
+        "borderStyle": "dashed"
+      },
+      "sizing": {
+        "width": 160
+      },
+      "geometry": {
+        "x": 10,
+        "y": 10,
+        "width": 160,
+        "height": 80,
+        "baseline": 80
+      },
+      "canvas": {
+        "png": "248-phase3-slot-matrix-lg-filled.png",
+        "scenePng": "248-phase3-slot-matrix-lg-filled-scene.png",
+        "nonwhite": 12762,
+        "textDraws": 1,
+        "filledTextPixelDiff": 1147,
+        "overlayPixelDiff": 0,
+        "filledTextBounds": {
+          "x": 27,
+          "y": 27,
+          "width": 120,
+          "height": 20
+        },
+        "textPaintCommands": [
+          {
+            "id": "project:node:slotlgfilled/project:node:textlgfilled::project:node:textlgfilled",
+            "x": 0,
+            "y": 0,
+            "width": 120,
+            "height": 20,
+            "fontSize": 16,
+            "lineHeight": 24,
+            "fontWeight": 400,
+            "content": "Filled"
+          }
+        ],
+        "chromePaintCommands": []
+      },
+      "overlayTargets": [],
+      "canvasPlaceholderIconNameRequiredDescription": "NOT_APPLICABLE"
+    },
+    {
+      "size": "lg",
+      "state": "description",
+      "visual": {
+        "minHeight": 80,
+        "padding": 16,
+        "gap": 12,
+        "iconGap": 8,
+        "iconSize": 24,
+        "fontSize": 16,
+        "lineHeight": 1.5,
+        "radius": 8,
+        "fill": "#e5e5e5",
+        "fillAlpha": 0.5,
+        "borderColor": "#e5e7eb",
+        "borderWidth": 1,
+        "borderStyle": "dashed"
+      },
+      "sizing": {
+        "width": 160
+      },
+      "geometry": {
+        "x": 10,
+        "y": 10,
+        "width": 160,
+        "height": 106,
+        "baseline": 106
+      },
+      "chrome": {
+        "id": "project:node:slotlgdescription::project:node:slotlgdescription::editor-placeholder",
+        "slotId": "project:node:slotlgdescription::project:node:slotlgdescription",
+        "iconId": "project:node:slotlgdescription::project:node:slotlgdescription::editor-icon",
+        "infoId": "project:node:slotlgdescription::project:node:slotlgdescription::editor-info",
+        "nameId": "project:node:slotlgdescription::project:node:slotlgdescription::editor-name",
+        "requiredId": "project:node:slotlgdescription::project:node:slotlgdescription::editor-required",
+        "descriptionId": "project:node:slotlgdescription::project:node:slotlgdescription::editor-description",
+        "name": "content",
+        "requiredLabel": "Required",
+        "description": "Two line note here",
+        "descriptionLines": [
+          "Two line",
+          "note here"
+        ],
+        "iconSize": 24,
+        "iconGap": 8,
+        "fontSize": 16,
+        "lineHeight": 1.5,
+        "contentWidth": 126,
+        "textWidth": 94,
+        "nameHeight": 24,
+        "nameWidth": 54.9921875,
+        "descriptionHeight": 48,
+        "height": 72
+      },
+      "chromeGeometry": {
+        "x": 17,
+        "y": 17,
+        "width": 126,
+        "height": 72,
+        "baseline": 72
+      },
+      "canvas": {
+        "png": "248-phase3-slot-matrix-lg-description.png",
+        "scenePng": "248-phase3-slot-matrix-lg-description-scene.png",
+        "nonwhite": 16976,
+        "textDraws": 3,
+        "filledTextPixelDiff": 0,
+        "overlayPixelDiff": 1942,
+        "chromePaintBounds": {
+          "icon": {
+            "x": 27,
+            "y": 51,
+            "width": 24,
+            "height": 24
+          },
+          "name": {
+            "x": 59,
+            "y": 27,
+            "width": 54.9921875,
+            "height": 24
+          },
+          "required": {
+            "x": 113.9921875,
+            "y": 27,
+            "width": 39.0078125,
+            "height": 24
+          },
+          "description": {
+            "x": 59,
+            "y": 51,
+            "width": 94,
+            "height": 48
+          }
+        },
+        "textPaintCommands": [
+          {
+            "id": "project:node:slotlgdescription::project:node:slotlgdescription::editor-name",
+            "x": 0,
+            "y": 0,
+            "width": 54.9921875,
+            "height": 24,
+            "fontSize": 16,
+            "lineHeight": 24,
+            "fontWeight": 400,
+            "content": "content"
+          },
+          {
+            "id": "project:node:slotlgdescription::project:node:slotlgdescription::editor-required",
+            "x": 0,
+            "y": 0,
+            "width": 39.0078125,
+            "height": 24,
+            "fontSize": 16,
+            "lineHeight": 24,
+            "fontWeight": 400,
+            "content": "Required"
+          },
+          {
+            "id": "project:node:slotlgdescription::project:node:slotlgdescription::editor-description",
+            "x": 0,
+            "y": 0,
+            "width": 94,
+            "height": 48,
+            "fontSize": 16,
+            "lineHeight": 24,
+            "fontWeight": 400,
+            "content": "Two line\nnote here"
+          }
+        ],
+        "chromeDarkPixels": {
+          "icon": 252,
+          "name": 139,
+          "required": 128,
+          "description": 304
+        },
+        "chromePaintCommands": []
+      },
+      "overlayTargets": [
+        {
+          "id": "project:node:slotlgdescription::project:node:slotlgdescription",
+          "bounds": {
+            "x": 26,
+            "y": 26,
+            "width": 128,
+            "height": 74
+          },
+          "role": "origin"
+        }
+      ],
+      "canvasPlaceholderIconNameRequiredDescription": "PAINT_COMMANDS_PRESENT"
+    }
+  ]
+}

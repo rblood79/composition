@@ -174,6 +174,8 @@ export interface SkiaNodeData {
   transform?: Float32Array;
   clipPath?: ClipPathShape;
   clipChildren?: boolean;
+  /** Opt-in child clip inset. Existing Builder node builders leave this unset. */
+  clipBorderInset?: number;
   scrollOffset?: { scrollTop: number; scrollLeft: number };
   scrollbar?: {
     vertical?: { trackHeight: number; thumbHeight: number; thumbY: number };

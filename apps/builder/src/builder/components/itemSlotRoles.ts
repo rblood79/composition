@@ -117,6 +117,11 @@ const ROLE_CHILD_SHAPE: Partial<
     name: "Shortcut",
     props: { children: "{shortcut}" },
   },
+  separator: {
+    type: "Icon",
+    name: "Separator",
+    props: { iconName: "chevron-right" },
+  },
 };
 
 /** seed 의 역할 자식 `metadata.type` (`*TemplateOrigins`). */
@@ -125,6 +130,7 @@ const ROLE_CHILD_METADATA_TYPE: Readonly<Record<string, string>> = {
   MenuItem: "menu-item-slot",
   GridListItem: "gridlist-item-slot",
   Tag: "tag-item-slot",
+  Breadcrumb: "breadcrumb-item-slot",
 };
 
 /** 역할 자식 표시 순서 = 표 순서 — 새 역할 자식을 넣을 index (origin 자식 배열 기준). */

@@ -21,7 +21,7 @@
   border-radius: var(--radius-md);
   line-height: var(--text-sm--line-height);
   border-width: var(--border-width-none);
-  --icon-size: 16px;
+  --icon-size: 18px;
 }
 
 .react-aria-Disclosure[data-size="sm"] {
@@ -37,7 +37,7 @@
   border-radius: var(--radius-md);
   line-height: var(--text-sm--line-height);
   border-width: var(--border-width-none);
-  --icon-size: 16px;
+  --icon-size: 18px;
 }
 
 .react-aria-Disclosure[data-size="lg"] {

@@ -378,16 +378,16 @@
     },
     "breadcrumb @absent": {
       "height": 24,
-      "width": 64,
+      "width": 58,
       "leafBaseline": 16.8
     },
     "breadcrumb @auto": {
-      "width": 64,
+      "width": 58,
       "height": 24,
       "leafBaseline": 16.8
     },
     "breadcrumb @fit-content": {
-      "width": 64,
+      "width": 58,
       "height": 24,
       "leafBaseline": 16.8
     },

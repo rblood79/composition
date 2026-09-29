@@ -1,0 +1,122 @@
+{
+  "head": "2a5c970994cb9de2f824a729b29c08cdcd647d7b",
+  "scenarioId": "adr248-slot-typed-matrix-v1",
+  "scenarioHash": "15ed15da99b59e537f95e860f0cf97a2add58f1c218abc05e69299ec8937262b",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "dpr": 1,
+  "font": "PretendardVariable.ttf",
+  "theme": "default-light",
+  "description": "Two line note here",
+  "capture": {
+    "domCssWidth": 160,
+    "vitestLocatorPngWidth": 160,
+    "physicalDpr": 1,
+    "pixelVerdict": "FAIL_ACTUAL_PIXEL_DIFFERENCE",
+    "reason": "Vitest outer iframe host transform scale(0.8) was disabled only during locator capture and restored; raw capture is 160 physical px for 160 CSS px, without image resampling",
+    "sceneOnly": true
+  },
+  "rows": [
+    {
+      "size": "sm",
+      "state": "empty",
+      "rustHeight": 42,
+      "domHeight": 42,
+      "descriptionHeight": 0,
+      "canvasDomDifferentPixels": 759,
+      "pixelRatio": 0.11294642857142857,
+      "pixelVerdict": "FAIL_ACTUAL_PIXEL_DIFFERENCE",
+      "screenshot": "248-phase3-slot-matrix-dom/sm-empty.png"
+    },
+    {
+      "size": "sm",
+      "state": "filled",
+      "rustHeight": 40,
+      "domHeight": 40,
+      "descriptionHeight": 0,
+      "canvasDomDifferentPixels": 500,
+      "pixelRatio": 0.078125,
+      "pixelVerdict": "FAIL_ACTUAL_PIXEL_DIFFERENCE",
+      "screenshot": "248-phase3-slot-matrix-dom/sm-filled.png"
+    },
+    {
+      "size": "sm",
+      "state": "description",
+      "rustHeight": 54,
+      "domHeight": 54,
+      "descriptionHeight": 18,
+      "canvasDomDifferentPixels": 1337,
+      "pixelRatio": 0.15474537037037037,
+      "pixelVerdict": "FAIL_ACTUAL_PIXEL_DIFFERENCE",
+      "screenshot": "248-phase3-slot-matrix-dom/sm-description.png"
+    },
+    {
+      "size": "md",
+      "state": "empty",
+      "rustHeight": 60,
+      "domHeight": 60,
+      "descriptionHeight": 0,
+      "canvasDomDifferentPixels": 1009,
+      "pixelRatio": 0.10510416666666667,
+      "pixelVerdict": "FAIL_ACTUAL_PIXEL_DIFFERENCE",
+      "screenshot": "248-phase3-slot-matrix-dom/md-empty.png"
+    },
+    {
+      "size": "md",
+      "state": "filled",
+      "rustHeight": 60,
+      "domHeight": 60,
+      "descriptionHeight": 0,
+      "canvasDomDifferentPixels": 590,
+      "pixelRatio": 0.06145833333333333,
+      "pixelVerdict": "FAIL_ACTUAL_PIXEL_DIFFERENCE",
+      "screenshot": "248-phase3-slot-matrix-dom/md-filled.png"
+    },
+    {
+      "size": "md",
+      "state": "description",
+      "rustHeight": 89,
+      "domHeight": 89,
+      "descriptionHeight": 42,
+      "canvasDomDifferentPixels": 1583,
+      "pixelRatio": 0.11116573033707865,
+      "pixelVerdict": "FAIL_ACTUAL_PIXEL_DIFFERENCE",
+      "screenshot": "248-phase3-slot-matrix-dom/md-description.png"
+    },
+    {
+      "size": "lg",
+      "state": "empty",
+      "rustHeight": 80,
+      "domHeight": 80,
+      "descriptionHeight": 0,
+      "canvasDomDifferentPixels": 1106,
+      "pixelRatio": 0.08640625,
+      "pixelVerdict": "FAIL_ACTUAL_PIXEL_DIFFERENCE",
+      "screenshot": "248-phase3-slot-matrix-dom/lg-empty.png"
+    },
+    {
+      "size": "lg",
+      "state": "filled",
+      "rustHeight": 80,
+      "domHeight": 80,
+      "descriptionHeight": 0,
+      "canvasDomDifferentPixels": 587,
+      "pixelRatio": 0.045859375,
+      "pixelVerdict": "FAIL_ACTUAL_PIXEL_DIFFERENCE",
+      "screenshot": "248-phase3-slot-matrix-dom/lg-filled.png"
+    },
+    {
+      "size": "lg",
+      "state": "description",
+      "rustHeight": 106,
+      "domHeight": 106,
+      "descriptionHeight": 48,
+      "canvasDomDifferentPixels": 2004,
+      "pixelRatio": 0.11816037735849057,
+      "pixelVerdict": "FAIL_ACTUAL_PIXEL_DIFFERENCE",
+      "screenshot": "248-phase3-slot-matrix-dom/lg-description.png"
+    }
+  ]
+}

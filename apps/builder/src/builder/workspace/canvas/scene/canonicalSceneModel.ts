@@ -1,8 +1,9 @@
-import type {
-  BreakpointName,
-  CanonicalNode,
-  CompositionDocument,
-  VariableDef,
+import {
+  getSlotRole,
+  type BreakpointName,
+  type CanonicalNode,
+  type CompositionDocument,
+  type VariableDef,
 } from "@composition/shared";
 
 import { canonicalDocumentToFrameElementScopes } from "../../../../adapters/canonical/frameElementScope";
@@ -12,6 +13,7 @@ import {
   type LeafRefResolution,
 } from "../../../utils/canonicalRefResolution";
 import type { PageElementIndex } from "../../../stores/utils/elementIndexer";
+import { readForcedVariantStates } from "../../../components/stateVariantLayers";
 import {
   type CanvasSceneGraph,
   appendRefInstanceChildProjections,
@@ -197,16 +199,42 @@ function resolveSceneGraph(
   appendStaticTagShowAllChips(pruned);
   // ADR-234 후속: 정적 Tag 의 allowsRemoving X (DOM 은 RAC 가 넣는 remove 버튼).
   appendStaticTagRemoveButtons(pruned);
-  // ADR-237 G5: 정적 Breadcrumb 자식에 projection 과 같은 표시 입력 (`_isLast` · `_separator` · size).
+  // ADR-237 G5: 정적 Breadcrumb 자식에 projection 과 같은 표시 입력 (`_isLast` · size).
   annotateStaticBreadcrumbItems(pruned);
   // ADR-238 Phase 3: Select · ComboBox 정적 항목 → owner `_staticItems` (트리거 표시 글자).
   annotateStaticPickerItems(pruned);
   // ADR-238 G4: popover 내용 (Select · ComboBox 항목 · Menu 항목) 은 Canvas 가 그리지도 배치하지도 않는다 — 주석 뒤
   //   scene 에서 뺀다 (남기면 scene 서명 · 인덱스가 항목 수에 비례해 커진다).
+  // 2026-09-29: 현재 Breadcrumb 조각의 구분자 Icon 도 뺀다 (`_isLast` 주석 뒤).
   return markPopoverContentOwners(
-    prunePopoverContentSceneNodes(pruned),
+    prunePopoverContentSceneNodes(pruneCurrentBreadcrumbSeparators(pruned)),
     documentNodesById,
   );
+}
+
+/**
+ * 2026-09-29 — Breadcrumb 조각의 구분자 Icon 자식 (slot 역할 `separator`) 은 현재 조각에서 그리지 않는다: DOM
+ * shared `Breadcrumb` 이 RAC `isCurrent` (마지막 조각 · Components 페이지의 단독 `--current` 변형) 일 때 빼는 것과
+ * 같다. 노드는 문서에 남고 (편집 대상) scene (paint · layout · hit test) 에서만 빠진다.
+ */
+export function pruneCurrentBreadcrumbSeparators(
+  graph: CanvasSceneGraph,
+): CanvasSceneGraph {
+  const roots: string[] = [];
+  for (const node of graph.nodes) {
+    if (node.type !== "Breadcrumb") continue;
+    const props = (node.props ?? {}) as Record<string, unknown>;
+    if (
+      props._isLast !== true &&
+      readForcedVariantStates(node)?.current !== true
+    ) {
+      continue;
+    }
+    for (const child of graph.childrenByParent.get(node.id) ?? []) {
+      if (getSlotRole(child) === "separator") roots.push(child.id);
+    }
+  }
+  return removeSceneSubtrees(graph, roots);
 }
 
 /**

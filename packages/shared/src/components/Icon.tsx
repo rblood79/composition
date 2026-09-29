@@ -66,7 +66,10 @@ export const Icon = memo(function Icon({
       className={`react-aria-Icon${className ? ` ${className}` : ""}`}
       {...dataProps}
     >
+      {/* 장식 글리프 — Icon 은 접근 가능한 이름을 싣지 않는다 (이름은 감싼 control 의 aria-label · Breadcrumb
+          구분자는 RAC 목록 구조가 전달). lucide 기본값과 같다. */}
       <svg
+        aria-hidden="true"
         width={pxSize}
         height={pxSize}
         viewBox="0 0 24 24"

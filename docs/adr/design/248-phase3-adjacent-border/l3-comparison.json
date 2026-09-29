@@ -1,0 +1,371 @@
+{
+  "head": "2a5c970994cb9de2f824a729b29c08cdcd647d7b",
+  "dpr": 1,
+  "theme": "default-light",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "captureScript": "apps/builder/scripts/adr248-adjacent-border-capture.mts",
+  "comparisonScript": "apps/builder/scripts/adr248-adjacent-border-compare.mjs",
+  "results": [
+    {
+      "id": "alert",
+      "source": "catalog",
+      "resolved": {
+        "id": "alert",
+        "source": "catalog",
+        "variant": "info",
+        "size": "sm",
+        "fill": "#dbeafe",
+        "fillAlpha": 1,
+        "borderColor": "#155dfc",
+        "borderWidth": 1,
+        "borderStyle": "solid",
+        "radius": 6
+      },
+      "domComputed": {
+        "backgroundColor": "rgb(219, 234, 254)",
+        "borderColor": "rgb(21, 93, 252)",
+        "borderWidth": "1px",
+        "borderStyle": "solid",
+        "borderRadius": "6px"
+      },
+      "skiaCommand": {
+        "type": "box",
+        "width": 160,
+        "height": 34,
+        "box": {
+          "fillColor": [
+            0.8588235378265381,
+            0.9176470637321472,
+            0.9960784316062927,
+            1
+          ],
+          "borderRadius": 6,
+          "strokeColor": [
+            0.08235294371843338,
+            0.364705890417099,
+            0.9882352948188782,
+            1
+          ],
+          "strokeWidth": 1,
+          "strokeStyle": "solid"
+        }
+      },
+      "domPngSha256": "53b2782e6c119be53bbdad7a15abd6ef224699fd46f8cc1bf39d0ad3bafd1845",
+      "skiaPngSha256": "76e544828df5832fd9e88ac67f3701bdda1b04a5b933f3da1bd1a01b24f9af34",
+      "rawDifferent": 64,
+      "rawNontextRatio": 0.012618296529968454,
+      "l3Nontext": {
+        "method": "pixelmatch threshold 0.1; capture text mask excluded from result and denominator",
+        "differentPixels": 0,
+        "denominator": 5072,
+        "diffRatio": 0,
+        "maxByte": 10,
+        "meanByte": 0.017350157728706624,
+        "changedBytes": 138,
+        "totalBytes": 20288,
+        "changedFraction": 0.00680205047318612,
+        "budget": {
+          "maxDiffRatio": 0.001,
+          "maxByte": 2
+        },
+        "budgetSource": "ADR-198 INITIAL_BUDGETS.nonText",
+        "verdict": "PASS_LOCAL_L3_NONTEXT_ONLY"
+      }
+    },
+    {
+      "id": "badge",
+      "source": "catalog",
+      "resolved": {
+        "id": "badge",
+        "source": "catalog",
+        "variant": "accent",
+        "size": "sm",
+        "fill": "transparent",
+        "fillAlpha": 1,
+        "borderColor": "#155dfc",
+        "borderWidth": 1,
+        "borderStyle": "solid",
+        "radius": 9999
+      },
+      "domComputed": {
+        "backgroundColor": "rgba(0, 0, 0, 0)",
+        "borderColor": "rgb(21, 93, 252)",
+        "borderWidth": "1px",
+        "borderStyle": "solid",
+        "borderRadius": "9999px"
+      },
+      "skiaCommand": {
+        "type": "box",
+        "width": 54.6875,
+        "height": 22,
+        "box": {
+          "fillColor": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "borderRadius": 9999,
+          "strokeColor": [
+            0.08235294371843338,
+            0.364705890417099,
+            0.9882352948188782,
+            1
+          ],
+          "strokeWidth": 1,
+          "strokeStyle": "solid"
+        }
+      },
+      "domPngSha256": "1cc21a75d008931101de4632921f3767c22cdb0d5bf12148ebc24aab5e0b1c98",
+      "skiaPngSha256": "26f47bd4a58b1c37673e9cc1b748737284736c16375c19ccb461a9e980b91fb9",
+      "rawDifferent": 117,
+      "rawNontextRatio": 0.18932038834951456,
+      "l3Pixels": [
+        {
+          "x": 49,
+          "y": 1,
+          "skia": [
+            250,
+            252,
+            255,
+            255
+          ],
+          "dom": [
+            201,
+            217,
+            254,
+            255
+          ]
+        },
+        {
+          "x": 54,
+          "y": 7,
+          "skia": [
+            253,
+            254,
+            255,
+            255
+          ],
+          "dom": [
+            180,
+            203,
+            254,
+            255
+          ]
+        },
+        {
+          "x": 54,
+          "y": 8,
+          "skia": [
+            208,
+            223,
+            254,
+            255
+          ],
+          "dom": [
+            134,
+            171,
+            253,
+            255
+          ]
+        },
+        {
+          "x": 54,
+          "y": 9,
+          "skia": [
+            162,
+            191,
+            254,
+            255
+          ],
+          "dom": [
+            88,
+            139,
+            252,
+            255
+          ]
+        },
+        {
+          "x": 54,
+          "y": 10,
+          "skia": [
+            116,
+            159,
+            253,
+            255
+          ],
+          "dom": [
+            42,
+            108,
+            252,
+            255
+          ]
+        },
+        {
+          "x": 54,
+          "y": 11,
+          "skia": [
+            116,
+            159,
+            253,
+            255
+          ],
+          "dom": [
+            42,
+            108,
+            252,
+            255
+          ]
+        },
+        {
+          "x": 54,
+          "y": 12,
+          "skia": [
+            162,
+            191,
+            254,
+            255
+          ],
+          "dom": [
+            88,
+            139,
+            252,
+            255
+          ]
+        },
+        {
+          "x": 54,
+          "y": 13,
+          "skia": [
+            208,
+            223,
+            254,
+            255
+          ],
+          "dom": [
+            134,
+            171,
+            253,
+            255
+          ]
+        },
+        {
+          "x": 54,
+          "y": 14,
+          "skia": [
+            254,
+            254,
+            255,
+            255
+          ],
+          "dom": [
+            180,
+            203,
+            254,
+            255
+          ]
+        },
+        {
+          "x": 49,
+          "y": 20,
+          "skia": [
+            254,
+            254,
+            255,
+            255
+          ],
+          "dom": [
+            204,
+            220,
+            254,
+            255
+          ]
+        }
+      ],
+      "l3Nontext": {
+        "method": "pixelmatch threshold 0.1; capture text mask excluded from result and denominator",
+        "differentPixels": 10,
+        "denominator": 618,
+        "diffRatio": 0.016181229773462782,
+        "maxByte": 74,
+        "meanByte": 2.142799352750809,
+        "changedBytes": 260,
+        "totalBytes": 2472,
+        "changedFraction": 0.10517799352750809,
+        "budget": {
+          "maxDiffRatio": 0.001,
+          "maxByte": 2
+        },
+        "budgetSource": "ADR-198 INITIAL_BUDGETS.nonText",
+        "verdict": "FAIL"
+      }
+    },
+    {
+      "id": "solid-control",
+      "source": "forced-control",
+      "resolved": {
+        "id": "solid-control",
+        "source": "forced-control",
+        "fill": "#e5e5e5",
+        "fillAlpha": 0.5,
+        "borderColor": "#e5e7eb",
+        "borderWidth": 1,
+        "borderStyle": "solid",
+        "radius": 6
+      },
+      "domComputed": {
+        "backgroundColor": "rgba(229, 229, 229, 0.5)",
+        "borderColor": "rgb(229, 231, 235)",
+        "borderWidth": "1px",
+        "borderStyle": "solid",
+        "borderRadius": "6px"
+      },
+      "skiaCommand": {
+        "type": "box",
+        "width": 160,
+        "height": 40,
+        "box": {
+          "fillColor": [
+            0.8980392217636108,
+            0.8980392217636108,
+            0.8980392217636108,
+            0.5
+          ],
+          "borderRadius": 6,
+          "strokeColor": [
+            0.8980392217636108,
+            0.9058823585510254,
+            0.9215686321258545,
+            1
+          ],
+          "strokeWidth": 1,
+          "strokeStyle": "solid"
+        }
+      },
+      "domPngSha256": "8fbddb332f34e757cb4c9e412fb58a3b6883c4bc6e45e0a6e4217c222496d95d",
+      "skiaPngSha256": "90a75a9b930f93aec12e2388fbdbdbeab223410d6ffaa1460e47084b3c026d13",
+      "rawDifferent": 54,
+      "rawNontextRatio": 0.0084375,
+      "l3Nontext": {
+        "method": "pixelmatch threshold 0.1; capture text mask excluded from result and denominator",
+        "differentPixels": 0,
+        "denominator": 6400,
+        "diffRatio": 0,
+        "maxByte": 3,
+        "meanByte": 0.0071484375,
+        "changedBytes": 117,
+        "totalBytes": 25600,
+        "changedFraction": 0.0045703125,
+        "budget": {
+          "maxDiffRatio": 0.001,
+          "maxByte": 2
+        },
+        "budgetSource": "ADR-198 INITIAL_BUDGETS.nonText",
+        "verdict": "PASS_LOCAL_L3_NONTEXT_ONLY"
+      }
+    }
+  ]
+}

@@ -84,7 +84,6 @@ import {
   measureSpecTextWidth,
   measureSpecWrappedTextHeight,
 } from "./utils/measureText";
-import { breadcrumbSeparatorAfterPaddingXPx } from "../primitives/spacing";
 
 /**
  * skiaPrimitive draw module 1개의 시그니처 — props/size/visual/resolved paint에서 Shape[] 생성.
@@ -300,40 +299,45 @@ const tabIndicator: SkiaPrimitiveDrawFn = ({ props, size }) => {
 };
 
 /**
- * `breadcrumb_crumb` — Breadcrumb 단일 조각: label + (비-마지막) separator(replace).
+ * `breadcrumb_crumb` — Breadcrumb 단일 조각: label + (비-마지막) 구분자 Icon (replace).
  *
- * **ADR-912 projection 3 cutover (2026-06-15)**: Breadcrumb.spec.render.shapes 의 label text
- *   (isLast→accent fw600 / 그 외→neutral-subdued fw400) + 비-마지막 separator(›) text 를 이전.
- *   text 위치가 label 폭만큼 우측 누적이라 buildCatalogShapes 의 single-text(좌측 고정) 가정과
- *   충돌 → replace 로 자체 생성(spec 좌표 공식 1:1). `_isLast`/`_separator` 데이터 분기만(ADR-142 §3).
+ * **ADR-912 projection 3 cutover (2026-06-15)**: label text 위치가 label 폭만큼 우측 누적이라
+ *   buildCatalogShapes 의 single-text(좌측 고정) 가정과 충돌 → replace 로 자체 생성. `_isLast` 데이터 분기만
+ *   (ADR-142 §3).
+ *
+ * **2026-09-29 구분자 = Icon (사용자 결정)**: 조합 자식 [label Text, 구분자 Icon] 을 가진 조각 (정적 항목 ·
+ *   Components origin) 은 자식이 그린다 → `_hasChildren` 이면 빈 배열 (투명 컨테이너). 자식이 없는 조각 (데이터
+ *   행 projection · legacy plain) 만 여기서 label + catalog 기본 구분자 Icon (`trailingIcon` — 이름 · 색,
+ *   `sizes.iconSize` · `sizes.gap`) 을 그린다. DOM `Breadcrumbs.tsx` 행도 같은 catalog 기본 Icon.
  */
 const breadcrumbCrumb: SkiaPrimitiveDrawFn = ({
   props,
   size,
+  visual,
   paint,
   style,
 }) => {
+  if (props._hasChildren === true) return [];
   const ff = (style?.fontFamily as string) || fontFamily.sans;
-  // ADR-923 r15m1 — 텍스트 원천은 타입별 계약 (Breadcrumb 은 기본 군 `children`; Preview
-  //   renderBreadcrumbs 도 children 만 그린다). 종전 `children ?? label ?? title` 은 이 primitive 만의
-  //   순서였다.
+  // ADR-923 r15m1 — 텍스트 원천은 타입별 계약 (Breadcrumb 은 기본 군 `children`).
   const text = resolveTextSourceText("Breadcrumb", props).trim();
   const isLast = props._isLast === true;
-  const separator = String(props._separator ?? "›");
   const fontSize = resolveSpecFontSize(
     (style?.fontSize as string | number | undefined) ?? size.fontSize,
     16,
   );
-  const afterPadX = breadcrumbSeparatorAfterPaddingXPx(
-    String(props.size ?? "M"),
+  const iconSize = resolveSpecFontSize(
+    size.iconSize as string | number | undefined,
+    16,
   );
+  const gap = typeof size.gap === "number" ? size.gap : 0;
   const height =
     typeof size.height === "number" && size.height > 0 ? size.height : 24;
 
   const shapes: Shape[] = [];
   let x = 0;
 
-  const labelFw = isLast ? 600 : 400;
+  const labelFw = isLast ? (visual?.currentTextWeight ?? 600) : 400;
   const labelFill: TokenRef | string = isLast
     ? ("{color.accent}" as TokenRef)
     : (paint.color ?? ("{color.neutral-subdued}" as TokenRef));
@@ -356,21 +360,23 @@ const breadcrumbCrumb: SkiaPrimitiveDrawFn = ({
     x += estW;
   }
 
-  if (!isLast) {
-    const sepWidth = measureSpecTextWidth(separator, fontSize, ff, 400);
-    x += afterPadX;
+  // 데이터 행: `_separatorIcon` = origin 구분자 설정 (null = 끔 · 문자열 = 이름, 부재 = catalog 기본).
+  const separatorIcon = props._separatorIcon;
+  if (!isLast && separatorIcon !== null) {
+    x += gap;
     shapes.push({
-      type: "text" as const,
-      x,
+      type: "icon_font",
+      iconName:
+        typeof separatorIcon === "string" && separatorIcon
+          ? separatorIcon
+          : (visual?.trailingIcon?.name ?? "chevron-right"),
+      x: x + iconSize / 2,
       y: height / 2,
-      text: separator,
-      fontSize,
-      fontFamily: ff,
-      fontWeight: 400,
-      fill: "{color.neutral-subdued}" as TokenRef,
-      align: "left" as const,
-      baseline: "middle" as const,
-      maxWidth: sepWidth + fontSize,
+      fontSize: iconSize,
+      fill:
+        (visual?.trailingIcon?.color as TokenRef | undefined) ??
+        ("{color.neutral-subdued}" as TokenRef),
+      baseline: "middle",
     });
   }
 
@@ -518,10 +524,11 @@ const gridListCard: SkiaPrimitiveDrawFn = ({
     entry === "label"
       ? getTextLineHeight(labelFontSize)
       : getTextLineHeight(descFontSize);
+  // GridListItem 은 굵기를 선언하지 않는다 (사용자 결정 2026-09-29) — 선언이 없으면 기본 400.
   const labelFontWeight =
     (style?.fontWeight as string | number | undefined) ??
     visual?.textWeight ??
-    600;
+    400;
   const labelWeight =
     (labelSlotStyle?.fontWeight as string | number | undefined) ??
     labelFontWeight;

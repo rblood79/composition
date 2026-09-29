@@ -11,6 +11,9 @@ export { getVariantColors, getSizePreset } from "./utils/variantColors";
 
 // CSS Generator
 export { generateCSS } from "./CSSGenerator";
+// ADR-248 Phase 3: archetype base CSS (root + child selectors) — the typed part-rule compiler
+//   reads the same declarations the generator emits.
+export { ARCHETYPE_BASE_STYLES } from "./CSSGenerator";
 
 // ADR-912 Δ7: layout token table 단일 source (CSSGenerator + shared resolver 공용)
 export { LAYOUT_TOKEN_STYLES, layoutTokenToCssLines } from "./layoutTokens";

@@ -71,10 +71,7 @@ import {
   type PagePositionPresentationSnapshot,
 } from "../interaction/pagePositionPresentation";
 import { getCanvasFramePresentationSnapshot } from "../canvasFramePresentation";
-import {
-  resolveTextLineMetrics,
-  resolveTextNodeDebug,
-} from "./textDrawOrigin";
+import { resolveTextLineMetrics, resolveTextNodeDebug } from "./textDrawOrigin";
 
 // ── Command 타입 ──────────────────────────────────────────────────────
 
@@ -251,6 +248,8 @@ interface ChildrenBeginCmd {
   clipChildren: boolean;
   width: number;
   height: number;
+  /** CSS overflow clips descendants at the inner edge of an authored uniform border. */
+  clipBorderInset?: number;
   scrollOffset?: { scrollTop: number; scrollLeft: number };
 }
 
@@ -1587,6 +1586,12 @@ function visitElement(
       ? skiaData.height
       : height
     : height;
+  // Phase 3 catalog test binding opts in; product builders retain HEAD's
+  // full-box child clip and hit boundary when this field is absent.
+  const clipBorderInset =
+    skiaData.clipChildren && Number.isFinite(skiaData.clipBorderInset)
+      ? Math.max(0, skiaData.clipBorderInset ?? 0)
+      : 0;
   if (childElements && childElements.length > 0) {
     const childrenStart = commands.length;
     commands.push({
@@ -1594,6 +1599,7 @@ function visitElement(
       clipChildren: skiaData.clipChildren ?? false,
       width: clipWidth,
       height: clipHeight,
+      ...(clipBorderInset > 0 ? { clipBorderInset } : {}),
       scrollOffset: skiaData.scrollOffset,
     });
 
@@ -1612,7 +1618,12 @@ function visitElement(
         ? // 조상 clip 과 교차가 비면 EMPTY_CLIP — null(=클립 없음)로 되돌리면
           //   전부 잘린 서브트리가 오히려 무제한 히트 가능해진다.
           (intersectBounds(
-            { x: absX, y: absY, width: clipWidth, height: clipHeight },
+            {
+              x: absX + clipBorderInset,
+              y: absY + clipBorderInset,
+              width: Math.max(0, clipWidth - 2 * clipBorderInset),
+              height: Math.max(0, clipHeight - 2 * clipBorderInset),
+            },
             clipRect,
           ) ?? EMPTY_CLIP)
         : clipRect;
@@ -2433,7 +2444,13 @@ function executeCommandRange(
       case CMD_CHILDREN_BEGIN: {
         if (cmd.clipChildren && cmd.width > 0 && cmd.height > 0) {
           canvas.save();
-          const clipRect = ck.LTRBRect(0, 0, cmd.width, cmd.height);
+          const inset = cmd.clipBorderInset ?? 0;
+          const clipRect = ck.LTRBRect(
+            inset,
+            inset,
+            Math.max(inset, cmd.width - inset),
+            Math.max(inset, cmd.height - inset),
+          );
           canvas.clipRect(clipRect, ck.ClipOp.Intersect, true);
         }
 

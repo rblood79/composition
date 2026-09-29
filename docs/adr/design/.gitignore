@@ -1,0 +1,5 @@
+# ADR-248 G3 harness run outputs (apps/builder/tests/adr248-g3) — rewritten by every run;
+# the verdicts are the sibling JSON files.
+/248-phase3-palette-base-canvas/
+/248-phase3-palette-axis-canvas/
+/248-phase3-state-origin-canvas/

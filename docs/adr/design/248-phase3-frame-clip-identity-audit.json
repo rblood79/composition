@@ -1,0 +1,61 @@
+{
+  "scope": "G0 native-state Frame overflow hidden/visible identity audit; old and new independently execute the same format-independent script and environment under breakdown §6.1",
+  "selectedCases": [
+    {
+      "scenarioId": "clip-false-overflow-hidden",
+      "overflow": "hidden",
+      "source": "248-baseline/native-state-pinned/baseline.json"
+    },
+    {
+      "scenarioId": "clip-true-overflow-visible",
+      "overflow": "visible",
+      "source": "248-baseline/native-state-pinned/baseline.json"
+    }
+  ],
+  "identity": {
+    "head": "2a5c970994cb9de2f824a729b29c08cdcd647d7b",
+    "scenarioHash": "49666f0564fb8bef1cf5eaed2c18cf54d16e9942249130f42206336effe9d7b1",
+    "viewport": { "width": 1440, "height": 900 },
+    "dpr": 1,
+    "theme": "default-light",
+    "seed": 248,
+    "inputFieldsMatch": true,
+    "oldFontFamily": "Pretendard, -apple-system, \"system-ui\", system-ui, Roboto, \"Helvetica Neue\", \"Segoe UI\", sans-serif",
+    "oldFontLoadStatus": "loaded",
+    "newFontLabel": "app-default",
+    "newFontSha256": "02b09ca630e4833028600a9f958b2f72f0289b9ccfd00d2df34780a7592f8d41",
+    "oldFontByteHashAvailable": false,
+    "fontByteIdentity": "UNVERIFIED",
+    "g0PinnedBuildIndexSha256": "3474b01de9ab15eeaaf7670f67b9376065aa6c9a11c407ba86ab234f9e1035e5",
+    "pairedOldBuildIndexSha256": "a3e33abb92a025bf2e0d007c23a0dfb7b149d487db50158af583bc807c5633cd",
+    "newTestEntryBuilderBuildIndexSha256": "d74d3e813c7b5820b91c196f2d32e8994d1e34ec5cc9dbdc3f675d39d3695cff",
+    "currentBuilderDistIndexSha256": "d74d3e813c7b5820b91c196f2d32e8994d1e34ec5cc9dbdc3f675d39d3695cff",
+    "buildIndexIdentity": "THREE_DISTINCT_HASHES_RECORDED_NOT_A_PARITY_PRECONDITION",
+    "pairedOldExecution": "dev-source:565566c0d865580db267c208147288cbb0dbbec5ab9b2c2ba6a4824c7c23b10e:index:34e68bb9aff135d1ab9888d549357b1a1c7bcab1d7cb6e0d849ea8331840d33d",
+    "newExecution": "Vitest isolated test entry",
+    "executionModuleIdentity": "DIFFERENT_OLD_DEV_AND_NEW_TEST_ENTRY_RECORDED",
+    "currentNewSideHashes": {
+      "compositionRootTs": "3a4a23c8d746a3f0a512bf42ee5a163d45c4fb000aef8068922866df3e3b6ba5",
+      "renderCommandsTs": "434375c66d983b7375e1d0fc866472bb09db82c3f2f5706fb1d42b99fdaad13c",
+      "canvasKitWasm": "25ebed8e60158c5854f8dc807b936daca21354f8bfb6a2231266b0a93812f301"
+    },
+    "currentHashesAreNotOldExecutionHashes": true,
+    "oldCanvasKitWasmHashAvailable": false,
+    "oldRenderCommandsModuleHashAvailable": false,
+    "oldFullExecutionAssetManifestAvailable": false,
+    "canvasKitAndRenderCommandsIdentity": "OLD_ASSET_HASHES_MISSING_PROVENANCE_LIMIT_ONLY",
+    "g0OriginalScreenshotSha256": "f100bdabcc33ea40b66914a7592bece2951c4a41e32b268d8220727d387a8fc5",
+    "pairedOldScreenshotSha256": "f100bdabcc33ea40b66914a7592bece2951c4a41e32b268d8220727d387a8fc5"
+  },
+  "sources": [
+    "248-baseline/native-state-pinned/baseline.json",
+    "248-phase3-native-old-current/baseline.json",
+    "248-phase3-native-state-new.json",
+    "248-phase3-frame-clip-pair.json",
+    "apps/builder/src/builder/catalogRuntime/__tests__/phase3RealConsumers.test.tsx:1060-1110"
+  ],
+  "verdict": "SCENARIO_ENVIRONMENT_IDENTITY_PASS_WITH_PROVENANCE_LIMITS",
+  "downstream": "TWO_CASE_INDEPENDENT_COMPARISON_RECORDED_IN_248_PHASE3_FRAME_CLIP_PAIR_JSON",
+  "g3": "FAIL_UNCHANGED",
+  "phase4": "NOT_STARTED"
+}

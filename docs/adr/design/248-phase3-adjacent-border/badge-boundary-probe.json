@@ -1,0 +1,504 @@
+{
+  "head": "2a5c970994cb9de2f824a729b29c08cdcd647d7b",
+  "badgeDomSha256": "1cc21a75d008931101de4632921f3767c22cdb0d5bf12148ebc24aab5e0b1c98",
+  "badgeSkiaSha256": "26f47bd4a58b1c37673e9cc1b748737284736c16375c19ccb461a9e980b91fb9",
+  "domRect": {
+    "x": 20,
+    "y": 74,
+    "width": 54.6875,
+    "height": 22
+  },
+  "pngGrid": {
+    "width": 55,
+    "height": 22
+  },
+  "skiaCommand": {
+    "type": "box",
+    "width": 54.6875,
+    "height": 22,
+    "box": {
+      "fillColor": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "borderRadius": 9999,
+      "strokeColor": [
+        0.08235294371843338,
+        0.364705890417099,
+        0.9882352948188782,
+        1
+      ],
+      "strokeWidth": 1,
+      "strokeStyle": "solid"
+    }
+  },
+  "originalDifferentBytes": 0,
+  "method": "Existing PNG and text mask; Skia renderBox variant parameters only; pixelmatch threshold 0.1; diagnostic, not budget approval",
+  "results": [
+    {
+      "id": "captured",
+      "width": 54.6875,
+      "radius": 9999,
+      "translateX": 0,
+      "perceptual": 10,
+      "nontext": 618,
+      "raw": 117,
+      "maxByte": 74,
+      "rightEdge": 8,
+      "edgeBand3": {
+        "pixels": 426,
+        "different": 10,
+        "maxByte": 74
+      },
+      "interior3": {
+        "pixels": 192,
+        "different": 0,
+        "maxByte": 73
+      },
+      "points": [
+        [
+          49,
+          1
+        ],
+        [
+          54,
+          7
+        ],
+        [
+          54,
+          8
+        ],
+        [
+          54,
+          9
+        ],
+        [
+          54,
+          10
+        ],
+        [
+          54,
+          11
+        ],
+        [
+          54,
+          12
+        ],
+        [
+          54,
+          13
+        ],
+        [
+          54,
+          14
+        ],
+        [
+          49,
+          20
+        ]
+      ]
+    },
+    {
+      "id": "integer-width",
+      "width": 55,
+      "radius": 9999,
+      "translateX": 0,
+      "perceptual": 0,
+      "nontext": 618,
+      "raw": 108,
+      "maxByte": 2,
+      "rightEdge": 0,
+      "edgeBand3": {
+        "pixels": 426,
+        "different": 0,
+        "maxByte": 2
+      },
+      "interior3": {
+        "pixels": 192,
+        "different": 0,
+        "maxByte": 2
+      },
+      "points": []
+    },
+    {
+      "id": "css-outer-radius",
+      "width": 54.6875,
+      "radius": 11,
+      "translateX": 0,
+      "perceptual": 10,
+      "nontext": 618,
+      "raw": 117,
+      "maxByte": 74,
+      "rightEdge": 8,
+      "edgeBand3": {
+        "pixels": 426,
+        "different": 10,
+        "maxByte": 74
+      },
+      "interior3": {
+        "pixels": 192,
+        "different": 0,
+        "maxByte": 73
+      },
+      "points": [
+        [
+          49,
+          1
+        ],
+        [
+          54,
+          7
+        ],
+        [
+          54,
+          8
+        ],
+        [
+          54,
+          9
+        ],
+        [
+          54,
+          10
+        ],
+        [
+          54,
+          11
+        ],
+        [
+          54,
+          12
+        ],
+        [
+          54,
+          13
+        ],
+        [
+          54,
+          14
+        ],
+        [
+          49,
+          20
+        ]
+      ]
+    },
+    {
+      "id": "css-center-radius",
+      "width": 54.6875,
+      "radius": 10.5,
+      "translateX": 0,
+      "perceptual": 15,
+      "nontext": 618,
+      "raw": 125,
+      "maxByte": 79,
+      "rightEdge": 8,
+      "edgeBand3": {
+        "pixels": 426,
+        "different": 15,
+        "maxByte": 79
+      },
+      "interior3": {
+        "pixels": 192,
+        "different": 0,
+        "maxByte": 65
+      },
+      "points": [
+        [
+          6,
+          1
+        ],
+        [
+          1,
+          6
+        ],
+        [
+          54,
+          7
+        ],
+        [
+          54,
+          8
+        ],
+        [
+          54,
+          9
+        ],
+        [
+          0,
+          10
+        ],
+        [
+          54,
+          10
+        ],
+        [
+          0,
+          11
+        ],
+        [
+          54,
+          11
+        ],
+        [
+          54,
+          12
+        ],
+        [
+          54,
+          13
+        ],
+        [
+          54,
+          14
+        ],
+        [
+          1,
+          15
+        ],
+        [
+          4,
+          19
+        ],
+        [
+          6,
+          20
+        ]
+      ]
+    },
+    {
+      "id": "integer-width-outer-radius",
+      "width": 55,
+      "radius": 11,
+      "translateX": 0,
+      "perceptual": 0,
+      "nontext": 618,
+      "raw": 108,
+      "maxByte": 2,
+      "rightEdge": 0,
+      "edgeBand3": {
+        "pixels": 426,
+        "different": 0,
+        "maxByte": 2
+      },
+      "interior3": {
+        "pixels": 192,
+        "different": 0,
+        "maxByte": 2
+      },
+      "points": []
+    },
+    {
+      "id": "translate-left-0.3125",
+      "width": 54.6875,
+      "radius": 9999,
+      "translateX": -0.3125,
+      "perceptual": 30,
+      "nontext": 618,
+      "raw": 139,
+      "maxByte": 148,
+      "rightEdge": 8,
+      "edgeBand3": {
+        "pixels": 426,
+        "different": 29,
+        "maxByte": 148
+      },
+      "interior3": {
+        "pixels": 192,
+        "different": 1,
+        "maxByte": 118
+      },
+      "points": [
+        [
+          47,
+          0
+        ],
+        [
+          6,
+          1
+        ],
+        [
+          49,
+          1
+        ],
+        [
+          50,
+          2
+        ],
+        [
+          51,
+          4
+        ],
+        [
+          52,
+          4
+        ],
+        [
+          1,
+          6
+        ],
+        [
+          52,
+          6
+        ],
+        [
+          53,
+          6
+        ],
+        [
+          0,
+          7
+        ],
+        [
+          54,
+          7
+        ],
+        [
+          0,
+          8
+        ],
+        [
+          54,
+          8
+        ],
+        [
+          0,
+          9
+        ],
+        [
+          53,
+          9
+        ],
+        [
+          54,
+          9
+        ],
+        [
+          54,
+          10
+        ],
+        [
+          54,
+          11
+        ],
+        [
+          0,
+          12
+        ],
+        [
+          54,
+          12
+        ],
+        [
+          0,
+          13
+        ],
+        [
+          54,
+          13
+        ],
+        [
+          0,
+          14
+        ],
+        [
+          54,
+          14
+        ],
+        [
+          53,
+          15
+        ],
+        [
+          52,
+          17
+        ],
+        [
+          50,
+          19
+        ],
+        [
+          6,
+          20
+        ],
+        [
+          49,
+          20
+        ],
+        [
+          47,
+          21
+        ]
+      ]
+    },
+    {
+      "id": "translate-right-0.3125",
+      "width": 54.6875,
+      "radius": 9999,
+      "translateX": 0.3125,
+      "perceptual": 11,
+      "nontext": 618,
+      "raw": 119,
+      "maxByte": 74,
+      "rightEdge": 0,
+      "edgeBand3": {
+        "pixels": 426,
+        "different": 11,
+        "maxByte": 74
+      },
+      "interior3": {
+        "pixels": 192,
+        "different": 0,
+        "maxByte": 74
+      },
+      "points": [
+        [
+          0,
+          7
+        ],
+        [
+          0,
+          8
+        ],
+        [
+          0,
+          9
+        ],
+        [
+          0,
+          10
+        ],
+        [
+          0,
+          11
+        ],
+        [
+          0,
+          12
+        ],
+        [
+          0,
+          13
+        ],
+        [
+          0,
+          14
+        ],
+        [
+          1,
+          14
+        ],
+        [
+          1,
+          15
+        ],
+        [
+          1,
+          16
+        ]
+      ]
+    }
+  ]
+}

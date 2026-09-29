@@ -833,23 +833,42 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           text: "{color.neutral-subdued}",
           textHover: "{color.neutral}",
         },
+        // 현재 페이지 조각 (RAC data-current = 마지막 조각) 굵기 700 (사용자 결정 2026-09-29).
+        //   Canvas 는 이 값을 읽고, DOM 은 생성 Breadcrumb.css 가 로드되지 않아 손 `Breadcrumbs.css`
+        //   `.react-aria-Link[data-current]` 가 같은 값을 적는다.
+        currentTextWeight: 700,
+        // 조각 뒤 구분자 = 편집 가능한 Icon 자식 (`slot="separator"`, 사용자 결정 2026-09-29 — 종전
+        //   `::after` "›" 대체). 이름은 seed · 데이터 행의 기본값, 색은 구분자 글리프 색.
+        trailingIcon: {
+          name: "chevron-right",
+          color: "{color.neutral-subdued}",
+        },
       },
     },
+    // iconSize = 구분자 Icon 크기 (글자 크기 따름 14/16/18). gap = label ↔ 구분자 간격이자 조각 사이 간격
+    //   (Breadcrumbs.sizes.gap 과 같은 값) — 종전 "›" 좌우 padding 4/8/12 과 보이는 간격이 같다 (사용자 결정
+    //   2026-09-29).
     sizes: {
       S: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 16,
+        iconSize: 14,
+        gap: 0,
       },
       M: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 24,
+        iconSize: 16,
+        gap: 2,
       },
       L: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.none}",
         height: 24,
+        iconSize: 18,
+        gap: 4,
       },
     },
     structure: {
@@ -889,21 +908,25 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
+    // gap = 조각 사이 간격 (Breadcrumb.sizes.gap 과 같은 값 — 구분자 Icon 양옆 간격).
     sizes: {
       S: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 16,
+        gap: 0,
       },
       M: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 24,
+        gap: 2,
       },
       L: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.none}",
         height: 24,
+        gap: 4,
       },
     },
     structure: {
@@ -1050,6 +1073,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
+    // fontWeight 500 (사용자 결정 2026-09-29 — 버튼 500 · 링크 400): 생성 CSS 는 sizes.fontWeight 만
+    //   `font-weight` 로 내보내고 (variant.textWeight 는 Canvas 전용 채널), Canvas 는 textWeight 미선언 시
+    //   500 이라 두 소비자가 같은 값이 된다. 안의 Text/Label 자식은 Button 척도를 받는다 (propagationRegistry).
     // minWidth (Spectrum 식별성 하한 채택 2026-08-20): ceil(2.25 × border-box height),
     //   height = lineHeight + 2·paddingY + 2·borderWidth (xs 20 / sm 22 / md 30 / lg 42 / xl 54).
     //   짧은 라벨("OK" 등) 버튼의 식별 가능 형태 보장 — Spectrum Button "min-width = 2.25× height".
@@ -1058,6 +1084,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       xs: {
         fontSize: "{typography.text-2xs}",
         lineHeight: "{typography.text-2xs--line-height}",
+        fontWeight: 500,
         borderRadius: "{radius.sm}",
         borderWidth: "{border.width.thin}",
         height: 0,
@@ -1071,6 +1098,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       sm: {
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
+        fontWeight: 500,
         borderRadius: "{radius.sm}",
         borderWidth: "{border.width.thin}",
         height: 0,
@@ -1084,6 +1112,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       md: {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
+        fontWeight: 500,
         borderRadius: "{radius.md}",
         borderWidth: "{border.width.thin}",
         height: 0,
@@ -1097,6 +1126,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       lg: {
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
+        fontWeight: 500,
         borderRadius: "{radius.lg}",
         borderWidth: "{border.width.thin}",
         height: 0,
@@ -1110,6 +1140,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       xl: {
         fontSize: "{typography.text-lg}",
         lineHeight: "{typography.text-lg--line-height}",
+        fontWeight: 500,
         borderRadius: "{radius.xl}",
         borderWidth: "{border.width.thin}",
         height: 0,
@@ -5000,7 +5031,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.md}",
         borderWidth: "{border.width.none}",
         height: 0,
-        iconSize: 16,
+        // chevron 18 (사용자 결정 2026-09-29 — M 기준 18, DisclosureHeader.sizes.iconSize 와 같은 값).
+        iconSize: 18,
       },
       lg: {
         fontSize: "{typography.text-base}",
@@ -5273,10 +5305,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           text: "{color.neutral}",
         },
         // ADR-912 (B+icon): leading chevron (DisclosureHeader.spec render.shapes 의 chevron-right
-        //   이전). color 는 spec 의 {color.neutral-subdued} 보존. gap 6 = spec text x offset(+6).
+        //   이전). color 는 spec 의 {color.neutral-subdued} 보존. gap 4 (사용자 결정 2026-09-29 —
+        //   Disclosure 트리거 `gap: var(--spacing-xs)` 와 같은 값, 종전 6).
         leadingIcon: {
           name: "chevron-right",
-          gap: 6,
+          gap: 4,
           color: "{color.neutral-subdued}",
         },
       },
@@ -5928,8 +5961,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           // ADR-913 slice 4: selected 카드 테두리 (DOM [data-selected] accent 정합).
           selectedBorder: "{color.accent}",
         },
-        // 카드 label 굵기 (spec fontWeight 600). buildCatalogShapes 가 visual.textWeight 소비.
-        textWeight: 600,
+        // 굵기 선언 없음 (사용자 결정 2026-09-29): 카드 label · description 모두 기본 굵기 (400).
+        //   종전 600 은 description 까지 굵게 했다 (DOM 상속).
         /* 선택 체크박스 (2026-08-22, 감사 §1-2 축② 잔여) — DOM 은 RAC 가 카드 flex-column 첫
            자식으로 `<Checkbox slot="selection">` 을 렌더한다(라벨 왼쪽이 아니라 **위**). Skia
            escape(gridlist_card)가 이 채널을 소비해 같은 자리에 그리고, 카드 높이도 같은 블록으로
@@ -5971,7 +6004,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           border: "{color.transparent}",
           selectedBorder: "{color.accent}",
         },
-        textWeight: 600,
         selectionCheckbox: {
           size: 20,
           gap: 2,
@@ -6747,6 +6779,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   blockify 로 차이가 없고, block 부모 (인라인 display block 인 Slider · Meter · ProgressBar 등)
     //   에서만 Canvas Label 이 한 줄을 차지해 DOM (값과 한 줄) 과 갈렸다. `structure` 가 있으면 생성기가
     //   CSS 를 만들므로 `skipCSSGeneration` 으로 막는다 — DOM 은 계속 수동 `Label.css`.
+    //   height fit-content (사용자 결정 2026-09-29 — 손 CSS 에만 있던 값을 선언으로): grid · flex
+    //   부모 (ProgressBar · Meter · Slider) 가 Label 을 행 높이로 늘리지 않는다.
     structure: {
       archetype: "simple",
       element: "label",
@@ -6755,6 +6789,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         display: "inline-flex",
         alignItems: "center",
         width: "fit-content",
+        height: "fit-content",
       },
     },
   },
@@ -6775,6 +6810,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           text: "{color.accent}",
           textHover: "{color.accent-hover}",
         },
+        // 링크 400 (사용자 결정 2026-09-29): Canvas 는 textWeight 를, 생성 CSS 는 sizes.fontWeight 를 읽는다.
+        textWeight: 400,
       },
       secondary: {
         fill: {
@@ -6789,6 +6826,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           text: "{color.neutral}",
           textHover: "{color.accent}",
         },
+        textWeight: 400,
       },
     },
     sizes: {
@@ -6797,30 +6835,35 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       xs: {
         fontSize: "{typography.text-2xs}",
         lineHeight: "{typography.text-2xs--line-height}",
+        fontWeight: 400,
         borderRadius: "{radius.none}",
         height: 0,
       },
       sm: {
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
+        fontWeight: 400,
         borderRadius: "{radius.none}",
         height: 0,
       },
       md: {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
+        fontWeight: 400,
         borderRadius: "{radius.none}",
         height: 0,
       },
       lg: {
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
+        fontWeight: 400,
         borderRadius: "{radius.none}",
         height: 0,
       },
       xl: {
         fontSize: "{typography.text-lg}",
         lineHeight: "{typography.text-lg--line-height}",
+        fontWeight: 400,
         borderRadius: "{radius.none}",
         height: 0,
       },
@@ -10403,6 +10446,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             bridges: {
               width: "100%",
               padding: "var(--select-btn-padding)",
+              // 값 ↔ chevron 간격 4 (사용자 결정 2026-09-29). 없으면 일반 Button rule 의 크기별 gap
+              //   (md 8) 을 받는다 — Canvas 는 field 트리거 공통 gap 4 (implicitStyles fieldTriggerRowStyle).
+              gap: "var(--spacing-xs)",
               "text-align": "left",
               border: "var(--border-width-thin) solid var(--border)",
               "border-radius": "var(--border-radius)",
@@ -13944,6 +13990,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 4,
         fontSize: "{typography.text-2xs}",
         lineHeight: 16,
+        fontWeight: 500,
         borderRadius: "{radius.sm}",
         borderWidth: "{border.width.thin}",
         height: 0,
@@ -13955,6 +14002,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 8,
         fontSize: "{typography.text-xs}",
         lineHeight: 16,
+        fontWeight: 500,
         borderRadius: "{radius.sm}",
         borderWidth: "{border.width.thin}",
         height: 0,
@@ -13966,6 +14014,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 12,
         fontSize: "{typography.text-sm}",
         lineHeight: 20,
+        fontWeight: 500,
         borderRadius: "{radius.md}",
         borderWidth: "{border.width.thin}",
         height: 0,
@@ -13977,6 +14026,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 16,
         fontSize: "{typography.text-base}",
         lineHeight: 24,
+        fontWeight: 500,
         borderRadius: "{radius.lg}",
         borderWidth: "{border.width.thin}",
         height: 0,
@@ -13988,6 +14038,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 24,
         fontSize: "{typography.text-lg}",
         lineHeight: 28,
+        fontWeight: 500,
         borderRadius: "{radius.lg}",
         borderWidth: "{border.width.thin}",
         height: 0,

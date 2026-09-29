@@ -31,7 +31,8 @@ export const lightColors: ColorTokens = {
 
   // --- Neutral ---
   neutral: TAILWIND_PALETTE.neutral[900], // neutral-900 (기존 on-surface)
-  "neutral-subdued": TAILWIND_PALETTE.neutral[700], // neutral-700 (기존 on-surface-variant)
+  // S2 neutral-subdued (label · 보조 텍스트 — 본문과 구분) light #505050 에 가장 가까운 단계 (사용자 결정 2026-09-29, 종전 700)
+  "neutral-subdued": TAILWIND_PALETTE.neutral[600], // neutral-600
   "neutral-subtle": TAILWIND_PALETTE.neutral[200], // neutral-200 (기존 surface-container-highest)
   "neutral-hover": "#c3c3c3",
   "neutral-pressed": "#a8a8a8",

@@ -39,7 +39,9 @@ import {
   compileFieldTemplate,
   ROW_TEMPLATE_BINDABLE_PROP_KEYS,
   type CompiledTemplate,
+  catalogBreadcrumbSeparatorIcon,
   getSlotRole,
+  resolveBreadcrumbSeparatorTemplate,
   shouldExpandRowTemplate,
   shouldFoldSlotChildren,
   interpolateFieldTemplate,
@@ -55,7 +57,10 @@ import {
   resolveItemTemplateRowBoxStyle,
 } from "@composition/shared";
 // ADR-157 gap 배선 (②): ListBox 소유자 gap 을 px 로 해석 (style longhand/shorthand + props.gap).
-import { parsePxValue } from "@composition/specs";
+import {
+  normalizeBreadcrumbRspSizeKey,
+  parsePxValue,
+} from "@composition/specs";
 
 import { getCanonicalRefChildSegments } from "../../../../adapters/canonical/canonicalRefResolution";
 import { readLegacyMetadataCustomId } from "../../../../adapters/canonical/legacyMetadata";
@@ -355,7 +360,8 @@ function resolveCollectionSlotLabelWeight(
  * 2026-07-21: reusable ListBoxItem/GridListItem/MenuItem origin(Components 페이지)의 **label**
  * slot 자식(Text)은 fold 대상이 아니라 독립 leaf scene 노드로 서는데(편집 표면), Skia leaf Text
  * 렌더는 catalog **Text** rule 의 textWeight(400)로 그린다. 그러나 collection item 의 label 은
- * semibold 이 정본이다 — catalog `{Item}.variants.default.textWeight`(=600) + 수동 CSS
+ * catalog `{Item}.variants.default.textWeight` 가 정본이다 (ListBoxItem · MenuItem 600 — GridListItem 은
+ * 선언 없음 → 주입 없음, 사용자 결정 2026-09-29) + 수동 CSS
  * `[slot="label"]{font-weight:600}` + instance escape(listbox_item) 의 `visual.textWeight` 가 모두
  * 같은 catalog 필드. origin 만 400 으로 렌더돼 3경로(origin·instance·CSS)가 불일치했다(사용자 보고).
  *
@@ -3233,7 +3239,7 @@ function appendTabRowProjection(
 //   2) **rowsGroup = 한 줄 flex row nowrap** (Tag 의 wrap-flow 아님, Breadcrumbs.spec:54 nowrap).
 //   3) crumb(Breadcrumb) 본체는 **Breadcrumb.spec.render.shapes** 가 그린다 (generic box+text 아님)
 //      — separator(!isLast 시 emit) + isLast 강조(weight 600 + accent) 로직 보존. projection 은
-//      crumb 노드에 children/_isLast/_separator 만 주입하고, spec 이 시각 책임.
+//      crumb 노드에 children/_isLast 만 주입하고, `breadcrumb_crumb` 이 시각 책임 (label + catalog 구분자 Icon).
 
 function isBreadcrumbsSceneSource(
   breadcrumbsSceneNode: CanvasSceneNode,
@@ -3274,11 +3280,11 @@ function resolveDataBoundBreadcrumbProjection(
 /**
  * Breadcrumbs crumb projected tree 생성: RowsGroup(flex row nowrap) → Breadcrumb crumb[i].
  *
- * - rowsGroup: 가로 flex row nowrap (Breadcrumbs.spec:54). gap=0 (separator 가 crumb 노드 내부에
- *   afterPadX 로 흡수되므로 row gap 불요).
- * - crumb(Breadcrumb): width:fit-content → 라벨 폭 + separator 폭. Breadcrumb.spec.render.shapes
- *   가 crumb text + (!isLast 시) separator text self-render. children(라벨) + _isLast(마지막만 true,
- *   weight 600 + accent 강조) + _separator(부모 separator prop, 기본 "›") 주입.
+ * - rowsGroup: 가로 flex row nowrap. gap = catalog `Breadcrumbs.sizes[size].gap` (구분자 Icon 뒤 → 다음 조각,
+ *   DOM `ol { gap }`).
+ * - crumb(Breadcrumb): width:fit-content → 라벨 폭 + gap + 구분자 Icon 폭. `breadcrumb_crumb` 이 crumb text +
+ *   (!isLast 시) catalog 기본 구분자 Icon 을 그린다. children(라벨) + _isLast(마지막만 true, catalog
+ *   currentTextWeight + accent) 주입.
  * - 단일클릭은 owner(Breadcrumbs) select redirect (resolveCanvasInteractionTarget), projection id 는
  *   비영속 (Tag/Tab 선례 동일).
  */
@@ -3289,12 +3295,27 @@ function appendBreadcrumbRowProjection(
   graph: Pick<CanvasSceneGraph, "childrenByParent" | "nodes" | "nodesMap"> & {
     parentById: Map<string, string>;
   },
+  getDocumentNodesById: () => Map<string, CanonicalNode>,
 ): void {
   const props = breadcrumbsSceneNode.props;
   const { rows, sourceNode } = projection;
   const size = props.size;
-  const separator = typeof props.separator === "string" ? props.separator : "›";
   const lastIndex = rows.length - 1;
+  // 데이터 행 구분자 = owner slot[0] 항목 origin 의 separator 자식 (편집 가능한 Icon 설정) — Preview 행과 같은
+  //   `resolveBreadcrumbSeparatorTemplate`. owner slot: 자기 → ref master.
+  const ownerSlot =
+    sourceNode.slot ??
+    (sourceNode.type === "ref"
+      ? getDocumentNodesById().get((sourceNode as RefNode).ref)?.slot
+      : undefined);
+  const separatorTemplate = resolveBreadcrumbSeparatorTemplate(
+    ownerSlot,
+    (id) => getDocumentNodesById().get(id),
+  );
+  // 조각 사이 간격 = catalog `Breadcrumbs.sizes[size].gap` (구분자 Icon 양옆 — DOM `ol { gap }`).
+  const crumbGap = catalogBreadcrumbSeparatorIcon(
+    normalizeBreadcrumbRspSizeKey(String(size ?? "M")),
+  ).gap;
 
   const rowsGroupId = toCollectionRowsGroupProjectionId(
     "breadcrumb",
@@ -3310,6 +3331,7 @@ function appendBreadcrumbRowProjection(
         flexWrap: "nowrap",
         alignItems: "center",
         width: "100%",
+        gap: crumbGap,
       },
     },
     parentId: breadcrumbsSceneNode.id,
@@ -3337,11 +3359,19 @@ function appendBreadcrumbRowProjection(
     const crumbProps: Record<string, unknown> = {
       // Breadcrumb.spec.render.shapes 는 props.children(또는 label/title)을 텍스트 소스로 읽는다.
       children: row.label,
-      // crumb 폭 = 라벨 + separator(separator 는 Breadcrumb.spec 이 crumb 노드 내부에 그림).
+      // crumb 폭 = 라벨 + gap + 구분자 Icon (`breadcrumb_crumb` 이 crumb 노드 안에 그린다 — catalog 기본 Icon).
       style: { width: "fit-content" },
-      // 마지막 crumb 만 강조(weight 600 + accent) + separator 미생성 (Breadcrumb.spec:131/175).
+      // 마지막 crumb 만 강조 (catalog currentTextWeight + accent) + 구분자 미생성.
       _isLast: isLast,
-      _separator: separator,
+      // 구분자: undefined = catalog 기본 · null = 없음 · 문자열 = origin 구분자 Icon 이름.
+      ...(separatorTemplate === undefined
+        ? {}
+        : {
+            _separatorIcon:
+              separatorTemplate === null
+                ? null
+                : (separatorTemplate.iconName ?? undefined),
+          }),
       // owner(Breadcrumbs) 의 item 식별 (선택 redirect / write-target 라우팅용).
       breadcrumbItemKey: row.itemKey,
     };
@@ -3683,6 +3713,7 @@ export function buildCanvasSceneGraph(
         breadcrumbProjection,
         nextScope,
         graph,
+        getDocumentNodesById,
       );
     }
   }
@@ -3813,11 +3844,11 @@ export function appendStaticTagShowAllChips(graph: CanvasSceneGraph): void {
  */
 /**
  * ADR-237 Phase 4 (G5 실측) — 정적 Breadcrumbs 의 Breadcrumb 자식 (항목 instance · legacy plain) 에 projection 행이
- * 싣던 표시 입력을 같이 싣는다: `_isLast` (마지막 = current — RAC 위치 규칙) · `_separator` (owner `separator`,
- * 기본 "›") · 크기 (자기 `size` 가 없으면 owner `size`). layout 폭 측정 (`calculateContentWidth` breadcrumb 분기) 은
- * element 단위라 이 값이 없으면 마지막 crumb 을 구분자 폭 · 보통 굵기로 재 자동 폭 Breadcrumbs 가 넓어졌다
- * (G5: origin 190 → 210). paint 는 `resolveBreadcrumbItemContext` 가 같은 규칙으로 다시 계산한다. 숨긴 자식을 빼고
- * 세도록 prune 뒤 · 노드는 새 객체로 교체 (재사용 기록은 고치지 않는다).
+ * 싣던 표시 입력을 같이 싣는다: `_isLast` (마지막 = current — RAC 위치 규칙) · 크기 (자기 `size` 가 없으면 owner
+ * `size`). layout 폭 측정 (`calculateContentWidth` breadcrumb 분기) 은 element 단위라 이 값이 없으면 마지막 crumb 을
+ * 구분자 폭 · 보통 굵기로 재 자동 폭 Breadcrumbs 가 넓어졌다 (G5: origin 190 → 210). paint 는
+ * `resolveBreadcrumbItemContext` 가 같은 규칙으로 다시 계산한다. 숨긴 자식을 빼고 세도록 prune 뒤 · 노드는 새 객체로
+ * 교체 (재사용 기록은 고치지 않는다). 현재 조각의 구분자 Icon 자식은 `pruneCurrentBreadcrumbSeparators` 가 뺀다.
  */
 export function annotateStaticBreadcrumbItems(graph: CanvasSceneGraph): void {
   const nodeIndex = new Map<string, number>();
@@ -3827,15 +3858,11 @@ export function annotateStaticBreadcrumbItems(graph: CanvasSceneGraph): void {
     const crumbs = kids.filter((kid) => kid.type === "Breadcrumb");
     if (crumbs.length === 0) continue;
     const ownerProps = (owner.props ?? {}) as Record<string, unknown>;
-    const separator =
-      typeof ownerProps.separator === "string" ? ownerProps.separator : "›";
     const last = crumbs[crumbs.length - 1]!;
-    // 측정기 기본값 (`_isLast` 부재 = false · 구분자 "›" · size "M") 과 같은 값은 싣지 않는다 — 정적 목록 항목
-    //   500 개를 매 build 새 객체로 바꾸지 않게 (G4). 마지막 crumb 과, owner 가 기본이 아닌 구분자 · 크기를 가진
-    //   목록만 바뀐다.
+    // 측정기 기본값 (`_isLast` 부재 = false · size "M") 과 같은 값은 싣지 않는다 — 정적 목록 항목 500 개를 매 build
+    //   새 객체로 바꾸지 않게 (G4). 마지막 crumb 과, owner 가 기본이 아닌 크기를 가진 목록만 바뀐다.
     const ownerSize = ownerProps.size;
-    const needsOwnerValues =
-      separator !== "›" || (ownerSize !== undefined && ownerSize !== "M");
+    const needsOwnerValues = ownerSize !== undefined && ownerSize !== "M";
     const nextKids = kids.map((kid) => {
       if (kid.type !== "Breadcrumb") return kid;
       const isLast = kid === last;
@@ -3844,9 +3871,6 @@ export function annotateStaticBreadcrumbItems(graph: CanvasSceneGraph): void {
       const size = props.size ?? ownerSize;
       const patch: Record<string, unknown> = {};
       if (isLast && props._isLast !== true) patch._isLast = true;
-      if (needsOwnerValues && props._separator !== separator) {
-        patch._separator = separator;
-      }
       if (needsOwnerValues && size !== undefined && props.size !== size) {
         patch.size = size;
       }

@@ -64,14 +64,11 @@ describe("collection item 시각 metric (catalog SSOT)", () => {
       expect(md?.gap).toBe(2);
     });
 
-    it("label 굵기 600 은 default variant 의 textWeight 채널로 공급된다", () => {
-      // 구 spec 은 sizes.md.fontWeight 600 이었으나 catalog 는 variant visual.textWeight 채널을
-      // 쓴다 (buildCatalogShapes 가 소비). 축이 바뀌었을 뿐 시각 결과는 동일해야 한다.
-      const defaultVariant = rule?.defaultVariant ?? "default";
-      const variant = rule?.variants?.[defaultVariant] as
-        | { textWeight?: number }
-        | undefined;
-      expect(variant?.textWeight).toBe(600);
+    it("항목에는 굵기를 선언하지 않는다 — description 이 600 을 물려받지 않게", () => {
+      // 사용자 결정 2026-09-29: GridListItem 에 굵기 600 이 없어야 한다. 항목 굵기는 description
+      // 까지 내려가므로 (DOM 상속), 카드 label 굵기는 label Text 규칙 · gridlist_card 기본값이 갖는다.
+      for (const variant of Object.values(rule?.variants ?? {}))
+        expect((variant as { textWeight?: number }).textWeight).toBeUndefined();
     });
 
     // ADR-171 Phase 2 (2026-07-29): `justifyContent: "center"` 는 실효 DOM 이 이미

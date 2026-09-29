@@ -614,6 +614,10 @@ pub struct LayoutTree {
     /// 보냈는데 엔진이 버린 키" 를 그 자리에서 실패로 만든다. 켜기 전에는 그 차이가
     /// rect 불일치로만 나타나 엔진 결함으로 오판됐다 (1차 sweep 오탐 132/288).
     strict_input: bool,
+    /// 높이 **확정 0** 판정 (`height_is_definite_zero`) — 기본 false 라 현재 Builder 는 종전
+    /// 경로 (0 = 미지정) 그대로다. ADR-248 새 runtime 만 켠다 (Phase 3 은 기존 앱 출력 불변 —
+    /// breakdown §임시 코드). Phase 4 전환에서 기본값으로 올린다.
+    definite_zero_height: bool,
     /// ADR-183 — 판정 트레이스 sink. `None` 이 기본이고, 그때 계측 지점의 비용은
     /// `Option` 분기 1회다 (HC1). `Box` 인 이유는 off 상태 `LayoutTree` 를
     /// 포인터 하나만큼만 키우기 위함.
@@ -920,6 +924,14 @@ impl LayoutTree {
     /// 현재 strict 입력 모드.
     pub fn strict_input(&self) -> bool {
         self.strict_input
+    }
+
+    /// 높이 확정 0 판정 토글 (기본 false — ADR-248 새 runtime 전용).
+    pub fn set_definite_zero_height(&mut self, enabled: bool) {
+        if self.definite_zero_height != enabled {
+            self.definite_zero_height = enabled;
+            self.last_compute = None;
+        }
     }
 
     /// 현재 살아있는 노드 수.
@@ -2651,8 +2663,18 @@ impl LayoutTree {
         } else {
             avail_w
         };
+        // `explicit_h` 0 은 "미지정" 센티넬이라, 높이가 **확정 0** 인 컨테이너 (저작 `0px` ·
+        //   부모 flex 분배/stretch 가 0 으로 확정한 used 값) 는 따로 판정한다. 그 column main 은
+        //   definite 0 이고 자식은 그 안에서 줄어든다 (CSS-FLEXBOX-1 §9.8 — 실측: `height:
+        //   fit-content` + overflow hidden 인 Card preview 가 0 으로 눌리면 안의 `height:200px`
+        //   Image 도 0, 종전 엔진은 indefinite 로 풀어 200 을 유지).
+        let zero_h_definite = self.definite_zero_height
+            && explicit_h <= 0.0
+            && self.height_is_definite_zero(handle, avail_h);
         let child_avail_h = if explicit_h > 0.0 {
             spec_to_content(explicit_h, own_pb_v)
+        } else if zero_h_definite {
+            0.0
         } else if avail_h >= 0.0 {
             (avail_h - own_pb_v).max(0.0)
         } else {
@@ -3018,7 +3040,7 @@ impl LayoutTree {
         let (mut avail_main, avail_cross) = if is_row {
             (child_avail_w, child_avail_h)
         } else {
-            let main_h = if explicit_h > 0.0 { child_avail_h } else { -1.0 };
+            let main_h = if explicit_h > 0.0 || zero_h_definite { child_avail_h } else { -1.0 };
             (main_h, child_avail_w)
         };
 
@@ -3568,6 +3590,8 @@ impl LayoutTree {
         };
         let container_h = if explicit_h > 0.0 {
             explicit_h
+        } else if zero_h_definite {
+            0.0
         } else {
             auto_main_h.unwrap_or(max_bottom)
         };
@@ -4990,6 +5014,29 @@ impl LayoutTree {
     /// "해석된 px" 가 곧 border-box 값이다 — 이 함수 자체는 pad_border 를 감산하지
     /// 않는다(자신의 padding 은 자신의 outer 크기에 영향 없음, CSS 계약과 동일).
     /// 컨테이너가 *자식에게 넘기는 available* 감산은 `spec_to_content` 가 별도 담당.
+    /// 높이가 **확정 0** 인가 — `resolve_self_size` 의 0 (미지정과 같은 값) 을 가른다. 저작
+    /// 길이가 0 으로 풀리거나 (`0px`), auto/키워드 높이에 부모 배치가 definite 0 을 내렸을 때
+    /// (post-flexing main · stretch — `definite_h`, 이 solve 동안 `last_definite_h`). 양수
+    /// `min-height` 가 있으면 used 값이 0 이 아니므로 아니다.
+    fn height_is_definite_zero(&self, handle: usize, avail_h: f32) -> bool {
+        let Some(node) = self.get(handle) else {
+            return false;
+        };
+        let ctx = self.ctx_for(avail_h);
+        if resolve_dimension_opt(node.style.min_height.as_deref(), &ctx).is_some_and(|m| m > 0.0) {
+            return false;
+        }
+        let authored_zero = node
+            .style
+            .height
+            .as_deref()
+            .map(str::trim)
+            .filter(|raw| !raw.is_empty() && !raw.eq_ignore_ascii_case("auto"))
+            .and_then(|raw| resolve_css_size_value(raw, &ctx))
+            .is_some_and(|v| v == 0.0);
+        authored_zero || node.last_definite_h == Some(0.0)
+    }
+
     fn resolve_self_size(&self, handle: usize, avail_w: f32, avail_h: f32) -> (f32, f32) {
         let Some(node) = self.get(handle) else {
             return (0.0, 0.0);
@@ -10604,6 +10651,55 @@ mod tests {
         let mut tree = LayoutTree::new();
         let leaf = tree.create_node(scalar_leaf(300.0, 500.0));
         assert_eq!(tree.measure_intrinsic_width(leaf), Some((300.0, 500.0)));
+    }
+
+    /// 높이 확정 0 의 column flex — 자식은 definite main 0 안에서 줄어든다 (Chrome: 둘 다 0).
+    /// `explicit_h` 0 은 미지정 센티넬이라 종전엔 indefinite 로 풀려 자식이 200 을 유지했다.
+    #[test]
+    fn definite_zero_height_column_shrinks_children() {
+        let solve_zero = |json: &str, root: usize, on: bool| {
+            let mut tree = LayoutTree::new();
+            tree.set_definite_zero_height(on);
+            let handles = tree.build_tree_batch(json).unwrap();
+            tree.compute_layout(handles[root], 1000.0, 1000.0);
+            (tree, handles)
+        };
+        // 저작 `height: 0px`.
+        let authored = r#"[
+            {"style":{"display":"block","width":"100px","height":"200px"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"column","width":"100px","height":"0px","overflowY":"hidden"},"children":[0]},
+            {"style":{"display":"block","width":"300px","height":"300px"},"children":[1]}
+        ]"#;
+        let (t, h) = solve_zero(authored, 2, true);
+        assert_eq!(t.get_layout(h[1]).height, 0.0);
+        assert_eq!(t.get_layout(h[0]).height, 0.0, "종전 200");
+        // post-flexing used 0 (ADR-248 G3 Card preview: `fit-content` + overflow hidden 이
+        // 형제 content 에 밀려 0 — 안의 `height:200px` Image 도 0).
+        let flexed = r#"[
+            {"style":{"display":"block","width":"100%","height":"200px"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"column","width":"100%","height":"fit-content","overflowX":"hidden","overflowY":"hidden"},"children":[0]},
+            {"style":{"display":"block","width":"100%","height":"124px","minHeight":"124px"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"column","width":"220px","height":"130px","paddingTop":"16px","paddingBottom":"16px","rowGap":"12px"},"children":[1,2]}
+        ]"#;
+        let (t, h) = solve_zero(flexed, 3, true);
+        assert_eq!(t.get_layout(h[1]).height, 0.0);
+        assert_eq!(t.get_layout(h[0]).height, 0.0, "종전 200");
+        // 양수 min-height 가 있으면 확정 0 이 아니다 — 기존 경로.
+        let (t, h) = solve_zero(
+            r#"[
+            {"style":{"display":"block","width":"100px","height":"200px"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"column","width":"100px","height":"0px","minHeight":"50px","overflowY":"hidden"},"children":[0]},
+            {"style":{"display":"block","width":"300px","height":"300px"},"children":[1]}
+        ]"#,
+            2,
+            true,
+        );
+        assert_eq!(t.get_layout(h[1]).height, 50.0);
+        // 기본 (끔) = 현재 Builder: 종전 값 그대로 (Phase 3 기존 앱 출력 불변).
+        let (t, h) = solve_zero(authored, 2, false);
+        assert_eq!(t.get_layout(h[0]).height, 200.0);
+        let (t, h) = solve_zero(flexed, 3, false);
+        assert_eq!(t.get_layout(h[0]).height, 200.0);
     }
 
     #[test]

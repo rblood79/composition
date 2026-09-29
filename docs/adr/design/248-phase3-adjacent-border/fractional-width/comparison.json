@@ -1,0 +1,675 @@
+{
+  "head": "2a5c970994cb9de2f824a729b29c08cdcd647d7b",
+  "source": "catalog Badge accent/outline/sm; layout geometry unchanged between exact/snap paint probes",
+  "resolved": {
+    "fill": "transparent",
+    "border": "#155dfc",
+    "borderWidth": 1,
+    "radius": 9999
+  },
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "theme": "default-light",
+  "colorScheme": "light",
+  "font": "computed sans-serif; no external font file loaded",
+  "browserVersion": "151.0.7922.34",
+  "cssBadgeSha256": "47ff7af9cb9f49fba6ab0876522f4f3b444f9955939c8a8ab04a9cb7357b74b4",
+  "skiaSourceSha256": "b9e8ecb51290211700a6323c927df6e862ee47261bcd17badaf3ffd847be37ff",
+  "canvasKitJsSha256": "443777592179808354031cf411d8d43cac9f6b98d1227123c5c22d401b0fbf7f",
+  "fixedBadgeDomPngSha256": "1cc21a75d008931101de4632921f3767c22cdb0d5bf12148ebc24aab5e0b1c98",
+  "fixedBadgeSkiaPngSha256": "26f47bd4a58b1c37673e9cc1b748737284736c16375c19ccb461a9e980b91fb9",
+  "mask": "DOM child text rect; outer 2 CSS px never masked; physical pixels scale with DPR; 3 CSS px left/right diagnostic bands",
+  "comparator": "pixelmatch threshold 0.1; maxByte over unmasked RGBA; no budget or gate change",
+  "cases": [
+    {
+      "id": "dpr1-width54_6875",
+      "dpr": 1,
+      "targetWidth": 54.6875,
+      "layoutWidth": 54.6875,
+      "exactPaintWidth": 54.6875,
+      "snappedPaintWidth": 55,
+      "captureCeilPaintWidth": 55,
+      "dom": {
+        "rect": {
+          "x": 20,
+          "y": 74,
+          "width": 54.6875,
+          "height": 22
+        },
+        "text": {
+          "x": 9,
+          "y": 3,
+          "width": 36.6875,
+          "height": 16
+        },
+        "computed": {
+          "width": "54.6875px",
+          "height": "22px",
+          "boxSizing": "border-box",
+          "borderWidth": "1px",
+          "borderStyle": "solid",
+          "borderColor": "rgb(21, 93, 252)",
+          "borderRadius": "9999px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "fontFamily": "sans-serif",
+          "fontSize": "12px",
+          "lineHeight": "16px",
+          "fontWeight": "600"
+        }
+      },
+      "crop": {
+        "pngWidth": 55,
+        "pngHeight": 22,
+        "cssX": 20,
+        "cssY": 74,
+        "physicalX": 20,
+        "physicalY": 74
+      },
+      "files": {
+        "dom": "dpr1-width54_6875-dom.png",
+        "exact": "dpr1-width54_6875-exact.png",
+        "snap": "dpr1-width54_6875-snap.png",
+        "captureCeil": "dpr1-width54_6875-capture-ceil.png"
+      },
+      "hashes": {
+        "dom": "1cc21a75d008931101de4632921f3767c22cdb0d5bf12148ebc24aab5e0b1c98",
+        "exact": "26f47bd4a58b1c37673e9cc1b748737284736c16375c19ccb461a9e980b91fb9",
+        "snap": "63acbba19c445e38b4ee463bcae79196d0abf62ab8f317bde28fec6e83e95afb",
+        "captureCeil": "63acbba19c445e38b4ee463bcae79196d0abf62ab8f317bde28fec6e83e95afb"
+      },
+      "exact": {
+        "different": 10,
+        "denominator": 618,
+        "ratio": 0.016181229773462782,
+        "maxByte": 74,
+        "masked": 592,
+        "left": {
+          "pixels": 66,
+          "different": 0,
+          "maxByte": 2
+        },
+        "right": {
+          "pixels": 66,
+          "different": 8,
+          "maxByte": 74
+        }
+      },
+      "snap": {
+        "different": 0,
+        "denominator": 618,
+        "ratio": 0,
+        "maxByte": 2,
+        "masked": 592,
+        "left": {
+          "pixels": 66,
+          "different": 0,
+          "maxByte": 2
+        },
+        "right": {
+          "pixels": 66,
+          "different": 0,
+          "maxByte": 1
+        }
+      },
+      "captureCeil": {
+        "different": 0,
+        "denominator": 618,
+        "ratio": 0,
+        "maxByte": 2,
+        "masked": 592,
+        "left": {
+          "pixels": 66,
+          "different": 0,
+          "maxByte": 2
+        },
+        "right": {
+          "pixels": 66,
+          "different": 0,
+          "maxByte": 1
+        }
+      }
+    },
+    {
+      "id": "dpr1-width54_25",
+      "dpr": 1,
+      "targetWidth": 54.25,
+      "layoutWidth": 54.25,
+      "exactPaintWidth": 54.25,
+      "snappedPaintWidth": 54,
+      "captureCeilPaintWidth": 55,
+      "dom": {
+        "rect": {
+          "x": 20,
+          "y": 74,
+          "width": 54.25,
+          "height": 22
+        },
+        "text": {
+          "x": 8.78125,
+          "y": 3,
+          "width": 36.6875,
+          "height": 16
+        },
+        "computed": {
+          "width": "54.25px",
+          "height": "22px",
+          "boxSizing": "border-box",
+          "borderWidth": "1px",
+          "borderStyle": "solid",
+          "borderColor": "rgb(21, 93, 252)",
+          "borderRadius": "9999px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "fontFamily": "sans-serif",
+          "fontSize": "12px",
+          "lineHeight": "16px",
+          "fontWeight": "600"
+        }
+      },
+      "crop": {
+        "pngWidth": 55,
+        "pngHeight": 22,
+        "cssX": 20,
+        "cssY": 74,
+        "physicalX": 20,
+        "physicalY": 74
+      },
+      "files": {
+        "dom": "dpr1-width54_25-dom.png",
+        "exact": "dpr1-width54_25-exact.png",
+        "snap": "dpr1-width54_25-snap.png",
+        "captureCeil": "dpr1-width54_25-capture-ceil.png"
+      },
+      "hashes": {
+        "dom": "8107699bc1e8899477225b039acb788d514946fea7dd88132f7a1928d68c05fb",
+        "exact": "a8ce72c43765f912ca131c58e180caffa7e9ef598c25fa73709febdeae1e19f2",
+        "snap": "c64705e1f7f0ad61f5f4aa0b72cbfe4703ac7efd417926b5d34182a01f58eef8",
+        "captureCeil": "63acbba19c445e38b4ee463bcae79196d0abf62ab8f317bde28fec6e83e95afb"
+      },
+      "exact": {
+        "different": 7,
+        "denominator": 634,
+        "ratio": 0.011041009463722398,
+        "maxByte": 66,
+        "masked": 576,
+        "left": {
+          "pixels": 66,
+          "different": 0,
+          "maxByte": 2
+        },
+        "right": {
+          "pixels": 66,
+          "different": 4,
+          "maxByte": 60
+        }
+      },
+      "snap": {
+        "different": 0,
+        "denominator": 634,
+        "ratio": 0,
+        "maxByte": 33,
+        "masked": 576,
+        "left": {
+          "pixels": 66,
+          "different": 0,
+          "maxByte": 2
+        },
+        "right": {
+          "pixels": 66,
+          "different": 0,
+          "maxByte": 1
+        }
+      },
+      "captureCeil": {
+        "different": 38,
+        "denominator": 634,
+        "ratio": 0.05993690851735016,
+        "maxByte": 212,
+        "masked": 576,
+        "left": {
+          "pixels": 66,
+          "different": 0,
+          "maxByte": 2
+        },
+        "right": {
+          "pixels": 66,
+          "different": 21,
+          "maxByte": 212
+        }
+      }
+    },
+    {
+      "id": "dpr1-width55_25",
+      "dpr": 1,
+      "targetWidth": 55.25,
+      "layoutWidth": 55.25,
+      "exactPaintWidth": 55.25,
+      "snappedPaintWidth": 55,
+      "captureCeilPaintWidth": 56,
+      "dom": {
+        "rect": {
+          "x": 20,
+          "y": 74,
+          "width": 55.25,
+          "height": 22
+        },
+        "text": {
+          "x": 9.28125,
+          "y": 3,
+          "width": 36.6875,
+          "height": 16
+        },
+        "computed": {
+          "width": "55.25px",
+          "height": "22px",
+          "boxSizing": "border-box",
+          "borderWidth": "1px",
+          "borderStyle": "solid",
+          "borderColor": "rgb(21, 93, 252)",
+          "borderRadius": "9999px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "fontFamily": "sans-serif",
+          "fontSize": "12px",
+          "lineHeight": "16px",
+          "fontWeight": "600"
+        }
+      },
+      "crop": {
+        "pngWidth": 56,
+        "pngHeight": 22,
+        "cssX": 20,
+        "cssY": 74,
+        "physicalX": 20,
+        "physicalY": 74
+      },
+      "files": {
+        "dom": "dpr1-width55_25-dom.png",
+        "exact": "dpr1-width55_25-exact.png",
+        "snap": "dpr1-width55_25-snap.png",
+        "captureCeil": "dpr1-width55_25-capture-ceil.png"
+      },
+      "hashes": {
+        "dom": "92b318d0cd3f12a6299d5bc73e99c82dbb4f7f59bb2758d826f9dc4471f36a1e",
+        "exact": "abd752718c2b15a8fe8f8b52c9079f03928238b701aeb7f983edd2ebbf4f66ea",
+        "snap": "dc2e15c5cb0cc9a5f9e1916992cee93419dfd76e71afe022a515ae9f05552dfd",
+        "captureCeil": "333c56607e30475aa5d817c80bfb4a8e6d495ed96b4e7276dbe41adebe1d28bf"
+      },
+      "exact": {
+        "different": 7,
+        "denominator": 640,
+        "ratio": 0.0109375,
+        "maxByte": 66,
+        "masked": 592,
+        "left": {
+          "pixels": 66,
+          "different": 0,
+          "maxByte": 2
+        },
+        "right": {
+          "pixels": 66,
+          "different": 4,
+          "maxByte": 60
+        }
+      },
+      "snap": {
+        "different": 0,
+        "denominator": 640,
+        "ratio": 0,
+        "maxByte": 2,
+        "masked": 592,
+        "left": {
+          "pixels": 66,
+          "different": 0,
+          "maxByte": 2
+        },
+        "right": {
+          "pixels": 66,
+          "different": 0,
+          "maxByte": 1
+        }
+      },
+      "captureCeil": {
+        "different": 38,
+        "denominator": 640,
+        "ratio": 0.059375,
+        "maxByte": 212,
+        "masked": 592,
+        "left": {
+          "pixels": 66,
+          "different": 0,
+          "maxByte": 2
+        },
+        "right": {
+          "pixels": 66,
+          "different": 21,
+          "maxByte": 212
+        }
+      }
+    },
+    {
+      "id": "dpr2-width54_6875",
+      "dpr": 2,
+      "targetWidth": 54.6875,
+      "layoutWidth": 54.6875,
+      "exactPaintWidth": 54.6875,
+      "snappedPaintWidth": 54.5,
+      "captureCeilPaintWidth": 55,
+      "dom": {
+        "rect": {
+          "x": 20,
+          "y": 74,
+          "width": 54.6875,
+          "height": 22
+        },
+        "text": {
+          "x": 9,
+          "y": 3,
+          "width": 36.6875,
+          "height": 16
+        },
+        "computed": {
+          "width": "54.6875px",
+          "height": "22px",
+          "boxSizing": "border-box",
+          "borderWidth": "1px",
+          "borderStyle": "solid",
+          "borderColor": "rgb(21, 93, 252)",
+          "borderRadius": "9999px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "fontFamily": "sans-serif",
+          "fontSize": "12px",
+          "lineHeight": "16px",
+          "fontWeight": "600"
+        }
+      },
+      "crop": {
+        "pngWidth": 110,
+        "pngHeight": 44,
+        "cssX": 20,
+        "cssY": 74,
+        "physicalX": 40,
+        "physicalY": 148
+      },
+      "files": {
+        "dom": "dpr2-width54_6875-dom.png",
+        "exact": "dpr2-width54_6875-exact.png",
+        "snap": "dpr2-width54_6875-snap.png",
+        "captureCeil": "dpr2-width54_6875-capture-ceil.png"
+      },
+      "hashes": {
+        "dom": "18d72bc5bc459475df012ec493a6afed65205b48e25768e1317c85c1e88bd2ce",
+        "exact": "fb5ac41bdf83b84f53cd3f38b936ac5b593c124038ec49fdaf2392dafe0263dd",
+        "snap": "bd059f0c409b26466b4af8b34f38c165c9933f0d00fbb9f37ee1fee60a64d915",
+        "captureCeil": "42b3b73bb76764175a019b7d0db2a6d6ecbd3fd3097e690c4d515152a6888a27"
+      },
+      "exact": {
+        "different": 32,
+        "denominator": 2504,
+        "ratio": 0.012779552715654952,
+        "maxByte": 152,
+        "masked": 2336,
+        "left": {
+          "pixels": 264,
+          "different": 0,
+          "maxByte": 5
+        },
+        "right": {
+          "pixels": 264,
+          "different": 23,
+          "maxByte": 152
+        }
+      },
+      "snap": {
+        "different": 72,
+        "denominator": 2504,
+        "ratio": 0.02875399361022364,
+        "maxByte": 224,
+        "masked": 2336,
+        "left": {
+          "pixels": 264,
+          "different": 0,
+          "maxByte": 5
+        },
+        "right": {
+          "pixels": 264,
+          "different": 53,
+          "maxByte": 224
+        }
+      },
+      "captureCeil": {
+        "different": 0,
+        "denominator": 2504,
+        "ratio": 0,
+        "maxByte": 5,
+        "masked": 2336,
+        "left": {
+          "pixels": 264,
+          "different": 0,
+          "maxByte": 5
+        },
+        "right": {
+          "pixels": 264,
+          "different": 0,
+          "maxByte": 1
+        }
+      }
+    },
+    {
+      "id": "dpr2-width54_25",
+      "dpr": 2,
+      "targetWidth": 54.25,
+      "layoutWidth": 54.25,
+      "exactPaintWidth": 54.25,
+      "snappedPaintWidth": 54.5,
+      "captureCeilPaintWidth": 54.5,
+      "dom": {
+        "rect": {
+          "x": 20,
+          "y": 74,
+          "width": 54.25,
+          "height": 22
+        },
+        "text": {
+          "x": 8.78125,
+          "y": 3,
+          "width": 36.6875,
+          "height": 16
+        },
+        "computed": {
+          "width": "54.25px",
+          "height": "22px",
+          "boxSizing": "border-box",
+          "borderWidth": "1px",
+          "borderStyle": "solid",
+          "borderColor": "rgb(21, 93, 252)",
+          "borderRadius": "9999px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "fontFamily": "sans-serif",
+          "fontSize": "12px",
+          "lineHeight": "16px",
+          "fontWeight": "600"
+        }
+      },
+      "crop": {
+        "pngWidth": 110,
+        "pngHeight": 44,
+        "cssX": 20,
+        "cssY": 74,
+        "physicalX": 40,
+        "physicalY": 148
+      },
+      "files": {
+        "dom": "dpr2-width54_25-dom.png",
+        "exact": "dpr2-width54_25-exact.png",
+        "snap": "dpr2-width54_25-snap.png",
+        "captureCeil": "dpr2-width54_25-capture-ceil.png"
+      },
+      "hashes": {
+        "dom": "a81918cb65563027d9717f0c30564e2b0eb59f5cc0efdf183b5707a7048215cf",
+        "exact": "af74c80971f7cfe0b121373b74bf61d19db805f35fb6d3f7648f673342a73077",
+        "snap": "bd059f0c409b26466b4af8b34f38c165c9933f0d00fbb9f37ee1fee60a64d915",
+        "captureCeil": "bd059f0c409b26466b4af8b34f38c165c9933f0d00fbb9f37ee1fee60a64d915"
+      },
+      "exact": {
+        "different": 19,
+        "denominator": 2504,
+        "ratio": 0.0075878594249201275,
+        "maxByte": 120,
+        "masked": 2336,
+        "left": {
+          "pixels": 264,
+          "different": 0,
+          "maxByte": 5
+        },
+        "right": {
+          "pixels": 264,
+          "different": 16,
+          "maxByte": 120
+        }
+      },
+      "snap": {
+        "different": 55,
+        "denominator": 2504,
+        "ratio": 0.02196485623003195,
+        "maxByte": 224,
+        "masked": 2336,
+        "left": {
+          "pixels": 264,
+          "different": 0,
+          "maxByte": 5
+        },
+        "right": {
+          "pixels": 264,
+          "different": 36,
+          "maxByte": 224
+        }
+      },
+      "captureCeil": {
+        "different": 55,
+        "denominator": 2504,
+        "ratio": 0.02196485623003195,
+        "maxByte": 224,
+        "masked": 2336,
+        "left": {
+          "pixels": 264,
+          "different": 0,
+          "maxByte": 5
+        },
+        "right": {
+          "pixels": 264,
+          "different": 36,
+          "maxByte": 224
+        }
+      }
+    },
+    {
+      "id": "dpr2-width55_25",
+      "dpr": 2,
+      "targetWidth": 55.25,
+      "layoutWidth": 55.25,
+      "exactPaintWidth": 55.25,
+      "snappedPaintWidth": 55.5,
+      "captureCeilPaintWidth": 55.5,
+      "dom": {
+        "rect": {
+          "x": 20,
+          "y": 74,
+          "width": 55.25,
+          "height": 22
+        },
+        "text": {
+          "x": 9.28125,
+          "y": 3,
+          "width": 36.6875,
+          "height": 16
+        },
+        "computed": {
+          "width": "55.25px",
+          "height": "22px",
+          "boxSizing": "border-box",
+          "borderWidth": "1px",
+          "borderStyle": "solid",
+          "borderColor": "rgb(21, 93, 252)",
+          "borderRadius": "9999px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "fontFamily": "sans-serif",
+          "fontSize": "12px",
+          "lineHeight": "16px",
+          "fontWeight": "600"
+        }
+      },
+      "crop": {
+        "pngWidth": 112,
+        "pngHeight": 44,
+        "cssX": 20,
+        "cssY": 74,
+        "physicalX": 40,
+        "physicalY": 148
+      },
+      "files": {
+        "dom": "dpr2-width55_25-dom.png",
+        "exact": "dpr2-width55_25-exact.png",
+        "snap": "dpr2-width55_25-snap.png",
+        "captureCeil": "dpr2-width55_25-capture-ceil.png"
+      },
+      "hashes": {
+        "dom": "bac60f7ec21e742e7f6d7bdcfcf9310dd4bf50a03cad2a5831dbeb36d27e2d4b",
+        "exact": "2380f83e4e6fa942925ca3e9c75af888e9e8309890fabf2978b6c634054b13dc",
+        "snap": "3e6e3df24ef69b1776a6c019782c6a2df95509adcbbdc368f7421a90aa8b3452",
+        "captureCeil": "3e6e3df24ef69b1776a6c019782c6a2df95509adcbbdc368f7421a90aa8b3452"
+      },
+      "exact": {
+        "different": 19,
+        "denominator": 2592,
+        "ratio": 0.0073302469135802465,
+        "maxByte": 120,
+        "masked": 2336,
+        "left": {
+          "pixels": 264,
+          "different": 0,
+          "maxByte": 5
+        },
+        "right": {
+          "pixels": 264,
+          "different": 16,
+          "maxByte": 120
+        }
+      },
+      "snap": {
+        "different": 55,
+        "denominator": 2592,
+        "ratio": 0.021219135802469136,
+        "maxByte": 224,
+        "masked": 2336,
+        "left": {
+          "pixels": 264,
+          "different": 0,
+          "maxByte": 5
+        },
+        "right": {
+          "pixels": 264,
+          "different": 36,
+          "maxByte": 224
+        }
+      },
+      "captureCeil": {
+        "different": 55,
+        "denominator": 2592,
+        "ratio": 0.021219135802469136,
+        "maxByte": 224,
+        "masked": 2336,
+        "left": {
+          "pixels": 264,
+          "different": 0,
+          "maxByte": 5
+        },
+        "right": {
+          "pixels": 264,
+          "different": 36,
+          "maxByte": 224
+        }
+      }
+    }
+  ]
+}

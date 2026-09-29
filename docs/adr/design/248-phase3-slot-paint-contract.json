@@ -1,0 +1,43 @@
+{
+  "scenarioId": "adr248-structural-baseline-v1",
+  "scenarioHash": "487150e08d7461803b14afeb2c56c2c1bbf9018f61d8cb765a468bd4791495e5",
+  "sourceHead": "400d09eaeecd5dd258080d2af1e80f9bcd274fd7",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "dpr": 1,
+  "font": "app-default",
+  "theme": "default-light",
+  "seed": 248,
+  "slotGeometry": {
+    "x": 22,
+    "y": 152,
+    "width": 160,
+    "height": 80,
+    "baseline": 80
+  },
+  "emptyCommandDraws": 1,
+  "emptyMarkerPainter": "renderSlotHatchPattern(existing editor overlay)",
+  "emptyMarkerPixels": 1674,
+  "supplementalPublicOperation": "fill Slot with Text(Filled)",
+  "filledTextCommandDraws": 1,
+  "filledContentPixels": 216,
+  "filledMarkerPainterInvocations": 0,
+  "emptyOverlayTarget": {
+    "id": "project:node:frame/project:node:slot::project:node:slot",
+    "bounds": {
+      "x": 34,
+      "y": 164,
+      "width": 136,
+      "height": 56
+    },
+    "pageId": "project:page:main",
+    "showHatch": true,
+    "slotMarkerRole": "origin"
+  },
+  "pageModeTargets": 0,
+  "fullyOccludedTargets": 0,
+  "missingTypedInput": "Typed Slot visual and transient editor role/occlusion reach the scene; Canvas does not paint DOM icon/name/required/description chrome",
+  "verdict": "TYPED_SLOT_BOX_AND_OVERLAY_TARGET_PASS; CANVAS_DOM_CHROME_FAIL"
+}

@@ -1,0 +1,6109 @@
+{
+  "sourceHead": "2a5c970994cb9de2f824a729b29c08cdcd647d7b",
+  "sourceBuildIndexSha256": "3474b01de9ab15eeaaf7670f67b9376065aa6c9a11c407ba86ab234f9e1035e5",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "dpr": 1,
+  "theme": "default-light",
+  "font": "app-default",
+  "seed": 248,
+  "scope": "Phase 3 independent comparison; Preview/Compare DEFERRED",
+  "summary": {
+    "registeredTypeCases": 130,
+    "requiredTypeAxes": 1333,
+    "slotRoles": 14,
+    "g3Passed": 0,
+    "g3Failed": 2,
+    "g3Unverified": 142,
+    "actualRenderCommandRepresentativeTypes": 4,
+    "registeredCatalogTestEntryBindings": 4,
+    "registeredProductCanvasKitBindings": 0,
+    "actualRacRepresentativeTypes": 4,
+    "fullSceneExactDifferentPixels": 11191,
+    "fullScenePixelParity": "FAIL",
+    "executionModuleParity": "UNVERIFIED_DEV_SERVER_VS_VITEST",
+    "typedFixtureDefinitionsInManifest": 4,
+    "sourceDerivedCodeDefinitions": 2,
+    "sourceDerivedCodeDefinitionsExecuted": 2,
+    "typedDefinitionsIncludingSourcePhase3": 5,
+    "missingTypedDefinitions": 125,
+    "missingCanvasKitBindings": 130,
+    "missingIsolatedRacBindings": 130,
+    "representativeCasesWithPartialEvidence": 4,
+    "g0NativeStaticSemanticCasesPassed": 4,
+    "g0NativeFrameGeometryCasesPassed": 3,
+    "g0NativeFrameCanvasKitSamplePixelsPassed": 3,
+    "g0NativeGroupNumericCasesFailed": 2,
+    "frameContainerWithoutRacRole": "PASS_REPRESENTATIVE",
+    "groupTransparentContainerWithoutAuthoredPaint": "PASS_REPRESENTATIVE",
+    "slotExistingOverlayMarkerPixels": 1674,
+    "slotFilledTextPixels": 248,
+    "slotCanvasDomPaintParity": "LOCAL_ADR198_L3_NONTEXT_PASS_9_OF_9_MAX_RATIO_0.000505; L3E_CORNER_BAND_UNVERIFIED_NO_APPROVED_BUDGET; RAW_RGB_DIAGNOSTIC_ONLY; OLD_NULL_KNOWN_DEFECT_OLD_NEW_FAIL_RECORDED",
+    "slotTypedSizeStateMatrixCases": 9,
+    "slotRustDomHeightCasesWithin1Px": 9,
+    "slotRustDomHeightCasesFailed": 0,
+    "slotPlaceholderPaintCommandCases": 6,
+    "slotRawOneToOnePixelCaptureCases": 9,
+    "slotTextMaskMeasuredCases": 9,
+    "slotHc6NontextPixelCasesFailed": 0,
+    "slotFilledInheritedTypographyCases": 3,
+    "slotL3NontextPixelCasesPassed": 9,
+    "slotRawRgbNontextCasesDiagnosticOnly": 9,
+    "frameClipPairL3NontextCasesPassed": 2,
+    "frameClipPairL3eCasesUnverified": 2,
+    "groupPairL3NontextCasesPassed": 2,
+    "groupPairL3eCasesUnverified": 2,
+    "typedReusableOriginEntries": 60,
+    "typedReusableOriginDefinitionsIncludingAuxiliary": 130,
+    "typedReusableOriginTemplates": 316,
+    "reusableOriginCanonicalFields": 2418,
+    "reusableOriginRepresentedFields": 1695,
+    "reusableOriginContractGapFields": 723,
+    "pencilDirectRoundtripFixtures": 5,
+    "pencilNegativeFixturesExplicitError": 2,
+    "pencilScope": "REMOVED 2026-09-29 (사용자 지시): 새 Pencil import/export 코드·phase3PencilAudit·유효 fixture 3개 삭제. 외부 .pen 교환은 ADR-248 필수 범위 밖. 아래 항목은 수행 기록이며 G4 근거가 아님. G0 .pen 표본·해시·구 앱 결과는 248-baseline에 보존."
+  },
+  "pencil": [
+    {
+      "fixture": "sample-minimal.pen",
+      "fields": {
+        "version": "exchange.version",
+        "children": "page.children",
+        "id": "node.id",
+        "type": "definitionId",
+        "name": "node.name",
+        "fill": "node.visual.fill",
+        "text": "node.props.children"
+      },
+      "result": "DIRECT_MEANING_ROUNDTRIP_PASS",
+      "record": "HISTORICAL_ONLY_CODE_REMOVED"
+    },
+    {
+      "fixture": "sample-slots.pen",
+      "fields": {
+        "slot": "node.regions",
+        "clip": "node.visual.overflow",
+        "placeholder": "node.placeholder",
+        "name": "node.name"
+      },
+      "result": "DIRECT_MEANING_ROUNDTRIP_PASS",
+      "record": "HISTORICAL_ONLY_CODE_REMOVED"
+    },
+    {
+      "fixture": "sample-ref.pen",
+      "fields": {
+        "reusable": "project.definition+templateRootId",
+        "ref": "node.definitionId",
+        "slot": "node.regions"
+      },
+      "result": "DIRECT_MEANING_ROUNDTRIP_PASS",
+      "record": "HISTORICAL_ONLY_CODE_REMOVED"
+    },
+    {
+      "fixture": "sample-descendants.pen",
+      "fields": {
+        "descendants": "typed descendantOverride candidate",
+        "children": "template children candidate"
+      },
+      "result": "NEGATIVE_CASE_EXPLICIT_ERROR_PASS",
+      "missing": [
+        "icon target absent from source reusable",
+        "footer target absent from source reusable"
+      ],
+      "expectedError": "PENCIL_DESCENDANT_TARGET_MISSING:icon,footer",
+      "policy": "user decision 2026-09-29: frozen G0 input stays a negative case; not counted as success",
+      "record": "HISTORICAL_ONLY_CODE_REMOVED"
+    },
+    {
+      "fixture": "sample-imports.pen",
+      "fields": {
+        "imports": "external library dependency candidate",
+        "ref": "typed definition ID candidate"
+      },
+      "result": "NEGATIVE_CASE_EXPLICIT_ERROR_PASS",
+      "missing": [
+        "./kit.pen is not supplied",
+        "external definition resolution policy"
+      ],
+      "expectedError": "PENCIL_IMPORT_UNRESOLVED:./kit.pen",
+      "policy": "user decision 2026-09-29: frozen G0 input stays a negative case; not counted as success",
+      "record": "HISTORICAL_ONLY_CODE_REMOVED"
+    },
+    {
+      "fixture": "apps/builder/src/builder/catalogRuntime/__tests__/fixtures/pencil/valid-descendants.pen",
+      "fields": {
+        "reusable.children": "definition template subtree (project nodes owned by template root)",
+        "descendants.<id>.text": "descendantOverride patch props.children",
+        "descendants.<id>.fill": "descendantOverride patch visual.fill",
+        "descendants.<id>={id,type,…}": "descendantOverride replace (instance-owned node)"
+      },
+      "result": "DIRECT_MEANING_ROUNDTRIP_PASS",
+      "evidence": [
+        "apps/builder/src/builder/catalogRuntime/__tests__/phase3PencilAudit.test.ts"
+      ],
+      "contractGap": "descendants.<id>.children (children replacement) has no typed target: fillSlot needs NodeEntry.slot, the simple subset maps `slot` lists to regions → UNSUPPORTED_PENCIL_DESCENDANT_CHILDREN",
+      "record": "HISTORICAL_ONLY_CODE_REMOVED"
+    },
+    {
+      "fixture": "apps/builder/src/builder/catalogRuntime/__tests__/fixtures/pencil/valid-imports.pen (+ valid-kit.pen)",
+      "fields": {
+        "imports.<alias>": "resolveImport(path) at import; components → project definitions pencilImport_<alias>__<id>",
+        "ref alias:id": "node.definitionId"
+      },
+      "result": "DIRECT_MEANING_ROUNDTRIP_PASS",
+      "evidence": [
+        "apps/builder/src/builder/catalogRuntime/__tests__/phase3PencilAudit.test.ts"
+      ],
+      "contractGap": "alias → file path is not stored in the typed document; export requires the same imports map (PENCIL_EXPORT_IMPORT_PATH_REQUIRED). Imported kit components are copied into the project as definitions.",
+      "record": "HISTORICAL_ONLY_CODE_REMOVED"
+    }
+  ],
+  "highRisk": [
+    {
+      "name": "Frame fill/border/overflow",
+      "status": "PARTIAL_REPRESENTATIVE",
+      "baselineException": false
+    },
+    {
+      "name": "Group orientation/ARIA",
+      "status": "FAIL_OLD_NUMERIC_GEOMETRY; NEW_ROW_COLUMN_GAP_ARIA_OBSERVED",
+      "baselineException": false
+    },
+    {
+      "name": "Slot empty/filled/description",
+      "status": "FAIL_OLD_NULL_NEW_PRESENT; RAC_PARTIAL",
+      "baselineException": false
+    },
+    {
+      "name": "named regions",
+      "status": "UNVERIFIED",
+      "baselineException": false
+    },
+    {
+      "name": "selectedHover/selectedPressed",
+      "status": "UNVERIFIED",
+      "baselineException": false
+    },
+    {
+      "name": "Tree indentation",
+      "status": "UNVERIFIED",
+      "baselineException": false
+    },
+    {
+      "name": "Slider thumb size",
+      "status": "UNVERIFIED",
+      "baselineException": false
+    },
+    {
+      "name": "collection/Table/date/color/chart",
+      "status": "UNVERIFIED",
+      "baselineException": false
+    }
+  ],
+  "types": [
+    {
+      "type": "Avatar",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "Avatar"
+        },
+        {
+          "kind": "reusable",
+          "type": "Avatar",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:xs",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "structure-state:disabled",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 7,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-avatar",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 1,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "AvatarGroup",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "AvatarGroup"
+        },
+        {
+          "kind": "reusable",
+          "type": "AvatarGroup",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:xs",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "structure-state:disabled",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 7,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-avatargroup",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 10,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "Badge",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "Badge"
+        },
+        {
+          "kind": "reusable",
+          "type": "Badge",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:accent",
+        "variant:informative",
+        "variant:neutral",
+        "variant:positive",
+        "variant:notice",
+        "variant:negative",
+        "variant:gray",
+        "variant:red",
+        "variant:orange",
+        "variant:yellow",
+        "variant:green",
+        "variant:blue",
+        "variant:purple",
+        "variant:indigo",
+        "variant:cyan",
+        "variant:pink",
+        "variant:turquoise",
+        "variant:fuchsia",
+        "variant:magenta",
+        "variant:chartreuse",
+        "variant:celery",
+        "variant:seafoam",
+        "variant:brown",
+        "variant:cinnamon",
+        "variant:silver",
+        "size:xs",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "structure-state:disabled",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 31,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-badge",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 1,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "Breadcrumb",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "Breadcrumb"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:S",
+        "size:M",
+        "size:L",
+        "structure-state:hover",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 2,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "Breadcrumbs",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "Breadcrumbs"
+        },
+        {
+          "kind": "reusable",
+          "type": "Breadcrumbs",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:S",
+        "size:M",
+        "size:L",
+        "structure-state:hover",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 5,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-breadcrumbs",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 12,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "Button",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "Button"
+        },
+        {
+          "kind": "reusable",
+          "type": "Button",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:accent",
+        "variant:primary",
+        "variant:secondary",
+        "variant:negative",
+        "variant:premium",
+        "variant:genai",
+        "size:xs",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 19,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-button",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 2,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "ButtonGroup",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "ButtonGroup"
+        },
+        {
+          "kind": "reusable",
+          "type": "ButtonGroup",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:xs",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "structure-state:disabled",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 7,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-buttongroup",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 9,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "Calendar",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "Calendar"
+        },
+        {
+          "kind": "reusable",
+          "type": "Calendar",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "variant:accent",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 6,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-calendar",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 8,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "CalendarGrid",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "CalendarGrid"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "variant:accent",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "INDIRECT_PARENT_CONTEXT_ONLY",
+      "oldBaselineCount": 0,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "CalendarHeader",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "CalendarHeader"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "variant:accent",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "INDIRECT_PARENT_CONTEXT_ONLY",
+      "oldBaselineCount": 0,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "Card",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "Card"
+        },
+        {
+          "kind": "reusable",
+          "type": "Card"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:primary",
+        "variant:secondary",
+        "variant:tertiary",
+        "variant:quiet",
+        "size:xs",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed",
+        "paint-state:selected"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 10,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-card",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 31,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "CardContent",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "CardContent"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "size:xs",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl"
+      ],
+      "oldFixtureCoverage": "INDIRECT_PARENT_CONTEXT_ONLY",
+      "oldBaselineCount": 0,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "CardFooter",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "CardFooter"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "size:xs",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl"
+      ],
+      "oldFixtureCoverage": "INDIRECT_PARENT_CONTEXT_ONLY",
+      "oldBaselineCount": 0,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "CardHeader",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "CardHeader"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "size:xs",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl"
+      ],
+      "oldFixtureCoverage": "INDIRECT_PARENT_CONTEXT_ONLY",
+      "oldBaselineCount": 0,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "CardPreview",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "CardPreview"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "size:xs",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl"
+      ],
+      "oldFixtureCoverage": "INDIRECT_PARENT_CONTEXT_ONLY",
+      "oldBaselineCount": 0,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "CardView",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "CardView"
+        },
+        {
+          "kind": "reusable",
+          "type": "CardView",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "structure-state:disabled",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 5,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-cardview",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 34,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "Cell",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "Cell"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:md",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "INDIRECT_PARENT_CONTEXT_ONLY",
+      "oldBaselineCount": 0,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "Chart",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "Chart"
+        },
+        {
+          "kind": "reusable",
+          "type": "Chart",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "variant:quiet",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 6,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-chart",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 2,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "Checkbox",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "Checkbox"
+        },
+        {
+          "kind": "reusable",
+          "type": "Checkbox",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "variant:emphasized",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed",
+        "paint-state:selected"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 13,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-checkbox",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 1,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "CheckboxGroup",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "CheckboxGroup"
+        },
+        {
+          "kind": "reusable",
+          "type": "CheckboxGroup",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "variant:accent",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed",
+        "container-variant:label-position",
+        "container-variant:size",
+        "container-variant:orientation"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 7,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-checkboxgroup",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 8,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "Code",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "Code"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:xs",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 1,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "ColorArea",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "ColorArea"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "variant:accent",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 1,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "ColorField",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "ColorField"
+        },
+        {
+          "kind": "reusable",
+          "type": "ColorField",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "size:xs",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "container-variant:label-position",
+        "container-variant:label-align",
+        "container-variant:quiet"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 6,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-colorfield",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 2,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "ColorPicker",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "ColorPicker"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "variant:compact",
+        "variant:expanded",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 1,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "ColorSlider",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "ColorSlider"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 1,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "ColorSwatch",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "ColorSwatch"
+        },
+        {
+          "kind": "reusable",
+          "type": "ColorSwatch",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "variant:selected",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 1,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-colorswatch",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 2,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "ColorSwatchPicker",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "ColorSwatchPicker"
+        },
+        {
+          "kind": "reusable",
+          "type": "ColorSwatchPicker",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "variant:accent",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 1,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-colorswatchpicker",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 23,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "ColorWheel",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "ColorWheel"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 1,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "Column",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "Column"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:md",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 1,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "ComboBox",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "ComboBox"
+        },
+        {
+          "kind": "reusable",
+          "type": "ComboBox",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "size:xs",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "container-variant:label-position",
+        "container-variant:label-align",
+        "container-variant:quiet"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 6,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-combobox",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 29,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "DateField",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "DateField"
+        },
+        {
+          "kind": "reusable",
+          "type": "DateField",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "container-variant:label-position",
+        "container-variant:label-align",
+        "container-variant:quiet"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 5,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-datefield",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 3,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "DateInput",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "DateInput"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "variant:accent",
+        "variant:negative",
+        "size:xs",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "INDIRECT_PARENT_CONTEXT_ONLY",
+      "oldBaselineCount": 0,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "DatePicker",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "DatePicker"
+        },
+        {
+          "kind": "reusable",
+          "type": "DatePicker",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "size:xs",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "container-variant:label-position",
+        "container-variant:label-align",
+        "container-variant:quiet"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 6,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-datepicker",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 10,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "DateRangePicker",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "DateRangePicker"
+        },
+        {
+          "kind": "reusable",
+          "type": "DateRangePicker",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "size:xs",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "container-variant:label-position",
+        "container-variant:label-align",
+        "container-variant:quiet"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 6,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-daterangepicker",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 10,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "Description",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "Description"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "INDIRECT_PARENT_CONTEXT_ONLY",
+      "oldBaselineCount": 0,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "Dialog",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "Dialog"
+        },
+        {
+          "kind": "reusable",
+          "type": "Dialog",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:xs",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 7,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-dialog",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 25,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "DialogFooter",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "DialogFooter"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "size:xs",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl"
+      ],
+      "oldFixtureCoverage": "INDIRECT_PARENT_CONTEXT_ONLY",
+      "oldBaselineCount": 0,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "DialogTrigger",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "DialogTrigger"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": ["base", "size:md"],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 1,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "Disclosure",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "Disclosure"
+        },
+        {
+          "kind": "reusable",
+          "type": "Disclosure",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "structure-state:hover",
+        "structure-state:disabled",
+        "structure-state:focusVisible"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 5,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-disclosure",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 6,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "DisclosureContent",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "DisclosureContent"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "paint-state:base"
+      ],
+      "oldFixtureCoverage": "INDIRECT_PARENT_CONTEXT_ONLY",
+      "oldBaselineCount": 0,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "DisclosureGroup",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "DisclosureGroup"
+        },
+        {
+          "kind": "reusable",
+          "type": "DisclosureGroup",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "variant:accent",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 6,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-disclosuregroup",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 6,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "DisclosureHeader",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "DisclosureHeader"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "INDIRECT_PARENT_CONTEXT_ONLY",
+      "oldBaselineCount": 0,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "DropZone",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "DropZone"
+        },
+        {
+          "kind": "reusable",
+          "type": "DropZone",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "structure-state:hover",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 5,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-dropzone",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 11,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "Field",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "Field"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:md",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 1,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "FieldError",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "FieldError"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "INDIRECT_PARENT_CONTEXT_ONLY",
+      "oldBaselineCount": 0,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "FileTrigger",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "FileTrigger"
+        },
+        {
+          "kind": "reusable",
+          "type": "FileTrigger",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "variant:accent",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 6,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-filetrigger",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 1,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "FileUpload",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "FileUpload"
+        },
+        {
+          "kind": "reusable",
+          "type": "FileUpload",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:md",
+        "structure-state:disabled",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 3,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-fileupload",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 20,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "Form",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "Form"
+        },
+        {
+          "kind": "reusable",
+          "type": "Form"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "variant:outlined",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed",
+        "container-variant:label-position",
+        "container-variant:label-align"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 7,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-form",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 14,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "FormField",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "FormField"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "size:xs",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 1,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "GridList",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "GridList"
+        },
+        {
+          "kind": "reusable",
+          "type": "GridList",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "variant:accent",
+        "size:md",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 4,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-gridlist",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 12,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "GridListItem",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "GridListItem"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "variant:quiet",
+        "size:md",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 6,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "GridListSection",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "GridListSection"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": ["base", "size:md"],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 1,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "Group",
+      "sourceRegistration": [],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "variant:accent",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 3,
+      "fixtureDefinitionId": "lib:definition:group",
+      "missing": [
+        "FULL_AXIS_PARITY",
+        "CANVAS_PLACEHOLDER_CHROME",
+        "PAIRED_PIXEL_IDENTITY"
+      ],
+      "newPublicCommand": "RUN_FROZEN_G0_INPUT_IN_INDEPENDENT_TYPED_DRIVER",
+      "geometry": "FAIL_OLD_NUMERIC_PARITY: horizontal old(2,42) new(58,2); vertical old(2,42) new(2,54); ADR_ROW_COLUMN_AND_SIZE_GAP_CORRECTION",
+      "canvasPixels": "NEW_CANVAS_DOM_L3_NONTEXT_PASS_2_OF_2_TEXT_NODES_SEPARATED (0/9262 maxByte 1); L3E_UNVERIFIED; OLD_NEW_KNOWN_DEFECT_FAIL_RECORDED",
+      "isolatedDomSemantic": "PASS_G0_NATIVE_STATIC_MARKUP_2_OF_2",
+      "g3": "FAIL_OLD_NUMERIC_GEOMETRY_KNOWN_DEFECT_CORRECTION",
+      "representative": {
+        "geometry": "FAIL_OLD_NUMERIC_PARITY: horizontal old(2,42) new(58,2); vertical old(2,42) new(2,54); ADR_ROW_COLUMN_AND_SIZE_GAP_CORRECTION",
+        "catalogTestEntryBinding": "PASS_GROUP_RUST_ROW_COLUMN_AND_TRANSPARENT_SELF_CONTAINER; NO_SELF_DRAW_UNLESS_AUTHORED; FULL_AXIS_PARITY_UNVERIFIED",
+        "isolatedDomSemantic": "PASS_G0_NATIVE_STATIC_MARKUP_2_OF_2",
+        "actualRacLayout": "PASS_HORIZONTAL_ROW_GAP6_VERTICAL_COLUMN_GAP12_ARIA",
+        "scenarioId": "adr248-structural-baseline-v1",
+        "evidence": [
+          "docs/adr/design/248-phase3-structural-new.json",
+          "docs/adr/design/248-phase3-structural-render-commands.png",
+          "docs/adr/design/248-phase3-slot-old-trace.json",
+          "docs/adr/design/248-phase3-native-state-new.json",
+          "apps/builder/tests/parity/adr248CatalogRealDom.browser.test.ts",
+          "docs/adr/design/248-phase3-native-dom-comparison.json",
+          "docs/adr/design/248-phase3-group-pair.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3GroupPair.test.tsx"
+        ],
+        "nativeDomScenarioId": "adr248-native-dom-unit-v1",
+        "fullAxisParity": "UNVERIFIED"
+      }
+    },
+    {
+      "type": "Header",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "Header"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": ["base", "size:sm", "size:md", "size:lg"],
+      "oldFixtureCoverage": "INDIRECT_PARENT_CONTEXT_ONLY",
+      "oldBaselineCount": 0,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "Heading",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "Heading"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:xs",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "size:2xl",
+        "size:3xl",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "INDIRECT_PARENT_CONTEXT_ONLY",
+      "oldBaselineCount": 0,
+      "fixtureDefinitionId": "lib:definition:heading",
+      "sourceDerivedDefinition": "COMPONENT_CATALOG_AND_RULES_TABLE_TEXT_SIZE_DEFAULT_ONLY",
+      "sourceDerivedFieldEvidence": {
+        "props.children": {
+          "oldG0": "NO_DIRECT_HEADING_ORACLE",
+          "newConsumer": "TRANSACTION_RESOLVER_CANVAS_TEXT_AND_STATIC_DOM_SEMANTIC"
+        },
+        "props.size": {
+          "oldG0": "NO_DIRECT_HEADING_ORACLE",
+          "newConsumer": "LG_RULE_TO_RUST_CANVAS_AND_STATIC_DOM"
+        },
+        "visual.color": {
+          "oldG0": "NO_DIRECT_HEADING_ORACLE",
+          "newConsumer": "RESOLVED_SOURCE_TOKEN_ONLY"
+        },
+        "visual.fontSize": {
+          "oldG0": "NO_DIRECT_HEADING_ORACLE",
+          "newConsumer": "18PX_RUST_CANVAS; DOM_PIXEL_UNVERIFIED"
+        },
+        "visual.lineHeight": {
+          "oldG0": "NO_DIRECT_HEADING_ORACLE",
+          "newConsumer": "SOURCE_DERIVED_28_OVER_18; DOM_PIXEL_UNVERIFIED"
+        },
+        "visual.fontWeight": {
+          "oldG0": "NO_DIRECT_HEADING_ORACLE",
+          "newConsumer": "600_CANVAS_COMMAND; DOM_PIXEL_UNVERIFIED"
+        },
+        "visual.radius": {
+          "oldG0": "NO_DIRECT_HEADING_ORACLE",
+          "newConsumer": "SOURCE_DERIVED_ZERO; VISUAL_PARITY_UNVERIFIED"
+        }
+      },
+      "missing": [
+        "DIRECT_OLD_G0_HEADING_ORACLE",
+        "FULL_CANVASKIT_AND_DOM_AXIS_PARITY",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "SUPPLEMENTAL_HEADING_INSERT_IN_INDEPENDENT_TYPED_DRIVER",
+      "geometry": "NEW_RUST_GEOMETRY_ONLY_OLD_G0_UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "STATIC_GROUP_HEADING_SEMANTIC_ONLY",
+      "g3": "UNVERIFIED",
+      "sourceDerivedEvidence": "docs/adr/design/248-phase3-code-catalog-consumer.json"
+    },
+    {
+      "type": "Icon",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "Icon"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:xs",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 7,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "IconButton",
+      "sourceRegistration": [
+        {
+          "kind": "reusable",
+          "type": "IconButton"
+        }
+      ],
+      "sourceVisualRule": "NO_TABLE_RULE",
+      "requiredAxes": ["base"],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 5,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-iconbutton",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 8,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "IllustratedMessage",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "IllustratedMessage"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 5,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "Image",
+      "sourceRegistration": [],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 6,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "InlineAlert",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "InlineAlert"
+        },
+        {
+          "kind": "reusable",
+          "type": "InlineAlert"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:neutral",
+        "variant:info",
+        "variant:positive",
+        "variant:notice",
+        "variant:negative",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 9,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-inline-alert",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 10,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "Input",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "Input"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "variant:accent",
+        "variant:negative",
+        "size:xs",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "INDIRECT_PARENT_CONTEXT_ONLY",
+      "oldBaselineCount": 0,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "Kbd",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "Kbd"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:xs",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 1,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "Label",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "Label"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:xs",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "INDIRECT_PARENT_CONTEXT_ONLY",
+      "oldBaselineCount": 0,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "Link",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "Link"
+        },
+        {
+          "kind": "reusable",
+          "type": "Link",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:primary",
+        "variant:secondary",
+        "size:xs",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 12,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-link",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 1,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "ListBox",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "ListBox"
+        },
+        {
+          "kind": "reusable",
+          "type": "ListBox",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "variant:accent",
+        "size:md",
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 4,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-listbox",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 15,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "ListBoxItem",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "ListBoxItem"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:md",
+        "structure-state:hover",
+        "structure-state:focusVisible",
+        "structure-state:disabled",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:selected"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 6,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "ListBoxSection",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "ListBoxSection"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": ["base", "size:md"],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 1,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "Menu",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "Menu"
+        },
+        {
+          "kind": "reusable",
+          "type": "Menu",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:accent",
+        "variant:primary",
+        "variant:secondary",
+        "variant:negative",
+        "variant:premium",
+        "variant:genai",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "structure-state:hover",
+        "structure-state:focusVisible",
+        "structure-state:disabled",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 11,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-menu",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 4,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "MenuItem",
+      "sourceRegistration": [],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "structure-state:hover",
+        "structure-state:focusVisible",
+        "structure-state:disabled"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 5,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "MenuSection",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "MenuSection"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": ["base", "size:md"],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 1,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "Meter",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "Meter"
+        },
+        {
+          "kind": "reusable",
+          "type": "Meter",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:informative",
+        "variant:positive",
+        "variant:warning",
+        "variant:critical",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed",
+        "container-variant:label-position",
+        "container-variant:variant",
+        "container-variant:size",
+        "container-variant:disabled"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 9,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-meter",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 19,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "MeterTrack",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "MeterTrack"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:informative",
+        "variant:positive",
+        "variant:warning",
+        "variant:critical",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "INDIRECT_PARENT_CONTEXT_ONLY",
+      "oldBaselineCount": 0,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "MeterValue",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "MeterValue"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:informative",
+        "variant:positive",
+        "variant:warning",
+        "variant:critical",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "INDIRECT_PARENT_CONTEXT_ONLY",
+      "oldBaselineCount": 0,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "Modal",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "Modal"
+        },
+        {
+          "kind": "reusable",
+          "type": "Modal",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:md",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "KNOWN_OLD_FAILURE",
+      "oldBaselineCount": 0,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-modal",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 1,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "Nav",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "Nav"
+        },
+        {
+          "kind": "reusable",
+          "type": "Nav",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "variant:accent",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 6,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-nav",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 12,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "NumberField",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "NumberField"
+        },
+        {
+          "kind": "reusable",
+          "type": "NumberField",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "size:xs",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "container-variant:label-position",
+        "container-variant:disabled",
+        "container-variant:label-align",
+        "container-variant:quiet"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 6,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-numberfield",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 11,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "Pagination",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "Pagination"
+        },
+        {
+          "kind": "reusable",
+          "type": "Pagination",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "variant:accent",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "structure-state:disabled",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 6,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-pagination",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 23,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "Paragraph",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "Paragraph"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:xs",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "size:2xl",
+        "size:3xl",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 1,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "Popover",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "Popover"
+        },
+        {
+          "kind": "reusable",
+          "type": "Popover",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:accent",
+        "variant:neutral",
+        "variant:surface",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 7,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-popover",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 6,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "ProgressBar",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "ProgressBar"
+        },
+        {
+          "kind": "reusable",
+          "type": "ProgressBar",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "variant:accent",
+        "variant:neutral",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed",
+        "container-variant:label-position",
+        "container-variant:variant",
+        "container-variant:indeterminate",
+        "container-variant:disabled",
+        "container-variant:size"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 8,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-progressbar",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 19,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "ProgressBarTrack",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "ProgressBarTrack"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "INDIRECT_PARENT_CONTEXT_ONLY",
+      "oldBaselineCount": 0,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "ProgressBarValue",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "ProgressBarValue"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "INDIRECT_PARENT_CONTEXT_ONLY",
+      "oldBaselineCount": 0,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "ProgressCircle",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "ProgressCircle"
+        },
+        {
+          "kind": "reusable",
+          "type": "ProgressCircle",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 5,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-progresscircle",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 2,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "Radio",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "Radio"
+        },
+        {
+          "kind": "reusable",
+          "type": "Radio",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "variant:accent",
+        "variant:neutral",
+        "variant:negative",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed",
+        "paint-state:selected"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 6,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-radio",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 1,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "RadioGroup",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "RadioGroup"
+        },
+        {
+          "kind": "reusable",
+          "type": "RadioGroup",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "variant:accent",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed",
+        "container-variant:label-position",
+        "container-variant:size",
+        "container-variant:orientation"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 7,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-radiogroup",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 8,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "RangeCalendar",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "RangeCalendar"
+        },
+        {
+          "kind": "reusable",
+          "type": "RangeCalendar",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "variant:accent",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 6,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-rangecalendar",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 3,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "Row",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "Row"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:md",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 1,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "SearchField",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "SearchField"
+        },
+        {
+          "kind": "reusable",
+          "type": "SearchField",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "container-variant:label-position",
+        "container-variant:label-align",
+        "container-variant:quiet",
+        "container-variant:empty"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 5,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-searchfield",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 8,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "Section",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "Section"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "variant:accent",
+        "variant:neutral",
+        "variant:purple",
+        "variant:surface",
+        "variant:outlined",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 10,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "Select",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "Select"
+        },
+        {
+          "kind": "reusable",
+          "type": "Select",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "size:xs",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "container-variant:label-position",
+        "container-variant:label-align",
+        "container-variant:disabled",
+        "container-variant:quiet"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 6,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-select",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 29,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "SelectIcon",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "SelectIcon"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:xs",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "INDIRECT_PARENT_CONTEXT_ONLY",
+      "oldBaselineCount": 0,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "SelectTrigger",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "SelectTrigger"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "variant:accent",
+        "variant:negative",
+        "size:xs",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "INDIRECT_PARENT_CONTEXT_ONLY",
+      "oldBaselineCount": 0,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "SelectValue",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "SelectValue"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:xs",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "INDIRECT_PARENT_CONTEXT_ONLY",
+      "oldBaselineCount": 0,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "Separator",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "Separator"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "variant:solid",
+        "variant:dashed",
+        "variant:dotted",
+        "variant:accent",
+        "variant:neutral",
+        "variant:surface",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 11,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "Skeleton",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "Skeleton"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "variant:accent",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 6,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "Slider",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "Slider"
+        },
+        {
+          "kind": "reusable",
+          "type": "Slider",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "container-variant:label-position"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 5,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-slider",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 5,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "SliderOutput",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "SliderOutput"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": ["base", "size:sm", "size:md", "size:lg", "size:xl"],
+      "oldFixtureCoverage": "INDIRECT_PARENT_CONTEXT_ONLY",
+      "oldBaselineCount": 0,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "SliderThumb",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "SliderThumb"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "paint-state:base"
+      ],
+      "oldFixtureCoverage": "INDIRECT_PARENT_CONTEXT_ONLY",
+      "oldBaselineCount": 0,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "SliderTrack",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "SliderTrack"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "INDIRECT_PARENT_CONTEXT_ONLY",
+      "oldBaselineCount": 0,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "Slot",
+      "sourceRegistration": [
+        {
+          "kind": "native",
+          "type": "Slot"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": ["base", "size:sm", "size:md", "size:lg"],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 2,
+      "fixtureDefinitionId": "lib:definition:slot",
+      "missing": [
+        "FULL_AXIS_PARITY",
+        "L3E_CORNER_BAND_BUDGET",
+        "OLD_NULL_HC6_DISPOSITION",
+        "THEME_AXIS"
+      ],
+      "newPublicCommand": "RUN_FROZEN_G0_INPUT_IN_INDEPENDENT_TYPED_DRIVER",
+      "geometry": "PASS_TYPED_SLOT_MATRIX_9_OF_9_RUST_RAC_HEIGHT_EXACT; OLD_G0_NULL_UNCHANGED",
+      "canvasPixels": "LOCAL_ADR198_L3_NONTEXT_PASS_9_OF_9_MAX_RATIO_0.000505; L3E_CORNER_BAND_UNVERIFIED; RAW_RGB_9_OF_9_DIAGNOSTIC_ONLY; OLD_G0_NULL_UNCHANGED",
+      "isolatedDomSemantic": "PASS_REPRESENTATIVE_9_OF_9",
+      "g3": "FAIL_OLD_NULL_NEW_PRESENT_NO_EXEMPTION",
+      "representative": {
+        "geometry": "FAIL_OLD_NULL_NEW_PRESENT; old legacy-slot lacks props and is omitted from scene",
+        "catalogTestEntryBinding": "TYPED_SIZE_MINHEIGHT_PADDING_GAP_LINEHEIGHT_FILL_ALPHA_DASHED_RADIUS_TO_RUST_CANVASKIT_RAC; TRANSIENT_ICON_NAME_REQUIRED_DESCRIPTION_LAYOUT_AND_PAINT; EDITOR_HATCH_SEPARATE; FILLED_TEXT_AND_PAGE_CHILDREN_ONLY; OLD_NULL_PARITY_FAIL",
+        "isolatedDomSemantic": "PASS_9_CASE_EDIT_EMPTY_FILLED_DESCRIPTION_AND_PAGE_CHILDREN_ONLY; RUST_RAC_GEOMETRY_EXACT_9_OF_9; ADR198_L3_NONTEXT_LOCAL_PASS_9_OF_9",
+        "scenarioId": "adr248-structural-baseline-v1",
+        "evidence": [
+          "docs/adr/design/248-phase3-structural-new.json",
+          "docs/adr/design/248-phase3-structural-render-commands.png",
+          "docs/adr/design/248-phase3-slot-old-trace.json",
+          "docs/adr/design/248-phase3-slot-paint-contract.json",
+          "docs/adr/design/248-phase3-slot-empty-marker.png",
+          "docs/adr/design/248-phase3-slot-filled-content.png",
+          "docs/adr/design/248-phase3-slot-matrix-canvas.json",
+          "docs/adr/design/248-phase3-slot-matrix-dom.json",
+          "docs/adr/design/248-phase3-slot-dom-paint-bounds.json",
+          "docs/adr/design/248-phase3-slot-pixel-diff.json",
+          "docs/adr/design/248-phase3-slot-pixel-heatmap-md-description.png",
+          "apps/builder/tests/parity/adr248CatalogRealDom.browser.test.ts",
+          "docs/adr/design/248-phase3-native-dom-comparison.json"
+        ],
+        "nativeDomScenarioId": "adr248-native-dom-unit-v1",
+        "fullAxisParity": "UNVERIFIED"
+      }
+    },
+    {
+      "type": "StatusLight",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "StatusLight"
+        },
+        {
+          "kind": "reusable",
+          "type": "StatusLight",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:neutral",
+        "variant:informative",
+        "variant:positive",
+        "variant:notice",
+        "variant:negative",
+        "variant:celery",
+        "variant:chartreuse",
+        "variant:cyan",
+        "variant:fuchsia",
+        "variant:indigo",
+        "variant:magenta",
+        "variant:purple",
+        "variant:yellow",
+        "variant:seafoam",
+        "variant:pink",
+        "variant:turquoise",
+        "variant:cinnamon",
+        "variant:brown",
+        "variant:silver",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "structure-state:disabled",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 24,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-statuslight",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 4,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "Switch",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "Switch"
+        },
+        {
+          "kind": "reusable",
+          "type": "Switch",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "variant:emphasized",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed",
+        "paint-state:selected"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 13,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-switch",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 1,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "Tab",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "Tab"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 6,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "TabList",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "TabList"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "structure-state:disabled"
+      ],
+      "oldFixtureCoverage": "INDIRECT_PARENT_CONTEXT_ONLY",
+      "oldBaselineCount": 0,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "TabPanel",
+      "sourceRegistration": [],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "INDIRECT_PARENT_CONTEXT_ONLY",
+      "oldBaselineCount": 0,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "TabPanels",
+      "sourceRegistration": [],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "structure-state:disabled",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "INDIRECT_PARENT_CONTEXT_ONLY",
+      "oldBaselineCount": 0,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "Table",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "Table"
+        },
+        {
+          "kind": "reusable",
+          "type": "Table",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "variant:striped",
+        "variant:bordered",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 7,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-table",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 18,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "TableBody",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "TableBody"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:md",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "INDIRECT_PARENT_CONTEXT_ONLY",
+      "oldBaselineCount": 0,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "TableCell",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "TableCell"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "paint-state:base"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 1,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "TableHeader",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "TableHeader"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:md",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "INDIRECT_PARENT_CONTEXT_ONLY",
+      "oldBaselineCount": 0,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "TableRow",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "TableRow"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "paint-state:base",
+        "paint-state:hover"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 1,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "TableView",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "TableView"
+        },
+        {
+          "kind": "reusable",
+          "type": "TableView",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "variant:quiet",
+        "size:md",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 4,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-tableview",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 7,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "Tabs",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "Tabs"
+        },
+        {
+          "kind": "reusable",
+          "type": "Tabs",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "structure-state:hover",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 5,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-tabs",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 12,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "Tag",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "Tag"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "variant:selected",
+        "size:xs",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 6,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "TagGroup",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "TagGroup"
+        },
+        {
+          "kind": "reusable",
+          "type": "TagGroup",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "variant:accent",
+        "variant:neutral",
+        "variant:negative",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed",
+        "container-variant:label-position"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 8,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-taggroup",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 21,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "TagList",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "TagList"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "paint-state:base"
+      ],
+      "oldFixtureCoverage": "INDIRECT_PARENT_CONTEXT_ONLY",
+      "oldBaselineCount": 0,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "TailSwatch",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "TailSwatch"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:md",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 1,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "Text",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "Text"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:xs",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "size:2xl",
+        "size:3xl",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 11,
+      "fixtureDefinitionId": "lib:definition:text",
+      "sourceDerivedDefinition": "COMPONENT_CATALOG_AND_RULES_TABLE_TEXT_SIZE_DEFAULT_ONLY",
+      "sourceDerivedFieldEvidence": {
+        "props.children": {
+          "oldG0": "STRUCTURAL_BASELINE_TEXT_저장",
+          "newConsumer": "TRANSACTION_RESOLVER_CANVAS_DRAW_AND_CHROMIUM_DOM"
+        },
+        "props.size": {
+          "oldG0": "NO_FIELD_LEVEL_DEFAULT_VALUE_ORACLE",
+          "newConsumer": "MD_DEFAULT_SOURCE_RULE_AND_CHROMIUM_DATA_SIZE"
+        },
+        "visual.color": {
+          "oldG0": "PNG_ONLY_NO_FIELD_VALUE_ORACLE",
+          "newConsumer": "SOURCE_TOKEN_#171717_AND_CHROMIUM_RGB_23_23_23"
+        },
+        "visual.fontSize": {
+          "oldG0": "PNG_ONLY_NO_FIELD_VALUE_ORACLE",
+          "newConsumer": "16PX_CANVAS_AND_CHROMIUM"
+        },
+        "visual.lineHeight": {
+          "oldG0": "PNG_ONLY_NO_FIELD_VALUE_ORACLE",
+          "newConsumer": "SOURCE_DERIVED_24_OVER_16_AND_CHROMIUM_24PX"
+        },
+        "visual.fontWeight": {
+          "oldG0": "PNG_ONLY_NO_FIELD_VALUE_ORACLE",
+          "newConsumer": "400_CANVAS_AND_CHROMIUM"
+        },
+        "visual.radius": {
+          "oldG0": "NO_FIELD_VALUE_ORACLE",
+          "newConsumer": "SOURCE_DERIVED_ZERO; VISUAL_PARITY_UNVERIFIED"
+        },
+        "placement+size": {
+          "oldG0": "STRUCTURAL_GEOMETRY_180_0_160_40",
+          "newConsumer": "RUST_GEOMETRY_180_0_160_40"
+        }
+      },
+      "missing": ["CANVASKIT_BINDING", "ISOLATED_RAC_BINDING", "AXIS_PARITY"],
+      "newPublicCommand": "RUN_FROZEN_G0_INPUT_IN_INDEPENDENT_TYPED_DRIVER",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "representative": {
+        "geometry": "PASS_G0_SINGLE_BASE_CASE",
+        "catalogTestEntryBinding": "PASS_TEXT_BINDING_ID_TO_SKIA_RENDER_COMMANDS; FULL_AXIS_PARITY_UNVERIFIED",
+        "canvasPixels": "PARTIAL_REAL_RENDER_COMMAND_TEXT_PAINT_1; COMPOSITE_SCENE_FAIL_2829_OF_248000",
+        "scenarioId": "adr248-structural-baseline-v1",
+        "evidence": [
+          "docs/adr/design/248-phase3-structural-new.json",
+          "docs/adr/design/248-phase3-structural-render-commands.png",
+          "docs/adr/design/248-phase3-slot-old-trace.json",
+          "apps/builder/tests/parity/adr248CatalogRealDom.browser.test.ts"
+        ],
+        "fullAxisParity": "UNVERIFIED",
+        "sourceDerivedCodeCatalog": {
+          "oldG0Scenario": "adr248-structural-baseline-v1",
+          "oldTextGeometry": "FROZEN_G0",
+          "newRustGeometry": "PASS_SAME_BASE_CASE",
+          "newCanvas": "ACTUAL_RENDER_COMMAND_AND_SCENE_PNG; OLD_NEW_PIXEL_UNVERIFIED",
+          "newIsolatedDom": "CHROMIUM_GROUP_AND_TEXT_DEFAULT_STYLE_SEMANTIC_PASS; FULL_SCENE_PARITY_UNVERIFIED",
+          "evidence": [
+            "docs/adr/design/248-phase3-code-catalog-consumer.json",
+            "docs/adr/design/248-phase3-code-catalog-text-scene.png",
+            "apps/builder/tests/parity/adr248CatalogRealDom.browser.test.ts"
+          ]
+        }
+      }
+    },
+    {
+      "type": "TextArea",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "TextArea"
+        },
+        {
+          "kind": "reusable",
+          "type": "TextArea",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "container-variant:label-position",
+        "container-variant:label-align"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 5,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-textarea",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 3,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "TextField",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "TextField"
+        },
+        {
+          "kind": "reusable",
+          "type": "TextField",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "size:xs",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "container-variant:label-position",
+        "container-variant:label-align",
+        "container-variant:quiet"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 6,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-textfield",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 2,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "TimeField",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "TimeField"
+        },
+        {
+          "kind": "reusable",
+          "type": "TimeField",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "container-variant:label-position",
+        "container-variant:label-align",
+        "container-variant:quiet"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 5,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-timefield",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 3,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "Toast",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "Toast"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:info",
+        "variant:positive",
+        "variant:neutral",
+        "variant:negative",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "structure-state:disabled",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 1,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "ToggleButton",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "ToggleButton"
+        },
+        {
+          "kind": "reusable",
+          "type": "ToggleButton",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:xs",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "structure-state:hover",
+        "structure-state:pressed",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:emphasizedSelected",
+        "paint-state:hover",
+        "paint-state:pressed",
+        "paint-state:selected"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 13,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-togglebutton",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 1,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "ToggleButtonGroup",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "ToggleButtonGroup"
+        },
+        {
+          "kind": "reusable",
+          "type": "ToggleButtonGroup",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:xs",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "size:xl",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed",
+        "container-variant:orientation",
+        "container-variant:density"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 7,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-togglebuttongroup",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 6,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "Toolbar",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "Toolbar"
+        },
+        {
+          "kind": "reusable",
+          "type": "Toolbar"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "variant:accent",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed",
+        "container-variant:orientation"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 6,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-toolbar",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 20,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "Tooltip",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "Tooltip"
+        },
+        {
+          "kind": "reusable",
+          "type": "Tooltip",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:neutral",
+        "variant:info",
+        "variant:positive",
+        "variant:negative",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "structure-state:disabled",
+        "structure-state:focusVisible",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 8,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-tooltip",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 3,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "Tree",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "Tree"
+        },
+        {
+          "kind": "reusable",
+          "type": "Tree",
+          "derived": true
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "variant:accent",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "paint-state:base",
+        "paint-state:hover",
+        "paint-state:pressed"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 6,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "typedReusableTemplate": {
+        "definitionId": "lib:definition:origin-component-tree",
+        "verdict": "PASS_CONVERTED_COMPARED_RESOLVED",
+        "contractGapFieldsInOrigin": 11,
+        "evidence": [
+          "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts",
+          "docs/adr/design/248-phase3-reusable-origin-contract-gaps.json",
+          "apps/builder/src/builder/catalogRuntime/__tests__/phase3ReusableOriginTemplates.test.ts"
+        ],
+        "note": "typed structure/props only; visual parity and consumer binding not claimed"
+      }
+    },
+    {
+      "type": "TreeItem",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "TreeItem"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:sm",
+        "size:md",
+        "size:lg",
+        "paint-state:base"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 7,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "body",
+      "sourceRegistration": [
+        {
+          "kind": "primitive",
+          "type": "body"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": [
+        "base",
+        "variant:default",
+        "size:md",
+        "paint-state:base"
+      ],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 1,
+      "fixtureDefinitionId": null,
+      "missing": [
+        "TYPED_DEFINITION",
+        "CANVASKIT_BINDING",
+        "ISOLATED_RAC_BINDING",
+        "AXIS_PARITY"
+      ],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "type": "frame",
+      "sourceRegistration": [
+        {
+          "kind": "native",
+          "type": "frame"
+        }
+      ],
+      "sourceVisualRule": "COMPONENT_RULES_TABLE",
+      "requiredAxes": ["base", "size:md"],
+      "oldFixtureCoverage": "DIRECT_OLD_CANVAS",
+      "oldBaselineCount": 5,
+      "fixtureDefinitionId": "lib:definition:frame",
+      "missing": ["CANVASKIT_BINDING", "ISOLATED_RAC_BINDING", "AXIS_PARITY"],
+      "newPublicCommand": "RUN_FROZEN_G0_INPUT_IN_INDEPENDENT_TYPED_DRIVER",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED",
+      "representative": {
+        "geometry": "PASS_G0_BASE_AND_NATIVE_STATE_3_OF_3",
+        "catalogTestEntryBinding": "PASS_FRAME_BLOCK_CONTAINER_NO_RAC_ROLE; AUTHORED_FILL_BORDER_CLIP_THROUGH_EXISTING_SKIA; OLD_BORDER_PARITY_FAIL",
+        "canvasPixels": "PARTIAL_NATIVE_CLIP_SAMPLE_3_OF_3; FAIL_2829_OF_248000_RENDER_COMMAND_SCENE; NEW_CANVAS_DOM_CLIP_PAIR_L3_NONTEXT_PASS_2_OF_2_TEXT_NODE_SEPARATED; L3E_UNVERIFIED; OLD_NEW_STROKE_KNOWN_DEFECT_FAIL_RECORDED",
+        "fullSceneClip": "PARTIAL_RENDER_COMMAND_FRAME_CLIP; RAC_DOM_HIT_3_OF_3; DOM_PNG_UNVERIFIED",
+        "isolatedDomClip": "PASS_G0_NATIVE_VISIBLE_OUTSIDE_1_HIDDEN_OUTSIDE_2",
+        "scenarioId": "adr248-structural-baseline-v1",
+        "evidence": [
+          "docs/adr/design/248-phase3-structural-new.json",
+          "docs/adr/design/248-phase3-structural-render-commands.png",
+          "docs/adr/design/248-phase3-slot-old-trace.json",
+          "docs/adr/design/248-phase3-native-state-new.json",
+          "apps/builder/tests/parity/adr248CatalogRealDom.browser.test.ts",
+          "docs/adr/design/248-phase3-frame-clip-pair.json",
+          "docs/adr/design/248-phase3-frame-clip-l3-regions.json"
+        ],
+        "fullAxisParity": "UNVERIFIED"
+      }
+    }
+  ],
+  "slotRoles": [
+    {
+      "role": "icon",
+      "oldBaselineCount": 0,
+      "typedRegionName": "icon",
+      "missing": ["ROLE_SEMANTIC_BINDING", "ROLE_VISUAL_PARITY"],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "role": "avatar",
+      "oldBaselineCount": 0,
+      "typedRegionName": "avatar",
+      "missing": ["ROLE_SEMANTIC_BINDING", "ROLE_VISUAL_PARITY"],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "role": "label",
+      "oldBaselineCount": 0,
+      "typedRegionName": "label",
+      "missing": ["ROLE_SEMANTIC_BINDING", "ROLE_VISUAL_PARITY"],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "role": "description",
+      "oldBaselineCount": 0,
+      "typedRegionName": "description",
+      "missing": ["ROLE_SEMANTIC_BINDING", "ROLE_VISUAL_PARITY"],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "role": "shortcut",
+      "oldBaselineCount": 0,
+      "typedRegionName": "shortcut",
+      "missing": ["ROLE_SEMANTIC_BINDING", "ROLE_VISUAL_PARITY"],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "role": "header",
+      "oldBaselineCount": 1,
+      "typedRegionName": "header",
+      "missing": ["ROLE_SEMANTIC_BINDING", "ROLE_VISUAL_PARITY"],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "role": "content",
+      "oldBaselineCount": 1,
+      "typedRegionName": "content",
+      "missing": ["ROLE_SEMANTIC_BINDING", "ROLE_VISUAL_PARITY"],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "role": "footer",
+      "oldBaselineCount": 0,
+      "typedRegionName": "footer",
+      "missing": ["ROLE_SEMANTIC_BINDING", "ROLE_VISUAL_PARITY"],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "role": "preview",
+      "oldBaselineCount": 0,
+      "typedRegionName": "preview",
+      "missing": ["ROLE_SEMANTIC_BINDING", "ROLE_VISUAL_PARITY"],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "role": "action",
+      "oldBaselineCount": 0,
+      "typedRegionName": "action",
+      "missing": ["ROLE_SEMANTIC_BINDING", "ROLE_VISUAL_PARITY"],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "role": "value",
+      "oldBaselineCount": 0,
+      "typedRegionName": "value",
+      "missing": ["ROLE_SEMANTIC_BINDING", "ROLE_VISUAL_PARITY"],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "role": "track",
+      "oldBaselineCount": 0,
+      "typedRegionName": "track",
+      "missing": ["ROLE_SEMANTIC_BINDING", "ROLE_VISUAL_PARITY"],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "role": "trigger",
+      "oldBaselineCount": 0,
+      "typedRegionName": "trigger",
+      "missing": ["ROLE_SEMANTIC_BINDING", "ROLE_VISUAL_PARITY"],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    },
+    {
+      "role": "panel",
+      "oldBaselineCount": 0,
+      "typedRegionName": "panel",
+      "missing": ["ROLE_SEMANTIC_BINDING", "ROLE_VISUAL_PARITY"],
+      "newPublicCommand": "NOT_RUN",
+      "geometry": "UNVERIFIED",
+      "canvasPixels": "UNVERIFIED",
+      "isolatedDomSemantic": "UNVERIFIED",
+      "g3": "UNVERIFIED"
+    }
+  ]
+}

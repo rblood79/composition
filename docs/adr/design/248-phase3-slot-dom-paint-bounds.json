@@ -1,0 +1,452 @@
+{
+  "head": "2a5c970994cb9de2f824a729b29c08cdcd647d7b",
+  "scenarioHash": "15ed15da99b59e537f95e860f0cf97a2add58f1c218abc05e69299ec8937262b",
+  "viewport": [
+    1440,
+    900
+  ],
+  "dpr": 1,
+  "font": "PretendardVariable.ttf",
+  "fontSha256": "02b09ca630e4833028600a9f958b2f72f0289b9ccfd00d2df34780a7592f8d41",
+  "theme": "default-light",
+  "rows": [
+    {
+      "size": "sm",
+      "state": "empty",
+      "paintBounds": {
+        "icon": {
+          "x": 9,
+          "y": 9,
+          "width": 24,
+          "height": 24,
+          "fontFamily": "Pretendard, sans-serif",
+          "fontSize": "12px",
+          "lineHeight": "18px",
+          "fontWeight": "400",
+          "color": "rgb(0, 0, 0)"
+        },
+        "name": {
+          "x": 41,
+          "y": 12,
+          "width": 89.171875,
+          "height": 18,
+          "fontFamily": "Pretendard, sans-serif",
+          "fontSize": "12px",
+          "lineHeight": "18px",
+          "fontWeight": "400",
+          "color": "rgb(0, 0, 0)"
+        },
+        "required": {
+          "x": 82.390625,
+          "y": 14,
+          "width": 47.78125,
+          "height": 14,
+          "fontFamily": "Pretendard, sans-serif",
+          "fontSize": "12px",
+          "lineHeight": "18px",
+          "fontWeight": "400",
+          "color": "rgb(0, 0, 0)"
+        },
+        "description": null,
+        "filled": null
+      },
+      "computedPaint": {
+        "backgroundColor": "rgba(229, 229, 229, 0.5)",
+        "borderColor": "rgb(229, 231, 235)",
+        "borderStyle": "dashed",
+        "borderWidth": "1px",
+        "borderRadius": "6px",
+        "fontFamily": "Pretendard, sans-serif",
+        "fontSize": "12px",
+        "lineHeight": "18px",
+        "fontWeight": "400"
+      }
+    },
+    {
+      "size": "sm",
+      "state": "filled",
+      "paintBounds": {
+        "icon": null,
+        "name": null,
+        "required": null,
+        "description": null,
+        "filled": {
+          "x": 9,
+          "y": 9,
+          "width": 120,
+          "height": 20,
+          "fontFamily": "Pretendard, sans-serif",
+          "fontSize": "12px",
+          "lineHeight": "18px",
+          "fontWeight": "400",
+          "color": "rgb(0, 0, 0)"
+        }
+      },
+      "computedPaint": {
+        "backgroundColor": "rgba(229, 229, 229, 0.5)",
+        "borderColor": "rgb(229, 231, 235)",
+        "borderStyle": "dashed",
+        "borderWidth": "1px",
+        "borderRadius": "6px",
+        "fontFamily": "Pretendard, sans-serif",
+        "fontSize": "12px",
+        "lineHeight": "18px",
+        "fontWeight": "400"
+      }
+    },
+    {
+      "size": "sm",
+      "state": "description",
+      "paintBounds": {
+        "icon": {
+          "x": 9,
+          "y": 15,
+          "width": 24,
+          "height": 24,
+          "fontFamily": "Pretendard, sans-serif",
+          "fontSize": "12px",
+          "lineHeight": "18px",
+          "fontWeight": "400",
+          "color": "rgb(0, 0, 0)"
+        },
+        "name": {
+          "x": 41,
+          "y": 9,
+          "width": 98.25,
+          "height": 18,
+          "fontFamily": "Pretendard, sans-serif",
+          "fontSize": "12px",
+          "lineHeight": "18px",
+          "fontWeight": "400",
+          "color": "rgb(0, 0, 0)"
+        },
+        "required": {
+          "x": 82.390625,
+          "y": 11,
+          "width": 47.78125,
+          "height": 14,
+          "fontFamily": "Pretendard, sans-serif",
+          "fontSize": "12px",
+          "lineHeight": "18px",
+          "fontWeight": "400",
+          "color": "rgb(0, 0, 0)"
+        },
+        "description": {
+          "x": 41,
+          "y": 27,
+          "width": 98.25,
+          "height": 18,
+          "fontFamily": "Pretendard, sans-serif",
+          "fontSize": "12px",
+          "lineHeight": "18px",
+          "fontWeight": "400",
+          "color": "rgb(0, 0, 0)"
+        },
+        "filled": null
+      },
+      "computedPaint": {
+        "backgroundColor": "rgba(229, 229, 229, 0.5)",
+        "borderColor": "rgb(229, 231, 235)",
+        "borderStyle": "dashed",
+        "borderWidth": "1px",
+        "borderRadius": "6px",
+        "fontFamily": "Pretendard, sans-serif",
+        "fontSize": "12px",
+        "lineHeight": "18px",
+        "fontWeight": "400"
+      }
+    },
+    {
+      "size": "md",
+      "state": "empty",
+      "paintBounds": {
+        "icon": {
+          "x": 13,
+          "y": 13,
+          "width": 24,
+          "height": 24,
+          "fontFamily": "Pretendard, sans-serif",
+          "fontSize": "14px",
+          "lineHeight": "21px",
+          "fontWeight": "400",
+          "color": "rgb(0, 0, 0)"
+        },
+        "name": {
+          "x": 45,
+          "y": 14.5,
+          "width": 102,
+          "height": 21,
+          "fontFamily": "Pretendard, sans-serif",
+          "fontSize": "14px",
+          "lineHeight": "21px",
+          "fontWeight": "400",
+          "color": "rgb(0, 0, 0)"
+        },
+        "required": {
+          "x": 93.28125,
+          "y": 16.5,
+          "width": 55.75,
+          "height": 16,
+          "fontFamily": "Pretendard, sans-serif",
+          "fontSize": "14px",
+          "lineHeight": "21px",
+          "fontWeight": "400",
+          "color": "rgb(0, 0, 0)"
+        },
+        "description": null,
+        "filled": null
+      },
+      "computedPaint": {
+        "backgroundColor": "rgba(229, 229, 229, 0.5)",
+        "borderColor": "rgb(229, 231, 235)",
+        "borderStyle": "dashed",
+        "borderWidth": "1px",
+        "borderRadius": "6px",
+        "fontFamily": "Pretendard, sans-serif",
+        "fontSize": "14px",
+        "lineHeight": "21px",
+        "fontWeight": "400"
+      }
+    },
+    {
+      "size": "md",
+      "state": "filled",
+      "paintBounds": {
+        "icon": null,
+        "name": null,
+        "required": null,
+        "description": null,
+        "filled": {
+          "x": 13,
+          "y": 13,
+          "width": 120,
+          "height": 20,
+          "fontFamily": "Pretendard, sans-serif",
+          "fontSize": "14px",
+          "lineHeight": "21px",
+          "fontWeight": "400",
+          "color": "rgb(0, 0, 0)"
+        }
+      },
+      "computedPaint": {
+        "backgroundColor": "rgba(229, 229, 229, 0.5)",
+        "borderColor": "rgb(229, 231, 235)",
+        "borderStyle": "dashed",
+        "borderWidth": "1px",
+        "borderRadius": "6px",
+        "fontFamily": "Pretendard, sans-serif",
+        "fontSize": "14px",
+        "lineHeight": "21px",
+        "fontWeight": "400"
+      }
+    },
+    {
+      "size": "md",
+      "state": "description",
+      "paintBounds": {
+        "icon": {
+          "x": 13,
+          "y": 32.5,
+          "width": 24,
+          "height": 24,
+          "fontFamily": "Pretendard, sans-serif",
+          "fontSize": "14px",
+          "lineHeight": "21px",
+          "fontWeight": "400",
+          "color": "rgb(0, 0, 0)"
+        },
+        "name": {
+          "x": 45,
+          "y": 13,
+          "width": 102,
+          "height": 21,
+          "fontFamily": "Pretendard, sans-serif",
+          "fontSize": "14px",
+          "lineHeight": "21px",
+          "fontWeight": "400",
+          "color": "rgb(0, 0, 0)"
+        },
+        "required": {
+          "x": 93.28125,
+          "y": 15,
+          "width": 55.75,
+          "height": 16,
+          "fontFamily": "Pretendard, sans-serif",
+          "fontSize": "14px",
+          "lineHeight": "21px",
+          "fontWeight": "400",
+          "color": "rgb(0, 0, 0)"
+        },
+        "description": {
+          "x": 45,
+          "y": 34,
+          "width": 102,
+          "height": 42,
+          "fontFamily": "Pretendard, sans-serif",
+          "fontSize": "14px",
+          "lineHeight": "21px",
+          "fontWeight": "400",
+          "color": "rgb(0, 0, 0)"
+        },
+        "filled": null
+      },
+      "computedPaint": {
+        "backgroundColor": "rgba(229, 229, 229, 0.5)",
+        "borderColor": "rgb(229, 231, 235)",
+        "borderStyle": "dashed",
+        "borderWidth": "1px",
+        "borderRadius": "6px",
+        "fontFamily": "Pretendard, sans-serif",
+        "fontSize": "14px",
+        "lineHeight": "21px",
+        "fontWeight": "400"
+      }
+    },
+    {
+      "size": "lg",
+      "state": "empty",
+      "paintBounds": {
+        "icon": {
+          "x": 17,
+          "y": 17,
+          "width": 24,
+          "height": 24,
+          "fontFamily": "Pretendard, sans-serif",
+          "fontSize": "16px",
+          "lineHeight": "24px",
+          "fontWeight": "400",
+          "color": "rgb(0, 0, 0)"
+        },
+        "name": {
+          "x": 49,
+          "y": 17,
+          "width": 94,
+          "height": 24,
+          "fontFamily": "Pretendard, sans-serif",
+          "fontSize": "16px",
+          "lineHeight": "24px",
+          "fontWeight": "400",
+          "color": "rgb(0, 0, 0)"
+        },
+        "required": {
+          "x": 104.171875,
+          "y": 19,
+          "width": 63.703125,
+          "height": 19,
+          "fontFamily": "Pretendard, sans-serif",
+          "fontSize": "16px",
+          "lineHeight": "24px",
+          "fontWeight": "400",
+          "color": "rgb(0, 0, 0)"
+        },
+        "description": null,
+        "filled": null
+      },
+      "computedPaint": {
+        "backgroundColor": "rgba(229, 229, 229, 0.5)",
+        "borderColor": "rgb(229, 231, 235)",
+        "borderStyle": "dashed",
+        "borderWidth": "1px",
+        "borderRadius": "8px",
+        "fontFamily": "Pretendard, sans-serif",
+        "fontSize": "16px",
+        "lineHeight": "24px",
+        "fontWeight": "400"
+      }
+    },
+    {
+      "size": "lg",
+      "state": "filled",
+      "paintBounds": {
+        "icon": null,
+        "name": null,
+        "required": null,
+        "description": null,
+        "filled": {
+          "x": 17,
+          "y": 17,
+          "width": 120,
+          "height": 20,
+          "fontFamily": "Pretendard, sans-serif",
+          "fontSize": "16px",
+          "lineHeight": "24px",
+          "fontWeight": "400",
+          "color": "rgb(0, 0, 0)"
+        }
+      },
+      "computedPaint": {
+        "backgroundColor": "rgba(229, 229, 229, 0.5)",
+        "borderColor": "rgb(229, 231, 235)",
+        "borderStyle": "dashed",
+        "borderWidth": "1px",
+        "borderRadius": "8px",
+        "fontFamily": "Pretendard, sans-serif",
+        "fontSize": "16px",
+        "lineHeight": "24px",
+        "fontWeight": "400"
+      }
+    },
+    {
+      "size": "lg",
+      "state": "description",
+      "paintBounds": {
+        "icon": {
+          "x": 17,
+          "y": 41,
+          "width": 24,
+          "height": 24,
+          "fontFamily": "Pretendard, sans-serif",
+          "fontSize": "16px",
+          "lineHeight": "24px",
+          "fontWeight": "400",
+          "color": "rgb(0, 0, 0)"
+        },
+        "name": {
+          "x": 49,
+          "y": 17,
+          "width": 94,
+          "height": 24,
+          "fontFamily": "Pretendard, sans-serif",
+          "fontSize": "16px",
+          "lineHeight": "24px",
+          "fontWeight": "400",
+          "color": "rgb(0, 0, 0)"
+        },
+        "required": {
+          "x": 104.171875,
+          "y": 19,
+          "width": 63.703125,
+          "height": 19,
+          "fontFamily": "Pretendard, sans-serif",
+          "fontSize": "16px",
+          "lineHeight": "24px",
+          "fontWeight": "400",
+          "color": "rgb(0, 0, 0)"
+        },
+        "description": {
+          "x": 49,
+          "y": 41,
+          "width": 94,
+          "height": 48,
+          "fontFamily": "Pretendard, sans-serif",
+          "fontSize": "16px",
+          "lineHeight": "24px",
+          "fontWeight": "400",
+          "color": "rgb(0, 0, 0)"
+        },
+        "filled": null
+      },
+      "computedPaint": {
+        "backgroundColor": "rgba(229, 229, 229, 0.5)",
+        "borderColor": "rgb(229, 231, 235)",
+        "borderStyle": "dashed",
+        "borderWidth": "1px",
+        "borderRadius": "8px",
+        "fontFamily": "Pretendard, sans-serif",
+        "fontSize": "16px",
+        "lineHeight": "24px",
+        "fontWeight": "400"
+      }
+    }
+  ]
+}

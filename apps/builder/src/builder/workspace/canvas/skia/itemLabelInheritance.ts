@@ -1,5 +1,5 @@
 /**
- * ADR-234 Phase 3c — 목록 항목 (Tab · Tag) 안 label Text 는 항목의 글자 (크기 · 굵기 · 상태별 색) 를 상속한다.
+ * ADR-234 Phase 3c — 목록 항목 (Tab · Tag · Breadcrumb) 안 label Text 는 항목의 글자 (크기 · 굵기 · 상태별 색) 를 상속한다.
  * 3d — ListBoxItem 의 description slot 은 항목 CSS 의 slot 규칙 값.
  *
  * DOM: `.react-aria-Text` 가 자기 font-size · color 를 선언하므로 상속이 끊긴다 — 수동 CSS
@@ -11,7 +11,17 @@
  * 값은 이관 전 목록 행 (projection · DOM 행) 이 쓰던 항목 rule 그대로 — Tab: size 글자 · 500 · muted / 선택 시
  *   `--fg` (`TabsIndicator.css`) · Tag: size 글자 · textWeight · chip 변형 글자색.
  */
-import { resolveToken } from "@composition/specs";
+import {
+  catalogBreadcrumbSeparatorIcon,
+  catalogCurrentTextWeight,
+  getSlotRole,
+} from "@composition/shared";
+import {
+  normalizeBreadcrumbRspSizeKey,
+  resolveToken,
+} from "@composition/specs";
+
+import { readForcedVariantStates } from "../../../components/stateVariantLayers";
 
 import {
   resolveCatalogVariantName,
@@ -76,6 +86,9 @@ export function resolveItemLabelTypography<T extends NodeLike>(
   if (!item) return null;
   if (item.type === "ListBoxItem") {
     return resolveListBoxItemSlotTypography(element);
+  }
+  if (item.type === "Breadcrumb") {
+    return resolveBreadcrumbSlotTypography(element, item, elementsMap);
   }
   // 3e — GridList 카드 `[slot="description"] { color: var(--fg-muted) }` (크기는 Text 기본 그대로).
   if (item.type === "GridListItem") {
@@ -149,6 +162,61 @@ export function resolveItemLabelTypography<T extends NodeLike>(
           ? variantWeight
           : undefined,
     color,
+  };
+}
+
+/**
+ * 2026-09-29 — Breadcrumb 조각의 조합 자식 (DOM `li[Link(label Text), Icon]`):
+ * - label Text: Link 의 글자 (`Breadcrumbs.css` `.react-aria-Link .react-aria-Text { inherit }`) — 크기 = 조각 size
+ *   글자 (`Breadcrumbs[data-size]` font-size), 줄 높이 = Link 기본 size 줄 높이 비율 × 글자 크기 (Link sheet 의
+ *   unitless `line-height`), 굵기 = 현재 조각이면 catalog `currentTextWeight` · 아니면 400, 색 = 현재면 accent ·
+ *   아니면 rule 글자색 (muted).
+ * - 구분자 Icon: catalog `Breadcrumb.sizes[size].iconSize` · `trailingIcon.color` (`.react-aria-Breadcrumb >
+ *   .react-aria-Icon`).
+ * 현재 = scene 주석 `_isLast` (Breadcrumbs 의 마지막) 또는 Components 페이지의 `--current` 변형 (강제 상태).
+ */
+function resolveBreadcrumbSlotTypography<T extends NodeLike>(
+  element: T,
+  item: T,
+  elementsMap: ReadonlyMap<string, T>,
+): ItemLabelTypography | null {
+  const itemProps = propsOf(item);
+  const ownerSize =
+    item.parent_id !== undefined && item.parent_id !== null
+      ? propsOf(elementsMap.get(item.parent_id)).size
+      : undefined;
+  const size = normalizeBreadcrumbRspSizeKey(
+    String(itemProps.size ?? ownerSize ?? "M"),
+  );
+  if (element.type === "Icon") {
+    if (getSlotRole(element) !== "separator") return null;
+    const separator = catalogBreadcrumbSeparatorIcon(size);
+    return { fontSize: separator.iconSize, color: separator.color };
+  }
+  if (element.type !== "Text") return null;
+  const rule = resolveSkiaRule("Breadcrumb");
+  const fontSize = toPx(
+    (rule?.sizes[size] as Record<string, unknown> | undefined)?.fontSize,
+  );
+  const link = resolveSkiaRule("Link");
+  const linkSize = link?.sizes[link.defaultSize ?? "md"] as
+    Record<string, unknown> | undefined;
+  const linkFont = toPx(linkSize?.fontSize);
+  const linkLine = toPx(linkSize?.lineHeight);
+  const current =
+    itemProps._isLast === true ||
+    readForcedVariantStates(item as never)?.current === true;
+  return {
+    fontSize,
+    lineHeight:
+      fontSize != null && linkFont && linkLine
+        ? `${(fontSize * linkLine) / linkFont}px`
+        : undefined,
+    fontWeight: current ? (catalogCurrentTextWeight("Breadcrumb") ?? 600) : 400,
+    color: current
+      ? "{color.accent}"
+      : (resolveSkiaVisualRule("Breadcrumb", undefined)?.text as
+          string | undefined),
   };
 }
 

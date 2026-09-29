@@ -1,0 +1,54 @@
+{
+  "oldHead": "2a5c970994cb9de2f824a729b29c08cdcd647d7b",
+  "executionHead": "400d09eaeecd5dd258080d2af1e80f9bcd274fd7",
+  "oldExecutionBuildIdentity": "old-source-modules:565566c0d865580db267c208147288cbb0dbbec5ab9b2c2ba6a4824c7c23b10e",
+  "currentBuilderBuildIndexSha256": "d74d3e813c7b5820b91c196f2d32e8994d1e34ec5cc9dbdc3f675d39d3695cff",
+  "scenarioId": "adr248-native-dom-unit-v1",
+  "scenarioHash": "8e4f155e3b383d6c68c67af0ef9f0a611a828d7c25cb994208044809c25e162f",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "dpr": 1,
+  "theme": "default-light",
+  "font": "app-default",
+  "seed": 248,
+  "semanticCases": 4,
+  "consumer": "catalogRuntime/domBinding (product path)",
+  "actual": {
+    "groupHorizontal": "<div><div data-catalog-id=\"project:node:group-1::project:node:group-1\" aria-label=\"Example group\" aria-orientation=\"horizontal\" role=\"group\" class=\"react-aria-Group\" style=\"box-sizing:border-box;display:flex;flex-direction:row;row-gap:8px;column-gap:8px\" data-group-label=\"Example group\" data-disabled=\"true\" data-rac=\"\"></div></div>",
+    "groupVertical": "<div><div data-catalog-id=\"project:node:group-1::project:node:group-1\" aria-label=\"Example group\" aria-orientation=\"vertical\" role=\"group\" class=\"react-aria-Group\" style=\"box-sizing:border-box;display:flex;flex-direction:column;row-gap:8px;column-gap:8px\" data-group-label=\"Example group\" data-disabled=\"true\" data-rac=\"\"></div></div>",
+    "slotEmpty": "<div><div class=\"react-aria-Slot\" style=\"box-sizing:border-box;display:block;min-height:60px;row-gap:8px;column-gap:8px;padding-top:12px;padding-right:12px;padding-bottom:12px;padding-left:12px;border-width:1px;border-style:dashed;border-color:#e5e7eb;background-color:rgba(229, 229, 229, 0.5);border-radius:6px;font-size:14px;line-height:1.5\" data-slot-name=\"content\" data-slot-required=\"true\" data-required=\"true\" data-empty=\"true\" data-element-id=\"project:node:slot-content::project:node:slot-content\" data-catalog-id=\"project:node:slot-content::project:node:slot-content\"><div class=\"react-aria-Slot-placeholder\"><div class=\"react-aria-Slot-icon\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"></rect><path d=\"M9 3v18\"></path><path d=\"M15 3v18\"></path><path d=\"M3 9h18\"></path><path d=\"M3 15h18\"></path></svg></div><div class=\"react-aria-Slot-info\"><span class=\"react-aria-Slot-name\">content<span class=\"react-aria-Slot-required-badge\">Required</span></span><span class=\"react-aria-Slot-description\">첫째 줄\n둘째 줄</span></div></div></div></div>",
+    "slotFilled": "<div><span data-catalog-id=\"project:node:slot-content/project:node:filled-text::project:node:filled-text\" class=\"react-aria-Text\" style=\"box-sizing:border-box;display:block;margin:0;font-family:Pretendard, sans-serif;font-size:14px;white-space:normal;color:#000000;line-height:1.5\">채운 내용</span></div>"
+  },
+  "excludedFromComparison": {
+    "groupHorizontal": [
+      "data-catalog-id=\"project:node:group-1::project:node:group-1\"",
+      "aria-orientation=\"horizontal\"",
+      "style=\"box-sizing:border-box;display:flex;flex-direction:row;row-gap:8px;column-gap:8px\""
+    ],
+    "groupVertical": [
+      "data-catalog-id=\"project:node:group-1::project:node:group-1\"",
+      "aria-orientation=\"vertical\"",
+      "style=\"box-sizing:border-box;display:flex;flex-direction:column;row-gap:8px;column-gap:8px\""
+    ],
+    "slotEmpty": [
+      "style=\"box-sizing:border-box;display:block;min-height:60px;row-gap:8px;column-gap:8px;padding-top:12px;padding-right:12px;padding-bottom:12px;padding-left:12px;border-width:1px;border-style:dashed;border-color:#e5e7eb;background-color:rgba(229, 229, 229, 0.5);border-radius:6px;font-size:14px;line-height:1.5\"",
+      "data-element-id=\"project:node:slot-content::project:node:slot-content\"",
+      "data-catalog-id=\"project:node:slot-content::project:node:slot-content\""
+    ],
+    "slotFilled": [
+      "data-catalog-id=\"project:node:slot-content/project:node:filled-text::project:node:filled-text\"",
+      "class=\"react-aria-Text\"",
+      "style=\"box-sizing:border-box;display:block;margin:0;font-family:Pretendard, sans-serif;font-size:14px;white-space:normal;color:#000000;line-height:1.5\""
+    ]
+  },
+  "old": {
+    "groupHorizontal": "<div><div id=\"example-group\" data-element-id=\"group-1\" aria-label=\"Example group\" role=\"group\" class=\"react-aria-Group\" data-group-label=\"Example group\" data-disabled=\"true\" data-rac=\"\"></div></div>",
+    "groupVertical": "<div><div id=\"example-group\" data-element-id=\"group-1\" aria-label=\"Example group\" role=\"group\" class=\"react-aria-Group\" data-group-label=\"Example group\" data-disabled=\"true\" data-rac=\"\"></div></div>",
+    "slotEmpty": "<div><div class=\"react-aria-Slot\" data-slot-name=\"content\" data-slot-required=\"true\" data-required=\"true\" data-empty=\"true\" data-element-id=\"slot-content\"><div class=\"react-aria-Slot-placeholder\"><div class=\"react-aria-Slot-icon\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"></rect><path d=\"M9 3v18\"></path><path d=\"M15 3v18\"></path><path d=\"M3 9h18\"></path><path d=\"M3 15h18\"></path></svg></div><div class=\"react-aria-Slot-info\"><span class=\"react-aria-Slot-name\">content<span class=\"react-aria-Slot-required-badge\">Required</span></span><span class=\"react-aria-Slot-description\">첫째 줄\n둘째 줄</span></div></div></div></div>",
+    "slotFilled": "<div><span data-element-id=\"filled-text\">채운 내용</span></div>"
+  },
+  "result": "PASS_ISOLATED_STATIC_DOM_SEMANTIC_ONLY",
+  "visualGeometryPixelParity": "UNVERIFIED"
+}

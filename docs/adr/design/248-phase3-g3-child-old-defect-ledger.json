@@ -1,0 +1,1105 @@
+{
+  "adr": 248,
+  "phase": 3,
+  "check": "G3 old/new geometry leg — per-node old-defect ledger (decision material)",
+  "source": "docs/adr/design/248-phase3-system-child-canvas.json",
+  "rule": "candidate = new↔DOM ≤1px AND old↔DOM >1px; verdicts unchanged",
+  "summary": {
+    "types": 18,
+    "pairs": 30,
+    "candidates": 21,
+    "noDomPair": 7,
+    "newSide": 2,
+    "unpaired": 1,
+    "allCandidateTypes": [
+      "component-combobox",
+      "component-datepicker",
+      "component-disclosure",
+      "component-gridlist-section",
+      "component-listbox-section",
+      "component-meter",
+      "component-progressbar",
+      "component-select",
+      "component-slider",
+      "component-table"
+    ],
+    "typesWithNoDomPair": [
+      "component-calendar",
+      "component-popover",
+      "component-rangecalendar",
+      "component-switch",
+      "component-tabs",
+      "component-taggroup"
+    ],
+    "typesWithUnpaired": [
+      "component-searchfield"
+    ],
+    "typesWithNewSideNodes": [
+      "component-daterangepicker"
+    ]
+  },
+  "types": [
+    {
+      "id": "component-calendar",
+      "type": "Calendar",
+      "failedLegs": [
+        "geometry"
+      ],
+      "pairs": 2,
+      "candidates": 1,
+      "noDomPair": 1,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "component-calendar__2",
+          "new": "project:node:subject::lib:template:component-calendar__2",
+          "oldRect": {
+            "x": 9,
+            "y": 15,
+            "width": 238,
+            "height": 200
+          },
+          "newRect": {
+            "x": 9,
+            "y": 57,
+            "width": 238,
+            "height": 200,
+            "baseline": 200
+          },
+          "domRect": {
+            "x": 9,
+            "y": 57,
+            "width": 238,
+            "height": 200
+          },
+          "oldNew": 42,
+          "newDom": 0,
+          "oldDom": 42,
+          "class": "candidate",
+          "inputDiffs": []
+        },
+        {
+          "old": "component-calendar__1",
+          "new": "project:node:subject::lib:template:component-calendar__1",
+          "oldRect": {
+            "x": 9,
+            "y": 9,
+            "width": 238,
+            "height": 0
+          },
+          "newRect": {
+            "x": 9,
+            "y": 9,
+            "width": 202,
+            "height": 42,
+            "baseline": 42
+          },
+          "domRect": null,
+          "oldNew": 42,
+          "newDom": null,
+          "oldDom": null,
+          "class": "noDomPair",
+          "inputDiffs": []
+        }
+      ]
+    },
+    {
+      "id": "component-combobox",
+      "type": "ComboBox",
+      "failedLegs": [
+        "geometry"
+      ],
+      "pairs": 2,
+      "candidates": 2,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "component-combobox__2_2",
+          "new": "project:node:subject::lib:template:component-combobox__2_2",
+          "oldRect": {
+            "x": 197,
+            "y": 6,
+            "width": 18,
+            "height": 18
+          },
+          "newRect": {
+            "x": 147,
+            "y": 6,
+            "width": 68,
+            "height": 18,
+            "baseline": 18
+          },
+          "domRect": {
+            "x": 147,
+            "y": 6,
+            "width": 68,
+            "height": 18
+          },
+          "oldNew": 50,
+          "newDom": 0,
+          "oldDom": 50,
+          "class": "candidate",
+          "inputDiffs": []
+        },
+        {
+          "old": "component-combobox__2_1",
+          "new": "project:node:subject::lib:template:component-combobox__2_1",
+          "oldRect": {
+            "x": 13,
+            "y": 5,
+            "width": 180,
+            "height": 20
+          },
+          "newRect": {
+            "x": 13,
+            "y": 5,
+            "width": 130,
+            "height": 20,
+            "baseline": 20
+          },
+          "domRect": {
+            "x": 13,
+            "y": 5,
+            "width": 130,
+            "height": 20
+          },
+          "oldNew": 50,
+          "newDom": 0,
+          "oldDom": 50,
+          "class": "candidate",
+          "inputDiffs": []
+        }
+      ]
+    },
+    {
+      "id": "component-datepicker",
+      "type": "DatePicker",
+      "failedLegs": [
+        "geometry"
+      ],
+      "pairs": 2,
+      "candidates": 2,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "component-datepicker__2_1",
+          "new": "project:node:subject::lib:template:component-datepicker__2_1",
+          "oldRect": {
+            "x": 13,
+            "y": 5,
+            "width": 172,
+            "height": 20
+          },
+          "newRect": {
+            "x": 13,
+            "y": 5,
+            "width": 130,
+            "height": 20,
+            "baseline": 20
+          },
+          "domRect": {
+            "x": 13,
+            "y": 5,
+            "width": 130,
+            "height": 20
+          },
+          "oldNew": 42,
+          "newDom": 0,
+          "oldDom": 42,
+          "class": "candidate",
+          "inputDiffs": []
+        },
+        {
+          "old": "component-datepicker__2_2",
+          "new": "project:node:subject::lib:template:component-datepicker__2_2",
+          "oldRect": {
+            "x": 189,
+            "y": 6,
+            "width": 18,
+            "height": 18
+          },
+          "newRect": {
+            "x": 147,
+            "y": 6,
+            "width": 68,
+            "height": 18,
+            "baseline": 18
+          },
+          "domRect": {
+            "x": 147,
+            "y": 6,
+            "width": 68,
+            "height": 18
+          },
+          "oldNew": 50,
+          "newDom": 0,
+          "oldDom": 50,
+          "class": "candidate",
+          "inputDiffs": []
+        }
+      ]
+    },
+    {
+      "id": "component-daterangepicker",
+      "type": "DateRangePicker",
+      "failedLegs": [
+        "geometry",
+        "canvasDom"
+      ],
+      "pairs": 3,
+      "candidates": 1,
+      "noDomPair": 0,
+      "newSide": 2,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "component-daterangepicker__2_1",
+          "new": "project:node:subject::lib:template:component-daterangepicker__2_1",
+          "oldRect": {
+            "x": 13,
+            "y": 5,
+            "width": 172,
+            "height": 20
+          },
+          "newRect": {
+            "x": 13,
+            "y": 5,
+            "width": 217.5500030517578,
+            "height": 20,
+            "baseline": 20
+          },
+          "domRect": {
+            "x": 13,
+            "y": 5,
+            "width": 196.4375,
+            "height": 20
+          },
+          "oldNew": 45.55,
+          "newDom": 21.113,
+          "oldDom": 24.438,
+          "class": "newSide",
+          "inputDiffs": []
+        },
+        {
+          "old": "component-daterangepicker__1",
+          "new": "project:node:subject::lib:template:component-daterangepicker__1",
+          "oldRect": {
+            "x": 0,
+            "y": 0,
+            "width": 75,
+            "height": 20
+          },
+          "newRect": {
+            "x": 0,
+            "y": 0,
+            "width": 76.02999877929688,
+            "height": 20,
+            "baseline": 20
+          },
+          "domRect": {
+            "x": 0,
+            "y": 0,
+            "width": 76.03125,
+            "height": 20
+          },
+          "oldNew": 1.03,
+          "newDom": 0.001,
+          "oldDom": 1.031,
+          "class": "candidate",
+          "inputDiffs": []
+        },
+        {
+          "old": "component-daterangepicker__2_2",
+          "new": "project:node:subject::lib:template:component-daterangepicker__2_2",
+          "oldRect": {
+            "x": 189,
+            "y": 6,
+            "width": 18,
+            "height": 18
+          },
+          "newRect": {
+            "x": 234.5500030517578,
+            "y": 6,
+            "width": 68,
+            "height": 18,
+            "baseline": 18
+          },
+          "domRect": {
+            "x": 213.4375,
+            "y": 6,
+            "width": 68,
+            "height": 18
+          },
+          "oldNew": 50,
+          "newDom": 21.113,
+          "oldDom": 50,
+          "class": "newSide",
+          "inputDiffs": []
+        }
+      ]
+    },
+    {
+      "id": "component-disclosure",
+      "type": "Disclosure",
+      "failedLegs": [
+        "geometry"
+      ],
+      "pairs": 1,
+      "candidates": 1,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "component-disclosure__2",
+          "new": "project:node:subject::lib:template:component-disclosure__2",
+          "oldRect": {
+            "x": 0,
+            "y": 36,
+            "width": 220,
+            "height": 20
+          },
+          "newRect": {
+            "x": 0,
+            "y": 36,
+            "width": 220,
+            "height": 36,
+            "baseline": 36
+          },
+          "domRect": {
+            "x": 0,
+            "y": 36,
+            "width": 220,
+            "height": 36
+          },
+          "oldNew": 16,
+          "newDom": 0,
+          "oldDom": 16,
+          "class": "candidate",
+          "inputDiffs": []
+        }
+      ]
+    },
+    {
+      "id": "component-gridlist-section",
+      "type": "GridListSection",
+      "failedLegs": [
+        "geometry"
+      ],
+      "pairs": 1,
+      "candidates": 1,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "component-gridlist-section__header",
+          "new": "project:node:host/project:node:subject::lib:template:component-gridlist-section__header",
+          "oldRect": {
+            "x": 0,
+            "y": 0,
+            "width": 220,
+            "height": 24
+          },
+          "newRect": {
+            "x": 0,
+            "y": 0,
+            "width": 104,
+            "height": 21,
+            "baseline": 21
+          },
+          "domRect": {
+            "x": 0,
+            "y": 0,
+            "width": 104,
+            "height": 21
+          },
+          "oldNew": 116,
+          "newDom": 0,
+          "oldDom": 116,
+          "class": "candidate",
+          "inputDiffs": []
+        }
+      ]
+    },
+    {
+      "id": "component-listbox-section",
+      "type": "ListBoxSection",
+      "failedLegs": [
+        "geometry"
+      ],
+      "pairs": 1,
+      "candidates": 1,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "component-listbox-section__header",
+          "new": "project:node:host/project:node:subject::lib:template:component-listbox-section__header",
+          "oldRect": {
+            "x": 0,
+            "y": 1.982421875,
+            "width": 75,
+            "height": 21
+          },
+          "newRect": {
+            "x": 0,
+            "y": 0,
+            "width": 74.1500015258789,
+            "height": 21,
+            "baseline": 21
+          },
+          "domRect": {
+            "x": 0,
+            "y": 0,
+            "width": 74.15625,
+            "height": 21
+          },
+          "oldNew": 1.982,
+          "newDom": 0.006,
+          "oldDom": 1.982,
+          "class": "candidate",
+          "inputDiffs": []
+        }
+      ]
+    },
+    {
+      "id": "component-meter",
+      "type": "Meter",
+      "failedLegs": [
+        "geometry"
+      ],
+      "pairs": 1,
+      "candidates": 1,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "component-meter__1",
+          "new": "project:node:subject::lib:template:component-meter__1",
+          "oldRect": {
+            "x": 0,
+            "y": 0,
+            "width": 51,
+            "height": 69
+          },
+          "newRect": {
+            "x": 0,
+            "y": 0,
+            "width": 51.650001525878906,
+            "height": 20,
+            "baseline": 20
+          },
+          "domRect": {
+            "x": 0,
+            "y": 0,
+            "width": 51.65625,
+            "height": 20
+          },
+          "oldNew": 49,
+          "newDom": 0.006,
+          "oldDom": 49,
+          "class": "candidate",
+          "inputDiffs": []
+        }
+      ]
+    },
+    {
+      "id": "component-popover",
+      "type": "Popover",
+      "failedLegs": [
+        "geometry"
+      ],
+      "pairs": 2,
+      "candidates": 0,
+      "noDomPair": 2,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "component-popover__2",
+          "new": "project:node:subject::lib:template:component-popover__2",
+          "oldRect": {
+            "x": 16,
+            "y": 48,
+            "width": 188,
+            "height": 16
+          },
+          "newRect": {
+            "x": 17,
+            "y": 49,
+            "width": 186,
+            "height": 16,
+            "baseline": 16
+          },
+          "domRect": null,
+          "oldNew": 2,
+          "newDom": null,
+          "oldDom": null,
+          "class": "noDomPair",
+          "inputDiffs": []
+        },
+        {
+          "old": "component-popover__1",
+          "new": "project:node:subject::lib:template:component-popover__1",
+          "oldRect": {
+            "x": 16,
+            "y": 16,
+            "width": 188,
+            "height": 20
+          },
+          "newRect": {
+            "x": 17,
+            "y": 17,
+            "width": 186,
+            "height": 20,
+            "baseline": 20
+          },
+          "domRect": null,
+          "oldNew": 2,
+          "newDom": null,
+          "oldDom": null,
+          "class": "noDomPair",
+          "inputDiffs": []
+        }
+      ]
+    },
+    {
+      "id": "component-progressbar",
+      "type": "ProgressBar",
+      "failedLegs": [
+        "geometry"
+      ],
+      "pairs": 2,
+      "candidates": 2,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "component-progressbar__1",
+          "new": "project:node:subject::lib:template:component-progressbar__1",
+          "oldRect": {
+            "x": 0,
+            "y": 0,
+            "width": 58,
+            "height": 69
+          },
+          "newRect": {
+            "x": 0,
+            "y": 0,
+            "width": 57.869998931884766,
+            "height": 20,
+            "baseline": 20
+          },
+          "domRect": {
+            "x": 0,
+            "y": 0,
+            "width": 57.875,
+            "height": 20
+          },
+          "oldNew": 49,
+          "newDom": 0.005,
+          "oldDom": 49,
+          "class": "candidate",
+          "inputDiffs": []
+        },
+        {
+          "old": "component-progressbar__2",
+          "new": "project:node:subject::lib:template:component-progressbar__2",
+          "oldRect": {
+            "x": 190,
+            "y": 0,
+            "width": 30,
+            "height": 69
+          },
+          "newRect": {
+            "x": 191.22999572753906,
+            "y": 0,
+            "width": 28.770000457763672,
+            "height": 69,
+            "baseline": 69
+          },
+          "domRect": {
+            "x": 191.234375,
+            "y": 0,
+            "width": 28.765625,
+            "height": 69
+          },
+          "oldNew": 1.23,
+          "newDom": 0.004,
+          "oldDom": 1.234,
+          "class": "candidate",
+          "inputDiffs": []
+        }
+      ]
+    },
+    {
+      "id": "component-rangecalendar",
+      "type": "RangeCalendar",
+      "failedLegs": [
+        "geometry"
+      ],
+      "pairs": 2,
+      "candidates": 1,
+      "noDomPair": 1,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "component-rangecalendar__2",
+          "new": "project:node:subject::lib:template:component-rangecalendar__2",
+          "oldRect": {
+            "x": 9,
+            "y": 15,
+            "width": 238,
+            "height": 200
+          },
+          "newRect": {
+            "x": 9,
+            "y": 57,
+            "width": 238,
+            "height": 200,
+            "baseline": 200
+          },
+          "domRect": {
+            "x": 9,
+            "y": 57,
+            "width": 238,
+            "height": 200
+          },
+          "oldNew": 42,
+          "newDom": 0,
+          "oldDom": 42,
+          "class": "candidate",
+          "inputDiffs": []
+        },
+        {
+          "old": "component-rangecalendar__1",
+          "new": "project:node:subject::lib:template:component-rangecalendar__1",
+          "oldRect": {
+            "x": 9,
+            "y": 9,
+            "width": 238,
+            "height": 0
+          },
+          "newRect": {
+            "x": 9,
+            "y": 9,
+            "width": 202,
+            "height": 42,
+            "baseline": 42
+          },
+          "domRect": null,
+          "oldNew": 42,
+          "newDom": null,
+          "oldDom": null,
+          "class": "noDomPair",
+          "inputDiffs": []
+        }
+      ]
+    },
+    {
+      "id": "component-searchfield",
+      "type": "SearchField",
+      "failedLegs": [
+        "geometry"
+      ],
+      "pairs": 2,
+      "candidates": 2,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [
+        {
+          "id": "old:component-searchfield__2_3"
+        }
+      ],
+      "nodes": [
+        {
+          "old": "component-searchfield__2_1",
+          "new": "project:node:subject::lib:template:component-searchfield__2_1",
+          "oldRect": {
+            "x": 13,
+            "y": 6,
+            "width": 18,
+            "height": 18
+          },
+          "newRect": {
+            "x": 13,
+            "y": 7,
+            "width": 16,
+            "height": 16,
+            "baseline": 16
+          },
+          "domRect": {
+            "x": 13,
+            "y": 7,
+            "width": 16,
+            "height": 16
+          },
+          "oldNew": 2,
+          "newDom": 0,
+          "oldDom": 2,
+          "class": "candidate",
+          "inputDiffs": []
+        },
+        {
+          "old": "component-searchfield__2_2",
+          "new": "project:node:subject::lib:template:component-searchfield__2_2",
+          "oldRect": {
+            "x": 35,
+            "y": 5,
+            "width": 158,
+            "height": 20
+          },
+          "newRect": {
+            "x": 33,
+            "y": 5,
+            "width": 182,
+            "height": 20,
+            "baseline": 20
+          },
+          "domRect": {
+            "x": 33,
+            "y": 5,
+            "width": 182,
+            "height": 20
+          },
+          "oldNew": 24,
+          "newDom": 0,
+          "oldDom": 24,
+          "class": "candidate",
+          "inputDiffs": []
+        }
+      ]
+    },
+    {
+      "id": "component-select",
+      "type": "Select",
+      "failedLegs": [
+        "geometry"
+      ],
+      "pairs": 1,
+      "candidates": 1,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "component-select__2_1",
+          "new": "project:node:subject::lib:template:component-select__2_1",
+          "oldRect": {
+            "x": 13,
+            "y": 5,
+            "width": 180,
+            "height": 20
+          },
+          "newRect": {
+            "x": 13,
+            "y": 5,
+            "width": 176,
+            "height": 20,
+            "baseline": 20
+          },
+          "domRect": {
+            "x": 13,
+            "y": 5,
+            "width": 176,
+            "height": 20
+          },
+          "oldNew": 4,
+          "newDom": 0,
+          "oldDom": 4,
+          "class": "candidate",
+          "inputDiffs": []
+        }
+      ]
+    },
+    {
+      "id": "component-slider",
+      "type": "Slider",
+      "failedLegs": [
+        "geometry"
+      ],
+      "pairs": 2,
+      "candidates": 2,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "component-slider__1",
+          "new": "project:node:subject::lib:template:component-slider__1",
+          "oldRect": {
+            "x": 0,
+            "y": 0,
+            "width": 38,
+            "height": 69
+          },
+          "newRect": {
+            "x": 0,
+            "y": 0,
+            "width": 37.220001220703125,
+            "height": 20,
+            "baseline": 20
+          },
+          "domRect": {
+            "x": 0,
+            "y": 0,
+            "width": 37.234375,
+            "height": 20
+          },
+          "oldNew": 49,
+          "newDom": 0.014,
+          "oldDom": 49,
+          "class": "candidate",
+          "inputDiffs": []
+        },
+        {
+          "old": "component-slider__2",
+          "new": "project:node:subject::lib:template:component-slider__2",
+          "oldRect": {
+            "x": 202,
+            "y": 0,
+            "width": 18,
+            "height": 69
+          },
+          "newRect": {
+            "x": 203.30999755859375,
+            "y": 0,
+            "width": 16.690000534057617,
+            "height": 20,
+            "baseline": 20
+          },
+          "domRect": {
+            "x": 203.296875,
+            "y": 0,
+            "width": 16.703125,
+            "height": 20
+          },
+          "oldNew": 49,
+          "newDom": 0.013,
+          "oldDom": 49,
+          "class": "candidate",
+          "inputDiffs": []
+        }
+      ]
+    },
+    {
+      "id": "component-switch",
+      "type": "Switch",
+      "failedLegs": [
+        "geometry"
+      ],
+      "pairs": 1,
+      "candidates": 0,
+      "noDomPair": 1,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "component-switch__1",
+          "new": "project:node:subject::lib:template:component-switch__1",
+          "oldRect": {
+            "x": 46,
+            "y": 55,
+            "width": 45,
+            "height": 20
+          },
+          "newRect": {
+            "x": 46,
+            "y": 55,
+            "width": 42.400001525878906,
+            "height": 20,
+            "baseline": 20
+          },
+          "domRect": null,
+          "oldNew": 2.6,
+          "newDom": null,
+          "oldDom": null,
+          "class": "noDomPair",
+          "inputDiffs": []
+        }
+      ]
+    },
+    {
+      "id": "component-table",
+      "type": "Table",
+      "failedLegs": [
+        "geometry"
+      ],
+      "pairs": 2,
+      "candidates": 2,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "component-table__2",
+          "new": "project:node:subject::lib:template:component-table__2",
+          "oldRect": {
+            "x": 0,
+            "y": 0,
+            "width": 220,
+            "height": 0
+          },
+          "newRect": {
+            "x": 1,
+            "y": 1,
+            "width": 218,
+            "height": 0,
+            "baseline": 0
+          },
+          "domRect": {
+            "x": 1,
+            "y": 1,
+            "width": 218,
+            "height": 0
+          },
+          "oldNew": 2,
+          "newDom": 0,
+          "oldDom": 2,
+          "class": "candidate",
+          "inputDiffs": []
+        },
+        {
+          "old": "component-table__1",
+          "new": "project:node:subject::lib:template:component-table__1",
+          "oldRect": {
+            "x": 0,
+            "y": 0,
+            "width": 220,
+            "height": 0
+          },
+          "newRect": {
+            "x": 1,
+            "y": 1,
+            "width": 218,
+            "height": 0,
+            "baseline": 0
+          },
+          "domRect": {
+            "x": 1,
+            "y": 1,
+            "width": 218,
+            "height": 0
+          },
+          "oldNew": 2,
+          "newDom": 0,
+          "oldDom": 2,
+          "class": "candidate",
+          "inputDiffs": []
+        }
+      ]
+    },
+    {
+      "id": "component-tabs",
+      "type": "Tabs",
+      "failedLegs": [
+        "geometry"
+      ],
+      "pairs": 2,
+      "candidates": 1,
+      "noDomPair": 1,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "component-tabs__1",
+          "new": "project:node:subject::lib:template:component-tabs__1",
+          "oldRect": {
+            "x": 0,
+            "y": 0,
+            "width": 220,
+            "height": 29
+          },
+          "newRect": {
+            "x": 0,
+            "y": 0,
+            "width": 126.16999816894531,
+            "height": 29,
+            "baseline": 29
+          },
+          "domRect": {
+            "x": 0,
+            "y": 0,
+            "width": 126.1875,
+            "height": 29
+          },
+          "oldNew": 93.83,
+          "newDom": 0.018,
+          "oldDom": 93.813,
+          "class": "candidate",
+          "inputDiffs": []
+        },
+        {
+          "old": "component-tabs__2",
+          "new": "project:node:subject::lib:template:component-tabs__2",
+          "oldRect": {
+            "x": 0,
+            "y": 29,
+            "width": 24,
+            "height": 101
+          },
+          "newRect": {
+            "x": 0,
+            "y": 29,
+            "width": 24,
+            "height": 24,
+            "baseline": 24
+          },
+          "domRect": null,
+          "oldNew": 77,
+          "newDom": null,
+          "oldDom": null,
+          "class": "noDomPair",
+          "inputDiffs": []
+        }
+      ]
+    },
+    {
+      "id": "component-taggroup",
+      "type": "TagGroup",
+      "failedLegs": [
+        "geometry"
+      ],
+      "pairs": 1,
+      "candidates": 0,
+      "noDomPair": 1,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "component-taggroup__2",
+          "new": "project:node:subject::lib:template:component-taggroup__2",
+          "oldRect": {
+            "x": 0,
+            "y": 24,
+            "width": 220,
+            "height": 106
+          },
+          "newRect": {
+            "x": 0,
+            "y": 24,
+            "width": 220,
+            "height": 64,
+            "baseline": 64
+          },
+          "domRect": null,
+          "oldNew": 42,
+          "newDom": null,
+          "oldDom": null,
+          "class": "noDomPair",
+          "inputDiffs": []
+        }
+      ]
+    }
+  ]
+}

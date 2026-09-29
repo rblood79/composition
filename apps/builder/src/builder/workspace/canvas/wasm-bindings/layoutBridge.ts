@@ -62,6 +62,8 @@ export interface LayoutEngineAPI {
   // 실패로 만든다. production 은 켜지 않는다 (미지 키 하나로 레이아웃 전체 실패).
   // optional: 테스트용 fake 엔진이 구현을 강제받지 않는다.
   setStrictInput?(enabled: boolean): void;
+  /** 높이 확정 0 판정 (기본 false). ADR-248 새 runtime 만 켠다 — 현재 Builder 출력 불변. */
+  setDefiniteZeroHeight?(enabled: boolean): void;
   /** batch payload 에서 엔진이 버리는 키 — `[{index, keys}]`. hot path 금지. */
   inspectUnknownKeys?(nodesJson: string): { index: number; keys: string[] }[];
 }

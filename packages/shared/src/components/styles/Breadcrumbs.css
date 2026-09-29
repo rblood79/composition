@@ -3,9 +3,14 @@
     /* Local color variable */
     --breadcrumb-accent: var(--accent);
 
+    /* catalog Breadcrumb.sizes[size] — 구분자 Icon 크기 (iconSize) · label ↔ 구분자 ↔ 다음 조각 간격 (gap).
+     * 생성 Breadcrumb.css 가 로드되지 않아 여기 적는다 (사용자 결정 2026-09-29: 14/16/18 · 0/2/4). */
+    --breadcrumb-icon-size: 16px;
+    --breadcrumb-gap: 2px;
+
     display: flex;
     align-items: center;
-    gap: 0;
+    gap: var(--breadcrumb-gap);
     list-style: none;
     margin: 0;
     padding: 0;
@@ -15,15 +20,31 @@
     .react-aria-Breadcrumb {
       display: inline-flex;
       align-items: center;
+      gap: var(--breadcrumb-gap);
     }
 
-    .react-aria-Breadcrumb:not(:last-child)::after {
-      content: "\203A";
-      content: "\203A" / "";
-      alt: " ";
-      padding: 0 var(--spacing-sm);
+    /* 조각 뒤 구분자 = 편집 가능한 Icon 자식 (현재 조각은 RAC isCurrent 로 그리지 않는다) — catalog
+     * Breadcrumb.variants.default.trailingIcon.color. SVG width/height 속성은 CSS 가 덮는다. */
+    .react-aria-Breadcrumb > .react-aria-Icon {
+      display: inline-flex;
+      /* 상자 = Icon 크기 (생성 Icon.css 의 size 높이 24 가 아니다 — 글리프가 조각 가운데에 온다) */
+      width: var(--breadcrumb-icon-size);
+      height: var(--breadcrumb-icon-size);
       color: var(--fg-muted);
-      line-height: 1;
+
+      svg {
+        width: var(--breadcrumb-icon-size);
+        height: var(--breadcrumb-icon-size);
+      }
+    }
+
+    /* label Text 는 Link 의 글자 (크기 · 굵기 · 줄 높이 · 색) 를 따른다 — `.react-aria-Text` 가 자기 값을 선언해
+     * 상속이 끊기므로 되살린다 (Tab · Tag label 선례). Canvas 는 `itemLabelInheritance.ts` 가 같은 값을 주입. */
+    .react-aria-Link .react-aria-Text {
+      font-size: inherit;
+      font-weight: inherit;
+      line-height: inherit;
+      color: inherit;
     }
 
     .react-aria-Link {
@@ -42,7 +63,8 @@
 
       &[data-current] {
         color: var(--breadcrumb-accent);
-        font-weight: 600;
+        /* catalog Breadcrumb.variants.default.currentTextWeight (생성 Breadcrumb.css 는 로드되지 않는다) */
+        font-weight: 700;
       }
 
       &[data-focus-visible]:after {
@@ -81,30 +103,29 @@
       color: color-mix(in srgb, var(--fg) 38%, transparent);
     }
 
-    /* ===== Size Variants (RSP API: S | M | L) ===== */
+    /* ===== Size Variants (RSP API: S | M | L) =====
+     * gap 을 크기 블록에서 다시 적는다 — 생성 Breadcrumbs.css 기본 블록의 `gap: 2px` 가 같은 specificity 로
+     * 뒤에 와 base `var(--breadcrumb-gap)` 를 이기고, 생성기는 S 의 0 을 내보내지 않는다. */
 
     &[data-size="S"] {
       font-size: var(--text-sm);
-
-      .react-aria-Breadcrumb:not(:last-child)::after {
-        padding: 0 var(--spacing-xs);
-      }
+      --breadcrumb-icon-size: 14px;
+      --breadcrumb-gap: 0px;
+      gap: var(--breadcrumb-gap);
     }
 
     &[data-size="M"] {
       font-size: var(--text-base);
-
-      .react-aria-Breadcrumb:not(:last-child)::after {
-        padding: 0 var(--spacing-sm);
-      }
+      --breadcrumb-icon-size: 16px;
+      --breadcrumb-gap: 2px;
+      gap: var(--breadcrumb-gap);
     }
 
     &[data-size="L"] {
       font-size: var(--text-lg);
-
-      .react-aria-Breadcrumb:not(:last-child)::after {
-        padding: 0 var(--spacing-md);
-      }
+      --breadcrumb-icon-size: 18px;
+      --breadcrumb-gap: 4px;
+      gap: var(--breadcrumb-gap);
     }
   }
 

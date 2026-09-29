@@ -548,14 +548,13 @@ function resolveParentDelegatedSize(
   return null;
 }
 
-/** Breadcrumb → 부모 Breadcrumbs의 구분자·마지막 여부·비활성 */
+/** Breadcrumb → 부모 Breadcrumbs 안 마지막 여부·비활성 */
 function resolveBreadcrumbItemContext(
   element: CanvasSceneNode,
   elementsMap: Map<string, CanvasSceneNode>,
   childrenMap?: Map<string, CanvasSceneNode[]>,
 ): {
   _isLast: boolean;
-  _separator: string;
   _parentIsDisabled: boolean;
 } | null {
   if (element.type !== "Breadcrumb" || !element.parent_id) return null;
@@ -581,7 +580,6 @@ function resolveBreadcrumbItemContext(
 
   return {
     _isLast: idx === siblings.length - 1,
-    _separator: String(pp.separator ?? "›"),
     _parentIsDisabled: Boolean(pp.isDisabled),
   };
 }
@@ -1466,7 +1464,7 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
   }
 
   // ADR-912 영역 B (A): render-space projection crumb(appendBreadcrumbRowProjection)은 이미
-  //   _isLast/_separator 를 projection props 로 주입받았다 → projection props 가 SSOT.
+  //   _isLast 를 projection props 로 주입받았다 → projection props 가 SSOT.
   //   여기서 element-tree sibling 기반 재주입(중복)을 skip 하여 단일 진입점 유지(Tab 패턴 동형).
   //   non-projection Breadcrumb(pre-migration 기존 문서의 자식 element)만 ancestor lookup 보강.
   const breadcrumbCtx = isRenderProjectionId(element.id)
@@ -1476,7 +1474,6 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
     specProps = {
       ...specProps,
       _isLast: breadcrumbCtx._isLast,
-      _separator: breadcrumbCtx._separator,
     };
   } else if (
     element.type === "Breadcrumb" &&

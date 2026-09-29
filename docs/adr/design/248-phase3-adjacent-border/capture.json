@@ -1,0 +1,268 @@
+{
+  "head": "2a5c970994cb9de2f824a729b29c08cdcd647d7b",
+  "dpr": 1,
+  "theme": "default-light",
+  "colorSpace": "sRGB 8-bit RGB exact",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "chromiumVersion": "151.0.7922.34",
+  "renderer": "shared nodeRendererBorders.renderBox",
+  "scope": "catalog tokens and generated CSS root versus box-only shared Skia paint; not full component consumer parity",
+  "captureScript": "apps/builder/scripts/adr248-adjacent-border-capture.mts",
+  "results": [
+    {
+      "id": "alert",
+      "source": "catalog",
+      "variant": "info",
+      "size": "sm",
+      "resolved": {
+        "id": "alert",
+        "source": "catalog",
+        "variant": "info",
+        "size": "sm",
+        "fill": "#dbeafe",
+        "fillAlpha": 1,
+        "borderColor": "#155dfc",
+        "borderWidth": 1,
+        "borderStyle": "solid",
+        "radius": 6
+      },
+      "dom": {
+        "rect": {
+          "x": 20,
+          "y": 20,
+          "width": 160,
+          "height": 34
+        },
+        "text": {
+          "x": 9,
+          "y": 9,
+          "width": 23.359375,
+          "height": 16
+        },
+        "computed": {
+          "backgroundColor": "rgb(219, 234, 254)",
+          "borderColor": "rgb(21, 93, 252)",
+          "borderWidth": "1px",
+          "borderStyle": "solid",
+          "borderRadius": "6px"
+        }
+      },
+      "skiaCommand": {
+        "type": "box",
+        "width": 160,
+        "height": 34,
+        "box": {
+          "fillColor": [
+            0.8588235378265381,
+            0.9176470637321472,
+            0.9960784316062927,
+            1
+          ],
+          "borderRadius": 6,
+          "strokeColor": [
+            0.08235294371843338,
+            0.364705890417099,
+            0.9882352948188782,
+            1
+          ],
+          "strokeWidth": 1,
+          "strokeStyle": "solid"
+        }
+      },
+      "pngGrid": {
+        "width": 160,
+        "height": 34
+      },
+      "counts": {
+        "masked": 368,
+        "corner": 64,
+        "border": 0,
+        "flatInterior": 0,
+        "different": 64
+      },
+      "domPng": "alert-dom.png",
+      "skiaPng": "alert-skia.png",
+      "domPngSha256": "53b2782e6c119be53bbdad7a15abd6ef224699fd46f8cc1bf39d0ad3bafd1845",
+      "skiaPngSha256": "76e544828df5832fd9e88ac67f3701bdda1b04a5b933f3da1bd1a01b24f9af34",
+      "mask": {
+        "definition": "DOM child text rect; outer 2px border is never masked",
+        "textBounds": {
+          "x": 9,
+          "y": 9,
+          "width": 23.359375,
+          "height": 16
+        }
+      },
+      "nontextDenominator": 5072,
+      "rawNontextRatio": 0.012618296529968454
+    },
+    {
+      "id": "badge",
+      "source": "catalog",
+      "variant": "accent",
+      "size": "sm",
+      "resolved": {
+        "id": "badge",
+        "source": "catalog",
+        "variant": "accent",
+        "size": "sm",
+        "fill": "transparent",
+        "fillAlpha": 1,
+        "borderColor": "#155dfc",
+        "borderWidth": 1,
+        "borderStyle": "solid",
+        "radius": 9999
+      },
+      "dom": {
+        "rect": {
+          "x": 20,
+          "y": 74,
+          "width": 54.6875,
+          "height": 22
+        },
+        "text": {
+          "x": 9,
+          "y": 3,
+          "width": 36.6875,
+          "height": 16
+        },
+        "computed": {
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "borderColor": "rgb(21, 93, 252)",
+          "borderWidth": "1px",
+          "borderStyle": "solid",
+          "borderRadius": "9999px"
+        }
+      },
+      "skiaCommand": {
+        "type": "box",
+        "width": 54.6875,
+        "height": 22,
+        "box": {
+          "fillColor": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "borderRadius": 9999,
+          "strokeColor": [
+            0.08235294371843338,
+            0.364705890417099,
+            0.9882352948188782,
+            1
+          ],
+          "strokeWidth": 1,
+          "strokeStyle": "solid"
+        }
+      },
+      "pngGrid": {
+        "width": 55,
+        "height": 22
+      },
+      "counts": {
+        "masked": 592,
+        "corner": 117,
+        "border": 0,
+        "flatInterior": 0,
+        "different": 117
+      },
+      "domPng": "badge-dom.png",
+      "skiaPng": "badge-skia.png",
+      "domPngSha256": "1cc21a75d008931101de4632921f3767c22cdb0d5bf12148ebc24aab5e0b1c98",
+      "skiaPngSha256": "26f47bd4a58b1c37673e9cc1b748737284736c16375c19ccb461a9e980b91fb9",
+      "mask": {
+        "definition": "DOM child text rect; outer 2px border is never masked",
+        "textBounds": {
+          "x": 9,
+          "y": 3,
+          "width": 36.6875,
+          "height": 16
+        }
+      },
+      "nontextDenominator": 618,
+      "rawNontextRatio": 0.18932038834951456
+    },
+    {
+      "id": "solid-control",
+      "source": "forced-control",
+      "resolved": {
+        "id": "solid-control",
+        "source": "forced-control",
+        "fill": "#e5e5e5",
+        "fillAlpha": 0.5,
+        "borderColor": "#e5e7eb",
+        "borderWidth": 1,
+        "borderStyle": "solid",
+        "radius": 6
+      },
+      "dom": {
+        "rect": {
+          "x": 20,
+          "y": 116,
+          "width": 160,
+          "height": 40
+        },
+        "text": null,
+        "computed": {
+          "backgroundColor": "rgba(229, 229, 229, 0.5)",
+          "borderColor": "rgb(229, 231, 235)",
+          "borderWidth": "1px",
+          "borderStyle": "solid",
+          "borderRadius": "6px"
+        }
+      },
+      "skiaCommand": {
+        "type": "box",
+        "width": 160,
+        "height": 40,
+        "box": {
+          "fillColor": [
+            0.8980392217636108,
+            0.8980392217636108,
+            0.8980392217636108,
+            0.5
+          ],
+          "borderRadius": 6,
+          "strokeColor": [
+            0.8980392217636108,
+            0.9058823585510254,
+            0.9215686321258545,
+            1
+          ],
+          "strokeWidth": 1,
+          "strokeStyle": "solid"
+        }
+      },
+      "pngGrid": {
+        "width": 160,
+        "height": 40
+      },
+      "counts": {
+        "masked": 0,
+        "corner": 54,
+        "border": 0,
+        "flatInterior": 0,
+        "different": 54
+      },
+      "domPng": "solid-control-dom.png",
+      "skiaPng": "solid-control-skia.png",
+      "domPngSha256": "8fbddb332f34e757cb4c9e412fb58a3b6883c4bc6e45e0a6e4217c222496d95d",
+      "skiaPngSha256": "90a75a9b930f93aec12e2388fbdbdbeab223410d6ffaa1460e47084b3c026d13",
+      "mask": {
+        "definition": "DOM child text rect; outer 2px border is never masked",
+        "textBounds": null
+      },
+      "nontextDenominator": 6400,
+      "rawNontextRatio": 0.0084375
+    }
+  ],
+  "priorDashedControl": {
+    "different": 319,
+    "denominator": 6400,
+    "ratio": 0.04984375
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "head": "400d09eaeecd5dd258080d2af1e80f9bcd274fd7",
+  "route": "buildBoxNodeData -> registerSkiaNode -> buildRenderCommandStream -> executeRenderCommands",
+  "input": {
+    "overflow": "hidden",
+    "borderWidth": 2,
+    "borderColor": "#3851a4",
+    "parent": {
+      "x": 0,
+      "y": 0,
+      "width": 100,
+      "height": 80
+    },
+    "child": {
+      "x": 90,
+      "y": 30,
+      "width": 40,
+      "height": 20
+    }
+  },
+  "commandClip": {
+    "width": 100,
+    "height": 80,
+    "clipBorderInset": null
+  },
+  "childHitBounds": {
+    "x": 90,
+    "y": 30,
+    "width": 10,
+    "height": 20
+  },
+  "borderPixel": [
+    224,
+    71,
+    71,
+    255
+  ],
+  "outsidePixel": [
+    255,
+    255,
+    255,
+    255
+  ],
+  "pngSha256": "d4e75e8b67154f414cf9ccc126a89c1d373a8943bb9c63ece51e5aceb00d8994",
+  "headRenderCommandsSha256": "434375c66d983b7375e1d0fc866472bb09db82c3f2f5706fb1d42b99fdaad13c",
+  "headContract": "HEAD renderCommands clips children to (0,0,width,height) without border inset"
+}

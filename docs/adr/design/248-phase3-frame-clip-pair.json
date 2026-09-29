@@ -1,0 +1,349 @@
+{
+  "scenarioId": "adr248-old-native-state-v1",
+  "scenarioHash": "49666f0564fb8bef1cf5eaed2c18cf54d16e9942249130f42206336effe9d7b1",
+  "head": "400d09eaeecd5dd258080d2af1e80f9bcd274fd7",
+  "environment": {
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "dpr": 1,
+    "theme": "default-light",
+    "font": "app-default",
+    "fontSha256": "02b09ca630e4833028600a9f958b2f72f0289b9ccfd00d2df34780a7592f8d41",
+    "seed": 248
+  },
+  "old": {
+    "executionBuildIdentity": "dev-source:565566c0d865580db267c208147288cbb0dbbec5ab9b2c2ba6a4824c7c23b10e:index:51d237d3b350a64314784bfdc86787376687d6551cfce31f2b39ae05b8e12301",
+    "buildIndexSha256": "3474b01de9ab15eeaaf7670f67b9376065aa6c9a11c407ba86ab234f9e1035e5",
+    "screenshotSha256": "f100bdabcc33ea40b66914a7592bece2951c4a41e32b268d8220727d387a8fc5"
+  },
+  "new": {
+    "execution": "independent Vitest Node + Playwright isolated DOM",
+    "sourceAssetsSha256": {
+      "testEntry": "349704ca1b6fa4400bc7bffbc9d593a6d53ce41ef8f28cd5b8d3fd62bdb01475",
+      "canvasBinding": "c5f02c62cf3eff5bac5340c17c2abf16e3802a6080bb125a1530c8b12be9ae1e",
+      "renderCommands": "fc72ffabfeac77e36cd2646406e58acdadfb1467fbaec41b88021c90b733095c",
+      "rustWasm": "0ca7b1ebb0a01ef762d7065536e4219f60962af178c4859a4b4b72f6df53430c",
+      "canvasKitWasm": "25ebed8e60158c5854f8dc807b936daca21354f8bfb6a2231266b0a93812f301"
+    },
+    "canvasSha256": "852ccbf2ee4c563cd4a5c8ca780cd2e9e7f97c0862a491ef7521f6f221bcefdc",
+    "domSha256": "fca60d815c110945a1be806a74ab16629c8a2244878df0bca5351e9c4738deb7",
+    "commandCount": 16,
+    "hiddenFrameClipBorderInset": 2
+  },
+  "results": [
+    {
+      "id": "clip-true-overflow-visible",
+      "overflow": "visible",
+      "publicOperation": "insertFrameWithOverflowChild",
+      "expectedFrame": {
+        "x": 30,
+        "y": 30,
+        "width": 130,
+        "height": 100
+      },
+      "rustFrame": {
+        "x": 30,
+        "y": 30,
+        "width": 130,
+        "height": 100,
+        "baseline": 100
+      },
+      "expectedChild": {
+        "x": 92,
+        "y": 32,
+        "width": 100,
+        "height": 40
+      },
+      "rustChild": {
+        "x": 92,
+        "y": 32,
+        "width": 100,
+        "height": 40,
+        "baseline": 40
+      },
+      "dom": {
+        "id": "clip-true-overflow-visible",
+        "frameRect": {
+          "x": 24,
+          "y": 24,
+          "width": 104,
+          "height": 80
+        },
+        "childRect": {
+          "x": 97.5999984741211,
+          "y": 49.60000228881836,
+          "width": 80.00000762939453,
+          "height": 31.999996185302734
+        },
+        "computed": {
+          "overflow": "visible",
+          "border": "2px solid rgb(56, 81, 164)",
+          "backgroundColor": "rgb(219, 231, 255)",
+          "display": "block"
+        },
+        "role": null,
+        "childText": "1",
+        "outsideHit": true
+      },
+      "canvasHitBounds": {
+        "x": 122,
+        "y": 62,
+        "width": 100,
+        "height": 40
+      },
+      "canvasOutsideHit": true,
+      "canvasOutsidePixel": [
+        224,
+        71,
+        71,
+        255
+      ],
+      "region": {
+        "x": 20,
+        "y": 20,
+        "width": 180,
+        "height": 110
+      },
+      "oldCanvasVsNewCanvas": {
+        "pixelmatchThreshold": 0.1,
+        "differentPixels": 342,
+        "denominator": 19800,
+        "ratio": 0.017272727272727273,
+        "maxByte": 184,
+        "meanByte": 2.733143939393939,
+        "changedFraction": 0.02856060606060606,
+        "diffBounds": {
+          "xMin": 24,
+          "xMax": 127,
+          "yMin": 24,
+          "yMax": 103
+        },
+        "dominantColumns": [
+          {
+            "x": 24,
+            "count": 80
+          },
+          {
+            "x": 127,
+            "count": 47
+          },
+          {
+            "x": 100,
+            "count": 7
+          },
+          {
+            "x": 98,
+            "count": 5
+          },
+          {
+            "x": 99,
+            "count": 5
+          },
+          {
+            "x": 25,
+            "count": 2
+          }
+        ],
+        "initialNonTextBudget": {
+          "maxDiffRatio": 0.001,
+          "maxByte": 2
+        },
+        "initialBudgetVerdict": "FAIL",
+        "regionHasText": true,
+        "hc6L3Verdict": "UNVERIFIED_TEXT_REGION_NOT_SEPARATED",
+        "l3eVerdict": "UNVERIFIED_NO_APPROVED_FRAME_EDGE_BUDGET"
+      },
+      "newCanvasVsDom": {
+        "pixelmatchThreshold": 0.1,
+        "differentPixels": 8,
+        "denominator": 19800,
+        "ratio": 0.00040404040404040404,
+        "maxByte": 77,
+        "meanByte": 0.029457070707070706,
+        "changedFraction": 0.008333333333333333,
+        "diffBounds": {
+          "xMin": 98,
+          "xMax": 100,
+          "yMin": 54,
+          "yMax": 61
+        },
+        "dominantColumns": [
+          {
+            "x": 100,
+            "count": 7
+          },
+          {
+            "x": 98,
+            "count": 1
+          }
+        ],
+        "initialNonTextBudget": {
+          "maxDiffRatio": 0.001,
+          "maxByte": 2
+        },
+        "initialBudgetVerdict": "PASS",
+        "regionHasText": true,
+        "hc6L3Verdict": "UNVERIFIED_TEXT_REGION_NOT_SEPARATED",
+        "l3eVerdict": "UNVERIFIED_NO_APPROVED_FRAME_EDGE_BUDGET"
+      }
+    },
+    {
+      "id": "clip-false-overflow-hidden",
+      "overflow": "hidden",
+      "publicOperation": "insertFrameWithOverflowChild",
+      "expectedFrame": {
+        "x": 280,
+        "y": 30,
+        "width": 130,
+        "height": 100
+      },
+      "rustFrame": {
+        "x": 280,
+        "y": 30,
+        "width": 130,
+        "height": 100,
+        "baseline": 100
+      },
+      "expectedChild": {
+        "x": 92,
+        "y": 32,
+        "width": 100,
+        "height": 40
+      },
+      "rustChild": {
+        "x": 92,
+        "y": 32,
+        "width": 100,
+        "height": 40,
+        "baseline": 40
+      },
+      "dom": {
+        "id": "clip-false-overflow-hidden",
+        "frameRect": {
+          "x": 224,
+          "y": 24,
+          "width": 104,
+          "height": 80
+        },
+        "childRect": {
+          "x": 297.6000061035156,
+          "y": 49.60000228881836,
+          "width": 80,
+          "height": 31.999996185302734
+        },
+        "computed": {
+          "overflow": "hidden",
+          "border": "2px solid rgb(56, 81, 164)",
+          "backgroundColor": "rgb(219, 231, 255)",
+          "display": "block"
+        },
+        "role": null,
+        "childText": "1",
+        "outsideHit": false
+      },
+      "canvasHitBounds": {
+        "x": 372,
+        "y": 62,
+        "width": 36,
+        "height": 40
+      },
+      "canvasOutsideHit": false,
+      "canvasOutsidePixel": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "region": {
+        "x": 220,
+        "y": 20,
+        "width": 180,
+        "height": 110
+      },
+      "oldCanvasVsNewCanvas": {
+        "pixelmatchThreshold": 0.1,
+        "differentPixels": 404,
+        "denominator": 19800,
+        "ratio": 0.020404040404040404,
+        "maxByte": 184,
+        "meanByte": 2.9080050505050505,
+        "changedFraction": 0.029595959595959596,
+        "diffBounds": {
+          "xMin": 224,
+          "xMax": 327,
+          "yMin": 24,
+          "yMax": 103
+        },
+        "dominantColumns": [
+          {
+            "x": 224,
+            "count": 80
+          },
+          {
+            "x": 327,
+            "count": 78
+          },
+          {
+            "x": 326,
+            "count": 33
+          },
+          {
+            "x": 300,
+            "count": 7
+          },
+          {
+            "x": 298,
+            "count": 5
+          },
+          {
+            "x": 299,
+            "count": 5
+          }
+        ],
+        "initialNonTextBudget": {
+          "maxDiffRatio": 0.001,
+          "maxByte": 2
+        },
+        "initialBudgetVerdict": "FAIL",
+        "regionHasText": true,
+        "hc6L3Verdict": "UNVERIFIED_TEXT_REGION_NOT_SEPARATED",
+        "l3eVerdict": "UNVERIFIED_NO_APPROVED_FRAME_EDGE_BUDGET"
+      },
+      "newCanvasVsDom": {
+        "pixelmatchThreshold": 0.1,
+        "differentPixels": 8,
+        "denominator": 19800,
+        "ratio": 0.00040404040404040404,
+        "maxByte": 77,
+        "meanByte": 0.027777777777777776,
+        "changedFraction": 0.006654040404040404,
+        "diffBounds": {
+          "xMin": 298,
+          "xMax": 300,
+          "yMin": 54,
+          "yMax": 61
+        },
+        "dominantColumns": [
+          {
+            "x": 300,
+            "count": 7
+          },
+          {
+            "x": 298,
+            "count": 1
+          }
+        ],
+        "initialNonTextBudget": {
+          "maxDiffRatio": 0.001,
+          "maxByte": 2
+        },
+        "initialBudgetVerdict": "PASS",
+        "regionHasText": true,
+        "hc6L3Verdict": "UNVERIFIED_TEXT_REGION_NOT_SEPARATED",
+        "l3eVerdict": "UNVERIFIED_NO_APPROVED_FRAME_EDGE_BUDGET"
+      }
+    }
+  ]
+}

@@ -78,7 +78,11 @@ function toDataAttrName(key: string): string {
 }
 
 export function toRacProps(
-  node: CanonicalNode | ResolvedNode,
+  // Only `props` is read (ADR-248: the catalog runtime passes resolved typed props).
+  node:
+    | CanonicalNode
+    | ResolvedNode
+    | { readonly props?: Readonly<Record<string, unknown>> },
   binding: PrimitiveBinding,
 ): Record<string, unknown> {
   const out: Record<string, unknown> = {};

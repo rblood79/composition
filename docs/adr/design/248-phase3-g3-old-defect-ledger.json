@@ -1,0 +1,3841 @@
+{
+  "adr": 248,
+  "phase": 3,
+  "check": "G3 old/new geometry leg — per-node old-defect ledger (decision material)",
+  "source": "docs/adr/design/248-phase3-palette-base-canvas.json",
+  "rule": "candidate = new↔DOM ≤1px AND old↔DOM >1px; verdicts unchanged",
+  "summary": {
+    "types": 26,
+    "pairs": 65,
+    "candidates": 47,
+    "noDomPair": 8,
+    "newSide": 10,
+    "unpaired": 7,
+    "allCandidateTypes": [
+      "ProgressBar",
+      "Card",
+      "Nav",
+      "Pagination",
+      "DisclosureGroup",
+      "Disclosure",
+      "Toolbar",
+      "CheckboxGroup",
+      "Select",
+      "ComboBox",
+      "Slider",
+      "Meter",
+      "Form",
+      "Table",
+      "DatePicker"
+    ],
+    "typesWithNoDomPair": [
+      "Tabs",
+      "Switch",
+      "FileUpload",
+      "TagGroup",
+      "Calendar",
+      "RangeCalendar",
+      "Popover"
+    ],
+    "typesWithUnpaired": [
+      "Breadcrumbs",
+      "SearchField",
+      "Tree"
+    ],
+    "typesWithNewSideNodes": [
+      "FileUpload",
+      "DateRangePicker"
+    ]
+  },
+  "types": [
+    {
+      "type": "ProgressBar",
+      "failedLegs": [
+        "geometry"
+      ],
+      "pairs": 2,
+      "candidates": 2,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "component-progressbar__1",
+          "new": "project:node:subject::lib:template:component-progressbar__1",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 58,
+            "height": 69
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 57.869998931884766,
+            "height": 20
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 57.875,
+            "height": 20
+          },
+          "oldNew": 49,
+          "newDom": 0.005,
+          "oldDom": 49,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "component-progressbar__1",
+              "key": "contentMinWidth",
+              "old": 56,
+              "new": 57.869998931884766
+            },
+            {
+              "path": "component-progressbar__1",
+              "key": "height",
+              "old": null,
+              "new": "fit-content"
+            }
+          ]
+        },
+        {
+          "old": "component-progressbar__2",
+          "new": "project:node:subject::lib:template:component-progressbar__2",
+          "oldRect": {
+            "x": 220,
+            "y": 30,
+            "width": 30,
+            "height": 69
+          },
+          "newRect": {
+            "x": 221.22999572753906,
+            "y": 30,
+            "width": 28.770000457763672,
+            "height": 69
+          },
+          "domRect": {
+            "x": 221.234375,
+            "y": 30,
+            "width": 28.765625,
+            "height": 69
+          },
+          "oldNew": 1.23,
+          "newDom": 0.004,
+          "oldDom": 1.234,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "component-progressbar__2",
+              "key": "contentMaxWidth",
+              "old": 30,
+              "new": 28.770000457763672
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "Card",
+      "failedLegs": [
+        "geometry"
+      ],
+      "pairs": 1,
+      "candidates": 1,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "Preview/Image",
+          "new": "project:node:subject::lib:template:component-card__preview-image",
+          "oldRect": {
+            "x": 47,
+            "y": 41,
+            "width": 186,
+            "height": 200
+          },
+          "newRect": {
+            "x": 47,
+            "y": 41,
+            "width": 186,
+            "height": 0
+          },
+          "domRect": {
+            "x": 47,
+            "y": 41,
+            "width": 186,
+            "height": 0
+          },
+          "oldNew": 200,
+          "newDom": 0,
+          "oldDom": 200,
+          "class": "candidate",
+          "inputDiffs": []
+        }
+      ]
+    },
+    {
+      "type": "Tabs",
+      "failedLegs": [
+        "geometry"
+      ],
+      "pairs": 2,
+      "candidates": 1,
+      "noDomPair": 1,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "component-tabs__1",
+          "new": "project:node:subject::lib:template:component-tabs__1",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 220,
+            "height": 29
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 126.16999816894531,
+            "height": 29
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 126.1875,
+            "height": 29
+          },
+          "oldNew": 93.83,
+          "newDom": 0.018,
+          "oldDom": 93.813,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "component-tabs__1",
+              "key": "width",
+              "old": "100%",
+              "new": null
+            },
+            {
+              "path": "component-tabs__1",
+              "key": "height",
+              "old": "29px",
+              "new": null
+            },
+            {
+              "path": "component-tabs__1",
+              "key": "minHeight",
+              "old": "29px",
+              "new": null
+            }
+          ]
+        },
+        {
+          "old": "component-tabs__2",
+          "new": "project:node:subject::lib:template:component-tabs__2",
+          "oldRect": {
+            "x": 30,
+            "y": 59,
+            "width": 24,
+            "height": 101
+          },
+          "newRect": {
+            "x": 30,
+            "y": 59,
+            "width": 24,
+            "height": 24
+          },
+          "domRect": null,
+          "oldNew": 77,
+          "newDom": null,
+          "oldDom": null,
+          "class": "noDomPair",
+          "inputDiffs": [
+            {
+              "path": "component-tabs__2",
+              "key": "flexGrow",
+              "old": 1,
+              "new": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "Breadcrumbs",
+      "failedLegs": [
+        "geometry"
+      ],
+      "pairs": 4,
+      "candidates": 4,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [
+        {
+          "id": "new:project:node:subject/lib:template:component-breadcrumbs__item-1::lib:template:component-breadcrumb-item-default__label"
+        },
+        {
+          "id": "new:project:node:subject/lib:template:component-breadcrumbs__item-1::lib:template:component-breadcrumb-item-default__separator"
+        },
+        {
+          "id": "new:project:node:subject/lib:template:component-breadcrumbs__item-2::lib:template:component-breadcrumb-item-default__label"
+        },
+        {
+          "id": "new:project:node:subject/lib:template:component-breadcrumbs__item-2::lib:template:component-breadcrumb-item-default__separator"
+        },
+        {
+          "id": "new:project:node:subject/lib:template:component-breadcrumbs__item-3::lib:template:component-breadcrumb-item-default__label"
+        }
+      ],
+      "nodes": [
+        {
+          "old": "",
+          "new": "project:node:subject::project:node:subject",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 220,
+            "height": 24
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 220,
+            "height": 130
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 220,
+            "height": 130
+          },
+          "oldNew": 106,
+          "newDom": 0,
+          "oldDom": 106,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "height",
+              "old": "24px",
+              "new": "130px"
+            },
+            {
+              "path": "",
+              "key": "minHeight",
+              "old": "24px",
+              "new": null
+            },
+            {
+              "path": "",
+              "key": "columnGap",
+              "old": "0px",
+              "new": "2px"
+            },
+            {
+              "path": "",
+              "key": "rowGap",
+              "old": "0px",
+              "new": "2px"
+            }
+          ]
+        },
+        {
+          "old": "component-breadcrumbs__item-1",
+          "new": "project:node:subject::lib:template:component-breadcrumbs__item-1",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 64,
+            "height": 24
+          },
+          "newRect": {
+            "x": 30,
+            "y": 83.57142639160156,
+            "width": 60.560001373291016,
+            "height": 22.85714340209961
+          },
+          "domRect": {
+            "x": 30,
+            "y": 83.578125,
+            "width": 60.5625,
+            "height": 22.84375
+          },
+          "oldNew": 53.571,
+          "newDom": 0.013,
+          "oldDom": 53.578,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "component-breadcrumbs__item-1",
+              "key": "height",
+              "old": "24px",
+              "new": null
+            },
+            {
+              "path": "component-breadcrumbs__item-1",
+              "key": "contentMinWidth",
+              "old": 64,
+              "new": null
+            },
+            {
+              "path": "component-breadcrumbs__item-1",
+              "key": "contentMaxWidth",
+              "old": 64,
+              "new": null
+            },
+            {
+              "path": "component-breadcrumbs__item-1",
+              "key": "contentHeight",
+              "old": 24,
+              "new": null
+            },
+            {
+              "path": "component-breadcrumbs__item-1",
+              "key": "rowGap",
+              "old": null,
+              "new": "2px"
+            },
+            {
+              "path": "component-breadcrumbs__item-1",
+              "key": "columnGap",
+              "old": null,
+              "new": "2px"
+            },
+            {
+              "path": "",
+              "key": "height",
+              "old": "24px",
+              "new": "130px"
+            },
+            {
+              "path": "",
+              "key": "minHeight",
+              "old": "24px",
+              "new": null
+            },
+            {
+              "path": "",
+              "key": "columnGap",
+              "old": "0px",
+              "new": "2px"
+            },
+            {
+              "path": "",
+              "key": "rowGap",
+              "old": "0px",
+              "new": "2px"
+            }
+          ]
+        },
+        {
+          "old": "component-breadcrumbs__item-2",
+          "new": "project:node:subject::lib:template:component-breadcrumbs__item-2",
+          "oldRect": {
+            "x": 94,
+            "y": 30,
+            "width": 88,
+            "height": 24
+          },
+          "newRect": {
+            "x": 92.56000137329102,
+            "y": 83.57142639160156,
+            "width": 85.41000366210938,
+            "height": 22.85714340209961
+          },
+          "domRect": {
+            "x": 92.5625,
+            "y": 83.578125,
+            "width": 85.421875,
+            "height": 22.84375
+          },
+          "oldNew": 53.571,
+          "newDom": 0.013,
+          "oldDom": 53.578,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "component-breadcrumbs__item-2",
+              "key": "height",
+              "old": "24px",
+              "new": null
+            },
+            {
+              "path": "component-breadcrumbs__item-2",
+              "key": "contentMinWidth",
+              "old": 88,
+              "new": null
+            },
+            {
+              "path": "component-breadcrumbs__item-2",
+              "key": "contentMaxWidth",
+              "old": 88,
+              "new": null
+            },
+            {
+              "path": "component-breadcrumbs__item-2",
+              "key": "contentHeight",
+              "old": 24,
+              "new": null
+            },
+            {
+              "path": "component-breadcrumbs__item-2",
+              "key": "rowGap",
+              "old": null,
+              "new": "2px"
+            },
+            {
+              "path": "component-breadcrumbs__item-2",
+              "key": "columnGap",
+              "old": null,
+              "new": "2px"
+            },
+            {
+              "path": "",
+              "key": "height",
+              "old": "24px",
+              "new": "130px"
+            },
+            {
+              "path": "",
+              "key": "minHeight",
+              "old": "24px",
+              "new": null
+            },
+            {
+              "path": "",
+              "key": "columnGap",
+              "old": "0px",
+              "new": "2px"
+            },
+            {
+              "path": "",
+              "key": "rowGap",
+              "old": "0px",
+              "new": "2px"
+            }
+          ]
+        },
+        {
+          "old": "component-breadcrumbs__item-3",
+          "new": "project:node:subject::lib:template:component-breadcrumbs__item-3",
+          "oldRect": {
+            "x": 182,
+            "y": 30,
+            "width": 38,
+            "height": 24
+          },
+          "newRect": {
+            "x": 179.97000122070312,
+            "y": 83.57142639160156,
+            "width": 38.540000915527344,
+            "height": 22.85714340209961
+          },
+          "domRect": {
+            "x": 179.984375,
+            "y": 83.578125,
+            "width": 38.546875,
+            "height": 22.84375
+          },
+          "oldNew": 53.571,
+          "newDom": 0.014,
+          "oldDom": 53.578,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "component-breadcrumbs__item-3",
+              "key": "height",
+              "old": "24px",
+              "new": null
+            },
+            {
+              "path": "component-breadcrumbs__item-3",
+              "key": "contentMinWidth",
+              "old": 38,
+              "new": null
+            },
+            {
+              "path": "component-breadcrumbs__item-3",
+              "key": "contentMaxWidth",
+              "old": 38,
+              "new": null
+            },
+            {
+              "path": "component-breadcrumbs__item-3",
+              "key": "contentHeight",
+              "old": 24,
+              "new": null
+            },
+            {
+              "path": "component-breadcrumbs__item-3",
+              "key": "rowGap",
+              "old": null,
+              "new": "2px"
+            },
+            {
+              "path": "component-breadcrumbs__item-3",
+              "key": "columnGap",
+              "old": null,
+              "new": "2px"
+            },
+            {
+              "path": "",
+              "key": "height",
+              "old": "24px",
+              "new": "130px"
+            },
+            {
+              "path": "",
+              "key": "minHeight",
+              "old": "24px",
+              "new": null
+            },
+            {
+              "path": "",
+              "key": "columnGap",
+              "old": "0px",
+              "new": "2px"
+            },
+            {
+              "path": "",
+              "key": "rowGap",
+              "old": "0px",
+              "new": "2px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "Nav",
+      "failedLegs": [
+        "geometry"
+      ],
+      "pairs": 2,
+      "candidates": 2,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "component-nav__2",
+          "new": "project:node:subject::lib:template:component-nav__2",
+          "oldRect": {
+            "x": 96,
+            "y": 85,
+            "width": 39,
+            "height": 20
+          },
+          "newRect": {
+            "x": 95.24000549316406,
+            "y": 85,
+            "width": 37.75,
+            "height": 20
+          },
+          "domRect": {
+            "x": 95.25,
+            "y": 85,
+            "width": 37.75,
+            "height": 20
+          },
+          "oldNew": 1.25,
+          "newDom": 0.01,
+          "oldDom": 1.25,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "component-nav__2",
+              "key": "contentMinWidth",
+              "old": 39,
+              "new": 37.75
+            },
+            {
+              "path": "component-nav__2",
+              "key": "contentMaxWidth",
+              "old": 39,
+              "new": 37.75
+            }
+          ]
+        },
+        {
+          "old": "component-nav__3",
+          "new": "project:node:subject::lib:template:component-nav__3",
+          "oldRect": {
+            "x": 147,
+            "y": 85,
+            "width": 51,
+            "height": 20
+          },
+          "newRect": {
+            "x": 144.99000549316406,
+            "y": 85,
+            "width": 50.56999969482422,
+            "height": 20
+          },
+          "domRect": {
+            "x": 145,
+            "y": 85,
+            "width": 50.578125,
+            "height": 20
+          },
+          "oldNew": 2.01,
+          "newDom": 0.01,
+          "oldDom": 2,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "component-nav__3",
+              "key": "contentMinWidth",
+              "old": 51,
+              "new": 50.56999969482422
+            },
+            {
+              "path": "component-nav__3",
+              "key": "contentMaxWidth",
+              "old": 51,
+              "new": 50.56999969482422
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "Pagination",
+      "failedLegs": [
+        "geometry",
+        "L3"
+      ],
+      "pairs": 5,
+      "candidates": 5,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "component-pagination__1",
+          "new": "project:node:subject::lib:template:component-pagination__1",
+          "oldRect": {
+            "x": 30,
+            "y": 84,
+            "width": 50,
+            "height": 22
+          },
+          "newRect": {
+            "x": 30,
+            "y": 49.5,
+            "width": 50,
+            "height": 22
+          },
+          "domRect": {
+            "x": 30,
+            "y": 49.5,
+            "width": 50,
+            "height": 22
+          },
+          "oldNew": 34.5,
+          "newDom": 0,
+          "oldDom": 34.5,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "component-pagination__1",
+              "key": "width",
+              "old": "fit-content",
+              "new": null
+            },
+            {
+              "path": "",
+              "key": "flexWrap",
+              "old": null,
+              "new": "wrap"
+            }
+          ]
+        },
+        {
+          "old": "component-pagination__2",
+          "new": "project:node:subject::lib:template:component-pagination__2",
+          "oldRect": {
+            "x": 88,
+            "y": 84,
+            "width": 50,
+            "height": 22
+          },
+          "newRect": {
+            "x": 115,
+            "y": 49.5,
+            "width": 50,
+            "height": 22
+          },
+          "domRect": {
+            "x": 115,
+            "y": 49.5,
+            "width": 50,
+            "height": 22
+          },
+          "oldNew": 34.5,
+          "newDom": 0,
+          "oldDom": 34.5,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "component-pagination__2",
+              "key": "width",
+              "old": "fit-content",
+              "new": null
+            },
+            {
+              "path": "component-pagination__2",
+              "key": "contentMinWidth",
+              "old": 6,
+              "new": 5.380000114440918
+            },
+            {
+              "path": "component-pagination__2",
+              "key": "contentMaxWidth",
+              "old": 6,
+              "new": 5.380000114440918
+            },
+            {
+              "path": "",
+              "key": "flexWrap",
+              "old": null,
+              "new": "wrap"
+            }
+          ]
+        },
+        {
+          "old": "component-pagination__3",
+          "new": "project:node:subject::lib:template:component-pagination__3",
+          "oldRect": {
+            "x": 146,
+            "y": 84,
+            "width": 50,
+            "height": 22
+          },
+          "newRect": {
+            "x": 200,
+            "y": 49.5,
+            "width": 50,
+            "height": 22
+          },
+          "domRect": {
+            "x": 200,
+            "y": 49.5,
+            "width": 50,
+            "height": 22
+          },
+          "oldNew": 54,
+          "newDom": 0,
+          "oldDom": 54,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "component-pagination__3",
+              "key": "width",
+              "old": "fit-content",
+              "new": null
+            },
+            {
+              "path": "component-pagination__3",
+              "key": "contentMinWidth",
+              "old": 8,
+              "new": 7.139999866485596
+            },
+            {
+              "path": "component-pagination__3",
+              "key": "contentMaxWidth",
+              "old": 8,
+              "new": 7.139999866485596
+            },
+            {
+              "path": "",
+              "key": "flexWrap",
+              "old": null,
+              "new": "wrap"
+            }
+          ]
+        },
+        {
+          "old": "component-pagination__4",
+          "new": "project:node:subject::lib:template:component-pagination__4",
+          "oldRect": {
+            "x": 204,
+            "y": 84,
+            "width": 50,
+            "height": 22
+          },
+          "newRect": {
+            "x": 30,
+            "y": 118.5,
+            "width": 50,
+            "height": 22
+          },
+          "domRect": {
+            "x": 30,
+            "y": 118.5,
+            "width": 50,
+            "height": 22
+          },
+          "oldNew": 174,
+          "newDom": 0,
+          "oldDom": 174,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "component-pagination__4",
+              "key": "width",
+              "old": "fit-content",
+              "new": null
+            },
+            {
+              "path": "component-pagination__4",
+              "key": "contentMinWidth",
+              "old": 8,
+              "new": 7.489999771118164
+            },
+            {
+              "path": "component-pagination__4",
+              "key": "contentMaxWidth",
+              "old": 8,
+              "new": 7.489999771118164
+            },
+            {
+              "path": "",
+              "key": "flexWrap",
+              "old": null,
+              "new": "wrap"
+            }
+          ]
+        },
+        {
+          "old": "component-pagination__5",
+          "new": "project:node:subject::lib:template:component-pagination__5",
+          "oldRect": {
+            "x": 262,
+            "y": 84,
+            "width": 50,
+            "height": 22
+          },
+          "newRect": {
+            "x": 200,
+            "y": 118.5,
+            "width": 50,
+            "height": 22
+          },
+          "domRect": {
+            "x": 200,
+            "y": 118.5,
+            "width": 50,
+            "height": 22
+          },
+          "oldNew": 62,
+          "newDom": 0,
+          "oldDom": 62,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "component-pagination__5",
+              "key": "width",
+              "old": "fit-content",
+              "new": null
+            },
+            {
+              "path": "",
+              "key": "flexWrap",
+              "old": null,
+              "new": "wrap"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "DisclosureGroup",
+      "failedLegs": [
+        "geometry"
+      ],
+      "pairs": 6,
+      "candidates": 6,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "component-disclosuregroup__1",
+          "new": "project:node:subject::lib:template:component-disclosuregroup__1",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 106,
+            "height": 56
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 104.93000030517578,
+            "height": 72
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 104.9375,
+            "height": 72
+          },
+          "oldNew": 16,
+          "newDom": 0.007,
+          "oldDom": 16,
+          "class": "candidate",
+          "inputDiffs": []
+        },
+        {
+          "old": "component-disclosuregroup__1/component-disclosure__1",
+          "new": "project:node:subject/lib:template:component-disclosuregroup__1::lib:template:component-disclosure__1",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 106,
+            "height": 36
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 104.93000030517578,
+            "height": 36
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 104.9375,
+            "height": 36
+          },
+          "oldNew": 1.07,
+          "newDom": 0.007,
+          "oldDom": 1.063,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "component-disclosuregroup__1/component-disclosure__1",
+              "key": "height",
+              "old": "36px",
+              "new": null
+            },
+            {
+              "path": "component-disclosuregroup__1/component-disclosure__1",
+              "key": "paddingLeft",
+              "old": "12px",
+              "new": "34px"
+            },
+            {
+              "path": "component-disclosuregroup__1/component-disclosure__1",
+              "key": "contentMinWidth",
+              "old": 82,
+              "new": 50
+            },
+            {
+              "path": "component-disclosuregroup__1/component-disclosure__1",
+              "key": "contentMaxWidth",
+              "old": 82,
+              "new": 58.93000030517578
+            },
+            {
+              "path": "component-disclosuregroup__1/component-disclosure__1",
+              "key": "minHeight",
+              "old": null,
+              "new": "34px"
+            },
+            {
+              "path": "component-disclosuregroup__1/component-disclosure__1",
+              "key": "rowGap",
+              "old": null,
+              "new": "4px"
+            },
+            {
+              "path": "component-disclosuregroup__1/component-disclosure__1",
+              "key": "columnGap",
+              "old": null,
+              "new": "4px"
+            },
+            {
+              "path": "component-disclosuregroup__1/component-disclosure__1",
+              "key": "paddingTop",
+              "old": null,
+              "new": "8px"
+            },
+            {
+              "path": "component-disclosuregroup__1/component-disclosure__1",
+              "key": "paddingBottom",
+              "old": null,
+              "new": "8px"
+            },
+            {
+              "path": "component-disclosuregroup__1/component-disclosure__1",
+              "key": "contentHeight",
+              "old": null,
+              "new": 20
+            }
+          ]
+        },
+        {
+          "old": "component-disclosuregroup__1/component-disclosure__2",
+          "new": "project:node:subject/lib:template:component-disclosuregroup__1::lib:template:component-disclosure__2",
+          "oldRect": {
+            "x": 30,
+            "y": 66,
+            "width": 106,
+            "height": 20
+          },
+          "newRect": {
+            "x": 30,
+            "y": 66,
+            "width": 104.93000030517578,
+            "height": 36
+          },
+          "domRect": {
+            "x": 30,
+            "y": 66,
+            "width": 104.9375,
+            "height": 36
+          },
+          "oldNew": 16,
+          "newDom": 0.007,
+          "oldDom": 16,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "component-disclosuregroup__1/component-disclosure__2",
+              "key": "height",
+              "old": "20px",
+              "new": null
+            },
+            {
+              "path": "component-disclosuregroup__1/component-disclosure__2",
+              "key": "contentMinWidth",
+              "old": 58,
+              "new": 51
+            },
+            {
+              "path": "component-disclosuregroup__1/component-disclosure__2",
+              "key": "contentMaxWidth",
+              "old": 61,
+              "new": 60.06999969482422
+            },
+            {
+              "path": "component-disclosuregroup__1/component-disclosure__2",
+              "key": "paddingTop",
+              "old": null,
+              "new": "8px"
+            },
+            {
+              "path": "component-disclosuregroup__1/component-disclosure__2",
+              "key": "paddingBottom",
+              "old": null,
+              "new": "8px"
+            },
+            {
+              "path": "component-disclosuregroup__1/component-disclosure__2",
+              "key": "paddingRight",
+              "old": null,
+              "new": "16px"
+            },
+            {
+              "path": "component-disclosuregroup__1/component-disclosure__2",
+              "key": "paddingLeft",
+              "old": null,
+              "new": "16px"
+            },
+            {
+              "path": "component-disclosuregroup__1/component-disclosure__2",
+              "key": "contentHeight",
+              "old": null,
+              "new": 20
+            }
+          ]
+        },
+        {
+          "old": "component-disclosuregroup__2",
+          "new": "project:node:subject::lib:template:component-disclosuregroup__2",
+          "oldRect": {
+            "x": 30,
+            "y": 86,
+            "width": 108,
+            "height": 56
+          },
+          "newRect": {
+            "x": 30,
+            "y": 102,
+            "width": 106.94000244140625,
+            "height": 72
+          },
+          "domRect": {
+            "x": 30,
+            "y": 102,
+            "width": 106.953125,
+            "height": 72
+          },
+          "oldNew": 16,
+          "newDom": 0.013,
+          "oldDom": 16,
+          "class": "candidate",
+          "inputDiffs": []
+        },
+        {
+          "old": "component-disclosuregroup__2/component-disclosure__1",
+          "new": "project:node:subject/lib:template:component-disclosuregroup__2::lib:template:component-disclosure__1",
+          "oldRect": {
+            "x": 30,
+            "y": 86,
+            "width": 108,
+            "height": 36
+          },
+          "newRect": {
+            "x": 30,
+            "y": 102,
+            "width": 106.94000244140625,
+            "height": 36
+          },
+          "domRect": {
+            "x": 30,
+            "y": 102,
+            "width": 106.953125,
+            "height": 36
+          },
+          "oldNew": 16,
+          "newDom": 0.013,
+          "oldDom": 16,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "component-disclosuregroup__2/component-disclosure__1",
+              "key": "height",
+              "old": "36px",
+              "new": null
+            },
+            {
+              "path": "component-disclosuregroup__2/component-disclosure__1",
+              "key": "paddingLeft",
+              "old": "12px",
+              "new": "34px"
+            },
+            {
+              "path": "component-disclosuregroup__2/component-disclosure__1",
+              "key": "contentMinWidth",
+              "old": 84,
+              "new": 50
+            },
+            {
+              "path": "component-disclosuregroup__2/component-disclosure__1",
+              "key": "contentMaxWidth",
+              "old": 84,
+              "new": 60.939998626708984
+            },
+            {
+              "path": "component-disclosuregroup__2/component-disclosure__1",
+              "key": "minHeight",
+              "old": null,
+              "new": "34px"
+            },
+            {
+              "path": "component-disclosuregroup__2/component-disclosure__1",
+              "key": "rowGap",
+              "old": null,
+              "new": "4px"
+            },
+            {
+              "path": "component-disclosuregroup__2/component-disclosure__1",
+              "key": "columnGap",
+              "old": null,
+              "new": "4px"
+            },
+            {
+              "path": "component-disclosuregroup__2/component-disclosure__1",
+              "key": "paddingTop",
+              "old": null,
+              "new": "8px"
+            },
+            {
+              "path": "component-disclosuregroup__2/component-disclosure__1",
+              "key": "paddingBottom",
+              "old": null,
+              "new": "8px"
+            },
+            {
+              "path": "component-disclosuregroup__2/component-disclosure__1",
+              "key": "contentHeight",
+              "old": null,
+              "new": 20
+            }
+          ]
+        },
+        {
+          "old": "component-disclosuregroup__2/component-disclosure__2",
+          "new": "project:node:subject/lib:template:component-disclosuregroup__2::lib:template:component-disclosure__2",
+          "oldRect": {
+            "x": 30,
+            "y": 122,
+            "width": 108,
+            "height": 20
+          },
+          "newRect": {
+            "x": 30,
+            "y": 138,
+            "width": 106.94000244140625,
+            "height": 36
+          },
+          "domRect": {
+            "x": 30,
+            "y": 138,
+            "width": 106.953125,
+            "height": 36
+          },
+          "oldNew": 16,
+          "newDom": 0.013,
+          "oldDom": 16,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "component-disclosuregroup__2/component-disclosure__2",
+              "key": "height",
+              "old": "20px",
+              "new": null
+            },
+            {
+              "path": "component-disclosuregroup__2/component-disclosure__2",
+              "key": "contentMinWidth",
+              "old": 58,
+              "new": 51
+            },
+            {
+              "path": "component-disclosuregroup__2/component-disclosure__2",
+              "key": "contentMaxWidth",
+              "old": 63,
+              "new": 62.150001525878906
+            },
+            {
+              "path": "component-disclosuregroup__2/component-disclosure__2",
+              "key": "paddingTop",
+              "old": null,
+              "new": "8px"
+            },
+            {
+              "path": "component-disclosuregroup__2/component-disclosure__2",
+              "key": "paddingBottom",
+              "old": null,
+              "new": "8px"
+            },
+            {
+              "path": "component-disclosuregroup__2/component-disclosure__2",
+              "key": "paddingRight",
+              "old": null,
+              "new": "16px"
+            },
+            {
+              "path": "component-disclosuregroup__2/component-disclosure__2",
+              "key": "paddingLeft",
+              "old": null,
+              "new": "16px"
+            },
+            {
+              "path": "component-disclosuregroup__2/component-disclosure__2",
+              "key": "contentHeight",
+              "old": null,
+              "new": 20
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "Disclosure",
+      "failedLegs": [
+        "geometry"
+      ],
+      "pairs": 1,
+      "candidates": 1,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "component-disclosure__2",
+          "new": "project:node:subject::lib:template:component-disclosure__2",
+          "oldRect": {
+            "x": 30,
+            "y": 66,
+            "width": 220,
+            "height": 20
+          },
+          "newRect": {
+            "x": 30,
+            "y": 66,
+            "width": 220,
+            "height": 36
+          },
+          "domRect": {
+            "x": 30,
+            "y": 66,
+            "width": 220,
+            "height": 36
+          },
+          "oldNew": 16,
+          "newDom": 0,
+          "oldDom": 16,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "component-disclosure__2",
+              "key": "height",
+              "old": "20px",
+              "new": null
+            },
+            {
+              "path": "component-disclosure__2",
+              "key": "contentMinWidth",
+              "old": 55,
+              "new": 49
+            },
+            {
+              "path": "component-disclosure__2",
+              "key": "contentMaxWidth",
+              "old": 169,
+              "new": 168.14999389648438
+            },
+            {
+              "path": "component-disclosure__2",
+              "key": "paddingTop",
+              "old": null,
+              "new": "8px"
+            },
+            {
+              "path": "component-disclosure__2",
+              "key": "paddingBottom",
+              "old": null,
+              "new": "8px"
+            },
+            {
+              "path": "component-disclosure__2",
+              "key": "paddingRight",
+              "old": null,
+              "new": "16px"
+            },
+            {
+              "path": "component-disclosure__2",
+              "key": "paddingLeft",
+              "old": null,
+              "new": "16px"
+            },
+            {
+              "path": "component-disclosure__2",
+              "key": "contentHeight",
+              "old": null,
+              "new": 20
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "Toolbar",
+      "failedLegs": [
+        "geometry"
+      ],
+      "pairs": 1,
+      "candidates": 1,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "Separator",
+          "new": "project:node:subject::lib:template:component-toolbar__separator",
+          "oldRect": {
+            "x": 182,
+            "y": 30,
+            "width": 1,
+            "height": 20
+          },
+          "newRect": {
+            "x": 180.63999938964844,
+            "y": 30,
+            "width": 1,
+            "height": 20
+          },
+          "domRect": {
+            "x": 180.65625,
+            "y": 30,
+            "width": 1,
+            "height": 20
+          },
+          "oldNew": 1.36,
+          "newDom": 0.016,
+          "oldDom": 1.344,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "flexDirection",
+              "old": "row",
+              "new": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "SearchField",
+      "failedLegs": [
+        "geometry"
+      ],
+      "pairs": 2,
+      "candidates": 2,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [
+        {
+          "id": "old:component-searchfield__2/component-searchfield__2_3"
+        }
+      ],
+      "nodes": [
+        {
+          "old": "component-searchfield__2/component-searchfield__2_1",
+          "new": "project:node:subject::lib:template:component-searchfield__2_1",
+          "oldRect": {
+            "x": 43,
+            "y": 64,
+            "width": 18,
+            "height": 18
+          },
+          "newRect": {
+            "x": 43,
+            "y": 65,
+            "width": 16,
+            "height": 16
+          },
+          "domRect": {
+            "x": 43,
+            "y": 65,
+            "width": 16,
+            "height": 16
+          },
+          "oldNew": 2,
+          "newDom": 0,
+          "oldDom": 2,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "component-searchfield__2/component-searchfield__2_1",
+              "key": "width",
+              "old": "18px",
+              "new": "16px"
+            },
+            {
+              "path": "component-searchfield__2/component-searchfield__2_1",
+              "key": "height",
+              "old": "18px",
+              "new": "16px"
+            },
+            {
+              "path": "component-searchfield__2/component-searchfield__2_1",
+              "key": "contentMinWidth",
+              "old": null,
+              "new": 16
+            },
+            {
+              "path": "component-searchfield__2/component-searchfield__2_1",
+              "key": "contentMaxWidth",
+              "old": null,
+              "new": 16
+            },
+            {
+              "path": "component-searchfield__2/component-searchfield__2_1",
+              "key": "contentHeight",
+              "old": null,
+              "new": 16
+            },
+            {
+              "path": "component-searchfield__2/component-searchfield__2_1",
+              "key": "contentMinHeight",
+              "old": null,
+              "new": 16
+            },
+            {
+              "path": "component-searchfield__2",
+              "key": "height",
+              "old": "30px",
+              "new": null
+            }
+          ]
+        },
+        {
+          "old": "component-searchfield__2/component-searchfield__2_2",
+          "new": "project:node:subject::lib:template:component-searchfield__2_2",
+          "oldRect": {
+            "x": 65,
+            "y": 63,
+            "width": 158,
+            "height": 20
+          },
+          "newRect": {
+            "x": 63,
+            "y": 63,
+            "width": 182,
+            "height": 20
+          },
+          "domRect": {
+            "x": 63,
+            "y": 63,
+            "width": 182,
+            "height": 20
+          },
+          "oldNew": 24,
+          "newDom": 0,
+          "oldDom": 24,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "component-searchfield__2/component-searchfield__2_2",
+              "key": "height",
+              "old": "20px",
+              "new": null
+            },
+            {
+              "path": "component-searchfield__2/component-searchfield__2_2",
+              "key": "contentHeight",
+              "old": null,
+              "new": 20
+            },
+            {
+              "path": "component-searchfield__2",
+              "key": "height",
+              "old": "30px",
+              "new": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "CheckboxGroup",
+      "failedLegs": [
+        "geometry"
+      ],
+      "pairs": 1,
+      "candidates": 1,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "component-checkboxgroup__2",
+          "new": "project:node:subject::lib:template:component-checkboxgroup__2",
+          "oldRect": {
+            "x": 30,
+            "y": 62,
+            "width": 82,
+            "height": 20
+          },
+          "newRect": {
+            "x": 30,
+            "y": 62,
+            "width": 83.3499984741211,
+            "height": 20
+          },
+          "domRect": {
+            "x": 30,
+            "y": 62,
+            "width": 83.359375,
+            "height": 20
+          },
+          "oldNew": 1.35,
+          "newDom": 0.009,
+          "oldDom": 1.359,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "component-checkboxgroup__2",
+              "key": "width",
+              "old": "82px",
+              "new": null
+            },
+            {
+              "path": "component-checkboxgroup__2",
+              "key": "minHeight",
+              "old": null,
+              "new": "20px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "Select",
+      "failedLegs": [
+        "geometry"
+      ],
+      "pairs": 1,
+      "candidates": 1,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "component-select__2/component-select__2_1",
+          "new": "project:node:subject::lib:template:component-select__2_1",
+          "oldRect": {
+            "x": 43,
+            "y": 61,
+            "width": 180,
+            "height": 20
+          },
+          "newRect": {
+            "x": 43,
+            "y": 61,
+            "width": 176,
+            "height": 20
+          },
+          "domRect": {
+            "x": 43,
+            "y": 61,
+            "width": 176,
+            "height": 20
+          },
+          "oldNew": 4,
+          "newDom": 0,
+          "oldDom": 4,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "component-select__2/component-select__2_1",
+              "key": "display",
+              "old": "block",
+              "new": "flex"
+            },
+            {
+              "path": "component-select__2/component-select__2_1",
+              "key": "height",
+              "old": "20px",
+              "new": null
+            },
+            {
+              "path": "component-select__2/component-select__2_1",
+              "key": "contentHeight",
+              "old": null,
+              "new": 20
+            },
+            {
+              "path": "component-select__2",
+              "key": "alignItems",
+              "old": "center",
+              "new": null
+            },
+            {
+              "path": "component-select__2",
+              "key": "height",
+              "old": "30px",
+              "new": null
+            },
+            {
+              "path": "component-select__2",
+              "key": "minWidth",
+              "old": null,
+              "new": "68px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "ComboBox",
+      "failedLegs": [
+        "geometry"
+      ],
+      "pairs": 2,
+      "candidates": 2,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "component-combobox__2/component-combobox__2_1",
+          "new": "project:node:subject::lib:template:component-combobox__2_1",
+          "oldRect": {
+            "x": 43,
+            "y": 61,
+            "width": 180,
+            "height": 20
+          },
+          "newRect": {
+            "x": 43,
+            "y": 61,
+            "width": 130,
+            "height": 20
+          },
+          "domRect": {
+            "x": 43,
+            "y": 61,
+            "width": 130,
+            "height": 20
+          },
+          "oldNew": 50,
+          "newDom": 0,
+          "oldDom": 50,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "component-combobox__2/component-combobox__2_1",
+              "key": "height",
+              "old": "20px",
+              "new": null
+            },
+            {
+              "path": "component-combobox__2/component-combobox__2_1",
+              "key": "flexBasis",
+              "old": "0%",
+              "new": "auto"
+            },
+            {
+              "path": "component-combobox__2/component-combobox__2_1",
+              "key": "contentHeight",
+              "old": null,
+              "new": 20
+            },
+            {
+              "path": "component-combobox__2",
+              "key": "height",
+              "old": "30px",
+              "new": null
+            }
+          ]
+        },
+        {
+          "old": "component-combobox__2/component-combobox__2_2",
+          "new": "project:node:subject::lib:template:component-combobox__2_2",
+          "oldRect": {
+            "x": 227,
+            "y": 62,
+            "width": 18,
+            "height": 18
+          },
+          "newRect": {
+            "x": 177,
+            "y": 62,
+            "width": 68,
+            "height": 18
+          },
+          "domRect": {
+            "x": 177,
+            "y": 62,
+            "width": 68,
+            "height": 18
+          },
+          "oldNew": 50,
+          "newDom": 0,
+          "oldDom": 50,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "component-combobox__2/component-combobox__2_2",
+              "key": "minWidth",
+              "old": null,
+              "new": "68px"
+            },
+            {
+              "path": "component-combobox__2/component-combobox__2_2",
+              "key": "rowGap",
+              "old": null,
+              "new": "8px"
+            },
+            {
+              "path": "component-combobox__2/component-combobox__2_2",
+              "key": "columnGap",
+              "old": null,
+              "new": "8px"
+            },
+            {
+              "path": "component-combobox__2/component-combobox__2_2",
+              "key": "flexBasis",
+              "old": null,
+              "new": "auto"
+            },
+            {
+              "path": "component-combobox__2/component-combobox__2_2",
+              "key": "contentMinWidth",
+              "old": null,
+              "new": 18
+            },
+            {
+              "path": "component-combobox__2/component-combobox__2_2",
+              "key": "contentMaxWidth",
+              "old": null,
+              "new": 18
+            },
+            {
+              "path": "component-combobox__2/component-combobox__2_2",
+              "key": "contentHeight",
+              "old": null,
+              "new": 18
+            },
+            {
+              "path": "component-combobox__2/component-combobox__2_2",
+              "key": "contentMinHeight",
+              "old": null,
+              "new": 18
+            },
+            {
+              "path": "component-combobox__2",
+              "key": "height",
+              "old": "30px",
+              "new": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "Switch",
+      "failedLegs": [
+        "geometry"
+      ],
+      "pairs": 1,
+      "candidates": 0,
+      "noDomPair": 1,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "component-switch__1",
+          "new": "project:node:subject::lib:template:component-switch__1",
+          "oldRect": {
+            "x": 76,
+            "y": 85,
+            "width": 45,
+            "height": 20
+          },
+          "newRect": {
+            "x": 76,
+            "y": 85,
+            "width": 42.400001525878906,
+            "height": 20
+          },
+          "domRect": null,
+          "oldNew": 2.6,
+          "newDom": null,
+          "oldDom": null,
+          "class": "noDomPair",
+          "inputDiffs": [
+            {
+              "path": "component-switch__1",
+              "key": "contentMinWidth",
+              "old": 43,
+              "new": 42.400001525878906
+            },
+            {
+              "path": "component-switch__1",
+              "key": "contentMaxWidth",
+              "old": 45,
+              "new": 42.400001525878906
+            },
+            {
+              "path": "component-switch__1",
+              "key": "height",
+              "old": null,
+              "new": "fit-content"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "Slider",
+      "failedLegs": [
+        "geometry"
+      ],
+      "pairs": 2,
+      "candidates": 2,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "component-slider__1",
+          "new": "project:node:subject::lib:template:component-slider__1",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 38,
+            "height": 69
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 37.220001220703125,
+            "height": 20
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 37.234375,
+            "height": 20
+          },
+          "oldNew": 49,
+          "newDom": 0.014,
+          "oldDom": 49,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "component-slider__1",
+              "key": "contentMinWidth",
+              "old": 36,
+              "new": 37.220001220703125
+            },
+            {
+              "path": "component-slider__1",
+              "key": "contentMaxWidth",
+              "old": 38,
+              "new": 37.220001220703125
+            },
+            {
+              "path": "component-slider__1",
+              "key": "height",
+              "old": null,
+              "new": "fit-content"
+            }
+          ]
+        },
+        {
+          "old": "component-slider__2",
+          "new": "project:node:subject::lib:template:component-slider__2",
+          "oldRect": {
+            "x": 232,
+            "y": 30,
+            "width": 18,
+            "height": 69
+          },
+          "newRect": {
+            "x": 233.30999755859375,
+            "y": 30,
+            "width": 16.690000534057617,
+            "height": 20
+          },
+          "domRect": {
+            "x": 233.296875,
+            "y": 30,
+            "width": 16.703125,
+            "height": 20
+          },
+          "oldNew": 49,
+          "newDom": 0.013,
+          "oldDom": 49,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "component-slider__2",
+              "key": "contentMinWidth",
+              "old": 17,
+              "new": 16.690000534057617
+            },
+            {
+              "path": "component-slider__2",
+              "key": "contentMaxWidth",
+              "old": 18,
+              "new": 16.690000534057617
+            },
+            {
+              "path": "component-slider__2",
+              "key": "height",
+              "old": null,
+              "new": "20px"
+            },
+            {
+              "path": "component-slider__2",
+              "key": "contentMinHeight",
+              "old": null,
+              "new": 20
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "Meter",
+      "failedLegs": [
+        "geometry"
+      ],
+      "pairs": 1,
+      "candidates": 1,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "component-meter__1",
+          "new": "project:node:subject::lib:template:component-meter__1",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 51,
+            "height": 69
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 51.650001525878906,
+            "height": 20
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 51.65625,
+            "height": 20
+          },
+          "oldNew": 49,
+          "newDom": 0.006,
+          "oldDom": 49,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "component-meter__1",
+              "key": "contentMinWidth",
+              "old": 50,
+              "new": 51.650001525878906
+            },
+            {
+              "path": "component-meter__1",
+              "key": "contentMaxWidth",
+              "old": 51,
+              "new": 51.650001525878906
+            },
+            {
+              "path": "component-meter__1",
+              "key": "height",
+              "old": null,
+              "new": "fit-content"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "FileUpload",
+      "failedLegs": [
+        "geometry",
+        "canvasDom",
+        "L3"
+      ],
+      "pairs": 9,
+      "candidates": 0,
+      "noDomPair": 1,
+      "newSide": 8,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "component-fileupload__2",
+          "new": "project:node:subject::lib:template:component-fileupload__2",
+          "oldRect": {
+            "x": 30,
+            "y": 94,
+            "width": 0,
+            "height": 0
+          },
+          "newRect": {
+            "x": 30,
+            "y": 94,
+            "width": 68.20999908447266,
+            "height": 17
+          },
+          "domRect": null,
+          "oldNew": 68.21,
+          "newDom": null,
+          "oldDom": null,
+          "class": "noDomPair",
+          "inputDiffs": [
+            {
+              "path": "component-fileupload__2",
+              "key": "height",
+              "old": "24px",
+              "new": null
+            },
+            {
+              "path": "component-fileupload__2",
+              "key": "alignItems",
+              "old": null,
+              "new": "center"
+            },
+            {
+              "path": "component-fileupload__2",
+              "key": "justifyContent",
+              "old": null,
+              "new": "center"
+            },
+            {
+              "path": "component-fileupload__2",
+              "key": "contentMinWidth",
+              "old": null,
+              "new": 40
+            },
+            {
+              "path": "component-fileupload__2",
+              "key": "contentMaxWidth",
+              "old": null,
+              "new": 68.20999908447266
+            },
+            {
+              "path": "component-fileupload__2",
+              "key": "contentHeight",
+              "old": null,
+              "new": 17
+            }
+          ]
+        },
+        {
+          "old": "component-fileupload__3",
+          "new": "project:node:subject::lib:template:component-fileupload__3",
+          "oldRect": {
+            "x": 30,
+            "y": 106,
+            "width": 220,
+            "height": 32
+          },
+          "newRect": {
+            "x": 30,
+            "y": 123,
+            "width": 220,
+            "height": 32
+          },
+          "domRect": {
+            "x": 30,
+            "y": 196,
+            "width": 220,
+            "height": 32
+          },
+          "oldNew": 17,
+          "newDom": 73,
+          "oldDom": 90,
+          "class": "newSide",
+          "inputDiffs": []
+        },
+        {
+          "old": "component-fileupload__3/component-progressbar__1",
+          "new": "project:node:subject/lib:template:component-fileupload__3::lib:template:component-progressbar__1",
+          "oldRect": {
+            "x": 30,
+            "y": 106,
+            "width": 66,
+            "height": 20
+          },
+          "newRect": {
+            "x": 30,
+            "y": 123,
+            "width": 65.87000274658203,
+            "height": 20
+          },
+          "domRect": {
+            "x": 30,
+            "y": 196,
+            "width": 65.875,
+            "height": 20
+          },
+          "oldNew": 17,
+          "newDom": 73,
+          "oldDom": 90,
+          "class": "newSide",
+          "inputDiffs": [
+            {
+              "path": "component-fileupload__3/component-progressbar__1",
+              "key": "contentMinWidth",
+              "old": 64,
+              "new": 65.87000274658203
+            },
+            {
+              "path": "component-fileupload__3/component-progressbar__1",
+              "key": "height",
+              "old": null,
+              "new": "fit-content"
+            }
+          ]
+        },
+        {
+          "old": "component-fileupload__3/component-progressbar__2",
+          "new": "project:node:subject/lib:template:component-fileupload__3::lib:template:component-progressbar__2",
+          "oldRect": {
+            "x": 164,
+            "y": 106,
+            "width": 86,
+            "height": 20
+          },
+          "newRect": {
+            "x": 166.33999633789062,
+            "y": 123,
+            "width": 83.66000366210938,
+            "height": 20
+          },
+          "domRect": {
+            "x": 166.328125,
+            "y": 196,
+            "width": 83.671875,
+            "height": 20
+          },
+          "oldNew": 17,
+          "newDom": 73,
+          "oldDom": 90,
+          "class": "newSide",
+          "inputDiffs": [
+            {
+              "path": "component-fileupload__3/component-progressbar__2",
+              "key": "contentMaxWidth",
+              "old": 86,
+              "new": 83.66000366210938
+            }
+          ]
+        },
+        {
+          "old": "component-fileupload__3/component-progressbar__3",
+          "new": "project:node:subject/lib:template:component-fileupload__3::lib:template:component-progressbar__3",
+          "oldRect": {
+            "x": 30,
+            "y": 130,
+            "width": 220,
+            "height": 8
+          },
+          "newRect": {
+            "x": 30,
+            "y": 147,
+            "width": 220,
+            "height": 8
+          },
+          "domRect": {
+            "x": 30,
+            "y": 220,
+            "width": 220,
+            "height": 8
+          },
+          "oldNew": 17,
+          "newDom": 73,
+          "oldDom": 90,
+          "class": "newSide",
+          "inputDiffs": []
+        },
+        {
+          "old": "component-fileupload__4",
+          "new": "project:node:subject::lib:template:component-fileupload__4",
+          "oldRect": {
+            "x": 30,
+            "y": 150,
+            "width": 220,
+            "height": 32
+          },
+          "newRect": {
+            "x": 30,
+            "y": 167,
+            "width": 220,
+            "height": 32
+          },
+          "domRect": {
+            "x": 30,
+            "y": 240,
+            "width": 220,
+            "height": 32
+          },
+          "oldNew": 17,
+          "newDom": 73,
+          "oldDom": 90,
+          "class": "newSide",
+          "inputDiffs": []
+        },
+        {
+          "old": "component-fileupload__4/component-progressbar__1",
+          "new": "project:node:subject/lib:template:component-fileupload__4::lib:template:component-progressbar__1",
+          "oldRect": {
+            "x": 30,
+            "y": 150,
+            "width": 62,
+            "height": 20
+          },
+          "newRect": {
+            "x": 30,
+            "y": 167,
+            "width": 61.869998931884766,
+            "height": 20
+          },
+          "domRect": {
+            "x": 30,
+            "y": 240,
+            "width": 61.875,
+            "height": 20
+          },
+          "oldNew": 17,
+          "newDom": 73,
+          "oldDom": 90,
+          "class": "newSide",
+          "inputDiffs": [
+            {
+              "path": "component-fileupload__4/component-progressbar__1",
+              "key": "contentMinWidth",
+              "old": 60,
+              "new": 61.869998931884766
+            },
+            {
+              "path": "component-fileupload__4/component-progressbar__1",
+              "key": "height",
+              "old": null,
+              "new": "fit-content"
+            }
+          ]
+        },
+        {
+          "old": "component-fileupload__4/component-progressbar__2",
+          "new": "project:node:subject/lib:template:component-fileupload__4::lib:template:component-progressbar__2",
+          "oldRect": {
+            "x": 163,
+            "y": 150,
+            "width": 87,
+            "height": 20
+          },
+          "newRect": {
+            "x": 165.02999877929688,
+            "y": 167,
+            "width": 84.97000122070312,
+            "height": 20
+          },
+          "domRect": {
+            "x": 165.015625,
+            "y": 240,
+            "width": 84.984375,
+            "height": 20
+          },
+          "oldNew": 17,
+          "newDom": 73,
+          "oldDom": 90,
+          "class": "newSide",
+          "inputDiffs": [
+            {
+              "path": "component-fileupload__4/component-progressbar__2",
+              "key": "contentMaxWidth",
+              "old": 87,
+              "new": 84.97000122070312
+            }
+          ]
+        },
+        {
+          "old": "component-fileupload__4/component-progressbar__3",
+          "new": "project:node:subject/lib:template:component-fileupload__4::lib:template:component-progressbar__3",
+          "oldRect": {
+            "x": 30,
+            "y": 174,
+            "width": 220,
+            "height": 8
+          },
+          "newRect": {
+            "x": 30,
+            "y": 191,
+            "width": 220,
+            "height": 8
+          },
+          "domRect": {
+            "x": 30,
+            "y": 264,
+            "width": 220,
+            "height": 8
+          },
+          "oldNew": 17,
+          "newDom": 73,
+          "oldDom": 90,
+          "class": "newSide",
+          "inputDiffs": []
+        }
+      ]
+    },
+    {
+      "type": "Form",
+      "failedLegs": [
+        "geometry"
+      ],
+      "pairs": 2,
+      "candidates": 2,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "TextField/Name/component-textfield__1",
+          "new": "project:node:subject/lib:template:component-form__field-1::lib:template:component-textfield__1",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 38,
+            "height": 20
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 49.029998779296875,
+            "height": 20
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 49.53125,
+            "height": 20
+          },
+          "oldNew": 11.03,
+          "newDom": 0.501,
+          "oldDom": 11.531,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "TextField/Name/component-textfield__1",
+              "key": "contentMinWidth",
+              "old": 37,
+              "new": 49.029998779296875
+            },
+            {
+              "path": "TextField/Name/component-textfield__1",
+              "key": "contentMaxWidth",
+              "old": 38,
+              "new": 49.029998779296875
+            },
+            {
+              "path": "TextField/Name/component-textfield__1",
+              "key": "height",
+              "old": null,
+              "new": "fit-content"
+            }
+          ]
+        },
+        {
+          "old": "TextField/Email/component-textfield__1",
+          "new": "project:node:subject/lib:template:component-form__field-2::lib:template:component-textfield__1",
+          "oldRect": {
+            "x": 30,
+            "y": 102,
+            "width": 35,
+            "height": 20
+          },
+          "newRect": {
+            "x": 30,
+            "y": 102,
+            "width": 46.09000015258789,
+            "height": 20
+          },
+          "domRect": {
+            "x": 30,
+            "y": 102,
+            "width": 46.59375,
+            "height": 20
+          },
+          "oldNew": 11.09,
+          "newDom": 0.504,
+          "oldDom": 11.594,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "TextField/Email/component-textfield__1",
+              "key": "contentMinWidth",
+              "old": 34,
+              "new": 46.09000015258789
+            },
+            {
+              "path": "TextField/Email/component-textfield__1",
+              "key": "contentMaxWidth",
+              "old": 35,
+              "new": 46.09000015258789
+            },
+            {
+              "path": "TextField/Email/component-textfield__1",
+              "key": "height",
+              "old": null,
+              "new": "fit-content"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "Table",
+      "failedLegs": [
+        "geometry"
+      ],
+      "pairs": 2,
+      "candidates": 2,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "component-table__1",
+          "new": "project:node:subject::lib:template:component-table__1",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 220,
+            "height": 0
+          },
+          "newRect": {
+            "x": 31,
+            "y": 31,
+            "width": 218,
+            "height": 0
+          },
+          "domRect": {
+            "x": 31,
+            "y": 31,
+            "width": 218,
+            "height": 0
+          },
+          "oldNew": 2,
+          "newDom": 0,
+          "oldDom": 2,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "borderTop",
+              "old": null,
+              "new": "1px"
+            },
+            {
+              "path": "",
+              "key": "borderRight",
+              "old": null,
+              "new": "1px"
+            },
+            {
+              "path": "",
+              "key": "borderBottom",
+              "old": null,
+              "new": "1px"
+            },
+            {
+              "path": "",
+              "key": "borderLeft",
+              "old": null,
+              "new": "1px"
+            }
+          ]
+        },
+        {
+          "old": "component-table__2",
+          "new": "project:node:subject::lib:template:component-table__2",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 220,
+            "height": 0
+          },
+          "newRect": {
+            "x": 31,
+            "y": 31,
+            "width": 218,
+            "height": 0
+          },
+          "domRect": {
+            "x": 31,
+            "y": 31,
+            "width": 218,
+            "height": 0
+          },
+          "oldNew": 2,
+          "newDom": 0,
+          "oldDom": 2,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "",
+              "key": "borderTop",
+              "old": null,
+              "new": "1px"
+            },
+            {
+              "path": "",
+              "key": "borderRight",
+              "old": null,
+              "new": "1px"
+            },
+            {
+              "path": "",
+              "key": "borderBottom",
+              "old": null,
+              "new": "1px"
+            },
+            {
+              "path": "",
+              "key": "borderLeft",
+              "old": null,
+              "new": "1px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "Tree",
+      "failedLegs": [
+        "geometry"
+      ],
+      "pairs": 2,
+      "candidates": 2,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [
+        {
+          "id": "old:component-tree__item-2"
+        }
+      ],
+      "nodes": [
+        {
+          "old": "component-tree__item-1/Label",
+          "new": "project:node:subject/lib:template:component-tree__item-1::lib:template:component-tree-item-default__label",
+          "oldRect": {
+            "x": 65,
+            "y": 39,
+            "width": 172,
+            "height": 24
+          },
+          "newRect": {
+            "x": 62.943925857543945,
+            "y": 39,
+            "width": 174.0560760498047,
+            "height": 24
+          },
+          "domRect": {
+            "x": 62.9375,
+            "y": 39,
+            "width": 174.0625,
+            "height": 24
+          },
+          "oldNew": 2.056,
+          "newDom": 0.006,
+          "oldDom": 2.063,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "component-tree__item-1",
+              "key": "paddingLeft",
+              "old": "30px",
+              "new": "8px"
+            }
+          ]
+        },
+        {
+          "old": "component-tree__item-1/component-tree__item-1-1/Label",
+          "new": "project:node:subject/lib:template:component-tree__item-2::lib:template:component-tree-item-default__label",
+          "oldRect": {
+            "x": 81,
+            "y": 71,
+            "width": 156,
+            "height": 24
+          },
+          "newRect": {
+            "x": 62.943925857543945,
+            "y": 71,
+            "width": 174.0560760498047,
+            "height": 24
+          },
+          "domRect": {
+            "x": 62.9375,
+            "y": 71,
+            "width": 174.0625,
+            "height": 24
+          },
+          "oldNew": 18.056,
+          "newDom": 0.006,
+          "oldDom": 18.063,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "component-tree__item-1/component-tree__item-1-1/Label",
+              "key": "contentMaxWidth",
+              "old": 59,
+              "new": 52.27000045776367
+            },
+            {
+              "path": "component-tree__item-1/component-tree__item-1-1",
+              "key": "paddingLeft",
+              "old": "46px",
+              "new": "8px"
+            },
+            {
+              "path": "component-tree__item-1",
+              "key": "paddingLeft",
+              "old": "30px",
+              "new": "8px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "TagGroup",
+      "failedLegs": [
+        "geometry"
+      ],
+      "pairs": 5,
+      "candidates": 4,
+      "noDomPair": 1,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "component-taggroup__2",
+          "new": "project:node:subject::lib:template:component-taggroup__2",
+          "oldRect": {
+            "x": 30,
+            "y": 54,
+            "width": 220,
+            "height": 106
+          },
+          "newRect": {
+            "x": 30,
+            "y": 54,
+            "width": 220,
+            "height": 64
+          },
+          "domRect": null,
+          "oldNew": 42,
+          "newDom": null,
+          "oldDom": null,
+          "class": "noDomPair",
+          "inputDiffs": [
+            {
+              "path": "component-taggroup__2",
+              "key": "flexDirection",
+              "old": "row",
+              "new": null
+            },
+            {
+              "path": "component-taggroup__2",
+              "key": "height",
+              "old": "100%",
+              "new": null
+            },
+            {
+              "path": "component-taggroup__2",
+              "key": "alignItems",
+              "old": null,
+              "new": "center"
+            }
+          ]
+        },
+        {
+          "old": "component-taggroup__2/component-taggroup__2__tag-3",
+          "new": "project:node:subject::lib:template:component-taggroup__2__tag-3",
+          "oldRect": {
+            "x": 30,
+            "y": 109,
+            "width": 96,
+            "height": 30
+          },
+          "newRect": {
+            "x": 30,
+            "y": 88,
+            "width": 96.51000213623047,
+            "height": 30
+          },
+          "domRect": {
+            "x": 30,
+            "y": 88,
+            "width": 96.515625,
+            "height": 30
+          },
+          "oldNew": 21,
+          "newDom": 0.006,
+          "oldDom": 21,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "component-taggroup__2",
+              "key": "flexDirection",
+              "old": "row",
+              "new": null
+            },
+            {
+              "path": "component-taggroup__2",
+              "key": "height",
+              "old": "100%",
+              "new": null
+            },
+            {
+              "path": "component-taggroup__2",
+              "key": "alignItems",
+              "old": null,
+              "new": "center"
+            }
+          ]
+        },
+        {
+          "old": "component-taggroup__2/component-taggroup__2__tag-3/Label",
+          "new": "project:node:subject/lib:template:component-taggroup__2__tag-3::lib:template:component-tag-item-default__label",
+          "oldRect": {
+            "x": 43,
+            "y": 114,
+            "width": 70,
+            "height": 20
+          },
+          "newRect": {
+            "x": 43,
+            "y": 93,
+            "width": 70.51000213623047,
+            "height": 20
+          },
+          "domRect": {
+            "x": 43,
+            "y": 93,
+            "width": 70.515625,
+            "height": 20
+          },
+          "oldNew": 21,
+          "newDom": 0.006,
+          "oldDom": 21,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "component-taggroup__2/component-taggroup__2__tag-3/Label",
+              "key": "contentMinWidth",
+              "old": 70,
+              "new": 70.51000213623047
+            },
+            {
+              "path": "component-taggroup__2/component-taggroup__2__tag-3/Label",
+              "key": "contentMaxWidth",
+              "old": 70,
+              "new": 70.51000213623047
+            },
+            {
+              "path": "component-taggroup__2",
+              "key": "flexDirection",
+              "old": "row",
+              "new": null
+            },
+            {
+              "path": "component-taggroup__2",
+              "key": "height",
+              "old": "100%",
+              "new": null
+            },
+            {
+              "path": "component-taggroup__2",
+              "key": "alignItems",
+              "old": null,
+              "new": "center"
+            }
+          ]
+        },
+        {
+          "old": "component-taggroup__2/component-taggroup__2__tag-4",
+          "new": "project:node:subject::lib:template:component-taggroup__2__tag-4",
+          "oldRect": {
+            "x": 130,
+            "y": 109,
+            "width": 67,
+            "height": 30
+          },
+          "newRect": {
+            "x": 130.51000213623047,
+            "y": 88,
+            "width": 67.81999969482422,
+            "height": 30
+          },
+          "domRect": {
+            "x": 130.515625,
+            "y": 88,
+            "width": 67.828125,
+            "height": 30
+          },
+          "oldNew": 21,
+          "newDom": 0.008,
+          "oldDom": 21,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "component-taggroup__2",
+              "key": "flexDirection",
+              "old": "row",
+              "new": null
+            },
+            {
+              "path": "component-taggroup__2",
+              "key": "height",
+              "old": "100%",
+              "new": null
+            },
+            {
+              "path": "component-taggroup__2",
+              "key": "alignItems",
+              "old": null,
+              "new": "center"
+            }
+          ]
+        },
+        {
+          "old": "component-taggroup__2/component-taggroup__2__tag-4/Label",
+          "new": "project:node:subject/lib:template:component-taggroup__2__tag-4::lib:template:component-tag-item-default__label",
+          "oldRect": {
+            "x": 143,
+            "y": 114,
+            "width": 41,
+            "height": 20
+          },
+          "newRect": {
+            "x": 143.51000213623047,
+            "y": 93,
+            "width": 41.81999969482422,
+            "height": 20
+          },
+          "domRect": {
+            "x": 143.515625,
+            "y": 93,
+            "width": 41.828125,
+            "height": 20
+          },
+          "oldNew": 21,
+          "newDom": 0.008,
+          "oldDom": 21,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "component-taggroup__2/component-taggroup__2__tag-4/Label",
+              "key": "contentMinWidth",
+              "old": 41,
+              "new": 41.81999969482422
+            },
+            {
+              "path": "component-taggroup__2/component-taggroup__2__tag-4/Label",
+              "key": "contentMaxWidth",
+              "old": 41,
+              "new": 41.81999969482422
+            },
+            {
+              "path": "component-taggroup__2",
+              "key": "flexDirection",
+              "old": "row",
+              "new": null
+            },
+            {
+              "path": "component-taggroup__2",
+              "key": "height",
+              "old": "100%",
+              "new": null
+            },
+            {
+              "path": "component-taggroup__2",
+              "key": "alignItems",
+              "old": null,
+              "new": "center"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "Calendar",
+      "failedLegs": [
+        "geometry"
+      ],
+      "pairs": 2,
+      "candidates": 1,
+      "noDomPair": 1,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "component-calendar__1",
+          "new": "project:node:subject::lib:template:component-calendar__1",
+          "oldRect": {
+            "x": 39,
+            "y": 39,
+            "width": 238,
+            "height": 0
+          },
+          "newRect": {
+            "x": 39,
+            "y": 39,
+            "width": 202,
+            "height": 42
+          },
+          "domRect": null,
+          "oldNew": 42,
+          "newDom": null,
+          "oldDom": null,
+          "class": "noDomPair",
+          "inputDiffs": [
+            {
+              "path": "component-calendar__1",
+              "key": "width",
+              "old": "238px",
+              "new": null
+            },
+            {
+              "path": "component-calendar__1",
+              "key": "height",
+              "old": "30px",
+              "new": null
+            },
+            {
+              "path": "component-calendar__1",
+              "key": "minWidth",
+              "old": "238px",
+              "new": null
+            },
+            {
+              "path": "component-calendar__1",
+              "key": "contentHeight",
+              "old": 30,
+              "new": 42
+            },
+            {
+              "path": "component-calendar__1",
+              "key": "contentMinWidth",
+              "old": null,
+              "new": 221
+            },
+            {
+              "path": "component-calendar__1",
+              "key": "contentMaxWidth",
+              "old": null,
+              "new": 221
+            }
+          ]
+        },
+        {
+          "old": "component-calendar__2",
+          "new": "project:node:subject::lib:template:component-calendar__2",
+          "oldRect": {
+            "x": 39,
+            "y": 45,
+            "width": 238,
+            "height": 200
+          },
+          "newRect": {
+            "x": 39,
+            "y": 87,
+            "width": 238,
+            "height": 200
+          },
+          "domRect": {
+            "x": 39,
+            "y": 87,
+            "width": 238,
+            "height": 200
+          },
+          "oldNew": 42,
+          "newDom": 0,
+          "oldDom": 42,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "component-calendar__2",
+              "key": "width",
+              "old": "238px",
+              "new": null
+            },
+            {
+              "path": "component-calendar__2",
+              "key": "contentMinWidth",
+              "old": null,
+              "new": 238
+            },
+            {
+              "path": "component-calendar__2",
+              "key": "contentMaxWidth",
+              "old": null,
+              "new": 238
+            },
+            {
+              "path": "component-calendar__2",
+              "key": "maxWidth",
+              "old": null,
+              "new": "238px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "DatePicker",
+      "failedLegs": [
+        "geometry"
+      ],
+      "pairs": 2,
+      "candidates": 2,
+      "noDomPair": 0,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "component-datepicker__2/component-datepicker__2_1",
+          "new": "project:node:subject::lib:template:component-datepicker__2_1",
+          "oldRect": {
+            "x": 43,
+            "y": 59,
+            "width": 172,
+            "height": 20
+          },
+          "newRect": {
+            "x": 43,
+            "y": 59,
+            "width": 130,
+            "height": 20
+          },
+          "domRect": {
+            "x": 43,
+            "y": 59,
+            "width": 130,
+            "height": 20
+          },
+          "oldNew": 42,
+          "newDom": 0,
+          "oldDom": 42,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "component-datepicker__2/component-datepicker__2_1",
+              "key": "display",
+              "old": "inline-block",
+              "new": "inline-flex"
+            },
+            {
+              "path": "component-datepicker__2/component-datepicker__2_1",
+              "key": "width",
+              "old": "102px",
+              "new": null
+            },
+            {
+              "path": "component-datepicker__2/component-datepicker__2_1",
+              "key": "height",
+              "old": "100%",
+              "new": null
+            },
+            {
+              "path": "component-datepicker__2/component-datepicker__2_1",
+              "key": "contentMinWidth",
+              "old": null,
+              "new": 101.95999908447266
+            },
+            {
+              "path": "component-datepicker__2/component-datepicker__2_1",
+              "key": "contentMaxWidth",
+              "old": null,
+              "new": 101.95999908447266
+            },
+            {
+              "path": "component-datepicker__2",
+              "key": "height",
+              "old": "30px",
+              "new": null
+            },
+            {
+              "path": "component-datepicker__2",
+              "key": "paddingRight",
+              "old": "12px",
+              "new": "4px"
+            }
+          ]
+        },
+        {
+          "old": "component-datepicker__2/component-datepicker__2_2",
+          "new": "project:node:subject::lib:template:component-datepicker__2_2",
+          "oldRect": {
+            "x": 219,
+            "y": 60,
+            "width": 18,
+            "height": 18
+          },
+          "newRect": {
+            "x": 177,
+            "y": 60,
+            "width": 68,
+            "height": 18
+          },
+          "domRect": {
+            "x": 177,
+            "y": 60,
+            "width": 68,
+            "height": 18
+          },
+          "oldNew": 50,
+          "newDom": 0,
+          "oldDom": 50,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "component-datepicker__2/component-datepicker__2_2",
+              "key": "display",
+              "old": "block",
+              "new": "flex"
+            },
+            {
+              "path": "component-datepicker__2/component-datepicker__2_2",
+              "key": "alignItems",
+              "old": null,
+              "new": "center"
+            },
+            {
+              "path": "component-datepicker__2/component-datepicker__2_2",
+              "key": "justifyContent",
+              "old": null,
+              "new": "center"
+            },
+            {
+              "path": "component-datepicker__2/component-datepicker__2_2",
+              "key": "minWidth",
+              "old": null,
+              "new": "68px"
+            },
+            {
+              "path": "component-datepicker__2/component-datepicker__2_2",
+              "key": "rowGap",
+              "old": null,
+              "new": "8px"
+            },
+            {
+              "path": "component-datepicker__2/component-datepicker__2_2",
+              "key": "columnGap",
+              "old": null,
+              "new": "8px"
+            },
+            {
+              "path": "component-datepicker__2/component-datepicker__2_2",
+              "key": "contentMinWidth",
+              "old": null,
+              "new": 18
+            },
+            {
+              "path": "component-datepicker__2/component-datepicker__2_2",
+              "key": "contentMaxWidth",
+              "old": null,
+              "new": 18
+            },
+            {
+              "path": "component-datepicker__2/component-datepicker__2_2",
+              "key": "contentHeight",
+              "old": null,
+              "new": 18
+            },
+            {
+              "path": "component-datepicker__2/component-datepicker__2_2",
+              "key": "contentMinHeight",
+              "old": null,
+              "new": 18
+            },
+            {
+              "path": "component-datepicker__2",
+              "key": "height",
+              "old": "30px",
+              "new": null
+            },
+            {
+              "path": "component-datepicker__2",
+              "key": "paddingRight",
+              "old": "12px",
+              "new": "4px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "DateRangePicker",
+      "failedLegs": [
+        "geometry",
+        "canvasDom"
+      ],
+      "pairs": 3,
+      "candidates": 1,
+      "noDomPair": 0,
+      "newSide": 2,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "component-daterangepicker__1",
+          "new": "project:node:subject::lib:template:component-daterangepicker__1",
+          "oldRect": {
+            "x": 30,
+            "y": 30,
+            "width": 75,
+            "height": 20
+          },
+          "newRect": {
+            "x": 30,
+            "y": 30,
+            "width": 76.02999877929688,
+            "height": 20
+          },
+          "domRect": {
+            "x": 30,
+            "y": 30,
+            "width": 76.03125,
+            "height": 20
+          },
+          "oldNew": 1.03,
+          "newDom": 0.001,
+          "oldDom": 1.031,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "component-daterangepicker__1",
+              "key": "contentMinWidth",
+              "old": 40,
+              "new": 76.02999877929688
+            },
+            {
+              "path": "component-daterangepicker__1",
+              "key": "contentMaxWidth",
+              "old": 75,
+              "new": 76.02999877929688
+            },
+            {
+              "path": "component-daterangepicker__1",
+              "key": "height",
+              "old": null,
+              "new": "fit-content"
+            }
+          ]
+        },
+        {
+          "old": "component-daterangepicker__2/component-daterangepicker__2_1",
+          "new": "project:node:subject::lib:template:component-daterangepicker__2_1",
+          "oldRect": {
+            "x": 43,
+            "y": 59,
+            "width": 172,
+            "height": 20
+          },
+          "newRect": {
+            "x": 43,
+            "y": 59,
+            "width": 217.5500030517578,
+            "height": 20
+          },
+          "domRect": {
+            "x": 43,
+            "y": 59,
+            "width": 196.4375,
+            "height": 20
+          },
+          "oldNew": 45.55,
+          "newDom": 21.113,
+          "oldDom": 24.438,
+          "class": "newSide",
+          "inputDiffs": [
+            {
+              "path": "component-daterangepicker__2/component-daterangepicker__2_1",
+              "key": "display",
+              "old": "inline-block",
+              "new": "inline-flex"
+            },
+            {
+              "path": "component-daterangepicker__2/component-daterangepicker__2_1",
+              "key": "width",
+              "old": "218px",
+              "new": null
+            },
+            {
+              "path": "component-daterangepicker__2/component-daterangepicker__2_1",
+              "key": "height",
+              "old": "100%",
+              "new": null
+            },
+            {
+              "path": "component-daterangepicker__2/component-daterangepicker__2_1",
+              "key": "minWidth",
+              "old": "0px",
+              "new": "auto"
+            },
+            {
+              "path": "component-daterangepicker__2/component-daterangepicker__2_1",
+              "key": "flexGrow",
+              "old": 1,
+              "new": null
+            },
+            {
+              "path": "component-daterangepicker__2/component-daterangepicker__2_1",
+              "key": "flexShrink",
+              "old": 1,
+              "new": null
+            },
+            {
+              "path": "component-daterangepicker__2/component-daterangepicker__2_1",
+              "key": "flexBasis",
+              "old": "0%",
+              "new": null
+            },
+            {
+              "path": "component-daterangepicker__2/component-daterangepicker__2_1",
+              "key": "contentMinWidth",
+              "old": null,
+              "new": 217.5500030517578
+            },
+            {
+              "path": "component-daterangepicker__2/component-daterangepicker__2_1",
+              "key": "contentMaxWidth",
+              "old": null,
+              "new": 217.5500030517578
+            },
+            {
+              "path": "component-daterangepicker__2",
+              "key": "height",
+              "old": "30px",
+              "new": null
+            },
+            {
+              "path": "component-daterangepicker__2",
+              "key": "paddingRight",
+              "old": "12px",
+              "new": "4px"
+            }
+          ]
+        },
+        {
+          "old": "component-daterangepicker__2/component-daterangepicker__2_2",
+          "new": "project:node:subject::lib:template:component-daterangepicker__2_2",
+          "oldRect": {
+            "x": 219,
+            "y": 60,
+            "width": 18,
+            "height": 18
+          },
+          "newRect": {
+            "x": 264.5500030517578,
+            "y": 60,
+            "width": 68,
+            "height": 18
+          },
+          "domRect": {
+            "x": 243.4375,
+            "y": 60,
+            "width": 68,
+            "height": 18
+          },
+          "oldNew": 50,
+          "newDom": 21.113,
+          "oldDom": 50,
+          "class": "newSide",
+          "inputDiffs": [
+            {
+              "path": "component-daterangepicker__2/component-daterangepicker__2_2",
+              "key": "display",
+              "old": "block",
+              "new": "flex"
+            },
+            {
+              "path": "component-daterangepicker__2/component-daterangepicker__2_2",
+              "key": "alignItems",
+              "old": null,
+              "new": "center"
+            },
+            {
+              "path": "component-daterangepicker__2/component-daterangepicker__2_2",
+              "key": "justifyContent",
+              "old": null,
+              "new": "center"
+            },
+            {
+              "path": "component-daterangepicker__2/component-daterangepicker__2_2",
+              "key": "minWidth",
+              "old": null,
+              "new": "68px"
+            },
+            {
+              "path": "component-daterangepicker__2/component-daterangepicker__2_2",
+              "key": "rowGap",
+              "old": null,
+              "new": "8px"
+            },
+            {
+              "path": "component-daterangepicker__2/component-daterangepicker__2_2",
+              "key": "columnGap",
+              "old": null,
+              "new": "8px"
+            },
+            {
+              "path": "component-daterangepicker__2/component-daterangepicker__2_2",
+              "key": "contentMinWidth",
+              "old": null,
+              "new": 18
+            },
+            {
+              "path": "component-daterangepicker__2/component-daterangepicker__2_2",
+              "key": "contentMaxWidth",
+              "old": null,
+              "new": 18
+            },
+            {
+              "path": "component-daterangepicker__2/component-daterangepicker__2_2",
+              "key": "contentHeight",
+              "old": null,
+              "new": 18
+            },
+            {
+              "path": "component-daterangepicker__2/component-daterangepicker__2_2",
+              "key": "contentMinHeight",
+              "old": null,
+              "new": 18
+            },
+            {
+              "path": "component-daterangepicker__2",
+              "key": "height",
+              "old": "30px",
+              "new": null
+            },
+            {
+              "path": "component-daterangepicker__2",
+              "key": "paddingRight",
+              "old": "12px",
+              "new": "4px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "RangeCalendar",
+      "failedLegs": [
+        "geometry"
+      ],
+      "pairs": 2,
+      "candidates": 1,
+      "noDomPair": 1,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "component-rangecalendar__1",
+          "new": "project:node:subject::lib:template:component-rangecalendar__1",
+          "oldRect": {
+            "x": 39,
+            "y": 39,
+            "width": 238,
+            "height": 0
+          },
+          "newRect": {
+            "x": 39,
+            "y": 39,
+            "width": 202,
+            "height": 42
+          },
+          "domRect": null,
+          "oldNew": 42,
+          "newDom": null,
+          "oldDom": null,
+          "class": "noDomPair",
+          "inputDiffs": [
+            {
+              "path": "component-rangecalendar__1",
+              "key": "width",
+              "old": "238px",
+              "new": null
+            },
+            {
+              "path": "component-rangecalendar__1",
+              "key": "height",
+              "old": "30px",
+              "new": null
+            },
+            {
+              "path": "component-rangecalendar__1",
+              "key": "minWidth",
+              "old": "238px",
+              "new": null
+            },
+            {
+              "path": "component-rangecalendar__1",
+              "key": "contentHeight",
+              "old": 30,
+              "new": 42
+            },
+            {
+              "path": "component-rangecalendar__1",
+              "key": "contentMinWidth",
+              "old": null,
+              "new": 221
+            },
+            {
+              "path": "component-rangecalendar__1",
+              "key": "contentMaxWidth",
+              "old": null,
+              "new": 221
+            }
+          ]
+        },
+        {
+          "old": "component-rangecalendar__2",
+          "new": "project:node:subject::lib:template:component-rangecalendar__2",
+          "oldRect": {
+            "x": 39,
+            "y": 45,
+            "width": 238,
+            "height": 200
+          },
+          "newRect": {
+            "x": 39,
+            "y": 87,
+            "width": 238,
+            "height": 200
+          },
+          "domRect": {
+            "x": 39,
+            "y": 87,
+            "width": 238,
+            "height": 200
+          },
+          "oldNew": 42,
+          "newDom": 0,
+          "oldDom": 42,
+          "class": "candidate",
+          "inputDiffs": [
+            {
+              "path": "component-rangecalendar__2",
+              "key": "width",
+              "old": "238px",
+              "new": null
+            },
+            {
+              "path": "component-rangecalendar__2",
+              "key": "contentMinWidth",
+              "old": null,
+              "new": 238
+            },
+            {
+              "path": "component-rangecalendar__2",
+              "key": "contentMaxWidth",
+              "old": null,
+              "new": 238
+            },
+            {
+              "path": "component-rangecalendar__2",
+              "key": "maxWidth",
+              "old": null,
+              "new": "238px"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "Popover",
+      "failedLegs": [
+        "geometry"
+      ],
+      "pairs": 2,
+      "candidates": 0,
+      "noDomPair": 2,
+      "newSide": 0,
+      "unpaired": [],
+      "nodes": [
+        {
+          "old": "component-popover__1",
+          "new": "project:node:subject::lib:template:component-popover__1",
+          "oldRect": {
+            "x": 46,
+            "y": 46,
+            "width": 188,
+            "height": 20
+          },
+          "newRect": {
+            "x": 47,
+            "y": 47,
+            "width": 186,
+            "height": 20
+          },
+          "domRect": null,
+          "oldNew": 2,
+          "newDom": null,
+          "oldDom": null,
+          "class": "noDomPair",
+          "inputDiffs": [
+            {
+              "path": "component-popover__1",
+              "key": "contentMinWidth",
+              "old": 62,
+              "new": 54
+            },
+            {
+              "path": "",
+              "key": "borderTop",
+              "old": null,
+              "new": "1px"
+            },
+            {
+              "path": "",
+              "key": "borderRight",
+              "old": null,
+              "new": "1px"
+            },
+            {
+              "path": "",
+              "key": "borderBottom",
+              "old": null,
+              "new": "1px"
+            },
+            {
+              "path": "",
+              "key": "borderLeft",
+              "old": null,
+              "new": "1px"
+            }
+          ]
+        },
+        {
+          "old": "component-popover__2",
+          "new": "project:node:subject::lib:template:component-popover__2",
+          "oldRect": {
+            "x": 46,
+            "y": 78,
+            "width": 188,
+            "height": 16
+          },
+          "newRect": {
+            "x": 47,
+            "y": 79,
+            "width": 186,
+            "height": 16
+          },
+          "domRect": null,
+          "oldNew": 2,
+          "newDom": null,
+          "oldDom": null,
+          "class": "noDomPair",
+          "inputDiffs": [
+            {
+              "path": "component-popover__2",
+              "key": "contentMinWidth",
+              "old": 60,
+              "new": 45
+            },
+            {
+              "path": "component-popover__2",
+              "key": "contentMaxWidth",
+              "old": 149,
+              "new": 148.13999938964844
+            },
+            {
+              "path": "",
+              "key": "borderTop",
+              "old": null,
+              "new": "1px"
+            },
+            {
+              "path": "",
+              "key": "borderRight",
+              "old": null,
+              "new": "1px"
+            },
+            {
+              "path": "",
+              "key": "borderBottom",
+              "old": null,
+              "new": "1px"
+            },
+            {
+              "path": "",
+              "key": "borderLeft",
+              "old": null,
+              "new": "1px"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

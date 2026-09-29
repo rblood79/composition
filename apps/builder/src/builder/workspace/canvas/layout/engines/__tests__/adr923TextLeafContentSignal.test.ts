@@ -1,3 +1,4 @@
+import { catalogBreadcrumbSeparatorIcon } from "@composition/shared";
 import { describe, expect, it } from "vitest";
 
 import type { CanvasLayoutNode } from "../../layoutNode";
@@ -16,6 +17,10 @@ import {
  * object/boolean 은 없음) — `String([" ", " "])` 의 쉼표나 "[object Object]" 가 내용으로
  * 잡혀 line box 를 만들면 안 된다. 신호는 white-space 처리 후 남는 내용 (CSS Text 3 §4.1.1).
  */
+
+/** catalog `Breadcrumbs.sizes.M.gap` — 조각 사이 간격 (구분자 Icon 뒤 → 다음 조각). */
+const CRUMB_GAP_M = catalogBreadcrumbSeparatorIcon("M").gap;
+
 describe("ADR-923 r12l3 — resolveTextLeafContent", () => {
   it("배열 children 은 string/number 항목만 이어붙인다 (쉼표 없음)", () => {
     expect(resolveTextLeafContent({ children: [" ", " "] })).toBe("  ");
@@ -241,7 +246,10 @@ describe("ADR-923 r19m1 — Breadcrumbs 집계 · TagList 라벨 정규화 · Il
       crumb("c3", "C", true),
     ];
     const w = measureBreadcrumbs(crumbs);
-    const sum = crumbs.reduce((acc, c) => acc + calculateContentWidth(c), 0);
+    // 조각 사이 = catalog Breadcrumbs.sizes.M.gap (2026-09-29 구분자 Icon 양옆 간격).
+    const sum =
+      crumbs.reduce((acc, c) => acc + calculateContentWidth(c), 0) +
+      CRUMB_GAP_M * (crumbs.length - 1);
     expect(w).toBeGreaterThan(0);
     expect(Math.abs(w - sum)).toBeLessThanOrEqual(crumbs.length); // crumb 별 ceil 오차
     expect(w).toBeLessThan(120); // "Home › Products › Detail" (≈200) 이 아니다
@@ -270,7 +278,7 @@ describe("ADR-923 r19m1 — Breadcrumbs 집계 · TagList 라벨 정규화 · Il
       crumb("c2", "", false),
       crumb("c3", "", true),
     ]);
-    expect(Math.abs(w - sepOnly * 2)).toBeLessThanOrEqual(1);
+    expect(Math.abs(w - (sepOnly * 2 + CRUMB_GAP_M * 2))).toBeLessThanOrEqual(1);
   });
 
   it("Breadcrumbs: pre-migration 자식 Breadcrumb element 도 같은 계약 (children 만, 마지막은 index)", () => {
@@ -286,7 +294,8 @@ describe("ADR-923 r19m1 — Breadcrumbs 집계 · TagList 라벨 정규화 · Il
       } as unknown as CanvasLayoutNode,
       legacy,
     );
-    const expected = calculateContentWidth(crumb("x", "Home", false)); // 두 번째는 last + "" → 0
+    const expected =
+      calculateContentWidth(crumb("x", "Home", false)) + CRUMB_GAP_M; // 두 번째는 last + "" → 0
     expect(Math.abs(w - expected)).toBeLessThanOrEqual(1);
   });
 

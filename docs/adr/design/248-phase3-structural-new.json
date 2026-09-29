@@ -1,0 +1,202 @@
+{
+  "head": "2a5c970994cb9de2f824a729b29c08cdcd647d7b",
+  "executionHead": "400d09eaeecd5dd258080d2af1e80f9bcd274fd7",
+  "oldBuildIndexSha256": "3474b01de9ab15eeaaf7670f67b9376065aa6c9a11c407ba86ab234f9e1035e5",
+  "currentBuilderBuildIndexSha256": "d74d3e813c7b5820b91c196f2d32e8994d1e34ec5cc9dbdc3f675d39d3695cff",
+  "pairedOldBuilderDistIndexSha256": "a3e33abb92a025bf2e0d007c23a0dfb7b149d487db50158af583bc807c5633cd",
+  "pairedOldServedIndexSha256": "34e68bb9aff135d1ab9888d549357b1a1c7bcab1d7cb6e0d849ea8331840d33d",
+  "pairedOldExecutionResources": [
+    {
+      "url": "/src/main.tsx",
+      "bytes": 19711,
+      "sha256": "aea1d4bf777e5cdd0def10db83f070166adc25de3f00df96d55f2ea4f03f3586"
+    }
+  ],
+  "newExecutionAssetsSha256": {
+    "catalogBinding": "6e150f99057451e7ea004948bc0fe3baa0590bb821b5f4ee25868d769d72db9e",
+    "compositionRoot": "61151aef6e282dbecd05eb2a30ad842ba9ddadffb4d8a3ab88367485bf4b818e",
+    "renderCommands": "fc72ffabfeac77e36cd2646406e58acdadfb1467fbaec41b88021c90b733095c",
+    "rustWasm": "0ca7b1ebb0a01ef762d7065536e4219f60962af178c4859a4b4b72f6df53430c",
+    "canvasKitWasm": "25ebed8e60158c5854f8dc807b936daca21354f8bfb6a2231266b0a93812f301",
+    "font": "02b09ca630e4833028600a9f958b2f72f0289b9ccfd00d2df34780a7592f8d41"
+  },
+  "executionModuleIdentityParity": "UNVERIFIED_DEV_SERVER_VS_VITEST",
+  "buildMatched": false,
+  "buildMatchScope": "DIST_INDEX_CHANGED_AFTER_OLD_TRACE",
+  "g0FrozenBuildIndexMatched": false,
+  "scenarioId": "adr248-structural-baseline-v1",
+  "scenarioHash": "487150e08d7461803b14afeb2c56c2c1bbf9018f61d8cb765a468bd4791495e5",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "dpr": 1,
+  "font": "app-default",
+  "theme": "default-light",
+  "seed": 248,
+  "actualGeometry": {
+    "adr248-frame": {
+      "x": 40,
+      "y": 40,
+      "width": 440,
+      "height": 260,
+      "baseline": 260
+    },
+    "adr248-group": {
+      "x": 22,
+      "y": 22,
+      "width": 380,
+      "height": 120,
+      "baseline": 120
+    },
+    "adr248-slot": {
+      "x": 22,
+      "y": 152,
+      "width": 160,
+      "height": 80,
+      "baseline": 80
+    },
+    "adr248-text": {
+      "x": 180,
+      "y": 0,
+      "width": 160,
+      "height": 40,
+      "baseline": 40
+    }
+  },
+  "oldGeometry": {
+    "adr248-frame": {
+      "elementId": "adr248-frame",
+      "x": 40,
+      "y": 40,
+      "width": 440,
+      "height": 260,
+      "margin": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      }
+    },
+    "adr248-group": {
+      "elementId": "adr248-group",
+      "x": 22,
+      "y": 22,
+      "width": 380,
+      "height": 120,
+      "margin": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      }
+    },
+    "adr248-slot": null,
+    "adr248-text": {
+      "elementId": "adr248-text",
+      "x": 180,
+      "y": 0,
+      "width": 160,
+      "height": 40,
+      "margin": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      }
+    }
+  },
+  "groupMarkup": "<div data-catalog-id=\"project:node:frame/project:node:group::project:node:group\" aria-label=\"group\" aria-orientation=\"horizontal\" role=\"group\" class=\"react-aria-Group\" style=\"box-sizing:border-box;display:flex;flex-direction:row;position:absolute;left:20px;top:20px;width:380px;height:120px;row-gap:8px;column-gap:8px\" data-rac=\"\"><span data-catalog-id=\"project:node:frame/project:node:group/project:node:text::project:node:text\" class=\"react-aria-Text\" style=\"box-sizing:border-box;display:block;position:absolute;left:180px;top:0;width:160px;height:40px;margin:0;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#000000\">저장</span></div>",
+  "slotMarkup": "<div class=\"react-aria-Slot\" style=\"box-sizing:border-box;display:block;position:absolute;left:20px;top:150px;width:160px;height:80px;min-height:60px;row-gap:8px;column-gap:8px;padding-top:12px;padding-right:12px;padding-bottom:12px;padding-left:12px;border-width:1px;border-style:dashed;border-color:#e5e7eb;background-color:rgba(229, 229, 229, 0.5);border-radius:6px;font-size:14px;line-height:1.5\" data-slot-name=\"slot\" data-slot-required=\"false\" data-empty=\"true\" data-element-id=\"project:node:frame/project:node:slot::project:node:slot\" data-catalog-id=\"project:node:frame/project:node:slot::project:node:slot\"><div class=\"react-aria-Slot-placeholder\"><div class=\"react-aria-Slot-icon\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"></rect><path d=\"M9 3v18\"></path><path d=\"M15 3v18\"></path><path d=\"M3 9h18\"></path><path d=\"M3 15h18\"></path></svg></div><div class=\"react-aria-Slot-info\"><span class=\"react-aria-Slot-name\">slot</span><span class=\"react-aria-Slot-description\">내용</span></div></div></div>",
+  "canvasKit": true,
+  "rustLayout": true,
+  "exactPngDifferentPixels": 3387,
+  "renderCommandScene": {
+    "source": "typed catalog resolver -> library bindingId -> registered SkiaNodeData -> renderCommands -> CanvasKit",
+    "bindingIds": [
+      "text",
+      "group",
+      "slot",
+      "frame"
+    ],
+    "unpainted": [
+      {
+        "id": "project:node:frame/project:node:slot::project:node:slot",
+        "reason": "SLOT_PLACEHOLDER_ICON_NAME_REQUIRED_DESCRIPTION_NOT_PAINTED; EDITOR_HATCH_USES_TRANSIENT_OVERLAY_TARGET"
+      }
+    ],
+    "commandCount": 20,
+    "commandStreamSha256": "e462e94dcc0d56af44948d52e01c7e8a22fbbab5e896a7f770b1909aec33b81b",
+    "textCommandCount": 1,
+    "exactPngDifferentPixels": 11191,
+    "exactDiffRegions": {
+      "pageEdge": 402,
+      "textArea": 203,
+      "frameEdge": 1879,
+      "other": 8707
+    },
+    "topColorPairs": [
+      [
+        "219,231,255,255 -> 224,230,242,255",
+        7737
+      ],
+      [
+        "219,231,255,255 -> 56,81,164,255",
+        1116
+      ],
+      [
+        "219,231,255,255 -> 121,141,200,255",
+        1104
+      ],
+      [
+        "168,209,255,255 -> 168,208,255,255",
+        398
+      ],
+      [
+        "219,231,255,255 -> 225,230,240,255",
+        94
+      ],
+      [
+        "219,231,255,255 -> 226,230,239,255",
+        81
+      ],
+      [
+        "219,231,255,255 -> 226,231,241,255",
+        58
+      ],
+      [
+        "219,231,255,255 -> 225,230,243,255",
+        52
+      ],
+      [
+        "219,231,255,255 -> 223,230,246,255",
+        48
+      ],
+      [
+        "219,231,255,255 -> 225,230,241,255",
+        39
+      ],
+      [
+        "219,231,255,255 -> 222,230,248,255",
+        34
+      ],
+      [
+        "219,231,255,255 -> 226,231,240,255",
+        28
+      ]
+    ],
+    "pageBorderSource": "old UI --border/page frame plus selected body box/handles overlay, separately rendered",
+    "slotSource": "typed Slot present; old legacy-slot absent",
+    "oldFrameSkiaBox": {
+      "fillColor": {
+        "0": 0.8588235378265381,
+        "1": 0.9058823585510254,
+        "2": 1,
+        "3": 1
+      },
+      "borderRadius": 0
+    }
+  },
+  "totalPixels": 248000,
+  "pixelParity": "FAIL: 11191/248000 differs; old Frame stroke omission, Slot projection, page edge, Text and remaining pixels have separate causes"
+}

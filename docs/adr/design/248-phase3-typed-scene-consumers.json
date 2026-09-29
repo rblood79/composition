@@ -1,0 +1,162 @@
+[
+  {
+    "fixture": "typed-minimal",
+    "executionHead": "400d09eaeecd5dd258080d2af1e80f9bcd274fd7",
+    "currentBuilderBuildIndexSha256": "d74d3e813c7b5820b91c196f2d32e8994d1e34ec5cc9dbdc3f675d39d3695cff",
+    "sourceSha256": "0d2da24f879486a49fe5b0b2878d8650e486b092415d369bb123d451b6e308fb",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "dpr": 1,
+    "theme": "default-light",
+    "font": "app-default",
+    "seed": 248,
+    "sourceBytes": 1031,
+    "originalInputCount": 2,
+    "originalGeometry": [
+      {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "baseline": 0
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 900,
+        "baseline": 900
+      }
+    ],
+    "supplementalPublicOperation": "patchNodeSizing width=200 height=120 on first page root",
+    "actualGeometry": {
+      "x": 0,
+      "y": 0,
+      "width": 200,
+      "height": 120,
+      "baseline": 120
+    },
+    "centerPixel": [
+      255,
+      255,
+      255,
+      255
+    ],
+    "regionNames": [],
+    "regionMarkup": [],
+    "canvasKitRenderBoxExecuted": true,
+    "oldVisualComparison": "UNVERIFIED: typed scene; no old-app visual oracle for this structure"
+  },
+  {
+    "fixture": "typed-slots",
+    "executionHead": "400d09eaeecd5dd258080d2af1e80f9bcd274fd7",
+    "currentBuilderBuildIndexSha256": "d74d3e813c7b5820b91c196f2d32e8994d1e34ec5cc9dbdc3f675d39d3695cff",
+    "sourceSha256": "c564c38c35fd745904d6561f9af6c884409dd78295c0d48cb8957f9b8f86dcf2",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "dpr": 1,
+    "theme": "default-light",
+    "font": "app-default",
+    "seed": 248,
+    "sourceBytes": 1124,
+    "originalInputCount": 2,
+    "originalGeometry": [
+      {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "baseline": 0
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 900,
+        "baseline": 900
+      }
+    ],
+    "supplementalPublicOperation": "patchNodeSizing width=200 height=120 on first page root",
+    "actualGeometry": {
+      "x": 0,
+      "y": 0,
+      "width": 200,
+      "height": 120,
+      "baseline": 120
+    },
+    "centerPixel": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "regionNames": [
+      "title",
+      "actions"
+    ],
+    "regionMarkup": [
+      "<div class=\"react-aria-Slot\" data-slot-name=\"title\" data-slot-required=\"false\" data-empty=\"true\"><div class=\"react-aria-Slot-placeholder\"><div class=\"react-aria-Slot-icon\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"></rect><path d=\"M9 3v18\"></path><path d=\"M15 3v18\"></path><path d=\"M3 9h18\"></path><path d=\"M3 15h18\"></path></svg></div><div class=\"react-aria-Slot-info\"><span class=\"react-aria-Slot-name\">title</span></div></div></div>",
+      "<div class=\"react-aria-Slot\" data-slot-name=\"actions\" data-slot-required=\"false\" data-empty=\"true\"><div class=\"react-aria-Slot-placeholder\"><div class=\"react-aria-Slot-icon\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"></rect><path d=\"M9 3v18\"></path><path d=\"M15 3v18\"></path><path d=\"M3 9h18\"></path><path d=\"M3 15h18\"></path></svg></div><div class=\"react-aria-Slot-info\"><span class=\"react-aria-Slot-name\">actions</span></div></div></div>"
+    ],
+    "canvasKitRenderBoxExecuted": true,
+    "oldVisualComparison": "UNVERIFIED: typed scene; no old-app visual oracle for this structure"
+  },
+  {
+    "fixture": "typed-ref",
+    "executionHead": "400d09eaeecd5dd258080d2af1e80f9bcd274fd7",
+    "currentBuilderBuildIndexSha256": "d74d3e813c7b5820b91c196f2d32e8994d1e34ec5cc9dbdc3f675d39d3695cff",
+    "sourceSha256": "cdada93f4c375787fb449b50dd26510da5c5c036cb722e26345071c97bbc9cd4",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "dpr": 1,
+    "theme": "default-light",
+    "font": "app-default",
+    "seed": 248,
+    "sourceBytes": 1490,
+    "originalInputCount": 2,
+    "originalGeometry": [
+      {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 900,
+        "baseline": 900
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 900,
+        "baseline": 900
+      }
+    ],
+    "supplementalPublicOperation": "patchNodeSizing width=200 height=120 on first page root",
+    "actualGeometry": {
+      "x": 0,
+      "y": 0,
+      "width": 200,
+      "height": 120,
+      "baseline": 120
+    },
+    "centerPixel": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "regionNames": [
+      "label"
+    ],
+    "regionMarkup": [
+      "<div class=\"react-aria-Slot\" data-slot-name=\"label\" data-slot-required=\"false\" data-empty=\"true\"><div class=\"react-aria-Slot-placeholder\"><div class=\"react-aria-Slot-icon\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"></rect><path d=\"M9 3v18\"></path><path d=\"M15 3v18\"></path><path d=\"M3 9h18\"></path><path d=\"M3 15h18\"></path></svg></div><div class=\"react-aria-Slot-info\"><span class=\"react-aria-Slot-name\">label</span></div></div></div>"
+    ],
+    "canvasKitRenderBoxExecuted": true,
+    "oldVisualComparison": "UNVERIFIED: typed scene; no old-app visual oracle for this structure"
+  }
+]

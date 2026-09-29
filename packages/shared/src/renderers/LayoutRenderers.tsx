@@ -1136,8 +1136,10 @@ export const renderBreadcrumbs = (
       }
       size={element.props.size as "S" | "M" | "L" | undefined}
       isDisabled={Boolean(element.props.isDisabled)}
-      separator={element.props.separator as string | undefined}
       items={items}
+      separatorTemplate={context.resolveBreadcrumbSeparator?.(
+        (element as { slot?: unknown }).slot,
+      )}
       style={element.props.style}
       className={element.props.className}
       dataBinding={
@@ -2348,7 +2350,7 @@ export const renderCardView = (
  * 완결하고(generic div), 식별은 `data-tableview-part` 중립 속성만 사용. Row 는 누수 방어로
  * position:relative 명시.
  */
-const TABLEVIEW_CHILD_STYLE: Record<
+export const TABLEVIEW_CHILD_STYLE: Record<
   string,
   { role: string; style: React.CSSProperties }
 > = {

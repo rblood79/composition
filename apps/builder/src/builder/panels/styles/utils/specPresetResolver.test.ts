@@ -73,7 +73,6 @@ describe("resolveSpecPreset", () => {
     "ComboBox",
     "NumberField",
     "SearchField",
-    "Label",
     "DateField",
     "TimeField",
     "Tabs",
@@ -97,6 +96,15 @@ describe("resolveSpecPreset", () => {
       expect("height" in preset).toBe(false);
     },
   );
+
+  // Label 은 sizes.height 가 0 이라 행 높이가 새지 않고, height 는 catalog containerStyles 의
+  //   `fit-content` 선언 그대로 (사용자 결정 2026-09-29 — 손 CSS 에만 있던 값을 catalog 로).
+  it("Label height preset = containerStyles 선언 fit-content", () => {
+    const preset = resolveSpecPreset("Label", "md");
+    expect(preset.height).toBe("fit-content");
+    expect(preset.minHeight).toBeUndefined();
+    expect(preset.maxHeight).toBeUndefined();
+  });
 
   it("progress/slider archetype 의 height 축 제외는 유지 (회귀 0)", () => {
     // 기존 TRACK_HEIGHT_ARCHETYPES 동작 보존 — type 기반 set 추가가 archetype 경로를 깨지 않음
