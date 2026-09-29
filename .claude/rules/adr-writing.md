@@ -21,16 +21,7 @@ ADR의 목적은 **미래의 개발자가 "왜 이렇게 결정했는가"를 이
 [필수]  Context → Alternatives → Risk per Alternative → Threshold Check → Decision → Gates
 ```
 
-## 작성 순서 — 스캐폴딩 먼저
-
-```
-[금지]  내용 작성 → 파일 저장 → 체크리스트 → 위반 발견 → 사후 분리
-[필수]  1. ADR 섹션 스캐폴딩 (빈 섹션 헤더만)
-        2. design 파일 먼저 생성 (구현 상세 대상이면)
-        3. Decision 직후에 `> 구현 상세: [링크]` 포인터 배치
-        4. 각 섹션 내용 채움 (구현 상세는 design 파일에만)
-        5. 체크리스트 최종 검증
-```
+## 구현 상세는 design breakdown 으로
 
 대화 맥락에 분석 데이터가 이미 있어도 ADR 본문에 직접 삽입 금지. 구현 상세(Phase, 파일 목록, 체크리스트, 코드 예시)는 반드시 `docs/adr/design/*-breakdown.md`에 분리.
 
@@ -66,17 +57,15 @@ ADR 분리 결정을 commit 하기 **전에** 다음 4 질문을 ADR 본문 또�
 
 본 4 질문이 ADR 본문 또는 design §1 에 lock-in 되지 않았으면 design breakdown 의 sub-phase α/β/γ/δ 분해 자체 차단. 분해된 sub-phase 가 많을수록 전제·관점 위반 인지 비용이 piecewise 분산 누적되어 본질 검증 trigger 못 걸림.
 
-### Phase scope inflation / sub-group N≥3 시 사용자 confirm 의무 (M4 — 2026-05-11 추가)
+### Phase 실행 중 scope inflation · sub-group 분할 — 사후 보고
 
-design breakdown 의 phase 실행 중 다음 조건 발견 시 **AskUserQuestion 의무** (의문문 형식, statement 금지):
+design breakdown 의 phase 실행 중 다음은 통상 구현 판단이다. 질문하지 않고 진행하되, 그 사실을 커밋 메시지·완료 보고에 적는다.
 
-- **scope inflation 1.5x 이상**: design 추정 작업량 (예: ~28 file) 대비 실측 (예: 70 file) 이 1.5배 이상. 사용자 question 예시: "design 추정 vs 실측 gap 발견 — 이게 전제 재검토 trigger 인가, design Phase 0 inventory 절차 결함인가?"
-- **sub-group N≥3 분할**: 단일 phase 를 Phase 2-A/B/C/D/E 같이 3 개 이상 sub-group 으로 분할 시도. 사용자 question 예시: "Phase 2 를 5 sub-group 으로 분할 vs 단일 phase 안 진행 vs design 재freeze, 어느 쪽?"
-- **commit 단위 sliver 분해**: `narrow ADR-NNN ...` / `Phase X-α/β/γ` 형식 commit 이 5 개 이상 누적 예상. 사용자 question 예시: "본 phase 가 5+ commit 으로 분해 예상 — 단일 commit 통합 반영 가능?"
+- **scope inflation 1.5x 이상**: design 추정 작업량 (예: ~28 file) 대비 실측 (예: 70 file) 이 1.5배 이상 — Phase 0 inventory 보강으로 흡수한다 (아래 M3)
+- **sub-group N≥3 분할**: 단일 phase 를 Phase 2-A/B/C/D/E 같이 3 개 이상 sub-group 으로 분할
+- **commit 단위 sliver 분해**: `narrow ADR-NNN ...` / `Phase X-α/β/γ` 형식 commit 이 5 개 이상 누적 예상 — 단일 commit 통합이 가능한지 먼저 본다
 
-confirm 받지 못하면 분할/inflation 차단, 단일 phase 안 진행 또는 design 재freeze 사용자 결정. ADR-126 Phase 2 sub-group 5 분할 + 22+ "narrow ..." commit 패턴 재발 차단 (~/.claude/plans/adr-123-124-125-126-sunny-crescent.md M4).
-
-**종결 계약 해제 조건 (2026-07-11)**: 리뷰 승인으로 전제가 확정된 ADR (CLAUDE.md §전제·관점 의문 처리 — 전제 확정 종결 계약 성립) 의 phase 실행 중에는 본 M4 질문 의무를 적용하지 않는다 — **자율 진행 + 사후 보고** (분할/확장 사실을 커밋 메시지·완료 보고에 명시) 로 대체. 단, 결정 지점 ④ (사용자가 승인한 scope 자체의 변경 — 방향 전환 / 대폭 확장·축소) 에 해당하면 여전히 질문 대상.
+사후 보고를 두는 이유: ADR-126 Phase 2 는 5 sub-group 분할 + 22+ "narrow ..." commit 이 쌓이는 동안 아무도 알아채지 못했다. 사용자가 승인한 scope 자체가 바뀌면 (방향 전환 / 대폭 확장·축소) 결정 지점 ④ 로 질문한다 — [premise-decision-points.md](premise-decision-points.md).
 
 ### 금지 패턴
 
@@ -254,6 +243,5 @@ ADR 작성 후 아래를 자가 검증한다. 하나라도 실패하면 해당 �
 - 위험 평가 없는 결정
 - 기각된 대안에 기각 사유 없음
 - 구현 상세를 ADR 본문에 장문으로 포함 (Phase 목록, 파일 변경표, 체크리스트, 코드 예시 포함)
-- 내용 먼저 작성 후 구조 검증 (스캐폴딩 먼저 필수)
 - Superseded 시 후속 ADR 링크 누락
 - Status 변경 시 README.md 미갱신
