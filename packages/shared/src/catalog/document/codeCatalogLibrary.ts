@@ -296,7 +296,10 @@ function buttonDefinition(
     visual: {},
     layout: rule.containerStyles,
     propVisualRules: { variant: variants, size: sizes },
-    conditionalRules: [...conditionalRules, ...disabledStateRules(rule, accepts)],
+    conditionalRules: [
+      ...conditionalRules,
+      ...disabledStateRules(rule, accepts),
+    ],
     partRules: childPartRules,
     stateRules: {},
   };
@@ -518,7 +521,9 @@ function withRuleParts(
   theme: "light" | "dark",
   tokens: Map<LibraryTokenId, LibraryToken>,
 ): LibraryDefinition[] {
-  const byId = new Map(definitions.map((definition) => [definition.id, definition]));
+  const byId = new Map(
+    definitions.map((definition) => [definition.id, definition]),
+  );
   const typeId = (type: string): LibraryDefinitionId | undefined => {
     const id = catalogTypeDefinitionId(type);
     return byId.has(id) ? id : undefined;
@@ -529,7 +534,8 @@ function withRuleParts(
     return choices?.map(String);
   };
   return definitions.map((definition) => {
-    if (definition.mode === "composite" || !definition.ruleId) return definition;
+    if (definition.mode === "composite" || !definition.ruleId)
+      return definition;
     const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)[
       definition.ruleId
     ];
@@ -543,7 +549,11 @@ function withRuleParts(
       if (!child || (part.via && !via)) return [];
       if (part.size && !sized && part.size !== rule?.defaultSize) return [];
       // A size the owner does not offer (a DOM style rule with more sizes — TextArea ← TextField).
-      if (part.size && sized && !definition.propChoices!.size!.includes(part.size))
+      if (
+        part.size &&
+        sized &&
+        !definition.propChoices!.size!.includes(part.size)
+      )
         return [];
       const ownerAccepts = definition.accepts;
       if (
@@ -588,7 +598,12 @@ function withRuleParts(
                 /^\{color\.[^{}]+\}$/.test(part.visual.color)
                   ? {
                       ...part.visual,
-                      color: sourceToken(part.visual.color, "color", theme, tokens),
+                      color: sourceToken(
+                        part.visual.color,
+                        "color",
+                        theme,
+                        tokens,
+                      ),
                     }
                   : part.visual) as VisualValues,
               }
@@ -598,7 +613,9 @@ function withRuleParts(
     });
     // A definition's own part rules (Button children's inherited color) precede the compiled ones.
     const own = "partRules" in definition ? (definition.partRules ?? []) : [];
-    return partRules.length ? { ...definition, partRules: [...own, ...partRules] } : definition;
+    return partRules.length
+      ? { ...definition, partRules: [...own, ...partRules] }
+      : definition;
   });
 }
 
@@ -612,8 +629,8 @@ export function catalogTypeDefinitionId(type: string): LibraryDefinitionId {
 
 /**
  * ADR-248 Phase 3 — accepts-only definition for a registered component type used by a reusable
- * origin template. Accepts come from the `componentCatalog` primitive binding; kinds without a
- * scalar value (string-array · binding · items-manager) and unregistered types accept nothing.
+ * origin template. Accepts come from the `componentCatalog` primitive binding (`string-array` and
+ * `items-manager` as structured slots); `binding` and unregistered types accept nothing.
  * Visual/state values are not derived here (Text/Heading keep `textDefinition`).
  */
 export function catalogTypeDefinition(type: string): LibraryDefinition {
@@ -636,11 +653,21 @@ function handOrRuleDefinition(type: string): LibraryDefinition {
       new Map<LibraryTokenId, LibraryToken>(),
     );
   if (type === "SelectTrigger")
-    return selectTriggerDefinition("light", new Map<LibraryTokenId, LibraryToken>());
+    return selectTriggerDefinition(
+      "light",
+      new Map<LibraryTokenId, LibraryToken>(),
+    );
   if (type === "SelectValue")
-    return selectValueDefinition("light", new Map<LibraryTokenId, LibraryToken>());
+    return selectValueDefinition(
+      "light",
+      new Map<LibraryTokenId, LibraryToken>(),
+    );
   // Every other registered type: registration props contract + D3 rule (`ruleDefinition.ts`).
-  return ruleTypeDefinition(type, "light", new Map<LibraryTokenId, LibraryToken>());
+  return ruleTypeDefinition(
+    type,
+    "light",
+    new Map<LibraryTokenId, LibraryToken>(),
+  );
 }
 
 /** Read-only code-derived definitions. Native fixture composition belongs to the test entry. */

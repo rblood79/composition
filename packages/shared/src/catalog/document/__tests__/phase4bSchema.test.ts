@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { resolveCatalogNode } from "../../resolution/resolver";
 import { applyCatalogTransaction } from "../../transactions/transaction";
+import { catalogTypeDefinition } from "../codeCatalogLibrary";
 import { CatalogGraph } from "../graph";
 import { buildCatalogLibrary } from "../library";
 import type { CatalogDocument, NodeEntry } from "../types";
@@ -9,7 +10,8 @@ import { CatalogValidationError, validateCatalogEntry } from "../validation";
 /**
  * ADR-248 Phase 4b-1 schema: a path patch writes the node authoring fields (layout, fills,
  * enabled), a container template position takes instance-owned children (`fillSlot` — the old
- * list-host children replacement), and a node carries its DOM id in `metadata.htmlId`.
+ * list-host children replacement), a node carries its DOM id in `metadata.htmlId`, and a prop
+ * may hold a structured value (a string list or a list of flat item records).
  */
 const library = () =>
   buildCatalogLibrary({
@@ -23,8 +25,8 @@ const library = () =>
         name: "ListBox",
         mode: "primitive",
         bindingId: "listbox",
-        accepts: {},
-        defaults: {},
+        accepts: { items: "items", selectedKeys: "string[]", label: "string" },
+        defaults: { items: [] },
         visual: {},
         stateRules: {},
       },
@@ -228,5 +230,76 @@ describe("ADR-248 Phase 4b-1 schema", () => {
     expect(resolveCatalogNode(g, "project:node:pick").htmlId).toBe("hero");
     tx(g, [...result.inverse]);
     expect(g.getEntry("project:node:pick")).toEqual(before);
+  });
+
+  it("carries structured props — item lists and string lists — typed per accepted slot", () => {
+    const g = graph(
+      [node("list", { definitionId: "lib:definition:type-ListBox" })],
+      ["list"],
+    );
+    const prop = (key: string, value: unknown) =>
+      code(() =>
+        tx(g, [
+          {
+            kind: "patchNodeProp",
+            id: "project:node:list",
+            key,
+            write: set(value as never),
+          },
+        ]),
+      );
+    expect(resolveCatalogNode(g, "project:node:list").props.items).toEqual([]);
+    const before = g.getEntry("project:node:list");
+    const items = [
+      { id: "a", label: "Alpha", isDisabled: false },
+      { id: "b", label: "Beta", isDisabled: true },
+    ];
+    const result = tx(g, [
+      {
+        kind: "patchNodeProp",
+        id: "project:node:list",
+        key: "items",
+        write: set(items),
+      },
+      {
+        kind: "patchNodeProp",
+        id: "project:node:list",
+        key: "selectedKeys",
+        write: set(["b"]),
+      },
+    ]);
+    const resolved = resolveCatalogNode(g, "project:node:list");
+    expect(resolved.props.items).toEqual(items);
+    expect(resolved.props.selectedKeys).toEqual(["b"]);
+    tx(g, [...result.inverse]);
+    expect(g.getEntry("project:node:list")).toEqual(before);
+    // Each slot takes only its own shape.
+    expect(prop("selectedKeys", [{ id: "a" }])).toBe("PROP_TYPE_MISMATCH");
+    expect(prop("selectedKeys", [1])).toBe("OBJECT_REQUIRED");
+    expect(prop("items", ["a"])).toBe("PROP_TYPE_MISMATCH");
+    expect(prop("label", ["a"])).toBe("PROP_TYPE_MISMATCH");
+    // Item rows hold flat scalars; visual values stay scalar.
+    expect(
+      code(() =>
+        validateCatalogEntry(
+          node("x", { props: { items: set([{ id: { deep: 1 } }]) } as never }),
+        ),
+      ),
+    ).not.toBe("ACCEPTED");
+    expect(
+      code(() =>
+        validateCatalogEntry(
+          node("x", { visual: { fill: set(["#fff"]) } as never }),
+        ),
+      ),
+    ).toBe("SCALAR_REQUIRED");
+  });
+
+  it("types the registered structured prop kinds (items-manager · string-array)", () => {
+    expect(catalogTypeDefinition("ListBox").accepts.items).toBe("items");
+    const chart = catalogTypeDefinition("Chart").accepts;
+    expect(chart.valueFields).toBe("string[]");
+    expect(chart.seriesConfig).toBe("items");
+    expect(chart.dataBinding).toBeUndefined();
   });
 });

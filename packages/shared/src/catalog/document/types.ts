@@ -33,8 +33,17 @@ export interface TokenUse {
   kind: "token";
   tokenId: TokenId;
 }
-export type AuthoredValue = Scalar | TokenUse;
-export type ValueType = "string" | "number" | "boolean";
+/** One row of an items-manager prop (static collection items, chart series …): flat scalars. */
+export type ItemValue = Readonly<Record<string, Scalar>>;
+/**
+ * Structured prop values (Phase 4b): a string list (`string-array` prop kind) or a list of flat
+ * item records (`items-manager` prop kind — RSP dynamic collection items, Chart series).
+ */
+export type StructuredValue = readonly string[] | readonly ItemValue[];
+export type AuthoredValue = Scalar | TokenUse | StructuredValue;
+export type ValueType = "string" | "number" | "boolean" | "string[]" | "items";
+/** Resolved prop value: a scalar or a structured value. */
+export type PropValue = Scalar | StructuredValue;
 export type TokenType = "color" | "length" | "number" | "string" | "boolean";
 export type ThemePreset = {
   tint:

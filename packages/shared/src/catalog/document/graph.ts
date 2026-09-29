@@ -143,6 +143,26 @@ function edgesOf(entry: CatalogEntry): Edge[] {
     edges.push({ type: "token", key: token, target: entry.id });
   return edges;
 }
+/**
+ * A prop value against its declared type: a token reference (its token type is checked
+ * separately), a string list, a list of flat item records, or a scalar of that type.
+ */
+function propValueMatches(value: unknown, type: string): boolean {
+  if (type === "string[]")
+    return (
+      Array.isArray(value) && value.every((item) => typeof item === "string")
+    );
+  if (type === "items")
+    return (
+      Array.isArray(value) &&
+      value.every(
+        (item) => !!item && typeof item === "object" && !Array.isArray(item),
+      )
+    );
+  if (Array.isArray(value)) return false;
+  if (value && typeof value === "object") return "tokenId" in value;
+  return typeof value === type;
+}
 function edgeKey(edge: Edge): string {
   return `${edge.type}\0${edge.key}\0${edge.target}`;
 }
@@ -893,11 +913,7 @@ export class CatalogGraph {
       const type = accepts[key];
       if (!type)
         throw new CatalogValidationError("PROP_NOT_ACCEPTED", `${at}.${key}`);
-      if (
-        write.kind === "set" &&
-        typeof write.value !== "object" &&
-        typeof write.value !== type
-      )
+      if (write.kind === "set" && !propValueMatches(write.value, type))
         throw new CatalogValidationError("PROP_TYPE_MISMATCH", `${at}.${key}`);
     }
   }
@@ -936,7 +952,7 @@ export class CatalogGraph {
       const type = accepts[key];
       if (!type)
         throw new CatalogValidationError("PROP_NOT_ACCEPTED", `${at}.${key}`);
-      if (typeof value !== "object" && typeof value !== type)
+      if (!propValueMatches(value, type))
         throw new CatalogValidationError("PROP_TYPE_MISMATCH", `${at}.${key}`);
     }
   }

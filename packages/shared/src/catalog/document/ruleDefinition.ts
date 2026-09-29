@@ -20,6 +20,7 @@ import type {
   LibraryDefinitionId,
   LibraryToken,
   LibraryTokenId,
+  AuthoredValue,
   Scalar,
   ValueType,
   VisualValues,
@@ -36,7 +37,10 @@ import type {
  * same declarations.
  */
 
-/** Scalar value type of a registered prop contract; non-scalar kinds have no typed prop slot. */
+/**
+ * Value type of a registered prop contract. `string-array` and `items-manager` carry structured
+ * values (Phase 4b); `binding` (data binding) has no typed prop slot.
+ */
 export const PROP_KIND_VALUE_TYPE: Readonly<
   Partial<Record<InspectorFieldKind, ValueType>>
 > = {
@@ -48,7 +52,31 @@ export const PROP_KIND_VALUE_TYPE: Readonly<
   variant: "string",
   size: "string",
   fillStyle: "string",
+  "string-array": "string[]",
+  "items-manager": "items",
 };
+
+/** A registered prop default that fits its typed slot (structured kinds: an array of that shape). */
+function propDefaultMatches(value: unknown, type: ValueType): boolean {
+  if (type === "string[]")
+    return (
+      Array.isArray(value) && value.every((item) => typeof item === "string")
+    );
+  if (type === "items")
+    return (
+      Array.isArray(value) &&
+      value.every(
+        (item) =>
+          !!item &&
+          typeof item === "object" &&
+          !Array.isArray(item) &&
+          Object.values(item).every((cell) =>
+            ["string", "number", "boolean"].includes(typeof cell),
+          ),
+      )
+    );
+  return typeof value === type;
+}
 
 /** `{token}` / number / `Npx` → px number; anything else (auto, %, var) → undefined. */
 function pixels(value: unknown, theme: "light" | "dark"): number | undefined {
@@ -305,7 +333,7 @@ export function ruleTypeDefinition(
   );
   const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)[type];
   const accepts: Record<string, ValueType> = {};
-  const defaults: Record<string, Scalar> = {};
+  const defaults: Record<string, AuthoredValue> = {};
   if (registration?.kind === "primitive")
     for (const [key, contract] of Object.entries(
       registration.binding.props.accepts,
@@ -313,8 +341,8 @@ export function ruleTypeDefinition(
       const valueType = PROP_KIND_VALUE_TYPE[contract.kind];
       if (!valueType) continue;
       accepts[key] = valueType;
-      if (typeof contract.default === valueType)
-        defaults[key] = contract.default as Scalar;
+      if (propDefaultMatches(contract.default, valueType))
+        defaults[key] = contract.default as AuthoredValue;
     }
   for (const [key, value] of Object.entries(INSERTION_DEFAULTS[type] ?? {}))
     if (key in accepts) defaults[key] = value;
@@ -470,7 +498,8 @@ export function disabledStateRules(
   accepts: Readonly<Record<string, ValueType>>,
 ): ConditionalRule[] {
   const raw = (
-    rule.structure as { states?: { disabled?: { opacity?: unknown } } } | undefined
+    rule.structure as
+      { states?: { disabled?: { opacity?: unknown } } } | undefined
   )?.states?.disabled?.opacity;
   const opacity = typeof raw === "string" ? Number.parseFloat(raw) : raw;
   if (typeof opacity !== "number" || !Number.isFinite(opacity) || opacity >= 1)

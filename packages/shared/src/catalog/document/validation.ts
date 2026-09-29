@@ -230,7 +230,15 @@ const stateNames = new Set([
   "disabled",
   "focusVisible",
 ]);
-const valueTypes = new Set<ValueType>(["string", "number", "boolean"]);
+const valueTypes = new Set<ValueType>([
+  "string",
+  "number",
+  "boolean",
+  "string[]",
+  "items",
+]);
+/** State variables hold scalars only. */
+const scalarValueTypes = new Set<ValueType>(["string", "number", "boolean"]);
 const tokenTypes = new Set<TokenType>([
   "color",
   "length",
@@ -306,8 +314,28 @@ function list(value: unknown, prefix: string, at: string): string[] {
   if (ids.length !== new Set(ids).size) invalid("DUPLICATE_ID", at);
   return ids;
 }
-function authoredValue(value: unknown, at: string, allowNull = false): void {
+/** A structured prop value: a list of strings, or a list of flat scalar records. */
+function structuredValue(value: unknown[], at: string): void {
+  if (value.every((item) => typeof item === "string")) return;
+  value.forEach((item, index) => {
+    const row = object(item, `${at}[${index}]`);
+    for (const [key, cell] of Object.entries(row)) {
+      if (!key) invalid("UNKNOWN_FIELD", `${at}[${index}]`);
+      scalar(cell, `${at}[${index}].${key}`);
+    }
+  });
+}
+function authoredValue(
+  value: unknown,
+  at: string,
+  allowNull = false,
+  allowStructured = false,
+): void {
   if (value === null && allowNull) return;
+  if (Array.isArray(value)) {
+    if (!allowStructured) invalid("SCALAR_REQUIRED", at);
+    return structuredValue(value, at);
+  }
   if (typeof value !== "object" || value === null) return scalar(value, at);
   const ref = object(value, at);
   exact(ref, ["kind", "tokenId"], at);
@@ -415,7 +443,8 @@ function values(
   for (const [key, item] of Object.entries(object(value, at))) {
     if (!key || (allowed && !allowed.has(key)))
       invalid("UNKNOWN_FIELD", `${at}.${key}`);
-    authoredValue(item, `${at}.${key}`);
+    // Unrestricted keys are props/defaults: they may carry structured values.
+    authoredValue(item, `${at}.${key}`, false, allowed === undefined);
     if (allowed === visualFields) visualLiteral(key, item, `${at}.${key}`);
   }
 }
@@ -438,7 +467,12 @@ function writes(
         )
           invalid("SIZING_VALUE_REQUIRED", `${at}.${key}`);
       } else {
-        authoredValue(write.value, `${at}.${key}.value`);
+        authoredValue(
+          write.value,
+          `${at}.${key}.value`,
+          false,
+          allowed === undefined,
+        );
         if (allowed === visualFields)
           visualLiteral(key, write.value, `${at}.${key}.value`);
       }
@@ -1178,7 +1212,7 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
       )
         invalid("INVALID_OWNER", "entry.ownerId");
       string(item.name, "entry.name");
-      if (!valueTypes.has(item.valueType as ValueType))
+      if (!scalarValueTypes.has(item.valueType as ValueType))
         invalid("INVALID_VALUE_TYPE", "entry.valueType");
       scalar(item.defaultValue, "entry.defaultValue");
       if (typeof item.defaultValue !== item.valueType)

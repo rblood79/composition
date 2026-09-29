@@ -14,6 +14,7 @@ import type {
   NodeEntry,
   NodeId,
   NodePlacement,
+  PropValue,
   PropWrites,
   Scalar,
   StateName,
@@ -29,7 +30,7 @@ export interface ResolvedCatalogNode {
   sourceId: NodeId | TemplateId;
   instancePath: readonly (NodeId | TemplateId)[];
   definitionId: DefinitionId;
-  props: Readonly<Record<string, Scalar>>;
+  props: Readonly<Record<string, PropValue>>;
   visual: Readonly<Record<string, Scalar>>;
   /** Typed box layout declarations (definition layout, then matching conditional/part rules). */
   layout: Readonly<Record<string, string>>;
@@ -73,10 +74,12 @@ export interface CatalogResolutionSelection {
   ) => readonly NodeId[] | undefined;
 }
 type Values = Record<string, Scalar>;
+/** Resolved props: scalars and structured values (string lists, item lists). */
+type Props = Record<string, PropValue>;
 /** The resolving node's parent (and its parent: `via` part rules reach through one wrapper). */
 type ParentContext = {
   definitionId: DefinitionId;
-  props: Values;
+  props: Props;
   /** The parent's resolution state (its display state, else the context's): its part rules'. */
   state?: StateName;
   parent?: ParentContext;
@@ -95,7 +98,7 @@ const structuralParent = (
   return current;
 };
 type InstanceRoot = {
-  props: Values;
+  props: Props;
   visual: Values;
   sizing: Record<string, number | null>;
   /** Authored layout of the instance position (template node / patch), over the root's rules. */
@@ -140,7 +143,7 @@ const WHOLE_TEMPLATE_BINDING = /^\{([a-zA-Z][a-zA-Z0-9_-]*)\}$/;
  * a whole-value reference keeps the bound value's type, an embedded one is replaced by its string.
  * A key without a bound value keeps its placeholder (row-data bindings fill it later).
  */
-function bindTemplateValue(value: Scalar, bindings: Values): Scalar {
+function bindTemplateValue(value: PropValue, bindings: Props): PropValue {
   if (typeof value !== "string" || !value.includes("{")) return value;
   const whole = WHOLE_TEMPLATE_BINDING.exec(value);
   if (whole)
@@ -237,22 +240,22 @@ export function resolveCatalogNode(
       throw new CatalogValidationError("DANGLING_DEFINITION", definitionId);
     return definition;
   };
-  const tokenValue = (value: AuthoredValue): Scalar => {
-    if (typeof value !== "object") return value;
+  const tokenValue = (value: AuthoredValue): PropValue => {
+    if (typeof value !== "object" || !("kind" in value)) return value;
     const token = graph.getToken(value.tokenId);
     if (!token)
       throw new CatalogValidationError("DANGLING_TOKEN", value.tokenId);
     return token.value;
   };
   const applyValues = (
-    target: Values,
+    target: Props,
     values: Readonly<Record<string, AuthoredValue>>,
   ): void => {
     for (const [key, value] of Object.entries(values))
       target[key] = tokenValue(value);
   };
   const applyWrites = (
-    target: Record<string, Scalar | number | null>,
+    target: Record<string, PropValue | null>,
     writes: Readonly<Record<string, WriteValue<AuthoredValue | number | null>>>,
   ): void => {
     for (const [key, write] of Object.entries(writes)) {
@@ -275,7 +278,7 @@ export function resolveCatalogNode(
   }
   const base = (definitionId: DefinitionId) => {
     const definition = lookupDefinition(definitionId);
-    const props: Values = {};
+    const props: Props = {};
     const visual: Values = {};
     const layout: Record<string, string> = {
       ...("layout" in definition ? definition.layout : undefined),
@@ -286,14 +289,14 @@ export function resolveCatalogNode(
   };
   const matches = (
     condition: Readonly<Record<string, Scalar>> | undefined,
-    values: Values,
+    values: Props,
   ): boolean =>
     !condition ||
     Object.entries(condition).every(([key, value]) => values[key] === value);
   /** Conditional rules of the node's own definition, then part rules of its parent definition. */
   const applyTypedRules = (
     definitionId: DefinitionId,
-    props: Values,
+    props: Props,
     visual: Values,
     layout: Record<string, string>,
     parent: ParentContext | undefined,
@@ -343,7 +346,7 @@ export function resolveCatalogNode(
   /** Resolved values of the keys a composite instance authored (not its definition defaults). */
   const instanceRoot = (
     propKeys: readonly string[],
-    props: Values,
+    props: Props,
     visualKeys: readonly string[],
     visual: Values,
     sizing: Readonly<Record<string, number | null>>,
@@ -367,11 +370,11 @@ export function resolveCatalogNode(
    */
   const templateBindings = (
     definitionId: DefinitionId,
-    props: Values,
-  ): Values | undefined => {
+    props: Props,
+  ): Props | undefined => {
     const definition = lookupDefinition(definitionId);
     if (definition.mode !== "composite") return undefined;
-    const bindings: Values = {};
+    const bindings: Props = {};
     for (const key of Object.keys(definition.accepts)) {
       const value =
         props[key] ??
@@ -384,7 +387,7 @@ export function resolveCatalogNode(
   };
   const applyPropVisualRules = (
     definitionId: DefinitionId,
-    props: Values,
+    props: Props,
     visual: Values,
   ): void => {
     const definition = lookupDefinition(definitionId);
@@ -411,7 +414,7 @@ export function resolveCatalogNode(
     node: NodeEntry,
     instancePath: readonly (NodeId | TemplateId)[],
     inherited?: {
-      props: Values;
+      props: Props;
       visual: Values;
       slot?: { name: string; required: boolean };
     },
@@ -516,7 +519,7 @@ export function resolveCatalogNode(
     instancePath: readonly (NodeId | TemplateId)[],
     path: readonly TemplateId[],
     parent?: ParentContext,
-    bindings?: Values,
+    bindings?: Props,
     /**
      * Instance root values: the owning composite instance's authored props, visual and sizing,
      * applied on its template root after the template's own values and before path overrides.
