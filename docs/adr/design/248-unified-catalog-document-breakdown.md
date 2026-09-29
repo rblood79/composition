@@ -219,6 +219,29 @@ H5 수리안은 **main에 미연결 새 모듈을 추가한 뒤 제품 진입점
 
 이 순서의 수용성은 수리 검증 대상이다. default entry에 연결된 기존 store를 Phase 2에서 미리 교체하는 해석은 금지한다. 새 root를 독립시킬 수 없다고 확인되면 branch 또는 임시 read-only projection 예외를 사용자에게 결정받고 본문과 HC를 먼저 변경한다.
 
+### 5.1 Phase 4 실행 분할 (2026-09-30 착수)
+
+**커밋 방식 (사용자 2026-09-30 "미커밋이 아니라 주요 분기점이라 판단되면 커밋해라")**: main에 분기점마다 커밋한다. 각 커밋에서 기본 앱은 구 경로 또는 완결된 새 경로 중 하나만 실행한다. 중간 포맷을 실행하는 커밋은 0이다. branch·read-only projection 예외는 쓰지 않는다.
+
+**착수 실측 (제품 코드, 테스트 제외)**:
+
+- 쓰기: 문서를 바꾸는 이름 약 129개 — Element store 44 · Inspector 16 · canonical store 24(제품 호출 10) · wrapper 9 · 도메인 함수 약 35. 호출 family 13, HistoryEntry type 15. 5단계 순서를 강제하는 구현은 `runCanonicalMutation`(`canonicalMutationRunner.ts:124`) 하나이고, 나머지 액션은 순서를 각자 쓴다(Inspector `updateAndSave`는 Element를 canonical보다 먼저 바꾼다). events 쓰기는 history를 남기지 않는다.
+- 읽기: 편집 1회마다 scene 전체 재구성(`scene/canonicalSceneModel.ts`), projection stableSerialize(`scene/buildSceneSnapshot.ts`), 페이지 layout signature(`hooks/useLayoutPublisher.ts` → `scene/layoutCache.ts`), DFS 배치 전량과 JSON diff(`layout/engines/fullTreeLayout.ts`), renderNodesMap 참조 비교(`StoreRenderBridge.detectChangedIds`), Preview 문서 전체 전송·전체 resolve(`useIframeMessenger.ts`, `preview/App.tsx`), mirror 재투영(`elements.ts` `_rebuildIndexes`), IDB 전체 split(`incrementalDocuments.ts`), 패널 read index 재구성.
+- 진입 교체 지점: `usePageManager.ts` `initializeProject`(`setDocument`, `canonicalDocumentToElements`+`hydrateProjectSnapshot`), fan-out `useActiveCanonicalDocument`.
+- 새 runtime 부족분: 모든 페이지를 한 root 아래 평탄화(페이지별 frame·placement 없음), viewport 고정, 생성 시 고정된 전역 state 1개, Canvas 테마 light 고정, breakpoint·interaction·data 행 projection·asset·선택 소비자 없음, 구조 전용 op 없음(owner `put`), Preview payload 없음.
+
+규모: 교체 대상 제품 파일 249(G0 처분)와 새 runtime 기능 보강이 함께 필요하다. "entry import 교체" 표현 대비 1.5배 이상이며 adr-writing의 사후 보고 대상이다. 승인 범위 자체의 변경은 아니다(§3.4 "기능 삭제로 graph 단순화를 달성하지 않는다").
+
+| 단계            | 내용                                                                                                                                                                          | 제품 연결 | 완료 조건                                          |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | -------------------------------------------------- |
+| 4a runtime 기능 | transaction 결과의 영향 요약(affectedParents · affectedPages · 구조/layout 구분), 페이지별 root·placement, viewport 변경, 테마·dark, breakpoint, 구조 op(insert/move/reorder) | 미연결    | unit, 5k leaf 카운트 불변                          |
+| 4b 명령 계층    | 약 129개 mutation 이름 → typed command. 사용자 조작 1개 = transaction 1개 = history 1개. events·theme·page도 같은 history                                                     | 미연결    | G2 대응 unit                                       |
+| 4c 읽기 계층    | 패널·Layers·Inspector selector(entry/resolved field 구독), 선택·hover 세션 상태(문서 밖)                                                                                      | 미연결    | unit                                               |
+| 4d Preview·저장 | Preview payload(graph snapshot + delta, revision gap 재요청), 새 IDB namespace 연결, JSON·폴더, 구 포맷 `UNSUPPORTED_PROJECT_FORMAT`                                          | 미연결    | unit, G4 독립 경로                                 |
+| 4e 전환·제거    | entry 교체, Canvas = compositionRoot + canvasBinding, 소비자 import 교체, publish 진입점 명시 실패, Builder 구 경로 삭제                                                      | 연결      | live G3·G4, 5k 제품 경로 카운트(§7), paired G5, G6 |
+
+4e는 나누지 않는다. 4a~4d의 새 모듈은 구 파일과 저장소에 함께 있지만 실행되는 쪽은 언제나 하나이므로 dual-write가 아니다. 구 파일은 4e에서 삭제한다(삭제 목록은 [처분 후보](248-baseline/retirement-inventory.json) 기준).
+
 ## 6. 검증 상세
 
 | Gate | fixture/조작                                                                                                                                                                      | oracle                                                                                                                                                                                                    |
