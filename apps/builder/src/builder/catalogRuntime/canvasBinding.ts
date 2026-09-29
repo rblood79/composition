@@ -21,6 +21,12 @@ import {
 } from "./compositionRoot";
 import type { SlotChromeInput } from "./slotChrome";
 import {
+  applyCatalogAuthoredPaint,
+  catalogCssColorRgba,
+  hasCatalogAuthoredPaint,
+  isTypedCatalogColor,
+} from "./authoredStyle";
+import {
   CATALOG_BINDING_VISUAL_KEYS,
   catalogBoxModel,
   catalogGlyphSize,
@@ -47,6 +53,9 @@ const supportedVisualKeys = CATALOG_BINDING_VISUAL_KEYS;
 
 function rgba(value: unknown): Float32Array {
   if (value === undefined || value === null) return Float32Array.of(0, 0, 0, 0);
+  // An authored CSS color (rgb(a), hsl(a), hex8 …) goes through the old app's CSS color parser.
+  if (!isTypedCatalogColor(value) && typeof value === "string")
+    return catalogCssColorRgba(value);
   value = cssVarColor(value, "light");
   if (value === "black") value = "#000000";
   if (value === "white") value = "#ffffff";
@@ -150,7 +159,8 @@ function containerWithAuthoredPaint(
 ): SkiaNodeData {
   return node.visual.fill != null ||
     node.visual.borderColor != null ||
-    node.visual.borderWidth != null
+    node.visual.borderWidth != null ||
+    hasCatalogAuthoredPaint(node)
     ? box(node, rect)
     : container(node, rect);
 }
@@ -280,6 +290,35 @@ function ruleNodeData(
     x: rect.x,
     y: rect.y,
   };
+}
+
+/**
+ * One node's Canvas data: its binding (or rule executor), the authored paint overlay
+ * (`authoredStyle.ts`) and the resolved opacity — the same for the initial bind and a delta update.
+ */
+function paintedNodeData(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+  rect: Rect,
+  binding: Binding | undefined,
+  parent: CatalogConsumerNode | undefined,
+): SkiaNodeData {
+  return withOpacity(
+    node,
+    applyCatalogAuthoredPaint(
+      node,
+      binding
+        ? binding(
+            node,
+            rect,
+            parent,
+            root.textWraps(node.id),
+            root.labelSuffix(node.id),
+          )
+        : ruleNodeData(root, node, rect),
+      rect,
+    ),
+  );
 }
 
 function bindingKey(node: CatalogConsumerNode): string | undefined {
@@ -413,18 +452,7 @@ export function bindCatalogCanvas(
           ? hiddenNode(node, rect)
           : bindingId === "slot" && context.slotMode === "page"
             ? container(node, rect)
-            : withOpacity(
-                node,
-                binding
-                  ? binding(
-                      node,
-                      rect,
-                      parent,
-                      root.textWraps(node.id),
-                      root.labelSuffix(node.id),
-                    )
-                  : ruleNodeData(root, node, rect),
-              ),
+            : paintedNodeData(root, node, rect, binding, parent),
       );
       registeredIds.push(node.id);
     }
@@ -735,18 +763,7 @@ export function bindCatalogCanvas(
           id,
           node.hidden
             ? hiddenNode(node, rect)
-            : withOpacity(
-                node,
-                binding
-                  ? binding(
-                      node,
-                      rect,
-                      input(node.parentId),
-                      root.textWraps(id),
-                      root.labelSuffix(id),
-                    )
-                  : ruleNodeData(root, node, rect),
-              ),
+            : paintedNodeData(root, node, rect, binding, input(node.parentId)),
         );
       }
       // Patch only the top-most roots: a root inside another root's subtree is rebuilt with it.

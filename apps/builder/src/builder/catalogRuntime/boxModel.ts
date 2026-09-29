@@ -1,3 +1,4 @@
+import { CATALOG_AUTHORED_PAINT_KEYS } from "./authoredStyle";
 import type { CatalogConsumerNode } from "./compositionRoot";
 import { catalogCurrentTextWeight } from "../../../../../packages/shared/src/catalog/resolvers/resolveCatalogRuleCanvasBox";
 
@@ -49,6 +50,7 @@ export interface CatalogBoxModel {
  * an explicit binding error in both consumers (`CATALOG_CANVAS_/CATALOG_DOM_VISUAL_UNSUPPORTED`).
  */
 export const CATALOG_BINDING_VISUAL_KEYS: ReadonlySet<string> = new Set([
+  ...CATALOG_AUTHORED_PAINT_KEYS,
   "fill",
   "borderColor",
   "borderWidth",

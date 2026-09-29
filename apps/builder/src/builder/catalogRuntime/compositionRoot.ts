@@ -82,6 +82,10 @@ export interface CatalogConsumerNode {
   readonly layout: ResolvedCatalogNode["layout"];
   readonly sizing: ResolvedCatalogNode["sizing"];
   readonly placement: ResolvedCatalogNode["placement"];
+  /** Authored paint layers and fill intent (ADR-248 Phase 4a); absent = definition paint. */
+  readonly fills?: ResolvedCatalogNode["fills"];
+  readonly fillSizing?: ResolvedCatalogNode["fillSizing"];
+  readonly themeOverride?: ResolvedCatalogNode["themeOverride"];
   readonly slot: ResolvedCatalogNode["slot"];
   readonly name: ResolvedCatalogNode["name"];
   readonly regions: ResolvedCatalogNode["regions"];
@@ -104,6 +108,16 @@ export interface CatalogConsumerNode {
    * track's fill): the Canvas paints them over the resolved props; the DOM owner renders its own.
    */
   readonly derivedProps?: Readonly<Record<string, string | number | boolean>>;
+}
+/** The optional authored fields a record carries only when the resolved node declares them. */
+function authoredFields(
+  node: ResolvedCatalogNode,
+): Pick<CatalogConsumerNode, "fills" | "fillSizing" | "themeOverride"> {
+  return {
+    ...(node.fills ? { fills: node.fills } : {}),
+    ...(node.fillSizing ? { fillSizing: node.fillSizing } : {}),
+    ...(node.themeOverride ? { themeOverride: node.themeOverride } : {}),
+  };
 }
 export interface CatalogRootMetrics {
   readonly revision: number;
@@ -1223,6 +1237,7 @@ export class CatalogCompositionRoot {
       layout: target.layout,
       sizing: target.sizing,
       placement: top.placement ?? target.placement,
+      ...authoredFields(target),
       slot: top.slot ?? target.slot,
       name: top.name ?? target.name,
       regions: top.regions ?? target.regions,
@@ -1671,13 +1686,21 @@ export class CatalogCompositionRoot {
       const valueId = before.collapsedIds?.at(-1);
       const resolved = valueId ? find(top, valueId) : top;
       if (!resolved) throw new Error(`RESOLVED_INSTANCE_MISSING:${valueId}`);
+      // The authored optional fields follow the new resolution (an undo can drop them).
+      const {
+        fills: _fills,
+        fillSizing: _fillSizing,
+        themeOverride: _themeOverride,
+        ...kept
+      } = before;
       const record: CatalogConsumerNode = {
-        ...before,
+        ...kept,
         props: resolved.props,
         visual: resolved.visual,
         layout: resolved.layout,
         sizing: resolved.sizing,
         placement: top.placement ?? resolved.placement,
+        ...authoredFields(resolved),
         slot: top.slot ?? resolved.slot,
         name: top.name ?? resolved.name,
         regions: top.regions ?? resolved.regions,

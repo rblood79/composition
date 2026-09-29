@@ -1,3 +1,9 @@
+import {
+  CATALOG_AUTHORED_PAINT_KEYS,
+  catalogAuthoredDomStyle,
+  catalogAuthoredPaintCss,
+  isTypedCatalogColor,
+} from "./authoredStyle";
 import * as RAC from "react-aria-components";
 import {
   cloneElement,
@@ -84,6 +90,9 @@ function cssLength(value: CatalogLength | undefined): string | undefined {
 function cssColor(value: unknown, alpha = 1): string | undefined {
   if (value === undefined || value === null) return undefined;
   if (value === "transparent") return "transparent";
+  // An authored CSS color (validated by the document) is its own CSS text.
+  if (alpha === 1 && typeof value === "string" && !isTypedCatalogColor(value))
+    return value;
   // A theme token in CSS form (`var(--accent-subtle)`) is the document's own reference.
   if (alpha === 1 && typeof value === "string" && CSS_VAR.test(value))
     return value;
@@ -163,6 +172,22 @@ export function catalogDomStyle(
       ? { overflow: String(visual.overflow) as CSSProperties["overflow"] }
       : {}),
   };
+  // Authored paint (effects, per-corner radius, per-side width, fill layers): the same CSS
+  // record the Canvas converts (`authoredStyle.ts`).
+  Object.assign(style, catalogAuthoredDomStyle(node));
+  if (
+    !(borderWidth > 0) &&
+    ["borderTopWidth", "borderRightWidth", "borderBottomWidth", "borderLeftWidth"].some(
+      (key) => visual[key] !== undefined,
+    )
+  ) {
+    if (visual.borderColor === undefined)
+      throw new Error(`CATALOG_DOM_STROKE_COLOR_REQUIRED:${node.id}`);
+    style.borderStyle = String(visual.borderStyle ?? "solid") as CSSProperties["borderStyle"];
+    style.borderColor = cssColor(visual.borderColor);
+    style.borderWidth = 0;
+    Object.assign(style, catalogAuthoredPaintCss({ visual }));
+  }
   if (isText) {
     const metrics = catalogTextMetrics(node, parent);
     Object.assign(style, {
@@ -516,6 +541,13 @@ const AUTHORED_CSS: Readonly<
   borderStyle: (value) => ({
     borderStyle: String(value) as CSSProperties["borderStyle"],
   }),
+  ...Object.fromEntries(
+    [...CATALOG_AUTHORED_PAINT_KEYS].map((key) => [
+      key,
+      (value: unknown) =>
+        catalogAuthoredPaintCss({ visual: { [key]: value as never } }) as CSSProperties,
+    ]),
+  ),
 };
 
 /** Registered components that drop DOM rest props (the shared Table takes `data-element-id` only). */
@@ -782,6 +814,9 @@ function authoredStyle(
     noSheet ? node.layout : catalogAuthoredLayout(root, node),
   ))
     (style as Record<string, string>)[key] = value;
+  // Authored fill layers over the class CSS background.
+  if (node.fills?.length)
+    Object.assign(style, catalogAuthoredDomStyle({ visual: {}, fills: node.fills }));
   // Authored absolute placement (from the parent's padding box), as the native box bindings.
   if (node.placement?.kind === "absolute")
     Object.assign(style, {
