@@ -118,7 +118,6 @@
     display: flex;
     align-items: center;
     width: 100%;
-    height: var(--control-size-lg);
     gap: var(--spacing-2xs);
     padding: var(--spacing-2xs);
     border-radius: var(--radius-md);

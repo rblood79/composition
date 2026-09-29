@@ -135,16 +135,19 @@
 
 > **2026-09-29 ADR-249 Proposed**: 빌더 전체 메뉴 개편 (Framer 메뉴 어법 — 검색 · 작업 공간 구역 · 계층 · 비활성 표시). 열림 7 (Proposed 6 · Accepted 1), 합계 276. **같은 날 Accepted + P0~P4 구현** (`/execute-adr 249`): G0 인벤토리 7/7 (변이 RED 4) · G1/G3 live 23/23 (headed Playwright, scope 인자 원복 RED) · G2 Builder initial JS gzip −50 B (lazy chunk 가 initial 공유 청크를 쪼개던 것을 `headerMenuRuntime` 주입으로 해소 · 새 번역 키 5). 실행 중 사용자 지시: 작업 공간 방향 머리글 제거 · 패널 항목에 레일 아이콘 · 도움 구역 (명령 팔레트 · 설정 · 도움말) · 명령 이름 축약 (대시보드 · Workflow · 명령 팔레트 · 설정) · 레일에서 테마 · 작업 내역 버튼 제거 · 켜짐 표시 = 아이콘 칸 채움 · 메뉴 아이콘 16. **같은 날 Implemented** (사용자 커밋 지시).
 
+> **2026-09-28 ADR-248 Accepted · G0 착수 및 파일 집계 대조**: 통합 catalog graph로 정의·인스턴스·저장 모델을 통합하고 canonical·잔존 spec을 제거하는 설계. 보존할 프로젝트 0 전제로 구 데이터 migration·호환 adapter·dual-write 제외. 현재 열림 6 (Proposed 5 · Accepted 1), 완료 디렉터리 ADR/설계 269 (번호 있는 파일 274 − baseline/참조 5), 합계 275. 아래 Implemented 집계에는 과거 `Complete`/`Completed` 표기 3건을 포함하고, 기타 2건은 Proposed 보관 문서 1건과 Status 없는 export 설계 1건이다. 과거 문서의 Status는 변경하지 않았다.
+
 | 구분                          |    개수 |
 | ----------------------------- | ------: |
-| 완료 (`completed/`)           |     269 |
-| ├ Implemented                 |     230 |
-| ├ Accepted                    |      13 |
+| 완료 (`completed/`)           |     270 |
+| ├ Implemented / Complete(d)   |     227 |
+| ├ Accepted                    |      15 |
 | ├ Superseded                  |      14 |
-| └ Deprecated                  |       9 |
-| 열려 있는 것 (`adr/*.md`)     |       7 |
-| ├ Proposed                    |       7 |
-| ├ Accepted (미착수·일부 착수) |       0 |
+| ├ Deprecated                  |      12 |
+| └ 기타 보관 문서              |       2 |
+| 열려 있는 것 (`adr/*.md`)     |       6 |
+| ├ Proposed                    |       5 |
+| ├ Accepted (미착수·일부 착수) |       1 |
 | └ 부분 완료                   |       0 |
 | **합계**                      | **276** |
 
@@ -159,11 +162,11 @@
 
 ## 지금 열려 있는 것
 
-### 진행 중 / 미구현 (Proposed / In Progress)
+### 진행 중 / 미구현 (Proposed / Accepted / In Progress)
 
 #### [248](248-unified-catalog-document.md) — 통합 catalog 문서 모델과 canonical·잔존 spec 제거
 
-- **상태**: Proposed — 2026-09-28 · 리뷰 round 1 (HIGH 6) → round 2 수리 검증 HIGH 0 · 사용자 판정 H1/H2/H4 확정. Accepted 는 사용자 지시 대기.
+- **상태**: Accepted — 2026-09-28 (사용자 "ADR-248 완료까지 착수 시작해") · 리뷰 round 1 (HIGH 6) → round 2 수리 검증 HIGH 0 · 사용자 판정 H1/H2/H4 확정. G0·G1·독립 G2 PASS. [Phase 3 독립 소비자 점검](design/248-phase3-g3-g5-evidence.md)에서 leaf delta 순회 반례를 수리하고 Pencil 3/5를 직접 왕복했으나 G3 실제 시각 비교, Pencil 나머지 2개와 G5 실측은 미완료. 전체 G4/G5/G6 미검증. 제품 전환 없음.
 - **규모**: 대안 E — 코드 catalog 라이브러리 read-only 참조 + 프로젝트 override/사용자 definition 을 하나의 typed graph·transaction 으로 관리하고 Builder 의 canonical·잔존 spec (Frame/Group/Slot) 을 제거. collections·api_endpoints·project variables 는 ADR-131 별도 data SSOT 유지 (ID 참조만). `apps/publish` 는 후속 — Implemented 는 Publish 전환 뒤. 구 데이터 migration·호환 adapter·dual-write 제외. main 미연결 새 모듈 → 단일 entry 전환. [리뷰](reviews/248.md) · [design/248](design/248-unified-catalog-document-breakdown.md)
 
 #### [244](244-canvaskit-wasm-early-fetch-and-service-worker-cache.md) — 초기 로드: CanvasKit wasm 미리 받기 · 고유 경로화 (Service Worker precache 는 측정 조건부 보류)
@@ -255,7 +258,7 @@
 
 ---
 
-## 완료 ADR (258)
+## 완료 ADR (270)
 
 > 상세는 각 본문이 정본이다. 구 README 의 **비고** 열 서술 (최장 셀 14KB — ADR-912 행이 표
 > 전체를 그 폭으로 채워 3.2MB 를 만들었다) 은

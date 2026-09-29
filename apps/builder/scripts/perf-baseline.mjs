@@ -275,7 +275,7 @@ const PROBE_SCRIPT = `(() => {
 })();`;
 
 // ── boot ─────────────────────────────────────────────────────────────────────
-export function loadStorageState(path) {
+export function loadStorageState(path, targetOrigin) {
   const storageState = JSON.parse(readFileSync(path, "utf8"));
   // 인증은 localStorage `composition-license-auth` 하나 (dev/prod 동일 키). 없으면 /signin 으로 튕겨
   // 측정이 무의미하므로 여기서 끊는다 — `node apps/builder/scripts/capture-auth-session.mjs <code>` 로 만든다.
@@ -286,6 +286,25 @@ export function loadStorageState(path) {
     throw new Error(
       `${path} 에 composition-license-auth 가 없다 — capture-auth-session.mjs 로 다시 만들 것`,
     );
+  }
+  if (
+    targetOrigin &&
+    !(storageState.origins ?? []).some(
+      (origin) => origin.origin === targetOrigin,
+    )
+  ) {
+    const target = new URL(targetOrigin);
+    const source = storageState.origins.find((origin) => {
+      const url = new URL(origin.origin);
+      return (
+        url.protocol === target.protocol &&
+        url.hostname === target.hostname &&
+        origin.localStorage?.some(
+          (entry) => entry.name === "composition-license-auth",
+        )
+      );
+    });
+    if (source) storageState.origins.push({ ...source, origin: target.origin });
   }
   return storageState;
 }
@@ -2416,7 +2435,10 @@ async function runColdEntries(browser, options, storageState) {
 async function main() {
   const options = parseArgs(process.argv.slice(2));
   mkdirSync(options.out, { recursive: true });
-  const storageState = loadStorageState(options.storageState);
+  const storageState = loadStorageState(
+    options.storageState,
+    new URL(options.baseUrl).origin,
+  );
   const browser = await chromium.launch({
     channel: "chrome",
     headless: !options.headed,

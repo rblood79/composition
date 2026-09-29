@@ -87,7 +87,7 @@
   .header-menu-separator,
   .context-menu-separator {
     block-size: 1px;
-    margin: var(--spacing-xs) 0 calc(var(--spacing-xs) - 1px);
+    margin: var(--spacing-xs) 0;
   }
 
   /* ── 툴팁 (28) — ActionTooltip(RAC) 과 ShortcutTooltip(액션 바) 한 규격 ── */

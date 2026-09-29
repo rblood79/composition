@@ -1,15 +1,48 @@
 import assert from "node:assert/strict";
+import { mkdtempSync, writeFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { test } from "node:test";
-import { resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { runInNewContext } from "node:vm";
 import {
   FRAME_CLASSES,
+  loadStorageState,
   parseArgs,
   RECORDER_SCRIPT,
   summarizeRecording,
   summarizeTaskMetrics,
 } from "./perf-baseline.mjs";
+
+test("production port 인증은 같은 hostname에만 메모리에서 복사한다", (t) => {
+  const dir = mkdtempSync(join(tmpdir(), "composition-perf-auth-"));
+  t.after(async () => {
+    const { rm } = await import("node:fs/promises");
+    await rm(dir, { recursive: true, force: true });
+  });
+  const path = join(dir, "state.json");
+  writeFileSync(
+    path,
+    JSON.stringify({
+      origins: [
+        {
+          origin: "http://localhost:5173",
+          localStorage: [
+            { name: "composition-license-auth", value: "fixture" },
+          ],
+        },
+      ],
+    }),
+  );
+  const local = loadStorageState(path, "http://localhost:4173");
+  assert.equal(local.origins.length, 2);
+  assert.equal(local.origins[1].origin, "http://localhost:4173");
+  assert.equal(local.origins[1].localStorage[0].value, "fixture");
+  assert.equal(
+    loadStorageState(path, "http://other.test:4173").origins.length,
+    1,
+  );
+});
 
 async function record(samples, layerTreeRows = 0) {
   let now = 0;

@@ -80,7 +80,6 @@ CLAUDE.local.md
 .agents/skills/source-command-*/
 
 # Local docs / evidence (커밋 금지)
-docs/react-aria-starter/
 docs/react-aria/
 docs/pencil-extracted/
 docs/pencil-copy/
@@ -93,3 +92,7 @@ apps/builder/token
 apps/builder/token.jwt
 apps/builder/public/license
 apps/builder/scripts/.auth-session*.json
+
+# Builder harness run outputs
+apps/builder/scripts/.out/
+apps/builder/scripts/.tmp-panel-cap/
