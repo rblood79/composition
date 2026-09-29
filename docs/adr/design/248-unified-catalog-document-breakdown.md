@@ -242,6 +242,21 @@ H5 수리안은 **main에 미연결 새 모듈을 추가한 뒤 제품 진입점
 
 4e는 나누지 않는다. 4a~4d의 새 모듈은 구 파일과 저장소에 함께 있지만 실행되는 쪽은 언제나 하나이므로 dual-write가 아니다. 구 파일은 4e에서 삭제한다(삭제 목록은 [처분 후보](248-baseline/retirement-inventory.json) 기준).
 
+**4a 진행 (2026-09-30, 커밋 순)** — 모두 제품 entry 미연결, 새 runtime·shared 테스트와 adr248 브라우저 parity·G3 4 장면 (base/axis/state/child) 로 확인:
+
+| 커밋        | 내용                                                                                                                                                                                                                             |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `015dfa6cd` | 노드 저작 schema — layout writes · Style 패널 style 키 25 · fills (Fill 패널 6종) · fillSizing · tablet/mobile 층 · breakpoint visibility · themeOverride. G0 는 `props.style` 을 `node.props` 로 묶어 이 격차가 드러나지 않았다 |
+| `7c06d0335` | transaction `impact` (affectedParents · affectedPages · structural · layout) · 구조 편집의 국소 검증 (5k 삽입 읽기 10,013 → <200, 전체 검증기와 차등 oracle 일치) · G0 guard 의 새 모델 root 는 "밖 import 0" 검사               |
+| `30c04ec3f` | 저작 paint — 한 CSS 레코드를 DOM inline 과 구 앱 순수 변환기 (buildBoxNodeData · fillsToSkia) 가 같이 소비 · 저작 CSS 색                                                                                                         |
+| `417114736` | 저작 글꼴 — 자기 값·조상 상속 (`inheritedText`) 을 Canvas·측정·DOM 이 같은 값으로 · record 비교 누락 (fills 만 바뀐 편집) 수리                                                                                                   |
+| `8d9511075` | 저작 layout — fill 의도 (`fillLayout`) · 네 변 inset · aspectRatio · max · `authoredLayout` (part rule 이중 inline 방지) · 값 편집 op 목록 누락 (page root 전체 재평탄화) 수리                                                   |
+| `88e5920cd` | GeometryDelta 간헐 실패 = 하니스 구독 타이밍 (제품 결함 아님)                                                                                                                                                                    |
+| `985a8cc41` | 제품 페이지 frame — ADR-232 격자를 같은 layout tree 에서 · breakpoint 해석 · `pageFrameRects()`                                                                                                                                  |
+| `284d1fe5b` | Canvas 테마 색 모드 (light 고정 해소)                                                                                                                                                                                            |
+
+4a 남은 항목: 페이지 schema (중첩 route `parentId` · reusable layout 참조 — 페이지 body 를 layout definition 인스턴스로 표현하는 안), Components 페이지 (definition 파생 view), `autoColumns` 갱신, `node.metadata` typed allowlist · `project.externalImports` (G0 목적지 미구현), 구조 전용 op 필요 여부 (현재 owner `put` 으로 충분 — 4b 명령 계층에서 판단).
+
 ## 6. 검증 상세
 
 | Gate | fixture/조작                                                                                                                                                                      | oracle                                                                                                                                                                                                    |
