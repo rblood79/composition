@@ -1,3 +1,4 @@
+import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { commands, page as browserPage } from "vitest/browser";
@@ -192,11 +193,15 @@ async function runCase(
   document.body.append(host);
   const reactRoot = createRoot(host);
   const renders: string[] = [];
-  reactRoot.render(
-    renderCatalogDom(root, ids.frame, {
-      onNodeRender: (id) => renders.push(id),
-    }),
-  );
+  // Commit and subscribe before the edit: a DOM notify counts delivered notifications, and a
+  // subscription made after the edit catches up through the snapshot check instead (notify 0).
+  await act(async () => {
+    reactRoot.render(
+      renderCatalogDom(root, ids.frame, {
+        onNodeRender: (id) => renders.push(id),
+      }),
+    );
+  });
   await frames();
   const initial = {
     canvasRegistered: canvas.stream.boundsMap.size,
