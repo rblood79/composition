@@ -410,6 +410,8 @@ export interface PageEntry {
   guideEntries?: Partial<
     Record<BreakpointName, readonly PageGuideDeclaration[]>
   >;
+  /** Nested route: the parent page (route hierarchy only; pages stay separate frames). */
+  parentId?: EntryId<"page">;
 }
 export interface DefinitionEntry {
   kind: "definition";
@@ -422,6 +424,11 @@ export interface DefinitionEntry {
   stateRules: StateRules;
   bindingId?: string;
   templateRootId?: NodeId;
+  /**
+   * `layout`: a reusable page layout — a page applies it by making its body an instance of this
+   * definition and filling the template's slots. Absent = a component definition.
+   */
+  usage?: "component" | "layout";
 }
 export interface DefinitionOverrideEntry {
   kind: "definitionOverride";

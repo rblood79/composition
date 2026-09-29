@@ -101,6 +101,7 @@ function referencedIds(entry: CatalogEntry): string[] {
   }
   if (entry.kind === "stateVariable") ids.push(entry.ownerId);
   if (entry.kind === "theme") ids.push(...entry.tokenIds);
+  if (entry.kind === "page" && entry.parentId) ids.push(entry.parentId);
   return ids;
 }
 function edgesOf(entry: CatalogEntry): Edge[] {
@@ -837,6 +838,20 @@ export class CatalogGraph {
               entry.action.variableId,
             );
         }
+      }
+    }
+    if (entry.kind === "page" && entry.parentId) {
+      const seen = new Set<string>([entry.id]);
+      for (
+        let cursor: string | undefined = entry.parentId;
+        cursor;
+        cursor = (get(cursor) as { parentId?: string } | undefined)?.parentId
+      ) {
+        if (seen.has(cursor))
+          throw new CatalogValidationError("PAGE_PARENT_CYCLE", entry.id);
+        seen.add(cursor);
+        if (get(cursor)?.kind !== "page")
+          throw new CatalogValidationError("DANGLING_PARENT_PAGE", cursor);
       }
     }
     if (entry.kind === "stateVariable") {

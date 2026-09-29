@@ -921,10 +921,13 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
           "children",
           "placement",
           "guideEntries",
+          "parentId",
         ],
         "entry",
       );
       string(item.route, "entry.route");
+      if (item.parentId !== undefined)
+        id(item.parentId, "project:page:", "entry.parentId");
       string(item.name, "entry.name");
       list(item.children, "project:node:", "entry.children");
       if (item.placement !== undefined)
@@ -946,12 +949,19 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
           "stateRules",
           "bindingId",
           "templateRootId",
+          "usage",
         ],
         "entry",
       );
       string(item.name, "entry.name");
       if (!["primitive", "composite", "native"].includes(item.mode as string))
         invalid("INVALID_DEFINITION_MODE", "entry.mode");
+      if (
+        item.usage !== undefined &&
+        item.usage !== "component" &&
+        item.usage !== "layout"
+      )
+        invalid("INVALID_DEFINITION_USAGE", "entry.usage");
       accepts(item.accepts, "entry.accepts");
       values(item.defaults, "entry.defaults");
       values(item.visual, "entry.visual", visualFields);
