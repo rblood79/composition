@@ -131,6 +131,8 @@ Frame/Group/Slot의 시각 정의를 옮기고 기존 문서 모델을 유지한
 
 위험 수용 근거는 보존할 데이터가 없고, 새 형식의 생성부터 Builder Preview까지 전 경로를 전환 전에 독립 검증할 수 있다는 점이다. 성능 개선은 채택 전제가 아니라 검증 대상이다.
 
+**목적의 우선순위 (2026-09-30 재확인):** 1차 목적은 저작 SSOT·transaction·ref/override 해석을 단일 경계로 모아 아키텍처를 안정화하는 것이다. 변경 시점의 ID와 영향 관계를 소비자가 이어받으면 전체 문서에서 변경분을 다시 찾는 JS 작업을 줄일 수 있지만, 이는 제품 연결 후 증명할 2차 효과다. JS↔WASM 호출·인코딩 병목 해결을 자동 효과로 주장하지 않는다. 새 dependency engine·cache framework·worker·binary protocol·renderer 교체는 이 결정을 실행하기 위한 선행 조건이 아니다. 세부 증분 소비와 측정 범위는 [breakdown §4.1·§6.2](design/248-unified-catalog-document-breakdown.md)에 둔다.
+
 ## Risks
 
 | ID  | 위험과 코드 경로                                                                                                            | 심각도 | 대응                                                                                   |
@@ -153,10 +155,10 @@ Frame/Group/Slot의 시각 정의를 옮기고 기존 문서 모델을 유지한
 | G2   | 편집 경로      | 생성·이동·삭제·reset·detach·override·binding 참조 편집 Undo/Redo 동일성, 실패 시 상태/history/revision 변화 0                                                   | transaction/history 수리                                 |
 | G3   | 렌더 경로      | 전 등록 type/state manifest 및 Frame/Group/Slot Canvas live, Preview DOM unit + 사용자 확인, geometry/pixel HC6, RAC 접근성 동작 보존                           | resolver/binding/emitter 수리; spec fallback 재도입 금지 |
 | G4   | 저장·교환 경로 | 새 catalog 포맷의 생성→편집→저장→refresh→export/import, IDB·JSON·폴더 저장, 실패·충돌·stale payload 처리; old format reader 0; Builder publish 진입점 명시 실패 | 해당 새 경계 수리, 제품 전환 보류                        |
-| G5   | 통합 후        | HC6 성능·메모리·저장 크기 및 유효 bundle budget, leaf 편집 전체 scan 0                                                                                          | index/storage 최적화; 예산 변경은 별도 결정              |
+| G5   | 통합 후        | HC6 성능·메모리·저장 크기 및 유효 bundle budget, leaf 편집 전체 scan 0; 제품 경로의 변경 감지·projection·layout 준비 결정적 카운트 (§6.2) 확인                  | index/storage 최적화; 예산 변경은 별도 결정              |
 | G6   | 제거·완료      | Builder import graph의 canonical/legacy alias/adapter/spec 정의 0, 공용 specs 의존 이동 완료, TS/build/인접 테스트/live 통과. 저장소 전체 0은 Publish 후속      | 잔존 소비자 전환 후 재검증, Implemented 보류             |
 
-R1→G0/G1/G3, R2→G2/G4, R3→G3, R4→G1/G5, R5→G0/G1/G4/G6, R7→G1/G4, R8→G4로 대응한다. **Phase 0 G0는 [구 앱 기준선](design/248-baseline/g0-gate.json)에서 PASS, Phase 1 G1은 [독립 모델 근거](design/248-phase1-g1-evidence.md)에서 PASS, Phase 2 G2는 [독립 runtime 근거](design/248-phase2-g2-g4-evidence.md)에서 PASS다. [Phase 3 독립 소비자 점검](design/248-phase3-g3-g5-evidence.md)은 단일 root leaf 전체 순회 반례를 60/600/5k 결정적 카운트로 수리했다. 최신 등록 type/state census는 기본 type 12/130 실행, composite 64종 중 완전 template 1종, typed state rule 0/468로 G3 미충족을 확인했다. G3는 FAIL, 전체 G4/G5/G6는 UNVERIFIED**다. 제품 전환·시각/성능 gate 통과를 의미하지 않는다.
+R1→G0/G1/G3, R2→G2/G4, R3→G3, R4→G1/G5, R5→G0/G1/G4/G6, R7→G1/G4, R8→G4로 대응한다. **Phase 0 G0는 [구 앱 기준선](design/248-baseline/g0-gate.json)에서 PASS, Phase 1 G1은 [독립 모델 근거](design/248-phase1-g1-evidence.md)에서 PASS, Phase 2 G2는 [독립 runtime 근거](design/248-phase2-g2-g4-evidence.md)에서 PASS다. Phase 3은 2026-09-30 독립 소비자 검증과 전환 준비를 마치고 커밋·push했다(사용자 완료 판정; [근거와 남은 사례](design/248-phase3-g3-g5-evidence.md)). 독립 G3 장면은 base 62/64, axis 372/386, state 75/75이며 FileUpload는 Phase 4 수리 대상, Icon 입력 불일치와 child 기준선 부재는 UNVERIFIED로 기록했다. 이는 제품 Builder의 live G3 또는 통합 G4/G5/G6 PASS 판정이 아니다.** 제품 연결 후 같은 cutover 변경 안에서 최종 판정한다. Phase 3 근거와 Phase 4 판정 항목, 5k leaf 계약 중 아직 재지 않은 항목(page layout signature · WASM 갱신 node · 전역 ref 검색 0 단언 · 제품 저장/Preview 송신 직렬화)은 [breakdown §7](design/248-unified-catalog-document-breakdown.md)에 대조했다.
 
 **범위 정정 (사용자 2026-09-29)**: 외부 `.pen` 교환은 G4 필수 조건과 Phase 3 차단 항목에서 제외한다. G0의 `.pen` 표본 5개·해시·구 앱 교환 결과([pen-interchange.json](design/248-baseline/pen-interchange.json))는 역사적 기준선으로 보존하고 수정하지 않는다. Phase 3에서 수행한 Pencil 시험(표본 3개 직접 의미 왕복, `sample-descendants.pen`·`sample-imports.pen`의 명시 오류, 유효 descendants·imports fixture 왕복)은 수행 기록으로만 남기며 G4 PASS 근거로 계산하지 않는다. G4는 새 catalog 포맷의 IDB·JSON·폴더 저장, refresh, export/import, 실패·충돌 검증으로 판정한다.
 
@@ -204,4 +206,4 @@ Status 전이: G0~G6 통과(Builder 전환 완료) 뒤에도 Status는 Accepted�
 
 ADR-116/122의 canonical storage/runtime 형식, ADR-142/912의 canonical reusable 결합 및 잔존 spec 결정은 Builder 전환 완료 시 해당 범위가 대체된다. ADR-131의 data store 경계, ADR-184의 쓰기 순서·history 의무, ADR-198의 시각 검증, ADR-235의 저장 안전성, ADR-246의 측정 원칙은 새 모델에 맞춰 유지한다. 기존 ADR 전체의 다른 결정을 일괄 폐기하지 않는다.
 
-현재는 Proposed이므로 과거 ADR 상태와 현행 runtime 규칙을 바꾸지 않는다. 완료 시 부분 대체 범위를 명시하고 `ssot-hierarchy`(잔존 spec 예외 제거)·`state-management`·runtime 계약·README·CHANGELOG를 실제 코드와 맞춘다. 이 문서의 존재만으로 현행 canonical 쓰기 계약의 우회를 허용하지 않는다.
+현재는 Accepted·Phase 4 제품 전환 전이므로 과거 ADR 상태와 현행 runtime 규칙을 바꾸지 않는다. 완료 시 부분 대체 범위를 명시하고 `ssot-hierarchy`(잔존 spec 예외 제거)·`state-management`·runtime 계약·README·CHANGELOG를 실제 코드와 맞춘다. 이 문서의 존재만으로 현행 canonical 쓰기 계약의 우회를 허용하지 않는다.

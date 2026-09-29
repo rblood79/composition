@@ -1,4 +1,6 @@
-# ADR-248 Phase 3 독립 소비자 조립 점검 — 미완료
+# ADR-248 Phase 3 독립 소비자 조립 근거 — 완료
+
+Phase 3의 독립 소비자 검증과 전환 준비는 2026-09-30 완료·커밋·push되었다(사용자 완료 판정). 아래 절은 최신 기록부터 역순으로 쌓인 측정 이력이다. 아래의 과거 **미완료** 문구는 각 측정 시점의 판정이며 현재 Phase 상태가 아니다. FileUpload 수리와 제품 Builder의 live G3, 저장/refresh G4, paired 성능 G5, 제거 G6은 Phase 4 단일 전환 변경 안에서 최종 판정한다. 독립 장면에서 기준 입력을 기록하지 못한 Icon과 child 기준선 부재는 UNVERIFIED로 남긴다.
 
 ## 2026-09-30 Tab·Tag label 글자색 채널 · census 상태 채널 재집계 (최신)
 

@@ -1,6 +1,6 @@
 # ADR-248 구현 설계: 통합 catalog 문서와 canonical 제거
 
-> 상위 결정: [ADR-248](../248-unified-catalog-document.md). **Accepted, Phase 0 착수** — 2026-09-28. 대안 E · 별도 data SSOT 유지 · Publish 후속 (사용자 판정 2026-09-28).
+> 상위 결정: [ADR-248](../248-unified-catalog-document.md). **Accepted, Phase 3 독립 경로 완료·Phase 4 제품 전환 전** — 2026-09-30. 대안 E · 별도 data SSOT 유지 · Publish 후속 (사용자 판정 2026-09-28).
 > 모든 새 타입·경로·명령은 아래에서 목표로 표시한다. 존재하는 코드에 대한 근거와 구분한다.
 
 ## 1. 사용자 전제와 경계
@@ -170,6 +170,8 @@ definition에 `bindingId`, `rendererId`, typed action opcode를 저장한다. RA
 
 목표 `applyCatalogTransaction({ projectId, expectedRevision, ops, history })`는 put/remove 및 필드 patch를 검증해 적용하고 `{ forward, inverse, changedIds, removedIds, revision }`을 반환한다. history 생략은 새 프로젝트 생성/로드 같은 명시 이유가 있을 때만 허용한다.
 
+**증분 소비 계약 (Phase 4):** 현재 `CatalogTransactionResult`는 `changedIds`·`removedIds`와 `revision`을 내고, 소비자는 이 ID와 기존 역인덱스·변경 전후 관계에서 영향 root/instance/page 및 구조·layout 관련성을 계산한다. `affectedParents`·`affectedPages`·flags를 transaction 반환 필드로 새로 추가하는 것은 필수 조건이 아니다. 각 소비자는 영향 집합을 다른 전체 signature/hash/DFS로 재발견하지 않고, 실제 변경의 전파 경로를 증명해야 한다. 단일 leaf 값 편집은 변경 record와 영향 view/layout 입력만 갱신한다. 구조 편집은 영향 subtree, definition·token 편집은 영향 instance 수에 비례하는 별도 경로로 측정한다. 전체 import 검증·full export는 cold path로 구분한다. 이 계약은 WASM 호출 횟수나 인코딩 비용 개선을 가정하지 않는다.
+
 - 하나의 사용자 조작(다중 선택 이동·definition 자손 삭제·override 변경 등)은 하나의 atomic history entry다. data store 편집(collection 필드 rename 등)은 기존 data history가 맡는다. Undo/Redo도 같은 validator/reducer를 사용한다.
 - snapshot 전체 clone 대신 바뀐 record만 교체한다. 함수형 컴포넌트는 ID/필드 selector로 구독한다. 전체 entries identity에 모든 패널을 구독시키지 않는다.
 - definition→instance, owner→child, token→consumer, collection→binding 역인덱스를 파생한다. 무효화는 실제 영향 closure로 한정한다.
@@ -269,6 +271,8 @@ G5의 제안 예산(성능 개선 실측 주장이 아님):
 
 - A/B 각 5회, warm-up 제외, 동일 입력 100회 이상/조작, 각 paired run의 p95 비교. 결과 중앙값에 대해 after ≤ before × 1.10 + 2ms. save/load는 before × 1.10 + 10ms. 편집과 원본 fan-out은 따로 집계한다.
 - 단일 leaf 편집의 전체 문서 scan count 0, 관련 없는 node subscriber 통지 0. 원본 편집 비용은 영향 instance 수에 비례해야 한다.
+- Phase 4 제품 경로의 **5k node 단일 leaf 값 편집**에서 graph 전체 순회, 전체 projection 직렬화, page layout signature 전체 생성, 전역 ref 검색을 각각 0회로 기록한다. layout 입력 구성 방문, WASM 갱신 node, Skia dirty root도 함께 기록하고 영향 집합(k 또는 영향 subtree)에 비례하는지 확인한다. 단순히 새 runtime의 독립 테스트가 통과하거나 마지막 WASM update만 k개인 것으로 이 조건을 대체하지 않는다. 구조 이동·삭제, definition/override fan-out, page 전환, save/load는 입력과 영향 범위가 다르므로 각기 별도 카운트·paired 시간으로 판정한다.
+- 변경 전후 총 비용은 같은 제품 조작의 paired p95로 판단한다. 결정적 카운트가 줄어도 p95가 노이즈 범위면 호출·순회 감소만 보고하고 체감 성능 개선으로 쓰지 않는다. JS↔WASM 인코딩이 실제 병목으로 측정되기 전에는 binary protocol을 도입하지 않는다.
 - retained heap(동일 GC 측정 조건)은 baseline 대비 ≤1.20배다. 저장 byte는 아래 분해식을 적용한다. 측정 환경을 확보하지 못하면 G5 UNVERIFIED다.
 - 각 포맷에서 동일 serializer의 uncompressed JSON byte를 재고, `B0/Bn`=구 포맷 빈 프로젝트/n-node 프로젝트, `P0/Pn`=새 포맷 대응 프로젝트로 정의한다. data store(collections·api_endpoints·project variables)는 양쪽 모두 document byte에서 제외한다(H1 — 저장 경계 불변). asset binary는 별도 동일성 검사하며 document ratio에서 제외한다.
 - 프로젝트의 library snapshot byte는 **0**이다(대안 E). `P0 ≤ B0 + 4,096 B`, `Pn-P0 ≤ 1.20 × (Bn-B0) + 4,096 B`. 앱 library bundle/cache byte와 project `Pn` total을 함께 보고한다. 참고: 리뷰 실측 `COMPONENT_RULES_TABLE` JSON 215,282 B / 129 entry([round 1](../reviews/248.md))는 B 기각 근거이며 E의 프로젝트 byte에는 들어가지 않는다.
@@ -282,9 +286,38 @@ Phase 4 제거 검사는 `CompositionDocument`, `CanonicalNode`, canonical store
 
 ## 7. 현황
 
-### 2026-09-28 로컬 구현 대조 (§4.1, §5, §6.1, §6.2)
+### 2026-09-30 Phase 3 완료와 Phase 4 최종 판정의 경계
 
-이 대조는 현재 미커밋 Phase 0 산출물을 보존한 상태의 판정이다. 제품 gate 통과나 Phase 1 착수를 뜻하지 않는다.
+Phase 3(독립 소비자 검증과 전환 준비)은 2026-09-30 사용자 완료 판정 뒤 커밋·push했다(`cb36b6a95` · `601e992b3` · `03fd65dcb`). 완료 조건은 §5 표의 Phase 3 행 — test entry에서만 조립한 제품 경로 resolver·Canvas·DOM binding의 **전환 전 근거** — 이며, 아래 왼쪽 열이 그 근거다. 오른쪽 열은 Phase 4 단일 cutover 변경 안에서 제품 Builder에 연결한 뒤에만 판정할 수 있다. Phase 3 완료를 G3/G4/G5 PASS로 계산하지 않는다.
+
+| Gate | Phase 3 완료 시점 독립 근거 ([근거 문서](248-phase3-g3-g5-evidence.md))                                                                                                                                                                                                                                      | Phase 4 cutover 안 최종 판정                                                                                                                                                  |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| G3   | 독립 장면 base 62/64 · axis 372/386 · state 75/75 · child 0/34. FAIL은 FileUpload (base 1 · axis 2)로 Phase 4 수리 대상. Icon은 구 시나리오의 아이콘 이름 미기록으로 UNVERIFIED (base 1 · axis 6), child는 구 child 캡처 부재로 UNVERIFIED 33 · NOT_RUN 1. Preview 결함 추종 승인분은 Phase 4 제품 수리 목록 | 실제 Builder live Canvas와 Preview(unit + 사용자 확인)에서 전 등록 type/state · Frame/Group/Slot · RAC 접근성, HC6 수치 그대로. FileUpload 수리와 Preview 결함 추종 항목 포함 |
+| G4   | 새 포맷 IDB·JSON·폴더 저장·복원·export/import와 실패·충돌의 독립 경로 (Phase 2·3)                                                                                                                                                                                                                            | 제품 Builder 생성→편집→저장→refresh, events/actions mirror store 미생성·data 세 store 보존, publish 진입점 명시 실패, `apps/publish` diff 0                                   |
+| G5   | 60/600/5k leaf 결정적 카운트 3/3, 문서 byte 0/1/60/600/5k 5/5 (library snapshot 0 B)                                                                                                                                                                                                                         | 아래 5k leaf 제품 경로 카운트 + 같은 제품 조작의 paired p95 · retained heap · initial/async bundle                                                                            |
+| G6   | 해당 없음 (구 경로 삭제 없음)                                                                                                                                                                                                                                                                                | Builder import graph의 canonical·구 포맷 reader·spec 정의·영구 adapter 0                                                                                                      |
+
+**목적 순서 (ADR Decision 2026-09-30):** Phase 4의 1차 판정은 저작 SSOT·transaction·ref/override 해석이 단일 경계로 모였는지(G1~G4·G6)이고, 성능은 그 결과로 검증할 2차 효과다(G5). 결정적 카운트가 줄어도 paired p95가 노이즈 폭 안이면 "호출·순회 감소"로만 보고한다.
+
+**5k leaf 편집 계약 대조 (§6.2).** Phase 3 시험은 `phase3DeltaScale.test.ts`(60/600/5k)와 `phase3BindingDelta.test.tsx`(Frame 1 + Text 5,000, 실제 Rust wasm layout)이다. 두 시험은 새 runtime의 test entry를 재며, 제품 Builder의 구독·저장·Preview 송신·구 Canvas 경로는 거치지 않는다.
+
+| §6.2 항목 (Phase 4 제품 경로)     | Phase 3 독립 계측                                                                                                                                                               | 대조 결과 · Phase 4에서 할 일                                                                                     |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| graph 전체 순회 0                 | `transactionEntriesTraversed` 0 · entry table clone 0 · record 교체 1 · `traversedWholeInputGraph` false                                                                        | 새 runtime 한정 충족. 제품 dispatch(패널·AI·단축키 입력)에서 같은 카운터로 재기록                                 |
+| 전체 projection 직렬화 0          | `entries`를 가진 객체의 `JSON.stringify` 0 · record 직렬화 ≤3 · leaf 중 `exportDocument` 호출 0                                                                                 | 새 runtime 한정 충족. 제품 저장(dirty-set head/records)과 Preview payload 송신은 Phase 3에 연결되지 않아 미측정   |
+| page layout signature 전체 생성 0 | 새 runtime에 page 단위 signature 경로가 없다. 구 경로(`scene/layoutCache.ts` · `hooks/useLayoutPublisher.ts` · `renderers/invalidationPacket.ts`)는 Phase 3에서 호출되지 않는다 | **미측정.** cutover 후 이 경로를 제거하거나 5k leaf 편집에서 호출 0을 기록                                        |
+| 전역 ref 검색 0                   | `sourceInstances` 역인덱스로 영향 instance 1 · resolver 방문 2 · 포함 검사 1 (가지치기 수리 전 5,000). 전역 검색을 세는 전용 카운터는 없다                                      | 역인덱스 경로는 확인, "0회" 단언은 없음. 제품 경로에 카운터를 두고 0 기록                                         |
+| layout 입력 구성 방문             | `layoutInputVisits` 1                                                                                                                                                           | 영향 집합 비례 확인. 제품 경로 재기록                                                                             |
+| WASM 갱신 node                    | `buildTreeBatch` 재호출 0만 확인. node별 `updateStyleRaw`·`markDirty` 호출 수 단언 없음                                                                                         | **미측정.** 제품 경로에서 갱신 node 수를 세어 k에 비례하는지 기록                                                 |
+| Skia dirty root                   | patch root 1 · subtree build 1 (방문 1) · Canvas 재등록 1 · 폭 편집 command 교체 3 · 새 전체 build와 command·bounds 동일 · DOM 렌더 1 · 무관 통지 0                             | 새 binding 한정 충족. 제품 Canvas 경로 재기록                                                                     |
+| 비례성 반례                       | block 부모 한정. flex/grid 부모는 형제 geometry를 전부 읽는다(O(형제), 근거 문서 geometry 절 남은 미검증 1)                                                                     | 제품 5k fixture의 부모 layout을 기록하고, flex/grid는 형제 수 비례를 별도 표기                                    |
+| 총비용                            | 없음 (카운트만, CanvasKit 화면·React commit 시간 미측정)                                                                                                                        | 같은 제품 조작의 paired p95. 구조 이동·삭제, definition/override fan-out, page 전환, save/load는 별도 카운트·시간 |
+
+정리: Phase 3는 새 runtime 안의 graph 순회·전체 직렬화 0과 layout·Skia·DOM의 영향 집합 비례를 보였다. §6.2의 5k 계약 중 page layout signature · WASM 갱신 node · 전역 ref 검색 0 단언 · 제품 저장/Preview 송신 경로의 직렬화는 **Phase 4 전까지 미측정**이다. 마지막 WASM update만 k개인 것으로 이 항목을 대체하지 않는다.
+
+### 2026-09-28 로컬 구현 대조 (§4.1, §5, §6.1, §6.2) — 이력
+
+이 대조는 당시 미커밋 Phase 0 산출물을 보존한 상태의 판정이다. 제품 gate 통과나 Phase 1 착수를 뜻하지 않는다. 표의 "제품 코드에 `applyCatalogTransaction`이 없다" 등은 2026-09-28 시점 사실이며, 현재 상태는 위 2026-09-30 절과 아래 체크리스트가 정본이다.
 
 | 계약                            | 현재 근거와 판정                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | 다음 관련 경로                                                                                                                                                                                                                |
 | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -326,8 +359,8 @@ Phase 4 제거 검사는 `CompositionDocument`, `CanonicalNode`, canonical store
 - [x] 비시각 19필드의 쓰기·읽기 source edge 후보와 새 소유 경계 기록. 구 테마 preset/token 검사기의 허용 범위 부족을 G1 validator gate에 추가. 필드별 runtime roundtrip은 미검증.
 - [x] [Phase 1 독립 graph 및 G1](248-phase1-g1-evidence.md) — typed document·immutable library·transaction·중첩 ref/override/slot·4개 역인덱스의 독립 harness 29/29 PASS. Builder 제품 import 0, Builder build/WebKit smoke PASS. G1은 독립 모델 gate이며 resolver 구독·layout·persistence의 delta 소비와 저장 왕복은 포함하지 않는다.
 - [x] [Phase 2 독립 runtime·storage·history 및 G2](248-phase2-g2-g4-evidence.md) — 새 제품 import 0, G2 독립 테스트 14/14 PASS. 새 format IDB·JSON/folder의 독립 G4 경로 검증(단순 Pencil 부분집합 시험은 수행 기록, G4 근거 아님). layout input, 제품 save/refresh, Preview/Publish는 UNVERIFIED.
-- [ ] [Phase 3 독립 소비자 점검](248-phase3-g3-g5-evidence.md) — test entry root의 transaction delta→layout·Canvas·DOM 경로와 60/600/5k 결정적 leaf 카운트를 부분 검증했다. 등록 130 type 중 기본 실행 12종, composite 64종 중 완전 template 실행 1종, typed state rule 0/468이다. `IconButton` placeholder 미보간과 `SelectTrigger` 부모 RAC 흡수 sub-part의 typed ID/DOM 투영 계약이 남아 있다. 전체 HC6·G3 PASS는 0/130 type·0/1,333축·0/14 slot role이고 G4/G5 전체는 UNVERIFIED다. Phase 3 미완료, Phase 4 미착수.
-- [ ] G3~G6 구현·실측. Phase 3은 leaf delta 반례 수리까지 진행했고, 남은 G3 typed 선언·Canvas/DOM 소비 경로와 실행 binding/paired 예산 검증이 필요하다. 외부 `.pen` 교환은 범위 정정(2026-09-29)으로 차단 항목이 아니다.
+- [x] [Phase 3 독립 소비자 검증과 전환 준비](248-phase3-g3-g5-evidence.md) — 2026-09-30 사용자 완료 판정, 커밋 `cb36b6a95` · `601e992b3` · `03fd65dcb` (push 완료). test entry root의 transaction delta→resolver·layout·Canvas·DOM 제품 경로 binding, 60/600/5k leaf 결정적 카운트 3/3, 문서 byte 5/5. 독립 G3 장면 base 62/64 · axis 372/386 · state 75/75 · child 0/34 (위 2026-09-30 절). 이전 미완료 판정의 `IconButton` placeholder는 template binding 일반화로, `SelectTrigger`는 owner가 칠하는 read-only sub-part 계약으로 처리했다. typed state rule 0/468은 type 자신의 `stateRules`만 센 값이며 상태 칠은 rule 실행기·state 조건 규칙 채널이 맡는다(근거 문서 census 재집계). 이 항목은 **전환 전 근거**이며 G3/G4/G5 PASS가 아니다.
+- [ ] Phase 4 단일 전환·제거 (미착수) — Builder entry 교체와 구 경로 삭제를 한 cutover 변경으로 하고, 같은 변경 안에서 G3 제품 live (FileUpload 수리 · Preview 결함 추종 항목 · Icon 입력 기록 · child 기준선 포함) · G4 제품 save/refresh·publish 진입점 명시 실패 · G5 5k leaf 제품 경로 카운트(위 대조표의 미측정 항목 포함)와 paired p95·heap·bundle · G6 Builder import graph 0을 최종 판정한다. 1차 판정은 아키텍처 경계(G1~G4·G6), 성능은 2차 검증(G5). 외부 `.pen` 교환은 범위 정정(2026-09-29)으로 차단 항목이 아니다.
 - [ ] Publish 후속 (착수 승인 대기) — 저장소 전체 canonical 0 · Implemented 판정.
 
 구 프로젝트 변환과 compatibility adapter는 미완료 항목이 아니라 명시적으로 제외한 작업이다.
