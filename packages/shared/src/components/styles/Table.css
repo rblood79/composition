@@ -20,7 +20,7 @@
     /* 기본 variant 변수 */
     --tbl-accent: var(--accent);
     /* ADR-909 후속 (2026-06-22): 선택행 = reference(react-aria-starter Table.css
-       [data-selected]) + design.md:314 정본 = filled accent + 흰 전경.
+       [data-selected]) = filled accent + 흰 전경.
        M3 --color-primary-* (css-tokens.md 금지) → --accent / --fg-on-accent.
        Skia(canvasSceneNode rowBg {color.accent}) 와 D3 symmetric. */
     --tbl-selected-bg: var(--accent);

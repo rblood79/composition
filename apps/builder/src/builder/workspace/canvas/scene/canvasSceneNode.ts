@@ -2297,7 +2297,7 @@ function appendTableRowProjection(
     //   (컴포넌트 식별 분기 0, ADR-142 §3).
     //   selected 배경 = {color.accent} (ADR-909 후속 2026-06-22): reference
     //   (react-aria-starter Table.css [data-selected] = --highlight-background filled accent)
-    //   + design.md:314 정본. 이전 {color.accent-subtle} 는 --highlight-overlay 계보 오차용
+    //   이전 {color.accent-subtle} 는 --highlight-overlay 계보 오차용
     //   (reference 선택행 미사용) → filled accent 로 정정. 셀 전경은 {color.on-accent}(아래 cell
     //   projection) 로 contrast 확보 — CSS Table.css --tbl-selected-bg/color 와 D3 symmetric.
     //   striped·header={color.layer-2} / 기본={color.base}.
