@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { cloneNodeSubgraph } from "../clone";
 import { createG1Fixture } from "../fixture";
 import { CatalogGraph } from "../graph";
@@ -1674,12 +1674,19 @@ describe("ADR-248 G1 isolated catalog graph", () => {
         ),
       "CLONE_RELATED_ID_ALLOCATOR_REQUIRED",
     );
+    // Owned records come from the reverse reference index, never a document export.
+    const exported = vi.spyOn(graph, "exportDocument");
     const copy = cloneNodeSubgraph(
       graph,
       "project:node:cardA",
       (id) => `${id}Copy` as NodeEntry["id"],
       (id) => `${id}Copy` as typeof id,
     );
+    expect(exported).not.toHaveBeenCalled();
+    expect([...graph.referrersOf("project:node:cardA")].sort()).toEqual([
+      "project:interaction:local",
+      "project:stateVariable:local",
+    ]);
     expect(copy.relatedEntries).toHaveLength(2);
     const variable = copy.relatedEntries.find(
       (entry) => entry.kind === "stateVariable",

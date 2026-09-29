@@ -1,5 +1,6 @@
 import type {
   CatalogEntry,
+  CatalogLibrary,
   LayoutField,
   ResponsiveBreakpointName,
   DataBindingRef,
@@ -14,7 +15,7 @@ import type {
   WriteValue,
   AuthoredValue,
 } from "../document/types";
-import { CatalogGraph } from "../document/graph";
+import { CatalogGraph, ownedChildren, referencedIds } from "../document/graph";
 import {
   validateCatalogEntry,
   CatalogValidationError,
@@ -267,6 +268,313 @@ function requireNode(value: CatalogEntry | undefined, id: string): NodeEntry {
   return value;
 }
 
+/**
+ * Graph reads a command planner needs. `CatalogGraph` is one (the committed state); a
+ * `CatalogStage` is another (the committed state with staged records layered over it), so a
+ * command plans the same way alone or after earlier commands of a composed edit.
+ */
+export interface CatalogReader {
+  readonly projectId: EntryId<"project">;
+  readonly revision: number;
+  readonly library: CatalogLibrary;
+  getEntry(id: string): CatalogEntry | undefined;
+  ownerOf(id: string): string | undefined;
+  referrersOf(id: string): ReadonlySet<string>;
+  instancesOf(definitionId: string): ReadonlySet<string>;
+}
+
+/**
+ * Operations applied over the committed graph without touching it, its indexes, history or dirty
+ * IDs. `applyCatalogTransaction` stages its request here, then validates and commits; a composed
+ * edit stages each command's ops so the next command reads what the earlier ones staged. Reads cost
+ * the staged records, never the graph (ADR-248 §4.1).
+ */
+export class CatalogStage implements CatalogReader {
+  readonly staged = new Map<string, CatalogEntry | null>();
+  readonly before = new Map<string, CatalogEntry | undefined>();
+  readonly inverse: CatalogOperation[] = [];
+  readonly metrics = CatalogGraph.emptyMetrics();
+  structural = false;
+  constructor(readonly graph: CatalogGraph) {}
+  get projectId(): EntryId<"project"> {
+    return this.graph.projectId;
+  }
+  get revision(): number {
+    return this.graph.revision;
+  }
+  get library(): CatalogLibrary {
+    return this.graph.library;
+  }
+  readonly get = (id: string): CatalogEntry | undefined => {
+    this.metrics.transactionEntryReads++;
+    if (this.staged.has(id)) return this.staged.get(id) ?? undefined;
+    return this.graph.getEntry(id);
+  };
+  getEntry(id: string): CatalogEntry | undefined {
+    return this.get(id);
+  }
+  /** Owner after the staged records: a staged record that claims `id`, else the committed owner. */
+  ownerOf(id: string): string | undefined {
+    for (const [ownerId, entry] of this.staged)
+      if (entry && (ownedChildren(entry) as string[]).includes(id))
+        return ownerId;
+    const owner = this.graph.ownerOf(id);
+    return owner !== undefined && this.staged.has(owner) ? undefined : owner;
+  }
+  referrersOf(id: string): ReadonlySet<string> {
+    return this.overlay(this.graph.referrersOf(id), (entry) =>
+      referencedIds(entry).includes(id),
+    );
+  }
+  instancesOf(definitionId: string): ReadonlySet<string> {
+    return this.overlay(
+      this.graph.instancesOf(definitionId),
+      (entry) => entry.kind === "node" && entry.definitionId === definitionId,
+    );
+  }
+  /** A committed index set with the staged records re-tested against `holds`. */
+  private overlay(
+    committed: ReadonlySet<string>,
+    holds: (entry: CatalogEntry) => boolean,
+  ): ReadonlySet<string> {
+    if (!this.staged.size) return committed;
+    const result = new Set(committed);
+    for (const [id, entry] of this.staged)
+      if (entry && holds(entry)) result.add(id);
+      else result.delete(id);
+    return result;
+  }
+  apply(ops: readonly CatalogOperation[]): this {
+    for (const op of ops) this.applyOne(op);
+    return this;
+  }
+  private stage(id: string, value: CatalogEntry | null): void {
+    if (!this.before.has(id)) this.before.set(id, this.graph.getEntry(id));
+    this.staged.set(id, value);
+  }
+  private applyOne(op: CatalogOperation): void {
+    if (
+      ![
+        "put",
+        "remove",
+        "patchNodeProp",
+        "patchNodeVisual",
+        "patchNodeSizing",
+        "patchNodeLayout",
+        "setNodeField",
+        "setNodeBinding",
+        "setNodePlacement",
+        "patchDefinitionOverride",
+        "upsertDescendant",
+        "removeDescendant",
+      ].includes(op.kind)
+    )
+      throw new CatalogValidationError("UNKNOWN_OPERATION", String(op.kind));
+    if (op.kind === "put") {
+      const entry = validateCatalogEntry(op.entry);
+      const old = this.get(entry.id);
+      this.inverse.unshift(
+        old ? { kind: "put", entry: old } : { kind: "remove", id: entry.id },
+      );
+      this.stage(entry.id, entry);
+      this.structural = true;
+      return;
+    }
+    if (op.kind === "remove") {
+      const old = this.get(op.id);
+      if (!old) throw new CatalogValidationError("ENTRY_NOT_FOUND", op.id);
+      this.inverse.unshift({ kind: "put", entry: old });
+      this.stage(op.id, null);
+      this.structural = true;
+      return;
+    }
+    if (op.kind === "patchDefinitionOverride") {
+      const entry = this.get(op.id);
+      if (entry?.kind !== "definitionOverride")
+        throw new CatalogValidationError("DEFINITION_OVERRIDE_REQUIRED", op.id);
+      if (op.scope === "stateRules" && !op.state)
+        throw new CatalogValidationError("STATE_REQUIRED", op.id);
+      if (op.scope !== "stateRules" && op.state)
+        throw new CatalogValidationError("STATE_NOT_ALLOWED", op.id);
+      const prior =
+        op.scope === "stateRules"
+          ? (entry.stateRules[op.state!] ?? {})
+          : entry[op.scope];
+      const previousWrite = prior[op.key as keyof typeof prior];
+      this.inverse.unshift({
+        ...op,
+        write: previousWrite ?? { kind: "remove" },
+      } as CatalogOperation);
+      const next = { ...prior } as Record<string, unknown>;
+      if (op.write.kind === "remove") delete next[op.key];
+      else next[op.key] = op.write;
+      if (op.scope === "stateRules") {
+        const stateRules = { ...entry.stateRules };
+        if (Object.keys(next).length)
+          stateRules[op.state!] = next as typeof prior;
+        else delete stateRules[op.state!];
+        this.stage(entry.id, { ...entry, stateRules });
+      } else this.stage(entry.id, { ...entry, [op.scope]: next });
+      return;
+    }
+    const node = requireNode(this.get(op.id), op.id);
+    if (op.kind === "setNodeField") {
+      if (!NODE_WHOLE_FIELDS.includes(op.field))
+        throw new CatalogValidationError(
+          "UNKNOWN_NODE_FIELD",
+          String(op.field),
+        );
+      this.inverse.unshift({
+        kind: "setNodeField",
+        id: node.id,
+        field: op.field,
+        value: node[op.field],
+      } as CatalogOperation);
+      const next = { ...node } as Record<string, unknown>;
+      if (op.value === undefined) delete next[op.field];
+      else next[op.field] = structuredClone(op.value);
+      this.stage(node.id, next as unknown as NodeEntry);
+      return;
+    }
+    if (
+      (op.kind === "patchNodeVisual" ||
+        op.kind === "patchNodeSizing" ||
+        op.kind === "patchNodeLayout") &&
+      op.breakpoint !== undefined
+    ) {
+      if (op.breakpoint !== "tablet" && op.breakpoint !== "mobile")
+        throw new CatalogValidationError(
+          "RESPONSIVE_BREAKPOINT",
+          String(op.breakpoint),
+        );
+      const scope =
+        op.kind === "patchNodeVisual"
+          ? "visual"
+          : op.kind === "patchNodeSizing"
+            ? "sizing"
+            : "layout";
+      const layer = node.responsive?.[op.breakpoint] ?? {};
+      const prior = (layer[scope] ?? {}) as Record<string, WriteValue<unknown>>;
+      this.inverse.unshift({
+        ...op,
+        write: prior[op.key] ?? { kind: "remove" },
+      } as CatalogOperation);
+      const nextScope = { ...prior };
+      if (op.write.kind === "remove") delete nextScope[op.key];
+      else nextScope[op.key] = op.write;
+      const nextLayer = { ...layer } as Record<string, unknown>;
+      if (Object.keys(nextScope).length) nextLayer[scope] = nextScope;
+      else delete nextLayer[scope];
+      const responsive = { ...node.responsive } as Record<string, unknown>;
+      if (Object.keys(nextLayer).length) responsive[op.breakpoint] = nextLayer;
+      else delete responsive[op.breakpoint];
+      const next = { ...node } as Record<string, unknown>;
+      if (Object.keys(responsive).length) next.responsive = responsive;
+      else delete next.responsive;
+      this.stage(node.id, next as unknown as NodeEntry);
+      return;
+    }
+    if (op.kind === "patchNodeLayout") {
+      const prior = node.layout ?? {};
+      this.inverse.unshift({
+        ...op,
+        write: prior[op.key] ?? { kind: "remove" },
+      });
+      const next = { ...prior } as Record<string, WriteValue<string>>;
+      if (op.write.kind === "remove") delete next[op.key];
+      else next[op.key] = op.write;
+      const entry = { ...node } as Record<string, unknown>;
+      if (Object.keys(next).length) entry.layout = next;
+      else delete entry.layout;
+      this.stage(node.id, entry as unknown as NodeEntry);
+      return;
+    }
+    if (op.kind === "setNodePlacement") {
+      this.inverse.unshift({
+        kind: "setNodePlacement",
+        id: node.id,
+        placement: node.placement,
+      });
+      this.stage(node.id, { ...node, placement: op.placement });
+      return;
+    }
+    if (
+      op.kind === "patchNodeProp" ||
+      op.kind === "patchNodeVisual" ||
+      op.kind === "patchNodeSizing"
+    ) {
+      const scope =
+        op.kind === "patchNodeProp"
+          ? "props"
+          : op.kind === "patchNodeVisual"
+            ? "visual"
+            : "sizing";
+      const prior = node[scope];
+      const previousWrite = prior[op.key as keyof typeof prior];
+      this.inverse.unshift({
+        ...op,
+        write: previousWrite ?? { kind: "remove" },
+      } as CatalogOperation);
+      const next = { ...prior } as Record<string, unknown>;
+      if (op.write.kind === "remove") delete next[op.key];
+      else next[op.key] = op.write;
+      this.stage(node.id, { ...node, [scope]: next });
+      return;
+    }
+    if (op.kind === "setNodeBinding") {
+      this.inverse.unshift({
+        kind: "setNodeBinding",
+        id: node.id,
+        binding: node.binding,
+      });
+      const next = { ...node };
+      if (op.binding === undefined) delete next.binding;
+      else next.binding = op.binding;
+      this.stage(node.id, next);
+      return;
+    }
+    if (op.kind === "upsertDescendant") {
+      this.inverse.unshift({ kind: "put", entry: node });
+      const key = keyOfOverride(op.override);
+      const found = node.descendantOverrides.findIndex(
+        (item) => keyOfOverride(item) === key,
+      );
+      const overrides = [...node.descendantOverrides];
+      const merged =
+        op.override.kind === "patch"
+          ? mergePatch(found >= 0 ? overrides[found] : undefined, op.override)
+          : op.override;
+      if (merged === null) {
+        if (found >= 0) overrides.splice(found, 1);
+      } else if (found < 0) overrides.push(merged);
+      else overrides[found] = merged;
+      this.stage(node.id, { ...node, descendantOverrides: overrides });
+      this.structural =
+        this.structural ||
+        op.override.kind !== "patch" ||
+        (found >= 0 && node.descendantOverrides[found].kind !== "patch");
+      return;
+    }
+    const key = JSON.stringify(op.address);
+    this.inverse.unshift({ kind: "put", entry: node });
+    const overrides = node.descendantOverrides.filter(
+      (item) => keyOfOverride(item) !== key,
+    );
+    if (overrides.length === node.descendantOverrides.length)
+      throw new CatalogValidationError("OVERRIDE_NOT_FOUND", node.id);
+    this.stage(node.id, { ...node, descendantOverrides: overrides });
+    this.structural = true;
+  }
+}
+
+/** Stages operations over the committed graph (see `CatalogStage`); nothing is committed. */
+export function stageCatalogTransaction(
+  graph: CatalogGraph,
+  ops: readonly CatalogOperation[],
+): CatalogStage {
+  return new CatalogStage(graph).apply(ops);
+}
+
 /** Purely stages changes before touching graph, indexes, history or dirty IDs. */
 export function applyCatalogTransaction(
   graph: CatalogGraph,
@@ -289,233 +597,9 @@ export function applyCatalogTransaction(
     throw new CatalogValidationError("HISTORY_INTENT_REQUIRED", "history");
   if (!request.ops.length)
     throw new CatalogValidationError("EMPTY_TRANSACTION", "ops");
-  const metrics = CatalogGraph.emptyMetrics();
-  const staged = new Map<string, CatalogEntry | null>();
-  const before = new Map<string, CatalogEntry | undefined>();
-  const inverse: CatalogOperation[] = [];
-  let structural = false;
-  const get = (id: string): CatalogEntry | undefined => {
-    metrics.transactionEntryReads++;
-    if (staged.has(id)) return staged.get(id) ?? undefined;
-    return graph.getEntry(id);
-  };
-  const stage = (id: string, value: CatalogEntry | null): void => {
-    if (!before.has(id)) before.set(id, graph.getEntry(id));
-    staged.set(id, value);
-  };
-  for (const op of request.ops) {
-    if (
-      ![
-        "put",
-        "remove",
-        "patchNodeProp",
-        "patchNodeVisual",
-        "patchNodeSizing",
-        "patchNodeLayout",
-        "setNodeField",
-        "setNodeBinding",
-        "setNodePlacement",
-        "patchDefinitionOverride",
-        "upsertDescendant",
-        "removeDescendant",
-      ].includes(op.kind)
-    )
-      throw new CatalogValidationError("UNKNOWN_OPERATION", String(op.kind));
-    if (op.kind === "put") {
-      const entry = validateCatalogEntry(op.entry);
-      const old = get(entry.id);
-      inverse.unshift(
-        old ? { kind: "put", entry: old } : { kind: "remove", id: entry.id },
-      );
-      stage(entry.id, entry);
-      structural = true;
-      continue;
-    }
-    if (op.kind === "remove") {
-      const old = get(op.id);
-      if (!old) throw new CatalogValidationError("ENTRY_NOT_FOUND", op.id);
-      inverse.unshift({ kind: "put", entry: old });
-      stage(op.id, null);
-      structural = true;
-      continue;
-    }
-    if (op.kind === "patchDefinitionOverride") {
-      const entry = get(op.id);
-      if (entry?.kind !== "definitionOverride")
-        throw new CatalogValidationError("DEFINITION_OVERRIDE_REQUIRED", op.id);
-      if (op.scope === "stateRules" && !op.state)
-        throw new CatalogValidationError("STATE_REQUIRED", op.id);
-      if (op.scope !== "stateRules" && op.state)
-        throw new CatalogValidationError("STATE_NOT_ALLOWED", op.id);
-      const prior =
-        op.scope === "stateRules"
-          ? (entry.stateRules[op.state!] ?? {})
-          : entry[op.scope];
-      const previousWrite = prior[op.key as keyof typeof prior];
-      inverse.unshift({
-        ...op,
-        write: previousWrite ?? { kind: "remove" },
-      } as CatalogOperation);
-      const next = { ...prior } as Record<string, unknown>;
-      if (op.write.kind === "remove") delete next[op.key];
-      else next[op.key] = op.write;
-      if (op.scope === "stateRules") {
-        const stateRules = { ...entry.stateRules };
-        if (Object.keys(next).length)
-          stateRules[op.state!] = next as typeof prior;
-        else delete stateRules[op.state!];
-        stage(entry.id, { ...entry, stateRules });
-      } else stage(entry.id, { ...entry, [op.scope]: next });
-      continue;
-    }
-    const node = requireNode(get(op.id), op.id);
-    if (op.kind === "setNodeField") {
-      if (!NODE_WHOLE_FIELDS.includes(op.field))
-        throw new CatalogValidationError(
-          "UNKNOWN_NODE_FIELD",
-          String(op.field),
-        );
-      inverse.unshift({
-        kind: "setNodeField",
-        id: node.id,
-        field: op.field,
-        value: node[op.field],
-      } as CatalogOperation);
-      const next = { ...node } as Record<string, unknown>;
-      if (op.value === undefined) delete next[op.field];
-      else next[op.field] = structuredClone(op.value);
-      stage(node.id, next as unknown as NodeEntry);
-      continue;
-    }
-    if (
-      (op.kind === "patchNodeVisual" ||
-        op.kind === "patchNodeSizing" ||
-        op.kind === "patchNodeLayout") &&
-      op.breakpoint !== undefined
-    ) {
-      if (op.breakpoint !== "tablet" && op.breakpoint !== "mobile")
-        throw new CatalogValidationError(
-          "RESPONSIVE_BREAKPOINT",
-          String(op.breakpoint),
-        );
-      const scope =
-        op.kind === "patchNodeVisual"
-          ? "visual"
-          : op.kind === "patchNodeSizing"
-            ? "sizing"
-            : "layout";
-      const layer = node.responsive?.[op.breakpoint] ?? {};
-      const prior = (layer[scope] ?? {}) as Record<string, WriteValue<unknown>>;
-      inverse.unshift({
-        ...op,
-        write: prior[op.key] ?? { kind: "remove" },
-      } as CatalogOperation);
-      const nextScope = { ...prior };
-      if (op.write.kind === "remove") delete nextScope[op.key];
-      else nextScope[op.key] = op.write;
-      const nextLayer = { ...layer } as Record<string, unknown>;
-      if (Object.keys(nextScope).length) nextLayer[scope] = nextScope;
-      else delete nextLayer[scope];
-      const responsive = { ...node.responsive } as Record<string, unknown>;
-      if (Object.keys(nextLayer).length) responsive[op.breakpoint] = nextLayer;
-      else delete responsive[op.breakpoint];
-      const next = { ...node } as Record<string, unknown>;
-      if (Object.keys(responsive).length) next.responsive = responsive;
-      else delete next.responsive;
-      stage(node.id, next as unknown as NodeEntry);
-      continue;
-    }
-    if (op.kind === "patchNodeLayout") {
-      const prior = node.layout ?? {};
-      inverse.unshift({
-        ...op,
-        write: prior[op.key] ?? { kind: "remove" },
-      });
-      const next = { ...prior } as Record<string, WriteValue<string>>;
-      if (op.write.kind === "remove") delete next[op.key];
-      else next[op.key] = op.write;
-      const entry = { ...node } as Record<string, unknown>;
-      if (Object.keys(next).length) entry.layout = next;
-      else delete entry.layout;
-      stage(node.id, entry as unknown as NodeEntry);
-      continue;
-    }
-    if (op.kind === "setNodePlacement") {
-      inverse.unshift({
-        kind: "setNodePlacement",
-        id: node.id,
-        placement: node.placement,
-      });
-      stage(node.id, { ...node, placement: op.placement });
-      continue;
-    }
-    if (
-      op.kind === "patchNodeProp" ||
-      op.kind === "patchNodeVisual" ||
-      op.kind === "patchNodeSizing"
-    ) {
-      const scope =
-        op.kind === "patchNodeProp"
-          ? "props"
-          : op.kind === "patchNodeVisual"
-            ? "visual"
-            : "sizing";
-      const prior = node[scope];
-      const previousWrite = prior[op.key as keyof typeof prior];
-      inverse.unshift({
-        ...op,
-        write: previousWrite ?? { kind: "remove" },
-      } as CatalogOperation);
-      const next = { ...prior } as Record<string, unknown>;
-      if (op.write.kind === "remove") delete next[op.key];
-      else next[op.key] = op.write;
-      stage(node.id, { ...node, [scope]: next });
-      continue;
-    }
-    if (op.kind === "setNodeBinding") {
-      inverse.unshift({
-        kind: "setNodeBinding",
-        id: node.id,
-        binding: node.binding,
-      });
-      const next = { ...node };
-      if (op.binding === undefined) delete next.binding;
-      else next.binding = op.binding;
-      stage(node.id, next);
-      continue;
-    }
-    if (op.kind === "upsertDescendant") {
-      inverse.unshift({ kind: "put", entry: node });
-      const key = keyOfOverride(op.override);
-      const found = node.descendantOverrides.findIndex(
-        (item) => keyOfOverride(item) === key,
-      );
-      const overrides = [...node.descendantOverrides];
-      const merged =
-        op.override.kind === "patch"
-          ? mergePatch(found >= 0 ? overrides[found] : undefined, op.override)
-          : op.override;
-      if (merged === null) {
-        if (found >= 0) overrides.splice(found, 1);
-      } else if (found < 0) overrides.push(merged);
-      else overrides[found] = merged;
-      stage(node.id, { ...node, descendantOverrides: overrides });
-      structural =
-        structural ||
-        op.override.kind !== "patch" ||
-        (found >= 0 && node.descendantOverrides[found].kind !== "patch");
-      continue;
-    }
-    const key = JSON.stringify(op.address);
-    inverse.unshift({ kind: "put", entry: node });
-    const overrides = node.descendantOverrides.filter(
-      (item) => keyOfOverride(item) !== key,
-    );
-    if (overrides.length === node.descendantOverrides.length)
-      throw new CatalogValidationError("OVERRIDE_NOT_FOUND", node.id);
-    stage(node.id, { ...node, descendantOverrides: overrides });
-    structural = true;
-  }
+  const stage = new CatalogStage(graph).apply(request.ops);
+  const { staged, before, inverse, metrics, get } = stage;
+  const structural = stage.structural;
   for (const [id, entry] of staged) {
     if (entry !== null) {
       validateCatalogEntry(entry);

@@ -67,12 +67,21 @@ export function cloneNodeSubgraph(
         return { ...item, address, childIds: item.childIds.map(map) };
       return { ...item, address };
     });
-  const sourceEntries = Object.values(graph.exportDocument().entries);
-  const related = sourceEntries.filter(
-    (entry): entry is StateVariableEntry | InteractionEntry =>
-      (entry.kind === "stateVariable" || entry.kind === "interaction") &&
-      cloned.has(entry.ownerId as NodeId),
-  );
+  // Owned state variables and interactions, from the reverse reference index (no document scan).
+  const related: (StateVariableEntry | InteractionEntry)[] = [];
+  const seen = new Set<string>();
+  for (const nodeId of cloned.keys())
+    for (const referrerId of graph.referrersOf(nodeId)) {
+      if (seen.has(referrerId)) continue;
+      const entry = graph.getEntry(referrerId);
+      if (
+        (entry?.kind === "stateVariable" || entry?.kind === "interaction") &&
+        cloned.has(entry.ownerId as NodeId)
+      ) {
+        seen.add(referrerId);
+        related.push(entry);
+      }
+    }
   if (related.length && !allocateRelatedId)
     throw new CatalogValidationError(
       "CLONE_RELATED_ID_ALLOCATOR_REQUIRED",

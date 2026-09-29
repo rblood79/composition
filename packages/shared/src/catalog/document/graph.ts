@@ -65,7 +65,7 @@ function tokenRefs(value: unknown, target: Set<string>): void {
   }
   for (const item of Object.values(record)) tokenRefs(item, target);
 }
-function ownedChildren(entry: CatalogEntry): NodeId[] {
+export function ownedChildren(entry: CatalogEntry): NodeId[] {
   if (entry.kind === "page") return [...entry.children];
   if (entry.kind === "definition")
     return entry.templateRootId ? [entry.templateRootId] : [];
@@ -78,7 +78,7 @@ function ownedChildren(entry: CatalogEntry): NodeId[] {
   return ids;
 }
 /** By-ID references not carried by the owner, definition, token or collection edges. */
-function referencedIds(entry: CatalogEntry): string[] {
+export function referencedIds(entry: CatalogEntry): string[] {
   const ids: string[] = [];
   const address = (value: {
     instances: readonly string[];
@@ -424,6 +424,14 @@ export class CatalogGraph {
   /** Committed owner of a node (page, node or definition), from the owner index. */
   ownerOf(id: string): string | undefined {
     return this.ownerByChild.get(id);
+  }
+  /**
+   * Committed entries that name `id` by reference (descendant addresses, interaction owner /
+   * target / page / variable, state variable owner, theme tokens, page parent) — the reverse
+   * `ref` index, so a caller never scans the document for them.
+   */
+  referrersOf(id: string): ReadonlySet<string> {
+    return this.refIndex.get(id) ?? new Set();
   }
   /** Committed instances of a definition (definition → node index). */
   instancesOf(definitionId: string): ReadonlySet<string> {
