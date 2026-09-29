@@ -64,12 +64,28 @@ export type CatalogOperation =
       state?: StateName;
       write: WriteValue<AuthoredValue>;
     }
-  | { kind: "upsertDescendant"; id: NodeId; override: DescendantOverride }
+  | {
+      kind: "upsertDescendant";
+      id: NodeId;
+      override: DescendantOverride;
+      /** A patch's whole-value fields to drop (the incoming patch can only set them). */
+      clear?: readonly PatchWholeField[];
+    }
   | {
       kind: "removeDescendant";
       id: NodeId;
       address: DescendantOverride["address"];
     };
+/** Whole-value fields of a path patch (replaced, not merged, by an incoming patch). */
+export type PatchWholeField =
+  "fills" | "fillSizing" | "responsive" | "visibility" | "enabled";
+const PATCH_WHOLE_FIELDS: readonly string[] = [
+  "fills",
+  "fillSizing",
+  "responsive",
+  "visibility",
+  "enabled",
+];
 /** Whole-value node fields a single edit replaces (Fill panel, fill intent, display, theme). */
 export type NodeFieldOperation = {
   [F in NodeWholeField]: {
@@ -217,6 +233,7 @@ function mergeWrites<T>(
 function mergePatch(
   old: DescendantOverride | undefined,
   incoming: Extract<DescendantOverride, { kind: "patch" }>,
+  clear: readonly PatchWholeField[] = [],
 ): Extract<DescendantOverride, { kind: "patch" }> | null {
   const previous = old?.kind === "patch" ? old : undefined;
   const props = mergeWrites(previous?.props, incoming.props);
@@ -231,6 +248,7 @@ function mergePatch(
     visibility: incoming.visibility ?? previous?.visibility,
     enabled: incoming.enabled ?? previous?.enabled,
   };
+  for (const field of clear) delete whole[field];
   const stateRules = { ...previous?.stateRules } as Record<
     string,
     Record<string, WriteValue<AuthoredValue>>
@@ -521,6 +539,12 @@ export class CatalogStage implements CatalogReader {
       return;
     }
     if (op.kind === "upsertDescendant") {
+      for (const field of op.clear ?? [])
+        if (op.override.kind !== "patch" || !PATCH_WHOLE_FIELDS.includes(field))
+          throw new CatalogValidationError(
+            "INVALID_PATCH_CLEAR",
+            String(field),
+          );
       this.inverse.unshift({ kind: "put", entry: node });
       const key = keyOfOverride(op.override);
       const found = node.descendantOverrides.findIndex(
@@ -529,7 +553,11 @@ export class CatalogStage implements CatalogReader {
       const overrides = [...node.descendantOverrides];
       const merged =
         op.override.kind === "patch"
-          ? mergePatch(found >= 0 ? overrides[found] : undefined, op.override)
+          ? mergePatch(
+              found >= 0 ? overrides[found] : undefined,
+              op.override,
+              op.clear,
+            )
           : op.override;
       if (merged === null) {
         if (found >= 0) overrides.splice(found, 1);
