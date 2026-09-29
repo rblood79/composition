@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [새로고침 부팅 화면에서 패널 골격 제거 — ADR-247 결정 변경] - 2026-09-29
+
+### Changed
+
+- **빌더를 새로고침하거나 주소로 곧장 들어올 때, 캔버스가 준비되기 전에 빈 dock 레일 · 헤더 섬 (Viewport controls 자리) 상자가 먼저 보이지 않는다.** 대시보드에서 프로젝트로 들어갈 때와 같이 점 배경 + 진행 막대만 보이고, 헤더 · 패널은 캔버스와 함께 한 번에 드러난다. ADR-247 의 패널 골격 (지난 presented chrome 사각형을 `localStorage` 에 기록해 다음 cold entry 에 그리던 것) 을 제거했다 — 사용자 결정 2026-09-29. W0 흰 화면 방지 (정적 셸의 캔버스 배경 · 진행 막대 · 테마) 는 그대로다. 이미 저장된 `composition-shell-snapshot` 값은 읽지 않는다.
+
+### Fixed
+
+- 부팅 중 캔버스 스크롤바 (오른쪽 · 아래 막대) 가 다른 chrome 보다 먼저 보이던 것을 숨겼다 — 대시보드 진입 · 새로고침 둘 다.
+
 ## [빌더 전체 메뉴 개편 — ADR-249] - 2026-09-29
 
 ### Changed

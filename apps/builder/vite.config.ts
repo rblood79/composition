@@ -13,7 +13,6 @@ import optimizeLocales from "@react-aria/optimize-locales-plugin";
 import wasm from "vite-plugin-wasm";
 import type { IncomingMessage, ServerResponse } from "http";
 import {
-  SHELL_BUILD_META,
   STATIC_SHELL_ATTRS,
   STATIC_SHELL_MARKUP,
   renderStaticShellScript,
@@ -199,13 +198,10 @@ function spaFallbackPlugin() {
  */
 function staticShellPlugin() {
   let base = "/";
-  // 빌드마다 새 id — 배포가 바뀌면 CSS 가 바뀌었을 수 있으므로 지난 스냅샷을 쓰지 않는다 (R1).
-  let build = "dev";
   return {
     name: "composition-static-shell",
     configResolved(config: ResolvedConfig) {
       base = config.base;
-      if (config.command === "build") build = Date.now().toString(36);
     },
     transformIndexHtml(
       _html: string,
@@ -215,11 +211,6 @@ function staticShellPlugin() {
       if (!/(^|[\\/])index\.html$/.test(ctx.filename)) return [];
       return [
         {
-          tag: "meta",
-          attrs: { name: SHELL_BUILD_META, content: build },
-          injectTo: "head",
-        },
-        {
           tag: "div",
           attrs: STATIC_SHELL_ATTRS,
           children: STATIC_SHELL_MARKUP,
@@ -227,7 +218,7 @@ function staticShellPlugin() {
         },
         {
           tag: "script",
-          children: renderStaticShellScript(base, build),
+          children: renderStaticShellScript(base),
           injectTo: "body-prepend",
         },
       ];

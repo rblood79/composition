@@ -37,6 +37,8 @@
 //   skelGap/Overlap  골격이 그려진 뒤 presented 전에 골격이 없는 rAF · presented 인데 골격이 남은 rAF
 //   stale         viewport = 사전 방문 폭 +100 · build = 스냅샷 빌드 id 변조 · layout = 배치 원문 변조
 //                 → 셋 다 골격 없이 최소 셸이어야 한다 (R1)
+// 2026-09-29 사용자 결정으로 패널 골격을 제거했다 — 앱이 스냅샷을 쓰지 않으므로 `--warm` 은 이제
+// skeletonRuns 0 (새로고침 때 골격이 다시 그려지지 않음) 을 확인하는 용도로만 남는다.
 import { createServer } from "node:http";
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { extname, join, resolve } from "node:path";

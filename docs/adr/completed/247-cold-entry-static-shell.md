@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented — 2026-09-27 (Phase 0 ~ 3 / G0 ~ G3, 같은 날. G3 사용자 confirm "확인했어" · HC5 initial JS +267 B 사용자 수용 "+267B 수용") · In Progress — 2026-09-27 (사용자 `/execute-adr 247`) · Proposed — 2026-09-27 (사용자 `/create-adr cold entry 정적 셸 — CanvasKit 부팅 전 패널 골격 · 빈 캔버스 정적 HTML + layout shift 게이트`. 출처: claude.dev "How we made claude.ai faster" 제안 5 — 정적 composer + 드리프트 게이트. ADR-244 와 별도 ADR 로 두는 것은 사용자 판정 2026-09-27 "별도 ADR")
+Implemented — 2026-09-27, **2026-09-29 결정 1 변경: 패널 골격 제거** (아래 Decision 결정 1 참조 — 셸은 대안 B 최소 셸로 돌아갔다) (Phase 0 ~ 3 / G0 ~ G3, 같은 날. G3 사용자 confirm "확인했어" · HC5 initial JS +267 B 사용자 수용 "+267B 수용") · In Progress — 2026-09-27 (사용자 `/execute-adr 247`) · Proposed — 2026-09-27 (사용자 `/create-adr cold entry 정적 셸 — CanvasKit 부팅 전 패널 골격 · 빈 캔버스 정적 HTML + layout shift 게이트`. 출처: claude.dev "How we made claude.ai faster" 제안 5 — 정적 composer + 드리프트 게이트. ADR-244 와 별도 ADR 로 두는 것은 사용자 판정 2026-09-27 "별도 ADR")
 
 ## Context
 
@@ -98,6 +98,7 @@ D1 · D2 · D3 어느 것도 아니다 — 사용자 문서가 아니라 **빌�
 **사용자 결정 (Phase 착수 전)** — 2026-09-27 착수 전 측정 ([breakdown §7-1](../design/247-cold-entry-static-shell-breakdown.md)) 뒤 사용자 "확정하고 커밋해" 로 두 항목 확정:
 
 1. **W1 동안 패널 골격을 보일 것인가** — 지금은 W1 에 점 배경 + 진행 막대만 보인다 (09-02 설계). Phase 2 는 그 구간에 빈 패널 골격 (테두리 · 배경 · 헤더 막대, 내용 없음) 을 보인다. 실제 패널은 여전히 presented 순간에 같은 자리에서 드러난다. **확정: 보인다** — W1 (10 Mbps 5.5 ~ 5.7 초 · 4x 무제한 0.93 초) 이 W0 의 2 ~ 3 배라 셸이 W0 만 덮으면 빈 구간 대부분이 남는다.
+   - **2026-09-29 변경: 보이지 않는다 (사용자 결정 "골격 제거").** 사용자 신고 — 새로고침 때 좌 · 우 dock 레일 · 헤더 Viewport controls 가 캔버스보다 먼저 보인다. 대시보드 → 프로젝트 SPA 이동은 인라인 script 가 돌지 않아 골격이 없고, cold entry 만 골격이 그려져 두 진입의 부팅 화면이 달랐다. 스냅샷 기록기 (`shellSnapshot.ts` · `scheduleShellSnapshotWrite.ts`) · 골격 해제 · 빌드 id meta 를 삭제하고 셸을 대안 B (캔버스 배경 · 진행 막대 · 테마) 로 줄였다. HC1 · HC3 · HC4 · HC6 (W0 흰 화면 방지) 은 그대로 유지. 같은 변경에서 부팅 중 보이던 캔버스 스크롤바도 `builder-booting` 숨김 목록에 넣었다. live: dev 5173 새로고침 · 대시보드 진입 둘 다 부팅 샘플 중 보이는 chrome 0.
 2. **go/no-go 기준** — W0 p50 ≥ 300 ms (Chromium 4x) 또는 다크 흰 화면. **확정 · 착수 전 측정에서 go** — Chromium 4x W0 p50 438 ms (무제한) · 2,162 ms (10 Mbps), 다크 첫 paint 전 흰 프레임 관측 (4x 7/10 · 4/10). Phase 0 (G0) 는 부팅 mark 를 넣고 같은 조건으로 재확인한다.
 
 > 구현 상세: [247-cold-entry-static-shell-breakdown.md](../design/247-cold-entry-static-shell-breakdown.md)

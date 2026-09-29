@@ -20,10 +20,8 @@ import { STATIC_SHELL_ID } from "./staticShellRelease";
 
 export {
   STATIC_SHELL_ID,
-  STATIC_SHELL_SKELETON_ID,
   releaseStaticShell,
   releaseStaticShellOutsideBuilder,
-  releaseStaticShellSkeleton,
 } from "./staticShellRelease";
 
 /** 셸 노드 — `hidden` 으로 시작하고 builder 경로에서만 인라인 script 가 푼다. */
@@ -36,9 +34,11 @@ export const STATIC_SHELL_MARKUP =
   "</div>";
 
 /**
- * 셸 wrapper 속성 — 조작 가능해 보이지 않는다 (HC1 · R2). 쌓임: 셸 (9997) < 패널 골격 (9998) <
- * React 부팅 오버레이 (9999, `.loading-overlay`). 셸과 React 오버레이는 같은 프레임에 공존하지 않는다
- * (첫 commit 에서 교체), 골격은 presented 까지 React 의 숨은 chrome 위에 남는다.
+ * 셸 wrapper 속성 — 조작 가능해 보이지 않는다 (HC1 · R2). 쌓임: 셸 (9997) < React 부팅 오버레이
+ * (9999, `.loading-overlay`). 둘은 같은 프레임에 공존하지 않는다 (첫 commit 에서 교체).
+ *
+ * 패널 골격 (마지막 presented chrome 스냅샷) 은 두지 않는다 — 2026-09-29 사용자 결정으로 제거.
+ * 새로고침도 대시보드 → 프로젝트 이동과 같게, chrome 은 presented 순간에 한 번에 드러난다.
  */
 export const STATIC_SHELL_ATTRS = {
   id: STATIC_SHELL_ID,
@@ -46,49 +46,6 @@ export const STATIC_SHELL_ATTRS = {
   "aria-busy": "true",
   style: "position:fixed;inset:0;z-index:9997;pointer-events:none",
 } as const;
-
-export const SHELL_SNAPSHOT_KEY = "composition-shell-snapshot";
-export const PANEL_LAYOUT_STORAGE_KEY = "composition-panel-layout";
-/** 빌드 id 를 앱에 알리는 meta — 인라인 script 는 같은 값을 인자로 받는다. */
-export const SHELL_BUILD_META = "composition-build";
-
-/** 마지막 presented chrome 의 계산 결과 한 칸 — 사각형은 viewport CSS px, 색 · 모양은 computed 값. */
-export interface ShellSnapshotBox {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  bg: string;
-  bc: string;
-  bw: number;
-  r: string;
-  sh: string;
-}
-
-export interface ShellSnapshot {
-  v: 1;
-  build: string;
-  vw: number;
-  vh: number;
-  /** 저장된 uiScale (없으면 null — 앱 기본값) */
-  scale: number | null;
-  theme: "light" | "dark";
-  /** `composition-panel-layout` 원문 해시 */
-  layout: string;
-  boxes: ShellSnapshotBox[];
-}
-
-/**
- * 패널 배치 원문 해시 (djb2) — 인라인 script 에도 `toString()` 으로 같은 함수를 넘긴다
- * (값 복제 금지 · 하나의 정의). 모듈 스코프를 참조하지 않는다.
- */
-export function hashShellLayout(raw: string): string {
-  let hash = 5381;
-  for (let i = 0; i < raw.length; i++) {
-    hash = ((hash << 5) + hash + raw.charCodeAt(i)) | 0;
-  }
-  return `${raw.length}:${(hash >>> 0).toString(36)}`;
-}
 
 /**
  * 인라인 script 본체 — `toString()` 으로 주입되므로 모듈 스코프를 참조하지 않는다 (셸 id 도 리터럴).
@@ -99,11 +56,7 @@ export function hashShellLayout(raw: string): string {
  * `themeMode` — `auto` 면 `prefers-color-scheme` (BuilderCore 테마 effect), `uiScale` 이 있으면
  * `--ui-scale` (uiStore `onRehydrateStorage`).
  */
-export function staticShellBoot(
-  builderPathPrefix: string,
-  build: string,
-  hashLayout: (raw: string) => string,
-): void {
+export function staticShellBoot(builderPathPrefix: string): void {
   const shell = document.getElementById("composition-shell");
   if (!shell) return;
   try {
@@ -135,57 +88,12 @@ export function staticShellBoot(
         : null;
     if (scale !== null) html.style.setProperty("--ui-scale", String(scale));
     shell.hidden = false;
-
-    // 패널 골격 — 마지막 presented 결과가 지금과 같은 조건일 때만 (R1). 어긋나면 최소 셸.
-    try {
-      const snap = JSON.parse(
-        localStorage.getItem("composition-shell-snapshot") || "null",
-      );
-      if (
-        !snap ||
-        snap.v !== 1 ||
-        snap.build !== build ||
-        snap.vw !== innerWidth ||
-        snap.vh !== innerHeight ||
-        snap.theme !== (dark ? "dark" : "light") ||
-        snap.scale !== scale ||
-        snap.layout !==
-          hashLayout(localStorage.getItem("composition-panel-layout") || "") ||
-        !Array.isArray(snap.boxes)
-      ) {
-        return;
-      }
-      const layer = document.createElement("div");
-      layer.id = "composition-shell-skeleton";
-      layer.setAttribute("aria-hidden", "true");
-      layer.style.cssText =
-        "position:fixed;inset:0;z-index:9998;pointer-events:none";
-      for (const box of snap.boxes) {
-        const el = document.createElement("div");
-        const style = el.style;
-        style.cssText =
-          "position:absolute;box-sizing:border-box;border-style:solid";
-        style.left = `${box.x}px`;
-        style.top = `${box.y}px`;
-        style.width = `${box.w}px`;
-        style.height = `${box.h}px`;
-        style.backgroundColor = box.bg;
-        style.borderColor = box.bc;
-        style.borderWidth = `${box.bw}px`;
-        style.borderRadius = box.r;
-        style.boxShadow = box.sh;
-        layer.appendChild(el);
-      }
-      shell.after(layer);
-    } catch {
-      document.getElementById("composition-shell-skeleton")?.remove();
-    }
   } catch {
     shell.remove();
   }
 }
 
 /** `index.html` 에 넣을 인라인 script 문자열. `base` 는 Vite `base` (`/composition/` · `/`). */
-export function renderStaticShellScript(base: string, build: string): string {
-  return `(${staticShellBoot.toString()})(${JSON.stringify(`${base}builder/`)},${JSON.stringify(build)},${hashShellLayout.toString()});`;
+export function renderStaticShellScript(base: string): string {
+  return `(${staticShellBoot.toString()})(${JSON.stringify(`${base}builder/`)});`;
 }

@@ -6,11 +6,7 @@ import {
   isBodyType,
 } from "@composition/shared";
 import { startLocalWebVitals } from "../performance/localWebVitals";
-import {
-  releaseStaticShell,
-  releaseStaticShellSkeleton,
-} from "../../staticShell/staticShellRelease";
-import { scheduleShellSnapshotWrite } from "../../staticShell/scheduleShellSnapshotWrite";
+import { releaseStaticShell } from "../../staticShell/staticShellRelease";
 import React, {
   useState,
   useCallback,
@@ -1597,15 +1593,6 @@ export const BuilderCore: React.FC = () => {
   useLayoutEffect(() => {
     if (!isBuilderPresented) return;
     performance.mark("composition:builder.presented");
-    // 실제 chrome 의 visibility:hidden 이 풀리는 commit — 셸 패널 골격을 같은 paint 에서 교체 (R4).
-    releaseStaticShellSkeleton();
-  }, [isBuilderPresented]);
-  // 골격이 남은 채 떠나면 (presented 전 경로 이동) 다음 화면을 덮지 않게 치운다.
-  useLayoutEffect(() => releaseStaticShellSkeleton, []);
-  // presented 순간의 chrome 을 다음 cold entry 의 패널 골격으로 기록한다 (ADR-247 Phase 2).
-  useEffect(() => {
-    if (!isBuilderPresented) return;
-    return scheduleShellSnapshotWrite();
   }, [isBuilderPresented]);
   const bootstrapProgress = resolveBootstrapProgress(
     projectBootstrapPhase,

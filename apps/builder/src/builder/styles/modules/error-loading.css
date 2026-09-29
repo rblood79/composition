@@ -62,6 +62,7 @@
   .app.builder-booting .page-header-layer,
   .app.builder-booting [data-testid="skia-canvas-unified"],
   .app.builder-booting .ruler-overlay,
+  .app.builder-booting .canvas-scrollbar,
   .app.builder-booting .workspace-status-indicator {
     visibility: hidden;
     pointer-events: none;
