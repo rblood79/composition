@@ -413,9 +413,21 @@ export function useViewportControl(
       capture: true,
     });
 
+    // 트랙패드 좌우 스와이프의 history 이동 (macOS Chrome/Safari) 은 위 preventDefault 로
+    // 막히지 않는다 — root scroller 의 overscroll-behavior-x 만 본다. 막지 않으면 왼쪽 팬이
+    // 뒤로가기 (대시보드) 로 샌다. 휠을 소비하는 동안만 걸어 다른 라우트의 스와이프는 둔다.
+    const rootStyle = document.documentElement.style;
+    const prevOverscrollX = rootStyle.getPropertyValue("overscroll-behavior-x");
+    rootStyle.setProperty("overscroll-behavior-x", "none");
+
     return () => {
       containerEl.removeEventListener("wheel", handleWheel, { capture: true });
       finishWheelInteraction("interrupted");
+      if (prevOverscrollX) {
+        rootStyle.setProperty("overscroll-behavior-x", prevOverscrollX);
+      } else {
+        rootStyle.removeProperty("overscroll-behavior-x");
+      }
     };
   }, [containerEl, controller, viewportSession]);
 

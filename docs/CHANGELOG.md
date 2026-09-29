@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [캔버스 왼쪽 트랙패드 팬이 뒤로가기로 새던 결함] - 2026-09-29
+
+### Fixed
+
+- **빌더 캔버스에서 트랙패드를 왼쪽으로 밀면 캔버스 대신 대시보드로 돌아가던 결함.** 위 · 아래 · 오른쪽은 팬이 됐다. macOS 브라우저의 좌우 스와이프 history 이동은 캔버스 휠 핸들러의 `preventDefault` 로 막히지 않고 root 의 `overscroll-behavior-x` 만 본다. 캔버스 휠 핸들러가 붙어 있는 동안 root 에 `none` 을 걸고 떼면 이전 값으로 되돌린다. 대시보드 · 로그인의 스와이프 뒤로가기는 그대로다.
+
 ## [상호작용 응답성 기준선 — 측정 기록으로 종결] - 2026-09-28
 
 ### Added
