@@ -51,6 +51,16 @@ export interface CatalogBoxModel {
  */
 export const CATALOG_BINDING_VISUAL_KEYS: ReadonlySet<string> = new Set([
   ...CATALOG_AUTHORED_PAINT_KEYS,
+  // Typography (Phase 4a-3c): text bindings paint and measure it; other nodes pass the inherited
+  // keys down (`CatalogConsumerNode.inheritedText`).
+  "fontFamily",
+  "fontStyle",
+  "letterSpacing",
+  "textAlign",
+  "textTransform",
+  "textDecoration",
+  "whiteSpace",
+  "wordBreak",
   "fill",
   "borderColor",
   "borderWidth",
@@ -144,8 +154,73 @@ export function catalogBoxModel(node: CatalogConsumerNode): CatalogBoxModel {
   return model;
 }
 
+/**
+ * Authored typography of a text-painting node: its own value, else the nearest ancestor's
+ * (`inheritedText`, CSS inherited properties); `textDecoration` is not inherited. Absent keys keep
+ * each consumer's default. The Canvas paragraph, the layout measure and the DOM style read this.
+ */
+export interface CatalogTextTypography {
+  fontFamily?: string;
+  fontStyle?: string;
+  letterSpacing?: number;
+  textAlign?: string;
+  textTransform?: string;
+  textDecoration?: string;
+  whiteSpace?: string;
+  wordBreak?: string;
+}
+export function catalogTextTypography(
+  node: Pick<CatalogConsumerNode, "visual" | "inheritedText">,
+): CatalogTextTypography {
+  const read = (key: string) => node.visual[key] ?? node.inheritedText?.[key];
+  const text = (key: string) => {
+    const value = read(key);
+    return value === undefined ? undefined : String(value);
+  };
+  const letterSpacing = read("letterSpacing");
+  const typography: CatalogTextTypography = {};
+  for (const key of [
+    "fontFamily",
+    "fontStyle",
+    "textAlign",
+    "textTransform",
+    "whiteSpace",
+    "wordBreak",
+  ] as const) {
+    const value = text(key);
+    if (value !== undefined) typography[key] = value;
+  }
+  if (letterSpacing !== undefined) typography.letterSpacing = Number(letterSpacing);
+  if (node.visual.textDecoration !== undefined)
+    typography.textDecoration = String(node.visual.textDecoration);
+  return typography;
+}
+
+const GENERIC_FAMILIES = new Set([
+  "serif",
+  "sans-serif",
+  "monospace",
+  "cursive",
+  "fantasy",
+  "system-ui",
+  "ui-sans-serif",
+  "ui-serif",
+  "ui-monospace",
+]);
+/**
+ * A CSS font-family list as Canvas paragraph families: named families in order, then the
+ * default Pretendard (the Canvas cannot resolve a generic family; the DOM default is the same).
+ */
+export function catalogFontFamilies(fontFamily: string | undefined): string[] {
+  const named = (fontFamily ?? "")
+    .split(",")
+    .map((family) => family.trim().replace(/^["']|["']$/g, ""))
+    .filter((family) => family && !GENERIC_FAMILIES.has(family.toLowerCase()));
+  return named.includes("Pretendard") ? named : [...named, "Pretendard"];
+}
+
 /** Resolved text paint shared by the Canvas paragraph and the DOM text style. */
-export interface CatalogTextMetrics {
+export interface CatalogTextMetrics extends CatalogTextTypography {
   fontSize: number;
   /** Ratio to fontSize; undefined keeps the renderer's normal line height. */
   lineHeight?: number;
@@ -176,6 +251,7 @@ export function catalogTextMetrics(
     ? parent.visual.lineHeight
     : node.visual.lineHeight;
   return {
+    ...catalogTextTypography(node),
     fontSize,
     ...(lineHeight !== undefined ? { lineHeight: Number(lineHeight) } : {}),
     ...(node.derivedProps?._isLast === true

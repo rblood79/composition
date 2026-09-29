@@ -192,11 +192,33 @@ export function catalogDomStyle(
     const metrics = catalogTextMetrics(node, parent);
     Object.assign(style, {
       margin: 0,
-      fontFamily: "Pretendard, sans-serif",
+      fontFamily: metrics.fontFamily ?? "Pretendard, sans-serif",
       fontSize: metrics.fontSize,
-      whiteSpace: CATALOG_NOWRAP_TEXT_BINDINGS.has(node.bindingId ?? "")
-        ? "nowrap"
-        : "normal",
+      whiteSpace: (metrics.whiteSpace ??
+        (CATALOG_NOWRAP_TEXT_BINDINGS.has(node.bindingId ?? "")
+          ? "nowrap"
+          : "normal")) as CSSProperties["whiteSpace"],
+      ...(metrics.fontStyle !== undefined
+        ? { fontStyle: metrics.fontStyle }
+        : {}),
+      ...(metrics.letterSpacing !== undefined
+        ? { letterSpacing: `${metrics.letterSpacing}px` }
+        : {}),
+      ...(metrics.textAlign !== undefined
+        ? { textAlign: metrics.textAlign as CSSProperties["textAlign"] }
+        : {}),
+      ...(metrics.textTransform !== undefined
+        ? {
+            textTransform:
+              metrics.textTransform as CSSProperties["textTransform"],
+          }
+        : {}),
+      ...(metrics.textDecoration !== undefined
+        ? { textDecoration: metrics.textDecoration }
+        : {}),
+      ...(metrics.wordBreak !== undefined
+        ? { wordBreak: metrics.wordBreak as CSSProperties["wordBreak"] }
+        : {}),
       color: cssColor(metrics.color),
       ...(metrics.fontWeight !== undefined
         ? { fontWeight: metrics.fontWeight }
@@ -504,6 +526,16 @@ export function catalogDomOwnerTarget(
 }
 
 /** Authored visual writes → inline CSS for rule-backed nodes (library values are class CSS). */
+const TYPOGRAPHY_KEYS: ReadonlySet<string> = new Set([
+  "fontFamily",
+  "fontStyle",
+  "letterSpacing",
+  "textAlign",
+  "textTransform",
+  "textDecoration",
+  "whiteSpace",
+  "wordBreak",
+]);
 const AUTHORED_CSS: Readonly<
   Record<string, (value: unknown) => CSSProperties>
 > = {
@@ -800,7 +832,8 @@ function authoredStyle(
   )) {
     const css = AUTHORED_CSS[key];
     if (!css) {
-      if (noSheet) continue; // paint-only catalog value (icon size, indent …)
+      // Typography on a rule executor is not painted by the Canvas yet: fail on both sides.
+      if (noSheet && !TYPOGRAPHY_KEYS.has(key)) continue; // paint-only catalog value
       throw new Error(`CATALOG_DOM_VISUAL_UNSUPPORTED:${node.id}:${key}`);
     }
     Object.assign(style, css(value));

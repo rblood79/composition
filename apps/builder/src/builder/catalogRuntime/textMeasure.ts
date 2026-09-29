@@ -13,6 +13,7 @@ import {
   isCanvasKitInitialized,
 } from "../workspace/canvas/skia/initCanvasKit";
 import type { CatalogTextMeasure } from "./compositionRoot";
+import { catalogFontFamilies } from "./boxModel";
 
 type Font = Parameters<CatalogTextMeasure>[1];
 
@@ -29,7 +30,15 @@ function paragraphMetrics(
   if (!isCanvasKitInitialized() || !skiaFontManager.hasFont("Pretendard"))
     return undefined;
   const ck = getCanvasKit();
-  const families = [skiaFontManager.resolveFamily("Pretendard")];
+  const families = catalogFontFamilies(font.fontFamily).map((family) =>
+    skiaFontManager.resolveFamily(family),
+  );
+  const slant =
+    font.fontStyle === "italic"
+      ? ck.FontSlant.Italic
+      : font.fontStyle === "oblique"
+        ? ck.FontSlant.Oblique
+        : ck.FontSlant.Upright;
   const weight =
     (Object.values(ck.FontWeight) as EmbindEnumEntity[]).find(
       (entry) => entry?.value === font.fontWeight,
@@ -38,8 +47,9 @@ function paragraphMetrics(
   const textStyle = {
     fontFamilies: families,
     fontSize: font.fontSize,
-    fontStyle: { weight },
+    fontStyle: { weight, slant },
     fontFeatures: DEFAULT_FONT_FEATURES,
+    ...(font.letterSpacing ? { letterSpacing: font.letterSpacing } : {}),
     ...(heightMultiplier !== undefined
       ? { heightMultiplier, halfLeading: true }
       : {}),

@@ -28,6 +28,7 @@ import {
   catalogCalendarHeaderParts,
 } from "../../../../../packages/shared/src/catalog/resolvers/resolveCatalogRuleCanvasBox";
 import { resolveTextSourceText } from "@composition/specs";
+import { applyTextTransform } from "../workspace/canvas/styleConversion/styleConverter";
 import {
   racDateSegmentParts,
   type DateSegmentPart,
@@ -35,6 +36,7 @@ import {
 import { catalogDateSegmentPaddingX } from "../../../../../packages/shared/src/catalog/document/rulePartRules";
 import {
   catalogBoxModel,
+  catalogTextTypography,
   catalogGlyphSize,
   type CatalogLength,
 } from "./boxModel";
@@ -108,7 +110,66 @@ export interface CatalogConsumerNode {
    * track's fill): the Canvas paints them over the resolved props; the DOM owner renders its own.
    */
   readonly derivedProps?: Readonly<Record<string, string | number | boolean>>;
+  /**
+   * Inheritable text values (CSS inheritance) the nearest ancestors declare and this node does
+   * not (`CATALOG_INHERITED_TEXT_KEYS`). Resolved here so the Canvas paint, the layout measure
+   * and the DOM inline style read one value instead of relying on the browser cascade.
+   */
+  readonly inheritedText?: Readonly<Record<string, string | number | boolean>>;
 }
+/** Text keys a text leaf takes from its nearest declaring ancestor (CSS inherited properties). */
+export const CATALOG_INHERITED_TEXT_KEYS = [
+  "fontFamily",
+  "fontStyle",
+  "letterSpacing",
+  "textAlign",
+  "textTransform",
+  "whiteSpace",
+  "wordBreak",
+] as const;
+function inheritedTextOf(
+  node: CatalogConsumerNode,
+  get: (id: string) => CatalogConsumerNode | undefined,
+): Record<string, string | number | boolean> | undefined {
+  const out: Record<string, string | number | boolean> = {};
+  let missing = CATALOG_INHERITED_TEXT_KEYS.filter(
+    (key) => node.visual[key] === undefined,
+  );
+  for (
+    let cursor = get(node.parentId);
+    cursor && missing.length;
+    cursor = get(cursor.parentId)
+  )
+    missing = missing.filter((key) => {
+      const value = cursor!.visual[key];
+      if (value === undefined) return true;
+      out[key] = value;
+      return false;
+    });
+  return Object.keys(out).length ? out : undefined;
+}
+/** Descendants whose inherited text reads `node` (re-planned when its text keys change). */
+function textInheritors(
+  node: CatalogConsumerNode,
+  get: (id: string) => CatalogConsumerNode | undefined,
+): CatalogConsumerNode[] {
+  const out: CatalogConsumerNode[] = [];
+  const visit = (id: string) => {
+    const child = get(id);
+    if (!child) return;
+    out.push(child);
+    for (const next of child.children) visit(next);
+  };
+  for (const id of node.children) visit(id);
+  return out;
+}
+const textKeysChanged = (
+  left: CatalogConsumerNode | undefined,
+  right: CatalogConsumerNode,
+): boolean =>
+  CATALOG_INHERITED_TEXT_KEYS.some(
+    (key) => left?.visual[key] !== right.visual[key],
+  );
 /** The optional authored fields a record carries only when the resolved node declares them. */
 function authoredFields(
   node: ResolvedCatalogNode,
@@ -236,9 +297,20 @@ const glyphBindings = new Set(["icon", "selecticon"]);
 export interface CatalogTextMeasure {
   (
     text: string,
-    font: { fontSize: number; fontWeight: number; lineHeight: number },
+    font: CatalogTextFont,
     maxWidth?: number,
   ): { width: number; height: number; minWidth?: number; exactWidth?: number };
+}
+/** Font inputs of one text measure (the typography the Canvas paragraph and the DOM share). */
+export interface CatalogTextFont {
+  fontSize: number;
+  fontWeight: number;
+  lineHeight: number;
+  /** CSS font-family list; absent = the default family. */
+  fontFamily?: string;
+  fontStyle?: string;
+  letterSpacing?: number;
+  wordBreak?: string;
 }
 
 /** Rust intrinsic content box of a calendar header row (`calendarHeaderBox`). */
@@ -260,7 +332,9 @@ function textLeaf(
 ):
   | {
       text: string;
-      font: { fontSize: number; fontWeight: number; lineHeight: number };
+      font: CatalogTextFont;
+      /** `white-space` keeps the text on one line (nowrap/pre). */
+      singleLine: boolean;
     }
   | undefined {
   if (node.children.length > 0) return undefined;
@@ -268,7 +342,10 @@ function textLeaf(
     typeName,
     node.props as Record<string, unknown>,
   );
-  const text = own ? own + suffix : own;
+  const typography = catalogTextTypography(node);
+  const text = own
+    ? applyTextTransform(own + suffix, typography.textTransform)
+    : own;
   if (!text) return undefined;
   const fontSize = Number(node.visual.fontSize);
   const lineHeight = Number(node.visual.lineHeight ?? inheritedLineHeight ?? 0);
@@ -291,7 +368,21 @@ function textLeaf(
         ? (catalogCurrentTextWeight("Breadcrumb") ?? 600)
         : Number(node.visual.fontWeight ?? 400),
       lineHeight: lineHeight > 0 ? lineHeight : 0,
+      ...(typography.fontFamily !== undefined
+        ? { fontFamily: typography.fontFamily }
+        : {}),
+      ...(typography.fontStyle !== undefined
+        ? { fontStyle: typography.fontStyle }
+        : {}),
+      ...(typography.letterSpacing !== undefined
+        ? { letterSpacing: typography.letterSpacing }
+        : {}),
+      ...(typography.wordBreak !== undefined
+        ? { wordBreak: typography.wordBreak }
+        : {}),
     },
+    singleLine:
+      typography.whiteSpace === "nowrap" || typography.whiteSpace === "pre",
   };
 }
 
@@ -431,7 +522,7 @@ function styleOf(
           // label is also its own min-content. The wrap decision (`rewrap`) compares against the
           // same exact width, so a box laid out at max-content never wraps on a sub-pixel.
           const width = size.exactWidth ?? size.width;
-          if (noWrapTextBindings.has(node.bindingId ?? ""))
+          if (noWrapTextBindings.has(node.bindingId ?? "") || leaf.singleLine)
             return {
               contentMinWidth: width,
               contentMaxWidth: width,
@@ -480,6 +571,19 @@ function styleOf(
           borderLeft: px(box.borderWidth),
         }
       : {}),
+    // Authored per-side widths refine the uniform width (the DOM longhands, `authoredStyle.ts`).
+    ...Object.fromEntries(
+      (
+        [
+          ["borderTopWidth", "borderTop"],
+          ["borderRightWidth", "borderRight"],
+          ["borderBottomWidth", "borderBottom"],
+          ["borderLeftWidth", "borderLeft"],
+        ] as const
+      )
+        .filter(([key]) => node.visual[key] !== undefined)
+        .map(([key, side]) => [side, `${Number(node.visual[key])}px`]),
+    ),
     ...(typeof node.visual.overflow === "string" &&
     node.visual.overflow !== "visible"
       ? { overflowX: node.visual.overflow, overflowY: node.visual.overflow }
@@ -627,6 +731,12 @@ function sameRecord(
     left.placeholder === right.placeholder &&
     left.hidden === right.hidden &&
     sameFields(left.derivedProps ?? {}, right.derivedProps ?? {}) &&
+    sameFields(left.inheritedText ?? {}, right.inheritedText ?? {}) &&
+    JSON.stringify(left.fills ?? null) === JSON.stringify(right.fills ?? null) &&
+    JSON.stringify(left.fillSizing ?? null) ===
+      JSON.stringify(right.fillSizing ?? null) &&
+    JSON.stringify(left.themeOverride ?? null) ===
+      JSON.stringify(right.themeOverride ?? null) &&
     sameList(
       left.regions?.map((item) => `${item.name}:${item.required}`) ?? [],
       right.regions?.map((item) => `${item.name}:${item.required}`) ?? [],
@@ -894,6 +1004,10 @@ export class CatalogCompositionRoot {
       const derivedProps = this.derivedOf(record, get);
       if (derivedProps) output.set(id, { ...record, derivedProps });
     }
+    for (const [id, record] of output) {
+      const inheritedText = inheritedTextOf(record, get);
+      if (inheritedText) output.set(id, { ...record, inheritedText });
+    }
     return output;
   }
   /**
@@ -1135,6 +1249,7 @@ export class CatalogCompositionRoot {
         !leaf?.text ||
         (!heading &&
           (noWrapTextBindings.has(record.bindingId ?? "") ||
+            ("singleLine" in leaf && leaf.singleLine) ||
             heightOnlyTextTypes.has(this.typeOf(record))))
       )
         continue;
@@ -1762,6 +1877,10 @@ export class CatalogCompositionRoot {
           update.record.visual.lineHeight
           ? lineHeightInheritors(update.record, get)
           : []),
+        ...(update.record.children.length > 0 &&
+        textKeysChanged(this.records.get(update.id), update.record)
+          ? textInheritors(update.record, get)
+          : []),
         ...(this.records.get(update.id)?.props.size !== update.record.props.size
           ? update.record.children
               .map((id) => get(id))
@@ -1777,10 +1896,19 @@ export class CatalogCompositionRoot {
         const rootId = this.recordRoots.get(thumb.id)!;
         const current = get(thumb.id)!;
         const derivedProps = this.derivedOf(current, get);
-        const { derivedProps: _previous, ...rest } = current;
+        const inheritedText = inheritedTextOf(current, get);
+        const {
+          derivedProps: _previous,
+          inheritedText: _previousText,
+          ...rest
+        } = current;
         const next = this.planRecord(
           thumb.id,
-          derivedProps ? { ...rest, derivedProps } : rest,
+          {
+            ...rest,
+            ...(derivedProps ? { derivedProps } : {}),
+            ...(inheritedText ? { inheritedText } : {}),
+          },
           rootId,
           get,
         );

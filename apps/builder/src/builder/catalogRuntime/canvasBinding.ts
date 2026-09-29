@@ -21,6 +21,10 @@ import {
 } from "./compositionRoot";
 import type { SlotChromeInput } from "./slotChrome";
 import {
+  applyTextTransform,
+  parseTextDecoration,
+} from "../workspace/canvas/styleConversion/styleConverter";
+import {
   applyCatalogAuthoredPaint,
   catalogCssColorRgba,
   hasCatalogAuthoredPaint,
@@ -28,6 +32,7 @@ import {
 } from "./authoredStyle";
 import {
   CATALOG_BINDING_VISUAL_KEYS,
+  catalogFontFamilies,
   catalogBoxModel,
   catalogGlyphSize,
   catalogTextMetrics,
@@ -209,13 +214,41 @@ const bindings: Readonly<Record<string, Binding>> = {
   text: (node, rect, parent, wraps, suffix = "") => {
     const metrics = catalogTextMetrics(node, parent);
     const fontSize = metrics.fontSize;
+    const layoutWhiteSpace =
+      wraps && !CATALOG_NOWRAP_TEXT_BINDINGS.has(node.bindingId ?? "")
+        ? "normal"
+        : "nowrap";
     return {
       ...box(node, rect),
       type: "text",
       text: {
-        content: `${String(node.props.children ?? "")}${node.props.children ? suffix : ""}`,
-        fontFamilies: ["Pretendard"],
+        content: applyTextTransform(
+          `${String(node.props.children ?? "")}${node.props.children ? suffix : ""}`,
+          metrics.textTransform,
+        ),
+        fontFamilies: catalogFontFamilies(metrics.fontFamily),
         fontSize,
+        ...(metrics.fontStyle === "italic"
+          ? { fontStyle: 1 }
+          : metrics.fontStyle === "oblique"
+            ? { fontStyle: 2 }
+            : {}),
+        ...(metrics.letterSpacing !== undefined
+          ? { letterSpacing: metrics.letterSpacing }
+          : {}),
+        ...(metrics.textAlign === "center" || metrics.textAlign === "right"
+          ? { align: metrics.textAlign }
+          : metrics.textAlign === "end"
+            ? { align: "right" as const }
+            : {}),
+        ...(metrics.textDecoration !== undefined
+          ? { decoration: parseTextDecoration(metrics.textDecoration) }
+          : {}),
+        ...(metrics.wordBreak === "break-all" || metrics.wordBreak === "keep-all"
+          ? { wordBreak: metrics.wordBreak }
+          : metrics.wordBreak === "break-word"
+            ? { overflowWrap: "break-word" as const }
+            : {}),
         ...(metrics.fontWeight !== undefined
           ? { fontWeight: metrics.fontWeight }
           : {}),
@@ -226,11 +259,12 @@ const bindings: Readonly<Record<string, Binding>> = {
         paddingLeft: 0,
         paddingTop: 0,
         maxWidth: rect.width,
-        // The layout's wrap decision: a leaf it kept on one line paints unwrapped.
+        // The layout's wrap decision: a leaf it kept on one line paints unwrapped; an authored
+        // non-normal white-space (nowrap / pre …) is painted as declared.
         whiteSpace:
-          wraps && !CATALOG_NOWRAP_TEXT_BINDINGS.has(node.bindingId ?? "")
-            ? "normal"
-            : "nowrap",
+          metrics.whiteSpace === undefined || metrics.whiteSpace === "normal"
+            ? layoutWhiteSpace
+            : (metrics.whiteSpace as "nowrap" | "pre" | "pre-wrap" | "pre-line"),
       },
     };
   },
@@ -269,11 +303,25 @@ export const CATALOG_CANVAS_BINDING_IDS: ReadonlySet<string> = new Set(
 );
 
 /** Canvas node data for a rule-backed node (`ruleShapes.ts`). */
+/** Typography keys a rule executor does not paint yet: explicit failure, never a silent drop. */
+const RULE_UNPAINTED_TEXT_KEYS = [
+  "fontFamily",
+  "fontStyle",
+  "letterSpacing",
+  "textAlign",
+  "textTransform",
+  "textDecoration",
+  "whiteSpace",
+  "wordBreak",
+];
 function ruleNodeData(
   root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
   rect: Rect,
 ): SkiaNodeData {
+  for (const key of RULE_UNPAINTED_TEXT_KEYS)
+    if (node.visual[key] !== undefined)
+      throw new Error(`CATALOG_CANVAS_VISUAL_UNSUPPORTED:${node.id}:${key}`);
   const rule = root.runtime.graph.library.rules.get(node.ruleId!);
   if (!rule) throw new Error(`CATALOG_CANVAS_RULE_REQUIRED:${node.ruleId}`);
   return {

@@ -136,9 +136,12 @@ describe("ADR-248 Phase 4a-3 authored paint", () => {
     expect(applyCatalogAuthoredPaint(node, data, rect)).toBe(data);
   });
 
-  it("still fails explicitly on typography keys until both consumers read them", () => {
-    expect(() =>
-      catalogDomStyle(frame({ visual: { fontFamily: "Inter" } })),
-    ).toThrow("CATALOG_DOM_VISUAL_UNSUPPORTED");
+  it("keeps a container's typography out of its own DOM style (inherited source only)", () => {
+    const style = catalogDomStyle(
+      frame({ visual: { fontFamily: "Inter", letterSpacing: 1 } }),
+    );
+    expect(style.fontFamily).toBeUndefined();
+    expect(style.letterSpacing).toBeUndefined();
   });
+
 });
