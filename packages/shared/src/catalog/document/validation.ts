@@ -739,10 +739,31 @@ function descendant(value: unknown, at: string): void {
   if (item.kind === "patch") {
     exact(
       item,
-      ["kind", "address", "props", "visual", "sizing", "stateRules", "enabled"],
+      [
+        "kind",
+        "address",
+        "props",
+        "visual",
+        "sizing",
+        "stateRules",
+        "enabled",
+        "layout",
+        "fills",
+        "fillSizing",
+        "responsive",
+        "visibility",
+      ],
       at,
     );
     address(item.address, `${at}.address`);
+    if (item.layout !== undefined) layoutWrites(item.layout, `${at}.layout`);
+    if (item.fills !== undefined) fillLayers(item.fills, `${at}.fills`);
+    if (item.fillSizing !== undefined)
+      fillSizing(item.fillSizing, `${at}.fillSizing`);
+    if (item.responsive !== undefined)
+      responsiveLayers(item.responsive, `${at}.responsive`);
+    if (item.visibility !== undefined)
+      visibility(item.visibility, `${at}.visibility`);
     if (item.enabled !== undefined && typeof item.enabled !== "boolean")
       invalid("ENABLED_BOOLEAN", `${at}.enabled`);
     if (item.props !== undefined) writes(item.props, `${at}.props`);
@@ -757,7 +778,12 @@ function descendant(value: unknown, at: string): void {
       item.visual === undefined &&
       item.sizing === undefined &&
       item.stateRules === undefined &&
-      item.enabled === undefined
+      item.enabled === undefined &&
+      item.layout === undefined &&
+      item.fills === undefined &&
+      item.fillSizing === undefined &&
+      item.responsive === undefined &&
+      item.visibility === undefined
     )
       invalid("EMPTY_PATCH", at);
   } else if (item.kind === "replace") {
@@ -1013,9 +1039,20 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
           "responsive",
           "visibility",
           "themeOverride",
+          "metadata",
         ],
         "entry",
       );
+      if (item.metadata !== undefined) {
+        const metadata = object(item.metadata, "entry.metadata");
+        exact(metadata, ["htmlId"], "entry.metadata");
+        if (
+          metadata.htmlId !== undefined &&
+          (typeof metadata.htmlId !== "string" ||
+            !/^[^\s]+$/.test(metadata.htmlId))
+        )
+          invalid("INVALID_HTML_ID", "entry.metadata.htmlId");
+      }
       if (item.layout !== undefined) layoutWrites(item.layout, "entry.layout");
       if (item.fills !== undefined) fillLayers(item.fills, "entry.fills");
       if (item.fillSizing !== undefined)

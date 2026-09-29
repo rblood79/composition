@@ -59,6 +59,7 @@ async function scene() {
   const owns = node("owns", "lib:definition:text", {
     props: { children: set("world") },
     visual: { fontFamily: set("Menlo"), textAlign: set("center") },
+    metadata: { htmlId: "greeting" },
   });
   const document: CatalogDocument = {
     format: "composition-catalog",
@@ -149,6 +150,10 @@ describe("ADR-248 Phase 4a-3c typography", () => {
       textAlign: "center",
       textTransform: "uppercase",
     });
+    // The author's DOM id (`metadata.htmlId`) is the element's id.
+    expect(host.querySelector(`[data-catalog-id="${ownsId}"]`)!.id).toBe(
+      "greeting",
+    );
     // The container itself carries no typography inline (no second, cascaded source).
     expect(domOf(frameId).fontFamily).toBe("");
 

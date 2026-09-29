@@ -287,6 +287,14 @@ export type DescendantOverride =
       stateRules?: StateRules;
       /** `false` hides the addressed descendant (slot toggle); absent keeps the template value. */
       enabled?: boolean;
+      /** ADR-248 Phase 4b: the node authoring fields a path override can write (§3.4). */
+      layout?: LayoutWrites;
+      fills?: readonly CatalogFillLayer[];
+      fillSizing?: FillSizing;
+      responsive?: Partial<
+        Record<ResponsiveBreakpointName, NodeResponsiveLayer>
+      >;
+      visibility?: Partial<Record<BreakpointName, boolean>>;
     }
   | { kind: "replace"; address: InstanceAddress; replacementId: NodeId }
   | {
@@ -467,6 +475,14 @@ export interface NodeEntry {
   /** Per-breakpoint display (cascades like the responsive layers); `false` hides the subtree. */
   visibility?: Partial<Record<BreakpointName, boolean>>;
   themeOverride?: NodeThemeOverride;
+  /**
+   * Typed allowlist of authored node metadata (G0 destination "node.metadata"). `htmlId` is the
+   * user's DOM `id` (old `customId`) — separate from `props.id`, which is a collection item key.
+   */
+  metadata?: NodeMetadata;
+}
+export interface NodeMetadata {
+  htmlId?: string;
 }
 export interface ThemeEntry {
   kind: "theme";

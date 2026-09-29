@@ -46,6 +46,8 @@ export interface ResolvedCatalogNode {
   /** ADR-224 fill intent after the breakpoint cascade. */
   fillSizing?: FillSizing;
   themeOverride?: NodeThemeOverride;
+  /** The author's DOM `id` (`metadata.htmlId`). */
+  htmlId?: string;
   slot?: { name: string; required: boolean };
   name?: string;
   regions?: readonly { name: string; required: boolean }[];
@@ -223,6 +225,7 @@ export function resolveCatalogNode(
       ...(node.fills ? { fills: node.fills } : {}),
       ...(fillSizing ? { fillSizing } : {}),
       ...(node.themeOverride ? { themeOverride: node.themeOverride } : {}),
+      ...(node.metadata?.htmlId ? { htmlId: node.metadata.htmlId } : {}),
     };
   };
   const source = graph.getEntry(id);
@@ -556,9 +559,19 @@ export function resolveCatalogNode(
       template.enabled ??
       true;
     if (!enabled) return undefined;
-    if ("kind" in template && !catalogNodeVisibleAt(template, breakpoint))
+    // A path patch's authoring fields (Phase 4b) layer over the template node's own.
+    const patch = change?.kind === "patch" ? change : undefined;
+    const visibleBy = patch?.visibility
+      ? patch
+      : "kind" in template
+        ? template
+        : undefined;
+    if (visibleBy && !catalogNodeVisibleAt(visibleBy, breakpoint))
       return undefined;
     const templateLayers = "kind" in template ? responsiveLayers(template) : [];
+    const patchLayers = patch
+      ? responsiveLayers(patch as unknown as NodeEntry)
+      : [];
     const { definition, props, visual, layout } = base(template.definitionId);
     const override = findOverride(template.definitionId);
     if (override) {
@@ -583,6 +596,8 @@ export function resolveCatalogNode(
     if (change?.kind === "patch") {
       if (change.props) applyWrites(props, change.props);
       if (change.sizing) applyWrites(sizing, change.sizing);
+      for (const layer of patchLayers)
+        if (layer.sizing) applyWrites(sizing, layer.sizing);
     }
     const shownState =
       root?.displayState ??
@@ -625,7 +640,17 @@ export function resolveCatalogNode(
     }
     Object.assign(layout, authoredLayout);
     if (root) Object.assign(layout, root.layout);
-    const templateAuthored = { ...authoredLayout, ...root?.layout };
+    const templateAuthored: Record<string, string> = {
+      ...authoredLayout,
+      ...root?.layout,
+    };
+    if (patch) {
+      for (const target of [layout, templateAuthored]) {
+        applyLayoutWrites(target, patch.layout);
+        for (const layer of patchLayers)
+          applyLayoutWrites(target, layer.layout);
+      }
+    }
     // Authored template visual is the node's own value: it wins over definition rules, the same
     // order as an authored node's visual writes in resolveOwned.
     if ("kind" in template) {
@@ -643,6 +668,8 @@ export function resolveCatalogNode(
     };
     if (change?.kind === "patch" && change.visual)
       applyWrites(visual, change.visual);
+    for (const layer of patchLayers)
+      if (layer.visual) applyWrites(visual, layer.visual);
     const children: ResolvedCatalogNode[] = [];
     if (definition.mode === "composite" && definition.templateRootId) {
       const nestedPath = [...instancePath, templateId];
@@ -731,6 +758,15 @@ export function resolveCatalogNode(
         ? { authoredLayout: templateAuthored }
         : {}),
       ...("kind" in template ? authoredExtras(template, templateLayers) : {}),
+      ...(patch?.fills ? { fills: patch.fills } : {}),
+      ...(patch?.fillSizing
+        ? {
+            fillSizing: cascadeFillSizing(
+              { fillSizing: patch.fillSizing } as NodeEntry,
+              patchLayers,
+            ),
+          }
+        : {}),
       slot: template.slot,
       ...(displayState ? { displayState } : {}),
       children,

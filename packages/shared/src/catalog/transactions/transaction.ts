@@ -79,12 +79,13 @@ export type NodeFieldOperation = {
   };
 }[NodeWholeField];
 export type NodeWholeField =
-  "fills" | "fillSizing" | "visibility" | "themeOverride";
+  "fills" | "fillSizing" | "visibility" | "themeOverride" | "metadata";
 const NODE_WHOLE_FIELDS: readonly string[] = [
   "fills",
   "fillSizing",
   "visibility",
   "themeOverride",
+  "metadata",
 ];
 export type HistoryIntent =
   | { kind: "record"; label: string }
@@ -219,6 +220,15 @@ function mergePatch(
   const props = mergeWrites(previous?.props, incoming.props);
   const visual = mergeWrites(previous?.visual, incoming.visual);
   const sizing = mergeWrites(previous?.sizing, incoming.sizing);
+  const layout = mergeWrites(previous?.layout, incoming.layout);
+  // Whole-value fields: the incoming value replaces the previous one.
+  const whole = {
+    fills: incoming.fills ?? previous?.fills,
+    fillSizing: incoming.fillSizing ?? previous?.fillSizing,
+    responsive: incoming.responsive ?? previous?.responsive,
+    visibility: incoming.visibility ?? previous?.visibility,
+    enabled: incoming.enabled ?? previous?.enabled,
+  };
   const stateRules = { ...previous?.stateRules } as Record<
     string,
     Record<string, WriteValue<AuthoredValue>>
@@ -228,11 +238,16 @@ function mergePatch(
     if (Object.keys(next).length) stateRules[state] = next;
     else delete stateRules[state];
   }
+  const wholeFields = Object.fromEntries(
+    Object.entries(whole).filter(([, value]) => value !== undefined),
+  );
   if (
     !Object.keys(props).length &&
     !Object.keys(visual).length &&
     !Object.keys(sizing).length &&
-    !Object.keys(stateRules).length
+    !Object.keys(layout).length &&
+    !Object.keys(stateRules).length &&
+    !Object.keys(wholeFields).length
   )
     return null;
   return {
@@ -241,7 +256,9 @@ function mergePatch(
     ...(Object.keys(props).length ? { props } : {}),
     ...(Object.keys(visual).length ? { visual } : {}),
     ...(Object.keys(sizing).length ? { sizing } : {}),
+    ...(Object.keys(layout).length ? { layout } : {}),
     ...(Object.keys(stateRules).length ? { stateRules } : {}),
+    ...wholeFields,
   };
 }
 function requireNode(value: CatalogEntry | undefined, id: string): NodeEntry {

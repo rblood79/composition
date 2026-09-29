@@ -109,6 +109,8 @@ export interface CatalogConsumerNode {
   readonly fills?: ResolvedCatalogNode["fills"];
   readonly fillSizing?: ResolvedCatalogNode["fillSizing"];
   readonly themeOverride?: ResolvedCatalogNode["themeOverride"];
+  /** The author's DOM `id` (`metadata.htmlId`). */
+  readonly htmlId?: string;
   readonly slot: ResolvedCatalogNode["slot"];
   readonly name: ResolvedCatalogNode["name"];
   readonly regions: ResolvedCatalogNode["regions"];
@@ -213,13 +215,14 @@ function authoredFields(
   node: ResolvedCatalogNode,
 ): Pick<
   CatalogConsumerNode,
-  "fills" | "fillSizing" | "themeOverride" | "authoredLayout"
+  "fills" | "fillSizing" | "themeOverride" | "authoredLayout" | "htmlId"
 > {
   return {
     ...(node.fills ? { fills: node.fills } : {}),
     ...(node.fillSizing ? { fillSizing: node.fillSizing } : {}),
     ...(node.themeOverride ? { themeOverride: node.themeOverride } : {}),
     ...(node.authoredLayout ? { authoredLayout: node.authoredLayout } : {}),
+    ...(node.htmlId ? { htmlId: node.htmlId } : {}),
   };
 }
 export interface CatalogRootMetrics {
@@ -828,6 +831,7 @@ function sameRecord(
     sameFields(left.inheritedText ?? {}, right.inheritedText ?? {}) &&
     sameFields(left.fillLayout ?? {}, right.fillLayout ?? {}) &&
     sameFields(left.authoredLayout ?? {}, right.authoredLayout ?? {}) &&
+    left.htmlId === right.htmlId &&
     JSON.stringify(left.fills ?? null) ===
       JSON.stringify(right.fills ?? null) &&
     JSON.stringify(left.fillSizing ?? null) ===
@@ -2037,6 +2041,7 @@ export class CatalogCompositionRoot {
         fillSizing: _fillSizing,
         themeOverride: _themeOverride,
         authoredLayout: _authoredLayout,
+        htmlId: _htmlId,
         ...kept
       } = before;
       const record: CatalogConsumerNode = {

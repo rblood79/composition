@@ -1012,19 +1012,22 @@ const CatalogDomNode = memo(function CatalogDomNode({
       );
   const delegated = CATALOG_DELEGATED_DOM[node.bindingId ?? ""];
   if (delegated && !bindings[node.bindingId ?? ""])
-    return delegated.render({
-      root,
+    return withHtmlId(
       node,
-      style: authoredStyle(root, node),
-      renderChild: (childId) =>
-        createElement(CatalogDomNode, {
-          key: childId,
-          root,
-          id: childId,
-          context,
-        }),
-      today: context.today,
-    });
+      delegated.render({
+        root,
+        node,
+        style: authoredStyle(root, node),
+        renderChild: (childId) =>
+          createElement(CatalogDomNode, {
+            key: childId,
+            root,
+            id: childId,
+            context,
+          }),
+        today: context.today,
+      }),
+    );
   const binding = bindingOf(node);
   const rendered = binding
     ? binding(
@@ -1035,10 +1038,25 @@ const CatalogDomNode = memo(function CatalogDomNode({
       )
     : ruleDom(root, node, children);
   const slot = itemSlotRole(root, node);
-  return slot
-    ? cloneElement(rendered as ReactElement<{ slot?: string }>, { slot })
-    : rendered;
+  return withHtmlId(
+    node,
+    slot
+      ? cloneElement(rendered as ReactElement<{ slot?: string }>, { slot })
+      : rendered,
+  );
 });
+
+/** The author's DOM `id` (`metadata.htmlId`) on the node's own element, for every binding. */
+function withHtmlId(
+  node: CatalogConsumerNode,
+  element: ReactElement,
+): ReactElement {
+  return node.htmlId
+    ? cloneElement(element as ReactElement<{ id?: string }>, {
+        id: node.htmlId,
+      })
+    : element;
+}
 
 /**
  * Render one resolved subtree from the composition root's DOM inputs. The initial render walks
