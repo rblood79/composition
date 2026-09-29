@@ -78,7 +78,8 @@ export type NodeFieldOperation = {
     value?: NodeEntry[F];
   };
 }[NodeWholeField];
-export type NodeWholeField = "fills" | "fillSizing" | "visibility" | "themeOverride";
+export type NodeWholeField =
+  "fills" | "fillSizing" | "visibility" | "themeOverride";
 const NODE_WHOLE_FIELDS: readonly string[] = [
   "fills",
   "fillSizing",
@@ -353,7 +354,10 @@ export function applyCatalogTransaction(
     const node = requireNode(get(op.id), op.id);
     if (op.kind === "setNodeField") {
       if (!NODE_WHOLE_FIELDS.includes(op.field))
-        throw new CatalogValidationError("UNKNOWN_NODE_FIELD", String(op.field));
+        throw new CatalogValidationError(
+          "UNKNOWN_NODE_FIELD",
+          String(op.field),
+        );
       inverse.unshift({
         kind: "setNodeField",
         id: node.id,
@@ -373,7 +377,10 @@ export function applyCatalogTransaction(
       op.breakpoint !== undefined
     ) {
       if (op.breakpoint !== "tablet" && op.breakpoint !== "mobile")
-        throw new CatalogValidationError("RESPONSIVE_BREAKPOINT", String(op.breakpoint));
+        throw new CatalogValidationError(
+          "RESPONSIVE_BREAKPOINT",
+          String(op.breakpoint),
+        );
       const scope =
         op.kind === "patchNodeVisual"
           ? "visual"

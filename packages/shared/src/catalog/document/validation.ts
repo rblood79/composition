@@ -99,7 +99,14 @@ const visualChoices: Readonly<Record<string, readonly string[]>> = {
   textAlign: ["left", "center", "right", "justify", "start", "end"],
   textTransform: ["none", "uppercase", "lowercase", "capitalize"],
   textDecoration: ["none", "underline", "line-through", "overline"],
-  whiteSpace: ["normal", "nowrap", "pre", "pre-wrap", "pre-line", "break-spaces"],
+  whiteSpace: [
+    "normal",
+    "nowrap",
+    "pre",
+    "pre-wrap",
+    "pre-line",
+    "break-spaces",
+  ],
   wordBreak: ["normal", "break-all", "keep-all", "break-word"],
 };
 /** Phase 4a keys whose value is CSS text (no finite typed form). */
@@ -149,7 +156,14 @@ const alignKeywords = [
 const layoutValueChoices: Readonly<
   Record<LayoutField, (value: string) => boolean>
 > = {
-  display: keyword("block", "flex", "inline-flex", "grid", "inline-block", "none"),
+  display: keyword(
+    "block",
+    "flex",
+    "inline-flex",
+    "grid",
+    "inline-block",
+    "none",
+  ),
   flexDirection: keyword("row", "column", "row-reverse", "column-reverse"),
   alignItems: keyword(...alignKeywords),
   justifyContent: keyword(
@@ -164,8 +178,10 @@ const layoutValueChoices: Readonly<
   ),
   flexWrap: keyword("nowrap", "wrap", "wrap-reverse"),
   position: keyword("static", "relative", "absolute"),
-  insetLeft: (value) => cssLength(value, true) || /^-?\d+(?:\.\d+)?%$/.test(value),
-  insetTop: (value) => cssLength(value, true) || /^-?\d+(?:\.\d+)?%$/.test(value),
+  insetLeft: (value) =>
+    cssLength(value, true) || /^-?\d+(?:\.\d+)?%$/.test(value),
+  insetTop: (value) =>
+    cssLength(value, true) || /^-?\d+(?:\.\d+)?%$/.test(value),
   insetRight: (value) =>
     cssLength(value, true) || /^-?\d+(?:\.\d+)?%$/.test(value),
   insetBottom: (value) =>
@@ -366,10 +382,12 @@ function visualLiteral(key: string, value: unknown, at: string): void {
     invalid("VISUAL_VALUE_RANGE", at);
   if (visualChoices[key]) {
     if (typeof value !== "string") invalid("VISUAL_VALUE_TYPE", at);
-    if (!visualChoices[key].includes(value))
-      invalid("VISUAL_VALUE_CHOICE", at);
+    if (!visualChoices[key].includes(value)) invalid("VISUAL_VALUE_CHOICE", at);
   }
-  if (visualCssTextKeys.has(key) && (typeof value !== "string" || !value.trim()))
+  if (
+    visualCssTextKeys.has(key) &&
+    (typeof value !== "string" || !value.trim())
+  )
     invalid("VISUAL_VALUE_TYPE", at);
   if (visualNumberKeys.has(key) && typeof value !== "number")
     invalid("VISUAL_VALUE_TYPE", at);
@@ -383,7 +401,8 @@ function visualLiteral(key: string, value: unknown, at: string): void {
     key === "aspectRatio" &&
     !(
       (typeof value === "number" && value > 0) ||
-      (typeof value === "string" && /^\d+(?:\.\d+)?\s*\/\s*\d+(?:\.\d+)?$|^auto$/.test(value))
+      (typeof value === "string" &&
+        /^\d+(?:\.\d+)?\s*\/\s*\d+(?:\.\d+)?$|^auto$/.test(value))
     )
   )
     invalid("VISUAL_VALUE_RANGE", at);
@@ -463,7 +482,10 @@ function layoutWrites(value: unknown, at: string): void {
   }
 }
 const unit = (value: unknown): boolean =>
-  typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 1;
+  typeof value === "number" &&
+  Number.isFinite(value) &&
+  value >= 0 &&
+  value <= 1;
 const fillColor = (value: unknown): boolean =>
   typeof value === "string" && /^#[0-9a-fA-F]{8}$/.test(value);
 const fillBlendModes = new Set([
@@ -511,7 +533,10 @@ function fillLayers(value: unknown, at: string): void {
       if (!unit(c.x) || !unit(c.y)) invalid("FILL_CENTER", `${layerAt}.center`);
     };
     const rotation = () => {
-      if (typeof layer.rotation !== "number" || !Number.isFinite(layer.rotation))
+      if (
+        typeof layer.rotation !== "number" ||
+        !Number.isFinite(layer.rotation)
+      )
         invalid("FILL_ROTATION", `${layerAt}.rotation`);
     };
     switch (layer.kind) {
@@ -556,19 +581,33 @@ function fillLayers(value: unknown, at: string): void {
         for (const axis of ["rows", "columns"])
           if (!Number.isInteger(layer[axis]) || (layer[axis] as number) < 1)
             invalid("FILL_MESH_GRID", `${layerAt}.${axis}`);
-        if (!Array.isArray(layer.points)) invalid("ARRAY_REQUIRED", `${layerAt}.points`);
+        if (!Array.isArray(layer.points))
+          invalid("ARRAY_REQUIRED", `${layerAt}.points`);
         for (const [pointIndex, rawPoint] of layer.points.entries()) {
           const pointAt = `${layerAt}.points[${pointIndex}]`;
           const p = object(rawPoint, pointAt);
           exact(
             p,
-            ["position", "color", "leftHandle", "rightHandle", "topHandle", "bottomHandle"],
+            [
+              "position",
+              "color",
+              "leftHandle",
+              "rightHandle",
+              "topHandle",
+              "bottomHandle",
+            ],
             pointAt,
           );
           point(p.position, `${pointAt}.position`);
           if (!fillColor(p.color)) invalid("FILL_COLOR", `${pointAt}.color`);
-          for (const handle of ["leftHandle", "rightHandle", "topHandle", "bottomHandle"])
-            if (p[handle] !== undefined) point(p[handle], `${pointAt}.${handle}`);
+          for (const handle of [
+            "leftHandle",
+            "rightHandle",
+            "topHandle",
+            "bottomHandle",
+          ])
+            if (p[handle] !== undefined)
+              point(p[handle], `${pointAt}.${handle}`);
         }
         break;
       }
@@ -580,7 +619,8 @@ function fillLayers(value: unknown, at: string): void {
     ids.add(layerId);
     if (typeof layer.enabled !== "boolean")
       invalid("FILL_ENABLED_BOOLEAN", `${layerAt}.enabled`);
-    if (!unit(layer.opacity)) invalid("FILL_OPACITY_RANGE", `${layerAt}.opacity`);
+    if (!unit(layer.opacity))
+      invalid("FILL_OPACITY_RANGE", `${layerAt}.opacity`);
     if (!fillBlendModes.has(layer.blendMode as string))
       invalid("FILL_BLEND_MODE", `${layerAt}.blendMode`);
   });
@@ -609,7 +649,8 @@ function responsiveLayers(value: unknown, at: string): void {
     exact(layer, ["visual", "layout", "sizing", "fillSizing"], layerAt);
     if (layer.visual !== undefined)
       writes(layer.visual, `${layerAt}.visual`, visualFields);
-    if (layer.layout !== undefined) layoutWrites(layer.layout, `${layerAt}.layout`);
+    if (layer.layout !== undefined)
+      layoutWrites(layer.layout, `${layerAt}.layout`);
     if (layer.sizing !== undefined)
       writes(layer.sizing, `${layerAt}.sizing`, sizingFields, true);
     if (layer.fillSizing !== undefined)
@@ -627,9 +668,16 @@ function visibility(value: unknown, at: string): void {
 function themeOverride(value: unknown, at: string): void {
   const override = object(value, at);
   exact(override, ["mode", "tint"], at);
-  if (override.mode !== undefined && override.mode !== "light" && override.mode !== "dark")
+  if (
+    override.mode !== undefined &&
+    override.mode !== "light" &&
+    override.mode !== "dark"
+  )
     invalid("THEME_OVERRIDE_VALUE", `${at}.mode`);
-  if (override.tint !== undefined && !presetValues.tint.has(override.tint as never))
+  if (
+    override.tint !== undefined &&
+    !presetValues.tint.has(override.tint as never)
+  )
     invalid("THEME_OVERRIDE_VALUE", `${at}.tint`);
 }
 function propCondition(
@@ -1325,7 +1373,12 @@ export function validateLibraryDefinition(value: unknown): LibraryDefinition {
       if (child.viaProps !== undefined) {
         if (child.via === undefined)
           invalid("VIA_REQUIRED", `${at}.child.viaProps`);
-        propCondition(child.viaProps, `${at}.child.viaProps`, undefined, undefined);
+        propCondition(
+          child.viaProps,
+          `${at}.child.viaProps`,
+          undefined,
+          undefined,
+        );
       }
       if (rule.when !== undefined)
         propCondition(rule.when, `${at}.when`, acceptedProps, propChoices);
@@ -1371,7 +1424,8 @@ export function validateLibraryTemplate(value: unknown): LibraryTemplateNode {
     ],
     "library.template",
   );
-  if (item.layout !== undefined) layoutValues(item.layout, "library.template.layout");
+  if (item.layout !== undefined)
+    layoutValues(item.layout, "library.template.layout");
   if (item.stateRules !== undefined)
     stateRules(item.stateRules, "library.template.stateRules");
   if (
@@ -1388,7 +1442,11 @@ export function validateLibraryTemplate(value: unknown): LibraryTemplateNode {
     item.descendantPatches.forEach((raw, index) => {
       const at = `library.template.descendantPatches[${index}]`;
       const patch = object(raw, at);
-      exact(patch, ["templatePath", "props", "visual", "layout", "enabled"], at);
+      exact(
+        patch,
+        ["templatePath", "props", "visual", "layout", "enabled"],
+        at,
+      );
       list(patch.templatePath, "lib:template:", `${at}.templatePath`);
       if (!(patch.templatePath as unknown[]).length)
         invalid("EMPTY_TEMPLATE_PATH", at);
@@ -1398,7 +1456,8 @@ export function validateLibraryTemplate(value: unknown): LibraryTemplateNode {
       if (patch.props !== undefined) values(patch.props, `${at}.props`);
       if (patch.visual !== undefined)
         values(patch.visual, `${at}.visual`, visualFields);
-      if (patch.layout !== undefined) layoutValues(patch.layout, `${at}.layout`);
+      if (patch.layout !== undefined)
+        layoutValues(patch.layout, `${at}.layout`);
       if (patch.enabled !== undefined && typeof patch.enabled !== "boolean")
         invalid("ENABLED_BOOLEAN", `${at}.enabled`);
       if (

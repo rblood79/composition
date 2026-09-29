@@ -114,7 +114,9 @@ const DISPLAY_STATE_PROPS: Readonly<
   collapsed: { isExpanded: false },
 };
 /** The state rules a display state resolves (`ResolutionContext.state` of that node). */
-const DISPLAY_PAINT_STATE: Readonly<Partial<Record<DisplayStateName, StateName>>> = {
+const DISPLAY_PAINT_STATE: Readonly<
+  Partial<Record<DisplayStateName, StateName>>
+> = {
   selected: "selected",
   disabled: "disabled",
   hover: "hover",
@@ -126,11 +128,9 @@ type LibraryPatchScope = {
   instances: readonly (NodeId | TemplateId)[];
   patches: readonly LibraryDescendantPatch[];
 };
-const sameIds = (
-  left: readonly string[],
-  right: readonly string[],
-): boolean =>
-  left.length === right.length && left.every((id, index) => id === right[index]);
+const sameIds = (left: readonly string[], right: readonly string[]): boolean =>
+  left.length === right.length &&
+  left.every((id, index) => id === right[index]);
 const TEMPLATE_BINDING = /\{([a-zA-Z][a-zA-Z0-9_-]*)\}/g;
 const WHOLE_TEMPLATE_BINDING = /^\{([a-zA-Z][a-zA-Z0-9_-]*)\}$/;
 /**
@@ -141,7 +141,8 @@ const WHOLE_TEMPLATE_BINDING = /^\{([a-zA-Z][a-zA-Z0-9_-]*)\}$/;
 function bindTemplateValue(value: Scalar, bindings: Values): Scalar {
   if (typeof value !== "string" || !value.includes("{")) return value;
   const whole = WHOLE_TEMPLATE_BINDING.exec(value);
-  if (whole) return Object.hasOwn(bindings, whole[1]) ? bindings[whole[1]] : value;
+  if (whole)
+    return Object.hasOwn(bindings, whole[1]) ? bindings[whole[1]] : value;
   return value.replace(TEMPLATE_BINDING, (placeholder, key: string) =>
     Object.hasOwn(bindings, key) ? String(bindings[key]) : placeholder,
   );
@@ -153,12 +154,16 @@ const same = (left: InstanceAddress, right: InstanceAddress): boolean =>
   left.templatePath.every((id, index) => id === right.templatePath[index]);
 
 /** Desktop-first cascade: the layers below desktop that apply at a breakpoint, in order. */
-const CASCADE: Readonly<Record<BreakpointName, readonly ("tablet" | "mobile")[]>> = {
+const CASCADE: Readonly<
+  Record<BreakpointName, readonly ("tablet" | "mobile")[]>
+> = {
   desktop: [],
   tablet: ["tablet"],
   mobile: ["tablet", "mobile"],
 };
-const VISIBILITY_FALLBACK: Readonly<Record<BreakpointName, readonly BreakpointName[]>> = {
+const VISIBILITY_FALLBACK: Readonly<
+  Record<BreakpointName, readonly BreakpointName[]>
+> = {
   desktop: ["desktop"],
   tablet: ["tablet", "desktop"],
   mobile: ["mobile", "tablet", "desktop"],
@@ -209,7 +214,10 @@ export function resolveCatalogNode(
       .map((name) => node.responsive?.[name])
       .filter((layer): layer is NodeResponsiveLayer => !!layer);
   /** Authored node output fields that only exist when the node declares them. */
-  const authoredExtras = (node: NodeEntry, layers: readonly NodeResponsiveLayer[]) => {
+  const authoredExtras = (
+    node: NodeEntry,
+    layers: readonly NodeResponsiveLayer[],
+  ) => {
     const fillSizing = cascadeFillSizing(node, layers);
     return {
       ...(node.fills ? { fills: node.fills } : {}),
@@ -252,7 +260,9 @@ export function resolveCatalogNode(
     }
   };
   /** Structural ancestor type names, nearest first (collapsed composite layers skipped). */
-  function* ancestorTypes(context: ParentContext | undefined): Generator<string> {
+  function* ancestorTypes(
+    context: ParentContext | undefined,
+  ): Generator<string> {
     for (
       let cursor = structuralParent(context);
       cursor;
@@ -315,7 +325,8 @@ export function resolveCatalogNode(
           matches(rule.child.props, props) &&
           (!via || matches(rule.child.viaProps, owner.props)) &&
           matches(rule.when, ruleOwner.props) &&
-          (rule.state === undefined || rule.state === (ruleOwner.state ?? state))
+          (rule.state === undefined ||
+            rule.state === (ruleOwner.state ?? state))
         ) {
           if (rule.visual) applyValues(visual, rule.visual);
           if (rule.layout) Object.assign(layout, rule.layout);
@@ -436,7 +447,8 @@ export function resolveCatalogNode(
     };
     const sizing: Record<string, number | null> = {};
     applyWrites(sizing, node.sizing);
-    for (const layer of layers) if (layer.sizing) applyWrites(sizing, layer.sizing);
+    for (const layer of layers)
+      if (layer.sizing) applyWrites(sizing, layer.sizing);
     const children: ResolvedCatalogNode[] = [];
     if (
       definition.mode === "composite" &&
@@ -592,7 +604,14 @@ export function resolveCatalogNode(
         if (definition.accepts[key] === "boolean") props[key] = value;
     const nodeState = catalogNodeState(displayState, state);
     applyPropVisualRules(template.definitionId, props, visual);
-    applyTypedRules(template.definitionId, props, visual, layout, parent, nodeState);
+    applyTypedRules(
+      template.definitionId,
+      props,
+      visual,
+      layout,
+      parent,
+      nodeState,
+    );
     // Authored template layout (origin style) is the node's own declaration, like inline style
     // over the rule and parent delegation; an instance position's layout reaches its root.
     const authoredLayout: Record<string, string> = {
@@ -640,24 +659,27 @@ export function resolveCatalogNode(
             [definition.templateRootId],
             { ...self, collapsed: true },
             templateBindings(template.definitionId, props),
-            withDisplayState(displayState, instanceRoot(
-              [
-                ...Object.keys(template.props),
-                ...(change?.kind === "patch"
-                  ? Object.keys(change.props ?? {})
-                  : []),
-              ],
-              props,
-              [
-                ...Object.keys(template.visual),
-                ...(change?.kind === "patch"
-                  ? Object.keys(change.visual ?? {})
-                  : []),
-              ],
-              visual,
-              sizing,
-              authoredLayout,
-            )),
+            withDisplayState(
+              displayState,
+              instanceRoot(
+                [
+                  ...Object.keys(template.props),
+                  ...(change?.kind === "patch"
+                    ? Object.keys(change.props ?? {})
+                    : []),
+                ],
+                props,
+                [
+                  ...Object.keys(template.visual),
+                  ...(change?.kind === "patch"
+                    ? Object.keys(change.visual ?? {})
+                    : []),
+                ],
+                visual,
+                sizing,
+                authoredLayout,
+              ),
+            ),
             "descendantPatches" in template && template.descendantPatches
               ? { instances: nestedPath, patches: template.descendantPatches }
               : undefined,

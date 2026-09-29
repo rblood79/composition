@@ -79,7 +79,10 @@ async function scene(
   };
   const runtime = new CatalogRuntime(
     new CatalogGraph(document, createPencilFixtureLibrary()),
-    new CatalogStorage(indexedDB, `adr248-phase4-pages-${breakpoint}-${pages.length}`),
+    new CatalogStorage(
+      indexedDB,
+      `adr248-phase4-pages-${breakpoint}-${pages.length}`,
+    ),
   );
   return new CatalogCompositionRoot(
     runtime,
@@ -105,10 +108,25 @@ describe("ADR-248 Phase 4a-4 page frames", () => {
       { pageLayout: { direction: "auto", gap: 100, columns: 2 } },
     );
     const frames = root.pageFrameRects();
-    expect(frames.get("project:page:home")).toMatchObject({ x: 0, y: 0, width: 1920, height: 1080 });
-    expect(frames.get("project:page:about")).toMatchObject({ x: 2020, y: 0, width: 1920, height: 1600 });
+    expect(frames.get("project:page:home")).toMatchObject({
+      x: 0,
+      y: 0,
+      width: 1920,
+      height: 1080,
+    });
+    expect(frames.get("project:page:about")).toMatchObject({
+      x: 2020,
+      y: 0,
+      width: 1920,
+      height: 1600,
+    });
     // Second row starts below the tallest page of the first row.
-    expect(frames.get("project:page:contact")).toMatchObject({ x: 0, y: 1700, width: 1920, height: 1080 });
+    expect(frames.get("project:page:contact")).toMatchObject({
+      x: 0,
+      y: 1700,
+      width: 1920,
+      height: 1080,
+    });
   });
 
   it("reads the breakpoint's tier size, placement layer and node responsive layer", async () => {
@@ -118,7 +136,9 @@ describe("ADR-248 Phase 4a-4 page frames", () => {
         page("about", {
           placement: {
             base: {},
-            breakpoints: { mobile: { position: "absolute", left: -500, top: 40 } },
+            breakpoints: {
+              mobile: { position: "absolute", left: -500, top: 40 },
+            },
           },
         }),
       ],
@@ -137,7 +157,12 @@ describe("ADR-248 Phase 4a-4 page frames", () => {
       "mobile",
     );
     const frames = root.pageFrameRects();
-    expect(frames.get("project:page:home")).toMatchObject({ x: 0, y: 0, width: 390, height: 844 });
+    expect(frames.get("project:page:home")).toMatchObject({
+      x: 0,
+      y: 0,
+      width: 390,
+      height: 844,
+    });
     expect(frames.get("project:page:about")).toMatchObject({ x: -500, y: 40 });
     const box = [...root.canvasInputs.values()].find(
       (item) => item.sourceId === "project:node:box",
@@ -147,7 +172,10 @@ describe("ADR-248 Phase 4a-4 page frames", () => {
 
   it("resolves theme variables in the root's color mode on the Canvas", async () => {
     const hex = (value: string) =>
-      [1, 3, 5].map((i) => Math.round((parseInt(value.slice(i, i + 2), 16) / 255) * 1000) / 1000);
+      [1, 3, 5].map(
+        (i) =>
+          Math.round((parseInt(value.slice(i, i + 2), 16) / 255) * 1000) / 1000,
+      );
     for (const mode of ["light", "dark"] as const) {
       const root = await scene(
         [page("home")],
@@ -161,7 +189,9 @@ describe("ADR-248 Phase 4a-4 page frames", () => {
       const fill = Array.from(getSkiaNode(bodyId)!.box!.fillColor)
         .slice(0, 3)
         .map((v) => Math.round(v * 1000) / 1000);
-      expect(fill).toEqual(hex((mode === "dark" ? darkColors : lightColors).accent));
+      expect(fill).toEqual(
+        hex((mode === "dark" ? darkColors : lightColors).accent),
+      );
       canvas.dispose();
     }
   });

@@ -143,5 +143,4 @@ describe("ADR-248 Phase 4a-3 authored paint", () => {
     expect(style.fontFamily).toBeUndefined();
     expect(style.letterSpacing).toBeUndefined();
   });
-
 });

@@ -191,7 +191,8 @@ export function catalogTextTypography(
     const value = text(key);
     if (value !== undefined) typography[key] = value;
   }
-  if (letterSpacing !== undefined) typography.letterSpacing = Number(letterSpacing);
+  if (letterSpacing !== undefined)
+    typography.letterSpacing = Number(letterSpacing);
   if (node.visual.textDecoration !== undefined)
     typography.textDecoration = String(node.visual.textDecoration);
   return typography;

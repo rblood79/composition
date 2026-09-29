@@ -79,7 +79,10 @@ function ownedChildren(entry: CatalogEntry): NodeId[] {
 /** By-ID references not carried by the owner, definition, token or collection edges. */
 function referencedIds(entry: CatalogEntry): string[] {
   const ids: string[] = [];
-  const address = (value: { instances: readonly string[]; templatePath: readonly string[] }) => {
+  const address = (value: {
+    instances: readonly string[];
+    templatePath: readonly string[];
+  }) => {
     for (const id of [...value.instances, ...value.templatePath])
       if (id.startsWith("project:")) ids.push(id);
   };
@@ -310,7 +313,8 @@ export class CatalogGraph {
     for (const [id, entry] of staged)
       prepared.set(id, entry === null ? null : ownedRecord(entry));
     const previous = new Map<string, CatalogEntry | null>();
-    for (const id of staged.keys()) previous.set(id, this.table.get(id) ?? null);
+    for (const id of staged.keys())
+      previous.set(id, this.table.get(id) ?? null);
     const newlyDirty = [...staged.keys()].filter((id) => !this.dirty.has(id));
     const previousMetrics = this.lastMetrics;
     metrics.transactionIndexEdgesUpdated += this.replace(prepared);
@@ -342,7 +346,11 @@ export class CatalogGraph {
    */
   revertCommit(revision: number): void {
     const last = this.lastCommit;
-    if (!last || last.revision !== revision || revision !== this.currentRevision)
+    if (
+      !last ||
+      last.revision !== revision ||
+      revision !== this.currentRevision
+    )
       throw new Error("CATALOG_REVERT_UNAVAILABLE");
     this.lastCommit = undefined;
     this.replace(last.previous);
@@ -485,7 +493,11 @@ export class CatalogGraph {
         if (this.ownerByChild.get(child) === id && !staged.has(child)) continue;
         if (this.ownerByChild.get(child) !== id) newClaims.set(child, id);
         const committedOwner = this.ownerByChild.get(child);
-        if (committedOwner && committedOwner !== id && !staged.has(committedOwner))
+        if (
+          committedOwner &&
+          committedOwner !== id &&
+          !staged.has(committedOwner)
+        )
           throw new CatalogValidationError("DUPLICATE_OWNERSHIP", child);
         const claimed = get(child);
         if (claimed?.kind !== "node")
@@ -505,7 +517,11 @@ export class CatalogGraph {
     for (const [child, owner] of newClaims) {
       const seen = new Set<string>();
       let top = owner;
-      for (let cursor: string | undefined = owner; cursor; cursor = ownerAfter(cursor)) {
+      for (
+        let cursor: string | undefined = owner;
+        cursor;
+        cursor = ownerAfter(cursor)
+      ) {
         if (cursor === child || seen.has(cursor))
           throw new CatalogValidationError("OWNERSHIP_CYCLE", child);
         seen.add(cursor);
@@ -517,7 +533,11 @@ export class CatalogGraph {
     // Committed entries whose references read a staged record are re-validated.
     const referrers = new Set<string>();
     for (const [id, entry] of staged) {
-      for (const index of [this.definitionIndex, this.tokenIndex, this.refIndex])
+      for (const index of [
+        this.definitionIndex,
+        this.tokenIndex,
+        this.refIndex,
+      ])
         for (const referrer of index.get(id) ?? []) referrers.add(referrer);
       const before = this.table.get(id);
       if (entry?.kind === "definition" || before?.kind === "definition")
@@ -526,7 +546,8 @@ export class CatalogGraph {
       for (const owner of [ownerAfter(id), this.ownerByChild.get(id)])
         if (owner && get(owner)?.kind === "definition") {
           definitionsChanged = true;
-          for (const instance of this.instancesOf(owner)) referrers.add(instance);
+          for (const instance of this.instancesOf(owner))
+            referrers.add(instance);
         }
       if (
         (entry?.kind === "node" &&

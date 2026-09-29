@@ -377,7 +377,10 @@ function catalogPageLayoutSettings(
 function catalogPagePlacement(
   placement: PagePlacementDeclaration,
 ): PagePlacement {
-  const responsive: Record<string, Partial<Record<BreakpointName, string | number>>> = {};
+  const responsive: Record<
+    string,
+    Partial<Record<BreakpointName, string | number>>
+  > = {};
   for (const [name, values] of Object.entries(placement.breakpoints ?? {}))
     for (const [key, value] of Object.entries(values ?? {}))
       (responsive[key] ??= {})[name as BreakpointName] = value;
@@ -723,7 +726,8 @@ function containerTracks(
   for (const key of ["maxWidth", "maxHeight"] as const) {
     const sized = node.sizing[key];
     const value =
-      node.layout[key] ?? (typeof sized === "number" ? `${sized}px` : undefined);
+      node.layout[key] ??
+      (typeof sized === "number" ? `${sized}px` : undefined);
     if (value === undefined || value === "none") continue;
     // `ch` = the advance of "0" in the node's own font (CSS Values 4).
     const ch = /^(\d+(?:\.\d+)?)ch$/.exec(value);
@@ -824,7 +828,8 @@ function sameRecord(
     sameFields(left.inheritedText ?? {}, right.inheritedText ?? {}) &&
     sameFields(left.fillLayout ?? {}, right.fillLayout ?? {}) &&
     sameFields(left.authoredLayout ?? {}, right.authoredLayout ?? {}) &&
-    JSON.stringify(left.fills ?? null) === JSON.stringify(right.fills ?? null) &&
+    JSON.stringify(left.fills ?? null) ===
+      JSON.stringify(right.fills ?? null) &&
     JSON.stringify(left.fillSizing ?? null) ===
       JSON.stringify(right.fillSizing ?? null) &&
     JSON.stringify(left.themeOverride ?? null) ===
@@ -1148,7 +1153,12 @@ export class CatalogCompositionRoot {
       return derived;
     const rule = this.runtime.graph.library.rules.get(item.ruleId);
     if (!rule) return derived;
-    const itemDerived = catalogDerivedProps(item, get, this.typeOf, this.locale);
+    const itemDerived = catalogDerivedProps(
+      item,
+      get,
+      this.typeOf,
+      this.locale,
+    );
     const color = catalogRuleTextColor({
       node: itemDerived
         ? { ...item, props: { ...item.props, ...itemDerived } }
@@ -1317,7 +1327,9 @@ export class CatalogCompositionRoot {
     const hourCycle = prop("hourCycle");
     const parts = racDateSegmentParts({
       locale:
-        typeof prop("locale") === "string" ? String(prop("locale")) : this.locale,
+        typeof prop("locale") === "string"
+          ? String(prop("locale"))
+          : this.locale,
       granularity:
         typeof granularity === "string"
           ? granularity
@@ -1329,12 +1341,19 @@ export class CatalogCompositionRoot {
     // A TimeField shows the time fields only (RAC `TimeField` omits the date).
     const firstTime = parts.findIndex((part) => part.text === "\u2013\u2013");
     const shown =
-      ownerType === "TimeField" && firstTime >= 0 ? parts.slice(firstTime) : parts;
+      ownerType === "TimeField" && firstTime >= 0
+        ? parts.slice(firstTime)
+        : parts;
     return {
       parts: shown,
       paddingX: ownerType ? catalogDateSegmentPaddingX(ownerType) : 0,
       ...(ownerType === "DateRangePicker"
-        ? { range: { gap: Number(wrapper?.visual.gap ?? 0), separator: "\u2013" } }
+        ? {
+            range: {
+              gap: Number(wrapper?.visual.gap ?? 0),
+              separator: "\u2013",
+            },
+          }
         : {}),
       ...(lineHeight !== undefined ? { lineHeight } : {}),
     };
@@ -1603,7 +1622,8 @@ export class CatalogCompositionRoot {
   private pageFrameStyle(
     record: CatalogConsumerNode,
   ): Record<string, unknown> | undefined {
-    if (!this.pageFrames || record.parentId !== "catalog:root") return undefined;
+    if (!this.pageFrames || record.parentId !== "catalog:root")
+      return undefined;
     const pageId = this.rootPage.get(record.sourceId as NodeId);
     const page = pageId ? this.runtime.graph.getEntry(pageId) : undefined;
     const tier = CANVAS_VIEWPORT[this.breakpoint];
@@ -1618,15 +1638,27 @@ export class CatalogCompositionRoot {
       this.breakpoint,
     );
     for (const [key, value] of Object.entries(placement)) {
-      if (key === "left") out.insetLeft = typeof value === "number" ? `${value}px` : value;
-      else if (key === "top") out.insetTop = typeof value === "number" ? `${value}px` : value;
-      else out[key] = typeof value === "number" && key.startsWith("grid") ? String(value) : value;
+      if (key === "left")
+        out.insetLeft = typeof value === "number" ? `${value}px` : value;
+      else if (key === "top")
+        out.insetTop = typeof value === "number" ? `${value}px` : value;
+      else
+        out[key] =
+          typeof value === "number" && key.startsWith("grid")
+            ? String(value)
+            : value;
     }
     return out;
   }
   /** Laid-out frame of every page (its root node's box on the page grid). */
-  pageFrameRects(): Map<string, { x: number; y: number; width: number; height: number }> {
-    const rects = new Map<string, { x: number; y: number; width: number; height: number }>();
+  pageFrameRects(): Map<
+    string,
+    { x: number; y: number; width: number; height: number }
+  > {
+    const rects = new Map<
+      string,
+      { x: number; y: number; width: number; height: number }
+    >();
     for (const rootId of this.rootIds) {
       const pageId = this.rootPage.get(rootId);
       const member = [...(this.rootMembers.get(rootId) ?? [])].find(

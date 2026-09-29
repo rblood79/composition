@@ -153,7 +153,10 @@ function container(node: CatalogConsumerNode, rect: Rect): SkiaNodeData {
  * Canvas put on a disabled catalog node (`{ type: "opacity", source: "state" }`); the DOM carries
  * the same value (`catalogDomStyle`, generated `[data-disabled]` CSS).
  */
-function withOpacity(node: CatalogConsumerNode, data: SkiaNodeData): SkiaNodeData {
+function withOpacity(
+  node: CatalogConsumerNode,
+  data: SkiaNodeData,
+): SkiaNodeData {
   const opacity = Number(node.visual.opacity ?? 1);
   if (!Number.isFinite(opacity) || opacity < 0 || opacity > 1)
     throw new Error(`CATALOG_CANVAS_OPACITY_UNSUPPORTED:${node.id}`);
@@ -259,7 +262,8 @@ const bindings: Readonly<Record<string, Binding>> = {
         ...(metrics.textDecoration !== undefined
           ? { decoration: parseTextDecoration(metrics.textDecoration) }
           : {}),
-        ...(metrics.wordBreak === "break-all" || metrics.wordBreak === "keep-all"
+        ...(metrics.wordBreak === "break-all" ||
+        metrics.wordBreak === "keep-all"
           ? { wordBreak: metrics.wordBreak }
           : metrics.wordBreak === "break-word"
             ? { overflowWrap: "break-word" as const }
@@ -279,7 +283,8 @@ const bindings: Readonly<Record<string, Binding>> = {
         whiteSpace:
           metrics.whiteSpace === undefined || metrics.whiteSpace === "normal"
             ? layoutWhiteSpace
-            : (metrics.whiteSpace as "nowrap" | "pre" | "pre-wrap" | "pre-line"),
+            : (metrics.whiteSpace as
+                "nowrap" | "pre" | "pre-wrap" | "pre-line"),
       },
     };
   },

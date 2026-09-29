@@ -404,7 +404,15 @@ function assertNewModelUnreachable(
 ): void {
   let hits: string[] = [];
   try {
-    hits = git("grep", "-n", "-E", NEW_MODEL_IMPORT, head, "--", ...SOURCE_ROOTS)
+    hits = git(
+      "grep",
+      "-n",
+      "-E",
+      NEW_MODEL_IMPORT,
+      head,
+      "--",
+      ...SOURCE_ROOTS,
+    )
       .split("\n")
       .filter(Boolean);
   } catch {

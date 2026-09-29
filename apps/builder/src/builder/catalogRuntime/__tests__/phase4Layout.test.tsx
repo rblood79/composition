@@ -18,10 +18,7 @@ import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
  * the same record fields, and a parent box edit re-projects its fill children.
  */
 const set = <T,>(value: T) => ({ kind: "set" as const, value });
-const node = (
-  id: string,
-  patch: Partial<NodeEntry> = {},
-): NodeEntry => ({
+const node = (id: string, patch: Partial<NodeEntry> = {}): NodeEntry => ({
   kind: "node",
   id: `project:node:${id}`,
   definitionId: "lib:definition:frame",
@@ -79,7 +76,8 @@ async function scene(nodes: NodeEntry[], roots: string[]) {
     [...root.canvasInputs.values()].find(
       (item) => item.sourceId === `project:node:${source}`,
     )!.id;
-  const rect = (source: string) => root.getGeometry([idOf(source)]).get(idOf(source))!;
+  const rect = (source: string) =>
+    root.getGeometry([idOf(source)]).get(idOf(source))!;
   return { root, idOf, rect };
 }
 
@@ -99,7 +97,11 @@ describe("ADR-248 Phase 4a-3d authored layout", () => {
     );
     expect(rect("fill").width).toBeCloseTo(300, 1);
     const fill = root.canvasInputs.get(idOf("fill"))!;
-    expect(fill.fillLayout).toMatchObject({ flexGrow: 1, flexBasis: "0px", width: "auto" });
+    expect(fill.fillLayout).toMatchObject({
+      flexGrow: 1,
+      flexBasis: "0px",
+      width: "auto",
+    });
     expect(catalogDomStyle(fill)).toMatchObject({
       flexGrow: 1,
       flexBasis: "0px",
@@ -118,7 +120,10 @@ describe("ADR-248 Phase 4a-3d authored layout", () => {
     expect(root.metrics.traversedWholeInputGraph).toBe(false);
     expect(root.metrics.layoutInputVisits).toBeLessThanOrEqual(2);
     const after = root.canvasInputs.get(idOf("fill"))!;
-    expect(after.fillLayout).toMatchObject({ alignSelf: "stretch", width: "auto" });
+    expect(after.fillLayout).toMatchObject({
+      alignSelf: "stretch",
+      width: "auto",
+    });
     expect(after.fillLayout?.flexGrow).toBeUndefined();
     expect(rect("fill").width).toBeCloseTo(400, 1);
     expect(catalogDomStyle(after)).toMatchObject({ alignSelf: "stretch" });
@@ -128,7 +133,11 @@ describe("ADR-248 Phase 4a-3d authored layout", () => {
     const { root, idOf, rect } = await scene(
       [
         node("box", {
-          children: ["project:node:pinned", "project:node:ratio", "project:node:capped"],
+          children: [
+            "project:node:pinned",
+            "project:node:ratio",
+            "project:node:capped",
+          ],
           layout: { position: set("relative") },
           sizing: { width: set(400), height: set(300) },
         }),
@@ -150,15 +159,26 @@ describe("ADR-248 Phase 4a-3d authored layout", () => {
       ],
       ["box"],
     );
-    expect(rect("pinned")).toMatchObject({ x: 340, y: 250, width: 50, height: 30 });
+    expect(rect("pinned")).toMatchObject({
+      x: 340,
+      y: 250,
+      width: 50,
+      height: 30,
+    });
     expect(rect("ratio").height).toBeCloseTo(90, 1);
     expect(rect("capped").width).toBeCloseTo(120, 1);
-    expect(catalogDomStyle(root.canvasInputs.get(idOf("pinned"))!)).toMatchObject({
+    expect(
+      catalogDomStyle(root.canvasInputs.get(idOf("pinned"))!),
+    ).toMatchObject({
       position: "absolute",
       right: "10px",
       bottom: "20px",
     });
-    expect(catalogDomStyle(root.canvasInputs.get(idOf("ratio"))!).aspectRatio).toBe("16 / 9");
-    expect(catalogDomStyle(root.canvasInputs.get(idOf("capped"))!).maxWidth).toBe("120px");
+    expect(
+      catalogDomStyle(root.canvasInputs.get(idOf("ratio"))!).aspectRatio,
+    ).toBe("16 / 9");
+    expect(
+      catalogDomStyle(root.canvasInputs.get(idOf("capped"))!).maxWidth,
+    ).toBe("120px");
   });
 });

@@ -261,12 +261,15 @@ describe("ADR-248 Phase 4a node authoring schema", () => {
   });
 
   it("hides a node at a breakpoint where visibility is false, cascading like other layers", () => {
-    const g = graph([
-      node("root", {
-        children: ["project:node:child"],
-      }),
-      node("child", { visibility: { tablet: false } }),
-    ], ["project:node:root"]);
+    const g = graph(
+      [
+        node("root", {
+          children: ["project:node:child"],
+        }),
+        node("child", { visibility: { tablet: false } }),
+      ],
+      ["project:node:root"],
+    );
     const resolve = (breakpoint?: "desktop" | "tablet" | "mobile") =>
       resolveCatalogNode(
         g,

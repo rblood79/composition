@@ -1,7 +1,4 @@
-import {
-  catalogAspectRatio,
-  catalogLayoutCss,
-} from "./fillLayout";
+import { catalogAspectRatio, catalogLayoutCss } from "./fillLayout";
 import {
   CATALOG_AUTHORED_PAINT_KEYS,
   catalogAuthoredDomStyle,
@@ -191,7 +188,9 @@ export function catalogDomStyle(
       : {}),
     ...(box.width !== undefined ? { width: cssLength(box.width) } : {}),
     ...(box.height !== undefined ? { height: cssLength(box.height) } : {}),
-    ...(visual.opacity !== undefined ? { opacity: Number(visual.opacity) } : {}),
+    ...(visual.opacity !== undefined
+      ? { opacity: Number(visual.opacity) }
+      : {}),
     ...(box.minWidth !== undefined
       ? { minWidth: cssLength(box.minWidth) }
       : {}),
@@ -234,13 +233,18 @@ export function catalogDomStyle(
   Object.assign(style, catalogNodeLayoutCss(node));
   if (
     !(borderWidth > 0) &&
-    ["borderTopWidth", "borderRightWidth", "borderBottomWidth", "borderLeftWidth"].some(
-      (key) => visual[key] !== undefined,
-    )
+    [
+      "borderTopWidth",
+      "borderRightWidth",
+      "borderBottomWidth",
+      "borderLeftWidth",
+    ].some((key) => visual[key] !== undefined)
   ) {
     if (visual.borderColor === undefined)
       throw new Error(`CATALOG_DOM_STROKE_COLOR_REQUIRED:${node.id}`);
-    style.borderStyle = String(visual.borderStyle ?? "solid") as CSSProperties["borderStyle"];
+    style.borderStyle = String(
+      visual.borderStyle ?? "solid",
+    ) as CSSProperties["borderStyle"];
     style.borderColor = cssColor(visual.borderColor);
     style.borderWidth = 0;
     Object.assign(style, catalogAuthoredPaintCss({ visual }));
@@ -619,14 +623,18 @@ const AUTHORED_CSS: Readonly<
     paddingBottom: cssLength(value as CatalogLength),
   }),
   paddingTop: (value) => ({ paddingTop: cssLength(value as CatalogLength) }),
-  paddingRight: (value) => ({ paddingRight: cssLength(value as CatalogLength) }),
+  paddingRight: (value) => ({
+    paddingRight: cssLength(value as CatalogLength),
+  }),
   paddingBottom: (value) => ({
     paddingBottom: cssLength(value as CatalogLength),
   }),
   paddingLeft: (value) => ({ paddingLeft: cssLength(value as CatalogLength) }),
   lineHeight: (value) => ({ lineHeight: Number(value) }),
   opacity: (value) => ({ opacity: Number(value) }),
-  overflow: (value) => ({ overflow: String(value) as CSSProperties["overflow"] }),
+  overflow: (value) => ({
+    overflow: String(value) as CSSProperties["overflow"],
+  }),
   borderStyle: (value) => ({
     borderStyle: String(value) as CSSProperties["borderStyle"],
   }),
@@ -634,7 +642,9 @@ const AUTHORED_CSS: Readonly<
     [...CATALOG_AUTHORED_PAINT_KEYS].map((key) => [
       key,
       (value: unknown) =>
-        catalogAuthoredPaintCss({ visual: { [key]: value as never } }) as CSSProperties,
+        catalogAuthoredPaintCss({
+          visual: { [key]: value as never },
+        }) as CSSProperties,
     ]),
   ),
 };
@@ -672,7 +682,8 @@ function ruleDom(
     lower === "breadcrumb"
       ? new Set(
           node.children.filter(
-            (childId) => root.domInputs.get(childId)?.props.slot === "separator",
+            (childId) =>
+              root.domInputs.get(childId)?.props.slot === "separator",
           ),
         )
       : undefined;
@@ -734,7 +745,11 @@ function ruleDom(
     // The component takes no DOM rest props: the marker is a `display: contents` wrapper.
     return createElement(
       "div",
-      { key: node.id, "data-catalog-id": node.id, style: { display: "contents" } },
+      {
+        key: node.id,
+        "data-catalog-id": node.id,
+        style: { display: "contents" },
+      },
       createElement(Component, { ...rest, style }, ...content),
     );
   const element = createElement(
@@ -744,7 +759,12 @@ function ruleDom(
       "data-catalog-id": node.id,
       ...rest,
       ...(STATIC_ITEM_TYPES.has(type)
-        ? { id: resolveStaticItemKey(node.props as Record<string, unknown>, node.id) }
+        ? {
+            id: resolveStaticItemKey(
+              node.props as Record<string, unknown>,
+              node.id,
+            ),
+          }
         : {}),
       ...(usesButtonBaseUtility(type)
         ? { className: `react-aria-${type} button-base` }
@@ -761,14 +781,19 @@ function ruleDom(
       {
         key: `host:${node.id}`,
         "aria-label": "Radio sample",
-        value: node.props.isSelected === true ? String(node.props.value ?? "") : null,
+        value:
+          node.props.isSelected === true
+            ? String(node.props.value ?? "")
+            : null,
         style: { display: "contents" },
       },
       element,
     );
   const host = ORPHAN_ITEM_HOST[lower];
   if (!host || collection === host.toLowerCase()) return element;
-  const Host = (RAC as unknown as Record<string, ElementType | undefined>)[host];
+  const Host = (RAC as unknown as Record<string, ElementType | undefined>)[
+    host
+  ];
   if (!Host) return element;
   return createElement(
     Host,
@@ -909,7 +934,10 @@ function authoredStyle(
   if (ratio !== undefined) style.aspectRatio = String(node.visual.aspectRatio);
   // Authored fill layers over the class CSS background.
   if (node.fills?.length)
-    Object.assign(style, catalogAuthoredDomStyle({ visual: {}, fills: node.fills }));
+    Object.assign(
+      style,
+      catalogAuthoredDomStyle({ visual: {}, fills: node.fills }),
+    );
   // Authored absolute placement (from the parent's padding box), as the native box bindings.
   if (node.placement?.kind === "absolute")
     Object.assign(style, {
@@ -989,7 +1017,12 @@ const CatalogDomNode = memo(function CatalogDomNode({
       node,
       style: authoredStyle(root, node),
       renderChild: (childId) =>
-        createElement(CatalogDomNode, { key: childId, root, id: childId, context }),
+        createElement(CatalogDomNode, {
+          key: childId,
+          root,
+          id: childId,
+          context,
+        }),
       today: context.today,
     });
   const binding = bindingOf(node);
