@@ -97,8 +97,9 @@ export type NodeFieldOperation = {
   };
 }[NodeWholeField];
 export type NodeWholeField =
-  "fills" | "fillSizing" | "visibility" | "themeOverride" | "metadata";
+  "name" | "fills" | "fillSizing" | "visibility" | "themeOverride" | "metadata";
 const NODE_WHOLE_FIELDS: readonly string[] = [
+  "name",
   "fills",
   "fillSizing",
   "visibility",

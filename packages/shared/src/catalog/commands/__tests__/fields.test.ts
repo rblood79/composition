@@ -8,9 +8,11 @@ import { applyCatalogTransaction } from "../../transactions/transaction";
 import type { CatalogCommand } from "../compose";
 import { composeCommands } from "../compose";
 import {
+  renameNode,
   resetDescendant,
   setFields,
   setHtmlId,
+  setSlotDeclaration,
   setWholeField,
 } from "../fields";
 
@@ -213,5 +215,31 @@ describe("ADR-248 Phase 4b field commands", () => {
     expect(cardText(graph).visual.color).toBe("red");
     run(graph, resetDescendant({ ownerId: CARD, address: TEXT }));
     expect((graph.getEntry(CARD) as NodeEntry).descendantOverrides).toEqual([]);
+  });
+
+  it("renames a node as a value edit and declares or clears a slot", () => {
+    const graph = fixture();
+    const renamed = run(
+      graph,
+      renameNode({ id: "project:node:t", name: " Hero " }),
+    );
+    expect(renamed.impact.structural).toBe(false);
+    expect(resolveCatalogNode(graph, "project:node:t").name).toBe("Hero");
+    run(graph, renameNode({ id: "project:node:t", name: "" }));
+    expect(resolveCatalogNode(graph, "project:node:t").name).toBeUndefined();
+    const declared = run(
+      graph,
+      setSlotDeclaration({
+        id: "project:node:t",
+        slot: { name: "content", required: false },
+      }),
+    );
+    expect(declared.impact.structural).toBe(true);
+    expect(resolveCatalogNode(graph, "project:node:t").slot).toEqual({
+      name: "content",
+      required: false,
+    });
+    run(graph, setSlotDeclaration({ id: "project:node:t" }));
+    expect(resolveCatalogNode(graph, "project:node:t").slot).toBeUndefined();
   });
 });

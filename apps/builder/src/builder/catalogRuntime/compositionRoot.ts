@@ -8,6 +8,11 @@ import type {
 } from "../../../../../packages/shared/src/catalog/document/types";
 import type { ResolvedCatalogNode } from "../../../../../packages/shared/src/catalog/resolution/resolver";
 import type {
+  CatalogCommand,
+  CatalogCommandPlan,
+} from "../../../../../packages/shared/src/catalog/commands/compose";
+import { CatalogValidationError } from "../../../../../packages/shared/src/catalog/document/validation";
+import type {
   CatalogOperation,
   CatalogTransactionResult,
 } from "../../../../../packages/shared/src/catalog/transactions/transaction";
@@ -1003,6 +1008,39 @@ export class CatalogCompositionRoot {
       this.runtime.graph.revision,
       this.consume,
     );
+  }
+  /**
+   * One user action (ADR-248 Phase 4b): the command plans on the graph as it is and commits at
+   * that revision. If the graph moved in between (REVISION_CONFLICT — a plan made before an await,
+   * or an edit a consumer caused), the command plans once more on the new graph.
+   */
+  execute(command: CatalogCommand): {
+    plan: CatalogCommandPlan;
+    result: CatalogTransactionResult;
+  } {
+    for (let attempt = 0; ; attempt++) {
+      const revision = this.runtime.graph.revision;
+      const plan = command(this.runtime.graph);
+      try {
+        return {
+          plan,
+          result: this.runtime.dispatch(
+            plan.label,
+            plan.ops,
+            revision,
+            this.consume,
+          ),
+        };
+      } catch (error) {
+        if (
+          attempt === 0 &&
+          error instanceof CatalogValidationError &&
+          error.code === "REVISION_CONFLICT"
+        )
+          continue;
+        throw error;
+      }
+    }
   }
   undo(): CatalogTransactionResult | undefined {
     return this.runtime.undo(this.consume);

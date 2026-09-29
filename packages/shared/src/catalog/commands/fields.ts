@@ -316,3 +316,64 @@ export const resetDescendant =
       ],
     };
   };
+
+/** A node's layer name (display only); empty clears it. */
+export const renameNode =
+  (input: {
+    id: NodeEntry["id"];
+    name: string;
+    label?: string;
+  }): CatalogCommand =>
+  (reader) => {
+    if (reader.getEntry(input.id)?.kind !== "node")
+      return fail("NODE_REQUIRED", input.id);
+    const name = input.name.trim();
+    return {
+      label: input.label ?? "Rename",
+      ops: [
+        {
+          kind: "setNodeField",
+          id: input.id,
+          field: "name",
+          value: name || undefined,
+        },
+      ],
+    };
+  };
+
+/**
+ * A node's slot declaration (a named content position instances fill) or its named regions. A
+ * structural edit: instances that fill the slot are re-validated.
+ */
+export const setSlotDeclaration =
+  (input: {
+    id: NodeEntry["id"];
+    slot?: NodeEntry["slot"];
+    regions?: NodeEntry["regions"];
+    placeholder?: boolean;
+    label?: string;
+  }): CatalogCommand =>
+  (reader) => {
+    const node = reader.getEntry(input.id);
+    if (node?.kind !== "node") return fail("NODE_REQUIRED", input.id);
+    const {
+      slot: _slot,
+      regions: _regions,
+      placeholder: _placeholder,
+      ...rest
+    } = node;
+    return {
+      label: input.label ?? "Edit slot",
+      ops: [
+        {
+          kind: "put",
+          entry: {
+            ...rest,
+            ...(input.slot ? { slot: input.slot } : {}),
+            ...(input.regions?.length ? { regions: input.regions } : {}),
+            ...(input.placeholder ? { placeholder: true } : {}),
+          },
+        },
+      ],
+    };
+  };
