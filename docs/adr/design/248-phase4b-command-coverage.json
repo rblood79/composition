@@ -1,0 +1,1971 @@
+{
+  "adr": 248,
+  "phase": "4b",
+  "title": "구 문서 쓰기 이름 → typed 명령 coverage manifest",
+  "source": "apps/builder/src 제품 코드 (테스트·catalogRuntime 제외) 전수 — 2026-09-30 탐색 결과",
+  "dispositions": {
+    "command": "packages/shared/src/catalog/commands 의 명령 (compositionRoot.execute 로 실행)",
+    "session": "문서 밖 세션 상태 (선택·현재 페이지·일시 미리보기) — 4c",
+    "derived": "graph 에서 파생되는 mirror/hydrate — 4e 에서 삭제",
+    "storage": "저장·열기·복원 — 4d",
+    "history": "CatalogRuntime 단일 undo 스택",
+    "data-store": "문서 밖 data store (collection·endpoint·project variable) — 보존",
+    "retired": "대체 없이 폐기 (dead · mirror · migration · legacy 모델)",
+    "local-setting": "캔버스 설정 (localStorage) — 문서 편집 아님"
+  },
+  "entries": [
+    {
+      "name": "clearDirtyElementIds",
+      "source": "builder/stores/elements.ts:933",
+      "family": "mirror-hydrate",
+      "disposition": "derived",
+      "note": "새 runtime 이 graph 에서 파생 — mirror/hydrate 폐기 (4e 삭제)"
+    },
+    {
+      "name": "_rebuildIndexes",
+      "source": "builder/stores/elements.ts:935",
+      "family": "mirror-hydrate",
+      "disposition": "derived",
+      "note": "새 runtime 이 graph 에서 파생 — mirror/hydrate 폐기 (4e 삭제)"
+    },
+    {
+      "name": "setElements",
+      "source": "builder/stores/elements.ts:942",
+      "family": "mirror-hydrate",
+      "disposition": "derived",
+      "note": "새 runtime 이 graph 에서 파생 — mirror/hydrate 폐기 (4e 삭제)"
+    },
+    {
+      "name": "hydrateProjectSnapshot",
+      "source": "builder/stores/elements.ts:946",
+      "family": "mirror-hydrate",
+      "disposition": "derived",
+      "note": "새 runtime 이 graph 에서 파생 — mirror/hydrate 폐기 (4e 삭제)"
+    },
+    {
+      "name": "mergeElements",
+      "source": "builder/stores/elements.ts:950",
+      "family": "mirror-hydrate",
+      "disposition": "derived",
+      "note": "새 runtime 이 graph 에서 파생 — mirror/hydrate 폐기 (4e 삭제)"
+    },
+    {
+      "name": "replaceElementId",
+      "source": "builder/stores/elements.ts:990",
+      "family": "other",
+      "disposition": "retired",
+      "note": "ID 는 commit 전에 할당되는 불투명 값 — 임시 id 교체 없음"
+    },
+    {
+      "name": "loadPageElements",
+      "source": "builder/stores/elements.ts:1044",
+      "family": "mirror-hydrate",
+      "disposition": "derived",
+      "note": "새 runtime 이 graph 에서 파생 — mirror/hydrate 폐기 (4e 삭제)"
+    },
+    {
+      "name": "addElement",
+      "source": "builder/stores/elements.ts:1076 → builder/stores/utils/elementCreation.ts:194",
+      "family": "insert",
+      "disposition": "command",
+      "commands": ["insertNodes"]
+    },
+    {
+      "name": "updateElementProps",
+      "source": "builder/stores/elements.ts:1079 → builder/stores/utils/elementUpdate.ts:725",
+      "family": "text-props",
+      "disposition": "command",
+      "commands": ["setFields"]
+    },
+    {
+      "name": "updateElement",
+      "source": "builder/stores/elements.ts:1082 → builder/stores/utils/elementUpdate.ts:892",
+      "family": "other",
+      "disposition": "command",
+      "commands": [
+        "setFields",
+        "setHtmlId",
+        "moveNodes",
+        "setSlotDeclaration",
+        "setNodeInteractions"
+      ]
+    },
+    {
+      "name": "setSelectedElement",
+      "source": "builder/stores/elements.ts:1086",
+      "family": "selection-only",
+      "disposition": "session",
+      "note": "선택·현재 페이지 = 문서 밖 세션 상태 (4c)"
+    },
+    {
+      "name": "selectTabElement",
+      "source": "builder/stores/elements.ts:1227",
+      "family": "selection-only",
+      "disposition": "session",
+      "note": "선택·현재 페이지 = 문서 밖 세션 상태 (4c)"
+    },
+    {
+      "name": "setPages",
+      "source": "builder/stores/elements.ts:1238",
+      "family": "pages",
+      "disposition": "command",
+      "commands": ["reorderPages", "updatePage"]
+    },
+    {
+      "name": "setPageState",
+      "source": "builder/stores/elements.ts:1255",
+      "family": "pages",
+      "disposition": "command",
+      "commands": ["addRecord", "updateRecord", "removeRecords"]
+    },
+    {
+      "name": "renamePageTitle",
+      "source": "builder/stores/elements.ts:1285",
+      "family": "pages",
+      "disposition": "command",
+      "commands": ["updatePage"]
+    },
+    {
+      "name": "appendPageShell",
+      "source": "builder/stores/elements.ts:1328",
+      "family": "pages",
+      "disposition": "command",
+      "commands": ["createPage"]
+    },
+    {
+      "name": "removePageLocal",
+      "source": "builder/stores/elements.ts:1404",
+      "family": "pages",
+      "disposition": "command",
+      "commands": ["removePage"]
+    },
+    {
+      "name": "activatePage",
+      "source": "builder/stores/elements.ts:1537",
+      "family": "selection-only",
+      "disposition": "session",
+      "note": "선택·현재 페이지 = 문서 밖 세션 상태 (4c)"
+    },
+    {
+      "name": "setCurrentPageId",
+      "source": "builder/stores/elements.ts:1567",
+      "family": "selection-only",
+      "disposition": "session",
+      "note": "선택·현재 페이지 = 문서 밖 세션 상태 (4c)"
+    },
+    {
+      "name": "selectElementWithPageTransition",
+      "source": "builder/stores/elements.ts:1594",
+      "family": "selection-only",
+      "disposition": "session",
+      "note": "선택·현재 페이지 = 문서 밖 세션 상태 (4c)"
+    },
+    {
+      "name": "undo",
+      "source": "builder/stores/elements.ts:1666 → builder/stores/history/historyActions.ts:516",
+      "family": "history",
+      "disposition": "history",
+      "note": "CatalogRuntime 프로젝트 단일 스택 — transaction 1개 = history 1개 (사용자 판정 2026-09-30)"
+    },
+    {
+      "name": "redo",
+      "source": "builder/stores/elements.ts:1668 → builder/stores/history/historyActions.ts:669",
+      "family": "history",
+      "disposition": "history",
+      "note": "CatalogRuntime 프로젝트 단일 스택 — transaction 1개 = history 1개 (사용자 판정 2026-09-30)"
+    },
+    {
+      "name": "goToHistoryIndex",
+      "source": "builder/stores/elements.ts:1670 → builder/stores/history/historyActions.ts:819",
+      "family": "history",
+      "disposition": "history",
+      "note": "CatalogRuntime 프로젝트 단일 스택 — transaction 1개 = history 1개 (사용자 판정 2026-09-30)"
+    },
+    {
+      "name": "removeElement",
+      "source": "builder/stores/elements.ts:1672 → builder/stores/utils/elementRemoval.ts:418",
+      "family": "remove",
+      "disposition": "command",
+      "commands": ["removeTargets"]
+    },
+    {
+      "name": "removeElements",
+      "source": "builder/stores/elements.ts:1673 → builder/stores/utils/elementRemoval.ts:454",
+      "family": "remove",
+      "disposition": "command",
+      "commands": ["removeTargets"]
+    },
+    {
+      "name": "addComplexElement",
+      "source": "builder/stores/elements.ts:1676 → builder/stores/utils/elementCreation.ts:286",
+      "family": "insert",
+      "disposition": "command",
+      "commands": ["insertNodes"]
+    },
+    {
+      "name": "moveElementToContainer",
+      "source": "builder/stores/elements.ts:1679",
+      "family": "move",
+      "disposition": "command",
+      "commands": ["moveNodes"]
+    },
+    {
+      "name": "reorderElementWithinParent",
+      "source": "builder/stores/elements.ts:1890",
+      "family": "move",
+      "disposition": "command",
+      "commands": ["moveNodes"]
+    },
+    {
+      "name": "moveElementToSiblingEdge",
+      "source": "builder/stores/elements.ts:1959",
+      "family": "move",
+      "disposition": "command",
+      "commands": ["moveNodes"]
+    },
+    {
+      "name": "applyCanonicalExtensionPatch",
+      "source": "builder/stores/elements.ts:2016",
+      "family": "data-binding",
+      "disposition": "command",
+      "commands": ["setWholeField", "setNodeInteractions"]
+    },
+    {
+      "name": "applyCanonicalDataBindingPatch",
+      "source": "builder/stores/elements.ts:2077",
+      "family": "data-binding",
+      "disposition": "command",
+      "commands": ["setWholeField"]
+    },
+    {
+      "name": "toggleElementInSelection",
+      "source": "builder/stores/elements.ts:2143",
+      "family": "selection-only",
+      "disposition": "session",
+      "note": "선택·현재 페이지 = 문서 밖 세션 상태 (4c)"
+    },
+    {
+      "name": "setSelectedElements",
+      "source": "builder/stores/elements.ts:2208",
+      "family": "selection-only",
+      "disposition": "session",
+      "note": "선택·현재 페이지 = 문서 밖 세션 상태 (4c)"
+    },
+    {
+      "name": "batchUpdateElementProps",
+      "source": "builder/stores/elements.ts:2240 → builder/stores/utils/elementUpdate.ts:1085",
+      "family": "style",
+      "disposition": "command",
+      "commands": ["setFields"]
+    },
+    {
+      "name": "publishDerivedPagePositions",
+      "source": "builder/stores/elements.ts:2253",
+      "family": "mirror-hydrate",
+      "disposition": "derived",
+      "note": "새 runtime 이 graph 에서 파생 — mirror/hydrate 폐기 (4e 삭제)"
+    },
+    {
+      "name": "updateFramePosition",
+      "source": "builder/stores/elements.ts:2263",
+      "family": "mirror-hydrate",
+      "disposition": "derived",
+      "note": "새 runtime 이 graph 에서 파생 — mirror/hydrate 폐기 (4e 삭제)"
+    },
+    {
+      "name": "removeFramePosition",
+      "source": "builder/stores/elements.ts:2285",
+      "family": "mirror-hydrate",
+      "disposition": "derived",
+      "note": "새 runtime 이 graph 에서 파생 — mirror/hydrate 폐기 (4e 삭제)"
+    },
+    {
+      "name": "createInstance",
+      "source": "builder/stores/elements.ts:2298 → builder/stores/utils/instanceActions.ts:960",
+      "family": "instance",
+      "disposition": "command",
+      "commands": ["insertNodes"]
+    },
+    {
+      "name": "detachInstance",
+      "source": "builder/stores/elements.ts:2302 → builder/stores/utils/instanceActions.ts:1044",
+      "family": "instance",
+      "disposition": "command",
+      "commands": ["detachInstances"]
+    },
+    {
+      "name": "toggleComponentOrigin",
+      "source": "builder/stores/elements.ts:2306 → builder/stores/utils/instanceActions.ts:1109",
+      "family": "componentize",
+      "disposition": "command",
+      "commands": ["createComponent", "dissolveComponent"]
+    },
+    {
+      "name": "resetInstanceOverrideField",
+      "source": "builder/stores/elements.ts:2313 → builder/stores/utils/instanceActions.ts:1230",
+      "family": "instance",
+      "disposition": "command",
+      "commands": ["resetDescendant"]
+    },
+    {
+      "name": "invalidateLayout",
+      "source": "builder/stores/elements.ts:2327",
+      "family": "mirror-hydrate",
+      "disposition": "derived",
+      "note": "새 runtime 이 graph 에서 파생 — mirror/hydrate 폐기 (4e 삭제)"
+    },
+    {
+      "name": "addItem",
+      "source": "builder/stores/elements.ts:2335",
+      "family": "collection-items",
+      "disposition": "command",
+      "commands": ["editItems"]
+    },
+    {
+      "name": "removeItem",
+      "source": "builder/stores/elements.ts:2352",
+      "family": "collection-items",
+      "disposition": "command",
+      "commands": ["editItems"]
+    },
+    {
+      "name": "updateItem",
+      "source": "builder/stores/elements.ts:2362",
+      "family": "collection-items",
+      "disposition": "command",
+      "commands": ["editItems"]
+    },
+    {
+      "name": "addSection",
+      "source": "builder/stores/elements.ts:2375",
+      "family": "collection-items",
+      "disposition": "command",
+      "commands": ["editItems"]
+    },
+    {
+      "name": "addSeparator",
+      "source": "builder/stores/elements.ts:2390",
+      "family": "collection-items",
+      "disposition": "command",
+      "commands": ["editItems"]
+    },
+    {
+      "name": "addItemToSection",
+      "source": "builder/stores/elements.ts:2403",
+      "family": "collection-items",
+      "disposition": "command",
+      "commands": ["editItems"]
+    },
+    {
+      "name": "removeItemFromSection",
+      "source": "builder/stores/elements.ts:2427",
+      "family": "collection-items",
+      "disposition": "command",
+      "commands": ["editItems"]
+    },
+    {
+      "name": "updateItemInSection",
+      "source": "builder/stores/elements.ts:2446",
+      "family": "collection-items",
+      "disposition": "command",
+      "commands": ["editItems"]
+    },
+    {
+      "name": "addMenuItem",
+      "source": "builder/stores/elements.ts:2474",
+      "family": "collection-items",
+      "disposition": "command",
+      "commands": ["editItems"]
+    },
+    {
+      "name": "removeMenuItem",
+      "source": "builder/stores/elements.ts:2478",
+      "family": "collection-items",
+      "disposition": "command",
+      "commands": ["editItems"]
+    },
+    {
+      "name": "updateMenuItem",
+      "source": "builder/stores/elements.ts:2482",
+      "family": "collection-items",
+      "disposition": "command",
+      "commands": ["editItems"]
+    },
+    {
+      "name": "reorderMenuItems",
+      "source": "builder/stores/elements.ts:2491",
+      "family": "collection-items",
+      "disposition": "command",
+      "commands": ["editItems"]
+    },
+    {
+      "name": "lazyLoadPageElements",
+      "source": "builder/stores/elementLoader.ts:197",
+      "family": "mirror-hydrate",
+      "disposition": "derived",
+      "note": "새 runtime 이 graph 에서 파생 — mirror/hydrate 폐기 (4e 삭제)"
+    },
+    {
+      "name": "unloadPage",
+      "source": "builder/stores/elementLoader.ts:340",
+      "family": "mirror-hydrate",
+      "disposition": "derived",
+      "note": "새 runtime 이 graph 에서 파생 — mirror/hydrate 폐기 (4e 삭제)"
+    },
+    {
+      "name": "clearAllPages",
+      "source": "builder/stores/elementLoader.ts:392",
+      "family": "mirror-hydrate",
+      "disposition": "derived",
+      "note": "새 runtime 이 graph 에서 파생 — mirror/hydrate 폐기 (4e 삭제)"
+    },
+    {
+      "name": "setPageLayoutDirection",
+      "source": "builder/stores/canvasSettings.ts:337",
+      "family": "other",
+      "disposition": "local-setting",
+      "note": "캔버스 설정 (localStorage) — 문서 편집 아님"
+    },
+    {
+      "name": "setPageGap",
+      "source": "builder/stores/canvasSettings.ts:346",
+      "family": "other",
+      "disposition": "local-setting",
+      "note": "캔버스 설정 (localStorage) — 문서 편집 아님"
+    },
+    {
+      "name": "updateAndSave (internal)",
+      "source": "builder/stores/inspectorActions.ts:1001",
+      "family": "other",
+      "disposition": "retired",
+      "note": "Inspector 공통 쓰기 — 명령 + compositionRoot.execute 로 대체"
+    },
+    {
+      "name": "restoreInspectorPreviewElement (internal)",
+      "source": "builder/stores/inspectorActions.ts:955",
+      "family": "style",
+      "disposition": "session",
+      "note": "미리보기 되돌림 — 일시 미리보기는 문서 밖 (4c)"
+    },
+    {
+      "name": "updateSelectedStyle",
+      "source": "builder/stores/inspectorActions.ts:1257",
+      "family": "style",
+      "disposition": "command",
+      "commands": ["setFields"]
+    },
+    {
+      "name": "updateSelectedStylePreview",
+      "source": "builder/stores/inspectorActions.ts:1333",
+      "family": "style",
+      "disposition": "session",
+      "note": "일시 미리보기 — history·저장 없음 (4c)"
+    },
+    {
+      "name": "updateSelectedResponsiveVisibility",
+      "source": "builder/stores/inspectorActions.ts:1438",
+      "family": "style",
+      "disposition": "command",
+      "commands": ["setWholeField"]
+    },
+    {
+      "name": "setResponsiveStyleOverrideEnabled",
+      "source": "builder/stores/inspectorActions.ts:1471",
+      "family": "style",
+      "disposition": "command",
+      "commands": ["setFields"]
+    },
+    {
+      "name": "applyRatioFromSelection",
+      "source": "builder/stores/inspectorActions.ts:1543",
+      "family": "style",
+      "disposition": "command",
+      "commands": ["setFields"]
+    },
+    {
+      "name": "applyAbsoluteFromSelection",
+      "source": "builder/stores/inspectorActions.ts:1613",
+      "family": "style",
+      "disposition": "command",
+      "commands": ["setFields", "setWholeField", "moveNodes"]
+    },
+    {
+      "name": "applyCanvasResize",
+      "source": "builder/stores/inspectorActions.ts:1712",
+      "family": "style",
+      "disposition": "command",
+      "commands": ["setFields"]
+    },
+    {
+      "name": "applySizingFromSelection",
+      "source": "builder/stores/inspectorActions.ts:1745",
+      "family": "style",
+      "disposition": "command",
+      "commands": ["setFields", "setWholeField"]
+    },
+    {
+      "name": "updateSelectedStyles",
+      "source": "builder/stores/inspectorActions.ts:1800",
+      "family": "style",
+      "disposition": "command",
+      "commands": ["setFields"]
+    },
+    {
+      "name": "updateSelectedProperty",
+      "source": "builder/stores/inspectorActions.ts:1913",
+      "family": "text-props",
+      "disposition": "command",
+      "commands": ["setFields"]
+    },
+    {
+      "name": "updateSelectedProperties",
+      "source": "builder/stores/inspectorActions.ts:1920",
+      "family": "text-props",
+      "disposition": "command",
+      "commands": ["setFields"]
+    },
+    {
+      "name": "updateSelectedPropertiesWithChildren",
+      "source": "builder/stores/inspectorActions.ts:1927",
+      "family": "text-props",
+      "disposition": "command",
+      "commands": ["setFields", "composeCommands"]
+    },
+    {
+      "name": "updateSelectedCustomId",
+      "source": "builder/stores/inspectorActions.ts:2000",
+      "family": "htmlId",
+      "disposition": "command",
+      "commands": ["setHtmlId"]
+    },
+    {
+      "name": "updateSelectedDataBinding",
+      "source": "builder/stores/inspectorActions.ts:2011",
+      "family": "data-binding",
+      "disposition": "command",
+      "commands": ["setWholeField"]
+    },
+    {
+      "name": "updateEventsRootCollection",
+      "source": "builder/stores/inspectorActions.ts:2036",
+      "family": "interactions-events",
+      "disposition": "command",
+      "commands": [
+        "setNodeInteractions",
+        "addRecord",
+        "updateRecord",
+        "removeRecords"
+      ]
+    },
+    {
+      "name": "updateSelectedFills",
+      "source": "builder/stores/inspectorActions.ts:2045",
+      "family": "fills",
+      "disposition": "command",
+      "commands": ["setWholeField"]
+    },
+    {
+      "name": "updateSelectedComputedStyle",
+      "source": "builder/stores/inspectorActions.ts:2088",
+      "family": "mirror-hydrate",
+      "disposition": "derived",
+      "note": "runtime computed style — 메모리 파생"
+    },
+    {
+      "name": "syncInspectorElementToCanonical (internal)",
+      "source": "builder/stores/inspectorActions.ts:266",
+      "family": "mirror-hydrate",
+      "disposition": "derived",
+      "note": "새 runtime 이 graph 에서 파생 — mirror/hydrate 폐기 (4e 삭제)"
+    },
+    {
+      "name": "syncRootCollectionsToIndexedDB (internal)",
+      "source": "builder/stores/inspectorActions.ts:731",
+      "family": "interactions-events",
+      "disposition": "retired",
+      "note": "db.events/actions fan-out 폐기 — interaction 은 graph 기록"
+    },
+    {
+      "name": "setDocument",
+      "source": "builder/stores/canonical/canonicalDocumentStore.ts:249",
+      "family": "other",
+      "disposition": "retired",
+      "note": "문서 통째 교체 — 명령 transaction 으로 대체"
+    },
+    {
+      "name": "setCurrentProject",
+      "source": "builder/stores/canonical/canonicalDocumentStore.ts:261",
+      "family": "mirror-hydrate",
+      "disposition": "session",
+      "note": "활성 프로젝트 = CatalogRuntime.switchProject (문서 편집 아님)"
+    },
+    {
+      "name": "updateNode",
+      "source": "builder/stores/canonical/canonicalDocumentStore.ts:265",
+      "family": "other",
+      "disposition": "command",
+      "commands": ["setFields", "setWholeField"]
+    },
+    {
+      "name": "updateNodeProps",
+      "source": "builder/stores/canonical/canonicalDocumentStore.ts:306",
+      "family": "text-props",
+      "disposition": "command",
+      "commands": ["setFields"]
+    },
+    {
+      "name": "updateNodeExtension",
+      "source": "builder/stores/canonical/canonicalDocumentStore.ts:363",
+      "family": "data-binding",
+      "disposition": "command",
+      "commands": ["setWholeField", "setNodeInteractions"]
+    },
+    {
+      "name": "insertNode",
+      "source": "builder/stores/canonical/canonicalDocumentStore.ts:442",
+      "family": "insert",
+      "disposition": "command",
+      "commands": ["insertNodes"]
+    },
+    {
+      "name": "moveNode",
+      "source": "builder/stores/canonical/canonicalDocumentStore.ts:498",
+      "family": "move",
+      "disposition": "command",
+      "commands": ["moveNodes"]
+    },
+    {
+      "name": "removeNode",
+      "source": "builder/stores/canonical/canonicalDocumentStore.ts:548",
+      "family": "remove",
+      "disposition": "command",
+      "commands": ["removeTargets"]
+    },
+    {
+      "name": "appendDescendantChild",
+      "source": "builder/stores/canonical/canonicalDocumentStore.ts:579",
+      "family": "instance",
+      "disposition": "command",
+      "commands": ["insertNodes"]
+    },
+    {
+      "name": "moveDescendantChild",
+      "source": "builder/stores/canonical/canonicalDocumentStore.ts:625",
+      "family": "instance",
+      "disposition": "command",
+      "commands": ["moveNodes"]
+    },
+    {
+      "name": "updateDescendant",
+      "source": "builder/stores/canonical/canonicalDocumentStore.ts:671",
+      "family": "instance",
+      "disposition": "command",
+      "commands": ["setFields", "setWholeField"]
+    },
+    {
+      "name": "setEvents",
+      "source": "builder/stores/canonical/canonicalDocumentStore.ts:728",
+      "family": "interactions-events",
+      "disposition": "command",
+      "commands": ["setNodeInteractions"]
+    },
+    {
+      "name": "addEvent",
+      "source": "builder/stores/canonical/canonicalDocumentStore.ts:740",
+      "family": "interactions-events",
+      "disposition": "command",
+      "commands": ["addRecord"]
+    },
+    {
+      "name": "updateEvent",
+      "source": "builder/stores/canonical/canonicalDocumentStore.ts:751",
+      "family": "interactions-events",
+      "disposition": "command",
+      "commands": ["updateRecord"]
+    },
+    {
+      "name": "removeEvent",
+      "source": "builder/stores/canonical/canonicalDocumentStore.ts:768",
+      "family": "interactions-events",
+      "disposition": "command",
+      "commands": ["removeRecords"]
+    },
+    {
+      "name": "setActions",
+      "source": "builder/stores/canonical/canonicalDocumentStore.ts:788",
+      "family": "interactions-events",
+      "disposition": "retired",
+      "note": "db.events/actions fan-out 폐기 (제품 호출 0)"
+    },
+    {
+      "name": "addAction",
+      "source": "builder/stores/canonical/canonicalDocumentStore.ts:800",
+      "family": "interactions-events",
+      "disposition": "retired",
+      "note": "db.events/actions fan-out 폐기 (제품 호출 0)"
+    },
+    {
+      "name": "updateAction",
+      "source": "builder/stores/canonical/canonicalDocumentStore.ts:811",
+      "family": "interactions-events",
+      "disposition": "retired",
+      "note": "db.events/actions fan-out 폐기 (제품 호출 0)"
+    },
+    {
+      "name": "removeAction",
+      "source": "builder/stores/canonical/canonicalDocumentStore.ts:828",
+      "family": "interactions-events",
+      "disposition": "retired",
+      "note": "db.events/actions fan-out 폐기 (제품 호출 0)"
+    },
+    {
+      "name": "setPagePositions",
+      "source": "builder/stores/canonical/canonicalDocumentStore.ts:849",
+      "family": "pages",
+      "disposition": "retired",
+      "note": "legacy page position — 디버그 전용, legacy placement 모델 폐기"
+    },
+    {
+      "name": "setPageLayout",
+      "source": "builder/stores/canonical/canonicalDocumentStore.ts:896",
+      "family": "pages",
+      "disposition": "command",
+      "commands": ["setPageLayoutSettings"]
+    },
+    {
+      "name": "setPagePlacements",
+      "source": "builder/stores/canonical/canonicalDocumentStore.ts:915",
+      "family": "pages",
+      "disposition": "command",
+      "commands": ["updatePage"]
+    },
+    {
+      "name": "setPageGuides",
+      "source": "builder/stores/canonical/canonicalDocumentStore.ts:951",
+      "family": "pages",
+      "disposition": "command",
+      "commands": ["updatePage"]
+    },
+    {
+      "name": "setThemes",
+      "source": "builder/stores/canonical/canonicalDocumentStore.ts:993",
+      "family": "themes-tokens",
+      "disposition": "command",
+      "commands": ["createTheme", "updateTheme", "removeTheme"]
+    },
+    {
+      "name": "mutateActiveDoc (internal)",
+      "source": "builder/stores/canonical/canonicalDocumentStore.ts:1024",
+      "family": "other",
+      "disposition": "retired",
+      "note": "clone-on-write 보조 — transaction staging 으로 대체"
+    },
+    {
+      "name": "updateCanonicalNodePropsPrimary",
+      "source": "adapters/canonical/canonicalMutations.ts:2315",
+      "family": "text-props",
+      "disposition": "command",
+      "commands": ["setFields"]
+    },
+    {
+      "name": "updateCanonicalNodeFromElementPrimary",
+      "source": "adapters/canonical/canonicalMutations.ts:2359",
+      "family": "other",
+      "disposition": "retired",
+      "note": "Element → canonical mirror — mirror 폐기"
+    },
+    {
+      "name": "updateCanonicalNodePropsBatchPrimary",
+      "source": "adapters/canonical/canonicalMutations.ts:2392",
+      "family": "style",
+      "disposition": "command",
+      "commands": ["setFields", "composeCommands"]
+    },
+    {
+      "name": "mergeElementsCanonicalPrimary",
+      "source": "adapters/canonical/canonicalMutations.ts:2445",
+      "family": "insert",
+      "disposition": "command",
+      "commands": ["insertNodes"]
+    },
+    {
+      "name": "setElementsCanonicalPrimary",
+      "source": "adapters/canonical/canonicalMutations.ts:2479",
+      "family": "mirror-hydrate",
+      "disposition": "derived",
+      "note": "새 runtime 이 graph 에서 파생 — mirror/hydrate 폐기 (4e 삭제)"
+    },
+    {
+      "name": "moveElementCanonicalPrimary",
+      "source": "adapters/canonical/canonicalMutations.ts:2493",
+      "family": "move",
+      "disposition": "command",
+      "commands": ["moveNodes"]
+    },
+    {
+      "name": "moveElementToCanonicalTarget",
+      "source": "adapters/canonical/canonicalMutations.ts:2533",
+      "family": "move",
+      "disposition": "command",
+      "commands": ["moveNodes"]
+    },
+    {
+      "name": "moveElementsToCanonicalTarget",
+      "source": "adapters/canonical/canonicalMutations.ts:2589",
+      "family": "move",
+      "disposition": "command",
+      "commands": ["moveNodes"]
+    },
+    {
+      "name": "applyElementOrderCanonicalPrimary",
+      "source": "adapters/canonical/canonicalMutations.ts:2653",
+      "family": "move",
+      "disposition": "command",
+      "commands": ["moveNodes"]
+    },
+    {
+      "name": "runCanonicalMutation",
+      "source": "adapters/canonical/canonicalMutationRunner.ts:129",
+      "family": "other",
+      "disposition": "command",
+      "note": "compositionRoot.execute — plan → commit, 충돌 시 1회 재계획"
+    },
+    {
+      "name": "persistActiveCanonicalDocument",
+      "source": "builder/stores/canonical/persistActiveCanonicalDocument.ts:14",
+      "family": "other",
+      "disposition": "storage",
+      "note": "저장 = CatalogRuntime.save / 새 IDB namespace (4d)"
+    },
+    {
+      "name": "syncInstanceElementsToCanonical (internal)",
+      "source": "builder/stores/utils/instanceActions.ts:424",
+      "family": "instance",
+      "disposition": "retired",
+      "note": "Element → canonical mirror — mirror 폐기"
+    },
+    {
+      "name": "applyElementSnapshotBatch (internal)",
+      "source": "builder/stores/utils/instanceActions.ts:883",
+      "family": "instance",
+      "disposition": "retired",
+      "note": "snapshot 일괄 교체 — 명령 transaction 으로 대체"
+    },
+    {
+      "name": "syncRemovedElementsToCanonical (internal)",
+      "source": "builder/stores/utils/elementRemoval.ts:59",
+      "family": "remove",
+      "disposition": "retired",
+      "note": "Element → canonical mirror — mirror 폐기"
+    },
+    {
+      "name": "syncLocationUpdatedElementToCanonical (internal)",
+      "source": "builder/stores/utils/elementUpdate.ts:250",
+      "family": "move",
+      "disposition": "retired",
+      "note": "Element → canonical mirror — mirror 폐기"
+    },
+    {
+      "name": "mergeCreatedElementsIntoCanonicalDocument (internal)",
+      "source": "builder/stores/utils/elementCreation.ts:112",
+      "family": "insert",
+      "disposition": "retired",
+      "note": "Element → canonical mirror — mirror 폐기"
+    },
+    {
+      "name": "renameActiveCanonicalPageTitle",
+      "source": "builder/stores/canonical/pageTitleMutation.ts:34",
+      "family": "pages",
+      "disposition": "command",
+      "commands": ["updatePage"]
+    },
+    {
+      "name": "setActiveCanonicalPageState",
+      "source": "builder/stores/canonical/pageStateMutation.ts:39",
+      "family": "pages",
+      "disposition": "command",
+      "commands": ["addRecord", "updateRecord", "removeRecords"]
+    },
+    {
+      "name": "writeInteractionRulesToRootCollection",
+      "source": "builder/stores/canonical/rootCollectionInteractionsWrite.ts:34",
+      "family": "interactions-events",
+      "disposition": "command",
+      "commands": ["setNodeInteractions"]
+    },
+    {
+      "name": "createReusableLayout",
+      "source": "builder/stores/utils/reusableLayoutActions.ts:177",
+      "family": "layouts",
+      "disposition": "command",
+      "commands": ["createLayout"]
+    },
+    {
+      "name": "deleteReusableLayout",
+      "source": "builder/stores/utils/reusableLayoutActions.ts:204",
+      "family": "layouts",
+      "disposition": "command",
+      "commands": ["deleteLayout"]
+    },
+    {
+      "name": "updateReusableLayoutName",
+      "source": "builder/stores/utils/reusableLayoutActions.ts:233",
+      "family": "layouts",
+      "disposition": "command",
+      "commands": ["renameDefinition"]
+    },
+    {
+      "name": "updateReusableLayout",
+      "source": "builder/stores/utils/reusableLayoutActions.ts:240",
+      "family": "layouts",
+      "disposition": "command",
+      "commands": ["setFields", "renameDefinition"]
+    },
+    {
+      "name": "selectReusableLayout",
+      "source": "builder/stores/utils/reusableLayoutActions.ts:305",
+      "family": "selection-only",
+      "disposition": "session",
+      "note": "선택·현재 페이지 = 문서 밖 세션 상태 (4c)"
+    },
+    {
+      "name": "applyPageFrameBindingFromSelection",
+      "source": "adapters/canonical/pageFrameBinding.ts:432",
+      "family": "layouts",
+      "disposition": "command",
+      "commands": ["applyLayout"]
+    },
+    {
+      "name": "applyPageFrameBindingExplicit",
+      "source": "adapters/canonical/pageFrameBinding.ts:460",
+      "family": "layouts",
+      "disposition": "command",
+      "commands": ["applyLayout"]
+    },
+    {
+      "name": "applyDeleteReusableFrameCanonicalPrimary",
+      "source": "adapters/canonical/frameLayoutCascade.ts:275",
+      "family": "layouts",
+      "disposition": "command",
+      "commands": ["deleteLayout"]
+    },
+    {
+      "name": "commitPagePlacementFromPoint",
+      "source": "builder/stores/utils/pagePlacementCommit.ts:203",
+      "family": "pages",
+      "disposition": "command",
+      "commands": ["updatePage"]
+    },
+    {
+      "name": "commitPagePlacementsFromPoints",
+      "source": "builder/stores/utils/pagePlacementCommit.ts:217",
+      "family": "pages",
+      "disposition": "command",
+      "commands": ["updatePage", "composeCommands"]
+    },
+    {
+      "name": "commitPagePlacementAlign",
+      "source": "builder/stores/utils/pagePlacementCommit.ts:247",
+      "family": "pages",
+      "disposition": "command",
+      "commands": ["updatePage", "composeCommands"]
+    },
+    {
+      "name": "setPagePlacementModelLegacy",
+      "source": "builder/stores/utils/pagePlacementCommit.ts:293",
+      "family": "pages",
+      "disposition": "retired",
+      "note": "legacy placement 모델 폐기 (ADR-232 파생 격자만)"
+    },
+    {
+      "name": "setPagePlacementModelDerived",
+      "source": "builder/stores/utils/pagePlacementCommit.ts:309",
+      "family": "pages",
+      "disposition": "retired",
+      "note": "legacy placement 모델 폐기 (ADR-232 파생 격자만)"
+    },
+    {
+      "name": "commitGuideDrag",
+      "source": "builder/workspace/canvas/viewport/pageGuideActions.ts:30",
+      "family": "pages",
+      "disposition": "command",
+      "commands": ["updatePage"]
+    },
+    {
+      "name": "deletePageGuide",
+      "source": "builder/workspace/canvas/viewport/pageGuideActions.ts:66",
+      "family": "pages",
+      "disposition": "command",
+      "commands": ["updatePage"]
+    },
+    {
+      "name": "commitPageGuideChanges",
+      "source": "builder/workspace/canvas/viewport/pageGuideActions.ts:197",
+      "family": "pages",
+      "disposition": "command",
+      "commands": ["updatePage"]
+    },
+    {
+      "name": "syncToStore (PageTree)",
+      "source": "builder/panels/navigator/tree/PageTree/usePageTreeData.ts:40",
+      "family": "pages",
+      "disposition": "command",
+      "commands": ["reorderPages", "updatePage"]
+    },
+    {
+      "name": "syncActiveCanonicalPageTreeMetadata",
+      "source": "builder/panels/navigator/tree/PageTree/usePageTreeData.ts:233",
+      "family": "pages",
+      "disposition": "command",
+      "commands": ["reorderPages", "updatePage"]
+    },
+    {
+      "name": "syncCanonicalPageTreeMetadata",
+      "source": "builder/panels/navigator/tree/PageTree/usePageTreeData.ts:252",
+      "family": "pages",
+      "disposition": "command",
+      "commands": ["reorderPages", "updatePage"]
+    },
+    {
+      "name": "syncToStore (LayerTree)",
+      "source": "builder/panels/navigator/tree/LayerTree/useLayerTreeData.ts:204",
+      "family": "move",
+      "disposition": "command",
+      "commands": ["moveNodes"]
+    },
+    {
+      "name": "addPage",
+      "source": "builder/hooks/usePageManager.ts:236",
+      "family": "pages",
+      "disposition": "command",
+      "commands": ["createPage"]
+    },
+    {
+      "name": "addPageWithParams",
+      "source": "builder/hooks/usePageManager.ts:286",
+      "family": "pages",
+      "disposition": "command",
+      "commands": ["createPage"]
+    },
+    {
+      "name": "initializeProject",
+      "source": "builder/hooks/usePageManager.ts:350",
+      "family": "mirror-hydrate",
+      "disposition": "storage",
+      "note": "프로젝트 열기 = 새 IDB namespace 읽기 · 구 포맷 명시 실패 (4d · 4e entry)"
+    },
+    {
+      "name": "commitThemes (internal)",
+      "source": "builder/panels/themes/themeActions.ts:95",
+      "family": "themes-tokens",
+      "disposition": "command",
+      "commands": ["createTheme", "updateTheme", "removeTheme"]
+    },
+    {
+      "name": "addThemeFromActive",
+      "source": "builder/panels/themes/themeActions.ts:131",
+      "family": "themes-tokens",
+      "disposition": "command",
+      "commands": ["duplicateTheme"]
+    },
+    {
+      "name": "addTheme",
+      "source": "builder/panels/themes/themeActions.ts:142",
+      "family": "themes-tokens",
+      "disposition": "command",
+      "commands": ["createTheme"]
+    },
+    {
+      "name": "removeTheme",
+      "source": "builder/panels/themes/themeActions.ts:157",
+      "family": "themes-tokens",
+      "disposition": "command",
+      "commands": ["removeTheme"]
+    },
+    {
+      "name": "renameTheme",
+      "source": "builder/panels/themes/themeActions.ts:164",
+      "family": "themes-tokens",
+      "disposition": "command",
+      "commands": ["updateTheme"]
+    },
+    {
+      "name": "setActiveTheme",
+      "source": "builder/panels/themes/themeActions.ts:175",
+      "family": "themes-tokens",
+      "disposition": "command",
+      "commands": ["setActiveTheme"]
+    },
+    {
+      "name": "setActiveThemePreset",
+      "source": "builder/panels/themes/themeActions.ts:183",
+      "family": "themes-tokens",
+      "disposition": "command",
+      "commands": ["updateTheme"]
+    },
+    {
+      "name": "setThemeToken",
+      "source": "builder/panels/themes/themeActions.ts:195",
+      "family": "themes-tokens",
+      "disposition": "command",
+      "commands": ["setThemeToken"]
+    },
+    {
+      "name": "setActiveThemeBaseTypography",
+      "source": "builder/panels/themes/themeActions.ts:215",
+      "family": "themes-tokens",
+      "disposition": "command",
+      "commands": ["setThemeToken", "composeCommands"]
+    },
+    {
+      "name": "applyActiveThemeToRuntime",
+      "source": "builder/panels/themes/themeActions.ts:74",
+      "family": "mirror-hydrate",
+      "disposition": "derived",
+      "note": "새 runtime 이 graph 에서 파생 — mirror/hydrate 폐기 (4e 삭제)"
+    },
+    {
+      "name": "copySelection",
+      "source": "builder/workspace/canvas/actions/canvasActions.ts:182",
+      "family": "other",
+      "disposition": "command",
+      "commands": ["copyNodes"]
+    },
+    {
+      "name": "cutSelection",
+      "source": "builder/workspace/canvas/actions/canvasActions.ts:215",
+      "family": "remove",
+      "disposition": "command",
+      "commands": ["copyNodes", "removeTargets"]
+    },
+    {
+      "name": "paste",
+      "source": "builder/workspace/canvas/actions/canvasActions.ts:224",
+      "family": "duplicate-paste",
+      "disposition": "command",
+      "commands": ["pasteNodes"]
+    },
+    {
+      "name": "duplicateSelection",
+      "source": "builder/workspace/canvas/actions/canvasActions.ts:309",
+      "family": "duplicate-paste",
+      "disposition": "command",
+      "commands": ["duplicateNodes"]
+    },
+    {
+      "name": "deleteSelection",
+      "source": "builder/workspace/canvas/actions/canvasActions.ts:356",
+      "family": "remove",
+      "disposition": "command",
+      "commands": ["removeTargets"]
+    },
+    {
+      "name": "groupSelection",
+      "source": "builder/workspace/canvas/actions/canvasActions.ts:387",
+      "family": "group",
+      "disposition": "command",
+      "commands": ["groupNodes", "ungroupNodes"]
+    },
+    {
+      "name": "ungroupSelection",
+      "source": "builder/workspace/canvas/actions/canvasActions.ts:459",
+      "family": "group",
+      "disposition": "command",
+      "commands": ["groupNodes", "ungroupNodes"]
+    },
+    {
+      "name": "alignSelection",
+      "source": "builder/workspace/canvas/actions/canvasActions.ts:539",
+      "family": "style",
+      "disposition": "command",
+      "commands": ["setFields", "setWholeField", "composeCommands"]
+    },
+    {
+      "name": "distributeSelection",
+      "source": "builder/workspace/canvas/actions/canvasActions.ts:578",
+      "family": "style",
+      "disposition": "command",
+      "commands": ["setFields", "setWholeField", "composeCommands"]
+    },
+    {
+      "name": "runComponentSemanticsAction",
+      "source": "builder/utils/componentSemanticsRunner.ts:131",
+      "family": "instance",
+      "disposition": "command",
+      "commands": [
+        "detachInstances",
+        "createComponent",
+        "dissolveComponent",
+        "resetDescendant"
+      ]
+    },
+    {
+      "name": "applyTableColumnInsertPlan",
+      "source": "builder/components/tableColumnWrite.ts:56",
+      "family": "insert",
+      "disposition": "command",
+      "commands": ["insertTableColumns"]
+    },
+    {
+      "name": "applyTableRowInsertPlan",
+      "source": "builder/components/tableColumnWrite.ts:84",
+      "family": "insert",
+      "disposition": "command",
+      "commands": ["insertTableRow"]
+    },
+    {
+      "name": "dispatchSemanticUpdateWithPropagation",
+      "source": "builder/panels/properties/semanticUpdateDispatch.ts:47",
+      "family": "text-props",
+      "disposition": "command",
+      "commands": ["setFields", "composeCommands"]
+    },
+    {
+      "name": "executeQuickConnect",
+      "source": "builder/panels/datatable/utils/quickConnect.ts:311",
+      "family": "data-binding",
+      "disposition": "command",
+      "commands": ["setWholeField", "insertTableColumns", "composeCommands"]
+    },
+    {
+      "name": "writeInstanceElement (internal)",
+      "source": "builder/panels/datatable/utils/quickConnect.ts:208",
+      "family": "instance",
+      "disposition": "command",
+      "commands": ["setFields", "insertTableColumns"]
+    },
+    {
+      "name": "insertColumns (internal)",
+      "source": "builder/panels/datatable/utils/quickConnect.ts:265",
+      "family": "insert",
+      "disposition": "command",
+      "commands": ["insertTableColumns"]
+    },
+    {
+      "name": "importCollectionEnvelope",
+      "source": "builder/utils/importCollectionEnvelope.ts:8",
+      "family": "other",
+      "disposition": "data-store",
+      "note": "collection·data = 문서 밖 data store (G4 data 세 store 보존)"
+    },
+    {
+      "name": "commitEditorPresentationFills",
+      "source": "builder/presentation/editorPresentationCommitAdapter.ts:546",
+      "family": "fills",
+      "disposition": "command",
+      "commands": ["setWholeField"]
+    },
+    {
+      "name": "commitEditorPresentationStyle",
+      "source": "builder/presentation/editorPresentationCommitAdapter.ts:630",
+      "family": "style",
+      "disposition": "command",
+      "commands": ["setFields"]
+    },
+    {
+      "name": "syncPresentationStoreMirror (internal)",
+      "source": "builder/presentation/editorPresentationCommitAdapter.ts:488",
+      "family": "mirror-hydrate",
+      "disposition": "derived",
+      "note": "새 runtime 이 graph 에서 파생 — mirror/hydrate 폐기 (4e 삭제)"
+    },
+    {
+      "name": "commitCanvasResizePresentation",
+      "source": "builder/presentation/editorPresentationResizeSession.ts:198",
+      "family": "style",
+      "disposition": "command",
+      "commands": ["setFields"]
+    },
+    {
+      "name": "addElementsToStore",
+      "source": "builder/factories/utils/elementCreation.ts:147",
+      "family": "insert",
+      "disposition": "command",
+      "commands": ["insertNodes"]
+    },
+    {
+      "name": "updateElementId",
+      "source": "builder/factories/utils/elementCreation.ts:210",
+      "family": "other",
+      "disposition": "retired",
+      "note": "ID 는 commit 전에 할당되는 불투명 값 — 임시 id 교체 없음"
+    },
+    {
+      "name": "ComponentFactory.createComplexComponent",
+      "source": "builder/factories/ComponentFactory.ts:69",
+      "family": "insert",
+      "disposition": "command",
+      "commands": ["insertNodes"]
+    },
+    {
+      "name": "ComponentFactory.createColumnGroup",
+      "source": "builder/factories/ComponentFactory.ts:176",
+      "family": "insert",
+      "disposition": "command",
+      "commands": ["insertTableColumns"]
+    },
+    {
+      "name": "handleAddElement (useElementCreator)",
+      "source": "builder/hooks/useElementCreator.ts:279",
+      "family": "insert",
+      "disposition": "command",
+      "commands": ["insertNodes", "insertCollectionItem", "insertGroupItem"]
+    },
+    {
+      "name": "updateText (useTextEdit)",
+      "source": "builder/workspace/overlay/useTextEdit.ts:389",
+      "family": "text-props",
+      "disposition": "command",
+      "commands": ["setFields"]
+    },
+    {
+      "name": "silentUpdateTextProp (internal)",
+      "source": "builder/workspace/overlay/useTextEdit.ts:135",
+      "family": "text-props",
+      "disposition": "session",
+      "note": "입력 중 글자 — history 없는 일시 표시 (4c), 확정은 setFields"
+    },
+    {
+      "name": "commitMultiDragDrop (internal)",
+      "source": "builder/workspace/canvas/hooks/useDragBridge.ts:491",
+      "family": "move",
+      "disposition": "command",
+      "commands": ["moveNodes", "setWholeField", "composeCommands"]
+    },
+    {
+      "name": "cloneDragTargetsAtDrop (internal)",
+      "source": "builder/workspace/canvas/hooks/useDragBridge.ts:359",
+      "family": "duplicate-paste",
+      "disposition": "command",
+      "commands": ["duplicateNodes", "moveNodes", "composeCommands"]
+    },
+    {
+      "name": "useDragBridge single-drop",
+      "source": "builder/workspace/canvas/hooks/useDragBridge.ts:1046",
+      "family": "move",
+      "disposition": "command",
+      "commands": ["moveNodes", "setWholeField", "composeCommands"]
+    },
+    {
+      "name": "commit (useInteractionRules)",
+      "source": "builder/panels/interactions/useInteractionRules.ts:38",
+      "family": "interactions-events",
+      "disposition": "command",
+      "commands": ["setNodeInteractions"]
+    },
+    {
+      "name": "addRule",
+      "source": "builder/panels/interactions/useInteractionRules.ts:46",
+      "family": "interactions-events",
+      "disposition": "command",
+      "commands": ["setNodeInteractions"]
+    },
+    {
+      "name": "updateRule",
+      "source": "builder/panels/interactions/useInteractionRules.ts:61",
+      "family": "interactions-events",
+      "disposition": "command",
+      "commands": ["setNodeInteractions"]
+    },
+    {
+      "name": "removeRule",
+      "source": "builder/panels/interactions/useInteractionRules.ts:68",
+      "family": "interactions-events",
+      "disposition": "command",
+      "commands": ["setNodeInteractions"]
+    },
+    {
+      "name": "addItem (useCollectionItemManager)",
+      "source": "builder/hooks/useCollectionItemManager.ts:138",
+      "family": "collection-items",
+      "disposition": "command",
+      "commands": ["insertCollectionItem"]
+    },
+    {
+      "name": "deleteItem",
+      "source": "builder/hooks/useCollectionItemManager.ts:180",
+      "family": "collection-items",
+      "disposition": "command",
+      "commands": ["removeTargets"]
+    },
+    {
+      "name": "updateItem (useCollectionItemManager)",
+      "source": "builder/hooks/useCollectionItemManager.ts:200",
+      "family": "collection-items",
+      "disposition": "command",
+      "commands": ["setFields"]
+    },
+    {
+      "name": "addFill",
+      "source": "builder/panels/styles/hooks/useFillActions.ts:442",
+      "family": "fills",
+      "disposition": "command",
+      "commands": ["setWholeField"]
+    },
+    {
+      "name": "removeFill",
+      "source": "builder/panels/styles/hooks/useFillActions.ts:472",
+      "family": "fills",
+      "disposition": "command",
+      "commands": ["setWholeField"]
+    },
+    {
+      "name": "toggleFill",
+      "source": "builder/panels/styles/hooks/useFillActions.ts:490",
+      "family": "fills",
+      "disposition": "command",
+      "commands": ["setWholeField"]
+    },
+    {
+      "name": "updateFill",
+      "source": "builder/panels/styles/hooks/useFillActions.ts:498",
+      "family": "fills",
+      "disposition": "command",
+      "commands": ["setWholeField"]
+    },
+    {
+      "name": "commitFirstFillColorPresentation",
+      "source": "builder/panels/styles/hooks/useFillActions.ts:250",
+      "family": "fills",
+      "disposition": "command",
+      "commands": ["setWholeField"]
+    },
+    {
+      "name": "commitFirstFillPaintPresentation",
+      "source": "builder/panels/styles/hooks/useFillActions.ts:376",
+      "family": "fills",
+      "disposition": "command",
+      "commands": ["setWholeField"]
+    },
+    {
+      "name": "resetStyles (useResetStyles)",
+      "source": "builder/panels/styles/hooks/useResetStyles.ts:1007",
+      "family": "style",
+      "disposition": "command",
+      "commands": ["setFields", "resetDescendant"]
+    },
+    {
+      "name": "onPasteStyles",
+      "source": "builder/panels/styles/hooks/useStyleActions.ts:114",
+      "family": "style",
+      "disposition": "command",
+      "commands": ["setFields"]
+    },
+    {
+      "name": "updateStyle / updateStyles (useStyleActions)",
+      "source": "builder/panels/styles/hooks/useStyleActions.ts:138/148",
+      "family": "style",
+      "disposition": "command",
+      "commands": ["setFields"]
+    },
+    {
+      "name": "handleVerticalAlignment / handleHorizontalAlignment / handleFlexDirection / handleFlexAlignment / handleJustifyContentSpacing / handleFlexWrap",
+      "source": "builder/panels/styles/hooks/useStyleActions.ts:157/173/201/251/311/321",
+      "family": "style",
+      "disposition": "command",
+      "commands": ["setFields"]
+    },
+    {
+      "name": "resetStyles (useStyleActions)",
+      "source": "builder/panels/styles/hooks/useStyleActions.ts:331",
+      "family": "style",
+      "disposition": "command",
+      "commands": ["setFields", "resetDescendant"]
+    },
+    {
+      "name": "updateStyleImmediate / RAF / Preview / Idle / updateStylesImmediate / updateStylesTransition",
+      "source": "builder/panels/styles/hooks/useOptimizedStyleActions.ts:140/156/182/207/236/251",
+      "family": "style",
+      "disposition": "command",
+      "commands": ["setFields"],
+      "note": "Preview 변형은 일시 미리보기 (session)"
+    },
+    {
+      "name": "applyPreset (usePresetApply)",
+      "source": "builder/panels/properties/editors/LayoutPresetSelector/usePresetApply.ts:255",
+      "family": "layouts",
+      "disposition": "command",
+      "commands": ["insertNodes", "setFields", "composeCommands"]
+    },
+    {
+      "name": "createElementTool",
+      "source": "services/ai/tools/createElement.ts:64",
+      "family": "insert",
+      "disposition": "command",
+      "commands": ["insertNodes"]
+    },
+    {
+      "name": "createCompositeElement",
+      "source": "services/ai/tools/compositeCreation.ts:100",
+      "family": "insert",
+      "disposition": "command",
+      "commands": ["insertNodes"]
+    },
+    {
+      "name": "deleteElementTool",
+      "source": "services/ai/tools/deleteElement.ts:20",
+      "family": "remove",
+      "disposition": "command",
+      "commands": ["removeTargets"]
+    },
+    {
+      "name": "updateElementTool",
+      "source": "services/ai/tools/updateElement.ts:27",
+      "family": "text-props",
+      "disposition": "command",
+      "commands": ["setFields"]
+    },
+    {
+      "name": "batchDesignTool",
+      "source": "services/ai/tools/batchDesign.ts:38",
+      "family": "other",
+      "disposition": "command",
+      "commands": ["composeCommands"]
+    },
+    {
+      "name": "applyCanonicalFields",
+      "source": "services/ai/tools/canonicalNodeFields.ts:138",
+      "family": "other",
+      "disposition": "command",
+      "commands": ["setFields", "createComponent", "dissolveComponent"]
+    },
+    {
+      "name": "bindCollectionTool",
+      "source": "services/ai/tools/bindCollection.ts:139",
+      "family": "data-binding",
+      "disposition": "command",
+      "commands": ["setWholeField"]
+    },
+    {
+      "name": "createInteractionRuleTool",
+      "source": "services/ai/tools/createInteractionRule.ts:98",
+      "family": "interactions-events",
+      "disposition": "command",
+      "commands": ["addRecord"]
+    },
+    {
+      "name": "dispatchDataProposal",
+      "source": "services/ai/data/dataProposalDispatcher.ts:100",
+      "family": "other",
+      "disposition": "data-store",
+      "note": "AI data 제안 = data store 변경 (문서 밖)"
+    },
+    {
+      "name": "AGENT_COMMANDS",
+      "source": "services/agent/agentCommands.ts:95",
+      "family": "other",
+      "disposition": "command",
+      "commands": [
+        "composeCommands",
+        "pasteNodes",
+        "removeTargets",
+        "duplicateNodes",
+        "groupNodes"
+      ]
+    },
+    {
+      "name": "executeAgentCommand",
+      "source": "services/agent/executeAgentCommand.ts:196",
+      "family": "other",
+      "disposition": "command",
+      "commands": ["composeCommands"]
+    },
+    {
+      "name": "flushPreviewGeneratedElements",
+      "source": "builder/hooks/useIframeMessenger.ts:241",
+      "family": "insert",
+      "disposition": "command",
+      "commands": ["insertNodes"]
+    },
+    {
+      "name": "preview table-columns handler",
+      "source": "builder/hooks/useIframeMessenger.ts:800",
+      "family": "instance",
+      "disposition": "command",
+      "commands": ["insertTableColumns"]
+    },
+    {
+      "name": "ELEMENT_PROPS_CHANGED handler",
+      "source": "builder/hooks/useIframeMessenger.ts:932",
+      "family": "text-props",
+      "disposition": "command",
+      "commands": ["setFields"]
+    },
+    {
+      "name": "handleSyncComponent",
+      "source": "builder/main/BuilderCore.tsx:955",
+      "family": "text-props",
+      "disposition": "command",
+      "commands": ["setFields"]
+    },
+    {
+      "name": "page-shell bridge subscribe",
+      "source": "builder/main/BuilderCore.tsx:367",
+      "family": "mirror-hydrate",
+      "disposition": "derived",
+      "note": "페이지 위상 변화 → mirror 재구성 — 새 runtime impact.affectedPages"
+    },
+    {
+      "name": "migrateVariableOwners",
+      "source": "builder/stores/utils/variableOwnerMigration.ts:163",
+      "family": "other",
+      "disposition": "retired",
+      "note": "구 변수 소유 이관 — 새 포맷은 stateVariable.ownerId 가 정본"
+    },
+    {
+      "name": "handleSelectIcon / handleClearIcon / handleTextChange",
+      "source": "builder/panels/properties/ButtonChildSection.tsx:164/281/325",
+      "family": "text-props",
+      "disposition": "command",
+      "commands": ["setFields", "insertNodes", "removeTargets"]
+    },
+    {
+      "name": "handleEnable / handleDisable / handleAddRecommendation / handleRemoveRecommendation / handleInsertDefault / handleInsertPrimitive / handleClearOwnChildren",
+      "source": "builder/panels/properties/FrameSlotSection.tsx:222/227/232/252/257/442/460",
+      "family": "instance",
+      "disposition": "command",
+      "commands": ["setSlotDeclaration", "insertNodes", "removeTargets"]
+    },
+    {
+      "name": "handleToggle / handleAdd",
+      "source": "builder/panels/properties/ItemSlotRolesSection.tsx:103/111",
+      "family": "insert",
+      "disposition": "command",
+      "commands": ["insertNodes", "moveNodes", "removeTargets"]
+    },
+    {
+      "name": "handleFillSlot / handleClearSlot",
+      "source": "builder/panels/properties/ComponentSlotFillSection.tsx:249/348",
+      "family": "instance",
+      "disposition": "command",
+      "commands": ["insertNodes", "removeTargets"]
+    },
+    {
+      "name": "handleDetachInstance / handleToggleComponentOrigin / handleResetOverrideField",
+      "source": "builder/panels/properties/ComponentSemanticsSection.tsx:198/204/246",
+      "family": "instance",
+      "disposition": "command",
+      "commands": [
+        "detachInstances",
+        "createComponent",
+        "dissolveComponent",
+        "resetDescendant"
+      ]
+    },
+    {
+      "name": "handleAddLayout / handleDeleteLayout / handleDeleteElement",
+      "source": "builder/panels/navigator/LayoutsTab/LayoutsTab.tsx:276/254/293",
+      "family": "layouts",
+      "disposition": "command",
+      "commands": ["createLayout", "deleteLayout", "removeTargets"]
+    },
+    {
+      "name": "handleAddPage / handlePageRename / commitSinglePageRename / handlePageDelete",
+      "source": "builder/panels/navigator/PagesSection.tsx:113/225/233/246",
+      "family": "pages",
+      "disposition": "command",
+      "commands": ["createPage", "updatePage", "removePage"]
+    },
+    {
+      "name": "handleParentChange / handleSlugChange",
+      "source": "builder/panels/properties/editors/PageParentSelector.tsx:134/177",
+      "family": "pages",
+      "disposition": "command",
+      "commands": ["updatePage"]
+    },
+    {
+      "name": "handleLayoutChange",
+      "source": "builder/panels/properties/editors/PageLayoutSelector.tsx:71",
+      "family": "layouts",
+      "disposition": "command",
+      "commands": ["applyLayout"]
+    },
+    {
+      "name": "commit (StateSection)",
+      "source": "builder/panels/properties/state/StateSection.tsx:124",
+      "family": "other",
+      "disposition": "command",
+      "commands": ["addRecord", "updateRecord", "removeRecords"]
+    },
+    {
+      "name": "migrateLegacyToPage",
+      "source": "builder/panels/datatable/components/VariableList.tsx:215",
+      "family": "pages",
+      "disposition": "retired",
+      "note": "구 변수 → 페이지 이관 — 새 포맷 변수는 페이지·node 소유로 생성"
+    },
+    {
+      "name": "writeLayoutValue / handleTierOverrideChange",
+      "source": "builder/panels/settings/SettingsPanel.tsx:~89/114",
+      "family": "pages",
+      "disposition": "command",
+      "commands": ["setPageLayoutSettings"]
+    },
+    {
+      "name": "handleClassNameChange / handleAriaLabelChange / handleCheckId",
+      "source": "builder/panels/properties/ElementAttributesSection.tsx:63/69/79",
+      "family": "htmlId",
+      "disposition": "command",
+      "commands": ["setFields", "setHtmlId"]
+    },
+    {
+      "name": "PropertyCustomId onChange",
+      "source": "builder/components/property/PropertyCustomId.tsx:40",
+      "family": "htmlId",
+      "disposition": "command",
+      "commands": ["setHtmlId"]
+    },
+    {
+      "name": "updateCustomId",
+      "source": "builder/panels/properties/generic/GenericPropertyEditor.tsx:84",
+      "family": "htmlId",
+      "disposition": "command",
+      "commands": ["setHtmlId"]
+    },
+    {
+      "name": "handleSemanticPatch / handleSemanticUpdate / handleChartPatch / handleStyleUpdate / handleBatchUpdate / handleSlotChange / handleDeleteAll / handlePasteAll / handleGroupSelection / handleAlign / handleDistribute",
+      "source": "builder/panels/properties/PropertiesPanel.tsx:261/337/400/506/756/956/721/713/795/803/807",
+      "family": "other",
+      "disposition": "command",
+      "commands": [
+        "setFields",
+        "setWholeField",
+        "removeTargets",
+        "pasteNodes",
+        "groupNodes",
+        "composeCommands"
+      ]
+    },
+    {
+      "name": "ItemsManager handleAdd / AddSection / AddSeparator / Remove / Update / AddItemToSection / UpdateItemInSection / RemoveItemFromSection",
+      "source": "builder/panels/properties/generic/ItemsManager.tsx:454/464/468/472/479/486/500/509",
+      "family": "collection-items",
+      "disposition": "command",
+      "commands": ["editItems"]
+    },
+    {
+      "name": "GridListCardFieldsSection row write",
+      "source": "builder/panels/properties/GridListCardFieldsSection.tsx:51",
+      "family": "text-props",
+      "disposition": "command",
+      "commands": ["setFields"]
+    },
+    {
+      "name": "handleUndo / handleRedo / handleJumpToIndex / handleRestoreSnapshot",
+      "source": "builder/panels/history/HistoryPanel.tsx:204/209/292/220",
+      "family": "history",
+      "disposition": "history",
+      "note": "compositionRoot.undo/redo — 단일 스택; snapshot 복원 = 저장본 다시 열기 (4d)"
+    },
+    {
+      "name": "applyDataChange",
+      "source": "builder/stores/utils/dataChange.ts:1136",
+      "family": "other",
+      "disposition": "data-store",
+      "note": "collection·endpoint·project variable = 문서 밖 data store (G4 data 세 store 보존)"
+    },
+    {
+      "name": "createDataTable",
+      "source": "builder/stores/utils/dataActions.ts:236",
+      "family": "other",
+      "disposition": "data-store",
+      "note": "collection·endpoint·project variable = 문서 밖 data store (G4 data 세 store 보존)"
+    },
+    {
+      "name": "updateCollection",
+      "source": "builder/stores/utils/dataActions.ts:284",
+      "family": "other",
+      "disposition": "data-store",
+      "note": "collection·endpoint·project variable = 문서 밖 data store (G4 data 세 store 보존)"
+    },
+    {
+      "name": "deleteCollection",
+      "source": "builder/stores/utils/dataActions.ts:322",
+      "family": "other",
+      "disposition": "data-store",
+      "note": "collection·endpoint·project variable = 문서 밖 data store (G4 data 세 store 보존)"
+    },
+    {
+      "name": "createApiEndpoint",
+      "source": "builder/stores/utils/dataActions.ts:444",
+      "family": "other",
+      "disposition": "data-store",
+      "note": "collection·endpoint·project variable = 문서 밖 data store (G4 data 세 store 보존)"
+    },
+    {
+      "name": "updateApiEndpoint",
+      "source": "builder/stores/utils/dataActions.ts:503",
+      "family": "other",
+      "disposition": "data-store",
+      "note": "collection·endpoint·project variable = 문서 밖 data store (G4 data 세 store 보존)"
+    },
+    {
+      "name": "deleteApiEndpoint",
+      "source": "builder/stores/utils/dataActions.ts:561",
+      "family": "other",
+      "disposition": "data-store",
+      "note": "collection·endpoint·project variable = 문서 밖 data store (G4 data 세 store 보존)"
+    },
+    {
+      "name": "createVariable",
+      "source": "builder/stores/utils/dataActions.ts:1036",
+      "family": "other",
+      "disposition": "data-store",
+      "note": "collection·endpoint·project variable = 문서 밖 data store (G4 data 세 store 보존)"
+    },
+    {
+      "name": "updateVariable",
+      "source": "builder/stores/utils/dataActions.ts:1140",
+      "family": "other",
+      "disposition": "data-store",
+      "note": "collection·endpoint·project variable = 문서 밖 data store (G4 data 세 store 보존)"
+    },
+    {
+      "name": "deleteVariable",
+      "source": "builder/stores/utils/dataActions.ts:1239",
+      "family": "other",
+      "disposition": "data-store",
+      "note": "collection·endpoint·project variable = 문서 밖 data store (G4 data 세 store 보존)"
+    },
+    {
+      "name": "setRuntimeData",
+      "source": "builder/stores/utils/dataActions.ts:375",
+      "family": "mirror-hydrate",
+      "disposition": "derived",
+      "note": "새 runtime 이 graph 에서 파생 — mirror/hydrate 폐기 (4e 삭제)"
+    },
+    {
+      "name": "executeApiEndpoint",
+      "source": "builder/stores/utils/dataActions.ts:636",
+      "family": "mirror-hydrate",
+      "disposition": "derived",
+      "note": "새 runtime 이 graph 에서 파생 — mirror/hydrate 폐기 (4e 삭제)"
+    },
+    {
+      "name": "setVariableValue",
+      "source": "builder/stores/utils/dataActions.ts:1284",
+      "family": "mirror-hydrate",
+      "disposition": "derived",
+      "note": "새 runtime 이 graph 에서 파생 — mirror/hydrate 폐기 (4e 삭제)"
+    },
+    {
+      "name": "setRuntimeValue",
+      "source": "builder/stores/data.ts:163",
+      "family": "mirror-hydrate",
+      "disposition": "derived",
+      "note": "새 runtime 이 graph 에서 파생 — mirror/hydrate 폐기 (4e 삭제)"
+    },
+    {
+      "name": "fetchCollections / fetchApiEndpoints / fetchVariables / hydrateRuntimeCache / initializeForProject",
+      "source": "builder/stores/utils/dataActions.ts:119/405/953/171, builder/stores/data.ts:189",
+      "family": "mirror-hydrate",
+      "disposition": "derived",
+      "note": "새 runtime 이 graph 에서 파생 — mirror/hydrate 폐기 (4e 삭제)"
+    },
+    {
+      "name": "writeBackAssignedFieldIds",
+      "source": "builder/stores/utils/dataActions.ts:94",
+      "family": "mirror-hydrate",
+      "disposition": "derived",
+      "note": "새 runtime 이 graph 에서 파생 — mirror/hydrate 폐기 (4e 삭제)"
+    },
+    {
+      "name": "syncCollectionsToCanvas",
+      "source": "builder/stores/utils/dataChange.ts:104",
+      "family": "mirror-hydrate",
+      "disposition": "derived",
+      "note": "새 runtime 이 graph 에서 파생 — mirror/hydrate 폐기 (4e 삭제)"
+    },
+    {
+      "name": "historyManager.addEntry",
+      "source": "builder/stores/history.ts:597",
+      "family": "history",
+      "disposition": "history",
+      "note": "CatalogRuntime 프로젝트 단일 스택 — transaction 1개 = history 1개 (사용자 판정 2026-09-30)"
+    },
+    {
+      "name": "beginTransaction / runInTransaction / commitTransaction",
+      "source": "builder/stores/history.ts:492/526/557",
+      "family": "history",
+      "disposition": "history",
+      "note": "CatalogRuntime 프로젝트 단일 스택 — transaction 1개 = history 1개 (사용자 판정 2026-09-30)"
+    },
+    {
+      "name": "migrateEntryToPage",
+      "source": "builder/stores/history.ts:348",
+      "family": "history",
+      "disposition": "history",
+      "note": "CatalogRuntime 프로젝트 단일 스택 — transaction 1개 = history 1개 (사용자 판정 2026-09-30)"
+    },
+    {
+      "name": "clearPageHistory / clearAllHistory / clearOtherPageHistories",
+      "source": "builder/stores/history.ts:932/961/912",
+      "family": "history",
+      "disposition": "history",
+      "note": "CatalogRuntime 프로젝트 단일 스택 — transaction 1개 = history 1개 (사용자 판정 2026-09-30)"
+    },
+    {
+      "name": "applyHistoryEntry (internal)",
+      "source": "builder/stores/history/historyActions.ts:956",
+      "family": "history",
+      "disposition": "history",
+      "note": "CatalogRuntime 프로젝트 단일 스택 — transaction 1개 = history 1개 (사용자 판정 2026-09-30)"
+    },
+    {
+      "name": "applyPageTitleHistoryEntry / applyPageStateHistoryEntry / applyPagePositionHistoryEntry / applyPageGuideHistoryEntry / applyThemeHistoryEntry / applyDataHistoryEntry / applyPageLifecycleHistoryEntry",
+      "source": "builder/stores/history/historyActions.ts:91/139/163/206/244/282/317",
+      "family": "history",
+      "disposition": "history",
+      "note": "history 종류별 재생 → transaction inverse 로 대체"
+    },
+    {
+      "name": "registerThemeHistoryApplier",
+      "source": "builder/stores/history/historyActions.ts:265",
+      "family": "history",
+      "disposition": "history",
+      "note": "CatalogRuntime 프로젝트 단일 스택 — transaction 1개 = history 1개 (사용자 판정 2026-09-30)"
+    },
+    {
+      "name": "applyCanonicalHistoryEventsToActiveDocument",
+      "source": "builder/stores/history/canonicalHistoryEvents.ts:382",
+      "family": "history",
+      "disposition": "history",
+      "note": "CatalogRuntime 프로젝트 단일 스택 — transaction 1개 = history 1개 (사용자 판정 2026-09-30)"
+    },
+    {
+      "name": "applyCanonicalHistoryEventsToDocument",
+      "source": "builder/stores/history/canonicalHistoryEvents.ts:350",
+      "family": "history",
+      "disposition": "history",
+      "note": "CatalogRuntime 프로젝트 단일 스택 — transaction 1개 = history 1개 (사용자 판정 2026-09-30)"
+    },
+    {
+      "name": "restoreSnapshot",
+      "source": "builder/stores/history/snapshotRestore.ts:111",
+      "family": "history",
+      "disposition": "storage",
+      "note": "문서 통째 복원 = 저장본 다시 열기 (4d)"
+    },
+    {
+      "name": "applySnapshotDocument",
+      "source": "builder/stores/history/snapshotRestore.ts:51",
+      "family": "mirror-hydrate",
+      "disposition": "storage",
+      "note": "문서 설치 = 프로젝트 열기 (4d)"
+    },
+    {
+      "name": "applySnapshotRestoreHistoryEntry",
+      "source": "builder/stores/history/snapshotRestore.ts:173",
+      "family": "history",
+      "disposition": "storage",
+      "note": "문서 통째 복원 = 저장본 다시 열기 (4d)"
+    },
+    {
+      "name": "trackBatchUpdate / trackGroupCreation / trackUngroup / trackCanonicalMove / trackCanonicalMoveIntoRefDescendants / trackMultiPaste / trackInstancePropagation",
+      "source": "builder/stores/utils/historyHelpers.ts:39/82/114/147/175/204/240",
+      "family": "history",
+      "disposition": "history",
+      "note": "history 종류별 재생 → transaction inverse 로 대체"
+    }
+  ]
+}
