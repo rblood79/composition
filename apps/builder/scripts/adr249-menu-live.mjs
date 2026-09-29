@@ -286,6 +286,10 @@ try {
           ".header-menu-popover .header-menu-item > span.header-menu-item-check",
         ).length,
         openPanelBg: bg(icon("panel:properties")),
+        // 아이콘 없는 구역 (Workflow 아래) 은 아이콘 칸이 없다
+        emptyIconSlots: [
+          ...document.querySelectorAll(".header-menu-popover .header-menu-item-icon"),
+        ].filter((el) => !el.querySelector("svg")).length,
         iconSizes: [
           ...new Set(
             [...document.querySelectorAll(".header-menu-popover .header-menu-item svg")].map(
@@ -323,8 +327,9 @@ try {
       `레일 ${JSON.stringify(railLabels)}`,
     );
     record(
-      "요청 — 왼쪽 체크 열 없음 · 열린 패널은 아이콘 칸 채움",
+      "요청 — 왼쪽 체크 열 · 빈 아이콘 칸 없음 · 열린 패널은 아이콘 칸 채움",
       openMark.leftCheckColumn === 0 &&
+        openMark.emptyIconSlots === 0 &&
         openMark.openPanelBg !== openMark.closedPanelBg &&
         openMark.closedPanelBg === "rgba(0, 0, 0, 0)",
       JSON.stringify(openMark),

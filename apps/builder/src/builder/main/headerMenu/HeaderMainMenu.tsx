@@ -199,7 +199,10 @@ interface MenuRenderOptions {
   /** 빌더 표준 아이콘 크기 (`iconProps.size` 16 — 메뉴 행 정본 builder-menu-row.css 도 16) */
   iconSize: number;
   iconStrokeWidth: number;
-  /** 이 층에 아이콘 있는 항목이 하나라도 있으면 전 항목이 자리를 받는다 (라벨 시작선). */
+  /**
+   * 이 구역에 아이콘 있는 항목이 하나라도 있으면 구역 전 항목이 자리를 받는다 (라벨 시작선).
+   * 구역 단위 — 아이콘 없는 구역 (Workflow 아래) 은 빈 칸을 두지 않는다 (사용자 2026-09-29).
+   */
   reservesIconColumn: boolean;
 }
 
@@ -209,15 +212,15 @@ function renderBlocks(
   iconSize: number,
   iconStrokeWidth: number,
 ) {
-  const options: MenuRenderOptions = {
-    icons,
-    iconSize,
-    iconStrokeWidth,
-    reservesIconColumn: blocks.some((block) =>
-      block.entries.some((entry) => entry.kind === "leaf" && entry.icon),
-    ),
-  };
   return blocks.flatMap((block, index) => {
+    const options: MenuRenderOptions = {
+      icons,
+      iconSize,
+      iconStrokeWidth,
+      reservesIconColumn: block.entries.some(
+        (entry) => entry.kind === "leaf" && entry.icon,
+      ),
+    };
     const section = (
       <MenuSection
         key={block.key}
@@ -255,7 +258,7 @@ function renderBlocks(
   });
 }
 
-/** 아이콘 자리 — 아이콘 없는 항목도 같은 폭 (ContextMenuOverlay 와 같은 어법). */
+/** 아이콘 자리 — 아이콘 있는 구역 안에서는 아이콘 없는 항목도 같은 폭. */
 function MenuItemIcon({
   leaf,
   options,
