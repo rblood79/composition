@@ -9820,6 +9820,12 @@
                   "allowsMultiple": true,
                   "chunkSize": 8388608,
                   "parallelUploads": 1,
+                  "retryDelays": [
+                    "0",
+                    "1000",
+                    "3000",
+                    "5000"
+                  ],
                   "maxFileSize": 0,
                   "autoProceed": true,
                   "showPreview": false
@@ -9930,6 +9936,12 @@
                   "allowsMultiple": true,
                   "chunkSize": 8388608,
                   "parallelUploads": 1,
+                  "retryDelays": [
+                    "0",
+                    "1000",
+                    "3000",
+                    "5000"
+                  ],
                   "maxFileSize": 0,
                   "autoProceed": true,
                   "showPreview": false
@@ -10382,6 +10394,12 @@
                   "allowsMultiple": true,
                   "chunkSize": 8388608,
                   "parallelUploads": 1,
+                  "retryDelays": [
+                    "0",
+                    "1000",
+                    "3000",
+                    "5000"
+                  ],
                   "maxFileSize": 0,
                   "autoProceed": true,
                   "showPreview": false

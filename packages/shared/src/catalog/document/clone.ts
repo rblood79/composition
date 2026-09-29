@@ -1,4 +1,5 @@
 import type {
+  CatalogReader,
   DescendantOverride,
   EntryId,
   NodeEntry,
@@ -6,12 +7,11 @@ import type {
   StateVariableEntry,
   InteractionEntry,
 } from "./types";
-import { CatalogGraph } from "./graph";
 import { CatalogValidationError } from "./validation";
 
 /** Clones owned records only. Definition, library and external data references remain IDs. */
 export function cloneNodeSubgraph(
-  graph: CatalogGraph,
+  graph: Pick<CatalogReader, "getEntry" | "referrersOf">,
   rootId: NodeId,
   allocateId: (oldId: NodeId) => NodeId,
   allocateRelatedId?: (

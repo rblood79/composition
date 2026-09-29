@@ -302,4 +302,34 @@ describe("ADR-248 Phase 4b-1 schema", () => {
     expect(chart.seriesConfig).toBe("items");
     expect(chart.dataBinding).toBeUndefined();
   });
+
+  it("applies an instance's overrides when resolving from an ancestor of the instance", () => {
+    const g = graph(
+      [
+        node("host", {
+          definitionId: "lib:definition:type-ListBox",
+          children: ["project:node:pick"],
+        }),
+        node("pick", {
+          descendantOverrides: [
+            {
+              kind: "patch",
+              address: rootAddress,
+              layout: { rowGap: set("12px") },
+            },
+          ],
+        }),
+      ],
+      ["host"],
+    );
+    const direct = resolveCatalogNode(g, "project:node:pick").children[0];
+    const nested = resolveCatalogNode(g, "project:node:host").children[0]
+      .children[0];
+    expect(direct.layout.rowGap).toBe("12px");
+    expect(nested.instancePath).toEqual([
+      "project:node:host",
+      "project:node:pick",
+    ]);
+    expect(nested.layout.rowGap).toBe("12px");
+  });
 });

@@ -1,6 +1,7 @@
 import type {
   CatalogEntry,
   CatalogLibrary,
+  CatalogReader,
   LayoutField,
   ResponsiveBreakpointName,
   DataBindingRef,
@@ -269,26 +270,12 @@ function requireNode(value: CatalogEntry | undefined, id: string): NodeEntry {
 }
 
 /**
- * Graph reads a command planner needs. `CatalogGraph` is one (the committed state); a
- * `CatalogStage` is another (the committed state with staged records layered over it), so a
- * command plans the same way alone or after earlier commands of a composed edit.
- */
-export interface CatalogReader {
-  readonly projectId: EntryId<"project">;
-  readonly revision: number;
-  readonly library: CatalogLibrary;
-  getEntry(id: string): CatalogEntry | undefined;
-  ownerOf(id: string): string | undefined;
-  referrersOf(id: string): ReadonlySet<string>;
-  instancesOf(definitionId: string): ReadonlySet<string>;
-}
-
-/**
  * Operations applied over the committed graph without touching it, its indexes, history or dirty
  * IDs. `applyCatalogTransaction` stages its request here, then validates and commits; a composed
  * edit stages each command's ops so the next command reads what the earlier ones staged. Reads cost
  * the staged records, never the graph (ADR-248 §4.1).
  */
+export type { CatalogReader };
 export class CatalogStage implements CatalogReader {
   readonly staged = new Map<string, CatalogEntry | null>();
   readonly before = new Map<string, CatalogEntry | undefined>();

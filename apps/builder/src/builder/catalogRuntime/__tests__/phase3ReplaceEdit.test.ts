@@ -212,4 +212,58 @@ describe("ADR-248 Phase 3 replace-placed node edits", () => {
     expect(scene.notified).toEqual([repId, repId]);
     scene.expectEqualsFresh();
   });
+
+  it("replace inside an instance placed under another node: the edit re-resolves from the page root", () => {
+    const { document, library } = createG1Fixture();
+    const scene = open(document, library, "replace-nested");
+    const runtime = scene.root.runtime;
+    const page = runtime.graph.getEntry("project:page:main");
+    if (page?.kind !== "page") throw new Error("fixture page");
+    const wrapper = node("wrap", "lib:definition:box", {
+      children: ["project:node:cardA" as NodeId],
+    });
+    scene.root.dispatch("wrap", [
+      { kind: "put", entry: wrapper },
+      {
+        kind: "put",
+        entry: {
+          ...page,
+          children: page.children.map((id) =>
+            id === "project:node:cardA" ? wrapper.id : id,
+          ),
+        },
+      },
+    ]);
+    const replacement = node("repNested", "lib:definition:text", {
+      props: { children: { kind: "set", value: "rep" } },
+    });
+    scene.root.dispatch("replace", [
+      { kind: "put", entry: replacement },
+      {
+        kind: "upsertDescendant",
+        id: "project:node:cardA",
+        override: {
+          kind: "replace",
+          address: {
+            instances: ["project:node:cardA"],
+            templatePath: ["lib:template:cardRoot", "lib:template:cardText"],
+          },
+          replacementId: replacement.id,
+        },
+      },
+    ]);
+    const repId = scene.inputId(replacement.id)!;
+    expect(repId).toBeDefined();
+    scene.root.dispatch("edit replacement", [
+      {
+        kind: "patchNodeProp",
+        id: replacement.id,
+        key: "children",
+        write: { kind: "set", value: "edited" },
+      },
+    ]);
+    expect(scene.root.canvasInputs.get(repId)?.props.children).toBe("edited");
+    expect(scene.root.domInputs.get(repId)?.props.children).toBe("edited");
+    scene.expectEqualsFresh();
+  });
 });

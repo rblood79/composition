@@ -559,6 +559,21 @@ export type CatalogEntry =
   | InteractionEntry
   | AssetEntry;
 
+/**
+ * Graph reads a command planner needs. `CatalogGraph` is one (the committed state); a
+ * `CatalogStage` is another (the committed state with staged records layered over it), so a
+ * command plans the same way alone or after earlier commands of a composed edit.
+ */
+export interface CatalogReader {
+  readonly projectId: EntryId<"project">;
+  readonly revision: number;
+  readonly library: CatalogLibrary;
+  getEntry(id: string): CatalogEntry | undefined;
+  ownerOf(id: string): string | undefined;
+  referrersOf(id: string): ReadonlySet<string>;
+  instancesOf(definitionId: string): ReadonlySet<string>;
+}
+
 export interface CatalogDocument {
   format: typeof CATALOG_FORMAT;
   schemaVersion: typeof CATALOG_SCHEMA_VERSION;

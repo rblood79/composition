@@ -1996,8 +1996,9 @@ export class CatalogCompositionRoot {
             override.kind === "replace" &&
             chainSources.has(override.replacementId)
           )
+            // The address starts at the owner; the resolution path also carries its ancestors.
             allowed.add(
-              `${override.address.instances.join("/")}::${override.address.templatePath.at(-1)}`,
+              `${[...record.instancePath, ...override.address.instances.slice(1)].join("/")}::${override.address.templatePath.at(-1)}`,
             );
       }
       const pruned = resolveCatalogNode(

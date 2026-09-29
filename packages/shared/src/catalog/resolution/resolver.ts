@@ -534,7 +534,12 @@ export function resolveCatalogNode(
       : graph.getEntry(templateId);
     if (!template || ("kind" in template && template.kind !== "node"))
       throw new CatalogValidationError("DANGLING_TEMPLATE", templateId);
-    const address = { instances: instancePath, templatePath: path };
+    // An override address starts at its owner instance (`validateInstanceAddress`); the
+    // resolution path also carries the ancestors above the owner when resolving from one of them.
+    const address = {
+      instances: instancePath.slice(instancePath.lastIndexOf(owner.id)),
+      templatePath: path,
+    };
     const change = owner.descendantOverrides.find((item) =>
       same(item.address, address),
     );
