@@ -33,8 +33,13 @@ export interface TokenUse {
   kind: "token";
   tokenId: TokenId;
 }
-/** One row of an items-manager prop (static collection items, chart series …): flat scalars. */
-export type ItemValue = Readonly<Record<string, Scalar>>;
+/** A flat collection row: scalar cells. */
+export type ItemRow = Readonly<Record<string, Scalar>>;
+/**
+ * One row of an items-manager prop (static collection items, chart series …): scalar cells; a
+ * section row (ADR-099) also holds its own rows one level down (`items`).
+ */
+export type ItemValue = Readonly<Record<string, Scalar | readonly ItemRow[]>>;
 /**
  * Structured prop values (Phase 4b): a string list (`string-array` prop kind) or a list of flat
  * item records (`items-manager` prop kind — RSP dynamic collection items, Chart series).

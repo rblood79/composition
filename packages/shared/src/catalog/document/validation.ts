@@ -314,14 +314,19 @@ function list(value: unknown, prefix: string, at: string): string[] {
   if (ids.length !== new Set(ids).size) invalid("DUPLICATE_ID", at);
   return ids;
 }
-/** A structured prop value: a list of strings, or a list of flat scalar records. */
-function structuredValue(value: unknown[], at: string): void {
-  if (value.every((item) => typeof item === "string")) return;
+/**
+ * A structured prop value: a list of strings, or a list of records whose cells are scalars; a
+ * section record may hold one level of flat records (ADR-099 sections).
+ */
+function structuredValue(value: unknown[], at: string, nested = false): void {
+  if (!nested && value.every((item) => typeof item === "string")) return;
   value.forEach((item, index) => {
     const row = object(item, `${at}[${index}]`);
     for (const [key, cell] of Object.entries(row)) {
       if (!key) invalid("UNKNOWN_FIELD", `${at}[${index}]`);
-      scalar(cell, `${at}[${index}].${key}`);
+      if (Array.isArray(cell) && !nested)
+        structuredValue(cell, `${at}[${index}].${key}`, true);
+      else scalar(cell, `${at}[${index}].${key}`);
     }
   });
 }
