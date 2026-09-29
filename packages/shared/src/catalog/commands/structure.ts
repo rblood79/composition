@@ -155,7 +155,7 @@ export const moveNodes =
   };
 
 /** Owned subtree of a node (children, fill-slot children and replacements), node first. */
-function subtree(draft: CommandDraft, id: NodeId): NodeId[] {
+export function subtree(draft: CommandDraft, id: NodeId): NodeId[] {
   const out: NodeId[] = [];
   const stack = [id];
   while (stack.length) {
@@ -171,7 +171,7 @@ function subtree(draft: CommandDraft, id: NodeId): NodeId[] {
  * interactions that act on a removed variable or target), and other instances' overrides whose
  * address passes through a removed node.
  */
-function removeWithReferrers(
+export function removeWithReferrers(
   draft: CommandDraft,
   ids: readonly string[],
 ): void {
@@ -398,4 +398,95 @@ export const pasteNodes =
       newId: input.newId,
       label: input.label ?? "Paste",
     })(reader);
+  };
+
+export interface GroupNodesInput {
+  ids: readonly NodeId[];
+  /** The new group node (a container definition, new ID, no children yet). */
+  group: NodeEntry;
+  newId: NewId;
+  label?: string;
+}
+/**
+ * Wrap sibling nodes in a new group node at the first one's position, keeping their order. The
+ * caller supplies the group record (its definition and any geometry the product computes).
+ */
+export const groupNodes =
+  (input: GroupNodesInput): CatalogCommand =>
+  (reader) => {
+    const draft = new CommandDraft(reader);
+    const roots = topLevel(reader, input.ids);
+    if (!roots.length) return fail("EMPTY_SELECTION", "ids");
+    if (input.group.children.length)
+      fail("GROUP_MUST_BE_EMPTY", input.group.id);
+    const located = roots.map((id) => ({ id, ...locate(draft, id) }));
+    const parent = located[0].parent;
+    const key = (item: NodeParent) => JSON.stringify(item);
+    if (located.some((item) => key(item.parent) !== key(parent)))
+      fail("GROUP_PARENTS_DIFFER", roots[0]);
+    assertNestable(draft, parent, [input.group.definitionId]);
+    const list = childList(draft, parent) ?? [];
+    const members = list.filter((id) => roots.includes(id));
+    const at = Math.min(...located.map((item) => item.index));
+    draft.create({ ...input.group, children: members });
+    assertNestable(
+      draft,
+      { kind: "node", id: input.group.id },
+      members.map((id) => draft.node(id).definitionId),
+    );
+    const rest = list.filter((id) => !roots.includes(id));
+    const index = list.slice(0, at).filter((id) => !roots.includes(id)).length;
+    setChildList(draft, parent, [
+      ...rest.slice(0, index),
+      input.group.id,
+      ...rest.slice(index),
+    ]);
+    return {
+      label: input.label ?? "Group",
+      ops: draft.ops(),
+      selectAfter: [input.group.id],
+    };
+  };
+
+/** Replace each owned group node by its children, in place; the group record is removed. */
+export const ungroupNodes =
+  (input: {
+    ids: readonly NodeId[];
+    newId: NewId;
+    label?: string;
+  }): CatalogCommand =>
+  (reader) => {
+    const draft = new CommandDraft(reader);
+    const released: NodeId[] = [];
+    for (const id of topLevel(reader, input.ids)) {
+      const group = draft.node(id);
+      const definition = group.definitionId.startsWith("lib:")
+        ? reader.library.definitions.get(
+            group.definitionId as `lib:definition:${string}`,
+          )
+        : reader.getEntry(group.definitionId);
+      if (definition && "mode" in definition && definition.mode === "composite")
+        fail("UNGROUP_INSTANCE", id);
+      const { parent } = locate(draft, id);
+      const list = childList(draft, parent) ?? [];
+      assertNestable(
+        draft,
+        parent,
+        group.children.map((child) => draft.node(child).definitionId),
+      );
+      const at = list.indexOf(id);
+      setChildList(draft, parent, [
+        ...list.slice(0, at),
+        ...group.children,
+        ...list.slice(at + 1),
+      ]);
+      released.push(...group.children);
+      draft.write({ ...group, children: [] });
+      removeWithReferrers(draft, [id]);
+    }
+    return {
+      label: input.label ?? "Ungroup",
+      ops: draft.ops(),
+      selectAfter: released,
+    };
   };

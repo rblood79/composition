@@ -9,6 +9,7 @@ import type {
   NodeEntry,
   NodeId,
   PropWrites,
+  Scalar,
   TemplateId,
   VisualWrites,
 } from "../document/types";
@@ -25,6 +26,39 @@ import {
 export type NewId = <K extends EntryKind>(kind: K) => EntryId<K>;
 
 const TEMPLATE_BINDING = /\{[a-zA-Z][a-zA-Z0-9_-]*\}/;
+const TEMPLATE_BINDINGS = /\{([a-zA-Z][a-zA-Z0-9_-]*)\}/g;
+const WHOLE_TEMPLATE_BINDING = /^\{([a-zA-Z][a-zA-Z0-9_-]*)\}$/;
+/** A composite's values for its template's `{key}` placeholders (detach freezes them). */
+export type TemplateBindings = Readonly<Record<string, Scalar>>;
+/** The resolver's `{key}` binding (whole value keeps its type; unbound keys stay placeholders). */
+function bindProps(props: PropWrites, bindings: TemplateBindings): PropWrites {
+  const out: Record<string, PropWrites[string]> = {};
+  for (const [key, write] of Object.entries(props)) {
+    if (
+      write.kind !== "set" ||
+      typeof write.value !== "string" ||
+      !write.value.includes("{")
+    ) {
+      out[key] = write;
+      continue;
+    }
+    const value = write.value;
+    const whole = WHOLE_TEMPLATE_BINDING.exec(value);
+    out[key] = {
+      kind: "set",
+      value: whole
+        ? Object.hasOwn(bindings, whole[1])
+          ? bindings[whole[1]]
+          : value
+        : value.replace(TEMPLATE_BINDINGS, (placeholder, name: string) =>
+            Object.hasOwn(bindings, name)
+              ? String(bindings[name])
+              : placeholder,
+          ),
+    };
+  }
+  return out;
+}
 const sets = <T>(
   values: Readonly<Record<string, T>> | undefined,
 ): Record<string, { kind: "set"; value: T }> =>
@@ -151,24 +185,29 @@ function applyPatch(entry: NodeEntry, patch: Patch): NodeEntry {
   return next;
 }
 
+export interface Materializer {
+  /** Owned copy of the template position at `path` (at the owner's instance level). */
+  node(path: readonly TemplateId[], fixedId?: NodeId): NodeId;
+  /** The owner's overrides that stay: not absorbed and not under the `prefix` position. */
+  remainingOverrides(prefix: readonly TemplateId[]): DescendantOverride[];
+  /** The owner's interactions addressing a copied position now belong to the copy. */
+  reanchorInteractions(): void;
+}
+
 /**
- * ADR-248 Phase 4b: the first structural edit at an instance's template position makes the
- * template children there owned nodes (the position becomes a `fillSlot`). Each owned copy keeps
- * what the instance showed: the template values, the enclosing library patches, and the owner's
- * patch / replace / fillSlot / nested-instance overrides at those positions, and the owner's
- * interactions addressing them follow the copy. A position whose template needs what an owned
- * node cannot carry (a `{key}` template binding, a display state) fails explicitly.
+ * Copies an instance's template positions into owned nodes that show what the instance showed:
+ * the template values, the enclosing library patches, and the owner's patch / replace / fillSlot
+ * / nested-instance overrides at those positions. A `{key}` template binding needs `bindings`
+ * (detach freezes the composite's values); without them, and for a display state (an owned node
+ * has no display state), it fails explicitly.
  */
-export function ensureChildList(
+export function createMaterializer(
   draft: CommandDraft,
-  parent: NodeParent,
+  ownerId: NodeId,
+  instances: InstanceAddress["instances"],
   newId: NewId,
-): readonly NodeId[] {
-  const current = childList(draft, parent);
-  if (current) return current;
-  if (parent.kind !== "descendant") return fail("PARENT_REQUIRED", "parent");
-  const ownerId = parent.ownerId;
-  const instances = parent.address.instances;
+  bindings?: TemplateBindings,
+): Materializer {
   const owner = draft.node(ownerId);
   const consumed = new Set<DescendantOverride>();
   /** Template path (at the owner's instance level) → the owned node now standing there. */
@@ -185,19 +224,24 @@ export function ensureChildList(
       sameAddress(item.address, address),
     );
 
-  const materialize = (path: readonly TemplateId[]): NodeId => {
+  const materialize = (
+    path: readonly TemplateId[],
+    fixedId?: NodeId,
+  ): NodeId => {
     const address = { instances, templatePath: path };
     const change = overrideAt(address);
     if (change) consumed.add(change);
     if (change?.kind === "replace") {
+      if (fixedId) fail("POSITION_REPLACED", path[path.length - 1]);
       placed.set(key(path), change.replacementId);
       return change.replacementId;
     }
     const templateId = path[path.length - 1];
     const template = readTemplate(draft, templateId);
-    if (template.hasBinding) fail("POSITION_HAS_TEMPLATE_BINDING", templateId);
+    if (template.hasBinding && !bindings)
+      fail("POSITION_HAS_TEMPLATE_BINDING", templateId);
     if (template.displayState) fail("POSITION_HAS_DISPLAY_STATE", templateId);
-    const id = newId("node");
+    const id = fixedId ?? newId("node");
     placed.set(key(path), id);
     let entry: NodeEntry = {
       ...(template.extra as object),
@@ -205,7 +249,7 @@ export function ensureChildList(
       id,
       definitionId: template.definitionId,
       children: [],
-      props: template.props,
+      props: bindings ? bindProps(template.props, bindings) : template.props,
       visual: template.visual,
       sizing: template.sizing ?? {},
       descendantOverrides: (template.overrides ?? []).map((item) => ({
@@ -294,32 +338,59 @@ export function ensureChildList(
           ? [...change.childIds]
           : template.children.map((childId) => materialize([...path, childId])),
     };
-    draft.create(entry);
+    if (fixedId) draft.write(entry);
+    else draft.create(entry);
     return id;
   };
 
-  const templateId =
-    parent.address.templatePath[parent.address.templatePath.length - 1];
-  const ids = readTemplate(draft, templateId).children.map((childId) =>
-    materialize([...parent.address.templatePath, childId]),
+  return {
+    node: materialize,
+    remainingOverrides: (prefix) =>
+      owner.descendantOverrides.filter(
+        (item) =>
+          !consumed.has(item) &&
+          !(
+            sameAddress(
+              { instances: item.address.instances, templatePath: [] },
+              { instances, templatePath: [] },
+            ) &&
+            item.address.templatePath.length > prefix.length &&
+            startsWith(item.address.templatePath, prefix)
+          ),
+      ),
+    reanchorInteractions: () =>
+      reanchorInteractions(draft, ownerId, instances, placed),
+  };
+}
+
+/**
+ * ADR-248 Phase 4b: the first structural edit at an instance's template position makes the
+ * template children there owned nodes (the position becomes a `fillSlot`).
+ */
+export function ensureChildList(
+  draft: CommandDraft,
+  parent: NodeParent,
+  newId: NewId,
+): readonly NodeId[] {
+  const current = childList(draft, parent);
+  if (current) return current;
+  if (parent.kind !== "descendant") return fail("PARENT_REQUIRED", "parent");
+  const path = parent.address.templatePath;
+  const materializer = createMaterializer(
+    draft,
+    parent.ownerId,
+    parent.address.instances,
+    newId,
   );
-  // Drop what the copies absorbed, then place the copies as the position's fillSlot.
-  const under = (item: DescendantOverride) =>
-    consumed.has(item) ||
-    (sameAddress(
-      { instances: item.address.instances, templatePath: [] },
-      { instances, templatePath: [] },
-    ) &&
-      item.address.templatePath.length > parent.address.templatePath.length &&
-      startsWith(item.address.templatePath, parent.address.templatePath));
+  const ids = readTemplate(draft, path[path.length - 1]).children.map(
+    (childId) => materializer.node([...path, childId]),
+  );
   draft.write({
-    ...owner,
-    descendantOverrides: owner.descendantOverrides.filter(
-      (item) => !under(item),
-    ),
+    ...draft.node(parent.ownerId),
+    descendantOverrides: materializer.remainingOverrides(path),
   });
   setChildList(draft, parent, ids);
-  reanchorInteractions(draft, ownerId, instances, placed);
+  materializer.reanchorInteractions();
   return ids;
 }
 
