@@ -848,7 +848,7 @@ export class CatalogCompositionRoot {
   readonly breakpoint: BreakpointName;
   /** Product layout: each page a frame on the ADR-232 page container grid. */
   private readonly pageFrames: boolean;
-  private readonly autoColumns: number | undefined;
+  private autoColumns: number | undefined;
   /** Theme color mode (a switch builds a new root, like a breakpoint switch). */
   readonly colorMode: "light" | "dark";
   /** Page of each page root node (`pageRoots`). */
@@ -1649,6 +1649,24 @@ export class CatalogCompositionRoot {
             : value;
     }
     return out;
+  }
+  /**
+   * `columns: "auto"` follows the visible canvas: the host passes the new integer column count.
+   * Only the page container's tracks change; the page frames move and their contents keep their
+   * layout. Returns whether any page frame moved (the Canvas host rebinds the page shells).
+   */
+  setAutoColumns(columns: number): boolean {
+    if (!this.pageFrames || columns === this.autoColumns) return false;
+    const before = this.pageFrameRects();
+    this.autoColumns = columns;
+    this.layout.updateNodeStyle("catalog:root", this.rootStyle());
+    this.layout.computeLayout(this.viewport.width, this.viewport.height);
+    const after = this.pageFrameRects();
+    for (const [pageId, rect] of after) {
+      const old = before.get(pageId);
+      if (!old || old.x !== rect.x || old.y !== rect.y) return true;
+    }
+    return false;
   }
   /** Laid-out frame of every page (its root node's box on the page grid). */
   pageFrameRects(): Map<

@@ -195,4 +195,23 @@ describe("ADR-248 Phase 4a-4 page frames", () => {
       canvas.dispose();
     }
   });
+
+  it("moves page frames when the host's auto column count changes", async () => {
+    const root = await scene(
+      [page("home"), page("about")],
+      [body("homeBody"), body("aboutBody")],
+      { pageLayout: { direction: "auto", gap: 80 } },
+    );
+    expect(root.setAutoColumns(1)).toBe(true);
+    expect(root.pageFrameRects().get("project:page:about")).toMatchObject({
+      x: 0,
+      y: 1160,
+    });
+    expect(root.setAutoColumns(2)).toBe(true);
+    expect(root.pageFrameRects().get("project:page:about")).toMatchObject({
+      x: 2000,
+      y: 0,
+    });
+    expect(root.setAutoColumns(2)).toBe(false);
+  });
 });
