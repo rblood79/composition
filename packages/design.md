@@ -4,7 +4,7 @@
 
 **reference baseline, not runtime SSOT.**
 
-본 문서는 `packages/react-aria-starter/src` 의 CSS 에서 추출한 **단일 공통** token/패턴
+본 문서는 RAC starter upstream `src` 의 CSS 에서 추출한 **단일 공통** token/패턴
 reference 다. composition 의 시각 정본이 아니라, 시각 정본을 저작할 때 참조하는 입력
 가이드다.
 
@@ -17,7 +17,7 @@ reference 다. composition 의 시각 정본이 아니라, 시각 정본을 저�
   - canonical 문서). 본 문서는 그 저작의 입력일 뿐 런타임 계약으로 승격하지 않는다.
 - **컴포넌트별 design.md 생성 금지** — starter 디자인 분석의 유일 문서는 본 파일
   하나다 (`src/` 하위 컴포넌트별 문서 추가는 중복 SSOT 를 만든다).
-- starter 는 upstream 스냅샷이다 (`UPSTREAM.md`). `src/` 원본은 수정하지 않는다.
+- starter 스냅샷 (`packages/react-aria-starter`) 은 2026-09-29 저장소에서 제거됐다. 본 문서는 그 시점의 추출본이다.
 
 ### 역할
 
@@ -344,7 +344,7 @@ starter 의 token/패턴을 composition 시맨틱으로 번역하고 ADR-142 의
 
 ### Source Inventory
 
-`packages/react-aria-starter/src` 의 CSS 총 **56개** = 토큰/유틸 2 + 컴포넌트 54.
+RAC starter upstream `src` 의 CSS 총 **56개** = 토큰/유틸 2 + 컴포넌트 54.
 
 - **토큰/유틸 (2)**: `theme.css`, `utilities.css` — 본 문서의 token/utility 정의 원천.
 - **컴포넌트 CSS (54)** — 각 1파일, 상단에서 `theme.css` / `utilities.css` 를 `@import`.
@@ -371,9 +371,6 @@ starter 의 token/패턴을 composition 시맨틱으로 번역하고 ADR-142 의
 - S2 TokenRef 체계(`{color.accent}` 등), tint preset system 을 starter 명칭으로 덮지 않는다.
 - 금지된 M3 토큰은 채택하지 않는다.
 - design.md 를 runtime D3 SSOT 나 런타임 계약으로 승격하지 않는다.
-- `packages/react-aria-starter/src` 하위에 컴포넌트별 design.md 를 추가하지 않는다.
 
-> **upstream 갱신 시**: 본 문서는 `UPSTREAM.md` §Update Flow 에 맞춰 재생성한다. starter
-> 스냅샷이 바뀌면 Google DESIGN.md top-level section set 과 composition 확장(Motion /
-> Mapping / Appendix)의 token/패턴을 재추출하고 Mapping 표를 갱신한다. 본 문서는 그 시점
-> 외에는 freeze 상태를 유지한다(ADR-142 Phase 0 산출물).
+> **freeze**: starter 스냅샷이 저장소에서 제거됐으므로 (2026-09-29) 재추출 경로가 없다. 본 문서는
+> freeze 상태를 유지한다 (ADR-142 Phase 0 산출물).

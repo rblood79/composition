@@ -1170,7 +1170,7 @@ Phase 4 (이미지/메쉬/변수)            🟡 부분 완료 — 이미지 �
 | Skia 변환             | `utils/__tests__/fillToSkia.gradient.test.ts` · `fillToSkia.fallbackColor.test.ts` | **존재** — angular 회전 행렬, radial 타원, fallback 색                                                            |
 | mesh 결선 회귀        | `skia/__tests__/buildBoxNodeData.meshFill.test.ts`                                 | **존재** — `box.fill.type === "mesh-gradient"` 보존                                                               |
 | ADR-187 legacy 가드   | `presentation/editorPresentationPhase6.static.test.ts`                             | **존재** — 금지 식별자/주석 정적 검사                                                                             |
-| UI 렌더링 (Storybook) | —                                                                                  | **없음.** `apps/builder` 에 `.stories.tsx` 0건 (Storybook 파일은 `packages/react-aria-starter` upstream 스냅샷뿐) |
+| UI 렌더링 (Storybook) | —                                                                                  | **없음.** `apps/builder` 에 `.stories.tsx` 0건 (Storybook 을 담던 starter 스냅샷은 2026-09-29 제거) |
 | 성능                  | —                                                                                  | Fill 전용 게이트 없음 (§9.4)                                                                                      |
 
 ### 12.1 수용 기준 재판정 (2026-09-09)

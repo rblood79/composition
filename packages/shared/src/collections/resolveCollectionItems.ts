@@ -591,7 +591,7 @@ export type TableProjectionRow = {
 
 // NOTE (2026-06-22): TABLE_DEFAULT_COLUMNS / TABLE_DEFAULT_ROWS (Name/Email/Role +
 // John/Jane/Bob 3행) 샘플 fallback 은 제거됨. reference 컴포넌트
-// (packages/react-aria-starter/src/Table.tsx)는 columns/items 가 비면 빈 테이블을
+// (RAC starter upstream `Table.tsx`)는 columns/items 가 비면 빈 테이블을
 // 그대로 그릴 뿐 샘플을 주입하지 않는다 (renderEmptyState 도 Table 엔 미사용).
 // CSS preview Table (Table.tsx) 도 빈 데이터 시 빈 테이블을 그리므로, Skia 만 샘플
 // 3행을 그리는 것은 reference 위반 + CSS↔Skia 시각 비대칭이었다. fallback 을 빈 배열로

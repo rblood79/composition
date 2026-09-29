@@ -385,7 +385,7 @@ dataBinding: {
 
 | File | Purpose |
 |------|---------|
-| [packages/shared/src/components/Tree.tsx](../../../packages/react-aria-starter/src/Tree.tsx) | Tree component with DataBinding support |
+| [packages/shared/src/components/Tree.tsx](../../../packages/shared/src/components/Tree.tsx) | Tree component with DataBinding support |
 | [src/builder/preview/renderers/CollectionRenderers.tsx](../../../packages/shared/src/renderers/CollectionRenderers.tsx) | Tree renderer in preview iframe |
 | [packages/shared/src/components/metadata.ts](../../../packages/shared/src/components/metadata.ts) | Tree metadata (enables Data Section) |
 | [apps/builder/src/services/api/index.ts](../../../apps/publish/src/index.ts) | Mock data endpoints |

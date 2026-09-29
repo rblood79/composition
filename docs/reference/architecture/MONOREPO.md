@@ -10,19 +10,17 @@
 
 ## 1. 워크스페이스
 
-pnpm workspace + Turborepo. `pnpm-workspace.yaml` 이 `apps/*` 와 `packages/*` 를 잡고,
-`packages/react-aria-starter` 만 제외한다 (RAC starter upstream 스냅샷 — read-only 참조 baseline).
+pnpm workspace + Turborepo. `pnpm-workspace.yaml` 이 `apps/*` 와 `packages/*` 를 잡는다.
 공통 의존성 버전은 같은 파일의 `catalogs.default` 가 고정한다.
 
-| 워크스페이스                  | 패키지명                                   | 역할                                                     |
-| ----------------------------- | ------------------------------------------ | -------------------------------------------------------- |
-| `apps/builder`                | `@composition/builder`                     | Skia(CanvasKit) 빌더 앱. 개발 서버 5173                  |
-| `apps/publish`                | `@composition/publish`                     | 퍼블리시 런타임 (DOM + CSS 렌더)                         |
-| `packages/shared`             | `@composition/shared`                      | catalog(D3 SSOT) · 공용 컴포넌트 · 렌더러 · 스키마       |
-| `packages/specs`              | `@composition/specs`                       | 잔존 spec 3개 (Frame/Group/Slot) · CSS 생성 · 차트 기하  |
-| `packages/config`             | `@composition/config`                      | 공유 tsconfig · eslint 설정                              |
-| `packages/engine`             | (Rust crate)                               | 레이아웃 엔진 → wasm. 워크스페이스 패키지가 아니라 cargo |
-| `packages/react-aria-starter` | `@composition/react-aria-starter-upstream` | upstream 스냅샷. **편집 금지**, 워크스페이스에서 제외    |
+| 워크스페이스      | 패키지명               | 역할                                                     |
+| ----------------- | ---------------------- | -------------------------------------------------------- |
+| `apps/builder`    | `@composition/builder` | Skia(CanvasKit) 빌더 앱. 개발 서버 5173                  |
+| `apps/publish`    | `@composition/publish` | 퍼블리시 런타임 (DOM + CSS 렌더)                         |
+| `packages/shared` | `@composition/shared`  | catalog(D3 SSOT) · 공용 컴포넌트 · 렌더러 · 스키마       |
+| `packages/specs`  | `@composition/specs`   | 잔존 spec 3개 (Frame/Group/Slot) · CSS 생성 · 차트 기하  |
+| `packages/config` | `@composition/config`  | 공유 tsconfig · eslint 설정                              |
+| `packages/engine` | (Rust crate)           | 레이아웃 엔진 → wasm. 워크스페이스 패키지가 아니라 cargo |
 
 ### 의존 방향 (단방향)
 
@@ -68,8 +66,7 @@ composition/
 │   │   ├── components/       # 잔존 spec 3개 (Frame · Group · Slot)
 │   │   ├── primitives/ · renderers/ (CSSGenerator) · chart/ · icons/ · runtime/
 │   ├── engine/   # Rust — src/ · benches/ · tests/ · pkg(생성물)
-│   ├── config/               # tsconfig/ · eslint/
-│   └── react-aria-starter/   # upstream 스냅샷 (제외 워크스페이스)
+│   └── config/               # tsconfig/ · eslint/
 └── scripts/                  # generate-engine-matrix.mjs · prepare-wasm.mjs · agent/ · codex/ 등
 ```
 

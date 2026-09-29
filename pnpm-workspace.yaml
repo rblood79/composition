@@ -1,7 +1,6 @@
 packages:
   - apps/*
   - packages/*
-  - '!packages/react-aria-starter'
 
 catalogs:
   default:

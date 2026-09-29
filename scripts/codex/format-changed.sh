@@ -21,7 +21,6 @@ fi
 TARGETS="$(
   echo "$FILES" |
     grep -E '\.(ts|tsx|js|jsx|css|json|md)$' |
-    grep -Ev '^packages/react-aria-starter/' |
     while IFS= read -r file; do
       [ -L "$file" ] || printf '%s\n' "$file"
     done || true

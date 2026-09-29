@@ -2,8 +2,6 @@
 
 composition는 **노코드 웹 빌더** 애플리케이션입니다 (pnpm monorepo).
 
-- `packages/react-aria-starter` 는 RAC starter upstream 스냅샷 — **read-only 참조 baseline** (편집 금지)
-
 > 코드 작업 전 `.claude/skills/composition-patterns/SKILL.md` 를 읽는다 — 규칙 인덱스가 거기 있다.
 
 ## 명령 · 환경

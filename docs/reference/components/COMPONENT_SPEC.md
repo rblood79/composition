@@ -225,7 +225,7 @@ DOM 쪽 인라인 style 은 **override 전용**이다 — base 시각값은 위 
 
 2026-03 시점 문서 전문은 **[`docs/legacy/COMPONENT_SPEC-2026-03-snapshot.md`](../../legacy/COMPONENT_SPEC-2026-03-snapshot.md)** (325KB / 7,658줄, append-only — 본 분리 시 prettier 포맷만 적용, 내용 무변경) 에 그대로 보존돼 있다. 그 문서의 Phase 0~6 구현 상세·`ElementSprite`·PixiJS·`SPEC_RENDERS_ALL_TAGS`·`CHILD_COMPOSITION_EXCLUDE_TAGS` 서술은 전부 현행과 다르다 — **의사결정 맥락(Why)을 되짚을 때만** 열고, 코드 레퍼런스로는 쓰지 않는다.
 
-스냅샷의 부록 B(React Aria DOM 구조 레퍼런스)·부록 C(ARIA Role 매핑 총표)는 D1 영역이라 성격상 오래 버티는 내용이지만, **D1 정본은 RAC upstream 자체**다. 참조할 일이 생기면 `packages/react-aria-starter/` (upstream 스냅샷, read-only 편집 금지) 와 설치된 `react-aria-components@^1.21.0` 을 대조할 것.
+스냅샷의 부록 B(React Aria DOM 구조 레퍼런스)·부록 C(ARIA Role 매핑 총표)는 D1 영역이라 성격상 오래 버티는 내용이지만, **D1 정본은 RAC upstream 자체**다. 참조할 일이 생기면 설치된 `react-aria-components@^1.21.0` 을 본다 (starter 스냅샷은 2026-09-29 제거).
 
 ---
 

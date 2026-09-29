@@ -5015,7 +5015,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   대상에서 빠져(structure 부재) stale 고아 파일로 방치 → DOM(stale leaf CSS) ↔ Skia(rule shell)
     //   ↔ 레퍼런스(starter) 3경로 발산. structure 추가로 generate-css buildVirtualSpecs 의 virtual
     //   spec 재생성 대상에 편입 → catalog rule SSOT 단일 소스로 3경로 동시 구동.
-    //   레퍼런스 정합(packages/react-aria-starter/src/Disclosure.css):
+    //   레퍼런스 정합(RAC starter upstream `Disclosure.css`):
     //   루트=블록 컨테이너(padding 0), 헤더 버튼=flex+font-weight 600+hover bg, chevron rotate,
     //   패널 콘텐츠 div padding. composition.containerStyles 보유 → compositionOwnsContainerBox=true
     //   로 sizes.padding/height 의 컨테이너 leaf emit skip(이전 inline-flex+center+padding 발산 해소).
