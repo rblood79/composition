@@ -461,4 +461,74 @@ describe("ADR-248 Phase 3 source-derived immutable code library", () => {
       ),
     });
   });
+
+  it("keeps an instance-authored prop over the template's display state", async () => {
+    const { document } = createG1Fixture();
+    const project = document.entries[document.projectId];
+    const page = document.entries["project:page:main"] as Extract<
+      CatalogEntry,
+      { kind: "page" }
+    >;
+    const radioId = "project:node:radio" as const;
+    const groupId = "project:node:radioGroup" as const;
+    const node = (
+      id: NodeEntry["id"],
+      definitionId: NodeEntry["definitionId"],
+      props: NodeEntry["props"],
+      descendantOverrides: NodeEntry["descendantOverrides"] = [],
+    ): NodeEntry => ({
+      kind: "node",
+      id,
+      definitionId,
+      children: [],
+      props,
+      visual: {},
+      sizing: {},
+      descendantOverrides,
+    });
+    const graph = new CatalogGraph(
+      {
+        ...document,
+        entries: {
+          [project.id]: project,
+          [page.id]: { ...page, children: [radioId, groupId] },
+          // The Radio origin template shows the `selected` state.
+          [radioId]: node(radioId, "lib:definition:origin-component-radio", {
+            isSelected: { kind: "set", value: false },
+          }),
+          [groupId]: node(
+            groupId,
+            "lib:definition:origin-component-radiogroup",
+            {},
+            [
+              {
+                kind: "patch",
+                address: {
+                  instances: [groupId],
+                  templatePath: [
+                    "lib:template:component-radiogroup",
+                    "lib:template:component-radiogroup__2",
+                  ],
+                },
+                props: { isSelected: { kind: "set", value: false } },
+              },
+            ],
+          ),
+        },
+      },
+      await buildCodeCatalogLibrary(),
+    );
+    expect(resolveCatalogNode(graph, radioId).props.isSelected).toBe(false);
+    type Resolved = ReturnType<typeof resolveCatalogNode>;
+    const radios: Resolved[] = [];
+    const walk = (at: Resolved) => {
+      if (at.sourceId === "lib:template:component-radio") radios.push(at);
+      at.children.forEach(walk);
+    };
+    walk(resolveCatalogNode(graph, groupId));
+    expect(radios.map((radio) => radio.props.isSelected)).toEqual([
+      false,
+      true,
+    ]);
+  });
 });

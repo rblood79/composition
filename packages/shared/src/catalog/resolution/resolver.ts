@@ -620,11 +620,18 @@ export function resolveCatalogNode(
       )
         ? undefined
         : shownState;
+    // A display state replaces the template's own default; a value the instance authored for
+    // this position (its root layer or path patch) is more specific and stays.
+    const instanceAuthored = new Set([
+      ...Object.keys(root?.props ?? {}),
+      ...(change?.kind === "patch" ? Object.keys(change.props ?? {}) : []),
+    ]);
     if (displayState)
       for (const [key, value] of Object.entries(
         DISPLAY_STATE_PROPS[displayState] ?? {},
       ))
-        if (definition.accepts[key] === "boolean") props[key] = value;
+        if (definition.accepts[key] === "boolean" && !instanceAuthored.has(key))
+          props[key] = value;
     const nodeState = catalogNodeState(displayState, state);
     applyPropVisualRules(template.definitionId, props, visual);
     applyTypedRules(
