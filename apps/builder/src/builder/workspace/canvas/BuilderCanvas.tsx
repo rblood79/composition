@@ -1376,12 +1376,29 @@ export function BuilderCanvas({
    * 캔버스 컨텍스트가 필요해서다 — 전역 훅에서는 닿지 않는다. bounds 는
    * pointerdown 캐시(`selectionBoundsRef`)가 아니라 호출 시점에 새로 계산한다.
    */
-  const handleZoomToSelection = useCallback(() => {
+  const resolveZoomToSelectionTarget = useCallback(() => {
     const bounds = computeSelectionBoundsForHitTest();
-    if (!bounds || bounds.width <= 0 || bounds.height <= 0) return;
+    if (!bounds || bounds.width <= 0 || bounds.height <= 0) return null;
 
     const { containerSize: viewportSize } = useViewportSyncStore.getState();
-    if (viewportSize.width === 0 || viewportSize.height === 0) return;
+    if (viewportSize.width === 0 || viewportSize.height === 0) return null;
+    return { bounds, viewportSize };
+  }, [computeSelectionBoundsForHitTest]);
+
+  /**
+   * 맞출 대상이 있는가 — 전체 메뉴의 활성 판정 (`canRun`, ADR-249 §4-2) 과 아래
+   * 핸들러의 early return 이 같은 함수를 부른다. bounds 가 캔버스 클로저에만 있어
+   * `COMMAND_META` precondition 으로는 옮길 수 없다.
+   */
+  const hasZoomToSelectionTarget = useCallback(
+    () => resolveZoomToSelectionTarget() !== null,
+    [resolveZoomToSelectionTarget],
+  );
+
+  const handleZoomToSelection = useCallback(() => {
+    const target = resolveZoomToSelectionTarget();
+    if (!target) return;
+    const { bounds, viewportSize } = target;
 
     const nextZoom = clampViewportZoom(
       Math.min(
@@ -1395,7 +1412,7 @@ export function BuilderCanvas({
       x: viewportSize.width / 2 - (bounds.x + bounds.width / 2) * nextZoom,
       y: viewportSize.height / 2 - (bounds.y + bounds.height / 2) * nextZoom,
     });
-  }, [computeSelectionBoundsForHitTest]);
+  }, [resolveZoomToSelectionTarget]);
 
   /**
    * ADR-150 A3' — 데이터 행 더블클릭이 다른 페이지 origin 을 선택하면 카메라가 새 선택을 따라간다
@@ -1411,10 +1428,12 @@ export function BuilderCanvas({
 
   const zoomShortcuts = useMemo(
     () =>
-      bindHandlersToDefinitions(["zoomToSelection"], {
-        zoomToSelection: handleZoomToSelection,
-      }),
-    [handleZoomToSelection],
+      bindHandlersToDefinitions(
+        ["zoomToSelection"],
+        { zoomToSelection: handleZoomToSelection },
+        { zoomToSelection: hasZoomToSelectionTarget },
+      ),
+    [handleZoomToSelection, hasZoomToSelectionTarget],
   );
   useKeyboardShortcutsRegistry(zoomShortcuts, [zoomShortcuts], {
     activeScope: canvasActiveScope,

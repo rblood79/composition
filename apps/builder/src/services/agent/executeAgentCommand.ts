@@ -19,8 +19,6 @@
  */
 import { useStore } from "../../builder/stores";
 import { historyManager } from "../../builder/stores/history";
-import { useViewportSyncStore } from "../../builder/workspace/canvas/stores";
-import { getSelectedGuide } from "../../builder/workspace/canvas/interaction/guideEmphasis";
 import {
   SHORTCUT_DEFINITIONS,
   type ShortcutId,
@@ -28,7 +26,6 @@ import {
 import {
   COMMAND_META,
   agentCallableIds,
-  type AgentReadModel,
   type CommandMeta,
 } from "../../builder/config/commandMeta";
 import {
@@ -50,6 +47,9 @@ import type { ToolTranslate } from "../../types/integrations/ai.types";
 import { localizedStrings } from "../../i18n/translations";
 import { getStoredLocale } from "../../i18n/locales";
 import { AGENT_COMMANDS, type AgentCommandInput } from "./agentCommands";
+import { buildAgentReadModel } from "./agentReadModel";
+
+export { buildAgentReadModel };
 import { DATA_AGENT_COMMANDS } from "./dataAgentCommands";
 
 /** agent 명령 id — 단축키 allowlist (ADR-196) + `data.*` (ADR-213). */
@@ -127,23 +127,6 @@ export function listAgentCommands(): AgentCommandDescriptor[] {
     };
   });
   return [...shortcuts, ...data];
-}
-
-/** precondition 이 읽는 모델 — handler 가 읽는 것과 같은 store 들에서 조립. */
-export function buildAgentReadModel(): AgentReadModel {
-  const s = useStore.getState();
-  const history = historyManager.getCurrentPageHistory();
-  return {
-    currentPageId: s.currentPageId,
-    selectedElementId: s.selectedElementId,
-    selectedElementIds: s.selectedElementIds,
-    multiSelectMode: s.multiSelectMode,
-    elementsMap: s.elementsMap,
-    guideSelected: getSelectedGuide() !== null,
-    canUndo: history.canUndo,
-    canRedo: history.canRedo,
-    viewport: { containerSize: useViewportSyncStore.getState().containerSize },
-  };
 }
 
 /** `data.*` precondition 이 읽는 모델 — 패널 handler 와 같은 데이터 store. */

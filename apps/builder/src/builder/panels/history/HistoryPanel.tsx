@@ -41,6 +41,7 @@ import {
   type HistorySnapshot,
 } from "../../stores/history/snapshots";
 import { restoreSnapshot } from "../../stores/history/snapshotRestore";
+import { createUserSnapshot } from "./userSnapshotActions";
 import { useI18n } from "@/i18n";
 import { getHistoryEntryLabel } from "./historyEntryLabel";
 import "./HistoryPanel.css";
@@ -210,16 +211,10 @@ function HistoryPanelContent() {
     await useStore.getState().redo();
   }, [historyInfo.canRedo, historyOperationInProgress, restoring]);
 
+  // 전체 메뉴 ▸ 파일 ▸ 스냅샷 만들기와 같은 함수 (ADR-249 §2-4)
   const handleCreateSnapshot = useCallback(async () => {
     if (!projectId) return;
-    const doc = useCanonicalDocumentStore.getState().documents.get(projectId);
-    if (!doc) return;
-    try {
-      await snapshotManager.createSnapshot({ projectId, doc, kind: "user" });
-    } catch (error) {
-      // 상한 도달 — 버튼 disabled 로 선차단되므로 방어적 처리만
-      console.warn("[HistoryPanel] 스냅샷 생성 차단:", error);
-    }
+    await createUserSnapshot(projectId);
   }, [projectId]);
 
   const handleRestoreSnapshot = useCallback(

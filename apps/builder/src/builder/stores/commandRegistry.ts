@@ -21,14 +21,32 @@ import { createStore } from "zustand/vanilla";
 import type { ShortcutScope } from "../types/keyboard";
 import type { ShortcutId } from "../config/keyboardShortcuts";
 
+/**
+ * 명령 실행 인자 (ADR-249 §4-5). 키보드 경로는 인자 없이 부르고, 전체 메뉴는 대상
+ * scope 를 넘긴다 — 메뉴가 열린 동안의 포커스 scope 는 popover 라 실행 시점의
+ * `activeScope` 로 분기하는 핸들러 (`getScopedHandler`) 가 엉뚱한 쪽으로 간다.
+ */
+export interface CommandRunContext {
+  scope?: ShortcutScope;
+}
+
+/** 0 인자 핸들러도 그대로 대입된다 — 인자를 읽는 것은 scope 분기 핸들러뿐이다. */
+export type CommandHandler = (context?: CommandRunContext) => void;
+
 /** 게시된 명령 하나 — 등록 hook 이 넘긴 바인딩 그대로다. */
 export interface CommandEntry {
   id: ShortcutId;
-  handler: () => void;
+  handler: CommandHandler;
   scope: ShortcutScope | readonly ShortcutScope[] | undefined;
   priority: number;
   allowInInput: boolean;
   disabled: boolean;
+  /**
+   * 등록자 실행 조건 (ADR-249 §4-2) — store 로 알 수 없고 등록한 쪽 클로저에만
+   * 있는 조건 (`zoomToSelection` 의 캔버스 bounds). 핸들러의 early return 과 같은
+   * 함수를 부른다. 생략 = 조건 없음.
+   */
+  canRun?: () => boolean;
   /** 단조 증가 등록 순번 — 동률 우선순위의 타이브레이커. */
   seq: number;
 }

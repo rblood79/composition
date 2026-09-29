@@ -29,7 +29,10 @@ import {
   SHORTCUT_DEFINITIONS,
   type ShortcutId,
 } from "../config/keyboardShortcuts";
-import { registerCommand } from "../stores/commandRegistry";
+import {
+  registerCommand,
+  type CommandHandler,
+} from "../stores/commandRegistry";
 
 /**
  * 지원되는 modifier 조합
@@ -82,8 +85,14 @@ export interface KeyboardShortcut {
   /** Modifier 키 조합 */
   modifier: KeyboardModifier;
 
-  /** 실행할 핸들러 함수 */
-  handler: () => void;
+  /** 실행할 핸들러 함수 — keydown 은 인자 없이, 전체 메뉴는 대상 scope 를 넘긴다 (ADR-249). */
+  handler: CommandHandler;
+
+  /**
+   * 등록자 실행 조건 (ADR-249 §4-2) — `commandRegistry` 로 그대로 게시한다. keydown
+   * 경로는 읽지 않는다 (핸들러의 early return 이 같은 함수를 부른다).
+   */
+  canRun?: () => boolean;
 
   /** event.preventDefault() 호출 여부 (기본: true) */
   preventDefault?: boolean;
@@ -110,7 +119,10 @@ export interface KeyboardShortcut {
   scope?: ShortcutScope | readonly ShortcutScope[];
 }
 
-export type ShortcutHandlers = Partial<Record<ShortcutId, () => void>>;
+export type ShortcutHandlers = Partial<Record<ShortcutId, CommandHandler>>;
+
+/** 등록자 실행 조건 — 정의 id 별 (ADR-249 §4-2). */
+export type ShortcutRunConditions = Partial<Record<ShortcutId, () => boolean>>;
 
 /**
  * 설정 파일의 정의와 핸들러를 결합하여 KeyboardShortcut 배열 생성.
@@ -123,6 +135,7 @@ export type ShortcutHandlers = Partial<Record<ShortcutId, () => void>>;
 export function bindHandlersToDefinitions(
   ids: readonly ShortcutId[],
   handlers: ShortcutHandlers,
+  runConditions: ShortcutRunConditions = {},
 ): KeyboardShortcut[] {
   return ids
     .filter((id) => handlers[id] !== undefined)
@@ -145,6 +158,7 @@ export function bindHandlersToDefinitions(
         category: def.category,
         description: def.description,
         scope: def.scope,
+        ...(runConditions[id] ? { canRun: runConditions[id] } : {}),
       };
     });
 }
@@ -391,6 +405,7 @@ export function useKeyboardShortcutsRegistry(
                 priority: shortcut.priority ?? 0,
                 allowInInput: shortcut.allowInInput ?? false,
                 disabled: shortcut.disabled ?? false,
+                ...(shortcut.canRun ? { canRun: shortcut.canRun } : {}),
               }),
             )
         : [];

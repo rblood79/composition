@@ -26,6 +26,11 @@ import {
   type ShortcutHandlers,
 } from "./useKeyboardShortcutsRegistry";
 import type { ShortcutId } from "../config/keyboardShortcuts";
+import type {
+  CommandHandler,
+  CommandRunContext,
+} from "../stores/commandRegistry";
+import type { ShortcutScope } from "../types/keyboard";
 import { usePanelLayout } from "./usePanelLayout";
 import { useActiveScope } from "./useActiveScope";
 import {
@@ -59,6 +64,29 @@ const ZOOM_STEP = 0.1;
 // ============================================
 // Hook
 // ============================================
+
+/**
+ * 캔버스 / Events 로 갈리는 명령 (copy · paste · delete) 의 핸들러.
+ *
+ * 실행 인자의 scope 가 있으면 `activeScope` 보다 그것을 따른다 (ADR-249 §4-5).
+ * 전체 메뉴가 열린 동안 포커스는 popover 안이라 scope 추론이 보이는 패널까지
+ * 내려가고, 인터랙션 패널만 열려 있으면 `panel:events` 가 된다 — 그 값으로
+ * 분기하면 메뉴의 "복사" 가 Events placeholder 로 간다. 키보드는 인자를 넘기지
+ * 않아 종전과 같다.
+ */
+export function createScopedHandler(
+  canvasHandler: () => void,
+  eventsHandler: () => void,
+  activeScope: ShortcutScope,
+): CommandHandler {
+  return (context?: CommandRunContext) => {
+    if ((context?.scope ?? activeScope) === "panel:events") {
+      eventsHandler();
+    } else {
+      canvasHandler();
+    }
+  };
+}
 
 export function useGlobalKeyboardShortcuts() {
   // ----------------------------------------
@@ -490,19 +518,10 @@ export function useGlobalKeyboardShortcuts() {
     }
   }, []);
 
-  /**
-   * 스코프 기반 핸들러 선택
-   */
+  /** 스코프 기반 핸들러 선택 — 분기 규칙은 `createScopedHandler`. */
   const getScopedHandler = useCallback(
-    (canvasHandler: () => void, eventsHandler: () => void) => {
-      return () => {
-        if (activeScope === "panel:events") {
-          eventsHandler();
-        } else {
-          canvasHandler();
-        }
-      };
-    },
+    (canvasHandler: () => void, eventsHandler: () => void) =>
+      createScopedHandler(canvasHandler, eventsHandler, activeScope),
     [activeScope],
   );
 

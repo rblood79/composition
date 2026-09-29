@@ -133,10 +133,12 @@
 
 ## 현황
 
+> **2026-09-29 ADR-249 Proposed**: 빌더 전체 메뉴 개편 (Framer 메뉴 어법 — 검색 · 작업 공간 구역 · 계층 · 비활성 표시). 열림 7 (Proposed 6 · Accepted 1), 합계 276. **같은 날 Accepted + P0~P4 구현** (`/execute-adr 249`): G0 인벤토리 7/7 (변이 RED 4) · G1/G3 live 23/23 (headed Playwright, scope 인자 원복 RED) · G2 Builder initial JS gzip −50 B (lazy chunk 가 initial 공유 청크를 쪼개던 것을 `headerMenuRuntime` 주입으로 해소 · 새 번역 키 5). 실행 중 사용자 지시: 작업 공간 방향 머리글 제거 · 패널 항목에 레일 아이콘 · 도움 구역 (명령 팔레트 · 설정 · 도움말) · 명령 이름 축약 (대시보드 · Workflow · 명령 팔레트 · 설정) · 레일에서 테마 · 작업 내역 버튼 제거 · 켜짐 표시 = 아이콘 칸 채움 · 메뉴 아이콘 16. **같은 날 Implemented** (사용자 커밋 지시).
+
 | 구분                          |    개수 |
 | ----------------------------- | ------: |
-| 완료 (`completed/`)           |     268 |
-| ├ Implemented                 |     229 |
+| 완료 (`completed/`)           |     269 |
+| ├ Implemented                 |     230 |
 | ├ Accepted                    |      13 |
 | ├ Superseded                  |      14 |
 | └ Deprecated                  |       9 |
@@ -144,7 +146,7 @@
 | ├ Proposed                    |       7 |
 | ├ Accepted (미착수·일부 착수) |       0 |
 | └ 부분 완료                   |       0 |
-| **합계**                      | **275** |
+| **합계**                      | **276** |
 
 > 2026-09-26 파일 실측 (ADR-235 승격 때): `completed/` 파일 268 − 비-ADR 5 = ADR 263 · `adr/` 직속 ADR 5 (150 Accepted · 162 · 910 · 911 · 921 Proposed) — 직전 표의 열림 9 · 완료 259 는 이동 누락으로 어긋나 있었다. 완료 내역 4 줄의 합 (260) 은 263 과 3 차이 — 개별 Status 재대조는 다음 정리 때.
 >
@@ -253,7 +255,7 @@
 
 ---
 
-## 완료 ADR (257)
+## 완료 ADR (258)
 
 > 상세는 각 본문이 정본이다. 구 README 의 **비고** 열 서술 (최장 셀 14KB — ADR-912 행이 표
 > 전체를 그 폭으로 채워 3.2MB 를 만들었다) 은
@@ -280,6 +282,7 @@
 | [246](completed/246-deterministic-count-ratchet-and-begin-frame-harness.md) | 결정적 카운트 ratchet 게이트 — 경로 스코프 pre-push 가 고정 입력 하니스 카운트 (파이프라인 label · 캐시 · React measure · Layout/RecalcStyle · 함수별 V8 호출 수) 를 `apps/builder/perf/ratchet.json` 과 비교 (등급 A 정확 · 초과는 재실행 같을 때만 차단 · B 밴드 1.05 경고 · 하향만 자동 · 올리기는 승인 + 만료일) · 빠른 경로 / 전용 worktree 경로 · `SKIP_PERF_RATCHET=1` · 첫 하향 `selectCanonicalNode` id 인덱스 · Phase 3 begin-frame Deferred (macOS) | Implemented | 2026-09-27 |
 | [162](completed/162-gridlist-template-subtree-projection.md) | 데이터 바인딩 GridList 카드 = 항목 origin instance — 행 노드가 origin 을 ref 로 가리키고 행별 `{field}` 보간 (허용표 한 곳, Canvas · Preview · 패널 공용) · 접기/펼침 판정 하나 · 소유자별 origin 해석 한 곳 · Properties "카드 필드" 절 · 펼친 카드 행 높이 실측 캐시 + 추정 → ADR-150 행 offset 함수, scroll anchoring · 팔레트 GridList 상태 변형 origin 해석 | Implemented | 2026-09-27 |
 | [247](completed/247-cold-entry-static-shell.md) | cold entry 정적 셸 — 빌더 URL 직접 진입에 `index.html` 셸 (앱과 같은 class · 인라인 boot 가 테마 · UI 배율 해석 · builder 경로 한정) 을 CSS 도착 즉시 그리고 React 첫 commit 이 같은 자리에서 이어받음 · presented 순간 chrome (헤더 섬 · 패널 · 레일) 스냅샷 → 다음 진입 조건 (빌드 · viewport · 배율 · 테마 · 배치) 일치 시 골격을 그려 presented 프레임에 교체 · 부팅 mark 2 · 하니스 `cold-entry-shell.mjs` · 첫 paint 4x 72 ~ 80 ms (종전 496 ~ 500) · 다크 흰 프레임 0/40 · 288 진입 골격 0.02 px · layout-shift 0 | Implemented | 2026-09-27 |
+| [249](completed/249-builder-main-menu.md) | 빌더 전체 메뉴 개편 (Framer 메뉴 어법) — 선언적 구조 표 (순서 · 구역만) + 원본 재사용 (라벨 ADR-200 · 실행 ADR-195 · 활성 = 등록 · ADR-196 precondition · 등록자 `canRun` · 소속 패널 열림) · 실행 인자 scope (`createScopedHandler` — 인터랙션 패널만 열린 상태의 복사가 Events placeholder 로 가던 경로 차단) · 작업 공간 구역 (`PanelRegistry` × `railOrder` 파생, 레일 아이콘 · 열림 = 아이콘 칸 채움 · `hiddenFromMenu`) · RAC `MenuSection selectionMode` 체크 · `Autocomplete` 검색 평면화 · lazy 본문 + `headerMenuRuntime` 주입 (Rolldown 공유 청크 분할 회피). G0 7/7 · G1/G3 live 26/26 · G2 Builder initial JS gzip −50 B. 레일에서 테마 · 작업 내역 버튼 제거 · 명령 이름 축약 | Implemented | 2026-09-29 |
 | [243](completed/243-interaction-responsiveness-long-task-yield.md) | 상호작용 응답성 기준선 — 실제 입력 · production · Chrome 4x/1x · WebKit · 600/5k 의 Event Timing 지연 · 완료 시간 · LoAF 귀속. 기준 초과이나 지배 구간이 다음 paint 에 필요한 작업 (분기 ②) → 분할 구현 없이 측정 기록으로 종결 · 저장 호출 추적 `persistState()` | Implemented | 2026-09-28 |
 | [236](completed/236-builder-domain-rules-consolidation.md) | 빌더 도메인 규칙 정리 — body · synthetic id · Components 페이지 술어 shared 하나 (ratchet) · shared 타입 특성 표 `componentTraits.ts` (집합 17 + nestingRules 층 2 표 3 파생 · D2 Direction 토글 2) · 구조 변경 판정 `canOperate` · 대상 판정 `resolveMoveTarget` 를 표면 + store 진입부 13 액션 · 우회 쓰기 2 가 같이 부름 (AST ratchet) · origin 안 구조 변경 영향 확인 (표면 선행) · AI reusable 은 store 경유 | Implemented | 2026-09-25 |
 | [242](completed/242-offscreen-panel-lazy-loading.md) | 초기 화면 밖 패널 lazy 분리 — history · settings · interactions · themes · datatable 목록 `lazyPanel` · 폰트 관리 대화상자 첫 클릭 로드 · 로드 실패 경계 (다시 시도 → Chrome 실패 캐시면 새로고침) · idle 선로드로 Suspense 300 ms throttle 회피 · Builder initial −17,183 B gz | Implemented | 2026-09-26 |

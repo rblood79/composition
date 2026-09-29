@@ -8,6 +8,7 @@ import { Text } from "react-aria-components/Text";
 import { useI18n } from "@/i18n";
 import { SHORTCUT_DEFINITIONS } from "../../../config/keyboardShortcuts";
 import { formatShortcut } from "../../../hooks";
+import { iconProps } from "../../../../utils/ui/uiConstants";
 import type {
   ContextMenuIcon,
   ContextMenuItem,
@@ -15,8 +16,8 @@ import type {
 } from "./types";
 import "./contextMenu.css";
 
-/** header 메뉴 항목 아이콘(BuilderHeader `size={14}`)과 같은 치수. */
-const MENU_ICON_SIZE = 14;
+/** 빌더 표준 아이콘 크기 (`iconProps.size` 16) — 메뉴 행 정본 builder-menu-row.css 도 16. */
+const MENU_ICON_SIZE = iconProps.size;
 
 export interface ContextMenuOverlayProps {
   isOpen: boolean;

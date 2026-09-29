@@ -50,6 +50,7 @@ import { PanelHeader } from "../panel/PanelHeader";
 import { ActionIconButton } from "../ui/ActionIconButton";
 import { SearchField as BuilderSearchField } from "../ui/SearchField";
 import { EmptyState } from "../feedback/EmptyState";
+import { matchesCommandSearch } from "./commandSearch";
 import "./CommandPalette.css";
 
 // ============================================
@@ -281,17 +282,10 @@ export function CommandPalette({
   }, [registrySnapshot, scopeAtOpen, t]);
 
   // 검색 결과 필터링
+  // 필터 기준은 전체 메뉴 검색과 같은 함수 (ADR-249 R7)
   const filteredCommands = useMemo(() => {
     if (!search.trim()) return allCommands;
-
-    const query = search.toLowerCase();
-    return allCommands.filter(
-      (cmd) =>
-        cmd.label.toLowerCase().includes(query) ||
-        cmd.id.toLowerCase().includes(query) ||
-        cmd.category.toLowerCase().includes(query) ||
-        cmd.shortcut.toLowerCase().includes(query),
-    );
+    return allCommands.filter((cmd) => matchesCommandSearch(cmd, search));
   }, [allCommands, search]);
 
   const executableCount = useMemo(

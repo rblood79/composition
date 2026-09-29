@@ -4,20 +4,11 @@ import {
   Monitor,
   Tablet,
   Smartphone,
-  GitBranch,
-  Command,
-  FolderOpen,
-  Download,
-  Upload,
   Columns,
   Filter,
-  LayoutDashboard,
-  Settings,
 } from "lucide-react";
-import { MenuTrigger, Menu, MenuItem } from "react-aria-components/Menu";
+import { MenuTrigger } from "react-aria-components/Menu";
 import { Popover } from "react-aria-components/Popover";
-import { Separator } from "react-aria-components/Separator";
-import { Keyboard } from "react-aria-components/Keyboard";
 import { Button } from "react-aria-components/Button";
 import type { Key } from "react-aria-components/Collection";
 import {
@@ -25,28 +16,39 @@ import {
   ToggleButton,
   Group,
 } from "@composition/shared/components";
-import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { useNavigate } from "react-router";
 import { iconProps, APP_ICON_URL } from "../../utils/ui/uiConstants";
 import { usePanelLayout } from "../layout";
 import { ActionIconButton } from "../components/ui/ActionIconButton";
 import { StorageStatusButton } from "./StorageStatusButton";
 import { ActionTooltipTrigger } from "../components/ui/ActionTooltip";
-import { shortcutDisplayFor } from "../components/ui/actionTooltipUtils";
 import {
   bindHandlersToDefinitions,
   useKeyboardShortcutsRegistry,
 } from "../hooks";
 import { ZoomControls } from "../workspace/ZoomControls";
 import { useCompareModeStore } from "../workspace/canvas/stores";
-import { ACTION_ICONS } from "../config/actionIcons";
 import { ConfirmDialog } from "../components/overlay/ConfirmDialog";
+import type { HeaderMenuHost } from "./headerMenu/headerMenuActions";
+import { HEADER_MENU_RUNTIME } from "./headerMenu/headerMenuRuntime";
 import { buildPendingProjectDeleteState } from "../../dashboard/pendingProjectDelete";
 import { useI18n } from "../../i18n";
 import { navigateWithTransition } from "../../utils/ui/viewTransition";
 
-/** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
-const DeleteIcon = ACTION_ICONS.delete;
+const loadHeaderMainMenu = () => import("./headerMenu/HeaderMainMenu");
+const HeaderMainMenu = lazy(loadHeaderMainMenu);
+const preloadHeaderMainMenu = () => {
+  void loadHeaderMainMenu();
+};
 
 // `Breakpoint` 정본은 `../workspace/types` — `canvasBreakpoints.ts` 의
 // `CANVAS_BREAKPOINTS`(캔버스 프레임 실제 크기 SSOT)가 그 타입을 쓰고,
@@ -74,7 +76,6 @@ export interface BuilderHeaderProps {
   onConnectFolder: () => void | Promise<void>;
   /** 연결된 프로젝트면 폴더 상태 버튼 (lazy) — 없으면 null */
   directoryLink: ReactNode;
-  onWorkflowOverlayToggle: () => void;
 }
 
 export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
@@ -89,10 +90,9 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
   onExportProjectJson,
   onConnectFolder,
   directoryLink,
-  onWorkflowOverlayToggle,
 }) => {
   const { t } = useI18n();
-  const { togglePanel, resetWorkspaceLayout } = usePanelLayout();
+  const { resetWorkspaceLayout } = usePanelLayout();
   const navigate = useNavigate();
   const isCompareMode = useCompareModeStore((state) => state.isCompareMode);
   const toggleCompareMode = useCompareModeStore(
@@ -124,6 +124,27 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
     );
   }, [navigate, projectId]);
 
+  // 전체 메뉴 (lazy) 가 부르는 헤더 콜백 — 대화상자 · 파일 입력 · 내보내기는 여기 산다
+  const menuHost = useMemo<HeaderMenuHost>(
+    () => ({
+      projectId,
+      onImportProject: () => importInputRef.current?.click(),
+      onExportProject: () => void onExportProject(),
+      onExportProjectJson: () => void onExportProjectJson(),
+      onConnectFolder: () => void onConnectFolder(),
+      onDeleteProject: () => setIsDeleteConfirmOpen(true),
+      onResetPanelLayout: resetWorkspaceLayout,
+      runtime: HEADER_MENU_RUNTIME,
+    }),
+    [
+      projectId,
+      onExportProject,
+      onExportProjectJson,
+      onConnectFolder,
+      resetWorkspaceLayout,
+    ],
+  );
+
   const headerShortcuts = useMemo(
     () =>
       bindHandlersToDefinitions(["openProject"], {
@@ -151,10 +172,13 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
   return (
     <header className="header">
       <div className="header_contents header_left">
+        {/* 본문은 lazy chunk (ADR-249 §4-3) — 트리거에 포인터 · 포커스가 오면 미리 받는다 */}
         <MenuTrigger>
           <Button
             className="react-aria-Button header-menu-button"
             aria-label={t("header.menu")}
+            onHoverStart={preloadHeaderMainMenu}
+            onFocus={preloadHeaderMainMenu}
           >
             <MenuIcon
               strokeWidth={iconProps.strokeWidth}
@@ -167,75 +191,9 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
             offset={8}
             containerPadding={0}
           >
-            <Menu
-              className="header-menu"
-              disabledKeys={projectId ? [] : ["delete"]}
-              onAction={(key: Key) => {
-                if (key === "open") handleOpenProject();
-                if (key === "import") importInputRef.current?.click();
-                if (key === "export") void onExportProject();
-                if (key === "export-json") void onExportProjectJson();
-                if (key === "connect-folder") void onConnectFolder();
-                if (key === "delete") setIsDeleteConfirmOpen(true);
-                if (key === "reset-panel-layout") resetWorkspaceLayout();
-                if (key === "workflow") onWorkflowOverlayToggle();
-                if (key === "settings") togglePanel("settings");
-                if (key === "shortcuts")
-                  window.dispatchEvent(new CustomEvent("open-command-palette"));
-              }}
-            >
-              <MenuItem id="open" className="header-menu-item">
-                <FolderOpen size={14} />
-                <span>{t("header.openProject")}</span>
-                <Keyboard>{shortcutDisplayFor("openProject")}</Keyboard>
-              </MenuItem>
-              <MenuItem id="import" className="header-menu-item">
-                <Upload size={14} />
-                <span>{t("header.importProject")}</span>
-              </MenuItem>
-              <MenuItem id="export" className="header-menu-item">
-                <Download size={14} />
-                <span>{t("header.exportProject")}</span>
-              </MenuItem>
-              <MenuItem id="export-json" className="header-menu-item">
-                <Download size={14} />
-                <span>{t("header.exportProjectJson")}</span>
-              </MenuItem>
-              {"showDirectoryPicker" in window && (
-                <MenuItem id="connect-folder" className="header-menu-item">
-                  <FolderOpen size={14} />
-                  <span>{t("header.connectFolder")}</span>
-                </MenuItem>
-              )}
-              <Separator className="header-menu-separator" />
-              <MenuItem id="delete" className="header-menu-item">
-                <DeleteIcon size={14} />
-                <span>{t("header.deleteProject")}</span>
-              </MenuItem>
-              <Separator className="header-menu-separator" />
-              <MenuItem id="reset-panel-layout" className="header-menu-item">
-                <LayoutDashboard size={14} />
-                <span>{t("header.resetPanelLayout")}</span>
-              </MenuItem>
-              <MenuItem id="workflow" className="header-menu-item">
-                <GitBranch size={14} />
-                <span>{t("header.workflow")}</span>
-                <Keyboard>
-                  {shortcutDisplayFor("toggleWorkflowOverlay")}
-                </Keyboard>
-              </MenuItem>
-              <MenuItem id="settings" className="header-menu-item">
-                <Settings size={14} />
-                <span>{t("header.settings")}</span>
-                <Keyboard>{shortcutDisplayFor("openSettings")}</Keyboard>
-              </MenuItem>
-              <Separator className="header-menu-separator" />
-              <MenuItem id="shortcuts" className="header-menu-item">
-                <Command size={14} />
-                <span>{t("header.shortcuts")}</span>
-                <Keyboard>{shortcutDisplayFor("commandPalette")}</Keyboard>
-              </MenuItem>
-            </Menu>
+            <Suspense fallback={null}>
+              <HeaderMainMenu host={menuHost} />
+            </Suspense>
           </Popover>
         </MenuTrigger>
         <ConfirmDialog

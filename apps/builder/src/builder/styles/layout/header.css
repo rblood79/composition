@@ -99,7 +99,8 @@
     outline-offset: 2px;
   }
 
-  /* Header Menu Popover */
+  /* Header Menu Popover — 검색창 + 메뉴 세로 배치 (ADR-249). RAC 가 뷰포트 제약으로
+     max-height 를 인라인 지정하면 메뉴만 스크롤한다. */
   .header-menu-popover {
     background: var(--bg-raised);
     border: 1px solid var(--border);
@@ -107,8 +108,11 @@
     box-shadow: var(--shadow-lg);
     z-index: 1000;
     overflow: hidden;
-    min-width: 200px;
+    min-width: 240px;
     contain: layout style;
+    display: flex;
+    flex-direction: column;
+    outline: none;
   }
 
   .header-menu-popover[data-entering] {
@@ -123,6 +127,8 @@
   .header-menu {
     padding: var(--spacing-xs);
     outline: none;
+    min-height: 0;
+    overflow-y: auto;
   }
 
   /* Header Menu Item — 행 기하(28 · 아이콘 16 · kbd 18)는

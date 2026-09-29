@@ -149,8 +149,9 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     defaultWidth: 260,
     defaultHeight: 600,
     snapTo: "datatableEditor",
-    // 편집기 헤더 `+` / 헤더 클릭으로만 연다 — rail 진입점 없음
+    // 편집기 헤더 `+` / 헤더 클릭으로만 연다 — rail · 전체 메뉴 진입점 없음
     hiddenFromRail: true,
+    hiddenFromMenu: true,
     description: "테이블 필드 편집 (편집기 옆 스냅)",
   },
 
@@ -168,6 +169,8 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     defaultHeight: 520,
     description: "Tint 프리셋 및 테마 설정",
     shortcutId: "toggleTheme",
+    // 진입점은 전체 메뉴 작업 공간 구역 · ⌥4 (사용자 2026-09-29 — 레일에서 뺌)
+    hiddenFromRail: true,
   },
   // System panels
   {
@@ -188,6 +191,8 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     // 진입점은 2026-08-25 에 헤더 좌측 메뉴로 옮겼다 — 저빈도 작업이라 좌측
     // 레일 한 칸을 상주로 차지할 이유가 없다. 패널 배치·토글 경로는 그대로다.
     hiddenFromRail: true,
+    // 전체 메뉴에는 도움 구역의 "설정" 명령 항목으로 따로 선다 (ADR-249)
+    hiddenFromMenu: true,
   },
 
   {
@@ -268,6 +273,8 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     defaultHeight: 450,
     description: "변경 내역 확인 및 복원",
     shortcutId: "toggleHistory",
+    // 진입점은 전체 메뉴 작업 공간 구역 · ⌥8 (사용자 2026-09-29 — 레일에서 뺌)
+    hiddenFromRail: true,
     displayModes: ["panel", "floating"],
   },
   // 구 "폰트" 도킹 패널은 2026-08-25 에 등록 해제했다 — 폰트 관리는 Typography 의

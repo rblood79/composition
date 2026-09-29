@@ -77,6 +77,23 @@ describe("useKeyboardShortcutsRegistry — command registry 게시", () => {
     expect(duplicate).toHaveBeenCalledTimes(1);
   });
 
+  it("등록자 실행 조건 (canRun) 이 등록 hook 을 거쳐 registry 까지 간다 (ADR-249 §4-2)", () => {
+    let hasTarget = false;
+    const canRun = vi.fn(() => hasTarget);
+    const shortcuts = bindHandlersToDefinitions(
+      ["zoomToSelection", "zoomIn"],
+      { zoomToSelection: vi.fn(), zoomIn: vi.fn() },
+      { zoomToSelection: canRun },
+    );
+    renderHook(() => useKeyboardShortcutsRegistry(shortcuts, [shortcuts]));
+
+    expect(resolveCommand("zoomToSelection")?.canRun?.()).toBe(false);
+    hasTarget = true;
+    expect(resolveCommand("zoomToSelection")?.canRun?.()).toBe(true);
+    // 조건 없는 명령에는 필드가 없다
+    expect(resolveCommand("zoomIn")?.canRun).toBeUndefined();
+  });
+
   it("id 없는 손수 선언 등록은 게시되지 않는다", () => {
     const shortcuts: KeyboardShortcut[] = [
       {

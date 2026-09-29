@@ -1166,6 +1166,14 @@ export interface TranslationKeys {
     uiScaleDefault: string;
     uiScaleLarge: string;
   };
+  /** ADR-249 전체 메뉴 — 기존 어휘에 없는 분류 · 도움말 자리 항목만 (나머지는 재사용) */
+  headerMenu: {
+    file: string;
+    view: string;
+    help: string;
+    tutorial: string;
+    version: string;
+  };
   header: {
     menu: string;
     openProject: string;

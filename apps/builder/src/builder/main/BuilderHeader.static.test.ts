@@ -28,7 +28,7 @@ describe("BuilderHeader chrome control groups", () => {
     expect(source).not.toContain("workspaceLayout");
   });
 
-  it("상단 Publish를 제거하고 전체 메뉴에서 프로젝트 JSON import/export를 연결한다", async () => {
+  it("상단 Publish를 제거하고 전체 메뉴 host 로 프로젝트 가져오기/내보내기를 연결한다", async () => {
     const source = await readFile(
       resolve(__dirname, "BuilderHeader.tsx"),
       "utf-8",
@@ -36,58 +36,42 @@ describe("BuilderHeader chrome control groups", () => {
 
     expect(source).not.toContain("onPublish");
     expect(source).not.toContain('className="publish"');
-    expect(source).toContain('if (key === "import")');
-    expect(source).toContain('if (key === "export") void onExportProject()');
+    expect(source).toContain(
+      "onImportProject: () => importInputRef.current?.click()",
+    );
+    expect(source).toContain("onExportProject: () => void onExportProject()");
     // ADR-235 Phase 4 — v1 JSON + v2 zip 가져오기, v1 JSON 내보내기는 별도 항목
     expect(source).toContain(
       'accept="application/json,.json,application/zip,.zip"',
     );
     expect(source).toContain(
-      'if (key === "export-json") void onExportProjectJson()',
+      "onExportProjectJson: () => void onExportProjectJson()",
     );
     expect(source).toContain("void onImportProject(file)");
   });
 
-  it("Workflow를 우측 토글 그룹에서 제거하고 Settings 패턴의 메뉴 액션으로 둔다", async () => {
+  // ADR-249 — 항목 · 순서는 구조 표 (`headerMenu/builderMenuStructure.ts`) 가 정본이고
+  // "모든 항목이 실행 경로를 갖는다" 는 G0 (`builderMenuStructure.static.test.ts`) 가
+  // 잠근다. 헤더는 트리거와 lazy 본문만 갖는다 — 손으로 쓴 항목 · 분기 짝이
+  // 어긋난 것이 2026-09-29 `96ab2cee1` (삭제 · 도움말 · 정보) 결함이었다.
+  it("전체 메뉴 본문은 lazy chunk 이고 헤더는 항목을 직접 쓰지 않는다", async () => {
     const source = await readFile(
       resolve(__dirname, "BuilderHeader.tsx"),
       "utf-8",
     );
-    const workflowItemIndex = source.indexOf('<MenuItem id="workflow"');
-    const settingsItemIndex = source.indexOf('<MenuItem id="settings"');
 
+    expect(source).toContain('import("./headerMenu/HeaderMainMenu")');
+    expect(source).toContain("lazy(loadHeaderMainMenu)");
+    expect(source).toContain("onHoverStart={preloadHeaderMainMenu}");
+    expect(source).not.toContain("<MenuItem");
+    expect(source).not.toContain("onAction=");
+    // COMMAND_META 초기 번들 상주 금지 (ADR-196 HC6)
+    // 정적 import 는 타입 (host) 과 runtime (initial 전용 모듈 묶음) 뿐
+    expect(
+      [...source.matchAll(/from "\.\/headerMenu\/([^"]+)"/g)].map((m) => m[1]),
+    ).toEqual(["headerMenuActions", "headerMenuRuntime"]);
+    expect(source).not.toContain("commandMeta");
     expect(source).not.toContain('<ToggleButton id="workflow"');
-    expect(source).not.toContain("<MenuSection");
-    expect(source).toContain(
-      'if (key === "workflow") onWorkflowOverlayToggle();',
-    );
-    expect(source).toContain('<span>{t("header.workflow")}</span>');
-    expect(source).toContain('shortcutDisplayFor("toggleWorkflowOverlay")');
-    expect(source).not.toContain("workflowLabel");
-    expect(workflowItemIndex).toBeGreaterThan(-1);
-    expect(workflowItemIndex).toBeLessThan(settingsItemIndex);
-  });
-
-  // 2026-09-29: delete·help·about 3 항목이 2026-03 placeholder (`onAction={console.log}`)
-  // 그대로 남아 눌러도 메뉴만 닫혔다 — 항목과 분기는 짝이어야 한다.
-  it("전체 메뉴의 모든 MenuItem 은 onAction 분기를 가진다", async () => {
-    const source = await readFile(
-      resolve(__dirname, "BuilderHeader.tsx"),
-      "utf-8",
-    );
-    const menu = source.match(
-      /<Menu\s+className="header-menu"[\s\S]*?<\/Menu>/,
-    )?.[0];
-    expect(menu).toBeDefined();
-
-    const itemIds = [...menu!.matchAll(/<MenuItem id="([^"]+)"/g)].map(
-      (match) => match[1],
-    );
-    expect(itemIds.length).toBeGreaterThan(0);
-    const unhandled = itemIds.filter(
-      (id) => !menu!.includes(`if (key === "${id}")`),
-    );
-    expect(unhandled).toEqual([]);
   });
 
   it("프로젝트 삭제는 확인 후 대시보드로 나가 빌더 언마운트 뒤에 지운다", async () => {
@@ -97,23 +81,10 @@ describe("BuilderHeader chrome control groups", () => {
     );
 
     expect(source).toContain("<ConfirmDialog");
+    expect(source).toContain("onDeleteProject: () => setIsDeleteConfirmOpen(true)");
     expect(source).toContain("buildPendingProjectDeleteState(projectId)");
     // 빌더 안에서 DB 를 직접 지우지 않는다 — fire-and-forget persist 가 되살린다
     expect(source).not.toContain("getDB");
-  });
-
-  it("Reset Panel Layout 메뉴는 LayoutDashboard 아이콘을 사용한다", async () => {
-    const source = await readFile(
-      resolve(__dirname, "BuilderHeader.tsx"),
-      "utf-8",
-    );
-    const resetItem = source.match(
-      /<MenuItem id="reset-panel-layout"[\s\S]*?<\/MenuItem>/,
-    )?.[0];
-
-    expect(resetItem).toBeDefined();
-    expect(resetItem).toContain("<LayoutDashboard size={14} />");
-    expect(resetItem).not.toContain("<Columns");
   });
 
   it("Compare의 current-page filter는 Compare 중에만 보이는 독립 옵션이다", async () => {

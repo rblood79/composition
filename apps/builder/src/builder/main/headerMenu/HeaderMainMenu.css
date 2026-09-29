@@ -1,0 +1,74 @@
+@layer builder-system {
+  /* ========================================
+   * 전체 메뉴 본문 (ADR-249) — lazy chunk 와 함께 받는다 (initial CSS 에 싣지 않음).
+   * 껍데기 (popover · menu · item 기본 색/행 기하) 는 styles/layout/header.css ·
+   * styles/modules/builder-menu-row.css 가 계속 소유한다.
+   * ======================================== */
+
+  .header-menu-search {
+    flex: none;
+    padding: var(--spacing-xs) var(--spacing-xs) 0;
+  }
+
+  /* 구역 머리글 — 검색 결과 경로 ("레이아웃 › 정렬") */
+  .header-menu-section-header {
+    padding: var(--spacing-xs) var(--spacing-sm) 0;
+    font-size: var(--text-2xs);
+    line-height: var(--text-2xs--line-height);
+    color: var(--fg-muted);
+  }
+
+  .header-menu-empty {
+    padding: var(--spacing-sm);
+    font-size: var(--text-xs);
+    color: var(--fg-muted);
+  }
+
+  /* 쓸 수 없는 항목은 숨기지 않고 흐리게 둔다 (메뉴 막대 관례, ADR-249) */
+  .header-menu-item[data-disabled] {
+    opacity: 0.4;
+    cursor: default;
+  }
+
+  /* 라벨은 item 의 font-size / color 를 상속 — contextMenu.css 와 같은 사유 */
+  .header-menu-item-label {
+    font-size: inherit;
+    color: inherit;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  /* 켜짐 체크 — 아이콘 없는 켜고 끄는 항목만, 오른쪽 (우클릭 메뉴 .context-menu-check 와 같은 자리) */
+  .header-menu-item .header-menu-item-check {
+    flex: none;
+    margin-left: auto;
+    color: var(--accent);
+  }
+
+  /* 체크 + 단축키 — auto 가 둘로 갈리지 않게 kbd 는 gap 만으로 붙인다 */
+  .header-menu-item .header-menu-item-check + kbd {
+    margin-left: 0;
+  }
+
+  /* 아이콘 자리 — 레일 버튼과 같은 패널 아이콘 (PanelConfig.icon). 열린 패널은 레일의 선택
+     버튼처럼 칸을 채운다 (RAC 가 selectionMode 구역의 선택 항목에 data-selected 를 단다). */
+  .header-menu-item-icon {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    inline-size: 20px;
+    block-size: 20px;
+    border-radius: var(--radius-sm);
+  }
+
+  .header-menu-item[data-selected] .header-menu-item-icon {
+    background: var(--accent);
+    color: var(--fg-on-accent);
+  }
+
+  .header-menu-item[data-selected] .header-menu-item-icon svg {
+    color: inherit;
+  }
+
+}

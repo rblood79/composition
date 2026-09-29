@@ -136,6 +136,9 @@ const requireSingleOperable =
     const verdict = canOperateOn(op, s, id);
     return verdict.ok ? OK : fail(REJECT_REASON[verdict.reason]);
   };
+/** 선택의 대표 요소 (`selectedElementId`) 하나에 작용하는 핸들러 — 다중 선택도 허용. */
+const requireSelectedElement = (s: AgentReadModel): PreconditionResult =>
+  s.selectedElementId ? OK : fail("selection-empty");
 /** z-order — 다중 선택이면 거부 (`multi-selection`), 아니면 이동 판정 (synthetic · projection · body). */
 const requireSingleMove = (s: AgentReadModel): PreconditionResult => {
   const single = requireSingle(s);
@@ -283,8 +286,15 @@ export const COMMAND_META: Readonly<Record<ShortcutId, CommandMeta>> = {
   // ---- properties (패널 로컬 클립보드 — 노출 금지) ----
   copyProperties: off("none", "none"),
   pasteProperties: off("document", "history"),
-  copyStyles: off("none", "none"),
-  pasteStyles: off("document", "history"),
+  // 스타일 복사/붙여넣기는 상시 host (`CanvasSelectionShortcuts`) 가 등록해 선택이 없어도
+  // 게시돼 있다 — 두 핸들러 모두 `selectedElementId` 한 요소에만 작용하므로 (복사 =
+  // 그 요소의 style, 붙여넣기 = `updateSelectedStyles` 의 `getSelectedElement`) 그
+  // 조건을 옮겨 전체 메뉴가 비활성으로 보인다 (ADR-249 R1).
+  copyStyles: { ...off("none", "none"), precondition: requireSelectedElement },
+  pasteStyles: {
+    ...off("document", "history"),
+    precondition: requireSelectedElement,
+  },
   toggleFocusMode: view(), // useSectionCollapse 전역 store
   toggleSections: view(false), // 패널 UI 전용
 

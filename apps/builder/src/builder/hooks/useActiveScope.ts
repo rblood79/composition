@@ -64,6 +64,18 @@ const PANEL_SCOPE_MAP: Partial<Record<PanelId, ShortcutScope>> = {
   navigator: "panel:navigator",
 };
 
+/**
+ * 스코프 → 소속 패널 (`PANEL_SCOPE_MAP` 의 역). 전체 메뉴가 `panel:*` 명령의 소속
+ * 패널이 보이는지 판정할 때 쓴다 (ADR-249 §4-2) — 맵은 이 파일 한 벌이다.
+ * `panel:*` 가 아니거나 맵에 없는 scope 는 `null`.
+ */
+export function panelIdForScope(scope: ShortcutScope): PanelId | null {
+  for (const [panelId, panelScope] of Object.entries(PANEL_SCOPE_MAP)) {
+    if (panelScope === scope) return panelId as PanelId;
+  }
+  return null;
+}
+
 // ============================================
 // Helper Functions
 // ============================================

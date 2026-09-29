@@ -282,9 +282,6 @@ export const BuilderCore: React.FC = () => {
   // UI 설정 (글로벌 uiStore에서 가져옴 - Phase 1)
   const themeMode = useUiStore((state) => state.themeMode);
   const setHistoryInfo = useStore((state) => state.setHistoryInfo);
-  const toggleWorkflowOverlay = useStore(
-    (state) => state.toggleWorkflowOverlay,
-  );
   const pageShellBridgeSuspendedRef = useRef(false);
   useEffect(() => {
     startLocalWebVitals();
@@ -1731,7 +1728,6 @@ export const BuilderCore: React.FC = () => {
                 />
               ) : null
             }
-            onWorkflowOverlayToggle={toggleWorkflowOverlay}
           />
         }
       >
