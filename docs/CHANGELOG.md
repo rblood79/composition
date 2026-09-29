@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [AI 어시스턴트 대화 이력·도구 설명 정리] - 2026-09-29
+
+### Changed
+
+- **AI 어시스턴트가 이전 턴의 요청을 처음 보낸 모양 그대로 다시 보낸다.** 턴마다 붙이는 빌더 상태 컨텍스트가 다음 요청에서는 이전 user 메시지에서 빠져, 대화 이력의 앞부분이 매 턴 바뀌었다 — prompt cache 와 Claude 5 계열 preserved thinking 이 이어지지 않는 원인이다. 컨텍스트를 그 user 메시지 (`metadata.turnContext`) 에 저장하고 다음 요청에서 같은 자리에 다시 붙인다.
+- **데이터 바인딩 안내를 실제 도구 계약에 맞췄다 (ko/en).** 이미 있는 collection 에 `collectionId` / `collectionName` 으로 잇고, API 데이터는 `list_api_endpoints` 로 연결 테이블을 확인한 뒤 잇고, 새 데이터는 `propose_data_change` 로 제안한다.
+- `create_element` · `batch_design` 도구 설명에 type 제약, 결과의 `data.elementId`, 여러 요소를 다룰 때 `batch_design` 을 쓰는 이유 (실행 취소 한 번) 를 넣고, 같은 내용의 system prompt 규칙 5 를 뺐다. 실패 설명의 "1~2문장" 길이 지시와 one-shot 경로의 `max_tokens: 2048` 제한을 없앴다.
+
 ## [빌더 헤더 메뉴의 동작하지 않던 항목 3개] - 2026-09-29
 
 ### Fixed

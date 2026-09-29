@@ -215,6 +215,52 @@ describe("AgentService — 도구 전수 통과 (G2)", () => {
     );
   });
 
+  /**
+   * 이전 턴 user 메시지는 그 턴에 보낸 모양 그대로 다시 나가야 이력이 append-only 다
+   * (Claude 5 계열 prompt cache · preserved thinking). 턴 컨텍스트는 호출자가 저장하고
+   * (`onTurnContext`), 저장된 값은 다음 요청에서 같은 자리에 다시 붙는다.
+   */
+  it("이전 턴 user 메시지는 저장된 턴 컨텍스트를 붙인 채 다시 나간다", async () => {
+    const { provider, seen } = stubProvider("get_selection");
+    const history: ChatMessage[] = [
+      {
+        id: "u0",
+        role: "user",
+        content: "이전 요청",
+        status: "complete",
+        timestamp: 0,
+        metadata: { turnContext: "old-context" },
+      },
+      {
+        id: "a0",
+        role: "assistant",
+        content: "이전 답",
+        status: "complete",
+        timestamp: 1,
+      },
+      {
+        id: "u1",
+        role: "user",
+        content: "해줘",
+        status: "complete",
+        timestamp: 2,
+      },
+    ];
+    const stored: string[] = [];
+    const service = new AgentService(provider, t);
+    for await (const _event of service.runAgentLoop(history, CONTEXT, {
+      onTurnContext: (turnContext) => stored.push(turnContext),
+    })) {
+      // drain
+    }
+
+    expect(seen[0][1]).toEqual({
+      role: "user",
+      content: "old-context\n\n이전 요청",
+    });
+    expect(stored).toEqual(["turn-context"]);
+  });
+
   it("provider 가 돌려준 assistant 원문 (thinking 포함) 을 다음 요청에 그대로 싣는다", async () => {
     const assistantTurn = {
       providerId: "anthropic" as const,

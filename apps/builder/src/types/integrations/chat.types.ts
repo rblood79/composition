@@ -21,6 +21,11 @@ export interface ChatMessage {
     toolName?: string;
     toolResult?: unknown;
     error?: string;
+    /**
+     * 이 user 메시지와 함께 보낸 턴 컨텍스트 (빌더 상태 · 카탈로그 상세). 다음 요청에서 같은
+     * 자리에 다시 붙여 이력을 append-only 로 유지한다 (`AgentService.convertMessages`).
+     */
+    turnContext?: string;
   };
 }
 
@@ -124,4 +129,6 @@ export interface ConversationState {
   ) => void;
   incrementTurn: () => void;
   appendToLastMessage: (delta: string) => void;
+  /** 마지막 user 메시지에 이번 턴 컨텍스트를 저장한다. */
+  setLastUserTurnContext: (turnContext: string) => void;
 }

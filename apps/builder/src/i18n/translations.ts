@@ -880,7 +880,7 @@ const koKR: TranslationKeys = {
     pasteFallbackGuidance:
       "규칙 파서가 이 텍스트를 해석하지 못했습니다. 텍스트를 직접 읽어 구조를 뽑으세요: 표/목록이면 컬럼과 행을 텍스트에 **있는 것만** 으로 propose_data_change (create_collection, rows 포함) 제안, 설명문이면 create_table_from_description 으로 스키마 + 규칙을 제안, API 호출 설명이면 propose_data_change 의 define_endpoint. 값을 지어내지 마세요.",
     explainFailureGuidance:
-      "위 컨텍스트로 답하세요. 형식: (1) 원인 — status · 응답 본문 · 요청 정의에서 근거를 들어 1~2문장. (2) 제안 — 정의를 바꾸면 해결되는 경우 define_endpoint DataOp (endpoint 전체 정의, 인증 값은 {{secret.KEY}} placeholder 그대로) 를 JSON 코드 블록으로; 정의 밖 문제 (서버 · 네트워크 · 권한) 면 사용자가 할 일을 적으세요. 적용은 사용자가 승인해야 하므로 직접 적용하지 마세요.",
+      "위 컨텍스트로 답하세요. 형식: (1) 원인 — status · 응답 본문 · 요청 정의에서 근거를 들어 짧게. (2) 제안 — 정의를 바꾸면 해결되는 경우 define_endpoint DataOp (endpoint 전체 정의, 인증 값은 {{secret.KEY}} placeholder 그대로) 를 JSON 코드 블록으로; 정의 밖 문제 (서버 · 네트워크 · 권한) 면 사용자가 할 일을 적으세요. 적용은 사용자가 승인해야 하므로 직접 적용하지 마세요.",
     rulesHeading: "## 규칙",
     rule1:
       '1. **elementId 는 지어내지 마세요.** 방금 만든 요소를 이어서 다룰 때는 "last-created",\n   현재 선택된 요소는 "selected" 를 쓰세요. 그 외에는 create_element 결과의\n   data.elementId 를 그대로 옮기거나, 실제 id 가 필요할 때만 search_elements /\n   get_editor_state 로 조회한 id 를 쓸 수 있습니다. created-element-id / cardId 같은\n   자리표시자는 실패합니다.',
@@ -888,15 +888,13 @@ const koKR: TranslationKeys = {
       "2. props 값은 카탈로그가 알려 준 허용 값에서만 고르세요. 목록에 없는 값은 만들지 마세요.",
     rule3: "3. 항상 한국어로 응답하세요.",
     rule4: "4. 작업 완료 후 사용자에게 무엇을 했는지 간략히 설명하세요.",
-    rule5:
-      "5. 여러 작업을 한 번에 할 때는 batch_design 을 쓰세요 — 사용자가 실행 취소 한 번으로 전부 되돌릴 수 있습니다.",
     canonicalHeading:
       "## canonical 1차 필드 (create_element / update_element 의 canonical 인자)",
     canonicalBody:
       '- clip / placeholder: type "frame" 에서만 유효합니다.\n- slot: false 또는 삽입 가능한 reusable component id 배열.\n- reusable: 재사용 원본 (컴포넌트) 표시. 페이지에 그대로 보이고, 그 안의 구조 변경은\n  모든 instance 에 반영됩니다. 한 번만 쓰는 컨테이너에는 켜지 마세요.',
     bindingHeading: "## 데이터 바인딩 (bind_collection)",
     bindingBody:
-      "ListBox / GridList / Table 같은 collection 컴포넌트에 데이터를 연결합니다.\nsource 는 static (config.data 배열) / api (config.baseUrl + endpoint).\n데이터 소스 자체를 만들지는 않습니다 — 이미 있는 데이터에 요소를 잇습니다.",
+      "ListBox / GridList / Table 같은 collection 컴포넌트를 이미 있는 collection 에 잇습니다.\ncollectionId 또는 collectionName 으로 대상을 고르세요 (list_collections 로 확인).\nAPI 데이터는 list_api_endpoints 로 연결 테이블을 확인한 뒤 그 collection 에 잇습니다. 새 데이터는 propose_data_change 로 제안합니다.",
     eventsHeading: "## 인터랙션 규칙 (create_interaction_rule)",
     eventsBody:
       'trigger 는 컴포넌트가 실제로 노출하는 callback 이름입니다 (예: Button 은 onPress).\nonClick 같은 DOM 이름은 쓰지 않습니다. action 은 3종:\n- navigate: { kind: "navigate", path: "/about" }\n- toast: { kind: "toast", message: "저장했습니다" }\n- capability: { kind: "capability", targetId, capability, value? } — 대상이 노출하는 capability 만.\n틀린 trigger/capability 를 보내면 도구가 사용 가능한 목록을 돌려주니 그것으로 고쳐 부르세요.',
@@ -1002,7 +1000,7 @@ const koKR: TranslationKeys = {
   },
   aiToolDef: {
     createElement:
-      "캔버스에 새 요소를 생성합니다. 버튼, 입력 필드, 테이블 등 다양한 UI 컴포넌트를 만들 수 있습니다.",
+      "캔버스에 새 요소 하나를 생성합니다. type 은 카탈로그 목록에 있는 것만 쓸 수 있습니다. 결과의 data.elementId 로 방금 만든 요소를 이어서 다룹니다 (또는 \"last-created\"). 요소 여러 개를 만들 때는 batch_design, 이미 있는 요소를 바꿀 때는 update_element 를 쓰세요.",
     createType: "생성할 컴포넌트 타입",
     parentId: "부모 요소 ID. 없으면 선택된 요소 또는 body에 추가.",
     props:
@@ -1042,7 +1040,7 @@ const koKR: TranslationKeys = {
     searchReusable: "재사용 원본 노드만 / 아닌 노드만.",
     searchClip: "clip 이 켜진 frame 만 / 아닌 노드만.",
     batchDesign:
-      "여러 생성/수정/삭제 작업을 한 번에 순차 실행합니다. 복잡한 레이아웃을 한 번에 만들 때 유용합니다.",
+      "여러 생성/수정/삭제 작업을 한 번에 순차 실행합니다. 요소 여러 개를 만들거나 고칠 때는 개별 호출 대신 이것을 쓰세요 — 사용자가 실행 취소 한 번으로 전부 되돌릴 수 있습니다.",
     batchOperations:
       "실행할 작업 배열. 순서대로 실행되며, 하나라도 실패하면 중단됩니다.",
     batchType: "작업 유형",
@@ -2864,7 +2862,7 @@ const enUS: TranslationKeys = {
     pasteFallbackGuidance:
       "The rule parser could not interpret this text. Read it yourself and extract the structure: for a table/list, propose propose_data_change (create_collection with rows) using **only** the columns and rows present in the text; for a description, propose a schema + rules with create_table_from_description; for an API call description, propose define_endpoint via propose_data_change. Do not invent values.",
     explainFailureGuidance:
-      "Answer from the context above. Format: (1) Cause — 1–2 sentences citing the status, response body, or request definition. (2) Suggestion — if a definition change fixes it, give a define_endpoint DataOp (the full endpoint definition, keeping {{secret.KEY}} placeholders as-is) in a JSON code block; if the problem is outside the definition (server, network, permissions), say what the user should do. Do not apply anything yourself — the user must approve.",
+      "Answer from the context above. Format: (1) Cause — briefly, citing the status, response body, or request definition. (2) Suggestion — if a definition change fixes it, give a define_endpoint DataOp (the full endpoint definition, keeping {{secret.KEY}} placeholders as-is) in a JSON code block; if the problem is outside the definition (server, network, permissions), say what the user should do. Do not apply anything yourself — the user must approve.",
     rulesHeading: "## Rules",
     rule1:
       '1. **Never invent an elementId.** Use "last-created" for the element you just made and\n   "selected" for the current selection. Otherwise copy data.elementId from the\n   create_element result verbatim, or — only when you need a real id — read one via\n   search_elements or get_editor_state. Placeholders like created-element-id or cardId will fail.',
@@ -2872,15 +2870,13 @@ const enUS: TranslationKeys = {
       "2. Choose prop values only from what the catalog lists. Do not invent values that are not there.",
     rule3: "3. Always reply in English.",
     rule4: "4. When you finish, briefly tell the user what you did.",
-    rule5:
-      "5. For several changes at once use batch_design — the user can then undo all of them in one step.",
     canonicalHeading:
       "## Canonical first-class fields (the canonical argument of create_element / update_element)",
     canonicalBody:
       '- clip / placeholder: valid only on type "frame".\n- slot: false, or an array of reusable component ids that may be inserted.\n- reusable: marks a reuse origin (component). It stays visible on the page, and structural changes\n  inside it reach every instance. Leave it off for one-off containers.',
     bindingHeading: "## Data binding (bind_collection)",
     bindingBody:
-      "Connects data to a collection component such as ListBox, GridList or Table.\nsource is static (a config.data array) or api (config.baseUrl + endpoint).\nIt does not create the data source itself — it wires an element to data that already exists.",
+      "Wires a collection component such as ListBox, GridList or Table to a collection that already exists.\nPick the target by collectionId or collectionName (check with list_collections).\nFor API data, find the linked table with list_api_endpoints and bind to that collection. Propose new data with propose_data_change.",
     eventsHeading: "## Interaction rules (create_interaction_rule)",
     eventsBody:
       'trigger is a callback name the component actually exposes (Button uses onPress, for example).\nDo not use DOM names like onClick. There are three action kinds:\n- navigate: { kind: "navigate", path: "/about" }\n- toast: { kind: "toast", message: "Saved" }\n- capability: { kind: "capability", targetId, capability, value? } — only capabilities the target exposes.\nIf you send a wrong trigger or capability the tool returns the available list; call again with that.',
@@ -2987,7 +2983,7 @@ const enUS: TranslationKeys = {
   },
   aiToolDef: {
     createElement:
-      "Creates a new element on the canvas. Buttons, input fields, tables and other UI components.",
+      "Creates one new element on the canvas. The type must be one listed in the catalog. Use data.elementId from the result (or \"last-created\") to keep working on it. To create several elements use batch_design; to change an existing element use update_element.",
     createType: "The component type to create",
     parentId:
       "Parent element ID. Without it the element goes under the selection, or body.",
@@ -3029,7 +3025,7 @@ const enUS: TranslationKeys = {
     searchReusable: "Only reuse-origin nodes, or only those that are not.",
     searchClip: "Only frames with clip on, or only those without.",
     batchDesign:
-      "Runs several create/update/delete operations in order, in one go. Useful for building a complex layout at once.",
+      "Runs several create/update/delete operations in order, in one go. Use it instead of separate calls when creating or changing several elements — the user can then undo all of them in one step.",
     batchOperations:
       "The operations to run. They execute in order and stop at the first failure.",
     batchType: "Operation type",

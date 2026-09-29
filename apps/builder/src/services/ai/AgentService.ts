@@ -11,6 +11,7 @@
  */
 import type {
   AgentEvent,
+  AgentLoopOptions,
   ToolCall,
   ToolExecutor,
 } from "../../types/integrations/ai.types";
@@ -49,6 +50,7 @@ export class AgentService {
   async *runAgentLoop(
     messages: ChatMessage[],
     context: BuilderContext,
+    options: AgentLoopOptions = {},
   ): AsyncGenerator<AgentEvent> {
     this.abortController = new AbortController();
 
@@ -59,12 +61,11 @@ export class AgentService {
 
     // system 은 세션 동안 고정 — 빌더 상태·Tier 2 상세는 이번 턴 user 메시지에 싣는다
     // (Claude 5 계열의 prompt cache · thinking prefix binding, systemPrompt.ts 상단).
+    const turnContext = buildTurnContext(context, this.t, latestRequest);
+    options.onTurnContext?.(turnContext);
     const conversation: LLMMessage[] = [
       { role: "system", content: buildSystemPrompt(this.t) },
-      ...this.convertMessages(
-        messages,
-        buildTurnContext(context, this.t, latestRequest),
-      ),
+      ...this.convertMessages(messages, turnContext),
     ];
 
     const tools = await getToolDefinitions(this.t);
@@ -277,8 +278,9 @@ export class AgentService {
   /**
    * ChatMessage[] → provider 중립 메시지.
    *
-   * `turnContext` 는 **마지막 user 메시지** 앞에만 붙는다 — 이전 턴은 그대로 둬야
-   * 이력이 append-only 로 남는다.
+   * `turnContext` 는 **마지막 user 메시지** 앞에 붙는다. 이전 턴 user 메시지는 그 턴에
+   * 저장된 컨텍스트 (`metadata.turnContext`) 를 같은 자리에 다시 붙여, 보낸 모양 그대로
+   * 나가게 한다 — 이력이 append-only 로 남는다.
    */
   private convertMessages(
     messages: ChatMessage[],
@@ -311,10 +313,11 @@ export class AgentService {
       if (msg.role === "assistant") {
         return { role: "assistant", content: msg.content };
       }
-      const withContext =
-        turnContext && index === latestUserIndex
-          ? `${turnContext}\n\n${msg.content}`
-          : msg.content;
+      const context =
+        index === latestUserIndex ? turnContext : msg.metadata?.turnContext;
+      const withContext = context
+        ? `${context}\n\n${msg.content}`
+        : msg.content;
       return { role: "user", content: withContext };
     });
   }

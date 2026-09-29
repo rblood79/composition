@@ -11,6 +11,7 @@
  * 분해가 항상 이득은 아니다 — 계획 호출 1회가 붙는다. 그래서 planner 가 1단계짜리 계획을
  * 내면 오케스트레이터가 검증까지 건너뛴다 (`orchestrator.ts` 의 `decomposed` 판정).
  */
+import type { AgentLoopOptions } from "../../types/integrations/ai.types";
 import type {
   BuilderContext,
   ChatMessage,
@@ -54,6 +55,7 @@ export interface AgentRunner {
   runAgentLoop(
     messages: ChatMessage[],
     context: BuilderContext,
+    options?: AgentLoopOptions,
   ): AsyncGenerator<OrchestratedEvent>;
   stop(): void;
 }
@@ -129,8 +131,8 @@ export function createAgentRunner(t: PromptTranslate): AgentRunner | null {
   const service = new AgentService(main, t);
   return {
     orchestrated: false,
-    runAgentLoop: (messages, context) =>
-      service.runAgentLoop(messages, context),
+    runAgentLoop: (messages, context, options) =>
+      service.runAgentLoop(messages, context, options),
     stop: () => service.stop(),
   };
 }

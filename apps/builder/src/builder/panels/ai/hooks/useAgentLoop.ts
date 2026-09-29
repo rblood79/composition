@@ -189,6 +189,12 @@ export function useAgentLoop() {
             for await (const event of agent.runAgentLoop(
               allMessages,
               context,
+              {
+                onTurnContext: (turnContext) =>
+                  useConversationStore
+                    .getState()
+                    .setLastUserTurnContext(turnContext),
+              },
             )) {
               if (request.signal.aborted) break;
               if (PROGRESS_EVENTS.has(event.type)) {

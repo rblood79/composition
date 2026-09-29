@@ -886,7 +886,6 @@ export interface TranslationKeys {
     rule2: string;
     rule3: string;
     rule4: string;
-    rule5: string;
     canonicalHeading: string;
     canonicalBody: string;
     bindingHeading: string;

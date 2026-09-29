@@ -66,6 +66,15 @@ export type ToolTranslate = (
   params?: Record<string, string | number | boolean>,
 ) => string;
 
+/** `runAgentLoop` 선택 인자. */
+export interface AgentLoopOptions {
+  /**
+   * 이번 턴 user 메시지에 붙인 턴 컨텍스트. 호출자가 그 메시지에 저장하면 다음 요청에서
+   * 같은 모양으로 다시 나간다 (`ChatMessage.metadata.turnContext`).
+   */
+  onTurnContext?: (turnContext: string) => void;
+}
+
 /**
  * Agent 방식 AI 서비스 인터페이스
  */
@@ -73,6 +82,7 @@ export interface AIAgentProvider {
   runAgentLoop(
     messages: ChatMessage[],
     context: BuilderContext,
+    options?: AgentLoopOptions,
   ): AsyncGenerator<AgentEvent>;
   stop(): void;
 }

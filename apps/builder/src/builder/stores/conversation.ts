@@ -37,6 +37,21 @@ export const useConversationStore = create<ConversationState>((set) => ({
     }));
   },
 
+  /** 마지막 user 메시지에 이번 턴 컨텍스트를 저장한다 (다음 요청에서 같은 자리에 다시 붙는다). */
+  setLastUserTurnContext: (turnContext: string) => {
+    set((state) => {
+      const index = state.messages.map((m) => m.role).lastIndexOf("user");
+      if (index === -1) return state;
+      const messages = [...state.messages];
+      const target = messages[index];
+      messages[index] = {
+        ...target,
+        metadata: { ...target.metadata, turnContext },
+      };
+      return { messages };
+    });
+  },
+
   /**
    * Add an assistant message to the conversation
    */
