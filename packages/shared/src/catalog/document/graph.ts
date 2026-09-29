@@ -43,7 +43,8 @@ export interface CatalogHistoryRecord {
   removedIds: readonly string[];
 }
 type MutableIndex = Map<string, Set<string>>;
-type EdgeType = "definition" | "owner" | "token" | "collection";
+/** `ref`: any other by-ID reference (addresses, interaction/state owners and targets, theme tokens). */
+type EdgeType = "definition" | "owner" | "token" | "collection" | "ref";
 interface Edge {
   type: EdgeType;
   key: string;
@@ -75,6 +76,30 @@ function ownedChildren(entry: CatalogEntry): NodeId[] {
   }
   return ids;
 }
+/** By-ID references not carried by the owner, definition, token or collection edges. */
+function referencedIds(entry: CatalogEntry): string[] {
+  const ids: string[] = [];
+  const address = (value: { instances: readonly string[]; templatePath: readonly string[] }) => {
+    for (const id of [...value.instances, ...value.templatePath])
+      if (id.startsWith("project:")) ids.push(id);
+  };
+  if (entry.kind === "node")
+    for (const override of entry.descendantOverrides) address(override.address);
+  if (entry.kind === "interaction") {
+    ids.push(entry.ownerId);
+    if (entry.address) address(entry.address);
+    if (entry.action.opcode === "navigate") ids.push(entry.action.pageId);
+    if (entry.action.opcode === "capability") ids.push(entry.action.targetId);
+    if (
+      entry.action.opcode === "setState" &&
+      entry.action.variableId.startsWith("project:")
+    )
+      ids.push(entry.action.variableId);
+  }
+  if (entry.kind === "stateVariable") ids.push(entry.ownerId);
+  if (entry.kind === "theme") ids.push(...entry.tokenIds);
+  return ids;
+}
 function edgesOf(entry: CatalogEntry): Edge[] {
   const edges: Edge[] = [];
   if (entry.kind === "node") {
@@ -92,12 +117,15 @@ function edgesOf(entry: CatalogEntry): Edge[] {
   }
   for (const child of ownedChildren(entry))
     edges.push({ type: "owner", key: entry.id, target: child });
+  for (const id of new Set(referencedIds(entry)))
+    edges.push({ type: "ref", key: id, target: entry.id });
   const refs = new Set<string>();
   if (entry.kind === "node") {
     tokenRefs(entry.props, refs);
     tokenRefs(entry.visual, refs);
     tokenRefs(entry.stateRules, refs);
     tokenRefs(entry.descendantOverrides, refs);
+    tokenRefs(entry.responsive, refs);
   } else if (
     entry.kind === "definition" ||
     entry.kind === "definitionOverride"
@@ -143,9 +171,10 @@ export class CatalogGraph {
   private readonly table = new Map<string, CatalogEntry>();
   private readonly definitionIndex: MutableIndex = new Map();
   private readonly ownerIndex: MutableIndex = new Map();
-  private readonly ownerOf = new Map<string, string>();
+  private readonly ownerByChild = new Map<string, string>();
   private readonly tokenIndex: MutableIndex = new Map();
   private readonly collectionIndex: MutableIndex = new Map();
+  private readonly refIndex: MutableIndex = new Map();
   private readonly libraryDependents: MutableIndex = new Map();
   private readonly overrideIndex = new Map<
     LibraryDefinitionId,
@@ -261,7 +290,7 @@ export class CatalogGraph {
         this.definitionIndex,
       ) as GraphIndexes["definitionToInstances"],
       ownerToChildren: copy(this.ownerIndex) as GraphIndexes["ownerToChildren"],
-      childToOwner: new Map(this.ownerOf) as GraphIndexes["childToOwner"],
+      childToOwner: new Map(this.ownerByChild) as GraphIndexes["childToOwner"],
       tokenToConsumers: copy(
         this.tokenIndex,
       ) as GraphIndexes["tokenToConsumers"],
@@ -360,6 +389,178 @@ export class CatalogGraph {
       this.dirty.add(id);
     }
     return edgesUpdated;
+  }
+
+  /** Committed owner of a node (page, node or definition), from the owner index. */
+  ownerOf(id: string): string | undefined {
+    return this.ownerByChild.get(id);
+  }
+  /** Committed instances of a definition (definition → node index). */
+  instancesOf(definitionId: string): ReadonlySet<string> {
+    return this.definitionIndex.get(definitionId) ?? new Set();
+  }
+  /**
+   * Structural transaction check against the committed indexes: the same invariants as
+   * `validateView`, evaluated only for the staged entries, the children they claim or release,
+   * and the committed entries that reference a staged ID. Cost scales with the staged records,
+   * their owned-child lists and their referrers — never with the graph (ADR-248 §4.1).
+   */
+  validateStructuralDelta(
+    staged: ReadonlyMap<string, CatalogEntry | null>,
+    get: (id: string) => CatalogEntry | undefined,
+  ): void {
+    const root = get(this.projectId);
+    if (root?.kind !== "project")
+      throw new CatalogValidationError("PROJECT_ROOT_REQUIRED", this.projectId);
+    const listedIds = (): Set<string> => {
+      const listed = new Set<string>();
+      for (const ids of [
+        root.pageIds,
+        root.definitionIds,
+        root.overrideIds,
+        root.themeIds,
+        root.tokenIds,
+        root.stateVariableIds,
+        root.interactionIds,
+        root.assetIds,
+      ])
+        for (const id of ids) {
+          if (listed.has(id) || (id as string) === root.id)
+            throw new CatalogValidationError("DUPLICATE_OWNERSHIP", id);
+          listed.add(id);
+        }
+      return listed;
+    };
+    let listed: Set<string> | undefined;
+    if (staged.has(this.projectId)) {
+      listed = listedIds();
+      for (const id of listed) {
+        const entry = get(id);
+        if (!entry || entry.kind === "project")
+          throw new CatalogValidationError("DANGLING_PROJECT_ENTRY", id);
+      }
+      if (root.activeThemeId && !root.themeIds.includes(root.activeThemeId))
+        throw new CatalogValidationError("DANGLING_THEME", root.activeThemeId);
+    }
+    const isListed = (id: string): boolean => (listed ??= listedIds()).has(id);
+    // Claims after the change: staged owners claim their owned children; an unstaged owner
+    // keeps its committed claims.
+    const claims = new Map<string, string>();
+    /** Claims that did not exist before: only these can close a cycle or enter a template. */
+    const newClaims = new Map<string, string>();
+    const overrideTargets = new Map<string, string>();
+    let definitionsChanged = false;
+    for (const [id, entry] of staged) {
+      if (entry === null) {
+        if (isListed(id))
+          throw new CatalogValidationError("DANGLING_PROJECT_ENTRY", id);
+        continue;
+      }
+      if (entry.kind === "project" && entry.id !== this.projectId)
+        throw new CatalogValidationError("MULTIPLE_PROJECT_ROOTS", entry.id);
+      if (entry.kind !== "node" && entry.kind !== "project" && !isListed(id))
+        throw new CatalogValidationError("UNOWNED_ENTRY", id);
+      if (entry.kind === "definitionOverride") {
+        const other = overrideTargets.get(entry.targetId);
+        const committed = this.overrideIndex.get(entry.targetId);
+        if (
+          other ||
+          (committed &&
+            committed !== id &&
+            (!staged.has(committed) ||
+              (staged.get(committed) as DefinitionOverrideEntry | null)
+                ?.targetId === entry.targetId))
+        )
+          throw new CatalogValidationError(
+            "DUPLICATE_DEFINITION_OVERRIDE",
+            entry.targetId,
+          );
+        overrideTargets.set(entry.targetId, id);
+      }
+      for (const child of ownedChildren(entry)) {
+        if (claims.has(child))
+          throw new CatalogValidationError("DUPLICATE_OWNERSHIP", child);
+        claims.set(child, id);
+        // A child this owner already owned, and that is not itself staged, stays valid.
+        if (this.ownerByChild.get(child) === id && !staged.has(child)) continue;
+        if (this.ownerByChild.get(child) !== id) newClaims.set(child, id);
+        const committedOwner = this.ownerByChild.get(child);
+        if (committedOwner && committedOwner !== id && !staged.has(committedOwner))
+          throw new CatalogValidationError("DUPLICATE_OWNERSHIP", child);
+        const claimed = get(child);
+        if (claimed?.kind !== "node")
+          throw new CatalogValidationError("DANGLING_CHILD", child);
+        // A newly placed instance of a user definition may close a definition cycle.
+        if (claimed.definitionId.startsWith("project:definition:"))
+          definitionsChanged = true;
+      }
+    }
+    const ownerAfter = (id: string): string | undefined => {
+      const claimed = claims.get(id);
+      if (claimed) return claimed;
+      const committed = this.ownerByChild.get(id);
+      return committed && !staged.has(committed) ? committed : undefined;
+    };
+    // A new claim creates a cycle only if the claimed child is an ancestor of its new owner.
+    for (const [child, owner] of newClaims) {
+      const seen = new Set<string>();
+      let top = owner;
+      for (let cursor: string | undefined = owner; cursor; cursor = ownerAfter(cursor)) {
+        if (cursor === child || seen.has(cursor))
+          throw new CatalogValidationError("OWNERSHIP_CYCLE", child);
+        seen.add(cursor);
+        top = cursor;
+      }
+      // A subtree placed inside a template may contain an instance of that template.
+      if (get(top)?.kind === "definition") definitionsChanged = true;
+    }
+    // Committed entries whose references read a staged record are re-validated.
+    const referrers = new Set<string>();
+    for (const [id, entry] of staged) {
+      for (const index of [this.definitionIndex, this.tokenIndex, this.refIndex])
+        for (const referrer of index.get(id) ?? []) referrers.add(referrer);
+      const before = this.table.get(id);
+      if (entry?.kind === "definition" || before?.kind === "definition")
+        definitionsChanged = true;
+      // A template root carries its definition's instance contract.
+      for (const owner of [ownerAfter(id), this.ownerByChild.get(id)])
+        if (owner && get(owner)?.kind === "definition") {
+          definitionsChanged = true;
+          for (const instance of this.instancesOf(owner)) referrers.add(instance);
+        }
+      if (
+        (entry?.kind === "node" &&
+          entry.definitionId.startsWith("project:definition:")) ||
+        (before?.kind === "node" &&
+          before.definitionId.startsWith("project:definition:"))
+      )
+        definitionsChanged = true;
+    }
+    for (const referrer of referrers) {
+      if (staged.has(referrer)) continue;
+      const entry = get(referrer);
+      if (entry) this.validateEntryReferences(entry, get);
+    }
+    const released = new Set<string>();
+    for (const [id, entry] of staged) {
+      const before = this.table.get(id);
+      if (before)
+        for (const child of ownedChildren(before))
+          if (claims.get(child) !== id) released.add(child);
+      if (entry?.kind === "node" && !ownerAfter(id))
+        throw new CatalogValidationError("UNOWNED_NODE", id);
+      if (entry === null && ownerAfter(id))
+        throw new CatalogValidationError("DANGLING_CHILD", id);
+    }
+    for (const child of released)
+      if (get(child) && !ownerAfter(child))
+        throw new CatalogValidationError("UNOWNED_NODE", child);
+    if (definitionsChanged) {
+      const definitions = root.definitionIds
+        .map((id) => get(id))
+        .filter((entry): entry is CatalogEntry => !!entry);
+      this.validateDefinitionCycles(get, definitions);
+    }
   }
 
   validateView(
@@ -793,15 +994,16 @@ export class CatalogGraph {
     if (type === "definition") return this.definitionIndex;
     if (type === "owner") return this.ownerIndex;
     if (type === "token") return this.tokenIndex;
+    if (type === "ref") return this.refIndex;
     return this.collectionIndex;
   }
   private addEdge(edge: Edge): void {
     add(this.indexFor(edge.type), edge.key, edge.target);
-    if (edge.type === "owner") this.ownerOf.set(edge.target, edge.key);
+    if (edge.type === "owner") this.ownerByChild.set(edge.target, edge.key);
   }
   private removeEdge(edge: Edge): void {
     remove(this.indexFor(edge.type), edge.key, edge.target);
-    if (edge.type === "owner") this.ownerOf.delete(edge.target);
+    if (edge.type === "owner") this.ownerByChild.delete(edge.target);
   }
   collectAffectedIds(changedIds: readonly string[]): ReadonlySet<string> {
     const affected = new Set<string>();
@@ -828,7 +1030,7 @@ export class CatalogGraph {
       );
       if (overrideTarget && !affected.has(overrideTarget))
         queue.push({ id: overrideTarget, expandChildren: false });
-      const owner = this.ownerOf.get(id);
+      const owner = this.ownerByChild.get(id);
       if (owner && !affected.has(owner))
         queue.push({ id: owner, expandChildren: false });
     }

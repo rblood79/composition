@@ -94,12 +94,107 @@ export interface CatalogTransactionRequest {
   ops: readonly CatalogOperation[];
   history: HistoryIntent;
 }
+/**
+ * What a committed transaction touched, so each consumer processes that delta instead of
+ * rediscovering it (ADR-248 §4.1). Derived from the staged records and the graph indexes.
+ */
+export interface CatalogTransactionImpact {
+  /** Owners (page, node or definition) of changed/removed nodes, before and after the change. */
+  affectedParents: ReadonlySet<string>;
+  /** Pages that render a changed record, directly or through an instance of a changed template. */
+  affectedPages: ReadonlySet<EntryId<"page">>;
+  /** Ownership, order, definition or descendant structure changed. */
+  structural: boolean;
+  /** Box geometry may change (structure, sizing, layout, text or layout-relevant visual keys). */
+  layout: boolean;
+}
 export interface CatalogTransactionResult {
   forward: readonly CatalogOperation[];
   inverse: readonly CatalogOperation[];
   changedIds: ReadonlySet<string>;
   removedIds: ReadonlySet<string>;
   revision: number;
+  impact: CatalogTransactionImpact;
+}
+/** Visual keys that only repaint: every other visual key may change box geometry. */
+const PAINT_ONLY_VISUAL_KEYS: ReadonlySet<string> = new Set([
+  "color",
+  "backgroundColor",
+  "borderColor",
+  "fill",
+  "fillAlpha",
+  "opacity",
+  "radius",
+  "radiusTopLeft",
+  "radiusTopRight",
+  "radiusBottomRight",
+  "radiusBottomLeft",
+  "boxShadow",
+  "filter",
+  "transform",
+  "zIndex",
+  "backgroundImage",
+  "backgroundSize",
+  "textDecoration",
+]);
+/** Owned child IDs of a record as one comparable key (order matters). */
+function ownedChildIds(entry: CatalogEntry): string {
+  if (entry.kind === "page") return entry.children.join("\0");
+  if (entry.kind === "definition") return entry.templateRootId ?? "";
+  if (entry.kind !== "node") return "";
+  const ids = [...entry.children];
+  for (const override of entry.descendantOverrides) {
+    if (override.kind === "replace") ids.push(override.replacementId);
+    if (override.kind === "fillSlot") ids.push(...override.childIds);
+  }
+  return ids.join("\0");
+}
+/** A record's content apart from its own child list (one staged record, not the graph). */
+function withoutChildren(entry: CatalogEntry): string {
+  return JSON.stringify(
+    "children" in entry ? { ...entry, children: [] } : entry,
+  );
+}
+/**
+ * Pages rendering any of `ids`: walk owners up to a page; a template (owner chain ends at a
+ * definition) reaches the pages of that definition's instances. Cost = depth × fan-out.
+ */
+function affectedPagesOf(
+  graph: CatalogGraph,
+  ids: Iterable<string>,
+): Set<EntryId<"page">> {
+  const pages = new Set<EntryId<"page">>();
+  const visited = new Set<string>();
+  const queue = [...ids];
+  while (queue.length) {
+    let cursor: string | undefined = queue.pop()!;
+    while (cursor && !visited.has(cursor)) {
+      visited.add(cursor);
+      const entry = graph.getEntry(cursor);
+      if (entry?.kind === "page") {
+        pages.add(entry.id);
+        break;
+      }
+      if (entry?.kind === "definition") {
+        queue.push(...graph.instancesOf(entry.id));
+        break;
+      }
+      cursor = graph.ownerOf(cursor);
+    }
+  }
+  return pages;
+}
+function operationAffectsLayout(op: CatalogOperation): boolean {
+  switch (op.kind) {
+    case "patchNodeVisual":
+      return !PAINT_ONLY_VISUAL_KEYS.has(op.key);
+    case "setNodeField":
+      return op.field === "fillSizing" || op.field === "visibility";
+    case "patchDefinitionOverride":
+      return op.scope !== "visual" || !PAINT_ONLY_VISUAL_KEYS.has(op.key);
+    default:
+      return true;
+  }
 }
 function keyOfOverride(override: DescendantOverride): string {
   return JSON.stringify(override.address);
@@ -405,15 +500,12 @@ export function applyCatalogTransaction(
     if (!structural && before.get(id)?.kind !== entry?.kind)
       throw new CatalogValidationError("LEAF_KIND_CHANGED", id);
   }
-  if (structural) {
-    const existing = graph.exportDocument().entries;
-    const merged = new Map<string, CatalogEntry>(Object.entries(existing));
-    for (const [id, entry] of staged) {
-      if (entry === null) merged.delete(id);
-      else merged.set(id, entry);
-    }
-    metrics.transactionEntriesTraversed = merged.size;
-    graph.validateView(get, [...merged.values()]);
+  if (structural) graph.validateStructuralDelta(staged, get);
+  // Owners before the commit: a removed node keeps its old parent in the impact.
+  const ownerBefore = new Map<string, string>();
+  for (const id of staged.keys()) {
+    const owner = graph.ownerOf(id);
+    if (owner) ownerBefore.set(id, owner);
   }
   const forward = structuredClone(request.ops);
   graph.commit(
@@ -421,6 +513,26 @@ export function applyCatalogTransaction(
     request.history.kind === "record" ? request.history.label : null,
     metrics,
   );
+  const affectedParents = new Set<string>();
+  for (const [id, entry] of staged) {
+    const previous = before.get(id);
+    if (entry === null) {
+      const owner = ownerBefore.get(id);
+      if (owner) affectedParents.add(owner);
+      continue;
+    }
+    // An owner whose owned children changed is itself an affected parent.
+    if (!previous || ownedChildIds(previous) !== ownedChildIds(entry))
+      affectedParents.add(id);
+    // A record whose own content changed affects its parent's layout/paint.
+    if (!previous || withoutChildren(previous) !== withoutChildren(entry)) {
+      const owner = graph.ownerOf(id) ?? ownerBefore.get(id);
+      if (owner) affectedParents.add(owner);
+    }
+  }
+  for (const id of affectedParents)
+    if (!graph.getEntry(id) || graph.getEntry(id)?.kind === "project")
+      affectedParents.delete(id);
   return {
     forward,
     inverse,
@@ -431,6 +543,15 @@ export function applyCatalogTransaction(
       [...staged].filter(([, entry]) => entry === null).map(([id]) => id),
     ),
     revision: graph.revision,
+    impact: {
+      affectedParents,
+      affectedPages: affectedPagesOf(graph, [
+        ...staged.keys(),
+        ...affectedParents,
+      ]),
+      structural,
+      layout: structural || request.ops.some(operationAffectsLayout),
+    },
   };
 }
 

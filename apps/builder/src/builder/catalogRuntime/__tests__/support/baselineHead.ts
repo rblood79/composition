@@ -18,6 +18,23 @@ const SOURCE_ROOTS = [
 const TEST_FILE = /(\.test\.[cm]?[tj]sx?$)|(\/__tests__\/)/;
 
 /**
+ * ADR-248 new-model roots. The frozen G0 outputs come from the old app; a change here cannot reach
+ * them while no product file outside these roots imports into them (then nothing outside reaches
+ * them transitively either). `assertNewModelUnreachable` checks that at the compared HEAD, so the
+ * new model can change during Phase 4a–4d without an old-app re-measure. The Phase 4e cutover
+ * connects them and retires the old app — that commit fails this check by design.
+ */
+const NEW_MODEL_ROOTS = [
+  "packages/shared/src/catalog/document/",
+  "packages/shared/src/catalog/resolution/",
+  "packages/shared/src/catalog/transactions/",
+  "apps/builder/src/builder/catalogRuntime/",
+];
+/** Import specifiers that resolve into a new-model root (relative, deep or barrel-relative). */
+const NEW_MODEL_IMPORT =
+  "(from|import\\()[[:space:]]*['\"][^'\"]*(catalog/(document|resolution|transactions)|catalogRuntime|\\.\\.?/(document|resolution|transactions))(/[^'\"]*)?['\"]";
+
+/**
  * Product source changes reviewed as unrelated to the frozen G0 outputs (layout, paint, DOM,
  * storage). Keyed by path; the blob SHA pins the reviewed content, so any later edit fails again.
  * `blob: null` is a reviewed deletion (the path must stay deleted).
@@ -276,34 +293,6 @@ const REVIEWED_UNRELATED: Readonly<
  * any of these files fails again until its baseline is re-measured.
  */
 const REMEASURED_PHASE3_SOURCE: Readonly<Record<string, string>> = {
-  "apps/builder/src/builder/catalogRuntime/boxModel.ts":
-    "e9f7be4d188ff9508f13485fb976d523eaa6f2f2",
-  "apps/builder/src/builder/catalogRuntime/canvasBinding.ts":
-    "a1fcfbb3d15616351b6e021e05eb4513d7ffc5c9",
-  "apps/builder/src/builder/catalogRuntime/compositionRoot.ts":
-    "726b6456a1389ebd8026f2eff13491b992952292",
-  "apps/builder/src/builder/catalogRuntime/controller.ts":
-    "886b56e4c7d53f87feb9c2f164cb95d8fc035f97",
-  "apps/builder/src/builder/catalogRuntime/delegatedDom.tsx":
-    "11718782b7ca704c79eeb24f2ae9679818e7e514",
-  "apps/builder/src/builder/catalogRuntime/domBinding.tsx":
-    "26e1f493fe6c11278d5b6cbc5452ea249e7287e5",
-  "apps/builder/src/builder/catalogRuntime/exchange.ts":
-    "546c2f58ba0c78144cd1b0da2355b546943a1cc3",
-  "apps/builder/src/builder/catalogRuntime/libraryVisual.ts":
-    "c0367483ce3becd61b915cf4c176cb65bb0be67d",
-  "apps/builder/src/builder/catalogRuntime/presence.ts":
-    "6d6da683a7b12f181a2e971ba3ea9e3814247e13",
-  "apps/builder/src/builder/catalogRuntime/ruleShapes.ts":
-    "2a8fa8998514e0c25afc9748267d659fee54811b",
-  "apps/builder/src/builder/catalogRuntime/slotChrome.ts":
-    "a9478665d4929c5692f16c4934c612ba3625e87e",
-  "apps/builder/src/builder/catalogRuntime/slotOverlay.ts":
-    "b728e8a9cd88eb12e21004aa3c4ff64e067b6b1e",
-  "apps/builder/src/builder/catalogRuntime/storage.ts":
-    "3a719ceb636d6b65785e5bc9925a2dacebff8320",
-  "apps/builder/src/builder/catalogRuntime/textMeasure.ts":
-    "1d368423d8131c1126bc2751c7f5814252c59264",
   "apps/builder/src/builder/components/breadcrumbs/breadcrumbsTemplateOrigins.ts":
     "06c4d21ba65f139f55ae3a5cd4ae1735758ded14",
   "apps/builder/src/builder/components/itemSlotRoles.ts":
@@ -346,52 +335,16 @@ const REMEASURED_PHASE3_SOURCE: Readonly<Record<string, string>> = {
   "packages/engine/src/wasm.rs": "6c7ba81575c782affa723f89744d4da4da67dfe6",
   "packages/shared/src/catalog/bindings/Breadcrumbs.binding.ts":
     "50f2e7754c2aed993227769d7509cdd4142390a6",
-  "packages/shared/src/catalog/document/clone.ts":
-    "defa1b55a745886ec5e7e360cf15e954914bf7fc",
-  "packages/shared/src/catalog/document/codeCatalogLibrary.ts":
-    "698d3643dbc47fe292ee5c23e37820e200fe4261",
-  "packages/shared/src/catalog/document/collectionItems.ts":
-    "aa599941637f1092253fbf7bf68ffb23f80ad7d5",
-  "packages/shared/src/catalog/document/dateSegments.ts":
-    "fe82956043677ff934bfe31ad1e25fa3bb7efa12",
-  "packages/shared/src/catalog/document/fixture.ts":
-    "0e151fcceb63d3405231c7ee7d1515efec99c2c1",
-  "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts":
-    "4ed89d195963da4b7d95cded9675613ccc0abe1d",
-  "packages/shared/src/catalog/document/graph.ts":
-    "1579c82053b0d56a1ac13bcffa34f35563395629",
-  "packages/shared/src/catalog/document/library.ts":
-    "31ddaba6ea9cd5ba06d70b7652b1beb2d1d1f5ae",
-  "packages/shared/src/catalog/document/manualBoxRules.ts":
-    "be276f60d026d79d6a7721cc7bf2da21ef2a1823",
-  "packages/shared/src/catalog/document/pencilFixtureLibrary.ts":
-    "456e2d37aa17d32bfc229faef645010c308fd8f5",
-  "packages/shared/src/catalog/document/ruleDefinition.ts":
-    "48162f8dd5bdf11dbb2e62058ba284fa73d4d1ee",
-  "packages/shared/src/catalog/document/rulePartRules.ts":
-    "e5f0e5a9171bdda9505f01f2ba53d4aabc9236e4",
-  "packages/shared/src/catalog/document/types.ts":
-    "c2108682f6cccefbc2f8f0286ac2c60016979166",
-  "packages/shared/src/catalog/document/validation.ts":
-    "ca379bb3b331647aef03ae96042a4f455bc5450e",
   "packages/shared/src/catalog/generated/componentRulesTable.ts":
     "cb48e588ac0a0e133d8c4592e8103ad493d66570",
   "packages/shared/src/catalog/index.ts":
     "31d8792a2b34cebf320785cd98c65086775b7701",
   "packages/shared/src/catalog/outputs/toRacProps.ts":
     "f1f37a762f7cacb49ef6f450e2fa4ceae9bd6960",
-  "packages/shared/src/catalog/resolution/address.ts":
-    "062c9dbaf30f20fbad9c7e201ae6204b9824481c",
-  "packages/shared/src/catalog/resolution/resolver.ts":
-    "720596a3fbd97be59508c51ef6c5e743fb5a9852",
   "packages/shared/src/catalog/resolvers/resolveCatalogRuleCanvasBox.ts":
     "13ca49fdb11fe9fd96708aca815608d867dbccf1",
   "packages/shared/src/catalog/slotRoles.ts":
     "c731f8661e411a96483b798174b868a6f81abcef",
-  "packages/shared/src/catalog/transactions/frameClip.ts":
-    "a9239d9cdc34fadcec532302346ed67245e6304d",
-  "packages/shared/src/catalog/transactions/transaction.ts":
-    "b6e27d8afebc5f5e80d4a1619f15f5e8d1d8b4e2",
   "packages/shared/src/components/Breadcrumb.tsx":
     "b3dc9293cfc694b738faec5011f6fd1562939d55",
   "packages/shared/src/components/Breadcrumbs.tsx":
@@ -444,6 +397,29 @@ const REMEASURED_PHASE3_SOURCE: Readonly<Record<string, string>> = {
 };
 const REMEASURED_PHASE3_REASON =
   "ADR-248 Phase 3 commit: native-state-pinned re-measured byte-identical; storage +519 B constant (budget stricter)";
+
+function assertNewModelUnreachable(
+  git: (...args: string[]) => string,
+  head: string,
+): void {
+  let hits: string[] = [];
+  try {
+    hits = git("grep", "-n", "-E", NEW_MODEL_IMPORT, head, "--", ...SOURCE_ROOTS)
+      .split("\n")
+      .filter(Boolean);
+  } catch {
+    hits = []; // git grep exits 1 when nothing matches
+  }
+  const outside = hits.filter((line) => {
+    const file = line.slice(head.length + 1).split(":")[0];
+    return (
+      !TEST_FILE.test(file) &&
+      !NEW_MODEL_ROOTS.some((root) => file.startsWith(root))
+    );
+  });
+  if (outside.length)
+    throw new Error(`BASELINE_NEW_MODEL_REACHABLE:${outside.join("|")}`);
+}
 
 /** Source text without `//` and block comments; string/template literals are kept intact. */
 function stripComments(source: string, css: boolean): string {
@@ -499,8 +475,16 @@ export function baselineCompatibleHead(
     .split("\n")
     .filter(Boolean)
     .map((line) => line.split("\t"));
+  let newModelChecked = false;
   for (const [status, file] of changes) {
     if (TEST_FILE.test(file)) continue;
+    if (NEW_MODEL_ROOTS.some((root) => file.startsWith(root))) {
+      if (!newModelChecked) {
+        assertNewModelUnreachable(git, head);
+        newModelChecked = true;
+      }
+      continue;
+    }
     const reviewed =
       REVIEWED_UNRELATED[file] ??
       (REMEASURED_PHASE3_SOURCE[file]
