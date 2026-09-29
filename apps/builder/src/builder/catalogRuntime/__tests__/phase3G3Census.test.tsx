@@ -1,5 +1,5 @@
 import "fake-indexeddb/auto";
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -30,6 +30,7 @@ import {
 } from "../domBinding";
 import { CatalogStorage } from "../storage";
 import { CATALOG_RULE_EXECUTOR_PAINT_STATES } from "../ruleShapes";
+import { writeEvidence } from "./support/evidence";
 
 /**
  * ADR-248 Phase 3 — G3 registered type/state census (recount only; no gate change). The type
@@ -44,7 +45,9 @@ const OUTPUT = resolve(
 );
 /** Binding ids present in both product binding tables (`canvasBinding.ts`, `domBinding.tsx`). */
 const PRODUCT_BINDINGS = new Set(
-  [...CATALOG_CANVAS_BINDING_IDS].filter((id) => CATALOG_DOM_BINDING_IDS.has(id)),
+  [...CATALOG_CANVAS_BINDING_IDS].filter((id) =>
+    CATALOG_DOM_BINDING_IDS.has(id),
+  ),
 );
 
 type RawLayout = {
@@ -114,7 +117,9 @@ function parentContextTypes(): Set<string> {
   ) as { types: { type: string; oldFixtureCoverage: string }[] };
   return new Set(
     coverage.types
-      .filter((entry) => entry.oldFixtureCoverage === "INDIRECT_PARENT_CONTEXT_ONLY")
+      .filter(
+        (entry) => entry.oldFixtureCoverage === "INDIRECT_PARENT_CONTEXT_ONLY",
+      )
       .map((entry) => entry.type),
   );
 }
@@ -222,7 +227,9 @@ function run(
     result.resolvedNodes = root.canvasInputs.size;
     result.resolvedBindingIds = counts;
     result.resolvedDefinitionIds = [
-      ...new Set([...root.canvasInputs.values()].map((input) => input.definitionId)),
+      ...new Set(
+        [...root.canvasInputs.values()].map((input) => input.definitionId),
+      ),
     ].sort();
     result.ruleExecutedBindingIds = [
       ...new Set(
@@ -236,7 +243,10 @@ function run(
       ),
     ].sort();
     // Per node: a Canvas executor, and a DOM executor unless a RAC parent owns the node's DOM.
-    const bindingKey = (input: { bindingId?: string; definitionMode?: string }) =>
+    const bindingKey = (input: {
+      bindingId?: string;
+      definitionMode?: string;
+    }) =>
       input.bindingId ??
       (input.definitionMode === "composite" ? "composite" : "(none)");
     result.missingBindingIds = [
@@ -244,7 +254,8 @@ function run(
         [...root.canvasInputs.values()]
           .filter((input) => {
             const key = bindingKey(input);
-            const canvas = CATALOG_CANVAS_BINDING_IDS.has(key) || !!input.ruleId;
+            const canvas =
+              CATALOG_CANVAS_BINDING_IDS.has(key) || !!input.ruleId;
             const dom =
               !catalogDomRendersNode(root, input.id) ||
               CATALOG_DOM_BINDING_IDS.has(key) ||
@@ -327,12 +338,12 @@ describe("ADR-248 Phase 3 G3 type/state census", () => {
             typeDefinitionId: direct,
           }
         : base
-        ? { library: "code", kind: "composite", definitionId: base.id }
-        : direct
-          ? { library: "code", kind: "direct", definitionId: direct }
-          : fixture.definitions.has(fixtureId as never)
-            ? { library: "fixture", kind: "direct", definitionId: fixtureId }
-            : undefined;
+          ? { library: "code", kind: "composite", definitionId: base.id }
+          : direct
+            ? { library: "code", kind: "direct", definitionId: direct }
+            : fixture.definitions.has(fixtureId as never)
+              ? { library: "fixture", kind: "direct", definitionId: fixtureId }
+              : undefined;
       const definition = route
         ? (route.library === "code" ? code : fixture).definitions.get(
             ("typeDefinitionId" in route && route.typeDefinitionId
@@ -364,10 +375,10 @@ describe("ADR-248 Phase 3 G3 type/state census", () => {
           ? route.kind === "parent-context"
             ? "RUNS_IN_PARENT_CONTEXT"
             : route.library === "fixture"
-            ? "RUNS_DIRECT_TEST_FIXTURE_DEFINITION"
-            : route.kind === "composite"
-              ? "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
-              : "RUNS_DIRECT_CODE_DEFINITION"
+              ? "RUNS_DIRECT_TEST_FIXTURE_DEFINITION"
+              : route.kind === "composite"
+                ? "RUNS_COMPOSITE_ON_EXISTING_TEMPLATE_BINDINGS"
+                : "RUNS_DIRECT_CODE_DEFINITION"
           : route.kind === "composite" && missingBindings.length
             ? "COMPOSITE_TEMPLATE_NEEDS_NEW_BINDING"
             : missingBindings.length
@@ -400,7 +411,9 @@ describe("ADR-248 Phase 3 G3 type/state census", () => {
                         (rule) => rule.state === stateName,
                       )))
                 ? "typedStateRule"
-                : own && "ruleId" in own && own.ruleId &&
+                : own &&
+                    "ruleId" in own &&
+                    own.ruleId &&
                     CATALOG_RULE_EXECUTOR_PAINT_STATES.has(stateName)
                   ? "ruleExecutorPaint"
                   : "none";
@@ -501,7 +514,7 @@ describe("ADR-248 Phase 3 G3 type/state census", () => {
           entry.execution?.stage === "pass",
       ).length,
     };
-    writeFileSync(
+    writeEvidence(
       OUTPUT,
       `${JSON.stringify(
         {

@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { cloneNodeSubgraph } from "../clone";
 import { createG1Fixture } from "../fixture";
@@ -12,6 +12,14 @@ import {
   frameClipInputToOperation,
   isResolvedFrameClipped,
 } from "../../transactions/frameClip";
+
+/**
+ * ADR-248 G0 frozen scenarios (`docs/adr/design/248-baseline/`) are kept local only (user decision
+ * 2026-09-30): a checkout without them skips the tests that read them.
+ */
+const G0_BASELINE_ABSENT = !existsSync(
+  new URL("../../../../../../docs/adr/design/248-baseline", import.meta.url),
+);
 
 const fixture = () => {
   const { document, library } = createG1Fixture();
@@ -961,153 +969,159 @@ describe("ADR-248 G1 isolated catalog graph", () => {
     expect(graph.history).toHaveLength(1);
   });
 
-  it("uses the frozen G0 semantic scenario as input without importing old document JSON", () => {
-    const old = JSON.parse(
-      readFileSync(
-        new URL(
-          "../../../../../../docs/adr/design/248-baseline/descendant-precedence.json",
-          import.meta.url,
+  it.skipIf(G0_BASELINE_ABSENT)(
+    "uses the frozen G0 semantic scenario as input without importing old document JSON",
+    () => {
+      const old = JSON.parse(
+        readFileSync(
+          new URL(
+            "../../../../../../docs/adr/design/248-baseline/descendant-precedence.json",
+            import.meta.url,
+          ),
+          "utf8",
         ),
-        "utf8",
-      ),
-    );
-    expect(old.head).toBe("2a5c970994cb9de2f824a729b29c08cdcd647d7b");
-    expect(old.scenario.id).toBe("adr248-old-descendant-precedence-v1");
-    const graph = fixture();
-    const address = {
-      instances: ["project:node:cardA"],
-      templatePath: ["lib:template:cardRoot", "lib:template:cardText"],
-    } as const;
-    request(graph, [
-      {
-        kind: "upsertDescendant",
-        id: "project:node:cardA",
-        override: {
-          kind: "patch",
-          address,
-          props: {
-            children: {
-              kind: "set",
-              value: old.oldOutput.modeA.props.children,
+      );
+      expect(old.head).toBe("2a5c970994cb9de2f824a729b29c08cdcd647d7b");
+      expect(old.scenario.id).toBe("adr248-old-descendant-precedence-v1");
+      const graph = fixture();
+      const address = {
+        instances: ["project:node:cardA"],
+        templatePath: ["lib:template:cardRoot", "lib:template:cardText"],
+      } as const;
+      request(graph, [
+        {
+          kind: "upsertDescendant",
+          id: "project:node:cardA",
+          override: {
+            kind: "patch",
+            address,
+            props: {
+              children: {
+                kind: "set",
+                value: old.oldOutput.modeA.props.children,
+              },
             },
           },
         },
-      },
-    ]);
-    expect(
-      resolveCatalogNode(graph, "project:node:cardA").children[0].children[0]
-        .props.children,
-    ).toBe(old.oldOutput.modeA.props.children);
-    const fill: NodeEntry = {
-      kind: "node",
-      id: "project:node:oldScenarioFill",
-      definitionId: "lib:definition:text",
-      children: [],
-      props: {
-        children: {
-          kind: "set",
-          value: old.oldOutput.modeC.ownedProps.children,
-        },
-      },
-      visual: {},
-      sizing: {},
-      descendantOverrides: [],
-    };
-    request(graph, [
-      { kind: "put", entry: fill },
-      {
-        kind: "upsertDescendant",
-        id: "project:node:cardA",
-        override: {
-          kind: "fillSlot",
-          address: {
-            instances: ["project:node:cardA"],
-            templatePath: ["lib:template:cardRoot", "lib:template:cardSlot"],
+      ]);
+      expect(
+        resolveCatalogNode(graph, "project:node:cardA").children[0].children[0]
+          .props.children,
+      ).toBe(old.oldOutput.modeA.props.children);
+      const fill: NodeEntry = {
+        kind: "node",
+        id: "project:node:oldScenarioFill",
+        definitionId: "lib:definition:text",
+        children: [],
+        props: {
+          children: {
+            kind: "set",
+            value: old.oldOutput.modeC.ownedProps.children,
           },
-          childIds: [fill.id],
         },
-      },
-    ]);
-    expect(
-      resolveCatalogNode(graph, "project:node:cardA").children[0].children[2]
-        .children[0].props.children,
-    ).toBe(old.oldOutput.modeC.ownedProps.children);
-  });
+        visual: {},
+        sizing: {},
+        descendantOverrides: [],
+      };
+      request(graph, [
+        { kind: "put", entry: fill },
+        {
+          kind: "upsertDescendant",
+          id: "project:node:cardA",
+          override: {
+            kind: "fillSlot",
+            address: {
+              instances: ["project:node:cardA"],
+              templatePath: ["lib:template:cardRoot", "lib:template:cardSlot"],
+            },
+            childIds: [fill.id],
+          },
+        },
+      ]);
+      expect(
+        resolveCatalogNode(graph, "project:node:cardA").children[0].children[2]
+          .children[0].props.children,
+      ).toBe(old.oldOutput.modeC.ownedProps.children);
+    },
+  );
 
-  it("owns page layout, placement and guides in typed project/page entries", () => {
-    const old = JSON.parse(
-      readFileSync(
-        new URL(
-          "../../../../../../docs/adr/design/248-baseline/page-authoring/baseline.json",
-          import.meta.url,
+  it.skipIf(G0_BASELINE_ABSENT)(
+    "owns page layout, placement and guides in typed project/page entries",
+    () => {
+      const old = JSON.parse(
+        readFileSync(
+          new URL(
+            "../../../../../../docs/adr/design/248-baseline/page-authoring/baseline.json",
+            import.meta.url,
+          ),
+          "utf8",
         ),
-        "utf8",
-      ),
-    );
-    expect(old.scenario.id).toBe("adr248-old-page-authoring-v1");
-    const graph = fixture();
-    const root = graph.getEntry(graph.projectId);
-    const page = graph.getEntry("project:page:main");
-    if (root?.kind !== "project" || page?.kind !== "page")
-      throw new Error("bad fixture");
-    request(graph, [
-      {
-        kind: "put",
-        entry: {
-          ...root,
-          pageLayout: {
-            direction: old.after.direction,
-            gap: old.after.gap,
-            columns: old.after.columns,
-          },
-        },
-      },
-      {
-        kind: "put",
-        entry: {
-          ...page,
-          placement: { base: old.after.placement.style, breakpoints: {} },
-          guideEntries: { desktop: old.after.guides },
-        },
-      },
-    ]);
-    expect((graph.getEntry(root.id) as typeof root).pageLayout?.direction).toBe(
-      old.after.direction,
-    );
-    expect((graph.getEntry(page.id) as typeof page).placement?.base.left).toBe(
-      old.after.placement.style.left,
-    );
-    expect(
-      (graph.getEntry(page.id) as typeof page).guideEntries?.desktop?.[0]
-        .position,
-    ).toBe(old.after.guides[0].position);
-    failureCode(
-      () =>
-        request(graph, [
-          {
-            kind: "put",
-            entry: {
-              ...page,
-              placement: { base: { gridRow: 2 }, breakpoints: {} },
-            } as never,
-          },
-        ]),
-      "INVALID_PLACEMENT_FIELD",
-    );
-    failureCode(
-      () =>
-        request(graph, [
-          {
-            kind: "put",
-            entry: {
-              ...root,
-              pageLayout: { direction: "horizontal", gap: -1 },
+      );
+      expect(old.scenario.id).toBe("adr248-old-page-authoring-v1");
+      const graph = fixture();
+      const root = graph.getEntry(graph.projectId);
+      const page = graph.getEntry("project:page:main");
+      if (root?.kind !== "project" || page?.kind !== "page")
+        throw new Error("bad fixture");
+      request(graph, [
+        {
+          kind: "put",
+          entry: {
+            ...root,
+            pageLayout: {
+              direction: old.after.direction,
+              gap: old.after.gap,
+              columns: old.after.columns,
             },
           },
-        ]),
-      "NONNEGATIVE_NUMBER_REQUIRED",
-    );
-  });
+        },
+        {
+          kind: "put",
+          entry: {
+            ...page,
+            placement: { base: old.after.placement.style, breakpoints: {} },
+            guideEntries: { desktop: old.after.guides },
+          },
+        },
+      ]);
+      expect(
+        (graph.getEntry(root.id) as typeof root).pageLayout?.direction,
+      ).toBe(old.after.direction);
+      expect(
+        (graph.getEntry(page.id) as typeof page).placement?.base.left,
+      ).toBe(old.after.placement.style.left);
+      expect(
+        (graph.getEntry(page.id) as typeof page).guideEntries?.desktop?.[0]
+          .position,
+      ).toBe(old.after.guides[0].position);
+      failureCode(
+        () =>
+          request(graph, [
+            {
+              kind: "put",
+              entry: {
+                ...page,
+                placement: { base: { gridRow: 2 }, breakpoints: {} },
+              } as never,
+            },
+          ]),
+        "INVALID_PLACEMENT_FIELD",
+      );
+      failureCode(
+        () =>
+          request(graph, [
+            {
+              kind: "put",
+              entry: {
+                ...root,
+                pageLayout: { direction: "horizontal", gap: -1 },
+              },
+            },
+          ]),
+        "NONNEGATIVE_NUMBER_REQUIRED",
+      );
+    },
+  );
 
   it("keeps stable refs through rename and reorder, and rejects referenced definition deletion", () => {
     const graph = fixture();

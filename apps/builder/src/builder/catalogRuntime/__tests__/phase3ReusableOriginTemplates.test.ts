@@ -259,9 +259,12 @@ it("converts every reusable origin into typed lib:* templates, accounts for ever
     for (const [key, value] of Object.entries(template!.props)) {
       // A propagated child prop binds the owner prop (`{label}`): the composite default carries
       // the canonical value.
-      const bound = typeof value === "string" ? /^\{(\w+)\}$/.exec(value)?.[1] : undefined;
+      const bound =
+        typeof value === "string" ? /^\{(\w+)\}$/.exec(value)?.[1] : undefined;
       if (bound && node !== origin && props[key] !== value) {
-        const defaults = definitions.get(originDefinitionId(origin.id))?.defaults;
+        const defaults = definitions.get(
+          originDefinitionId(origin.id),
+        )?.defaults;
         expect(defaults?.[bound], `${node.id}.${key} ← {${bound}}`).toBe(
           props[key] ?? defaults?.[bound],
         );

@@ -26,10 +26,49 @@ import {
   renderCatalogDom,
 } from "@/builder/catalogRuntime/domBinding";
 import { bindCatalogCanvas } from "@/builder/catalogRuntime/canvasBinding";
-import baseline from "../../../../docs/adr/design/248-baseline/baseline.json";
-import nativeBaseline from "../../../../docs/adr/design/248-baseline/native-state-pinned/baseline.json";
 import slotMatrixExpected from "../../../../docs/adr/design/248-phase3-slot-matrix-dom.json";
 import slotDomPaintBounds from "../../../../docs/adr/design/248-phase3-slot-dom-paint-bounds.json";
+
+/** A frozen G0 scenario operation (the fields these tests read). */
+interface G0Operation {
+  op: string;
+  id: string;
+  component: string;
+  parent: string;
+  x: number;
+  y: number;
+  width?: number;
+  height?: number;
+  fill?: string;
+  border?: string;
+  text?: string;
+  description?: string;
+  orientation?: string;
+  size?: string;
+  overflow?: string;
+}
+interface G0Scenario {
+  scenario: {
+    viewport: { width: number; height: number };
+    operations: G0Operation[];
+  };
+}
+/**
+ * The frozen G0 scenarios (`docs/adr/design/248-baseline/`) are kept local only (user decision
+ * 2026-09-30): an eager glob is empty in a checkout without them, and the tests reading them skip.
+ */
+const baseline = Object.values(
+  import.meta.glob<G0Scenario>(
+    "../../../../docs/adr/design/248-baseline/baseline.json",
+    { eager: true, import: "default" },
+  ),
+)[0];
+const nativeBaseline = Object.values(
+  import.meta.glob<G0Scenario>(
+    "../../../../docs/adr/design/248-baseline/native-state-pinned/baseline.json",
+    { eager: true, import: "default" },
+  ),
+)[0];
 
 /**
  * Regenerates the Slot DOM expectations (PNG + JSON) from the product DOM binding:
@@ -933,464 +972,478 @@ describe("ADR-248 test-entry isolated RAC DOM consumer", () => {
       rows.every((row) => row.pixelVerdict === "FAIL_ACTUAL_PIXEL_DIFFERENCE"),
     ).toBe(true);
   });
-  it("clips the three pinned Frame overflow inputs in the real DOM hit surface", async () => {
-    const { document: seed } = createG1Fixture();
-    const page = seed.entries["project:page:main"] as Extract<
-      CatalogEntry,
-      { kind: "page" }
-    >;
-    const graph = new CatalogGraph(
-      {
-        ...seed,
-        entries: {
-          [seed.projectId]: seed.entries[seed.projectId],
-          [page.id]: { ...page, children: [] },
-        },
-      },
-      createPencilFixtureLibrary(),
-    );
-    const root = new CatalogCompositionRoot(
-      new CatalogRuntime(
-        graph,
-        new CatalogStorage(indexedDB, "adr248-browser-frame-clip"),
-      ),
-      createLayoutEngine(),
-      nativeBaseline.scenario.viewport,
-    );
-    const operations = nativeBaseline.scenario.operations.filter(
-      (operation) => operation.op === "insertFrameWithOverflowChild",
-    );
-    const nodes: NodeEntry[] = operations.flatMap((operation): NodeEntry[] => {
-      const id = `project:node:${operation.id}` as NodeEntry["id"];
-      const childId = `project:node:${operation.id}-child-0` as NodeEntry["id"];
-      return [
+  it.skipIf(!nativeBaseline)(
+    "clips the three pinned Frame overflow inputs in the real DOM hit surface",
+    async () => {
+      const { document: seed } = createG1Fixture();
+      const page = seed.entries["project:page:main"] as Extract<
+        CatalogEntry,
+        { kind: "page" }
+      >;
+      const graph = new CatalogGraph(
         {
-          kind: "node",
-          id,
-          definitionId: "lib:definition:frame",
-          children: [childId],
-          props: {},
-          visual: {
-            overflow: { kind: "set", value: operation.overflow! },
-            // G0 Frame input border; the DOM and Canvas bindings both require its color.
-            borderColor: { kind: "set", value: "#3851a4" },
-            borderWidth: { kind: "set", value: 2 },
+          ...seed,
+          entries: {
+            [seed.projectId]: seed.entries[seed.projectId],
+            [page.id]: { ...page, children: [] },
           },
-          sizing: {
-            width: { kind: "set", value: 130 },
-            height: { kind: "set", value: 100 },
-          },
-          placement: { kind: "absolute", x: operation.x, y: operation.y },
-          descendantOverrides: [],
         },
+        createPencilFixtureLibrary(),
+      );
+      const root = new CatalogCompositionRoot(
+        new CatalogRuntime(
+          graph,
+          new CatalogStorage(indexedDB, "adr248-browser-frame-clip"),
+        ),
+        createLayoutEngine(),
+        nativeBaseline!.scenario.viewport,
+      );
+      const operations = nativeBaseline!.scenario.operations.filter(
+        (operation) => operation.op === "insertFrameWithOverflowChild",
+      );
+      const nodes: NodeEntry[] = operations.flatMap(
+        (operation): NodeEntry[] => {
+          const id = `project:node:${operation.id}` as NodeEntry["id"];
+          const childId =
+            `project:node:${operation.id}-child-0` as NodeEntry["id"];
+          return [
+            {
+              kind: "node",
+              id,
+              definitionId: "lib:definition:frame",
+              children: [childId],
+              props: {},
+              visual: {
+                overflow: { kind: "set", value: operation.overflow! },
+                // G0 Frame input border; the DOM and Canvas bindings both require its color.
+                borderColor: { kind: "set", value: "#3851a4" },
+                borderWidth: { kind: "set", value: 2 },
+              },
+              sizing: {
+                width: { kind: "set", value: 130 },
+                height: { kind: "set", value: 100 },
+              },
+              placement: { kind: "absolute", x: operation.x, y: operation.y },
+              descendantOverrides: [],
+            },
+            {
+              kind: "node",
+              id: childId,
+              definitionId: "lib:definition:text",
+              children: [],
+              props: { children: { kind: "set", value: "child" } },
+              visual: { fill: { kind: "set", value: "#e04747" } },
+              sizing: {
+                width: { kind: "set", value: 100 },
+                height: { kind: "set", value: 40 },
+              },
+              placement: { kind: "absolute", x: 90, y: 30 },
+              descendantOverrides: [],
+            },
+          ];
+        },
+      );
+      root.dispatch("G0 Frame clip insert", [
+        ...nodes.map((entry) => ({ kind: "put" as const, entry })),
         {
-          kind: "node",
-          id: childId,
-          definitionId: "lib:definition:text",
-          children: [],
-          props: { children: { kind: "set", value: "child" } },
-          visual: { fill: { kind: "set", value: "#e04747" } },
-          sizing: {
-            width: { kind: "set", value: 100 },
-            height: { kind: "set", value: 40 },
+          kind: "put",
+          entry: {
+            ...page,
+            children: operations.map(
+              (operation) => `project:node:${operation.id}` as NodeEntry["id"],
+            ),
           },
-          placement: { kind: "absolute", x: 90, y: 30 },
-          descendantOverrides: [],
         },
-      ];
-    });
-    root.dispatch("G0 Frame clip insert", [
-      ...nodes.map((entry) => ({ kind: "put" as const, entry })),
-      {
-        kind: "put",
-        entry: {
-          ...page,
-          children: operations.map(
-            (operation) => `project:node:${operation.id}` as NodeEntry["id"],
-          ),
-        },
-      },
-    ]);
-    const bySource = new Map(
-      [...root.domInputs.values()].map((node) => [node.sourceId, node]),
-    );
-    // Product-path DOM binding for the same resolved Frame/child inputs.
-    const frameIds = operations.map(
-      (operation) => bySource.get(`project:node:${operation.id}`)!.id,
-    );
-    reactRoot.render(
-      React.createElement(
-        React.Fragment,
-        null,
-        ...frameIds.map((id) => renderCatalogDom(root, id)),
-      ),
-    );
-    await new Promise<void>((done) =>
-      requestAnimationFrame(() => requestAnimationFrame(() => done())),
-    );
-    for (const operation of operations) {
-      const frameInput = bySource.get(`project:node:${operation.id}`)!;
-      const frame = host.querySelector<HTMLElement>(
-        `[data-catalog-id="${frameInput.id}"]`,
-      )!;
-      const child = host.querySelector<HTMLElement>(
-        `[data-catalog-id="${frameInput.children[0]}"]`,
-      )!;
-      const parentRect = frame.getBoundingClientRect();
-      const childRect = child.getBoundingClientRect();
-      expect(getComputedStyle(frame).overflow).toBe(operation.overflow);
-      expect([childRect.x - parentRect.x, childRect.y - parentRect.y]).toEqual([
-        92, 32,
       ]);
-      const outsideHit = document.elementFromPoint(
-        parentRect.x + 150,
-        parentRect.y + 55,
+      const bySource = new Map(
+        [...root.domInputs.values()].map((node) => [node.sourceId, node]),
       );
-      expect(outsideHit === child).toBe(operation.overflow === "visible");
-    }
-  });
-  it("consumes Group orientation and size gap from the same resolved graph as Rust", async () => {
-    const { document: seed } = createG1Fixture();
-    const page = seed.entries["project:page:main"] as Extract<
-      CatalogEntry,
-      { kind: "page" }
-    >;
-    const graph = new CatalogGraph(
-      {
-        ...seed,
-        entries: {
-          [seed.projectId]: seed.entries[seed.projectId],
-          [page.id]: { ...page, children: [] },
-        },
-      },
-      createPencilFixtureLibrary(),
-    );
-    const root = new CatalogCompositionRoot(
-      new CatalogRuntime(
-        graph,
-        new CatalogStorage(indexedDB, "adr248-browser-group-size"),
-      ),
-      createLayoutEngine(),
-      nativeBaseline.scenario.viewport,
-    );
-    const operations = nativeBaseline.scenario.operations.filter(
-      (operation) => operation.op === "insertGroupWithChildren",
-    );
-    const nodes: NodeEntry[] = operations.flatMap((operation) => {
-      const id = `project:node:${operation.id}` as NodeEntry["id"];
-      const children = [0, 1].map(
-        (index) =>
-          `project:node:${operation.id}-child-${index}` as NodeEntry["id"],
+      // Product-path DOM binding for the same resolved Frame/child inputs.
+      const frameIds = operations.map(
+        (operation) => bySource.get(`project:node:${operation.id}`)!.id,
       );
-      return [
+      reactRoot.render(
+        React.createElement(
+          React.Fragment,
+          null,
+          ...frameIds.map((id) => renderCatalogDom(root, id)),
+        ),
+      );
+      await new Promise<void>((done) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => done())),
+      );
+      for (const operation of operations) {
+        const frameInput = bySource.get(`project:node:${operation.id}`)!;
+        const frame = host.querySelector<HTMLElement>(
+          `[data-catalog-id="${frameInput.id}"]`,
+        )!;
+        const child = host.querySelector<HTMLElement>(
+          `[data-catalog-id="${frameInput.children[0]}"]`,
+        )!;
+        const parentRect = frame.getBoundingClientRect();
+        const childRect = child.getBoundingClientRect();
+        expect(getComputedStyle(frame).overflow).toBe(operation.overflow);
+        expect([
+          childRect.x - parentRect.x,
+          childRect.y - parentRect.y,
+        ]).toEqual([92, 32]);
+        const outsideHit = document.elementFromPoint(
+          parentRect.x + 150,
+          parentRect.y + 55,
+        );
+        expect(outsideHit === child).toBe(operation.overflow === "visible");
+      }
+    },
+  );
+  it.skipIf(!nativeBaseline)(
+    "consumes Group orientation and size gap from the same resolved graph as Rust",
+    async () => {
+      const { document: seed } = createG1Fixture();
+      const page = seed.entries["project:page:main"] as Extract<
+        CatalogEntry,
+        { kind: "page" }
+      >;
+      const graph = new CatalogGraph(
         {
-          kind: "node",
-          id,
-          name: operation.id,
-          definitionId: "lib:definition:group",
-          children,
-          props: {
-            orientation: { kind: "set", value: operation.orientation! },
-            size: { kind: "set", value: operation.size! },
+          ...seed,
+          entries: {
+            [seed.projectId]: seed.entries[seed.projectId],
+            [page.id]: { ...page, children: [] },
           },
-          visual: {
-            fill: { kind: "set", value: "#edf7ec" },
-            borderColor: { kind: "set", value: "#3851a4" },
-            borderWidth: { kind: "set", value: 2 },
-          },
-          sizing: {
-            width: { kind: "set", value: 170 },
-            height: { kind: "set", value: 110 },
-          },
-          placement: { kind: "absolute", x: operation.x, y: operation.y },
-          descendantOverrides: [],
         },
-        ...children.map((childId, index): NodeEntry => ({
-          kind: "node",
-          id: childId,
-          definitionId: "lib:definition:text",
-          children: [],
-          props: { children: { kind: "set", value: String(index + 1) } },
-          visual: {},
-          sizing: {
-            width: { kind: "set", value: 50 },
-            height: { kind: "set", value: 40 },
+        createPencilFixtureLibrary(),
+      );
+      const root = new CatalogCompositionRoot(
+        new CatalogRuntime(
+          graph,
+          new CatalogStorage(indexedDB, "adr248-browser-group-size"),
+        ),
+        createLayoutEngine(),
+        nativeBaseline!.scenario.viewport,
+      );
+      const operations = nativeBaseline!.scenario.operations.filter(
+        (operation) => operation.op === "insertGroupWithChildren",
+      );
+      const nodes: NodeEntry[] = operations.flatMap((operation) => {
+        const id = `project:node:${operation.id}` as NodeEntry["id"];
+        const children = [0, 1].map(
+          (index) =>
+            `project:node:${operation.id}-child-${index}` as NodeEntry["id"],
+        );
+        return [
+          {
+            kind: "node",
+            id,
+            name: operation.id,
+            definitionId: "lib:definition:group",
+            children,
+            props: {
+              orientation: { kind: "set", value: operation.orientation! },
+              size: { kind: "set", value: operation.size! },
+            },
+            visual: {
+              fill: { kind: "set", value: "#edf7ec" },
+              borderColor: { kind: "set", value: "#3851a4" },
+              borderWidth: { kind: "set", value: 2 },
+            },
+            sizing: {
+              width: { kind: "set", value: 170 },
+              height: { kind: "set", value: 110 },
+            },
+            placement: { kind: "absolute", x: operation.x, y: operation.y },
+            descendantOverrides: [],
           },
-          descendantOverrides: [],
-        })),
-      ];
-    });
-    root.dispatch("G0 Group insert", [
-      ...nodes.map((entry) => ({ kind: "put" as const, entry })),
-      {
-        kind: "put",
-        entry: {
-          ...page,
-          children: operations.map(
-            (operation) => `project:node:${operation.id}` as NodeEntry["id"],
-          ),
+          ...children.map((childId, index): NodeEntry => ({
+            kind: "node",
+            id: childId,
+            definitionId: "lib:definition:text",
+            children: [],
+            props: { children: { kind: "set", value: String(index + 1) } },
+            visual: {},
+            sizing: {
+              width: { kind: "set", value: 50 },
+              height: { kind: "set", value: 40 },
+            },
+            descendantOverrides: [],
+          })),
+        ];
+      });
+      root.dispatch("G0 Group insert", [
+        ...nodes.map((entry) => ({ kind: "put" as const, entry })),
+        {
+          kind: "put",
+          entry: {
+            ...page,
+            children: operations.map(
+              (operation) => `project:node:${operation.id}` as NodeEntry["id"],
+            ),
+          },
         },
-      },
-    ]);
-    const bySource = new Map(
-      [...root.domInputs.values()].map((node) => [node.sourceId, node]),
-    );
-    // Product-path DOM binding for the same resolved Group/Text inputs.
-    reactRoot.render(
-      React.createElement(
-        React.Fragment,
-        null,
-        ...operations.map((operation) =>
-          renderCatalogDom(
-            root,
-            bySource.get(`project:node:${operation.id}`)!.id,
+      ]);
+      const bySource = new Map(
+        [...root.domInputs.values()].map((node) => [node.sourceId, node]),
+      );
+      // Product-path DOM binding for the same resolved Group/Text inputs.
+      reactRoot.render(
+        React.createElement(
+          React.Fragment,
+          null,
+          ...operations.map((operation) =>
+            renderCatalogDom(
+              root,
+              bySource.get(`project:node:${operation.id}`)!.id,
+            ),
           ),
         ),
-      ),
-    );
-    await new Promise<void>((done) =>
-      requestAnimationFrame(() => requestAnimationFrame(() => done())),
-    );
-    for (const operation of operations) {
-      const node = bySource.get(`project:node:${operation.id}`)!;
-      const group = host.querySelector<HTMLElement>(
-        `[data-catalog-id="${node.id}"]`,
-      )!;
-      const second = host.querySelector<HTMLElement>(
-        `[data-catalog-id="${node.children[1]}"]`,
-      )!;
-      const actual = second.getBoundingClientRect();
-      const parent = group.getBoundingClientRect();
-      const expectedGap = operation.size === "sm" ? 6 : 12;
-      expect(node.visual.gap).toBe(expectedGap);
-      expect(getComputedStyle(group).gap).toBe(`${expectedGap}px`);
-      expect(getComputedStyle(group).backgroundColor).toBe(
-        "rgb(237, 247, 236)",
       );
-      expect(getComputedStyle(group).borderTopColor).toBe("rgb(56, 81, 164)");
-      expect(getComputedStyle(group).flexDirection).toBe(
-        operation.orientation === "horizontal" ? "row" : "column",
+      await new Promise<void>((done) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => done())),
       );
-      expect(group.getAttribute("aria-orientation")).toBe(
-        operation.orientation,
-      );
-      expect(group.getAttribute("role")).toBe("group");
-      expect([actual.x - parent.x, actual.y - parent.y]).toEqual(
-        operation.orientation === "horizontal" ? [58, 2] : [2, 54],
-      );
-    }
-  });
-  it("uses the pinned insert commands and typed placement for actual DOM geometry and ARIA", async () => {
-    const { document: seed } = createG1Fixture();
-    const page = seed.entries["project:page:main"] as Extract<
-      CatalogEntry,
-      { kind: "page" }
-    >;
-    const graph = new CatalogGraph(
-      {
-        ...seed,
-        entries: {
-          [seed.projectId]: seed.entries[seed.projectId],
-          [page.id]: { ...page, children: [] },
+      for (const operation of operations) {
+        const node = bySource.get(`project:node:${operation.id}`)!;
+        const group = host.querySelector<HTMLElement>(
+          `[data-catalog-id="${node.id}"]`,
+        )!;
+        const second = host.querySelector<HTMLElement>(
+          `[data-catalog-id="${node.children[1]}"]`,
+        )!;
+        const actual = second.getBoundingClientRect();
+        const parent = group.getBoundingClientRect();
+        const expectedGap = operation.size === "sm" ? 6 : 12;
+        expect(node.visual.gap).toBe(expectedGap);
+        expect(getComputedStyle(group).gap).toBe(`${expectedGap}px`);
+        expect(getComputedStyle(group).backgroundColor).toBe(
+          "rgb(237, 247, 236)",
+        );
+        expect(getComputedStyle(group).borderTopColor).toBe("rgb(56, 81, 164)");
+        expect(getComputedStyle(group).flexDirection).toBe(
+          operation.orientation === "horizontal" ? "row" : "column",
+        );
+        expect(group.getAttribute("aria-orientation")).toBe(
+          operation.orientation,
+        );
+        expect(group.getAttribute("role")).toBe("group");
+        expect([actual.x - parent.x, actual.y - parent.y]).toEqual(
+          operation.orientation === "horizontal" ? [58, 2] : [2, 54],
+        );
+      }
+    },
+  );
+  it.skipIf(!baseline)(
+    "uses the pinned insert commands and typed placement for actual DOM geometry and ARIA",
+    async () => {
+      const { document: seed } = createG1Fixture();
+      const page = seed.entries["project:page:main"] as Extract<
+        CatalogEntry,
+        { kind: "page" }
+      >;
+      const graph = new CatalogGraph(
+        {
+          ...seed,
+          entries: {
+            [seed.projectId]: seed.entries[seed.projectId],
+            [page.id]: { ...page, children: [] },
+          },
         },
-      },
-      createPencilFixtureLibrary(),
-    );
-    const root = new CatalogCompositionRoot(
-      new CatalogRuntime(
-        graph,
-        new CatalogStorage(indexedDB, "adr248-browser-dom"),
-      ),
-      createLayoutEngine(),
-      baseline.scenario.viewport,
-    );
-    const operations = baseline.scenario.operations;
-    const nodes: NodeEntry[] = operations.map((operation) => ({
-      kind: "node",
-      id: `project:node:${operation.id}`,
-      name: operation.id,
-      definitionId: `lib:definition:${operation.component.toLowerCase()}`,
-      children: operations
-        .filter((child) => child.parent === operation.id)
-        .map((child) => `project:node:${child.id}` as NodeEntry["id"]),
-      props: {
-        ...(operation.orientation
-          ? { orientation: { kind: "set", value: operation.orientation } }
-          : {}),
-        ...(operation.size
-          ? { size: { kind: "set", value: operation.size } }
-          : {}),
-        ...(operation.description
-          ? { description: { kind: "set", value: operation.description } }
-          : {}),
-        ...(operation.text
-          ? { children: { kind: "set", value: operation.text } }
-          : {}),
-      },
-      visual: {
-        ...(operation.fill
-          ? { fill: { kind: "set", value: operation.fill } }
-          : {}),
-        ...(operation.border
-          ? {
-              borderColor: { kind: "set", value: operation.border },
-              borderWidth: { kind: "set", value: 2 },
-            }
-          : {}),
-      },
-      sizing: {
-        width: { kind: "set", value: operation.width },
-        height: { kind: "set", value: operation.height },
-      },
-      placement: { kind: "absolute", x: operation.x, y: operation.y },
-      descendantOverrides: [],
-    }));
-    root.dispatch("G0 insert", [
-      ...nodes.map((entry) => ({ kind: "put" as const, entry })),
-      { kind: "put", entry: { ...page, children: [nodes[0].id] } },
-    ]);
-    let inputs = new Map(
-      [...root.domInputs.values()].map((node) => [node.id, node]),
-    );
-    let frame = [...inputs.values()].find(
-      (node) => node.sourceId === "project:node:frame",
-    )!;
-    let slotEditMode = true;
-    reactRoot.render(
-      renderCatalogDom(root, frame.id, {
-        slotMode: slotEditMode ? "edit" : "page",
-      }),
-    );
-    await new Promise<void>((done) =>
-      requestAnimationFrame(() => requestAnimationFrame(() => done())),
-    );
-    // Product binding marks each element with its resolved record id (instance path + source).
-    const selector = (id: string) =>
-      `[data-catalog-id="${
-        [...root.domInputs.values()].find(
-          (node) => node.sourceId === `project:node:${id}`,
-        )!.id
-      }"]`;
-    const dom = (id: string) => host.querySelector<HTMLElement>(selector(id))!;
-    const frameRect = dom("frame").getBoundingClientRect();
-    const groupRect = dom("group").getBoundingClientRect();
-    const textRect = dom("text").getBoundingClientRect();
-    expect(frameRect.x - host.getBoundingClientRect().x).toBe(40);
-    expect(frameRect.y - host.getBoundingClientRect().y).toBe(40);
-    expect(frameRect.width).toBe(440);
-    expect(dom("frame").getAttribute("role")).toBeNull();
-    expect(getComputedStyle(dom("frame")).display).toBe("block");
-    expect(getComputedStyle(dom("frame")).borderTopWidth).toBe("2px");
-    expect(getComputedStyle(dom("frame")).borderTopColor).toBe(
-      "rgb(56, 81, 164)",
-    );
-    expect(groupRect.x - frameRect.x).toBe(22);
-    expect(groupRect.y - frameRect.y).toBe(22);
-    expect(groupRect.width).toBe(380);
-    expect(textRect.x - groupRect.x).toBe(180);
-    expect(textRect.y - groupRect.y).toBe(0);
-    expect(dom("group").getAttribute("role")).toBe("group");
-    expect(getComputedStyle(dom("group")).backgroundColor).toBe(
-      "rgba(0, 0, 0, 0)",
-    );
-    expect(dom("group").getAttribute("aria-orientation")).toBe("horizontal");
-    expect(getComputedStyle(dom("group")).flexDirection).toBe("row");
-    expect(getComputedStyle(dom("group")).gap).toBe("8px");
-    expect(
-      dom("slot").querySelector(".react-aria-Slot-description")?.textContent,
-    ).toBe("내용");
-    expect(dom("slot").getAttribute("data-empty")).toBe("true");
-    root.dispatch("supplemental RAC Group properties", [
-      {
-        kind: "patchNodeProp",
-        id: "project:node:group",
-        key: "label",
-        write: { kind: "set", value: "Toolbar" },
-      },
-      {
-        kind: "patchNodeProp",
-        id: "project:node:group",
-        key: "aria-label",
-        write: { kind: "set", value: "Actions" },
-      },
-      {
-        kind: "patchNodeProp",
-        id: "project:node:group",
-        key: "role",
-        write: { kind: "set", value: "region" },
-      },
-      {
-        kind: "patchNodeProp",
-        id: "project:node:group",
-        key: "isDisabled",
-        write: { kind: "set", value: true },
-      },
-    ]);
-    inputs = new Map(
-      [...root.domInputs.values()].map((node) => [node.id, node]),
-    );
-    frame = [...inputs.values()].find(
-      (node) => node.sourceId === "project:node:frame",
-    )!;
-    reactRoot.render(
-      renderCatalogDom(root, frame.id, {
-        slotMode: slotEditMode ? "edit" : "page",
-      }),
-    );
-    await new Promise<void>((done) =>
-      requestAnimationFrame(() => requestAnimationFrame(() => done())),
-    );
-    expect(dom("group").getAttribute("role")).toBe("region");
-    expect(dom("group").getAttribute("aria-label")).toBe("Actions");
-    expect(dom("group").getAttribute("data-group-label")).toBe("Toolbar");
-    expect(dom("group").getAttribute("data-disabled")).not.toBeNull();
-    expect(getComputedStyle(dom("group")).opacity).toBe("0.38");
-    const slotEntry = graph.getEntry("project:node:slot") as NodeEntry;
-    const fillId = "project:node:slotFill" as NodeEntry["id"];
-    root.dispatch("fill Slot", [
-      {
-        kind: "put",
-        entry: {
-          kind: "node",
-          id: fillId,
-          definitionId: "lib:definition:text",
-          children: [],
-          props: { children: { kind: "set", value: "Filled" } },
-          visual: {},
-          sizing: {},
-          descendantOverrides: [],
+        createPencilFixtureLibrary(),
+      );
+      const root = new CatalogCompositionRoot(
+        new CatalogRuntime(
+          graph,
+          new CatalogStorage(indexedDB, "adr248-browser-dom"),
+        ),
+        createLayoutEngine(),
+        baseline!.scenario.viewport,
+      );
+      const operations = baseline!.scenario.operations;
+      const nodes: NodeEntry[] = operations.map((operation) => ({
+        kind: "node",
+        id: `project:node:${operation.id}`,
+        name: operation.id,
+        definitionId: `lib:definition:${operation.component.toLowerCase()}`,
+        children: operations
+          .filter((child) => child.parent === operation.id)
+          .map((child) => `project:node:${child.id}` as NodeEntry["id"]),
+        props: {
+          ...(operation.orientation
+            ? { orientation: { kind: "set", value: operation.orientation } }
+            : {}),
+          ...(operation.size
+            ? { size: { kind: "set", value: operation.size } }
+            : {}),
+          ...(operation.description
+            ? { description: { kind: "set", value: operation.description } }
+            : {}),
+          ...(operation.text
+            ? { children: { kind: "set", value: operation.text } }
+            : {}),
         },
-      },
-      { kind: "put", entry: { ...slotEntry, children: [fillId] } },
-    ]);
-    inputs = new Map(
-      [...root.domInputs.values()].map((node) => [node.id, node]),
-    );
-    frame = [...inputs.values()].find(
-      (node) => node.sourceId === "project:node:frame",
-    )!;
-    reactRoot.render(
-      renderCatalogDom(root, frame.id, {
-        slotMode: slotEditMode ? "edit" : "page",
-      }),
-    );
-    await new Promise<void>((done) =>
-      requestAnimationFrame(() => requestAnimationFrame(() => done())),
-    );
-    expect(dom("slot").getAttribute("data-empty")).toBeNull();
-    expect(dom("slot").textContent).toContain("Filled");
-    slotEditMode = false;
-    reactRoot.render(
-      renderCatalogDom(root, frame.id, {
-        slotMode: slotEditMode ? "edit" : "page",
-      }),
-    );
-    await new Promise<void>((done) =>
-      requestAnimationFrame(() => requestAnimationFrame(() => done())),
-    );
-    expect(host.querySelector(selector("slot"))).toBeNull();
-    expect(host.querySelector(selector("slotFill"))?.textContent).toBe(
-      "Filled",
-    );
-  });
+        visual: {
+          ...(operation.fill
+            ? { fill: { kind: "set", value: operation.fill } }
+            : {}),
+          ...(operation.border
+            ? {
+                borderColor: { kind: "set", value: operation.border },
+                borderWidth: { kind: "set", value: 2 },
+              }
+            : {}),
+        },
+        sizing: {
+          width: { kind: "set", value: operation.width! },
+          height: { kind: "set", value: operation.height! },
+        },
+        placement: { kind: "absolute", x: operation.x, y: operation.y },
+        descendantOverrides: [],
+      }));
+      root.dispatch("G0 insert", [
+        ...nodes.map((entry) => ({ kind: "put" as const, entry })),
+        { kind: "put", entry: { ...page, children: [nodes[0].id] } },
+      ]);
+      let inputs = new Map(
+        [...root.domInputs.values()].map((node) => [node.id, node]),
+      );
+      let frame = [...inputs.values()].find(
+        (node) => node.sourceId === "project:node:frame",
+      )!;
+      let slotEditMode = true;
+      reactRoot.render(
+        renderCatalogDom(root, frame.id, {
+          slotMode: slotEditMode ? "edit" : "page",
+        }),
+      );
+      await new Promise<void>((done) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => done())),
+      );
+      // Product binding marks each element with its resolved record id (instance path + source).
+      const selector = (id: string) =>
+        `[data-catalog-id="${
+          [...root.domInputs.values()].find(
+            (node) => node.sourceId === `project:node:${id}`,
+          )!.id
+        }"]`;
+      const dom = (id: string) =>
+        host.querySelector<HTMLElement>(selector(id))!;
+      const frameRect = dom("frame").getBoundingClientRect();
+      const groupRect = dom("group").getBoundingClientRect();
+      const textRect = dom("text").getBoundingClientRect();
+      expect(frameRect.x - host.getBoundingClientRect().x).toBe(40);
+      expect(frameRect.y - host.getBoundingClientRect().y).toBe(40);
+      expect(frameRect.width).toBe(440);
+      expect(dom("frame").getAttribute("role")).toBeNull();
+      expect(getComputedStyle(dom("frame")).display).toBe("block");
+      expect(getComputedStyle(dom("frame")).borderTopWidth).toBe("2px");
+      expect(getComputedStyle(dom("frame")).borderTopColor).toBe(
+        "rgb(56, 81, 164)",
+      );
+      expect(groupRect.x - frameRect.x).toBe(22);
+      expect(groupRect.y - frameRect.y).toBe(22);
+      expect(groupRect.width).toBe(380);
+      expect(textRect.x - groupRect.x).toBe(180);
+      expect(textRect.y - groupRect.y).toBe(0);
+      expect(dom("group").getAttribute("role")).toBe("group");
+      expect(getComputedStyle(dom("group")).backgroundColor).toBe(
+        "rgba(0, 0, 0, 0)",
+      );
+      expect(dom("group").getAttribute("aria-orientation")).toBe("horizontal");
+      expect(getComputedStyle(dom("group")).flexDirection).toBe("row");
+      expect(getComputedStyle(dom("group")).gap).toBe("8px");
+      expect(
+        dom("slot").querySelector(".react-aria-Slot-description")?.textContent,
+      ).toBe("내용");
+      expect(dom("slot").getAttribute("data-empty")).toBe("true");
+      root.dispatch("supplemental RAC Group properties", [
+        {
+          kind: "patchNodeProp",
+          id: "project:node:group",
+          key: "label",
+          write: { kind: "set", value: "Toolbar" },
+        },
+        {
+          kind: "patchNodeProp",
+          id: "project:node:group",
+          key: "aria-label",
+          write: { kind: "set", value: "Actions" },
+        },
+        {
+          kind: "patchNodeProp",
+          id: "project:node:group",
+          key: "role",
+          write: { kind: "set", value: "region" },
+        },
+        {
+          kind: "patchNodeProp",
+          id: "project:node:group",
+          key: "isDisabled",
+          write: { kind: "set", value: true },
+        },
+      ]);
+      inputs = new Map(
+        [...root.domInputs.values()].map((node) => [node.id, node]),
+      );
+      frame = [...inputs.values()].find(
+        (node) => node.sourceId === "project:node:frame",
+      )!;
+      reactRoot.render(
+        renderCatalogDom(root, frame.id, {
+          slotMode: slotEditMode ? "edit" : "page",
+        }),
+      );
+      await new Promise<void>((done) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => done())),
+      );
+      expect(dom("group").getAttribute("role")).toBe("region");
+      expect(dom("group").getAttribute("aria-label")).toBe("Actions");
+      expect(dom("group").getAttribute("data-group-label")).toBe("Toolbar");
+      expect(dom("group").getAttribute("data-disabled")).not.toBeNull();
+      expect(getComputedStyle(dom("group")).opacity).toBe("0.38");
+      const slotEntry = graph.getEntry("project:node:slot") as NodeEntry;
+      const fillId = "project:node:slotFill" as NodeEntry["id"];
+      root.dispatch("fill Slot", [
+        {
+          kind: "put",
+          entry: {
+            kind: "node",
+            id: fillId,
+            definitionId: "lib:definition:text",
+            children: [],
+            props: { children: { kind: "set", value: "Filled" } },
+            visual: {},
+            sizing: {},
+            descendantOverrides: [],
+          },
+        },
+        { kind: "put", entry: { ...slotEntry, children: [fillId] } },
+      ]);
+      inputs = new Map(
+        [...root.domInputs.values()].map((node) => [node.id, node]),
+      );
+      frame = [...inputs.values()].find(
+        (node) => node.sourceId === "project:node:frame",
+      )!;
+      reactRoot.render(
+        renderCatalogDom(root, frame.id, {
+          slotMode: slotEditMode ? "edit" : "page",
+        }),
+      );
+      await new Promise<void>((done) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => done())),
+      );
+      expect(dom("slot").getAttribute("data-empty")).toBeNull();
+      expect(dom("slot").textContent).toContain("Filled");
+      slotEditMode = false;
+      reactRoot.render(
+        renderCatalogDom(root, frame.id, {
+          slotMode: slotEditMode ? "edit" : "page",
+        }),
+      );
+      await new Promise<void>((done) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => done())),
+      );
+      expect(host.querySelector(selector("slot"))).toBeNull();
+      expect(host.querySelector(selector("slotFill"))?.textContent).toBe(
+        "Filled",
+      );
+    },
+  );
 });

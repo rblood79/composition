@@ -235,17 +235,32 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
     });
     const tab = (name: string) => [
       entry(name, "Tab", {}, [id(`${name}-label`)]),
-      entry(`${name}-label`, "Text", { children: { kind: "set", value: name } }),
+      entry(`${name}-label`, "Text", {
+        children: { kind: "set", value: name },
+      }),
     ];
-    const scene = await open("lib:definition:type-Tabs" as DefinitionId, "tabs-value", {
-      children: [id("list")],
-      nodes: [entry("list", "TabList", {}, [id("one"), id("two")]), ...tab("one"), ...tab("two")],
-    });
+    const scene = await open(
+      "lib:definition:type-Tabs" as DefinitionId,
+      "tabs-value",
+      {
+        children: [id("list")],
+        nodes: [
+          entry("list", "TabList", {}, [id("one"), id("two")]),
+          ...tab("one"),
+          ...tab("two"),
+        ],
+      },
+    );
     const input = (name: string) =>
-      [...scene.root.canvasInputs.values()].find((node) => node.sourceId === id(name))!;
+      [...scene.root.canvasInputs.values()].find(
+        (node) => node.sourceId === id(name),
+      )!;
     const colors = () =>
       ["one-label", "two-label"].map((name) => input(name).derivedProps?.color);
-    expect(colors()).toEqual([TAILWIND_PALETTE.neutral[900], TAILWIND_PALETTE.neutral[600]]);
+    expect(colors()).toEqual([
+      TAILWIND_PALETTE.neutral[900],
+      TAILWIND_PALETTE.neutral[600],
+    ]);
     const notified: string[] = [];
     for (const key of scene.root.canvasInputs.keys())
       scene.root.subscribeCanvas(key, () => notified.push(key));
@@ -257,7 +272,10 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
         write: { kind: "set", value: true },
       },
     ]);
-    expect(colors()).toEqual([TAILWIND_PALETTE.neutral[600], TAILWIND_PALETTE.neutral[900]]);
+    expect(colors()).toEqual([
+      TAILWIND_PALETTE.neutral[600],
+      TAILWIND_PALETTE.neutral[900],
+    ]);
     expect(notified).toContain(input("two-label").id);
     expect(new Map(scene.root.canvasInputs)).toEqual(scene.fresh());
   });

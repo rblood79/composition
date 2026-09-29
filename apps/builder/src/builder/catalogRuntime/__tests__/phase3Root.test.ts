@@ -13,6 +13,7 @@ import type {
 import { CatalogRuntime } from "../controller";
 import { CatalogStorage } from "../storage";
 import { CatalogCompositionRoot } from "../compositionRoot";
+import { G0_BASELINE_ABSENT } from "./support/g0Baseline";
 
 class RecordingLayoutEngine implements LayoutEngineAPI {
   styles: string[] = [];
@@ -104,98 +105,101 @@ describe("ADR-248 Phase 3 isolated composition root delta seam", () => {
     expect(root.layoutInputs.get(first)?.placement).toBeUndefined();
     expect(unrelated).toBe(0);
   });
-  it("replays G0 leaf scenario public commands and refreshes new-format semantic input", async () => {
-    const old = JSON.parse(
-      readFileSync(
-        resolve(
-          process.cwd(),
-          "../../docs/adr/design/248-baseline/leaf-value/baseline.json",
+  it.skipIf(G0_BASELINE_ABSENT)(
+    "replays G0 leaf scenario public commands and refreshes new-format semantic input",
+    async () => {
+      const old = JSON.parse(
+        readFileSync(
+          resolve(
+            process.cwd(),
+            "../../docs/adr/design/248-baseline/leaf-value/baseline.json",
+          ),
+          "utf8",
         ),
-        "utf8",
-      ),
-    ) as {
-      scenario: {
-        id: string;
-        viewport: { width: number; height: number };
-        operations: Array<{ op: string; id?: string; text?: string }>;
+      ) as {
+        scenario: {
+          id: string;
+          viewport: { width: number; height: number };
+          operations: Array<{ op: string; id?: string; text?: string }>;
+        };
+        after: { element: { text: string } };
       };
-      after: { element: { text: string } };
-    };
-    expect(old.scenario.id).toBe("adr248-old-leaf-value-v1");
-    const { document, library } = createG1Fixture();
-    const project = document.entries[document.projectId];
-    const page = document.entries["project:page:main"] as Extract<
-      CatalogEntry,
-      { kind: "page" }
-    >;
-    const fresh = {
-      ...document,
-      entries: {
-        [document.projectId]: project,
-        [page.id]: { ...page, children: [] },
-      },
-    };
-    const graph = new CatalogGraph(fresh, library);
-    const db = new CatalogStorage(
-      indexedDB,
-      `adr248-phase3-leaf-${Math.random()}`,
-    );
-    await db.create(graph.exportDocument(), library);
-    const runtime = new CatalogRuntime(graph, db);
-    const root = new CatalogCompositionRoot(
-      runtime,
-      new RecordingLayoutEngine(),
-      old.scenario.viewport,
-    );
-    const insert = old.scenario.operations[0];
-    const leafId = `project:node:${insert.id}` as NodeEntry["id"];
-    root.dispatch("insert Text", [
-      {
-        kind: "put",
-        entry: {
-          kind: "node",
-          id: leafId,
-          definitionId: "lib:definition:text",
-          children: [],
-          props: { children: { kind: "set", value: insert.text! } },
-          visual: {},
-          sizing: {},
-          descendantOverrides: [],
+      expect(old.scenario.id).toBe("adr248-old-leaf-value-v1");
+      const { document, library } = createG1Fixture();
+      const project = document.entries[document.projectId];
+      const page = document.entries["project:page:main"] as Extract<
+        CatalogEntry,
+        { kind: "page" }
+      >;
+      const fresh = {
+        ...document,
+        entries: {
+          [document.projectId]: project,
+          [page.id]: { ...page, children: [] },
         },
-      },
-      { kind: "put", entry: { ...page, children: [leafId] } },
-    ]);
-    const edit = old.scenario.operations[1];
-    root.dispatch("setText", [
-      {
-        kind: "patchNodeProp",
-        id: leafId,
-        key: "children",
-        write: { kind: "set", value: edit.text! },
-      },
-    ]);
-    expect(root.metrics.layoutInputVisits).toBe(1);
-    expect(root.metrics.resolverVisits).toBe(1);
-    expect(root.metrics.traversedWholeInputGraph).toBe(true); // one-node fixture
-    await runtime.save();
-    const reloaded = new CatalogGraph(
-      await db.load(graph.projectId, library),
-      library,
-    );
-    const refreshed = new CatalogCompositionRoot(
-      new CatalogRuntime(reloaded, db),
-      new RecordingLayoutEngine(),
-      old.scenario.viewport,
-    );
-    const leaf = [...refreshed.layoutInputs.values()].find(
-      (input) => input.sourceId === leafId,
-    );
-    expect(leaf?.props.children).toBe(old.after.element.text);
-    expect((reloaded.getEntry(page.id) as typeof page).children).toEqual([
-      leafId,
-    ]);
-    expect(reloaded.revision).toBe(2);
-  });
+      };
+      const graph = new CatalogGraph(fresh, library);
+      const db = new CatalogStorage(
+        indexedDB,
+        `adr248-phase3-leaf-${Math.random()}`,
+      );
+      await db.create(graph.exportDocument(), library);
+      const runtime = new CatalogRuntime(graph, db);
+      const root = new CatalogCompositionRoot(
+        runtime,
+        new RecordingLayoutEngine(),
+        old.scenario.viewport,
+      );
+      const insert = old.scenario.operations[0];
+      const leafId = `project:node:${insert.id}` as NodeEntry["id"];
+      root.dispatch("insert Text", [
+        {
+          kind: "put",
+          entry: {
+            kind: "node",
+            id: leafId,
+            definitionId: "lib:definition:text",
+            children: [],
+            props: { children: { kind: "set", value: insert.text! } },
+            visual: {},
+            sizing: {},
+            descendantOverrides: [],
+          },
+        },
+        { kind: "put", entry: { ...page, children: [leafId] } },
+      ]);
+      const edit = old.scenario.operations[1];
+      root.dispatch("setText", [
+        {
+          kind: "patchNodeProp",
+          id: leafId,
+          key: "children",
+          write: { kind: "set", value: edit.text! },
+        },
+      ]);
+      expect(root.metrics.layoutInputVisits).toBe(1);
+      expect(root.metrics.resolverVisits).toBe(1);
+      expect(root.metrics.traversedWholeInputGraph).toBe(true); // one-node fixture
+      await runtime.save();
+      const reloaded = new CatalogGraph(
+        await db.load(graph.projectId, library),
+        library,
+      );
+      const refreshed = new CatalogCompositionRoot(
+        new CatalogRuntime(reloaded, db),
+        new RecordingLayoutEngine(),
+        old.scenario.viewport,
+      );
+      const leaf = [...refreshed.layoutInputs.values()].find(
+        (input) => input.sourceId === leafId,
+      );
+      expect(leaf?.props.children).toBe(old.after.element.text);
+      expect((reloaded.getEntry(page.id) as typeof page).children).toEqual([
+        leafId,
+      ]);
+      expect(reloaded.revision).toBe(2);
+    },
+  );
 
   it("leaf transaction revision/delta update only affected layout and Canvas/DOM inputs", () => {
     const { root, engine, inputId, graph } = setup();

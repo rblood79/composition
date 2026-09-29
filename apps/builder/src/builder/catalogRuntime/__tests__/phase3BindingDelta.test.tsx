@@ -314,7 +314,11 @@ describe("ADR-248 Phase 3 product binding leaf delta", () => {
     const visit = (value: unknown, path: string) => {
       if (!value || typeof value !== "object") return;
       for (const [key, child] of Object.entries(value)) {
-        if (key === "display" && typeof child === "string" && child.startsWith("inline"))
+        if (
+          key === "display" &&
+          typeof child === "string" &&
+          child.startsWith("inline")
+        )
           offenders.push(`${path}.${key}=${child}`);
         if (
           /^(align|justify)(Items|Self|Content)$/.test(key) &&

@@ -261,90 +261,171 @@ const REVIEWED_UNRELATED: Readonly<
  * any of these files fails again until its baseline is re-measured.
  */
 const REMEASURED_PHASE3_SOURCE: Readonly<Record<string, string>> = {
-  "apps/builder/src/builder/catalogRuntime/boxModel.ts": "e9f7be4d188ff9508f13485fb976d523eaa6f2f2",
-  "apps/builder/src/builder/catalogRuntime/canvasBinding.ts": "a1fcfbb3d15616351b6e021e05eb4513d7ffc5c9",
-  "apps/builder/src/builder/catalogRuntime/compositionRoot.ts": "726b6456a1389ebd8026f2eff13491b992952292",
-  "apps/builder/src/builder/catalogRuntime/controller.ts": "886b56e4c7d53f87feb9c2f164cb95d8fc035f97",
-  "apps/builder/src/builder/catalogRuntime/delegatedDom.tsx": "11718782b7ca704c79eeb24f2ae9679818e7e514",
-  "apps/builder/src/builder/catalogRuntime/domBinding.tsx": "26e1f493fe6c11278d5b6cbc5452ea249e7287e5",
-  "apps/builder/src/builder/catalogRuntime/exchange.ts": "546c2f58ba0c78144cd1b0da2355b546943a1cc3",
-  "apps/builder/src/builder/catalogRuntime/libraryVisual.ts": "c0367483ce3becd61b915cf4c176cb65bb0be67d",
-  "apps/builder/src/builder/catalogRuntime/presence.ts": "6d6da683a7b12f181a2e971ba3ea9e3814247e13",
-  "apps/builder/src/builder/catalogRuntime/ruleShapes.ts": "2a8fa8998514e0c25afc9748267d659fee54811b",
-  "apps/builder/src/builder/catalogRuntime/slotChrome.ts": "a9478665d4929c5692f16c4934c612ba3625e87e",
-  "apps/builder/src/builder/catalogRuntime/slotOverlay.ts": "b728e8a9cd88eb12e21004aa3c4ff64e067b6b1e",
-  "apps/builder/src/builder/catalogRuntime/storage.ts": "3a719ceb636d6b65785e5bc9925a2dacebff8320",
-  "apps/builder/src/builder/catalogRuntime/textMeasure.ts": "1d368423d8131c1126bc2751c7f5814252c59264",
-  "apps/builder/src/builder/components/breadcrumbs/breadcrumbsTemplateOrigins.ts": "06c4d21ba65f139f55ae3a5cd4ae1735758ded14",
-  "apps/builder/src/builder/components/itemSlotRoles.ts": "acce5287beee34b264ec8a0624066de0d87b729a",
-  "apps/builder/src/builder/components/reusableCompositeOrigins.ts": "eb284bf4edfd8d0ba266a7bd73db2c595c7d3020",
-  "apps/builder/src/builder/components/staticCollectionMigration.ts": "f221e926160dc7a4385eabddb14f7a413933f7fe",
-  "apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts": "ce60a268d2b29bac3cb3c6ac918d6312e977155a",
-  "apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts": "784a62167e821c710203e8a30ddab29182a7660e",
-  "apps/builder/src/builder/workspace/canvas/scene/canonicalSceneModel.ts": "59d0a42198299b661cb513aaf6c9413c4c398599",
-  "apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts": "af80374398281260415e3c70459c088a88d2a2dd",
-  "apps/builder/src/builder/workspace/canvas/skia/buildSpecNodeData.ts": "f774b5421c652326245b9c46e835a21496bbcebb",
-  "apps/builder/src/builder/workspace/canvas/skia/itemLabelInheritance.ts": "43772667af2a9a3383828db3f6337a8c2314e3f6",
-  "apps/builder/src/builder/workspace/canvas/skia/nodeRendererTypes.ts": "3a50cce3c41daaed2319e61a83a2b5937c3ac0ca",
-  "apps/builder/src/builder/workspace/canvas/skia/renderCommands.ts": "13fde4dd1f0d88dbaa51c237d9ab2aeb0169e2fc",
-  "apps/builder/src/builder/workspace/canvas/skia/resolveSkiaVisualRule.ts": "0098562cf8fb1529de1d89fa4d039f3db44e1023",
-  "apps/builder/src/builder/workspace/canvas/wasm-bindings/engine.ts": "640b4d94bf129c39662397dcedfc6b9e4345cd59",
-  "apps/builder/src/builder/workspace/canvas/wasm-bindings/engineWasm.ts": "89fe13fad929b978f759350d14bb443875f7345c",
-  "apps/builder/src/builder/workspace/canvas/wasm-bindings/layoutBridge.ts": "19b6da1cf6991e79bab28fded4fb4af68e7c9595",
-  "apps/builder/src/preview/App.tsx": "210bdf486a7a697ef7cb94104681a32404438a15",
-  "apps/builder/src/preview/components/CanonicalNodeRenderer.tsx": "245a7b1382bc890f692ba932588d465b164cad8e",
-  "apps/builder/src/utils/theme/neutralToSkiaColors.ts": "37f3e1fa140a2dd2e6a2b9d2331908ea421770cb",
+  "apps/builder/src/builder/catalogRuntime/boxModel.ts":
+    "e9f7be4d188ff9508f13485fb976d523eaa6f2f2",
+  "apps/builder/src/builder/catalogRuntime/canvasBinding.ts":
+    "a1fcfbb3d15616351b6e021e05eb4513d7ffc5c9",
+  "apps/builder/src/builder/catalogRuntime/compositionRoot.ts":
+    "726b6456a1389ebd8026f2eff13491b992952292",
+  "apps/builder/src/builder/catalogRuntime/controller.ts":
+    "886b56e4c7d53f87feb9c2f164cb95d8fc035f97",
+  "apps/builder/src/builder/catalogRuntime/delegatedDom.tsx":
+    "11718782b7ca704c79eeb24f2ae9679818e7e514",
+  "apps/builder/src/builder/catalogRuntime/domBinding.tsx":
+    "26e1f493fe6c11278d5b6cbc5452ea249e7287e5",
+  "apps/builder/src/builder/catalogRuntime/exchange.ts":
+    "546c2f58ba0c78144cd1b0da2355b546943a1cc3",
+  "apps/builder/src/builder/catalogRuntime/libraryVisual.ts":
+    "c0367483ce3becd61b915cf4c176cb65bb0be67d",
+  "apps/builder/src/builder/catalogRuntime/presence.ts":
+    "6d6da683a7b12f181a2e971ba3ea9e3814247e13",
+  "apps/builder/src/builder/catalogRuntime/ruleShapes.ts":
+    "2a8fa8998514e0c25afc9748267d659fee54811b",
+  "apps/builder/src/builder/catalogRuntime/slotChrome.ts":
+    "a9478665d4929c5692f16c4934c612ba3625e87e",
+  "apps/builder/src/builder/catalogRuntime/slotOverlay.ts":
+    "b728e8a9cd88eb12e21004aa3c4ff64e067b6b1e",
+  "apps/builder/src/builder/catalogRuntime/storage.ts":
+    "3a719ceb636d6b65785e5bc9925a2dacebff8320",
+  "apps/builder/src/builder/catalogRuntime/textMeasure.ts":
+    "1d368423d8131c1126bc2751c7f5814252c59264",
+  "apps/builder/src/builder/components/breadcrumbs/breadcrumbsTemplateOrigins.ts":
+    "06c4d21ba65f139f55ae3a5cd4ae1735758ded14",
+  "apps/builder/src/builder/components/itemSlotRoles.ts":
+    "acce5287beee34b264ec8a0624066de0d87b729a",
+  "apps/builder/src/builder/components/reusableCompositeOrigins.ts":
+    "eb284bf4edfd8d0ba266a7bd73db2c595c7d3020",
+  "apps/builder/src/builder/components/staticCollectionMigration.ts":
+    "f221e926160dc7a4385eabddb14f7a413933f7fe",
+  "apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts":
+    "ce60a268d2b29bac3cb3c6ac918d6312e977155a",
+  "apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts":
+    "784a62167e821c710203e8a30ddab29182a7660e",
+  "apps/builder/src/builder/workspace/canvas/scene/canonicalSceneModel.ts":
+    "59d0a42198299b661cb513aaf6c9413c4c398599",
+  "apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts":
+    "af80374398281260415e3c70459c088a88d2a2dd",
+  "apps/builder/src/builder/workspace/canvas/skia/buildSpecNodeData.ts":
+    "f774b5421c652326245b9c46e835a21496bbcebb",
+  "apps/builder/src/builder/workspace/canvas/skia/itemLabelInheritance.ts":
+    "43772667af2a9a3383828db3f6337a8c2314e3f6",
+  "apps/builder/src/builder/workspace/canvas/skia/nodeRendererTypes.ts":
+    "3a50cce3c41daaed2319e61a83a2b5937c3ac0ca",
+  "apps/builder/src/builder/workspace/canvas/skia/renderCommands.ts":
+    "13fde4dd1f0d88dbaa51c237d9ab2aeb0169e2fc",
+  "apps/builder/src/builder/workspace/canvas/skia/resolveSkiaVisualRule.ts":
+    "0098562cf8fb1529de1d89fa4d039f3db44e1023",
+  "apps/builder/src/builder/workspace/canvas/wasm-bindings/engine.ts":
+    "640b4d94bf129c39662397dcedfc6b9e4345cd59",
+  "apps/builder/src/builder/workspace/canvas/wasm-bindings/engineWasm.ts":
+    "89fe13fad929b978f759350d14bb443875f7345c",
+  "apps/builder/src/builder/workspace/canvas/wasm-bindings/layoutBridge.ts":
+    "19b6da1cf6991e79bab28fded4fb4af68e7c9595",
+  "apps/builder/src/preview/App.tsx":
+    "210bdf486a7a697ef7cb94104681a32404438a15",
+  "apps/builder/src/preview/components/CanonicalNodeRenderer.tsx":
+    "245a7b1382bc890f692ba932588d465b164cad8e",
+  "apps/builder/src/utils/theme/neutralToSkiaColors.ts":
+    "37f3e1fa140a2dd2e6a2b9d2331908ea421770cb",
   "packages/engine/src/tree.rs": "143992b8724859170ed1f4c96124f413366aa622",
   "packages/engine/src/wasm.rs": "6c7ba81575c782affa723f89744d4da4da67dfe6",
-  "packages/shared/src/catalog/bindings/Breadcrumbs.binding.ts": "50f2e7754c2aed993227769d7509cdd4142390a6",
-  "packages/shared/src/catalog/document/clone.ts": "defa1b55a745886ec5e7e360cf15e954914bf7fc",
-  "packages/shared/src/catalog/document/codeCatalogLibrary.ts": "698d3643dbc47fe292ee5c23e37820e200fe4261",
-  "packages/shared/src/catalog/document/collectionItems.ts": "aa599941637f1092253fbf7bf68ffb23f80ad7d5",
-  "packages/shared/src/catalog/document/dateSegments.ts": "fe82956043677ff934bfe31ad1e25fa3bb7efa12",
-  "packages/shared/src/catalog/document/fixture.ts": "0e151fcceb63d3405231c7ee7d1515efec99c2c1",
-  "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts": "4ed89d195963da4b7d95cded9675613ccc0abe1d",
-  "packages/shared/src/catalog/document/graph.ts": "1579c82053b0d56a1ac13bcffa34f35563395629",
-  "packages/shared/src/catalog/document/library.ts": "31ddaba6ea9cd5ba06d70b7652b1beb2d1d1f5ae",
-  "packages/shared/src/catalog/document/manualBoxRules.ts": "be276f60d026d79d6a7721cc7bf2da21ef2a1823",
-  "packages/shared/src/catalog/document/pencilFixtureLibrary.ts": "456e2d37aa17d32bfc229faef645010c308fd8f5",
-  "packages/shared/src/catalog/document/ruleDefinition.ts": "48162f8dd5bdf11dbb2e62058ba284fa73d4d1ee",
-  "packages/shared/src/catalog/document/rulePartRules.ts": "e5f0e5a9171bdda9505f01f2ba53d4aabc9236e4",
-  "packages/shared/src/catalog/document/types.ts": "c2108682f6cccefbc2f8f0286ac2c60016979166",
-  "packages/shared/src/catalog/document/validation.ts": "ca379bb3b331647aef03ae96042a4f455bc5450e",
-  "packages/shared/src/catalog/generated/componentRulesTable.ts": "cb48e588ac0a0e133d8c4592e8103ad493d66570",
-  "packages/shared/src/catalog/index.ts": "31d8792a2b34cebf320785cd98c65086775b7701",
-  "packages/shared/src/catalog/outputs/toRacProps.ts": "f1f37a762f7cacb49ef6f450e2fa4ceae9bd6960",
-  "packages/shared/src/catalog/resolution/address.ts": "062c9dbaf30f20fbad9c7e201ae6204b9824481c",
-  "packages/shared/src/catalog/resolution/resolver.ts": "720596a3fbd97be59508c51ef6c5e743fb5a9852",
-  "packages/shared/src/catalog/resolvers/resolveCatalogRuleCanvasBox.ts": "13ca49fdb11fe9fd96708aca815608d867dbccf1",
-  "packages/shared/src/catalog/slotRoles.ts": "c731f8661e411a96483b798174b868a6f81abcef",
-  "packages/shared/src/catalog/transactions/frameClip.ts": "a9239d9cdc34fadcec532302346ed67245e6304d",
-  "packages/shared/src/catalog/transactions/transaction.ts": "b6e27d8afebc5f5e80d4a1619f15f5e8d1d8b4e2",
-  "packages/shared/src/components/Breadcrumb.tsx": "b3dc9293cfc694b738faec5011f6fd1562939d55",
-  "packages/shared/src/components/Breadcrumbs.tsx": "dd83830e5d7994cfa6b23d6326a6562b3125ca0e",
-  "packages/shared/src/components/FieldNecessityIndicator.ts": "eaa8b66f251d22f27c8869f297518c1bfd9f060c",
-  "packages/shared/src/components/Icon.tsx": "b3209193483c1369a9a7c6b2a8e3dc3e66a56f89",
-  "packages/shared/src/components/styles/Breadcrumbs.css": "2c2c4af4526f4836b42ad98adf84acb03865c428",
-  "packages/shared/src/components/styles/generated/Breadcrumb.css": "69e805861451df9e8ddea7f040c66c4fd2484021",
-  "packages/shared/src/components/styles/generated/Breadcrumbs.css": "807474a0ca35ae290be396c5596c8a382186726c",
-  "packages/shared/src/components/styles/generated/Button.css": "7527d8049b1aaa00aa4c09fc9984ecb1201678e5",
-  "packages/shared/src/components/styles/generated/Disclosure.css": "b78b88b7fec0dc307dc30a274b3e8b8f088ab98b",
-  "packages/shared/src/components/styles/generated/Link.css": "f468f693721bbe2fe56c4b4a9b44cd7707eba23b",
-  "packages/shared/src/components/styles/generated/Select.css": "c79ef7ea22747c27daeda7a321d4029c1d0dc77f",
-  "packages/shared/src/components/styles/generated/ToggleButton.css": "541c5b0df667bafccbe530cb1349058237a44f63",
-  "packages/shared/src/components/styles/GridList.css": "a194a7b990b6c0e0627535e9b4c2331e719055b3",
-  "packages/shared/src/components/styles/theme/preview-system.css": "5ae21947fe1a6ef149d0411e659826aea3cddfb8",
-  "packages/shared/src/renderers/LayoutRenderers.tsx": "9c59cfa9008dc7640af5f8e6ffa9b55c003b33d6",
-  "packages/shared/src/types/composition-document.types.ts": "2b61a10d5c78d655446dd671959fb37e3f085cec",
-  "packages/shared/src/types/renderer.types.ts": "39ad2ec6a84a99242ed46d2389def535ac6aee95",
-  "packages/shared/src/utils/dateFieldDefaults.ts": "b2f83522529e4dbf2b5d0388377ceef8c4398b09",
+  "packages/shared/src/catalog/bindings/Breadcrumbs.binding.ts":
+    "50f2e7754c2aed993227769d7509cdd4142390a6",
+  "packages/shared/src/catalog/document/clone.ts":
+    "defa1b55a745886ec5e7e360cf15e954914bf7fc",
+  "packages/shared/src/catalog/document/codeCatalogLibrary.ts":
+    "698d3643dbc47fe292ee5c23e37820e200fe4261",
+  "packages/shared/src/catalog/document/collectionItems.ts":
+    "aa599941637f1092253fbf7bf68ffb23f80ad7d5",
+  "packages/shared/src/catalog/document/dateSegments.ts":
+    "fe82956043677ff934bfe31ad1e25fa3bb7efa12",
+  "packages/shared/src/catalog/document/fixture.ts":
+    "0e151fcceb63d3405231c7ee7d1515efec99c2c1",
+  "packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts":
+    "4ed89d195963da4b7d95cded9675613ccc0abe1d",
+  "packages/shared/src/catalog/document/graph.ts":
+    "1579c82053b0d56a1ac13bcffa34f35563395629",
+  "packages/shared/src/catalog/document/library.ts":
+    "31ddaba6ea9cd5ba06d70b7652b1beb2d1d1f5ae",
+  "packages/shared/src/catalog/document/manualBoxRules.ts":
+    "be276f60d026d79d6a7721cc7bf2da21ef2a1823",
+  "packages/shared/src/catalog/document/pencilFixtureLibrary.ts":
+    "456e2d37aa17d32bfc229faef645010c308fd8f5",
+  "packages/shared/src/catalog/document/ruleDefinition.ts":
+    "48162f8dd5bdf11dbb2e62058ba284fa73d4d1ee",
+  "packages/shared/src/catalog/document/rulePartRules.ts":
+    "e5f0e5a9171bdda9505f01f2ba53d4aabc9236e4",
+  "packages/shared/src/catalog/document/types.ts":
+    "c2108682f6cccefbc2f8f0286ac2c60016979166",
+  "packages/shared/src/catalog/document/validation.ts":
+    "ca379bb3b331647aef03ae96042a4f455bc5450e",
+  "packages/shared/src/catalog/generated/componentRulesTable.ts":
+    "cb48e588ac0a0e133d8c4592e8103ad493d66570",
+  "packages/shared/src/catalog/index.ts":
+    "31d8792a2b34cebf320785cd98c65086775b7701",
+  "packages/shared/src/catalog/outputs/toRacProps.ts":
+    "f1f37a762f7cacb49ef6f450e2fa4ceae9bd6960",
+  "packages/shared/src/catalog/resolution/address.ts":
+    "062c9dbaf30f20fbad9c7e201ae6204b9824481c",
+  "packages/shared/src/catalog/resolution/resolver.ts":
+    "720596a3fbd97be59508c51ef6c5e743fb5a9852",
+  "packages/shared/src/catalog/resolvers/resolveCatalogRuleCanvasBox.ts":
+    "13ca49fdb11fe9fd96708aca815608d867dbccf1",
+  "packages/shared/src/catalog/slotRoles.ts":
+    "c731f8661e411a96483b798174b868a6f81abcef",
+  "packages/shared/src/catalog/transactions/frameClip.ts":
+    "a9239d9cdc34fadcec532302346ed67245e6304d",
+  "packages/shared/src/catalog/transactions/transaction.ts":
+    "b6e27d8afebc5f5e80d4a1619f15f5e8d1d8b4e2",
+  "packages/shared/src/components/Breadcrumb.tsx":
+    "b3dc9293cfc694b738faec5011f6fd1562939d55",
+  "packages/shared/src/components/Breadcrumbs.tsx":
+    "dd83830e5d7994cfa6b23d6326a6562b3125ca0e",
+  "packages/shared/src/components/FieldNecessityIndicator.ts":
+    "eaa8b66f251d22f27c8869f297518c1bfd9f060c",
+  "packages/shared/src/components/Icon.tsx":
+    "b3209193483c1369a9a7c6b2a8e3dc3e66a56f89",
+  "packages/shared/src/components/styles/Breadcrumbs.css":
+    "2c2c4af4526f4836b42ad98adf84acb03865c428",
+  "packages/shared/src/components/styles/generated/Breadcrumb.css":
+    "69e805861451df9e8ddea7f040c66c4fd2484021",
+  "packages/shared/src/components/styles/generated/Breadcrumbs.css":
+    "807474a0ca35ae290be396c5596c8a382186726c",
+  "packages/shared/src/components/styles/generated/Button.css":
+    "7527d8049b1aaa00aa4c09fc9984ecb1201678e5",
+  "packages/shared/src/components/styles/generated/Disclosure.css":
+    "b78b88b7fec0dc307dc30a274b3e8b8f088ab98b",
+  "packages/shared/src/components/styles/generated/Link.css":
+    "f468f693721bbe2fe56c4b4a9b44cd7707eba23b",
+  "packages/shared/src/components/styles/generated/Select.css":
+    "c79ef7ea22747c27daeda7a321d4029c1d0dc77f",
+  "packages/shared/src/components/styles/generated/ToggleButton.css":
+    "541c5b0df667bafccbe530cb1349058237a44f63",
+  "packages/shared/src/components/styles/GridList.css":
+    "a194a7b990b6c0e0627535e9b4c2331e719055b3",
+  "packages/shared/src/components/styles/theme/preview-system.css":
+    "5ae21947fe1a6ef149d0411e659826aea3cddfb8",
+  "packages/shared/src/renderers/LayoutRenderers.tsx":
+    "9c59cfa9008dc7640af5f8e6ffa9b55c003b33d6",
+  "packages/shared/src/types/composition-document.types.ts":
+    "2b61a10d5c78d655446dd671959fb37e3f085cec",
+  "packages/shared/src/types/renderer.types.ts":
+    "39ad2ec6a84a99242ed46d2389def535ac6aee95",
+  "packages/shared/src/utils/dateFieldDefaults.ts":
+    "b2f83522529e4dbf2b5d0388377ceef8c4398b09",
   "packages/specs/src/index.ts": "08522376e62285136892269c720e2e15d4fd712a",
-  "packages/specs/src/primitives/colors.ts": "2966dc2c450ddf4c9edd89ab3df24326a6a4a2dd",
-  "packages/specs/src/primitives/index.ts": "5f320bc4e06e957be155a7fa4f286cda2e22286e",
-  "packages/specs/src/primitives/spacing.ts": "cff4dad0038f3148a3255556d5ba41d6a5134af5",
-  "packages/specs/src/renderers/index.ts": "3062d240dae995b80ad246f62f93a7f10f9bd9ff",
-  "packages/specs/src/renderers/skiaPrimitives.ts": "3f502298fa4a04e4440fc3ab1887de2a246efac1",
-  "packages/specs/src/renderers/utils/resolveComponentVisual.ts": "38181c8a992b9b5efc76020a930a23bf995a8f36",
+  "packages/specs/src/primitives/colors.ts":
+    "2966dc2c450ddf4c9edd89ab3df24326a6a4a2dd",
+  "packages/specs/src/primitives/index.ts":
+    "5f320bc4e06e957be155a7fa4f286cda2e22286e",
+  "packages/specs/src/primitives/spacing.ts":
+    "cff4dad0038f3148a3255556d5ba41d6a5134af5",
+  "packages/specs/src/renderers/index.ts":
+    "3062d240dae995b80ad246f62f93a7f10f9bd9ff",
+  "packages/specs/src/renderers/skiaPrimitives.ts":
+    "3f502298fa4a04e4440fc3ab1887de2a246efac1",
+  "packages/specs/src/renderers/utils/resolveComponentVisual.ts":
+    "38181c8a992b9b5efc76020a930a23bf995a8f36",
 };
 const REMEASURED_PHASE3_REASON =
   "ADR-248 Phase 3 commit: native-state-pinned re-measured byte-identical; storage +519 B constant (budget stricter)";

@@ -234,7 +234,17 @@ let basePngSha: Map<string, string> = new Map();
 let axisPngSha: Map<string, string> = new Map();
 const results: unknown[] = [];
 
+/** Set when the local G0 baseline is absent (a fresh clone). */
+let baselineAbsent = false;
 beforeAll(async () => {
+  // The frozen G0 outputs are kept local only (user decision 2026-09-30): without them the
+  // harness has no old leg to compare, so it skips instead of failing on a missing file.
+  try {
+    await commands.readFile(`${DESIGN}/248-baseline/g0-gate.json`);
+  } catch {
+    baselineAbsent = true;
+    return;
+  }
   vi.useFakeTimers({ toFake: ["Date"], now: CAPTURE_DATE });
   // Font environment fixed for both legs (G3 §6.1): the DOM reads the same Pretendard file the
   // Canvas (`loadBuiltinFontsToSkia`) draws with. The product Preview loads the static Pretendard
@@ -373,6 +383,8 @@ beforeAll(async () => {
 
 afterAll(async () => {
   vi.useRealTimers();
+  // A skipped run (no local baseline) keeps the recorded verdicts.
+  if (baselineAbsent) return;
   const rows = results as Array<{ verdict: string }>;
   const count = (verdict: string) =>
     rows.filter((row) => row.verdict === verdict).length;
@@ -771,7 +783,8 @@ function paintedBoxes(
 }
 
 describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
-  it("measures every frozen palette capture against the new Canvas leg", async () => {
+  it("measures every frozen palette capture against the new Canvas leg", async (ctx) => {
+    if (baselineAbsent) ctx.skip();
     const clip = replay.captureClip;
     if (!CHILD)
       expect(clip).toEqual(
@@ -1319,7 +1332,12 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
           const newRect = absolute.get(item.newId);
           const oldRect = oldRectOf(item.oldPath);
           const dom = domBoxes.get(item.newId);
-          if (newRect && oldRect && dom && subpixelIntrinsicWidthCeil(oldRect, newRect, dom))
+          if (
+            newRect &&
+            oldRect &&
+            dom &&
+            subpixelIntrinsicWidthCeil(oldRect, newRect, dom)
+          )
             approved.push({
               new: item.newId,
               old: item.oldPath,
@@ -1368,7 +1386,9 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
       }
       // A state origin whose old paint follows an old input the new model does not carry: the
       // root box's paint is that approved difference (geometry still arbitrates).
-      const statePaint = STATE ? approvedStatePaint(row.type, String(row.state ?? "")) : undefined;
+      const statePaint = STATE
+        ? approvedStatePaint(row.type, String(row.state ?? ""))
+        : undefined;
       if (statePaint)
         approved.push({
           new: rootInput.id,
@@ -1684,7 +1704,12 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
           const node = item.new ? root.canvasInputs.get(item.new) : undefined;
           if (item.whole) {
             for (const r of rects) {
-              fill(r.x - grow, r.y - grow, r.x + r.width + grow, r.y + r.height + grow);
+              fill(
+                r.x - grow,
+                r.y - grow,
+                r.x + r.width + grow,
+                r.y + r.height + grow,
+              );
               wholeBoxes.push(r);
             }
             continue;
@@ -1694,15 +1719,32 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
             const radius = node?.visual.radius;
             const band =
               grow +
-              Math.ceil(0.3 * Math.min(typeof radius === "number" ? radius * zoom : Infinity, Math.min(b.width, b.height) / 2));
+              Math.ceil(
+                0.3 *
+                  Math.min(
+                    typeof radius === "number" ? radius * zoom : Infinity,
+                    Math.min(b.width, b.height) / 2,
+                  ),
+              );
             for (const edge of [
               ...(Math.abs(a.x - b.x) > 0.01 ? [a.x, b.x] : []),
-              ...(Math.abs(a.x + a.width - (b.x + b.width)) > 0.01 ? [a.x + a.width, b.x + b.width] : []),
+              ...(Math.abs(a.x + a.width - (b.x + b.width)) > 0.01
+                ? [a.x + a.width, b.x + b.width]
+                : []),
             ])
-              fill(edge - band, Math.min(a.y, b.y) - grow, edge + band, Math.max(a.y + a.height, b.y + b.height) + grow);
+              fill(
+                edge - band,
+                Math.min(a.y, b.y) - grow,
+                edge + band,
+                Math.max(a.y + a.height, b.y + b.height) + grow,
+              );
             continue;
           }
-          if (rects.length === 2 && node && TEXT_BINDINGS.has(node.bindingId ?? "")) {
+          if (
+            rects.length === 2 &&
+            node &&
+            TEXT_BINDINGS.has(node.bindingId ?? "")
+          ) {
             const clamp = (r: Rect) => ({
               x0: Math.max(0, Math.floor(r.x - grow)),
               y0: Math.max(0, Math.floor(r.y - grow)),
@@ -1715,7 +1757,8 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
               for (let y = b.y0; y < b.y1; y++)
                 for (let x = b.x0; x < b.x1; x++) {
                   const i = (y * clip.width + x) * 4;
-                  const key = (image[i] << 16) | (image[i + 1] << 8) | image[i + 2];
+                  const key =
+                    (image[i] << 16) | (image[i + 1] << 8) | image[i + 2];
                   counts.set(key, (counts.get(key) ?? 0) + 1);
                 }
               let best = 0;
@@ -1738,14 +1781,21 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
               for (let y = box.y0; y < box.y1; y++)
                 for (let x = box.x0; x < box.x1; x++) {
                   const index = y * clip.width + x;
-                  if (ink(old.pixels, index, oldMode) || ink(pixels, index, newMode))
+                  if (
+                    ink(old.pixels, index, oldMode) ||
+                    ink(pixels, index, newMode)
+                  )
                     inside[index] = 1;
                 }
             }
             continue;
           }
           // A glyph leaf (icon, avatar/image) scales its drawing with its box: all its pixels.
-          if (rects.length < 2 || !node || GLYPH_BINDINGS.has(node.bindingId ?? "")) {
+          if (
+            rects.length < 2 ||
+            !node ||
+            GLYPH_BINDINGS.has(node.bindingId ?? "")
+          ) {
             for (const r of rects)
               fill(
                 r.x - grow,
@@ -1837,8 +1887,16 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
         const inset = grow + 1;
         const x0 = Math.max(0, Math.ceil(b.x) + inset, inset + dx);
         const y0 = Math.max(0, Math.ceil(b.y) + inset, inset + dy);
-        const x1 = Math.min(clip.width, Math.floor(b.x + Math.min(a.width, b.width)) - inset, clip.width + dx);
-        const y1 = Math.min(clip.height, Math.floor(b.y + Math.min(a.height, b.height)) - inset, clip.height + dy);
+        const x1 = Math.min(
+          clip.width,
+          Math.floor(b.x + Math.min(a.width, b.width)) - inset,
+          clip.width + dx,
+        );
+        const y1 = Math.min(
+          clip.height,
+          Math.floor(b.y + Math.min(a.height, b.height)) - inset,
+          clip.height + dy,
+        );
         if (x1 <= x0 || y1 <= y0) continue;
         const width = x1 - x0;
         const height = y1 - y0;
@@ -1855,17 +1913,25 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
             }
           }
         const movedDiff = new Uint8ClampedArray(width * height * 4);
-        pixelmatch(before, after, movedDiff, width, height, { threshold: 0.1, diffMask: true });
+        pixelmatch(before, after, movedDiff, width, height, {
+          threshold: 0.1,
+          diffMask: true,
+        });
         for (let y = 0; y < height; y++)
           for (let x = 0; x < width; x++) {
             const index = (y0 + y) * clip.width + (x0 + x);
             // Text and the other legs' pixels, and pixels another approved pair's sweep owns.
-            if (kind[index] !== 0 || kind[index - dy * clip.width - dx] !== 0) continue;
+            if (kind[index] !== 0 || kind[index - dy * clip.width - dx] !== 0)
+              continue;
             const px = x0 + x;
             const py = y0 + y;
             if (
               wholeBoxes.some(
-                (r) => px >= r.x && px < r.x + r.width && py >= r.y && py < r.y + r.height,
+                (r) =>
+                  px >= r.x &&
+                  px < r.x + r.width &&
+                  py >= r.y &&
+                  py < r.y + r.height,
               )
             )
               continue;
@@ -1874,7 +1940,10 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
             if (!movedDiff[local + 3]) continue;
             movedDifferent++;
             for (let channel = 0; channel < 3; channel++)
-              movedMaxByte = Math.max(movedMaxByte, Math.abs(before[local + channel] - after[local + channel]));
+              movedMaxByte = Math.max(
+                movedMaxByte,
+                Math.abs(before[local + channel] - after[local + channel]),
+              );
           }
       }
       const outsideRatio = l3.pixels
@@ -1890,7 +1959,11 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
         ...(approved.length
           ? {
               approvedAttributed: attributed,
-              movedPaint: { pixels: movedPixels, different: movedDifferent, maxByte: movedMaxByte },
+              movedPaint: {
+                pixels: movedPixels,
+                different: movedDifferent,
+                maxByte: movedMaxByte,
+              },
               outsideRatio,
               outsideMaxByte,
             }
@@ -1909,7 +1982,11 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
       // An old input the G0 capture did not record makes L3 compare two different drawings.
       const l3InputMismatch = OLD_UNRECORDED_INPUT[row.type];
       if (l3InputMismatch)
-        entry.L3 = { ...(entry.L3 as object), gated: false, inputMismatch: l3InputMismatch };
+        entry.L3 = {
+          ...(entry.L3 as object),
+          gated: false,
+          inputMismatch: l3InputMismatch,
+        };
       const failedLegs = [
         ...(!geometry.pass ? ["geometry"] : []),
         ...((entry.canvasDom as { pass?: boolean } | undefined)?.pass
@@ -1918,7 +1995,11 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
         ...(l3Blocked && !l3InputMismatch ? ["L3"] : []),
       ];
       entry.failedLegs = failedLegs;
-      entry.verdict = failedLegs.length ? "FAIL" : l3InputMismatch ? "UNVERIFIED" : "PASS";
+      entry.verdict = failedLegs.length
+        ? "FAIL"
+        : l3InputMismatch
+          ? "UNVERIFIED"
+          : "PASS";
       if (!row.frozenPngMatch)
         entry.oldOracleNote =
           "replay PNG differs from the frozen PNG (old nondeterminism); geometry oracle is the replay state";

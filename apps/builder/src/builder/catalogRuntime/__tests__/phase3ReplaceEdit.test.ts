@@ -110,7 +110,6 @@ function open(
   };
 }
 
-
 describe("ADR-248 Phase 3 replace-placed node edits", () => {
   it.each([
     ["template root", ["lib:template:cardRoot"]],
@@ -119,9 +118,13 @@ describe("ADR-248 Phase 3 replace-placed node edits", () => {
     const { document, library } = createG1Fixture();
     const scene = open(document, library, `replace-${name.replace(" ", "-")}`);
     const runtime = scene.root.runtime;
-    const replacement = node(`rep${templatePath.length}`, "lib:definition:text", {
-      props: { children: { kind: "set", value: "rep" } },
-    });
+    const replacement = node(
+      `rep${templatePath.length}`,
+      "lib:definition:text",
+      {
+        props: { children: { kind: "set", value: "rep" } },
+      },
+    );
     scene.root.dispatch("replace", [
       { kind: "put", entry: replacement },
       {

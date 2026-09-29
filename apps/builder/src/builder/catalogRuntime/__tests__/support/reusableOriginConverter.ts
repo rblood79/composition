@@ -699,13 +699,18 @@ export function convertReusableOrigins(
   // those keys (`style: { key: null }`, old state layer order — the unselected layer applies
   // whenever the item is not selected). The typed origin shows them only when selected.
   for (const origin of origins) {
-    const variant = (origin as { metadata?: { variant?: unknown } }).metadata?.variant;
+    const variant = (origin as { metadata?: { variant?: unknown } }).metadata
+      ?.variant;
     if (origin.type !== "ref" || variant !== "unselected") continue;
     let target = originById.get(String((origin as { ref?: unknown }).ref));
     while (target?.type === "ref")
       target = originById.get(String((target as { ref?: unknown }).ref));
-    const base = target && templates.find((item) => item.id === originTemplateId(target!.id));
-    const style = (origin.props as { style?: Record<string, unknown> } | undefined)?.style ?? {};
+    const base =
+      target &&
+      templates.find((item) => item.id === originTemplateId(target!.id));
+    const style =
+      (origin.props as { style?: Record<string, unknown> } | undefined)
+        ?.style ?? {};
     for (const [key, value] of Object.entries(style)) {
       if (value !== null || !base || !(key in base.visual)) continue;
       const visual = base.visual as Record<string, Scalar>;
@@ -714,10 +719,11 @@ export function convertReusableOrigins(
         [key]: { kind: "set" as const, value: visual[key] },
       };
       delete visual[key];
-      (base as { stateRules?: LibraryTemplateNode["stateRules"] }).stateRules = {
-        ...base.stateRules,
-        selected,
-      };
+      (base as { stateRules?: LibraryTemplateNode["stateRules"] }).stateRules =
+        {
+          ...base.stateRules,
+          selected,
+        };
       const at = gaps.findIndex(
         (item) =>
           item.nodeId === origin.id &&

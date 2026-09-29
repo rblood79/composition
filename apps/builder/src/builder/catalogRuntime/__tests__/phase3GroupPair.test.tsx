@@ -15,7 +15,7 @@ import "fake-indexeddb/auto";
 import { baselineCompatibleHead } from "./support/baselineHead";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -40,6 +40,8 @@ import { bindCatalogCanvas } from "./support/catalogCanvasBinding";
 import { CatalogCompositionRoot } from "../compositionRoot";
 import { CatalogRuntime } from "../controller";
 import { CatalogStorage } from "../storage";
+import { G0_BASELINE_ABSENT } from "./support/g0Baseline";
+import { writeEvidence } from "./support/evidence";
 
 const require = createRequire(import.meta.url);
 const repo = resolve(process.cwd(), "../..");
@@ -205,379 +207,390 @@ function measure(a: Image, b: Image, region: Rect, masks: Rect[] = []) {
   };
 }
 
-it("measures G0 Group horizontal/sm and vertical/lg new Canvas against isolated RAC Group DOM with ADR-198 regions", async () => {
-  const old = JSON.parse(
-    readFileSync(
-      join(design, "248-baseline/native-state-pinned/baseline.json"),
-      "utf8",
-    ),
-  );
-  const head = baselineCompatibleHead(repo, old.head);
-  expect(old.scenario.viewport).toEqual({ width: 1440, height: 900 });
-  const operations = old.scenario.operations.filter(
-    (operation: { op: string }) => operation.op === "insertGroupWithChildren",
-  ) as Array<{
-    id: string;
-    x: number;
-    y: number;
-    orientation: "horizontal" | "vertical";
-    size: "sm" | "lg";
-  }>;
-  expect(operations.map((operation) => operation.id)).toEqual([
-    "group-horizontal",
-    "group-vertical",
-  ]);
-
-  const { document: seed } = createG1Fixture();
-  const page = seed.entries["project:page:main"] as Extract<
-    CatalogEntry,
-    { kind: "page" }
-  >;
-  const graph = new CatalogGraph(
-    {
-      ...seed,
-      entries: {
-        [seed.projectId]: seed.entries[seed.projectId],
-        [page.id]: { ...page, children: [] },
-      },
-    },
-    createPencilFixtureLibrary(),
-  );
-  const { engine, raw } = await layoutEngine();
-  const ck = await canvasKit();
-  Object.assign(globalThis, {
-    window: { __composition_CANVASKIT_INSTANCE__: ck },
-  });
-  await initCanvasKit();
-  const fontBytes = readFileSync(
-    resolve(process.cwd(), "public/fonts/PretendardVariable.ttf"),
-  );
-  skiaFontManager.loadFontFromBuffer(
-    "Pretendard",
-    fontBytes.buffer.slice(
-      fontBytes.byteOffset,
-      fontBytes.byteOffset + fontBytes.byteLength,
-    ) as ArrayBuffer,
-  );
-  const browser = await chromium.launch({ headless: true });
-  try {
-    const root = new CatalogCompositionRoot(
-      new CatalogRuntime(
-        graph,
-        new CatalogStorage(indexedDB, `adr248-group-pair-${Date.now()}`),
+it.skipIf(G0_BASELINE_ABSENT)(
+  "measures G0 Group horizontal/sm and vertical/lg new Canvas against isolated RAC Group DOM with ADR-198 regions",
+  async () => {
+    const old = JSON.parse(
+      readFileSync(
+        join(design, "248-baseline/native-state-pinned/baseline.json"),
+        "utf8",
       ),
-      engine,
-      old.scenario.viewport,
     );
-    const nodes: NodeEntry[] = operations.flatMap((operation) => {
-      const id = `project:node:${operation.id}` as NodeEntry["id"];
-      const childIds = [0, 1].map(
-        (index) =>
-          `project:node:${operation.id}-child-${index}` as NodeEntry["id"],
-      );
-      return [
-        {
-          kind: "node",
-          id,
-          name: operation.id,
-          definitionId: "lib:definition:group",
-          children: childIds,
-          props: {
-            orientation: { kind: "set", value: operation.orientation },
-            size: { kind: "set", value: operation.size },
-          },
-          visual: {
-            fill: { kind: "set", value: "#edf7ec" },
-            borderColor: { kind: "set", value: "#3851a4" },
-            borderWidth: { kind: "set", value: 2 },
-          },
-          sizing: {
-            width: { kind: "set", value: 170 },
-            height: { kind: "set", value: 110 },
-          },
-          placement: { kind: "absolute", x: operation.x, y: operation.y },
-          descendantOverrides: [],
-        },
-        ...childIds.map((childId, index): NodeEntry => ({
-          kind: "node",
-          id: childId,
-          definitionId: "lib:definition:text",
-          children: [],
-          props: { children: { kind: "set", value: String(index + 1) } },
-          visual: {
-            fill: { kind: "set", value: index ? "#53a853" : "#e04747" },
-          },
-          sizing: {
-            width: { kind: "set", value: 50 },
-            height: { kind: "set", value: 40 },
-          },
-          descendantOverrides: [],
-        })),
-      ];
-    });
-    root.dispatch("G0 public Group inserts: horizontal/sm and vertical/lg", [
-      ...nodes.map((entry) => ({ kind: "put" as const, entry })),
+    const head = baselineCompatibleHead(repo, old.head);
+    expect(old.scenario.viewport).toEqual({ width: 1440, height: 900 });
+    const operations = old.scenario.operations.filter(
+      (operation: { op: string }) => operation.op === "insertGroupWithChildren",
+    ) as Array<{
+      id: string;
+      x: number;
+      y: number;
+      orientation: "horizontal" | "vertical";
+      size: "sm" | "lg";
+    }>;
+    expect(operations.map((operation) => operation.id)).toEqual([
+      "group-horizontal",
+      "group-vertical",
+    ]);
+
+    const { document: seed } = createG1Fixture();
+    const page = seed.entries["project:page:main"] as Extract<
+      CatalogEntry,
+      { kind: "page" }
+    >;
+    const graph = new CatalogGraph(
       {
-        kind: "put",
-        entry: {
-          ...page,
-          children: operations.map(
-            (operation) => `project:node:${operation.id}` as NodeEntry["id"],
-          ),
+        ...seed,
+        entries: {
+          [seed.projectId]: seed.entries[seed.projectId],
+          [page.id]: { ...page, children: [] },
         },
       },
-    ]);
-    const bySource = new Map(
-      [...root.canvasInputs.values()].map((input) => [input.sourceId, input]),
+      createPencilFixtureLibrary(),
     );
-    const domBySource = new Map(
-      [...root.domInputs.values()].map((input) => [input.sourceId, input]),
+    const { engine, raw } = await layoutEngine();
+    const ck = await canvasKit();
+    Object.assign(globalThis, {
+      window: { __composition_CANVASKIT_INSTANCE__: ck },
+    });
+    await initCanvasKit();
+    const fontBytes = readFileSync(
+      resolve(process.cwd(), "public/fonts/PretendardVariable.ttf"),
     );
-    const geometry = root.getGeometry(root.canvasInputs.keys());
-    const roots = operations.map(
-      (operation) => bySource.get(`project:node:${operation.id}`)!.id,
+    skiaFontManager.loadFontFromBuffer(
+      "Pretendard",
+      fontBytes.buffer.slice(
+        fontBytes.byteOffset,
+        fontBytes.byteOffset + fontBytes.byteLength,
+      ) as ArrayBuffer,
     );
-
-    // ── 새 Canvas: 공용 renderCommands/CanvasKit, G0 camera 0.8 ──────────
-    const bound = bindCatalogCanvas(root, roots);
-    let canvasBytes: Uint8Array;
+    const browser = await chromium.launch({ headless: true });
     try {
-      const surface = ck.MakeSurface(900, 480)!;
-      try {
-        const canvas = surface.getCanvas();
-        canvas.clear(ck.WHITE);
-        canvas.scale(SCALE, SCALE);
-        executeRenderCommands(
-          ck,
-          canvas,
-          bound.stream.commands,
-          { x: 0, y: 0, width: 900, height: 480 } as DOMRect,
-          skiaFontManager.getFontMgr(),
+      const root = new CatalogCompositionRoot(
+        new CatalogRuntime(
+          graph,
+          new CatalogStorage(indexedDB, `adr248-group-pair-${Date.now()}`),
+        ),
+        engine,
+        old.scenario.viewport,
+      );
+      const nodes: NodeEntry[] = operations.flatMap((operation) => {
+        const id = `project:node:${operation.id}` as NodeEntry["id"];
+        const childIds = [0, 1].map(
+          (index) =>
+            `project:node:${operation.id}-child-${index}` as NodeEntry["id"],
         );
-        surface.flush();
-        const bytes = surface.makeImageSnapshot().encodeToBytes();
-        if (!bytes) throw new Error("GROUP_PAIR_CANVAS_PNG_MISSING");
-        canvasBytes = bytes;
-        writeFileSync(join(design, "248-phase3-group-pair-canvas.png"), bytes);
-      } finally {
-        surface.delete();
-      }
-    } finally {
-      bound.dispose();
-    }
-
-    // ── 격리 DOM: 같은 resolved 값 → 제품 경로 DOM binding (RAC Group + RAC Text) ─────
-    const domTargets = operations.map((operation) => {
-      const group = domBySource.get(`project:node:${operation.id}`)!;
-      return { id: operation.id, groupId: group.id, childIds: group.children };
-    });
-    const markup = domTargets
-      .map((target) =>
-        renderToStaticMarkup(renderCatalogDom(root, target.groupId)),
-      )
-      .join("");
-    const context = await browser.newContext({
-      viewport: old.scenario.viewport,
-      deviceScaleFactor: 1,
-      colorScheme: "light",
-    });
-    const tab = await context.newPage();
-    const fontUrl = `data:font/ttf;base64,${fontBytes.toString("base64")}`;
-    await tab.setContent(
-      `<style>@font-face{font-family:Pretendard;src:url('${fontUrl}')}html,body{margin:0;background:#fff;font-family:Pretendard,sans-serif;font-size:16px;color:#000}</style><div id="stage" style="width:900px;height:480px;position:relative;overflow:hidden"><div id="scene" style="position:absolute;inset:0;transform:scale(.8);transform-origin:0 0">${markup}</div></div>`,
-    );
-    await tab.evaluate(() => document.fonts.ready);
-    const domBytes = await tab.locator("#stage").screenshot();
-    writeFileSync(join(design, "248-phase3-group-pair-dom.png"), domBytes);
-    const dom = await tab.evaluate(
-      (targets) =>
-        targets.map(({ id, groupId, childIds }) => {
-          const byId = (catalogId: string) =>
-            document.querySelector(`[data-catalog-id="${catalogId}"]`)!;
-          const group = byId(groupId);
-          const rect = (element: Element) => {
-            const value = element.getBoundingClientRect();
-            return {
-              x: value.x,
-              y: value.y,
-              width: value.width,
-              height: value.height,
-            };
-          };
-          const style = getComputedStyle(group);
-          return {
+        return [
+          {
+            kind: "node",
             id,
-            role: group.getAttribute("role"),
-            ariaOrientation: group.getAttribute("aria-orientation"),
-            ariaLabel: group.getAttribute("aria-label"),
-            className: group.className,
-            groupRect: rect(group),
-            childRects: childIds.map((childId) => rect(byId(childId))),
-            computed: {
-              flexDirection: style.flexDirection,
-              gap: style.gap,
-              border: style.border,
-              backgroundColor: style.backgroundColor,
+            name: operation.id,
+            definitionId: "lib:definition:group",
+            children: childIds,
+            props: {
+              orientation: { kind: "set", value: operation.orientation },
+              size: { kind: "set", value: operation.size },
             },
-          };
-        }),
-      domTargets,
-    );
-    await context.close();
-
-    const oldBytes = readFileSync(
-      join(design, "248-baseline/native-state-pinned/canvas.png"),
-    );
-    const oldImage = decode(ck, oldBytes);
-    const newImage = decode(ck, canvasBytes);
-    const domImage = decode(ck, domBytes);
-    const scaled = (rect: Rect): Rect => ({
-      x: rect.x * SCALE,
-      y: rect.y * SCALE,
-      width: rect.width * SCALE,
-      height: rect.height * SCALE,
-    });
-
-    const results = operations.map((operation, index) => {
-      const group = bySource.get(`project:node:${operation.id}`)!;
-      const children = [0, 1].map((child) =>
-        bySource.get(`project:node:${operation.id}-child-${child}`)!,
-      );
-      const rustGroup = geometry.get(group.id)!;
-      const rustChildren = children.map((child) => geometry.get(child.id)!);
-      const expected = old.observations.find(
-        (item: { semanticId: string }) => item.semanticId === operation.id,
-      )!;
-      // 절대 좌표 (Rust 자식 layout 은 부모 상대).
-      const absoluteChildren = rustChildren.map((child) => ({
-        x: rustGroup.x + child.x,
-        y: rustGroup.y + child.y,
-        width: child.width,
-        height: child.height,
-      }));
-      const groupBox = nodeBox(scaled(rustGroup));
-      const textNodeBoxes = absoluteChildren.map((child) =>
-        nodeBox(scaled(child)),
-      );
-      const crop = {
-        x: index === 0 ? 20 : 220,
-        y: 170,
-        width: 150,
-        height: 100,
-      };
-      const l3 = measure(newImage, domImage, groupBox, textNodeBoxes);
-      return {
-        id: operation.id,
-        orientation: operation.orientation,
-        size: operation.size,
-        resolved: {
-          gap: group.visual.gap,
-          flexDirection:
-            group.props.orientation === "horizontal" ? "row" : "column",
-          fill: group.visual.fill,
-          border: `${group.visual.borderWidth}px solid ${group.visual.borderColor}`,
-        },
-        oldG0: { layout: expected.layout, children: expected.children },
-        rustGroup,
-        rustChildren,
-        dom: dom[index],
-        geometryDeltaMaxCssPx: Math.max(
-          ...[
-            [dom[index].groupRect, rustGroup],
-            ...dom[index].childRects.map(
-              (rect, child) => [rect, absoluteChildren[child]] as const,
+            visual: {
+              fill: { kind: "set", value: "#edf7ec" },
+              borderColor: { kind: "set", value: "#3851a4" },
+              borderWidth: { kind: "set", value: 2 },
+            },
+            sizing: {
+              width: { kind: "set", value: 170 },
+              height: { kind: "set", value: 110 },
+            },
+            placement: { kind: "absolute", x: operation.x, y: operation.y },
+            descendantOverrides: [],
+          },
+          ...childIds.map((childId, index): NodeEntry => ({
+            kind: "node",
+            id: childId,
+            definitionId: "lib:definition:text",
+            children: [],
+            props: { children: { kind: "set", value: String(index + 1) } },
+            visual: {
+              fill: { kind: "set", value: index ? "#53a853" : "#e04747" },
+            },
+            sizing: {
+              width: { kind: "set", value: 50 },
+              height: { kind: "set", value: 40 },
+            },
+            descendantOverrides: [],
+          })),
+        ];
+      });
+      root.dispatch("G0 public Group inserts: horizontal/sm and vertical/lg", [
+        ...nodes.map((entry) => ({ kind: "put" as const, entry })),
+        {
+          kind: "put",
+          entry: {
+            ...page,
+            children: operations.map(
+              (operation) => `project:node:${operation.id}` as NodeEntry["id"],
             ),
-          ].flatMap(([domRect, rust]) =>
-            (["x", "y", "width", "height"] as const).map((key) =>
-              Math.abs(domRect[key] / SCALE - rust[key]),
+          },
+        },
+      ]);
+      const bySource = new Map(
+        [...root.canvasInputs.values()].map((input) => [input.sourceId, input]),
+      );
+      const domBySource = new Map(
+        [...root.domInputs.values()].map((input) => [input.sourceId, input]),
+      );
+      const geometry = root.getGeometry(root.canvasInputs.keys());
+      const roots = operations.map(
+        (operation) => bySource.get(`project:node:${operation.id}`)!.id,
+      );
+
+      // ── 새 Canvas: 공용 renderCommands/CanvasKit, G0 camera 0.8 ──────────
+      const bound = bindCatalogCanvas(root, roots);
+      let canvasBytes: Uint8Array;
+      try {
+        const surface = ck.MakeSurface(900, 480)!;
+        try {
+          const canvas = surface.getCanvas();
+          canvas.clear(ck.WHITE);
+          canvas.scale(SCALE, SCALE);
+          executeRenderCommands(
+            ck,
+            canvas,
+            bound.stream.commands,
+            { x: 0, y: 0, width: 900, height: 480 } as DOMRect,
+            skiaFontManager.getFontMgr(),
+          );
+          surface.flush();
+          const bytes = surface.makeImageSnapshot().encodeToBytes();
+          if (!bytes) throw new Error("GROUP_PAIR_CANVAS_PNG_MISSING");
+          canvasBytes = bytes;
+          writeEvidence(
+            join(design, "248-phase3-group-pair-canvas.png"),
+            bytes,
+          );
+        } finally {
+          surface.delete();
+        }
+      } finally {
+        bound.dispose();
+      }
+
+      // ── 격리 DOM: 같은 resolved 값 → 제품 경로 DOM binding (RAC Group + RAC Text) ─────
+      const domTargets = operations.map((operation) => {
+        const group = domBySource.get(`project:node:${operation.id}`)!;
+        return {
+          id: operation.id,
+          groupId: group.id,
+          childIds: group.children,
+        };
+      });
+      const markup = domTargets
+        .map((target) =>
+          renderToStaticMarkup(renderCatalogDom(root, target.groupId)),
+        )
+        .join("");
+      const context = await browser.newContext({
+        viewport: old.scenario.viewport,
+        deviceScaleFactor: 1,
+        colorScheme: "light",
+      });
+      const tab = await context.newPage();
+      const fontUrl = `data:font/ttf;base64,${fontBytes.toString("base64")}`;
+      await tab.setContent(
+        `<style>@font-face{font-family:Pretendard;src:url('${fontUrl}')}html,body{margin:0;background:#fff;font-family:Pretendard,sans-serif;font-size:16px;color:#000}</style><div id="stage" style="width:900px;height:480px;position:relative;overflow:hidden"><div id="scene" style="position:absolute;inset:0;transform:scale(.8);transform-origin:0 0">${markup}</div></div>`,
+      );
+      await tab.evaluate(() => document.fonts.ready);
+      const domBytes = await tab.locator("#stage").screenshot();
+      writeEvidence(join(design, "248-phase3-group-pair-dom.png"), domBytes);
+      const dom = await tab.evaluate(
+        (targets) =>
+          targets.map(({ id, groupId, childIds }) => {
+            const byId = (catalogId: string) =>
+              document.querySelector(`[data-catalog-id="${catalogId}"]`)!;
+            const group = byId(groupId);
+            const rect = (element: Element) => {
+              const value = element.getBoundingClientRect();
+              return {
+                x: value.x,
+                y: value.y,
+                width: value.width,
+                height: value.height,
+              };
+            };
+            const style = getComputedStyle(group);
+            return {
+              id,
+              role: group.getAttribute("role"),
+              ariaOrientation: group.getAttribute("aria-orientation"),
+              ariaLabel: group.getAttribute("aria-label"),
+              className: group.className,
+              groupRect: rect(group),
+              childRects: childIds.map((childId) => rect(byId(childId))),
+              computed: {
+                flexDirection: style.flexDirection,
+                gap: style.gap,
+                border: style.border,
+                backgroundColor: style.backgroundColor,
+              },
+            };
+          }),
+        domTargets,
+      );
+      await context.close();
+
+      const oldBytes = readFileSync(
+        join(design, "248-baseline/native-state-pinned/canvas.png"),
+      );
+      const oldImage = decode(ck, oldBytes);
+      const newImage = decode(ck, canvasBytes);
+      const domImage = decode(ck, domBytes);
+      const scaled = (rect: Rect): Rect => ({
+        x: rect.x * SCALE,
+        y: rect.y * SCALE,
+        width: rect.width * SCALE,
+        height: rect.height * SCALE,
+      });
+
+      const results = operations.map((operation, index) => {
+        const group = bySource.get(`project:node:${operation.id}`)!;
+        const children = [0, 1].map((child) =>
+          bySource.get(`project:node:${operation.id}-child-${child}`)!,
+        );
+        const rustGroup = geometry.get(group.id)!;
+        const rustChildren = children.map((child) => geometry.get(child.id)!);
+        const expected = old.observations.find(
+          (item: { semanticId: string }) => item.semanticId === operation.id,
+        )!;
+        // 절대 좌표 (Rust 자식 layout 은 부모 상대).
+        const absoluteChildren = rustChildren.map((child) => ({
+          x: rustGroup.x + child.x,
+          y: rustGroup.y + child.y,
+          width: child.width,
+          height: child.height,
+        }));
+        const groupBox = nodeBox(scaled(rustGroup));
+        const textNodeBoxes = absoluteChildren.map((child) =>
+          nodeBox(scaled(child)),
+        );
+        const crop = {
+          x: index === 0 ? 20 : 220,
+          y: 170,
+          width: 150,
+          height: 100,
+        };
+        const l3 = measure(newImage, domImage, groupBox, textNodeBoxes);
+        return {
+          id: operation.id,
+          orientation: operation.orientation,
+          size: operation.size,
+          resolved: {
+            gap: group.visual.gap,
+            flexDirection:
+              group.props.orientation === "horizontal" ? "row" : "column",
+            fill: group.visual.fill,
+            border: `${group.visual.borderWidth}px solid ${group.visual.borderColor}`,
+          },
+          oldG0: { layout: expected.layout, children: expected.children },
+          rustGroup,
+          rustChildren,
+          dom: dom[index],
+          geometryDeltaMaxCssPx: Math.max(
+            ...[
+              [dom[index].groupRect, rustGroup],
+              ...dom[index].childRects.map(
+                (rect, child) => [rect, absoluteChildren[child]] as const,
+              ),
+            ].flatMap(([domRect, rust]) =>
+              (["x", "y", "width", "height"] as const).map((key) =>
+                Math.abs(domRect[key] / SCALE - rust[key]),
+              ),
             ),
           ),
-        ),
-        l3NonTextGroupMinusTextNodes: l3,
-        l3Verdict: l3.blockedAtNonTextBudget ? "FAIL" : "PASS",
-        referenceUnmaskedGroupBox: measure(newImage, domImage, groupBox),
-        referenceTextNodeBoxesL4: textNodeBoxes.map((box) =>
-          measure(newImage, domImage, box),
-        ),
-        l3eVerdict: "UNVERIFIED_NO_APPROVED_GROUP_EDGE_BUDGET",
-        oldCanvasVsNewCanvasCrop: {
-          ...measure(oldImage, newImage, crop),
-          disposition:
-            "KNOWN_OLD_DEFECT_§6.1_GROUP_ORIENTATION_AND_SIZE_GAP — old/new FAIL recorded, not exempted",
-        },
-        newCanvasVsDomCrop: measure(newImage, domImage, crop),
-      };
-    });
+          l3NonTextGroupMinusTextNodes: l3,
+          l3Verdict: l3.blockedAtNonTextBudget ? "FAIL" : "PASS",
+          referenceUnmaskedGroupBox: measure(newImage, domImage, groupBox),
+          referenceTextNodeBoxesL4: textNodeBoxes.map((box) =>
+            measure(newImage, domImage, box),
+          ),
+          l3eVerdict: "UNVERIFIED_NO_APPROVED_GROUP_EDGE_BUDGET",
+          oldCanvasVsNewCanvasCrop: {
+            ...measure(oldImage, newImage, crop),
+            disposition:
+              "KNOWN_OLD_DEFECT_§6.1_GROUP_ORIENTATION_AND_SIZE_GAP — old/new FAIL recorded, not exempted",
+          },
+          newCanvasVsDomCrop: measure(newImage, domImage, crop),
+        };
+      });
 
-    for (const result of results) {
-      expect(result.dom.role).toBe("group");
-      expect(result.dom.ariaOrientation).toBe(result.orientation);
-      expect(result.dom.computed.flexDirection).toBe(
-        result.resolved.flexDirection,
+      for (const result of results) {
+        expect(result.dom.role).toBe("group");
+        expect(result.dom.ariaOrientation).toBe(result.orientation);
+        expect(result.dom.computed.flexDirection).toBe(
+          result.resolved.flexDirection,
+        );
+        expect(result.dom.computed.gap).toBe(`${result.resolved.gap}px`);
+        expect(result.dom.computed.border).toBe("2px solid rgb(56, 81, 164)");
+        expect(result.dom.computed.backgroundColor).toBe("rgb(237, 247, 236)");
+        expect(result.rustGroup).toMatchObject(result.oldG0.layout);
+        expect(result.geometryDeltaMaxCssPx).toBeLessThanOrEqual(1);
+      }
+      // 새 방향·gap 교정: horizontal/sm 둘째 자식 (58,2), vertical/lg (2,54).
+      expect(results[0].rustChildren[1]).toMatchObject({ x: 58, y: 2 });
+      expect(results[1].rustChildren[1]).toMatchObject({ x: 2, y: 54 });
+
+      writeEvidence(
+        join(design, "248-phase3-group-pair.json"),
+        `${JSON.stringify(
+          {
+            scenarioId: old.scenario.id,
+            scenarioHash: old.scenarioHash,
+            head,
+            environment: {
+              viewport: old.scenario.viewport,
+              dpr: 1,
+              theme: old.scenario.theme,
+              font: old.scenario.font,
+              fontSha256: sha(fontBytes),
+              seed: old.scenario.seed,
+              screenScale: SCALE,
+            },
+            method: {
+              regions:
+                "ADR-198 node-ID regions: Group non-text = Group box − child text-node boxes (mask, Canvas leg geometry); child Text nodes = text kind (L4, reference only)",
+              blocking:
+                "pixelmatch 0.1; ratio > 0.001 AND maxByte > 2 (INITIAL_BUDGETS.nonText)",
+              edge: "L3e budget not applied — no approved Group edge budget",
+            },
+            old: { screenshotSha256: sha(oldBytes) },
+            new: {
+              canvasSha256: sha(canvasBytes),
+              domSha256: sha(domBytes),
+              commandCount: bound.stream.commands.length,
+              rustWasm: sha(
+                readFileSync(
+                  resolve(
+                    process.cwd(),
+                    "src/builder/workspace/canvas/wasm-bindings/engine-pkg/engine_bg.wasm",
+                  ),
+                ),
+              ),
+              canvasKitWasm: sha(
+                readFileSync(
+                  join(
+                    dirname(require.resolve("canvaskit-wasm/bin/canvaskit.js")),
+                    "canvaskit.wasm",
+                  ),
+                ),
+              ),
+            },
+            results,
+          },
+          null,
+          2,
+        )}\n`,
       );
-      expect(result.dom.computed.gap).toBe(`${result.resolved.gap}px`);
-      expect(result.dom.computed.border).toBe("2px solid rgb(56, 81, 164)");
-      expect(result.dom.computed.backgroundColor).toBe("rgb(237, 247, 236)");
-      expect(result.rustGroup).toMatchObject(result.oldG0.layout);
-      expect(result.geometryDeltaMaxCssPx).toBeLessThanOrEqual(1);
+    } finally {
+      await browser.close();
+      raw.free();
     }
-    // 새 방향·gap 교정: horizontal/sm 둘째 자식 (58,2), vertical/lg (2,54).
-    expect(results[0].rustChildren[1]).toMatchObject({ x: 58, y: 2 });
-    expect(results[1].rustChildren[1]).toMatchObject({ x: 2, y: 54 });
-
-    writeFileSync(
-      join(design, "248-phase3-group-pair.json"),
-      `${JSON.stringify(
-        {
-          scenarioId: old.scenario.id,
-          scenarioHash: old.scenarioHash,
-          head,
-          environment: {
-            viewport: old.scenario.viewport,
-            dpr: 1,
-            theme: old.scenario.theme,
-            font: old.scenario.font,
-            fontSha256: sha(fontBytes),
-            seed: old.scenario.seed,
-            screenScale: SCALE,
-          },
-          method: {
-            regions:
-              "ADR-198 node-ID regions: Group non-text = Group box − child text-node boxes (mask, Canvas leg geometry); child Text nodes = text kind (L4, reference only)",
-            blocking:
-              "pixelmatch 0.1; ratio > 0.001 AND maxByte > 2 (INITIAL_BUDGETS.nonText)",
-            edge: "L3e budget not applied — no approved Group edge budget",
-          },
-          old: { screenshotSha256: sha(oldBytes) },
-          new: {
-            canvasSha256: sha(canvasBytes),
-            domSha256: sha(domBytes),
-            commandCount: bound.stream.commands.length,
-            rustWasm: sha(
-              readFileSync(
-                resolve(
-                  process.cwd(),
-                  "src/builder/workspace/canvas/wasm-bindings/engine-pkg/engine_bg.wasm",
-                ),
-              ),
-            ),
-            canvasKitWasm: sha(
-              readFileSync(
-                join(
-                  dirname(require.resolve("canvaskit-wasm/bin/canvaskit.js")),
-                  "canvaskit.wasm",
-                ),
-              ),
-            ),
-          },
-          results,
-        },
-        null,
-        2,
-      )}\n`,
-    );
-  } finally {
-    await browser.close();
-    raw.free();
-  }
-}, 120_000);
+  },
+  120_000,
+);
