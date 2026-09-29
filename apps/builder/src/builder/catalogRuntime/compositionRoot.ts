@@ -1,6 +1,9 @@
 import type {
   DefinitionId,
+  EntryId,
   NodeId,
+  PageLayoutDeclaration,
+  PagePlacementDeclaration,
   StateName,
 } from "../../../../../packages/shared/src/catalog/document/types";
 import type { ResolvedCatalogNode } from "../../../../../packages/shared/src/catalog/resolution/resolver";
@@ -34,6 +37,17 @@ import {
   catalogFillDependents,
   catalogFillLayout,
 } from "./fillLayout";
+import type {
+  BreakpointName,
+  PagePlacement,
+  PageLayoutSettingsDocument,
+} from "@composition/shared";
+import {
+  buildContainerStyle,
+  resolvePageLayout,
+  resolvePagePlacementStyle,
+} from "../workspace/canvas/scene/pagePlacement";
+import { CANVAS_VIEWPORT } from "../workspace/canvasBreakpoints";
 import {
   racDateSegmentParts,
   type DateSegmentPart,
@@ -328,6 +342,44 @@ export interface CatalogTextMeasure {
     font: CatalogTextFont,
     maxWidth?: number,
   ): { width: number; height: number; minWidth?: number; exactWidth?: number };
+}
+/** Environment of one composition root (a breakpoint switch builds a new root). */
+export interface CatalogRootOptions {
+  breakpoint?: BreakpointName;
+  /** Product layout: pages as frames on the page container grid (ADR-232). */
+  pageFrames?: boolean;
+  /** `columns: "auto"`: the integer column count the visible canvas fits (host-computed). */
+  autoColumns?: number;
+}
+/** The graph's page container declaration in the old placement derivation's input shape. */
+function catalogPageLayoutSettings(
+  layout: PageLayoutDeclaration | undefined,
+): PageLayoutSettingsDocument | undefined {
+  if (!layout) return undefined;
+  const gap: Partial<Record<BreakpointName, number>> = {};
+  const columns: Partial<Record<BreakpointName, number | "auto">> = {};
+  for (const [name, tier] of Object.entries(layout.breakpoints ?? {})) {
+    if (tier?.gap !== undefined) gap[name as BreakpointName] = tier.gap;
+    if (tier?.columns !== undefined)
+      columns[name as BreakpointName] = tier.columns;
+  }
+  return {
+    ...(layout.direction ? { direction: layout.direction } : {}),
+    ...(layout.gap !== undefined ? { gap: layout.gap } : {}),
+    ...(layout.columns !== undefined ? { columns: layout.columns } : {}),
+    responsive: { gap, columns },
+    placementModel: "derived",
+  };
+}
+/** A page placement (base + breakpoint layers) in the old per-key cascade shape. */
+function catalogPagePlacement(
+  placement: PagePlacementDeclaration,
+): PagePlacement {
+  const responsive: Record<string, Partial<Record<BreakpointName, string | number>>> = {};
+  for (const [name, values] of Object.entries(placement.breakpoints ?? {}))
+    for (const [key, value] of Object.entries(values ?? {}))
+      (responsive[key] ??= {})[name as BreakpointName] = value;
+  return { style: { ...placement.base }, responsive };
 }
 /** Font inputs of one text measure (the typography the Canvas paragraph and the DOM share). */
 export interface CatalogTextFont {
@@ -785,6 +837,13 @@ function sameRecord(
 /** Test-entry-only assembly. Consumer maps are inputs, not G3 visual parity results. */
 export class CatalogCompositionRoot {
   private readonly layout: PersistentLayoutTree;
+  /** Active breakpoint (desktop-first cascade); a switch builds a new root (cold path). */
+  readonly breakpoint: BreakpointName;
+  /** Product layout: each page a frame on the ADR-232 page container grid. */
+  private readonly pageFrames: boolean;
+  private readonly autoColumns: number | undefined;
+  /** Page of each page root node (`pageRoots`). */
+  private readonly rootPage = new Map<NodeId, EntryId<"page">>();
   private readonly records = new Map<string, CatalogConsumerNode>();
   private readonly rootMembers = new Map<NodeId, Set<string>>();
   private readonly sourceRoots = new Map<string, Set<NodeId>>();
@@ -824,7 +883,11 @@ export class CatalogCompositionRoot {
      * consumer's surrounding `I18nProvider`, else `navigator.language`).
      */
     private readonly locale?: string,
+    options: CatalogRootOptions = {},
   ) {
+    this.breakpoint = options.breakpoint ?? "desktop";
+    this.pageFrames = options.pageFrames === true;
+    this.autoColumns = options.autoColumns;
     // Definite-zero heights shrink their column children (CSS-FLEXBOX-1 §9.8). The engine keeps
     // this off by default so the current Builder's output is unchanged until the Phase 4 cutover.
     engine.setDefiniteZeroHeight?.(true);
@@ -1015,6 +1078,7 @@ export class CatalogCompositionRoot {
         // A disabled page node renders nowhere (canonical `enabled`).
         if (child?.kind === "node" && child.enabled === false) continue;
         ids.push(childId);
+        this.rootPage.set(childId, page.id);
       }
     }
     return ids;
@@ -1031,7 +1095,13 @@ export class CatalogCompositionRoot {
       return id;
     };
     visit(
-      resolveCatalogNode(this.runtime.graph, rootId, this.state),
+      resolveCatalogNode(
+        this.runtime.graph,
+        rootId,
+        this.state,
+        undefined,
+        this.breakpoint,
+      ),
       "catalog:root",
     );
     const get = (key: string) => output.get(key);
@@ -1095,6 +1165,7 @@ export class CatalogCompositionRoot {
     get: (id: string) => CatalogConsumerNode | undefined = (id) =>
       this.records.get(id),
   ): Record<string, unknown> {
+    const frame = this.pageFrameStyle(record);
     const style = styleOf(
       record,
       this.textMeasure,
@@ -1117,6 +1188,7 @@ export class CatalogCompositionRoot {
       : catalogItemSlotInset(record, get, this.typeOf);
     return {
       ...style,
+      ...frame,
       ...thumb,
       ...(slotInset !== undefined ? { paddingLeft: `${slotInset}px` } : {}),
       ...(separator !== undefined
@@ -1488,17 +1560,77 @@ export class CatalogCompositionRoot {
     for (const id of rootChildren) visit(id);
     batch.push({
       elementId: "catalog:root",
-      style: {
-        display: "flex",
-        width: `${this.viewport.width}px`,
-        height: `${this.viewport.height}px`,
-      },
+      style: this.rootStyle(),
       children: rootChildren.map((id) => indexes.get(id)!),
     });
     childIds.set("catalog:root", rootChildren);
     this.layout.buildFull("catalog:root", batch, childIds);
     this.layout.computeLayout(this.viewport.width, this.viewport.height);
     this.rewrap(this.records.keys());
+  }
+
+  /**
+   * The container of the page roots. Test assemblies: one viewport-size flex box. Product
+   * (`pageFrames`): the ADR-232 page container grid (`buildContainerStyle` — the old app's
+   * placement derivation, now in the same layout tree as the pages).
+   */
+  private rootStyle(): Record<string, unknown> {
+    if (!this.pageFrames)
+      return {
+        display: "flex",
+        width: `${this.viewport.width}px`,
+        height: `${this.viewport.height}px`,
+      };
+    const project = this.runtime.graph.getEntry(this.runtime.graph.projectId);
+    const layout = project?.kind === "project" ? project.pageLayout : undefined;
+    return buildContainerStyle(
+      resolvePageLayout(
+        catalogPageLayoutSettings(layout),
+        this.breakpoint,
+        this.autoColumns,
+      ),
+    );
+  }
+  /**
+   * A page root's frame on the page grid: the breakpoint's page size unless the root authored its
+   * own width/height (`resolvePageFrameSize`), plus the page's placement at this breakpoint.
+   */
+  private pageFrameStyle(
+    record: CatalogConsumerNode,
+  ): Record<string, unknown> | undefined {
+    if (!this.pageFrames || record.parentId !== "catalog:root") return undefined;
+    const pageId = this.rootPage.get(record.sourceId as NodeId);
+    const page = pageId ? this.runtime.graph.getEntry(pageId) : undefined;
+    const tier = CANVAS_VIEWPORT[this.breakpoint];
+    const out: Record<string, unknown> = {};
+    if (record.sizing.width == null && record.visual.width == null)
+      out.width = `${tier.width}px`;
+    if (record.sizing.height == null && record.visual.height == null)
+      out.height = `${tier.height}px`;
+    if (page?.kind !== "page" || !page.placement) return out;
+    const placement = resolvePagePlacementStyle(
+      catalogPagePlacement(page.placement),
+      this.breakpoint,
+    );
+    for (const [key, value] of Object.entries(placement)) {
+      if (key === "left") out.insetLeft = typeof value === "number" ? `${value}px` : value;
+      else if (key === "top") out.insetTop = typeof value === "number" ? `${value}px` : value;
+      else out[key] = typeof value === "number" && key.startsWith("grid") ? String(value) : value;
+    }
+    return out;
+  }
+  /** Laid-out frame of every page (its root node's box on the page grid). */
+  pageFrameRects(): Map<string, { x: number; y: number; width: number; height: number }> {
+    const rects = new Map<string, { x: number; y: number; width: number; height: number }>();
+    for (const rootId of this.rootIds) {
+      const pageId = this.rootPage.get(rootId);
+      const member = [...(this.rootMembers.get(rootId) ?? [])].find(
+        (id) => this.records.get(id)?.parentId === "catalog:root",
+      );
+      const rect = member ? this.getGeometry([member]).get(member) : undefined;
+      if (pageId && rect) rects.set(pageId, rect);
+    }
+    return rects;
   }
 
   private addSourceInstance(sourceId: string, id: string): void {
@@ -1826,6 +1958,7 @@ export class CatalogCompositionRoot {
           },
           onVisit: () => resolverVisits++,
         },
+        this.breakpoint,
       );
       const find = (
         node: ResolvedCatalogNode,
@@ -2077,7 +2210,15 @@ export class CatalogCompositionRoot {
       roots,
       nextRootIds,
       rootChildren: nextRootIds?.map((id) =>
-        identity(resolveCatalogNode(this.runtime.graph, id, this.state)),
+        identity(
+          resolveCatalogNode(
+            this.runtime.graph,
+            id,
+            this.state,
+            undefined,
+            this.breakpoint,
+          ),
+        ),
       ),
       computeLayout: affectedRoots.size > 0,
       metrics: {
@@ -2117,6 +2258,9 @@ export class CatalogCompositionRoot {
       for (const id of plan.nextRootIds) this.rootIds.add(id);
       this.layoutTouched = true;
       this.layout.updateChildren("catalog:root", [...plan.rootChildren!]);
+      // A project/page edit can change the page container (`pageLayout`) itself.
+      if (this.pageFrames)
+        this.layout.updateNodeStyle("catalog:root", this.rootStyle());
     }
     if (plan.computeLayout) {
       this.layoutTouched = true;
