@@ -141,8 +141,11 @@
     transition: background-color 0.1s;
   }
 
+  /* 2차 메뉴가 열린 동안 포커스는 2차 메뉴로 넘어가 1차 항목의 focused/hovered 가 빠진다 —
+     RAC 가 SubmenuTrigger 항목에 다는 data-open 으로 활성을 유지한다. */
   .header-menu-item[data-focused],
-  .header-menu-item[data-hovered] {
+  .header-menu-item[data-hovered],
+  .header-menu-item[data-open] {
     background: var(--bg-muted);
   }
 

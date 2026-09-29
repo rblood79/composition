@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [전체 메뉴 하위 메뉴 진입 시 상위 항목 활성 유지 — ADR-249 후속] - 2026-09-29
+
+### Fixed
+
+- **헤더 전체 메뉴에서 파일 · 편집 등 하위 메뉴 안으로 들어가면 상위 항목 (파일 · 편집) 의 강조가 사라지던 것.** 포커스가 하위 메뉴로 넘어가면 상위 항목의 `data-focused` · `data-hovered` 가 빠지는데, RAC 가 하위 메뉴가 열린 트리거 항목에 다는 `data-open` 에는 스타일이 없었다. `data-open` 도 hover 와 같은 배경을 받는다 (마우스 · 키보드 둘 다).
+
 ## [전체 메뉴 첫 열림 지연 수정 — ADR-249 후속] - 2026-09-29
 
 ### Fixed
