@@ -444,6 +444,10 @@ export class CatalogGraph {
   referrersOf(id: string): ReadonlySet<string> {
     return this.refIndex.get(id) ?? new Set();
   }
+  /** Committed nodes bound to a data collection (the Data panel's usage, no scan). */
+  bindingsOf(collectionId: string): ReadonlySet<string> {
+    return this.collectionIndex.get(collectionId) ?? new Set();
+  }
   /** Committed nodes whose author DOM id (`metadata.htmlId`) is `htmlId` (duplicate check). */
   nodesWithHtmlId(htmlId: string): ReadonlySet<string> {
     return this.htmlIdIndex.get(htmlId) ?? new Set();

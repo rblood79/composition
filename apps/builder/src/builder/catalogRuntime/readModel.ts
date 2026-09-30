@@ -273,6 +273,11 @@ export class CatalogReadModel {
       : [];
   }
 
+  /** Nodes bound to a data collection (the graph's collection index, no scan). */
+  collectionUsage(collectionId: string): readonly NodeId[] {
+    return [...this.runtime.graph.bindingsOf(collectionId)] as NodeId[];
+  }
+
   /** The project's pages in order. */
   pages(): readonly PageEntry[] {
     const project = this.runtime.graph.getEntry(this.runtime.graph.projectId);

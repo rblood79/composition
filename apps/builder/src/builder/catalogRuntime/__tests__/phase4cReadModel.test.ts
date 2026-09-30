@@ -255,4 +255,25 @@ describe("ADR-248 Phase 4c read model", () => {
     run(resetDescendant({ ownerId: id("icon"), address: label.address }));
     expect(marks.at(-1)).toEqual([]);
   });
+
+  it("lists a data collection's bound nodes through the graph index", async () => {
+    const { runtime, model, run } = await open(
+      [text("a", "A"), text("b", "B")],
+      ["a", "b"],
+    );
+    const binding = {
+      collectionId: "data:collection:users",
+      fieldMap: { children: "data:field:name" },
+    } as never;
+    run(
+      setWholeField({
+        targets: [{ kind: "node", id: id("a") }],
+        field: "binding",
+        value: binding,
+      }),
+    );
+    expect(model.collectionUsage("data:collection:users")).toEqual([id("a")]);
+    runtime.undo();
+    expect(model.collectionUsage("data:collection:users")).toEqual([]);
+  });
 });
