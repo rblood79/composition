@@ -43,6 +43,10 @@ import {
   type CatalogInteractionAction,
 } from "./interactions";
 import { catalogBindingCommand, catalogBindingRef } from "./dataBinding";
+import {
+  catalogVariableIndex,
+  catalogVariableUsageCounter,
+} from "./dataVariables";
 import { catalogStyleView, catalogStyleWritesOf } from "./styleFields";
 import type { CatalogWorkspace } from "./workspace";
 
@@ -51,6 +55,17 @@ const typeOf = (workspace: CatalogWorkspace, position: CatalogPosition) => {
     return definitionTypeName(workspace.runtime.graph, position.definitionId);
   } catch {
     return "";
+  }
+};
+
+const typeOfDefinition = (workspace: CatalogWorkspace, definitionId: string) => {
+  try {
+    return definitionTypeName(
+      workspace.runtime.graph,
+      definitionId as Parameters<typeof definitionTypeName>[1],
+    );
+  } catch {
+    return definitionId;
   }
 };
 
@@ -219,6 +234,79 @@ export function createCatalogAiReadHost(
       }
     },
     creationParentId: () => creationParent(workspace)?.identity ?? null,
+    pages() {
+      const graph = workspace.runtime.graph;
+      const project = graph.getEntry(graph.projectId);
+      if (project?.kind !== "project") return [];
+      return project.pageIds.flatMap((id) => {
+        const page = graph.getEntry(id);
+        return page?.kind === "page" ? [{ id, title: page.name }] : [];
+      });
+    },
+    interactionRules() {
+      const graph = workspace.runtime.graph;
+      const project = graph.getEntry(graph.projectId);
+      if (project?.kind !== "project") return [];
+      return project.interactionIds.flatMap((id) => {
+        const rule = graph.getEntry(id);
+        if (rule?.kind !== "interaction") return [];
+        return [
+          {
+            id,
+            elementId:
+              workspace.root.recordsOfSource(rule.ownerId)[0] ?? rule.ownerId,
+            trigger: rule.trigger,
+            actionKind: rule.action.opcode,
+          },
+        ];
+      });
+    },
+    variables(projectDefs) {
+      const graph = workspace.runtime.graph;
+      const usedBy = catalogVariableUsageCounter(graph, projectDefs);
+      const pageTitle = (pageId: string) => {
+        const page = graph.getEntry(pageId);
+        return page?.kind === "page" ? page.name : pageId;
+      };
+      return [
+        ...projectDefs.map((def) => ({
+          id: def.id,
+          name: def.name,
+          type: def.type,
+          owner: { kind: "project" as const },
+          usedBy: usedBy(def.id),
+          ...(def.defaultValue !== undefined
+            ? { defaultValue: def.defaultValue }
+            : {}),
+        })),
+        ...catalogVariableIndex(graph).map(({ variable, pageId, ownerLabel }) => {
+          const owner = graph.getEntry(variable.ownerId);
+          return {
+            id: variable.id,
+            name: variable.name,
+            type: variable.valueType,
+            owner:
+              ownerLabel === null
+                ? { kind: "page" as const, pageId, pageTitle: pageTitle(pageId) }
+                : {
+                    kind: "element" as const,
+                    elementId:
+                      workspace.root.recordsOfSource(variable.ownerId)[0] ??
+                      variable.ownerId,
+                    elementType:
+                      owner?.kind === "node"
+                        ? typeOfDefinition(workspace, owner.definitionId)
+                        : variable.ownerId,
+                    pageId,
+                  },
+            usedBy: usedBy(variable.id),
+            ...(variable.defaultValue !== undefined
+              ? { defaultValue: variable.defaultValue }
+              : {}),
+          };
+        }),
+      ];
+    },
     projectId: () => workspace.projectId,
   };
 }

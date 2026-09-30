@@ -79,6 +79,9 @@ export function getAiToolReadModel() {
       state: {
         ...state,
         currentPageId: host.currentPageId(),
+        pages: host
+          .pages()
+          .map((page) => ({ ...page, id: page.id, title: page.title })) as typeof state.pages,
         selectedElementId: selectedElementIds[0] ?? null,
         selectedElementIds,
       },

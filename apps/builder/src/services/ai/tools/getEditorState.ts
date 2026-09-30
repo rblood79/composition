@@ -10,6 +10,7 @@ import type {
 } from "../../../types/integrations/ai.types";
 import { getAiToolReadModel } from "./canonicalToolReadModel";
 import { readCanonicalFields } from "./canonicalNodeFields";
+import { getAiReadHost } from "../aiReadHost";
 import { useCanonicalDocumentStore } from "../../../builder/stores/canonical/canonicalDocumentStore";
 import { summarizeCollections } from "../data/collectionReadModel";
 import { getDataToolReadModel } from "../data/dataToolReadModel";
@@ -90,12 +91,15 @@ export const getEditorStateTool: ToolExecutor = {
       const activeDoc = canonicalStore.currentProjectId
         ? canonicalStore.documents.get(canonicalStore.currentProjectId)
         : undefined;
-      const interactionRules = (activeDoc?.events ?? []).map((rule) => ({
+      const readHost = getAiReadHost();
+      const interactionRules = readHost
+        ? [...readHost.interactionRules()]
+        : (activeDoc?.events ?? []).map((rule) => ({
         id: rule.id,
         elementId: rule.elementId,
         trigger: rule.trigger,
-        actionKind: rule.action?.kind,
-      }));
+            actionKind: rule.action?.kind,
+          }));
 
       // ADR-213 X3 — collection 요약만 (id · name · fieldCount · rowCount). 스키마·행은
       // `get_collection` 이 맡는다 (I7).

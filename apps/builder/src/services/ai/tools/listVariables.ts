@@ -23,6 +23,7 @@ import type {
 import { getActiveCanonicalDocument } from "../../../builder/stores/canonical/canonicalElementsBridge";
 import { getProjectVariableDefinitions } from "../../../builder/stores/data";
 import { readFormat } from "./listCollections";
+import { getAiReadHost } from "../aiReadHost";
 
 export type VariableOwnerSummary =
   | { kind: "project" }
@@ -118,8 +119,27 @@ export const listVariablesTool: ToolExecutor = {
 
   async execute(args): Promise<ToolExecutionResult> {
     try {
-      const doc = getActiveCanonicalDocument();
       const projectDefs = getProjectVariableDefinitions();
+      // ADR-248 4e-5: the open catalog Builder's page / element variables (use counts; the
+      // detailed usages list is the old document's).
+      const readHost = getAiReadHost();
+      if (readHost) {
+        const all = readHost.variables(projectDefs);
+        return {
+          success: true,
+          data:
+            readFormat(args) === "detailed"
+              ? all
+              : all.map(({ id, name, type, owner, usedBy }) => ({
+                  id,
+                  name,
+                  type,
+                  owner,
+                  usedBy,
+                })),
+        };
+      }
+      const doc = getActiveCanonicalDocument();
       const data =
         readFormat(args) === "detailed"
           ? collectVariableDetails(doc, projectDefs)

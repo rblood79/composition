@@ -17,6 +17,13 @@ import { buildBuilderContext } from "../../../services/ai/builderContext";
 import { readCompilerState } from "../../../services/ai/compiler/builderHost";
 import { getAiToolReadModel } from "../../../services/ai/tools/canonicalToolReadModel";
 import { getSelectionTool } from "../../../services/ai/tools/getSelection";
+import { getEditorStateTool } from "../../../services/ai/tools/getEditorState";
+import { listVariablesTool } from "../../../services/ai/tools/listVariables";
+import {
+  catalogInteractionsCommand,
+  catalogNewInteraction,
+} from "../interactions";
+import { catalogVariableCommands } from "../stateVariables";
 import type { ToolTranslate } from "../../../types/integrations/ai.types";
 import { createCatalogAiReadHost } from "../aiHost";
 import { newCatalogProjectDocument } from "../project";
@@ -157,6 +164,52 @@ describe("ADR-248 Phase 4e-5 AI read model", () => {
     expect(identity).toContain(HOME);
     workspace.session.clearSelection();
     expect(readCompilerState().context.parentId).toBe(record(BODY));
+  });
+
+  it("get_editor_state and list_variables read the workspace's pages, rules and variables", async () => {
+    const { workspace, record } = await open();
+    workspace.execute(
+      catalogVariableCommands.add(HOME as never, "count", workspace.newId),
+    );
+    workspace.execute(
+      catalogVariableCommands.add(id("a"), "local", workspace.newId),
+    );
+    const owner = { ownerId: id("a") };
+    workspace.execute(
+      catalogInteractionsCommand(
+        owner,
+        [
+          catalogNewInteraction(
+            owner,
+            "onPress",
+            { opcode: "toast", message: "Hi" },
+            workspace.newId,
+          ),
+        ],
+        "Rule",
+      ),
+    );
+    const state = await getEditorStateTool.execute({}, t);
+    const data = state.data as {
+      pages: { id: string; title: string }[];
+      interactionRules: { elementId: string; actionKind: string }[];
+    };
+    expect(data.pages.map((page) => page.id)).toEqual([HOME]);
+    expect(data.interactionRules).toEqual([
+      expect.objectContaining({ elementId: record("a"), actionKind: "toast" }),
+    ]);
+    const variables = await listVariablesTool.execute({}, t);
+    const list = variables.data as {
+      name: string;
+      owner: { kind: string; elementId?: string };
+    }[];
+    expect(
+      list.map((variable) => [variable.name, variable.owner.kind]),
+    ).toEqual([
+      ["count", "page"],
+      ["local", "element"],
+    ]);
+    expect(list[1]!.owner.elementId).toBe(record("a"));
   });
 
   it("without a host the old stores are read (empty here)", async () => {

@@ -6,6 +6,7 @@
  */
 import type { ResolvedField } from "@composition/shared";
 import type { Element } from "../../types/builder/unified.types";
+import type { VariableSummary } from "./tools/listVariables";
 
 export interface AiReadHost {
   /** Changes whenever what the host reads changes (document, rows, breakpoint, selection). */
@@ -20,6 +21,22 @@ export interface AiReadHost {
   fields(id: string): readonly ResolvedField[];
   /** Where a new element goes now (the selection or its nearest container, else the page body). */
   creationParentId(): string | null;
+  /** The project's pages (id · title). */
+  pages(): readonly { id: string; title: string }[];
+  /** Every interaction rule (owner = its element id). */
+  interactionRules(): readonly {
+    id: string;
+    elementId: string;
+    trigger: string;
+    actionKind: string;
+  }[];
+  /**
+   * Project variables (the data store's definitions, given) and the document's page / element
+   * variables, with their use counts.
+   */
+  variables(
+    projectDefs: readonly { id: string; name: string; type: string; defaultValue?: unknown }[],
+  ): readonly (VariableSummary & { defaultValue?: unknown })[];
   /** The open project (the compiler state identity). */
   projectId(): string;
 }
