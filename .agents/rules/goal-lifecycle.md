@@ -1,26 +1,18 @@
-# Goal Lifecycle
+# Codex Goal 상태
 
-Codex goal tools are runtime state, not repository state. A visible `/goal`
-request, developer objective, or resumed thread summary is not proof that an
-active goal still exists.
+Goal은 사용자가 명시한 `/goal` 또는 상위 지침이 명시적으로 시작한 작업의
+런타임 상태입니다. 일반 요청을 임의로 Goal로 만들지 않습니다.
 
-## Completion Contract
+Goal 작업을 이어받거나 완료하려면 먼저 `get_goal`로 현재 상태와 objective를
+확인합니다. 대화의 요약이나 `.agent/task-state.json`은 활성 Goal의 증거가 아닙니다.
 
-- Before calling `update_goal(status="complete")`, call `get_goal`.
-- Treat `get_goal` output as the only authoritative goal state.
-- If `get_goal` returns `null`, do not call `update_goal`. Report that usage
-  accounting cannot be updated because no active goal exists.
-- If `get_goal` returns an active goal with an objective that does not match the
-  work being completed, do not call `update_goal`. Report the mismatch first.
-- Only after artifact verification and objective matching should
-  `update_goal(status="complete")` be called.
+완료 처리 순서:
 
-## Resume / Compaction Guard
+1. 실제 산출물과 검증 결과가 objective를 충족하는지 확인합니다.
+2. `get_goal`의 활성 objective가 그 작업과 일치할 때만
+   `update_goal(status="complete")`를 호출합니다.
+3. Goal이 없거나 objective가 다르면 완료 상태를 바꾸지 않고 차이를 보고합니다.
 
-After long-running work, compaction, interruption, or a developer "continue
-working toward objective" message:
+중단·compaction 뒤 명시적 Goal을 재개할 때도 현재 Goal과 산출물을 다시 대조합니다.
 
-1. Call `get_goal` before final completion reporting.
-2. Rebuild the completion checklist from actual artifacts and command output.
-3. Complete the goal only if the active goal objective still matches that
-   checklist.
+근거: [Using Goals in Codex](https://developers.openai.com/cookbook/examples/codex/using_goals_in_codex).

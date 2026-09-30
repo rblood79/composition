@@ -25,3 +25,18 @@ enabled = false
 
 [plugins."sites@openai-bundled"]
 enabled = false
+
+# Composition 전용 절차와 겹치거나 이 저장소의 기본 작업에 쓰지 않는
+# 범용 스킬만 프로젝트에서 제외한다. 전역 플러그인 설정은 유지한다.
+
+[plugins."data@claude-cowork"]
+enabled = false
+
+[plugins."engineering@claude-cowork"]
+enabled = false
+
+[plugins."claude-api@anthropic-agent-skills"]
+enabled = false
+
+[plugins."claude-md-management@claude-plugins-official"]
+enabled = false

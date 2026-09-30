@@ -1,49 +1,25 @@
-# Codex Skill Catalog
+# Composition 스킬 목록 (Codex)
 
-composition 전용 skill index입니다. 한 번에 모두 읽지 말고, 요청과 직접 맞는
-skill만 여세요.
+Codex에는 각 skill의 이름과 description이 제공됩니다. 이 파일은 경로 확인용이며
+작업과 관련된 `SKILL.md`와 참조 문서만 엽니다. 공용 정본은 `.claude/skills`입니다.
 
-## Core Skills
+## 작업별 진입점
 
-> **Invocation 정책 (2026-08-28)**: `user-only` 스킬은 Codex 에서 사용자 명시 요청 시에만 연다 (Claude 호스트는 `disable-model-invocation: true` 로 `/name` 직접 입력만 허용). subagent/병렬은 Codex 에서 사용자 명시 시에만 (AGENTS.md) — Claude 는 라우팅표 기본 경로. 열 ↔ frontmatter 일치는 `pnpm codex:agent-catalog` 검사.
+- [composition-patterns](composition-patterns/SKILL.md): canonical 상태·레이아웃·렌더링 계약
+- [component-design](component-design/SKILL.md): 새 컴포넌트·S2 전환
+- [cross-check](cross-check/SKILL.md): Canvas·Preview 시각 정합성
+- [react-aria](react-aria/SKILL.md): 설치된 RAC API
+- [react-spectrum](react-spectrum/SKILL.md): Spectrum Props 참조
+- [fix](fix/SKILL.md): 버그 원인 분석과 수리
+- [review](review/SKILL.md): 코드 리뷰
+- [evaluate](evaluate/SKILL.md): 실행 중인 Builder 검증
+- [review-adr](review-adr/SKILL.md): ADR 문서 리뷰
+- [create-adr](create-adr/SKILL.md): user-only, 사용자가 새 ADR 작성을 요청할 때
+- [execute-adr](execute-adr/SKILL.md): user-only, 사용자가 ADR 실행 범위를 지정할 때
 
-| Skill                  | 경로                                                           | Trigger                                                     | 같이 볼 항목                                 | Invocation (Codex / Claude)                                                                      |
-| ---------------------- | -------------------------------------------------------------- | ----------------------------------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `composition-patterns` | [composition-patterns/SKILL.md](composition-patterns/SKILL.md) | 코드 규칙, 상태, 렌더링, 아키텍처 패턴                      | `.agents/rules/*`                            | model + user                                                                                     |
-| `component-design`     | [component-design/SKILL.md](component-design/SKILL.md)         | 새 컴포넌트 설계/구현, 구조적 컴포넌트 변경                 | `react-aria`, `react-spectrum`               | model + user                                                                                     |
-| `cross-check`          | [cross-check/SKILL.md](cross-check/SKILL.md)                   | CSS/WebGL/Canvas/Preview 정합성                             | `canvas-rendering.md`, `css-tokens.md`       | model + user                                                                                     |
-| `create-adr`           | [create-adr/SKILL.md](create-adr/SKILL.md)                     | 새 ADR 생성                                                 | `adr-writing.md`                             | user-only — 사용자 명시 요청 시에만 (Claude: `/create-adr` 직접 입력만, 모델 자동 호출 비활성)   |
-| `review-adr`           | [review-adr/SKILL.md](review-adr/SKILL.md)                     | ADR/설계 문서 리뷰                                          | 대상 ADR, README, changelog                  | model + user                                                                                     |
-| `react-aria`           | [react-aria/SKILL.md](react-aria/SKILL.md)                     | React Aria API/접근성 reference                             | 해당 component reference                     | model + user                                                                                     |
-| `react-spectrum`       | [react-spectrum/SKILL.md](react-spectrum/SKILL.md)             | Spectrum Props/API reference                                | 해당 component reference                     | model + user                                                                                     |
-| `execute-adr`          | [execute-adr/SKILL.md](execute-adr/SKILL.md)                   | Accepted ADR 의 미반영 phase 실행 (사용자 명시 시)          | design breakdown, `adr-writing.md`           | user-only — 사용자 명시 요청 시에만 (Claude: `/execute-adr` 직접 입력만, 모델 자동 호출 비활성)  |
-| `review`               | [review/SKILL.md](review/SKILL.md)                             | 완료 직전 코드 리뷰 체크리스트 (Claude 는 reviewer fork)    | `composition-patterns`, `.agents/rules/*`    | model + user                                                                                     |
-| `fix`                  | [fix/SKILL.md](fix/SKILL.md)                                   | 버그 root-cause 4단계 파이프라인 + 자주 나는 패턴           | `cross-check`, `.agents/rules/*` 의 Why 기록 | model + user                                                                                     |
-| `evaluate`             | [evaluate/SKILL.md](evaluate/SKILL.md)                         | 실행 중 builder 런타임 검증, 4축 채점 (Claude 는 격리 fork) | `cross-check`                                | model + user                                                                                     |
+## 추가 계약
 
-## Selection Consumer Contract
-
-- ADR-137 page-bound mutation 규칙은
-  [state-management.md](../rules/state-management.md)와
-  [composition-patterns](composition-patterns/SKILL.md)를 함께 적용합니다.
-- display-only deferred selection과 effectful page-bound write를 분리합니다.
-  page-bound write는 `ImmediateSelectionSnapshot` 기반 FromSelection 진입점 또는
-  `contextReason`이 있는 Explicit 진입점 중 하나로 분류해야 합니다.
-
-## Claude Command Aliases
-
-| 예전 표현      | Codex 사용 방식     |
-| -------------- | ------------------- |
-| `/cross-check` | `cross-check` skill |
-| `/create-adr`  | `create-adr` skill  |
-| `/fix`         | `fix` skill         |
-| `/review`      | `review` skill      |
-| `/evaluate`    | `evaluate` skill    |
-
-## 검증
-
-- 완료 전 기본 gate: `pnpm run codex:preflight`
-- goal 완료 처리 전: `.agents/rules/goal-lifecycle.md`에 따라 `get_goal`로
-  active goal과 objective 일치 여부 확인
-- Spec/CSS 생성 영향: `pnpm run build:specs` 필요 여부 확인
-- 라우팅이 애매하면: `pnpm run codex:route -- "<요청>"`
+- page-bound selection 변경: [state-management.md](../rules/state-management.md)의
+  Selection Consumer Contract.
+- 명시적 Goal의 재개·완료: [goal-lifecycle.md](../rules/goal-lifecycle.md).
+- skill 링크·호출 정책·심링크 정합성: `pnpm run codex:agent-catalog`.
