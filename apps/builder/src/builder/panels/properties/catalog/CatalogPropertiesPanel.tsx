@@ -32,6 +32,7 @@ import {
   CatalogItemOriginNotice,
 } from "./CatalogRowTemplateSections";
 import { CatalogPageSection } from "./CatalogPageSection";
+import { CatalogPropertyClipboardActions } from "./CatalogPropertyClipboardActions";
 import { CatalogSlotSection } from "./CatalogSlotSection";
 import { CatalogStateSection } from "./CatalogStateSection";
 import { CATALOG_ITEMS_SOURCE } from "./catalogItemsSource";
@@ -115,6 +116,12 @@ function CatalogPropertiesContent() {
         icon={<Settings2 size={iconProps.size} />}
         title={title ?? contract.type}
         panelId="properties"
+        actions={
+          <CatalogPropertyClipboardActions
+            contract={contract}
+            targets={targets}
+          />
+        }
       />
       <PanelContents>
         <FieldValueSourceContext.Provider value={CATALOG_FIELD_VALUE_SOURCE}>
