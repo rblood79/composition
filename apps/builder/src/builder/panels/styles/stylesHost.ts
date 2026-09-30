@@ -6,6 +6,10 @@ import { useCanonicalPropertyElement } from "../properties/hooks/useCanonicalPro
 import { useLayoutValue } from "./hooks/useLayoutValue";
 import { storeAbsoluteActivationStyles } from "./sections/absoluteActivation";
 import {
+  readStoreSelectedFills,
+  resetStoreSelectedFills,
+} from "./hooks/storeFills";
+import {
   readResolvedStyleTarget,
   useCanonicalElementStyleContext,
 } from "./hooks/useElementStyleContext";
@@ -104,6 +108,9 @@ export const STORE_STYLES_HOST: StylesHost = {
       .getState()
       .applyAbsoluteFromSelection(snapshot, storeAbsoluteActivationStyles);
   },
+  readFills: readStoreSelectedFills,
+  updateFills: (fills) => useStore.getState().updateSelectedFills(fills),
+  resetFills: resetStoreSelectedFills,
   presentation: true,
 };
 

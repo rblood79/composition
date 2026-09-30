@@ -2,6 +2,7 @@ import { createContext } from "react";
 import type { BreakpointName } from "@composition/shared";
 import type { ElementStyleContext } from "./hooks/useElementStyleContext";
 import type { RatioEditError } from "../../stores/inspectorActions";
+import type { FillItem } from "../../../types/builder/fill.types";
 
 /** The selected element as the style actions read it when they run. */
 export interface StylesTargetSnapshot {
@@ -59,6 +60,12 @@ export interface StylesHost {
    * element is drawn; off returns it to the flow. An error code or null.
    */
   applyAbsolute(selectedId: string | null, on: boolean): RatioEditError | null;
+  /** The selected element's paint layers (a legacy background color as one virtual layer). */
+  readFills(): FillItem[];
+  /** Replace the selection's paint layers; fill-derived background CSS goes (one step). */
+  updateFills(fills: FillItem[]): void;
+  /** Fill reset: the selection's own layers go (an instance child shows its template's again). */
+  resetFills(): void;
   /** The old Canvas editor presentation channel (live paint while editing) is available. */
   presentation: boolean;
 }

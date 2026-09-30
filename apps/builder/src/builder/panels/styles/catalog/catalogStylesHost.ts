@@ -1,6 +1,9 @@
 import { useCallback, useMemo, useSyncExternalStore } from "react";
 import type { BreakpointName } from "@composition/shared";
-import { setFields } from "../../../../../../../packages/shared/src/catalog/commands";
+import {
+  setFields,
+  setWholeField,
+} from "../../../../../../../packages/shared/src/catalog/commands";
 import type { CatalogCommand } from "../../../../../../../packages/shared/src/catalog/commands/compose";
 import type { EditTarget } from "../../../../../../../packages/shared/src/catalog/document/types";
 import {
@@ -21,6 +24,13 @@ import {
 } from "../../../catalogRuntime/styleFields";
 import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
 import { catalogBoxModel } from "../../../catalogRuntime/boxModel";
+import {
+  catalogFillItems,
+  catalogFillLayers,
+} from "../../../catalogRuntime/authoredStyle";
+import type { FillItem } from "../../../../types/builder/fill.types";
+import { resolveElementFills } from "../utils/fillMigration";
+import { FILL_DERIVED_STYLE_PROPS } from "../utils/fillDerivedStyleProps";
 import {
   catalogAbsoluteCommand,
   catalogPlacementEditCommand,
@@ -229,7 +239,7 @@ export function createCatalogStylesHost(
           type: contract.type || undefined,
           size: typeof props.size === "string" ? props.size : undefined,
           sizing: own ? catalogFillAt(own, breakpoint) : undefined,
-          fills: undefined,
+          fills: catalogFillItems(own?.fills),
           props,
           accentColor: undefined,
         };
@@ -333,6 +343,58 @@ export function createCatalogStylesHost(
       if (typeof command === "string") return command;
       run(() => command);
       return null;
+    },
+    readFills() {
+      const first = selection()[0];
+      if (!first) return [];
+      const own = workspace.readModel.ownFields(first.target);
+      const background = catalogAuthoredValues(own.visual).backgroundColor;
+      return resolveElementFills({
+        fills: catalogFillItems(own.fills) as FillItem[] | undefined,
+        props: {
+          style: {
+            backgroundColor:
+              typeof background === "string" ? background : undefined,
+          },
+        },
+      });
+    },
+    updateFills(fills) {
+      run(() => {
+        const targets = selection().map((item) => item.target);
+        if (!targets.length) return undefined;
+        const paint = setWholeField({
+          targets,
+          field: "fills",
+          value: fills.length ? catalogFillLayers(fills) : [],
+          label: "Fill",
+        });
+        const derived = setFields({
+          targets,
+          visual: Object.fromEntries(
+            FILL_DERIVED_STYLE_PROPS.map((key) => [key, { kind: "remove" }]),
+          ),
+        });
+        return (reader) => ({
+          label: "Fill",
+          ops: [...paint(reader).ops, ...derived(reader).ops],
+        });
+      });
+    },
+    resetFills() {
+      run(() => {
+        const targets = selection()
+          .map((item) => item.target)
+          .filter((target) => workspace.readModel.ownFields(target).fills);
+        return targets.length
+          ? setWholeField({
+              targets,
+              field: "fills",
+              value: undefined,
+              label: "Reset fill",
+            })
+          : undefined;
+      });
     },
     presentation: false,
   };

@@ -80,6 +80,15 @@ export function catalogFillItems(
   return fills.map(({ kind, ...rest }) => ({ ...rest, type: kind }));
 }
 
+/** The Fill panel's items (`type`) as document paint layers (`kind`) — the inverse of the above. */
+export function catalogFillLayers(
+  items: readonly { type: string }[],
+): CatalogFillLayer[] {
+  return items.map(
+    ({ type, ...rest }) => ({ ...rest, kind: type }) as CatalogFillLayer,
+  );
+}
+
 const HEX6 = /^#[0-9a-fA-F]{6}$/;
 const CSS_VAR = /^var\(--[a-z0-9-]+\)$/;
 /** A resolved color the typed binding paint reads directly (hex6, theme var or keyword). */

@@ -40,10 +40,14 @@ describe("style hooks canonical read contract", () => {
   });
 
   it("reads fill action state from the canonical node index", async () => {
-    const source = await readFile(
+    // The Fill actions read through the Styles host; the store host's read (the old app's) is
+    // `storeFills.ts`.
+    const actions = await readFile(
       resolve(__dirname, "useFillActions.ts"),
       "utf-8",
     );
+    expect(actions).toContain("host.readFills");
+    const source = await readFile(resolve(__dirname, "storeFills.ts"), "utf-8");
 
     expect(source).toContain("getNodeMap().get(selectedElementId)");
     expect(source).toContain("readCanonicalNodeFillPayload(node)");

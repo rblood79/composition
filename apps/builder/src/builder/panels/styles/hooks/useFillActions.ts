@@ -2,7 +2,7 @@
  * Fill Actions Hook
  *
  * Gradient Phase 2: Fill 배열 CRUD 액션 + 타입 변경
- * - fills 배열을 복사 → 변경 → store.updateSelectedFills() 호출
+ * - fills 배열을 복사 → 변경 → Styles host `updateFills` 호출 (구 store 또는 catalog 문서)
  * - 연속 프리뷰는 presentation runtime owner가 담당하며 미지원 대상은 commit-only
  * - changeFillType: Color ↔ Gradient 타입 전환
  *
@@ -22,14 +22,7 @@ import {
   createDefaultColorFill,
   createDefaultFill,
 } from "../../../../types/builder/fill.types";
-import { getActiveCanonicalDocument } from "../../../stores/canonical/canonicalElementsBridge";
-import { getNodeMap } from "../../../stores/canonical/canonicalTraversalHelpers";
-import { getSyntheticDescendantLookup } from "../../../stores/canonical/syntheticDescendantLookup";
-import { readCanonicalNodeFillPayload } from "../../../../adapters/canonical/canonicalFillPayload";
-import {
-  resolveElementFills,
-  type FillReadSource,
-} from "../utils/fillMigration";
+import { useStylesHost } from "../stylesHost";
 import {
   editorPresentationFillPilotRuntime,
   resolveFillPresentationPilotTarget,
@@ -83,37 +76,6 @@ export interface FillActions {
   changeFillType: (fillId: string, newType: FillType) => void;
 }
 
-/**
- * fills 배열의 현재 값을 가져오는 헬퍼.
- *
- * 표시(useFillValues → useElementStyleContext → canonical 파생)와 **동일 소스**:
- * canonical 문서 우선, canonical 미가동(legacy 프로젝트)일 때만 elementsMap.
- * 과거 legacy elementsMap 단독 읽기는 canonical 파생과 어긋나는 순간
- * (표시 0건 ↔ 액션 실값) 소스 분열로 드래그마다 addFill 중복 누적을 만들었다
- * (2026-07-15 fills 파이프라인 복원).
- */
-function getCurrentFills(): FillItem[] {
-  const state = useStore.getState();
-  const { selectedElementId, elementsMap } = state;
-  if (!selectedElementId) return [];
-
-  const doc = getActiveCanonicalDocument();
-  if (doc) {
-    // instance 안 자식 (synthetic) 은 canonical 맵에 없다 — 표시 (readStyleTargetNode) 와 같은 해석 노드.
-    const node =
-      getNodeMap().get(selectedElementId) ??
-      getSyntheticDescendantLookup(selectedElementId)?.node;
-    const source: FillReadSource | undefined = node
-      ? {
-          fills: readCanonicalNodeFillPayload(node) as FillItem[] | undefined,
-          props: node.props as FillReadSource["props"],
-        }
-      : undefined;
-    return resolveElementFills(source);
-  }
-  return resolveElementFills(elementsMap.get(selectedElementId));
-}
-
 function applyFillUpdates(
   fills: readonly FillItem[],
   fillId: string,
@@ -135,6 +97,9 @@ export function useFillActions(): FillActions {
     target: EditorPresentationTargetRef;
   } | null>(null);
   const [ownerId] = useState(() => `fill-color-owner-${nextFillOwnerId++}`);
+  const host = useStylesHost();
+  const getCurrentFills = host.readFills;
+  const writeFills = host.updateFills;
 
   // cleanup on unmount
   useEffect(() => {
@@ -447,9 +412,9 @@ export function useFillActions(): FillActions {
           ? createDefaultColorFill(initialColor)
           : createDefaultFill(type);
       const newFills = [...fills, newFill];
-      useStore.getState().updateSelectedFills(newFills);
+      writeFills(newFills);
     },
-    [],
+    [getCurrentFills, writeFills],
   );
 
   // 가상 fill terminal 승격 전용. create-or-update라 재렌더 지연이 있어도
@@ -458,22 +423,20 @@ export function useFillActions(): FillActions {
     const fills = getCurrentFills();
     const colorIndex = fills.findIndex((f) => f.type === FillType.Color);
     if (colorIndex === -1) {
-      useStore
-        .getState()
-        .updateSelectedFills([...fills, createDefaultColorFill(color)]);
+      writeFills([...fills, createDefaultColorFill(color)]);
       return;
     }
     const newFills = fills.map((f, index) =>
       index === colorIndex ? ({ ...f, color } as FillItem) : f,
     );
-    useStore.getState().updateSelectedFills(newFills);
-  }, []);
+    writeFills(newFills);
+  }, [getCurrentFills, writeFills]);
 
   const removeFill = useCallback((fillId: string) => {
     const fills = getCurrentFills();
     const newFills = fills.filter((f) => f.id !== fillId);
-    useStore.getState().updateSelectedFills(newFills);
-  }, []);
+    writeFills(newFills);
+  }, [getCurrentFills, writeFills]);
 
   const reorderFill = useCallback((fromIndex: number, toIndex: number) => {
     const fills = getCurrentFills();
@@ -484,16 +447,16 @@ export function useFillActions(): FillActions {
     const newFills = [...fills];
     const [moved] = newFills.splice(fromIndex, 1);
     newFills.splice(toIndex, 0, moved);
-    useStore.getState().updateSelectedFills(newFills);
-  }, []);
+    writeFills(newFills);
+  }, [getCurrentFills, writeFills]);
 
   const toggleFill = useCallback((fillId: string) => {
     const fills = getCurrentFills();
     const newFills = fills.map((f) =>
       f.id === fillId ? { ...f, enabled: !f.enabled } : f,
     );
-    useStore.getState().updateSelectedFills(newFills);
-  }, []);
+    writeFills(newFills);
+  }, [getCurrentFills, writeFills]);
 
   const updateFill = useCallback(
     (fillId: string, updates: Partial<FillItem>) => {
@@ -502,9 +465,9 @@ export function useFillActions(): FillActions {
         if (f.id !== fillId) return f;
         return { ...f, ...updates } as FillItem;
       });
-      useStore.getState().updateSelectedFills(newFills);
+      writeFills(newFills);
     },
-    [],
+    [getCurrentFills, writeFills],
   );
 
   const changeFillType = useCallback((fillId: string, newType: FillType) => {
@@ -572,8 +535,8 @@ export function useFillActions(): FillActions {
         opacity: f.opacity,
       } as FillItem;
     });
-    useStore.getState().updateSelectedFills(newFills);
-  }, []);
+    writeFills(newFills);
+  }, [getCurrentFills, writeFills]);
 
   return {
     addFill,
