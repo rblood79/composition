@@ -14,6 +14,7 @@ import type {
 } from "../../../../../packages/shared/src/catalog/document/types";
 import { resolveResizeRequest } from "../workspace/canvas/interaction/resizeGeometry";
 import {
+  boxesIntersect,
   hitTestHandle,
   type BoundingBox,
   type HandleConfig,
@@ -43,6 +44,9 @@ export interface CatalogGestureHost {
   /** Topmost drawn record under a scene point. */
   pick(x: number, y: number): string | undefined;
   selection(): readonly CatalogSelectionItem[];
+  /** The entered container (its direct children are the marquee's level). */
+  editingContext(): string | undefined;
+  selectRecords(ids: readonly string[], options?: { additive?: boolean }): void;
   breakpoint(): BreakpointName;
   execute(command: CatalogCommand): void;
   newId: NewId;
@@ -75,6 +79,17 @@ type Gesture =
       drop?: CatalogDropTarget;
     }
   | {
+      kind: "marquee";
+      startX: number;
+      startY: number;
+      additive: boolean;
+      /** The records of the current level (page body children, or the context's children). */
+      candidates: string[];
+      active: boolean;
+      rect: BoundingBox;
+      hits: string[];
+    }
+  | {
       kind: "resize";
       startX: number;
       startY: number;
@@ -91,6 +106,9 @@ export interface CatalogGesturePreview {
   readonly ghost?: BoundingBox;
   readonly line?: BoundingBox;
   readonly container?: BoundingBox;
+  /** Marquee: the rectangle and the boxes it would select. */
+  readonly marquee?: BoundingBox;
+  readonly highlights?: readonly BoundingBox[];
 }
 
 /**
@@ -200,6 +218,33 @@ export class CatalogCanvasGestures {
     return true;
   }
 
+  /**
+   * A press on the page background (a page body or off every page): past the threshold it draws a
+   * marquee and selects the elements of the current level it intersects (shift adds to them).
+   */
+  beginMarquee(x: number, y: number, additive: boolean): void {
+    const { records } = this.host;
+    const context = this.host.editingContext();
+    const candidates: string[] = [];
+    for (const record of records.values()) {
+      const parent = records.get(record.parentId);
+      if (
+        context ? parent?.sourceId === context : parent?.parentId === PAGE_GRID
+      )
+        candidates.push(record.id);
+    }
+    this.gesture = {
+      kind: "marquee",
+      startX: x,
+      startY: y,
+      additive,
+      candidates,
+      active: false,
+      rect: { x, y, width: 0, height: 0 },
+      hits: [],
+    };
+  }
+
   /** Follow the pointer; returns whether the preview changed. */
   update(
     x: number,
@@ -217,6 +262,20 @@ export class CatalogCanvasGestures {
     )
       return false;
     gesture.active = true;
+    if (gesture.kind === "marquee") {
+      const rect = {
+        x: Math.min(x, gesture.startX),
+        y: Math.min(y, gesture.startY),
+        width: Math.abs(dx),
+        height: Math.abs(dy),
+      };
+      gesture.rect = rect;
+      gesture.hits = gesture.candidates.filter((id) => {
+        const box = this.host.bounds(id);
+        return !!box && boxesIntersect(rect, box);
+      });
+      return true;
+    }
     if (gesture.kind === "resize") {
       gesture.request = resolveResizeRequest({
         handle: gesture.handle,
@@ -243,6 +302,13 @@ export class CatalogCanvasGestures {
   preview(): CatalogGesturePreview | undefined {
     const gesture = this.gesture;
     if (!gesture?.active) return undefined;
+    if (gesture.kind === "marquee")
+      return {
+        marquee: gesture.rect,
+        highlights: gesture.hits
+          .map((id) => this.host.bounds(id))
+          .filter((box): box is BoundingBox => !!box),
+      };
     if (gesture.kind === "resize") {
       const box = gesture.startBox;
       const { width = box.width, height = box.height } = gesture.request;
@@ -267,11 +333,25 @@ export class CatalogCanvasGestures {
     };
   }
 
-  /** Release: commit the gesture as one command (nothing when it never started or would not move). */
+  /**
+   * Release: commit the gesture as one command (nothing when it never started or would not move);
+   * a marquee selects its hits instead (no command). Returns whether a command ran.
+   */
   finish(): boolean {
     const gesture = this.gesture;
     this.gesture = undefined;
     if (!gesture?.active) return false;
+    if (gesture.kind === "marquee") {
+      if (gesture.additive)
+        this.host.selectRecords(
+          gesture.hits.filter(
+            (id) => !this.host.selection().some((item) => item.identity === id),
+          ),
+          { additive: true },
+        );
+      else this.host.selectRecords(gesture.hits);
+      return false;
+    }
     const command = this.commandOf(gesture);
     if (!command) return false;
     this.host.execute(command);
@@ -288,7 +368,9 @@ export class CatalogCanvasGestures {
     return record && record.parentId !== PAGE_GRID ? selection[0] : undefined;
   }
 
-  private commandOf(gesture: Gesture): CatalogCommand | undefined {
+  private commandOf(
+    gesture: Exclude<Gesture, { kind: "marquee" }>,
+  ): CatalogCommand | undefined {
     const breakpoint = this.host.breakpoint();
     if (gesture.kind === "resize") {
       const { width, height, left, top } = gesture.request;

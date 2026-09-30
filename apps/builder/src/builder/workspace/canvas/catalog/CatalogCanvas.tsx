@@ -2,12 +2,14 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { CatalogCanvasGestures } from "../../../catalogRuntime/canvasGesture";
 import { CatalogCanvasPicking } from "../../../catalogRuntime/canvasPick";
 import { CatalogCanvasScene } from "../../../catalogRuntime/canvasScene";
+import { catalogTextKey } from "../../../catalogRuntime/canvasText";
 import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
 import { DotBackground } from "../../components/DotBackground";
 import { CanvasGestureSession } from "../interaction/canvasGestureSession";
 import { watchContextLoss } from "../skia/createSurface";
 import { destroyAllSkiaCaches } from "../skia/disposable";
 import { skiaFontManager } from "../skia/fontManager";
+import { setEditingElementId } from "../skia/nodeRendererState";
 import {
   createFrameScheduler,
   subscribeCanvasFrames,
@@ -21,6 +23,7 @@ import { computeFitViewport } from "../viewport/viewportActions";
 import { viewportState } from "../viewport/viewportState";
 import { hitTestPoint } from "../wasm-bindings/spatialIndex";
 import { catalogOverlayNode } from "./catalogOverlay";
+import { CatalogTextEditor } from "./CatalogTextEditor";
 
 export interface CatalogCanvasProps {
   workspace: CatalogWorkspace;
@@ -44,6 +47,7 @@ export function CatalogCanvas({
   const [containerEl, setContainerEl] = useState<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [gestureSession] = useState(() => new CanvasGestureSession());
+  const sceneRef = useRef<CatalogCanvasScene | undefined>(undefined);
   const callbacks = useRef({ onFirstFrame, onError });
   useLayoutEffect(() => {
     callbacks.current = { onFirstFrame, onError };
@@ -72,6 +76,7 @@ export function CatalogCanvas({
       callbacks.current.onError?.(error);
       return;
     }
+    sceneRef.current = scene;
     const fontMgr = () =>
       skiaFontManager.getFamilies().length > 0
         ? skiaFontManager.getFontMgr()
@@ -113,6 +118,8 @@ export function CatalogCanvas({
       bounds: (id) => scene.stream.boundsMap.get(id),
       pick: (x, y) => picking.pick(x, y),
       selection: () => workspace.session.getSnapshot().selection,
+      editingContext: () => workspace.session.getSnapshot().editingContext,
+      selectRecords: (ids, options) => workspace.selectRecords(ids, options),
       breakpoint: () => workspace.session.getSnapshot().breakpoint,
       execute: (command) => workspace.execute(command),
       newId: workspace.newId,
@@ -181,7 +188,18 @@ export function CatalogCanvas({
       sceneStale = true;
       scheduler.invalidate();
     });
-    const unsubscribeSession = workspace.session.subscribe(invalidateOverlay);
+    // The record whose text is edited inline: the Canvas leaves its text out while the DOM field
+    // shows it (the renderer's editing element skips that node's picture cache).
+    let editingText: string | undefined;
+    const unsubscribeSession = workspace.session.subscribe(() => {
+      const editing = workspace.session.getSnapshot().textEditing?.identity;
+      if (editing !== editingText) {
+        editingText = editing;
+        setEditingElementId(editing ?? null);
+        renderer.invalidateContent();
+      }
+      invalidateOverlay();
+    });
     // Dev-only live harness handle: scene boxes and the camera (screen ↔ scene).
     if (import.meta.env.DEV) {
       const handle = ((
@@ -257,7 +275,13 @@ export function CatalogCanvas({
         gestures.beginMove(x, y, target.id);
       } else {
         const picked = picking.click(x, y, { additive, deep });
-        if (picked && !additive) gestures.beginMove(x, y, picked);
+        // The page background (a page body or off every page) starts a marquee.
+        if (
+          !picked ||
+          workspace.root.domInputs.get(picked)?.parentId === "catalog:root"
+        )
+          gestures.beginMarquee(x, y, additive);
+        else if (!additive) gestures.beginMove(x, y, picked);
       }
       rehover();
     };
@@ -310,7 +334,15 @@ export function CatalogCanvas({
     const onDoubleClick = (event: MouseEvent) => {
       syncScene();
       const { x, y } = scenePoint(event);
-      picking.doubleClick(x, y);
+      if (!picking.doubleClick(x, y)) {
+        // Nothing to enter: a double click on an element with its own text edits it inline.
+        const target = picking.target(x, y, false);
+        const item =
+          target &&
+          catalogTextKey(workspace.root.domInputs.get(target.id)) &&
+          workspace.itemOfRecord(target.id);
+        if (item) workspace.session.startTextEdit(item);
+      }
       rehover();
     };
     const onKeyDown = (event: KeyboardEvent) => {
@@ -378,6 +410,8 @@ export function CatalogCanvas({
       window.removeEventListener("pointercancel", onPointerEnd);
       window.removeEventListener("keydown", onKeyDown);
       unsubscribeRoot();
+      setEditingElementId(null);
+      sceneRef.current = undefined;
       unsubscribeSession();
       unsubscribeSteps();
       unsubscribeFrames();
@@ -412,6 +446,12 @@ export function CatalogCanvas({
         }}
       />
       <DotBackground />
+      <CatalogTextEditor
+        workspace={workspace}
+        boundsOf={(identity) =>
+          sceneRef.current?.stream.boundsMap.get(identity)
+        }
+      />
       {containerEl && (
         <ViewportControlBridge
           containerEl={containerEl}

@@ -56,6 +56,9 @@ export function catalogOverlayNode(
       }
       const gesture = inputs.gesture?.();
       if (gesture) {
+        for (const box of gesture.highlights ?? [])
+          renderHoverHighlight(ck, canvas, box, zoom);
+        if (gesture.marquee) renderLasso(ck, canvas, gesture.marquee, zoom);
         if (gesture.container)
           renderHoverHighlight(ck, canvas, gesture.container, zoom);
         if (gesture.ghost) renderLasso(ck, canvas, gesture.ghost, zoom);

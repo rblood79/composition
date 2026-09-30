@@ -105,6 +105,8 @@ async function open() {
     pick: (x, y) =>
       pickTopmostRecord(scene.stream, x, y, scene.stream.hitBoundsMap.keys()),
     selection: () => workspace.session.getSnapshot().selection,
+    editingContext: () => workspace.session.getSnapshot().editingContext,
+    selectRecords: (ids, options) => workspace.selectRecords(ids, options),
     breakpoint: () => workspace.session.getSnapshot().breakpoint,
     execute: (command) => {
       workspace.execute(command);
@@ -249,5 +251,38 @@ describe("ADR-248 Phase 4e-3b Canvas gestures", () => {
     expect(after?.kind === "node" && after.responsive?.mobile?.sizing).toEqual({
       height: { kind: "set", value: Math.round(mobile.height + 10) },
     });
+  });
+
+  it("a marquee from the page background selects the intersected elements of the level; shift adds", async () => {
+    const { workspace, gestures, record, box } = await open();
+    const list = box("list");
+    const frame = box("box");
+    // From below both frames up across the second only: the level is the body's children.
+    const below = frame.y + frame.height + 20;
+    gestures.beginMarquee(10, below, false);
+    expect(gestures.update(12, below - 1, 1)).toBe(false);
+    gestures.update(20, frame.y + 1, 1);
+    expect(gestures.preview()?.highlights).toEqual([frame]);
+    expect(gestures.finish()).toBe(false);
+    expect(
+      workspace.session.getSnapshot().selection.map((item) => item.identity),
+    ).toEqual([record("box")]);
+
+    // Shift adds the list (its box) to the selection.
+    gestures.beginMarquee(10, below, true);
+    gestures.update(20, list.y + 1, 1);
+    gestures.finish();
+    expect(
+      workspace.session.getSnapshot().selection.map((item) => item.identity),
+    ).toEqual([record("box"), record("list")]);
+
+    // Inside a context the level is the context's children.
+    workspace.session.enterContext(id("list"));
+    gestures.beginMarquee(list.x + list.width - 1, list.y + 1, false);
+    gestures.update(list.x + list.width - 2, box("b").y + 1, 1);
+    gestures.finish();
+    expect(
+      workspace.session.getSnapshot().selection.map((item) => item.identity),
+    ).toEqual([record("a"), record("b")]);
   });
 });
