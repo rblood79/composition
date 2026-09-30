@@ -193,9 +193,7 @@ describe("ADR-248 Phase 4e-5 shortcuts", () => {
     workspace.execute(
       insertNodes({
         parent: { kind: "node", id: BODY },
-        entries: [
-          node("menu", catalogPaletteDefinitionId(library, "ListBox")),
-        ],
+        entries: [node("menu", catalogPaletteDefinitionId(library, "ListBox"))],
         rootIds: [id("menu")],
         newId: allocator(),
       }),
@@ -248,5 +246,71 @@ describe("ADR-248 Phase 4e-5 shortcuts", () => {
     fireEvent.keyDown(canvas, { key: "z", code: "KeyZ", ...cmd });
     expect(children("list")).toEqual([id("a"), id("b"), id("c")]);
     view.unmount();
+  });
+
+  it("align / distribute: the placed elements of the selection (the old rule), one step; flow elements and too few do nothing", async () => {
+    const { workspace } = await open();
+    const placed = (name: string, x: number, y: number, width: number) => ({
+      ...node(name, "lib:definition:type-frame"),
+      placement: { kind: "absolute" as const, x, y },
+      sizing: {
+        width: { kind: "set" as const, value: width },
+        height: { kind: "set" as const, value: 20 },
+      },
+    });
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [
+          placed("p1", 10, 10, 40),
+          placed("p2", 100, 50, 60),
+          placed("p3", 300, 90, 20),
+        ],
+        rootIds: [id("p1"), id("p2"), id("p3")],
+        newId: allocator(),
+      }),
+    );
+    const at = (name: string) => {
+      const entry = workspace.runtime.graph.getEntry(id(name));
+      return entry?.kind === "node" && entry.placement?.kind === "absolute"
+        ? [entry.placement.x, entry.placement.y]
+        : undefined;
+    };
+    const select = (...names: string[]) =>
+      workspace.selectRecords(
+        names.map((name) => workspace.root.recordsOfSource(id(name))[0]),
+      );
+    const steps = () => workspace.runtime.historyDepth.undo;
+    // One placed element (a flow element beside it): nothing to align.
+    select("p1", "a");
+    expect(runCatalogShortcut(workspace, "alignLeft")).toBe(false);
+    const before = steps();
+    select("p1", "p2", "a");
+    expect(runCatalogShortcut(workspace, "alignLeft")).toBe(true);
+    expect(steps()).toBe(before + 1);
+    expect(at("p2")).toEqual([10, 50]);
+    expect(at("p1")).toEqual([10, 10]);
+    // Already aligned: nothing moves, no step.
+    expect(runCatalogShortcut(workspace, "alignLeft")).toBe(false);
+    expect(steps()).toBe(before + 1);
+    workspace.undo();
+    select("p1", "p2", "p3");
+    expect(runCatalogShortcut(workspace, "alignRight")).toBe(true);
+    expect([
+      at("p1")![0]! + 40,
+      at("p2")![0]! + 60,
+      at("p3")![0]! + 20,
+    ]).toEqual([320, 320, 320]);
+    expect(runCatalogShortcut(workspace, "alignVCenter")).toBe(true);
+    expect(at("p1")![1]).toBe(at("p3")![1]);
+    workspace.undo();
+    workspace.undo();
+    // Distribute: equal gaps between the three (ends fixed); two are too few.
+    expect(runCatalogShortcut(workspace, "distributeH")).toBe(true);
+    const [x1, x2, x3] = [at("p1")![0]!, at("p2")![0]!, at("p3")![0]!];
+    expect([x1, x3]).toEqual([10, 300]);
+    expect(x2 - (x1 + 40)).toBe(x3 - (x2 + 60));
+    select("p1", "p2");
+    expect(runCatalogShortcut(workspace, "distributeH")).toBe(false);
   });
 });

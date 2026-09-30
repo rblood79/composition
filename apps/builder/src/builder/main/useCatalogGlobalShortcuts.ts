@@ -9,6 +9,7 @@ import {
 } from "../hooks/useKeyboardShortcutsRegistry";
 import type { PanelId } from "../panels/core/types";
 import {
+  CATALOG_ARRANGE_SHORTCUTS,
   runCatalogShortcut,
   type CatalogShortcutId,
 } from "../catalogRuntime/shortcuts";
@@ -42,6 +43,7 @@ const DOCUMENT_SHORTCUTS: readonly CatalogShortcutId[] = [
   "prevElement",
   "selectAll",
   "detachInstance",
+  ...CATALOG_ARRANGE_SHORTCUTS,
 ];
 
 /** The rail order ⌥1–⌥8 (+ ⌥9 AI, settings) — the old global shortcuts' panel ids. */

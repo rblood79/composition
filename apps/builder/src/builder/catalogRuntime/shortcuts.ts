@@ -1,7 +1,18 @@
-import { moveNodes } from "../../../../../packages/shared/src/catalog/commands";
+import {
+  moveNodes,
+  setWholeField,
+} from "../../../../../packages/shared/src/catalog/commands";
 import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
 import type { NodeId } from "../../../../../packages/shared/src/catalog/document/types";
 import type { ShortcutId } from "../config/keyboardShortcuts";
+import {
+  alignElements,
+  type AlignmentType,
+} from "../stores/utils/elementAlignment";
+import {
+  distributeElements,
+  type DistributionType,
+} from "../stores/utils/elementDistribution";
 import { catalogCanvasMenuItems, type CatalogMenuHost } from "./canvasMenu";
 import { catalogComponentCommands } from "./componentActions";
 import type { CatalogWorkspace } from "./workspace";
@@ -60,7 +71,108 @@ export type CatalogShortcutId = Extract<
   | "prevElement"
   | "selectAll"
   | "detachInstance"
+  | CatalogArrangeId
 >;
+
+const ARRANGE: Record<
+  string,
+  { align: AlignmentType } | { distribute: DistributionType }
+> = {
+  alignLeft: { align: "left" },
+  alignHCenter: { align: "center" },
+  alignRight: { align: "right" },
+  alignTop: { align: "top" },
+  alignVCenter: { align: "middle" },
+  alignBottom: { align: "bottom" },
+  distributeH: { distribute: "horizontal" },
+  distributeV: { distribute: "vertical" },
+};
+type CatalogArrangeId = Extract<
+  ShortcutId,
+  | "alignLeft"
+  | "alignHCenter"
+  | "alignRight"
+  | "alignTop"
+  | "alignVCenter"
+  | "alignBottom"
+  | "distributeH"
+  | "distributeV"
+>;
+export const CATALOG_ARRANGE_SHORTCUTS = Object.keys(
+  ARRANGE,
+) as readonly CatalogArrangeId[];
+
+/**
+ * Align / distribute (the old Canvas's rule, ADR-155): the selected elements placed absolutely
+ * (their `placement` offsets — the old `left`/`top` px) with their drawn sizes, through the old
+ * alignment / distribution math (align ≥ 2, distribute ≥ 3; the page body and flow elements take
+ * no part). One step for the selection; `undefined` = nothing moves.
+ */
+export function catalogArrangeCommand(
+  workspace: CatalogWorkspace,
+  id: CatalogArrangeId,
+): CatalogCommand | undefined {
+  const rule = ARRANGE[id];
+  const placed = workspace.session.getSnapshot().selection.flatMap((item) => {
+    if (item.target.kind !== "node") return [];
+    const placement = workspace.readModel.ownFields(item.target).placement;
+    return placement?.kind === "absolute"
+      ? [{ id: item.target.id, identity: item.identity, placement }]
+      : [];
+  });
+  if (placed.length < ("align" in rule ? 2 : 3)) return undefined;
+  const geometry = workspace.root.getGeometry(placed.map((p) => p.identity));
+  const nodes = new Map(
+    placed.flatMap(({ id, identity, placement }) => {
+      const rect = geometry.get(identity);
+      return rect
+        ? [
+            [
+              id,
+              {
+                id,
+                props: {
+                  style: {
+                    left: `${placement.x}px`,
+                    top: `${placement.y}px`,
+                    width: `${rect.width}px`,
+                    height: `${rect.height}px`,
+                  },
+                },
+              },
+            ] as const,
+          ]
+        : [];
+    }),
+  );
+  const ids = [...nodes.keys()];
+  const updates =
+    "align" in rule
+      ? alignElements(ids, nodes, rule.align)
+      : distributeElements(ids, nodes, rule.distribute);
+  const px = (value: string | undefined, fallback: number) =>
+    value === undefined ? fallback : Math.round(parseFloat(value));
+  const commands = updates.flatMap((update) => {
+    const from = placed.find((p) => p.id === update.id)!.placement;
+    const x = px(update.style.left, from.x);
+    const y = px(update.style.top, from.y);
+    return x === from.x && y === from.y
+      ? []
+      : [
+          setWholeField({
+            targets: [{ kind: "node", id: update.id as NodeId }],
+            field: "placement",
+            value: { ...from, x, y },
+          }),
+        ];
+  });
+  if (!commands.length) return undefined;
+  const label = "align" in rule ? "Align" : "Distribute";
+  return (reader) => ({
+    label,
+    ops: commands.flatMap((command) => command(reader).ops),
+  });
+}
 
 /** The page body record of the open page (where a paste without a selection goes). */
 function pageBodyRecord(workspace: CatalogWorkspace): string | undefined {
@@ -209,6 +321,17 @@ export function planCatalogShortcut(
       return children.length
         ? () => workspace.selectRecords(children)
         : undefined;
+    }
+    case "alignLeft":
+    case "alignHCenter":
+    case "alignRight":
+    case "alignTop":
+    case "alignVCenter":
+    case "alignBottom":
+    case "distributeH":
+    case "distributeV": {
+      const command = catalogArrangeCommand(workspace, id);
+      return command && (() => host.execute(command));
     }
     case "detachInstance": {
       const record = singleElement(workspace);

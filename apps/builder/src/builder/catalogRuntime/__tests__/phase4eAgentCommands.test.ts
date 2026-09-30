@@ -109,13 +109,19 @@ describe("ADR-248 Phase 4e-5 agent commands", () => {
   it("the host's refusal is the precondition; a confirm-required command changes nothing until approved", async () => {
     const { workspace, children, select } = await open();
     workspace.session.clearSelection();
-    expect(await executeAgentCommand("delete", {}, context(false))).toMatchObject({
+    expect(
+      await executeAgentCommand("delete", {}, context(false)),
+    ).toMatchObject({
       status: "precondition-failed",
       reason: "not-applicable",
     });
     select("a");
+    expect(
+      await executeAgentCommand("toggleComponentOrigin", {}, context()),
+    ).toMatchObject({ status: "precondition-failed", reason: "not-supported" });
+    // Align runs the workspace plan: one flow element is nothing to align.
     expect(await executeAgentCommand("alignLeft", {}, context())).toMatchObject(
-      { status: "precondition-failed", reason: "not-supported" },
+      { status: "precondition-failed", reason: "not-applicable" },
     );
     expect(
       await executeAgentCommand("delete", {}, context(false)),
