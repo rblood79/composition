@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { CatalogCanvasGestures } from "../../../catalogRuntime/canvasGesture";
 import { catalogCanvasMenuItems } from "../../../catalogRuntime/canvasMenu";
+import { catalogPageDropCommand } from "../../../catalogRuntime/canvasPage";
 import { CatalogCanvasPicking } from "../../../catalogRuntime/canvasPick";
 import { CatalogCanvasScene } from "../../../catalogRuntime/canvasScene";
 import { catalogTextKey } from "../../../catalogRuntime/canvasText";
@@ -143,6 +144,23 @@ export function CatalogCanvas({
       breakpoint: () => workspace.session.getSnapshot().breakpoint,
       execute: (command) => workspace.execute(command),
       newId: workspace.newId,
+      movablePageOf: (record) => {
+        const graph = workspace.runtime.graph;
+        const project = graph.getEntry(graph.projectId);
+        const source = workspace.root.domInputs.get(record)?.sourceId;
+        const page = source ? graph.ownerOf(source) : undefined;
+        return project?.kind === "project" &&
+          page &&
+          page !== project.pageIds[0]
+          ? page
+          : undefined;
+      },
+      pageDropCommand: (page, topLeft) =>
+        catalogPageDropCommand(
+          workspace.root,
+          page as Parameters<typeof catalogPageDropCommand>[1],
+          topLeft,
+        ),
     });
 
     // Open on the first page frame (again after a breakpoint switch: the page size changes).
@@ -304,9 +322,19 @@ export function CatalogCanvas({
       const selected = workspace.session
         .getSnapshot()
         .selection.some((item) => item.identity === target?.id);
+      const pageRoot =
+        !!target &&
+        workspace.root.domInputs.get(target.id)?.parentId === "catalog:root";
       if (target && selected && !additive && !target.leaveContext) {
-        deferredSelect = target.id;
-        gestures.beginMove(x, y, target.id);
+        // A selected page body moves its page frame; a selected element drags.
+        // (The home page stays: a press on it starts a marquee.)
+        if (pageRoot) {
+          if (!gestures.beginPageDrag(x, y, target.id))
+            gestures.beginMarquee(x, y, false);
+        } else {
+          deferredSelect = target.id;
+          gestures.beginMove(x, y, target.id);
+        }
       } else {
         const picked = picking.click(x, y, { additive, deep });
         // The page background (a page body or off every page) starts a marquee.

@@ -58,6 +58,13 @@ export interface CatalogGestureHost {
   breakpoint(): BreakpointName;
   execute(command: CatalogCommand): void;
   newId: NewId;
+  /** The page of a page body record, when that page can move (not the home page). */
+  movablePageOf?(record: string): string | undefined;
+  /** The command a page frame drop at a scene point commits (`undefined` = refused/unchanged). */
+  pageDropCommand?(
+    page: string,
+    topLeft: { x: number; y: number },
+  ): CatalogCommand | undefined;
 }
 
 /** Where a flow drag drops: the container record, its node and the index among the rest. */
@@ -98,6 +105,16 @@ type Gesture =
       start: number;
       active: boolean;
       value: number;
+    }
+  | {
+      kind: "page";
+      startX: number;
+      startY: number;
+      page: string;
+      startBox: BoundingBox;
+      active: boolean;
+      dx: number;
+      dy: number;
     }
   | {
       kind: "marquee";
@@ -296,6 +313,24 @@ export class CatalogCanvasGestures {
     return true;
   }
 
+  /** A press on a selected page body of a movable page: past the threshold the frame moves. */
+  beginPageDrag(x: number, y: number, record: string): boolean {
+    const page = this.host.movablePageOf?.(record);
+    const startBox = this.host.bounds(record);
+    if (!page || !startBox) return false;
+    this.gesture = {
+      kind: "page",
+      startX: x,
+      startY: y,
+      page,
+      startBox,
+      active: false,
+      dx: 0,
+      dy: 0,
+    };
+    return true;
+  }
+
   /**
    * A press on the page background (a page body or off every page): past the threshold it draws a
    * marquee and selects the elements of the current level it intersects (shift adds to them).
@@ -349,6 +384,15 @@ export class CatalogCanvasGestures {
             !!options.axisLock,
           ),
       );
+      return true;
+    }
+    if (gesture.kind === "page") {
+      if (options.axisLock) {
+        if (Math.abs(dx) >= Math.abs(dy)) dy = 0;
+        else dx = 0;
+      }
+      gesture.dx = dx;
+      gesture.dy = dy;
       return true;
     }
     if (gesture.kind === "marquee") {
@@ -408,6 +452,14 @@ export class CatalogCanvasGestures {
             bandIds: gesture.bandIds,
             mode: "drag",
           },
+        },
+      };
+    if (gesture.kind === "page")
+      return {
+        ghost: {
+          ...gesture.startBox,
+          x: gesture.startBox.x + gesture.dx,
+          y: gesture.startBox.y + gesture.dy,
         },
       };
     if (gesture.kind === "marquee")
@@ -494,6 +546,13 @@ export class CatalogCanvasGestures {
     gesture: Exclude<Gesture, { kind: "marquee" }>,
   ): CatalogCommand | undefined {
     const breakpoint = this.host.breakpoint();
+    if (gesture.kind === "page")
+      return gesture.dx || gesture.dy
+        ? this.host.pageDropCommand?.(gesture.page, {
+            x: gesture.startBox.x + gesture.dx,
+            y: gesture.startBox.y + gesture.dy,
+          })
+        : undefined;
     if (gesture.kind === "spacing") {
       if (gesture.value === gesture.start) return undefined;
       const PADDING_KEY = {

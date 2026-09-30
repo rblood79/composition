@@ -296,6 +296,11 @@ interface RecordPlan {
   readonly rootId: NodeId;
   readonly style: Record<string, unknown>;
   readonly styleChanged: boolean;
+  /**
+   * A page root's frame on the page grid (size and placement): it reads the page entry, which the
+   * record does not carry — compared with the frame applied last, not with `styleFor(old)`.
+   */
+  readonly frame: Record<string, unknown> | undefined;
   readonly chrome: SlotChromeInput | undefined;
   readonly parts: readonly CatalogComposedPart[];
 }
@@ -382,7 +387,7 @@ function catalogPageLayoutSettings(
   };
 }
 /** A page placement (base + breakpoint layers) in the old per-key cascade shape. */
-function catalogPagePlacement(
+export function catalogPagePlacement(
   placement: PagePlacementDeclaration,
 ): PagePlacement {
   const responsive: Record<
@@ -866,6 +871,8 @@ export class CatalogCompositionRoot {
   private readonly rootMembers = new Map<NodeId, Set<string>>();
   private readonly sourceRoots = new Map<string, Set<NodeId>>();
   private readonly sourceInstances = new Map<string, Set<string>>();
+  /** The page frame style applied last per page root record (see `RecordPlan.frame`). */
+  private readonly appliedFrames = new Map<string, Record<string, unknown>>();
   private readonly recordRoots = new Map<string, NodeId>();
   private readonly rootIds = new Set<NodeId>();
   private readonly slotChrome = new Map<string, SlotChromeInput>();
@@ -1627,6 +1634,8 @@ export class CatalogCompositionRoot {
         chrome?.id,
       );
       indexes.set(id, batch.length);
+      const frame = this.pageFrameStyle(record);
+      if (frame) this.appliedFrames.set(id, frame);
       batch.push({
         elementId: id,
         style: this.styleFor(record),
@@ -1663,14 +1672,16 @@ export class CatalogCompositionRoot {
         width: `${this.viewport.width}px`,
         height: `${this.viewport.height}px`,
       };
+    return buildContainerStyle(this.pageLayout());
+  }
+  /** The page container grid at this breakpoint (its tracks, gap and columns: the page drag's cells). */
+  pageLayout(): ReturnType<typeof resolvePageLayout> {
     const project = this.runtime.graph.getEntry(this.runtime.graph.projectId);
     const layout = project?.kind === "project" ? project.pageLayout : undefined;
-    return buildContainerStyle(
-      resolvePageLayout(
-        catalogPageLayoutSettings(layout),
-        this.breakpoint,
-        this.autoColumns,
-      ),
+    return resolvePageLayout(
+      catalogPageLayoutSettings(layout),
+      this.breakpoint,
+      this.autoColumns,
     );
   }
   /**
@@ -1772,12 +1783,17 @@ export class CatalogCompositionRoot {
   ): RecordPlan {
     const old = this.records.get(id);
     const style = this.styleFor(record, get);
+    const frame = this.pageFrameStyle(record);
+    const frameChanged =
+      !!frame && !sameFields(this.appliedFrames.get(id) ?? {}, frame);
     return {
       id,
       record,
       rootId,
       style,
-      styleChanged: !old || !sameFields(this.styleFor(old), style),
+      frame,
+      styleChanged:
+        !old || frameChanged || !sameFields(this.styleFor(old), style),
       chrome: deriveSlotChromeInput(record, this.slotChromeContext),
       parts: catalogComposedParts(
         record,
@@ -1824,6 +1840,13 @@ export class CatalogCompositionRoot {
       }
     if (!old) this.layout.addNode(id, plan.style);
     else if (plan.styleChanged) this.layout.updateNodeStyle(id, plan.style);
+    const frameMoved =
+      !!old &&
+      !!plan.frame &&
+      !sameFields(this.appliedFrames.get(id) ?? {}, plan.frame);
+    this.keep(this.appliedFrames, id);
+    if (plan.frame) this.appliedFrames.set(id, plan.frame);
+    else this.appliedFrames.delete(id);
     if (chrome) {
       this.slotChrome.set(id, chrome);
       const entries = slotChromeLayoutNodes(chrome);
@@ -1870,7 +1893,8 @@ export class CatalogCompositionRoot {
         this.layout.updateChildren(entry.id, []);
         this.layout.removeNode(entry.id);
       }
-    if (!old || !sameRecord(old, record)) notices.push({ id, record });
+    if (!old || frameMoved || !sameRecord(old, record))
+      notices.push({ id, record });
   }
 
   private applyRemoval(id: string, rootId: NodeId, notices: Notice[]): void {
@@ -1879,6 +1903,8 @@ export class CatalogCompositionRoot {
     this.keep(this.recordRoots, id);
     this.keep(this.slotChrome, id);
     this.keep(this.composedParts, id);
+    this.keep(this.appliedFrames, id);
+    this.appliedFrames.delete(id);
     this.layoutTouched = true;
     if (old) {
       for (const sourceId of recordSources(old)) {
