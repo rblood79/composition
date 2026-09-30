@@ -79,6 +79,8 @@ export interface BuilderHeaderProps {
   onConnectFolder: () => void | Promise<void>;
   /** 연결된 프로젝트면 폴더 상태 버튼 (lazy) — 없으면 null */
   directoryLink: ReactNode;
+  /** ADR-248 — 열린 프로젝트의 저장 상태 표시 */
+  saveStatus?: ReactNode;
 }
 
 export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
@@ -93,6 +95,7 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
   onExportProjectJson,
   onConnectFolder,
   directoryLink,
+  saveStatus,
 }) => {
   const { t } = useI18n();
   const { resetWorkspaceLayout } = usePanelLayout();
@@ -334,6 +337,7 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
             )}
           </ToggleButtonGroup>
           {directoryLink}
+          {saveStatus}
           <StorageStatusButton onExport={() => void onExportProject()} />
           <ActionIconButton
             aria-label={t("header.preview")}

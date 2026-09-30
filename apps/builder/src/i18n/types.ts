@@ -1244,6 +1244,21 @@ export interface TranslationKeys {
     top: string;
     bottom: string;
   };
+  /** ADR-248 — catalog project open · save status · publish failure. */
+  catalogProject: {
+    saveSaved: string;
+    saveUnsaved: string;
+    saveSaving: string;
+    saveFailed: string;
+    saveConflict: string;
+    saveUnsupported: string;
+    formatUnsupported: string;
+    notFound: string;
+    publishUnavailable: string;
+    sceneFailed: string;
+    openFailed: string;
+    exchangePending: string;
+  };
   zoom: {
     level: string;
     menu: string;

@@ -92,6 +92,8 @@ describe("ADR-248 Phase 4d storage connection", () => {
         revision: 0,
         name: "Alpha",
         supported: true,
+        createdAt: expect.any(Number),
+        updatedAt: expect.any(Number),
       },
     ]);
     expect(autosave.getSnapshot().state).toBe("saved");

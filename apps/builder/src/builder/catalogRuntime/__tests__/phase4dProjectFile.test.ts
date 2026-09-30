@@ -6,7 +6,6 @@ import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/docu
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import type {
   AssetEntry,
-  CatalogEntry,
   CatalogLibrary,
   EntryId,
   NodeEntry,
@@ -59,14 +58,14 @@ async function projectWithImage() {
     descendantOverrides: [],
   } as NodeEntry;
   const project = base.entries[PROJECT] as ProjectEntry;
-  const page = base.entries[HOME] as CatalogEntry & { children: string[] };
+  const body = base.entries["project:node:home-body"] as NodeEntry;
   const graph = new CatalogGraph(
     {
       ...base,
       entries: {
         ...base.entries,
         [PROJECT]: { ...project, assetIds: [asset.id] },
-        [HOME]: { ...page, children: [image.id] } as CatalogEntry,
+        [body.id]: { ...body, children: [image.id] },
         [asset.id]: asset,
         [image.id]: image,
       },

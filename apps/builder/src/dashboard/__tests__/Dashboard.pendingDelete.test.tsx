@@ -8,8 +8,8 @@ import { buildPendingProjectDeleteState } from "../pendingProjectDelete";
 const mocks = vi.hoisted(() => ({
   location: { pathname: "/dashboard", state: null as unknown },
   navigate: vi.fn(),
-  deleteDocument: vi.fn(async () => {}),
-  deleteProject: vi.fn(async () => {}),
+  removeProject: vi.fn(async () => {}),
+  deleteCollection: vi.fn(async () => {}),
 }));
 
 vi.mock("react-router", () => ({
@@ -19,16 +19,24 @@ vi.mock("react-router", () => ({
 
 vi.mock("../../lib/db", () => ({
   getDB: vi.fn(async () => ({
-    projects: { getAll: vi.fn(async () => []), delete: mocks.deleteProject },
-    documents: { get: vi.fn(async () => null), delete: mocks.deleteDocument },
-    collections: { getByProject: vi.fn(async () => []), delete: vi.fn() },
+    collections: {
+      getByProject: vi.fn(async (id: string) =>
+        id === "p-1" ? [{ id: "c-1" }] : [],
+      ),
+      delete: mocks.deleteCollection,
+    },
     api_endpoints: { getByProject: vi.fn(async () => []), delete: vi.fn() },
     variables: { getByProject: vi.fn(async () => []), delete: vi.fn() },
   })),
 }));
 
-vi.mock("../../builder/stores/history/historyIndexedDB", () => ({
-  historyIndexedDB: { clearPageHistory: vi.fn() },
+// ADR-248: the project document lives in the catalog storage.
+vi.mock("../../builder/catalogRuntime/storage", async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  CatalogStorage: class {
+    list = vi.fn(async () => []);
+    remove = mocks.removeProject;
+  },
 }));
 
 import Dashboard from "../index";
@@ -37,8 +45,8 @@ import Dashboard from "../index";
 describe("Dashboard — 빌더가 넘긴 삭제 요청", () => {
   beforeEach(() => {
     mocks.navigate.mockClear();
-    mocks.deleteDocument.mockClear();
-    mocks.deleteProject.mockClear();
+    mocks.removeProject.mockClear();
+    mocks.deleteCollection.mockClear();
     // StrictMode 재실행에서 RAC SharedElementTransition 이 부른다 — jsdom 에 없음
     Element.prototype.getAnimations ??= () => [];
     vi.stubGlobal(
@@ -66,11 +74,12 @@ describe("Dashboard — 빌더가 넘긴 삭제 요청", () => {
       </React.StrictMode>,
     );
 
+    // The route id names the catalog project; the data stores key by the route id.
     await waitFor(() =>
-      expect(mocks.deleteProject).toHaveBeenCalledWith("p-1"),
+      expect(mocks.removeProject).toHaveBeenCalledWith("project:project:p-1"),
     );
-    expect(mocks.deleteDocument).toHaveBeenCalledWith("p-1");
-    expect(mocks.deleteProject).toHaveBeenCalledTimes(1);
+    expect(mocks.deleteCollection).toHaveBeenCalledWith("c-1");
+    expect(mocks.removeProject).toHaveBeenCalledTimes(1);
     expect(mocks.navigate).toHaveBeenCalledWith("/dashboard", {
       replace: true,
       state: null,
@@ -80,7 +89,7 @@ describe("Dashboard — 빌더가 넘긴 삭제 요청", () => {
   it("삭제 요청이 없으면 아무것도 지우지 않는다", async () => {
     render(<Dashboard />);
     await new Promise((resolve) => setTimeout(resolve, 20));
-    expect(mocks.deleteProject).not.toHaveBeenCalled();
+    expect(mocks.removeProject).not.toHaveBeenCalled();
     expect(mocks.navigate).not.toHaveBeenCalled();
   });
 });

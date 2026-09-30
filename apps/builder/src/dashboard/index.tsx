@@ -9,10 +9,15 @@ import React, {
 import { useLocation, useNavigate } from "react-router";
 import { getDB } from "../lib/db";
 import { readPendingProjectDeleteId } from "./pendingProjectDelete";
-import { getDefaultProps } from "../types/builder/unified.types";
-import { ElementProps } from "../types/builder/elementProps.types";
-import { ElementUtils } from "../utils/element/elementUtils";
-import { clearAuth, getCurrentUserId } from "../auth/license/localAuth";
+import { clearAuth } from "../auth/license/localAuth";
+import { CatalogStorage } from "../builder/catalogRuntime/storage";
+import { loadCatalogProductLibrary } from "../builder/catalogRuntime/library";
+import {
+  catalogProjectIdOf,
+  catalogRouteIdOf,
+  createCatalogProject,
+  newCatalogProjectId,
+} from "../builder/catalogRuntime/project";
 import { useBuilderChromeTheme } from "../builder/hooks/useBuilderChromeTheme";
 import { ActionIconButton } from "../builder/components/ui/ActionIconButton";
 import {
@@ -45,12 +50,9 @@ import {
   Search,
   Sun,
 } from "lucide-react";
-import { historyIndexedDB } from "../builder/stores/history/historyIndexedDB";
 import { useUiStore, type ThemeMode } from "../stores/uiStore";
 import { useOptionalI18n } from "../i18n";
-import { createInitialProjectDocument } from "./createInitialProjectDocument";
 import type { ProjectListItem } from "../types/dashboard.types";
-import { deriveProjectRenderModelFromDocument } from "@composition/shared";
 import "./index.css";
 import { ACTION_ICONS } from "../builder/config/actionIcons";
 import { navigateWithTransition } from "../utils/ui/viewTransition";
@@ -59,16 +61,6 @@ const AddIcon = ACTION_ICONS.add;
 
 /** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
 const DeleteIcon = ACTION_ICONS.delete;
-
-// (ADR-128) cloud `projects` row schema 의 잔재. local-only dashboard 가
-// IndexedDB project 를 표현할 때만 사용.
-interface LocalProject {
-  id: string;
-  name: string;
-  created_by: string;
-  created_at: string;
-  updated_at: string;
-}
 
 interface CreateProjectRequest {
   name: string;
@@ -407,16 +399,17 @@ function Dashboard() {
     },
   ]);
 
+  // ADR-248 — 프로젝트 목록은 새 저장소 (`CatalogStorage`) 만 읽는다. 구 저장소의
+  // 프로젝트는 나오지 않는다 (구 문서 변환 없음). 목록의 id 는 Builder route 조각이다.
   const fetchProjects = useCallback(async (): Promise<ProjectListItem[]> => {
-    const db = await getDB();
-    const localProjectsRaw = await db.projects.getAll();
-    return localProjectsRaw.map((p) => ({
-      id: p.id,
-      name: p.name,
+    const stored = await new CatalogStorage().list();
+    return stored.map((p) => ({
+      id: catalogRouteIdOf(p.projectId),
+      name: p.name ?? catalogRouteIdOf(p.projectId),
       storage: { local: true, cloud: false },
       sync: { status: "local-only" },
-      createdAt: new Date(p.created_at ?? Date.now()),
-      lastModified: new Date(p.updated_at ?? Date.now()),
+      createdAt: new Date(p.createdAt ?? 0),
+      lastModified: new Date(p.updatedAt ?? p.createdAt ?? 0),
     }));
   }, []);
 
@@ -452,93 +445,41 @@ function Dashboard() {
     };
   }, [fetchProjects]);
 
-  const createProjectMutation = useAsyncMutation<
-    LocalProject,
-    CreateProjectRequest
-  >(
+  const createProjectMutation = useAsyncMutation<string, CreateProjectRequest>(
     async ({ name }) => {
-      const db = await getDB();
-      const userId = getCurrentUserId();
-
-      const newProject: LocalProject = {
-        id: ElementUtils.generateId(),
-        name: name.trim(),
-        created_by: userId,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-      await db.projects.insert(newProject);
-
-      const homePageId = ElementUtils.generateId();
-      const homePage = {
-        id: homePageId,
-        project_id: newProject.id,
-        title: "Home",
-        slug: "/",
-        parent_id: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-
-      const bodyElement = {
-        id: ElementUtils.generateId(),
-        type: "body",
-        props: getDefaultProps("body") as ElementProps,
-        parent_id: null,
-        page_id: homePageId,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-
-      const initialDocument = createInitialProjectDocument(
-        homePage,
-        bodyElement,
+      const projectId = newCatalogProjectId();
+      await createCatalogProject(
+        new CatalogStorage(),
+        await loadCatalogProductLibrary(),
+        { projectId, name: name.trim() },
       );
-
-      await db.documents.put(newProject.id, initialDocument);
-
-      return newProject;
+      return catalogRouteIdOf(projectId);
     },
     {
-      onSuccess: (newProject) => {
+      onSuccess: (routeId) => {
         setNewProjectName("");
         setIsCreating(false);
         setIsLoadingProjects(true);
         void loadProjects();
-        navigateWithTransition(() => navigate(`/builder/${newProject.id}`));
+        navigateWithTransition(() => navigate(`/builder/${routeId}`));
       },
     },
   );
 
+  // 프로젝트 문서는 새 저장소에서 지운다. 데이터 저장소 (컬렉션 · API endpoint · 변수)
+  // 는 route id 를 project id 로 쓰므로 같은 id 로 정리한다.
   const deleteProjectMutation = useAsyncMutation<void, string>(
-    async (id) => {
+    async (routeId) => {
+      const projectId = catalogProjectIdOf(routeId);
+      if (!projectId) throw new Error(`INVALID_PROJECT_ROUTE:${routeId}`);
       const db = await getDB();
-      const document = await db.documents.get(id);
-      const pages = document
-        ? deriveProjectRenderModelFromDocument(document, id).pages
-        : [];
-
-      for (const page of pages) {
-        await historyIndexedDB.clearPageHistory(page.id);
-      }
-
-      const collections = await db.collections.getByProject(id);
-      for (const dataTable of collections) {
+      for (const dataTable of await db.collections.getByProject(routeId))
         await db.collections.delete(dataTable.id);
-      }
-
-      const apiEndpoints = await db.api_endpoints.getByProject(id);
-      for (const endpoint of apiEndpoints) {
+      for (const endpoint of await db.api_endpoints.getByProject(routeId))
         await db.api_endpoints.delete(endpoint.id);
-      }
-
-      const variables = await db.variables.getByProject(id);
-      for (const variable of variables) {
+      for (const variable of await db.variables.getByProject(routeId))
         await db.variables.delete(variable.id);
-      }
-
-      await db.documents.delete(id);
-      await db.projects.delete(id);
+      await new CatalogStorage().remove(projectId);
     },
     {
       onSuccess: () => {

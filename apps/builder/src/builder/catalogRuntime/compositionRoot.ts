@@ -937,11 +937,19 @@ export class CatalogCompositionRoot {
   get slotChromeInputs(): ReadonlyMap<string, SlotChromeInput> {
     return this.slotChrome;
   }
-  /** The Rust style input of one record (diagnostic; same function the layout tree receives). */
   /** The records (drawn positions) of one node or template: one source can be drawn many times. */
   recordsOfSource(sourceId: string): readonly string[] {
     return [...(this.sourceInstances.get(sourceId) ?? [])];
   }
+  /** The top record of every page root, in page-grid order (the Canvas scene roots). */
+  pageRootRecords(): string[] {
+    return [...this.rootIds].flatMap((rootId) =>
+      this.recordsOfSource(rootId).filter(
+        (id) => this.records.get(id)?.parentId === "catalog:root",
+      ),
+    );
+  }
+  /** The Rust style input of one record (diagnostic; same function the layout tree receives). */
   getLayoutInput(id: string): Record<string, unknown> | undefined {
     const record = this.records.get(id);
     return record ? this.styleFor(record) : undefined;

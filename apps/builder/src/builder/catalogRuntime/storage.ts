@@ -27,6 +27,9 @@ interface StoredHead {
   libraryContractVersion: CatalogDocument["libraryContractVersion"];
   rootId: CatalogDocument["rootId"];
   revision: number;
+  /** Wall-clock ms of the create and of the last commit (project list order; not document data). */
+  createdAt?: number;
+  updatedAt?: number;
 }
 interface StoredEntry {
   projectId: string;
@@ -47,6 +50,8 @@ export interface CatalogStoredProject {
   name: string | undefined;
   /** False for a head of another format or version: opening it fails with UNSUPPORTED_PROJECT_FORMAT. */
   supported: boolean;
+  createdAt: number | undefined;
+  updatedAt: number | undefined;
 }
 export interface StorageHooks {
   beforeTransaction?: (commit: CatalogCommit) => Promise<void> | void;
@@ -101,6 +106,7 @@ export class CatalogStorage {
       }),
     );
     await Promise.resolve();
+    const now = Date.now();
     const db = await this.open();
     try {
       const transaction = db.transaction(["heads", "entries"], "readwrite");
@@ -120,6 +126,8 @@ export class CatalogStorage {
           libraryContractVersion: document.libraryContractVersion,
           rootId: document.rootId,
           revision: document.revision,
+          createdAt: now,
+          updatedAt: now,
         };
         heads.put(head);
         for (const entry of entries) records.put(entry);
@@ -179,7 +187,11 @@ export class CatalogStorage {
           for (const entry of entries) records.put(entry);
           for (const id of commit.removedIds)
             records.delete([commit.projectId, id]);
-          heads.put({ ...old, revision: commit.revision });
+          heads.put({
+            ...old,
+            revision: commit.revision,
+            updatedAt: Date.now(),
+          });
           this.hooks.afterWritesBeforeCommit?.(commit);
         } catch {
           transaction.abort();
@@ -228,6 +240,8 @@ export class CatalogStorage {
           revision: head.revision,
           name,
           supported,
+          createdAt: head.createdAt,
+          updatedAt: head.updatedAt,
         };
       });
     } finally {
