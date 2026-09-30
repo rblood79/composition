@@ -3,6 +3,7 @@ import {
   type LayoutToken,
   type TokenRef,
 } from "@composition/specs";
+import { componentTypeSet } from "../../domain/componentTraits";
 import { componentCatalog } from "../componentCatalog";
 import { resolveCatalogRuleCanvasBox } from "../resolvers/resolveCatalogRuleCanvasBox";
 import { manualBoxRule } from "./manualBoxRules";
@@ -315,6 +316,40 @@ const INSERTION_DEFAULTS: Readonly<Record<string, Record<string, Scalar>>> = {
   },
 };
 
+/**
+ * Collection keys the old element props carried outside the registration props contract: an
+ * item's RAC key (`id` — a static collection item, `resolveStaticItemKey`; a TreeItem, the tree's
+ * expansion key), a TabPanel's pairing key (`itemId`), a table column's key (`key`, ADR-241), and
+ * the owners' selection / expansion keys (RAC `selectedKey(s)` · `expandedKeys`). The Phase 4b
+ * item commands write them.
+ */
+const ITEM_KEY_TYPES: ReadonlySet<string> = new Set([
+  ...componentTypeSet("staticCollectionItem"),
+  "TreeItem",
+]);
+const SELECTION_KEYS: Readonly<Record<string, ValueType>> = {
+  selectedKeys: "string[]",
+  defaultSelectedKeys: "string[]",
+};
+const COLLECTION_KEY_ACCEPTS: Readonly<
+  Record<string, Readonly<Record<string, ValueType>>>
+> = {
+  TabPanel: { itemId: "string" },
+  Column: { key: "string" },
+  Tabs: { selectedKey: "string", defaultSelectedKey: "string" },
+  ListBox: SELECTION_KEYS,
+  GridList: SELECTION_KEYS,
+  TagGroup: SELECTION_KEYS,
+  Menu: SELECTION_KEYS,
+  Table: SELECTION_KEYS,
+  TableView: SELECTION_KEYS,
+  Tree: {
+    ...SELECTION_KEYS,
+    expandedKeys: "string[]",
+    defaultExpandedKeys: "string[]",
+  },
+};
+
 function definitionId(type: string): LibraryDefinitionId {
   return `lib:definition:type-${type}`;
 }
@@ -344,6 +379,11 @@ export function ruleTypeDefinition(
       if (propDefaultMatches(contract.default, valueType))
         defaults[key] = contract.default as AuthoredValue;
     }
+  for (const [key, valueType] of Object.entries({
+    ...(ITEM_KEY_TYPES.has(type) ? { id: "string" as const } : {}),
+    ...COLLECTION_KEY_ACCEPTS[type],
+  }))
+    accepts[key] ??= valueType;
   for (const [key, value] of Object.entries(INSERTION_DEFAULTS[type] ?? {}))
     if (key in accepts) defaults[key] = value;
   const definition: {

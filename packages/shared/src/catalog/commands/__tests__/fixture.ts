@@ -205,12 +205,22 @@ export function graphOf(
   roots: string[],
   extra: CatalogEntry[] = [],
 ) {
+  return new CatalogGraph(documentOf(nodes, roots, extra), library());
+}
+/** The fixture document: one page with `roots`, the nodes, and project records in `extra`. */
+export function documentOf(
+  nodes: NodeEntry[],
+  roots: string[],
+  extra: CatalogEntry[] = [],
+): CatalogDocument {
   const project: ProjectEntry = {
     kind: "project",
     id: PROJECT,
     name: "p",
     pageIds: [PAGE],
-    definitionIds: [],
+    definitionIds: extra
+      .filter((entry) => entry.kind === "definition")
+      .map((entry) => entry.id as EntryId<"definition">),
     overrideIds: [],
     themeIds: [],
     tokenIds: [],
@@ -244,7 +254,7 @@ export function graphOf(
       ].map((entry) => [entry.id, entry]),
     ),
   };
-  return new CatalogGraph(document, library());
+  return document;
 }
 export const allocator = () => {
   let next = 0;

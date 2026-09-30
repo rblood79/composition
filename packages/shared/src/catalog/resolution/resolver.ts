@@ -110,7 +110,7 @@ type InstanceRoot = {
  * Accepted boolean props a display state sets, the way the old Canvas and Preview read a state
  * origin (`readForcedVariantStates`: RAC `isSelected` / `isDisabled` / `isExpanded`).
  */
-const DISPLAY_STATE_PROPS: Readonly<
+export const DISPLAY_STATE_PROPS: Readonly<
   Partial<Record<DisplayStateName, Readonly<Record<string, boolean>>>>
 > = {
   selected: { isSelected: true },

@@ -1,12 +1,15 @@
 import type {
   AuthoredValue,
   CatalogReader,
+  DefinitionId,
+  DisplayStateName,
   NodeEntry,
   NodeId,
   Scalar,
   TemplateId,
   WriteValue,
 } from "../document/types";
+import { DISPLAY_STATE_PROPS } from "../resolution/resolver";
 import type { CatalogOperation } from "../transactions/transaction";
 import type { CatalogCommand } from "./compose";
 import {
@@ -15,6 +18,7 @@ import {
   CommandDraft,
   definitionTypeName,
   fail,
+  overrideAt,
   setChildList,
   templateDefinitionId,
   type EditTarget,
@@ -395,6 +399,71 @@ function unusedSwatchColor(taken: ReadonlySet<string>): string {
   return "#000000";
 }
 
+/** The display state a composite shows from its template root (a state origin), if any. */
+function originDisplayState(
+  reader: CatalogReader,
+  definitionId: DefinitionId,
+  seen: ReadonlySet<string> = new Set(),
+): DisplayStateName | undefined {
+  if (!definitionId.startsWith("lib:") || seen.has(definitionId))
+    return undefined;
+  const definition = reader.library.definitions.get(
+    definitionId as `lib:definition:${string}`,
+  );
+  const root =
+    definition?.mode === "composite" && definition.templateRootId
+      ? reader.library.templates.get(definition.templateRootId)
+      : undefined;
+  return root
+    ? (root.displayState ??
+        originDisplayState(
+          reader,
+          root.definitionId,
+          new Set([...seen, definitionId]),
+        ))
+    : undefined;
+}
+
+/**
+ * Whether a group item shows as selected, the way the resolver reads it: a value the instance
+ * authored for the position wins; else a display state (a Radio state origin shows `selected`);
+ * else the template and definition value.
+ */
+function shownSelected(draft: CommandDraft, item: NodeParent): boolean {
+  const reader = draft.reader;
+  let definitionId: DefinitionId;
+  let positionState: DisplayStateName | undefined;
+  if (item.kind === "node") {
+    const node = draft.node(item.id);
+    const own = node.props.isSelected;
+    if (own?.kind === "set") return own.value === true;
+    definitionId = node.definitionId;
+  } else if (item.kind === "descendant") {
+    const patch = overrideAt(draft.node(item.ownerId), item.address);
+    const patched =
+      patch?.kind === "patch" ? patch.props?.isSelected : undefined;
+    if (patched?.kind === "set") return patched.value === true;
+    const path = item.address.templatePath;
+    const templateId = path[path.length - 1];
+    definitionId = templateDefinitionId(reader, templateId);
+    const template = templateId.startsWith("lib:")
+      ? reader.library.templates.get(templateId as `lib:template:${string}`)
+      : undefined;
+    positionState = template?.displayState;
+    // A nested instance position's own value is the instance's, over its origin's state.
+    if (
+      template &&
+      template.props.isSelected !== undefined &&
+      reader.library.definitions.get(definitionId as `lib:definition:${string}`)
+        ?.mode === "composite"
+    )
+      return template.props.isSelected === true;
+  } else return false;
+  const state = positionState ?? originDisplayState(reader, definitionId);
+  const forced = state ? DISPLAY_STATE_PROPS[state]?.isSelected : undefined;
+  return forced ?? readProp(reader, item, "isSelected") === true;
+}
+
 /**
  * Add an item to a group container (owned group or group instance; an instance's new item is
  * its own child, after the template's items). A Radio gets a unique `value`, a ColorSwatch an
@@ -506,7 +575,7 @@ export const insertGroupItem =
           ) === "single"));
     if (single) {
       for (const sibling of typed(itemType))
-        if (readProp(reader, sibling, "isSelected") === true)
+        if (shownSelected(draft, sibling))
           extra.push(
             ...setProps(reader, targetOf(sibling)!, { isSelected: false }),
           );

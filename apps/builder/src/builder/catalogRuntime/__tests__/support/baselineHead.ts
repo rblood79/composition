@@ -282,6 +282,11 @@ const REVIEWED_UNRELATED: Readonly<
     reason:
       "2b7bb30ab: deleted — no import anywhere at the baseline (git grep 2a5c970), so no G0 path reached it",
   },
+  "packages/shared/src/domain/componentTraits.ts": {
+    blob: "e8cacce72833546816cf96b452bc374b7e131dc0",
+    reason:
+      "ADR-248 Phase 4b G0 routes: TableHeader/TableBody/Row rows carrying only the new `tableItemHost` family, read by the typed graph's fillSlot check (new model). No old consumer reads the family, and the nesting tables (containerTypeSet · componentContractMap) read container/children/owners, none set — no canvas, layout, paint, DOM or storage output",
+  },
 };
 
 /**

@@ -21,7 +21,10 @@ import {
 } from "./validation";
 import { validateInstanceAddress } from "../resolution/address";
 import { assertCatalogLibrary, instanceContract } from "./library";
-import { getComponentTraits } from "../../domain/componentTraits";
+import {
+  getComponentTraits,
+  hasComponentFamily,
+} from "../../domain/componentTraits";
 
 export interface GraphIndexes {
   definitionToInstances: ReadonlyMap<DefinitionId, ReadonlySet<NodeId>>;
@@ -735,14 +738,16 @@ export class CatalogGraph {
           this.library,
         );
         // Filling a template position with instance-owned children: a declared slot, or a
-        // container type that reads its children (collection host, structural container — the
-        // old list-host "children replacement" route, §3.4).
+        // container type that reads its children (collection host, structural container, Table
+        // part — the old list-host "children replacement" route, §3.4).
+        const targetType = lookupDefinition(target.definitionId)?.name.split(
+          "/",
+        )[0];
         if (
           override.kind === "fillSlot" &&
           !target.slot &&
-          !getComponentTraits(
-            lookupDefinition(target.definitionId)?.name.split("/")[0],
-          )?.container
+          !getComponentTraits(targetType)?.container &&
+          !hasComponentFamily(targetType, "tableItemHost")
         )
           throw new CatalogValidationError("TARGET_NOT_SLOT", entry.id);
         if (override.kind === "patch") {

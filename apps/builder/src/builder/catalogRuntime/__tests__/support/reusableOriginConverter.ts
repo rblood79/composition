@@ -38,6 +38,9 @@ import {
   type DisplayStateName,
 } from "../../../../../../../packages/shared/src/catalog/document/types";
 
+const SEED_UUID =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+
 export type OriginGapReason =
   | "INSTANCE_PROP_OVERRIDE_NEEDS_DESCENDANT_OVERRIDE"
   | "INSTANCE_PROP_NOT_ACCEPTED_BY_COMPOSITE"
@@ -45,6 +48,12 @@ export type OriginGapReason =
   | "DESCENDANT_FIELD_NOT_IN_CONTRACT"
   | "TEMPLATE_DESCENDANT_OVERRIDE_NOT_IN_LIBRARY_TEMPLATE"
   | "PROP_NOT_ACCEPTED_BY_TYPE_DEFINITION"
+  /**
+   * A collection key the seed issues as a fresh v4 UUID per run (an item `id`, the TabPanel
+   * `itemId` and Tabs `defaultSelectedKey` that point at it) — not an authored key; without it
+   * the typed template pairs and selects by order.
+   */
+  | "PROP_SEED_GENERATED_KEY"
   | "PROP_TYPE_MISMATCH"
   | "PROP_CHOICE_REJECTED"
   | "PROP_VALUE_NOT_SCALAR"
@@ -365,6 +374,10 @@ export function convertReusableOrigins(
     >[number][] = [];
     for (const [key, value] of Object.entries(node.props ?? {})) {
       const path = `props.${key}`;
+      if (typeof value === "string" && SEED_UUID.test(value)) {
+        gap(path, "PROP_SEED_GENERATED_KEY", value);
+        continue;
+      }
       if (isRef && key !== "style") {
         // A composite instance is its template root: accepted root props are instance values.
         const contract = originContract(refTarget!);

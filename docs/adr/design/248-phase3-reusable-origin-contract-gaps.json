@@ -11,8 +11,8 @@
     "templates": 334,
     "typeDefinitions": 110,
     "canonicalFields": 2972,
-    "representedFields": 2132,
-    "gapFields": 840
+    "representedFields": 2145,
+    "gapFields": 827
   },
   "nondeterministicSource": {
     "finding": "catalog origin seed assigns a fresh v4 UUID to collection item keys on every hydration; node IDs are stable. Values below are normalized to UUID_MARKER and never enter typed templates.",
@@ -118,10 +118,11 @@
   },
   "gapsByReason": {
     "DOM_UNREAD_SUBPART_STYLE": 12,
-    "INSTANCE_PROP_NOT_ACCEPTED_BY_COMPOSITE": 47,
+    "INSTANCE_PROP_NOT_ACCEPTED_BY_COMPOSITE": 14,
     "METADATA_NOT_IN_CONTRACT": 517,
     "PROP_CHOICE_REJECTED": 4,
-    "PROP_NOT_ACCEPTED_BY_TYPE_DEFINITION": 83,
+    "PROP_NOT_ACCEPTED_BY_TYPE_DEFINITION": 79,
+    "PROP_SEED_GENERATED_KEY": 24,
     "PROP_VALUE_NOT_SCALAR": 21,
     "READ_ONLY_SUBPART_STYLE": 76,
     "SLOT_RECOMMENDATION_LIST_NOT_TYPED_SLOT": 35,
@@ -167,14 +168,14 @@
     "component-filetrigger": 3,
     "component-fileupload": 4,
     "component-form": 12,
-    "component-gridlist": 8,
+    "component-gridlist": 5,
     "component-gridlist-item-default": 14,
     "component-gridlist-item-default--disabled": 3,
     "component-gridlist-item-default--focus-visible": 3,
     "component-gridlist-item-default--hover": 3,
     "component-gridlist-item-default--pressed": 3,
     "component-gridlist-item-default--unselected": 3,
-    "component-gridlist-section": 7,
+    "component-gridlist-section": 5,
     "component-iconbutton": 12,
     "component-iconbutton--disabled": 3,
     "component-iconbutton--focus-visible": 3,
@@ -186,14 +187,14 @@
     "component-link--focus-visible": 3,
     "component-link--hover": 3,
     "component-link--pressed": 3,
-    "component-listbox": 8,
+    "component-listbox": 5,
     "component-listbox-item-default": 19,
     "component-listbox-item-default--disabled": 3,
     "component-listbox-item-default--focus-visible": 3,
     "component-listbox-item-default--hover": 3,
     "component-listbox-item-default--pressed": 3,
     "component-listbox-item-default--unselected": 3,
-    "component-listbox-section": 7,
+    "component-listbox-section": 5,
     "component-menu": 9,
     "component-menu-item-default": 25,
     "component-menu-item-default--disabled": 3,
@@ -257,7 +258,7 @@
     "component-togglebuttongroup": 6,
     "component-toolbar": 20,
     "component-tooltip": 5,
-    "component-tree": 10,
+    "component-tree": 7,
     "component-tree-item-default": 8,
     "component-tree-item-default--collapsed": 4,
     "component-tree-item-default--disabled": 3,
@@ -549,30 +550,6 @@
     },
     {
       "originId": "component-listbox",
-      "nodeId": "component-listbox__item-1",
-      "path": "props.id",
-      "reason": "INSTANCE_PROP_NOT_ACCEPTED_BY_COMPOSITE",
-      "valueKind": "string",
-      "value": "inbox"
-    },
-    {
-      "originId": "component-listbox",
-      "nodeId": "component-listbox__item-2",
-      "path": "props.id",
-      "reason": "INSTANCE_PROP_NOT_ACCEPTED_BY_COMPOSITE",
-      "valueKind": "string",
-      "value": "starred"
-    },
-    {
-      "originId": "component-listbox",
-      "nodeId": "component-listbox__item-3",
-      "path": "props.id",
-      "reason": "INSTANCE_PROP_NOT_ACCEPTED_BY_COMPOSITE",
-      "valueKind": "string",
-      "value": "archive"
-    },
-    {
-      "originId": "component-listbox",
       "nodeId": "component-listbox",
       "path": "slot",
       "reason": "SLOT_RECOMMENDATION_LIST_NOT_TYPED_SLOT",
@@ -846,30 +823,6 @@
       "reason": "PROP_NOT_ACCEPTED_BY_TYPE_DEFINITION",
       "valueKind": "number",
       "value": 2
-    },
-    {
-      "originId": "component-gridlist",
-      "nodeId": "component-gridlist__item-1",
-      "path": "props.id",
-      "reason": "INSTANCE_PROP_NOT_ACCEPTED_BY_COMPOSITE",
-      "valueKind": "string",
-      "value": "documents"
-    },
-    {
-      "originId": "component-gridlist",
-      "nodeId": "component-gridlist__item-2",
-      "path": "props.id",
-      "reason": "INSTANCE_PROP_NOT_ACCEPTED_BY_COMPOSITE",
-      "valueKind": "string",
-      "value": "images"
-    },
-    {
-      "originId": "component-gridlist",
-      "nodeId": "component-gridlist__item-3",
-      "path": "props.id",
-      "reason": "INSTANCE_PROP_NOT_ACCEPTED_BY_COMPOSITE",
-      "valueKind": "string",
-      "value": "downloads"
     },
     {
       "originId": "component-gridlist",
@@ -2489,7 +2442,7 @@
       "originId": "component-breadcrumbs",
       "nodeId": "component-breadcrumbs__item-1",
       "path": "props.id",
-      "reason": "INSTANCE_PROP_NOT_ACCEPTED_BY_COMPOSITE",
+      "reason": "PROP_SEED_GENERATED_KEY",
       "valueKind": "string",
       "value": "<uuid-v4:nondeterministic-seed>"
     },
@@ -2497,7 +2450,7 @@
       "originId": "component-breadcrumbs",
       "nodeId": "component-breadcrumbs__item-2",
       "path": "props.id",
-      "reason": "INSTANCE_PROP_NOT_ACCEPTED_BY_COMPOSITE",
+      "reason": "PROP_SEED_GENERATED_KEY",
       "valueKind": "string",
       "value": "<uuid-v4:nondeterministic-seed>"
     },
@@ -2505,7 +2458,7 @@
       "originId": "component-breadcrumbs",
       "nodeId": "component-breadcrumbs__item-3",
       "path": "props.id",
-      "reason": "INSTANCE_PROP_NOT_ACCEPTED_BY_COMPOSITE",
+      "reason": "PROP_SEED_GENERATED_KEY",
       "valueKind": "string",
       "value": "<uuid-v4:nondeterministic-seed>"
     },
@@ -3320,7 +3273,7 @@
       "originId": "component-menu",
       "nodeId": "component-menu__item-1",
       "path": "props.id",
-      "reason": "INSTANCE_PROP_NOT_ACCEPTED_BY_COMPOSITE",
+      "reason": "PROP_SEED_GENERATED_KEY",
       "valueKind": "string",
       "value": "<uuid-v4:nondeterministic-seed>"
     },
@@ -3328,7 +3281,7 @@
       "originId": "component-menu",
       "nodeId": "component-menu__item-2",
       "path": "props.id",
-      "reason": "INSTANCE_PROP_NOT_ACCEPTED_BY_COMPOSITE",
+      "reason": "PROP_SEED_GENERATED_KEY",
       "valueKind": "string",
       "value": "<uuid-v4:nondeterministic-seed>"
     },
@@ -3336,7 +3289,7 @@
       "originId": "component-menu",
       "nodeId": "component-menu__item-3",
       "path": "props.id",
-      "reason": "INSTANCE_PROP_NOT_ACCEPTED_BY_COMPOSITE",
+      "reason": "PROP_SEED_GENERATED_KEY",
       "valueKind": "string",
       "value": "<uuid-v4:nondeterministic-seed>"
     },
@@ -4147,7 +4100,7 @@
       "originId": "component-select",
       "nodeId": "component-select__item-1",
       "path": "props.id",
-      "reason": "INSTANCE_PROP_NOT_ACCEPTED_BY_COMPOSITE",
+      "reason": "PROP_SEED_GENERATED_KEY",
       "valueKind": "string",
       "value": "<uuid-v4:nondeterministic-seed>"
     },
@@ -4163,7 +4116,7 @@
       "originId": "component-select",
       "nodeId": "component-select__item-2",
       "path": "props.id",
-      "reason": "INSTANCE_PROP_NOT_ACCEPTED_BY_COMPOSITE",
+      "reason": "PROP_SEED_GENERATED_KEY",
       "valueKind": "string",
       "value": "<uuid-v4:nondeterministic-seed>"
     },
@@ -4179,7 +4132,7 @@
       "originId": "component-select",
       "nodeId": "component-select__item-3",
       "path": "props.id",
-      "reason": "INSTANCE_PROP_NOT_ACCEPTED_BY_COMPOSITE",
+      "reason": "PROP_SEED_GENERATED_KEY",
       "valueKind": "string",
       "value": "<uuid-v4:nondeterministic-seed>"
     },
@@ -4195,7 +4148,7 @@
       "originId": "component-select",
       "nodeId": "component-select__item-4",
       "path": "props.id",
-      "reason": "INSTANCE_PROP_NOT_ACCEPTED_BY_COMPOSITE",
+      "reason": "PROP_SEED_GENERATED_KEY",
       "valueKind": "string",
       "value": "<uuid-v4:nondeterministic-seed>"
     },
@@ -4342,7 +4295,7 @@
       "originId": "component-combobox",
       "nodeId": "component-combobox__item-1",
       "path": "props.id",
-      "reason": "INSTANCE_PROP_NOT_ACCEPTED_BY_COMPOSITE",
+      "reason": "PROP_SEED_GENERATED_KEY",
       "valueKind": "string",
       "value": "<uuid-v4:nondeterministic-seed>"
     },
@@ -4358,7 +4311,7 @@
       "originId": "component-combobox",
       "nodeId": "component-combobox__item-2",
       "path": "props.id",
-      "reason": "INSTANCE_PROP_NOT_ACCEPTED_BY_COMPOSITE",
+      "reason": "PROP_SEED_GENERATED_KEY",
       "valueKind": "string",
       "value": "<uuid-v4:nondeterministic-seed>"
     },
@@ -4374,7 +4327,7 @@
       "originId": "component-combobox",
       "nodeId": "component-combobox__item-3",
       "path": "props.id",
-      "reason": "INSTANCE_PROP_NOT_ACCEPTED_BY_COMPOSITE",
+      "reason": "PROP_SEED_GENERATED_KEY",
       "valueKind": "string",
       "value": "<uuid-v4:nondeterministic-seed>"
     },
@@ -4390,7 +4343,7 @@
       "originId": "component-combobox",
       "nodeId": "component-combobox__item-4",
       "path": "props.id",
-      "reason": "INSTANCE_PROP_NOT_ACCEPTED_BY_COMPOSITE",
+      "reason": "PROP_SEED_GENERATED_KEY",
       "valueKind": "string",
       "value": "<uuid-v4:nondeterministic-seed>"
     },
@@ -4999,30 +4952,6 @@
       "value": [
         "item-1"
       ]
-    },
-    {
-      "originId": "component-tree",
-      "nodeId": "component-tree__item-1",
-      "path": "props.id",
-      "reason": "INSTANCE_PROP_NOT_ACCEPTED_BY_COMPOSITE",
-      "valueKind": "string",
-      "value": "item-1"
-    },
-    {
-      "originId": "component-tree",
-      "nodeId": "component-tree__item-1-1",
-      "path": "props.id",
-      "reason": "INSTANCE_PROP_NOT_ACCEPTED_BY_COMPOSITE",
-      "valueKind": "string",
-      "value": "item-1-1"
-    },
-    {
-      "originId": "component-tree",
-      "nodeId": "component-tree__item-2",
-      "path": "props.id",
-      "reason": "INSTANCE_PROP_NOT_ACCEPTED_BY_COMPOSITE",
-      "valueKind": "string",
-      "value": "item-2"
     },
     {
       "originId": "component-tree",
@@ -6208,7 +6137,7 @@
       "originId": "component-tabs",
       "nodeId": "component-tabs",
       "path": "props.defaultSelectedKey",
-      "reason": "PROP_NOT_ACCEPTED_BY_TYPE_DEFINITION",
+      "reason": "PROP_SEED_GENERATED_KEY",
       "valueKind": "string",
       "value": "<uuid-v4:nondeterministic-seed>"
     },
@@ -6216,7 +6145,7 @@
       "originId": "component-tabs",
       "nodeId": "component-tabs__1",
       "path": "props.defaultSelectedKey",
-      "reason": "PROP_NOT_ACCEPTED_BY_TYPE_DEFINITION",
+      "reason": "PROP_SEED_GENERATED_KEY",
       "valueKind": "string",
       "value": "<uuid-v4:nondeterministic-seed>"
     },
@@ -6240,7 +6169,7 @@
       "originId": "component-tabs",
       "nodeId": "component-tabs__1__tab-1",
       "path": "props.id",
-      "reason": "INSTANCE_PROP_NOT_ACCEPTED_BY_COMPOSITE",
+      "reason": "PROP_SEED_GENERATED_KEY",
       "valueKind": "string",
       "value": "<uuid-v4:nondeterministic-seed>"
     },
@@ -6248,7 +6177,7 @@
       "originId": "component-tabs",
       "nodeId": "component-tabs__1__tab-2",
       "path": "props.id",
-      "reason": "INSTANCE_PROP_NOT_ACCEPTED_BY_COMPOSITE",
+      "reason": "PROP_SEED_GENERATED_KEY",
       "valueKind": "string",
       "value": "<uuid-v4:nondeterministic-seed>"
     },
@@ -6267,7 +6196,7 @@
       "originId": "component-tabs",
       "nodeId": "component-tabs__2_1",
       "path": "props.itemId",
-      "reason": "PROP_NOT_ACCEPTED_BY_TYPE_DEFINITION",
+      "reason": "PROP_SEED_GENERATED_KEY",
       "valueKind": "string",
       "value": "<uuid-v4:nondeterministic-seed>"
     },
@@ -6275,7 +6204,7 @@
       "originId": "component-tabs",
       "nodeId": "component-tabs__2_2",
       "path": "props.itemId",
-      "reason": "PROP_NOT_ACCEPTED_BY_TYPE_DEFINITION",
+      "reason": "PROP_SEED_GENERATED_KEY",
       "valueKind": "string",
       "value": "<uuid-v4:nondeterministic-seed>"
     },
@@ -6603,7 +6532,7 @@
       "originId": "component-taggroup",
       "nodeId": "component-taggroup__2__tag-1",
       "path": "props.id",
-      "reason": "INSTANCE_PROP_NOT_ACCEPTED_BY_COMPOSITE",
+      "reason": "PROP_SEED_GENERATED_KEY",
       "valueKind": "string",
       "value": "<uuid-v4:nondeterministic-seed>"
     },
@@ -6611,7 +6540,7 @@
       "originId": "component-taggroup",
       "nodeId": "component-taggroup__2__tag-2",
       "path": "props.id",
-      "reason": "INSTANCE_PROP_NOT_ACCEPTED_BY_COMPOSITE",
+      "reason": "PROP_SEED_GENERATED_KEY",
       "valueKind": "string",
       "value": "<uuid-v4:nondeterministic-seed>"
     },
@@ -6619,7 +6548,7 @@
       "originId": "component-taggroup",
       "nodeId": "component-taggroup__2__tag-3",
       "path": "props.id",
-      "reason": "INSTANCE_PROP_NOT_ACCEPTED_BY_COMPOSITE",
+      "reason": "PROP_SEED_GENERATED_KEY",
       "valueKind": "string",
       "value": "<uuid-v4:nondeterministic-seed>"
     },
@@ -6627,7 +6556,7 @@
       "originId": "component-taggroup",
       "nodeId": "component-taggroup__2__tag-4",
       "path": "props.id",
-      "reason": "INSTANCE_PROP_NOT_ACCEPTED_BY_COMPOSITE",
+      "reason": "PROP_SEED_GENERATED_KEY",
       "valueKind": "string",
       "value": "<uuid-v4:nondeterministic-seed>"
     },
@@ -6895,22 +6824,6 @@
     },
     {
       "originId": "component-listbox-section",
-      "nodeId": "component-listbox-section__item-1",
-      "path": "props.id",
-      "reason": "INSTANCE_PROP_NOT_ACCEPTED_BY_COMPOSITE",
-      "valueKind": "string",
-      "value": "item-1"
-    },
-    {
-      "originId": "component-listbox-section",
-      "nodeId": "component-listbox-section__item-2",
-      "path": "props.id",
-      "reason": "INSTANCE_PROP_NOT_ACCEPTED_BY_COMPOSITE",
-      "valueKind": "string",
-      "value": "item-2"
-    },
-    {
-      "originId": "component-listbox-section",
       "nodeId": "component-listbox-section",
       "path": "slot",
       "reason": "SLOT_RECOMMENDATION_LIST_NOT_TYPED_SLOT",
@@ -7009,22 +6922,6 @@
       "reason": "TEMPLATE_NODE_NAME_NOT_IN_CONTRACT",
       "valueKind": "string",
       "value": "Header"
-    },
-    {
-      "originId": "component-gridlist-section",
-      "nodeId": "component-gridlist-section__item-1",
-      "path": "props.id",
-      "reason": "INSTANCE_PROP_NOT_ACCEPTED_BY_COMPOSITE",
-      "valueKind": "string",
-      "value": "item-1"
-    },
-    {
-      "originId": "component-gridlist-section",
-      "nodeId": "component-gridlist-section__item-2",
-      "path": "props.id",
-      "reason": "INSTANCE_PROP_NOT_ACCEPTED_BY_COMPOSITE",
-      "valueKind": "string",
-      "value": "item-2"
     },
     {
       "originId": "component-gridlist-section",

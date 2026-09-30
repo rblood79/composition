@@ -45,7 +45,12 @@ export type ComponentTraitFamily =
   /** 항목의 slot 자식 역할을 DOM `slot` 으로 내는 collection. */
   | "itemSlotCollection"
   /** `isDisabled` 를 자식 항목에게 내리는 그룹. */
-  | "disablingGroup";
+  | "disablingGroup"
+  /**
+   * 직계 자식을 항목으로 읽는 Table 부품 (header 의 Column · body 의 Row · row 의 Cell). 중첩 층 2
+   * 표에는 넣지 않는다 — 인스턴스 위치가 자기 자식을 갖는 판정 (ADR-248 fillSlot) 만 읽는다.
+   */
+  | "tableItemHost";
 
 export interface ComponentTraits {
   readonly container?: ComponentContainerKind;
@@ -248,6 +253,9 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
     owners: ["Tabs"],
   },
   TabPanel: { owners: ["Tabs"] },
+  TableHeader: { families: ["tableItemHost"] },
+  TableBody: { families: ["tableItemHost"] },
+  Row: { families: ["tableItemHost"] },
   Tab: { families: ["staticCollectionItem"], owners: ["TabList"] },
   RadioGroup: {
     families: ["disablingGroup"],
