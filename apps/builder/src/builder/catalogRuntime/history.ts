@@ -9,7 +9,8 @@ export interface CatalogHistorySnapshot {
 
 /**
  * ADR-248 Phase 4e-4: the History panel's read of the project's single history — entry labels
- * and the applied count, re-read after each published step (edit, undo, redo) and after a clear.
+ * and the applied count, re-read after each history change (a step, undo, redo, an outside data
+ * change, a clear).
  * Jumping to an entry undoes or redoes one step at a time through the workspace (each one a
  * published step, so every consumer follows).
  */
@@ -23,7 +24,7 @@ export class CatalogHistoryStore {
     private readonly steps: { undo(): unknown; redo(): unknown },
   ) {
     this.snapshot = this.read();
-    this.unsubscribe = runtime.subscribeSteps(() => this.refresh());
+    this.unsubscribe = runtime.subscribeHistory(() => this.refresh());
   }
   dispose(): void {
     this.unsubscribe();

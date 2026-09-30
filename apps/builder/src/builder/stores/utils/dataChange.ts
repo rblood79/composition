@@ -1099,6 +1099,19 @@ export interface DataChangeHistoryPayload {
   inverse: DataOp[];
 }
 
+/**
+ * ADR-248 Phase 4e-4e: where a recorded data change goes. The catalog app sets it (the data
+ * change joins the document's single history, user 2026-09-30); unset = the old history manager.
+ */
+let dataHistoryRecorder:
+  | ((payload: DataChangeHistoryPayload) => void)
+  | null = null;
+export function setDataHistoryRecorder(
+  recorder: ((payload: DataChangeHistoryPayload) => void) | null,
+): void {
+  dataHistoryRecorder = recorder;
+}
+
 type CollectionsDB = {
   collections?: {
     insert: (dt: DataTable) => Promise<DataTable>;
@@ -1335,12 +1348,14 @@ export const createApplyDataChangeAction =
         },
         inverse,
       };
-      historyManager.addEntry({
-        type: "data",
-        elementId: affectedIds[0] ?? "",
-        elementIds: affectedIds,
-        data: { dataChangeEvent: payload },
-      });
+      if (dataHistoryRecorder) dataHistoryRecorder(payload);
+      else
+        historyManager.addEntry({
+          type: "data",
+          elementId: affectedIds[0] ?? "",
+          elementIds: affectedIds,
+          data: { dataChangeEvent: payload },
+        });
     }
 
     // 변수만 바뀐 change 는 collections postMessage 를 보내지 않는다 — 변수 전송은

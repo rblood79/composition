@@ -98,7 +98,14 @@ function countBatchTargets(entry: HistoryEntry): number {
  * op 에 없는 경우 (`set_cell` 등) 생략한다.
  */
 function dataChangeLabel(entry: HistoryEntry, t: TranslateFn): string {
-  const event = entry.data.dataChangeEvent;
+  return dataChangeEventLabel(entry.data.dataChangeEvent, t);
+}
+
+/** The label of a recorded data change (the old `data` entry's, and the catalog history's). */
+export function dataChangeEventLabel(
+  event: HistoryEntry["data"]["dataChangeEvent"],
+  t: TranslateFn,
+): string {
   const ops = event?.change.ops ?? [];
   if (event?.change.label) return event.change.label;
   if (ops.length !== 1) {

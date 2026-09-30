@@ -19,7 +19,7 @@ import {
   type CatalogRootOptions,
   type CatalogTextMeasure,
 } from "./compositionRoot";
-import { CatalogRuntime } from "./controller";
+import { CatalogRuntime, type CatalogExternalEffect } from "./controller";
 import {
   CatalogPreviewChannel,
   type CatalogPreviewChannelOptions,
@@ -205,6 +205,23 @@ export class CatalogWorkspace {
         executed.plan.selectAfter.flatMap((id) => this.itemsOfNode(id, 1)),
       );
     return executed;
+  }
+  /**
+   * A change outside the document (the data store) as one history entry with its document part
+   * (`command`, optional) — undo and redo run the outside effect after the document part.
+   */
+  recordExternal(
+    label: string,
+    effect: CatalogExternalEffect,
+    command?: CatalogCommand,
+  ): CatalogTransactionResult | undefined {
+    const recorded = this.root.recordExternal(label, effect, command);
+    if (recorded.result) this.afterStep(recorded.result);
+    if (recorded.plan?.selectAfter)
+      this.selectItems(
+        recorded.plan.selectAfter.flatMap((id) => this.itemsOfNode(id, 1)),
+      );
+    return recorded.result;
   }
   undo(): CatalogTransactionResult | undefined {
     const result = this.root.undo();

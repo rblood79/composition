@@ -29,6 +29,8 @@ import {
 } from "../catalogRuntime/react";
 import { CatalogStorage, CatalogStorageError } from "../catalogRuntime/storage";
 import { catalogTextMeasure } from "../catalogRuntime/textMeasure";
+import { catalogDataHistoryRecorder } from "../catalogRuntime/dataHistory";
+import { dataChangeEventLabel } from "../panels/history/historyEntryLabel";
 import { catalogThemeState } from "../catalogRuntime/theme";
 import { CatalogWorkspace } from "../catalogRuntime/workspace";
 import { createCatalogDataUsageSource } from "../panels/datatable/usage/catalogDataUsageSource";
@@ -36,6 +38,7 @@ import { DataUsageSourceContext } from "../panels/datatable/usage/dataUsageSourc
 import { ToastContainer } from "../components";
 import { PanelWorkspace } from "../layout";
 import { useDataStore } from "../stores/data";
+import { setDataHistoryRecorder } from "../stores/utils/dataChange";
 import { useToastStore } from "../stores/toast";
 import {
   CANVAS_BREAKPOINTS,
@@ -180,6 +183,18 @@ export function CatalogBuilderCore() {
   );
 
   const workspace = state.kind === "open" ? state.workspace : undefined;
+  // Recorded data changes join the document's single history while this project is open.
+  useEffect(() => {
+    if (!workspace) return;
+    setDataHistoryRecorder(
+      catalogDataHistoryRecorder(
+        workspace,
+        useDataStore.getState().applyDataChange,
+        (payload) => dataChangeEventLabel(payload, t),
+      ),
+    );
+    return () => setDataHistoryRecorder(null);
+  }, [t, workspace]);
   const dataUsage = useMemo(
     () => (workspace ? createCatalogDataUsageSource(workspace) : null),
     [workspace],

@@ -83,6 +83,7 @@ import {
 } from "./presence";
 import {
   CatalogRuntime,
+  type CatalogExternalEffect,
   type CatalogStepConsumer,
   type CatalogStepContext,
 } from "./controller";
@@ -1064,6 +1065,24 @@ export class CatalogCompositionRoot {
         throw error;
       }
     }
+  }
+  /**
+   * A change outside the document as one history entry (ADR-248 4e-4e, one stack): `command`
+   * (optional) is its document part, planned and committed now like `execute`.
+   */
+  recordExternal(
+    label: string,
+    effect: CatalogExternalEffect,
+    command?: CatalogCommand,
+  ): { plan?: CatalogCommandPlan; result?: CatalogTransactionResult } {
+    const plan = command?.(this.runtime.graph);
+    const result = this.runtime.recordExternal(
+      plan?.label ?? label,
+      effect,
+      plan?.ops ?? [],
+      this.consume,
+    );
+    return { ...(plan ? { plan } : {}), ...(result ? { result } : {}) };
   }
   undo(): CatalogTransactionResult | undefined {
     return this.runtime.undo(this.consume);
