@@ -159,6 +159,18 @@ export class CatalogRuntime {
   get durableRevision(): number {
     return this.current().durableRevision;
   }
+  /** Current and durable revision of any open project (autosave status). */
+  projectRevisions(projectId: string): {
+    revision: number;
+    durableRevision: number;
+  } {
+    const session = this.projects.get(projectId);
+    if (!session) throw new Error("PROJECT_NOT_OPEN");
+    return {
+      revision: session.graph.revision,
+      durableRevision: session.durableRevision,
+    };
+  }
   get pendingCount(): number {
     return this.current().pending.length;
   }

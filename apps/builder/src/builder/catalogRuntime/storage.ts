@@ -40,6 +40,14 @@ export interface CatalogCommit {
   changed: readonly { id: string; json: string }[];
   removedIds: readonly string[];
 }
+export interface CatalogStoredProject {
+  projectId: CatalogDocument["projectId"];
+  revision: number;
+  /** The project entry's name (absent when the record cannot be read). */
+  name: string | undefined;
+  /** False for a head of another format or version: opening it fails with UNSUPPORTED_PROJECT_FORMAT. */
+  supported: boolean;
+}
 export interface StorageHooks {
   beforeTransaction?: (commit: CatalogCommit) => Promise<void> | void;
   afterWritesBeforeCommit?: (commit: CatalogCommit) => void;
@@ -181,6 +189,76 @@ export class CatalogStorage {
         await done;
       } catch (error) {
         throw conflict ?? error;
+      }
+    } finally {
+      db.close();
+    }
+  }
+
+  /** Stored projects for a project list: head revision and the project entry's name. */
+  async list(): Promise<CatalogStoredProject[]> {
+    const db = await this.open();
+    try {
+      const transaction = db.transaction(["heads", "entries"], "readonly");
+      const done = transactionDone(transaction);
+      const records = transaction.objectStore("entries");
+      const headsRequest = transaction.objectStore("heads").getAll();
+      const names = new Map<string, IDBRequest>();
+      headsRequest.onsuccess = () => {
+        for (const head of headsRequest.result as StoredHead[])
+          names.set(head.projectId, records.get([head.projectId, head.rootId]));
+      };
+      await done;
+      return (headsRequest.result as StoredHead[]).map((head) => {
+        const supported =
+          head.format === "composition-catalog" &&
+          head.schemaVersion === 1 &&
+          head.libraryContractVersion === 1;
+        const record = names.get(head.projectId)?.result as
+          StoredEntry | undefined;
+        let name: string | undefined;
+        try {
+          const entry = record && (JSON.parse(record.json) as CatalogEntry);
+          if (entry?.kind === "project") name = entry.name;
+        } catch {
+          name = undefined;
+        }
+        return {
+          projectId: head.projectId as CatalogDocument["projectId"],
+          revision: head.revision,
+          name,
+          supported,
+        };
+      });
+    } finally {
+      db.close();
+    }
+  }
+
+  /** Delete a project's head and every entry record in one transaction. */
+  async remove(projectId: CatalogDocument["projectId"]): Promise<void> {
+    const db = await this.open();
+    try {
+      const transaction = db.transaction(["heads", "entries"], "readwrite");
+      const done = transactionDone(transaction);
+      const heads = transaction.objectStore("heads");
+      let missing = false;
+      const lookup = heads.get(projectId);
+      lookup.onsuccess = () => {
+        if (!lookup.result) {
+          missing = true;
+          transaction.abort();
+          return;
+        }
+        heads.delete(projectId);
+        transaction
+          .objectStore("entries")
+          .delete(IDBKeyRange.bound([projectId, ""], [projectId, "\uffff"]));
+      };
+      try {
+        await done;
+      } catch (error) {
+        throw missing ? new CatalogStorageError("PROJECT_NOT_FOUND") : error;
       }
     } finally {
       db.close();
