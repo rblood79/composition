@@ -27,6 +27,10 @@ import { CatalogAttributesSection } from "./CatalogAttributesSection";
 import { CatalogButtonChildFields } from "./CatalogButtonChildFields";
 import { CatalogComponentSection } from "./CatalogComponentSection";
 import { CatalogItemRolesSection } from "./CatalogItemRolesSection";
+import {
+  CatalogCardFieldsSection,
+  CatalogItemOriginNotice,
+} from "./CatalogRowTemplateSections";
 import { CatalogPageSection } from "./CatalogPageSection";
 import { CatalogSlotSection } from "./CatalogSlotSection";
 import { CatalogStateSection } from "./CatalogStateSection";
@@ -144,6 +148,14 @@ function CatalogPropertiesContent() {
             />
             <CatalogItemRolesSection
               key={`roles:${first.identity}`}
+              identity={first.identity}
+            />
+            <CatalogItemOriginNotice
+              key={`origin:${targetKey(first.target)}`}
+              target={first.target}
+            />
+            <CatalogCardFieldsSection
+              key={`cards:${first.identity}`}
               identity={first.identity}
             />
             <CatalogFields

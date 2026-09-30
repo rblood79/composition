@@ -31,6 +31,7 @@ import {
   compileFieldTemplate,
   interpolateFieldTemplate,
 } from "../../collections/fieldTemplate";
+import { ROW_TEMPLATE_BINDABLE_PROP_KEYS } from "../../collections/rowTemplateBindableProps";
 
 export interface ResolvedCatalogNode {
   sourceId: NodeId | TemplateId;
@@ -694,8 +695,9 @@ export function resolveCatalogNode(
         if (layer.sizing) applyWrites(sizing, layer.sizing);
     }
     if (row) {
-      for (const key of Object.keys(props))
-        props[key] = bindRowValue(props[key], row);
+      // Only content props read the row (ADR-162 allowlist): a user's `{…}` text elsewhere stays.
+      for (const key of ROW_TEMPLATE_BINDABLE_PROP_KEYS)
+        if (key in props) props[key] = bindRowValue(props[key], row);
       // The row is the item: its collection key is the row's.
       if (rowing?.rowStart) props.id = row.key;
     }
