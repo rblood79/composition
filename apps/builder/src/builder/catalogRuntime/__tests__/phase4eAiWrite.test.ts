@@ -1,5 +1,5 @@
 import "fake-indexeddb/auto";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import type {
@@ -15,7 +15,22 @@ import { resolveTriggers } from "@composition/shared";
 import { batchDesignTool } from "../../../services/ai/tools/batchDesign";
 import { bindCollectionTool } from "../../../services/ai/tools/bindCollection";
 import { createInteractionRuleTool } from "../../../services/ai/tools/createInteractionRule";
+import { proposeDataChangeTool } from "../../../services/ai/tools/proposeDataChange";
+import {
+  resolveAgentCommandConfirmation,
+  subscribeAgentCommandConfirmation,
+} from "../../../services/agent/agentCommandConfirmation";
+import { setAgentCommandHost } from "../../../services/agent/agentCommandHost";
+import { createCatalogAgentCommandHost } from "../agentHost";
 import { useDataStore } from "../../stores/data";
+import {
+  setDataHistoryRecorder,
+  setDocumentBindingCommitter,
+} from "../../stores/utils/dataChange";
+import {
+  catalogDataHistoryRecorder,
+  catalogDocumentBindingCommitter,
+} from "../dataHistory";
 import { catalogInteractionsOf } from "../interactions";
 import { createElementTool } from "../../../services/ai/tools/createElement";
 import { deleteElementTool } from "../../../services/ai/tools/deleteElement";
@@ -52,6 +67,21 @@ const node = (
   sizing: {},
   descendantOverrides: [],
 });
+// The data store saves to IndexedDB: an accepting stand-in (the applier's order is what is tested).
+vi.mock("../../../lib/db", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../../lib/db")>();
+  const table = new Proxy(() => Promise.resolve([]), {
+    get: (_t, prop) =>
+      prop === "then" ? undefined : () => Promise.resolve([]),
+    apply: () => Promise.resolve([]),
+  });
+  const db = new Proxy(
+    {},
+    { get: (_t, prop) => (prop === "then" ? undefined : table) },
+  );
+  return { ...actual, getDB: vi.fn(async () => db) };
+});
+
 const t: ToolTranslate = (key, params) =>
   params ? `${key} ${JSON.stringify(params)}` : key;
 
@@ -254,16 +284,36 @@ describe("ADR-248 Phase 4e-5 AI writes", () => {
     expect(missing.error).toContain("PAGE_NOT_FOUND");
   });
 
-  it("bind_collection: the element's document binding, one step", async () => {
+  it("bind_collection and propose_data_change bind_element: approved, one entry of the document history; undo takes the binding and the new collection back", async () => {
     const { workspace, steps } = await open();
+    const apply = useDataStore.getState().applyDataChange;
+    uninstall.push(
+      () => setDataHistoryRecorder(null),
+      () => setDocumentBindingCommitter(null),
+    );
+    setDataHistoryRecorder(catalogDataHistoryRecorder(workspace, apply));
+    uninstall.push(
+      setAgentCommandHost(createCatalogAgentCommandHost(workspace)),
+    );
+    setDocumentBindingCommitter(
+      catalogDocumentBindingCommitter(workspace, apply),
+    );
+    let approve = true;
+    uninstall.push(
+      subscribeAgentCommandConfirmation((request) => {
+        if (request)
+          queueMicrotask(() => resolveAgentCommandConfirmation(approve));
+      }),
+    );
     useDataStore.setState({
+      currentProjectId: "p1",
       collections: new Map([
         [
           "c1",
           {
             id: "c1",
             name: "Users",
-            schema: [{ id: "f1", key: "name" }],
+            schema: [{ id: "f1", key: "name", type: "string" }],
             mockData: [{ name: "Ann" }],
             useMockData: true,
           },
@@ -273,23 +323,92 @@ describe("ADR-248 Phase 4e-5 AI writes", () => {
     workspace.execute(
       insertNodes({
         parent: { kind: "node", id: BODY },
-        entries: [node("menu", "lib:definition:origin-component-listbox")],
-        rootIds: [id("menu")],
+        entries: [
+          node("menu", "lib:definition:origin-component-listbox"),
+          node("list2", "lib:definition:origin-component-listbox"),
+        ],
+        rootIds: [id("menu"), id("list2")],
         newId: workspace.newId,
       }),
     );
+    const binding = (name: string) => {
+      const entry = workspace.runtime.graph.getEntry(id(name));
+      return entry?.kind === "node" ? entry.binding?.collectionId : undefined;
+    };
     const menu = workspace.root.recordsOfSource(id("menu"))[0];
     const before = steps();
+    // Declined: nothing changes.
+    approve = false;
+    const declined = await bindCollectionTool.execute(
+      { elementId: menu, collectionId: "c1" },
+      t,
+    );
+    expect(declined.success).toBe(false);
+    expect(binding("menu")).toBeUndefined();
+    expect(steps()).toBe(before);
+    approve = true;
     const result = await bindCollectionTool.execute(
       { elementId: menu, collectionId: "c1" },
       t,
     );
     expect(result.success, result.error).toBe(true);
     expect(steps()).toBe(before + 1);
-    const entry = workspace.runtime.graph.getEntry(id("menu"));
-    expect(entry?.kind === "node" && entry.binding?.collectionId).toBe(
-      "data:collection:c1",
+    expect(binding("menu")).toBe("data:collection:c1");
+    // A new collection and its binding (an AI data proposal): one entry.
+    const list2 = workspace.root.recordsOfSource(id("list2"))[0];
+    const proposed = await proposeDataChangeTool.execute(
+      {
+        ops: [
+          {
+            op: "create_collection",
+            id: "c2",
+            name: "Tags",
+            schema: [{ id: "f2", key: "tag", type: "string" }],
+            rows: [{ tag: "a" }],
+            source: "manual",
+          },
+          { op: "bind_element", elementId: list2, collectionId: "c2" },
+        ],
+      },
+      t,
     );
+    expect(proposed.success, proposed.error).toBe(true);
+    expect(steps()).toBe(before + 2);
+    expect(binding("list2")).toBe("data:collection:c2");
+    expect(useDataStore.getState().collections.has("c2")).toBe(true);
+    // The log's history index is the document history's.
+    expect((proposed.data as { historyId: number }).historyId).toBe(steps());
+    workspace.undo();
+    await vi.waitFor(() =>
+      expect(useDataStore.getState().collections.has("c2")).toBe(false),
+    );
+    expect(binding("list2")).toBeUndefined();
+    expect(binding("menu")).toBe("data:collection:c1");
+    workspace.redo();
+    await vi.waitFor(() =>
+      expect(useDataStore.getState().collections.has("c2")).toBe(true),
+    );
+    expect(binding("list2")).toBe("data:collection:c2");
+    // An element the document does not have: refused, nothing saved.
+    const missing = await proposeDataChangeTool.execute(
+      {
+        ops: [
+          {
+            op: "create_collection",
+            id: "c3",
+            name: "Ghost",
+            schema: [{ id: "f3", key: "x", type: "string" }],
+            rows: [],
+            source: "manual",
+          },
+          { op: "bind_element", elementId: "nope", collectionId: "c3" },
+        ],
+      },
+      t,
+    );
+    expect(missing.success).toBe(false);
+    expect(useDataStore.getState().collections.has("c3")).toBe(false);
+    expect(steps()).toBe(before + 2);
   });
 
   it("history merge refuses an entry with an outside change", async () => {

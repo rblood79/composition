@@ -32,11 +32,6 @@ export interface AiWriteHost {
     trigger: string,
     action: InteractionAction,
   ): AiWriteResult<{ ruleId: string }>;
-  /** Bind an element to a collection (its data binding); one step. */
-  bind(
-    elementId: string,
-    binding: { collectionId: string; fieldMap?: Readonly<Record<string, string>> },
-  ): AiWriteResult;
   /** Run several writes as one history step (`label`). */
   batch<T>(label: string, run: () => Promise<T>): Promise<T>;
 }

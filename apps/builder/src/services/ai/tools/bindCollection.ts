@@ -33,7 +33,6 @@ import {
   getDataToolReadModel,
 } from "../data/dataToolReadModel";
 import { getAiToolReadModel } from "./canonicalToolReadModel";
-import { getAiWriteHost } from "../aiWriteHost";
 import { resolveElementRef } from "./elementRef";
 
 type FieldMap = { value?: string; icon?: string };
@@ -172,55 +171,6 @@ export const bindCollectionTool: ToolExecutor = {
       });
       if ("error" in normalized) {
         return { success: false, error: normalized.error };
-      }
-
-      // ADR-248 4e-5: the open catalog Builder — the data ops (a new collection) stay a data
-      // proposal (approved as before); the binding is the element's document binding (one step).
-      const writeHost = getAiWriteHost();
-      if (writeHost) {
-        const bindOp = normalized.ops.find(
-          (op): op is Extract<DataOp, { op: "bind_element" }> =>
-            op.op === "bind_element",
-        );
-        const dataOps = normalized.ops.filter((op) => op.op !== "bind_element");
-        let historyId: number | null = null;
-        if (dataOps.length) {
-          const data = await dispatchDataProposal(
-            {
-              ops: dataOps,
-              label: t("aiDataProposal.bindLabel", {
-                type: element.type,
-                collection: normalized.collectionName,
-              }),
-              host: "ai-panel",
-              origin: "ai",
-            },
-            t,
-          );
-          if (data.status === "invalid")
-            return { success: false, error: data.errors.join("; ") };
-          if (data.status === "rejected")
-            return { success: false, error: t("aiDataProposal.rejected") };
-          historyId = data.historyId ?? null;
-        }
-        if (!bindOp?.collectionId)
-          return { success: false, error: t("aiToolError.collectionRefRequired") };
-        const written = writeHost.bind(targetId, {
-          collectionId: bindOp.collectionId,
-          ...(bindOp.fieldMap ? { fieldMap: bindOp.fieldMap } : {}),
-        });
-        if (!written.ok) return { success: false, error: written.error };
-        return {
-          success: true,
-          data: {
-            elementId: targetId,
-            type: element.type,
-            collection: normalized.collectionName,
-            ops: normalized.ops.map((op) => op.op),
-            historyId,
-          },
-          affectedElementIds: [targetId],
-        };
       }
 
       const result = await dispatchDataProposal(

@@ -16,7 +16,7 @@ import type {
   NodeParent,
   Scalar,
 } from "../../../../../packages/shared/src/catalog/document/types";
-import type { DataBindingValue, InteractionAction } from "@composition/shared";
+import type { InteractionAction } from "@composition/shared";
 import type { CatalogPosition } from "../../../../../packages/shared/src/catalog/resolution/positions";
 import type { AiReadHost } from "../../services/ai/aiReadHost";
 import type {
@@ -31,7 +31,10 @@ import {
   catalogEditContract,
   catalogSemanticPatchCommand,
 } from "./editContract";
-import { catalogCreationProps, catalogPaletteDefinitionId } from "./paletteInsert";
+import {
+  catalogCreationProps,
+  catalogPaletteDefinitionId,
+} from "./paletteInsert";
 import { catalogPlacementStyle } from "./position";
 import { catalogFieldsAt } from "./responsiveFields";
 import type { CatalogSelectionItem } from "./session";
@@ -42,7 +45,6 @@ import {
   catalogNewInteraction,
   type CatalogInteractionAction,
 } from "./interactions";
-import { catalogBindingCommand, catalogBindingRef } from "./dataBinding";
 import {
   catalogVariableIndex,
   catalogVariableUsageCounter,
@@ -58,7 +60,10 @@ const typeOf = (workspace: CatalogWorkspace, position: CatalogPosition) => {
   }
 };
 
-const typeOfDefinition = (workspace: CatalogWorkspace, definitionId: string) => {
+const typeOfDefinition = (
+  workspace: CatalogWorkspace,
+  definitionId: string,
+) => {
   try {
     return definitionTypeName(
       workspace.runtime.graph,
@@ -192,8 +197,7 @@ export function createCatalogAiReadHost(
   // One projection per document revision and composition root (a breakpoint switch makes a new
   // root).
   let cache:
-    | { revision: number; root: object; elements: Element[] }
-    | undefined;
+    { revision: number; root: object; elements: Element[] } | undefined;
   const documentKey = () =>
     `${workspace.runtime.graph.revision}:${workspace.session.getSnapshot().breakpoint}`;
   const selection = () => workspace.session.getSnapshot().selection;
@@ -279,32 +283,38 @@ export function createCatalogAiReadHost(
             ? { defaultValue: def.defaultValue }
             : {}),
         })),
-        ...catalogVariableIndex(graph).map(({ variable, pageId, ownerLabel }) => {
-          const owner = graph.getEntry(variable.ownerId);
-          return {
-            id: variable.id,
-            name: variable.name,
-            type: variable.valueType,
-            owner:
-              ownerLabel === null
-                ? { kind: "page" as const, pageId, pageTitle: pageTitle(pageId) }
-                : {
-                    kind: "element" as const,
-                    elementId:
-                      workspace.root.recordsOfSource(variable.ownerId)[0] ??
-                      variable.ownerId,
-                    elementType:
-                      owner?.kind === "node"
-                        ? typeOfDefinition(workspace, owner.definitionId)
-                        : variable.ownerId,
-                    pageId,
-                  },
-            usedBy: usedBy(variable.id),
-            ...(variable.defaultValue !== undefined
-              ? { defaultValue: variable.defaultValue }
-              : {}),
-          };
-        }),
+        ...catalogVariableIndex(graph).map(
+          ({ variable, pageId, ownerLabel }) => {
+            const owner = graph.getEntry(variable.ownerId);
+            return {
+              id: variable.id,
+              name: variable.name,
+              type: variable.valueType,
+              owner:
+                ownerLabel === null
+                  ? {
+                      kind: "page" as const,
+                      pageId,
+                      pageTitle: pageTitle(pageId),
+                    }
+                  : {
+                      kind: "element" as const,
+                      elementId:
+                        workspace.root.recordsOfSource(variable.ownerId)[0] ??
+                        variable.ownerId,
+                      elementType:
+                        owner?.kind === "node"
+                          ? typeOfDefinition(workspace, owner.definitionId)
+                          : variable.ownerId,
+                      pageId,
+                    },
+              usedBy: usedBy(variable.id),
+              ...(variable.defaultValue !== undefined
+                ? { defaultValue: variable.defaultValue }
+                : {}),
+            };
+          },
+        ),
       ];
     },
     projectId: () => workspace.projectId,
@@ -322,7 +332,8 @@ function writeCommands(
   const commands: CatalogCommand[] = [];
   const props = input.props ?? {};
   const refused = Object.keys(props).filter((key) => !accepted.has(key));
-  if (refused.length) throw new Error(`PROP_NOT_ACCEPTED: ${refused.join(", ")}`);
+  if (refused.length)
+    throw new Error(`PROP_NOT_ACCEPTED: ${refused.join(", ")}`);
   const first = targets[0];
   const propCommand =
     first &&
@@ -417,7 +428,10 @@ export function createCatalogAiWriteHost(
               ? `PARENT_NOT_FOUND: ${input.parentId}`
               : "NO_PARENT",
           };
-        const definitionId = catalogPaletteDefinitionId(graph.library, input.type);
+        const definitionId = catalogPaletteDefinitionId(
+          graph.library,
+          input.type,
+        );
         const nodeId = workspace.newId("node") as NodeId;
         const entry: NodeEntry = {
           kind: "node",
@@ -434,7 +448,10 @@ export function createCatalogAiWriteHost(
         const props = input.props ?? {};
         const refused = Object.keys(props).filter((key) => !accepted.has(key));
         if (refused.length)
-          return { ok: false, error: `PROP_NOT_ACCEPTED: ${refused.join(", ")}` };
+          return {
+            ok: false,
+            error: `PROP_NOT_ACCEPTED: ${refused.join(", ")}`,
+          };
         const commands: CatalogCommand[] = [
           insertNodes({
             parent: parentOf(parent.target),
@@ -494,7 +511,9 @@ export function createCatalogAiWriteHost(
       try {
         const target = targetOf(id);
         if (!target) return { ok: false, error: `ELEMENT_NOT_FOUND: ${id}` };
-        runSteps(workspace, "AI: delete", [removeTargets({ targets: [target] })]);
+        runSteps(workspace, "AI: delete", [
+          removeTargets({ targets: [target] }),
+        ]);
         return { ok: true };
       } catch (error) {
         return failure(error);
@@ -503,9 +522,11 @@ export function createCatalogAiWriteHost(
     addInteraction(elementId, trigger, action) {
       try {
         const target = targetOf(elementId);
-        if (!target) return { ok: false, error: `ELEMENT_NOT_FOUND: ${elementId}` };
+        if (!target)
+          return { ok: false, error: `ELEMENT_NOT_FOUND: ${elementId}` };
         const catalogAction = catalogRuleAction(workspace, action);
-        if ("error" in catalogAction) return { ok: false, error: catalogAction.error };
+        if ("error" in catalogAction)
+          return { ok: false, error: catalogAction.error };
         const owner = catalogInteractionOwner(target);
         const entry = catalogNewInteraction(
           owner,
@@ -521,23 +542,6 @@ export function createCatalogAiWriteHost(
           ),
         ]);
         return { ok: true, ruleId: entry.id };
-      } catch (error) {
-        return failure(error);
-      }
-    },
-    bind(elementId, binding) {
-      try {
-        const target = targetOf(elementId);
-        if (target?.kind !== "node")
-          return { ok: false, error: `ELEMENT_NOT_FOUND: ${elementId}` };
-        const ref = catalogBindingRef({
-          source: "dataTable",
-          collectionId: binding.collectionId,
-          ...(binding.fieldMap ? { fieldMap: { ...binding.fieldMap } } : {}),
-        } as DataBindingValue);
-        if (!ref) return { ok: false, error: "UNSUPPORTED_BINDING" };
-        runSteps(workspace, "AI: bind", [catalogBindingCommand([target], ref)]);
-        return { ok: true };
       } catch (error) {
         return failure(error);
       }
@@ -564,7 +568,9 @@ function catalogRuleAction(
     return {
       action: {
         opcode: "toast",
-        message: String((action.params as { message?: unknown })?.message ?? ""),
+        message: String(
+          (action.params as { message?: unknown })?.message ?? "",
+        ),
       },
     };
   if (action.kind === "navigate") {

@@ -30,7 +30,10 @@ import {
 import { CatalogStorage, CatalogStorageError } from "../catalogRuntime/storage";
 import { catalogTextMeasure } from "../catalogRuntime/textMeasure";
 import { catalogBoundRows } from "../catalogRuntime/dataBinding";
-import { catalogDataHistoryRecorder } from "../catalogRuntime/dataHistory";
+import {
+  catalogDataHistoryRecorder,
+  catalogDocumentBindingCommitter,
+} from "../catalogRuntime/dataHistory";
 import { dataChangeEventLabel } from "../panels/history/historyEntryLabel";
 import { catalogThemeState } from "../catalogRuntime/theme";
 import { CatalogWorkspace } from "../catalogRuntime/workspace";
@@ -53,6 +56,7 @@ import { PanelWorkspace } from "../layout";
 import { useDataStore } from "../stores/data";
 import {
   setDataHistoryRecorder,
+  setDocumentBindingCommitter,
   setDocumentVariableNamesReader,
 } from "../stores/utils/dataChange";
 import { catalogDocumentVariableNames } from "../catalogRuntime/dataVariables";
@@ -246,9 +250,9 @@ export function CatalogBuilderCore() {
     return useDataStore.subscribe(
       (store) => store.collections,
       (next, previous) => {
-        const changed = [...new Set([...next.keys(), ...previous.keys()])].filter(
-          (id) => next.get(id) !== previous.get(id),
-        );
+        const changed = [
+          ...new Set([...next.keys(), ...previous.keys()]),
+        ].filter((id) => next.get(id) !== previous.get(id));
         if (!changed.length) return;
         try {
           workspace.refreshRows(changed);
@@ -268,11 +272,20 @@ export function CatalogBuilderCore() {
         (payload) => dataChangeEventLabel(payload, t),
       ),
     );
+    // `bind_element` (an approved AI data proposal) binds the document's node, one entry.
+    setDocumentBindingCommitter(
+      catalogDocumentBindingCommitter(
+        workspace,
+        useDataStore.getState().applyDataChange,
+        (payload) => dataChangeEventLabel(payload, t),
+      ),
+    );
     setDocumentVariableNamesReader(() =>
       catalogDocumentVariableNames(workspace.runtime.graph),
     );
     return () => {
       setDataHistoryRecorder(null);
+      setDocumentBindingCommitter(null);
       setDocumentVariableNamesReader(null);
     };
   }, [t, workspace]);
