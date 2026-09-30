@@ -4,12 +4,12 @@
  * 🚀 Phase 4.2c: 래퍼 컴포넌트 최적화
  * - 섹션 래퍼 (TransformSection 등)는 resetStyles만 필요
  * - useStyleActions의 useCopyPaste 훅 오버헤드 제거
- * - 안정적인 함수 참조 반환 (useCallback + 빈 deps)
+ * - 안정적인 함수 참조 반환 (host 의 `resetStyles` — 구 store 는 `resetStoreStyles`)
  *
  * 🚀 Body 기본값 보존: Reset 시 컴포넌트 기본값으로 복원
  */
 
-import { useCallback, useMemo, type CSSProperties } from "react";
+import { useMemo, type CSSProperties } from "react";
 import { adaptStyleWithFills, isBodyType } from "@composition/shared";
 import { useStore } from "../../../stores";
 import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
@@ -39,7 +39,11 @@ import type {
   CanonicalNode,
   ElementResponsiveConfig,
 } from "@composition/shared";
-import { useStylesSelectedId, useStylesActiveBreakpoint } from "../stylesHost";
+import {
+  useStylesActiveBreakpoint,
+  useStylesHost,
+  useStylesSelectedId,
+} from "../stylesHost";
 
 const PX_LIKE_STYLE_PROPS = new Set([
   "width",
@@ -931,43 +935,14 @@ const BORDER_AXIS_RESET_GROUPS: ReadonlyArray<
  * 선택된 요소의 특정 속성들이 기본값과 다른지 확인하는 훅
  * 리셋 버튼 조건부 표시용
  */
-export function useHasDirtyStyles(properties: string[]): boolean {
-  const selectedId = useStylesSelectedId();
-  const element = useCanonicalPropertyElement(selectedId ?? "");
-  const elementsMap = useCanonicalPropertyElementsMap();
-  const activeBreakpoint = useStylesActiveBreakpoint();
-  return useMemo(() => {
-    if (!element) return false;
-
-    const parent = element.parent_id
-      ? elementsMap.get(element.parent_id)
-      : undefined;
-    const grandParent = parent?.parent_id
-      ? elementsMap.get(parent.parent_id)
-      : undefined;
-
-    return (
-      computeDirtyStyleProps(
-        element,
-        {
-          parentType: parent?.type,
-          grandParentType: grandParent?.type,
-          parentAppliedPreset: readAppliedPreset(parent?.props?.appliedPreset),
-        },
-        properties,
-        activeBreakpoint,
-      ).length > 0
-    );
-  }, [element, elementsMap, properties, activeBreakpoint]);
+export function useHasDirtyStyles(properties: readonly string[]): boolean {
+  return useStylesHost().useDirtyStyleProps(properties).length > 0;
 }
 
-/**
- * 선택된 요소의 "실제로 변경된(baseline 과 다른)" style prop 목록을 반환하는 훅.
- *
- * Modified Styles 패널 / "modify N" 뱃지가 reset 버튼(`useHasDirtyStyles`)과 동일 baseline 비교를
- * 공유하도록 한다. element 와 부모 체인을 store 에서 읽어 `computeDirtyStyleProps` 에 위임.
- */
-export function useDirtyStyleProps(): string[] {
+/** The old store's dirty check (`computeDirtyStyleProps` against the reset baseline). */
+export function useStoreDirtyStyleProps(
+  properties: readonly string[],
+): string[] {
   const selectedId = useStylesSelectedId();
   const element = useCanonicalPropertyElement(selectedId ?? "");
   const elementsMap = useCanonicalPropertyElementsMap();
@@ -982,9 +957,6 @@ export function useDirtyStyleProps(): string[] {
       ? elementsMap.get(parent.parent_id)
       : undefined;
 
-    // PANEL_STYLE_PROPS 로 제한 — Style Panel 4섹션이 reset 으로 편집하는 범위와 동일.
-    //   grid placement 등 패널 미편집 키를 modify 가 세면 reset 버튼과 비대칭(ProgressBarValue
-    //   "modify 5" ↔ reset 0, 2026-06-24).
     return computeDirtyStyleProps(
       element,
       {
@@ -992,10 +964,20 @@ export function useDirtyStyleProps(): string[] {
         grandParentType: grandParent?.type,
         parentAppliedPreset: readAppliedPreset(parent?.props?.appliedPreset),
       },
-      [...PANEL_STYLE_PROPS],
+      [...properties],
       activeBreakpoint,
     );
-  }, [element, elementsMap, activeBreakpoint]);
+  }, [element, elementsMap, properties, activeBreakpoint]);
+}
+
+/**
+ * 선택된 요소의 "실제로 변경된(baseline 과 다른)" style prop 목록을 반환하는 훅.
+ *
+ * Modified Styles 패널 / "modify N" 뱃지가 reset 버튼(`useHasDirtyStyles`)과 동일 baseline 비교를
+ * 공유하도록 한다. element 와 부모 체인을 store 에서 읽어 `computeDirtyStyleProps` 에 위임.
+ */
+export function useDirtyStyleProps(): string[] {
+  return useStylesHost().useDirtyStyleProps(PANEL_STYLE_PROPS);
 }
 
 /**
@@ -1004,109 +986,110 @@ export function useDirtyStyleProps(): string[] {
  *
  * Reset 시 컴포넌트의 기본 스타일 값으로 복원 (완전 삭제가 아님)
  */
-export function useResetStyles() {
-  const resetStyles = useCallback((properties: string[]) => {
-    const state = useStore.getState();
-    const selectedId = state.selectedElementId;
-    if (!selectedId) return;
+export function useResetStyles(): (properties: readonly string[]) => void {
+  return useStylesHost().resetStyles;
+}
 
-    const hasCanonicalDocument = hasActiveCanonicalResetDocument();
-    const canonicalElement = hasCanonicalDocument
-      ? getActiveCanonicalResetElement(selectedId)
+/** The old store's reset: each dirty key back to its reset baseline (one step). */
+export function resetStoreStyles(properties: readonly string[]): void {
+  const state = useStore.getState();
+  const selectedId = state.selectedElementId;
+  if (!selectedId) return;
+
+  const hasCanonicalDocument = hasActiveCanonicalResetDocument();
+  const canonicalElement = hasCanonicalDocument
+    ? getActiveCanonicalResetElement(selectedId)
+    : null;
+  const element = hasCanonicalDocument
+    ? canonicalElement
+    : state.elementsMap.get(selectedId);
+  if (!element) return;
+
+  // 부모-컨텍스트 sub-part baseline(SelectValue/SelectIcon/DateInput) 정합을 위해 부모 체인 조회.
+  //   reset 시 default layout 을 컨텍스트별로 복원해야(picker DateInput→flex:1/minWidth:0 등)
+  //   dirty 판정(useHasDirtyStyles)과 동일 baseline 으로 일관 동작한다.
+  const elementsMap = state.elementsMap;
+  const legacySelfNode = elementsMap.get(selectedId);
+  const legacyParentNode = legacySelfNode?.parent_id
+    ? elementsMap.get(legacySelfNode.parent_id)
+    : undefined;
+  const legacyGrandParentNode = legacyParentNode?.parent_id
+    ? elementsMap.get(legacyParentNode.parent_id)
+    : undefined;
+  const canonicalParentNode = hasCanonicalDocument
+    ? getCanonicalResetParent(selectedId)
+    : null;
+  const parentNode = hasCanonicalDocument
+    ? canonicalParentNode
+      ? toResetHierarchyNode(canonicalParentNode)
+      : undefined
+    : legacyParentNode;
+  const canonicalGrandParentNode =
+    hasCanonicalDocument && canonicalParentNode
+      ? getCanonicalResetParent(canonicalParentNode.id)
       : null;
-    const element = hasCanonicalDocument
-      ? canonicalElement
-      : state.elementsMap.get(selectedId);
-    if (!element) return;
+  const grandParentNode = hasCanonicalDocument
+    ? canonicalGrandParentNode
+      ? toResetHierarchyNode(canonicalGrandParentNode)
+      : undefined
+    : legacyGrandParentNode;
+  const responsive = hasCanonicalDocument
+    ? canonicalElement?.responsive
+    : legacySelfNode?.responsive;
 
-    // 부모-컨텍스트 sub-part baseline(SelectValue/SelectIcon/DateInput) 정합을 위해 부모 체인 조회.
-    //   reset 시 default layout 을 컨텍스트별로 복원해야(picker DateInput→flex:1/minWidth:0 등)
-    //   dirty 판정(useHasDirtyStyles)과 동일 baseline 으로 일관 동작한다.
-    const elementsMap = state.elementsMap;
-    const legacySelfNode = elementsMap.get(selectedId);
-    const legacyParentNode = legacySelfNode?.parent_id
-      ? elementsMap.get(legacySelfNode.parent_id)
-      : undefined;
-    const legacyGrandParentNode = legacyParentNode?.parent_id
-      ? elementsMap.get(legacyParentNode.parent_id)
-      : undefined;
-    const canonicalParentNode = hasCanonicalDocument
-      ? getCanonicalResetParent(selectedId)
-      : null;
-    const parentNode = hasCanonicalDocument
-      ? canonicalParentNode
-        ? toResetHierarchyNode(canonicalParentNode)
-        : undefined
-      : legacyParentNode;
-    const canonicalGrandParentNode =
-      hasCanonicalDocument && canonicalParentNode
-        ? getCanonicalResetParent(canonicalParentNode.id)
-        : null;
-    const grandParentNode = hasCanonicalDocument
-      ? canonicalGrandParentNode
-        ? toResetHierarchyNode(canonicalGrandParentNode)
-        : undefined
-      : legacyGrandParentNode;
-    const responsive = hasCanonicalDocument
-      ? canonicalElement?.responsive
-      : legacySelfNode?.responsive;
-
-    // ADR-154: 비-desktop breakpoint 에서 reset 은 base 가 아니라 해당 breakpoint 의
-    // responsive override 를 clear 한다. dirty 판정(computeDirtyStyleProps)과 동일하게
-    // 이 breakpoint 에 명시된 override 만 대상으로 "" 를 보내면, responsive-aware 로 만든
-    // updateSelectedStyles 가 buildResponsiveStyleOverride 로 해당 breakpoint 키를 제거한다.
-    const context: ResetBaselineContext = {
-      parentType: parentNode?.type,
-      grandParentType: grandParentNode?.type,
-      parentAppliedPreset: readAppliedPreset(parentNode?.props?.appliedPreset),
-    };
-    const activeBreakpoint = state.activeBreakpoint;
-    if (activeBreakpoint !== "desktop") {
-      const overrideStyle = collectBreakpointOverrideStyle(
-        responsive,
-        activeBreakpoint,
-      );
-      // 프리셋이 이 breakpoint 에 심은 값이 있으면 **그 값으로** 되돌린다. override 를 지우면
-      //   desktop cascade 값(sidebar 250px)으로 떨어져 프리셋이 의도한 형태가 무너진다.
-      const presetOverrideStyle = resolvePresetResponsiveBaselineStyle(
-        element,
-        context,
-        activeBreakpoint,
-      );
-      const resetObj: Record<string, string> = {};
-      const globalProps: string[] = [];
-      properties.forEach((prop) => {
-        // 전역 속성(border)은 base 에 저장되므로 responsive override 대신 base 비교로 reset.
-        if (isGlobalStyleProp(prop)) {
-          globalProps.push(prop);
-          return;
-        }
-        const currentValue = resolveCurrentStyleValue(prop, overrideStyle);
-        if (currentValue === undefined) return;
-        const presetValue = resolveCurrentStyleValue(prop, presetOverrideStyle);
-        if (currentValue === presetValue) return; // 프리셋 원본 그대로 → 되돌릴 것 없음
-        resetObj[prop] = presetValue ?? "";
-      });
-      if (globalProps.length > 0) {
-        // updateSelectedStyles 가 전역 속성을 base 로 라우팅 → base reset 값 계산.
-        Object.assign(
-          resetObj,
-          computeBaseResetObj(element, context, globalProps),
-        );
+  // ADR-154: 비-desktop breakpoint 에서 reset 은 base 가 아니라 해당 breakpoint 의
+  // responsive override 를 clear 한다. dirty 판정(computeDirtyStyleProps)과 동일하게
+  // 이 breakpoint 에 명시된 override 만 대상으로 "" 를 보내면, responsive-aware 로 만든
+  // updateSelectedStyles 가 buildResponsiveStyleOverride 로 해당 breakpoint 키를 제거한다.
+  const context: ResetBaselineContext = {
+    parentType: parentNode?.type,
+    grandParentType: grandParentNode?.type,
+    parentAppliedPreset: readAppliedPreset(parentNode?.props?.appliedPreset),
+  };
+  const activeBreakpoint = state.activeBreakpoint;
+  if (activeBreakpoint !== "desktop") {
+    const overrideStyle = collectBreakpointOverrideStyle(
+      responsive,
+      activeBreakpoint,
+    );
+    // 프리셋이 이 breakpoint 에 심은 값이 있으면 **그 값으로** 되돌린다. override 를 지우면
+    //   desktop cascade 값(sidebar 250px)으로 떨어져 프리셋이 의도한 형태가 무너진다.
+    const presetOverrideStyle = resolvePresetResponsiveBaselineStyle(
+      element,
+      context,
+      activeBreakpoint,
+    );
+    const resetObj: Record<string, string> = {};
+    const globalProps: string[] = [];
+    properties.forEach((prop) => {
+      // 전역 속성(border)은 base 에 저장되므로 responsive override 대신 base 비교로 reset.
+      if (isGlobalStyleProp(prop)) {
+        globalProps.push(prop);
+        return;
       }
-      if (Object.keys(resetObj).length === 0) return;
-      state.updateSelectedStyles(resetObj);
-      return;
+      const currentValue = resolveCurrentStyleValue(prop, overrideStyle);
+      if (currentValue === undefined) return;
+      const presetValue = resolveCurrentStyleValue(prop, presetOverrideStyle);
+      if (currentValue === presetValue) return; // 프리셋 원본 그대로 → 되돌릴 것 없음
+      resetObj[prop] = presetValue ?? "";
+    });
+    if (globalProps.length > 0) {
+      // updateSelectedStyles 가 전역 속성을 base 로 라우팅 → base reset 값 계산.
+      Object.assign(
+        resetObj,
+        computeBaseResetObj(element, context, globalProps),
+      );
     }
-
-    // 실제로 변경이 필요한 속성만 포함 (dirty check)
-    const resetObj = computeBaseResetObj(element, context, properties);
-
-    // 변경할 속성이 없으면 히스토리 기록 없이 조기 반환
     if (Object.keys(resetObj).length === 0) return;
-
     state.updateSelectedStyles(resetObj);
-  }, []);
+    return;
+  }
 
-  return resetStyles;
+  // 실제로 변경이 필요한 속성만 포함 (dirty check)
+  const resetObj = computeBaseResetObj(element, context, [...properties]);
+
+  // 변경할 속성이 없으면 히스토리 기록 없이 조기 반환
+  if (Object.keys(resetObj).length === 0) return;
+
+  state.updateSelectedStyles(resetObj);
 }

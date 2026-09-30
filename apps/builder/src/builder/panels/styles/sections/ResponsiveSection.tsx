@@ -33,10 +33,6 @@ import {
 import { PropertyRowMenu, PropertySection } from "../../../components";
 import { SwatchIconButton } from "../../../components/ui";
 import { ACTION_ICONS } from "../../../config/actionIcons";
-import {
-  useUpdateResponsiveVisibility,
-  useSetResponsiveStyleOverrideEnabled,
-} from "../../../stores";
 import { useElementStyleContext } from "../hooks/useElementStyleContext";
 import { resolveDirectionDrivenProp } from "../utils/orientationDrivenTags";
 import { resolveTierSeedDefaults } from "../utils/tierSeedDefaults";
@@ -45,7 +41,7 @@ import { iconProps, iconSmall } from "../../../../utils/ui/uiConstants";
 import { useResponsiveOverrides } from "../hooks/useResponsiveOverrides";
 import { camelToLabel } from "../utils/styleValueHelpers";
 import { useOptionalI18n, useSemanticLabel } from "../../../../i18n";
-import { useStylesSelectedId } from "../stylesHost";
+import { useStylesHost, useStylesSelectedId } from "../stylesHost";
 
 const BP_LABEL: Record<BreakpointName, string> = {
   desktop: "Desktop",
@@ -156,8 +152,9 @@ export const ResponsiveSection = memo(function ResponsiveSection() {
     baseHidden,
   } = useResponsiveOverrides();
 
-  const setOverrideEnabled = useSetResponsiveStyleOverrideEnabled();
-  const updateResponsiveVisibility = useUpdateResponsiveVisibility();
+  const host = useStylesHost();
+  const setOverrideEnabled = host.setResponsiveOverride;
+  const updateResponsiveVisibility = host.setResponsiveVisibility;
 
   const overriddenSet = useMemo(
     () => new Set(activeOverriddenProps),

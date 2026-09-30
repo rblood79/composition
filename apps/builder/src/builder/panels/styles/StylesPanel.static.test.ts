@@ -21,8 +21,14 @@ describe("StylesPanel canonical selected data contract", () => {
       "utf-8",
     );
 
+    // The selected element comes from the Styles host (the store host reads
+    // `useDebouncedSelectedElementData`; the catalog host its selection record).
     expect(source).toContain(
-      "const selectedElement = useDebouncedSelectedElementData();",
+      "const selectedElement = useStylesHost().useSelectedElement();",
+    );
+    const host = await readFile(resolve(__dirname, "stylesHost.ts"), "utf-8");
+    expect(host).toContain(
+      "useSelectedElement: () => useDebouncedSelectedElementData()",
     );
     expect(source).toContain("selectedElement?.style");
     // 계약의 핵심은 "panel 이 element map 을 직접 읽지 않는다" 다. 과거엔
@@ -59,7 +65,8 @@ describe("StylesPanel canonical selected data contract", () => {
     expect(source).toContain("isDisabled={locked}");
     expect(source).not.toContain("<ResponsiveVisibilityEditor");
     // ADR-154 개정 1: override 추가/제거는 명시적 opt-in 토글 액션 경유
-    expect(source).toContain("useSetResponsiveStyleOverrideEnabled");
+    // Override toggles go through the Styles host (store or catalog document).
+    expect(source).toContain("host.setResponsiveOverride");
     // 켤 때 catalog 기본값 seed 를 함께 넘긴다 (ADR-236 후속 — 켜는 순간 시각 변화 0)
     expect(source).toMatch(
       /setOverrideEnabled\(\s*key,\s*true,\s*resolveTierSeedDefaults\(/,

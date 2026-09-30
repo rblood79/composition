@@ -2297,12 +2297,13 @@ export class CatalogCompositionRoot {
   private plan({ result, invalidatedIds }: CatalogStepContext): ConsumePlan {
     const valueOnly = result.forward.every(
       (op) =>
+        // Per-breakpoint display decides which records exist (a presence change).
+        (op.kind === "setNodeField" && op.field !== "visibility") ||
         [
           "patchNodeProp",
           "patchNodeVisual",
           "patchNodeSizing",
           "patchNodeLayout",
-          "setNodeField",
           "setNodePlacement",
           "setNodeBinding",
           "patchDefinitionOverride",

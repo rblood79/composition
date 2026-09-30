@@ -1,5 +1,4 @@
 import { useCallback, useMemo, useSyncExternalStore } from "react";
-import type { BreakpointName } from "@composition/shared";
 import {
   setFields,
   setWholeField,
@@ -20,15 +19,28 @@ import {
   CatalogStyleValueError,
   catalogStyleView,
   catalogStyleWritesOf,
-  type CatalogStyleFields,
 } from "../../../catalogRuntime/styleFields";
 import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
 import { catalogBoxModel } from "../../../catalogRuntime/boxModel";
+import {
+  catalogFieldsAt,
+  catalogOverrideSeed,
+  catalogResponsiveSummary,
+} from "../../../catalogRuntime/responsiveFields";
+import {
+  resolveEligibleSeedDefault,
+  SHORTHAND_TO_LONGHAND,
+} from "../../../stores/utils/responsiveWriteRouting";
+import {
+  catalogDirtyStyleProps,
+  catalogResetStyleWrites,
+} from "../../../catalogRuntime/styleDirty";
 import {
   catalogFillItems,
   catalogFillLayers,
 } from "../../../catalogRuntime/authoredStyle";
 import type { FillItem } from "../../../../types/builder/fill.types";
+import type { SelectedElement } from "../../../inspector/types";
 import { resolveElementFills } from "../utils/fillMigration";
 import { FILL_DERIVED_STYLE_PROPS } from "../utils/fillDerivedStyleProps";
 import {
@@ -41,7 +53,6 @@ import {
   catalogRatioCommand,
   catalogSizingCommand,
 } from "../../../catalogRuntime/sizing";
-import type { OwnFields } from "../../../../../../../packages/shared/src/catalog/resolution/fieldSource";
 import { useToastStore } from "../../../stores/toast";
 import type { ElementStyleContext } from "../hooks/useElementStyleContext";
 import type { StylesHost, StylesTargetSnapshot } from "../stylesHostContext";
@@ -67,33 +78,31 @@ function useLayoutVersion(workspace: CatalogWorkspace): string {
   );
 }
 
+/** A record's own authored fields, following edits (the record's document target). */
+function useOwnFieldsOf(workspace: CatalogWorkspace, id: string | null) {
+  const target = useMemo(
+    () => (id ? workspace.itemOfRecord(id)?.target : undefined),
+    [workspace, id],
+  );
+  const key = target ? targetKey(target) : "";
+  const subscribe = useCallback(
+    (notify: () => void) =>
+      target
+        ? workspace.readModel.subscribeOwnFields(target, notify)
+        : noSubscription(),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed by the target's key
+    [key],
+  );
+  const own = useSyncExternalStore(subscribe, () =>
+    target ? workspace.readModel.ownFields(target) : undefined,
+  );
+  return { target, own };
+}
+
 /** The drawn parent record of a record (`null` at a page body or the page grid). */
 function parentRecordOf(workspace: CatalogWorkspace, id: string | null) {
   const parentId = id ? workspace.root.domInputs.get(id)?.parentId : undefined;
   return parentId ? workspace.root.domInputs.get(parentId) : undefined;
-}
-
-/** The authored fields at a breakpoint: the base layer with that layer's writes over it. */
-export function catalogFieldsAt(
-  own: OwnFields,
-  breakpoint: BreakpointName,
-): CatalogStyleFields {
-  const layer =
-    breakpoint === "desktop" ? undefined : own.responsive?.[breakpoint];
-  return {
-    visual: {
-      ...catalogAuthoredValues(own.visual),
-      ...catalogAuthoredValues(layer?.visual),
-    },
-    layout: {
-      ...catalogAuthoredValues(own.layout),
-      ...catalogAuthoredValues(layer?.layout),
-    },
-    sizing: {
-      ...catalogAuthoredValues(own.sizing),
-      ...catalogAuthoredValues(layer?.sizing),
-    },
-  };
 }
 
 function propsOf(workspace: CatalogWorkspace, target: EditTarget) {
@@ -200,28 +209,13 @@ export function createCatalogStylesHost(
       );
     });
 
-  return {
+  const host: StylesHost = {
     useSelectedId: () =>
       useCatalogSession((state) => state.selection[0]?.identity ?? null),
     useActiveBreakpoint: () => useCatalogSession((state) => state.breakpoint),
     useElementStyleContext(id: string | null): ElementStyleContext {
-      const target = useMemo(
-        () => (id ? workspace.itemOfRecord(id)?.target : undefined),
-        [id],
-      );
+      const { target, own } = useOwnFieldsOf(workspace, id);
       const breakpoint = useCatalogSession((state) => state.breakpoint);
-      const key = target ? targetKey(target) : "";
-      const subscribe = useCallback(
-        (notify: () => void) =>
-          target
-            ? workspace.readModel.subscribeOwnFields(target, notify)
-            : noSubscription(),
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed by the target's key
-        [key],
-      );
-      const own = useSyncExternalStore(subscribe, () =>
-        target ? workspace.readModel.ownFields(target) : undefined,
-      );
       const contract = useCatalogEditContract(target);
       return useMemo(() => {
         const props = Object.fromEntries(
@@ -396,6 +390,150 @@ export function createCatalogStylesHost(
           : undefined;
       });
     },
+    useDirtyStyleProps(properties) {
+      const id = useCatalogSession((state) => state.selection[0]?.identity);
+      const breakpoint = useCatalogSession((state) => state.breakpoint);
+      const { own } = useOwnFieldsOf(workspace, id ?? null);
+      return useMemo(
+        () => (own ? catalogDirtyStyleProps(own, breakpoint, properties) : []),
+        [own, breakpoint, properties],
+      );
+    },
+    resetStyles(properties) {
+      run(() => {
+        const items = selection();
+        if (!items.length) return undefined;
+        const breakpoint = workspace.session.getSnapshot().breakpoint;
+        const commands: CatalogCommand[] = [];
+        for (const { target } of items) {
+          const reset = catalogResetStyleWrites(
+            workspace.readModel.ownFields(target),
+            breakpoint,
+            properties,
+          );
+          if (!reset) continue;
+          if (Object.keys(reset.writes).length)
+            commands.push(
+              setFields({
+                targets: [target],
+                ...(breakpoint === "desktop" ? {} : { breakpoint }),
+                ...reset.writes,
+              } as Parameters<typeof setFields>[0]),
+            );
+          if (reset.placement)
+            commands.push(
+              setWholeField({
+                targets: [target],
+                field: "placement",
+                value: undefined,
+              }),
+            );
+        }
+        if (!commands.length) return undefined;
+        return ((reader) => ({
+          label: "Reset style",
+          ops: commands.flatMap((command) => command(reader).ops),
+        })) satisfies CatalogCommand;
+      });
+    },
+    useResponsiveOverrides() {
+      const id = useCatalogSession((state) => state.selection[0]?.identity);
+      const breakpoint = useCatalogSession((state) => state.breakpoint);
+      const { own } = useOwnFieldsOf(workspace, id ?? null);
+      return useMemo(() => {
+        const summary = own
+          ? catalogResponsiveSummary(own, breakpoint, {
+              fontSize: fontSizeOf(workspace, id),
+            })
+          : {
+              activeOverrideValues: {},
+              totalOverrideCount: 0,
+              visibility: {},
+              baseHidden: false,
+            };
+        const activeOverriddenProps = Object.keys(
+          summary.activeOverrideValues,
+        ).sort();
+        return {
+          activeBreakpoint: breakpoint,
+          isBase: breakpoint === "desktop",
+          activeOverriddenProps,
+          activeOverrideCount: activeOverriddenProps.length,
+          ...summary,
+        };
+      }, [own, breakpoint, id]);
+    },
+    setResponsiveOverride(property, enabled, seedDefaults) {
+      run(() => {
+        const breakpoint = workspace.session.getSnapshot().breakpoint;
+        const items = selection();
+        if (breakpoint === "desktop" || !items.length) return undefined;
+        const longhands = SHORTHAND_TO_LONGHAND[property] ?? [property];
+        const commands = items.map(({ target, identity }) => {
+          const context = { fontSize: fontSizeOf(workspace, identity) };
+          const css = enabled
+            ? catalogOverrideSeed(
+                workspace.readModel.ownFields(target),
+                breakpoint,
+                longhands,
+                (key) =>
+                  seedDefaults?.[key] ??
+                  (key !== property ? seedDefaults?.[property] : undefined) ??
+                  resolveEligibleSeedDefault(key),
+                context,
+              )
+            : Object.fromEntries(longhands.map((key) => [key, ""]));
+          return setFields({
+            targets: [target],
+            breakpoint,
+            ...catalogStyleWritesOf(css, context),
+          } as Parameters<typeof setFields>[0]);
+        });
+        return ((reader) => ({
+          label: enabled ? "Add override" : "Remove override",
+          ops: commands.flatMap((command) => command(reader).ops),
+        })) satisfies CatalogCommand;
+      });
+    },
+    setResponsiveVisibility(breakpoint, visible) {
+      run(() => {
+        const items = selection();
+        if (breakpoint === "desktop" || !items.length) return undefined;
+        const commands = items.map(({ target }) => {
+          const next = {
+            ...workspace.readModel.ownFields(target).visibility,
+          };
+          if (visible) delete next[breakpoint];
+          else next[breakpoint] = false;
+          return setWholeField({
+            targets: [target],
+            field: "visibility",
+            value: Object.keys(next).length ? next : undefined,
+          });
+        });
+        return ((reader) => ({
+          label: visible ? "Show" : "Hide",
+          ops: commands.flatMap((command) => command(reader).ops),
+        })) satisfies CatalogCommand;
+      });
+    },
+    useSelectedElement() {
+      const id = useCatalogSession((state) => state.selection[0]?.identity);
+      const context = host.useElementStyleContext(id ?? null);
+      return useMemo(
+        () =>
+          id
+            ? {
+                id,
+                type: context.type ?? "",
+                properties: { ...context.props },
+                style: context.style as SelectedElement["style"],
+              }
+            : null,
+        [id, context],
+      );
+    },
     presentation: false,
   };
+  return host;
 }

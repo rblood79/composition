@@ -1,10 +1,19 @@
 import { useContext } from "react";
 import type { BreakpointName } from "@composition/shared";
-import { readImmediateSelectionSnapshot, useStore } from "../../stores";
+import {
+  readImmediateSelectionSnapshot,
+  useDebouncedSelectedElementData,
+  useStore,
+} from "../../stores";
 import { resolveContainerStylesFallback } from "../../workspace/canvas/layout/engines/implicitStyles";
 import { useCanonicalPropertyElement } from "../properties/hooks/useCanonicalPropertyRead";
 import { useLayoutValue } from "./hooks/useLayoutValue";
 import { storeAbsoluteActivationStyles } from "./sections/absoluteActivation";
+import { useStoreResponsiveOverrides } from "./hooks/useResponsiveOverrides";
+import {
+  resetStoreStyles,
+  useStoreDirtyStyleProps,
+} from "./hooks/useResetStyles";
 import {
   readStoreSelectedFills,
   resetStoreSelectedFills,
@@ -111,6 +120,17 @@ export const STORE_STYLES_HOST: StylesHost = {
   readFills: readStoreSelectedFills,
   updateFills: (fills) => useStore.getState().updateSelectedFills(fills),
   resetFills: resetStoreSelectedFills,
+  // Late-bound: `useResetStyles` imports this module (its hooks dispatch through the host).
+  useDirtyStyleProps: (properties) => useStoreDirtyStyleProps(properties),
+  resetStyles: (properties) => resetStoreStyles(properties),
+  useResponsiveOverrides: () => useStoreResponsiveOverrides(),
+  setResponsiveOverride: (property, enabled, seedDefaults) =>
+    useStore
+      .getState()
+      .setResponsiveStyleOverrideEnabled(property, enabled, seedDefaults),
+  setResponsiveVisibility: (breakpoint, visible) =>
+    useStore.getState().updateSelectedResponsiveVisibility(breakpoint, visible),
+  useSelectedElement: () => useDebouncedSelectedElementData(),
   presentation: true,
 };
 

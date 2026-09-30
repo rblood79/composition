@@ -14,7 +14,6 @@
 
 import { useState, useMemo, useCallback, memo, type ReactElement } from "react";
 import { Tabs, TabPanel } from "react-aria-components/Tabs";
-import { useDebouncedSelectedElementData } from "../../stores";
 import { ActionIconButton } from "../../components/ui";
 import { PaintRoller } from "lucide-react";
 import { ACTION_ICONS } from "../../config/actionIcons";
@@ -66,7 +65,7 @@ import {
 } from "@/builder/hooks";
 import { useI18n } from "../../../i18n";
 import "./StylesPanel.css";
-import { useStylesSelectedId } from "./stylesHost";
+import { useStylesHost, useStylesSelectedId } from "./stylesHost";
 
 // 비활성 gating 은 PanelWorkspace 의 <Activity mode="hidden"> 이 담당 (ADR-922)
 export function StylesPanel() {
@@ -74,7 +73,7 @@ export function StylesPanel() {
 }
 
 const ModifiedSectionsWrapper = memo(function ModifiedSectionsWrapper() {
-  const selectedElement = useDebouncedSelectedElementData();
+  const selectedElement = useStylesHost().useSelectedElement();
   if (!selectedElement) return null;
   return <ModifiedStylesSection selectedElement={selectedElement} />;
 });
@@ -126,7 +125,7 @@ function GroupSections({ group }: { group: StyleGroupId }): ReactElement {
 function StylesPanelContent() {
   const { t } = useI18n();
   const hasSelectedElement = useStylesSelectedId() != null;
-  const selectedElement = useDebouncedSelectedElementData();
+  const selectedElement = useStylesHost().useSelectedElement();
   // ADR-923 잔여 1 (2026-09-03 판정 A): parent 가 self-compose 하는 sub-part 는 style 정본이 parent rule —
   //   여기서 준 값은 어디에도 실리지 않으므로 안내만 (`delegatedSubpart.ts`).
   const selectedSubpartOwnerType = useSelectedSubpartStyleOwnerType(

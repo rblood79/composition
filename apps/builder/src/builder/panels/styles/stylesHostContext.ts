@@ -3,6 +3,8 @@ import type { BreakpointName } from "@composition/shared";
 import type { ElementStyleContext } from "./hooks/useElementStyleContext";
 import type { RatioEditError } from "../../stores/inspectorActions";
 import type { FillItem } from "../../../types/builder/fill.types";
+import type { SelectedElement } from "../../inspector/types";
+import type { ResponsiveOverridesInfo } from "./hooks/useResponsiveOverrides";
 
 /** The selected element as the style actions read it when they run. */
 export interface StylesTargetSnapshot {
@@ -66,6 +68,26 @@ export interface StylesHost {
   updateFills(fills: FillItem[]): void;
   /** Fill reset: the selection's own layers go (an instance child shows its template's again). */
   resetFills(): void;
+  /** Which of `properties` (CSS keys) the selection authors at the active breakpoint. */
+  useDirtyStyleProps(properties: readonly string[]): string[];
+  /** Reset `properties` on the selection (only what is authored; nothing = no step). */
+  resetStyles(properties: readonly string[]): void;
+  /** The selection's breakpoint overrides and per-breakpoint visibility (Responsive tab). */
+  useResponsiveOverrides(): ResponsiveOverridesInfo;
+  /**
+   * Turn a property's override at the active tablet/mobile breakpoint on (the current value is
+   * copied into that layer — `seedDefaults` where the element has none) or off (the layer's value
+   * goes). No-op on desktop.
+   */
+  setResponsiveOverride(
+    property: string,
+    enabled: boolean,
+    seedDefaults?: Partial<Record<string, string>>,
+  ): void;
+  /** Show or hide the selection at a tablet/mobile breakpoint. */
+  setResponsiveVisibility(breakpoint: BreakpointName, visible: boolean): void;
+  /** The selected element as the panel frame reads it (title, Modified list, copy). */
+  useSelectedElement(): SelectedElement | null;
   /** The old Canvas editor presentation channel (live paint while editing) is available. */
   presentation: boolean;
 }

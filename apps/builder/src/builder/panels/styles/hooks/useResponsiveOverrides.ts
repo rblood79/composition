@@ -9,7 +9,11 @@
 import { useMemo } from "react";
 import type { BreakpointName, ResponsiveVisibility } from "@composition/shared";
 import { useCanonicalPropertyElement } from "../../properties/hooks/useCanonicalPropertyRead";
-import { useStylesSelectedId, useStylesActiveBreakpoint } from "../stylesHost";
+import {
+  useStylesActiveBreakpoint,
+  useStylesHost,
+  useStylesSelectedId,
+} from "../stylesHost";
 
 export interface ResponsiveOverridesInfo {
   /** 현재 활성 breakpoint (canvasSettings SSOT) */
@@ -34,6 +38,11 @@ const EMPTY_PROPS: string[] = [];
 const EMPTY_VALUES: Record<string, unknown> = {};
 
 export function useResponsiveOverrides(): ResponsiveOverridesInfo {
+  return useStylesHost().useResponsiveOverrides();
+}
+
+/** The old store's read: the raw `element.responsive` of the selected element. */
+export function useStoreResponsiveOverrides(): ResponsiveOverridesInfo {
   const activeBreakpoint = useStylesActiveBreakpoint();
   const selectedElementId = useStylesSelectedId();
   const element = useCanonicalPropertyElement(selectedElementId ?? "");
