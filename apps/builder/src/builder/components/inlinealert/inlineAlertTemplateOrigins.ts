@@ -1,5 +1,5 @@
 import type { CanonicalNode, CompositionDocument } from "@composition/shared";
-import type { PropsSchema } from "@composition/shared";
+import { INLINE_ALERT_PROPS_SCHEMA } from "../reusablePropsSchemas";
 import { ensureTemplateOrigins } from "../ensureTemplateOrigins";
 
 /**
@@ -18,31 +18,6 @@ import { ensureTemplateOrigins } from "../ensureTemplateOrigins";
 export const INLINE_ALERT_ORIGIN_ID = "component-inline-alert";
 
 const INLINE_ALERT_SYSTEM_ORIGIN_IDS = new Set([INLINE_ALERT_ORIGIN_ID]);
-
-/**
- * InlineAlert 편집 계약 — 신규 InspectorFieldKind 0 (기존 string/variant 재사용).
- * `title`/`description` 은 템플릿 바인딩 키, `variant` 는 root props passthrough.
- */
-export const INLINE_ALERT_PROPS_SCHEMA: PropsSchema = {
-  title: {
-    kind: "string",
-    label: "Title",
-    default: "Alert Heading",
-    section: "content",
-  },
-  description: {
-    kind: "string",
-    label: "Description",
-    default: "There was an error processing your request. Please try again.",
-    section: "content",
-  },
-  variant: {
-    kind: "variant",
-    label: "Variant",
-    default: "info",
-    section: "appearance",
-  },
-};
 
 /** InlineAlert origin 의 조합 자식 — 구 factory definition 의 자식 트리 승계. */
 function inlineAlertOriginChildren(): CanonicalNode[] {
@@ -143,3 +118,5 @@ export function ensureInlineAlertTemplateOrigins(
     ],
   );
 }
+
+export { INLINE_ALERT_PROPS_SCHEMA };

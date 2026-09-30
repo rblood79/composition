@@ -1,5 +1,5 @@
 import type { CanonicalNode, CompositionDocument } from "@composition/shared";
-import type { PropsSchema } from "@composition/shared";
+import { CARD_PROPS_SCHEMA } from "../reusablePropsSchemas";
 import { ensureTemplateOrigins } from "../ensureTemplateOrigins";
 
 /**
@@ -25,37 +25,6 @@ import { ensureTemplateOrigins } from "../ensureTemplateOrigins";
 export const CARD_ORIGIN_ID = "component-card";
 
 const CARD_SYSTEM_ORIGIN_IDS = new Set([CARD_ORIGIN_ID]);
-
-/**
- * Card 편집 계약 — 신규 InspectorFieldKind 0 (기존 string/variant/size 재사용).
- * `title`/`description` 은 템플릿 바인딩 키, `variant`/`size` 는 root props passthrough.
- */
-export const CARD_PROPS_SCHEMA: PropsSchema = {
-  title: {
-    kind: "string",
-    label: "Title",
-    default: "Card Title",
-    section: "content",
-  },
-  description: {
-    kind: "string",
-    label: "Description",
-    default: "Card description text goes here.",
-    section: "content",
-  },
-  variant: {
-    kind: "variant",
-    label: "Variant",
-    default: "primary",
-    section: "appearance",
-  },
-  size: {
-    kind: "size",
-    label: "Size",
-    default: "md",
-    section: "appearance",
-  },
-};
 
 /**
  * Card origin 의 조합 자식 — 구 factory definition 의 4-region 자식 트리 승계
@@ -267,3 +236,5 @@ export function ensureCardTemplateOrigins(
     ],
   );
 }
+
+export { CARD_PROPS_SCHEMA };

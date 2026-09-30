@@ -63,7 +63,7 @@ describe("Properties 필드 규칙 — 매핑표 dispatch · 칩 묶음 · 섹�
     expect(s).toContain("{renderRows(rows)}");
     expect(s).toContain("<ChipGroupField");
     expect(s).toContain("{renderRows(dependents)}");
-    expect(s).toContain("useCanonicalPropertyValuesSnapshot(");
+    expect(s).toContain("useFieldValuesSnapshot(");
   });
 
   it("number — 상한 있는 키는 슬라이더 (직접 입력 값 칸), 나머지는 스텝퍼", async () => {

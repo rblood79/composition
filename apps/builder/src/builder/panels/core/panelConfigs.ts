@@ -28,7 +28,7 @@ import { AIPanel } from "../ai/lazyAIPanel";
 import { lazyPanel, preloadLazyPanels } from "./lazyPanel";
 
 // Editor panels
-import { PropertiesPanel } from "../properties/PropertiesPanel";
+import { CatalogPropertiesPanel } from "../properties/catalog/CatalogPropertiesPanel";
 import { StylesPanel } from "../styles/StylesPanel";
 
 // ADR-131 Phase 8 (2026-05-13): DataPanel 제거 — DataTablePanel (기존) 가 data SSOT.
@@ -220,7 +220,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     name: "속성",
     nameEn: "Properties",
     icon: Settings2,
-    component: PropertiesPanel,
+    component: CatalogPropertiesPanel,
     category: "editor",
     defaultPosition: "right",
     minWidth: 233,

@@ -2026,7 +2026,48 @@ export class CatalogCompositionRoot {
     return [...targets(after.children, undefined), ...wrapped];
   }
 
-  private planInstances(sourceIds: ReadonlySet<string>): {
+  /**
+   * Template records that read a changed instance prop through a template binding: an instance
+   * whose composite definition accepts the changed key binds it into its template (`{label}`), so
+   * its template descendants re-resolve with it. Other prop changes keep the fast path.
+   */
+  private bindingDependents(result: CatalogTransactionResult): string[] {
+    const changedKeys = new Map<string, Set<string>>();
+    for (const op of result.forward)
+      if (op.kind === "patchNodeProp") {
+        let keys = changedKeys.get(op.id);
+        if (!keys) changedKeys.set(op.id, (keys = new Set()));
+        keys.add(op.key);
+      }
+    const dependents: string[] = [];
+    for (const [nodeId, keys] of changedKeys) {
+      const node = this.runtime.graph.getEntry(nodeId);
+      if (node?.kind !== "node") continue;
+      const definition = this.runtime.graph.getDefinition(node.definitionId);
+      if (definition?.mode !== "composite") continue;
+      if (![...keys].some((key) => Object.hasOwn(definition.accepts, key)))
+        continue;
+      for (const recordId of this.sourceInstances.get(nodeId) ?? []) {
+        const stack = [...(this.records.get(recordId)?.children ?? [])];
+        while (stack.length) {
+          const record = this.records.get(stack.pop()!);
+          if (
+            !record ||
+            !(record.instancePath as readonly string[]).includes(nodeId)
+          )
+            continue;
+          dependents.push(record.id);
+          stack.push(...record.children);
+        }
+      }
+    }
+    return dependents;
+  }
+
+  private planInstances(
+    sourceIds: ReadonlySet<string>,
+    extraRecords: readonly string[] = [],
+  ): {
     resolverVisits: number;
     includeChecks: number;
     updates: RecordPlan[];
@@ -2039,6 +2080,7 @@ export class CatalogCompositionRoot {
     const queue: string[] = [];
     for (const sourceId of sourceIds)
       queue.push(...(this.sourceInstances.get(sourceId) ?? []));
+    for (const id of extraRecords) if (!queue.includes(id)) queue.push(id);
     const queued = new Set(queue);
     for (let index = 0; index < queue.length; index++) {
       const id = queue[index];
@@ -2278,7 +2320,10 @@ export class CatalogCompositionRoot {
               op.entry.kind === "definitionOverride")),
       );
       const sources = new Set(indirect ? invalidatedIds : result.changedIds);
-      const planned = this.planInstances(sources);
+      const planned = this.planInstances(
+        sources,
+        this.bindingDependents(result),
+      );
       const byRoot = new Map<NodeId, RecordPlan[]>();
       for (const update of planned.updates) {
         let list = byRoot.get(update.rootId);

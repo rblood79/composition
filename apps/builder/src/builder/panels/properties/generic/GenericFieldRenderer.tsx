@@ -58,10 +58,7 @@ import {
   useOwnerCollectionFields,
   type OwnerField,
 } from "../hooks/useOwnerCollectionColumns";
-import {
-  useCanonicalPropertyValue,
-  useCanonicalPropertyValuesSnapshot,
-} from "../hooks/useCanonicalPropertyRead";
+import { useFieldValue, useFieldValuesSnapshot } from "./fieldValueSource";
 
 /**
  * ResolvedField.itemsManager(catalog self-contained schema) → specs `ItemsManagerField` 투영.
@@ -418,13 +415,13 @@ function FieldRowResetAction({
   const { t } = useI18n();
   const first = row[0]!;
   const second = row[1] ?? first;
-  const v0 = useCanonicalPropertyValue(
+  const v0 = useFieldValue(
     elementId,
     first.origin,
     first.key,
     first.baseValue,
   );
-  const v1 = useCanonicalPropertyValue(
+  const v1 = useFieldValue(
     elementId,
     second.origin,
     second.key,
@@ -481,19 +478,19 @@ function BoundValueSlider({
   numeric: number | undefined;
   onChange: (value: unknown) => void;
 }) {
-  const boundMin = useCanonicalPropertyValue(
+  const boundMin = useFieldValue(
     elementId,
     field.origin,
     editor.minKey,
     undefined,
   );
-  const boundMax = useCanonicalPropertyValue(
+  const boundMax = useFieldValue(
     elementId,
     field.origin,
     editor.maxKey,
     undefined,
   );
-  const boundStep = useCanonicalPropertyValue(
+  const boundStep = useFieldValue(
     elementId,
     field.origin,
     editor.stepKey,
@@ -541,7 +538,7 @@ const GenericField = memo(function GenericField({
   optionValueMode,
   stateNames,
 }: GenericFieldProps) {
-  const value = useCanonicalPropertyValue(
+  const value = useFieldValue(
     elementId,
     field.origin,
     field.key,
@@ -830,7 +827,7 @@ const ChipGroupField = memo(function ChipGroupField({
   const bases = useMemo(() => fields.map((f) => f.baseValue), [fields]);
   // 묶음의 origin 은 같다 (semantic) — 첫 필드 기준
   const origin = fields[0]?.origin ?? "semantic";
-  const snapshot = useCanonicalPropertyValuesSnapshot(
+  const snapshot = useFieldValuesSnapshot(
     elementId,
     origin,
     keys,

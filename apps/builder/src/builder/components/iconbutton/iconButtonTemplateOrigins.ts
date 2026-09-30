@@ -1,5 +1,5 @@
 import type { CanonicalNode, CompositionDocument } from "@composition/shared";
-import type { PropsSchema } from "@composition/shared";
+import { ICONBUTTON_PROPS_SCHEMA } from "../reusablePropsSchemas";
 import { ensureTemplateOrigins } from "../ensureTemplateOrigins";
 import {
   buttonIconPx,
@@ -27,57 +27,6 @@ import {
 export const ICONBUTTON_ORIGIN_ID = "component-iconbutton";
 
 const ICONBUTTON_SYSTEM_ORIGIN_IDS = new Set([ICONBUTTON_ORIGIN_ID]);
-
-/**
- * IconButton 편집 계약 — 신규 InspectorFieldKind 0 (기존 string/icon/variant/size 재사용).
- * `label`/`icon` 은 템플릿 바인딩 키, `variant`/`size` 는 root props passthrough.
- */
-export const ICONBUTTON_PROPS_SCHEMA: PropsSchema = {
-  label: {
-    kind: "string",
-    label: "Label",
-    default: "Button",
-    section: "content",
-  },
-  icon: {
-    kind: "icon",
-    label: "Icon",
-    default: "star",
-    section: "content",
-  },
-  variant: {
-    kind: "variant",
-    label: "Variant",
-    default: "primary",
-    section: "appearance",
-  },
-  size: {
-    kind: "size",
-    label: "Size",
-    default: "md",
-    section: "appearance",
-  },
-  // design-data 감사 §2-A (2026-08-21): Button root binding 은 staticColor/isDisabled 를
-  //   기수용하나 propsSchema 미노출로 instance 편집 불가하던 결손. 둘 다 variant/size 와
-  //   같은 root props passthrough 축 (origin root Button 이 직접 소비 — R2 불변식).
-  staticColor: {
-    kind: "enum",
-    label: "Static Color",
-    default: "auto",
-    section: "appearance",
-    options: [
-      { value: "auto", label: "Auto" },
-      { value: "white", label: "White" },
-      { value: "black", label: "Black" },
-    ],
-  },
-  isDisabled: {
-    kind: "boolean",
-    label: "Disabled",
-    default: false,
-    section: "state",
-  },
-};
 
 /**
  * IconButton origin 의 조합 자식 — Icon(optional) + Text(label).
@@ -240,3 +189,5 @@ export function ensureIconButtonTemplateOrigins(
     ],
   );
 }
+
+export { ICONBUTTON_PROPS_SCHEMA };

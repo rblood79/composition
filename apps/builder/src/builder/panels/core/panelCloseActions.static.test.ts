@@ -19,7 +19,10 @@ const STANDARD_PANEL_SOURCES = [
   { component: "ThemesPanel", source: "../themes/ThemesPanel.tsx" },
   { component: "SettingsPanel", source: "../settings/SettingsPanel.tsx" },
   { component: "AIPanel", source: "../ai/AIPanel.tsx" },
-  { component: "PropertiesPanel", source: "../properties/PropertiesPanel.tsx" },
+  {
+    component: "CatalogPropertiesPanel",
+    source: "../properties/catalog/CatalogPropertiesPanel.tsx",
+  },
   { component: "StylesPanel", source: "../styles/StylesPanel.tsx" },
   {
     component: "InteractionsPanel",

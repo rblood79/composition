@@ -25,7 +25,7 @@ describe("ADR-203 Properties field subscription boundary", () => {
       "utf8",
     );
 
-    expect(source).toContain("useCanonicalPropertyValue(");
+    expect(source).toContain("useFieldValue(");
     expect(source).toContain("areGenericFieldPropsEqual");
     expect(source).not.toContain("const value = field.currentValue");
   });

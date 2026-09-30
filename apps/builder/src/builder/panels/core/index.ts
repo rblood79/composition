@@ -5,7 +5,7 @@
  */
 
 // Types
-export * from './types';
+export * from "./types";
 
 // Registry
-export { PanelRegistry } from './PanelRegistry';
+export { PanelRegistry } from "./PanelRegistry";

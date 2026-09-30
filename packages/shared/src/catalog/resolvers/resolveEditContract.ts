@@ -245,7 +245,7 @@ function deriveRadioGroupValueOptions(
  * - enum 등 `contract.options` 직접 보유 → 그대로 통과 (theme 미경유).
  * - rule 미등록 / sizes·variants 부재 → undefined (override-only, 기존 동작 보존).
  */
-function deriveOptions(
+export function deriveOptions(
   contract: PropContract,
   rule: ComponentRule | undefined,
   node: CanonicalNode | ResolvedNode,

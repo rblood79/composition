@@ -2,9 +2,11 @@ import {
   createContext,
   useCallback,
   useContext,
+  useRef,
   useSyncExternalStore,
   type ReactNode,
 } from "react";
+import type { EditContract } from "@composition/shared";
 import type {
   EditTarget,
   EntryId,
@@ -12,6 +14,7 @@ import type {
 } from "../../../../../packages/shared/src/catalog/document/types";
 import type { CatalogPosition } from "../../../../../packages/shared/src/catalog/resolution/positions";
 import type { CatalogSaveStatus } from "./autosave";
+import { catalogEditContract } from "./editContract";
 import type { CatalogComponentSummary } from "./readModel";
 import { targetKey, type CatalogSessionState } from "./session";
 import type { CatalogWorkspace } from "./workspace";
@@ -124,4 +127,44 @@ export function useCatalogComponents(): readonly CatalogComponentSummary[] {
 export function useCatalogSaveStatus(): CatalogSaveStatus {
   const { autosave } = useCatalogWorkspace();
   return useSyncExternalStore(autosave.subscribe, autosave.getSnapshot);
+}
+
+const EMPTY_CONTRACT: EditContract = { type: "", fields: [] };
+/**
+ * The Properties edit contract of a target (`undefined` = none). Re-read after a step that touched
+ * the target's node (its own node, or the instance owning the position) — a leaf edit elsewhere
+ * reads nothing.
+ */
+export function useCatalogEditContract(
+  target: EditTarget | undefined,
+): EditContract {
+  const { runtime, readModel } = useCatalogWorkspace();
+  const key = target ? targetKey(target) : "";
+  const cache = useRef<{ key: string; contract: EditContract }>(undefined);
+  const subscribe = useCallback(
+    (notify: () => void) =>
+      runtime.subscribeSteps(({ result, invalidatedIds }) => {
+        if (!target) return;
+        const owner = target.kind === "node" ? target.id : target.ownerId;
+        if (!result.changedIds.has(owner) && !invalidatedIds.includes(owner))
+          return;
+        cache.current = undefined;
+        notify();
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed by the target's key
+    [runtime, key],
+  );
+  return useSyncExternalStore(subscribe, () => {
+    if (!target) return EMPTY_CONTRACT;
+    if (cache.current?.key !== key) {
+      let contract = EMPTY_CONTRACT;
+      try {
+        contract = catalogEditContract(runtime.graph, readModel, target);
+      } catch {
+        // The target is gone (removed in this step): the selection follows on its own.
+      }
+      cache.current = { key, contract };
+    }
+    return cache.current.contract;
+  });
 }
