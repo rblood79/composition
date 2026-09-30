@@ -391,6 +391,8 @@ H5 수리안은 **main에 미연결 새 모듈을 추가한 뒤 제품 진입점
 - Interactions: 새 `setNodeInteractions` 도 전체 목록 교체라 의미는 같고, action 모양이 다르다 (`{kind, params}` ↔ `{opcode, …}`).
 - Data: collection·행·API·변수는 문서 밖 IDB store 그대로. 문서에 닿는 곳 (collection 사용처 · field 사용처 · page 변수 · quick connect 의 binding·Table column 삽입) 만 workspace 로 옮긴다. collection 생성 + binding 한 동작이 문서 밖 store 와 history 두 곳에 걸치는 순서는 4e-4e 에서 정한다.
 
+**4e-4c 종결 (2026-09-30)**: Properties 는 generic 필드 (4e-4c-1) + 우회 section 7 (Attributes·Items · Chart · Component · State · Page · Button 자식 · 슬롯) 을 새 패널로 옮겼다. 넘긴 항목 — 속성 복사/붙여넣기 (`copyProperties`/`pasteProperties` 단축키 등록 · 다중 선택 도구 줄) → 4e-5, ItemSlotRoles · ItemOrigin 안내 · GridListCard 필드 (collection 항목 템플릿과 `binding.fieldMap` — 새 문서의 ListBox 항목은 `items` prop) → 4e-4e Data 와 같이.
+
 **4e-4 하위 단계**: a Navigator (Layers · Pages) → b Components 팔레트 · History → c Properties (읽기·쓰기 이음새 교체 후 우회 section) → d Styles · Themes → e Interactions · Data. 각 단계는 새 panel 을 `panelConfigs` 에 등록하고 (구 panel 파일은 import 0 이 되면 4e-7 삭제 대상), 공용 UI 조각은 구 타입 대신 구조 타입을 받게 넓혀 두 앱이 같이 쓴다.
 
 ## 6. 검증 상세
