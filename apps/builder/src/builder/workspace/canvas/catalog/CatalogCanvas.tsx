@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { CatalogCanvasGestures } from "../../../catalogRuntime/canvasGesture";
 import { catalogCanvasMenuItems } from "../../../catalogRuntime/canvasMenu";
+import { catalogMenuHost } from "../../../catalogRuntime/shortcuts";
 import { catalogPageDropCommand } from "../../../catalogRuntime/canvasPage";
 import { CatalogCanvasPicking } from "../../../catalogRuntime/canvasPick";
 import { CatalogCanvasScene } from "../../../catalogRuntime/canvasScene";
@@ -26,8 +27,9 @@ import { SkiaRenderer } from "../skia/SkiaRenderer";
 import { getRegistryVersion } from "../skia/useSkiaNode";
 import { ViewportControlBridge } from "../viewport";
 import { getViewportController } from "../viewport/ViewportController";
-import { computeFitViewport } from "../viewport/viewportActions";
 import { viewportState } from "../viewport/viewportState";
+import { useViewportSyncStore } from "../stores";
+import { fitCatalogPageFrame } from "./catalogViewport";
 import { hitTestPoint } from "../wasm-bindings/spatialIndex";
 import { resolveSpacingCursor } from "../interaction/spacingGeometry";
 import { catalogOverlayNode } from "./catalogOverlay";
@@ -76,6 +78,10 @@ export function CatalogCanvas({
       canvas.height = Math.floor(rect.height * dpr);
       canvas.style.width = `${rect.width}px`;
       canvas.style.height = `${rect.height}px`;
+      // The viewport actions (zoom at center, fit) read the container size.
+      useViewportSyncStore
+        .getState()
+        .setContainerSize({ width: rect.width, height: rect.height });
       return rect;
     };
     const containerRect = fit();
@@ -166,16 +172,7 @@ export function CatalogCanvas({
     // Open on the first page frame (again after a breakpoint switch: the page size changes).
     const fitFirstPage = (containerSize: { width: number; height: number }) => {
       const [firstPage] = workspace.root.pageFrameRects().values();
-      if (!firstPage) return;
-      const fitted = computeFitViewport({
-        canvasSize: firstPage,
-        containerSize,
-      });
-      getViewportController().setPosition(
-        fitted.x - firstPage.x * fitted.scale,
-        fitted.y - firstPage.y * fitted.scale,
-        fitted.scale,
-      );
+      if (firstPage) fitCatalogPageFrame(firstPage, containerSize);
     };
     fitFirstPage(containerRect);
 
@@ -468,25 +465,9 @@ export function CatalogCanvas({
         picking.click(x, y);
       const surface = onElement ? "canvas-element" : "canvas-empty";
       const items = catalogCanvasMenuItems(
-        {
-          graph: workspace.runtime.graph,
-          records: workspace.root.domInputs,
-          selection: () => workspace.session.getSnapshot().selection,
-          execute: (command) => {
-            try {
-              workspace.execute(command);
-            } catch (error) {
-              callbacks.current.onError?.(error);
-            }
-          },
-          newId: workspace.newId,
-          clipboard: {
-            get: () => workspace.clipboard,
-            set: (value) => {
-              workspace.clipboard = value;
-            },
-          },
-        },
+        catalogMenuHost(workspace, (error) =>
+          callbacks.current.onError?.(error),
+        ),
         surface,
         onElement ? target!.id : record?.id,
       );
@@ -577,6 +558,16 @@ export function CatalogCanvas({
       data-canvas-container="true"
       data-catalog-canvas="true"
       tabIndex={-1}
+      onPointerDown={(event) => {
+        // Any press in the Canvas (not in its text editor) makes the Canvas scope active, so
+        // the Canvas shortcuts (Delete, arrows, ⌘C …) run — the old `BuilderCanvas` rule.
+        if (
+          !(event.target as HTMLElement).closest(
+            'input, textarea, [contenteditable="true"]',
+          )
+        )
+          containerEl?.focus({ preventScroll: true });
+      }}
     >
       <canvas
         ref={canvasRef}

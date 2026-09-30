@@ -59,6 +59,7 @@ import { createLayoutEngine } from "../workspace/canvas/wasm-bindings/layoutBrid
 import { getCanvasKit } from "../workspace/canvas/skia/initCanvasKit";
 import { BuilderHeader } from "./BuilderHeader";
 import { BuilderViewport } from "./BuilderViewport";
+import { useCatalogGlobalShortcuts } from "./useCatalogGlobalShortcuts";
 import "../workspace/Workspace.css";
 
 // 패널 등록 (side effect import — registerAllPanels() 자동 실행)
@@ -199,6 +200,7 @@ export function CatalogBuilderCore() {
   );
 
   const workspace = state.kind === "open" ? state.workspace : undefined;
+  useCatalogGlobalShortcuts(workspace, handleSceneError);
   // A collection's rows changed (edit, load, delete): its bound collections draw them again.
   useEffect(() => {
     if (!workspace) return;
