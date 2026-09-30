@@ -1,9 +1,12 @@
 import {
+  createComponent,
   insertNodes,
   removeTargets,
   setFields,
+  setSlotDeclaration,
   setWholeField,
 } from "../../../../../packages/shared/src/catalog/commands";
+import { frameClipInputToOperation } from "../../../../../packages/shared/src/catalog/transactions/frameClip";
 import {
   composeCommands,
   type CatalogCommand,
@@ -49,6 +52,7 @@ import {
   catalogVariableIndex,
   catalogVariableUsageCounter,
 } from "./dataVariables";
+import { catalogSlotDeclaration, type CatalogSlotReader } from "./slots";
 import { catalogStyleView, catalogStyleWritesOf } from "./styleFields";
 import type { CatalogWorkspace } from "./workspace";
 
@@ -385,6 +389,72 @@ const acceptedKeys = (workspace: CatalogWorkspace, target: EditTarget) =>
       .map((field) => field.key),
   );
 
+/**
+ * The canonical first-class fields as commands on an owned node (after its other writes): clip =
+ * the Frame's overflow (`frameClipInputToOperation`), slot / placeholder = its slot declaration
+ * (a slot only inside a component template — the old recommended component ids have no place in
+ * the declaration), reusable = make a component of it (last: an instance takes the node's place;
+ * `instance` names it). `reusable: false` is refused (dissolving a component is the Component
+ * section's, it detaches every instance).
+ */
+export function catalogCanonicalCommands(
+  workspace: CatalogWorkspace,
+  target: EditTarget,
+  canonical: AiElementWrite["canonical"],
+  name: () => string,
+): { commands: CatalogCommand[]; instance: () => NodeId | undefined } {
+  let instance: NodeId | undefined;
+  const commands: CatalogCommand[] = [];
+  const fields = canonical ?? {};
+  if (!Object.keys(fields).length)
+    return { commands, instance: () => instance };
+  if (target.kind !== "node") throw new Error("CANONICAL_NODE_REQUIRED");
+  const id = target.id;
+  if (fields.reusable === false)
+    throw new Error("REUSABLE_FALSE_NOT_SUPPORTED");
+  if (fields.clip !== undefined)
+    commands.push(() => ({
+      label: "AI: clip",
+      ops: [frameClipInputToOperation(id, { clip: fields.clip })],
+    }));
+  if (fields.slot !== undefined || fields.placeholder !== undefined)
+    commands.push((reader) => {
+      const node = reader.getEntry(id);
+      if (node?.kind !== "node") throw new Error(`NODE_REQUIRED: ${id}`);
+      let slot = node.slot;
+      if (fields.slot === false) slot = undefined;
+      else if (fields.slot) {
+        if (!catalogSlotDeclaration(reader as CatalogSlotReader, id))
+          throw new Error(`SLOT_NOT_DECLARABLE: ${id}`);
+        slot = {
+          name: node.slot?.name ?? "content",
+          required: node.slot?.required ?? false,
+        };
+      }
+      return setSlotDeclaration({
+        id,
+        slot,
+        regions: node.regions,
+        placeholder: fields.placeholder ?? node.placeholder,
+        label: "AI: slot",
+      })(reader);
+    });
+  if (fields.reusable)
+    commands.push(
+      createComponent({
+        id,
+        name: name(),
+        newId: (kind) => {
+          const next = workspace.newId(kind);
+          if (kind === "node" && !instance) instance = next as NodeId;
+          return next;
+        },
+        label: "AI: component",
+      }),
+    );
+  return { commands, instance: () => instance };
+}
+
 /** One step of several commands, without moving the user's selection. */
 function runSteps(
   workspace: CatalogWorkspace,
@@ -478,8 +548,17 @@ export function createCatalogAiWriteHost(
             undefined,
           ),
         ];
+        const canonical = catalogCanonicalCommands(
+          workspace,
+          target,
+          input.canonical,
+          () => input.type,
+        );
+        commands.push(...canonical.commands);
         runSteps(workspace, `AI: add ${input.type}`, commands);
-        const elementId = workspace.root.recordsOfSource(nodeId)[0];
+        const elementId = workspace.root.recordsOfSource(
+          canonical.instance() ?? nodeId,
+        )[0];
         if (!elementId) return { ok: false, error: `NOT_DRAWN: ${nodeId}` };
         return { ok: true, elementId, parentId: parent.identity };
       } catch (error) {
@@ -491,18 +570,36 @@ export function createCatalogAiWriteHost(
         const target = targetOf(id);
         if (!target) return { ok: false, error: `ELEMENT_NOT_FOUND: ${id}` };
         const fontSize = workspace.root.domInputs.get(id)?.visual.fontSize;
-        runSteps(
+        const canonical = catalogCanonicalCommands(
           workspace,
-          "AI: edit",
-          writeCommands(
+          target,
+          input.canonical,
+          () => {
+            const node =
+              target.kind === "node" ? graph.getEntry(target.id) : undefined;
+            return (
+              (node?.kind === "node" && node.name) ||
+              typeOf(workspace, workspace.positionOfRecord(id)!) ||
+              "Component"
+            );
+          },
+        );
+        runSteps(workspace, "AI: edit", [
+          ...writeCommands(
             workspace,
             [target],
             input,
             acceptedKeys(workspace, target),
             typeof fontSize === "number" ? fontSize : undefined,
           ),
-        );
-        return { ok: true };
+          ...canonical.commands,
+        ]);
+        const instance = canonical.instance();
+        const elementId = instance
+          ? workspace.root.recordsOfSource(instance)[0]
+          : id;
+        if (!elementId) return { ok: false, error: `NOT_DRAWN: ${instance}` };
+        return { ok: true, elementId };
       } catch (error) {
         return failure(error);
       }

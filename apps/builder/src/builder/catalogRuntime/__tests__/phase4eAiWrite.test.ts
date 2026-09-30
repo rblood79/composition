@@ -36,7 +36,11 @@ import { createElementTool } from "../../../services/ai/tools/createElement";
 import { deleteElementTool } from "../../../services/ai/tools/deleteElement";
 import { updateElementTool } from "../../../services/ai/tools/updateElement";
 import type { ToolTranslate } from "../../../types/integrations/ai.types";
-import { createCatalogAiReadHost, createCatalogAiWriteHost } from "../aiHost";
+import {
+  catalogCanonicalCommands,
+  createCatalogAiReadHost,
+  createCatalogAiWriteHost,
+} from "../aiHost";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
@@ -409,6 +413,120 @@ describe("ADR-248 Phase 4e-5 AI writes", () => {
     expect(missing.success).toBe(false);
     expect(useDataStore.getState().collections.has("c3")).toBe(false);
     expect(steps()).toBe(before + 2);
+  });
+
+  it("create_element makes a composite as the palette does (the origin's children)", async () => {
+    const { workspace } = await open();
+    const result = await createElementTool.execute({ type: "Select" }, t);
+    expect(result.success, result.error).toBe(true);
+    const created = (result.data as { elementId: string }).elementId;
+    const record = workspace.root.domInputs.get(created)!;
+    const entry = workspace.runtime.graph.getEntry(record.sourceId);
+    expect(entry?.kind === "node" && entry.definitionId).toBe(
+      "lib:definition:origin-component-select",
+    );
+    expect(record.children.length).toBeGreaterThan(0);
+  });
+
+  it("canonical fields: clip · placeholder on a Frame, slot inside a component template, reusable makes a component — one step each, refused ones write nothing", async () => {
+    const { workspace, record, children, steps } = await open();
+    const node = (identity: string) => {
+      const target = workspace.positionOfRecord(identity)?.target;
+      const entry =
+        target?.kind === "node"
+          ? workspace.runtime.graph.getEntry(target.id)
+          : undefined;
+      return entry?.kind === "node" ? entry : undefined;
+    };
+    const before = steps();
+    const frame = await createElementTool.execute(
+      {
+        type: "frame",
+        parentId: record("list"),
+        canonical: { clip: true, placeholder: true },
+      },
+      t,
+    );
+    expect(frame.success, frame.error).toBe(true);
+    expect(steps()).toBe(before + 1);
+    const frameId = (frame.data as { elementId: string }).elementId;
+    expect(node(frameId)?.visual.overflow).toEqual({
+      kind: "set",
+      value: "hidden",
+    });
+    expect(node(frameId)?.placeholder).toBe(true);
+    const cleared = await updateElementTool.execute(
+      { elementId: frameId, canonical: { clip: false, placeholder: false } },
+      t,
+    );
+    expect(cleared.success, cleared.error).toBe(true);
+    expect(node(frameId)?.visual.overflow).toEqual({
+      kind: "set",
+      value: "visible",
+    });
+    expect(node(frameId)?.placeholder).toBeUndefined();
+    // A slot outside a component template: refused, nothing written (not the prop either).
+    const refused = await updateElementTool.execute(
+      {
+        elementId: frameId,
+        styles: { paddingTop: "4px" },
+        canonical: { slot: ["x"] },
+      },
+      t,
+    );
+    expect(refused.error).toContain("SLOT_NOT_DECLARABLE");
+    expect(node(frameId)?.visual.paddingTop).toBeUndefined();
+    expect(
+      (
+        await updateElementTool.execute(
+          { elementId: frameId, canonical: { reusable: false } },
+          t,
+        )
+      ).error,
+    ).toContain("REUSABLE_FALSE_NOT_SUPPORTED");
+    // Reusable: a component of the Frame; its instance is the element from then on (one step).
+    const inner = await createElementTool.execute(
+      { type: "Text", parentId: frameId, props: { children: "In" } },
+      t,
+    );
+    expect(inner.success, inner.error).toBe(true);
+    const frameNode = node(frameId)!.id;
+    const innerNode = node((inner.data as { elementId: string }).elementId)!.id;
+    const beforeComponent = steps();
+    const made = await updateElementTool.execute(
+      { elementId: frameId, canonical: { reusable: true } },
+      t,
+    );
+    expect(made.success, made.error).toBe(true);
+    expect(steps()).toBe(beforeComponent + 1);
+    const instanceId = (made.data as { elementId: string }).elementId;
+    expect(instanceId).not.toBe(frameId);
+    const instance = node(instanceId)!;
+    const definition = workspace.runtime.graph.getEntry(instance.definitionId);
+    expect(definition?.kind === "definition" && definition.templateRootId).toBe(
+      frameNode,
+    );
+    expect(children("list")).toContain(instance.id);
+    // Inside the template a node declares a slot (the old id list has no place in it); the
+    // template is not drawn as its own element here, so the host's commands are run directly.
+    const slot = catalogCanonicalCommands(
+      workspace,
+      { kind: "node", id: innerNode },
+      { slot: ["any"], placeholder: true },
+      () => "x",
+    );
+    workspace.execute((reader) => ({
+      label: "slot",
+      ops: slot.commands.flatMap((command) => command(reader).ops),
+    }));
+    expect(workspace.runtime.graph.getEntry(innerNode)).toMatchObject({
+      slot: { name: "content", required: false },
+      placeholder: true,
+    });
+    workspace.undo();
+    workspace.undo();
+    workspace.undo();
+    expect(children("list")).toContain(frameNode);
   });
 
   it("history merge refuses an entry with an outside change", async () => {

@@ -17,6 +17,17 @@ export interface AiElementWrite {
   /** CSS keys (the Styles panel's keys), at the open breakpoint. */
   styles?: Readonly<Record<string, unknown>>;
   fills?: readonly FillItem[];
+  /**
+   * The old canonical first-class fields (ADR-134): `clip` (a Frame's overflow), `placeholder` and
+   * `slot` (the node's slot declaration — inside a component template), `reusable: true` (the node
+   * becomes a component; an instance takes its place and is the element from then on).
+   */
+  canonical?: {
+    clip?: boolean;
+    placeholder?: boolean;
+    slot?: false | readonly string[];
+    reusable?: boolean;
+  };
 }
 
 export interface AiWriteHost {
@@ -24,7 +35,11 @@ export interface AiWriteHost {
   create(
     input: AiElementWrite & { type: string; parentId: string | null },
   ): AiWriteResult<{ elementId: string; parentId: string | null }>;
-  update(id: string, input: AiElementWrite): AiWriteResult;
+  /** `elementId` = the element after the write (another one when it became a component). */
+  update(
+    id: string,
+    input: AiElementWrite,
+  ): AiWriteResult<{ elementId: string }>;
   remove(id: string): AiWriteResult;
   /** Add an interaction rule on an element (the old rule action shape); one step. */
   addInteraction(

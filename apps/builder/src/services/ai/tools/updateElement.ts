@@ -107,16 +107,23 @@ export const updateElementTool: ToolExecutor = {
       const { patch: canonicalPatch, rejected: canonicalRejected } =
         parseCanonicalFields(t, canonicalArg, element.type);
 
-      // ADR-248 4e-5: the open catalog Builder writes (one step); canonical 1차 필드는 그 문서에 없다.
+      // ADR-248 4e-5: the open catalog Builder writes (one step) — the canonical first-class fields
+      // too (a node that becomes a component is its instance from then on).
       const writeHost = getAiWriteHost();
       let canonicalApplied = false;
+      let resultId = targetId;
       if (writeHost) {
         const written = writeHost.update(targetId, {
           props: newProps,
           styles: newStyles,
           ...(newFills !== undefined ? { fills: newFills } : {}),
+          ...(Object.keys(canonicalPatch).length
+            ? { canonical: canonicalPatch }
+            : {}),
         });
         if (!written.ok) return { success: false, error: written.error };
+        canonicalApplied = Object.keys(canonicalPatch).length > 0;
+        resultId = written.elementId;
       } else {
         if (newFills !== undefined) {
           // Inspector와 같은 canonical 1차 fills + full-node history 표면.
@@ -129,20 +136,17 @@ export const updateElementTool: ToolExecutor = {
         } else if (Object.keys(updates).length > 0) {
           await updateElementProps(targetId, updates);
         }
-        canonicalApplied = await applyCanonicalFields(
-          targetId,
-          canonicalPatch,
-        );
+        canonicalApplied = await applyCanonicalFields(targetId, canonicalPatch);
       }
 
       // 반영 확인 — 스토어 액션은 반환값이 없고 조용히 return 하는 경로가 여럿이다
       // (`mutationVerification.ts` 주석). 확인 없이 성공을 보고하면 모델이 반영됐다는
       // 전제로 다음 단계를 쌓는다.
-      const verified = getAiToolReadModel().elementsById.get(targetId);
+      const verified = getAiToolReadModel().elementsById.get(resultId);
       if (!verified) {
         return {
           success: false,
-          error: t("aiToolError.missingAfterUpdate", { id: targetId }),
+          error: t("aiToolError.missingAfterUpdate", { id: resultId }),
         };
       }
 
@@ -172,21 +176,21 @@ export const updateElementTool: ToolExecutor = {
       }
 
       // G.3 시각 피드백: 수정 완료 flash
-      useAIVisualFeedbackStore.getState().addFlashForNode(targetId, {
+      useAIVisualFeedbackStore.getState().addFlashForNode(resultId, {
         strokeWidth: 1,
       });
 
       return {
         success: true,
         data: {
-          elementId: targetId,
+          elementId: resultId,
           type: element.type,
           updatedProps: Object.keys(newProps),
           updatedStyles: Object.keys(newStyles),
           ...(canonicalApplied ? { canonical: canonicalPatch } : {}),
           ...(canonicalRejected.length > 0 ? { canonicalRejected } : {}),
         },
-        affectedElementIds: [targetId],
+        affectedElementIds: [resultId],
       };
     } catch (error) {
       return {

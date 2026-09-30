@@ -93,20 +93,13 @@ export const createElementTool: ToolExecutor = {
       // ADR-248 4e-5: the open catalog Builder adds it (one step, its own nesting checks).
       const writeHost = getAiWriteHost();
       if (writeHost) {
-        const canonicalKeys = Object.keys(canonicalPatch);
-        if (canonicalKeys.length)
-          return {
-            success: false,
-            error: t("aiToolError.canonicalNotApplied", {
-              fields: canonicalKeys.join(", "),
-              type,
-            }),
-          };
+        const canonicalApplied = Object.keys(canonicalPatch).length > 0;
         const written = writeHost.create({
           type,
           props: aiProps,
           styles: aiStyles,
           ...(aiFills ? { fills: aiFills } : {}),
+          ...(canonicalApplied ? { canonical: canonicalPatch } : {}),
           parentId: parentIdArg ?? null,
         });
         if (!written.ok) return { success: false, error: written.error };
@@ -142,6 +135,7 @@ export const createElementTool: ToolExecutor = {
             elementId: written.elementId,
             type,
             parentId: written.parentId,
+            ...(canonicalApplied ? { canonical: canonicalPatch } : {}),
             ...(canonicalRejected.length > 0 ? { canonicalRejected } : {}),
           },
           affectedElementIds: [written.elementId],
@@ -175,7 +169,10 @@ export const createElementTool: ToolExecutor = {
       // origin 안 생성은 모든 instance 를 바꾼다 — 편집과 같은 영향 확인 (ADR-236 E4).
       const impactGate = confirmStructuralOriginImpact([parentId]);
       if (impactGate !== true && !(await impactGate)) {
-        return { success: false, error: t("aiToolError.originImpactCancelled") };
+        return {
+          success: false,
+          error: t("aiToolError.originImpactCancelled"),
+        };
       }
 
       // ADR-134 Phase 6: 합성 컴포넌트는 팔레트와 같은 분기로 만든다 — Select/ListBox 등
