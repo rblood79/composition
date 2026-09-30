@@ -207,6 +207,70 @@ export class CatalogStorage {
     }
   }
 
+  /**
+   * Replace a stored project's document (a project file imported into it) in one transaction: every
+   * entry record goes, the document's entries come in, and the head moves one revision past the
+   * stored one — a tab still editing the old document then fails its next save with a conflict.
+   * Returns the stored revision.
+   */
+  async replace(
+    document: CatalogDocument,
+    library: CatalogLibrary,
+  ): Promise<number> {
+    createCatalogGraph(document, library);
+    const entries: StoredEntry[] = Object.values(document.entries).map(
+      (entry) => ({
+        projectId: document.projectId,
+        id: entry.id,
+        json: JSON.stringify(entry),
+      }),
+    );
+    await Promise.resolve();
+    const db = await this.open();
+    try {
+      const transaction = db.transaction(["heads", "entries"], "readwrite");
+      const done = transactionDone(transaction);
+      const heads = transaction.objectStore("heads");
+      const records = transaction.objectStore("entries");
+      let refusal: CatalogStorageError | null = null;
+      let revision = 0;
+      const lookup = heads.get(document.projectId);
+      lookup.onsuccess = () => {
+        const old = lookup.result as StoredHead | undefined;
+        if (!old) {
+          refusal = new CatalogStorageError("PROJECT_NOT_FOUND");
+          transaction.abort();
+          return;
+        }
+        revision = old.revision + 1;
+        records.delete(
+          IDBKeyRange.bound(
+            [document.projectId, ""],
+            [document.projectId, "\uffff"],
+          ),
+        );
+        for (const entry of entries) records.put(entry);
+        heads.put({
+          ...old,
+          format: document.format,
+          schemaVersion: document.schemaVersion,
+          libraryContractVersion: document.libraryContractVersion,
+          rootId: document.rootId,
+          revision,
+          updatedAt: Date.now(),
+        });
+      };
+      try {
+        await done;
+      } catch (error) {
+        throw refusal ?? error;
+      }
+      return revision;
+    } finally {
+      db.close();
+    }
+  }
+
   /** Stored projects for a project list: head revision and the project entry's name. */
   async list(): Promise<CatalogStoredProject[]> {
     const db = await this.open();

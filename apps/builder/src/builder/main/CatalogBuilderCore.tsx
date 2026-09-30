@@ -3,6 +3,7 @@ import {
   useEffect,
   useLayoutEffect,
   useMemo,
+  useRef,
   useState,
   useSyncExternalStore,
 } from "react";
@@ -15,7 +16,10 @@ import {
 } from "../fonts/loadCustomFontsToSkia";
 import { useI18n } from "../../i18n";
 import { CatalogGraph } from "../../../../../packages/shared/src/catalog/document/graph";
-import type { BreakpointName } from "../../../../../packages/shared/src/catalog/document/types";
+import type {
+  BreakpointName,
+  EntryId,
+} from "../../../../../packages/shared/src/catalog/document/types";
 import { loadCatalogProductLibrary } from "../catalogRuntime/library";
 import {
   catalogProjectIdOf,
@@ -72,6 +76,7 @@ import { getCanvasKit } from "../workspace/canvas/skia/initCanvasKit";
 import { BuilderHeader } from "./BuilderHeader";
 import { BuilderViewport } from "./BuilderViewport";
 import { useCatalogGlobalShortcuts } from "./useCatalogGlobalShortcuts";
+import { useCatalogProjectFiles } from "./useCatalogProjectFiles";
 import "../workspace/Workspace.css";
 
 // 패널 등록 (side effect import — registerAllPanels() 자동 실행)
@@ -96,6 +101,9 @@ export function CatalogBuilderCore() {
   const { projectId: routeId = "" } = useParams<{ projectId: string }>();
   const { t } = useI18n();
   const [state, setState] = useState<OpenState>({ kind: "opening" });
+  // An imported project file replaced the stored document: open it again (fresh history).
+  const [openCount, setOpenCount] = useState(0);
+  const openPageRef = useRef<string | undefined>(undefined);
   const [presented, setPresented] = useState(false);
 
   useLayoutEffect(() => {
@@ -150,6 +158,10 @@ export function CatalogBuilderCore() {
             commands:
               await import("../../../../../packages/shared/src/catalog/commands"),
           };
+      const openPage = openPageRef.current;
+      openPageRef.current = undefined;
+      if (openPage && graph.getEntry(openPage)?.kind === "page")
+        opened.session.setPage(openPage as EntryId<"page">);
       const project = graph.getEntry(graph.projectId);
       setState({
         kind: "open",
@@ -177,7 +189,7 @@ export function CatalogBuilderCore() {
       cancelled = true;
       opened?.dispose();
     };
-  }, [routeId, t]);
+  }, [routeId, openCount, t]);
 
   useLayoutEffect(() => {
     if (presented) performance.mark("composition:builder.presented");
@@ -195,10 +207,6 @@ export function CatalogBuilderCore() {
       toastError(t("catalogProject.publishUnavailable"));
     }
   }, [t, toastError]);
-  const handleExchange = useCallback(
-    () => toastError(t("catalogProject.exchangePending")),
-    [t, toastError],
-  );
   const handleSceneError = useCallback(
     (error: unknown) => {
       console.error("[CatalogBuilder] canvas scene:", error);
@@ -212,6 +220,12 @@ export function CatalogBuilderCore() {
   );
 
   const workspace = state.kind === "open" ? state.workspace : undefined;
+  const reopen = useCallback((pageId: string | undefined) => {
+    openPageRef.current = pageId;
+    setState({ kind: "opening" });
+    setOpenCount((count) => count + 1);
+  }, []);
+  const files = useCatalogProjectFiles({ workspace, routeId, reopen });
   useCatalogGlobalShortcuts(workspace, handleSceneError);
   // Agent commands (the AI panel's run_command, the DEV `window.__compositionAgent`) and the
   // header menu run over this workspace (ADR-248 4e-5).
@@ -343,11 +357,11 @@ export function CatalogBuilderCore() {
       onBreakpointChange={handleBreakpointChange}
       onPreview={handlePreview}
       onPlay={() => {}}
-      onImportProject={handleExchange}
-      onExportProject={handleExchange}
-      onExportProjectJson={handleExchange}
-      onConnectFolder={handleExchange}
-      directoryLink={null}
+      onImportProject={files.importFile}
+      onExportProject={files.exportZip}
+      onExportProjectJson={files.exportJson}
+      onConnectFolder={files.connectFolder}
+      directoryLink={files.directoryLink}
       saveStatus={workspace ? <CatalogSaveStatusIndicator /> : null}
     />
   );

@@ -1355,7 +1355,6 @@ const koKR: TranslationKeys = {
     publishUnavailable: "Preview · 게시는 새 프로젝트 형식을 아직 열지 못합니다.",
     sceneFailed: "Canvas 가 이 편집을 그리지 못했습니다: {message}",
     openFailed: "프로젝트를 열지 못했습니다: {message}",
-    exchangePending: "프로젝트 파일 가져오기 · 내보내기는 아직 새 형식에 연결되지 않았습니다.",
   },
   zoom: {
     level: "확대/축소 수준",
@@ -3365,7 +3364,6 @@ const enUS: TranslationKeys = {
     publishUnavailable: "Preview and publish cannot open the new project format yet.",
     sceneFailed: "The canvas could not draw this edit: {message}",
     openFailed: "The project could not be opened: {message}",
-    exchangePending: "Project file import and export are not connected to the new format yet.",
   },
   zoom: {
     level: "Zoom level",

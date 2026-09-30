@@ -1260,7 +1260,6 @@ export interface TranslationKeys {
     publishUnavailable: string;
     sceneFailed: string;
     openFailed: string;
-    exchangePending: string;
   };
   zoom: {
     level: string;
