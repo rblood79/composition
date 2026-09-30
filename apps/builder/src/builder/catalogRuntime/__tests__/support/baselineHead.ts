@@ -29,11 +29,12 @@ const NEW_MODEL_ROOTS = [
   "packages/shared/src/catalog/resolution/",
   "packages/shared/src/catalog/transactions/",
   "packages/shared/src/catalog/commands/",
+  "packages/shared/src/catalog/preview/",
   "apps/builder/src/builder/catalogRuntime/",
 ];
 /** Import specifiers that resolve into a new-model root (relative, deep or barrel-relative). */
 const NEW_MODEL_IMPORT =
-  "(from|import\\()[[:space:]]*['\"][^'\"]*(catalog/(document|resolution|transactions|commands)|catalogRuntime|\\.\\.?/(document|resolution|transactions|commands))(/[^'\"]*)?['\"]";
+  "(from|import\\()[[:space:]]*['\"][^'\"]*(catalog/(document|resolution|transactions|commands|preview)|catalogRuntime|\\.\\.?/(document|resolution|transactions|commands|preview))(/[^'\"]*)?['\"]";
 
 /**
  * Product source changes reviewed as unrelated to the frozen G0 outputs (layout, paint, DOM,

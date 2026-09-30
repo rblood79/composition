@@ -108,7 +108,11 @@ const NODE_WHOLE_FIELDS: readonly string[] = [
 ];
 export type HistoryIntent =
   | { kind: "record"; label: string }
-  | { kind: "skip"; reason: "project-create" | "load" | "fixture" };
+  | {
+      kind: "skip";
+      /** `sync`: a read-only replica (Preview) takes a step the editor already recorded. */
+      reason: "project-create" | "load" | "fixture" | "sync";
+    };
 export interface CatalogTransactionRequest {
   projectId: EntryId<"project">;
   expectedRevision: number;
@@ -608,7 +612,9 @@ export function applyCatalogTransaction(
     (request.history.kind !== "record" && request.history.kind !== "skip") ||
     (request.history.kind === "record" && !request.history.label.trim()) ||
     (request.history.kind === "skip" &&
-      !["project-create", "load", "fixture"].includes(request.history.reason))
+      !["project-create", "load", "fixture", "sync"].includes(
+        request.history.reason,
+      ))
   )
     throw new CatalogValidationError("HISTORY_INTENT_REQUIRED", "history");
   if (!request.ops.length)
