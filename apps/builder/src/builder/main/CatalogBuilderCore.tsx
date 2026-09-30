@@ -29,6 +29,7 @@ import {
 } from "../catalogRuntime/react";
 import { CatalogStorage, CatalogStorageError } from "../catalogRuntime/storage";
 import { catalogTextMeasure } from "../catalogRuntime/textMeasure";
+import { catalogThemeState } from "../catalogRuntime/theme";
 import { CatalogWorkspace } from "../catalogRuntime/workspace";
 import { ToastContainer } from "../components";
 import { PanelWorkspace } from "../layout";
@@ -98,6 +99,7 @@ export function CatalogBuilderCore() {
         viewportOf: (breakpoint) => CANVAS_VIEWPORT[breakpoint],
         textMeasure: catalogTextMeasure,
         locale: navigator.language,
+        theme: catalogThemeState,
       });
       // Dev-only live harness handle (Playwright exercises edits before the panels move).
       if (import.meta.env.DEV)

@@ -63,8 +63,10 @@ const InteractionsPanel = lazyPanel(() =>
   })),
 );
 
-const ThemesPanel = lazyPanel(() =>
-  import("../themes/ThemesPanel").then((m) => ({ default: m.ThemesPanel })),
+const CatalogThemesPanel = lazyPanel(() =>
+  import("../themes/catalog/CatalogThemesPanel").then((m) => ({
+    default: m.CatalogThemesPanel,
+  })),
 );
 
 const DataTablePanel = lazyPanel(() =>
@@ -163,7 +165,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     name: "테마",
     nameEn: "Theme",
     icon: SwatchBook,
-    component: ThemesPanel,
+    component: CatalogThemesPanel,
     category: "tool",
     defaultPosition: "left",
     minWidth: 233,
@@ -293,7 +295,7 @@ export function preloadOffscreenPanels(): void {
     CatalogHistoryPanel,
     SettingsPanel,
     InteractionsPanel,
-    ThemesPanel,
+    CatalogThemesPanel,
     DataTablePanel,
   ]);
 }

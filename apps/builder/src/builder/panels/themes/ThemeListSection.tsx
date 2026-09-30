@@ -3,7 +3,7 @@
  *
  * 행 = 공용 `.list-row` (StateSection · ItemsManager 와 같은 구조): [본문 28: 활성 표지 20 · 이름 · preset
  * meta] [액션 28: 복제 · 이름 · 삭제 (20×20)]. 이름 편집은 펼친 행의 `.list-row__fields` 안 PropertyInput
- * (전폭). 모든 쓰기는 `themeActions` (문서 우선 · history entry 1 · 런타임 재적용 · persist).
+ * (전폭). 모든 쓰기는 Themes host (`themesHost` — 구 문서 우선 `themeActions` / catalog command 1개).
  * 마지막 테마의 삭제 버튼은 비활성 (shared `removeTheme` 도 거부한다 — 이중 방어).
  */
 
@@ -14,27 +14,12 @@ import type { ThemesCollection } from "@composition/shared";
 import { getActiveTheme } from "@composition/shared";
 import { useI18n } from "../../../i18n";
 import { iconProps } from "../../../utils/ui/uiConstants";
-import { useCanonicalDocumentStore } from "../../stores/canonical/canonicalDocumentStore";
 import {
   ActionIconButton,
   PropertyInput,
   PropertySection,
 } from "../../components";
-import {
-  addThemeFromActive,
-  removeTheme,
-  renameTheme,
-  setActiveTheme,
-} from "./themeActions";
-
-/** 현재 문서의 테마 컬렉션 — 구독 (setThemes 가 문서를 교체하므로 참조 변경 = 갱신). */
-export function useThemesCollection(): ThemesCollection | null {
-  return useCanonicalDocumentStore((s) => {
-    const id = s.currentProjectId;
-    const doc = id ? s.documents.get(id) : undefined;
-    return (doc?.themes as ThemesCollection | undefined) ?? null;
-  });
-}
+import { useThemesHost } from "./themesHost";
 
 function presetMeta(themes: ThemesCollection, id: string): string {
   const p = themes.items[id]?.preset;
@@ -57,22 +42,23 @@ const ThemeRow = memo(function ThemeRow({
   onToggleEdit,
 }: ThemeRowProps) {
   const { t } = useI18n();
+  const host = useThemesHost();
   const theme = themes.items[id];
   const isActive = themes.active === id;
   const isLast = themes.order.length <= 1;
   const [draft, setDraft] = useState(theme?.name ?? "");
 
   const activate = useCallback(() => {
-    if (!isActive) setActiveTheme(id);
-  }, [id, isActive]);
+    if (!isActive) host.setActiveTheme(id);
+  }, [host, id, isActive]);
   const duplicate = useCallback(() => {
     // "추가 = 활성 복제" 규약이라 먼저 활성화한 뒤 복제한다 — 활성 행이면 entry 1, 아니면 2 (활성 + 복제)
-    if (!isActive) setActiveTheme(id);
-    addThemeFromActive();
-  }, [id, isActive]);
+    if (!isActive) host.setActiveTheme(id);
+    host.addThemeFromActive();
+  }, [host, id, isActive]);
   const remove = useCallback(() => {
-    if (!isLast) removeTheme(id);
-  }, [id, isLast]);
+    if (!isLast) host.removeTheme(id);
+  }, [host, id, isLast]);
   const toggleEdit = useCallback(() => {
     setDraft(theme?.name ?? "");
     onToggleEdit(id);
@@ -81,9 +67,9 @@ const ThemeRow = memo(function ThemeRow({
     (value: string) => {
       setDraft(value);
       const next = value.trim();
-      if (next !== "" && next !== theme?.name) renameTheme(id, next);
+      if (next !== "" && next !== theme?.name) host.renameTheme(id, next);
     },
-    [id, theme?.name],
+    [host, id, theme?.name],
   );
 
   if (!theme) return null;
@@ -158,15 +144,16 @@ const ThemeRow = memo(function ThemeRow({
 
 export function ThemeListSection() {
   const { t } = useI18n();
-  const themes = useThemesCollection();
+  const host = useThemesHost();
+  const themes = host.useThemes();
   const [editingId, setEditingId] = useState<string | null>(null);
   const toggleEdit = useCallback(
     (id: string) => setEditingId((cur) => (cur === id ? null : id)),
     [],
   );
   const handleAdd = useCallback(() => {
-    addThemeFromActive();
-  }, []);
+    host.addThemeFromActive();
+  }, [host]);
   const actions = useMemo(
     () => (
       <ActionIconButton onPress={handleAdd} aria-label={t("themes.add")}>

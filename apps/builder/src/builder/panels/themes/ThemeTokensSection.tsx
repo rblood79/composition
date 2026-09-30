@@ -3,7 +3,7 @@
  *
  * 현재 델타 (`theme.tokens`) 를 `.list-row` 로 나열 (키 · 값 meta · 재설정 20) 하고, 아래 "재정의 추가" 격자
  * (분류 | 키 | 값 + 추가 28) 로 새 키를 넣는다. 값 검증은 `themeTokenEditor.parseThemeTokenInput` (seed 와
- * 같으면 델타 삭제 · 무효는 안내). 쓰기는 `themeActions.setThemeToken` (문서 우선 · history 1 · 런타임 1회).
+ * 같으면 델타 삭제 · 무효는 안내). 쓰기는 Themes host `setThemeToken` (history 1 · 런타임 1회).
  */
 
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
@@ -22,8 +22,7 @@ import {
   PropertySection,
   PropertySelect,
 } from "../../components";
-import { setThemeToken } from "./themeActions";
-import { useThemesCollection } from "./ThemeListSection";
+import { useThemesHost } from "./themesHost";
 import {
   THEME_TOKEN_CATEGORIES,
   formatThemeTokenValue,
@@ -56,18 +55,20 @@ const OverrideRow = memo(function OverrideRow({
   entry,
 }: OverrideRowProps) {
   const { t } = useI18n();
+  const host = useThemesHost();
   const reset = useCallback(
-    () => setThemeToken(themeId, tokenKey, null),
-    [themeId, tokenKey],
+    () => host.setThemeToken(themeId, tokenKey, null),
+    [host, themeId, tokenKey],
   );
   const parts = splitThemeTokenKey(tokenKey);
   const edit = useCallback(
     (raw: string) => {
       if (!parts) return;
       const result = parseThemeTokenInput(parts.category, parts.key, raw);
-      if ("entry" in result) setThemeToken(themeId, tokenKey, result.entry);
+      if ("entry" in result)
+        host.setThemeToken(themeId, tokenKey, result.entry);
     },
-    [parts, themeId, tokenKey],
+    [host, parts, themeId, tokenKey],
   );
   return (
     <div className="theme-token-row" data-token-key={tokenKey}>
@@ -102,6 +103,7 @@ const OverrideRow = memo(function OverrideRow({
 
 function AddOverrideRow({ themes }: { themes: ThemesCollection }) {
   const { t } = useI18n();
+  const host = useThemesHost();
   const [category, setCategory] = useState<ThemeTokenCategory>("color");
   const keys = useMemo(() => themeTokenKeys(category), [category]);
   const [key, setKey] = useState<string>(keys[0] ?? "");
@@ -134,13 +136,13 @@ function AddOverrideRow({ themes }: { themes: ThemesCollection }) {
       return;
     }
     setInvalid(false);
-    setThemeToken(
+    host.setThemeToken(
       themes.active,
       joinThemeTokenKey(category, key),
       result.entry,
     );
     setValue("");
-  }, [category, key, themes.active, value]);
+  }, [category, host, key, themes.active, value]);
 
   return (
     <div className="theme-token-add">
@@ -194,7 +196,7 @@ function AddOverrideRow({ themes }: { themes: ThemesCollection }) {
 
 export function ThemeTokensSection() {
   const { t } = useI18n();
-  const themes = useThemesCollection();
+  const themes = useThemesHost().useThemes();
   const active = themes ? getActiveTheme({ themes }) : null;
   if (!themes || !active) return null;
   const entries = Object.entries(active.tokens ?? {});

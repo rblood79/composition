@@ -2,19 +2,20 @@
  * MiniThemePreview - CSS 변수 기반 경량 미니 프리뷰 (ADR-021 Phase B)
  *
  * tint/neutral/radius 변경을 CSS 변수 인라인 오버라이드로 즉시 반영.
- * Builder DOM의 CSS 변수에 의존하지 않고, store 값에서 직접 계산.
+ * Builder DOM의 CSS 변수에 의존하지 않고, 활성 테마 preset (Themes host) 에서 직접 계산.
  */
 
 import { memo, useMemo } from "react";
 import {
-  useThemeConfigNeutral,
-  useThemeConfigRadiusScale,
-} from "../../../stores/themeConfigStore";
-import { NEUTRAL_PALETTES } from "../../../utils/theme/neutralToSkiaColors";
+  NEUTRAL_PALETTES,
+  type NeutralPreset,
+} from "../../../utils/theme/neutralToSkiaColors";
+import { useThemesHost } from "./themesHost";
 
 export const MiniThemePreview = memo(function MiniThemePreview() {
-  const neutral = useThemeConfigNeutral();
-  const radiusScale = useThemeConfigRadiusScale();
+  const preset = useThemesHost().useActivePreset();
+  const neutral = preset.neutral as NeutralPreset;
+  const radiusScale = preset.radiusScale;
 
   const vars = useMemo(() => {
     const palette = NEUTRAL_PALETTES[neutral];

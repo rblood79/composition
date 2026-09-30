@@ -304,9 +304,13 @@ export class CatalogGraph {
       ? this.library.definitions.get(id as `lib:definition:${string}`)
       : (this.table.get(id) as DefinitionEntry | undefined);
   }
-  getToken(
-    id: TokenId,
-  ): { tokenType: string; value: string | number | boolean } | undefined {
+  getToken(id: TokenId):
+    | {
+        tokenType: string;
+        value: string | number | boolean;
+        ref?: `{${string}}`;
+      }
+    | undefined {
     return id.startsWith("lib:")
       ? this.library.tokens.get(id as `lib:token:${string}`)
       : (this.table.get(id) as ReturnType<CatalogGraph["getToken"]>);

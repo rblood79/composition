@@ -109,6 +109,7 @@ function lengthValue(
     tokenType: "number",
     value: resolved,
     source: "spec-token",
+    ref: value as `{${string}}`,
   });
   return { kind: "token", tokenId: id };
 }

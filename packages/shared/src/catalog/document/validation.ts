@@ -1580,7 +1580,11 @@ export function validateLibraryTemplate(value: unknown): LibraryTemplateNode {
 }
 export function validateLibraryToken(value: unknown): LibraryToken {
   const item = object(value, "library.token");
-  exact(item, ["id", "tokenType", "value", "source"], "library.token");
+  exact(
+    item,
+    ["id", "tokenType", "value", "source", "ref"],
+    "library.token",
+  );
   id(item.id, "lib:token:", "library.token.id");
   if (!tokenTypes.has(item.tokenType as TokenType))
     invalid("INVALID_TOKEN_TYPE", "library.token.tokenType");
@@ -1599,5 +1603,10 @@ export function validateLibraryToken(value: unknown): LibraryToken {
     invalid("TOKEN_VALUE_TYPE", "library.token.value");
   if (item.source !== "spec-token")
     invalid("INVALID_TOKEN_SOURCE", "library.token.source");
+  if (
+    item.ref !== undefined &&
+    (typeof item.ref !== "string" || !/^\{[\w]+\.[^{}]+\}$/.test(item.ref))
+  )
+    invalid("INVALID_TOKEN_REF", "library.token.ref");
   return value as LibraryToken;
 }

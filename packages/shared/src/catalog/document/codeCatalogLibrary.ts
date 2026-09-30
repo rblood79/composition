@@ -73,7 +73,13 @@ function sourceToken(
   const current = tokens.get(id);
   if (current && current.value !== normalized)
     throw new Error(`CODE_CATALOG_TOKEN_COLLISION:${id}`);
-  tokens.set(id, { id, tokenType, value: normalized, source: "spec-token" });
+  tokens.set(id, {
+    id,
+    tokenType,
+    value: normalized,
+    source: "spec-token",
+    ref: value as `{${string}}`,
+  });
   return { kind: "token" as const, tokenId: id };
 }
 

@@ -29,6 +29,7 @@ import { CatalogHistoryStore } from "./history";
 import { CatalogSession, type CatalogSelectionItem } from "./session";
 import type { SlotChromeContext } from "./slotChrome";
 import type { CatalogStorage } from "./storage";
+import type { CatalogThemeState } from "./theme";
 
 export interface CatalogWorkspaceOptions {
   engine: LayoutEngineAPI;
@@ -44,6 +45,28 @@ export interface CatalogWorkspaceOptions {
   locale?: string;
   /** When an autosave runs after a step (default: a microtask). */
   autosaveSchedule?: (run: () => void) => void;
+  /**
+   * The project's theme (`catalogThemeState`): installed on open and whenever a step changes it
+   * (a new root in its color mode — the records re-resolve their token values).
+   */
+  theme?: (graph: CatalogGraph) => CatalogThemeState;
+}
+
+/** A step touched what the theme reads: the project (active theme), a theme or a token. */
+function touchesTheme(
+  result: CatalogTransactionResult | undefined,
+  projectId: string,
+): boolean {
+  if (!result) return false;
+  for (const ids of [result.changedIds, result.removedIds])
+    for (const id of ids)
+      if (
+        id === projectId ||
+        id.startsWith("project:theme:") ||
+        id.startsWith("project:token:")
+      )
+        return true;
+  return false;
 }
 
 /** A Canvas/DOM record that stands for a document element (not a page frame or synthetic root). */
@@ -65,6 +88,8 @@ export class CatalogWorkspace {
   readonly autosave: CatalogAutosave;
   readonly history: CatalogHistoryStore;
   private preview: CatalogPreviewChannel | undefined;
+  private themeKey: string | undefined;
+  private colorMode: "light" | "dark" | undefined;
 
   constructor(
     graph: CatalogGraph,
@@ -72,6 +97,7 @@ export class CatalogWorkspace {
     private readonly options: CatalogWorkspaceOptions,
   ) {
     this.runtime = new CatalogRuntime(graph, storage);
+    this.applyTheme();
     this.currentRoot = this.createRoot(options.root?.breakpoint ?? "desktop");
     this.session = new CatalogSession(this.runtime, {
       identityExists: (identity) => this.root.domInputs.has(identity),
@@ -100,8 +126,35 @@ export class CatalogWorkspace {
       options.slotChrome,
       options.textMeasure,
       options.locale,
-      { pageFrames: true, ...options.root, breakpoint },
+      {
+        pageFrames: true,
+        ...options.root,
+        ...(this.colorMode ? { colorMode: this.colorMode } : {}),
+        breakpoint,
+      },
     );
+  }
+  /** Install the graph's theme when it changed; true = the root must be rebuilt. */
+  private applyTheme(): boolean {
+    const state = this.options.theme?.(this.runtime.graph);
+    if (!state || state.key === this.themeKey) return false;
+    this.themeKey = state.key;
+    this.colorMode = state.colorMode;
+    state.install();
+    return true;
+  }
+  /** A new composition root over the same runtime (the layout engine starts empty). */
+  private replaceRoot(breakpoint: BreakpointName): void {
+    this.options.engine.clear();
+    this.currentRoot = this.createRoot(breakpoint);
+    this.session.setBreakpoint(breakpoint);
+    this.session.reconcile();
+    for (const listener of [...this.rootListeners]) listener();
+  }
+  /** After a step: a changed theme builds a new root in its color mode with its token values. */
+  private afterStep(result: CatalogTransactionResult | undefined): void {
+    if (touchesTheme(result, this.projectId) && this.applyTheme())
+      this.replaceRoot(this.currentRoot.breakpoint);
   }
   /**
    * Show another breakpoint: a new composition root over the same runtime (history, saves and
@@ -110,11 +163,7 @@ export class CatalogWorkspace {
    */
   setBreakpoint(breakpoint: BreakpointName): void {
     if (breakpoint === this.currentRoot.breakpoint) return;
-    this.options.engine.clear();
-    this.currentRoot = this.createRoot(breakpoint);
-    this.session.setBreakpoint(breakpoint);
-    this.session.reconcile();
-    for (const listener of [...this.rootListeners]) listener();
+    this.replaceRoot(breakpoint);
   }
   subscribeRoot(listener: () => void): () => void {
     this.rootListeners.add(listener);
@@ -150,6 +199,7 @@ export class CatalogWorkspace {
     result: CatalogTransactionResult;
   } {
     const executed = this.root.execute(command);
+    this.afterStep(executed.result);
     if (executed.plan.selectAfter)
       this.selectItems(
         executed.plan.selectAfter.flatMap((id) => this.itemsOfNode(id, 1)),
@@ -157,10 +207,14 @@ export class CatalogWorkspace {
     return executed;
   }
   undo(): CatalogTransactionResult | undefined {
-    return this.root.undo();
+    const result = this.root.undo();
+    this.afterStep(result);
+    return result;
   }
   redo(): CatalogTransactionResult | undefined {
-    return this.root.redo();
+    const result = this.root.redo();
+    this.afterStep(result);
+    return result;
   }
 
   /** Selection items for a node's drawn positions (`limit` of them, in record order). */

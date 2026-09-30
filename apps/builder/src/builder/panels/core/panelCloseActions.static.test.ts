@@ -16,7 +16,8 @@ const STANDARD_PANEL_SOURCES = [
     component: "DataTableEditorPanel",
     source: "../datatable/DataTableEditorPanel.tsx",
   },
-  { component: "ThemesPanel", source: "../themes/ThemesPanel.tsx" },
+  // The catalog Themes panel wraps the shared panel (its header lives there).
+  { component: "CatalogThemesPanel", source: "../themes/ThemesPanel.tsx" },
   { component: "SettingsPanel", source: "../settings/SettingsPanel.tsx" },
   { component: "AIPanel", source: "../ai/AIPanel.tsx" },
   {

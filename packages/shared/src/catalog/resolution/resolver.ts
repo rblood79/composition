@@ -25,6 +25,7 @@ import type {
 import { CatalogGraph } from "../document/graph";
 import { isInOwnCollection } from "../document/collectionItems";
 import { CatalogValidationError } from "../document/validation";
+import { catalogTokenValue } from "../document/themedToken";
 
 export interface ResolvedCatalogNode {
   sourceId: NodeId | TemplateId;
@@ -212,6 +213,8 @@ export function resolveCatalogNode(
   state?: StateName,
   selection?: CatalogResolutionSelection,
   breakpoint: BreakpointName = "desktop",
+  /** Color mode library tokens read their theme token in (`catalogTokenValue`); absent = build-time values. */
+  tokenMode?: "light" | "dark",
 ): ResolvedCatalogNode {
   const library: CatalogLibrary = graph.library;
   const responsiveLayers = (node: NodeEntry): NodeResponsiveLayer[] =>
@@ -245,7 +248,7 @@ export function resolveCatalogNode(
     const token = graph.getToken(value.tokenId);
     if (!token)
       throw new CatalogValidationError("DANGLING_TOKEN", value.tokenId);
-    return token.value;
+    return catalogTokenValue(token, tokenMode);
   };
   const applyValues = (
     target: Props,

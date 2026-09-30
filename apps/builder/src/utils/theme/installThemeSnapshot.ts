@@ -9,15 +9,6 @@
  * 마지막 설치본은 모듈이 들고 있다 — iframe ready 재전송 (`BuilderCore`) 과 Publish payload
  * (`getCurrentThemeSnapshot`) 이 같은 `cssVars` 를 읽는다.
  */
-import {
-  darkColors,
-  darkShadows,
-  lightColors,
-  lightShadows,
-  borderWidth,
-  radius,
-  typography,
-} from "@composition/specs";
 import { notifyLayoutChange } from "../../builder/workspace/canvas/skia/useSkiaNode";
 import {
   resolveSkiaTheme,
@@ -28,6 +19,7 @@ import {
 import { MessageService } from "../messaging";
 import type { NeutralPreset } from "./neutralToSkiaColors";
 import type { ResolvedThemeSnapshot } from "./resolveThemeSnapshot";
+import { installThemeMaps } from "./themeMaps";
 import type { TintPreset } from "./tintToSkiaColors";
 
 let current: ResolvedThemeSnapshot | null = null;
@@ -67,13 +59,6 @@ export function resetCurrentThemeSnapshotForTest(): void {
   current = null;
 }
 
-function overwrite(
-  target: Record<string, unknown>,
-  source: Readonly<Record<string, unknown>>,
-): void {
-  for (const key of Object.keys(source)) target[key] = source[key];
-}
-
 /**
  * Preview iframe 에 현재 설치본을 보낸다 (ready 뒤에만 — 아니면 조용히 no-op, ready 핸들러가 재전송).
  * `replace: true` — 이전 테마의 변수를 전부 걷어내고 이 벌로 교체한다 (§3.3 "이전 override 제거").
@@ -107,28 +92,7 @@ export function sendThemeSnapshotToPreview(
 export function installThemeSnapshot(snapshot: ResolvedThemeSnapshot): void {
   const previous = current;
   // 1. 맵 설치 — Skia paint · layout · text 측정이 다음 resolveToken 부터 읽는다
-  overwrite(
-    lightColors as unknown as Record<string, unknown>,
-    snapshot.colors.light,
-  );
-  overwrite(
-    darkColors as unknown as Record<string, unknown>,
-    snapshot.colors.dark,
-  );
-  overwrite(
-    typography as unknown as Record<string, unknown>,
-    snapshot.typography,
-  );
-  overwrite(radius as unknown as Record<string, unknown>, snapshot.radius);
-  overwrite(borderWidth as unknown as Record<string, unknown>, snapshot.border);
-  overwrite(
-    lightShadows as unknown as Record<string, unknown>,
-    snapshot.shadows.light,
-  );
-  overwrite(
-    darkShadows as unknown as Record<string, unknown>,
-    snapshot.shadows.dark,
-  );
+  installThemeMaps(snapshot);
   current = snapshot;
 
   // 2. store 한 번 (themeVersion +1 → ElementSprite 재생성) — setter 4~5 회 대신

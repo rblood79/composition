@@ -1176,6 +1176,7 @@ export class CatalogCompositionRoot {
         this.state,
         undefined,
         this.breakpoint,
+        this.colorMode,
       ),
       "catalog:root",
     );
@@ -2141,6 +2142,7 @@ export class CatalogCompositionRoot {
           onVisit: () => resolverVisits++,
         },
         this.breakpoint,
+        this.colorMode,
       );
       const find = (
         node: ResolvedCatalogNode,
@@ -2404,6 +2406,7 @@ export class CatalogCompositionRoot {
             this.state,
             undefined,
             this.breakpoint,
+            this.colorMode,
           ),
         ),
       ),

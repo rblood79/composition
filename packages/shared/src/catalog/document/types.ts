@@ -668,6 +668,11 @@ export interface LibraryToken {
   tokenType: TokenType;
   value: Scalar;
   source: "spec-token";
+  /**
+   * The theme token the value was read from (`{color.accent}`): a rendering environment reads it
+   * again in its color mode and installed theme (`catalogTokenValue`); `value` is the build-time read.
+   */
+  ref?: `{${string}}`;
 }
 export interface CatalogLibrary {
   contractVersion: typeof LIBRARY_CONTRACT_VERSION;
