@@ -19,6 +19,7 @@ import { CatalogPropertiesPanel } from "../../panels/properties/catalog/CatalogP
 import { CatalogPageSection } from "../../panels/properties/catalog/CatalogPageSection";
 import { CatalogStateSection } from "../../panels/properties/catalog/CatalogStateSection";
 import { catalogHtmlIdCommand, catalogUniqueHtmlId } from "../attributes";
+import { catalogButtonChildCommands } from "../buttonChildren";
 import { catalogEditContract } from "../editContract";
 import { newCatalogProjectDocument } from "../project";
 import {
@@ -261,5 +262,50 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
     });
     expect(graph.getEntry(page)).toMatchObject({ route: "/about" });
     expect(within(container).queryByRole("alert")).toBeNull();
+  });
+
+  it("a Button shows the Icon picker; with an icon its label is the Text child's field only", async () => {
+    const { workspace } = await open();
+    const button = id("button");
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [
+          {
+            ...node("button", "lib:definition:type-Button"),
+            props: { children: { kind: "set", value: "Save" } },
+          },
+        ],
+        rootIds: [button],
+        newId: (kind) => `project:${kind}:btn1` as never,
+      }),
+    );
+    const { container } = render(
+      <I18nProvider initialLocale="en-US">
+        <CatalogWorkspaceProvider workspace={workspace}>
+          <CatalogPropertiesPanel />
+        </CatalogWorkspaceProvider>
+      </I18nProvider>,
+    );
+    const textInputs = () =>
+      [...container.querySelectorAll("input")].filter(
+        (input) => (input as HTMLInputElement).value === "Save",
+      );
+    expect(within(container).getAllByText("Icon").length).toBeGreaterThan(0);
+    expect(textInputs()).toHaveLength(1);
+    await act(async () => {
+      workspace.execute(
+        catalogButtonChildCommands.setIcon(button, "star", workspace.newId),
+      );
+    });
+    // The Button's own label field is gone; the Text child's field shows the moved label.
+    const textLegends = [...container.querySelectorAll("legend, label")].filter(
+      (label) => label.textContent === "Text",
+    );
+    expect(textLegends).toHaveLength(1);
+    expect(textInputs()).toHaveLength(1);
+    expect(textInputs()[0].closest(".fieldset-row")?.textContent).toContain(
+      "Text",
+    );
   });
 });

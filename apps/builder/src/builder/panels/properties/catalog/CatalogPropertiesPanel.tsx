@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo } from "react";
+import { memo, useCallback, useMemo, useSyncExternalStore } from "react";
 import { Settings2 } from "lucide-react";
 import { useI18n } from "../../../../i18n";
 import { iconProps } from "../../../../utils/ui/uiConstants";
@@ -12,6 +12,10 @@ import {
   useCatalogSession,
   useCatalogWorkspace,
 } from "../../../catalogRuntime/react";
+import {
+  catalogButtonChildren,
+  type CatalogButtonChildren,
+} from "../../../catalogRuntime/buttonChildren";
 import { catalogSettingsPage } from "../../../catalogRuntime/pageSettings";
 import { targetKey } from "../../../catalogRuntime/session";
 import { EmptyState, PanelContents, PanelHeader } from "../../../components";
@@ -20,6 +24,7 @@ import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogComma
 import { FieldValueSourceContext } from "../generic/fieldValueSource";
 import { ItemsSourceContext } from "../generic/itemsSource";
 import { CatalogAttributesSection } from "./CatalogAttributesSection";
+import { CatalogButtonChildFields } from "./CatalogButtonChildFields";
 import { CatalogComponentSection } from "./CatalogComponentSection";
 import { CatalogPageSection } from "./CatalogPageSection";
 import { CatalogStateSection } from "./CatalogStateSection";
@@ -153,10 +158,32 @@ const CatalogFields = memo(function CatalogFields({
   const workspace = useCatalogWorkspace();
   const run = useCatalogCommandRunner();
   const contract = useCatalogEditContract(targets[0]);
-  const semanticFields = useMemo(
-    () => contract.fields.filter((field) => field.origin === "semantic"),
-    [contract],
+  // A Button / ToggleButton's Icon · Text children (the old ButtonChildFields axis).
+  const buttonNode = targets[0]?.kind === "node" ? targets[0].id : undefined;
+  const subscribeSteps = useCallback(
+    (notify: () => void) => workspace.runtime.subscribeSteps(() => notify()),
+    [workspace],
   );
+  const buttonKey = useSyncExternalStore(subscribeSteps, () => {
+    const state = buttonNode
+      ? catalogButtonChildren(workspace.runtime.graph, buttonNode)
+      : undefined;
+    return state ? JSON.stringify(state) : "";
+  });
+  const buttonChildren = useMemo(
+    () =>
+      buttonKey ? (JSON.parse(buttonKey) as CatalogButtonChildren) : undefined,
+    [buttonKey],
+  );
+  const semanticFields = useMemo(() => {
+    const fields = contract.fields.filter(
+      (field) => field.origin === "semantic",
+    );
+    // An icon Button's label lives in its Text child (edited by the Text field instead).
+    return buttonChildren?.iconId
+      ? fields.filter((field) => field.key !== "children")
+      : fields;
+  }, [buttonChildren, contract]);
   const handlePatch = useCallback(
     (patch: Record<string, unknown>) => {
       const first = targets[0];
@@ -193,6 +220,10 @@ const CatalogFields = memo(function CatalogFields({
     elementType: contract.type,
     contractFields: contract.fields,
     semanticFields,
+    contentExtras:
+      buttonNode && buttonChildren ? (
+        <CatalogButtonChildFields nodeId={buttonNode} state={buttonChildren} />
+      ) : undefined,
     onPatch: handlePatch,
     isRefInstance,
   });

@@ -195,10 +195,29 @@ function buttonDefinition(
   const conditionalRules: NonNullable<
     LibraryDefinition["conditionalRules"]
   >[number][] = [];
+  const childPartRules: PartRule[] = [];
+  // An icon Button's children take its scale (the old read-time Button → Icon / Text propagation,
+  // `buttonIconPx` / `buttonTextMetrics`): the Icon draws at the size's `iconSize`, the label Text
+  // at the Button's font size and line height — so an icon Button keeps the plain Button's height.
+  for (const [size, values] of Object.entries(rule.sizes)) {
+    if (typeof values.iconSize === "number")
+      childPartRules.push({
+        child: { definitionId: catalogTypeDefinitionId("Icon") },
+        when: { size },
+        visual: { iconSize: values.iconSize },
+      });
+    childPartRules.push({
+      child: { definitionId: catalogTypeDefinitionId("Text") },
+      when: { size },
+      visual: {
+        fontSize: sizes[size].fontSize,
+        lineHeight: sizes[size].lineHeight,
+      },
+    });
+  }
   // `utilities.css` `.button-base > :is(.react-aria-Icon, .react-aria-Text, .react-aria-Label)
   // { color: inherit }`: the Button's direct Icon / Text / Label children take its text color in
   // every variant, fill style and state (their own rule color is the dark `--fg`).
-  const childPartRules: PartRule[] = [];
   const childColor = (
     color: VisualValues[keyof VisualValues],
     when: Record<string, string>,
