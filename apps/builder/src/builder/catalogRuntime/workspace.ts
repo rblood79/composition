@@ -9,6 +9,7 @@ import type {
   CatalogCommandPlan,
 } from "../../../../../packages/shared/src/catalog/commands/compose";
 import type { NewId } from "../../../../../packages/shared/src/catalog/commands/materialize";
+import type { CatalogClipboard } from "../../../../../packages/shared/src/catalog/commands";
 import type { CatalogPosition } from "../../../../../packages/shared/src/catalog/resolution/positions";
 import type { CatalogTransactionResult } from "../../../../../packages/shared/src/catalog/transactions/transaction";
 import type { LayoutEngineAPI } from "../workspace/canvas/wasm-bindings/layoutBridge";
@@ -113,6 +114,9 @@ export class CatalogWorkspace {
     this.rootListeners.add(listener);
     return () => this.rootListeners.delete(listener);
   }
+
+  /** Copied subtrees of this project (in memory; paste re-creates them with new ids). */
+  clipboard: CatalogClipboard | undefined;
 
   /** New entry ids for commands that create entries (random, never reused). */
   readonly newId: NewId = (kind) =>

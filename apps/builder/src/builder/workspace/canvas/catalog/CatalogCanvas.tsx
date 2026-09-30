@@ -1,10 +1,16 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { CatalogCanvasGestures } from "../../../catalogRuntime/canvasGesture";
+import { catalogCanvasMenuItems } from "../../../catalogRuntime/canvasMenu";
 import { CatalogCanvasPicking } from "../../../catalogRuntime/canvasPick";
 import { CatalogCanvasScene } from "../../../catalogRuntime/canvasScene";
 import { catalogTextKey } from "../../../catalogRuntime/canvasText";
 import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
 import { DotBackground } from "../../components/DotBackground";
+import { ContextMenuOverlay } from "../../../components/overlay/contextMenu/ContextMenuOverlay";
+import type {
+  ContextMenuItem,
+  ContextMenuRequest,
+} from "../../../components/overlay/contextMenu/types";
 import { CanvasGestureSession } from "../interaction/canvasGestureSession";
 import { watchContextLoss } from "../skia/createSurface";
 import { destroyAllSkiaCaches } from "../skia/disposable";
@@ -49,6 +55,10 @@ export function CatalogCanvas({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [gestureSession] = useState(() => new CanvasGestureSession());
   const sceneRef = useRef<CatalogCanvasScene | undefined>(undefined);
+  const [menu, setMenu] = useState<{
+    request: ContextMenuRequest;
+    items: ContextMenuItem[];
+  } | null>(null);
   const callbacks = useRef({ onFirstFrame, onError });
   useLayoutEffect(() => {
     callbacks.current = { onFirstFrame, onError };
@@ -260,6 +270,8 @@ export function CatalogCanvas({
     let deferredSelect: string | undefined;
     let pressPointer: number | undefined;
     const onPointerDown = (event: PointerEvent) => {
+      // Only the primary button selects and drags (the secondary opens the context menu).
+      if (event.button !== 0) return;
       if (gestureSession.blocksPointerDown(event.pointerId)) return;
       if (
         gestureSession.beginPointer(event.pointerId, event.button) !== "element"
@@ -392,6 +404,59 @@ export function CatalogCanvas({
     canvas.addEventListener("pointerdown", onPointerDown);
     canvas.addEventListener("pointermove", onPointerMove);
     canvas.addEventListener("pointerleave", onPointerLeave);
+    // Context menu: the element under the pointer (selected first), or the page background.
+    const onContextMenu = (event: MouseEvent) => {
+      event.preventDefault();
+      if (gestures.pending) return;
+      syncScene();
+      const { x, y } = scenePoint(event);
+      const target = picking.target(x, y, false);
+      const record = target && workspace.root.domInputs.get(target.id);
+      const onElement = !!record && record.parentId !== "catalog:root";
+      if (
+        onElement &&
+        !workspace.session
+          .getSnapshot()
+          .selection.some((item) => item.identity === target!.id)
+      )
+        picking.click(x, y);
+      const surface = onElement ? "canvas-element" : "canvas-empty";
+      const items = catalogCanvasMenuItems(
+        {
+          graph: workspace.runtime.graph,
+          records: workspace.root.domInputs,
+          selection: () => workspace.session.getSnapshot().selection,
+          execute: (command) => {
+            try {
+              workspace.execute(command);
+            } catch (error) {
+              callbacks.current.onError?.(error);
+            }
+          },
+          newId: workspace.newId,
+          clipboard: {
+            get: () => workspace.clipboard,
+            set: (value) => {
+              workspace.clipboard = value;
+            },
+          },
+        },
+        surface,
+        onElement ? target!.id : record?.id,
+      );
+      if (!items.length) return;
+      setMenu({
+        request: {
+          surface,
+          clientX: event.clientX,
+          clientY: event.clientY,
+          scenePoint: { x, y },
+          targetElementIds: onElement ? [target!.id] : [],
+        },
+        items,
+      });
+    };
+    canvas.addEventListener("contextmenu", onContextMenu);
     canvas.addEventListener("dblclick", onDoubleClick);
     window.addEventListener("pointermove", onWindowPointerMove);
     window.addEventListener("pointerup", onPointerEnd);
@@ -437,6 +502,7 @@ export function CatalogCanvas({
       canvas.removeEventListener("pointermove", onPointerMove);
       canvas.removeEventListener("pointerleave", onPointerLeave);
       canvas.removeEventListener("dblclick", onDoubleClick);
+      canvas.removeEventListener("contextmenu", onContextMenu);
       window.removeEventListener("pointermove", onWindowPointerMove);
       window.removeEventListener("pointerup", onPointerEnd);
       window.removeEventListener("pointercancel", onPointerEnd);
@@ -478,6 +544,12 @@ export function CatalogCanvas({
         }}
       />
       <DotBackground />
+      <ContextMenuOverlay
+        isOpen={!!menu}
+        request={menu?.request ?? null}
+        items={menu?.items ?? []}
+        onClose={() => setMenu(null)}
+      />
       <CatalogTextEditor
         workspace={workspace}
         boundsOf={(identity) =>
