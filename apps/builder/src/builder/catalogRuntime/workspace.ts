@@ -8,6 +8,7 @@ import type {
   CatalogCommand,
   CatalogCommandPlan,
 } from "../../../../../packages/shared/src/catalog/commands/compose";
+import type { NewId } from "../../../../../packages/shared/src/catalog/commands/materialize";
 import type { CatalogPosition } from "../../../../../packages/shared/src/catalog/resolution/positions";
 import type { CatalogTransactionResult } from "../../../../../packages/shared/src/catalog/transactions/transaction";
 import type { LayoutEngineAPI } from "../workspace/canvas/wasm-bindings/layoutBridge";
@@ -112,6 +113,10 @@ export class CatalogWorkspace {
     this.rootListeners.add(listener);
     return () => this.rootListeners.delete(listener);
   }
+
+  /** New entry ids for commands that create entries (random, never reused). */
+  readonly newId: NewId = (kind) =>
+    `project:${kind}:${crypto.randomUUID()}` as ReturnType<NewId>;
 
   get projectId(): EntryId<"project"> {
     return this.runtime.graph.projectId;

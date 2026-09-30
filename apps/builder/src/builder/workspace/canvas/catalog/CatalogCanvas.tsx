@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { CatalogCanvasGestures } from "../../../catalogRuntime/canvasGesture";
 import { CatalogCanvasPicking } from "../../../catalogRuntime/canvasPick";
 import { CatalogCanvasScene } from "../../../catalogRuntime/canvasScene";
 import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
@@ -83,6 +84,7 @@ export function CatalogCanvas({
         recordsOf: (sourceId) => workspace.root.recordsOfSource(sourceId),
         zoom: () => Math.max(viewportState.zoom, 0.001),
         fontMgr,
+        gesture: () => gestures.preview(),
       }),
     );
     // The overlay follows the session and the scene's boxes (its own version, no content redraw).
@@ -102,6 +104,18 @@ export function CatalogCanvas({
       query: hitTestPoint,
       selectRecords: (ids, options) => workspace.selectRecords(ids, options),
       itemOf: (id) => workspace.itemOfRecord(id),
+    });
+    const gestures = new CatalogCanvasGestures({
+      get records() {
+        return workspace.root.domInputs;
+      },
+      graph: workspace.runtime.graph,
+      bounds: (id) => scene.stream.boundsMap.get(id),
+      pick: (x, y) => picking.pick(x, y),
+      selection: () => workspace.session.getSnapshot().selection,
+      breakpoint: () => workspace.session.getSnapshot().breakpoint,
+      execute: (command) => workspace.execute(command),
+      newId: workspace.newId,
     });
 
     // Open on the first page frame (again after a breakpoint switch: the page size changes).
@@ -210,6 +224,11 @@ export function CatalogCanvas({
       if (lastPoint && !gestureSession.shouldSuppressElementHover())
         picking.hover(lastPoint.x, lastPoint.y);
     };
+    const zoomNow = () => Math.max(viewportState.zoom, 0.001);
+    // A press on an already selected element keeps the selection (a multi-selection drags
+    // together); a release without a drag then selects that element alone.
+    let deferredSelect: string | undefined;
+    let pressPointer: number | undefined;
     const onPointerDown = (event: PointerEvent) => {
       if (gestureSession.blocksPointerDown(event.pointerId)) return;
       if (
@@ -219,15 +238,57 @@ export function CatalogCanvas({
       containerEl.focus({ preventScroll: true });
       syncScene();
       const { x, y } = scenePoint(event);
-      picking.click(x, y, {
-        additive: event.shiftKey,
-        deep: event.metaKey || event.ctrlKey,
-      });
       lastPoint = { x, y };
+      pressPointer = event.pointerId;
+      deferredSelect = undefined;
+      if (gestures.beginResize(x, y, zoomNow())) {
+        gestureSession.promoteElement(event.pointerId, "resize");
+        picking.leave();
+        return;
+      }
+      const additive = event.shiftKey;
+      const deep = event.metaKey || event.ctrlKey;
+      const target = picking.target(x, y, deep);
+      const selected = workspace.session
+        .getSnapshot()
+        .selection.some((item) => item.identity === target?.id);
+      if (target && selected && !additive && !target.leaveContext) {
+        deferredSelect = target.id;
+        gestures.beginMove(x, y, target.id);
+      } else {
+        const picked = picking.click(x, y, { additive, deep });
+        if (picked && !additive) gestures.beginMove(x, y, picked);
+      }
       rehover();
     };
+    const onWindowPointerMove = (event: PointerEvent) => {
+      if (event.pointerId !== pressPointer || !gestures.pending) return;
+      const { x, y } = scenePoint(event);
+      if (gestures.update(x, y, zoomNow(), { axisLock: event.shiftKey })) {
+        deferredSelect = undefined;
+        picking.leave();
+        invalidateOverlay();
+      }
+    };
     const onPointerEnd = (event: PointerEvent) => {
-      if (gestureSession.ownerFor(event.pointerId) === "element")
+      if (event.pointerId === pressPointer) {
+        pressPointer = undefined;
+        if (event.type === "pointercancel") gestures.cancel();
+        else if (gestures.pending) {
+          try {
+            if (gestures.finish()) {
+              syncScene();
+              picking.fitContext();
+            }
+          } catch (error) {
+            callbacks.current.onError?.(error);
+          }
+        }
+        if (deferredSelect) workspace.selectRecords([deferredSelect]);
+        deferredSelect = undefined;
+        invalidateOverlay();
+      }
+      if (gestureSession.ownerFor(event.pointerId) !== "pan")
         gestureSession.endPointer(event.pointerId);
     };
     const onPointerMove = (event: PointerEvent) => {
@@ -238,6 +299,8 @@ export function CatalogCanvas({
       syncScene();
       const { x, y } = scenePoint(event);
       lastPoint = { x, y };
+      const handle = gestures.handleAt(x, y, zoomNow());
+      canvas.style.cursor = handle ? handle.cursor : "";
       picking.hover(x, y);
     };
     const onPointerLeave = () => {
@@ -252,6 +315,12 @@ export function CatalogCanvas({
     };
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape" || isEditableTarget(event.target)) return;
+      if (gestures.pending) {
+        gestures.cancel();
+        deferredSelect = undefined;
+        invalidateOverlay();
+        return;
+      }
       syncScene();
       picking.escape();
       rehover();
@@ -260,6 +329,7 @@ export function CatalogCanvas({
     canvas.addEventListener("pointermove", onPointerMove);
     canvas.addEventListener("pointerleave", onPointerLeave);
     canvas.addEventListener("dblclick", onDoubleClick);
+    window.addEventListener("pointermove", onWindowPointerMove);
     window.addEventListener("pointerup", onPointerEnd);
     window.addEventListener("pointercancel", onPointerEnd);
     window.addEventListener("keydown", onKeyDown);
@@ -303,6 +373,7 @@ export function CatalogCanvas({
       canvas.removeEventListener("pointermove", onPointerMove);
       canvas.removeEventListener("pointerleave", onPointerLeave);
       canvas.removeEventListener("dblclick", onDoubleClick);
+      window.removeEventListener("pointermove", onWindowPointerMove);
       window.removeEventListener("pointerup", onPointerEnd);
       window.removeEventListener("pointercancel", onPointerEnd);
       window.removeEventListener("keydown", onKeyDown);

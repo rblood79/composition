@@ -16,11 +16,11 @@ const isNodeSource = (sourceId: string) => sourceId.startsWith("project:node:");
 
 /**
  * ADR-248 Phase 4e-3: the drawn record under a scene point. `candidates` are the spatial index hits
- * (clip-aware boxes); the stream's hit box confirms each, and the one drawn last (its self commands
- * start later in the stream) is on top.
+ * (clip-aware boxes); the stream's hit box confirms each, and the one drawn last (its subtree
+ * starts later in the stream — every drawn record has one, painted or not) is on top.
  */
 export function pickTopmostRecord(
-  stream: Pick<RenderCommandStream, "hitBoundsMap" | "selfSpans">,
+  stream: Pick<RenderCommandStream, "hitBoundsMap" | "subtreeSpans">,
   x: number,
   y: number,
   candidates: Iterable<string>,
@@ -37,7 +37,7 @@ export function pickTopmostRecord(
       y > box.y + box.height
     )
       continue;
-    const start = stream.selfSpans.get(id)?.start ?? -1;
+    const start = stream.subtreeSpans.get(id)?.start ?? -1;
     if (start > topStart || top === undefined) {
       top = id;
       topStart = start;
@@ -124,7 +124,7 @@ export function resolveCatalogContextExit(
 export interface CatalogCanvasPickHost {
   readonly records: CatalogPickRecords;
   readonly session: CatalogSession;
-  readonly stream: Pick<RenderCommandStream, "hitBoundsMap" | "selfSpans">;
+  readonly stream: Pick<RenderCommandStream, "hitBoundsMap" | "subtreeSpans">;
   /** Candidate records under a scene point (the spatial index). */
   query(x: number, y: number): Iterable<string>;
   /** Select drawn records (their Layers rows' targets). */
@@ -146,7 +146,7 @@ export class CatalogCanvasPicking {
   }
 
   /** The record a click at the point selects in the current context (and the context it needs). */
-  private target(
+  target(
     x: number,
     y: number,
     deep: boolean,
@@ -167,7 +167,7 @@ export class CatalogCanvasPicking {
     x: number,
     y: number,
     modifiers: { additive?: boolean; deep?: boolean } = {},
-  ): void {
+  ): string | undefined {
     const target = this.target(x, y, !!modifiers.deep);
     const { session } = this.host;
     if (!target) {
@@ -175,10 +175,11 @@ export class CatalogCanvasPicking {
         session.exitContext();
         session.clearSelection();
       }
-      return;
+      return undefined;
     }
     if (target.leaveContext) session.exitContext();
     this.host.selectRecords([target.id], { additive: modifiers.additive });
+    return target.id;
   }
 
   hover(x: number, y: number): void {
@@ -203,6 +204,22 @@ export class CatalogCanvasPicking {
     session.enterContext(entry.context as NodeId);
     this.host.selectRecords([entry.target]);
     return true;
+  }
+
+  /** After an edit (a drag out of the context): leave the context the selection is no longer in. */
+  fitContext(): void {
+    const { records, session } = this.host;
+    const state = session.getSnapshot();
+    const first = state.selection[0];
+    if (!state.editingContext || !first) return;
+    for (
+      let record = records.get(first.identity);
+      record;
+      record = records.get(record.parentId)
+    )
+      if (records.get(record.parentId)?.sourceId === state.editingContext)
+        return;
+    session.exitContext();
   }
 
   escape(): void {

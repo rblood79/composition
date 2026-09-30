@@ -8,7 +8,10 @@ import type {
   NodeEntry,
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
-import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
+import {
+  insertNodes,
+  moveNodes,
+} from "../../../../../../packages/shared/src/catalog/commands";
 import { CatalogCanvasPicking } from "../canvasPick";
 import { CatalogCanvasScene } from "../canvasScene";
 import { newCatalogProjectDocument } from "../project";
@@ -162,5 +165,52 @@ describe("ADR-248 Phase 4e-3 Canvas picking", () => {
     picking.click(1900, 1070);
     expect(workspace.session.getSnapshot().editingContext).toBeUndefined();
     expect(selected()).toEqual(workspace.root.recordsOfSource(BODY));
+  });
+
+  it("an empty unpainted frame is picked over the body (paint order = subtree start, not self paint)", async () => {
+    const { workspace, scene, picking } = await open();
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [
+          {
+            ...node("empty", "lib:definition:type-frame"),
+            sizing: {
+              width: { kind: "set", value: 300 },
+              height: { kind: "set", value: 100 },
+            },
+          },
+        ],
+        rootIds: [id("empty")],
+        newId: allocator(),
+      }),
+    );
+    scene.sync();
+    const record = workspace.root.recordsOfSource(id("empty"))[0];
+    const box = scene.stream.boundsMap.get(record)!;
+    expect(scene.stream.selfSpans.get(record)).toBeUndefined();
+    expect(picking.pick(box.x + 150, box.y + 50)).toBe(record);
+  });
+
+  it("after a move out of the entered context the context is left", async () => {
+    const { workspace, scene, picking, center, selected, record } =
+      await open();
+    const [lx, ly] = center("leaf");
+    picking.doubleClick(lx, ly);
+    picking.doubleClick(lx, ly);
+    expect(workspace.session.getSnapshot().editingContext).toBe(id("inner"));
+    picking.fitContext();
+    expect(workspace.session.getSnapshot().editingContext).toBe(id("inner"));
+    workspace.execute(
+      moveNodes({
+        ids: [id("leaf")],
+        parent: { kind: "node", id: BODY },
+        newId: allocator(),
+      }),
+    );
+    scene.sync();
+    expect(selected()).toEqual([record("leaf")]);
+    picking.fitContext();
+    expect(workspace.session.getSnapshot().editingContext).toBeUndefined();
   });
 });

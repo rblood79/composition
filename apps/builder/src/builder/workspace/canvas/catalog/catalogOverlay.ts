@@ -1,4 +1,5 @@
 import type { CanvasKit, FontMgr } from "canvaskit-wasm";
+import type { CatalogGesturePreview } from "../../../catalogRuntime/canvasGesture";
 import type { CatalogSessionState } from "../../../catalogRuntime/session";
 import type { BoundingBox } from "../selection/types";
 import {
@@ -7,6 +8,7 @@ import {
 } from "../skia/hoverRenderer";
 import {
   renderDimensionLabels,
+  renderLasso,
   renderSelectionBox,
   renderTransformHandles,
 } from "../skia/selectionRenderer";
@@ -20,6 +22,8 @@ export interface CatalogOverlayInputs {
   recordsOf: (sourceId: string) => readonly string[];
   zoom: () => number;
   fontMgr: () => FontMgr | undefined;
+  /** The drag in progress (move ghost, drop line and container, or the resized box). */
+  gesture?: () => CatalogGesturePreview | undefined;
 }
 
 /**
@@ -49,6 +53,15 @@ export function catalogOverlayNode(
       for (const item of state.selection) {
         const box = bounds.get(item.identity);
         if (box) renderSelectionBox(ck, canvas, box, zoom);
+      }
+      const gesture = inputs.gesture?.();
+      if (gesture) {
+        if (gesture.container)
+          renderHoverHighlight(ck, canvas, gesture.container, zoom);
+        if (gesture.ghost) renderLasso(ck, canvas, gesture.ghost, zoom);
+        if (gesture.line)
+          renderSelectionBox(ck, canvas, gesture.line, zoom / 2);
+        return;
       }
       const single =
         state.selection.length === 1 &&
