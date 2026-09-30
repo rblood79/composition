@@ -44,6 +44,7 @@ vi.mock("../utils/quickConnect", () => ({
   unmatchedColumnKeys: () => [],
   precheckQuickConnectTarget: quickConnect.precheck,
   readBackQuickConnect: quickConnect.readBack,
+  captureQuickConnectTarget: () => null,
 }));
 vi.mock("../stores/dataTableEditorStore", () => ({
   useDataTableEditorStore: (

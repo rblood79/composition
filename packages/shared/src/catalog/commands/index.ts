@@ -70,5 +70,7 @@ export {
   insertGroupItem,
   insertTableColumns,
   insertTableRow,
+  tableHeaderColumns,
+  tableHeaderPosition,
   type TableColumnSpec,
 } from "./collections";

@@ -571,6 +571,67 @@ function tableBodyOf(
 }
 
 /**
+ * The TableHeader position a Table shows — an owned child, or its template's header position in
+ * an instance (quick connect's column target, ADR-248 4e-4e). Undefined without one.
+ */
+export function tableHeaderPosition(
+  reader: CatalogReader,
+  tableId: NodeId,
+): NodeParent | undefined {
+  const draft = new CommandDraft(reader);
+  const node = draft.read(tableId);
+  if (node?.kind !== "node") return undefined;
+  const definition = node.definitionId.startsWith("lib:")
+    ? reader.library.definitions.get(
+        node.definitionId as `lib:definition:${string}`,
+      )
+    : reader.getEntry(node.definitionId);
+  const rootTemplate =
+    definition && "templateRootId" in definition
+      ? (definition.templateRootId as TemplateId | undefined)
+      : undefined;
+  let level: NodeParent[] = [
+    rootTemplate
+      ? {
+          kind: "descendant",
+          ownerId: tableId,
+          address: { instances: [tableId], templatePath: [rootTemplate] },
+        }
+      : { kind: "node", id: tableId },
+  ];
+  for (let depth = 0; depth < 4 && level.length; depth++) {
+    const found = level.find(
+      (position) => positionType(draft, position) === "TableHeader",
+    );
+    if (found) return found;
+    level = level.flatMap((position) => childPositions(draft, position));
+  }
+  return undefined;
+}
+
+/** The header's columns as the table reads them (key and shown label). */
+export function tableHeaderColumns(
+  reader: CatalogReader,
+  header: NodeParent,
+): TableColumnSpec[] {
+  const draft = new CommandDraft(reader);
+  return childPositions(draft, header).map((column, index) => {
+    const key = columnKey(reader, column, index);
+    const label = readProp(reader, column, "label");
+    const text = readProp(reader, column, "children");
+    return {
+      key,
+      label:
+        typeof label === "string" && label
+          ? label
+          : typeof text === "string" && text
+            ? text
+            : key,
+    };
+  });
+}
+
+/**
  * Add columns to a TableHeader (owned, or an instance's header position). Without `columns`, one
  * `column<n>` / "Column <n>" whose key no sibling uses; `replace` drops the current columns (quick
  * connect reconnect). In a TableView whose rows each have one cell per column, every row gets a

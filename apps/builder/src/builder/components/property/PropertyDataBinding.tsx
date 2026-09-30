@@ -47,7 +47,7 @@ import type { DataBindingValue } from "@composition/shared";
 import { resolveBoundCollection, resolveField } from "@composition/shared";
 import { useParams } from "react-router";
 import { useDataTableEditorStore } from "../../panels/datatable/stores/dataTableEditorStore";
-import { captureQuickConnectTarget } from "../../panels/datatable/utils/quickConnect";
+import { useQuickConnectHost } from "../../panels/datatable/usage/quickConnectHost";
 import { useDataUsageSource } from "../../panels/datatable/usage/dataUsageSource";
 import { DatabasePlus, Table2 } from "lucide-react";
 import { ActionTooltipTrigger, SwatchIconButton } from "../ui";
@@ -444,6 +444,7 @@ export const PropertyDataBindingCreateAction = memo(
     const { t } = useI18n();
     const { projectId } = useParams<{ projectId: string }>();
     const openTableCreator = useDataTableEditorStore((s) => s.openTableCreator);
+    const quickConnect = useQuickConnectHost();
     if (!projectId) return null;
     const label = t("propertiesPanel.bindingNewTable");
     return (
@@ -454,7 +455,7 @@ export const PropertyDataBindingCreateAction = memo(
             isDisabled={disabled}
             onPress={() => {
               const connect = elementId
-                ? captureQuickConnectTarget(elementId)
+                ? quickConnect.capture(elementId)
                 : null;
               if (connect) openTableCreator(projectId, connect);
               else openTableCreator(projectId);

@@ -35,6 +35,8 @@ import { catalogThemeState } from "../catalogRuntime/theme";
 import { CatalogWorkspace } from "../catalogRuntime/workspace";
 import { createCatalogDataUsageSource } from "../panels/datatable/usage/catalogDataUsageSource";
 import { DataUsageSourceContext } from "../panels/datatable/usage/dataUsageSource";
+import { createCatalogQuickConnectHost } from "../panels/datatable/usage/catalogQuickConnectHost";
+import { QuickConnectHostContext } from "../panels/datatable/usage/quickConnectHost";
 import { ToastContainer } from "../components";
 import { PanelWorkspace } from "../layout";
 import { useDataStore } from "../stores/data";
@@ -195,6 +197,21 @@ export function CatalogBuilderCore() {
     );
     return () => setDataHistoryRecorder(null);
   }, [t, workspace]);
+  const quickConnect = useMemo(
+    () =>
+      workspace
+        ? createCatalogQuickConnectHost(
+            workspace,
+            {
+              apply: (change, options) =>
+                useDataStore.getState().applyDataChange(change, options),
+              collection: (id) => useDataStore.getState().collections.get(id),
+            },
+            (name) => t("history.entryDataCollectionCreate", { name }),
+          )
+        : null,
+    [t, workspace],
+  );
   const dataUsage = useMemo(
     () => (workspace ? createCatalogDataUsageSource(workspace) : null),
     [workspace],
@@ -267,7 +284,9 @@ export function CatalogBuilderCore() {
       {workspace ? (
         <CatalogWorkspaceProvider workspace={workspace}>
           <DataUsageSourceContext.Provider value={dataUsage}>
-            {body}
+            <QuickConnectHostContext.Provider value={quickConnect}>
+              {body}
+            </QuickConnectHostContext.Provider>
           </DataUsageSourceContext.Provider>
         </CatalogWorkspaceProvider>
       ) : (

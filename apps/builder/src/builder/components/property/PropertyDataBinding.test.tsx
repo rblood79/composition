@@ -34,6 +34,10 @@ const quickConnect = vi.hoisted(() => ({
 }));
 vi.mock("../../panels/datatable/utils/quickConnect", () => ({
   captureQuickConnectTarget: quickConnect.capture,
+  precheckQuickConnectTarget: () => ({ ok: true }),
+  planTableColumns: () => null,
+  executeQuickConnect: async () => undefined,
+  readBackQuickConnect: () => true,
 }));
 
 // collection 목록 hook mock — 단위 렌더용 (실제 hook 계약: DataTable[] 반환)
