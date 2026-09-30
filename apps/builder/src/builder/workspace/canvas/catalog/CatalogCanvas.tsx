@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { CatalogCanvasPicking } from "../../../catalogRuntime/canvasPick";
 import { CatalogCanvasScene } from "../../../catalogRuntime/canvasScene";
 import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
 import { DotBackground } from "../../components/DotBackground";
@@ -17,6 +18,8 @@ import { ViewportControlBridge } from "../viewport";
 import { getViewportController } from "../viewport/ViewportController";
 import { computeFitViewport } from "../viewport/viewportActions";
 import { viewportState } from "../viewport/viewportState";
+import { hitTestPoint } from "../wasm-bindings/spatialIndex";
+import { catalogOverlayNode } from "./catalogOverlay";
 
 export interface CatalogCanvasProps {
   workspace: CatalogWorkspace;
@@ -68,33 +71,74 @@ export function CatalogCanvas({
       callbacks.current.onError?.(error);
       return;
     }
-    renderer.setContentNode(
-      scene.contentNode(ck, () =>
-        skiaFontManager.getFamilies().length > 0
-          ? skiaFontManager.getFontMgr()
-          : undefined,
-      ),
+    const fontMgr = () =>
+      skiaFontManager.getFamilies().length > 0
+        ? skiaFontManager.getFontMgr()
+        : undefined;
+    renderer.setContentNode(scene.contentNode(ck, fontMgr));
+    renderer.setOverlayNode(
+      catalogOverlayNode(ck, {
+        session: workspace.session.getSnapshot,
+        bounds: () => scene.stream.boundsMap,
+        recordsOf: (sourceId) => workspace.root.recordsOfSource(sourceId),
+        zoom: () => Math.max(viewportState.zoom, 0.001),
+        fontMgr,
+      }),
     );
+    // The overlay follows the session and the scene's boxes (its own version, no content redraw).
+    let overlayVersion = 0;
+    const invalidateOverlay = () => {
+      overlayVersion += 1;
+      scheduler.invalidate();
+    };
+    const picking = new CatalogCanvasPicking({
+      get records() {
+        return workspace.root.domInputs;
+      },
+      session: workspace.session,
+      get stream() {
+        return scene.stream;
+      },
+      query: hitTestPoint,
+      selectRecords: (ids, options) => workspace.selectRecords(ids, options),
+      itemOf: (id) => workspace.itemOfRecord(id),
+    });
 
-    // Open on the first page frame.
-    const [firstPage] = workspace.root.pageFrameRects().values();
-    if (firstPage) {
+    // Open on the first page frame (again after a breakpoint switch: the page size changes).
+    const fitFirstPage = (containerSize: { width: number; height: number }) => {
+      const [firstPage] = workspace.root.pageFrameRects().values();
+      if (!firstPage) return;
       const fitted = computeFitViewport({
         canvasSize: firstPage,
-        containerSize: containerRect,
+        containerSize,
       });
       getViewportController().setPosition(
         fitted.x - firstPage.x * fitted.scale,
         fitted.y - firstPage.y * fitted.scale,
         fitted.scale,
       );
-    }
+    };
+    fitFirstPage(containerRect);
 
     let running = true;
     let presented = false;
     let contextLost = false;
+    let sceneStale = false;
+    const syncScene = () => {
+      if (!sceneStale) return;
+      sceneStale = false;
+      try {
+        if (scene.sync().kind !== "unchanged") {
+          renderer.invalidateContent();
+          overlayVersion += 1;
+        }
+      } catch (error) {
+        callbacks.current.onError?.(error);
+      }
+    };
     const renderFrame = () => {
       if (!running || contextLost) return;
+      syncScene();
       const zoom = Math.max(viewportState.zoom, 0.001);
       const camera = { zoom, panX: viewportState.x, panY: viewportState.y };
       const drawn = renderer.render(
@@ -106,7 +150,7 @@ export function CatalogCanvas({
         ),
         getRegistryVersion(),
         camera,
-        0,
+        overlayVersion,
         0,
       );
       if (drawn && !presented) {
@@ -117,13 +161,109 @@ export function CatalogCanvas({
     };
     const scheduler = createFrameScheduler(renderFrame);
     const unsubscribeFrames = subscribeCanvasFrames(scheduler.invalidate);
+    // A step listener runs before the root's own subscribers deliver the step's per-node deltas
+    // (`CatalogRuntime.step`), so the scene follows at the next frame (or pick), not inside it.
     const unsubscribeSteps = workspace.runtime.subscribeSteps(() => {
+      sceneStale = true;
+      scheduler.invalidate();
+    });
+    const unsubscribeSession = workspace.session.subscribe(invalidateOverlay);
+    // Dev-only live harness handle: scene boxes and the camera (screen ↔ scene).
+    if (import.meta.env.DEV) {
+      const handle = ((
+        window as unknown as Record<string, unknown>
+      ).__COMPOSITION_CATALOG__ ??= {}) as Record<string, unknown>;
+      handle.canvas = {
+        boundsOf: (id: string) => {
+          syncScene();
+          return scene.stream.boundsMap.get(id);
+        },
+        camera: () => ({ ...viewportState }),
+      };
+    }
+    const unsubscribeRoot = workspace.subscribeRoot(() => {
       try {
-        if (scene.sync().kind !== "unchanged") renderer.invalidateContent();
+        scene.replaceRoot(workspace.root);
+        sceneStale = false;
       } catch (error) {
         callbacks.current.onError?.(error);
+        return;
       }
+      fitFirstPage(containerEl.getBoundingClientRect());
+      renderer.invalidateContent();
+      invalidateOverlay();
     });
+
+    // Pointer picking (scene coordinates from the camera). Pan owns its pointer (viewport bridge).
+    const scenePoint = (event: MouseEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      const zoom = Math.max(viewportState.zoom, 0.001);
+      return {
+        x: (event.clientX - rect.left - viewportState.x) / zoom,
+        y: (event.clientY - rect.top - viewportState.y) / zoom,
+      };
+    };
+    // The last hovered scene point: a click, double click or Escape changes what a click there
+    // selects (the context), so hover follows it without waiting for the next move.
+    let lastPoint: { x: number; y: number } | undefined;
+    const rehover = () => {
+      if (lastPoint && !gestureSession.shouldSuppressElementHover())
+        picking.hover(lastPoint.x, lastPoint.y);
+    };
+    const onPointerDown = (event: PointerEvent) => {
+      if (gestureSession.blocksPointerDown(event.pointerId)) return;
+      if (
+        gestureSession.beginPointer(event.pointerId, event.button) !== "element"
+      )
+        return;
+      containerEl.focus({ preventScroll: true });
+      syncScene();
+      const { x, y } = scenePoint(event);
+      picking.click(x, y, {
+        additive: event.shiftKey,
+        deep: event.metaKey || event.ctrlKey,
+      });
+      lastPoint = { x, y };
+      rehover();
+    };
+    const onPointerEnd = (event: PointerEvent) => {
+      if (gestureSession.ownerFor(event.pointerId) === "element")
+        gestureSession.endPointer(event.pointerId);
+    };
+    const onPointerMove = (event: PointerEvent) => {
+      if (event.buttons !== 0 || gestureSession.shouldSuppressElementHover()) {
+        picking.leave();
+        return;
+      }
+      syncScene();
+      const { x, y } = scenePoint(event);
+      lastPoint = { x, y };
+      picking.hover(x, y);
+    };
+    const onPointerLeave = () => {
+      lastPoint = undefined;
+      picking.leave();
+    };
+    const onDoubleClick = (event: MouseEvent) => {
+      syncScene();
+      const { x, y } = scenePoint(event);
+      picking.doubleClick(x, y);
+      rehover();
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || isEditableTarget(event.target)) return;
+      syncScene();
+      picking.escape();
+      rehover();
+    };
+    canvas.addEventListener("pointerdown", onPointerDown);
+    canvas.addEventListener("pointermove", onPointerMove);
+    canvas.addEventListener("pointerleave", onPointerLeave);
+    canvas.addEventListener("dblclick", onDoubleClick);
+    window.addEventListener("pointerup", onPointerEnd);
+    window.addEventListener("pointercancel", onPointerEnd);
+    window.addEventListener("keydown", onKeyDown);
+
     const updatePaused = () => {
       scheduler.setPaused(document.hidden || contextLost);
       scheduler.invalidate();
@@ -159,13 +299,22 @@ export function CatalogCanvas({
       resize.disconnect();
       unwatchContext();
       document.removeEventListener("visibilitychange", updatePaused);
+      canvas.removeEventListener("pointerdown", onPointerDown);
+      canvas.removeEventListener("pointermove", onPointerMove);
+      canvas.removeEventListener("pointerleave", onPointerLeave);
+      canvas.removeEventListener("dblclick", onDoubleClick);
+      window.removeEventListener("pointerup", onPointerEnd);
+      window.removeEventListener("pointercancel", onPointerEnd);
+      window.removeEventListener("keydown", onKeyDown);
+      unsubscribeRoot();
+      unsubscribeSession();
       unsubscribeSteps();
       unsubscribeFrames();
       scheduler.dispose();
       scene.dispose();
       renderer.dispose();
     };
-  }, [workspace, containerEl]);
+  }, [workspace, containerEl, gestureSession]);
 
   // Module caches (pictures, paints, images) are released when the Canvas leaves.
   useEffect(() => () => destroyAllSkiaCaches(), []);
@@ -203,3 +352,10 @@ export function CatalogCanvas({
     </div>
   );
 }
+
+const isEditableTarget = (target: EventTarget | null) =>
+  target instanceof HTMLElement &&
+  (target.isContentEditable ||
+    target.tagName === "INPUT" ||
+    target.tagName === "TEXTAREA" ||
+    target.tagName === "SELECT");

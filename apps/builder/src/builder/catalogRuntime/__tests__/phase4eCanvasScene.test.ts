@@ -54,6 +54,10 @@ async function open() {
     {
       engine: await nodeLayoutEngine(),
       viewport: { width: 1920, height: 1080 },
+      viewportOf: (breakpoint) =>
+        breakpoint === "mobile"
+          ? { width: 390, height: 844 }
+          : { width: 1920, height: 1080 },
       autosaveSchedule: () => {},
     },
   );
@@ -115,5 +119,81 @@ describe("ADR-248 Phase 4e-2 Canvas scene", () => {
     expect(getSkiaNode(record)?.text?.content).toBe("Hello");
     scene.dispose();
     expect(getSkiaNode(bodyRecord)).toBeUndefined();
+  });
+
+  it("a breakpoint switch draws a new root of the same runtime; history and selection carry over", async () => {
+    const { workspace, scene } = await open();
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [text("a", "Hello")],
+        rootIds: [text("a", "").id],
+        newId: allocator(),
+      }),
+    );
+    scene.sync();
+    const [record] = workspace.root.recordsOfSource(text("a", "").id);
+    workspace.selectRecords([record]);
+    const before = workspace.root;
+    let switched = 0;
+    workspace.subscribeRoot(() => {
+      switched += 1;
+      expect(scene.replaceRoot(workspace.root)).toEqual({
+        kind: "rebound",
+        reason: "root",
+      });
+    });
+
+    workspace.setBreakpoint("mobile");
+    expect(switched).toBe(1);
+    expect(workspace.root).not.toBe(before);
+    expect(workspace.root.breakpoint).toBe("mobile");
+    expect(workspace.session.getSnapshot().breakpoint).toBe("mobile");
+    expect(getSkiaNode(scene.pageRootIds[0])).toMatchObject({
+      width: 390,
+      height: 844,
+    });
+    expect(
+      workspace.session.getSnapshot().selection.map((item) => item.identity),
+    ).toEqual([record]);
+    // The same breakpoint again is not a switch.
+    workspace.setBreakpoint("mobile");
+    expect(switched).toBe(1);
+
+    // Edits and undo run through the new root.
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: text("a", "").id }],
+        props: { children: { kind: "set", value: "Mobile" } },
+      }),
+    );
+    expect(scene.sync().kind).toBe("patched");
+    expect(getSkiaNode(record)?.text?.content).toBe("Mobile");
+    workspace.undo();
+    scene.sync();
+    expect(getSkiaNode(record)?.text?.content).toBe("Hello");
+
+    workspace.setBreakpoint("desktop");
+    expect(getSkiaNode(scene.pageRootIds[0])).toMatchObject({ width: 1920 });
+    scene.dispose();
+  });
+
+  it("a step listener runs before the root delivers the step's deltas: the Canvas syncs after the step", async () => {
+    const { workspace, scene } = await open();
+    const inListener: string[] = [];
+    workspace.runtime.subscribeSteps(() => inListener.push(scene.sync().kind));
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [text("a", "Hello")],
+        rootIds: [text("a", "").id],
+        newId: allocator(),
+      }),
+    );
+    // Inside the listener the binding has no dirty node yet (CatalogCanvas marks the scene stale
+    // there and syncs at the next frame or pick).
+    expect(inListener).toEqual(["unchanged"]);
+    expect(scene.sync()).toEqual({ kind: "rebound", reason: "structure" });
+    scene.dispose();
   });
 });

@@ -19,7 +19,8 @@ const sameIds = (left: readonly string[], right: readonly string[]) =>
 
 /**
  * ADR-248 Phase 4e-2: the Builder Canvas scene of one open project — every page root bound through
- * `bindCatalogCanvas` into one command stream. After each published step `sync()` applies the
+ * `bindCatalogCanvas` into one command stream. Once a step is delivered (after `execute` / `undo`
+ * / `redo` returns — a step listener runs before the root's subscribers) `sync()` applies the
  * subscribed per-node deltas (subtree splice); what the patch path does not own (structure,
  * geometry reaching a page frame, the page root set) binds the scene again.
  */
@@ -27,7 +28,7 @@ export class CatalogCanvasScene {
   private binding: ReturnType<typeof bindCatalogCanvas>;
   private rootIds: string[];
 
-  constructor(private readonly root: CatalogCompositionRoot) {
+  constructor(private root: CatalogCompositionRoot) {
     this.rootIds = root.pageRootRecords();
     this.binding = bindCatalogCanvas(root, this.rootIds);
   }
@@ -47,6 +48,12 @@ export class CatalogCanvasScene {
     return update.rebound.length || update.patchRoots.length
       ? { kind: "patched", update }
       : { kind: "unchanged" };
+  }
+
+  /** Draw another root of the same runtime (a breakpoint switch). */
+  replaceRoot(root: CatalogCompositionRoot): CatalogCanvasSceneSync {
+    this.root = root;
+    return this.rebind("root");
   }
 
   private rebind(reason: string): CatalogCanvasSceneSync {

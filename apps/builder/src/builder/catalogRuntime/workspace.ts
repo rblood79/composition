@@ -1,5 +1,6 @@
 import type { CatalogGraph } from "../../../../../packages/shared/src/catalog/document/graph";
 import type {
+  BreakpointName,
   EntryId,
   NodeId,
 } from "../../../../../packages/shared/src/catalog/document/types";
@@ -29,6 +30,11 @@ import type { CatalogStorage } from "./storage";
 export interface CatalogWorkspaceOptions {
   engine: LayoutEngineAPI;
   viewport: { width: number; height: number };
+  /** The page size of each breakpoint (`setBreakpoint`); default: `viewport` for every one. */
+  viewportOf?: (breakpoint: BreakpointName) => {
+    width: number;
+    height: number;
+  };
   root?: CatalogRootOptions;
   slotChrome?: SlotChromeContext;
   textMeasure?: CatalogTextMeasure;
@@ -49,7 +55,8 @@ const isElementRecord = (sourceId: string) =>
  */
 export class CatalogWorkspace {
   readonly runtime: CatalogRuntime;
-  readonly root: CatalogCompositionRoot;
+  private currentRoot: CatalogCompositionRoot;
+  private readonly rootListeners = new Set<() => void>();
   readonly session: CatalogSession;
   readonly readModel: CatalogReadModel;
   readonly autosave: CatalogAutosave;
@@ -58,19 +65,10 @@ export class CatalogWorkspace {
   constructor(
     graph: CatalogGraph,
     storage: CatalogStorage,
-    options: CatalogWorkspaceOptions,
+    private readonly options: CatalogWorkspaceOptions,
   ) {
     this.runtime = new CatalogRuntime(graph, storage);
-    this.root = new CatalogCompositionRoot(
-      this.runtime,
-      options.engine,
-      options.viewport,
-      undefined,
-      options.slotChrome,
-      options.textMeasure,
-      options.locale,
-      { pageFrames: true, ...options.root },
-    );
+    this.currentRoot = this.createRoot(options.root?.breakpoint ?? "desktop");
     this.session = new CatalogSession(this.runtime, {
       identityExists: (identity) => this.root.domInputs.has(identity),
     });
@@ -78,6 +76,41 @@ export class CatalogWorkspace {
     this.autosave = new CatalogAutosave(this.runtime, {
       schedule: options.autosaveSchedule,
     });
+  }
+
+  /** Canvas and DOM records of the current breakpoint (`setBreakpoint` replaces it). */
+  get root(): CatalogCompositionRoot {
+    return this.currentRoot;
+  }
+  private createRoot(breakpoint: BreakpointName): CatalogCompositionRoot {
+    const options = this.options;
+    return new CatalogCompositionRoot(
+      this.runtime,
+      options.engine,
+      options.viewportOf?.(breakpoint) ?? options.viewport,
+      undefined,
+      options.slotChrome,
+      options.textMeasure,
+      options.locale,
+      { pageFrames: true, ...options.root, breakpoint },
+    );
+  }
+  /**
+   * Show another breakpoint: a new composition root over the same runtime (history, saves and
+   * the session stay); the layout engine starts empty. Root listeners (the Canvas scene) bind the
+   * new root; the session drops positions the new root does not draw.
+   */
+  setBreakpoint(breakpoint: BreakpointName): void {
+    if (breakpoint === this.currentRoot.breakpoint) return;
+    this.options.engine.clear();
+    this.currentRoot = this.createRoot(breakpoint);
+    this.session.setBreakpoint(breakpoint);
+    this.session.reconcile();
+    for (const listener of [...this.rootListeners]) listener();
+  }
+  subscribeRoot(listener: () => void): () => void {
+    this.rootListeners.add(listener);
+    return () => this.rootListeners.delete(listener);
   }
 
   get projectId(): EntryId<"project"> {
@@ -145,10 +178,15 @@ export class CatalogWorkspace {
   ): void {
     const items: CatalogSelectionItem[] = [];
     for (const identity of recordIds) {
-      const position = this.positionOfRecord(identity);
-      if (position) items.push({ target: position.target, identity });
+      const item = this.itemOfRecord(identity);
+      if (item) items.push(item);
     }
     this.session.select(items, options);
+  }
+  /** The selection item of a drawn record (its row's target); `undefined` = not an element row. */
+  itemOfRecord(identity: string): CatalogSelectionItem | undefined {
+    const position = this.positionOfRecord(identity);
+    return position && { target: position.target, identity };
   }
 
   /** Attach the Builder's Preview iframe (one at a time); returns its channel. */
@@ -163,6 +201,7 @@ export class CatalogWorkspace {
   }
 
   dispose(): void {
+    this.rootListeners.clear();
     this.detachPreview();
     this.autosave.dispose();
     this.readModel.dispose();

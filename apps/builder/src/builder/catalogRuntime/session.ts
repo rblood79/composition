@@ -177,8 +177,8 @@ export class CatalogSession {
     this.set({ textEditing: undefined });
   }
 
-  /** Drop what no longer shows an element (every published step calls it). */
-  private reconcile(): void {
+  /** Drop what no longer shows an element (every published step and a root switch call it). */
+  reconcile(): void {
     const graph = this.runtime.graph;
     const project = graph.getEntry(graph.projectId);
     const pageId =

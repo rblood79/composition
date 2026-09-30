@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useLayoutEffect, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { useParams } from "react-router";
 import type { Key } from "react-aria-components/Collection";
 import { releaseStaticShell } from "../../staticShell/staticShellRelease";
@@ -8,6 +15,7 @@ import {
 } from "../fonts/loadCustomFontsToSkia";
 import { useI18n } from "../../i18n";
 import { CatalogGraph } from "../../../../../packages/shared/src/catalog/document/graph";
+import type { BreakpointName } from "../../../../../packages/shared/src/catalog/document/types";
 import { loadCatalogProductLibrary } from "../catalogRuntime/library";
 import {
   catalogProjectIdOf,
@@ -45,11 +53,9 @@ type OpenState =
   | { kind: "open"; workspace: CatalogWorkspace; name: string }
   | { kind: "failed"; message: string };
 
-/** ADR-248 Phase 4e-2: breakpoint 전환은 Canvas 상호작용 (4e-3) 에서 root 를 다시 만든다. */
-const OPEN_BREAKPOINTS = CANVAS_BREAKPOINTS.filter(
-  (item) => item.id === "desktop",
-);
-const OPEN_BREAKPOINT = new Set<Key>(["desktop"]);
+/** ADR-248 Phase 4e-3: a breakpoint switch builds the composition root again (same runtime). */
+const OPEN_BREAKPOINTS = [...CANVAS_BREAKPOINTS];
+const noSubscription = () => () => {};
 
 /**
  * ADR-248 Phase 4e-2: the Builder entry. Opening a project = load its catalog document from the
@@ -89,13 +95,18 @@ export function CatalogBuilderCore() {
       opened = new CatalogWorkspace(graph, storage, {
         engine: createLayoutEngine(),
         viewport: CANVAS_VIEWPORT.desktop,
+        viewportOf: (breakpoint) => CANVAS_VIEWPORT[breakpoint],
         textMeasure: catalogTextMeasure,
         locale: navigator.language,
       });
       // Dev-only live harness handle (Playwright exercises edits before the panels move).
       if (import.meta.env.DEV)
         (window as unknown as Record<string, unknown>).__COMPOSITION_CATALOG__ =
-          { workspace: opened, commands: await import("../../../../../packages/shared/src/catalog/commands") };
+          {
+            workspace: opened,
+            commands:
+              await import("../../../../../packages/shared/src/catalog/commands"),
+          };
       const project = graph.getEntry(graph.projectId);
       setState({
         kind: "open",
@@ -129,12 +140,9 @@ export function CatalogBuilderCore() {
     if (presented) performance.mark("composition:builder.presented");
   }, [presented]);
 
-  const toastError = useCallback(
-    (message: string) => {
-      useToastStore.getState().showToast("error", message);
-    },
-    [],
-  );
+  const toastError = useCallback((message: string) => {
+    useToastStore.getState().showToast("error", message);
+  }, []);
   // Preview · publish: no path opens a catalog project yet (ADR-248 §4.3) — an explicit failure.
   const handlePreview = useCallback(() => {
     try {
@@ -161,13 +169,25 @@ export function CatalogBuilderCore() {
   );
 
   const workspace = state.kind === "open" ? state.workspace : undefined;
+  const breakpoint = useSyncExternalStore(
+    workspace?.session.subscribe ?? noSubscription,
+    () => workspace?.session.getSnapshot().breakpoint ?? "desktop",
+  );
+  const selectedBreakpoint = useMemo(
+    () => new Set<Key>([breakpoint]),
+    [breakpoint],
+  );
+  const handleBreakpointChange = useCallback(
+    (key: Key) => workspace?.setBreakpoint(key as BreakpointName),
+    [workspace],
+  );
   const header = (
     <BuilderHeader
       projectId={routeId}
       projectName={state.kind === "open" ? state.name : undefined}
-      breakpoint={OPEN_BREAKPOINT}
+      breakpoint={selectedBreakpoint}
       breakpoints={OPEN_BREAKPOINTS}
-      onBreakpointChange={() => {}}
+      onBreakpointChange={handleBreakpointChange}
       onPreview={handlePreview}
       onPlay={() => {}}
       onImportProject={handleExchange}
