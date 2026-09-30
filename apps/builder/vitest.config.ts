@@ -51,6 +51,7 @@ export default defineConfig({
   test: {
     exclude: ["**/node_modules/**", "**/*.browser.test.tsx"],
     environment: "jsdom",
+    setupFiles: ["./src/test/rtlCleanup.ts"],
     include: [
       "src/**/__tests__/**/*.test.ts",
       "src/**/__tests__/**/*.test.tsx",
