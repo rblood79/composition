@@ -89,3 +89,25 @@ export function isCatalogPreviewSnapshotRequest(
     (value.haveRevision === null || isRevision(value.haveRevision))
   );
 }
+
+/**
+ * Builder → Preview: the page the editor shows (sent after each snapshot and on a page switch).
+ * The Preview shows it until its own navigation (a link, a navigate action) moves elsewhere.
+ */
+export interface CatalogPreviewViewMessage {
+  readonly type: "CATALOG_VIEW";
+  readonly version: typeof CATALOG_PREVIEW_PAYLOAD_VERSION;
+  readonly pageId: EntryId<"page">;
+}
+
+export function parseCatalogPreviewView(
+  value: unknown,
+): CatalogPreviewViewMessage | null {
+  return isRecord(value) &&
+    value.type === "CATALOG_VIEW" &&
+    value.version === CATALOG_PREVIEW_PAYLOAD_VERSION &&
+    typeof value.pageId === "string" &&
+    value.pageId.startsWith("project:page:")
+    ? (value as unknown as CatalogPreviewViewMessage)
+    : null;
+}

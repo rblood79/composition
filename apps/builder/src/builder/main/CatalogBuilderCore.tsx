@@ -70,6 +70,8 @@ import {
   CANVAS_VIEWPORT,
 } from "../workspace/canvasBreakpoints";
 import { CatalogCanvas } from "../workspace/canvas/catalog/CatalogCanvas";
+import { CatalogCompareLayout } from "../workspace/canvas/catalog/CatalogPreviewFrame";
+import { useCompareModeStore } from "../workspace/canvas/stores/compareMode";
 import { initAllWasm } from "../workspace/canvas/wasm-bindings/init";
 import { createLayoutEngine } from "../workspace/canvas/wasm-bindings/layoutBridge";
 import { getCanvasKit } from "../workspace/canvas/skia/initCanvasKit";
@@ -365,17 +367,25 @@ export function CatalogBuilderCore() {
       saveStatus={workspace ? <CatalogSaveStatusIndicator /> : null}
     />
   );
+  // Compare Mode: the Preview iframe beside the Canvas (ADR-248 4e-6).
+  const compareMode = useCompareModeStore((store) => store.isCompareMode);
+  const canvas = workspace && (
+    <CatalogCanvas
+      key={workspace.projectId}
+      workspace={workspace}
+      onFirstFrame={() => setPresented(true)}
+      onError={handleSceneError}
+    />
+  );
   const body = (
     <PanelWorkspace chrome={header}>
       <main className="workspace">
-        {workspace && (
-          <CatalogCanvas
-            key={workspace.projectId}
-            workspace={workspace}
-            onFirstFrame={() => setPresented(true)}
-            onError={handleSceneError}
-          />
-        )}
+        {workspace &&
+          (compareMode ? (
+            <CatalogCompareLayout workspace={workspace} canvas={canvas} />
+          ) : (
+            canvas
+          ))}
       </main>
     </PanelWorkspace>
   );

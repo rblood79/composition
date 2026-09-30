@@ -71,6 +71,14 @@ function initPreviewRuntime() {
   document.body.setAttribute("data-canvas", "true");
   document.body.setAttribute("data-preview", "true");
 
+  // ADR-248 4e-6 — catalog 프로젝트의 Preview (`?catalog=1`): 수신기 · 복제본 root · DOM binding (lazy)
+  if (new URLSearchParams(window.location.search).get("catalog") === "1") {
+    void import("./catalog/catalogPreviewApp").then((m) =>
+      m.startCatalogPreview(),
+    );
+    return;
+  }
+
   // React를 document.body에 직접 마운트
   // - DOM 트리와 데이터 트리가 완벽히 일치
   // - body element가 실제 <body> 태그와 1:1 매핑

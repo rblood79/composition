@@ -11,7 +11,10 @@ import type {
   ThemePreset,
   TokenEntry,
 } from "../../../../../packages/shared/src/catalog/document/types";
-import { resolveThemeSnapshot } from "../../utils/theme/resolveThemeSnapshot";
+import {
+  resolveThemeSnapshot,
+  type ResolvedThemeSnapshot,
+} from "../../utils/theme/resolveThemeSnapshot";
 import { installThemeMaps } from "../../utils/theme/themeMaps";
 import { DEFAULT_BASE_TYPOGRAPHY } from "../fonts/customFonts";
 
@@ -141,6 +144,8 @@ export interface CatalogThemeState {
   colorMode: "light" | "dark";
   /** Install the theme into the token maps the Canvas and library tokens read. */
   install: () => void;
+  /** The resolved theme (the DOM's CSS variables · base typography), computed once. */
+  snapshot: () => ResolvedThemeSnapshot;
 }
 
 /**
@@ -158,15 +163,16 @@ export function catalogThemeState(graph: CatalogGraph): CatalogThemeState {
   const darkMode = definition.preset.darkMode;
   const colorMode =
     darkMode === "system" ? (prefersDark() ? "dark" : "light") : darkMode;
+  let resolved: ResolvedThemeSnapshot | undefined;
+  const snapshot = () =>
+    (resolved ??= resolveThemeSnapshot(definition, {
+      rootTokens,
+      baseTypographySeed: DEFAULT_BASE_TYPOGRAPHY,
+    }));
   return {
     key: JSON.stringify([definition, rootTokens, colorMode]),
     colorMode: colorMode === "dark" ? "dark" : "light",
-    install: () =>
-      installThemeMaps(
-        resolveThemeSnapshot(definition, {
-          rootTokens,
-          baseTypographySeed: DEFAULT_BASE_TYPOGRAPHY,
-        }),
-      ),
+    install: () => installThemeMaps(snapshot()),
+    snapshot,
   };
 }
