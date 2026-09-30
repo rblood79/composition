@@ -13,6 +13,7 @@ import type {
   NodeParent,
   PropWrites,
 } from "../../../../../packages/shared/src/catalog/document/types";
+import { getDefaultProps } from "../../types/builder/unified.types";
 import type { CatalogConsumerNode } from "./compositionRoot";
 import type { CatalogSelectionItem } from "./session";
 
@@ -44,6 +45,44 @@ export function catalogPaletteDefinitionId(
     : catalogTypeDefinitionId(type);
 }
 
+/**
+ * The own props a new node of a palette type starts with: the type's creation defaults (the old
+ * palette's `getDefaultProps` — a Text's text, an Icon's glyph …) and the item's initial props,
+ * kept where the definition accepts the key and the value differs from its default (so editing the
+ * definition still reaches the node). `chartType` marks the palette entry point and is kept as
+ * given.
+ */
+export function catalogCreationProps(
+  library: CatalogLibrary,
+  definitionId: LibraryDefinitionId,
+  type: string,
+  initialProps?: Readonly<Record<string, unknown>>,
+): Record<string, PropWrites[string]> {
+  const definition = library.definitions.get(definitionId) as
+    | {
+        accepts?: Readonly<Record<string, unknown>>;
+        defaults?: Readonly<Record<string, unknown>>;
+      }
+    | undefined;
+  const accepts = definition?.accepts ?? {};
+  const defaults = definition?.defaults ?? {};
+  const props: Record<string, PropWrites[string]> = {};
+  const given = { ...(getDefaultProps(type) as Record<string, unknown>) };
+  for (const [key, value] of Object.entries(initialProps ?? {}))
+    given[key] = value;
+  for (const [key, value] of Object.entries(given)) {
+    if (value === undefined) continue;
+    const initial = initialProps !== undefined && key in initialProps;
+    if (key !== "chartType" && !(key in accepts) && !initial) continue;
+    if (
+      key === "chartType" ||
+      JSON.stringify(defaults[key]) !== JSON.stringify(value)
+    )
+      props[key] = { kind: "set", value } as PropWrites[string];
+  }
+  return props;
+}
+
 const parentOf = (target: EditTarget): NodeParent =>
   target.kind === "node"
     ? { kind: "node", id: target.id }
@@ -63,20 +102,12 @@ export function catalogPaletteInsertCommand(
   initialProps?: Readonly<Record<string, unknown>>,
 ): CatalogCommand | undefined {
   const definitionId = catalogPaletteDefinitionId(host.graph.library, type);
-  const defaults =
-    (
-      host.graph.library.definitions.get(definitionId) as
-        { defaults?: Readonly<Record<string, unknown>> } | undefined
-    )?.defaults ?? {};
-  // Only what differs from the definition stays the instance's own (so editing the origin still
-  // reaches it); `chartType` marks the palette entry point and is kept as given.
-  const props: Record<string, PropWrites[string]> = {};
-  for (const [key, value] of Object.entries(initialProps ?? {}))
-    if (
-      key === "chartType" ||
-      JSON.stringify(defaults[key]) !== JSON.stringify(value)
-    )
-      props[key] = { kind: "set", value } as PropWrites[string];
+  const props = catalogCreationProps(
+    host.graph.library,
+    definitionId,
+    type,
+    initialProps,
+  );
   const entry: NodeEntry = {
     kind: "node",
     id: host.newId("node") as NodeId,

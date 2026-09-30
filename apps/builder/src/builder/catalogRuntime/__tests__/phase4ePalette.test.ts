@@ -92,6 +92,19 @@ describe("ADR-248 Phase 4e-4 Components palette", () => {
     expect(children(BODY)).toHaveLength(2);
   });
 
+  it("a new node starts with the type's creation props (the old palette's defaults)", async () => {
+    const { workspace, add } = await open();
+    const graph = workspace.runtime.graph;
+    const own = (id: NodeId) =>
+      (graph.getEntry(id) as { props: Record<string, { value?: unknown }> })
+        .props;
+    // A Text shows text and an Icon a glyph (the definition defaults have neither).
+    expect(typeof own(add("Text")).children?.value).toBe("string");
+    expect(typeof own(add("Icon")).iconName?.value).toBe("string");
+    // Keys the definition does not accept (factory style …) stay out.
+    expect(own(add("Text"))).not.toHaveProperty("style");
+  });
+
   it("every palette item has a library definition the page body accepts", async () => {
     const { host, workspace } = await open();
     const refused: string[] = [];

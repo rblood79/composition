@@ -27,6 +27,7 @@ import { CatalogAttributesSection } from "./CatalogAttributesSection";
 import { CatalogButtonChildFields } from "./CatalogButtonChildFields";
 import { CatalogComponentSection } from "./CatalogComponentSection";
 import { CatalogPageSection } from "./CatalogPageSection";
+import { CatalogSlotSection } from "./CatalogSlotSection";
 import { CatalogStateSection } from "./CatalogStateSection";
 import { CATALOG_ITEMS_SOURCE } from "./catalogItemsSource";
 import { useChartPropertyExtras } from "../useChartPropertyExtras";
@@ -136,6 +137,10 @@ function CatalogPropertiesContent() {
                 nodeId={first.target.id}
               />
             )}
+            <CatalogSlotSection
+              key={`slot:${targetKey(first.target)}`}
+              target={first.target}
+            />
             <CatalogFields
               key={targetKey(first.target)}
               elementId={first.identity}

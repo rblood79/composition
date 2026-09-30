@@ -7,6 +7,7 @@ import type {
   EntryId,
   NodeEntry,
   NodeId,
+  TemplateId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
 import { I18nProvider } from "../../../i18n";
@@ -17,9 +18,16 @@ import { CATALOG_FIELD_VALUE_SOURCE } from "../../panels/properties/catalog/cata
 import { CATALOG_ITEMS_SOURCE } from "../../panels/properties/catalog/catalogItemsSource";
 import { CatalogPropertiesPanel } from "../../panels/properties/catalog/CatalogPropertiesPanel";
 import { CatalogPageSection } from "../../panels/properties/catalog/CatalogPageSection";
+import { CatalogSlotSection } from "../../panels/properties/catalog/CatalogSlotSection";
 import { CatalogStateSection } from "../../panels/properties/catalog/CatalogStateSection";
 import { catalogHtmlIdCommand, catalogUniqueHtmlId } from "../attributes";
 import { catalogButtonChildCommands } from "../buttonChildren";
+import { catalogComponentCommands } from "../componentActions";
+import {
+  catalogSlotCommands,
+  catalogSlotDeclaration,
+  catalogSlotPosition,
+} from "../slots";
 import { catalogEditContract } from "../editContract";
 import { newCatalogProjectDocument } from "../project";
 import {
@@ -307,5 +315,75 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
     expect(textInputs()[0].closest(".fieldset-row")?.textContent).toContain(
       "Text",
     );
+  });
+
+  it("the slot section declares a slot on a template node and restores an instance's slot content", async () => {
+    const { workspace } = await open();
+    const graph = workspace.runtime.graph;
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [
+          {
+            ...node("card", "lib:definition:type-frame"),
+            children: [id("slotted")],
+          },
+          node("slotted", "lib:definition:type-frame"),
+        ],
+        rootIds: [id("card")],
+        newId: workspace.newId,
+      }),
+    );
+    const { plan } = workspace.execute(
+      catalogComponentCommands.create(id("card"), "Card", workspace.newId),
+    );
+    const instance = plan.selectAfter![0];
+    const declare = render(
+      <I18nProvider initialLocale="en-US">
+        <CatalogWorkspaceProvider workspace={workspace}>
+          <CatalogSlotSection target={{ kind: "node", id: id("slotted") }} />
+        </CatalogWorkspaceProvider>
+      </I18nProvider>,
+    );
+    await act(async () => {
+      fireEvent.click(within(declare.container).getByRole("switch"));
+    });
+    expect(catalogSlotDeclaration(graph, id("slotted"))).toEqual({
+      slot: { name: "content", required: false },
+    });
+    declare.unmount();
+
+    const target = {
+      kind: "descendant" as const,
+      ownerId: instance,
+      address: {
+        instances: [instance],
+        templatePath: [id("card"), id("slotted")] as TemplateId[],
+      },
+    };
+    workspace.execute(
+      catalogSlotCommands.fill(target, "lib:definition:text", workspace.newId),
+    );
+    const position = render(
+      <I18nProvider initialLocale="en-US">
+        <CatalogWorkspaceProvider workspace={workspace}>
+          <CatalogSlotSection target={target} />
+        </CatalogWorkspaceProvider>
+      </I18nProvider>,
+    );
+    expect(
+      position.container.querySelectorAll(".frame-slot-fill .list-row"),
+    ).toHaveLength(1);
+    await act(async () => {
+      fireEvent.click(
+        within(position.container).getByRole("button", {
+          name: "Restore template content",
+        }),
+      );
+    });
+    expect(catalogSlotPosition(graph, target)?.fillIds).toBe(undefined);
+    expect(
+      position.container.querySelectorAll(".frame-slot-fill .list-row"),
+    ).toHaveLength(0);
   });
 });
