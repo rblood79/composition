@@ -91,6 +91,8 @@ export class CatalogWorkspace {
   readonly history: CatalogHistoryStore;
   private preview: CatalogPreviewChannel | undefined;
   private themeKey: string | undefined;
+  /** `columns: "auto"`: the column count the visible Canvas fits (kept across root switches). */
+  private autoColumns: number | undefined;
   private colorMode: "light" | "dark" | undefined;
 
   constructor(
@@ -131,6 +133,7 @@ export class CatalogWorkspace {
       {
         pageFrames: true,
         ...options.root,
+        ...(this.autoColumns ? { autoColumns: this.autoColumns } : {}),
         ...(this.colorMode ? { colorMode: this.colorMode } : {}),
         breakpoint,
       },
@@ -166,6 +169,14 @@ export class CatalogWorkspace {
   setBreakpoint(breakpoint: BreakpointName): void {
     if (breakpoint === this.currentRoot.breakpoint) return;
     this.replaceRoot(breakpoint);
+  }
+  /**
+   * The page grid's `columns: "auto"` count (the Canvas computes it from its visible width and
+   * zoom — `catalogAutoColumns`). True = page frames moved (the Canvas binds its scene again).
+   */
+  setAutoColumns(columns: number): boolean {
+    this.autoColumns = columns;
+    return this.currentRoot.setAutoColumns(columns);
   }
   subscribeRoot(listener: () => void): () => void {
     this.rootListeners.add(listener);

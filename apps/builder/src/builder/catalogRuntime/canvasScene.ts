@@ -50,6 +50,11 @@ export class CatalogCanvasScene {
       : { kind: "unchanged" };
   }
 
+  /** Page frames moved outside a step (the page grid's auto column count): bind again. */
+  refresh(): CatalogCanvasSceneSync {
+    return this.rebind("page-grid");
+  }
+
   /** Draw another root of the same runtime (a breakpoint switch). */
   replaceRoot(root: CatalogCompositionRoot): CatalogCanvasSceneSync {
     this.root = root;

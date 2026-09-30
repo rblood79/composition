@@ -1,4 +1,11 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import {
   bindHandlersToDefinitions,
   useActiveScope,
@@ -35,6 +42,41 @@ import { getViewportController } from "../viewport/ViewportController";
 import { viewportState } from "../viewport/viewportState";
 import { useViewportSyncStore } from "../stores";
 import { catalogUnionRect, fitCatalogPageFrame } from "./catalogViewport";
+import { catalogAutoColumns } from "../../../catalogRuntime/pageLayoutSettings";
+import { readCanvasRailInset } from "../viewport/canvasChromeInset";
+import { PageHeaderLayer } from "../overlay/pageHeader/PageHeaderLayer";
+import { publishCanvasFramePresentation } from "../canvasFramePresentation";
+import { getPagePositionPresentationSnapshot } from "../interaction/pagePositionPresentation";
+import type { PageHeaderFrame } from "../overlay/pageHeader/pageHeaderGeometry";
+import { updatePage } from "../../../../../../../packages/shared/src/catalog/commands";
+import type { EntryId } from "../../../../../../../packages/shared/src/catalog/document/types";
+
+/** Page header frames (ADR-221): each page's laid-out frame and name. */
+function catalogHeaderFrames(workspace: CatalogWorkspace): PageHeaderFrame[] {
+  const graph = workspace.runtime.graph;
+  const frames: PageHeaderFrame[] = [];
+  for (const [id, rect] of workspace.root.pageFrameRects()) {
+    const page = graph.getEntry(id);
+    if (page?.kind === "page") frames.push({ id, title: page.name, ...rect });
+  }
+  return frames;
+}
+const sameFrames = (
+  left: readonly PageHeaderFrame[],
+  right: readonly PageHeaderFrame[],
+) =>
+  left.length === right.length &&
+  left.every((frame, index) => {
+    const other = right[index]!;
+    return (
+      frame.id === other.id &&
+      frame.title === other.title &&
+      frame.x === other.x &&
+      frame.y === other.y &&
+      frame.width === other.width &&
+      frame.height === other.height
+    );
+  });
 import type { BoundingBox } from "../selection/types";
 import { hitTestPoint } from "../wasm-bindings/spatialIndex";
 import { resolveSpacingCursor } from "../interaction/spacingGeometry";
@@ -72,6 +114,19 @@ export function CatalogCanvas({
     request: ContextMenuRequest;
     items: ContextMenuItem[];
   } | null>(null);
+  // Page headers (ADR-221): the page frames as laid out, the session's page and selection.
+  const [headerFrames, setHeaderFrames] = useState<PageHeaderFrame[]>([]);
+  const headerPressRef = useRef<(pageId: string, event: PointerEvent) => void>(
+    () => {},
+  );
+  const activePageId = useSyncExternalStore(
+    workspace.session.subscribe,
+    () => workspace.session.getSnapshot().pageId ?? null,
+  );
+  const hasSelection = useSyncExternalStore(
+    workspace.session.subscribe,
+    () => workspace.session.getSnapshot().selection.length > 0,
+  );
   const callbacks = useRef({ onFirstFrame, onError });
   useLayoutEffect(() => {
     callbacks.current = { onFirstFrame, onError };
@@ -137,6 +192,8 @@ export function CatalogCanvas({
       return;
     }
     sceneRef.current = scene;
+    let publishedFrames = catalogHeaderFrames(workspace);
+    setHeaderFrames(publishedFrames);
     const fontMgr = () =>
       skiaFontManager.getFamilies().length > 0
         ? skiaFontManager.getFontMgr()
@@ -222,11 +279,31 @@ export function CatalogCanvas({
     let presented = false;
     let contextLost = false;
     let sceneStale = false;
+    /** Publish the page header frames; true = a frame moved or resized. */
+    const publishHeaders = (): boolean => {
+      const frames = catalogHeaderFrames(workspace);
+      if (sameFrames(frames, publishedFrames)) return false;
+      const moved = !sameFrames(
+        frames.map((frame) => ({ ...frame, title: "" })),
+        publishedFrames.map((frame) => ({ ...frame, title: "" })),
+      );
+      publishedFrames = frames;
+      setHeaderFrames(frames);
+      return moved;
+    };
     const syncScene = () => {
       if (!sceneStale) return;
       sceneStale = false;
       try {
-        if (scene.sync().kind !== "unchanged") {
+        const synced = scene.sync();
+        if (synced.kind !== "unchanged") {
+          renderer.invalidateContent();
+          overlayVersion += 1;
+        }
+        // A page grid edit (gap, columns, direction) moves page frames without a record delta,
+        // and a rename changes no drawn record: the headers follow, a moved frame binds again.
+        if (publishHeaders() && synced.kind !== "rebound") {
+          scene.refresh();
           renderer.invalidateContent();
           overlayVersion += 1;
         }
@@ -234,11 +311,39 @@ export function CatalogCanvas({
         callbacks.current.onError?.(error);
       }
     };
+    // `columns: "auto"`: the page grid fits the visible width (without the panel rails) at this
+    // zoom; a changed count moves the page frames, so the scene binds again.
+    let railInset: number | undefined;
+    const syncAutoColumns = () => {
+      const { containerSize } = useViewportSyncStore.getState();
+      if (!containerSize.width) return;
+      railInset ??= readCanvasRailInset();
+      const columns = catalogAutoColumns(
+        workspace.root,
+        containerSize.width - railInset,
+        Math.max(viewportState.zoom, 0.001),
+      );
+      if (columns === undefined || !workspace.setAutoColumns(columns)) return;
+      try {
+        scene.refresh();
+        renderer.invalidateContent();
+        overlayVersion += 1;
+        publishHeaders();
+      } catch (error) {
+        callbacks.current.onError?.(error);
+      }
+    };
     const renderFrame = () => {
       if (!running || contextLost) return;
       syncScene();
+      syncAutoColumns();
       const zoom = Math.max(viewportState.zoom, 0.001);
       const camera = { zoom, panX: viewportState.x, panY: viewportState.y };
+      // DOM overlays (page headers) place themselves from the camera this frame draws.
+      publishCanvasFramePresentation(
+        camera,
+        getPagePositionPresentationSnapshot(),
+      );
       const drawn = renderer.render(
         new DOMRect(
           -camera.panX / zoom,
@@ -307,6 +412,7 @@ export function CatalogCanvas({
       fitFirstPage(containerEl.getBoundingClientRect());
       renderer.invalidateContent();
       invalidateOverlay();
+      publishHeaders();
     });
 
     // Pages tree select: center that page frame at the current zoom (the old `panToPage`).
@@ -404,6 +510,32 @@ export function CatalogCanvas({
         else if (!additive) gestures.beginMove(x, y, picked);
       }
       rehover();
+    };
+    // A page header press selects the page (its body; ⇧ toggles it) and drags its frame — the
+    // Canvas's own page drag (the home page stays).
+    headerPressRef.current = (pageId, event) => {
+      if (gestureSession.blocksPointerDown(event.pointerId)) return;
+      const page = workspace.runtime.graph.getEntry(pageId);
+      const body = page?.kind === "page" ? page.children[0] : undefined;
+      const record = body ? workspace.root.recordsOfSource(body)[0] : undefined;
+      if (!record) return;
+      if (
+        gestureSession.beginPointer(event.pointerId, event.button) !== "element"
+      )
+        return;
+      (event as PointerEvent & { __handled?: boolean }).__handled = true;
+      containerEl.focus({ preventScroll: true });
+      if (event.shiftKey) {
+        workspace.selectRecords([record], { additive: true });
+      } else {
+        workspace.selectRecords([record]);
+        syncScene();
+        const { x, y } = scenePoint(event);
+        pressPointer = event.pointerId;
+        deferredSelect = undefined;
+        gestures.beginPageDrag(x, y, record);
+      }
+      invalidateOverlay();
     };
     const onWindowPointerMove = (event: PointerEvent) => {
       if (event.pointerId !== pressPointer || !gestures.pending) return;
@@ -555,6 +687,7 @@ export function CatalogCanvas({
     const resize = new ResizeObserver(() => {
       dpr = window.devicePixelRatio || 1;
       fit();
+      railInset = undefined;
       renderer.resize(canvas);
       renderer.invalidateContent();
       renderer.clearFrame();
@@ -626,6 +759,35 @@ export function CatalogCanvas({
         }}
       />
       <DotBackground />
+      <PageHeaderLayer
+        frames={headerFrames}
+        activePageId={activePageId}
+        hasSelection={hasSelection}
+        onHeaderPointerDown={(pageId, event) =>
+          headerPressRef.current(pageId, event)
+        }
+        canRenamePage={() => true}
+        onBeginRename={(pageId) => {
+          if (workspace.runtime.graph.getEntry(pageId)?.kind === "page")
+            workspace.session.setPage(pageId as EntryId<"page">);
+        }}
+        onRenamePage={(pageId, title) => {
+          const page = workspace.runtime.graph.getEntry(pageId);
+          const name = title.trim();
+          if (page?.kind !== "page" || !name || name === page.name) return;
+          try {
+            workspace.execute(
+              updatePage({
+                id: page.id,
+                fields: { name },
+                label: "Rename page",
+              }),
+            );
+          } catch (error) {
+            callbacks.current.onError?.(error);
+          }
+        }}
+      />
       <ContextMenuOverlay
         isOpen={!!menu}
         request={menu?.request ?? null}

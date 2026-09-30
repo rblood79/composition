@@ -7,6 +7,7 @@ import type {
   InteractionEntry,
   NodeId,
   PageEntry,
+  PageLayoutDeclaration,
 } from "../../../../../packages/shared/src/catalog/document/types";
 import {
   readCommonProp,
@@ -329,6 +330,29 @@ export class CatalogReadModel {
   }
   subscribePages(listener: Listener<readonly PageEntry[]>): () => void {
     return this.subscribeRead("pages", this.pagesCompute(), listener);
+  }
+
+  private pageLayoutCompute(): CachedRead<
+    PageLayoutDeclaration | undefined
+  >["compute"] {
+    return () => {
+      const deps = new Set<string>();
+      const reader = recording(this.runtime.graph, deps);
+      const project = reader.getEntry(reader.projectId);
+      return {
+        value: project?.kind === "project" ? project.pageLayout : undefined,
+        deps,
+      };
+    };
+  }
+  /** The project's page grid declaration (ADR-232; `undefined` = defaults). */
+  pageLayout(): PageLayoutDeclaration | undefined {
+    return this.read("pageLayout", this.pageLayoutCompute()).value;
+  }
+  subscribePageLayout(
+    listener: Listener<PageLayoutDeclaration | undefined>,
+  ): () => void {
+    return this.subscribeRead("pageLayout", this.pageLayoutCompute(), listener);
   }
 
   private componentsCompute(): CachedRead<

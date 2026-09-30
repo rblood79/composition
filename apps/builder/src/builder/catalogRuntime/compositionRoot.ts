@@ -430,7 +430,7 @@ export interface CatalogRootOptions {
   state?: CatalogStateSource;
 }
 /** The graph's page container declaration in the old placement derivation's input shape. */
-function catalogPageLayoutSettings(
+export function catalogPageLayoutSettings(
   layout: PageLayoutDeclaration | undefined,
 ): PageLayoutSettingsDocument | undefined {
   if (!layout) return undefined;

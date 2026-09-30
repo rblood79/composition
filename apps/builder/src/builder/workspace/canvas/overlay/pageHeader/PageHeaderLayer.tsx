@@ -147,6 +147,12 @@ export interface PageHeaderLayerProps {
   /** 편집기 열림 직전 (페이지 전환). */
   onBeginRename?: (pageId: string) => void;
   onRenamePage?: (pageId: string, title: string) => void;
+  /**
+   * The active page and whether anything is selected, when the host is not the old store
+   * (ADR-248 4e — the catalog session). Absent = the old store's.
+   */
+  activePageId?: string | null;
+  hasSelection?: boolean;
 }
 
 export function PageHeaderLayer({
@@ -155,9 +161,16 @@ export function PageHeaderLayer({
   canRenamePage,
   onBeginRename,
   onRenamePage,
+  activePageId,
+  hasSelection: hostHasSelection,
 }: PageHeaderLayerProps) {
-  const currentPageId = useStore((state) => state.currentPageId);
-  const hasSelection = useStore((state) => state.selectedElementIds.length > 0);
+  const storePageId = useStore((state) => state.currentPageId);
+  const storeHasSelection = useStore(
+    (state) => state.selectedElementIds.length > 0,
+  );
+  const currentPageId =
+    activePageId !== undefined ? activePageId : storePageId;
+  const hasSelection = hostHasSelection ?? storeHasSelection;
   const [layerNode, setLayerNode] = useState<HTMLDivElement | null>(null);
   const [editingPageId, setEditingPageId] = useState<string | null>(null);
   const settled = useSettledHeaderInput(frames);

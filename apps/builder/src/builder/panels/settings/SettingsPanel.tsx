@@ -34,6 +34,7 @@ import { useI18n } from "@/i18n";
 import { alignPagesToScreen } from "../../workspace/canvas/viewport/pageLayoutActions";
 import { useCanonicalDocumentStore } from "../../stores/canonical/canonicalDocumentStore";
 import { resolvePageLayout } from "../../workspace/canvas/scene/pagePlacement";
+import { useCatalogPageLayout } from "./useCatalogPageLayout";
 
 function SettingsContent() {
   const { sendDarkMode } = useThemeMessenger();
@@ -63,31 +64,52 @@ function SettingsContent() {
     const projectId = state.currentProjectId;
     return projectId ? state.documents.get(projectId)?.pageLayout : undefined;
   });
-  const isDerivedPlacement = documentPageLayout?.placementModel === "derived";
+  // ADR-248 4e — an open catalog project's page grid is its `pageLayout` declaration.
+  const catalogLayout = useCatalogPageLayout();
+  const isDerivedPlacement =
+    !!catalogLayout || documentPageLayout?.placementModel === "derived";
   const resolvedPageLayout = resolvePageLayout(
     documentPageLayout,
     activeBreakpoint,
   );
-  const effectiveDirection = isDerivedPlacement
-    ? resolvedPageLayout.direction
-    : normalizePageLayoutDirection(pageLayoutDirection);
-  const effectiveGap = isDerivedPlacement ? resolvedPageLayout.gap : pageGap;
-  const columnsAuto = resolvedPageLayout.columnsAuto;
+  const effectiveDirection = catalogLayout
+    ? catalogLayout.view.direction
+    : isDerivedPlacement
+      ? resolvedPageLayout.direction
+      : normalizePageLayoutDirection(pageLayoutDirection);
+  const effectiveGap = catalogLayout
+    ? catalogLayout.view.gap
+    : isDerivedPlacement
+      ? resolvedPageLayout.gap
+      : pageGap;
+  const columnsAuto = catalogLayout
+    ? catalogLayout.view.columns === "auto"
+    : resolvedPageLayout.columnsAuto;
   // auto 는 값 칸에 키워드로 싣는다 — 실제 열 수는 뷰포트에서 나오므로 여기 숫자를 쓰지 않는다.
   const columnsFieldValue = columnsAuto
     ? "auto"
-    : String(resolvedPageLayout.columns);
-  const tierOverrideAvailable =
-    isDerivedPlacement && activeBreakpoint !== "desktop";
-  const hasTierOverride =
-    tierOverrideAvailable &&
-    (documentPageLayout?.responsive?.columns?.[activeBreakpoint] !==
-      undefined ||
-      documentPageLayout?.responsive?.gap?.[activeBreakpoint] !== undefined);
+    : String(catalogLayout ? catalogLayout.view.columns : resolvedPageLayout.columns);
+  const tierOverrideAvailable = catalogLayout
+    ? catalogLayout.view.tierOverrideAvailable
+    : isDerivedPlacement && activeBreakpoint !== "desktop";
+  const hasTierOverride = catalogLayout
+    ? catalogLayout.view.hasTierOverride
+    : tierOverrideAvailable &&
+      (documentPageLayout?.responsive?.columns?.[activeBreakpoint] !==
+        undefined ||
+        documentPageLayout?.responsive?.gap?.[activeBreakpoint] !== undefined);
 
   /** 열 수·간격 쓰기 — tier 토글 ON 이면 활성 tier override, 아니면 base. */
   const writeLayoutValue = useCallback(
     (key: "gap" | "columns", value: number | "auto") => {
+      if (catalogLayout) {
+        catalogLayout.change(
+          key === "gap"
+            ? { kind: "gap", gap: value as number }
+            : { kind: "columns", columns: value },
+        );
+        return;
+      }
       const store = useCanonicalDocumentStore.getState();
       if (tierOverrideAvailable && hasTierOverride) {
         store.setPageLayout({
@@ -105,6 +127,7 @@ function SettingsContent() {
     },
     [
       activeBreakpoint,
+      catalogLayout,
       documentPageLayout?.responsive,
       hasTierOverride,
       tierOverrideAvailable,
@@ -113,6 +136,10 @@ function SettingsContent() {
 
   const handleTierOverrideChange = useCallback(
     (selected: boolean) => {
+      if (catalogLayout) {
+        catalogLayout.change({ kind: "tierOverride", enabled: selected });
+        return;
+      }
       const store = useCanonicalDocumentStore.getState();
       const responsive = { ...(documentPageLayout?.responsive ?? {}) };
       if (selected) {
@@ -141,6 +168,7 @@ function SettingsContent() {
     },
     [
       activeBreakpoint,
+      catalogLayout,
       documentPageLayout?.columns,
       documentPageLayout?.responsive,
       resolvedPageLayout.columns,
@@ -190,6 +218,15 @@ function SettingsContent() {
   };
 
   const handlePageLayoutChange = (value: string) => {
+    if (catalogLayout) {
+      catalogLayout.change({
+        kind: "direction",
+        direction: normalizePageLayoutDirection(
+          value as PageLayoutDirection,
+        ) as "auto" | "vertical" | "horizontal",
+      });
+      return;
+    }
     if (isDerivedPlacement) {
       // direction 은 breakpoint 공통 (`gridAutoFlow` 가 responsive eligible 이 아니다 — F11).
       useCanonicalDocumentStore.getState().setPageLayout({

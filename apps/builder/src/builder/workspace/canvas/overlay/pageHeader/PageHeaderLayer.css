@@ -10,7 +10,9 @@
   inset: 0;
   /* Skia canvas(2) 위 · 눈금자(3, DOM 뒤) 아래 — 같은 z 는 DOM 순서로 눈금자가 위 */
   z-index: 3;
-  overflow: hidden;
+  /* clip, not hidden: a hidden overflow is still a scroll container, and focusing a rename field
+     of a header reaching past the edge scrolled the whole layer off its pages (2026-10-01). */
+  overflow: clip;
   /* 층 자체는 이벤트를 통과시키고 헤더 노드만 받는다 (clip-path 밖은 히트 대상 아님) */
   pointer-events: none;
   contain: layout style;

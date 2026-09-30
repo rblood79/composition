@@ -45,6 +45,11 @@ export function CatalogWorkspaceGate({ children }: { children: ReactNode }) {
   return useContext(WorkspaceContext) ? <>{children}</> : null;
 }
 
+/** The open project's workspace, or `null` outside a catalog project (shared panels). */
+export function useOptionalCatalogWorkspace(): CatalogWorkspace | null {
+  return useContext(WorkspaceContext);
+}
+
 export function useCatalogWorkspace(): CatalogWorkspace {
   const workspace = useContext(WorkspaceContext);
   if (!workspace) throw new Error("CATALOG_WORKSPACE_REQUIRED");
