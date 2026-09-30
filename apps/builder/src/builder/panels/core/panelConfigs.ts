@@ -57,9 +57,9 @@ const SettingsPanel = lazyPanel(() =>
   })),
 );
 
-const InteractionsPanel = lazyPanel(() =>
-  import("../interactions/InteractionsPanel").then((m) => ({
-    default: m.InteractionsPanel,
+const CatalogInteractionsPanel = lazyPanel(() =>
+  import("../interactions/catalog/CatalogInteractionsPanel").then((m) => ({
+    default: m.CatalogInteractionsPanel,
   })),
 );
 
@@ -252,7 +252,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     name: "인터랙션",
     nameEn: "Interactions",
     icon: SquareMousePointer,
-    component: InteractionsPanel,
+    component: CatalogInteractionsPanel,
     category: "editor",
     defaultPosition: "right",
     minWidth: 233,
@@ -294,7 +294,7 @@ export function preloadOffscreenPanels(): void {
   preloadLazyPanels([
     CatalogHistoryPanel,
     SettingsPanel,
-    InteractionsPanel,
+    CatalogInteractionsPanel,
     CatalogThemesPanel,
     DataTablePanel,
   ]);

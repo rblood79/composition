@@ -1,6 +1,7 @@
 import { resolveToken, type TokenRef } from "@composition/specs";
 import { componentCatalog } from "../componentCatalog";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
+import { codeExecutionVocabulary } from "./executionVocabulary";
 import { buildCatalogLibrary } from "./library";
 import {
   applyManualBox,
@@ -752,6 +753,7 @@ export async function buildCodeCatalogLibrary(
       rules[definition.ruleId] = (
         COMPONENT_RULES_TABLE as Record<string, ComponentRule>
       )[definition.ruleId];
+  const execution = codeExecutionVocabulary();
   const digest = await crypto.subtle.digest(
     "SHA-256",
     new TextEncoder().encode(
@@ -762,6 +764,7 @@ export async function buildCodeCatalogLibrary(
         templates: REUSABLE_ORIGIN_TEMPLATES,
         tokens: [...tokens.values()],
         bindingIds,
+        execution,
         rules,
       }),
     ),
@@ -773,7 +776,7 @@ export async function buildCodeCatalogLibrary(
     contractVersion: 1,
     revision,
     bindingIds,
-    actionOpCodes: [],
+    ...execution,
     definitions: sourceDefinitions,
     templates: REUSABLE_ORIGIN_TEMPLATES,
     tokens: [...tokens.values()],

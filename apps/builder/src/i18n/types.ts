@@ -449,6 +449,7 @@ export interface TranslationKeys {
     capabilityRemount: string;
     target: string;
     targetUnset: string;
+    navigatePage: string;
     rulesTitle: string;
     selectElement: string;
     noTriggers: string;

@@ -22,7 +22,7 @@ const LAZY_TARGETS = [
   { dir: "datatable", module: "DataTablePanel" },
   { dir: "fonts", module: "FontManagerDialog" },
   { dir: "themes", module: "CatalogThemesPanel" },
-  { dir: "interactions", module: "InteractionsPanel" },
+  { dir: "interactions", module: "CatalogInteractionsPanel" },
   { dir: "settings", module: "SettingsPanel" },
 ];
 
