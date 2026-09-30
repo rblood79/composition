@@ -3,7 +3,7 @@ import { Settings2 } from "lucide-react";
 import { useI18n } from "../../../../i18n";
 import { iconProps } from "../../../../utils/ui/uiConstants";
 import {
-  catalogSemanticPatchCommand,
+  catalogPropertiesPatchCommand,
   catalogTargetDefinitionId,
 } from "../../../catalogRuntime/editContract";
 import {
@@ -189,18 +189,29 @@ const CatalogFields = memo(function CatalogFields({
       ? fields.filter((field) => field.key !== "children")
       : fields;
   }, [buttonChildren, contract]);
+  const bindingKeys = useMemo(
+    () =>
+      new Set(
+        contract.fields
+          .filter((field) => field.kind === "binding")
+          .map((field) => field.key),
+      ),
+    [contract],
+  );
   const handlePatch = useCallback(
     (patch: Record<string, unknown>) => {
       const first = targets[0];
       if (!first) return;
-      const command = catalogSemanticPatchCommand(
+      const command = catalogPropertiesPatchCommand(
+        workspace.runtime.graph,
         targets,
         patch,
         (changed) => workspace.readModel.propSource(first, changed).value,
+        bindingKeys,
       );
       if (command) run(command);
     },
-    [run, targets, workspace],
+    [bindingKeys, run, targets, workspace],
   );
   const handleSemanticUpdate = useCallback(
     (key: string, value: unknown) => handlePatch({ [key]: value }),

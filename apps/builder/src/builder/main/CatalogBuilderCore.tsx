@@ -31,8 +31,11 @@ import { CatalogStorage, CatalogStorageError } from "../catalogRuntime/storage";
 import { catalogTextMeasure } from "../catalogRuntime/textMeasure";
 import { catalogThemeState } from "../catalogRuntime/theme";
 import { CatalogWorkspace } from "../catalogRuntime/workspace";
+import { createCatalogDataUsageSource } from "../panels/datatable/usage/catalogDataUsageSource";
+import { DataUsageSourceContext } from "../panels/datatable/usage/dataUsageSource";
 import { ToastContainer } from "../components";
 import { PanelWorkspace } from "../layout";
+import { useDataStore } from "../stores/data";
 import { useToastStore } from "../stores/toast";
 import {
   CANVAS_BREAKPOINTS,
@@ -92,6 +95,12 @@ export function CatalogBuilderCore() {
         await storage.load(projectId, library),
         library,
       );
+      // Collections · API endpoints · variables stay in the data store (H1), keyed by the route id.
+      try {
+        await useDataStore.getState().initializeForProject(routeId);
+      } catch (error) {
+        console.error("[CatalogBuilder] data store init failed:", error);
+      }
       if (cancelled) return;
       opened = new CatalogWorkspace(graph, storage, {
         engine: createLayoutEngine(),
@@ -171,6 +180,10 @@ export function CatalogBuilderCore() {
   );
 
   const workspace = state.kind === "open" ? state.workspace : undefined;
+  const dataUsage = useMemo(
+    () => (workspace ? createCatalogDataUsageSource(workspace) : null),
+    [workspace],
+  );
   const breakpoint = useSyncExternalStore(
     workspace?.session.subscribe ?? noSubscription,
     () => workspace?.session.getSnapshot().breakpoint ?? "desktop",
@@ -238,7 +251,9 @@ export function CatalogBuilderCore() {
       )}
       {workspace ? (
         <CatalogWorkspaceProvider workspace={workspace}>
-          {body}
+          <DataUsageSourceContext.Provider value={dataUsage}>
+            {body}
+          </DataUsageSourceContext.Provider>
         </CatalogWorkspaceProvider>
       ) : (
         body

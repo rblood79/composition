@@ -16,6 +16,29 @@ function useRecordTarget(identity: string | null | undefined) {
   );
 }
 
+/**
+ * The data binding field (`dataBinding`) reads the node's typed binding, not a prop (ADR-248
+ * 4e-4e — the catalog document has no `dataBinding` prop).
+ */
+const BINDING_KEY = "dataBinding";
+const readValue = (
+  readModel: ReturnType<typeof useCatalogWorkspace>["readModel"],
+  target: EditTarget,
+  key: string,
+) =>
+  key === BINDING_KEY
+    ? readModel.bindingValue(target)
+    : readModel.propSource(target, key).value;
+const subscribeValue = (
+  readModel: ReturnType<typeof useCatalogWorkspace>["readModel"],
+  target: EditTarget,
+  key: string,
+  notify: () => void,
+) =>
+  key === BINDING_KEY
+    ? readModel.subscribeBinding(target, notify)
+    : readModel.subscribePropSource(target, key, notify);
+
 function useSourcedValues(
   target: EditTarget | undefined,
   keys: readonly string[],
@@ -28,7 +51,7 @@ function useSourcedValues(
     (notify: () => void) => {
       if (!target) return noSubscription();
       const unsubscribe = keys.map((key) =>
-        readModel.subscribePropSource(target, key, notify),
+        subscribeValue(readModel, target, key, notify),
       );
       return () => unsubscribe.forEach((stop) => stop());
     },
@@ -39,7 +62,7 @@ function useSourcedValues(
     JSON.stringify(
       keys.map((key, index) =>
         target
-          ? (readModel.propSource(target, key).value ?? baseValues[index])
+          ? (readValue(readModel, target, key) ?? baseValues[index])
           : baseValues[index],
       ),
     ),
@@ -59,7 +82,7 @@ export const CATALOG_FIELD_VALUE_SOURCE: FieldValueSource = {
     const subscribe = useCallback(
       (notify: () => void) =>
         target
-          ? readModel.subscribePropSource(target, key, notify)
+          ? subscribeValue(readModel, target, key, notify)
           : noSubscription(),
       // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed by the target
       [readModel, id, key],
@@ -67,7 +90,7 @@ export const CATALOG_FIELD_VALUE_SOURCE: FieldValueSource = {
     // The cached reading keeps its value object until the value changes.
     return useSyncExternalStore(subscribe, () =>
       target
-        ? (readModel.propSource(target, key).value ?? baseValue)
+        ? (readValue(readModel, target, key) ?? baseValue)
         : baseValue,
     );
   },

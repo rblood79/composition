@@ -6,10 +6,15 @@ import {
   type PropContract,
   type ResolvedField,
 } from "@composition/shared";
+import type { DataBindingValue } from "@composition/shared";
 import { setFields } from "../../../../../packages/shared/src/catalog/commands";
-import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
+import {
+  composeCommands,
+  type CatalogCommand,
+} from "../../../../../packages/shared/src/catalog/commands/compose";
 import {
   definitionTypeName,
+  fail,
   templateDefinitionId,
 } from "../../../../../packages/shared/src/catalog/commands/context";
 import type {
@@ -19,7 +24,14 @@ import type {
   EditTarget,
   PropWrites,
 } from "../../../../../packages/shared/src/catalog/document/types";
+import type { CatalogGraph } from "../../../../../packages/shared/src/catalog/document/graph";
 import { REUSABLE_PROPS_SCHEMAS } from "../components/reusablePropsSchemas";
+import {
+  catalogBindingCommand,
+  catalogBindingRef,
+  catalogBindingValue,
+  catalogTargetBinding,
+} from "./dataBinding";
 import type { CatalogReadModel } from "./readModel";
 
 const ORIGIN_PREFIX = "lib:definition:origin-";
@@ -73,6 +85,23 @@ export function catalogEditContract(
   const fields: ResolvedField[] = Object.entries(
     semanticContracts(definitionId, type),
   ).map(([key, contract]) => {
+    if (contract.kind === "binding") {
+      // The data binding is the node's typed `binding`, not a prop (a template position has none
+      // of its own and cannot take one).
+      const value = catalogBindingValue(catalogTargetBinding(graph, target));
+      return {
+        key,
+        kind: contract.kind,
+        label: contract.label ?? key,
+        section: contract.section ?? "content",
+        origin: "semantic",
+        isOverridden: value !== undefined,
+        baseValue: undefined,
+        currentValue: value,
+        visibleWhen: contract.visibleWhen,
+        editorHidden: contract.editorHidden || target.kind !== "node",
+      };
+    }
     const reading = readModel.propSource(target, key);
     const isOverridden = reading.own !== undefined;
     const baseValue = reading.inherited.value ?? contract.default;
@@ -117,4 +146,36 @@ export function catalogSemanticPatchCommand(
   }
   if (!Object.keys(props).length || !targets.length) return undefined;
   return setFields({ targets, props, label: "Edit properties" });
+}
+
+/**
+ * The Properties patch as one step: binding keys (`bindingKeys`, the contract's `binding` fields)
+ * write the targets' typed binding, the rest their props. A picker value the document cannot hold
+ * refuses the step (`UNSUPPORTED_BINDING`); `undefined` = nothing changes.
+ */
+export function catalogPropertiesPatchCommand(
+  graph: CatalogGraph,
+  targets: readonly EditTarget[],
+  patch: Readonly<Record<string, unknown>>,
+  current: (key: string) => unknown,
+  bindingKeys: ReadonlySet<string>,
+): CatalogCommand | undefined {
+  const props: Record<string, unknown> = {};
+  const commands: CatalogCommand[] = [];
+  for (const [key, value] of Object.entries(patch)) {
+    if (!bindingKeys.has(key)) {
+      props[key] = value;
+      continue;
+    }
+    const ref = catalogBindingRef(value as DataBindingValue | undefined);
+    if (ref === null) return () => fail("UNSUPPORTED_BINDING", key);
+    const first = targets[0];
+    const before = first ? catalogTargetBinding(graph, first) : undefined;
+    if (JSON.stringify(before) === JSON.stringify(ref)) continue;
+    commands.push(catalogBindingCommand(targets, ref));
+  }
+  const propCommand = catalogSemanticPatchCommand(targets, props, current);
+  if (propCommand) commands.push(propCommand);
+  if (commands.length < 2) return commands[0];
+  return () => composeCommands(graph, "Edit properties", commands);
 }

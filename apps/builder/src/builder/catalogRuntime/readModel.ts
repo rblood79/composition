@@ -21,6 +21,8 @@ import {
   type CatalogPosition,
 } from "../../../../../packages/shared/src/catalog/resolution/positions";
 import type { CatalogRuntime, CatalogStepContext } from "./controller";
+import type { DataBindingValue } from "@composition/shared";
+import { catalogBindingValue, catalogTargetBinding } from "./dataBinding";
 
 /**
  * ADR-248 Phase 4c read model: the panels' reads (Layers rows, prop sources, pages, components,
@@ -232,6 +234,34 @@ export class CatalogReadModel {
       this.propCompute(target, key),
       listener,
     );
+  }
+  /** The target's data binding in the picker shape (an owned node's typed `binding`). */
+  bindingValue(target: EditTarget): DataBindingValue | undefined {
+    return this.read(
+      `binding:${targetKey(target)}`,
+      this.bindingCompute(target),
+    ).value;
+  }
+  subscribeBinding(
+    target: EditTarget,
+    listener: Listener<DataBindingValue | undefined>,
+  ): () => void {
+    return this.subscribeRead(
+      `binding:${targetKey(target)}`,
+      this.bindingCompute(target),
+      listener,
+    );
+  }
+  private bindingCompute(
+    target: EditTarget,
+  ): CachedRead<DataBindingValue | undefined>["compute"] {
+    return () => {
+      const deps = new Set<string>();
+      const value = catalogBindingValue(
+        catalogTargetBinding(recording(this.runtime.graph, deps), target),
+      );
+      return { value, deps };
+    };
   }
   /** A prop over a multi-selection (mixed or one value); reads each target's cached source. */
   commonProp(targets: readonly EditTarget[], key: string) {
