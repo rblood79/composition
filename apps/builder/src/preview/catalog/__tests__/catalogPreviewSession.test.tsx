@@ -30,6 +30,12 @@ import { CatalogWorkspace } from "../../../builder/catalogRuntime/workspace";
 import { nodeLayoutEngine } from "../../../builder/catalogRuntime/__tests__/support/nodeLayoutEngine";
 import { installThemeMaps } from "../../../utils/theme/themeMaps";
 import { CatalogPreviewView } from "../catalogPreviewApp";
+import {
+  catalogBoundRows,
+  catalogCollectionId,
+} from "../../../builder/catalogRuntime/dataBinding";
+import { catalogPaletteDefinitionId } from "../../../builder/catalogRuntime/paletteInsert";
+import type { CollectionDataSource } from "@composition/shared";
 import { CatalogPreviewSession } from "../catalogPreviewSession";
 
 /**
@@ -245,5 +251,100 @@ describe("ADR-248 4e-6 Preview entry", () => {
     expect(view.container.textContent).toContain("Updated");
     expect(view.container.textContent).not.toContain("Hello");
     view.unmount();
+  });
+
+  it("bound collections draw the rows of the collections the Builder sends, and follow a change", async () => {
+    library ??= await buildCodeCatalogLibrary();
+    let collections: CollectionDataSource[] = [
+      {
+        id: "c1",
+        name: "Tags",
+        schema: [{ key: "label" }],
+        mockData: [{ id: "r1", label: "Alpha" }, { id: "r2", label: "Beta" }],
+        useMockData: true,
+      },
+    ];
+    const workspace = new CatalogWorkspace(
+      new CatalogGraph(
+        newCatalogProjectDocument({
+          projectId: "project:project:rows" as EntryId<"project">,
+          name: "Rows",
+        }),
+        library,
+      ),
+      new CatalogStorage(indexedDB, `adr248-4e6-rows-${Math.random()}`),
+      {
+        engine: await nodeLayoutEngine(),
+        viewport: { width: 1000, height: 800 },
+        autosaveSchedule: () => {},
+        root: { rows: (binding) => catalogBoundRows(binding, collections) },
+      },
+    );
+    const LIST = "project:node:list" as NodeId;
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [
+          {
+            kind: "node",
+            id: LIST,
+            definitionId: catalogPaletteDefinitionId(library, "ListBox"),
+            children: [],
+            props: {},
+            visual: {},
+            sizing: {},
+            descendantOverrides: [],
+            binding: { collectionId: catalogCollectionId("c1"), fieldMap: {} },
+          } as NodeEntry,
+        ],
+        rootIds: [LIST],
+        newId: workspace.newId,
+      }),
+    );
+    const session: CatalogPreviewSession = new CatalogPreviewSession(library, {
+      requestSnapshot: (request) =>
+        channel.onPreviewMessage(structuredClone(request)),
+      engine: () => new NullLayoutEngine(),
+      viewport: { width: 1000, height: 800 },
+    });
+    const channel = new CatalogPreviewChannel(workspace.runtime, {
+      post: (message) => session.receive(structuredClone(message)),
+    });
+    const texts = (root: CatalogWorkspace["root"]) => {
+      const out: string[] = [];
+      const visit = (id: string) => {
+        const record = root.domInputs.get(id);
+        if (!record) return;
+        if (typeof record.props.children === "string")
+          out.push(record.props.children);
+        record.children.forEach(visit);
+      };
+      visit(root.recordsOfSource(LIST)[0]!);
+      return out;
+    };
+    const send = () =>
+      session.receive(
+        structuredClone({
+          type: "CATALOG_DATA",
+          version: 1,
+          collections,
+        }),
+      );
+    channel.onReady();
+    // No collections yet: the template's sample items (rows unknown).
+    expect(texts(session.root!)).not.toContain("Alpha");
+    send();
+    expect(texts(session.root!)).toEqual(texts(workspace.root));
+    expect(texts(session.root!)).toEqual(
+      expect.arrayContaining(["Alpha", "Beta"]),
+    );
+    collections = [
+      { ...collections[0]!, mockData: [{ id: "r3", label: "Gamma" }] },
+    ];
+    workspace.refreshRows(["c1"]);
+    send();
+    expect(texts(session.root!)).toEqual(texts(workspace.root));
+    expect(texts(session.root!)).toContain("Gamma");
+    expect(texts(session.root!)).not.toContain("Alpha");
   });
 });

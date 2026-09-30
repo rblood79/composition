@@ -4,6 +4,20 @@ import { CatalogPreviewChannel } from "../../../catalogRuntime/previewChannel";
 import { PanelSplitter } from "../../../layout/PanelSplitter";
 import { useWorkspaceCompareSplit } from "../../hooks/useWorkspaceCompareSplit";
 import { useOptionalI18n } from "../../../../i18n";
+import { useDataStore } from "../../../stores/data";
+import { CATALOG_PREVIEW_PAYLOAD_VERSION } from "../../../../../../../packages/shared/src/catalog/preview/protocol";
+
+/** The collections as the Preview reads them (the old Preview channel's projection). */
+function previewCollections() {
+  return [...useDataStore.getState().collections.values()].map((table) => ({
+    id: table.id,
+    name: table.name,
+    schema: table.schema,
+    mockData: table.mockData ?? [],
+    runtimeData: table.runtimeData,
+    useMockData: table.useMockData,
+  }));
+}
 
 const PREVIEW_PANE_ID = "workspace-compare-panel-css";
 
@@ -12,6 +26,7 @@ const PREVIEW_PANE_ID = "workspace-compare-panel-css";
  * Builder side of the payload is `CatalogPreviewChannel`: the iframe's `PREVIEW_READY` (this
  * frame's window, this origin — the old bootstrap check) sends a snapshot and the editor's page,
  * then each step's delta goes once per frame. A snapshot request is taken only from this frame.
+ * The data store's collections go with the snapshot and on each change (bound rows, H1).
  */
 export function CatalogPreviewFrame({
   workspace,
@@ -30,16 +45,35 @@ export function CatalogPreviewFrame({
       channel.setPage(workspace.session.getSnapshot().pageId);
     followPage();
     const offSession = workspace.session.subscribe(followPage);
+    let ready = false;
+    const sendData = () =>
+      frameRef.current?.contentWindow?.postMessage(
+        {
+          type: "CATALOG_DATA",
+          version: CATALOG_PREVIEW_PAYLOAD_VERSION,
+          collections: previewCollections(),
+        },
+        origin,
+      );
+    const offData = useDataStore.subscribe(
+      (store) => store.collections,
+      () => {
+        if (ready) sendData();
+      },
+    );
     const onMessage = (event: MessageEvent) => {
       const frame = frameRef.current?.contentWindow;
       if (!frame || event.source !== frame || event.origin !== origin) return;
-      if ((event.data as { type?: unknown } | null)?.type === "PREVIEW_READY")
+      if ((event.data as { type?: unknown } | null)?.type === "PREVIEW_READY") {
+        ready = true;
+        sendData();
         channel.onReady();
-      else channel.onPreviewMessage(event.data);
+      } else channel.onPreviewMessage(event.data);
     };
     window.addEventListener("message", onMessage);
     return () => {
       window.removeEventListener("message", onMessage);
+      offData();
       offSession();
       channel.dispose();
     };

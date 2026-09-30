@@ -4,6 +4,7 @@ import type {
   EntryId,
 } from "../../../../../packages/shared/src/catalog/document/types";
 import {
+  parseCatalogPreviewData,
   parseCatalogPreviewView,
   type CatalogPreviewSnapshotRequest,
 } from "../../../../../packages/shared/src/catalog/preview/protocol";
@@ -17,6 +18,8 @@ import {
 } from "../../builder/catalogRuntime/compositionRoot";
 import { CatalogRuntime } from "../../builder/catalogRuntime/controller";
 import type { CatalogThemeState } from "../../builder/catalogRuntime/theme";
+import { catalogBoundRows } from "../../builder/catalogRuntime/dataBinding";
+import type { CollectionDataSource } from "@composition/shared";
 import type { LayoutEngineAPI } from "../../builder/workspace/canvas/wasm-bindings/layoutBridge";
 
 export interface CatalogPreviewSessionOptions {
@@ -29,14 +32,15 @@ export interface CatalogPreviewSessionOptions {
   theme?: (graph: CatalogGraph) => CatalogThemeState;
   /** Show a theme: the DOM's CSS variables, color mode and base typography. */
   applyTheme?: (state: CatalogThemeState) => void;
-  root?: Omit<CatalogRootOptions, "colorMode">;
+  root?: Omit<CatalogRootOptions, "colorMode" | "rows">;
 }
 
 /**
  * ADR-248 4e-6 Preview: the iframe's catalog session. The replica graph comes from the Builder's
  * snapshot and deltas (`CatalogPreviewReceiver` — stale and gapped messages never apply); a read
  * only runtime and a composition root over it take each delta as a `sync` step, so the DOM binding
- * reads the records the Builder's root reads. The page shown follows the Builder's page until the
+ * reads the records the Builder's root reads; bound collections draw the rows of the collections
+ * the Builder sends (`CATALOG_DATA`). The page shown follows the Builder's page until the
  * Preview navigates. A theme change (a delta touching the theme) builds a new root in the new
  * theme, as the Builder's workspace does.
  */
@@ -47,6 +51,8 @@ export class CatalogPreviewSession {
   private themeKey: string | undefined;
   private colorMode: "light" | "dark" | undefined;
   private shownPage: EntryId<"page"> | undefined;
+  /** The Builder's collections: bound collections draw their rows from them. */
+  private collections: readonly CollectionDataSource[] = [];
   private version = 0;
   private readonly listeners = new Set<() => void>();
 
@@ -92,6 +98,17 @@ export class CatalogPreviewSession {
     const view = parseCatalogPreviewView(value);
     if (view) {
       this.navigate(view.pageId);
+      return { kind: "ignored" };
+    }
+    const data = parseCatalogPreviewData(value);
+    if (data) {
+      this.collections = data.collections as readonly CollectionDataSource[];
+      if (this.currentRoot) {
+        const errors = this.currentRoot.refreshRows();
+        if (errors.length)
+          console.error("[CatalogPreview] rows:", ...errors);
+      }
+      this.changed();
       return { kind: "ignored" };
     }
     return this.receiver.receive(value);
@@ -144,6 +161,7 @@ export class CatalogPreviewSession {
       this.options.locale,
       {
         ...this.options.root,
+        rows: (binding) => catalogBoundRows(binding, this.collections),
         ...(this.colorMode ? { colorMode: this.colorMode } : {}),
       },
     );

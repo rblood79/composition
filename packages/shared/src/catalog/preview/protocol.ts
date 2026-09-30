@@ -111,3 +111,27 @@ export function parseCatalogPreviewView(
     ? (value as unknown as CatalogPreviewViewMessage)
     : null;
 }
+
+/**
+ * Builder → Preview: the data store's collections (H1 — rows never enter the document), sent when
+ * the Preview is ready and whenever they change. Bound collections draw their rows from these.
+ * Each item is the old Preview channel's collection projection (definition, mock rows, runtime
+ * rows); endpoint secrets never travel.
+ */
+export interface CatalogPreviewDataMessage {
+  readonly type: "CATALOG_DATA";
+  readonly version: typeof CATALOG_PREVIEW_PAYLOAD_VERSION;
+  readonly collections: readonly Readonly<Record<string, unknown>>[];
+}
+
+export function parseCatalogPreviewData(
+  value: unknown,
+): CatalogPreviewDataMessage | null {
+  return isRecord(value) &&
+    value.type === "CATALOG_DATA" &&
+    value.version === CATALOG_PREVIEW_PAYLOAD_VERSION &&
+    Array.isArray(value.collections) &&
+    value.collections.every(isRecord)
+    ? (value as unknown as CatalogPreviewDataMessage)
+    : null;
+}
