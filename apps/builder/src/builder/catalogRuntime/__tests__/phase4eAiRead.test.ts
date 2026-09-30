@@ -153,7 +153,7 @@ describe("ADR-248 Phase 4e-5 AI read model", () => {
     // A Text holds no Frame: the new element goes to its container.
     expect(context.parentId).toBe(record("list"));
     const a = context.nodes.find((entry) => entry.id === record("a"))!;
-    expect(a.props.map((field) => field.name)).toContain("children");
+    expect(a.props?.map((field) => field.name)).toContain("children");
     expect(identity).toContain(HOME);
     workspace.session.clearSelection();
     expect(readCompilerState().context.parentId).toBe(record(BODY));

@@ -13,6 +13,7 @@ import type {
 import { adaptStylePatchWithFills } from "../styleAdapter";
 import { useAIVisualFeedbackStore } from "../../../builder/stores/aiVisualFeedback";
 import { getAiToolReadModel } from "./canonicalToolReadModel";
+import { getAiWriteHost } from "../aiWriteHost";
 import {
   applyCanonicalFields,
   parseCanonicalFields,
@@ -106,21 +107,33 @@ export const updateElementTool: ToolExecutor = {
       const { patch: canonicalPatch, rejected: canonicalRejected } =
         parseCanonicalFields(t, canonicalArg, element.type);
 
-      if (newFills !== undefined) {
-        // Inspector와 같은 canonical 1차 fills + full-node history 표면.
-        const { fills: _legacyFills, ...baseProps } = element.props ?? {};
-        void _legacyFills;
-        await updateElement(targetId, {
-          props: { ...baseProps, ...updates },
-          fills: newFills,
+      // ADR-248 4e-5: the open catalog Builder writes (one step); canonical 1차 필드는 그 문서에 없다.
+      const writeHost = getAiWriteHost();
+      let canonicalApplied = false;
+      if (writeHost) {
+        const written = writeHost.update(targetId, {
+          props: newProps,
+          styles: newStyles,
+          ...(newFills !== undefined ? { fills: newFills } : {}),
         });
-      } else if (Object.keys(updates).length > 0) {
-        await updateElementProps(targetId, updates);
+        if (!written.ok) return { success: false, error: written.error };
+      } else {
+        if (newFills !== undefined) {
+          // Inspector와 같은 canonical 1차 fills + full-node history 표면.
+          const { fills: _legacyFills, ...baseProps } = element.props ?? {};
+          void _legacyFills;
+          await updateElement(targetId, {
+            props: { ...baseProps, ...updates },
+            fills: newFills,
+          });
+        } else if (Object.keys(updates).length > 0) {
+          await updateElementProps(targetId, updates);
+        }
+        canonicalApplied = await applyCanonicalFields(
+          targetId,
+          canonicalPatch,
+        );
       }
-      const canonicalApplied = await applyCanonicalFields(
-        targetId,
-        canonicalPatch,
-      );
 
       // 반영 확인 — 스토어 액션은 반환값이 없고 조용히 return 하는 경로가 여럿이다
       // (`mutationVerification.ts` 주석). 확인 없이 성공을 보고하면 모델이 반영됐다는

@@ -14,6 +14,7 @@ import { getDefaultProps } from "../../../types/builder/unified.types";
 import { adaptPropsForElement } from "../styleAdapter";
 import { useAIVisualFeedbackStore } from "../../../builder/stores/aiVisualFeedback";
 import { getAiToolReadModel } from "./canonicalToolReadModel";
+import { getAiWriteHost } from "../aiWriteHost";
 import { confirmStructuralOriginImpact } from "../../../builder/stores/utils/elementUpdate";
 import { parseCanonicalFields } from "./canonicalNodeFields";
 import { createCompositeElement } from "./compositeCreation";
@@ -88,6 +89,64 @@ export const createElementTool: ToolExecutor = {
         elements,
         state: { addElement, currentPageId, selectedElementId },
       } = getAiToolReadModel();
+
+      // ADR-248 4e-5: the open catalog Builder adds it (one step, its own nesting checks).
+      const writeHost = getAiWriteHost();
+      if (writeHost) {
+        const canonicalKeys = Object.keys(canonicalPatch);
+        if (canonicalKeys.length)
+          return {
+            success: false,
+            error: t("aiToolError.canonicalNotApplied", {
+              fields: canonicalKeys.join(", "),
+              type,
+            }),
+          };
+        const written = writeHost.create({
+          type,
+          props: aiProps,
+          styles: aiStyles,
+          ...(aiFills ? { fills: aiFills } : {}),
+          parentId: parentIdArg ?? null,
+        });
+        if (!written.ok) return { success: false, error: written.error };
+        const verified = getAiToolReadModel().elementsById.get(
+          written.elementId,
+        );
+        if (!verified)
+          return {
+            success: false,
+            error: t("aiToolError.missingAfterUpdate", {
+              id: written.elementId,
+            }),
+          };
+        const missing = [
+          ...findUnappliedProps(
+            { ...verified.props, fills: verified.fills ?? [] },
+            { ...aiProps, ...(aiFills ? { fills: aiFills } : {}) },
+          ),
+          ...findUnappliedStyles(verified.props?.style, aiStyles),
+        ];
+        if (missing.length)
+          return {
+            success: false,
+            error: t("aiToolError.notApplied", { fields: missing.join(", ") }),
+          };
+        useAIVisualFeedbackStore
+          .getState()
+          .addFlashForNode(written.elementId, { scanLine: true });
+        rememberCreatedElement(written.elementId);
+        return {
+          success: true,
+          data: {
+            elementId: written.elementId,
+            type,
+            parentId: written.parentId,
+            ...(canonicalRejected.length > 0 ? { canonicalRejected } : {}),
+          },
+          affectedElementIds: [written.elementId],
+        };
+      }
 
       // 기본 props 생성 + AI props 병합
       const defaultProps = getDefaultProps(type);

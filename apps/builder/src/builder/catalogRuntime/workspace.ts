@@ -244,6 +244,10 @@ export class CatalogWorkspace {
       );
     return recorded.result;
   }
+  /** Join the last `count` history entries into one (an AI batch); false = not joined. */
+  mergeHistory(count: number, label: string): boolean {
+    return this.runtime.mergeHistory(count, label);
+  }
   undo(): CatalogTransactionResult | undefined {
     const result = this.root.undo();
     this.afterStep(result);

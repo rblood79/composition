@@ -1,14 +1,39 @@
-import { insertNodes } from "../../../../../packages/shared/src/catalog/commands";
+import {
+  insertNodes,
+  removeTargets,
+  setFields,
+  setWholeField,
+} from "../../../../../packages/shared/src/catalog/commands";
+import {
+  composeCommands,
+  type CatalogCommand,
+} from "../../../../../packages/shared/src/catalog/commands/compose";
 import { definitionTypeName } from "../../../../../packages/shared/src/catalog/commands/context";
 import type {
   EditTarget,
   NodeEntry,
   NodeId,
+  NodeParent,
 } from "../../../../../packages/shared/src/catalog/document/types";
 import type { CatalogPosition } from "../../../../../packages/shared/src/catalog/resolution/positions";
 import type { AiReadHost } from "../../services/ai/aiReadHost";
+import type {
+  AiElementWrite,
+  AiWriteHost,
+} from "../../services/ai/aiWriteHost";
 import type { Element } from "../../types/builder/unified.types";
-import { catalogEditContract } from "./editContract";
+import { FILL_DERIVED_STYLE_PROPS } from "../panels/styles/utils/fillDerivedStyleProps";
+import { catalogFillItems, catalogFillLayers } from "./authoredStyle";
+import {
+  catalogDefinitionPropKeys,
+  catalogEditContract,
+  catalogSemanticPatchCommand,
+} from "./editContract";
+import { catalogCreationProps, catalogPaletteDefinitionId } from "./paletteInsert";
+import { catalogPlacementStyle } from "./position";
+import { catalogFieldsAt } from "./responsiveFields";
+import type { CatalogSelectionItem } from "./session";
+import { catalogStyleView, catalogStyleWritesOf } from "./styleFields";
 import type { CatalogWorkspace } from "./workspace";
 
 const typeOf = (workspace: CatalogWorkspace, position: CatalogPosition) => {
@@ -19,12 +44,19 @@ const typeOf = (workspace: CatalogWorkspace, position: CatalogPosition) => {
   }
 };
 
+/** The drawn font size of a record (a px line height is a ratio to it). */
+function fontSizeOf(workspace: CatalogWorkspace, identity: string) {
+  const size = workspace.root.domInputs.get(identity)?.visual.fontSize;
+  return typeof size === "number" ? size : undefined;
+}
+
 /** The project's element rows as the AI's Element shape (ids = record identities). */
 function projectElements(workspace: CatalogWorkspace): Element[] {
   const graph = workspace.runtime.graph;
   const project = graph.getEntry(graph.projectId);
   if (project?.kind !== "project") return [];
   const records = workspace.root.domInputs;
+  const { breakpoint } = workspace.session.getSnapshot();
   const out: Element[] = [];
   const visit = (
     position: CatalogPosition,
@@ -35,10 +67,22 @@ function projectElements(workspace: CatalogWorkspace): Element[] {
       position.target.kind === "node"
         ? graph.getEntry(position.target.id)
         : undefined;
+    const own = workspace.readModel.ownFields(position.target);
+    const style = {
+      ...catalogStyleView(catalogFieldsAt(own, breakpoint), {
+        fontSize: fontSizeOf(workspace, position.identity),
+      }),
+      ...catalogPlacementStyle(own.placement),
+    };
+    const fills = catalogFillItems(own.fills);
     out.push({
       id: position.identity,
       type: typeOf(workspace, position),
-      props: { ...(records.get(position.identity)?.props ?? {}) },
+      props: {
+        ...(records.get(position.identity)?.props ?? {}),
+        ...(Object.keys(style).length ? { style } : {}),
+      },
+      ...(fills ? { fills: fills as Element["fills"] } : {}),
       parent_id: parentId,
       page_id: pageId,
       ...(node?.kind === "node" && node.name ? { customId: node.name } : {}),
@@ -62,6 +106,54 @@ const PROBE: NodeEntry = {
   sizing: {},
   descendantOverrides: [],
 };
+
+const parentOf = (target: EditTarget): NodeParent =>
+  target.kind === "node"
+    ? { kind: "node", id: target.id }
+    : { kind: "descendant", ownerId: target.ownerId, address: target.address };
+
+/** Where a new element goes: the selection, the nearest ancestor that takes a Frame, the body. */
+function creationParent(
+  workspace: CatalogWorkspace,
+): CatalogSelectionItem | undefined {
+  const records = workspace.root.domInputs;
+  const candidates: CatalogSelectionItem[] = [];
+  const [first] = workspace.session.getSnapshot().selection;
+  if (first) {
+    candidates.push(first);
+    for (
+      let record = records.get(records.get(first.identity)?.parentId ?? "");
+      record;
+      record = records.get(record.parentId)
+    ) {
+      const item = workspace.itemOfRecord(record.id);
+      if (!item) break;
+      candidates.push(item);
+    }
+  }
+  const { pageId } = workspace.session.getSnapshot();
+  const page = pageId && workspace.runtime.graph.getEntry(pageId);
+  const body = page && page.kind === "page" ? page.children[0] : undefined;
+  const bodyRecord = body && workspace.root.recordsOfSource(body)[0];
+  if (body && bodyRecord)
+    candidates.push({
+      target: { kind: "node", id: body as NodeId },
+      identity: bodyRecord,
+    });
+  return candidates.find((candidate) => {
+    try {
+      insertNodes({
+        parent: parentOf(candidate.target),
+        entries: [PROBE],
+        rootIds: [PROBE.id],
+        newId: workspace.newId,
+      })(workspace.runtime.graph);
+      return true;
+    } catch {
+      return false;
+    }
+  });
+}
 
 /**
  * ADR-248 Phase 4e-5: the AI's read host over the open catalog workspace — the element rows of
@@ -116,54 +208,208 @@ export function createCatalogAiReadHost(
         return [];
       }
     },
-    creationParentId() {
-      const records = workspace.root.domInputs;
-      const candidates: { target: EditTarget; identity: string }[] = [];
-      const [first] = selection();
-      if (first) {
-        candidates.push(first);
-        for (
-          let record = records.get(records.get(first.identity)?.parentId ?? "");
-          record;
-          record = records.get(record.parentId)
-        ) {
-          const item = workspace.itemOfRecord(record.id);
-          if (!item) break;
-          candidates.push(item);
-        }
-      }
-      const { pageId } = workspace.session.getSnapshot();
-      const page = pageId && workspace.runtime.graph.getEntry(pageId);
-      const body = page && page.kind === "page" ? page.children[0] : undefined;
-      const bodyRecord = body && workspace.root.recordsOfSource(body)[0];
-      if (body && bodyRecord)
-        candidates.push({
-          target: { kind: "node", id: body as NodeId },
-          identity: bodyRecord,
-        });
-      for (const candidate of candidates) {
-        const parent =
-          candidate.target.kind === "node"
-            ? { kind: "node" as const, id: candidate.target.id }
-            : {
-                kind: "descendant" as const,
-                ownerId: candidate.target.ownerId,
-                address: candidate.target.address,
-              };
-        try {
-          insertNodes({
-            parent,
-            entries: [PROBE],
-            rootIds: [PROBE.id],
-            newId: workspace.newId,
-          })(workspace.runtime.graph);
-          return candidate.identity;
-        } catch {
-          continue;
-        }
-      }
-      return null;
-    },
+    creationParentId: () => creationParent(workspace)?.identity ?? null,
     projectId: () => workspace.projectId,
+  };
+}
+
+/** A write's commands on existing (or staged) targets: semantic props, CSS, fills. */
+function writeCommands(
+  workspace: CatalogWorkspace,
+  targets: readonly EditTarget[],
+  input: AiElementWrite,
+  accepted: ReadonlySet<string>,
+  fontSize: number | undefined,
+): CatalogCommand[] {
+  const commands: CatalogCommand[] = [];
+  const props = input.props ?? {};
+  const refused = Object.keys(props).filter((key) => !accepted.has(key));
+  if (refused.length) throw new Error(`PROP_NOT_ACCEPTED: ${refused.join(", ")}`);
+  const first = targets[0];
+  const propCommand =
+    first &&
+    catalogSemanticPatchCommand(
+      targets,
+      props,
+      (key) => workspace.readModel.propSource(first, key).value,
+    );
+  if (propCommand) commands.push(propCommand);
+  const styles = Object.fromEntries(
+    Object.entries(input.styles ?? {}).filter(
+      ([, value]) => typeof value === "string" || typeof value === "number",
+    ),
+  ) as Record<string, string | number>;
+  if (Object.keys(styles).length) {
+    const { breakpoint } = workspace.session.getSnapshot();
+    commands.push(
+      setFields({
+        targets,
+        ...(breakpoint === "desktop" ? {} : { breakpoint }),
+        ...catalogStyleWritesOf(styles, { fontSize }),
+        label: "AI: style",
+      } as Parameters<typeof setFields>[0]),
+    );
+  }
+  if (input.fills) {
+    commands.push(
+      setWholeField({
+        targets,
+        field: "fills",
+        value: input.fills.length ? catalogFillLayers(input.fills) : [],
+        label: "AI: fill",
+      }),
+      setFields({
+        targets,
+        visual: Object.fromEntries(
+          FILL_DERIVED_STYLE_PROPS.map((key) => [key, { kind: "remove" }]),
+        ),
+      }),
+    );
+  }
+  return commands;
+}
+
+const acceptedKeys = (workspace: CatalogWorkspace, target: EditTarget) =>
+  new Set(
+    catalogEditContract(workspace.runtime.graph, workspace.readModel, target)
+      .fields.filter((field) => field.kind !== "binding")
+      .map((field) => field.key),
+  );
+
+/** One step of several commands, without moving the user's selection. */
+function runSteps(
+  workspace: CatalogWorkspace,
+  label: string,
+  commands: readonly CatalogCommand[],
+): void {
+  if (!commands.length) return;
+  workspace.execute(() => {
+    const plan = composeCommands(workspace.runtime.graph, label, commands);
+    return { label: plan.label, ops: plan.ops };
+  });
+}
+
+const failure = (error: unknown) => ({
+  ok: false as const,
+  error: error instanceof Error ? error.message : String(error),
+});
+
+/**
+ * ADR-248 Phase 4e-5: the AI's write host over the open catalog workspace — create = the palette
+ * definition of the type with its initial props, CSS and fills in one step (under the given
+ * element, else where a new element goes); update = the element's props (only the keys its
+ * contract offers), CSS at the open breakpoint and fills in one step; remove = one step; a batch
+ * joins its steps into one history entry. The user's selection does not move.
+ */
+export function createCatalogAiWriteHost(
+  workspace: CatalogWorkspace,
+): AiWriteHost {
+  const graph = workspace.runtime.graph;
+  const targetOf = (id: string) => workspace.positionOfRecord(id)?.target;
+  return {
+    create(input) {
+      try {
+        const parent = input.parentId
+          ? workspace.itemOfRecord(input.parentId)
+          : creationParent(workspace);
+        if (!parent)
+          return {
+            ok: false,
+            error: input.parentId
+              ? `PARENT_NOT_FOUND: ${input.parentId}`
+              : "NO_PARENT",
+          };
+        const definitionId = catalogPaletteDefinitionId(graph.library, input.type);
+        const nodeId = workspace.newId("node") as NodeId;
+        const entry: NodeEntry = {
+          kind: "node",
+          id: nodeId,
+          definitionId,
+          children: [],
+          props: {},
+          visual: {},
+          sizing: {},
+          descendantOverrides: [],
+        };
+        const target: EditTarget = { kind: "node", id: nodeId };
+        const accepted = catalogDefinitionPropKeys(graph, definitionId);
+        const props = input.props ?? {};
+        const refused = Object.keys(props).filter((key) => !accepted.has(key));
+        if (refused.length)
+          return { ok: false, error: `PROP_NOT_ACCEPTED: ${refused.join(", ")}` };
+        const commands: CatalogCommand[] = [
+          insertNodes({
+            parent: parentOf(parent.target),
+            entries: [
+              {
+                ...entry,
+                props: catalogCreationProps(
+                  graph.library,
+                  definitionId,
+                  input.type,
+                  props,
+                ),
+              },
+            ],
+            rootIds: [nodeId],
+            newId: workspace.newId,
+            label: `AI: add ${input.type}`,
+          }),
+          ...writeCommands(
+            workspace,
+            [target],
+            { styles: input.styles, fills: input.fills },
+            accepted,
+            undefined,
+          ),
+        ];
+        runSteps(workspace, `AI: add ${input.type}`, commands);
+        const elementId = workspace.root.recordsOfSource(nodeId)[0];
+        if (!elementId) return { ok: false, error: `NOT_DRAWN: ${nodeId}` };
+        return { ok: true, elementId, parentId: parent.identity };
+      } catch (error) {
+        return failure(error);
+      }
+    },
+    update(id, input) {
+      try {
+        const target = targetOf(id);
+        if (!target) return { ok: false, error: `ELEMENT_NOT_FOUND: ${id}` };
+        const fontSize = workspace.root.domInputs.get(id)?.visual.fontSize;
+        runSteps(
+          workspace,
+          "AI: edit",
+          writeCommands(
+            workspace,
+            [target],
+            input,
+            acceptedKeys(workspace, target),
+            typeof fontSize === "number" ? fontSize : undefined,
+          ),
+        );
+        return { ok: true };
+      } catch (error) {
+        return failure(error);
+      }
+    },
+    remove(id) {
+      try {
+        const target = targetOf(id);
+        if (!target) return { ok: false, error: `ELEMENT_NOT_FOUND: ${id}` };
+        runSteps(workspace, "AI: delete", [removeTargets({ targets: [target] })]);
+        return { ok: true };
+      } catch (error) {
+        return failure(error);
+      }
+    },
+    async batch(label, run) {
+      const before = workspace.runtime.historyDepth.undo;
+      try {
+        return await run();
+      } finally {
+        const added = workspace.runtime.historyDepth.undo - before;
+        if (added > 1) workspace.mergeHistory(added, label);
+      }
+    },
   };
 }

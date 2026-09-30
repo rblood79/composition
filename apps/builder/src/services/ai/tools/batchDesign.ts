@@ -20,6 +20,7 @@ import type {
   ToolTranslate,
 } from "../../../types/integrations/ai.types";
 import { historyManager } from "../../../builder/stores/history";
+import { getAiWriteHost } from "../aiWriteHost";
 import { createElementTool } from "./createElement";
 import { updateElementTool } from "./updateElement";
 import { deleteElementTool } from "./deleteElement";
@@ -74,10 +75,20 @@ export const batchDesignTool: ToolExecutor = {
 
     // 배치 전체를 되돌리기 1 단위로 묶는다 (G3). elementId 는 대표값이 없으므로
     // 배치 식별자를 쓴다 — entry 는 canonicalEvents 로 역연산된다.
-    historyManager.beginTransaction({
-      type: "batch",
-      elementId: `ai-batch-${operations.length}`,
-    });
+    // ADR-248 4e-5: the open catalog Builder joins the batch's steps into one history entry.
+    const writeHost = getAiWriteHost();
+    let finishBatch: () => void = () => {};
+    let hostBatch: Promise<unknown> | undefined;
+    if (writeHost) {
+      const done = new Promise<void>((resolve) => {
+        finishBatch = resolve;
+      });
+      hostBatch = writeHost.batch(`AI batch (${operations.length})`, () => done);
+    } else
+      historyManager.beginTransaction({
+        type: "batch",
+        elementId: `ai-batch-${operations.length}`,
+      });
 
     const results: Array<{
       index: number;
@@ -131,7 +142,10 @@ export const batchDesignTool: ToolExecutor = {
         }
       }
     } finally {
-      historyManager.commitTransaction();
+      if (writeHost) {
+        finishBatch();
+        await hostBatch;
+      } else historyManager.commitTransaction();
     }
 
     const successCount = results.filter((r) => r.success).length;

@@ -218,6 +218,24 @@ export class CatalogRuntime {
     session.redo = [];
     this.notifyHistory(session);
   }
+  /**
+   * Join the last `count` undo entries into one (`label`): forward ops in order, inverse ops in
+   * reverse entry order, so one undo takes back all of them. Refused (false) when an entry holds an
+   * outside change or when fewer entries exist — a document-only batch (an AI batch) only.
+   */
+  mergeHistory(count: number, label: string): boolean {
+    const session = this.current();
+    if (count < 2 || count > session.undo.length) return false;
+    const entries = session.undo.slice(-count);
+    if (entries.some((entry) => entry.external)) return false;
+    session.undo.splice(-count, count, {
+      label,
+      forward: entries.flatMap((entry) => entry.forward),
+      inverse: [...entries].reverse().flatMap((entry) => entry.inverse),
+    });
+    this.notifyHistory(session);
+    return true;
+  }
   /** Listen to every history change of the active project. */
   subscribeHistory(listener: () => void): () => void {
     const session = this.current();

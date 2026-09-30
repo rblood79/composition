@@ -10,6 +10,7 @@ import type {
   ToolTranslate,
 } from "../../../types/integrations/ai.types";
 import { getAiToolReadModel } from "./canonicalToolReadModel";
+import { getAiWriteHost } from "../aiWriteHost";
 import { confirmStructuralOriginImpact } from "../../../builder/stores/utils/elementUpdate";
 import { resolveElementRef } from "./elementRef";
 import {
@@ -49,32 +50,39 @@ export const deleteElementTool: ToolExecutor = {
       const targetId = ref.id;
       const element = elementsById.get(targetId)!;
 
-      // 구조 변경 판정 (ADR-236 Phase 3 — 메뉴 · 단축키 · Layers 와 같은 `canOperate`). body 는 전용 문구,
-      // systemOwned origin · ListBox template anchor 는 store 가 지우지 않으므로 여기서 이유와 함께 거부한다.
-      const verdict = canOperate("delete", targetId, (id) =>
-        elementsById.get(id),
-      );
-      if (!verdict.ok) {
-        switch (verdict.reason) {
-          case "body":
-            return { success: false, error: t("aiToolError.bodyUndeletable") };
+      // ADR-248 4e-5: the open catalog Builder removes it (one step) — its remove command checks
+      // the structure itself (the old checks read old-model ids).
+      const writeHost = getAiWriteHost();
+      if (!writeHost) {
+        // 구조 변경 판정 (ADR-236 Phase 3 — 메뉴 · 단축키 · Layers 와 같은 `canOperate`). body 는 전용 문구,
+        // systemOwned origin · ListBox template anchor 는 store 가 지우지 않으므로 여기서 이유와 함께 거부한다.
+        const verdict = canOperate("delete", targetId, (id) =>
+          elementsById.get(id),
+        );
+        if (!verdict.ok) {
+          switch (verdict.reason) {
+            case "body":
+              return { success: false, error: t("aiToolError.bodyUndeletable") };
+          }
+          const messageKey = getOperationRejectMessageKey(verdict.reason);
+          return {
+            success: false,
+            error: messageKey
+              ? t(messageKey)
+              : t("aiToolError.notDeleted", { id: targetId }),
+          };
         }
-        const messageKey = getOperationRejectMessageKey(verdict.reason);
-        return {
-          success: false,
-          error: messageKey
-            ? t(messageKey)
-            : t("aiToolError.notDeleted", { id: targetId }),
-        };
-      }
 
-      // origin 안 삭제는 모든 instance 를 바꾼다 — 편집과 같은 영향 확인 (ADR-236 E4).
-      const impactGate = confirmStructuralOriginImpact([targetId]);
-      if (impactGate !== true && !(await impactGate)) {
-        return { success: false, error: t("aiToolError.originImpactCancelled") };
+        // origin 안 삭제는 모든 instance 를 바꾼다 — 편집과 같은 영향 확인 (ADR-236 E4).
+        const impactGate = confirmStructuralOriginImpact([targetId]);
+        if (impactGate !== true && !(await impactGate)) {
+          return { success: false, error: t("aiToolError.originImpactCancelled") };
+        }
       }
-
-      await removeElement(targetId);
+      if (writeHost) {
+        const written = writeHost.remove(targetId);
+        if (!written.ok) return { success: false, error: written.error };
+      } else await removeElement(targetId);
 
       // 반영 확인 — `removeElement` 도 반환값이 없다 (`mutationVerification.ts` 주석).
       const remaining = getAiToolReadModel().elementsById.get(targetId);

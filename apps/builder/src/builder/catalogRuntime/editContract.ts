@@ -65,6 +65,22 @@ function semanticContracts(
   return entry?.kind === "primitive" ? (entry.binding.props.accepts ?? {}) : {};
 }
 
+/** The semantic prop keys a definition offers (no data binding) — a node about to be created. */
+export function catalogDefinitionPropKeys(
+  graph: CatalogReader,
+  definitionId: DefinitionId,
+): Set<string> {
+  const contracts = semanticContracts(
+    definitionId,
+    definitionTypeName(graph, definitionId),
+  );
+  return new Set(
+    Object.entries(contracts)
+      .filter(([, contract]) => contract.kind !== "binding")
+      .map(([key]) => key),
+  );
+}
+
 /**
  * ADR-248 Phase 4e-4: the Properties panel's edit contract of a catalog edit target — the semantic
  * fields of the definition it shows, each with its value source from the read model (`own` = the

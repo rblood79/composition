@@ -57,9 +57,10 @@ export function findUnappliedStyles(
     adaptStyles(requested).style,
     true,
   );
+  // Both sides in the adapter's form: a store may hold `8` where a CSS view shows `"8px"`.
   const actual =
     applied && typeof applied === "object"
-      ? (applied as Record<string, unknown>)
+      ? adaptStyles(applied as Record<string, unknown>).style
       : {};
   return Object.keys(expected)
     .filter((key) => !valuesEqual(actual[key], expected[key]))

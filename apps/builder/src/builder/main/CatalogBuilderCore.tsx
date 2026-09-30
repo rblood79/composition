@@ -43,7 +43,11 @@ import { DataVariablesHostContext } from "../panels/datatable/usage/dataVariable
 import { AgentCommandConfirmDialogHost, ToastContainer } from "../components";
 import { setAgentCommandHost } from "../../services/agent/agentCommandHost";
 import { createCatalogAgentCommandHost } from "../catalogRuntime/agentHost";
-import { createCatalogAiReadHost } from "../catalogRuntime/aiHost";
+import {
+  createCatalogAiReadHost,
+  createCatalogAiWriteHost,
+} from "../catalogRuntime/aiHost";
+import { setAiWriteHost } from "../../services/ai/aiWriteHost";
 import { setAiReadHost } from "../../services/ai/aiReadHost";
 import { PanelWorkspace } from "../layout";
 import { useDataStore } from "../stores/data";
@@ -213,11 +217,16 @@ export function CatalogBuilderCore() {
       createCatalogAgentCommandHost(workspace, handleSceneError),
     );
   }, [workspace, handleSceneError]);
-  // The AI panel's tools, compiler and suggestions read this workspace (ADR-248 4e-5).
-  useEffect(
-    () => (workspace ? setAiReadHost(createCatalogAiReadHost(workspace)) : undefined),
-    [workspace],
-  );
+  // The AI panel's tools, compiler and suggestions read and write this workspace (ADR-248 4e-5).
+  useEffect(() => {
+    if (!workspace) return;
+    const offRead = setAiReadHost(createCatalogAiReadHost(workspace));
+    const offWrite = setAiWriteHost(createCatalogAiWriteHost(workspace));
+    return () => {
+      offRead();
+      offWrite();
+    };
+  }, [workspace]);
   useEffect(() => {
     if (!import.meta.env.DEV) return;
     let uninstall: (() => void) | null = null;
