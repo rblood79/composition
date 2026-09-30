@@ -359,6 +359,34 @@ export const setFillSizing =
     return { label: input.label ?? "Edit size", ops };
   };
 
+/** The author's class names or accessible name (`metadata`); empty clears it. */
+export const setNodeAttribute =
+  (input: {
+    id: NodeEntry["id"];
+    field: "className" | "ariaLabel";
+    value: string;
+    label?: string;
+  }): CatalogCommand =>
+  (reader) => {
+    const node = reader.getEntry(input.id);
+    if (node?.kind !== "node") return fail("NODE_REQUIRED", input.id);
+    const metadata = { ...node.metadata };
+    const value = input.value.trim();
+    if (value) metadata[input.field] = value;
+    else delete metadata[input.field];
+    return {
+      label: input.label ?? "Edit properties",
+      ops: [
+        {
+          kind: "setNodeField",
+          id: input.id,
+          field: "metadata",
+          value: Object.keys(metadata).length ? metadata : undefined,
+        },
+      ],
+    };
+  };
+
 /** The author's DOM id (`metadata.htmlId`); empty clears it. */
 export const setHtmlId =
   (input: {

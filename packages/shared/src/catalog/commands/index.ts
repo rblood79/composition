@@ -26,6 +26,7 @@ export {
   setFields,
   setFillSizing,
   setHtmlId,
+  setNodeAttribute,
   setSlotDeclaration,
   setWholeField,
 } from "./fields";

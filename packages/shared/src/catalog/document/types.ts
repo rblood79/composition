@@ -497,6 +497,10 @@ export interface NodeEntry {
 }
 export interface NodeMetadata {
   htmlId?: string;
+  /** The author's DOM class names, after the element's own classes (every element — old `className`). */
+  className?: string;
+  /** The author's accessible name (`aria-label`, every element — old `aria-label` prop). */
+  ariaLabel?: string;
 }
 export interface ThemeEntry {
   kind: "theme";

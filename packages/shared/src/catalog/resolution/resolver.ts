@@ -56,6 +56,9 @@ export interface ResolvedCatalogNode {
   themeOverride?: NodeThemeOverride;
   /** The author's DOM `id` (`metadata.htmlId`). */
   htmlId?: string;
+  /** The author's class names and accessible name (`metadata.className` · `ariaLabel`). */
+  className?: string;
+  ariaLabel?: string;
   slot?: { name: string; required: boolean };
   name?: string;
   regions?: readonly { name: string; required: boolean }[];
@@ -281,6 +284,12 @@ export function resolveCatalogNode(
       ...(fillSizing ? { fillSizing } : {}),
       ...(node.themeOverride ? { themeOverride: node.themeOverride } : {}),
       ...(node.metadata?.htmlId ? { htmlId: node.metadata.htmlId } : {}),
+      ...(node.metadata?.className
+        ? { className: node.metadata.className }
+        : {}),
+      ...(node.metadata?.ariaLabel
+        ? { ariaLabel: node.metadata.ariaLabel }
+        : {}),
     };
   };
   const source = graph.getEntry(id);

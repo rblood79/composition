@@ -1084,7 +1084,13 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
       );
       if (item.metadata !== undefined) {
         const metadata = object(item.metadata, "entry.metadata");
-        exact(metadata, ["htmlId"], "entry.metadata");
+        exact(metadata, ["htmlId", "className", "ariaLabel"], "entry.metadata");
+        for (const key of ["className", "ariaLabel"] as const)
+          if (
+            metadata[key] !== undefined &&
+            (typeof metadata[key] !== "string" || !String(metadata[key]).trim())
+          )
+            invalid("INVALID_METADATA", `entry.metadata.${key}`);
         if (
           metadata.htmlId !== undefined &&
           (typeof metadata.htmlId !== "string" ||

@@ -10,10 +10,9 @@ import {
   catalogHtmlIdCommand,
   catalogUniqueHtmlId,
 } from "../../../catalogRuntime/attributes";
-import { catalogSemanticPatchCommand } from "../../../catalogRuntime/editContract";
+import { setNodeAttribute } from "../../../../../../../packages/shared/src/catalog/commands";
 import {
   useCatalogEditContract,
-  useCatalogPropSource,
   useCatalogWorkspace,
 } from "../../../catalogRuntime/react";
 import { PropertyInput, PropertySection } from "../../../components";
@@ -24,9 +23,10 @@ import { needsAuthoredAriaLabel } from "../ariaLabelNeed";
 
 /**
  * ADR-248 Phase 4e-4: the common DOM axis of an element (ID · Class Name · Aria Label) over the
- * catalog document — the ID is the node's `metadata.htmlId` (unique: the graph's index refuses a
- * taken one, the check button assigns or dedupes `base_N`), class and aria label are own props.
- * A template position (inside an instance) has no own DOM id.
+ * catalog document — the node's `metadata`: the ID is `htmlId` (unique: the graph's index refuses a
+ * taken one, the check button assigns or dedupes `base_N`), class and aria label are `className` ·
+ * `ariaLabel` (every element, whatever its definition accepts). A template position (inside an
+ * instance) has no DOM attributes of its own.
  */
 export const CatalogAttributesSection = memo(function CatalogAttributesSection({
   target,
@@ -40,28 +40,31 @@ export const CatalogAttributesSection = memo(function CatalogAttributesSection({
   const run = useCatalogCommandRunner();
   const graph = workspace.runtime.graph;
   const contract = useCatalogEditContract(target);
-  const className = useCatalogPropSource(target, "className").value;
-  const ariaLabel = useCatalogPropSource(target, "aria-label").value;
   const nodeId = target.kind === "node" ? target.id : undefined;
   const subscribeSteps = useCallback(
     (notify: () => void) => workspace.runtime.subscribeSteps(() => notify()),
     [workspace],
   );
-  const htmlId = useSyncExternalStore(subscribeSteps, () => {
+  const metadataOf = (field: "htmlId" | "className" | "ariaLabel") => () => {
     const entry = nodeId ? graph.getEntry(nodeId) : undefined;
-    return entry?.kind === "node" ? (entry.metadata?.htmlId ?? "") : "";
-  });
+    return entry?.kind === "node" ? (entry.metadata?.[field] ?? "") : "";
+  };
+  const htmlId = useSyncExternalStore(subscribeSteps, metadataOf("htmlId"));
+  const className = useSyncExternalStore(
+    subscribeSteps,
+    metadataOf("className"),
+  );
+  const ariaLabel = useSyncExternalStore(
+    subscribeSteps,
+    metadataOf("ariaLabel"),
+  );
 
-  const writeProp = useCallback(
-    (key: string, value: string) => {
-      const command = catalogSemanticPatchCommand(
-        [target],
-        { [key]: value.trim() ? value.trim() : undefined },
-        (changed) => workspace.readModel.propSource(target, changed).value,
-      );
-      if (command) run(command);
+  const writeAttribute = useCallback(
+    (field: "className" | "ariaLabel", value: string, current: string) => {
+      if (!nodeId || value.trim() === current) return;
+      run(setNodeAttribute({ id: nodeId as NodeId, field, value }));
     },
-    [run, target, workspace],
+    [nodeId, run],
   );
   const handleHtmlId = useCallback(
     (value: string) => {
@@ -140,20 +143,22 @@ export const CatalogAttributesSection = memo(function CatalogAttributesSection({
           </div>
         </div>
       )}
-      <div className="fieldset-row" data-wide="true">
-        <PropertyInput
-          label="Class Name"
-          value={typeof className === "string" ? className : ""}
-          onChange={(value) => writeProp("className", value)}
-          placeholder={t("propertiesPanel.classNamePlaceholder")}
-        />
-      </div>
-      {showAriaLabel && (
+      {nodeId && (
+        <div className="fieldset-row" data-wide="true">
+          <PropertyInput
+            label="Class Name"
+            value={className}
+            onChange={(value) => writeAttribute("className", value, className)}
+            placeholder={t("propertiesPanel.classNamePlaceholder")}
+          />
+        </div>
+      )}
+      {nodeId && showAriaLabel && (
         <div className="fieldset-row" data-wide="true">
           <PropertyInput
             label="Aria Label"
-            value={typeof ariaLabel === "string" ? ariaLabel : ""}
-            onChange={(value) => writeProp("aria-label", value)}
+            value={ariaLabel}
+            onChange={(value) => writeAttribute("ariaLabel", value, ariaLabel)}
             placeholder={t("propertiesPanel.ariaLabelPlaceholder")}
           />
         </div>

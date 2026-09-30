@@ -120,6 +120,9 @@ export interface CatalogConsumerNode {
   readonly themeOverride?: ResolvedCatalogNode["themeOverride"];
   /** The author's DOM `id` (`metadata.htmlId`). */
   readonly htmlId?: string;
+  /** The author's class names and accessible name (`metadata.className` · `ariaLabel`). */
+  readonly className?: string;
+  readonly ariaLabel?: string;
   readonly slot: ResolvedCatalogNode["slot"];
   readonly name: ResolvedCatalogNode["name"];
   readonly regions: ResolvedCatalogNode["regions"];
@@ -219,12 +222,36 @@ const textKeysChanged = (
   CATALOG_INHERITED_TEXT_KEYS.some(
     (key) => left?.visual[key] !== right.visual[key],
   );
+/**
+ * The author's DOM attributes of a collapsed composite instance: the instance node's (the element
+ * the author edits), else its template root's.
+ */
+function domAttributes(
+  top: ResolvedCatalogNode,
+  target: ResolvedCatalogNode,
+): Pick<CatalogConsumerNode, "htmlId" | "className" | "ariaLabel"> {
+  const htmlId = top.htmlId ?? target.htmlId;
+  const className = top.className ?? target.className;
+  const ariaLabel = top.ariaLabel ?? target.ariaLabel;
+  return {
+    ...(htmlId ? { htmlId } : {}),
+    ...(className ? { className } : {}),
+    ...(ariaLabel ? { ariaLabel } : {}),
+  };
+}
+
 /** The optional authored fields a record carries only when the resolved node declares them. */
 function authoredFields(
   node: ResolvedCatalogNode,
 ): Pick<
   CatalogConsumerNode,
-  "fills" | "fillSizing" | "themeOverride" | "authoredLayout" | "htmlId"
+  | "fills"
+  | "fillSizing"
+  | "themeOverride"
+  | "authoredLayout"
+  | "htmlId"
+  | "className"
+  | "ariaLabel"
 > {
   return {
     ...(node.fills ? { fills: node.fills } : {}),
@@ -232,6 +259,8 @@ function authoredFields(
     ...(node.themeOverride ? { themeOverride: node.themeOverride } : {}),
     ...(node.authoredLayout ? { authoredLayout: node.authoredLayout } : {}),
     ...(node.htmlId ? { htmlId: node.htmlId } : {}),
+    ...(node.className ? { className: node.className } : {}),
+    ...(node.ariaLabel ? { ariaLabel: node.ariaLabel } : {}),
   };
 }
 export interface CatalogRootMetrics {
@@ -859,6 +888,8 @@ function sameRecord(
     sameFields(left.fillLayout ?? {}, right.fillLayout ?? {}) &&
     sameFields(left.authoredLayout ?? {}, right.authoredLayout ?? {}) &&
     left.htmlId === right.htmlId &&
+    left.className === right.className &&
+    left.ariaLabel === right.ariaLabel &&
     JSON.stringify(left.fills ?? null) ===
       JSON.stringify(right.fills ?? null) &&
     JSON.stringify(left.fillSizing ?? null) ===
@@ -1653,6 +1684,7 @@ export class CatalogCompositionRoot {
       sizing: target.sizing,
       placement: top.placement ?? target.placement,
       ...authoredFields(target),
+      ...domAttributes(top, target),
       slot: top.slot ?? target.slot,
       name: top.name ?? target.name,
       regions: top.regions ?? target.regions,
@@ -2264,6 +2296,8 @@ export class CatalogCompositionRoot {
         themeOverride: _themeOverride,
         authoredLayout: _authoredLayout,
         htmlId: _htmlId,
+        className: _className,
+        ariaLabel: _ariaLabel,
         ...kept
       } = before;
       const record: CatalogConsumerNode = {
@@ -2274,6 +2308,7 @@ export class CatalogCompositionRoot {
         sizing: resolved.sizing,
         placement: top.placement ?? resolved.placement,
         ...authoredFields(resolved),
+        ...domAttributes(top, resolved),
         slot: top.slot ?? resolved.slot,
         name: top.name ?? resolved.name,
         regions: top.regions ?? resolved.regions,

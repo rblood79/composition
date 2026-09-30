@@ -1102,6 +1102,7 @@ function renderNode(
   const delegated = CATALOG_DELEGATED_DOM[node.bindingId ?? ""];
   if (delegated && !bindings[node.bindingId ?? ""])
     return withHtmlId(
+      root,
       node,
       delegated.render({
         root,
@@ -1135,6 +1136,7 @@ function renderNode(
     : ruleDom(root, node, children);
   const slot = itemSlotRole(root, node);
   return withHtmlId(
+    root,
     node,
     slot
       ? cloneElement(rendered as ReactElement<{ slot?: string }>, { slot })
@@ -1142,16 +1144,39 @@ function renderNode(
   );
 }
 
-/** The author's DOM `id` (`metadata.htmlId`) on the node's own element, for every binding. */
+type ClassNameValue =
+  | string
+  | ((values: { defaultClassName?: string }) => string | undefined)
+  | undefined;
+
+/**
+ * The author's DOM attributes (`metadata` — every element) on the node's own element, for every
+ * binding: `id`, `aria-label`, and class names after the element's own. An element without a
+ * class of its own takes `react-aria-{Type}` first — a class passed to a RAC component replaces
+ * its default (the old Preview's root class + author class rule); a DOM tag takes the author's.
+ */
 function withHtmlId(
+  root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
   element: ReactElement,
 ): ReactElement {
-  return node.htmlId
-    ? cloneElement(element as ReactElement<{ id?: string }>, {
-        id: node.htmlId,
-      })
-    : element;
+  if (!node.htmlId && !node.className && !node.ariaLabel) return element;
+  const patch: Record<string, unknown> = {};
+  if (node.htmlId) patch.id = node.htmlId;
+  if (node.ariaLabel) patch["aria-label"] = node.ariaLabel;
+  const authored = node.className;
+  if (authored) {
+    const own = (element.props as { className?: ClassNameValue }).className;
+    const join = (...names: (string | undefined)[]) =>
+      names.filter(Boolean).join(" ");
+    patch.className =
+      typeof own === "function"
+        ? (values: { defaultClassName?: string }) => join(own(values), authored)
+        : own !== undefined || typeof element.type === "string"
+          ? join(own, authored)
+          : join(`react-aria-${catalogTypeName(root, node)}`, authored);
+  }
+  return cloneElement(element, patch);
 }
 
 /**
