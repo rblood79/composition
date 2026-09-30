@@ -10,7 +10,9 @@ import type {
 } from "../../../../../packages/shared/src/catalog/document/types";
 import {
   readCommonProp,
+  readOwnFields,
   readPropSource,
+  type OwnFields,
   type PropReading,
 } from "../../../../../packages/shared/src/catalog/resolution/fieldSource";
 import {
@@ -87,7 +89,7 @@ export class CatalogReadModel {
   private readonly byIndex = new Set<string>();
   private readonly unsubscribe: () => void;
   /** Reads computed (first read or recompute), by kind — the cost contract's counter. */
-  readonly stats = { rows: 0, props: 0, components: 0 };
+  readonly stats = { rows: 0, props: 0, components: 0, own: 0 };
 
   constructor(private readonly runtime: CatalogRuntime) {
     this.unsubscribe = runtime.subscribeSteps((step) => this.onStep(step));
@@ -235,6 +237,40 @@ export class CatalogReadModel {
   commonProp(targets: readonly EditTarget[], key: string) {
     for (const target of targets) this.propSource(target, key);
     return readCommonProp(this.runtime.graph, targets, key);
+  }
+
+  private ownCompute(target: EditTarget): CachedRead<OwnFields>["compute"] {
+    return () => {
+      this.stats.own += 1;
+      const deps = new Set<string>();
+      const value = readOwnFields(recording(this.runtime.graph, deps), target);
+      return { value, deps };
+    };
+  }
+  /** What the target authors itself (the Styles panel's modified marks and reset). */
+  ownFields(target: EditTarget): OwnFields {
+    return this.read(`own:${targetKey(target)}`, this.ownCompute(target)).value;
+  }
+  subscribeOwnFields(
+    target: EditTarget,
+    listener: Listener<OwnFields>,
+  ): () => void {
+    return this.subscribeRead(
+      `own:${targetKey(target)}`,
+      this.ownCompute(target),
+      listener,
+    );
+  }
+
+  /** Other nodes using a node's author DOM id (the graph's htmlId index, no scan). */
+  htmlIdConflicts(nodeId: NodeId): readonly NodeId[] {
+    const node = this.runtime.graph.getEntry(nodeId);
+    const htmlId = node?.kind === "node" ? node.metadata?.htmlId : undefined;
+    return htmlId
+      ? ([...this.runtime.graph.nodesWithHtmlId(htmlId)].filter(
+          (id) => id !== nodeId,
+        ) as NodeId[])
+      : [];
   }
 
   /** The project's pages in order. */

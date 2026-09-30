@@ -48,7 +48,8 @@ export interface CatalogHistoryRecord {
 }
 type MutableIndex = Map<string, Set<string>>;
 /** `ref`: any other by-ID reference (addresses, interaction/state owners and targets, theme tokens). */
-type EdgeType = "definition" | "owner" | "token" | "collection" | "ref";
+type EdgeType =
+  "definition" | "owner" | "token" | "collection" | "ref" | "htmlId";
 interface Edge {
   type: EdgeType;
   key: string;
@@ -120,6 +121,12 @@ function edgesOf(entry: CatalogEntry): Edge[] {
       edges.push({
         type: "collection",
         key: entry.binding.collectionId,
+        target: entry.id,
+      });
+    if (entry.metadata?.htmlId)
+      edges.push({
+        type: "htmlId",
+        key: entry.metadata.htmlId,
         target: entry.id,
       });
   }
@@ -203,6 +210,7 @@ export class CatalogGraph {
   private readonly tokenIndex: MutableIndex = new Map();
   private readonly collectionIndex: MutableIndex = new Map();
   private readonly refIndex: MutableIndex = new Map();
+  private readonly htmlIdIndex: MutableIndex = new Map();
   private readonly libraryDependents: MutableIndex = new Map();
   private readonly overrideIndex = new Map<
     LibraryDefinitionId,
@@ -435,6 +443,10 @@ export class CatalogGraph {
    */
   referrersOf(id: string): ReadonlySet<string> {
     return this.refIndex.get(id) ?? new Set();
+  }
+  /** Committed nodes whose author DOM id (`metadata.htmlId`) is `htmlId` (duplicate check). */
+  nodesWithHtmlId(htmlId: string): ReadonlySet<string> {
+    return this.htmlIdIndex.get(htmlId) ?? new Set();
   }
   /** Committed instances of a definition (definition → node index). */
   instancesOf(definitionId: string): ReadonlySet<string> {
@@ -1070,6 +1082,7 @@ export class CatalogGraph {
     if (type === "owner") return this.ownerIndex;
     if (type === "token") return this.tokenIndex;
     if (type === "ref") return this.refIndex;
+    if (type === "htmlId") return this.htmlIdIndex;
     return this.collectionIndex;
   }
   private addEdge(edge: Edge): void {

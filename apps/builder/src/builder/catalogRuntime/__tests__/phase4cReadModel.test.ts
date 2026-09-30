@@ -16,7 +16,9 @@ import {
   duplicateNodes,
   insertNodes,
   removeTargets,
+  resetDescendant,
   setFields,
+  setHtmlId,
   setWholeField,
 } from "../../../../../../packages/shared/src/catalog/commands";
 import { documentOf } from "../../../../../../packages/shared/src/catalog/commands/__tests__/fixture";
@@ -204,5 +206,53 @@ describe("ADR-248 Phase 4c read model", () => {
     ]);
     run(duplicateNodes({ ids: plan.selectAfter!, newId }));
     expect(counts.at(-1)).toEqual([2]);
+  });
+
+  it("finds author DOM id conflicts through the graph index, across edits and undo", async () => {
+    const { runtime, model, run } = await open(
+      [text("a", "A"), text("b", "B")],
+      ["a", "b"],
+    );
+    run(setHtmlId({ id: id("a"), htmlId: "hero" }));
+    expect(model.htmlIdConflicts(id("a"))).toEqual([]);
+    run(setHtmlId({ id: id("b"), htmlId: "hero" }));
+    expect(model.htmlIdConflicts(id("a"))).toEqual([id("b")]);
+    run(setHtmlId({ id: id("b"), htmlId: "footer" }));
+    expect(model.htmlIdConflicts(id("a"))).toEqual([]);
+    runtime.undo();
+    expect(model.htmlIdConflicts(id("b"))).toEqual([id("a")]);
+  });
+
+  it("reads what a template position authors itself, and follows its reset", async () => {
+    const { model, run } = await open(
+      [node("icon", "lib:definition:origin-component-iconbutton")],
+      ["icon"],
+    );
+    const label: EditTarget = {
+      kind: "descendant",
+      ownerId: id("icon"),
+      address: {
+        instances: [id("icon")],
+        templatePath: [
+          "lib:template:component-iconbutton" as TemplateId,
+          "lib:template:component-iconbutton__label" as TemplateId,
+        ],
+      },
+    };
+    const marks: string[][] = [];
+    model.subscribeOwnFields(label, (own) =>
+      marks.push(Object.keys(own.visual)),
+    );
+    expect(model.ownFields(label).visual).toEqual({});
+    run(
+      setFields({
+        targets: [label],
+        visual: { borderColor: { kind: "set", value: "#ABCDEF" } },
+      }),
+    );
+    expect(marks.at(-1)).toEqual(["borderColor"]);
+    if (label.kind !== "descendant") throw new Error("descendant");
+    run(resetDescendant({ ownerId: id("icon"), address: label.address }));
+    expect(marks.at(-1)).toEqual([]);
   });
 });

@@ -383,3 +383,58 @@ export function readCommonProp(
     ? { mixed: false, value: values[0] }
     : { mixed: true, values };
 }
+
+/**
+ * What a target authors itself (a reset removes it): an owned node's own fields, or a template
+ * position's path patch. Style panels read it for their "modified" marks; values stay authored
+ * writes (the effective value is the resolved record's).
+ */
+export interface OwnFields {
+  props: NodeEntry["props"];
+  visual: NodeEntry["visual"];
+  layout: NonNullable<NodeEntry["layout"]>;
+  sizing: NodeEntry["sizing"];
+  fills?: NodeEntry["fills"];
+  fillSizing?: NodeEntry["fillSizing"];
+  responsive?: NodeEntry["responsive"];
+  visibility?: NodeEntry["visibility"];
+  enabled?: boolean;
+}
+export function readOwnFields(
+  reader: CatalogReader,
+  target: EditTarget,
+): OwnFields {
+  if (target.kind === "node") {
+    const node = reader.getEntry(target.id);
+    if (node?.kind !== "node")
+      throw new CatalogValidationError("NODE_REQUIRED", target.id);
+    return {
+      props: node.props,
+      visual: node.visual,
+      layout: node.layout ?? {},
+      sizing: node.sizing,
+      ...(node.fills ? { fills: node.fills } : {}),
+      ...(node.fillSizing ? { fillSizing: node.fillSizing } : {}),
+      ...(node.responsive ? { responsive: node.responsive } : {}),
+      ...(node.visibility ? { visibility: node.visibility } : {}),
+      ...(node.enabled !== undefined ? { enabled: node.enabled } : {}),
+    };
+  }
+  const owner = reader.getEntry(target.ownerId);
+  if (owner?.kind !== "node")
+    throw new CatalogValidationError("NODE_REQUIRED", target.ownerId);
+  const patch = overrideAt(owner, target.address);
+  if (patch?.kind !== "patch")
+    return { props: {}, visual: {}, layout: {}, sizing: {} };
+  return {
+    props: patch.props ?? {},
+    visual: patch.visual ?? {},
+    layout: patch.layout ?? {},
+    sizing: patch.sizing ?? {},
+    ...(patch.fills ? { fills: patch.fills } : {}),
+    ...(patch.fillSizing ? { fillSizing: patch.fillSizing } : {}),
+    ...(patch.responsive ? { responsive: patch.responsive } : {}),
+    ...(patch.visibility ? { visibility: patch.visibility } : {}),
+    ...(patch.enabled !== undefined ? { enabled: patch.enabled } : {}),
+  };
+}
