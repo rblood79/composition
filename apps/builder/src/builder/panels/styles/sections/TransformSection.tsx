@@ -19,9 +19,6 @@ import {
   PropertyUnitInput,
   PropertySelect,
 } from "../../../components";
-import { type BreakpointName } from "@composition/shared";
-import { parsePadding4Way } from "@composition/specs";
-import { resolveBorderGeometry } from "../../../workspace/canvas/styleConversion/borderGeometry";
 import {
   SwatchIconButton,
   SwatchIconToggleButton,
@@ -40,7 +37,7 @@ import {
   useParentDisplay,
   useParentFlexDirection,
 } from "../hooks/useTransformAuxiliary";
-import { readImmediateSelectionSnapshot, useStore } from "../../../stores";
+import { useStore } from "../../../stores";
 import {
   commitPagePlacementFromPoint,
   isPagePlacementEditable,
@@ -68,14 +65,8 @@ const RATIO_ERROR_LABELS: Record<RatioEditError, string> = {
     "Open each screen size (Desktop, Tablet, Mobile) once, then try again",
   "document-changed": "Document changed. Try again",
 };
-import { getSceneBounds } from "../../../workspace/canvas/skia/renderCommands";
-import type { BoundingBox } from "../../../workspace/canvas/selection/types";
-import { resolveResponsiveStyleMap } from "../../../workspace/canvas/layout/resolveResponsive";
-import { resolveContainerStylesFallback } from "../../../workspace/canvas/layout/engines/implicitStyles";
-import type { CanvasLayoutNode } from "../../../workspace/canvas/layout/layoutNode";
 import {
   hasSizeConstraintConflict,
-  resolveAbsolutePositionActivationStyles,
   type SizeConstraintProperty,
 } from "./transformUtils";
 import { POSITION_PROPS, SIZE_PROPS } from "./styleSectionProps";
@@ -91,37 +82,6 @@ import {
 } from "../stylesHost";
 
 const POSITION_SECTION_ID = "position";
-
-function resolveAbsoluteContainingBlockBounds(
-  parent: CanvasLayoutNode,
-  parentBounds: BoundingBox,
-  activeBreakpoint: BreakpointName,
-): BoundingBox {
-  const rawStyle = (parent.props?.style ?? {}) as Record<string, unknown>;
-  const responsiveStyle = resolveResponsiveStyleMap(
-    rawStyle,
-    parent.responsive,
-    activeBreakpoint,
-  );
-  const type = parent.type.toLowerCase();
-  const style = {
-    ...resolveContainerStylesFallback(type, responsiveStyle),
-    ...responsiveStyle,
-  };
-  const padding = parsePadding4Way(style);
-  // ADR-219 — 변별 폭은 helper 하나로 (longhand ?? shorthand ?? border 단축)
-  const { widths } = resolveBorderGeometry(style as Record<string, unknown>);
-  const borderTop = widths[0];
-  const borderLeft = widths[3];
-
-  // Skia absolute layout은 부모 border-box가 아닌 border+padding 이후의 콘텐츠
-  // 원점을 left/top 0으로 사용한다. 토글 전환도 동일 원점을 써야 시각 좌표가 보존된다.
-  return {
-    ...parentBounds,
-    x: parentBounds.x + borderLeft + padding.left,
-    y: parentBounds.y + borderTop + padding.top,
-  };
-}
 
 const ASPECT_RATIO_OPTIONS = [
   { value: "reset", label: "Auto" },
@@ -429,66 +389,13 @@ const TransformSectionContent = memo(function TransformSectionContent({
     commitRatio(hasEnabledAspectRatio(styleValues?.aspectRatio) ? "" : null);
   }, [commitRatio, styleValues?.aspectRatio]);
 
-  // ADR-224 §6.1 — Flow→Absolute 는 store 복합 명령 (position/inset + 무효 Fill 의 used px
-  // Fixed + 형제 맨 앞, 한 transaction). 오류 코드는 Ratio 와 같은 표로 표시한다.
-  const commitAbsoluteActivation = useCallback(
-    (stylesFor: (elementId: string) => Record<string, string>) => {
-      const snapshot = readImmediateSelectionSnapshot();
-      if (snapshot.selectedElementId !== selectedId) return;
-      setSizingError(
-        useStore.getState().applyAbsoluteFromSelection(snapshot, stylesFor),
-      );
-    },
-    [selectedId],
-  );
-
+  // ADR-224 §6.1 — Flow→Absolute 는 host 복합 명령 (위치 보존 + 무효 Fill 의 used px Fixed +
+  // 형제 맨 앞, 한 step). 오류 코드는 Ratio 와 같은 표로 표시한다.
   const handleAbsolutePositionChange = useCallback(
     (isSelected: boolean) => {
-      if (!isSelected) {
-        updateStyleImmediate("position", "");
-        return;
-      }
-      // 다중 선택은 요소마다 자기 부모·자기 scene bounds 로 inset 을 계산한다 — 리더의 left/top 을
-      // 전부에 쓰면 형제가 리더 위로 겹친다 (live 2026-09-18). 부모가 flex 가 아니거나 bounds 가
-      // 없으면 position 만.
-      commitAbsoluteActivation((elementId) => {
-        const state = useStore.getState();
-        const element = state.elementsMap.get(elementId);
-        const parentId = element?.parent_id;
-        const parent = parentId ? state.elementsMap.get(parentId) : undefined;
-        if (!parent || !parentId) return { position: "absolute" };
-        const parentStyle = resolveResponsiveStyleMap(
-          (parent.props?.style ?? {}) as Record<string, unknown>,
-          parent.responsive,
-          state.activeBreakpoint,
-        );
-        const display = String(
-          parentStyle.display ??
-            resolveContainerStylesFallback(
-              parent.type.toLowerCase(),
-              parentStyle,
-            ).display ??
-            "",
-        );
-        if (display !== "flex" && display !== "inline-flex") {
-          return { position: "absolute" };
-        }
-        const parentBounds = getSceneBounds(parentId);
-        return (
-          resolveAbsolutePositionActivationStyles(
-            getSceneBounds(elementId),
-            parentBounds
-              ? resolveAbsoluteContainingBlockBounds(
-                  parent,
-                  parentBounds,
-                  state.activeBreakpoint,
-                )
-              : parentBounds,
-          ) ?? { position: "absolute" }
-        );
-      });
+      setSizingError(host.applyAbsolute(selectedId, isSelected));
     },
-    [commitAbsoluteActivation, updateStyleImmediate],
+    [host, selectedId],
   );
 
   // Min/Max 4 필드 펼침 — 토글 on 이거나 값이 하나라도 있으면 보인다 (Border 코너 토글과 같은 규칙,

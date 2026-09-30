@@ -54,6 +54,11 @@ export interface StylesHost {
     selectedId: string | null,
     value: string | null,
   ): RatioEditError | null;
+  /**
+   * The Position section's absolute toggle on the selection (ADR-224 §6.1): on keeps where each
+   * element is drawn; off returns it to the flow. An error code or null.
+   */
+  applyAbsolute(selectedId: string | null, on: boolean): RatioEditError | null;
   /** The old Canvas editor presentation channel (live paint while editing) is available. */
   presentation: boolean;
 }

@@ -4,6 +4,7 @@ import { readImmediateSelectionSnapshot, useStore } from "../../stores";
 import { resolveContainerStylesFallback } from "../../workspace/canvas/layout/engines/implicitStyles";
 import { useCanonicalPropertyElement } from "../properties/hooks/useCanonicalPropertyRead";
 import { useLayoutValue } from "./hooks/useLayoutValue";
+import { storeAbsoluteActivationStyles } from "./sections/absoluteActivation";
 import {
   readResolvedStyleTarget,
   useCanonicalElementStyleContext,
@@ -91,6 +92,17 @@ export const STORE_STYLES_HOST: StylesHost = {
     const snapshot = readImmediateSelectionSnapshot();
     if (snapshot.selectedElementId !== selectedId) return null;
     return useStore.getState().applyRatioFromSelection(snapshot, value);
+  },
+  applyAbsolute(selectedId, on) {
+    if (!on) {
+      useStore.getState().updateSelectedStyle("position", "");
+      return null;
+    }
+    const snapshot = readImmediateSelectionSnapshot();
+    if (snapshot.selectedElementId !== selectedId) return null;
+    return useStore
+      .getState()
+      .applyAbsoluteFromSelection(snapshot, storeAbsoluteActivationStyles);
   },
   presentation: true,
 };

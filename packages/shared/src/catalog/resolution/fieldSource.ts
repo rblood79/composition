@@ -394,6 +394,8 @@ export interface OwnFields {
   visual: NodeEntry["visual"];
   layout: NonNullable<NodeEntry["layout"]>;
   sizing: NodeEntry["sizing"];
+  /** A node's own absolute placement (a template position has none of its own). */
+  placement?: NodeEntry["placement"];
   fills?: NodeEntry["fills"];
   fillSizing?: NodeEntry["fillSizing"];
   responsive?: NodeEntry["responsive"];
@@ -413,6 +415,7 @@ export function readOwnFields(
       visual: node.visual,
       layout: node.layout ?? {},
       sizing: node.sizing,
+      ...(node.placement ? { placement: node.placement } : {}),
       ...(node.fills ? { fills: node.fills } : {}),
       ...(node.fillSizing ? { fillSizing: node.fillSizing } : {}),
       ...(node.responsive ? { responsive: node.responsive } : {}),

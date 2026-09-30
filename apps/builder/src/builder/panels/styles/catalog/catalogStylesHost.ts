@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useSyncExternalStore } from "react";
 import type { BreakpointName } from "@composition/shared";
 import { setFields } from "../../../../../../../packages/shared/src/catalog/commands";
+import type { CatalogCommand } from "../../../../../../../packages/shared/src/catalog/commands/compose";
 import type { EditTarget } from "../../../../../../../packages/shared/src/catalog/document/types";
 import {
   catalogEditContract,
@@ -20,6 +21,11 @@ import {
 } from "../../../catalogRuntime/styleFields";
 import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
 import { catalogBoxModel } from "../../../catalogRuntime/boxModel";
+import {
+  catalogAbsoluteCommand,
+  catalogPlacementEditCommand,
+  catalogPlacementStyle,
+} from "../../../catalogRuntime/position";
 import {
   catalogFillAt,
   catalogRatioCommand,
@@ -139,15 +145,34 @@ export function createCatalogStylesHost(
     run(() => {
       const items = selection();
       if (!items.length || !Object.keys(styles).length) return undefined;
-      const breakpoint = workspace.session.getSnapshot().breakpoint;
-      return setFields({
-        targets: items.map((item) => item.target),
-        ...(breakpoint === "desktop" ? {} : { breakpoint }),
-        ...catalogStyleWritesOf(styles, {
-          fontSize: fontSizeOf(workspace, items[0].identity),
-        }),
+      const targets = items.map((item) => item.target);
+      const own = (target: EditTarget) => workspace.readModel.ownFields(target);
+      // Left / Top of an absolutely placed node are its placement offsets.
+      const { left, top, ...rest } = styles;
+      const placed =
+        (left !== undefined || top !== undefined) &&
+        targets.some((target) => own(target).placement);
+      const fields = placed ? rest : styles;
+      const commands: CatalogCommand[] = [];
+      if (placed)
+        commands.push(catalogPlacementEditCommand({ targets, own, left, top }));
+      if (Object.keys(fields).length) {
+        const breakpoint = workspace.session.getSnapshot().breakpoint;
+        commands.push(
+          setFields({
+            targets,
+            ...(breakpoint === "desktop" ? {} : { breakpoint }),
+            ...catalogStyleWritesOf(fields, {
+              fontSize: fontSizeOf(workspace, items[0].identity),
+            }),
+            label: "Edit style",
+          } as Parameters<typeof setFields>[0]),
+        );
+      }
+      return ((reader) => ({
         label: "Edit style",
-      } as Parameters<typeof setFields>[0]);
+        ops: commands.flatMap((command) => command(reader).ops),
+      })) satisfies CatalogCommand;
     });
   const measured = (identity: string) =>
     workspace.root.getGeometry([identity]).get(identity);
@@ -194,9 +219,12 @@ export function createCatalogStylesHost(
         ) as Record<string, unknown>;
         return {
           style: own
-            ? catalogStyleView(catalogFieldsAt(own, breakpoint), {
-                fontSize: fontSizeOf(workspace, id ?? undefined),
-              })
+            ? {
+                ...catalogStyleView(catalogFieldsAt(own, breakpoint), {
+                  fontSize: fontSizeOf(workspace, id ?? undefined),
+                }),
+                ...catalogPlacementStyle(own.placement),
+              }
             : undefined,
           type: contract.type || undefined,
           size: typeof props.size === "string" ? props.size : undefined,
@@ -214,10 +242,13 @@ export function createCatalogStylesHost(
       return {
         id: first.identity,
         ...propsOf(workspace, first.target),
-        style: catalogStyleView(
-          catalogFieldsAt(own, workspace.session.getSnapshot().breakpoint),
-          { fontSize: fontSizeOf(workspace, first.identity) },
-        ),
+        style: {
+          ...catalogStyleView(
+            catalogFieldsAt(own, workspace.session.getSnapshot().breakpoint),
+            { fontSize: fontSizeOf(workspace, first.identity) },
+          ),
+          ...catalogPlacementStyle(own.placement),
+        },
       };
     },
     updateStyle: (property, value) => writeStyles({ [property]: value }),
@@ -282,6 +313,22 @@ export function createCatalogStylesHost(
           const identity = identities.get(targetKey(target));
           return identity ? measured(identity) : undefined;
         },
+      });
+      if (typeof command === "string") return command;
+      run(() => command);
+      return null;
+    },
+    applyAbsolute(selectedId, on) {
+      const items = selection();
+      if (!items.length || items[0].identity !== selectedId)
+        return "selection-changed";
+      const command = catalogAbsoluteCommand({
+        items,
+        on,
+        root: workspace.root,
+        graph: workspace.runtime.graph,
+        own: (target) => workspace.readModel.ownFields(target),
+        newId: workspace.newId,
       });
       if (typeof command === "string") return command;
       run(() => command);
