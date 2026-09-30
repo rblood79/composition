@@ -9,6 +9,7 @@ import type {
 import { createPage } from "../../../../../../packages/shared/src/catalog/commands";
 import { CatalogCanvasGestures } from "../canvasGesture";
 import { catalogPageDropCommand } from "../canvasPage";
+import { runCatalogShortcut } from "../shortcuts";
 import { pickTopmostRecord } from "../canvasPick";
 import { CatalogCanvasScene } from "../canvasScene";
 import { newCatalogProjectDocument } from "../project";
@@ -157,5 +158,39 @@ describe("ADR-248 Phase 4e-3b page frame drag", () => {
       position: "absolute",
       top: start.y - 4005,
     });
+  });
+
+  it("arrows on a selected page move its frame (1px, Shift 10px) by the drop rule; the home page stays", async () => {
+    const { workspace, frame } = await open();
+    const steps = () => workspace.runtime.historyDepth.undo;
+    // A grid page nudged within its cell lands where it is: no step.
+    workspace.selectRecords([workspace.root.recordsOfSource(SECOND_BODY)[0]]);
+    const pinned = steps();
+    expect(runCatalogShortcut(workspace, "arrowRight")).toBe(true);
+    const settled = steps();
+    expect(runCatalogShortcut(workspace, "arrowRight")).toBe(false);
+    expect(steps()).toBe(settled);
+    expect(settled - pinned).toBeLessThanOrEqual(1);
+    // Placed off the grid (a grid page snaps back to its cell, as the old nudge did).
+    workspace.execute(
+      catalogPageDropCommand(workspace.root, SECOND, { x: 40, y: -3000 })!,
+    );
+    const start = frame(SECOND);
+    workspace.selectRecords([workspace.root.recordsOfSource(SECOND_BODY)[0]]);
+    const before = steps();
+    expect(runCatalogShortcut(workspace, "arrowRight")).toBe(true);
+    expect(frame(SECOND)).toMatchObject({ x: start.x + 1, y: start.y });
+    expect(runCatalogShortcut(workspace, "arrowDownShift")).toBe(true);
+    expect(frame(SECOND)).toMatchObject({ x: start.x + 1, y: start.y + 10 });
+    expect(steps()).toBe(before + 2);
+    workspace.undo();
+    workspace.undo();
+    expect(frame(SECOND)).toMatchObject({ x: start.x, y: start.y });
+    // The home page stays (no step).
+    const home = workspace.runtime.graph.getEntry(HOME);
+    const homeBody = home?.kind === "page" ? home.children[0] : undefined;
+    workspace.selectRecords([workspace.root.recordsOfSource(homeBody!)[0]]);
+    expect(runCatalogShortcut(workspace, "arrowLeft")).toBe(false);
+    expect(steps()).toBe(before);
   });
 });

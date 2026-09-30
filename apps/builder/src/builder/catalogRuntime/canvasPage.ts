@@ -74,10 +74,19 @@ export function catalogPageDropCommand(
     pageId,
     dropped,
   );
-  if (!result.entries.length) return undefined;
+  // A page that lands where it is (a grid page nudged within its cell) is no change.
+  const entries = result.entries.filter((entry) => {
+    const page = graph.getEntry(entry.pageId);
+    return (
+      page?.kind !== "page" ||
+      JSON.stringify(placementDeclaration(entry.placement) ?? null) !==
+        JSON.stringify(page.placement ?? null)
+    );
+  });
+  if (!entries.length) return undefined;
   return (reader) => ({
     label: "Move page",
-    ops: result.entries.flatMap(
+    ops: entries.flatMap(
       (entry) =>
         updatePage({
           id: entry.pageId as EntryId<"page">,

@@ -14,6 +14,7 @@ import {
   type DistributionType,
 } from "../stores/utils/elementDistribution";
 import { catalogCanvasMenuItems, type CatalogMenuHost } from "./canvasMenu";
+import { catalogPageDropCommand } from "./canvasPage";
 import { catalogComponentCommands } from "./componentActions";
 import type { CatalogWorkspace } from "./workspace";
 
@@ -72,6 +73,10 @@ export type CatalogShortcutId = Extract<
   | "selectAll"
   | "detachInstance"
   | CatalogArrangeId
+  | "arrowUpShift"
+  | "arrowDownShift"
+  | "arrowLeftShift"
+  | "arrowRightShift"
 >;
 
 const ARRANGE: Record<
@@ -198,6 +203,42 @@ function singleElement(workspace: CatalogWorkspace) {
   return record && record.parentId !== PAGE_GRID ? record : undefined;
 }
 
+const NUDGE: Record<string, readonly [number, number]> = {
+  arrowUp: [0, -1],
+  arrowDown: [0, 1],
+  arrowLeft: [-1, 0],
+  arrowRight: [1, 0],
+  arrowUpShift: [0, -10],
+  arrowDownShift: [0, 10],
+  arrowLeftShift: [-10, 0],
+  arrowRightShift: [10, 0],
+};
+
+/**
+ * The arrow on a selected page (its body alone): the page frame moved by the key's offset through
+ * the page drop rule (`catalogPageDropCommand` — grid cell, swap or free; the home page stays, as
+ * the old nudge did). `null` = not a page selection (the arrow is the element's); `undefined` =
+ * a page that does not move.
+ */
+function catalogPageNudgeCommand(
+  workspace: CatalogWorkspace,
+  id: string,
+): CatalogCommand | undefined | null {
+  const selection = workspace.session.getSnapshot().selection;
+  if (selection.length !== 1) return null;
+  const record = workspace.root.domInputs.get(selection[0].identity);
+  if (!record || record.parentId !== PAGE_GRID) return null;
+  const pageId = workspace.runtime.graph.ownerOf(record.sourceId);
+  const frame = pageId && workspace.root.pageFrameRects().get(pageId);
+  const offset = NUDGE[id];
+  if (!pageId || !frame || !offset) return undefined;
+  return catalogPageDropCommand(
+    workspace.root,
+    pageId as Parameters<typeof catalogPageDropCommand>[1],
+    { x: frame.x + offset[0], y: frame.y + offset[1] },
+  );
+}
+
 /** A shortcut that can run now (the command is planned; running it is one step or a selection). */
 export type CatalogShortcutPlan = () => void;
 
@@ -277,7 +318,15 @@ export function planCatalogShortcut(
     case "arrowUp":
     case "arrowLeft":
     case "arrowDown":
-    case "arrowRight": {
+    case "arrowRight":
+    case "arrowUpShift":
+    case "arrowLeftShift":
+    case "arrowDownShift":
+    case "arrowRightShift": {
+      // A selected page moves on the Canvas (1px / Shift 10px, ADR-177) by the page drop rule.
+      const nudge = catalogPageNudgeCommand(workspace, id);
+      if (nudge !== null) return nudge && (() => host.execute(nudge));
+      if (id.endsWith("Shift")) return undefined;
       // One step among the siblings (the flow order is the children order, ADR-118).
       const record = singleElement(workspace);
       const parent = record && workspace.root.domInputs.get(record.parentId);

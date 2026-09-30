@@ -281,6 +281,9 @@ describe("ADR-248 Phase 4e-5 shortcuts", () => {
         names.map((name) => workspace.root.recordsOfSource(id(name))[0]),
       );
     const steps = () => workspace.runtime.historyDepth.undo;
+    // Shift arrows nudge pages only: on an element they do nothing.
+    select("a");
+    expect(runCatalogShortcut(workspace, "arrowDownShift")).toBe(false);
     // One placed element (a flow element beside it): nothing to align.
     select("p1", "a");
     expect(runCatalogShortcut(workspace, "alignLeft")).toBe(false);
