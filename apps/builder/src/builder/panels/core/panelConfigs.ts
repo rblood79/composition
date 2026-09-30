@@ -21,7 +21,7 @@ import type { PanelConfig } from "./types";
 import { PanelRegistry } from "./PanelRegistry";
 
 // Navigation panels
-import { NavigatorPanel } from "../navigator/NavigatorPanel";
+import { CatalogNavigatorPanel } from "../navigator/catalog/CatalogNavigatorPanel";
 import { ACTION_ICONS } from "../../config/actionIcons";
 import { ComponentsPanel } from "../components/ComponentsPanel";
 import { AIPanel } from "../ai/lazyAIPanel";
@@ -83,7 +83,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     name: "탐색기",
     nameEn: "Navigator",
     icon: ListTree,
-    component: NavigatorPanel,
+    component: CatalogNavigatorPanel,
     category: "navigation",
     defaultPosition: "left",
     minWidth: 233,

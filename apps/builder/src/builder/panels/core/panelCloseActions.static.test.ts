@@ -4,8 +4,8 @@ import { describe, expect, it } from "vitest";
 
 const STANDARD_PANEL_SOURCES = [
   {
-    component: "NavigatorPanel",
-    source: "../navigator/NavigatorPanel.tsx",
+    component: "CatalogNavigatorPanel",
+    source: "../navigator/catalog/CatalogNavigatorPanel.tsx",
   },
   { component: "ComponentsPanel", source: "../components/ComponentList.tsx" },
   { component: "DataTablePanel", source: "../datatable/DataTablePanel.tsx" },
@@ -42,7 +42,6 @@ describe("registered panel close action coverage", () => {
     const registeredComponents = configs.match(/^\s*component:\s*\w+,/gm) ?? [];
 
     expect(registeredComponents).toHaveLength(12);
-    expect(configs).toContain("component: NavigatorPanel");
     for (const { component } of STANDARD_PANEL_SOURCES) {
       expect(configs).toContain(`component: ${component}`);
     }

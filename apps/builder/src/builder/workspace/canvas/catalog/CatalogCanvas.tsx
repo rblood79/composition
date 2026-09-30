@@ -264,6 +264,19 @@ export function CatalogCanvas({
       invalidateOverlay();
     });
 
+    // Pages tree select: center that page frame at the current zoom (the old `panToPage`).
+    const unsubscribeReveal = workspace.subscribeReveal((pageId) => {
+      const frame = workspace.root.pageFrameRects().get(pageId);
+      if (!frame) return;
+      const { width, height } = containerEl.getBoundingClientRect();
+      const zoom = Math.max(viewportState.zoom, 0.001);
+      getViewportController().setPosition(
+        width / 2 - (frame.x + frame.width / 2) * zoom,
+        height / 2 - (frame.y + frame.height / 2) * zoom,
+        zoom,
+      );
+    });
+
     // Pointer picking (scene coordinates from the camera). Pan owns its pointer (viewport bridge).
     const scenePoint = (event: MouseEvent) => {
       const rect = canvas.getBoundingClientRect();
@@ -536,6 +549,7 @@ export function CatalogCanvas({
       window.removeEventListener("pointercancel", onPointerEnd);
       window.removeEventListener("keydown", onKeyDown);
       unsubscribeRoot();
+      unsubscribeReveal();
       setEditingElementId(null);
       sceneRef.current = undefined;
       unsubscribeSession();

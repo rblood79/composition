@@ -120,6 +120,23 @@ export function resolveCatalogContextExit(
   };
 }
 
+/**
+ * The editing context a Layers selection enters (the old Builder's tree rule): the selected
+ * record's parent element, unless the parent is the page body (page level).
+ */
+export function resolveCatalogTreeContext(
+  records: CatalogPickRecords,
+  selectedId: string,
+): string | undefined {
+  const record = records.get(selectedId);
+  const parent = record && records.get(record.parentId);
+  return parent &&
+    parent.parentId !== PAGE_GRID &&
+    isNodeSource(parent.sourceId)
+    ? parent.sourceId
+    : undefined;
+}
+
 /** What pointer picking reads from the open project (`CatalogWorkspace` + the Canvas scene). */
 export interface CatalogCanvasPickHost {
   readonly records: CatalogPickRecords;

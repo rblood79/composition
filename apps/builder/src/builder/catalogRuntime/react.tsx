@@ -8,6 +8,7 @@ import {
 import type {
   EditTarget,
   EntryId,
+  PageEntry,
 } from "../../../../../packages/shared/src/catalog/document/types";
 import type { CatalogPosition } from "../../../../../packages/shared/src/catalog/resolution/positions";
 import type { CatalogSaveStatus } from "./autosave";
@@ -34,6 +35,11 @@ export function CatalogWorkspaceProvider({
       {children}
     </WorkspaceContext.Provider>
   );
+}
+
+/** Renders its children only once a project is open (panels mount before the workspace exists). */
+export function CatalogWorkspaceGate({ children }: { children: ReactNode }) {
+  return useContext(WorkspaceContext) ? <>{children}</> : null;
 }
 
 export function useCatalogWorkspace(): CatalogWorkspace {
@@ -94,6 +100,16 @@ export function useCatalogOwnFields(target: EditTarget) {
     [readModel, id],
   );
   return useSyncExternalStore(subscribe, () => readModel.ownFields(target));
+}
+
+/** The project's pages in order (re-renders when a page or the page order changes). */
+export function useCatalogPages(): readonly PageEntry[] {
+  const { readModel } = useCatalogWorkspace();
+  const subscribe = useCallback(
+    (notify: () => void) => readModel.subscribePages(notify),
+    [readModel],
+  );
+  return useSyncExternalStore(subscribe, () => readModel.pages());
 }
 
 export function useCatalogComponents(): readonly CatalogComponentSummary[] {

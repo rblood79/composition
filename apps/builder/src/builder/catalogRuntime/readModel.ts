@@ -278,15 +278,27 @@ export class CatalogReadModel {
     return [...this.runtime.graph.bindingsOf(collectionId)] as NodeId[];
   }
 
+  private pagesCompute(): CachedRead<readonly PageEntry[]>["compute"] {
+    return () => {
+      const deps = new Set<string>();
+      const reader = recording(this.runtime.graph, deps);
+      const project = reader.getEntry(reader.projectId);
+      const value =
+        project?.kind === "project"
+          ? project.pageIds.flatMap((id) => {
+              const page = reader.getEntry(id);
+              return page?.kind === "page" ? [page] : [];
+            })
+          : [];
+      return { value, deps };
+    };
+  }
   /** The project's pages in order. */
   pages(): readonly PageEntry[] {
-    const project = this.runtime.graph.getEntry(this.runtime.graph.projectId);
-    return project?.kind === "project"
-      ? project.pageIds.flatMap((id) => {
-          const page = this.runtime.graph.getEntry(id);
-          return page?.kind === "page" ? [page] : [];
-        })
-      : [];
+    return this.read("pages", this.pagesCompute()).value;
+  }
+  subscribePages(listener: Listener<readonly PageEntry[]>): () => void {
+    return this.subscribeRead("pages", this.pagesCompute(), listener);
   }
 
   private componentsCompute(): CachedRead<

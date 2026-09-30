@@ -1,5 +1,7 @@
 import type { Key } from "react-stately";
-import type { PageTreeNode } from "./types";
+import type { PageTreeNode as FullPageTreeNode, PageTreePage } from "./types";
+
+type PageTreeNode = FullPageTreeNode<PageTreePage>;
 
 type TreeDataLike = {
   getItem: (key: Key | string) => { value: PageTreeNode } | null | undefined;

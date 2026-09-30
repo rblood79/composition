@@ -115,6 +115,18 @@ export class CatalogWorkspace {
     return () => this.rootListeners.delete(listener);
   }
 
+  private readonly revealListeners = new Set<
+    (pageId: EntryId<"page">) => void
+  >();
+  /** Ask the Canvas to bring a page frame into view (the Pages tree's page select). */
+  revealPage(pageId: EntryId<"page">): void {
+    for (const listener of [...this.revealListeners]) listener(pageId);
+  }
+  subscribeReveal(listener: (pageId: EntryId<"page">) => void): () => void {
+    this.revealListeners.add(listener);
+    return () => this.revealListeners.delete(listener);
+  }
+
   /** Copied subtrees of this project (in memory; paste re-creates them with new ids). */
   clipboard: CatalogClipboard | undefined;
 
@@ -133,7 +145,7 @@ export class CatalogWorkspace {
   } {
     const executed = this.root.execute(command);
     if (executed.plan.selectAfter)
-      this.session.select(
+      this.selectItems(
         executed.plan.selectAfter.flatMap((id) => this.itemsOfNode(id, 1)),
       );
     return executed;
@@ -153,11 +165,8 @@ export class CatalogWorkspace {
       .map((identity) => ({ target: { kind: "node", id }, identity }));
   }
 
-  /**
-   * The Layers row (edit target) of a drawn record: follow its parents to the page root, then find
-   * the row one level at a time (reads only the entries on the way).
-   */
-  positionOfRecord(recordId: string): CatalogPosition | undefined {
+  /** The element records from the page root down to a drawn record (empty = not an element). */
+  private recordChain(recordId: string): string[] {
     const records = this.root.domInputs;
     const chain: string[] = [];
     for (
@@ -166,12 +175,27 @@ export class CatalogWorkspace {
       record = records.get(record.parentId)
     )
       chain.unshift(record.id);
-    if (!chain.length) return undefined;
-    const top = records.get(chain[0])!;
-    const pageId = this.runtime.graph.ownerOf(top.sourceId);
-    if (!pageId || this.runtime.graph.getEntry(pageId)?.kind !== "page")
-      return undefined;
-    let rows = this.readModel.pageRows(pageId as EntryId<"page">);
+    return chain;
+  }
+  /** The page a drawn record is on. */
+  pageOfRecord(recordId: string): EntryId<"page"> | undefined {
+    const [top] = this.recordChain(recordId);
+    const source = top && this.root.domInputs.get(top)?.sourceId;
+    const pageId = source && this.runtime.graph.ownerOf(source);
+    return pageId && this.runtime.graph.getEntry(pageId)?.kind === "page"
+      ? (pageId as EntryId<"page">)
+      : undefined;
+  }
+
+  /**
+   * The Layers row (edit target) of a drawn record: follow its parents to the page root, then find
+   * the row one level at a time (reads only the entries on the way).
+   */
+  positionOfRecord(recordId: string): CatalogPosition | undefined {
+    const chain = this.recordChain(recordId);
+    const pageId = this.pageOfRecord(recordId);
+    if (!chain.length || !pageId) return undefined;
+    let rows = this.readModel.pageRows(pageId);
     let position: CatalogPosition | undefined;
     for (const id of chain) {
       position = rows.find((row) => row.identity === id);
@@ -179,6 +203,22 @@ export class CatalogWorkspace {
       rows = this.readModel.childRows(position);
     }
     return position;
+  }
+  /**
+   * Select items; an item on another page opens that page first (the Layers tree shows the page
+   * of the selection). An additive selection across pages replaces the selection.
+   */
+  private selectItems(
+    items: readonly CatalogSelectionItem[],
+    options?: { additive?: boolean },
+  ): void {
+    const pageId = items[0] && this.pageOfRecord(items[0].identity);
+    if (pageId && pageId !== this.session.getSnapshot().pageId) {
+      this.session.setPage(pageId);
+      this.session.select(items);
+      return;
+    }
+    this.session.select(items, options);
   }
   /** Canvas picking: select drawn records (their rows' targets). */
   selectRecords(
@@ -190,7 +230,7 @@ export class CatalogWorkspace {
       const item = this.itemOfRecord(identity);
       if (item) items.push(item);
     }
-    this.session.select(items, options);
+    this.selectItems(items, options);
   }
   /** The selection item of a drawn record (its row's target); `undefined` = not an element row. */
   itemOfRecord(identity: string): CatalogSelectionItem | undefined {
@@ -211,6 +251,7 @@ export class CatalogWorkspace {
 
   dispose(): void {
     this.rootListeners.clear();
+    this.revealListeners.clear();
     this.detachPreview();
     this.autosave.dispose();
     this.readModel.dispose();

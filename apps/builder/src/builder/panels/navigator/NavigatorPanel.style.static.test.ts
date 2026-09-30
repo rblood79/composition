@@ -120,10 +120,17 @@ describe("NavigatorPanel shared panel style contract", () => {
       [
         "tree/PageTree/PageTreeItemContent.tsx",
         "tree/LayerTree/LayerTreeItemContent.tsx",
+        "catalog/CatalogLayerItem.tsx",
         "LayoutsTab/LayoutList.tsx",
         "LayoutsTab/LayoutElementTree.tsx",
       ].map((file) => readFile(resolve(__dirname, file), "utf-8")),
     );
+    // Layer rows share the indent guide component (its markup carries `elementItemIndent`).
+    const indentGuides = await readFile(
+      resolve(__dirname, "tree/LayerTree/IndentGuides.tsx"),
+      "utf-8",
+    );
+    expect(indentGuides).toContain("elementItemIndent");
 
     expect(css).not.toMatch(/\.section-content\s*\{[^}]*all:\s*unset/s);
     // panel-ui 07: 안내선은 gradient 가 아니라 depth 마다 1px span (`.layer-indent-guide`) —
@@ -138,7 +145,7 @@ describe("NavigatorPanel shared panel style contract", () => {
       /--(?:color-(?:primary|secondary)|text-(?:primary|secondary))[^);]*/,
     );
     for (const source of itemSources) {
-      expect(source).toContain("elementItemIndent");
+      expect(source).toMatch(/elementItemIndent|<IndentGuides/);
       expect(source).toContain("elementItemIcon");
     }
   });

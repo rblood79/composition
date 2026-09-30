@@ -2,11 +2,10 @@ import { useMemo, useCallback } from "react";
 import type { CanonicalNode, CompositionDocument } from "@composition/shared";
 import { getDB } from "../../../../../lib/db";
 import type { Page } from "../../../../../types/builder/unified.types";
-import type { PageTreeNode } from "./types";
+import { buildPageTree } from "./buildPageTree";
 import { useStore } from "../../../../stores";
 import { useCanonicalDocumentStore } from "../../../../stores/canonical/canonicalDocumentStore";
 import { enqueuePagePersistence } from "../../../../utils/pagePersistenceQueue";
-import { isComponentsPage } from "@composition/shared";
 
 export type PageTreeUpdate = {
   id: string;
@@ -371,73 +370,4 @@ function getCanonicalPageId(
   return null;
 }
 
-function normalizeSlug(slug: string | null | undefined): string {
-  if (!slug) return "";
-  return slug.startsWith("/") ? slug : `/${slug}`;
-}
-
-function findHomePageId(pages: Page[]): string | null {
-  const explicitHome = pages.find(
-    (page) =>
-      (page.parent_id ?? null) === null && normalizeSlug(page.slug) === "/",
-  );
-  if (explicitHome) return explicitHome.id;
-
-  const rootPages = pages.filter((page) => (page.parent_id ?? null) === null);
-  return rootPages[0]?.id ?? null;
-}
-
-export function buildPageTree(pages: Page[]): {
-  treeNodes: PageTreeNode[];
-  nodeMap: Map<string, PageTreeNode>;
-} {
-  const childrenByParent = new Map<string | null, Page[]>();
-  const homePageId = findHomePageId(pages);
-
-  for (const page of pages) {
-    const parentId = page.parent_id ?? null;
-    const siblings = childrenByParent.get(parentId);
-    if (siblings) {
-      siblings.push(page);
-    } else {
-      childrenByParent.set(parentId, [page]);
-    }
-  }
-
-  const nodeMap = new Map<string, PageTreeNode>();
-
-  const buildChildren = (
-    parentId: string | null,
-    depth: number,
-  ): PageTreeNode[] => {
-    const siblings = childrenByParent.get(parentId) ?? [];
-
-    return siblings.map((page) => {
-      const children = buildChildren(page.id, depth + 1);
-      const isRoot = page.id === homePageId;
-      const isSystemPage = isComponentsPage(page);
-
-      const node: PageTreeNode = {
-        id: page.id,
-        name: page.title || "Untitled",
-        slug: page.slug ?? null,
-        parentId: page.parent_id ?? null,
-        depth,
-        hasChildren: children.length > 0,
-        isLeaf: children.length === 0,
-        children,
-        page,
-        isRoot,
-        isSystemPage,
-        isDraggable: !isRoot && !isSystemPage,
-        isDroppable: true,
-      };
-
-      nodeMap.set(node.id, node);
-      return node;
-    });
-  };
-
-  const treeNodes = buildChildren(null, 0);
-  return { treeNodes, nodeMap };
-}
+export { buildPageTree };
