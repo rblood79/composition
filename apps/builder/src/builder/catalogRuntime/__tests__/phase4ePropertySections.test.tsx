@@ -15,6 +15,7 @@ import { GenericFieldRenderer } from "../../panels/properties/generic/GenericFie
 import { ItemsSourceContext } from "../../panels/properties/generic/itemsSource";
 import { CATALOG_FIELD_VALUE_SOURCE } from "../../panels/properties/catalog/catalogFieldValueSource";
 import { CATALOG_ITEMS_SOURCE } from "../../panels/properties/catalog/catalogItemsSource";
+import { CatalogPropertiesPanel } from "../../panels/properties/catalog/CatalogPropertiesPanel";
 import { catalogHtmlIdCommand, catalogUniqueHtmlId } from "../attributes";
 import { catalogEditContract } from "../editContract";
 import { newCatalogProjectDocument } from "../project";
@@ -140,5 +141,34 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
     });
     expect(items()?.length ?? 0).toBe(before);
     expect(items()?.some((item) => item.id === added) ?? false).toBe(false);
+  });
+
+  it("the catalog Properties panel shows a Chart's own controls and writes through them", async () => {
+    const { workspace } = await open();
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [node("chart", "lib:definition:origin-component-chart")],
+        rootIds: [id("chart")],
+        newId: (kind) => `project:${kind}:chart1` as never,
+      }),
+    );
+    render(
+      <I18nProvider initialLocale="en-US">
+        <CatalogWorkspaceProvider workspace={workspace}>
+          <CatalogPropertiesPanel />
+        </CatalogWorkspaceProvider>
+      </I18nProvider>,
+    );
+    // The Chart editor's authoring controls (not catalog accepts fields) render in the panel.
+    expect(screen.getByRole("group", { name: /^Chart type$/ })).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: /reference line/i }),
+    ).toBeTruthy();
+    expect(
+      screen.getAllByText("Series", {
+        selector: ".section-title, .section-title *",
+      }).length,
+    ).toBeGreaterThan(0);
   });
 });

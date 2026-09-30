@@ -1,14 +1,4 @@
-import {
-  readDataBindingRows,
-  resolveComponentRule,
-  type ResolvedField,
-  isBodyType,
-} from "@composition/shared";
-import {
-  CHART_DEFAULT_SERIES_COUNT,
-  resolveChartPalette,
-  type ChartRow,
-} from "@composition/specs";
+import { isBodyType } from "@composition/shared";
 /**
  * PropertiesPanel - 속성 편집 패널
  *
@@ -20,35 +10,13 @@ import {
  * 비활성 gating 은 PanelWorkspace 의 <Activity mode="hidden"> 이 담당 (ADR-922)
  */
 
-import {
-  useCallback,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  memo,
-  type ReactNode,
-} from "react";
+import { useCallback, useMemo, memo, type ReactNode } from "react";
 import { useDebouncedSelectedElementData } from "../../stores";
 import type { SelectedElement } from "../../inspector/types";
 import { useEditContract } from "./hooks/useEditContract";
-import { useCollections } from "../../stores/data";
-import { buildChartSemanticFields } from "./chartFieldOptions";
 import { omitDataBindingOnComponentsPage } from "./componentsPageFields";
-import { ChartAuthoringControls } from "./ChartAuthoringControls";
-import { ChartDataMappingControls } from "./ChartDataMappingControls";
-import { ChartTimeAxisControls } from "./ChartTimeAxisControls";
-import { ChartReferenceLineControls } from "./ChartReferenceLineControls";
-import {
-  ChartSeriesControls,
-  chartSeriesConfigApplies,
-} from "./ChartSeriesControls";
-import { ChartNumberFormatControls } from "./ChartNumberFormatControls";
-import { ChartBudgetControls } from "./ChartBudgetControls";
-import {
-  chartColumnCandidates,
-  chartPresentationPatch,
-} from "./chartPresentationPatch";
 import { GenericFieldRenderer } from "./generic/GenericFieldRenderer";
+import { useChartPropertyExtras } from "./useChartPropertyExtras";
 import {
   EmptyState,
   PanelHeader,
@@ -152,41 +120,6 @@ function panelNodeToCanonicalRefNode(node: PanelNode): PanelCanonicalRefNode {
 }
 
 /**
- * ADR-210 컨트롤 3개가 읽는 필드 — `buildSeriesGrid`/`resolveChartPresentation` 입력 + 종류/색 축.
- * 이 밖의 필드 (showGrid · 크기 …) 변경은 컨트롤을 다시 그리지 않는다.
- */
-const CHART_CONTROL_FIELD_KEYS: ReadonlySet<string> = new Set([
-  "chartType",
-  "dimension",
-  "metric",
-  "color",
-  "colorBy",
-  "stackType",
-  "dataMode",
-  "valueFields",
-  "seriesConfig",
-  "valueFormat",
-  "valueLocale",
-  "valueFractionDigits",
-  "valueCurrency",
-  "valuePercentUnit",
-  // ADR-211 — 표시 예산 4 키 (ChartBudgetControls).
-  "budgetOverflow",
-  "budgetAggregate",
-  "budgetAxis",
-  "budgetOthersLabel",
-  // ADR-216 — 시간축 3 키 (ChartTimeAxisControls).
-  "dimensionScale",
-  "dimensionFormat",
-  "dimensionLabelFormat",
-  // ADR-217 — 기준선 (ChartReferenceLineControls).
-  "referenceLines",
-  "dataBinding",
-]);
-const EMPTY_FIELDS: ResolvedField[] = [];
-const EMPTY_ROWS: readonly ChartRow[] = [];
-
-/**
  * CatalogEditContractEditor - ADR-912 단계 2 generic Properties view.
  *
  * getEditor(per-type 동적 에디터) 다중 등록 대신 `useEditContract` 단일 진입점 + generic
@@ -210,7 +143,6 @@ const CatalogEditContractEditor = memo(function CatalogEditContractEditor({
   /** catalog "Content" 그룹에 주입할 비-catalog 컨트롤 (Button 자식 Icon/Text 편집). */
   contentExtras?: ReactNode;
 }) {
-  const { t } = useI18n();
   const selectedChildren = useCanonicalPropertyChildren(elementId);
   const selectedCanonicalNode = useCanonicalPropertyElement(elementId);
   // ADR-210 — ref 인스턴스 여부 (시리즈 배열의 "명시 고정" 버튼 노출 조건).
@@ -221,7 +153,6 @@ const CatalogEditContractEditor = memo(function CatalogEditContractEditor({
 
   // 편집 계약 단일 진입점 — semantic ∪ style 필드를 origin 태그와 함께 산출.
   const contract = useEditContract(elementId);
-  const collections = useCollections();
   // Properties view = semantic origin (node.props / D2). style origin 은 Style view(후속).
   const semanticFields = useMemo(() => {
     // Components 페이지 origin 은 외부 데이터 연결 (dataBinding) 이 뜻이 없다 — 테마 손질 자리.
@@ -229,12 +160,6 @@ const CatalogEditContractEditor = memo(function CatalogEditContractEditor({
       contract.fields.filter((f) => f.origin === "semantic"),
       selectedCanonicalNode,
     );
-    if (elementType === "Chart") {
-      return buildChartSemanticFields(fields, collections, {
-        none: t("chart.none"),
-        columnQualifier: t("chart.columnQualifier"),
-      });
-    }
     // icon Button/ToggleButton: label 이 RSP 공식대로 `<Text>` 자식 element 로 이관되어
     //   Button.children 이 비므로, GenericFieldRenderer 의 "Text"(children) 필드를 제외한다.
     //   대신 ButtonChildSection 의 Text 입력이 그 `<Text>` 자식을 편집(중복 필드 방지).
@@ -248,14 +173,7 @@ const CatalogEditContractEditor = memo(function CatalogEditContractEditor({
       }
     }
     return fields;
-  }, [
-    contract,
-    elementType,
-    selectedChildren,
-    selectedCanonicalNode,
-    collections,
-    t,
-  ]);
+  }, [contract, elementType, selectedChildren, selectedCanonicalNode]);
 
   // semantic write — ADR-048 propagation + canonical ref 해소 보존 (legacy handleUpdate 동일).
   const handleSemanticPatch = useCallback(
@@ -338,169 +256,15 @@ const CatalogEditContractEditor = memo(function CatalogEditContractEditor({
     (key: string, value: unknown) => handleSemanticPatch({ [key]: value }),
     [handleSemanticPatch],
   );
-  const chartValues =
-    elementType === "Chart"
-      ? Object.fromEntries(
-          contract.fields.map((field) => [field.key, field.currentValue]),
-        )
-      : {};
-  // ADR-210 P4 — Chart 전용 컨트롤 3개 (RAC Select/Input 십여 개) 는 **자기 입력이 바뀔 때만**
-  //   다시 그린다. contract 는 showGrid 편집·resize 마다 새 객체라 그대로 넘기면 매 op 마다
-  //   컨트롤 전체가 재렌더돼 Builder longtask 가 2배가 됐다 (frame A/B 실측). 컨트롤이 읽는
-  //   필드만 골라 값·override 가 같으면 이전 배열을 돌려준다 (memo 가 참조로 비교한다).
-  const dataBindingKey = JSON.stringify(chartValues.dataBinding ?? null);
-  const chartControlKey =
-    elementType === "Chart"
-      ? JSON.stringify(
-          contract.fields
-            .filter((field) => CHART_CONTROL_FIELD_KEYS.has(field.key))
-            .map((field) => [
-              field.key,
-              field.currentValue,
-              field.isOverridden,
-              field.options,
-            ]),
-        )
-      : "";
-  const chartControlFields = useMemo(
-    () =>
-      elementType === "Chart"
-        ? semanticFields.filter((field) =>
-            CHART_CONTROL_FIELD_KEYS.has(field.key),
-          )
-        : EMPTY_FIELDS,
-    // semanticFields 는 contract 마다 새 배열 — 실제 의존은 chartControlKey 다.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [chartControlKey, elementType],
-  );
-  const chartData = Array.isArray(chartValues.data)
-    ? (chartValues.data as ChartRow[])
-    : null;
-  const chartRows: readonly ChartRow[] = useMemo(
-    () =>
-      chartValues.dataBinding
-        ? (readDataBindingRows(
-            chartValues.dataBinding,
-            collections,
-          ) as ChartRow[])
-        : (chartData ?? EMPTY_ROWS),
-    // dataBinding 객체는 contract 마다 새 참조 — 직렬화 키로 본다.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [dataBindingKey, collections, chartData],
-  );
-  const sourceRowCount = chartRows.length;
-  // ADR-210 — Chart 전용 컨트롤의 patch 는 배열을 **의미 비교**해 변경분만 남긴다 (공통
-  //   패널의 `!==` 필터는 스칼라 전제 — breakdown §2.2). `force` 는 ref 명시 고정 1회.
-  //   baseline 은 ref 로 읽어 콜백 참조를 요소당 하나로 고정한다 (컨트롤 memo 유지).
-  const chartValuesRef = useRef(chartValues);
-  // 커밋 뒤에 기록한다 — 폐기된 transition 렌더의 값이 남지 않게 (콜백은 커밋 뒤 사용자 이벤트에서만 읽는다).
-  useLayoutEffect(() => {
-    chartValuesRef.current = chartValues;
+  const extras = useChartPropertyExtras({
+    elementId,
+    elementType,
+    contractFields: contract.fields,
+    semanticFields,
+    contentExtras,
+    onPatch: handleSemanticPatch,
+    isRefInstance: isChartRefInstance,
   });
-  const handleChartPatch = useCallback(
-    (patch: Record<string, unknown>, force?: readonly string[]) => {
-      const changed = chartPresentationPatch(
-        chartValuesRef.current,
-        patch,
-        force,
-      );
-      if (Object.keys(changed).length > 0) handleSemanticPatch(changed);
-    },
-    [handleSemanticPatch],
-  );
-  const chartColumns = useMemo(
-    () =>
-      elementType === "Chart"
-        ? chartColumnCandidates(
-            { dataBinding: chartValues.dataBinding, data: chartData },
-            collections,
-          )
-        : null,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [elementType, dataBindingKey, chartData, collections],
-  );
-  // ADR-215 — 선택된 팔레트 (`palette`) 의 길이. Series 섹션 색 Select 의 순번 후보 수.
-  const chartPaletteLength =
-    (elementType === "Chart"
-      ? resolveChartPalette(
-          resolveComponentRule("Chart")?.chart,
-          typeof chartValues.palette === "string"
-            ? chartValues.palette
-            : undefined,
-        ).length
-      : 0) || CHART_DEFAULT_SERIES_COUNT;
-  // ADR-210/211 컨트롤의 자리 — 레퍼런스 (shadcn `data` ↔ `ChartConfig` 분리 · Recharts 층)
-  //   에 맞춰 섹션을 가른다: Content = 정체 (종류·프리셋) + 데이터 (원천 모드·매핑) /
-  //   Series = 시리즈별 레코드 (ChartConfig 대응, 적용되지 않는 종류에서는 섹션 자체를 열지
-  //   않는다) / Appearance 말미 = 숫자 형식 (축·툴팁 표시 속성) / Interaction 말미 = 표시 예산
-  //   (composition 고유 — Brush 와 같은 층). 섹션 순서는 catalog `section` 첫 등장이 소유한다.
-  const seriesApplies =
-    elementType === "Chart" &&
-    chartSeriesConfigApplies(chartControlFields, chartRows, chartPaletteLength);
-  const editorExtras =
-    elementType === "Chart" ? (
-      <>
-        {contentExtras}
-        <ChartAuthoringControls
-          fields={semanticFields}
-          onPatch={handleSemanticPatch}
-        />
-        {/* ADR-210 — 컨트롤의 로컬 상태 (선택 화면 · pending 통화) 는 요소마다 새로 시작한다
-            (`useOwnedState(elementId)`): Chart A 의 선택 화면이 Chart B 위에 남아 B 에 A 의 필드를
-            쓰면 안 된다 (P2 판독 MEDIUM, ADR-137 stale selection 축). key remount 는 RAC 컨트롤을
-            선택마다 다시 mount 해 longtask 를 늘려 P4 에서 owner 상태로 바꿨다. */}
-        <ChartDataMappingControls
-          elementId={elementId}
-          fields={chartControlFields}
-          columns={chartColumns}
-          onPatch={handleChartPatch}
-        />
-        {/* ADR-216 — 범주 축 스케일 (시간축) · 입력/라벨 지시자. dimension 매핑 바로 아래. */}
-        <ChartTimeAxisControls
-          fields={chartControlFields}
-          rows={chartRows}
-          onPatch={handleChartPatch}
-        />
-        {/* ADR-217 — 값 축 기준선 목록 (값 · 라벨 · 선 모양 · 층). */}
-        <ChartReferenceLineControls
-          fields={chartControlFields}
-          onPatch={handleChartPatch}
-        />
-      </>
-    ) : (
-      contentExtras
-    );
-  const sectionExtras =
-    elementType === "Chart"
-      ? {
-          series: seriesApplies ? (
-            <ChartSeriesControls
-              elementId={elementId}
-              fields={chartControlFields}
-              rows={chartRows}
-              paletteLength={chartPaletteLength}
-              isRefInstance={isChartRefInstance}
-              onPatch={handleChartPatch}
-            />
-          ) : undefined,
-          appearance: (
-            <ChartNumberFormatControls
-              elementId={elementId}
-              fields={chartControlFields}
-              onPatch={handleChartPatch}
-            />
-          ),
-          interaction: (
-            <ChartBudgetControls
-              elementId={elementId}
-              fields={chartControlFields}
-              rows={chartRows}
-              sourceRowCount={sourceRowCount}
-              onPatch={handleChartPatch}
-            />
-          ),
-        }
-      : undefined;
 
   // style write — Style view 전환(후속)까지는 미사용. updateSelectedStyle 단일 prop + distributeShorthand.
   const handleStyleUpdate = useCallback((key: string, value: unknown) => {
@@ -508,37 +272,22 @@ const CatalogEditContractEditor = memo(function CatalogEditContractEditor({
     state.updateSelectedStyle(key, value == null ? "" : String(value));
   }, []);
 
-  if (semanticFields.length === 0) {
+  if (extras.fields.length === 0 && contentExtras == null) {
     // 계약이 빈 타입 (frame · body …) 은 아무것도 그리지 않는다 — Attributes · State 절이 항상
     //   있으므로 「편집 가능한 속성이 없습니다」 빈 상태는 패널 안에서 모순된 안내였다
     //   (2026-09-15; body 는 종전부터 PageBodySection 이 축을 전담). 주입 컨트롤만 있으면 그것만.
-    if (contentExtras == null) return null;
-    return (
-      <GenericFieldRenderer
-        fields={semanticFields}
-        literalOptionFields={
-          elementType === "Chart" ? ["dimension", "metric", "color"] : undefined
-        }
-        onSemanticUpdate={handleSemanticUpdate}
-        onStyleUpdate={handleStyleUpdate}
-        elementId={elementId}
-        contentExtras={editorExtras}
-        sectionExtras={sectionExtras}
-      />
-    );
+    return null;
   }
 
   return (
     <GenericFieldRenderer
-      fields={semanticFields}
-      literalOptionFields={
-        elementType === "Chart" ? ["dimension", "metric", "color"] : undefined
-      }
+      fields={extras.fields}
+      literalOptionFields={extras.literalOptionFields}
       onSemanticUpdate={handleSemanticUpdate}
       onStyleUpdate={handleStyleUpdate}
       elementId={elementId}
-      contentExtras={editorExtras}
-      sectionExtras={sectionExtras}
+      contentExtras={extras.contentExtras}
+      sectionExtras={extras.sectionExtras}
     />
   );
 });

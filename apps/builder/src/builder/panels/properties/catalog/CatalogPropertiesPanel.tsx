@@ -20,6 +20,7 @@ import { FieldValueSourceContext } from "../generic/fieldValueSource";
 import { ItemsSourceContext } from "../generic/itemsSource";
 import { CatalogAttributesSection } from "./CatalogAttributesSection";
 import { CATALOG_ITEMS_SOURCE } from "./catalogItemsSource";
+import { useChartPropertyExtras } from "../useChartPropertyExtras";
 import { GenericFieldRenderer } from "../generic/GenericFieldRenderer";
 import { CATALOG_FIELD_VALUE_SOURCE } from "./catalogFieldValueSource";
 
@@ -130,28 +131,55 @@ const CatalogFields = memo(function CatalogFields({
     () => contract.fields.filter((field) => field.origin === "semantic"),
     [contract],
   );
-  const handleSemanticUpdate = useCallback(
-    (key: string, value: unknown) => {
+  const handlePatch = useCallback(
+    (patch: Record<string, unknown>) => {
       const first = targets[0];
       if (!first) return;
       const command = catalogSemanticPatchCommand(
         targets,
-        { [key]: value },
+        patch,
         (changed) => workspace.readModel.propSource(first, changed).value,
       );
       if (command) run(command);
     },
     [run, targets, workspace],
   );
+  const handleSemanticUpdate = useCallback(
+    (key: string, value: unknown) => handlePatch({ [key]: value }),
+    [handlePatch],
+  );
   // Style fields are the Styles panel's (4e-4d); the Properties view shows semantic ones only.
   const handleStyleUpdate = useCallback(() => {}, []);
-  if (!semanticFields.length) return null;
+  const isRefInstance = useMemo(() => {
+    const first = targets[0];
+    if (!first) return false;
+    try {
+      return catalogTargetDefinitionId(
+        workspace.runtime.graph,
+        first,
+      ).startsWith("lib:definition:origin-");
+    } catch {
+      return false;
+    }
+  }, [targets, workspace]);
+  const extras = useChartPropertyExtras({
+    elementId,
+    elementType: contract.type,
+    contractFields: contract.fields,
+    semanticFields,
+    onPatch: handlePatch,
+    isRefInstance,
+  });
+  if (!extras.fields.length) return null;
   return (
     <GenericFieldRenderer
-      fields={semanticFields}
+      fields={extras.fields}
+      literalOptionFields={extras.literalOptionFields}
       onSemanticUpdate={handleSemanticUpdate}
       onStyleUpdate={handleStyleUpdate}
       elementId={elementId}
+      contentExtras={extras.contentExtras}
+      sectionExtras={extras.sectionExtras}
     />
   );
 });

@@ -390,7 +390,8 @@ describe("ADR-923 fe3m1·fe4m1 — propagation 부분 style patch 의 transport 
     expect(callback, "handleSemanticPatch useCallback").toBeDefined();
     // ADR-209: 단일 필드도 multi-key patch writer로 진입해야 propagation seam이 유지된다.
     expect(source).toContain("handleSemanticPatch({ [key]: value })");
-    expect(source).toContain("onPatch={handleSemanticPatch}");
+    // The Chart controls take the same patch through the shared chart extras hook.
+    expect(source).toContain("onPatch: handleSemanticPatch");
 
     // 2) 본문 안: `dispatchSemanticUpdateWithPropagation({ ..., actions: state })` 정확히 1회,
     //    `state` 는 같은 본문에서 `useStore.getState()` 로 선언
