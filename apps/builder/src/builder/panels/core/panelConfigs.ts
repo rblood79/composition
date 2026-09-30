@@ -29,7 +29,7 @@ import { lazyPanel, preloadLazyPanels } from "./lazyPanel";
 
 // Editor panels
 import { CatalogPropertiesPanel } from "../properties/catalog/CatalogPropertiesPanel";
-import { StylesPanel } from "../styles/StylesPanel";
+import { CatalogStylesPanel } from "../styles/catalog/CatalogStylesPanel";
 
 // ADR-131 Phase 8 (2026-05-13): DataPanel 제거 — DataTablePanel (기존) 가 data SSOT.
 // ADR-149 Phase 2c (2026-07-19): ActionsPanel 제거 — cross-event reuse 는 EventsPanel
@@ -234,7 +234,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     name: "스타일",
     nameEn: "Styles",
     icon: PaintRoller,
-    component: StylesPanel,
+    component: CatalogStylesPanel,
     category: "editor",
     defaultPosition: "right",
     minWidth: 233,

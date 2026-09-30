@@ -23,7 +23,8 @@ const STANDARD_PANEL_SOURCES = [
     component: "CatalogPropertiesPanel",
     source: "../properties/catalog/CatalogPropertiesPanel.tsx",
   },
-  { component: "StylesPanel", source: "../styles/StylesPanel.tsx" },
+  // The catalog Styles panel wraps the shared panel (its headers live there).
+  { component: "CatalogStylesPanel", source: "../styles/StylesPanel.tsx" },
   {
     component: "InteractionsPanel",
     source: "../interactions/InteractionsPanel.tsx",
