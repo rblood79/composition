@@ -25,6 +25,7 @@ import {
   type CatalogPreviewChannelOptions,
 } from "./previewChannel";
 import { CatalogReadModel } from "./readModel";
+import { CatalogHistoryStore } from "./history";
 import { CatalogSession, type CatalogSelectionItem } from "./session";
 import type { SlotChromeContext } from "./slotChrome";
 import type { CatalogStorage } from "./storage";
@@ -62,6 +63,7 @@ export class CatalogWorkspace {
   readonly session: CatalogSession;
   readonly readModel: CatalogReadModel;
   readonly autosave: CatalogAutosave;
+  readonly history: CatalogHistoryStore;
   private preview: CatalogPreviewChannel | undefined;
 
   constructor(
@@ -77,6 +79,10 @@ export class CatalogWorkspace {
     this.readModel = new CatalogReadModel(this.runtime);
     this.autosave = new CatalogAutosave(this.runtime, {
       schedule: options.autosaveSchedule,
+    });
+    this.history = new CatalogHistoryStore(this.runtime, {
+      undo: () => this.undo(),
+      redo: () => this.redo(),
     });
   }
 
@@ -254,6 +260,7 @@ export class CatalogWorkspace {
     this.revealListeners.clear();
     this.detachPreview();
     this.autosave.dispose();
+    this.history.dispose();
     this.readModel.dispose();
     this.session.dispose();
   }

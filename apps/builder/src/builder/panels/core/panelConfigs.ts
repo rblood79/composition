@@ -23,7 +23,7 @@ import { PanelRegistry } from "./PanelRegistry";
 // Navigation panels
 import { CatalogNavigatorPanel } from "../navigator/catalog/CatalogNavigatorPanel";
 import { ACTION_ICONS } from "../../config/actionIcons";
-import { ComponentsPanel } from "../components/ComponentsPanel";
+import { CatalogComponentsPanel } from "../components/CatalogComponentsPanel";
 import { AIPanel } from "../ai/lazyAIPanel";
 import { lazyPanel, preloadLazyPanels } from "./lazyPanel";
 
@@ -45,8 +45,10 @@ const DataTableFieldPanel = lazyPanel(
 
 // ADR-242 — 초기 화면 밖 패널은 첫 열림에 chunk 를 받는다 (패널 밖이 값으로 쓰는 store · utils 는
 //   그대로 initial). 상수 이름은 등록 인벤토리 검사 (`panelCloseActions.static`) 가 읽는다.
-const HistoryPanel = lazyPanel(() =>
-  import("../history/HistoryPanel").then((m) => ({ default: m.HistoryPanel })),
+const CatalogHistoryPanel = lazyPanel(() =>
+  import("../history/CatalogHistoryPanel").then((m) => ({
+    default: m.CatalogHistoryPanel,
+  })),
 );
 
 const SettingsPanel = lazyPanel(() =>
@@ -97,7 +99,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     name: "컴포넌트",
     nameEn: "Components",
     icon: ACTION_ICONS.component,
-    component: ComponentsPanel,
+    component: CatalogComponentsPanel,
     category: "navigation",
     defaultPosition: "left",
     minWidth: 233,
@@ -264,7 +266,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     name: "히스토리",
     nameEn: "History",
     icon: History,
-    component: HistoryPanel,
+    component: CatalogHistoryPanel,
     category: "editor",
     defaultPosition: "right",
     minWidth: 233,
@@ -288,7 +290,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
  */
 export function preloadOffscreenPanels(): void {
   preloadLazyPanels([
-    HistoryPanel,
+    CatalogHistoryPanel,
     SettingsPanel,
     InteractionsPanel,
     ThemesPanel,

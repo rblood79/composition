@@ -17,7 +17,6 @@ import {
   SectionGroupToggleButton,
   PanelContents,
 } from "../../components";
-import { useEditModeStore } from "../../stores/editMode";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { ComponentSearch } from "./ComponentSearch";
 import { useRecentComponents } from "../../hooks/useRecentComponents";
@@ -33,8 +32,14 @@ const DeleteIcon = ACTION_ICONS.delete;
 // import { ToggleButton, ToggleButtonGroup, Button, TextField, Label, Input, Description, FieldError, Checkbox, CheckboxGroup } from '../components/list';
 
 interface ComponentListProps {
-  handleAddElement: (type: string, parentId?: string, initialProps?: Record<string, unknown>) => void;
+  handleAddElement: (
+    type: string,
+    parentId?: string,
+    initialProps?: Record<string, unknown>,
+  ) => void;
   selectedElementId?: string | null;
+  /** Layout mode lists the layout-only items (Slot). */
+  isLayoutMode?: boolean;
 }
 
 // 컴포넌트 정의 — ADR-912 6 registry collapse §2-5 #1: catalog entry.panel 파생.
@@ -105,7 +110,11 @@ ComponentItem.displayName = "ComponentItem";
 
 // 메인 컴포넌트
 const ComponentList = memo(
-  ({ handleAddElement, selectedElementId }: ComponentListProps) => {
+  ({
+    handleAddElement,
+    selectedElementId,
+    isLayoutMode = false,
+  }: ComponentListProps) => {
     const {
       recentTags,
       addRecentComponent,
@@ -114,10 +123,6 @@ const ComponentList = memo(
     } = useRecentComponents();
     const { favoriteTags } = useFavoriteComponents();
     const [searchQuery, setSearchQuery] = useState("");
-
-    // Edit Mode 상태 가져오기 (Layout 모드에서만 Slot 컴포넌트 표시)
-    const editMode = useEditModeStore((state) => state.mode);
-    const isLayoutMode = editMode === "layout";
 
     // 검색 시 카테고리 자동 펼치기 (Section 컴포넌트가 collapse 상태 자체를 관리)
     const expandSections = useSectionCollapse((s) => s.expandSections);
@@ -131,8 +136,14 @@ const ComponentList = memo(
     // 이벤트 핸들러를 메모이제이션
     const handleComponentAdd = useCallback(
       (type: string, parentId?: string) => {
-        const item = getPaletteItems().find((candidate) => candidate.type === type);
-        handleAddElement(item?.componentType ?? type, parentId, item?.initialProps);
+        const item = getPaletteItems().find(
+          (candidate) => candidate.type === type,
+        );
+        handleAddElement(
+          item?.componentType ?? type,
+          parentId,
+          item?.initialProps,
+        );
         addRecentComponent(type); // Recent에 추가
       },
       [handleAddElement, addRecentComponent],

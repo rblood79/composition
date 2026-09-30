@@ -154,6 +154,7 @@ function ComponentsPanelContent() {
     <ComponentList
       handleAddElement={handleAddElement}
       selectedElementId={selectedElementId}
+      isLayoutMode={editMode === "layout"}
     />
   );
 }

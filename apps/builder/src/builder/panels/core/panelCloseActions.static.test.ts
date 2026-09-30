@@ -7,7 +7,10 @@ const STANDARD_PANEL_SOURCES = [
     component: "CatalogNavigatorPanel",
     source: "../navigator/catalog/CatalogNavigatorPanel.tsx",
   },
-  { component: "ComponentsPanel", source: "../components/ComponentList.tsx" },
+  {
+    component: "CatalogComponentsPanel",
+    source: "../components/ComponentList.tsx",
+  },
   { component: "DataTablePanel", source: "../datatable/DataTablePanel.tsx" },
   {
     component: "DataTableEditorPanel",
@@ -22,7 +25,10 @@ const STANDARD_PANEL_SOURCES = [
     component: "InteractionsPanel",
     source: "../interactions/InteractionsPanel.tsx",
   },
-  { component: "HistoryPanel", source: "../history/HistoryPanel.tsx" },
+  {
+    component: "CatalogHistoryPanel",
+    source: "../history/CatalogHistoryPanel.tsx",
+  },
   {
     component: "DataTableFieldPanel",
     source: "../datatable/DataTableFieldPanel.tsx",

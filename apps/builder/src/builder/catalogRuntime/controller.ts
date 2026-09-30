@@ -187,6 +187,20 @@ export class CatalogRuntime {
     const session = this.current();
     return { undo: session.undo.length, redo: session.redo.length };
   }
+  /** History entry labels of the active project: undo (oldest first) and redo (next first). */
+  get historyLabels(): { undo: readonly string[]; redo: readonly string[] } {
+    const session = this.current();
+    return {
+      undo: session.undo.map((entry) => entry.label),
+      redo: [...session.redo].reverse().map((entry) => entry.label),
+    };
+  }
+  /** Drop the active project's undo and redo entries (the document and saves stay). */
+  clearHistory(): void {
+    const session = this.current();
+    session.undo = [];
+    session.redo = [];
+  }
   get lastInvalidatedIds(): readonly string[] {
     return this.current().invalidatedIds;
   }
