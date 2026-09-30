@@ -20,6 +20,7 @@ import { useStore } from "../../../stores";
 import "./ImageFillEditor.css";
 import { useResolvedAssetUrl } from "../../../../lib/assets/useResolvedAssetUrl";
 import { isAssetWriterEnabled } from "../../../../utils/featureFlags";
+import { useStylesSelectedId } from "../stylesHost";
 
 interface ImageFillEditorProps {
   fill: ImageFillItem;
@@ -39,7 +40,7 @@ export const ImageFillEditor = memo(function ImageFillEditor({
   fill,
   onUpdateEnd,
 }: ImageFillEditorProps) {
-  const selectedElementId = useStore((state) => state.selectedElementId);
+  const selectedElementId = useStylesSelectedId();
   const [urlInput, setUrlInput] = useState(fill.url);
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);

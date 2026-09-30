@@ -30,6 +30,7 @@ import { ScrubInput } from "./ScrubInput";
 import { useStore } from "../../../stores";
 
 import "./ColorInputFields.css";
+import { useStylesSelectedId } from "../stylesHost";
 
 interface ColorInputFieldsProps {
   value: string; // "#RRGGBBAA" or hexa format
@@ -80,7 +81,7 @@ function TextField({
   suffix?: string;
   onChange: (v: string) => void;
 }) {
-  const selectedElementId = useStore((state) => state.selectedElementId);
+  const selectedElementId = useStylesSelectedId();
   const [localValue, setLocalValue] = useState(value);
   const [isFocused, setIsFocused] = useState(false);
   const focusedElementIdRef = useRef<string | null>(null);

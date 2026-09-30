@@ -36,7 +36,6 @@ import {
   Strikethrough,
   Underline,
 } from "lucide-react";
-import { useStore } from "../../../stores";
 import { useStyleActions } from "../hooks/useStyleActions";
 import { useOptimizedStyleActions } from "../hooks/useOptimizedStyleActions";
 import { useStylePresentationActions } from "../hooks/useStylePresentationActions";
@@ -48,6 +47,7 @@ import { FontFamilyPicker } from "../../fonts/FontFamilyPicker";
 import { useFontRegistry } from "../../fonts/useFontRegistry";
 import { TYPOGRAPHY_PROPS } from "./styleSectionProps";
 import { useSemanticLabel } from "../../../../i18n";
+import { useStylesSelectedId } from "../stylesHost";
 
 /** ADR-008 Text Behavior 프리셋 — 5개 속성 묶음 (빈 문자열 = 해제). */
 const TEXT_BEHAVIOR_PRESETS: Record<string, Record<string, string>> = {
@@ -119,7 +119,7 @@ const TypographySectionContent = memo(function TypographySectionContent() {
     isTextMetricPresentationOwned,
     previewTextMetricPresentation,
   } = useTextMetricsPresentationActions();
-  const selectedId = useStore((s) => s.selectedElementId);
+  const selectedId = useStylesSelectedId();
   const styleValues = useTypographyValues(selectedId);
   // 등록된 face 는 Font Weight 옵션 산출에만 쓴다 — 패밀리 목록은 FontFamilyPicker 가 직접 읽는다.
   const { registry } = useFontRegistry();

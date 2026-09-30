@@ -51,6 +51,7 @@ import {
   readSessionSpacingValue,
   useSpacingSession,
 } from "../../../presentation/useSpacingSession";
+import { useStylesSelectedId } from "../stylesHost";
 
 const LayoutSectionContent = memo(function LayoutSectionContent() {
   const localize = useSemanticLabel();
@@ -69,7 +70,7 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
     useLayoutPresentationActions();
 
   // ADR-067 Phase 2: Zustand 직접 구독 + Spec 직접 lookup
-  const selectedId = useStore((s) => s.selectedElementId);
+  const selectedId = useStylesSelectedId();
   // 그룹 축 prop derive 컨테이너(ToggleButtonGroup/Toolbar=orientation,
   // RadioGroup/CheckboxGroup=labelPosition)는 그룹 root flexDirection SSOT 가
   // 별도 prop(row/column 만, block 없음)이라 Direction 토글의 block 버튼을 disable

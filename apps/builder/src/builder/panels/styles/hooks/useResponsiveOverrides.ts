@@ -8,8 +8,8 @@
 
 import { useMemo } from "react";
 import type { BreakpointName, ResponsiveVisibility } from "@composition/shared";
-import { useStore } from "../../../stores";
 import { useCanonicalPropertyElement } from "../../properties/hooks/useCanonicalPropertyRead";
+import { useStylesSelectedId, useStylesActiveBreakpoint } from "../stylesHost";
 
 export interface ResponsiveOverridesInfo {
   /** 현재 활성 breakpoint (canvasSettings SSOT) */
@@ -34,8 +34,8 @@ const EMPTY_PROPS: string[] = [];
 const EMPTY_VALUES: Record<string, unknown> = {};
 
 export function useResponsiveOverrides(): ResponsiveOverridesInfo {
-  const activeBreakpoint = useStore((s) => s.activeBreakpoint);
-  const selectedElementId = useStore((s) => s.selectedElementId);
+  const activeBreakpoint = useStylesActiveBreakpoint();
+  const selectedElementId = useStylesSelectedId();
   const element = useCanonicalPropertyElement(selectedElementId ?? "");
 
   return useMemo(() => {

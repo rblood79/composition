@@ -12,11 +12,11 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, Unlink } from "lucide-react";
 import { Button } from "react-aria-components/Button";
-import { useStore } from "../../../stores";
 import { iconSmall } from "../../../../utils/ui/uiConstants";
 import { useSemanticLabel } from "../../../../i18n";
 import { setPaddingLinked, usePaddingLinked } from "./boxModelLink";
 import "./BoxModelEditor.css";
+import { useStylesSelectedId } from "../stylesHost";
 
 export type BoxSide = "Top" | "Right" | "Bottom" | "Left";
 export type BoxRing = "padding" | "margin";
@@ -79,7 +79,7 @@ export const BoxModelEditor = memo(function BoxModelEditor({
   activePaddingSides,
 }: BoxModelEditorProps) {
   const localize = useSemanticLabel();
-  const selectedElementId = useStore((state) => state.selectedElementId);
+  const selectedElementId = useStylesSelectedId();
   const derived = useMemo(() => toDraft(padding, margin), [padding, margin]);
   const [draft, setDraft] = useState<Draft>(derived);
   // link 는 캔버스 spacing 드래그도 읽는다 (4변 동일 값) — 모듈 상태 공유

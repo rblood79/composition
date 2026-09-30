@@ -15,6 +15,7 @@ import { memo, useState, useCallback, useRef, useEffect } from "react";
 import { useStore } from "../../../stores";
 
 import "./ScrubInput.css";
+import { useStylesSelectedId } from "../stylesHost";
 
 export interface ScrubInputProps {
   value: number;
@@ -47,7 +48,7 @@ export const ScrubInput = memo(function ScrubInput({
   label,
   className,
 }: ScrubInputProps) {
-  const selectedElementId = useStore((state) => state.selectedElementId);
+  const selectedElementId = useStylesSelectedId();
   const [editing, setEditing] = useState(false);
   const [displayValue, setDisplayValue] = useState(String(Math.round(value)));
   const [isDraggingState, setIsDraggingState] = useState(false);

@@ -39,6 +39,7 @@ import type {
   CanonicalNode,
   ElementResponsiveConfig,
 } from "@composition/shared";
+import { useStylesSelectedId, useStylesActiveBreakpoint } from "../stylesHost";
 
 const PX_LIKE_STYLE_PROPS = new Set([
   "width",
@@ -931,10 +932,10 @@ const BORDER_AXIS_RESET_GROUPS: ReadonlyArray<
  * 리셋 버튼 조건부 표시용
  */
 export function useHasDirtyStyles(properties: string[]): boolean {
-  const selectedId = useStore((state) => state.selectedElementId);
+  const selectedId = useStylesSelectedId();
   const element = useCanonicalPropertyElement(selectedId ?? "");
   const elementsMap = useCanonicalPropertyElementsMap();
-  const activeBreakpoint = useStore((state) => state.activeBreakpoint);
+  const activeBreakpoint = useStylesActiveBreakpoint();
   return useMemo(() => {
     if (!element) return false;
 
@@ -967,10 +968,10 @@ export function useHasDirtyStyles(properties: string[]): boolean {
  * 공유하도록 한다. element 와 부모 체인을 store 에서 읽어 `computeDirtyStyleProps` 에 위임.
  */
 export function useDirtyStyleProps(): string[] {
-  const selectedId = useStore((state) => state.selectedElementId);
+  const selectedId = useStylesSelectedId();
   const element = useCanonicalPropertyElement(selectedId ?? "");
   const elementsMap = useCanonicalPropertyElementsMap();
-  const activeBreakpoint = useStore((state) => state.activeBreakpoint);
+  const activeBreakpoint = useStylesActiveBreakpoint();
   return useMemo(() => {
     if (!element) return [];
 

@@ -34,7 +34,6 @@ import { PropertyRowMenu, PropertySection } from "../../../components";
 import { SwatchIconButton } from "../../../components/ui";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import {
-  useStore,
   useUpdateResponsiveVisibility,
   useSetResponsiveStyleOverrideEnabled,
 } from "../../../stores";
@@ -46,6 +45,7 @@ import { iconProps, iconSmall } from "../../../../utils/ui/uiConstants";
 import { useResponsiveOverrides } from "../hooks/useResponsiveOverrides";
 import { camelToLabel } from "../utils/styleValueHelpers";
 import { useOptionalI18n, useSemanticLabel } from "../../../../i18n";
+import { useStylesSelectedId } from "../stylesHost";
 
 const BP_LABEL: Record<BreakpointName, string> = {
   desktop: "Desktop",
@@ -187,7 +187,7 @@ export const ResponsiveSection = memo(function ResponsiveSection() {
     return [...primaries, ...uncovered];
   }, [activeOverriddenProps, activeOverrideValues, overriddenSet]);
 
-  const selectedId = useStore((state) => state.selectedElementId);
+  const selectedId = useStylesSelectedId();
   const styleContext = useElementStyleContext(selectedId);
   const directionDriven =
     resolveDirectionDrivenProp(styleContext.type) !== undefined;

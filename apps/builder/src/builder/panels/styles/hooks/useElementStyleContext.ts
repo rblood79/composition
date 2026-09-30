@@ -3,7 +3,8 @@ import {
   resolveEffectiveFill,
   type FillAxes,
 } from "@composition/shared";
-import { useMemo } from "react";
+import { useContext, useMemo } from "react";
+import { StylesHostContext } from "../stylesHostContext";
 import { resolveComponentRule, type BreakpointName } from "@composition/shared";
 import { getSpecForTag } from "../../../workspace/canvas/styleConversion/tagSpecMap";
 import { resolveResponsiveStyleMap } from "../../../workspace/canvas/layout/resolveResponsive";
@@ -194,6 +195,18 @@ function readNodeAccentColor(
  * Section-value hooks reuse this so legacy fallback stays behind one boundary.
  */
 export function useElementStyleContext(id: string | null): ElementStyleContext {
+  // The catalog Styles panel provides its own reading (ADR-248 Phase 4e-4d); a tree keeps one
+  // host for its whole life, so the hook called here never changes between renders.
+  const read =
+    useContext(StylesHostContext)?.useElementStyleContext ??
+    useCanonicalElementStyleContext;
+  return read(id);
+}
+
+/** The old store's reading (the default Styles host). */
+export function useCanonicalElementStyleContext(
+  id: string | null,
+): ElementStyleContext {
   const elementsMap = useCanonicalPropertyElementsMap();
   const activeBreakpoint = useStore((state) => state.activeBreakpoint);
   const element = useMemo(

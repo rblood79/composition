@@ -62,9 +62,9 @@ import { useOptimizedStyleActions } from "../hooks/useOptimizedStyleActions";
 import { useStylePresentationActions } from "../hooks/useStylePresentationActions";
 import { useAppearanceValues } from "../hooks/useAppearanceValues";
 import { useResetStyles, useHasDirtyStyles } from "../hooks/useResetStyles";
-import { useStore } from "../../../stores";
 import { resolveCssLengthPx } from "../utils/cssLengthPx";
 import { useSemanticLabel } from "../../../../i18n";
+import { useStylesSelectedId } from "../stylesHost";
 
 /** 슬라이더 범위 — 값 칸 직접 입력은 이 위로도 간다 (썸은 끝에 머문다). */
 const WIDTH_SLIDER_MAX = 24;
@@ -158,7 +158,7 @@ const BorderSectionContent = memo(function BorderSectionContent() {
     isBorderColorPresentationOwned,
     previewBorderColorPresentation,
   } = useStylePresentationActions();
-  const selectedId = useStore((s) => s.selectedElementId);
+  const selectedId = useStylesSelectedId();
   const styleValues = useAppearanceValues(selectedId);
   // 코너 4방향 펼침 토글 — 훅은 early return 앞에 (선택 해제 ↔ 선택 사이에 훅 순서가 바뀌면 안 된다)
   const [cornersOpen, setCornersOpen] = useState(false);

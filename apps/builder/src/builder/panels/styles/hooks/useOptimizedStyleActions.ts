@@ -19,7 +19,7 @@
  */
 
 import { useCallback, useTransition, useRef, useEffect } from "react";
-import { useStore } from "../../../stores";
+import { useStylesHost } from "../stylesHost";
 import {
   isFillDerivedStyleProp,
   sanitizeFillDerivedStylePatch,
@@ -84,6 +84,7 @@ const cancelIdleCallbackPolyfill =
 // ============================================
 
 export function useOptimizedStyleActions(): OptimizedStyleActionsResult {
+  const host = useStylesHost();
   const [isPending, startTransition] = useTransition();
 
   // RAF/Idle 참조
@@ -110,7 +111,7 @@ export function useOptimizedStyleActions(): OptimizedStyleActionsResult {
         cancelIdleCallbackPolyfill(idleIdRef.current);
       }
     };
-  }, []);
+  }, [host]);
 
   /**
    * 보류 중인 업데이트 취소
@@ -143,9 +144,9 @@ export function useOptimizedStyleActions(): OptimizedStyleActionsResult {
         return;
       }
       cancelPendingUpdates();
-      useStore.getState().updateSelectedStyle(property, value);
+      host.updateStyle(property, value);
     },
-    [cancelPendingUpdates],
+    [cancelPendingUpdates, host],
   );
 
   /**
@@ -163,15 +164,13 @@ export function useOptimizedStyleActions(): OptimizedStyleActionsResult {
       rafIdRef.current = requestAnimationFrame(() => {
         const pending = pendingUpdateRef.current;
         if (pending) {
-          useStore
-            .getState()
-            .updateSelectedStyle(pending.property, pending.value);
+          host.updateStyle(pending.property, pending.value);
         }
         rafIdRef.current = null;
         pendingUpdateRef.current = null;
       });
     }
-  }, []);
+  }, [host]);
 
   /**
    * RAF 기반 연속 입력 프리뷰 (화살표/드래그 중 캔버스 반영)
@@ -189,15 +188,13 @@ export function useOptimizedStyleActions(): OptimizedStyleActionsResult {
       previewRafIdRef.current = requestAnimationFrame(() => {
         const pending = pendingPreviewRef.current;
         if (pending) {
-          useStore
-            .getState()
-            .updateSelectedStylePreview(pending.property, pending.value);
+          host.previewStyle(pending.property, pending.value);
         }
         previewRafIdRef.current = null;
         pendingPreviewRef.current = null;
       });
     }
-  }, []);
+  }, [host]);
 
   /**
    * Idle 기반 지연 업데이트 (타이핑)
@@ -219,16 +216,14 @@ export function useOptimizedStyleActions(): OptimizedStyleActionsResult {
       () => {
         const pending = pendingUpdateRef.current;
         if (pending) {
-          useStore
-            .getState()
-            .updateSelectedStyle(pending.property, pending.value);
+          host.updateStyle(pending.property, pending.value);
         }
         idleIdRef.current = null;
         pendingUpdateRef.current = null;
       },
       { timeout: 100 },
     );
-  }, []);
+  }, [host]);
 
   /**
    * 여러 스타일 즉시 업데이트
@@ -236,11 +231,9 @@ export function useOptimizedStyleActions(): OptimizedStyleActionsResult {
   const updateStylesImmediate = useCallback(
     (styles: Record<string, string>) => {
       cancelPendingUpdates();
-      useStore
-        .getState()
-        .updateSelectedStyles(sanitizeFillDerivedStylePatch(styles, true));
+      host.updateStyles(sanitizeFillDerivedStylePatch(styles, true));
     },
-    [cancelPendingUpdates],
+    [cancelPendingUpdates, host],
   );
 
   /**
@@ -252,10 +245,10 @@ export function useOptimizedStyleActions(): OptimizedStyleActionsResult {
     (styles: Record<string, string>) => {
       const sanitized = sanitizeFillDerivedStylePatch(styles, true);
       startTransition(() => {
-        useStore.getState().updateSelectedStyles(sanitized);
+        host.updateStyles(sanitized);
       });
     },
-    [startTransition],
+    [host, startTransition],
   );
 
   return {

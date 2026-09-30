@@ -84,6 +84,7 @@ import {
   useSectionCollapse,
 } from "../hooks/useSectionCollapse";
 import { OVERFLOW_OPTIONS } from "../constants/styleOptions";
+import { useStylesSelectedId, useStylesActiveBreakpoint } from "../stylesHost";
 
 const POSITION_SECTION_ID = "position";
 
@@ -236,10 +237,10 @@ const TransformSectionContent = memo(function TransformSectionContent({
   const { updateStyleImmediate, updateStylePreview, updateStylesImmediate } =
     useOptimizedStyleActions();
   const { previewLayoutPresentation } = useLayoutPresentationActions();
-  const selectedId = useStore((s) => s.selectedElementId);
+  const selectedId = useStylesSelectedId();
   const bundle = useTransformValues(selectedId, part);
   const sizeContext = useElementStyleContext(selectedId);
-  const activeBreakpoint = useStore((s) => s.activeBreakpoint);
+  const activeBreakpoint = useStylesActiveBreakpoint();
 
   // 기존 styleValues 인터페이스 어댑터 (문자열 값)
   //   ADR-082 A2: inline 없으면 Spec specDefault (containerStyles/composition 의 "100%",
@@ -838,7 +839,7 @@ export const SizeSection = memo(function SizeSection() {
 export const PositionSection = memo(function PositionSection() {
   const resetStyles = useResetStyles();
   const hasPositionDirty = useHasDirtyStyles(POSITION_PROPS);
-  const selectedId = useStore((s) => s.selectedElementId);
+  const selectedId = useStylesSelectedId();
   // 접힘 판정은 inline position 만 — layout 실측 구독 0
   const bundle = useTransformValues(selectedId, "none");
   const isAbsolute = bundle?.position.inline === "absolute";
