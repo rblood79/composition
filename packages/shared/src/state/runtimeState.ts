@@ -54,6 +54,11 @@ export interface RuntimeWriteResult {
 export interface RuntimeStateDefinitions {
   projectVariables: readonly VariableDef[];
   document: CompositionDocument | null;
+  /**
+   * Page and element variables defined outside the canonical document (ADR-248: the catalog
+   * document's `stateVariable` records) — the same value model, keyed by their ids.
+   */
+  variables?: readonly VisibleVariable[];
 }
 
 /** localStorage 와 같은 최소 계약 (테스트 · SSR 에서 주입) */
@@ -227,6 +232,7 @@ export function createRuntimeState(
   let definitions = new Map<string, VisibleVariable>();
   let projectVariables: readonly VariableDef[] = [];
   let document: CompositionDocument | null = null;
+  let extraVariables: readonly VisibleVariable[] = [];
   const values = new Map<string, Map<string, unknown>>();
   const listeners = new Set<RuntimeChangeListener>();
   const variableListeners = new Map<string, Set<() => void>>();
@@ -304,6 +310,7 @@ export function createRuntimeState(
       next.set(def.id, { def, owner: { kind: "project" } });
     for (const entry of collectDocumentVariables(document))
       next.set(entry.def.id, entry);
+    for (const entry of extraVariables) next.set(entry.def.id, entry);
     // 사라진 정의의 값은 버린다 (고아 0)
     const changed = new Set<string>();
     for (const map of values.values()) {
@@ -335,6 +342,7 @@ export function createRuntimeState(
     setDefinitions(defs) {
       projectVariables = defs.projectVariables;
       document = defs.document;
+      extraVariables = defs.variables ?? [];
       rebuildDefinitions();
     },
     getDefinition(variableId) {

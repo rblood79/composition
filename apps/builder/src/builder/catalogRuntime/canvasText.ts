@@ -19,12 +19,14 @@ export function catalogTextKey(
   return TEXT_KEYS.find((key) => typeof props[key] === "string");
 }
 
-/** The text a record shows for `key` (empty when absent). */
+/** The text a record's `key` is written as (a `{{ name }}` template, not its value; empty when absent). */
 export function catalogTextOf(
-  record: Pick<CatalogConsumerNode, "props">,
+  record: Pick<CatalogConsumerNode, "props" | "templateProps">,
   key: string,
 ): string {
-  const value = (record.props as Readonly<Record<string, unknown>>)[key];
+  const value = (
+    (record.templateProps ?? record.props) as Readonly<Record<string, unknown>>
+  )[key];
   return typeof value === "string" ? value : "";
 }
 

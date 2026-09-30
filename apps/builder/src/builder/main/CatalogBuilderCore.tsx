@@ -57,7 +57,7 @@ import {
 import { setAiWriteHost } from "../../services/ai/aiWriteHost";
 import { setAiReadHost } from "../../services/ai/aiReadHost";
 import { PanelWorkspace } from "../layout";
-import { useDataStore } from "../stores/data";
+import { toProjectVariableDefs, useDataStore } from "../stores/data";
 import {
   setDataHistoryRecorder,
   setDocumentBindingCommitter,
@@ -150,6 +150,11 @@ export function CatalogBuilderCore() {
             catalogBoundRows(binding, [
               ...useDataStore.getState().collections.values(),
             ]),
+          // `{{ name }}` at defaults; project variables live in the data store (H1).
+          state: {
+            projectVariables: () =>
+              toProjectVariableDefs(useDataStore.getState().variables),
+          },
         },
       });
       // Dev-only live harness handle (Playwright exercises edits before the panels move).
@@ -274,6 +279,20 @@ export function CatalogBuilderCore() {
           workspace.refreshRows(changed);
         } catch (error) {
           console.error("[CatalogBuilder] row refresh failed:", error);
+        }
+      },
+    );
+  }, [workspace]);
+  // Project variables changed (add, rename, default): the `{{ }}` readers resolve again.
+  useEffect(() => {
+    if (!workspace) return;
+    return useDataStore.subscribe(
+      (store) => store.variables,
+      () => {
+        try {
+          workspace.refreshState();
+        } catch (error) {
+          console.error("[CatalogBuilder] state refresh failed:", error);
         }
       },
     );

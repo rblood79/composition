@@ -85,6 +85,13 @@ import {
   catalogSliderThumbs,
 } from "./presence";
 import {
+  catalogRecordVariables,
+  catalogStateEnv,
+  catalogStateNames,
+  catalogStateProps,
+  type CatalogStateSource,
+} from "./stateTemplate";
+import {
   CatalogRuntime,
   type CatalogExternalEffect,
   type CatalogStepConsumer,
@@ -108,6 +115,11 @@ export interface CatalogConsumerNode {
   readonly parentId: string;
   readonly children: readonly string[];
   readonly props: ResolvedCatalogNode["props"];
+  /**
+   * The props as written when they hold `{{ name }}` templates (`props` has the values): the
+   * text editor edits these, and a variable change re-resolves them (`refreshState`).
+   */
+  readonly templateProps?: ResolvedCatalogNode["props"];
   readonly visual: ResolvedCatalogNode["visual"];
   readonly layout: ResolvedCatalogNode["layout"];
   /** Author-written layout keys (`ResolvedCatalogNode.authoredLayout`): the DOM inlines these. */
@@ -411,6 +423,11 @@ export interface CatalogRootOptions {
   colorMode?: "light" | "dark";
   /** Data rows of bound collections (the data store); absent = template items only. */
   rows?: CatalogRowSource;
+  /**
+   * `{{ name }}` values: project variables and runtime values (the Preview). Absent = the
+   * document's variables at their defaults (the Canvas's designed asymmetry, ADR-214 R2).
+   */
+  state?: CatalogStateSource;
 }
 /** The graph's page container declaration in the old placement derivation's input shape. */
 function catalogPageLayoutSettings(
@@ -873,6 +890,7 @@ function sameRecord(
     left.parentId === right.parentId &&
     sameList(left.children, right.children) &&
     sameFields(left.props, right.props) &&
+    sameFields(left.templateProps ?? {}, right.templateProps ?? {}) &&
     sameFields(left.visual, right.visual) &&
     sameFields(left.layout, right.layout) &&
     sameFields(left.sizing, right.sizing) &&
@@ -914,6 +932,7 @@ export class CatalogCompositionRoot {
   /** Theme color mode (a switch builds a new root, like a breakpoint switch). */
   readonly colorMode: "light" | "dark";
   private readonly rows?: CatalogRowSource;
+  private readonly stateSource?: CatalogStateSource;
   /** Page of each page root node (`pageRoots`). */
   private readonly rootPage = new Map<NodeId, EntryId<"page">>();
   private readonly records = new Map<string, CatalogConsumerNode>();
@@ -964,6 +983,7 @@ export class CatalogCompositionRoot {
     this.autoColumns = options.autoColumns;
     this.colorMode = options.colorMode ?? "light";
     this.rows = options.rows;
+    this.stateSource = options.state;
     // Definite-zero heights shrink their column children (CSS-FLEXBOX-1 §9.8). The engine keeps
     // this off by default so the current Builder's output is unchanged until the Phase 4 cutover.
     engine.setDefiniteZeroHeight?.(true);
@@ -1199,6 +1219,100 @@ export class CatalogCompositionRoot {
   }
 
   /**
+   * A record with its `{{ name }}` templates resolved against the variables it sees (its record
+   * chain, its page, the project): `props` = values, `templateProps` = as written. The same
+   * record when it has no template.
+   */
+  private withState(
+    record: CatalogConsumerNode,
+    get: (id: string) => CatalogConsumerNode | undefined,
+    pageId: EntryId<"page"> | undefined,
+  ): CatalogConsumerNode {
+    const { templateProps, ...rest } = record;
+    const authored = templateProps ?? record.props;
+    const props = catalogStateProps(authored, () =>
+      catalogStateEnv(
+        catalogRecordVariables(
+          this.runtime.graph,
+          record,
+          get,
+          pageId,
+          this.stateSource?.projectVariables() ?? [],
+        ),
+        this.stateSource?.read?.bind(this.stateSource),
+      ),
+    );
+    if (!props) return templateProps ? { ...rest, props: authored } : record;
+    return { ...rest, props, templateProps: authored };
+  }
+  /** Records whose written props hold a template (`names`: only those reading one of them). */
+  private stateReaders(names?: ReadonlySet<string>): string[] {
+    const ids: string[] = [];
+    for (const [id, record] of this.records)
+      if (
+        record.templateProps &&
+        (!names ||
+          catalogStateNames(record.templateProps).some((name) =>
+            names.has(name),
+          ))
+      )
+        ids.push(id);
+    return ids;
+  }
+
+  /**
+   * Variable values changed outside the document (a runtime write, the data store's project
+   * variables): re-resolve the records whose templates read them (`names`; absent = every
+   * template). Journaled and delivered like a step; the document revision does not move. Returns
+   * the subscriber errors.
+   */
+  refreshState(names?: ReadonlySet<string>): unknown[] {
+    const byRoot = new Map<NodeId, RecordPlan[]>();
+    const get = (key: string) => this.records.get(key);
+    for (const id of this.stateReaders(names)) {
+      const record = this.records.get(id)!;
+      const rootId = this.recordRoots.get(id)!;
+      const next = this.withState(record, get, this.rootPage.get(rootId));
+      if (sameFields(next.props, record.props)) continue;
+      let list = byRoot.get(rootId);
+      if (!list) byRoot.set(rootId, (list = []));
+      list.push(this.planRecord(id, next, rootId));
+    }
+    if (!byRoot.size) return [];
+    const count = [...byRoot.values()].reduce(
+      (sum, list) => sum + list.length,
+      0,
+    );
+    const plan: ConsumePlan = {
+      roots: [...byRoot].map(([rootId, updates]) => ({
+        rootId,
+        removed: [],
+        updates,
+      })),
+      computeLayout: true,
+      metrics: {
+        ...this.emptyMetrics(this.currentMetrics.revision),
+        affectedRootIds: [...byRoot.keys()],
+        layoutInputVisits: count,
+        resolverVisits: 0,
+        affectedInstanceCount: count,
+      },
+    };
+    this.undoLog = [];
+    this.layoutTouched = false;
+    let notices: Notice[];
+    try {
+      notices = this.apply(plan);
+    } catch (cause) {
+      this.restore(cause);
+      throw cause;
+    } finally {
+      this.undoLog = undefined;
+    }
+    return this.deliver(plan, notices);
+  }
+
+  /**
    * Takes a staged runtime step before it is published. Computing the new inputs runs before any
    * root state changes; applying them (maps and layout tree, no consumer code) is journaled. If
    * either throws — including the layout engine — the maps are restored from the journal, the
@@ -1308,6 +1422,11 @@ export class CatalogCompositionRoot {
       "catalog:root",
     );
     const get = (key: string) => output.get(key);
+    const pageId = this.rootPage.get(rootId);
+    for (const [id, record] of output) {
+      const templated = this.withState(record, get, pageId);
+      if (templated !== record) output.set(id, templated);
+    }
     for (const [id, record] of output)
       if (catalogHiddenAtRest(record, get, this.typeOf))
         output.set(id, { ...record, hidden: true });
@@ -2298,9 +2417,10 @@ export class CatalogCompositionRoot {
         htmlId: _htmlId,
         className: _className,
         ariaLabel: _ariaLabel,
+        templateProps: _templateProps,
         ...kept
       } = before;
-      const record: CatalogConsumerNode = {
+      const resolvedRecord: CatalogConsumerNode = {
         ...kept,
         props: resolved.props,
         visual: resolved.visual,
@@ -2314,6 +2434,11 @@ export class CatalogCompositionRoot {
         regions: top.regions ?? resolved.regions,
         placeholder: top.placeholder ?? resolved.placeholder,
       };
+      const record = this.withState(
+        resolvedRecord,
+        (key) => this.records.get(key),
+        this.rootPage.get(rootId),
+      );
       // A parent prop change reaches the direct children its partRules target.
       for (const childId of this.partRuleChildren(before, record))
         if (!queued.has(childId)) {
@@ -2505,6 +2630,16 @@ export class CatalogCompositionRoot {
         for (const root of this.sourceRoots.get(id) ?? [])
           affectedRoots.add(root);
         if (this.rootIds.has(id as NodeId)) affectedRoots.add(id as NodeId);
+      }
+    // A variable added, renamed, retyped or removed: every `{{ }}` reads by name.
+    if (
+      [...result.changedIds, ...result.removedIds].some((id) =>
+        id.startsWith("project:stateVariable:"),
+      )
+    )
+      for (const id of this.stateReaders()) {
+        const root = this.recordRoots.get(id);
+        if (root && currentRoots.has(root)) affectedRoots.add(root);
       }
     let visits = 0;
     const roots: ConsumePlan["roots"][number][] = [];

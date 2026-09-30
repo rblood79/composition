@@ -94,6 +94,8 @@ export function catalogPreviewRuntime(
     subscribe: session.subscribe,
     navigate: (pageId) => session.navigate(pageId),
     showToast: (message) => toast.show(message),
+    writeState: session.writeState,
+    ownerRecord: (recordId, ownerId) => session.ownerRecord(recordId, ownerId),
   });
 }
 

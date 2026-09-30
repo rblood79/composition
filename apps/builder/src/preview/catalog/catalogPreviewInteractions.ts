@@ -135,6 +135,10 @@ export interface CatalogPreviewInteractionsOptions {
   subscribe: (listener: () => void) => () => void;
   navigate: (pageId: EntryId<"page">) => void;
   showToast: (message: string) => void;
+  /** Variable writes (`setState`); absent = the rule reports that it cannot run. */
+  writeState?: DispatchDeps["writeState"];
+  /** The record drawing `ownerId` on `recordId`'s chain: an element variable's value key. */
+  ownerRecord?: (recordId: string, ownerId: string) => string | undefined;
   /** A rule that could not run (the old Preview's warning — never a silent no-op). */
   report?: (rule: InteractionRule, reason: string) => void;
 }
@@ -144,13 +148,13 @@ export interface CatalogPreviewInteractionsOptions {
  * shared rule on the records its owner is drawn as, run by the shared dispatcher (the old
  * Preview's `createElementHandlers`). Navigation moves the Preview's page by route; a toast shows
  * in the Preview; a capability writes a prop override of its target record (runtime only — the
- * document and the Builder never see it). `setState` has no runtime state here yet: it reports.
+ * document and the Builder never see it). `setState` writes the session's runtime values.
  */
 export class CatalogPreviewInteractions implements CatalogDomRuntime {
   private index: InteractionIndex = buildInteractionIndex([]);
   /** Record → its rules' signature (which rules, which triggers): a change re-renders it. */
   private signatures = new Map<string, string>();
-  private readonly overrides = new Map<string, Record<string, unknown>>();
+  private readonly propOverrides = new Map<string, Record<string, unknown>>();
   private readonly revisions = new Map<string, number>();
   private readonly listeners = new Map<string, Set<() => void>>();
   private readonly deps: DispatchDeps;
@@ -168,7 +172,7 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
         } catch {
           type = "";
         }
-        const override = this.overrides.get(id);
+        const override = this.propOverrides.get(id);
         return {
           type,
           props: {
@@ -178,7 +182,7 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
         };
       },
       updateElementProps: (id, patch) => {
-        this.overrides.set(id, mergePatch(this.overrides.get(id), patch));
+        this.propOverrides.set(id, mergePatch(this.propOverrides.get(id), patch));
         this.touch(id);
       },
       navigate: (path) => {
@@ -192,6 +196,7 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
         if (pageId) options.navigate(pageId);
       },
       showToast: options.showToast,
+      ...(options.writeState ? { writeState: options.writeState } : {}),
     };
     this.refresh();
     this.unsubscribe = options.subscribe(() => this.refresh());
@@ -234,13 +239,23 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
     return this.revisions.get(id) ?? 0;
   }
   handlersOf(id: string) {
-    return createElementHandlers(id, this.index, this.deps, (rule, outcome) => {
-      if (!outcome.ok)
-        (this.options.report ?? warn)(rule, outcome.reason ?? "failed");
-    });
+    const ownerRecord = this.options.ownerRecord;
+    return createElementHandlers(
+      id,
+      this.index,
+      this.deps,
+      (rule, outcome) => {
+        if (!outcome.ok)
+          (this.options.report ?? warn)(rule, outcome.reason ?? "failed");
+      },
+      // An element variable's value lives under the record drawing its owner in this context.
+      {
+        instanceKeyFor: (ownerId) => ownerRecord?.(id, ownerId) ?? ownerId,
+      },
+    );
   }
   overrideOf(id: string) {
-    return this.overrides.get(id);
+    return this.propOverrides.get(id);
   }
   subscribe(id: string, notify: () => void) {
     let set = this.listeners.get(id);

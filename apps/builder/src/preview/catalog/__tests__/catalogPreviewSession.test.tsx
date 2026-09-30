@@ -11,6 +11,7 @@ import type {
   PageEntry,
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import {
+  createComponent,
   createPage,
   createTheme,
   insertNodes,
@@ -45,6 +46,8 @@ import {
 import { catalogPaletteDefinitionId } from "../../../builder/catalogRuntime/paletteInsert";
 import type { CollectionDataSource } from "@composition/shared";
 import { CatalogPreviewSession } from "../catalogPreviewSession";
+import { catalogVariableCommands } from "../../../builder/catalogRuntime/stateVariables";
+import { CATALOG_PREVIEW_PAYLOAD_VERSION } from "../../../../../../packages/shared/src/catalog/preview/protocol";
 
 /**
  * ADR-248 4e-6 Preview entry: the iframe's session holds a replica of the Builder's document
@@ -108,6 +111,7 @@ async function open() {
     viewport: { width: 1000, height: 800 },
     theme: catalogThemeState,
     applyTheme: (state) => themes.push(state),
+    stateStorage: null,
   });
   const channel = new CatalogPreviewChannel(workspace.runtime, {
     post: (message) => {
@@ -521,6 +525,268 @@ describe("ADR-248 4e-6 Preview entry", () => {
     click(hash);
     expect(hash.defaultPrevented).toBe(false);
     anchor.remove();
+    runtime.dispose();
+    view.unmount();
+  });
+
+  it("state: `{{ }}` shows runtime values; setState writes element (per owner record), page (reset on entry) and project variables", async () => {
+    const { workspace, session, channel, flush } = await open();
+    const node = (
+      id: string,
+      definitionId: string,
+      props: Record<string, unknown> = {},
+      children: string[] = [],
+    ) =>
+      ({
+        kind: "node",
+        id,
+        definitionId,
+        children,
+        props: Object.fromEntries(
+          Object.entries(props).map(([key, value]) => [
+            key,
+            { kind: "set", value },
+          ]),
+        ),
+        visual: {},
+        sizing: {},
+        descendantOverrides: [],
+      }) as NodeEntry;
+    const card = (name: string) => [
+      node(`project:node:${name}`, "lib:definition:type-frame", {}, [
+        `project:node:${name}-add`,
+        `project:node:${name}-n`,
+      ]),
+      node(`project:node:${name}-add`, "lib:definition:type-Button", {
+        children: `Add ${name}`,
+      }),
+      node(`project:node:${name}-n`, "lib:definition:text", {
+        children: `${name}={{ n }}`,
+      }),
+    ];
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [
+          ...card("a"),
+          ...card("b"),
+          node("project:node:total", "lib:definition:text", {
+            children: "total={{ total }} user={{ user }}",
+          }),
+        ],
+        rootIds: [
+          "project:node:a",
+          "project:node:b",
+          "project:node:total",
+        ] as NodeId[],
+        newId: workspace.newId,
+      }),
+    );
+    workspace.execute(
+      createPage({
+        page: {
+          kind: "page",
+          id: ABOUT,
+          route: "/about",
+          name: "About",
+          children: [ABOUT_BODY],
+        },
+        entries: [node(ABOUT_BODY, "lib:definition:type-body")],
+      }),
+    );
+    const graph = workspace.runtime.graph;
+    const variableOf = (ownerId: string) => {
+      for (const id of graph.referrersOf(ownerId)) {
+        const entry = graph.getEntry(id);
+        if (entry?.kind === "stateVariable") return entry;
+      }
+      throw new Error(ownerId);
+    };
+    for (const [ownerId, name] of [
+      ["project:node:a", "n"],
+      ["project:node:b", "n"],
+      [HOME, "total"],
+    ] as const) {
+      workspace.execute(
+        catalogVariableCommands.add(
+          ownerId as NodeId,
+          name,
+          workspace.newId,
+        ),
+      );
+      workspace.execute(
+        catalogVariableCommands.setType(variableOf(ownerId), "number"),
+      );
+    }
+    for (const name of ["a", "b"]) {
+      const owner = { ownerId: `project:node:${name}-add` as NodeId };
+      workspace.execute(
+        catalogInteractionsCommand(
+          owner,
+          [
+            catalogNewInteraction(
+              owner,
+              "onPress",
+              {
+                opcode: "setState",
+                variableId: variableOf(`project:node:${name}`).id,
+                op: "increment",
+              },
+              workspace.newId,
+            ),
+            catalogNewInteraction(
+              owner,
+              "onPress",
+              {
+                opcode: "setState",
+                variableId: variableOf(HOME).id,
+                op: "increment",
+              },
+              workspace.newId,
+            ),
+            catalogNewInteraction(
+              owner,
+              "onPress",
+              {
+                opcode: "setState",
+                variableId: "data:variable:v-user",
+                op: "set",
+                value: name,
+              },
+              workspace.newId,
+            ),
+          ],
+          "Rules",
+        ),
+      );
+    }
+    const runtime = catalogPreviewRuntime(session, { show: () => {} });
+    const view = render(
+      <CatalogPreviewView session={session} runtime={runtime} />,
+    );
+    act(() => channel.onReady());
+    act(() => {
+      session.receive({
+        type: "CATALOG_DATA",
+        version: CATALOG_PREVIEW_PAYLOAD_VERSION,
+        collections: [],
+        variables: [
+          { id: "v-user", name: "user", type: "string", defaultValue: "Ann" },
+        ],
+      });
+    });
+    const text = () => view.container.textContent ?? "";
+    expect(text()).toContain("a=0");
+    expect(text()).toContain("b=0");
+    expect(text()).toContain("total=0 user=Ann");
+    const press = (name: string) =>
+      act(() => {
+        fireEvent.click(view.getByRole("button", { name: `Add ${name}` }));
+      });
+    press("a");
+    press("a");
+    press("b");
+    expect(text()).toContain("a=2");
+    expect(text()).toContain("b=1");
+    expect(text()).toContain("total=3 user=b");
+    // The Builder's Canvas shows the defaults; the document never holds a value.
+    expect(
+      workspace.root.domInputs.get(
+        workspace.root.recordsOfSource("project:node:a-n")[0]!,
+      )?.props.children,
+    ).toBe("a=0");
+    // Entering a page starts its variables over; element values stay.
+    act(() => session.navigate(ABOUT));
+    act(() => session.navigate(HOME));
+    expect(text()).toContain("total=0 user=b");
+    expect(text()).toContain("a=2");
+    // A delta that edits the text keeps the runtime value.
+    act(() => {
+      workspace.execute(
+        setFields({
+          targets: [{ kind: "node", id: "project:node:a-n" as NodeId }],
+          props: { children: { kind: "set", value: "A is {{ n }}" } },
+        }),
+      );
+      flush();
+    });
+    expect(text()).toContain("A is 2");
+    // Two instances of a component whose root owns the variable keep their own values.
+    act(() => {
+      workspace.execute(
+        createComponent({
+          id: "project:node:a" as NodeId,
+          name: "Counter",
+          newId: workspace.newId,
+        }),
+      );
+      const project = graph.getEntry(graph.projectId);
+      const definitionId =
+        project?.kind === "project" ? project.definitionIds.at(-1)! : "";
+      workspace.execute(
+        insertNodes({
+          parent: { kind: "node", id: BODY },
+          entries: [node("project:node:second", definitionId)],
+          rootIds: ["project:node:second" as NodeId],
+          newId: workspace.newId,
+        }),
+      );
+      flush();
+    });
+    const counters = () =>
+      [...view.container.querySelectorAll("*")]
+        .filter((element) => element.children.length === 0)
+        .map((element) => element.textContent)
+        .filter((value) => value?.startsWith("A is"));
+    expect(counters()).toEqual(["A is 0", "A is 0"]);
+    const [, second] = view.getAllByRole("button", { name: "Add a" });
+    act(() => {
+      fireEvent.click(second!);
+    });
+    act(() => {
+      fireEvent.click(second!);
+    });
+    expect(counters()).toEqual(["A is 0", "A is 2"]);
+    // A variable and a rule added after the snapshot: the delta brings the definition.
+    act(() => {
+      workspace.execute(
+        catalogVariableCommands.add(HOME, "late", workspace.newId),
+      );
+      const late = [...graph.referrersOf(HOME)]
+        .map((id) => graph.getEntry(id))
+        .find(
+          (entry) => entry?.kind === "stateVariable" && entry.name === "late",
+        );
+      const owner = { ownerId: "project:node:b-add" as NodeId };
+      workspace.execute(
+        catalogInteractionsCommand(
+          owner,
+          [
+            catalogNewInteraction(
+              owner,
+              "onPress",
+              {
+                opcode: "setState",
+                variableId: late!.id as never,
+                op: "set",
+                value: "yes",
+              },
+              workspace.newId,
+            ),
+          ],
+          "Late",
+        ),
+      );
+      workspace.execute(
+        setFields({
+          targets: [{ kind: "node", id: "project:node:total" as NodeId }],
+          props: { children: { kind: "set", value: "late={{ late }}" } },
+        }),
+      );
+      flush();
+    });
+    press("b");
+    expect(text()).toContain("late=yes");
     runtime.dispose();
     view.unmount();
   });

@@ -186,6 +186,19 @@ export class CatalogWorkspace {
     for (const listener of [...this.rowListeners]) listener();
     if (errors.length) throw new AggregateError(errors, "CATALOG_ROWS_DELIVERY");
   }
+  /**
+   * Variable values changed outside the document (the data store's project variables): the root
+   * re-resolves the `{{ }}` readers (`names`; absent = every template), then row listeners (the
+   * Canvas scene — the same outside-a-step delta) follow.
+   */
+  refreshState(names?: readonly string[]): void {
+    const errors = this.currentRoot.refreshState(
+      names ? new Set(names) : undefined,
+    );
+    for (const listener of [...this.rowListeners]) listener();
+    if (errors.length)
+      throw new AggregateError(errors, "CATALOG_STATE_DELIVERY");
+  }
   subscribeRows(listener: () => void): () => void {
     this.rowListeners.add(listener);
     return () => this.rowListeners.delete(listener);

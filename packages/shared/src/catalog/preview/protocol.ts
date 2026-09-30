@@ -122,6 +122,8 @@ export interface CatalogPreviewDataMessage {
   readonly type: "CATALOG_DATA";
   readonly version: typeof CATALOG_PREVIEW_PAYLOAD_VERSION;
   readonly collections: readonly Readonly<Record<string, unknown>>[];
+  /** Project variables (the data store's, H1 — `VariableDef` shape); absent = none. */
+  readonly variables?: readonly Readonly<Record<string, unknown>>[];
 }
 
 export function parseCatalogPreviewData(
@@ -131,7 +133,9 @@ export function parseCatalogPreviewData(
     value.type === "CATALOG_DATA" &&
     value.version === CATALOG_PREVIEW_PAYLOAD_VERSION &&
     Array.isArray(value.collections) &&
-    value.collections.every(isRecord)
+    value.collections.every(isRecord) &&
+    (value.variables === undefined ||
+      (Array.isArray(value.variables) && value.variables.every(isRecord)))
     ? (value as unknown as CatalogPreviewDataMessage)
     : null;
 }
