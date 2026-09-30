@@ -33,6 +33,8 @@ export type StylesLayoutKey = "width" | "height" | "x" | "y";
  */
 export interface StylesHost {
   useSelectedId(): string | null;
+  /** The selected id now (a field's blur compares it with the id it was focused on). */
+  readSelectedId(): string | null;
   useActiveBreakpoint(): BreakpointName;
   useElementStyleContext(id: string | null): ElementStyleContext;
   readSelectedTarget(): StylesTargetSnapshot;

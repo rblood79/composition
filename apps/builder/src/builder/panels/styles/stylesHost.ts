@@ -58,6 +58,7 @@ function useStoreParentId(id: string | null): string | null {
 
 export const STORE_STYLES_HOST: StylesHost = {
   useSelectedId: () => useStore((state) => state.selectedElementId),
+  readSelectedId: () => useStore.getState().selectedElementId ?? null,
   useActiveBreakpoint: () => useStore((state) => state.activeBreakpoint),
   useElementStyleContext: useCanonicalElementStyleContext,
   readSelectedTarget() {

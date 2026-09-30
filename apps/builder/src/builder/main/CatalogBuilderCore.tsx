@@ -1,3 +1,4 @@
+import { useBuilderChromeTheme } from "../hooks/useBuilderChromeTheme";
 import {
   useCallback,
   useEffect,
@@ -102,6 +103,8 @@ const noSubscription = () => () => {};
 export function CatalogBuilderCore() {
   const { projectId: routeId = "" } = useParams<{ projectId: string }>();
   const { t } = useI18n();
+  // Builder UI theme (Settings · View menu) — also marks the Builder chrome as mounted.
+  useBuilderChromeTheme();
   const [state, setState] = useState<OpenState>({ kind: "opening" });
   // An imported project file replaced the stored document: open it again (fresh history).
   const [openCount, setOpenCount] = useState(0);

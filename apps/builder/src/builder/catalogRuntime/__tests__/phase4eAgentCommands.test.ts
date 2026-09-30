@@ -14,6 +14,7 @@ import { executeAgentCommand } from "../../../services/agent/executeAgentCommand
 import type { AgentReadModel } from "../../config/commandMeta";
 import { resolveCommandEnablement } from "../../main/headerMenu/resolveMenuItemState";
 import { createCatalogAgentCommandHost } from "../agentHost";
+import { registerCommand } from "../../stores/commandRegistry";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
@@ -177,5 +178,56 @@ describe("ADR-248 Phase 4e-5 agent commands", () => {
       enabled: false,
       reason: "precondition",
     });
+  });
+
+  it("style / property clipboard commands: the host answers from the catalog selection and runs the panel's handler", async () => {
+    const { workspace, select } = await open();
+    const input = {
+      readModel: {
+        currentPageId: null,
+        selectedElementId: null,
+        selectedElementIds: [],
+        multiSelectMode: false,
+        elementsMap: new Map(),
+        guideSelected: false,
+        canUndo: false,
+        canRedo: false,
+        viewport: { containerSize: { width: 0, height: 0 } },
+      } as AgentReadModel,
+      resolve: () => ({ id: "pasteStyles", handler: () => {} }) as never,
+      isPanelVisible: () => true,
+      panelIdForScope: () => null,
+    };
+    workspace.session.clearSelection();
+    for (const command of ["copyStyles", "pasteStyles"] as const)
+      expect(resolveCommandEnablement(command, input)).toMatchObject({
+        enabled: false,
+        detail: "selection-empty",
+      });
+    select("a");
+    // The old store's selection is empty; the catalog selection enables them.
+    for (const command of [
+      "copyStyles",
+      "pasteStyles",
+      "copyProperties",
+      "pasteProperties",
+    ] as const)
+      expect(resolveCommandEnablement(command, input)).toEqual({
+        enabled: true,
+      });
+    const calls: string[] = [];
+    const off = registerCommand({
+      id: "pasteStyles",
+      handler: () => calls.push("pasteStyles"),
+      scope: "panel:styles",
+      priority: 50,
+      allowInInput: false,
+      disabled: false,
+    });
+    const plan = createCatalogAgentCommandHost(workspace).plan("pasteStyles");
+    expect(plan && "run" in plan).toBe(true);
+    if (plan && "run" in plan) await plan.run();
+    expect(calls).toEqual(["pasteStyles"]);
+    off();
   });
 });

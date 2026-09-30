@@ -1,6 +1,7 @@
 import { COMMAND_META } from "../config/commandMeta";
 import type { ShortcutId } from "../config/keyboardShortcuts";
 import type { AgentCommandHost } from "../../services/agent/agentCommandHost";
+import { resolveCommand } from "../stores/commandRegistry";
 import {
   CATALOG_ARRANGE_SHORTCUTS,
   planCatalogShortcut,
@@ -39,6 +40,18 @@ const CATALOG_COMMANDS: ReadonlySet<string> = new Set<CatalogShortcutId>([
   ...CATALOG_ARRANGE_SHORTCUTS,
 ]);
 
+/**
+ * Style / property clipboard commands: the open Styles or Properties panel registers the handler
+ * (they act on the catalog selection); the host answers their precondition from that selection
+ * instead of the old store's.
+ */
+const PANEL_CLIPBOARD_COMMANDS: ReadonlySet<string> = new Set<ShortcutId>([
+  "copyStyles",
+  "pasteStyles",
+  "copyProperties",
+  "pasteProperties",
+]);
+
 const EMPTY_REASON: Partial<Record<ShortcutId, string>> = {
   undo: "nothing-to-undo",
   redo: "nothing-to-redo",
@@ -65,6 +78,12 @@ export function createCatalogAgentCommandHost(
         return plan
           ? { run: plan }
           : { reason: EMPTY_REASON[id] ?? "not-applicable" };
+      }
+      if (PANEL_CLIPBOARD_COMMANDS.has(id)) {
+        if (!workspace.session.getSnapshot().selection.length)
+          return { reason: "selection-empty" };
+        // Registration (the panel is open) is the menu's own check; the run takes the handler.
+        return { run: () => resolveCommand(id)?.handler() };
       }
       const { mutation } = COMMAND_META[id];
       return mutation === "document" || mutation === "selection"

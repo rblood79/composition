@@ -212,6 +212,7 @@ export function createCatalogStylesHost(
   const host: StylesHost = {
     useSelectedId: () =>
       useCatalogSession((state) => state.selection[0]?.identity ?? null),
+    readSelectedId: () => selection()[0]?.identity ?? null,
     useActiveBreakpoint: () => useCatalogSession((state) => state.breakpoint),
     useElementStyleContext(id: string | null): ElementStyleContext {
       const { target, own } = useOwnFieldsOf(workspace, id);

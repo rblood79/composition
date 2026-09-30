@@ -15,12 +15,11 @@ import type {
   ImageFillItem,
   FillItem,
 } from "../../../../types/builder/fill.types";
-import { useStore } from "../../../stores";
 
 import "./ImageFillEditor.css";
 import { useResolvedAssetUrl } from "../../../../lib/assets/useResolvedAssetUrl";
 import { isAssetWriterEnabled } from "../../../../utils/featureFlags";
-import { useStylesSelectedId } from "../stylesHost";
+import { useStylesHost, useStylesSelectedId } from "../stylesHost";
 
 interface ImageFillEditorProps {
   fill: ImageFillItem;
@@ -40,6 +39,7 @@ export const ImageFillEditor = memo(function ImageFillEditor({
   fill,
   onUpdateEnd,
 }: ImageFillEditorProps) {
+  const stylesHost = useStylesHost();
   const selectedElementId = useStylesSelectedId();
   const [urlInput, setUrlInput] = useState(fill.url);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -53,7 +53,7 @@ export const ImageFillEditor = memo(function ImageFillEditor({
   }, [fill.url, selectedElementId]);
 
   const handleUrlCommit = useCallback(() => {
-    const currentElementId = useStore.getState().selectedElementId ?? null;
+    const currentElementId = stylesHost.readSelectedId();
     if (
       focusedElementIdRef.current !== null &&
       currentElementId !== focusedElementIdRef.current
@@ -79,7 +79,7 @@ export const ImageFillEditor = memo(function ImageFillEditor({
       return;
     }
     onUpdateEnd({ url: trimmed } as Partial<ImageFillItem>);
-  }, [urlInput, fill.url, onUpdateEnd]);
+  }, [urlInput, fill.url, onUpdateEnd, stylesHost]);
 
   const handleUrlKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
