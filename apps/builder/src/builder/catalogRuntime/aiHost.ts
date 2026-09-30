@@ -14,7 +14,9 @@ import type {
   NodeEntry,
   NodeId,
   NodeParent,
+  Scalar,
 } from "../../../../../packages/shared/src/catalog/document/types";
+import type { DataBindingValue, InteractionAction } from "@composition/shared";
 import type { CatalogPosition } from "../../../../../packages/shared/src/catalog/resolution/positions";
 import type { AiReadHost } from "../../services/ai/aiReadHost";
 import type {
@@ -33,6 +35,14 @@ import { catalogCreationProps, catalogPaletteDefinitionId } from "./paletteInser
 import { catalogPlacementStyle } from "./position";
 import { catalogFieldsAt } from "./responsiveFields";
 import type { CatalogSelectionItem } from "./session";
+import {
+  catalogInteractionOwner,
+  catalogInteractionsCommand,
+  catalogInteractionsOf,
+  catalogNewInteraction,
+  type CatalogInteractionAction,
+} from "./interactions";
+import { catalogBindingCommand, catalogBindingRef } from "./dataBinding";
 import { catalogStyleView, catalogStyleWritesOf } from "./styleFields";
 import type { CatalogWorkspace } from "./workspace";
 
@@ -402,6 +412,48 @@ export function createCatalogAiWriteHost(
         return failure(error);
       }
     },
+    addInteraction(elementId, trigger, action) {
+      try {
+        const target = targetOf(elementId);
+        if (!target) return { ok: false, error: `ELEMENT_NOT_FOUND: ${elementId}` };
+        const catalogAction = catalogRuleAction(workspace, action);
+        if ("error" in catalogAction) return { ok: false, error: catalogAction.error };
+        const owner = catalogInteractionOwner(target);
+        const entry = catalogNewInteraction(
+          owner,
+          trigger,
+          catalogAction.action,
+          workspace.newId,
+        );
+        runSteps(workspace, "AI: interaction", [
+          catalogInteractionsCommand(
+            owner,
+            [...catalogInteractionsOf(graph, owner), entry],
+            "AI: interaction",
+          ),
+        ]);
+        return { ok: true, ruleId: entry.id };
+      } catch (error) {
+        return failure(error);
+      }
+    },
+    bind(elementId, binding) {
+      try {
+        const target = targetOf(elementId);
+        if (target?.kind !== "node")
+          return { ok: false, error: `ELEMENT_NOT_FOUND: ${elementId}` };
+        const ref = catalogBindingRef({
+          source: "dataTable",
+          collectionId: binding.collectionId,
+          ...(binding.fieldMap ? { fieldMap: { ...binding.fieldMap } } : {}),
+        } as DataBindingValue);
+        if (!ref) return { ok: false, error: "UNSUPPORTED_BINDING" };
+        runSteps(workspace, "AI: bind", [catalogBindingCommand([target], ref)]);
+        return { ok: true };
+      } catch (error) {
+        return failure(error);
+      }
+    },
     async batch(label, run) {
       const before = workspace.runtime.historyDepth.undo;
       try {
@@ -412,4 +464,48 @@ export function createCatalogAiWriteHost(
       }
     },
   };
+}
+
+/** An old rule action (the AI tool's shape) as the catalog interaction action. */
+function catalogRuleAction(
+  workspace: CatalogWorkspace,
+  action: InteractionAction,
+): { action: CatalogInteractionAction } | { error: string } {
+  const graph = workspace.runtime.graph;
+  if (action.kind === "toast")
+    return {
+      action: {
+        opcode: "toast",
+        message: String((action.params as { message?: unknown })?.message ?? ""),
+      },
+    };
+  if (action.kind === "navigate") {
+    const path = String((action.params as { path?: unknown })?.path ?? "");
+    const project = graph.getEntry(graph.projectId);
+    const pageId =
+      project?.kind === "project"
+        ? project.pageIds.find((id) => {
+            const page = graph.getEntry(id);
+            return page?.kind === "page" && page.route === path;
+          })
+        : undefined;
+    return pageId
+      ? { action: { opcode: "navigate", pageId } }
+      : { error: `PAGE_NOT_FOUND: ${path}` };
+  }
+  if (action.kind === "capability") {
+    const target = workspace.positionOfRecord(action.targetId)?.target;
+    if (target?.kind !== "node")
+      return { error: `CAPABILITY_TARGET_NOT_A_NODE: ${action.targetId}` };
+    const value = (action.params as { value?: unknown } | undefined)?.value;
+    return {
+      action: {
+        opcode: "capability",
+        targetId: target.id,
+        capabilityId: action.capability,
+        ...(value !== undefined ? { value: value as Scalar } : {}),
+      },
+    };
+  }
+  return { error: `UNSUPPORTED_ACTION: ${(action as { kind: string }).kind}` };
 }

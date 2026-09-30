@@ -5,6 +5,7 @@
  * read back through the read host (`AiReadHost`), as the tools verify. Without a host the old
  * store actions apply.
  */
+import type { InteractionAction } from "@composition/shared";
 import type { FillItem } from "../../types/builder/fill.types";
 
 export type AiWriteResult<T = object> =
@@ -25,6 +26,17 @@ export interface AiWriteHost {
   ): AiWriteResult<{ elementId: string; parentId: string | null }>;
   update(id: string, input: AiElementWrite): AiWriteResult;
   remove(id: string): AiWriteResult;
+  /** Add an interaction rule on an element (the old rule action shape); one step. */
+  addInteraction(
+    elementId: string,
+    trigger: string,
+    action: InteractionAction,
+  ): AiWriteResult<{ ruleId: string }>;
+  /** Bind an element to a collection (its data binding); one step. */
+  bind(
+    elementId: string,
+    binding: { collectionId: string; fieldMap?: Readonly<Record<string, string>> },
+  ): AiWriteResult;
   /** Run several writes as one history step (`label`). */
   batch<T>(label: string, run: () => Promise<T>): Promise<T>;
 }

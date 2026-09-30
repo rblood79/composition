@@ -24,6 +24,7 @@ import type {
 import { useCanonicalDocumentStore } from "../../../builder/stores/canonical/canonicalDocumentStore";
 import { runCanonicalMutation } from "../../../adapters/canonical/canonicalMutationRunner";
 import { getAiToolReadModel } from "./canonicalToolReadModel";
+import { getAiWriteHost } from "../aiWriteHost";
 import { resolveElementRef } from "./elementRef";
 
 type ActionArgs = {
@@ -167,6 +168,18 @@ export const createInteractionRuleTool: ToolExecutor = {
         return {
           success: false,
           error: t("aiToolError.ruleSchemaInvalid"),
+        };
+      }
+
+      // ADR-248 4e-5: the open catalog Builder adds the rule to its document (one step).
+      const writeHost = getAiWriteHost();
+      if (writeHost) {
+        const written = writeHost.addInteraction(targetId, trigger, action);
+        if (!written.ok) return { success: false, error: written.error };
+        return {
+          success: true,
+          data: { ruleId: written.ruleId, elementId: targetId, trigger, action },
+          affectedElementIds: [targetId],
         };
       }
 

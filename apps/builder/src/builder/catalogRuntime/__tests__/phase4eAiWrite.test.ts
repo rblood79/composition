@@ -11,7 +11,12 @@ import type {
 import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
 import { setAiReadHost } from "../../../services/ai/aiReadHost";
 import { setAiWriteHost } from "../../../services/ai/aiWriteHost";
+import { resolveTriggers } from "@composition/shared";
 import { batchDesignTool } from "../../../services/ai/tools/batchDesign";
+import { bindCollectionTool } from "../../../services/ai/tools/bindCollection";
+import { createInteractionRuleTool } from "../../../services/ai/tools/createInteractionRule";
+import { useDataStore } from "../../stores/data";
+import { catalogInteractionsOf } from "../interactions";
 import { createElementTool } from "../../../services/ai/tools/createElement";
 import { deleteElementTool } from "../../../services/ai/tools/deleteElement";
 import { updateElementTool } from "../../../services/ai/tools/updateElement";
@@ -207,6 +212,84 @@ describe("ADR-248 Phase 4e-5 AI writes", () => {
     });
     workspace.redo();
     expect(children("list")).toHaveLength(3);
+  });
+
+  it("create_interaction_rule: one step, the rule in the element's interactions (toast; navigate by route)", async () => {
+    const { workspace, steps } = await open();
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [node("go", "lib:definition:origin-component-button")],
+        rootIds: [id("go")],
+        newId: workspace.newId,
+      }),
+    );
+    const go = workspace.root.recordsOfSource(id("go"))[0];
+    const trigger = resolveTriggers("Button")[0]!;
+    const before = steps();
+    const toast = await createInteractionRuleTool.execute(
+      { elementId: go, trigger, action: { kind: "toast", message: "Hi" } },
+      t,
+    );
+    expect(toast.success, toast.error).toBe(true);
+    expect(steps()).toBe(before + 1);
+    const home = workspace.runtime.graph.getEntry("project:page:home");
+    const route = home?.kind === "page" ? home.route : "";
+    const nav = await createInteractionRuleTool.execute(
+      { elementId: go, trigger, action: { kind: "navigate", path: route } },
+      t,
+    );
+    expect(nav.success, nav.error).toBe(true);
+    const rules = catalogInteractionsOf(workspace.runtime.graph, {
+      ownerId: id("go"),
+    });
+    expect(rules.map((rule) => rule.action.opcode)).toEqual([
+      "toast",
+      "navigate",
+    ]);
+    const missing = await createInteractionRuleTool.execute(
+      { elementId: go, trigger, action: { kind: "navigate", path: "/nope" } },
+      t,
+    );
+    expect(missing.error).toContain("PAGE_NOT_FOUND");
+  });
+
+  it("bind_collection: the element's document binding, one step", async () => {
+    const { workspace, steps } = await open();
+    useDataStore.setState({
+      collections: new Map([
+        [
+          "c1",
+          {
+            id: "c1",
+            name: "Users",
+            schema: [{ id: "f1", key: "name" }],
+            mockData: [{ name: "Ann" }],
+            useMockData: true,
+          },
+        ],
+      ]),
+    } as never);
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [node("menu", "lib:definition:origin-component-listbox")],
+        rootIds: [id("menu")],
+        newId: workspace.newId,
+      }),
+    );
+    const menu = workspace.root.recordsOfSource(id("menu"))[0];
+    const before = steps();
+    const result = await bindCollectionTool.execute(
+      { elementId: menu, collectionId: "c1" },
+      t,
+    );
+    expect(result.success, result.error).toBe(true);
+    expect(steps()).toBe(before + 1);
+    const entry = workspace.runtime.graph.getEntry(id("menu"));
+    expect(entry?.kind === "node" && entry.binding?.collectionId).toBe(
+      "data:collection:c1",
+    );
   });
 
   it("history merge refuses an entry with an outside change", async () => {
