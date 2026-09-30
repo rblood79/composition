@@ -1,0 +1,144 @@
+import "fake-indexeddb/auto";
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
+import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
+import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
+import type {
+  EntryId,
+  NodeEntry,
+  NodeId,
+} from "../../../../../../packages/shared/src/catalog/document/types";
+import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
+import { I18nProvider } from "../../../i18n";
+import { FieldValueSourceContext } from "../../panels/properties/generic/fieldValueSource";
+import { GenericFieldRenderer } from "../../panels/properties/generic/GenericFieldRenderer";
+import { ItemsSourceContext } from "../../panels/properties/generic/itemsSource";
+import { CATALOG_FIELD_VALUE_SOURCE } from "../../panels/properties/catalog/catalogFieldValueSource";
+import { CATALOG_ITEMS_SOURCE } from "../../panels/properties/catalog/catalogItemsSource";
+import { catalogHtmlIdCommand, catalogUniqueHtmlId } from "../attributes";
+import { catalogEditContract } from "../editContract";
+import { newCatalogProjectDocument } from "../project";
+import { CatalogWorkspaceProvider } from "../react";
+import { CatalogStorage } from "../storage";
+import { CatalogWorkspace } from "../workspace";
+import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
+
+/**
+ * ADR-248 Phase 4e-4 Properties sections: the author DOM id stays unique (a taken id is refused,
+ * the check assigns `base_N`); the shared items manager edits a collection's items through
+ * `editItems` (one step per edit) when the catalog items source is provided.
+ */
+const PROJECT = "project:project:sections" as EntryId<"project">;
+const BODY = "project:node:home-body" as NodeId;
+const id = (name: string) => `project:node:${name}` as NodeId;
+const node = (name: string, definitionId: string): NodeEntry => ({
+  kind: "node",
+  id: id(name),
+  definitionId: definitionId as NodeEntry["definitionId"],
+  children: [],
+  props: {},
+  visual: {},
+  sizing: {},
+  descendantOverrides: [],
+});
+
+async function open() {
+  const workspace = new CatalogWorkspace(
+    new CatalogGraph(
+      newCatalogProjectDocument({ projectId: PROJECT, name: "Sections" }),
+      await buildCodeCatalogLibrary(),
+    ),
+    new CatalogStorage(indexedDB, `adr248-phase4e-sections-${Math.random()}`),
+    {
+      engine: await nodeLayoutEngine(),
+      viewport: { width: 1920, height: 1080 },
+      autosaveSchedule: () => {},
+    },
+  );
+  let n = 0;
+  workspace.execute(
+    insertNodes({
+      parent: { kind: "node", id: BODY },
+      entries: [
+        node("a", "lib:definition:text"),
+        node("b", "lib:definition:text"),
+        node("list", "lib:definition:type-ListBox"),
+      ],
+      rootIds: [id("a"), id("b"), id("list")],
+      newId: (kind) => `project:${kind}:s${++n}` as never,
+    }),
+  );
+  return { workspace };
+}
+
+describe("ADR-248 Phase 4e-4 Properties sections", () => {
+  it("an author DOM id stays unique; the check assigns the next free base_N", async () => {
+    const { workspace } = await open();
+    const graph = workspace.runtime.graph;
+    const set = (name: string, value: string) => {
+      const edit = catalogHtmlIdCommand(graph, id(name), value);
+      if ("command" in edit) workspace.execute(edit.command);
+      return edit;
+    };
+    expect("command" in set("a", "hero")).toBe(true);
+    expect(set("b", "hero")).toEqual({ refused: "HTML_ID_TAKEN" });
+    expect(graph.getEntry(id("b"))).not.toHaveProperty("metadata.htmlId");
+    expect(catalogUniqueHtmlId(graph, "hero", id("b"))).toBe("hero_1");
+    set("b", "hero_1");
+    expect(catalogUniqueHtmlId(graph, "hero_1", id("a"))).toBe("hero_2");
+    // Its own id is not a conflict; an empty id removes it.
+    expect("command" in set("a", "hero")).toBe(true);
+    set("a", "");
+    expect(graph.getEntry(id("a"))).not.toHaveProperty("metadata.htmlId");
+  });
+
+  it("the shared items manager edits a collection's items through editItems", async () => {
+    const { workspace } = await open();
+    const target = { kind: "node", id: id("list") } as const;
+    const record = workspace.root.recordsOfSource(id("list"))[0];
+    const fields = catalogEditContract(
+      workspace.runtime.graph,
+      workspace.readModel,
+      target,
+    ).fields.filter((field) => field.kind === "items-manager");
+    expect(fields.length).toBeGreaterThan(0);
+    const items = () =>
+      workspace.readModel.propSource(target, fields[0].key).value as
+        { id: string; type?: string; label?: string }[] | undefined;
+    const before = items()?.length ?? 0;
+    render(
+      <I18nProvider initialLocale="en-US">
+        <CatalogWorkspaceProvider workspace={workspace}>
+          <FieldValueSourceContext.Provider value={CATALOG_FIELD_VALUE_SOURCE}>
+            <ItemsSourceContext.Provider value={CATALOG_ITEMS_SOURCE}>
+              <GenericFieldRenderer
+                fields={fields}
+                onSemanticUpdate={() => {}}
+                onStyleUpdate={() => {}}
+                elementId={record}
+              />
+            </ItemsSourceContext.Provider>
+          </FieldValueSourceContext.Provider>
+        </CatalogWorkspaceProvider>
+      </I18nProvider>,
+    );
+    const revision = workspace.runtime.graph.revision;
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /^Add ListBoxItem/ }));
+    });
+    expect(items()).toHaveLength(before + 1);
+    expect(workspace.runtime.graph.revision).toBe(revision + 1);
+    expect(items()!.at(-1)).toMatchObject({ label: expect.any(String) });
+    const added = items()!.at(-1)!.id;
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /^Add Section/ }));
+    });
+    expect(items()!.at(-1)).toMatchObject({ type: "section", items: [] });
+    await act(async () => {
+      workspace.undo();
+      workspace.undo();
+    });
+    expect(items()?.length ?? 0).toBe(before);
+    expect(items()?.some((item) => item.id === added) ?? false).toBe(false);
+  });
+});

@@ -17,6 +17,9 @@ import { EmptyState, PanelContents, PanelHeader } from "../../../components";
 import type { EditTarget } from "../../../../../../../packages/shared/src/catalog/document/types";
 import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";
 import { FieldValueSourceContext } from "../generic/fieldValueSource";
+import { ItemsSourceContext } from "../generic/itemsSource";
+import { CatalogAttributesSection } from "./CatalogAttributesSection";
+import { CATALOG_ITEMS_SOURCE } from "./catalogItemsSource";
 import { GenericFieldRenderer } from "../generic/GenericFieldRenderer";
 import { CATALOG_FIELD_VALUE_SOURCE } from "./catalogFieldValueSource";
 
@@ -95,11 +98,18 @@ function CatalogPropertiesContent() {
       />
       <PanelContents>
         <FieldValueSourceContext.Provider value={CATALOG_FIELD_VALUE_SOURCE}>
-          <CatalogFields
-            key={targetKey(first.target)}
-            elementId={first.identity}
-            targets={targets}
-          />
+          <ItemsSourceContext.Provider value={CATALOG_ITEMS_SOURCE}>
+            <CatalogAttributesSection
+              key={`attributes:${targetKey(first.target)}`}
+              target={first.target}
+              identity={first.identity}
+            />
+            <CatalogFields
+              key={targetKey(first.target)}
+              elementId={first.identity}
+              targets={targets}
+            />
+          </ItemsSourceContext.Provider>
         </FieldValueSourceContext.Provider>
       </PanelContents>
     </div>

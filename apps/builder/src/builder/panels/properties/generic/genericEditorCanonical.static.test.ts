@@ -35,8 +35,10 @@ describe("generic property editors canonical read contract", () => {
   });
 
   it("uses canonical property element for generic items arrays", async () => {
+    // ADR-248 Phase 4e-4: the items manager reads through its items source; the default (old
+    //   canonical) source lives in `itemsSource.ts`.
     const source = await readFile(
-      resolve(__dirname, "ItemsManager.tsx"),
+      resolve(__dirname, "itemsSource.ts"),
       "utf-8",
     );
 

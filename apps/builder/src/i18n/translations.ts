@@ -732,6 +732,7 @@ const koKR: TranslationKeys = {
     bindingUsedBy: "사용처 {count}",
     idCheckUnique: "ID 중복 검사",
     idUnique: 'ID "{id}" 는 고유합니다',
+    idTaken: 'ID "{id}" 는 다른 요소가 쓰고 있습니다',
     idDeduped: '중복 ID — "{id}" 로 변경했습니다',
     idAssigned: 'ID "{id}" 를 지정했습니다',
     resetField: "{labels} 기본값으로",
@@ -2734,6 +2735,7 @@ const enUS: TranslationKeys = {
     bindingUsedBy: "Used by {count}",
     idCheckUnique: "Check ID uniqueness",
     idUnique: 'ID "{id}" is unique',
+    idTaken: 'ID "{id}" is already used by another element',
     idDeduped: 'Duplicate ID — renamed to "{id}"',
     idAssigned: 'ID set to "{id}"',
     resetField: "Reset {labels} to default",
@@ -5064,6 +5066,8 @@ const formattedMessages: Record<
       `사용처 ${String(args?.count ?? 0)}`,
     "propertiesPanel.idUnique": (args) =>
       `ID "${String(args?.id ?? "")}" 는 고유합니다`,
+    "propertiesPanel.idTaken": (args) =>
+      `ID "${String(args?.id ?? "")}" 는 다른 요소가 쓰고 있습니다`,
     "propertiesPanel.idDeduped": (args) =>
       `중복 ID — "${String(args?.id ?? "")}" 로 변경했습니다`,
     "propertiesPanel.idAssigned": (args) =>
@@ -5553,6 +5557,8 @@ const formattedMessages: Record<
       `Used by ${String(args?.count ?? 0)}`,
     "propertiesPanel.idUnique": (args) =>
       `ID "${String(args?.id ?? "")}" is unique`,
+    "propertiesPanel.idTaken": (args) =>
+      `ID "${String(args?.id ?? "")}" is already used by another element`,
     "propertiesPanel.idDeduped": (args) =>
       `Duplicate ID — renamed to "${String(args?.id ?? "")}"`,
     "propertiesPanel.idAssigned": (args) =>

@@ -12,16 +12,13 @@ import type {
   ItemsManagerField,
   ItemsManagerFieldItemSchema,
 } from "@composition/specs";
-import { useStore } from "../../../stores";
 import {
   PropertyInput,
   PropertySwitch,
   PropertySelect,
   PropertyIconPicker,
 } from "../../../components";
-import { useCanonicalPropertyResolvedElement } from "../hooks/useCanonicalPropertyRead";
-import { useActiveCanonicalDocument } from "../../../stores/canonical/canonicalElementsBridge";
-import { isStaticCollectionOwner } from "../../../components/staticCollectionMigration";
+import { useItemsSource } from "./itemsSource";
 import { packHalfRows } from "./fieldEditor";
 import { resolveItemEditorIdentities } from "./itemsEditorIdentity";
 import { localizeSemanticLabel, useOptionalI18n } from "@/i18n";
@@ -70,9 +67,7 @@ function ListRow({
             {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
           </AriaToggleButton>
         ) : (
-          <span className="list-row__action list-row__mark">
-            {leading}
-          </span>
+          <span className="list-row__action list-row__mark">{leading}</span>
         )}
         <span className="list-row__label">{label}</span>
       </div>
@@ -303,7 +298,10 @@ const SectionRow = memo(function SectionRow({
     () => onRemoveSection(sectionId),
     [onRemoveSection, sectionId],
   );
-  const addItem = useCallback(() => onAddItem(sectionId), [onAddItem, sectionId]);
+  const addItem = useCallback(
+    () => onAddItem(sectionId),
+    [onAddItem, sectionId],
+  );
   const updateItem = useCallback(
     (itemId: string | number, patch: Record<string, unknown>) =>
       onUpdateItem(sectionId, String(itemId), patch),
@@ -413,7 +411,6 @@ const SectionRow = memo(function SectionRow({
 
 // ─── ItemsManager ─────────────────────────────────────────────────────────────
 
-const EMPTY_ITEMS: Record<string, unknown>[] = [];
 
 export const ItemsManager = memo(function ItemsManager({
   elementId,
@@ -426,93 +423,55 @@ export const ItemsManager = memo(function ItemsManager({
   const allowSeparators = field.allowSeparators ?? false;
   const sectionHasSelection = field.sectionHasSelection ?? false;
 
-  // ADR-228: ref instance 는 origin ⊕ override 의 유효 items 를 보인다 (쓰기는 instance override).
-  const element = useCanonicalPropertyResolvedElement(elementId);
-  const rawItems = useMemo(() => {
-    const val = (element?.props as Record<string, unknown> | undefined)?.[
-      itemsKey
-    ];
-    return Array.isArray(val)
-      ? (val as Record<string, unknown>[])
-      : EMPTY_ITEMS;
-  }, [element, itemsKey]);
+  const source = useItemsSource();
+  const rawItems = source.useItems(elementId, itemsKey) as Record<
+    string,
+    unknown
+  >[];
   const identities = useMemo(
     () => resolveItemEditorIdentities(rawItems),
     [rawItems],
   );
   // ADR-234 Phase 3 — 작성자가 채운 목록은 목록 틀의 항목 instance 자식이 정본 (캔버스 · Slot "+" 로
   //   편집). items 편집기는 바인딩 목록 전용 — 정적 목록에 `items` 를 쓰면 두 목록이 겹친다.
-  const canonicalDocument = useActiveCanonicalDocument();
-  const isStaticOwner = useMemo(
-    () =>
-      canonicalDocument
-        ? isStaticCollectionOwner(canonicalDocument, elementId)
-        : false,
-    [canonicalDocument, elementId],
+  const isStaticOwner = source.useIsStaticOwner(elementId);
+  const actions = source.useActions(elementId, itemsKey);
+
+  const handleAdd = useCallback(
+    () => actions.add(field.defaultItem as Record<string, unknown>),
+    [actions, field.defaultItem],
   );
-
-  const handleAdd = useCallback(() => {
-    void useStore
-      .getState()
-      .addItem(
-        elementId,
-        itemsKey,
-        field.defaultItem as Record<string, unknown>,
-      );
-  }, [elementId, itemsKey, field.defaultItem]);
-
-  const handleAddSection = useCallback(() => {
-    void useStore.getState().addSection(elementId, itemsKey);
-  }, [elementId, itemsKey]);
-
-  const handleAddSeparator = useCallback(() => {
-    void useStore.getState().addSeparator(elementId, itemsKey);
-  }, [elementId, itemsKey]);
-
+  const handleAddSection = useCallback(() => actions.addSection(), [actions]);
+  const handleAddSeparator = useCallback(
+    () => actions.addSeparator(),
+    [actions],
+  );
   const handleRemove = useCallback(
-    (itemId: string | number) => {
-      void useStore.getState().removeItem(elementId, itemsKey, itemId);
-    },
-    [elementId, itemsKey],
+    (itemId: string | number) => actions.remove(itemId),
+    [actions],
   );
-
   const handleUpdate = useCallback(
-    (itemId: string | number, patch: Record<string, unknown>) => {
-      void useStore.getState().updateItem(elementId, itemsKey, itemId, patch);
-    },
-    [elementId, itemsKey],
+    (itemId: string | number, patch: Record<string, unknown>) =>
+      actions.update(itemId, patch),
+    [actions],
   );
-
   const handleAddItemToSection = useCallback(
-    (sectionId: string) => {
-      void useStore
-        .getState()
-        .addItemToSection(
-          elementId,
-          itemsKey,
-          sectionId,
-          field.defaultItem as Record<string, unknown>,
-        );
-    },
-    [elementId, itemsKey, field.defaultItem],
+    (sectionId: string) =>
+      actions.addToSection(
+        sectionId,
+        field.defaultItem as Record<string, unknown>,
+      ),
+    [actions, field.defaultItem],
   );
-
   const handleUpdateItemInSection = useCallback(
-    (sectionId: string, itemId: string, patch: Record<string, unknown>) => {
-      void useStore
-        .getState()
-        .updateItemInSection(elementId, itemsKey, sectionId, itemId, patch);
-    },
-    [elementId, itemsKey],
+    (sectionId: string, itemId: string, patch: Record<string, unknown>) =>
+      actions.updateInSection(sectionId, itemId, patch),
+    [actions],
   );
-
   const handleRemoveItemFromSection = useCallback(
-    (sectionId: string, itemId: string) => {
-      void useStore
-        .getState()
-        .removeItemFromSection(elementId, itemsKey, sectionId, itemId);
-    },
-    [elementId, itemsKey],
+    (sectionId: string, itemId: string) =>
+      actions.removeFromSection(sectionId, itemId),
+    [actions],
   );
 
   // 총 항목 수 계산 (section 내 items 포함)

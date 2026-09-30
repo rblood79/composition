@@ -560,6 +560,7 @@ export interface TranslationKeys {
     bindingUsedBy: string;
     idCheckUnique: string;
     idUnique: string;
+    idTaken: string;
     idDeduped: string;
     idAssigned: string;
     resetField: string;
