@@ -12,6 +12,7 @@ import {
   renderSelectionBox,
   renderTransformHandles,
 } from "../skia/selectionRenderer";
+import { renderSlotHatchPattern } from "../skia/slotMarkerRenderer";
 import { renderSpacingOverlay } from "../skia/spacingOverlayRenderer";
 import type { SkiaRenderable } from "../skia/types";
 import type { SpacingBand } from "../interaction/spacingGeometry";
@@ -26,6 +27,11 @@ export interface CatalogOverlayInputs {
   fontMgr: () => FontMgr | undefined;
   /** The drag in progress (move ghost, drop line and container, or the resized box). */
   gesture?: () => CatalogGesturePreview | undefined;
+  /**
+   * Declared slots of the definition edit view (editor chrome, not document paint): each slot's
+   * box, hatched while it holds nothing.
+   */
+  slots?: () => readonly { box: BoundingBox; empty: boolean }[];
   /** Manual guides (ADR-181), painted under the selection. */
   guides?: (canvas: Canvas) => void;
   /** Spacing handles of the selected container when no gesture runs (ADR-222). */
@@ -53,6 +59,18 @@ export function catalogOverlayNode(
       const state = inputs.session();
       const bounds = inputs.bounds();
       const zoom = inputs.zoom();
+      for (const slot of inputs.slots?.() ?? []) {
+        // An empty slot has no height of its own: show a band the author can see and pick.
+        const band = Math.max(slot.box.height, 48 / zoom);
+        renderSlotHatchPattern(
+          ck,
+          canvas,
+          { ...slot.box, height: band },
+          zoom,
+          "origin",
+          slot.empty,
+        );
+      }
       inputs.guides?.(canvas);
       if (state.editingContext)
         for (const id of inputs.recordsOf(state.editingContext)) {

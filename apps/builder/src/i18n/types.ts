@@ -1294,6 +1294,10 @@ export interface TranslationKeys {
     history: string;
   };
   navigator: {
+    definitions: string;
+    deleteLayout: string;
+    layoutDefaultName: string;
+    noDefinitions: string;
     pages: string;
     layouts: string;
     panelTabs: string;

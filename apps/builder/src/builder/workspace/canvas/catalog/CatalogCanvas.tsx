@@ -72,6 +72,21 @@ function catalogHeaderFrames(workspace: CatalogWorkspace): PageHeaderFrame[] {
   }
   return frames;
 }
+/** The definition edit view's declared slots: each drawn slot's box and whether it is empty. */
+function catalogSlotMarks(
+  workspace: CatalogWorkspace,
+  bounds: ReadonlyMap<string, BoundingBox>,
+): { box: BoundingBox; empty: boolean }[] {
+  if (!workspace.root.definitionView) return [];
+  const graph = workspace.runtime.graph;
+  const marks: { box: BoundingBox; empty: boolean }[] = [];
+  for (const record of workspace.root.domInputs.values()) {
+    const node = graph.getEntry(record.sourceId);
+    const box = node?.kind === "node" && node.slot && bounds.get(record.id);
+    if (box) marks.push({ box, empty: record.children.length === 0 });
+  }
+  return marks;
+}
 const sameFrames = (
   left: readonly PageHeaderFrame[],
   right: readonly PageHeaderFrame[],
@@ -230,6 +245,7 @@ export function CatalogCanvas({
         fontMgr,
         gesture: () => gestures.preview(),
         guides: (overlayCanvas) => guidesRef.current?.paint(ck, overlayCanvas),
+        slots: () => catalogSlotMarks(workspace, scene.stream.boundsMap),
         spacing: () => {
           const owner = gestures.spacingOwner();
           if (!owner) return undefined;

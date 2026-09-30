@@ -18,6 +18,7 @@ import {
   NAVIGATOR_SPLIT_STORAGE_KEYS,
 } from "../navigatorSectionIds";
 import { CatalogLayersSection } from "./CatalogLayersSection";
+import { CatalogDefinitionsSection } from "./CatalogDefinitionsSection";
 import { CatalogPagesSection } from "./CatalogPagesSection";
 
 /**
@@ -65,7 +66,12 @@ function NavigatorSections() {
       topId={NAVIGATOR_SECTION_IDS.pages}
       bottomId={NAVIGATOR_SECTION_IDS.layers}
       label={t("navigator.resizeSections")}
-      top={<CatalogPagesSection />}
+      top={
+        <>
+          <CatalogPagesSection />
+          <CatalogDefinitionsSection />
+        </>
+      }
       bottom={
         owner ? <CatalogLayersSection key={owner} ownerId={owner} /> : null
       }

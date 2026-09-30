@@ -1004,7 +1004,7 @@ const koKR: TranslationKeys = {
   },
   aiToolDef: {
     createElement:
-      "캔버스에 새 요소 하나를 생성합니다. type 은 카탈로그 목록에 있는 것만 쓸 수 있습니다. 결과의 data.elementId 로 방금 만든 요소를 이어서 다룹니다 (또는 \"last-created\"). 요소 여러 개를 만들 때는 batch_design, 이미 있는 요소를 바꿀 때는 update_element 를 쓰세요.",
+      '캔버스에 새 요소 하나를 생성합니다. type 은 카탈로그 목록에 있는 것만 쓸 수 있습니다. 결과의 data.elementId 로 방금 만든 요소를 이어서 다룹니다 (또는 "last-created"). 요소 여러 개를 만들 때는 batch_design, 이미 있는 요소를 바꿀 때는 update_element 를 쓰세요.',
     createType: "생성할 컴포넌트 타입",
     parentId: "부모 요소 ID. 없으면 선택된 요소 또는 body에 추가.",
     props:
@@ -1355,9 +1355,11 @@ const koKR: TranslationKeys = {
     saveFailed: "저장 실패 — 눌러서 다시 시도",
     saveConflict: "다른 탭이 이 프로젝트를 바꿨습니다 — 자동 저장 중지",
     saveUnsupported: "이 프로젝트 형식은 저장할 수 없습니다 — 자동 저장 중지",
-    formatUnsupported: "이 프로젝트는 이전 형식이라 이 Builder 에서 열 수 없습니다.",
+    formatUnsupported:
+      "이 프로젝트는 이전 형식이라 이 Builder 에서 열 수 없습니다.",
     notFound: "프로젝트를 찾을 수 없습니다.",
-    publishUnavailable: "Preview · 게시는 새 프로젝트 형식을 아직 열지 못합니다.",
+    publishUnavailable:
+      "Preview · 게시는 새 프로젝트 형식을 아직 열지 못합니다.",
     sceneFailed: "Canvas 가 이 편집을 그리지 못했습니다: {message}",
     openFailed: "프로젝트를 열지 못했습니다: {message}",
   },
@@ -1390,6 +1392,10 @@ const koKR: TranslationKeys = {
   },
   navigator: {
     pages: "페이지",
+    definitions: "레이아웃 · 컴포넌트",
+    deleteLayout: "레이아웃 삭제",
+    layoutDefaultName: "레이아웃",
+    noDefinitions: "레이아웃이나 컴포넌트가 없습니다",
     layouts: "레이아웃",
     panelTabs: "탐색기 탭",
     addPage: "페이지 추가",
@@ -3016,7 +3022,7 @@ const enUS: TranslationKeys = {
   },
   aiToolDef: {
     createElement:
-      "Creates one new element on the canvas. The type must be one listed in the catalog. Use data.elementId from the result (or \"last-created\") to keep working on it. To create several elements use batch_design; to change an existing element use update_element.",
+      'Creates one new element on the canvas. The type must be one listed in the catalog. Use data.elementId from the result (or "last-created") to keep working on it. To create several elements use batch_design; to change an existing element use update_element.',
     createType: "The component type to create",
     parentId:
       "Parent element ID. Without it the element goes under the selection, or body.",
@@ -3369,9 +3375,11 @@ const enUS: TranslationKeys = {
     saveFailed: "Save failed — click to retry",
     saveConflict: "Another tab changed this project — autosave stopped",
     saveUnsupported: "This project format cannot be saved — autosave stopped",
-    formatUnsupported: "This project uses the previous format and cannot be opened in this Builder.",
+    formatUnsupported:
+      "This project uses the previous format and cannot be opened in this Builder.",
     notFound: "Project not found.",
-    publishUnavailable: "Preview and publish cannot open the new project format yet.",
+    publishUnavailable:
+      "Preview and publish cannot open the new project format yet.",
     sceneFailed: "The canvas could not draw this edit: {message}",
     openFailed: "The project could not be opened: {message}",
   },
@@ -3404,6 +3412,10 @@ const enUS: TranslationKeys = {
   },
   navigator: {
     pages: "Pages",
+    definitions: "Layouts & Components",
+    deleteLayout: "Delete Layout",
+    layoutDefaultName: "Layout",
+    noDefinitions: "No layouts or components yet",
     layouts: "Layouts",
     panelTabs: "Navigator tabs",
     addPage: "Add Page",
