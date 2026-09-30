@@ -37,10 +37,16 @@ import { createCatalogDataUsageSource } from "../panels/datatable/usage/catalogD
 import { DataUsageSourceContext } from "../panels/datatable/usage/dataUsageSource";
 import { createCatalogQuickConnectHost } from "../panels/datatable/usage/catalogQuickConnectHost";
 import { QuickConnectHostContext } from "../panels/datatable/usage/quickConnectHost";
+import { createCatalogDataVariablesHost } from "../panels/datatable/usage/catalogDataVariablesHost";
+import { DataVariablesHostContext } from "../panels/datatable/usage/dataVariablesHost";
 import { ToastContainer } from "../components";
 import { PanelWorkspace } from "../layout";
 import { useDataStore } from "../stores/data";
-import { setDataHistoryRecorder } from "../stores/utils/dataChange";
+import {
+  setDataHistoryRecorder,
+  setDocumentVariableNamesReader,
+} from "../stores/utils/dataChange";
+import { catalogDocumentVariableNames } from "../catalogRuntime/dataVariables";
 import { useToastStore } from "../stores/toast";
 import {
   CANVAS_BREAKPOINTS,
@@ -195,7 +201,13 @@ export function CatalogBuilderCore() {
         (payload) => dataChangeEventLabel(payload, t),
       ),
     );
-    return () => setDataHistoryRecorder(null);
+    setDocumentVariableNamesReader(() =>
+      catalogDocumentVariableNames(workspace.runtime.graph),
+    );
+    return () => {
+      setDataHistoryRecorder(null);
+      setDocumentVariableNamesReader(null);
+    };
   }, [t, workspace]);
   const quickConnect = useMemo(
     () =>
@@ -208,6 +220,20 @@ export function CatalogBuilderCore() {
               collection: (id) => useDataStore.getState().collections.get(id),
             },
             (name) => t("history.entryDataCollectionCreate", { name }),
+          )
+        : null,
+    [t, workspace],
+  );
+  const dataVariables = useMemo(
+    () =>
+      workspace
+        ? createCatalogDataVariablesHost(
+            workspace,
+            {
+              apply: (change, options) =>
+                useDataStore.getState().applyDataChange(change, options),
+            },
+            t("datatable.variableMigrateToPage"),
           )
         : null,
     [t, workspace],
@@ -285,7 +311,9 @@ export function CatalogBuilderCore() {
         <CatalogWorkspaceProvider workspace={workspace}>
           <DataUsageSourceContext.Provider value={dataUsage}>
             <QuickConnectHostContext.Provider value={quickConnect}>
-              {body}
+              <DataVariablesHostContext.Provider value={dataVariables}>
+                {body}
+              </DataVariablesHostContext.Provider>
             </QuickConnectHostContext.Provider>
           </DataUsageSourceContext.Provider>
         </CatalogWorkspaceProvider>

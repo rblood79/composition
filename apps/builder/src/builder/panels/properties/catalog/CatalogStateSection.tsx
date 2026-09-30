@@ -1,4 +1,11 @@
-import { memo, useCallback, useState, useSyncExternalStore } from "react";
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { ChevronDown, ChevronRight, Minus } from "lucide-react";
 import { useI18n } from "@/i18n";
 import { definitionTypeName } from "../../../../../../../packages/shared/src/catalog/commands/context";
@@ -27,6 +34,7 @@ import {
 import { ConfirmDialog } from "../../../components/overlay";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";
+import { useStateSectionFocus } from "../state/stateSectionFocus";
 import "../state/StateSection.css";
 
 const AddIcon = ACTION_ICONS.add;
@@ -96,6 +104,17 @@ export const CatalogStateSection = memo(function CatalogStateSection({
   const view = JSON.parse(viewKey) as StateView;
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  // The Data panel's index jumps here: open the variable and bring the section into view.
+  const focusRequest = useStateSectionFocus((state) => state.request);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const handledSeq = useRef(0);
+  useEffect(() => {
+    if (!focusRequest || focusRequest.seq === handledSeq.current) return;
+    if (focusRequest.ownerNodeId !== owner) return;
+    handledSeq.current = focusRequest.seq;
+    if (focusRequest.variableId) setExpandedId(focusRequest.variableId);
+    rootRef.current?.scrollIntoView({ block: "nearest" });
+  }, [focusRequest, owner]);
   const [pendingDelete, setPendingDelete] = useState<StateVariableEntry | null>(
     null,
   );
@@ -294,7 +313,7 @@ export const CatalogStateSection = memo(function CatalogStateSection({
   };
 
   return (
-    <div data-state-owner={owner}>
+    <div data-state-owner={owner} ref={rootRef}>
       <PropertySection
         title={t("propertiesPanel.stateSection")}
         badge={<span className="state-section-count">{view.own.length}</span>}

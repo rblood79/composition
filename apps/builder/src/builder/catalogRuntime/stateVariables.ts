@@ -85,6 +85,18 @@ export function catalogAncestorVariables(
     .flatMap((id) => variablesOwnedBy(graph, id));
 }
 
+/** The variables a node sees: its owner's own, then its ancestors' (nearest first). */
+export function catalogVisibleVariableEntries(
+  graph: CatalogVariableReader,
+  nodeId: NodeId,
+): StateVariableEntry[] {
+  const owner = catalogVariableOwner(graph, nodeId);
+  return [
+    ...catalogOwnVariables(graph, owner),
+    ...catalogAncestorVariables(graph, owner),
+  ];
+}
+
 /**
  * A variable with the same name on the owner's chain — an ancestor, the owner itself or a
  * descendant (names stay unique wherever one owner can see the other). Reads only variables.

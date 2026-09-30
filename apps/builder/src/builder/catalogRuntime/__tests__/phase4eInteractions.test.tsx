@@ -223,7 +223,11 @@ describe("ADR-248 Phase 4e-4e Interactions", () => {
     });
     const rule = catalogNewInteraction(owner, "onPress", set, workspace.newId);
     workspace.execute(catalogInteractionsCommand(owner, [rule], "Add"));
-    workspace.execute(catalogVariableCommands.remove(variable.id));
+    workspace.execute(
+      catalogVariableCommands.remove(
+        variable.id as EntryId<"stateVariable">,
+      ),
+    );
     expect(graph.getEntry(rule.id)).toBeUndefined();
     expect(catalogInteractionsOf(graph, owner)).toEqual([]);
     workspace.undo();

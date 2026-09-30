@@ -14,24 +14,12 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { Variable, SquarePen, ArrowUpRight } from "lucide-react";
-import {
-  collectDocumentVariables,
-  collectVariableUsages,
-  findCanonicalNodeById,
-  findVariableNameConflict,
-  isVariableDefList,
-  resolveAncestorChainIds,
-  type VariableDef,
-  type VisibleVariable,
-  isBodyType,
-} from "@composition/shared";
+import type { VisibleVariable } from "@composition/shared";
 import {
   useDataStore,
   useProjectVariableDefs,
   useVariables,
 } from "../../../stores/data";
-import { useStore } from "../../../stores";
-import { useActiveCanonicalDocument } from "../../../stores/canonical/canonicalElementsBridge";
 import { useDataTableEditorStore } from "../stores/dataTableEditorStore";
 import { useDataPanelStatusStore } from "../stores/dataPanelStatusStore";
 import { EmptyState, Section } from "../../../components";
@@ -40,8 +28,10 @@ import type { Variable as VariableType } from "../../../../types/builder/data.ty
 import { iconProps, iconEditProps } from "../../../../utils/ui/uiConstants";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import { translateKey, useOptionalI18n } from "../../../../i18n";
-import { setPanelWorkspacePanelVisibility } from "../../../layout/panelWorkspaceVisibility";
-import { useStateSectionFocus } from "../../properties/state/stateSectionFocus";
+import {
+  useDataVariablesHost,
+  type VariableIndexGroup,
+} from "../usage/dataVariablesHost";
 /** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
 const AddIcon = ACTION_ICONS.add;
 
@@ -52,14 +42,6 @@ interface VariableListProps {
   projectId: string;
 }
 
-interface IndexGroup {
-  pageId: string;
-  title: string;
-  entries: Array<
-    | { kind: "doc"; entry: VisibleVariable; ownerLabel: string | null }
-    | { kind: "legacy"; variable: VariableType; conflict: boolean }
-  >;
-}
 
 export function VariableList({ projectId }: VariableListProps) {
   const i18n = useOptionalI18n();
@@ -74,9 +56,8 @@ export function VariableList({ projectId }: VariableListProps) {
   );
   const variables = useVariables();
   const deleteVariable = useDataStore((state) => state.deleteVariable);
-  const doc = useActiveCanonicalDocument();
-  const pages = useStore((state) => state.pages);
   const announce = useDataPanelStatusStore((state) => state.announce);
+  const host = useDataVariablesHost();
 
   // Editor Store 액션
   const editorMode = useDataTableEditorStore((state) => state.mode);
@@ -97,138 +78,20 @@ export function VariableList({ projectId }: VariableListProps) {
     [variables],
   );
   const projectDefs = useProjectVariableDefs();
-
-  // 정의당 문서 전체 순회 — 같은 문서·정의 집합이면 한 번만 (렌더마다 정의 수 × 순회 방지)
-  const usageCount = useMemo(() => {
-    const counts = new Map<string, number>();
-    return (variableId: string) => {
-      let count = counts.get(variableId);
-      if (count === undefined) {
-        count = collectVariableUsages(
-          doc,
-          doc?.events,
-          variableId,
-          projectDefs,
-        ).length;
-        counts.set(variableId, count);
-      }
-      return count;
-    };
-  }, [doc, projectDefs]);
-
-  const pageTitle = useCallback(
-    (pageId: string) =>
-      pages.find((page) => page.id === pageId)?.title ??
-      (doc ? findCanonicalNodeById(doc, pageId)?.name : undefined) ??
-      pageId,
-    [doc, pages],
-  );
-
-  // 페이지 · 컴포넌트 인덱스 — 페이지별 그룹 (페이지 변수 → 그 페이지 요소 변수 → legacy)
-  const indexGroups = useMemo<IndexGroup[]>(() => {
-    const groups = new Map<string, IndexGroup>();
-    const groupFor = (pageId: string) => {
-      let group = groups.get(pageId);
-      if (!group) {
-        group = { pageId, title: pageTitle(pageId), entries: [] };
-        groups.set(pageId, group);
-      }
-      return group;
-    };
-    for (const entry of collectDocumentVariables(doc)) {
-      if (entry.owner.kind === "page") {
-        groupFor(entry.owner.pageId).entries.push({
-          kind: "doc",
-          entry,
-          ownerLabel: null,
-        });
-      } else if (entry.owner.kind === "element" && doc) {
-        const chain = resolveAncestorChainIds(doc, entry.owner.elementId);
-        const pageId = chain[chain.length - 1] ?? "";
-        const node = findCanonicalNodeById(doc, entry.owner.elementId);
-        const ownerLabel = node?.name ?? node?.type ?? entry.owner.elementId;
-        groupFor(pageId).entries.push({ kind: "doc", entry, ownerLabel });
-      }
-    }
-    for (const variable of legacyPageVariables) {
-      if (variable.owner?.kind !== "page") continue;
-      const conflict =
-        findVariableNameConflict(
-          doc,
-          { kind: "page", pageId: variable.owner.pageId },
-          variable.name,
-          projectDefs,
-          variable.id,
-        ) !== null;
-      groupFor(variable.owner.pageId).entries.push({
-        kind: "legacy",
-        variable,
-        conflict,
-      });
-    }
-    return [...groups.values()].sort((a, b) => a.title.localeCompare(b.title));
-  }, [doc, legacyPageVariables, pageTitle, projectDefs]);
-
-  const jumpToOwner = useCallback(
-    (entry: VisibleVariable) => {
-      const owner = entry.owner;
-      if (owner.kind === "project" || !doc) return;
-      const pageId =
-        owner.kind === "page"
-          ? owner.pageId
-          : (resolveAncestorChainIds(doc, owner.elementId).slice(-1)[0] ??
-            null);
-      if (!pageId) return;
-      const store = useStore.getState();
-      const targetId =
-        owner.kind === "element"
-          ? owner.elementId
-          : (store.pageElementsSnapshot[pageId]?.find((element) =>
-              isBodyType(element.type),
-            )?.id ?? null);
-      const activate = () => {
-        const latest = useStore.getState();
-        const selectId =
-          targetId ??
-          latest.pageElementsSnapshot[pageId]?.find((element) =>
-            isBodyType(element.type),
-          )?.id ??
-          null;
-        latest.activatePage(pageId, selectId);
-        setPanelWorkspacePanelVisibility("properties", true);
-        useStateSectionFocus
-          .getState()
-          .requestFocus(
-            owner.kind === "page" ? pageId : owner.elementId,
-            entry.def.id,
-          );
-      };
-      if (store.lazyLoadingEnabled && !store.isPageLoaded(pageId)) {
-        void store.lazyLoadPageElements(pageId).then(activate);
-      } else {
-        activate();
-      }
-    },
-    [doc],
-  );
+  // 문서 쪽 (페이지 · 요소 변수 인덱스 · 사용처) 은 host — 구 canonical 문서 또는 catalog 문서
+  const {
+    usageCount,
+    groups: indexGroups,
+    pageTitle,
+  } = host.useView(legacyPageVariables, projectDefs);
+  const jumpToOwner = host.jumpToOwner;
 
   const migrateLegacyToPage = useCallback(
     async (variable: VariableType) => {
-      if (variable.owner?.kind !== "page" || !doc) return;
+      if (variable.owner?.kind !== "page") return;
       const pageId = variable.owner.pageId;
-      const pageNode = findCanonicalNodeById(doc, pageId);
-      const current = isVariableDefList(pageNode?.state) ? pageNode.state : [];
-      const def: VariableDef = {
-        id: variable.id,
-        name: variable.name,
-        type: variable.type,
-        ...(variable.defaultValue !== undefined
-          ? { defaultValue: variable.defaultValue }
-          : {}),
-      };
-      if (!useStore.getState().setPageState(pageId, [...current, def])) return;
       try {
-        await deleteVariable(variable.id);
+        if (!(await host.migrateLegacyToPage(variable))) return;
         announce(
           t("variableMigrated", {
             name: variable.name,
@@ -239,7 +102,7 @@ export function VariableList({ projectId }: VariableListProps) {
         console.error("Variable 이관 실패:", error);
       }
     },
-    [announce, deleteVariable, doc, pageTitle, t],
+    [announce, host, pageTitle, t],
   );
 
   const openVariableCreator = useDataTableEditorStore(
@@ -315,7 +178,7 @@ export function VariableList({ projectId }: VariableListProps) {
     </div>
   );
 
-  const renderIndexEntry = (item: IndexGroup["entries"][number]) => {
+  const renderIndexEntry = (item: VariableIndexGroup["entries"][number]) => {
     if (item.kind === "legacy") {
       const { variable, conflict } = item;
       return (

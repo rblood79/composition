@@ -41,6 +41,7 @@ import {
   DataChangeError,
   createApplyDataChangeAction,
   reduceDataOps,
+  setDocumentVariableNamesReader,
 } from "./dataChange";
 
 const variable = (patch: Partial<Variable>): Variable => ({
@@ -392,6 +393,27 @@ describe("applyDataChange — define_variable", () => {
     expect(variables().has("pageVar")).toBe(false);
     expect(dbMock.variables.insert).not.toHaveBeenCalled();
     expect(addEntry).not.toHaveBeenCalled();
+  });
+
+  it("ADR-248 4e-4e — a set names reader (the catalog document) replaces the canonical lookup", async () => {
+    setDocumentVariableNamesReader(() => new Set(["catalogVar"]));
+    try {
+      const { apply, variables } = makeStore();
+      await expect(
+        apply({
+          ops: [
+            {
+              op: "define_variable",
+              definition: { name: "catalogVar", type: "string" },
+            },
+          ],
+          origin: "user",
+        }),
+      ).rejects.toThrow(DataChangeError);
+      expect(variables().has("catalogVar")).toBe(false);
+    } finally {
+      setDocumentVariableNamesReader(null);
+    }
   });
 
   it("DB 실패 → 메모리 0 · History 0 · errors 기록", async () => {

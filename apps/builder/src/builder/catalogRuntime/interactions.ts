@@ -16,10 +16,8 @@ import type {
 } from "../../../../../packages/shared/src/catalog/document/types";
 import { catalogTargetDefinitionId } from "./editContract";
 import {
-  catalogAncestorVariables,
   catalogEmptyVariableValue,
-  catalogOwnVariables,
-  catalogVariableOwner,
+  catalogVisibleVariableEntries,
   type CatalogVariableReader,
   type CatalogVariableType,
 } from "./stateVariables";
@@ -146,28 +144,42 @@ export function catalogCapabilityTargets(
 }
 
 export interface CatalogVisibleVariable {
-  id: EntryId<"stateVariable">;
+  /** A page/element variable id, or a project variable's reference (`data:variable:<id>`). */
+  id: EntryId<"stateVariable"> | `data:variable:${string}`;
   name: string;
   type: CatalogVariableType;
-  group: "page" | "element";
+  group: "project" | "page" | "element";
 }
 
-/** The variables a setState rule on the owner can set: its own, then its ancestors' (nearest first). */
+/**
+ * The variables a setState rule on the owner can set: its own, then its ancestors' (nearest first),
+ * then the project variables (the data store's scalar ones, H1).
+ */
 export function catalogVisibleVariables(
   graph: CatalogVariableReader,
   ownerId: NodeId,
+  projectVariables: readonly { id: string; name: string; type: string }[] = [],
 ): CatalogVisibleVariable[] {
-  const owner = catalogVariableOwner(graph, ownerId);
   return [
-    ...catalogOwnVariables(graph, owner),
-    ...catalogAncestorVariables(graph, owner),
-  ].map((variable) => ({
-    id: variable.id,
-    name: variable.name,
-    type: variable.valueType as CatalogVariableType,
-    group:
-      graph.getEntry(variable.ownerId)?.kind === "page" ? "page" : "element",
-  }));
+    ...catalogVisibleVariableEntries(graph, ownerId).map((variable) => ({
+      id: variable.id,
+      name: variable.name,
+      type: variable.valueType as CatalogVariableType,
+      group: (graph.getEntry(variable.ownerId)?.kind === "page"
+        ? "page"
+        : "element") as CatalogVisibleVariable["group"],
+    })),
+    ...projectVariables
+      .filter((variable) =>
+        ["string", "number", "boolean"].includes(variable.type),
+      )
+      .map((variable) => ({
+        id: `data:variable:${variable.id}` as const,
+        name: variable.name,
+        type: variable.type as CatalogVariableType,
+        group: "project" as const,
+      })),
+  ];
 }
 
 /** The ops a variable type takes (the first is the default). */

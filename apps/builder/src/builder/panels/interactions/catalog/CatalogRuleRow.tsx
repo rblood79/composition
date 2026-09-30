@@ -38,6 +38,7 @@ const STATE_OP_LABEL_KEYS = {
 } as const;
 
 const GROUP_LABEL_KEYS = {
+  project: "interactions.stateVariableGroupProject",
   page: "interactions.stateVariableGroupPage",
   element: "interactions.stateVariableGroupElement",
 } as const;

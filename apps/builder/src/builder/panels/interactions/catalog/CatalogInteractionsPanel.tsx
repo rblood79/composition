@@ -36,6 +36,7 @@ import { useI18n } from "@/i18n";
 import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";
 import { ACTION_CHOICE_LABEL_KEYS } from "../labels";
 import type { ActionChoice } from "../types";
+import { useProjectVariableDefs } from "../../../stores/data";
 import { CatalogRuleRow } from "./CatalogRuleRow";
 import "../InteractionsPanel.css";
 
@@ -102,13 +103,15 @@ function CatalogRules({
   );
   const revision = useSyncExternalStore(subscribe, () => graph.revision);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  // Project variables live in the data store (H1).
+  const projectVariables = useProjectVariableDefs();
 
   const view = useMemo(() => {
     const componentType = catalogTargetTypeName(graph, target);
     const context: CatalogActionContext = {
       pages: catalogPageOptions(graph),
       currentPageId: pageId,
-      variables: catalogVisibleVariables(graph, owner.ownerId),
+      variables: catalogVisibleVariables(graph, owner.ownerId, projectVariables),
       targets: catalogCapabilityTargets(
         graph,
         pageId,
@@ -125,7 +128,7 @@ function CatalogRules({
       ),
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- re-read at each graph revision
-  }, [graph, owner, pageId, revision, target]);
+  }, [graph, owner, pageId, projectVariables, revision, target]);
 
   const describeTarget = useCallback(
     (id: NodeId) => {

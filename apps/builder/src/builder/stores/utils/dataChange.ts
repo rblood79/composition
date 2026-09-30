@@ -1106,6 +1106,16 @@ export interface DataChangeHistoryPayload {
 let dataHistoryRecorder:
   | ((payload: DataChangeHistoryPayload) => void)
   | null = null;
+/**
+ * ADR-248 Phase 4e-4e: where the page/element variable names project variables may not take are
+ * read from (the catalog document in the new app); unset = the old canonical document.
+ */
+let documentVariableNamesReader: (() => ReadonlySet<string>) | null = null;
+export function setDocumentVariableNamesReader(
+  reader: (() => ReadonlySet<string>) | null,
+): void {
+  documentVariableNamesReader = reader;
+}
 export function setDataHistoryRecorder(
   recorder: ((payload: DataChangeHistoryPayload) => void) | null,
 ): void {
@@ -1174,9 +1184,9 @@ export const createApplyDataChangeAction =
       // ADR-214 HC5 — 문서 안 페이지/요소 state 이름은 프로젝트 변수로 못 쓴다.
       ...(touchesVariables
         ? {
-            documentVariableNames: collectDocumentVariableNames(
-              getActiveCanonicalDocument(),
-            ),
+            documentVariableNames: documentVariableNamesReader
+              ? documentVariableNamesReader()
+              : collectDocumentVariableNames(getActiveCanonicalDocument()),
           }
         : {}),
     });
