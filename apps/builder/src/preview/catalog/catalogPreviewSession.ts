@@ -105,8 +105,7 @@ export class CatalogPreviewSession {
       this.collections = data.collections as readonly CollectionDataSource[];
       if (this.currentRoot) {
         const errors = this.currentRoot.refreshRows();
-        if (errors.length)
-          console.error("[CatalogPreview] rows:", ...errors);
+        if (errors.length) console.error("[CatalogPreview] rows:", ...errors);
       }
       this.changed();
       return { kind: "ignored" };

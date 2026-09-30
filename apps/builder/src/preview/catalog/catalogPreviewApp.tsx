@@ -1,4 +1,5 @@
-import { Fragment, useSyncExternalStore } from "react";
+import { Fragment, useEffect, useSyncExternalStore } from "react";
+import { ToastProvider, useToast } from "@composition/shared/components";
 import { createRoot } from "react-dom/client";
 import { buildCodeCatalogLibrary } from "../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import { renderCatalogDom } from "../../builder/catalogRuntime/domBinding";
@@ -10,6 +11,8 @@ import {
 import type { CatalogCompositionRoot } from "../../builder/catalogRuntime/compositionRoot";
 import { PreviewLocale } from "../PreviewLocale";
 import { CatalogPreviewSession } from "./catalogPreviewSession";
+import { CatalogPreviewInteractions } from "./catalogPreviewInteractions";
+import type { CatalogDomRuntime } from "../../builder/catalogRuntime/domBinding";
 
 /** The theme as the DOM reads it: CSS variables (light + dark blocks), color mode, base type. */
 export function applyCatalogPreviewTheme(state: CatalogThemeState): void {
@@ -50,8 +53,10 @@ const rootKey = (root: CatalogCompositionRoot) => {
 
 export function CatalogPreviewView({
   session,
+  runtime,
 }: {
   session: CatalogPreviewSession;
+  runtime?: CatalogDomRuntime;
 }) {
   useSyncExternalStore(session.subscribe, session.getVersion);
   const root = session.root;
@@ -60,9 +65,66 @@ export function CatalogPreviewView({
     return <div className="preview-loading">Initializing Preview...</div>;
   return (
     <Fragment key={`${rootKey(root)}:${record}`}>
-      {renderCatalogDom(root, record, { slotMode: "page" })}
+      {renderCatalogDom(root, record, { slotMode: "page", runtime })}
     </Fragment>
   );
+}
+
+/** The session's rules, their toasts shown in this document's toast region. */
+function CatalogPreviewToasts({
+  toast,
+}: {
+  toast: { show: (message: string) => void };
+}) {
+  const { addToast } = useToast();
+  useEffect(() => {
+    toast.show = (message) => addToast({ title: message });
+  }, [addToast, toast]);
+  return null;
+}
+
+/** The session's rule runtime (rules · capability overrides · toasts · navigation by route). */
+export function catalogPreviewRuntime(
+  session: CatalogPreviewSession,
+  toast: { show: (message: string) => void },
+): CatalogPreviewInteractions {
+  return new CatalogPreviewInteractions({
+    graph: () => session.graph,
+    root: () => session.root,
+    subscribe: session.subscribe,
+    navigate: (pageId) => session.navigate(pageId),
+    showToast: (message) => toast.show(message),
+  });
+}
+
+/**
+ * An internal link (`/route`) moves the Preview to that page; an external one opens a new tab;
+ * `#anchor` and `target="_blank"` keep the browser's behavior (the old Preview's rule).
+ */
+export function catalogPreviewLinkClick(
+  session: CatalogPreviewSession,
+): (event: MouseEvent) => void {
+  return (event) => {
+    const anchor = (event.target as Element | null)?.closest?.("a");
+    const href = anchor?.getAttribute("href");
+    if (!anchor || !href || href.startsWith("#")) return;
+    if (anchor.getAttribute("target") === "_blank") return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (/^(https?:\/\/|\/\/|mailto:|tel:|javascript:)/i.test(href)) {
+      if (!/^javascript:/i.test(href))
+        window.open(href, "_blank", "noopener,noreferrer");
+      return;
+    }
+    const graph = session.graph;
+    const project = graph?.getEntry(graph.projectId);
+    if (project?.kind !== "project") return;
+    const pageId = project.pageIds.find((id) => {
+      const page = graph!.getEntry(id);
+      return page?.kind === "page" && page.route === href;
+    });
+    if (pageId) session.navigate(pageId);
+  };
 }
 
 /**
@@ -88,9 +150,15 @@ export async function startCatalogPreview(): Promise<void> {
     if (receipt.kind === "rejected")
       console.error("[CatalogPreview] payload rejected:", receipt.error);
   });
+  const toast = { show: (_message: string) => {} };
+  const runtime = catalogPreviewRuntime(session, toast);
+  document.addEventListener("click", catalogPreviewLinkClick(session), true);
   createRoot(document.body).render(
     <PreviewLocale>
-      <CatalogPreviewView session={session} />
+      <ToastProvider position="bottom-right">
+        <CatalogPreviewToasts toast={toast} />
+        <CatalogPreviewView session={session} runtime={runtime} />
+      </ToastProvider>
     </PreviewLocale>,
   );
   window.parent.postMessage({ type: "PREVIEW_READY" }, origin);

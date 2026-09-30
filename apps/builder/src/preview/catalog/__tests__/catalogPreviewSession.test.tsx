@@ -1,5 +1,5 @@
 import "fake-indexeddb/auto";
-import { act, render } from "@testing-library/react";
+import { act, fireEvent, render } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
@@ -29,7 +29,15 @@ import {
 import { CatalogWorkspace } from "../../../builder/catalogRuntime/workspace";
 import { nodeLayoutEngine } from "../../../builder/catalogRuntime/__tests__/support/nodeLayoutEngine";
 import { installThemeMaps } from "../../../utils/theme/themeMaps";
-import { CatalogPreviewView } from "../catalogPreviewApp";
+import {
+  catalogPreviewLinkClick,
+  catalogPreviewRuntime,
+  CatalogPreviewView,
+} from "../catalogPreviewApp";
+import {
+  catalogInteractionsCommand,
+  catalogNewInteraction,
+} from "../../../builder/catalogRuntime/interactions";
 import {
   catalogBoundRows,
   catalogCollectionId,
@@ -260,7 +268,10 @@ describe("ADR-248 4e-6 Preview entry", () => {
         id: "c1",
         name: "Tags",
         schema: [{ key: "label" }],
-        mockData: [{ id: "r1", label: "Alpha" }, { id: "r2", label: "Beta" }],
+        mockData: [
+          { id: "r1", label: "Alpha" },
+          { id: "r2", label: "Beta" },
+        ],
         useMockData: true,
       },
     ];
@@ -346,5 +357,171 @@ describe("ADR-248 4e-6 Preview entry", () => {
     expect(texts(session.root!)).toEqual(texts(workspace.root));
     expect(texts(session.root!)).toContain("Gamma");
     expect(texts(session.root!)).not.toContain("Alpha");
+  });
+
+  it("rules run in the Preview: toast, navigate by route, capability overrides; a rule added later attaches; links move by route", async () => {
+    const { workspace, session, channel, flush } = await open();
+    const FRAME = "project:node:panel" as NodeId;
+    const BUTTON = "project:node:go" as NodeId;
+    const node = (id: NodeId, definitionId: string, props = {}) =>
+      ({
+        kind: "node",
+        id,
+        definitionId,
+        children: [],
+        props,
+        visual: {},
+        sizing: {},
+        descendantOverrides: [],
+      }) as NodeEntry;
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [
+          node(BUTTON, "lib:definition:type-Button", {
+            children: { kind: "set", value: "Go" },
+          }),
+          node(FRAME, "lib:definition:type-frame"),
+        ],
+        rootIds: [BUTTON, FRAME],
+        newId: workspace.newId,
+      }),
+    );
+    workspace.execute(
+      createPage({
+        page: {
+          kind: "page",
+          id: ABOUT,
+          route: "/about",
+          name: "About",
+          children: [ABOUT_BODY],
+        },
+        entries: [node(ABOUT_BODY, "lib:definition:type-body")],
+      }),
+    );
+    const owner = { ownerId: BUTTON };
+    workspace.execute(
+      catalogInteractionsCommand(
+        owner,
+        [
+          catalogNewInteraction(
+            owner,
+            "onPress",
+            { opcode: "toast", message: "Hi" },
+            workspace.newId,
+          ),
+          catalogNewInteraction(
+            owner,
+            "onPress",
+            { opcode: "capability", targetId: FRAME, capabilityId: "toggle" },
+            workspace.newId,
+          ),
+        ],
+        "Rules",
+      ),
+    );
+    const toasts: string[] = [];
+    const runtime = catalogPreviewRuntime(session, {
+      show: (message) => toasts.push(message),
+    });
+    const view = render(
+      <CatalogPreviewView session={session} runtime={runtime} />,
+    );
+    act(() => channel.onReady());
+    const button = () => view.getByRole("button", { name: "Go" });
+    const hidden = () =>
+      view.container.querySelector('[style*="display: none"]');
+    const frameShown = () => {
+      const record = session.root!.recordsOfSource(FRAME)[0]!;
+      return runtime.overrideOf(record)?.style;
+    };
+    act(() => {
+      fireEvent.click(button());
+    });
+    expect(toasts).toEqual(["Hi"]);
+    expect(frameShown()).toEqual({ display: "none" });
+    expect(hidden()).not.toBeNull();
+    act(() => {
+      fireEvent.click(button());
+    });
+    expect(toasts).toEqual(["Hi", "Hi"]);
+    expect(frameShown()).toEqual({});
+    expect(hidden()).toBeNull();
+    // The document and the Builder never see the runtime override.
+    expect(workspace.runtime.historyLabels.undo.at(-1)).toBe("Rules");
+
+    // A rule added on its own (the Button's record does not change) attaches.
+    act(() => {
+      workspace.execute(
+        catalogInteractionsCommand(
+          owner,
+          [
+            ...(Object.values(
+              workspace.runtime.graph.exportDocument().entries,
+            ).filter(
+              (entry) =>
+                entry.kind === "interaction" && entry.ownerId === BUTTON,
+            ) as ReturnType<typeof catalogNewInteraction>[]),
+            catalogNewInteraction(
+              owner,
+              "onPress",
+              { opcode: "navigate", pageId: ABOUT },
+              workspace.newId,
+            ),
+          ],
+          "Navigate",
+        ),
+      );
+      flush();
+    });
+    act(() => {
+      fireEvent.click(button());
+    });
+    expect(session.pageId).toBe(ABOUT);
+    expect(toasts).toHaveLength(3);
+
+    // Only a rule's action changes (the owner's record does not): the click runs the new action.
+    act(() => session.navigate(HOME));
+    const rules = () =>
+      Object.values(workspace.runtime.graph.exportDocument().entries).filter(
+        (entry) => entry.kind === "interaction" && entry.ownerId === BUTTON,
+      ) as ReturnType<typeof catalogNewInteraction>[];
+    act(() => {
+      workspace.execute(
+        catalogInteractionsCommand(
+          owner,
+          rules().map((rule) =>
+            rule.action.opcode === "toast"
+              ? { ...rule, action: { opcode: "toast", message: "Bye" } }
+              : rule,
+          ),
+          "Edit",
+        ),
+      );
+      flush();
+    });
+    act(() => {
+      fireEvent.click(button());
+    });
+    expect(toasts.at(-1)).toBe("Bye");
+
+    // An internal link moves the Preview by route; `#anchor` keeps the browser's behavior.
+    const click = catalogPreviewLinkClick(session);
+    const anchor = document.createElement("a");
+    anchor.setAttribute("href", "/");
+    document.body.appendChild(anchor);
+    const event = new MouseEvent("click", { bubbles: true, cancelable: true });
+    Object.defineProperty(event, "target", { value: anchor });
+    act(() => click(event));
+    expect(event.defaultPrevented).toBe(true);
+    expect(session.pageId).toBe(HOME);
+    anchor.setAttribute("href", "#top");
+    const hash = new MouseEvent("click", { bubbles: true, cancelable: true });
+    Object.defineProperty(hash, "target", { value: anchor });
+    click(hash);
+    expect(hash.defaultPrevented).toBe(false);
+    anchor.remove();
+    runtime.dispose();
+    view.unmount();
   });
 });

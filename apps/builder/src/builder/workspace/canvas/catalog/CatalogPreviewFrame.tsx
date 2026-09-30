@@ -1,6 +1,5 @@
 import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
-import { CatalogPreviewChannel } from "../../../catalogRuntime/previewChannel";
 import { PanelSplitter } from "../../../layout/PanelSplitter";
 import { useWorkspaceCompareSplit } from "../../hooks/useWorkspaceCompareSplit";
 import { useOptionalI18n } from "../../../../i18n";
@@ -23,7 +22,7 @@ const PREVIEW_PANE_ID = "workspace-compare-panel-css";
 
 /**
  * ADR-248 4e-6: the Preview iframe of the open catalog project (`preview.html?catalog=1`). The
- * Builder side of the payload is `CatalogPreviewChannel`: the iframe's `PREVIEW_READY` (this
+ * Builder side of the payload is the workspace's Preview channel (`attachPreview`): the iframe's `PREVIEW_READY` (this
  * frame's window, this origin — the old bootstrap check) sends a snapshot and the editor's page,
  * then each step's delta goes once per frame. A snapshot request is taken only from this frame.
  * The data store's collections go with the snapshot and on each change (bound rows, H1).
@@ -36,7 +35,7 @@ export function CatalogPreviewFrame({
   const frameRef = useRef<HTMLIFrameElement>(null);
   useEffect(() => {
     const origin = window.location.origin;
-    const channel = new CatalogPreviewChannel(workspace.runtime, {
+    const channel = workspace.attachPreview({
       post: (message) =>
         frameRef.current?.contentWindow?.postMessage(message, origin),
       schedule: (flush) => requestAnimationFrame(flush),
@@ -75,7 +74,7 @@ export function CatalogPreviewFrame({
       window.removeEventListener("message", onMessage);
       offData();
       offSession();
-      channel.dispose();
+      workspace.detachPreview();
     };
   }, [workspace]);
   return (

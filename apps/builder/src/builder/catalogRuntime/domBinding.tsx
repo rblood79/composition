@@ -57,8 +57,23 @@ import {
  * cutover uses it as is). D1 stays with RAC: bindings pick the component and pass ARIA-relevant
  * props only; visual values come from the resolved node, never from a per-type stylesheet here.
  */
+/**
+ * A running Preview's per-record behavior (ADR-248 4e-6): the interaction rules' event handlers
+ * and the prop overrides capabilities write (runtime state, never the document).
+ */
+export interface CatalogDomRuntime {
+  /** Moves when the record's handlers or override change (the node renders again). */
+  revisionOf(id: string): number;
+  handlersOf(id: string): Readonly<Record<string, (...args: unknown[]) => void>>;
+  /** Prop patch of a record (`style` merges into its computed style). */
+  overrideOf(id: string): Readonly<Record<string, unknown>> | undefined;
+  subscribe(id: string, notify: () => void): () => void;
+}
+
 export interface CatalogDomContext {
   slotMode?: "edit" | "page";
+  /** The Preview's runtime (rules and capability overrides); absent = a static render. */
+  runtime?: CatalogDomRuntime;
   /** Observation hook: called once per node binding render (initial mount and each delta). */
   onNodeRender?: (id: string) => void;
   /** Current date/time for date fields (deterministic renders in tests). */
@@ -977,6 +992,20 @@ const CatalogDomNode = memo(function CatalogDomNode({
     read,
     read,
   );
+  const runtime = context.runtime;
+  const readRevision = useCallback(
+    () => runtime?.revisionOf(id) ?? 0,
+    [runtime, id],
+  );
+  useSyncExternalStore(
+    useCallback(
+      (notify: () => void) =>
+        runtime ? runtime.subscribe(id, notify) : () => {},
+      [runtime, id],
+    ),
+    readRevision,
+    readRevision,
+  );
   const parentInput = node ? root.domInputs.get(node.parentId) : undefined;
   const watchedParentId =
     node &&
@@ -1000,6 +1029,66 @@ const CatalogDomNode = memo(function CatalogDomNode({
   // A removed node disappears through its parent's children delta; until then it renders nothing.
   if (!node) return null;
   context.onNodeRender?.(id);
+  const { rendered: shown, styleOverride } = withOverride(
+    node,
+    runtime?.overrideOf(id),
+  );
+  return withRuntime(
+    renderNode(root, shown, context, parentInput, watchedParent, styleOverride),
+    runtime?.handlersOf(id),
+  );
+});
+
+/** A capability's prop patch over the record (its `style` goes over the computed style). */
+function withOverride(
+  node: CatalogConsumerNode,
+  override: Readonly<Record<string, unknown>> | undefined,
+): { rendered: CatalogConsumerNode; styleOverride?: CSSProperties } {
+  if (!override) return { rendered: node };
+  const { style, ...props } = override;
+  return {
+    rendered: Object.keys(props).length
+      ? ({
+          ...node,
+          props: { ...node.props, ...props } as CatalogConsumerNode["props"],
+        } as CatalogConsumerNode)
+      : node,
+    ...(style && typeof style === "object"
+      ? { styleOverride: style as CSSProperties }
+      : {}),
+  };
+}
+
+/** The rules' handlers on the node's element, after any handler the binding set itself. */
+function withRuntime(
+  element: ReactElement | null,
+  handlers: Readonly<Record<string, (...args: unknown[]) => void>> | undefined,
+): ReactElement | null {
+  if (!element || !handlers || !Object.keys(handlers).length) return element;
+  const own = element.props as Record<string, unknown>;
+  const patch: Record<string, (...args: unknown[]) => void> = {};
+  for (const [name, handler] of Object.entries(handlers)) {
+    const existing = own[name];
+    patch[name] =
+      typeof existing === "function"
+        ? (...args: unknown[]) => {
+            (existing as (...a: unknown[]) => void)(...args);
+            handler(...args);
+          }
+        : handler;
+  }
+  return cloneElement(element, patch);
+}
+
+function renderNode(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+  context: CatalogDomContext,
+  parentInput: CatalogConsumerNode | undefined,
+  watchedParent: CatalogConsumerNode | undefined,
+  styleOverride: CSSProperties | undefined,
+): ReactElement | null {
+  const id = node.id;
   const children = CATALOG_DOM_CHILD_OWNING_BINDINGS.has(node.bindingId ?? "")
     ? []
     : node.children.map((childId) =>
@@ -1017,7 +1106,9 @@ const CatalogDomNode = memo(function CatalogDomNode({
       delegated.render({
         root,
         node,
-        style: authoredStyle(root, node),
+        style: styleOverride
+          ? { ...authoredStyle(root, node), ...styleOverride }
+          : authoredStyle(root, node),
         renderChild: (childId) =>
           createElement(CatalogDomNode, {
             key: childId,
@@ -1032,7 +1123,12 @@ const CatalogDomNode = memo(function CatalogDomNode({
   const rendered = binding
     ? binding(
         node,
-        catalogDomStyle(node, watchedParent ?? parentInput),
+        styleOverride
+          ? {
+              ...catalogDomStyle(node, watchedParent ?? parentInput),
+              ...styleOverride,
+            }
+          : catalogDomStyle(node, watchedParent ?? parentInput),
         children,
         context,
       )
@@ -1044,7 +1140,7 @@ const CatalogDomNode = memo(function CatalogDomNode({
       ? cloneElement(rendered as ReactElement<{ slot?: string }>, { slot })
       : rendered,
   );
-});
+}
 
 /** The author's DOM `id` (`metadata.htmlId`) on the node's own element, for every binding. */
 function withHtmlId(
