@@ -12,6 +12,7 @@ import {
   useCatalogSession,
   useCatalogWorkspace,
 } from "../../../catalogRuntime/react";
+import { catalogSettingsPage } from "../../../catalogRuntime/pageSettings";
 import { targetKey } from "../../../catalogRuntime/session";
 import { EmptyState, PanelContents, PanelHeader } from "../../../components";
 import type { EditTarget } from "../../../../../../../packages/shared/src/catalog/document/types";
@@ -20,6 +21,7 @@ import { FieldValueSourceContext } from "../generic/fieldValueSource";
 import { ItemsSourceContext } from "../generic/itemsSource";
 import { CatalogAttributesSection } from "./CatalogAttributesSection";
 import { CatalogComponentSection } from "./CatalogComponentSection";
+import { CatalogPageSection } from "./CatalogPageSection";
 import { CatalogStateSection } from "./CatalogStateSection";
 import { CATALOG_ITEMS_SOURCE } from "./catalogItemsSource";
 import { useChartPropertyExtras } from "../useChartPropertyExtras";
@@ -72,17 +74,12 @@ function CatalogPropertiesContent() {
       first.target.kind === "node"
         ? graph.getEntry(first.target.id)
         : undefined;
-    if (entry?.kind !== "node") return contract.type;
-    // An instance of a project component shows the component's name.
-    const definition = entry.definitionId.startsWith("project:")
-      ? graph.getEntry(entry.definitionId)
-      : undefined;
-    return (
-      entry.name ||
-      (definition?.kind === "definition" ? definition.name : undefined) ||
-      contract.type
-    );
+    return (entry?.kind === "node" && entry.name) || contract.type;
   }, [contract.type, first, graph]);
+  const settingsPage =
+    first?.target.kind === "node"
+      ? catalogSettingsPage(graph, first.target.id)
+      : undefined;
 
   if (!first || !contract.type) {
     return (
@@ -122,6 +119,12 @@ function CatalogPropertiesContent() {
               target={first.target}
               identity={first.identity}
             />
+            {settingsPage && (
+              <CatalogPageSection
+                key={`page:${settingsPage}`}
+                pageId={settingsPage}
+              />
+            )}
             {first.target.kind === "node" && (
               <CatalogStateSection
                 key={`state:${first.target.id}`}

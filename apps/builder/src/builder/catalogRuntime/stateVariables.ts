@@ -12,6 +12,7 @@ import type {
   Scalar,
   StateVariableEntry,
 } from "../../../../../packages/shared/src/catalog/document/types";
+import { catalogSettingsPage } from "./pageSettings";
 
 /** The graph reads the State section needs (`CatalogGraph` is one). */
 export interface CatalogVariableReader extends CatalogReader {
@@ -27,15 +28,15 @@ export const CATALOG_VARIABLE_TYPES: readonly CatalogVariableType[] = [
   "boolean",
 ];
 
-/** The owner a node's State section edits: a page body's variables belong to its page. */
+/**
+ * The owner a node's State section edits: a page root's (and a page body's, also inside a layout
+ * slot) variables belong to its page.
+ */
 export function catalogVariableOwner(
   graph: CatalogVariableReader,
   nodeId: NodeId,
 ): CatalogVariableOwnerId {
-  const owner = graph.ownerOf(nodeId);
-  return owner && graph.getEntry(owner)?.kind === "page"
-    ? (owner as EntryId<"page">)
-    : nodeId;
+  return catalogSettingsPage(graph, nodeId) ?? nodeId;
 }
 
 /** The owner itself, then its node ancestors up to the page (the visibility chain). */

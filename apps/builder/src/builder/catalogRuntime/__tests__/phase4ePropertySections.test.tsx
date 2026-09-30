@@ -16,6 +16,7 @@ import { ItemsSourceContext } from "../../panels/properties/generic/itemsSource"
 import { CATALOG_FIELD_VALUE_SOURCE } from "../../panels/properties/catalog/catalogFieldValueSource";
 import { CATALOG_ITEMS_SOURCE } from "../../panels/properties/catalog/catalogItemsSource";
 import { CatalogPropertiesPanel } from "../../panels/properties/catalog/CatalogPropertiesPanel";
+import { CatalogPageSection } from "../../panels/properties/catalog/CatalogPageSection";
 import { CatalogStateSection } from "../../panels/properties/catalog/CatalogStateSection";
 import { catalogHtmlIdCommand, catalogUniqueHtmlId } from "../attributes";
 import { catalogEditContract } from "../editContract";
@@ -228,5 +229,37 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
       fireEvent.keyDown(defaultInput, { key: "Enter" });
     });
     expect(own()).toMatchObject([{ name: "open", defaultValue: "hello" }]);
+  });
+
+  it("the page section refuses a malformed route with a message and writes a valid one", async () => {
+    const { workspace } = await open();
+    const graph = workspace.runtime.graph;
+    const page = "project:page:home" as EntryId<"page">;
+    const { container } = render(
+      <I18nProvider initialLocale="en-US">
+        <CatalogWorkspaceProvider workspace={workspace}>
+          <CatalogPageSection pageId={page} />
+        </CatalogWorkspaceProvider>
+      </I18nProvider>,
+    );
+    const route = container.querySelector(
+      ".page-slug-input input",
+    ) as HTMLInputElement;
+    expect(route.value).toBe("/");
+    const revision = graph.revision;
+    fireEvent.change(route, { target: { value: "a b" } });
+    await act(async () => {
+      fireEvent.keyDown(route, { key: "Enter" });
+    });
+    expect(within(container).getByRole("alert").textContent).toMatch(
+      /letters, numbers/,
+    );
+    expect(graph.revision).toBe(revision);
+    fireEvent.change(route, { target: { value: "about" } });
+    await act(async () => {
+      fireEvent.keyDown(route, { key: "Enter" });
+    });
+    expect(graph.getEntry(page)).toMatchObject({ route: "/about" });
+    expect(within(container).queryByRole("alert")).toBeNull();
   });
 });
