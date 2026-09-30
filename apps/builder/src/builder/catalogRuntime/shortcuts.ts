@@ -86,18 +86,21 @@ function singleElement(workspace: CatalogWorkspace) {
   return record && record.parentId !== PAGE_GRID ? record : undefined;
 }
 
+/** A shortcut that can run now (the command is planned; running it is one step or a selection). */
+export type CatalogShortcutPlan = () => void;
+
 /**
  * ADR-248 Phase 4e-5: what a document shortcut does in the open project — undo/redo, the selection
  * commands the Canvas context menu plans (copy · cut · paste · duplicate · delete · group ·
- * ungroup · z-order; a refused command is not run), sibling reorder by arrow (one element),
- * sibling selection by Tab, select all of the current level, detach an instance. Returns whether
- * it ran (false = nothing to do).
+ * ungroup · z-order; a refused command is not planned), sibling reorder by arrow (one element),
+ * sibling selection by Tab, select all of the current level, detach an instance. `undefined` =
+ * nothing to do now (the keyboard, the agent executor and the header menu read the same answer).
  */
-export function runCatalogShortcut(
+export function planCatalogShortcut(
   workspace: CatalogWorkspace,
   id: CatalogShortcutId,
   onError: (error: unknown) => void = () => {},
-): boolean {
+): CatalogShortcutPlan | undefined {
   const host = catalogMenuHost(workspace, onError);
   const menuItem = (itemId: string) => {
     const items = catalogCanvasMenuItems(host, "canvas-element", undefined);
@@ -106,56 +109,59 @@ export function runCatalogShortcut(
     );
     return found?.kind === "action" ? found : undefined;
   };
-  const runMenu = (itemId: string) => {
+  const planMenu = (itemId: string): CatalogShortcutPlan | undefined => {
     const item = menuItem(itemId);
-    if (!item) return false;
-    item.run();
-    return true;
+    return item && (() => void item.run());
   };
 
   switch (id) {
     case "undo":
-      return !!workspace.undo();
+      return workspace.runtime.historyDepth.undo > 0
+        ? () => void workspace.undo()
+        : undefined;
     case "redo":
-      return !!workspace.redo();
+      return workspace.runtime.historyDepth.redo > 0
+        ? () => void workspace.redo()
+        : undefined;
     case "copy":
-      return runMenu("copy");
+      return planMenu("copy");
     case "cut": {
       const copy = menuItem("copy");
       const remove = menuItem("delete");
-      if (!copy || !remove) return false;
-      copy.run();
-      remove.run();
-      return true;
+      return copy && remove
+        ? () => {
+            void copy.run();
+            void remove.run();
+          }
+        : undefined;
     }
     case "paste": {
-      if (runMenu("paste")) return true;
-      if (!workspace.clipboard) return false;
+      const paste = planMenu("paste");
+      if (paste) return paste;
+      if (!workspace.clipboard) return undefined;
       const body = pageBodyRecord(workspace);
       const item = catalogCanvasMenuItems(host, "canvas-empty", body).find(
         (entry) => entry.kind === "action" && entry.id === "paste",
       );
-      if (item?.kind !== "action") return false;
-      item.run();
-      return true;
+      return item?.kind === "action" ? () => void item.run() : undefined;
     }
     case "duplicate":
-      return runMenu("duplicate");
+      return planMenu("duplicate");
     case "delete":
     case "deleteAlt":
-      return runMenu("delete");
+      return planMenu("delete");
     case "group":
-      return runMenu("group");
+      return planMenu("group");
     case "ungroup":
-      return runMenu("ungroup");
+      return planMenu("ungroup");
     case "bringToFront":
-      return runMenu("bring-to-front");
+      return planMenu("bring-to-front");
     case "bringForward":
-      return runMenu("bring-forward");
+      return planMenu("bring-forward");
     case "sendBackward":
-      return runMenu("send-backward");
+      return planMenu("send-backward");
     case "sendToBack":
-      return runMenu("send-to-back");
+      return planMenu("send-to-back");
     case "arrowUp":
     case "arrowLeft":
     case "arrowDown":
@@ -169,48 +175,45 @@ export function runCatalogShortcut(
         !isNodeSource(parent.sourceId) ||
         !isNodeSource(record.sourceId)
       )
-        return false;
+        return undefined;
       const index = parent.children.indexOf(record.id);
       const to = index + (id === "arrowUp" || id === "arrowLeft" ? -1 : 1);
-      if (to < 0 || to > parent.children.length - 1) return false;
-      host.execute(
-        moveNodes({
-          ids: [record.sourceId as NodeId],
-          parent: { kind: "node", id: parent.sourceId as NodeId },
-          index: to,
-          newId: workspace.newId,
-          label: "Reorder",
-        }),
-      );
-      return true;
+      if (to < 0 || to > parent.children.length - 1) return undefined;
+      const command = moveNodes({
+        ids: [record.sourceId as NodeId],
+        parent: { kind: "node", id: parent.sourceId as NodeId },
+        index: to,
+        newId: workspace.newId,
+        label: "Reorder",
+      });
+      return () => host.execute(command);
     }
     case "nextElement":
     case "prevElement": {
       const record = singleElement(workspace);
       const parent = record && workspace.root.domInputs.get(record.parentId);
-      if (!record || !parent || parent.children.length < 2) return false;
+      if (!record || !parent || parent.children.length < 2) return undefined;
       const index = parent.children.indexOf(record.id);
       const step = id === "nextElement" ? 1 : -1;
       const next =
         parent.children[
           (index + step + parent.children.length) % parent.children.length
         ];
-      workspace.selectRecords([next]);
-      return true;
+      return () => workspace.selectRecords([next]);
     }
     case "selectAll": {
       const level = levelRecord(workspace);
       const children = level
         ? (workspace.root.domInputs.get(level)?.children ?? [])
         : [];
-      if (!children.length) return false;
-      workspace.selectRecords(children);
-      return true;
+      return children.length
+        ? () => workspace.selectRecords(children)
+        : undefined;
     }
     case "detachInstance": {
       const record = singleElement(workspace);
       const selected = workspace.session.getSnapshot().selection[0];
-      if (!record || selected?.target.kind !== "node") return false;
+      if (!record || selected?.target.kind !== "node") return undefined;
       const command = catalogComponentCommands.detach(
         selected.target.id,
         workspace.newId,
@@ -218,10 +221,20 @@ export function runCatalogShortcut(
       try {
         command(workspace.runtime.graph);
       } catch {
-        return false;
+        return undefined;
       }
-      host.execute(command);
-      return true;
+      return () => host.execute(command);
     }
   }
+}
+
+/** Run a document shortcut now; false = nothing to do. */
+export function runCatalogShortcut(
+  workspace: CatalogWorkspace,
+  id: CatalogShortcutId,
+  onError: (error: unknown) => void = () => {},
+): boolean {
+  const plan = planCatalogShortcut(workspace, id, onError);
+  plan?.();
+  return !!plan;
 }

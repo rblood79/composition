@@ -40,7 +40,9 @@ import { createCatalogQuickConnectHost } from "../panels/datatable/usage/catalog
 import { QuickConnectHostContext } from "../panels/datatable/usage/quickConnectHost";
 import { createCatalogDataVariablesHost } from "../panels/datatable/usage/catalogDataVariablesHost";
 import { DataVariablesHostContext } from "../panels/datatable/usage/dataVariablesHost";
-import { ToastContainer } from "../components";
+import { AgentCommandConfirmDialogHost, ToastContainer } from "../components";
+import { setAgentCommandHost } from "../../services/agent/agentCommandHost";
+import { createCatalogAgentCommandHost } from "../catalogRuntime/agentHost";
 import { PanelWorkspace } from "../layout";
 import { useDataStore } from "../stores/data";
 import {
@@ -201,6 +203,26 @@ export function CatalogBuilderCore() {
 
   const workspace = state.kind === "open" ? state.workspace : undefined;
   useCatalogGlobalShortcuts(workspace, handleSceneError);
+  // Agent commands (the AI panel's run_command, the DEV `window.__compositionAgent`) and the
+  // header menu run over this workspace (ADR-248 4e-5).
+  useEffect(() => {
+    if (!workspace) return;
+    return setAgentCommandHost(
+      createCatalogAgentCommandHost(workspace, handleSceneError),
+    );
+  }, [workspace, handleSceneError]);
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    let uninstall: (() => void) | null = null;
+    let cancelled = false;
+    void import("../../services/agent/devAgentEntry").then((m) => {
+      if (!cancelled) uninstall = m.installDevAgentEntry();
+    });
+    return () => {
+      cancelled = true;
+      uninstall?.();
+    };
+  }, []);
   // A collection's rows changed (edit, load, delete): its bound collections draw them again.
   useEffect(() => {
     if (!workspace) return;
@@ -349,6 +371,7 @@ export function CatalogBuilderCore() {
       ) : (
         body
       )}
+      <AgentCommandConfirmDialogHost />
       <ToastContainer />
     </BuilderViewport>
   );

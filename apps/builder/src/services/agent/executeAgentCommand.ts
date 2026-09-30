@@ -47,6 +47,7 @@ import type { ToolTranslate } from "../../types/integrations/ai.types";
 import { localizedStrings } from "../../i18n/translations";
 import { getStoredLocale } from "../../i18n/locales";
 import { AGENT_COMMANDS, type AgentCommandInput } from "./agentCommands";
+import { getAgentCommandHost } from "./agentCommandHost";
 import { buildAgentReadModel } from "./agentReadModel";
 
 export { buildAgentReadModel };
@@ -237,8 +238,12 @@ export async function executeAgentCommand(
   const adapter = AGENT_COMMANDS[canonicalId];
   if (!adapter) return finishDenied("denied", "adapter-missing", meta.mutation);
 
-  // 2. precondition
-  if (meta.precondition) {
+  // 2. precondition — the open Builder's host answers first (ADR-248 4e-5), else `COMMAND_META`
+  const host = getAgentCommandHost();
+  const planned = host?.plan(canonicalId);
+  if (planned && !("run" in planned))
+    return finishDenied("precondition-failed", planned.reason, meta.mutation);
+  if (!planned && meta.precondition) {
     const check = meta.precondition(buildAgentReadModel());
     if (!check.ok)
       return finishDenied("precondition-failed", check.reason, meta.mutation);
@@ -258,10 +263,21 @@ export async function executeAgentCommand(
 
   // 4. 실행 — transaction 없음 (동기 창 전용), 1 entry 는 액션이 보장
   try {
-    await adapter({
-      elementsMap: useStore.getState().elementsMap,
-      clipboard: ctx.clipboard,
-    });
+    if (planned) {
+      // Planned again after the confirm wait: the document may have changed meanwhile.
+      const plan = host!.plan(canonicalId);
+      if (!plan || !("run" in plan))
+        return finishDenied(
+          "precondition-failed",
+          plan ? plan.reason : "not-applicable",
+          meta.mutation,
+        );
+      await plan.run();
+    } else
+      await adapter({
+        elementsMap: useStore.getState().elementsMap,
+        clipboard: ctx.clipboard,
+      });
   } catch (error) {
     return finishDenied(
       "error",
@@ -274,7 +290,9 @@ export async function executeAgentCommand(
   const durationMs = now() - started;
   const undoable = meta.undo === "history";
   const historyIndex = undoable
-    ? historyManager.getCurrentPageHistory().currentIndex
+    ? planned
+      ? host!.historyIndex()
+      : historyManager.getCurrentPageHistory().currentIndex
     : undefined;
   record({
     host: ctx.host,
