@@ -1,3 +1,4 @@
+import type { BoundingBox } from "../selection/types";
 import { getViewportController } from "../viewport/ViewportController";
 import { computeFitViewport } from "../viewport/viewportActions";
 
@@ -16,4 +17,27 @@ export function fitCatalogPageFrame(
     fitted.y - frame.y * fitted.scale,
     fitted.scale,
   );
+}
+
+/**
+ * Zoom to selection (⇧2): the union of the selected elements' scene boxes — fitted like a page
+ * frame (90 % of the container, centered; the old Canvas's rule). `undefined` = nothing to fit
+ * (no box, or an empty one).
+ */
+export function catalogUnionRect(
+  boxes: readonly (BoundingBox | undefined)[],
+): BoundingBox | undefined {
+  let left = Infinity;
+  let top = Infinity;
+  let right = -Infinity;
+  let bottom = -Infinity;
+  for (const box of boxes) {
+    if (!box) continue;
+    left = Math.min(left, box.x);
+    top = Math.min(top, box.y);
+    right = Math.max(right, box.x + box.width);
+    bottom = Math.max(bottom, box.y + box.height);
+  }
+  if (!(right > left && bottom > top)) return undefined;
+  return { x: left, y: top, width: right - left, height: bottom - top };
 }

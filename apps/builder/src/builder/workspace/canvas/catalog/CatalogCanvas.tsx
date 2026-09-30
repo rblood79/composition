@@ -1,4 +1,9 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  bindHandlersToDefinitions,
+  useActiveScope,
+  useKeyboardShortcutsRegistry,
+} from "@/builder/hooks";
 import { CatalogCanvasGestures } from "../../../catalogRuntime/canvasGesture";
 import { catalogCanvasMenuItems } from "../../../catalogRuntime/canvasMenu";
 import { catalogMenuHost } from "../../../catalogRuntime/shortcuts";
@@ -29,7 +34,8 @@ import { ViewportControlBridge } from "../viewport";
 import { getViewportController } from "../viewport/ViewportController";
 import { viewportState } from "../viewport/viewportState";
 import { useViewportSyncStore } from "../stores";
-import { fitCatalogPageFrame } from "./catalogViewport";
+import { catalogUnionRect, fitCatalogPageFrame } from "./catalogViewport";
+import type { BoundingBox } from "../selection/types";
 import { hitTestPoint } from "../wasm-bindings/spatialIndex";
 import { resolveSpacingCursor } from "../interaction/spacingGeometry";
 import { catalogOverlayNode } from "./catalogOverlay";
@@ -58,6 +64,10 @@ export function CatalogCanvas({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [gestureSession] = useState(() => new CanvasGestureSession());
   const sceneRef = useRef<CatalogCanvasScene | undefined>(undefined);
+  /** A drawn record's scene box, the scene brought up to date first. */
+  const boundsRef = useRef<(identity: string) => BoundingBox | undefined>(
+    () => undefined,
+  );
   const [menu, setMenu] = useState<{
     request: ContextMenuRequest;
     items: ContextMenuItem[];
@@ -65,6 +75,38 @@ export function CatalogCanvas({
   const callbacks = useRef({ onFirstFrame, onError });
   useLayoutEffect(() => {
     callbacks.current = { onFirstFrame, onError };
+  });
+
+  /**
+   * Zoom to selection — ⇧2, registered here (as the old Canvas did) because the boxes are the
+   * scene's. The header menu's enablement (`canRun`) and the handler read the same target.
+   */
+  const canvasActiveScope = useActiveScope();
+  const zoomShortcuts = useMemo(() => {
+    const target = () => {
+      const rect = catalogUnionRect(
+        workspace.session
+          .getSnapshot()
+          .selection.map((item) => boundsRef.current(item.identity)),
+      );
+      const { containerSize } = useViewportSyncStore.getState();
+      return rect && containerSize.width && containerSize.height
+        ? { rect, containerSize }
+        : undefined;
+    };
+    return bindHandlersToDefinitions(
+      ["zoomToSelection"],
+      {
+        zoomToSelection: () => {
+          const fit = target();
+          if (fit) fitCatalogPageFrame(fit.rect, fit.containerSize);
+        },
+      },
+      { zoomToSelection: () => target() !== undefined },
+    );
+  }, [workspace]);
+  useKeyboardShortcutsRegistry(zoomShortcuts, [zoomShortcuts], {
+    activeScope: canvasActiveScope,
   });
 
   useEffect(() => {
@@ -240,16 +282,17 @@ export function CatalogCanvas({
       }
       invalidateOverlay();
     });
+    boundsRef.current = (identity) => {
+      syncScene();
+      return scene.stream.boundsMap.get(identity);
+    };
     // Dev-only live harness handle: scene boxes and the camera (screen ↔ scene).
     if (import.meta.env.DEV) {
       const handle = ((
         window as unknown as Record<string, unknown>
       ).__COMPOSITION_CATALOG__ ??= {}) as Record<string, unknown>;
       handle.canvas = {
-        boundsOf: (id: string) => {
-          syncScene();
-          return scene.stream.boundsMap.get(id);
-        },
+        boundsOf: (id: string) => boundsRef.current(id),
         camera: () => ({ ...viewportState }),
       };
     }
