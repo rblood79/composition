@@ -1,5 +1,10 @@
 /** ADR-202 — canonical read model과 기존 tool/command를 연결하는 Builder 전용 경계. */
-import { resolveEditContract, type CanonicalNode } from "@composition/shared";
+import {
+  resolveEditContract,
+  type CanonicalNode,
+  type ResolvedField,
+} from "@composition/shared";
+import { getAiReadHost } from "../aiReadHost";
 import { withPanelStyleFields } from "./styleManifest";
 import { getAiComponentCatalog } from "../catalog/componentCatalog";
 import { getAiToolReadModel } from "../tools/canonicalToolReadModel";
@@ -15,6 +20,15 @@ import type {
   ManifestField,
 } from "./manifest";
 
+const manifestField = (f: ResolvedField): ManifestField => ({
+  name: f.key,
+  origin: f.origin,
+  kind: f.kind,
+  ...(f.options?.length ? { values: f.options.map((o) => o.value) } : {}),
+  ...(f.min !== undefined ? { min: f.min } : {}),
+  ...(f.max !== undefined ? { max: f.max } : {}),
+});
+
 export function readCompilerState(): {
   manifest: CommandManifest;
   context: CommandContext;
@@ -26,16 +40,7 @@ export function readCompilerState(): {
     : null;
   const model = getAiToolReadModel();
   const fields = (node: CanonicalNode): ManifestField[] =>
-    withPanelStyleFields(
-      resolveEditContract(node, doc).fields.map((f) => ({
-        name: f.key,
-        origin: f.origin,
-        kind: f.kind,
-        ...(f.options?.length ? { values: f.options.map((o) => o.value) } : {}),
-        ...(f.min !== undefined ? { min: f.min } : {}),
-        ...(f.max !== undefined ? { max: f.max } : {}),
-      })),
-    );
+    withPanelStyleFields(resolveEditContract(node, doc).fields.map(manifestField));
   const components = getAiComponentCatalog().map((entry) => {
     const mode = resolveCompositeMode(entry.type);
     const node =
@@ -54,6 +59,35 @@ export function readCompilerState(): {
       props: fields(node as CanonicalNode),
     };
   });
+  const host = getAiReadHost();
+  if (host) {
+    // ADR-248 4e-5: the open catalog workspace — its elements' edit contracts, creation parent
+    // and selection.
+    const pageId = host.currentPageId();
+    const selected = host.selectedIds();
+    return {
+      manifest: {
+        components,
+        commands: listAgentCommands().map((c) => ({
+          ...c,
+          args: c.args ? { ...c.args } : undefined,
+        })),
+      },
+      context: {
+        parentId: host.creationParentId(),
+        selectedId: selected[0] ?? null,
+        nodes: host
+          .elements()
+          .filter((n) => n.page_id === pageId)
+          .map((n) => ({
+            id: n.id,
+            type: n.type,
+            props: withPanelStyleFields(host.fields(n.id).map(manifestField)),
+          })),
+      },
+      identity: JSON.stringify([host.projectId(), pageId, selected]),
+    };
+  }
   const currentPageId = model.state.currentPageId;
   const nodes = model.elements
     .filter((n) => n.page_id === currentPageId)

@@ -4,6 +4,7 @@ import { getProjectableNodeLookups } from "../../../builder/stores/canonical/can
 import { getStoreState } from "../../../builder/stores";
 import type { CompositionDocument } from "@composition/shared";
 import type { Element } from "../../../types/builder/unified.types";
+import { getAiReadHost } from "../aiReadHost";
 
 interface AiToolElementProjection {
   readonly childrenByParent: Map<string, Element[]>;
@@ -63,6 +64,26 @@ function getActiveCanonicalProjectionForAiTools(): AiToolElementProjection | nul
 
 export function getAiToolReadModel() {
   const state = getStoreState();
+  // ADR-248 4e-5: the open catalog Builder's document and selection (the old store's actions stay
+  // for the writers until they move to catalog commands).
+  const host = getAiReadHost();
+  if (host) {
+    const elements = host.elements() as Element[];
+    const projection =
+      legacyProjectionCache.get(elements) ??
+      buildAiToolElementProjection(elements);
+    legacyProjectionCache.set(elements, projection);
+    const selectedElementIds = [...host.selectedIds()];
+    return {
+      ...projection,
+      state: {
+        ...state,
+        currentPageId: host.currentPageId(),
+        selectedElementId: selectedElementIds[0] ?? null,
+        selectedElementIds,
+      },
+    };
+  }
   const canonicalProjection = getActiveCanonicalProjectionForAiTools();
   if (canonicalProjection) {
     return { ...canonicalProjection, state };
