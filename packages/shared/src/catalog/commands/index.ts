@@ -24,6 +24,7 @@ export {
   renameNode,
   resetDescendant,
   setFields,
+  setFillSizing,
   setHtmlId,
   setSlotDeclaration,
   setWholeField,

@@ -1,6 +1,7 @@
 import { createContext } from "react";
 import type { BreakpointName } from "@composition/shared";
 import type { ElementStyleContext } from "./hooks/useElementStyleContext";
+import type { RatioEditError } from "../../stores/inspectorActions";
 
 /** The selected element as the style actions read it when they run. */
 export interface StylesTargetSnapshot {
@@ -10,6 +11,17 @@ export interface StylesTargetSnapshot {
   style: Record<string, unknown>;
   props: Record<string, unknown>;
 }
+
+/** One Size axis edit (ADR-026 size mode): fill with a weight, a CSS length, or reset. */
+export interface StylesSizingEdit {
+  axis: "width" | "height";
+  mode: "fill" | "css" | "reset";
+  value?: string;
+  factor?: number;
+}
+
+/** A record's measured box key (px). */
+export type StylesLayoutKey = "width" | "height" | "x" | "y";
 
 /**
  * Where the Styles panel reads the selection and writes its edits. Hooks (`use*`) subscribe;
@@ -29,6 +41,19 @@ export interface StylesHost {
   previewStyle(property: string, value: string): void;
   updateProperty(key: string, value: unknown): void;
   updateProperties(props: Record<string, unknown>): void;
+  /** The parent record of a record (its layout decides the size modes on offer). */
+  useParentId(id: string | null): string | null;
+  /** A record's parent box layout: `display` and `flexDirection` (fill availability, size mode). */
+  useParentLayout(id: string | null): { display: string; flexDirection: string };
+  /** A record's measured box (px), following layout. */
+  useLayoutValue(id: string | null, key: StylesLayoutKey): number | undefined;
+  /** One Size axis edit on the selection, as one step (ignored if `selectedId` is stale). */
+  applySizing(selectedId: string | null, edit: StylesSizingEdit): void;
+  /** Ratio preset / lock at the measured ratio (`null`) / unlock (`""`); an error code or null. */
+  applyRatio(
+    selectedId: string | null,
+    value: string | null,
+  ): RatioEditError | null;
   /** The old Canvas editor presentation channel (live paint while editing) is available. */
   presentation: boolean;
 }

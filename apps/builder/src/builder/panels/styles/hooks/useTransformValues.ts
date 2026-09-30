@@ -1,11 +1,10 @@
 import { useMemo } from "react";
 import { useElementStyleContext } from "./useElementStyleContext";
-import { useLayoutValue } from "./useLayoutValue";
+import { useStylesHost } from "../stylesHost";
 import {
   resolveSpecPreset,
   type TransformSpecPreset,
 } from "../utils/specPresetResolver";
-import { useCanonicalPropertyElement } from "../../properties/hooks/useCanonicalPropertyRead";
 import { isBodyType } from "@composition/shared";
 
 /**
@@ -26,13 +25,11 @@ function useIsPickerDateInput(
   id: string | null,
   type: string | undefined,
 ): boolean {
-  const self = useCanonicalPropertyElement(id ?? "");
-  const parentId = self?.parent_id ?? null;
-  const parent = useCanonicalPropertyElement(parentId ?? "");
-  const grandParentId = parent?.parent_id ?? null;
-  const grandParent = useCanonicalPropertyElement(grandParentId ?? "");
+  const host = useStylesHost();
+  const parentId = host.useParentId(id);
+  const grandParentId = host.useParentId(parentId);
+  const gpType = useElementStyleContext(grandParentId).type;
   if (type !== "DateInput") return false;
-  const gpType = grandParent?.type;
   return gpType === "DatePicker" || gpType === "DateRangePicker";
 }
 
@@ -71,6 +68,7 @@ export function useTransformValues(
   layoutAxes: TransformLayoutAxes = "all",
 ): TransformValuesBundle | null {
   const { style, type, size } = useElementStyleContext(id);
+  const { useLayoutValue } = useStylesHost();
 
   const sizeId = layoutAxes === "all" || layoutAxes === "size" ? id : null;
   const positionId =

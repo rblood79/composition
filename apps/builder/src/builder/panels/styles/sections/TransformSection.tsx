@@ -84,7 +84,11 @@ import {
   useSectionCollapse,
 } from "../hooks/useSectionCollapse";
 import { OVERFLOW_OPTIONS } from "../constants/styleOptions";
-import { useStylesSelectedId, useStylesActiveBreakpoint } from "../stylesHost";
+import {
+  useStylesActiveBreakpoint,
+  useStylesHost,
+  useStylesSelectedId,
+} from "../stylesHost";
 
 const POSITION_SECTION_ID = "position";
 
@@ -329,27 +333,22 @@ const TransformSectionContent = memo(function TransformSectionContent({
   const parentDisplay = useParentDisplay(selectedId);
   const parentFlexDirection = useParentFlexDirection(selectedId);
 
+  const host = useStylesHost();
   const commitAxisValue = useCallback(
     (axis: "width" | "height", value: string) => {
-      const state = useStore.getState();
-      const snapshot = readImmediateSelectionSnapshot();
-      if (snapshot.selectedElementId !== selectedId) return;
       const factor = value.match(/^(\d+(?:\.\d+)?)fill$/);
-      if (factor || value === "fill") {
-        state.applySizingFromSelection(snapshot, {
-          axis,
-          mode: "fill",
-          ...(factor ? { factor: Number(factor[1]) } : {}),
-        });
-        return;
-      }
-      state.applySizingFromSelection(snapshot, {
-        axis,
-        mode: value === "" ? "reset" : "css",
-        value,
-      });
+      host.applySizing(
+        selectedId,
+        factor || value === "fill"
+          ? {
+              axis,
+              mode: "fill",
+              ...(factor ? { factor: Number(factor[1]) } : {}),
+            }
+          : { axis, mode: value === "" ? "reset" : "css", value },
+      );
     },
-    [selectedId],
+    [host, selectedId],
   );
 
   const selectSizeUnit = useCallback(
@@ -374,13 +373,9 @@ const TransformSectionContent = memo(function TransformSectionContent({
   const [constraintError, setConstraintError] = useState(false);
   const commitRatio = useCallback(
     (value: string | null) => {
-      const snapshot = readImmediateSelectionSnapshot();
-      if (snapshot.selectedElementId !== selectedId) return;
-      setSizingError(
-        useStore.getState().applyRatioFromSelection(snapshot, value),
-      );
+      setSizingError(host.applyRatio(selectedId, value));
     },
-    [selectedId],
+    [host, selectedId],
   );
   useEffect(() => {
     setSizingError(null);
@@ -399,24 +394,9 @@ const TransformSectionContent = memo(function TransformSectionContent({
               ? "maxHeight"
               : "minHeight";
       // 같은 편집 세션에서 직전에 저장한 반대 제약은 React selector 재렌더보다 먼저
-      // 다음 Enter가 들어올 수 있다. 비교 기준은 렌더 시점 styleValues가 아니라 현재
-      // canonical store의 active breakpoint effective style이어야 한다.
-      const state = useStore.getState();
-      const snapshot = readImmediateSelectionSnapshot();
-      const element = snapshot.selectedElementId
-        ? state.elementsMap.get(snapshot.selectedElementId)
-        : undefined;
-      const baseStyle = (element?.props?.style ?? {}) as Record<
-        string,
-        unknown
-      >;
-      const effectiveStyle = element
-        ? resolveResponsiveStyleMap(
-            baseStyle,
-            element.responsive,
-            state.activeBreakpoint,
-          )
-        : baseStyle;
+      // 다음 Enter가 들어올 수 있다. 비교 기준은 렌더 시점 styleValues가 아니라 지금
+      // 문서의 active breakpoint effective style이어야 한다.
+      const effectiveStyle = host.readSelectedTarget().style;
       const renderedFallback = styleValues[oppositeProperty];
       const opposite = String(
         effectiveStyle[oppositeProperty] ?? renderedFallback ?? "",
@@ -425,7 +405,7 @@ const TransformSectionContent = memo(function TransformSectionContent({
       setConstraintError(conflict);
       return !conflict;
     },
-    [styleValues],
+    [host, styleValues],
   );
 
   const commitConstraint = useCallback(

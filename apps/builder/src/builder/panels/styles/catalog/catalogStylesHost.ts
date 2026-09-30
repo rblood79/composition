@@ -19,12 +19,43 @@ import {
   type CatalogStyleFields,
 } from "../../../catalogRuntime/styleFields";
 import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
+import { catalogBoxModel } from "../../../catalogRuntime/boxModel";
+import {
+  catalogFillAt,
+  catalogRatioCommand,
+  catalogSizingCommand,
+} from "../../../catalogRuntime/sizing";
 import type { OwnFields } from "../../../../../../../packages/shared/src/catalog/resolution/fieldSource";
 import { useToastStore } from "../../../stores/toast";
 import type { ElementStyleContext } from "../hooks/useElementStyleContext";
 import type { StylesHost, StylesTargetSnapshot } from "../stylesHostContext";
 
 const noSubscription = () => () => {};
+
+/** Re-read after every published step and breakpoint switch (layout and records follow them). */
+function useLayoutVersion(workspace: CatalogWorkspace): string {
+  const subscribe = useCallback(
+    (notify: () => void) => {
+      const offSteps = workspace.runtime.subscribeSteps(notify);
+      const offRoot = workspace.subscribeRoot(notify);
+      return () => {
+        offSteps();
+        offRoot();
+      };
+    },
+    [workspace],
+  );
+  return useSyncExternalStore(
+    subscribe,
+    () => `${workspace.runtime.graph.revision}:${workspace.root.breakpoint}`,
+  );
+}
+
+/** The drawn parent record of a record (`null` at a page body or the page grid). */
+function parentRecordOf(workspace: CatalogWorkspace, id: string | null) {
+  const parentId = id ? workspace.root.domInputs.get(id)?.parentId : undefined;
+  return parentId ? workspace.root.domInputs.get(parentId) : undefined;
+}
 
 /** The authored fields at a breakpoint: the base layer with that layer's writes over it. */
 export function catalogFieldsAt(
@@ -118,6 +149,8 @@ export function createCatalogStylesHost(
         label: "Edit style",
       } as Parameters<typeof setFields>[0]);
     });
+  const measured = (identity: string) =>
+    workspace.root.getGeometry([identity]).get(identity);
   const writeProps = (patch: Record<string, unknown>) =>
     run(() => {
       const items = selection();
@@ -167,6 +200,7 @@ export function createCatalogStylesHost(
             : undefined,
           type: contract.type || undefined,
           size: typeof props.size === "string" ? props.size : undefined,
+          sizing: own ? catalogFillAt(own, breakpoint) : undefined,
           fills: undefined,
           props,
           accentColor: undefined,
@@ -191,6 +225,68 @@ export function createCatalogStylesHost(
     previewStyle: () => {},
     updateProperty: (key, value) => writeProps({ [key]: value }),
     updateProperties: writeProps,
+    useParentId(id) {
+      const version = useLayoutVersion(workspace);
+      return useMemo(
+        () => parentRecordOf(workspace, id)?.id ?? null,
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- re-read per layout version
+        [id, version],
+      );
+    },
+    useParentLayout(id) {
+      const version = useLayoutVersion(workspace);
+      return useMemo(() => {
+        const parent = parentRecordOf(workspace, id);
+        if (!parent) return { display: "block", flexDirection: "row" };
+        const box = catalogBoxModel(parent);
+        return {
+          display: box.display,
+          flexDirection: box.flexDirection ?? "row",
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- re-read per layout version
+      }, [id, version]);
+    },
+    useLayoutValue(id, key) {
+      const version = useLayoutVersion(workspace);
+      return useMemo(
+        () => (id ? measured(id)?.[key] : undefined),
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- re-read per layout version
+        [id, key, version],
+      );
+    },
+    applySizing(selectedId, edit) {
+      run(() => {
+        const items = selection();
+        if (!items.length || items[0].identity !== selectedId) return undefined;
+        return catalogSizingCommand({
+          targets: items.map((item) => item.target),
+          own: (target) => workspace.readModel.ownFields(target),
+          breakpoint: workspace.session.getSnapshot().breakpoint,
+          edit,
+        });
+      });
+    },
+    applyRatio(selectedId, value) {
+      const items = selection();
+      if (!items.length || items[0].identity !== selectedId)
+        return "selection-changed";
+      const identities = new Map(
+        items.map((item) => [targetKey(item.target), item.identity]),
+      );
+      const command = catalogRatioCommand({
+        targets: items.map((item) => item.target),
+        own: (target) => workspace.readModel.ownFields(target),
+        breakpoint: workspace.session.getSnapshot().breakpoint,
+        value,
+        measured: (target) => {
+          const identity = identities.get(targetKey(target));
+          return identity ? measured(identity) : undefined;
+        },
+      });
+      if (typeof command === "string") return command;
+      run(() => command);
+      return null;
+    },
     presentation: false,
   };
 }

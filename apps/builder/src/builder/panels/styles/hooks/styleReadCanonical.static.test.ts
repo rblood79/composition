@@ -71,13 +71,19 @@ describe("style hooks canonical read contract", () => {
   });
 
   it("uses canonical property element for transform parent and size reads", async () => {
-    const source = await readFile(
+    // The size-mode hooks read the parent through the Styles host; the store host (the old
+    // app's) reads it from the canonical property element.
+    const hooks = await readFile(
       resolve(__dirname, "useTransformAuxiliary.ts"),
       "utf-8",
     );
+    const host = await readFile(resolve(__dirname, "../stylesHost.ts"), "utf-8");
 
-    expect(source).toContain("useCanonicalPropertyElement");
-    expect(source).not.toContain("s.elementsMap.get");
-    expect(source).not.toContain("state.elementsMap.get(parentId)");
+    expect(hooks).toContain("useStylesHost().useParentLayout");
+    expect(host).toContain("useCanonicalPropertyElement");
+    for (const source of [hooks, host]) {
+      expect(source).not.toContain("s.elementsMap.get");
+      expect(source).not.toContain("state.elementsMap.get(parentId)");
+    }
   });
 });
