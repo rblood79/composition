@@ -307,6 +307,10 @@ H5 수리안은 **main에 미연결 새 모듈을 추가한 뒤 제품 진입점
 
 **4d 종결 (2026-09-30)**: 완료 조건 "unit, G4 독립 경로" 충족 — 새 포맷 생성→편집→자동 저장→refresh→목록·삭제, 실패·충돌·프로젝트 전환 중 저장, v2 파일 왕복 (data part·asset), 구 포맷 IDB head·JSON·폴더·프로젝트 파일 명시 거부, iframe stale·gap·거부 증분 복구, publish 명시 실패를 독립 테스트로 확인했다. 5k 대조표의 "Preview payload 송신 직렬화" 는 새 runtime 한정으로 leaf 증분 entry 1 · export 0 이다 (제품 송신 경로는 4e 에서 잰다). 4e 로 넘기는 것: Preview entry 교체 (`preview/App.tsx` 가 수신기·복제본 root·`renderCatalogDom` 사용, origin 검사·ready 는 기존 창 glue 유지) · 복제본 root 의 layout 모듈 의존 (`wasm-bindings/engine` · `persistentLayoutTree` 값 import) 이 Preview initial 번들에 드는지 측정하고, 들면 DOM record 계획을 layout 없이 분리 · 대시보드 프로젝트 목록·새 프로젝트·파일 열기/저장을 새 함수로 교체 (구 `projects` store·문서 store 조회 0) · 자동 저장 상태 표시 · Phase 2 의 entry 단위 폴더 형식 (`exportCatalogFolder`) 을 폴더 연결 증분 쓰기에 쓸지, v2 컨테이너 하나로 둘지 결정 · 개발용 초기화 명령 (범위 출력 후 새 namespace 만).
 
+**4e 착수 (2026-09-30)** — 실측: 구 모델 (`elementsMap` · canonical store · `CompositionDocument`/`CanonicalNode` · `unified.types` · `useStore`) 에 직접 닿는 Builder 제품 파일 331 (약 13.7만 줄 — Canvas 52 · adapters/canonical 28 · Properties 25 · Styles 21 · store 32 · Layers 13 · AI 11 · 저장 4 · Preview 8 …). G0 처분 후보는 구 제품 모듈 56 · 구 계약 테스트 70.
+
+**사용자 판정 (2026-09-30, AskUserQuestion)**: ① 작업 위치 = **격리 worktree 에 영역별 커밋을 쌓고, live G3·G4 통과 뒤 main 에 한 번 병합**한다. 그동안 main 은 구 앱 그대로다. main 의 각 커밋이 한 경로만 실행한다는 계약은 병합 단위로 지킨다. push 는 요청 시에만. ② 삭제 = **Builder import graph 에서 참조 0 을 확인한 파일만 삭제 승인**. 실제 삭제 목록은 병합 전에 커밋 메시지·이 문서에 남긴다. `apps/publish` 와 publish 전용 shared 타입은 삭제하지 않는다.
+
 ## 6. 검증 상세
 
 | Gate | fixture/조작                                                                                                                                                                      | oracle                                                                                                                                                                                                    |
