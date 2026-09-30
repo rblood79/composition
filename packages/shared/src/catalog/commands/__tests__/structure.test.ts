@@ -17,7 +17,6 @@ import {
   ungroupNodes,
 } from "../structure";
 import {
-  library,
   PAGE,
   PROJECT,
   node,

@@ -1,16 +1,16 @@
 import type {
   AuthoredValue,
   CatalogReader,
-  DefinitionId,
   ItemRow,
   ItemValue,
-  NodeEntry,
   Scalar,
-  TemplateId,
 } from "../document/types";
 import type { CatalogCommand } from "./compose";
-import { fail, overrideAt, type EditTarget } from "./context";
+import { fail, type EditTarget } from "./context";
 import { setFields } from "./fields";
+import { readTargetProp } from "../resolution/fieldSource";
+
+export { readTargetProp };
 
 /**
  * ADR-248 Phase 4b collection item commands on an items-manager prop (ADR-073 static items,
@@ -38,87 +38,6 @@ const asList = (
   Array.isArray(value) && value.every((item) => typeof item === "object")
     ? (value as readonly ItemValue[])
     : undefined;
-
-/** Project default (definition override) or definition default of a prop. */
-function definitionDefault(
-  reader: CatalogReader,
-  definitionId: DefinitionId,
-  key: string,
-): AuthoredValue | undefined {
-  const project = reader.getEntry(reader.projectId);
-  if (project?.kind === "project" && definitionId.startsWith("lib:"))
-    for (const id of project.overrideIds) {
-      const override = reader.getEntry(id);
-      if (
-        override?.kind === "definitionOverride" &&
-        override.targetId === definitionId
-      ) {
-        const write = override.defaults[key];
-        if (write?.kind === "set") return write.value;
-      }
-    }
-  if (definitionId.startsWith("lib:"))
-    return reader.library.definitions.get(
-      definitionId as `lib:definition:${string}`,
-    )?.defaults[key];
-  const definition = reader.getEntry(definitionId);
-  return definition?.kind === "definition"
-    ? definition.defaults[key]
-    : undefined;
-}
-
-/**
- * A prop value a target shows now: its own value, else (a template position) its path patch, the
- * enclosing library patch, the template node's value; else the project and library defaults.
- * `undefined` when none sets it.
- */
-export function readTargetProp(
-  reader: CatalogReader,
-  target: EditTarget,
-  key: string,
-): AuthoredValue | undefined {
-  if (target.kind === "node") {
-    const node = reader.getEntry(target.id);
-    if (node?.kind !== "node") return fail("NODE_REQUIRED", target.id);
-    const own = node.props[key];
-    if (own?.kind === "set") return own.value;
-    if (own?.kind === "mask") return undefined;
-    return definitionDefault(reader, node.definitionId, key);
-  }
-  const owner = reader.getEntry(target.ownerId) as NodeEntry | undefined;
-  if (owner?.kind !== "node") return fail("NODE_REQUIRED", target.ownerId);
-  const patch = overrideAt(owner, target.address);
-  const patched = patch?.kind === "patch" ? patch.props?.[key] : undefined;
-  if (patched?.kind === "set") return patched.value;
-  if (patched?.kind === "mask") return undefined;
-  const path = target.address.templatePath;
-  const templateId = path[path.length - 1] as TemplateId;
-  const instances = target.address.instances;
-  // An enclosing library template's patch at this path, then the template node itself.
-  if (instances.length > 1) {
-    const step = reader.library.templates.get(
-      instances[instances.length - 1] as `lib:template:${string}`,
-    );
-    const libraryPatch = step?.descendantPatches?.find(
-      (item) => item.templatePath.join() === path.join(),
-    );
-    const value = libraryPatch?.props?.[key];
-    if (value !== undefined) return value;
-  }
-  const template = templateId.startsWith("lib:")
-    ? reader.library.templates.get(templateId as `lib:template:${string}`)
-    : reader.getEntry(templateId);
-  if (!template || ("kind" in template && template.kind !== "node"))
-    return fail("DANGLING_TEMPLATE", templateId);
-  const own = template.props[key];
-  if (own !== undefined) {
-    if (typeof own === "object" && own !== null && "kind" in own) {
-      if (own.kind === "set") return own.value;
-      if (own.kind === "mask") return undefined;
-    } else return own as AuthoredValue;
-  }
-  return definitionDefault(reader, template.definitionId, key);
-}
 
 /** The list a target shows now. */
 export function currentItems(

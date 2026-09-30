@@ -21,19 +21,8 @@ import type { CatalogOperation } from "../transactions/transaction";
  * product pre-checks (nesting, operable targets) and fail with a `CatalogValidationError` code.
  */
 
-/** What an edit addresses: an owned node, or a template position inside an instance. */
-export type EditTarget =
-  | { kind: "node"; id: NodeId }
-  | { kind: "descendant"; ownerId: NodeId; address: InstanceAddress };
-
-/**
- * Where nodes are placed: a page, an owned node, or a container position of an instance's
- * template (its children become the instance's `fillSlot`).
- */
-export type NodeParent =
-  | { kind: "page"; id: EntryId<"page"> }
-  | { kind: "node"; id: NodeId }
-  | { kind: "descendant"; ownerId: NodeId; address: InstanceAddress };
+export type { EditTarget, NodeParent } from "../document/types";
+import type { NodeParent } from "../document/types";
 
 export const fail = (code: string, at: string): never => {
   throw new CatalogValidationError(code, at);

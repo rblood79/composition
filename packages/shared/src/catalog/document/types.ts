@@ -564,6 +564,20 @@ export type CatalogEntry =
   | InteractionEntry
   | AssetEntry;
 
+/** What an edit addresses: an owned node, or a template position inside an instance. */
+export type EditTarget =
+  | { kind: "node"; id: NodeId }
+  | { kind: "descendant"; ownerId: NodeId; address: InstanceAddress };
+
+/**
+ * Where nodes are placed: a page, an owned node, or a container position of an instance's
+ * template (its children become the instance's `fillSlot`).
+ */
+export type NodeParent =
+  | { kind: "page"; id: EntryId<"page"> }
+  | { kind: "node"; id: NodeId }
+  | { kind: "descendant"; ownerId: NodeId; address: InstanceAddress };
+
 /**
  * Graph reads a command planner needs. `CatalogGraph` is one (the committed state); a
  * `CatalogStage` is another (the committed state with staged records layered over it), so a

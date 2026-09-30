@@ -62,7 +62,6 @@ const page = (id: string, route: string, patch: Partial<PageEntry> = {}) =>
 describe("ADR-248 Phase 4b project commands", () => {
   it("creates, edits, orders, duplicates and removes pages", () => {
     const graph = graphOf([text("a", "A")], ["a"]);
-    const initial = snapshot(graph);
     const newId = allocator();
     const created = run(
       graph,
