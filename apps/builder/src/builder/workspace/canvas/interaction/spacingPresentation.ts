@@ -24,15 +24,8 @@ import {
 } from "./spacingGeometry";
 
 /** press = pointerdown 이후 임계값 미만 (사선 제거·핸들 강조), drag = 이동 중, input = 인라인 입력 */
-export type SpacingActiveMode = "press" | "drag" | "input";
-
-export interface SpacingActiveTarget {
-  /** 포인터가 잡은 띠 */
-  readonly bandId: string;
-  /** 같이 움직이는 띠 전부 (Option/Alt 양쪽 · 4변) */
-  readonly bandIds: readonly string[];
-  readonly mode: SpacingActiveMode;
-}
+export type { SpacingActiveMode, SpacingActiveTarget } from "./spacingTypes";
+import type { SpacingActiveTarget } from "./spacingTypes";
 
 export interface SpacingPresentationSnapshot {
   readonly owner: SpacingCapability | null;
@@ -168,9 +161,7 @@ export function resolveSpacingBands(
       ownerBounds,
       border: owner.border,
       padding,
-      paddingGrowth: owner.padding.supported
-        ? owner.padding.growth
-        : undefined,
+      paddingGrowth: owner.padding.supported ? owner.padding.growth : undefined,
       gap: gapInput,
     }),
     clipRect: getSceneHitBounds(owner.target.nodeId) ?? null,
@@ -188,6 +179,8 @@ if (typeof window !== "undefined" && import.meta.env?.DEV) {
       getActiveSession: () => getActiveSpacingSession()?.getSnapshot() ?? null,
       // 렌더러와 같은 판정 — live 하니스가 드래그 중 핸들 숨김을 읽는다
       handlesVisible: () =>
-        spacingHandlesVisible(getSpacingPresentationSnapshot().active?.mode ?? null),
+        spacingHandlesVisible(
+          getSpacingPresentationSnapshot().active?.mode ?? null,
+        ),
     };
 }

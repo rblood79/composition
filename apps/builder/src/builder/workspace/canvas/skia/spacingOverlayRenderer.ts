@@ -31,7 +31,7 @@ import {
   spacingHandlesVisible,
   type SpacingBand,
 } from "../interaction/spacingGeometry";
-import type { SpacingActiveTarget } from "../interaction/spacingPresentation";
+import type { SpacingActiveTarget } from "../interaction/spacingTypes";
 
 /** 값 배지 (화면 px) */
 // 값 배지는 선택 치수 레이블 (W × H) 과 같은 규격 — 폰트 12 Medium · 행 16 · 패딩 6/3 · 반경 4

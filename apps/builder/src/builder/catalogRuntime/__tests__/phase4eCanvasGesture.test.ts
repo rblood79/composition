@@ -11,6 +11,7 @@ import type {
 import {
   insertNodes,
   setFields,
+  setWholeField,
 } from "../../../../../../packages/shared/src/catalog/commands";
 import { CatalogCanvasGestures } from "../canvasGesture";
 import { pickTopmostRecord } from "../canvasPick";
@@ -178,16 +179,13 @@ describe("ADR-248 Phase 4e-3b Canvas gestures", () => {
     });
   });
 
-  it("an absolutely placed element moves by offset (left/top at the current breakpoint)", async () => {
-    const { workspace, gestures, record, center } = await open();
+  it("an absolutely placed node moves by offset (its placement); a left/top handle moves it too", async () => {
+    const { workspace, gestures, record, center, box } = await open();
     workspace.execute(
-      setFields({
+      setWholeField({
         targets: [{ kind: "node", id: id("d") }],
-        layout: {
-          position: { kind: "set", value: "absolute" },
-          insetLeft: { kind: "set", value: "10px" },
-          insetTop: { kind: "set", value: "12px" },
-        },
+        field: "placement",
+        value: { kind: "absolute", x: 10, y: 12 },
       }),
     );
     workspace.selectRecords([record("d")]);
@@ -196,11 +194,25 @@ describe("ADR-248 Phase 4e-3b Canvas gestures", () => {
     gestures.update(x + 30, y + 5, 1);
     expect(gestures.preview()?.line).toBeUndefined();
     gestures.finish();
+    const placement = () => {
+      const entry = workspace.runtime.graph.getEntry(id("d"));
+      return entry?.kind === "node" ? entry.placement : undefined;
+    };
+    expect(placement()).toEqual({ kind: "absolute", x: 40, y: 17 });
+
+    // The top-left handle keeps the bottom-right edge: size grows, placement moves (one step).
+    const start = box("d");
+    const revision = workspace.runtime.graph.revision;
+    expect(gestures.beginResize(start.x, start.y, 1)).toBe(true);
+    gestures.update(start.x - 10, start.y - 4, 1);
+    gestures.finish();
+    expect(placement()).toEqual({ kind: "absolute", x: 30, y: 13 });
     const entry = workspace.runtime.graph.getEntry(id("d"));
-    expect(entry?.kind === "node" && entry.layout).toMatchObject({
-      insetLeft: { kind: "set", value: "40px" },
-      insetTop: { kind: "set", value: "17px" },
+    expect(entry?.kind === "node" && entry.sizing).toEqual({
+      width: { kind: "set", value: Math.round(start.width + 10) },
+      height: { kind: "set", value: Math.round(start.height + 4) },
     });
+    expect(workspace.runtime.graph.revision).toBe(revision + 1);
   });
 
   it("a corner handle resizes to fixed width/height on release; the ghost follows the handle", async () => {
@@ -284,5 +296,63 @@ describe("ADR-248 Phase 4e-3b Canvas gestures", () => {
     expect(
       workspace.session.getSnapshot().selection.map((item) => item.identity),
     ).toEqual([record("a"), record("b")]);
+  });
+
+  it("spacing handles drag padding (Alt: both sides of the axis) and the gap; a leaf has none", async () => {
+    const { workspace, gestures, record } = await open();
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: id("list") }],
+        visual: {
+          padding: { kind: "set", value: 8 },
+          gap: { kind: "set", value: 4 },
+        },
+      }),
+    );
+    workspace.selectRecords([record("a")]);
+    expect(gestures.spacingBands()).toEqual([]);
+    workspace.selectRecords([record("list")]);
+    const bands = gestures.spacingBands();
+    expect(bands.filter((band) => band.kind === "padding")).toHaveLength(4);
+    expect(bands.filter((band) => band.kind === "gap")).toHaveLength(2);
+    const center = (kind: string, side: string | null) => {
+      const band = bands.find(
+        (item) => item.kind === kind && item.side === side,
+      )!;
+      return [
+        band.rect.x + band.rect.width / 2,
+        band.rect.y + band.rect.height / 2,
+      ] as const;
+    };
+    const visual = () => {
+      const entry = workspace.runtime.graph.getEntry(id("list"));
+      return entry?.kind === "node" ? entry.visual : {};
+    };
+
+    // Top padding: dragging down 10 px grows it (8 → 18); Alt also moves the bottom.
+    const [tx, ty] = center("padding", "top");
+    expect(gestures.spacingAt(tx, ty, 1)?.onHandle).toBe(true);
+    expect(gestures.beginSpacing(tx, ty, 1, { alt: true })).toBe(true);
+    gestures.update(tx, ty + 10, 1);
+    expect(gestures.preview()?.spacing?.active.bandIds).toHaveLength(2);
+    gestures.finish();
+    expect(visual()).toMatchObject({
+      paddingTop: { kind: "set", value: 18 },
+      paddingBottom: { kind: "set", value: 18 },
+    });
+    expect(visual()).not.toHaveProperty("paddingLeft");
+
+    // The gap between A and B: down 13 px with Shift = the delta in 10 px steps (4 → 14).
+    const [gx, gy] = gestures
+      .spacingBands()
+      .filter((band) => band.kind === "gap")
+      .map((band) => [
+        band.rect.x + band.rect.width / 2,
+        band.rect.y + band.rect.height / 2,
+      ])[0];
+    gestures.beginSpacing(gx, gy, 1);
+    gestures.update(gx, gy + 13, 1, { axisLock: true });
+    gestures.finish();
+    expect(visual()).toMatchObject({ gap: { kind: "set", value: 14 } });
   });
 });

@@ -41,7 +41,6 @@ import { pointInBox } from "../selection/types";
 import {
   SPACING_SIDES,
   resolveSpacingCapability,
-  type SpacingSide,
 } from "../../../presentation/editorPresentationSpacingCapability";
 import { getPaddingLinked } from "../../../panels/styles/components/boxModelLink";
 import {
@@ -58,17 +57,22 @@ import {
   setSpacingOwner,
 } from "../interaction/spacingPresentation";
 import {
+  applySpacingStep,
   hitTestSpacingBands,
   resolveSpacingCursor,
+  resolveSpacingSidesForModifiers,
   resolveSpacingHandleRect,
   spacingDeltaFromPointer,
   type SpacingBand,
   type SpacingHit,
 } from "../interaction/spacingGeometry";
+export {
+  applySpacingStep,
+  resolveSpacingSidesForModifiers,
+} from "../interaction/spacingGeometry";
 import type { SpacingInlineInputState } from "../overlay/spacing/SpacingInlineInput";
 
 /** Shift 큰 단위 step (px) — breakdown §1.1 제안값 (Figma 설정과 동일하다고 주장하지 않는다) */
-const SPACING_SHIFT_STEP = 10;
 
 let spacingHoverCursor: string | null = null;
 let nextOwnerId = 1;
@@ -112,27 +116,6 @@ export interface SpacingInteractionApi {
   inlineInput: SpacingInlineInputState | null;
   /** 인라인 입력이 닫힐 때 (commit/cancel) — active·registry 정리 */
   closeInlineInput: () => void;
-}
-
-/** Option/Alt 양쪽 · Option/Alt+Shift 4변 (Figma 문서 정합, breakdown §1.1) */
-export function resolveSpacingSidesForModifiers(
-  side: SpacingSide,
-  altKey: boolean,
-  shiftKey: boolean,
-): readonly SpacingSide[] {
-  if (altKey && shiftKey) return ["top", "right", "bottom", "left"];
-  if (altKey) {
-    return side === "top" || side === "bottom"
-      ? ["top", "bottom"]
-      : ["left", "right"];
-  }
-  return [side];
-}
-
-/** 시작값 기준 delta 에 step 을 적용 — Shift 는 10px 단위, 아니면 1px (fractional 시작값은 무이동이면 보존) */
-export function applySpacingStep(delta: number, shift: boolean): number {
-  const step = shift ? SPACING_SHIFT_STEP : 1;
-  return Math.round(delta / step) * step;
 }
 
 function hitSpacing(

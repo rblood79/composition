@@ -12,7 +12,9 @@ import {
   renderSelectionBox,
   renderTransformHandles,
 } from "../skia/selectionRenderer";
+import { renderSpacingOverlay } from "../skia/spacingOverlayRenderer";
 import type { SkiaRenderable } from "../skia/types";
+import type { SpacingBand } from "../interaction/spacingGeometry";
 
 export interface CatalogOverlayInputs {
   session: () => CatalogSessionState;
@@ -24,6 +26,14 @@ export interface CatalogOverlayInputs {
   fontMgr: () => FontMgr | undefined;
   /** The drag in progress (move ghost, drop line and container, or the resized box). */
   gesture?: () => CatalogGesturePreview | undefined;
+  /** Spacing handles of the selected container when no gesture runs (ADR-222). */
+  spacing?: () =>
+    | {
+        bands: readonly SpacingBand[];
+        clipRect: BoundingBox | null;
+        hoveredBandId: string | null;
+      }
+    | undefined;
 }
 
 /**
@@ -62,6 +72,15 @@ export function catalogOverlayNode(
         if (gesture.container)
           renderHoverHighlight(ck, canvas, gesture.container, zoom);
         if (gesture.ghost) renderLasso(ck, canvas, gesture.ghost, zoom);
+        if (gesture.spacing)
+          renderSpacingOverlay(ck, canvas, {
+            bands: gesture.spacing.bands,
+            clipRect: null,
+            hoveredBandId: null,
+            active: gesture.spacing.active,
+            zoom,
+            fontMgr: inputs.fontMgr(),
+          });
         if (gesture.line)
           renderSelectionBox(ck, canvas, gesture.line, zoom / 2);
         return;
@@ -73,6 +92,14 @@ export function catalogOverlayNode(
       if (single) {
         renderTransformHandles(ck, canvas, single, zoom);
         renderDimensionLabels(ck, canvas, single, zoom, inputs.fontMgr());
+        const spacing = inputs.spacing?.();
+        if (spacing)
+          renderSpacingOverlay(ck, canvas, {
+            ...spacing,
+            active: null,
+            zoom,
+            fontMgr: inputs.fontMgr(),
+          });
       }
     },
   };

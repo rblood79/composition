@@ -50,27 +50,25 @@ import {
 } from "../workspace/canvas/layout/engines/fullTreeLayout";
 import { getCanonicalRefTarget } from "../../adapters/canonical/canonicalRefResolution";
 
-export type SpacingSide = "top" | "right" | "bottom" | "left";
-export const SPACING_SIDES: readonly SpacingSide[] = [
-  "top",
-  "right",
-  "bottom",
-  "left",
-];
-
-export type SpacingPaddingProperty =
-  "paddingTop" | "paddingRight" | "paddingBottom" | "paddingLeft";
-export type SpacingGapProperty = "rowGap" | "columnGap";
-export type SpacingProperty = SpacingPaddingProperty | SpacingGapProperty;
-
-export const PADDING_PROPERTY_BY_SIDE: Readonly<
-  Record<SpacingSide, SpacingPaddingProperty>
-> = {
-  top: "paddingTop",
-  right: "paddingRight",
-  bottom: "paddingBottom",
-  left: "paddingLeft",
-};
+export {
+  PADDING_PROPERTY_BY_SIDE,
+  SPACING_SIDES,
+  type SpacingBoxMetrics,
+  type SpacingGapProperty,
+  type SpacingPaddingGrowth,
+  type SpacingPaddingProperty,
+  type SpacingProperty,
+  type SpacingSide,
+} from "../workspace/canvas/interaction/spacingTypes";
+import {
+  PADDING_PROPERTY_BY_SIDE,
+  SPACING_SIDES,
+  type SpacingBoxMetrics,
+  type SpacingGapProperty,
+  type SpacingPaddingGrowth,
+  type SpacingProperty,
+  type SpacingSide,
+} from "../workspace/canvas/interaction/spacingTypes";
 
 export type SpacingUnsupportedReason =
   | "no-selection"
@@ -91,13 +89,6 @@ export type SpacingUnsupportedReason =
   | "distributed-alignment"
   | "auto-margin-child"
   | "fewer-than-two-children";
-
-export interface SpacingBoxMetrics {
-  readonly top: number;
-  readonly right: number;
-  readonly bottom: number;
-  readonly left: number;
-}
 
 export type SpacingAxisCapability =
   | {
@@ -124,11 +115,6 @@ export type SpacingPaddingCapability =
       readonly growth: SpacingPaddingGrowth;
     }
   | { readonly supported: false; readonly reason: SpacingUnsupportedReason };
-
-export interface SpacingPaddingGrowth {
-  readonly x: boolean;
-  readonly y: boolean;
-}
 
 export interface SpacingCapability {
   readonly projectId: string;

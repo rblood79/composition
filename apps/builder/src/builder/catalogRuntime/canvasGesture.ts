@@ -2,6 +2,7 @@ import { containerTypeSet } from "@composition/shared";
 import {
   moveNodes,
   setFields,
+  setWholeField,
 } from "../../../../../packages/shared/src/catalog/commands";
 import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
 import { definitionTypeName } from "../../../../../packages/shared/src/catalog/commands/context";
@@ -14,12 +15,24 @@ import type {
 } from "../../../../../packages/shared/src/catalog/document/types";
 import { resolveResizeRequest } from "../workspace/canvas/interaction/resizeGeometry";
 import {
+  applySpacingStep,
+  hitTestSpacingBands,
+  resolveSpacingSidesForModifiers,
+  spacingDeltaFromPointer,
+  type SpacingBand,
+} from "../workspace/canvas/interaction/spacingGeometry";
+import type { SpacingActiveTarget } from "../workspace/canvas/interaction/spacingTypes";
+import {
   boxesIntersect,
   hitTestHandle,
   type BoundingBox,
   type HandleConfig,
   type HandlePosition,
 } from "../workspace/canvas/selection/types";
+import {
+  catalogSpacingBands,
+  type CatalogSpacingPreview,
+} from "./canvasSpacing";
 import type { CatalogConsumerNode } from "./compositionRoot";
 import type { CatalogSelectionItem } from "./session";
 
@@ -29,11 +42,6 @@ export const CATALOG_DRAG_THRESHOLD_PX = 3;
 const PAGE_GRID = "catalog:root";
 const STRUCTURAL = containerTypeSet("structural", { lowercase: true });
 const isNodeSource = (id: string) => id.startsWith("project:node:");
-const px = (value: string | undefined) => {
-  const match =
-    value === undefined ? null : /^(-?\d+(?:\.\d+)?)px$/.exec(value);
-  return match ? Number(match[1]) : undefined;
-};
 
 /** What Canvas gestures read and write (the open `CatalogWorkspace` and its Canvas scene). */
 export interface CatalogGestureHost {
@@ -71,12 +79,25 @@ type Gesture =
       ids: NodeId[];
       records: string[];
       startBox: BoundingBox;
-      /** CSS left/top of an absolutely placed leader (moves by offset in its parent). */
+      /** The authored absolute placement of the leader (`node.placement`): it moves by offset. */
       absolute?: { left: number; top: number };
       active: boolean;
       dx: number;
       dy: number;
       drop?: CatalogDropTarget;
+    }
+  | {
+      kind: "spacing";
+      startX: number;
+      startY: number;
+      item: CatalogSelectionItem;
+      band: SpacingBand;
+      /** The bands that move together (Alt: both sides of the axis, Alt+Shift: all four). */
+      bandIds: string[];
+      sides: ("top" | "right" | "bottom" | "left")[];
+      start: number;
+      active: boolean;
+      value: number;
     }
   | {
       kind: "marquee";
@@ -109,6 +130,11 @@ export interface CatalogGesturePreview {
   /** Marquee: the rectangle and the boxes it would select. */
   readonly marquee?: BoundingBox;
   readonly highlights?: readonly BoundingBox[];
+  /** Spacing bands of the dragged container, with the preview values. */
+  readonly spacing?: {
+    readonly bands: readonly SpacingBand[];
+    readonly active: SpacingActiveTarget;
+  };
 }
 
 /**
@@ -146,9 +172,7 @@ export class CatalogCanvasGestures {
     const item = this.singleElement();
     if (!handle || !item) return false;
     const startBox = this.host.bounds(item.identity)!;
-    const record = this.host.records.get(item.identity)!;
-    const left = px(record.layout.insetLeft);
-    const top = px(record.layout.insetTop);
+    const placement = this.host.records.get(item.identity)!.placement;
     this.gesture = {
       kind: "resize",
       startX: x,
@@ -156,10 +180,8 @@ export class CatalogCanvasGestures {
       handle: handle.position,
       item,
       startBox,
-      ...(record.layout.position === "absolute" &&
-      left !== undefined &&
-      top !== undefined
-        ? { position: { left, top } }
+      ...(placement?.kind === "absolute" && item.target.kind === "node"
+        ? { position: { left: placement.x, top: placement.y } }
         : {}),
       active: false,
       request: {},
@@ -187,8 +209,13 @@ export class CatalogCanvasGestures {
           records.get(item.identity)?.parentId !== PAGE_GRID,
       );
     if (!moving.some((item) => item.identity === leader)) return false;
-    const left = px(leaderRecord.layout.insetLeft);
-    const top = px(leaderRecord.layout.insetTop);
+    const placement = leaderRecord.placement;
+    // A stylesheet-placed sub-part (`position: absolute` without an authored placement) does not move.
+    if (
+      placement?.kind !== "absolute" &&
+      leaderRecord.layout.position === "absolute"
+    )
+      return false;
     this.gesture = {
       kind: "move",
       startX: x,
@@ -199,21 +226,72 @@ export class CatalogCanvasGestures {
       ) as NodeId[],
       records: moving.map((item) => item.identity),
       startBox,
-      ...(leaderRecord.layout.position === "absolute" && moving.length === 1
-        ? {
-            absolute: {
-              left:
-                left ??
-                startBox.x - (this.host.bounds(leaderRecord.parentId)?.x ?? 0),
-              top:
-                top ??
-                startBox.y - (this.host.bounds(leaderRecord.parentId)?.y ?? 0),
-            },
-          }
+      ...(placement?.kind === "absolute" && moving.length === 1
+        ? { absolute: { left: placement.x, top: placement.y } }
         : {}),
       active: false,
       dx: 0,
       dy: 0,
+    };
+    return true;
+  }
+
+  /** The single selected structural container (its spacing handles show); not a page body. */
+  spacingOwner(): CatalogConsumerNode | undefined {
+    const item = this.singleElement();
+    const record = item && this.host.records.get(item.identity);
+    return record && this.structural(record) ? record : undefined;
+  }
+  spacingBands(preview?: CatalogSpacingPreview): readonly SpacingBand[] {
+    const owner = this.spacingOwner();
+    return owner
+      ? catalogSpacingBands(
+          owner,
+          this.host.records,
+          (id) => this.host.bounds(id),
+          preview,
+        )
+      : [];
+  }
+  /** The spacing band under the point (`onHandle`: its handle, which starts a drag). */
+  spacingAt(x: number, y: number, zoom: number) {
+    return hitTestSpacingBands({ x, y }, this.spacingBands(), zoom);
+  }
+  /** A press on a spacing handle of the selected container. */
+  beginSpacing(
+    x: number,
+    y: number,
+    zoom: number,
+    modifiers: { alt?: boolean; shift?: boolean } = {},
+  ): boolean {
+    const hit = this.spacingAt(x, y, zoom);
+    const item = this.singleElement();
+    if (!hit?.onHandle || !item) return false;
+    const bands = this.spacingBands();
+    const sides = hit.band.side
+      ? [
+          ...resolveSpacingSidesForModifiers(
+            hit.band.side,
+            !!modifiers.alt,
+            !!modifiers.shift,
+          ),
+        ]
+      : [];
+    this.gesture = {
+      kind: "spacing",
+      startX: x,
+      startY: y,
+      item,
+      band: hit.band,
+      bandIds: hit.band.side
+        ? bands
+            .filter((band) => band.side && sides.includes(band.side))
+            .map((band) => band.id)
+        : bands.filter((band) => band.kind === "gap").map((band) => band.id),
+      sides,
+      start: hit.band.value,
+      active: false,
+      value: hit.band.value,
     };
     return true;
   }
@@ -262,6 +340,17 @@ export class CatalogCanvasGestures {
     )
       return false;
     gesture.active = true;
+    if (gesture.kind === "spacing") {
+      gesture.value = Math.max(
+        0,
+        gesture.start +
+          applySpacingStep(
+            spacingDeltaFromPointer(gesture.band, dx, dy),
+            !!options.axisLock,
+          ),
+      );
+      return true;
+    }
     if (gesture.kind === "marquee") {
       const rect = {
         x: Math.min(x, gesture.startX),
@@ -302,6 +391,25 @@ export class CatalogCanvasGestures {
   preview(): CatalogGesturePreview | undefined {
     const gesture = this.gesture;
     if (!gesture?.active) return undefined;
+    if (gesture.kind === "spacing")
+      return {
+        spacing: {
+          bands: this.spacingBands(
+            gesture.band.side
+              ? {
+                  padding: Object.fromEntries(
+                    gesture.sides.map((side) => [side, gesture.value]),
+                  ),
+                }
+              : { gap: gesture.value },
+          ),
+          active: {
+            bandId: gesture.band.id,
+            bandIds: gesture.bandIds,
+            mode: "drag",
+          },
+        },
+      };
     if (gesture.kind === "marquee")
       return {
         marquee: gesture.rect,
@@ -361,6 +469,20 @@ export class CatalogCanvasGestures {
     this.gesture = undefined;
   }
 
+  /** A structural container (drop target, spacing owner): body, frame, Group, Section, Card… */
+  private structural(record: CatalogConsumerNode): boolean {
+    try {
+      return STRUCTURAL.has(
+        definitionTypeName(
+          this.host.graph,
+          record.definitionId as DefinitionId,
+        ).toLowerCase(),
+      );
+    } catch {
+      return false;
+    }
+  }
+
   private singleElement(): CatalogSelectionItem | undefined {
     const selection = this.host.selection();
     if (selection.length !== 1) return undefined;
@@ -372,10 +494,32 @@ export class CatalogCanvasGestures {
     gesture: Exclude<Gesture, { kind: "marquee" }>,
   ): CatalogCommand | undefined {
     const breakpoint = this.host.breakpoint();
+    if (gesture.kind === "spacing") {
+      if (gesture.value === gesture.start) return undefined;
+      const PADDING_KEY = {
+        top: "paddingTop",
+        right: "paddingRight",
+        bottom: "paddingBottom",
+        left: "paddingLeft",
+      } as const;
+      return setFields({
+        targets: [gesture.item.target],
+        breakpoint,
+        visual: gesture.band.side
+          ? Object.fromEntries(
+              gesture.sides.map((side) => [
+                PADDING_KEY[side],
+                { kind: "set", value: gesture.value },
+              ]),
+            )
+          : { gap: { kind: "set", value: gesture.value } },
+        label: gesture.band.side ? "Padding" : "Gap",
+      });
+    }
     if (gesture.kind === "resize") {
       const { width, height, left, top } = gesture.request;
       if (width === undefined && height === undefined) return undefined;
-      return setFields({
+      const size = setFields({
         targets: [gesture.item.target],
         breakpoint,
         sizing: {
@@ -386,35 +530,30 @@ export class CatalogCanvasGestures {
             ? { height: { kind: "set", value: height } }
             : {}),
         },
-        ...(left !== undefined || top !== undefined
-          ? {
-              layout: {
-                ...(left !== undefined
-                  ? { insetLeft: { kind: "set", value: `${left}px` } }
-                  : {}),
-                ...(top !== undefined
-                  ? { insetTop: { kind: "set", value: `${top}px` } }
-                  : {}),
-              },
-            }
-          : {}),
         label: "Resize",
+      });
+      const start = gesture.position;
+      if (!start || (left === undefined && top === undefined)) return size;
+      // A left/top handle of an absolutely placed node also moves it (the opposite edge stays).
+      const place = setWholeField({
+        targets: [gesture.item.target],
+        field: "placement",
+        value: { kind: "absolute", x: left ?? start.left, y: top ?? start.top },
+      });
+      return (reader) => ({
+        label: "Resize",
+        ops: [...size(reader).ops, ...place(reader).ops],
       });
     }
     if (gesture.absolute) {
       if (!gesture.dx && !gesture.dy) return undefined;
-      return setFields({
+      return setWholeField({
         targets: [{ kind: "node", id: gesture.ids[0] }],
-        breakpoint,
-        layout: {
-          insetLeft: {
-            kind: "set",
-            value: `${Math.round(gesture.absolute.left + gesture.dx)}px`,
-          },
-          insetTop: {
-            kind: "set",
-            value: `${Math.round(gesture.absolute.top + gesture.dy)}px`,
-          },
+        field: "placement",
+        value: {
+          kind: "absolute",
+          x: Math.round(gesture.absolute.left + gesture.dx),
+          y: Math.round(gesture.absolute.top + gesture.dy),
         },
         label: "Move",
       });
@@ -472,13 +611,7 @@ export class CatalogCanvasGestures {
       record = records.get(record.parentId)
     ) {
       if (within(record.id) || !isNodeSource(record.sourceId)) continue;
-      let type: string;
-      try {
-        type = definitionTypeName(graph, record.definitionId as DefinitionId);
-      } catch {
-        continue;
-      }
-      if (!STRUCTURAL.has(type.toLowerCase())) continue;
+      if (!this.structural(record)) continue;
       const index = this.insertionIndex(record, dragged, x, y);
       try {
         // The command's own checks (nesting, not into itself) decide whether the drop is allowed.

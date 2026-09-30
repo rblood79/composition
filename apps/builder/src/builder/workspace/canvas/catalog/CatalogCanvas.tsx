@@ -22,6 +22,7 @@ import { getViewportController } from "../viewport/ViewportController";
 import { computeFitViewport } from "../viewport/viewportActions";
 import { viewportState } from "../viewport/viewportState";
 import { hitTestPoint } from "../wasm-bindings/spatialIndex";
+import { resolveSpacingCursor } from "../interaction/spacingGeometry";
 import { catalogOverlayNode } from "./catalogOverlay";
 import { CatalogTextEditor } from "./CatalogTextEditor";
 
@@ -90,6 +91,15 @@ export function CatalogCanvas({
         zoom: () => Math.max(viewportState.zoom, 0.001),
         fontMgr,
         gesture: () => gestures.preview(),
+        spacing: () => {
+          const owner = gestures.spacingOwner();
+          if (!owner) return undefined;
+          return {
+            bands: gestures.spacingBands(),
+            clipRect: scene.stream.hitBoundsMap.get(owner.id) ?? null,
+            hoveredBandId: spacingHover,
+          };
+        },
       }),
     );
     // The overlay follows the session and the scene's boxes (its own version, no content redraw).
@@ -235,6 +245,8 @@ export function CatalogCanvas({
         y: (event.clientY - rect.top - viewportState.y) / zoom,
       };
     };
+    // The spacing band under the pointer (hatched; its handle starts a padding/gap drag).
+    let spacingHover: string | null = null;
     // The last hovered scene point: a click, double click or Escape changes what a click there
     // selects (the context), so hover follows it without waiting for the next move.
     let lastPoint: { x: number; y: number } | undefined;
@@ -259,6 +271,16 @@ export function CatalogCanvas({
       lastPoint = { x, y };
       pressPointer = event.pointerId;
       deferredSelect = undefined;
+      if (
+        gestures.beginSpacing(x, y, zoomNow(), {
+          alt: event.altKey,
+          shift: event.shiftKey,
+        })
+      ) {
+        gestureSession.promoteElement(event.pointerId, "spacing");
+        picking.leave();
+        return;
+      }
       if (gestures.beginResize(x, y, zoomNow())) {
         gestureSession.promoteElement(event.pointerId, "resize");
         picking.leave();
@@ -323,8 +345,18 @@ export function CatalogCanvas({
       syncScene();
       const { x, y } = scenePoint(event);
       lastPoint = { x, y };
-      const handle = gestures.handleAt(x, y, zoomNow());
-      canvas.style.cursor = handle ? handle.cursor : "";
+      const spacing = gestures.spacingAt(x, y, zoomNow());
+      const handle = spacing?.onHandle
+        ? null
+        : gestures.handleAt(x, y, zoomNow());
+      canvas.style.cursor = spacing?.onHandle
+        ? resolveSpacingCursor(spacing.band)
+        : (handle?.cursor ?? "");
+      const hoverBand = spacing?.band.id ?? null;
+      if (hoverBand !== spacingHover) {
+        spacingHover = hoverBand;
+        invalidateOverlay();
+      }
       picking.hover(x, y);
     };
     const onPointerLeave = () => {
