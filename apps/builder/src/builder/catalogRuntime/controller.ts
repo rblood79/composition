@@ -37,6 +37,8 @@ interface ProjectSession {
   undo: HistoryEntry[];
   redo: HistoryEntry[];
   subscriptions: Map<string, Set<Subscription>>;
+  /** Called once per published step (after field subscribers), e.g. session reconciliation. */
+  stepListeners: Set<CatalogStepListener>;
   resolved: Map<string, Map<string, ResolvedCatalogNode>>;
   invalidatedIds: readonly string[];
 }
@@ -55,6 +57,9 @@ function readField(value: unknown, field: string): unknown {
 function sameValue(a: unknown, b: unknown): boolean {
   return Object.is(a, b) || JSON.stringify(a) === JSON.stringify(b);
 }
+
+/** A published step: its result and the entries whose reads it invalidated. */
+export type CatalogStepListener = (step: CatalogStepContext) => void;
 
 /**
  * The step was not applied: a consumer could not take the new state. Graph content, revision,
@@ -136,6 +141,7 @@ export class CatalogRuntime {
       undo: [],
       redo: [],
       subscriptions: new Map(),
+      stepListeners: new Set(),
       resolved: new Map(),
       invalidatedIds: [],
     });
@@ -227,6 +233,12 @@ export class CatalogRuntime {
       value: this.selectResolvedField(id, field, state),
     });
   }
+  /** Listen to every published step of the active project (dispatch, undo, redo). */
+  subscribeSteps(listener: CatalogStepListener): () => void {
+    const session = this.current();
+    session.stepListeners.add(listener);
+    return () => session.stepListeners.delete(listener);
+  }
   private subscribe(subscription: Subscription): () => void {
     const session = this.current();
     let set = session.subscriptions.get(subscription.id);
@@ -248,14 +260,21 @@ export class CatalogRuntime {
     consumer?: CatalogStepConsumer,
   ): CatalogTransactionResult {
     const session = this.current();
-    return this.step(session, label, ops, expectedRevision, consumer, (result) => {
-      session.undo.push({
-        label,
-        forward: result.forward,
-        inverse: result.inverse,
-      });
-      session.redo.length = 0;
-    });
+    return this.step(
+      session,
+      label,
+      ops,
+      expectedRevision,
+      consumer,
+      (result) => {
+        session.undo.push({
+          label,
+          forward: result.forward,
+          inverse: result.inverse,
+        });
+        session.redo.length = 0;
+      },
+    );
   }
   undo(consumer?: CatalogStepConsumer): CatalogTransactionResult | undefined {
     const session = this.current();
@@ -344,15 +363,18 @@ export class CatalogRuntime {
     session.invalidatedIds = invalidatedIds;
     for (const id of invalidatedIds) session.resolved.delete(id);
     const errors = this.notify(session, invalidatedIds);
+    for (const listener of session.stepListeners)
+      try {
+        listener({ result, invalidatedIds });
+      } catch (error) {
+        errors.push(error);
+      }
     if (deliver) errors.push(...deliver());
     if (errors.length) throw new CatalogSubscriberError(result, errors);
     return result;
   }
   /** Every subscriber is called; the errors they throw are returned, not raised. */
-  private notify(
-    session: ProjectSession,
-    ids: readonly string[],
-  ): unknown[] {
+  private notify(session: ProjectSession, ids: readonly string[]): unknown[] {
     const errors: unknown[] = [];
     for (const id of ids) {
       const subscriptions = session.subscriptions.get(id);

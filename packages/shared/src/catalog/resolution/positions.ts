@@ -11,6 +11,7 @@ import type {
   TemplateId,
 } from "../document/types";
 import { CatalogValidationError } from "../document/validation";
+import { validateInstanceAddress } from "./address";
 
 /**
  * ADR-248 Phase 4c — the element positions a reader shows (Layers rows, selection targets), one
@@ -247,4 +248,49 @@ export function childPositions(
       return child ? [child] : [];
     }),
   ];
+}
+
+/**
+ * Whether an edit target still addresses a shown element: an owned node that exists, or a
+ * template position whose owner exists, whose address resolves and which no switched-off
+ * position on its path hides (a replaced position is its replacement, so it is gone).
+ */
+export function targetExists(
+  reader: CatalogReader,
+  target: EditTarget,
+): boolean {
+  if (target.kind === "node")
+    return reader.getEntry(target.id)?.kind === "node";
+  const owner = reader.getEntry(target.ownerId);
+  if (owner?.kind !== "node") return false;
+  const { instances, templatePath } = target.address;
+  try {
+    validateInstanceAddress(
+      owner,
+      target.address,
+      reader.getEntry.bind(reader),
+      reader.library,
+    );
+    const step = instances[instances.length - 1];
+    const enclosing =
+      instances.length > 1 && step.startsWith("lib:")
+        ? readTemplate(reader, step as TemplateId).descendantPatches
+        : undefined;
+    for (let depth = 1; depth <= templatePath.length; depth++) {
+      const position = templatePosition(
+        reader,
+        {
+          owner: owner.id,
+          path: templatePath.slice(0, depth),
+          ...(enclosing ? { patches: { instances, patches: enclosing } } : {}),
+        },
+        instances,
+      );
+      if (!position || position.target.kind === "node") return false;
+    }
+    return true;
+  } catch (error) {
+    if (error instanceof CatalogValidationError) return false;
+    throw error;
+  }
 }
