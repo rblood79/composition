@@ -20,6 +20,7 @@ import { FieldValueSourceContext } from "../generic/fieldValueSource";
 import { ItemsSourceContext } from "../generic/itemsSource";
 import { CatalogAttributesSection } from "./CatalogAttributesSection";
 import { CatalogComponentSection } from "./CatalogComponentSection";
+import { CatalogStateSection } from "./CatalogStateSection";
 import { CATALOG_ITEMS_SOURCE } from "./catalogItemsSource";
 import { useChartPropertyExtras } from "../useChartPropertyExtras";
 import { GenericFieldRenderer } from "../generic/GenericFieldRenderer";
@@ -121,6 +122,12 @@ function CatalogPropertiesContent() {
               target={first.target}
               identity={first.identity}
             />
+            {first.target.kind === "node" && (
+              <CatalogStateSection
+                key={`state:${first.target.id}`}
+                nodeId={first.target.id}
+              />
+            )}
             <CatalogFields
               key={targetKey(first.target)}
               elementId={first.identity}

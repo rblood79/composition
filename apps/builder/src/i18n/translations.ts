@@ -711,6 +711,8 @@ const koKR: TranslationKeys = {
     stateDeleteTitle: "상태 삭제",
     stateDeleteMessage:
       "'{name}' 을 삭제합니다. 사용처 {count} 곳의 템플릿은 원문으로, 규칙은 대상 없음으로 남습니다.",
+    stateDeleteSettersMessage:
+      "'{name}' 을 삭제합니다. 이 상태를 바꾸는 인터랙션 {count} 개도 함께 삭제됩니다.",
     stateAncestorTitle: "조상에서 보이는 상태",
     stateOwnerProject: "프로젝트",
     stateOwnerPage: "페이지",
@@ -2714,6 +2716,8 @@ const enUS: TranslationKeys = {
     stateDeleteTitle: "Delete state",
     stateDeleteMessage:
       "Delete '{name}'. Templates in {count} place(s) keep the raw text and rules lose their target.",
+    stateDeleteSettersMessage:
+      "Delete '{name}'. The {count} interaction(s) that set it are deleted too.",
     stateAncestorTitle: "Visible from ancestors",
     stateOwnerProject: "Project",
     stateOwnerPage: "Page",
@@ -5330,6 +5334,8 @@ const formattedMessages: Record<
       `${String(args?.type ?? "")} 형식이 아닙니다`,
     "propertiesPanel.stateDeleteMessage": (args) =>
       `'${String(args?.name ?? "")}' 을 삭제합니다. 사용처 ${String(args?.count ?? 0)} 곳의 템플릿은 원문으로, 규칙은 대상 없음으로 남습니다.`,
+    "propertiesPanel.stateDeleteSettersMessage": (args) =>
+      `'${String(args?.name ?? "")}' 을 삭제합니다. 이 상태를 바꾸는 인터랙션 ${String(args?.count ?? 0)} 개도 함께 삭제됩니다.`,
     "propertiesPanel.delegatedSubpartDescription": (args) =>
       `${String(args?.type ?? "")} 은 ${String(args?.parent ?? "")} 가 그리는 부분이라 미리보기·퍼블리시에 이 요소의 속성·스타일이 실리지 않습니다. 부모의 속성 (Label · Placeholder · Invalid · Error Message 등) 으로 편집하세요.`,
     "styles.delegatedSubpartDescription": (args) =>
@@ -5825,6 +5831,8 @@ const formattedMessages: Record<
       `Not a valid ${String(args?.type ?? "")}`,
     "propertiesPanel.stateDeleteMessage": (args) =>
       `Delete '${String(args?.name ?? "")}'. Templates in ${String(args?.count ?? 0)} place(s) keep the raw text and rules lose their target.`,
+    "propertiesPanel.stateDeleteSettersMessage": (args) =>
+      `Delete '${String(args?.name ?? "")}'. The ${String(args?.count ?? 0)} interaction(s) that set it are deleted too.`,
     "propertiesPanel.delegatedSubpartDescription": (args) =>
       `${String(args?.type ?? "")} is drawn by ${String(args?.parent ?? "")}. Its own properties and styles never reach Preview or Publish; edit the parent's properties (Label · Placeholder · Invalid · Error Message) instead.`,
     "styles.delegatedSubpartDescription": (args) =>

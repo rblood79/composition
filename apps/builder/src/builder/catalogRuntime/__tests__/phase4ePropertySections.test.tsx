@@ -1,5 +1,5 @@
 import "fake-indexeddb/auto";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
@@ -16,9 +16,14 @@ import { ItemsSourceContext } from "../../panels/properties/generic/itemsSource"
 import { CATALOG_FIELD_VALUE_SOURCE } from "../../panels/properties/catalog/catalogFieldValueSource";
 import { CATALOG_ITEMS_SOURCE } from "../../panels/properties/catalog/catalogItemsSource";
 import { CatalogPropertiesPanel } from "../../panels/properties/catalog/CatalogPropertiesPanel";
+import { CatalogStateSection } from "../../panels/properties/catalog/CatalogStateSection";
 import { catalogHtmlIdCommand, catalogUniqueHtmlId } from "../attributes";
 import { catalogEditContract } from "../editContract";
 import { newCatalogProjectDocument } from "../project";
+import {
+  catalogOwnVariables,
+  catalogVariableCommands,
+} from "../stateVariables";
 import { CatalogWorkspaceProvider } from "../react";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
@@ -170,5 +175,58 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
         selector: ".section-title, .section-title *",
       }).length,
     ).toBeGreaterThan(0);
+  });
+
+  it("the State section adds a variable, refuses a name taken on the chain and writes a free one", async () => {
+    const { workspace } = await open();
+    const graph = workspace.runtime.graph;
+    const page = "project:page:home" as EntryId<"page">;
+    workspace.execute(
+      catalogVariableCommands.add(page, "taken", workspace.newId),
+    );
+    const { container } = render(
+      <I18nProvider initialLocale="en-US">
+        <CatalogWorkspaceProvider workspace={workspace}>
+          <CatalogStateSection nodeId={id("a")} />
+        </CatalogWorkspaceProvider>
+      </I18nProvider>,
+    );
+    // The page's variable shows as visible from an ancestor.
+    expect(
+      container.querySelector(".state-ancestor-row")?.textContent,
+    ).toContain("taken");
+    await act(async () => {
+      fireEvent.click(within(container).getByText("Add"));
+    });
+    const own = () => catalogOwnVariables(graph, id("a"));
+    expect(own().map((variable) => variable.name)).toEqual(["state1"]);
+    const revision = graph.revision;
+    const input = container.querySelector(
+      ".state-def-editor input",
+    ) as HTMLInputElement;
+    fireEvent.change(input, { target: { value: "taken" } });
+    await act(async () => {
+      fireEvent.keyDown(input, { key: "Enter" });
+    });
+    expect(container.querySelector(".state-def-error")?.textContent).toContain(
+      "taken",
+    );
+    expect(graph.revision).toBe(revision);
+    fireEvent.change(input, { target: { value: "open" } });
+    await act(async () => {
+      fireEvent.keyDown(input, { key: "Enter" });
+    });
+    expect(own().map((variable) => variable.name)).toEqual(["open"]);
+    expect(graph.revision).toBe(revision + 1);
+    expect(container.querySelector(".state-def-error")).toBeNull();
+    // The default field was rendered before the rename; its edit keeps the new name.
+    const defaultInput = container.querySelectorAll(
+      ".state-def-editor input",
+    )[1] as HTMLInputElement;
+    fireEvent.change(defaultInput, { target: { value: "hello" } });
+    await act(async () => {
+      fireEvent.keyDown(defaultInput, { key: "Enter" });
+    });
+    expect(own()).toMatchObject([{ name: "open", defaultValue: "hello" }]);
   });
 });

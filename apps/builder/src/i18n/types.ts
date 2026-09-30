@@ -540,6 +540,7 @@ export interface TranslationKeys {
     stateDefaultInvalid: string;
     stateDeleteTitle: string;
     stateDeleteMessage: string;
+    stateDeleteSettersMessage: string;
     stateAncestorTitle: string;
     stateOwnerProject: string;
     stateOwnerPage: string;
