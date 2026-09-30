@@ -124,7 +124,8 @@ export class CatalogRuntime {
   private activeId: CatalogDocument["projectId"];
   constructor(
     graph: CatalogGraph,
-    private readonly storage: CatalogStorage,
+    /** Absent for a read-only replica (the Preview): `save` then fails. */
+    private readonly storage?: CatalogStorage,
   ) {
     this.activeId = graph.projectId;
     this.addProject(graph);
@@ -288,6 +289,26 @@ export class CatalogRuntime {
       },
     );
   }
+  /**
+   * A step another runtime already recorded (a Preview replica taking the editor's delta): the
+   * same validation, consumer and subscribers, but no history entry and no pending save.
+   */
+  sync(
+    label: string,
+    ops: readonly CatalogOperation[],
+    consumer?: CatalogStepConsumer,
+  ): CatalogTransactionResult {
+    const session = this.current();
+    return this.step(
+      session,
+      label,
+      ops,
+      session.graph.revision,
+      consumer,
+      () => undefined,
+      "sync",
+    );
+  }
   undo(consumer?: CatalogStepConsumer): CatalogTransactionResult | undefined {
     const session = this.current();
     const entry = session.undo.at(-1);
@@ -334,6 +355,7 @@ export class CatalogRuntime {
     expectedRevision: number,
     consumer: CatalogStepConsumer | undefined,
     record: (result: CatalogTransactionResult) => void,
+    mode: "record" | "sync" = "record",
   ): CatalogTransactionResult {
     const preAffected = session.graph.collectAffectedIds(
       ops.map((op) => (op.kind === "put" ? op.entry.id : op.id)),
@@ -342,7 +364,10 @@ export class CatalogRuntime {
       projectId: session.graph.projectId,
       expectedRevision,
       ops,
-      history: { kind: "record", label },
+      history:
+        mode === "record"
+          ? { kind: "record", label }
+          : { kind: "skip", reason: "sync" },
     });
     const invalidatedIds = [
       ...new Set([
@@ -360,17 +385,19 @@ export class CatalogRuntime {
       session.graph.revertCommit(result.revision);
       throw new CatalogStepAbortedError(label, session.graph.revision, cause);
     }
-    const changed = [...result.changedIds].map((id) => {
-      const entry = session.graph.getEntry(id) as CatalogEntry;
-      return { id, json: JSON.stringify(entry) };
-    });
-    session.pending.push({
-      projectId: session.graph.projectId,
-      expectedDurableRevision: result.revision - 1,
-      revision: result.revision,
-      changed,
-      removedIds: [...result.removedIds],
-    });
+    if (mode === "record") {
+      const changed = [...result.changedIds].map((id) => {
+        const entry = session.graph.getEntry(id) as CatalogEntry;
+        return { id, json: JSON.stringify(entry) };
+      });
+      session.pending.push({
+        projectId: session.graph.projectId,
+        expectedDurableRevision: result.revision - 1,
+        revision: result.revision,
+        changed,
+        removedIds: [...result.removedIds],
+      });
+    }
     record(result);
     session.invalidatedIds = invalidatedIds;
     for (const id of invalidatedIds) session.resolved.delete(id);
@@ -418,6 +445,8 @@ export class CatalogRuntime {
   save(projectId: CatalogDocument["projectId"] = this.activeId): Promise<void> {
     const session = this.projects.get(projectId);
     if (!session) return Promise.reject(new Error("PROJECT_NOT_OPEN"));
+    const storage = this.storage;
+    if (!storage) return Promise.reject(new Error("CATALOG_READ_ONLY_REPLICA"));
     const targetRevision = session.graph.revision;
     const run = async (): Promise<void> => {
       while (
@@ -425,7 +454,7 @@ export class CatalogRuntime {
         session.pending[0].revision <= targetRevision
       ) {
         const commit = session.pending[0];
-        await this.storage.commit(commit);
+        await storage.commit(commit);
         session.durableRevision = commit.revision;
         session.pending.shift();
       }

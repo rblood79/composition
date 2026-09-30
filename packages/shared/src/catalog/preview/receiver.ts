@@ -52,6 +52,22 @@ export class CatalogPreviewReceiver {
     private readonly requestSnapshot: (
       request: CatalogPreviewSnapshotRequest,
     ) => void,
+    /**
+     * Applies a delta's operations to the held graph as one step (e.g. a replica runtime's
+     * `sync`, so its view consumers take it). It must leave the graph unchanged when it throws.
+     * Default: one `sync` transaction on the graph.
+     */
+    private readonly apply: (
+      graph: CatalogGraph,
+      ops: readonly CatalogOperation[],
+    ) => void = (graph, ops) => {
+      applyCatalogTransaction(graph, {
+        projectId: graph.projectId,
+        expectedRevision: graph.revision,
+        ops,
+        history: { kind: "skip", reason: "sync" },
+      });
+    },
   ) {}
 
   get graph(): CatalogGraph | undefined {
@@ -132,12 +148,7 @@ export class CatalogPreviewReceiver {
     let invalidated: Set<string>;
     try {
       const before = graph.collectAffectedIds(touched);
-      applyCatalogTransaction(graph, {
-        projectId: graph.projectId,
-        expectedRevision: graph.revision,
-        ops,
-        history: { kind: "skip", reason: "sync" },
-      });
+      this.apply(graph, ops);
       invalidated = new Set([...before, ...graph.collectAffectedIds(touched)]);
     } catch (error) {
       this.requestOnce();

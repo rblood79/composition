@@ -1009,6 +1009,10 @@ export class CatalogCompositionRoot {
       this.consume,
     );
   }
+  /** A Preview replica takes the editor's delta: the same consumer, no history, no save. */
+  sync(ops: readonly CatalogOperation[]): CatalogTransactionResult {
+    return this.runtime.sync("Sync", ops, this.consume);
+  }
   /**
    * One user action (ADR-248 Phase 4b): the command plans on the graph as it is and commits at
    * that revision. If the graph moved in between (REVISION_CONFLICT — a plan made before an await,
