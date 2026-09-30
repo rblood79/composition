@@ -13,6 +13,11 @@ import {
   renderSelectionBox,
   renderTransformHandles,
 } from "../skia/selectionRenderer";
+import {
+  renderBindingBadge,
+  type DataBadgeBounds,
+} from "../skia/bindingBadgeRenderer";
+import type { BindingBadgeTarget } from "../skia/skiaOverlayHelpers";
 import { renderSlotHatchPattern } from "../skia/slotMarkerRenderer";
 import {
   renderMeasureGuides,
@@ -37,6 +42,12 @@ export interface CatalogOverlayInputs {
    * box, hatched while it holds nothing.
    */
   slots?: () => readonly { box: BoundingBox; empty: boolean }[];
+  /**
+   * Data binding badges (ADR-212 Phase 6) and the map their drawn scene rects go to (the press
+   * that opens the table editor reads it).
+   */
+  badges?: () => readonly BindingBadgeTarget[];
+  badgeHits?: Map<string, DataBadgeBounds>;
   /** Manual guides (ADR-181), painted under the selection. */
   guides?: (canvas: Canvas) => void;
   /** Alt is held: measure from the selection to the hovered record (Figma's Alt-measure). */
@@ -112,6 +123,16 @@ export function catalogOverlayNode(
           slot.empty,
         );
       }
+      inputs.badgeHits?.clear();
+      for (const badge of inputs.badges?.() ?? [])
+        renderBindingBadge(
+          ck,
+          canvas,
+          badge,
+          zoom,
+          inputs.fontMgr(),
+          inputs.badgeHits,
+        );
       inputs.guides?.(canvas);
       if (state.editingContext)
         for (const id of inputs.recordsOf(state.editingContext)) {

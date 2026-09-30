@@ -42,6 +42,10 @@ import { getViewportController } from "../viewport/ViewportController";
 import { viewportState } from "../viewport/viewportState";
 import { useViewportSyncStore } from "../stores";
 import { catalogUnionRect, fitCatalogPageFrame } from "./catalogViewport";
+import { catalogBadgeAt, createCatalogBadges } from "./catalogBadges";
+import type { DataBadgeBounds } from "../skia/bindingBadgeRenderer";
+import { useDataStore } from "../../../stores/data";
+import { useDataTableEditorStore } from "../../../panels/datatable/stores/dataTableEditorStore";
 import {
   bindCatalogCamera,
   openCatalogCameraMemory,
@@ -240,6 +244,12 @@ export function CatalogCanvas({
         ? skiaFontManager.getFontMgr()
         : undefined;
     renderer.setContentNode(scene.contentNode(ck, fontMgr));
+    const badges = createCatalogBadges({
+      data: () => useDataStore.getState(),
+      bindingsOf: (ref) => workspace.runtime.graph.bindingsOf(ref),
+      recordsOf: (sourceId) => workspace.root.recordsOfSource(sourceId),
+    });
+    const badgeHits = new Map<string, DataBadgeBounds>();
     renderer.setOverlayNode(
       catalogOverlayNode(ck, {
         session: workspace.session.getSnapshot,
@@ -250,6 +260,9 @@ export function CatalogCanvas({
         gesture: () => gestures.preview(),
         guides: (overlayCanvas) => guidesRef.current?.paint(ck, overlayCanvas),
         slots: () => catalogSlotMarks(workspace, scene.stream.boundsMap),
+        badges: () =>
+          badges.targets(scene.stream.boundsMap, scene.stream.hitBoundsMap),
+        badgeHits,
         measuring: () => measuring,
         spacing: () => {
           const owner = gestures.spacingOwner();
@@ -446,12 +459,23 @@ export function CatalogCanvas({
     // (`CatalogRuntime.step`), so the scene follows at the next frame (or pick), not inside it.
     const unsubscribeSteps = workspace.runtime.subscribeSteps(() => {
       sceneStale = true;
+      // A step may change only document state the overlay reads (a binding's badge).
+      overlayVersion += 1;
       scheduler.invalidate();
     });
     // Data rows re-resolved outside a step (the data store): the same per-node deltas.
     const unsubscribeRows = workspace.subscribeRows(() => {
       sceneStale = true;
       scheduler.invalidate();
+    });
+    // The badges show each collection's state (rows, the linked API's last run).
+    const unsubscribeData = useDataStore.subscribe((state, prev) => {
+      if (
+        state.collections !== prev.collections ||
+        state.apiEndpoints !== prev.apiEndpoints ||
+        state.apiRuns !== prev.apiRuns
+      )
+        invalidateOverlay();
     });
     // The record whose text is edited inline: the Canvas leaves its text out while the DOM field
     // shows it (the renderer's editing element skips that node's picture cache).
@@ -564,6 +588,13 @@ export function CatalogCanvas({
       if (guides.press(event)) {
         containerEl.focus({ preventScroll: true });
         picking.leave();
+        return;
+      }
+      // A data badge opens its table's editor (before any element: the badge sits on one).
+      const badge = catalogBadgeAt(badgeHits, scenePoint(event));
+      if (badge) {
+        picking.leave();
+        useDataTableEditorStore.getState().openTableEditor(badge.collectionId);
         return;
       }
       if (
@@ -853,6 +884,7 @@ export function CatalogCanvas({
       window.removeEventListener("keyup", onAltKey);
       window.removeEventListener("blur", onWindowBlur);
       unsubscribeRoot();
+      unsubscribeData();
       guides.dispose();
       guidesRef.current = undefined;
       unwatchCamera();
