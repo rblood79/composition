@@ -250,6 +250,7 @@ export function CatalogCanvas({
         gesture: () => gestures.preview(),
         guides: (overlayCanvas) => guidesRef.current?.paint(ck, overlayCanvas),
         slots: () => catalogSlotMarks(workspace, scene.stream.boundsMap),
+        measuring: () => measuring,
         spacing: () => {
           const owner = gestures.spacingOwner();
           if (!owner) return undefined;
@@ -517,6 +518,14 @@ export function CatalogCanvas({
     };
     // The spacing band under the pointer (hatched; its handle starts a padding/gap drag).
     let spacingHover: string | null = null;
+    // Alt held: the overlay measures from the selection to the hovered element. Key transitions
+    // show it with the pointer still; a move reads the key too (Alt pressed outside the page).
+    let measuring = false;
+    const setMeasuring = (held: boolean) => {
+      if (held === measuring) return;
+      measuring = held;
+      invalidateOverlay();
+    };
     // The last hovered scene point: a click, double click or Escape changes what a click there
     // selects (the context), so hover follows it without waiting for the next move.
     let lastPoint: { x: number; y: number } | undefined;
@@ -683,6 +692,7 @@ export function CatalogCanvas({
         gestureSession.endPointer(event.pointerId);
     };
     const onPointerMove = (event: PointerEvent) => {
+      setMeasuring(event.altKey);
       if (event.buttons !== 0 || gestureSession.shouldSuppressElementHover()) {
         picking.leave();
         return;
@@ -729,6 +739,10 @@ export function CatalogCanvas({
       }
       rehover();
     };
+    const onAltKey = (event: KeyboardEvent) => {
+      if (event.key === "Alt") setMeasuring(event.type === "keydown");
+    };
+    const onWindowBlur = () => setMeasuring(false);
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape" || isEditableTarget(event.target)) return;
       if (gestures.pending) {
@@ -786,6 +800,9 @@ export function CatalogCanvas({
     window.addEventListener("pointerup", onPointerEnd);
     window.addEventListener("pointercancel", onPointerEnd);
     window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keydown", onAltKey);
+    window.addEventListener("keyup", onAltKey);
+    window.addEventListener("blur", onWindowBlur);
 
     const updatePaused = () => {
       scheduler.setPaused(document.hidden || contextLost);
@@ -832,6 +849,9 @@ export function CatalogCanvas({
       window.removeEventListener("pointerup", onPointerEnd);
       window.removeEventListener("pointercancel", onPointerEnd);
       window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keydown", onAltKey);
+      window.removeEventListener("keyup", onAltKey);
+      window.removeEventListener("blur", onWindowBlur);
       unsubscribeRoot();
       guides.dispose();
       guidesRef.current = undefined;

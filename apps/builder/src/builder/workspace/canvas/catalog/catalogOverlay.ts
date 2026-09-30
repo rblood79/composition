@@ -1,7 +1,8 @@
 import type { Canvas, CanvasKit, FontMgr } from "canvaskit-wasm";
 import type { CatalogGesturePreview } from "../../../catalogRuntime/canvasGesture";
 import type { CatalogSessionState } from "../../../catalogRuntime/session";
-import type { BoundingBox } from "../selection/types";
+import { calculateCombinedBounds, type BoundingBox } from "../selection/types";
+import { resolveMeasureGuides } from "../interaction/measureGuides";
 import {
   renderEditingContextBorder,
   renderHoverHighlight,
@@ -13,7 +14,10 @@ import {
   renderTransformHandles,
 } from "../skia/selectionRenderer";
 import { renderSlotHatchPattern } from "../skia/slotMarkerRenderer";
-import { renderSnapGuides } from "../skia/snapGuideRenderer";
+import {
+  renderMeasureGuides,
+  renderSnapGuides,
+} from "../skia/snapGuideRenderer";
 import { renderSpacingOverlay } from "../skia/spacingOverlayRenderer";
 import type { SkiaRenderable } from "../skia/types";
 import type { SpacingBand } from "../interaction/spacingGeometry";
@@ -35,6 +39,8 @@ export interface CatalogOverlayInputs {
   slots?: () => readonly { box: BoundingBox; empty: boolean }[];
   /** Manual guides (ADR-181), painted under the selection. */
   guides?: (canvas: Canvas) => void;
+  /** Alt is held: measure from the selection to the hovered record (Figma's Alt-measure). */
+  measuring?: () => boolean;
   /** Spacing handles of the selected container when no gesture runs (ADR-222). */
   spacing?: () =>
     | {
@@ -43,6 +49,40 @@ export interface CatalogOverlayInputs {
         hoveredBandId: string | null;
       }
     | undefined;
+}
+
+/** The box around every selected record (one selection: its own box). */
+export function catalogSelectionBox(
+  state: Pick<CatalogSessionState, "selection">,
+  bounds: ReadonlyMap<string, BoundingBox>,
+): BoundingBox | null {
+  return calculateCombinedBounds(
+    state.selection.flatMap((item) => {
+      const box = bounds.get(item.identity);
+      return box ? [box] : [];
+    }),
+  );
+}
+
+/**
+ * Alt-measure: the distances from the selection's box to the hovered record — none while Alt is
+ * up, nothing is selected or the hovered record is itself selected.
+ */
+export function catalogMeasureGuides(
+  state: Pick<CatalogSessionState, "selection" | "hover">,
+  bounds: ReadonlyMap<string, BoundingBox>,
+  measuring: boolean,
+) {
+  const hovered = state.hover?.identity;
+  if (
+    !measuring ||
+    !hovered ||
+    state.selection.some((item) => item.identity === hovered)
+  )
+    return [];
+  const selection = catalogSelectionBox(state, bounds);
+  const target = bounds.get(hovered);
+  return selection && target ? resolveMeasureGuides(selection, target) : [];
 }
 
 /**
@@ -115,13 +155,24 @@ export function catalogOverlayNode(
           renderSelectionBox(ck, canvas, gesture.line, zoom / 2);
         return;
       }
-      const single =
-        state.selection.length === 1 &&
-        !state.textEditing &&
-        bounds.get(state.selection[0].identity);
-      if (single) {
-        renderTransformHandles(ck, canvas, single, zoom);
-        renderDimensionLabels(ck, canvas, single, zoom, inputs.fontMgr());
+      if (state.textEditing) return;
+      // A multi-selection also shows the box around it all, with its size (the handles only
+      // mark it: a resize takes one element).
+      const box = catalogSelectionBox(state, bounds);
+      if (box && state.selection.length > 1)
+        renderSelectionBox(ck, canvas, box, zoom);
+      if (box) {
+        renderTransformHandles(ck, canvas, box, zoom);
+        renderDimensionLabels(ck, canvas, box, zoom, inputs.fontMgr());
+      }
+      const measure = catalogMeasureGuides(
+        state,
+        bounds,
+        inputs.measuring?.() ?? false,
+      );
+      if (measure.length)
+        renderMeasureGuides(ck, canvas, measure, zoom, inputs.fontMgr());
+      if (box && state.selection.length === 1) {
         const spacing = inputs.spacing?.();
         if (spacing)
           renderSpacingOverlay(ck, canvas, {
