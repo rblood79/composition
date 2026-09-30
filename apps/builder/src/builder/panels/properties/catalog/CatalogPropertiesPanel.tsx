@@ -26,6 +26,7 @@ import { ItemsSourceContext } from "../generic/itemsSource";
 import { CatalogAttributesSection } from "./CatalogAttributesSection";
 import { CatalogButtonChildFields } from "./CatalogButtonChildFields";
 import { CatalogComponentSection } from "./CatalogComponentSection";
+import { CatalogItemRolesSection } from "./CatalogItemRolesSection";
 import { CatalogPageSection } from "./CatalogPageSection";
 import { CatalogSlotSection } from "./CatalogSlotSection";
 import { CatalogStateSection } from "./CatalogStateSection";
@@ -140,6 +141,10 @@ function CatalogPropertiesContent() {
             <CatalogSlotSection
               key={`slot:${targetKey(first.target)}`}
               target={first.target}
+            />
+            <CatalogItemRolesSection
+              key={`roles:${first.identity}`}
+              identity={first.identity}
             />
             <CatalogFields
               key={targetKey(first.target)}
