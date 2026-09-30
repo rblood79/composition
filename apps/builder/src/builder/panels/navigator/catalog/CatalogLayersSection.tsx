@@ -47,9 +47,10 @@ const noSnapshot = () => EMPTY;
  * one command each.
  */
 export const CatalogLayersSection = memo(function CatalogLayersSection({
-  pageId,
+  ownerId,
 }: {
-  pageId: EntryId<"page">;
+  /** The open page, or the definition of the definition edit view. */
+  ownerId: EntryId<"page"> | EntryId<"definition">;
 }) {
   const { t } = useI18n();
   const workspace = useCatalogWorkspace();
@@ -64,11 +65,11 @@ export const CatalogLayersSection = memo(function CatalogLayersSection({
         subscribeSteps: (listener) =>
           workspace.runtime.subscribeSteps(listener),
       },
-      pageId,
+      ownerId,
     );
     setTree(store);
     return () => store.dispose();
-  }, [workspace, pageId]);
+  }, [workspace, ownerId]);
   const items = useSyncExternalStore(
     tree?.subscribe ?? noSubscription,
     tree?.getSnapshot ?? noSnapshot,

@@ -1250,6 +1250,11 @@ export interface TranslationKeys {
   /** ADR-248 — catalog project open · save status · publish failure. */
   catalogProject: {
     saveSaved: string;
+    editingComponent: string;
+    editingLayout: string;
+    editComponent: string;
+    editLayout: string;
+    doneEditing: string;
     saveUnsaved: string;
     saveSaving: string;
     saveFailed: string;

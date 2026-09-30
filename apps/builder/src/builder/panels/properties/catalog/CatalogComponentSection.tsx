@@ -2,7 +2,11 @@ import { memo, useCallback, useSyncExternalStore } from "react";
 import { Button as RACButton } from "react-aria-components/Button";
 import { Diamond } from "lucide-react";
 import { useI18n } from "@/i18n";
-import type { NodeId } from "../../../../../../../packages/shared/src/catalog/document/types";
+import type {
+  DefinitionId,
+  EntryId,
+  NodeId,
+} from "../../../../../../../packages/shared/src/catalog/document/types";
 import { iconProps } from "../../../../utils/ui/uiConstants";
 import {
   catalogComponentCommands,
@@ -50,8 +54,11 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
 
   const create = useCallback(() => {
     const node = graph.getEntry(nodeId);
+    // An unnamed node names its component after what it is (Frame, Card …).
     const name =
-      (node?.kind === "node" && node.name) ||
+      (node?.kind === "node" &&
+        (node.name ||
+          graph.getDefinition(node.definitionId as DefinitionId)?.name)) ||
       t("componentAction.createComponent");
     run(catalogComponentCommands.create(nodeId, name, workspace.newId));
   }, [graph, nodeId, run, t, workspace]);
@@ -106,6 +113,25 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
       )}
       <div className="fieldset-row">
         <div className="component-semantics-strip">
+          {instanceOf?.project && (
+            <ActionTooltipTrigger tooltip={t("componentAction.goToOrigin")}>
+              <RACButton
+                aria-label={t("componentAction.goToOrigin")}
+                className="control-button"
+                data-icon-only="true"
+                onPress={() =>
+                  workspace.showDefinition(
+                    instanceOf.definitionId as EntryId<"definition">,
+                  )
+                }
+              >
+                <ACTION_ICONS.goToOrigin
+                  aria-hidden="true"
+                  size={iconProps.size}
+                />
+              </RACButton>
+            </ActionTooltipTrigger>
+          )}
           {instanceOf && (
             <ActionTooltipTrigger
               shortcutId="detachInstance"

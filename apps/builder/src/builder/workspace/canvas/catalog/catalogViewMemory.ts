@@ -66,7 +66,8 @@ type ContainerSize = { width: number; height: number };
 /**
  * The Canvas camera over a camera memory: open (and switch) to the breakpoint's remembered camera,
  * else `fit`; remember each camera change after a short delay (`flush` writes a pending one now).
- * A new root at the same breakpoint (a theme change) keeps the camera.
+ * A new root at the same breakpoint (a theme change) keeps the camera. The definition edit view
+ * (`view`) fits its frame and remembers nothing; leaving it returns to the page camera.
  */
 export interface CatalogCameraBinding {
   show(containerSize: ContainerSize): void;
@@ -81,9 +82,12 @@ export function bindCatalogCamera(options: {
   camera: () => WorkspaceCanvasViewport;
   setCamera: (camera: WorkspaceCanvasViewport) => void;
   fit: (containerSize: ContainerSize) => void;
+  /** The definition edit view shown now (`undefined` = the pages). */
+  view?: () => string | undefined;
   delayMs?: number;
 }): CatalogCameraBinding {
   let shown = options.breakpoint();
+  let shownView = options.view?.();
   let timer: ReturnType<typeof setTimeout> | undefined;
   const flush = () => {
     if (timer === undefined) return;
@@ -92,7 +96,7 @@ export function bindCatalogCamera(options: {
     options.memory.remember(shown, options.camera());
   };
   const show = (containerSize: ContainerSize) => {
-    const saved = options.memory.saved(shown);
+    const saved = shownView ? undefined : options.memory.saved(shown);
     if (saved) options.setCamera(saved);
     else options.fit(containerSize);
   };
@@ -100,14 +104,17 @@ export function bindCatalogCamera(options: {
     show,
     rootReplaced(containerSize) {
       const next = options.breakpoint();
-      if (next === shown) return;
+      const nextView = options.view?.();
+      if (next === shown && nextView === shownView) return;
       clearTimeout(timer);
       timer = undefined;
-      options.memory.remember(shown, options.camera());
+      if (!shownView) options.memory.remember(shown, options.camera());
       shown = next;
+      shownView = nextView;
       show(containerSize);
     },
     changed() {
+      if (shownView) return;
       clearTimeout(timer);
       timer = setTimeout(() => {
         timer = undefined;

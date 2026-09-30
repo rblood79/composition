@@ -52,16 +52,23 @@ import { PageHeaderLayer } from "../overlay/pageHeader/PageHeaderLayer";
 import { publishCanvasFramePresentation } from "../canvasFramePresentation";
 import { getPagePositionPresentationSnapshot } from "../interaction/pagePositionPresentation";
 import type { PageHeaderFrame } from "../overlay/pageHeader/pageHeaderGeometry";
-import { updatePage } from "../../../../../../../packages/shared/src/catalog/commands";
+import {
+  renameDefinition,
+  updatePage,
+} from "../../../../../../../packages/shared/src/catalog/commands";
 import type { EntryId } from "../../../../../../../packages/shared/src/catalog/document/types";
 
-/** Page header frames (ADR-221): each page's laid-out frame and name. */
+/**
+ * Page header frames (ADR-221): each page's laid-out frame and name — in the definition edit view,
+ * the definition's frame and name.
+ */
 function catalogHeaderFrames(workspace: CatalogWorkspace): PageHeaderFrame[] {
   const graph = workspace.runtime.graph;
   const frames: PageHeaderFrame[] = [];
   for (const [id, rect] of workspace.root.pageFrameRects()) {
-    const page = graph.getEntry(id);
-    if (page?.kind === "page") frames.push({ id, title: page.name, ...rect });
+    const entry = graph.getEntry(id);
+    if (entry?.kind === "page" || entry?.kind === "definition")
+      frames.push({ id, title: entry.name, ...rect });
   }
   return frames;
 }
@@ -88,6 +95,7 @@ import { catalogOverlayNode } from "./catalogOverlay";
 import { useStore } from "../../../stores";
 import { bindCatalogGuides, type CatalogGuideBinding } from "./catalogGuides";
 import { RulerOverlay } from "../../components/RulerOverlay";
+import { CatalogDefinitionBar } from "./CatalogDefinitionBar";
 import { buildViewportSceneRect } from "../skia/skiaOverlayHelpers";
 import { CatalogTextEditor } from "./CatalogTextEditor";
 
@@ -288,6 +296,7 @@ export function CatalogCanvas({
     const camera = bindCatalogCamera({
       memory: openCatalogCameraMemory(workspace.runtime.graph.projectId),
       breakpoint: () => workspace.root.breakpoint,
+      view: () => workspace.root.definitionView,
       camera: () => ({
         x: viewportState.x,
         y: viewportState.y,
@@ -297,7 +306,13 @@ export function CatalogCanvas({
         getViewportController().setPosition(saved.x, saved.y, saved.scale),
       fit: (containerSize) => {
         const [firstPage] = workspace.root.pageFrameRects().values();
-        if (firstPage) fitCatalogPageFrame(firstPage, containerSize);
+        // The definition edit view opens a small component at 100 % (a layout still fits).
+        if (firstPage)
+          fitCatalogPageFrame(
+            firstPage,
+            containerSize,
+            workspace.root.definitionView ? 1 : Infinity,
+          );
       },
     });
     camera.show(containerRect);
@@ -573,7 +588,12 @@ export function CatalogCanvas({
     headerPressRef.current = (pageId, event) => {
       if (gestureSession.blocksPointerDown(event.pointerId)) return;
       const page = workspace.runtime.graph.getEntry(pageId);
-      const body = page?.kind === "page" ? page.children[0] : undefined;
+      const body =
+        page?.kind === "page"
+          ? page.children[0]
+          : page?.kind === "definition"
+            ? page.templateRootId
+            : undefined;
       const record = body ? workspace.root.recordsOfSource(body)[0] : undefined;
       if (!record) return;
       if (
@@ -843,20 +863,30 @@ export function CatalogCanvas({
         onRenamePage={(pageId, title) => {
           const page = workspace.runtime.graph.getEntry(pageId);
           const name = title.trim();
-          if (page?.kind !== "page" || !name || name === page.name) return;
+          if (!page || !name || !("name" in page) || name === page.name) return;
           try {
-            workspace.execute(
-              updatePage({
-                id: page.id,
-                fields: { name },
-                label: "Rename page",
-              }),
-            );
+            if (page.kind === "definition")
+              workspace.execute(
+                renameDefinition({
+                  id: page.id,
+                  name,
+                  label: "Rename component",
+                }),
+              );
+            else if (page.kind === "page")
+              workspace.execute(
+                updatePage({
+                  id: page.id,
+                  fields: { name },
+                  label: "Rename page",
+                }),
+              );
           } catch (error) {
             callbacks.current.onError?.(error);
           }
         }}
       />
+      <CatalogDefinitionBar workspace={workspace} />
       <RulerOverlay
         onStartGuideCreate={(axis, pointerId, clientX, clientY) =>
           guidesRef.current?.startCreate(axis, pointerId, clientX, clientY)

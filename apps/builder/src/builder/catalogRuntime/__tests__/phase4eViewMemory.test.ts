@@ -107,6 +107,37 @@ describe("ADR-248 4e view memory", () => {
     expect(fits).toEqual(["desktop", "mobile", "mobile"]);
   });
 
+  it("the definition edit view fits its frame, remembers nothing, and leaving it restores the page camera", () => {
+    vi.useFakeTimers();
+    let view: string | undefined;
+    let current = { x: 10, y: 20, scale: 0.5 };
+    const fits: (string | undefined)[] = [];
+    const camera = bindCatalogCamera({
+      memory: openCatalogCameraMemory("p1"),
+      breakpoint: () => "desktop",
+      view: () => view,
+      camera: () => current,
+      setCamera: (saved) => (current = { ...saved }),
+      fit: () => {
+        fits.push(view);
+        current = { x: 0, y: 0, scale: 1 };
+      },
+    });
+    const size = { width: 800, height: 600 };
+    camera.show(size);
+    current = { x: 10, y: 20, scale: 0.5 };
+    camera.changed();
+    view = "project:definition:card";
+    camera.rootReplaced(size);
+    expect(fits.at(-1)).toBe("project:definition:card");
+    current = { x: 99, y: 99, scale: 2 };
+    camera.changed();
+    vi.advanceTimersByTime(150);
+    view = undefined;
+    camera.rootReplaced(size);
+    expect(current).toEqual({ x: 10, y: 20, scale: 0.5 });
+  });
+
   it("flush writes a pending camera now (a reload inside the delay)", () => {
     vi.useFakeTimers();
     let current = { x: 0, y: 0, scale: 1 };

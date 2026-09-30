@@ -2,6 +2,7 @@ import { memo, useCallback, useState, useSyncExternalStore } from "react";
 import { Button as RACButton } from "react-aria-components/Button";
 import { CircleAlert, Layout, X } from "lucide-react";
 import { translateKey, useI18n } from "@/i18n";
+import { ACTION_ICONS } from "../../../config/actionIcons";
 import type { EntryId } from "../../../../../../../packages/shared/src/catalog/document/types";
 import {
   catalogPageCommands,
@@ -151,6 +152,20 @@ export const CatalogPageSection = memo(function CatalogPageSection({
         />
         {currentLayout && (
           <div className="page-layout-info">
+            <RACButton
+              className="control-button"
+              onPress={() =>
+                workspace.showDefinition(
+                  currentLayout.id as EntryId<"definition">,
+                )
+              }
+            >
+              <ACTION_ICONS.goToOrigin
+                aria-hidden="true"
+                size={iconEditProps.size}
+              />
+              <span>{t("catalogProject.editLayout")}</span>
+            </RACButton>
             <RACButton
               className="control-button"
               onPress={() => changeLayout("")}

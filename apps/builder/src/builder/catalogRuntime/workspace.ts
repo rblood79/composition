@@ -249,6 +249,8 @@ export class CatalogWorkspace {
   >();
   /** Ask the Canvas to bring a page frame into view (the Pages tree's page select). */
   revealPage(pageId: EntryId<"page">): void {
+    // A page chosen in the Pages tree leaves the definition edit view.
+    this.showDefinition(undefined);
     for (const listener of [...this.revealListeners]) listener(pageId);
   }
   subscribeReveal(listener: (pageId: EntryId<"page">) => void): () => void {

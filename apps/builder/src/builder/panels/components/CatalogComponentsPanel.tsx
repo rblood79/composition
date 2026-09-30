@@ -33,8 +33,11 @@ function CatalogComponentsContent() {
       _parentId?: string,
       initialProps?: Record<string, unknown>,
     ) => {
-      const { pageId } = workspace.session.getSnapshot();
-      const page = pageId && workspace.runtime.graph.getEntry(pageId);
+      const { pageId, definitionView } = workspace.session.getSnapshot();
+      // The definition edit view inserts into its template root (no selection), not the page.
+      const page = workspace.runtime.graph.getEntry(
+        definitionView ?? pageId ?? "",
+      );
       const command = catalogPaletteInsertCommand(
         {
           graph: workspace.runtime.graph,
@@ -42,9 +45,11 @@ function CatalogComponentsContent() {
           selection: () => workspace.session.getSnapshot().selection,
           itemOfRecord: (identity) => workspace.itemOfRecord(identity),
           pageBody: () =>
-            page && page.kind === "page"
+            page?.kind === "page"
               ? (page.children[0] as NodeId | undefined)
-              : undefined,
+              : page?.kind === "definition"
+                ? page.templateRootId
+                : undefined,
           newId: workspace.newId,
         },
         type,

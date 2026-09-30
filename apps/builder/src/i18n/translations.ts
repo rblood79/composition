@@ -1345,6 +1345,11 @@ const koKR: TranslationKeys = {
   },
   catalogProject: {
     saveSaved: "저장됨",
+    editingComponent: "컴포넌트 편집: {name}",
+    editingLayout: "레이아웃 편집: {name}",
+    editComponent: "컴포넌트 편집",
+    editLayout: "레이아웃 편집",
+    doneEditing: "완료",
     saveUnsaved: "저장 대기",
     saveSaving: "저장 중…",
     saveFailed: "저장 실패 — 눌러서 다시 시도",
@@ -3354,6 +3359,11 @@ const enUS: TranslationKeys = {
   },
   catalogProject: {
     saveSaved: "Saved",
+    editingComponent: "Editing component: {name}",
+    editingLayout: "Editing layout: {name}",
+    editComponent: "Edit component",
+    editLayout: "Edit layout",
+    doneEditing: "Done",
     saveUnsaved: "Unsaved changes",
     saveSaving: "Saving…",
     saveFailed: "Save failed — click to retry",
@@ -5476,6 +5486,14 @@ const formattedMessages: Record<
       `단계 ${String(args?.index ?? 0)}: ${String(args?.tool ?? "")} → 오류 ${String(args?.error ?? "")}`,
     "aiExec.remoteBlocked": (args) =>
       `${String(args?.prefix ?? "")}: ${String(args?.url ?? "")} 는 원격 endpoint 라 브라우저에서 직접 부를 수 없습니다 (HC13). 로컬/사내 endpoint 를 쓰거나 프록시 경로를 기다려 주세요.`,
+    "catalogProject.editingComponent": (args) =>
+      `컴포넌트 편집: ${String(args?.name ?? "")}`,
+    "catalogProject.editingLayout": (args) =>
+      `레이아웃 편집: ${String(args?.name ?? "")}`,
+    "catalogProject.sceneFailed": (args) =>
+      `Canvas 가 이 편집을 그리지 못했습니다: ${String(args?.message ?? "")}`,
+    "catalogProject.openFailed": (args) =>
+      `프로젝트를 열지 못했습니다: ${String(args?.message ?? "")}`,
     "componentAction.selectInstances": (args) =>
       `인스턴스 선택 (${String(args?.count ?? 0)})`,
     "validation.minLength": (args) =>
@@ -5973,6 +5991,14 @@ const formattedMessages: Record<
       `Step ${String(args?.index ?? 0)}: ${String(args?.tool ?? "")} → error ${String(args?.error ?? "")}`,
     "aiExec.remoteBlocked": (args) =>
       `${String(args?.prefix ?? "")}: ${String(args?.url ?? "")} is a remote endpoint and cannot be called directly from the browser (HC13). Use a local or in-house endpoint, or wait for the proxy path.`,
+    "catalogProject.editingComponent": (args) =>
+      `Editing component: ${String(args?.name ?? "")}`,
+    "catalogProject.editingLayout": (args) =>
+      `Editing layout: ${String(args?.name ?? "")}`,
+    "catalogProject.sceneFailed": (args) =>
+      `The canvas could not draw this edit: ${String(args?.message ?? "")}`,
+    "catalogProject.openFailed": (args) =>
+      `The project could not be opened: ${String(args?.message ?? "")}`,
     "componentAction.selectInstances": (args) =>
       `Select instances (${String(args?.count ?? 0)})`,
     "validation.minLength": (args) =>

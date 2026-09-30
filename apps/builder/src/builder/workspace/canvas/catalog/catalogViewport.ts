@@ -1,6 +1,9 @@
 import type { BoundingBox } from "../selection/types";
 import { getViewportController } from "../viewport/ViewportController";
-import { computeFitViewport } from "../viewport/viewportActions";
+import {
+  computeCenteredViewport,
+  computeFitViewport,
+} from "../viewport/viewportActions";
 
 /**
  * ADR-248 Phase 4e: fit a page frame (scene rect) into the Canvas container — the Canvas's first
@@ -9,9 +12,17 @@ import { computeFitViewport } from "../viewport/viewportActions";
 export function fitCatalogPageFrame(
   frame: { x: number; y: number; width: number; height: number },
   containerSize: { width: number; height: number },
+  /** Largest zoom (a small component opens at its real size, not blown up to the screen). */
+  maxZoom = Infinity,
 ): void {
   if (!containerSize.width || !containerSize.height) return;
-  const fitted = computeFitViewport({ canvasSize: frame, containerSize });
+  let fitted = computeFitViewport({ canvasSize: frame, containerSize });
+  if (fitted.scale > maxZoom)
+    fitted = computeCenteredViewport({
+      canvasSize: frame,
+      containerSize,
+      zoom: maxZoom,
+    });
   getViewportController().setPosition(
     fitted.x - frame.x * fitted.scale,
     fitted.y - frame.y * fitted.scale,

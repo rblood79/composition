@@ -56,6 +56,9 @@ export function CatalogNavigatorPanel() {
 function NavigatorSections() {
   const { t } = useI18n();
   const pageId = useCatalogSession((state) => state.pageId);
+  // The definition edit view lists its template instead of the page.
+  const definitionView = useCatalogSession((state) => state.definitionView);
+  const owner = definitionView ?? pageId;
   return (
     <SectionSplitStack
       storageKey={NAVIGATOR_SPLIT_STORAGE_KEYS.pages}
@@ -64,7 +67,7 @@ function NavigatorSections() {
       label={t("navigator.resizeSections")}
       top={<CatalogPagesSection />}
       bottom={
-        pageId ? <CatalogLayersSection key={pageId} pageId={pageId} /> : null
+        owner ? <CatalogLayersSection key={owner} ownerId={owner} /> : null
       }
     />
   );
