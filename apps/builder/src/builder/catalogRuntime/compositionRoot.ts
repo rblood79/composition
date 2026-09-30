@@ -938,6 +938,10 @@ export class CatalogCompositionRoot {
     return this.slotChrome;
   }
   /** The Rust style input of one record (diagnostic; same function the layout tree receives). */
+  /** The records (drawn positions) of one node or template: one source can be drawn many times. */
+  recordsOfSource(sourceId: string): readonly string[] {
+    return [...(this.sourceInstances.get(sourceId) ?? [])];
+  }
   getLayoutInput(id: string): Record<string, unknown> | undefined {
     const record = this.records.get(id);
     return record ? this.styleFor(record) : undefined;
