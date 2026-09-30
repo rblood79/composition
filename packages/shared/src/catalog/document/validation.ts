@@ -1292,6 +1292,9 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
         "entry",
       );
       string(item.contentId, "entry.contentId");
+      // ADR-235 content address: project files carry the bytes of every referenced asset.
+      if (!/^asset:sha256-[0-9a-f]{64}$/.test(item.contentId as string))
+        invalid("INVALID_ASSET_REF", "entry.contentId");
       string(item.mediaType, "entry.mediaType");
       string(item.filename, "entry.filename");
       if (

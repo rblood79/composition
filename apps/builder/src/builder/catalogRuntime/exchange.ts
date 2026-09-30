@@ -5,7 +5,9 @@ import {
 import type {
   CatalogDocument,
   CatalogLibrary,
+  ProjectEntry,
 } from "../../../../../packages/shared/src/catalog/document/types";
+import type { ProjectContentV2 } from "../../../../../packages/shared/src/assets/formatV2";
 import { CatalogStorageError } from "./storage";
 import { sha256Hex } from "../../../../../packages/shared/src/assets/assetBytes";
 
@@ -108,4 +110,37 @@ export async function writeCatalogFolder(
   if ((await target.read(revisionPath)) !== files["manifest.json"])
     throw new Error("CORRUPT_CATALOG_MANIFEST");
   await target.write("manifest.json", files["manifest.json"]);
+}
+
+/**
+ * ADR-248 §4.2 project file (folder or zip): the ADR-235 v2 container — immutable content-addressed
+ * parts, asset bytes, generation recovery — whose document part is the catalog document. The
+ * data stores (collections, API endpoints, variables; ADR-131 data SSOT) and fonts travel as the
+ * container's other parts, unchanged. `buildV2Generation` / `readV2Generation` do the file work.
+ */
+export type CatalogProjectFileExtras = Omit<
+  ProjectContentV2,
+  "project" | "document"
+>;
+export function catalogProjectContent(
+  graph: CatalogGraph,
+  extras: CatalogProjectFileExtras = {},
+): ProjectContentV2 {
+  const project = graph.getEntry(graph.projectId) as ProjectEntry;
+  return {
+    ...extras,
+    project: { id: graph.projectId, name: project.name },
+    document: graph.exportDocument(),
+  };
+}
+/** The document part must be a catalog document of this format; an old project file fails. */
+export function readCatalogProjectContent(
+  content: ProjectContentV2,
+  library: CatalogLibrary,
+): { document: CatalogDocument; extras: CatalogProjectFileExtras } {
+  const document = parseDocument(content.document, library);
+  if (content.project.id !== document.projectId)
+    throw new CatalogStorageError("UNSUPPORTED_PROJECT_FORMAT");
+  const { project: _project, document: _document, ...extras } = content;
+  return { document, extras };
 }
