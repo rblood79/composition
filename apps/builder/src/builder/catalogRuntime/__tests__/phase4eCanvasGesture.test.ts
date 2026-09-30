@@ -97,6 +97,8 @@ async function open() {
   );
   const scene = new CatalogCanvasScene(workspace.root);
   const sync = () => scene.sync();
+  // Manual guides the gestures snap to (scene coordinates).
+  const guides = { x: [] as number[], y: [] as number[] };
   const gestures = new CatalogCanvasGestures({
     get records() {
       return workspace.root.domInputs;
@@ -114,6 +116,7 @@ async function open() {
       sync();
     },
     newId: workspace.newId,
+    guideLines: () => guides,
   });
   const record = (name: string) => workspace.root.recordsOfSource(id(name))[0];
   const box = (name: string) => scene.stream.boundsMap.get(record(name))!;
@@ -125,7 +128,7 @@ async function open() {
     const entry = workspace.runtime.graph.getEntry(id(name));
     return entry?.kind === "node" ? entry.children : [];
   };
-  return { workspace, scene, gestures, record, box, center, children };
+  return { workspace, scene, gestures, record, box, center, children, guides };
 }
 
 describe("ADR-248 Phase 4e-3b Canvas gestures", () => {
@@ -213,6 +216,48 @@ describe("ADR-248 Phase 4e-3b Canvas gestures", () => {
       height: { kind: "set", value: Math.round(start.height + 4) },
     });
     expect(workspace.runtime.graph.revision).toBe(revision + 1);
+  });
+
+  it("an absolute drag snaps to its parent's edge and to manual guides; ⌘ (snap off) moves freely", async () => {
+    const { workspace, gestures, record, center, box, guides } = await open();
+    workspace.execute(
+      setWholeField({
+        targets: [{ kind: "node", id: id("d") }],
+        field: "placement",
+        value: { kind: "absolute", x: 10, y: 12 },
+      }),
+    );
+    workspace.selectRecords([record("d")]);
+    const parent = box("box");
+    const start = box("d");
+    const [x, y] = center("d");
+    // 2 px short of the parent's left edge (threshold 5 screen px at zoom 1): it snaps there.
+    const dx = parent.x - start.x + 2;
+    gestures.beginMove(x, y, record("d"));
+    gestures.update(x + dx, y + 20, 1, { snap: true });
+    expect(gestures.preview()?.ghost?.x).toBe(parent.x);
+    expect(gestures.preview()?.snapGuides?.length).toBeGreaterThan(0);
+    // Snap off: the raw position, no lines.
+    gestures.update(x + dx, y + 20, 1, { snap: false });
+    expect(gestures.preview()?.ghost?.x).toBe(start.x + dx);
+    expect(gestures.preview()?.snapGuides).toBeUndefined();
+    // The committed placement is the snapped one.
+    gestures.update(x + dx, y + 20, 1, { snap: true });
+    gestures.finish();
+    const entry = workspace.runtime.graph.getEntry(id("d"));
+    expect(entry?.kind === "node" && entry.placement).toEqual({
+      kind: "absolute",
+      x: Math.round(10 + parent.x - start.x),
+      y: 32,
+    });
+    // A manual guide wins: the top edge lands on it.
+    const moved = box("d");
+    guides.y.push(moved.y + 100);
+    const [mx, my] = center("d");
+    gestures.beginMove(mx, my, record("d"));
+    gestures.update(mx + 40, my + 97, 1, { snap: true });
+    expect(gestures.preview()?.ghost?.y).toBe(moved.y + 100);
+    gestures.cancel();
   });
 
   it("a corner handle resizes to fixed width/height on release; the ghost follows the handle", async () => {

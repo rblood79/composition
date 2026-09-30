@@ -109,6 +109,10 @@ import { resolveSpacingCursor } from "../interaction/spacingGeometry";
 import { catalogOverlayNode } from "./catalogOverlay";
 import { useStore } from "../../../stores";
 import { bindCatalogGuides, type CatalogGuideBinding } from "./catalogGuides";
+import {
+  catalogGuideSnapLines,
+  catalogGuidesByPage,
+} from "../../../catalogRuntime/pageGuides";
 import { RulerOverlay } from "../../components/RulerOverlay";
 import { CatalogDefinitionBar } from "./CatalogDefinitionBar";
 import { buildViewportSceneRect } from "../skia/skiaOverlayHelpers";
@@ -299,6 +303,16 @@ export function CatalogCanvas({
           ? page
           : undefined;
       },
+      pageFrames: () => workspace.root.pageFrameRects(),
+      guideLines: (exclude) =>
+        catalogGuideSnapLines(
+          catalogGuidesByPage(
+            workspace.runtime.graph,
+            workspace.session.getSnapshot().breakpoint,
+          ),
+          workspace.root.pageFrameRects(),
+          exclude,
+        ),
       pageDropCommand: (page, topLeft) =>
         catalogPageDropCommand(
           workspace.root,
@@ -633,7 +647,15 @@ export function CatalogCanvas({
     const onWindowPointerMove = (event: PointerEvent) => {
       if (event.pointerId !== pressPointer || !gestures.pending) return;
       const { x, y } = scenePoint(event);
-      if (gestures.update(x, y, zoomNow(), { axisLock: event.shiftKey })) {
+      if (
+        gestures.update(x, y, zoomNow(), {
+          axisLock: event.shiftKey,
+          // Snap to objects (the Builder setting); ⌘/Ctrl held turns it off for this move.
+          snap:
+            useStore.getState().snapToObjects &&
+            !(event.metaKey || event.ctrlKey),
+        })
+      ) {
         deferredSelect = undefined;
         picking.leave();
         invalidateOverlay();

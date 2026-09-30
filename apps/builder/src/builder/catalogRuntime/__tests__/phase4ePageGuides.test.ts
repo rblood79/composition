@@ -8,6 +8,7 @@ import {
   catalogGuideDragAt,
   catalogGuideDragCommand,
   catalogGuidesByPage,
+  catalogGuideSnapLines,
   catalogGuideTargets,
   catalogPageGuides,
 } from "../pageGuides";
@@ -38,11 +39,17 @@ async function open() {
   );
   const graph = workspace.runtime.graph;
   const project = graph.getEntry(graph.projectId);
-  const pageId = (project?.kind === "project" ? project.pageIds[0] : "") as string;
+  const pageId = (
+    project?.kind === "project" ? project.pageIds[0] : ""
+  ) as string;
   return { workspace, graph, pageId };
 }
 
-const create = (pageId: string | null, position: number, axis: "x" | "y" = "x") => ({
+const create = (
+  pageId: string | null,
+  position: number,
+  axis: "x" | "y" = "x",
+) => ({
   kind: "create" as const,
   guideId: "g1",
   axis,
@@ -55,7 +62,9 @@ const create = (pageId: string | null, position: number, axis: "x" | "y" = "x") 
 describe("ADR-248 4e manual guides", () => {
   it("a create, move and delete drag are one step each; undo restores; breakpoints are separate", async () => {
     const { workspace, graph, pageId } = await open();
-    workspace.execute(catalogGuideDragCommand(graph, create(pageId, 120), "desktop")!);
+    workspace.execute(
+      catalogGuideDragCommand(graph, create(pageId, 120), "desktop")!,
+    );
     expect(catalogPageGuides(graph, pageId, "desktop")).toEqual([
       { id: "g1", axis: "x", position: 120 },
     ]);
@@ -81,8 +90,12 @@ describe("ADR-248 4e manual guides", () => {
     workspace.undo();
     expect(catalogPageGuides(graph, pageId, "desktop")).toHaveLength(1);
     // A create dropped off every page makes nothing; Delete removes a selected guide.
-    expect(catalogGuideDragCommand(graph, create(null, 5), "desktop")).toBeUndefined();
-    workspace.execute(catalogDeleteGuideCommand(graph, pageId, "g1", "desktop")!);
+    expect(
+      catalogGuideDragCommand(graph, create(null, 5), "desktop"),
+    ).toBeUndefined();
+    workspace.execute(
+      catalogDeleteGuideCommand(graph, pageId, "g1", "desktop")!,
+    );
     expect(catalogPageGuides(graph, pageId, "desktop")).toEqual([]);
     workspace.dispose();
   });
@@ -92,24 +105,56 @@ describe("ADR-248 4e manual guides", () => {
       ["p1", { x: 100, y: 50, width: 400, height: 300 }],
       ["p2", { x: 600, y: 50, width: 400, height: 300 }],
     ]);
-    const createDrag = { kind: "create" as const, axis: "x" as const, originPageId: null };
-    expect(catalogGuideDragAt(createDrag, { x: 700.4, y: 60 }, false, frames)).toEqual({
+    const createDrag = {
+      kind: "create" as const,
+      axis: "x" as const,
+      originPageId: null,
+    };
+    expect(
+      catalogGuideDragAt(createDrag, { x: 700.4, y: 60 }, false, frames),
+    ).toEqual({
       pageId: "p2",
       position: 100,
       removing: false,
       scenePosition: 700.4,
     });
-    expect(catalogGuideDragAt(createDrag, { x: 550, y: 60 }, false, frames).pageId).toBeNull();
-    expect(catalogGuideDragAt(createDrag, { x: 150, y: 60 }, true, frames).pageId).toBeNull();
-    const moveDrag = { kind: "move" as const, axis: "y" as const, originPageId: "p1" };
+    expect(
+      catalogGuideDragAt(createDrag, { x: 550, y: 60 }, false, frames).pageId,
+    ).toBeNull();
+    expect(
+      catalogGuideDragAt(createDrag, { x: 150, y: 60 }, true, frames).pageId,
+    ).toBeNull();
+    const moveDrag = {
+      kind: "move" as const,
+      axis: "y" as const,
+      originPageId: "p1",
+    };
     // A move keeps its page (even over another page) and past its edge it deletes.
-    expect(catalogGuideDragAt(moveDrag, { x: 700, y: 200 }, false, frames)).toMatchObject({
+    expect(
+      catalogGuideDragAt(moveDrag, { x: 700, y: 200 }, false, frames),
+    ).toMatchObject({
       pageId: "p1",
       position: 150,
       removing: false,
     });
-    expect(catalogGuideDragAt(moveDrag, { x: 150, y: 400 }, false, frames).removing).toBe(true);
-    expect(catalogGuideDragAt(moveDrag, { x: 150, y: 60 }, true, frames).removing).toBe(true);
+    expect(
+      catalogGuideDragAt(moveDrag, { x: 150, y: 400 }, false, frames).removing,
+    ).toBe(true);
+    expect(
+      catalogGuideDragAt(moveDrag, { x: 150, y: 60 }, true, frames).removing,
+    ).toBe(true);
+    // Snap lines are the guides at their frames, without the dragged page's own.
+    const guidesByPage = new Map([
+      ["p1", [{ id: "a", axis: "x" as const, position: 10 }]],
+      ["p2", [{ id: "b", axis: "y" as const, position: 5 }]],
+    ]);
+    expect(catalogGuideSnapLines(guidesByPage, frames)).toEqual({
+      x: [110],
+      y: [55],
+    });
+    expect(
+      catalogGuideSnapLines(guidesByPage, frames, new Set(["p2"])),
+    ).toEqual({ x: [110], y: [] });
     // Paint targets are scene lines clipped to the page frame.
     expect(
       catalogGuideTargets(

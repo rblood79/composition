@@ -13,6 +13,7 @@ import {
   renderTransformHandles,
 } from "../skia/selectionRenderer";
 import { renderSlotHatchPattern } from "../skia/slotMarkerRenderer";
+import { renderSnapGuides } from "../skia/snapGuideRenderer";
 import { renderSpacingOverlay } from "../skia/spacingOverlayRenderer";
 import type { SkiaRenderable } from "../skia/types";
 import type { SpacingBand } from "../interaction/spacingGeometry";
@@ -93,6 +94,14 @@ export function catalogOverlayNode(
         if (gesture.container)
           renderHoverHighlight(ck, canvas, gesture.container, zoom);
         if (gesture.ghost) renderLasso(ck, canvas, gesture.ghost, zoom);
+        if (gesture.snapGuides?.length)
+          renderSnapGuides(
+            ck,
+            canvas,
+            gesture.snapGuides,
+            zoom,
+            inputs.fontMgr(),
+          );
         if (gesture.spacing)
           renderSpacingOverlay(ck, canvas, {
             bands: gesture.spacing.bands,

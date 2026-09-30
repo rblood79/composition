@@ -215,3 +215,24 @@ export function catalogGuideTargets(
   }
   return out;
 }
+
+/**
+ * Manual guides as snap lines (scene coordinates): each page's guides at its frame, without the
+ * pages in `exclude` (a dragged page carries its own guides along).
+ */
+export function catalogGuideSnapLines(
+  guidesByPage: ReadonlyMap<string, readonly PageGuideDeclaration[]>,
+  frames: ReadonlyMap<string, Rect>,
+  exclude?: ReadonlySet<string>,
+): { x: number[]; y: number[] } {
+  const lines = { x: [] as number[], y: [] as number[] };
+  for (const [pageId, guides] of guidesByPage) {
+    const frame = frames.get(pageId);
+    if (!frame || exclude?.has(pageId)) continue;
+    for (const guide of guides)
+      lines[guide.axis].push(
+        (guide.axis === "x" ? frame.x : frame.y) + guide.position,
+      );
+  }
+  return lines;
+}

@@ -36,6 +36,14 @@ import {
 import type { CatalogConsumerNode } from "./compositionRoot";
 import type { CatalogSelectionItem } from "./session";
 
+import {
+  SNAP_THRESHOLD_SCREEN_PX,
+  resolveSnappedPosition,
+  type SnapCandidateRect,
+  type SnapGuide,
+  type SnapGuideLines,
+} from "../workspace/canvas/interaction/snapGuides";
+
 /** Screen px a press must travel before it becomes a drag (the old Builder's threshold). */
 export const CATALOG_DRAG_THRESHOLD_PX = 3;
 /** The page grid's synthetic root: a record under it is a page root (the page body). */
@@ -65,6 +73,16 @@ export interface CatalogGestureHost {
     page: string,
     topLeft: { x: number; y: number },
   ): CatalogCommand | undefined;
+  /** Laid-out page frames (page drags snap to the other pages). */
+  pageFrames?(): ReadonlyMap<string, BoundingBox>;
+  /** Manual guides in scene coordinates, without those of `excludePages` (they move along). */
+  guideLines?(excludePages?: ReadonlySet<string>): SnapGuideLines;
+}
+
+/** What a drag snaps to, gathered once when it starts moving. */
+interface SnapContext {
+  candidates: SnapCandidateRect[];
+  lines: SnapGuideLines;
 }
 
 /** Where a flow drag drops: the container record, its node and the index among the rest. */
@@ -92,6 +110,8 @@ type Gesture =
       dx: number;
       dy: number;
       drop?: CatalogDropTarget;
+      snap?: SnapContext;
+      snapGuides?: readonly SnapGuide[];
     }
   | {
       kind: "spacing";
@@ -115,6 +135,8 @@ type Gesture =
       active: boolean;
       dx: number;
       dy: number;
+      snap?: SnapContext;
+      snapGuides?: readonly SnapGuide[];
     }
   | {
       kind: "marquee";
@@ -152,6 +174,8 @@ export interface CatalogGesturePreview {
     readonly bands: readonly SpacingBand[];
     readonly active: SpacingActiveTarget;
   };
+  /** Alignment lines and equal spacing the dragged box snapped to. */
+  readonly snapGuides?: readonly SnapGuide[];
 }
 
 /**
@@ -363,7 +387,11 @@ export class CatalogCanvasGestures {
     x: number,
     y: number,
     zoom: number,
-    options: { axisLock?: boolean } = {},
+    options: {
+      axisLock?: boolean;
+      /** Snap to other boxes and manual guides (the host's setting; ⌘/Ctrl turns it off). */
+      snap?: boolean;
+    } = {},
   ): boolean {
     const gesture = this.gesture;
     if (!gesture) return false;
@@ -393,6 +421,7 @@ export class CatalogCanvasGestures {
       }
       gesture.dx = dx;
       gesture.dy = dy;
+      this.snap(gesture, zoom, !!options.snap);
       return true;
     }
     if (gesture.kind === "marquee") {
@@ -426,10 +455,74 @@ export class CatalogCanvasGestures {
     }
     gesture.dx = dx;
     gesture.dy = dy;
+    // An absolutely placed element snaps (a flow drag reorders; the old Canvas never snapped it).
+    if (gesture.absolute) this.snap(gesture, zoom, !!options.snap);
     gesture.drop = gesture.absolute
       ? undefined
       : this.dropTarget(x, y, gesture);
     return true;
+  }
+
+  /**
+   * Snap the dragged box (the old Canvas's `resolveSnappedPosition`, stateless: it lets go once
+   * the pointer leaves the threshold). A page snaps to the other page frames and the guides of
+   * the other pages; an absolute element to its parent's box, its siblings and every guide.
+   */
+  private snap(
+    gesture: Extract<Gesture, { kind: "move" | "page" }>,
+    zoom: number,
+    enabled: boolean,
+  ): void {
+    gesture.snapGuides = undefined;
+    if (!enabled) return;
+    const context = (gesture.snap ??= this.snapContext(gesture));
+    if (
+      !context.candidates.length &&
+      !context.lines.x.length &&
+      !context.lines.y.length
+    )
+      return;
+    const box = gesture.startBox;
+    const snapped = resolveSnappedPosition(
+      { x: box.x + gesture.dx, y: box.y + gesture.dy },
+      { width: box.width, height: box.height },
+      context.candidates,
+      SNAP_THRESHOLD_SCREEN_PX / Math.max(zoom, 0.001),
+      context.lines,
+    );
+    gesture.dx = snapped.position.x - box.x;
+    gesture.dy = snapped.position.y - box.y;
+    gesture.snapGuides = snapped.guides;
+  }
+  private snapContext(
+    gesture: Extract<Gesture, { kind: "move" | "page" }>,
+  ): SnapContext {
+    const candidates: SnapCandidateRect[] = [];
+    if (gesture.kind === "page") {
+      for (const [id, rect] of this.host.pageFrames?.() ?? [])
+        if (id !== gesture.page) candidates.push({ id, ...rect });
+      return {
+        candidates,
+        lines: this.host.guideLines?.(new Set([gesture.page])) ?? {
+          x: [],
+          y: [],
+        },
+      };
+    }
+    const parentId = this.host.records.get(gesture.leader)?.parentId;
+    const parent = parentId ? this.host.records.get(parentId) : undefined;
+    const moving = new Set(gesture.records);
+    const parentBox = parentId ? this.host.bounds(parentId) : undefined;
+    if (parentId && parentBox) candidates.push({ id: parentId, ...parentBox });
+    for (const id of parent?.children ?? []) {
+      if (moving.has(id)) continue;
+      const box = this.host.bounds(id);
+      if (box) candidates.push({ id, ...box });
+    }
+    return {
+      candidates,
+      lines: this.host.guideLines?.() ?? { x: [], y: [] },
+    };
   }
 
   preview(): CatalogGesturePreview | undefined {
@@ -461,6 +554,7 @@ export class CatalogCanvasGestures {
           x: gesture.startBox.x + gesture.dx,
           y: gesture.startBox.y + gesture.dy,
         },
+        snapGuides: gesture.snapGuides,
       };
     if (gesture.kind === "marquee")
       return {
@@ -485,7 +579,7 @@ export class CatalogCanvasGestures {
       x: gesture.startBox.x + gesture.dx,
       y: gesture.startBox.y + gesture.dy,
     };
-    if (!gesture.drop) return { ghost };
+    if (!gesture.drop) return { ghost, snapGuides: gesture.snapGuides };
     return {
       ghost,
       line: gesture.drop.line,
