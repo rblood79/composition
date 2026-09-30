@@ -137,6 +137,7 @@ export class CatalogWorkspace {
         ...options.root,
         ...(this.autoColumns ? { autoColumns: this.autoColumns } : {}),
         ...(this.colorMode ? { colorMode: this.colorMode } : {}),
+        ...(this.definitionView ? { definitionView: this.definitionView } : {}),
         breakpoint,
       },
     );
@@ -160,8 +161,34 @@ export class CatalogWorkspace {
   }
   /** After a step: a changed theme builds a new root in its color mode with its token values. */
   private afterStep(result: CatalogTransactionResult | undefined): void {
+    // The viewed definition is gone (an undo of its creation, a dissolve): back to the pages.
+    if (
+      this.definitionView &&
+      this.runtime.graph.getEntry(this.definitionView)?.kind !== "definition"
+    ) {
+      this.showDefinition(undefined);
+      return;
+    }
     if (touchesTheme(result, this.projectId) && this.applyTheme())
       this.replaceRoot(this.currentRoot.breakpoint);
+  }
+  private definitionView: EntryId<"definition"> | undefined;
+  /**
+   * The definition edit view (ADR-248 4e): a new root that draws this project definition's
+   * template instead of the pages (`undefined` = back to the pages). Its template nodes are owned
+   * nodes, so selection, the panels and every edit command work on them as on a page; the
+   * instances elsewhere follow each step.
+   */
+  showDefinition(definitionId: EntryId<"definition"> | undefined): void {
+    if (definitionId === this.definitionView) return;
+    if (
+      definitionId &&
+      this.runtime.graph.getEntry(definitionId)?.kind !== "definition"
+    )
+      throw new Error(`CATALOG_DEFINITION_NOT_FOUND:${definitionId}`);
+    this.definitionView = definitionId;
+    this.session.setDefinitionView(definitionId);
+    this.replaceRoot(this.currentRoot.breakpoint);
   }
   /**
    * Show another breakpoint: a new composition root over the same runtime (history, saves and
@@ -307,12 +334,24 @@ export class CatalogWorkspace {
   }
   /** The page a drawn record is on. */
   pageOfRecord(recordId: string): EntryId<"page"> | undefined {
+    const owner = this.ownerOfRecord(recordId);
+    return owner?.startsWith("project:page:")
+      ? (owner as EntryId<"page">)
+      : undefined;
+  }
+  /** The page — or, in the definition edit view, the definition — that owns a drawn record's root. */
+  private ownerOfRecord(
+    recordId: string,
+  ): EntryId<"page"> | EntryId<"definition"> | undefined {
     const [top] = this.recordChain(recordId);
     const source = top && this.root.domInputs.get(top)?.sourceId;
-    const pageId = source && this.runtime.graph.ownerOf(source);
-    return pageId && this.runtime.graph.getEntry(pageId)?.kind === "page"
-      ? (pageId as EntryId<"page">)
-      : undefined;
+    const owner = source && this.runtime.graph.ownerOf(source);
+    const kind = owner ? this.runtime.graph.getEntry(owner)?.kind : undefined;
+    return kind === "page"
+      ? (owner as EntryId<"page">)
+      : kind === "definition" && owner === this.definitionView
+        ? (owner as EntryId<"definition">)
+        : undefined;
   }
 
   /**
@@ -322,9 +361,11 @@ export class CatalogWorkspace {
   positionOfRecord(recordId: string): CatalogPosition | undefined {
     // A data row's records are its row template position's.
     const chain = this.recordChain(recordId).map(catalogRowTemplateIdentity);
-    const pageId = this.pageOfRecord(recordId);
-    if (!chain.length || !pageId) return undefined;
-    let rows = this.readModel.pageRows(pageId);
+    const owner = this.ownerOfRecord(recordId);
+    if (!chain.length || !owner) return undefined;
+    let rows = owner.startsWith("project:definition:")
+      ? this.readModel.definitionRows(owner as EntryId<"definition">)
+      : this.readModel.pageRows(owner as EntryId<"page">);
     let position: CatalogPosition | undefined;
     for (const id of chain) {
       position = rows.find((row) => row.identity === id);

@@ -31,6 +31,11 @@ export interface CatalogSessionState {
   readonly editingContext: NodeId | undefined;
   readonly textEditing: CatalogSelectionItem | undefined;
   readonly breakpoint: BreakpointName;
+  /**
+   * The definition edit view (ADR-248 4e): the Canvas and Layers show this project definition's
+   * template instead of the pages. The page stays the open page to return to.
+   */
+  readonly definitionView?: EntryId<"definition">;
 }
 
 export const targetKey = (target: EditTarget): string =>
@@ -110,6 +115,17 @@ export class CatalogSession {
   }
   setBreakpoint(breakpoint: BreakpointName): void {
     this.set({ breakpoint });
+  }
+  /** Enter (a definition id) or leave (`undefined`) the definition edit view; clears the selection. */
+  setDefinitionView(definitionId: EntryId<"definition"> | undefined): void {
+    if (definitionId === this.state.definitionView) return;
+    this.set({
+      definitionView: definitionId,
+      selection: [],
+      hover: undefined,
+      editingContext: undefined,
+      textEditing: undefined,
+    });
   }
 
   /** Replace the selection, or (`additive`) toggle each item in it. */

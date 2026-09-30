@@ -18,6 +18,7 @@ import {
 } from "../../../../../packages/shared/src/catalog/resolution/fieldSource";
 import {
   childPositions,
+  definitionPositions,
   pagePositions,
   type CatalogPosition,
 } from "../../../../../packages/shared/src/catalog/resolution/positions";
@@ -83,6 +84,12 @@ const targetKey = (target: EditTarget) =>
     : `${target.ownerId}|${target.address.instances.join("/")}|${target.address.templatePath.join("/")}`;
 const same = (a: unknown, b: unknown) =>
   Object.is(a, b) || JSON.stringify(a) === JSON.stringify(b);
+
+/** Whose rows: a page's top level, the definition edit view's, or one row's children. */
+export type CatalogRowsParent =
+  | { pageId: EntryId<"page"> }
+  | { definitionId: EntryId<"definition"> }
+  | { position: CatalogPosition };
 
 export class CatalogReadModel {
   private readonly reads = new Map<string, CachedRead<unknown>>();
@@ -151,7 +158,7 @@ export class CatalogReadModel {
   }
 
   private rowsCompute(
-    parent: { pageId: EntryId<"page"> } | { position: CatalogPosition },
+    parent: CatalogRowsParent,
   ): CachedRead<readonly CatalogPosition[]>["compute"] {
     return () => {
       this.stats.rows += 1;
@@ -160,7 +167,9 @@ export class CatalogReadModel {
       const value =
         "pageId" in parent
           ? pagePositions(reader, parent.pageId)
-          : childPositions(reader, parent.position);
+          : "definitionId" in parent
+            ? definitionPositions(reader, parent.definitionId)
+            : childPositions(reader, parent.position);
       // A listed owned node matters only through its row fields (not its props or children).
       const rowDeps = new Map<string, string>();
       for (const row of value)
@@ -175,11 +184,13 @@ export class CatalogReadModel {
     };
   }
   private rowsKey(
-    parent: { pageId: EntryId<"page"> } | { position: CatalogPosition },
+    parent: CatalogRowsParent,
   ) {
     return "pageId" in parent
       ? `rows:page:${parent.pageId}`
-      : `rows:${parent.position.identity}`;
+      : "definitionId" in parent
+        ? `rows:definition:${parent.definitionId}`
+        : `rows:${parent.position.identity}`;
   }
 
   /** The Layers rows of a page (top level). */
@@ -187,13 +198,22 @@ export class CatalogReadModel {
     return this.read(this.rowsKey({ pageId }), this.rowsCompute({ pageId }))
       .value;
   }
+  /** The Layers rows of the definition edit view (its template root). */
+  definitionRows(
+    definitionId: EntryId<"definition">,
+  ): readonly CatalogPosition[] {
+    return this.read(
+      this.rowsKey({ definitionId }),
+      this.rowsCompute({ definitionId }),
+    ).value;
+  }
   /** The Layers rows under a row (one level). */
   childRows(position: CatalogPosition): readonly CatalogPosition[] {
     return this.read(this.rowsKey({ position }), this.rowsCompute({ position }))
       .value;
   }
   subscribeRows(
-    parent: { pageId: EntryId<"page"> } | { position: CatalogPosition },
+    parent: CatalogRowsParent,
     listener: Listener<readonly CatalogPosition[]>,
   ): () => void {
     return this.subscribeRead(

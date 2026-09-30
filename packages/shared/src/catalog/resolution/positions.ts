@@ -196,6 +196,21 @@ export function pagePositions(
   return page.children.map((id) => ownedPosition(readNode(reader, id), [id]));
 }
 
+/**
+ * The top position of a project definition's template (the definition edit view): its template
+ * root, an ordinary owned node. None when the definition has no template.
+ */
+export function definitionPositions(
+  reader: CatalogReader,
+  definitionId: EntryId<"definition">,
+): CatalogPosition[] {
+  const definition = reader.getEntry(definitionId);
+  if (definition?.kind !== "definition")
+    throw new CatalogValidationError("DEFINITION_REQUIRED", definitionId);
+  const rootId = definition.templateRootId;
+  return rootId ? [ownedPosition(readNode(reader, rootId), [rootId])] : [];
+}
+
 /** The positions one position shows as its children (one level). */
 export function childPositions(
   reader: CatalogReader,

@@ -82,7 +82,8 @@ export class CatalogLayerTreeStore {
 
   constructor(
     private readonly host: CatalogLayerTreeHost,
-    readonly pageId: EntryId<"page">,
+    /** A page, or the definition of the definition edit view. */
+    readonly ownerId: EntryId<"page"> | EntryId<"definition">,
   ) {
     // Constructed after the read model: its step listener has recomputed the row lists by now.
     this.unsubscribeSteps = host.subscribeSteps(({ result }) => {
@@ -173,7 +174,9 @@ export class CatalogLayerTreeStore {
     };
     let rows: readonly CatalogPosition[] = [];
     try {
-      rows = readModel.pageRows(this.pageId);
+      rows = this.ownerId.startsWith("project:definition:")
+        ? readModel.definitionRows(this.ownerId as EntryId<"definition">)
+        : readModel.pageRows(this.ownerId as EntryId<"page">);
     } catch {
       // The page is gone (removed): the panel switches page on the session's next state.
     }
@@ -203,7 +206,9 @@ export class CatalogLayerTreeStore {
       if (this.rowSubscriptions.has(key)) continue;
       const parent =
         key === "page"
-          ? { pageId: this.pageId }
+          ? this.ownerId.startsWith("project:definition:")
+            ? { definitionId: this.ownerId as EntryId<"definition"> }
+            : { pageId: this.ownerId as EntryId<"page"> }
           : { position: this.nodes.get(key)!.position };
       this.rowSubscriptions.set(
         key,

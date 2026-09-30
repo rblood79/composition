@@ -428,6 +428,12 @@ export interface CatalogRootOptions {
    * document's variables at their defaults (the Canvas's designed asymmetry, ADR-214 R2).
    */
   state?: CatalogStateSource;
+  /**
+   * The definition edit view (ADR-248 4e): the Canvas draws one project definition's template
+   * instead of the pages — its template nodes are ordinary owned nodes, so every edit is the same
+   * command as on a page. A layout keeps the breakpoint's page size; a component its own size.
+   */
+  definitionView?: EntryId<"definition">;
 }
 /** The graph's page container declaration in the old placement derivation's input shape. */
 export function catalogPageLayoutSettings(
@@ -933,6 +939,8 @@ export class CatalogCompositionRoot {
   readonly colorMode: "light" | "dark";
   private readonly rows?: CatalogRowSource;
   private readonly stateSource?: CatalogStateSource;
+  /** The definition drawn instead of the pages (`CatalogRootOptions.definitionView`). */
+  readonly definitionView?: EntryId<"definition">;
   /** Page of each page root node (`pageRoots`). */
   private readonly rootPage = new Map<NodeId, EntryId<"page">>();
   private readonly records = new Map<string, CatalogConsumerNode>();
@@ -984,6 +992,7 @@ export class CatalogCompositionRoot {
     this.colorMode = options.colorMode ?? "light";
     this.rows = options.rows;
     this.stateSource = options.state;
+    this.definitionView = options.definitionView;
     // Definite-zero heights shrink their column children (CSS-FLEXBOX-1 §9.8). The engine keeps
     // this off by default so the current Builder's output is unchanged until the Phase 4 cutover.
     engine.setDefiniteZeroHeight?.(true);
@@ -1382,6 +1391,12 @@ export class CatalogCompositionRoot {
   }
 
   private pageRoots(): NodeId[] {
+    if (this.definitionView) {
+      const definition = this.runtime.graph.getEntry(this.definitionView);
+      return definition?.kind === "definition" && definition.templateRootId
+        ? [definition.templateRootId]
+        : [];
+    }
     const project = this.runtime.graph.getEntry(this.runtime.graph.projectId);
     if (project?.kind !== "project") throw new Error("PROJECT_ROOT_REQUIRED");
     const ids: NodeId[] = [];
@@ -1914,6 +1929,9 @@ export class CatalogCompositionRoot {
    * placement derivation, now in the same layout tree as the pages).
    */
   private rootStyle(): Record<string, unknown> {
+    // The definition view: its one frame at its own size (no page grid track stretches it).
+    if (this.definitionView)
+      return { display: "flex", alignItems: "flex-start" };
     if (!this.pageFrames)
       return {
         display: "flex",
@@ -1941,6 +1959,21 @@ export class CatalogCompositionRoot {
   ): Record<string, unknown> | undefined {
     if (!this.pageFrames || record.parentId !== "catalog:root")
       return undefined;
+    if (this.definitionView) {
+      // A layout is drawn at the page size it frames; a component at its own size.
+      const definition = this.runtime.graph.getEntry(this.definitionView);
+      if (definition?.kind !== "definition" || definition.usage !== "layout")
+        return undefined;
+      const tier = CANVAS_VIEWPORT[this.breakpoint];
+      return {
+        ...(record.sizing.width == null && record.visual.width == null
+          ? { width: `${tier.width}px` }
+          : {}),
+        ...(record.sizing.height == null && record.visual.height == null
+          ? { height: `${tier.height}px` }
+          : {}),
+      };
+    }
     const pageId = this.rootPage.get(record.sourceId as NodeId);
     const page = pageId ? this.runtime.graph.getEntry(pageId) : undefined;
     const tier = CANVAS_VIEWPORT[this.breakpoint];
@@ -2000,7 +2033,9 @@ export class CatalogCompositionRoot {
         (id) => this.records.get(id)?.parentId === "catalog:root",
       );
       const rect = member ? this.getGeometry([member]).get(member) : undefined;
-      if (pageId && rect) rects.set(pageId, rect);
+      // The definition view's one frame is keyed by the definition.
+      const frameId = pageId ?? this.definitionView;
+      if (frameId && rect) rects.set(frameId, rect);
     }
     return rects;
   }
@@ -2615,7 +2650,11 @@ export class CatalogCompositionRoot {
     const structureChanged = [...result.changedIds, ...result.removedIds].some(
       (id) => {
         const entry = this.runtime.graph.getEntry(id);
-        return entry?.kind === "page" || entry?.kind === "project";
+        return (
+          entry?.kind === "page" ||
+          entry?.kind === "project" ||
+          id === this.definitionView
+        );
       },
     );
     const currentRoots = structureChanged
