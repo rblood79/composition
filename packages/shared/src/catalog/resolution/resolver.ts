@@ -3,6 +3,7 @@ import type {
   BreakpointName,
   CatalogFillLayer,
   CatalogLibrary,
+  DataBindingRef,
   FillSizing,
   LayoutWrites,
   NodeResponsiveLayer,
@@ -26,6 +27,10 @@ import { CatalogGraph } from "../document/graph";
 import { isInOwnCollection } from "../document/collectionItems";
 import { CatalogValidationError } from "../document/validation";
 import { catalogTokenValue } from "../document/themedToken";
+import {
+  compileFieldTemplate,
+  interpolateFieldTemplate,
+} from "../../collections/fieldTemplate";
 
 export interface ResolvedCatalogNode {
   sourceId: NodeId | TemplateId;
@@ -56,7 +61,48 @@ export interface ResolvedCatalogNode {
   placeholder?: boolean;
   /** State-origin display state (outer instance layer wins over its template's). */
   displayState?: DisplayStateName;
+  /**
+   * A data row's key on every node the row projects (not the first row, which keeps the row
+   * template position's identity): the record identity's row segment.
+   */
+  rowKey?: string;
   children: readonly ResolvedCatalogNode[];
+}
+/** A data row a bound collection shows (the rows stay in the data store — H1). */
+export interface CatalogBoundRow {
+  /** Stable row key: the item's collection key and the record identity's row segment. */
+  key: string;
+  /** What the row template's `{field}` placeholders read (row fields + label/description/icon/value). */
+  values: Readonly<Record<string, unknown>>;
+}
+/** The rows of a binding; `undefined` = unknown (not loaded) — the template items stay. */
+export type CatalogRowSource = (
+  binding: DataBindingRef,
+) => readonly CatalogBoundRow[] | undefined;
+/** Item types a bound collection repeats per data row (its first item position is the row template). */
+const ROW_ITEM_TYPES: ReadonlySet<string> = new Set([
+  "ListBoxItem",
+  "GridListItem",
+]);
+/** A row value: `{field}` templates read the row (a `{{ state }}` template is not a row field). */
+function bindRowValue(value: PropValue, row: CatalogBoundRow): PropValue {
+  if (typeof value !== "string" || !value.includes("{") || value.includes("{{"))
+    return value;
+  const compiled = compileFieldTemplate(value);
+  return compiled
+    ? interpolateFieldTemplate(compiled, row.values as Record<string, unknown>)
+    : value;
+}
+/** Stamp a row's key on a projected row subtree. */
+function withRowKey(
+  node: ResolvedCatalogNode,
+  key: string,
+): ResolvedCatalogNode {
+  return {
+    ...node,
+    rowKey: key,
+    children: node.children.map((child) => withRowKey(child, key)),
+  };
 }
 export interface CatalogResolutionSelection {
   include(
@@ -215,6 +261,8 @@ export function resolveCatalogNode(
   breakpoint: BreakpointName = "desktop",
   /** Color mode library tokens read their theme token in (`catalogTokenValue`); absent = build-time values. */
   tokenMode?: "light" | "dark",
+  /** Data rows of bound collections (ADR-248 4e-4e); absent = bound collections show their template items. */
+  rows?: CatalogRowSource,
 ): ResolvedCatalogNode {
   const library: CatalogLibrary = graph.library;
   const responsiveLayers = (node: NodeEntry): NodeResponsiveLayer[] =>
@@ -242,6 +290,26 @@ export function resolveCatalogNode(
     if (!definition)
       throw new CatalogValidationError("DANGLING_DEFINITION", definitionId);
     return definition;
+  };
+  /** The type a template position shows (its definition, through composite template roots). */
+  const templateTypeName = (templateId: TemplateId): string => {
+    const template = templateId.startsWith("lib:")
+      ? library.templates.get(templateId as `lib:template:${string}`)
+      : graph.getEntry(templateId);
+    if (!template || ("kind" in template && template.kind !== "node"))
+      return "";
+    let definition = graph.getDefinition(template.definitionId);
+    for (let depth = 0; definition?.mode === "composite" && depth < 16; depth++) {
+      const rootId = definition.templateRootId;
+      const root = rootId?.startsWith("lib:")
+        ? library.templates.get(rootId as `lib:template:${string}`)
+        : rootId
+          ? graph.getEntry(rootId)
+          : undefined;
+      if (!root || ("kind" in root && root.kind !== "node")) break;
+      definition = graph.getDefinition(root.definitionId);
+    }
+    return definition?.name ?? "";
   };
   const tokenValue = (value: AuthoredValue): PropValue => {
     if (typeof value !== "object" || !("kind" in value)) return value;
@@ -483,6 +551,10 @@ export function resolveCatalogNode(
             visual,
             sizing,
           ),
+          undefined,
+          node.binding && rows
+            ? { rowSet: rows(node.binding) }
+            : undefined,
         ),
       );
     for (const childId of selection?.ownedChildren?.(node.id, instancePath) ??
@@ -530,7 +602,18 @@ export function resolveCatalogNode(
     root?: InstanceRoot,
     /** Descendant patches of the library composite template node whose template this is. */
     patches?: LibraryPatchScope,
+    /**
+     * Data rows: `rowSet` = the bound instance's rows (its template root repeats its first item
+     * position per row and drops the other item positions); `row` = the row this subtree projects,
+     * `rowStart` on the row template position itself (its sample content is not the row's).
+     */
+    rowing?: {
+      rowSet?: readonly CatalogBoundRow[];
+      row?: CatalogBoundRow;
+      rowStart?: boolean;
+    },
   ): ResolvedCatalogNode | undefined => {
+    const row = rowing?.row;
     selection?.onVisit?.(templateId);
     const template = templateId.startsWith("lib:")
       ? library.templates.get(templateId as `lib:template:${string}`)
@@ -609,6 +692,12 @@ export function resolveCatalogNode(
       if (change.sizing) applyWrites(sizing, change.sizing);
       for (const layer of patchLayers)
         if (layer.sizing) applyWrites(sizing, layer.sizing);
+    }
+    if (row) {
+      for (const key of Object.keys(props))
+        props[key] = bindRowValue(props[key], row);
+      // The row is the item: its collection key is the row's.
+      if (rowing?.rowStart) props.id = row.key;
     }
     const shownState =
       root?.displayState ??
@@ -712,6 +801,7 @@ export function resolveCatalogNode(
                   ...(change?.kind === "patch"
                     ? Object.keys(change.props ?? {})
                     : []),
+                  ...(rowing?.rowStart ? ["id"] : []),
                 ],
                 props,
                 [
@@ -725,27 +815,62 @@ export function resolveCatalogNode(
                 authoredLayout,
               ),
             ),
-            "descendantPatches" in template && template.descendantPatches
+            "descendantPatches" in template &&
+              template.descendantPatches &&
+              !rowing?.rowStart
               ? { instances: nestedPath, patches: template.descendantPatches }
               : undefined,
+            row ? { row } : undefined,
           ),
         );
     }
-    for (const childId of template.children)
-      if (!selection || selection.include(childId, instancePath))
-        push(
-          children,
-          projectTemplate(
+    const rowSet = rowing?.rowSet;
+    const itemPositions = rowSet
+      ? template.children.filter((childId) =>
+          ROW_ITEM_TYPES.has(templateTypeName(childId)),
+        )
+      : [];
+    for (const childId of template.children) {
+      if (selection && !selection.include(childId, instancePath)) continue;
+      const childPath = [...path, childId];
+      if (rowSet && itemPositions.includes(childId)) {
+        // The first item position is the row template; the rest are sample items.
+        if (childId !== itemPositions[0]) continue;
+        rowSet.forEach((data, index) => {
+          const projected = projectTemplate(
             owner,
             childId,
             instancePath,
-            [...path, childId],
+            childPath,
             self,
             bindings,
             undefined,
             patches,
-          ),
-        );
+            { row: data, rowStart: true },
+          );
+          if (projected)
+            push(
+              children,
+              index === 0 ? projected : withRowKey(projected, data.key),
+            );
+        });
+        continue;
+      }
+      push(
+        children,
+        projectTemplate(
+          owner,
+          childId,
+          instancePath,
+          childPath,
+          self,
+          bindings,
+          undefined,
+          patches,
+          row ? { row } : undefined,
+        ),
+      );
+    }
     if (change?.kind === "fillSlot") {
       children.length = 0;
       for (const childId of change.childIds) {

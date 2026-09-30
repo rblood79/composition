@@ -226,6 +226,11 @@ export function CatalogCanvas({
       sceneStale = true;
       scheduler.invalidate();
     });
+    // Data rows re-resolved outside a step (the data store): the same per-node deltas.
+    const unsubscribeRows = workspace.subscribeRows(() => {
+      sceneStale = true;
+      scheduler.invalidate();
+    });
     // The record whose text is edited inline: the Canvas leaves its text out while the DOM field
     // shows it (the renderer's editing element skips that node's picture cache).
     let editingText: string | undefined;
@@ -554,6 +559,7 @@ export function CatalogCanvas({
       sceneRef.current = undefined;
       unsubscribeSession();
       unsubscribeSteps();
+      unsubscribeRows();
       unsubscribeFrames();
       scheduler.dispose();
       scene.dispose();

@@ -29,6 +29,7 @@ import {
 } from "../catalogRuntime/react";
 import { CatalogStorage, CatalogStorageError } from "../catalogRuntime/storage";
 import { catalogTextMeasure } from "../catalogRuntime/textMeasure";
+import { catalogBoundRows } from "../catalogRuntime/dataBinding";
 import { catalogDataHistoryRecorder } from "../catalogRuntime/dataHistory";
 import { dataChangeEventLabel } from "../panels/history/historyEntryLabel";
 import { catalogThemeState } from "../catalogRuntime/theme";
@@ -120,6 +121,13 @@ export function CatalogBuilderCore() {
         textMeasure: catalogTextMeasure,
         locale: navigator.language,
         theme: catalogThemeState,
+        // Bound collections show the data store's rows (H1 — rows never enter the document).
+        root: {
+          rows: (binding) =>
+            catalogBoundRows(binding, [
+              ...useDataStore.getState().collections.values(),
+            ]),
+        },
       });
       // Dev-only live harness handle (Playwright exercises edits before the panels move).
       if (import.meta.env.DEV)
@@ -191,6 +199,25 @@ export function CatalogBuilderCore() {
   );
 
   const workspace = state.kind === "open" ? state.workspace : undefined;
+  // A collection's rows changed (edit, load, delete): its bound collections draw them again.
+  useEffect(() => {
+    if (!workspace) return;
+    workspace.refreshRows();
+    return useDataStore.subscribe(
+      (store) => store.collections,
+      (next, previous) => {
+        const changed = [...new Set([...next.keys(), ...previous.keys()])].filter(
+          (id) => next.get(id) !== previous.get(id),
+        );
+        if (!changed.length) return;
+        try {
+          workspace.refreshRows(changed);
+        } catch (error) {
+          console.error("[CatalogBuilder] row refresh failed:", error);
+        }
+      },
+    );
+  }, [workspace]);
   // Recorded data changes join the document's single history while this project is open.
   useEffect(() => {
     if (!workspace) return;

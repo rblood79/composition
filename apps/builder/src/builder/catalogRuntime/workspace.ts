@@ -18,7 +18,9 @@ import {
   CatalogCompositionRoot,
   type CatalogRootOptions,
   type CatalogTextMeasure,
+  catalogRowTemplateIdentity,
 } from "./compositionRoot";
+import { catalogCollectionId } from "./dataBinding";
 import { CatalogRuntime, type CatalogExternalEffect } from "./controller";
 import {
   CatalogPreviewChannel,
@@ -170,6 +172,25 @@ export class CatalogWorkspace {
     return () => this.rootListeners.delete(listener);
   }
 
+  private readonly rowListeners = new Set<() => void>();
+  /**
+   * Data rows changed in the data store (its collection ids; absent = every collection): the
+   * root re-resolves the bound page roots, then row listeners (the Canvas scene) follow.
+   */
+  refreshRows(dataCollectionIds?: readonly string[]): void {
+    const errors = this.currentRoot.refreshRows(
+      dataCollectionIds
+        ? new Set(dataCollectionIds.map((id) => catalogCollectionId(id)))
+        : undefined,
+    );
+    for (const listener of [...this.rowListeners]) listener();
+    if (errors.length) throw new AggregateError(errors, "CATALOG_ROWS_DELIVERY");
+  }
+  subscribeRows(listener: () => void): () => void {
+    this.rowListeners.add(listener);
+    return () => this.rowListeners.delete(listener);
+  }
+
   private readonly revealListeners = new Set<
     (pageId: EntryId<"page">) => void
   >();
@@ -269,7 +290,8 @@ export class CatalogWorkspace {
    * the row one level at a time (reads only the entries on the way).
    */
   positionOfRecord(recordId: string): CatalogPosition | undefined {
-    const chain = this.recordChain(recordId);
+    // A data row's records are its row template position's.
+    const chain = this.recordChain(recordId).map(catalogRowTemplateIdentity);
     const pageId = this.pageOfRecord(recordId);
     if (!chain.length || !pageId) return undefined;
     let rows = this.readModel.pageRows(pageId);
@@ -328,6 +350,7 @@ export class CatalogWorkspace {
 
   dispose(): void {
     this.rootListeners.clear();
+    this.rowListeners.clear();
     this.revealListeners.clear();
     this.detachPreview();
     this.autosave.dispose();

@@ -6,7 +6,10 @@ import type {
   PagePlacementDeclaration,
   StateName,
 } from "../../../../../packages/shared/src/catalog/document/types";
-import type { ResolvedCatalogNode } from "../../../../../packages/shared/src/catalog/resolution/resolver";
+import type {
+  CatalogRowSource,
+  ResolvedCatalogNode,
+} from "../../../../../packages/shared/src/catalog/resolution/resolver";
 import type {
   CatalogCommand,
   CatalogCommandPlan,
@@ -266,7 +269,17 @@ function layoutChildrenOf(
 }
 
 function identity(node: ResolvedCatalogNode): string {
-  return `${node.instancePath.join("/")}::${node.sourceId}`;
+  const base = `${node.instancePath.join("/")}::${node.sourceId}`;
+  return node.rowKey === undefined
+    ? base
+    : `${base}${CATALOG_ROW_SEPARATOR}${encodeURIComponent(node.rowKey)}`;
+}
+/** A data row record's identity: the row template position's, then this and the row key. */
+export const CATALOG_ROW_SEPARATOR = "#row:";
+/** The row template position's identity of a (data row) record identity. */
+export function catalogRowTemplateIdentity(recordId: string): string {
+  const at = recordId.indexOf(CATALOG_ROW_SEPARATOR);
+  return at < 0 ? recordId : recordId.slice(0, at);
 }
 /**
  * Children of a collapsed record: the innermost root's children, then each composite layer's own
@@ -306,7 +319,8 @@ interface RecordPlan {
   readonly parts: readonly CatalogComposedPart[];
 }
 interface ConsumePlan {
-  readonly result: CatalogTransactionResult;
+  /** Absent for a data-row refresh (no document step). */
+  readonly result?: CatalogTransactionResult;
   /** Per affected root: removed ids, then updates — applied in this order. */
   readonly roots: readonly {
     readonly rootId: NodeId;
@@ -366,6 +380,8 @@ export interface CatalogRootOptions {
   autoColumns?: number;
   /** Theme color mode the Canvas resolves theme variables in (the DOM's `data-theme` scope). */
   colorMode?: "light" | "dark";
+  /** Data rows of bound collections (the data store); absent = template items only. */
+  rows?: CatalogRowSource;
 }
 /** The graph's page container declaration in the old placement derivation's input shape. */
 function catalogPageLayoutSettings(
@@ -866,6 +882,7 @@ export class CatalogCompositionRoot {
   private autoColumns: number | undefined;
   /** Theme color mode (a switch builds a new root, like a breakpoint switch). */
   readonly colorMode: "light" | "dark";
+  private readonly rows?: CatalogRowSource;
   /** Page of each page root node (`pageRoots`). */
   private readonly rootPage = new Map<NodeId, EntryId<"page">>();
   private readonly records = new Map<string, CatalogConsumerNode>();
@@ -915,6 +932,7 @@ export class CatalogCompositionRoot {
     this.pageFrames = options.pageFrames === true;
     this.autoColumns = options.autoColumns;
     this.colorMode = options.colorMode ?? "light";
+    this.rows = options.rows;
     // Definite-zero heights shrink their column children (CSS-FLEXBOX-1 §9.8). The engine keeps
     // this off by default so the current Builder's output is unchanged until the Phase 4 cutover.
     engine.setDefiniteZeroHeight?.(true);
@@ -1092,6 +1110,64 @@ export class CatalogCompositionRoot {
   }
 
   /**
+   * Data rows changed outside the document (the data store): re-resolve the page roots that show
+   * a binding to one of these collections (catalog `data:collection:` ids; absent = every bound
+   * root). Journaled and delivered like a step; the document revision does not move. Returns the
+   * subscriber errors.
+   */
+  refreshRows(collectionIds?: ReadonlySet<string>): unknown[] {
+    const affected = new Set<NodeId>();
+    for (const [sourceId, recordIds] of this.sourceInstances) {
+      const entry = this.runtime.graph.getEntry(sourceId);
+      if (entry?.kind !== "node" || !entry.binding) continue;
+      if (collectionIds && !collectionIds.has(entry.binding.collectionId))
+        continue;
+      for (const recordId of recordIds) {
+        const rootId = this.recordRoots.get(recordId);
+        if (rootId) affected.add(rootId);
+      }
+    }
+    if (!affected.size) return [];
+    let visits = 0;
+    const roots = [...affected].map((rootId) => {
+      const previous = this.rootMembers.get(rootId) ?? new Set<string>();
+      const next = this.flatten(rootId);
+      visits += next.size;
+      return {
+        rootId,
+        removed: [...previous].filter((id) => !next.has(id)),
+        updates: [...next].map(([id, record]) =>
+          this.planRecord(id, record, rootId, (key) => next.get(key)),
+        ),
+        members: new Set(next.keys()),
+      };
+    });
+    const plan: ConsumePlan = {
+      roots,
+      computeLayout: true,
+      metrics: {
+        ...this.emptyMetrics(this.currentMetrics.revision),
+        affectedRootIds: [...affected],
+        layoutInputVisits: visits,
+        resolverVisits: visits,
+        affectedInstanceCount: visits,
+      },
+    };
+    this.undoLog = [];
+    this.layoutTouched = false;
+    let notices: Notice[];
+    try {
+      notices = this.apply(plan);
+    } catch (cause) {
+      this.restore(cause);
+      throw cause;
+    } finally {
+      this.undoLog = undefined;
+    }
+    return this.deliver(plan, notices);
+  }
+
+  /**
    * Takes a staged runtime step before it is published. Computing the new inputs runs before any
    * root state changes; applying them (maps and layout tree, no consumer code) is journaled. If
    * either throws — including the layout engine — the maps are restored from the journal, the
@@ -1196,6 +1272,7 @@ export class CatalogCompositionRoot {
         undefined,
         this.breakpoint,
         this.colorMode,
+        this.rows,
       ),
       "catalog:root",
     );
@@ -2162,6 +2239,7 @@ export class CatalogCompositionRoot {
         },
         this.breakpoint,
         this.colorMode,
+        this.rows,
       );
       const find = (
         node: ResolvedCatalogNode,
@@ -2326,7 +2404,6 @@ export class CatalogCompositionRoot {
           "patchNodeSizing",
           "patchNodeLayout",
           "setNodePlacement",
-          "setNodeBinding",
           "patchDefinitionOverride",
         ].includes(op.kind) ||
         (op.kind === "put" &&
@@ -2426,6 +2503,7 @@ export class CatalogCompositionRoot {
             undefined,
             this.breakpoint,
             this.colorMode,
+            this.rows,
           ),
         ),
       ),

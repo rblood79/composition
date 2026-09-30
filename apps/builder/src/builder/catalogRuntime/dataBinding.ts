@@ -1,4 +1,12 @@
-import type { DataBindingValue } from "@composition/shared";
+import {
+  buildCollectionRowTemplateItem,
+  COLLECTION_ROW_PROJECTION_WINDOW_LIMIT,
+  getFlatProjectionRows,
+  resolveBoundCollection,
+  type CollectionDataSource,
+  type DataBindingValue,
+} from "@composition/shared";
+import type { CatalogBoundRow } from "../../../../../packages/shared/src/catalog/resolution/resolver";
 import { setWholeField } from "../../../../../packages/shared/src/catalog/commands";
 import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
 import type {
@@ -140,4 +148,29 @@ export function catalogFieldUsageElements(
   };
   graph.bindingsOf(catalogCollectionId(collectionId)).forEach(visit);
   return out;
+}
+
+/**
+ * The data rows a binding shows (ADR-248 4e-4e): the collection's current rows (mock or runtime,
+ * `resolveCollectionSnapshot`) through the old projection row reader (label/description/icon/
+ * value heuristics and `fieldMap` roles), at most the old window limit. `undefined` = the
+ * collection is not loaded (the template items stay). Duplicate keys get their index.
+ */
+export function catalogBoundRows(
+  ref: DataBindingRef,
+  collections: readonly CollectionDataSource[],
+  limit = COLLECTION_ROW_PROJECTION_WINDOW_LIMIT,
+): CatalogBoundRow[] | undefined {
+  const dataBinding = catalogBindingValue(ref);
+  if (!dataBinding || !resolveBoundCollection(dataBinding, collections))
+    return undefined;
+  const seen = new Set<string>();
+  return getFlatProjectionRows({ dataBinding, collections }, limit).map(
+    (row) => {
+      let key = String(row.itemKey);
+      if (seen.has(key)) key = `${key}~${row.rowIndex}`;
+      seen.add(key);
+      return { key, values: buildCollectionRowTemplateItem(row) };
+    },
+  );
 }
