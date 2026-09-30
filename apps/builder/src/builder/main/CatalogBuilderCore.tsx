@@ -70,6 +70,10 @@ import {
   CANVAS_BREAKPOINTS,
   CANVAS_VIEWPORT,
 } from "../workspace/canvasBreakpoints";
+import {
+  readRememberedBreakpoint,
+  rememberBreakpoint,
+} from "../workspace/canvas/catalog/catalogViewMemory";
 import { CatalogCanvas } from "../workspace/canvas/catalog/CatalogCanvas";
 import { CatalogCompareLayout } from "../workspace/canvas/catalog/CatalogPreviewFrame";
 import { useCompareModeStore } from "../workspace/canvas/stores/compareMode";
@@ -149,6 +153,8 @@ export function CatalogBuilderCore() {
         theme: catalogThemeState,
         // Bound collections show the data store's rows (H1 — rows never enter the document).
         root: {
+          // The breakpoint the Builder last showed (a Builder-wide choice, like the old app).
+          breakpoint: readRememberedBreakpoint(),
           rows: (binding) =>
             catalogBoundRows(binding, [
               ...useDataStore.getState().collections.values(),
@@ -369,7 +375,11 @@ export function CatalogBuilderCore() {
     [breakpoint],
   );
   const handleBreakpointChange = useCallback(
-    (key: Key) => workspace?.setBreakpoint(key as BreakpointName),
+    (key: Key) => {
+      if (!workspace) return;
+      workspace.setBreakpoint(key as BreakpointName);
+      rememberBreakpoint(key as BreakpointName);
+    },
     [workspace],
   );
   const header = (

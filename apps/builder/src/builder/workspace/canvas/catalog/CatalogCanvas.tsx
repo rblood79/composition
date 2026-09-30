@@ -42,6 +42,10 @@ import { getViewportController } from "../viewport/ViewportController";
 import { viewportState } from "../viewport/viewportState";
 import { useViewportSyncStore } from "../stores";
 import { catalogUnionRect, fitCatalogPageFrame } from "./catalogViewport";
+import {
+  bindCatalogCamera,
+  openCatalogCameraMemory,
+} from "./catalogViewMemory";
 import { catalogAutoColumns } from "../../../catalogRuntime/pageLayoutSettings";
 import { readCanvasRailInset } from "../viewport/canvasChromeInset";
 import { PageHeaderLayer } from "../overlay/pageHeader/PageHeaderLayer";
@@ -268,12 +272,29 @@ export function CatalogCanvas({
         ),
     });
 
-    // Open on the first page frame (again after a breakpoint switch: the page size changes).
-    const fitFirstPage = (containerSize: { width: number; height: number }) => {
-      const [firstPage] = workspace.root.pageFrameRects().values();
-      if (firstPage) fitCatalogPageFrame(firstPage, containerSize);
-    };
-    fitFirstPage(containerRect);
+    // The camera this project last had at this breakpoint, else the first page frame fitted
+    // (again after a breakpoint switch: each breakpoint keeps its own camera).
+    const camera = bindCatalogCamera({
+      memory: openCatalogCameraMemory(workspace.runtime.graph.projectId),
+      breakpoint: () => workspace.root.breakpoint,
+      camera: () => ({
+        x: viewportState.x,
+        y: viewportState.y,
+        scale: viewportState.zoom,
+      }),
+      setCamera: (saved) =>
+        getViewportController().setPosition(saved.x, saved.y, saved.scale),
+      fit: (containerSize) => {
+        const [firstPage] = workspace.root.pageFrameRects().values();
+        if (firstPage) fitCatalogPageFrame(firstPage, containerSize);
+      },
+    });
+    camera.show(containerRect);
+    const unwatchCamera = getViewportController().addUpdateListener(
+      camera.changed,
+    );
+    // A reload inside the delay still keeps the last camera.
+    window.addEventListener("pagehide", camera.flush);
 
     let running = true;
     let presented = false;
@@ -409,7 +430,8 @@ export function CatalogCanvas({
         callbacks.current.onError?.(error);
         return;
       }
-      fitFirstPage(containerEl.getBoundingClientRect());
+      // A theme change builds a new root too; only a breakpoint switch moves the camera.
+      camera.rootReplaced(containerEl.getBoundingClientRect());
       renderer.invalidateContent();
       invalidateOverlay();
       publishHeaders();
@@ -711,6 +733,9 @@ export function CatalogCanvas({
       window.removeEventListener("pointercancel", onPointerEnd);
       window.removeEventListener("keydown", onKeyDown);
       unsubscribeRoot();
+      unwatchCamera();
+      window.removeEventListener("pagehide", camera.flush);
+      camera.flush();
       unsubscribeReveal();
       setEditingElementId(null);
       sceneRef.current = undefined;

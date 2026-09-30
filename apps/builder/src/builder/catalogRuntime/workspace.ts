@@ -106,6 +106,8 @@ export class CatalogWorkspace {
     this.session = new CatalogSession(this.runtime, {
       identityExists: (identity) => this.root.domInputs.has(identity),
     });
+    // The session shows the breakpoint the root opened on (a remembered one, not only desktop).
+    this.session.setBreakpoint(this.currentRoot.breakpoint);
     this.readModel = new CatalogReadModel(this.runtime);
     this.autosave = new CatalogAutosave(this.runtime, {
       schedule: options.autosaveSchedule,
