@@ -94,6 +94,11 @@ const EXCLUDE_PATH_PATTERNS: readonly RegExp[] = [
   // `elementsMap`/`useStore`/`element.`/`canonical` grep 전부 0). 키 이름을
   // 바꾸는 것은 규칙의 뜻과 무관한 회피라 경로로 제외한다.
   /\/apps\/builder\/src\/i18n\//,
+  // ADR-248 typed catalog 모델 — 구 CanonicalNode 필드 접근이 아니다. 4b-2 `commands/materialize.ts`
+  // 의 템플릿 노드 입력 필드 `overrides` (typed `DescendantOverride[]` — 출력은 `descendantOverrides`)
+  // 가 이름만 같아 오탐이 났다 (2026-09-30). 이 경로는 validator (`document/validation.ts`) 와 G6
+  // import graph 가 지킨다.
+  /\/packages\/shared\/src\/catalog\//,
 ];
 
 /** design §9.3 첫번째 grep 의 5 필드 (legacy field name) */
