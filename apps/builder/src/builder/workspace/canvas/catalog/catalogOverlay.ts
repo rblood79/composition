@@ -1,4 +1,4 @@
-import type { CanvasKit, FontMgr } from "canvaskit-wasm";
+import type { Canvas, CanvasKit, FontMgr } from "canvaskit-wasm";
 import type { CatalogGesturePreview } from "../../../catalogRuntime/canvasGesture";
 import type { CatalogSessionState } from "../../../catalogRuntime/session";
 import type { BoundingBox } from "../selection/types";
@@ -26,6 +26,8 @@ export interface CatalogOverlayInputs {
   fontMgr: () => FontMgr | undefined;
   /** The drag in progress (move ghost, drop line and container, or the resized box). */
   gesture?: () => CatalogGesturePreview | undefined;
+  /** Manual guides (ADR-181), painted under the selection. */
+  guides?: (canvas: Canvas) => void;
   /** Spacing handles of the selected container when no gesture runs (ADR-222). */
   spacing?: () =>
     | {
@@ -51,6 +53,7 @@ export function catalogOverlayNode(
       const state = inputs.session();
       const bounds = inputs.bounds();
       const zoom = inputs.zoom();
+      inputs.guides?.(canvas);
       if (state.editingContext)
         for (const id of inputs.recordsOf(state.editingContext)) {
           const box = bounds.get(id);

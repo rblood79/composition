@@ -85,6 +85,10 @@ import type { BoundingBox } from "../selection/types";
 import { hitTestPoint } from "../wasm-bindings/spatialIndex";
 import { resolveSpacingCursor } from "../interaction/spacingGeometry";
 import { catalogOverlayNode } from "./catalogOverlay";
+import { useStore } from "../../../stores";
+import { bindCatalogGuides, type CatalogGuideBinding } from "./catalogGuides";
+import { RulerOverlay } from "../../components/RulerOverlay";
+import { buildViewportSceneRect } from "../skia/skiaOverlayHelpers";
 import { CatalogTextEditor } from "./CatalogTextEditor";
 
 export interface CatalogCanvasProps {
@@ -123,6 +127,7 @@ export function CatalogCanvas({
   const headerPressRef = useRef<(pageId: string, event: PointerEvent) => void>(
     () => {},
   );
+  const guidesRef = useRef<CatalogGuideBinding | undefined>(undefined);
   const activePageId = useSyncExternalStore(
     workspace.session.subscribe,
     () => workspace.session.getSnapshot().pageId ?? null,
@@ -154,11 +159,16 @@ export function CatalogCanvas({
         : undefined;
     };
     return bindHandlersToDefinitions(
-      ["zoomToSelection"],
+      ["zoomToSelection", "toggleRulers"],
       {
         zoomToSelection: () => {
           const fit = target();
           if (fit) fitCatalogPageFrame(fit.rect, fit.containerSize);
+        },
+        // Rulers and guide editing (ADR-181) — a Builder view setting, like the Settings switch.
+        toggleRulers: () => {
+          const settings = useStore.getState();
+          settings.setShowRulers(!settings.showRulers);
         },
       },
       { zoomToSelection: () => target() !== undefined },
@@ -211,6 +221,7 @@ export function CatalogCanvas({
         zoom: () => Math.max(viewportState.zoom, 0.001),
         fontMgr,
         gesture: () => gestures.preview(),
+        guides: (overlayCanvas) => guidesRef.current?.paint(ck, overlayCanvas),
         spacing: () => {
           const owner = gestures.spacingOwner();
           if (!owner) return undefined;
@@ -451,7 +462,7 @@ export function CatalogCanvas({
     });
 
     // Pointer picking (scene coordinates from the camera). Pan owns its pointer (viewport bridge).
-    const scenePoint = (event: MouseEvent) => {
+    const scenePoint = (event: { clientX: number; clientY: number }) => {
       const rect = canvas.getBoundingClientRect();
       const zoom = Math.max(viewportState.zoom, 0.001);
       return {
@@ -469,6 +480,24 @@ export function CatalogCanvas({
         picking.hover(lastPoint.x, lastPoint.y);
     };
     const zoomNow = () => Math.max(viewportState.zoom, 0.001);
+    // Manual guides (ADR-181): ruler drags, guide moves and deletes, painted in the overlay.
+    const guides = bindCatalogGuides({
+      workspace,
+      canvas,
+      scenePoint,
+      zoom: zoomNow,
+      viewport: () =>
+        buildViewportSceneRect(
+          viewportState.x,
+          viewportState.y,
+          zoomNow(),
+          canvas.clientWidth,
+          canvas.clientHeight,
+        ),
+      invalidateOverlay: () => invalidateOverlay(),
+      onError: (error) => callbacks.current.onError?.(error),
+    });
+    guidesRef.current = guides;
     // A press on an already selected element keeps the selection (a multi-selection drags
     // together); a release without a drag then selects that element alone.
     let deferredSelect: string | undefined;
@@ -477,6 +506,12 @@ export function CatalogCanvas({
       // Only the primary button selects and drags (the secondary opens the context menu).
       if (event.button !== 0) return;
       if (gestureSession.blocksPointerDown(event.pointerId)) return;
+      // A guide under the pointer (rulers shown) takes the press before any element.
+      if (guides.press(event)) {
+        containerEl.focus({ preventScroll: true });
+        picking.leave();
+        return;
+      }
       if (
         gestureSession.beginPointer(event.pointerId, event.button) !== "element"
       )
@@ -597,6 +632,12 @@ export function CatalogCanvas({
       syncScene();
       const { x, y } = scenePoint(event);
       lastPoint = { x, y };
+      const guideCursor = guides.hover(event);
+      if (guideCursor) {
+        canvas.style.cursor = guideCursor;
+        picking.leave();
+        return;
+      }
       const spacing = gestures.spacingAt(x, y, zoomNow());
       const handle = spacing?.onHandle
         ? null
@@ -613,6 +654,7 @@ export function CatalogCanvas({
     };
     const onPointerLeave = () => {
       lastPoint = undefined;
+      guides.leave();
       picking.leave();
     };
     const onDoubleClick = (event: MouseEvent) => {
@@ -733,6 +775,8 @@ export function CatalogCanvas({
       window.removeEventListener("pointercancel", onPointerEnd);
       window.removeEventListener("keydown", onKeyDown);
       unsubscribeRoot();
+      guides.dispose();
+      guidesRef.current = undefined;
       unwatchCamera();
       window.removeEventListener("pagehide", camera.flush);
       camera.flush();
@@ -812,6 +856,11 @@ export function CatalogCanvas({
             callbacks.current.onError?.(error);
           }
         }}
+      />
+      <RulerOverlay
+        onStartGuideCreate={(axis, pointerId, clientX, clientY) =>
+          guidesRef.current?.startCreate(axis, pointerId, clientX, clientY)
+        }
       />
       <ContextMenuOverlay
         isOpen={!!menu}
