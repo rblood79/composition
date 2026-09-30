@@ -19,6 +19,7 @@ import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogComma
 import { FieldValueSourceContext } from "../generic/fieldValueSource";
 import { ItemsSourceContext } from "../generic/itemsSource";
 import { CatalogAttributesSection } from "./CatalogAttributesSection";
+import { CatalogComponentSection } from "./CatalogComponentSection";
 import { CATALOG_ITEMS_SOURCE } from "./catalogItemsSource";
 import { useChartPropertyExtras } from "../useChartPropertyExtras";
 import { GenericFieldRenderer } from "../generic/GenericFieldRenderer";
@@ -70,7 +71,16 @@ function CatalogPropertiesContent() {
       first.target.kind === "node"
         ? graph.getEntry(first.target.id)
         : undefined;
-    return (entry?.kind === "node" && entry.name) || contract.type;
+    if (entry?.kind !== "node") return contract.type;
+    // An instance of a project component shows the component's name.
+    const definition = entry.definitionId.startsWith("project:")
+      ? graph.getEntry(entry.definitionId)
+      : undefined;
+    return (
+      entry.name ||
+      (definition?.kind === "definition" ? definition.name : undefined) ||
+      contract.type
+    );
   }, [contract.type, first, graph]);
 
   if (!first || !contract.type) {
@@ -100,6 +110,12 @@ function CatalogPropertiesContent() {
       <PanelContents>
         <FieldValueSourceContext.Provider value={CATALOG_FIELD_VALUE_SOURCE}>
           <ItemsSourceContext.Provider value={CATALOG_ITEMS_SOURCE}>
+            {first.target.kind === "node" && (
+              <CatalogComponentSection
+                key={`component:${first.target.id}`}
+                nodeId={first.target.id}
+              />
+            )}
             <CatalogAttributesSection
               key={`attributes:${targetKey(first.target)}`}
               target={first.target}
