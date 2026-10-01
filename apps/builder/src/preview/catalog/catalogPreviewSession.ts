@@ -122,7 +122,8 @@ export class CatalogPreviewSession {
     const data = parseCatalogPreviewData(value);
     if (data) {
       this.collections = data.collections as readonly CollectionDataSource[];
-      this.variables = (data.variables ?? []) as unknown as readonly VariableDef[];
+      this.variables = (data.variables ??
+        []) as unknown as readonly VariableDef[];
       this.syncDefinitions();
       if (this.currentRoot) {
         const errors = [
@@ -276,7 +277,8 @@ export class CatalogPreviewSession {
       this.options.locale,
       {
         ...this.options.root,
-        rows: (binding) => catalogBoundRows(binding, this.collections),
+        rows: (binding, kind) =>
+          catalogBoundRows(binding, this.collections, kind),
         state: {
           projectVariables: () => this.variables,
           read: (variableId, scope) => this.readState(variableId, scope),

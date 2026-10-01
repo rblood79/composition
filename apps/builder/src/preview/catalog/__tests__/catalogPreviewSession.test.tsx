@@ -292,10 +292,13 @@ describe("ADR-248 4e-6 Preview entry", () => {
         engine: await nodeLayoutEngine(),
         viewport: { width: 1000, height: 800 },
         autosaveSchedule: () => {},
-        root: { rows: (binding) => catalogBoundRows(binding, collections) },
+        root: {
+          rows: (binding, kind) => catalogBoundRows(binding, collections, kind),
+        },
       },
     );
     const LIST = "project:node:list" as NodeId;
+    const CHART = "project:node:chart" as NodeId;
     workspace.execute(
       insertNodes({
         parent: { kind: "node", id: BODY },
@@ -311,8 +314,19 @@ describe("ADR-248 4e-6 Preview entry", () => {
             descendantOverrides: [],
             binding: { collectionId: catalogCollectionId("c1"), fieldMap: {} },
           } as NodeEntry,
+          {
+            kind: "node",
+            id: CHART,
+            definitionId: catalogPaletteDefinitionId(library, "Chart"),
+            children: [],
+            props: {},
+            visual: {},
+            sizing: {},
+            descendantOverrides: [],
+            binding: { collectionId: catalogCollectionId("c1"), fieldMap: {} },
+          } as NodeEntry,
         ],
-        rootIds: [LIST],
+        rootIds: [LIST, CHART],
         newId: workspace.newId,
       }),
     );
@@ -353,6 +367,12 @@ describe("ADR-248 4e-6 Preview entry", () => {
     expect(texts(session.root!)).toEqual(
       expect.arrayContaining(["Alpha", "Beta"]),
     );
+    // A bound Chart's data = the collection's records (the Preview root asks for them too).
+    const chartData = (root: CatalogWorkspace["root"]) =>
+      [...root.domInputs.values()].find((record) => record.ruleId === "Chart")
+        ?.props.data;
+    expect(chartData(session.root!)).toEqual(collections[0]!.mockData);
+    expect(chartData(session.root!)).toEqual(chartData(workspace.root));
     collections = [
       { ...collections[0]!, mockData: [{ id: "r3", label: "Gamma" }] },
     ];
@@ -608,11 +628,7 @@ describe("ADR-248 4e-6 Preview entry", () => {
       [HOME, "total"],
     ] as const) {
       workspace.execute(
-        catalogVariableCommands.add(
-          ownerId as NodeId,
-          name,
-          workspace.newId,
-        ),
+        catalogVariableCommands.add(ownerId as NodeId, name, workspace.newId),
       );
       workspace.execute(
         catalogVariableCommands.setType(variableOf(ownerId), "number"),

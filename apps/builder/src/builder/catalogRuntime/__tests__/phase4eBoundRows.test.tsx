@@ -45,6 +45,13 @@ const row = (
   values: { id: key, label, description, icon: "", value: key },
 });
 
+/** A collection's own records (a Chart's data): raw fields, no item reader. */
+const RECORDS: CatalogBoundRow[] = [
+  { key: "0", values: { category: "Q1", value: 12, series: "A" } },
+  { key: "1", values: { category: "Q2", value: 30, series: "A" } },
+  { key: "2", values: { category: "Q3", value: 7, series: "A" } },
+];
+
 async function open(type: string, bound = true) {
   const library = await buildCodeCatalogLibrary();
   let rows: CatalogBoundRow[] | undefined = [
@@ -65,8 +72,12 @@ async function open(type: string, bound = true) {
       viewport: { width: 1200, height: 800 },
       autosaveSchedule: () => {},
       root: {
-        rows: (binding) =>
-          binding.collectionId === BINDING.collectionId ? rows : undefined,
+        rows: (binding, kind) =>
+          binding.collectionId !== BINDING.collectionId
+            ? undefined
+            : kind === "records"
+              ? RECORDS
+              : rows,
       },
     },
   );
@@ -98,9 +109,8 @@ async function open(type: string, bound = true) {
 }
 
 const typeOf = (workspace: CatalogWorkspace, record: CatalogConsumerNode) =>
-  workspace.runtime.graph.getDefinition(
-    record.definitionId as DefinitionId,
-  )?.name ?? "";
+  workspace.runtime.graph.getDefinition(record.definitionId as DefinitionId)
+    ?.name ?? "";
 /** The item records of the list (in order) with their label text. */
 function items(workspace: CatalogWorkspace, itemType = "ListBoxItem") {
   const records = workspace.root.domInputs;
@@ -258,5 +268,75 @@ describe("ADR-248 Phase 4e-4e bound rows", () => {
       "Alpha",
       "Beta",
     ]);
+  });
+
+  it("a bound TagGroup repeats its first Tag under the TagList (the rows pass the TagList part)", async () => {
+    const { workspace } = await open("TagGroup");
+    const shown = items(workspace, "Tag");
+    expect(shown.map((item) => [item.key, item.texts[0]])).toEqual([
+      ["a", "Alpha"],
+      ["b", "Beta"],
+    ]);
+    // The group's own label is the group's, not a row's.
+    const [group] = workspace.root.recordsOfSource(LIST);
+    const label = workspace.root.domInputs.get(
+      workspace.root.domInputs.get(group!)!.children[0]!,
+    )!;
+    expect(label.props.children).toBe("Tag Group");
+    const plain = await open("TagGroup", false);
+    expect(items(plain.workspace, "Tag").map((item) => item.texts[0])).toEqual([
+      "Chocolate",
+      "Mint",
+      "Strawberry",
+      "Vanilla",
+    ]);
+  });
+
+  it("a bound Breadcrumbs shows one crumb per row with the row's label (the item label is literal text)", async () => {
+    const { workspace } = await open("Breadcrumbs");
+    const shown = items(workspace, "Breadcrumb");
+    expect(shown.map((item) => [item.key, item.texts[0]])).toEqual([
+      ["a", "Alpha"],
+      ["b", "Beta"],
+    ]);
+    const plain = await open("Breadcrumbs", false);
+    expect(
+      items(plain.workspace, "Breadcrumb").map((item) => item.texts[0]),
+    ).toEqual(["Home", "Category", "Page"]);
+  });
+
+  it("a bound Chart reads the collection's records as its data (raw fields, not the item reader's)", async () => {
+    const { workspace } = await open("Chart");
+    const records = workspace.root.domInputs;
+    const chart = [...records.values()].find(
+      (record) => typeOf(workspace, record) === "Chart" && record.ruleId,
+    )!;
+    expect(chart.props.data).toEqual(RECORDS.map((record) => record.values));
+    const plain = await open("Chart", false);
+    const sample = [...plain.workspace.root.domInputs.values()].find(
+      (record) => typeOf(plain.workspace, record) === "Chart" && record.ruleId,
+    )!;
+    expect(sample.props.data).not.toEqual(chart.props.data);
+  });
+
+  it("records kind: every raw record, no item reader fields", () => {
+    const collections = [
+      {
+        id: "c1",
+        name: "Sales",
+        schema: [
+          { id: "f1", key: "category" },
+          { id: "f2", key: "value" },
+        ],
+        mockData: Array.from({ length: 150 }, (_, index) => ({
+          category: `C${index}`,
+          value: index,
+        })),
+      },
+    ] as never;
+    const records = catalogBoundRows(BINDING, collections, "records")!;
+    expect(records).toHaveLength(150);
+    expect(records[3]!.values).toEqual({ category: "C3", value: 3 });
+    expect(catalogBoundRows(BINDING, collections)!).toHaveLength(100);
   });
 });

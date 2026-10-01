@@ -85,14 +85,24 @@ export interface CatalogBoundRow {
   /** What the row template's `{field}` placeholders read (row fields + label/description/icon/value). */
   values: Readonly<Record<string, unknown>>;
 }
-/** The rows of a binding; `undefined` = unknown (not loaded) — the template items stay. */
+/**
+ * The rows of a binding; `undefined` = unknown (not loaded) — the template items stay. `kind`
+ * "items" (default) = the rows a collection repeats (the item reader's label/value fields, the
+ * window limit); "records" = the collection's own records (a Chart's data — no window, raw fields).
+ */
 export type CatalogRowSource = (
   binding: DataBindingRef,
+  kind?: "items" | "records",
 ) => readonly CatalogBoundRow[] | undefined;
-/** Item types a bound collection repeats per data row (its first item position is the row template). */
+/**
+ * Item types a bound collection repeats per data row (its first item position is the row
+ * template; the positions may sit under a list part — TagGroup's TagList).
+ */
 export const CATALOG_ROW_ITEM_TYPES: ReadonlySet<string> = new Set([
   "ListBoxItem",
   "GridListItem",
+  "Tag",
+  "Breadcrumb",
 ]);
 /**
  * Source of a bound Table's projected rows and cells (`…:row`, `…:cell-<column>`): they show data,
@@ -556,7 +566,18 @@ export function resolveCatalogNode(
     for (const layer of layers)
       if (layer.sizing) applyWrites(sizing, layer.sizing);
     const children: ResolvedCatalogNode[] = [];
-    const rowSet = node.binding && rows ? rows(node.binding) : undefined;
+    // A bound Chart reads the records as its data (the old Canvas's `_chartRows`, the DOM
+    // Chart's bound rows); the other bound composites repeat their item template per row.
+    const charted =
+      definition.mode === "composite" &&
+      !!definition.templateRootId &&
+      templateTypeName(definition.templateRootId) === "Chart";
+    const records =
+      node.binding && rows && charted
+        ? rows(node.binding, "records")
+        : undefined;
+    const rowSet =
+      node.binding && rows && !charted ? rows(node.binding) : undefined;
     if (
       definition.mode === "composite" &&
       definition.templateRootId &&
@@ -566,25 +587,25 @@ export function resolveCatalogNode(
         children,
         projectTableRows(
           projectTemplate(
-          node,
-          definition.templateRootId,
-          instancePath,
-          [definition.templateRootId],
-          { ...self, collapsed: true },
-          templateBindings(node.definitionId, props),
-          instanceRoot(
-            Object.keys(node.props),
-            props,
-            [
-              ...Object.keys(node.visual),
-              ...layers.flatMap((layer) => Object.keys(layer.visual ?? {})),
-            ],
-            visual,
-            sizing,
+            node,
+            definition.templateRootId,
+            instancePath,
+            [definition.templateRootId],
+            { ...self, collapsed: true },
+            templateBindings(node.definitionId, props),
+            instanceRoot(
+              Object.keys(node.props),
+              props,
+              [
+                ...Object.keys(node.visual),
+                ...layers.flatMap((layer) => Object.keys(layer.visual ?? {})),
+              ],
+              visual,
+              sizing,
+            ),
+            undefined,
+            rowSet ? { rowSet } : records ? { records } : undefined,
           ),
-          undefined,
-          rowSet ? { rowSet } : undefined,
-        ),
           rowSet,
         ),
       );
@@ -743,7 +764,10 @@ export function resolveCatalogNode(
         );
         // The text is one line with an ellipsis (the Cell rule's Canvas paint, as Table.css);
         // the box clips it.
-        return fixed({ ...cell, visual: { ...cell.visual, overflow: "hidden" } }, width);
+        return fixed(
+          { ...cell, visual: { ...cell.visual, overflow: "hidden" } },
+          width,
+        );
       });
       return synthesize(
         TABLE_ROW_DEFINITION,
@@ -795,12 +819,16 @@ export function resolveCatalogNode(
     /**
      * Data rows: `rowSet` = the bound instance's rows (its template root repeats its first item
      * position per row and drops the other item positions); `row` = the row this subtree projects,
-     * `rowStart` on the row template position itself (its sample content is not the row's).
+     * `rowStart` on the row template position itself (its sample content is not the row's);
+     * `rowLabel` on a Breadcrumb row's children (its label text is the row's label — the old
+     * Canvas crumb's `children: row.label`); `records` = a bound Chart's data.
      */
     rowing?: {
       rowSet?: readonly CatalogBoundRow[];
       row?: CatalogBoundRow;
       rowStart?: boolean;
+      rowLabel?: boolean;
+      records?: readonly CatalogBoundRow[];
     },
   ): ResolvedCatalogNode | undefined => {
     const row = rowing?.row;
@@ -889,7 +917,18 @@ export function resolveCatalogNode(
         if (key in props) props[key] = bindRowValue(props[key], row);
       // The row is the item: its collection key is the row's.
       if (rowing?.rowStart) props.id = row.key;
+      if (
+        rowing?.rowLabel &&
+        props.slot !== "separator" &&
+        typeof props.children === "string" &&
+        !props.children.includes("{")
+      )
+        props.children = String(row.values.label ?? "");
     }
+    if (rowing?.records)
+      props.data = rowing.records.map(
+        (record) => record.values,
+      ) as unknown as PropValue;
     const shownState =
       root?.displayState ??
       (!("kind" in template) ? template.displayState : undefined);
@@ -1021,6 +1060,17 @@ export function resolveCatalogNode(
           CATALOG_ROW_ITEM_TYPES.has(templateTypeName(childId)),
         )
       : [];
+    // The rows reach the item positions below a part without them (TagGroup > TagList > Tag).
+    const passRows = rowSet && itemPositions.length === 0 ? rowSet : undefined;
+    const rowLabel = !!row && templateTypeName(templateId) === "Breadcrumb";
+    const childRowing =
+      row || passRows
+        ? {
+            ...(row ? { row } : {}),
+            ...(passRows ? { rowSet: passRows } : {}),
+            ...(rowLabel ? { rowLabel } : {}),
+          }
+        : undefined;
     for (const childId of template.children) {
       if (selection && !selection.include(childId, instancePath)) continue;
       const childPath = [...path, childId];
@@ -1058,7 +1108,7 @@ export function resolveCatalogNode(
           bindings,
           undefined,
           patches,
-          row ? { row } : undefined,
+          childRowing,
         ),
       );
     }

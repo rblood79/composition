@@ -2,6 +2,7 @@ import {
   buildCollectionRowTemplateItem,
   COLLECTION_ROW_PROJECTION_WINDOW_LIMIT,
   getFlatProjectionRows,
+  readDataBindingRows,
   resolveBoundCollection,
   type CollectionDataSource,
   type DataBindingValue,
@@ -155,15 +156,26 @@ export function catalogFieldUsageElements(
  * `resolveCollectionSnapshot`) through the old projection row reader (label/description/icon/
  * value heuristics and `fieldMap` roles), at most the old window limit. `undefined` = the
  * collection is not loaded (the template items stay). Duplicate keys get their index.
+ * `kind: "records"` = the collection's own records, every row (the old Canvas Chart's
+ * `readDataBindingRows` — the chart model caps its rows itself).
  */
 export function catalogBoundRows(
   ref: DataBindingRef,
   collections: readonly CollectionDataSource[],
+  kind: "items" | "records" = "items",
   limit = COLLECTION_ROW_PROJECTION_WINDOW_LIMIT,
 ): CatalogBoundRow[] | undefined {
   const dataBinding = catalogBindingValue(ref);
   if (!dataBinding || !resolveBoundCollection(dataBinding, collections))
     return undefined;
+  if (kind === "records")
+    return readDataBindingRows(dataBinding, collections).map((item, index) => ({
+      key: String(index),
+      values:
+        item !== null && typeof item === "object" && !Array.isArray(item)
+          ? (item as Record<string, unknown>)
+          : {},
+    }));
   const seen = new Set<string>();
   return getFlatProjectionRows({ dataBinding, collections }, limit).map(
     (row) => {

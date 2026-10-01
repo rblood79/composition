@@ -195,10 +195,12 @@ export function CatalogBuilderCore() {
         root: {
           // The breakpoint the Builder last showed (a Builder-wide choice, like the old app).
           breakpoint: readRememberedBreakpoint(),
-          rows: (binding) =>
-            catalogBoundRows(binding, [
-              ...useDataStore.getState().collections.values(),
-            ]),
+          rows: (binding, kind) =>
+            catalogBoundRows(
+              binding,
+              [...useDataStore.getState().collections.values()],
+              kind,
+            ),
           // `{{ name }}` at defaults; project variables live in the data store (H1).
           state: {
             projectVariables: () =>
