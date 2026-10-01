@@ -5,10 +5,7 @@
  * Builder의 main.tsx와 완전히 분리됩니다.
  */
 
-import { createRoot } from "react-dom/client";
-import { App } from "./App";
 import { injectPreviewBaseStyles } from "./baseStyles";
-import { PreviewLocale } from "./PreviewLocale";
 
 // 컴포넌트 CSS 번들 (preview 순서 — 파일 머리말 참조). 컴포넌트 .tsx 는 CSS 를 싣지 않는다.
 import "@composition/shared/components/styles/index.css";
@@ -71,22 +68,11 @@ function initPreviewRuntime() {
   document.body.setAttribute("data-canvas", "true");
   document.body.setAttribute("data-preview", "true");
 
-  // ADR-248 4e-6 — catalog 프로젝트의 Preview (`?catalog=1`): 수신기 · 복제본 root · DOM binding (lazy)
-  if (new URLSearchParams(window.location.search).get("catalog") === "1") {
-    void import("./catalog/catalogPreviewApp").then((m) =>
-      m.startCatalogPreview(),
-    );
-    return;
-  }
-
-  // React를 document.body에 직접 마운트
-  // - DOM 트리와 데이터 트리가 완벽히 일치
-  // - body element가 실제 <body> 태그와 1:1 매핑
-  const reactRoot = createRoot(document.body);
-  reactRoot.render(
-    <PreviewLocale>
-      <App />
-    </PreviewLocale>,
+  // ADR-248 4e-6/4e-7 — the catalog project's Preview: receiver · replica root · DOM binding (lazy).
+  // The Builder opens `preview.html?catalog=1`; the old element-store Preview app is gone from this
+  // entry (4e-7), so any query starts the catalog Preview.
+  void import("./catalog/catalogPreviewApp").then((m) =>
+    m.startCatalogPreview(),
   );
 }
 
