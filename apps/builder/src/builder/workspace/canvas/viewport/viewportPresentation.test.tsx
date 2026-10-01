@@ -80,7 +80,9 @@ describe("viewportPresentation", () => {
     const controller = new ViewportController();
     render(
       <I18nProvider initialLocale="en-US">
-        <ZoomControls />
+        <ZoomControls
+          viewportActions={{ fit() {}, fill() {}, alignPages() {} }}
+        />
       </I18nProvider>,
     );
 

@@ -1,4 +1,5 @@
 import { importCollectionEnvelope } from "../utils/importCollectionEnvelope";
+import { STORE_VIEWPORT_ACTIONS } from "../workspace/storeViewportActions.legacy";
 import {
   toRuntimeApiEndpoint,
   toRuntimeCollection,
@@ -1668,10 +1669,7 @@ export const BuilderCore: React.FC = () => {
                         onTransitionEnd={handleBootstrapProgressTransitionEnd}
                       />
                     </div>
-                    <div
-                      key={bootstrapProgress}
-                      className="loading-percent"
-                    >
+                    <div key={bootstrapProgress} className="loading-percent">
                       {bootstrapProgress}%
                     </div>
                   </>
@@ -1686,6 +1684,7 @@ export const BuilderCore: React.FC = () => {
       <PanelWorkspace
         chrome={
           <BuilderHeader
+            viewportActions={STORE_VIEWPORT_ACTIONS}
             projectId={projectId}
             projectName={projectInfo?.name}
             breakpoint={breakpoint}

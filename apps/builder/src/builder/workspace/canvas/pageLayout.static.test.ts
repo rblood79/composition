@@ -19,7 +19,8 @@ describe("explicit page layout command contract", () => {
       "utf-8",
     );
 
-    expect(source).toContain("alignPagesToScreen");
+    // ADR-248 4e-7: the open Builder's align (the old store's is `storeViewportActions.legacy.ts`).
+    expect(source).toContain("viewportActions.alignPages()");
     expect(source).toContain('case "align-pages"');
     expect(source).toContain('id="align-pages"');
     expect(source).toContain('t("zoom.align")');

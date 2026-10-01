@@ -23,7 +23,6 @@ import {
 import { Button } from "@composition/shared/components";
 import { PresetPreview } from "./PresetPreview";
 import { ExistingSlotDialog } from "./ExistingSlotDialog";
-import { usePresetApply } from "./usePresetApply";
 import { derivePreviewAreas } from "./derivePreviewAreas";
 import {
   LAYOUT_PRESETS,
@@ -32,17 +31,9 @@ import {
 } from "./presetDefinitions";
 import type { ExistingSlotInfo, PresetApplyMode, PreviewArea } from "./types";
 import type { BreakpointName } from "@composition/shared";
-import { useStore } from "../../../../stores";
 import "./styles.css";
 import { iconEditProps } from "../../../../../utils/ui/uiConstants";
 import { useI18n } from "@/i18n";
-
-interface LayoutPresetSelectorProps {
-  /** Layout ID */
-  layoutId: string;
-  /** Body Element ID */
-  bodyElementId: string;
-}
 
 /**
  * 아이콘 이름 → 컴포넌트 조회 (ADR-168 P-5).
@@ -63,32 +54,6 @@ const ICON_BY_NAME: Record<string, typeof Layout> = {
   List,
   Rows3,
 };
-
-export const LayoutPresetSelector = memo(function LayoutPresetSelector({
-  layoutId,
-  bodyElementId,
-}: LayoutPresetSelectorProps) {
-  // 썸네일 기준 breakpoint — 헤더의 캔버스 breakpoint 토글을 그대로 따른다 (ADR-168 P-7 정정).
-  //
-  // 패널 안에 별도 세그먼트를 뒀다가 제거했다: 헤더에 이미 같은 개념의 컨트롤이 있어 중복이고,
-  // 두 컨트롤이 어긋나면 "썸네일은 mobile, 캔버스는 desktop" 같은 상태가 만들어진다.
-  // 컨트롤은 하나, 의미도 하나다.
-  const activeBreakpoint = useStore((s) => s.activeBreakpoint);
-  const { existingSlots, currentPresetKey, applyPreset, isApplying } =
-    usePresetApply({
-      layoutId,
-      bodyElementId,
-    });
-  return (
-    <LayoutPresetGrid
-      breakpoint={activeBreakpoint}
-      existingSlots={existingSlots}
-      currentPresetKey={currentPresetKey}
-      applyPreset={applyPreset}
-      isApplying={isApplying}
-    />
-  );
-});
 
 /**
  * The preset grid and the existing-slot dialog, over any document (ADR-248 4e-6-37): the old store
@@ -265,5 +230,3 @@ export const LayoutPresetGrid = memo(function LayoutPresetGrid({
     </>
   );
 });
-
-export default LayoutPresetSelector;

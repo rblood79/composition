@@ -6,7 +6,7 @@ import { useStore } from "../../../stores";
 import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
 import { LayoutBodyEditor } from "./LayoutBodyEditor";
 
-vi.mock("./LayoutPresetSelector", () => ({
+vi.mock("./LayoutPresetSelector/index.legacy", () => ({
   LayoutPresetSelector: ({
     bodyElementId,
     layoutId,

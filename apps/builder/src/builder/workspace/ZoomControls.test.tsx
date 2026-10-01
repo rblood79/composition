@@ -17,10 +17,8 @@ vi.mock("../../i18n", () => ({ useI18n: () => ({ t: (key: string) => key }) }));
 vi.mock("../hooks", () => ({ formatShortcut: () => "" }));
 vi.mock("./canvas/viewport/viewportActions", () => ({
   zoomViewportAtContainerCenter: vi.fn(),
-  applyViewportState: vi.fn(),
-  computeFillViewport: vi.fn(),
-  computeFitViewport: vi.fn(),
 }));
+const VIEWPORT_ACTIONS = { fit: vi.fn(), fill: vi.fn(), alignPages: vi.fn() };
 afterEach(() => {
   cleanup();
   resetViewportPresentation();
@@ -30,7 +28,7 @@ it("updates the displayed zoom without a React commit and unsubscribes on unmoun
   const onRender = vi.fn();
   const { unmount } = render(
     <Profiler id="zoom" onRender={onRender}>
-      <ZoomControls />
+      <ZoomControls viewportActions={VIEWPORT_ACTIONS} />
     </Profiler>,
   );
   const input = screen.getByRole("textbox") as HTMLInputElement;
@@ -43,7 +41,7 @@ it("updates the displayed zoom without a React commit and unsubscribes on unmoun
   expect(input.value).toBe("125%");
 });
 it("preserves typed text during presentation changes and restores current zoom after invalid input", () => {
-  render(<ZoomControls />);
+  render(<ZoomControls viewportActions={VIEWPORT_ACTIONS} />);
   const input = screen.getByRole("textbox") as HTMLInputElement;
   fireEvent.focus(input);
   fireEvent.change(input, { target: { value: "bad" } });
@@ -54,7 +52,7 @@ it("preserves typed text during presentation changes and restores current zoom a
   expect(zoomViewportAtContainerCenter).not.toHaveBeenCalled();
 });
 it("commits typed percentage and uses the latest presentation zoom for arrow keys", () => {
-  render(<ZoomControls />);
+  render(<ZoomControls viewportActions={VIEWPORT_ACTIONS} />);
   const input = screen.getByRole("textbox");
   fireEvent.focus(input);
   fireEvent.change(input, { target: { value: "175%" } });
@@ -66,7 +64,7 @@ it("commits typed percentage and uses the latest presentation zoom for arrow key
 });
 
 it("cancels typed zoom with Escape", () => {
-  render(<ZoomControls />);
+  render(<ZoomControls viewportActions={VIEWPORT_ACTIONS} />);
   const input = screen.getByRole("textbox") as HTMLInputElement;
   act(() => input.focus());
   fireEvent.change(input, { target: { value: "175%" } });
@@ -76,7 +74,7 @@ it("cancels typed zoom with Escape", () => {
 });
 
 it("commits Enter once through blur", () => {
-  render(<ZoomControls />);
+  render(<ZoomControls viewportActions={VIEWPORT_ACTIONS} />);
   const input = screen.getByRole("textbox") as HTMLInputElement;
   act(() => input.focus());
   fireEvent.change(input, { target: { value: "175%" } });

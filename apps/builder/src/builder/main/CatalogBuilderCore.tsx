@@ -114,6 +114,9 @@ import "../workspace/Workspace.css";
 // 패널 등록 (side effect import — registerAllPanels() 자동 실행)
 import "../panels/core/panelConfigs";
 
+/** The zoom menu while the project is still opening (no page frames yet). */
+const NO_VIEWPORT_ACTIONS = { fit() {}, fill() {}, alignPages() {} };
+
 type OpenState =
   | { kind: "opening" }
   | { kind: "open"; workspace: CatalogWorkspace; name: string }
@@ -292,7 +295,7 @@ export function CatalogBuilderCore() {
         ? catalogViewportActions(workspace, (error) =>
             toastError(error instanceof Error ? error.message : String(error)),
           )
-        : undefined,
+        : NO_VIEWPORT_ACTIONS,
     [workspace, toastError],
   );
   const reopen = useCallback((pageId: string | undefined) => {

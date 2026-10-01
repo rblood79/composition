@@ -6,30 +6,10 @@
  * 없으므로 (preset areas 는 정의 파일에만) 여기서도 이름 · 수만 보여준다 (panel-ui 18, 2026-09-14).
  */
 
-import { memo, useCallback } from "react";
+import { memo } from "react";
 import { Button } from "react-aria-components/Button";
 import { Section as PropertySection } from "../../../../components/panel/Section";
-import { useStore } from "../../../../stores";
-import { useExistingFrameSlots } from "./usePresetApply";
 import { useOptionalI18n } from "@/i18n";
-
-interface LayoutSlotsSectionProps {
-  readonly layoutId: string;
-}
-
-export const LayoutSlotsSection = memo(function LayoutSlotsSection({
-  layoutId,
-}: LayoutSlotsSectionProps) {
-  const slots = useExistingFrameSlots(layoutId);
-
-  const handleSelect = useCallback((elementId: string) => {
-    const state = useStore.getState();
-    const element = state.elementsMap.get(elementId);
-    state.setSelectedElement(elementId, element?.props);
-  }, []);
-
-  return <LayoutSlotsList slots={slots} onSelect={handleSelect} />;
-});
 
 /**
  * The Slots rows over any document (ADR-248 4e-6-37): the old store and the catalog layout pass

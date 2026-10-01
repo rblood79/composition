@@ -86,8 +86,8 @@ export interface BuilderHeaderProps {
   directoryLink: ReactNode;
   /** ADR-248 — 열린 프로젝트의 저장 상태 표시 */
   saveStatus?: ReactNode;
-  /** ADR-248 — 줌 메뉴의 맞춤 · 채우기 · 페이지 정렬 (catalog page frame 기준, 없으면 옛 store) */
-  viewportActions?: ZoomControlsViewportActions;
+  /** ADR-248 — 줌 메뉴의 맞춤 · 채우기 · 페이지 정렬 (열린 Builder 의 page frame 기준) */
+  viewportActions: ZoomControlsViewportActions;
 }
 
 export const BuilderHeader: React.FC<BuilderHeaderProps> = ({

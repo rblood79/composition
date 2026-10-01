@@ -13,8 +13,8 @@
 import { memo, useMemo } from "react";
 import { PropertySection } from "../../../components";
 import { PropertyEditorProps } from "../types/editorTypes";
-import { LayoutPresetSelector } from "./LayoutPresetSelector";
-import { LayoutSlotsSection } from "./LayoutPresetSelector/LayoutSlotsSection";
+import { LayoutPresetSelector } from "./LayoutPresetSelector/index.legacy";
+import { LayoutSlotsSection } from "./LayoutPresetSelector/LayoutSlotsSection.legacy";
 import { getFrameElementMirrorId } from "../../../../adapters/canonical/frameMirror";
 import { useCanonicalPropertyElement } from "../hooks/useCanonicalPropertyRead";
 

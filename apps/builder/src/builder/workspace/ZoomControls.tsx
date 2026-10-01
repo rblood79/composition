@@ -5,14 +5,7 @@ import { MenuTrigger, Menu, MenuItem } from "react-aria-components/Menu";
 import { Button } from "react-aria-components/Button";
 import { Popover } from "react-aria-components/Popover";
 import { ChevronDown } from "lucide-react";
-import { useViewportSyncStore } from "./canvas/stores";
-import {
-  applyViewportState,
-  computeFillViewport,
-  computeFitViewport,
-  zoomViewportAtContainerCenter,
-} from "./canvas/viewport/viewportActions";
-import { alignPagesToScreen } from "./canvas/viewport/pageLayoutActions";
+import { zoomViewportAtContainerCenter } from "./canvas/viewport/viewportActions";
 import {
   getViewportPresentationSnapshot,
   subscribeViewportPresentationZoom,
@@ -51,7 +44,7 @@ function shortcutLabel(id: ShortcutId): string {
 // Types
 // ============================================
 
-/** Fit / Fill / Align pages of the open Builder's page frames (absent = the old store's canvas). */
+/** Fit / Fill / Align pages of the open Builder's page frames (the old Builder's: `storeViewportActions.legacy.ts`). */
 export interface ZoomControlsViewportActions {
   fit(): void;
   fill(): void;
@@ -61,8 +54,8 @@ export interface ZoomControlsViewportActions {
 export interface ZoomControlsProps {
   /** 클래스명 */
   className?: string;
-  /** ADR-248 — catalog Builder 의 page frame 기준 맞춤 · 정렬 */
-  viewportActions?: ZoomControlsViewportActions;
+  /** ADR-248 — 열린 Builder 의 page frame 기준 맞춤 · 정렬 */
+  viewportActions: ZoomControlsViewportActions;
 }
 
 // ============================================
@@ -110,24 +103,6 @@ export const ZoomControls = memo(function ZoomControls({
     zoomTo(currentZoom - ZOOM_STEP);
   }, [zoomTo]);
 
-  const zoomToFit = useCallback(() => {
-    const state = useViewportSyncStore.getState();
-    const { containerSize, canvasSize } = state;
-
-    if (containerSize.width === 0 || containerSize.height === 0) return;
-
-    applyViewportState(computeFitViewport({ canvasSize, containerSize }));
-  }, []);
-
-  const zoomToFill = useCallback(() => {
-    const state = useViewportSyncStore.getState();
-    const { containerSize, canvasSize } = state;
-
-    if (containerSize.width === 0 || containerSize.height === 0) return;
-
-    applyViewportState(computeFillViewport({ canvasSize, containerSize }));
-  }, []);
-
   // ============================================
   // Menu Action Handler
   // ============================================
@@ -148,20 +123,17 @@ export const ZoomControls = memo(function ZoomControls({
           zoomTo(2);
           break;
         case "fit-to-screen":
-          if (viewportActions) viewportActions.fit();
-          else zoomToFit();
+          viewportActions.fit();
           break;
         case "fill-screen":
-          if (viewportActions) viewportActions.fill();
-          else zoomToFill();
+          viewportActions.fill();
           break;
         case "align-pages":
-          if (viewportActions) viewportActions.alignPages();
-          else alignPagesToScreen();
+          viewportActions.alignPages();
           break;
       }
     },
-    [zoomIn, zoomOut, zoomTo, zoomToFit, zoomToFill, viewportActions],
+    [zoomIn, zoomOut, zoomTo, viewportActions],
   );
 
   // ============================================
