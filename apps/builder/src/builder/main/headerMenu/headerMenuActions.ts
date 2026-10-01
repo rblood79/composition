@@ -6,7 +6,7 @@
  * 콜백은 `HeaderMenuHost` 로 받고, store 로 끝나는 동작 (스냅 · 모양 · 스냅샷) 은
  * 여기서 직접 부른다.
  */
-import { useStore } from "../../stores";
+import { useBuilderUiStore } from "../../stores/builderUiStore";
 import type { ThemeMode } from "../../../stores/uiStore";
 import {
   createUserSnapshot,
@@ -119,9 +119,9 @@ export const HEADER_MENU_ACTIONS: Readonly<
   },
   snapToObjects: {
     labelKey: "contextMenu.snapToObjects",
-    isChecked: () => useStore.getState().snapToObjects,
+    isChecked: () => useBuilderUiStore.getState().snapToObjects,
     run: () => {
-      const { snapToObjects, setSnapToObjects } = useStore.getState();
+      const { snapToObjects, setSnapToObjects } = useBuilderUiStore.getState();
       setSnapToObjects(!snapToObjects);
     },
   },

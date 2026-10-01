@@ -10,4 +10,4 @@ export {
   buildActionBarItems,
   buildActionBarRequest,
 } from "./buildActionBarItems";
-export { ContextualActionBar } from "./ContextualActionBar";
+export { ContextualActionBar } from "./ContextualActionBar.legacy";

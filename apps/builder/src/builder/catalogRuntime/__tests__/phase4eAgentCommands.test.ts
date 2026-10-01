@@ -169,14 +169,6 @@ describe("ADR-248 Phase 4e-5 agent commands", () => {
       "ok",
     );
     const empty: AgentReadModel = {
-      currentPageId: null,
-      selectedElementId: null,
-      selectedElementIds: [],
-      multiSelectMode: false,
-      elementsMap: new Map(),
-      guideSelected: false,
-      canUndo: false,
-      canRedo: false,
       viewport: { containerSize: { width: 0, height: 0 } },
     };
     const input = {
@@ -196,10 +188,10 @@ describe("ADR-248 Phase 4e-5 agent commands", () => {
     });
     uninstall?.();
     uninstall = undefined;
-    // Without a host the old read model decides again.
-    expect(resolveCommandEnablement("undo", input)).toMatchObject({
-      enabled: false,
-      reason: "precondition",
+    // Without a host a document command does not reach the old store (4e-7): the executor refuses.
+    expect(await executeAgentCommand("undo", {}, context())).toMatchObject({
+      status: "denied",
+      reason: "adapter-missing",
     });
   });
 

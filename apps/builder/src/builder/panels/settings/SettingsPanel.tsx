@@ -14,7 +14,7 @@ import { useCallback } from "react";
 import { Settings } from "lucide-react";
 import { ACTION_ICONS } from "../../config/actionIcons";
 import { iconProps } from "../../../utils/ui/uiConstants";
-import { useStore } from "../../stores";
+import { useBuilderUiStore } from "../../stores/builderUiStore";
 import {
   normalizePageLayoutDirection,
   type PageLayoutDirection,
@@ -41,25 +41,29 @@ function SettingsContent() {
   const { t } = useI18n();
 
   // Grid & Guides 설정
-  const snapToObjects = useStore((state) => state.snapToObjects);
-  const setSnapToObjects = useStore((state) => state.setSnapToObjects);
+  const snapToObjects = useBuilderUiStore((state) => state.snapToObjects);
+  const setSnapToObjects = useBuilderUiStore((state) => state.setSnapToObjects);
 
-  const showRulers = useStore((state) => state.showRulers);
-  const actionBarHidden = useStore((state) => state.actionBar.hidden);
-  const setActionBarHidden = useStore((state) => state.setActionBarHidden);
-  const setShowRulers = useStore((state) => state.setShowRulers);
+  const showRulers = useBuilderUiStore((state) => state.showRulers);
+  const actionBarHidden = useBuilderUiStore((state) => state.actionBar.hidden);
+  const setActionBarHidden = useBuilderUiStore(
+    (state) => state.setActionBarHidden,
+  );
+  const setShowRulers = useBuilderUiStore((state) => state.setShowRulers);
 
   // Page Layout 설정
-  const pageLayoutDirection = useStore((state) => state.pageLayoutDirection);
-  const setPageLayoutDirection = useStore(
+  const pageLayoutDirection = useBuilderUiStore(
+    (state) => state.pageLayoutDirection,
+  );
+  const setPageLayoutDirection = useBuilderUiStore(
     (state) => state.setPageLayoutDirection,
   );
-  const pageGap = useStore((state) => state.pageGap);
-  const setPageGap = useStore((state) => state.setPageGap);
+  const pageGap = useBuilderUiStore((state) => state.pageGap);
+  const setPageGap = useBuilderUiStore((state) => state.setPageGap);
 
   // ADR-232 — 파생 모드에서는 Page layout · gap · 열 수가 **문서 데이터** 다
   //   (localStorage 에서 승격). 미이관 문서는 현행 store/localStorage 그대로.
-  const activeBreakpoint = useStore((state) => state.activeBreakpoint);
+  const activeBreakpoint = useBuilderUiStore((state) => state.activeBreakpoint);
   const documentPageLayout = useCanonicalDocumentStore((state) => {
     const projectId = state.currentProjectId;
     return projectId ? state.documents.get(projectId)?.pageLayout : undefined;

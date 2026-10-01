@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useStore } from "../../stores";
+import { useBuilderUiStore } from "../../stores/builderUiStore";
 import { readPageLayoutSettings } from "../../stores/utils/pageLayoutStorage";
 import { SettingsPanel } from "./SettingsPanel";
 
@@ -131,7 +131,7 @@ describe("SettingsPanel page layout synchronization", () => {
     sendDarkModeMock.mockReset();
     setThemeModeMock.mockReset();
     setUiScaleMock.mockReset();
-    useStore.setState({
+    useBuilderUiStore.setState({
       pageGap: 80,
       pageLayoutDirection: "auto",
     } as never);
@@ -144,7 +144,7 @@ describe("SettingsPanel page layout synchronization", () => {
   it("Page Layout 변경값을 저장한 뒤 Canvas page 위치를 다시 정렬한다", () => {
     const observedDirections: string[] = [];
     alignPagesToScreenMock.mockImplementation(() => {
-      observedDirections.push(useStore.getState().pageLayoutDirection);
+      observedDirections.push(useBuilderUiStore.getState().pageLayoutDirection);
     });
     render(<SettingsPanel />);
 
@@ -152,7 +152,7 @@ describe("SettingsPanel page layout synchronization", () => {
       target: { value: "vertical" },
     });
 
-    expect(useStore.getState().pageLayoutDirection).toBe("vertical");
+    expect(useBuilderUiStore.getState().pageLayoutDirection).toBe("vertical");
     expect(observedDirections).toEqual(["vertical"]);
     // 새로고침 후에도 유지 — localStorage (액션바 설정과 같은 채널)
     expect(readPageLayoutSettings().direction).toBe("vertical");
@@ -161,7 +161,7 @@ describe("SettingsPanel page layout synchronization", () => {
   it("Page Gap 변경값을 저장한 뒤 Canvas page 위치를 다시 정렬한다", () => {
     const observedGaps: number[] = [];
     alignPagesToScreenMock.mockImplementation(() => {
-      observedGaps.push(useStore.getState().pageGap);
+      observedGaps.push(useBuilderUiStore.getState().pageGap);
     });
     render(<SettingsPanel />);
 
@@ -169,7 +169,7 @@ describe("SettingsPanel page layout synchronization", () => {
       target: { value: "120" },
     });
 
-    expect(useStore.getState().pageGap).toBe(120);
+    expect(useBuilderUiStore.getState().pageGap).toBe(120);
     expect(observedGaps).toEqual([120]);
     expect(readPageLayoutSettings().gap).toBe(120);
   });
@@ -177,7 +177,7 @@ describe("SettingsPanel page layout synchronization", () => {
   it("Page Gap 은 「80 PX」 단위 suffix 필드 (px 하나 · preset 없음) — px 붙은 commit 값을 숫자로 저장한다", () => {
     const observedGaps: number[] = [];
     alignPagesToScreenMock.mockImplementation(() => {
-      observedGaps.push(useStore.getState().pageGap);
+      observedGaps.push(useBuilderUiStore.getState().pageGap);
     });
     render(<SettingsPanel />);
 
@@ -189,7 +189,7 @@ describe("SettingsPanel page layout synchronization", () => {
 
     fireEvent.change(input, { target: { value: "40px" } });
 
-    expect(useStore.getState().pageGap).toBe(40);
+    expect(useBuilderUiStore.getState().pageGap).toBe(40);
     expect(observedGaps).toEqual([40]);
   });
 

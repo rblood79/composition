@@ -9,7 +9,7 @@ import {
   catalogPageAt,
   catalogPageGuides,
 } from "../../../catalogRuntime/pageGuides";
-import { useStore } from "../../../stores";
+import { useBuilderUiStore } from "../../../stores/builderUiStore";
 import { guideCursorForAxis } from "../../components/rulerMetrics";
 import { isRulerEventTarget } from "../../components/rulerOverlayUtils";
 import {
@@ -82,7 +82,7 @@ export function bindCatalogGuides(options: {
   onError: (error: unknown) => void;
 }): CatalogGuideBinding {
   const { workspace } = options;
-  const rulersShown = () => useStore.getState().showRulers;
+  const rulersShown = () => useBuilderUiStore.getState().showRulers;
   const breakpoint = () => workspace.session.getSnapshot().breakpoint;
   const frames = () => workspace.root.pageFrameRects();
 
@@ -235,7 +235,7 @@ export function bindCatalogGuides(options: {
   // Drag, hover and selection changes redraw the overlay (no document step).
   const unwatchRevision = subscribePageGuideRevision(options.invalidateOverlay);
   // Rulers off: nothing stays hovered or selected (guides cannot be grabbed then).
-  const unwatchRulers = useStore.subscribe((state, previous) => {
+  const unwatchRulers = useBuilderUiStore.subscribe((state, previous) => {
     if (state.showRulers === previous.showRulers) return;
     if (!state.showRulers) {
       setHoveredGuide(null);

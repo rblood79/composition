@@ -25,9 +25,10 @@ import type { ContextMenuItem } from "../contextMenu/types";
  * 패널·메뉴와 같은 순서가 여기서도 파생된다. 손으로 맞추던 종전에는 바에만
  * `toggle-component-origin` 이 빠져 있었다 (2026-08-30 회귀).
  */
-const COMPONENT_AXIS_IDS: readonly string[] = COMPONENT_SEMANTICS_ACTIONS.filter(
-  (action) => action.surfaces.includes("action-bar"),
-).map((action) => action.id);
+const COMPONENT_AXIS_IDS: readonly string[] =
+  COMPONENT_SEMANTICS_ACTIONS.filter((action) =>
+    action.surfaces.includes("action-bar"),
+  ).map((action) => action.id);
 
 export type ActionBarContext = "single" | "frame" | "instance" | "multi";
 

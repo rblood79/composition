@@ -21,7 +21,7 @@ import { createPanelWorkspaceRegistryEntry } from "../layout/panelWorkspaceLayou
 import { migratePanelLayoutV1ToV2 } from "../layout/panelWorkspaceLayoutV2Migration";
 import type { PanelWorkspaceLayoutV4 } from "../layout/panelWorkspaceLayoutV4";
 import { migratePanelWorkspaceLayoutV2ToV4 } from "../layout/panelWorkspaceLayoutV4Migration";
-import { useStore } from "../stores";
+import { useBuilderUiStore } from "../stores/builderUiStore";
 
 const TEST_PANELS: PanelConfig[] = [
   {
@@ -116,11 +116,11 @@ describe("usePanelLayout Photoshop식 v4 panel commands", () => {
   beforeEach(() => {
     localStorage.clear();
     vi.spyOn(PanelRegistry, "getAllPanels").mockReturnValue(TEST_PANELS);
-    useStore.getState().initializePanelWorkspaceLayout(registry(), {
+    useBuilderUiStore.getState().initializePanelWorkspaceLayout(registry(), {
       width: 1200,
       height: 800,
     });
-    useStore.setState({
+    useBuilderUiStore.setState({
       panelWorkspaceLayout: createWorkspaceLayout(),
       panelWorkspaceHydrationStatus: "memory-fallback",
       panelWorkspaceHydrationError: null,
@@ -133,14 +133,14 @@ describe("usePanelLayout Photoshop식 v4 panel commands", () => {
     const { result } = renderHook(() => usePanelLayout());
 
     act(() => result.current.togglePanel("properties"));
-    let layout = useStore.getState().panelWorkspaceLayout!;
+    let layout = useBuilderUiStore.getState().panelWorkspaceLayout!;
     expect(layout.visibility.properties).toBe(false);
     expect(findPlacement(layout, "properties")?.cluster.placementZone).toBe(
       "top-right",
     );
 
     act(() => result.current.togglePanel("properties"));
-    layout = useStore.getState().panelWorkspaceLayout!;
+    layout = useBuilderUiStore.getState().panelWorkspaceLayout!;
     expect(layout.visibility.properties).toBe(true);
     expect(findPlacement(layout, "properties")?.cluster.placementZone).toBe(
       "top-right",
@@ -152,7 +152,7 @@ describe("usePanelLayout Photoshop식 v4 panel commands", () => {
 
     act(() => result.current.focusPanel("theme"));
     act(() => result.current.focusPanel("properties"));
-    const layout = useStore.getState().panelWorkspaceLayout!;
+    const layout = useBuilderUiStore.getState().panelWorkspaceLayout!;
 
     expect(layout.clusterFocusOrder.at(-1)).toBe(
       findPlacement(layout, "properties")?.cluster.id,
@@ -164,18 +164,20 @@ describe("usePanelLayout Photoshop식 v4 panel commands", () => {
 
   it("explicit reset command는 registry default zone layout을 복원한다", () => {
     const { result } = renderHook(() => usePanelLayout());
-    const moved = structuredClone(useStore.getState().panelWorkspaceLayout!);
+    const moved = structuredClone(
+      useBuilderUiStore.getState().panelWorkspaceLayout!,
+    );
     const properties = findPlacement(moved, "properties");
     if (!properties) throw new Error("properties placement is required");
     properties.cluster.placementZone = "bottom-right";
-    useStore.getState().setPanelWorkspaceLayout(moved);
+    useBuilderUiStore.getState().setPanelWorkspaceLayout(moved);
 
     let reset = false;
     act(() => {
       reset = result.current.resetWorkspaceLayout();
     });
 
-    const layout = useStore.getState().panelWorkspaceLayout!;
+    const layout = useBuilderUiStore.getState().panelWorkspaceLayout!;
     expect(reset).toBe(true);
     expect(layout.visibility.properties).toBe(true);
     expect(findPlacement(layout, "properties")?.cluster.placementZone).toBe(

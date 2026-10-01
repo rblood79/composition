@@ -1,5 +1,7 @@
 /**
- * AGENT_COMMANDS — allowlist 명령의 store-level adapter (ADR-196 Phase 1).
+ * AGENT_COMMANDS — allowlist 명령의 store-level adapter (ADR-196 Phase 1). ADR-248 4e-7: the old
+ * element store's path — the catalog Builder runs document · selection commands through its host
+ * and view commands through `AGENT_VIEW_COMMANDS`; this table goes with the old store.
  *
  * registry 의 handler (등록 hook 의 effect 클로저 — 마운트 상태·DOM 포커스·패널 로컬
  * state 에 결합) 를 부르지 않는다. 대신 **handler 가 부르는 바로 그 심볼** 을 같은
@@ -14,14 +16,13 @@
  * - `paste` 는 `pasteHistory: "batch"` — 캔버스 ⌘V 경로는 요소마다 entry 를 남기지만
  *   (Phase 0 실측 N entry) agent 호출 1건은 history 1 entry 여야 한다 (HC5).
  */
+import { LEGACY_COMMAND_META } from "../../builder/config/commandMeta.legacy";
+import { historyManager } from "../../builder/stores/history";
+import type { AgentCommandHost } from "./agentCommandHost";
+import { buildLegacyAgentReadModel } from "./agentReadModel.legacy";
+import { AGENT_VIEW_COMMANDS } from "./agentViewCommands";
 import { useStore } from "../../builder/stores";
 import { runComponentSemanticsAction } from "../../builder/utils/componentSemanticsRunner";
-import { useViewportSyncStore } from "../../builder/workspace/canvas/stores";
-import {
-  applyViewportState,
-  computeFitViewport,
-  zoomViewportAtContainerCenter,
-} from "../../builder/workspace/canvas/viewport/viewportActions";
 import {
   alignSelection,
   copySelection,
@@ -39,15 +40,9 @@ import {
   getSelectedGuide,
 } from "../../builder/workspace/canvas/interaction/guideEmphasis";
 import { deletePageGuide } from "../../builder/workspace/canvas/viewport/pageGuideActions";
-import { togglePanelWorkspace } from "../../builder/hooks/usePanelLayout";
-import { useSectionCollapse } from "../../builder/panels/styles/hooks/useSectionCollapse";
 import { canDetachInstance } from "../../builder/utils/editingSemantics";
 import type { ShortcutId } from "../../builder/config/keyboardShortcuts";
-import type { PanelId } from "../../builder/panels/core/types";
 import type { SiblingEdge } from "../../builder/stores/utils/siblingReorder";
-
-/** `useGlobalKeyboardShortcuts.ts` 의 `ZOOM_STEP` 과 같아야 한다 (정적 대조). */
-const AGENT_ZOOM_STEP = 0.1;
 
 export interface AgentCommandInput {
   /** handler 의 `useStore.getState().elementsMap` — executor 가 조립 */
@@ -65,12 +60,6 @@ export type AgentCommandAdapter = (
 
 // ---------- 조각 ----------
 
-const zoomBy = (delta: number) => () => {
-  const { zoom } = useViewportSyncStore.getState();
-  zoomViewportAtContainerCenter(zoom + delta);
-};
-const zoomTo = (target: number) => () => zoomViewportAtContainerCenter(target);
-const panel = (panelId: PanelId) => () => togglePanelWorkspace(panelId);
 const ctx = (input: AgentCommandInput) => ({ elementsMap: input.elementsMap });
 
 /** 등록 hook 의 단일 선택 판정 (`handleReorderSibling` / `handleMoveToSiblingEdge`) */
@@ -95,41 +84,13 @@ const siblingStep = (direction: -1 | 1) => () => {
 export const AGENT_COMMANDS: Readonly<
   Partial<Record<ShortcutId, AgentCommandAdapter>>
 > = {
+  ...AGENT_VIEW_COMMANDS,
   // system
   undo: async () => {
     await useStore.getState().undo();
   },
   redo: async () => {
     await useStore.getState().redo();
-  },
-
-  // navigation — viewportSync 경로
-  zoomIn: zoomBy(AGENT_ZOOM_STEP),
-  zoomOut: zoomBy(-AGENT_ZOOM_STEP),
-  zoomToFit: () => {
-    const { containerSize, canvasSize } = useViewportSyncStore.getState();
-    if (containerSize.width === 0 || containerSize.height === 0) return;
-    applyViewportState(computeFitViewport({ canvasSize, containerSize }));
-  },
-  zoom100: zoomTo(1),
-  zoom200: zoomTo(2),
-
-  // panels
-  toggleNavigator: panel("navigator"),
-  toggleComponents: panel("components"),
-  toggleDatatable: panel("datatable"),
-  toggleTheme: panel("theme"),
-  toggleProperties: panel("properties"),
-  toggleStyles: panel("styles"),
-  toggleEvents: panel("events"),
-  toggleHistory: panel("history"),
-  openSettings: panel("settings"),
-  toggleRulers: () => {
-    const { showRulers, setShowRulers } = useStore.getState();
-    setShowRulers(!showRulers);
-  },
-  toggleFocusMode: () => {
-    useSectionCollapse.getState().toggleFocusMode();
   },
 
   // clipboard — `handleCanvasCopy/Cut/Paste` 와 같은 컨텍스트
@@ -222,3 +183,27 @@ export const AGENT_COMMANDS: Readonly<
   distributeH: (input) => distributeSelection(ctx(input), "horizontal"),
   distributeV: (input) => distributeSelection(ctx(input), "vertical"),
 };
+
+/**
+ * ADR-248 4e-7: the old element store as an agent command host — its adapters behind its
+ * preconditions (`LEGACY_COMMAND_META`), history position from the old history manager. Only the
+ * old store's tests install it (the catalog Builder installs `createCatalogAgentCommandHost`).
+ */
+export function createStoreAgentCommandHost(
+  clipboard?: AgentCommandInput["clipboard"],
+): AgentCommandHost {
+  return {
+    plan(id) {
+      const adapter = AGENT_COMMANDS[id];
+      const meta = LEGACY_COMMAND_META[id];
+      if (!adapter || meta.mutation === "view") return undefined;
+      const check = meta.precondition?.(buildLegacyAgentReadModel());
+      if (check && !check.ok) return { reason: check.reason };
+      return {
+        run: () =>
+          adapter({ elementsMap: useStore.getState().elementsMap, clipboard }),
+      };
+    },
+    historyIndex: () => historyManager.getCurrentPageHistory().currentIndex,
+  };
+}

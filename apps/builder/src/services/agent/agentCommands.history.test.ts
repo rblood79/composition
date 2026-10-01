@@ -26,6 +26,8 @@ import {
   executeAgentCommand,
   type AgentExecutionContext,
 } from "./executeAgentCommand";
+import { createStoreAgentCommandHost } from "./agentCommands";
+import { setAgentCommandHost } from "./agentCommandHost";
 
 vi.mock("../../lib/db", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../lib/db")>();
@@ -171,12 +173,19 @@ async function run(id: string) {
   return entries() - before;
 }
 
+// ADR-248 4e-7: the old store's adapters run as an agent command host (the catalog Builder's host
+// is `phase4eAgentCommands.test.ts`); goes with the old store.
+let uninstallHost: (() => void) | undefined;
 describe("agent 호출 1건 = history 1 entry (undo: history 명령)", () => {
   beforeEach(() => {
     clipboard = "";
     useAgentCommandLogStore.getState().clear();
+    uninstallHost = setAgentCommandHost(
+      createStoreAgentCommandHost(ctx.clipboard),
+    );
   });
   afterEach(() => {
+    uninstallHost?.();
     vi.restoreAllMocks();
   });
 

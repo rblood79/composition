@@ -153,12 +153,22 @@ describe("COMMAND_META 정적 게이트 (ADR-196 §3-2)", () => {
       resolve(__dirname, "../../services/agent/agentCommands.ts"),
       "utf-8",
     );
-    const valueExports = [
-      ...source.matchAll(
-        /^export (?:const|function|let|class|async function) (\w+)/gm,
-      ),
-    ].map((m) => m[1]);
-    expect(valueExports).toEqual(["AGENT_COMMANDS"]);
+    const valueExports = (text: string) =>
+      [
+        ...text.matchAll(
+          /^export (?:const|function|let|class|async function) (\w+)/gm,
+        ),
+      ].map((m) => m[1]);
+    // ADR-248 4e-7: the old store's table also exports its host form — still behind the executor.
+    expect(valueExports(source)).toEqual([
+      "AGENT_COMMANDS",
+      "createStoreAgentCommandHost",
+    ]);
+    const viewSource = await readFile(
+      resolve(__dirname, "../../services/agent/agentViewCommands.ts"),
+      "utf-8",
+    );
+    expect(valueExports(viewSource)).toEqual(["AGENT_VIEW_COMMANDS"]);
     expect(source).not.toMatch(/^export \{/m);
     expect(source).not.toMatch(/^export default/m);
   });

@@ -138,7 +138,7 @@ import {
 } from "../../../catalogRuntime/rowSample";
 import { resolveSpacingCursor } from "../interaction/spacingGeometry";
 import { catalogOverlayNode } from "./catalogOverlay";
-import { useStore } from "../../../stores";
+import { useBuilderUiStore } from "../../../stores/builderUiStore";
 import { bindCatalogGuides, type CatalogGuideBinding } from "./catalogGuides";
 import {
   catalogGuideSnapLines,
@@ -258,7 +258,7 @@ export function CatalogCanvas({
         },
         // Rulers and guide editing (ADR-181) — a Builder view setting, like the Settings switch.
         toggleRulers: () => {
-          const settings = useStore.getState();
+          const settings = useBuilderUiStore.getState();
           settings.setShowRulers(!settings.showRulers);
         },
       },
@@ -865,7 +865,7 @@ export function CatalogCanvas({
           axisLock: event.shiftKey,
           // Snap to objects (the Builder setting); ⌘/Ctrl held turns it off for this move.
           snap:
-            useStore.getState().snapToObjects &&
+            useBuilderUiStore.getState().snapToObjects &&
             !(event.metaKey || event.ctrlKey),
         })
       ) {

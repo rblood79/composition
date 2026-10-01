@@ -3,7 +3,10 @@
  * 패널 열림의 AND. 포커스 scope 는 보지 않는다.
  */
 import { describe, expect, it, vi } from "vitest";
-import type { AgentReadModel } from "../../config/commandMeta";
+import {
+  LEGACY_COMMAND_META,
+  type LegacyAgentReadModel,
+} from "../../config/commandMeta.legacy";
 import type { ShortcutId } from "../../config/keyboardShortcuts";
 import type { CommandEntry } from "../../stores/commandRegistry";
 import type { PanelConfig, PanelId } from "../../panels/core/types";
@@ -15,9 +18,11 @@ import {
   type MenuCommandStateInput,
 } from "./resolveMenuItemState";
 
+// The old store's preconditions (ADR-248 4e-7: the catalog Builder's are its host's —
+// `phase4eAgentCommands.test.ts`); goes with the old store.
 const readModel = (
-  overrides: Partial<AgentReadModel> = {},
-): AgentReadModel => ({
+  overrides: Partial<LegacyAgentReadModel> = {},
+): LegacyAgentReadModel => ({
   currentPageId: "page-1",
   selectedElementId: null,
   selectedElementIds: [],
@@ -50,6 +55,7 @@ function input(
 ): MenuCommandStateInput {
   return {
     readModel: readModel(),
+    meta: LEGACY_COMMAND_META,
     resolve: (id) => entries[id],
     isPanelVisible: () => true,
     panelIdForScope,
@@ -146,8 +152,12 @@ describe("resolveCommandEnablement", () => {
 describe("ownerPanelForCommand", () => {
   it("단일 panel:* scope 만 소속을 갖는다", () => {
     expect(ownerPanelForCommand("copyStyles", panelIdForScope)).toBe("styles");
-    expect(ownerPanelForCommand("toggleFocusMode", panelIdForScope)).toBe("styles");
-    expect(ownerPanelForCommand("copyProperties", panelIdForScope)).toBe("properties");
+    expect(ownerPanelForCommand("toggleFocusMode", panelIdForScope)).toBe(
+      "styles",
+    );
+    expect(ownerPanelForCommand("copyProperties", panelIdForScope)).toBe(
+      "properties",
+    );
     // ["canvas-focused", "panel:properties"] — 캔버스에서도 쓴다
     expect(ownerPanelForCommand("detachInstance", panelIdForScope)).toBeNull();
     expect(ownerPanelForCommand("copy", panelIdForScope)).toBeNull();
@@ -155,8 +165,11 @@ describe("ownerPanelForCommand", () => {
 });
 
 describe("deriveWorkspacePanelGroups", () => {
-  const config = (id: PanelId, hiddenFromMenu = false, hiddenFromRail = false) =>
-    ({ id, hiddenFromMenu, hiddenFromRail }) as PanelConfig;
+  const config = (
+    id: PanelId,
+    hiddenFromMenu = false,
+    hiddenFromRail = false,
+  ) => ({ id, hiddenFromMenu, hiddenFromRail }) as PanelConfig;
   const configs = new Map<PanelId, PanelConfig>([
     ["navigator", config("navigator")],
     ["settings", config("settings", true, true)],

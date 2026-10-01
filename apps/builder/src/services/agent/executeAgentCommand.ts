@@ -17,8 +17,6 @@
  *   이 데이터 store 읽기 모델을 본다. `importPaste` 는 승인·기록을 데이터 proposal dispatcher
  *   가 맡는다 (`provenance:"dispatcher"`) — executor 는 ok 기록을 남기지 않는다 (1 호출 = 1 기록).
  */
-import { useStore } from "../../builder/stores";
-import { historyManager } from "../../builder/stores/history";
 import {
   SHORTCUT_DEFINITIONS,
   type ShortcutId,
@@ -46,7 +44,7 @@ import {
 import type { ToolTranslate } from "../../types/integrations/ai.types";
 import { localizedStrings } from "../../i18n/translations";
 import { getStoredLocale } from "../../i18n/locales";
-import { AGENT_COMMANDS, type AgentCommandInput } from "./agentCommands";
+import { AGENT_VIEW_COMMANDS } from "./agentViewCommands";
 import { getAgentCommandHost } from "./agentCommandHost";
 import { buildAgentReadModel } from "./agentReadModel";
 
@@ -68,7 +66,11 @@ export interface AgentExecutionContext {
   host: AgentHost;
   /** 승인 게이트 — `confirm: true` 명령마다 호출. false 면 `declined`. */
   requestConfirm: (request: AgentConfirmRequest) => Promise<boolean>;
-  clipboard?: AgentCommandInput["clipboard"];
+  /** The old store adapters' clipboard (unused by the catalog host — it owns its clipboard). */
+  clipboard?: {
+    read: () => Promise<string | null>;
+    write: (text: string) => Promise<boolean>;
+  };
   /** 데이터 proposal 승인 요약 문구 — 미지정 시 저장된 locale 의 카탈로그로 해소 */
   t?: ToolTranslate;
 }
@@ -220,7 +222,13 @@ export async function executeAgentCommand(
   };
 
   if (isDataAgentCommandId(id)) {
-    return executeDataAgentCommand(id, asArgs(args), ctx, started, finishDenied);
+    return executeDataAgentCommand(
+      id,
+      asArgs(args),
+      ctx,
+      started,
+      finishDenied,
+    );
   }
 
   // 1. allowlist
@@ -235,14 +243,15 @@ export async function executeAgentCommand(
       meta.mutation,
     );
   }
-  const adapter = AGENT_COMMANDS[canonicalId];
-  if (!adapter) return finishDenied("denied", "adapter-missing", meta.mutation);
-
-  // 2. precondition — the open Builder's host answers first (ADR-248 4e-5), else `COMMAND_META`
+  // 2. precondition — the open Builder's host plans document · selection commands (ADR-248 4e-5);
+  // a view command (zoom, panels) is its adapter and `COMMAND_META` precondition.
   const host = getAgentCommandHost();
   const planned = host?.plan(canonicalId);
   if (planned && !("run" in planned))
     return finishDenied("precondition-failed", planned.reason, meta.mutation);
+  const adapter = AGENT_VIEW_COMMANDS[canonicalId];
+  if (!planned && !adapter)
+    return finishDenied("denied", "adapter-missing", meta.mutation);
   if (!planned && meta.precondition) {
     const check = meta.precondition(buildAgentReadModel());
     if (!check.ok)
@@ -273,11 +282,7 @@ export async function executeAgentCommand(
           meta.mutation,
         );
       await plan.run();
-    } else
-      await adapter({
-        elementsMap: useStore.getState().elementsMap,
-        clipboard: ctx.clipboard,
-      });
+    } else await adapter!();
   } catch (error) {
     return finishDenied(
       "error",
@@ -289,11 +294,7 @@ export async function executeAgentCommand(
   // 5. 기록
   const durationMs = now() - started;
   const undoable = meta.undo === "history";
-  const historyIndex = undoable
-    ? planned
-      ? host!.historyIndex()
-      : historyManager.getCurrentPageHistory().currentIndex
-    : undefined;
+  const historyIndex = undoable && planned ? host!.historyIndex() : undefined;
   record({
     host: ctx.host,
     id: canonicalId,
@@ -337,7 +338,9 @@ async function executeDataAgentCommand(
 
   // 3. confirm 게이트 — 정적 또는 인자 판정. dispatcher 가 묻는 명령 (importPaste) 은 여기서 0.
   const needsConfirm =
-    typeof meta.confirm === "function" ? meta.confirm(read, args) : meta.confirm;
+    typeof meta.confirm === "function"
+      ? meta.confirm(read, args)
+      : meta.confirm;
   if (needsConfirm) {
     const approved = await ctx.requestConfirm({
       id,

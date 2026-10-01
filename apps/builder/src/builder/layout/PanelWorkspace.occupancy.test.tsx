@@ -7,7 +7,7 @@ import { useState, type ReactElement } from "react";
 import { I18nProvider } from "../../i18n";
 import type { PanelConfig } from "../panels/core/types";
 import { PanelRegistry } from "../panels/core/PanelRegistry";
-import { useStore } from "../stores";
+import { useBuilderUiStore } from "../stores/builderUiStore";
 import {
   PANEL_WORKSPACE_TEST_REGISTRY,
   createPanelWorkspaceLayoutV2,
@@ -121,11 +121,11 @@ describe("PanelWorkspace full-screen canvas shell", () => {
     });
     vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(1600);
     vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(852);
-    useStore.getState().initializePanelWorkspaceLayout(TEST_REGISTRY, {
+    useBuilderUiStore.getState().initializePanelWorkspaceLayout(TEST_REGISTRY, {
       width: 1592,
       height: 844,
     });
-    useStore.setState({
+    useBuilderUiStore.setState({
       panelWorkspaceLayout: migrateFixture(),
       panelWorkspaceHydrationStatus: "memory-fallback",
       panelWorkspaceHydrationError: null,
@@ -291,7 +291,9 @@ describe("PanelWorkspace full-screen canvas shell", () => {
       ...source.visibility,
       datatableEditor: false,
     };
-    useStore.setState({ panelWorkspaceLayout: migrateFixture(source) });
+    useBuilderUiStore.setState({
+      panelWorkspaceLayout: migrateFixture(source),
+    });
 
     const { container } = renderPanelWorkspace(
       <PanelWorkspace>
@@ -364,7 +366,7 @@ describe("PanelWorkspace full-screen canvas shell", () => {
     const layout = migrateFixture();
     layout.railOrder.bottom = [];
     layout.railOrder.right.push("theme");
-    useStore.setState({ panelWorkspaceLayout: layout });
+    useBuilderUiStore.setState({ panelWorkspaceLayout: layout });
 
     const { container } = renderPanelWorkspace(
       <PanelWorkspace>
@@ -409,7 +411,9 @@ describe("PanelWorkspace full-screen canvas shell", () => {
       settings: false,
       styles: false,
     };
-    useStore.setState({ panelWorkspaceLayout: migrateFixture(layout) });
+    useBuilderUiStore.setState({
+      panelWorkspaceLayout: migrateFixture(layout),
+    });
 
     const { container } = renderPanelWorkspace(
       <PanelWorkspace>
@@ -436,7 +440,7 @@ describe("PanelWorkspace full-screen canvas shell", () => {
     clickRailButton("left", "datatableEditor");
     clickRailButton("left", "settings");
 
-    const updated = useStore.getState().panelWorkspaceLayout!;
+    const updated = useBuilderUiStore.getState().panelWorkspaceLayout!;
     const updatedRight = updated.clusters.find(
       (cluster) => cluster.placementZone === "top-right",
     );
@@ -495,7 +499,9 @@ describe("PanelWorkspace full-screen canvas shell", () => {
     );
     expect(committed.ok).toBe(true);
     if (!committed.ok) return;
-    useStore.setState({ panelWorkspaceLayout: committed.value.layout });
+    useBuilderUiStore.setState({
+      panelWorkspaceLayout: committed.value.layout,
+    });
 
     const { container } = renderPanelWorkspace(
       <PanelWorkspace>
@@ -546,7 +552,7 @@ describe("PanelWorkspace full-screen canvas shell", () => {
     if (!propertiesRow) throw new Error("properties row is required");
     leftColumn.rows.push(propertiesRow);
 
-    useStore.setState({ panelWorkspaceLayout: layout });
+    useBuilderUiStore.setState({ panelWorkspaceLayout: layout });
     const { container } = renderPanelWorkspace(
       <PanelWorkspace>
         <div />

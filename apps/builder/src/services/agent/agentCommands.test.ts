@@ -10,6 +10,7 @@
  * 심볼·인자만 본다 (measurement-validity §2 #3/#4: callee 를 직접 불러 비교하는
  * 자기 확인은 oracle 이 아니다).
  */
+import { useBuilderUiStore } from "../../builder/stores/builderUiStore";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -162,7 +163,11 @@ describe("AGENT_COMMANDS 정적 대조 — Phase 0 표의 handler 호출 심볼"
   let source = "";
   let hookSource = "";
   beforeEach(async () => {
-    source = await readFile(resolve(__dirname, "agentCommands.ts"), "utf-8");
+    // The view adapters live in `agentViewCommands.ts` (ADR-248 4e-7); the table spreads them.
+    source = [
+      await readFile(resolve(__dirname, "agentCommands.ts"), "utf-8"),
+      await readFile(resolve(__dirname, "agentViewCommands.ts"), "utf-8"),
+    ].join("\n");
     hookSource = await readFile(
       resolve(__dirname, "../../builder/hooks/useGlobalKeyboardShortcuts.ts"),
       "utf-8",
@@ -185,12 +190,12 @@ describe("AGENT_COMMANDS 정적 대조 — Phase 0 표의 handler 호출 심볼"
   // toggleComponentOrigin / detachInstance 는 ADR-199 Phase 3 에서 공통 실행
   // 경로로 옮겼다. 게이트의 뜻은 그대로다 — agent handler 가 그 액션의 실행
   // 경로를 실제로 부르는가. 부르는 대상만 store 직접 호출에서 러너로 바뀐다.
-  it.each([
-    ["toggle-component-origin"],
-    ["detach-instance"],
-  ])("컴포넌트 시맨틱 %s 를 공통 실행 경로로 부른다", (actionId) => {
-    expect(source).toContain(`runComponentSemanticsAction("${actionId}"`);
-  });
+  it.each([["toggle-component-origin"], ["detach-instance"]])(
+    "컴포넌트 시맨틱 %s 를 공통 실행 경로로 부른다",
+    (actionId) => {
+      expect(source).toContain(`runComponentSemanticsAction("${actionId}"`);
+    },
+  );
 
   it("agent detach 는 확인을 건너뛴다 (executor confirm 게이트가 이미 묻는다)", () => {
     expect(source).toContain('confirm: "skip"');
@@ -214,10 +219,10 @@ describe("AGENT_COMMANDS 정적 대조 — Phase 0 표의 handler 호출 심볼"
 
 // ---------- 2. jsdom spy ----------
 
+const originalSetShowRulers = useBuilderUiStore.getState().setShowRulers;
 const originalStore = {
   undo: useStore.getState().undo,
   redo: useStore.getState().redo,
-  setShowRulers: useStore.getState().setShowRulers,
   toggleComponentOrigin: useStore.getState().toggleComponentOrigin,
   detachInstance: useStore.getState().detachInstance,
   moveElementToSiblingEdge: useStore.getState().moveElementToSiblingEdge,
@@ -226,13 +231,14 @@ const originalStore = {
   setSelectedElements: useStore.getState().setSelectedElements,
 } as const;
 
-type Spies = { [K in keyof typeof originalStore]: ReturnType<typeof vi.fn> };
+type Spies = {
+  [K in keyof typeof originalStore | "setShowRulers"]: ReturnType<typeof vi.fn>;
+};
 
 function seedStore(selected: string[]): Spies {
   const spies = {
     undo: vi.fn(async () => undefined),
     redo: vi.fn(async () => undefined),
-    setShowRulers: vi.fn(),
     toggleComponentOrigin: vi.fn(async () => null),
     detachInstance: vi.fn(() => null),
     moveElementToSiblingEdge: vi.fn(() => true),
@@ -246,9 +252,10 @@ function seedStore(selected: string[]): Spies {
       { id, type: "Button", props: {}, parent_id: "body", page_id: "page-1" },
     ]),
   );
+  const setShowRulers = vi.fn();
+  useBuilderUiStore.setState({ showRulers: false, setShowRulers } as never);
   useStore.setState({
     ...spies,
-    showRulers: false,
     activeBreakpoint: "desktop",
     currentPageId: "page-1",
     selectedElementId: selected[0] ?? null,
@@ -260,7 +267,7 @@ function seedStore(selected: string[]): Spies {
     containerSize: { width: 800, height: 600 },
     canvasSize: { width: 1000, height: 1000 },
   } as never);
-  return spies as Spies;
+  return { ...spies, setShowRulers } as Spies;
 }
 
 function input(): AgentCommandInput {
@@ -283,6 +290,7 @@ describe("AGENT_COMMANDS jsdom spy — 심볼 1회 호출, handler 와 같은 �
   });
   afterEach(() => {
     useStore.setState({ ...originalStore } as never);
+    useBuilderUiStore.setState({ setShowRulers: originalSetShowRulers });
   });
 
   it("undo / redo → store.undo / store.redo", async () => {

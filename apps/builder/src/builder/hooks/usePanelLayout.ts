@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { useStore } from "../stores";
+import { useBuilderUiStore } from "../stores/builderUiStore";
 import type { PanelId } from "../panels/core/types";
 import { PanelRegistry } from "../panels/core/PanelRegistry";
 import type { UsePanelLayoutReturn } from "../layout/types";
@@ -19,7 +19,7 @@ function registryEntries(): PanelWorkspaceRegistryEntry[] {
 }
 
 function currentWorkspaceLayout(): PanelWorkspaceLayoutV4 | null {
-  return useStore.getState().panelWorkspaceLayout;
+  return useBuilderUiStore.getState().panelWorkspaceLayout;
 }
 
 const BUILDER_HEADER_HEIGHT = 48;
@@ -48,18 +48,22 @@ export function togglePanelWorkspace(panelId: PanelId): void {
     fallbackSurfaceRect(),
   );
   if (activated.ok)
-    useStore.getState().setPanelWorkspaceLayout(activated.value.layout);
+    useBuilderUiStore
+      .getState()
+      .setPanelWorkspaceLayout(activated.value.layout);
 }
 
 export function usePanelLayout(): UsePanelLayoutReturn {
-  const workspaceLayout = useStore((state) => state.panelWorkspaceLayout);
-  const initializePanelWorkspaceLayout = useStore(
+  const workspaceLayout = useBuilderUiStore(
+    (state) => state.panelWorkspaceLayout,
+  );
+  const initializePanelWorkspaceLayout = useBuilderUiStore(
     (state) => state.initializePanelWorkspaceLayout,
   );
-  const setPanelWorkspaceLayout = useStore(
+  const setPanelWorkspaceLayout = useBuilderUiStore(
     (state) => state.setPanelWorkspaceLayout,
   );
-  const resetPanelWorkspaceLayout = useStore(
+  const resetPanelWorkspaceLayout = useBuilderUiStore(
     (state) => state.resetPanelWorkspaceLayout,
   );
 

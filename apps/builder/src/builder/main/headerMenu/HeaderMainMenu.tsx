@@ -26,7 +26,7 @@ import {
 import { Popover } from "react-aria-components/Popover";
 import { Separator } from "react-aria-components/Separator";
 import { Text } from "react-aria-components/Text";
-import { useStore } from "../../stores";
+import { useBuilderUiStore } from "../../stores/builderUiStore";
 import { useSectionCollapse } from "../../panels/styles/hooks/useSectionCollapse";
 import { PanelRegistry } from "../../panels/core/PanelRegistry";
 import { togglePanelWorkspace } from "../../hooks/usePanelLayout";
@@ -78,12 +78,14 @@ export default function HeaderMainMenu({ host }: HeaderMainMenuProps) {
     runtime.subscribeCommandRegistry,
     runtime.getCommandRegistrySnapshot,
   );
-  const workspaceLayout = useStore((state) => state.panelWorkspaceLayout);
-  const showRulers = useStore((state) => state.showRulers);
-  const showWorkflowOverlay = useStore((state) => state.showWorkflowOverlay);
-  const snapToObjects = useStore((state) => state.snapToObjects);
-  const selectedElementId = useStore((state) => state.selectedElementId);
-  const selectedElementIds = useStore((state) => state.selectedElementIds);
+  const workspaceLayout = useBuilderUiStore(
+    (state) => state.panelWorkspaceLayout,
+  );
+  const showRulers = useBuilderUiStore((state) => state.showRulers);
+  const showWorkflowOverlay = useBuilderUiStore(
+    (state) => state.showWorkflowOverlay,
+  );
+  const snapToObjects = useBuilderUiStore((state) => state.snapToObjects);
   const focusMode = useSectionCollapse((state) => state.focusMode);
   const themeMode = host.runtime.useThemeMode();
 
@@ -105,9 +107,6 @@ export default function HeaderMainMenu({ host }: HeaderMainMenuProps) {
 
   const blocks = useMemo(() => {
     const readModel = buildAgentReadModel();
-    const selected = selectedElementId
-      ? readModel.elementsMap.get(selectedElementId)
-      : undefined;
 
     return buildMenuModel(BUILDER_MENU_ROOT, {
       t,
@@ -127,11 +126,9 @@ export default function HeaderMainMenu({ host }: HeaderMainMenuProps) {
       panelLabel: (config) => runtime.panelLabel(config, t),
       // 선택에 따라 바뀌는 라벨 (컴포넌트 만들기/해제) 은 시맨틱 액션 표가 정본
       commandLabel: (id) => {
-        // The open Builder's host first (catalog: its selection), else the old semantic table.
+        // A label that follows the selection (create / detach component) is the host's.
         const hosted = hostCommandLabelKey(id);
-        if (hosted) return t(hosted);
-        const label = runtime.contextLabelKey(id, selected);
-        return label ? t(label.key, label.params) : t(`command.${id}`);
+        return hosted ? t(hosted) : t(`command.${id}`);
       },
       commandShortcut: (id) => {
         const def = SHORTCUT_DEFINITIONS[id];
@@ -142,7 +139,7 @@ export default function HeaderMainMenu({ host }: HeaderMainMenuProps) {
         runMenuCommand(id, runtime.resolveCommand),
       togglePanel: togglePanelWorkspace,
     });
-    // registry · 체크 · 선택 · 스냅샷 · 모양이 바뀌면 다시 만든다
+    // registry · 체크 · 스냅샷 · 모양이 바뀌면 다시 만든다
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     t,
@@ -155,13 +152,14 @@ export default function HeaderMainMenu({ host }: HeaderMainMenuProps) {
     snapToObjects,
     focusMode,
     themeMode,
-    selectedElementId,
-    selectedElementIds,
     snapshotVersion,
   ]);
 
   const visibleBlocks = useMemo(
-    () => (query.trim() ? searchMenuModel(blocks, query, host.runtime.matchesCommandSearch) : blocks),
+    () =>
+      query.trim()
+        ? searchMenuModel(blocks, query, host.runtime.matchesCommandSearch)
+        : blocks,
     [blocks, query],
   );
 

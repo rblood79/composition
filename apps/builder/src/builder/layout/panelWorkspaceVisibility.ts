@@ -8,7 +8,7 @@
  * 함수 하나가 가진다.
  */
 import type { PanelId } from "../panels/core/types";
-import { useStore } from "../stores";
+import { useBuilderUiStore } from "../stores/builderUiStore";
 import { PanelRegistry } from "../panels/core/PanelRegistry";
 import { dispatchPanelWorkspaceActivation } from "./panelWorkspaceActivationDispatcher";
 import {
@@ -52,11 +52,11 @@ export function setPanelWorkspacePanelVisibility(
     createPanelWorkspaceRegistryEntry(config, surfaceRect),
   );
   if (registry.length === 0) return;
-  let state = useStore.getState();
+  let state = useBuilderUiStore.getState();
   if (!state.panelWorkspaceLayout) {
     if (!stageRect) return;
     state.initializePanelWorkspaceLayout(registry, stageRect);
-    state = useStore.getState();
+    state = useBuilderUiStore.getState();
   }
   const { panelWorkspaceLayout, setPanelWorkspaceLayout } = state;
   if (
@@ -82,7 +82,7 @@ export function setPanelWorkspacePanelVisibility(
  * 한 상태로 유지한다.
  */
 export function dismissCanvasSelectionPanels(): void {
-  const layout = useStore.getState().panelWorkspaceLayout;
+  const layout = useBuilderUiStore.getState().panelWorkspaceLayout;
   if (!layout) return;
 
   for (const [panelId, visible] of Object.entries(layout.visibility) as Array<

@@ -17,19 +17,6 @@
  */
 import type { ShortcutId } from "./keyboardShortcuts";
 import type { ShortcutDefinition } from "../types/keyboard";
-import {
-  ALIGN_MIN_SELECTION,
-  DISTRIBUTE_MIN_SELECTION,
-  GROUP_MIN_SELECTION,
-  type CanvasActionElement,
-} from "../workspace/canvas/actions/canvasActions";
-import {
-  canOperate,
-  createOperableLookup,
-  filterOperable,
-  type OperationRejectReason,
-  type StructuralOp,
-} from "../domain/canOperate";
 
 /**
  * mutation 등급.
@@ -51,16 +38,12 @@ export type UndoKind = "history" | "none" | "inverse" | "irreversible";
 export type PreconditionResult = { ok: true } | { ok: false; reason: string };
 
 /** executor 가 store 에서 조립해 precondition 에 넘기는 읽기 모델 (Phase 2). */
+/**
+ * What the view commands' preconditions read (ADR-248 4e-7: document · selection commands are the
+ * open Builder's host — `agentCommandHost` — so their old-store preconditions moved to
+ * `commandMeta.legacy.ts`).
+ */
 export interface AgentReadModel {
-  currentPageId: string | null;
-  selectedElementId: string | null;
-  selectedElementIds: readonly string[];
-  multiSelectMode: boolean;
-  elementsMap: ReadonlyMap<string, CanvasActionElement>;
-  /** ADR-181 가이드 선택 — delete 가 요소 대신 가이드를 지우는 분기 */
-  guideSelected: boolean;
-  canUndo: boolean;
-  canRedo: boolean;
   viewport: { containerSize: { width: number; height: number } };
 }
 
@@ -78,72 +61,12 @@ export interface CommandMeta {
   undo: UndoKind;
   /** true 면 사용자 승인 없이는 실행 0 (destructive · external 은 필수) */
   confirm: boolean;
-  precondition?: (s: AgentReadModel) => PreconditionResult;
+  precondition?(s: AgentReadModel): PreconditionResult;
   args?: JsonSchema;
 }
 
-// ---------- precondition 조각 ----------
-
 const OK: PreconditionResult = { ok: true };
 const fail = (reason: string): PreconditionResult => ({ ok: false, reason });
-const operable = (op: StructuralOp, s: AgentReadModel) =>
-  filterOperable(op, s.selectedElementIds, createOperableLookup(s.elementsMap))
-    .ids;
-const canOperateOn = (op: StructuralOp, s: AgentReadModel, id: string) =>
-  canOperate(op, id, createOperableLookup(s.elementsMap));
-/** 거부 사유 → precondition reason (kebab). */
-const REJECT_REASON: Readonly<Record<OperationRejectReason, string>> = {
-  notFound: "selection-empty",
-  synthetic: "instance-child",
-  projection: "projection",
-  body: "body",
-  systemOwned: "system-origin",
-  templateAnchor: "template-anchor",
-  notGroup: "not-a-frame",
-  notInstance: "not-an-instance",
-  delegatedSubpart: "delegated-subpart",
-};
-const singleTarget = (s: AgentReadModel) =>
-  s.selectedElementIds.length > 1
-    ? null
-    : (s.selectedElementId ?? s.selectedElementIds[0] ?? null);
-
-const requirePage = (s: AgentReadModel) =>
-  s.currentPageId ? OK : fail("no-current-page");
-const requireSelection = (op: StructuralOp) => (s: AgentReadModel) =>
-  operable(op, s).length >= 1 ? OK : fail("selection-empty");
-const requirePageAndSelection =
-  (op: StructuralOp) =>
-  (s: AgentReadModel): PreconditionResult => {
-    const page = requirePage(s);
-    return page.ok ? requireSelection(op)(s) : page;
-  };
-const requireSingle = (s: AgentReadModel) =>
-  s.selectedElementIds.length > 1
-    ? fail("multi-selection")
-    : singleTarget(s)
-      ? OK
-      : fail("selection-empty");
-// 개수로만 판정한다 — `multiSelectMode` 를 따로 요구하면 메뉴 (개수 판정) 에 선 항목이 no-op 이 된다 (E9).
-const requireMulti = (op: StructuralOp, min: number) => (s: AgentReadModel) =>
-  operable(op, s).length >= min ? OK : fail(`selection-lt-${min}`);
-/** 단일 대상 + 그 작업의 판정. */
-const requireSingleOperable =
-  (op: StructuralOp) =>
-  (s: AgentReadModel): PreconditionResult => {
-    const id = singleTarget(s);
-    if (!id) return fail("selection-empty");
-    const verdict = canOperateOn(op, s, id);
-    return verdict.ok ? OK : fail(REJECT_REASON[verdict.reason]);
-  };
-/** 선택의 대표 요소 (`selectedElementId`) 하나에 작용하는 핸들러 — 다중 선택도 허용. */
-const requireSelectedElement = (s: AgentReadModel): PreconditionResult =>
-  s.selectedElementId ? OK : fail("selection-empty");
-/** z-order — 다중 선택이면 거부 (`multi-selection`), 아니면 이동 판정 (synthetic · projection · body). */
-const requireSingleMove = (s: AgentReadModel): PreconditionResult => {
-  const single = requireSingle(s);
-  return single.ok ? requireSingleOperable("move")(s) : single;
-};
 
 // ---------- meta 조각 ----------
 
@@ -153,15 +76,11 @@ const view = (agentCallable = true): CommandMeta => ({
   undo: "none",
   confirm: false,
 });
-const doc = (
-  precondition: CommandMeta["precondition"],
-  confirm = false,
-): CommandMeta => ({
+const doc = (confirm = false): CommandMeta => ({
   agentCallable: true,
   mutation: "document",
   undo: "history",
   confirm,
-  precondition,
 });
 /** 노출 금지 항목 — 등급만 기록 */
 const off = (mutation: MutationScope, undo: UndoKind): CommandMeta => ({
@@ -178,14 +97,12 @@ export const COMMAND_META: Readonly<Record<ShortcutId, CommandMeta>> = {
     mutation: "document",
     undo: "inverse", // entry 0 — index 이동 (Phase 0 실측), redo 로 되돌린다
     confirm: false,
-    precondition: (s) => (s.canUndo ? OK : fail("nothing-to-undo")),
   },
   redo: {
     agentCallable: true,
     mutation: "document",
     undo: "inverse",
     confirm: false,
-    precondition: (s) => (s.canRedo ? OK : fail("nothing-to-redo")),
   },
   openProject: off("external", "irreversible"), // navigate("/dashboard")
 
@@ -225,54 +142,38 @@ export const COMMAND_META: Readonly<Record<ShortcutId, CommandMeta>> = {
     mutation: "none",
     undo: "none",
     confirm: false,
-    precondition: requirePageAndSelection("copy"),
   },
-  paste: doc(requirePage),
+  paste: doc(),
   // 잘라내기 = 복사 + 삭제 — 삭제할 수 있는 대상이 있어야 한다.
-  cut: doc(requirePageAndSelection("delete"), true),
-  bringToFront: doc(requireSingleMove),
-  bringForward: doc(requireSingleMove),
-  sendBackward: doc(requireSingleMove),
-  sendToBack: doc(requireSingleMove),
-  duplicate: doc(requirePageAndSelection("duplicate")),
-  toggleComponentOrigin: doc((s) => {
-    if (!s.selectedElementId) return fail("selection-empty");
-    const verdict = canOperateOn("toggleOrigin", s, s.selectedElementId);
-    return verdict.ok ? OK : fail(REJECT_REASON[verdict.reason]);
-  }),
-  detachInstance: doc(requireSingleOperable("detach"), true),
+  cut: doc(true),
+  bringToFront: doc(),
+  bringForward: doc(),
+  sendBackward: doc(),
+  sendToBack: doc(),
+  duplicate: doc(),
+  toggleComponentOrigin: doc(),
+  detachInstance: doc(true),
   selectAll: {
     agentCallable: true,
     mutation: "selection",
     undo: "none",
     confirm: false,
-    precondition: requirePage,
   },
-  delete: doc(
-    (s) => (s.guideSelected ? OK : requireSelection("delete")(s)),
-    true,
-  ),
+  delete: doc(true),
   deleteAlt: off("document", "history"), // alias of delete
   escape: off("selection", "none"),
   nextElement: off("selection", "none"),
   prevElement: off("selection", "none"),
-  group: doc((s) => {
-    const page = requirePage(s);
-    return page.ok ? requireMulti("group", GROUP_MIN_SELECTION)(s) : page;
-  }),
-  ungroup: doc((s) => {
-    if (!s.selectedElementId) return fail("selection-empty");
-    const verdict = canOperateOn("ungroup", s, s.selectedElementId);
-    return verdict.ok ? OK : fail(REJECT_REASON[verdict.reason]);
-  }),
-  alignLeft: doc(requireMulti("move", ALIGN_MIN_SELECTION)),
-  alignHCenter: doc(requireMulti("move", ALIGN_MIN_SELECTION)),
-  alignRight: doc(requireMulti("move", ALIGN_MIN_SELECTION)),
-  alignTop: doc(requireMulti("move", ALIGN_MIN_SELECTION)),
-  alignVCenter: doc(requireMulti("move", ALIGN_MIN_SELECTION)),
-  alignBottom: doc(requireMulti("move", ALIGN_MIN_SELECTION)),
-  distributeH: doc(requireMulti("move", DISTRIBUTE_MIN_SELECTION)),
-  distributeV: doc(requireMulti("move", DISTRIBUTE_MIN_SELECTION)),
+  group: doc(),
+  ungroup: doc(),
+  alignLeft: doc(),
+  alignHCenter: doc(),
+  alignRight: doc(),
+  alignTop: doc(),
+  alignVCenter: doc(),
+  alignBottom: doc(),
+  distributeH: doc(),
+  distributeV: doc(),
   // 화살표 — 형제 순서 / 페이지 nudge (연속키, 노출 금지)
   arrowUp: off("document", "history"),
   arrowDown: off("document", "history"),
@@ -290,11 +191,8 @@ export const COMMAND_META: Readonly<Record<ShortcutId, CommandMeta>> = {
   // 게시돼 있다 — 두 핸들러 모두 `selectedElementId` 한 요소에만 작용하므로 (복사 =
   // 그 요소의 style, 붙여넣기 = `updateSelectedStyles` 의 `getSelectedElement`) 그
   // 조건을 옮겨 전체 메뉴가 비활성으로 보인다 (ADR-249 R1).
-  copyStyles: { ...off("none", "none"), precondition: requireSelectedElement },
-  pasteStyles: {
-    ...off("document", "history"),
-    precondition: requireSelectedElement,
-  },
+  copyStyles: off("none", "none"),
+  pasteStyles: off("document", "history"),
   toggleFocusMode: view(), // useSectionCollapse 전역 store
   toggleSections: view(false), // 패널 UI 전용
 

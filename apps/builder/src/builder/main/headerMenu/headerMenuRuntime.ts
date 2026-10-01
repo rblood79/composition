@@ -23,13 +23,6 @@ import {
 } from "../../stores/commandRegistry";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { panelIdForScope } from "../../hooks/useActiveScope";
-import {
-  COMPONENT_SEMANTICS_ACTIONS,
-  DEFAULT_AVAILABILITY_CONTEXT,
-  toEditingSemanticsTarget,
-  type ActionLabelKey,
-} from "../../config/componentSemanticsActions";
-import type { ShortcutId } from "../../config/keyboardShortcuts";
 
 export const HEADER_MENU_RUNTIME = {
   SearchField,
@@ -48,19 +41,6 @@ export const HEADER_MENU_RUNTIME = {
   setThemeMode: (mode: ThemeMode) => useUiStore.getState().setThemeMode(mode),
   panelLabel: getPanelLabel,
   panelIdForScope,
-  /**
-   * 선택에 따라 바뀌는 명령 라벨 (컴포넌트 만들기/해제) — 시맨틱 액션 표가 정본
-   * (ADR-199). 해당 명령이 아니거나 대상이 없으면 null (정의 라벨을 쓴다).
-   */
-  contextLabelKey(id: ShortcutId, element: unknown): ActionLabelKey | null {
-    const descriptor = COMPONENT_SEMANTICS_ACTIONS.find(
-      (action) => action.commandId === id,
-    );
-    const target = element ? toEditingSemanticsTarget(element) : null;
-    return descriptor && target
-      ? descriptor.labelKey(target, DEFAULT_AVAILABILITY_CONTEXT)
-      : null;
-  },
 };
 
 export type HeaderMenuRuntime = typeof HEADER_MENU_RUNTIME;

@@ -44,7 +44,7 @@ vi.mock("./buildActionBarItems", () => ({
 import { I18nProvider } from "@/i18n";
 import { useStore } from "../../../stores";
 import { ContextMenuProvider } from "../contextMenu";
-import { ContextualActionBar } from "./ContextualActionBar";
+import { ContextualActionBar } from "./ContextualActionBar.legacy";
 
 function renderBar() {
   const canvas = document.createElement("div");

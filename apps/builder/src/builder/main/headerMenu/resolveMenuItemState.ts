@@ -21,10 +21,7 @@ import {
 import type { CommandEntry } from "../../stores/commandRegistry";
 import { hostPrecondition } from "../../../services/agent/agentCommandHost";
 import type { PanelConfig, PanelId, PanelSide } from "../../panels/core/types";
-import type {
-  ShortcutDefinition,
-  ShortcutScope,
-} from "../../types/keyboard";
+import type { ShortcutDefinition, ShortcutScope } from "../../types/keyboard";
 
 export type MenuDisabledReason =
   "unregistered" | "precondition" | "cannot-run" | "panel-hidden";

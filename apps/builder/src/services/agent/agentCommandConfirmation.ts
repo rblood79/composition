@@ -18,9 +18,7 @@ import type { AgentHost } from "../../builder/stores/agentCommandLog";
 
 /** ADR-213 — 데이터 proposal (`"data.propose"`) 과 `data.*` 명령은 단축키 id 축 밖. */
 export type AgentConfirmationId =
-  | ShortcutId
-  | DataAgentCommandId
-  | "data.propose";
+  ShortcutId | DataAgentCommandId | "data.propose";
 
 export interface AgentCommandConfirmationRequest {
   id: AgentConfirmationId;

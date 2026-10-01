@@ -15,7 +15,8 @@ import {
   SHORTCUT_DEFINITIONS,
   type ShortcutId,
 } from "../../config/keyboardShortcuts";
-import { COMMAND_META } from "../../config/commandMeta";
+// The guard set the catalog host answers (ADR-248 4e-7: the old table keeps it for reference).
+import { LEGACY_COMMAND_META } from "../../config/commandMeta.legacy";
 import {
   BUILDER_MENU_ROOT,
   MENU_COMMAND_CONDITIONS,
@@ -184,7 +185,8 @@ describe("ADR-249 G0 — 전체 메뉴 인벤토리", () => {
     for (const [id, condition] of entries) {
       const sources = new Set(condition.sources);
       if (
-        sources.has("precondition") !== Boolean(COMMAND_META[id].precondition)
+        sources.has("precondition") !==
+        Boolean(LEGACY_COMMAND_META[id].precondition)
       )
         mismatches.push(`${id}: precondition`);
       if (
