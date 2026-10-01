@@ -7,7 +7,8 @@ import {
   type CatalogItemRoles,
 } from "../../../catalogRuntime/itemRoles";
 import { useCatalogWorkspace } from "../../../catalogRuntime/react";
-import { PropertySection, PropertySwitch } from "../../../components";
+import { Section as PropertySection } from "../../../components/panel/Section";
+import { PropertySwitch } from "../../../components/property/PropertySwitch";
 import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";
 
 const ROLE_LABEL_KEY: Partial<Record<SlotRole, string>> = {

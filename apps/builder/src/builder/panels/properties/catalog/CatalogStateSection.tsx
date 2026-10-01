@@ -26,11 +26,9 @@ import {
   type CatalogVariableType,
 } from "../../../catalogRuntime/stateVariables";
 import { useCatalogWorkspace } from "../../../catalogRuntime/react";
-import {
-  PropertyInput,
-  PropertySection,
-  PropertySelect,
-} from "../../../components";
+import { PropertyInput } from "../../../components/property/PropertyInput";
+import { Section as PropertySection } from "../../../components/panel/Section";
+import { PropertySelect } from "../../../components/property/PropertySelect";
 import { ConfirmDialog } from "../../../components/overlay";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";

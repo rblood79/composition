@@ -3,7 +3,7 @@ import { useI18n } from "@/i18n";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import { catalogItemInsertChoices } from "../../../catalogRuntime/itemInsert";
 import { useCatalogWorkspace } from "../../../catalogRuntime/react";
-import { PropertySection } from "../../../components";
+import { Section as PropertySection } from "../../../components/panel/Section";
 import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";
 
 const AddIcon = ACTION_ICONS.add;

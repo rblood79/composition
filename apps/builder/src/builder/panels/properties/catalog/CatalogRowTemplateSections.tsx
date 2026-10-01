@@ -9,10 +9,8 @@ import {
   catalogRowTemplateOwner,
   type CatalogCardField,
 } from "../../../catalogRuntime/rowTemplate";
-import {
-  PropertyFieldTemplateInput,
-  PropertySection,
-} from "../../../components";
+import { PropertyFieldTemplateInput } from "../../../components/property/PropertyFieldTemplateInput";
+import { Section as PropertySection } from "../../../components/panel/Section";
 import { useCollections } from "../../../stores/data";
 import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";
 import { fieldsFromOwner } from "../hooks/useOwnerCollectionColumns";

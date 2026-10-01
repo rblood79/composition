@@ -13,11 +13,9 @@ import {
   type ChartSeriesConfig,
 } from "@composition/specs";
 import type { ResolvedField } from "@composition/shared";
-import {
-  PropertyInput,
-  PropertyRowMenu,
-  PropertySelect,
-} from "../../components";
+import { PropertyInput } from "../../components/property/PropertyInput";
+import { PropertyRowMenu } from "../../components/property/PropertyRowMenu";
+import { PropertySelect } from "../../components/property/PropertySelect";
 import { ACTION_ICONS } from "../../config/actionIcons";
 import { useI18n } from "@/i18n";
 import { readSeriesConfig } from "./chartPresentationPatch";

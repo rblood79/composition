@@ -15,7 +15,8 @@ import {
   useCatalogEditContract,
   useCatalogWorkspace,
 } from "../../../catalogRuntime/react";
-import { PropertyInput, PropertySection } from "../../../components";
+import { PropertyInput } from "../../../components/property/PropertyInput";
+import { Section as PropertySection } from "../../../components/panel/Section";
 import { ActionTooltipTrigger, SwatchIconButton } from "../../../components/ui";
 import { globalToast } from "../../../stores/toast";
 import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";

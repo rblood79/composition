@@ -24,7 +24,7 @@ interface ColorMockProps {
   readonly value: string;
 }
 
-vi.mock("../../../components", () => ({
+const componentMocks = vi.hoisted(() => ({
   PropertyColor: ({
     onChange,
     onPresentationCancel,
@@ -74,6 +74,20 @@ vi.mock("../../../components", () => ({
     </div>
   ),
 }));
+vi.mock(
+  "../../../components/property/PropertyColor",
+  async (importOriginal) => ({
+    ...(await importOriginal<object>()),
+    PropertyColor: componentMocks.PropertyColor,
+  }),
+);
+vi.mock(
+  "../../../components/property/PropertyUnitInput",
+  async (importOriginal) => ({
+    ...(await importOriginal<object>()),
+    PropertyUnitInput: componentMocks.PropertyUnitInput,
+  }),
+);
 
 const VALUE: BoxShadowPresentationValue = {
   layers: [

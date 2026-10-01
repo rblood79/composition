@@ -9,7 +9,7 @@
  */
 
 import { memo } from "react";
-import { PropertySection } from "../../../components";
+import { Section as PropertySection } from "../../../components/panel/Section";
 import { useOptimizedStyleActions } from "../hooks/useOptimizedStyleActions";
 import { useLayoutValues } from "../hooks/useLayoutValues";
 import { useResetStyles, useHasDirtyStyles } from "../hooks/useResetStyles";

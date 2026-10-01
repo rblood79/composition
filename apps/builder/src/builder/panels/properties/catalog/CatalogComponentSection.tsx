@@ -24,7 +24,7 @@ import {
   useCatalogWorkspace,
 } from "../../../catalogRuntime/react";
 import { setFields } from "../../../../../../../packages/shared/src/catalog/commands";
-import { PropertySection } from "../../../components";
+import { Section as PropertySection } from "../../../components/panel/Section";
 import { ActionTooltipTrigger } from "../../../components/ui";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";

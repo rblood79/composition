@@ -8,7 +8,7 @@
 
 import { memo, useCallback } from "react";
 import { Button } from "react-aria-components/Button";
-import { PropertySection } from "../../../../components";
+import { Section as PropertySection } from "../../../../components/panel/Section";
 import { useStore } from "../../../../stores";
 import { useExistingFrameSlots } from "./usePresetApply";
 import { useOptionalI18n } from "@/i18n";

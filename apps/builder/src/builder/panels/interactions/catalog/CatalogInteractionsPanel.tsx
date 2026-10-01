@@ -25,12 +25,10 @@ import {
   useCatalogWorkspace,
 } from "../../../catalogRuntime/react";
 import { targetKey } from "../../../catalogRuntime/session";
-import {
-  EmptyState,
-  PanelContents,
-  PanelHeader,
-  Section,
-} from "../../../components";
+import { EmptyState } from "../../../components/feedback/EmptyState";
+import { PanelContents } from "../../../components/panel/PanelContents";
+import { PanelHeader } from "../../../components/panel/PanelHeader";
+import { Section } from "../../../components/panel/Section";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import { useI18n } from "@/i18n";
 import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";

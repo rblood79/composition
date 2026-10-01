@@ -9,12 +9,10 @@
  */
 
 import { memo, useCallback, useMemo } from "react";
-import {
-  PropertySection,
-  PropertyUnitInput,
-  PropertyColor,
-  PropertySelect,
-} from "../../../components";
+import { Section as PropertySection } from "../../../components/panel/Section";
+import { PropertyUnitInput } from "../../../components/property/PropertyUnitInput";
+import { PropertyColor } from "../../../components/property/PropertyColor";
+import { PropertySelect } from "../../../components/property/PropertySelect";
 import {
   ToggleButton,
   ToggleButtonGroup,

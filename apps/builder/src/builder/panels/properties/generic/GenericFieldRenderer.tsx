@@ -22,20 +22,17 @@ import type { ResolvedField } from "@composition/shared";
 import type { ItemsManagerField } from "@composition/specs";
 import { useVisibleVariableNames } from "../hooks/useVisibleVariableNames";
 
-import {
-  PropertyChipGroup,
-  PropertyDataBinding,
-  PropertyDataBindingCreateAction,
-  PropertyFieldTemplateInput,
-  PropertyIconPicker,
-  PropertyInput,
-  PropertyNumberInput,
-  PropertyPlacementPicker,
-  PropertySection,
-  PropertySegment,
-  PropertySelect,
-  PropertySlider,
-} from "../../../components";
+import { PropertyChipGroup } from "../../../components/property/PropertyChipGroup";
+import { PropertyDataBinding, PropertyDataBindingCreateAction } from "../../../components/property/PropertyDataBinding";
+import { PropertyFieldTemplateInput } from "../../../components/property/PropertyFieldTemplateInput";
+import { PropertyIconPicker } from "../../../components/property/PropertyIconPicker";
+import { PropertyInput } from "../../../components/property/PropertyInput";
+import { PropertyNumberInput } from "../../../components/property/PropertyNumberInput";
+import { PropertyPlacementPicker } from "../../../components/property/PropertyPlacementPicker";
+import { Section as PropertySection } from "../../../components/panel/Section";
+import { PropertySegment } from "../../../components/property/PropertySegment";
+import { PropertySelect } from "../../../components/property/PropertySelect";
+import { PropertySlider } from "../../../components/property/PropertySlider";
 import type { PropertyChip } from "../../../components/property/PropertyChipGroup";
 import { ActionTooltipTrigger, SwatchIconButton } from "../../../components/ui";
 import { ACTION_ICONS } from "../../../config/actionIcons";

@@ -17,11 +17,9 @@ import {
   useCatalogPages,
   useCatalogWorkspace,
 } from "../../../catalogRuntime/react";
-import {
-  PropertyInput,
-  PropertySection,
-  PropertySelect,
-} from "../../../components";
+import { PropertyInput } from "../../../components/property/PropertyInput";
+import { Section as PropertySection } from "../../../components/panel/Section";
+import { PropertySelect } from "../../../components/property/PropertySelect";
 import { iconEditProps, iconSmall } from "../../../../utils/ui/uiConstants";
 import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";
 import "../editors/styles/pageSelectors.css";

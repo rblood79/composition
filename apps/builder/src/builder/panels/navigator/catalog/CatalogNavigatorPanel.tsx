@@ -15,14 +15,12 @@ import {
   useCatalogWorkspace,
   useOptionalCatalogWorkspace,
 } from "../../../catalogRuntime/react";
-import {
-  EmptyState,
-  PanelHeader,
-  Section,
-  SectionGroupToggleButton,
-  SectionSplitStack,
-  panelContents,
-} from "../../../components";
+import { EmptyState } from "../../../components/feedback/EmptyState";
+import { PanelHeader } from "../../../components/panel/PanelHeader";
+import { Section } from "../../../components/panel/Section";
+import { SectionGroupToggleButton } from "../../../components/panel/SectionGroupToggleButton";
+import { SectionSplitStack } from "../../../components/panel/SectionSplitStack";
+import { panelContents } from "../../../components/panel/panelContentsUtils";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import {
   NAVIGATOR_SECTION_IDS,

@@ -9,7 +9,7 @@ import {
   useCatalogSession,
   useCatalogWorkspace,
 } from "../../../catalogRuntime/react";
-import { PropertySection } from "../../../components";
+import { Section as PropertySection } from "../../../components/panel/Section";
 import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";
 import { LayoutPresetGrid } from "../editors/LayoutPresetSelector";
 import { LayoutSlotsList } from "../editors/LayoutPresetSelector/LayoutSlotsSection";

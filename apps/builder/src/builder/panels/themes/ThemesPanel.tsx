@@ -17,12 +17,10 @@ import { TINT_PRESETS } from "../../../utils/theme/tintToSkiaColors";
 import type { NeutralPreset } from "../../../utils/theme/neutralToSkiaColors";
 import { NEUTRAL_PALETTES } from "../../../utils/theme/neutralToSkiaColors";
 import { oklchToHex } from "../../../utils/theme/oklchToHex";
-import {
-  PanelHeader,
-  PropertySection,
-  PropertySelect,
-  PanelContents,
-} from "../../components";
+import { PanelHeader } from "../../components/panel/PanelHeader";
+import { Section as PropertySection } from "../../components/panel/Section";
+import { PropertySelect } from "../../components/property/PropertySelect";
+import { PanelContents } from "../../components/panel/PanelContents";
 import { MiniThemePreview } from "./MiniThemePreview";
 import { ThemeListSection } from "./ThemeListSection";
 import { ThemeTokensSection } from "./ThemeTokensSection";

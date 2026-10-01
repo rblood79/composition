@@ -22,7 +22,8 @@ import {
 } from "../../../stores/data";
 import { useDataTableEditorStore } from "../stores/dataTableEditorStore";
 import { useDataPanelStatusStore } from "../stores/dataPanelStatusStore";
-import { EmptyState, Section } from "../../../components";
+import { EmptyState } from "../../../components/feedback/EmptyState";
+import { Section } from "../../../components/panel/Section";
 import { ConfirmDialog } from "../../../components/overlay";
 import type { Variable as VariableType } from "../../../../types/builder/data.types";
 import { iconProps, iconEditProps } from "../../../../utils/ui/uiConstants";

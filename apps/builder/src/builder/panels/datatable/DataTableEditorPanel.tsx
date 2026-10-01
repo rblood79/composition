@@ -27,7 +27,9 @@ import {
   ApiEndpointCreator,
   VariableCreator,
 } from "./editors";
-import { EmptyState, PanelHeader, PanelContents } from "../../components";
+import { EmptyState } from "../../components/feedback/EmptyState";
+import { PanelHeader } from "../../components/panel/PanelHeader";
+import { PanelContents } from "../../components/panel/PanelContents";
 import { ActionIconToggleButton } from "../../components/ui";
 import type { DataTableEditorMode } from "./types/editorTypes";
 import "./DataTableEditorPanel.css";

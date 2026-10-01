@@ -14,11 +14,9 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import {
-  PropertySection,
-  PropertyUnitInput,
-  PropertySelect,
-} from "../../../components";
+import { Section as PropertySection } from "../../../components/panel/Section";
+import { PropertyUnitInput } from "../../../components/property/PropertyUnitInput";
+import { PropertySelect } from "../../../components/property/PropertySelect";
 import {
   SwatchIconButton,
   SwatchIconToggleButton,

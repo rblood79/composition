@@ -18,12 +18,10 @@ import {
   catalogSlotDeclaration,
   catalogSlotPosition,
 } from "../../../catalogRuntime/slots";
-import {
-  PropertyInput,
-  PropertySection,
-  PropertySelect,
-  PropertySwitch,
-} from "../../../components";
+import { PropertyInput } from "../../../components/property/PropertyInput";
+import { Section as PropertySection } from "../../../components/panel/Section";
+import { PropertySelect } from "../../../components/property/PropertySelect";
+import { PropertySwitch } from "../../../components/property/PropertySwitch";
 import {
   SLOT_FILL_PRIMITIVE_TYPES,
   slotFillPrimitiveLabel,

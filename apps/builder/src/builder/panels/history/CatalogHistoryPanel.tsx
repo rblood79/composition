@@ -9,12 +9,10 @@ import {
   CatalogWorkspaceGate,
   useCatalogWorkspace,
 } from "../../catalogRuntime/react";
-import {
-  EmptyState,
-  PanelContents,
-  PanelHeader,
-  Section,
-} from "../../components";
+import { EmptyState } from "../../components/feedback/EmptyState";
+import { PanelContents } from "../../components/panel/PanelContents";
+import { PanelHeader } from "../../components/panel/PanelHeader";
+import { Section } from "../../components/panel/Section";
 import { ActionIconButton } from "../../components/ui";
 import { ConfirmDialog } from "../../components/overlay";
 import { ACTION_ICONS } from "../../config/actionIcons";

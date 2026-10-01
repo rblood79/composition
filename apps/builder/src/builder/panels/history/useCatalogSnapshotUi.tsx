@@ -10,7 +10,7 @@ import { ArchiveRestore, Camera } from "lucide-react";
 import { Button } from "@composition/shared/components";
 import { useI18n } from "@/i18n";
 import { iconProps, iconSmall } from "../../../utils/ui/uiConstants";
-import { Section } from "../../components";
+import { Section } from "../../components/panel/Section";
 import { ActionIconButton } from "../../components/ui";
 import { ConfirmDialog } from "../../components/overlay";
 import { ACTION_ICONS } from "../../config/actionIcons";

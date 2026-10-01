@@ -19,7 +19,9 @@ import {
 } from "../../../catalogRuntime/buttonChildren";
 import { catalogSettingsPage } from "../../../catalogRuntime/pageSettings";
 import { targetKey } from "../../../catalogRuntime/session";
-import { EmptyState, PanelContents, PanelHeader } from "../../../components";
+import { EmptyState } from "../../../components/feedback/EmptyState";
+import { PanelContents } from "../../../components/panel/PanelContents";
+import { PanelHeader } from "../../../components/panel/PanelHeader";
 import type { EditTarget } from "../../../../../../../packages/shared/src/catalog/document/types";
 import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";
 import { FieldValueSourceContext } from "../generic/fieldValueSource";

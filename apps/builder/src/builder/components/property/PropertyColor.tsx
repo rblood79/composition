@@ -8,7 +8,7 @@ import {
   parseRacColorOrBlack,
   toDisplayHex,
 } from "../../panels/styles/utils/colorUtils";
-import { useStore } from "../../stores";
+import { usePropertySelection } from "./propertySelection";
 import {
   semanticLabelKeys,
   translateKey,
@@ -40,7 +40,6 @@ interface PropertyColorProps {
    */
   showValue?: boolean;
 }
-
 
 /**
  * hex8 (#RRGGBBAA) → 저장 포맷 정규화 — 불투명이면 종전 저장 포맷(#RRGGBB) 유지,
@@ -83,7 +82,8 @@ export const PropertyColor = memo(
       label && i18n
         ? translateKey(i18n.t, semanticLabelKeys[label] ?? label, label)
         : label;
-    const selectedElementId = useStore((state) => state.selectedElementId);
+    const selection = usePropertySelection();
+    const selectedElementId = selection.useSelectedId();
 
     const handlePreview = useCallback(
       (hexa: string) => {

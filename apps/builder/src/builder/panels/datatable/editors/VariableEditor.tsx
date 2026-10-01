@@ -19,11 +19,9 @@ import type {
   VariableType as VarType,
   VariableScope,
 } from "../../../../types/builder/data.types";
-import {
-  PropertyInput,
-  PropertySelect,
-  PropertySwitch,
-} from "../../../components";
+import { PropertyInput } from "../../../components/property/PropertyInput";
+import { PropertySelect } from "../../../components/property/PropertySelect";
+import { PropertySwitch } from "../../../components/property/PropertySwitch";
 import "./VariableEditor.css";
 import {
   semanticLabelKeys,

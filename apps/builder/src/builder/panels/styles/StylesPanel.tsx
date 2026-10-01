@@ -21,12 +21,10 @@ import { ACTION_ICONS } from "../../config/actionIcons";
 /** 컨텍스트 메뉴·다중 선택 툴바와 같은 복사/붙여넣기 정본. */
 const { copy: CopyIcon, paste: PasteIcon } = ACTION_ICONS;
 import { iconProps } from "../../../utils/ui/uiConstants";
-import {
-  EmptyState,
-  PanelHeader,
-  PanelContents,
-  panelContents,
-} from "../../components";
+import { EmptyState } from "../../components/feedback/EmptyState";
+import { PanelHeader } from "../../components/panel/PanelHeader";
+import { PanelContents } from "../../components/panel/PanelContents";
+import { panelContents } from "../../components/panel/panelContentsUtils";
 import {
   isDelegatedSubpart,
   useSelectedSubpartStyleOwnerType,

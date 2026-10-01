@@ -9,7 +9,8 @@ import {
   type ChartValueLocale,
 } from "@composition/specs";
 import type { ResolvedField } from "@composition/shared";
-import { PropertyNumberInput, PropertySelect } from "../../components";
+import { PropertyNumberInput } from "../../components/property/PropertyNumberInput";
+import { PropertySelect } from "../../components/property/PropertySelect";
 import { useI18n } from "@/i18n";
 
 const LOCALES: readonly ChartValueLocale[] = ["en-US", "ko-KR"];

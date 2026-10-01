@@ -43,6 +43,8 @@ import {
 } from "../catalogRuntime/dataHistory";
 import { dataChangeEventLabel } from "../panels/history/historyEntryLabel";
 import { catalogThemeState } from "../catalogRuntime/theme";
+import { catalogPropertySelection } from "../catalogRuntime/propertySelection";
+import { PropertySelectionContext } from "../components/property/propertySelection";
 import { CatalogWorkspace } from "../catalogRuntime/workspace";
 import { createCatalogDataUsageSource } from "../panels/datatable/usage/catalogDataUsageSource";
 import { DataUsageSourceContext } from "../panels/datatable/usage/dataUsageSource";
@@ -54,12 +56,10 @@ import {
   CatalogSnapshotHostContext,
   createCatalogSnapshotHost,
 } from "../panels/history/catalogSnapshotHost";
-import {
-  AgentCommandConfirmDialogHost,
-  CommandPalette,
-  EditingSemanticsImpactDialogHost,
-  ToastContainer,
-} from "../components";
+import { AgentCommandConfirmDialogHost } from "../components/overlay/AgentCommandConfirmDialog";
+import { CommandPalette } from "../components/overlay/CommandPalette";
+import { EditingSemanticsImpactDialogHost } from "../components/overlay/EditingSemanticsImpactDialog";
+import { ToastContainer } from "../components/feedback/ToastContainer";
 import { setAgentCommandHost } from "../../services/agent/agentCommandHost";
 import { createCatalogAgentCommandHost } from "../catalogRuntime/agentHost";
 import {
@@ -502,6 +502,10 @@ export function CatalogBuilderCore() {
     () => (workspace ? createCatalogDataUsageSource(workspace) : null),
     [workspace],
   );
+  const propertySelection = useMemo(
+    () => (workspace ? catalogPropertySelection(workspace) : null),
+    [workspace],
+  );
   const breakpoint = useSyncExternalStore(
     workspace?.session.subscribe ?? noSubscription,
     () => workspace?.session.getSnapshot().breakpoint ?? "desktop",
@@ -611,7 +615,9 @@ export function CatalogBuilderCore() {
             <QuickConnectHostContext.Provider value={quickConnect}>
               <DataVariablesHostContext.Provider value={dataVariables}>
                 <CatalogSnapshotHostContext.Provider value={snapshotHost}>
-                  {body}
+                  <PropertySelectionContext.Provider value={propertySelection!}>
+                    {body}
+                  </PropertySelectionContext.Provider>
                 </CatalogSnapshotHostContext.Provider>
               </DataVariablesHostContext.Provider>
             </QuickConnectHostContext.Provider>

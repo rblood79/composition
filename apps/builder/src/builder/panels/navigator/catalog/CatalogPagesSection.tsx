@@ -20,7 +20,8 @@ import {
   useCatalogSession,
   useCatalogWorkspace,
 } from "../../../catalogRuntime/react";
-import { ActionIconButton, Section } from "../../../components";
+import { ActionIconButton } from "../../../components/ui/ActionIconButton";
+import { Section } from "../../../components/panel/Section";
 import { ActionIconToggleButton } from "../../../components/ui/ActionIconButton";
 import { SearchField } from "../../../components/ui/SearchField";
 import { ACTION_ICONS } from "../../../config/actionIcons";

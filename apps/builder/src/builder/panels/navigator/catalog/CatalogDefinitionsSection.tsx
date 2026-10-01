@@ -17,7 +17,8 @@ import {
   useCatalogWorkspace,
 } from "../../../catalogRuntime/react";
 import type { CatalogDefinitionViewId } from "../../../catalogRuntime/session";
-import { ActionIconButton, Section } from "../../../components";
+import { ActionIconButton } from "../../../components/ui/ActionIconButton";
+import { Section } from "../../../components/panel/Section";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import { NAVIGATOR_SECTION_IDS } from "../navigatorSectionIds";
 import { ICON_EDIT_PROPS } from "../tree/helpers";

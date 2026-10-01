@@ -12,7 +12,8 @@ import type {
   ChartRow,
 } from "@composition/specs";
 import type { ResolvedField } from "@composition/shared";
-import { PropertyInput, PropertySelect } from "../../components";
+import { PropertyInput } from "../../components/property/PropertyInput";
+import { PropertySelect } from "../../components/property/PropertySelect";
 import { useI18n } from "@/i18n";
 
 const EMPTY_ROWS: readonly ChartRow[] = [];

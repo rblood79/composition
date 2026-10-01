@@ -28,7 +28,8 @@ import {
   useCatalogSession,
   useCatalogWorkspace,
 } from "../../../catalogRuntime/react";
-import { ActionIconButton, Section } from "../../../components";
+import { ActionIconButton } from "../../../components/ui/ActionIconButton";
+import { Section } from "../../../components/panel/Section";
 import { NAVIGATOR_SECTION_IDS } from "../navigatorSectionIds";
 import { TreeBase } from "../tree/TreeBase";
 import type { TreeItemState } from "../tree/TreeBase/types";

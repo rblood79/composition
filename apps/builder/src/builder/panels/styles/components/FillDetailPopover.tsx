@@ -29,7 +29,7 @@ import { ColorPickerPanel } from "./ColorPickerPanel";
 import { GradientEditor } from "./GradientEditor";
 import { MeshGradientEditor } from "./MeshGradientEditor";
 import { ImageFillEditor } from "./ImageFillEditor";
-import { PropertySelect } from "../../../components";
+import { PropertySelect } from "../../../components/property/PropertySelect";
 import { BLEND_MODE_OPTIONS } from "../constants/styleOptions";
 import "./FillDetailPopover.css";
 

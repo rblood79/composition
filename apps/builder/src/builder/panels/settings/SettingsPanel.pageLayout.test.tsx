@@ -25,8 +25,7 @@ vi.mock("../../workspace/canvas/viewport/pageLayoutActions", () => ({
 
 // 배럴 전체를 교체하지 않는다 — 새 export 가 추가될 때마다 조용히 깨진다
 // (PanelContents 도입 때 실제로 깨졌다). 실물을 깔고 무거운 것만 덮는다.
-vi.mock("../../components", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("../../components")>()),
+const componentMocks = vi.hoisted(() => ({
   PanelHeader: () => null,
   PropertyUnitInput: ({
     label,
@@ -102,6 +101,36 @@ vi.mock("../../components", async (importOriginal) => ({
     </select>
   ),
 }));
+vi.mock("../../components/panel/PanelHeader", async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  PanelHeader: componentMocks.PanelHeader,
+}));
+vi.mock(
+  "../../components/property/PropertyUnitInput",
+  async (importOriginal) => ({
+    ...(await importOriginal<object>()),
+    PropertyUnitInput: componentMocks.PropertyUnitInput,
+  }),
+);
+vi.mock("../../components/panel/Section", async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  Section: componentMocks.PropertySection,
+}));
+vi.mock("../../components/property/PropertySelect", async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  PropertySelect: componentMocks.PropertySelect,
+}));
+vi.mock("../../components/property/PropertySwitch", async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  PropertySwitch: componentMocks.PropertySwitch,
+}));
+vi.mock(
+  "../../components/property/PropertySizeToggle",
+  async (importOriginal) => ({
+    ...(await importOriginal<object>()),
+    PropertySizeToggle: componentMocks.PropertySizeToggle,
+  }),
+);
 
 vi.mock("../../hooks/useThemeMessenger", () => ({
   useThemeMessenger: () => ({ sendDarkMode: sendDarkModeMock }),

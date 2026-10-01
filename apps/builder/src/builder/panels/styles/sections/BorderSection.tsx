@@ -37,13 +37,11 @@ import {
   ToggleButtonGroup,
   ToggleButton,
 } from "@composition/shared/components";
-import {
-  PropertySection,
-  PropertyColor,
-  PropertyRowMenu,
-  PropertySlider,
-  PropertyUnitInput,
-} from "../../../components";
+import { Section as PropertySection } from "../../../components/panel/Section";
+import { PropertyColor } from "../../../components/property/PropertyColor";
+import { PropertyRowMenu } from "../../../components/property/PropertyRowMenu";
+import { PropertySlider } from "../../../components/property/PropertySlider";
+import { PropertyUnitInput } from "../../../components/property/PropertyUnitInput";
 import {
   BORDER_RADIUS_PRESET_OPTIONS,
   BORDER_WIDTH_PRESET_OPTIONS,

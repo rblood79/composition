@@ -16,12 +16,10 @@ import type {
 import { getActiveTheme } from "@composition/shared";
 import { useI18n } from "../../../i18n";
 import { iconProps } from "../../../utils/ui/uiConstants";
-import {
-  ActionIconButton,
-  PropertyInput,
-  PropertySection,
-  PropertySelect,
-} from "../../components";
+import { ActionIconButton } from "../../components/ui/ActionIconButton";
+import { PropertyInput } from "../../components/property/PropertyInput";
+import { Section as PropertySection } from "../../components/panel/Section";
+import { PropertySelect } from "../../components/property/PropertySelect";
 import { useThemesHost } from "./themesHost";
 import {
   THEME_TOKEN_CATEGORIES,

@@ -61,11 +61,9 @@ import {
 } from "lucide-react";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import { useDataStore } from "../../../stores/data";
-import {
-  PropertyCheckbox,
-  PropertyFieldset,
-  Section,
-} from "../../../components";
+import { PropertyCheckbox } from "../../../components/property/PropertyCheckbox";
+import { PropertyFieldset } from "../../../components/property/PropertyFieldset";
+import { Section } from "../../../components/panel/Section";
 import type { DataTablePreset } from "../presets/types";
 import { PRESET_CATEGORIES } from "../presets/types";
 import { getPresetsByCategory } from "../presets/dataTablePresets";

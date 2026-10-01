@@ -7,7 +7,8 @@
  */
 
 import { memo } from "react";
-import { PropertySection, PropertyUnitInput } from "../../../components";
+import { Section as PropertySection } from "../../../components/panel/Section";
+import { PropertyUnitInput } from "../../../components/property/PropertyUnitInput";
 import { SPACING_PRESET_OPTIONS } from "../../../components/property/propertyUnitPresets";
 import {
   ToggleButton,

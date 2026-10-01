@@ -12,12 +12,10 @@ import type {
   ItemsManagerField,
   ItemsManagerFieldItemSchema,
 } from "@composition/specs";
-import {
-  PropertyInput,
-  PropertySwitch,
-  PropertySelect,
-  PropertyIconPicker,
-} from "../../../components";
+import { PropertyInput } from "../../../components/property/PropertyInput";
+import { PropertySwitch } from "../../../components/property/PropertySwitch";
+import { PropertySelect } from "../../../components/property/PropertySelect";
+import { PropertyIconPicker } from "../../../components/property/PropertyIconPicker";
 import { useItemsSource } from "./itemsSource";
 import { packHalfRows } from "./fieldEditor";
 import { resolveItemEditorIdentities } from "./itemsEditorIdentity";

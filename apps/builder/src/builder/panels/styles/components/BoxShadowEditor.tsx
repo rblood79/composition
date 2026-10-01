@@ -8,7 +8,8 @@
  */
 
 import { memo, useCallback, useRef, useState } from "react";
-import { PropertyColor, PropertyUnitInput } from "../../../components";
+import { PropertyColor } from "../../../components/property/PropertyColor";
+import { PropertyUnitInput } from "../../../components/property/PropertyUnitInput";
 import {
   patchBoxShadowPresentation,
   type BoxShadowPresentationField,

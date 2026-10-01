@@ -18,11 +18,9 @@
 import { memo, useRef } from "react";
 import { Button } from "react-aria-components/Button";
 import { Minus } from "lucide-react";
-import {
-  PropertyRowMenu,
-  PropertySection,
-  PropertySlider,
-} from "../../../components";
+import { PropertyRowMenu } from "../../../components/property/PropertyRowMenu";
+import { Section as PropertySection } from "../../../components/panel/Section";
+import { PropertySlider } from "../../../components/property/PropertySlider";
 import { SwatchIconButton } from "../../../components/ui";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import { iconProps } from "../../../../utils/ui/uiConstants";

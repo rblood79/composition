@@ -20,14 +20,12 @@ import {
   type PageLayoutDirection,
 } from "../../stores/canvasSettings";
 import { useUiStore } from "../../../stores/uiStore";
-import {
-  PropertySwitch,
-  PropertyUnitInput,
-  PropertySection,
-  PropertySizeToggle,
-  PanelHeader,
-  PanelContents,
-} from "../../components";
+import { PropertySwitch } from "../../components/property/PropertySwitch";
+import { PropertyUnitInput } from "../../components/property/PropertyUnitInput";
+import { Section as PropertySection } from "../../components/panel/Section";
+import { PropertySizeToggle } from "../../components/property/PropertySizeToggle";
+import { PanelHeader } from "../../components/panel/PanelHeader";
+import { PanelContents } from "../../components/panel/PanelContents";
 import { useThemeMessenger } from "../../hooks/useThemeMessenger";
 import { LanguageSwitcher } from "@/i18n";
 import { useI18n } from "@/i18n";

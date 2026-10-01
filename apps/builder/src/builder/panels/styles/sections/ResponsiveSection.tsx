@@ -30,7 +30,8 @@ import {
   ToggleButton,
   ToggleButtonGroup,
 } from "@composition/shared/components";
-import { PropertyRowMenu, PropertySection } from "../../../components";
+import { PropertyRowMenu } from "../../../components/property/PropertyRowMenu";
+import { Section as PropertySection } from "../../../components/panel/Section";
 import { SwatchIconButton } from "../../../components/ui";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import { useElementStyleContext } from "../hooks/useElementStyleContext";

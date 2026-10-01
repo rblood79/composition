@@ -10,13 +10,11 @@ import {
 // 아래 lucide import 는 ComponentList 자체 UI(검색/휴지통/접기 등) 전용으로만 잔존.
 import { Blocks, SearchX } from "lucide-react";
 import { getPaletteItems, type PaletteItem } from "./paletteItems";
-import {
-  EmptyState,
-  PanelHeader,
-  Section,
-  SectionGroupToggleButton,
-  PanelContents,
-} from "../../components";
+import { EmptyState } from "../../components/feedback/EmptyState";
+import { PanelHeader } from "../../components/panel/PanelHeader";
+import { Section } from "../../components/panel/Section";
+import { SectionGroupToggleButton } from "../../components/panel/SectionGroupToggleButton";
+import { PanelContents } from "../../components/panel/PanelContents";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { ComponentSearch } from "./ComponentSearch";
 import { useRecentComponents } from "../../hooks/useRecentComponents";

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, memo } from "react";
 import { PropertyFieldset } from "./PropertyFieldset";
-import { useStore } from "../../stores";
+import { usePropertySelection } from "./propertySelection";
 import "./PropertyInput.css";
 
 interface PropertyInputProps {
@@ -49,7 +49,8 @@ export const PropertyInput = memo(
     labelMode,
     suffixLabel,
   }: PropertyInputProps) {
-    const selectedElementId = useStore((state) => state.selectedElementId);
+    const selection = usePropertySelection();
+    const selectedElementId = selection.useSelectedId();
     // Local state for input value (debounced save)
     const [inputValue, setInputValue] = useState<string>(String(value || ""));
     // `{{` 자동완성 — 캐럿 위치 기준 후보 (stateNames 가 있을 때만)
@@ -59,7 +60,9 @@ export const PropertyInput = memo(
       items: string[];
       index: number;
     } | null>(null);
-    const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
+    const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(
+      null,
+    );
 
     const updateSuggest = (text: string, caret: number | null) => {
       if (!stateNames || stateNames.length === 0 || caret === null) {
@@ -80,7 +83,12 @@ export const PropertyInput = memo(
         setSuggest(null);
         return;
       }
-      setSuggest({ start: caret - match[0].length, end: caret, items, index: 0 });
+      setSuggest({
+        start: caret - match[0].length,
+        end: caret,
+        items,
+        index: 0,
+      });
     };
 
     const applySuggestion = (name: string) => {
@@ -133,7 +141,7 @@ export const PropertyInput = memo(
         return;
       }
 
-      const currentElementId = useStore.getState().selectedElementId ?? null;
+      const currentElementId = selection.readSelectedId();
       if (
         focusedElementIdRef.current !== null &&
         currentElementId !== focusedElementIdRef.current

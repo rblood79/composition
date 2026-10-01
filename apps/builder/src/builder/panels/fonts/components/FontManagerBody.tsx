@@ -6,7 +6,7 @@
  */
 
 import { Type } from "lucide-react";
-import { EmptyState } from "../../../components";
+import { EmptyState } from "../../../components/feedback/EmptyState";
 import { FontUploadZone } from "./FontUploadZone";
 import { FontFamilyGroup } from "./FontFamilyGroup";
 import { useFontRegistry } from "../useFontRegistry";
