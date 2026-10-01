@@ -6,6 +6,7 @@
  * - apply: IndexedDB `api_endpoints` insert/update/delete · 메모리 Map (name 키) · History 1 ·
  *   collections/variables 무변경 · 바인딩 실패 시 endpoint 까지 rollback (cross-store)
  */
+import "./dataChange.store"; // old-store wiring (ADR-248 4e-7: goes with the old store)
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DataOp } from "@composition/shared";
 import type {

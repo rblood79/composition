@@ -6,6 +6,7 @@
  * - record:false (undo/redo 재적용) 는 History 를 만들지 않는다
  * - 검증 실패 (없는 collection · 범위 밖 row · 미배선 op) 는 아무것도 바꾸지 않는다
  */
+import { installStoreDataChangeWiring } from "./dataChange.store"; // old-store wiring (ADR-248 4e-7: goes with the old store)
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DataOp } from "@composition/shared";
 import type { DataTable } from "../../../types/builder/data.types";
@@ -411,15 +412,13 @@ describe("applyDataChange — DB · 메모리 · History · record:false", () =>
         { record: false },
       );
     } finally {
-      setDataHistoryRecorder(null);
+      installStoreDataChangeWiring();
     }
     expect(addEntry).not.toHaveBeenCalled();
     expect(recorded).toEqual([
       expect.objectContaining({
         change: expect.objectContaining({ label: "Edit cell" }),
-        inverse: [
-          expect.objectContaining({ op: "set_cell", value: "a" }),
-        ],
+        inverse: [expect.objectContaining({ op: "set_cell", value: "a" })],
       }),
     ]);
   });

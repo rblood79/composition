@@ -16,7 +16,6 @@
  */
 import type { StateCreator } from "zustand";
 import {
-  collectDocumentVariableNames,
   resolveField,
   type ApiEndpointDraft,
   type DataChange,
@@ -25,7 +24,6 @@ import {
   type VariableDefinition,
 } from "@composition/shared";
 import { getDB } from "../../../lib/db";
-import { getActiveCanonicalDocument } from "../canonical/canonicalElementsBridge";
 import { normalizeCollection } from "../../../utils/data/normalizeCollection";
 import { renameRowsKey } from "../../../utils/data/schemaMigration";
 import type {
@@ -37,7 +35,6 @@ import type {
   DataTableUpdate,
   Variable,
 } from "../../../types/builder/data.types";
-import { historyManager } from "../history";
 import {
   isCanvasCompareMode,
   isWebGLCanvas,
@@ -1143,11 +1140,12 @@ export interface DataChangeHistoryPayload {
  * ADR-248 Phase 4e-4e: where a recorded data change goes. The catalog app sets it (the data
  * change joins the document's single history, user 2026-09-30); unset = the old history manager.
  */
-let dataHistoryRecorder: ((payload: DataChangeHistoryPayload) => void) | null =
+let dataHistoryRecorder:
+  ((payload: DataChangeHistoryPayload, affectedIds: string[]) => void) | null =
   null;
 /**
  * ADR-248 Phase 4e-4e: where the page/element variable names project variables may not take are
- * read from (the catalog document in the new app); unset = the old canonical document.
+ * read from (the catalog document); unset = none (the old store's reader: `dataChange.store.ts`).
  */
 let documentVariableNamesReader: (() => ReadonlySet<string>) | null = null;
 export function setDocumentVariableNamesReader(
@@ -1155,8 +1153,10 @@ export function setDocumentVariableNamesReader(
 ): void {
   documentVariableNamesReader = reader;
 }
+/** Where a data change's history entry goes (the catalog runtime history; unset = none). */
 export function setDataHistoryRecorder(
-  recorder: ((payload: DataChangeHistoryPayload) => void) | null,
+  recorder:
+    ((payload: DataChangeHistoryPayload, affectedIds: string[]) => void) | null,
 ): void {
   dataHistoryRecorder = recorder;
 }
@@ -1225,7 +1225,7 @@ export const createApplyDataChangeAction =
         ? {
             documentVariableNames: documentVariableNamesReader
               ? documentVariableNamesReader()
-              : collectDocumentVariableNames(getActiveCanonicalDocument()),
+              : new Set<string>(),
           }
         : {}),
     });
@@ -1443,14 +1443,7 @@ export const createApplyDataChangeAction =
         },
         inverse,
       };
-      if (dataHistoryRecorder) dataHistoryRecorder(payload);
-      else
-        historyManager.addEntry({
-          type: "data",
-          elementId: affectedIds[0] ?? "",
-          elementIds: affectedIds,
-          data: { dataChangeEvent: payload },
-        });
+      dataHistoryRecorder?.(payload, affectedIds);
     }
 
     // 변수만 바뀐 change 는 collections postMessage 를 보내지 않는다 — 변수 전송은

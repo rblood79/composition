@@ -67,7 +67,9 @@ function schemaOps(
     if (field.id && !afterIds.has(field.id))
       ops.push({ op: "remove_field", collectionId, fieldId: field.id });
   }
-  const beforeById = new Map(before.filter((f) => f.id).map((f) => [f.id as string, f]));
+  const beforeById = new Map(
+    before.filter((f) => f.id).map((f) => [f.id as string, f]),
+  );
   // 2) 추가 · 변경 (결과 순서대로)
   after.forEach((field, index) => {
     const prev = field.id ? beforeById.get(field.id) : undefined;
@@ -77,7 +79,12 @@ function schemaOps(
     }
     const patch = fieldPatch(prev, field);
     if (patch)
-      ops.push({ op: "update_field", collectionId, fieldId: prev.id as string, patch });
+      ops.push({
+        op: "update_field",
+        collectionId,
+        fieldId: prev.id as string,
+        patch,
+      });
   });
   return ops;
 }
@@ -116,13 +123,26 @@ function rowOps(
     if (changed.length === 0) return [];
     if (changed.length === 1) {
       const i = changed[0];
-      const keys = new Set([...Object.keys(before[i]), ...Object.keys(after[i])]);
-      const diffKeys = [...keys].filter((k) => !Object.is(before[i][k], after[i][k]));
+      const keys = new Set([
+        ...Object.keys(before[i]),
+        ...Object.keys(after[i]),
+      ]);
+      const diffKeys = [...keys].filter(
+        (k) => !Object.is(before[i][k], after[i][k]),
+      );
       // 행은 key 로 실려 있으니 key → 필드 (id) 로 올린다
       const field =
         diffKeys.length === 1 ? resolveField(schema, diffKeys[0]) : null;
       if (field?.id && diffKeys[0] in after[i])
-        return [{ op: "set_cell", collectionId, rowIndex: i, fieldId: field.id as string, value: after[i][diffKeys[0]] }];
+        return [
+          {
+            op: "set_cell",
+            collectionId,
+            rowIndex: i,
+            fieldId: field.id as string,
+            value: after[i][diffKeys[0]],
+          },
+        ];
     }
     return [{ op: "replace_rows", collectionId, rows: after as Row[] }];
   }
@@ -145,7 +165,14 @@ function rowOps(
         break;
       }
     if (prefix)
-      return [{ op: "insert_rows", collectionId, rows: after.slice(before.length) as Row[], at: before.length }];
+      return [
+        {
+          op: "insert_rows",
+          collectionId,
+          rows: after.slice(before.length) as Row[],
+          at: before.length,
+        },
+      ];
   }
   return [{ op: "replace_rows", collectionId, rows: after as Row[] }];
 }
@@ -164,20 +191,39 @@ export function collectionUpdateToOps(
   const ops: DataOp[] = [];
 
   if (updates.name !== undefined && updates.name !== existing.name)
-    ops.push({ op: "update_collection", collectionId, patch: { name: updates.name } });
-  if (updates.useMockData !== undefined && updates.useMockData !== existing.useMockData)
-    ops.push({ op: "set_source", collectionId, source: updates.useMockData ? "manual" : "api" });
+    ops.push({
+      op: "update_collection",
+      collectionId,
+      patch: { name: updates.name },
+    });
+  if (
+    updates.useMockData !== undefined &&
+    updates.useMockData !== existing.useMockData
+  )
+    ops.push({
+      op: "set_source",
+      collectionId,
+      source: updates.useMockData ? "manual" : "api",
+    });
 
   let working = existing;
   let renamed = false;
   if (updates.schema && updates.schema !== existing.schema) {
     const fieldOps = schemaOps(collectionId, existing.schema, updates.schema);
-    let reduced = reduceDataOps(new Map([[collectionId, existing]]), fieldOps, {});
+    let reduced = reduceDataOps(
+      new Map([[collectionId, existing]]),
+      fieldOps,
+      {},
+    );
     let next = reduced.collections.get(collectionId) as DataTable;
     const order = reorderOps(collectionId, next.schema, updates.schema);
     if (order.length > 0) {
       fieldOps.push(...order);
-      reduced = reduceDataOps(new Map([[collectionId, existing]]), fieldOps, {});
+      reduced = reduceDataOps(
+        new Map([[collectionId, existing]]),
+        fieldOps,
+        {},
+      );
       next = reduced.collections.get(collectionId) as DataTable;
     }
     renamed = fieldOps.some(
@@ -188,7 +234,14 @@ export function collectionUpdateToOps(
   }
 
   if (updates.mockData && updates.mockData !== working.mockData)
-    ops.push(...rowOps(collectionId, working.schema, working.mockData, updates.mockData));
+    ops.push(
+      ...rowOps(
+        collectionId,
+        working.schema,
+        working.mockData,
+        updates.mockData,
+      ),
+    );
 
   const out: CollectionUpdateOps = { ops };
   if (updates.runtimeData !== undefined && !renamed)

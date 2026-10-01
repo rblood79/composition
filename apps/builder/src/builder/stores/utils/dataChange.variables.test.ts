@@ -7,6 +7,7 @@
  *   `type:"data"` entry (elementId = variableId) · collections 무변경 · record:false
  * - 갱신은 `owner-unresolved` 배지를 지우지 않는다 (Phase 5 의 명시 해소 전까지)
  */
+import "./dataChange.store"; // old-store wiring (ADR-248 4e-7: goes with the old store)
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DataOp } from "@composition/shared";
 import type { DataTable, Variable } from "../../../types/builder/data.types";
@@ -351,7 +352,11 @@ describe("applyDataChange — define_variable", () => {
       ops: [
         {
           op: "define_variable",
-          definition: { name: "userName", type: "string", defaultValue: "guest" },
+          definition: {
+            name: "userName",
+            type: "string",
+            defaultValue: "guest",
+          },
         },
       ],
       origin: "user",

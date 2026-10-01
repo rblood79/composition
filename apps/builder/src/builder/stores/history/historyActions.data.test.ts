@@ -4,6 +4,7 @@
  * 경로에 도달하지 않는다 (early-branch). collection 은 되돌아가고 element 축
  * (elements · canonical 문서) 은 무변경. 요소 편집 entry 와 섞여도 각자 되돌아간다.
  */
+import "../utils/dataChange.store"; // old-store wiring (ADR-248 4e-7: goes with the old store)
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DataTable } from "../../../types/builder/data.types";
 import { historyManager } from "../history";
