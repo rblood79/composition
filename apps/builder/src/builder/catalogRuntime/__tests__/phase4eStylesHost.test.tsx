@@ -183,4 +183,20 @@ describe("ADR-248 Phase 4e-4d Styles host", () => {
     expect(width()).toBe(150);
     expect(graph.revision).toBe(revision + 1);
   });
+
+  it("a token reference written as CSS (var(--…)) reads back as the same text", async () => {
+    // The product's node style writers (Styles · AI · style paste · size commands) all go through
+    // `catalogStyleWritesOf`: a token is CSS text in the typed field, never an object the view skips.
+    const { host } = await open();
+    host.updateStyles({
+      color: "var(--accent)",
+      borderColor: "var(--border)",
+      boxShadow: "0 1px 2px var(--shadow-color)",
+    });
+    expect(host.readSelectedTarget().style).toMatchObject({
+      color: "var(--accent)",
+      borderColor: "var(--border)",
+      boxShadow: "0 1px 2px var(--shadow-color)",
+    });
+  });
 });
