@@ -38,6 +38,33 @@ function placementDeclaration(
  * or place it freely off the grid; the home page and the first cell stay) over the catalog pages.
  * `undefined` = refused or unchanged. Off desktop the placement is that breakpoint's layer.
  */
+/**
+ * Align pages (ADR-232): every page but Home drops its placement and returns to the page grid's
+ * flow — one step (undefined = no page is placed).
+ */
+export function catalogPageAlignCommand(
+  root: CatalogCompositionRoot,
+): CatalogCommand | undefined {
+  const graph = root.runtime.graph;
+  const project = graph.getEntry(graph.projectId);
+  if (project?.kind !== "project") return undefined;
+  const placed = project.pageIds.slice(1).filter((id) => {
+    const page = graph.getEntry(id);
+    return page?.kind === "page" && page.placement !== undefined;
+  });
+  if (!placed.length) return undefined;
+  return (reader) => ({
+    label: "Align pages",
+    ops: placed.flatMap(
+      (id) =>
+        updatePage({
+          id: id as EntryId<"page">,
+          fields: { placement: undefined },
+        })(reader).ops,
+    ),
+  });
+}
+
 export function catalogPageDropCommand(
   root: CatalogCompositionRoot,
   pageId: EntryId<"page">,

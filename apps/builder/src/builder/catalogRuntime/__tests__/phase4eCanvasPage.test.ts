@@ -8,7 +8,10 @@ import type {
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import { createPage } from "../../../../../../packages/shared/src/catalog/commands";
 import { CatalogCanvasGestures } from "../canvasGesture";
-import { catalogPageDropCommand } from "../canvasPage";
+import {
+  catalogPageAlignCommand,
+  catalogPageDropCommand,
+} from "../canvasPage";
 import { runCatalogShortcut } from "../shortcuts";
 import { pickTopmostRecord } from "../canvasPick";
 import { CatalogCanvasScene } from "../canvasScene";
@@ -107,6 +110,23 @@ describe("ADR-248 Phase 4e-3b page frame drag", () => {
     workspace.undo();
     expect(placement()).toBeUndefined();
     expect(frame(SECOND)).toMatchObject({ x: second.x, y: second.y });
+  });
+
+  it("Align pages returns every placed page but Home to the grid flow in one step", async () => {
+    const { workspace, frame, placement } = await open();
+    const second = frame(SECOND);
+    expect(catalogPageAlignCommand(workspace.root)).toBeUndefined();
+    workspace.execute(
+      catalogPageDropCommand(workspace.root, SECOND, { x: 40, y: -3000 })!,
+    );
+    const revision = workspace.runtime.graph.revision;
+    workspace.execute(catalogPageAlignCommand(workspace.root)!);
+    expect(placement()).toBeUndefined();
+    expect(frame(SECOND)).toMatchObject({ x: second.x, y: second.y });
+    expect(workspace.runtime.graph.revision).toBe(revision + 1);
+    expect(workspace.runtime.historyLabels.undo.at(-1)).toBe("Align pages");
+    workspace.undo();
+    expect(frame(SECOND)).toMatchObject({ x: 40, y: -3000 });
   });
 
   it("the gesture previews the ghost frame and commits the drop; the home page does not start one", async () => {

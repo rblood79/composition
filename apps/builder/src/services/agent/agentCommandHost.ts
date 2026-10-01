@@ -17,6 +17,11 @@ export interface AgentCommandHost {
   plan(id: ShortcutId): AgentCommandPlan | { reason: string } | undefined;
   /** The history position after a document command (the log's `historyIndex`). */
   historyIndex(): number;
+  /**
+   * The i18n key of a command whose label follows the selection (create / detach component);
+   * `undefined` = the definition's label or the old semantic action table.
+   */
+  labelKey?(id: ShortcutId): string | undefined;
 }
 
 let current: AgentCommandHost | null = null;
@@ -31,6 +36,11 @@ export function setAgentCommandHost(host: AgentCommandHost): () => void {
 
 export function getAgentCommandHost(): AgentCommandHost | null {
   return current;
+}
+
+/** The host's selection-dependent label key of a command (`undefined` = not the host's). */
+export function hostCommandLabelKey(id: ShortcutId): string | undefined {
+  return current?.labelKey?.(id);
 }
 
 /** The host's precondition of a command (`undefined` = the host leaves it to `COMMAND_META`). */

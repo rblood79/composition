@@ -38,6 +38,7 @@ import { snapshotManager } from "../../stores/history/snapshots";
 // 읽기 모델은 agent executor 경유 — executor 청크가 이미 싣고 있는 모듈 묶음을 그대로 가리켜야
 // Rolldown 이 initial 공유 청크 (canvasActions) 를 쪼개지 않는다 (G2, headerMenuRuntime.ts).
 import { buildAgentReadModel } from "../../../services/agent/executeAgentCommand";
+import { hostCommandLabelKey } from "../../../services/agent/agentCommandHost";
 import { BUILDER_MENU_ROOT } from "./builderMenuStructure";
 import "./HeaderMainMenu.css";
 import type { HeaderMenuHost } from "./headerMenuActions";
@@ -126,6 +127,9 @@ export default function HeaderMainMenu({ host }: HeaderMainMenuProps) {
       panelLabel: (config) => runtime.panelLabel(config, t),
       // 선택에 따라 바뀌는 라벨 (컴포넌트 만들기/해제) 은 시맨틱 액션 표가 정본
       commandLabel: (id) => {
+        // The open Builder's host first (catalog: its selection), else the old semantic table.
+        const hosted = hostCommandLabelKey(id);
+        if (hosted) return t(hosted);
         const label = runtime.contextLabelKey(id, selected);
         return label ? t(label.key, label.params) : t(`command.${id}`);
       },

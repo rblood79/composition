@@ -267,6 +267,7 @@ export interface TranslationKeys {
       deletePage: string;
       duplicatePage: string;
       movePage: string;
+      alignPages: string;
       renamePage: string;
       pageRoute: string;
       parentPage: string;

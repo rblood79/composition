@@ -4,6 +4,7 @@ import type { AgentCommandHost } from "../../services/agent/agentCommandHost";
 import { resolveCommand } from "../stores/commandRegistry";
 import {
   CATALOG_ARRANGE_SHORTCUTS,
+  catalogShortcutLabelKey,
   planCatalogShortcut,
   type CatalogShortcutId,
 } from "./shortcuts";
@@ -37,6 +38,7 @@ const CATALOG_COMMANDS: ReadonlySet<string> = new Set<CatalogShortcutId>([
   "prevElement",
   "selectAll",
   "detachInstance",
+  "toggleComponentOrigin",
   ...CATALOG_ARRANGE_SHORTCUTS,
 ]);
 
@@ -59,9 +61,9 @@ const EMPTY_REASON: Partial<Record<ShortcutId, string>> = {
 
 /**
  * ADR-248 Phase 4e-5: agent commands over the open catalog workspace — a document / selection
- * command runs the plan the keyboard runs (`planCatalogShortcut`, refused = its precondition),
- * one this workspace does not run yet (the component origin toggle) is refused
- * instead of reaching the old store, and view commands (zoom, panels) keep their adapters.
+ * command runs the plan the keyboard runs (`planCatalogShortcut`, refused = its precondition), one
+ * this workspace does not run is refused instead of reaching the old store, and view commands
+ * (zoom, panels) keep their adapters.
  */
 export function createCatalogAgentCommandHost(
   workspace: CatalogWorkspace,
@@ -91,5 +93,6 @@ export function createCatalogAgentCommandHost(
         : undefined;
     },
     historyIndex: () => workspace.runtime.historyDepth.undo,
+    labelKey: (id) => catalogShortcutLabelKey(workspace, id),
   };
 }

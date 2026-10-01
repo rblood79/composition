@@ -53,7 +53,11 @@ import {
   CatalogSnapshotHostContext,
   createCatalogSnapshotHost,
 } from "../panels/history/catalogSnapshotHost";
-import { AgentCommandConfirmDialogHost, ToastContainer } from "../components";
+import {
+  AgentCommandConfirmDialogHost,
+  CommandPalette,
+  ToastContainer,
+} from "../components";
 import { setAgentCommandHost } from "../../services/agent/agentCommandHost";
 import { createCatalogAgentCommandHost } from "../catalogRuntime/agentHost";
 import {
@@ -87,7 +91,10 @@ import { createLayoutEngine } from "../workspace/canvas/wasm-bindings/layoutBrid
 import { getCanvasKit } from "../workspace/canvas/skia/initCanvasKit";
 import { BuilderHeader } from "./BuilderHeader";
 import { BuilderViewport } from "./BuilderViewport";
-import { useCatalogGlobalShortcuts } from "./useCatalogGlobalShortcuts";
+import {
+  catalogViewportActions,
+  useCatalogGlobalShortcuts,
+} from "./useCatalogGlobalShortcuts";
 import { useCatalogProjectFiles } from "./useCatalogProjectFiles";
 import "../workspace/Workspace.css";
 
@@ -241,6 +248,15 @@ export function CatalogBuilderCore() {
   );
 
   const workspace = state.kind === "open" ? state.workspace : undefined;
+  const viewportActions = useMemo(
+    () =>
+      workspace
+        ? catalogViewportActions(workspace, (error) =>
+            toastError(error instanceof Error ? error.message : String(error)),
+          )
+        : undefined,
+    [workspace, toastError],
+  );
   const reopen = useCallback((pageId: string | undefined) => {
     openPageRef.current = pageId;
     setState({ kind: "opening" });
@@ -439,6 +455,7 @@ export function CatalogBuilderCore() {
       snapshotActions={snapshotActions}
       directoryLink={files.directoryLink}
       saveStatus={workspace ? <CatalogSaveStatusIndicator /> : null}
+      viewportActions={viewportActions}
     />
   );
   // Compare Mode: the Preview iframe beside the Canvas (ADR-248 4e-6).
@@ -501,6 +518,8 @@ export function CatalogBuilderCore() {
         body
       )}
       <AgentCommandConfirmDialogHost />
+      {/* ⌘/ — lists the commands the catalog Builder registered (the header menu's own list). */}
+      <CommandPalette />
       <ToastContainer />
     </BuilderViewport>
   );

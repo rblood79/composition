@@ -13,7 +13,7 @@ import { insertNodes } from "../../../../../../packages/shared/src/catalog/comma
 import { useCatalogGlobalShortcuts } from "../../main/useCatalogGlobalShortcuts";
 import { catalogPaletteDefinitionId } from "../paletteInsert";
 import { newCatalogProjectDocument } from "../project";
-import { runCatalogShortcut } from "../shortcuts";
+import { catalogShortcutLabelKey, runCatalogShortcut } from "../shortcuts";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
@@ -204,6 +204,54 @@ describe("ADR-248 Phase 4e-5 shortcuts", () => {
     ).toBe(true);
     expect(errors).toEqual([]);
     expect(children("menu").length).toBeGreaterThan(0);
+  });
+
+  it("⌘⌥K creates a component from one element and dissolves it again (the menu label follows)", async () => {
+    const { workspace, record, steps } = await open();
+    const errors: unknown[] = [];
+    const definitions = () => {
+      const project = workspace.runtime.graph.getEntry(
+        workspace.runtime.graph.projectId,
+      );
+      return project?.kind === "project" ? project.definitionIds.length : -1;
+    };
+    workspace.selectRecords([record("a"), record("b")]);
+    expect(catalogShortcutLabelKey(workspace, "toggleComponentOrigin")).toBe(
+      undefined,
+    );
+    expect(
+      runCatalogShortcut(workspace, "toggleComponentOrigin", (e) =>
+        errors.push(e),
+      ),
+    ).toBe(false);
+
+    workspace.selectRecords([record("a")]);
+    expect(catalogShortcutLabelKey(workspace, "toggleComponentOrigin")).toBe(
+      "componentAction.createComponent",
+    );
+    const before = steps();
+    const count = definitions();
+    expect(
+      runCatalogShortcut(workspace, "toggleComponentOrigin", (e) =>
+        errors.push(e),
+      ),
+    ).toBe(true);
+    expect(errors).toEqual([]);
+    expect(steps()).toBe(before + 1);
+    expect(definitions()).toBe(count + 1);
+
+    // The element is now the component's origin instance: the same key dissolves it.
+    workspace.selectRecords([workspace.session.getSnapshot().selection[0]!.identity]);
+    expect(catalogShortcutLabelKey(workspace, "toggleComponentOrigin")).toBe(
+      "componentAction.detachComponent",
+    );
+    expect(
+      runCatalogShortcut(workspace, "toggleComponentOrigin", (e) =>
+        errors.push(e),
+      ),
+    ).toBe(true);
+    expect(errors).toEqual([]);
+    expect(definitions()).toBe(count);
   });
 
   it("the global hook: ⌘Z undoes from anywhere; Delete needs the Canvas focus and skips a text field", async () => {

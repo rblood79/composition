@@ -51,9 +51,18 @@ function shortcutLabel(id: ShortcutId): string {
 // Types
 // ============================================
 
+/** Fit / Fill / Align pages of the open Builder's page frames (absent = the old store's canvas). */
+export interface ZoomControlsViewportActions {
+  fit(): void;
+  fill(): void;
+  alignPages(): void;
+}
+
 export interface ZoomControlsProps {
   /** 클래스명 */
   className?: string;
+  /** ADR-248 — catalog Builder 의 page frame 기준 맞춤 · 정렬 */
+  viewportActions?: ZoomControlsViewportActions;
 }
 
 // ============================================
@@ -62,6 +71,7 @@ export interface ZoomControlsProps {
 
 export const ZoomControls = memo(function ZoomControls({
   className,
+  viewportActions,
 }: ZoomControlsProps) {
   const { t } = useI18n();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -138,17 +148,20 @@ export const ZoomControls = memo(function ZoomControls({
           zoomTo(2);
           break;
         case "fit-to-screen":
-          zoomToFit();
+          if (viewportActions) viewportActions.fit();
+          else zoomToFit();
           break;
         case "fill-screen":
-          zoomToFill();
+          if (viewportActions) viewportActions.fill();
+          else zoomToFill();
           break;
         case "align-pages":
-          alignPagesToScreen();
+          if (viewportActions) viewportActions.alignPages();
+          else alignPagesToScreen();
           break;
       }
     },
-    [zoomIn, zoomOut, zoomTo, zoomToFit, zoomToFill],
+    [zoomIn, zoomOut, zoomTo, zoomToFit, zoomToFill, viewportActions],
   );
 
   // ============================================

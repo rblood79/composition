@@ -80,6 +80,7 @@ const LABELS: Readonly<Record<string, readonly [string, IconKind]>> = {
   "Delete page": ["deletePage", "page"],
   "Duplicate page": ["duplicatePage", "page"],
   "Move page": ["movePage", "pagePosition"],
+  "Align pages": ["alignPages", "pagePosition"],
   "Rename page": ["renamePage", "page"],
   "Page route": ["pageRoute", "page"],
   "Parent page": ["parentPage", "page"],

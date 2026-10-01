@@ -16,7 +16,48 @@ import {
 import type { CatalogWorkspace } from "../catalogRuntime/workspace";
 import { useViewportSyncStore } from "../workspace/canvas/stores";
 import { zoomViewportAtContainerCenter } from "../workspace/canvas/viewport/viewportActions";
-import { fitCatalogPageFrame } from "../workspace/canvas/catalog/catalogViewport";
+import {
+  fillCatalogPageFrame,
+  fitCatalogPageFrame,
+} from "../workspace/canvas/catalog/catalogViewport";
+import { catalogPageAlignCommand } from "../catalogRuntime/canvasPage";
+import type { ZoomControlsViewportActions } from "../workspace/ZoomControls";
+
+/** The open page's frame (the first page when none is open). */
+function openPageFrame(workspace: CatalogWorkspace) {
+  const frames = workspace.root.pageFrameRects();
+  const { pageId } = workspace.session.getSnapshot();
+  return (pageId && frames.get(pageId)) || frames.values().next().value;
+}
+
+/**
+ * The zoom menu's Fit / Fill (the open page's frame, like ⌘0) and Align pages (one step) over the
+ * catalog workspace — the old menu fitted the old store's canvas size (1920×1080 at the origin here).
+ */
+export function catalogViewportActions(
+  workspace: CatalogWorkspace,
+  onError: (error: unknown) => void,
+): ZoomControlsViewportActions {
+  const containerSize = () => useViewportSyncStore.getState().containerSize;
+  return {
+    fit: () => {
+      const frame = openPageFrame(workspace);
+      if (frame) fitCatalogPageFrame(frame, containerSize());
+    },
+    fill: () => {
+      const frame = openPageFrame(workspace);
+      if (frame) fillCatalogPageFrame(frame, containerSize());
+    },
+    alignPages: () => {
+      try {
+        const command = catalogPageAlignCommand(workspace.root);
+        if (command) workspace.execute(command);
+      } catch (error) {
+        onError(error);
+      }
+    },
+  };
+}
 
 const ZOOM_STEP = 0.1;
 
@@ -47,6 +88,7 @@ const DOCUMENT_SHORTCUTS: readonly CatalogShortcutId[] = [
   "prevElement",
   "selectAll",
   "detachInstance",
+  "toggleComponentOrigin",
   ...CATALOG_ARRANGE_SHORTCUTS,
 ];
 
@@ -87,17 +129,7 @@ export function useCatalogGlobalShortcuts(
       zoom100: () => zoomViewportAtContainerCenter(1),
       zoom200: () => zoomViewportAtContainerCenter(2),
       zoomToFit: () => {
-        // The open page's frame (the first page when none is open).
-        if (!workspace) return;
-        const frames = workspace.root.pageFrameRects();
-        const { pageId } = workspace.session.getSnapshot();
-        const frame =
-          (pageId && frames.get(pageId)) || frames.values().next().value;
-        if (frame)
-          fitCatalogPageFrame(
-            frame,
-            useViewportSyncStore.getState().containerSize,
-          );
+        if (workspace) catalogViewportActions(workspace, onError).fit();
       },
     };
     for (const [id, panelId] of Object.entries(PANEL_SHORTCUTS))

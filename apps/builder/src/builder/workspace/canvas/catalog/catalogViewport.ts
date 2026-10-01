@@ -2,6 +2,7 @@ import type { BoundingBox } from "../selection/types";
 import { getViewportController } from "../viewport/ViewportController";
 import {
   computeCenteredViewport,
+  computeFillViewport,
   computeFitViewport,
 } from "../viewport/viewportActions";
 
@@ -27,6 +28,20 @@ export function fitCatalogPageFrame(
     fitted.x - frame.x * fitted.scale,
     fitted.y - frame.y * fitted.scale,
     fitted.scale,
+  );
+}
+
+/** Fill the container with a page frame (the zoom menu's Fill — the frame may overflow). */
+export function fillCatalogPageFrame(
+  frame: { x: number; y: number; width: number; height: number },
+  containerSize: { width: number; height: number },
+): void {
+  if (!containerSize.width || !containerSize.height) return;
+  const filled = computeFillViewport({ canvasSize: frame, containerSize });
+  getViewportController().setPosition(
+    filled.x - frame.x * filled.scale,
+    filled.y - frame.y * filled.scale,
+    filled.scale,
   );
 }
 

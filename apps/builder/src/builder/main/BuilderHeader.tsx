@@ -34,7 +34,10 @@ import {
   bindHandlersToDefinitions,
   useKeyboardShortcutsRegistry,
 } from "../hooks";
-import { ZoomControls } from "../workspace/ZoomControls";
+import {
+  ZoomControls,
+  type ZoomControlsViewportActions,
+} from "../workspace/ZoomControls";
 import { useCompareModeStore } from "../workspace/canvas/stores";
 import { ConfirmDialog } from "../components/overlay/ConfirmDialog";
 import type { HeaderMenuHost } from "./headerMenu/headerMenuActions";
@@ -83,6 +86,8 @@ export interface BuilderHeaderProps {
   directoryLink: ReactNode;
   /** ADR-248 — 열린 프로젝트의 저장 상태 표시 */
   saveStatus?: ReactNode;
+  /** ADR-248 — 줌 메뉴의 맞춤 · 채우기 · 페이지 정렬 (catalog page frame 기준, 없으면 옛 store) */
+  viewportActions?: ZoomControlsViewportActions;
 }
 
 export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
@@ -99,6 +104,7 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
   snapshotActions,
   directoryLink,
   saveStatus,
+  viewportActions,
 }) => {
   const { t } = useI18n();
   const { resetWorkspaceLayout } = usePanelLayout();
@@ -285,7 +291,7 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
         </ToggleButtonGroup>
 
         {/* Zoom Controls */}
-        <ZoomControls />
+        <ZoomControls viewportActions={viewportActions} />
       </Group>
 
       <div className="header_contents header_right">

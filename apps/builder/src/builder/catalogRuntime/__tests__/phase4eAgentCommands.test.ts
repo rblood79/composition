@@ -23,7 +23,7 @@ import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 /**
  * ADR-248 Phase 4e-5 agent commands: with the catalog host installed, the agent executor runs a
  * document command as the keyboard's plan over the workspace (one step, the log's history index
- * = the workspace history), the host's refusal is the precondition (nothing to do / not supported
+ * = the workspace history), the host's refusal is the precondition (nothing to do
  * here — never the old store), a confirm-required command changes nothing until approved, and view
  * commands keep their adapters. The header menu's enablement reads the same host.
  */
@@ -117,9 +117,13 @@ describe("ADR-248 Phase 4e-5 agent commands", () => {
       reason: "not-applicable",
     });
     select("a");
+    // ⌘⌥K is the workspace's plan too (create a component from the one element): one step.
+    const depth = workspace.runtime.historyDepth.undo;
     expect(
       await executeAgentCommand("toggleComponentOrigin", {}, context()),
-    ).toMatchObject({ status: "precondition-failed", reason: "not-supported" });
+    ).toMatchObject({ status: "ok", historyIndex: depth + 1 });
+    workspace.undo();
+    select("a");
     // Align runs the workspace plan: one flow element is nothing to align.
     expect(await executeAgentCommand("alignLeft", {}, context())).toMatchObject(
       { status: "precondition-failed", reason: "not-applicable" },

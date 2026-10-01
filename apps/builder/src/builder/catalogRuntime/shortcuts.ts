@@ -76,6 +76,7 @@ export type CatalogShortcutId = Extract<
   | "prevElement"
   | "selectAll"
   | "detachInstance"
+  | "toggleComponentOrigin"
   | CatalogArrangeId
   | "arrowUpShift"
   | "arrowDownShift"
@@ -386,6 +387,10 @@ export function planCatalogShortcut(
       const command = catalogArrangeCommand(workspace, id);
       return command && (() => host.execute(command));
     }
+    case "toggleComponentOrigin":
+      // ⌘⌥K: create a component from the one selected element, or dissolve the component whose
+      // origin it is — the context menu's item (same precondition).
+      return planMenu("toggle-component-origin");
     case "detachInstance": {
       const record = singleElement(workspace);
       const selected = workspace.session.getSnapshot().selection[0];
@@ -402,6 +407,25 @@ export function planCatalogShortcut(
       return () => host.execute(command);
     }
   }
+}
+
+/**
+ * The label of a shortcut that follows the selection: ⌘⌥K is "Create component" or "Detach
+ * component" as the context menu's item says (`undefined` = not applicable now / another command).
+ */
+export function catalogShortcutLabelKey(
+  workspace: CatalogWorkspace,
+  id: ShortcutId,
+): string | undefined {
+  if (id !== "toggleComponentOrigin") return undefined;
+  const item = catalogCanvasMenuItems(
+    catalogMenuHost(workspace, () => {}),
+    "canvas-element",
+    undefined,
+  ).find(
+    (entry) => entry.kind === "action" && entry.id === "toggle-component-origin",
+  );
+  return item?.kind === "action" ? item.labelKey : undefined;
 }
 
 /** Run a document shortcut now; false = nothing to do. */
