@@ -43,6 +43,7 @@ import { isDirectionDrivenTag } from "../utils/orientationDrivenTags";
 import {
   readStyleTargetNode,
   resolveStyleSpecType,
+  useElementStyleContext,
 } from "../hooks/useElementStyleContext";
 import { useLayoutPresentationActions } from "../hooks/useLayoutPresentationActions";
 import { LAYOUT_PROPS } from "./styleSectionProps";
@@ -77,7 +78,10 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
   // — 매핑 불가능한 block 선택을 원천 차단(2026-06-30). 대상 정본:
   // orientationDrivenTags (element.type PascalCase → 헬퍼가 toLowerCase 정규화).
   // ref instance (팔레트가 만드는 요소) 는 origin 타입, instance 안 자식 (synthetic) 은 해소 노드로 판정한다.
-  const isDirectionDriven = useStore((s) =>
+  // The catalog host's style context names the component type (the old store's elements map is
+  // empty there); the old store keeps its ref-instance resolution.
+  const contextType = useElementStyleContext(selectedId).type;
+  const storeDirectionDriven = useStore((s) =>
     isDirectionDrivenTag(
       resolveStyleSpecType(
         readStyleTargetNode(selectedId, s.elementsMap),
@@ -85,6 +89,8 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
       ),
     ),
   );
+  const isDirectionDriven =
+    storeDirectionDriven || isDirectionDrivenTag(contextType);
   const styleValues = useLayoutValues(selectedId);
   const flexDirectionKeys = useFlexDirectionKeys(selectedId);
   const flexAlignmentKeys = useFlexAlignmentKeys(selectedId);
