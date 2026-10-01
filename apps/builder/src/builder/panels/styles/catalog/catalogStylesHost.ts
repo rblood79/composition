@@ -19,11 +19,14 @@ import {
 import { targetKey } from "../../../catalogRuntime/session";
 import {
   catalogAuthoredValues,
+  cssPx,
+  catalogStylePreviewPatch,
   CatalogStyleValueError,
   catalogStyleView,
   catalogStyleWritesOf,
 } from "../../../catalogRuntime/styleFields";
 import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
+import type { CatalogRecordPreview } from "../../../catalogRuntime/compositionRoot";
 import { catalogBoxModel } from "../../../catalogRuntime/boxModel";
 import { catalogPageDropCommand } from "../../../catalogRuntime/canvasPage";
 import { catalogSubpartOwnerType } from "../../../catalogRuntime/subpart";
@@ -142,13 +145,27 @@ function fontSizeOf(workspace: CatalogWorkspace, identity: string | undefined) {
  * breakpoint are the session's, a section reads the selected target's authored typed fields as
  * CSS (`catalogStyleView`, the breakpoint layer over the base), and every edit is one `setFields`
  * step on the selected targets at the session breakpoint (`catalogStyleWritesOf`). A value the
- * typed field cannot hold is refused with a toast. Live drag previews and the old Canvas
- * presentation channel are not used (the edit lands on release).
+ * typed field cannot hold is refused with a toast. A drag (scrub, slider, picker) previews its
+ * value on the Canvas through `previewRecord` — layout included, no history — and the release
+ * commits it; the old Canvas presentation channel is not used.
  */
 export function createCatalogStylesHost(
   workspace: CatalogWorkspace,
 ): StylesHost {
   const selection = () => workspace.session.getSnapshot().selection;
+  /**
+   * What a drag previews per record (keys of successive previews add up); an edit or another
+   * selection puts the records' own values back.
+   */
+  const previewed = new Map<string, CatalogRecordPreview>();
+  const endPreviews = (keep?: ReadonlySet<string>) => {
+    for (const id of [...previewed.keys()]) {
+      if (keep?.has(id)) continue;
+      previewed.delete(id);
+      // A commit that replaced the record already won; this restores one it did not touch.
+      workspace.root.previewRecord(id);
+    }
+  };
   const run = (
     build: () => Parameters<typeof workspace.execute>[0] | undefined,
   ) => {
@@ -164,6 +181,8 @@ export function createCatalogStylesHost(
             ? error.message
             : String(error),
         );
+    } finally {
+      endPreviews();
     }
   };
   const writeStyles = (styles: Record<string, string>) =>
@@ -264,7 +283,49 @@ export function createCatalogStylesHost(
     },
     updateStyle: (property, value) => writeStyles({ [property]: value }),
     updateStyles: writeStyles,
-    previewStyle: () => {},
+    previewStyle(property, value) {
+      const items = selection();
+      endPreviews(new Set(items.map((item) => item.identity)));
+      let writes;
+      try {
+        writes = catalogStyleWritesOf(
+          { [property]: value },
+          { fontSize: fontSizeOf(workspace, items[0]?.identity) },
+        );
+      } catch {
+        return; // a value the typed field cannot hold mid-drag: the commit reports it
+      }
+      const patch = catalogStylePreviewPatch(writes);
+      for (const item of items) {
+        const record = workspace.root.domInputs.get(item.identity);
+        if (!record) continue;
+        // Left / Top of an absolutely placed node are its placement offsets.
+        const offset =
+          (property === "left" || property === "top") &&
+          record.placement?.kind === "absolute"
+            ? cssPx(value)
+            : undefined;
+        const placement =
+          offset !== undefined && record.placement
+            ? {
+                ...record.placement,
+                [property === "left" ? "x" : "y"]: offset,
+              }
+            : undefined;
+        if (!placement && !Object.keys(patch).length) continue;
+        const held = previewed.get(item.identity) ?? {};
+        const next: CatalogRecordPreview = {
+          visual: { ...held.visual, ...patch.visual },
+          sizing: { ...held.sizing, ...patch.sizing },
+          layout: { ...held.layout, ...patch.layout },
+          ...((placement ?? held.placement)
+            ? { placement: placement ?? held.placement }
+            : {}),
+        };
+        previewed.set(item.identity, next);
+        workspace.root.previewRecord(item.identity, next);
+      }
+    },
     updateProperty: (key, value) => writeProps({ [key]: value }),
     updateProperties: writeProps,
     useParentId(id) {

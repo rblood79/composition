@@ -138,4 +138,49 @@ describe("ADR-248 Phase 4e-4d Styles host", () => {
       borderRadius: "6px",
     });
   });
+
+  it("a drag previews on the Canvas layout without a step; the release, a refusal or another selection ends it", async () => {
+    const { workspace, graph, host, record } = await open();
+    const width = (id = record) =>
+      Math.round(workspace.root.getGeometry([id]).get(id)!.width);
+    host.updateStyle("width", "100px");
+    const revision = graph.revision;
+    let heard = 0;
+    workspace.root.subscribePreviews(() => (heard += 1));
+
+    host.previewStyle("width", "150px");
+    host.previewStyle("paddingTop", "10px");
+    expect(width()).toBe(150);
+    expect(workspace.root.domInputs.get(record)?.visual.paddingTop).toBe(10);
+    host.previewStyle("rowGap", "6px");
+    expect(workspace.root.domInputs.get(record)?.layout.rowGap).toBe("6px");
+    expect(heard).toBe(3);
+    // Neither the document nor the history moved.
+    expect(graph.revision).toBe(revision);
+    expect((graph.getEntry(BOX) as NodeEntry).sizing.width).toEqual({
+      kind: "set",
+      value: 100,
+    });
+    // The release commits the value as one step.
+    host.updateStyle("width", "150px");
+    expect(graph.revision).toBe(revision + 1);
+    expect(width()).toBe(150);
+    // The other previewed key (no commit) shows the record's own value again.
+    expect(workspace.root.domInputs.get(record)?.visual.paddingTop).toBe(
+      undefined,
+    );
+
+    // A refused commit puts the record's own value back.
+    host.previewStyle("width", "220px");
+    expect(width()).toBe(220);
+    host.updateStyle("minWidth", "-4px");
+    expect(width()).toBe(150);
+
+    // A preview on another selection ends the first record's.
+    host.previewStyle("width", "260px");
+    workspace.selectRecords([workspace.root.recordsOfSource(BODY)[0]]);
+    host.previewStyle("paddingTop", "4px");
+    expect(width()).toBe(150);
+    expect(graph.revision).toBe(revision + 1);
+  });
 });

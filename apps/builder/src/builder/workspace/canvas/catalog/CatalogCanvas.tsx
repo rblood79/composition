@@ -279,14 +279,17 @@ export function CatalogCanvas({
     // Compare Mode with "current page only": the Canvas draws the page the CSS side shows (the old
     // Canvas's `visiblePageIdsOverride`); a definition view has one frame and is not filtered.
     const compareOnlyPage = (): string | undefined => {
-      const { isCompareMode, filterCurrentPage } = useCompareModeStore.getState();
+      const { isCompareMode, filterCurrentPage } =
+        useCompareModeStore.getState();
       if (!isCompareMode || !filterCurrentPage || workspace.root.definitionView)
         return undefined;
       return workspace.session.getSnapshot().pageId;
     };
     const compareOnlyRoot = (): string | undefined => {
       const pageId = compareOnlyPage();
-      const page = pageId ? workspace.runtime.graph.getEntry(pageId) : undefined;
+      const page = pageId
+        ? workspace.runtime.graph.getEntry(pageId)
+        : undefined;
       const body = page?.kind === "page" ? page.children[0] : undefined;
       return body ? workspace.root.recordsOfSource(body)[0] : undefined;
     };
@@ -543,7 +546,8 @@ export function CatalogCanvas({
       // AI effects animate (particles turn, flashes fade): the overlay draws again next frame
       // while any is running; the last flash's cleanup ends it.
       const ai = useAIVisualFeedbackStore.getState();
-      if (ai.generatingNodes.size || ai.flashAnimations.size) invalidateOverlay();
+      if (ai.generatingNodes.size || ai.flashAnimations.size)
+        invalidateOverlay();
     };
     const scheduler = createFrameScheduler(renderFrame);
     const unsubscribeFrames = subscribeCanvasFrames(scheduler.invalidate);
@@ -553,6 +557,8 @@ export function CatalogCanvas({
       sceneStale = true;
       scheduler.invalidate();
     };
+    // A preview from any surface (a Styles panel drag too) re-lays the scene out at the next frame.
+    const unsubscribePreviews = workspace.root.subscribePreviews(reflowScene);
     const unsubscribeSteps = workspace.runtime.subscribeSteps(() => {
       sceneStale = true;
       // A step may change only document state the overlay reads (a binding's badge).
@@ -589,7 +595,8 @@ export function CatalogCanvas({
       publishHeaders();
       scheduler.invalidate();
     };
-    const unsubscribeCompare = useCompareModeStore.subscribe(followCompareFilter);
+    const unsubscribeCompare =
+      useCompareModeStore.subscribe(followCompareFilter);
     // The badges show each collection's state (rows, the linked API's last run).
     const unsubscribeData = useDataStore.subscribe((state, prev) => {
       if (
@@ -1074,6 +1081,7 @@ export function CatalogCanvas({
       sceneRef.current = undefined;
       unsubscribeSession();
       unsubscribeSteps();
+      unsubscribePreviews();
       unsubscribeRows();
       unsubscribeFrames();
       scheduler.dispose();

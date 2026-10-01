@@ -223,6 +223,35 @@ describe("PropertyUnitInput numeric editing", () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 
+  it("adds up arrow-key steps while the previewed value prop stays (a host preview off the document)", () => {
+    const onChange = vi.fn();
+    const onDrag = vi.fn();
+
+    useStore.setState({ selectedElementId: "element-1" } as never);
+    render(
+      <PropertyUnitInput
+        label="Gap"
+        value="0px"
+        units={["reset", "px"]}
+        presets={SPACING_PRESET_OPTIONS}
+        onChange={onChange}
+        onDrag={onDrag}
+      />,
+    );
+    const input = screen.getByRole("combobox", { name: "Gap" });
+    input.focus();
+    for (let index = 0; index < 3; index += 1)
+      fireEvent.keyDown(input, { key: "ArrowUp", shiftKey: true });
+
+    expect(onDrag.mock.calls.map(([value]) => value)).toEqual([
+      "10px",
+      "20px",
+      "30px",
+    ]);
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(onChange).toHaveBeenLastCalledWith("30px");
+  });
+
   it("commits the arrow-key value on the following blur", () => {
     const onChange = vi.fn();
     const onDrag = vi.fn();
@@ -604,7 +633,8 @@ describe("PropertyUnitInput labelMode=suffix — suffix 가 단위 메뉴 트리
     fireEvent.keyDown(input, { key: "ArrowUp" });
     expect(onChange).toHaveBeenLastCalledWith("15px");
     fireEvent.keyDown(input, { key: "ArrowUp", shiftKey: true });
-    expect(onChange).toHaveBeenLastCalledWith("24px"); // value prop 이 14px 그대로라 14 + 10
+    // 보이는 편집값 (15) 에서 + 10 — value prop 이 14px 그대로여도 (미리보기가 문서에 쓰지 않는 host)
+    expect(onChange).toHaveBeenLastCalledWith("25px");
   });
 
   it("키워드 값 (auto) 에는 stepper 를 그리지 않는다", () => {

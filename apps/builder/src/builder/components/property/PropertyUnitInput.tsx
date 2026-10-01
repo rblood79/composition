@@ -584,9 +584,14 @@ export const PropertyUnitInput = memo(
       )
         return;
       const step = coarse ? 10 : 1;
-      const base = sizeControl
-        ? parseFloat(inputValue) || 0
-        : numericValue || 0;
+      // The shown edit value: a host whose preview does not write the document (catalog) keeps
+      // the `value` prop at the committed value, so successive arrows step from what is shown.
+      const typed = parseFloat(inputValue);
+      const base = Number.isFinite(typed)
+        ? typed
+        : sizeControl
+          ? 0
+          : numericValue || 0;
       const next =
         direction > 0 ? Math.min(base + step, max) : Math.max(base - step, min);
       setInputValue(String(next));

@@ -106,12 +106,13 @@ import {
 } from "./slotChrome";
 
 /**
- * Values a Canvas gesture shows on one record before it commits (`previewRecord`): resolved values
- * at the current breakpoint, merged over the record's own.
+ * Values a Canvas gesture or a Styles drag shows on one record before it commits
+ * (`previewRecord`): resolved values at the current breakpoint, merged over the record's own.
  */
 export interface CatalogRecordPreview {
-  readonly visual?: Readonly<Record<string, number>>;
+  readonly visual?: Readonly<Record<string, string | number | boolean>>;
   readonly sizing?: Readonly<Record<string, number>>;
+  readonly layout?: Readonly<Record<string, string>>;
   readonly placement?: CatalogConsumerNode["placement"];
 }
 
@@ -975,6 +976,8 @@ export class CatalogCompositionRoot {
   >();
   /** Wrapped text-leaf content heights from the last `rewrap` (absent = one line). */
   private readonly wrapHeights = new Map<string, number>();
+  /** Hears every `previewRecord` (the Canvas re-lays its scene out: siblings may move). */
+  private readonly previewListeners = new Set<() => void>();
   /** Records a gesture previews (`previewRecord`): the record it replaced and the one shown. */
   private readonly previews = new Map<
     string,
@@ -2071,6 +2074,9 @@ export class CatalogCompositionRoot {
           sizing: patch.sizing
             ? { ...base.sizing, ...patch.sizing }
             : base.sizing,
+          layout: patch.layout
+            ? { ...base.layout, ...patch.layout }
+            : base.layout,
           placement: patch.placement ?? base.placement,
         }
       : base;
@@ -2088,7 +2094,19 @@ export class CatalogCompositionRoot {
         errors.push(error);
       }
     }
+    for (const listener of [...this.previewListeners]) {
+      try {
+        listener();
+      } catch (error) {
+        errors.push(error);
+      }
+    }
     return errors;
+  }
+  /** Hear every `previewRecord` (a preview from any surface: a Canvas gesture, a Styles drag). */
+  subscribePreviews(listener: () => void): () => void {
+    this.previewListeners.add(listener);
+    return () => this.previewListeners.delete(listener);
   }
   /** Laid-out frame of every page (its root node's box on the page grid). */
   pageFrameRects(): Map<

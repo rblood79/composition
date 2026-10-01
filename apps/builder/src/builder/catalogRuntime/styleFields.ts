@@ -291,6 +291,46 @@ export function catalogStyleWrites(
   return fail();
 }
 
+/**
+ * The resolved values a Styles drag shows on the Canvas before it commits (`previewRecord`): the
+ * set values of the writes. A remove has no resolved value to show (the library's) and an
+ * unknown-unit value no typed one, so both wait for the commit.
+ */
+export function catalogStylePreviewPatch(writes: CatalogStyleFieldWrites): {
+  visual?: Record<string, string | number | boolean>;
+  sizing?: Record<string, number>;
+  layout?: Record<string, string>;
+} {
+  const values = <T>(
+    fields:
+      Readonly<Record<string, WriteValue<unknown> | undefined>> | undefined,
+    accept: (value: unknown) => value is T,
+  ): Record<string, T> | undefined => {
+    const out: Record<string, T> = {};
+    for (const [key, write] of Object.entries(fields ?? {}))
+      if (write?.kind === "set" && accept(write.value)) out[key] = write.value;
+    return Object.keys(out).length ? out : undefined;
+  };
+  const visual = values(
+    writes.visual,
+    (value): value is string | number | boolean =>
+      ["string", "number", "boolean"].includes(typeof value),
+  );
+  const sizing = values(
+    writes.sizing,
+    (value): value is number => typeof value === "number",
+  );
+  const layout = values(
+    writes.layout,
+    (value): value is string => typeof value === "string",
+  );
+  return {
+    ...(visual ? { visual } : {}),
+    ...(sizing ? { sizing } : {}),
+    ...(layout ? { layout } : {}),
+  };
+}
+
 /** Several CSS keys' edits merged (later keys win on the same field). */
 export function catalogStyleWritesOf(
   styles: Readonly<Record<string, string | number>>,
