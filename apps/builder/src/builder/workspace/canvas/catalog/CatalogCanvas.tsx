@@ -1061,6 +1061,10 @@ export function CatalogCanvas({
       renderer.resize(canvas);
       renderer.invalidateContent();
       renderer.clearFrame();
+      // Setting the canvas size cleared its bitmap, and this callback runs after this frame's
+      // animation frame: draw now, or the browser paints the cleared canvas (a blank flash on
+      // every step of a window resize).
+      renderFrame();
     });
     resize.observe(containerEl);
     renderer.invalidateContent();
