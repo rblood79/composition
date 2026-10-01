@@ -44,6 +44,7 @@ import { getRegistryVersion } from "../skia/useSkiaNode";
 import { ViewportControlBridge } from "../viewport";
 import { getViewportController } from "../viewport/ViewportController";
 import { viewportState } from "../viewport/viewportState";
+import { zoomViewportAtContainerCenter } from "../viewport/viewportActions";
 import { useViewportSyncStore } from "../stores";
 import { useCompareModeStore } from "../stores/compareMode";
 import { catalogUnionRect, fitCatalogPageFrame } from "./catalogViewport";
@@ -926,8 +927,30 @@ export function CatalogCanvas({
         picking.click(x, y);
       const surface = onElement ? "canvas-element" : "canvas-empty";
       const items = catalogCanvasMenuItems(
-        catalogMenuHost(workspace, (error) =>
-          callbacks.current.onError?.(error),
+        catalogMenuHost(
+          workspace,
+          (error) => callbacks.current.onError?.(error),
+          {
+            zoomToFit: () => {
+              const rect = catalogUnionRect([
+                ...workspace.root.pageFrameRects().values(),
+              ]);
+              const { containerSize } = useViewportSyncStore.getState();
+              if (rect && containerSize.width && containerSize.height)
+                fitCatalogPageFrame(rect, containerSize);
+            },
+            zoom100: () => zoomViewportAtContainerCenter(1),
+            rulers: useStore.getState().showRulers,
+            toggleRulers: () => {
+              const settings = useStore.getState();
+              settings.setShowRulers(!settings.showRulers);
+            },
+            snap: useStore.getState().snapToObjects,
+            toggleSnap: () => {
+              const settings = useStore.getState();
+              settings.setSnapToObjects(!settings.snapToObjects);
+            },
+          },
         ),
         surface,
         onElement ? target!.id : record?.id,

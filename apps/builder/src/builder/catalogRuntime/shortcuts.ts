@@ -25,8 +25,12 @@ const isNodeSource = (id: string) => id.startsWith("project:node:");
 export function catalogMenuHost(
   workspace: CatalogWorkspace,
   onError: (error: unknown) => void = () => {},
+  view?: CatalogMenuHost["view"],
 ): CatalogMenuHost {
   return {
+    arrange: (id) => catalogArrangeCommand(workspace, id),
+    showDefinition: (id) => workspace.showDefinition(id),
+    ...(view ? { view } : {}),
     graph: workspace.runtime.graph,
     records: workspace.root.domInputs,
     selection: () => workspace.session.getSnapshot().selection,
