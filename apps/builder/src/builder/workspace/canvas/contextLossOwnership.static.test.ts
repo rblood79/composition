@@ -74,6 +74,19 @@ describe("WebGL 컨텍스트 손실 — 단일 소유자 계약", () => {
     expect(src).toContain("setContextLost(");
   });
 
+  it("catalog Canvas 도 자기 캔버스를 감시하고 손실 상태를 표시한다 (ADR-248 Phase 4e)", () => {
+    const src = readFileSync(
+      join(canvasDir, "catalog", "CatalogCanvas.tsx"),
+      "utf8",
+    );
+
+    expect(src).toContain("watchContextLoss(");
+    // 렌더 일시정지 (지역 플래그) 와 사용자 알림 (React state → indicator) 을 둘 다.
+    expect(src).toContain("setSurfaceLost(true)");
+    expect(src).toContain("setSurfaceLost(false)");
+    expect(src).toContain("isContextLost={surfaceLost}");
+  });
+
   it("DOM 조회로 캔버스를 찾아 리스너를 거는 경로가 없다", () => {
     // 이 패턴이 병인이었다 — lazy 마운트에서 element 를 못 찾고 조용히 실패한다.
     const offenders = sources

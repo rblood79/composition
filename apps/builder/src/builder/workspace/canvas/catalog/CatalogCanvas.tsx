@@ -136,6 +136,7 @@ import { RulerOverlay } from "../../components/RulerOverlay";
 import { CatalogDefinitionBar } from "./CatalogDefinitionBar";
 import { buildViewportSceneRect } from "../skia/skiaOverlayHelpers";
 import { CatalogTextEditor } from "./CatalogTextEditor";
+import { WorkspaceStatusIndicator } from "../../components/WorkspaceStatusIndicator";
 
 export interface CatalogCanvasProps {
   workspace: CatalogWorkspace;
@@ -193,6 +194,8 @@ export function CatalogCanvas({
   } | null>(null);
   // Page headers (ADR-221): the page frames as laid out, the session's page and selection.
   const [headerFrames, setHeaderFrames] = useState<PageHeaderFrame[]>([]);
+  // The WebGL context is lost: drawing pauses until the browser restores it; the user sees why.
+  const [surfaceLost, setSurfaceLost] = useState(false);
   const headerPressRef = useRef<(pageId: string, event: PointerEvent) => void>(
     () => {},
   );
@@ -994,9 +997,11 @@ export function CatalogCanvas({
       () => {
         contextLost = true;
         updatePaused();
+        setSurfaceLost(true);
       },
       () => {
         contextLost = false;
+        setSurfaceLost(false);
         renderer.resize(canvas);
         renderer.invalidateContent();
         renderer.clearFrame();
@@ -1019,6 +1024,7 @@ export function CatalogCanvas({
       running = false;
       resize.disconnect();
       unwatchContext();
+      setSurfaceLost(false);
       document.removeEventListener("visibilitychange", updatePaused);
       canvas.removeEventListener("pointerdown", onPointerDown);
       canvas.removeEventListener("pointermove", onPointerMove);
@@ -1152,6 +1158,7 @@ export function CatalogCanvas({
           }
         />
       </div>
+      <WorkspaceStatusIndicator isCanvasReady isContextLost={surfaceLost} />
       {spacingInput && (
         <CatalogSpacingInput
           band={spacingInput.band}
