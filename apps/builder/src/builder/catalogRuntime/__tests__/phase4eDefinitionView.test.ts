@@ -125,6 +125,8 @@ describe("ADR-248 4e definition edit view", () => {
     expect(layers.getSnapshot().map((row) => row.position.target)).toEqual([
       { kind: "node", id: templateRoot },
     ]);
+    // Its root row carries the old row's origin mark.
+    expect(layers.getSnapshot()[0].role).toBe("origin");
     layers.dispose();
     // An origin edit: one step, drawn in the view; back on the page the instance shows it.
     workspace.execute(
@@ -138,6 +140,29 @@ describe("ADR-248 4e definition edit view", () => {
     );
     workspace.showDefinition(undefined);
     expect(workspace.session.getSnapshot().definitionView).toBeUndefined();
+    // On the page the instance row carries the instance mark (the body row none).
+    const project = graph.getEntry(graph.projectId);
+    const pageLayers = new CatalogLayerTreeStore(
+      {
+        readModel: workspace.readModel,
+        graph,
+        subscribeSteps: (listener) =>
+          workspace.runtime.subscribeSteps(listener),
+      },
+      project?.kind === "project" ? project.pageIds[0] : ("" as never),
+    );
+    const [bodyRow] = pageLayers.getSnapshot();
+    pageLayers.setExpanded(new Set([bodyRow.id]));
+    const [pageBody] = pageLayers.getSnapshot();
+    expect(pageBody.role).toBeUndefined();
+    expect(
+      pageBody.children?.find(
+        (row) =>
+          row.position.target.kind === "node" &&
+          row.position.target.id === instance,
+      )?.role,
+    ).toBe("instance");
+    pageLayers.dispose();
     expect(workspace.root.pageFrameRects().has(definitionId)).toBe(false);
     expect(textOf(workspace, instanceTitle()!)).toBe("Edited");
     workspace.undo();

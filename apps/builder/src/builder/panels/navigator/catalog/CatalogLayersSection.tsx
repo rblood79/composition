@@ -34,6 +34,16 @@ import type { TreeItemState } from "../tree/TreeBase/types";
 import { LAYER_TREE_ROW_SIZE_PX } from "../tree/LayerTree/virtualization";
 import { CatalogLayerItem } from "./CatalogLayerItem";
 import { useCatalogCommandRunner } from "./useCatalogCommandRunner";
+import { catalogCanvasMenuItems } from "../../../catalogRuntime/canvasMenu";
+import { catalogMenuHost } from "../../../catalogRuntime/shortcuts";
+import { catalogMenuView } from "../../../workspace/canvas/catalog/catalogMenuView";
+import { ContextMenuOverlay } from "../../../components/overlay/contextMenu/ContextMenuOverlay";
+import { resolveContextMenuDisposition } from "../../../components/overlay/contextMenu/contextMenuPolicy";
+import type {
+  ContextMenuItem,
+  ContextMenuRequest,
+} from "../../../components/overlay/contextMenu/types";
+import { useToastStore } from "../../../stores/toast";
 
 const LAYOUT_OPTIONS = { rowSize: LAYER_TREE_ROW_SIZE_PX };
 const EMPTY: readonly CatalogLayerNode[] = [];
@@ -141,6 +151,53 @@ export const CatalogLayersSection = memo(function CatalogLayersSection({
     [workspace],
   );
 
+  // The old Layers row's right click (`layer-item`): the Canvas element menu over the selection
+  // (the row joins it first when it was not selected). The page body has no menu.
+  const [menu, setMenu] = useState<{
+    request: ContextMenuRequest;
+    items: ContextMenuItem[];
+  } | null>(null);
+  const handleContextMenu = useCallback(
+    (node: CatalogLayerNode, event: React.MouseEvent) => {
+      if (node.body) return;
+      if (
+        resolveContextMenuDisposition({
+          altKey: event.altKey,
+          target: event.target,
+        }) !== "suppress"
+      )
+        return;
+      event.preventDefault();
+      const selected = workspace.session
+        .getSnapshot()
+        .selection.map((item) => item.identity);
+      if (!selected.includes(node.id)) workspace.selectRecords([node.id]);
+      const host = catalogMenuHost(
+        workspace,
+        (error) =>
+          useToastStore
+            .getState()
+            .showToast(
+              "error",
+              error instanceof Error ? error.message : String(error),
+            ),
+        catalogMenuView(workspace),
+      );
+      const items = catalogCanvasMenuItems(host, "canvas-element", node.id);
+      if (!items.length) return;
+      setMenu({
+        request: {
+          surface: "layer-item",
+          clientX: event.clientX,
+          clientY: event.clientY,
+          targetElementIds: selected.includes(node.id) ? selected : [node.id],
+        },
+        items,
+      });
+    },
+    [workspace],
+  );
+
   const handleDelete = useCallback(
     (node: CatalogLayerNode) => {
       run(removeTargets({ targets: [node.position.target] }));
@@ -215,10 +272,11 @@ export const CatalogLayersSection = memo(function CatalogLayersSection({
           isFocusVisible={state.isFocusVisible}
           activeGuides={guides}
           onDelete={handleDelete}
+          onContextMenu={handleContextMenu}
         />
       );
     },
-    [handleDelete, selectedChain, tree],
+    [handleContextMenu, handleDelete, selectedChain, tree],
   );
 
   return (
@@ -264,6 +322,12 @@ export const CatalogLayersSection = memo(function CatalogLayersSection({
           dropIndicatorClassName="layer-drop-indicator"
         />
       </Virtualizer>
+      <ContextMenuOverlay
+        isOpen={!!menu}
+        request={menu?.request ?? null}
+        items={menu?.items ?? []}
+        onClose={() => setMenu(null)}
+      />
     </Section>
   );
 });

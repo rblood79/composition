@@ -25,6 +25,11 @@ export interface CatalogLayerNode {
   readonly position: CatalogPosition;
   /** The page body row (not draggable, not deletable). */
   readonly body: boolean;
+  /**
+   * The old row's editing-semantics mark: `instance` = a component instance (a project component
+   * or a library origin), `origin` = the component being edited (the definition view's root).
+   */
+  readonly role?: "origin" | "instance";
 }
 
 /** What the Layers tree reads from the open project (`CatalogWorkspace`). */
@@ -50,7 +55,22 @@ const nameOf = (
   const entry = graph.getEntry(position.target.id);
   return (entry?.kind === "node" && entry.name) || typeName;
 };
+/** A row's mark: the definition view's root is the origin; a component's instance is an instance. */
+const roleOf = (
+  position: CatalogPosition,
+  parentId: string | null,
+  definitionView: boolean,
+): CatalogLayerNode["role"] => {
+  if (definitionView && parentId === null) return "origin";
+  const definitionId = String(position.definitionId);
+  return position.target.kind === "node" &&
+    (definitionId.startsWith("project:definition:") ||
+      definitionId.startsWith("lib:definition:origin-"))
+    ? "instance"
+    : undefined;
+};
 const sameNode = (a: CatalogLayerNode, b: CatalogLayerNode) =>
+  a.role === b.role &&
   a.parentId === b.parentId &&
   a.depth === b.depth &&
   a.hasChildren === b.hasChildren &&
@@ -144,6 +164,11 @@ export class CatalogLayerTreeStore {
       wanted.add(position.identity);
       const rows = readModel.childRows(position);
       const typeName = typeNameOf(graph, position);
+      const role = roleOf(
+        position,
+        parentId,
+        this.ownerId.startsWith("project:definition:"),
+      );
       const expanded = rows.length > 0 && this.expanded.has(position.identity);
       const next: CatalogLayerNode = {
         id: position.identity,
@@ -161,6 +186,7 @@ export class CatalogLayerTreeStore {
         typeName,
         position,
         body: parentId === null && isBodyType(typeName),
+        ...(role ? { role } : {}),
       };
       const old = previous.get(next.id);
       const node = old && sameNode(old, next) ? old : next;

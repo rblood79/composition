@@ -20,6 +20,7 @@ export const CatalogLayerItem = memo(function CatalogLayerItem({
   isFocusVisible,
   activeGuides,
   onDelete,
+  onContextMenu,
 }: {
   node: CatalogLayerNode;
   isSelected: boolean;
@@ -27,6 +28,8 @@ export const CatalogLayerItem = memo(function CatalogLayerItem({
   isFocusVisible: boolean;
   activeGuides: readonly boolean[];
   onDelete: (node: CatalogLayerNode) => void;
+  /** Right click: the Canvas element menu over this row (the old Layers row's `layer-item`). */
+  onContextMenu?: (node: CatalogLayerNode, event: React.MouseEvent) => void;
 }) {
   const { depth, hasChildren, name, body } = node;
   const fixed = body || node.position.target.kind !== "node";
@@ -35,6 +38,7 @@ export const CatalogLayerItem = memo(function CatalogLayerItem({
       className={`elementItem ${isSelected ? "active" : ""} ${
         isFocusVisible ? "focused" : ""
       }`}
+      onContextMenu={(event) => onContextMenu?.(node, event)}
     >
       <IndentGuides depth={depth} activeGuides={activeGuides} />
       <div className="elementItemIcon">
@@ -61,6 +65,13 @@ export const CatalogLayerItem = memo(function CatalogLayerItem({
         )}
       </div>
       <div className="elementItemLabel">
+        {node.role && (
+          <span
+            className={`editing-semantics-dot editing-semantics-dot--${node.role}`}
+            aria-label={node.role === "origin" ? "Origin" : "Instance"}
+            title={node.role === "origin" ? "Origin" : "Instance"}
+          />
+        )}
         <span className="elementItemLabelText">{name}</span>
       </div>
       <div className="elementItemActions">
