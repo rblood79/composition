@@ -113,7 +113,15 @@ export const CatalogStateSection = memo(function CatalogStateSection({
     if (focusRequest.ownerNodeId !== owner) return;
     handledSeq.current = focusRequest.seq;
     if (focusRequest.variableId) setExpandedId(focusRequest.variableId);
-    rootRef.current?.scrollIntoView({ block: "nearest" });
+    // The panel's sections are `content-visibility: auto`: a section that just mounted has no
+    // height until the browser's next rendering (all of them sat at the panel top, so a scroll
+    // now did nothing and they then pushed this one below the fold). Scroll after that frame.
+    let frame = requestAnimationFrame(() => {
+      frame = requestAnimationFrame(() => {
+        rootRef.current?.scrollIntoView({ block: "nearest" });
+      });
+    });
+    return () => cancelAnimationFrame(frame);
   }, [focusRequest, owner]);
   const [pendingDelete, setPendingDelete] = useState<StateVariableEntry | null>(
     null,

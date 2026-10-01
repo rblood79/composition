@@ -8,6 +8,7 @@ import type {
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import { updatePage } from "../../../../../../packages/shared/src/catalog/commands";
 import {
+  catalogPageAfterDelete,
   catalogNewPageCommand,
   catalogPageDropCommand,
   catalogTreePages,
@@ -53,6 +54,16 @@ async function open() {
 }
 
 describe("ADR-248 Phase 4e-4 Pages tree", () => {
+  it("deleting the open page opens the page before it, else the one after (the old Pages rule)", () => {
+    const page = (id: string) => ({ id: id as EntryId<"page"> });
+    const pages = [page("a"), page("b"), page("c")];
+    expect(catalogPageAfterDelete(pages, page("b").id)).toBe("a");
+    expect(catalogPageAfterDelete(pages, page("a").id)).toBe("b");
+    expect(catalogPageAfterDelete(pages, page("c").id)).toBe("b");
+    expect(catalogPageAfterDelete([page("a")], page("a").id)).toBeUndefined();
+    expect(catalogPageAfterDelete(pages, page("x").id)).toBeUndefined();
+  });
+
   it("adds `Page N` with an empty body at a free route; the read model's pages follow", async () => {
     const { workspace, add, order } = await open();
     let notified = 0;

@@ -31,6 +31,19 @@ export function catalogTreePages(
   }));
 }
 
+/**
+ * The page to open after deleting the open page `deleted`: the one before it in the Pages order,
+ * else the one after (the old Pages section's rule); none when it was the only page.
+ */
+export function catalogPageAfterDelete(
+  pages: readonly { readonly id: EntryId<"page"> }[],
+  deleted: EntryId<"page">,
+): EntryId<"page"> | undefined {
+  const index = pages.findIndex((page) => page.id === deleted);
+  if (index < 0) return undefined;
+  return (pages[index - 1] ?? pages[index + 1])?.id;
+}
+
 /** A new page after the others: `Page N` at the first free `/page-N`, with an empty body. */
 export function catalogNewPageCommand(
   pages: readonly PageEntry[],

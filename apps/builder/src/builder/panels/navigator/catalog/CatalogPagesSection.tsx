@@ -10,6 +10,7 @@ import { useI18n } from "../../../../i18n";
 import { iconProps } from "../../../../utils/ui/uiConstants";
 import {
   catalogNewPageCommand,
+  catalogPageAfterDelete,
   catalogPageDropCommand,
   catalogTreePages,
   type CatalogTreePage,
@@ -33,6 +34,7 @@ import { PageTreeItemContent } from "../tree/PageTree/PageTreeItemContent";
 import type { PageTreeNode } from "../tree/PageTree/types";
 import { isValidPageDrop } from "../tree/PageTree/validation";
 import { useCatalogCommandRunner } from "./useCatalogCommandRunner";
+import { useStateSectionFocus } from "../../properties/state/stateSectionFocus";
 
 const AddIcon = ACTION_ICONS.add;
 type Node = PageTreeNode<CatalogTreePage>;
@@ -104,11 +106,14 @@ export const CatalogPagesSection = memo(function CatalogPagesSection() {
     },
     [run],
   );
+  // Deleting the open page opens its neighbour (before it, else after), not the first page.
   const handleDelete = useCallback(
     (page: CatalogTreePage) => {
-      run(removePage({ id: page.id }));
+      const next =
+        page.id === pageId ? catalogPageAfterDelete(pages, page.id) : undefined;
+      if (run(removePage({ id: page.id })) && next) openPage(next);
     },
-    [run],
+    [openPage, pageId, pages, run],
   );
   // Page settings: the page body's selection is the page settings surface (Properties).
   const handleSettings = useCallback(
@@ -117,6 +122,8 @@ export const CatalogPagesSection = memo(function CatalogPagesSection() {
       const body = entries.find((entry) => entry.id === page.id)?.children[0];
       if (body) workspace.session.select(workspace.itemsOfNode(body, 1));
       setPanelWorkspacePanelVisibility("properties", true);
+      // Properties' State section (the page's variables) opens and comes into view.
+      useStateSectionFocus.getState().requestFocus(page.id);
     },
     [entries, selectPage, workspace],
   );
