@@ -1,5 +1,9 @@
+import {
+  presentationSelection,
+  subscribePresentationSelection,
+} from "./presentationBridge";
+import { useStylesHost } from "../stylesHost";
 import { useEffect, type RefObject } from "react";
-import { readImmediateSelectionSnapshot, useStore } from "../../../stores";
 import type { EditorPresentationHandle } from "../../../presentation/editorPresentationTypes";
 
 interface PresentationLifecycleState {
@@ -12,11 +16,12 @@ interface PresentationLifecycleState {
 export function usePresentationLifecycle<T extends PresentationLifecycleState>(
   stateRef: RefObject<T | null>,
 ): void {
+  const bridge = useStylesHost().presentation;
   useEffect(() => {
-    const unsubscribeSelection = useStore.subscribe(() => {
+    const unsubscribeSelection = subscribePresentationSelection(bridge, () => {
       const active = stateRef.current;
       if (!active) return;
-      const { selectedElementId } = readImmediateSelectionSnapshot();
+      const { selectedElementId } = presentationSelection(bridge);
       if (selectedElementId !== active.selectedElementId) {
         active.handle.cancel("selection-change");
         active.phase = "cancelled";

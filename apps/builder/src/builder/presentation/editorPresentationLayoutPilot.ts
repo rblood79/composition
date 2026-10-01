@@ -3,6 +3,7 @@ import {
   getEditorPresentationTargetNode,
   resolveEditorPresentationTarget,
 } from "./editorPresentationCommitAdapter";
+import { parsePresentationLayoutPx } from "./editorPresentationLayoutValue";
 import { useCanonicalDocumentStore } from "../stores/canonical/canonicalDocumentStore";
 import type { EditorPresentationTargetRef } from "./editorPresentationTypes";
 import { isStylePresentationPilotEnabled } from "./editorPresentationStylePilot";
@@ -24,21 +25,6 @@ export interface LayoutPresentationPilotTarget {
   readonly property: LayoutPresentationProperty;
   readonly style: Readonly<Record<string, unknown>>;
   readonly target: EditorPresentationTargetRef;
-}
-
-/**
- * Layout presentation은 CSS 문자열을 hot path에 흘리지 않는다.
- * panel은 px 값을 보내고, runtime descriptor는 계산된 숫자만 소비한다.
- */
-export function parsePresentationLayoutPx(value: unknown): number | null {
-  if (typeof value === "number") {
-    return Number.isFinite(value) && value >= 0 ? value : null;
-  }
-  if (typeof value !== "string") return null;
-  const match = /^\s*(\d+(?:\.\d+)?)px\s*$/.exec(value);
-  if (!match) return null;
-  const parsed = Number(match[1]);
-  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function readLayoutPresentationValue(
@@ -134,3 +120,5 @@ export function resolveLayoutPresentationPilotTarget(
 
   return { projectId, property, style: styleRecord, target };
 }
+
+export { parsePresentationLayoutPx };

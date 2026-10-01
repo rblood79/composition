@@ -61,10 +61,8 @@ import {
   withSlotMirrorName,
 } from "../../../adapters/canonical/slotMirror";
 import { dispatchSemanticUpdateWithPropagation } from "./semanticUpdateDispatch";
-import {
-  isDelegatedSubpart,
-  useSelectedSubpartOwnerType,
-} from "../delegatedSubpart";
+import { isDelegatedSubpart } from "../delegatedSubpart";
+import { useSelectedSubpartOwnerType } from "../delegatedSubpart.legacy";
 import {
   alignSelection,
   copySelection,

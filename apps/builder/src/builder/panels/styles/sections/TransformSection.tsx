@@ -5,15 +5,7 @@
  * Alignment는 Layout 섹션의 3x3 Flex alignment로 통합됨.
  */
 
-import {
-  memo,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Section as PropertySection } from "../../../components/panel/Section";
 import { PropertyUnitInput } from "../../../components/property/PropertyUnitInput";
 import { PropertySelect } from "../../../components/property/PropertySelect";
@@ -35,19 +27,8 @@ import {
   useParentDisplay,
   useParentFlexDirection,
 } from "../hooks/useTransformAuxiliary";
-import { useStore } from "../../../stores";
-import {
-  commitPagePlacementFromPoint,
-  isPagePlacementEditable,
-} from "../../../stores/utils/pagePlacementCommit";
 import { useElementStyleContext } from "../hooks/useElementStyleContext";
 import { getFillBehavior, getRatioDependentAxis } from "@composition/shared";
-import { historyManager } from "../../../stores/history";
-import { useCanonicalPropertyElement } from "../../properties/hooks/useCanonicalPropertyRead";
-import {
-  getPagePositionPresentationSnapshot,
-  subscribePagePositionPresentation,
-} from "../../../workspace/canvas/interaction/pagePositionPresentation";
 import { useResetStyles, useHasDirtyStyles } from "../hooks/useResetStyles";
 import { useViewportSyncStore } from "../../../workspace/canvas/stores";
 import { hasEnabledAspectRatio } from "../../../utils/aspectRatio";
@@ -94,97 +75,6 @@ const ASPECT_RATIO_OPTIONS = [
 ];
 
 /**
- * 페이지 X/Y row (ADR-177 적응형 통합) — 드래그 중 실시간 표시.
- *
- * 커밋 값은 store pagePositions 를 구독하고, 드래그 중에는 ADR-176/178 의
- * transient 채널(pagePositionPresentation.activeOverrides)을 직접 구독한다 —
- * Zustand set 무경유라 드래그 프레임이 전역 셀렉터 sweep 을 유발하지 않고,
- * 스냅샷을 반올림 정수 문자열로 잘라 표시값이 실제 바뀐 프레임에만 이 row
- * 하나가 재렌더된다 (드래그 중이 아닐 땐 notify 자체가 없음 — 비용 0).
- */
-const PagePositionRow = memo(function PagePositionRow({
-  pageId,
-}: {
-  pageId: string;
-}) {
-  const pagePosition = useStore((s) => s.derivedPagePositions[pageId]);
-  const liveKey = useSyncExternalStore(
-    subscribePagePositionPresentation,
-    () => {
-      const snap = getPagePositionPresentationSnapshot();
-      const override = snap.isActive
-        ? snap.activeOverrides?.get(pageId)
-        : undefined;
-      return override
-        ? `${Math.round(override.x)}:${Math.round(override.y)}`
-        : null;
-    },
-  );
-
-  const handleCommit = useCallback(
-    (axis: "x" | "y", value: string) => {
-      const parsed = Number.parseFloat(value);
-      if (!Number.isFinite(parsed)) return;
-      const state = useStore.getState();
-      const current = state.derivedPagePositions[pageId];
-      if (!current) return;
-      const next = {
-        x: axis === "x" ? parsed : current.x,
-        y: axis === "y" ? parsed : current.y,
-      };
-      // ADR-232 — X/Y 입력도 placement 로 쓴다 (Home 은 거부 — 아래 입력 비활성과 같은 판정).
-      commitPagePlacementFromPoint(pageId, next);
-    },
-    [pageId],
-  );
-  const handleXCommit = useCallback(
-    (value: string) => handleCommit("x", value),
-    [handleCommit],
-  );
-  const handleYCommit = useCallback(
-    (value: string) => handleCommit("y", value),
-    [handleCommit],
-  );
-
-  if (!pagePosition) return null;
-
-  // ADR-232 — Home 은 흐름 원점이라 이동할 수 없다 (파생 모드 한정).
-  const isEditable = isPagePlacementEditable(pageId);
-  const live = liveKey ? liveKey.split(":") : null;
-  const displayX = live ? live[0] : String(Math.round(pagePosition.x));
-  const displayY = live ? live[1] : String(Math.round(pagePosition.y));
-
-  return (
-    <div className="transform-row">
-      {/* 페이지 캔버스 위치 — 값/undo 는 updatePagePosition 계약 그대로 (ADR-177) */}
-      <PropertyUnitInput
-        label="X"
-        unitSuffix
-        className="left"
-        value={`${displayX}px`}
-        units={["px"]}
-        onChange={handleXCommit}
-        isDisabled={!isEditable}
-        min={-99999}
-        max={99999}
-      />
-      <PropertyUnitInput
-        label="Y"
-        unitSuffix
-        className="top"
-        value={`${displayY}px`}
-        units={["px"]}
-        onChange={handleYCommit}
-        isDisabled={!isEditable}
-        min={-99999}
-        max={99999}
-      />
-      <div className="fieldset-actions actions-position" />
-    </div>
-  );
-});
-
-/**
  * ADR-248 Phase 4e: the page body's X / Y from a host that owns the page canvas (the catalog
  * Styles panel) — the same row; Home stays where it is (inputs off).
  */
@@ -192,7 +82,7 @@ const HostPagePositionRow = memo(function HostPagePositionRow({
   pagePosition,
   selectedId,
 }: {
-  pagePosition: NonNullable<StylesHost["pagePosition"]>;
+  pagePosition: StylesHost["pagePosition"];
   selectedId: string | null;
 }) {
   const position = pagePosition.usePosition(selectedId);
@@ -316,23 +206,8 @@ const TransformSectionContent = memo(function TransformSectionContent({
 
   const canvasSize = useViewportSyncStore((state) => state.canvasSize);
 
-  // ADR-177 적응형 통합 — body 선택 시 position row 는 CSS left/top 이 아니라
-  // 페이지 캔버스 위치(pagePositions)를 편집한다 (Pen/Figma 단일 Position 어법).
-  // 실제 page body (page_id 보유 + stale mismatch 아님) 한정 — projection/frame
-  // body 는 페이지 이동 대상이 아니므로 position row 자체를 숨긴다.
-  const selectedElement = useCanonicalPropertyElement(selectedId ?? "");
-  const currentPageId = useStore((s) => s.currentPageId);
-  const selectedElementPageId = selectedElement?.page_id ?? null;
-  const hasStalePageMismatch =
-    selectedElementPageId != null &&
-    currentPageId != null &&
-    selectedElementPageId !== currentPageId;
-  const pagePositionPageId =
-    styleValues?.isBody &&
-    !hasStalePageMismatch &&
-    selectedElementPageId != null
-      ? selectedElementPageId
-      : null;
+  // ADR-177 적응형 통합 — body 선택 시 position row 는 CSS left/top 이 아니라 페이지 캔버스
+  // 위치를 편집한다 (Pen/Figma 단일 Position 어법) — the host's page position (ADR-248 4e-7).
 
   // ADR-026: Size Mode (Zustand hooks)
   const widthMode = useWidthSizeMode(selectedId);
@@ -506,16 +381,14 @@ const TransformSectionContent = memo(function TransformSectionContent({
   };
 
   if (part === "position") {
-    if (host.pagePosition && styleValues.isBody)
+    if (styleValues.isBody)
       return (
         <HostPagePositionRow
           pagePosition={host.pagePosition}
           selectedId={selectedId}
         />
       );
-    return pagePositionPageId ? (
-      <PagePositionRow pageId={pagePositionPageId} />
-    ) : styleValues.isBody ? null : (
+    return (
       <div className="transform-row">
         <PropertyUnitInput
           label="Left"

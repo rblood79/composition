@@ -2,7 +2,7 @@
 import { describe, it, expect } from "vitest";
 import type { CompositionDocument } from "@composition/shared";
 import type { ComponentCreationContext, ComponentDefinition } from "../types";
-import { computeDirtyStyleProps } from "../../panels/styles/hooks/useResetStyles";
+import { computeDirtyStyleProps } from "../../panels/styles/hooks/useResetStyles.legacy";
 import { getDefaultProps } from "../../../types/builder/unified.types";
 import {
   createDialogDefinition,
@@ -166,10 +166,8 @@ describe("ADR-171 Phase 4 (R7) — factory 인라인 ↔ dirty baseline", () => 
     });
 
     it(`${type} — baseline 이 factory 미주입 layout 키를 주장하지 않음 (② baseline ⊆ 인라인)`, () => {
-      const inline = (styledNode(create(ctx), type).props.style ?? {}) as Record<
-        string,
-        unknown
-      >;
+      const inline = (styledNode(create(ctx), type).props.style ??
+        {}) as Record<string, unknown>;
       const mirror = (getDefaultProps(type)?.style ?? {}) as Record<
         string,
         unknown

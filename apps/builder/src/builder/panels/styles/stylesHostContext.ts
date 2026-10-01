@@ -5,6 +5,36 @@ import type { RatioEditError } from "../../stores/inspectorActions";
 import type { FillItem } from "../../../types/builder/fill.types";
 import type { SelectedElement } from "../../inspector/types";
 import type { ResponsiveOverridesInfo } from "./hooks/useResponsiveOverrides";
+import type {
+  editorPresentationFillPilotRuntime,
+  resolveFillPresentationPilotTarget,
+} from "../../presentation/editorPresentationFillPilot";
+import type {
+  resolveBorderColorPresentationPilotTarget,
+  resolveBoxShadowPresentationPilotTarget,
+  resolveOpacityPresentationPilotTarget,
+  resolveTextColorPresentationPilotTarget,
+} from "../../presentation/editorPresentationStylePilot";
+import type { resolveLayoutPresentationPilotTarget } from "../../presentation/editorPresentationLayoutPilot";
+import type { resolveTextMetricPresentationPilotTarget } from "../../presentation/editorPresentationTextMetrics";
+
+/**
+ * ADR-248 4e-7: what the Styles presentation hooks need from the old editor presentation channel —
+ * the old store's selection (a session's owner check), its pilot runtime and target resolvers.
+ * The hooks reach them only through the host, so the catalog Builder's graph does not import them.
+ */
+export interface StylesPresentationBridge {
+  readSelectedElementId(): string | null;
+  subscribeSelection(listener: () => void): () => void;
+  runtime: typeof editorPresentationFillPilotRuntime;
+  resolveFillTarget: typeof resolveFillPresentationPilotTarget;
+  resolveBorderColorTarget: typeof resolveBorderColorPresentationPilotTarget;
+  resolveBoxShadowTarget: typeof resolveBoxShadowPresentationPilotTarget;
+  resolveOpacityTarget: typeof resolveOpacityPresentationPilotTarget;
+  resolveTextColorTarget: typeof resolveTextColorPresentationPilotTarget;
+  resolveLayoutTarget: typeof resolveLayoutPresentationPilotTarget;
+  resolveTextMetricTarget: typeof resolveTextMetricPresentationPilotTarget;
+}
 
 /** The selected element as the style actions read it when they run. */
 export interface StylesTargetSnapshot {
@@ -104,20 +134,21 @@ export interface StylesHost {
   /** The selected element as the panel frame reads it (title, Modified list, copy). */
   useSelectedElement(): SelectedElement | null;
   /**
-   * The old Canvas editor presentation channel (live paint while editing) is available. When it
-   * is not, the color pickers preview every drag through `previewStyle` / `previewFills`.
+   * The old Canvas editor presentation channel (live paint while editing, ADR-187) — only the old
+   * element store has one (`stylesHost.store.ts`). Absent (the catalog Builder), the color pickers
+   * preview every drag through `previewStyle` / `previewFills`.
    */
-  presentation: boolean;
+  presentation?: StylesPresentationBridge;
   /**
-   * The parent that owns the element's style axis as a delegated sub-part (absent = the old store
-   * decides): the panel shows the owner notice instead of fields nothing reads.
+   * The parent that owns the element's style axis as a delegated sub-part: the panel shows the
+   * owner notice instead of fields nothing reads.
    */
-  subpartStyleOwnerOf?(id: string | null | undefined): string | null;
+  subpartStyleOwnerOf(id: string | null | undefined): string | null;
   /**
-   * A page body's position on the page canvas, which the Position row edits (absent = the old
-   * store's page positions): `usePosition` is a hook (null = not a page body).
+   * A page body's position on the page canvas, which the Position row edits: `usePosition` is a
+   * hook (null = not a page body).
    */
-  pagePosition?: {
+  pagePosition: {
     usePosition(selectedId: string | null): {
       pageId: string;
       x: number;
@@ -127,10 +158,10 @@ export interface StylesHost {
     commit(pageId: string, point: { x: number; y: number }): void;
   };
   /**
-   * The color picker's Document palette sources from the host's own document (absent = the old
-   * store's elements): `revision` changes when they may have changed.
+   * The color picker's Document palette sources from the host's own document: `revision` changes
+   * when they may have changed.
    */
-  documentColors?: {
+  documentColors: {
     subscribe(listener: () => void): () => void;
     revision(): number;
     read(): Iterable<{

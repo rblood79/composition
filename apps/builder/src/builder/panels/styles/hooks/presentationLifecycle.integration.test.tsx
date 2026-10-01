@@ -3,41 +3,37 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { useLayoutPresentationActions } from "./useLayoutPresentationActions";
 import { useTextMetricsPresentationActions } from "./useTextMetricsPresentationActions";
+import type { ReactNode } from "react";
+import {
+  StylesHostContext,
+  type StylesHost,
+  type StylesPresentationBridge,
+} from "../stylesHostContext";
 
 const state = vi.hoisted(() => ({
   selectedElementId: "a",
   subscribers: new Set<() => void>(),
   begin: vi.fn(),
 }));
-vi.mock("../../../stores", () => ({
-  readImmediateSelectionSnapshot: () => ({
-    selectedElementId: state.selectedElementId,
-  }),
-  useStore: {
-    subscribe: (listener: () => void) => {
-      state.subscribers.add(listener);
-      return () => state.subscribers.delete(listener);
-    },
+// ADR-248 4e-7: the hooks reach the presentation channel through the host's bridge.
+const target = () => ({ projectId: "project", target: {} }) as never;
+const bridge = {
+  readSelectedElementId: () => state.selectedElementId,
+  subscribeSelection: (listener: () => void) => {
+    state.subscribers.add(listener);
+    return () => state.subscribers.delete(listener);
   },
-}));
-vi.mock("../../../presentation/editorPresentationFillPilot", () => ({
-  editorPresentationFillPilotRuntime: { beginEditorPresentation: state.begin },
-}));
-vi.mock("../../../presentation/editorPresentationLayoutPilot", () => ({
-  parsePresentationLayoutPx: (value: string) => Number.parseFloat(value),
-  resolveLayoutPresentationPilotTarget: () => ({
-    projectId: "project",
-    target: {},
-  }),
-}));
-vi.mock("../../../presentation/editorPresentationTextMetrics", () => ({
-  parsePresentationFontSize: (value: string) => Number.parseFloat(value),
-  parsePresentationFontWeight: (value: string) => Number.parseFloat(value),
-  resolveTextMetricPresentationPilotTarget: () => ({
-    projectId: "project",
-    target: {},
-  }),
-}));
+  runtime: { beginEditorPresentation: state.begin },
+  resolveLayoutTarget: target,
+  resolveTextMetricTarget: target,
+} as unknown as StylesPresentationBridge;
+const wrapper = ({ children }: { children: ReactNode }) => (
+  <StylesHostContext.Provider
+    value={{ presentation: bridge } as unknown as StylesHost}
+  >
+    {children}
+  </StylesHostContext.Provider>
+);
 
 const cases = [
   {
@@ -79,7 +75,7 @@ afterEach(cleanup);
 for (const scenario of cases) {
   describe(`${scenario.name} presentation 공통 생명주기`, () => {
     it("선택 변경으로 취소된 편집을 새 선택에 commit하지 않는다", () => {
-      const { result } = renderHook(scenario.useActions);
+      const { result } = renderHook(scenario.useActions, { wrapper });
       act(() => {
         result.current.preview();
       });
@@ -95,7 +91,7 @@ for (const scenario of cases) {
     });
 
     it("blur는 활성 편집을 한 번 취소하고 unmount는 구독을 해제한다", () => {
-      const { result, unmount } = renderHook(scenario.useActions);
+      const { result, unmount } = renderHook(scenario.useActions, { wrapper });
       act(() => {
         result.current.preview();
       });
@@ -114,7 +110,7 @@ for (const scenario of cases) {
     });
 
     it("취소 후 다른 속성으로 재진입하는 기존 family 정책을 보존한다", () => {
-      const { result } = renderHook(scenario.useActions);
+      const { result } = renderHook(scenario.useActions, { wrapper });
       act(() => {
         result.current.preview();
       });

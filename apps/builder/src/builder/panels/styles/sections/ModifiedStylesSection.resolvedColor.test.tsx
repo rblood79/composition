@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import "../stylesHost.store"; // old-store host (ADR-248 4e-7: goes with the old store)
 import type { PropsWithChildren } from "react";
 import { cleanup, render, screen } from "@testing-library/react";
 import { lightColors } from "@composition/specs";

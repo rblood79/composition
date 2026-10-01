@@ -15,10 +15,8 @@
  */
 import { describe, it, expect, afterEach, vi } from "vitest";
 import type { CanonicalNode, CompositionDocument } from "@composition/shared";
-import {
-  computeDirtyStyleProps,
-  PANEL_STYLE_PROPS,
-} from "../../panels/styles/hooks/useResetStyles";
+import { PANEL_STYLE_PROPS } from "../../panels/styles/hooks/useResetStyles";
+import { computeDirtyStyleProps } from "../../panels/styles/hooks/useResetStyles.legacy";
 import { ensureFormTemplateOrigins } from "../form/formTemplateOrigins";
 import { ensureToolbarTemplateOrigins } from "../toolbar/toolbarTemplateOrigins";
 

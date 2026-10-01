@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import "../stylesHost.store"; // old-store host (ADR-248 4e-7: goes with the old store)
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { darkColors, lightColors } from "@composition/specs";

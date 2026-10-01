@@ -618,7 +618,6 @@ export function createCatalogStylesHost(
         [id, context],
       );
     },
-    presentation: false,
     subpartStyleOwnerOf: (id) =>
       catalogSubpartOwnerType(
         workspace.runtime.graph,

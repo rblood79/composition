@@ -18,11 +18,8 @@ import {
 } from "../../../../adapters/canonical/canonicalMutations";
 import { useLayoutValues } from "./useLayoutValues";
 import { useTransformValues } from "./useTransformValues";
-import {
-  useHasDirtyStyles,
-  useResetStyles,
-  computeDirtyStyleProps,
-} from "./useResetStyles";
+import { useHasDirtyStyles, useResetStyles } from "./useResetStyles";
+import { computeDirtyStyleProps } from "./useResetStyles.legacy";
 import * as preset from "../utils/specPresetResolver";
 import { getDefaultProps } from "../../../../types/builder/unified.types";
 import type { ComponentElementProps } from "../../../../types/builder/unified.types";

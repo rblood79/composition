@@ -33,6 +33,7 @@ describe("ADR-187 Phase 2 migration guards", () => {
   });
 
   it("capability/initial fills resolve는 session acquire에서만 수행하고 active input은 캡처값을 쓴다", async () => {
+    // ADR-248 4e-7: the pilot target resolves through the Styles host's presentation bridge.
     const action = await source("../panels/styles/hooks/useFillActions.ts");
     const previewStart = action.indexOf(
       "const previewFirstFillColorPresentation",
@@ -42,7 +43,7 @@ describe("ADR-187 Phase 2 migration guards", () => {
     );
     const acquireGuard = action.indexOf("if (!presentation) {", previewStart);
     const resolvePilot = action.indexOf(
-      "resolveFillPresentationPilotTarget(",
+      "bridge?.resolveFillTarget(",
       acquireGuard,
     );
     const publish = action.indexOf("presentation.handle.publish", resolvePilot);
@@ -55,9 +56,9 @@ describe("ADR-187 Phase 2 migration guards", () => {
     expect(resolvePilot).toBeGreaterThan(acquireGuard);
     expect(publish).toBeGreaterThan(resolvePilot);
     expect(action.slice(previewStart, acquireGuard)).not.toContain(
-      "resolveFillPresentationPilotTarget(",
+      "bridge?.resolveFillTarget(",
     );
-    expect(commitBody).not.toContain("resolveFillPresentationPilotTarget(");
+    expect(commitBody).not.toContain("bridge?.resolveFillTarget(");
     expect(action).toContain("baseFills: pilot.fills");
     expect(action).toContain("presentation.baseFills.map");
   });

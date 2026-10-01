@@ -2,16 +2,11 @@
  * useDocumentColors — 색 피커 「Document」 팔레트 (panel-ui 05 #1, 2026-09-15)
  *
  * 이 문서에서 쓰인 색을 자동 수집한다 — 저장소가 따로 없고 (이름 있는 팔레트 없음) 읽을 때
- * 만든다. 소스는 fills 와 같은 정본: canonical 문서가 있으면 node fills payload + node
- * props.style, 없으면 (legacy) store elements. 색 키는 backgroundColor · color · borderColor
+ * 만든다. 소스는 Styles host 의 문서 (ADR-248 4e-7 — catalog workspace). 색 키는 backgroundColor · color · borderColor
  * + color fill. 정규화는 hex8, 빈도 순, 상한 12 (6열 두 행).
  */
 import { useMemo, useSyncExternalStore } from "react";
 import { useStylesHost } from "../stylesHost";
-import { useStore } from "../../../stores";
-import { getActiveCanonicalDocument } from "../../../stores/canonical/canonicalElementsBridge";
-import { getNodeMap } from "../../../stores/canonical/canonicalTraversalHelpers";
-import { readCanonicalNodeFillPayload } from "../../../../adapters/canonical/canonicalFillPayload";
 import { FillType, type FillItem } from "../../../../types/builder/fill.types";
 import { normalizeToHex8 } from "../utils/colorUtils";
 
@@ -65,37 +60,13 @@ export function collectDocumentColors(
     .map(([hex]) => hex);
 }
 
-const NO_SUBSCRIBE = () => () => {};
-const NO_REVISION = () => 0;
-
 export function useDocumentColors(): string[] {
-  // A host with its own document (the catalog Styles panel) gives the sources; else the old store.
-  const host = useStylesHost().documentColors;
-  const revision = useSyncExternalStore(
-    host?.subscribe ?? NO_SUBSCRIBE,
-    host?.revision ?? NO_REVISION,
-  );
-  // 편집마다 배열 참조가 바뀐다 — 피커가 열려 있을 때만 mount 되는 컴포넌트라 비용은 열림 동안뿐
-  const elements = useStore((state) => (host ? null : state.elements));
+  // The host's own document gives the sources (the catalog Styles panel).
+  const source = useStylesHost().documentColors;
+  const revision = useSyncExternalStore(source.subscribe, source.revision);
+  // 편집마다 다시 모은다 — 피커가 열려 있을 때만 mount 되는 컴포넌트라 비용은 열림 동안뿐
   return useMemo(() => {
     void revision;
-    if (host) return collectDocumentColors(host.read());
-    if (!elements) return [];
-    const doc = getActiveCanonicalDocument();
-    if (doc) {
-      const nodes = Array.from(getNodeMap().values());
-      return collectDocumentColors(
-        nodes.map((node) => ({
-          style: (node.props as { style?: StyleLike } | undefined)?.style,
-          fills: readCanonicalNodeFillPayload(node) as FillItem[] | undefined,
-        })),
-      );
-    }
-    return collectDocumentColors(
-      elements.map((element) => ({
-        style: element.props?.style as StyleLike,
-        fills: element.fills,
-      })),
-    );
-  }, [elements, host, revision]);
+    return collectDocumentColors(source.read());
+  }, [source, revision]);
 }

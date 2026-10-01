@@ -5,7 +5,7 @@ import { resolve } from "node:path";
 describe("style hooks canonical read contract", () => {
   it("uses canonical property read hook for shared style context", async () => {
     const source = await readFile(
-      resolve(__dirname, "useElementStyleContext.ts"),
+      resolve(__dirname, "useElementStyleContext.legacy.ts"),
       "utf-8",
     );
 
@@ -58,7 +58,7 @@ describe("style hooks canonical read contract", () => {
 
   it("uses canonical property element for reset dirty-state reads", async () => {
     const source = await readFile(
-      resolve(__dirname, "useResetStyles.ts"),
+      resolve(__dirname, "useResetStyles.legacy.ts"),
       "utf-8",
     );
 

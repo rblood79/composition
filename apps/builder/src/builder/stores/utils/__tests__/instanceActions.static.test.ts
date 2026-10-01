@@ -110,7 +110,10 @@ describe("legacy model leaf cleanup static gates", () => {
       "utf-8",
     );
     const resetSource = await readFile(
-      resolve(__dirname, "../../../panels/styles/hooks/useResetStyles.ts"),
+      resolve(
+        __dirname,
+        "../../../panels/styles/hooks/useResetStyles.legacy.ts",
+      ),
       "utf-8",
     );
     // builder/overlay (iframe Preview 시절 DOM SelectionOverlay) 는 f011a4098 에서 삭제 —

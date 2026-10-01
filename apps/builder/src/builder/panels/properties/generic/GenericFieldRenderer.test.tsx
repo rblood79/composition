@@ -6,6 +6,7 @@
  * 컬럼 존재 시 PropertyFieldTemplateInput(필드 피커)으로 렌더되는지 가드한다 —
  * P4a 최초 배선이 CatalogInspectorFields 에만 있어 live 미노출된 회귀의 재발 차단.
  */
+import "./itemsSource.store"; // old-store host (ADR-248 4e-7: goes with the old store)
 import "../../datatable/usage/quickConnectHost.store"; // old-store host (ADR-248 4e-7: goes with the old store)
 import "../../datatable/usage/dataUsageSource.store"; // old-store host (ADR-248 4e-7: goes with the old store)
 import { render } from "@testing-library/react";
@@ -282,14 +283,18 @@ describe("GenericFieldRenderer — ADR-208 결선 seam (resolveEditContract → 
   });
 });
 
-
 describe("ADR-209 숨긴 종류와 AND 조건", () => {
   it("숨긴 필드도 조건 입력에는 남고 두 조건을 모두 만족해야 노출한다", () => {
     ownerColumnsMock.mockReturnValue(null);
     const fields = [
       { ...enumField("chartType", "radar"), editorHidden: true },
       boolField("showGrid", true),
-      boolField("fillGrid", false, { all: [{ key: "chartType", equals: "radar" }, { key: "showGrid", truthy: true }] }),
+      boolField("fillGrid", false, {
+        all: [
+          { key: "chartType", equals: "radar" },
+          { key: "showGrid", truthy: true },
+        ],
+      }),
     ];
     const { container, rerender } = renderFields(fields);
     expect(container.textContent).not.toContain("chartType");
@@ -297,7 +302,14 @@ describe("ADR-209 숨긴 종류와 AND 조건", () => {
     // 계약이 재해석되면 새 배열 (PropertiesPanel `semanticFields` useMemo) — 렌더러는 배열 참조로
     //   섹션 배치를 memo 하므로 production 과 같이 새 배열을 넘긴다
     const next = [fields[0]!, boolField("showGrid", false), fields[2]!];
-    rerender(<GenericFieldRenderer fields={next} onSemanticUpdate={vi.fn()} onStyleUpdate={vi.fn()} elementId="text-1" />);
+    rerender(
+      <GenericFieldRenderer
+        fields={next}
+        onSemanticUpdate={vi.fn()}
+        onStyleUpdate={vi.fn()}
+        elementId="text-1"
+      />,
+    );
     expect(container.textContent).not.toContain("fillGrid");
   });
 });
@@ -307,11 +319,12 @@ describe("ADR-209 숨긴 종류와 AND 조건", () => {
  * (hideTimeZone) 은 칩 켜짐 = 보임 = false 저장, On/Off enum (autoCorrect) 은 "on"/"off" 문자열.
  */
 describe("GenericFieldRenderer — boolean 칩 묶음 쓰기", () => {
-  const { fireEvent } = require("@testing-library/react") as typeof import("@testing-library/react");
+  const { fireEvent } =
+    require("@testing-library/react") as typeof import("@testing-library/react");
   const chip = (container: HTMLElement, text: string) =>
-    [...container.querySelectorAll(".property-chips .react-aria-ToggleButton")].find(
-      (b) => b.textContent === text,
-    ) as HTMLElement;
+    [
+      ...container.querySelectorAll(".property-chips .react-aria-ToggleButton"),
+    ].find((b) => b.textContent === text) as HTMLElement;
 
   it("Disabled 칩을 켜면 isDisabled=true, 다시 누르면 false", () => {
     ownerColumnsMock.mockReturnValue(null);
@@ -354,7 +367,7 @@ describe("GenericFieldRenderer — boolean 칩 묶음 쓰기", () => {
     expect(update).toHaveBeenCalledWith("hideTimeZone", true);
   });
 
-  it("On/Off enum autoCorrect 는 칩 — 켜면 \"on\", 끄면 \"off\"", () => {
+  it('On/Off enum autoCorrect 는 칩 — 켜면 "on", 끄면 "off"', () => {
     ownerColumnsMock.mockReturnValue(null);
     const update = vi.fn();
     const field: ResolvedField = {

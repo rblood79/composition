@@ -10,7 +10,6 @@
  * @updated 2026-03-05 - ADR-021 Phase D: 저장 테마 선택 UI 제거 (Tint System으로 대체)
  */
 
-import { useCallback } from "react";
 import { Settings } from "lucide-react";
 import { ACTION_ICONS } from "../../config/actionIcons";
 import { iconProps } from "../../../utils/ui/uiConstants";
@@ -29,9 +28,6 @@ import { PanelContents } from "../../components/panel/PanelContents";
 import { useThemeMessenger } from "../../hooks/useThemeMessenger";
 import { LanguageSwitcher } from "@/i18n";
 import { useI18n } from "@/i18n";
-import { alignPagesToScreen } from "../../workspace/canvas/viewport/pageLayoutActions";
-import { useCanonicalDocumentStore } from "../../stores/canonical/canonicalDocumentStore";
-import { resolvePageLayout } from "../../workspace/canvas/scene/pagePlacement";
 import { useCatalogPageLayout } from "./useCatalogPageLayout";
 
 function SettingsContent() {
@@ -49,136 +45,13 @@ function SettingsContent() {
   );
   const setShowRulers = useBuilderUiStore((state) => state.setShowRulers);
 
-  // Page Layout 설정
-  const pageLayoutDirection = useBuilderUiStore(
-    (state) => state.pageLayoutDirection,
-  );
-  const setPageLayoutDirection = useBuilderUiStore(
-    (state) => state.setPageLayoutDirection,
-  );
-  const pageGap = useBuilderUiStore((state) => state.pageGap);
-  const setPageGap = useBuilderUiStore((state) => state.setPageGap);
-
-  // ADR-232 — 파생 모드에서는 Page layout · gap · 열 수가 **문서 데이터** 다
-  //   (localStorage 에서 승격). 미이관 문서는 현행 store/localStorage 그대로.
-  const activeBreakpoint = useBuilderUiStore((state) => state.activeBreakpoint);
-  const documentPageLayout = useCanonicalDocumentStore((state) => {
-    const projectId = state.currentProjectId;
-    return projectId ? state.documents.get(projectId)?.pageLayout : undefined;
-  });
-  // ADR-248 4e — an open catalog project's page grid is its `pageLayout` declaration.
+  // ADR-248 4e — the open project's page grid is its catalog `pageLayout` declaration (the old
+  // store / canonical document page layout went with the old Builder, 4e-7).
   const catalogLayout = useCatalogPageLayout();
-  const isDerivedPlacement =
-    !!catalogLayout || documentPageLayout?.placementModel === "derived";
-  const resolvedPageLayout = resolvePageLayout(
-    documentPageLayout,
-    activeBreakpoint,
-  );
-  const effectiveDirection = catalogLayout
-    ? catalogLayout.view.direction
-    : isDerivedPlacement
-      ? resolvedPageLayout.direction
-      : normalizePageLayoutDirection(pageLayoutDirection);
-  const effectiveGap = catalogLayout
-    ? catalogLayout.view.gap
-    : isDerivedPlacement
-      ? resolvedPageLayout.gap
-      : pageGap;
-  const columnsAuto = catalogLayout
-    ? catalogLayout.view.columns === "auto"
-    : resolvedPageLayout.columnsAuto;
+  const layoutView = catalogLayout?.view;
+  const effectiveDirection = layoutView?.direction ?? "horizontal";
   // auto 는 값 칸에 키워드로 싣는다 — 실제 열 수는 뷰포트에서 나오므로 여기 숫자를 쓰지 않는다.
-  const columnsFieldValue = columnsAuto
-    ? "auto"
-    : String(
-        catalogLayout ? catalogLayout.view.columns : resolvedPageLayout.columns,
-      );
-  const tierOverrideAvailable = catalogLayout
-    ? catalogLayout.view.tierOverrideAvailable
-    : isDerivedPlacement && activeBreakpoint !== "desktop";
-  const hasTierOverride = catalogLayout
-    ? catalogLayout.view.hasTierOverride
-    : tierOverrideAvailable &&
-      (documentPageLayout?.responsive?.columns?.[activeBreakpoint] !==
-        undefined ||
-        documentPageLayout?.responsive?.gap?.[activeBreakpoint] !== undefined);
-
-  /** 열 수·간격 쓰기 — tier 토글 ON 이면 활성 tier override, 아니면 base. */
-  const writeLayoutValue = useCallback(
-    (key: "gap" | "columns", value: number | "auto") => {
-      if (catalogLayout) {
-        catalogLayout.change(
-          key === "gap"
-            ? { kind: "gap", gap: value as number }
-            : { kind: "columns", columns: value },
-        );
-        return;
-      }
-      const store = useCanonicalDocumentStore.getState();
-      if (tierOverrideAvailable && hasTierOverride) {
-        store.setPageLayout({
-          responsive: {
-            ...(documentPageLayout?.responsive ?? {}),
-            [key]: {
-              ...(documentPageLayout?.responsive?.[key] ?? {}),
-              [activeBreakpoint]: value,
-            },
-          },
-        });
-        return;
-      }
-      store.setPageLayout({ [key]: value });
-    },
-    [
-      activeBreakpoint,
-      catalogLayout,
-      documentPageLayout?.responsive,
-      hasTierOverride,
-      tierOverrideAvailable,
-    ],
-  );
-
-  const handleTierOverrideChange = useCallback(
-    (selected: boolean) => {
-      if (catalogLayout) {
-        catalogLayout.change({ kind: "tierOverride", enabled: selected });
-        return;
-      }
-      const store = useCanonicalDocumentStore.getState();
-      const responsive = { ...(documentPageLayout?.responsive ?? {}) };
-      if (selected) {
-        // 켜는 순간 현재 유효값을 그 tier 에 고정한다 (토글 자체가 값을 바꾸지 않는다).
-        responsive.columns = {
-          ...(responsive.columns ?? {}),
-          // base 가 "auto" 면 그 tier 도 "auto" 로 고정한다 (토글은 값을 바꾸지 않는다).
-          [activeBreakpoint]:
-            documentPageLayout?.columns ?? resolvedPageLayout.columns,
-        };
-        responsive.gap = {
-          ...(responsive.gap ?? {}),
-          [activeBreakpoint]: resolvedPageLayout.gap,
-        };
-      } else {
-        const columnsEntry = { ...(responsive.columns ?? {}) };
-        delete columnsEntry[activeBreakpoint];
-        if (Object.keys(columnsEntry).length === 0) delete responsive.columns;
-        else responsive.columns = columnsEntry;
-        const gapEntry = { ...(responsive.gap ?? {}) };
-        delete gapEntry[activeBreakpoint];
-        if (Object.keys(gapEntry).length === 0) delete responsive.gap;
-        else responsive.gap = gapEntry;
-      }
-      store.setPageLayout({ responsive });
-    },
-    [
-      activeBreakpoint,
-      catalogLayout,
-      documentPageLayout?.columns,
-      documentPageLayout?.responsive,
-      resolvedPageLayout.columns,
-      resolvedPageLayout.gap,
-    ],
-  );
+  const columnsFieldValue = layoutView ? String(layoutView.columns) : "";
 
   // UI 설정 (글로벌 uiStore에서 가져옴)
   const themeMode = useUiStore((state) => state.themeMode);
@@ -222,48 +95,28 @@ function SettingsContent() {
   };
 
   const handlePageLayoutChange = (value: string) => {
-    if (catalogLayout) {
-      catalogLayout.change({
-        kind: "direction",
-        direction: normalizePageLayoutDirection(
-          value as PageLayoutDirection,
-        ) as "auto" | "vertical" | "horizontal",
-      });
-      return;
-    }
-    if (isDerivedPlacement) {
-      // direction 은 breakpoint 공통 (`gridAutoFlow` 가 responsive eligible 이 아니다 — F11).
-      useCanonicalDocumentStore.getState().setPageLayout({
-        direction: normalizePageLayoutDirection(
-          value as PageLayoutDirection,
-        ) as "auto" | "vertical" | "horizontal",
-      });
-      return;
-    }
-    setPageLayoutDirection(value as PageLayoutDirection);
-    alignPagesToScreen();
+    catalogLayout?.change({
+      kind: "direction",
+      direction: normalizePageLayoutDirection(value as PageLayoutDirection) as
+        "auto" | "vertical" | "horizontal",
+    });
   };
 
   const handlePageGapChange = (value: string) => {
     const nextGap = Number.parseFloat(value);
     if (!Number.isFinite(nextGap) || nextGap < 0) return;
-    if (isDerivedPlacement) {
-      writeLayoutValue("gap", nextGap);
-      return;
-    }
-    setPageGap(nextGap);
-    alignPagesToScreen();
+    catalogLayout?.change({ kind: "gap", gap: nextGap });
   };
 
   const handlePageColumnsChange = (value: string) => {
     // ADR-232 후속 (2026-09-23) — "auto" = 보이는 캔버스 폭에 들어가는 만큼.
     if (value.trim().toLowerCase() === "auto") {
-      writeLayoutValue("columns", "auto");
+      catalogLayout?.change({ kind: "columns", columns: "auto" });
       return;
     }
     const next = Number.parseInt(value, 10);
     if (!Number.isFinite(next) || next < 1) return;
-    writeLayoutValue("columns", next);
+    catalogLayout?.change({ kind: "columns", columns: next });
   };
 
   return (
@@ -311,7 +164,7 @@ function SettingsContent() {
             {/* 「80 PX」 — 아이콘 prefix · S/M/L preset ▾ 대신 단위 suffix + stepper (panel-ui 20 — 대조 B11) */}
             <PropertyUnitInput
               label={t("settings.pageGap")}
-              value={`${effectiveGap}px`}
+              value={`${layoutView?.gap ?? 0}px`}
               min={0}
               max={2000}
               onChange={handlePageGapChange}
@@ -322,7 +175,7 @@ function SettingsContent() {
           </div>
 
           {/* ADR-232 — 컨테이너 폭은 뷰포트가 아니라 **열 수** 다 (대안 D 기각). */}
-          {isDerivedPlacement && effectiveDirection === "auto" && (
+          {layoutView && effectiveDirection === "auto" && (
             <div className="fieldset-row settings-row">
               <PropertyUnitInput
                 label={t("settings.pageColumns")}
@@ -335,11 +188,16 @@ function SettingsContent() {
                 unitSuffix
                 allowKeywords
               />
-              {tierOverrideAvailable && (
+              {layoutView.tierOverrideAvailable && (
                 <PropertySwitch
                   label={t("settings.pageLayoutTierOverride")}
-                  isSelected={hasTierOverride}
-                  onChange={handleTierOverrideChange}
+                  isSelected={layoutView.hasTierOverride}
+                  onChange={(selected: boolean) =>
+                    catalogLayout?.change({
+                      kind: "tierOverride",
+                      enabled: selected,
+                    })
+                  }
                   icon={ACTION_ICONS.toggleRulers}
                 />
               )}

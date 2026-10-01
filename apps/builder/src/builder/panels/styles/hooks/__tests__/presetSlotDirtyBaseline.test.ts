@@ -4,7 +4,7 @@ import type { BreakpointName } from "@composition/shared";
 
 import { LAYOUT_PRESETS } from "../../../properties/editors/LayoutPresetSelector/presetDefinitions";
 import { toResponsiveConfig } from "../../../properties/editors/LayoutPresetSelector/presetResponsive";
-import { computeDirtyStyleProps } from "../useResetStyles";
+import { computeDirtyStyleProps } from "../useResetStyles.legacy";
 
 /**
  * **프리셋이 심은 값은 사용자 편집이 아니다** — 갓 적용한 프레임 프리셋의 슬롯/컨테이너는

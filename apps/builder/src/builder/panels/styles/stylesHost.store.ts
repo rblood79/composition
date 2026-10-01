@@ -1,3 +1,29 @@
+import { useSyncExternalStore } from "react";
+import {
+  getPagePositionPresentationSnapshot,
+  subscribePagePositionPresentation,
+} from "../../workspace/canvas/interaction/pagePositionPresentation";
+import { getActiveCanonicalDocument } from "../../stores/canonical/canonicalElementsBridge";
+import { getNodeMap } from "../../stores/canonical/canonicalTraversalHelpers";
+import { readCanonicalNodeFillPayload } from "../../../adapters/canonical/canonicalFillPayload";
+import { resolveSubpartStyleOwnerTypeById } from "../../stores/canonical/subpartOwnerLookup";
+import type { FillItem } from "../../../types/builder/fill.types";
+import {
+  commitPagePlacementFromPoint,
+  isPagePlacementEditable,
+} from "../../stores/utils/pagePlacementCommit";
+import {
+  editorPresentationFillPilotRuntime,
+  resolveFillPresentationPilotTarget,
+} from "../../presentation/editorPresentationFillPilot";
+import {
+  resolveBorderColorPresentationPilotTarget,
+  resolveBoxShadowPresentationPilotTarget,
+  resolveOpacityPresentationPilotTarget,
+  resolveTextColorPresentationPilotTarget,
+} from "../../presentation/editorPresentationStylePilot";
+import { resolveLayoutPresentationPilotTarget } from "../../presentation/editorPresentationLayoutPilot";
+import { resolveTextMetricPresentationPilotTarget } from "../../presentation/editorPresentationTextMetrics";
 import { resolveContainerStylesFallback } from "../../workspace/canvas/layout/engines/implicitStyles";
 import { useCanonicalPropertyElement } from "../properties/hooks/useCanonicalPropertyRead";
 import {
@@ -11,7 +37,7 @@ import { useStoreResponsiveOverrides } from "./hooks/useResponsiveOverrides";
 import {
   resetStoreStyles,
   useStoreDirtyStyleProps,
-} from "./hooks/useResetStyles";
+} from "./hooks/useResetStyles.legacy";
 import {
   readStoreSelectedFills,
   resetStoreSelectedFills,
@@ -19,7 +45,7 @@ import {
 import {
   readResolvedStyleTarget,
   useCanonicalElementStyleContext,
-} from "./hooks/useElementStyleContext";
+} from "./hooks/useElementStyleContext.legacy";
 import type { StylesHost } from "./stylesHostContext";
 import { setStylesHostTestFallback } from "./stylesHost";
 
@@ -54,6 +80,8 @@ function useStoreParentId(id: string | null): string | null {
  * provides the host). Old-store tests import this module to run against it; it goes with the
  * old store.
  */
+let documentColorsRevision = 0;
+
 export const STORE_STYLES_HOST: StylesHost = {
   useSelectedId: () => useStore((state) => state.selectedElementId),
   readSelectedId: () => useStore.getState().selectedElementId ?? null,
@@ -135,7 +163,81 @@ export const STORE_STYLES_HOST: StylesHost = {
   setResponsiveVisibility: (breakpoint, visible) =>
     useStore.getState().updateSelectedResponsiveVisibility(breakpoint, visible),
   useSelectedElement: () => useDebouncedSelectedElementData(),
-  presentation: true,
+  // The Document palette over the old store's elements (canonical nodes when a document is open).
+  documentColors: {
+    subscribe(listener) {
+      let last = useStore.getState().elements;
+      return useStore.subscribe((state) => {
+        if (state.elements === last) return;
+        last = state.elements;
+        documentColorsRevision += 1;
+        listener();
+      });
+    },
+    revision: () => documentColorsRevision,
+    read() {
+      if (getActiveCanonicalDocument())
+        return Array.from(getNodeMap().values()).map((node) => ({
+          style: (node.props as { style?: Record<string, unknown> } | undefined)
+            ?.style,
+          fills: readCanonicalNodeFillPayload(node) as FillItem[] | undefined,
+        }));
+      return useStore.getState().elements.map((element) => ({
+        style: element.props?.style as Record<string, unknown> | undefined,
+        fills: element.fills,
+      }));
+    },
+  },
+  subpartStyleOwnerOf: (id) =>
+    resolveSubpartStyleOwnerTypeById(id, useStore.getState().elementsMap),
+  pagePosition: {
+    // ADR-177/232: the page body's canvas position (its page, not a stale one); Home stays put.
+    usePosition(selectedId) {
+      const element = useCanonicalPropertyElement(selectedId ?? "");
+      const currentPageId = useStore((state) => state.currentPageId);
+      const pageId = element?.page_id ?? null;
+      const position = useStore((state) =>
+        pageId ? state.derivedPagePositions[pageId] : undefined,
+      );
+      // A page drag's transient position (ADR-176/178), rounded so only shown changes render.
+      const liveKey = useSyncExternalStore(
+        subscribePagePositionPresentation,
+        () => {
+          const snap = getPagePositionPresentationSnapshot();
+          const override =
+            pageId && snap.isActive
+              ? snap.activeOverrides?.get(pageId)
+              : undefined;
+          return override
+            ? `${Math.round(override.x)}:${Math.round(override.y)}`
+            : null;
+        },
+      );
+      if (!pageId || !position) return null;
+      if (currentPageId != null && pageId !== currentPageId) return null;
+      const live = liveKey?.split(":").map(Number);
+      return {
+        pageId,
+        x: live ? live[0] : position.x,
+        y: live ? live[1] : position.y,
+        editable: isPagePlacementEditable(pageId),
+      };
+    },
+    commit: (pageId, point) => commitPagePlacementFromPoint(pageId, point),
+  },
+  presentation: {
+    readSelectedElementId: () =>
+      readImmediateSelectionSnapshot().selectedElementId,
+    subscribeSelection: (listener) => useStore.subscribe(listener),
+    runtime: editorPresentationFillPilotRuntime,
+    resolveFillTarget: resolveFillPresentationPilotTarget,
+    resolveBorderColorTarget: resolveBorderColorPresentationPilotTarget,
+    resolveBoxShadowTarget: resolveBoxShadowPresentationPilotTarget,
+    resolveOpacityTarget: resolveOpacityPresentationPilotTarget,
+    resolveTextColorTarget: resolveTextColorPresentationPilotTarget,
+    resolveLayoutTarget: resolveLayoutPresentationPilotTarget,
+    resolveTextMetricTarget: resolveTextMetricPresentationPilotTarget,
+  },
 };
 
 setStylesHostTestFallback(STORE_STYLES_HOST);

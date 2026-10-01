@@ -154,23 +154,26 @@ export function useOptimizedStyleActions(): OptimizedStyleActionsResult {
    * - 프레임당 1회만 실행
    * - 연속 입력 시 마지막 값만 적용
    */
-  const updateStyleRAF = useCallback((property: string, value: string) => {
-    if (isFillDerivedStyleProp(property)) {
-      return;
-    }
-    pendingUpdateRef.current = { property, value };
+  const updateStyleRAF = useCallback(
+    (property: string, value: string) => {
+      if (isFillDerivedStyleProp(property)) {
+        return;
+      }
+      pendingUpdateRef.current = { property, value };
 
-    if (rafIdRef.current === null) {
-      rafIdRef.current = requestAnimationFrame(() => {
-        const pending = pendingUpdateRef.current;
-        if (pending) {
-          host.updateStyle(pending.property, pending.value);
-        }
-        rafIdRef.current = null;
-        pendingUpdateRef.current = null;
-      });
-    }
-  }, [host]);
+      if (rafIdRef.current === null) {
+        rafIdRef.current = requestAnimationFrame(() => {
+          const pending = pendingUpdateRef.current;
+          if (pending) {
+            host.updateStyle(pending.property, pending.value);
+          }
+          rafIdRef.current = null;
+          pendingUpdateRef.current = null;
+        });
+      }
+    },
+    [host],
+  );
 
   /**
    * RAF 기반 연속 입력 프리뷰 (화살표/드래그 중 캔버스 반영)
@@ -178,52 +181,58 @@ export function useOptimizedStyleActions(): OptimizedStyleActionsResult {
    * - 프레임당 1회만 실행
    * - 최종 커밋은 blur/Enter 시 updateStyleImmediate로 수행
    */
-  const updateStylePreview = useCallback((property: string, value: string) => {
-    if (isFillDerivedStyleProp(property)) {
-      return;
-    }
-    pendingPreviewRef.current = { property, value };
+  const updateStylePreview = useCallback(
+    (property: string, value: string) => {
+      if (isFillDerivedStyleProp(property)) {
+        return;
+      }
+      pendingPreviewRef.current = { property, value };
 
-    if (previewRafIdRef.current === null) {
-      previewRafIdRef.current = requestAnimationFrame(() => {
-        const pending = pendingPreviewRef.current;
-        if (pending) {
-          host.previewStyle(pending.property, pending.value);
-        }
-        previewRafIdRef.current = null;
-        pendingPreviewRef.current = null;
-      });
-    }
-  }, [host]);
+      if (previewRafIdRef.current === null) {
+        previewRafIdRef.current = requestAnimationFrame(() => {
+          const pending = pendingPreviewRef.current;
+          if (pending) {
+            host.previewStyle(pending.property, pending.value);
+          }
+          previewRafIdRef.current = null;
+          pendingPreviewRef.current = null;
+        });
+      }
+    },
+    [host],
+  );
 
   /**
    * Idle 기반 지연 업데이트 (타이핑)
    * - 메인 스레드 유휴 시 실행
    * - 연속 입력 시 마지막 값만 적용
    */
-  const updateStyleIdle = useCallback((property: string, value: string) => {
-    if (isFillDerivedStyleProp(property)) {
-      return;
-    }
-    pendingUpdateRef.current = { property, value };
+  const updateStyleIdle = useCallback(
+    (property: string, value: string) => {
+      if (isFillDerivedStyleProp(property)) {
+        return;
+      }
+      pendingUpdateRef.current = { property, value };
 
-    // 기존 예약 취소
-    if (idleIdRef.current !== null) {
-      cancelIdleCallbackPolyfill(idleIdRef.current);
-    }
+      // 기존 예약 취소
+      if (idleIdRef.current !== null) {
+        cancelIdleCallbackPolyfill(idleIdRef.current);
+      }
 
-    idleIdRef.current = requestIdleCallbackPolyfill(
-      () => {
-        const pending = pendingUpdateRef.current;
-        if (pending) {
-          host.updateStyle(pending.property, pending.value);
-        }
-        idleIdRef.current = null;
-        pendingUpdateRef.current = null;
-      },
-      { timeout: 100 },
-    );
-  }, [host]);
+      idleIdRef.current = requestIdleCallbackPolyfill(
+        () => {
+          const pending = pendingUpdateRef.current;
+          if (pending) {
+            host.updateStyle(pending.property, pending.value);
+          }
+          idleIdRef.current = null;
+          pendingUpdateRef.current = null;
+        },
+        { timeout: 100 },
+      );
+    },
+    [host],
+  );
 
   /**
    * 여러 스타일 즉시 업데이트

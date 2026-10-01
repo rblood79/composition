@@ -14,11 +14,38 @@
  * **owner** (직계 parent 또는 조부모 field) 로 귀속한다: Properties · Styles 패널은 owner 가 있으면 안내만 띄우고,
  * Canvas read 경로 (fullTreeLayout · buildSpecNodeData) 는 같은 shared 술어로 인라인을 무시한다.
  */
+import { useStore } from "../stores";
+import {
+  resolveDelegatedSubpartOwnerTypeById,
+  resolveSubpartStyleOwnerTypeById,
+} from "../stores/canonical/subpartOwnerLookup";
 
-/** 정본은 shared 의 토큰 표 + 그룹 목록 (`resolveDelegatedSubpartOwnerType`). */
-export function isDelegatedSubpart(
-  type: string | null | undefined,
-  ownerType: string | null | undefined,
-): boolean {
-  return !!type && !!ownerType;
+/**
+ * ADR-248 4e-7: the old element store's part of `delegatedSubpart.ts` (moved out so the catalog Builder's
+ * import graph does not reach the old store). Goes with the old store.
+ */
+/**
+ * 선택 요소를 sub-part 로 소유한 DOM parent 의 type (직계 parent, 또는 직계가 SelectTrigger 래퍼면 조부모) —
+ * 패널 안내의 `{parent}`. sub-part 가 아니면 null.
+ */
+export function useSelectedSubpartOwnerType(
+  elementId: string | null | undefined,
+): string | null {
+  // instance 의 synthetic 자식 (팔레트 배치 기본) 은 store 에 없다 — id 판정기가 해소 트리에서 읽는다.
+  return useStore((s) =>
+    resolveDelegatedSubpartOwnerTypeById(elementId, s.elementsMap),
+  );
+}
+
+/**
+ * 선택 요소의 **style 축** 을 소유한 DOM parent type — Styles 패널이 쓴다. 전체 sub-part 에 더해 style 축만
+ * parent 소유인 자식 (SelectValue, 2026-09-04 판정 A) 을 포함한다. Properties 패널은 텍스트 축이 자식에 남으므로
+ * `useSelectedSubpartOwnerType` 을 그대로 쓴다.
+ */
+export function useSelectedSubpartStyleOwnerType(
+  elementId: string | null | undefined,
+): string | null {
+  return useStore((s) =>
+    resolveSubpartStyleOwnerTypeById(elementId, s.elementsMap),
+  );
 }

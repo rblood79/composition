@@ -3,24 +3,29 @@
 import type { ReactNode } from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useBuilderUiStore } from "../../stores/builderUiStore";
-import { readPageLayoutSettings } from "../../stores/utils/pageLayoutStorage";
 import { SettingsPanel } from "./SettingsPanel";
 
-const {
-  alignPagesToScreenMock,
-  sendDarkModeMock,
-  setThemeModeMock,
-  setUiScaleMock,
-} = vi.hoisted(() => ({
-  alignPagesToScreenMock: vi.fn(),
-  sendDarkModeMock: vi.fn(),
-  setThemeModeMock: vi.fn(),
-  setUiScaleMock: vi.fn(),
-}));
+const { changeLayoutMock, sendDarkModeMock, setThemeModeMock, setUiScaleMock } =
+  vi.hoisted(() => ({
+    changeLayoutMock: vi.fn(),
+    sendDarkModeMock: vi.fn(),
+    setThemeModeMock: vi.fn(),
+    setUiScaleMock: vi.fn(),
+  }));
 
-vi.mock("../../workspace/canvas/viewport/pageLayoutActions", () => ({
-  alignPagesToScreen: alignPagesToScreenMock,
+// ADR-248 4e-7: the page grid is the open catalog project's `pageLayout` (the hook over the
+// workspace — its command is `phase4ePageLayout` tests'); here the panel's reads and writes.
+vi.mock("./useCatalogPageLayout", () => ({
+  useCatalogPageLayout: () => ({
+    view: {
+      direction: "auto",
+      gap: 80,
+      columns: 3,
+      tierOverrideAvailable: false,
+      hasTierOverride: false,
+    },
+    change: changeLayoutMock,
+  }),
 }));
 
 // 배럴 전체를 교체하지 않는다 — 새 export 가 추가될 때마다 조용히 깨진다
@@ -156,70 +161,47 @@ vi.mock("../../../stores/uiStore", () => {
 
 describe("SettingsPanel page layout synchronization", () => {
   beforeEach(() => {
-    alignPagesToScreenMock.mockReset();
+    changeLayoutMock.mockReset();
     sendDarkModeMock.mockReset();
     setThemeModeMock.mockReset();
     setUiScaleMock.mockReset();
-    useBuilderUiStore.setState({
-      pageGap: 80,
-      pageLayoutDirection: "auto",
-    } as never);
   });
 
   afterEach(() => {
     cleanup();
   });
 
-  it("Page Layout 변경값을 저장한 뒤 Canvas page 위치를 다시 정렬한다", () => {
-    const observedDirections: string[] = [];
-    alignPagesToScreenMock.mockImplementation(() => {
-      observedDirections.push(useBuilderUiStore.getState().pageLayoutDirection);
-    });
+  it("Page Layout 변경은 catalog page layout 의 direction 으로 쓴다", () => {
     render(<SettingsPanel />);
-
     fireEvent.change(screen.getByLabelText("settings.pageLayout"), {
       target: { value: "vertical" },
     });
-
-    expect(useBuilderUiStore.getState().pageLayoutDirection).toBe("vertical");
-    expect(observedDirections).toEqual(["vertical"]);
-    // 새로고침 후에도 유지 — localStorage (액션바 설정과 같은 채널)
-    expect(readPageLayoutSettings().direction).toBe("vertical");
+    expect(changeLayoutMock).toHaveBeenCalledWith({
+      kind: "direction",
+      direction: "vertical",
+    });
   });
 
-  it("Page Gap 변경값을 저장한 뒤 Canvas page 위치를 다시 정렬한다", () => {
-    const observedGaps: number[] = [];
-    alignPagesToScreenMock.mockImplementation(() => {
-      observedGaps.push(useBuilderUiStore.getState().pageGap);
-    });
+  it("Page Gap 은 「80 PX」 단위 suffix 필드 (px 하나 · preset 없음) — px 붙은 commit 값을 숫자로 쓴다", () => {
     render(<SettingsPanel />);
-
-    fireEvent.change(screen.getByLabelText("settings.pageGap"), {
-      target: { value: "120" },
-    });
-
-    expect(useBuilderUiStore.getState().pageGap).toBe(120);
-    expect(observedGaps).toEqual([120]);
-    expect(readPageLayoutSettings().gap).toBe(120);
-  });
-
-  it("Page Gap 은 「80 PX」 단위 suffix 필드 (px 하나 · preset 없음) — px 붙은 commit 값을 숫자로 저장한다", () => {
-    const observedGaps: number[] = [];
-    alignPagesToScreenMock.mockImplementation(() => {
-      observedGaps.push(useBuilderUiStore.getState().pageGap);
-    });
-    render(<SettingsPanel />);
-
     const input = screen.getByLabelText("settings.pageGap");
     expect((input as HTMLInputElement).value).toBe("80px");
     expect(input.parentElement?.getAttribute("data-units")).toBe("px");
     expect(input.parentElement?.getAttribute("data-unit-suffix")).toBe("true");
     expect(screen.queryByLabelText("settings.pageGapPreset")).toBeNull();
-
     fireEvent.change(input, { target: { value: "40px" } });
+    expect(changeLayoutMock).toHaveBeenCalledWith({ kind: "gap", gap: 40 });
+  });
 
-    expect(useBuilderUiStore.getState().pageGap).toBe(40);
-    expect(observedGaps).toEqual([40]);
+  it("auto 배치는 열 수 (auto 키워드 포함) 를 쓴다", () => {
+    render(<SettingsPanel />);
+    const columns = screen.getByLabelText("settings.pageColumns");
+    expect((columns as HTMLInputElement).value).toBe("3");
+    fireEvent.change(columns, { target: { value: "auto" } });
+    expect(changeLayoutMock).toHaveBeenCalledWith({
+      kind: "columns",
+      columns: "auto",
+    });
   });
 
   it("Theme Mode를 변경하면 토글 선택값과 dark mode 동기화를 유지한다", () => {

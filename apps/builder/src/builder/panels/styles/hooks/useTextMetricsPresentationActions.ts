@@ -1,13 +1,15 @@
+import {
+  presentationRuntime,
+  presentationSelection,
+} from "./presentationBridge";
+import { useStylesHost } from "../stylesHost";
 import { usePresentationLifecycle } from "./usePresentationLifecycle";
 import { useCallback, useRef, useState } from "react";
-import { readImmediateSelectionSnapshot } from "../../../stores";
-import { editorPresentationFillPilotRuntime } from "../../../presentation/editorPresentationFillPilot";
 import {
   parsePresentationFontSize,
   parsePresentationFontWeight,
-  resolveTextMetricPresentationPilotTarget,
-  type TextMetricPresentationProperty,
-} from "../../../presentation/editorPresentationTextMetrics";
+} from "../../../presentation/editorPresentationTextMetricValue";
+import type { TextMetricPresentationProperty } from "../../../presentation/editorPresentationTextMetrics";
 import type {
   EditorMutationDescriptor,
   EditorPresentationCancelReason,
@@ -42,6 +44,7 @@ export interface TextMetricsPresentationActions {
 
 /** G8 scoped owner for the fixed-box Text font-size slice. */
 export function useTextMetricsPresentationActions(): TextMetricsPresentationActions {
+  const bridge = useStylesHost().presentation;
   const stateRef = useRef<TextMetricPresentationState | null>(null);
   const [ownerId] = useState(
     () => `style-text-metric-owner-${nextTextMetricOwnerId++}`,
@@ -61,17 +64,17 @@ export function useTextMetricsPresentationActions(): TextMetricsPresentationActi
 
   const isTextMetricPresentationOwned = useCallback(
     (property: TextMetricPresentationProperty) =>
-      resolveTextMetricPresentationPilotTarget(
-        readImmediateSelectionSnapshot().selectedElementId,
+      (bridge?.resolveTextMetricTarget(
+        presentationSelection(bridge).selectedElementId,
         property,
-      ) !== null,
+      ) ?? null) !== null,
     [],
   );
 
   const previewTextMetricPresentation = useCallback(
     (property: TextMetricPresentationProperty, value: string): boolean => {
       const parsed = parsePropertyValue(property, value);
-      const { selectedElementId } = readImmediateSelectionSnapshot();
+      const { selectedElementId } = presentationSelection(bridge);
       const existing = stateRef.current;
       if (parsed === null || !selectedElementId) {
         if (existing?.phase === "active") existing.handle.cancel("superseded");
@@ -102,13 +105,11 @@ export function useTextMetricsPresentationActions(): TextMetricsPresentationActi
         stateRef.current = null;
       }
       if (!active) {
-        const pilot = resolveTextMetricPresentationPilotTarget(
-          selectedElementId,
-          property,
-        );
+        const pilot =
+          bridge?.resolveTextMetricTarget(selectedElementId, property) ?? null;
         if (!pilot) return false;
         active = {
-          handle: editorPresentationFillPilotRuntime.beginEditorPresentation({
+          handle: presentationRuntime(bridge).beginEditorPresentation({
             commitIntent: "style-text-metrics",
             ownerId,
             projectId: pilot.projectId,
@@ -121,10 +122,8 @@ export function useTextMetricsPresentationActions(): TextMetricsPresentationActi
         stateRef.current = active;
       }
 
-      const pilot = resolveTextMetricPresentationPilotTarget(
-        selectedElementId,
-        property,
-      );
+      const pilot =
+        bridge?.resolveTextMetricTarget(selectedElementId, property) ?? null;
       if (!pilot) {
         active.handle.cancel("superseded");
         stateRef.current = null;
@@ -145,7 +144,7 @@ export function useTextMetricsPresentationActions(): TextMetricsPresentationActi
 
   const commitTextMetricPresentation = useCallback(
     (property: TextMetricPresentationProperty, value: string): boolean => {
-      const { selectedElementId } = readImmediateSelectionSnapshot();
+      const { selectedElementId } = presentationSelection(bridge);
       const parsed = parsePropertyValue(property, value);
       if (parsed === null) {
         const active = stateRef.current;
@@ -171,10 +170,8 @@ export function useTextMetricsPresentationActions(): TextMetricsPresentationActi
         stateRef.current = null;
         return true;
       }
-      const pilot = resolveTextMetricPresentationPilotTarget(
-        selectedElementId,
-        property,
-      );
+      const pilot =
+        bridge?.resolveTextMetricTarget(selectedElementId, property) ?? null;
       if (!pilot) {
         current.handle.cancel("superseded");
         stateRef.current = null;

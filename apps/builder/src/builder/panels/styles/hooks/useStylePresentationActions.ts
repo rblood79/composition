@@ -1,12 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { readImmediateSelectionSnapshot, useStore } from "../../../stores";
-import { editorPresentationFillPilotRuntime } from "../../../presentation/editorPresentationFillPilot";
 import {
-  resolveBorderColorPresentationPilotTarget,
-  resolveBoxShadowPresentationPilotTarget,
-  resolveOpacityPresentationPilotTarget,
-  resolveTextColorPresentationPilotTarget,
-} from "../../../presentation/editorPresentationStylePilot";
+  presentationRuntime,
+  presentationSelection,
+  subscribePresentationSelection,
+} from "./presentationBridge";
+import { useStylesHost } from "../stylesHost";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   haveSameBoxShadowPresentationTopology,
   isBoxShadowPresentationValue,
@@ -72,6 +70,7 @@ export interface StylePresentationActions {
 }
 
 export function useStylePresentationActions(): StylePresentationActions {
+  const bridge = useStylesHost().presentation;
   const presentationRef = useRef<{
     baseStyle: Readonly<Record<string, unknown>>;
     handle: EditorPresentationHandle;
@@ -116,9 +115,9 @@ export function useStylePresentationActions(): StylePresentationActions {
   );
 
   useEffect(() => {
-    const unsubscribeSelection = useStore.subscribe(() => {
+    const unsubscribeSelection = subscribePresentationSelection(bridge, () => {
       const presentation = presentationRef.current;
-      const { selectedElementId } = readImmediateSelectionSnapshot();
+      const { selectedElementId } = presentationSelection(bridge);
       if (
         presentation &&
         selectedElementId !== presentation.selectedElementId
@@ -190,15 +189,15 @@ export function useStylePresentationActions(): StylePresentationActions {
 
   const isBorderColorPresentationOwned = useCallback(
     () =>
-      resolveBorderColorPresentationPilotTarget(
-        readImmediateSelectionSnapshot().selectedElementId,
-      ) !== null,
+      (bridge?.resolveBorderColorTarget(
+        presentationSelection(bridge).selectedElementId,
+      ) ?? null) !== null,
     [],
   );
 
   const previewBorderColorPresentation = useCallback(
     (color: string): boolean => {
-      const { selectedElementId } = readImmediateSelectionSnapshot();
+      const { selectedElementId } = presentationSelection(bridge);
       const existing = presentationRef.current;
       if (existing?.phase === "cancelled") {
         if (existing.selectedElementId !== selectedElementId) return true;
@@ -220,11 +219,11 @@ export function useStylePresentationActions(): StylePresentationActions {
       }
       if (!presentation) {
         const pilot =
-          resolveBorderColorPresentationPilotTarget(selectedElementId);
+          bridge?.resolveBorderColorTarget(selectedElementId) ?? null;
         if (!pilot || !selectedElementId) return false;
         presentation = {
           baseStyle: pilot.style,
-          handle: editorPresentationFillPilotRuntime.beginEditorPresentation({
+          handle: presentationRuntime(bridge).beginEditorPresentation({
             commitIntent: "style-border-color",
             ownerId,
             projectId: pilot.projectId,
@@ -252,7 +251,7 @@ export function useStylePresentationActions(): StylePresentationActions {
 
   const commitBorderColorPresentation = useCallback(
     (color: string): boolean => {
-      const { selectedElementId } = readImmediateSelectionSnapshot();
+      const { selectedElementId } = presentationSelection(bridge);
       const active = presentationRef.current;
       if (active?.phase === "cancelled") {
         presentationRef.current = null;
@@ -293,15 +292,15 @@ export function useStylePresentationActions(): StylePresentationActions {
 
   const isBoxShadowPresentationOwned = useCallback(
     () =>
-      resolveBoxShadowPresentationPilotTarget(
-        readImmediateSelectionSnapshot().selectedElementId,
-      ) !== null,
+      (bridge?.resolveBoxShadowTarget(
+        presentationSelection(bridge).selectedElementId,
+      ) ?? null) !== null,
     [],
   );
 
   const previewBoxShadowPresentation = useCallback(
     (boxShadow: string): boolean => {
-      const { selectedElementId } = readImmediateSelectionSnapshot();
+      const { selectedElementId } = presentationSelection(bridge);
       const existing = shadowPresentationRef.current;
       if (existing?.phase === "cancelled") {
         if (existing.selectedElementId !== selectedElementId) return true;
@@ -322,8 +321,7 @@ export function useStylePresentationActions(): StylePresentationActions {
         shadowPresentationRef.current = null;
       }
       if (!presentation) {
-        const pilot =
-          resolveBoxShadowPresentationPilotTarget(selectedElementId);
+        const pilot = bridge?.resolveBoxShadowTarget(selectedElementId) ?? null;
         if (!pilot || !selectedElementId) return false;
         const baseBoxShadow = pilot.style.boxShadow;
         if (
@@ -337,7 +335,7 @@ export function useStylePresentationActions(): StylePresentationActions {
         presentation = {
           baseStyle: pilot.style,
           baseValue,
-          handle: editorPresentationFillPilotRuntime.beginEditorPresentation({
+          handle: presentationRuntime(bridge).beginEditorPresentation({
             commitIntent: "style-box-shadow",
             ownerId: shadowOwnerId,
             projectId: pilot.projectId,
@@ -377,7 +375,7 @@ export function useStylePresentationActions(): StylePresentationActions {
   const previewBoxShadowModelPresentation = useCallback(
     (value: BoxShadowPresentationValue): boolean => {
       if (!isBoxShadowPresentationValue(value)) return false;
-      const { selectedElementId } = readImmediateSelectionSnapshot();
+      const { selectedElementId } = presentationSelection(bridge);
       const existing = shadowPresentationRef.current;
       if (existing?.phase === "cancelled") {
         if (existing.selectedElementId !== selectedElementId) return true;
@@ -398,8 +396,7 @@ export function useStylePresentationActions(): StylePresentationActions {
         shadowPresentationRef.current = null;
       }
       if (!presentation) {
-        const pilot =
-          resolveBoxShadowPresentationPilotTarget(selectedElementId);
+        const pilot = bridge?.resolveBoxShadowTarget(selectedElementId) ?? null;
         if (!pilot || !selectedElementId) return false;
         const baseBoxShadow = pilot.style.boxShadow;
         if (typeof baseBoxShadow !== "string") return false;
@@ -413,7 +410,7 @@ export function useStylePresentationActions(): StylePresentationActions {
         presentation = {
           baseStyle: pilot.style,
           baseValue,
-          handle: editorPresentationFillPilotRuntime.beginEditorPresentation({
+          handle: presentationRuntime(bridge).beginEditorPresentation({
             commitIntent: "style-box-shadow",
             ownerId: shadowOwnerId,
             projectId: pilot.projectId,
@@ -452,7 +449,7 @@ export function useStylePresentationActions(): StylePresentationActions {
 
   const commitBoxShadowPresentation = useCallback(
     (boxShadow: string): boolean => {
-      const { selectedElementId } = readImmediateSelectionSnapshot();
+      const { selectedElementId } = presentationSelection(bridge);
       const active = shadowPresentationRef.current;
       if (active?.phase === "cancelled") {
         shadowPresentationRef.current = null;
@@ -490,7 +487,7 @@ export function useStylePresentationActions(): StylePresentationActions {
   const commitBoxShadowModelPresentation = useCallback(
     (value: BoxShadowPresentationValue): boolean => {
       if (!isBoxShadowPresentationValue(value)) return false;
-      const { selectedElementId } = readImmediateSelectionSnapshot();
+      const { selectedElementId } = presentationSelection(bridge);
       const active = shadowPresentationRef.current;
       if (active?.phase === "cancelled") {
         shadowPresentationRef.current = null;
@@ -538,15 +535,15 @@ export function useStylePresentationActions(): StylePresentationActions {
 
   const isTextColorPresentationOwned = useCallback(
     () =>
-      resolveTextColorPresentationPilotTarget(
-        readImmediateSelectionSnapshot().selectedElementId,
-      ) !== null,
+      (bridge?.resolveTextColorTarget(
+        presentationSelection(bridge).selectedElementId,
+      ) ?? null) !== null,
     [],
   );
 
   const previewTextColorPresentation = useCallback(
     (color: string): boolean => {
-      const { selectedElementId } = readImmediateSelectionSnapshot();
+      const { selectedElementId } = presentationSelection(bridge);
       const existing = textColorPresentationRef.current;
       if (existing?.phase === "cancelled") {
         if (existing.selectedElementId !== selectedElementId) return true;
@@ -567,12 +564,11 @@ export function useStylePresentationActions(): StylePresentationActions {
         textColorPresentationRef.current = null;
       }
       if (!presentation) {
-        const pilot =
-          resolveTextColorPresentationPilotTarget(selectedElementId);
+        const pilot = bridge?.resolveTextColorTarget(selectedElementId) ?? null;
         if (!pilot || !selectedElementId) return false;
         presentation = {
           baseStyle: pilot.style,
-          handle: editorPresentationFillPilotRuntime.beginEditorPresentation({
+          handle: presentationRuntime(bridge).beginEditorPresentation({
             commitIntent: "style-text-color",
             ownerId: textColorOwnerId,
             projectId: pilot.projectId,
@@ -605,7 +601,7 @@ export function useStylePresentationActions(): StylePresentationActions {
 
   const commitTextColorPresentation = useCallback(
     (color: string): boolean => {
-      const { selectedElementId } = readImmediateSelectionSnapshot();
+      const { selectedElementId } = presentationSelection(bridge);
       const active = textColorPresentationRef.current;
       if (active?.phase === "cancelled") {
         textColorPresentationRef.current = null;
@@ -647,15 +643,15 @@ export function useStylePresentationActions(): StylePresentationActions {
 
   const isOpacityPresentationOwned = useCallback(
     () =>
-      resolveOpacityPresentationPilotTarget(
-        readImmediateSelectionSnapshot().selectedElementId,
-      ) !== null,
+      (bridge?.resolveOpacityTarget(
+        presentationSelection(bridge).selectedElementId,
+      ) ?? null) !== null,
     [],
   );
 
   const previewOpacityPresentation = useCallback(
     (opacity: string): boolean => {
-      const { selectedElementId } = readImmediateSelectionSnapshot();
+      const { selectedElementId } = presentationSelection(bridge);
       const existing = opacityPresentationRef.current;
       if (existing?.phase === "cancelled") {
         if (existing.selectedElementId !== selectedElementId) return true;
@@ -676,11 +672,11 @@ export function useStylePresentationActions(): StylePresentationActions {
         opacityPresentationRef.current = null;
       }
       if (!presentation) {
-        const pilot = resolveOpacityPresentationPilotTarget(selectedElementId);
+        const pilot = bridge?.resolveOpacityTarget(selectedElementId) ?? null;
         if (!pilot || !selectedElementId) return false;
         presentation = {
           baseStyle: pilot.style,
-          handle: editorPresentationFillPilotRuntime.beginEditorPresentation({
+          handle: presentationRuntime(bridge).beginEditorPresentation({
             commitIntent: "style-opacity",
             ownerId: opacityOwnerId,
             projectId: pilot.projectId,
@@ -711,7 +707,7 @@ export function useStylePresentationActions(): StylePresentationActions {
 
   const commitOpacityPresentation = useCallback(
     (opacity: string): boolean => {
-      const { selectedElementId } = readImmediateSelectionSnapshot();
+      const { selectedElementId } = presentationSelection(bridge);
       const active = opacityPresentationRef.current;
       if (active?.phase === "cancelled") {
         opacityPresentationRef.current = null;
