@@ -272,6 +272,8 @@ export interface TranslationKeys {
       parentPage: string;
       pageLayout: string;
       addLayout: string;
+      applyLayoutPreset: string;
+      layoutSlot: string;
       deleteLayout: string;
       rename: string;
       renameComponent: string;

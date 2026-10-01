@@ -20,8 +20,6 @@ interface LayoutSlotsSectionProps {
 export const LayoutSlotsSection = memo(function LayoutSlotsSection({
   layoutId,
 }: LayoutSlotsSectionProps) {
-  // 편집기 테스트가 provider 없이 마운트한다 — 접근 이름은 provider 없으면 영문 기본.
-  const i18n = useOptionalI18n();
   const slots = useExistingFrameSlots(layoutId);
 
   const handleSelect = useCallback((elementId: string) => {
@@ -30,6 +28,22 @@ export const LayoutSlotsSection = memo(function LayoutSlotsSection({
     state.setSelectedElement(elementId, element?.props);
   }, []);
 
+  return <LayoutSlotsList slots={slots} onSelect={handleSelect} />;
+});
+
+/**
+ * The Slots rows over any document (ADR-248 4e-6-37): the old store and the catalog layout pass
+ * their slots (`elementId` = what `onSelect` selects).
+ */
+export const LayoutSlotsList = memo(function LayoutSlotsList({
+  slots,
+  onSelect,
+}: {
+  slots: readonly { slotName: string; elementId: string; childCount: number }[];
+  onSelect: (elementId: string) => void;
+}) {
+  // 편집기 테스트가 provider 없이 마운트한다 — 접근 이름은 provider 없으면 영문 기본.
+  const i18n = useOptionalI18n();
   if (slots.length === 0) return null;
 
   return (
@@ -43,7 +57,7 @@ export const LayoutSlotsSection = memo(function LayoutSlotsSection({
           <Button
             key={slot.elementId}
             className="frame-slot-row"
-            onPress={() => handleSelect(slot.elementId)}
+            onPress={() => onSelect(slot.elementId)}
             aria-label={
               i18n
                 ? i18n.t("propertiesPanel.slotSelectOnCanvas", {

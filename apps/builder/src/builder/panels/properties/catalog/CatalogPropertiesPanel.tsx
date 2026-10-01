@@ -34,6 +34,7 @@ import {
 import { CatalogPageSection } from "./CatalogPageSection";
 import { CatalogPropertyClipboardActions } from "./CatalogPropertyClipboardActions";
 import { CatalogSlotSection } from "./CatalogSlotSection";
+import { CatalogLayoutBodySection } from "./CatalogLayoutBodySection";
 import { CatalogStateSection } from "./CatalogStateSection";
 import { catalogSubpartOwnerType } from "../../../catalogRuntime/subpart";
 import { CATALOG_ITEMS_SOURCE } from "./catalogItemsSource";
@@ -170,6 +171,12 @@ function CatalogPropertiesContent() {
               <CatalogPageSection
                 key={`page:${settingsPage}`}
                 pageId={settingsPage}
+              />
+            )}
+            {first.target.kind === "node" && (
+              <CatalogLayoutBodySection
+                key={`layout-body:${first.target.id}`}
+                nodeId={first.target.id}
               />
             )}
             {first.target.kind === "node" && (

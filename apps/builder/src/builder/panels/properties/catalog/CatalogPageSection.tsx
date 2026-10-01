@@ -7,6 +7,7 @@ import type { EntryId } from "../../../../../../../packages/shared/src/catalog/d
 import {
   catalogPageCommands,
   catalogPageLayoutId,
+  catalogPageLayoutSlots,
   catalogPageLayouts,
   catalogPageRouteEdit,
   catalogParentPageOptions,
@@ -58,11 +59,13 @@ export const CatalogPageSection = memo(function CatalogPageSection({
     JSON.stringify({
       layouts: catalogPageLayouts(graph),
       current: catalogPageLayoutId(graph, pageId) ?? "",
+      slots: catalogPageLayoutSlots(graph, pageId),
     }),
   );
-  const { layouts, current } = JSON.parse(layoutKey) as {
+  const { layouts, current, slots } = JSON.parse(layoutKey) as {
     layouts: ReturnType<typeof catalogPageLayouts>;
     current: string;
+    slots: ReturnType<typeof catalogPageLayoutSlots>;
   };
   const [routeError, setRouteError] = useState<string | null>(null);
 
@@ -75,6 +78,20 @@ export const CatalogPageSection = memo(function CatalogPageSection({
           (value || undefined) as EntryId<"definition"> | undefined,
           workspace.newId,
         ),
+      );
+    },
+    [graph, pageId, run, workspace],
+  );
+  // A layout with several slots: the one the page's content fills (re-applying the layout moves
+  // the content there — the old page's slot choice).
+  const changeSlot = useCallback(
+    (value: string) => {
+      const layout = catalogPageLayoutId(graph, pageId);
+      const choice = catalogPageLayoutSlots(graph, pageId);
+      const slot = choice?.slots.find((item) => item.path.join() === value);
+      if (!layout || !slot || choice?.current === value) return;
+      run(
+        catalogPageCommands.layout(pageId, layout, workspace.newId, slot.path),
       );
     },
     [graph, pageId, run, workspace],
@@ -150,6 +167,17 @@ export const CatalogPageSection = memo(function CatalogPageSection({
                 )
           }
         />
+        {currentLayout && slots && slots.slots.length > 1 && (
+          <PropertySelect
+            label={translateKey(t, "properties.contentSlot", "Content Slot")}
+            value={slots.current ?? ""}
+            onChange={changeSlot}
+            options={slots.slots.map((slot) => ({
+              value: slot.path.join(),
+              label: slot.name,
+            }))}
+          />
+        )}
         {currentLayout && (
           <div className="page-layout-info">
             <RACButton

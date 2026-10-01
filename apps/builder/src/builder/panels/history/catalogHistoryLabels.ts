@@ -86,6 +86,8 @@ const LABELS: Readonly<Record<string, readonly [string, IconKind]>> = {
   "Page layout": ["pageLayout", "pagePosition"],
   "Add layout": ["addLayout", "layout"],
   "Delete layout": ["deleteLayout", "layout"],
+  "Apply layout preset": ["applyLayoutPreset", "layout"],
+  "Layout slot": ["layoutSlot", "layout"],
   "Rename": ["rename", "edit"],
   "Rename component": ["renameComponent", "component"],
   "Add theme": ["addTheme", "theme"],

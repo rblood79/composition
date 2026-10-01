@@ -23,7 +23,7 @@ interface ExistingSlotDialogProps {
   /** 다이얼로그 열림 상태 */
   isOpen: boolean;
   /** 기존 Slot 목록 */
-  existingSlots: ExistingSlotInfo[];
+  existingSlots: readonly ExistingSlotInfo[];
   /** 적용할 프리셋 이름 */
   presetName: string;
   /** 모드 선택 콜백 */
@@ -89,7 +89,9 @@ export const ExistingSlotDialog = memo(function ExistingSlotDialog({
             </Heading>
           </div>
           <div className="confirm-dialog-body">
-            <p>{t("propertiesPanel.slotExistingBody", { preset: presetName })}</p>
+            <p>
+              {t("propertiesPanel.slotExistingBody", { preset: presetName })}
+            </p>
             <div className="existing-slot-dialog__list" role="list">
               {existingSlots.map((slot) => (
                 <div

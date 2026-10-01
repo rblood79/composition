@@ -9,6 +9,7 @@ import type {
   EntryId,
   NodeId,
   PageEntry,
+  TemplateId,
 } from "../../../../../packages/shared/src/catalog/document/types";
 
 /** The graph reads the page settings need (`CatalogGraph` is one). */
@@ -66,6 +67,46 @@ export function catalogPageLayoutId(
   return definition?.kind === "definition" && definition.usage === "layout"
     ? definition.id
     : undefined;
+}
+
+/** A declared slot of a page's layout: its template path (`applyLayout`'s `slotPath`) and name. */
+export interface CatalogPageLayoutSlot {
+  path: readonly TemplateId[];
+  name: string;
+}
+
+/**
+ * The slots of the layout a page uses (template order) and the one its content fills (4e-6-37 —
+ * the old page's slot choice): `undefined` without a layout.
+ */
+export function catalogPageLayoutSlots(
+  graph: CatalogReader,
+  pageId: EntryId<"page">,
+): { slots: CatalogPageLayoutSlot[]; current: string | undefined } | undefined {
+  const definitionId = catalogPageLayoutId(graph, pageId);
+  const definition = definitionId ? graph.getEntry(definitionId) : undefined;
+  if (definition?.kind !== "definition" || !definition.templateRootId)
+    return undefined;
+  const slots: CatalogPageLayoutSlot[] = [];
+  const visit = (path: readonly TemplateId[]) => {
+    const node = graph.getEntry(path[path.length - 1] as NodeId);
+    if (node?.kind !== "node") return;
+    if (node.slot) slots.push({ path, name: node.slot.name });
+    for (const child of node.children)
+      visit([...path, child as unknown as TemplateId]);
+  };
+  visit([definition.templateRootId as TemplateId]);
+  const page = graph.getEntry(pageId) as PageEntry;
+  const instance = graph.getEntry(page.children[0]);
+  const fill =
+    instance?.kind === "node"
+      ? instance.descendantOverrides.find((item) => item.kind === "fillSlot")
+      : undefined;
+  return {
+    slots,
+    current:
+      fill?.kind === "fillSlot" ? fill.address.templatePath.join() : undefined,
+  };
 }
 
 function depthOf(
@@ -151,5 +192,12 @@ export const catalogPageCommands = {
     pageId: EntryId<"page">,
     definitionId: EntryId<"definition"> | undefined,
     newId: NewId,
-  ): CatalogCommand => applyLayout({ pageId, definitionId, newId }),
+    slotPath?: readonly TemplateId[],
+  ): CatalogCommand =>
+    applyLayout({
+      pageId,
+      definitionId,
+      newId,
+      ...(slotPath ? { slotPath, label: "Layout slot" } : {}),
+    }),
 };
