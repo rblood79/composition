@@ -181,3 +181,31 @@ it("ADR-202: 무시된 opacity는 실패이며 fill 파생 배경은 style과 �
     ),
   ).toEqual([]);
 });
+
+it("padding · margin shorthand 는 longhand 로 저장돼도 반영으로 본다 (catalog 읽기 = paddingTop …)", async () => {
+  const { findUnappliedStyles } = await import("./mutationVerification");
+  const longhands = {
+    paddingTop: "8px",
+    paddingRight: "16px",
+    paddingBottom: "8px",
+    paddingLeft: "16px",
+    marginTop: "4px",
+    marginRight: "4px",
+    marginBottom: "4px",
+    marginLeft: "4px",
+  };
+  expect(
+    findUnappliedStyles(longhands, { padding: "8px 16px", margin: "4px" }),
+  ).toEqual([]);
+  // 한 변이라도 다르면 shorthand 이름으로 보고한다.
+  expect(
+    findUnappliedStyles(
+      { ...longhands, paddingLeft: "0px" },
+      { padding: "8px 16px" },
+    ),
+  ).toEqual(["style.padding"]);
+  // 옛 store 처럼 shorthand 그대로 저장한 쪽도 같다.
+  expect(findUnappliedStyles({ padding: "8px" }, { padding: "8px" })).toEqual(
+    [],
+  );
+});

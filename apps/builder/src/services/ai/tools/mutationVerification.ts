@@ -1,5 +1,10 @@
 import { adaptStyles } from "../styleAdapter";
 import { sanitizeFillDerivedStylePatch } from "../../../builder/panels/styles/utils/fillDerivedStyleProps";
+import { expandSpacing } from "../../../utils/css/shorthandExpander";
+
+/** Box shorthands a document may store as their four longhands (the catalog does — `paddingTop` …). */
+const BOX_SHORTHANDS = new Set(["padding", "margin"]);
+const SIDES = ["Top", "Right", "Bottom", "Left"] as const;
 
 /**
  * 스토어 mutation 반영 확인 (2026-08-29).
@@ -62,7 +67,24 @@ export function findUnappliedStyles(
     applied && typeof applied === "object"
       ? adaptStyles(applied as Record<string, unknown>).style
       : {};
+  const applies = (key: string): boolean => {
+    if (valuesEqual(actual[key], expected[key])) return true;
+    // A box shorthand stored as its longhands: every side must match (adapter form both sides).
+    if (!BOX_SHORTHANDS.has(key) || actual[key] !== undefined) return false;
+    const sides = expandSpacing(String(requested[key] ?? expected[key]));
+    const want = adaptStyles(
+      Object.fromEntries(
+        SIDES.map((side) => [
+          `${key}${side}`,
+          sides[side.toLowerCase() as keyof typeof sides],
+        ]),
+      ),
+    ).style;
+    return SIDES.every((side) =>
+      valuesEqual(actual[`${key}${side}`], want[`${key}${side}`]),
+    );
+  };
   return Object.keys(expected)
-    .filter((key) => !valuesEqual(actual[key], expected[key]))
+    .filter((key) => !applies(key))
     .map((key) => `style.${key}`);
 }
