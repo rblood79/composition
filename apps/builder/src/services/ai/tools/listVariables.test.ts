@@ -6,6 +6,7 @@
  * - 쓰기 0 — 호출 전후 store 참조가 같다 · 런타임 값은 싣지 않는다 (정의만)
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import "../aiHosts.store"; // old-store AI host (ADR-248 4e-7: goes with the old store)
 import type { CompositionDocument } from "@composition/shared";
 import { useDataStore } from "../../../builder/stores/data";
 import type { ToolTranslate } from "../../../types/integrations/ai.types";
@@ -121,7 +122,12 @@ describe("list_variables", () => {
       persist: true,
       usages: [
         { kind: "template", nodeId: "btn", props: ["children"] },
-        { kind: "setState", ruleId: "r1", elementId: "btn", trigger: "onPress" },
+        {
+          kind: "setState",
+          ruleId: "r1",
+          elementId: "btn",
+          trigger: "onPress",
+        },
       ],
     });
     expect(rows[2]).toMatchObject({
@@ -134,8 +140,16 @@ describe("list_variables", () => {
   });
 
   it("문서가 없어도 프로젝트 변수는 나온다 (usedBy 0)", () => {
-    expect(summarizeVariables(null, [{ id: "x", name: "x", type: "string" }])).toEqual([
-      { id: "x", name: "x", type: "string", owner: { kind: "project" }, usedBy: 0 },
+    expect(
+      summarizeVariables(null, [{ id: "x", name: "x", type: "string" }]),
+    ).toEqual([
+      {
+        id: "x",
+        name: "x",
+        type: "string",
+        owner: { kind: "project" },
+        usedBy: 0,
+      },
     ]);
   });
 });

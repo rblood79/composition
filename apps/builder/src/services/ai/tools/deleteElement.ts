@@ -10,13 +10,8 @@ import type {
   ToolTranslate,
 } from "../../../types/integrations/ai.types";
 import { getAiToolReadModel } from "./canonicalToolReadModel";
-import { getAiWriteHost } from "../aiWriteHost";
-import { confirmStructuralOriginImpact } from "../../../builder/stores/utils/elementUpdate";
+import { AI_WRITE_HOST_MISSING, getAiWriteHost } from "../aiWriteHost";
 import { resolveElementRef } from "./elementRef";
-import {
-  canOperate,
-  getOperationRejectMessageKey,
-} from "../../../builder/domain/canOperate";
 
 export const deleteElementTool: ToolExecutor = {
   name: "delete_element",
@@ -33,7 +28,7 @@ export const deleteElementTool: ToolExecutor = {
     try {
       const {
         elementsById,
-        state: { removeElement, selectedElementId },
+        state: { selectedElementId },
       } = getAiToolReadModel();
 
       // 별칭·실제 id 를 한 곳에서 해석한다 (`elementRef.ts`) — 실패 시 다음 시도가
@@ -50,41 +45,14 @@ export const deleteElementTool: ToolExecutor = {
       const targetId = ref.id;
       const element = elementsById.get(targetId)!;
 
-      // ADR-248 4e-5: the open catalog Builder removes it (one step) — its remove command checks
-      // the structure itself (the old checks read old-model ids).
+      // ADR-248 4e-5: the open Builder removes it (one step) — its remove command checks the
+      // structure itself. 4e-7: only the host (the old checks are the old store host's).
       const writeHost = getAiWriteHost();
-      if (!writeHost) {
-        // 구조 변경 판정 (ADR-236 Phase 3 — 메뉴 · 단축키 · Layers 와 같은 `canOperate`). body 는 전용 문구,
-        // systemOwned origin · ListBox template anchor 는 store 가 지우지 않으므로 여기서 이유와 함께 거부한다.
-        const verdict = canOperate("delete", targetId, (id) =>
-          elementsById.get(id),
-        );
-        if (!verdict.ok) {
-          switch (verdict.reason) {
-            case "body":
-              return { success: false, error: t("aiToolError.bodyUndeletable") };
-          }
-          const messageKey = getOperationRejectMessageKey(verdict.reason);
-          return {
-            success: false,
-            error: messageKey
-              ? t(messageKey)
-              : t("aiToolError.notDeleted", { id: targetId }),
-          };
-        }
+      if (!writeHost) return { success: false, error: AI_WRITE_HOST_MISSING };
+      const written = await writeHost.remove(targetId, t);
+      if (!written.ok) return { success: false, error: written.error };
 
-        // origin 안 삭제는 모든 instance 를 바꾼다 — 편집과 같은 영향 확인 (ADR-236 E4).
-        const impactGate = confirmStructuralOriginImpact([targetId]);
-        if (impactGate !== true && !(await impactGate)) {
-          return { success: false, error: t("aiToolError.originImpactCancelled") };
-        }
-      }
-      if (writeHost) {
-        const written = writeHost.remove(targetId);
-        if (!written.ok) return { success: false, error: written.error };
-      } else await removeElement(targetId);
-
-      // 반영 확인 — `removeElement` 도 반환값이 없다 (`mutationVerification.ts` 주석).
+      // 반영 확인 — 지우기도 조용히 빠지는 경로가 있다 (`mutationVerification.ts` 주석).
       const remaining = getAiToolReadModel().elementsById.get(targetId);
       if (remaining && !remaining.deleted) {
         return {

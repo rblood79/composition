@@ -134,12 +134,9 @@ const SURFACE_STRUCTURAL_WRITES: readonly {
     guard: IMPACT_GUARD,
   },
   {
-    file: "../services/ai/tools/createElement.ts",
-    write: STRUCTURAL_WRITE,
-    guard: IMPACT_GUARD,
-  },
-  {
-    file: "../services/ai/tools/deleteElement.ts",
+    // ADR-248 4e-7: the AI tools write through the AI write host; the old store's writes are the
+    // old store host's (create · remove).
+    file: "../services/ai/aiHosts.store.ts",
     write: STRUCTURAL_WRITE,
     guard: IMPACT_GUARD,
   },

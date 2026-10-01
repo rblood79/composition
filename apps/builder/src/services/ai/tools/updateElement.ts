@@ -10,14 +10,10 @@ import type {
   ToolExecutor,
   ToolTranslate,
 } from "../../../types/integrations/ai.types";
-import { adaptStylePatchWithFills } from "../styleAdapter";
 import { useAIVisualFeedbackStore } from "../../../builder/stores/aiVisualFeedback";
 import { getAiToolReadModel } from "./canonicalToolReadModel";
-import { getAiWriteHost } from "../aiWriteHost";
-import {
-  applyCanonicalFields,
-  parseCanonicalFields,
-} from "./canonicalNodeFields";
+import { AI_WRITE_HOST_MISSING, getAiWriteHost } from "../aiWriteHost";
+import { parseCanonicalFields } from "./canonicalNodeFields";
 import { normalizeToolFills } from "./toolFills";
 import { resolveElementRef } from "./elementRef";
 import {
@@ -58,7 +54,7 @@ export const updateElementTool: ToolExecutor = {
     try {
       const {
         elementsById,
-        state: { selectedElementId, updateElementProps, updateElement },
+        state: { selectedElementId },
       } = getAiToolReadModel();
 
       // 별칭·실제 id 를 한 곳에서 해석한다 (`elementRef.ts`) — 실패 시 다음 시도가
@@ -87,57 +83,31 @@ export const updateElementTool: ToolExecutor = {
         };
       }
 
-      // 업데이트 객체 구성
-      const updates: Record<string, unknown> = { ...newProps };
-
-      // 스타일 병합 (기존 스타일 유지 + 새 스타일 덮어쓰기)
-      if (Object.keys(newStyles).length > 0 || newFills) {
-        const existingStyle = (element.props?.style || {}) as Record<
-          string,
-          unknown
-        >;
-        updates.style = adaptStylePatchWithFills(
-          existingStyle,
-          newStyles,
-        ).style;
-      }
-
       // ADR-134 Phase 3 — canonical 1차 필드는 schema 쪽이라 store action 직접 경유.
       // 노드 타입을 알아야 frame 전용 필드를 판정할 수 있으므로 요소 확인 뒤에 파싱한다.
       const { patch: canonicalPatch, rejected: canonicalRejected } =
         parseCanonicalFields(t, canonicalArg, element.type);
 
-      // ADR-248 4e-5: the open catalog Builder writes (one step) — the canonical first-class fields
-      // too (a node that becomes a component is its instance from then on).
+      // ADR-248 4e-5: the open Builder writes (one step) — the canonical first-class fields too
+      // (a node that becomes a component is its instance from then on). 4e-7: only the host.
       const writeHost = getAiWriteHost();
-      let canonicalApplied = false;
-      let resultId = targetId;
-      if (writeHost) {
-        const written = writeHost.update(targetId, {
+      if (!writeHost) return { success: false, error: AI_WRITE_HOST_MISSING };
+      const written = await writeHost.update(
+        targetId,
+        {
           props: newProps,
           styles: newStyles,
           ...(newFills !== undefined ? { fills: newFills } : {}),
           ...(Object.keys(canonicalPatch).length
             ? { canonical: canonicalPatch }
             : {}),
-        });
-        if (!written.ok) return { success: false, error: written.error };
-        canonicalApplied = Object.keys(canonicalPatch).length > 0;
-        resultId = written.elementId;
-      } else {
-        if (newFills !== undefined) {
-          // Inspector와 같은 canonical 1차 fills + full-node history 표면.
-          const { fills: _legacyFills, ...baseProps } = element.props ?? {};
-          void _legacyFills;
-          await updateElement(targetId, {
-            props: { ...baseProps, ...updates },
-            fills: newFills,
-          });
-        } else if (Object.keys(updates).length > 0) {
-          await updateElementProps(targetId, updates);
-        }
-        canonicalApplied = await applyCanonicalFields(targetId, canonicalPatch);
-      }
+        },
+        t,
+      );
+      if (!written.ok) return { success: false, error: written.error };
+      const canonicalApplied =
+        written.canonicalApplied ?? Object.keys(canonicalPatch).length > 0;
+      const resultId = written.elementId;
 
       // 반영 확인 — 스토어 액션은 반환값이 없고 조용히 return 하는 경로가 여럿이다
       // (`mutationVerification.ts` 주석). 확인 없이 성공을 보고하면 모델이 반영됐다는

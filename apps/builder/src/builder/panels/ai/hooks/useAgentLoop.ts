@@ -16,7 +16,6 @@ import type { CompilerProposal } from "../../../../services/ai/compiler/contract
 import { runCompilerRequest } from "../../../../services/ai/compiler/runtime";
 import { intentParser } from "../../../../services/ai/IntentParser";
 import { useConversationStore } from "../../../stores/conversation";
-import { useStore } from "../../../stores";
 import { useAIVisualFeedbackStore } from "../../../stores/aiVisualFeedback";
 import type { BuilderContext } from "../../../../types/integrations/chat.types";
 import { buildBuilderContext } from "../../../../services/ai/builderContext";
@@ -38,18 +37,15 @@ const PROGRESS_EVENTS = new Set([
 ]);
 
 /**
- * The page and primary selection a turn was asked about: the catalog Builder's AI read host (the
- * drawn record ids), else the old store. A turn whose selection changed before it runs is dropped.
+ * The page and primary selection a turn was asked about: the open Builder's AI read host (the drawn
+ * record ids; ADR-248 4e-7: only it). A turn whose selection changed before it runs is dropped.
  */
 function readSelection(): { pageId: string | null; selectedId: string | null } {
   const host = getAiReadHost();
-  if (host)
-    return {
-      pageId: host.currentPageId(),
-      selectedId: host.selectedIds()[0] ?? null,
-    };
-  const state = useStore.getState();
-  return { pageId: state.currentPageId, selectedId: state.selectedElementId };
+  return {
+    pageId: host?.currentPageId() ?? null,
+    selectedId: host?.selectedIds()[0] ?? null,
+  };
 }
 
 export function useAgentLoop() {
@@ -180,11 +176,9 @@ export function useAgentLoop() {
             setProgress(initialProgress());
             setRunningTool(null);
 
-            // G.3: 선택된 요소에 generating 이펙트 — catalog Builder 면 AI read host 의 선택
-            // (그리는 Canvas 와 같은 레코드 id), 아니면 store 의 선택.
-            const currentSelectedId =
-              getAiReadHost()?.selectedIds()[0] ??
-              useStore.getState().selectedElementId;
+            // G.3: 선택된 요소에 generating 이펙트 — AI read host 의 선택 (그리는 Canvas 와 같은
+            // 레코드 id).
+            const currentSelectedId = getAiReadHost()?.selectedIds()[0];
             if (currentSelectedId) {
               useAIVisualFeedbackStore
                 .getState()
@@ -205,16 +199,12 @@ export function useAgentLoop() {
              */
             let assistantOpen = false;
 
-            for await (const event of agent.runAgentLoop(
-              allMessages,
-              context,
-              {
-                onTurnContext: (turnContext) =>
-                  useConversationStore
-                    .getState()
-                    .setLastUserTurnContext(turnContext),
-              },
-            )) {
+            for await (const event of agent.runAgentLoop(allMessages, context, {
+              onTurnContext: (turnContext) =>
+                useConversationStore
+                  .getState()
+                  .setLastUserTurnContext(turnContext),
+            })) {
               if (request.signal.aborted) break;
               if (PROGRESS_EVENTS.has(event.type)) {
                 setProgress((prev) => reduceProgress(prev, event));

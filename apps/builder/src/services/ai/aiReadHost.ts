@@ -1,8 +1,8 @@
 /**
  * ADR-248 Phase 4e-5: the document the AI reads, from the open Builder. The catalog Builder
  * installs a host (`setAiReadHost`); the tool read model (`getAiToolReadModel`), the compiler
- * state (`readCompilerState`) and the panel's local suggestions read it instead of the old
- * canonical / element stores. Without a host they read the old stores.
+ * state (`readCompilerState`) and the panel's local suggestions read it (4e-7: only it — without a
+ * host they read an empty document; the old store host is `aiHosts.store.ts`, old-store tests only).
  */
 import type { ResolvedField } from "@composition/shared";
 import type { Element } from "../../types/builder/unified.types";
@@ -35,10 +35,20 @@ export interface AiReadHost {
    * variables, with their use counts.
    */
   variables(
-    projectDefs: readonly { id: string; name: string; type: string; defaultValue?: unknown }[],
+    projectDefs: readonly {
+      id: string;
+      name: string;
+      type: string;
+      defaultValue?: unknown;
+    }[],
   ): readonly (VariableSummary & { defaultValue?: unknown })[];
   /** The open project (the compiler state identity). */
   projectId(): string;
+  /**
+   * The old canonical first-class fields of an element (`clip` · `placeholder` · `slot` ·
+   * `reusable`, ADR-134) — only the old store host has them.
+   */
+  canonicalFields?(id: string): Readonly<Record<string, unknown>> | undefined;
 }
 
 let current: AiReadHost | null = null;
@@ -50,6 +60,12 @@ export function setAiReadHost(host: AiReadHost): () => void {
   };
 }
 
+/** Old-store tests only (`aiHosts.store.ts`, removed with the old store): the host without one installed. */
+let testFallback: AiReadHost | null = null;
+export function setAiReadHostTestFallback(host: AiReadHost | null): void {
+  testFallback = host;
+}
+
 export function getAiReadHost(): AiReadHost | null {
-  return current;
+  return current ?? testFallback;
 }

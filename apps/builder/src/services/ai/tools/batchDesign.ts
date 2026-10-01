@@ -19,8 +19,7 @@ import type {
   ToolExecutionResult,
   ToolTranslate,
 } from "../../../types/integrations/ai.types";
-import { historyManager } from "../../../builder/stores/history";
-import { getAiWriteHost } from "../aiWriteHost";
+import { AI_WRITE_HOST_MISSING, getAiWriteHost } from "../aiWriteHost";
 import { createElementTool } from "./createElement";
 import { updateElementTool } from "./updateElement";
 import { deleteElementTool } from "./deleteElement";
@@ -73,22 +72,18 @@ export const batchDesignTool: ToolExecutor = {
         return { success: false, error: "invalid-tool-arguments" };
     }
 
-    // 배치 전체를 되돌리기 1 단위로 묶는다 (G3). elementId 는 대표값이 없으므로
-    // 배치 식별자를 쓴다 — entry 는 canonicalEvents 로 역연산된다.
-    // ADR-248 4e-5: the open catalog Builder joins the batch's steps into one history entry.
+    // 배치 전체를 되돌리기 1 단위로 묶는다 (G3). ADR-248 4e-5: the open Builder joins the
+    // batch's steps into one history entry — 4e-7: only the host.
     const writeHost = getAiWriteHost();
+    if (!writeHost) return { success: false, error: AI_WRITE_HOST_MISSING };
     let finishBatch: () => void = () => {};
-    let hostBatch: Promise<unknown> | undefined;
-    if (writeHost) {
-      const done = new Promise<void>((resolve) => {
-        finishBatch = resolve;
-      });
-      hostBatch = writeHost.batch(`AI batch (${operations.length})`, () => done);
-    } else
-      historyManager.beginTransaction({
-        type: "batch",
-        elementId: `ai-batch-${operations.length}`,
-      });
+    const done = new Promise<void>((resolve) => {
+      finishBatch = resolve;
+    });
+    const hostBatch = writeHost.batch(
+      `AI batch (${operations.length})`,
+      () => done,
+    );
 
     const results: Array<{
       index: number;
@@ -142,10 +137,8 @@ export const batchDesignTool: ToolExecutor = {
         }
       }
     } finally {
-      if (writeHost) {
-        finishBatch();
-        await hostBatch;
-      } else historyManager.commitTransaction();
+      finishBatch();
+      await hostBatch;
     }
 
     const successCount = results.filter((r) => r.success).length;

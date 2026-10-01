@@ -1,4 +1,4 @@
-/** ADR-202 — canonical read model과 기존 tool/command를 연결하는 Builder 전용 경계. */
+/** ADR-202 — the AI read host 와 기존 tool/command를 연결하는 Builder 전용 경계. */
 import {
   resolveEditContract,
   type CanonicalNode,
@@ -7,12 +7,8 @@ import {
 import { getAiReadHost } from "../aiReadHost";
 import { withPanelStyleFields } from "./styleManifest";
 import { getAiComponentCatalog } from "../catalog/componentCatalog";
-import { getAiToolReadModel } from "../tools/canonicalToolReadModel";
-import { resolveCompositeMode } from "../tools/compositeCreation";
+import { resolveCompositeMode } from "../tools/compositeMode";
 import { getReusableCompositeOriginId } from "../../../builder/components/reusableCompositeOrigins";
-import { useCanonicalDocumentStore } from "../../../builder/stores/canonical/canonicalDocumentStore";
-import { resolveCreationParentId } from "../../../builder/hooks/useElementCreator";
-import { getNodeMap } from "../../../builder/stores/canonical/canonicalTraversalHelpers";
 import { listAgentCommands } from "../../agent/executeAgentCommand";
 import type {
   CommandContext,
@@ -34,13 +30,12 @@ export function readCompilerState(): {
   context: CommandContext;
   identity: string;
 } {
-  const canonical = useCanonicalDocumentStore.getState();
-  const doc = canonical.currentProjectId
-    ? canonical.documents.get(canonical.currentProjectId)
-    : null;
-  const model = getAiToolReadModel();
+  // ADR-248 4e-7: a palette type's contract is its own (no document — the open Builder's elements
+  // come with theirs from the read host).
   const fields = (node: CanonicalNode): ManifestField[] =>
-    withPanelStyleFields(resolveEditContract(node, doc).fields.map(manifestField));
+    withPanelStyleFields(
+      resolveEditContract(node, null).fields.map(manifestField),
+    );
   const components = getAiComponentCatalog().map((entry) => {
     const mode = resolveCompositeMode(entry.type);
     const node =
@@ -59,85 +54,46 @@ export function readCompilerState(): {
       props: fields(node as CanonicalNode),
     };
   });
+  const manifest: CommandManifest = {
+    components,
+    commands: listAgentCommands().map((c) => ({
+      ...c,
+      args: c.args ? { ...c.args } : undefined,
+    })),
+  };
+  // ADR-248 4e-5: the open Builder's elements (their edit contracts), creation parent and selection
+  // — 4e-7: only the read host (none = an empty context).
   const host = getAiReadHost();
-  if (host) {
-    // ADR-248 4e-5: the open catalog workspace — its elements' edit contracts, creation parent
-    // and selection.
-    const pageId = host.currentPageId();
-    const selected = host.selectedIds();
+  if (!host)
     return {
-      manifest: {
-        components,
-        commands: listAgentCommands().map((c) => ({
-          ...c,
-          args: c.args ? { ...c.args } : undefined,
-        })),
-      },
-      context: {
-        parentId: host.creationParentId(),
-        selectedId: selected[0] ?? null,
-        nodes: host
-          .elements()
-          .filter((n) => n.page_id === pageId)
-          .map((n) => ({
-            id: n.id,
-            type: n.type,
-            props: withPanelStyleFields(host.fields(n.id).map(manifestField)),
-          })),
-      },
-      identity: JSON.stringify([host.projectId(), pageId, selected]),
+      manifest,
+      context: { parentId: null, selectedId: null, nodes: [] },
+      identity: JSON.stringify([null, null, []]),
     };
-  }
-  const currentPageId = model.state.currentPageId;
-  const nodes = model.elements
-    .filter((n) => n.page_id === currentPageId)
-    .map((n) => ({
-      id: n.id,
-      type: n.type,
-      componentType: components.find(
-        (component) =>
-          component.reusableId &&
-          component.reusableId ===
-            (getNodeMap().get(n.id) as { ref?: string } | undefined)?.ref,
-      )?.type,
-      props: fields(
-        getNodeMap().get(n.id) ??
-          ({
+  const pageId = host.currentPageId();
+  const selected = host.selectedIds();
+  return {
+    manifest,
+    context: {
+      parentId: host.creationParentId(),
+      selectedId: selected[0] ?? null,
+      nodes: host
+        .elements()
+        .filter((n) => n.page_id === pageId)
+        .map((n) => {
+          // A component instance (`ref` = its origin) suggests as its component's type.
+          const ref = (n as { ref?: string }).ref;
+          const componentType = ref
+            ? components.find((component) => component.reusableId === ref)?.type
+            : undefined;
+          return {
             id: n.id,
             type: n.type,
-            componentType: components.find(
-              (component) =>
-                component.reusableId &&
-                component.reusableId ===
-                  (getNodeMap().get(n.id) as { ref?: string } | undefined)?.ref,
-            )?.type,
-            props: n.props,
-          } as CanonicalNode),
-      ),
-    }));
-  const parentId = doc
-    ? resolveCreationParentId({
-        selectedElementId: model.state.selectedElementId,
-        elements: model.elements,
-        currentPageId,
-        layoutId: null,
-        doc,
-      })
-    : null;
-  return {
-    manifest: {
-      components,
-      commands: listAgentCommands().map((c) => ({
-        ...c,
-        args: c.args ? { ...c.args } : undefined,
-      })),
+            ...(componentType ? { componentType } : {}),
+            props: withPanelStyleFields(host.fields(n.id).map(manifestField)),
+          };
+        }),
     },
-    context: { parentId, selectedId: model.state.selectedElementId, nodes },
-    identity: JSON.stringify([
-      canonical.currentProjectId,
-      currentPageId,
-      model.state.selectedElementId,
-      model.state.selectedElementIds,
-    ]),
+    identity: JSON.stringify([host.projectId(), pageId, selected]),
   };
 }

@@ -8,6 +8,7 @@
  * 도구가 부르는 함수를 다시 부르는 자기 확인이 아니라, **소비자 경로**로 확인하는 형태다.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import "../aiHosts.store"; // old-store AI host (ADR-248 4e-7: goes with the old store)
 import type { CompositionDocument, InteractionRule } from "@composition/shared";
 import type { Element } from "../../../types/core/store.types";
 import { useStore } from "../../../builder/stores";

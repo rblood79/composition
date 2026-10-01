@@ -1,14 +1,7 @@
 import { useMemo, useSyncExternalStore } from "react";
-import {
-  resolveEditContract,
-  isBodyType,
-  type CanonicalNode,
-} from "@composition/shared";
+import { isBodyType } from "@composition/shared";
 import { getAiReadHost } from "../../../../services/ai/aiReadHost";
 import { useI18n, semanticLabelKeys, translateKey } from "@/i18n";
-import { useStore } from "../../../stores";
-import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
-import { getNodeMap } from "../../../stores/canonical/canonicalTraversalHelpers";
 import { readCompilerState } from "../../../../services/ai/compiler/builderHost";
 import { getLocalSuggestions } from "../localSuggestions";
 
@@ -16,15 +9,7 @@ const noSubscription = () => () => {};
 
 export function useLocalSuggestions() {
   const { t, locale } = useI18n();
-  const selectedId = useStore((state) => state.selectedElementId);
-  const selectionCount = useStore((state) => state.selectedElementIds.length);
-  const pageId = useStore((state) => state.currentPageId);
-  const doc = useCanonicalDocumentStore((state) =>
-    state.currentProjectId
-      ? state.documents.get(state.currentProjectId)
-      : undefined,
-  );
-  // ADR-248 4e-5: the open catalog Builder's read host (its document and selection).
+  // ADR-248 4e-5: the open Builder's read host (its document and selection) — 4e-7: only it.
   const host = getAiReadHost();
   const hostVersion = useSyncExternalStore(
     host?.subscribe ?? noSubscription,
@@ -34,12 +19,9 @@ export function useLocalSuggestions() {
     const { manifest, context, identity } = readCompilerState();
     const hostSelected = host?.selectedIds();
     // 단일 대상 IR을 다중 선택 전체에 대한 편집처럼 제안하지 않는다.
-    const node = host
-      ? hostSelected!.length === 1
+    const node =
+      host && hostSelected!.length === 1
         ? host.elements().find((element) => element.id === hostSelected![0])
-        : undefined
-      : selectionCount <= 1 && selectedId
-        ? getNodeMap().get(selectedId)
         : undefined;
     const target = node
       ? context.nodes.find((entry) => entry.id === node.id)
@@ -54,12 +36,7 @@ export function useLocalSuggestions() {
         identity,
         context:
           node && selectedType ? context : { ...context, selectedId: null },
-        fields:
-          node && selectedType
-            ? host
-              ? [...host.fields(node.id)]
-              : resolveEditContract(node as CanonicalNode, doc).fields
-            : [],
+        fields: host && node && selectedType ? [...host.fields(node.id)] : [],
         korean: locale.startsWith("ko"),
         label: (value) =>
           semanticLabelKeys[value]
@@ -67,5 +44,5 @@ export function useLocalSuggestions() {
             : value,
       }),
     };
-  }, [doc, selectedId, selectionCount, pageId, locale, t, host, hostVersion]);
+  }, [locale, t, host, hostVersion]);
 }

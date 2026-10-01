@@ -11,6 +11,7 @@
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import "../aiHosts.store"; // old-store AI host (ADR-248 4e-7: goes with the old store)
 import type { CompositionDocument } from "@composition/shared";
 import type { Element } from "../../../types/core/store.types";
 import { useStore } from "../../../builder/stores";

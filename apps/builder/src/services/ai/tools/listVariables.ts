@@ -20,7 +20,6 @@ import type {
   ToolExecutionResult,
   ToolExecutor,
 } from "../../../types/integrations/ai.types";
-import { getActiveCanonicalDocument } from "../../../builder/stores/canonical/canonicalElementsBridge";
 import { getProjectVariableDefinitions } from "../../../builder/stores/data";
 import { readFormat } from "./listCollections";
 import { getAiReadHost } from "../aiReadHost";
@@ -28,7 +27,12 @@ import { getAiReadHost } from "../aiReadHost";
 export type VariableOwnerSummary =
   | { kind: "project" }
   | { kind: "page"; pageId: string; pageTitle: string }
-  | { kind: "element"; elementId: string; elementType: string; pageId: string | null };
+  | {
+      kind: "element";
+      elementId: string;
+      elementType: string;
+      pageId: string | null;
+    };
 
 export interface VariableSummary {
   id: string;
@@ -56,7 +60,9 @@ function detailOf(
     type: def.type,
     owner,
     usedBy: usages.length,
-    ...(def.defaultValue !== undefined ? { defaultValue: def.defaultValue } : {}),
+    ...(def.defaultValue !== undefined
+      ? { defaultValue: def.defaultValue }
+      : {}),
     ...(def.persist !== undefined ? { persist: def.persist } : {}),
     ...(def.source ? { source: { prop: def.source.prop } } : {}),
     usages,
@@ -81,7 +87,11 @@ export function collectVariableDetails(
       out.push(
         detailOf(
           def,
-          { kind: "page", pageId: owner.pageId, pageTitle: node?.name ?? owner.pageId },
+          {
+            kind: "page",
+            pageId: owner.pageId,
+            pageTitle: node?.name ?? owner.pageId,
+          },
           usagesOf(def.id),
         ),
       );
@@ -120,31 +130,22 @@ export const listVariablesTool: ToolExecutor = {
   async execute(args): Promise<ToolExecutionResult> {
     try {
       const projectDefs = getProjectVariableDefinitions();
-      // ADR-248 4e-5: the open catalog Builder's page / element variables (use counts; the
-      // detailed usages list is the old document's).
-      const readHost = getAiReadHost();
-      if (readHost) {
-        const all = readHost.variables(projectDefs);
-        return {
-          success: true,
-          data:
-            readFormat(args) === "detailed"
-              ? all
-              : all.map(({ id, name, type, owner, usedBy }) => ({
-                  id,
-                  name,
-                  type,
-                  owner,
-                  usedBy,
-                })),
-        };
-      }
-      const doc = getActiveCanonicalDocument();
-      const data =
-        readFormat(args) === "detailed"
-          ? collectVariableDetails(doc, projectDefs)
-          : summarizeVariables(doc, projectDefs);
-      return { success: true, data };
+      // ADR-248 4e-5: the open Builder's page / element variables (use counts) — 4e-7: only the
+      // read host (the old document's detailed usages are the old store host's).
+      const all = getAiReadHost()?.variables(projectDefs) ?? [];
+      return {
+        success: true,
+        data:
+          readFormat(args) === "detailed"
+            ? all
+            : all.map(({ id, name, type, owner, usedBy }) => ({
+                id,
+                name,
+                type,
+                owner,
+                usedBy,
+              })),
+      };
     } catch (error) {
       return {
         success: false,

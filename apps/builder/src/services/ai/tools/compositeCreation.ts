@@ -17,10 +17,12 @@
  * - 그 외 leaf → 호출자가 기존 단일 element 경로로 만든다
  */
 import type { InitialCanonicalFields } from "../../../builder/factories/types";
+import { resolveCompositeMode, type CompositeMode } from "./compositeMode";
+
+export { resolveCompositeMode, type CompositeMode };
 import type { CompositionDocument } from "@composition/shared";
 import { findCanonicalNodeById } from "@composition/shared";
 import { ComponentFactory } from "../../../builder/factories/ComponentFactory";
-import { COMPLEX_COMPONENT_TAGS } from "../../../builder/factories/constants";
 import { getReusableCompositeOriginId } from "../../../builder/components/reusableCompositeOrigins";
 import { buildReusableInstanceProps } from "../../../builder/hooks/useElementCreator";
 import { resolveCreationParentId } from "../../../builder/hooks/useElementCreator";
@@ -31,9 +33,6 @@ import {
   COMPONENT_MASTER_ID_MIRROR_FIELD,
 } from "../../../adapters/canonical/componentSemanticsMirror";
 import { useCanonicalDocumentStore } from "../../../builder/stores/canonical/canonicalDocumentStore";
-
-/** 합성 생성 분기 — 팔레트(`useElementCreator`)와 같은 우선순위. */
-export type CompositeMode = "reusable" | "complex" | "leaf";
 
 /**
  * ADR-126: AI 합성 경로가 필요한 노드 모양만 — deprecated `Element` import 금지.
@@ -52,12 +51,6 @@ export interface CompositeCreationNode {
   ref?: string;
   [COMPONENT_ROLE_MIRROR_FIELD]?: "master" | "instance";
   [COMPONENT_MASTER_ID_MIRROR_FIELD]?: string;
-}
-
-export function resolveCompositeMode(type: string): CompositeMode {
-  if (getReusableCompositeOriginId(type)) return "reusable";
-  if (COMPLEX_COMPONENT_TAGS.has(type)) return "complex";
-  return "leaf";
 }
 
 export interface CompositeCreationInput {

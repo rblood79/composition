@@ -16,16 +16,19 @@ import {
   type RowSample,
 } from "../../../services/ai/data/dataChangeSummary";
 import { getDataToolReadModel } from "../../../services/ai/data/dataToolReadModel";
-import { getAiToolReadModel } from "../../../services/ai/tools/canonicalToolReadModel";
+import { getAiReadHost } from "../../../services/ai/aiReadHost";
 import "./DataChangeDiffView.css";
 
-/** store 에서 요약 컨텍스트를 읽는다 — 테스트는 `context` 를 직접 준다. */
+/**
+ * 요약 컨텍스트 — data store 와 열린 Builder 의 문서 (AI read host, ADR-248 4e-5). 테스트는
+ * `context` 를 직접 준다.
+ */
 export function readDataChangeSummaryContext(): DataChangeSummaryContext {
   const { collections, apiEndpoints, usage } = getDataToolReadModel();
-  const { elementsById } = getAiToolReadModel();
   const elementTypes = new Map<string, string>();
-  for (const [id, element] of elementsById) {
-    if (typeof element.type === "string") elementTypes.set(id, element.type);
+  for (const element of getAiReadHost()?.elements() ?? []) {
+    if (typeof element.type === "string")
+      elementTypes.set(element.id, element.type);
   }
   return {
     collections,
