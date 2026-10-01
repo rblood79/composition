@@ -94,6 +94,9 @@ export interface CatalogDropTarget {
   readonly line: BoundingBox;
 }
 
+/** A spacing handle pressed without a drag (the inline number input edits its value). */
+export type CatalogSpacingClick = Readonly<Extract<Gesture, { kind: "spacing" }>>;
+
 type Gesture =
   | {
       kind: "move";
@@ -594,6 +597,9 @@ export class CatalogCanvasGestures {
   finish(): boolean {
     const gesture = this.gesture;
     this.gesture = undefined;
+    // A spacing handle pressed and released without a drag opens the inline number input.
+    this.spacingClick =
+      gesture?.kind === "spacing" && !gesture.active ? gesture : undefined;
     if (!gesture?.active) return false;
     if (gesture.kind === "marquee") {
       if (gesture.additive)
@@ -613,6 +619,26 @@ export class CatalogCanvasGestures {
   }
   cancel(): void {
     this.gesture = undefined;
+    this.spacingClick = undefined;
+  }
+
+  private spacingClick: CatalogSpacingClick | undefined;
+  /** The spacing handle the last release clicked (once: taking it clears it). */
+  takeSpacingClick(): CatalogSpacingClick | undefined {
+    const click = this.spacingClick;
+    this.spacingClick = undefined;
+    return click;
+  }
+  /**
+   * The inline input's value as one step — the same command a drag to that value commits
+   * (every moving side gets it); nothing when it is unchanged or not a length.
+   */
+  spacingValueCommand(
+    click: CatalogSpacingClick,
+    value: number,
+  ): CatalogCommand | undefined {
+    if (!Number.isFinite(value) || value < 0) return undefined;
+    return this.commandOf({ ...click, active: true, value });
   }
 
   /** A structural container (drop target, spacing owner): body, frame, Group, Section, Card… */

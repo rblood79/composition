@@ -35,6 +35,7 @@ import type { AIEffectNodeBounds, SkiaRenderable } from "../skia/types";
 import { renderFlashes, renderGeneratingEffects } from "../skia/aiEffects";
 import type { AIVisualFeedbackState } from "../../../stores/aiVisualFeedback";
 import type { SpacingBand } from "../interaction/spacingGeometry";
+import type { SpacingActiveTarget } from "../interaction/spacingTypes";
 
 export interface CatalogOverlayInputs {
   session: () => CatalogSessionState;
@@ -81,6 +82,8 @@ export interface CatalogOverlayInputs {
         bands: readonly SpacingBand[];
         clipRect: BoundingBox | null;
         hoveredBandId: string | null;
+        /** The band the inline number input edits (its handle stays marked). */
+        active?: SpacingActiveTarget | null;
       }
     | undefined;
 }
@@ -258,7 +261,7 @@ export function catalogOverlayNode(
         if (spacing)
           renderSpacingOverlay(ck, canvas, {
             ...spacing,
-            active: null,
+            active: spacing.active ?? null,
             zoom,
             fontMgr: inputs.fontMgr(),
           });

@@ -400,4 +400,47 @@ describe("ADR-248 Phase 4e-3b Canvas gestures", () => {
     gestures.finish();
     expect(visual()).toMatchObject({ gap: { kind: "set", value: 14 } });
   });
+
+  it("a spacing handle clicked without a drag opens the inline input; its value commits as one step", async () => {
+    const { workspace, gestures, record } = await open();
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: id("list") }],
+        visual: { padding: { kind: "set", value: 8 } },
+      }),
+    );
+    workspace.selectRecords([record("list")]);
+    const top = gestures
+      .spacingBands()
+      .find((band) => band.kind === "padding" && band.side === "top")!;
+    const [tx, ty] = [
+      top.rect.x + top.rect.width / 2,
+      top.rect.y + top.rect.height / 2,
+    ];
+    const visual = () => {
+      const entry = workspace.runtime.graph.getEntry(id("list"));
+      return entry?.kind === "node" ? entry.visual : {};
+    };
+    // A drag is not a click.
+    gestures.beginSpacing(tx, ty, 1);
+    gestures.update(tx, ty + 10, 1);
+    gestures.finish();
+    expect(gestures.takeSpacingClick()).toBeUndefined();
+    // A press released in place (Alt: both sides) is, once.
+    gestures.beginSpacing(tx, ty, 1, { alt: true });
+    expect(gestures.finish()).toBe(false);
+    const click = gestures.takeSpacingClick()!;
+    expect(click.start).toBe(18);
+    expect(gestures.takeSpacingClick()).toBeUndefined();
+    const undo = workspace.runtime.historyLabels.undo.length;
+    workspace.execute(gestures.spacingValueCommand(click, 24)!);
+    expect(visual()).toMatchObject({
+      paddingTop: { kind: "set", value: 24 },
+      paddingBottom: { kind: "set", value: 24 },
+    });
+    expect(workspace.runtime.historyLabels.undo.length).toBe(undo + 1);
+    // Not a length: nothing.
+    expect(gestures.spacingValueCommand(click, -1)).toBeUndefined();
+    expect(gestures.spacingValueCommand(click, Number.NaN)).toBeUndefined();
+  });
 });

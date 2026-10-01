@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -11,7 +12,10 @@ import {
   useActiveScope,
   useKeyboardShortcutsRegistry,
 } from "@/builder/hooks";
-import { CatalogCanvasGestures } from "../../../catalogRuntime/canvasGesture";
+import {
+  CatalogCanvasGestures,
+  type CatalogSpacingClick,
+} from "../../../catalogRuntime/canvasGesture";
 import { catalogCanvasMenuItems } from "../../../catalogRuntime/canvasMenu";
 import { catalogMenuHost } from "../../../catalogRuntime/shortcuts";
 import { catalogPageDropCommand } from "../../../catalogRuntime/canvasPage";
@@ -43,6 +47,7 @@ import { viewportState } from "../viewport/viewportState";
 import { useViewportSyncStore } from "../stores";
 import { catalogUnionRect, fitCatalogPageFrame } from "./catalogViewport";
 import { catalogBadgeAt, createCatalogBadges } from "./catalogBadges";
+import { CatalogSpacingInput } from "./CatalogSpacingInput";
 import type { CatalogOverflowTree } from "../../../catalogRuntime/canvasOverflow";
 import type { DataBadgeBounds } from "../skia/bindingBadgeRenderer";
 import { useDataStore } from "../../../stores/data";
@@ -148,6 +153,21 @@ export function CatalogCanvas({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [gestureSession] = useState(() => new CanvasGestureSession());
   const sceneRef = useRef<CatalogCanvasScene | undefined>(undefined);
+  /** The spacing handle a click opened the inline number input for. */
+  const [spacingInput, setSpacingInput] = useState<CatalogSpacingClick | null>(
+    null,
+  );
+  const spacingInputRef = useRef<CatalogSpacingClick | null>(null);
+  const spacingCommitRef = useRef<
+    ((click: CatalogSpacingClick, value: number) => void) | undefined
+  >(undefined);
+  /** The overlay's own redraw (the effect's `invalidateOverlay`, for state kept outside it). */
+  const invalidateOverlayRef = useRef<(() => void) | undefined>(undefined);
+  const closeSpacingInput = useCallback(() => {
+    spacingInputRef.current = null;
+    setSpacingInput(null);
+    invalidateOverlayRef.current?.();
+  }, []);
   /** The selected scroll/auto box takes the wheel (scrolls it) instead of the camera pan. */
   const wheelRouteRef = useRef<
     ((deltaX: number, deltaY: number) => boolean) | undefined
@@ -286,6 +306,13 @@ export function CatalogCanvas({
             bands: gestures.spacingBands(),
             clipRect: scene.stream.hitBoundsMap.get(owner.id) ?? null,
             hoveredBandId: spacingHover,
+            active: spacingInputRef.current
+              ? {
+                  bandId: spacingInputRef.current.band.id,
+                  bandIds: spacingInputRef.current.bandIds,
+                  mode: "input" as const,
+                }
+              : null,
           };
         },
       }),
@@ -296,6 +323,7 @@ export function CatalogCanvas({
       overlayVersion += 1;
       scheduler.invalidate();
     };
+    invalidateOverlayRef.current = invalidateOverlay;
     const picking = new CatalogCanvasPicking({
       get records() {
         return workspace.root.domInputs;
@@ -514,7 +542,25 @@ export function CatalogCanvas({
     // The record whose text is edited inline: the Canvas leaves its text out while the DOM field
     // shows it (the renderer's editing element skips that node's picture cache).
     let editingText: string | undefined;
+    spacingCommitRef.current = (click, value) => {
+      const command = gestures.spacingValueCommand(click, value);
+      if (!command) return;
+      try {
+        workspace.execute(command);
+      } catch (error) {
+        callbacks.current.onError?.(error);
+      }
+    };
     const unsubscribeSession = workspace.session.subscribe(() => {
+      // Another selection closes the inline spacing input (its blur no longer applies).
+      const input = spacingInputRef.current;
+      const selection = workspace.session.getSnapshot().selection;
+      if (
+        input &&
+        (selection.length !== 1 ||
+          selection[0].identity !== input.item.identity)
+      )
+        closeSpacingInput();
       const editing = workspace.session.getSnapshot().textEditing?.identity;
       if (editing !== editingText) {
         editingText = editing;
@@ -748,6 +794,11 @@ export function CatalogCanvas({
           } catch (error) {
             callbacks.current.onError?.(error);
           }
+          const click = gestures.takeSpacingClick();
+          if (click) {
+            spacingInputRef.current = click;
+            setSpacingInput(click);
+          }
         }
         if (deferredSelect) workspace.selectRecords([deferredSelect]);
         deferredSelect = undefined;
@@ -920,6 +971,8 @@ export function CatalogCanvas({
       unsubscribeRoot();
       unsubscribeData();
       unsubscribeAi();
+      invalidateOverlayRef.current = undefined;
+      spacingCommitRef.current = undefined;
       wheelRouteRef.current = undefined;
       guides.dispose();
       guidesRef.current = undefined;
@@ -1024,6 +1077,17 @@ export function CatalogCanvas({
         items={menu?.items ?? []}
         onClose={() => setMenu(null)}
       />
+      {spacingInput && (
+        <CatalogSpacingInput
+          band={spacingInput.band}
+          startValue={spacingInput.start}
+          onCommit={(value) => {
+            spacingCommitRef.current?.(spacingInput, value);
+            closeSpacingInput();
+          }}
+          onCancel={closeSpacingInput}
+        />
+      )}
       <CatalogTextEditor
         workspace={workspace}
         boundsOf={(identity) =>
