@@ -44,12 +44,13 @@ import { getRegistryVersion } from "../skia/useSkiaNode";
 import { ViewportControlBridge } from "../viewport";
 import { getViewportController } from "../viewport/ViewportController";
 import { viewportState } from "../viewport/viewportState";
-import { zoomViewportAtContainerCenter } from "../viewport/viewportActions";
 import { useViewportSyncStore } from "../stores";
 import { useCompareModeStore } from "../stores/compareMode";
 import { catalogUnionRect, fitCatalogPageFrame } from "./catalogViewport";
 import { catalogBadgeAt, createCatalogBadges } from "./catalogBadges";
 import { CatalogSpacingInput } from "./CatalogSpacingInput";
+import { CatalogActionBar } from "./CatalogActionBar";
+import { catalogMenuView } from "./catalogMenuView";
 import type { CatalogOverflowTree } from "../../../catalogRuntime/canvasOverflow";
 import type { DataBadgeBounds } from "../skia/bindingBadgeRenderer";
 import { useDataStore } from "../../../stores/data";
@@ -159,6 +160,10 @@ export function CatalogCanvas({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [gestureSession] = useState(() => new CanvasGestureSession());
   const sceneRef = useRef<CatalogCanvasScene | undefined>(undefined);
+  /** The action bar's ⋯: the Canvas context menu over the selection at a screen point. */
+  const openMenuRef = useRef<
+    ((clientX: number, clientY: number) => void) | undefined
+  >(undefined);
   /** The spacing handle a click opened the inline number input for. */
   const [spacingInput, setSpacingInput] = useState<CatalogSpacingClick | null>(
     null,
@@ -910,6 +915,13 @@ export function CatalogCanvas({
     canvas.addEventListener("pointermove", onPointerMove);
     canvas.addEventListener("pointerleave", onPointerLeave);
     // Context menu: the element under the pointer (selected first), or the page background.
+    // The Canvas menu's host: the selection's commands and the view items.
+    const menuHost = () =>
+      catalogMenuHost(
+        workspace,
+        (error) => callbacks.current.onError?.(error),
+        catalogMenuView(workspace),
+      );
     const onContextMenu = (event: MouseEvent) => {
       event.preventDefault();
       if (gestures.pending) return;
@@ -927,31 +939,7 @@ export function CatalogCanvas({
         picking.click(x, y);
       const surface = onElement ? "canvas-element" : "canvas-empty";
       const items = catalogCanvasMenuItems(
-        catalogMenuHost(
-          workspace,
-          (error) => callbacks.current.onError?.(error),
-          {
-            zoomToFit: () => {
-              const rect = catalogUnionRect([
-                ...workspace.root.pageFrameRects().values(),
-              ]);
-              const { containerSize } = useViewportSyncStore.getState();
-              if (rect && containerSize.width && containerSize.height)
-                fitCatalogPageFrame(rect, containerSize);
-            },
-            zoom100: () => zoomViewportAtContainerCenter(1),
-            rulers: useStore.getState().showRulers,
-            toggleRulers: () => {
-              const settings = useStore.getState();
-              settings.setShowRulers(!settings.showRulers);
-            },
-            snap: useStore.getState().snapToObjects,
-            toggleSnap: () => {
-              const settings = useStore.getState();
-              settings.setSnapToObjects(!settings.snapToObjects);
-            },
-          },
-        ),
+        menuHost(),
         surface,
         onElement ? target!.id : record?.id,
       );
@@ -966,6 +954,25 @@ export function CatalogCanvas({
         },
         items,
       });
+    };
+    openMenuRef.current = (clientX, clientY) => {
+      const target = workspace.session.getSnapshot().selection[0]?.identity;
+      if (!target) return;
+      const items = catalogCanvasMenuItems(
+        menuHost(),
+        "canvas-element",
+        target,
+      );
+      if (items.length)
+        setMenu({
+          request: {
+            surface: "canvas-element",
+            clientX,
+            clientY,
+            targetElementIds: [target],
+          },
+          items,
+        });
     };
     canvas.addEventListener("contextmenu", onContextMenu);
     canvas.addEventListener("dblclick", onDoubleClick);
@@ -1018,6 +1025,7 @@ export function CatalogCanvas({
       canvas.removeEventListener("pointerleave", onPointerLeave);
       canvas.removeEventListener("dblclick", onDoubleClick);
       canvas.removeEventListener("contextmenu", onContextMenu);
+      openMenuRef.current = undefined;
       window.removeEventListener("pointermove", onWindowPointerMove);
       window.removeEventListener("pointerup", onPointerEnd);
       window.removeEventListener("pointercancel", onPointerEnd);
@@ -1135,6 +1143,15 @@ export function CatalogCanvas({
         items={menu?.items ?? []}
         onClose={() => setMenu(null)}
       />
+      <div className="workspace-overlay">
+        <CatalogActionBar
+          workspace={workspace}
+          onError={onError}
+          openMenu={(clientX, clientY) =>
+            openMenuRef.current?.(clientX, clientY)
+          }
+        />
+      </div>
       {spacingInput && (
         <CatalogSpacingInput
           band={spacingInput.band}

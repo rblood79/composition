@@ -37,6 +37,7 @@ import { useContextMenu } from "../contextMenu";
 import type { ContextMenuItem } from "../contextMenu/types";
 import { ShortcutTooltip } from "../ShortcutTooltip";
 import type { ActionBarModel } from "./actionBarPolicy";
+import type { ActionBarPageRectOf } from "./useActionBarPlacement";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 
 const ResetIcon = ACTION_ICONS.reset;
@@ -220,8 +221,24 @@ const OptionsMenu = memo(function OptionsMenu({
   );
 });
 
+/** What the bar shows and runs — the old stores' selection, or the catalog Builder's. */
+export interface ActionBarSource {
+  isEditing: boolean;
+  selectedIds: readonly string[];
+  /** One page body selected: page chrome only (More + placement options). */
+  pageSelection: boolean;
+  /** The page the bar anchors below (automatic placement). */
+  selectedPageId: string | null;
+  /** Every selected id is in the document (an undo can take one away). */
+  resolved: boolean;
+  model: ActionBarModel | null;
+  /** ⋯ — open the full context menu at the button. */
+  openOverflow: (target: Element | null) => void;
+  /** Page frames in scene px (the catalog's; absent = the old stores' page positions). */
+  pageRectOf?: ActionBarPageRectOf;
+}
+
 export function ContextualActionBar() {
-  const { t } = useI18n();
   const isEditing = useCanvasStore((state) => state.isEditing);
   const selectedElementIds = useStore((state) => state.selectedElementIds);
   const pageSelection = useStore((state) => {
@@ -265,19 +282,6 @@ export function ContextualActionBar() {
     state.selectedElementIds.every((id) => state.elementsMap.has(id)),
   );
   const contextMenu = useContextMenu();
-  const [barNode, setBarNode] = useState<HTMLDivElement | null>(null);
-  const [handleNode, setHandleNode] = useState<HTMLElement | null>(null);
-  const attachBar = useCallback((node: HTMLDivElement | null) => {
-    setBarNode(node);
-  }, []);
-  const attachHandle = useCallback((node: HTMLElement | null) => {
-    setHandleNode(node);
-  }, []);
-  const placement = useActionBarPlacement(selectedPageId, {
-    barNode,
-    handleNode,
-  });
-
   // 182 provider 는 BuilderCanvas 의 interactive map 을 읽는데, 그 ref 는
   // BuilderCanvas 의 useEffect(BuilderCanvas.tsx:756) 에서 갱신된다. 같은 store
   // 변경에 대해 render 단계(useMemo)에서 읽으면 한 단계 낡은 map 을 보므로
@@ -297,10 +301,6 @@ export function ContextualActionBar() {
     });
     // elements 는 재산출 트리거로만 쓴다 (항목 산출은 182 provider 가 담당)
   }, [selectedElementIds, selectionResolved, pageSelection, elements]);
-  // 요소→page 전환 직후 effect가 이전 요소 model을 비우기 전에도 stale 액션을
-  // 한 commit 노출하지 않는다. page context는 More + 위치 옵션만 사용한다.
-  const visibleModel = pageSelection ? null : model;
-
   const openOverflow = useCallback(
     (target: Element | null) => {
       const rect = target?.getBoundingClientRect();
@@ -313,6 +313,46 @@ export function ContextualActionBar() {
     },
     [contextMenu, selectedElementIds],
   );
+
+  return (
+    <ActionBarView
+      isEditing={isEditing}
+      selectedIds={selectedElementIds}
+      pageSelection={pageSelection}
+      selectedPageId={selectedPageId}
+      resolved={selectionResolved}
+      model={model}
+      openOverflow={openOverflow}
+    />
+  );
+}
+
+export function ActionBarView({
+  isEditing,
+  pageSelection,
+  selectedPageId,
+  resolved: selectionResolved,
+  model,
+  openOverflow,
+  pageRectOf,
+}: ActionBarSource) {
+  const { t } = useI18n();
+  const [barNode, setBarNode] = useState<HTMLDivElement | null>(null);
+  const [handleNode, setHandleNode] = useState<HTMLElement | null>(null);
+  const attachBar = useCallback((node: HTMLDivElement | null) => {
+    setBarNode(node);
+  }, []);
+  const attachHandle = useCallback((node: HTMLElement | null) => {
+    setHandleNode(node);
+  }, []);
+  const placement = useActionBarPlacement(selectedPageId, {
+    barNode,
+    handleNode,
+    pageRectOf,
+  });
+  // 요소→page 전환 직후 effect가 이전 요소 model을 비우기 전에도 stale 액션을
+  // 한 commit 노출하지 않는다. page context는 More + 위치 옵션만 사용한다.
+  const visibleModel = pageSelection ? null : model;
 
   const { togglePinned, resetPosition, hide } = placement;
   const onOption = useCallback(
