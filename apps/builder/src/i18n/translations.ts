@@ -429,7 +429,7 @@ const koKR: TranslationKeys = {
       deletePage: "페이지 삭제",
       duplicatePage: "페이지 복제",
       movePage: "페이지 이동",
-      alignPages: "페이지 정렬",
+      alignPages: "화면 정렬",
       renamePage: "페이지 이름 변경",
       pageRoute: "페이지 경로",
       parentPage: "상위 페이지",

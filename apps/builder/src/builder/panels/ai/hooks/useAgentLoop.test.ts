@@ -337,6 +337,7 @@ describe("AI 작업 중 효과 (G.3) 의 대상", () => {
   it("catalog Builder 면 AI read host 의 선택 (그리는 레코드) 에 generating 효과를 건다", async () => {
     const off = setAiReadHost({
       selectedIds: () => ["record-1"],
+      currentPageId: () => "page-1",
     } as unknown as AiReadHost);
     try {
       const { result } = renderHook(() => useAgentLoop(), { wrapper });
@@ -344,6 +345,26 @@ describe("AI 작업 중 효과 (G.3) 의 대상", () => {
         await result.current.runAgent("버튼 색 바꿔줘");
       });
       expect(scripted.generating).toEqual([["record-1"]]);
+    } finally {
+      off();
+    }
+  });
+
+  it("catalog Builder 의 선택이 턴 시작 뒤 바뀌면 그 턴은 실행되지 않는다", async () => {
+    scripted.direct = true;
+    let reads = 0;
+    // The first read is the turn's selection; the check before the compiler sees another one.
+    const off = setAiReadHost({
+      selectedIds: () => (reads++ === 0 ? ["record-1"] : ["record-2"]),
+      currentPageId: () => "page-1",
+    } as unknown as AiReadHost);
+    try {
+      const { result } = renderHook(() => useAgentLoop(), { wrapper });
+      await act(async () => {
+        await result.current.runAgent("버튼 생성해");
+      });
+      const state = useConversationStore.getState();
+      expect(state.messages.some((m) => m.role === "tool")).toBe(false);
     } finally {
       off();
     }

@@ -14,6 +14,7 @@ export class CatalogStorageError extends Error {
       | "PROJECT_NOT_FOUND"
       | "REVISION_CONFLICT"
       | "UNSUPPORTED_PROJECT_FORMAT"
+      | "QUOTA_EXCEEDED"
       | "STORAGE_FAILURE",
   ) {
     super(code);
@@ -58,10 +59,16 @@ export interface StorageHooks {
   afterWritesBeforeCommit?: (commit: CatalogCommit) => void;
 }
 
-function failure(error: unknown): CatalogStorageError {
-  return error instanceof CatalogStorageError
-    ? error
-    : new CatalogStorageError("STORAGE_FAILURE");
+/** An IndexedDB error as a storage error (exported for the quota mapping test). */
+export function failure(error: unknown): CatalogStorageError {
+  if (error instanceof CatalogStorageError) return error;
+  // The browser's storage quota (the header asks the user to export / free space).
+  const name = (error as { name?: string } | null)?.name;
+  return new CatalogStorageError(
+    name === "QuotaExceededError" || name === "NS_ERROR_DOM_QUOTA_REACHED"
+      ? "QUOTA_EXCEEDED"
+      : "STORAGE_FAILURE",
+  );
 }
 
 function transactionDone(transaction: IDBTransaction): Promise<void> {

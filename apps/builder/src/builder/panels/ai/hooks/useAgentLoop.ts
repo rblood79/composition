@@ -37,6 +37,21 @@ const PROGRESS_EVENTS = new Set([
   "repair-attempt",
 ]);
 
+/**
+ * The page and primary selection a turn was asked about: the catalog Builder's AI read host (the
+ * drawn record ids), else the old store. A turn whose selection changed before it runs is dropped.
+ */
+function readSelection(): { pageId: string | null; selectedId: string | null } {
+  const host = getAiReadHost();
+  if (host)
+    return {
+      pageId: host.currentPageId(),
+      selectedId: host.selectedIds()[0] ?? null,
+    };
+  const state = useStore.getState();
+  return { pageId: state.currentPageId, selectedId: state.selectedElementId };
+}
+
 export function useAgentLoop() {
   const { t } = useI18n();
   const {
@@ -95,9 +110,9 @@ export function useAgentLoop() {
       if (requestRef.current) return;
       const request = new AbortController();
       requestRef.current = request;
-      const initialSelection = useStore.getState();
-      const requestPageId = initialSelection.currentPageId;
-      const requestSelectedId = initialSelection.selectedElementId;
+      const initialSelection = readSelection();
+      const requestPageId = initialSelection.pageId;
+      const requestSelectedId = initialSelection.selectedId;
       try {
         // 턴 시작 시점에 스토어에서 조립한다 — 패널 effect 의 실행 여부에 걸리지 않는다
         // (`services/ai/builderContext.ts` 주석: 감춰진 패널에서 제출이 조용히 무시되던 원인).
@@ -116,11 +131,11 @@ export function useAgentLoop() {
         }
         if (!disabled) {
           setStreamingStatus(true);
-          const currentSelection = useStore.getState();
+          const currentSelection = readSelection();
           if (
             request.signal.aborted ||
-            currentSelection.currentPageId !== requestPageId ||
-            currentSelection.selectedElementId !== requestSelectedId
+            currentSelection.pageId !== requestPageId ||
+            currentSelection.selectedId !== requestSelectedId
           )
             return;
           const compiled = await runCompilerRequest(

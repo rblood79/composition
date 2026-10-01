@@ -93,6 +93,10 @@ import { BuilderHeader } from "./BuilderHeader";
 import { BuilderViewport } from "./BuilderViewport";
 import { useExecutionPolicyScheduler } from "../panels/datatable/hooks/useExecutionPolicyScheduler";
 import { registerVariableOwnerPageSource } from "../stores/utils/variableOwnerMigration";
+import { Button } from "@composition/shared/components";
+import { watchCatalogStorageQuota } from "../catalogRuntime/storageQuota";
+import { getDB } from "../../lib/db";
+import { requestPersistenceOnce } from "../../lib/storage/storageProtection";
 import {
   catalogViewportActions,
   useCatalogGlobalShortcuts,
@@ -126,6 +130,8 @@ export function CatalogBuilderCore() {
   const [state, setState] = useState<OpenState>({ kind: "opening" });
   // An imported project file replaced the stored document: open it again (fresh history).
   const [openCount, setOpenCount] = useState(0);
+  /** Boot progress (%) over the open path's stages (the old Builder's loading bar). */
+  const [bootProgress, setBootProgress] = useState(0);
   const openPageRef = useRef<string | undefined>(undefined);
   const [presented, setPresented] = useState(false);
 
@@ -138,20 +144,29 @@ export function CatalogBuilderCore() {
     let cancelled = false;
     let opened: CatalogWorkspace | undefined;
     let restorePageSource: (() => void) | undefined;
+    const stage = (progress: number) => {
+      if (!cancelled) setBootProgress(progress);
+    };
     (async () => {
+      stage(5);
       const projectId = catalogProjectIdOf(routeId);
       if (!projectId) throw new CatalogStorageError("PROJECT_NOT_FOUND");
       // Layout engine, CanvasKit and fonts first: the root measures text with CanvasKit paragraphs.
       await initAllWasm();
+      stage(30);
       getCanvasKit();
       await loadBuiltinFontsToSkia();
+      stage(45);
       await loadAllCustomFontsToSkia();
+      stage(55);
       const library = await loadCatalogProductLibrary();
+      stage(65);
       const storage = new CatalogStorage();
       const graph = new CatalogGraph(
         await storage.load(projectId, library),
         library,
       );
+      stage(75);
       // ADR-214 owner rule C (one page → it owns a page variable without `page_id`): the
       // document's pages, not the old store's (empty here).
       restorePageSource = registerVariableOwnerPageSource(() => {
@@ -165,6 +180,8 @@ export function CatalogBuilderCore() {
         console.error("[CatalogBuilder] data store init failed:", error);
       }
       if (cancelled) return;
+      // The rest is the Canvas's first frame (the overlay goes when it is drawn).
+      stage(90);
       opened = new CatalogWorkspace(graph, storage, {
         engine: createLayoutEngine(),
         viewport: CANVAS_VIEWPORT.desktop,
@@ -310,6 +327,21 @@ export function CatalogBuilderCore() {
     return history.subscribe(clear);
   }, [workspace, snapshots]);
   useCatalogGlobalShortcuts(workspace, handleSceneError);
+  // ADR-235 Phase 5 on the catalog storage: a save over the quota clears the caches and retries
+  // once, then tells the user; the first save asks the browser to keep the site's storage.
+  useEffect(() => {
+    if (!workspace) return;
+    return watchCatalogStorageQuota(workspace.autosave, {
+      clearCaches: async () => (await getDB()).clearCaches(),
+      notifyQuotaExceeded: () =>
+        useToastStore
+          .getState()
+          .showToast("error", t("header.storageQuotaExceeded"), {
+            duration: 12000,
+          }),
+      requestPersistence: () => void requestPersistenceOnce(),
+    });
+  }, [workspace, t]);
   // ADR-218 interval policy: data-store collections poll their linked endpoint (rows reach the
   // Canvas through the data-store subscription below — `refreshRows`).
   useExecutionPolicyScheduler();
@@ -500,6 +532,13 @@ export function CatalogBuilderCore() {
         <div className="loading-overlay">
           <div className="loading-error" role="alert">
             <span>{state.message}</span>
+            <Button
+              variant="primary"
+              size="sm"
+              onPress={() => reopen(openPageRef.current)}
+            >
+              {t("canvas.reload")}
+            </Button>
           </div>
         </div>
       ) : (
@@ -509,6 +548,23 @@ export function CatalogBuilderCore() {
               <div className="loading-status">
                 <div className="loading-text">
                   {t("workspace.canvasInitializing")}
+                </div>
+                <div className="loading-progress">
+                  <progress
+                    className="loading-progress-native"
+                    aria-label={t("workspace.canvasInitializing")}
+                    max={100}
+                    value={bootProgress}
+                  />
+                  <div
+                    className="loading-progress-fill"
+                    aria-hidden
+                    style={{ transform: `scaleX(${bootProgress / 100})` }}
+                  />
+                </div>
+                {/* A new node per value: centered digits do not shift the layout (ADR-247 HC2). */}
+                <div key={bootProgress} className="loading-percent">
+                  {bootProgress}%
                 </div>
               </div>
             </div>
