@@ -56,6 +56,7 @@ import type { DataBadgeBounds } from "../skia/bindingBadgeRenderer";
 import { useDataStore } from "../../../stores/data";
 import { useAIVisualFeedbackStore } from "../../../stores/aiVisualFeedback";
 import { getSkiaNode } from "../skia/useSkiaNode";
+import { dismissCanvasSelectionPanels } from "../../../layout/panelWorkspaceVisibility";
 import { useDataTableEditorStore } from "../../../panels/datatable/stores/dataTableEditorStore";
 import {
   bindCatalogCamera,
@@ -812,6 +813,9 @@ export function CatalogCanvas({
         }
       } else {
         const picked = picking.click(x, y, { additive, deep });
+        // Off every page ends the selection context: the selection's panels close (the old
+        // Canvas's background press — Data · Theme · Settings stay open).
+        if (!picked && !additive) dismissCanvasSelectionPanels();
         // The page background (a page body or off every page) starts a marquee.
         if (
           !picked ||
