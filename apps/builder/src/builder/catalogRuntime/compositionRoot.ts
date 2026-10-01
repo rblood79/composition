@@ -183,6 +183,10 @@ export interface CatalogConsumerNode {
   readonly inheritedText?: Readonly<Record<string, string | number | boolean>>;
   /** Fill intent projected against the parent box (`fillLayout.ts`); Rust and DOM apply it. */
   readonly fillLayout?: Readonly<Record<string, string | number>>;
+  /** A data row's index on the row's record (`ResolvedCatalogNode.rowIndex`). */
+  readonly rowIndex?: number;
+  /** A row owner that grows with its rows: the collection's row count (`ResolvedCatalogNode.rowCount`). */
+  readonly rowCount?: number;
 }
 /** Text keys a text leaf takes from its nearest declaring ancestor (CSS inherited properties). */
 export const CATALOG_INHERITED_TEXT_KEYS = [
@@ -448,6 +452,12 @@ export interface CatalogRootOptions {
   colorMode?: "light" | "dark";
   /** Data rows of bound collections (the data store); absent = template items only. */
   rows?: CatalogRowSource;
+  /**
+   * The Builder's sample policy (ADR-157): a row owner that grows with its rows shows its first
+   * `rowSample` rows; the later rows keep their layout box (the owner's height stays the DOM's)
+   * but the Canvas does not draw or pick them and marks their area "+N more". Absent = every row.
+   */
+  rowSample?: number;
   /**
    * `{{ name }}` values: project variables and runtime values (the Preview). Absent = the
    * document's variables at their defaults (the Canvas's designed asymmetry, ADR-214 R2).
@@ -962,6 +972,8 @@ function sameRecord(
     left.name === right.name &&
     left.placeholder === right.placeholder &&
     left.hidden === right.hidden &&
+    left.rowIndex === right.rowIndex &&
+    left.rowCount === right.rowCount &&
     sameFields(left.derivedProps ?? {}, right.derivedProps ?? {}) &&
     sameFields(left.inheritedText ?? {}, right.inheritedText ?? {}) &&
     sameFields(left.fillLayout ?? {}, right.fillLayout ?? {}) &&
@@ -993,6 +1005,8 @@ export class CatalogCompositionRoot {
   /** Theme color mode (a switch builds a new root, like a breakpoint switch). */
   readonly colorMode: "light" | "dark";
   private readonly rows?: CatalogRowSource;
+  /** `CatalogRootOptions.rowSample`. */
+  readonly rowSample?: number;
   private readonly stateSource?: CatalogStateSource;
   /** The definition drawn instead of the pages (`CatalogRootOptions.definitionView`). */
   readonly definitionView?: EntryId<"definition">;
@@ -1053,6 +1067,7 @@ export class CatalogCompositionRoot {
     this.autoColumns = options.autoColumns;
     this.colorMode = options.colorMode ?? "light";
     this.rows = options.rows;
+    this.rowSample = options.rowSample;
     this.stateSource = options.state;
     this.definitionView = options.definitionView;
     // Definite-zero heights shrink their column children (CSS-FLEXBOX-1 §9.8). The engine keeps
@@ -1895,6 +1910,10 @@ export class CatalogCompositionRoot {
       regions: top.regions ?? target.regions,
       placeholder: top.placeholder ?? target.placeholder,
       ...(target.displayState ? { displayState: target.displayState } : {}),
+      ...(top.rowIndex !== undefined ? { rowIndex: top.rowIndex } : {}),
+      ...((target.rowCount ?? top.rowCount) !== undefined
+        ? { rowCount: target.rowCount ?? top.rowCount }
+        : {}),
       instancePath: top.instancePath,
       ...(layers.length > 1
         ? {
@@ -2726,7 +2745,8 @@ export class CatalogCompositionRoot {
   /**
    * A value edit a bound Table's projected rows read (`projectTableRows`): the Table's own props
    * (height mode · height decide how many rows show) or a node it owns (a header Column's key
-   * decides each cell). Those take the structure path — the row records come and go.
+   * decides each cell). Those take the structure path — the row records come and go. So does a
+   * bound node's own height (a bound list samples its rows only while it grows with them).
    */
   private touchesTableRows(result: CatalogTransactionResult): boolean {
     const graph = this.runtime.graph;
@@ -2741,6 +2761,16 @@ export class CatalogCompositionRoot {
     };
     for (const id of result.changedIds)
       if (boundTable(id) || boundTable(graph.ownerOf(id))) return true;
+    // A bound list's own height decides whether it samples its rows (`rowCount`).
+    const HEIGHT_KEYS = new Set(["height", "maxHeight"]);
+    for (const op of result.forward)
+      if (
+        (op.kind === "patchNodeVisual" || op.kind === "patchNodeSizing") &&
+        HEIGHT_KEYS.has(op.key)
+      ) {
+        const entry = graph.getEntry(op.id);
+        if (entry?.kind === "node" && entry.binding) return true;
+      }
     return false;
   }
 

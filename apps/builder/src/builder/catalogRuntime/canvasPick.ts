@@ -24,6 +24,8 @@ export function pickTopmostRecord(
   x: number,
   y: number,
   candidates: Iterable<string>,
+  /** Records drawn boxes that picking skips (`false`) — rows the sample does not draw. */
+  pickable?: (id: string) => boolean,
 ): string | undefined {
   let top: string | undefined;
   let topStart = -1;
@@ -31,6 +33,7 @@ export function pickTopmostRecord(
     const box = stream.hitBoundsMap.get(id);
     if (
       !box ||
+      (pickable && !pickable(id)) ||
       x < box.x ||
       y < box.y ||
       x > box.x + box.width ||
@@ -144,6 +147,8 @@ export interface CatalogCanvasPickHost {
   readonly stream: Pick<RenderCommandStream, "hitBoundsMap" | "subtreeSpans">;
   /** Candidate records under a scene point (the spatial index). */
   query(x: number, y: number): Iterable<string>;
+  /** `false` = a laid-out record the Canvas does not draw (a row past the sample). */
+  pickable?(id: string): boolean;
   /** Select drawn records (their Layers rows' targets). */
   selectRecords(ids: readonly string[], options?: { additive?: boolean }): void;
   /** The selection item of one drawn record (`undefined` = not an element row). */
@@ -159,7 +164,13 @@ export class CatalogCanvasPicking {
   constructor(private readonly host: CatalogCanvasPickHost) {}
 
   pick(x: number, y: number): string | undefined {
-    return pickTopmostRecord(this.host.stream, x, y, this.host.query(x, y));
+    return pickTopmostRecord(
+      this.host.stream,
+      x,
+      y,
+      this.host.query(x, y),
+      this.host.pickable && ((id) => this.host.pickable!(id)),
+    );
   }
 
   /** The record a click at the point selects in the current context (and the context it needs). */

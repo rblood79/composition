@@ -76,6 +76,14 @@ export interface ResolvedCatalogNode {
    * template position's identity): the record identity's row segment.
    */
   rowKey?: string;
+  /** A data row's index (the delivered rows' order) on the row's root node. */
+  rowIndex?: number;
+  /**
+   * On a bound ListBox/GridList, or a bound Table's body, that grows with its rows (no bounded
+   * height — ADR-157 sample policy): the collection's row count. The Builder Canvas shows the first
+   * rows and marks the rest ("+N more"); the DOM shows every row.
+   */
+  rowCount?: number;
   children: readonly ResolvedCatalogNode[];
 }
 /** A data row a bound collection shows (the rows stay in the data store — H1). */
@@ -93,7 +101,36 @@ export interface CatalogBoundRow {
 export type CatalogRowSource = (
   binding: DataBindingRef,
   kind?: "items" | "records",
-) => readonly CatalogBoundRow[] | undefined;
+) => CatalogBoundRows | undefined;
+/** A binding's delivered rows; `total` = the collection's row count when it holds more (the window). */
+export type CatalogBoundRows = readonly CatalogBoundRow[] & {
+  readonly total?: number;
+};
+/** Bound collections whose rows the Builder samples when they grow with them (ADR-157). */
+const SAMPLED_ROW_OWNERS: ReadonlySet<string> = new Set([
+  "ListBox",
+  "GridList",
+]);
+/** A box that grows with its content: no bounded height (the old sample policy's `viewportHeight == null`). */
+function growsWithRows(
+  visual: Readonly<Record<string, Scalar>>,
+  sizing: Readonly<Record<string, number | null>>,
+): boolean {
+  const open = (value: unknown) =>
+    value === undefined ||
+    value === null ||
+    value === "auto" ||
+    value === "fit-content" ||
+    value === "none";
+  return (
+    sizing.height == null &&
+    sizing.maxHeight == null &&
+    open(visual.height) &&
+    open(visual.maxHeight)
+  );
+}
+const rowCountOf = (rowSet: readonly CatalogBoundRow[]) =>
+  (rowSet as CatalogBoundRows).total ?? rowSet.length;
 /**
  * Item types a bound collection repeats per data row (its first item position is the row
  * template; the positions may sit under a list part — TagGroup's TagList).
@@ -741,7 +778,7 @@ export function resolveCatalogNode(
         children,
       };
     };
-    const rowsOut = shown.map((row) => {
+    const rowsOut = shown.map((row, rowIndex) => {
       const rowProps: Props = { id: row.key };
       const rowContext: ParentContext = {
         definitionId: TABLE_ROW_DEFINITION,
@@ -769,14 +806,17 @@ export function resolveCatalogNode(
           width,
         );
       });
-      return synthesize(
-        TABLE_ROW_DEFINITION,
-        rowProps,
-        `${CATALOG_TABLE_ROW_SOURCE}:row` as TemplateId,
-        bodyContext,
-        row.key,
-        cells,
-      );
+      return {
+        ...synthesize(
+          TABLE_ROW_DEFINITION,
+          rowProps,
+          `${CATALOG_TABLE_ROW_SOURCE}:row` as TemplateId,
+          bodyContext,
+          row.key,
+          cells,
+        ),
+        rowIndex,
+      };
     });
     return {
       ...projected,
@@ -788,6 +828,8 @@ export function resolveCatalogNode(
               ...body,
               // The rows past a fixed height are cut (the DOM's virtualizer scrolls them).
               visual: { ...body.visual, overflow: "hidden" },
+              // The other modes grow with every row (the Builder samples them).
+              ...(shown === rowSet ? { rowCount: rowCountOf(rowSet) } : {}),
               children: rowsOut,
             }
           : child === header
@@ -1090,10 +1132,10 @@ export function resolveCatalogNode(
             { row: data, rowStart: true },
           );
           if (projected)
-            push(
-              children,
-              index === 0 ? projected : withRowKey(projected, data.key),
-            );
+            push(children, {
+              ...(index === 0 ? projected : withRowKey(projected, data.key)),
+              rowIndex: index,
+            });
         });
         continue;
       }
@@ -1153,6 +1195,12 @@ export function resolveCatalogNode(
         : {}),
       slot: template.slot,
       ...(displayState ? { displayState } : {}),
+      ...(rowSet &&
+      itemPositions.length > 0 &&
+      SAMPLED_ROW_OWNERS.has(templateTypeName(templateId)) &&
+      growsWithRows(visual, sizing)
+        ? { rowCount: rowCountOf(rowSet) }
+        : {}),
       children,
     };
   };

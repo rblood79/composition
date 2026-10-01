@@ -176,11 +176,15 @@ describe("ADR-248 4e bound Table rows", () => {
     expect(geometry(firstCell.id)!.width).toBe(150);
     const firstRow = all.find((record) => typeOf(workspace, record) === "Row")!;
     // One line like the header (this environment measures no text: both are padding only).
-    expect(geometry(firstRow.id)!.height).toBe(geometry(firstColumn.id)!.height);
+    expect(geometry(firstRow.id)!.height).toBe(
+      geometry(firstColumn.id)!.height,
+    );
     // Rows past the height are cut (Table.css clips the table; the body holds the rows).
     expect(records.get(table)!.visual.overflow).toBe("hidden");
     // The body holds the rows below the header.
-    const body = all.find((record) => typeOf(workspace, record) === "TableBody")!;
+    const body = all.find(
+      (record) => typeOf(workspace, record) === "TableBody",
+    )!;
     expect(geometry(body.id)!.height).toBeGreaterThan(0);
     workspace.dispose();
   });
@@ -226,6 +230,19 @@ describe("ADR-248 4e bound Table rows", () => {
       }),
     );
     expect(bodyRows(workspace)).toHaveLength(40);
+    // The body grows with its rows (the table is as tall as them, like the DOM's auto table).
+    const records = [...workspace.root.domInputs.values()];
+    const named = (name: string) =>
+      records.filter((record) => typeOf(workspace, record) === name);
+    const [body] = named("TableBody");
+    const rows = named("Row");
+    const geometry = workspace.root.getGeometry([
+      body!.id,
+      ...rows.map((row) => row.id),
+    ]);
+    expect(geometry.get(body!.id)!.height).toBeGreaterThanOrEqual(
+      rows.reduce((sum, row) => sum + geometry.get(row.id)!.height, 0),
+    );
     workspace.dispose();
   });
 });

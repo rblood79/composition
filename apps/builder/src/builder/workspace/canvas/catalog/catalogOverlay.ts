@@ -25,7 +25,10 @@ import {
   type DataBadgeBounds,
 } from "../skia/bindingBadgeRenderer";
 import type { BindingBadgeTarget } from "../skia/skiaOverlayHelpers";
-import { renderSlotHatchPattern } from "../skia/slotMarkerRenderer";
+import {
+  renderCollectionRemainderMarker,
+  renderSlotHatchPattern,
+} from "../skia/slotMarkerRenderer";
 import {
   renderMeasureGuides,
   renderSnapGuides,
@@ -52,6 +55,11 @@ export interface CatalogOverlayInputs {
    * box, hatched while it holds nothing.
    */
   slots?: () => readonly { box: BoundingBox; empty: boolean }[];
+  /**
+   * Bound collections showing a sample (ADR-157): the area of the rows not drawn, hatched with
+   * "+N more" (editor chrome — the DOM draws every row).
+   */
+  remainders?: () => readonly { box: BoundingBox; hiddenRows: number }[];
   /**
    * Data binding badges (ADR-212 Phase 6) and the map their drawn scene rects go to (the press
    * that opens the table editor reads it).
@@ -175,6 +183,15 @@ export function catalogOverlayNode(
           slot.empty,
         );
       }
+      for (const remainder of inputs.remainders?.() ?? [])
+        renderCollectionRemainderMarker(
+          ck,
+          canvas,
+          remainder.box,
+          remainder.hiddenRows,
+          zoom,
+          inputs.fontMgr(),
+        );
       inputs.badgeHits?.clear();
       for (const badge of inputs.badges?.() ?? [])
         renderBindingBadge(

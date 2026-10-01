@@ -45,6 +45,7 @@ import {
   catalogGlyphSize,
   catalogTextMetrics,
 } from "./boxModel";
+import { catalogRowSampleHidden } from "./rowSample";
 
 /**
  * ADR-248 Canvas binding: resolved catalog inputs → existing CanvasKit render commands.
@@ -403,15 +404,15 @@ function paintedNodeData(
     withOpacity(
       node,
       applyCatalogAuthoredPaint(
-      node,
-      binding
-        ? binding(
-            node,
-            rect,
-            parent,
-            root.textWraps(node.id),
-            root.labelSuffix(node.id),
-          )
+        node,
+        binding
+          ? binding(
+              node,
+              rect,
+              parent,
+              root.textWraps(node.id),
+              root.labelSuffix(node.id),
+            )
           : ruleNodeData(root, node, rect),
         rect,
         root.colorMode,
@@ -440,7 +441,10 @@ function withOverflowClip(
 }
 
 /** The scroll/auto box's end padding and border: the scroll range reaches past them. */
-function scrollEnd(node: CatalogConsumerNode): { right: number; bottom: number } {
+function scrollEnd(node: CatalogConsumerNode): {
+  right: number;
+  bottom: number;
+} {
   const model = catalogBoxModel(node);
   const px = (value: unknown) =>
     typeof value === "number" && Number.isFinite(value) ? value : 0;
@@ -577,7 +581,10 @@ function bindInColorMode(
   /** The scrollbar each scroll/auto box was registered with (an update compares against it). */
   const scrollbars = new Map<string, string>();
   const offsets: CatalogScrollOffsets = context.scrollOffsets ?? new Map();
-  const ranges = new Map<string, { maxScrollTop: number; maxScrollLeft: number }>();
+  const ranges = new Map<
+    string,
+    { maxScrollTop: number; maxScrollLeft: number }
+  >();
   /** Range, the position clamped into it, and the scrollbar of a scroll/auto box. */
   const scrollStateOf = (
     node: CatalogConsumerNode,
@@ -587,7 +594,10 @@ function bindInColorMode(
     const range = catalogScrollRange(node.id, tree, rectOf, scrollEnd(node));
     const current = offsets.get(node.id);
     const offset = {
-      scrollTop: Math.min(Math.max(current?.scrollTop ?? 0, 0), range.maxScrollTop),
+      scrollTop: Math.min(
+        Math.max(current?.scrollTop ?? 0, 0),
+        range.maxScrollTop,
+      ),
       scrollLeft: Math.min(
         Math.max(current?.scrollLeft ?? 0, 0),
         range.maxScrollLeft,
@@ -661,7 +671,7 @@ function bindInColorMode(
       layoutMap.set(node.id, { ...rect, elementId: node.id });
       registerSkiaNode(
         node.id,
-        node.hidden
+        node.hidden || catalogRowSampleHidden(root, node)
           ? hiddenNode(node, rect)
           : bindingId === "slot" && context.slotMode === "page"
             ? container(node, rect)
@@ -1004,7 +1014,7 @@ function bindInColorMode(
         const rect = layoutMap.get(id)!;
         registerSkiaNode(
           id,
-          node.hidden
+          node.hidden || catalogRowSampleHidden(root, node)
             ? hiddenNode(node, rect)
             : withScrollbar(
                 node,

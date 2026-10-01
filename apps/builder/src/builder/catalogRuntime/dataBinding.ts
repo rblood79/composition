@@ -7,7 +7,10 @@ import {
   type CollectionDataSource,
   type DataBindingValue,
 } from "@composition/shared";
-import type { CatalogBoundRow } from "../../../../../packages/shared/src/catalog/resolution/resolver";
+import type {
+  CatalogBoundRow,
+  CatalogBoundRows,
+} from "../../../../../packages/shared/src/catalog/resolution/resolver";
 import { setWholeField } from "../../../../../packages/shared/src/catalog/commands";
 import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
 import type {
@@ -164,7 +167,7 @@ export function catalogBoundRows(
   collections: readonly CollectionDataSource[],
   kind: "items" | "records" = "items",
   limit = COLLECTION_ROW_PROJECTION_WINDOW_LIMIT,
-): CatalogBoundRow[] | undefined {
+): CatalogBoundRows | undefined {
   const dataBinding = catalogBindingValue(ref);
   if (!dataBinding || !resolveBoundCollection(dataBinding, collections))
     return undefined;
@@ -177,12 +180,17 @@ export function catalogBoundRows(
           : {},
     }));
   const seen = new Set<string>();
-  return getFlatProjectionRows({ dataBinding, collections }, limit).map(
-    (row) => {
-      let key = String(row.itemKey);
-      if (seen.has(key)) key = `${key}~${row.rowIndex}`;
-      seen.add(key);
-      return { key, values: buildCollectionRowTemplateItem(row) };
-    },
-  );
+  const rows: CatalogBoundRow[] = getFlatProjectionRows(
+    { dataBinding, collections },
+    limit,
+  ).map((row) => {
+    let key = String(row.itemKey);
+    if (seen.has(key)) key = `${key}~${row.rowIndex}`;
+    seen.add(key);
+    return { key, values: buildCollectionRowTemplateItem(row) };
+  });
+  // At the window limit the collection may hold more: its count is the sample's "+N more".
+  if (rows.length < limit) return rows;
+  const total = readDataBindingRows(dataBinding, collections).length;
+  return total > rows.length ? Object.assign(rows, { total }) : rows;
 }

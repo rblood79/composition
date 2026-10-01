@@ -124,6 +124,11 @@ const sameFrames = (
   });
 import type { BoundingBox } from "../selection/types";
 import { hitTestPoint } from "../wasm-bindings/spatialIndex";
+import {
+  catalogRowRemainderBox,
+  catalogRowRemainders,
+  catalogRowSampleHiddenWithin,
+} from "../../../catalogRuntime/rowSample";
 import { resolveSpacingCursor } from "../interaction/spacingGeometry";
 import { catalogOverlayNode } from "./catalogOverlay";
 import { useStore } from "../../../stores";
@@ -333,6 +338,15 @@ export function CatalogCanvas({
         gesture: () => gestures.preview(),
         guides: (overlayCanvas) => guidesRef.current?.paint(ck, overlayCanvas),
         slots: () => catalogSlotMarks(workspace, scene.stream.boundsMap),
+        remainders: () =>
+          catalogRowRemainders(workspace.root).flatMap((remainder) => {
+            const box = catalogRowRemainderBox(
+              remainder,
+              (id) => scene.stream.boundsMap.get(id),
+              scene.stream.hitBoundsMap.get(remainder.ownerId),
+            );
+            return box ? [{ box, hiddenRows: remainder.hiddenRows }] : [];
+          }),
         badges: () =>
           badges.targets(scene.stream.boundsMap, scene.stream.hitBoundsMap),
         badgeHits,
@@ -374,6 +388,7 @@ export function CatalogCanvas({
         return scene.stream;
       },
       query: hitTestPoint,
+      pickable: (id) => !catalogRowSampleHiddenWithin(workspace.root, id),
       selectRecords: (ids, options) => workspace.selectRecords(ids, options),
       itemOf: (id) => workspace.itemOfRecord(id),
     });

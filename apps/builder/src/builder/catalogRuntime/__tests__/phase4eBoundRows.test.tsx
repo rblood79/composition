@@ -337,6 +337,9 @@ describe("ADR-248 Phase 4e-4e bound rows", () => {
     const records = catalogBoundRows(BINDING, collections, "records")!;
     expect(records).toHaveLength(150);
     expect(records[3]!.values).toEqual({ category: "C3", value: 3 });
-    expect(catalogBoundRows(BINDING, collections)!).toHaveLength(100);
+    const items = catalogBoundRows(BINDING, collections)!;
+    expect(items).toHaveLength(100);
+    // The window holds 100; the collection's count goes with them (the sample's "+N more").
+    expect(items.total).toBe(150);
   });
 });

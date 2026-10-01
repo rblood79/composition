@@ -1,4 +1,5 @@
 import { useBuilderChromeTheme } from "../hooks/useBuilderChromeTheme";
+import { COLLECTION_ROW_PROJECTION_SAMPLE_LIMIT } from "@composition/shared";
 import {
   useCallback,
   useEffect,
@@ -195,6 +196,8 @@ export function CatalogBuilderCore() {
         root: {
           // The breakpoint the Builder last showed (a Builder-wide choice, like the old app).
           breakpoint: readRememberedBreakpoint(),
+          // The old Canvas's sample: a bound list that grows with its rows draws the first 10.
+          rowSample: COLLECTION_ROW_PROJECTION_SAMPLE_LIMIT,
           rows: (binding, kind) =>
             catalogBoundRows(
               binding,
