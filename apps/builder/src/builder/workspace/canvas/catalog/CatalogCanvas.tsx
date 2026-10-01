@@ -146,6 +146,10 @@ export function CatalogCanvas({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [gestureSession] = useState(() => new CanvasGestureSession());
   const sceneRef = useRef<CatalogCanvasScene | undefined>(undefined);
+  /** The selected scroll/auto box takes the wheel (scrolls it) instead of the camera pan. */
+  const wheelRouteRef = useRef<
+    ((deltaX: number, deltaY: number) => boolean) | undefined
+  >(undefined);
   /** A drawn record's scene box, the scene brought up to date first. */
   const boundsRef = useRef<(identity: string) => BoundingBox | undefined>(
     () => undefined,
@@ -470,6 +474,20 @@ export function CatalogCanvas({
       overlayVersion += 1;
       scheduler.invalidate();
     });
+    // The old Canvas's wheel routing: one selected scroll/auto box with somewhere to scroll takes
+    // the wheel (even at its end, so the camera does not jump); a moved position redraws its box.
+    wheelRouteRef.current = (deltaX, deltaY) => {
+      const selection = workspace.session.getSnapshot().selection;
+      if (selection.length !== 1) return false;
+      syncScene();
+      const id = selection[0].identity;
+      if (!scene.scrollable(id)) return false;
+      if (scene.scrollBy(id, deltaX, deltaY)) {
+        sceneStale = true;
+        scheduler.invalidate();
+      }
+      return true;
+    };
     // Data rows re-resolved outside a step (the data store): the same per-node deltas.
     const unsubscribeRows = workspace.subscribeRows(() => {
       sceneStale = true;
@@ -892,6 +910,7 @@ export function CatalogCanvas({
       window.removeEventListener("blur", onWindowBlur);
       unsubscribeRoot();
       unsubscribeData();
+      wheelRouteRef.current = undefined;
       guides.dispose();
       guidesRef.current = undefined;
       unwatchCamera();
@@ -1007,6 +1026,9 @@ export function CatalogCanvas({
           minZoom={0.1}
           maxZoom={5}
           gestureSession={gestureSession}
+          routeWheel={(deltaX, deltaY) =>
+            wheelRouteRef.current?.(deltaX, deltaY) ?? false
+          }
         />
       )}
     </div>

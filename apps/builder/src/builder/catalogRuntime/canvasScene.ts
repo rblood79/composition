@@ -1,7 +1,11 @@
 import type { CanvasKit, FontMgr } from "canvaskit-wasm";
 import { executeRenderCommands } from "../workspace/canvas/skia/renderCommands";
 import type { SkiaRenderable } from "../workspace/canvas/skia/types";
-import { bindCatalogCanvas, type CatalogCanvasUpdate } from "./canvasBinding";
+import {
+  bindCatalogCanvas,
+  type CatalogCanvasUpdate,
+  type CatalogScrollOffsets,
+} from "./canvasBinding";
 import type { CatalogCompositionRoot } from "./compositionRoot";
 
 export type CatalogCanvasSceneSync =
@@ -27,10 +31,27 @@ const sameIds = (left: readonly string[], right: readonly string[]) =>
 export class CatalogCanvasScene {
   private binding: ReturnType<typeof bindCatalogCanvas>;
   private rootIds: string[];
+  /** Scroll positions of scroll/auto boxes: they outlive a rebind (an edit keeps the position). */
+  private readonly scrollOffsets: CatalogScrollOffsets = new Map();
 
   constructor(private root: CatalogCompositionRoot) {
     this.rootIds = root.pageRootRecords();
-    this.binding = bindCatalogCanvas(root, this.rootIds);
+    this.binding = this.bind();
+  }
+
+  private bind() {
+    return bindCatalogCanvas(this.root, this.rootIds, undefined, {
+      scrollOffsets: this.scrollOffsets,
+    });
+  }
+
+  /** Whether a record is a scroll/auto box with somewhere to scroll. */
+  scrollable(id: string): boolean {
+    return this.binding.scrollable(id);
+  }
+  /** Scroll a box by a wheel delta; it redraws at the next `sync()` (false = nothing moved). */
+  scrollBy(id: string, deltaX: number, deltaY: number): boolean {
+    return this.binding.scrollBy(id, deltaX, deltaY);
   }
 
   get stream() {
@@ -64,7 +85,7 @@ export class CatalogCanvasScene {
   private rebind(reason: string): CatalogCanvasSceneSync {
     this.binding.dispose();
     this.rootIds = this.root.pageRootRecords();
-    this.binding = bindCatalogCanvas(this.root, this.rootIds);
+    this.binding = this.bind();
     return { kind: "rebound", reason };
   }
 

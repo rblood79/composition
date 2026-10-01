@@ -516,7 +516,7 @@ export function bindCatalogCanvas(
   root: CatalogCompositionRoot,
   rootIds: readonly string[],
   pageShell?: { id: string; rect: Rect; fill: string },
-  context: { slotMode?: "edit" | "page" } = {},
+  context: CatalogCanvasBindContext = {},
 ) {
   const bound = withColorMode(root.colorMode, () =>
     bindInColorMode(root, rootIds, pageShell, context),
@@ -527,11 +527,22 @@ export function bindCatalogCanvas(
   };
 }
 
+/** A scroll/auto box's scroll position (record id → px), kept by the owner across rebinds. */
+export type CatalogScrollOffsets = Map<
+  string,
+  { scrollTop: number; scrollLeft: number }
+>;
+
+export interface CatalogCanvasBindContext {
+  slotMode?: "edit" | "page";
+  scrollOffsets?: CatalogScrollOffsets;
+}
+
 function bindInColorMode(
   root: CatalogCompositionRoot,
   rootIds: readonly string[],
   pageShell?: { id: string; rect: Rect; fill: string },
-  context: { slotMode?: "edit" | "page" } = {},
+  context: CatalogCanvasBindContext = {},
 ) {
   const sceneNodes = new Map<string, CanvasSceneNode>();
   const childrenMap = new Map<string, CanvasSceneNode[]>();
@@ -546,16 +557,29 @@ function bindInColorMode(
   };
   /** The scrollbar each scroll/auto box was registered with (an update compares against it). */
   const scrollbars = new Map<string, string>();
-  const scrollbarOf = (
+  const offsets: CatalogScrollOffsets = context.scrollOffsets ?? new Map();
+  const ranges = new Map<string, { maxScrollTop: number; maxScrollLeft: number }>();
+  /** Range, the position clamped into it, and the scrollbar of a scroll/auto box. */
+  const scrollStateOf = (
     node: CatalogConsumerNode,
     rect: Rect,
     rectOf: (id: string) => Rect | undefined,
-  ) =>
-    catalogScrollbar(
-      rect.width,
-      rect.height,
-      catalogScrollRange(node.id, tree, rectOf, scrollEnd(node)),
-    );
+  ) => {
+    const range = catalogScrollRange(node.id, tree, rectOf, scrollEnd(node));
+    const current = offsets.get(node.id);
+    const offset = {
+      scrollTop: Math.min(Math.max(current?.scrollTop ?? 0, 0), range.maxScrollTop),
+      scrollLeft: Math.min(
+        Math.max(current?.scrollLeft ?? 0, 0),
+        range.maxScrollLeft,
+      ),
+    };
+    return {
+      range,
+      offset,
+      bar: catalogScrollbar(rect.width, rect.height, range, offset),
+    };
+  };
   const withScrollbar = (
     node: CatalogConsumerNode,
     data: SkiaNodeData,
@@ -567,11 +591,21 @@ function bindInColorMode(
       !catalogOverflowScrolls(node.visual.overflow)
     ) {
       scrollbars.delete(node.id);
+      ranges.delete(node.id);
       return data;
     }
-    const bar = scrollbarOf(node, data, rectOf);
+    const { range, offset, bar } = scrollStateOf(node, data, rectOf);
+    ranges.set(node.id, range);
     scrollbars.set(node.id, JSON.stringify(bar ?? null));
-    return bar ? { ...data, scrollbar: bar } : data;
+    const scrolled = offset.scrollTop !== 0 || offset.scrollLeft !== 0;
+    if (scrolled) offsets.set(node.id, offset);
+    else offsets.delete(node.id);
+    return {
+      ...data,
+      ...(bar ? { scrollbar: bar } : {}),
+      // The children move by the position (renderCommands translates them and their boxes).
+      ...(scrolled ? { scrollOffset: offset } : {}),
+    };
   };
   try {
     const geometry = root.getGeometry(root.canvasInputs.keys());
@@ -933,7 +967,8 @@ function bindInColorMode(
               !reRegister.has(cursor) &&
               catalogOverflowScrolls(owner.visual.overflow) &&
               JSON.stringify(
-                scrollbarOf(owner, layoutMap.get(cursor)!, rectOf) ?? null,
+                scrollStateOf(owner, layoutMap.get(cursor)!, rectOf).bar ??
+                  null,
               ) !== scrollbars.get(cursor)
             ) {
               reRegister.add(cursor);
@@ -1014,11 +1049,45 @@ function bindInColorMode(
         commandWrites,
       };
     };
+    /** Whether a record is a scroll/auto box with somewhere to scroll. */
+    const scrollable = (id: string) => {
+      const range = ranges.get(id);
+      return !!range && (range.maxScrollTop > 0 || range.maxScrollLeft > 0);
+    };
+    /**
+     * Scroll a box by a wheel delta (clamped to its range). A change redraws the box at the next
+     * `update` (the patch path: its subtree, with the moved children's boxes); false = no change.
+     */
+    const scrollBy = (id: string, deltaX: number, deltaY: number) => {
+      const range = ranges.get(id);
+      if (!range) return false;
+      const current = offsets.get(id) ?? { scrollTop: 0, scrollLeft: 0 };
+      const next = {
+        scrollTop: Math.min(
+          Math.max(current.scrollTop + deltaY, 0),
+          range.maxScrollTop,
+        ),
+        scrollLeft: Math.min(
+          Math.max(current.scrollLeft + deltaX, 0),
+          range.maxScrollLeft,
+        ),
+      };
+      if (
+        next.scrollTop === current.scrollTop &&
+        next.scrollLeft === current.scrollLeft
+      )
+        return false;
+      offsets.set(id, next);
+      dirty.add(id);
+      return true;
+    };
     return {
       stream,
       bindingIds: [...resolvedBindingIds],
       unpainted,
       update,
+      scrollable,
+      scrollBy,
       dispose: () => {
         unsubscribe.forEach((off) => off());
         registeredIds.forEach(unregisterSkiaNode);

@@ -144,4 +144,45 @@ describe("ADR-248 Phase 4e catalog Canvas overflow binding", () => {
     const hidden = await open("hidden");
     expect(getSkiaNode(hidden.record("box"))?.scrollbar).toBeUndefined();
   });
+
+  it("scrolls a scroll/auto box by the wheel: children and scrollbar move, clamped, kept across a rebind", async () => {
+    const { workspace, scene, record } = await open("auto");
+    const box = record("box");
+    const tallTop = () => scene.stream.boundsMap.get(record("tall"))!.y;
+    const before = tallTop();
+    expect(scene.scrollable(box)).toBe(true);
+    expect(scene.scrollable(record("tall"))).toBe(false);
+    // Range = 300 − 100 = 200; a wheel past the end stops at it.
+    expect(scene.scrollBy(box, 0, 150)).toBe(true);
+    scene.sync();
+    expect(getSkiaNode(box)?.scrollOffset).toEqual({
+      scrollTop: 150,
+      scrollLeft: 0,
+    });
+    expect(tallTop()).toBe(before - 150);
+    expect(getSkiaNode(box)?.scrollbar?.vertical?.thumbY).toBeCloseTo(
+      (150 / 200) * (100 - 100 / 3),
+    );
+    expect(scene.scrollBy(box, 0, 500)).toBe(true);
+    scene.sync();
+    expect(getSkiaNode(box)?.scrollOffset?.scrollTop).toBe(200);
+    expect(scene.scrollBy(box, 0, 10)).toBe(false);
+    // A rebind keeps the position.
+    scene.refresh();
+    expect(getSkiaNode(box)?.scrollOffset?.scrollTop).toBe(200);
+    expect(tallTop()).toBe(before - 200);
+    // The content shrinks: the position is clamped into the new range (300 → 150: range 50).
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: id("tall") }],
+        sizing: { height: { kind: "set", value: 150 } },
+      }),
+    );
+    scene.sync();
+    expect(getSkiaNode(box)?.scrollOffset?.scrollTop).toBe(50);
+    expect(tallTop()).toBe(before - 50);
+    // hidden clips but does not scroll.
+    const hidden = await open("hidden");
+    expect(hidden.scene.scrollable(hidden.record("box"))).toBe(false);
+  });
 });

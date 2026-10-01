@@ -57,6 +57,11 @@ export interface UseViewportControlOptions {
   initialPanOffsetX?: number;
   /** Canvas pointer session 제스처 소유권 */
   gestureSession: CanvasGestureSession;
+  /**
+   * 일반 휠을 캔버스 팬 대신 요소 스크롤로 보낼지 정한다 (deltaX, deltaY — Shift 는 가로로 바꾼 값).
+   * true 면 휠을 소비한다. 주어지면 아래 옛 store 경로 (선택 요소 · canonical 노드) 대신 쓴다.
+   */
+  routeWheel?: (deltaX: number, deltaY: number) => boolean;
 }
 
 export interface UseViewportControlReturn {
@@ -82,7 +87,12 @@ export function useViewportControl(
     onInteractionEnd,
     initialPanOffsetX,
     gestureSession,
+    routeWheel,
   } = options;
+  const routeWheelRef = useRef(routeWheel);
+  useEffect(() => {
+    routeWheelRef.current = routeWheel;
+  });
   const isPanningRef = useRef(false);
   const lastPanPointRef = useRef<{ x: number; y: number } | null>(null);
   // pan 을 소유한 pointerId — interrupt (blur · visibility · unmount) 에서 gesture session 의
@@ -369,7 +379,16 @@ export function useViewportControl(
           e.stopPropagation();
 
           // Phase E: 선택된 스크롤 가능 요소에 wheel 라우팅
-          const selectedIds = useStore.getState().selectedElementIds;
+          const route = routeWheelRef.current;
+          if (route) {
+            if (
+              route(e.shiftKey ? e.deltaY : e.deltaX, e.shiftKey ? 0 : e.deltaY)
+            )
+              return;
+          }
+          const selectedIds = route
+            ? []
+            : useStore.getState().selectedElementIds;
           if (selectedIds.length === 1) {
             const selectedId = selectedIds[0];
             const node = getCanonicalNode(selectedId);
