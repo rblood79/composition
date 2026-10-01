@@ -6,6 +6,7 @@ export const NAVIGATOR_SECTION_IDS = {
   pages: "navigator-pages",
   layers: "navigator-layers",
   layouts: "navigator-layouts",
+  components: "navigator-components",
   layoutLayers: "navigator-layout-layers",
 } as const;
 
@@ -25,4 +26,5 @@ export const NAVIGATOR_LAYOUTS_TAB_SECTION_IDS: readonly string[] = [
 export const NAVIGATOR_SPLIT_STORAGE_KEYS = {
   pages: "navigator-split:pages",
   layouts: "navigator-split:layouts",
+  components: "navigator-split:components",
 } as const;

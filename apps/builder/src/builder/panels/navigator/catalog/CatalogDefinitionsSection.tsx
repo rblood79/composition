@@ -34,12 +34,17 @@ const DeleteIcon = ACTION_ICONS.delete;
 const AddIcon = ACTION_ICONS.add;
 
 /**
- * ADR-248 4e: the project's layouts and components (the old Navigator Layouts tab). Selecting one
- * opens the definition edit view (its template on the Canvas and in Layers); a new layout is a
- * body with one content slot; a layout is deleted with its pages' content given back.
+ * ADR-248 4e: the project's layouts or components (the Navigator's Layouts / Components tab).
+ * Selecting one opens the definition edit view (its template on the Canvas and in Layers); a new
+ * layout is a body with one content slot; a layout is deleted with its pages' content given back.
+ * A component is made from a selection (Create component) and dissolved from Properties.
  */
 export const CatalogDefinitionsSection = memo(
-  function CatalogDefinitionsSection() {
+  function CatalogDefinitionsSection({
+    usage,
+  }: {
+    usage: CatalogDefinitionItem["usage"];
+  }) {
     const { t } = useI18n();
     const workspace = useCatalogWorkspace();
     const run = useCatalogCommandRunner();
@@ -49,7 +54,7 @@ export const CatalogDefinitionsSection = memo(
       [workspace],
     );
     const listKey = useSyncExternalStore(subscribe, () =>
-      JSON.stringify(catalogDefinitionList(graph)),
+      JSON.stringify(catalogDefinitionList(graph, usage)),
     );
     const items = useMemo(
       () =>
@@ -76,7 +81,7 @@ export const CatalogDefinitionsSection = memo(
           workspace.newId,
         ),
       );
-      const created = catalogDefinitionList(graph).find(
+      const created = catalogDefinitionList(graph, "layout").find(
         (item) => !items.some((known) => known.id === item.id),
       );
       if (plan !== undefined && created) workspace.showDefinition(created.id);
@@ -134,32 +139,42 @@ export const CatalogDefinitionsSection = memo(
       [removeLayout, t],
     );
 
+    const title =
+      usage === "layout" ? t("navigator.layouts") : t("navigator.components");
     return (
       <Section
-        id={NAVIGATOR_SECTION_IDS.layouts}
+        id={
+          usage === "layout"
+            ? NAVIGATOR_SECTION_IDS.layouts
+            : NAVIGATOR_SECTION_IDS.components
+        }
         className="node-tree-section"
-        title={t("navigator.definitions")}
+        title={title}
         actions={
-          <ActionIconButton
-            aria-label={t("navigator.addLayout")}
-            tooltip={t("navigator.addLayout")}
-            onPress={addLayout}
-          >
-            <AddIcon
-              color={iconProps.color}
-              strokeWidth={iconProps.strokeWidth}
-              size={iconProps.size}
-            />
-          </ActionIconButton>
+          usage === "layout" ? (
+            <ActionIconButton
+              aria-label={t("navigator.addLayout")}
+              tooltip={t("navigator.addLayout")}
+              onPress={addLayout}
+            >
+              <AddIcon
+                color={iconProps.color}
+                strokeWidth={iconProps.strokeWidth}
+                size={iconProps.size}
+              />
+            </ActionIconButton>
+          ) : undefined
         }
       >
         {items.length === 0 ? (
           <div className="page-search-empty" role="status">
-            {t("navigator.noDefinitions")}
+            {usage === "layout"
+              ? t("navigator.noLayouts")
+              : t("navigator.noComponents")}
           </div>
         ) : (
           <TreeBase<DefinitionNode>
-            aria-label={t("navigator.definitions")}
+            aria-label={title}
             items={items}
             getKey={(item) => item.id}
             getTextValue={(item) => item.name}

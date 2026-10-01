@@ -1399,10 +1399,10 @@ export interface TranslationKeys {
     history: string;
   };
   navigator: {
-    definitions: string;
+    components: string;
     deleteLayout: string;
     layoutDefaultName: string;
-    noDefinitions: string;
+    noComponents: string;
     pages: string;
     layouts: string;
     panelTabs: string;

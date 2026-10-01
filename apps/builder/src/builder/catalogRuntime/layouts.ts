@@ -15,12 +15,16 @@ export interface CatalogDefinitionItem {
   usage: "layout" | "component";
 }
 
+/** The Navigator's tabs: Pages, the project's components, its layouts. */
+export type CatalogNavigatorTab = "pages" | "components" | "layouts";
+
 /**
  * ADR-248 4e: the project's layouts, then its components (document order within each) — the
- * Navigator's list; selecting one opens the definition edit view.
+ * Navigator's lists (`usage` = one kind, its tab); selecting one opens the definition edit view.
  */
 export function catalogDefinitionList(
   graph: CatalogReader,
+  usage?: CatalogDefinitionItem["usage"],
 ): CatalogDefinitionItem[] {
   const project = graph.getEntry(graph.projectId);
   if (project?.kind !== "project") return [];
@@ -39,10 +43,22 @@ export function catalogDefinitionList(
         ]
       : [];
   });
+  if (usage) return items.filter((item) => item.usage === usage);
   return [
     ...items.filter((item) => item.usage === "layout"),
     ...items.filter((item) => item.usage === "component"),
   ];
+}
+
+/** The Navigator tab listing a definition (its edit view selects it); `undefined` = none. */
+export function catalogNavigatorTabOf(
+  graph: CatalogReader,
+  definitionId: EntryId<"definition"> | undefined,
+): CatalogNavigatorTab | undefined {
+  if (!definitionId) return undefined;
+  const definition = graph.getEntry(definitionId);
+  if (definition?.kind !== "definition") return undefined;
+  return definition.usage === "layout" ? "layouts" : "components";
 }
 
 /** `Layout`, `Layout 2`, … — the first name no layout uses yet. */
