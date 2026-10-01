@@ -97,6 +97,10 @@ import { useExecutionPolicyScheduler } from "../panels/datatable/hooks/useExecut
 import { registerVariableOwnerPageSource } from "../stores/utils/variableOwnerMigration";
 import { Button } from "@composition/shared/components";
 import { watchCatalogStorageQuota } from "../catalogRuntime/storageQuota";
+import {
+  runCatalogAssetGcNow,
+  scheduleCatalogAssetGc,
+} from "../catalogRuntime/assetGc";
 import { watchCatalogComponentEdits } from "../catalogRuntime/componentConfirm";
 import { getDB } from "../../lib/db";
 import { requestPersistenceOnce } from "../../lib/storage/storageProtection";
@@ -349,6 +353,23 @@ export function CatalogBuilderCore() {
       requestPersistence: () => void requestPersistenceOnce(),
     });
   }, [workspace, t]);
+  // ADR-235 asset GC on the catalog storage (idle, once a day): the open workspace's documents,
+  // history and clipboard are the memory roots.
+  useEffect(() => {
+    if (!workspace) return;
+    const memory = () => workspace.assetRootPayloads();
+    const cancel = scheduleCatalogAssetGc(memory);
+    if (!import.meta.env.DEV) return cancel;
+    const handle = window as unknown as {
+      __composition_ASSET_GC__?: (options?: { graceMs?: number }) => unknown;
+    };
+    handle.__composition_ASSET_GC__ = (options) =>
+      runCatalogAssetGcNow(memory, options);
+    return () => {
+      cancel();
+      delete handle.__composition_ASSET_GC__;
+    };
+  }, [workspace]);
   // The old origin edit gate: the first edit of a component's template in its edit view asks
   // (Cancel takes it back).
   useEffect(() => {

@@ -319,6 +319,11 @@ export class CatalogWorkspace {
   /** Copied subtrees of this project (in memory; paste re-creates them with new ids). */
   clipboard: CatalogClipboard | undefined;
 
+  /** Asset GC memory roots: the open documents, unsaved commits, undo/redo operations, clipboard. */
+  assetRootPayloads(): unknown[] {
+    return [...this.runtime.assetRootPayloads(), this.clipboard];
+  }
+
   /** New entry ids for commands that create entries (random, never reused). */
   readonly newId: NewId = (kind) =>
     `project:${kind}:${crypto.randomUUID()}` as ReturnType<NewId>;

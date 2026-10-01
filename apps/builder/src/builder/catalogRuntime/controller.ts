@@ -225,6 +225,21 @@ export class CatalogRuntime {
       redo: [...session.redo].reverse().map(view),
     };
   }
+  /**
+   * What the open projects can still show (asset GC memory roots, ADR-235): each document, its
+   * unsaved commits and every operation undo or redo can apply — an image removed by an edit stays
+   * referenced while the edit can be undone. The document also covers a save that completes
+   * between the GC's durable read and this read (the commit leaves `pending` then).
+   */
+  assetRootPayloads(): unknown[] {
+    const roots: unknown[] = [];
+    for (const session of this.projects.values()) {
+      roots.push(session.graph.exportDocument(), session.pending);
+      for (const entry of [...session.undo, ...session.redo])
+        roots.push(entry.forward, entry.inverse);
+    }
+    return roots;
+  }
   /** Drop the active project's undo and redo entries (the document and saves stay). */
   clearHistory(): void {
     const session = this.current();
