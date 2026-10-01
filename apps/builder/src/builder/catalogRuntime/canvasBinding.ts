@@ -34,6 +34,7 @@ import {
 import {
   applyCatalogAuthoredPaint,
   catalogCssColorRgba,
+  catalogVisualWithBackground,
   hasCatalogAuthoredPaint,
   isTypedCatalogColor,
 } from "./authoredStyle";
@@ -374,11 +375,12 @@ function ruleNodeData(
  */
 function paintedNodeData(
   root: CatalogCompositionRoot,
-  node: CatalogConsumerNode,
+  input: CatalogConsumerNode,
   rect: Rect,
   binding: Binding | undefined,
   parent: CatalogConsumerNode | undefined,
 ): SkiaNodeData {
+  const node = catalogVisualWithBackground(input);
   return withOverflowClip(
     node,
     withOpacity(

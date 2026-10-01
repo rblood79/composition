@@ -103,6 +103,25 @@ export function isTypedCatalogColor(value: unknown): boolean {
   );
 }
 
+/**
+ * `backgroundColor` (a Styles or AI style write — a valid visual field) is the box's background:
+ * the DOM inlines it and `fill` to the same CSS property, the later key winning. The Canvas paints
+ * the background from `fill`, so the node it paints carries the winner as `fill`.
+ */
+export function catalogVisualWithBackground<
+  N extends Pick<CatalogConsumerNode, "visual">,
+>(node: N): N {
+  const visual = node.visual;
+  if (!("backgroundColor" in visual)) return node;
+  const { backgroundColor, ...rest } = visual;
+  const keys = Object.keys(visual);
+  const fillWins = keys.lastIndexOf("fill") > keys.indexOf("backgroundColor");
+  return {
+    ...node,
+    visual: fillWins ? rest : { ...rest, fill: backgroundColor },
+  };
+}
+
 /** True when the node's paint needs the authored path on either consumer. */
 export function hasCatalogAuthoredPaint(
   node: Pick<CatalogConsumerNode, "visual" | "fills">,
