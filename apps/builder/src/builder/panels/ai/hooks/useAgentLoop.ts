@@ -20,6 +20,7 @@ import { useStore } from "../../../stores";
 import { useAIVisualFeedbackStore } from "../../../stores/aiVisualFeedback";
 import type { BuilderContext } from "../../../../types/integrations/chat.types";
 import { buildBuilderContext } from "../../../../services/ai/builderContext";
+import { getAiReadHost } from "../../../../services/ai/aiReadHost";
 import type { ToolExecutionResult } from "../../../../types/integrations/ai.types";
 import { useI18n } from "@/i18n";
 import {
@@ -164,8 +165,11 @@ export function useAgentLoop() {
             setProgress(initialProgress());
             setRunningTool(null);
 
-            // G.3: 선택된 요소에 generating 이펙트
-            const currentSelectedId = useStore.getState().selectedElementId;
+            // G.3: 선택된 요소에 generating 이펙트 — catalog Builder 면 AI read host 의 선택
+            // (그리는 Canvas 와 같은 레코드 id), 아니면 store 의 선택.
+            const currentSelectedId =
+              getAiReadHost()?.selectedIds()[0] ??
+              useStore.getState().selectedElementId;
             if (currentSelectedId) {
               useAIVisualFeedbackStore
                 .getState()

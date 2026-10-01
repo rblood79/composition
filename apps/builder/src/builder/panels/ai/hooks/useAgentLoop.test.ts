@@ -13,6 +13,7 @@ const scripted = vi.hoisted(() => ({
   /** Agent 루프를 매달아 둔다 — `release` 로 푼다 (Stop 뒤 재전송 검사). */
   hang: false,
   release: null as null | (() => void),
+  generating: [] as string[][],
 }));
 
 vi.mock("../../../../services/ai/compiler/runtime", () => ({
@@ -72,7 +73,7 @@ vi.mock("../../../../services/ai/builderContext", () => ({
 vi.mock("../../../stores/aiVisualFeedback", () => ({
   useAIVisualFeedbackStore: {
     getState: () => ({
-      startGenerating: () => {},
+      startGenerating: (ids: string[]) => scripted.generating.push(ids),
       completeGenerating: () => {},
       cancelGenerating: () => {},
       addFlashForNode: () => {},
@@ -84,6 +85,7 @@ import { useConversationStore } from "../../../stores/conversation";
 import { useAgentLoop } from "./useAgentLoop";
 import { createElement } from "react";
 import { I18nProvider } from "@/i18n";
+import { setAiReadHost, type AiReadHost } from "../../../../services/ai/aiReadHost";
 
 beforeEach(() => {
   useConversationStore.setState({
@@ -105,6 +107,7 @@ afterEach(() => {
   scripted.release?.();
   scripted.hang = false;
   scripted.release = null;
+  scripted.generating = [];
 });
 
 /** 훅이 `useI18n` 을 쓰므로 provider 밑에서 돌린다 (ADR-200 R7). */
@@ -327,5 +330,22 @@ describe("추천 작업의 완료 보고", () => {
     expect(useConversationStore.getState().messages.at(-1)?.content).toContain(
       "could not be completed",
     );
+  });
+});
+
+describe("AI 작업 중 효과 (G.3) 의 대상", () => {
+  it("catalog Builder 면 AI read host 의 선택 (그리는 레코드) 에 generating 효과를 건다", async () => {
+    const off = setAiReadHost({
+      selectedIds: () => ["record-1"],
+    } as unknown as AiReadHost);
+    try {
+      const { result } = renderHook(() => useAgentLoop(), { wrapper });
+      await act(async () => {
+        await result.current.runAgent("버튼 색 바꿔줘");
+      });
+      expect(scripted.generating).toEqual([["record-1"]]);
+    } finally {
+      off();
+    }
   });
 });

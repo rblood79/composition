@@ -31,7 +31,9 @@ import {
   renderSnapGuides,
 } from "../skia/snapGuideRenderer";
 import { renderSpacingOverlay } from "../skia/spacingOverlayRenderer";
-import type { SkiaRenderable } from "../skia/types";
+import type { AIEffectNodeBounds, SkiaRenderable } from "../skia/types";
+import { renderFlashes, renderGeneratingEffects } from "../skia/aiEffects";
+import type { AIVisualFeedbackState } from "../../../stores/aiVisualFeedback";
 import type { SpacingBand } from "../interaction/spacingGeometry";
 
 export interface CatalogOverlayInputs {
@@ -55,6 +57,15 @@ export interface CatalogOverlayInputs {
    */
   badges?: () => readonly BindingBadgeTarget[];
   badgeHits?: Map<string, DataBadgeBounds>;
+  /**
+   * AI visual feedback (G.3): the records an agent run works on (blur + particles) and the ones
+   * it changed (a fading stroke); their corner radius comes from the drawn box.
+   */
+  ai?: () => Pick<
+    AIVisualFeedbackState,
+    "generatingNodes" | "flashAnimations" | "cleanupExpiredFlashes"
+  >;
+  radiusOf?: (id: string) => AIEffectNodeBounds["borderRadius"];
   /** Manual guides (ADR-181), painted under the selection. */
   guides?: (canvas: Canvas) => void;
   /**
@@ -91,6 +102,20 @@ export function catalogSelectionBox(
  * Alt-measure: the distances from the selection's box to the hovered record — none while Alt is
  * up, nothing is selected or the hovered record is itself selected.
  */
+/** Scene boxes of the AI effect targets (records without a drawn box are left out). */
+export function catalogAiEffectBounds(
+  ids: Iterable<string>,
+  bounds: ReadonlyMap<string, BoundingBox>,
+  radiusOf: (id: string) => AIEffectNodeBounds["borderRadius"] = () => 0,
+): Map<string, AIEffectNodeBounds> {
+  const out = new Map<string, AIEffectNodeBounds>();
+  for (const id of ids) {
+    const box = bounds.get(id);
+    if (box) out.set(id, { elementId: id, ...box, borderRadius: radiusOf(id) });
+  }
+  return out;
+}
+
 export function catalogMeasureGuides(
   state: Pick<CatalogSessionState, "selection" | "hover">,
   bounds: ReadonlyMap<string, BoundingBox>,
@@ -123,6 +148,18 @@ export function catalogOverlayNode(
       const state = inputs.session();
       const bounds = inputs.bounds();
       const zoom = inputs.zoom();
+      const ai = inputs.ai?.();
+      if (ai && (ai.generatingNodes.size || ai.flashAnimations.size)) {
+        const now = performance.now();
+        const targets = catalogAiEffectBounds(
+          [...ai.generatingNodes.keys(), ...ai.flashAnimations.keys()],
+          bounds,
+          inputs.radiusOf,
+        );
+        renderGeneratingEffects(ck, canvas, now, ai.generatingNodes, targets);
+        renderFlashes(ck, canvas, now, ai.flashAnimations, targets);
+        if (ai.flashAnimations.size) ai.cleanupExpiredFlashes(now);
+      }
       for (const slot of inputs.slots?.() ?? []) {
         // An empty slot has no height of its own: show a band the author can see and pick.
         const band = Math.max(slot.box.height, 48 / zoom);

@@ -46,6 +46,8 @@ import { catalogBadgeAt, createCatalogBadges } from "./catalogBadges";
 import type { CatalogOverflowTree } from "../../../catalogRuntime/canvasOverflow";
 import type { DataBadgeBounds } from "../skia/bindingBadgeRenderer";
 import { useDataStore } from "../../../stores/data";
+import { useAIVisualFeedbackStore } from "../../../stores/aiVisualFeedback";
+import { getSkiaNode } from "../skia/useSkiaNode";
 import { useDataTableEditorStore } from "../../../panels/datatable/stores/dataTableEditorStore";
 import {
   bindCatalogCamera,
@@ -274,6 +276,8 @@ export function CatalogCanvas({
           badges.targets(scene.stream.boundsMap, scene.stream.hitBoundsMap),
         badgeHits,
         overflow: () => overflowTree,
+        ai: () => useAIVisualFeedbackStore.getState(),
+        radiusOf: (id) => getSkiaNode(id)?.box?.borderRadius ?? 0,
         measuring: () => measuring,
         spacing: () => {
           const owner = gestures.spacingOwner();
@@ -463,6 +467,10 @@ export function CatalogCanvas({
         callbacks.current.onFirstFrame?.();
       }
       if (renderer.needsAnimationFrame()) scheduler.invalidate();
+      // AI effects animate (particles turn, flashes fade): the overlay draws again next frame
+      // while any is running; the last flash's cleanup ends it.
+      const ai = useAIVisualFeedbackStore.getState();
+      if (ai.generatingNodes.size || ai.flashAnimations.size) invalidateOverlay();
     };
     const scheduler = createFrameScheduler(renderFrame);
     const unsubscribeFrames = subscribeCanvasFrames(scheduler.invalidate);
@@ -493,6 +501,7 @@ export function CatalogCanvas({
       sceneStale = true;
       scheduler.invalidate();
     });
+    const unsubscribeAi = useAIVisualFeedbackStore.subscribe(invalidateOverlay);
     // The badges show each collection's state (rows, the linked API's last run).
     const unsubscribeData = useDataStore.subscribe((state, prev) => {
       if (
@@ -910,6 +919,7 @@ export function CatalogCanvas({
       window.removeEventListener("blur", onWindowBlur);
       unsubscribeRoot();
       unsubscribeData();
+      unsubscribeAi();
       wheelRouteRef.current = undefined;
       guides.dispose();
       guidesRef.current = undefined;

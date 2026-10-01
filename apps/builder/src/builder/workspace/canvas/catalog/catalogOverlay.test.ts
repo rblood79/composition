@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { CatalogSelectionItem } from "../../../catalogRuntime/session";
-import { catalogMeasureGuides, catalogSelectionBox } from "./catalogOverlay";
+import {
+  catalogAiEffectBounds,
+  catalogMeasureGuides,
+  catalogSelectionBox,
+} from "./catalogOverlay";
 
 /** ADR-248 Phase 4e: the multi-selection box and Alt-measure of the Canvas overlay. */
 const item = (identity: string) =>
@@ -48,5 +52,17 @@ describe("catalogMeasureGuides", () => {
         true,
       ),
     ).toEqual([]);
+  });
+});
+
+describe("catalog AI effect targets", () => {
+  it("gives each drawn target its scene box and corner radius, and leaves out the undrawn", () => {
+    const targets = catalogAiEffectBounds(["a", "b", "gone"], bounds, (id) =>
+      id === "b" ? 6 : 0,
+    );
+    expect([...targets.values()]).toEqual([
+      { elementId: "a", x: 0, y: 0, width: 10, height: 10, borderRadius: 0 },
+      { elementId: "b", x: 30, y: 20, width: 10, height: 10, borderRadius: 6 },
+    ]);
   });
 });
