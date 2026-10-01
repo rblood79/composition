@@ -59,17 +59,14 @@ const mockScope = vi.hoisted(() => ({
   current: "canvas-focused" as ShortcutScope,
 }));
 
-vi.mock("@/builder/hooks", async () => {
-  const actual = await vi.importActual<
-    typeof import("../../hooks/useKeyboardShortcutsRegistry")
-  >("../../hooks/useKeyboardShortcutsRegistry");
-  return {
-    bindHandlersToDefinitions: actual.bindHandlersToDefinitions,
-    formatShortcut: actual.formatShortcut,
-    useKeyboardShortcutsRegistry: () => {},
-    useActiveScope: () => mockScope.current,
-  };
-});
+vi.mock("../../hooks/useKeyboardShortcutsRegistry", async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  useKeyboardShortcutsRegistry: () => {},
+}));
+vi.mock("../../hooks/useActiveScope", async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  useActiveScope: () => mockScope.current,
+}));
 
 vi.mock("../panel/PanelHeader", () => ({
   PanelHeader: ({ title }: { title: string }) => <div>{title}</div>,

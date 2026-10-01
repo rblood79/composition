@@ -50,13 +50,16 @@ import type { Element } from "../../../../types/core/store.types";
 import type {
   DataField,
   DataTable,
-  DataTableCreate,
 } from "../../../../types/builder/data.types";
 import type { QuickConnectTarget } from "../types/editorTypes";
+import type {
+  ExecuteQuickConnectInput,
+  QuickConnectPrecheck,
+  TableColumnPlan,
+} from "./quickConnectPlan";
+import { resolveColumnMode } from "./quickConnectPlan";
 
-export type QuickConnectPrecheck =
-  | { ok: true }
-  | { ok: false; reason: "missing" | "context" | "binding-changed" };
+export * from "./quickConnectPlan";
 
 function sameSnapshot(
   a: { props?: unknown; extension?: unknown },
@@ -120,17 +123,6 @@ export function readBackQuickConnect(
 // ============================================
 // Table 컬럼 (ADR-013 Phase 2 · breakdown §4)
 // ============================================
-
-export interface TableColumnPlan {
-  tableId: string;
-  /** plain Table 의 TableHeader id · ref instance 는 `<instance>/<origin 안 경로>` (ADR-241) */
-  tableHeaderId: string;
-  pageId: string | null;
-  /** 기존 Column 자식 — 순서 그대로 (instance 는 자기 열 · 없으면 origin 열) */
-  existing: { id: string; key: string; label: string }[];
-  /** ADR-241 Phase 2 — ref instance Table: 열은 instance 자기 열 (`descendants` mode C) 로 쓴다 */
-  instance?: boolean;
-}
 
 /**
  * Table 의 컬럼 계획. 직접 Table 노드는 TableHeader 자식으로, ref instance (팔레트로 놓은 Table — ADR-228) 는 instance
@@ -220,15 +212,6 @@ function writeInstanceElement(next: Element): void {
   });
 }
 
-/** 기존 컬럼 중 새 schema 에 같은 key 가 없는 것 — 실행 전에 사용자에게 보인다 (§4 재연결). */
-export function unmatchedColumnKeys(
-  plan: TableColumnPlan,
-  schema: readonly Pick<DataField, "key">[],
-): string[] {
-  const keys = new Set(schema.map((f) => f.key));
-  return plan.existing.filter((c) => !keys.has(c.key)).map((c) => c.key);
-}
-
 /** schema → Column 노드 (Preview ingress `ADD_COLUMN_ELEMENTS` 가 만드는 것과 같은 props 형상). */
 function buildColumnElements(
   plan: TableColumnPlan,
@@ -277,25 +260,6 @@ function insertColumns(columns: Element[]): CanonicalHistoryNodeEvent[] {
     },
   });
   return buildCanonicalInsertEvents(columns);
-}
-
-export type QuickConnectColumnMode = "none" | "create" | "preserve" | "replace";
-
-export function resolveColumnMode(
-  plan: TableColumnPlan | null,
-  replaceColumns: boolean,
-): QuickConnectColumnMode {
-  if (!plan) return "none";
-  if (plan.existing.length === 0) return "create";
-  return replaceColumns ? "replace" : "preserve";
-}
-
-export interface ExecuteQuickConnectInput {
-  input: DataTableCreate;
-  target: QuickConnectTarget;
-  projectId: string;
-  /** Table 재연결 — 기존 컬럼을 새 schema 로 전면 교체 (명시적 선택일 때만 true) */
-  replaceColumns?: boolean;
 }
 
 /**

@@ -1,22 +1,17 @@
 import { createContext, useContext } from "react";
 import type { DataTable } from "../../../../types/builder/data.types";
 import type { QuickConnectTarget } from "../types/editorTypes";
-import {
-  captureQuickConnectTarget,
-  executeQuickConnect,
-  planTableColumns,
-  precheckQuickConnectTarget,
-  readBackQuickConnect,
-  type ExecuteQuickConnectInput,
-  type QuickConnectPrecheck,
-  type TableColumnPlan,
-} from "../utils/quickConnect";
+import type {
+  ExecuteQuickConnectInput,
+  QuickConnectPrecheck,
+  TableColumnPlan,
+} from "../utils/quickConnectPlan";
 
 /**
  * ADR-248 Phase 4e-4e: quick connect's document side (ADR-013 — create a table from the Properties
  * Data row and connect it): capture the target, recheck it, plan its Table columns, create +
- * connect as one history entry, read the binding back. The store host is the old element store's;
- * the catalog workspace provides its own.
+ * connect as one history entry, read the binding back. The catalog workspace provides it (no
+ * default).
  */
 export interface QuickConnectHost {
   capture(elementId: string): QuickConnectTarget | null;
@@ -26,18 +21,20 @@ export interface QuickConnectHost {
   readBack(elementId: string, collectionId: string): boolean;
 }
 
-export const STORE_QUICK_CONNECT_HOST: QuickConnectHost = {
-  capture: captureQuickConnectTarget,
-  precheck: precheckQuickConnectTarget,
-  planColumns: planTableColumns,
-  execute: executeQuickConnect,
-  readBack: readBackQuickConnect,
-};
-
 export const QuickConnectHostContext = createContext<QuickConnectHost | null>(
   null,
 );
 
+/** Old-store tests only (`quickConnectHost.store.ts`, removed with the old store): the host without a provider. */
+let testFallback: QuickConnectHost | null = null;
+export function setQuickConnectHostTestFallback(
+  host: QuickConnectHost | null,
+): void {
+  testFallback = host;
+}
+
 export function useQuickConnectHost(): QuickConnectHost {
-  return useContext(QuickConnectHostContext) ?? STORE_QUICK_CONNECT_HOST;
+  const host = useContext(QuickConnectHostContext) ?? testFallback;
+  if (!host) throw new Error("Quick connect host is not provided");
+  return host;
 }

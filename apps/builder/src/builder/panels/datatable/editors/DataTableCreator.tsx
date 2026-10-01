@@ -78,7 +78,7 @@ import type { QuickConnectTarget } from "../types/editorTypes";
 import {
   unmatchedColumnKeys,
   type QuickConnectPrecheck,
-} from "../utils/quickConnect";
+} from "../utils/quickConnectPlan";
 import { useQuickConnectHost } from "../usage/quickConnectHost";
 import { announceDataPanelStatus } from "../stores/dataPanelStatusStore";
 import { setAiComposerDraft } from "../../ai/aiComposerDraft";

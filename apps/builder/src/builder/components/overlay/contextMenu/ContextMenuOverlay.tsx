@@ -7,7 +7,7 @@ import { Separator } from "react-aria-components/Separator";
 import { Text } from "react-aria-components/Text";
 import { useI18n } from "@/i18n";
 import { SHORTCUT_DEFINITIONS } from "../../../config/keyboardShortcuts";
-import { formatShortcut } from "../../../hooks";
+import { formatShortcut } from "../../../hooks/useKeyboardShortcutsRegistry";
 import { iconProps } from "../../../../utils/ui/uiConstants";
 import type {
   ContextMenuIcon,

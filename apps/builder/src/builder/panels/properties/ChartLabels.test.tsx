@@ -1,3 +1,5 @@
+import "../datatable/usage/quickConnectHost.store"; // old-store host (ADR-248 4e-7: goes with the old store)
+import "../datatable/usage/dataUsageSource.store"; // old-store host (ADR-248 4e-7: goes with the old store)
 import { cleanup, fireEvent, render, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { createChartInitialProps, CHART_DESCRIPTORS } from "@composition/specs";

@@ -68,7 +68,7 @@ import {
 } from "../catalogRuntime/aiHost";
 import { setAiWriteHost } from "../../services/ai/aiWriteHost";
 import { setAiReadHost } from "../../services/ai/aiReadHost";
-import { PanelWorkspace } from "../layout";
+import { PanelWorkspace } from "../layout/PanelWorkspace";
 import { toProjectVariableDefs, useDataStore } from "../stores/data";
 import {
   setDataHistoryRecorder,
@@ -112,7 +112,7 @@ import { useCatalogProjectFiles } from "./useCatalogProjectFiles";
 import "../workspace/Workspace.css";
 
 // 패널 등록 (side effect import — registerAllPanels() 자동 실행)
-import "../panels";
+import "../panels/core/panelConfigs";
 
 type OpenState =
   | { kind: "opening" }

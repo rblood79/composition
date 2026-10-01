@@ -11,7 +11,7 @@
 
 import { useCallback } from "react";
 import { useStylesHost, type StylesHost } from "../stylesHost";
-import { useCopyPaste } from "@/builder/hooks";
+import { useCopyPaste } from "../../../hooks/useCopyPaste";
 import {
   isFillDerivedStyleProp,
   sanitizeFillDerivedStylePatch,
@@ -63,7 +63,9 @@ function withoutStaleDirectionStyle(
  * variant 를 이겨 Canvas 와 갈린다.
  */
 function isSelectedDirectionDriven(host: StylesHost): boolean {
-  return resolveDirectionDrivenProp(host.readSelectedTarget().type) !== undefined;
+  return (
+    resolveDirectionDrivenProp(host.readSelectedTarget().type) !== undefined
+  );
 }
 
 /**
@@ -93,16 +95,19 @@ export function useStyleActions() {
   // (CanvasSelectionShortcutsHost) 의 useCallback 이 이전 렌더 클로저를 memo 로
   // 붙잡는 V8 shared-context 사슬의 한 링크가 된다 (2026-09-02 leak 실측 —
   // scripts/perf-baseline.mjs `edit` 시리즈, mutation 당 elements view 1개 영구 보유).
-  const onPasteStyles = useCallback((data: Record<string, unknown>) => {
-    // Convert all values to strings
-    const stylesObj: Record<string, string> = {};
-    Object.entries(data).forEach(([key, value]) => {
-      if (value !== null && value !== undefined) {
-        stylesObj[key] = String(value);
-      }
-    });
-    host.updateStyles(sanitizeFillDerivedStylePatch(stylesObj, true));
-  }, [host]);
+  const onPasteStyles = useCallback(
+    (data: Record<string, unknown>) => {
+      // Convert all values to strings
+      const stylesObj: Record<string, string> = {};
+      Object.entries(data).forEach(([key, value]) => {
+        if (value !== null && value !== undefined) {
+          stylesObj[key] = String(value);
+        }
+      });
+      host.updateStyles(sanitizeFillDerivedStylePatch(stylesObj, true));
+    },
+    [host],
+  );
 
   // 🔥 최적화: useCopyPaste hook 사용
   const { copy: copyStylesInternal, paste: pasteStylesInternal } = useCopyPaste(
@@ -115,51 +120,63 @@ export function useStyleActions() {
   /**
    * 단일 스타일 속성 업데이트
    */
-  const updateStyle = useCallback((property: string, value: string) => {
-    if (isFillDerivedStyleProp(property)) {
-      return;
-    }
-    host.updateStyle(property, value);
-  }, [host]);
+  const updateStyle = useCallback(
+    (property: string, value: string) => {
+      if (isFillDerivedStyleProp(property)) {
+        return;
+      }
+      host.updateStyle(property, value);
+    },
+    [host],
+  );
 
   /**
    * 여러 스타일 속성 일괄 업데이트
    */
-  const updateStyles = useCallback((styles: Record<string, string>) => {
-    host.updateStyles(sanitizeFillDerivedStylePatch(styles, true));
-  }, [host]);
+  const updateStyles = useCallback(
+    (styles: Record<string, string>) => {
+      host.updateStyles(sanitizeFillDerivedStylePatch(styles, true));
+    },
+    [host],
+  );
 
   /**
    * Vertical alignment 버튼 선택 핸들러
    */
-  const handleVerticalAlignment = useCallback((value: string) => {
-    const alignItemsMap: Record<string, string> = {
-      "align-vertical-start": "flex-start",
-      "align-vertical-center": "center",
-      "align-vertical-end": "flex-end",
-    };
+  const handleVerticalAlignment = useCallback(
+    (value: string) => {
+      const alignItemsMap: Record<string, string> = {
+        "align-vertical-start": "flex-start",
+        "align-vertical-center": "center",
+        "align-vertical-end": "flex-end",
+      };
 
-    host.updateStyles({
-      ...selectedFlexDisplayPatch(host),
-      alignItems: alignItemsMap[value] || "flex-start",
-    });
-  }, [host]);
+      host.updateStyles({
+        ...selectedFlexDisplayPatch(host),
+        alignItems: alignItemsMap[value] || "flex-start",
+      });
+    },
+    [host],
+  );
 
   /**
    * Horizontal alignment 버튼 선택 핸들러
    */
-  const handleHorizontalAlignment = useCallback((value: string) => {
-    const justifyContentMap: Record<string, string> = {
-      "align-horizontal-start": "flex-start",
-      "align-horizontal-center": "center",
-      "align-horizontal-end": "flex-end",
-    };
+  const handleHorizontalAlignment = useCallback(
+    (value: string) => {
+      const justifyContentMap: Record<string, string> = {
+        "align-horizontal-start": "flex-start",
+        "align-horizontal-center": "center",
+        "align-horizontal-end": "flex-end",
+      };
 
-    host.updateStyles({
-      ...selectedFlexDisplayPatch(host),
-      justifyContent: justifyContentMap[value] || "flex-start",
-    });
-  }, [host]);
+      host.updateStyles({
+        ...selectedFlexDisplayPatch(host),
+        justifyContent: justifyContentMap[value] || "flex-start",
+      });
+    },
+    [host],
+  );
 
   /**
    * Flex direction 버튼 선택 핸들러
@@ -176,47 +193,50 @@ export function useStyleActions() {
    * column→top/row→side. block 은 모델에 없어 패널에서 disable 되므로 여기로
    * 도달하지 않지만, 방어적으로 row 쪽 흡수. 대상 정본: orientationDrivenTags.
    */
-  const handleFlexDirection = useCallback((value: string) => {
-    // 선택된 버튼을 다시 누르면 토글 그룹이 빈 선택 (undefined) 을 준다 — prop 번역은 column 외를
-    //   side / horizontal 로 흡수하므로 여기서 걸러야 top 이 side 로 뒤집히지 않는다.
-    if (!DIRECTION_VALUES.has(value)) return;
-    const selected = host.readSelectedTarget();
-    const drivenProp = resolveDirectionDrivenProp(selected.type);
-    if (drivenProp) {
-      const drivenValue = flexDirectionToDrivenValue(drivenProp, value);
-      const staleStyle = withoutStaleDirectionStyle(
-        selected.props.style,
-        selected.id !== null && isSyntheticDescendantId(selected.id),
-      );
-      if (staleStyle) {
-        // 이 토글이 prop 번역 전에 (ref instance 판정 누락 · 멤버십 밖) 쓴 인라인이 남아 있으면
-        // DOM 에서 인라인이 variant 를 이긴다 — prop 과 같은 쓰기에서 지운다.
-        host.updateProperties({
+  const handleFlexDirection = useCallback(
+    (value: string) => {
+      // 선택된 버튼을 다시 누르면 토글 그룹이 빈 선택 (undefined) 을 준다 — prop 번역은 column 외를
+      //   side / horizontal 로 흡수하므로 여기서 걸러야 top 이 side 로 뒤집히지 않는다.
+      if (!DIRECTION_VALUES.has(value)) return;
+      const selected = host.readSelectedTarget();
+      const drivenProp = resolveDirectionDrivenProp(selected.type);
+      if (drivenProp) {
+        const drivenValue = flexDirectionToDrivenValue(drivenProp, value);
+        const staleStyle = withoutStaleDirectionStyle(
+          selected.props.style,
+          selected.id !== null && isSyntheticDescendantId(selected.id),
+        );
+        if (staleStyle) {
+          // 이 토글이 prop 번역 전에 (ref instance 판정 누락 · 멤버십 밖) 쓴 인라인이 남아 있으면
+          // DOM 에서 인라인이 variant 를 이긴다 — prop 과 같은 쓰기에서 지운다.
+          host.updateProperties({
             [drivenProp]: drivenValue,
             style: staleStyle,
           });
+          return;
+        }
+        host.updateProperty(drivenProp, drivenValue);
         return;
       }
-      host.updateProperty(drivenProp, drivenValue);
-      return;
-    }
-    if (value === "block") {
-      // display: block으로 전환, flex 관련 속성 제거
-      host.updateStyles({
-        display: "block",
-        flexDirection: "",
-        justifyContent: "",
-        alignItems: "",
-        flexWrap: "",
-        gap: "",
-      });
-    } else if (value === "row" || value === "column") {
-      host.updateStyles({
-        ...selectedFlexDisplayPatch(host),
-        flexDirection: value,
-      });
-    }
-  }, [host]);
+      if (value === "block") {
+        // display: block으로 전환, flex 관련 속성 제거
+        host.updateStyles({
+          display: "block",
+          flexDirection: "",
+          justifyContent: "",
+          alignItems: "",
+          flexWrap: "",
+          gap: "",
+        });
+      } else if (value === "row" || value === "column") {
+        host.updateStyles({
+          ...selectedFlexDisplayPatch(host),
+          flexDirection: value,
+        });
+      }
+    },
+    [host],
+  );
 
   /**
    * Flex alignment (3x3 grid) 버튼 선택 핸들러
@@ -248,7 +268,9 @@ export function useStyleActions() {
         const flexDirection =
           currentFlexDirection === "column" ? "column" : "row";
         // 라벨 위치 컨테이너는 축만 매핑한다 (방향은 호출측이 prop 에서 읽어 넘긴다).
-        const layoutMode: Record<string, string> = isSelectedDirectionDriven(host)
+        const layoutMode: Record<string, string> = isSelectedDirectionDriven(
+          host,
+        )
           ? {}
           : { ...selectedFlexDisplayPatch(host), flexDirection };
 
@@ -281,31 +303,44 @@ export function useStyleActions() {
   /**
    * Justify content spacing 버튼 선택 핸들러
    */
-  const handleJustifyContentSpacing = useCallback((value: string) => {
-    host.updateStyles({
-      ...(isSelectedDirectionDriven(host) ? {} : selectedFlexDisplayPatch(host)),
-      justifyContent: value, // space-around, space-between, space-evenly
-    });
-  }, [host]);
+  const handleJustifyContentSpacing = useCallback(
+    (value: string) => {
+      host.updateStyles({
+        ...(isSelectedDirectionDriven(host)
+          ? {}
+          : selectedFlexDisplayPatch(host)),
+        justifyContent: value, // space-around, space-between, space-evenly
+      });
+    },
+    [host],
+  );
 
   /**
    * Flex wrap 버튼 선택 핸들러
    */
-  const handleFlexWrap = useCallback((value: string) => {
-    host.updateStyles({
-      ...(isSelectedDirectionDriven(host) ? {} : selectedFlexDisplayPatch(host)),
-      flexWrap: value, // wrap, wrap-reverse, nowrap
-    });
-  }, [host]);
+  const handleFlexWrap = useCallback(
+    (value: string) => {
+      host.updateStyles({
+        ...(isSelectedDirectionDriven(host)
+          ? {}
+          : selectedFlexDisplayPatch(host)),
+        flexWrap: value, // wrap, wrap-reverse, nowrap
+      });
+    },
+    [host],
+  );
 
   /**
    * Reset styles (inline style 제거)
    */
-  const resetStyles = useCallback((properties: string[]) => {
-    const resetObj: Record<string, string> = {};
-    properties.forEach((prop) => (resetObj[prop] = ""));
-    host.updateStyles(sanitizeFillDerivedStylePatch(resetObj, true));
-  }, [host]);
+  const resetStyles = useCallback(
+    (properties: string[]) => {
+      const resetObj: Record<string, string> = {};
+      properties.forEach((prop) => (resetObj[prop] = ""));
+      host.updateStyles(sanitizeFillDerivedStylePatch(resetObj, true));
+    },
+    [host],
+  );
 
   /**
    * Copy styles to clipboard (wrapper around useCopyPaste)

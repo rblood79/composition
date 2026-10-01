@@ -9,9 +9,9 @@ import {
 } from "react";
 import {
   bindHandlersToDefinitions,
-  useActiveScope,
   useKeyboardShortcutsRegistry,
-} from "@/builder/hooks";
+} from "../../../hooks/useKeyboardShortcutsRegistry";
+import { useActiveScope } from "../../../hooks/useActiveScope";
 import {
   CatalogCanvasGestures,
   type CatalogSpacingClick,

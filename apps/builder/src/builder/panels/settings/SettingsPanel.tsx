@@ -28,7 +28,7 @@ import {
   PanelHeader,
   PanelContents,
 } from "../../components";
-import { useThemeMessenger } from "@/builder/hooks";
+import { useThemeMessenger } from "../../hooks/useThemeMessenger";
 import { LanguageSwitcher } from "@/i18n";
 import { useI18n } from "@/i18n";
 import { alignPagesToScreen } from "../../workspace/canvas/viewport/pageLayoutActions";
@@ -88,7 +88,9 @@ function SettingsContent() {
   // auto 는 값 칸에 키워드로 싣는다 — 실제 열 수는 뷰포트에서 나오므로 여기 숫자를 쓰지 않는다.
   const columnsFieldValue = columnsAuto
     ? "auto"
-    : String(catalogLayout ? catalogLayout.view.columns : resolvedPageLayout.columns);
+    : String(
+        catalogLayout ? catalogLayout.view.columns : resolvedPageLayout.columns,
+      );
   const tierOverrideAvailable = catalogLayout
     ? catalogLayout.view.tierOverrideAvailable
     : isDerivedPlacement && activeBreakpoint !== "desktop";

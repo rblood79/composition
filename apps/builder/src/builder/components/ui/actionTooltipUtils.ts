@@ -2,7 +2,7 @@ import {
   SHORTCUT_DEFINITIONS,
   type ShortcutId,
 } from "../../config/keyboardShortcuts";
-import { formatShortcut } from "@/builder/hooks";
+import { formatShortcut } from "../../hooks/useKeyboardShortcutsRegistry";
 
 /** 정의에서 파생한 단축키 표기 — 정의가 없으면 undefined. */
 export function shortcutDisplayFor(

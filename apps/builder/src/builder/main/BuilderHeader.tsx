@@ -26,14 +26,14 @@ import {
 } from "react";
 import { useNavigate } from "react-router";
 import { iconProps, APP_ICON_URL } from "../../utils/ui/uiConstants";
-import { usePanelLayout } from "../layout";
+import { usePanelLayout } from "../hooks/usePanelLayout";
 import { ActionIconButton } from "../components/ui/ActionIconButton";
 import { StorageStatusButton } from "./StorageStatusButton";
 import { ActionTooltipTrigger } from "../components/ui/ActionTooltip";
 import {
   bindHandlersToDefinitions,
   useKeyboardShortcutsRegistry,
-} from "../hooks";
+} from "../hooks/useKeyboardShortcutsRegistry";
 import {
   ZoomControls,
   type ZoomControlsViewportActions,

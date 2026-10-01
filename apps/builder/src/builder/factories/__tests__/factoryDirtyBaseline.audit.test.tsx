@@ -14,6 +14,7 @@
  * Group D(Table 패밀리: Table/TableHeader/TableBody/TableView/Row/Column/Cell/ColumnGroup)는 별도
  * 작업 축으로 본 가드에서 제외(CREATORS 미포함).
  */
+import "../../panels/styles/stylesHost.store"; // old-store host (ADR-248 4e-7: goes with the old store)
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { useStore } from "../../stores";

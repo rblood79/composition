@@ -28,8 +28,8 @@ export type StylesLayoutKey = "width" | "height" | "x" | "y";
 
 /**
  * Where the Styles panel reads the selection and writes its edits. Hooks (`use*`) subscribe;
- * commands read the current state when they run. The default is the old store; the catalog
- * Styles panel (ADR-248 Phase 4e-4d) provides the catalog workspace, so the sections are shared.
+ * commands read the current state when they run. The catalog Styles panel (ADR-248 Phase 4e-4d)
+ * provides the catalog workspace; there is no default (4e-7 removed the old store host).
  */
 export interface StylesHost {
   useSelectedId(): string | null;
@@ -49,7 +49,10 @@ export interface StylesHost {
   /** The parent record of a record (its layout decides the size modes on offer). */
   useParentId(id: string | null): string | null;
   /** A record's parent box layout: `display` and `flexDirection` (fill availability, size mode). */
-  useParentLayout(id: string | null): { display: string; flexDirection: string };
+  useParentLayout(id: string | null): {
+    display: string;
+    flexDirection: string;
+  };
   /** A record's measured box (px), following layout. */
   useLayoutValue(id: string | null, key: StylesLayoutKey): number | undefined;
   /** One Size axis edit on the selection, as one step (ignored if `selectedId` is stale). */
@@ -137,5 +140,5 @@ export interface StylesHost {
   };
 }
 
-/** `null` = the old store (`STORE_STYLES_HOST`); the catalog Styles panel provides its own. */
+/** Provided by the catalog Styles panel; `useStylesHost` throws without it. */
 export const StylesHostContext = createContext<StylesHost | null>(null);

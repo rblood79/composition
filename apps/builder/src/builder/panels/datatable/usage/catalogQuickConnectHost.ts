@@ -27,7 +27,10 @@ import { catalogTargetTypeName } from "../../../catalogRuntime/interactions";
 import { catalogRouteIdOf } from "../../../catalogRuntime/project";
 import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
 import type { QuickConnectTarget } from "../types/editorTypes";
-import { resolveColumnMode, type TableColumnPlan } from "../utils/quickConnect";
+import {
+  resolveColumnMode,
+  type TableColumnPlan,
+} from "../utils/quickConnectPlan";
 import type { QuickConnectHost } from "./quickConnectHost";
 
 const COLUMN_ORIGIN =

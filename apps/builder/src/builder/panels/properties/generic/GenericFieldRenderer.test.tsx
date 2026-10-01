@@ -6,6 +6,8 @@
  * 컬럼 존재 시 PropertyFieldTemplateInput(필드 피커)으로 렌더되는지 가드한다 —
  * P4a 최초 배선이 CatalogInspectorFields 에만 있어 live 미노출된 회귀의 재발 차단.
  */
+import "../../datatable/usage/quickConnectHost.store"; // old-store host (ADR-248 4e-7: goes with the old store)
+import "../../datatable/usage/dataUsageSource.store"; // old-store host (ADR-248 4e-7: goes with the old store)
 import { render } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 

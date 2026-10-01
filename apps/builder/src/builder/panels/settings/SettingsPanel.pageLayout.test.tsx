@@ -41,7 +41,10 @@ vi.mock("../../components", async (importOriginal) => ({
     unitSuffix?: boolean;
     value: string;
   }) => (
-    <div data-units={units?.join(",")} data-unit-suffix={unitSuffix || undefined}>
+    <div
+      data-units={units?.join(",")}
+      data-unit-suffix={unitSuffix || undefined}
+    >
       <input
         aria-label={label}
         type="text"
@@ -100,7 +103,7 @@ vi.mock("../../components", async (importOriginal) => ({
   ),
 }));
 
-vi.mock("@/builder/hooks", () => ({
+vi.mock("../../hooks/useThemeMessenger", () => ({
   useThemeMessenger: () => ({ sendDarkMode: sendDarkModeMock }),
 }));
 

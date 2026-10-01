@@ -81,7 +81,10 @@ describe("style hooks canonical read contract", () => {
       resolve(__dirname, "useTransformAuxiliary.ts"),
       "utf-8",
     );
-    const host = await readFile(resolve(__dirname, "../stylesHost.ts"), "utf-8");
+    const host = await readFile(
+      resolve(__dirname, "../stylesHost.store.ts"),
+      "utf-8",
+    );
 
     expect(hooks).toContain("useStylesHost().useParentLayout");
     expect(host).toContain("useCanonicalPropertyElement");

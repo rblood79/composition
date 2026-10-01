@@ -6,6 +6,8 @@
  * 를 통과한다. 컨트롤의 patch 는 패널이 끼우는 `chartPresentationPatch` 를 거쳐 단언한다 —
  * 합성 옵션 배열을 컨트롤에 직접 넘긴 결과는 이 게이트의 증거가 아니다.
  */
+import "../datatable/usage/quickConnectHost.store"; // old-store host (ADR-248 4e-7: goes with the old store)
+import "../datatable/usage/dataUsageSource.store"; // old-store host (ADR-248 4e-7: goes with the old store)
 import { cleanup, fireEvent, render, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createChartInitialProps, seriesIdentity } from "@composition/specs";

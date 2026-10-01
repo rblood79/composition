@@ -1,17 +1,14 @@
-import { createContext, useContext, useMemo } from "react";
+import { createContext, useContext } from "react";
 import type {
   DataField,
   DataTable,
 } from "../../../../types/builder/data.types";
-import { resolveCollectionUsage } from "../../../../services/ai/data/collectionReadModel";
-import { getAiToolReadModel } from "../../../../services/ai/tools/canonicalToolReadModel";
-import { useStore } from "../../../stores";
-import { resolveFieldUsage, type FieldUsageRef } from "../utils/fieldUsage";
+import type { FieldUsageRef } from "../utils/fieldUsage";
 
 /**
  * ADR-248 Phase 4e-4e: where the Data surfaces read document usage from — "used by N" per
- * collection (the list · the binding picker) and a field's users (the field panel). The store
- * source reads the old element store; the catalog workspace provides the graph's collection index.
+ * collection (the list · the binding picker) and a field's users (the field panel). The catalog
+ * workspace provides the graph's collection index (no default).
  */
 export interface DataUsageSource {
   useCollectionUsage(
@@ -23,33 +20,20 @@ export interface DataUsageSource {
   ): readonly FieldUsageRef[];
 }
 
-export const STORE_DATA_USAGE_SOURCE: DataUsageSource = {
-  useCollectionUsage(collections) {
-    // 요소가 바뀌면 다시 센다 (읽기는 getAiToolReadModel 경유)
-    const elements = useStore((state) => state.elements);
-    return useMemo(() => {
-      void elements;
-      return resolveCollectionUsage(getAiToolReadModel().elements, collections);
-    }, [collections, elements]);
-  },
-  useFieldUsage(collection, field) {
-    const elements = useStore((state) => state.elements);
-    return useMemo(() => {
-      void elements;
-      if (!collection || !field) return [];
-      return resolveFieldUsage(
-        getAiToolReadModel().elements,
-        collection,
-        field,
-      );
-    }, [collection, field, elements]);
-  },
-};
-
 export const DataUsageSourceContext = createContext<DataUsageSource | null>(
   null,
 );
 
+/** Old-store tests only (`dataUsageSource.store.ts`, removed with the old store): the host without a provider. */
+let testFallback: DataUsageSource | null = null;
+export function setDataUsageSourceTestFallback(
+  host: DataUsageSource | null,
+): void {
+  testFallback = host;
+}
+
 export function useDataUsageSource(): DataUsageSource {
-  return useContext(DataUsageSourceContext) ?? STORE_DATA_USAGE_SOURCE;
+  const host = useContext(DataUsageSourceContext) ?? testFallback;
+  if (!host) throw new Error("Data usage host is not provided");
+  return host;
 }

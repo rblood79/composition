@@ -23,7 +23,7 @@ import {
   useViewportSyncStore,
 } from "../stores";
 import { offsetViewportStateX } from "./viewportActions";
-import { useKeyboardShortcutsRegistry } from "@/builder/hooks";
+import { useKeyboardShortcutsRegistry } from "../../../hooks/useKeyboardShortcutsRegistry";
 import { useScrollState, isScrollable } from "../../../stores/scrollState";
 import { useStore } from "../../../stores";
 import { getCanonicalNode } from "../../../stores/canonical/canonicalElementsBridge";

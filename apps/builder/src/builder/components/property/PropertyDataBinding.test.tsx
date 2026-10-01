@@ -1,3 +1,5 @@
+import "../../panels/datatable/usage/quickConnectHost.store"; // old-store host (ADR-248 4e-7: goes with the old store)
+import "../../panels/datatable/usage/dataUsageSource.store"; // old-store host (ADR-248 4e-7: goes with the old store)
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -157,7 +159,11 @@ describe("PropertyDataBinding — fieldMap value/icon (ADR-152 Phase 2)", () => 
     vi.resetModules();
     // 모듈 재로드 뒤에는 i18n context 도 같은 인스턴스여야 한다
     const [{ PropertyDataBinding: Comp }, { I18nProvider: Provider }] =
-      await Promise.all([import("./PropertyDataBinding"), import("@/i18n")]);
+      await Promise.all([
+        import("./PropertyDataBinding"),
+        import("@/i18n"),
+        import("../../panels/datatable/usage/dataUsageSource.store"),
+      ]);
     const renderFresh = (ui: ReactElement) => render(ui, { wrapper: Provider });
     return { Comp, renderFresh };
   };

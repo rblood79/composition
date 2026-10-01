@@ -61,8 +61,8 @@ import { useDirtyStyleProps } from "./hooks/useResetStyles";
 import {
   useKeyboardShortcutsRegistry,
   bindHandlersToDefinitions,
-  useActiveScope,
-} from "@/builder/hooks";
+} from "../../hooks/useKeyboardShortcutsRegistry";
+import { useActiveScope } from "../../hooks/useActiveScope";
 import { useI18n } from "../../../i18n";
 import "./StylesPanel.css";
 import { useStylesHost, useStylesSelectedId } from "./stylesHost";

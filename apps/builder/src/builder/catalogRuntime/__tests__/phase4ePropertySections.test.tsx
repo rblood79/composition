@@ -11,6 +11,10 @@ import type {
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
 import { I18nProvider } from "../../../i18n";
+import { createCatalogDataUsageSource } from "../../panels/datatable/usage/catalogDataUsageSource";
+import { DataUsageSourceContext } from "../../panels/datatable/usage/dataUsageSource";
+import { createCatalogQuickConnectHost } from "../../panels/datatable/usage/catalogQuickConnectHost";
+import { QuickConnectHostContext } from "../../panels/datatable/usage/quickConnectHost";
 import { FieldValueSourceContext } from "../../panels/properties/generic/fieldValueSource";
 import { GenericFieldRenderer } from "../../panels/properties/generic/GenericFieldRenderer";
 import { ItemsSourceContext } from "../../panels/properties/generic/itemsSource";
@@ -171,7 +175,22 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
     render(
       <I18nProvider initialLocale="en-US">
         <CatalogWorkspaceProvider workspace={workspace}>
-          <CatalogPropertiesPanel />
+          <DataUsageSourceContext.Provider
+            value={createCatalogDataUsageSource(workspace)}
+          >
+            <QuickConnectHostContext.Provider
+              value={createCatalogQuickConnectHost(
+                workspace,
+                {
+                  apply: async () => ({ applied: [], inverse: [] }),
+                  collection: () => undefined,
+                },
+                (name) => name,
+              )}
+            >
+              <CatalogPropertiesPanel />
+            </QuickConnectHostContext.Provider>
+          </DataUsageSourceContext.Provider>
         </CatalogWorkspaceProvider>
       </I18nProvider>,
     );

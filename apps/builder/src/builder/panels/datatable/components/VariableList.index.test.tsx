@@ -3,6 +3,7 @@
  * ADR-214 Phase 5 — Data 탭 Variables: 프로젝트 변수 (편집 가능, 사용처 배지) + 페이지 · 컴포넌트
  * 인덱스 (소유자 열 · 클릭 → 페이지 활성화 + 요소 선택 + Properties 상태 절 포커스 요청).
  */
+import "../usage/dataVariablesHost.store"; // old-store host (ADR-248 4e-7: goes with the old store)
 import type { ReactElement } from "react";
 import { cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

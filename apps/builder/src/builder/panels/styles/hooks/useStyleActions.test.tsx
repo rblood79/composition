@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import "../stylesHost.store"; // old-store host (ADR-248 4e-7: goes with the old store)
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useStore } from "../../../stores";
@@ -7,7 +8,7 @@ import type { CompositionDocument } from "@composition/shared";
 import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
 import { useStyleActions } from "./useStyleActions";
 
-vi.mock("@/builder/hooks", () => ({
+vi.mock("../../../hooks/useCopyPaste", () => ({
   useCopyPaste: () => ({
     copy: vi.fn(),
     paste: vi.fn(),
@@ -710,4 +711,3 @@ describe("useStyleActions", () => {
     });
   });
 });
-

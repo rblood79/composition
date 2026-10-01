@@ -1,3 +1,4 @@
+import "../../datatable/usage/dataUsageSource.store"; // old-store host (ADR-248 4e-7: goes with the old store)
 import { render } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 

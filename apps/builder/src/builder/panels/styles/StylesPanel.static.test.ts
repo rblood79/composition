@@ -26,7 +26,10 @@ describe("StylesPanel canonical selected data contract", () => {
     expect(source).toContain(
       "const selectedElement = useStylesHost().useSelectedElement();",
     );
-    const host = await readFile(resolve(__dirname, "stylesHost.ts"), "utf-8");
+    const host = await readFile(
+      resolve(__dirname, "stylesHost.store.ts"),
+      "utf-8",
+    );
     expect(host).toContain(
       "useSelectedElement: () => useDebouncedSelectedElementData()",
     );

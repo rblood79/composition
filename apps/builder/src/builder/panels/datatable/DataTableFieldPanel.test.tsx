@@ -4,6 +4,7 @@
  * 실패 시 비움/유지) · 삭제 (사용처 0 즉시 · >0 ConfirmDialog) · required/label patch. 쓰기는
  * 전부 applyDataChange (HC1). 사용처는 필드 단위 역참조.
  */
+import "./usage/dataUsageSource.store"; // old-store host (ADR-248 4e-7: goes with the old store)
 import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 

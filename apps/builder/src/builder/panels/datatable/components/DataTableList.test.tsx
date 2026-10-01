@@ -3,6 +3,7 @@
  * ADR-212 Phase 1 — 목록 항목은 RAC GridList 행 (A5: 키보드로 열림) 이고 배지가
  * 필드 · 행 · 소스 · 사용처 N · 마지막 실행 오류를 낸다 (UI-6). 삭제는 role=status 로 알린다.
  */
+import "../usage/dataUsageSource.store"; // old-store host (ADR-248 4e-7: goes with the old store)
 import { cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 

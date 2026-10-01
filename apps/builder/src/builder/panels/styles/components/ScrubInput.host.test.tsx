@@ -1,6 +1,6 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { STORE_STYLES_HOST, StylesHostContext } from "../stylesHost";
+import { StylesHostContext, type StylesHost } from "../stylesHostContext";
 import { useFillUIStore } from "../hooks/useFillValues";
 import { ColorInputFields } from "./ColorInputFields";
 import { ImageFillEditor } from "./ImageFillEditor";
@@ -16,7 +16,7 @@ function withHost(selected: { id: string }, children: React.ReactNode) {
   return (
     <StylesHostContext.Provider
       value={{
-        ...STORE_STYLES_HOST,
+        ...({} as StylesHost),
         useSelectedId: () => "a",
         readSelectedId: () => selected.id,
       }}

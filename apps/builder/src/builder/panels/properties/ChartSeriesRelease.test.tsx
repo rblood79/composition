@@ -5,6 +5,8 @@
  * 편집 계약도 canonical store 에 시드한 노드로 실제 `resolveEditContract` 를 통과시킨다.
  * 합성 옵션 배열을 `GenericFieldRenderer` 에 직접 넘긴 결과는 이 게이트의 증거가 아니다.
  */
+import "../datatable/usage/quickConnectHost.store"; // old-store host (ADR-248 4e-7: goes with the old store)
+import "../datatable/usage/dataUsageSource.store"; // old-store host (ADR-248 4e-7: goes with the old store)
 import { cleanup, fireEvent, render, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createChartInitialProps } from "@composition/specs";

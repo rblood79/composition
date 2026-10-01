@@ -7,8 +7,8 @@ import type {
 import type { BaseTypography } from "../../fonts/customFonts";
 
 /**
- * ADR-248 Phase 4e-4d-4: what the Themes panel reads and writes — the old canonical document and
- * `themeConfigStore` (`STORE_THEMES_HOST`) or the catalog workspace (`createCatalogThemesHost`).
+ * ADR-248 Phase 4e-4d-4: what the Themes panel reads and writes — the catalog workspace
+ * (`createCatalogThemesHost`).
  * Reads are hooks; every write is one history step and returns whether it changed anything.
  */
 export interface ThemesHost {
@@ -33,5 +33,5 @@ export interface ThemesHost {
   setActiveThemeBaseTypography(patch: Partial<BaseTypography>): boolean;
 }
 
-/** `null` = the old store (`STORE_THEMES_HOST`); the catalog Themes panel provides its own. */
+/** Provided by the catalog Themes panel; `useThemesHost` throws without it. */
 export const ThemesHostContext = createContext<ThemesHost | null>(null);

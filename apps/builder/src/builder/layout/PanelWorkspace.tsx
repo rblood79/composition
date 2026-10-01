@@ -12,7 +12,7 @@ import {
   type ReactNode,
 } from "react";
 import { useMove } from "react-aria";
-import { usePanelLayout } from "../hooks";
+import { usePanelLayout } from "../hooks/usePanelLayout";
 import { PanelRegistry } from "../panels/core/PanelRegistry";
 import type {
   PanelConfig,

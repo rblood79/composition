@@ -4,6 +4,7 @@
  * (152 wrapper, HC1) 한 번 · 결과는 role=status 와 편집기 열림. "AI 로 설명" 은 AI 입력창
  * 초안 + AI 패널 표시 (전송 0).
  */
+import "../usage/quickConnectHost.store"; // old-store host (ADR-248 4e-7: goes with the old store)
 import { cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
