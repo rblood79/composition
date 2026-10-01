@@ -1,1 +1,1 @@
-export { CanvasScrollbar } from './CanvasScrollbar';
+export { CanvasScrollbar } from "./CanvasScrollbar";

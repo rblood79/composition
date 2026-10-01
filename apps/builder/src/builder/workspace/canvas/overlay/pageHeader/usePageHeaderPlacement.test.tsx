@@ -101,7 +101,13 @@ describe("usePageHeaderPlacement — 게이트 · drag 추종 · settle 배치",
   });
 
   it("마운트 시 1회 배치 — transform · width · 뷰포트 밖 컬링", () => {
-    const { container } = render(<PageHeaderLayer frames={frames} />);
+    const { container } = render(
+      <PageHeaderLayer
+        frames={frames}
+        activePageId="p2"
+        hasSelection={false}
+      />,
+    );
     const layer = container.firstElementChild as HTMLElement;
     const p1 = headerOf(layer, "p1");
     expect(p1.style.transform).toBe("translate3d(0px, 64px, 0)");
@@ -116,7 +122,13 @@ describe("usePageHeaderPlacement — 게이트 · drag 추종 · settle 배치",
   //   먼저 읽으면 페이지 본문만 움직이고 헤더는 그 자리에 남는다 (사용자 보고 2026-09-22 —
   //   스크롤하면 그때 제자리로 왔다 = 다음 카메라 변화의 재배치가 고친 것).
   it("frames 가 바뀌면 store 미러가 아직 옛 값이어도 헤더가 프레임을 따라간다", () => {
-    const { container, rerender } = render(<PageHeaderLayer frames={frames} />);
+    const { container, rerender } = render(
+      <PageHeaderLayer
+        frames={frames}
+        activePageId="p2"
+        hasSelection={false}
+      />,
+    );
     const layer = container.firstElementChild as HTMLElement;
     expect(headerOf(layer, "p1").style.transform).toBe(
       "translate3d(0px, 64px, 0)",
@@ -125,7 +137,9 @@ describe("usePageHeaderPlacement — 게이트 · drag 추종 · settle 배치",
     const moved = frames.map((frame) =>
       frame.id === "p1" ? { ...frame, x: 300 } : frame,
     );
-    rerender(<PageHeaderLayer frames={moved} />);
+    rerender(
+      <PageHeaderLayer frames={moved} activePageId="p2" hasSelection={false} />,
+    );
 
     expect(headerOf(layer, "p1").style.transform).toBe(
       "translate3d(300px, 64px, 0)",
@@ -133,7 +147,13 @@ describe("usePageHeaderPlacement — 게이트 · drag 추종 · settle 배치",
   });
 
   it("게이트 ON 동안 프레임 콜백은 DOM 을 쓰지 않고, OFF 전환에 1회 배치한다", async () => {
-    const { container } = render(<PageHeaderLayer frames={frames} />);
+    const { container } = render(
+      <PageHeaderLayer
+        frames={frames}
+        activePageId="p2"
+        hasSelection={false}
+      />,
+    );
     const layer = container.firstElementChild as HTMLElement;
     const before = headerOf(layer, "p1").style.transform;
 
@@ -159,7 +179,13 @@ describe("usePageHeaderPlacement — 게이트 · drag 추종 · settle 배치",
   });
 
   it("프로그램 zoom (게이트 밖 카메라 변화) 은 프레임 콜백에서 1회 배치", async () => {
-    const { container } = render(<PageHeaderLayer frames={frames} />);
+    const { container } = render(
+      <PageHeaderLayer
+        frames={frames}
+        activePageId="p2"
+        hasSelection={false}
+      />,
+    );
     const layer = container.firstElementChild as HTMLElement;
 
     const writes = await countStyleWrites(layer, () => {
@@ -178,7 +204,13 @@ describe("usePageHeaderPlacement — 게이트 · drag 추종 · settle 배치",
   });
 
   it("drag 중에는 override 대상 노드만 transform 을 바꾼다", async () => {
-    const { container } = render(<PageHeaderLayer frames={frames} />);
+    const { container } = render(
+      <PageHeaderLayer
+        frames={frames}
+        activePageId="p2"
+        hasSelection={false}
+      />,
+    );
     const layer = container.firstElementChild as HTMLElement;
     const p2Before = headerOf(layer, "p2").style.transform;
 
@@ -201,7 +233,13 @@ describe("usePageHeaderPlacement — 게이트 · drag 추종 · settle 배치",
   it("drag 중 위 페이지가 겹치면 아래 페이지 헤더 clip 이 매 프레임 갱신된다 (회귀)", () => {
     // 회귀: transform 만 쓰던 fast path 는 겹친 아래 페이지 헤더의 clip 을 갱신하지
     // 않아, 선택(위) 페이지가 이동해 겹칠 때 아래 헤더가 위 페이지 위로 남았다.
-    const { container } = render(<PageHeaderLayer frames={frames} />);
+    const { container } = render(
+      <PageHeaderLayer
+        frames={frames}
+        activePageId="p2"
+        hasSelection={false}
+      />,
+    );
     const layer = container.firstElementChild as HTMLElement;
     expect(headerOf(layer, "p1").style.clipPath).toBe("");
 
@@ -223,7 +261,13 @@ describe("usePageHeaderPlacement — 게이트 · drag 추종 · settle 배치",
     const overlapping = frames.map((frame) =>
       frame.id === "p2" ? { ...frame, x: 200 } : frame,
     );
-    const { container } = render(<PageHeaderLayer frames={overlapping} />);
+    const { container } = render(
+      <PageHeaderLayer
+        frames={overlapping}
+        activePageId="p2"
+        hasSelection={false}
+      />,
+    );
     const layer = container.firstElementChild as HTMLElement;
     expect(headerOf(layer, "p1").style.clipPath).toBe(
       "inset(0px 200px 0px 0px)",
@@ -262,7 +306,13 @@ describe("ADR-226 — 제스처 중 프레임 집합 동결 · commit-before-rev
   }
 
   it("게이트 ON 동안 frames 교체는 mount/unmount 0 — settle 집합을 유지한다", async () => {
-    const { container, rerender } = render(<PageHeaderLayer frames={frames} />);
+    const { container, rerender } = render(
+      <PageHeaderLayer
+        frames={frames}
+        activePageId="p2"
+        hasSelection={false}
+      />,
+    );
     const layer = container.firstElementChild as HTMLElement;
     const nodesBefore = Array.from(layer.children);
     act(() => useViewportSyncStore.getState().setCameraGestureActive(true));
@@ -272,8 +322,20 @@ describe("ADR-226 — 제스처 중 프레임 집합 동결 · commit-before-rev
       { id: "p4", title: "Four", x: 100, y: 0, width: 400, height: 800 },
       frames[1],
     ];
-    rerender(<PageHeaderLayer frames={swapped} />);
-    rerender(<PageHeaderLayer frames={[...swapped]} />);
+    rerender(
+      <PageHeaderLayer
+        frames={swapped}
+        activePageId="p2"
+        hasSelection={false}
+      />,
+    );
+    rerender(
+      <PageHeaderLayer
+        frames={[...swapped]}
+        activePageId="p2"
+        hasSelection={false}
+      />,
+    );
     await Promise.resolve();
     expect(recorder.count()).toBe(0);
     recorder.stop();
@@ -283,7 +345,13 @@ describe("ADR-226 — 제스처 중 프레임 집합 동결 · commit-before-rev
   });
 
   it("게이트 OFF 커밋: 최신 집합 mount → 새 노드 transform 설정 → data-hidden 제거 순서 (settle 당 배치 1회)", async () => {
-    const { container, rerender } = render(<PageHeaderLayer frames={frames} />);
+    const { container, rerender } = render(
+      <PageHeaderLayer
+        frames={frames}
+        activePageId="p2"
+        hasSelection={false}
+      />,
+    );
     const layer = container.firstElementChild as HTMLElement;
     act(() => useViewportSyncStore.getState().setCameraGestureActive(true));
 
@@ -293,7 +361,9 @@ describe("ADR-226 — 제스처 중 프레임 집합 동결 · commit-before-rev
       { id: "p4", title: "Four", x: 100, y: 0, width: 400, height: 800 },
       frames[1],
     ];
-    rerender(<PageHeaderLayer frames={next} />);
+    rerender(
+      <PageHeaderLayer frames={next} activePageId="p2" hasSelection={false} />,
+    );
     expect(layer.querySelector('[data-page-id="p4"]')).toBeNull();
 
     // reveal 시점에 새 노드 transform 이 이미 설정돼 있어야 한다.

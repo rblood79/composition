@@ -319,13 +319,17 @@ describe("ADR-152: data entry 소비 지점 6곳 (R9)", () => {
   it("#6 — 패널 라벨/아이콘", async () => {
     const label = await readSource("../../panels/history/historyEntryLabel.ts");
     expect(label).toContain('case "data":');
+    // ADR-248 4e-7: the data op labels live in `dataChangeEventLabel.ts` (the catalog history too).
+    const dataLabel = await readSource(
+      "../../panels/history/dataChangeEventLabel.ts",
+    );
     for (const key of [
       "entryDataCell",
       "entryDataRowsRemove",
       "entryDataRowsReplace",
       "entryDataFieldRename",
     ])
-      expect(label).toContain(`history.${key}`);
+      expect(dataLabel).toContain(`history.${key}`);
     const panel = await readSource("../../panels/history/HistoryPanel.tsx");
     expect(panel).toContain("data: Database");
   });

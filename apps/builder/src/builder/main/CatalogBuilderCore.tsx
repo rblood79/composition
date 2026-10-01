@@ -41,7 +41,7 @@ import {
   catalogDataHistoryRecorder,
   catalogDocumentBindingCommitter,
 } from "../catalogRuntime/dataHistory";
-import { dataChangeEventLabel } from "../panels/history/historyEntryLabel";
+import { dataChangeEventLabel } from "../panels/history/dataChangeEventLabel";
 import { catalogThemeState } from "../catalogRuntime/theme";
 import { catalogPropertySelection } from "../catalogRuntime/propertySelection";
 import { PropertySelectionContext } from "../components/property/propertySelection";

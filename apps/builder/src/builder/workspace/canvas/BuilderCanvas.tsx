@@ -12,6 +12,7 @@
  * @since 2025-12-11 Phase 10 B1.1
  * @updated 2026-02-18 Phase 11 - DirectContainer 전환
  */
+import { routeWheelToStoreSelection } from "./viewport/storeWheelRoute.legacy";
 import {
   useCallback,
   useEffect,
@@ -449,6 +450,9 @@ export function BuilderCanvas({
   const setSelectedElements = useStore((state) => state.setSelectedElements);
   const clearSelection = useStore((state) => state.clearSelection);
   const currentPageId = useStore((state) => state.currentPageId);
+  const hasSelectionForHeaders = useStore(
+    (state) => state.selectedElementIds.length > 0,
+  );
   const isCompareMode = useCompareModeStore((state) => state.isCompareMode);
   const filterCurrentPage = useCompareModeStore(
     (state) => state.filterCurrentPage,
@@ -1886,6 +1890,8 @@ export function BuilderCanvas({
         canRenamePage={canRenamePage}
         onBeginRename={setCurrentPageId}
         onRenamePage={renamePageTitle}
+        activePageId={currentPageId}
+        hasSelection={hasSelectionForHeaders}
       />
 
       {/* ADR-181: Skia canvas 앞 눈금자 레이어 (뷰포트 chrome — 문서 데이터 아님) */}
@@ -1900,6 +1906,7 @@ export function BuilderCanvas({
           gestureSession={canvasGestureSession}
           onInteractionStart={handleCameraGestureStart}
           onInteractionEnd={handleCameraGestureEnd}
+          routeWheel={routeWheelToStoreSelection}
         />
       )}
 

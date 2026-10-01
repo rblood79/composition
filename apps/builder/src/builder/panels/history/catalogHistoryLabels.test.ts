@@ -16,7 +16,9 @@ const lookup = (locale: keyof typeof translations, key: string): unknown =>
 describe("ADR-248 Phase 4e catalog History labels", () => {
   it("every catalog label key has a Korean and an English text", () => {
     for (const key of CATALOG_HISTORY_LABEL_KEYS)
-      for (const locale of Object.keys(translations) as (keyof typeof translations)[])
+      for (const locale of Object.keys(
+        translations,
+      ) as (keyof typeof translations)[])
         expect([locale, key, typeof lookup(locale, key)]).toEqual([
           locale,
           key,

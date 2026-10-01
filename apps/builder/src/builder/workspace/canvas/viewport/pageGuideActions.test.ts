@@ -291,7 +291,12 @@ describe("deletePageGuide — Delete 키 삭제", () => {
     expect(entries).toHaveLength(1);
     expect(entries[0].type).toBe("page-guide");
     expect(entries[0].data.pageGuideEvent?.entries).toEqual([
-      { pageId: "home", breakpoint: "desktop", before: [g("a", "x", 10)], after: [] },
+      {
+        pageId: "home",
+        breakpoint: "desktop",
+        before: [g("a", "x", 10)],
+        after: [],
+      },
     ]);
     expect(getPageGuideRevision()).toBe(1);
     expect(readPageGuides("home", "desktop")).toEqual([]);

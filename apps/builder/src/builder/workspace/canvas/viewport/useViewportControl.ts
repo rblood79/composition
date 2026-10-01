@@ -24,10 +24,6 @@ import {
 } from "../stores";
 import { offsetViewportStateX } from "./viewportActions";
 import { useKeyboardShortcutsRegistry } from "../../../hooks/useKeyboardShortcutsRegistry";
-import { useScrollState, isScrollable } from "../../../stores/scrollState";
-import { useStore } from "../../../stores";
-import { getCanonicalNode } from "../../../stores/canonical/canonicalElementsBridge";
-import { resolveEffectiveOverflow } from "../layout/engines/implicitStyles";
 import { observe, PERF_LABEL } from "../../../utils/perfMarks";
 import type { CanvasGestureSession } from "../interaction/canvasGestureSession";
 import {
@@ -59,7 +55,7 @@ export interface UseViewportControlOptions {
   gestureSession: CanvasGestureSession;
   /**
    * 일반 휠을 캔버스 팬 대신 요소 스크롤로 보낼지 정한다 (deltaX, deltaY — Shift 는 가로로 바꾼 값).
-   * true 면 휠을 소비한다. 주어지면 아래 옛 store 경로 (선택 요소 · canonical 노드) 대신 쓴다.
+   * true 면 휠을 소비한다. 없으면 휠은 늘 팬 (구 store 경로는 `storeWheelRoute.legacy.ts`).
    */
   routeWheel?: (deltaX: number, deltaY: number) => boolean;
 }
@@ -385,26 +381,6 @@ export function useViewportControl(
               route(e.shiftKey ? e.deltaY : e.deltaX, e.shiftKey ? 0 : e.deltaY)
             )
               return;
-          }
-          const selectedIds = route
-            ? []
-            : useStore.getState().selectedElementIds;
-          if (selectedIds.length === 1) {
-            const selectedId = selectedIds[0];
-            const node = getCanonicalNode(selectedId);
-            const overflow = resolveEffectiveOverflow(
-              node?.type,
-              node?.props?.style as Record<string, unknown> | undefined,
-            );
-            if (
-              (overflow === "scroll" || overflow === "auto") &&
-              isScrollable(selectedId)
-            ) {
-              const deltaX = e.shiftKey ? e.deltaY : e.deltaX;
-              const deltaY = e.shiftKey ? 0 : e.deltaY;
-              useScrollState.getState().scrollBy(selectedId, deltaX, deltaY);
-              return;
-            }
           }
 
           recordViewportInteractionRawInput();

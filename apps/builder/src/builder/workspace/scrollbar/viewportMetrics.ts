@@ -1,5 +1,3 @@
-import { useStore } from "../../stores";
-import { useEditModeStore } from "../../stores/editMode";
 import { useViewportSyncStore } from "../canvas/stores";
 import {
   getViewportController,
@@ -10,36 +8,6 @@ import {
   type ContentRect,
   type WorldBounds,
 } from "./calculateWorldBounds";
-
-/**
- * 스크롤 대상이 되는 아트보드 rect 목록.
- *
- * 아트보드 크기는 `canvasSize`(= breakpoint 페이지 크기)다 — `panToPage` 가 페이지 중심을
- * `pos + canvasSize/2` 로 잡는 것과 같은 의미. frame 편집 모드에서는 캔버스가 페이지를
- * 비우고 프레임만 그리므로(`BuilderCanvas` 의 `isFrameEditMode ? [] : pages`) 대상도 그에
- * 맞춰 갈린다 — 섞으면 프레임 편집 중 스크롤 범위가 전 페이지로 부풀어 오른다.
- */
-function collectContentRects(canvasSize: {
-  width: number;
-  height: number;
-}): ContentRect[] {
-  const { derivedPagePositions: pagePositions, framePositions } =
-    useStore.getState();
-  const isFrameEditMode = useEditModeStore.getState().mode === "layout";
-  const positions = isFrameEditMode ? framePositions : pagePositions;
-
-  const rects: ContentRect[] = [];
-  for (const position of Object.values(positions ?? {})) {
-    if (!position) continue;
-    rects.push({
-      x: position.x,
-      y: position.y,
-      width: canvasSize.width,
-      height: canvasSize.height,
-    });
-  }
-  return rects;
-}
 
 export interface ViewportVisibleWorldBounds {
   height: number;
@@ -85,12 +53,11 @@ export function getViewportAuthoritativeState(): ViewportState {
 }
 
 /**
- * `contentRects`: the artboards the scroll range covers, when the caller owns them (the catalog
- * Canvas's page frames); absent = the old store's page / frame positions.
+ * `contentRects`: the artboards the scroll range covers (the Canvas's page frames).
  */
 export function getScrollbarViewportMetrics(
   viewportState = getViewportAuthoritativeState(),
-  contentRects?: readonly ContentRect[],
+  contentRects: readonly ContentRect[],
 ): ScrollbarViewportMetrics | null {
   const { canvasSize, containerSize } = useViewportSyncStore.getState();
   if (containerSize.width <= 0 || containerSize.height <= 0) {
@@ -110,10 +77,7 @@ export function getScrollbarViewportMetrics(
     y: -viewportState.y / viewportState.scale,
   };
 
-  const world = calculateWorldBounds(
-    contentRects ?? collectContentRects(canvasSize),
-    visibleViewport,
-  );
+  const world = calculateWorldBounds(contentRects, visibleViewport);
 
   return {
     containerSize,

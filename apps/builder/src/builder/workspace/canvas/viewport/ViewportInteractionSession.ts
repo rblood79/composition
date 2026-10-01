@@ -13,10 +13,7 @@ export type ViewportInteractionKind =
   | "programmatic";
 
 export type ViewportInteractionFinishReason =
-  | "pointerup"
-  | "idle"
-  | "discrete"
-  | "interrupted";
+  "pointerup" | "idle" | "discrete" | "interrupted";
 
 export interface ViewportFrameScheduler {
   request(callback: FrameRequestCallback): number;

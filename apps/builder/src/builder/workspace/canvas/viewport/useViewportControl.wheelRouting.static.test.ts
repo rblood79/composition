@@ -33,9 +33,11 @@ describe("useViewportControl wheel routing contract", () => {
     expect(source).not.toContain("if (e.defaultPrevented) return;");
   });
 
+  // ADR-248 4e-7: the selection gate is the route the Canvas passes (`routeWheel` — the catalog
+  // Canvas's own; the old store's in `storeWheelRoute.legacy.ts`).
   it("gates scroll on selection and resolves every overflow source", async () => {
     const source = await readFile(
-      resolve(__dirname, "useViewportControl.ts"),
+      resolve(__dirname, "storeWheelRoute.legacy.ts"),
       "utf-8",
     );
 
@@ -65,6 +67,8 @@ describe("useViewportControl wheel routing contract", () => {
     // pan 분기가 zoom 세션을 끝내던 종료 호출은 없어야 한다 (게이트가 pan 중 꺼진다)
     expect(panBranch?.[0]).not.toContain("onInteractionEndRef");
     // 종료는 150ms 디바운스 finishWheelInteraction 하나
-    expect(source).toMatch(/finishWheelInteraction\("idle"\);\s*\n\s*\}, 150\);/);
+    expect(source).toMatch(
+      /finishWheelInteraction\("idle"\);\s*\n\s*\}, 150\);/,
+    );
   });
 });

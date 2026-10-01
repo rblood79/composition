@@ -24,7 +24,6 @@ import {
 } from "react";
 import { iconProps } from "../../../../../utils/ui/uiConstants";
 import { ActionIconButton } from "../../../../components/ui/ActionIconButton";
-import { useStore } from "../../../../stores";
 import { orderPagesForPaint } from "../../scene/pagePaintOrder";
 import { useViewportSyncStore } from "../../stores";
 import {
@@ -147,12 +146,9 @@ export interface PageHeaderLayerProps {
   /** 편집기 열림 직전 (페이지 전환). */
   onBeginRename?: (pageId: string) => void;
   onRenamePage?: (pageId: string, title: string) => void;
-  /**
-   * The active page and whether anything is selected, when the host is not the old store
-   * (ADR-248 4e — the catalog session). Absent = the old store's.
-   */
-  activePageId?: string | null;
-  hasSelection?: boolean;
+  /** The active page and whether anything is selected (the catalog session, ADR-248 4e). */
+  activePageId: string | null;
+  hasSelection: boolean;
 }
 
 export function PageHeaderLayer({
@@ -162,15 +158,9 @@ export function PageHeaderLayer({
   onBeginRename,
   onRenamePage,
   activePageId,
-  hasSelection: hostHasSelection,
+  hasSelection,
 }: PageHeaderLayerProps) {
-  const storePageId = useStore((state) => state.currentPageId);
-  const storeHasSelection = useStore(
-    (state) => state.selectedElementIds.length > 0,
-  );
-  const currentPageId =
-    activePageId !== undefined ? activePageId : storePageId;
-  const hasSelection = hostHasSelection ?? storeHasSelection;
+  const currentPageId = activePageId;
   const [layerNode, setLayerNode] = useState<HTMLDivElement | null>(null);
   const [editingPageId, setEditingPageId] = useState<string | null>(null);
   const settled = useSettledHeaderInput(frames);

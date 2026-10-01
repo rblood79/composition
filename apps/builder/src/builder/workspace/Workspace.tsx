@@ -17,6 +17,7 @@
  * - WorkspaceStatusIndicator — 상태 표시
  */
 
+import { STORE_SCROLLBAR_CONTENT } from "./scrollbar/storeScrollbarContent.legacy";
 import { useRef } from "react";
 import { BuilderCanvas } from "./canvas/BuilderCanvas";
 import { useCanvasLifecycleStore, useCompareModeStore } from "./canvas/stores";
@@ -103,8 +104,14 @@ export function Workspace({
           <WorkflowCanvasToggles />
 
           {/* Figma-style Canvas Scrollbars */}
-          <CanvasScrollbar direction="horizontal" />
-          <CanvasScrollbar direction="vertical" />
+          <CanvasScrollbar
+            direction="horizontal"
+            content={STORE_SCROLLBAR_CONTENT}
+          />
+          <CanvasScrollbar
+            direction="vertical"
+            content={STORE_SCROLLBAR_CONTENT}
+          />
 
           <WorkspaceStatusIndicator
             isCanvasReady={isCanvasReady}

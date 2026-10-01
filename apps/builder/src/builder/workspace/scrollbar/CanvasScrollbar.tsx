@@ -13,7 +13,6 @@
  */
 
 import { useRef, useEffect } from "react";
-import { useStore } from "../../stores";
 import { useViewportSyncStore } from "../canvas/stores";
 import { getViewportController } from "../canvas/viewport/ViewportController";
 import type { ViewportInteractionSession } from "../canvas/viewport/ViewportInteractionSession";
@@ -42,8 +41,8 @@ export interface CanvasScrollbarContent {
 
 interface CanvasScrollbarProps {
   direction: "horizontal" | "vertical";
-  /** Absent = the old store's page / frame positions. Keep it stable (it re-binds on change). */
-  content?: CanvasScrollbarContent;
+  /** The artboards (the Canvas's page frames). Keep it stable (it re-binds on change). */
+  content: CanvasScrollbarContent;
 }
 
 // ============================================
@@ -73,7 +72,7 @@ export function CanvasScrollbar({ direction, content }: CanvasScrollbarProps) {
 
     const updateThumb = () => {
       const trackLength = isHorizontal ? track.clientWidth : track.clientHeight;
-      const metrics = getScrollbarViewportMetrics(undefined, content?.rects());
+      const metrics = getScrollbarViewportMetrics(undefined, content.rects());
       if (!metrics) return;
 
       const axis = getScrollbarAxisMetrics(metrics, direction, trackLength);
@@ -155,17 +154,8 @@ export function CanvasScrollbar({ direction, content }: CanvasScrollbarProps) {
     // 소스 4: 페이지 위치 (world 범위의 content 입력)
     //
     // 페이지 추가/삭제/재배치는 뷰포트를 건드리지 않으므로 위 소스에 걸리지 않는다.
-    // 전체 store 구독이지만 비교는 카운터 하나이고 갱신은 rAF 로 합쳐진다.
-    let lastPagePositionsVersion =
-      useStore.getState().derivedPagePositionsVersion;
-    const unsubPagePositions = content
-      ? content.subscribe(scheduleUpdate)
-      : useStore.subscribe((state) => {
-          if (state.derivedPagePositionsVersion === lastPagePositionsVersion)
-            return;
-          lastPagePositionsVersion = state.derivedPagePositionsVersion;
-          scheduleUpdate();
-        });
+    // 갱신은 rAF 로 합쳐진다.
+    const unsubPagePositions = content.subscribe(scheduleUpdate);
 
     // ========================================
     // Thumb 드래그 (Pointer Capture)
@@ -189,7 +179,7 @@ export function CanvasScrollbar({ direction, content }: CanvasScrollbarProps) {
       let queuedViewport = startState;
       const startMetrics = getScrollbarViewportMetrics(
         startState,
-        content?.rects(),
+        content.rects(),
       );
       if (!startMetrics) {
         session.finish("interrupted");
@@ -280,7 +270,7 @@ export function CanvasScrollbar({ direction, content }: CanvasScrollbarProps) {
       const vc = getViewportController();
       const metrics = getScrollbarViewportMetrics(
         vc.getState(),
-        content?.rects(),
+        content.rects(),
       );
       if (!metrics) return;
 
