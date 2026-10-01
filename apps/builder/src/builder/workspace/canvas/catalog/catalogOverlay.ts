@@ -6,7 +6,14 @@ import { resolveMeasureGuides } from "../interaction/measureGuides";
 import {
   renderEditingContextBorder,
   renderHoverHighlight,
+  renderOverflowContent,
+  renderOverflowHatching,
 } from "../skia/hoverRenderer";
+import {
+  catalogOverflowContent,
+  catalogOverflowHatch,
+  type CatalogOverflowTree,
+} from "../../../catalogRuntime/canvasOverflow";
 import {
   renderDimensionLabels,
   renderLasso,
@@ -50,6 +57,11 @@ export interface CatalogOverlayInputs {
   badgeHits?: Map<string, DataBadgeBounds>;
   /** Manual guides (ADR-181), painted under the selection. */
   guides?: (canvas: Canvas) => void;
+  /**
+   * The drawn records' overflow and tree (record ids): hovering a clipping box shows the children
+   * outside it, a selected child of a scroll/auto box is hatched where it leaves the box.
+   */
+  overflow?: () => CatalogOverflowTree;
   /** Alt is held: measure from the selection to the hovered record (Figma's Alt-measure). */
   measuring?: () => boolean;
   /** Spacing handles of the selected container when no gesture runs (ADR-222). */
@@ -143,6 +155,12 @@ export function catalogOverlayNode(
       const hovered = state.hover && bounds.get(state.hover.identity);
       if (hovered && !selected.has(state.hover!.identity))
         renderHoverHighlight(ck, canvas, hovered, zoom);
+      const tree = inputs.overflow?.();
+      const overflowing =
+        tree && state.hover
+          ? catalogOverflowContent(state.hover.identity, tree, bounds)
+          : null;
+      if (overflowing) renderOverflowContent(ck, canvas, overflowing, zoom);
       for (const item of state.selection) {
         const box = bounds.get(item.identity);
         if (box) renderSelectionBox(ck, canvas, box, zoom);
@@ -186,6 +204,11 @@ export function catalogOverlayNode(
         renderTransformHandles(ck, canvas, box, zoom);
         renderDimensionLabels(ck, canvas, box, zoom, inputs.fontMgr());
       }
+      if (tree)
+        for (const item of state.selection) {
+          const hatch = catalogOverflowHatch(item.identity, tree, bounds);
+          if (hatch) renderOverflowHatching(ck, canvas, hatch, zoom);
+        }
       const measure = catalogMeasureGuides(
         state,
         bounds,

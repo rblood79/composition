@@ -27,6 +27,15 @@ import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 const PROJECT = "project:project:pick" as EntryId<"project">;
 const BODY = "project:node:home-body" as NodeId;
 const id = (name: string) => `project:node:${name}` as NodeId;
+/**
+ * Each box has a size of its own: the test layout engine measures no text, and the page body
+ * (`overflow: auto`) clips its children's hit boxes as the DOM does — a zero-height box is not hit.
+ */
+const SIZES: Record<string, [number, number]> = {
+  frame: [400, 300],
+  inner: [300, 200],
+  leaf: [100, 20],
+};
 const node = (
   name: string,
   definitionId: string,
@@ -39,7 +48,12 @@ const node = (
   children,
   props,
   visual: {},
-  sizing: {},
+  sizing: SIZES[name]
+    ? {
+        width: { kind: "set", value: SIZES[name][0] },
+        height: { kind: "set", value: SIZES[name][1] },
+      }
+    : {},
   descendantOverrides: [],
 });
 const text = (name: string, value: string) =>

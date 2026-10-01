@@ -43,6 +43,7 @@ import { viewportState } from "../viewport/viewportState";
 import { useViewportSyncStore } from "../stores";
 import { catalogUnionRect, fitCatalogPageFrame } from "./catalogViewport";
 import { catalogBadgeAt, createCatalogBadges } from "./catalogBadges";
+import type { CatalogOverflowTree } from "../../../catalogRuntime/canvasOverflow";
 import type { DataBadgeBounds } from "../skia/bindingBadgeRenderer";
 import { useDataStore } from "../../../stores/data";
 import { useDataTableEditorStore } from "../../../panels/datatable/stores/dataTableEditorStore";
@@ -250,6 +251,11 @@ export function CatalogCanvas({
       recordsOf: (sourceId) => workspace.root.recordsOfSource(sourceId),
     });
     const badgeHits = new Map<string, DataBadgeBounds>();
+    const overflowTree: CatalogOverflowTree = {
+      overflowOf: (id) => workspace.root.canvasInputs.get(id)?.visual.overflow,
+      childrenOf: (id) => workspace.root.canvasInputs.get(id)?.children ?? [],
+      parentOf: (id) => workspace.root.canvasInputs.get(id)?.parentId,
+    };
     renderer.setOverlayNode(
       catalogOverlayNode(ck, {
         session: workspace.session.getSnapshot,
@@ -263,6 +269,7 @@ export function CatalogCanvas({
         badges: () =>
           badges.targets(scene.stream.boundsMap, scene.stream.hitBoundsMap),
         badgeHits,
+        overflow: () => overflowTree,
         measuring: () => measuring,
         spacing: () => {
           const owner = gestures.spacingOwner();

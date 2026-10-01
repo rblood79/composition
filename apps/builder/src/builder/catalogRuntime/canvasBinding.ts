@@ -21,6 +21,13 @@ import {
 } from "./compositionRoot";
 import type { SlotChromeInput } from "./slotChrome";
 import {
+  catalogOverflowClips,
+  catalogOverflowScrolls,
+  catalogScrollbar,
+  catalogScrollRange,
+  type CatalogOverflowTree,
+} from "./canvasOverflow";
+import {
   applyTextTransform,
   parseTextDecoration,
 } from "../workspace/canvas/styleConversion/styleConverter";
@@ -119,8 +126,8 @@ function box(node: CatalogConsumerNode, rect: Rect): SkiaNodeData {
     elementId: node.id,
     ...rect,
     visible: true,
-    clipChildren: node.visual.overflow === "hidden",
-    ...(node.visual.overflow === "hidden" && strokeWidth > 0
+    clipChildren: catalogOverflowClips(node.visual.overflow),
+    ...(catalogOverflowClips(node.visual.overflow) && strokeWidth > 0
       ? { clipBorderInset: strokeWidth }
       : {}),
     box: {
@@ -144,7 +151,7 @@ function container(node: CatalogConsumerNode, rect: Rect): SkiaNodeData {
     elementId: node.id,
     ...rect,
     visible: true,
-    clipChildren: node.visual.overflow === "hidden",
+    clipChildren: catalogOverflowClips(node.visual.overflow),
   };
 }
 
@@ -372,9 +379,11 @@ function paintedNodeData(
   binding: Binding | undefined,
   parent: CatalogConsumerNode | undefined,
 ): SkiaNodeData {
-  return withOpacity(
+  return withOverflowClip(
     node,
-    applyCatalogAuthoredPaint(
+    withOpacity(
+      node,
+      applyCatalogAuthoredPaint(
       node,
       binding
         ? binding(
@@ -384,11 +393,43 @@ function paintedNodeData(
             root.textWraps(node.id),
             root.labelSuffix(node.id),
           )
-        : ruleNodeData(root, node, rect),
-      rect,
-      root.colorMode,
+          : ruleNodeData(root, node, rect),
+        rect,
+        root.colorMode,
+      ),
     ),
   );
+}
+
+/**
+ * Every overflow but `visible` clips the children (CSS) — a rule-backed node too (its definition
+ * carries the rule box's overflow: ListBox, Menu …), inside its border as the box binding does.
+ */
+function withOverflowClip(
+  node: CatalogConsumerNode,
+  data: SkiaNodeData,
+): SkiaNodeData {
+  if (!data.visible || !catalogOverflowClips(node.visual.overflow)) return data;
+  const stroke = data.box?.strokeWidth ?? 0;
+  return {
+    ...data,
+    clipChildren: true,
+    ...(stroke > 0 && data.clipBorderInset === undefined
+      ? { clipBorderInset: stroke }
+      : {}),
+  };
+}
+
+/** The scroll/auto box's end padding and border: the scroll range reaches past them. */
+function scrollEnd(node: CatalogConsumerNode): { right: number; bottom: number } {
+  const model = catalogBoxModel(node);
+  const px = (value: unknown) =>
+    typeof value === "number" && Number.isFinite(value) ? value : 0;
+  const border = px(model.borderWidth);
+  return {
+    right: px(model.padding?.right) + border,
+    bottom: px(model.padding?.bottom) + border,
+  };
 }
 
 function bindingKey(node: CatalogConsumerNode): string | undefined {
@@ -498,6 +539,40 @@ function bindInColorMode(
   const registeredIds: string[] = [];
   const unpainted: Array<{ id: string; reason: string }> = [];
   const resolvedBindingIds = new Set<string>();
+  const tree: CatalogOverflowTree = {
+    overflowOf: (id) => root.canvasInputs.get(id)?.visual.overflow,
+    childrenOf: (id) => root.canvasInputs.get(id)?.children ?? [],
+    parentOf: (id) => root.canvasInputs.get(id)?.parentId,
+  };
+  /** The scrollbar each scroll/auto box was registered with (an update compares against it). */
+  const scrollbars = new Map<string, string>();
+  const scrollbarOf = (
+    node: CatalogConsumerNode,
+    rect: Rect,
+    rectOf: (id: string) => Rect | undefined,
+  ) =>
+    catalogScrollbar(
+      rect.width,
+      rect.height,
+      catalogScrollRange(node.id, tree, rectOf, scrollEnd(node)),
+    );
+  const withScrollbar = (
+    node: CatalogConsumerNode,
+    data: SkiaNodeData,
+    rectOf: (id: string) => Rect | undefined,
+  ): SkiaNodeData => {
+    if (
+      node.hidden ||
+      !data.visible ||
+      !catalogOverflowScrolls(node.visual.overflow)
+    ) {
+      scrollbars.delete(node.id);
+      return data;
+    }
+    const bar = scrollbarOf(node, data, rectOf);
+    scrollbars.set(node.id, JSON.stringify(bar ?? null));
+    return bar ? { ...data, scrollbar: bar } : data;
+  };
   try {
     const geometry = root.getGeometry(root.canvasInputs.keys());
     for (const node of root.canvasInputs.values()) {
@@ -537,7 +612,11 @@ function bindInColorMode(
           ? hiddenNode(node, rect)
           : bindingId === "slot" && context.slotMode === "page"
             ? container(node, rect)
-            : paintedNodeData(root, node, rect, binding, parent),
+            : withScrollbar(
+                node,
+                paintedNodeData(root, node, rect, binding, parent),
+                (id) => geometry.get(id),
+              ),
       );
       registeredIds.push(node.id);
     }
@@ -840,6 +919,31 @@ function bindInColorMode(
         layoutMap.set(id, { ...rect, elementId: id });
         reRegister.add(id);
       }
+      // A moved or resized box changes the scroll range of its nearest clipping ancestor: a
+      // scroll/auto box draws again when its scrollbar changes (only then — a page body that
+      // scrolls is not rebuilt for every edit inside it; a paint edit moves no range).
+      const rectOf = (id: string) => layoutMap.get(id);
+      for (const id of changedRects.keys()) {
+        let cursor = input(id)?.parentId;
+        for (let depth = 0; cursor && depth <= 32; depth += 1) {
+          const owner = input(cursor);
+          if (!owner) break;
+          if (catalogOverflowClips(owner.visual.overflow)) {
+            if (
+              !reRegister.has(cursor) &&
+              catalogOverflowScrolls(owner.visual.overflow) &&
+              JSON.stringify(
+                scrollbarOf(owner, layoutMap.get(cursor)!, rectOf) ?? null,
+              ) !== scrollbars.get(cursor)
+            ) {
+              reRegister.add(cursor);
+              patchRoots.add(cursor);
+            }
+            break;
+          }
+          cursor = owner.parentId;
+        }
+      }
       for (const id of reRegister) {
         const node = input(id)!;
         const binding = bindings[bindingKey(node)!];
@@ -848,7 +952,17 @@ function bindInColorMode(
           id,
           node.hidden
             ? hiddenNode(node, rect)
-            : paintedNodeData(root, node, rect, binding, input(node.parentId)),
+            : withScrollbar(
+                node,
+                paintedNodeData(
+                  root,
+                  node,
+                  rect,
+                  binding,
+                  input(node.parentId),
+                ),
+                rectOf,
+              ),
         );
       }
       // Patch only the top-most roots: a root inside another root's subtree is rebuilt with it.
