@@ -323,6 +323,15 @@ export function catalogRuleShapes(input: CatalogRuleShapeInput): Shape[] {
   return composeCatalogShapes(base, prepend, append);
 }
 
+/** Every text of `data` paints an ellipsis at its box and clips there. */
+function ellipsize(data: SkiaNodeData): void {
+  if (data.text) {
+    data.text.textOverflow = "ellipsis";
+    data.text.clipText = true;
+  }
+  for (const child of data.children ?? []) ellipsize(child);
+}
+
 /** CanvasKit node data for one rule-backed node. */
 export function catalogRuleNodeData(
   input: CatalogRuleShapeInput,
@@ -334,15 +343,20 @@ export function catalogRuleNodeData(
       ""
   ] as Record<string, unknown> | undefined;
   normalizeMiddleBaselineTextLineHeight(shapes, size ?? {});
-  if (input.type === "Tag" || input.type === "Badge")
+  // Table cells and columns are one line cut at their box with an ellipsis (Table.css
+  // `.react-aria-Cell, .react-aria-Column`: nowrap · hidden · ellipsis).
+  const tableText = input.type === "Cell" || input.type === "Column";
+  if (input.type === "Tag" || input.type === "Badge" || tableText)
     for (const shape of shapes)
       if (shape.type === "text" && shape.whiteSpace == null)
         shape.whiteSpace = "nowrap";
-  return specShapesToSkia(
+  const data = specShapesToSkia(
     shapes,
     input.theme ?? "light",
     input.rect.width,
     input.rect.height,
     input.node.id,
   );
+  if (tableText) ellipsize(data);
+  return data;
 }

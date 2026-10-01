@@ -32,6 +32,12 @@ import {
   interpolateFieldTemplate,
 } from "../../collections/fieldTemplate";
 import { ROW_TEMPLATE_BINDABLE_PROP_KEYS } from "../../collections/rowTemplateBindableProps";
+import {
+  resolveTableColumnEffectiveWidth,
+  resolveTableColumnKey,
+} from "../../collections/resolveCollectionItems";
+import { classifyTableCellDisplay } from "../../collections/cellValue";
+import { tableBinding } from "../bindings/Table.binding";
 
 export interface ResolvedCatalogNode {
   sourceId: NodeId | TemplateId;
@@ -88,6 +94,15 @@ export const CATALOG_ROW_ITEM_TYPES: ReadonlySet<string> = new Set([
   "ListBoxItem",
   "GridListItem",
 ]);
+/**
+ * Source of a bound Table's projected rows and cells (`…:row`, `…:cell-<column>`): they show data,
+ * not a document position, so no command targets them (picking reaches the TableBody).
+ */
+export const CATALOG_TABLE_ROW_SOURCE = "lib:template:catalog-table-data";
+const TABLE_ROW_DEFINITION = "lib:definition:type-Row" as DefinitionId;
+const TABLE_CELL_DEFINITION = "lib:definition:type-Cell" as DefinitionId;
+/** The shortest row a Table density gives (compact: line 24 + padding 4 × 2). */
+const TABLE_MIN_ROW_HEIGHT = 32;
 /** A row value: `{field}` templates read the row (a `{{ state }}` template is not a row field). */
 function bindRowValue(value: PropValue, row: CatalogBoundRow): PropValue {
   if (typeof value !== "string" || !value.includes("{") || value.includes("{{"))
@@ -541,6 +556,7 @@ export function resolveCatalogNode(
     for (const layer of layers)
       if (layer.sizing) applyWrites(sizing, layer.sizing);
     const children: ResolvedCatalogNode[] = [];
+    const rowSet = node.binding && rows ? rows(node.binding) : undefined;
     if (
       definition.mode === "composite" &&
       definition.templateRootId &&
@@ -548,7 +564,8 @@ export function resolveCatalogNode(
     )
       push(
         children,
-        projectTemplate(
+        projectTableRows(
+          projectTemplate(
           node,
           definition.templateRootId,
           instancePath,
@@ -566,7 +583,9 @@ export function resolveCatalogNode(
             sizing,
           ),
           undefined,
-          node.binding && rows ? { rowSet: rows(node.binding) } : undefined,
+          rowSet ? { rowSet } : undefined,
+        ),
+          rowSet,
         ),
       );
     for (const childId of selection?.ownedChildren?.(node.id, instancePath) ??
@@ -598,6 +617,165 @@ export function resolveCatalogNode(
       regions: node.regions,
       placeholder: node.placeholder,
       children,
+    };
+  };
+  /**
+   * A bound Table's data rows (ADR-248 4e — the old Canvas's `appendTableRowProjection`): the DOM
+   * Table draws its rows from the data itself (`renderTable` reads only the header's Column
+   * children), so its TableBody here shows one `Row` per data row with one `Cell` per header
+   * column (`resolveTableColumnKey`, text through the DOM's `classifyTableCellDisplay`) in place of
+   * its own children. A fixed-height Table (`heightMode` "fixed", the binding default) shows the
+   * rows its height can hold; the other modes grow with every row. Unknown rows (`undefined`) keep
+   * the template; the projected nodes have no document position (`CATALOG_TABLE_ROW_SOURCE`).
+   */
+  const projectTableRows = (
+    projected: ResolvedCatalogNode | undefined,
+    rowSet: readonly CatalogBoundRow[] | undefined,
+  ): ResolvedCatalogNode | undefined => {
+    if (!projected || !rowSet) return projected;
+    const typeOf = (resolved: ResolvedCatalogNode) =>
+      lookupDefinition(resolved.definitionId).name;
+    if (typeOf(projected) !== "Table") return projected;
+    const header = projected.children.find(
+      (child) => typeOf(child) === "TableHeader",
+    );
+    const body = projected.children.find(
+      (child) => typeOf(child) === "TableBody",
+    );
+    if (!body) return projected;
+    const columnNodes = (header?.children ?? []).filter(
+      (child) => typeOf(child) === "Column",
+    );
+    const columns = columnNodes.map((column, index) => ({
+      key: resolveTableColumnKey(column.props, index),
+      // TanStack's column size (`clamp(width ?? 150, minWidth, maxWidth)`) — the DOM's width.
+      width: resolveTableColumnEffectiveWidth(column.props),
+    }));
+    /** A fixed-width table column box (the DOM column's), not a flex share. */
+    const fixed = (
+      node: ResolvedCatalogNode,
+      width: number,
+    ): ResolvedCatalogNode => ({
+      ...node,
+      sizing: { ...node.sizing, width },
+      layout: {
+        ...node.layout,
+        flexGrow: "0",
+        flexShrink: "0",
+        flexBasis: "auto",
+      },
+      // A composite column collapses onto its template root (its first child): the same box.
+      children:
+        lookupDefinition(node.definitionId).mode === "composite" &&
+        node.children.length > 0
+          ? [fixed(node.children[0]!, width), ...node.children.slice(1)]
+          : node.children,
+    });
+    const heightMode =
+      projected.props.heightMode ??
+      tableBinding.props.accepts.heightMode?.default;
+    const height =
+      typeof projected.props.height === "number"
+        ? projected.props.height
+        : (tableBinding.props.accepts.height?.default as number | undefined);
+    const shown =
+      heightMode === "fixed" && typeof height === "number"
+        ? rowSet.slice(0, Math.ceil(height / TABLE_MIN_ROW_HEIGHT) + 1)
+        : rowSet;
+    const tableContext: ParentContext = {
+      definitionId: projected.definitionId,
+      props: projected.props as Props,
+    };
+    const bodyContext: ParentContext = {
+      definitionId: body.definitionId,
+      props: body.props as Props,
+      parent: tableContext,
+    };
+    const synthesize = (
+      definitionId: DefinitionId,
+      own: Props,
+      sourceId: TemplateId,
+      parent: ParentContext,
+      rowKey: string,
+      children: ResolvedCatalogNode[],
+    ): ResolvedCatalogNode => {
+      const { props, visual, layout } = base(definitionId);
+      Object.assign(props, own);
+      applyPropVisualRules(definitionId, props, visual);
+      applyTypedRules(definitionId, props, visual, layout, parent);
+      return {
+        sourceId,
+        instancePath: body.instancePath,
+        definitionId,
+        props,
+        visual,
+        layout,
+        sizing: {},
+        placement: undefined,
+        slot: undefined,
+        name: undefined,
+        regions: undefined,
+        placeholder: undefined,
+        rowKey,
+        children,
+      };
+    };
+    const rowsOut = shown.map((row) => {
+      const rowProps: Props = { id: row.key };
+      const rowContext: ParentContext = {
+        definitionId: TABLE_ROW_DEFINITION,
+        props: rowProps,
+        parent: bodyContext,
+      };
+      const cells = columns.map(({ key, width }, index) => {
+        const display = classifyTableCellDisplay(row.values[key]);
+        const text =
+          display.kind === "text"
+            ? display.text
+            : `${display.items.join(", ")}${display.overflow ? ` +${display.overflow}` : ""}`;
+        const cell = synthesize(
+          TABLE_CELL_DEFINITION,
+          { children: text },
+          `${CATALOG_TABLE_ROW_SOURCE}:cell-${index}` as TemplateId,
+          rowContext,
+          row.key,
+          [],
+        );
+        // The text is one line with an ellipsis (the Cell rule's Canvas paint, as Table.css);
+        // the box clips it.
+        return fixed({ ...cell, visual: { ...cell.visual, overflow: "hidden" } }, width);
+      });
+      return synthesize(
+        TABLE_ROW_DEFINITION,
+        rowProps,
+        `${CATALOG_TABLE_ROW_SOURCE}:row` as TemplateId,
+        bodyContext,
+        row.key,
+        cells,
+      );
+    });
+    return {
+      ...projected,
+      // Table.css clips the outer table (`overflow: hidden`): rows past its height are cut.
+      visual: { ...projected.visual, overflow: "hidden" },
+      children: projected.children.map((child) =>
+        child === body
+          ? {
+              ...body,
+              // The rows past a fixed height are cut (the DOM's virtualizer scrolls them).
+              visual: { ...body.visual, overflow: "hidden" },
+              children: rowsOut,
+            }
+          : child === header
+            ? {
+                ...header,
+                children: header.children.map((column) => {
+                  const at = columnNodes.indexOf(column);
+                  return at < 0 ? column : fixed(column, columns[at]!.width);
+                }),
+              }
+            : child,
+      ),
     };
   };
   const projectTemplate = (

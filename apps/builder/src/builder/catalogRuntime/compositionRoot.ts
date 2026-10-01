@@ -1,3 +1,5 @@
+import { tableBinding } from "../../../../../packages/shared/src/catalog/bindings/Table.binding";
+import { definitionTypeName } from "../../../../../packages/shared/src/catalog/commands/context";
 import type {
   DefinitionId,
   EntryId,
@@ -398,7 +400,13 @@ interface ConsumePlan {
 type Notice = { readonly id: string; readonly record?: CatalogConsumerNode };
 
 /** Bindings whose label never wraps (button): min-content = max-content. */
-const noWrapTextBindings: ReadonlySet<string> = new Set(["button", "label"]);
+const noWrapTextBindings: ReadonlySet<string> = new Set([
+  "button",
+  "label",
+  // Table.css `.react-aria-Cell, .react-aria-Column`: one line cut with an ellipsis.
+  "cell",
+  "column",
+]);
 /**
  * Text bindings that paint one line (`white-space: nowrap`: the button label, `Label.css`, the
  * field value); every other text wraps at its box width (CSS `normal`), as the layout measures.
@@ -633,6 +641,28 @@ interface CatalogDateSegments {
 }
 
 /** Rust `NodeStyle` input. It has no `padding`/`gap` shorthand (serde drops unknown keys). */
+/**
+ * A Table's own height when the author set none (the old layout's Table rule): `heightMode`
+ * "fixed" (the binding default) is the DOM virtualizer's `height` (default 400) inside the outer
+ * box's border; the other modes follow the content.
+ */
+function catalogTableHeight(
+  node: CatalogConsumerNode,
+  borderWidth: CatalogLength | undefined,
+): { height?: string } {
+  const accepts = tableBinding.props.accepts;
+  const mode = node.props.heightMode ?? accepts.heightMode?.default;
+  if (mode !== "fixed") return {};
+  const height =
+    typeof node.props.height === "number"
+      ? node.props.height
+      : accepts.height?.default;
+  if (typeof height !== "number") return {};
+  // Table.css `border: 1px solid` when the rule writes none.
+  const border = typeof borderWidth === "number" ? borderWidth : 1;
+  return { height: `${height + border * 2}px` };
+}
+
 function styleOf(
   node: CatalogConsumerNode,
   measure: CatalogTextMeasure | undefined,
@@ -737,7 +767,11 @@ function styleOf(
         }
       : {}),
     ...(box.width !== undefined ? { width: px(box.width) } : {}),
-    ...(box.height !== undefined ? { height: px(box.height) } : {}),
+    ...(box.height !== undefined
+      ? { height: px(box.height) }
+      : node.bindingId === "table"
+        ? catalogTableHeight(node, box.borderWidth)
+        : {}),
     ...(box.minHeight !== undefined ? { minHeight: px(box.minHeight) } : {}),
     ...(box.minWidth !== undefined ? { minWidth: px(box.minWidth) } : {}),
     ...(box.gap !== undefined
@@ -2689,6 +2723,27 @@ export class CatalogCompositionRoot {
    * Compute the root's next inputs for a committed transaction without changing root state. Uses
    * transaction IDs/revision and the runtime's pre/post influence closure. May throw.
    */
+  /**
+   * A value edit a bound Table's projected rows read (`projectTableRows`): the Table's own props
+   * (height mode · height decide how many rows show) or a node it owns (a header Column's key
+   * decides each cell). Those take the structure path — the row records come and go.
+   */
+  private touchesTableRows(result: CatalogTransactionResult): boolean {
+    const graph = this.runtime.graph;
+    const boundTable = (id: string | undefined): boolean => {
+      const entry = id ? graph.getEntry(id) : undefined;
+      if (entry?.kind !== "node" || !entry.binding) return false;
+      try {
+        return definitionTypeName(graph, entry.definitionId) === "Table";
+      } catch {
+        return false;
+      }
+    };
+    for (const id of result.changedIds)
+      if (boundTable(id) || boundTable(graph.ownerOf(id))) return true;
+    return false;
+  }
+
   private plan({ result, invalidatedIds }: CatalogStepContext): ConsumePlan {
     const valueOnly = result.forward.every(
       (op) =>
@@ -2706,7 +2761,7 @@ export class CatalogCompositionRoot {
           (op.entry.kind === "token" ||
             op.entry.kind === "definitionOverride")),
     );
-    if (valueOnly) {
+    if (valueOnly && !this.touchesTableRows(result)) {
       const indirect = result.forward.some(
         (op) =>
           op.kind === "patchDefinitionOverride" ||
