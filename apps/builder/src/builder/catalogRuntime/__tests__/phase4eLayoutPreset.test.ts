@@ -178,7 +178,7 @@ describe("ADR-248 Phase 4e-6-37 Layout Preset", () => {
     if (project?.kind !== "project") throw new Error("project");
     const [pageId] = project.pageIds;
     const page = () => graph.getEntry(pageId!);
-    // The page's content: its body (one root).
+    // The page body (one root) becomes the layout's instance.
     const body = (page() as unknown as { children: NodeId[] }).children[0]!;
     workspace.execute(
       catalogPageCommands.layout(
@@ -197,23 +197,25 @@ describe("ADR-248 Phase 4e-6-37 Layout Preset", () => {
       "aside",
       "footer",
     ]);
-    expect(nameOf(choice().current)).toBe("header");
-    const content = choice().slots.find((slot) => slot.name === "content")!;
+    // The content slot by default (its role), not the first slot.
+    expect(nameOf(choice().current)).toBe("content");
+    const header = choice().slots.find((slot) => slot.name === "header")!;
     workspace.execute(
       catalogPageCommands.layout(
         pageId!,
         project.definitionIds[0] as never,
         workspace.newId,
-        content.path,
+        header.path,
       ),
     );
-    expect(nameOf(choice().current)).toBe("content");
-    // The same content moved: the page body fills the content slot.
-    const instance = graph.getEntry(
-      (page() as unknown as { children: NodeId[] }).children[0]!,
-    ) as NodeEntry;
+    expect(nameOf(choice().current)).toBe("header");
+    // The page body itself is the instance; the chosen slot holds its content (none yet).
+    expect((page() as unknown as { children: NodeId[] }).children).toEqual([
+      body,
+    ]);
+    const instance = graph.getEntry(body) as NodeEntry;
     expect(instance.descendantOverrides).toMatchObject([
-      { kind: "fillSlot", childIds: [body] },
+      { kind: "fillSlot", childIds: [] },
     ]);
   });
 });

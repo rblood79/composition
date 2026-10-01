@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import type { NodeId } from "../../../../../../packages/shared/src/catalog/document/types";
+import { catalogPageContentTarget } from "../../catalogRuntime/pageSettings";
 import { catalogPaletteInsertCommand } from "../../catalogRuntime/paletteInsert";
 import {
   CatalogWorkspaceGate,
@@ -44,11 +45,16 @@ function CatalogComponentsContent() {
           records: workspace.root.domInputs,
           selection: () => workspace.session.getSnapshot().selection,
           itemOfRecord: (identity) => workspace.itemOfRecord(identity),
-          pageBody: () =>
+          pageContent: () =>
             page?.kind === "page"
-              ? (page.children[0] as NodeId | undefined)
-              : page?.kind === "definition"
-                ? page.templateRootId
+              ? page.children[0]
+                ? catalogPageContentTarget(
+                    workspace.runtime.graph,
+                    page.children[0],
+                  )
+                : undefined
+              : page?.kind === "definition" && page.templateRootId
+                ? { kind: "node", id: page.templateRootId }
                 : undefined,
           newId: workspace.newId,
         },

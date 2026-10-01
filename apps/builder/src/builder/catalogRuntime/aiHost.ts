@@ -22,6 +22,7 @@ import type {
 import type { InteractionAction } from "@composition/shared";
 import type { CatalogPosition } from "../../../../../packages/shared/src/catalog/resolution/positions";
 import type { AiReadHost } from "../../services/ai/aiReadHost";
+import { catalogPageContentTarget } from "./pageSettings";
 import type {
   AiElementWrite,
   AiWriteHost,
@@ -169,11 +170,10 @@ function creationParent(
   const page = pageId && workspace.runtime.graph.getEntry(pageId);
   const body = page && page.kind === "page" ? page.children[0] : undefined;
   const bodyRecord = body && workspace.root.recordsOfSource(body)[0];
-  if (body && bodyRecord)
-    candidates.push({
-      target: { kind: "node", id: body as NodeId },
-      identity: bodyRecord,
-    });
+  const content =
+    body && catalogPageContentTarget(workspace.runtime.graph, body as NodeId);
+  if (content && bodyRecord)
+    candidates.push({ target: content, identity: bodyRecord });
   return candidates.find((candidate) => {
     try {
       insertNodes({

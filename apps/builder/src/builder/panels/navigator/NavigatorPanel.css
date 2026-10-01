@@ -126,6 +126,17 @@
   background: var(--editing-semantics-instance);
 }
 
+/* A layout slot's role (header, content …) — in the layout and on pages that use it. */
+.layer-slot-role {
+  flex: 0 0 auto;
+  padding: 0 var(--spacing-xs);
+  border: 1px dashed currentColor;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-2xs);
+  line-height: 14px;
+  color: var(--fg-muted);
+}
+
 .elementItemActions {
   display: flex;
   flex-direction: row;

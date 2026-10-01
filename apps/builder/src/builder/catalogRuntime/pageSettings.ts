@@ -1,11 +1,13 @@
 import {
   applyLayout,
+  layoutContentSlotPath,
   updatePage,
 } from "../../../../../packages/shared/src/catalog/commands";
 import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
 import type { NewId } from "../../../../../packages/shared/src/catalog/commands/materialize";
 import type {
   CatalogReader,
+  EditTarget,
   EntryId,
   NodeId,
   PageEntry,
@@ -69,6 +71,36 @@ export function catalogPageLayoutId(
     : undefined;
 }
 
+/**
+ * Where a page's content goes when nothing chosen holds it (a palette insert or a paste without a
+ * selection, an AI add): the page body, or — a layout applied (the body is its instance) — the
+ * slot the body's content fills (else the layout's content slot).
+ */
+export function catalogPageContentTarget(
+  graph: CatalogReader,
+  bodyId: NodeId,
+): EditTarget | undefined {
+  const body = graph.getEntry(bodyId);
+  if (body?.kind !== "node") return undefined;
+  const definition = graph.getEntry(body.definitionId);
+  if (definition?.kind !== "definition" || definition.usage !== "layout")
+    return { kind: "node", id: bodyId };
+  const fill = body.descendantOverrides.find(
+    (item) => item.kind === "fillSlot",
+  );
+  const templatePath =
+    fill?.kind === "fillSlot"
+      ? fill.address.templatePath
+      : layoutContentSlotPath(graph, definition.id);
+  return templatePath
+    ? {
+        kind: "descendant",
+        ownerId: bodyId,
+        address: { instances: [bodyId], templatePath },
+      }
+    : undefined;
+}
+
 /** A declared slot of a page's layout: its template path (`applyLayout`'s `slotPath`) and name. */
 export interface CatalogPageLayoutSlot {
   path: readonly TemplateId[];
@@ -104,8 +136,11 @@ export function catalogPageLayoutSlots(
       : undefined;
   return {
     slots,
+    // The slot the content fills, else the one it would (the layout's content slot).
     current:
-      fill?.kind === "fillSlot" ? fill.address.templatePath.join() : undefined,
+      fill?.kind === "fillSlot"
+        ? fill.address.templatePath.join()
+        : layoutContentSlotPath(graph, definition.id)?.join(),
   };
 }
 

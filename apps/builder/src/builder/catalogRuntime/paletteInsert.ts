@@ -25,7 +25,8 @@ export interface CatalogPaletteHost {
   /** The selection item (edit target) of a drawn record, if it is an element row. */
   itemOfRecord(identity: string): CatalogSelectionItem | undefined;
   /** The open page's body node. */
-  pageBody(): NodeId | undefined;
+  /** Where content goes without a selection: the page body or its layout's content slot. */
+  pageContent(): EditTarget | undefined;
   newId: NewId;
 }
 
@@ -134,8 +135,8 @@ export function catalogPaletteInsertCommand(
       candidates.push(item.target);
     }
   }
-  const body = host.pageBody();
-  if (body) candidates.push({ kind: "node", id: body });
+  const content = host.pageContent();
+  if (content) candidates.push(content);
   for (const target of candidates) {
     const command = insertNodes({
       parent: parentOf(target),

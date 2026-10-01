@@ -57,7 +57,7 @@ describe("ADR-248 Phase 4e Styles Direction", () => {
           },
           selection: () => workspace.session.getSnapshot().selection,
           itemOfRecord: (identity: string) => workspace.itemOfRecord(identity),
-          pageBody: () => BODY,
+          pageContent: () => ({ kind: "node", id: BODY }),
           newId: workspace.newId,
         },
         type,

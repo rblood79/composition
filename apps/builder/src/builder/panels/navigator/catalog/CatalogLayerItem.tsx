@@ -75,6 +75,15 @@ export const CatalogLayerItem = memo(function CatalogLayerItem({
           />
         )}
         <span className="elementItemLabelText">{name}</span>
+        {node.slot && (
+          <span
+            className="layer-slot-role"
+            title={`Slot: ${node.slot}`}
+            aria-label={`Slot ${node.slot}`}
+          >
+            {node.slot}
+          </span>
+        )}
       </div>
       <div className="elementItemActions">
         <Button

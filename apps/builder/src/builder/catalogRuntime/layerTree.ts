@@ -41,6 +41,11 @@ export interface CatalogLayerNode {
    * does not draw selects the row that holds them (as the Canvas hatch selects the list).
    */
   readonly selects?: string;
+  /**
+   * The slot role a layout slot declares (`header`, `content` …): its row shows it, in the layout
+   * and on a page that uses the layout (the slot positions under the page body).
+   */
+  readonly slot?: string;
 }
 
 /** The data rows one row holds (4e-6-36): the drawn rows and the count the sample leaves out. */
@@ -76,14 +81,31 @@ const typeNameOf = (graph: CatalogReader, position: CatalogPosition) => {
     return position.definitionId;
   }
 };
+/** The node or template node at a position (a layout slot under a page body is a template node). */
+const declaredAt = (graph: CatalogReader, position: CatalogPosition) => {
+  const id =
+    position.target.kind === "node"
+      ? position.target.id
+      : position.target.address.templatePath.at(-1);
+  if (!id) return undefined;
+  const node = id.startsWith("lib:")
+    ? graph.library.templates.get(id as `lib:template:${string}`)
+    : graph.getEntry(id);
+  return node && "children" in node
+    ? (node as { name?: string; slot?: { name: string } })
+    : undefined;
+};
+const slotOf = (graph: CatalogReader, position: CatalogPosition) =>
+  declaredAt(graph, position)?.slot?.name;
+/** A row's name: the node's own name, a slot's role, else its type. */
 const nameOf = (
   graph: CatalogReader,
   position: CatalogPosition,
   typeName: string,
 ) => {
-  if (position.target.kind !== "node") return typeName;
-  const entry = graph.getEntry(position.target.id);
-  return (entry?.kind === "node" && entry.name) || typeName;
+  const node = declaredAt(graph, position);
+  const own = position.target.kind === "node" || node?.slot ? node?.name : "";
+  return own || node?.slot?.name || typeName;
 };
 /** A row's mark: the definition view's root is the origin; a component's instance is an instance. */
 const roleOf = (
@@ -103,6 +125,7 @@ const sameNode = (a: CatalogLayerNode, b: CatalogLayerNode) =>
   a.role === b.role &&
   a.projection === b.projection &&
   a.selects === b.selects &&
+  a.slot === b.slot &&
   a.parentId === b.parentId &&
   a.depth === b.depth &&
   a.hasChildren === b.hasChildren &&
@@ -145,7 +168,8 @@ export class CatalogLayerTreeStore {
           const node = this.nodes.get(identity);
           return (
             node &&
-            nameOf(host.graph, node.position, node.typeName) !== node.name
+            (nameOf(host.graph, node.position, node.typeName) !== node.name ||
+              slotOf(host.graph, node.position) !== node.slot)
           );
         }),
       );
@@ -201,6 +225,7 @@ export class CatalogLayerTreeStore {
       const rows = readModel.childRows(position);
       const bound = this.host.boundRows?.(position);
       const typeName = typeNameOf(graph, position);
+      const slot = slotOf(graph, position);
       const role = roleOf(
         position,
         parentId,
@@ -223,6 +248,7 @@ export class CatalogLayerTreeStore {
         position,
         body: parentId === null && isBodyType(typeName),
         ...(role ? { role } : {}),
+        ...(slot ? { slot } : {}),
       };
       const old = previous.get(next.id);
       const node = old && sameNode(old, next) ? old : next;

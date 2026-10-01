@@ -45,6 +45,7 @@ export {
   deleteLayout,
   duplicatePage,
   duplicateTheme,
+  layoutContentSlotPath,
   removePage,
   removeRecords,
   removeTheme,

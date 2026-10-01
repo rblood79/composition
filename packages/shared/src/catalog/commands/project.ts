@@ -1,5 +1,6 @@
 import { cloneNodeSubgraph } from "../document/clone";
 import type {
+  CatalogReader,
   DefinitionEntry,
   EntryId,
   InstanceAddress,
@@ -309,6 +310,9 @@ export const createLayout =
     return { label: input.label ?? "Add layout", ops: draft.ops() };
   };
 
+/** The library body: a page's one root, and the root of a layout made in the Builder. */
+const BODY_DEFINITION = "lib:definition:type-body";
+
 /** The layout instance a page body is, if any (page children = one layout instance). */
 function pageLayoutInstance(
   draft: CommandDraft,
@@ -321,13 +325,69 @@ function pageLayoutInstance(
     ? node
     : undefined;
 }
-/** Page content back out of a layout instance: every slot's children, in slot order. */
+/** A layout whose template root is a body: applied, the page body itself becomes its instance. */
+function bodyLayout(draft: CommandDraft, definition: DefinitionEntry): boolean {
+  const root = definition.templateRootId
+    ? draft.reader.getEntry(definition.templateRootId)
+    : undefined;
+  return root?.kind === "node" && root.definitionId === BODY_DEFINITION;
+}
+/**
+ * The slot a page's content fills by default: the slot whose role (name) is `content`, else the
+ * first required slot, else the first (the Builder's insert target on a page with a layout too).
+ */
+export function layoutContentSlotPath(
+  reader: CatalogReader,
+  definitionId: EntryId<"definition">,
+): readonly TemplateId[] | undefined {
+  const definition = reader.getEntry(definitionId);
+  if (definition?.kind !== "definition" || !definition.templateRootId)
+    return undefined;
+  const slots: {
+    path: readonly TemplateId[];
+    slot: NonNullable<NodeEntry["slot"]>;
+  }[] = [];
+  const visit = (path: readonly TemplateId[]) => {
+    const id = path[path.length - 1];
+    const node = id.startsWith("lib:")
+      ? reader.library.templates.get(id as `lib:template:${string}`)
+      : reader.getEntry(id);
+    if (!node || !("children" in node)) return;
+    if ("slot" in node && node.slot) slots.push({ path, slot: node.slot });
+    for (const child of node.children) visit([...path, child as TemplateId]);
+  };
+  visit([definition.templateRootId]);
+  return (
+    slots.find((item) => item.slot.name.trim().toLowerCase() === "content") ??
+    slots.find((item) => item.slot.required) ??
+    slots[0]
+  )?.path;
+}
+/**
+ * Page content back out of a layout instance: every slot's children, in slot order. A body layout
+ * gives the body back (the same node, its content as children); otherwise the instance goes and
+ * the content becomes the page's roots. A page whose whole body was put in a slot (the earlier
+ * shape) gets that body back.
+ */
 function releaseLayout(draft: CommandDraft, page: PageEntry): PageEntry {
   const instance = pageLayoutInstance(draft, page);
   if (!instance) return page;
   const content = instance.descendantOverrides.flatMap((item) =>
     item.kind === "fillSlot" ? item.childIds : [],
   );
+  const definition = draft.read(instance.definitionId) as DefinitionEntry;
+  const nestedBody =
+    content.length === 1 &&
+    draft.node(content[0]).definitionId === BODY_DEFINITION;
+  if (bodyLayout(draft, definition) && !nestedBody) {
+    draft.write({
+      ...instance,
+      definitionId: BODY_DEFINITION,
+      children: content,
+      descendantOverrides: [],
+    });
+    return draft.page(page.id);
+  }
   const next = { ...page, children: content };
   draft.write({ ...instance, descendantOverrides: [] });
   draft.write(next);
@@ -336,9 +396,13 @@ function releaseLayout(draft: CommandDraft, page: PageEntry): PageEntry {
 }
 
 /**
- * Apply a reusable layout to a page (or remove it with `definitionId` undefined): the page body
- * becomes one instance of the layout and the page's content fills its first declared slot (or
- * `slotPath`). Removing puts every slot's content back on the page.
+ * Apply a reusable layout to a page (or remove it with `definitionId` undefined). A page whose
+ * one root is a body and a layout whose template root is a body (every layout the Builder makes):
+ * the body itself becomes the layout's instance — the layout's slots sit right under the page body
+ * (the same node: its id, own props and styles stay) and its content fills the content slot
+ * (`slotPath`, else the slot named `content`, else the first required, else the first). Other
+ * pages: a new instance is the page's one root and the page's roots fill the slot. Removing puts
+ * every slot's content back.
  */
 export const applyLayout =
   (input: {
@@ -360,13 +424,37 @@ export const applyLayout =
       )
         return fail("NOT_A_LAYOUT", input.definitionId);
       const slots = slotPaths(draft, definition.templateRootId);
-      const slotPath = input.slotPath ?? slots[0];
+      const slotPath =
+        input.slotPath ?? layoutContentSlotPath(draft.reader, definition.id);
       if (!slotPath || !slots.some((path) => path.join() === slotPath.join()))
         fail("LAYOUT_SLOT_NOT_FOUND", input.definitionId);
+      const body =
+        page.children.length === 1 ? draft.node(page.children[0]) : undefined;
+      if (
+        body?.definitionId === BODY_DEFINITION &&
+        bodyLayout(draft, definition)
+      ) {
+        const address: InstanceAddress = {
+          instances: [body.id],
+          templatePath: [...slotPath!],
+        };
+        draft.write({
+          ...body,
+          definitionId: input.definitionId,
+          children: [],
+          // An empty body keeps a chosen slot (later content goes there); otherwise the slot
+          // shows the layout's own children.
+          descendantOverrides:
+            body.children.length || input.slotPath
+              ? [{ kind: "fillSlot", address, childIds: [...body.children] }]
+              : [],
+        });
+        return { label: input.label ?? "Page layout", ops: draft.ops() };
+      }
       const instanceId = input.newId("node");
       const address: InstanceAddress = {
         instances: [instanceId],
-        templatePath: [...slotPath],
+        templatePath: [...slotPath!],
       };
       draft.create({
         kind: "node",

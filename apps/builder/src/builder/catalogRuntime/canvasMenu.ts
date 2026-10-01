@@ -38,7 +38,11 @@ import {
   confirmCatalogDetach,
   confirmCatalogDissolve,
 } from "./componentConfirm";
-import { catalogComponentCommands, catalogComponentState } from "./componentActions";
+import {
+  catalogComponentCommands,
+  catalogComponentState,
+} from "./componentActions";
+import { catalogPageContentTarget } from "./pageSettings";
 import { definitionTypeName } from "../../../../../packages/shared/src/catalog/commands/context";
 import type { ShortcutId } from "../config/keyboardShortcuts";
 import type { CatalogConsumerNode } from "./compositionRoot";
@@ -155,9 +159,25 @@ export function catalogCanvasMenuItems(
 
   if (surface === "canvas-empty") {
     const page = pickedRecord ? host.records.get(pickedRecord) : undefined;
-    const paste =
+    // Into the page body, or the slot its content fills when a layout is applied.
+    const content =
       page && isNodeSource(page.sourceId)
-        ? pasteInto(page.sourceId as NodeId)
+        ? catalogPageContentTarget(host.graph, page.sourceId as NodeId)
+        : undefined;
+    const paste =
+      clipboard && content
+        ? pasteNodes({
+            clipboard,
+            parent:
+              content.kind === "node"
+                ? { kind: "node", id: content.id }
+                : {
+                    kind: "descendant",
+                    ownerId: content.ownerId,
+                    address: content.address,
+                  },
+            newId: host.newId,
+          })
         : undefined;
     const items: ContextMenuItem[] = paste
       ? action(
@@ -424,8 +444,7 @@ export function catalogCanvasMenuItems(
         "detachInstance",
         ACTION_ICONS.detach,
         false,
-        (execute) =>
-          void confirmCatalogDetach(host.graph, detachable, execute),
+        (execute) => void confirmCatalogDetach(host.graph, detachable, execute),
       ),
     );
   if (single && origin?.project)
@@ -438,11 +457,7 @@ export function catalogCanvasMenuItems(
         ACTION_ICONS.detach,
         false,
         (execute) =>
-          void confirmCatalogDissolve(
-            host.graph,
-            origin.definitionId,
-            execute,
-          ),
+          void confirmCatalogDissolve(host.graph, origin.definitionId, execute),
       ),
     );
   else if (single && !origin) {

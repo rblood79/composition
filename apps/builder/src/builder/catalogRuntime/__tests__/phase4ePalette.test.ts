@@ -45,7 +45,7 @@ async function open() {
     },
     selection: () => workspace.session.getSnapshot().selection,
     itemOfRecord: (identity: string) => workspace.itemOfRecord(identity),
-    pageBody: () => BODY,
+    pageContent: () => ({ kind: "node" as const, id: BODY }),
     newId: workspace.newId,
   };
   const add = (type: string, props?: Record<string, unknown>) => {

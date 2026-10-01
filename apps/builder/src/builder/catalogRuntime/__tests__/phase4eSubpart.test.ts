@@ -41,7 +41,7 @@ describe("ADR-248 Phase 4e delegated sub-part owner (catalog records)", () => {
           records: workspace.root.domInputs,
           selection: () => [],
           itemOfRecord: (identity) => workspace.itemOfRecord(identity),
-          pageBody: () => BODY,
+          pageContent: () => ({ kind: "node", id: BODY }),
           newId: workspace.newId,
         },
         type,
