@@ -46,6 +46,8 @@ const VISUAL_TEXT = new Set<string>([
   "textDecoration",
   "whiteSpace",
   "wordBreak",
+  "overflowWrap",
+  "textOverflow",
   "boxShadow",
   "filter",
   "transform",

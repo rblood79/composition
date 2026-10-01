@@ -63,6 +63,7 @@ import {
 import { catalogDateSegmentPaddingX } from "../../../../../packages/shared/src/catalog/document/rulePartRules";
 import {
   catalogBoxModel,
+  catalogTextBreaksWords,
   catalogTextTypography,
   catalogGlyphSize,
   type CatalogLength,
@@ -185,6 +186,7 @@ export const CATALOG_INHERITED_TEXT_KEYS = [
   "textTransform",
   "whiteSpace",
   "wordBreak",
+  "overflowWrap",
 ] as const;
 function inheritedTextOf(
   node: CatalogConsumerNode,
@@ -488,6 +490,7 @@ export interface CatalogTextFont {
   fontStyle?: string;
   letterSpacing?: number;
   wordBreak?: string;
+  overflowWrap?: string;
 }
 
 /** Rust intrinsic content box of a calendar header row (`calendarHeaderBox`). */
@@ -556,6 +559,9 @@ function textLeaf(
         : {}),
       ...(typography.wordBreak !== undefined
         ? { wordBreak: typography.wordBreak }
+        : {}),
+      ...(typography.overflowWrap !== undefined
+        ? { overflowWrap: typography.overflowWrap }
         : {}),
     },
     singleLine:
@@ -1725,35 +1731,43 @@ export class CatalogCompositionRoot {
           ),
           inheritedLineHeight(record, (key) => this.records.get(key)),
         );
+      // A leaf that no longer wraps (now single-line, emptied …) drops its old wrapped height.
+      let next: number | undefined;
       if (
-        !leaf?.text ||
-        (!heading &&
-          (noWrapTextBindings.has(record.bindingId ?? "") ||
+        leaf?.text &&
+        (heading ||
+          !(
+            noWrapTextBindings.has(record.bindingId ?? "") ||
             ("singleLine" in leaf && leaf.singleLine) ||
-            heightOnlyTextTypes.has(this.typeOf(record))))
-      )
-        continue;
-      const rect = this.layout.getLayoutsForIds([id]).get(id);
-      if (!rect) continue;
-      const box = catalogBoxModel(record);
-      const num = (value: CatalogLength | undefined) =>
-        typeof value === "number" ? value : 0;
-      const contentWidth =
-        rect.width -
-        num(box.padding?.left) -
-        num(box.padding?.right) -
-        2 * num(box.borderWidth) -
-        (heading?.beside ?? 0);
-      const single = this.textMeasure(leaf.text, leaf.font);
-      // CSS breaks lines only between words (`overflow-wrap: normal`): a word wider than the box
-      // overflows on its own line instead of splitting. Lines are broken at no less than the
-      // min-content width (the longest word), so a lone overflowing word stays one line.
-      const breakWidth = Math.max(contentWidth, single.minWidth ?? 0);
-      const next =
-        (heading ? rect.width > 0 : contentWidth > 0) &&
-        breakWidth + 0.5 < (single.exactWidth ?? single.width)
-          ? this.textMeasure(leaf.text, leaf.font, breakWidth).height
-          : undefined;
+            heightOnlyTextTypes.has(this.typeOf(record))
+          ))
+      ) {
+        const rect = this.layout.getLayoutsForIds([id]).get(id);
+        if (!rect) continue;
+        const box = catalogBoxModel(record);
+        const num = (value: CatalogLength | undefined) =>
+          typeof value === "number" ? value : 0;
+        const contentWidth =
+          rect.width -
+          num(box.padding?.left) -
+          num(box.padding?.right) -
+          2 * num(box.borderWidth) -
+          (heading?.beside ?? 0);
+        const single = this.textMeasure(leaf.text, leaf.font);
+        // CSS breaks lines only between words (`overflow-wrap: normal`): a word wider than the box
+        // overflows on its own line instead of splitting. Lines are broken at no less than the
+        // min-content width (the longest word), so a lone overflowing word stays one line — unless
+        // the text may break inside a word (`catalogTextBreaksWords`).
+        const breakWidth =
+          !heading && catalogTextBreaksWords(leaf.font as CatalogTextFont)
+            ? contentWidth
+            : Math.max(contentWidth, single.minWidth ?? 0);
+        next =
+          (heading ? rect.width > 0 : contentWidth > 0) &&
+          breakWidth + 0.5 < (single.exactWidth ?? single.width)
+            ? this.textMeasure(leaf.text, leaf.font, breakWidth).height
+            : undefined;
+      }
       if (next === this.wrapHeights.get(id)) continue;
       this.keep(this.wrapHeights, id);
       if (next === undefined) this.wrapHeights.delete(id);
@@ -2051,8 +2065,12 @@ export class CatalogCompositionRoot {
     const shown: CatalogConsumerNode = patch
       ? {
           ...base,
-          visual: patch.visual ? { ...base.visual, ...patch.visual } : base.visual,
-          sizing: patch.sizing ? { ...base.sizing, ...patch.sizing } : base.sizing,
+          visual: patch.visual
+            ? { ...base.visual, ...patch.visual }
+            : base.visual,
+          sizing: patch.sizing
+            ? { ...base.sizing, ...patch.sizing }
+            : base.sizing,
           placement: patch.placement ?? base.placement,
         }
       : base;

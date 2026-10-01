@@ -62,6 +62,8 @@ export const CATALOG_BINDING_VISUAL_KEYS: ReadonlySet<string> = new Set([
   "textDecoration",
   "whiteSpace",
   "wordBreak",
+  "overflowWrap",
+  "textOverflow",
   "fill",
   "borderColor",
   "borderWidth",
@@ -169,6 +171,8 @@ export interface CatalogTextTypography {
   textDecoration?: string;
   whiteSpace?: string;
   wordBreak?: string;
+  overflowWrap?: string;
+  textOverflow?: string;
 }
 export function catalogTextTypography(
   node: Pick<CatalogConsumerNode, "visual" | "inheritedText">,
@@ -187,6 +191,7 @@ export function catalogTextTypography(
     "textTransform",
     "whiteSpace",
     "wordBreak",
+    "overflowWrap",
   ] as const) {
     const value = text(key);
     if (value !== undefined) typography[key] = value;
@@ -195,6 +200,8 @@ export function catalogTextTypography(
     typography.letterSpacing = Number(letterSpacing);
   if (node.visual.textDecoration !== undefined)
     typography.textDecoration = String(node.visual.textDecoration);
+  if (node.visual.textOverflow !== undefined)
+    typography.textOverflow = String(node.visual.textOverflow);
   return typography;
 }
 
@@ -219,6 +226,23 @@ export function catalogFontFamilies(fontFamily: string | undefined): string[] {
     .map((family) => family.trim().replace(/^["']|["']$/g, ""))
     .filter((family) => family && !GENERIC_FAMILIES.has(family.toLowerCase()));
   return named.includes("Pretendard") ? named : [...named, "Pretendard"];
+}
+
+/**
+ * The text may break inside a word wider than its box (CSS `overflow-wrap: break-word | anywhere`,
+ * `word-break: break-all` and the legacy `break-word`): the layout wraps it at the box width, not
+ * at the longest word.
+ */
+export function catalogTextBreaksWords(font: {
+  overflowWrap?: string;
+  wordBreak?: string;
+}): boolean {
+  return (
+    font.overflowWrap === "break-word" ||
+    font.overflowWrap === "anywhere" ||
+    font.wordBreak === "break-all" ||
+    font.wordBreak === "break-word"
+  );
 }
 
 /** Resolved text paint shared by the Canvas paragraph and the DOM text style. */

@@ -295,6 +295,14 @@ export function catalogDomStyle(
       ...(metrics.wordBreak !== undefined
         ? { wordBreak: metrics.wordBreak as CSSProperties["wordBreak"] }
         : {}),
+      ...(metrics.overflowWrap !== undefined
+        ? {
+            overflowWrap: metrics.overflowWrap as CSSProperties["overflowWrap"],
+          }
+        : {}),
+      ...(metrics.textOverflow !== undefined
+        ? { textOverflow: metrics.textOverflow }
+        : {}),
       color: cssColor(metrics.color),
       ...(metrics.fontWeight !== undefined
         ? { fontWeight: metrics.fontWeight }
@@ -611,6 +619,8 @@ const TYPOGRAPHY_KEYS: ReadonlySet<string> = new Set([
   "textDecoration",
   "whiteSpace",
   "wordBreak",
+  "overflowWrap",
+  "textOverflow",
 ]);
 const AUTHORED_CSS: Readonly<
   Record<string, (value: unknown) => CSSProperties>

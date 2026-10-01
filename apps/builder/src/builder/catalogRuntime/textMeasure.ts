@@ -13,7 +13,7 @@ import {
   isCanvasKitInitialized,
 } from "../workspace/canvas/skia/initCanvasKit";
 import type { CatalogTextMeasure } from "./compositionRoot";
-import { catalogFontFamilies } from "./boxModel";
+import { catalogFontFamilies, catalogTextBreaksWords } from "./boxModel";
 
 type Font = Parameters<CatalogTextMeasure>[1];
 
@@ -83,9 +83,13 @@ function paragraphMetrics(
   const max = paragraph.getMaxIntrinsicWidth();
   const min = paragraph.getMinIntrinsicWidth();
   // CSS `white-space: normal` breaks only at break opportunities: a word wider than the box
-  // overflows on its own line (the paragraph would split it), so wrap at no less than min-content.
-  // (+0.5: the paragraph breaks a line that fits to the sub-pixel.)
-  if (maxWidth !== undefined) paragraph.layout(Math.max(maxWidth, min) + 0.5);
+  // overflows on its own line (the paragraph would split it), so wrap at no less than min-content
+  // — unless the text may break inside a word (`overflow-wrap` / `word-break`), as the paragraph
+  // does. (+0.5: the paragraph breaks a line that fits to the sub-pixel.)
+  if (maxWidth !== undefined)
+    paragraph.layout(
+      (catalogTextBreaksWords(font) ? maxWidth : Math.max(maxWidth, min)) + 0.5,
+    );
   const metrics = {
     max,
     min,
@@ -167,8 +171,9 @@ export const catalogTextMeasure: CatalogTextMeasure = (
     font.fontWeight,
     "normal",
     maxWidth,
-    undefined,
-    undefined,
+    font.wordBreak,
+    font.overflowWrap ??
+      (font.wordBreak === "break-word" ? "break-word" : undefined),
     lineHeight,
   );
   return { width: maxWidth, height: wrapped.height };

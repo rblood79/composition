@@ -109,6 +109,10 @@ export type VisualField =
   | "textDecoration"
   | "whiteSpace"
   | "wordBreak"
+  // ADR-248 Phase 4e-6-31 (사용자 승인 2026-10-01): the Text behavior presets' wrap and
+  // truncation keys (`overflow-wrap` is inherited; `text-overflow` is the box's own).
+  | "overflowWrap"
+  | "textOverflow"
   | "boxShadow"
   | "filter"
   | "transform"

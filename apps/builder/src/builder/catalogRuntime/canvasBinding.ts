@@ -273,9 +273,24 @@ const bindings: Readonly<Record<string, Binding>> = {
         ...(metrics.wordBreak === "break-all" ||
         metrics.wordBreak === "keep-all"
           ? { wordBreak: metrics.wordBreak }
-          : metrics.wordBreak === "break-word"
+          : {}),
+        // CSS `word-break: break-word` (legacy) breaks a long word as `overflow-wrap` does; an
+        // authored `overflow-wrap` wins over it.
+        ...(metrics.overflowWrap === "break-word" ||
+        metrics.overflowWrap === "anywhere"
+          ? { overflowWrap: metrics.overflowWrap }
+          : metrics.overflowWrap === undefined &&
+              metrics.wordBreak === "break-word"
             ? { overflowWrap: "break-word" as const }
             : {}),
+        // `text-overflow: ellipsis` shows on a box that clips its one line (CSS: overflow other
+        // than visible + nowrap); the paragraph paints the ellipsis at the box width.
+        ...(metrics.textOverflow === "ellipsis"
+          ? {
+              textOverflow: "ellipsis" as const,
+              clipText: catalogOverflowClips(node.visual.overflow),
+            }
+          : {}),
         ...(metrics.fontWeight !== undefined
           ? { fontWeight: metrics.fontWeight }
           : {}),
@@ -341,6 +356,8 @@ const RULE_UNPAINTED_TEXT_KEYS = [
   "textDecoration",
   "whiteSpace",
   "wordBreak",
+  "overflowWrap",
+  "textOverflow",
 ];
 function ruleNodeData(
   root: CatalogCompositionRoot,

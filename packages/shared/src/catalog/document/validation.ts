@@ -77,6 +77,8 @@ const visualFields = new Set<VisualField>([
   "textDecoration",
   "whiteSpace",
   "wordBreak",
+  "overflowWrap",
+  "textOverflow",
   "boxShadow",
   "filter",
   "transform",
@@ -108,6 +110,8 @@ const visualChoices: Readonly<Record<string, readonly string[]>> = {
     "break-spaces",
   ],
   wordBreak: ["normal", "break-all", "keep-all", "break-word"],
+  overflowWrap: ["normal", "break-word", "anywhere"],
+  textOverflow: ["clip", "ellipsis"],
 };
 /** Phase 4a keys whose value is CSS text (no finite typed form). */
 const visualCssTextKeys = new Set([
