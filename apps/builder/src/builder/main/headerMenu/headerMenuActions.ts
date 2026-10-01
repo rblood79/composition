@@ -21,6 +21,8 @@ export interface HeaderMenuHost {
   onExportProject: () => void;
   onExportProjectJson: () => void;
   onConnectFolder: () => void;
+  /** ADR-248 4e-6-32 — 열린 catalog 프로젝트의 스냅샷 (없으면 옛 store 의 스냅샷). */
+  snapshotActions?: { canCreate: () => boolean; create: () => void };
   /** 확인 대화상자를 연다 — 삭제 자체는 대시보드가 한다. */
   onDeleteProject: () => void;
   onResetPanelLayout: () => void;
@@ -92,8 +94,15 @@ export const HEADER_MENU_ACTIONS: Readonly<
   },
   createSnapshot: {
     labelKey: "history.createSnapshot",
-    isEnabled: () => resolveUserSnapshotTarget() !== null,
-    run: () => {
+    isEnabled: (host) =>
+      host.snapshotActions
+        ? host.snapshotActions.canCreate()
+        : resolveUserSnapshotTarget() !== null,
+    run: (host) => {
+      if (host.snapshotActions) {
+        host.snapshotActions.create();
+        return;
+      }
       const projectId = resolveUserSnapshotTarget();
       if (projectId) void createUserSnapshot(projectId);
     },

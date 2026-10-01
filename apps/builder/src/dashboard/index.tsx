@@ -480,6 +480,9 @@ function Dashboard() {
       for (const variable of await db.variables.getByProject(routeId))
         await db.variables.delete(variable.id);
       await new CatalogStorage().remove(projectId);
+      const { removeCatalogProjectSnapshots } =
+        await import("../builder/catalogRuntime/snapshots");
+      await removeCatalogProjectSnapshots(projectId);
     },
     {
       onSuccess: () => {

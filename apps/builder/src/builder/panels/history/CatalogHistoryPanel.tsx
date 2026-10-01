@@ -1,4 +1,4 @@
-import { useState, useSyncExternalStore } from "react";
+import { useContext, useState, useSyncExternalStore } from "react";
 import { Ellipsis, File, History, Redo, Undo } from "lucide-react";
 import { Menu, MenuItem, MenuTrigger } from "react-aria-components/Menu";
 import { Popover } from "react-aria-components/Popover";
@@ -19,6 +19,8 @@ import { ActionIconButton } from "../../components/ui";
 import { ConfirmDialog } from "../../components/overlay";
 import { ACTION_ICONS } from "../../config/actionIcons";
 import { catalogHistoryEntryView } from "./catalogHistoryLabels";
+import { CatalogSnapshotHostContext } from "./catalogSnapshotHost";
+import { useCatalogSnapshotUi } from "./useCatalogSnapshotUi";
 import "./HistoryPanel.css";
 
 const DeleteIcon = ACTION_ICONS.delete;
@@ -26,8 +28,8 @@ const DeleteIcon = ACTION_ICONS.delete;
 /**
  * ADR-248 Phase 4e-4: History of the open catalog project — the single project history (one entry
  * per command, localized with its family icon and its time for assistive tech). Undo · redo, jump
- * to an entry (undo/redo up to it) and clear after a confirmation. Snapshots have no counterpart
- * in the new runtime yet, so they are not shown.
+ * to an entry (undo/redo up to it) and clear after a confirmation; snapshots through the catalog
+ * snapshot host (`useCatalogSnapshotUi`, 4e-6-32).
  */
 export function CatalogHistoryPanel() {
   return (
@@ -49,6 +51,10 @@ function CatalogHistoryContent() {
     history.getSnapshot,
   );
   // Row 0 = the opened state; row i = after entry i (localized label and its family icon).
+  const snapshotUi = useCatalogSnapshotUi(
+    useContext(CatalogSnapshotHostContext),
+    labels.length === 0,
+  );
   const rows = [
     { text: t("history.initialState"), Icon: File },
     ...labels.map((label) => catalogHistoryEntryView(label, t)),
@@ -80,6 +86,7 @@ function CatalogHistoryContent() {
             >
               <Redo size={iconProps.size} />
             </ActionIconButton>
+            {snapshotUi.buttons}
             <MenuTrigger>
               <ActionIconButton
                 aria-label={t("history.menuLabel")}
@@ -115,6 +122,7 @@ function CatalogHistoryContent() {
         }
       />
       <PanelContents>
+        {snapshotUi.section}
         <Section
           id="history-edits"
           title={t("history.editsSection")}
@@ -186,6 +194,7 @@ function CatalogHistoryContent() {
         }}
         onCancel={() => setConfirmClear(false)}
       />
+      {snapshotUi.dialogs}
     </>
   );
 }

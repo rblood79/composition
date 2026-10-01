@@ -504,6 +504,14 @@ const koKR: TranslationKeys = {
     confirmClearAllTitle: "작업 내역 비우기",
     confirmClearAll:
       "작업 내역을 모두 지울까요? 문서는 그대로 남고, 지운 기록은 되돌릴 수 없습니다.",
+    snapshotDefaultName: "스냅샷 {index}",
+    snapshotBeforeRestore: "복원 전 — {name}",
+    restoreSnapshotTitle: "스냅샷 복원",
+    restoreSnapshotConfirm: "복원",
+    confirmRestoreSnapshot:
+      '"{name}" 으로 복원할까요? 작업 내역은 비워지고, 지금 상태는 "복원 전" 스냅샷으로 남습니다.',
+    restoreSnapshotFailed: "스냅샷을 복원하지 못했습니다: {message}",
+    deleteSnapshotTitle: "스냅샷 삭제",
     entryOrdinal: "{index}번째 기록",
     entryAdd: "추가{suffix}",
     entryRemove: "삭제{suffix}",
@@ -2616,6 +2624,14 @@ const enUS: TranslationKeys = {
     confirmClearAllTitle: "Clear history",
     confirmClearAll:
       "Clear all history? The document stays as it is; cleared steps cannot be undone.",
+    snapshotDefaultName: "Snapshot {index}",
+    snapshotBeforeRestore: "Before restore — {name}",
+    restoreSnapshotTitle: "Restore snapshot",
+    restoreSnapshotConfirm: "Restore",
+    confirmRestoreSnapshot:
+      'Restore "{name}"? History is cleared; the current state stays as a "Before restore" snapshot.',
+    restoreSnapshotFailed: "Could not restore the snapshot: {message}",
+    deleteSnapshotTitle: "Delete snapshot",
     entryOrdinal: "Entry {index}",
     entryAdd: "Add{suffix}",
     entryRemove: "Delete{suffix}",
@@ -5445,6 +5461,17 @@ const formattedMessages: Record<
       `실행 가능 ${String(args?.count ?? 0)} / ${String(args?.total ?? 0)}`,
     "history.confirmDeleteSnapshot": (args) =>
       `스냅샷 "${String(args?.name ?? "")}"을(를) 삭제할까요?`,
+    "history.snapshotDefaultName": (args) =>
+      `스냅샷 ${String(args?.index ?? 1)}`,
+    "history.snapshotBeforeRestore": (args) =>
+      `복원 전 — ${String(args?.name ?? "")}`,
+    "history.confirmRestoreSnapshot": (args) =>
+      `"${String(args?.name ?? "")}" 으로 복원할까요? 작업 내역은 비워지고, 지금 상태는 "복원 전" 스냅샷으로 남습니다.`,
+    "history.restoreSnapshotFailed": (args) =>
+      `스냅샷을 복원하지 못했습니다: ${String(args?.message ?? "")}`,
+    "history.labels.aiAdd": (args) => `AI: ${String(args?.type ?? "")} 추가`,
+    "history.labels.aiBatch": (args) =>
+      `AI 일괄 작업 (${String(args?.count ?? 0)})`,
     "history.entryOrdinal": (args) => `${String(args?.index ?? 0)}번째 기록`,
     "history.entryAdd": (args) => `추가${String(args?.suffix ?? "")}`,
     "history.entryRemove": (args) => `삭제${String(args?.suffix ?? "")}`,
@@ -5949,6 +5976,17 @@ const formattedMessages: Record<
       `${String(args?.count ?? 0)} of ${String(args?.total ?? 0)} available`,
     "history.confirmDeleteSnapshot": (args) =>
       `Delete the snapshot "${String(args?.name ?? "")}"?`,
+    "history.snapshotDefaultName": (args) =>
+      `Snapshot ${String(args?.index ?? 1)}`,
+    "history.snapshotBeforeRestore": (args) =>
+      `Before restore — ${String(args?.name ?? "")}`,
+    "history.confirmRestoreSnapshot": (args) =>
+      `Restore "${String(args?.name ?? "")}"? History is cleared; the current state stays as a "Before restore" snapshot.`,
+    "history.restoreSnapshotFailed": (args) =>
+      `Could not restore the snapshot: ${String(args?.message ?? "")}`,
+    "history.labels.aiAdd": (args) => `AI: add ${String(args?.type ?? "")}`,
+    "history.labels.aiBatch": (args) =>
+      `AI batch (${String(args?.count ?? 0)})`,
     "history.entryOrdinal": (args) => `Entry ${String(args?.index ?? 0)}`,
     "history.entryAdd": (args) => `Add${String(args?.suffix ?? "")}`,
     "history.entryRemove": (args) => `Delete${String(args?.suffix ?? "")}`,

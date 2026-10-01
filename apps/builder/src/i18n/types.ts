@@ -341,6 +341,13 @@ export interface TranslationKeys {
     };
     confirmClearAllTitle: string;
     confirmClearAll: string;
+    snapshotDefaultName: string;
+    snapshotBeforeRestore: string;
+    restoreSnapshotTitle: string;
+    restoreSnapshotConfirm: string;
+    confirmRestoreSnapshot: string;
+    restoreSnapshotFailed: string;
+    deleteSnapshotTitle: string;
     entryOrdinal: string;
     entryAdd: string;
     entryRemove: string;

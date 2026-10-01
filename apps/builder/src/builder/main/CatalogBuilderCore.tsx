@@ -33,6 +33,7 @@ import {
   useCatalogWorkspace,
 } from "../catalogRuntime/react";
 import { CatalogStorage, CatalogStorageError } from "../catalogRuntime/storage";
+import { CatalogSnapshots } from "../catalogRuntime/snapshots";
 import { catalogTextMeasure } from "../catalogRuntime/textMeasure";
 import { catalogBoundRows } from "../catalogRuntime/dataBinding";
 import {
@@ -48,6 +49,10 @@ import { createCatalogQuickConnectHost } from "../panels/datatable/usage/catalog
 import { QuickConnectHostContext } from "../panels/datatable/usage/quickConnectHost";
 import { createCatalogDataVariablesHost } from "../panels/datatable/usage/catalogDataVariablesHost";
 import { DataVariablesHostContext } from "../panels/datatable/usage/dataVariablesHost";
+import {
+  CatalogSnapshotHostContext,
+  createCatalogSnapshotHost,
+} from "../panels/history/catalogSnapshotHost";
 import { AgentCommandConfirmDialogHost, ToastContainer } from "../components";
 import { setAgentCommandHost } from "../../services/agent/agentCommandHost";
 import { createCatalogAgentCommandHost } from "../catalogRuntime/agentHost";
@@ -242,6 +247,42 @@ export function CatalogBuilderCore() {
     setOpenCount((count) => count + 1);
   }, []);
   const files = useCatalogProjectFiles({ workspace, routeId, reopen });
+  // History snapshots (4e-6-32): one list per project route, kept across a reopen (a restore).
+  const snapshots = useMemo(
+    () => new CatalogSnapshots(catalogProjectIdOf(routeId) ?? routeId),
+    [routeId],
+  );
+  const snapshotHost = useMemo(
+    () =>
+      workspace
+        ? createCatalogSnapshotHost(workspace, snapshots, reopen)
+        : null,
+    [workspace, snapshots, reopen],
+  );
+  const snapshotActions = useMemo(
+    () =>
+      snapshotHost
+        ? {
+            canCreate: () => snapshots.canCreateUser(),
+            create: () => {
+              void snapshotHost.create().catch((error: unknown) => {
+                console.warn("[snapshots] create refused:", error);
+              });
+            },
+          }
+        : undefined,
+    [snapshotHost, snapshots],
+  );
+  // The restored snapshot stays "active" until the reopened document's first edit.
+  useEffect(() => {
+    if (!workspace) return;
+    const { history } = workspace;
+    const clear = () => {
+      if (history.getSnapshot().labels.length > 0) snapshots.markRestored(null);
+    };
+    clear();
+    return history.subscribe(clear);
+  }, [workspace, snapshots]);
   useCatalogGlobalShortcuts(workspace, handleSceneError);
   // Agent commands (the AI panel's run_command, the DEV `window.__compositionAgent`) and the
   // header menu run over this workspace (ADR-248 4e-5).
@@ -395,6 +436,7 @@ export function CatalogBuilderCore() {
       onExportProject={files.exportZip}
       onExportProjectJson={files.exportJson}
       onConnectFolder={files.connectFolder}
+      snapshotActions={snapshotActions}
       directoryLink={files.directoryLink}
       saveStatus={workspace ? <CatalogSaveStatusIndicator /> : null}
     />
@@ -448,7 +490,9 @@ export function CatalogBuilderCore() {
           <DataUsageSourceContext.Provider value={dataUsage}>
             <QuickConnectHostContext.Provider value={quickConnect}>
               <DataVariablesHostContext.Provider value={dataVariables}>
-                {body}
+                <CatalogSnapshotHostContext.Provider value={snapshotHost}>
+                  {body}
+                </CatalogSnapshotHostContext.Provider>
               </DataVariablesHostContext.Provider>
             </QuickConnectHostContext.Provider>
           </DataUsageSourceContext.Provider>
