@@ -70,6 +70,16 @@ export interface StylesHost {
   updateFills(fills: FillItem[]): void;
   /** Fill reset: the selection's own layers go (an instance child shows its template's again). */
   resetFills(): void;
+  /**
+   * Live paint layers while dragging a Fill (no history; the release commits through
+   * `updateFills`). Absent = the old store, where only the presentation channel previews.
+   */
+  previewFills?(fills: FillItem[]): void;
+  /**
+   * Put the selection's own values back after a cancelled drag (Escape, pointer cancel). Absent =
+   * the old store (its presentation sessions cancel themselves).
+   */
+  cancelPreview?(): void;
   /** Which of `properties` (CSS keys) the selection authors at the active breakpoint. */
   useDirtyStyleProps(properties: readonly string[]): string[];
   /** Reset `properties` on the selection (only what is authored; nothing = no step). */
@@ -90,7 +100,10 @@ export interface StylesHost {
   setResponsiveVisibility(breakpoint: BreakpointName, visible: boolean): void;
   /** The selected element as the panel frame reads it (title, Modified list, copy). */
   useSelectedElement(): SelectedElement | null;
-  /** The old Canvas editor presentation channel (live paint while editing) is available. */
+  /**
+   * The old Canvas editor presentation channel (live paint while editing) is available. When it
+   * is not, the color pickers preview every drag through `previewStyle` / `previewFills`.
+   */
   presentation: boolean;
   /**
    * The parent that owns the element's style axis as a delegated sub-part (absent = the old store

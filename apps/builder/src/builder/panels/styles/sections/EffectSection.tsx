@@ -51,7 +51,7 @@ import { parseFilterBlurPx, setFilterBlurPx } from "../utils/filterValue";
 import { useSemanticLabel } from "../../../../i18n";
 
 import "./EffectSection.css";
-import { useStylesSelectedId } from "../stylesHost";
+import { useStylesHost, useStylesSelectedId } from "../stylesHost";
 
 const AddIcon = ACTION_ICONS.add;
 
@@ -99,6 +99,9 @@ const EffectSectionContent = memo(function EffectSectionContent() {
   } = useStylePresentationActions();
   const selectedId = useStylesSelectedId();
   const styleValues = useAppearanceValues(selectedId);
+  // catalog Builder: 색 드래그도 Styles host 미리보기 (presentation 채널 없음)
+  const host = useStylesHost();
+  const livePreview = !host.presentation;
   // 레이어 topology 가 바뀐 뒤 (추가·제거) 행 목록은 index key 라 그대로, 편집기만 remount.
   const editorMountRef = useRef(0);
 
@@ -265,8 +268,11 @@ const EffectSectionContent = memo(function EffectSectionContent() {
             editor={{
               onPreview: handleBoxShadowModelPreview,
               onCommit: handleBoxShadowModelCommit,
-              onCancel: cancelBoxShadowPresentation,
+              onCancel: (reason) => {
+                if (!cancelBoxShadowPresentation(reason)) host.cancelPreview?.();
+              },
               presentationOwnsFrameScheduling: presentationOwnsBoxShadow,
+              livePreview,
             }}
           />
         ))}

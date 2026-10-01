@@ -47,7 +47,7 @@ import { FontFamilyPicker } from "../../fonts/FontFamilyPicker";
 import { useFontRegistry } from "../../fonts/useFontRegistry";
 import { TYPOGRAPHY_PROPS } from "./styleSectionProps";
 import { useSemanticLabel } from "../../../../i18n";
-import { useStylesSelectedId } from "../stylesHost";
+import { useStylesHost, useStylesSelectedId } from "../stylesHost";
 
 /** ADR-008 Text Behavior 프리셋 — 5개 속성 묶음 (빈 문자열 = 해제). */
 const TEXT_BEHAVIOR_PRESETS: Record<string, Record<string, string>> = {
@@ -121,6 +121,8 @@ const TypographySectionContent = memo(function TypographySectionContent() {
   } = useTextMetricsPresentationActions();
   const selectedId = useStylesSelectedId();
   const styleValues = useTypographyValues(selectedId);
+  // catalog Builder: 색 드래그도 Styles host 미리보기 (presentation 채널 없음)
+  const host = useStylesHost();
   // 등록된 face 는 Font Weight 옵션 산출에만 쓴다 — 패밀리 목록은 FontFamilyPicker 가 직접 읽는다.
   const { registry } = useFontRegistry();
 
@@ -223,7 +225,10 @@ const TypographySectionContent = memo(function TypographySectionContent() {
         onChange={handleTextColorCommit}
         onPreview={handleTextColorPreview}
         presentationOwnsFrameScheduling={presentationOwnsTextColor}
-        onPresentationCancel={cancelTextColorPresentation}
+        livePreview={!host.presentation}
+        onPresentationCancel={(reason) => {
+          if (!cancelTextColorPresentation(reason)) host.cancelPreview?.();
+        }}
         placeholder="#000000"
       />
 

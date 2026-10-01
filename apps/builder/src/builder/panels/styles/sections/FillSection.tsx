@@ -115,8 +115,12 @@ const FillSectionContent = memo(function FillSectionContent() {
     previewFirstFillPaintPresentation,
     commitFirstFillPaintPresentation,
     cancelFirstFillColorPresentation,
+    previewFill,
+    cancelFillPreview,
     changeFillType,
   } = useFillActions();
+  // The catalog Builder previews every layer's drag through the Styles host (no presentation).
+  const livePreview = !useStylesHost().presentation;
 
   const firstFill = fills[0] ?? null;
 
@@ -174,15 +178,21 @@ const FillSectionContent = memo(function FillSectionContent() {
           return;
         }
         // Unsupported fill targets remain commit-only by design.
+        previewFill(firstFill.id, { color } as Partial<ColorFillItem>);
       } else if (!firstFill) {
         if (
           previewFirstFillColorPresentation(virtualFill.id, color, virtualFill)
         ) {
           return;
         }
+        previewFill(
+          virtualFill.id,
+          { color } as Partial<ColorFillItem>,
+          virtualFill,
+        );
       }
     },
-    [firstFill, virtualFill, previewFirstFillColorPresentation],
+    [firstFill, virtualFill, previewFirstFillColorPresentation, previewFill],
   );
 
   const handleColorChangeEnd = useCallback(
@@ -213,9 +223,9 @@ const FillSectionContent = memo(function FillSectionContent() {
 
   const handleColorPresentationCancel = useCallback(
     (reason: "pointer-cancel" | "escape") => {
-      cancelFirstFillColorPresentation(reason);
+      if (!cancelFirstFillColorPresentation(reason)) cancelFillPreview();
     },
-    [cancelFirstFillColorPresentation],
+    [cancelFirstFillColorPresentation, cancelFillPreview],
   );
 
   const handleFillUpdate = useCallback(
@@ -228,11 +238,13 @@ const FillSectionContent = memo(function FillSectionContent() {
         return;
       }
       // Unsupported gradient/mesh targets remain commit-only by design.
+      if (firstFill) previewFill(firstFill.id, updates);
     },
     [
       firstFill,
       presentationOwnsGradientStops,
       previewFirstFillPaintPresentation,
+      previewFill,
     ],
   );
 
@@ -269,12 +281,16 @@ const FillSectionContent = memo(function FillSectionContent() {
         return;
       }
       // Unsupported paint targets remain commit-only by design.
+      if (firstFill) previewFill(firstFill.id, { opacity });
+      else previewFill(virtualFill.id, { opacity }, virtualFill);
     },
     [
       firstFill,
+      virtualFill,
       paintFallbackFill,
       presentationOwnsPaint,
       previewFirstFillPaintPresentation,
+      previewFill,
     ],
   );
 
@@ -318,6 +334,7 @@ const FillSectionContent = memo(function FillSectionContent() {
     () => ({
       presentationOwnsColorFrameScheduling:
         presentationOwnsColor || presentationOwnsGradientStops,
+      livePreview,
       onColorPresentationCancel: handleColorPresentationCancel,
       onColorChange: handleColorChange,
       onColorChangeEnd: handleColorChangeEnd,
@@ -330,6 +347,7 @@ const FillSectionContent = memo(function FillSectionContent() {
     [
       presentationOwnsColor,
       presentationOwnsGradientStops,
+      livePreview,
       handleColorPresentationCancel,
       handleColorChange,
       handleColorChangeEnd,
@@ -339,6 +357,27 @@ const FillSectionContent = memo(function FillSectionContent() {
       handleFillUpdateEnd,
       handleTypeChange,
     ],
+  );
+
+  /** The other layers: commit-only on the old store; live through the host in the catalog. */
+  const layerPopovers = useMemo(
+    () =>
+      new Map<string, FillLayerRowPopoverOverrides>(
+        livePreview
+          ? fills.map((fill) => [
+              fill.id,
+              {
+                livePreview,
+                onColorPresentationCancel: () => cancelFillPreview(),
+                onColorChange: (color) =>
+                  previewFill(fill.id, { color } as Partial<ColorFillItem>),
+                onOpacityChange: (opacity) => previewFill(fill.id, { opacity }),
+                onUpdate: (updates) => previewFill(fill.id, updates),
+              },
+            ])
+          : [],
+      ),
+    [fills, livePreview, previewFill, cancelFillPreview],
   );
 
   const fillIds = fills.map((f) => f.id);
@@ -375,7 +414,9 @@ const FillSectionContent = memo(function FillSectionContent() {
               onUpdate={updateFill}
               onRemove={removeFill}
               onTypeChange={changeFillType}
-              popover={index === 0 ? firstRowPopover : undefined}
+              popover={
+                index === 0 ? firstRowPopover : layerPopovers.get(fill.id)
+              }
             />
           ))}
         </SortableContext>

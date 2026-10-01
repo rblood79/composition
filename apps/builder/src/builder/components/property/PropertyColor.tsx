@@ -26,6 +26,11 @@ interface PropertyColorProps {
   onPreview?: (value: string) => void;
   /** ADR-187: migrated owner가 frame scheduling을 직접 소유하는지 여부. */
   presentationOwnsFrameScheduling?: boolean;
+  /**
+   * The catalog Builder: drags call `onPreview` (the Styles host previews on the Canvas) without
+   * the presentation channel; the release commits only a changed value.
+   */
+  livePreview?: boolean;
   onPresentationCancel?: (reason: "pointer-cancel" | "escape") => void;
   placeholder?: string;
   className?: string;
@@ -68,6 +73,7 @@ export const PropertyColor = memo(
     onChange,
     onPreview,
     presentationOwnsFrameScheduling = false,
+    livePreview = false,
     onPresentationCancel,
     className,
     showValue = false,
@@ -81,10 +87,10 @@ export const PropertyColor = memo(
 
     const handlePreview = useCallback(
       (hexa: string) => {
-        if (!presentationOwnsFrameScheduling) return;
+        if (!presentationOwnsFrameScheduling && !livePreview) return;
         onPreview?.(normalizeHexForStyle(hexa));
       },
-      [onPreview, presentationOwnsFrameScheduling],
+      [onPreview, presentationOwnsFrameScheduling, livePreview],
     );
     const handleCommit = useCallback(
       (hexa: string) => {
@@ -131,6 +137,7 @@ export const PropertyColor = memo(
               onChange={handlePreview}
               onChangeEnd={handleCommit}
               presentationOwnsFrameScheduling={presentationOwnsFrameScheduling}
+              livePreview={livePreview}
               onPresentationCancel={onPresentationCancel}
             />
           </Popover>
@@ -147,7 +154,8 @@ export const PropertyColor = memo(
       prevProps.placeholder === nextProps.placeholder &&
       prevProps.showValue === nextProps.showValue &&
       prevProps.presentationOwnsFrameScheduling ===
-        nextProps.presentationOwnsFrameScheduling
+        nextProps.presentationOwnsFrameScheduling &&
+      prevProps.livePreview === nextProps.livePreview
     );
   },
 );

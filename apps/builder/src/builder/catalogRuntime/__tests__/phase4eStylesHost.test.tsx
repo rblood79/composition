@@ -10,6 +10,10 @@ import type {
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
+import {
+  createDefaultColorFill,
+  type FillItem,
+} from "../../../types/builder/fill.types";
 import { createCatalogStylesHost } from "../../panels/styles/catalog/catalogStylesHost";
 import { useToastStore } from "../../stores/toast";
 import { newCatalogProjectDocument } from "../project";
@@ -182,6 +186,37 @@ describe("ADR-248 Phase 4e-4d Styles host", () => {
     host.previewStyle("paddingTop", "4px");
     expect(width()).toBe(150);
     expect(graph.revision).toBe(revision + 1);
+  });
+
+  it("a Fill drag previews the paint layers without a step; the release commits, a cancel restores", async () => {
+    const { workspace, graph, host, record } = await open();
+    host.updateStyle("backgroundColor", "#ff0000");
+    const revision = graph.revision;
+    const shown = () => workspace.root.domInputs.get(record)!;
+    const layer = (color: string): FillItem => ({
+      ...createDefaultColorFill(color),
+      id: "fill-a",
+    });
+
+    host.previewFills!([layer("#00FF00FF")]);
+    expect(shown().fills).toMatchObject([{ kind: "color", color: "#00FF00FF" }]);
+    // The fill-derived background the commit removes is not shown under the layers.
+    expect(shown().visual).not.toHaveProperty("backgroundColor");
+    host.previewFills!([layer("#0000FFFF")]);
+    expect(shown().fills).toMatchObject([{ color: "#0000FFFF" }]);
+    expect(graph.revision).toBe(revision);
+    expect((graph.getEntry(BOX) as NodeEntry).fills).toBeUndefined();
+
+    // A cancel puts the record's own paint back.
+    host.cancelPreview!();
+    expect(shown().fills).toBeUndefined();
+    expect(shown().visual.backgroundColor).toBe("#ff0000");
+
+    // The release commits the layers as one step.
+    host.previewFills!([layer("#0000FFFF")]);
+    host.updateFills([layer("#0000FFFF")]);
+    expect(graph.revision).toBe(revision + 1);
+    expect(shown().fills).toMatchObject([{ color: "#0000FFFF" }]);
   });
 
   it("a token reference written as CSS (var(--…)) reads back as the same text", async () => {

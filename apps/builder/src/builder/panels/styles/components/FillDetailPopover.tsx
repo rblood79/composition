@@ -48,6 +48,8 @@ function alphaHexToOpacity(alphaHex: string): number {
 interface FillDetailPopoverProps {
   fill: FillItem;
   presentationOwnsColorFrameScheduling?: boolean;
+  /** Drags preview through the Styles host (catalog): Escape / pointer cancel restore. */
+  livePreview?: boolean;
   onColorPresentationCancel?: (reason: "pointer-cancel" | "escape") => void;
   onColorChange: (color: string) => void;
   onColorChangeEnd: (color: string) => void;
@@ -92,6 +94,7 @@ function categoryToDefaultFillType(category: FillCategory): FillType {
 export const FillDetailPopover = memo(function FillDetailPopover({
   fill,
   presentationOwnsColorFrameScheduling,
+  livePreview,
   onColorPresentationCancel,
   onColorChange,
   onColorChangeEnd,
@@ -210,6 +213,7 @@ export const FillDetailPopover = memo(function FillDetailPopover({
           value={colorValue}
           resetKey={`${fill.id}:${fill.type}`}
           presentationOwnsFrameScheduling={presentationOwnsColorFrameScheduling}
+          livePreview={livePreview}
           onPresentationCancel={onColorPresentationCancel}
           onChange={handlePickerChange}
           onChangeEnd={handleColorChangeEndCommitted}

@@ -40,9 +40,14 @@ import { useResolvedAssetUrl } from "../../../../lib/assets/useResolvedAssetUrl"
 
 /** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
 
-/** 첫 레이어 전용 — presentation 경로 (연속 preview + presentation-aware commit). */
+/**
+ * 첫 레이어 — presentation 경로 (연속 preview + presentation-aware commit). catalog Builder 는
+ * 모든 레이어가 Styles host 미리보기를 쓴다 (`livePreview`, 커밋은 행 기본 경로).
+ */
 export interface FillLayerRowPopoverOverrides {
   readonly presentationOwnsColorFrameScheduling?: boolean;
+  /** Drags preview through the Styles host (catalog): a cancel puts the record back. */
+  readonly livePreview?: boolean;
   readonly onColorPresentationCancel?: (
     reason: "pointer-cancel" | "escape",
   ) => void;
@@ -210,6 +215,7 @@ export const FillLayerRow = memo(function FillLayerRow({
               presentationOwnsColorFrameScheduling={
                 popover?.presentationOwnsColorFrameScheduling
               }
+              livePreview={popover?.livePreview}
               onColorPresentationCancel={popover?.onColorPresentationCancel}
               onColorChange={
                 popover?.onColorChange ?? ignoreContinuousColorChange

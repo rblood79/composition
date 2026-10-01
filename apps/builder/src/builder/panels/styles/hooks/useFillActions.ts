@@ -73,6 +73,18 @@ export interface FillActions {
   cancelFirstFillColorPresentation: (
     reason: EditorPresentationCancelReason,
   ) => boolean;
+  /**
+   * A Fill drag (color, opacity, gradient stops) on any layer through the host's `previewFills`
+   * (the catalog Builder, where no presentation channel exists); false = the host has none.
+   * Successive previews of one gesture add up; the release commits through `updateFill`.
+   */
+  previewFill: (
+    fillId: string,
+    updates: Partial<FillItem>,
+    fallbackFill?: ColorFillItem,
+  ) => boolean;
+  /** Put the selection's own layers back after a cancelled drag. */
+  cancelFillPreview: () => void;
   changeFillType: (fillId: string, newType: FillType) => void;
 }
 
@@ -99,7 +111,22 @@ export function useFillActions(): FillActions {
   const [ownerId] = useState(() => `fill-color-owner-${nextFillOwnerId++}`);
   const host = useStylesHost();
   const getCurrentFills = host.readFills;
-  const writeFills = host.updateFills;
+  /** The layers a host preview shows during one gesture. */
+  const draftRef = useRef<{
+    id: string | null;
+    base: string;
+    fills: FillItem[];
+  } | null>(null);
+  const dropDraft = useCallback(() => {
+    draftRef.current = null;
+  }, []);
+  const writeFills = useCallback(
+    (fills: FillItem[]) => {
+      dropDraft();
+      host.updateFills(fills);
+    },
+    [dropDraft, host],
+  );
 
   // cleanup on unmount
   useEffect(() => {
@@ -404,6 +431,44 @@ export function useFillActions(): FillActions {
     [],
   );
 
+  const previewFill = useCallback(
+    (
+      fillId: string,
+      updates: Partial<FillItem>,
+      fallbackFill?: ColorFillItem,
+    ): boolean => {
+      if (!host.previewFills) return false;
+      const id = host.readSelectedId();
+      const current = getCurrentFills();
+      // A gesture continues on the same element over the same committed layers (a release that
+      // committed nothing — the same color — or an undo starts the next one afresh).
+      const base = JSON.stringify(current);
+      let draft = draftRef.current;
+      if (!draft || draft.id !== id || draft.base !== base)
+        draft = {
+          id,
+          base,
+          fills:
+            !current.some((fill) => fill.id === fillId) && fallbackFill
+              ? [...current, fallbackFill]
+              : current,
+        };
+      draft = {
+        ...draft,
+        fills: applyFillUpdates(draft.fills, fillId, updates),
+      };
+      draftRef.current = draft;
+      host.previewFills(draft.fills);
+      return true;
+    },
+    [getCurrentFills, host],
+  );
+
+  const cancelFillPreview = useCallback(() => {
+    dropDraft();
+    host.cancelPreview?.();
+  }, [dropDraft, host]);
+
   const addFill = useCallback(
     (type: FillType = FillType.Color, initialColor?: string) => {
       const fills = getCurrentFills();
@@ -552,6 +617,8 @@ export function useFillActions(): FillActions {
     previewFirstFillPaintPresentation,
     commitFirstFillPaintPresentation,
     cancelFirstFillColorPresentation,
+    previewFill,
+    cancelFillPreview,
     changeFillType,
   };
 }

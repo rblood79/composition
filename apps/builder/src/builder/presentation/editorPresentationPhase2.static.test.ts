@@ -81,7 +81,7 @@ describe("ADR-187 Phase 2 migration guards", () => {
     expect(commitGuard).toBeGreaterThan(-1);
     expect(legacyCommit).toBeGreaterThan(commitGuard);
     expect(section).not.toContain("updateFillPreviewThrottled");
-    expect(picker).toContain("if (presentationOwnsFrameScheduling)");
+    expect(picker).toContain("if (presentationOwnsFrameScheduling || livePreview)");
     expect(picker).not.toContain("requestAnimationFrame");
     expect(picker).not.toContain("cancelAnimationFrame");
   });

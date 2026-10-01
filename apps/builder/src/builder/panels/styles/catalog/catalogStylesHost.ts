@@ -315,6 +315,7 @@ export function createCatalogStylesHost(
         if (!placement && !Object.keys(patch).length) continue;
         const held = previewed.get(item.identity) ?? {};
         const next: CatalogRecordPreview = {
+          ...held,
           visual: { ...held.visual, ...patch.visual },
           sizing: { ...held.sizing, ...patch.sizing },
           layout: { ...held.layout, ...patch.layout },
@@ -443,6 +444,22 @@ export function createCatalogStylesHost(
         });
       });
     },
+    previewFills(fills) {
+      const items = selection();
+      endPreviews(new Set(items.map((item) => item.identity)));
+      const layers = fills.length ? catalogFillLayers(fills) : [];
+      for (const item of items) {
+        if (!workspace.root.domInputs.has(item.identity)) continue;
+        const next: CatalogRecordPreview = {
+          ...previewed.get(item.identity),
+          fills: layers,
+          omitVisual: FILL_DERIVED_STYLE_PROPS,
+        };
+        previewed.set(item.identity, next);
+        workspace.root.previewRecord(item.identity, next);
+      }
+    },
+    cancelPreview: () => endPreviews(),
     resetFills() {
       run(() => {
         const targets = selection()

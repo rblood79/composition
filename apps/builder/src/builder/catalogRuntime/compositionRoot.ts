@@ -114,6 +114,10 @@ export interface CatalogRecordPreview {
   readonly sizing?: Readonly<Record<string, number>>;
   readonly layout?: Readonly<Record<string, string>>;
   readonly placement?: CatalogConsumerNode["placement"];
+  /** The paint layers shown instead of the record's (a Fill drag). */
+  readonly fills?: CatalogConsumerNode["fills"];
+  /** Visual keys the commit removes (a Fill replaces fill-derived background CSS). */
+  readonly omitVisual?: readonly string[];
 }
 
 export interface CatalogConsumerNode {
@@ -2068,9 +2072,14 @@ export class CatalogCompositionRoot {
     const shown: CatalogConsumerNode = patch
       ? {
           ...base,
-          visual: patch.visual
-            ? { ...base.visual, ...patch.visual }
-            : base.visual,
+          visual:
+            patch.visual || patch.omitVisual
+              ? Object.fromEntries(
+                  Object.entries({ ...base.visual, ...patch.visual }).filter(
+                    ([key]) => !patch.omitVisual?.includes(key),
+                  ),
+                )
+              : base.visual,
           sizing: patch.sizing
             ? { ...base.sizing, ...patch.sizing }
             : base.sizing,
@@ -2078,6 +2087,7 @@ export class CatalogCompositionRoot {
             ? { ...base.layout, ...patch.layout }
             : base.layout,
           placement: patch.placement ?? base.placement,
+          ...(patch.fills ? { fills: patch.fills } : {}),
         }
       : base;
     if (patch) this.previews.set(id, { base, shown });

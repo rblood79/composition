@@ -26,6 +26,8 @@ export interface BoxShadowEditorProps {
   readonly onCommit: (value: BoxShadowPresentationValue) => void;
   readonly onPreview: (value: BoxShadowPresentationValue) => void;
   readonly presentationOwnsFrameScheduling: boolean;
+  /** The color drag previews through the Styles host (catalog). */
+  readonly livePreview?: boolean;
   readonly value: BoxShadowPresentationValue;
   /** 편집 대상 레이어 (행이 정한다). */
   readonly layerIndex: number;
@@ -58,6 +60,7 @@ export const BoxShadowEditor = memo(function BoxShadowEditor({
   onCommit,
   onPreview,
   presentationOwnsFrameScheduling,
+  livePreview,
   value,
   layerIndex,
 }: BoxShadowEditorProps) {
@@ -150,6 +153,7 @@ export const BoxShadowEditor = memo(function BoxShadowEditor({
         onPreview={(nextColor) => updateField("color", nextColor, "preview")}
         onChange={(nextColor) => updateField("color", nextColor, "commit")}
         presentationOwnsFrameScheduling={presentationOwnsFrameScheduling}
+        livePreview={livePreview}
         onPresentationCancel={cancel}
       />
     </div>

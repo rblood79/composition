@@ -64,7 +64,7 @@ import { useAppearanceValues } from "../hooks/useAppearanceValues";
 import { useResetStyles, useHasDirtyStyles } from "../hooks/useResetStyles";
 import { resolveCssLengthPx } from "../utils/cssLengthPx";
 import { useSemanticLabel } from "../../../../i18n";
-import { useStylesSelectedId } from "../stylesHost";
+import { useStylesHost, useStylesSelectedId } from "../stylesHost";
 
 /** 슬라이더 범위 — 값 칸 직접 입력은 이 위로도 간다 (썸은 끝에 머문다). */
 const WIDTH_SLIDER_MAX = 24;
@@ -160,6 +160,8 @@ const BorderSectionContent = memo(function BorderSectionContent() {
   } = useStylePresentationActions();
   const selectedId = useStylesSelectedId();
   const styleValues = useAppearanceValues(selectedId);
+  // catalog Builder: 색 드래그도 Styles host 미리보기 (presentation 채널 없음)
+  const host = useStylesHost();
   // 코너 4방향 펼침 토글 — 훅은 early return 앞에 (선택 해제 ↔ 선택 사이에 훅 순서가 바뀌면 안 된다)
   const [cornersOpen, setCornersOpen] = useState(false);
 
@@ -307,7 +309,10 @@ const BorderSectionContent = memo(function BorderSectionContent() {
           onChange={handleBorderColorCommit}
           onPreview={handleBorderColorPreview}
           presentationOwnsFrameScheduling={presentationOwnsBorderColor}
-          onPresentationCancel={cancelBorderColorPresentation}
+          livePreview={!host.presentation}
+          onPresentationCancel={(reason) => {
+            if (!cancelBorderColorPresentation(reason)) host.cancelPreview?.();
+          }}
           placeholder="#000000"
         />
       </div>

@@ -34,7 +34,11 @@ interface BoxShadowLayerRowProps {
   readonly onAction: (action: BoxShadowLayerAction, layerIndex: number) => void;
   readonly editor: Pick<
     BoxShadowEditorProps,
-    "onCancel" | "onCommit" | "onPreview" | "presentationOwnsFrameScheduling"
+    | "onCancel"
+    | "onCommit"
+    | "onPreview"
+    | "presentationOwnsFrameScheduling"
+    | "livePreview"
   >;
 }
 
@@ -84,6 +88,7 @@ export const BoxShadowLayerRow = memo(function BoxShadowLayerRow({
             presentationOwnsFrameScheduling={
               editor.presentationOwnsFrameScheduling
             }
+            livePreview={editor.livePreview}
           />
         </Popover>
       </DialogTrigger>
