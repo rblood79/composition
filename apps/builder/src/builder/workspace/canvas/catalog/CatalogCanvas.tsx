@@ -137,6 +137,8 @@ import { CatalogDefinitionBar } from "./CatalogDefinitionBar";
 import { buildViewportSceneRect } from "../skia/skiaOverlayHelpers";
 import { CatalogTextEditor } from "./CatalogTextEditor";
 import { WorkspaceStatusIndicator } from "../../components/WorkspaceStatusIndicator";
+import { CanvasScrollbar } from "../../scrollbar";
+import { catalogScrollbarContent } from "./catalogScrollbarContent";
 
 export interface CatalogCanvasProps {
   workspace: CatalogWorkspace;
@@ -194,6 +196,11 @@ export function CatalogCanvas({
   } | null>(null);
   // Page headers (ADR-221): the page frames as laid out, the session's page and selection.
   const [headerFrames, setHeaderFrames] = useState<PageHeaderFrame[]>([]);
+  // The Figma-style Canvas scrollbars over the page frames (the old Workspace's).
+  const scrollbarContent = useMemo(
+    () => catalogScrollbarContent(workspace),
+    [workspace],
+  );
   // The WebGL context is lost: drawing pauses until the browser restores it; the user sees why.
   const [surfaceLost, setSurfaceLost] = useState(false);
   const headerPressRef = useRef<(pageId: string, event: PointerEvent) => void>(
@@ -1170,6 +1177,8 @@ export function CatalogCanvas({
         />
       </div>
       <WorkspaceStatusIndicator isCanvasReady isContextLost={surfaceLost} />
+      <CanvasScrollbar direction="horizontal" content={scrollbarContent} />
+      <CanvasScrollbar direction="vertical" content={scrollbarContent} />
       {spacingInput && (
         <CatalogSpacingInput
           band={spacingInput.band}

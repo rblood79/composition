@@ -84,8 +84,13 @@ export function getViewportAuthoritativeState(): ViewportState {
   };
 }
 
+/**
+ * `contentRects`: the artboards the scroll range covers, when the caller owns them (the catalog
+ * Canvas's page frames); absent = the old store's page / frame positions.
+ */
 export function getScrollbarViewportMetrics(
   viewportState = getViewportAuthoritativeState(),
+  contentRects?: readonly ContentRect[],
 ): ScrollbarViewportMetrics | null {
   const { canvasSize, containerSize } = useViewportSyncStore.getState();
   if (containerSize.width <= 0 || containerSize.height <= 0) {
@@ -106,7 +111,7 @@ export function getScrollbarViewportMetrics(
   };
 
   const world = calculateWorldBounds(
-    collectContentRects(canvasSize),
+    contentRects ?? collectContentRects(canvasSize),
     visibleViewport,
   );
 
