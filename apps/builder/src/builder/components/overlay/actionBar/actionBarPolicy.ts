@@ -70,9 +70,13 @@ function collectIds(items: readonly ContextMenuItem[]): Set<string> {
 
 export function resolveActionBarContext(
   items: readonly ContextMenuItem[],
+  multi = false,
 ): ActionBarContext | null {
   const ids = collectIds(items);
   if (ids.size === 0) return null;
+  // ADR-248 4e-6-56: a host that knows the selection says "2+ non-body" itself — the catalog menu
+  // offers align only when it would move something (flow children have none).
+  if (multi) return "multi";
   // 182 는 body 를 뺀 2+ 선택에만 정렬 서브메뉴를 만든다. ⌘A 처럼 body 가
   // 섞여도 non-body 가 2개 이상이면 그대로 multi 다. body + 요소 1개만 고른
   // 선택은 정렬·분배·그룹이 전부 조건 미충족이라 바가 뜨지 않는다 — 이전에는
@@ -93,8 +97,9 @@ export function resolveActionBarContext(
  */
 export function applyActionBarPolicy(
   items: readonly ContextMenuItem[],
+  options: { multi?: boolean } = {},
 ): ActionBarModel | null {
-  const context = resolveActionBarContext(items);
+  const context = resolveActionBarContext(items, options.multi);
   if (context === null) return null;
 
   const byId = new Map<string, ContextMenuItem>();

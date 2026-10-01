@@ -71,7 +71,10 @@ async function open() {
       snapshot.selection,
       snapshot.pageId,
     );
-    return { state, model: catalogActionBarModel(catalogMenuHost(workspace), state) };
+    return {
+      state,
+      model: catalogActionBarModel(catalogMenuHost(workspace), state),
+    };
   };
   return { workspace, record, bar };
 }
@@ -108,12 +111,42 @@ describe("ADR-248 Phase 4e catalog action bar", () => {
     expect(bar().model).toBeNull();
   });
 
+  it("two elements in the page flow (nothing to align) still show the multi context", async () => {
+    // ADR-248 4e-6-56: the catalog menu offers align only when it would move something; the bar
+    // took "has align" as its multi signal, so two flow children showed no bar (the old menu
+    // always offered align for 2+).
+    const { workspace, bar } = await open();
+    let next = 0;
+    const flow = (name: string): NodeEntry => ({
+      ...placed(name, 0, 0),
+      placement: undefined,
+    });
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [flow("f1"), flow("f2")],
+        rootIds: [id("f1"), id("f2")],
+        newId: <K extends EntryKind>(kind: K) =>
+          `project:${kind}:f${++next}` as EntryId<K>,
+      }),
+    );
+    workspace.selectRecords([
+      workspace.root.recordsOfSource(id("f1"))[0],
+      workspace.root.recordsOfSource(id("f2"))[0],
+    ]);
+    const { model } = bar();
+    expect(model?.context).toBe("multi");
+    expect(model?.items.map((item) => item.id)).toEqual(["group", "duplicate"]);
+  });
+
   it("a selection that is not in the document (an undo took it) shows no items", async () => {
     const { workspace, record, bar } = await open();
     workspace.selectRecords([record("p")]);
     const { state } = bar();
     const host = catalogMenuHost(workspace);
     expect(catalogActionBarModel(host, state)).not.toBeNull();
-    expect(catalogActionBarModel(host, { ...state, resolved: false })).toBeNull();
+    expect(
+      catalogActionBarModel(host, { ...state, resolved: false }),
+    ).toBeNull();
   });
 });

@@ -85,7 +85,12 @@ export function catalogActionBarModel(
   state: CatalogActionBarState,
 ): ActionBarModel | null {
   if (!state.resolved) return null;
+  // Two or more elements (page bodies aside) are the multi context, align or not.
+  const elements = state.selectedIds.filter(
+    (id) => host.records.get(id)?.parentId !== PAGE_GRID,
+  );
   return applyActionBarPolicy(
     catalogCanvasMenuItems(host, "canvas-element", state.selectedIds[0]),
+    { multi: elements.length >= 2 },
   );
 }
