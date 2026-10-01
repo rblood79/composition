@@ -51,6 +51,14 @@ export interface DataVariablesHost {
   jumpToOwner(entry: VisibleVariable): void;
   /** Move a legacy page variable onto its page; false = nothing moved. */
   migrateLegacyToPage(variable: VariableType): Promise<boolean>;
+  /**
+   * The Variable editor's page facts (a legacy page-scoped variable): the open page (Scope → page
+   * and "Assign to current page" take it) and the owner page's title.
+   */
+  usePageContext(ownerPageId: string | undefined): {
+    currentPageId: string | null;
+    ownerTitle: string | undefined;
+  };
 }
 
 /** Open Properties on the owner with its State section on the variable. */
@@ -60,6 +68,15 @@ export function focusVariableOwner(ownerNodeId: string, variableId: string) {
 }
 
 export const STORE_DATA_VARIABLES_HOST: DataVariablesHost = {
+  usePageContext(ownerPageId) {
+    const currentPageId = useStore((state) => state.currentPageId);
+    const ownerTitle = useStore((state) =>
+      ownerPageId
+        ? state.pages.find((page) => page.id === ownerPageId)?.title
+        : undefined,
+    );
+    return { currentPageId, ownerTitle };
+  },
   useView(legacyPageVariables, projectDefs) {
     const doc = useActiveCanonicalDocument();
     const pages = useStore((state) => state.pages);

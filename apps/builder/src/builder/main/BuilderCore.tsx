@@ -139,7 +139,10 @@ import { useUiStore } from "../../stores/uiStore";
 import { getDB } from "../../lib/db";
 import { getCanonicalReusableLayouts } from "../stores/canonical/reusableLayoutStore";
 import { getProjectVariableDefinitions, useDataStore } from "../stores/data";
-import { useExecutionPolicyScheduler } from "../panels/datatable/hooks/useExecutionPolicyScheduler";
+import {
+  runAutoPolicyEndpoints,
+  useExecutionPolicyScheduler,
+} from "../panels/datatable/hooks/useExecutionPolicyScheduler";
 import { resolveCollectionByName } from "@composition/shared";
 import type { Element } from "../../types/core/store.types";
 
@@ -1156,20 +1159,7 @@ export const BuilderCore: React.FC = () => {
   const handlePreview = useCallback(async () => {
     // ADR-218 — auto 정책: Preview 열기 전, executionPolicy.mode==="auto" collection 의
     // 연결된 endpoint 를 1회 실행 (host=Builder). manual/interval 은 대상 아님.
-    const dataState = useDataStore.getState();
-    const autoEndpoints = Array.from(dataState.apiEndpoints.values());
-    const autoRuns: Promise<unknown>[] = [];
-    for (const c of dataState.collections.values()) {
-      if (c.executionPolicy?.mode !== "auto") continue;
-      const ep = autoEndpoints.find(
-        (e) =>
-          e.targetCollectionId === c.id ||
-          (!e.targetCollectionId && e.targetCollection === c.name),
-      );
-      if (ep)
-        autoRuns.push(dataState.executeApiEndpoint(ep.id).catch(() => {}));
-    }
-    if (autoRuns.length > 0) await Promise.all(autoRuns);
+    await runAutoPolicyEndpoints();
 
     // Store에서 현재 상태 가져오기
     const state = useStore.getState();

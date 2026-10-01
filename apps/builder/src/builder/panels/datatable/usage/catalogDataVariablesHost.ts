@@ -39,6 +39,24 @@ export function createCatalogDataVariablesHost(
   const graph = () => workspace.runtime.graph;
   const isPage = (id: string) => graph().getEntry(id)?.kind === "page";
   return {
+    usePageContext(ownerPageId) {
+      const currentPageId = useSyncExternalStore(
+        workspace.session.subscribe,
+        () => workspace.session.getSnapshot().pageId ?? null,
+      );
+      const ownerTitle = useSyncExternalStore(
+        useCallback(
+          (notify: () => void) =>
+            workspace.runtime.subscribeSteps(() => notify()),
+          [],
+        ),
+        () => {
+          const page = ownerPageId ? graph().getEntry(ownerPageId) : undefined;
+          return page?.kind === "page" ? page.name : undefined;
+        },
+      );
+      return { currentPageId, ownerTitle };
+    },
     useView(legacyPageVariables, projectDefs) {
       const subscribe = useCallback(
         (notify: () => void) =>

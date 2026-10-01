@@ -1174,7 +1174,8 @@ export class CatalogCompositionRoot {
   }
   /**
    * A change outside the document as one history entry (ADR-248 4e-4e, one stack): `command`
-   * (optional) is its document part, planned and committed now like `execute`.
+   * (optional) is its document part, planned and committed now like `execute`. The entry is named
+   * `label` (the outside change names it — e.g. "Add collection — Users", not its "Bind data" part).
    */
   recordExternal(
     label: string,
@@ -1183,7 +1184,7 @@ export class CatalogCompositionRoot {
   ): { plan?: CatalogCommandPlan; result?: CatalogTransactionResult } {
     const plan = command?.(this.runtime.graph);
     const result = this.runtime.recordExternal(
-      plan?.label ?? label,
+      label,
       effect,
       plan?.ops ?? [],
       this.consume,

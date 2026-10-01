@@ -163,7 +163,10 @@ describe("ADR-248 Phase 4e-4e data history (one stack)", () => {
       ),
     );
     expect(workspace.runtime.historyDepth.undo).toBe(start + 1);
-    expect(workspace.runtime.historyLabels.undo.at(-1)).toBe("Bind data");
+    // Named by the outside change, not its document part ("Bind data").
+    expect(workspace.runtime.historyLabels.undo.at(-1)).toBe(
+      "Create and connect",
+    );
     workspace.undo();
     await workspace.runtime.settled();
     expect(bindingOf(workspace)).toBeUndefined();

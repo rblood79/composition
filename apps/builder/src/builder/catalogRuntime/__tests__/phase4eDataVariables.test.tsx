@@ -283,4 +283,26 @@ describe("ADR-248 Phase 4e-4e Data variables", () => {
       variableId: count.id,
     });
   });
+
+  it("the Variable editor's page facts come from the workspace (open page · owner page name)", async () => {
+    const { workspace } = await open();
+    const host = createCatalogDataVariablesHost(
+      workspace,
+      { apply: async () => ({ applied: [], inverse: [] }) },
+      "Move",
+    );
+    act(() => workspace.session.setPage(HOME));
+    const { result } = renderHook(() => host.usePageContext(HOME));
+    const home = workspace.runtime.graph.getEntry(HOME);
+    expect(result.current).toEqual({
+      currentPageId: HOME,
+      ownerTitle: home?.kind === "page" ? home.name : "?",
+    });
+    expect(result.current.ownerTitle).toBeTruthy();
+    // An owner that is not a page of this document has no title (the editor shows its id).
+    const { result: unknown } = renderHook(() =>
+      host.usePageContext("page-legacy"),
+    );
+    expect(unknown.current.ownerTitle).toBeUndefined();
+  });
 });

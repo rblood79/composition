@@ -91,6 +91,8 @@ import { createLayoutEngine } from "../workspace/canvas/wasm-bindings/layoutBrid
 import { getCanvasKit } from "../workspace/canvas/skia/initCanvasKit";
 import { BuilderHeader } from "./BuilderHeader";
 import { BuilderViewport } from "./BuilderViewport";
+import { useExecutionPolicyScheduler } from "../panels/datatable/hooks/useExecutionPolicyScheduler";
+import { registerVariableOwnerPageSource } from "../stores/utils/variableOwnerMigration";
 import {
   catalogViewportActions,
   useCatalogGlobalShortcuts,
@@ -135,6 +137,7 @@ export function CatalogBuilderCore() {
   useEffect(() => {
     let cancelled = false;
     let opened: CatalogWorkspace | undefined;
+    let restorePageSource: (() => void) | undefined;
     (async () => {
       const projectId = catalogProjectIdOf(routeId);
       if (!projectId) throw new CatalogStorageError("PROJECT_NOT_FOUND");
@@ -149,6 +152,12 @@ export function CatalogBuilderCore() {
         await storage.load(projectId, library),
         library,
       );
+      // ADR-214 owner rule C (one page → it owns a page variable without `page_id`): the
+      // document's pages, not the old store's (empty here).
+      restorePageSource = registerVariableOwnerPageSource(() => {
+        const project = graph.getEntry(graph.projectId);
+        return project?.kind === "project" ? project.pageIds : [];
+      });
       // Collections · API endpoints · variables stay in the data store (H1), keyed by the route id.
       try {
         await useDataStore.getState().initializeForProject(routeId);
@@ -216,6 +225,7 @@ export function CatalogBuilderCore() {
     return () => {
       cancelled = true;
       opened?.dispose();
+      restorePageSource?.();
     };
   }, [routeId, openCount, t]);
 
@@ -300,6 +310,9 @@ export function CatalogBuilderCore() {
     return history.subscribe(clear);
   }, [workspace, snapshots]);
   useCatalogGlobalShortcuts(workspace, handleSceneError);
+  // ADR-218 interval policy: data-store collections poll their linked endpoint (rows reach the
+  // Canvas through the data-store subscription below — `refreshRows`).
+  useExecutionPolicyScheduler();
   // Agent commands (the AI panel's run_command, the DEV `window.__compositionAgent`) and the
   // header menu run over this workspace (ADR-248 4e-5).
   useEffect(() => {

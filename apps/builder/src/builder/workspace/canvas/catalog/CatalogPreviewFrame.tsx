@@ -4,6 +4,7 @@ import { PanelSplitter } from "../../../layout/PanelSplitter";
 import { useWorkspaceCompareSplit } from "../../hooks/useWorkspaceCompareSplit";
 import { useOptionalI18n } from "../../../../i18n";
 import { toProjectVariableDefs, useDataStore } from "../../../stores/data";
+import { runAutoPolicyEndpoints } from "../../../panels/datatable/hooks/useExecutionPolicyScheduler";
 import { CATALOG_PREVIEW_PAYLOAD_VERSION } from "../../../../../../../packages/shared/src/catalog/preview/protocol";
 
 /** The collections as the Preview reads them (the old Preview channel's projection). */
@@ -76,6 +77,9 @@ export function CatalogPreviewFrame({
       } else channel.onPreviewMessage(event.data);
     };
     window.addEventListener("message", onMessage);
+    // ADR-218 auto policy: Preview opening runs each auto collection's endpoint once (the rows
+    // reach the frame through the data subscription above).
+    void runAutoPolicyEndpoints();
     return () => {
       window.removeEventListener("message", onMessage);
       offData();
