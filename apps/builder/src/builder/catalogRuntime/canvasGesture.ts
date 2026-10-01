@@ -33,7 +33,10 @@ import {
   catalogSpacingBands,
   type CatalogSpacingPreview,
 } from "./canvasSpacing";
-import type { CatalogConsumerNode } from "./compositionRoot";
+import type {
+  CatalogConsumerNode,
+  CatalogRecordPreview,
+} from "./compositionRoot";
 import type { CatalogSelectionItem } from "./session";
 
 import {
@@ -77,7 +80,19 @@ export interface CatalogGestureHost {
   pageFrames?(): ReadonlyMap<string, BoundingBox>;
   /** Manual guides in scene coordinates, without those of `excludePages` (they move along). */
   guideLines?(excludePages?: ReadonlySet<string>): SnapGuideLines;
+  /**
+   * Live reflow: show a resize / spacing drag's values on its record while it moves (no `patch`
+   * = put the record's own values back, before the release commits them).
+   */
+  reflow?(record: string, patch?: CatalogRecordPreview): void;
 }
+
+const PADDING_KEY = {
+  top: "paddingTop",
+  right: "paddingRight",
+  bottom: "paddingBottom",
+  left: "paddingLeft",
+} as const;
 
 /** What a drag snaps to, gathered once when it starts moving. */
 interface SnapContext {
@@ -185,8 +200,9 @@ export interface CatalogGesturePreview {
  * ADR-248 Phase 4e-3b: Canvas drag gestures over the open project — move (a flow element reorders
  * among its siblings or moves into another structural container; an absolutely placed one moves by
  * offset) and resize by the selection handles (fixed width/height at the current breakpoint). The
- * document does not change during the drag: the overlay draws the preview and one command commits
- * on release (one history step). Points are scene coordinates; `zoom` converts the threshold.
+ * document does not change during the drag: the overlay draws the preview (a resize / spacing drag
+ * also reflows its record on the Canvas, `host.reflow`) and one command commits on release (one
+ * history step). Points are scene coordinates; `zoom` converts the threshold.
  */
 export class CatalogCanvasGestures {
   private gesture: Gesture | undefined;
@@ -415,6 +431,7 @@ export class CatalogCanvasGestures {
             !!options.axisLock,
           ),
       );
+      this.showReflow(gesture);
       return true;
     }
     if (gesture.kind === "page") {
@@ -450,6 +467,7 @@ export class CatalogCanvasGestures {
         lock: null,
         position: gesture.position ?? null,
       });
+      this.showReflow(gesture);
       return true;
     }
     if (options.axisLock) {
@@ -597,6 +615,7 @@ export class CatalogCanvasGestures {
   finish(): boolean {
     const gesture = this.gesture;
     this.gesture = undefined;
+    this.endReflow();
     // A spacing handle pressed and released without a drag opens the inline number input.
     this.spacingClick =
       gesture?.kind === "spacing" && !gesture.active ? gesture : undefined;
@@ -620,6 +639,52 @@ export class CatalogCanvasGestures {
   cancel(): void {
     this.gesture = undefined;
     this.spacingClick = undefined;
+    this.endReflow();
+  }
+
+  /** The record a drag shows its values on (`host.reflow`). */
+  private reflowed: string | undefined;
+  /**
+   * The old Canvas's resize / spacing presentation: the record takes the drag's values while it
+   * moves, so its siblings and children reflow live; the document changes only on release.
+   */
+  private showReflow(
+    gesture: Extract<Gesture, { kind: "spacing" | "resize" }>,
+  ): void {
+    if (!this.host.reflow) return;
+    this.reflowed = gesture.item.identity;
+    if (gesture.kind === "spacing") {
+      this.host.reflow(this.reflowed, {
+        visual: gesture.band.side
+          ? Object.fromEntries(
+              gesture.sides.map((side) => [PADDING_KEY[side], gesture.value]),
+            )
+          : { gap: gesture.value },
+      });
+      return;
+    }
+    const { width, height, left, top } = gesture.request;
+    const start = gesture.position;
+    this.host.reflow(this.reflowed, {
+      sizing: {
+        ...(width !== undefined ? { width } : {}),
+        ...(height !== undefined ? { height } : {}),
+      },
+      ...(start && (left !== undefined || top !== undefined)
+        ? {
+            placement: {
+              kind: "absolute",
+              x: left ?? start.left,
+              y: top ?? start.top,
+            },
+          }
+        : {}),
+    });
+  }
+  private endReflow(): void {
+    const record = this.reflowed;
+    this.reflowed = undefined;
+    if (record) this.host.reflow?.(record);
   }
 
   private spacingClick: CatalogSpacingClick | undefined;
@@ -675,12 +740,6 @@ export class CatalogCanvasGestures {
         : undefined;
     if (gesture.kind === "spacing") {
       if (gesture.value === gesture.start) return undefined;
-      const PADDING_KEY = {
-        top: "paddingTop",
-        right: "paddingRight",
-        bottom: "paddingBottom",
-        left: "paddingLeft",
-      } as const;
       return setFields({
         targets: [gesture.item.target],
         breakpoint,

@@ -367,6 +367,8 @@ export function CatalogCanvas({
       selectRecords: (ids, options) => workspace.selectRecords(ids, options),
       itemOf: (id) => workspace.itemOfRecord(id),
     });
+    // A resize / spacing drag's live reflow redraws at the next frame (set once the loop exists).
+    let reflowScene = () => {};
     const gestures = new CatalogCanvasGestures({
       get records() {
         return workspace.root.domInputs;
@@ -407,6 +409,11 @@ export function CatalogCanvas({
           page as Parameters<typeof catalogPageDropCommand>[1],
           topLeft,
         ),
+      reflow: (record, patch) => {
+        for (const error of workspace.root.previewRecord(record, patch))
+          callbacks.current.onError?.(error);
+        reflowScene();
+      },
     });
 
     // The camera this project last had at this breakpoint, else the first page frame fitted
@@ -535,6 +542,10 @@ export function CatalogCanvas({
     const unsubscribeFrames = subscribeCanvasFrames(scheduler.invalidate);
     // A step listener runs before the root's own subscribers deliver the step's per-node deltas
     // (`CatalogRuntime.step`), so the scene follows at the next frame (or pick), not inside it.
+    reflowScene = () => {
+      sceneStale = true;
+      scheduler.invalidate();
+    };
     const unsubscribeSteps = workspace.runtime.subscribeSteps(() => {
       sceneStale = true;
       // A step may change only document state the overlay reads (a binding's badge).

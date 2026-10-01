@@ -104,6 +104,16 @@ import {
   type SlotChromeInput,
 } from "./slotChrome";
 
+/**
+ * Values a Canvas gesture shows on one record before it commits (`previewRecord`): resolved values
+ * at the current breakpoint, merged over the record's own.
+ */
+export interface CatalogRecordPreview {
+  readonly visual?: Readonly<Record<string, number>>;
+  readonly sizing?: Readonly<Record<string, number>>;
+  readonly placement?: CatalogConsumerNode["placement"];
+}
+
 export interface CatalogConsumerNode {
   readonly id: string;
   readonly sourceId: string;
@@ -959,6 +969,11 @@ export class CatalogCompositionRoot {
   >();
   /** Wrapped text-leaf content heights from the last `rewrap` (absent = one line). */
   private readonly wrapHeights = new Map<string, number>();
+  /** Records a gesture previews (`previewRecord`): the record it replaced and the one shown. */
+  private readonly previews = new Map<
+    string,
+    { base: CatalogConsumerNode; shown: CatalogConsumerNode }
+  >();
   private readonly canvasListeners = new Map<
     string,
     Set<(node: CatalogConsumerNode | undefined) => void>
@@ -2017,6 +2032,45 @@ export class CatalogCompositionRoot {
       if (!old || old.x !== rect.x || old.y !== rect.y) return true;
     }
     return false;
+  }
+  /**
+   * Live reflow (ADR-248 Phase 4e — the old resize / spacing presentation sessions): show `patch`
+   * on one record and lay out (re-wrap included) as if it were committed, while the document,
+   * history, save and DOM consumers do not change — only the record's Canvas listeners hear it
+   * and patch like an edit. No `patch` puts the record's own values back; the gesture then
+   * commits the same values as one command. A step that replaced the record meanwhile wins (its
+   * record is kept). Returns the subscriber errors.
+   */
+  previewRecord(id: string, patch?: CatalogRecordPreview): unknown[] {
+    const held = this.previews.get(id);
+    const current = this.records.get(id);
+    const ours = !!held && current === held.shown;
+    if (held && !ours) this.previews.delete(id);
+    if (!current || (!patch && !ours)) return [];
+    const base = ours ? held!.base : current;
+    const shown: CatalogConsumerNode = patch
+      ? {
+          ...base,
+          visual: patch.visual ? { ...base.visual, ...patch.visual } : base.visual,
+          sizing: patch.sizing ? { ...base.sizing, ...patch.sizing } : base.sizing,
+          placement: patch.placement ?? base.placement,
+        }
+      : base;
+    if (patch) this.previews.set(id, { base, shown });
+    else this.previews.delete(id);
+    this.records.set(id, shown);
+    this.layout.updateNodeStyle(id, this.styleFor(shown));
+    this.layout.computeLayout(this.viewport.width, this.viewport.height);
+    this.rewrap(this.rewrapScope([id]));
+    const errors: unknown[] = [];
+    for (const callback of [...(this.canvasListeners.get(id) ?? [])]) {
+      try {
+        callback(shown);
+      } catch (error) {
+        errors.push(error);
+      }
+    }
+    return errors;
   }
   /** Laid-out frame of every page (its root node's box on the page grid). */
   pageFrameRects(): Map<

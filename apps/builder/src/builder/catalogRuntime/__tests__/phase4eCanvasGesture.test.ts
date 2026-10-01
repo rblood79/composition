@@ -117,6 +117,10 @@ async function open() {
     },
     newId: workspace.newId,
     guideLines: () => guides,
+    reflow: (target, patch) => {
+      workspace.root.previewRecord(target, patch);
+      sync();
+    },
   });
   const record = (name: string) => workspace.root.recordsOfSource(id(name))[0];
   const box = (name: string) => scene.stream.boundsMap.get(record(name))!;
@@ -308,6 +312,88 @@ describe("ADR-248 Phase 4e-3b Canvas gestures", () => {
     expect(after?.kind === "node" && after.responsive?.mobile?.sizing).toEqual({
       height: { kind: "set", value: Math.round(mobile.height + 10) },
     });
+  });
+
+  it("resize and spacing drags reflow live — siblings move, the document and history do not; release commits that geometry, cancel puts it back", async () => {
+    const { workspace, scene, gestures, record, box } = await open();
+    const entry = (name: string) => {
+      const found = workspace.runtime.graph.getEntry(id(name));
+      return found?.kind === "node" ? found : undefined;
+    };
+    const applied = () => workspace.history.getSnapshot().applied;
+    workspace.selectRecords([record("a")]);
+    const a = box("a");
+    const bTop = box("b").y;
+    const steps = applied();
+    // Bottom edge of A down 30: B follows during the drag.
+    const edge = { x: a.x + a.width / 2, y: a.y + a.height };
+    expect(gestures.beginResize(edge.x, edge.y, 1)).toBe(true);
+    gestures.update(edge.x, edge.y + 30, 1);
+    expect(box("a").height).toBe(a.height + 30);
+    expect(box("b").y).toBe(bTop + 30);
+    expect(entry("a")?.sizing.height).toEqual({ kind: "set", value: 40 });
+    expect(applied()).toBe(steps);
+    const live = { a: box("a"), b: box("b") };
+    gestures.finish();
+    expect(entry("a")?.sizing.height).toEqual({ kind: "set", value: 70 });
+    expect(applied()).toBe(steps + 1);
+    expect({ a: box("a"), b: box("b") }).toEqual(live);
+
+    // Top padding of the list: A moves down live; cancel restores it and writes nothing.
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: id("list") }],
+        visual: { padding: { kind: "set", value: 8 } },
+      }),
+    );
+    scene.sync();
+    workspace.selectRecords([record("list")]);
+    const aTop = box("a").y;
+    const band = gestures
+      .spacingBands()
+      .find((item) => item.kind === "padding" && item.side === "top")!;
+    const [tx, ty] = [
+      band.rect.x + band.rect.width / 2,
+      band.rect.y + band.rect.height / 2,
+    ];
+    const before = applied();
+    expect(gestures.beginSpacing(tx, ty, 1)).toBe(true);
+    gestures.update(tx, ty + 10, 1);
+    expect(box("a").y).toBe(aTop + 10);
+    gestures.cancel();
+    expect(box("a").y).toBe(aTop);
+    expect(entry("list")?.visual).not.toHaveProperty("paddingTop");
+    expect(applied()).toBe(before);
+    // Dragged and brought back to the start value: no command, and the record is its own again
+    // (no previewed value left for the DOM readers of the same inputs).
+    expect(gestures.beginSpacing(tx, ty, 1)).toBe(true);
+    gestures.update(tx, ty + 10, 1);
+    gestures.update(tx, ty, 1);
+    expect(gestures.finish()).toBe(false);
+    expect(
+      workspace.root.domInputs.get(record("list"))?.visual,
+    ).not.toHaveProperty("paddingTop");
+  });
+
+  it("a preview reaches the Canvas listeners only, and a step that replaces the record meanwhile wins over the restore", async () => {
+    const { workspace, record } = await open();
+    const target = record("a");
+    const heard: string[] = [];
+    workspace.root.subscribeCanvas(target, () => heard.push("canvas"));
+    workspace.root.subscribeDom(target, () => heard.push("dom"));
+    workspace.root.previewRecord(target, { sizing: { height: 90 } });
+    expect(heard).toEqual(["canvas"]);
+    expect(workspace.root.canvasInputs.get(target)?.sizing.height).toBe(90);
+    // An edit lands on the record during the drag: the restore keeps the edit's record.
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: id("a") }],
+        sizing: { height: { kind: "set", value: 55 } },
+      }),
+    );
+    workspace.root.previewRecord(target);
+    expect(workspace.root.canvasInputs.get(target)?.sizing.height).toBe(55);
+    expect(workspace.root.getGeometry([target]).get(target)?.height).toBe(55);
   });
 
   it("a marquee from the page background selects the intersected elements of the level; shift adds", async () => {
