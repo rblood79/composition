@@ -9,7 +9,6 @@ import type {
   NodeId,
 } from "../../../../../packages/shared/src/catalog/document/types";
 import type { CatalogPosition } from "../../../../../packages/shared/src/catalog/resolution/positions";
-import { CATALOG_ROW_ITEM_TYPES } from "../../../../../packages/shared/src/catalog/resolution/resolver";
 import type { CatalogStepListener } from "./controller";
 import type { CatalogReadModel } from "./readModel";
 
@@ -37,6 +36,23 @@ export interface CatalogLayerNode {
    * deletable nor a drop target.
    */
   readonly projection?: true;
+  /**
+   * The record selecting this row selects instead: the "+N more" row of the rows a sampled list
+   * does not draw selects the row that holds them (as the Canvas hatch selects the list).
+   */
+  readonly selects?: string;
+}
+
+/** The data rows one row holds (4e-6-36): the drawn rows and the count the sample leaves out. */
+export interface CatalogBoundLayerRows {
+  readonly rows: readonly {
+    id: string;
+    name: string;
+    typeName: string;
+    /** A row with no document position (a Table's data row) selects the row holding it. */
+    selects?: string;
+  }[];
+  readonly more?: number;
 }
 
 /** What the Layers tree reads from the open project (`CatalogWorkspace`). */
@@ -45,12 +61,10 @@ export interface CatalogLayerTreeHost {
   readonly graph: CatalogReader;
   subscribeSteps(listener: CatalogStepListener): () => void;
   /**
-   * A bound collection's drawn data rows (record identity and label); `undefined` = not bound or
-   * rows unknown (the item positions are listed). Absent = no projection.
+   * The drawn data rows a row holds; `undefined` = none (unbound or rows unknown: the item
+   * positions are listed). Absent = no projection.
    */
-  boundRows?(
-    position: CatalogPosition,
-  ): readonly { id: string; name: string }[] | undefined;
+  boundRows?(position: CatalogPosition): CatalogBoundLayerRows | undefined;
   /** Data rows changed outside the document (the bound rows are read again). */
   subscribeBoundRows?(listener: () => void): () => void;
 }
@@ -88,6 +102,7 @@ const roleOf = (
 const sameNode = (a: CatalogLayerNode, b: CatalogLayerNode) =>
   a.role === b.role &&
   a.projection === b.projection &&
+  a.selects === b.selects &&
   a.parentId === b.parentId &&
   a.depth === b.depth &&
   a.hasChildren === b.hasChildren &&
@@ -192,10 +207,10 @@ export class CatalogLayerTreeStore {
         this.ownerId.startsWith("project:definition:"),
       );
       const children = (): CatalogLayerNode[] =>
-        bound?.length
+        bound
           ? projectRows(position, rows, bound, depth + 1)
           : rows.map((row) => build(row, position.identity, depth + 1));
-      const count = bound?.length ? bound.length : rows.length;
+      const count = bound ? bound.rows.length : rows.length;
       const expanded = count > 0 && this.expanded.has(position.identity);
       const next: CatalogLayerNode = {
         id: position.identity,
@@ -219,42 +234,63 @@ export class CatalogLayerTreeStore {
       }
       return node;
     };
-    // A bound collection's item positions (row template and sample items) give way to its drawn
-    // data rows, where the row template stood; its other rows stay.
+    // The positions of the data rows' type (row template and sample items) give way to the drawn
+    // data rows, where the row template stood (at the end when the rows have no template — a
+    // Table's body); the rows the sample does not draw are one "+N more" row; other rows stay.
     const projectRows = (
       parent: CatalogPosition,
       rows: readonly CatalogPosition[],
-      bound: readonly { id: string; name: string }[],
+      bound: CatalogBoundLayerRows,
       depth: number,
     ): CatalogLayerNode[] => {
+      const rowType = bound.rows[0]!.typeName;
       const isItem = (row: CatalogPosition) =>
-        CATALOG_ROW_ITEM_TYPES.has(typeNameOf(graph, row));
+        typeNameOf(graph, row) === rowType;
       const template = rows.find(isItem);
-      const out: CatalogLayerNode[] = [];
-      for (const row of rows) {
-        if (!isItem(row)) {
-          out.push(build(row, parent.identity, depth));
-          continue;
-        }
-        if (row !== template) continue;
-        for (const item of bound) {
-          const next: CatalogLayerNode = {
+      const keep = (next: CatalogLayerNode) => {
+        const old = previous.get(next.id);
+        const node = old && sameNode(old, next) ? old : next;
+        nodes.set(node.id, node);
+        return node;
+      };
+      const projected = (): CatalogLayerNode[] => [
+        ...bound.rows.map((item) =>
+          keep({
             id: item.id,
             parentId: parent.identity,
             depth,
             hasChildren: false,
             name: item.name,
-            typeName: typeNameOf(graph, row),
-            position: row,
+            typeName: item.typeName,
+            position: template ?? parent,
             body: false,
             projection: true,
-          };
-          const old = previous.get(next.id);
-          const node = old && sameNode(old, next) ? old : next;
-          nodes.set(node.id, node);
-          out.push(node);
-        }
+            ...(item.selects ? { selects: item.selects } : {}),
+          }),
+        ),
+        ...(bound.more
+          ? [
+              keep({
+                id: `${parent.identity}::more`,
+                parentId: parent.identity,
+                depth,
+                hasChildren: false,
+                name: `+${bound.more} more`,
+                typeName: rowType,
+                position: template ?? parent,
+                body: false,
+                projection: true,
+                selects: parent.identity,
+              }),
+            ]
+          : []),
+      ];
+      const out: CatalogLayerNode[] = [];
+      for (const row of rows) {
+        if (!isItem(row)) out.push(build(row, parent.identity, depth));
+        else if (row === template) out.push(...projected());
       }
+      if (!template) out.push(...projected());
       return out;
     };
     let rows: readonly CatalogPosition[] = [];

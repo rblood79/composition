@@ -74,7 +74,7 @@ export const CatalogLayersSection = memo(function CatalogLayersSection({
         graph: workspace.runtime.graph,
         subscribeSteps: (listener) =>
           workspace.runtime.subscribeSteps(listener),
-        // A bound ListBox / GridList lists its drawn data rows (4e-6-36).
+        // A bound collection lists the data rows the Canvas draws (4e-6-36).
         boundRows: (position) => workspace.boundRowsOf(position),
         subscribeBoundRows: (listener) => workspace.subscribeRows(listener),
       },
@@ -137,7 +137,14 @@ export const CatalogLayersSection = memo(function CatalogLayersSection({
   const selectedKeys = useMemo(() => new Set<Key>(selectedIds), [selectedIds]);
   const handleSelectionChange = useCallback(
     (keys: Set<Key>) => {
-      const ids = [...keys].map(String);
+      // The "+N more" row selects the row holding the rows not drawn (as the Canvas hatch).
+      const ids = [
+        ...new Set(
+          [...keys].map(
+            (key) => tree?.node(String(key))?.selects ?? String(key),
+          ),
+        ),
+      ];
       if (!ids.length) {
         workspace.session.clearSelection();
         return;
@@ -151,7 +158,7 @@ export const CatalogLayersSection = memo(function CatalogLayersSection({
       if (context) workspace.session.enterContext(context as NodeId);
       else workspace.session.exitContext();
     },
-    [workspace],
+    [tree, workspace],
   );
 
   // The old Layers row's right click (`layer-item`): the Canvas element menu over the selection
@@ -171,10 +178,11 @@ export const CatalogLayersSection = memo(function CatalogLayersSection({
       )
         return;
       event.preventDefault();
+      const id = node.selects ?? node.id;
       const selected = workspace.session
         .getSnapshot()
         .selection.map((item) => item.identity);
-      if (!selected.includes(node.id)) workspace.selectRecords([node.id]);
+      if (!selected.includes(id)) workspace.selectRecords([id]);
       const host = catalogMenuHost(
         workspace,
         (error) =>
@@ -186,14 +194,14 @@ export const CatalogLayersSection = memo(function CatalogLayersSection({
             ),
         catalogMenuView(workspace),
       );
-      const items = catalogCanvasMenuItems(host, "canvas-element", node.id);
+      const items = catalogCanvasMenuItems(host, "canvas-element", id);
       if (!items.length) return;
       setMenu({
         request: {
           surface: "layer-item",
           clientX: event.clientX,
           clientY: event.clientY,
-          targetElementIds: selected.includes(node.id) ? selected : [node.id],
+          targetElementIds: selected.includes(id) ? selected : [id],
         },
         items,
       });

@@ -12,7 +12,6 @@ import type {
 import type { NewId } from "../../../../../packages/shared/src/catalog/commands/materialize";
 import type { CatalogClipboard } from "../../../../../packages/shared/src/catalog/commands";
 import type { CatalogPosition } from "../../../../../packages/shared/src/catalog/resolution/positions";
-import { CATALOG_ROW_ITEM_TYPES } from "../../../../../packages/shared/src/catalog/resolution/resolver";
 import { definitionTypeName } from "../../../../../packages/shared/src/catalog/commands/context";
 import type { CatalogTransactionResult } from "../../../../../packages/shared/src/catalog/transactions/transaction";
 import type { LayoutEngineAPI } from "../workspace/canvas/wasm-bindings/layoutBridge";
@@ -29,7 +28,9 @@ import {
   CatalogPreviewChannel,
   type CatalogPreviewChannelOptions,
 } from "./previewChannel";
+import type { CatalogBoundLayerRows } from "./layerTree";
 import { CatalogReadModel } from "./readModel";
+import { catalogRowSampleHidden } from "./rowSample";
 import { CatalogHistoryStore } from "./history";
 import { CatalogSession, type CatalogSelectionItem } from "./session";
 import type { SlotChromeContext } from "./slotChrome";
@@ -248,19 +249,17 @@ export class CatalogWorkspace {
     return () => this.rowListeners.delete(listener);
   }
   /**
-   * The drawn data rows of a bound collection row (the Layers projection, 4e-6-36): each item
-   * record the bound root repeats (record identity and label — its first text). `undefined` = the
-   * row is not a bound owned node or its rows are unknown (the template's sample items draw).
+   * The drawn data rows a row holds (the Layers projection, 4e-6-36): its child records a bound
+   * collection repeats (record identity, label — its first text — and type), the rows the Canvas
+   * sample draws, and how many it does not (`more` — the collection's count past the sample).
+   * `undefined` = the row holds no data rows (unbound or rows unknown: the item positions list).
    */
-  boundRowsOf(
-    position: CatalogPosition,
-  ): readonly { id: string; name: string }[] | undefined {
-    if (position.target.kind !== "node") return undefined;
+  boundRowsOf(position: CatalogPosition): CatalogBoundLayerRows | undefined {
+    const root = this.currentRoot;
+    const records = root.domInputs;
+    const owner = records.get(position.identity);
+    if (!owner) return undefined;
     const graph = this.runtime.graph;
-    const entry = graph.getEntry(position.target.id);
-    if (entry?.kind !== "node" || !entry.binding) return undefined;
-    if (!this.options.root?.rows?.(entry.binding)) return undefined;
-    const records = this.currentRoot.domInputs;
     const typeOf = (definitionId: string) => {
       try {
         return definitionTypeName(graph, definitionId as DefinitionId);
@@ -279,21 +278,28 @@ export class CatalogWorkspace {
       }
       return undefined;
     };
-    const rows: { id: string; name: string }[] = [];
-    const visit = (id: string) => {
+    const rows: CatalogBoundLayerRows["rows"][number][] = [];
+    for (const id of owner.children) {
       const record = records.get(id);
-      if (!record) return;
-      if (CATALOG_ROW_ITEM_TYPES.has(typeOf(record.definitionId))) {
-        rows.push({
-          id,
-          name: textOf(id) ?? typeOf(record.definitionId),
-        });
-        return;
-      }
-      record.children.forEach(visit);
-    };
-    records.get(position.identity)?.children.forEach(visit);
-    return rows;
+      if (record?.rowIndex === undefined) continue;
+      const drawn = root.canvasInputs.get(id);
+      if (drawn && catalogRowSampleHidden(root, drawn)) continue;
+      const typeName = typeOf(record.definitionId);
+      rows.push({
+        id,
+        name: textOf(id) ?? typeName,
+        typeName,
+        // A synthesized row (a Table's data row) has no Layers position: it selects its holder.
+        ...(this.positionOfRecord(id) ? {} : { selects: owner.id }),
+      });
+    }
+    if (!rows.length) return undefined;
+    const count = root.canvasInputs.get(owner.id)?.rowCount;
+    const more =
+      root.rowSample !== undefined && count !== undefined
+        ? count - root.rowSample
+        : 0;
+    return more > 0 ? { rows, more } : { rows };
   }
 
   private readonly revealListeners = new Set<
@@ -335,7 +341,8 @@ export class CatalogWorkspace {
       this.selectItems(
         executed.plan.selectAfter.flatMap((id) => this.itemsOfNode(id, 1)),
       );
-    for (const listener of [...this.executeListeners]) listener(executed.result);
+    for (const listener of [...this.executeListeners])
+      listener(executed.result);
     return executed;
   }
   /** Each user action's step after it runs (not undo / redo) — the component edit confirmation. */
