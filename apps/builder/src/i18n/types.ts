@@ -1411,6 +1411,7 @@ export interface TranslationKeys {
     addLayout: string;
     noLayouts: string;
     selectLayout: string;
+    selectComponent: string;
     noElements: string;
     layers: string;
     collapseTree: string;

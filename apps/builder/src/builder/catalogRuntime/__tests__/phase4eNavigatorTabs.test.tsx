@@ -135,4 +135,32 @@ describe("ADR-248 4e Navigator tabs", () => {
     expect(tab("Pages").getAttribute("aria-selected")).toBe("true");
     workspace.dispose();
   });
+
+  it("Layers lists only what the selected tab is about", async () => {
+    const { workspace, component } = await open();
+    render(
+      <I18nProvider initialLocale="en-US">
+        <CatalogWorkspaceProvider workspace={workspace}>
+          <CatalogNavigatorPanel />
+        </CatalogWorkspaceProvider>
+      </I18nProvider>,
+    );
+    const tab = (name: string) => screen.getByRole("tab", { name });
+    const layers = () => within(screen.getByRole("tabpanel"));
+    // Pages: the page's layers.
+    expect(layers().getByRole("treegrid", { name: "Layers" })).toBeTruthy();
+    // Components with nothing opened: no page layers, a hint.
+    fireEvent.click(tab("Components"));
+    expect(layers().queryByRole("treegrid", { name: "Layers" })).toBeNull();
+    expect(
+      layers().getByText("Select a component to view elements"),
+    ).toBeTruthy();
+    fireEvent.click(tab("Layouts"));
+    expect(layers().queryByRole("treegrid", { name: "Layers" })).toBeNull();
+    expect(layers().getByText("Select a layout to view elements")).toBeTruthy();
+    // An opened component: its template's layers on its tab.
+    act(() => workspace.showDefinition(component.id));
+    expect(layers().getByRole("treegrid", { name: "Layers" })).toBeTruthy();
+    workspace.dispose();
+  });
 });

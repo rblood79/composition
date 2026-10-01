@@ -1,6 +1,6 @@
 import { useCallback, useState, useSyncExternalStore } from "react";
 import type { Key } from "react-stately";
-import { FileText, LayoutTemplate, ListTree } from "lucide-react";
+import { Box, FileText, LayoutTemplate, ListTree } from "lucide-react";
 import { Tab, TabList, TabPanel, Tabs } from "react-aria-components/Tabs";
 import "../NavigatorPanel.css";
 import { useI18n } from "../../../../i18n";
@@ -12,10 +12,13 @@ import {
 import {
   CatalogWorkspaceGate,
   useCatalogSession,
+  useCatalogWorkspace,
   useOptionalCatalogWorkspace,
 } from "../../../catalogRuntime/react";
 import {
+  EmptyState,
   PanelHeader,
+  Section,
   SectionGroupToggleButton,
   SectionSplitStack,
   panelContents,
@@ -68,7 +71,8 @@ export function CatalogNavigatorPanel() {
     (key: Key) => {
       const next = String(key) as CatalogNavigatorTab;
       setChosen({ view: definitionView, tab: next });
-      if (next === "pages" && definitionView) workspace?.showDefinition(undefined);
+      if (next === "pages" && definitionView)
+        workspace?.showDefinition(undefined);
     },
     [definitionView, workspace],
   );
@@ -147,10 +151,23 @@ const noSubscribe = () => () => {};
 
 function NavigatorSections({ tab }: { tab: CatalogNavigatorTab }) {
   const { t } = useI18n();
+  const workspace = useCatalogWorkspace();
   const pageId = useCatalogSession((state) => state.pageId);
-  // The definition edit view lists its template instead of the page.
   const definitionView = useCatalogSession((state) => state.definitionView);
-  const owner = definitionView ?? pageId;
+  // Layers lists what the tab is about: the page on Pages, the opened definition's template on
+  // its own tab — Components / Layouts with nothing opened list nothing (not the page).
+  const owner =
+    tab === "pages"
+      ? pageId
+      : catalogNavigatorTabOf(workspace.runtime.graph, definitionView) === tab
+        ? definitionView
+        : undefined;
+  const hint =
+    tab === "pages"
+      ? t("navigator.selectPage")
+      : tab === "layouts"
+        ? t("navigator.selectLayout")
+        : t("navigator.selectComponent");
   return (
     <SectionSplitStack
       storageKey={NAVIGATOR_SPLIT_STORAGE_KEYS[tab]}
@@ -167,7 +184,17 @@ function NavigatorSections({ tab }: { tab: CatalogNavigatorTab }) {
         )
       }
       bottom={
-        owner ? <CatalogLayersSection key={owner} ownerId={owner} /> : null
+        owner ? (
+          <CatalogLayersSection key={owner} ownerId={owner} />
+        ) : (
+          <Section
+            id={NAVIGATOR_SECTION_IDS.layers}
+            className="node-tree-section"
+            title={t("navigator.layers")}
+          >
+            <EmptyState icon={<Box size={32} />} message={hint} />
+          </Section>
+        )
       }
     />
   );
