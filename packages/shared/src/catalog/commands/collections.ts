@@ -656,10 +656,12 @@ export const insertTableColumns =
     const draft = new CommandDraft(reader);
     if (positionType(draft, input.header) !== "TableHeader")
       fail("NOT_A_TABLE_HEADER", positionId(input.header));
-    const current = ensureChildList(draft, input.header, input.newId);
-    const keys = current.map((id, index) =>
-      columnKey(reader, { kind: "node", id }, index),
+    // The keys are read before an instance's header list becomes its own (the new column records
+    // exist only in the draft, not in `reader`).
+    const keys = childPositions(draft, input.header).map((column, index) =>
+      columnKey(reader, column, index),
     );
+    const current = ensureChildList(draft, input.header, input.newId);
     let specs = input.columns;
     if (!specs) {
       const taken = new Set(keys);
