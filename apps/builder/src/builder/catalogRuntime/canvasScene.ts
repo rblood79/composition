@@ -34,10 +34,19 @@ export class CatalogCanvasScene {
   /** Scroll positions of scroll/auto boxes: they outlive a rebind (an edit keeps the position). */
   private readonly scrollOffsets: CatalogScrollOffsets = new Map();
 
-  constructor(private root: CatalogCompositionRoot) {
-    this.rootIds = root.pageRootRecords();
+  constructor(
+    private root: CatalogCompositionRoot,
+    /** Which page roots are drawn (default: all — Compare Mode's current-page filter narrows it). */
+    private rootFilter: (roots: string[]) => string[] = (roots) => roots,
+  ) {
+    this.rootIds = this.drawnRoots();
     this.binding = this.bind();
   }
+
+  private drawnRoots(): string[] {
+    return this.rootFilter(this.root.pageRootRecords());
+  }
+
 
   private bind() {
     return bindCatalogCanvas(this.root, this.rootIds, undefined, {
@@ -62,7 +71,7 @@ export class CatalogCanvasScene {
   }
 
   sync(): CatalogCanvasSceneSync {
-    if (!sameIds(this.root.pageRootRecords(), this.rootIds))
+    if (!sameIds(this.drawnRoots(), this.rootIds))
       return this.rebind("page-roots");
     const update = this.binding.update();
     if (update.status === "rebind-required") return this.rebind(update.reason);
@@ -84,7 +93,7 @@ export class CatalogCanvasScene {
 
   private rebind(reason: string): CatalogCanvasSceneSync {
     this.binding.dispose();
-    this.rootIds = this.root.pageRootRecords();
+    this.rootIds = this.drawnRoots();
     this.binding = this.bind();
     return { kind: "rebound", reason };
   }

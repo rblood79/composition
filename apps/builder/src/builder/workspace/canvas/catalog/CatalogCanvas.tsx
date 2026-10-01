@@ -45,6 +45,7 @@ import { ViewportControlBridge } from "../viewport";
 import { getViewportController } from "../viewport/ViewportController";
 import { viewportState } from "../viewport/viewportState";
 import { useViewportSyncStore } from "../stores";
+import { useCompareModeStore } from "../stores/compareMode";
 import { catalogUnionRect, fitCatalogPageFrame } from "./catalogViewport";
 import { catalogBadgeAt, createCatalogBadges } from "./catalogBadges";
 import { CatalogSpacingInput } from "./CatalogSpacingInput";
@@ -74,10 +75,14 @@ import type { EntryId } from "../../../../../../../packages/shared/src/catalog/d
  * Page header frames (ADR-221): each page's laid-out frame and name — in the definition edit view,
  * the definition's frame and name.
  */
-function catalogHeaderFrames(workspace: CatalogWorkspace): PageHeaderFrame[] {
+function catalogHeaderFrames(
+  workspace: CatalogWorkspace,
+  onlyPage?: string,
+): PageHeaderFrame[] {
   const graph = workspace.runtime.graph;
   const frames: PageHeaderFrame[] = [];
   for (const [id, rect] of workspace.root.pageFrameRects()) {
+    if (onlyPage && id !== onlyPage) continue;
     const entry = graph.getEntry(id);
     if (entry?.kind === "page" || entry?.kind === "definition")
       frames.push({ id, title: entry.name, ...rect });
@@ -255,16 +260,33 @@ export function CatalogCanvas({
     };
     const containerRect = fit();
     const renderer = new SkiaRenderer(ck, canvas, dpr);
+    // Compare Mode with "current page only": the Canvas draws the page the CSS side shows (the old
+    // Canvas's `visiblePageIdsOverride`); a definition view has one frame and is not filtered.
+    const compareOnlyPage = (): string | undefined => {
+      const { isCompareMode, filterCurrentPage } = useCompareModeStore.getState();
+      if (!isCompareMode || !filterCurrentPage || workspace.root.definitionView)
+        return undefined;
+      return workspace.session.getSnapshot().pageId;
+    };
+    const compareOnlyRoot = (): string | undefined => {
+      const pageId = compareOnlyPage();
+      const page = pageId ? workspace.runtime.graph.getEntry(pageId) : undefined;
+      const body = page?.kind === "page" ? page.children[0] : undefined;
+      return body ? workspace.root.recordsOfSource(body)[0] : undefined;
+    };
     let scene: CatalogCanvasScene;
     try {
-      scene = new CatalogCanvasScene(workspace.root);
+      scene = new CatalogCanvasScene(workspace.root, (roots) => {
+        const only = compareOnlyRoot();
+        return only && roots.includes(only) ? [only] : roots;
+      });
     } catch (error) {
       renderer.dispose();
       callbacks.current.onError?.(error);
       return;
     }
     sceneRef.current = scene;
-    let publishedFrames = catalogHeaderFrames(workspace);
+    let publishedFrames = catalogHeaderFrames(workspace, compareOnlyPage());
     setHeaderFrames(publishedFrames);
     const fontMgr = () =>
       skiaFontManager.getFamilies().length > 0
@@ -415,7 +437,7 @@ export function CatalogCanvas({
     let sceneStale = false;
     /** Publish the page header frames; true = a frame moved or resized. */
     const publishHeaders = (): boolean => {
-      const frames = catalogHeaderFrames(workspace);
+      const frames = catalogHeaderFrames(workspace, compareOnlyPage());
       if (sameFrames(frames, publishedFrames)) return false;
       const moved = !sameFrames(
         frames.map((frame) => ({ ...frame, title: "" })),
@@ -530,6 +552,17 @@ export function CatalogCanvas({
       scheduler.invalidate();
     });
     const unsubscribeAi = useAIVisualFeedbackStore.subscribe(invalidateOverlay);
+    // The compare filter (or the page it shows) changed: the drawn page roots follow next frame.
+    let compareRoot = compareOnlyRoot();
+    const followCompareFilter = () => {
+      const next = compareOnlyRoot();
+      if (next === compareRoot) return;
+      compareRoot = next;
+      sceneStale = true;
+      publishHeaders();
+      scheduler.invalidate();
+    };
+    const unsubscribeCompare = useCompareModeStore.subscribe(followCompareFilter);
     // The badges show each collection's state (rows, the linked API's last run).
     const unsubscribeData = useDataStore.subscribe((state, prev) => {
       if (
@@ -552,6 +585,7 @@ export function CatalogCanvas({
       }
     };
     const unsubscribeSession = workspace.session.subscribe(() => {
+      followCompareFilter();
       // Another selection closes the inline spacing input (its blur no longer applies).
       const input = spacingInputRef.current;
       const selection = workspace.session.getSnapshot().selection;
@@ -971,6 +1005,7 @@ export function CatalogCanvas({
       unsubscribeRoot();
       unsubscribeData();
       unsubscribeAi();
+      unsubscribeCompare();
       invalidateOverlayRef.current = undefined;
       spacingCommitRef.current = undefined;
       wheelRouteRef.current = undefined;

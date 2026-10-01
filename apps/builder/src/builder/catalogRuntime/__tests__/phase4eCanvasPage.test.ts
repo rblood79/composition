@@ -193,4 +193,25 @@ describe("ADR-248 Phase 4e-3b page frame drag", () => {
     expect(runCatalogShortcut(workspace, "arrowLeft")).toBe(false);
     expect(steps()).toBe(before);
   });
+
+  it("a page root filter (Compare Mode's current page only) draws just that page; the next sync follows a change", async () => {
+    const { workspace } = await open();
+    const homeBody = workspace.root.pageRootRecords()[0];
+    const secondBody = workspace.root.recordsOfSource(SECOND_BODY)[0];
+    let only: string | undefined;
+    const scene = new CatalogCanvasScene(workspace.root, (roots) =>
+      only && roots.includes(only) ? [only] : roots,
+    );
+    expect(scene.pageRootIds).toEqual([homeBody, secondBody]);
+    only = secondBody;
+    expect(scene.sync()).toEqual({ kind: "rebound", reason: "page-roots" });
+    expect(scene.pageRootIds).toEqual([secondBody]);
+    expect(scene.stream.boundsMap.has(homeBody)).toBe(false);
+    expect(scene.stream.boundsMap.has(secondBody)).toBe(true);
+    // A root that is not drawn (another view) leaves the filter out.
+    only = "nowhere";
+    scene.sync();
+    expect(scene.pageRootIds).toEqual([homeBody, secondBody]);
+    expect(scene.sync()).toEqual({ kind: "unchanged" });
+  });
 });
