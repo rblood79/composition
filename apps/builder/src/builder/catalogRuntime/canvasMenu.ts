@@ -43,6 +43,7 @@ import {
   catalogComponentState,
 } from "./componentActions";
 import { catalogPageContentTarget } from "./pageSettings";
+import type { CatalogDefinitionViewId } from "./session";
 import { definitionTypeName } from "../../../../../packages/shared/src/catalog/commands/context";
 import type { ShortcutId } from "../config/keyboardShortcuts";
 import type { CatalogConsumerNode } from "./compositionRoot";
@@ -66,7 +67,7 @@ export interface CatalogMenuHost {
   /** Align / distribute the selection (`undefined` = nothing would move). */
   arrange?(id: CatalogArrangeItem): CatalogCommand | undefined;
   /** Open a project component's definition edit view (go to origin). */
-  showDefinition?(id: EntryId<"definition">): void;
+  showDefinition?(id: CatalogDefinitionViewId): void;
   /** The empty-area view items: fit, 100 %, rulers and snapping (Builder view settings). */
   view?: {
     zoomToFit(): void;
@@ -424,14 +425,15 @@ export function catalogCanvasMenuItems(
   const states = ids.map((id) => catalogComponentState(host.graph, id));
   const single = ids.length === 1 ? states[0] : undefined;
   const origin = single?.instanceOf;
-  if (origin?.project && host.showDefinition) {
+  // Go to component: a project component's template, or a built-in origin's view.
+  if (origin && host.showDefinition) {
     const showDefinition = host.showDefinition;
     component.push({
       kind: "action",
       id: "go-to-origin",
       labelKey: "componentAction.goToOrigin",
       icon: ACTION_ICONS.goToOrigin,
-      run: () => showDefinition(origin.definitionId as EntryId<"definition">),
+      run: () => showDefinition(origin.definitionId as CatalogDefinitionViewId),
     });
   }
   const detachable = ids.find((_, index) => states[index].instanceOf);

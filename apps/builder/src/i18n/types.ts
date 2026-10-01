@@ -691,6 +691,7 @@ export interface TranslationKeys {
     slotFooterCount: string;
     presetApplied: string;
     overridesLegend: string;
+    originDefaultsLegend: string;
     attributes: string;
     classNamePlaceholder: string;
     ariaLabelPlaceholder: string;
@@ -1412,6 +1413,8 @@ export interface TranslationKeys {
     noLayouts: string;
     selectLayout: string;
     selectComponent: string;
+    userComponents: string;
+    builtinComponents: string;
     noElements: string;
     layers: string;
     collapseTree: string;

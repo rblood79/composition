@@ -2,6 +2,10 @@ import { useSyncExternalStore } from "react";
 import { Button } from "react-aria-components/Button";
 import { useI18n } from "@/i18n";
 import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
+import {
+  catalogDefinitionTitle,
+  isLibraryOrigin,
+} from "../../../catalogRuntime/originView";
 import "./CatalogDefinitionBar.css";
 
 /**
@@ -21,6 +25,9 @@ export function CatalogDefinitionBar({
   const name = useSyncExternalStore(
     (notify) => workspace.runtime.subscribeSteps(() => notify()),
     () => {
+      // A built-in origin: its type name (its edits are the project's defaults for it).
+      if (isLibraryOrigin(definitionId))
+        return `component:${catalogDefinitionTitle(workspace.runtime.graph, definitionId)}`;
       const entry = definitionId
         ? workspace.runtime.graph.getEntry(definitionId)
         : undefined;

@@ -6,21 +6,62 @@ import {
 import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
 import { definitionTypeName } from "../../../../../packages/shared/src/catalog/commands/context";
 import type { NewId } from "../../../../../packages/shared/src/catalog/commands/materialize";
+import {
+  catalogDefinitionTitle,
+  isLibraryOrigin,
+  ORIGIN_VIEW_NODE,
+} from "./originView";
 import type {
   CatalogReader,
   EntryId,
   NodeId,
 } from "../../../../../packages/shared/src/catalog/document/types";
 
+/** A component the selected node is an instance or the origin of. */
+export interface CatalogComponentRef {
+  definitionId: string;
+  name: string;
+  /** A project component (else a built-in library origin). */
+  project: boolean;
+  /** The component's instances in the document (select-instances). */
+  instanceIds: readonly NodeId[];
+}
 /** What the Component section offers for a selected node. */
 export interface CatalogComponentState {
-  /** The node is an instance: of a project component or of a library component. */
-  instanceOf?: {
-    definitionId: string;
-    name: string;
-    project: boolean;
-    /** Drawn instances of a project component (select-instances). */
-    instanceIds: readonly NodeId[];
+  /** The node is an instance: of a project component or of a library component origin. */
+  instanceOf?: CatalogComponentRef;
+  /**
+   * The node is the origin the definition edit view shows: a project component's template root,
+   * or the sample of a built-in origin.
+   */
+  originOf?: CatalogComponentRef;
+}
+
+function componentRef(
+  graph: CatalogReader,
+  definitionId: string,
+): CatalogComponentRef | undefined {
+  const project = definitionId.startsWith("project:");
+  const definition = project
+    ? graph.getEntry(definitionId)
+    : graph.library.definitions.get(definitionId as `lib:definition:${string}`);
+  if (!definition || !("mode" in definition) || definition.mode !== "composite")
+    return undefined;
+  // A library composite shows as a component only when it is a reusable origin.
+  if (!project && !isLibraryOrigin(definitionId)) return undefined;
+  // A layout is not a component (Layouts tab).
+  if (project && (definition as { usage?: string }).usage === "layout")
+    return undefined;
+  return {
+    definitionId,
+    name: project
+      ? (definition as { name: string }).name
+      : catalogDefinitionTitle(
+          graph,
+          definitionId as `lib:definition:${string}`,
+        ),
+    project,
+    instanceIds: [...graph.instancesOf(definitionId)] as NodeId[],
   };
 }
 
@@ -28,32 +69,23 @@ export interface CatalogComponentState {
 export function catalogComponentState(
   graph: CatalogReader,
   id: NodeId,
+  /** The definition edit view open now: its root is that component's origin. */
+  definitionView?: string,
 ): CatalogComponentState {
   const node = graph.getEntry(id);
   if (node?.kind !== "node") return {};
-  const definitionId = node.definitionId;
-  const project = definitionId.startsWith("project:");
-  const definition = project
-    ? graph.getEntry(definitionId)
-    : graph.library.definitions.get(definitionId as `lib:definition:${string}`);
-  if (!definition || !("mode" in definition) || definition.mode !== "composite")
-    return {};
-  // A library composite shows as a component only when it is a reusable origin.
-  if (!project && !definitionId.startsWith("lib:definition:origin-")) return {};
-  return {
-    instanceOf: {
-      definitionId,
-      name: project
-        ? (definition as { name: string }).name
-        : definitionTypeName(graph, definitionId),
-      project,
-      instanceIds: project
-        ? ([
-            ...graph.instancesOf(definitionId as EntryId<"definition">),
-          ] as NodeId[])
-        : [],
-    },
-  };
+  if (definitionView) {
+    const viewed = graph.getEntry(definitionView);
+    const origin =
+      id === ORIGIN_VIEW_NODE ||
+      (viewed?.kind === "definition" && viewed.templateRootId === id);
+    if (origin) {
+      const originOf = componentRef(graph, definitionView);
+      return originOf ? { originOf } : {};
+    }
+  }
+  const instanceOf = componentRef(graph, node.definitionId);
+  return instanceOf ? { instanceOf } : {};
 }
 
 /**

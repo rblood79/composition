@@ -204,6 +204,7 @@ function ownedRecord<T>(value: T): T {
 /** One private mutable table with atomic commits; no product singleton or subscription. */
 export class CatalogGraph {
   private readonly table = new Map<string, CatalogEntry>();
+  private readonly viewEntries = new Map<string, () => NodeEntry>();
   private readonly definitionIndex: MutableIndex = new Map();
   private readonly ownerIndex: MutableIndex = new Map();
   private readonly ownerByChild = new Map<string, string>();
@@ -295,7 +296,25 @@ export class CatalogGraph {
     return { ...this.lastMetrics };
   }
   getEntry(id: string): CatalogEntry | undefined {
-    return this.table.get(id);
+    return this.table.get(id) ?? this.viewEntries.get(id)?.();
+  }
+  /**
+   * Derived view entries (HC2 — a derived view is never a write source): a node read like an
+   * entry (the Builder's library origin view draws one) but never part of the document — not in
+   * the table, the indexes, exports, saves or transactions. Its value is computed on each read
+   * (it follows the entries it is derived from). `undefined` removes it.
+   */
+  setViewEntry(id: NodeId, compute: (() => NodeEntry) | undefined): void {
+    if (this.table.has(id)) throw new Error(`VIEW_ENTRY_ID_TAKEN:${id}`);
+    if (compute) this.viewEntries.set(id, compute);
+    else this.viewEntries.delete(id);
+  }
+  /** The ids of the derived view entries (none, or the one the open view draws). */
+  viewEntryIds(): readonly string[] {
+    return [...this.viewEntries.keys()];
+  }
+  isViewEntry(id: string): boolean {
+    return this.viewEntries.has(id);
   }
   getDefinition(
     id: DefinitionId,

@@ -6,6 +6,7 @@ import { deleteLayout } from "../../../../../../../packages/shared/src/catalog/c
 import { useI18n } from "../../../../i18n";
 import { iconProps } from "../../../../utils/ui/uiConstants";
 import {
+  catalogBuiltinOrigins,
   catalogDefinitionList,
   catalogNewLayoutCommand,
   catalogNextLayoutName,
@@ -15,6 +16,7 @@ import {
   useCatalogSession,
   useCatalogWorkspace,
 } from "../../../catalogRuntime/react";
+import type { CatalogDefinitionViewId } from "../../../catalogRuntime/session";
 import { ActionIconButton, Section } from "../../../components";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import { NAVIGATOR_SECTION_IDS } from "../navigatorSectionIds";
@@ -23,7 +25,10 @@ import { TreeBase } from "../tree/TreeBase";
 import type { TreeItemState } from "../tree/TreeBase/types";
 import { useCatalogCommandRunner } from "./useCatalogCommandRunner";
 
-type DefinitionNode = CatalogDefinitionItem & {
+/** A listed definition: a project one, or a built-in component origin (`builtin`). */
+type DefinitionNode = Omit<CatalogDefinitionItem, "id"> & {
+  id: CatalogDefinitionViewId;
+  builtin?: true;
   parentId: null;
   depth: 0;
   hasChildren: false;
@@ -37,7 +42,9 @@ const AddIcon = ACTION_ICONS.add;
  * ADR-248 4e: the project's layouts or components (the Navigator's Layouts / Components tab).
  * Selecting one opens the definition edit view (its template on the Canvas and in Layers); a new
  * layout is a body with one content slot; a layout is deleted with its pages' content given back.
- * A component is made from a selection (Create component) and dissolved from Properties.
+ * A component is made from a selection (Create component) and dissolved from Properties. The
+ * Components tab lists the project's components, then the built-in component origins (the types
+ * the Components palette registers — user 2026-10-01); opening one shows its derived sample.
  */
 export const CatalogDefinitionsSection = memo(
   function CatalogDefinitionsSection({
@@ -68,6 +75,20 @@ export const CatalogDefinitionsSection = memo(
         ),
       [listKey],
     );
+    const builtins = useMemo(
+      (): DefinitionNode[] =>
+        usage === "component"
+          ? catalogBuiltinOrigins(graph.library).map((origin) => ({
+              ...origin,
+              usage: "component",
+              builtin: true,
+              parentId: null,
+              depth: 0,
+              hasChildren: false,
+            }))
+          : [],
+      [graph, usage],
+    );
     const definitionView = useCatalogSession((state) => state.definitionView);
     const selectedKeys = useMemo(
       () => new Set<Key>(definitionView ? [definitionView] : []),
@@ -87,20 +108,24 @@ export const CatalogDefinitionsSection = memo(
       if (plan !== undefined && created) workspace.showDefinition(created.id);
     }, [graph, items, run, t, workspace]);
     const removeLayout = useCallback(
-      (item: CatalogDefinitionItem) =>
-        run(deleteLayout({ definitionId: item.id })),
+      (item: DefinitionNode) =>
+        run(
+          deleteLayout({
+            definitionId: item.id as CatalogDefinitionItem["id"],
+          }),
+        ),
       [run],
     );
     const handleSelectionChange = useCallback(
       (keys: Set<Key>) => {
         const [key] = keys;
         if (key)
-          workspace.showDefinition(String(key) as CatalogDefinitionItem["id"]);
+          workspace.showDefinition(String(key) as CatalogDefinitionViewId);
       },
       [workspace],
     );
     const renderContent = useCallback(
-      (item: CatalogDefinitionItem, state: TreeItemState) => (
+      (item: DefinitionNode, state: TreeItemState) => (
         <div className={`elementItem ${state.isSelected ? "active" : ""}`}>
           <div className="elementItemIndent" />
           <div className="elementItemIcon">
@@ -166,6 +191,11 @@ export const CatalogDefinitionsSection = memo(
           ) : undefined
         }
       >
+        {usage === "component" && (
+          <div className="navigator-definition-group">
+            {t("navigator.userComponents")}
+          </div>
+        )}
         {items.length === 0 ? (
           <div className="page-search-empty" role="status">
             {usage === "layout"
@@ -183,6 +213,23 @@ export const CatalogDefinitionsSection = memo(
             onSelectionChange={handleSelectionChange}
             className="page-tree"
           />
+        )}
+        {builtins.length > 0 && (
+          <>
+            <div className="navigator-definition-group">
+              {t("navigator.builtinComponents")}
+            </div>
+            <TreeBase<DefinitionNode>
+              aria-label={t("navigator.builtinComponents")}
+              items={builtins}
+              getKey={(item) => item.id}
+              getTextValue={(item) => item.name}
+              renderContent={renderContent}
+              selectedKeys={selectedKeys}
+              onSelectionChange={handleSelectionChange}
+              className="page-tree"
+            />
+          </>
         )}
       </Section>
     );

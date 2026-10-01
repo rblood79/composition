@@ -62,6 +62,10 @@ import {
   openCatalogCameraMemory,
 } from "./catalogViewMemory";
 import { catalogAutoColumns } from "../../../catalogRuntime/pageLayoutSettings";
+import {
+  catalogDefinitionTitle,
+  isLibraryOrigin,
+} from "../../../catalogRuntime/originView";
 import { readCanvasRailInset } from "../viewport/canvasChromeInset";
 import { PageHeaderLayer } from "../overlay/pageHeader/PageHeaderLayer";
 import { publishCanvasFramePresentation } from "../canvasFramePresentation";
@@ -88,6 +92,8 @@ function catalogHeaderFrames(
     const entry = graph.getEntry(id);
     if (entry?.kind === "page" || entry?.kind === "definition")
       frames.push({ id, title: entry.name, ...rect });
+    else if (isLibraryOrigin(id))
+      frames.push({ id, title: catalogDefinitionTitle(graph, id), ...rect });
   }
   return frames;
 }

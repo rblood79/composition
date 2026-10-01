@@ -359,6 +359,9 @@ export class CatalogStage implements CatalogReader {
     return this;
   }
   private stage(id: string, value: CatalogEntry | null): void {
+    // A derived view entry is read-only (HC2): no op stages it into the document.
+    if (this.graph.isViewEntry(id))
+      throw new CatalogValidationError("VIEW_ENTRY_READ_ONLY", id);
     if (!this.before.has(id)) this.before.set(id, this.graph.getEntry(id));
     this.staged.set(id, value);
   }

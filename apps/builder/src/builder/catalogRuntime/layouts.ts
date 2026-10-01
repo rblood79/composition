@@ -1,12 +1,18 @@
 import type {
+  CatalogLibrary,
   CatalogReader,
   EntryId,
+  LibraryDefinitionId,
   NodeEntry,
   NodeId,
 } from "../../../../../packages/shared/src/catalog/document/types";
 import { createLayout } from "../../../../../packages/shared/src/catalog/commands";
 import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
 import type { NewId } from "../../../../../packages/shared/src/catalog/commands/materialize";
+import { getPaletteItems } from "../panels/components/paletteItems";
+import { isLibraryOrigin } from "./originView";
+import { catalogPaletteDefinitionId } from "./paletteInsert";
+import type { CatalogDefinitionViewId } from "./session";
 
 /** A project definition the Navigator lists (the definition edit view opens it). */
 export interface CatalogDefinitionItem {
@@ -50,12 +56,35 @@ export function catalogDefinitionList(
   ];
 }
 
+/** A built-in component origin the Components tab lists (its edit view shows a derived sample). */
+export interface CatalogBuiltinOrigin {
+  id: LibraryDefinitionId;
+  name: string;
+}
+/**
+ * The built-in component origins the Components tab lists (user 2026-10-01): the reusable origin
+ * of each type the Components palette registers, in palette order (one per origin).
+ */
+export function catalogBuiltinOrigins(
+  library: CatalogLibrary,
+): CatalogBuiltinOrigin[] {
+  const seen = new Set<string>();
+  return getPaletteItems().flatMap((item) => {
+    const type = item.componentType ?? item.type;
+    const id = catalogPaletteDefinitionId(library, type);
+    if (!isLibraryOrigin(id) || seen.has(id)) return [];
+    seen.add(id);
+    return [{ id, name: type }];
+  });
+}
+
 /** The Navigator tab listing a definition (its edit view selects it); `undefined` = none. */
 export function catalogNavigatorTabOf(
   graph: CatalogReader,
-  definitionId: EntryId<"definition"> | undefined,
+  definitionId: CatalogDefinitionViewId | undefined,
 ): CatalogNavigatorTab | undefined {
   if (!definitionId) return undefined;
+  if (isLibraryOrigin(definitionId)) return "components";
   const definition = graph.getEntry(definitionId);
   if (definition?.kind !== "definition") return undefined;
   return definition.usage === "layout" ? "layouts" : "components";

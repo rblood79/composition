@@ -10,6 +10,7 @@ import {
   type EditingSemanticsDetachConfirmationRequest,
   type EditingSemanticsImpactConfirmationRequest,
 } from "../utils/editingSemanticsImpactConfirmation";
+import { catalogDefinitionTitle, isLibraryOrigin } from "./originView";
 import type { CatalogWorkspace } from "./workspace";
 
 /**
@@ -34,7 +35,9 @@ function definitionName(graph: CatalogReader, definitionId: string): string {
   const definition = graph.getEntry(definitionId);
   return definition?.kind === "definition"
     ? definition.name
-    : definitionTypeName(graph, definitionId as DefinitionId);
+    : isLibraryOrigin(definitionId)
+      ? catalogDefinitionTitle(graph, definitionId)
+      : definitionTypeName(graph, definitionId as DefinitionId);
 }
 
 /** Detach an instance after the user confirms (the old "Detach instance" dialog). */
@@ -102,6 +105,20 @@ function touchesTemplate(
   return false;
 }
 
+/** A step that changed the project override of a built-in origin. */
+function touchesOverrideOf(
+  graph: CatalogReader,
+  changedIds: ReadonlySet<string>,
+  definitionId: string,
+): boolean {
+  for (const id of changedIds) {
+    const entry = graph.getEntry(id);
+    if (entry?.kind === "definitionOverride" && entry.targetId === definitionId)
+      return true;
+  }
+  return false;
+}
+
 /**
  * Watch user actions in a component's edit view: the first one that changes its template while
  * it has instances asks "Editing … will affect N instances" — Continue keeps it (and later edits
@@ -120,10 +137,15 @@ export function watchCatalogComponentEdits(
     const view = workspace.session.getSnapshot().definitionView;
     if (!view) return;
     const graph = workspace.runtime.graph;
-    const definition = graph.getEntry(view);
-    if (definition?.kind !== "definition" || definition.usage === "layout")
-      return;
-    if (!touchesTemplate(graph, result.changedIds, view)) return;
+    // A built-in origin's view: its edits are the project's defaults for it (its override).
+    if (isLibraryOrigin(view)) {
+      if (!touchesOverrideOf(graph, result.changedIds, view)) return;
+    } else {
+      const definition = graph.getEntry(view);
+      if (definition?.kind !== "definition" || definition.usage === "layout")
+        return;
+      if (!touchesTemplate(graph, result.changedIds, view)) return;
+    }
     const request = impactRequest(graph, view);
     if (!request) return;
     const key = JSON.stringify([view, request.impactedInstanceIds]);
@@ -141,4 +163,3 @@ export function watchCatalogComponentEdits(
     });
   });
 }
-

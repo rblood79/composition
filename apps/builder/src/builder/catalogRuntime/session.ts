@@ -1,4 +1,5 @@
 import type {
+  LibraryDefinitionId,
   BreakpointName,
   EditTarget,
   EntryId,
@@ -35,8 +36,11 @@ export interface CatalogSessionState {
    * The definition edit view (ADR-248 4e): the Canvas and Layers show this project definition's
    * template instead of the pages. The page stays the open page to return to.
    */
-  readonly definitionView?: EntryId<"definition">;
+  readonly definitionView?: CatalogDefinitionViewId;
 }
+/** A definition the edit view shows: a project definition, or a library component origin. */
+export type CatalogDefinitionViewId =
+  EntryId<"definition"> | LibraryDefinitionId;
 
 export const targetKey = (target: EditTarget): string =>
   target.kind === "node"
@@ -117,7 +121,7 @@ export class CatalogSession {
     this.set({ breakpoint });
   }
   /** Enter (a definition id) or leave (`undefined`) the definition edit view; clears the selection. */
-  setDefinitionView(definitionId: EntryId<"definition"> | undefined): void {
+  setDefinitionView(definitionId: CatalogDefinitionViewId | undefined): void {
     if (definitionId === this.state.definitionView) return;
     this.set({
       definitionView: definitionId,

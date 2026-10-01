@@ -32,7 +32,17 @@ import type { CatalogBoundLayerRows } from "./layerTree";
 import { CatalogReadModel } from "./readModel";
 import { catalogRowSampleHidden } from "./rowSample";
 import { CatalogHistoryStore } from "./history";
-import { CatalogSession, type CatalogSelectionItem } from "./session";
+import {
+  catalogOriginEditCommand,
+  isLibraryOrigin,
+  ORIGIN_VIEW_NODE,
+  setCatalogOriginView,
+} from "./originView";
+import {
+  CatalogSession,
+  type CatalogDefinitionViewId,
+  type CatalogSelectionItem,
+} from "./session";
 import type { SlotChromeContext } from "./slotChrome";
 import type { CatalogStorage } from "./storage";
 import type { CatalogThemeState } from "./theme";
@@ -168,6 +178,7 @@ export class CatalogWorkspace {
     // The viewed definition is gone (an undo of its creation, a dissolve): back to the pages.
     if (
       this.definitionView &&
+      !isLibraryOrigin(this.definitionView) &&
       this.runtime.graph.getEntry(this.definitionView)?.kind !== "definition"
     ) {
       this.showDefinition(undefined);
@@ -176,20 +187,28 @@ export class CatalogWorkspace {
     if (touchesTheme(result, this.projectId) && this.applyTheme())
       this.replaceRoot(this.currentRoot.breakpoint);
   }
-  private definitionView: EntryId<"definition"> | undefined;
+  private definitionView: CatalogDefinitionViewId | undefined;
   /**
    * The definition edit view (ADR-248 4e): a new root that draws this project definition's
    * template instead of the pages (`undefined` = back to the pages). Its template nodes are owned
    * nodes, so selection, the panels and every edit command work on them as on a page; the
    * instances elsewhere follow each step.
    */
-  showDefinition(definitionId: EntryId<"definition"> | undefined): void {
+  showDefinition(definitionId: CatalogDefinitionViewId | undefined): void {
     if (definitionId === this.definitionView) return;
+    const graph = this.runtime.graph;
     if (
       definitionId &&
-      this.runtime.graph.getEntry(definitionId)?.kind !== "definition"
+      (isLibraryOrigin(definitionId)
+        ? !graph.library.definitions.has(definitionId)
+        : graph.getEntry(definitionId)?.kind !== "definition")
     )
       throw new Error(`CATALOG_DEFINITION_NOT_FOUND:${definitionId}`);
+    // A library origin is drawn as a derived sample (never saved); a project one is its template.
+    setCatalogOriginView(
+      graph,
+      isLibraryOrigin(definitionId) ? definitionId : undefined,
+    );
     this.definitionView = definitionId;
     this.session.setDefinitionView(definitionId);
     this.replaceRoot(this.currentRoot.breakpoint);
@@ -340,7 +359,18 @@ export class CatalogWorkspace {
     plan: CatalogCommandPlan;
     result: CatalogTransactionResult;
   } {
-    const executed = this.root.execute(command);
+    // The library origin view: the sample's root writes become the origin's project defaults.
+    const view = this.definitionView;
+    const executed = this.root.execute(
+      isLibraryOrigin(view)
+        ? catalogOriginEditCommand(
+            this.runtime.graph,
+            command,
+            view,
+            this.newId,
+          )
+        : command,
+    );
     this.afterStep(executed.result);
     if (executed.plan.selectAfter)
       this.selectItems(
@@ -419,9 +449,10 @@ export class CatalogWorkspace {
   /** The page — or, in the definition edit view, the definition — that owns a drawn record's root. */
   private ownerOfRecord(
     recordId: string,
-  ): EntryId<"page"> | EntryId<"definition"> | undefined {
+  ): EntryId<"page"> | CatalogDefinitionViewId | undefined {
     const [top] = this.recordChain(recordId);
     const source = top && this.root.domInputs.get(top)?.sourceId;
+    if (source === ORIGIN_VIEW_NODE) return this.definitionView;
     const owner = source && this.runtime.graph.ownerOf(source);
     const kind = owner ? this.runtime.graph.getEntry(owner)?.kind : undefined;
     return kind === "page"
@@ -440,9 +471,10 @@ export class CatalogWorkspace {
     const chain = this.recordChain(recordId).map(catalogRowTemplateIdentity);
     const owner = this.ownerOfRecord(recordId);
     if (!chain.length || !owner) return undefined;
-    let rows = owner.startsWith("project:definition:")
-      ? this.readModel.definitionRows(owner as EntryId<"definition">)
-      : this.readModel.pageRows(owner as EntryId<"page">);
+    let rows =
+      owner.startsWith("project:definition:") || isLibraryOrigin(owner)
+        ? this.readModel.definitionRows(owner as CatalogDefinitionViewId)
+        : this.readModel.pageRows(owner as EntryId<"page">);
     let position: CatalogPosition | undefined;
     for (const id of chain) {
       position = rows.find((row) => row.identity === id);

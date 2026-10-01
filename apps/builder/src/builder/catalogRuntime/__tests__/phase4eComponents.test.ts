@@ -114,9 +114,10 @@ describe("ADR-248 Phase 4e-4 Component section", () => {
   it("a library component instance detaches into owned nodes", async () => {
     const { workspace } = await open();
     const graph = workspace.runtime.graph;
+    // A built-in origin's instances are listed too (select instances, user 2026-10-01).
     expect(catalogComponentState(graph, id("icon")).instanceOf).toMatchObject({
       project: false,
-      instanceIds: [],
+      instanceIds: [id("icon")],
     });
     workspace.execute(
       catalogComponentCommands.detach(id("icon"), workspace.newId),

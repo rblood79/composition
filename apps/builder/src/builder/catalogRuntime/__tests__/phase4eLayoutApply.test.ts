@@ -10,6 +10,7 @@ import type {
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
 import { catalogCanvasMenuItems } from "../canvasMenu";
+import { catalogComponentState } from "../componentActions";
 import { CatalogLayerTreeStore, type CatalogLayerNode } from "../layerTree";
 import { catalogLayoutPresetCommand } from "../layoutPreset";
 import { catalogDefinitionList, catalogNewLayoutCommand } from "../layouts";
@@ -134,6 +135,9 @@ describe("ADR-248 4e layout applied to a page", () => {
     const rows = layers(workspace, pageId);
     const root = rows.find((row) => row.parentId === null)!;
     expect(root.body).toBe(true);
+    // The body is the layout's instance, not a component instance (no mark, no Component actions).
+    expect(root.role).toBe(undefined);
+    expect(catalogComponentState(graphOf(workspace), BODY)).toEqual({});
     expect(root.children!.map((row) => [row.name, row.slot])).toEqual([
       ["Header", "header"],
       ["Sidebar", "sidebar"],

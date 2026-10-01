@@ -6,6 +6,7 @@ import {
   catalogPropertiesPatchCommand,
   catalogTargetDefinitionId,
 } from "../../../catalogRuntime/editContract";
+import { ORIGIN_VIEW_NODE } from "../../../catalogRuntime/originView";
 import {
   CatalogWorkspaceGate,
   useCatalogEditContract,
@@ -141,6 +142,8 @@ function CatalogPropertiesContent() {
         </PanelContents>
       </div>
     );
+  const originSample =
+    first.target.kind === "node" && first.target.id === ORIGIN_VIEW_NODE;
   return (
     <div className="panel">
       <PanelHeader
@@ -163,11 +166,15 @@ function CatalogPropertiesContent() {
                 nodeId={first.target.id}
               />
             )}
-            <CatalogAttributesSection
-              key={`attributes:${targetKey(first.target)}`}
-              target={first.target}
-              identity={first.identity}
-            />
+            {/* A built-in origin's sample: only its root props and styles are its project
+                defaults (user decision: root only) — no node attributes, state or slot. */}
+            {!originSample && (
+              <CatalogAttributesSection
+                key={`attributes:${targetKey(first.target)}`}
+                target={first.target}
+                identity={first.identity}
+              />
+            )}
             {settingsPage && (
               <CatalogPageSection
                 key={`page:${settingsPage}`}
@@ -180,16 +187,18 @@ function CatalogPropertiesContent() {
                 nodeId={first.target.id}
               />
             )}
-            {first.target.kind === "node" && (
+            {first.target.kind === "node" && !originSample && (
               <CatalogStateSection
                 key={`state:${first.target.id}`}
                 nodeId={first.target.id}
               />
             )}
-            <CatalogSlotSection
-              key={`slot:${targetKey(first.target)}`}
-              target={first.target}
-            />
+            {!originSample && (
+              <CatalogSlotSection
+                key={`slot:${targetKey(first.target)}`}
+                target={first.target}
+              />
+            )}
             <CatalogItemInsertSection
               key={`items:${first.identity}`}
               identity={first.identity}

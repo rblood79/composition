@@ -435,7 +435,8 @@ export function catalogShortcutLabelKey(
     "canvas-element",
     undefined,
   ).find(
-    (entry) => entry.kind === "action" && entry.id === "toggle-component-origin",
+    (entry) =>
+      entry.kind === "action" && entry.id === "toggle-component-origin",
   );
   return item?.kind === "action" ? item.labelKey : undefined;
 }

@@ -19,9 +19,12 @@ import {
 import {
   childPositions,
   definitionPositions,
+  nodePosition,
   pagePositions,
   type CatalogPosition,
 } from "../../../../../packages/shared/src/catalog/resolution/positions";
+import { isLibraryOrigin, ORIGIN_VIEW_NODE } from "./originView";
+import type { CatalogDefinitionViewId } from "./session";
 import type { CatalogRuntime, CatalogStepContext } from "./controller";
 import type { DataBindingValue } from "@composition/shared";
 import { catalogBindingValue, catalogTargetBinding } from "./dataBinding";
@@ -88,7 +91,7 @@ const same = (a: unknown, b: unknown) =>
 /** Whose rows: a page's top level, the definition edit view's, or one row's children. */
 export type CatalogRowsParent =
   | { pageId: EntryId<"page"> }
-  | { definitionId: EntryId<"definition"> }
+  | { definitionId: CatalogDefinitionViewId }
   | { position: CatalogPosition };
 
 export class CatalogReadModel {
@@ -168,7 +171,12 @@ export class CatalogReadModel {
         "pageId" in parent
           ? pagePositions(reader, parent.pageId)
           : "definitionId" in parent
-            ? definitionPositions(reader, parent.definitionId)
+            ? isLibraryOrigin(parent.definitionId)
+              ? // A library origin: the derived sample the view draws.
+                reader.getEntry(ORIGIN_VIEW_NODE)
+                ? [nodePosition(reader, ORIGIN_VIEW_NODE)]
+                : []
+              : definitionPositions(reader, parent.definitionId)
             : childPositions(reader, parent.position);
       // A listed owned node matters only through its row fields (not its props or children).
       const rowDeps = new Map<string, string>();
@@ -183,9 +191,7 @@ export class CatalogReadModel {
       return { value, deps, rowDeps };
     };
   }
-  private rowsKey(
-    parent: CatalogRowsParent,
-  ) {
+  private rowsKey(parent: CatalogRowsParent) {
     return "pageId" in parent
       ? `rows:page:${parent.pageId}`
       : "definitionId" in parent
@@ -200,7 +206,7 @@ export class CatalogReadModel {
   }
   /** The Layers rows of the definition edit view (its template root). */
   definitionRows(
-    definitionId: EntryId<"definition">,
+    definitionId: CatalogDefinitionViewId,
   ): readonly CatalogPosition[] {
     return this.read(
       this.rowsKey({ definitionId }),
@@ -445,6 +451,10 @@ export class CatalogReadModel {
           stale.add(key);
       }
     }
+    // A derived view entry (the library origin sample) follows any change it may derive from.
+    if (changed.size)
+      for (const id of this.runtime.graph.viewEntryIds())
+        for (const key of this.byDep.get(id) ?? []) stale.add(key);
     // Index reads (instances, referrers) follow any change (their records are few).
     if (changed.size) for (const key of this.byIndex) stale.add(key);
     for (const key of stale) {

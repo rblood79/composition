@@ -18,6 +18,7 @@ import type {
 import { useI18n } from "../../../../i18n";
 import { iconProps } from "../../../../utils/ui/uiConstants";
 import { resolveCatalogTreeContext } from "../../../catalogRuntime/canvasPick";
+import type { CatalogDefinitionViewId } from "../../../catalogRuntime/session";
 import {
   catalogLayerDropCommand,
   CatalogLayerTreeStore,
@@ -60,7 +61,7 @@ export const CatalogLayersSection = memo(function CatalogLayersSection({
   ownerId,
 }: {
   /** The open page, or the definition of the definition edit view. */
-  ownerId: EntryId<"page"> | EntryId<"definition">;
+  ownerId: EntryId<"page"> | CatalogDefinitionViewId;
 }) {
   const { t } = useI18n();
   const workspace = useCatalogWorkspace();

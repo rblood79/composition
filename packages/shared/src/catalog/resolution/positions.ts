@@ -211,6 +211,14 @@ export function definitionPositions(
   return rootId ? [ownedPosition(readNode(reader, rootId), [rootId])] : [];
 }
 
+/** The top position of one owned node (a derived view's root). */
+export function nodePosition(
+  reader: CatalogReader,
+  id: NodeId,
+): CatalogPosition {
+  return ownedPosition(readNode(reader, id), [id]);
+}
+
 /** The positions one position shows as its children (one level). */
 export function childPositions(
   reader: CatalogReader,

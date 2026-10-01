@@ -1,6 +1,8 @@
 import { isBodyType } from "@composition/shared";
 import { moveNodes } from "../../../../../packages/shared/src/catalog/commands";
 import { definitionTypeName } from "../../../../../packages/shared/src/catalog/commands/context";
+import { isLibraryOrigin } from "./originView";
+import type { CatalogDefinitionViewId } from "./session";
 import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
 import type { NewId } from "../../../../../packages/shared/src/catalog/commands/materialize";
 import type {
@@ -109,15 +111,20 @@ const nameOf = (
 };
 /** A row's mark: the definition view's root is the origin; a component's instance is an instance. */
 const roleOf = (
+  graph: CatalogReader,
   position: CatalogPosition,
   parentId: string | null,
   definitionView: boolean,
 ): CatalogLayerNode["role"] => {
   if (definitionView && parentId === null) return "origin";
   const definitionId = String(position.definitionId);
-  return position.target.kind === "node" &&
-    (definitionId.startsWith("project:definition:") ||
-      definitionId.startsWith("lib:definition:origin-"))
+  if (position.target.kind !== "node") return undefined;
+  if (definitionId.startsWith("lib:definition:origin-")) return "instance";
+  // A page body that is a layout's instance is not a component instance.
+  const definition = definitionId.startsWith("project:definition:")
+    ? graph.getEntry(definitionId)
+    : undefined;
+  return definition?.kind === "definition" && definition.usage !== "layout"
     ? "instance"
     : undefined;
 };
@@ -159,7 +166,7 @@ export class CatalogLayerTreeStore {
   constructor(
     private readonly host: CatalogLayerTreeHost,
     /** A page, or the definition of the definition edit view. */
-    readonly ownerId: EntryId<"page"> | EntryId<"definition">,
+    readonly ownerId: EntryId<"page"> | CatalogDefinitionViewId,
   ) {
     // Constructed after the read model: its step listener has recomputed the row lists by now.
     this.unsubscribeSteps = host.subscribeSteps(({ result }) => {
@@ -226,11 +233,7 @@ export class CatalogLayerTreeStore {
       const bound = this.host.boundRows?.(position);
       const typeName = typeNameOf(graph, position);
       const slot = slotOf(graph, position);
-      const role = roleOf(
-        position,
-        parentId,
-        this.ownerId.startsWith("project:definition:"),
-      );
+      const role = roleOf(graph, position, parentId, this.definitionOwner());
       const children = (): CatalogLayerNode[] =>
         bound
           ? projectRows(position, rows, bound, depth + 1)
@@ -321,8 +324,8 @@ export class CatalogLayerTreeStore {
     };
     let rows: readonly CatalogPosition[] = [];
     try {
-      rows = this.ownerId.startsWith("project:definition:")
-        ? readModel.definitionRows(this.ownerId as EntryId<"definition">)
+      rows = this.definitionOwner()
+        ? readModel.definitionRows(this.ownerId as CatalogDefinitionViewId)
         : readModel.pageRows(this.ownerId as EntryId<"page">);
     } catch {
       // The page is gone (removed): the panel switches page on the session's next state.
@@ -339,6 +342,14 @@ export class CatalogLayerTreeStore {
     for (const listener of [...this.listeners]) listener();
   }
 
+  /** The owner is a definition (the edit view): a project definition or a library origin. */
+  private definitionOwner(): boolean {
+    return (
+      this.ownerId.startsWith("project:definition:") ||
+      isLibraryOrigin(this.ownerId)
+    );
+  }
+
   /** Keep each read row list subscribed (a change marks the tree for the step's rebuild). */
   private syncSubscriptions(wanted: ReadonlySet<string>): void {
     const mark = () => {
@@ -353,8 +364,8 @@ export class CatalogLayerTreeStore {
       if (this.rowSubscriptions.has(key)) continue;
       const parent =
         key === "page"
-          ? this.ownerId.startsWith("project:definition:")
-            ? { definitionId: this.ownerId as EntryId<"definition"> }
+          ? this.definitionOwner()
+            ? { definitionId: this.ownerId as CatalogDefinitionViewId }
             : { pageId: this.ownerId as EntryId<"page"> }
           : { position: this.nodes.get(key)!.position };
       this.rowSubscriptions.set(

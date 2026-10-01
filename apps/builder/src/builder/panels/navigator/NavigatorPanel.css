@@ -126,6 +126,13 @@
   background: var(--editing-semantics-instance);
 }
 
+/* The Components tab's groups: the project's components, then the built-in origins. */
+.navigator-definition-group {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: var(--text-2xs);
+  color: var(--fg-muted);
+}
+
 /* A layout slot's role (header, content …) — in the layout and on pages that use it. */
 .layer-slot-role {
   flex: 0 0 auto;

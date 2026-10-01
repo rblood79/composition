@@ -27,6 +27,8 @@ import {
 } from "../../../../../packages/shared/src/catalog/resolution/resolver";
 import { catalogAuthoredVisual } from "./libraryVisual";
 import { catalogRuleTextColor } from "./ruleShapes";
+import { isLibraryOrigin, ORIGIN_VIEW_NODE } from "./originView";
+import type { CatalogDefinitionViewId } from "./session";
 import {
   PersistentLayoutTree,
   type PersistentBatchNode,
@@ -468,7 +470,7 @@ export interface CatalogRootOptions {
    * instead of the pages — its template nodes are ordinary owned nodes, so every edit is the same
    * command as on a page. A layout keeps the breakpoint's page size; a component its own size.
    */
-  definitionView?: EntryId<"definition">;
+  definitionView?: CatalogDefinitionViewId;
 }
 /** The graph's page container declaration in the old placement derivation's input shape. */
 export function catalogPageLayoutSettings(
@@ -1009,7 +1011,7 @@ export class CatalogCompositionRoot {
   readonly rowSample?: number;
   private readonly stateSource?: CatalogStateSource;
   /** The definition drawn instead of the pages (`CatalogRootOptions.definitionView`). */
-  readonly definitionView?: EntryId<"definition">;
+  readonly definitionView?: CatalogDefinitionViewId;
   /** Page of each page root node (`pageRoots`). */
   private readonly rootPage = new Map<NodeId, EntryId<"page">>();
   private readonly records = new Map<string, CatalogConsumerNode>();
@@ -1470,6 +1472,11 @@ export class CatalogCompositionRoot {
 
   private pageRoots(): NodeId[] {
     if (this.definitionView) {
+      // A library origin: the derived sample instance the workspace put in the graph's view.
+      if (isLibraryOrigin(this.definitionView))
+        return this.runtime.graph.isViewEntry(ORIGIN_VIEW_NODE)
+          ? [ORIGIN_VIEW_NODE]
+          : [];
       const definition = this.runtime.graph.getEntry(this.definitionView);
       return definition?.kind === "definition" && definition.templateRootId
         ? [definition.templateRootId]
@@ -2791,7 +2798,12 @@ export class CatalogCompositionRoot {
           (op.entry.kind === "token" ||
             op.entry.kind === "definitionOverride")),
     );
-    if (valueOnly && !this.touchesTableRows(result)) {
+    // The library origin view redraws its one sample root on every step (below).
+    if (
+      valueOnly &&
+      !isLibraryOrigin(this.definitionView) &&
+      !this.touchesTableRows(result)
+    ) {
       const indirect = result.forward.some(
         (op) =>
           op.kind === "patchDefinitionOverride" ||
@@ -2833,16 +2845,18 @@ export class CatalogCompositionRoot {
         },
       };
     }
-    const structureChanged = [...result.changedIds, ...result.removedIds].some(
-      (id) => {
-        const entry = this.runtime.graph.getEntry(id);
-        return (
-          entry?.kind === "page" ||
-          entry?.kind === "project" ||
-          id === this.definitionView
-        );
-      },
-    );
+    const structureChanged =
+      [...result.changedIds, ...result.removedIds].some(
+        (id) => {
+          const entry = this.runtime.graph.getEntry(id);
+          return (
+            entry?.kind === "page" ||
+            entry?.kind === "project" ||
+            id === this.definitionView
+          );
+        },
+        // The library origin view's sample follows the project override: redraw its one root.
+      ) || isLibraryOrigin(this.definitionView);
     const currentRoots = structureChanged
       ? new Set(this.pageRoots())
       : this.rootIds;
