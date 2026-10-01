@@ -26,6 +26,7 @@ import {
 import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
 import { catalogBoxModel } from "../../../catalogRuntime/boxModel";
 import { catalogPageDropCommand } from "../../../catalogRuntime/canvasPage";
+import { catalogSubpartOwnerType } from "../../../catalogRuntime/subpart";
 import { catalogDocumentColorSources } from "../../../catalogRuntime/documentColors";
 import {
   catalogFieldsAt,
@@ -540,6 +541,13 @@ export function createCatalogStylesHost(
       );
     },
     presentation: false,
+    subpartStyleOwnerOf: (id) =>
+      catalogSubpartOwnerType(
+        workspace.runtime.graph,
+        workspace.root.domInputs,
+        id,
+        "style",
+      ),
     pagePosition: {
       usePosition: (selectedId) => {
         const key = useSyncExternalStore(

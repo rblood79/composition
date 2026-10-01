@@ -35,6 +35,7 @@ import { CatalogPageSection } from "./CatalogPageSection";
 import { CatalogPropertyClipboardActions } from "./CatalogPropertyClipboardActions";
 import { CatalogSlotSection } from "./CatalogSlotSection";
 import { CatalogStateSection } from "./CatalogStateSection";
+import { catalogSubpartOwnerType } from "../../../catalogRuntime/subpart";
 import { CATALOG_ITEMS_SOURCE } from "./catalogItemsSource";
 import { useChartPropertyExtras } from "../useChartPropertyExtras";
 import { GenericFieldRenderer } from "../generic/GenericFieldRenderer";
@@ -110,6 +111,34 @@ function CatalogPropertiesContent() {
       </div>
     );
   }
+  // A delegated sub-part (a field's Label · Input · FieldError …): its parent composes it, so its
+  // own fields reach nothing — the owner notice instead (ADR-923, the old panel's).
+  const subpartOwner = catalogSubpartOwnerType(
+    graph,
+    workspace.root.domInputs,
+    first.identity,
+    "all",
+  );
+  if (subpartOwner)
+    return (
+      <div className="panel">
+        <PanelHeader
+          icon={<Settings2 size={iconProps.size} />}
+          title={title ?? contract.type}
+          panelId="properties"
+        />
+        <PanelContents>
+          <EmptyState
+            icon={<Settings2 size={32} />}
+            message={t("propertiesPanel.delegatedSubpartMessage")}
+            description={t("propertiesPanel.delegatedSubpartDescription", {
+              type: contract.type,
+              parent: subpartOwner,
+            })}
+          />
+        </PanelContents>
+      </div>
+    );
   return (
     <div className="panel">
       <PanelHeader

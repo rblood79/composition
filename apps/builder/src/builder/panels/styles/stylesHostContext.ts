@@ -93,6 +93,11 @@ export interface StylesHost {
   /** The old Canvas editor presentation channel (live paint while editing) is available. */
   presentation: boolean;
   /**
+   * The parent that owns the element's style axis as a delegated sub-part (absent = the old store
+   * decides): the panel shows the owner notice instead of fields nothing reads.
+   */
+  subpartStyleOwnerOf?(id: string | null | undefined): string | null;
+  /**
    * A page body's position on the page canvas, which the Position row edits (absent = the old
    * store's page positions): `usePosition` is a hook (null = not a page body).
    */

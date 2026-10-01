@@ -128,9 +128,13 @@ function StylesPanelContent() {
   const selectedElement = useStylesHost().useSelectedElement();
   // ADR-923 잔여 1 (2026-09-03 판정 A): parent 가 self-compose 하는 sub-part 는 style 정본이 parent rule —
   //   여기서 준 값은 어디에도 실리지 않으므로 안내만 (`delegatedSubpart.ts`).
-  const selectedSubpartOwnerType = useSelectedSubpartStyleOwnerType(
-    selectedElement?.id,
+  const host = useStylesHost();
+  const storeSubpartOwnerType = useSelectedSubpartStyleOwnerType(
+    host.subpartStyleOwnerOf ? null : selectedElement?.id,
   );
+  const selectedSubpartOwnerType = host.subpartStyleOwnerOf
+    ? host.subpartStyleOwnerOf(selectedElement?.id)
+    : storeSubpartOwnerType;
   const delegatedSubpart = isDelegatedSubpart(
     selectedElement?.type,
     selectedSubpartOwnerType,
