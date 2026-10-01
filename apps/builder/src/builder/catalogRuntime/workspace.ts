@@ -321,6 +321,9 @@ export class CatalogWorkspace {
     return this.runtime.graph.projectId;
   }
 
+  private readonly executeListeners = new Set<
+    (result: CatalogTransactionResult) => void
+  >();
   /** One user action; its `selectAfter` nodes become the selection (their first drawn position). */
   execute(command: CatalogCommand): {
     plan: CatalogCommandPlan;
@@ -332,7 +335,15 @@ export class CatalogWorkspace {
       this.selectItems(
         executed.plan.selectAfter.flatMap((id) => this.itemsOfNode(id, 1)),
       );
+    for (const listener of [...this.executeListeners]) listener(executed.result);
     return executed;
+  }
+  /** Each user action's step after it runs (not undo / redo) — the component edit confirmation. */
+  subscribeExecute(
+    listener: (result: CatalogTransactionResult) => void,
+  ): () => void {
+    this.executeListeners.add(listener);
+    return () => this.executeListeners.delete(listener);
   }
   /**
    * A change outside the document (the data store) as one history entry with its document part

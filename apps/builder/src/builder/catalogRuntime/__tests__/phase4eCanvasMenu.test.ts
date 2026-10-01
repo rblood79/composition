@@ -16,6 +16,10 @@ import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
+import {
+  resolveEditingSemanticsImpactConfirmation,
+  subscribeEditingSemanticsImpactConfirmation,
+} from "../../utils/editingSemanticsImpactConfirmation";
 
 /**
  * ADR-248 Phase 4e-3b Canvas context menu: items over the selection are the new commands (each
@@ -100,6 +104,19 @@ async function open() {
   };
   return { workspace, host, record, children, ids, run };
 }
+
+
+/** Answer the component confirmation dialog (detach · dissolve ask first); returns the asked kinds. */
+function answerComponentConfirm(answer: boolean) {
+  const asked: string[] = [];
+  const stop = subscribeEditingSemanticsImpactConfirmation((request) => {
+    if (!request) return;
+    asked.push(request.kind ?? "origin-impact");
+    queueMicrotask(() => resolveEditingSemanticsImpactConfirmation(answer));
+  });
+  return { asked, stop };
+}
+const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 describe("ADR-248 Phase 4e-3b Canvas context menu", () => {
   it("lists the selection's commands; z-order moves among siblings; ungroup only for a container", async () => {
@@ -277,7 +294,17 @@ describe("ADR-248 Phase 4e-3b Canvas context menu", () => {
     expect(shown).toEqual([
       instance?.kind === "node" ? instance.definitionId : "",
     ]);
+    // Detach asks first: Cancel keeps the instance, Continue detaches.
+    const cancel = answerComponentConfirm(false);
     run(after, "detach-instance");
+    await settle();
+    cancel.stop();
+    expect(cancel.asked).toEqual(["detach-instance"]);
+    expect(workspace.runtime.graph.getEntry(instanceId)?.kind).toBe("node");
+    const confirm = answerComponentConfirm(true);
+    run(after, "detach-instance");
+    await settle();
+    confirm.stop();
     const detachedBody = workspace.runtime.graph.getEntry(BODY);
     const detached = workspace.runtime.graph.getEntry(
       (detachedBody?.kind === "node" ? detachedBody.children : [])[0],

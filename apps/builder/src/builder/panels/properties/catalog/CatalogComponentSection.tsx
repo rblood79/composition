@@ -12,6 +12,10 @@ import {
   catalogComponentCommands,
   catalogComponentState,
 } from "../../../catalogRuntime/componentActions";
+import {
+  confirmCatalogDetach,
+  confirmCatalogDissolve,
+} from "../../../catalogRuntime/componentConfirm";
 import { catalogSemanticPatchCommand } from "../../../catalogRuntime/editContract";
 import {
   useCatalogOwnFields,
@@ -62,19 +66,25 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
       t("componentAction.createComponent");
     run(catalogComponentCommands.create(nodeId, name, workspace.newId));
   }, [graph, nodeId, run, t, workspace]);
+  // Detach and dissolve ask first (the old component confirmation dialog).
   const detach = useCallback(
-    () => run(catalogComponentCommands.detach(nodeId, workspace.newId)),
-    [nodeId, run, workspace],
+    () =>
+      void confirmCatalogDetach(graph, nodeId, () =>
+        run(catalogComponentCommands.detach(nodeId, workspace.newId)),
+      ),
+    [graph, nodeId, run, workspace],
   );
   const dissolve = useCallback(() => {
     if (instanceOf)
-      run(
-        catalogComponentCommands.dissolve(
-          instanceOf.definitionId,
-          workspace.newId,
+      void confirmCatalogDissolve(graph, instanceOf.definitionId, () =>
+        run(
+          catalogComponentCommands.dissolve(
+            instanceOf.definitionId,
+            workspace.newId,
+          ),
         ),
       );
-  }, [instanceOf, run, workspace]);
+  }, [graph, instanceOf, run, workspace]);
   const selectInstances = useCallback(() => {
     if (!instanceOf) return;
     workspace.session.select(

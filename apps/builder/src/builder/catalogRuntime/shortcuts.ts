@@ -15,6 +15,7 @@ import {
 } from "../stores/utils/elementDistribution";
 import { catalogCanvasMenuItems, type CatalogMenuHost } from "./canvasMenu";
 import { catalogPageDropCommand } from "./canvasPage";
+import { confirmCatalogDetach } from "./componentConfirm";
 import { catalogComponentCommands } from "./componentActions";
 import type { CatalogWorkspace } from "./workspace";
 
@@ -258,6 +259,11 @@ export function planCatalogShortcut(
   workspace: CatalogWorkspace,
   id: CatalogShortcutId,
   onError: (error: unknown) => void = () => {},
+  /**
+   * The caller already asked the user (the agent executor's confirmation for `confirm: true`
+   * commands, ADR-196): detach runs without its own dialog, as the old adapter did.
+   */
+  options: { confirmed?: boolean } = {},
 ): CatalogShortcutPlan | undefined {
   const host = catalogMenuHost(workspace, onError);
   const menuItem = (itemId: string) => {
@@ -404,7 +410,13 @@ export function planCatalogShortcut(
       } catch {
         return undefined;
       }
-      return () => host.execute(command);
+      const id = selected.target.id;
+      if (options.confirmed) return () => host.execute(command);
+      // The old "Detach instance" confirmation first.
+      return () =>
+        void confirmCatalogDetach(workspace.runtime.graph, id, () =>
+          host.execute(command),
+        );
     }
   }
 }

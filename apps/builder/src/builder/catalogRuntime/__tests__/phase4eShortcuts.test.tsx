@@ -17,6 +17,10 @@ import { catalogShortcutLabelKey, runCatalogShortcut } from "../shortcuts";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
+import {
+  resolveEditingSemanticsImpactConfirmation,
+  subscribeEditingSemanticsImpactConfirmation,
+} from "../../utils/editingSemanticsImpactConfirmation";
 
 /**
  * ADR-248 Phase 4e-5 shortcuts: the document shortcuts run the workspace's commands (the Canvas
@@ -89,6 +93,19 @@ async function open() {
   const steps = () => workspace.runtime.historyDepth.undo;
   return { workspace, record, children, selected, steps };
 }
+
+
+/** Answer the component confirmation dialog (detach · dissolve ask first); returns the asked kinds. */
+function answerComponentConfirm(answer: boolean) {
+  const asked: string[] = [];
+  const stop = subscribeEditingSemanticsImpactConfirmation((request) => {
+    if (!request) return;
+    asked.push(request.kind ?? "origin-impact");
+    queueMicrotask(() => resolveEditingSemanticsImpactConfirmation(answer));
+  });
+  return { asked, stop };
+}
+const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 describe("ADR-248 Phase 4e-5 shortcuts", () => {
   it("copy · paste after the selection · cut · duplicate · delete: one step each, the new nodes selected", async () => {
@@ -199,9 +216,13 @@ describe("ADR-248 Phase 4e-5 shortcuts", () => {
       }),
     );
     workspace.selectRecords([record("menu")]);
+    const dialog = answerComponentConfirm(true);
     expect(
       runCatalogShortcut(workspace, "detachInstance", (e) => errors.push(e)),
     ).toBe(true);
+    await settle();
+    dialog.stop();
+    expect(dialog.asked).toEqual(["detach-instance"]);
     expect(errors).toEqual([]);
     expect(children("menu").length).toBeGreaterThan(0);
   });
@@ -245,11 +266,16 @@ describe("ADR-248 Phase 4e-5 shortcuts", () => {
     expect(catalogShortcutLabelKey(workspace, "toggleComponentOrigin")).toBe(
       "componentAction.detachComponent",
     );
+    // The dissolve asks first (the instance count) — the old origin toggle.
+    const dialog = answerComponentConfirm(true);
     expect(
       runCatalogShortcut(workspace, "toggleComponentOrigin", (e) =>
         errors.push(e),
       ),
     ).toBe(true);
+    await settle();
+    dialog.stop();
+    expect(dialog.asked).toEqual(["origin-impact"]);
     expect(errors).toEqual([]);
     expect(definitions()).toBe(count);
   });

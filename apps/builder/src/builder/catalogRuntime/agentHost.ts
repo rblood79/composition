@@ -72,10 +72,12 @@ export function createCatalogAgentCommandHost(
   return {
     plan(id) {
       if (CATALOG_COMMANDS.has(id)) {
+        // A `confirm: true` command was confirmed by the executor (one dialog, not two).
         const plan = planCatalogShortcut(
           workspace,
           id as CatalogShortcutId,
           onError,
+          { confirmed: COMMAND_META[id].confirm === true },
         );
         return plan
           ? { run: plan }

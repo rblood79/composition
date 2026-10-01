@@ -19,6 +19,7 @@ import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
+import { subscribeEditingSemanticsImpactConfirmation } from "../../utils/editingSemanticsImpactConfirmation";
 
 /**
  * ADR-248 Phase 4e-5 agent commands: with the catalog host installed, the agent executor runs a
@@ -141,6 +142,24 @@ describe("ADR-248 Phase 4e-5 agent commands", () => {
       status: "precondition-failed",
       reason: "nothing-to-undo",
     });
+  });
+
+  it("an approved detach runs without the component dialog (the executor already asked)", async () => {
+    const { workspace, select } = await open();
+    select("a");
+    await executeAgentCommand("toggleComponentOrigin", {}, context());
+    const instance = workspace.session.getSnapshot().selection[0]!;
+    workspace.selectRecords([instance.identity]);
+    const asked: string[] = [];
+    const stop = subscribeEditingSemanticsImpactConfirmation((request) => {
+      if (request) asked.push(request.kind ?? "origin-impact");
+    });
+    const depth = workspace.runtime.historyDepth.undo;
+    expect(
+      await executeAgentCommand("detachInstance", {}, context()),
+    ).toMatchObject({ status: "ok", historyIndex: depth + 1 });
+    stop();
+    expect(asked).toEqual([]);
   });
 
   it("view commands keep their adapters; the header menu's enablement reads the host", async () => {

@@ -56,6 +56,7 @@ import {
 import {
   AgentCommandConfirmDialogHost,
   CommandPalette,
+  EditingSemanticsImpactDialogHost,
   ToastContainer,
 } from "../components";
 import { setAgentCommandHost } from "../../services/agent/agentCommandHost";
@@ -95,6 +96,7 @@ import { useExecutionPolicyScheduler } from "../panels/datatable/hooks/useExecut
 import { registerVariableOwnerPageSource } from "../stores/utils/variableOwnerMigration";
 import { Button } from "@composition/shared/components";
 import { watchCatalogStorageQuota } from "../catalogRuntime/storageQuota";
+import { watchCatalogComponentEdits } from "../catalogRuntime/componentConfirm";
 import { getDB } from "../../lib/db";
 import { requestPersistenceOnce } from "../../lib/storage/storageProtection";
 import {
@@ -342,6 +344,12 @@ export function CatalogBuilderCore() {
       requestPersistence: () => void requestPersistenceOnce(),
     });
   }, [workspace, t]);
+  // The old origin edit gate: the first edit of a component's template in its edit view asks
+  // (Cancel takes it back).
+  useEffect(() => {
+    if (!workspace) return;
+    return watchCatalogComponentEdits(workspace);
+  }, [workspace]);
   // ADR-218 interval policy: data-store collections poll their linked endpoint (rows reach the
   // Canvas through the data-store subscription below — `refreshRows`).
   useExecutionPolicyScheduler();
@@ -587,6 +595,8 @@ export function CatalogBuilderCore() {
         body
       )}
       <AgentCommandConfirmDialogHost />
+      {/* Detach · dissolve · the first edit of a component with instances (the old dialog). */}
+      <EditingSemanticsImpactDialogHost />
       {/* ⌘/ — lists the commands the catalog Builder registered (the header menu's own list). */}
       <CommandPalette />
       <ToastContainer />

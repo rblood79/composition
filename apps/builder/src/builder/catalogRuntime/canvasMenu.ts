@@ -34,6 +34,10 @@ import {
   getDistributionLabelKey,
   type DistributionType,
 } from "../stores/utils/elementDistribution";
+import {
+  confirmCatalogDetach,
+  confirmCatalogDissolve,
+} from "./componentConfirm";
 import { catalogComponentCommands, catalogComponentState } from "./componentActions";
 import { definitionTypeName } from "../../../../../packages/shared/src/catalog/commands/context";
 import type { ShortcutId } from "../config/keyboardShortcuts";
@@ -120,6 +124,8 @@ export function catalogCanvasMenuItems(
     shortcutId: ShortcutId | undefined,
     icon: ContextMenuIcon | undefined,
     destructive = false,
+    /** Runs the step after a confirmation (detach · dissolve); absent = at once. */
+    confirmThen?: (execute: () => void) => void,
   ): ContextMenuItem[] =>
     allowed(command)
       ? [
@@ -130,7 +136,10 @@ export function catalogCanvasMenuItems(
             ...(icon ? { icon } : {}),
             ...(shortcutId ? { shortcutId } : {}),
             ...(destructive ? { destructive } : {}),
-            run: () => host.execute(command),
+            run: () =>
+              confirmThen
+                ? confirmThen(() => host.execute(command))
+                : host.execute(command),
           },
         ]
       : [];
@@ -414,6 +423,9 @@ export function catalogCanvasMenuItems(
         catalogComponentCommands.detach(detachable, host.newId),
         "detachInstance",
         ACTION_ICONS.detach,
+        false,
+        (execute) =>
+          void confirmCatalogDetach(host.graph, detachable, execute),
       ),
     );
   if (single && origin?.project)
@@ -424,6 +436,13 @@ export function catalogCanvasMenuItems(
         catalogComponentCommands.dissolve(origin.definitionId, host.newId),
         "toggleComponentOrigin",
         ACTION_ICONS.detach,
+        false,
+        (execute) =>
+          void confirmCatalogDissolve(
+            host.graph,
+            origin.definitionId,
+            execute,
+          ),
       ),
     );
   else if (single && !origin) {
