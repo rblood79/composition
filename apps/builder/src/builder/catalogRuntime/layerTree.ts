@@ -9,6 +9,7 @@ import type {
   NodeId,
 } from "../../../../../packages/shared/src/catalog/document/types";
 import type { CatalogPosition } from "../../../../../packages/shared/src/catalog/resolution/positions";
+import { CATALOG_ROW_ITEM_TYPES } from "../../../../../packages/shared/src/catalog/resolution/resolver";
 import type { CatalogStepListener } from "./controller";
 import type { CatalogReadModel } from "./readModel";
 
@@ -30,6 +31,12 @@ export interface CatalogLayerNode {
    * or a library origin), `origin` = the component being edited (the definition view's root).
    */
   readonly role?: "origin" | "instance";
+  /**
+   * A bound collection's data row (4e-6-36): the drawn row's record, at its row template position
+   * (selecting it selects that row). Not a document position of its own — neither draggable,
+   * deletable nor a drop target.
+   */
+  readonly projection?: true;
 }
 
 /** What the Layers tree reads from the open project (`CatalogWorkspace`). */
@@ -37,6 +44,15 @@ export interface CatalogLayerTreeHost {
   readonly readModel: CatalogReadModel;
   readonly graph: CatalogReader;
   subscribeSteps(listener: CatalogStepListener): () => void;
+  /**
+   * A bound collection's drawn data rows (record identity and label); `undefined` = not bound or
+   * rows unknown (the item positions are listed). Absent = no projection.
+   */
+  boundRows?(
+    position: CatalogPosition,
+  ): readonly { id: string; name: string }[] | undefined;
+  /** Data rows changed outside the document (the bound rows are read again). */
+  subscribeBoundRows?(listener: () => void): () => void;
 }
 
 const typeNameOf = (graph: CatalogReader, position: CatalogPosition) => {
@@ -71,6 +87,7 @@ const roleOf = (
 };
 const sameNode = (a: CatalogLayerNode, b: CatalogLayerNode) =>
   a.role === b.role &&
+  a.projection === b.projection &&
   a.parentId === b.parentId &&
   a.depth === b.depth &&
   a.hasChildren === b.hasChildren &&
@@ -97,6 +114,7 @@ export class CatalogLayerTreeStore {
   private visibleNodes = new Map<string, string[]>();
   private readonly listeners = new Set<() => void>();
   private readonly unsubscribeSteps: () => void;
+  private readonly unsubscribeBoundRows: () => void;
   private rowsChanged = false;
   private disposed = false;
 
@@ -118,6 +136,8 @@ export class CatalogLayerTreeStore {
       );
       if (renamed || this.rowsChanged) this.rebuild();
     });
+    this.unsubscribeBoundRows =
+      host.subscribeBoundRows?.(() => this.rebuild()) ?? (() => {});
     this.rebuild();
   }
 
@@ -143,6 +163,7 @@ export class CatalogLayerTreeStore {
   dispose(): void {
     this.disposed = true;
     this.unsubscribeSteps();
+    this.unsubscribeBoundRows();
     for (const unsubscribe of this.rowSubscriptions.values()) unsubscribe();
     this.rowSubscriptions.clear();
     this.listeners.clear();
@@ -163,25 +184,25 @@ export class CatalogLayerTreeStore {
     ): CatalogLayerNode => {
       wanted.add(position.identity);
       const rows = readModel.childRows(position);
+      const bound = this.host.boundRows?.(position);
       const typeName = typeNameOf(graph, position);
       const role = roleOf(
         position,
         parentId,
         this.ownerId.startsWith("project:definition:"),
       );
-      const expanded = rows.length > 0 && this.expanded.has(position.identity);
+      const children = (): CatalogLayerNode[] =>
+        bound?.length
+          ? projectRows(position, rows, bound, depth + 1)
+          : rows.map((row) => build(row, position.identity, depth + 1));
+      const count = bound?.length ? bound.length : rows.length;
+      const expanded = count > 0 && this.expanded.has(position.identity);
       const next: CatalogLayerNode = {
         id: position.identity,
         parentId,
         depth,
-        hasChildren: rows.length > 0,
-        ...(expanded
-          ? {
-              children: rows.map((row) =>
-                build(row, position.identity, depth + 1),
-              ),
-            }
-          : {}),
+        hasChildren: count > 0,
+        ...(expanded ? { children: children() } : {}),
         name: nameOf(graph, position, typeName),
         typeName,
         position,
@@ -197,6 +218,44 @@ export class CatalogLayerTreeStore {
         visibleNodes.set(position.target.id, list);
       }
       return node;
+    };
+    // A bound collection's item positions (row template and sample items) give way to its drawn
+    // data rows, where the row template stood; its other rows stay.
+    const projectRows = (
+      parent: CatalogPosition,
+      rows: readonly CatalogPosition[],
+      bound: readonly { id: string; name: string }[],
+      depth: number,
+    ): CatalogLayerNode[] => {
+      const isItem = (row: CatalogPosition) =>
+        CATALOG_ROW_ITEM_TYPES.has(typeNameOf(graph, row));
+      const template = rows.find(isItem);
+      const out: CatalogLayerNode[] = [];
+      for (const row of rows) {
+        if (!isItem(row)) {
+          out.push(build(row, parent.identity, depth));
+          continue;
+        }
+        if (row !== template) continue;
+        for (const item of bound) {
+          const next: CatalogLayerNode = {
+            id: item.id,
+            parentId: parent.identity,
+            depth,
+            hasChildren: false,
+            name: item.name,
+            typeName: typeNameOf(graph, row),
+            position: row,
+            body: false,
+            projection: true,
+          };
+          const old = previous.get(next.id);
+          const node = old && sameNode(old, next) ? old : next;
+          nodes.set(node.id, node);
+          out.push(node);
+        }
+      }
+      return out;
     };
     let rows: readonly CatalogPosition[] = [];
     try {

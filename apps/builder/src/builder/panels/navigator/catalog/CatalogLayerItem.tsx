@@ -32,7 +32,9 @@ export const CatalogLayerItem = memo(function CatalogLayerItem({
   onContextMenu?: (node: CatalogLayerNode, event: React.MouseEvent) => void;
 }) {
   const { depth, hasChildren, name, body } = node;
-  const fixed = body || node.position.target.kind !== "node";
+  // A data row (a bound collection's projection) is neither draggable nor deletable.
+  const fixed =
+    body || node.projection === true || node.position.target.kind !== "node";
   return (
     <div
       className={`elementItem ${isSelected ? "active" : ""} ${
@@ -99,7 +101,7 @@ export const CatalogLayerItem = memo(function CatalogLayerItem({
             />
           </Button>
         )}
-        {!body && (
+        {!body && !node.projection && (
           <Button
             className="iconButton"
             aria-label={`Delete ${node.typeName}`}

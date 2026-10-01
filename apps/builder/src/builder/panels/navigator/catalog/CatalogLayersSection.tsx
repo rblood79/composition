@@ -74,6 +74,9 @@ export const CatalogLayersSection = memo(function CatalogLayersSection({
         graph: workspace.runtime.graph,
         subscribeSteps: (listener) =>
           workspace.runtime.subscribeSteps(listener),
+        // A bound ListBox / GridList lists its drawn data rows (4e-6-36).
+        boundRows: (position) => workspace.boundRowsOf(position),
+        subscribeBoundRows: (listener) => workspace.subscribeRows(listener),
       },
       ownerId,
     );
@@ -211,7 +214,16 @@ export const CatalogLayersSection = memo(function CatalogLayersSection({
       position: "before" | "after" | "on",
     ) =>
       tree &&
-      catalogLayerDropCommand(tree, dragged, target, position, workspace.newId),
+      // A data row is a projection of the row template, not a place to drop into.
+      !tree.node(target)?.projection
+        ? catalogLayerDropCommand(
+            tree,
+            dragged,
+            target,
+            position,
+            workspace.newId,
+          )
+        : undefined,
     [tree, workspace],
   );
   const isValidDrop = useCallback(
@@ -313,7 +325,9 @@ export const CatalogLayersSection = memo(function CatalogLayersSection({
           onExpandedChange={handleExpandedChange}
           dnd={{
             canDrag: (node) =>
-              !node.body && node.position.target.kind === "node",
+              !node.body &&
+              !node.projection &&
+              node.position.target.kind === "node",
             isValidDrop,
             onMove: handleMove,
             dragType: "application/x-layer-tree-item",

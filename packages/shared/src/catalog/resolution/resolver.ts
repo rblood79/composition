@@ -84,7 +84,7 @@ export type CatalogRowSource = (
   binding: DataBindingRef,
 ) => readonly CatalogBoundRow[] | undefined;
 /** Item types a bound collection repeats per data row (its first item position is the row template). */
-const ROW_ITEM_TYPES: ReadonlySet<string> = new Set([
+export const CATALOG_ROW_ITEM_TYPES: ReadonlySet<string> = new Set([
   "ListBoxItem",
   "GridListItem",
 ]);
@@ -309,7 +309,11 @@ export function resolveCatalogNode(
     if (!template || ("kind" in template && template.kind !== "node"))
       return "";
     let definition = graph.getDefinition(template.definitionId);
-    for (let depth = 0; definition?.mode === "composite" && depth < 16; depth++) {
+    for (
+      let depth = 0;
+      definition?.mode === "composite" && depth < 16;
+      depth++
+    ) {
       const rootId = definition.templateRootId;
       const root = rootId?.startsWith("lib:")
         ? library.templates.get(rootId as `lib:template:${string}`)
@@ -562,9 +566,7 @@ export function resolveCatalogNode(
             sizing,
           ),
           undefined,
-          node.binding && rows
-            ? { rowSet: rows(node.binding) }
-            : undefined,
+          node.binding && rows ? { rowSet: rows(node.binding) } : undefined,
         ),
       );
     for (const childId of selection?.ownedChildren?.(node.id, instancePath) ??
@@ -838,7 +840,7 @@ export function resolveCatalogNode(
     const rowSet = rowing?.rowSet;
     const itemPositions = rowSet
       ? template.children.filter((childId) =>
-          ROW_ITEM_TYPES.has(templateTypeName(childId)),
+          CATALOG_ROW_ITEM_TYPES.has(templateTypeName(childId)),
         )
       : [];
     for (const childId of template.children) {

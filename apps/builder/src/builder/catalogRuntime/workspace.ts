@@ -1,6 +1,7 @@
 import type { CatalogGraph } from "../../../../../packages/shared/src/catalog/document/graph";
 import type {
   BreakpointName,
+  DefinitionId,
   EntryId,
   NodeId,
 } from "../../../../../packages/shared/src/catalog/document/types";
@@ -11,6 +12,8 @@ import type {
 import type { NewId } from "../../../../../packages/shared/src/catalog/commands/materialize";
 import type { CatalogClipboard } from "../../../../../packages/shared/src/catalog/commands";
 import type { CatalogPosition } from "../../../../../packages/shared/src/catalog/resolution/positions";
+import { CATALOG_ROW_ITEM_TYPES } from "../../../../../packages/shared/src/catalog/resolution/resolver";
+import { definitionTypeName } from "../../../../../packages/shared/src/catalog/commands/context";
 import type { CatalogTransactionResult } from "../../../../../packages/shared/src/catalog/transactions/transaction";
 import type { LayoutEngineAPI } from "../workspace/canvas/wasm-bindings/layoutBridge";
 import { CatalogAutosave } from "./autosave";
@@ -224,7 +227,8 @@ export class CatalogWorkspace {
         : undefined,
     );
     for (const listener of [...this.rowListeners]) listener();
-    if (errors.length) throw new AggregateError(errors, "CATALOG_ROWS_DELIVERY");
+    if (errors.length)
+      throw new AggregateError(errors, "CATALOG_ROWS_DELIVERY");
   }
   /**
    * Variable values changed outside the document (the data store's project variables): the root
@@ -242,6 +246,54 @@ export class CatalogWorkspace {
   subscribeRows(listener: () => void): () => void {
     this.rowListeners.add(listener);
     return () => this.rowListeners.delete(listener);
+  }
+  /**
+   * The drawn data rows of a bound collection row (the Layers projection, 4e-6-36): each item
+   * record the bound root repeats (record identity and label — its first text). `undefined` = the
+   * row is not a bound owned node or its rows are unknown (the template's sample items draw).
+   */
+  boundRowsOf(
+    position: CatalogPosition,
+  ): readonly { id: string; name: string }[] | undefined {
+    if (position.target.kind !== "node") return undefined;
+    const graph = this.runtime.graph;
+    const entry = graph.getEntry(position.target.id);
+    if (entry?.kind !== "node" || !entry.binding) return undefined;
+    if (!this.options.root?.rows?.(entry.binding)) return undefined;
+    const records = this.currentRoot.domInputs;
+    const typeOf = (definitionId: string) => {
+      try {
+        return definitionTypeName(graph, definitionId as DefinitionId);
+      } catch {
+        return "";
+      }
+    };
+    const textOf = (id: string): string | undefined => {
+      const record = records.get(id);
+      if (!record) return undefined;
+      const own = record.props.children;
+      if (typeof own === "string" && own) return own;
+      for (const child of record.children) {
+        const text = textOf(child);
+        if (text) return text;
+      }
+      return undefined;
+    };
+    const rows: { id: string; name: string }[] = [];
+    const visit = (id: string) => {
+      const record = records.get(id);
+      if (!record) return;
+      if (CATALOG_ROW_ITEM_TYPES.has(typeOf(record.definitionId))) {
+        rows.push({
+          id,
+          name: textOf(id) ?? typeOf(record.definitionId),
+        });
+        return;
+      }
+      record.children.forEach(visit);
+    };
+    records.get(position.identity)?.children.forEach(visit);
+    return rows;
   }
 
   private readonly revealListeners = new Set<
