@@ -4,7 +4,10 @@ import {
   setWholeField,
 } from "../../../../../../../packages/shared/src/catalog/commands";
 import type { CatalogCommand } from "../../../../../../../packages/shared/src/catalog/commands/compose";
-import type { EditTarget } from "../../../../../../../packages/shared/src/catalog/document/types";
+import type {
+  EditTarget,
+  EntryId,
+} from "../../../../../../../packages/shared/src/catalog/document/types";
 import {
   catalogEditContract,
   catalogSemanticPatchCommand,
@@ -22,6 +25,7 @@ import {
 } from "../../../catalogRuntime/styleFields";
 import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
 import { catalogBoxModel } from "../../../catalogRuntime/boxModel";
+import { catalogPageDropCommand } from "../../../catalogRuntime/canvasPage";
 import { catalogDocumentColorSources } from "../../../catalogRuntime/documentColors";
 import {
   catalogFieldsAt,
@@ -536,6 +540,33 @@ export function createCatalogStylesHost(
       );
     },
     presentation: false,
+    pagePosition: {
+      usePosition: (selectedId) => {
+        const key = useSyncExternalStore(
+          (notify) => {
+            const offSteps = workspace.runtime.subscribeSteps(() => notify());
+            const offSession = workspace.session.subscribe(notify);
+            return () => {
+              offSteps();
+              offSession();
+            };
+          },
+          () => catalogPagePositionKey(workspace, selectedId),
+        );
+        return useMemo(
+          () => (key ? (JSON.parse(key) as CatalogPagePosition) : null),
+          [key],
+        );
+      },
+      commit: (pageId, point) => {
+        const command = catalogPageDropCommand(
+          workspace.root,
+          pageId as EntryId<"page">,
+          point,
+        );
+        if (command) workspace.execute(command);
+      },
+    },
     documentColors: {
       subscribe: (listener) =>
         workspace.runtime.subscribeSteps(() => listener()),
@@ -544,4 +575,36 @@ export function createCatalogStylesHost(
     },
   };
   return host;
+}
+
+interface CatalogPagePosition {
+  pageId: string;
+  x: number;
+  y: number;
+  editable: boolean;
+}
+
+/**
+ * The selected page body's frame position on the page canvas (rounded; `""` = not a page body).
+ * Home is the flow origin and does not move (the old row's rule).
+ */
+function catalogPagePositionKey(
+  workspace: CatalogWorkspace,
+  selectedId: string | null,
+): string {
+  if (!selectedId) return "";
+  if (workspace.root.domInputs.get(selectedId)?.parentId !== "catalog:root")
+    return "";
+  const pageId = workspace.pageOfRecord(selectedId);
+  const rect = pageId && workspace.root.pageFrameRects().get(pageId);
+  if (!pageId || !rect) return "";
+  const graph = workspace.runtime.graph;
+  const project = graph.getEntry(graph.projectId);
+  const position: CatalogPagePosition = {
+    pageId,
+    x: Math.round(rect.x),
+    y: Math.round(rect.y),
+    editable: project?.kind === "project" && project.pageIds[0] !== pageId,
+  };
+  return JSON.stringify(position);
 }

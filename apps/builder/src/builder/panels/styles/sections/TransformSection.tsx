@@ -80,6 +80,7 @@ import {
   useStylesHost,
   useStylesSelectedId,
 } from "../stylesHost";
+import type { StylesHost } from "../stylesHostContext";
 
 const POSITION_SECTION_ID = "position";
 
@@ -177,6 +178,56 @@ const PagePositionRow = memo(function PagePositionRow({
         units={["px"]}
         onChange={handleYCommit}
         isDisabled={!isEditable}
+        min={-99999}
+        max={99999}
+      />
+      <div className="fieldset-actions actions-position" />
+    </div>
+  );
+});
+
+/**
+ * ADR-248 Phase 4e: the page body's X / Y from a host that owns the page canvas (the catalog
+ * Styles panel) — the same row; Home stays where it is (inputs off).
+ */
+const HostPagePositionRow = memo(function HostPagePositionRow({
+  pagePosition,
+  selectedId,
+}: {
+  pagePosition: NonNullable<StylesHost["pagePosition"]>;
+  selectedId: string | null;
+}) {
+  const position = pagePosition.usePosition(selectedId);
+  if (!position) return null;
+  const commit = (axis: "x" | "y", value: string) => {
+    const parsed = Number.parseFloat(value);
+    if (!Number.isFinite(parsed)) return;
+    pagePosition.commit(position.pageId, {
+      x: axis === "x" ? parsed : position.x,
+      y: axis === "y" ? parsed : position.y,
+    });
+  };
+  return (
+    <div className="transform-row">
+      <PropertyUnitInput
+        label="X"
+        unitSuffix
+        className="left"
+        value={`${position.x}px`}
+        units={["px"]}
+        onChange={(value) => commit("x", value)}
+        isDisabled={!position.editable}
+        min={-99999}
+        max={99999}
+      />
+      <PropertyUnitInput
+        label="Y"
+        unitSuffix
+        className="top"
+        value={`${position.y}px`}
+        units={["px"]}
+        onChange={(value) => commit("y", value)}
+        isDisabled={!position.editable}
         min={-99999}
         max={99999}
       />
@@ -457,6 +508,13 @@ const TransformSectionContent = memo(function TransformSectionContent({
   };
 
   if (part === "position") {
+    if (host.pagePosition && styleValues.isBody)
+      return (
+        <HostPagePositionRow
+          pagePosition={host.pagePosition}
+          selectedId={selectedId}
+        />
+      );
     return pagePositionPageId ? (
       <PagePositionRow pageId={pagePositionPageId} />
     ) : styleValues.isBody ? null : (

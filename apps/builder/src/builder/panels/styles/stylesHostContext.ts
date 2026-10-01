@@ -93,6 +93,19 @@ export interface StylesHost {
   /** The old Canvas editor presentation channel (live paint while editing) is available. */
   presentation: boolean;
   /**
+   * A page body's position on the page canvas, which the Position row edits (absent = the old
+   * store's page positions): `usePosition` is a hook (null = not a page body).
+   */
+  pagePosition?: {
+    usePosition(selectedId: string | null): {
+      pageId: string;
+      x: number;
+      y: number;
+      editable: boolean;
+    } | null;
+    commit(pageId: string, point: { x: number; y: number }): void;
+  };
+  /**
    * The color picker's Document palette sources from the host's own document (absent = the old
    * store's elements): `revision` changes when they may have changed.
    */
