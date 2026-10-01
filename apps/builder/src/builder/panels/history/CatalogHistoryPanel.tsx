@@ -1,5 +1,5 @@
-import { useSyncExternalStore } from "react";
-import { Ellipsis, File, History, Pencil, Redo, Undo } from "lucide-react";
+import { useState, useSyncExternalStore } from "react";
+import { Ellipsis, File, History, Redo, Undo } from "lucide-react";
 import { Menu, MenuItem, MenuTrigger } from "react-aria-components/Menu";
 import { Popover } from "react-aria-components/Popover";
 import { Button, Toolbar } from "@composition/shared/components";
@@ -16,15 +16,18 @@ import {
   Section,
 } from "../../components";
 import { ActionIconButton } from "../../components/ui";
+import { ConfirmDialog } from "../../components/overlay";
 import { ACTION_ICONS } from "../../config/actionIcons";
+import { catalogHistoryEntryView } from "./catalogHistoryLabels";
 import "./HistoryPanel.css";
 
 const DeleteIcon = ACTION_ICONS.delete;
 
 /**
  * ADR-248 Phase 4e-4: History of the open catalog project — the single project history (one entry
- * per command). Undo · redo, jump to an entry (undo/redo up to it) and clear. Snapshots have no
- * counterpart in the new runtime yet, so they are not shown.
+ * per command, localized with its family icon and its time for assistive tech). Undo · redo, jump
+ * to an entry (undo/redo up to it) and clear after a confirmation. Snapshots have no counterpart
+ * in the new runtime yet, so they are not shown.
  */
 export function CatalogHistoryPanel() {
   return (
@@ -37,15 +40,19 @@ export function CatalogHistoryPanel() {
 }
 
 function CatalogHistoryContent() {
-  const { t } = useI18n();
+  const { t, formatTime } = useI18n();
   const workspace = useCatalogWorkspace();
   const { history } = workspace;
-  const { labels, applied } = useSyncExternalStore(
+  const [confirmClear, setConfirmClear] = useState(false);
+  const { labels, applied, times } = useSyncExternalStore(
     history.subscribe,
     history.getSnapshot,
   );
-  // Row 0 = the opened state; row i = after entry i.
-  const rows = [t("history.initialState"), ...labels];
+  // Row 0 = the opened state; row i = after entry i (localized label and its family icon).
+  const rows = [
+    { text: t("history.initialState"), Icon: File },
+    ...labels.map((label) => catalogHistoryEntryView(label, t)),
+  ];
   return (
     <>
       <PanelHeader
@@ -89,17 +96,17 @@ function CatalogHistoryContent() {
                   className="history-menu"
                   aria-label={t("history.menuLabel")}
                   onAction={(key) => {
-                    if (key === "clear-history") history.clear();
+                    if (key === "clear-history") setConfirmClear(true);
                   }}
                 >
                   <MenuItem
                     id="clear-history"
                     className="history-menu-item"
                     data-destructive="true"
-                    textValue={t("history.clearPage")}
+                    textValue={t("history.clearAll")}
                   >
                     <DeleteIcon size={iconSmall.size} />
-                    <span>{t("history.clearPage")}</span>
+                    <span>{t("history.clearAll")}</span>
                   </MenuItem>
                 </Menu>
               </Popover>
@@ -126,9 +133,13 @@ function CatalogHistoryContent() {
             />
           ) : (
             <div className="history-list">
-              {rows.map((label, index) => {
+              {rows.map(({ text: label, Icon }, index) => {
                 const isActive = index === applied;
-                const Icon = index === 0 ? File : Pencil;
+                // Time and ordinal for assistive tech, as the old panel did (not drawn).
+                const details =
+                  index > 0
+                    ? `${formatTime(new Date(times[index - 1]))} · ${t("history.entryOrdinal", { index })}`
+                    : undefined;
                 return (
                   <div
                     key={index}
@@ -143,11 +154,13 @@ function CatalogHistoryContent() {
                       onPress={() => history.goTo(index)}
                       className="history-item-btn"
                       aria-current={isActive ? "step" : undefined}
-                      aria-label={
-                        isActive
-                          ? `${label}, ${t("history.currentState")}`
-                          : label
-                      }
+                      aria-label={[
+                        label,
+                        details,
+                        isActive ? t("history.currentState") : undefined,
+                      ]
+                        .filter(Boolean)
+                        .join(", ")}
                     >
                       <span className="history-item-icon">
                         <Icon size={iconSmall.size} />
@@ -163,6 +176,16 @@ function CatalogHistoryContent() {
           )}
         </Section>
       </PanelContents>
+      <ConfirmDialog
+        isOpen={confirmClear}
+        title={t("history.confirmClearAllTitle")}
+        message={t("history.confirmClearAll")}
+        onConfirm={() => {
+          setConfirmClear(false);
+          history.clear();
+        }}
+        onCancel={() => setConfirmClear(false)}
+      />
     </>
   );
 }

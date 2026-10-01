@@ -27,6 +27,8 @@ export interface CatalogExternalEffect {
 }
 interface HistoryEntry {
   label: string;
+  /** When the action ran (epoch ms) — the History panel's time column. */
+  at: number;
   forward: readonly CatalogOperation[];
   inverse: readonly CatalogOperation[];
   external?: CatalogExternalEffect;
@@ -211,6 +213,18 @@ export class CatalogRuntime {
       redo: [...session.redo].reverse().map((entry) => entry.label),
     };
   }
+  /** History entries of the active project with their times: undo (oldest first), redo (next first). */
+  get historyEntries(): {
+    undo: readonly { label: string; at: number }[];
+    redo: readonly { label: string; at: number }[];
+  } {
+    const session = this.current();
+    const view = ({ label, at }: HistoryEntry) => ({ label, at });
+    return {
+      undo: session.undo.map(view),
+      redo: [...session.redo].reverse().map(view),
+    };
+  }
   /** Drop the active project's undo and redo entries (the document and saves stay). */
   clearHistory(): void {
     const session = this.current();
@@ -230,6 +244,7 @@ export class CatalogRuntime {
     if (entries.some((entry) => entry.external)) return false;
     session.undo.splice(-count, count, {
       label,
+      at: entries.at(-1)!.at,
       forward: entries.flatMap((entry) => entry.forward),
       inverse: [...entries].reverse().flatMap((entry) => entry.inverse),
     });
@@ -276,7 +291,13 @@ export class CatalogRuntime {
   ): CatalogTransactionResult | undefined {
     const session = this.current();
     if (!ops.length) {
-      session.undo.push({ label, forward: [], inverse: [], external: effect });
+      session.undo.push({
+        label,
+        at: Date.now(),
+        forward: [],
+        inverse: [],
+        external: effect,
+      });
       session.redo.length = 0;
       this.notifyHistory(session);
       return undefined;
@@ -290,6 +311,7 @@ export class CatalogRuntime {
       (step) => {
         session.undo.push({
           label,
+          at: Date.now(),
           forward: step.forward,
           inverse: step.inverse,
           external: effect,
@@ -395,6 +417,7 @@ export class CatalogRuntime {
       (step) => {
         session.undo.push({
           label,
+          at: Date.now(),
           forward: step.forward,
           inverse: step.inverse,
         });

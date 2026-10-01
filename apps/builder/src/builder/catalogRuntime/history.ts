@@ -5,6 +5,8 @@ export interface CatalogHistorySnapshot {
   readonly labels: readonly string[];
   /** How many entries are applied (`labels.slice(0, applied)`); 0 = the opened state. */
   readonly applied: number;
+  /** When each entry's action ran (epoch ms), in `labels` order. */
+  readonly times: readonly number[];
 }
 
 /**
@@ -49,15 +51,24 @@ export class CatalogHistoryStore {
   }
 
   private read(): CatalogHistorySnapshot {
-    const { undo, redo } = this.runtime.historyLabels;
-    return { labels: [...undo, ...redo], applied: undo.length };
+    const { undo, redo } = this.runtime.historyEntries;
+    const entries = [...undo, ...redo];
+    return {
+      labels: entries.map((entry) => entry.label),
+      applied: undo.length,
+      times: entries.map((entry) => entry.at),
+    };
   }
   private refresh(): void {
     const next = this.read();
     if (
       next.applied === this.snapshot.applied &&
       next.labels.length === this.snapshot.labels.length &&
-      next.labels.every((label, index) => label === this.snapshot.labels[index])
+      next.labels.every(
+        (label, index) =>
+          label === this.snapshot.labels[index] &&
+          next.times[index] === this.snapshot.times[index],
+      )
     )
       return;
     this.snapshot = next;

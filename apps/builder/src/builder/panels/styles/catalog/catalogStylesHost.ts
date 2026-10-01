@@ -22,6 +22,7 @@ import {
 } from "../../../catalogRuntime/styleFields";
 import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
 import { catalogBoxModel } from "../../../catalogRuntime/boxModel";
+import { catalogDocumentColorSources } from "../../../catalogRuntime/documentColors";
 import {
   catalogFieldsAt,
   catalogOverrideSeed,
@@ -535,6 +536,12 @@ export function createCatalogStylesHost(
       );
     },
     presentation: false,
+    documentColors: {
+      subscribe: (listener) =>
+        workspace.runtime.subscribeSteps(() => listener()),
+      revision: () => workspace.runtime.graph.revision,
+      read: () => catalogDocumentColorSources(workspace.runtime.graph),
+    },
   };
   return host;
 }

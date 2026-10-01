@@ -6,7 +6,8 @@
  * props.style, 없으면 (legacy) store elements. 색 키는 backgroundColor · color · borderColor
  * + color fill. 정규화는 hex8, 빈도 순, 상한 12 (6열 두 행).
  */
-import { useMemo } from "react";
+import { useMemo, useSyncExternalStore } from "react";
+import { useStylesHost } from "../stylesHost";
 import { useStore } from "../../../stores";
 import { getActiveCanonicalDocument } from "../../../stores/canonical/canonicalElementsBridge";
 import { getNodeMap } from "../../../stores/canonical/canonicalTraversalHelpers";
@@ -64,10 +65,22 @@ export function collectDocumentColors(
     .map(([hex]) => hex);
 }
 
+const NO_SUBSCRIBE = () => () => {};
+const NO_REVISION = () => 0;
+
 export function useDocumentColors(): string[] {
+  // A host with its own document (the catalog Styles panel) gives the sources; else the old store.
+  const host = useStylesHost().documentColors;
+  const revision = useSyncExternalStore(
+    host?.subscribe ?? NO_SUBSCRIBE,
+    host?.revision ?? NO_REVISION,
+  );
   // 편집마다 배열 참조가 바뀐다 — 피커가 열려 있을 때만 mount 되는 컴포넌트라 비용은 열림 동안뿐
-  const elements = useStore((state) => state.elements);
+  const elements = useStore((state) => (host ? null : state.elements));
   return useMemo(() => {
+    void revision;
+    if (host) return collectDocumentColors(host.read());
+    if (!elements) return [];
     const doc = getActiveCanonicalDocument();
     if (doc) {
       const nodes = Array.from(getNodeMap().values());
@@ -84,5 +97,5 @@ export function useDocumentColors(): string[] {
         fills: element.fills,
       })),
     );
-  }, [elements]);
+  }, [elements, host, revision]);
 }

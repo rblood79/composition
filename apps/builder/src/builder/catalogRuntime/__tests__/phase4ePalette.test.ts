@@ -131,13 +131,13 @@ describe("ADR-248 Phase 4e-4 History", () => {
   it("lists the labels, jumps by undo/redo, and clears", async () => {
     const { workspace, add, children } = await open();
     const history = workspace.history;
-    expect(history.getSnapshot()).toEqual({ labels: [], applied: 0 });
+    expect(history.getSnapshot()).toMatchObject({ labels: [], applied: 0 });
     let notified = 0;
     history.subscribe(() => notified++);
     add("frame");
     add("Heading");
     add("Button");
-    expect(history.getSnapshot()).toEqual({
+    expect(history.getSnapshot()).toMatchObject({
       labels: ["Add element", "Add element", "Add element"],
       applied: 3,
     });
@@ -152,7 +152,7 @@ describe("ADR-248 Phase 4e-4 History", () => {
 
     history.goTo(2);
     history.clear();
-    expect(history.getSnapshot()).toEqual({ labels: [], applied: 0 });
+    expect(history.getSnapshot()).toMatchObject({ labels: [], applied: 0 });
     expect(workspace.runtime.historyDepth).toEqual({ undo: 0, redo: 0 });
     // The document stays as it was when cleared.
     expect(children(children(BODY)[0])).toHaveLength(1);

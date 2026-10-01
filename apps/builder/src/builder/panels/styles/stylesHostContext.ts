@@ -92,6 +92,18 @@ export interface StylesHost {
   useSelectedElement(): SelectedElement | null;
   /** The old Canvas editor presentation channel (live paint while editing) is available. */
   presentation: boolean;
+  /**
+   * The color picker's Document palette sources from the host's own document (absent = the old
+   * store's elements): `revision` changes when they may have changed.
+   */
+  documentColors?: {
+    subscribe(listener: () => void): () => void;
+    revision(): number;
+    read(): Iterable<{
+      style?: Record<string, unknown> | null;
+      fills?: readonly FillItem[] | null;
+    }>;
+  };
 }
 
 /** `null` = the old store (`STORE_STYLES_HOST`); the catalog Styles panel provides its own. */
