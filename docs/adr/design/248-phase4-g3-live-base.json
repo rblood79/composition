@@ -29,7 +29,7 @@
     "types": 64,
     "PASS": 63,
     "PASS_withApprovedDifferences": 33,
-    "previewDefectFollowed": 8,
+    "previewDefectFollowed": 3,
     "FAIL": 0,
     "UNVERIFIED": 1,
     "NOT_RUN": 0,
@@ -54,8 +54,8 @@
       "types": 28
     },
     "contentHeight": {
-      "nodes": 45,
-      "types": 27
+      "nodes": 43,
+      "types": 25
     },
     "contentMinHeight": {
       "nodes": 21,
@@ -8984,7 +8984,7 @@
           "old": "component-combobox__2/component-combobox__2_2",
           "key": "minWidth",
           "oldValue": null,
-          "newValue": "68px"
+          "newValue": "auto"
         },
         {
           "old": "component-combobox__2/component-combobox__2_2",
@@ -9031,247 +9031,13 @@
       ],
       "geometry": {
         "pairedNodes": 5,
-        "maxDelta": 50,
-        "overOnePx": [
-          {
-            "new": "project:node:subject::lib:template:component-combobox__2_1",
-            "old": "component-combobox__2/component-combobox__2_1",
-            "newRect": {
-              "x": 43,
-              "y": 61,
-              "width": 130,
-              "height": 20
-            },
-            "oldRect": {
-              "x": 43,
-              "y": 61,
-              "width": 180,
-              "height": 20
-            },
-            "newInput": {
-              "self": {
-                "type": "SelectValue",
-                "props": {
-                  "children": "Type or select...",
-                  "placeholder": "Type or select...",
-                  "size": "md"
-                },
-                "layout": {
-                  "display": "block",
-                  "flexGrow": "1",
-                  "flexShrink": "1",
-                  "flexBasis": "auto"
-                },
-                "sizing": {},
-                "visual": {
-                  "color": "#171717",
-                  "fontSize": 14,
-                  "minWidth": 0,
-                  "borderWidth": 0,
-                  "paddingY": 0,
-                  "paddingX": 0,
-                  "lineHeight": 1.4285714285714286
-                },
-                "placement": null,
-                "engineInput": {
-                  "display": "block",
-                  "minWidth": "0px",
-                  "paddingTop": "0px",
-                  "paddingBottom": "0px",
-                  "paddingRight": "0px",
-                  "paddingLeft": "0px",
-                  "borderTop": "0px",
-                  "borderRight": "0px",
-                  "borderBottom": "0px",
-                  "borderLeft": "0px",
-                  "flexGrow": 1,
-                  "flexShrink": 1,
-                  "flexBasis": "auto",
-                  "contentHeight": 20
-                }
-              },
-              "parent": {
-                "type": "SelectTrigger",
-                "props": {
-                  "variant": "default",
-                  "size": "md"
-                },
-                "layout": {
-                  "display": "flex",
-                  "flexDirection": "row",
-                  "alignItems": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "fill": "#fafafa",
-                  "borderColor": "#d4d4d4",
-                  "color": "#171717",
-                  "fontSize": 14,
-                  "radius": 6,
-                  "iconSize": 18,
-                  "paddingX": 12,
-                  "paddingY": 4,
-                  "borderWidth": 1,
-                  "gap": 4,
-                  "width": "100%",
-                  "paddingRight": 4
-                },
-                "placement": null,
-                "engineInput": {
-                  "display": "flex",
-                  "flexDirection": "row",
-                  "alignItems": "center",
-                  "width": "100%",
-                  "rowGap": "4px",
-                  "columnGap": "4px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "4px",
-                  "paddingLeft": "12px",
-                  "borderTop": "1px",
-                  "borderRight": "1px",
-                  "borderBottom": "1px",
-                  "borderLeft": "1px"
-                }
-              }
-            },
-            "oldEngineInput": {
-              "display": "block",
-              "height": "20px",
-              "minWidth": "0px",
-              "leafBaseline": 15.7119140625,
-              "flexGrow": 1,
-              "flexShrink": 1,
-              "flexBasis": "0%",
-              "whiteSpace": "nowrap",
-              "overflow": "hidden",
-              "textOverflow": "ellipsis"
-            }
-          },
-          {
-            "new": "project:node:subject::lib:template:component-combobox__2_2",
-            "old": "component-combobox__2/component-combobox__2_2",
-            "newRect": {
-              "x": 177,
-              "y": 62,
-              "width": 68,
-              "height": 18
-            },
-            "oldRect": {
-              "x": 227,
-              "y": 62,
-              "width": 18,
-              "height": 18
-            },
-            "newInput": {
-              "self": {
-                "type": "SelectIcon",
-                "props": {
-                  "size": "md",
-                  "iconName": "chevron-down"
-                },
-                "layout": {
-                  "display": "block",
-                  "position": "static",
-                  "flexGrow": "0",
-                  "flexShrink": "0",
-                  "flexBasis": "auto"
-                },
-                "sizing": {},
-                "visual": {
-                  "color": "#525252",
-                  "iconSize": 18,
-                  "gap": 8,
-                  "minWidth": 68,
-                  "paddingY": 0,
-                  "paddingX": 0,
-                  "borderWidth": 0,
-                  "width": 18,
-                  "height": 18
-                },
-                "placement": null,
-                "engineInput": {
-                  "display": "block",
-                  "width": "18px",
-                  "height": "18px",
-                  "minWidth": "68px",
-                  "rowGap": "8px",
-                  "columnGap": "8px",
-                  "paddingTop": "0px",
-                  "paddingBottom": "0px",
-                  "paddingRight": "0px",
-                  "paddingLeft": "0px",
-                  "borderTop": "0px",
-                  "borderRight": "0px",
-                  "borderBottom": "0px",
-                  "borderLeft": "0px",
-                  "flexGrow": 0,
-                  "flexShrink": 0,
-                  "flexBasis": "auto",
-                  "contentMinWidth": 18,
-                  "contentMaxWidth": 18,
-                  "contentHeight": 18,
-                  "contentMinHeight": 18
-                }
-              },
-              "parent": {
-                "type": "SelectTrigger",
-                "props": {
-                  "variant": "default",
-                  "size": "md"
-                },
-                "layout": {
-                  "display": "flex",
-                  "flexDirection": "row",
-                  "alignItems": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "fill": "#fafafa",
-                  "borderColor": "#d4d4d4",
-                  "color": "#171717",
-                  "fontSize": 14,
-                  "radius": 6,
-                  "iconSize": 18,
-                  "paddingX": 12,
-                  "paddingY": 4,
-                  "borderWidth": 1,
-                  "gap": 4,
-                  "width": "100%",
-                  "paddingRight": 4
-                },
-                "placement": null,
-                "engineInput": {
-                  "display": "flex",
-                  "flexDirection": "row",
-                  "alignItems": "center",
-                  "width": "100%",
-                  "rowGap": "4px",
-                  "columnGap": "4px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "4px",
-                  "paddingLeft": "12px",
-                  "borderTop": "1px",
-                  "borderRight": "1px",
-                  "borderBottom": "1px",
-                  "borderLeft": "1px"
-                }
-              }
-            },
-            "oldEngineInput": {
-              "display": "block",
-              "width": "18px",
-              "height": "18px",
-              "flexShrink": 0
-            }
-          }
-        ],
+        "maxDelta": 0.5800018310546875,
+        "overOnePx": [],
         "unpaired": [],
         "unpairedCount": 0,
         "oldSyntheticWrappers": [],
         "pass": true,
-        "strictPass": false,
+        "strictPass": true,
         "unapprovedCount": 0
       },
       "canvasDom": {
@@ -9279,26 +9045,7 @@
         "ownedPairs": 4,
         "maxDelta": 0.0175018310546875,
         "overOnePx": [],
-        "geometryArbiter": [
-          {
-            "new": "project:node:subject::lib:template:component-combobox__2_1",
-            "dom": {
-              "x": 43,
-              "y": 61,
-              "width": 130,
-              "height": 20
-            }
-          },
-          {
-            "new": "project:node:subject::lib:template:component-combobox__2_2",
-            "dom": {
-              "x": 177,
-              "y": 62,
-              "width": 68,
-              "height": 18
-            }
-          }
-        ],
+        "geometryArbiter": [],
         "missing": [],
         "missingCount": 0,
         "pass": true
@@ -9310,25 +9057,11 @@
           "rule": "subpixel-intrinsic-width-ceil",
           "class": "oldDefect",
           "edges": true
-        },
-        {
-          "new": "project:node:subject::lib:template:component-combobox__2_1",
-          "old": "component-combobox__2/component-combobox__2_1",
-          "rule": "button-min-width-68",
-          "class": "previewFollow"
-        },
-        {
-          "new": "project:node:subject::lib:template:component-combobox__2_2",
-          "old": "component-combobox__2/component-combobox__2_2",
-          "rule": "button-min-width-68",
-          "class": "previewFollow"
         }
       ],
       "approvedClasses": [
-        "oldDefect",
-        "previewFollow"
+        "oldDefect"
       ],
-      "previewDefectFollowed": true,
       "liveIdentity": {
         "region": "capture clip",
         "pixels": 240000,
@@ -9337,31 +9070,26 @@
         "maxByte": 0
       },
       "L3": {
-        "pixels": 232687,
-        "different": 14,
-        "ratio": 0.000060166661652778193,
-        "maxByte": 139,
-        "diffBounds": [
-          126,
-          36,
-          148,
-          39
-        ],
-        "approvedAttributed": 14,
+        "pixels": 232755,
+        "different": 0,
+        "ratio": 0,
+        "maxByte": 13,
+        "diffBounds": null,
+        "approvedAttributed": 0,
         "movedPaint": {
           "pixels": 0,
           "different": 0,
           "maxByte": 0
         },
         "outsideRatio": 0,
-        "outsideMaxByte": 0,
+        "outsideMaxByte": 13,
         "blocked": false
       },
       "L3e": {
-        "pixels": 6093,
+        "pixels": 6025,
         "different": 0,
         "ratio": 0,
-        "maxByte": 93,
+        "maxByte": 13,
         "diffBounds": null,
         "gated": false
       },
@@ -14878,21 +14606,15 @@
         },
         {
           "old": "component-calendar__1",
-          "key": "contentHeight",
-          "oldValue": 30,
-          "newValue": 42
-        },
-        {
-          "old": "component-calendar__1",
           "key": "contentMinWidth",
           "oldValue": null,
-          "newValue": 183
+          "newValue": 115
         },
         {
           "old": "component-calendar__1",
           "key": "contentMaxWidth",
           "oldValue": null,
-          "newValue": 183
+          "newValue": 115
         },
         {
           "old": "component-calendar__2",
@@ -14921,7 +14643,7 @@
       ],
       "geometry": {
         "pairedNodes": 3,
-        "maxDelta": 42,
+        "maxDelta": 36,
         "overOnePx": [
           {
             "new": "project:node:subject::lib:template:component-calendar__1",
@@ -14930,7 +14652,7 @@
               "x": 39,
               "y": 39,
               "width": 202,
-              "height": 42
+              "height": 30
             },
             "oldRect": {
               "x": 39,
@@ -14975,9 +14697,9 @@
                   "paddingRight": "0px",
                   "paddingLeft": "0px",
                   "verticalAlign": "middle",
-                  "contentMinWidth": 183,
-                  "contentMaxWidth": 183,
-                  "contentHeight": 42
+                  "contentMinWidth": 115,
+                  "contentMaxWidth": 115,
+                  "contentHeight": 30
                 }
               },
               "parent": {
@@ -15054,7 +14776,7 @@
             "old": "component-calendar__2",
             "newRect": {
               "x": 39,
-              "y": 87,
+              "y": 75,
               "width": 238,
               "height": 200
             },
@@ -15182,7 +14904,7 @@
             "new": "project:node:subject::lib:template:component-calendar__2",
             "dom": {
               "x": 39,
-              "y": 87,
+              "y": 75,
               "width": 238,
               "height": 200
             }
@@ -15197,30 +14919,29 @@
           "new": "project:node:subject::lib:template:component-calendar__1",
           "old": "component-calendar__1",
           "rule": "calendar-header",
-          "class": "bothDeviate"
+          "class": "oldDefect"
         },
         {
           "new": "project:node:subject::lib:template:component-calendar__2",
           "old": "component-calendar__2",
           "rule": "calendar-header",
-          "class": "bothDeviate"
+          "class": "oldDefect"
         }
       ],
       "approvedClasses": [
-        "bothDeviate"
+        "oldDefect"
       ],
-      "previewDefectFollowed": true,
       "liveIdentity": {
         "region": "capture clip",
         "pixels": 240000,
-        "different": 23,
-        "ratio": 0.00009583333333333334,
-        "maxByte": 153
+        "different": 106,
+        "ratio": 0.00044166666666666665,
+        "maxByte": 173
       },
       "L3": {
-        "pixels": 209905,
+        "pixels": 211097,
         "different": 29,
-        "ratio": 0.00013815773802434435,
+        "ratio": 0.00013737760366087627,
         "maxByte": 191,
         "diffBounds": [
           159,
@@ -15239,9 +14960,9 @@
         "blocked": false
       },
       "L3e": {
-        "pixels": 4089,
+        "pixels": 3993,
         "different": 68,
-        "ratio": 0.016629982880899976,
+        "ratio": 0.017029802153769095,
         "maxByte": 232,
         "diffBounds": [
           71,
@@ -15252,15 +14973,15 @@
         "gated": false
       },
       "text": {
-        "pixels": 26006,
-        "different": 1446,
-        "ratio": 0.055602553256940704,
+        "pixels": 24910,
+        "different": 1445,
+        "ratio": 0.05800883179446006,
         "maxByte": 232,
         "diffBounds": [
           20,
           16,
           166,
-          181
+          173
         ],
         "gated": false
       },
@@ -15371,7 +15092,7 @@
           "old": "component-datepicker__2/component-datepicker__2_2",
           "key": "minWidth",
           "oldValue": null,
-          "newValue": "68px"
+          "newValue": "auto"
         },
         {
           "old": "component-datepicker__2/component-datepicker__2_2",
@@ -15412,7 +15133,7 @@
       ],
       "geometry": {
         "pairedNodes": 5,
-        "maxDelta": 50,
+        "maxDelta": 8,
         "overOnePx": [
           {
             "new": "project:node:subject::lib:template:component-datepicker__2_1",
@@ -15420,7 +15141,7 @@
             "newRect": {
               "x": 43,
               "y": 59,
-              "width": 130,
+              "width": 180,
               "height": 20
             },
             "oldRect": {
@@ -15535,9 +15256,9 @@
             "new": "project:node:subject::lib:template:component-datepicker__2_2",
             "old": "component-datepicker__2/component-datepicker__2_2",
             "newRect": {
-              "x": 177,
+              "x": 227,
               "y": 60,
-              "width": 68,
+              "width": 18,
               "height": 18
             },
             "oldRect": {
@@ -15564,7 +15285,7 @@
                   "color": "#525252",
                   "iconSize": 18,
                   "gap": 8,
-                  "minWidth": 68,
+                  "minWidth": "auto",
                   "borderWidth": 0,
                   "width": 18,
                   "height": 18,
@@ -15578,7 +15299,7 @@
                   "justifyContent": "center",
                   "width": "18px",
                   "height": "18px",
-                  "minWidth": "68px",
+                  "minWidth": "auto",
                   "rowGap": "8px",
                   "columnGap": "8px",
                   "paddingTop": "0px",
@@ -15671,16 +15392,16 @@
             "dom": {
               "x": 43,
               "y": 59,
-              "width": 130,
+              "width": 180,
               "height": 20
             }
           },
           {
             "new": "project:node:subject::lib:template:component-datepicker__2_2",
             "dom": {
-              "x": 177,
+              "x": 227,
               "y": 60,
-              "width": 68,
+              "width": 18,
               "height": 18
             }
           }
@@ -15693,21 +15414,19 @@
         {
           "new": "project:node:subject::lib:template:component-datepicker__2_1",
           "old": "component-datepicker__2/component-datepicker__2_1",
-          "rule": "datepicker-dateinput",
-          "class": "bothDeviate"
+          "rule": "datepicker-trigger-padding-right",
+          "class": "oldDefect"
         },
         {
           "new": "project:node:subject::lib:template:component-datepicker__2_2",
           "old": "component-datepicker__2/component-datepicker__2_2",
-          "rule": "button-min-width-68",
-          "class": "previewFollow"
+          "rule": "datepicker-trigger-padding-right",
+          "class": "oldDefect"
         }
       ],
       "approvedClasses": [
-        "bothDeviate",
-        "previewFollow"
+        "oldDefect"
       ],
-      "previewDefectFollowed": true,
       "liveIdentity": {
         "region": "capture clip",
         "pixels": 240000,
@@ -15716,17 +15435,17 @@
         "maxByte": 0
       },
       "L3": {
-        "pixels": 232278,
-        "different": 23,
-        "ratio": 0.0000990192786230293,
+        "pixels": 231972,
+        "different": 9,
+        "ratio": 0.000038797785939682375,
         "maxByte": 186,
         "diffBounds": [
-          127,
+          144,
           34,
-          145,
+          148,
           39
         ],
-        "approvedAttributed": 23,
+        "approvedAttributed": 9,
         "movedPaint": {
           "pixels": 0,
           "different": 0,
@@ -15737,9 +15456,9 @@
         "blocked": false
       },
       "L3e": {
-        "pixels": 5914,
-        "different": 24,
-        "ratio": 0.004058167061210686,
+        "pixels": 5744,
+        "different": 26,
+        "ratio": 0.004526462395543176,
         "maxByte": 186,
         "diffBounds": [
           17,
@@ -15750,15 +15469,15 @@
         "gated": false
       },
       "text": {
-        "pixels": 1808,
-        "different": 196,
-        "ratio": 0.1084070796460177,
+        "pixels": 2284,
+        "different": 206,
+        "ratio": 0.09019264448336252,
         "maxByte": 227,
         "diffBounds": [
           17,
           32,
-          91,
-          40
+          137,
+          42
         ],
         "gated": false
       },
@@ -15886,7 +15605,7 @@
           "old": "component-daterangepicker__2/component-daterangepicker__2_2",
           "key": "minWidth",
           "oldValue": null,
-          "newValue": "68px"
+          "newValue": "auto"
         },
         {
           "old": "component-daterangepicker__2/component-daterangepicker__2_2",
@@ -15927,7 +15646,7 @@
       ],
       "geometry": {
         "pairedNodes": 5,
-        "maxDelta": 50,
+        "maxDelta": 8,
         "overOnePx": [
           {
             "new": "project:node:subject::lib:template:component-daterangepicker__1",
@@ -16047,7 +15766,7 @@
             "newRect": {
               "x": 43,
               "y": 59,
-              "width": 170.69000244140625,
+              "width": 180,
               "height": 20
             },
             "oldRect": {
@@ -16146,9 +15865,9 @@
             "new": "project:node:subject::lib:template:component-daterangepicker__2_2",
             "old": "component-daterangepicker__2/component-daterangepicker__2_2",
             "newRect": {
-              "x": 217.69000244140625,
+              "x": 227,
               "y": 60,
-              "width": 68,
+              "width": 18,
               "height": 18
             },
             "oldRect": {
@@ -16175,7 +15894,7 @@
                   "color": "#525252",
                   "iconSize": 18,
                   "gap": 8,
-                  "minWidth": 68,
+                  "minWidth": "auto",
                   "borderWidth": 0,
                   "width": 18,
                   "height": 18,
@@ -16189,7 +15908,7 @@
                   "justifyContent": "center",
                   "width": "18px",
                   "height": "18px",
-                  "minWidth": "68px",
+                  "minWidth": "auto",
                   "rowGap": "8px",
                   "columnGap": "8px",
                   "paddingTop": "0px",
@@ -16274,7 +15993,7 @@
       "canvasDom": {
         "pairedNodes": 5,
         "ownedPairs": 4,
-        "maxDelta": 0.18499755859375,
+        "maxDelta": 0.001251220703125,
         "overOnePx": [],
         "geometryArbiter": [
           {
@@ -16291,16 +16010,16 @@
             "dom": {
               "x": 43,
               "y": 59,
-              "width": 170.875,
+              "width": 180,
               "height": 20
             }
           },
           {
             "new": "project:node:subject::lib:template:component-daterangepicker__2_2",
             "dom": {
-              "x": 217.875,
+              "x": 227,
               "y": 60,
-              "width": 68,
+              "width": 18,
               "height": 18
             }
           }
@@ -16319,22 +16038,19 @@
         {
           "new": "project:node:subject::lib:template:component-daterangepicker__2_1",
           "old": "component-daterangepicker__2/component-daterangepicker__2_1",
-          "rule": "datepicker-dateinput",
-          "class": "bothDeviate"
+          "rule": "datepicker-trigger-padding-right",
+          "class": "oldDefect"
         },
         {
           "new": "project:node:subject::lib:template:component-daterangepicker__2_2",
           "old": "component-daterangepicker__2/component-daterangepicker__2_2",
-          "rule": "button-min-width-68",
-          "class": "previewFollow"
+          "rule": "datepicker-trigger-padding-right",
+          "class": "oldDefect"
         }
       ],
       "approvedClasses": [
-        "oldDefect",
-        "bothDeviate",
-        "previewFollow"
+        "oldDefect"
       ],
-      "previewDefectFollowed": true,
       "liveIdentity": {
         "region": "capture clip",
         "pixels": 240000,
@@ -16343,48 +16059,48 @@
         "maxByte": 0
       },
       "L3": {
-        "pixels": 231687,
-        "different": 17,
-        "ratio": 0.00007337485486885324,
+        "pixels": 231963,
+        "different": 13,
+        "ratio": 0.00005604342071795933,
         "maxByte": 186,
         "diffBounds": [
-          137,
+          144,
           34,
-          159,
+          161,
           49
         ],
-        "approvedAttributed": 16,
+        "approvedAttributed": 9,
         "movedPaint": {
           "pixels": 0,
           "different": 0,
           "maxByte": 0
         },
-        "outsideRatio": 0.000004316167933461955,
-        "outsideMaxByte": 69,
+        "outsideRatio": 0.000017244129451679793,
+        "outsideMaxByte": 149,
         "blocked": false
       },
       "L3e": {
-        "pixels": 6102,
-        "different": 286,
-        "ratio": 0.04686987872828581,
+        "pixels": 5742,
+        "different": 279,
+        "ratio": 0.048589341692789965,
         "maxByte": 223,
         "diffBounds": [
           17,
           32,
-          161,
+          158,
           50
         ],
         "gated": false
       },
       "text": {
-        "pixels": 2211,
-        "different": 231,
-        "ratio": 0.1044776119402985,
+        "pixels": 2295,
+        "different": 241,
+        "ratio": 0.10501089324618737,
         "maxByte": 232,
         "diffBounds": [
           8,
           13,
-          125,
+          137,
           43
         ],
         "gated": false
@@ -16828,21 +16544,15 @@
         },
         {
           "old": "component-rangecalendar__1",
-          "key": "contentHeight",
-          "oldValue": 30,
-          "newValue": 42
-        },
-        {
-          "old": "component-rangecalendar__1",
           "key": "contentMinWidth",
           "oldValue": null,
-          "newValue": 183
+          "newValue": 115
         },
         {
           "old": "component-rangecalendar__1",
           "key": "contentMaxWidth",
           "oldValue": null,
-          "newValue": 183
+          "newValue": 115
         },
         {
           "old": "component-rangecalendar__2",
@@ -16871,7 +16581,7 @@
       ],
       "geometry": {
         "pairedNodes": 3,
-        "maxDelta": 42,
+        "maxDelta": 36,
         "overOnePx": [
           {
             "new": "project:node:subject::lib:template:component-rangecalendar__1",
@@ -16880,7 +16590,7 @@
               "x": 39,
               "y": 39,
               "width": 202,
-              "height": 42
+              "height": 30
             },
             "oldRect": {
               "x": 39,
@@ -16923,9 +16633,9 @@
                   "paddingBottom": "0px",
                   "paddingRight": "0px",
                   "paddingLeft": "0px",
-                  "contentMinWidth": 183,
-                  "contentMaxWidth": 183,
-                  "contentHeight": 42
+                  "contentMinWidth": 115,
+                  "contentMaxWidth": 115,
+                  "contentHeight": 30
                 }
               },
               "parent": {
@@ -17001,7 +16711,7 @@
             "old": "component-rangecalendar__2",
             "newRect": {
               "x": 39,
-              "y": 87,
+              "y": 75,
               "width": 238,
               "height": 200
             },
@@ -17129,7 +16839,7 @@
             "new": "project:node:subject::lib:template:component-rangecalendar__2",
             "dom": {
               "x": 39,
-              "y": 87,
+              "y": 75,
               "width": 238,
               "height": 200
             }
@@ -17144,19 +16854,18 @@
           "new": "project:node:subject::lib:template:component-rangecalendar__1",
           "old": "component-rangecalendar__1",
           "rule": "calendar-header",
-          "class": "bothDeviate"
+          "class": "oldDefect"
         },
         {
           "new": "project:node:subject::lib:template:component-rangecalendar__2",
           "old": "component-rangecalendar__2",
           "rule": "calendar-header",
-          "class": "bothDeviate"
+          "class": "oldDefect"
         }
       ],
       "approvedClasses": [
-        "bothDeviate"
+        "oldDefect"
       ],
-      "previewDefectFollowed": true,
       "liveIdentity": {
         "region": "capture clip",
         "pixels": 240000,
@@ -17165,9 +16874,9 @@
         "maxByte": 1
       },
       "L3": {
-        "pixels": 209905,
+        "pixels": 211097,
         "different": 29,
-        "ratio": 0.00013815773802434435,
+        "ratio": 0.00013737760366087627,
         "maxByte": 191,
         "diffBounds": [
           159,
@@ -17186,9 +16895,9 @@
         "blocked": false
       },
       "L3e": {
-        "pixels": 4089,
+        "pixels": 3993,
         "different": 68,
-        "ratio": 0.016629982880899976,
+        "ratio": 0.017029802153769095,
         "maxByte": 232,
         "diffBounds": [
           71,
@@ -17199,15 +16908,15 @@
         "gated": false
       },
       "text": {
-        "pixels": 26006,
+        "pixels": 24910,
         "different": 1445,
-        "ratio": 0.05556410059217104,
+        "ratio": 0.05800883179446006,
         "maxByte": 232,
         "diffBounds": [
           20,
           16,
           166,
-          181
+          173
         ],
         "gated": false
       },

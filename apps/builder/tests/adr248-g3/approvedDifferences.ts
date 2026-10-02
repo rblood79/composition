@@ -145,6 +145,7 @@ export const APPROVED_DIFFERENCES: readonly ApprovedDifference[] = [
     owners: [...FIELD_OWNERS, "Form"],
     nodes: [
       "SelectTrigger",
+      "SelectValue",
       "Input",
       "DateInput",
       "SelectIcon",
@@ -174,6 +175,25 @@ export const APPROVED_DIFFERENCES: readonly ApprovedDifference[] = [
     axes: ["y", "height"],
     reason:
       "old keeps the md Input box (30) at every size; the owner's per-size `--cf-input-*` delegation sizes it",
+  },
+  {
+    id: "calendar-header",
+    class: "oldDefect",
+    owners: ["Calendar", "RangeCalendar"],
+    nodes: ["CalendarHeader", "CalendarGrid"],
+    axes: ALL,
+    noDomBox: true,
+    reason:
+      "old draws the header row 0 tall at the grid width (238); the DOM header row = the nav buttons (height + spacing-xs, 4e-11 min-width reset) · gaps · heading, as tall as the catalog 30",
+  },
+  {
+    id: "combobox-button-size",
+    class: "oldDefect",
+    owners: ["ComboBox"],
+    nodes: ["SelectIcon", "SelectValue"],
+    axes: ALL,
+    reason:
+      "old draws the trigger button at the SelectIcon scale (xs 14 · sm 16); catalog `--combo-btn-size` xs 10 · sm 14",
   },
   {
     id: "searchfield-icon-clear",
@@ -277,23 +297,16 @@ export const APPROVED_DIFFERENCES: readonly ApprovedDifference[] = [
     axes: ALL,
     reason: "old flows an empty `{icon}` as a 24 box",
   },
+  {
+    id: "datepicker-trigger-padding-right",
+    class: "oldDefect",
+    owners: ["DatePicker", "DateRangePicker"],
+    nodes: ["DateInput", "SelectIcon"],
+    axes: ["width", "x"],
+    reason:
+      "old trigger right padding = size paddingX 12; catalog `--dp-group-padding` / `--drp-group-padding` right = spacing-xs 4 (md)",
+  },
   // ── C. Preview defects the new side follows (Phase 4 fixes) ─────────────
-  {
-    id: "button-min-width-68",
-    class: "previewFollow",
-    owners: ["ComboBox", "DatePicker", "DateRangePicker"],
-    nodes: ["SelectIcon", "SelectValue"],
-    axes: ALL,
-    reason: "generic Button `min-width` 68 beats the catalog trigger button 18",
-  },
-  {
-    id: "breadcrumb-css-unloaded",
-    class: "previewFollow",
-    owners: ["Breadcrumbs"],
-    nodes: ["Breadcrumb"],
-    axes: ["height"],
-    reason: "generated Breadcrumb.css not loaded (22.9)",
-  },
   {
     id: "pagination-wrap",
     class: "previewFollow",
@@ -390,24 +403,6 @@ export const APPROVED_DIFFERENCES: readonly ApprovedDifference[] = [
       "the product label span (`.react-aria-Label`) keeps `--label-font-size` text-sm: the Checkbox size does not reach it",
   },
   // ── D. neither side draws the catalog value (new follows the Preview) ───
-  {
-    id: "calendar-header",
-    class: "bothDeviate",
-    owners: ["Calendar", "RangeCalendar"],
-    nodes: ["CalendarHeader", "CalendarGrid"],
-    axes: ALL,
-    noDomBox: true,
-    reason:
-      "old header 0 · Preview 68px nav buttons wrap the heading (42); catalog 30",
-  },
-  {
-    id: "datepicker-dateinput",
-    class: "bothDeviate",
-    owners: ["DatePicker", "DateRangePicker"],
-    nodes: ["DateInput"],
-    axes: ["width", "x"],
-    reason: "old-only paddingX 12 · Preview 68px button",
-  },
   {
     id: "gridlist-section-header",
     class: "bothDeviate",

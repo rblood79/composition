@@ -629,14 +629,15 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
       )!;
     expect(header().derivedProps?.children).toBe(title("ja-JP"));
     expect(measured).not.toContain("2026년 9월");
-    // Header row: two 68px nav buttons (Button default `min-width`) + two gaps + the heading's
-    // min-content, as tall as the buttons (md 30, lg 36) until the heading wraps.
+    // Header row: two nav buttons (height + spacing-xs: md 34, lg 40 — 4e-11 resets the generic
+    // Button `min-width`) + two gaps + the heading's min-content, as tall as the buttons (md 30,
+    // lg 36) until the heading wraps.
     const headerStyle = (height: number) =>
       [...engine.styles.values()].filter(
         (style) =>
           style.contentHeight === height && style.contentMinWidth !== undefined,
       );
-    const row = 2 * 68 + 2 * Number(header().visual.gap ?? 0) + 70;
+    const row = 2 * 34 + 2 * Number(header().visual.gap ?? 0) + 70;
     expect(headerStyle(30)).toEqual([
       expect.objectContaining({ contentMinWidth: row, contentMaxWidth: row }),
     ]);
@@ -651,7 +652,7 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
     expect(new Map(root.canvasInputs)).toEqual(
       new Map(build(new StyleLayoutEngine()).canvasInputs),
     );
-    const lgRow = 2 * 68 + 2 * Number(header().visual.gap ?? 0) + 70;
+    const lgRow = 2 * 40 + 2 * Number(header().visual.gap ?? 0) + 70;
     expect(headerStyle(36)).toEqual([
       expect.objectContaining({
         contentMinWidth: lgRow,

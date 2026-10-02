@@ -276,9 +276,8 @@ export function catalogCalendarTitle(
 /**
  * The calendar header row's DOM composition (`Calendar.tsx` `<header>`: previous Button ·
  * Heading · next Button) at the owner's size. Each nav button is `Calendar.css` `height` ×
- * (`height` + `--spacing-xs`) wide, floored by the general `.react-aria-Button` default
- * `min-width` (the Button rule's default size; the nav buttons carry no `data-size`) — the
- * product DOM's current box. The heading is the size's `font-size` (`Calendar.css`) at
+ * (`height` + `--spacing-xs`) wide (`CalendarCommon.css` resets the general `.react-aria-Button`
+ * default `min-width` — the nav buttons carry no `data-size`). The heading is the size's `font-size` (`Calendar.css`) at
  * `--font-weight-bold`, `line-height` `--text-base--line-height` (`Heading.css`, a unitless ratio —
  * the text measure's `lineHeight` unit).
  */
@@ -301,21 +300,11 @@ export function catalogCalendarHeaderParts(sizeName: string | undefined):
       ? Number(resolveToken(rawFont))
       : Number(rawFont);
   if (typeof navHeight !== "number" || !(fontSize > 0)) return undefined;
-  const button = resolveComponentRule("Button");
-  const buttonSizes = button?.sizes as
-    | Record<string, ComponentRuleSize>
-    | undefined;
-  const minWidth = button?.defaultSize
-    ? Number(buttonSizes?.[button.defaultSize]?.minWidth ?? 0)
-    : 0;
   const ratio =
     Number(resolveToken("{typography.text-base--line-height}")) /
     Number(resolveToken("{typography.text-base}"));
   return {
-    navWidth: Math.max(
-      navHeight + Number(resolveToken("{spacing.xs}")),
-      minWidth,
-    ),
+    navWidth: navHeight + Number(resolveToken("{spacing.xs}")),
     navHeight,
     heading: {
       fontSize,
