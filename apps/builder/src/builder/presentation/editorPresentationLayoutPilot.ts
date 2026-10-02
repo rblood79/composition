@@ -7,25 +7,14 @@ import { parsePresentationLayoutPx } from "./editorPresentationLayoutValue";
 import { useCanonicalDocumentStore } from "../stores/canonical/canonicalDocumentStore";
 import type { EditorPresentationTargetRef } from "./editorPresentationTypes";
 import { isStylePresentationPilotEnabled } from "./editorPresentationStylePilot";
-
-export type LayoutPresentationProperty =
-  | "width"
-  | "height"
-  | "padding"
-  | "paddingTop"
-  | "paddingRight"
-  | "paddingBottom"
-  | "paddingLeft"
-  | "gap"
-  | "rowGap"
-  | "columnGap";
-
-export interface LayoutPresentationPilotTarget {
-  readonly projectId: string;
-  readonly property: LayoutPresentationProperty;
-  readonly style: Readonly<Record<string, unknown>>;
-  readonly target: EditorPresentationTargetRef;
-}
+import type {
+  LayoutPresentationProperty,
+  LayoutPresentationPilotTarget,
+} from "./editorPresentationPilotTypes";
+export type {
+  LayoutPresentationProperty,
+  LayoutPresentationPilotTarget,
+};
 
 function readLayoutPresentationValue(
   style: Readonly<Record<string, unknown>>,

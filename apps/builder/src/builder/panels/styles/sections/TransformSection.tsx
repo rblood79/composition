@@ -32,7 +32,7 @@ import { getFillBehavior, getRatioDependentAxis } from "@composition/shared";
 import { useResetStyles, useHasDirtyStyles } from "../hooks/useResetStyles";
 import { useViewportSyncStore } from "../../../workspace/canvas/stores";
 import { hasEnabledAspectRatio } from "../../../utils/aspectRatio";
-import type { RatioEditError } from "../../../stores/inspectorActions";
+import type { RatioEditError } from "../../../utils/ratioEditError";
 
 /** Ratio 복합 명령 오류 코드 → semantic label (labels.ts 가 키로, translations 가 ko/en 으로). */
 const RATIO_ERROR_LABELS: Record<RatioEditError, string> = {

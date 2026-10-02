@@ -31,6 +31,12 @@ import type {
 } from "./editorPresentationTypes";
 import type { EditorPresentationRuntimeDiagnostics } from "./editorPresentationRuntime";
 import { getSkiaNode } from "../workspace/canvas/skia/useSkiaNode";
+import type {
+  FillPresentationPilotTarget,
+} from "./editorPresentationPilotTypes";
+export type {
+  FillPresentationPilotTarget,
+};
 
 const FILL_PILOT_QUERY_PARAM = "adr187FillPilot";
 const materializationContextByDocument = new WeakMap<
@@ -358,13 +364,6 @@ useCanonicalDocumentStore.subscribe((state) => {
     );
   }
 });
-
-export interface FillPresentationPilotTarget {
-  readonly fills: readonly FillItem[];
-  readonly materializedFallback: boolean;
-  readonly projectId: string;
-  readonly target: EditorPresentationTargetRef;
-}
 
 export function isFillPresentationPilotEnabled(): boolean {
   if (typeof window === "undefined") return false;

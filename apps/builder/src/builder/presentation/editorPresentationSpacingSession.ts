@@ -24,7 +24,7 @@ import {
   subscribeLayoutReceipts,
   type PresentationLayoutReceipt,
 } from "./editorPresentationLayoutReceipt";
-import type { SpacingCapability } from "./editorPresentationSpacingCapability";
+import type { SpacingCapability } from "../workspace/canvas/interaction/spacingTypes";
 import {
   PADDING_PROPERTY_BY_SIDE,
   type SpacingProperty,

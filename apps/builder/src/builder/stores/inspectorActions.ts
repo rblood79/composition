@@ -22,12 +22,8 @@ import { readSizingGeometry } from "../workspace/canvas/layout/sizingGeometry";
 import { useViewportSyncStore } from "../workspace/canvas/stores";
 import type { ImmediateSelectionSnapshot } from "../inspector/types";
 const roundCssPx = (v: number): number => Math.round(v * 100) / 100;
-export type RatioEditError =
-  | "selection-changed"
-  | "target-missing"
-  | "geometry-missing"
-  | "tier-geometry-missing"
-  | "document-changed";
+import type { RatioEditError } from "../utils/ratioEditError";
+export type { RatioEditError };
 /**
  * Inspector Actions Slice
  *

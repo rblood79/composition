@@ -13,7 +13,7 @@ import type {
 } from "../../../../../packages/shared/src/catalog/document/types";
 import type { CatalogGraph } from "../../../../../packages/shared/src/catalog/document/graph";
 import type { OwnFields } from "../../../../../packages/shared/src/catalog/resolution/fieldSource";
-import type { RatioEditError } from "../stores/inspectorActions";
+import type { RatioEditError } from "../utils/ratioEditError";
 import { catalogBoxModel } from "./boxModel";
 import type { CatalogCompositionRoot } from "./compositionRoot";
 import { CatalogStyleValueError, cssPx } from "./styleFields";

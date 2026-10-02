@@ -10,7 +10,7 @@ import {
 import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
 import type { EditTarget } from "../../../../../packages/shared/src/catalog/document/types";
 import type { OwnFields } from "../../../../../packages/shared/src/catalog/resolution/fieldSource";
-import type { RatioEditError } from "../stores/inspectorActions";
+import type { RatioEditError } from "../utils/ratioEditError";
 import {
   catalogAuthoredValues,
   catalogStyleView,

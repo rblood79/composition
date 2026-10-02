@@ -1,22 +1,23 @@
 import { createContext } from "react";
 import type { BreakpointName } from "@composition/shared";
 import type { ElementStyleContext } from "./hooks/useElementStyleContext";
-import type { RatioEditError } from "../../stores/inspectorActions";
+import type { RatioEditError } from "../../utils/ratioEditError";
 import type { FillItem } from "../../../types/builder/fill.types";
 import type { SelectedElement } from "../../inspector/types";
 import type { ResponsiveOverridesInfo } from "./hooks/useResponsiveOverrides";
+import type { EditorPresentationTransactionRuntime } from "../../presentation/editorPresentationRuntime";
 import type {
-  editorPresentationFillPilotRuntime,
-  resolveFillPresentationPilotTarget,
-} from "../../presentation/editorPresentationFillPilot";
-import type {
-  resolveBorderColorPresentationPilotTarget,
-  resolveBoxShadowPresentationPilotTarget,
-  resolveOpacityPresentationPilotTarget,
-  resolveTextColorPresentationPilotTarget,
-} from "../../presentation/editorPresentationStylePilot";
-import type { resolveLayoutPresentationPilotTarget } from "../../presentation/editorPresentationLayoutPilot";
-import type { resolveTextMetricPresentationPilotTarget } from "../../presentation/editorPresentationTextMetrics";
+  BorderColorPresentationPilotTarget,
+  BoxShadowPresentationPilotTarget,
+  FillPresentationPilotTarget,
+  LayoutPresentationPilotTarget,
+  LayoutPresentationProperty,
+  OpacityPresentationPilotTarget,
+  TextColorPresentationPilotTarget,
+  TextMetricPresentationPilotTarget,
+  TextMetricPresentationProperty,
+} from "../../presentation/editorPresentationPilotTypes";
+import type { ColorFillItem } from "../../../types/builder/fill.types";
 
 /**
  * ADR-248 4e-7: what the Styles presentation hooks need from the old editor presentation channel —
@@ -26,14 +27,32 @@ import type { resolveTextMetricPresentationPilotTarget } from "../../presentatio
 export interface StylesPresentationBridge {
   readSelectedElementId(): string | null;
   subscribeSelection(listener: () => void): () => void;
-  runtime: typeof editorPresentationFillPilotRuntime;
-  resolveFillTarget: typeof resolveFillPresentationPilotTarget;
-  resolveBorderColorTarget: typeof resolveBorderColorPresentationPilotTarget;
-  resolveBoxShadowTarget: typeof resolveBoxShadowPresentationPilotTarget;
-  resolveOpacityTarget: typeof resolveOpacityPresentationPilotTarget;
-  resolveTextColorTarget: typeof resolveTextColorPresentationPilotTarget;
-  resolveLayoutTarget: typeof resolveLayoutPresentationPilotTarget;
-  resolveTextMetricTarget: typeof resolveTextMetricPresentationPilotTarget;
+  runtime: EditorPresentationTransactionRuntime;
+  resolveFillTarget(
+    selectedElementId: string | null,
+    fillId: string,
+    fallbackFill?: ColorFillItem,
+  ): FillPresentationPilotTarget | null;
+  resolveBorderColorTarget(
+    selectedElementId: string | null,
+  ): BorderColorPresentationPilotTarget | null;
+  resolveBoxShadowTarget(
+    selectedElementId: string | null,
+  ): BoxShadowPresentationPilotTarget | null;
+  resolveOpacityTarget(
+    selectedElementId: string | null,
+  ): OpacityPresentationPilotTarget | null;
+  resolveTextColorTarget(
+    selectedElementId: string | null,
+  ): TextColorPresentationPilotTarget | null;
+  resolveLayoutTarget(
+    selectedElementId: string | null,
+    property: LayoutPresentationProperty,
+  ): LayoutPresentationPilotTarget | null;
+  resolveTextMetricTarget(
+    selectedElementId: string | null,
+    property?: TextMetricPresentationProperty,
+  ): TextMetricPresentationPilotTarget | null;
 }
 
 /** The selected element as the style actions read it when they run. */

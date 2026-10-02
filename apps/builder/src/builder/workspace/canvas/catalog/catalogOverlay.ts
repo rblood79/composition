@@ -39,7 +39,7 @@ import { renderFlashes, renderGeneratingEffects } from "../skia/aiEffects";
 import type { AIVisualFeedbackState } from "../../../stores/aiVisualFeedback";
 import type { SpacingBand } from "../interaction/spacingGeometry";
 import type { SpacingActiveTarget } from "../interaction/spacingTypes";
-import type { EditingSemanticsRole } from "../../../utils/editingSemantics";
+import type { EditingSemanticsRole } from "../../../utils/editingSemanticsRole";
 
 export interface CatalogOverlayInputs {
   session: () => CatalogSessionState;

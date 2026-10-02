@@ -10,7 +10,7 @@ import type { CanvasKit, Canvas } from "canvaskit-wasm";
 import { SkiaDisposable } from "./disposable";
 import { acquireScopedPaint } from "./paints";
 import type { BoundingBox } from "../selection/types";
-import type { EditingSemanticsRole } from "../../../utils/editingSemantics";
+import type { EditingSemanticsRole } from "../../../utils/editingSemanticsRole";
 import type {
   OverflowContentInfo,
   ChildOverflowContext,

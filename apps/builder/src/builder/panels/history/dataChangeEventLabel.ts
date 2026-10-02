@@ -1,5 +1,5 @@
 import type { DataOp } from "@composition/shared";
-import type { HistoryEntry } from "../../stores/history";
+import type { DataChangeHistoryPayload } from "../../stores/utils/dataChange";
 
 /**
  * ADR-248 4e-7: a data change's history label — the catalog history and the old History panel
@@ -13,7 +13,7 @@ export type TranslateFn = (
 
 /** The label of a recorded data change (the old `data` entry's, and the catalog history's). */
 export function dataChangeEventLabel(
-  event: HistoryEntry["data"]["dataChangeEvent"],
+  event: DataChangeHistoryPayload | undefined,
   t: TranslateFn,
 ): string {
   const ops = event?.change.ops ?? [];

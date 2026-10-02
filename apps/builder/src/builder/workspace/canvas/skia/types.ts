@@ -335,15 +335,15 @@ export interface SelectionOverlayBuildResult {
   semanticTargets: Array<{
     bounds: import("../selection/types").BoundingBox;
     semanticRole:
-      import("../../../utils/editingSemantics").EditingSemanticsRole | null;
+      import("../../../utils/editingSemanticsRole").EditingSemanticsRole | null;
     slotMarkerRole:
-      import("../../../utils/editingSemantics").EditingSemanticsRole | null;
+      import("../../../utils/editingSemanticsRole").EditingSemanticsRole | null;
   }>;
   semanticRole:
-    import("../../../utils/editingSemantics").EditingSemanticsRole | null;
+    import("../../../utils/editingSemanticsRole").EditingSemanticsRole | null;
   showHandles: boolean;
   slotMarkerRole:
-    import("../../../utils/editingSemantics").EditingSemanticsRole | null;
+    import("../../../utils/editingSemanticsRole").EditingSemanticsRole | null;
 }
 
 /**

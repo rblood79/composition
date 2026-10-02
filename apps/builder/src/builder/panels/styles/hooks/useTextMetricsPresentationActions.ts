@@ -9,7 +9,7 @@ import {
   parsePresentationFontSize,
   parsePresentationFontWeight,
 } from "../../../presentation/editorPresentationTextMetricValue";
-import type { TextMetricPresentationProperty } from "../../../presentation/editorPresentationTextMetrics";
+import type { TextMetricPresentationProperty } from "../../../presentation/editorPresentationPilotTypes";
 import type {
   EditorMutationDescriptor,
   EditorPresentationCancelReason,

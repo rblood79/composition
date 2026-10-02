@@ -12,14 +12,14 @@ import {
   parsePresentationFontSize,
   parsePresentationFontWeight,
 } from "./editorPresentationTextMetricValue";
-
-export type TextMetricPresentationProperty = "fontSize" | "fontWeight";
-
-export interface TextMetricPresentationPilotTarget {
-  readonly projectId: string;
-  readonly style: Readonly<Record<string, unknown>>;
-  readonly target: EditorPresentationTargetRef;
-}
+import type {
+  TextMetricPresentationProperty,
+  TextMetricPresentationPilotTarget,
+} from "./editorPresentationPilotTypes";
+export type {
+  TextMetricPresentationProperty,
+  TextMetricPresentationPilotTarget,
+};
 
 /**
  * G8 scoped text metric slice. A standalone, absolute Text leaf with explicit

@@ -14,7 +14,7 @@ import type { BoundingBox } from "../selection/types";
 import type {
   SpacingBoxMetrics,
   SpacingCapability,
-} from "../../../presentation/editorPresentationSpacingCapability";
+} from "./spacingTypes";
 import { getActiveSpacingSession } from "../../../presentation/editorPresentationSpacingSession";
 import { getSceneBounds, getSceneHitBounds } from "../skia/renderCommands";
 import {

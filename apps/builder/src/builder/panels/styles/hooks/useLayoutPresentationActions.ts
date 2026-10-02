@@ -6,7 +6,7 @@ import { useStylesHost } from "../stylesHost";
 import { usePresentationLifecycle } from "./usePresentationLifecycle";
 import { useCallback, useRef, useState } from "react";
 import { parsePresentationLayoutPx } from "../../../presentation/editorPresentationLayoutValue";
-import type { LayoutPresentationProperty } from "../../../presentation/editorPresentationLayoutPilot";
+import type { LayoutPresentationProperty } from "../../../presentation/editorPresentationPilotTypes";
 import type {
   EditorMutationDescriptor,
   EditorPresentationCancelReason,

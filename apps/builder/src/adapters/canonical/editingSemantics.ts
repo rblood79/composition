@@ -1,5 +1,6 @@
 import { getSyntheticAncestorIds } from "@composition/shared";
-export type EditingSemanticsRole = "origin" | "instance";
+import type { EditingSemanticsRole } from "../../builder/utils/editingSemanticsRole";
+export type { EditingSemanticsRole };
 export type EditingSemanticsOverrideItem = {
   descendantPath?: string;
   fieldKey: string;

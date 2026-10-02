@@ -12,33 +12,20 @@ import { isTextColorPresentationType } from "./editorPresentationTextColor";
 import { parsePresentationOpacity } from "./editorPresentationOpacity";
 import { parseBoxShadowEffects } from "../workspace/canvas/styleConversion/styleConverter";
 import { getSkiaNode } from "../workspace/canvas/skia/useSkiaNode";
+import type {
+  BorderColorPresentationPilotTarget,
+  BoxShadowPresentationPilotTarget,
+  TextColorPresentationPilotTarget,
+  OpacityPresentationPilotTarget,
+} from "./editorPresentationPilotTypes";
+export type {
+  BorderColorPresentationPilotTarget,
+  BoxShadowPresentationPilotTarget,
+  TextColorPresentationPilotTarget,
+  OpacityPresentationPilotTarget,
+};
 
 const STYLE_PILOT_QUERY_PARAM = "adr187FillPilot";
-
-export interface BorderColorPresentationPilotTarget {
-  readonly projectId: string;
-  readonly style: Readonly<Record<string, unknown>>;
-  readonly target: EditorPresentationTargetRef;
-}
-
-export interface BoxShadowPresentationPilotTarget {
-  readonly projectId: string;
-  readonly style: Readonly<Record<string, unknown>>;
-  readonly target: EditorPresentationTargetRef;
-}
-
-export interface TextColorPresentationPilotTarget {
-  readonly projectId: string;
-  readonly propagation: EditorMutationPropagation;
-  readonly style: Readonly<Record<string, unknown>>;
-  readonly target: EditorPresentationTargetRef;
-}
-
-export interface OpacityPresentationPilotTarget {
-  readonly projectId: string;
-  readonly style: Readonly<Record<string, unknown>>;
-  readonly target: EditorPresentationTargetRef;
-}
 
 export function isStylePresentationPilotEnabled(): boolean {
   if (typeof window === "undefined") return false;
