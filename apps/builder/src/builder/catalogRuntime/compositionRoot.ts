@@ -1973,19 +1973,69 @@ export class CatalogCompositionRoot {
     if (changed)
       this.layout.computeLayout(this.viewport.width, this.viewport.height);
   }
-  /** Records in the subtrees of the given records' parents (siblings can change their width). */
-  private rewrapScope(ids: Iterable<string>): Set<string> {
+  /**
+   * Text leaves whose width an edit of `ids` can change: each record's subtree, and its parent's
+   * subtree when siblings can change their width. With `parentRects` (the parents' rects before
+   * this layout pass) a parent keeps its siblings out when its rect is unchanged and the edited
+   * box cannot move them: an absolutely placed box is out of flow, and in block flow a block-level
+   * box's width comes from the container's content width alone (the Canvas geometry region's
+   * rule, `canvasBinding`). Otherwise — a flex/grid parent, an inline-level box, a parent that
+   * resized or was not laid out before — the whole parent subtree is re-checked.
+   */
+  private rewrapScope(
+    ids: Iterable<string>,
+    parentRects?: ReadonlyMap<string, LayoutResult>,
+  ): Set<string> {
     const scope = new Set<string>();
     const visit = (id: string) => {
       if (scope.has(id)) return;
       scope.add(id);
       for (const child of this.records.get(id)?.children ?? []) visit(child);
     };
-    for (const id of ids) {
-      const parentId = this.records.get(id)?.parentId;
-      visit(parentId && this.records.has(parentId) ? parentId : id);
+    const list = [...ids];
+    const parentsAfter = parentRects
+      ? this.layout.getLayoutsForIds(
+          list.flatMap((id) => {
+            const parentId = this.records.get(id)?.parentId;
+            return parentId && parentRects.has(parentId) ? [parentId] : [];
+          }),
+        )
+      : undefined;
+    for (const id of list) {
+      const record = this.records.get(id);
+      const parentId = record?.parentId;
+      const parent = parentId ? this.records.get(parentId) : undefined;
+      if (!record || !parent) {
+        visit(id);
+        continue;
+      }
+      const before = parentRects?.get(parentId!);
+      const after = parentsAfter?.get(parentId!);
+      const parentFixed =
+        !!before &&
+        !!after &&
+        before.width === after.width &&
+        before.height === after.height;
+      const box = catalogBoxModel(record);
+      const siblingsFixed =
+        parentFixed &&
+        (!!box.position ||
+          (catalogBoxModel(parent).display === "block" &&
+            !box.display.startsWith("inline")));
+      visit(siblingsFixed ? id : parentId!);
     }
     return scope;
+  }
+  /** Rects of the parents of `ids` from the last layout pass (before the next one runs). */
+  private parentRectsOf(ids: readonly string[]): Map<string, LayoutResult> {
+    return this.layout.getLayoutsForIds(
+      new Set(
+        ids.flatMap((id) => {
+          const parentId = this.records.get(id)?.parentId;
+          return parentId && this.records.has(parentId) ? [parentId] : [];
+        }),
+      ),
+    );
   }
   /**
    * `node` and the template roots it collapses into (a composite instance is its root). The
@@ -3098,15 +3148,13 @@ export class CatalogCompositionRoot {
         this.layout.updateNodeStyle("catalog:root", this.rootStyle());
     }
     if (plan.computeLayout) {
+      const updated = plan.roots.flatMap(({ updates }) =>
+        updates.map((update) => update.id),
+      );
+      const parentRects = this.parentRectsOf(updated);
       this.layoutTouched = true;
       this.layout.computeLayout(this.viewport.width, this.viewport.height);
-      this.rewrap(
-        this.rewrapScope(
-          plan.roots.flatMap(({ updates }) =>
-            updates.map((update) => update.id),
-          ),
-        ),
-      );
+      this.rewrap(this.rewrapScope(updated, parentRects));
     }
     this.currentMetrics = {
       ...plan.metrics,

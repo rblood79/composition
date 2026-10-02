@@ -1007,10 +1007,12 @@ function bindInColorMode(
         parent: CatalogConsumerNode,
       ): boolean => {
         const child = catalogBoxModel(input(id)!);
+        // An absolutely placed box is out of flow: with the parent's rect unchanged (checked by
+        // the caller) no sibling reads its size, in any parent display.
+        if (child.position) return true;
         return (
           catalogBoxModel(parent).display === "block" &&
           !child.display.startsWith("inline") &&
-          !child.position &&
           changedRects.get(id)!.height === layoutMap.get(id)!.height
         );
       };
