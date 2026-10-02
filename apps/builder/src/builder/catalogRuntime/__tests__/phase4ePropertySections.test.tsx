@@ -102,7 +102,8 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
     };
     expect("command" in set("a", "hero")).toBe(true);
     expect(set("b", "hero")).toEqual({ refused: "HTML_ID_TAKEN" });
-    expect(graph.getEntry(id("b"))).not.toHaveProperty("metadata.htmlId");
+    // It keeps the id its insert gave it.
+    expect(graph.getEntry(id("b"))).toHaveProperty("metadata.htmlId", "text_2");
     expect(catalogUniqueHtmlId(graph, "hero", id("b"))).toBe("hero_1");
     set("b", "hero_1");
     expect(catalogUniqueHtmlId(graph, "hero_1", id("a"))).toBe("hero_2");

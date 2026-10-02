@@ -1,3 +1,4 @@
+import { catalogAutoHtmlIds } from "./attributes";
 import type { CatalogGraph } from "../../../../../packages/shared/src/catalog/document/graph";
 import type {
   BreakpointName,
@@ -368,15 +369,19 @@ export class CatalogWorkspace {
   } {
     // The library origin view: the sample's root writes become the origin's project defaults.
     const view = this.definitionView;
+    // Each element the action creates gets its author DOM id (the old `customId`) in this step.
     const executed = this.root.execute(
-      isLibraryOrigin(view)
-        ? catalogOriginEditCommand(
-            this.runtime.graph,
-            command,
-            view,
-            this.newId,
-          )
-        : command,
+      catalogAutoHtmlIds(
+        this.runtime.graph,
+        isLibraryOrigin(view)
+          ? catalogOriginEditCommand(
+              this.runtime.graph,
+              command,
+              view,
+              this.newId,
+            )
+          : command,
+      ),
     );
     this.afterStep(executed.result);
     if (executed.plan.selectAfter)
@@ -403,7 +408,11 @@ export class CatalogWorkspace {
     effect: CatalogExternalEffect,
     command?: CatalogCommand,
   ): CatalogTransactionResult | undefined {
-    const recorded = this.root.recordExternal(label, effect, command);
+    const recorded = this.root.recordExternal(
+      label,
+      effect,
+      command && catalogAutoHtmlIds(this.runtime.graph, command),
+    );
     if (recorded.result) this.afterStep(recorded.result);
     if (recorded.plan?.selectAfter)
       this.selectItems(

@@ -89,11 +89,16 @@ describe("ADR-248 4e-6 author DOM attributes", () => {
       const entry = workspace.runtime.graph.getEntry(id("box"));
       return entry?.kind === "node" ? entry.metadata : undefined;
     };
-    expect(metadata()).toEqual({ className: "hero wide", ariaLabel: "Banner" });
+    // (`htmlId` = the id its insert gave it.)
+    expect(metadata()).toEqual({
+      htmlId: "frame_1",
+      className: "hero wide",
+      ariaLabel: "Banner",
+    });
     workspace.execute(
       setNodeAttribute({ id: id("box"), field: "ariaLabel", value: "  " }),
     );
-    expect(metadata()).toEqual({ className: "hero wide" });
+    expect(metadata()).toEqual({ htmlId: "frame_1", className: "hero wide" });
     const document = workspace.runtime.graph.exportDocument();
     const code = (value: unknown) => {
       try {
@@ -169,7 +174,8 @@ describe("ADR-248 4e-6 author DOM attributes", () => {
     const record = workspace.root.domInputs.get(
       workspace.root.recordsOfSource(id("go"))[0]!,
     );
-    expect(record?.htmlId).toBeUndefined();
+    // Back to the id its insert gave it.
+    expect(record?.htmlId).toBe("button_1");
     expect(view.container.querySelector('[aria-label="Buy now"]')).toBeNull();
     expect(view.container.querySelector(".cta")).not.toBeNull();
     act(() => workspace.undo());
