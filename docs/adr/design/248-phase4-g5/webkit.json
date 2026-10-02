@@ -1,0 +1,44 @@
+{
+ "measuredAt": "2026-10-02T21:45:27.783Z",
+ "head": "8f057996a51640241c5c4418e135173bd12dcfec",
+ "browser": "webkit 26.5",
+ "base": "http://localhost:5175",
+ "checks": [
+  {
+   "id": "draws a frame 240×120 and a text",
+   "pass": true,
+   "detail": {
+    "frame": {
+     "width": 240,
+     "height": 120
+    },
+    "text": {
+     "width": 1920,
+     "height": 24
+    }
+   }
+  },
+  {
+   "id": "undo/redo",
+   "pass": true,
+   "detail": [
+    true,
+    false,
+    true
+   ]
+  },
+  {
+   "id": "saved → reload: same entries",
+   "pass": true,
+   "detail": {
+    "entries": 5
+   }
+  },
+  {
+   "id": "page/console errors 0",
+   "pass": true,
+   "detail": []
+  }
+ ],
+ "errors": []
+}

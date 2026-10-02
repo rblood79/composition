@@ -1,0 +1,767 @@
+{
+ "measuredAt": "2026-10-02T19:31:34.825Z",
+ "head": "5d9b9f4850fe89a4d14349c270368ee7cf199636",
+ "dirty": [
+  "M src/builder/catalogRuntime/canvasBinding.ts",
+  " M src/builder/catalogRuntime/compositionRoot.ts",
+  "?? scripts/adr248-g5-boot-bundle.mjs",
+  "?? scripts/adr248-g5-live.mjs",
+  "?? src/builder/catalogRuntime/__tests__/phase4eG5LeafScope.test.ts",
+  "?? vite.graph.tmp.config.ts"
+ ],
+ "environment": {
+  "url": "http://localhost:5175",
+  "build": "dev",
+  "browser": "headless Chrome (playwright channel chrome)",
+  "viewport": "1440x900"
+ },
+ "deletedSignaturePaths": {
+  "src/builder/workspace/canvas/scene/layoutCache.ts": "absent",
+  "src/builder/hooks/useLayoutPublisher.ts": "absent",
+  "src/builder/workspace/canvas/renderers/invalidationPacket.ts": "absent"
+ },
+ "bytes": [
+  {
+   "count": 0,
+   "seededSaved": true,
+   "documentBytes": 1279,
+   "idbHeadBytes": 273,
+   "idbEntryRows": 5,
+   "idbEntryBytes": 1580,
+   "projectDefinitionEntries": 0
+  },
+  {
+   "count": 1,
+   "seededSaved": true,
+   "documentBytes": 1715,
+   "idbHeadBytes": 273,
+   "idbEntryRows": 6,
+   "idbEntryBytes": 2172,
+   "projectDefinitionEntries": 0
+  },
+  {
+   "count": 60,
+   "seededSaved": true,
+   "documentBytes": 28310,
+   "idbHeadBytes": 273,
+   "idbEntryRows": 65,
+   "idbEntryBytes": 37971,
+   "projectDefinitionEntries": 0
+  },
+  {
+   "count": 600,
+   "seededSaved": true,
+   "documentBytes": 274807,
+   "idbHeadBytes": 273,
+   "idbEntryRows": 605,
+   "idbEntryBytes": 368708,
+   "projectDefinitionEntries": 0
+  },
+  {
+   "count": 5000,
+   "seededSaved": true,
+   "documentBytes": 2306943,
+   "idbHeadBytes": 273,
+   "idbEntryRows": 5005,
+   "idbEntryBytes": 3087244,
+   "projectDefinitionEntries": 0
+  }
+ ],
+ "counts": {
+  "60": {
+   "select": {
+    "revisionDelta": 0,
+    "commandMs": 0.1,
+    "saved": true,
+    "graphMetrics": null,
+    "rootMetrics": null,
+    "counters": {
+     "wasm.getLayoutsBatch": 12,
+     "wasm.getLayoutsBatch.ids": 12
+    }
+   },
+   "leafText": {
+    "revisionDelta": 1,
+    "commandMs": 2.5,
+    "saved": true,
+    "graphMetrics": {
+     "transactionEntryReads": 1,
+     "transactionEntriesTraversed": 0,
+     "transactionRecordReplacements": 1,
+     "transactionIndexEdgesUpdated": 0,
+     "transactionEntryTableClones": 0
+    },
+    "rootMetrics": {
+     "changedIds": 1,
+     "removedIds": 0,
+     "affectedRootIds": 1,
+     "layoutInputVisits": 1,
+     "resolverVisits": 2,
+     "resolverIncludeChecks": 1,
+     "affectedInstanceCount": 1,
+     "canvasInputUpdates": 1,
+     "domInputUpdates": 0,
+     "traversedWholeInputGraph": false
+    },
+    "counters": {
+     "wasm.updateStyleRaw": 1,
+     "wasm.getLayoutsBatch": 18,
+     "wasm.getLayoutsBatch.ids": 18,
+     "wasm.computeLayout": 1,
+     "idb.entries.put": 1,
+     "idb.bytes": 851,
+     "idb.heads.put": 1,
+     "scene.patched": 1,
+     "scene.patchRoots": 1,
+     "scene.reboundRecords": 1
+    }
+   },
+   "leafWidth": {
+    "revisionDelta": 1,
+    "commandMs": 0.9,
+    "saved": true,
+    "graphMetrics": {
+     "transactionEntryReads": 1,
+     "transactionEntriesTraversed": 0,
+     "transactionRecordReplacements": 1,
+     "transactionIndexEdgesUpdated": 0,
+     "transactionEntryTableClones": 0
+    },
+    "rootMetrics": {
+     "changedIds": 1,
+     "removedIds": 0,
+     "affectedRootIds": 1,
+     "layoutInputVisits": 1,
+     "resolverVisits": 2,
+     "resolverIncludeChecks": 1,
+     "affectedInstanceCount": 1,
+     "canvasInputUpdates": 1,
+     "domInputUpdates": 0,
+     "traversedWholeInputGraph": false
+    },
+    "counters": {
+     "wasm.updateStyleRaw": 1,
+     "wasm.getLayoutsBatch": 19,
+     "wasm.getLayoutsBatch.ids": 19,
+     "wasm.computeLayout": 1,
+     "idb.entries.put": 1,
+     "idb.bytes": 851,
+     "idb.heads.put": 1,
+     "scene.patched": 1,
+     "scene.patchRoots": 1,
+     "scene.reboundRecords": 1
+    }
+   },
+   "move": {
+    "revisionDelta": 1,
+    "commandMs": 4.8,
+    "saved": true,
+    "graphMetrics": {
+     "transactionEntryReads": 4,
+     "transactionEntriesTraversed": 0,
+     "transactionRecordReplacements": 1,
+     "transactionIndexEdgesUpdated": 0,
+     "transactionEntryTableClones": 0
+    },
+    "rootMetrics": {
+     "changedIds": 1,
+     "removedIds": 0,
+     "affectedRootIds": 1,
+     "layoutInputVisits": 61,
+     "resolverVisits": 61,
+     "resolverIncludeChecks": 0,
+     "affectedInstanceCount": 61,
+     "canvasInputUpdates": 1,
+     "domInputUpdates": 0,
+     "traversedWholeInputGraph": false
+    },
+    "counters": {
+     "wasm.setChildren": 1,
+     "wasm.getLayoutsBatch": 49,
+     "wasm.getLayoutsBatch.ids": 110,
+     "wasm.computeLayout": 1,
+     "idb.entries.put": 1,
+     "idb.bytes": 2371,
+     "idb.heads.put": 1,
+     "wasm.getLayoutsBatch.large@builder/workspace/canvas/layout/engines/persistentLayoutTree.ts:323:31 < builder/catalogRuntime/compositionRoot.ts:605:29 < builder/catalogRuntime/canvasBinding.ts:458:25 < builder/catalogRuntime/canvasBinding.ts:402:52 < builder/catalogRuntime/canvasBinding.ts:25:10 < builder/catalogRuntime/canvasBinding.ts:402:16": 62,
+     "scene.rebound": 1,
+     "scene.rebind.structure": 1
+    }
+   },
+   "remove": {
+    "revisionDelta": 1,
+    "commandMs": 4.7,
+    "saved": true,
+    "graphMetrics": {
+     "transactionEntryReads": 7,
+     "transactionEntriesTraversed": 0,
+     "transactionRecordReplacements": 2,
+     "transactionIndexEdgesUpdated": 3,
+     "transactionEntryTableClones": 0
+    },
+    "rootMetrics": {
+     "changedIds": 1,
+     "removedIds": 1,
+     "affectedRootIds": 1,
+     "layoutInputVisits": 60,
+     "resolverVisits": 60,
+     "resolverIncludeChecks": 0,
+     "affectedInstanceCount": 60,
+     "canvasInputUpdates": 2,
+     "domInputUpdates": 0,
+     "traversedWholeInputGraph": false
+    },
+    "counters": {
+     "wasm.removeNode": 1,
+     "wasm.setChildren": 1,
+     "wasm.getLayoutsBatch": 46,
+     "wasm.getLayoutsBatch.ids": 106,
+     "wasm.computeLayout": 1,
+     "idb.entries.put": 1,
+     "idb.bytes": 2342,
+     "idb.heads.put": 1,
+     "wasm.getLayoutsBatch.large@builder/workspace/canvas/layout/engines/persistentLayoutTree.ts:323:31 < builder/catalogRuntime/compositionRoot.ts:605:29 < builder/catalogRuntime/canvasBinding.ts:458:25 < builder/catalogRuntime/canvasBinding.ts:402:52 < builder/catalogRuntime/canvasBinding.ts:25:10 < builder/catalogRuntime/canvasBinding.ts:402:16": 61,
+     "scene.rebound": 1,
+     "scene.rebind.removed": 1
+    }
+   },
+   "pageSwitch": {
+    "revisionDelta": 0,
+    "commandMs": 0.2,
+    "saved": true,
+    "graphMetrics": null,
+    "rootMetrics": null,
+    "counters": {
+     "wasm.getLayoutsBatch": 8,
+     "wasm.getLayoutsBatch.ids": 8
+    }
+   },
+   "pageBack": {
+    "revisionDelta": 0,
+    "commandMs": 0.1,
+    "saved": true,
+    "graphMetrics": null,
+    "rootMetrics": null,
+    "counters": {
+     "wasm.getLayoutsBatch": 8,
+     "wasm.getLayoutsBatch.ids": 8
+    }
+   },
+   "deselect": {
+    "revisionDelta": 0,
+    "commandMs": 0,
+    "saved": true,
+    "graphMetrics": null,
+    "rootMetrics": null,
+    "counters": {}
+   },
+   "fanoutSetup": {
+    "definitionId": "project:definition:45271664-00d2-4beb-b970-90f296b88d29",
+    "instances": 13
+   },
+   "fanoutEdit": {
+    "revisionDelta": 1,
+    "commandMs": 1.1,
+    "saved": true,
+    "graphMetrics": {
+     "transactionEntryReads": 1,
+     "transactionEntriesTraversed": 0,
+     "transactionRecordReplacements": 1,
+     "transactionIndexEdgesUpdated": 0,
+     "transactionEntryTableClones": 0
+    },
+    "rootMetrics": {
+     "changedIds": 1,
+     "removedIds": 0,
+     "affectedRootIds": 1,
+     "layoutInputVisits": 13,
+     "resolverVisits": 39,
+     "resolverIncludeChecks": 26,
+     "affectedInstanceCount": 13,
+     "canvasInputUpdates": 13,
+     "domInputUpdates": 0,
+     "traversedWholeInputGraph": false
+    },
+    "counters": {
+     "wasm.getLayoutsBatch": 25,
+     "wasm.getLayoutsBatch.ids": 25,
+     "wasm.computeLayout": 1,
+     "idb.entries.put": 1,
+     "idb.bytes": 797,
+     "idb.heads.put": 1,
+     "scene.patched": 1,
+     "scene.patchRoots": 13,
+     "scene.reboundRecords": 13
+    }
+   },
+   "bodyLayout": {
+    "display": "block"
+   }
+  },
+  "600": {
+   "select": {
+    "revisionDelta": 0,
+    "commandMs": 0.1,
+    "saved": true,
+    "graphMetrics": null,
+    "rootMetrics": null,
+    "counters": {
+     "wasm.getLayoutsBatch": 12,
+     "wasm.getLayoutsBatch.ids": 12
+    }
+   },
+   "leafText": {
+    "revisionDelta": 1,
+    "commandMs": 2.7,
+    "saved": true,
+    "graphMetrics": {
+     "transactionEntryReads": 1,
+     "transactionEntriesTraversed": 0,
+     "transactionRecordReplacements": 1,
+     "transactionIndexEdgesUpdated": 0,
+     "transactionEntryTableClones": 0
+    },
+    "rootMetrics": {
+     "changedIds": 1,
+     "removedIds": 0,
+     "affectedRootIds": 1,
+     "layoutInputVisits": 1,
+     "resolverVisits": 2,
+     "resolverIncludeChecks": 1,
+     "affectedInstanceCount": 1,
+     "canvasInputUpdates": 1,
+     "domInputUpdates": 0,
+     "traversedWholeInputGraph": false
+    },
+    "counters": {
+     "wasm.updateStyleRaw": 1,
+     "wasm.getLayoutsBatch": 18,
+     "wasm.getLayoutsBatch.ids": 18,
+     "wasm.computeLayout": 1,
+     "idb.entries.put": 1,
+     "idb.bytes": 851,
+     "idb.heads.put": 1,
+     "scene.patched": 1,
+     "scene.patchRoots": 1,
+     "scene.reboundRecords": 1
+    }
+   },
+   "leafWidth": {
+    "revisionDelta": 1,
+    "commandMs": 1.3,
+    "saved": true,
+    "graphMetrics": {
+     "transactionEntryReads": 1,
+     "transactionEntriesTraversed": 0,
+     "transactionRecordReplacements": 1,
+     "transactionIndexEdgesUpdated": 0,
+     "transactionEntryTableClones": 0
+    },
+    "rootMetrics": {
+     "changedIds": 1,
+     "removedIds": 0,
+     "affectedRootIds": 1,
+     "layoutInputVisits": 1,
+     "resolverVisits": 2,
+     "resolverIncludeChecks": 1,
+     "affectedInstanceCount": 1,
+     "canvasInputUpdates": 1,
+     "domInputUpdates": 0,
+     "traversedWholeInputGraph": false
+    },
+    "counters": {
+     "wasm.updateStyleRaw": 1,
+     "wasm.getLayoutsBatch": 19,
+     "wasm.getLayoutsBatch.ids": 19,
+     "wasm.computeLayout": 1,
+     "idb.entries.put": 1,
+     "idb.bytes": 851,
+     "idb.heads.put": 1,
+     "scene.patched": 1,
+     "scene.patchRoots": 1,
+     "scene.reboundRecords": 1
+    }
+   },
+   "move": {
+    "revisionDelta": 1,
+    "commandMs": 32.3,
+    "saved": true,
+    "graphMetrics": {
+     "transactionEntryReads": 4,
+     "transactionEntriesTraversed": 0,
+     "transactionRecordReplacements": 1,
+     "transactionIndexEdgesUpdated": 0,
+     "transactionEntryTableClones": 0
+    },
+    "rootMetrics": {
+     "changedIds": 1,
+     "removedIds": 0,
+     "affectedRootIds": 1,
+     "layoutInputVisits": 601,
+     "resolverVisits": 601,
+     "resolverIncludeChecks": 0,
+     "affectedInstanceCount": 601,
+     "canvasInputUpdates": 1,
+     "domInputUpdates": 0,
+     "traversedWholeInputGraph": false
+    },
+    "counters": {
+     "wasm.setChildren": 1,
+     "wasm.getLayoutsBatch": 319,
+     "wasm.getLayoutsBatch.ids": 920,
+     "wasm.computeLayout": 1,
+     "wasm.getLayoutsBatch.large@builder/workspace/canvas/layout/engines/persistentLayoutTree.ts:323:31 < builder/catalogRuntime/compositionRoot.ts:605:29 < builder/catalogRuntime/canvasBinding.ts:458:25 < builder/catalogRuntime/canvasBinding.ts:402:52 < builder/catalogRuntime/canvasBinding.ts:25:10 < builder/catalogRuntime/canvasBinding.ts:402:16": 602,
+     "scene.rebound": 1,
+     "scene.rebind.structure": 1,
+     "idb.entries.put": 1,
+     "idb.bytes": 19071,
+     "idb.heads.put": 1
+    }
+   },
+   "remove": {
+    "revisionDelta": 1,
+    "commandMs": 27.7,
+    "saved": true,
+    "graphMetrics": {
+     "transactionEntryReads": 7,
+     "transactionEntriesTraversed": 0,
+     "transactionRecordReplacements": 2,
+     "transactionIndexEdgesUpdated": 3,
+     "transactionEntryTableClones": 0
+    },
+    "rootMetrics": {
+     "changedIds": 1,
+     "removedIds": 1,
+     "affectedRootIds": 1,
+     "layoutInputVisits": 600,
+     "resolverVisits": 600,
+     "resolverIncludeChecks": 0,
+     "affectedInstanceCount": 600,
+     "canvasInputUpdates": 2,
+     "domInputUpdates": 0,
+     "traversedWholeInputGraph": false
+    },
+    "counters": {
+     "wasm.removeNode": 1,
+     "wasm.setChildren": 1,
+     "wasm.getLayoutsBatch": 316,
+     "wasm.getLayoutsBatch.ids": 916,
+     "wasm.computeLayout": 1,
+     "wasm.getLayoutsBatch.large@builder/workspace/canvas/layout/engines/persistentLayoutTree.ts:323:31 < builder/catalogRuntime/compositionRoot.ts:605:29 < builder/catalogRuntime/canvasBinding.ts:458:25 < builder/catalogRuntime/canvasBinding.ts:402:52 < builder/catalogRuntime/canvasBinding.ts:25:10 < builder/catalogRuntime/canvasBinding.ts:402:16": 601,
+     "scene.rebound": 1,
+     "scene.rebind.removed": 1,
+     "idb.entries.put": 1,
+     "idb.bytes": 19042,
+     "idb.heads.put": 1
+    }
+   },
+   "pageSwitch": {
+    "revisionDelta": 0,
+    "commandMs": 0.2,
+    "saved": true,
+    "graphMetrics": null,
+    "rootMetrics": null,
+    "counters": {
+     "wasm.getLayoutsBatch": 8,
+     "wasm.getLayoutsBatch.ids": 8
+    }
+   },
+   "pageBack": {
+    "revisionDelta": 0,
+    "commandMs": 0,
+    "saved": true,
+    "graphMetrics": null,
+    "rootMetrics": null,
+    "counters": {
+     "wasm.getLayoutsBatch": 8,
+     "wasm.getLayoutsBatch.ids": 8
+    }
+   },
+   "deselect": {
+    "revisionDelta": 0,
+    "commandMs": 0,
+    "saved": true,
+    "graphMetrics": null,
+    "rootMetrics": null,
+    "counters": {}
+   },
+   "fanoutSetup": {
+    "definitionId": "project:definition:911834a1-3473-48bf-93d3-93e5c65c2fae",
+    "instances": 13
+   },
+   "fanoutEdit": {
+    "revisionDelta": 1,
+    "commandMs": 0.9,
+    "saved": true,
+    "graphMetrics": {
+     "transactionEntryReads": 1,
+     "transactionEntriesTraversed": 0,
+     "transactionRecordReplacements": 1,
+     "transactionIndexEdgesUpdated": 0,
+     "transactionEntryTableClones": 0
+    },
+    "rootMetrics": {
+     "changedIds": 1,
+     "removedIds": 0,
+     "affectedRootIds": 1,
+     "layoutInputVisits": 13,
+     "resolverVisits": 39,
+     "resolverIncludeChecks": 26,
+     "affectedInstanceCount": 13,
+     "canvasInputUpdates": 13,
+     "domInputUpdates": 0,
+     "traversedWholeInputGraph": false
+    },
+    "counters": {
+     "wasm.getLayoutsBatch": 25,
+     "wasm.getLayoutsBatch.ids": 25,
+     "wasm.computeLayout": 1,
+     "scene.patched": 1,
+     "scene.patchRoots": 13,
+     "scene.reboundRecords": 13,
+     "idb.entries.put": 1,
+     "idb.bytes": 797,
+     "idb.heads.put": 1
+    }
+   },
+   "bodyLayout": {
+    "display": "block"
+   }
+  },
+  "5000": {
+   "select": {
+    "revisionDelta": 0,
+    "commandMs": 0.3,
+    "saved": true,
+    "graphMetrics": null,
+    "rootMetrics": null,
+    "counters": {
+     "wasm.getLayoutsBatch": 12,
+     "wasm.getLayoutsBatch.ids": 12
+    }
+   },
+   "leafText": {
+    "revisionDelta": 1,
+    "commandMs": 7.6,
+    "saved": true,
+    "graphMetrics": {
+     "transactionEntryReads": 1,
+     "transactionEntriesTraversed": 0,
+     "transactionRecordReplacements": 1,
+     "transactionIndexEdgesUpdated": 0,
+     "transactionEntryTableClones": 0
+    },
+    "rootMetrics": {
+     "changedIds": 1,
+     "removedIds": 0,
+     "affectedRootIds": 1,
+     "layoutInputVisits": 1,
+     "resolverVisits": 2,
+     "resolverIncludeChecks": 1,
+     "affectedInstanceCount": 1,
+     "canvasInputUpdates": 1,
+     "domInputUpdates": 0,
+     "traversedWholeInputGraph": false
+    },
+    "counters": {
+     "wasm.updateStyleRaw": 1,
+     "wasm.getLayoutsBatch": 18,
+     "wasm.getLayoutsBatch.ids": 18,
+     "wasm.computeLayout": 1,
+     "idb.entries.put": 1,
+     "idb.bytes": 851,
+     "idb.heads.put": 1,
+     "scene.patched": 1,
+     "scene.patchRoots": 1,
+     "scene.reboundRecords": 1
+    }
+   },
+   "leafWidth": {
+    "revisionDelta": 1,
+    "commandMs": 7.2,
+    "saved": true,
+    "graphMetrics": {
+     "transactionEntryReads": 1,
+     "transactionEntriesTraversed": 0,
+     "transactionRecordReplacements": 1,
+     "transactionIndexEdgesUpdated": 0,
+     "transactionEntryTableClones": 0
+    },
+    "rootMetrics": {
+     "changedIds": 1,
+     "removedIds": 0,
+     "affectedRootIds": 1,
+     "layoutInputVisits": 1,
+     "resolverVisits": 2,
+     "resolverIncludeChecks": 1,
+     "affectedInstanceCount": 1,
+     "canvasInputUpdates": 1,
+     "domInputUpdates": 0,
+     "traversedWholeInputGraph": false
+    },
+    "counters": {
+     "wasm.updateStyleRaw": 1,
+     "wasm.getLayoutsBatch": 19,
+     "wasm.getLayoutsBatch.ids": 19,
+     "wasm.computeLayout": 1,
+     "idb.entries.put": 1,
+     "idb.bytes": 851,
+     "idb.heads.put": 1,
+     "scene.patched": 1,
+     "scene.patchRoots": 1,
+     "scene.reboundRecords": 1
+    }
+   },
+   "move": {
+    "revisionDelta": 1,
+    "commandMs": 214.3,
+    "saved": true,
+    "graphMetrics": {
+     "transactionEntryReads": 4,
+     "transactionEntriesTraversed": 0,
+     "transactionRecordReplacements": 1,
+     "transactionIndexEdgesUpdated": 0,
+     "transactionEntryTableClones": 0
+    },
+    "rootMetrics": {
+     "changedIds": 1,
+     "removedIds": 0,
+     "affectedRootIds": 1,
+     "layoutInputVisits": 5001,
+     "resolverVisits": 5001,
+     "resolverIncludeChecks": 0,
+     "affectedInstanceCount": 5001,
+     "canvasInputUpdates": 1,
+     "domInputUpdates": 0,
+     "traversedWholeInputGraph": false
+    },
+    "counters": {
+     "wasm.setChildren": 1,
+     "wasm.getLayoutsBatch": 2519,
+     "wasm.getLayoutsBatch.ids": 7520,
+     "wasm.computeLayout": 1,
+     "stringify.over64KiB": 1,
+     "stringify.maxChars": 149064,
+     "wasm.getLayoutsBatch.large@builder/workspace/canvas/layout/engines/persistentLayoutTree.ts:323:31 < builder/catalogRuntime/compositionRoot.ts:605:29 < builder/catalogRuntime/canvasBinding.ts:458:25 < builder/catalogRuntime/canvasBinding.ts:402:52 < builder/catalogRuntime/canvasBinding.ts:25:10 < builder/catalogRuntime/canvasBinding.ts:402:16": 5002,
+     "scene.rebound": 1,
+     "scene.rebind.structure": 1,
+     "idb.entries.put": 1,
+     "idb.bytes": 159471,
+     "idb.heads.put": 1
+    }
+   },
+   "remove": {
+    "revisionDelta": 1,
+    "commandMs": 201.4,
+    "saved": true,
+    "graphMetrics": {
+     "transactionEntryReads": 7,
+     "transactionEntriesTraversed": 0,
+     "transactionRecordReplacements": 2,
+     "transactionIndexEdgesUpdated": 3,
+     "transactionEntryTableClones": 0
+    },
+    "rootMetrics": {
+     "changedIds": 1,
+     "removedIds": 1,
+     "affectedRootIds": 1,
+     "layoutInputVisits": 5000,
+     "resolverVisits": 5000,
+     "resolverIncludeChecks": 0,
+     "affectedInstanceCount": 5000,
+     "canvasInputUpdates": 2,
+     "domInputUpdates": 0,
+     "traversedWholeInputGraph": false
+    },
+    "counters": {
+     "wasm.removeNode": 1,
+     "wasm.setChildren": 1,
+     "wasm.getLayoutsBatch": 2516,
+     "wasm.getLayoutsBatch.ids": 7516,
+     "wasm.computeLayout": 1,
+     "stringify.over64KiB": 1,
+     "stringify.maxChars": 149037,
+     "wasm.getLayoutsBatch.large@builder/workspace/canvas/layout/engines/persistentLayoutTree.ts:323:31 < builder/catalogRuntime/compositionRoot.ts:605:29 < builder/catalogRuntime/canvasBinding.ts:458:25 < builder/catalogRuntime/canvasBinding.ts:402:52 < builder/catalogRuntime/canvasBinding.ts:25:10 < builder/catalogRuntime/canvasBinding.ts:402:16": 5001,
+     "scene.rebound": 1,
+     "scene.rebind.removed": 1,
+     "idb.entries.put": 1,
+     "idb.bytes": 159442,
+     "idb.heads.put": 1
+    }
+   },
+   "pageSwitch": {
+    "revisionDelta": 0,
+    "commandMs": 0.2,
+    "saved": true,
+    "graphMetrics": null,
+    "rootMetrics": null,
+    "counters": {
+     "wasm.getLayoutsBatch": 8,
+     "wasm.getLayoutsBatch.ids": 8
+    }
+   },
+   "pageBack": {
+    "revisionDelta": 0,
+    "commandMs": 0.1,
+    "saved": true,
+    "graphMetrics": null,
+    "rootMetrics": null,
+    "counters": {
+     "wasm.getLayoutsBatch": 8,
+     "wasm.getLayoutsBatch.ids": 8
+    }
+   },
+   "deselect": {
+    "revisionDelta": 0,
+    "commandMs": 0,
+    "saved": true,
+    "graphMetrics": null,
+    "rootMetrics": null,
+    "counters": {}
+   },
+   "fanoutSetup": {
+    "definitionId": "project:definition:c67edb24-a056-488f-8fe8-b2be9f309482",
+    "instances": 13
+   },
+   "fanoutEdit": {
+    "revisionDelta": 1,
+    "commandMs": 1.2,
+    "saved": true,
+    "graphMetrics": {
+     "transactionEntryReads": 1,
+     "transactionEntriesTraversed": 0,
+     "transactionRecordReplacements": 1,
+     "transactionIndexEdgesUpdated": 0,
+     "transactionEntryTableClones": 0
+    },
+    "rootMetrics": {
+     "changedIds": 1,
+     "removedIds": 0,
+     "affectedRootIds": 1,
+     "layoutInputVisits": 13,
+     "resolverVisits": 39,
+     "resolverIncludeChecks": 26,
+     "affectedInstanceCount": 13,
+     "canvasInputUpdates": 13,
+     "domInputUpdates": 0,
+     "traversedWholeInputGraph": false
+    },
+    "counters": {
+     "wasm.getLayoutsBatch": 25,
+     "wasm.getLayoutsBatch.ids": 25,
+     "wasm.computeLayout": 1,
+     "scene.patched": 1,
+     "scene.patchRoots": 13,
+     "scene.reboundRecords": 13,
+     "idb.entries.put": 1,
+     "idb.bytes": 797,
+     "idb.heads.put": 1
+    }
+   },
+   "bodyLayout": {
+    "display": "block"
+   }
+  }
+ },
+ "errors": []
+}
