@@ -137,10 +137,6 @@
       "nodes": 2,
       "types": 2
     },
-    "flexGrow": {
-      "nodes": 2,
-      "types": 2
-    },
     "maxWidth": {
       "nodes": 2,
       "types": 2
@@ -154,6 +150,10 @@
       "types": 1
     },
     "marginBottom": {
+      "nodes": 1,
+      "types": 1
+    },
+    "flexGrow": {
       "nodes": 1,
       "types": 1
     },
@@ -15702,12 +15702,6 @@
         },
         {
           "old": "component-daterangepicker__2/component-daterangepicker__2_1",
-          "key": "flexGrow",
-          "oldValue": 1,
-          "newValue": null
-        },
-        {
-          "old": "component-daterangepicker__2/component-daterangepicker__2_1",
           "key": "flexShrink",
           "oldValue": 1,
           "newValue": null
@@ -15944,7 +15938,8 @@
                   "minWidth": "auto",
                   "contentMinWidth": 170.69000387191772,
                   "contentMaxWidth": 170.69000387191772,
-                  "contentHeight": 20
+                  "contentHeight": 20,
+                  "flexGrow": 1
                 }
               },
               "parent": {

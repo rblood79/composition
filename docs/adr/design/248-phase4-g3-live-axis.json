@@ -28,16 +28,16 @@
   "summary": {
     "cases": 386,
     "types": 63,
-    "PASS": 371,
-    "PASS_withApprovedDifferences": 174,
+    "PASS": 372,
+    "PASS_withApprovedDifferences": 175,
     "previewDefectFollowed": 59,
-    "FAIL": 3,
+    "FAIL": 2,
     "UNVERIFIED": 6,
     "NOT_RUN": 6,
-    "canvasDomGeometryPass": 377,
+    "canvasDomGeometryPass": 378,
     "failedLegs": {
       "geometry": 2,
-      "canvasDom": 3,
+      "canvasDom": 2,
       "L3": 0
     }
   },
@@ -138,10 +138,6 @@
       "nodes": 30,
       "types": 3
     },
-    "flexGrow": {
-      "nodes": 9,
-      "types": 2
-    },
     "maxWidth": {
       "nodes": 10,
       "types": 2
@@ -156,6 +152,10 @@
     },
     "marginBottom": {
       "nodes": 9,
+      "types": 1
+    },
+    "flexGrow": {
+      "nodes": 4,
       "types": 1
     },
     "flexWrap": {
@@ -102249,12 +102249,6 @@
         },
         {
           "old": "component-daterangepicker__2/component-daterangepicker__2_1",
-          "key": "flexGrow",
-          "oldValue": 1,
-          "newValue": null
-        },
-        {
-          "old": "component-daterangepicker__2/component-daterangepicker__2_1",
           "key": "flexShrink",
           "oldValue": 1,
           "newValue": null
@@ -102340,7 +102334,7 @@
       ],
       "geometry": {
         "pairedNodes": 5,
-        "maxDelta": 66.94999694824219,
+        "maxDelta": 54,
         "overOnePx": [
           {
             "new": "project:node:subject::lib:template:component-daterangepicker__2_1",
@@ -102348,7 +102342,7 @@
             "newRect": {
               "x": 35,
               "y": 50,
-              "width": 127.05000305175781,
+              "width": 143,
               "height": 16
             },
             "oldRect": {
@@ -102379,7 +102373,8 @@
                   "minWidth": "auto",
                   "contentMinWidth": 127.05000400543213,
                   "contentMaxWidth": 127.05000400543213,
-                  "contentHeight": 16
+                  "contentHeight": 16,
+                  "flexGrow": 1
                 }
               },
               "parent": {
@@ -102446,7 +102441,7 @@
             "new": "project:node:subject::lib:template:component-daterangepicker__2_2",
             "old": "component-daterangepicker__2/component-daterangepicker__2_2",
             "newRect": {
-              "x": 164.0500030517578,
+              "x": 180,
               "y": 51,
               "width": 68,
               "height": 14
@@ -102574,41 +102569,8 @@
       "canvasDom": {
         "pairedNodes": 5,
         "ownedPairs": 4,
-        "maxDelta": 15.949996948242188,
-        "overOnePx": [
-          {
-            "id": "project:node:subject::lib:template:component-daterangepicker__2_1",
-            "canvas": {
-              "x": 35,
-              "y": 50,
-              "width": 127.05000305175781,
-              "height": 16
-            },
-            "dom": {
-              "x": 35,
-              "y": 50,
-              "width": 143,
-              "height": 16
-            },
-            "owned": true
-          },
-          {
-            "id": "project:node:subject::lib:template:component-daterangepicker__2_2",
-            "canvas": {
-              "x": 164.0500030517578,
-              "y": 51,
-              "width": 68,
-              "height": 14
-            },
-            "dom": {
-              "x": 180,
-              "y": 51,
-              "width": 68,
-              "height": 14
-            },
-            "owned": true
-          }
-        ],
+        "maxDelta": 0.002498626708984375,
+        "overOnePx": [],
         "geometryArbiter": [
           {
             "new": "project:node:subject::lib:template:component-daterangepicker__2_1",
@@ -102631,7 +102593,7 @@
         ],
         "missing": [],
         "missingCount": 0,
-        "pass": false
+        "pass": true
       },
       "approvedDifferences": [
         {
@@ -102660,30 +102622,30 @@
         "maxByte": 0
       },
       "L3": {
-        "pixels": 233074,
-        "different": 61,
-        "ratio": 0.00026171945390734275,
+        "pixels": 232962,
+        "different": 53,
+        "ratio": 0.00022750491496467234,
         "maxByte": 232,
         "diffBounds": [
           14,
-          26,
-          151,
+          28,
+          150,
           43
         ],
-        "approvedAttributed": 20,
+        "approvedAttributed": 12,
         "movedPaint": {
           "pixels": 0,
           "different": 0,
           "maxByte": 0
         },
-        "outsideRatio": 0.00017590979688854183,
+        "outsideRatio": 0.00017599436818021823,
         "outsideMaxByte": 232,
         "blocked": false
       },
       "L3e": {
-        "pixels": 5523,
-        "different": 244,
-        "ratio": 0.044178888285352165,
+        "pixels": 5503,
+        "different": 260,
+        "ratio": 0.04724695620570598,
         "maxByte": 227,
         "diffBounds": [
           11,
@@ -102694,22 +102656,20 @@
         "gated": false
       },
       "text": {
-        "pixels": 1403,
-        "different": 162,
-        "ratio": 0.11546685673556664,
+        "pixels": 1535,
+        "different": 161,
+        "ratio": 0.10488599348534201,
         "maxByte": 232,
         "diffBounds": [
           8,
           14,
-          95,
+          65,
           32
         ],
         "gated": false
       },
-      "failedLegs": [
-        "canvasDom"
-      ],
-      "verdict": "FAIL"
+      "failedLegs": [],
+      "verdict": "PASS"
     },
     {
       "type": "DateRangePicker",
@@ -102798,12 +102758,6 @@
           "key": "contentHeight",
           "oldValue": 20,
           "newValue": 16
-        },
-        {
-          "old": "component-daterangepicker__2/component-daterangepicker__2_1",
-          "key": "flexGrow",
-          "oldValue": 1,
-          "newValue": null
         },
         {
           "old": "component-daterangepicker__2/component-daterangepicker__2_1",
@@ -103043,7 +102997,8 @@
                   "minWidth": "auto",
                   "contentMinWidth": 150.86999893188477,
                   "contentMaxWidth": 150.86999893188477,
-                  "contentHeight": 16
+                  "contentHeight": 16,
+                  "flexGrow": 1
                 }
               },
               "parent": {
@@ -103440,12 +103395,6 @@
         },
         {
           "old": "component-daterangepicker__2/component-daterangepicker__2_1",
-          "key": "flexGrow",
-          "oldValue": 1,
-          "newValue": null
-        },
-        {
-          "old": "component-daterangepicker__2/component-daterangepicker__2_1",
           "key": "flexShrink",
           "oldValue": 1,
           "newValue": null
@@ -103682,7 +103631,8 @@
                   "minWidth": "auto",
                   "contentMinWidth": 170.69000387191772,
                   "contentMaxWidth": 170.69000387191772,
-                  "contentHeight": 20
+                  "contentHeight": 20,
+                  "flexGrow": 1
                 }
               },
               "parent": {
@@ -104085,12 +104035,6 @@
         },
         {
           "old": "component-daterangepicker__2/component-daterangepicker__2_1",
-          "key": "flexGrow",
-          "oldValue": 1,
-          "newValue": null
-        },
-        {
-          "old": "component-daterangepicker__2/component-daterangepicker__2_1",
           "key": "flexShrink",
           "oldValue": 1,
           "newValue": null
@@ -104215,7 +104159,8 @@
                   "minWidth": "auto",
                   "contentMinWidth": 190.49000024795532,
                   "contentMaxWidth": 190.49000024795532,
-                  "contentHeight": 24
+                  "contentHeight": 24,
+                  "flexGrow": 1
                 }
               },
               "parent": {
@@ -104614,12 +104559,6 @@
         },
         {
           "old": "component-daterangepicker__2/component-daterangepicker__2_1",
-          "key": "flexGrow",
-          "oldValue": 1,
-          "newValue": null
-        },
-        {
-          "old": "component-daterangepicker__2/component-daterangepicker__2_1",
           "key": "flexShrink",
           "oldValue": 1,
           "newValue": null
@@ -104856,7 +104795,8 @@
                   "minWidth": "auto",
                   "contentMinWidth": 218.31000518798828,
                   "contentMaxWidth": 218.31000518798828,
-                  "contentHeight": 28
+                  "contentHeight": 28,
+                  "flexGrow": 1
                 }
               },
               "parent": {

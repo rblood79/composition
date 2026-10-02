@@ -592,6 +592,25 @@ export function catalogDateSegmentPaddingX(ownerType: string): number {
 }
 
 /**
+ * Flex grow the owner's delegation gives its RAC range end input (`[slot="end"] { flex: N }` —
+ * DateRangePicker): the DOM end DateInput takes the trigger's free space past its min-content.
+ * 0 when the owner declares none.
+ */
+export function catalogDateRangeEndGrow(ownerType: string): number {
+  const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)[ownerType];
+  const delegation = (
+    rule?.structure?.composition as
+      | { delegation?: Array<{ childSelector?: string; bridges?: Record<string, string> }> }
+      | undefined
+  )?.delegation;
+  const flex = delegation?.find(
+    (entry) => entry.childSelector === '[slot="end"]',
+  )?.bridges?.flex;
+  const grow = typeof flex === "string" ? Number(flex.trim().split(/\s+/)[0]) : 0;
+  return Number.isFinite(grow) && grow > 0 ? grow : 0;
+}
+
+/**
  * Inline inset of a toggle-indicator control's content: the RAC indicator element (checkbox box,
  * radio circle, switch track — `sizes[size].indicator`) and the control's `gap` sit before the
  * label in the DOM row. The typed tree has no indicator node (the Canvas executor paints it in the

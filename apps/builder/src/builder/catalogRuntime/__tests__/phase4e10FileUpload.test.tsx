@@ -137,3 +137,70 @@ describe("rule-backed text — the layout's wrap decision", () => {
     workspace.dispose();
   });
 });
+
+/**
+ * ADR-248 4e-10 G3 DateRangePicker xs: the catalog's `[slot="end"] { flex: 1 }` delegation grows
+ * the DOM end DateInput into the trigger's free space (basis 0, min-content floor). The Canvas has
+ * one typed DateInput for the start/end pair, so the pair box grows the same way.
+ */
+describe("DateRangePicker — the end input's catalog grow", () => {
+  it("the pair DateInput grows into the trigger's free space", async () => {
+    const measure: CatalogTextMeasure = (text, font) => ({
+      width: text.length * font.fontSize * 0.5,
+      exactWidth: text.length * font.fontSize * 0.5,
+      minWidth: text.length * font.fontSize * 0.5,
+      height: font.fontSize * (font.lineHeight || 1.2),
+    });
+    const library = await buildCodeCatalogLibrary();
+    const workspace = new CatalogWorkspace(
+      new CatalogGraph(
+        newCatalogProjectDocument({
+          projectId: "project:project:range" as const,
+          name: "Range",
+        }),
+        library,
+      ),
+      new CatalogStorage(indexedDB, `adr248-4e10-range-${Math.random()}`),
+      {
+        engine: await nodeLayoutEngine(),
+        viewport: { width: 1000, height: 800 },
+        autosaveSchedule: () => {},
+        textMeasure: measure,
+      },
+    );
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: "project:node:home-body" },
+        entries: [
+          {
+            kind: "node",
+            id: "project:node:range",
+            definitionId: catalogPaletteDefinitionId(library, "DateRangePicker"),
+            children: [],
+            props: { size: { kind: "set", value: "xs" } },
+            visual: {},
+            sizing: { width: { kind: "set", value: 400 } },
+            descendantOverrides: [],
+          } as NodeEntry,
+        ],
+        rootIds: ["project:node:range"],
+        newId: workspace.newId,
+      }),
+    );
+    const root = workspace.root;
+    const records = [...root.layoutInputs.values()];
+    const input = records.find((record) => record.bindingId === "dateinput")!;
+    expect(root.getLayoutInput(input.id)).toMatchObject({ flexGrow: 1 });
+    const wrapper = root.layoutInputs.get(input.parentId)!;
+    const siblings = wrapper.children;
+    const geometry = root.getGeometry([wrapper.id, ...siblings]);
+    const box = geometry.get(input.id)!;
+    const next = geometry.get(siblings[siblings.indexOf(input.id) + 1]!)!;
+    const gap = Number(wrapper.visual.gap ?? 0);
+    // The pair fills up to the trigger button (the DOM's start · – · grown end).
+    expect(next.x - (box.x + box.width)).toBeCloseTo(gap, 1);
+    const outer = geometry.get(wrapper.id)!;
+    expect(next.x + next.width).toBeGreaterThan(outer.x + outer.width - 10);
+    workspace.dispose();
+  });
+});

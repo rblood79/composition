@@ -64,7 +64,10 @@ import {
   racDateSegmentParts,
   type DateSegmentPart,
 } from "../../../../../packages/shared/src/catalog/document/dateSegments";
-import { catalogDateSegmentPaddingX } from "../../../../../packages/shared/src/catalog/document/rulePartRules";
+import {
+  catalogDateRangeEndGrow,
+  catalogDateSegmentPaddingX,
+} from "../../../../../packages/shared/src/catalog/document/rulePartRules";
 import {
   catalogBoxModel,
   catalogTextBreaksWords,
@@ -648,7 +651,8 @@ interface CatalogDateSegments {
   parts: readonly DateSegmentPart[];
   paddingX: number;
   /** DateRangePicker: start/end rows around the separator span, spaced by the trigger gap. */
-  range?: { gap: number; separator: string };
+  /** A range's pair row: trigger gap, separator and the end input's catalog grow. */
+  range?: { gap: number; separator: string; grow: number };
   lineHeight?: number;
 }
 
@@ -734,6 +738,14 @@ function styleOf(
             contentMinWidth: width,
             contentMaxWidth: width,
             contentHeight: height,
+            // The DOM end input grows into the trigger's free space (basis 0, min-content
+            // floor): the pair box grows by the same free space from its content width. An
+            // authored grow (item layout / fill intent) stays the author's.
+            ...(segmentText.range?.grow &&
+            node.layout.flexGrow === undefined &&
+            node.fillLayout?.flexGrow === undefined
+              ? { flexGrow: segmentText.range.grow }
+              : {}),
           };
         })()
       : undefined;
@@ -1785,6 +1797,7 @@ export class CatalogCompositionRoot {
             range: {
               gap: Number(wrapper?.visual.gap ?? 0),
               separator: "\u2013",
+              grow: catalogDateRangeEndGrow(ownerType),
             },
           }
         : {}),
