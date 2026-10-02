@@ -78,15 +78,26 @@ export type CatalogShortcutId = Extract<
   | "selectAll"
   | "detachInstance"
   | "toggleComponentOrigin"
-  | CatalogArrangeId
+  | CatalogArrangeShortcutId
   | "arrowUpShift"
   | "arrowDownShift"
   | "arrowLeftShift"
   | "arrowRightShift"
 >;
 
+type CatalogArrangeShortcutId = Extract<
+  ShortcutId,
+  | "alignLeft"
+  | "alignHCenter"
+  | "alignRight"
+  | "alignTop"
+  | "alignVCenter"
+  | "alignBottom"
+  | "distributeH"
+  | "distributeV"
+>;
 const ARRANGE: Record<
-  string,
+  CatalogArrangeShortcutId,
   { align: AlignmentType } | { distribute: DistributionType }
 > = {
   alignLeft: { align: "left" },
@@ -98,20 +109,17 @@ const ARRANGE: Record<
   distributeH: { distribute: "horizontal" },
   distributeV: { distribute: "vertical" },
 };
-type CatalogArrangeId = Extract<
-  ShortcutId,
-  | "alignLeft"
-  | "alignHCenter"
-  | "alignRight"
-  | "alignTop"
-  | "alignVCenter"
-  | "alignBottom"
-  | "distributeH"
-  | "distributeV"
->;
-export const CATALOG_ARRANGE_SHORTCUTS = Object.keys(
-  ARRANGE,
-) as readonly CatalogArrangeId[];
+/** The arrange shortcuts as a list (the palette registration gate reads it from source). */
+export const CATALOG_ARRANGE_SHORTCUTS: readonly CatalogArrangeShortcutId[] = [
+  "alignLeft",
+  "alignHCenter",
+  "alignRight",
+  "alignTop",
+  "alignVCenter",
+  "alignBottom",
+  "distributeH",
+  "distributeV",
+];
 
 /**
  * Align / distribute (the old Canvas's rule, ADR-155): the selected elements placed absolutely
@@ -121,7 +129,7 @@ export const CATALOG_ARRANGE_SHORTCUTS = Object.keys(
  */
 export function catalogArrangeCommand(
   workspace: CatalogWorkspace,
-  id: CatalogArrangeId,
+  id: CatalogArrangeShortcutId,
 ): CatalogCommand | undefined {
   const rule = ARRANGE[id];
   const placed = workspace.session.getSnapshot().selection.flatMap((item) => {

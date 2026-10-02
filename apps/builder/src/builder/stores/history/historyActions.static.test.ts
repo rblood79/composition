@@ -234,36 +234,6 @@ describe("ADR-181: page-guide entry 소비 지점 6곳 (C4 커버리지)", () =>
     }
   });
 
-  it("C4 #6 — 패널 라벨/아이콘 (라벨 없는 entry 방지)", async () => {
-    const label = await readSource("../../panels/history/historyEntryLabel.ts");
-    expect(label).toContain('case "page-guide"');
-    // 목록 전체 교체라 길이 차로 생성/삭제/이동을 가른다. 문구 자체는
-    // 카탈로그가 고르므로 (ADR-200) 여기서는 세 갈래의 키를 고정한다.
-    expect(label).toContain("history.entryGuideAdd");
-    expect(label).toContain("history.entryGuideRemove");
-    expect(label).toContain("history.entryGuideMove");
-
-    const panel = await readSource("../../panels/history/HistoryPanel.tsx");
-    // ENTRY_TYPE_ICONS 는 Record<HistoryEntry["type"], LucideIcon> 이라 누락 시
-    // type-check 가 먼저 잡지만, 아이콘 선택 자체를 계약으로 고정한다.
-    // 2026-08-16: 눈금자 아이콘은 `ACTION_ICONS.toggleRulers` 정본 경유로 바뀌었다
-    // (`config/actionIcons.ts`) — 컨텍스트 메뉴·Settings 패널과 한 소스를 읽는다.
-    // 여기서 확인할 것은 "가이드 entry 가 눈금자 그림을 쓴다" 이지 특정 lucide
-    // 심볼명이 아니므로, 정본 키로 고정한다.
-    expect(panel).toContain('"page-guide": ACTION_ICONS.toggleRulers');
-  });
-
-  it("C11 — 가이드 무효화는 overlay 만 (content surface 미관여)", async () => {
-    const canvas = await readSource(
-      "../../workspace/canvas/skia/SkiaCanvas.tsx",
-    );
-    const idx = canvas.indexOf("subscribePageGuideRevision(");
-    expect(idx).toBeGreaterThan(-1);
-    const block = canvas.slice(idx, canvas.indexOf("}, []);", idx));
-    expect(block).toContain("overlayVersionRef.current++");
-    // pagePositionPresentation 구독과 갈리는 지점 — content 는 그대로다
-    expect(block).not.toContain("invalidateContent");
-  });
 });
 
 /**
@@ -317,8 +287,7 @@ describe("ADR-152: data entry 소비 지점 6곳 (R9)", () => {
   });
 
   it("#6 — 패널 라벨/아이콘", async () => {
-    const label = await readSource("../../panels/history/historyEntryLabel.ts");
-    expect(label).toContain('case "data":');
+    // (The old History panel's entry label · icon table retired with the old app — ADR-248 4e.)
     // ADR-248 4e-7: the data op labels live in `dataChangeEventLabel.ts` (the catalog history too).
     const dataLabel = await readSource(
       "../../panels/history/dataChangeEventLabel.ts",
@@ -330,8 +299,6 @@ describe("ADR-152: data entry 소비 지점 6곳 (R9)", () => {
       "entryDataFieldRename",
     ])
       expect(dataLabel).toContain(`history.${key}`);
-    const panel = await readSource("../../panels/history/HistoryPanel.tsx");
-    expect(panel).toContain("data: Database");
   });
 });
 
@@ -352,11 +319,6 @@ describe("ADR-227: theme entry 소비 지점 (page-guide 동형 — 비-element 
     expect(source).toContain('if (entry.type === "theme") continue;');
     const history = await readSource("../history.ts");
     expect(history).toContain('entry.type !== "theme"');
-    const label = await readSource("../../panels/history/historyEntryLabel.ts");
-    expect(label).toContain('case "theme"');
-    for (const key of ["Add", "Remove", "Rename", "Activate", "Edit"]) {
-      expect(label).toContain(`history.entryTheme${key}`);
-    }
     const idb = await readSource("historyIndexedDB.ts");
     expect(idb).toContain('case "theme"');
   });

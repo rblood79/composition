@@ -36,10 +36,10 @@ const LABEL_LITERALS = [
   "컴포넌트 분리",
 ];
 
-/** 컴포넌트 액션을 그리는 표면 3곳. */
+/** 컴포넌트 액션을 그리는 표면 3곳 (ADR-248 4e — Properties · Canvas 메뉴는 catalog 표면). */
 const SURFACE_SOURCES = [
-  "builder/panels/properties/ComponentSemanticsSection.tsx",
-  "builder/workspace/canvas/contextMenu/canvasContextMenuProviders.ts",
+  "builder/panels/properties/catalog/CatalogComponentSection.tsx",
+  "builder/catalogRuntime/canvasMenu.ts",
   "builder/components/overlay/actionBar/actionBarPolicy.ts",
 ];
 

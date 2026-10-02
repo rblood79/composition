@@ -85,18 +85,13 @@ describe("ADR-922 G6 legacy panel removal", () => {
   });
 
   it("removes legacy exports/CSS imports while retaining bottom Monitor placement", async () => {
-    const [layoutIndex, styleIndex, workspace, panelConfigs] =
-      await Promise.all([
-        readBuilderFile("layout/index.ts"),
-        readBuilderFile("styles/index.css"),
-        readBuilderFile("layout/PanelWorkspace.tsx"),
-        readBuilderFile("panels/core/panelConfigs.ts"),
-      ]);
+    // (`layout/index.ts` barrel itself retired with the old app — ADR-248 4e.)
+    const [styleIndex, workspace, panelConfigs] = await Promise.all([
+      readBuilderFile("styles/index.css"),
+      readBuilderFile("layout/PanelWorkspace.tsx"),
+      readBuilderFile("panels/core/panelConfigs.ts"),
+    ]);
 
-    expect(layoutIndex).not.toContain("PanelArea");
-    expect(layoutIndex).not.toContain("BottomPanelArea");
-    expect(layoutIndex).not.toContain("PanelContainer");
-    expect(layoutIndex).not.toContain("ModalPanelContainer");
     expect(styleIndex).not.toContain("footer.css");
     expect(styleIndex).not.toContain("panel-container.css");
     expect(workspace).toContain('["left", "right", "bottom"] as const');

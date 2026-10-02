@@ -1,1 +1,0 @@
-export { GenericPropertyEditor } from "./GenericPropertyEditor";

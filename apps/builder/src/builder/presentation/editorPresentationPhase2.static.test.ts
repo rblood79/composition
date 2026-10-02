@@ -16,18 +16,15 @@ describe("ADR-187 Phase 2 migration guards", () => {
 
   it("migrated owner는 runtime 외 RAF와 legacy preview write를 호출하지 않는다", async () => {
     const pilot = await source("editorPresentationFillPilot.ts");
-    const bridge = await source("skiaEditorPresentationBridge.ts");
     const action = await source("../panels/styles/hooks/useFillActions.ts");
     const gradientBar = await source(
       "../panels/styles/components/GradientBar.tsx",
     );
 
     expect(pilot).not.toContain("requestAnimationFrame");
-    expect(bridge).not.toContain("requestAnimationFrame");
     expect(gradientBar).not.toContain("requestAnimationFrame");
     expect(gradientBar).not.toContain("cancelAnimationFrame");
     expect(pilot).not.toMatch(/updateSelected.*Preview/);
-    expect(bridge).not.toMatch(/updateSelected.*Preview/);
     expect(action).toContain("previewFirstFillColorPresentation");
     expect(action).toContain("presentation.handle.publish(descriptor)");
   });
@@ -182,27 +179,7 @@ describe("ADR-187 Phase 2 migration guards", () => {
     expect(modified).toContain("useResetStyles");
   });
 
-  it("Skia publish consumer는 targeted in-place patch 외 forbidden rebuild 경로가 없다", async () => {
-    const bridge = await source("skiaEditorPresentationBridge.ts");
-    for (const forbidden of [
-      "runCanonicalMutation",
-      "historyManager",
-      "layoutVersion",
-      "registerSkiaNode",
-      "forceFullRebuild",
-      "invalidateCommandStreamCache",
-      "updateSelectedFills",
-    ]) {
-      expect(bridge).not.toContain(forbidden);
-    }
-    expect(bridge).toContain("projectionIndex.resolve(descriptor.target)");
-    expect(bridge).toContain("subscribeSessionEvents");
-    expect(bridge).toContain("applyPresentationFillPatch");
-    expect(bridge).toContain("restorePresentationFillPatch");
-  });
-
   it("store resync와 visible projection 경계가 presentation bridge에 연결된다", async () => {
-    const canvas = await source("../workspace/canvas/skia/SkiaCanvas.tsx");
     const storeBridge = await source(
       "../workspace/canvas/skia/StoreRenderBridge.ts",
     );
@@ -211,8 +188,6 @@ describe("ADR-187 Phase 2 migration guards", () => {
     );
 
     expect(storeBridge).toContain("onDidSync?.(");
-    expect(canvas).toContain("onDidSync:");
-    expect(canvas).toContain("handleStoreSync(");
     expect(rendererInput).toContain("if (!pageSnapshot.isVisible) continue;");
     expect(rendererInput).toContain(
       "addPresentationProjection(\n          builder,\n          pageSnapshot.bodyElement,\n          input.sceneNodesMap,\n        )",

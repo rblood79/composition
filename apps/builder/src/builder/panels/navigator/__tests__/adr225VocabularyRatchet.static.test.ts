@@ -37,7 +37,6 @@ const ALLOWLIST: readonly string[] = [
 const LEGACY_FEATURE_COPY_PATTERN =
   /\bframes?[- ](?:tab|preset|section|list(?!-tree)|layers)\b|Navigator Frames|Frames\/Layers|Pages\/Frames/i;
 const COPY_ALLOWLIST: readonly string[] = [
-  "builder/panels/properties/editors/LayoutBodyEditor.static.test.ts",
   "builder/panels/styles/hooks/useSectionCollapse.ts",
   "builder/panels/styles/hooks/useSectionCollapse.test.ts",
   "builder/panels/navigator/__tests__/adr225VocabularyRatchet.static.test.ts",
@@ -82,18 +81,6 @@ describe("ADR-225 — 재사용 레이아웃 기능 소유 구 Frame 명칭 0건
       .filter((rel) => !COPY_ALLOWLIST.includes(rel))
       .sort();
     expect(hits).toEqual([]);
-  });
-
-  it("Properties page-layout 문구에 재사용 레이아웃 의미의 Frame 이 없다", () => {
-    const source = fs.readFileSync(
-      path.join(
-        BUILDER_SRC,
-        "builder/panels/properties/editors/PageLayoutSelector.tsx",
-      ),
-      "utf-8",
-    );
-    expect(source).not.toMatch(USER_FACING_LEGACY_COPY);
-    expect(source).toContain('title="Layout"');
   });
 
   it("i18n 카탈로그에 신규 Layout key 3개가 ko/en 양쪽에 있다", async () => {

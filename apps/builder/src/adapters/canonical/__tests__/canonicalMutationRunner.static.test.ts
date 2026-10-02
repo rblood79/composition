@@ -41,10 +41,6 @@ const EXISTING_PATH_ALLOWLIST = new Set([
   "adapters/canonical/canonicalMutations.ts",
   "builder/factories/utils/elementCreation.ts",
   "builder/hooks/useIframeMessenger.ts",
-  "builder/main/BuilderCore.tsx",
-  "builder/panels/navigator/LayoutsTab/LayoutsTab.tsx",
-  "builder/panels/navigator/PagesSection.tsx",
-  "builder/panels/properties/editors/LayoutPresetSelector/usePresetApply.ts",
   "builder/stores/elements.ts",
   "builder/stores/history/historyActions.ts",
   "builder/stores/inspectorActions.ts",
@@ -52,8 +48,6 @@ const EXISTING_PATH_ALLOWLIST = new Set([
   "builder/stores/utils/elementRemoval.ts",
   "builder/stores/utils/elementUpdate.ts",
   "builder/stores/utils/instanceActions.ts",
-  "builder/workspace/canvas/hooks/useDragBridge.ts",
-  "builder/workspace/overlay/useTextEdit.ts",
 ]);
 
 const SKIP_DIRS = new Set(["node_modules", "dist", "__tests__"]);

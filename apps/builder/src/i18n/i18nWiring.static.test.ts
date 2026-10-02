@@ -35,11 +35,12 @@ describe("i18n Builder wiring", () => {
     );
     const panelWorkspace = readBuilderFile("builder/layout/PanelWorkspace.tsx");
     const zoom = readBuilderFile("builder/workspace/ZoomControls.tsx");
+    // ADR-248 4e: the catalog Navigator (tabs in the panel, the layouts list in the definitions section).
     const navigatorTabs = readBuilderFile(
-      "builder/panels/navigator/NavigatorPanelTabs.tsx",
+      "builder/panels/navigator/catalog/CatalogNavigatorPanel.tsx",
     );
     const frames = readBuilderFile(
-      "builder/panels/navigator/LayoutsTab/LayoutList.tsx",
+      "builder/panels/navigator/catalog/CatalogDefinitionsSection.tsx",
     );
     const stylesTabs = readBuilderFile(
       "builder/panels/styles/components/StylesPanelTabs.tsx",
@@ -50,9 +51,6 @@ describe("i18n Builder wiring", () => {
     );
     const dataTable = readBuilderFile(
       "builder/panels/datatable/DataTablePanel.tsx",
-    );
-    const debuggerSource = readBuilderFile(
-      "builder/devtools/ShortcutDebugger.tsx",
     );
 
     expect(settings).toContain('import { LanguageSwitcher } from "@/i18n";');
@@ -84,6 +82,5 @@ describe("i18n Builder wiring", () => {
     expect(switcher).toContain('t("settings.language")');
     expect(propertyFieldset).toContain("semanticLabelKeys");
     expect(dataTable).toContain("datatable.${key}");
-    expect(debuggerSource).toContain("debugger.${key}");
   });
 });

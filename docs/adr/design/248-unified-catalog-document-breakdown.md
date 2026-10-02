@@ -452,7 +452,142 @@ H5 수리안은 **main에 미연결 새 모듈을 추가한 뒤 제품 진입점
 | 4e-8-7      | 누락 재점검 나머지 6건 (4 · 5 · 13 · 14 · 15 · 16번). ① 인스턴스 override 목록 (옛 `getEditingSemanticsOverrideItems` · reset 토스트): 자기 props · visual 에 더해 template 위치 patch 의 props · visual · sizing · layout 키를 「위치이름.키」 행으로, 초기화 = step 1 + 정보 토스트 (되돌리기 = workspace undo). ② page Route 의 「Generate from Title」 (옛 Slug 행의 마법봉): 부모 page route + 이름 slug (`catalogGeneratedRoute`), placeholder 도 같은 값, 라틴 문자 없는 이름 = 빈 값 → 기존 거부 안내. ③ 인스턴스 Styles 가 원본 값을 바탕으로 (옛 host 의 `{...master, ...own}`): 프로젝트 컴포넌트 인스턴스 = 정의 template root, template 위치 = 그 프로젝트 template 노드의 own 값 (style · fill sizing · fills), 자기 값이 이김. 기본 원본 (library) 안쪽 값은 범위 밖 (catalog 값). ④ auto page body 의 Size 표시 = 열린 page frame 크기 (`canvasSize` 를 page · breakpoint · step 마다 맞춤). ⑤ Min W/H 가 %, vw 등 상대 · viewport 길이를 받음 (px = sizing, 그 밖 = visual 글, width 와 같은 규칙). **문서 검증 확장**: visual `minWidth` · `minHeight` 가 숫자 · `auto` 외에 상대 · viewport CSS 길이 글을 허용 (기존 문서는 그대로 유효, box model · DOM · 엔진은 이미 글 길이 처리). ⑥ 색 견본의 accent = 자기 record 의 `accentColor`, 없으면 조상 record 의 것 (옛 walk). 원복 RED (원본 값 · Properties 단축키 등). live (headless): 「About Us」 page 에서 Generate from Title = `/about-us`, tablet 에서 body Height 1024, Min W `50%` = visual 50% · 폭 960, 인스턴스 Properties 행 「Text.color」 → 초기화 = 행 사라짐 · 토스트 「'Text.color' override cleared / Undo」, 오류 0 | `be2893ad8` |
 | 4e-8-8 | 패널 레이아웃 회귀 (사용자 신고 2026-10-02 「5175 패널들의 레이아웃이 많이 깨졌다」). ① 원인: 구 `BuilderCore` 는 `../components` barrel 을 import 했고 barrel 의 `import "./styles"` side effect 가 패널 공용 CSS (`components/styles/index.css` → panel-system · inspector-layout · form-controls · panel-btn, + list-group) 를 실었다. 4e-7-1 (`ef1f5245c`) 이 barrel 을 직접 import 로 바꾸며 그 줄도 끊겨 Navigator 탭 · 섹션 머리 · Data 탭 · Theme 목록 · Properties 입력칸이 스타일 없이 그려졌다. 수리 = `CatalogBuilderCore` 가 `../components/styles` 를 직접 import. 다른 손실 점검: 옛 빌드 CSS class 와 새 빌드 class 의 차 중 도달 코드가 쓰는 것 = 이 묶음 밖 0 (`.collapsed` 는 미도달 SelectionFilter 전용). ② Component 행: 인스턴스에도 「인스턴스 선택 (n)」 버튼이 붙어 「Create component」 가 잘렸다 — 옛 규칙대로 원본일 때만. 단위: `phase4e8Chrome` (인스턴스 = 버튼 없음 · 원본 view = 「Select instances (1)」, 원복 RED). live (headless · 5175 · 옛 앱 5173 대조): 빈 프로젝트 패널 8종 · Button 선택 시 Styles / Properties 가 옛 앱과 같은 배치, 오류 0 | `a843eceae` |
 | 4e-8-9 | 요소 ID 자동 부여 (사용자 지시 2026-10-02 「element 의 ID 를 자동으로 넣는 기능도 기본적으로 넣어」 — 지문 버튼은 중복 확인). 옛 앱은 만든 요소마다 `customId` = `{type}_{n}` (빈 번호 첫째) 을 붙였고 DOM `id` 로 그렸다 (page body 는 없음, 복사본은 새 번호). `catalogAutoHtmlIds` (`catalogRuntime/attributes.ts`) 가 사용자 명령의 plan 에서 새로 만드는 node 의 `put` 에 `metadata.htmlId` 를 직접 넣는다 — 같은 step 이라 undo 1번에 함께 사라진다. 없으면 `type_N` (type = `definitionTypeName`, plan 안 정의도 읽음), 다른 node 가 쓰는 id 면 그 base 의 다음 빈 번호 (지문 버튼의 중복 규칙), body 정의는 제외. `workspace.execute` · `recordExternal` 의 명령에 적용. 단위: `phase4e8AutoHtmlId` (삽입 button_1 · text_1 · button_2, undo 후 번호 재사용, 붙여넣기 hero → hero_1 · hero_2, body 없음 · 지운 id 유지, 구현 전 RED) · 기존 2건 기대값 갱신 (삽입이 준 id). live (headless · 5175): 팔레트 Button 두 번 = button_1 · button_2, ⌘C/⌘V = button_3 · Properties ID 칸 값 button_3, 오류 0 | `6d81babcc` |
-| 4e-8-10 | 비운 ID 칸의 placeholder = 그 요소의 실제 자동값 (사용자 지시 2026-10-02). 종전 `{type}_1` 고정 (옛 앱도 같음) 은 `button_1` 을 다른 요소가 쓸 때 쓸 수 없는 값을 보였다. `catalogHtmlIdBase` (type 이름 소문자, 자동 부여 · placeholder · 지문 버튼이 같이 읽음) + `catalogUniqueHtmlId` 를 step 마다 다시 읽어 첫 빈 `type_N`. 지문 버튼의 빈 칸 할당도 같은 값. 단위: `phase4e8AutoHtmlId` (Button 둘 · 둘째 비움 → placeholder button_2 · 첫째를 cta 로 → button_1 · 지문 = button_1, 고정 `_1` 원복 RED). live (headless · 5175): 둘째 Button ID 지움 → 값 빈 칸 · placeholder button_2 · 문서 [button_1, 없음], 오류 0 | 이 커밋 |
+| 4e-8-10 | 비운 ID 칸의 placeholder = 그 요소의 실제 자동값 (사용자 지시 2026-10-02). 종전 `{type}_1` 고정 (옛 앱도 같음) 은 `button_1` 을 다른 요소가 쓸 때 쓸 수 없는 값을 보였다. `catalogHtmlIdBase` (type 이름 소문자, 자동 부여 · placeholder · 지문 버튼이 같이 읽음) + `catalogUniqueHtmlId` 를 step 마다 다시 읽어 첫 빈 `type_N`. 지문 버튼의 빈 칸 할당도 같은 값. 단위: `phase4e8AutoHtmlId` (Button 둘 · 둘째 비움 → placeholder button_2 · 첫째를 cta 로 → button_1 · 지문 = button_1, 고정 `_1` 원복 RED). live (headless · 5175): 둘째 Button ID 지움 → 값 빈 칸 · placeholder button_2 · 문서 [button_1, 없음], 오류 0 | `25496a60c` |
+| 4e-9-1 | 삭제 1차 (사용자 승인 2026-10-02 「모두승인」 — 소스 · 대상 테스트 · 정적 테스트 정리 규칙). 판정: 새 Builder 진입점 (`index.html` · `preview.html`) 에서 Vite 그래프 + `import type` (TS 해석) + CSS `@import` 사슬로 닿지 않고, 남는 테스트가 import 하지 않는 파일. Vite 그래프만으로는 647 (타입 전용 import 를 못 봄) → 타입 포함 386 → 남는 테스트가 쓰는 152 를 2차로 미룸 → CSS `@import` 로 쓰이는 10 (+ 4e-8-8 로 다시 쓰이게 된 패널 공용 CSS 5) 제외 = **소스 219 · 테스트 87** (대상 테스트 64 · 지운 파일만 읽던 정적 테스트 23). 목록: 아래 「4e-9-1 삭제 목록」. 남는 파일도 읽던 정적 테스트 ~40 은 지운 파일 항목만 빼거나 catalog 대응 파일로 옮김 (Toast 단일 컨테이너 · History 패널 계약 · Navigator 스타일 · i18n 배선 · Canvas 메뉴 라벨 = `catalogRuntime/canvasMenu.ts` · 구조 쓰기 가드 표 · 러너 allowlist 축소). 단축키 등록 게이트는 `readonly XShortcutId[]` 리터럴도 읽고 `CATALOG_ARRANGE_SHORTCUTS` 를 리터럴 목록으로 (팔레트 정의 12개가 미등록으로 보이던 것은 파서 한계 — 새 앱은 등록함). 소비처 0 이 된 `UNIFIED_ENGINE` flag 제거. 라벨 게이트는 글자 없는 라벨 (`"100%"`) 허용 (옛 provider 도 같은 값, 위치 인자라 안 보였을 뿐). 검증: 임시 worktree 사전 삭제 → 실제 삭제 전 HEAD 재측정 (승인 목록 중 새로 닿는 파일 0) · type-check 0 · `vite build` 성공 (CSS 경고 3 = main 과 동일) · Builder 1011 파일 통과 · live (headless · 5175) 패널 8종 정상 · Button 삽입 2 + 붙여넣기 = button_1/2/3, 오류 0 | 이 커밋 |
+
+**4e-9-1 삭제 목록** (사용자 결정 2026-09-30 「실제 삭제 목록은 병합 전에 커밋 메시지·이 문서에 남긴다」 — 경로는 `apps/builder/src/` 기준)
+
+소스 219:
+
+- `adapters/canonical/` — pageFrameBinding.ts, projectPageFrameTree.ts
+- `adapters/pencil/` — index.ts, pencilSchemaMap.ts, types.ts
+- `auth/` — index.tsx
+- `builder/components/` — tableColumnWrite.ts
+- `builder/components/dialog/` — AddPageDialog.css
+- `builder/components/feedback/` — ScopedErrorBoundary.css
+- `builder/components/overlay/actionBar/` — index.ts
+- `builder/components/selection/` — BatchPropertyEditor.css, MultiSelectStatusIndicator.css, SelectionFilter.css, SelectionMemory.css, SmartSelection.css
+- `builder/config/` — index.ts, propertyFieldIcons.ts
+- `builder/dev/` — editingSemanticsFixture.ts, pathHeavy117Fixture.ts
+- `builder/devtools/` — ShortcutDebugger.tsx, index.ts
+- `builder/hooks/` — useCollectionItemManager.ts
+- `builder/inspector/` — index.ts
+- `builder/inspector/hooks/` — index.ts
+- `builder/inspector/utils/` — elementMapper.ts, shallowEqual.ts
+- `builder/layers/` — listBoxRowProjection.ts
+- `builder/layout/` — index.ts, panelWorkspaceShadowAdapter.ts
+- `builder/main/` — BuilderCanvas.tsx, BuilderCore.tsx, index.ts
+- `builder/panels/` — delegatedSubpart.legacy.ts, index.ts
+- `builder/panels/components/` — ComponentsPanel.tsx
+- `builder/panels/core/` — index.ts
+- `builder/panels/datatable/` — index.ts
+- `builder/panels/datatable/components/` — ColumnSelector.css, ColumnSelector.tsx
+- `builder/panels/datatable/presets/` — index.ts
+- `builder/panels/history/` — HistoryPanel.tsx, historyEntryLabel.ts, storeSnapshotActions.legacy.ts, userSnapshotActions.ts
+- `builder/panels/interactions/` — InteractionsPanel.tsx, RuleRow.tsx, StateActionFields.legacy.tsx, TargetPicker.tsx, useInteractionRules.ts
+- `builder/panels/navigator/` — LayersSection.tsx, NavigatorPanel.tsx, NavigatorPanelTabs.tsx, PagesSection.tsx, layersSectionUtils.ts, useCanonicalPanelElements.ts
+- `builder/panels/navigator/LayoutsTab/` — LayoutElementTree.tsx, LayoutList.tsx, LayoutsTab.tsx, index.ts
+- `builder/panels/navigator/tree/LayerTree/` — LayerTree.tsx, LayerTreeItemContent.tsx, index.ts, types.ts, useLayerTreeData.ts, useLayerTreeDnd.ts, validation.ts
+- `builder/panels/navigator/tree/PageTree/` — PageTree.tsx, index.ts, usePageTreeDnd.ts
+- `builder/panels/navigator/tree/TreeBase/` — styles.css
+- `builder/panels/navigator/tree/hooks/` — index.ts, useFocusManagement.ts, useTreeVirtual.ts
+- `builder/panels/properties/` — ButtonChildSection.tsx, CanvasSelectionShortcuts.tsx, ComponentSemanticsSection.tsx, ComponentSlotFillSection.tsx, ElementAttributesSection.tsx, FrameSlotSection.tsx, GridListCardFieldsSection.tsx, ItemOriginNoticeSection.tsx, ItemSlotRolesSection.tsx, PageBodySection.tsx, PropertiesPanel.tsx, buttonChildSectionUtils.ts, componentsPageFields.ts, gridListCardFields.ts, itemOriginNotice.ts, panelNodeElementMap.ts
+- `builder/panels/properties/editors/` — ElementSlotSelector.tsx, LayoutBodyEditor.tsx, PageBodyEditor.tsx, PageLayoutSelector.tsx, PageParentSelector.tsx
+- `builder/panels/properties/editors/LayoutPresetSelector/` — LayoutSlotsSection.legacy.tsx, index.legacy.tsx, usePresetApply.ts
+- `builder/panels/properties/generic/` — CatalogInspectorFields.tsx, ChildItemManager.tsx, GenericPropertyEditor.tsx, SpecField.tsx, index.ts, inferLabel.ts, specFieldConstants.ts
+- `builder/panels/properties/hooks/` — useEditContract.ts
+- `builder/panels/properties/state/` — StateSection.tsx, stateDefsEditing.ts
+- `builder/panels/properties/types/` — editorTypes.ts
+- `builder/panels/styles/constants/` — styleMappings.ts
+- `builder/panels/styles/hooks/` — useStyleSource.ts, useStyleValues.ts
+- `builder/panels/styles/types/` — styleTypes.ts
+- `builder/panels/themes/` — themesHost.store.ts
+- `builder/performance/` — localWebVitals.ts
+- `builder/presentation/` — skiaEditorPresentationBridge.ts
+- `builder/stores/` — componentRegistry.ts
+- `builder/stores/canonical/` — canonicalDocumentSync.ts
+- `builder/templates/` — index.ts, layoutTemplates.ts
+- `builder/types/` — index.ts
+- `builder/utils/` — QueryPersister.ts, RequestManager.ts, catalogStaticSnapshot.ts, detectShortcutConflicts.ts, timing.ts, treeUtils.ts
+- `builder/workspace/` — Workspace.tsx, index.ts, storeViewportActions.legacy.ts
+- `builder/workspace/canvas/` — BuilderCanvas.tsx, canvasSync.ts
+- `builder/workspace/canvas/benchmarks/` — canvasBenchmark.ts, constitutional.ts, devProfiler.ts, runBaseline.ts, scenarios.ts
+- `builder/workspace/canvas/contextMenu/` — canvasContextMenuEntry.ts, canvasContextMenuProviders.ts
+- `builder/workspace/canvas/gpu/` — CanvasKitWebGLBackend.ts, GPUBackend.ts
+- `builder/workspace/canvas/hooks/` — useCanvasElementSelectionHandlers.ts, useCanvasRuntimeBootstrap.ts, useCentralCanvasPointerHandlers.ts, useDragBridge.ts, useGuideDrag.ts, usePageDrag.ts, useResizeInteraction.ts, useScrollWheelInteraction.ts, useSpacingInteraction.ts
+- `builder/workspace/canvas/interaction/` — dragModifiers.ts, index.ts, snapGuidePresentation.ts, usePointerDragLifecycle.ts
+- `builder/workspace/canvas/overlay/spacing/` — SpacingInlineInput.tsx
+- `builder/workspace/canvas/scene/` — pagePlacementDebug.ts, sceneDirtyDetection.bench.ts
+- `builder/workspace/canvas/selection/` — index.ts, resizeCursors.ts, useDragInteraction.ts
+- `builder/workspace/canvas/skia/` — SkiaCanvas.tsx, dropIndicatorRenderer.ts, renderCommandStream.bench.ts, skiaFramePlan.ts, skiaOverlayBuilder.ts, skiaTreeBuilder.ts, skiaWorkflowSelection.ts, textAxisLetterSpacing.bench.ts, textMeasure.bench.ts, workflowGraphUtils.ts
+- `builder/workspace/canvas/styleConversion/` — index.ts
+- `builder/workspace/canvas/utils/` — GPUDebugOverlay.tsx, cssComponentPresets.ts, cssLabelPresets.ts, cssVariableReader.ts, speedscopeExport.ts
+- `builder/workspace/canvas/viewport/` — pageLayoutActions.ts, storeWheelRoute.legacy.ts
+- `builder/workspace/components/` — WorkflowCanvasToggles.tsx, WorkspaceCompareMode.tsx
+- `builder/workspace/hooks/` — useWorkspaceCanvasSizing.ts
+- `builder/workspace/overlay/` — TextEditOverlay.tsx, index.ts, overlayNudge.ts, overlayWrap.ts, specTextStyleForOverlay.ts, useTextEdit.ts
+- `builder/workspace/scrollbar/` — storeScrollbarContent.legacy.ts
+- `hooks/` — index.ts, useFrameCallback.ts
+- `preview/` — App.tsx
+- `preview/interactions/` — createPreviewEventHandlerMap.ts, index.ts
+- `preview/messaging/` — index.ts, messageHandler.ts
+- `preview/router/` — CanvasRouter.tsx, canvasNavigation.ts, canvasRouterContext.ts, canvasRouterHooks.ts, index.ts
+- `preview/utils/` — computedStyleExtractor.ts
+- `services/` — index.ts
+- `services/ai/agents/` — index.ts
+- `services/api/` — index.ts
+- `services/api/mocks/` — mockLargeDataV2.ts
+- `stores/` — index.ts
+- `types/builder/` — component.types.ts, designVariable.types.ts, stately.types.ts
+- `types/theme/` — figma.types.ts, generation.types.ts
+- `utils/` — dataHelpers.ts
+- `utils/core/` — style.ts
+- `utils/css/` — index.ts
+- `utils/dom/` — focusUtils.ts
+- `utils/element/` — columnTypeInference.ts
+- `utils/theme/` — generateThemeCSS.ts, tokenParser.ts
+- `utils/ui/` — labels.ts
+- `utils/variable/` — variableResolver.ts
+
+테스트 87:
+
+- `adapters/canonical/__tests__/` — pageFrameBinding.projection.static.test.ts, pageFrameBinding.roundtrip.test.ts, pageFrameBinding.test.ts, projectPageFrameTree.test.ts
+- `builder/config/` — propertyFieldIcons.static.test.ts
+- `builder/dev/` — editingSemanticsFixture.test.ts, pathHeavy117Fixture.test.ts
+- `builder/hooks/` — useCollectionItemManager.static.test.ts
+- `builder/layers/__tests__/` — listBoxRowProjection.test.ts
+- `builder/layout/` — panelWorkspaceShadowAdapter.test.ts
+- `builder/main/__tests__/` — pageShellBridge.static.test.ts
+- `builder/panels/components/` — ComponentsPanel.projection.static.test.ts
+- `builder/panels/history/` — historyEntryLabel.test.ts
+- `builder/panels/navigator/` — LayersSection.test.ts, NavigatorPanelTabs.static.test.ts, NavigatorPanelTabs.test.tsx, PagesSection.canonical.static.test.ts, PagesSection.test.tsx, useCanonicalPanelElements.static.test.ts
+- `builder/panels/navigator/LayoutsTab/` — LayoutsTab.static.test.ts
+- `builder/panels/navigator/LayoutsTab/__tests__/` — LayoutElementTree.test.tsx, LayoutList.test.tsx, LayoutsTab.test.tsx
+- `builder/panels/navigator/tree/LayerTree/` — LayerTree.virtualized.browser.test.tsx, LayerTreeItemContent.test.tsx, useLayerTreeData.test.tsx, validation.test.ts
+- `builder/panels/navigator/tree/PageTree/` — usePageTreeDnd.test.ts
+- `builder/panels/navigator/tree/hooks/` — useFocusManagement.test.tsx
+- `builder/panels/properties/` — ButtonChildSection.impact.test.tsx, ButtonChildSection.test.tsx, CanvasSelectionShortcuts.stability.test.tsx, ComponentSemanticsSection.test.tsx, ComponentSlotFillSection.test.tsx, ElementAttributesSection.test.tsx, FrameSlotSection.test.tsx, GridListCardFieldsSection.test.tsx, PageBodySection.static.test.ts, PageBodySection.test.tsx, componentsPageFields.test.ts, gridListCardFields.test.ts, itemOriginNotice.test.ts
+- `builder/panels/properties/editors/` — ElementSlotSelector.test.tsx, LayoutBodyEditor.static.test.ts, LayoutBodyEditor.test.tsx, PageBodyEditor.test.tsx, PageLayoutSelector.static.test.ts, PageParentSelector.test.tsx
+- `builder/panels/properties/editors/LayoutPresetSelector/` — usePresetApply.static.test.ts
+- `builder/panels/properties/generic/` — CatalogInspectorFields.test.tsx
+- `builder/panels/properties/state/` — StateSection.test.tsx
+- `builder/performance/` — localWebVitals.test.ts
+- `builder/presentation/` — skiaEditorPresentationBridge.test.ts
+- `builder/stores/canonical/__tests__/` — canonicalDocumentSync.test.ts
+- `builder/templates/` — layoutTemplates.static.test.ts
+- `builder/utils/` — detectShortcutConflicts.test.ts, treeUtils.test.ts
+- `builder/utils/__tests__/` — catalogStaticSnapshot.test.ts
+- `builder/workspace/` — Workspace.mode.test.tsx
+- `builder/workspace/canvas/` — BuilderCanvas.frameMode.static.test.ts, BuilderCanvas.pageLayoutPanelMetrics.static.test.ts, BuilderCanvas.projection.static.test.ts
+- `builder/workspace/canvas/contextMenu/` — canvasContextMenuEntry.test.ts, canvasContextMenuProviders.test.ts
+- `builder/workspace/canvas/hooks/` — useCanvasElementSelectionHandlers.static.test.ts, useCentralCanvasPointerHandlers.dataRowDoubleClick.test.tsx, useCentralCanvasPointerHandlers.static.test.ts, useCentralCanvasPointerHandlers.test.tsx, useDragBridge.static.test.ts, useDragBridge.test.ts, usePageDrag.test.ts, useScrollWheelInteraction.static.test.ts, useSpacingInteraction.test.ts
+- `builder/workspace/canvas/interaction/` — dragModifiers.test.ts
+- `builder/workspace/canvas/selection/` — resizeCursors.test.ts
+- `builder/workspace/canvas/skia/` — SkiaCanvas.static.test.ts, skiaOverlayBuilder.static.test.ts, skiaWorkflowSelection.test.ts
+- `builder/workspace/hooks/` — useWorkspaceCanvasSizing.static.test.ts, useWorkspaceCanvasSizing.viewportPersistence.test.ts
+- `builder/workspace/overlay/` — overlayNudge.test.ts, overlayWrap.test.ts, useTextEdit.editingFlag.test.tsx, useTextEdit.static.test.ts, useTextEdit.textSource.test.ts
+- `preview/components/__tests__/` — CanonicalNodeRenderer.setState.test.tsx
+- `preview/messaging/` — messageHandler.presentation.test.ts
 
 **4e-2 live (2026-09-30, headed Playwright · worktree dev 5175)**: 라이선스 인증 → 대시보드 (새 저장소 기준 0 개) → 새 프로젝트 → Builder 가 흰 1920×1080 페이지를 66% 맞춤으로 그림 · 저장 상태 Saved → dev 전용 handle 로 body 에 Heading 삽입 (Saving… → Saved) → 값 편집이 Canvas 에 그려짐 (4e-3a 에서 한 step 늦게 그려지는 결함을 찾아 수리 — 당시 스크린샷은 뒤따른 step 이 앞 편집까지 반영한 것) → 휠 pan · ⌘+휠 zoom (66→77%) → Preview 버튼 = "Preview and publish cannot open the new project format yet." toast · 새 탭 0 → 대시보드 목록 1 → 다시 열기 = 편집 값 유지 · Saved → 없는 route = "Project not found.". Chrome MCP 탭은 `document.hidden` 이라 frame scheduler 가 멈춰 headed Playwright 로 확인했다.
 

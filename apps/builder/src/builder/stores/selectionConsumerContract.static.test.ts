@@ -18,20 +18,4 @@ describe("ADR-137 selection consumer contract", () => {
     );
   });
 
-  it("keeps page-frame binding selection and explicit entrypoints separated", async () => {
-    const bindingSource = await readFile(
-      resolve(__dirname, "../../adapters/canonical/pageFrameBinding.ts"),
-      "utf-8",
-    );
-
-    expect(bindingSource).toContain("applyPageFrameBindingFromSelection");
-    expect(bindingSource).toContain("ApplyPageFrameBindingExplicitInput");
-    expect(bindingSource).toMatch(
-      /snapshot:\s*ImmediateSelectionSnapshot[\s\S]*frameId:\s*string \| null/,
-    );
-    expect(bindingSource).toMatch(/contextReason:\s*string/);
-    expect(bindingSource).not.toContain(
-      "applyPageFrameBindingCanonicalPrimary",
-    );
-  });
 });

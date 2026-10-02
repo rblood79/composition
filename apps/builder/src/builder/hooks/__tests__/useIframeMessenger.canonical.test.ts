@@ -15,10 +15,6 @@ describe("Builder → Preview canonical 단일 채널", () => {
       const path = await import("node:path");
       const filePath = path.resolve(__dirname, "../useIframeMessenger.ts");
       const source = await fs.readFile(filePath, "utf-8");
-      const previewHandlerSource = await fs.readFile(
-        path.resolve(__dirname, "../../../preview/messaging/messageHandler.ts"),
-        "utf-8",
-      );
 
       expect(source).not.toContain("sendElementsToIframe");
       expect(source).not.toContain("UPDATE_ELEMENTS");
@@ -28,18 +24,15 @@ describe("Builder → Preview canonical 단일 채널", () => {
       expect(source).not.toContain("pendingAutoSelectElementId");
       expect(source).not.toContain("requestElementSelection");
       expect(source).not.toContain("REQUEST_ELEMENT_SELECTION");
-      expect(previewHandlerSource).not.toContain("REQUEST_ELEMENT_SELECTION");
     });
 
     it("호출자가 제거된 ACK 기반 자동 선택 API를 사용하지 않는다", async () => {
       const fs = await import("node:fs/promises");
       const path = await import("node:path");
       const relativePaths = [
-        "../../main/BuilderCore.tsx",
+        // (ADR-248 4e: the old core · Navigator · Pages · Layouts tab retired with the old app.)
+        "../../main/CatalogBuilderCore.tsx",
         "../usePageManager.ts",
-        "../../panels/navigator/NavigatorPanel.tsx",
-        "../../panels/navigator/PagesSection.tsx",
-        "../../panels/navigator/LayoutsTab/LayoutsTab.tsx",
       ];
       const sources = await Promise.all(
         relativePaths.map((relativePath) =>

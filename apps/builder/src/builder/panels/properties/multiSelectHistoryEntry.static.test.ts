@@ -33,7 +33,7 @@ async function readSource(file: string): Promise<string> {
   return readFile(resolve(__dirname, file), "utf-8");
 }
 
-const PANELS = ["./PropertiesPanel.tsx", "./CanvasSelectionShortcuts.tsx"];
+// (The old Properties panel · selection shortcut host retired with the old app — ADR-248 4e.)
 
 /**
  * 정렬·분배·그룹 해제의 오케스트레이션은 ADR-182 Phase 1.5 에서 공유 계층
@@ -43,15 +43,6 @@ const PANELS = ["./PropertiesPanel.tsx", "./CanvasSelectionShortcuts.tsx"];
 const CANVAS_ACTIONS = "../../workspace/canvas/actions/canvasActions.ts";
 
 describe("기록하는 store action 과 track 헬퍼를 겹쳐 부르지 않는다", () => {
-  it("두 패널은 trackBatchUpdate 를 쓰지 않는다 (배치 action 이 이미 기록)", async () => {
-    for (const file of PANELS) {
-      const source = await readSource(file);
-      // 주석 언급은 허용, 실제 호출/임포트는 금지
-      expect(source).not.toMatch(/^\s*trackBatchUpdate\(/m);
-      expect(source).not.toMatch(/^\s*trackBatchUpdate,\s*$/m);
-    }
-  });
-
   it("정렬·분배는 요소별 update 대신 배치 action 1회로 적용한다", async () => {
     const actions = await readSource(CANVAS_ACTIONS);
 
@@ -61,22 +52,6 @@ describe("기록하는 store action 과 track 헬퍼를 겹쳐 부르지 않는�
     );
     expect(actions.match(/await batchUpdateElementProps\(/g)).toHaveLength(2); // align + distribute
 
-    const panel = await readSource("./PropertiesPanel.tsx");
-    // batch 편집 1곳 — 정렬·분배는 공유 계층(body 필터 포함)을 소비한다
-    expect(panel.match(/await batchUpdateElementProps\(/g)).toHaveLength(1);
-    expect(panel).toContain("await alignSelection(");
-    expect(panel).toContain("await distributeSelection(");
-  });
-
-  it("다중 삭제는 배치 removeElements 1회 (요소별 병렬 삭제 금지)", async () => {
-    const panel = await readSource("./PropertiesPanel.tsx");
-
-    expect(panel).toContain("await removeElements(selectedElementIds);");
-    // 병렬 단건 삭제는 엔트리 N개 + 오래된 currentState 기반 set 으로 앞선 삭제 되살림
-    expect(panel).not.toMatch(/Promise\.all\(\s*\n?\s*selectedElementIds\.map/);
-    // 주석 언급은 허용(제거 사유 기록), 호출·임포트는 금지
-    expect(panel).not.toMatch(/^\s*trackMultiDelete\(/m);
-    expect(panel).not.toMatch(/^\s*trackMultiDelete,\s*$/m);
   });
 
   it("그룹 해제의 group 삭제는 skipHistory (trackUngroup 이 remove event 보유)", async () => {

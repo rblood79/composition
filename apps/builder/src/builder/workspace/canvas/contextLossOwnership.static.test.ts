@@ -65,15 +65,6 @@ describe("WebGL 컨텍스트 손실 — 단일 소유자 계약", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("캔버스 소유자(SkiaCanvas)가 감시하고 store 까지 발행한다", () => {
-    const src = readFileSync(join(canvasDir, "skia", "SkiaCanvas.tsx"), "utf8");
-
-    expect(src).toContain("watchContextLoss(");
-    // 렌더 복구용 ref 와 사용자 알림용 store 를 **둘 다** 갱신해야 한다.
-    expect(src).toContain("contextLostRef.current");
-    expect(src).toContain("setContextLost(");
-  });
-
   it("catalog Canvas 도 자기 캔버스를 감시하고 손실 상태를 표시한다 (ADR-248 Phase 4e)", () => {
     const src = readFileSync(
       join(canvasDir, "catalog", "CatalogCanvas.tsx"),

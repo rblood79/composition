@@ -67,9 +67,7 @@ export const UNIFIED_ENGINE_FLAGS = {
   // 소비처 영향 최소화를 위해 key 를 상수 true 로 유지한다.
   USE_RUST_LAYOUT_ENGINE: true,
 
-  // 전체 전환 — useLayoutPublisher(store 기반) + StoreRenderBridge(순수 함수) 활성화.
-  // 소비처: BuilderCanvas, useCanvasRuntimeBootstrap.
-  UNIFIED_ENGINE: true,
+  // (`UNIFIED_ENGINE` 전체 전환 게이트는 소비처 BuilderCanvas 와 함께 제거 — ADR-248 4e.)
 } as const;
 
 export type UnifiedEngineFlag = keyof typeof UNIFIED_ENGINE_FLAGS;

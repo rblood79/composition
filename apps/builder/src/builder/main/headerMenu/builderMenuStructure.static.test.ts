@@ -78,7 +78,7 @@ function collectNodes(
 }
 
 const REGISTRATION_ID_PATTERN =
-  /(?:bindHandlersToDefinitions\(\s*\[([\s\S]*?)\]|:\s*ShortcutId\[\]\s*=\s*\[([\s\S]*?)^\s*\];)/gm;
+  /(?:bindHandlersToDefinitions\(\s*\[([\s\S]*?)\]|:\s*(?:readonly\s+)?\w*ShortcutId\[\]\s*=\s*\[([\s\S]*?)^\s*\];)/gm;
 
 function collectSourceFiles(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
@@ -200,13 +200,13 @@ describe("ADR-249 G0 — 전체 메뉴 인벤토리", () => {
     expect(mismatches).toEqual([]);
   });
 
-  it("등록자 실행 조건은 zoomToSelection 하나이고 BuilderCanvas 가 등록한다", () => {
+  it("등록자 실행 조건은 zoomToSelection 하나이고 CatalogCanvas 가 등록한다", () => {
     const canRunIds = Object.entries(MENU_COMMAND_CONDITIONS)
       .filter(([, condition]) => condition.sources.includes("canRun"))
       .map(([id]) => id);
     expect(canRunIds).toEqual(["zoomToSelection"]);
-    expect(read("builder/workspace/canvas/BuilderCanvas.tsx")).toMatch(
-      /\{\s*zoomToSelection:\s*hasZoomToSelectionTarget\s*\}/,
+    expect(read("builder/workspace/canvas/catalog/CatalogCanvas.tsx")).toMatch(
+      /\{\s*zoomToSelection:\s*\(\)\s*=>/,
     );
   });
 

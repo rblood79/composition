@@ -7,27 +7,32 @@ async function readHistorySource(file: string): Promise<string> {
 }
 
 describe("HistoryPanel panel-system contract", () => {
+  // ADR-248 4e: the catalog panel (`CatalogHistoryPanel`) with its snapshot part
+  // (`useCatalogSnapshotUi` — the header buttons and the snapshots section).
   it("uses the shared panel sections with Photoshop history grouping", async () => {
-    const source = await readHistorySource("HistoryPanel.tsx");
+    const source = await readHistorySource("CatalogHistoryPanel.tsx");
+    const snapshots = await readHistorySource("useCatalogSnapshotUi.tsx");
 
     expect(source).toContain('title={t("history.title")}');
-    expect(source).toContain('title={t("history.snapshotsSection")}');
-    expect(source).toContain("collapsible={false}");
+    expect(snapshots).toContain('title={t("history.snapshotsSection")}');
+    expect(snapshots).toContain("collapsible={false}");
     expect(source).toContain('id="history-edits"');
     expect(source).toContain('title={t("history.editsSection")}');
-    expect(source).not.toContain('className="history-snapshot-header"');
+    expect(source + snapshots).not.toContain(
+      'className="history-snapshot-header"',
+    );
   });
 
   it("keeps destructive history clearing behind an explicit more menu", async () => {
-    const source = await readHistorySource("HistoryPanel.tsx");
+    const source = await readHistorySource("CatalogHistoryPanel.tsx");
 
     expect(source).toMatch(/<MenuItem\s+id="clear-history"/);
-    expect(source).toContain('t("history.clearPage")');
+    expect(source).toContain('t("history.clearAll")');
     expect(source).not.toContain('aria-label="Clear history"');
   });
 
   it("places undo and redo before snapshot actions in the panel header", async () => {
-    const source = await readHistorySource("HistoryPanel.tsx");
+    const source = await readHistorySource("CatalogHistoryPanel.tsx");
     const actionsIndex = source.indexOf('className="history-actions"');
     const undoIndex = source.indexOf(
       'aria-label={t("command.undo")}',
@@ -37,10 +42,7 @@ describe("HistoryPanel panel-system contract", () => {
       'aria-label={t("command.redo")}',
       actionsIndex,
     );
-    const snapshotIndex = source.indexOf(
-      'aria-label={t("history.createSnapshot")}',
-      actionsIndex,
-    );
+    const snapshotIndex = source.indexOf("{snapshotUi.buttons}", actionsIndex);
 
     expect(actionsIndex).toBeGreaterThan(-1);
     expect(undoIndex).toBeGreaterThan(actionsIndex);
@@ -48,8 +50,8 @@ describe("HistoryPanel panel-system contract", () => {
     expect(snapshotIndex).toBeGreaterThan(redoIndex);
     expect(source).toContain('shortcutId="undo"');
     expect(source).toContain('shortcutId="redo"');
-    expect(source).toContain("await useStore.getState().undo()");
-    expect(source).toContain("await useStore.getState().redo()");
+    expect(source).toContain("workspace.undo()");
+    expect(source).toContain("workspace.redo()");
   });
 
   it("uses token-based flat rows and accent selection", async () => {
@@ -106,7 +108,7 @@ describe("HistoryPanel panel-system contract", () => {
   });
 
   it("marks the current edit on the interactive history button", async () => {
-    const source = await readHistorySource("HistoryPanel.tsx");
+    const source = await readHistorySource("CatalogHistoryPanel.tsx");
 
     expect(source).toContain('aria-current={isActive ? "step" : undefined}');
   });

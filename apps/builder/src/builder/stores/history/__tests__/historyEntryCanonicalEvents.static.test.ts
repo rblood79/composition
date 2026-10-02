@@ -62,19 +62,6 @@ describe("history entry canonical event 부착 (ADR-124 Phase 2)", () => {
     const elementRemoval = await read("utils/elementRemoval.ts");
     expect(elementRemoval).not.toContain("prevElements:");
 
-    // canvas 드래그 전환 완료 — snapshot payload + sentinel 제거
-    const dragBridge = await readFile(
-      resolve(
-        __dirname,
-        "..",
-        "..",
-        "..",
-        "workspace/canvas/hooks/useDragBridge.ts",
-      ),
-      "utf-8",
-    );
-    expect(dragBridge).not.toContain("prevElements");
-    expect(dragBridge).not.toContain('"drag-reorder"');
   });
 
   it("buildCanonicalUpdateEvent helper 가 canonicalHistoryEvents.ts 에 export 됨", async () => {

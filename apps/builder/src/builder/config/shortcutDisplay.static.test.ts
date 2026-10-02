@@ -59,10 +59,11 @@ const PANEL_CONFIG_REL = "builder/panels/core/panelConfigs.ts";
 /**
  * 등록 배열 리터럴 — `bindHandlersToDefinitions([...], {...})` 의 첫 인자와,
  * `const shortcutIds: ShortcutId[] = [...]` 로 변수에 담아 넘기는 형태 둘 다
- * 소스에서 읽는다 (지난 세션 파서 오류 2건 반영).
+ * 소스에서 읽는다 (지난 세션 파서 오류 2건 반영). 변수 형태는 `readonly XShortcutId[]`
+ * 도 읽는다 — catalog Builder 의 전역 단축키 목록 (ADR-248 4e).
  */
 const REGISTRATION_ID_PATTERN =
-  /(?:bindHandlersToDefinitions\(\s*\[([\s\S]*?)\]|:\s*ShortcutId\[\]\s*=\s*\[([\s\S]*?)^\s*\];)/gm;
+  /(?:bindHandlersToDefinitions\(\s*\[([\s\S]*?)\]|:\s*(?:readonly\s+)?\w*ShortcutId\[\]\s*=\s*\[([\s\S]*?)^\s*\];)/gm;
 
 /** 팔레트에서 실행 불가로 두는 것이 맞는 정의 (ADR-195 breakdown §3-4). */
 const PALETTE_FALSE_ALLOWLIST = new Set([

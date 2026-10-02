@@ -7,20 +7,6 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 describe("WorkspaceCompareMode resize handle", () => {
-  it("renders the shared PanelSplitter bound to the CSS pane", async () => {
-    const source = await readFile(
-      resolve(__dirname, "WorkspaceCompareMode.tsx"),
-      "utf-8",
-    );
-
-    expect(source).toContain("<PanelSplitter");
-    expect(source).toContain('edge="right"');
-    expect(source).toContain("controls={COMPARE_CSS_PANE_ID}");
-    expect(source).toContain("id={COMPARE_CSS_PANE_ID}");
-    expect(source).not.toContain("onPointerDown");
-    expect(source).not.toContain("setPointerCapture");
-  });
-
   it("styles the resizer through the common handle tokens only", async () => {
     const css = await readFile(resolve(__dirname, "../Workspace.css"), "utf-8");
 

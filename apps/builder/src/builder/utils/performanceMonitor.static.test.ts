@@ -35,34 +35,6 @@ describe("요소 수 실측 — 단일 출처 계약", () => {
     expect(source).toContain("export function getDocumentElementCount()");
   });
 
-  it("dev 프로파일러가 store 지표가 아니라 실측 helper 를 읽는다", async () => {
-    const source = await readFile(
-      resolve(__dirname, "../workspace/canvas/benchmarks/devProfiler.ts"),
-      "utf-8",
-    );
-
-    expect(source).toContain("getDocumentElementCount()");
-    // 죽은 store 채널 재도입 금지 (주석 인용은 제외하고 코드 줄만 검사)
-    const codeLines = source
-      .split("\n")
-      .filter((line) => !line.trim().startsWith("//"));
-    expect(codeLines.filter((l) => l.includes("m.elementCount"))).toEqual([]);
-  });
-
-  it("path-heavy-117 자동 run 이 완료 p95를 report 계약과 DOM evidence에 보존한다", async () => {
-    const source = await readFile(
-      resolve(__dirname, "../workspace/canvas/benchmarks/devProfiler.ts"),
-      "utf-8",
-    );
-
-    expect(source).toContain('const AUTO_PROFILE_SCENARIO = "path-heavy-117"');
-    expect(source).toContain("lastCompletedProfile = completed");
-    expect(source).toContain("lastCompletedProfile ?? takeSnapshot()");
-    expect(source).toContain("dataset.compositionProfilerReport");
-    expect(source).toContain('dataset.compositionProfilerStatus = "complete"');
-    expect(source).toContain('supportedEntryTypes.includes("longtask")');
-    expect(source).toContain("longTaskObserver.takeRecords()");
-  });
 });
 
 describe("performanceMonitor FPS 버스트 계약", () => {

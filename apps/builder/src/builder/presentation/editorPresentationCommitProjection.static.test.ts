@@ -21,17 +21,6 @@ describe("editor presentation commit projection boundary", () => {
     expect(source.match(/indexSource: "store"/g)).toHaveLength(2);
   });
 
-  it("BuilderCore bridge는 store source에서 최신 elements를 직접 index 입력으로 전달한다", async () => {
-    const source = await readFile(
-      resolve(__dirname, "../main/BuilderCore.tsx"),
-      "utf-8",
-    );
-
-    expect(source).toContain(
-      'state._rebuildIndexes(source === "store" ? state.elements : undefined)',
-    );
-  });
-
   it("production hydration은 정규화한 store mirror에 canonical provenance를 승계한다", async () => {
     const source = await readFile(
       resolve(__dirname, "../stores/elements.ts"),

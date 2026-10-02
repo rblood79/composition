@@ -3,7 +3,7 @@
  *
  * Why: `ToastContainer` 는 전역 store 를 그린다. 두 곳이 마운트하면 같은 토스트가 두 번
  * 뜬다 (2026-09-08 live 재현 — 컨테이너 2 · 토스트 4 · 랜드마크 2).
- * 렌더 지점은 BuilderCore 하나, 발신은 store 하나다. 로컬 훅 경로는 삭제됐다.
+ * 렌더 지점은 CatalogBuilderCore 하나 (ADR-248 4e — 옛 BuilderCore 대체), 발신은 store 하나다. 로컬 훅 경로는 삭제됐다.
  */
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
@@ -13,8 +13,8 @@ const SRC = join(__dirname, "../../../..");
 const read = (rel: string): string => readFileSync(join(SRC, rel), "utf8");
 
 describe("builder toast — 단일 컨테이너 · 단일 store", () => {
-  it("ToastContainer 를 마운트하는 컴포넌트는 BuilderCore 하나다", () => {
-    expect(read("builder/main/BuilderCore.tsx")).toContain(
+  it("ToastContainer 를 마운트하는 컴포넌트는 CatalogBuilderCore 하나다", () => {
+    expect(read("builder/main/CatalogBuilderCore.tsx")).toContain(
       "<ToastContainer />",
     );
   });
@@ -22,8 +22,8 @@ describe("builder toast — 단일 컨테이너 · 단일 store", () => {
   it("로컬 훅 경로는 없다 — 발신은 useToastStore 뿐", () => {
     expect(existsSync(join(SRC, "builder/hooks/useToast.ts"))).toBe(false);
     expect(read("builder/hooks/index.ts")).not.toMatch(/useToast\b/);
-    expect(read("builder/main/BuilderCore.tsx")).toContain(
-      "useToastStore((state) => state.showToast)",
+    expect(read("builder/main/CatalogBuilderCore.tsx")).toContain(
+      "useToastStore.getState().showToast(",
     );
   });
 

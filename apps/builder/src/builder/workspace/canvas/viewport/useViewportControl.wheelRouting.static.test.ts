@@ -35,23 +35,6 @@ describe("useViewportControl wheel routing contract", () => {
 
   // ADR-248 4e-7: the selection gate is the route the Canvas passes (`routeWheel` — the catalog
   // Canvas's own; the old store's in `storeWheelRoute.legacy.ts`).
-  it("gates scroll on selection and resolves every overflow source", async () => {
-    const source = await readFile(
-      resolve(__dirname, "storeWheelRoute.legacy.ts"),
-      "utf-8",
-    );
-
-    // 선택 기반 게이트
-    expect(source).toContain("selectedElementIds");
-    expect(source).toContain("isScrollable(selectedId)");
-    // longhand(overflowX/Y) + catalog containerStyles 까지 해석 — raw shorthand 금지
-    expect(source).toContain("resolveEffectiveOverflow");
-    expect(source).toContain("node?.type");
-    expect(source).not.toMatch(
-      /\)\?\.overflow;\s*\n\s*if \(\s*\n?\s*\(overflow === "scroll"/,
-    );
-  });
-
   it("휠 pan 도 zoom 과 같은 시작/종료 신호를 낸다 (ADR-221 게이트)", async () => {
     const source = await readFile(
       resolve(__dirname, "useViewportControl.ts"),

@@ -49,18 +49,6 @@ const BYPASS_WRITES: readonly {
   guard: RegExp;
 }[] = [
   {
-    // 캔버스 드래그 — adapter 의 canonical 이동을 직접 부른다.
-    file: "workspace/canvas/hooks/useDragBridge.ts",
-    write: /^(moveElementToCanonicalTarget|moveElementsToCanonicalTarget)$/,
-    guard: /^resolveDragMoveTarget$/,
-  },
-  {
-    // 캔버스 드래그의 origin 영향 확인 (E4) — 부모 · 순서가 바뀌는 이동은 커밋 전에 묻는다.
-    file: "workspace/canvas/hooks/useDragBridge.ts",
-    write: /^(moveElementToCanonicalTarget|moveElementsToCanonicalTarget)$/,
-    guard: /^(runAfterStructuralOriginImpact|confirmStructuralOriginImpact)$/,
-  },
-  {
     // factory 생성 — useStore.setState 를 직접 부른다.
     file: "factories/utils/elementCreation.ts",
     write: /^runCanonicalMutation$/,
@@ -87,50 +75,8 @@ const SURFACE_STRUCTURAL_WRITES: readonly {
     guard: IMPACT_GUARD,
   },
   {
-    file: "panels/navigator/LayersSection.tsx",
-    write: STRUCTURAL_WRITE,
-    guard: IMPACT_GUARD,
-  },
-  {
-    file: "panels/properties/PropertiesPanel.tsx",
-    write: STRUCTURAL_WRITE,
-    guard: IMPACT_GUARD,
-  },
-  {
     file: "hooks/useElementCreator.ts",
     write: STRUCTURAL_WRITE,
-    guard: IMPACT_GUARD,
-  },
-  {
-    file: "panels/properties/FrameSlotSection.tsx",
-    write:
-      /^(addElement|removeElements?|applyTableColumnInsertPlan|applyTableRowInsertPlan)$/,
-    guard: IMPACT_GUARD,
-  },
-  {
-    // 쓰기 전 `prepareButtonChildMutation` 이 영향 확인과 편집 승인을 같이 받는다.
-    file: "panels/properties/ButtonChildSection.tsx",
-    write: STRUCTURAL_WRITE,
-    guard: /^prepareButtonChildMutation$/,
-  },
-  {
-    file: "panels/properties/ItemSlotRolesSection.tsx",
-    write: STRUCTURAL_WRITE,
-    guard: IMPACT_GUARD,
-  },
-  {
-    file: "panels/properties/generic/ChildItemManager.tsx",
-    write: STRUCTURAL_WRITE,
-    guard: IMPACT_GUARD,
-  },
-  {
-    file: "hooks/useCollectionItemManager.ts",
-    write: STRUCTURAL_WRITE,
-    guard: IMPACT_GUARD,
-  },
-  {
-    file: "workspace/canvas/hooks/useDragBridge.ts",
-    write: /^addElement$/,
     guard: IMPACT_GUARD,
   },
   {

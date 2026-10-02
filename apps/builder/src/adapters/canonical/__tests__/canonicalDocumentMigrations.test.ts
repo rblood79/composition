@@ -178,10 +178,7 @@ describe("정적 결선 (r17m2 → r18m2/r18m3)", () => {
       expect(src).not.toContain(name);
     }
   });
-  it("전체 문서 교체 소비자 (프로젝트 파일 가져오기 · 복원 · undo/redo) 는 applySnapshotDocument 를 경유한다", () => {
-    expect(read("src/builder/main/BuilderCore.tsx")).toContain(
-      "applySnapshotDocument(",
-    );
+  it("전체 문서 교체 소비자 (복원 · undo/redo) 는 applySnapshotDocument 를 경유한다", () => {
     const restore = read("src/builder/stores/history/snapshotRestore.ts");
     expect(
       restore.match(/applySnapshotDocument\(/g)?.length,

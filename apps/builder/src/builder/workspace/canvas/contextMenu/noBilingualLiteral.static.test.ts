@@ -13,13 +13,14 @@ import * as path from "node:path";
 
 const SRC_ROOT = path.resolve(__dirname, "../../../..");
 
-const PROVIDER = "builder/workspace/canvas/contextMenu/canvasContextMenuProviders.ts";
+// ADR-248 4e: the Canvas menu items come from the catalog workspace's menu (the old provider retired).
+const PROVIDER = "builder/catalogRuntime/canvasMenu.ts";
 
 /** 항목의 라벨을 화면에 그리는 파일 — 여기서만 `t()` 가 돈다. */
 const DISPLAY_LAYER = [
   "builder/components/overlay/contextMenu/ContextMenuOverlay.tsx",
   "builder/components/overlay/actionBar/ContextualActionBar.tsx",
-  "builder/panels/properties/ComponentSemanticsSection.tsx",
+  "builder/panels/properties/catalog/CatalogComponentSection.tsx",
 ] as const;
 
 const read = (relative: string): string =>
@@ -40,8 +41,11 @@ describe("ADR-200 G2 — 라벨 문자열 재발 차단", () => {
     const values = [...source.matchAll(/labelKey:\s*("[^"]*")/g)].map(
       (match) => match[1],
     );
+    // A label with no words (`"100%"`) is the same in every language — no catalog key.
     const foreign = values.filter(
-      (value) => !/^"(contextMenu|componentAction)\./.test(value),
+      (value) =>
+        !/^"(contextMenu|componentAction)\./.test(value) &&
+        /[A-Za-z가-힣]/.test(value),
     );
     expect(foreign).toEqual([]);
   });

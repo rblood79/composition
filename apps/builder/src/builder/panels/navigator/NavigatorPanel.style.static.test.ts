@@ -2,30 +2,24 @@ import { describe, expect, it } from "vitest";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
+// ADR-248 4e: the Navigator is the catalog panel (`catalog/CatalogNavigatorPanel`) — the old
+// NavigatorPanel · tabs · Pages / Layers sections · Layouts tab retired with the old app.
 const NODE_SECTION_FILES = [
-  "PagesSection.tsx",
-  "LayersSection.tsx",
-  "LayoutsTab/LayoutList.tsx",
-  "LayoutsTab/LayoutElementTree.tsx",
+  "catalog/CatalogPagesSection.tsx",
+  "catalog/CatalogLayersSection.tsx",
 ];
 
-// 네 섹션 전부 접기 가능 + persist id (Navigator UX 2·3단계). 헤더 전체 토글과
+// 섹션 전부 접기 가능 + persist id (Navigator UX 2·3단계). 헤더 전체 토글과
 // SectionSplitStack 이 같은 id 를 읽는다.
 const COLLAPSIBLE_SECTION_FILES: Record<string, string> = {
-  "PagesSection.tsx": "id={NAVIGATOR_SECTION_IDS.pages}",
-  "LayersSection.tsx": "id={NAVIGATOR_SECTION_IDS.layers}",
-  "LayoutsTab/LayoutList.tsx": "id={NAVIGATOR_SECTION_IDS.layouts}",
-  "LayoutsTab/LayoutElementTree.tsx": "id={NAVIGATOR_SECTION_IDS.layoutLayers}",
+  "catalog/CatalogPagesSection.tsx": "id={NAVIGATOR_SECTION_IDS.pages}",
+  "catalog/CatalogLayersSection.tsx": "id={NAVIGATOR_SECTION_IDS.layers}",
 };
 
 describe("NavigatorPanel shared panel style contract", () => {
   it("uses the common panel shell and content classes", async () => {
     const panelSource = await readFile(
-      resolve(__dirname, "NavigatorPanel.tsx"),
-      "utf-8",
-    );
-    const tabsSource = await readFile(
-      resolve(__dirname, "NavigatorPanelTabs.tsx"),
+      resolve(__dirname, "catalog/CatalogNavigatorPanel.tsx"),
       "utf-8",
     );
 
@@ -37,21 +31,17 @@ describe("NavigatorPanel shared panel style contract", () => {
     );
     expect(panelSource).toContain("<PanelHeader");
     expect(panelSource).toContain('panelId="navigator"');
-    // 헤더 close 앞의 전체 접기/펼치기 — Pages/Layers Section id 집합을 그대로 읽는다
+    // 헤더 close 앞의 전체 접기/펼치기 — 고른 탭의 목록 · Layers Section id 를 읽는다
     expect(panelSource).toContain("<SectionGroupToggleButton");
-    expect(panelSource).toContain("NAVIGATOR_PAGES_TAB_SECTION_IDS");
-    expect(panelSource).toContain("NAVIGATOR_LAYOUTS_TAB_SECTION_IDS");
-    expect(panelSource).not.toContain("isDisabled={activeTab");
-    // 구조 클래스는 공용 단일 이름만 쓴다 — CSS 규칙이 없는 `navigator-panel-tabs/tabrow/tablist`
-    // twin 은 2026-08-30 탭 통일에서 제거됐다 (panelTabs.static.test.ts 가 재도입을 막는다).
-    expect(panelSource).toContain('className="panel-tabs"');
-    expect(panelSource).toContain('className="panel-header panel-tabrow"');
-    expect(tabsSource).toContain('className="panel-tablist"');
-    expect(tabsSource).toContain('className="panel-tab navigator-panel-tab"');
-    expect(panelSource).toContain("selectedKey={activeTab}");
+    expect(panelSource).toContain(
+      "sectionIds={[TAB_LIST_SECTION[tab], NAVIGATOR_SECTION_IDS.layers]}",
+    );
+    // 구조 클래스는 공용 단일 이름 (panelTabs.static.test.ts 가 twin 재도입을 막는다).
+    expect(panelSource).toContain('className="panel-tabs navigator-tabs"');
+    expect(panelSource).toContain('className="panel-tablist"');
+    expect(panelSource).toContain('className="panel-tab navigator-panel-tab"');
+    expect(panelSource).toContain("selectedKey={tab}");
     expect(panelSource).toContain("onSelectionChange={handleTabChange}");
-    expect(panelSource).toContain('id="pages"');
-    expect(panelSource).toContain('id="layouts"');
   });
 
   it.each(NODE_SECTION_FILES)(
@@ -68,30 +58,17 @@ describe("NavigatorPanel shared panel style contract", () => {
     },
   );
 
-  it("both tabs stack their two sections in the shared SectionSplitStack", async () => {
+  it("each tab stacks its list and Layers in the shared SectionSplitStack", async () => {
     const panelSource = await readFile(
-      resolve(__dirname, "NavigatorPanel.tsx"),
-      "utf-8",
-    );
-    const framesSource = await readFile(
-      resolve(__dirname, "LayoutsTab/LayoutsTab.tsx"),
+      resolve(__dirname, "catalog/CatalogNavigatorPanel.tsx"),
       "utf-8",
     );
 
     expect(panelSource).toContain("<SectionSplitStack");
     expect(panelSource).toContain(
-      "storageKey={NAVIGATOR_SPLIT_STORAGE_KEYS.pages}",
+      "storageKey={NAVIGATOR_SPLIT_STORAGE_KEYS[tab]}",
     );
-    expect(panelSource).toContain("topId={NAVIGATOR_SECTION_IDS.pages}");
     expect(panelSource).toContain("bottomId={NAVIGATOR_SECTION_IDS.layers}");
-    expect(framesSource).toContain("<SectionSplitStack");
-    expect(framesSource).toContain(
-      "storageKey={NAVIGATOR_SPLIT_STORAGE_KEYS.layouts}",
-    );
-    expect(framesSource).toContain("topId={NAVIGATOR_SECTION_IDS.layouts}");
-    expect(framesSource).toContain(
-      "bottomId={NAVIGATOR_SECTION_IDS.layoutLayers}",
-    );
 
     // 탭 컨텐츠는 스크롤 컨테이너가 아니다 — 각 섹션이 따로 스크롤한다
     const css = await readFile(
@@ -119,10 +96,8 @@ describe("NavigatorPanel shared panel style contract", () => {
     const itemSources = await Promise.all(
       [
         "tree/PageTree/PageTreeItemContent.tsx",
-        "tree/LayerTree/LayerTreeItemContent.tsx",
         "catalog/CatalogLayerItem.tsx",
-        "LayoutsTab/LayoutList.tsx",
-        "LayoutsTab/LayoutElementTree.tsx",
+        "catalog/CatalogDefinitionsSection.tsx",
       ].map((file) => readFile(resolve(__dirname, file), "utf-8")),
     );
     // Layer rows share the indent guide component (its markup carries `elementItemIndent`).
@@ -156,15 +131,11 @@ describe("NavigatorPanel shared panel style contract", () => {
       "utf-8",
     );
     const layerTreeSource = await readFile(
-      resolve(__dirname, "tree/LayerTree/LayerTree.tsx"),
+      resolve(__dirname, "catalog/CatalogLayersSection.tsx"),
       "utf-8",
     );
     const layerVirtualizationSource = await readFile(
       resolve(__dirname, "tree/LayerTree/virtualization.ts"),
-      "utf-8",
-    );
-    const frameTreeSource = await readFile(
-      resolve(__dirname, "LayoutsTab/LayoutElementTree.tsx"),
       "utf-8",
     );
 
@@ -187,7 +158,6 @@ describe("NavigatorPanel shared panel style contract", () => {
     );
     expect(layerTreeSource).toContain("rowSize: LAYER_TREE_ROW_SIZE_PX");
     expect(layerVirtualizationSource).toContain("LAYER_TREE_ROW_SIZE_PX = 28");
-    expect(frameTreeSource).toContain("itemHeight={28}");
   });
 
   it("uses the shared Builder interaction states for tree rows", async () => {
@@ -218,21 +188,15 @@ describe("NavigatorPanel shared panel style contract", () => {
   });
 
   it("keeps authoring trees outside the public Tree style scope", async () => {
-    const [treeBaseSource, virtualizedTreeSource, pagesSource] =
-      await Promise.all([
-        readFile(resolve(__dirname, "tree/TreeBase/TreeBase.tsx"), "utf-8"),
-        readFile(
-          resolve(__dirname, "tree/TreeBase/VirtualizedTree.tsx"),
-          "utf-8",
-        ),
-        readFile(resolve(__dirname, "PagesSection.tsx"), "utf-8"),
-      ]);
+    const [treeBaseSource, virtualizedTreeSource] = await Promise.all([
+      readFile(resolve(__dirname, "tree/TreeBase/TreeBase.tsx"), "utf-8"),
+      readFile(resolve(__dirname, "tree/TreeBase/VirtualizedTree.tsx"), "utf-8"),
+    ]);
 
     expect(treeBaseSource).toMatch(/from "react-aria-components\//);
     expect(treeBaseSource).not.toContain("@composition/shared/components/Tree");
     expect(treeBaseSource).not.toContain("data-composition-tree");
     expect(virtualizedTreeSource).toContain("className={`virtual-tree-item");
     expect(virtualizedTreeSource).not.toContain("data-composition-tree");
-    expect(pagesSource).toContain('className="elementItem active"');
   });
 });
