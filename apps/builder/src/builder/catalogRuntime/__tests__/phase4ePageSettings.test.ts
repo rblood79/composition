@@ -17,6 +17,7 @@ import {
   catalogPageCommands,
   catalogPageLayoutId,
   catalogPageLayouts,
+  catalogGeneratedRoute,
   catalogPageRouteEdit,
   catalogParentPageOptions,
   catalogSettingsPage,
@@ -98,6 +99,31 @@ async function open() {
 }
 
 describe("ADR-248 Phase 4e-4 page section", () => {
+  it("Generate from Title: the parent's route, then the name as a slug (none without Latin letters)", async () => {
+    const { workspace, pages, addPage } = await open();
+    addPage("docs", "/docs");
+    const named = (id: string, name: string, parentId?: string) =>
+      workspace.execute(
+        createPage({
+          page: {
+            kind: "page",
+            id: `project:page:${id}` as EntryId<"page">,
+            route: `/${id}`,
+            name,
+            children: [],
+            ...(parentId ? { parentId: parentId as EntryId<"page"> } : {}),
+          },
+        }),
+      );
+    named("start", "Getting Started!", "project:page:docs");
+    named("intro", "소개");
+    const route = (id: string) =>
+      catalogGeneratedRoute(pages(), `project:page:${id}` as EntryId<"page">);
+    expect(route("start")).toBe("/docs/getting-started");
+    expect(route("docs")).toBe("/docs");
+    expect(route("intro")).toBe("");
+  });
+
   it("parent options leave out the page and its descendants; parent and route write the page", async () => {
     const { workspace, graph, pages, addPage } = await open();
     addPage("docs", "/docs");

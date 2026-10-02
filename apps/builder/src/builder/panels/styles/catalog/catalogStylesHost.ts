@@ -7,6 +7,7 @@ import type { CatalogCommand } from "../../../../../../../packages/shared/src/ca
 import type {
   EditTarget,
   EntryId,
+  NodeId,
 } from "../../../../../../../packages/shared/src/catalog/document/types";
 import {
   catalogEditContract,
@@ -63,6 +64,10 @@ import {
   catalogSizingCommand,
 } from "../../../catalogRuntime/sizing";
 import { useToastStore } from "../../../stores/toast";
+import {
+  TINT_PRESETS,
+  type TintPreset,
+} from "../../../../utils/theme/tintToSkiaColors";
 import type { ElementStyleContext } from "../hooks/useElementStyleContext";
 import type { StylesHost, StylesTargetSnapshot } from "../stylesHostContext";
 
@@ -106,6 +111,73 @@ function useOwnFieldsOf(workspace: CatalogWorkspace, id: string | null) {
     target ? workspace.readModel.ownFields(target) : undefined,
   );
   return { target, own };
+}
+
+/**
+ * The node a target's values come from before its own (the old Styles host's `origin`): a project
+ * component instance's template root, an instance position's project template node. A built-in
+ * library origin has none here (its values are the catalog's).
+ */
+function masterTargetOf(
+  workspace: CatalogWorkspace,
+  target: EditTarget | undefined,
+): EditTarget | undefined {
+  if (!target) return undefined;
+  const graph = workspace.runtime.graph;
+  if (target.kind === "descendant") {
+    const last = target.address.templatePath.at(-1);
+    return last?.startsWith("project:node:")
+      ? { kind: "node", id: last as NodeId }
+      : undefined;
+  }
+  const node = graph.getEntry(target.id);
+  if (node?.kind !== "node" || !node.definitionId.startsWith("project:"))
+    return undefined;
+  const definition = graph.getEntry(node.definitionId);
+  return definition?.kind === "definition"
+    ? { kind: "node", id: definition.templateRootId as NodeId }
+    : undefined;
+}
+
+function useMasterFieldsOf(
+  workspace: CatalogWorkspace,
+  target: EditTarget | undefined,
+) {
+  const master = useMemo(
+    () => masterTargetOf(workspace, target),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed by the target's key
+    [workspace, target ? targetKey(target) : ""],
+  );
+  const key = master ? targetKey(master) : "";
+  const subscribe = useCallback(
+    (notify: () => void) =>
+      master
+        ? workspace.readModel.subscribeOwnFields(master, notify)
+        : noSubscription(),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed by the master's key
+    [key],
+  );
+  return useSyncExternalStore(subscribe, () =>
+    master ? workspace.readModel.ownFields(master) : undefined,
+  );
+}
+
+/** A drawn record's accent: its own, else the nearest ancestor record's (the old walk). */
+function accentOf(
+  workspace: CatalogWorkspace,
+  id: string | null,
+): TintPreset | undefined {
+  const records = workspace.root.domInputs;
+  for (
+    let record = id ? records.get(id) : undefined;
+    record;
+    record = records.get(record.parentId)
+  ) {
+    const accent = record.props.accentColor;
+    if (typeof accent === "string" && accent in TINT_PRESETS)
+      return accent as TintPreset;
+  }
+  return undefined;
 }
 
 /** The drawn parent record of a record (`null` at a page body or the page grid). */
@@ -241,29 +313,44 @@ export function createCatalogStylesHost(
     useActiveBreakpoint: () => useCatalogSession((state) => state.breakpoint),
     useElementStyleContext(id: string | null): ElementStyleContext {
       const { target, own } = useOwnFieldsOf(workspace, id);
+      const master = useMasterFieldsOf(workspace, target);
       const breakpoint = useCatalogSession((state) => state.breakpoint);
       const contract = useCatalogEditContract(target);
       return useMemo(() => {
         const props = Object.fromEntries(
           contract.fields.map((field) => [field.key, field.currentValue]),
         ) as Record<string, unknown>;
+        const fontSize = fontSizeOf(workspace, id ?? undefined);
+        // An instance shows its component's values under its own (the render merges them so).
+        const view = (fields: typeof own) =>
+          fields
+            ? catalogStyleView(catalogFieldsAt(fields, breakpoint), {
+                fontSize,
+              })
+            : {};
+        const fill = {
+          ...(master ? catalogFillAt(master, breakpoint) : undefined),
+          ...(own ? catalogFillAt(own, breakpoint) : undefined),
+        };
         return {
-          style: own
-            ? {
-                ...catalogStyleView(catalogFieldsAt(own, breakpoint), {
-                  fontSize: fontSizeOf(workspace, id ?? undefined),
-                }),
-                ...catalogPlacementStyle(own.placement),
-              }
-            : undefined,
+          style:
+            own || master
+              ? {
+                  ...view(master),
+                  ...view(own),
+                  ...(own ? catalogPlacementStyle(own.placement) : {}),
+                }
+              : undefined,
           type: contract.type || undefined,
           size: typeof props.size === "string" ? props.size : undefined,
-          sizing: own ? catalogFillAt(own, breakpoint) : undefined,
-          fills: catalogFillItems(own?.fills),
+          sizing: Object.keys(fill).length ? fill : undefined,
+          fills:
+            catalogFillItems(own?.fills) ?? catalogFillItems(master?.fills),
           props,
-          accentColor: undefined,
+          // The accent the token swatches resolve with: the node's, else an ancestor's.
+          accentColor: accentOf(workspace, id),
         };
-      }, [breakpoint, contract, id, own]);
+      }, [breakpoint, contract, id, own, master]);
     },
     readSelectedTarget(): StylesTargetSnapshot {
       const first = selection()[0];

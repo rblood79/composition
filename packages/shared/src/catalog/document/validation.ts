@@ -356,6 +356,13 @@ function authoredValue(
   )
     invalid("TOKEN_ID_REQUIRED", at);
 }
+/** `50%`, `10vw`, `2rem` … — a non-negative CSS length the layout resolves (not px). */
+const relativeMinLength = (value: unknown): boolean =>
+  typeof value === "string" &&
+  /^\d+(?:\.\d+)?(?:%|vw|vh|vmin|vmax|dvw|dvh|svw|svh|lvw|lvh|em|rem|ch)$/.test(
+    value,
+  );
+
 function visualLiteral(key: string, value: unknown, at: string): void {
   if (value && typeof value === "object") return; // typed token reference is checked separately
   if (
@@ -401,7 +408,10 @@ function visualLiteral(key: string, value: unknown, at: string): void {
     invalid("INVALID_BORDER_STYLE", at);
   if (
     [
-      ...(value === "auto" ? [] : ["minHeight", "minWidth"]),
+      // A node's minimum also takes a relative or viewport CSS length (the Styles Min W/H input).
+      ...(value === "auto" || relativeMinLength(value)
+        ? []
+        : ["minHeight", "minWidth"]),
       "paddingX",
       "paddingY",
       "paddingTop",
@@ -1590,11 +1600,7 @@ export function validateLibraryTemplate(value: unknown): LibraryTemplateNode {
 }
 export function validateLibraryToken(value: unknown): LibraryToken {
   const item = object(value, "library.token");
-  exact(
-    item,
-    ["id", "tokenType", "value", "source", "ref"],
-    "library.token",
-  );
+  exact(item, ["id", "tokenType", "value", "source", "ref"], "library.token");
   id(item.id, "lib:token:", "library.token.id");
   if (!tokenTypes.has(item.tokenType as TokenType))
     invalid("INVALID_TOKEN_TYPE", "library.token.tokenType");

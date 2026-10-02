@@ -109,8 +109,10 @@ import { getDB } from "../../lib/db";
 import { requestPersistenceOnce } from "../../lib/storage/storageProtection";
 import {
   catalogViewportActions,
+  openPageFrame,
   useCatalogGlobalShortcuts,
 } from "./useCatalogGlobalShortcuts";
+import { useViewportSyncStore } from "../workspace/canvas/stores/viewportSync";
 import { useCatalogProjectFiles } from "./useCatalogProjectFiles";
 import "../workspace/Workspace.css";
 
@@ -347,6 +349,28 @@ export function CatalogBuilderCore() {
     return history.subscribe(clear);
   }, [workspace, snapshots]);
   useCatalogGlobalShortcuts(workspace, handleSceneError);
+  // The open page's frame is the canvas size an auto page body shows in Styles (Size W/H) — the
+  // old store kept it per breakpoint; here it follows the page, its breakpoint and each step.
+  useEffect(() => {
+    if (!workspace) return;
+    const sync = () => {
+      const frame = openPageFrame(workspace);
+      const viewport = useViewportSyncStore.getState();
+      if (
+        frame &&
+        (viewport.canvasSize.width !== frame.width ||
+          viewport.canvasSize.height !== frame.height)
+      )
+        viewport.setCanvasSize({ width: frame.width, height: frame.height });
+    };
+    sync();
+    const stops = [
+      workspace.session.subscribe(sync),
+      workspace.subscribeRoot(sync),
+      workspace.runtime.subscribeSteps(sync),
+    ];
+    return () => stops.forEach((stop) => stop());
+  }, [workspace]);
   // A `system` theme follows the OS appearance (the old store's `resolveSkiaTheme` read it live).
   useEffect(
     () =>

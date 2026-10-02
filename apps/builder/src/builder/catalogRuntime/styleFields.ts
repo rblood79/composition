@@ -116,6 +116,9 @@ const INSET: Readonly<Record<string, LayoutField>> = {
 };
 const SIZE_KEYS = new Set(["width", "height"]);
 const MIN_KEYS = new Set(["minWidth", "minHeight"]);
+/** A non-negative CSS length in a relative or viewport unit (a minimum the layout resolves). */
+const CSS_RELATIVE_LENGTH =
+  /^\d+(?:\.\d+)?(?:%|vw|vh|vmin|vmax|dvw|dvh|svw|svh|lvw|lvh|em|rem|ch)$/;
 const MAX_KEYS = new Set(["maxWidth", "maxHeight"]);
 const LAYOUT_LENGTH = new Set([
   "rowGap",
@@ -272,11 +275,17 @@ export function catalogStyleWrites(
   }
   if (MIN_KEYS.has(key)) {
     const field = key as "minWidth" | "minHeight";
+    // px = the node's fixed minimum; other CSS lengths (`50%`, `10vw`) = its visual length, as
+    // Width/Height take them (the old Min W/H accepted every unit).
     if (empty || cssText(raw) === "auto" || cssText(raw) === "0")
-      return { sizing: { [field]: REMOVE } };
+      return { visual: { [field]: REMOVE }, sizing: { [field]: REMOVE } };
     const px = cssPx(raw);
-    return px !== undefined && px >= 0
-      ? { sizing: { [field]: set(px) } }
+    if (px !== undefined)
+      return px >= 0
+        ? { visual: { [field]: REMOVE }, sizing: { [field]: set(px) } }
+        : fail();
+    return CSS_RELATIVE_LENGTH.test(cssText(raw))
+      ? { visual: { [field]: set(cssText(raw)) }, sizing: { [field]: REMOVE } }
       : fail();
   }
   if (MAX_KEYS.has(key)) {
@@ -411,12 +420,11 @@ export function catalogStyleView(
     const value = px(sizing[key]) ?? px(visual[key]);
     if (value !== undefined) style[key] = value;
   }
-  for (const key of [
-    "minWidth",
-    "minHeight",
-    "maxWidth",
-    "maxHeight",
-  ] as const) {
+  for (const key of ["minWidth", "minHeight"] as const) {
+    const value = px(sizing[key]) ?? px(visual[key]);
+    if (value !== undefined) style[key] = value;
+  }
+  for (const key of ["maxWidth", "maxHeight"] as const) {
     const value = px(sizing[key]);
     if (value !== undefined) style[key] = value;
   }

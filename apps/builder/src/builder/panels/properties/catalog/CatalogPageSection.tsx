@@ -1,10 +1,11 @@
 import { memo, useCallback, useState, useSyncExternalStore } from "react";
 import { Button as RACButton } from "react-aria-components/Button";
-import { CircleAlert, Layout, X } from "lucide-react";
+import { CircleAlert, Layout, WandSparkles, X } from "lucide-react";
 import { translateKey, useI18n } from "@/i18n";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import type { EntryId } from "../../../../../../../packages/shared/src/catalog/document/types";
 import {
+  catalogGeneratedRoute,
   catalogPageCommands,
   catalogPageLayoutId,
   catalogPageLayoutSlots,
@@ -20,7 +21,12 @@ import {
 import { PropertyInput } from "../../../components/property/PropertyInput";
 import { Section as PropertySection } from "../../../components/panel/Section";
 import { PropertySelect } from "../../../components/property/PropertySelect";
-import { iconEditProps, iconSmall } from "../../../../utils/ui/uiConstants";
+import {
+  iconEditProps,
+  iconProps,
+  iconSmall,
+} from "../../../../utils/ui/uiConstants";
+import { SwatchIconButton } from "../../../components/ui/SwatchIconButton";
 import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";
 import "../editors/styles/pageSelectors.css";
 
@@ -218,13 +224,23 @@ export const CatalogPageSection = memo(function CatalogPageSection({
             }
           />
         </div>
+        {/* The 28 action column: "Generate from Title" (the old Slug row's action). */}
         <div className="fieldset-row page-slug-input" data-wide="true">
           <PropertyInput
             label="Route"
             value={page.route}
             onChange={changeRoute}
+            placeholder={catalogGeneratedRoute(pages, pageId)}
             description="URL path of this page"
           />
+          <div className="fieldset-actions actions-slug">
+            <SwatchIconButton
+              aria-label="Generate from Title"
+              onPress={() => changeRoute(catalogGeneratedRoute(pages, pageId))}
+            >
+              <WandSparkles aria-hidden="true" size={iconProps.size} />
+            </SwatchIconButton>
+          </div>
         </div>
         {routeError && (
           <div className="page-slug-error" role="alert">

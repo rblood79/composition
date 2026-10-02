@@ -79,6 +79,22 @@ describe("ADR-248 Phase 4e-4d style fields", () => {
       visual: { height: REMOVE },
       sizing: { height: REMOVE },
     });
+    // min: px = fixed sizing; a relative or viewport length = visual length; others refused.
+    expect(catalogStyleWrites("minWidth", "50%")).toEqual({
+      visual: { minWidth: set("50%") },
+      sizing: { minWidth: REMOVE },
+    });
+    expect(catalogStyleWrites("minHeight", "10vh")).toEqual({
+      visual: { minHeight: set("10vh") },
+      sizing: { minHeight: REMOVE },
+    });
+    expect(catalogStyleWrites("minWidth", "24px")).toEqual({
+      visual: { minWidth: REMOVE },
+      sizing: { minWidth: set(24) },
+    });
+    expect(() => catalogStyleWrites("minWidth", "wide")).toThrow(
+      CatalogStyleValueError,
+    );
     expect(catalogStyleWrites("maxWidth", "none")).toEqual({
       sizing: { maxWidth: REMOVE },
       layout: { maxWidth: REMOVE },
@@ -186,6 +202,14 @@ describe("ADR-248 Phase 4e-4d style fields", () => {
     const style = () =>
       workspace.root.domInputs.get(workspace.root.recordsOfSource(box.id)[0])
         ?.sizing;
+    // A % minimum resolves against the parent (the page body, 1920 wide); px still wins below it.
+    const record = workspace.root.recordsOfSource(box.id)[0]!;
+    const width = () => workspace.root.getGeometry([record]).get(record)?.width;
+    apply({ width: "10px", minWidth: "100px" });
+    expect(width()).toBe(100);
+    apply({ minWidth: "50%" });
+    expect(width()).toBe(960);
+    apply({ minWidth: "" });
     apply({ width: "120px", height: "40px" });
     expect(style()).toMatchObject({ width: 120, height: 40 });
     apply({ width: "auto" });

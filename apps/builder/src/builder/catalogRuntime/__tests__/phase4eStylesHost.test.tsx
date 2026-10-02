@@ -16,6 +16,8 @@ import {
 } from "../../../types/builder/fill.types";
 import { createCatalogStylesHost } from "../../panels/styles/catalog/catalogStylesHost";
 import { useToastStore } from "../../stores/toast";
+import { catalogComponentCommands } from "../componentActions";
+import { catalogPaletteDefinitionId } from "../paletteInsert";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogWorkspaceProvider } from "../react";
 import { CatalogStorage } from "../storage";
@@ -199,7 +201,9 @@ describe("ADR-248 Phase 4e-4d Styles host", () => {
     });
 
     host.previewFills!([layer("#00FF00FF")]);
-    expect(shown().fills).toMatchObject([{ kind: "color", color: "#00FF00FF" }]);
+    expect(shown().fills).toMatchObject([
+      { kind: "color", color: "#00FF00FF" },
+    ]);
     // The fill-derived background the commit removes is not shown under the layers.
     expect(shown().visual).not.toHaveProperty("backgroundColor");
     host.previewFills!([layer("#0000FFFF")]);
@@ -233,5 +237,77 @@ describe("ADR-248 Phase 4e-4d Styles host", () => {
       borderColor: "var(--border)",
       boxShadow: "0 1px 2px var(--shadow-color)",
     });
+  });
+
+  it("an instance shows its component's values under its own (the old origin baseline)", async () => {
+    const { workspace, graph, host } = await open();
+    host.updateStyles({ paddingTop: "12px", width: "200px" });
+    workspace.execute(
+      catalogComponentCommands.create(BOX, "Tile", workspace.newId),
+    );
+    const body = graph.getEntry(BODY) as NodeEntry;
+    const instance = body.children[0]!;
+    expect(instance).not.toBe(BOX);
+    const record = workspace.root.recordsOfSource(instance)[0]!;
+    workspace.selectRecords([record]);
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <CatalogWorkspaceProvider workspace={workspace}>
+        {children}
+      </CatalogWorkspaceProvider>
+    );
+    const context = renderHook(() => host.useElementStyleContext(record), {
+      wrapper,
+    });
+    expect(context.result.current.style).toMatchObject({
+      paddingTop: "12px",
+      width: "200px",
+    });
+    // Its own value wins.
+    host.updateStyle("paddingTop", "20px");
+    context.rerender();
+    expect(context.result.current.style).toMatchObject({
+      paddingTop: "20px",
+      width: "200px",
+    });
+  });
+
+  it("the token swatches resolve with the node's accent, else an ancestor's", async () => {
+    const { workspace, host } = await open();
+    const card = "project:node:card" as NodeId;
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [
+          {
+            kind: "node",
+            id: card,
+            definitionId: catalogPaletteDefinitionId(
+              workspace.runtime.graph.library,
+              "Card",
+            ),
+            children: [],
+            props: { accentColor: { kind: "set", value: "red" } },
+            visual: {},
+            sizing: {},
+            descendantOverrides: [],
+          },
+        ],
+        rootIds: [card],
+        newId: workspace.newId,
+      }),
+    );
+    const record = workspace.root.recordsOfSource(card)[0]!;
+    const child = workspace.root.domInputs.get(record)!.children[0]!;
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <CatalogWorkspaceProvider workspace={workspace}>
+        {children}
+      </CatalogWorkspaceProvider>
+    );
+    const accent = (id: string) =>
+      renderHook(() => host.useElementStyleContext(id), { wrapper }).result
+        .current.accentColor;
+    expect(accent(record)).toBe("red");
+    expect(accent(child)).toBe("red");
+    expect(accent(workspace.root.recordsOfSource(BOX)[0]!)).toBeUndefined();
   });
 });

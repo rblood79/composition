@@ -1,4 +1,5 @@
 import "fake-indexeddb/auto";
+import { fireEvent, render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
@@ -18,7 +19,14 @@ import {
   catalogSlotMarks,
 } from "../../workspace/canvas/catalog/catalogChrome";
 import { CatalogCanvasScene } from "../canvasScene";
-import { catalogComponentRole } from "../componentActions";
+import {
+  catalogComponentCommands,
+  catalogComponentRole,
+} from "../componentActions";
+import { CatalogComponentSection } from "../../panels/properties/catalog/CatalogComponentSection";
+import { I18nProvider } from "../../../i18n";
+import { useToastStore } from "../../stores/toast";
+import { CatalogWorkspaceProvider } from "../react";
 import { catalogDefinitionList, catalogNewLayoutCommand } from "../layouts";
 import { catalogPageCommands, catalogPageContentTarget } from "../pageSettings";
 import {
@@ -212,5 +220,65 @@ describe("ADR-248 4e-8 History subjects", () => {
     );
     expect(subjects().at(-1)).toBe("Card box");
     expect(subjects()).toHaveLength(4);
+  });
+});
+
+describe("ADR-248 4e-8 instance override rows", () => {
+  it("lists the instance's writes at its template positions; a reset is one step with an undo toast", async () => {
+    const workspace = await open();
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [
+          node("project:node:tile", "lib:definition:type-frame", [
+            "project:node:caption",
+          ]),
+          node("project:node:caption", "lib:definition:text"),
+        ],
+        rootIds: ["project:node:tile"] as NodeId[],
+        newId: workspace.newId,
+      }),
+    );
+    workspace.execute(
+      catalogComponentCommands.create(
+        "project:node:tile" as NodeId,
+        "Tile",
+        workspace.newId,
+      ),
+    );
+    const graph = workspace.runtime.graph;
+    const instance = (graph.getEntry(BODY) as NodeEntry).children[0]!;
+    const record = workspace.root.recordsOfSource(instance)[0]!;
+    const child = workspace.root.domInputs.get(record)!.children[0]!;
+    const target = workspace.itemOfRecord(child)!.target;
+    expect(target.kind).toBe("descendant");
+    workspace.execute(
+      setFields({
+        targets: [target],
+        visual: { color: { kind: "set", value: "#ff0000" } },
+      }),
+    );
+    useToastStore.setState({ toasts: [] } as never);
+    const view = render(
+      <I18nProvider initialLocale="en-US">
+        <CatalogWorkspaceProvider workspace={workspace}>
+          <CatalogComponentSection nodeId={instance as NodeId} />
+        </CatalogWorkspaceProvider>
+      </I18nProvider>,
+    );
+    const row = view.getByRole("button", { name: /Text\.color/ });
+    const depth = workspace.runtime.historyDepth.undo;
+    fireEvent.click(row);
+    expect(workspace.runtime.historyDepth.undo).toBe(depth + 1);
+    const patch = (graph.getEntry(instance) as NodeEntry)
+      .descendantOverrides[0];
+    expect(
+      patch?.kind === "patch" ? patch.visual?.color : undefined,
+    ).toBeUndefined();
+    expect(useToastStore.getState().toasts.at(-1)).toMatchObject({
+      type: "info",
+    });
+    expect(view.queryByRole("button", { name: /Text\.color/ })).toBeNull();
+    view.unmount();
   });
 });

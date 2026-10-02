@@ -3,7 +3,10 @@ import { Button as RACButton } from "react-aria-components/Button";
 import { Diamond } from "lucide-react";
 import { useI18n } from "@/i18n";
 import type {
+  CatalogReader,
   DefinitionId,
+  EditTarget,
+  InstanceAddress,
   NodeId,
   VisualField,
 } from "../../../../../../../packages/shared/src/catalog/document/types";
@@ -24,12 +27,40 @@ import {
   useCatalogWorkspace,
 } from "../../../catalogRuntime/react";
 import { setFields } from "../../../../../../../packages/shared/src/catalog/commands";
+import { definitionTypeName } from "../../../../../../../packages/shared/src/catalog/commands/context";
+import { useToastStore } from "../../../stores/toast";
 import { Section as PropertySection } from "../../../components/panel/Section";
 import { ActionTooltipTrigger } from "../../../components/ui";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";
 
 const ComponentIcon = ACTION_ICONS.component;
+
+/** The fields an instance's template-position patch writes (each key a resettable row). */
+const PATCH_FIELDS = ["props", "visual", "sizing", "layout"] as const;
+interface OverrideRow {
+  key: string;
+  field: (typeof PATCH_FIELDS)[number];
+  /** The field key; at a template position, `position.key` (its node's name, else its type). */
+  label: string;
+  target: EditTarget;
+}
+
+function templateLabel(graph: CatalogReader, id: string | undefined): string {
+  if (!id) return "";
+  const entry = id.startsWith("lib:")
+    ? graph.library.templates.get(id as `lib:template:${string}`)
+    : graph.getEntry(id);
+  const named = entry as { name?: string; definitionId?: string } | undefined;
+  if (named?.name) return named.name;
+  try {
+    return named?.definitionId
+      ? definitionTypeName(graph, named.definitionId as DefinitionId)
+      : id;
+  } catch {
+    return id;
+  }
+}
 
 /**
  * ADR-248 Phase 4e-4: the Component section over the catalog document (the old section's actions,
@@ -66,10 +97,49 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
   const own = useCatalogOwnFields({ kind: "node", id: nodeId });
   // An instance's overrides, or a built-in origin's project defaults (its sample's own fields).
   const listsOwn = !!instanceOf || (!!originOf && !originOf.project);
-  const overrides = listsOwn
+  const rootTarget: EditTarget = { kind: "node", id: nodeId };
+  // The instance's writes at its template positions (the old list's `path.field` rows).
+  const patchKey = useSyncExternalStore(subscribe, () => {
+    if (!instanceOf) return "[]";
+    const node = graph.getEntry(nodeId);
+    if (node?.kind !== "node") return "[]";
+    return JSON.stringify(
+      node.descendantOverrides.flatMap((item) => {
+        if (item.kind !== "patch") return [];
+        const at = templateLabel(graph, item.address.templatePath.at(-1));
+        return PATCH_FIELDS.flatMap((field) =>
+          Object.keys(item[field] ?? {}).map((key) => ({
+            key,
+            field,
+            label: `${at}.${key}`,
+            address: item.address,
+          })),
+        );
+      }),
+    );
+  });
+  const rows: OverrideRow[] = listsOwn
     ? [
-        ...Object.keys(own.props).map((key) => ({ key, visual: false })),
-        ...Object.keys(own.visual).map((key) => ({ key, visual: true })),
+        ...Object.keys(own.props).map((key) => ({
+          key,
+          field: "props" as const,
+          label: key,
+          target: rootTarget,
+        })),
+        ...Object.keys(own.visual).map((key) => ({
+          key,
+          field: "visual" as const,
+          label: key,
+          target: rootTarget,
+        })),
+        ...(
+          JSON.parse(patchKey) as (Omit<OverrideRow, "target"> & {
+            address: InstanceAddress;
+          })[]
+        ).map(({ address, ...row }) => ({
+          ...row,
+          target: { kind: "descendant", ownerId: nodeId, address } as const,
+        })),
       ]
     : [];
 
@@ -111,21 +181,32 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
     );
   }, [component, definitionView, workspace]);
   const reset = useCallback(
-    (key: string, visual: boolean) => {
-      const command = visual
-        ? setFields({
-            targets: [{ kind: "node", id: nodeId }],
-            visual: { [key as VisualField]: { kind: "remove" } },
-            label: "Reset override",
-          })
-        : catalogSemanticPatchCommand(
-            [{ kind: "node", id: nodeId }],
-            { [key]: undefined },
-            () => true,
-          );
-      if (command) run(command);
+    ({ key, field, label, target }: OverrideRow) => {
+      const command =
+        field === "props"
+          ? catalogSemanticPatchCommand(
+              [target],
+              { [key]: undefined },
+              () => true,
+            )
+          : setFields({
+              targets: [target],
+              [field]: { [key as VisualField]: { kind: "remove" } },
+              label: "Reset override",
+            } as Parameters<typeof setFields>[0]);
+      // No confirmation (the flow keeps going); one step, so the toast's undo restores it.
+      if (command && run(command))
+        useToastStore
+          .getState()
+          .showToast("info", t("propertiesPanel.overrideCleared", { label }), {
+            bypassCooldown: true,
+            action: {
+              label: t("errors.undo"),
+              onClick: () => workspace.undo(),
+            },
+          });
     },
-    [nodeId, run],
+    [run, t, workspace],
   );
 
   return (
@@ -223,7 +304,7 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
           )}
         </div>
       </div>
-      {overrides.length > 0 && (
+      {rows.length > 0 && (
         <fieldset className="properties-aria component-semantics-overrides">
           <legend className="fieldset-legend">
             {instanceOf
@@ -231,16 +312,20 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
               : t("propertiesPanel.originDefaultsLegend")}
           </legend>
           <div className="react-aria-Group component-semantics-field-list">
-            {overrides.map(({ key, visual }) => (
+            {rows.map((row) => (
               <button
-                aria-label={t("propertiesPanel.resetOverride", { label: key })}
+                aria-label={t("propertiesPanel.resetOverride", {
+                  label: row.label,
+                })}
                 className="component-semantics-field"
-                key={`${visual ? "visual" : "prop"}:${key}`}
-                onClick={() => reset(key, visual)}
+                key={`${row.field}:${row.label}`}
+                onClick={() => reset(row)}
                 type="button"
               >
                 <span className="component-semantics-field-dot" />
-                <span className="component-semantics-field-name">{key}</span>
+                <span className="component-semantics-field-name">
+                  {row.label}
+                </span>
                 <span className="component-semantics-field-reset">
                   {t("propertiesPanel.reset")}
                 </span>

@@ -4,6 +4,7 @@ import {
   updatePage,
 } from "../../../../../packages/shared/src/catalog/commands";
 import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
+import { generateSlugFromTitle } from "../../utils/slugValidator";
 import type { NewId } from "../../../../../packages/shared/src/catalog/commands/materialize";
 import type {
   CatalogReader,
@@ -207,6 +208,23 @@ export function catalogPageRouteEdit(
   return {
     command: updatePage({ id: pageId, fields: { route }, label: "Page route" }),
   };
+}
+
+/**
+ * The route the page's name gives (the old Slug field's "Generate from Title"): its parent's
+ * route, then the name as a slug — empty when the name has no Latin letters or digits.
+ */
+export function catalogGeneratedRoute(
+  pages: readonly PageEntry[],
+  pageId: EntryId<"page">,
+): string {
+  const page = pages.find((entry) => entry.id === pageId);
+  const slug = generateSlugFromTitle(page?.name);
+  if (!slug) return "";
+  const parent = page?.parentId
+    ? pages.find((entry) => entry.id === page.parentId)
+    : undefined;
+  return `${parent && parent.route !== "/" ? parent.route : ""}/${slug}`;
 }
 
 /**

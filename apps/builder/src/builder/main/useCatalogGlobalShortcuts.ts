@@ -24,7 +24,7 @@ import { catalogPageAlignCommand } from "../catalogRuntime/canvasPage";
 import type { ZoomControlsViewportActions } from "../workspace/ZoomControls";
 
 /** The open page's frame (the first page when none is open). */
-function openPageFrame(workspace: CatalogWorkspace) {
+export function openPageFrame(workspace: CatalogWorkspace) {
   const frames = workspace.root.pageFrameRects();
   const { pageId } = workspace.session.getSnapshot();
   return (pageId && frames.get(pageId)) || frames.values().next().value;
