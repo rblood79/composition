@@ -1,5 +1,4 @@
 // @vitest-environment jsdom
-import "../stylesHost.store"; // old-store host (ADR-248 4e-7: goes with the old store)
 import {
   act,
   cleanup,
@@ -10,52 +9,41 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Element } from "../../../../types/core/store.types";
-import { useStore } from "../../../stores";
-import { historyManager } from "../../../stores/history";
 import {
-  resetPanelFixture,
-  seedPanelElements,
-} from "../../../__tests__/panelFixture";
+  fromElements,
+  openStylesFixture,
+  type StylesFixture,
+} from "../__tests__/support/catalogStylesFixture";
 import { useSectionCollapse } from "../hooks/useSectionCollapse";
-import {
-  beginPagePositionPresentation,
-  cancelPagePositionPresentation,
-  publishPagePositionPresentation,
-  resetPagePositionPresentation,
-} from "../../../workspace/canvas/interaction/pagePositionPresentation";
 import { TransformSection } from "./TransformSection";
 
-const getSceneBoundsMock = vi.hoisted(() => vi.fn());
-// ADR-232 — 페이지 X/Y 는 좌표가 아니라 placement 로 커밋된다.
-const commitPagePlacementFromPointMock = vi.hoisted(() => vi.fn(() => true));
-vi.mock("../../../stores/utils/pagePlacementCommit", () => ({
-  commitPagePlacementFromPoint: commitPagePlacementFromPointMock,
-  isPagePlacementEditable: () => true,
-}));
+/**
+ * ADR-248 4e-9 C: the Transform section over the catalog Styles host — the old store's sizing ·
+ * absolute · style actions are the host's (`applySizing` · `applyAbsolute` · `updateStyle`).
+ * Absolute activation geometry (`phase4ePosition`) and page X/Y (`phase4eStylesPagePosition`) are
+ * covered over the catalog workspace; their old-canvas cases went with the old store.
+ */
+let fixture: StylesFixture;
 
-vi.mock("../../../workspace/canvas/skia/renderCommands", () => ({
-  getSceneBounds: getSceneBoundsMock,
-}));
+async function setTestElements(elements: Element[]): Promise<void> {
+  fixture = await openStylesFixture(fromElements(elements), {
+    select: "button-1",
+  });
+}
 
-function setTestElements(elements: Element[]): void {
-  seedPanelElements(elements);
-  useStore.setState({
-    selectedElementId: "button-1",
-    activeBreakpoint: "desktop",
-  } as never);
+function renderSection() {
+  return render(<TransformSection />, { wrapper: fixture.wrapper });
 }
 
 describe("TransformSection sizing controls", () => {
-  beforeEach(() => {
-    getSceneBoundsMock.mockReset();
+  beforeEach(async () => {
     vi.stubGlobal("CSS", { escape: (value: string) => value });
-    resetPanelFixture();
     useSectionCollapse.setState({
       collapsedSections: new Set(),
       focusMode: false,
       activeFocusSection: null,
     });
-    setTestElements([
+    await setTestElements([
       {
         id: "button-1",
         type: "Button",
@@ -75,15 +63,11 @@ describe("TransformSection sizing controls", () => {
     cleanup();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
-    act(() => {
-      resetPagePositionPresentation();
-    });
   });
 
   it("folds Fit and Fill into the W/H size-mode menu (no size-mode toggle row) and commits Fill as a sizing edit (ADR-224)", async () => {
-    const applySizingFromSelection = vi.fn();
-    useStore.setState({ applySizingFromSelection } as never);
-    render(<TransformSection />);
+    const applySizing = vi.spyOn(fixture.host, "applySizing");
+    renderSection();
 
     expect(screen.queryByRole("radio", { name: "Hug" })).toBeNull();
     expect(screen.queryByRole("radio", { name: "Fill" })).toBeNull();
@@ -101,14 +85,14 @@ describe("TransformSection sizing controls", () => {
     });
 
     // ADR-224: Fill 은 CSS grow 가 아니라 축별 sizing 의도 (factor 1 기본) 로 한 번에 적용된다.
-    expect(applySizingFromSelection).toHaveBeenCalledWith(
-      expect.objectContaining({ selectedElementId: "button-1" }),
-      { axis: "width", mode: "fill" },
-    );
+    expect(applySizing).toHaveBeenCalledWith(fixture.recordOf("button-1"), {
+      axis: "width",
+      mode: "fill",
+    });
   });
 
-  it("선택 상태의 suffix는 Fill=fr, Fixed=px, Fit content=fit으로 구분한다", () => {
-    setTestElements([
+  it("선택 상태의 suffix는 Fill=fr, Fixed=px, Fit content=fit으로 구분한다", async () => {
+    await setTestElements([
       {
         id: "button-1",
         type: "Button",
@@ -122,7 +106,7 @@ describe("TransformSection sizing controls", () => {
         props: { style: { display: "flex", flexDirection: "row" } },
       } as Element,
     ]);
-    render(<TransformSection />);
+    renderSection();
     const widthGroup = screen.getByRole("group", { name: "Width" });
     // legend 모드 (Gap 과 같은 어법): legend 「Width」 가 상자 위, 선택 뒤 트리거는 실제 단위 「fr」.
     expect(widthGroup.querySelector("legend")?.textContent).toBe("Width");
@@ -137,7 +121,7 @@ describe("TransformSection sizing controls", () => {
     ).toBe("px");
 
     cleanup();
-    setTestElements([
+    await setTestElements([
       {
         id: "button-1",
         type: "Button",
@@ -153,7 +137,7 @@ describe("TransformSection sizing controls", () => {
         props: { style: { display: "flex", flexDirection: "row" } },
       } as Element,
     ]);
-    render(<TransformSection />);
+    renderSection();
     expect(
       within(screen.getByRole("group", { name: "Width" })).getByRole("button", {
         name: /Size mode$/,
@@ -170,7 +154,7 @@ describe("TransformSection sizing controls", () => {
   });
 
   it("메뉴는 관계 이름만, 선택 상태는 축별 실제 단위를 표시한다", async () => {
-    render(<TransformSection />);
+    renderSection();
 
     const widthGroup = screen.getByRole("group", { name: "Width" });
     const widthButton = within(widthGroup).getByRole("button", {
@@ -189,7 +173,7 @@ describe("TransformSection sizing controls", () => {
     ).not.toBeNull();
 
     cleanup();
-    setTestElements([
+    await setTestElements([
       {
         id: "button-1",
         type: "Button",
@@ -203,7 +187,7 @@ describe("TransformSection sizing controls", () => {
         props: { style: { display: "flex", flexDirection: "row" } },
       } as Element,
     ]);
-    render(<TransformSection />);
+    renderSection();
 
     expect(
       within(screen.getByRole("group", { name: "Width" })).getByRole("button", {
@@ -228,7 +212,7 @@ describe("TransformSection sizing controls", () => {
   });
 
   it("offers only axis-relevant offset units without reset actions", async () => {
-    setTestElements([
+    await setTestElements([
       {
         id: "button-1",
         type: "Button",
@@ -249,7 +233,7 @@ describe("TransformSection sizing controls", () => {
       } as Element,
     ]);
 
-    render(<TransformSection />);
+    renderSection();
 
     const leftGroup = screen.getByRole("group", { name: "Left" });
     within(leftGroup).getByRole("button", { name: /Unit$/ }).click();
@@ -266,7 +250,7 @@ describe("TransformSection sizing controls", () => {
     ).toBeNull();
 
     cleanup();
-    render(<TransformSection />);
+    renderSection();
 
     const topGroup = screen.getByRole("group", { name: "Top" });
     within(topGroup).getByRole("button", { name: /Unit$/ }).click();
@@ -281,8 +265,8 @@ describe("TransformSection sizing controls", () => {
     ).toBeNull();
   });
 
-  it("disables offset editing outside absolute mode without exposing stored coordinates", () => {
-    setTestElements([
+  it("disables offset editing outside absolute mode without exposing stored coordinates", async () => {
+    await setTestElements([
       {
         id: "button-1",
         type: "Button",
@@ -302,7 +286,7 @@ describe("TransformSection sizing controls", () => {
       } as Element,
     ]);
 
-    render(<TransformSection />);
+    renderSection();
 
     const left = screen.getByRole("combobox", { name: "Left" });
     const top = screen.getByRole("combobox", { name: "Top" });
@@ -314,8 +298,8 @@ describe("TransformSection sizing controls", () => {
     expect((top as HTMLInputElement).placeholder).toBe("auto");
   });
 
-  it("keeps unset Min/Max constraints blank instead of defaulting to zero", () => {
-    setTestElements([
+  it("keeps unset Min/Max constraints blank instead of defaulting to zero", async () => {
+    await setTestElements([
       {
         id: "button-1",
         type: "Button",
@@ -336,7 +320,7 @@ describe("TransformSection sizing controls", () => {
       } as Element,
     ]);
 
-    render(<TransformSection />);
+    renderSection();
     // Min/Max 는 펼침 토글 뒤에 (인라인 값 없음 → 접힘, 2026-09-15)
     expect(screen.queryByRole("combobox", { name: "Min W" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Size constraints" }));
@@ -354,7 +338,7 @@ describe("TransformSection sizing controls", () => {
   });
 
   it("omits rem from every Min/Max constraint unit menu", async () => {
-    setTestElements([
+    await setTestElements([
       {
         id: "button-1",
         type: "Button",
@@ -376,7 +360,7 @@ describe("TransformSection sizing controls", () => {
     ]);
 
     for (const label of ["Min W", "Max W", "Min H", "Max H"]) {
-      render(<TransformSection />);
+      renderSection();
       fireEvent.click(screen.getByRole("button", { name: "Size constraints" }));
 
       const group = screen.getByRole("group", { name: label });
@@ -389,12 +373,8 @@ describe("TransformSection sizing controls", () => {
     }
   });
 
-  it("blocks a same-unit max below min and commits the next valid value", () => {
-    const originalUpdateSelectedStyle = useStore.getState().updateSelectedStyle;
-    const updateSelectedStyle = vi.fn((property: string, value: string) =>
-      originalUpdateSelectedStyle(property, value),
-    );
-    setTestElements([
+  it("blocks a same-unit max below min and commits the next valid value", async () => {
+    await setTestElements([
       {
         id: "button-1",
         type: "Button",
@@ -410,9 +390,9 @@ describe("TransformSection sizing controls", () => {
         props: { style: { display: "flex", flexDirection: "row" } },
       } as Element,
     ]);
-    useStore.setState({ updateSelectedStyle } as never);
+    const updateSelectedStyle = vi.spyOn(fixture.host, "updateStyle");
 
-    render(<TransformSection />);
+    renderSection();
     fireEvent.click(screen.getByRole("button", { name: "Size constraints" }));
     const minW = screen.getByRole("combobox", { name: "Min W" });
     const maxW = screen.getByRole("combobox", { name: "Max W" });
@@ -433,63 +413,10 @@ describe("TransformSection sizing controls", () => {
     expect(screen.queryByRole("alert")).toBeNull();
   });
 
-  // ADR-224 §6.1 — Absolute 활성화는 store 복합 명령 `applyAbsoluteFromSelection` 하나로 간다
-  // (position/inset + 무효 Fill 의 used px Fixed + 형제 맨 앞, 한 transaction). 패널은 scene
-  // bounds 로 position/left/top 만 계산해 넘긴다.
-  it("preserves a flex child's visual position when enabling absolute positioning", () => {
-    const updateSelectedStyle = vi.fn();
-    const applyAbsoluteFromSelection = vi.fn(() => null);
-    getSceneBoundsMock.mockImplementation((id: string) => {
-      if (id === "button-1") {
-        return { x: 160, y: 95, width: 200, height: 100 };
-      }
-      if (id === "frame-1") {
-        return { x: 100, y: 50, width: 600, height: 400 };
-      }
-      return undefined;
-    });
-    useStore.setState({
-      updateSelectedStyle,
-      applyAbsoluteFromSelection,
-    } as never);
+  it("shows the command error when the store rejects the activation", async () => {
+    vi.spyOn(fixture.host, "applyAbsolute").mockReturnValue("geometry-missing");
 
-    render(<TransformSection />);
-
-    const toggle = screen.getByRole("button", {
-      name: "Absolute position",
-    });
-    expect(toggle.getAttribute("aria-pressed")).toBe("false");
-
-    toggle.click();
-
-    expect(applyAbsoluteFromSelection).toHaveBeenCalledWith(
-      expect.objectContaining({ selectedElementId: "button-1" }),
-      expect.any(Function),
-    );
-    // 요소마다 자기 부모·scene bounds 로 inset (다중 선택에서 리더 inset 을 전부에 쓰지 않는다)
-    const stylesFor = (
-      applyAbsoluteFromSelection.mock.calls as unknown as [
-        unknown,
-        (id: string) => Record<string, string>,
-      ][]
-    )[0][1];
-    expect(stylesFor("button-1")).toEqual({
-      position: "absolute",
-      left: "60px",
-      top: "45px",
-    });
-    expect(updateSelectedStyle).not.toHaveBeenCalledWith(
-      "position",
-      "absolute",
-    );
-    expect(screen.queryByRole("alert")).toBeNull();
-  });
-
-  it("shows the command error when the store rejects the activation", () => {
-    const applyAbsoluteFromSelection = vi.fn(() => "geometry-missing" as const);
-    useStore.setState({ applyAbsoluteFromSelection } as never);
-
-    render(<TransformSection />);
+    renderSection();
     act(() => {
       screen.getByRole("button", { name: "Absolute position" }).click();
     });
@@ -499,132 +426,8 @@ describe("TransformSection sizing controls", () => {
     );
   });
 
-  it("uses the flex parent's content origin when enabling absolute positioning", () => {
-    const updateSelectedStyle = vi.fn();
-    const updateSelectedStyles = vi.fn();
-    setTestElements([
-      {
-        id: "button-1",
-        type: "Button",
-        parent_id: "frame-1",
-        props: { style: { width: "200px", height: "100px" } },
-      } as Element,
-      {
-        id: "frame-1",
-        type: "Frame",
-        parent_id: null,
-        props: {
-          style: {
-            display: "flex",
-            padding: "12px 20px",
-            borderWidth: "2px",
-          },
-        },
-      } as Element,
-    ]);
-    getSceneBoundsMock.mockImplementation((id: string) => {
-      if (id === "button-1") {
-        return { x: 160, y: 95, width: 200, height: 100 };
-      }
-      if (id === "frame-1") {
-        return { x: 100, y: 50, width: 600, height: 400 };
-      }
-      return undefined;
-    });
-    const applyAbsoluteFromSelection = vi.fn(() => null);
-    useStore.setState({
-      updateSelectedStyle,
-      applyAbsoluteFromSelection,
-    } as never);
-
-    render(<TransformSection />);
-
-    screen.getByRole("button", { name: "Absolute position" }).click();
-
-    expect(
-      (
-        applyAbsoluteFromSelection.mock.calls as unknown as [
-          unknown,
-          (id: string) => Record<string, string>,
-        ][]
-      )[0][1]("button-1"),
-    ).toEqual({ position: "absolute", left: "38px", top: "31px" });
-    expect(updateSelectedStyle).not.toHaveBeenCalledWith(
-      "position",
-      "absolute",
-    );
-  });
-
-  it("falls back to position-only activation when flex bounds are unavailable", () => {
-    const updateSelectedStyle = vi.fn();
-    const applyAbsoluteFromSelection = vi.fn(() => null);
-    useStore.setState({
-      updateSelectedStyle,
-      applyAbsoluteFromSelection,
-    } as never);
-
-    render(<TransformSection />);
-
-    screen.getByRole("button", { name: "Absolute position" }).click();
-
-    expect(
-      (
-        applyAbsoluteFromSelection.mock.calls as unknown as [
-          unknown,
-          (id: string) => Record<string, string>,
-        ][]
-      )[0][1]("button-1"),
-    ).toEqual({ position: "absolute" });
-    expect(updateSelectedStyle).not.toHaveBeenCalledWith(
-      "position",
-      "absolute",
-    );
-  });
-
-  it("keeps non-flex activation on the position-only path", () => {
-    const updateSelectedStyle = vi.fn();
-    setTestElements([
-      {
-        id: "button-1",
-        type: "Button",
-        parent_id: "frame-1",
-        props: { style: { width: "200px", height: "100px" } },
-      } as Element,
-      {
-        id: "frame-1",
-        type: "Frame",
-        parent_id: null,
-        props: { style: { display: "block" } },
-      } as Element,
-    ]);
-    const applyAbsoluteFromSelection = vi.fn(() => null);
-    useStore.setState({
-      updateSelectedStyle,
-      applyAbsoluteFromSelection,
-    } as never);
-
-    render(<TransformSection />);
-
-    screen.getByRole("button", { name: "Absolute position" }).click();
-
-    expect(
-      (
-        applyAbsoluteFromSelection.mock.calls as unknown as [
-          unknown,
-          (id: string) => Record<string, string>,
-        ][]
-      )[0][1]("button-1"),
-    ).toEqual({ position: "absolute" });
-    expect(updateSelectedStyle).not.toHaveBeenCalledWith(
-      "position",
-      "absolute",
-    );
-  });
-
-  it("disables absolute positioning without clearing offsets", () => {
-    const updateSelectedStyle = vi.fn();
-    const moveElementToSiblingEdge = vi.fn(() => true);
-    setTestElements([
+  it("disables absolute positioning without clearing offsets", async () => {
+    await setTestElements([
       {
         id: "button-1",
         type: "Button",
@@ -646,126 +449,28 @@ describe("TransformSection sizing controls", () => {
         props: { style: { display: "flex", flexDirection: "row" } },
       } as Element,
     ]);
-    useStore.setState({
-      updateSelectedStyle,
-      moveElementToSiblingEdge,
-    } as never);
+    const applyAbsolute = vi.spyOn(fixture.host, "applyAbsolute");
+    const offsets = () => {
+      const { left, top } = fixture.host.readSelectedTarget().style;
+      return { left, top };
+    };
+    expect(offsets()).toEqual({ left: "24px", top: "12px" });
 
-    render(<TransformSection />);
+    renderSection();
 
     const toggle = screen.getByRole("button", {
       name: "Absolute position",
     });
     expect(toggle.getAttribute("aria-pressed")).toBe("true");
 
-    toggle.click();
-
-    expect(updateSelectedStyle).toHaveBeenCalledWith("position", "");
-    expect(updateSelectedStyle).not.toHaveBeenCalledWith("left", "");
-    expect(updateSelectedStyle).not.toHaveBeenCalledWith("top", "");
-    expect(moveElementToSiblingEdge).not.toHaveBeenCalled();
-  });
-
-  // ADR-232 — body 선택 시 position row 는 페이지 **배치** 를 편집한다 (좌표 저장 0).
-  it("shows page X/Y for a real page body and commits via placement", () => {
-    setTestElements([
-      {
-        id: "body-1",
-        type: "body",
-        parent_id: null,
-        page_id: "page-1",
-        props: { style: {} },
-      } as never,
-    ]);
-    useStore.setState({
-      selectedElementId: "body-1",
-      currentPageId: "page-1",
-      derivedPagePositions: { "page-1": { x: 120, y: 40 } },
-    } as never);
-
-    render(<TransformSection />);
-
-    // Left/Top + Absolute 토글은 부재, X/Y 가 페이지 위치를 표시
-    expect(screen.queryByRole("combobox", { name: "Left" })).toBeNull();
-    expect(
-      screen.queryByRole("button", { name: "Absolute position" }),
-    ).toBeNull();
-    const xInput = screen.getByRole("combobox", { name: "X" });
-    const yInput = screen.getByRole("combobox", { name: "Y" });
-    expect((xInput as HTMLInputElement).value).toBe("120");
-    expect((yInput as HTMLInputElement).value).toBe("40");
-
-    fireEvent.change(xInput, { target: { value: "300" } });
-    fireEvent.blur(xInput);
-    expect(commitPagePlacementFromPointMock).toHaveBeenCalledWith("page-1", {
-      x: 300,
-      y: 40,
+    act(() => {
+      toggle.click();
     });
-  });
 
-  it("updates page X/Y live from the transient drag channel", async () => {
-    setTestElements([
-      {
-        id: "body-1",
-        type: "body",
-        parent_id: null,
-        page_id: "page-1",
-        props: { style: {} },
-      } as never,
-    ]);
-    useStore.setState({
-      selectedElementId: "body-1",
-      currentPageId: "page-1",
-      derivedPagePositions: { "page-1": { x: 120, y: 40 } },
-    } as never);
-
-    render(<TransformSection />);
-    const readX = () =>
-      (screen.getByRole("combobox", { name: "X" }) as HTMLInputElement).value;
-    expect(readX()).toBe("120");
-
-    // 드래그 프레임 publish → store 무경유로 표시값 실시간 반영
-    // (async act — PropertyUnitInput 의 value 동기화가 queueMicrotask 경유)
-    await act(async () => {
-      beginPagePositionPresentation(
-        { "page-1": { x: 120, y: 40 } },
-        ["page-1"],
-        "desktop",
-      );
-      publishPagePositionPresentation([
-        { pageId: "page-1", position: { x: 300.4, y: 40 } },
-      ]);
-    });
-    expect(readX()).toBe("300");
-
-    // 취소 → committed store 값으로 복귀
-    await act(async () => {
-      cancelPagePositionPresentation();
-    });
-    expect(readX()).toBe("120");
-  });
-
-  it("hides the position row for projection/frame bodies without page_id", () => {
-    setTestElements([
-      {
-        id: "body-2",
-        type: "body",
-        parent_id: null,
-        props: { style: {} },
-      } as Element,
-    ]);
-    useStore.setState({
-      selectedElementId: "body-2",
-      currentPageId: "page-1",
-      derivedPagePositions: {},
-    } as never);
-
-    render(<TransformSection />);
-
-    expect(screen.queryByRole("combobox", { name: "X" })).toBeNull();
-    expect(screen.queryByRole("combobox", { name: "Left" })).toBeNull();
-    expect(
-      screen.queryByRole("button", { name: "Absolute position" }),
-    ).toBeNull();
+    expect(applyAbsolute).toHaveBeenCalledWith(
+      fixture.recordOf("button-1"),
+      false,
+    );
+    expect(offsets()).toEqual({ left: "24px", top: "12px" });
   });
 });
