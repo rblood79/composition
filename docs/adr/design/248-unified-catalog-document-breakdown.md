@@ -455,7 +455,8 @@ H5 수리안은 **main에 미연결 새 모듈을 추가한 뒤 제품 진입점
 | 4e-8-10 | 비운 ID 칸의 placeholder = 그 요소의 실제 자동값 (사용자 지시 2026-10-02). 종전 `{type}_1` 고정 (옛 앱도 같음) 은 `button_1` 을 다른 요소가 쓸 때 쓸 수 없는 값을 보였다. `catalogHtmlIdBase` (type 이름 소문자, 자동 부여 · placeholder · 지문 버튼이 같이 읽음) + `catalogUniqueHtmlId` 를 step 마다 다시 읽어 첫 빈 `type_N`. 지문 버튼의 빈 칸 할당도 같은 값. 단위: `phase4e8AutoHtmlId` (Button 둘 · 둘째 비움 → placeholder button_2 · 첫째를 cta 로 → button_1 · 지문 = button_1, 고정 `_1` 원복 RED). live (headless · 5175): 둘째 Button ID 지움 → 값 빈 칸 · placeholder button_2 · 문서 [button_1, 없음], 오류 0 | `25496a60c` |
 | 4e-9-1 | 삭제 1차 (사용자 승인 2026-10-02 「모두승인」 — 소스 · 대상 테스트 · 정적 테스트 정리 규칙). 판정: 새 Builder 진입점 (`index.html` · `preview.html`) 에서 Vite 그래프 + `import type` (TS 해석) + CSS `@import` 사슬로 닿지 않고, 남는 테스트가 import 하지 않는 파일. Vite 그래프만으로는 647 (타입 전용 import 를 못 봄) → 타입 포함 386 → 남는 테스트가 쓰는 152 를 2차로 미룸 → CSS `@import` 로 쓰이는 10 (+ 4e-8-8 로 다시 쓰이게 된 패널 공용 CSS 5) 제외 = **소스 219 · 테스트 87** (대상 테스트 64 · 지운 파일만 읽던 정적 테스트 23). 목록: 아래 「4e-9-1 삭제 목록」. 남는 파일도 읽던 정적 테스트 ~40 은 지운 파일 항목만 빼거나 catalog 대응 파일로 옮김 (Toast 단일 컨테이너 · History 패널 계약 · Navigator 스타일 · i18n 배선 · Canvas 메뉴 라벨 = `catalogRuntime/canvasMenu.ts` · 구조 쓰기 가드 표 · 러너 allowlist 축소). 단축키 등록 게이트는 `readonly XShortcutId[]` 리터럴도 읽고 `CATALOG_ARRANGE_SHORTCUTS` 를 리터럴 목록으로 (팔레트 정의 12개가 미등록으로 보이던 것은 파서 한계 — 새 앱은 등록함). 소비처 0 이 된 `UNIFIED_ENGINE` flag 제거. 라벨 게이트는 글자 없는 라벨 (`"100%"`) 허용 (옛 provider 도 같은 값, 위치 인자라 안 보였을 뿐). 검증: 임시 worktree 사전 삭제 → 실제 삭제 전 HEAD 재측정 (승인 목록 중 새로 닿는 파일 0) · type-check 0 · `vite build` 성공 (CSS 경고 3 = main 과 동일) · Builder 1011 파일 통과 · live (headless · 5175) 패널 8종 정상 · Button 삽입 2 + 붙여넣기 = button_1/2/3, 오류 0 | `988e5177a` |
 | 4e-9-2 | live G3 가 찾은 제품 결함 2건. ① **Calendar · RangeCalendar 월 격자 고정**: origin 라이브러리 변환기가 옛 seed 의 CalendarGrid `dayOffset` · `totalDays` · `todayDate` (옛 factory 가 생성 시점 `now` 로 계산한 값) 를 template 값으로 얼려, 새 앱은 늘 2026-09 격자 · today 29 를 그렸다 (live 2026-10-02: 머리말 「2026년 10월」 · 격자는 9월). 변환기가 이 세 키를 gap (`PROP_SEED_CREATION_DATE`) 으로 기록하고 라이브러리 재생성 → Canvas 격자가 현재 날짜로 계산 (`skiaPrimitives` · layout 의 기존 fallback). ② **삽입한 DatePicker · DateRangePicker 의 DateInput 폭**: `styleFor(record, get)` 은 조립 중인 새 record 를 보는 `get` 을 받는데 `segmentText` 만 확정된 `this.records` 를 읽어, 삽입 직후 owner (SelectTrigger 너머 picker) 를 못 찾고 DateField 한 칸으로 쟀다 (live 66×17 → 재조립 뒤 170.69×20). `segmentText(record, get)` 로 같은 `get` 사용 · 같은 유형 sweep (get 을 받으면서 확정 map 을 읽는 곳) 결과 이 한 곳. 단위: `phase4e9CalendarMonth` · `phase4e9IncrementalSegments` (삽입 = 재조립 geometry, DatePicker · DateRangePicker), 둘 다 원복 RED. live: 실제 날짜로 Calendar = 10월 격자 (1일 목요일 · 31일 · today 2) | `42a60b784` |
-| 4e-10-1 | **live G3 1차 측정** (권장 순서 2026-10-02: live G3/G4 → 삭제 2차 → G5 → 병합). 도구: `scripts/adr248-g3-live.mjs` 가 실제 Builder (dev 5175, headless Chrome · 1440×900 · DPR 1 · G0 날짜 2026-09-28 고정) 에서 G0 시나리오 (base 64 · axis 386 · state 75 · child 34) 를 공개 명령 API 로 저작하고 G0 카메라 (DEV handle `canvas.setCamera`) 로 clip 을 찍는다 · subject entry 와 live geometry 를 함께 저장. G3 하니스 `ADR248_LIVE_DIR` 모드: 판정 코드 무변경, 비교 픽셀 = live 캡처, 새 측 문서 = live subject entry, glyph ink = 같은 문서의 하니스 렌더, 하니스 렌더 ↔ live 캡처 (`liveIdentity`) · live geometry ↔ 하니스 geometry (`liveGeometry`) 기록, locale = Builder 의 ko-KR (G0 달력 머리말과 같은 locale). 항목 원본 37 (ListBoxItem · Tab · Radio · Tag · MenuItem · GridListItem · Breadcrumb) 은 page body 에 둘 수 없어 (RAC content model) 원본 화면에서 찍고, 주변이 작업 공간이라 판정은 하니스 렌더 · 일치도는 root box 안만. **결과** (`248-phase4-g3-live-{base,axis,state,child}.json`): base PASS 62/64 (FAIL FileUpload · UNVERIFIED Icon) · axis PASS 371/386 (FAIL FileUpload 2 · DateRangePicker xs Canvas↔DOM 1 — ko-KR 의 date segment 폭 127 vs DOM 143, en-US 에서는 PASS · UNVERIFIED Icon 6 · NOT_RUN 6 = axis prop 이 계약에 없고 옛 앱은 소비) · state PASS 75/75 · child UNVERIFIED 33 (옛 child PNG 없음, geometry · Canvas↔DOM 통과) · NOT_RUN 1. live 와 하니스: geometry 551/551 일치 (4e-9-2 수리 후), 픽셀 base 63/64 · axis 379/380 동일 (Calendar 글자 23 px) · state page 38/38 동일, 원본 화면 37 중 14 동일 · 23 은 투명 상자 뒤 작업 공간 점 배경. **남은 G3 일**: FileUpload 수리 · DateRangePicker xs (ko-KR) Canvas↔DOM · Phase 3 승인 `previewFollow` 14 규칙 + `bothDeviate` 3 규칙의 제품 수리 (approvedDifferences: 「Phase 4 fixes the product and the new side together」) · Icon 7 은 옛 시나리오의 아이콘 이름 미기록 (UNVERIFIED 유지) | 이 커밋 |
+| 4e-9-3 | 삭제 2차 (사용자 승인 2026-10-02 「A + D 를 모두 승인」). 판정은 4e-9-1 과 같은 도달 측정 (HEAD `2424c3747`, 닿지 않는 소스 151) 위에 남는 테스트의 import 를 분류: **A** 옛 소스 28 + 옛 동작만 시험하는 테스트 171 (ADR-233~241 회귀 · `resolvers/canonical` · 옛 `buildSpecNodeData` · 옛 Canvas 상호작용 · pencil import/export) · **D1** 엔진 parity `tests/parity` 33 + 지원 2 (DOM 쪽 = 옛 `CanonicalNodeRenderer`, 트리 = 옛 `entryUniverse`) · **D2** visual-parity 의 옛 Skia 경로 (`skiaRunner` + 테스트 9) · **D3** origin 생성기 `createInitialProjectDocument` + `reusableOriginSource` (생성 파일 `reusableOriginLibrary.ts` 는 이제 직접 편집 정본 — ADR-912 와 같은 고정) · **D4** Phase 3 옛 consumer 비교 (`slotOverlay` · `cssVariableCore`). = **소스 72 · 테스트·지원 217**. 목록: 아래 「4e-9-3 삭제 목록」. 남는 파일도 읽던 정적 테스트 5 는 지운 파일 항목만 뺌 (Phase 2 presentation 가드 · mutation effect registry consumer · layout root key · 구조 쓰기 가드 표 · canonical-only 경계). eslint ADR-126 허용 목록에서 없는 파일 18 제거. 미룬 것: **C** 살아 있는 코드의 테스트 66 이 옛 host·store (`stylesHost.store` 등) 로 setup — 새 host 로 옮긴 뒤 소스 75 삭제 · 지운 파일만 읽던 정적 테스트 5 와 옛 모듈을 import 하는 스크립트 13 · 고아 지원 `typedSceneFixtures.ts` · `reusableOriginConverter.ts` 는 별도 삭제 승인 대기 · pre-push visual-parity smoke 는 smoke 목록 5 파일이 지워져 `PARITY-ENV` 로 실패 (처리 결정 대기) · `perf/ratchet.json` 은 G5 재측정 때 기록. 검증: type-check 0 · `vite build` 성공 · Builder 838 파일 통과 (실패 5 = 승인 대기 정적 테스트) | 이 커밋 |
+| 4e-10-1 | **live G3 1차 측정** (권장 순서 2026-10-02: live G3/G4 → 삭제 2차 → G5 → 병합). 도구: `scripts/adr248-g3-live.mjs` 가 실제 Builder (dev 5175, headless Chrome · 1440×900 · DPR 1 · G0 날짜 2026-09-28 고정) 에서 G0 시나리오 (base 64 · axis 386 · state 75 · child 34) 를 공개 명령 API 로 저작하고 G0 카메라 (DEV handle `canvas.setCamera`) 로 clip 을 찍는다 · subject entry 와 live geometry 를 함께 저장. G3 하니스 `ADR248_LIVE_DIR` 모드: 판정 코드 무변경, 비교 픽셀 = live 캡처, 새 측 문서 = live subject entry, glyph ink = 같은 문서의 하니스 렌더, 하니스 렌더 ↔ live 캡처 (`liveIdentity`) · live geometry ↔ 하니스 geometry (`liveGeometry`) 기록, locale = Builder 의 ko-KR (G0 달력 머리말과 같은 locale). 항목 원본 37 (ListBoxItem · Tab · Radio · Tag · MenuItem · GridListItem · Breadcrumb) 은 page body 에 둘 수 없어 (RAC content model) 원본 화면에서 찍고, 주변이 작업 공간이라 판정은 하니스 렌더 · 일치도는 root box 안만. **결과** (`248-phase4-g3-live-{base,axis,state,child}.json`): base PASS 62/64 (FAIL FileUpload · UNVERIFIED Icon) · axis PASS 371/386 (FAIL FileUpload 2 · DateRangePicker xs Canvas↔DOM 1 — ko-KR 의 date segment 폭 127 vs DOM 143, en-US 에서는 PASS · UNVERIFIED Icon 6 · NOT_RUN 6 = axis prop 이 계약에 없고 옛 앱은 소비) · state PASS 75/75 · child UNVERIFIED 33 (옛 child PNG 없음, geometry · Canvas↔DOM 통과) · NOT_RUN 1. live 와 하니스: geometry 551/551 일치 (4e-9-2 수리 후), 픽셀 base 63/64 · axis 379/380 동일 (Calendar 글자 23 px) · state page 38/38 동일, 원본 화면 37 중 14 동일 · 23 은 투명 상자 뒤 작업 공간 점 배경. **남은 G3 일**: FileUpload 수리 · DateRangePicker xs (ko-KR) Canvas↔DOM · Phase 3 승인 `previewFollow` 14 규칙 + `bothDeviate` 3 규칙의 제품 수리 (approvedDifferences: 「Phase 4 fixes the product and the new side together」) · Icon 7 은 옛 시나리오의 아이콘 이름 미기록 (UNVERIFIED 유지) | `2424c3747` |
 
 **4e-9-1 삭제 목록** (사용자 결정 2026-09-30 「실제 삭제 목록은 병합 전에 커밋 메시지·이 문서에 남긴다」 — 경로는 `apps/builder/src/` 기준)
 
@@ -590,6 +591,113 @@ H5 수리안은 **main에 미연결 새 모듈을 추가한 뒤 제품 진입점
 - `builder/workspace/overlay/` — overlayNudge.test.ts, overlayWrap.test.ts, useTextEdit.editingFlag.test.tsx, useTextEdit.static.test.ts, useTextEdit.textSource.test.ts
 - `preview/components/__tests__/` — CanonicalNodeRenderer.setState.test.tsx
 - `preview/messaging/` — messageHandler.presentation.test.ts
+
+**4e-9-3 삭제 목록** (사용자 승인 2026-10-02 「A + D 를 모두 승인」 — 소스는 `apps/builder/src/` 기준, 테스트는 `apps/builder/` 기준)
+
+A 옛 소스 28:
+
+- `adapters/canonical/` — frameLayoutCascade.ts
+- `adapters/pencil/` — pencilExport.ts, pencilImport.ts
+- `builder/components/` — collectionItemInsert.ts, groupItemInsert.ts, itemSlotRoles.ts
+- `builder/panels/` — canonicalPanelNodes.ts
+- `builder/panels/properties/` — semanticUpdateDispatch.ts
+- `builder/panels/properties/editors/LayoutPresetSelector/` — presetResponsive.ts
+- `builder/panels/themes/` — themeActions.ts
+- `builder/stores/` — rootStoreAccess.ts
+- `builder/stores/utils/` — reusableLayoutActions.ts
+- `builder/workspace/canvas/hooks/` — useElementHoverInteraction.ts, useGestureHoverSuppression.ts, useWorkflowInteraction.ts
+- `builder/workspace/canvas/interaction/` — measureGuidePresentation.ts, pointerSession.ts, resolveCanonicalMutationTarget.ts, resolveCanvasInteractionTarget.ts, resolveDataRowOriginTarget.ts, selectionModel.ts
+- `builder/workspace/canvas/selection/` — dropTargetResolver.ts, selectionHitTest.ts
+- `builder/workspace/canvas/skia/` — dragAnimator.ts
+- `builder/workspace/canvas/viewport/` — panToPage.ts
+- `preview/interactions/` — bindings.ts, dispatcher.ts
+- `preview/messaging/` — builderPropSync.ts
+
+D1 소스 15:
+
+- `builder/factories/` — entryUniverse.ts
+- `builder/workspace/canvas/layout/engines/` — layoutCapabilityMatrix.ts
+- `builder/workspace/canvas/scene/` — collectionRowOffsets.ts, collectionVirtualization.ts, expandedCardHeights.ts
+- `preview/components/` — CanonicalNodeRenderer.tsx, stateTemplate.tsx
+- `preview/presentation/` — editorPresentationProjectionIndex.ts
+- `preview/store/` — index.ts, runtimeStore.ts, types.ts
+- `preview/types/` — index.ts
+- `preview/utils/` — itemTemplates.ts, specCatalogBacked.ts, stateLayerRender.ts
+
+D2 소스 26:
+
+- `adapters/canonical/` — frameElementLoader.ts, pageFrameProjection.ts, slotMirror.ts
+- `builder/presentation/` — skiaPresentationProjectionIndex.ts
+- `builder/workspace/canvas/hooks/` — useLayoutPublisher.ts
+- `builder/workspace/canvas/layout/` — projectFillLayout.ts
+- `builder/workspace/canvas/renderers/` — index.ts, invalidationPacket.ts, rendererInput.ts
+- `builder/workspace/canvas/scene/` — buildSceneIndex.ts, buildSceneSnapshot.ts, buildSelectionSnapshot.ts, buildVisiblePageSet.ts, index.ts, layoutCache.ts, projectDialogVisibility.ts, resolvePageWithFrame.ts, sceneSnapshotTypes.ts, subtreeInvalidation.ts
+- `builder/workspace/canvas/skia/` — dragPresentation.ts, export.ts, frameContentCache.ts, skiaFramePipeline.ts, visibleFrameRoots.ts, visiblePageRoots.ts
+- `builder/workspace/canvas/viewport/` — viewportTransforms.ts
+
+D3 소스 1:
+
+- `dashboard/` — createInitialProjectDocument.ts
+
+D4 소스 2:
+
+- `builder/catalogRuntime/` — slotOverlay.ts
+- `builder/workspace/canvas/utils/` — cssVariableCore.ts
+
+테스트·지원 217:
+
+- `adapters/canonical/__tests__/` — componentRoleAdapter.test.ts, frameElementLoader.test.ts, frameLayoutCascade.test.ts, integration.test.ts, pageSlotStyle.test.ts, pathSegmentUnification.test.ts, sizingRoundTrip.test.ts, slotMirror.test.ts, themes.test.ts, variables.test.ts
+- `adapters/pencil/__tests__/` — pencilExport.nestingGuard.test.ts, pencilImport.test.ts, pencilRoundtrip.test.ts
+- `builder/catalogRuntime/__tests__/` — phase3RealConsumers.test.tsx, phase3ReusableOriginTemplates.test.ts
+- `builder/catalogRuntime/__tests__/support/` — catalogSlotOverlay.ts, reusableOriginSource.ts
+- `builder/components/__tests__/` — adr233RadioRefChildren.test.ts, adr234Diagnostics.test.tsx, adr234Phase1.refChainEnabled.test.ts, adr234Phase2.migration.test.tsx, adr234Phase3.staticCollections.test.tsx, adr234SlotInsertSelection.test.ts, adr237Diagnostics.test.tsx, adr237G4.leafReuse.test.ts, adr237Phase1.groupSlot.test.tsx, adr237Phase2.itemVariants.test.tsx, adr237Phase3.breadcrumbs.test.tsx, adr238Diagnostics.test.tsx, adr238Phase1.itemRoles.test.tsx, adr238Phase2.sections.test.tsx, adr238Phase3.pickers.test.tsx, adr239Diagnostics.test.tsx, adr239G5.sceneBench.test.ts, adr239G5.treeReuse.test.tsx, adr239G6.historySnapshots.test.tsx, adr239Phase1.treeItems.test.tsx, adr239Phase2.expansion.test.tsx, adr239Phase3.submenus.test.tsx, adr239Phase4.swatches.test.tsx, adr239Review.standaloneTreeItem.test.tsx, adr240Diagnostics.test.tsx, adr240Phase1.regionSlots.test.tsx, adr240Phase2.freeContent.test.tsx, adr241Diagnostics.test.tsx, adr241G4.sceneBench.test.ts, adr241Phase1.columnSource.test.tsx, adr241Phase2.columnOrigin.test.tsx, adr241Phase3.rows.test.tsx, breadcrumbSeparatorIcon.test.tsx, originChildPropagationPatch.test.ts, reusableCompositeOriginDirtyBaseline.audit.test.tsx
+- `builder/components/overlay/actionBar/` — buildActionBarItems.test.ts
+- `builder/components/property/` — PropertyCustomId.test.tsx
+- `builder/factories/__tests__/` — entryUniverseContract.test.ts, factoryDirtyBaseline.audit.test.tsx, factoryInlineDirtyBaseline.test.ts, getDefaultPropsEntryParity.test.ts
+- `builder/layout/` — panelWorkspaceAdr186Baseline.test.ts
+- `builder/panels/` — canonicalPanelNodes.test.ts
+- `builder/panels/datatable/utils/` — quickConnect.test.ts
+- `builder/panels/navigator/tree/PageTree/` — usePageTreeData.test.ts
+- `builder/panels/properties/` — ChartLabels.test.tsx, ChartPresentationControls.test.tsx, ChartSeriesRelease.test.tsx
+- `builder/panels/properties/editors/LayoutPresetSelector/` — presetResponsive.test.ts
+- `builder/panels/properties/hooks/` — useCanonicalPropertyRead.test.tsx
+- `builder/panels/styles/hooks/__tests__/` — presetSlotDirtyBaseline.test.ts
+- `builder/presentation/` — commitPatchPlan.test.ts, editorPresentationTextMetricParity.test.ts, skiaEditorPresentationLayoutBridge.test.ts, skiaPresentationProjectionIndex.test.ts
+- `builder/stores/__tests__/` — rootStoreAccess.test.ts
+- `builder/stores/history/__tests__/` — themeHistoryRoundtrip.test.ts
+- `builder/stores/utils/__tests__/` — adr210ChartPresentationStore.test.ts, adr923PropagationTransport.test.ts, chartSeriesReleaseStore.test.ts, editingSemanticsRegressionSweep.test.ts, reusableLayoutActions.test.ts, selectReusableLayoutContext.test.ts
+- `builder/utils/` — adr923FieldErrorStateBridge.test.ts
+- `builder/utils/__tests__/` — idValidation.resolveUnique.test.ts
+- `builder/workspace/canvas/hooks/` — canvasHoverSuppression.test.tsx, useElementHoverInteraction.test.ts, useLayoutPublisher.test.ts
+- `builder/workspace/canvas/interaction/` — pointerSession.test.ts, selectionModel.test.ts
+- `builder/workspace/canvas/interaction/__tests__/` — resolveCanonicalMutationTarget.test.ts, resolveCanvasInteractionTarget.test.ts, resolveDataRowOriginTarget.test.ts
+- `builder/workspace/canvas/layout/` — GridLayout.utils.test.ts, projectFillLayout.test.ts
+- `builder/workspace/canvas/layout/engines/__tests__/` — adr923DefaultContractParity.test.ts
+- `builder/workspace/canvas/renderers/__tests__/` — buildFrameRendererInput.test.ts, createSkiaRendererInput.test.ts
+- `builder/workspace/canvas/scene/` — adr150Phase0Red.test.ts, adr162DataRowExpansion.test.ts, buildPageFrames.test.ts, buildSceneSnapshot.test.ts, canonicalSceneModel.refReuse.test.ts, canonicalSceneModel.test.ts, collectionRowOffsets.test.ts, collectionVirtualization.test.ts, expandedCardHeights.test.ts, layoutCache.static.test.ts, projectDialogVisibility.test.ts, resolvePageWithFrame.test.ts, stateDependencyProjection.test.ts
+- `builder/workspace/canvas/scene/__tests__/` — selectDisplayInvalidation.test.ts
+- `builder/workspace/canvas/selection/` — dropTargetResolver.test.ts, selectionHitTest.test.ts
+- `builder/workspace/canvas/skia/` — StoreRenderBridge.commitPatch.test.ts, StoreRenderBridge.presentation.test.ts, buildImageNodeData.test.ts, buildSpecNodeData.presentation.test.ts, buildSpecNodeData.tagNowrapHeight.test.ts, buildSpecNodeData.test.ts, colorContainerCutover.test.ts, dragPresentation.test.ts, frameContentCache.test.ts, frameWake.test.ts, resolveButtonChildColor.test.ts, resolvePercentBoxEdges.test.ts, shell-only-tags.test.ts, visibleFrameRoots.test.ts, visiblePageRoots.test.ts
+- `builder/workspace/canvas/utils/__tests__/` — cssVariableCore.oklch.test.ts, textAxisGate.static.test.ts
+- `builder/workspace/canvas/viewport/` — panToPage.test.ts
+- `dashboard/__tests__/` — createInitialProjectDocument.test.ts
+- `preview/components/` — presentationTextMetricProps.test.ts
+- `preview/components/__tests__/` — CanonicalNodeRenderer.ariaLabel.test.tsx, CanonicalNodeRenderer.bodyFill.test.tsx, CanonicalNodeRenderer.button.test.tsx, CanonicalNodeRenderer.field.test.tsx, CanonicalNodeRenderer.fills.test.tsx, CanonicalNodeRenderer.inlineAlert.test.tsx, CanonicalNodeRenderer.interactionOverride.test.tsx, CanonicalNodeRenderer.interactionTrigger.test.tsx, CanonicalNodeRenderer.orphanCollectionItem.test.tsx, CanonicalNodeRenderer.pageShell.test.tsx, CanonicalNodeRenderer.sectionVariant.test.tsx, CanonicalNodeRenderer.standaloneRadio.test.tsx, CanonicalNodeRenderer.stateTemplate.test.tsx, CanonicalNodeRenderer.textArea.test.tsx, CanonicalNodeRenderer.textSource.test.tsx, DialogTrigger.test.tsx, adr162DataRowDom.test.tsx, adr162OwnerGridListTemplate.test.tsx, adr233Round3.fillAndTabSlot.test.tsx, canonicalDelegatedDuplicateLocalIds.test.tsx, canonicalPreviewRefSlot.test.tsx
+- `preview/interactions/__tests__/` — dispatcher.test.ts, interactionOverrides.test.ts
+- `preview/messaging/__tests__/` — builderPropSync.test.ts
+- `preview/presentation/` — editorPresentationProjectionIndex.test.ts
+- `preview/store/` — runtimeStore.presentation.test.ts, runtimeStore.state.test.ts, runtimeStore.themeVars.test.ts
+- `resolvers/canonical/__tests__/` — adr187PresentationIdentityBaseline.test.ts, adr230StateVariantProjection.test.ts, cache.test.ts, extractCanonicalPropsFromResolved.test.ts, importRegistry.test.ts, integration.test.ts, resolver.test.ts, storeBridge.test.ts
+- `services/agent/` — agentCommands.history.test.ts, agentCommands.test.ts
+- `services/ai/compiler/` — compiler.test.ts
+- `services/ai/tools/` — canonicalVocabulary.test.ts, compositeCreation.test.ts, interactionRuleDispatch.test.ts, phase4Tools.test.ts
+- `staticShell/__tests__/` — staticShell.test.ts
+- `tests/parity/` — adr150RowPositionsDom.browser.test.ts, adr162DataRowCardDom.browser.test.ts, adr162VariableRowsDom.browser.test.ts, adr204FloorReachInventory.browser.test.ts, adr204ReachMatrix.browser.test.ts, adr223ArchetypeRoot.browser.test.ts, adr236SideFieldMessagePlacement.browser.test.ts, adr238SectionDom.browser.test.ts, adr923CalendarGridQ4.browser.test.ts, adr923CapabilityMatrixSeed.browser.test.ts, adr923Dc6ChromeGate.browser.test.ts, adr923Dc6OverflowCapInventory.browser.test.ts, adr923FieldDescriptionAxis.browser.test.ts, adr923FieldErrorStateProjection.browser.test.ts, adr923FieldSubpartProjection.browser.test.ts, adr923GeneratedCssReach.browser.test.ts, adr923Hc2ConversionRect.browser.test.ts, adr923Hc2DisplayJudgment.browser.test.ts, adr923PreviewLeg.ts, adr923ProductionTrees.ts, adr923WrapperSubpartProjection.browser.test.ts, autoHeightTextCandidates.browser.test.ts, generatedCssComputedDigest.browser.test.ts, inlineAlertDescriptionHeight.browser.test.ts, inlineLeafBaselineInBlockParent.browser.test.ts, paginationPreviewChrome.browser.test.ts, postorderTextMeasurement.browser.test.ts, sizeProperties.browser.test.ts, staticGridListItems.browser.test.ts, staticListBoxItems.browser.test.ts, tabsPanelWrapper.browser.test.ts, toolbarSeparator.browser.test.ts, widthConstraintsCandidates.browser.test.ts
+- `tests/visual-parity/` — identity.browser.test.ts
+- `tests/visual-parity/adr219/` — borderGeometryParity.browser.test.ts, borderGeometrySpike.browser.test.ts
+- `tests/visual-parity/compare/` — blockInlineProbe.browser.test.ts, crossLeg.browser.test.ts, negativeProbes.browser.test.ts
+- `tests/visual-parity/harness/` — skiaRunner.ts
+- `tests/visual-parity/skia/` — g2.browser.test.ts, productionLeg.browser.test.ts
 
 **4e-2 live (2026-09-30, headed Playwright · worktree dev 5175)**: 라이선스 인증 → 대시보드 (새 저장소 기준 0 개) → 새 프로젝트 → Builder 가 흰 1920×1080 페이지를 66% 맞춤으로 그림 · 저장 상태 Saved → dev 전용 handle 로 body 에 Heading 삽입 (Saving… → Saved) → 값 편집이 Canvas 에 그려짐 (4e-3a 에서 한 step 늦게 그려지는 결함을 찾아 수리 — 당시 스크린샷은 뒤따른 step 이 앞 편집까지 반영한 것) → 휠 pan · ⌘+휠 zoom (66→77%) → Preview 버튼 = "Preview and publish cannot open the new project format yet." toast · 새 탭 0 → 대시보드 목록 1 → 다시 열기 = 편집 값 유지 · Saved → 없는 route = "Project not found.". Chrome MCP 탭은 `document.hidden` 이라 frame scheduler 가 멈춰 headed Playwright 로 확인했다.
 

@@ -104,11 +104,10 @@ describe("EDITOR_MUTATION_EFFECT_REGISTRY", () => {
     });
   });
 
-  it("guards the five consumers against independent key literals", () => {
+  it("guards its consumers against independent key literals", () => {
     const consumers = [
       "apps/builder/src/builder/stores/utils/layoutInvalidation.ts",
       "apps/builder/src/builder/stores/utils/elementUpdate.ts",
-      "apps/builder/src/builder/workspace/canvas/scene/layoutCache.ts",
     ];
 
     for (const file of consumers) {

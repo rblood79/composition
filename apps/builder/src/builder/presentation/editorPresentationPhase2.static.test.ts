@@ -156,14 +156,10 @@ describe("ADR-187 Phase 2 migration guards", () => {
     expect(stylePilot).toContain("getSkiaNode(target.nodeId)");
   });
 
-  it("multi-child/component text color는 검증된 root와 projection consumer가 없으면 닫힌다", async () => {
+  it("multi-child/component text color는 검증된 root가 없으면 닫힌다", async () => {
     const textColorTypes = await source("editorPresentationTextColor.ts");
-    const projectionIndex = await source("skiaPresentationProjectionIndex.ts");
     expect(textColorTypes).toContain('new Set(["Button", "Text"])');
     expect(textColorTypes).not.toContain("Card");
-    expect(projectionIndex).toContain("#renderIdsByCanonicalNodeId");
-    expect(projectionIndex).toContain("#renderIdsByRefDescendant");
-    expect(projectionIndex).not.toContain("getSubtreeElementIds");
   });
 
   it("Modified Styles 는 read-only 목록 — 편집 경로 (legacy preview 포함) 가 없다", async () => {
@@ -179,29 +175,8 @@ describe("ADR-187 Phase 2 migration guards", () => {
     expect(modified).toContain("useResetStyles");
   });
 
-  it("store resync와 visible projection 경계가 presentation bridge에 연결된다", async () => {
-    const storeBridge = await source(
-      "../workspace/canvas/skia/StoreRenderBridge.ts",
-    );
-    const rendererInput = await source(
-      "../workspace/canvas/renderers/rendererInput.ts",
-    );
-
-    expect(storeBridge).toContain("onDidSync?.(");
-    expect(rendererInput).toContain("if (!pageSnapshot.isVisible) continue;");
-    expect(rendererInput).toContain(
-      "addPresentationProjection(\n          builder,\n          pageSnapshot.bodyElement,\n          input.sceneNodesMap,\n        )",
-    );
-    expect(rendererInput).toContain(
-      "addPresentationProjection(builder, element, input.sceneNodesMap)",
-    );
-    expect(rendererInput).toContain("visibleRenderIds.has(node.id)");
-  });
-
-  it("ref-descendant는 Phase 3 projection과 owner에서 semantic 처리한다", async () => {
-    const projection = await source("skiaPresentationProjectionIndex.ts");
+  it("ref-descendant는 owner에서 semantic 처리한다", async () => {
     const pilot = await source("editorPresentationFillPilot.ts");
-    expect(projection).toContain("addRefDescendantProjection");
     expect(pilot).toContain("resolveEditorPresentationTarget");
     expect(pilot).toContain("getEditorPresentationTargetNode");
   });

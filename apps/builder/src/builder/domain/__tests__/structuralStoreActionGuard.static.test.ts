@@ -109,8 +109,6 @@ const WRAPPER_CALLERS: Readonly<Record<string, string>> = {
     "allowed — props 축 (데이터 바인딩), 구조 변경 아님",
   "elements.ts :: applyCanonicalExtensionPatch":
     "allowed — props 축 (확장 필드), 구조 변경 아님",
-  "utils/reusableLayoutActions.ts :: deleteReusableLayout":
-    "allowed — 페이지 레이아웃 (layout 축) 삭제, 요소 구조 변경 아님",
 };
 
 function collectSources(dir: string): string[] {
