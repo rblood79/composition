@@ -28,7 +28,6 @@
     "codex:route": "bash scripts/codex/route-prompt.sh",
     "codex:snapshot": "bash scripts/codex/context-snapshot.sh",
     "codex:agent-catalog": "bash scripts/codex/agent-catalog-gate.sh",
-    "codex:text-axis-matrix": "bash scripts/codex/text-axis-matrix-gate.sh",
     "claude:hooks:selftest": "bash .claude/hooks/selftest.sh",
     "codex:hooks:selftest": "bash scripts/codex/hook-selftest.sh",
     "hooks:selftest": "pnpm run claude:hooks:selftest && pnpm run codex:hooks:selftest",
@@ -47,7 +46,6 @@
     "postinstall": "pnpm run prepare:wasm && pnpm run prepare:specs && pnpm run prepare:upload",
     "codex:session-start": "bash scripts/codex/session-start.sh",
     "gate:install": "bash scripts/install-git-hooks.sh",
-    "gate:visual-parity": "pnpm -F @composition/builder test:visual-parity:smoke",
     "gate:perf-ratchet": "node apps/builder/scripts/perf-ratchet-gate.mjs --run",
     "perf:baseline": "node apps/builder/scripts/perf-baseline.mjs"
   },

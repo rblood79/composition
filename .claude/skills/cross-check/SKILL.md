@@ -27,9 +27,9 @@ Frame/Group/Slot입니다. 고정 색·opacity·크기 예시를 정본보다 �
 - 현재 dev 서버·탭과 사용 가능한 브라우저 도구를 사용합니다. 렌더 측정은 foreground나
   활성 RAF 환경에서 수행합니다. 고정 포트·과거 store 조작 예제를 가정하지 않습니다.
 - 같은 fixture·viewport·theme·상태에서 Canvas와 Preview를 비교하고 필요하면 패널 값도 대조합니다.
-- 자동 파리티는 `pnpm run gate:visual-parity`, 관련 전체 매트릭스는
-  `pnpm -F @composition/builder test:visual-parity:full`입니다. 적용 범위·현재 예외는
-  `tests/visual-parity`와 ADR-198의 현재 기록에서 확인합니다. smoke PASS를 전체 시각 동일성으로 확대하지 않습니다.
+- 자동 비교는 ADR-248 G3 하니스 (`apps/builder/vitest.adr248-g3.browser.config.ts`, 새 Canvas↔DOM 과
+  옛 앱 기준선) 입니다. ADR-198 visual-parity smoke 는 옛 Skia 경로와 함께 지워졌습니다 (ADR-248 Phase 4e).
+  하니스 PASS 를 전체 시각 동일성으로 확대하지 않습니다.
 
 불일치는 컴포넌트·상태·소비 경로·재현 근거로 보고합니다. 수정이 요청 범위에 있으면
 정본에서 해결하고 영향받은 검사만 다시 실행합니다. 검증만 요청되면 보고까지 수행합니다.
