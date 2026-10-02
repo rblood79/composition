@@ -721,6 +721,11 @@ export function CatalogCanvas({
       handle.canvas = {
         boundsOf: (id: string) => boundsRef.current(id),
         camera: () => ({ ...viewportState }),
+        // Sets the camera exactly (a frozen G3 baseline's zoom · pan).
+        setCamera: (next: { scale: number; x: number; y: number }) =>
+          void import("../viewport/viewportActions").then((actions) =>
+            actions.applyViewportState(next),
+          ),
       };
     }
     const unsubscribeRoot = workspace.subscribeRoot(() => {
