@@ -173,13 +173,13 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
       );
   }, [graph, component, run, workspace]);
   const selectInstances = useCallback(() => {
-    if (!component) return;
+    if (!originOf) return;
     // From the origin's view: back to the pages, where the instances are drawn.
     if (definitionView) workspace.showDefinition(undefined);
     workspace.session.select(
-      component.instanceIds.flatMap((id) => workspace.itemsOfNode(id, 1)),
+      originOf.instanceIds.flatMap((id) => workspace.itemsOfNode(id, 1)),
     );
-  }, [component, definitionView, workspace]);
+  }, [originOf, definitionView, workspace]);
   const reset = useCallback(
     ({ key, field, label, target }: OverrideRow) => {
       const command =
@@ -266,15 +266,16 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
               </RACButton>
             </ActionTooltipTrigger>
           )}
-          {component && component.instanceIds.length > 0 && (
+          {/* The origin's instances (an instance itself has none to pick — old app's rule). */}
+          {originOf && originOf.instanceIds.length > 0 && (
             <ActionTooltipTrigger
               tooltip={t("componentAction.selectInstances", {
-                count: component.instanceIds.length,
+                count: originOf.instanceIds.length,
               })}
             >
               <RACButton
                 aria-label={t("componentAction.selectInstances", {
-                  count: component.instanceIds.length,
+                  count: originOf.instanceIds.length,
                 })}
                 className="control-button"
                 data-icon-only="true"
@@ -282,7 +283,7 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
               >
                 <Diamond aria-hidden="true" size={iconProps.size} />
                 <span aria-hidden="true" className="component-semantics-count">
-                  {component.instanceIds.length}
+                  {originOf.instanceIds.length}
                 </span>
               </RACButton>
             </ActionTooltipTrigger>

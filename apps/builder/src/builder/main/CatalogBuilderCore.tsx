@@ -114,6 +114,9 @@ import {
 } from "./useCatalogGlobalShortcuts";
 import { useViewportSyncStore } from "../workspace/canvas/stores/viewportSync";
 import { useCatalogProjectFiles } from "./useCatalogProjectFiles";
+// 패널 공용 CSS (panel-system · inspector-layout · form-controls · list-group) — 구 BuilderCore 는
+// `../components` barrel 의 side effect 로 실었다 (4e-7-1 barrel 정리로 끊겼던 경로).
+import "../components/styles";
 import "../workspace/Workspace.css";
 
 // 패널 등록 (side effect import — registerAllPanels() 자동 실행)

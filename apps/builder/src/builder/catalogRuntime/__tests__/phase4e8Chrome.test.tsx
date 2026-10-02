@@ -279,6 +279,25 @@ describe("ADR-248 4e-8 instance override rows", () => {
       type: "info",
     });
     expect(view.queryByRole("button", { name: /Text\.color/ })).toBeNull();
+    // An instance has no instances to pick (the old app showed the count on the origin only).
+    expect(view.queryByRole("button", { name: /Select instances/ })).toBeNull();
     view.unmount();
+
+    const definitionId = (graph.getEntry(instance) as NodeEntry).definitionId;
+    workspace.showDefinition(definitionId as never);
+    const originRoot = (
+      graph.getEntry(definitionId) as unknown as { templateRootId: NodeId }
+    ).templateRootId;
+    const origin = render(
+      <I18nProvider initialLocale="en-US">
+        <CatalogWorkspaceProvider workspace={workspace}>
+          <CatalogComponentSection nodeId={originRoot} />
+        </CatalogWorkspaceProvider>
+      </I18nProvider>,
+    );
+    expect(
+      origin.getByRole("button", { name: "Select instances (1)" }),
+    ).toBeTruthy();
+    origin.unmount();
   });
 });
