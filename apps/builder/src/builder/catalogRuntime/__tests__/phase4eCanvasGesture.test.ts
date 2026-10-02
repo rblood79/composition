@@ -530,3 +530,151 @@ describe("ADR-248 Phase 4e-3b Canvas gestures", () => {
     expect(gestures.spacingValueCommand(click, Number.NaN)).toBeUndefined();
   });
 });
+
+describe("ADR-248 4e-8 drag modifiers and nesting notices", () => {
+  it("Alt drag drops a copy at the drop position (one step, the original stays); an absolute copy lands at the offset", async () => {
+    const { workspace, gestures, record, center, box, children } = await open();
+    workspace.selectRecords([record("a")]);
+    const [ax, ay] = center("a");
+    const c = box("c");
+    gestures.beginMove(ax, ay, record("a"), { copy: true });
+    gestures.update(ax, c.y + c.height - 1, 1);
+    const depth = workspace.runtime.historyDepth.undo;
+    expect(gestures.finish()).toBe(true);
+    expect(workspace.runtime.historyDepth.undo).toBe(depth + 1);
+    const list = children("list");
+    expect(list.slice(0, 3)).toEqual([id("a"), id("b"), id("c")]);
+    expect(list).toHaveLength(4);
+    const copy = workspace.runtime.graph.getEntry(list[3]!);
+    expect(copy?.kind === "node" && copy.props.children).toEqual({
+      kind: "set",
+      value: "A",
+    });
+    // The copy is selected.
+    expect(workspace.session.getSnapshot().selection[0].target).toEqual({
+      kind: "node",
+      id: list[3],
+    });
+    workspace.undo();
+    expect(children("list")).toEqual([id("a"), id("b"), id("c")]);
+
+    // Over its own box a copy still drops (next to the original): no no-op shortcut.
+    workspace.execute(
+      setWholeField({
+        targets: [{ kind: "node", id: id("d") }],
+        field: "placement",
+        value: { kind: "absolute", x: 10, y: 12 },
+      }),
+    );
+    workspace.selectRecords([record("d")]);
+    const [dx, dy] = center("d");
+    gestures.beginMove(dx, dy, record("d"), { copy: true });
+    gestures.update(dx + 30, dy + 5, 1);
+    expect(gestures.finish()).toBe(true);
+    const [original, duplicate] = children("box");
+    const placementOf = (nodeId: NodeId | undefined) => {
+      const entry = nodeId ? workspace.runtime.graph.getEntry(nodeId) : null;
+      return entry?.kind === "node" ? entry.placement : undefined;
+    };
+    expect(original).toBe(id("d"));
+    expect(placementOf(original)).toEqual({ kind: "absolute", x: 10, y: 12 });
+    expect(placementOf(duplicate)).toEqual({ kind: "absolute", x: 40, y: 17 });
+  });
+
+  it("a container that refuses the node passes the drop to its nearest accepting ancestor (notice after the step); none moves = rejected", async () => {
+    const { workspace, scene, gestures, record, center, children } =
+      await open();
+    const notices: unknown[] = [];
+    (
+      gestures as unknown as {
+        host: { notifyNesting?: (notice: unknown) => void };
+      }
+    ).host.notifyNesting = (notice) => notices.push(notice);
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [
+          node("form2", "lib:definition:type-Form"),
+          node("form1", "lib:definition:type-Form", [id("inner")]),
+          {
+            ...node("inner", "lib:definition:type-frame"),
+            sizing: {
+              width: { kind: "set", value: 300 },
+              height: { kind: "set", value: 120 },
+            },
+          },
+        ],
+        rootIds: [id("form2"), id("form1")],
+        newId: allocator(),
+      }),
+    );
+    scene.sync();
+    const bodyChildren = () => {
+      const body = workspace.runtime.graph.getEntry(BODY);
+      return body?.kind === "node" ? body.children : [];
+    };
+    workspace.selectRecords([record("form2")]);
+    const [fx, fy] = center("form2");
+    const [ix, iy] = center("inner");
+    gestures.beginMove(fx, fy, record("form2"));
+    gestures.update(ix, iy, 1);
+    // A form cannot sit inside a form: the body (the nearest structural ancestor) takes it, at its end.
+    expect(gestures.finish()).toBe(true);
+    expect(children("inner")).toEqual([]);
+    expect(bodyChildren().at(-1)).toBe(id("form2"));
+    expect(notices).toEqual([
+      expect.objectContaining({
+        kind: "relocated",
+        target: "body",
+        violation: expect.objectContaining({
+          parentType: "Form",
+          childType: "Form",
+        }),
+      }),
+    ]);
+    // Again: the body's end is where it already is — nothing moves, the rejection notice shows.
+    const revision = workspace.runtime.graph.revision;
+    const [gx, gy] = center("form2");
+    const [jx, jy] = center("inner");
+    gestures.beginMove(gx, gy, record("form2"));
+    gestures.update(jx, jy, 1);
+    expect(gestures.finish()).toBe(false);
+    expect(workspace.runtime.graph.revision).toBe(revision);
+    expect(notices[1]).toMatchObject({ kind: "rejected" });
+  });
+
+  it("a ratio with a dependent axis locks the resize: only the driving axis is written", async () => {
+    const { workspace, scene, gestures, record, box } = await open();
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: id("box") }],
+        sizing: { width: { kind: "set", value: 200 } },
+        visual: { aspectRatio: { kind: "set", value: "2 / 1" } },
+      }),
+    );
+    scene.sync();
+    workspace.selectRecords([record("box")]);
+    const sizingOf = () => {
+      const entry = workspace.runtime.graph.getEntry(id("box"));
+      return entry?.kind === "node" ? entry.sizing : undefined;
+    };
+    const start = box("box");
+    expect(start).toMatchObject({ width: 200, height: 100 });
+    // The corner drives the width; the height follows the ratio (not written).
+    expect(
+      gestures.beginResize(start.x + start.width, start.y + start.height, 1),
+    ).toBe(true);
+    gestures.update(start.x + start.width + 40, start.y + start.height + 90, 1);
+    gestures.finish();
+    expect(sizingOf()).toEqual({ width: { kind: "set", value: 240 } });
+    expect(box("box")).toMatchObject({ width: 240, height: 120 });
+    // The bottom edge (the dependent axis) drives the width through the ratio.
+    const next = box("box");
+    expect(
+      gestures.beginResize(next.x + next.width / 2, next.y + next.height, 1),
+    ).toBe(true);
+    gestures.update(next.x + next.width / 2, next.y + next.height + 30, 1);
+    gestures.finish();
+    expect(sizingOf()).toEqual({ width: { kind: "set", value: 300 } });
+  });
+});

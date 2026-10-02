@@ -1,6 +1,14 @@
-import { containerTypeSet } from "@composition/shared";
 import {
+  containerTypeSet,
+  getRatioDependentAxis,
+  resolveNestingViolation,
+  type FillAxes,
+  type NestingViolation,
+} from "@composition/shared";
+import {
+  copyNodes,
   moveNodes,
+  pasteNodes,
   setFields,
   setWholeField,
 } from "../../../../../packages/shared/src/catalog/commands";
@@ -13,7 +21,11 @@ import type {
   DefinitionId,
   NodeId,
 } from "../../../../../packages/shared/src/catalog/document/types";
-import { resolveResizeRequest } from "../workspace/canvas/interaction/resizeGeometry";
+import { parseAspectRatio } from "../utils/aspectRatio";
+import {
+  resolveResizeRequest,
+  type ResizeRatioLockInput,
+} from "../workspace/canvas/interaction/resizeGeometry";
 import {
   applySpacingStep,
   hitTestSpacingBands,
@@ -85,7 +97,16 @@ export interface CatalogGestureHost {
    * = put the record's own values back, before the release commits them).
    */
   reflow?(record: string, patch?: CatalogRecordPreview): void;
+  /**
+   * A drag the nesting rules refused at the container under the pointer: committed to the nearest
+   * ancestor that accepts it (`relocated`, after the step), or cancelled (`rejected`).
+   */
+  notifyNesting?(notice: CatalogNestingNotice): void;
 }
+
+export type CatalogNestingNotice =
+  | { kind: "relocated"; violation: NestingViolation; target: string }
+  | { kind: "rejected"; violation: NestingViolation };
 
 const PADDING_KEY = {
   top: "paddingTop",
@@ -107,10 +128,14 @@ export interface CatalogDropTarget {
   readonly index: number;
   /** The insertion line (scene coordinates; zero width or height). */
   readonly line: BoundingBox;
+  /** The container under the pointer refused the nodes: this is its nearest accepting ancestor. */
+  readonly relocated?: NestingViolation;
 }
 
 /** A spacing handle pressed without a drag (the inline number input edits its value). */
-export type CatalogSpacingClick = Readonly<Extract<Gesture, { kind: "spacing" }>>;
+export type CatalogSpacingClick = Readonly<
+  Extract<Gesture, { kind: "spacing" }>
+>;
 
 type Gesture =
   | {
@@ -128,6 +153,10 @@ type Gesture =
       dx: number;
       dy: number;
       drop?: CatalogDropTarget;
+      /** Alt held at the press: the release drops copies (the originals stay). */
+      copy: boolean;
+      /** The nesting rules refused the container under the pointer and every ancestor. */
+      refusal?: NestingViolation;
       snap?: SnapContext;
       snapGuides?: readonly SnapGuide[];
     }
@@ -175,9 +204,34 @@ type Gesture =
       item: CatalogSelectionItem;
       startBox: BoundingBox;
       position?: { left: number; top: number };
+      /** A ratio with one dependent axis: the drag writes only the driving axis. */
+      lock: ResizeRatioLockInput | null;
       active: boolean;
       request: { width?: number; height?: number; left?: number; top?: number };
     };
+
+/**
+ * The resize ratio lock of a record (the old Canvas's `resolveResizeRatioLock`): a ratio with one
+ * dependent axis (the other fixed or fill) — the drag drives the independent axis only, so the
+ * ratio keeps the other.
+ */
+function ratioLockOf(record: CatalogConsumerNode): ResizeRatioLockInput | null {
+  const { visual, sizing } = record;
+  const style = {
+    aspectRatio: visual.aspectRatio,
+    width: sizing.width ?? visual.width,
+    height: sizing.height ?? visual.height,
+  };
+  const dependent = getRatioDependentAxis(
+    style,
+    record.fillSizing as FillAxes | undefined,
+  );
+  if (!dependent) return null;
+  const ratio = parseAspectRatio(style.aspectRatio);
+  return ratio
+    ? { driver: dependent === "height" ? "width" : "height", ratio }
+    : null;
+}
 
 /** What the overlay draws for the gesture in progress. */
 export interface CatalogGesturePreview {
@@ -232,7 +286,8 @@ export class CatalogCanvasGestures {
     const item = this.singleElement();
     if (!handle || !item) return false;
     const startBox = this.host.bounds(item.identity)!;
-    const placement = this.host.records.get(item.identity)!.placement;
+    const record = this.host.records.get(item.identity)!;
+    const placement = record.placement;
     this.gesture = {
       kind: "resize",
       startX: x,
@@ -240,6 +295,7 @@ export class CatalogCanvasGestures {
       handle: handle.position,
       item,
       startBox,
+      lock: ratioLockOf(record),
       ...(placement?.kind === "absolute" && item.target.kind === "node"
         ? { position: { left: placement.x, top: placement.y } }
         : {}),
@@ -249,8 +305,16 @@ export class CatalogCanvasGestures {
     return true;
   }
 
-  /** A press on a selected element: it drags the selection's document nodes past the threshold. */
-  beginMove(x: number, y: number, leader: string): boolean {
+  /**
+   * A press on a selected element: it drags the selection's document nodes past the threshold
+   * (`copy`: Alt held — the release drops copies, the old Canvas's Alt drag duplicate).
+   */
+  beginMove(
+    x: number,
+    y: number,
+    leader: string,
+    options: { copy?: boolean } = {},
+  ): boolean {
     const records = this.host.records;
     const leaderRecord = records.get(leader);
     const startBox = this.host.bounds(leader);
@@ -292,6 +356,7 @@ export class CatalogCanvasGestures {
       active: false,
       dx: 0,
       dy: 0,
+      copy: !!options.copy,
     };
     return true;
   }
@@ -464,7 +529,7 @@ export class CatalogCanvasGestures {
         startBounds: gesture.startBox,
         dx,
         dy,
-        lock: null,
+        lock: gesture.lock,
         position: gesture.position ?? null,
       });
       this.showReflow(gesture);
@@ -632,8 +697,23 @@ export class CatalogCanvasGestures {
       return false;
     }
     const command = this.commandOf(gesture);
-    if (!command) return false;
+    if (!command) {
+      // Refused everywhere, or the accepting ancestor is where it already is: nothing moves.
+      const violation =
+        gesture.kind === "move"
+          ? (gesture.drop?.relocated ?? gesture.refusal)
+          : undefined;
+      if (violation) this.host.notifyNesting?.({ kind: "rejected", violation });
+      return false;
+    }
     this.host.execute(command);
+    const relocated = gesture.kind === "move" ? gesture.drop : undefined;
+    if (relocated?.relocated)
+      this.host.notifyNesting?.({
+        kind: "relocated",
+        violation: relocated.relocated,
+        target: this.typeOf(relocated.container) ?? "",
+      });
     return true;
   }
   cancel(): void {
@@ -785,6 +865,7 @@ export class CatalogCanvasGestures {
     }
     if (gesture.absolute) {
       if (!gesture.dx && !gesture.dy) return undefined;
+      if (gesture.copy) return this.absoluteCopy(gesture);
       return setWholeField({
         targets: [{ kind: "node", id: gesture.ids[0] }],
         field: "placement",
@@ -798,6 +879,18 @@ export class CatalogCanvasGestures {
     }
     const drop = gesture.drop;
     if (!drop) return undefined;
+    if (gesture.copy) {
+      const ids = gesture.ids;
+      const newId = this.host.newId;
+      return (reader) =>
+        pasteNodes({
+          clipboard: copyNodes(reader, ids),
+          parent: { kind: "node", id: drop.parent },
+          index: drop.index,
+          newId,
+          label: "Duplicate",
+        })(reader);
+    }
     const leader = this.host.records.get(gesture.leader)!;
     if (
       gesture.ids.length === 1 &&
@@ -811,6 +904,88 @@ export class CatalogCanvasGestures {
       index: drop.index,
       newId: this.host.newId,
     });
+  }
+
+  /**
+   * Alt drag of an absolutely placed node: a copy right after it in the same parent, at the
+   * dragged offset (the original stays).
+   */
+  private absoluteCopy(
+    gesture: Extract<Gesture, { kind: "move" }>,
+  ): CatalogCommand | undefined {
+    const { records, newId } = this.host;
+    const leader = records.get(gesture.leader);
+    const parent = leader ? records.get(leader.parentId) : undefined;
+    if (
+      !leader ||
+      !parent ||
+      !gesture.absolute ||
+      !isNodeSource(parent.sourceId)
+    )
+      return undefined;
+    const id = gesture.ids[0];
+    const index = parent.children.indexOf(leader.id) + 1;
+    const placement = {
+      kind: "absolute" as const,
+      x: Math.round(gesture.absolute.left + gesture.dx),
+      y: Math.round(gesture.absolute.top + gesture.dy),
+    };
+    return (reader) => {
+      const clipboard = copyNodes(reader, [id]);
+      return pasteNodes({
+        clipboard: {
+          ...clipboard,
+          entries: clipboard.entries.map((entry) =>
+            entry.id === id && entry.kind === "node"
+              ? { ...entry, placement }
+              : entry,
+          ),
+        },
+        parent: { kind: "node", id: parent.sourceId as NodeId },
+        index,
+        newId,
+        label: "Duplicate",
+      })(reader);
+    };
+  }
+
+  /** A record's definition type name (the nesting rules' vocabulary). */
+  private typeOf(id: string): string | undefined {
+    const record = this.host.records.get(id);
+    if (!record) return undefined;
+    try {
+      return definitionTypeName(
+        this.host.graph,
+        record.definitionId as DefinitionId,
+      );
+    } catch {
+      return undefined;
+    }
+  }
+
+  /** Why the nesting rules refuse the dragged leader inside `container` (for the notice). */
+  private nestingViolation(
+    container: string,
+    leader: string,
+  ): NestingViolation | undefined {
+    const childType = this.typeOf(leader);
+    if (!childType) return undefined;
+    const ancestorTypes: string[] = [];
+    for (
+      let record = this.host.records.get(container);
+      record && record.id !== PAGE_GRID;
+      record = this.host.records.get(record.parentId)
+    ) {
+      const type = this.typeOf(record.id);
+      if (type) ancestorTypes.push(type);
+    }
+    return (
+      resolveNestingViolation({
+        parentType: ancestorTypes[0] ?? null,
+        childType,
+        ancestorTypes,
+      }) ?? undefined
+    );
   }
 
   /** The leader's index among its parent's children without the dragged records. */
@@ -834,6 +1009,8 @@ export class CatalogCanvasGestures {
   ): CatalogDropTarget | undefined {
     const { records, graph } = this.host;
     const dragged = new Set(gesture.records);
+    // A copy leaves the originals in place: they count for the insertion index and line.
+    const excluded = gesture.copy ? new Set<string>() : dragged;
     const within = (id: string) => {
       for (
         let record = records.get(id);
@@ -843,6 +1020,8 @@ export class CatalogCanvasGestures {
         if (dragged.has(record.id)) return true;
       return false;
     };
+    gesture.refusal = undefined;
+    let refused: NestingViolation | undefined;
     for (
       let record = records.get(this.host.pick(x, y) ?? "");
       record;
@@ -850,7 +1029,11 @@ export class CatalogCanvasGestures {
     ) {
       if (within(record.id) || !isNodeSource(record.sourceId)) continue;
       if (!this.structural(record)) continue;
-      const index = this.insertionIndex(record, dragged, x, y);
+      // Past a refused container the nodes go to the end of the accepting ancestor (the old
+      // Canvas's nearest droppable ancestor).
+      const index = refused
+        ? this.flowChildren(record, excluded).length
+        : this.insertionIndex(record, excluded, x, y);
       try {
         // The command's own checks (nesting, not into itself) decide whether the drop is allowed.
         moveNodes({
@@ -859,16 +1042,28 @@ export class CatalogCanvasGestures {
           index,
           newId: this.host.newId,
         })(graph);
-      } catch {
-        return undefined;
+      } catch (error) {
+        if ((error as { code?: unknown })?.code !== "NESTING_NOT_ALLOWED")
+          return undefined;
+        refused ??=
+          this.nestingViolation(record.id, gesture.leader) ??
+          ({
+            layer: "rac-composition",
+            parentType: this.typeOf(record.id) ?? "",
+            childType: this.typeOf(gesture.leader) ?? "",
+            reason: "",
+          } as NestingViolation);
+        continue;
       }
       return {
         container: record.id,
         parent: record.sourceId as NodeId,
         index,
-        line: this.insertionLine(record, dragged, index),
+        line: this.insertionLine(record, excluded, index),
+        ...(refused ? { relocated: refused } : {}),
       };
     }
+    gesture.refusal = refused;
     return undefined;
   }
 

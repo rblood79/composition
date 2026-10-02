@@ -19,6 +19,10 @@ import {
 import { catalogCanvasMenuItems } from "../../../catalogRuntime/canvasMenu";
 import { catalogMenuHost } from "../../../catalogRuntime/shortcuts";
 import { catalogPageDropCommand } from "../../../catalogRuntime/canvasPage";
+import {
+  notifyNestingRejected,
+  showNestingRelocatedToast,
+} from "../interaction/nestingToast";
 import { CatalogCanvasPicking } from "../../../catalogRuntime/canvasPick";
 import { CatalogCanvasScene } from "../../../catalogRuntime/canvasScene";
 import { catalogTextKey } from "../../../catalogRuntime/canvasText";
@@ -446,6 +450,14 @@ export function CatalogCanvas({
           callbacks.current.onError?.(error);
         reflowScene();
       },
+      // A drop the nesting rules refused: moved to the nearest accepting ancestor (undo = that
+      // one step), or cancelled.
+      notifyNesting: (notice) =>
+        notice.kind === "relocated"
+          ? showNestingRelocatedToast(notice.violation, notice.target, () =>
+              workspace.undo(),
+            )
+          : notifyNestingRejected(notice.violation),
     });
 
     // The camera this project last had at this breakpoint, else the first page frame fitted
@@ -809,7 +821,7 @@ export function CatalogCanvas({
             gestures.beginMarquee(x, y, false);
         } else {
           deferredSelect = target.id;
-          gestures.beginMove(x, y, target.id);
+          gestures.beginMove(x, y, target.id, { copy: event.altKey });
         }
       } else {
         const picked = picking.click(x, y, { additive, deep });
@@ -822,7 +834,8 @@ export function CatalogCanvas({
           workspace.root.domInputs.get(picked)?.parentId === "catalog:root"
         )
           gestures.beginMarquee(x, y, additive);
-        else if (!additive) gestures.beginMove(x, y, picked);
+        else if (!additive)
+          gestures.beginMove(x, y, picked, { copy: event.altKey });
       }
       rehover();
     };
