@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { CanonicalNode, CompositionDocument } from "@composition/shared";
 import { COMPONENTS_SYSTEM_BODY_ID } from "../../pages/systemComponentsPage";
-import { buildCatalogOrigin } from "../catalogOrigins";
+import { catalogOriginFixture as buildCatalogOrigin } from "./support/catalogOriginFixtures";
 import {
   STATE_VARIANT_BASE_TYPES,
   buildStateVariantOrigin,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CanonicalNode } from "@composition/shared";
-import { buildCatalogOrigin } from "../catalogOrigins";
+import { catalogOriginFixture as buildCatalogOrigin } from "./support/catalogOriginFixtures";
 import { buildStateVariantOrigin } from "../stateVariantOrigins";
 import {
   activeStateLayerNames,

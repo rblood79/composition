@@ -1,28 +1,13 @@
 // @vitest-environment jsdom
 import { act, cleanup, render } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-type TestStoreState = {
-  currentPageId: string | null;
-  selectedElementIds: string[];
-  derivedPagePositions: Record<string, { x: number; y: number }>;
+// Page positions as the page frames place them (the header layer reads frames, not a store).
+const PAGE_POSITIONS: Record<string, { x: number; y: number }> = {
+  p1: { x: 0, y: 0 },
+  p2: { x: 1000, y: 0 },
+  p3: { x: 5000, y: 5000 },
 };
-
-vi.mock("../../../../stores", async () => {
-  const { create } = await import("zustand");
-  const useStore = create<TestStoreState>(() => ({
-    currentPageId: "p2",
-    selectedElementIds: [],
-    derivedPagePositions: {
-      p1: { x: 0, y: 0 },
-      p2: { x: 1000, y: 0 },
-      p3: { x: 5000, y: 5000 },
-    },
-  }));
-  return { useStore };
-});
-
-import { useStore as testStore } from "../../../../stores";
 
 import {
   publishCanvasFramePresentation,
@@ -39,7 +24,7 @@ const frames = [
 ];
 
 const idle: PagePositionPresentationSnapshot = {
-  canonical: testStore.getState().derivedPagePositions,
+  canonical: PAGE_POSITIONS,
   activeOverrides: null,
   version: 0,
   isActive: false,

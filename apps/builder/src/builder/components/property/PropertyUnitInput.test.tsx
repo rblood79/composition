@@ -1,22 +1,44 @@
 // @vitest-environment jsdom
 import { readFileSync } from "node:fs";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import {
   act,
   cleanup,
   fireEvent,
-  render,
+  render as rtlRender,
   screen,
   waitFor,
 } from "@testing-library/react";
+import { create } from "zustand";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { useStore } from "../../stores";
 import { PropertyUnitInput } from "./PropertyUnitInput";
+import {
+  PropertySelectionContext,
+  type PropertySelectionSource,
+} from "./propertySelection";
 import {
   BORDER_WIDTH_PRESET_OPTIONS,
   PAGE_GAP_PRESETS,
   SPACING_PRESET_OPTIONS,
 } from "./propertyUnitPresets";
+
+// The selection the field edits (the catalog Builder provides its session's selection).
+const useStore = create<{ selectedElementId: string | null }>(() => ({
+  selectedElementId: null,
+}));
+const selection: PropertySelectionSource = {
+  useSelectedId: () => useStore((state) => state.selectedElementId),
+  readSelectedId: () => useStore.getState().selectedElementId,
+};
+function SelectionProvider({ children }: { children: ReactNode }) {
+  return (
+    <PropertySelectionContext.Provider value={selection}>
+      {children}
+    </PropertySelectionContext.Provider>
+  );
+}
+const render = (ui: Parameters<typeof rtlRender>[0]) =>
+  rtlRender(ui, { wrapper: SelectionProvider });
 
 const FORM_CONTROLS_CSS = readFileSync(
   "src/builder/components/styles/form-controls.css",
@@ -30,14 +52,14 @@ describe("PropertyUnitInput numeric editing", () => {
 
   afterEach(() => {
     cleanup();
-    useStore.setState({ selectedElementId: null } as never);
+    useStore.setState({ selectedElementId: null });
   });
 
   it("keeps typing local and commits the final value on Enter", () => {
     const onChange = vi.fn();
     const onDrag = vi.fn();
 
-    useStore.setState({ selectedElementId: "element-1" } as never);
+    useStore.setState({ selectedElementId: "element-1" });
     render(
       <PropertyUnitInput
         label="Gap"
@@ -81,7 +103,7 @@ describe("PropertyUnitInput numeric editing", () => {
       );
     }
 
-    useStore.setState({ selectedElementId: "element-1" } as never);
+    useStore.setState({ selectedElementId: "element-1" });
     render(<Host />);
 
     const input = screen.getByRole("combobox", { name: "Gap" });
@@ -98,7 +120,7 @@ describe("PropertyUnitInput numeric editing", () => {
     const onChange = vi.fn();
     const onDrag = vi.fn();
 
-    useStore.setState({ selectedElementId: "element-1" } as never);
+    useStore.setState({ selectedElementId: "element-1" });
     render(
       <PropertyUnitInput
         label="Width"
@@ -146,7 +168,7 @@ describe("PropertyUnitInput numeric editing", () => {
       );
     }
 
-    useStore.setState({ selectedElementId: "element-1" } as never);
+    useStore.setState({ selectedElementId: "element-1" });
     render(<Harness />);
 
     fireEvent.click(screen.getByRole("button", { name: "Height Size mode" }));
@@ -173,7 +195,7 @@ describe("PropertyUnitInput numeric editing", () => {
     const onChange = vi.fn();
     const onModeChange = vi.fn();
 
-    useStore.setState({ selectedElementId: "element-1" } as never);
+    useStore.setState({ selectedElementId: "element-1" });
     render(
       <PropertyUnitInput
         label="Width"
@@ -203,7 +225,7 @@ describe("PropertyUnitInput numeric editing", () => {
     const onChange = vi.fn();
     const onDrag = vi.fn();
 
-    useStore.setState({ selectedElementId: "element-1" } as never);
+    useStore.setState({ selectedElementId: "element-1" });
     render(
       <PropertyUnitInput
         label="Radius"
@@ -227,7 +249,7 @@ describe("PropertyUnitInput numeric editing", () => {
     const onChange = vi.fn();
     const onDrag = vi.fn();
 
-    useStore.setState({ selectedElementId: "element-1" } as never);
+    useStore.setState({ selectedElementId: "element-1" });
     render(
       <PropertyUnitInput
         label="Gap"
@@ -256,7 +278,7 @@ describe("PropertyUnitInput numeric editing", () => {
     const onChange = vi.fn();
     const onDrag = vi.fn();
 
-    useStore.setState({ selectedElementId: "element-1" } as never);
+    useStore.setState({ selectedElementId: "element-1" });
     render(
       <PropertyUnitInput
         label="Radius"
@@ -280,7 +302,7 @@ describe("PropertyUnitInput numeric editing", () => {
   it("keeps an empty constraint unset until a number is entered", () => {
     const onChange = vi.fn();
 
-    useStore.setState({ selectedElementId: "element-1" } as never);
+    useStore.setState({ selectedElementId: "element-1" });
     render(
       <PropertyUnitInput
         label="Min W"
@@ -312,7 +334,7 @@ describe("PropertyUnitInput numeric editing", () => {
     (commitMethod) => {
       const onChange = vi.fn();
 
-      useStore.setState({ selectedElementId: "element-1" } as never);
+      useStore.setState({ selectedElementId: "element-1" });
       render(
         <PropertyUnitInput
           label="Left"
@@ -511,7 +533,7 @@ describe("PropertyUnitInput numeric editing", () => {
   });
 
   it("선택 대상이 바뀌면 focus 중이어도 새 값을 표시한다", async () => {
-    useStore.setState({ selectedElementId: "element-1" } as never);
+    useStore.setState({ selectedElementId: "element-1" });
     const { rerender } = render(
       <PropertyUnitInput
         label="Padding"
@@ -529,7 +551,7 @@ describe("PropertyUnitInput numeric editing", () => {
     fireEvent.change(input, { target: { value: "99" } });
 
     act(() => {
-      useStore.setState({ selectedElementId: "element-2" } as never);
+      useStore.setState({ selectedElementId: "element-2" });
       rerender(
         <PropertyUnitInput
           label="Padding"
@@ -580,12 +602,12 @@ describe("PropertyUnitInput labelMode=suffix — suffix 가 단위 메뉴 트리
 
   afterEach(() => {
     cleanup();
-    useStore.setState({ selectedElementId: null } as never);
+    useStore.setState({ selectedElementId: null });
   });
 
   it("▾ 상자 대신 suffix 글자가 단위 목록을 연다", () => {
     const onChange = vi.fn();
-    useStore.setState({ selectedElementId: "element-1" } as never);
+    useStore.setState({ selectedElementId: "element-1" });
     render(
       <PropertyUnitInput
         label="Left"
@@ -608,7 +630,7 @@ describe("PropertyUnitInput labelMode=suffix — suffix 가 단위 메뉴 트리
 
   it("▲▼ stepper 는 없다 — 숫자 조정은 화살표 키 (⇧ 10) 로만 (2026-09-15 사용자 판정)", () => {
     const onChange = vi.fn();
-    useStore.setState({ selectedElementId: "element-1" } as never);
+    useStore.setState({ selectedElementId: "element-1" });
     render(
       <PropertyUnitInput
         label="Font Size"
@@ -638,7 +660,7 @@ describe("PropertyUnitInput labelMode=suffix — suffix 가 단위 메뉴 트리
   });
 
   it("키워드 값 (auto) 에는 stepper 를 그리지 않는다", () => {
-    useStore.setState({ selectedElementId: "element-1" } as never);
+    useStore.setState({ selectedElementId: "element-1" });
     render(
       <PropertyUnitInput
         label="Top"
@@ -655,7 +677,7 @@ describe("PropertyUnitInput labelMode=suffix — suffix 가 단위 메뉴 트리
     // 2026-09-15 live: W 「fit」 상태에서 fill 선택 → RAC 가 input 에 focus 복귀 → 동기화 skip →
     //   blur 가 「fit」 (fit-content) 를 commit 해 fill 을 덮었다.
     const onChange = vi.fn();
-    useStore.setState({ selectedElementId: "element-1" } as never);
+    useStore.setState({ selectedElementId: "element-1" });
     function Host() {
       const [value, setValue] = useState("fit-content");
       return (
@@ -689,7 +711,7 @@ describe("PropertyUnitInput labelMode=suffix — suffix 가 단위 메뉴 트리
 
   it("legend 모드 unitSuffix — 트리거 글자가 현재 단위 (「8 PX」)", () => {
     const onChange = vi.fn();
-    useStore.setState({ selectedElementId: "element-1" } as never);
+    useStore.setState({ selectedElementId: "element-1" });
     render(
       <PropertyUnitInput
         label="Gap"
@@ -708,7 +730,7 @@ describe("PropertyUnitInput labelMode=suffix — suffix 가 단위 메뉴 트리
 
   it('"fill" 은 units 에 실린 필드에서만 typed 입력을 받는다', () => {
     const onChange = vi.fn();
-    useStore.setState({ selectedElementId: "element-1" } as never);
+    useStore.setState({ selectedElementId: "element-1" });
     render(
       <PropertyUnitInput
         label="Left"
