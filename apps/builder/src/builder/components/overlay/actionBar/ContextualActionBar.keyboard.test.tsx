@@ -29,22 +29,38 @@ const model: ActionBarModel = {
   ] satisfies ContextMenuItem[],
 };
 
-let actionBarModel: ActionBarModel | null = model;
-
-vi.mock("./buildActionBarItems", () => ({
-  buildActionBarItems: () => actionBarModel,
-  buildActionBarRequest: (ids: readonly string[]) => ({
-    surface: "canvas-element",
-    clientX: 0,
-    clientY: 0,
-    targetElementIds: [...ids],
-  }),
-}));
+/**
+ * ADR-248 4e-9 C: the bar view (`ActionBarView`) the catalog Builder renders (`CatalogActionBar`)
+ * over a source — the old store's selection wrapper went with the old store.
+ */
+let source: ActionBarSource;
+const sourceOf = (overrides: Partial<ActionBarSource> = {}): ActionBarSource => ({
+  isEditing: false,
+  selectedIds: ["a"],
+  pageSelection: false,
+  selectedPageId: "page-1",
+  resolved: true,
+  model,
+  openOverflow: () => undefined,
+  pageRectOf: () => ({ x: 100, y: 50, width: 400, height: 300 }),
+  ...overrides,
+});
 
 import { I18nProvider } from "@/i18n";
-import { useStore } from "../../../stores";
 import { ContextMenuProvider } from "../contextMenu";
-import { ContextualActionBar } from "./ContextualActionBar.legacy";
+import { ActionBarView, type ActionBarSource } from "./ContextualActionBar";
+
+function barTree(current: ActionBarSource) {
+  return (
+    <I18nProvider>
+      <ContextMenuProvider>
+        <div className="workspace-overlay">
+          <ActionBarView {...current} />
+        </div>
+      </ContextMenuProvider>
+    </I18nProvider>
+  );
+}
 
 function renderBar() {
   const canvas = document.createElement("div");
@@ -53,21 +69,12 @@ function renderBar() {
   canvas.setAttribute("data-canvas-container", "true");
   canvas.tabIndex = -1;
   document.body.appendChild(canvas);
-
-  const rendered = render(
-    <I18nProvider>
-      <ContextMenuProvider>
-        <div className="workspace-overlay">
-          <ContextualActionBar />
-        </div>
-      </ContextMenuProvider>
-    </I18nProvider>,
-  );
+  const rendered = render(barTree(source));
   return { canvas, rendered };
 }
 
 beforeEach(() => {
-  actionBarModel = model;
+  source = sourceOf();
   // jsdom 에는 ResizeObserver 가 없다 (PanelWorkspace.occupancy.test.tsx 와 같은
   // 패턴) — 바 배치 훅이 저장 offset clamp 에 쓴다
   vi.stubGlobal(
@@ -78,62 +85,52 @@ beforeEach(() => {
       disconnect() {}
     },
   );
-  useStore.setState({
-    selectedElementIds: ["a"],
-    selectedElementId: "a",
-    elements: [],
-    elementsMap: new Map([["a", { id: "a", type: "Button" }]]),
-    currentPageId: "page-1",
-    pagePositions: { "page-1": { x: 100, y: 50 } },
-  } as never);
 });
 
 afterEach(() => {
   vi.unstubAllGlobals();
   document.body.innerHTML = "";
-  useStore.setState({
-    selectedElementIds: [],
-    selectedElementId: null,
-    elementsMap: new Map(),
-    currentPageId: null,
-  } as never);
 });
 
 describe("ContextualActionBar — 키보드 규약 (ADR-192 R2)", () => {
   it("같은 action id의 새 item은 최신 라벨과 선택 대상 callback을 반영한다", async () => {
     const runA = vi.fn();
     const runB = vi.fn();
-    actionBarModel = {
-      context: "single",
-      items: [
-        {
-          kind: "action",
-          id: "same-action",
-          labelKey: "contextMenu.duplicate",
-          run: runA,
-        },
-      ],
-    };
-    renderBar();
+    source = sourceOf({
+      model: {
+        context: "single",
+        items: [
+          {
+            kind: "action",
+            id: "same-action",
+            labelKey: "contextMenu.duplicate",
+            run: runA,
+          },
+        ],
+      },
+    });
+    const { rendered } = renderBar();
     fireEvent.click(screen.getByRole("button", { name: "Duplicate" }));
     expect(runA).toHaveBeenCalledTimes(1);
-    actionBarModel = {
-      context: "single",
-      items: [
-        {
-          kind: "action",
-          id: "same-action",
-          labelKey: "contextMenu.delete",
-          run: runB,
-        },
-      ],
-    };
     act(() =>
-      useStore.setState({
-        selectedElementId: "b",
-        selectedElementIds: ["b"],
-        elementsMap: new Map([["b", { id: "b", type: "Button" }]]),
-      } as never),
+      rendered.rerender(
+        barTree(
+          sourceOf({
+            selectedIds: ["b"],
+            model: {
+              context: "single",
+              items: [
+                {
+                  kind: "action",
+                  id: "same-action",
+                  labelKey: "contextMenu.delete",
+                  run: runB,
+                },
+              ],
+            },
+          }),
+        ),
+      ),
     );
     await waitFor(() =>
       expect(screen.queryByRole("button", { name: "Duplicate" })).toBeNull(),
@@ -144,14 +141,11 @@ describe("ContextualActionBar — 키보드 규약 (ADR-192 R2)", () => {
   });
 
   it("page body 단독 선택에서도 page 컨텍스트 bar를 표시한다", () => {
-    actionBarModel = null;
-    useStore.setState({
-      selectedElementIds: ["body-1"],
-      selectedElementId: "body-1",
-      elementsMap: new Map([
-        ["body-1", { id: "body-1", type: "body", page_id: "page-1" }],
-      ]),
-    } as never);
+    source = sourceOf({
+      selectedIds: ["body-1"],
+      pageSelection: true,
+      model: null,
+    });
 
     renderBar();
 
@@ -204,6 +198,7 @@ describe("ContextualActionBar — 키보드 규약 (ADR-192 R2)", () => {
     fireEvent.keyDown(button, { key: "Escape" });
 
     expect(document.activeElement).toBe(canvas);
-    expect(useStore.getState().selectedElementIds).toEqual(["a"]);
+    // 선택은 바깥 소유 — 바는 그대로 남는다
+    expect(document.querySelector(".contextual-action-bar")).not.toBeNull();
   });
 });

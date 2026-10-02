@@ -8,7 +8,7 @@
  * `panelConfigs.ts` 는 패널 컴포넌트를 전부 끌고 들어와 import 할 수 없어
  * (`shortcutDisplay.static.test.ts` 와 같은 사유) 소스에서 읽는다.
  */
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import {
@@ -16,7 +16,17 @@ import {
   type ShortcutId,
 } from "../../config/keyboardShortcuts";
 // The guard set the catalog host answers (ADR-248 4e-7: the old table keeps it for reference).
-import { LEGACY_COMMAND_META } from "../../config/commandMeta.legacy";
+import { COMMAND_META } from "../../config/commandMeta";
+import { createCatalogAgentCommandHost } from "../../catalogRuntime/agentHost";
+import { openStylesFixture } from "../../panels/styles/__tests__/support/catalogStylesFixture";
+import type { AgentCommandHost } from "../../../services/agent/agentCommandHost";
+
+let catalogHost: AgentCommandHost;
+beforeAll(async () => {
+  catalogHost = createCatalogAgentCommandHost(
+    (await openStylesFixture([])).workspace,
+  );
+});
 import {
   BUILDER_MENU_ROOT,
   MENU_COMMAND_CONDITIONS,
@@ -184,9 +194,12 @@ describe("ADR-249 G0 — 전체 메뉴 인벤토리", () => {
     const mismatches: string[] = [];
     for (const [id, condition] of entries) {
       const sources = new Set(condition.sources);
+      // A command the catalog agent host answers (a plan or a refusal) takes its precondition from
+      //   the host (ADR-248 4e-5); the rest from `COMMAND_META`.
+      const hosted = catalogHost.plan(id) !== undefined;
       if (
         sources.has("precondition") !==
-        Boolean(LEGACY_COMMAND_META[id].precondition)
+        (hosted || Boolean(COMMAND_META[id].precondition))
       )
         mismatches.push(`${id}: precondition`);
       if (

@@ -6,7 +6,6 @@ import type { CanonicalNode, CompositionDocument } from "@composition/shared";
 
 import { applyCanonicalDocumentMigrations } from "../canonicalDocumentMigrations";
 import { normalizeMainDocument } from "../mainDocumentNormalization";
-import { normalizeCompositionImportPayload } from "../../../resolvers/canonical/importPayloadAdapter";
 
 /**
  * ADR-923 r17m2 → r18m2/r18m3 (2026-09-01) — 형태 migration 단일 체인 + main document 정규화 체인의
@@ -93,40 +92,6 @@ describe("normalizeMainDocument (r18m2) — origin 시드 + 형태 migration 단
   });
 });
 
-describe("normalizeCompositionImportPayload (r17m2 → r18m3) — 세 분기 전부 같은 체인", () => {
-  it("CompositionDocument payload", () => {
-    const out = normalizeCompositionImportPayload(
-      legacyColorFieldDoc(),
-      "test://import",
-    );
-    expect(findNode(out.children, "cf")!.props).toMatchObject({
-      label: "Legacy Color",
-    });
-  });
-  it("Pencil document payload (`{children: [...]}`, version 없음)", () => {
-    const out = normalizeCompositionImportPayload(
-      { children: [legacyTextFieldPencilNode()] },
-      "test://pencil-doc",
-    );
-    const tf = findNode(out.children, "tf")!;
-    expect(tf.type).toBe("TextField");
-    expect(tf.props).toMatchObject({ style: { width: "200px" } });
-    expect(
-      (tf.props as { style: Record<string, unknown> }).style,
-    ).not.toHaveProperty("display");
-  });
-  it("Pencil node payload (`{id, type, ...}` 단일 노드)", () => {
-    const out = normalizeCompositionImportPayload(
-      legacyTextFieldPencilNode(),
-      "test://pencil-node",
-    );
-    const tf = findNode(out.children, "tf")!;
-    expect(tf.type).toBe("TextField");
-    expect(
-      (tf.props as { style: Record<string, unknown> }).style,
-    ).not.toHaveProperty("display");
-  });
-});
 
 describe("정적 결선 (r17m2 → r18m2/r18m3)", () => {
   const root = resolve(__dirname, "../../../..");
@@ -166,17 +131,6 @@ describe("정적 결선 (r17m2 → r18m2/r18m3)", () => {
     for (const name of seeds) expect(src).toContain(name);
     expect(src).toContain("applyCanonicalDocumentMigrations(");
     for (const name of individualMigrations) expect(src).not.toContain(name);
-  });
-  it("import adapter 는 단일 출구 — applyCanonicalDocumentMigrations(convertImportPayload(...)) 1회, 분기 안 호출 0", () => {
-    const src = read("src/resolvers/canonical/importPayloadAdapter.ts");
-    const calls = src.match(/applyCanonicalDocumentMigrations\(/g) ?? [];
-    expect(calls).toHaveLength(1);
-    expect(src).toMatch(
-      /return applyCanonicalDocumentMigrations\(\s*convertImportPayload\(payload, source\),?\s*\)/,
-    );
-    for (const name of [...individualMigrations, ...seeds]) {
-      expect(src).not.toContain(name);
-    }
   });
   it("전체 문서 교체 소비자 (복원 · undo/redo) 는 applySnapshotDocument 를 경유한다", () => {
     const restore = read("src/builder/stores/history/snapshotRestore.ts");

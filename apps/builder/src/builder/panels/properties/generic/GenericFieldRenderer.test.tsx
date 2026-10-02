@@ -6,35 +6,37 @@
  * 컬럼 존재 시 PropertyFieldTemplateInput(필드 피커)으로 렌더되는지 가드한다 —
  * P4a 최초 배선이 CatalogInspectorFields 에만 있어 live 미노출된 회귀의 재발 차단.
  */
-import "./itemsSource.store"; // old-store host (ADR-248 4e-7: goes with the old store)
-import "../../datatable/usage/quickConnectHost.store"; // old-store host (ADR-248 4e-7: goes with the old store)
-import "../../datatable/usage/dataUsageSource.store"; // old-store host (ADR-248 4e-7: goes with the old store)
 import { render } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
-import "./fieldValueSource.store"; // old-store field value source (ADR-248 4e-7: goes with the old store)
+import { beforeAll, describe, expect, it, vi } from "vitest";
 
 import { resolveEditContract, type ResolvedField } from "@composition/shared";
 
-// useOwnerCollectionColumns 는 canonical store + collections store 의존 — 렌더러 게이트만
-// 단위 검증 (resolver 자체는 useOwnerCollectionColumns.test.ts 7 케이스가 커버).
+// 렌더러 게이트만 단위 검증한다 — 소유 collection 컬럼은 field value source 의 `useOwnerFields` 가
+// 공급한다 (ADR-248 4e-9 C: 옛 store source 대신 아래 stub source, 나머지 host 는 catalog).
 const ownerColumnsMock = vi.fn<() => string[] | null>(() => null);
-vi.mock("../hooks/useOwnerCollectionColumns.legacy", async (importActual) => {
-  const actual =
-    await importActual<
-      typeof import("../hooks/useOwnerCollectionColumns.legacy")
-    >();
-  return {
-    ...actual,
-    useOwnerCollectionColumns: () => ownerColumnsMock(),
-    // ADR-152 1b: 렌더러는 fields 훅을 읽고 columns 를 파생한다 — 같은 mock 을 key 로 승격.
-    useOwnerCollectionFields: () =>
-      ownerColumnsMock()?.map((key) => ({ key })) ?? null,
-  };
-});
+const STUB_FIELD_VALUE_SOURCE: FieldValueSource = {
+  useValue: (_id, _origin, _key, baseValue) => baseValue,
+  useValuesSnapshot: (_id, _origin, _keys, baseValues) =>
+    JSON.stringify(baseValues),
+  useOwnerFields: () => ownerColumnsMock()?.map((key) => ({ key })) ?? null,
+};
 
 import { GenericFieldRenderer } from "./GenericFieldRenderer";
-import type { ReactElement } from "react";
+import type { ReactElement, ReactNode } from "react";
 import { I18nProvider } from "@/i18n";
+import {
+  FieldValueSourceContext,
+  type FieldValueSource,
+} from "./fieldValueSource";
+import {
+  openStylesFixture,
+  type StylesFixture,
+} from "../../styles/__tests__/support/catalogStylesFixture";
+
+let fixture: StylesFixture;
+beforeAll(async () => {
+  fixture = await openStylesFixture([]);
+});
 
 const stringField = (
   key: string,
@@ -62,7 +64,19 @@ const renderFields = (fields: ResolvedField[]) =>
 
 /** 표시 계층이 `useI18n` 을 쓰므로 provider 밑에서 그린다 (ADR-200 R7). */
 const renderWithI18n = (ui: ReactElement) =>
-  render(ui, { wrapper: I18nProvider });
+  render(ui, {
+    wrapper: ({ children }: { children: ReactNode }) => (
+      <I18nProvider>
+        {fixture.wrapper({
+          children: (
+            <FieldValueSourceContext.Provider value={STUB_FIELD_VALUE_SOURCE}>
+              {children}
+            </FieldValueSourceContext.Provider>
+          ),
+        })}
+      </I18nProvider>
+    ),
+  });
 
 describe("GenericFieldRenderer — ADR-159 P4a 필드 피커 게이트", () => {
   it("템플릿 텍스트 키(children) + 소유 컬럼 존재 → 필드 피커 입력 렌더", () => {

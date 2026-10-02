@@ -6,7 +6,6 @@
  * - record:false (undo/redo 재적용) 는 History 를 만들지 않는다
  * - 검증 실패 (없는 collection · 범위 밖 row · 미배선 op) 는 아무것도 바꾸지 않는다
  */
-import { installStoreDataChangeWiring } from "./dataChange.store"; // old-store wiring (ADR-248 4e-7: goes with the old store)
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DataOp } from "@composition/shared";
 import type { DataTable } from "../../../types/builder/data.types";
@@ -35,6 +34,9 @@ import {
   setDataHistoryRecorder,
   type DataBindingConsumer,
 } from "./dataChange";
+import { installTestDataChangeRecorder } from "./__tests__/support/dataChangeRecorder";
+
+installTestDataChangeRecorder((entry) => addEntry(entry));
 
 const users = (): DataTable => ({
   id: "c1",
@@ -412,7 +414,7 @@ describe("applyDataChange — DB · 메모리 · History · record:false", () =>
         { record: false },
       );
     } finally {
-      installStoreDataChangeWiring();
+      installTestDataChangeRecorder((entry) => addEntry(entry));
     }
     expect(addEntry).not.toHaveBeenCalled();
     expect(recorded).toEqual([

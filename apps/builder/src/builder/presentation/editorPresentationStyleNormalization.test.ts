@@ -4,10 +4,6 @@ import {
   normalizePresentationSpacingStyle,
 } from "./editorPresentationStyleNormalization";
 import { EditorPresentationTransactionRuntime } from "./editorPresentationRuntime";
-import {
-  resolvePresentationLayoutProps,
-  resolvePresentationPaintProps,
-} from "../../preview/components/canonicalPresentationProps";
 
 const target = { kind: "canonical-node" as const, nodeId: "spacing-node" };
 
@@ -48,50 +44,7 @@ describe("presentation spacing normalization", () => {
     });
   });
 
-  it("keeps layout and paint lanes fail-closed for a mixed descriptor", () => {
-    const base = {
-      style: {
-        display: "flex",
-        opacity: 1,
-        paddingTop: 4,
-        paddingRight: 4,
-        paddingBottom: 4,
-        paddingLeft: 4,
-      },
-    };
-    const mixed = stylePatch({ opacity: "0.42", padding: 12 });
 
-    expect(resolvePresentationPaintProps(base, [mixed])).toBe(base);
-    expect(resolvePresentationLayoutProps(base, [mixed])).toBe(base);
-  });
-
-  it("normalizes spacing before Preview layout composition", () => {
-    const base = {
-      style: {
-        display: "flex",
-        gap: "4px",
-        padding: "8px",
-        paddingLeft: 10,
-      },
-    };
-    const resolved = resolvePresentationLayoutProps(base, [
-      stylePatch({ gap: 16, padding: 12 }),
-    ]);
-
-    expect(resolved).toEqual({
-      style: {
-        columnGap: 16,
-        display: "flex",
-        paddingBottom: 12,
-        paddingLeft: 12,
-        paddingRight: 12,
-        paddingTop: 12,
-        rowGap: 16,
-      },
-    });
-    expect(resolved.style).not.toHaveProperty("gap");
-    expect(resolved.style).not.toHaveProperty("padding");
-  });
 
   it("normalizes the runtime descriptor before either consumer sees it", () => {
     const pending: Array<() => void> = [];

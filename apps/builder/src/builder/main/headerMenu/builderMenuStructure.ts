@@ -276,8 +276,9 @@ export const MENU_COMMAND_CONDITIONS: Readonly<
   distributeV: PRE,
   // 속성 복사/붙여넣기는 PropertiesPanel 이 선택 요소가 있을 때만 마운트하는
   // `PropertyClipboardActions` 가 등록한다 — 선택 조건은 등록이 맡는다.
-  copyProperties: { sources: ["panel"] },
-  pasteProperties: { sources: ["panel"] },
+  // ADR-248 4e-5: the catalog agent host refuses these without a selection (as Styles' copy).
+  copyProperties: { sources: ["precondition", "panel"] },
+  pasteProperties: { sources: ["precondition", "panel"] },
   copyStyles: { sources: ["precondition", "panel"] },
   pasteStyles: { sources: ["precondition", "panel"] },
   toggleFocusMode: { sources: ["panel"] },

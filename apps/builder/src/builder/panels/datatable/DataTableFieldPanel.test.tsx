@@ -4,7 +4,6 @@
  * 실패 시 비움/유지) · 삭제 (사용처 0 즉시 · >0 ConfirmDialog) · required/label patch. 쓰기는
  * 전부 applyDataChange (HC1). 사용처는 필드 단위 역참조.
  */
-import "./usage/dataUsageSource.store"; // old-store host (ADR-248 4e-7: goes with the old store)
 import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -36,28 +35,35 @@ vi.mock("../../stores/data", () => ({
       collections: new Map([["c1", collection]]),
     }),
 }));
-vi.mock("../../stores", () => ({
-  useStore: (selector: (s: Record<string, unknown>) => unknown) =>
-    selector({ elements: [] }),
-}));
 vi.mock("../../stores/toast", () => ({
   globalToast: { warning: toastWarn, error: vi.fn(), success: vi.fn() },
-}));
-vi.mock("../../../services/ai/tools/canonicalToolReadModel", () => ({
-  getAiToolReadModel: () => ({ elements: [] }),
 }));
 
 import type { ReactNode } from "react";
 import { I18nProvider } from "@/i18n";
 import { DataTableFieldPanel } from "./DataTableFieldPanel";
 import { useDataTableEditorStore } from "./stores/dataTableEditorStore";
+import {
+  DataUsageSourceContext,
+  type DataUsageSource,
+} from "./usage/dataUsageSource";
+
+/** ADR-248 4e-9 C: no node uses the collection. */
+const USAGE: DataUsageSource = {
+  useCollectionUsage: () => new Map(),
+  useFieldUsage: () => [],
+};
 
 vi.mock("../../layout/panelWorkspaceVisibility", () => ({
   setPanelWorkspacePanelVisibility: vi.fn(),
 }));
 
 const wrap = (node: ReactNode) => (
-  <I18nProvider initialLocale="en-US">{node}</I18nProvider>
+  <I18nProvider initialLocale="en-US">
+    <DataUsageSourceContext.Provider value={USAGE}>
+      {node}
+    </DataUsageSourceContext.Provider>
+  </I18nProvider>
 );
 
 function keyInput(c: HTMLElement) {

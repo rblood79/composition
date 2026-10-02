@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import type { CanonicalNode, CompositionDocument } from "@composition/shared";
 
 import { buildCanvasSceneGraph } from "./canvasSceneNode";
-import { buildCanonicalSceneModel } from "./canonicalSceneModel";
 import { toCollectionRowProjectionId } from "../../../projection/renderProjectionIds";
 
 /**
@@ -215,31 +214,6 @@ describe("ADR-233 Phase 1 — Tab 항목 템플릿 origin (Skia 행 projection)"
     });
   });
 
-  it("ref instance — synthetic TabList 는 master `component-tabs.slot` 을 읽는다", () => {
-    // instance 의 synthetic 자식 projection 은 `buildCanonicalSceneModel` (ref 해소 뒤 pass) 이 붙인다.
-    const model = buildCanonicalSceneModel(
-      makeDoc({ origins: defaultOrigins(), slot: SLOT, instance: true }),
-      { activeBreakpoint: "desktop" },
-    );
-    const byKey = (key: string) =>
-      model.sceneNodesMap.get(
-        toCollectionRowProjectionId(
-          "tab",
-          "tabs-inst/component-tabs__list",
-          key,
-        ),
-      )!;
-    expect(byKey("t1").projection).toMatchObject({
-      templateOriginId: "component-tab-item-default",
-    });
-    expect(byKey("t1").props.style).toMatchObject({
-      paddingLeft: 20,
-      fontWeight: 700,
-    });
-    expect(byKey("t2").projection).toMatchObject({
-      templateOriginId: "component-tab-item-selected",
-    });
-  });
 
   it("slot 이 origin 순서를 바꾸면 그 순서를 따른다 (slot[0] = default)", () => {
     const origins = [

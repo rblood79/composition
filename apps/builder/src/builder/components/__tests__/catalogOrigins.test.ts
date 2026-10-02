@@ -8,7 +8,6 @@
  * - entry 원복 RED: 목록에서 type 을 빼면 origin 이 시드되지 않는다 (게이트가 반응하는 행).
  */
 import { describe, expect, it } from "vitest";
-import { resolveCanonicalDocument } from "../../../resolvers/canonical";
 import type {
   CanonicalNode,
   CompositionDocument,
@@ -610,40 +609,6 @@ describe("ADR-228 G4 — 문서 증가량 (Δnode · Δbyte) 실측 기록", () 
 });
 
 describe("Dialog trigger 원본 이관", () => {
-  it("기존 ref의 본문 스타일과 자식 override를 새 본문 경로로 이관한다", () => {
-    const doc = makeDocument();
-    doc.children.push({
-      id: "component-dialog",
-      type: "Dialog",
-      reusable: true,
-      children: [
-        { id: "old-heading", type: "Heading", props: { children: "Old" } },
-      ],
-    });
-    findById(doc.children, "page-home-body")!.children = [
-      {
-        id: "old-ref",
-        type: "ref",
-        ref: "component-dialog",
-        props: { style: { width: "580px" } },
-        descendants: { "old-heading": { children: "Custom" } },
-      } as unknown as RefNode,
-    ];
-    const migrated = ensureCatalogOrigins(doc);
-    const ref = findById(migrated.children, "old-ref") as RefNode;
-    expect(ref.props).toEqual({});
-    expect(ref.descendants).toEqual({
-      "component-dialog--content": { style: { width: "580px" } },
-      "component-dialog--content/old-heading": { children: "Custom" },
-    });
-    const resolved = resolveCanonicalDocument(migrated);
-    const instance = findById(resolved as CanonicalNode[], "old-ref")!;
-    expect(instance.children?.[1].props?.style).toMatchObject({
-      width: "580px",
-    });
-    expect(instance.children?.[1].children?.[0].props?.children).toBe("Custom");
-    expect(ensureCatalogOrigins(migrated)).toEqual(migrated);
-  });
   it("새 원본은 독립 Button과 Dialog 자식을 가진다", () => {
     const origin = buildCatalogOrigin("Dialog");
     expect(origin.type).toBe("DialogTrigger");

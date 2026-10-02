@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 /**
- * ADR-227 Phase 2 — `resolveThemeSnapshot` (pure) + `installThemeSnapshot` (1회 설치) — G2 unit 축.
+ * ADR-227 Phase 2 — `resolveThemeSnapshot` (pure) — G2 unit 축. (옛 store 의 `installThemeSnapshot` 은
+ * ADR-248 4e-9 에서 옛 store 와 함께 빠졌다 — catalog theme 은 `catalogRuntime/theme.ts`.)
  *
  * 축별 비기본값 · reset (델타 제거 = seed) · 명시 hover/pressed 우선 · root user-defined fallback ·
  * cssVars 한 벌 · 설치 1회 = themeVersion +1 · notifyLayoutChange 1 · THEME_VARS replace 1.
@@ -35,11 +36,6 @@ import {
   colorTokenCssVarName,
   resolveThemeSnapshot,
 } from "../resolveThemeSnapshot";
-import {
-  getCurrentThemeSnapshot,
-  installThemeSnapshot,
-  resetCurrentThemeSnapshotForTest,
-} from "../installThemeSnapshot";
 import {
   createAccentColorTokens,
   TINT_PRESETS,
@@ -316,84 +312,3 @@ describe("resolveThemeSnapshot — 명시 델타 (축별 비기본값 · reset �
   });
 });
 
-describe("installThemeSnapshot — 1회 설치", () => {
-  const postMessage = vi.fn();
-  beforeEach(() => {
-    vi.mocked(notifyLayoutChange).mockClear();
-    postMessage.mockClear();
-    resetCurrentThemeSnapshotForTest();
-    vi.spyOn(MessageService, "getIframe").mockReturnValue({
-      contentWindow: { postMessage },
-    } as unknown as HTMLIFrameElement);
-    useThemeConfigStore.setState({ themeVersion: 0 });
-  });
-  afterEach(() => vi.restoreAllMocks());
-
-  it("맵 덮어쓰기 (colors · typography · radius · border · shadows) · themeVersion +1 (한 번) · notifyLayoutChange 1 · THEME_VARS replace + SET_DARK_MODE + BASE_TYPOGRAPHY 각 1", () => {
-    const s = resolve(
-      theme(
-        {
-          "color.neutral": {
-            type: "color",
-            value: "#112233",
-            source: "spec-token",
-          },
-          "typography.text-sm": {
-            type: "number",
-            value: 15,
-            source: "spec-token",
-          },
-          "radius.md": { type: "number", value: 11, source: "spec-token" },
-          "shadow.md": {
-            type: "string",
-            value: "0 0 3px blue",
-            source: "spec-token",
-          },
-          "border.width.thin": {
-            type: "number",
-            value: 3,
-            source: "spec-token",
-          },
-        },
-        { ...DEFAULT_THEME_PRESET, tint: "purple", darkMode: "dark" },
-      ),
-    );
-    installThemeSnapshot(s);
-    expect((lightColors as unknown as Record<string, string>).neutral).toBe(
-      "#112233",
-    );
-    expect((darkColors as unknown as Record<string, string>).accent).toBe(
-      s.colors.dark.accent,
-    );
-    expect((typography as unknown as Record<string, number>)["text-sm"]).toBe(
-      15,
-    );
-    expect((radius as unknown as Record<string, number>).md).toBe(11);
-    expect((lightShadows as unknown as Record<string, string>).md).toBe(
-      "0 0 3px blue",
-    );
-    // ADR-227 Phase 3: border 맵 — resolveToken 소비자 (Skia · layout) 가 같은 값을 읽는다
-    expect(borderWidth.thin).toBe(3);
-    expect(resolveToken("{border.width.thin}")).toBe(3);
-    expect(resolveBorderWidthPx(undefined)).toBe(3);
-    const st = useThemeConfigStore.getState();
-    expect(st.themeVersion).toBe(1);
-    expect([st.tint, st.darkMode]).toEqual(["purple", "dark"]);
-    expect(notifyLayoutChange).toHaveBeenCalledTimes(1);
-    const types = postMessage.mock.calls.map((c) => c[0].type);
-    expect(types).toEqual([
-      "THEME_VARS",
-      "SET_DARK_MODE",
-      "THEME_BASE_TYPOGRAPHY",
-    ]);
-    expect(postMessage.mock.calls[0]![0]).toMatchObject({ replace: true });
-    expect(postMessage.mock.calls[1]![0]).toEqual({
-      type: "SET_DARK_MODE",
-      isDark: true,
-    });
-    expect(getCurrentThemeSnapshot()).toBe(s);
-    // 되돌리기 — 다음 테스트/모듈 영향 0
-    installThemeSnapshot(resolve(theme()));
-    expect((radius as unknown as Record<string, number>).md).toBe(6);
-  });
-});

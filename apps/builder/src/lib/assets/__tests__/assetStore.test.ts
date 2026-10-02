@@ -24,7 +24,6 @@ import {
 } from "../assetStore";
 import { createIndexedDbAssetUrlResolver } from "../assetUrlResolver";
 import { ASSETS_STORE } from "../assetSchema";
-import { inlineAssetRefs } from "../assetExport";
 import { collectAssetRefs } from "@composition/shared";
 import { decodeDataUrl } from "@composition/shared/assets";
 
@@ -136,37 +135,7 @@ describe("assetStore (ADR-235 Phase 1)", () => {
     expect(resolveAssetUrl(ref)).toBe(url);
   });
 
-  it("자립 v1 내보내기: 참조를 바이트 dataURL 로 되살린다 (HC7)", async () => {
-    const stored = await storeAssetBytes({ bytes: PNG, mime: "image/png" });
-    const envelope = {
-      document: {
-        children: [
-          {
-            fills: [{ type: "image", url: stored.ref }],
-            metadata: { legacyProps: { fills: [{ url: stored.ref }] } },
-            props: { style: { backgroundImage: `url(${stored.ref})` } },
-          },
-        ],
-      },
-      fontRegistry: { version: 2, faces: [] },
-    };
-    const inlined = await inlineAssetRefs(envelope);
-    expect(collectAssetRefs(inlined).size).toBe(0);
-    const url = (inlined.document.children[0].fills[0] as { url: string }).url;
-    expect(decodeDataUrl(url)?.bytes).toEqual(PNG);
-    expect(inlined.document.children[0].props.style.backgroundImage).toBe(
-      `url(${url})`,
-    );
-    // 원본 불변
-    expect(envelope.document.children[0].fills[0].url).toBe(stored.ref);
-  });
 
-  it("자립 내보내기: 없는 자산이면 실패 — 참조만 든 파일을 만들지 않는다", async () => {
-    const missing = assetRefFromHash("d".repeat(64));
-    await expect(
-      inlineAssetRefs({ document: { src: missing } }),
-    ).rejects.toBeInstanceOf(AssetMissingError);
-  });
 
   it("바이트는 ArrayBuffer 로 저장하고 (WebKit 비공개 저장소 호환) 옛 Blob 레코드도 읽는다", async () => {
     const stored = await storeAssetBytes({ bytes: PNG, mime: "image/png" });

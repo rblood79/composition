@@ -1,5 +1,3 @@
-import "../../panels/datatable/usage/quickConnectHost.store"; // old-store host (ADR-248 4e-7: goes with the old store)
-import "../../panels/datatable/usage/dataUsageSource.store"; // old-store host (ADR-248 4e-7: goes with the old store)
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -34,14 +32,6 @@ const quickConnect = vi.hoisted(() => ({
       : null,
   ),
 }));
-vi.mock("../../panels/datatable/utils/quickConnect", () => ({
-  captureQuickConnectTarget: quickConnect.capture,
-  precheckQuickConnectTarget: () => ({ ok: true }),
-  planTableColumns: () => null,
-  executeQuickConnect: async () => undefined,
-  readBackQuickConnect: () => true,
-}));
-
 // collection 목록 hook mock — 단위 렌더용 (실제 hook 계약: DataTable[] 반환)
 vi.mock("../../stores/data", () => ({
   useCollections: () => [
@@ -54,12 +44,50 @@ import {
   PropertyDataBinding,
   PropertyDataBindingCreateAction,
 } from "./PropertyDataBinding";
-import type { ReactElement } from "react";
+import type { ReactElement, ReactNode } from "react";
 import { I18nProvider } from "@/i18n";
+import * as quickConnectHostModule from "../../panels/datatable/usage/quickConnectHost";
+import * as dataUsageSourceModule from "../../panels/datatable/usage/dataUsageSource";
+
+/**
+ * ADR-248 4e-9 C: the hosts the catalog Builder provides — quick connect (only `capture` is read
+ * here) and the document's collection usage (none).
+ */
+const QUICK_CONNECT = {
+  capture: quickConnect.capture,
+  precheck: () => ({ ok: true }),
+  planColumns: () => null,
+  execute: async () => undefined,
+  readBack: () => true,
+} as unknown as quickConnectHostModule.QuickConnectHost;
+const USAGE: dataUsageSourceModule.DataUsageSource = {
+  useCollectionUsage: () => new Map(),
+  useFieldUsage: () => [],
+};
+
+function hostsWrapper(
+  Provider: typeof I18nProvider,
+  quickConnectContext: typeof quickConnectHostModule.QuickConnectHostContext,
+  usageContext: typeof dataUsageSourceModule.DataUsageSourceContext,
+) {
+  return ({ children }: { children: ReactNode }) => (
+    <Provider>
+      <quickConnectContext.Provider value={QUICK_CONNECT}>
+        <usageContext.Provider value={USAGE}>{children}</usageContext.Provider>
+      </quickConnectContext.Provider>
+    </Provider>
+  );
+}
 
 /** 표시 계층이 `useI18n` 을 쓰므로 provider 밑에서 그린다 (ADR-200 R7). */
 const renderWithI18n = (ui: ReactElement) =>
-  render(ui, { wrapper: I18nProvider });
+  render(ui, {
+    wrapper: hostsWrapper(
+      I18nProvider,
+      quickConnectHostModule.QuickConnectHostContext,
+      dataUsageSourceModule.DataUsageSourceContext,
+    ),
+  });
 
 describe("PropertyDataBinding — 죽은 오소링 표면 제거 계약 (2026-07-24)", () => {
   it("갱신 모드 / 갱신 간격 / 데이터 경로 오소링 UI 를 렌더하지 않는다", () => {
@@ -158,13 +186,25 @@ describe("PropertyDataBinding — fieldMap value/icon (ADR-152 Phase 2)", () => 
     }));
     vi.resetModules();
     // 모듈 재로드 뒤에는 i18n context 도 같은 인스턴스여야 한다
-    const [{ PropertyDataBinding: Comp }, { I18nProvider: Provider }] =
-      await Promise.all([
-        import("./PropertyDataBinding"),
-        import("@/i18n"),
-        import("../../panels/datatable/usage/dataUsageSource.store"),
-      ]);
-    const renderFresh = (ui: ReactElement) => render(ui, { wrapper: Provider });
+    const [
+      { PropertyDataBinding: Comp },
+      { I18nProvider: Provider },
+      { QuickConnectHostContext },
+      { DataUsageSourceContext },
+    ] = await Promise.all([
+      import("./PropertyDataBinding"),
+      import("@/i18n"),
+      import("../../panels/datatable/usage/quickConnectHost"),
+      import("../../panels/datatable/usage/dataUsageSource"),
+    ]);
+    const renderFresh = (ui: ReactElement) =>
+      render(ui, {
+        wrapper: hostsWrapper(
+          Provider,
+          QuickConnectHostContext,
+          DataUsageSourceContext,
+        ),
+      });
     return { Comp, renderFresh };
   };
 

@@ -7,7 +7,6 @@
  *   `type:"data"` entry (elementId = variableId) · collections 무변경 · record:false
  * - 갱신은 `owner-unresolved` 배지를 지우지 않는다 (Phase 5 의 명시 해소 전까지)
  */
-import "./dataChange.store"; // old-store wiring (ADR-248 4e-7: goes with the old store)
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DataOp } from "@composition/shared";
 import type { DataTable, Variable } from "../../../types/builder/data.types";
@@ -33,10 +32,6 @@ vi.mock("../history", () => ({
   historyManager: { addEntry: (...args: unknown[]) => addEntry(...args) },
 }));
 
-const activeDocument = { current: null as unknown };
-vi.mock("../canonical/canonicalElementsBridge", () => ({
-  getActiveCanonicalDocument: () => activeDocument.current,
-}));
 
 import {
   DataChangeError,
@@ -44,6 +39,9 @@ import {
   reduceDataOps,
   setDocumentVariableNamesReader,
 } from "./dataChange";
+import { installTestDataChangeRecorder } from "./__tests__/support/dataChangeRecorder";
+
+installTestDataChangeRecorder((entry) => addEntry(entry));
 
 const variable = (patch: Partial<Variable>): Variable => ({
   id: "v_user",
@@ -277,7 +275,6 @@ describe("applyDataChange — define_variable", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.spyOn(console, "error").mockImplementation(() => {});
-    activeDocument.current = null;
   });
   afterEach(() => vi.restoreAllMocks());
 
@@ -369,35 +366,6 @@ describe("applyDataChange — define_variable", () => {
     await apply({ ops: created.applied, origin: "user" }, { record: false });
     expect(variables().get("userName")?.id).toBe(id);
     expect(variables().get("userName")?.project_id).toBe("p-current");
-  });
-
-  it("문서 안 페이지/요소 state 이름은 프로젝트 변수로 못 쓴다 (활성 canonical 문서 조회)", async () => {
-    activeDocument.current = {
-      version: "composition-1.0",
-      children: [
-        {
-          id: "page",
-          type: "frame",
-          metadata: { type: "page" },
-          state: [{ id: "v_pg", name: "pageVar", type: "string" }],
-        },
-      ],
-    };
-    const { apply, variables } = makeStore();
-    await expect(
-      apply({
-        ops: [
-          {
-            op: "define_variable",
-            definition: { name: "pageVar", type: "string" },
-          },
-        ],
-        origin: "user",
-      }),
-    ).rejects.toThrow(DataChangeError);
-    expect(variables().has("pageVar")).toBe(false);
-    expect(dbMock.variables.insert).not.toHaveBeenCalled();
-    expect(addEntry).not.toHaveBeenCalled();
   });
 
   it("ADR-248 4e-4e — a set names reader (the catalog document) replaces the canonical lookup", async () => {

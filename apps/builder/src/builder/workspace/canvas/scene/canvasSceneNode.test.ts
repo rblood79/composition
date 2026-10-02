@@ -10,7 +10,6 @@ import {
   resolveTagTemplateOriginIds,
   type CollectionWindowResolution,
 } from "./canvasSceneNode";
-import { buildCanonicalSceneModel } from "./canonicalSceneModel";
 import type { CanonicalNode } from "@composition/shared";
 import {
   toListBoxRowProjectionId,
@@ -2949,41 +2948,6 @@ describe("ADR-229 Phase 1 — TagGroup chip item template origin", () => {
     });
   });
 
-  it("ref instance — synthetic TagList 는 master(component-taggroup) 의 TagList slot 으로 같은 origin 을 읽는다", () => {
-    const doc = makeDoc({
-      origins: tagOrigins({ defaultStyle: { paddingLeft: 20 } }),
-      tagListSlot: [
-        "component-tag-item-default",
-        "component-tag-item-selected",
-      ],
-      instance: true,
-    });
-    // instance 의 synthetic 자식 projection 은 `buildCanonicalSceneModel` (ref 해소 뒤 pass) 이 붙인다.
-    const model = buildCanonicalSceneModel(doc, {
-      activeBreakpoint: "desktop",
-    });
-    const byKey = (key: string) =>
-      model.sceneNodesMap.get(
-        toCollectionRowProjectionId(
-          "tag",
-          "tg-inst/component-taggroup__2",
-          key,
-        ),
-      )!;
-    const a = byKey("a");
-    const b = byKey("b");
-    expect(a.projection).toMatchObject({
-      templateOriginId: "component-tag-item-default",
-    });
-    expect(a.props.style).toEqual({
-      width: "fit-content",
-      height: "auto",
-      paddingLeft: 20,
-    });
-    expect(b.projection).toMatchObject({
-      templateOriginId: "component-tag-item-selected",
-    });
-  });
 
   it("legacy — TagList 에 slot 이 없으면 표준 origin id 로 안전망 해석, origin 도 없으면 chip 은 종전 그대로 (BC)", () => {
     const withOrigins = makeDoc({

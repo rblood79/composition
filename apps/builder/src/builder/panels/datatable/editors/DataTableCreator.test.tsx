@@ -4,7 +4,6 @@
  * (152 wrapper, HC1) 한 번 · 결과는 role=status 와 편집기 열림. "AI 로 설명" 은 AI 입력창
  * 초안 + AI 패널 표시 (전송 0).
  */
-import "../usage/quickConnectHost.store"; // old-store host (ADR-248 4e-7: goes with the old store)
 import { cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -39,14 +38,6 @@ vi.mock("../../../stores/data", () => ({
   useDataStore: (selector: (s: Record<string, unknown>) => unknown) =>
     selector({ createDataTable }),
 }));
-vi.mock("../utils/quickConnect", () => ({
-  executeQuickConnect: createAndBindDataTable,
-  planTableColumns: () => null,
-  unmatchedColumnKeys: () => [],
-  precheckQuickConnectTarget: quickConnect.precheck,
-  readBackQuickConnect: quickConnect.readBack,
-  captureQuickConnectTarget: () => null,
-}));
 vi.mock("../stores/dataTableEditorStore", () => ({
   useDataTableEditorStore: (
     selector: (s: Record<string, unknown>) => unknown,
@@ -61,9 +52,26 @@ import { I18nProvider } from "@/i18n";
 import { DataTableCreator } from "./DataTableCreator";
 import { useDataPanelStatusStore } from "../stores/dataPanelStatusStore";
 import { useAiComposerDraftStore } from "../../ai/aiComposerDraft";
+import {
+  QuickConnectHostContext,
+  type QuickConnectHost,
+} from "../usage/quickConnectHost";
+
+/** ADR-248 4e-9 C: the quick connect host (the catalog Builder provides the workspace's). */
+const QUICK_CONNECT = {
+  capture: () => null,
+  precheck: quickConnect.precheck,
+  planColumns: () => null,
+  execute: createAndBindDataTable,
+  readBack: quickConnect.readBack,
+} as unknown as QuickConnectHost;
 
 const wrap = (node: ReactNode) => (
-  <I18nProvider initialLocale="en-US">{node}</I18nProvider>
+  <I18nProvider initialLocale="en-US">
+    <QuickConnectHostContext.Provider value={QUICK_CONNECT}>
+      {node}
+    </QuickConnectHostContext.Provider>
+  </I18nProvider>
 );
 const press = (el: Element) => {
   fireEvent.pointerDown(el, { pointerType: "mouse", button: 0 });

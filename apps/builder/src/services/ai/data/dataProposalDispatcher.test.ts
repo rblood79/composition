@@ -6,7 +6,6 @@
  * - 승인 → executor 가 origin 을 stamp 해 applyDataChange 1회, 세션 provenance 1건
  * - 모델 입력의 origin · 사람 전용 op · restore 는 `invalid`
  */
-import "../../../builder/stores/utils/dataChange.store"; // old-store wiring (ADR-248 4e-7: goes with the old store)
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const applyDataChange = vi.fn();
@@ -33,6 +32,9 @@ import {
   type AgentCommandConfirmationRequest,
 } from "../../agent/agentCommandConfirmation";
 import { dispatchDataProposal } from "./dataProposalDispatcher";
+import { installTestDataChangeRecorder } from "../../../builder/stores/utils/__tests__/support/dataChangeRecorder";
+
+installTestDataChangeRecorder(() => undefined);
 
 const t = (key: string) => key;
 

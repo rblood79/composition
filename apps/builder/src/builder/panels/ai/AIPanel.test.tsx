@@ -92,10 +92,8 @@ vi.mock("./components/AgentCommandLogList", () => ({
   AgentCommandLogList: () => null,
 }));
 
-// 배럴 전체를 교체하지 않는다 — 새 export 가 추가될 때마다 조용히 깨진다
-// (PanelContents 도입 때 실제로 깨졌다). 실물을 깔고 무거운 것만 덮는다.
-vi.mock("../../components", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("../../components")>()),
+// AIPanel 이 직접 import 하는 두 부품만 가볍게 덮는다 (ADR-248 4e-9: 옛 components 배럴 제거).
+vi.mock("../../components/panel/PanelHeader", () => ({
   PanelHeader: ({
     title,
     actions,
@@ -108,6 +106,8 @@ vi.mock("../../components", async (importOriginal) => ({
       {actions}
     </header>
   ),
+}));
+vi.mock("../../components/ui/ActionIconButton", () => ({
   ActionIconButton: ({
     children,
     isDisabled,

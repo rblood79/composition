@@ -4,7 +4,6 @@
  * - fetch 는 `owner` 를 메모리 Map 에만 채운다 — IndexedDB `update` / `insert` 0회
  * - component / page-without-page_id 는 `owner-unresolved` + console.warn 1회
  */
-import "./dataChange.store"; // old-store wiring (ADR-248 4e-7: goes with the old store)
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Variable } from "../../../types/builder/data.types";
 
@@ -40,6 +39,9 @@ import {
   createUpdateVariableAction,
 } from "./dataActions";
 import { registerVariableOwnerPageSource } from "./variableOwnerMigration";
+import { installTestDataChangeRecorder } from "./__tests__/support/dataChangeRecorder";
+
+installTestDataChangeRecorder((entry) => addEntry(entry));
 
 const base = (patch: Partial<Variable>): Variable => ({
   id: "v",

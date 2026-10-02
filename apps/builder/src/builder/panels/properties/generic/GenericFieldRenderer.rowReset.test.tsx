@@ -1,13 +1,13 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import "./fieldValueSource.store"; // old-store field value source (ADR-248 4e-7: goes with the old store)
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ResolvedField } from "@composition/shared";
 import { I18nProvider } from "@/i18n";
+import type { ReactNode } from "react";
 import {
-  resetPanelFixture,
-  seedPanelElements,
-} from "../../../__tests__/panelFixture";
+  openStylesFixture,
+  type StylesFixture,
+} from "../../styles/__tests__/support/catalogStylesFixture";
 import { GenericFieldRenderer } from "./GenericFieldRenderer";
 
 vi.mock("../hooks/useOwnerCollectionColumns", async (importActual) => {
@@ -37,10 +37,13 @@ const field = (
   ...extra,
 });
 
-const seed = (props: Record<string, unknown>) =>
-  seedPanelElements([
-    { id: "btn", type: "Button", props, page_id: "page-1", parent_id: null },
-  ]);
+/** ADR-248 4e-9 C: a Button with these own props over the catalog Properties field value source. */
+let fixture: StylesFixture;
+const seed = async (props: Record<string, unknown>) => {
+  fixture = await openStylesFixture([{ id: "btn", type: "Button", props }], {
+    select: "btn",
+  });
+};
 
 const renderFields = (fields: ResolvedField[], update = vi.fn()) => {
   const utils = render(
@@ -48,37 +51,39 @@ const renderFields = (fields: ResolvedField[], update = vi.fn()) => {
       fields={fields}
       onSemanticUpdate={update}
       onStyleUpdate={vi.fn()}
-      elementId="btn"
+      elementId={fixture.recordOf("btn")}
     />,
-    { wrapper: I18nProvider },
+    {
+      wrapper: ({ children }: { children: ReactNode }) => (
+        <I18nProvider>{fixture.wrapper({ children })}</I18nProvider>
+      ),
+    },
   );
   return { ...utils, update };
 };
 
 // 행 끝 28 열 「기본값으로」 (2026-09-16) — 기본값이 있고 값이 다를 때만 선다.
 describe("GenericFieldRenderer — 행 reset 액션", () => {
-  beforeEach(resetPanelFixture);
   afterEach(() => {
     cleanup();
-    resetPanelFixture();
   });
 
-  it("값이 기본값과 같으면 액션이 없다", () => {
-    seed({ variant: "primary" });
+  it("값이 기본값과 같으면 액션이 없다", async () => {
+    await seed({ variant: "primary" });
     const { container } = renderFields([field("variant", "Variant", "primary")]);
     expect(container.querySelector(".actions-reset")).toBeNull();
   });
 
-  it("기본값이 없는 필드는 값이 있어도 대상이 아니다", () => {
-    seed({ children: "Hello" });
+  it("기본값이 없는 필드는 값이 있어도 대상이 아니다", async () => {
+    await seed({ children: "Hello" });
     const { container } = renderFields([
       field("children", "Text", undefined, { kind: "string", options: undefined }),
     ]);
     expect(container.querySelector(".actions-reset")).toBeNull();
   });
 
-  it("값이 다르면 서고, 누르면 기본값을 쓴다", () => {
-    seed({ variant: "accent" });
+  it("값이 다르면 서고, 누르면 기본값을 쓴다", async () => {
+    await seed({ variant: "accent" });
     const { container, update } = renderFields([
       field("variant", "Variant", "primary"),
     ]);
@@ -92,8 +97,8 @@ describe("GenericFieldRenderer — 행 reset 액션", () => {
     expect(update).toHaveBeenCalledWith("variant", "primary");
   });
 
-  it("반폭 두 필드 행은 바뀐 필드만 이름에 싣고 그것만 되돌린다", () => {
-    seed({ variant: "accent", size: "md" });
+  it("반폭 두 필드 행은 바뀐 필드만 이름에 싣고 그것만 되돌린다", async () => {
+    await seed({ variant: "accent", size: "md" });
     const { update } = renderFields([
       field("variant", "Variant", "primary", { kind: "variant" }),
       field("size", "Size", "md", {

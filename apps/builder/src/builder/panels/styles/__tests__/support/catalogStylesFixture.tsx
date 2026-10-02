@@ -22,10 +22,22 @@ import { nodeLayoutEngine } from "../../../../catalogRuntime/__tests__/support/n
 import { useToastStore } from "../../../../stores/toast";
 import { createCatalogStylesHost } from "../../catalog/catalogStylesHost";
 import { StylesHostContext, type StylesHost } from "../../stylesHostContext";
+import { CATALOG_FIELD_VALUE_SOURCE } from "../../../properties/catalog/catalogFieldValueSource";
+import { CATALOG_ITEMS_SOURCE } from "../../../properties/catalog/catalogItemsSource";
+import { FieldValueSourceContext } from "../../../properties/generic/fieldValueSource";
+import { ItemsSourceContext } from "../../../properties/generic/itemsSource";
+import { createCatalogDataUsageSource } from "../../../datatable/usage/catalogDataUsageSource";
+import { DataUsageSourceContext } from "../../../datatable/usage/dataUsageSource";
+import { createCatalogQuickConnectHost } from "../../../datatable/usage/catalogQuickConnectHost";
+import { QuickConnectHostContext } from "../../../datatable/usage/quickConnectHost";
+import { createCatalogDataVariablesHost } from "../../../datatable/usage/catalogDataVariablesHost";
+import { DataVariablesHostContext } from "../../../datatable/usage/dataVariablesHost";
+import { useDataStore } from "../../../../stores/data";
 
 /**
- * ADR-248 4e-9 C: the Styles hook and section tests over the catalog workspace — the host the
- * catalog Styles panel provides (the old store host went with the old store). A node is seeded
+ * ADR-248 4e-9 C: the panel tests over the catalog workspace — the hosts the catalog Builder
+ * provides (Styles host, Properties field value · items sources, Data usage · quick connect ·
+ * variables hosts); the old store hosts went with the old store. A node is seeded
  * through the host's own writes (the style CSS → typed fields path the panel uses), so a test
  * reads back what the panel reads.
  */
@@ -175,10 +187,39 @@ export async function openStylesFixture(
   }
   if (options.select) select(options.select);
   else workspace.selectRecords([]);
+  // The panel hosts the catalog Builder provides (CatalogBuilderCore · CatalogPropertiesPanel).
+  const dataUsage = createCatalogDataUsageSource(workspace);
+  const quickConnect = createCatalogQuickConnectHost(
+    workspace,
+    {
+      apply: (change, options) =>
+        useDataStore.getState().applyDataChange(change, options),
+      collection: (id) => useDataStore.getState().collections.get(id),
+    },
+    (name) => `Create ${name}`,
+  );
+  const dataVariables = createCatalogDataVariablesHost(
+    workspace,
+    {
+      apply: (change, options) =>
+        useDataStore.getState().applyDataChange(change, options),
+    },
+    "Move to page",
+  );
   const wrapper = ({ children }: { children: ReactNode }) => (
     <CatalogWorkspaceProvider workspace={workspace}>
       <StylesHostContext.Provider value={host}>
-        {children}
+        <FieldValueSourceContext.Provider value={CATALOG_FIELD_VALUE_SOURCE}>
+          <ItemsSourceContext.Provider value={CATALOG_ITEMS_SOURCE}>
+            <DataUsageSourceContext.Provider value={dataUsage}>
+              <QuickConnectHostContext.Provider value={quickConnect}>
+                <DataVariablesHostContext.Provider value={dataVariables}>
+                  {children}
+                </DataVariablesHostContext.Provider>
+              </QuickConnectHostContext.Provider>
+            </DataUsageSourceContext.Provider>
+          </ItemsSourceContext.Provider>
+        </FieldValueSourceContext.Provider>
       </StylesHostContext.Provider>
     </CatalogWorkspaceProvider>
   );

@@ -3,7 +3,6 @@
  * ADR-212 Phase 1 — 목록 항목은 RAC GridList 행 (A5: 키보드로 열림) 이고 배지가
  * 필드 · 행 · 소스 · 사용처 N · 마지막 실행 오류를 낸다 (UI-6). 삭제는 role=status 로 알린다.
  */
-import "../usage/dataUsageSource.store"; // old-store host (ADR-248 4e-7: goes with the old store)
 import { cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -58,32 +57,27 @@ const state = {
 vi.mock("../../../stores/data", () => ({
   useDataStore: (selector: (s: typeof state) => unknown) => selector(state),
 }));
-vi.mock("../../../stores", () => ({
-  useStore: (selector: (s: { elements: unknown[] }) => unknown) =>
-    selector({ elements: [] }),
-}));
-vi.mock("../../../../services/ai/tools/canonicalToolReadModel", () => ({
-  getAiToolReadModel: () => ({
-    elements: [
-      {
-        id: "e1",
-        props: { dataBinding: { source: "dataTable", collectionId: "c1" } },
-      },
-      {
-        id: "e2",
-        props: { dataBinding: { source: "dataTable", collectionId: "c1" } },
-      },
-    ],
-  }),
-}));
-
 import type { ReactNode } from "react";
 import { I18nProvider } from "@/i18n";
 import { DataTableList } from "./DataTableList";
 import { useDataPanelStatusStore } from "../stores/dataPanelStatusStore";
+import {
+  DataUsageSourceContext,
+  type DataUsageSource,
+} from "../usage/dataUsageSource";
+
+/** ADR-248 4e-9 C: the document's usage — two nodes bind Users (c1). */
+const USAGE: DataUsageSource = {
+  useCollectionUsage: () => new Map([["c1", 2]]),
+  useFieldUsage: () => [],
+};
 
 const wrap = (node: ReactNode) => (
-  <I18nProvider initialLocale="en-US">{node}</I18nProvider>
+  <I18nProvider initialLocale="en-US">
+    <DataUsageSourceContext.Provider value={USAGE}>
+      {node}
+    </DataUsageSourceContext.Provider>
+  </I18nProvider>
 );
 
 afterEach(() => {
