@@ -37,10 +37,8 @@ export interface CatalogComponentState {
   originOf?: CatalogComponentRef;
 }
 
-function componentRef(
-  graph: CatalogReader,
-  definitionId: string,
-): CatalogComponentRef | undefined {
+/** The definition a component: a project component (not a layout) or a built-in library origin. */
+function componentDefinition(graph: CatalogReader, definitionId: string) {
   const project = definitionId.startsWith("project:");
   const definition = project
     ? graph.getEntry(definitionId)
@@ -52,6 +50,16 @@ function componentRef(
   // A layout is not a component (Layouts tab).
   if (project && (definition as { usage?: string }).usage === "layout")
     return undefined;
+  return { definition, project };
+}
+
+function componentRef(
+  graph: CatalogReader,
+  definitionId: string,
+): CatalogComponentRef | undefined {
+  const found = componentDefinition(graph, definitionId);
+  if (!found) return undefined;
+  const { definition, project } = found;
   return {
     definitionId,
     name: project
@@ -86,6 +94,29 @@ export function catalogComponentState(
   }
   const instanceOf = componentRef(graph, node.definitionId);
   return instanceOf ? { instanceOf } : {};
+}
+
+/**
+ * The editing role the Canvas chrome colors a node with (the old `getEditingSemanticsRole`): the
+ * origin the definition edit view shows, or an instance of a component — the same test as the
+ * Component section (`catalogComponentState`), without its instance list.
+ */
+export function catalogComponentRole(
+  graph: CatalogReader,
+  id: NodeId,
+  definitionView?: string,
+): "origin" | "instance" | undefined {
+  const node = graph.getEntry(id);
+  if (node?.kind !== "node") return undefined;
+  if (definitionView) {
+    const viewed = graph.getEntry(definitionView);
+    if (
+      id === ORIGIN_VIEW_NODE ||
+      (viewed?.kind === "definition" && viewed.templateRootId === id)
+    )
+      return componentDefinition(graph, definitionView) ? "origin" : undefined;
+  }
+  return componentDefinition(graph, node.definitionId) ? "instance" : undefined;
 }
 
 /**

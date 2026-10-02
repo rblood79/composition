@@ -39,11 +39,24 @@ import { renderFlashes, renderGeneratingEffects } from "../skia/aiEffects";
 import type { AIVisualFeedbackState } from "../../../stores/aiVisualFeedback";
 import type { SpacingBand } from "../interaction/spacingGeometry";
 import type { SpacingActiveTarget } from "../interaction/spacingTypes";
+import type { EditingSemanticsRole } from "../../../utils/editingSemantics";
 
 export interface CatalogOverlayInputs {
   session: () => CatalogSessionState;
   /** Scene-coordinate boxes of the drawn records (the bound stream's `boundsMap`). */
   bounds: () => ReadonlyMap<string, BoundingBox>;
+  /**
+   * The drawn records' visible boxes (ancestor clips applied — `hitBoundsMap`): the hover chrome
+   * marks only what shows (canvas-interaction §8.5).
+   */
+  hitBounds?: () => ReadonlyMap<string, BoundingBox>;
+  /** A record's editing role: the selection and hover chrome take its color (origin · instance). */
+  roleOf?: (identity: string) => EditingSemanticsRole | null;
+  /**
+   * The leaf records under a hovered container (the old group hover's dashed guides); none for a
+   * page body (an empty area, §8.6) or a leaf.
+   */
+  hoverLeaves?: (identity: string) => readonly string[];
   /** The drawn records of a node (the editing context's frame). */
   recordsOf: (sourceId: string) => readonly string[];
   zoom: () => number;
@@ -54,7 +67,11 @@ export interface CatalogOverlayInputs {
    * Declared slots of the definition edit view (editor chrome, not document paint): each slot's
    * box, hatched while it holds nothing.
    */
-  slots?: () => readonly { box: BoundingBox; empty: boolean }[];
+  slots?: () => readonly {
+    box: BoundingBox;
+    empty: boolean;
+    role: EditingSemanticsRole;
+  }[];
   /**
    * Bound collections showing a sample (ADR-157): the area of the rows not drawn, hatched with
    * "+N more" (editor chrome — the DOM draws every row).
@@ -179,7 +196,7 @@ export function catalogOverlayNode(
           canvas,
           { ...slot.box, height: band },
           zoom,
-          "origin",
+          slot.role,
           slot.empty,
         );
       }
@@ -209,9 +226,28 @@ export function catalogOverlayNode(
           if (box) renderEditingContextBorder(ck, canvas, box, zoom);
         }
       const selected = new Set(state.selection.map((item) => item.identity));
-      const hovered = state.hover && bounds.get(state.hover.identity);
-      if (hovered && !selected.has(state.hover!.identity))
-        renderHoverHighlight(ck, canvas, hovered, zoom);
+      const roleOf = (id: string) => inputs.roleOf?.(id) ?? null;
+      const hit = inputs.hitBounds?.();
+      const hoverId = state.hover?.identity;
+      if (hoverId && !selected.has(hoverId)) {
+        // The visible part (a page body is in neither map's clip: its own box).
+        const hovered = hit?.get(hoverId) ?? bounds.get(hoverId);
+        if (hovered)
+          renderHoverHighlight(
+            ck,
+            canvas,
+            hovered,
+            zoom,
+            false,
+            roleOf(hoverId),
+          );
+        // Group hover: the container's leaves, dashed, where they show.
+        for (const leaf of inputs.hoverLeaves?.(hoverId) ?? []) {
+          const box = (hit ?? bounds).get(leaf);
+          if (box)
+            renderHoverHighlight(ck, canvas, box, zoom, true, roleOf(leaf));
+        }
+      }
       const tree = inputs.overflow?.();
       const overflowing =
         tree && state.hover
@@ -220,7 +256,8 @@ export function catalogOverlayNode(
       if (overflowing) renderOverflowContent(ck, canvas, overflowing, zoom);
       for (const item of state.selection) {
         const box = bounds.get(item.identity);
-        if (box) renderSelectionBox(ck, canvas, box, zoom);
+        if (box)
+          renderSelectionBox(ck, canvas, box, zoom, roleOf(item.identity));
       }
       const gesture = inputs.gesture?.();
       if (gesture) {

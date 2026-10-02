@@ -19,6 +19,8 @@ import {
 import { catalogCanvasMenuItems } from "../../../catalogRuntime/canvasMenu";
 import { catalogMenuHost } from "../../../catalogRuntime/shortcuts";
 import { catalogPageDropCommand } from "../../../catalogRuntime/canvasPage";
+import { catalogComponentRole } from "../../../catalogRuntime/componentActions";
+import { catalogLeafRecords, catalogSlotMarks } from "./catalogChrome";
 import {
   notifyNestingRejected,
   showNestingRelocatedToast,
@@ -103,20 +105,6 @@ function catalogHeaderFrames(
   return frames;
 }
 /** The definition edit view's declared slots: each drawn slot's box and whether it is empty. */
-function catalogSlotMarks(
-  workspace: CatalogWorkspace,
-  bounds: ReadonlyMap<string, BoundingBox>,
-): { box: BoundingBox; empty: boolean }[] {
-  if (!workspace.root.definitionView) return [];
-  const graph = workspace.runtime.graph;
-  const marks: { box: BoundingBox; empty: boolean }[] = [];
-  for (const record of workspace.root.domInputs.values()) {
-    const node = graph.getEntry(record.sourceId);
-    const box = node?.kind === "node" && node.slot && bounds.get(record.id);
-    if (box) marks.push({ box, empty: record.children.length === 0 });
-  }
-  return marks;
-}
 const sameFrames = (
   left: readonly PageHeaderFrame[],
   right: readonly PageHeaderFrame[],
@@ -334,6 +322,13 @@ export function CatalogCanvas({
       recordsOf: (sourceId) => workspace.root.recordsOfSource(sourceId),
     });
     const badgeHits = new Map<string, DataBadgeBounds>();
+    // Group hover leaves: structural (per hovered record and step), drawn where they show.
+    let hoverLeavesMemo: {
+      identity?: string;
+      root?: unknown;
+      revision?: number;
+      leaves: readonly string[];
+    } = { leaves: [] };
     const overflowTree: CatalogOverflowTree = {
       overflowOf: (id) => workspace.root.canvasInputs.get(id)?.visual.overflow,
       childrenOf: (id) => workspace.root.canvasInputs.get(id)?.children ?? [],
@@ -348,7 +343,44 @@ export function CatalogCanvas({
         fontMgr,
         gesture: () => gestures.preview(),
         guides: (overlayCanvas) => guidesRef.current?.paint(ck, overlayCanvas),
-        slots: () => catalogSlotMarks(workspace, scene.stream.boundsMap),
+        slots: () =>
+          catalogSlotMarks(
+            workspace,
+            scene.stream.boundsMap,
+            scene.stream.hitBoundsMap,
+          ),
+        hitBounds: () => scene.stream.hitBoundsMap,
+        roleOf: (identity) => {
+          const target = workspace.itemOfRecord(identity)?.target;
+          return target?.kind === "node"
+            ? (catalogComponentRole(
+                workspace.runtime.graph,
+                target.id,
+                workspace.root.definitionView,
+              ) ?? null)
+            : null;
+        },
+        hoverLeaves: (identity) => {
+          // A page body is an empty area (canvas-interaction §8.6): no guides.
+          const records = workspace.root.canvasInputs;
+          if (records.get(identity)?.parentId === "catalog:root") return [];
+          if (
+            hoverLeavesMemo.identity !== identity ||
+            hoverLeavesMemo.root !== workspace.root ||
+            hoverLeavesMemo.revision !== workspace.runtime.graph.revision
+          ) {
+            const leaves = catalogLeafRecords(records, identity);
+            hoverLeavesMemo = {
+              identity,
+              root: workspace.root,
+              revision: workspace.runtime.graph.revision,
+              // A leaf hovers alone (its own outline).
+              leaves:
+                leaves.length === 1 && leaves[0] === identity ? [] : leaves,
+            };
+          }
+          return hoverLeavesMemo.leaves;
+        },
         remainders: () =>
           catalogRowRemainders(workspace.root).flatMap((remainder) => {
             const box = catalogRowRemainderBox(
