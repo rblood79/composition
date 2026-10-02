@@ -24,19 +24,38 @@ import type {
   Variable,
 } from "../../../types/builder/data.types";
 import { LRUCache } from "./LRUCache";
-import {
-  IncrementalDocuments,
-  DOCUMENT_HEADS,
-  DOCUMENT_PARTS,
-} from "./incrementalDocuments";
-import type { DocumentPersistOptions } from "./documentPersistGuard";
+import { DOCUMENT_HEADS, DOCUMENT_PARTS } from "./documentStoreNames";
 import { ASSETS_STORE, ASSET_GC_STORE } from "../../assets/assetSchema";
 import {
   CACHE_BYTES_LIMIT,
   openCacheDatabase,
-  requestPersistenceOnce,
-  withQuotaRetry,
 } from "../../storage/storageProtection";
+
+/** What the old canonical documents store reads from the adapter (`documentsStore.legacy.ts`). */
+export interface DocumentsStoreAdapterAccess {
+  ensureDB(): IDBDatabase;
+  getAllByIndex<T>(
+    storeName: string,
+    indexName: string,
+    value: string,
+  ): Promise<T[]>;
+  clearCaches(): Promise<void>;
+}
+
+type DocumentsStore = DatabaseAdapter["documents"];
+
+/**
+ * ADR-248 Phase 4e-7: the canonical documents store is the old Builder's — it installs itself
+ * (`documentsStore.legacy.ts`, imported by the old canonical document store). The catalog Builder
+ * saves its project file elsewhere (ADR-235 container) and never reads it.
+ */
+let documentsStoreFactory:
+  ((access: DocumentsStoreAdapterAccess) => DocumentsStore) | null = null;
+export function installDocumentsStore(
+  factory: (access: DocumentsStoreAdapterAccess) => DocumentsStore,
+): void {
+  documentsStoreFactory = factory;
+}
 
 const DB_NAME = "composition";
 const DB_VERSION = 23; // 2026-09-26 (ADR-235): assets · asset_gc store — 해시 자산 저장소.
@@ -154,10 +173,6 @@ function stripLegacyOrderPayloads(transaction: IDBTransaction | null): void {
 
 export class IndexedDBAdapter implements DatabaseAdapter {
   private db: IDBDatabase | null = null;
-
-  private incrementalDocuments = new IncrementalDocuments(() =>
-    this.ensureDB(),
-  );
 
   // LRU Caches for frequently accessed data
   private projectCache = new LRUCache<Project>(10);
@@ -573,51 +588,23 @@ export class IndexedDBAdapter implements DatabaseAdapter {
     },
   };
 
-  // === Canonical Documents (ADR-116 primary storage) ===
+  // === Canonical Documents (ADR-116 primary storage — the old Builder's, 4e-7) ===
 
-  documents = {
-    /**
-     * 급감 가드 + 백업 ring 경유 write (2026-07-14 요소 소실 사건 대응).
-     *
-     * - node 수 급감 write 는 기본 거부 (throw 하지 않고 skip + 경고 —
-     *   실패 모드가 "새로고침 시 DB 상태로 복원" 이 되도록).
-     * - 덮어쓰기 전 기존 row 를 documents_backup ring 에 보존 (프로젝트당
-     *   BACKUP_GENERATIONS 세대, BACKUP_MIN_INTERVAL_MS 시간 버킷).
-     */
-    put: async (
-      projectId: string,
-      document: CompositionDocument,
-      options?: DocumentPersistOptions,
-    ): Promise<CompositionDocument> => {
-      // ADR-235 Phase 5 — quota 초과면 캐시를 비우고 1회 재시도, 그래도 실패하면 알림 이벤트.
-      //   첫 성공 저장에서 persist() 를 한 번 요청한다.
-      const saved = await withQuotaRetry(
-        () => this.incrementalDocuments.put(projectId, document, options),
-        () => this.clearCaches(),
-      );
-      void requestPersistenceOnce();
-      return saved;
-    },
+  private documentsStore: DocumentsStore | null = null;
 
-    /** 백업 ring 조회 (최신순) — 사고 시 콘솔 복구용 진입점 */
-    getBackups: async (
-      projectId: string,
-    ): Promise<CanonicalDocumentBackupRecord[]> => {
-      const backups = await this.getAllByIndex<CanonicalDocumentBackupRecord>(
-        "documents_backup",
-        "project_id",
-        projectId,
-      );
-      return backups.sort((a, b) => b.updated_at.localeCompare(a.updated_at));
-    },
-
-    backupNow: (projectId: string) =>
-      this.incrementalDocuments.backupNow(projectId),
-
-    get: (projectId: string) => this.incrementalDocuments.get(projectId),
-    delete: (projectId: string) => this.incrementalDocuments.delete(projectId),
-    getAll: () => this.incrementalDocuments.getAll(),
-  };
+  get documents(): DocumentsStore {
+    if (!this.documentsStore) {
+      if (!documentsStoreFactory)
+        throw new Error("Canonical documents store is not installed");
+      this.documentsStore = documentsStoreFactory({
+        ensureDB: () => this.ensureDB(),
+        getAllByIndex: (storeName, indexName, value) =>
+          this.getAllByIndex(storeName, indexName, value),
+        clearCaches: () => this.clearCaches(),
+      });
+    }
+    return this.documentsStore;
+  }
 
   // === Data Tables (Data Panel System) ===
 

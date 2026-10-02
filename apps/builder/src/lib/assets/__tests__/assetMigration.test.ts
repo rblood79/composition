@@ -5,6 +5,7 @@
  */
 import { IDBFactory } from "fake-indexeddb";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import "../../db/indexedDB/documentsStore.legacy"; // old canonical documents store (seeds `adapter.documents` — ADR-248 4e-7: goes with the old store)
 import type { CompositionDocument } from "@composition/shared";
 import { encodeDataUrl } from "@composition/shared/assets";
 import { IndexedDBAdapter } from "../../db/indexedDB/adapter";

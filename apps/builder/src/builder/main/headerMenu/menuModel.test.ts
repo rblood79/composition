@@ -30,6 +30,7 @@ function context(overrides: Partial<MenuModelContext> = {}): MenuModelContext {
       onConnectFolder: vi.fn(),
       onDeleteProject: vi.fn(),
       onResetPanelLayout: vi.fn(),
+      snapshotActions: { canCreate: () => true, create: vi.fn() },
       runtime: {
         useThemeMode: () => "auto",
         getThemeMode: () => "auto",

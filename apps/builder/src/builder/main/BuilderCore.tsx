@@ -1,5 +1,6 @@
 import { importCollectionEnvelope } from "../utils/importCollectionEnvelope";
 import { STORE_VIEWPORT_ACTIONS } from "../workspace/storeViewportActions.legacy";
+import { createStoreSnapshotActions } from "../panels/history/storeSnapshotActions.legacy";
 import {
   toRuntimeApiEndpoint,
   toRuntimeCollection,
@@ -13,6 +14,7 @@ import React, {
   useCallback,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
 } from "react";
 import { useParams } from "react-router";
@@ -255,6 +257,10 @@ function hasPageShellTopologyChanged(
 export const BuilderCore: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const { t } = useI18n();
+  const storeSnapshotActions = useMemo(
+    () => createStoreSnapshotActions(projectId),
+    [projectId],
+  );
   // ADR-218 — interval 실행 정책 스케줄러 (자기 재예약·coalesce·cleanup, 타이머 leak 0)
   useExecutionPolicyScheduler();
   const [projectInfo, setProjectInfo] = useState<Project | null>(null);
@@ -1685,6 +1691,7 @@ export const BuilderCore: React.FC = () => {
         chrome={
           <BuilderHeader
             viewportActions={STORE_VIEWPORT_ACTIONS}
+            snapshotActions={storeSnapshotActions}
             projectId={projectId}
             projectName={projectInfo?.name}
             breakpoint={breakpoint}

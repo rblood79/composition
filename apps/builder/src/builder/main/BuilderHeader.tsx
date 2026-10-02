@@ -81,7 +81,7 @@ export interface BuilderHeaderProps {
   /** ADR-235 Phase 6 — 프로젝트를 폴더에 연결 (Chromium File System Access) */
   onConnectFolder: () => void | Promise<void>;
   /** ADR-248 4e-6-32 — 열린 catalog 프로젝트의 스냅샷 만들기 (없으면 옛 store) */
-  snapshotActions?: HeaderMenuHost["snapshotActions"];
+  snapshotActions: HeaderMenuHost["snapshotActions"];
   /** 연결된 프로젝트면 폴더 상태 버튼 (lazy) — 없으면 null */
   directoryLink: ReactNode;
   /** ADR-248 — 열린 프로젝트의 저장 상태 표시 */

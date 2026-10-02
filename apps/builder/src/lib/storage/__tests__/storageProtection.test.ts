@@ -102,6 +102,8 @@ describe("adapter — 원본 저장 quota 재시도 · 캐시 상한", () => {
 
   it("documents.put 이 quota 로 실패하면 캐시를 비우고 재시도해 저장한다", async () => {
     const { IndexedDBAdapter } = await import("../../db/indexedDB/adapter");
+    // ADR-248 4e-7: the old canonical documents store installs itself on the adapter.
+    await import("../../db/indexedDB/documentsStore.legacy");
     const adapter = new IndexedDBAdapter();
     await adapter.init();
     await adapter.collection_runtime.put({
@@ -109,20 +111,15 @@ describe("adapter — 원본 저장 quota 재시도 · 캐시 상한", () => {
       project_id: "p1",
       runtimeData: [{ a: 1 }],
     } as never);
-    const inner = (
-      adapter as unknown as {
-        incrementalDocuments: { put: (...a: unknown[]) => Promise<unknown> };
-      }
-    ).incrementalDocuments;
-    const original = inner.put.bind(inner);
-    let first = true;
-    inner.put = async (...args: unknown[]) => {
-      if (first) {
-        first = false;
+    // The first document write hits the quota (the incremental store's put), the retry saves.
+    const { IncrementalDocuments } = await import(
+      "../../db/indexedDB/incrementalDocuments"
+    );
+    vi.spyOn(IncrementalDocuments.prototype, "put").mockImplementationOnce(
+      async () => {
         throw new DOMException("full", "QuotaExceededError");
-      }
-      return original(...args);
-    };
+      },
+    );
     const doc = {
       version: "composition-1.0",
       children: [],

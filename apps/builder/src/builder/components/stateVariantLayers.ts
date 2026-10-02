@@ -18,7 +18,7 @@
  */
 import type { CanonicalNode } from "@composition/shared";
 
-import { composePropsPatches } from "../../adapters/canonical/instanceResolver";
+import { composePropsPatches } from "../utils/propsPatchMerge";
 import {
   readStateVariantSelf,
   stateVariantOriginId,

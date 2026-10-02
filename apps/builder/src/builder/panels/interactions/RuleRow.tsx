@@ -19,7 +19,7 @@ import { useVisibleVariables } from "../properties/hooks/useVisibleVariables";
 import { ActionPicker } from "./ActionPicker";
 import { CapabilityPicker } from "./CapabilityPicker";
 import { ParamField } from "./ParamField";
-import { StateActionFields } from "./StateActionFields";
+import { StateActionFields } from "./StateActionFields.legacy";
 import { TargetPicker } from "./TargetPicker";
 import { TriggerPicker } from "./TriggerPicker";
 import { triggerLabel } from "./labels";

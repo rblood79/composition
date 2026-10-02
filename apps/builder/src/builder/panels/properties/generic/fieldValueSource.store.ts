@@ -8,6 +8,7 @@ import {
   useCanonicalPropertyValuesSnapshot,
 } from "../hooks/useCanonicalPropertyRead";
 import { useOwnerCollectionFields } from "../hooks/useOwnerCollectionColumns.legacy";
+import { useVisibleVariableNames } from "../hooks/useVisibleVariableNames.legacy";
 import {
   setFieldValueSourceTestFallback,
   type FieldValueSource,
@@ -17,6 +18,7 @@ export const STORE_FIELD_VALUE_SOURCE: FieldValueSource = {
   useValue: useCanonicalPropertyValue,
   useValuesSnapshot: useCanonicalPropertyValuesSnapshot,
   useOwnerFields: useOwnerCollectionFields,
+  useVariableNames: useVisibleVariableNames,
 };
 
 setFieldValueSourceTestFallback(STORE_FIELD_VALUE_SOURCE);

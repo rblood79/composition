@@ -17,6 +17,8 @@
  * - legacy payload 는 export/adapter mirror 경계에서만 생성.
  */
 
+// ADR-248 4e-7: the old canonical documents store on IndexedDB is installed with this store.
+import "../../../lib/db/indexedDB/documentsStore.legacy";
 import { create } from "zustand";
 import type {
   CanonicalDocumentActions,

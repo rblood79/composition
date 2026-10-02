@@ -26,8 +26,14 @@ describe("ADR-116 direct cutover: IndexedDB canonical document storage", () => {
     const typesSource = await fs.readFile(typesPath, "utf-8");
 
     expect(adapterSource).toMatch(/createObjectStore\(\s*["']documents["']/);
-    expect(adapterSource).toMatch(/documents\s*=\s*\{[\s\S]*?put\s*:/);
-    expect(adapterSource).toMatch(/documents\s*=\s*\{[\s\S]*?get\s*:/);
+    // ADR-248 4e-7: the store's methods are the old Builder's installed part (`documentsStore.legacy.ts`).
+    expect(adapterSource).toMatch(/get documents\(\)/);
+    const storeSource = await fs.readFile(
+      path.resolve(__dirname, "../indexedDB/documentsStore.legacy.ts"),
+      "utf-8",
+    );
+    expect(storeSource).toMatch(/put:\s*async/);
+    expect(storeSource).toMatch(/get:\s*\(projectId/);
     expect(typesSource).toMatch(/interface\s+CanonicalDocumentRecord\b/);
     expect(typesSource).toMatch(/documents\s*:\s*\{/);
   });

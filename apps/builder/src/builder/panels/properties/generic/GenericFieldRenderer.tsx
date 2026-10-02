@@ -20,7 +20,6 @@ import { memo, useCallback, useMemo, type ReactNode } from "react";
 
 import type { ResolvedField } from "@composition/shared";
 import type { ItemsManagerField } from "@composition/specs";
-import { useVisibleVariableNames } from "../hooks/useVisibleVariableNames";
 
 import { PropertyChipGroup } from "../../../components/property/PropertyChipGroup";
 import {
@@ -59,6 +58,7 @@ import {
 } from "../hooks/useOwnerCollectionColumns";
 import {
   useFieldOwnerFields,
+  useFieldVariableNames,
   useFieldValue,
   useFieldValuesSnapshot,
 } from "./fieldValueSource";
@@ -986,7 +986,7 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
     [ownerFields],
   );
   // ADR-214 Phase 3 — `{{` 자동완성 후보. 필드가 아니라 렌더러가 한 번 구독한다.
-  const stateNames = useVisibleVariableNames(elementId);
+  const stateNames = useFieldVariableNames(elementId);
 
   const extraSections = Object.entries(sectionExtras ?? {}).filter(
     (entry): entry is [string, ReactNode] => entry[1] != null,

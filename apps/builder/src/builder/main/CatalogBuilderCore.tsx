@@ -116,6 +116,8 @@ import "../panels/core/panelConfigs";
 
 /** The zoom menu while the project is still opening (no page frames yet). */
 const NO_VIEWPORT_ACTIONS = { fit() {}, fill() {}, alignPages() {} };
+/** The header menu's snapshot item while the project is still opening (nothing to snapshot). */
+const NO_SNAPSHOT_ACTIONS = { canCreate: () => false, create() {} };
 
 type OpenState =
   | { kind: "opening" }
@@ -326,8 +328,9 @@ export function CatalogBuilderCore() {
                 console.warn("[snapshots] create refused:", error);
               });
             },
+            subscribe: snapshots.subscribe,
           }
-        : undefined,
+        : NO_SNAPSHOT_ACTIONS,
     [snapshotHost, snapshots],
   );
   // The restored snapshot stays "active" until the reopened document's first edit.

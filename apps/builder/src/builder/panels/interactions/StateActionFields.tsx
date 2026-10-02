@@ -5,24 +5,12 @@
  * ActionPicker 아트보드 정본.
  */
 import { memo, useMemo } from "react";
-import {
-  SET_STATE_OPS,
-  type SetStateAction,
-  type SetStateOp,
-  type VisibleVariable,
-} from "@composition/shared";
+import { SET_STATE_OPS, type SetStateOp, type VisibleVariable } from "@composition/shared";
 
 import { PropertyInput } from "../../components/property/PropertyInput";
 import { PropertySelect } from "../../components/property/PropertySelect";
-import { useVisibleVariables } from "../properties/hooks/useVisibleVariables";
 import { useI18n } from "@/i18n";
 
-interface StateActionFieldsProps {
-  /** 트리거 요소 (가시성 기준) */
-  elementId: string;
-  action: SetStateAction;
-  onChange: (action: SetStateAction) => void;
-}
 
 const OP_LABEL_KEYS: Record<SetStateOp, string> = {
   set: "interactions.stateOpSet",
@@ -54,36 +42,7 @@ function opsForType(type: VisibleVariable["def"]["type"] | null): SetStateOp[] {
   return ["set", "reset"];
 }
 
-function groupLabelKey(owner: VisibleVariable["owner"]): string {
-  if (owner.kind === "project") return "interactions.stateVariableGroupProject";
-  if (owner.kind === "page") return "interactions.stateVariableGroupPage";
-  return "interactions.stateVariableGroupElement";
-}
 
-export const StateActionFields = memo(function StateActionFields({
-  elementId,
-  action,
-  onChange,
-}: StateActionFieldsProps) {
-  const visible = useVisibleVariables(elementId);
-  const variables = useMemo(
-    () =>
-      visible.map((entry) => ({
-        id: entry.def.id,
-        name: entry.def.name,
-        type: entry.def.type,
-        groupLabelKey: groupLabelKey(entry.owner),
-      })),
-    [visible],
-  );
-  return (
-    <StateActionFieldsView
-      variables={variables}
-      action={action}
-      onChange={(next) => onChange({ ...action, ...next })}
-    />
-  );
-});
 
 interface StateActionFieldsViewProps {
   /** 가까운 소유자가 앞 (요소 → 조상 → 페이지 → 프로젝트) */

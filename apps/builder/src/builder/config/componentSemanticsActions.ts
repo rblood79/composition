@@ -41,19 +41,16 @@ export { toEditingSemanticsTarget };
 export type { EditingSemanticsTarget };
 import { ACTION_ICONS, type ActionIcon } from "./actionIcons";
 import type { ShortcutId } from "./keyboardShortcuts";
+import {
+  COMPONENT_SEMANTICS_ACTION_ORDER,
+  type ActionSurface,
+  type ComponentSemanticsActionId,
+} from "./componentSemanticsActionOrder";
 
-/** ADR-182 item id 계약과 같은 문자열 (`select-instances` 만 패널 전용). */
-export type ComponentSemanticsActionId =
-  | "go-to-origin"
-  | "detach-instance"
-  | "select-instances"
-  | "toggle-component-origin";
-
-/** 노출 표면. 단축키·agent 는 명령 축(`commandId`)이라 여기 세지 않는다. */
-export type ActionSurface =
-  | "properties-panel"
-  | "context-menu"
-  | "action-bar";
+export type {
+  ActionSurface,
+  ComponentSemanticsActionId,
+} from "./componentSemanticsActionOrder";
 
 /**
  * 노드 하나로는 알 수 없는 맥락. 전부 표면이 계산해 넘긴다.
@@ -107,71 +104,64 @@ export interface ComponentSemanticsActionDescriptor {
   ): boolean;
 }
 
-const ALL_SURFACES: readonly ActionSurface[] = [
-  "properties-panel",
-  "context-menu",
-  "action-bar",
-];
+type ComponentSemanticsActionBehavior = Omit<
+  ComponentSemanticsActionDescriptor,
+  "id" | "surfaces"
+>;
+
+const ACTION_BEHAVIORS: Readonly<
+  Record<ComponentSemanticsActionId, ComponentSemanticsActionBehavior>
+> = {
+  "go-to-origin": {
+    labelKey: () => ({ key: "componentAction.goToOrigin" }),
+    icon: () => ACTION_ICONS.goToOrigin,
+    isAvailable: (target) => isEditingSemanticsInstance(target),
+    isEnabled: (_target, context) => context.hasResolvedOrigin,
+  },
+  "detach-instance": {
+    commandId: "detachInstance",
+    labelKey: () => ({ key: "componentAction.detachInstance" }),
+    icon: () => ACTION_ICONS.detach,
+    isAvailable: (target) => canDetachInstance(target),
+  },
+  "select-instances": {
+    labelKey: (_target, context) => ({
+      key: "componentAction.selectInstances",
+      params: { count: context.instanceCount },
+    }),
+    icon: () => Diamond,
+    isAvailable: (target, context) =>
+      isEditingSemanticsOrigin(target) && context.instanceCount > 0,
+  },
+  "toggle-component-origin": {
+    commandId: "toggleComponentOrigin",
+    // 생성/해제 양방향 토글이라 그림도 함께 뒤집는다 — 라벨만 바뀌고 그림이
+    // 고정이면 어느 방향인지 아이콘이 말해 주지 않는다.
+    labelKey: (target) => ({
+      key: isEditingSemanticsOrigin(target)
+        ? "componentAction.detachComponent"
+        : "componentAction.createComponent",
+    }),
+    icon: (target) =>
+      isEditingSemanticsOrigin(target)
+        ? ACTION_ICONS.detach
+        : ACTION_ICONS.createComponent,
+    // 두 축은 독립이라 인스턴스에도 함께 선다. 어느 노드가 이 섹션/블록을
+    // 여는지는 표면 규칙이다 (메뉴는 단일 && non-body).
+    isAvailable: () => true,
+  },
+};
 
 /**
- * **배열 순서가 노출 순서의 정본**이다 (좌→우 / 위→아래).
- *
- * Phase 0 freeze 기준 패널·바는 이 순서였고 메뉴만 컴포넌트 축이 선두였다
- * (발산 D1). 같은 묶음이 표면마다 다른 순서로 서면 위치를 매번 다시 찾으므로
- * 메뉴를 이 순서로 맞춘다 — ADR-199 HC5 의 명시 예외 1건.
+ * 노출 순서 · 표면은 `COMPONENT_SEMANTICS_ACTION_ORDER` 가 정본이다 (ADR-248 4e-7: 액션 바가 동작
+ * 판정 없이 순서만 읽는다) — 여기는 그 순서에 동작 (라벨 · 아이콘 · 가용 판정) 을 붙인다.
  */
 export const COMPONENT_SEMANTICS_ACTIONS: readonly ComponentSemanticsActionDescriptor[] =
-  [
-    {
-      id: "go-to-origin",
-      surfaces: ALL_SURFACES,
-      labelKey: () => ({ key: "componentAction.goToOrigin" }),
-      icon: () => ACTION_ICONS.goToOrigin,
-      isAvailable: (target) => isEditingSemanticsInstance(target),
-      isEnabled: (_target, context) => context.hasResolvedOrigin,
-    },
-    {
-      id: "detach-instance",
-      commandId: "detachInstance",
-      surfaces: ALL_SURFACES,
-      labelKey: () => ({ key: "componentAction.detachInstance" }),
-      icon: () => ACTION_ICONS.detach,
-      isAvailable: (target) => canDetachInstance(target),
-    },
-    {
-      id: "select-instances",
-      // 패널 전용 — ADR-182 항목 id 계약에도 바 allowlist 계약에도 없다.
-      // 메뉴/바에 실으려면 그 계약부터 넓혀야 하므로 여기서 조용히 늘리지
-      // 않는다 (Phase 0 freeze §5).
-      surfaces: ["properties-panel"],
-      labelKey: (_target, context) => ({
-        key: "componentAction.selectInstances",
-        params: { count: context.instanceCount },
-      }),
-      icon: () => Diamond,
-      isAvailable: (target, context) =>
-        isEditingSemanticsOrigin(target) && context.instanceCount > 0,
-    },
-    {
-      id: "toggle-component-origin",
-      commandId: "toggleComponentOrigin",
-      surfaces: ALL_SURFACES,
-      // 생성/해제 양방향 토글이라 그림도 함께 뒤집는다 — 라벨만 바뀌고 그림이
-      // 고정이면 어느 방향인지 아이콘이 말해 주지 않는다.
-      labelKey: (target) => ({
-        key: isEditingSemanticsOrigin(target)
-          ? "componentAction.detachComponent"
-          : "componentAction.createComponent",
-      }),
-      icon: (target) =>
-        isEditingSemanticsOrigin(target)
-          ? ACTION_ICONS.detach
-          : ACTION_ICONS.createComponent,
-      // 두 축은 독립이라 인스턴스에도 함께 선다. 어느 노드가 이 섹션/블록을
-      // 여는지는 표면 규칙이다 (메뉴는 단일 && non-body).
-      isAvailable: () => true,
-    },
-  ];
+  COMPONENT_SEMANTICS_ACTION_ORDER.map(({ id, surfaces }) => ({
+    id,
+    surfaces,
+    ...ACTION_BEHAVIORS[id],
+  }));
 
 export const DEFAULT_AVAILABILITY_CONTEXT: ActionAvailabilityContext = {
   hasResolvedOrigin: false,
@@ -193,4 +183,3 @@ export function resolveComponentSemanticsActions(
       action.surfaces.includes(surface) && action.isAvailable(target, context),
   );
 }
-

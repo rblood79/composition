@@ -13,8 +13,9 @@ import {
 import { yieldToMain } from "../../../builder/utils/scheduleTask";
 import { trackPersistCall } from "../../../builder/utils/persistActivity";
 
-export const DOCUMENT_PARTS = "document_parts";
-export const DOCUMENT_HEADS = "document_heads";
+import { DOCUMENT_HEADS, DOCUMENT_PARTS } from "./documentStoreNames";
+
+export { DOCUMENT_HEADS, DOCUMENT_PARTS };
 const STORES = [
   "documents",
   "documents_backup",

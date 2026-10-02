@@ -34,7 +34,6 @@ import {
   SHORTCUT_DEFINITIONS,
   type ShortcutId,
 } from "../../config/keyboardShortcuts";
-import { snapshotManager } from "../../stores/history/snapshots";
 // 읽기 모델은 agent executor 경유 — executor 청크가 이미 싣고 있는 모듈 묶음을 그대로 가리켜야
 // Rolldown 이 initial 공유 청크 (canvasActions) 를 쪼개지 않는다 (G2, headerMenuRuntime.ts).
 import { buildAgentReadModel } from "../../../services/agent/executeAgentCommand";
@@ -89,15 +88,14 @@ export default function HeaderMainMenu({ host }: HeaderMainMenuProps) {
   const focusMode = useSectionCollapse((state) => state.focusMode);
   const themeMode = host.runtime.useThemeMode();
 
-  // 스냅샷 상한 판정은 IndexedDB 목록 hydrate 뒤에 맞다 — 열 때 받아 두고 갱신을 구독한다.
+  // 스냅샷 상한 판정은 목록 갱신 뒤에 맞다 — 열린 프로젝트의 스냅샷 동작이 알린다.
   const [snapshotVersion, setSnapshotVersion] = useState(0);
-  useEffect(() => {
-    const unsubscribe = snapshotManager.subscribe(() =>
-      setSnapshotVersion((version) => version + 1),
-    );
-    if (host.projectId) void snapshotManager.loadProject(host.projectId);
-    return unsubscribe;
-  }, [host.projectId]);
+  const subscribeSnapshots = host.snapshotActions.subscribe;
+  useEffect(
+    () =>
+      subscribeSnapshots?.(() => setSnapshotVersion((version) => version + 1)),
+    [subscribeSnapshots],
+  );
 
   const isPanelVisible = useCallback(
     (panelId: Parameters<typeof togglePanelWorkspace>[0]) =>

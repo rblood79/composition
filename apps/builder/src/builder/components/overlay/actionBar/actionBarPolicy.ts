@@ -17,7 +17,7 @@
  *   에만 만든다 — 단일 body 판정의 정확한 대응물)
  * - C0: 위 어느 것도 없음 → null (바 미마운트)
  */
-import { COMPONENT_SEMANTICS_ACTIONS } from "../../../config/componentSemanticsActions";
+import { COMPONENT_SEMANTICS_ACTION_ORDER } from "../../../config/componentSemanticsActionOrder";
 import type { ContextMenuItem } from "../contextMenu/types";
 
 /**
@@ -26,7 +26,7 @@ import type { ContextMenuItem } from "../contextMenu/types";
  * `toggle-component-origin` 이 빠져 있었다 (2026-08-30 회귀).
  */
 const COMPONENT_AXIS_IDS: readonly string[] =
-  COMPONENT_SEMANTICS_ACTIONS.filter((action) =>
+  COMPONENT_SEMANTICS_ACTION_ORDER.filter((action) =>
     action.surfaces.includes("action-bar"),
   ).map((action) => action.id);
 
