@@ -76,6 +76,11 @@ export interface StylesHost {
   previewStyle(property: string, value: string): void;
   updateProperty(key: string, value: unknown): void;
   updateProperties(props: Record<string, unknown>): void;
+  /** Props and CSS keys (empty = remove) as one history step. */
+  updatePropertiesWithStyles(
+    props: Record<string, unknown>,
+    styles: Record<string, string>,
+  ): void;
   /** The parent record of a record (its layout decides the size modes on offer). */
   useParentId(id: string | null): string | null;
   /** A record's parent box layout: `display` and `flexDirection` (fill availability, size mode). */

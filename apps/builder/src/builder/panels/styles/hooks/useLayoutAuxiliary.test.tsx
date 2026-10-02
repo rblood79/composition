@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
-import "../stylesHost.store"; // old-store host (ADR-248 4e-7: goes with the old store)
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { renderHook } from "@testing-library/react";
+import { renderHook as renderHookBase } from "@testing-library/react";
+import { stubStylesHost } from "../__tests__/support/stubStylesHost";
 
 // ADR-082 P4 / ADR-108 P3: Panel 의 layout fallback 경로 검증.
 //   fallback source 는 ADR-912 Phase 4 로 builder-local TAG_SPEC_MAP 에서 catalog
@@ -121,7 +121,6 @@ import {
   useFlexWrapKeys,
   useLayoutAlignmentDisabled,
 } from "./useLayoutAuxiliary";
-import { seedPanelElements } from "../../../__tests__/panelFixture";
 import type { Element } from "../../../../types/core/store.types";
 
 function makeElement(
@@ -132,13 +131,18 @@ function makeElement(
   return { id, type, props };
 }
 
+/** ADR-248 4e-9 C: the hooks read the element through a stub Styles host (synthetic rule types). */
+const stub = stubStylesHost();
+const renderHook = <T,>(hook: () => T) =>
+  renderHookBase(hook, { wrapper: stub.wrapper });
+
 function setElement(
   id: string,
   style: Record<string, unknown>,
   tag = "Div",
   extraProps: Record<string, unknown> = {},
 ) {
-  seedPanelElements([makeElement(id, tag, { ...extraProps, style })]);
+  stub.set(makeElement(id, tag, { ...extraProps, style }));
 }
 
 describe("useFlexDirectionKeys", () => {

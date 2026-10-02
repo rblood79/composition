@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
-import "../stylesHost.store"; // old-store host (ADR-248 4e-7: goes with the old store)
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { useStore } from "../../../stores";
-import type { Element } from "../../../../types/core/store.types";
-import type { CompositionDocument } from "@composition/shared";
-import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
+import {
+  openStylesFixture,
+  type StylesFixture,
+  type StylesFixtureNode,
+} from "../__tests__/support/catalogStylesFixture";
 import { useStyleActions } from "./useStyleActions";
 
 vi.mock("../../../hooks/useCopyPaste", () => ({
@@ -15,63 +15,28 @@ vi.mock("../../../hooks/useCopyPaste", () => ({
   }),
 }));
 
-/** Form origin (Components 페이지) 안 TextField 자식 · page-1 에 Form instance — 자식은 synthetic `form-1/field-1`. */
-function makeSyntheticFormDocument(
-  descendants?: Record<string, Record<string, unknown>>,
-): CompositionDocument {
+/**
+ * ADR-248 4e-9 C: the style actions over the catalog Styles host. The old store actions the tests
+ * spied on are the host's writes (`updateStyles` · `updateProperty` · `updateProperties`), spied
+ * with their real effect kept.
+ */
+let fixture: StylesFixture;
+
+async function setup(nodes: StylesFixtureNode[], select: string) {
+  fixture = await openStylesFixture(nodes, { select });
   return {
-    version: "composition-1.0",
-    children: [
-      {
-        id: "page-components",
-        type: "frame",
-        metadata: { type: "legacy-page", pageId: "page-components" },
-        children: [
-          {
-            id: "page-components-body",
-            type: "body",
-            props: {},
-            children: [
-              {
-                id: "component-form",
-                type: "Form",
-                reusable: true,
-                props: {},
-                children: [
-                  {
-                    id: "field-1",
-                    type: "TextField",
-                    props: { label: "Name", labelPosition: "top" },
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-      },
-      {
-        id: "page-1",
-        type: "frame",
-        metadata: { type: "legacy-page", pageId: "page-1" },
-        children: [
-          {
-            id: "body",
-            type: "body",
-            props: {},
-            children: [
-              {
-                id: "form-1",
-                type: "ref",
-                ref: "component-form",
-                props: {},
-                ...(descendants ? { descendants } : {}),
-              },
-            ],
-          },
-        ],
-      },
-    ],
-  } as unknown as CompositionDocument;
+    updateSelectedStyles: vi.spyOn(fixture.host, "updateStyles"),
+    updateSelectedProperty: vi.spyOn(fixture.host, "updateProperty"),
+    updateSelectedProperties: vi.spyOn(fixture.host, "updateProperties"),
+    updatePropertiesWithStyles: vi.spyOn(
+      fixture.host,
+      "updatePropertiesWithStyles",
+    ),
+  };
+}
+
+function actions() {
+  return renderHook(() => useStyleActions(), { wrapper: fixture.wrapper });
 }
 
 describe("useStyleActions", () => {
@@ -79,11 +44,10 @@ describe("useStyleActions", () => {
     vi.restoreAllMocks();
   });
 
-  it("writes explicit row flexDirection when applying container alignment", () => {
-    const updateSelectedStyles = vi.fn();
-    useStore.setState({ updateSelectedStyles });
+  it("writes explicit row flexDirection when applying container alignment", async () => {
+    const { updateSelectedStyles } = await setup([{ id: "el1" }], "el1");
 
-    const { result } = renderHook(() => useStyleActions());
+    const { result } = actions();
 
     act(() => {
       result.current.handleFlexAlignment("leftTop", "row");
@@ -97,10 +61,9 @@ describe("useStyleActions", () => {
     });
   });
 
-  it("preserveMainAxis — Space 분산 중에는 교차축 alignItems 만 쓰고 justifyContent 를 남긴다", () => {
-    const updateSelectedStyles = vi.fn();
-    useStore.setState({ updateSelectedStyles });
-    const { result } = renderHook(() => useStyleActions());
+  it("preserveMainAxis — Space 분산 중에는 교차축 alignItems 만 쓰고 justifyContent 를 남긴다", async () => {
+    const { updateSelectedStyles } = await setup([{ id: "el1" }], "el1");
+    const { result } = actions();
 
     act(() => {
       result.current.handleFlexAlignment("centerBottom", "row", {
@@ -136,27 +99,17 @@ describe("useStyleActions", () => {
   // 이 자식 상속 hint(그룹 root derive 아님)라 제외.
   describe("handleFlexDirection — 그룹 축 prop derive 컨테이너 동기화", () => {
     function setupSelection(type: string) {
-      const updateSelectedStyles = vi.fn();
-      const updateSelectedProperty = vi.fn();
-      useStore.setState({
-        selectedElementId: "el1",
-        elementsMap: new Map<string, Element>([
-          ["el1", { id: "el1", type, props: {} } as Element],
-        ]),
-        updateSelectedStyles,
-        updateSelectedProperty,
-      });
-      return { updateSelectedStyles, updateSelectedProperty };
+      return setup([{ id: "el1", type }], "el1");
     }
     // element.type 은 PascalCase 로 저장된다(실데이터 = "ToggleButtonGroup").
     // 소문자로 넘기면 derive 정규화 누락 회귀를 못 잡으므로 실표기 사용.
     const setupToggleButtonGroupSelection = () =>
       setupSelection("ToggleButtonGroup");
 
-    it("column → orientation:vertical 로 번역, style 미기록", () => {
+    it("column → orientation:vertical 로 번역, style 미기록", async () => {
       const { updateSelectedStyles, updateSelectedProperty } =
-        setupToggleButtonGroupSelection();
-      const { result } = renderHook(() => useStyleActions());
+        await setupToggleButtonGroupSelection();
+      const { result } = actions();
 
       act(() => {
         result.current.handleFlexDirection("column");
@@ -169,10 +122,10 @@ describe("useStyleActions", () => {
       expect(updateSelectedStyles).not.toHaveBeenCalled();
     });
 
-    it("row → orientation:horizontal 로 번역, style 미기록", () => {
+    it("row → orientation:horizontal 로 번역, style 미기록", async () => {
       const { updateSelectedStyles, updateSelectedProperty } =
-        setupToggleButtonGroupSelection();
-      const { result } = renderHook(() => useStyleActions());
+        await setupToggleButtonGroupSelection();
+      const { result } = actions();
 
       act(() => {
         result.current.handleFlexDirection("row");
@@ -185,13 +138,13 @@ describe("useStyleActions", () => {
       expect(updateSelectedStyles).not.toHaveBeenCalled();
     });
 
-    it("block 은 패널에서 disable 되지만, 방어적으로 도달해도 horizontal 처리(예외 없음)", () => {
+    it("block 은 패널에서 disable 되지만, 방어적으로 도달해도 horizontal 처리(예외 없음)", async () => {
       // 1차 방어는 LayoutSection 의 isDisabled={isOrientationDriven}.
       // handleFlexDirection 은 그래도 block 을 안전하게 horizontal 로 흡수해
       // style 오염(display:block) 을 막는다.
       const { updateSelectedStyles, updateSelectedProperty } =
-        setupToggleButtonGroupSelection();
-      const { result } = renderHook(() => useStyleActions());
+        await setupToggleButtonGroupSelection();
+      const { result } = actions();
 
       act(() => {
         result.current.handleFlexDirection("block");
@@ -204,10 +157,10 @@ describe("useStyleActions", () => {
       expect(updateSelectedStyles).not.toHaveBeenCalled();
     });
 
-    it("Toolbar column → orientation:vertical 로 번역, style 미기록", () => {
+    it("Toolbar column → orientation:vertical 로 번역, style 미기록", async () => {
       const { updateSelectedStyles, updateSelectedProperty } =
-        setupSelection("Toolbar");
-      const { result } = renderHook(() => useStyleActions());
+        await setupSelection("Toolbar");
+      const { result } = actions();
 
       act(() => {
         result.current.handleFlexDirection("column");
@@ -220,10 +173,10 @@ describe("useStyleActions", () => {
       expect(updateSelectedStyles).not.toHaveBeenCalled();
     });
 
-    it("RadioGroup column → labelPosition:top 로 번역 (그룹 root 축), style 미기록", () => {
+    it("RadioGroup column → labelPosition:top 로 번역 (그룹 root 축), style 미기록", async () => {
       const { updateSelectedStyles, updateSelectedProperty } =
-        setupSelection("RadioGroup");
-      const { result } = renderHook(() => useStyleActions());
+        await setupSelection("RadioGroup");
+      const { result } = actions();
 
       act(() => {
         result.current.handleFlexDirection("column");
@@ -236,10 +189,10 @@ describe("useStyleActions", () => {
       expect(updateSelectedStyles).not.toHaveBeenCalled();
     });
 
-    it("RadioGroup row → labelPosition:side 로 번역, style 미기록", () => {
+    it("RadioGroup row → labelPosition:side 로 번역, style 미기록", async () => {
       const { updateSelectedStyles, updateSelectedProperty } =
-        setupSelection("RadioGroup");
-      const { result } = renderHook(() => useStyleActions());
+        await setupSelection("RadioGroup");
+      const { result } = actions();
 
       act(() => {
         result.current.handleFlexDirection("row");
@@ -252,9 +205,9 @@ describe("useStyleActions", () => {
       expect(updateSelectedStyles).not.toHaveBeenCalled();
     });
 
-    it("CheckboxGroup column → labelPosition:top (RadioGroup 동형)", () => {
-      const { updateSelectedProperty } = setupSelection("CheckboxGroup");
-      const { result } = renderHook(() => useStyleActions());
+    it("CheckboxGroup column → labelPosition:top (RadioGroup 동형)", async () => {
+      const { updateSelectedProperty } = await setupSelection("CheckboxGroup");
+      const { result } = actions();
 
       act(() => {
         result.current.handleFlexDirection("column");
@@ -266,10 +219,10 @@ describe("useStyleActions", () => {
       );
     });
 
-    it("TextField row → labelPosition:side 로 번역 (field 동형), style 미기록", () => {
+    it("TextField row → labelPosition:side 로 번역 (field 동형), style 미기록", async () => {
       const { updateSelectedStyles, updateSelectedProperty } =
-        setupSelection("TextField");
-      const { result } = renderHook(() => useStyleActions());
+        await setupSelection("TextField");
+      const { result } = actions();
 
       act(() => {
         result.current.handleFlexDirection("row");
@@ -282,9 +235,9 @@ describe("useStyleActions", () => {
       expect(updateSelectedStyles).not.toHaveBeenCalled();
     });
 
-    it("NumberField column → labelPosition:top (field 동형)", () => {
-      const { updateSelectedProperty } = setupSelection("NumberField");
-      const { result } = renderHook(() => useStyleActions());
+    it("NumberField column → labelPosition:top (field 동형)", async () => {
+      const { updateSelectedProperty } = await setupSelection("NumberField");
+      const { result } = actions();
 
       act(() => {
         result.current.handleFlexDirection("column");
@@ -296,9 +249,9 @@ describe("useStyleActions", () => {
       );
     });
 
-    it("TagGroup row → labelPosition:side (chip 계열 동형)", () => {
-      const { updateSelectedProperty } = setupSelection("TagGroup");
-      const { result } = renderHook(() => useStyleActions());
+    it("TagGroup row → labelPosition:side (chip 계열 동형)", async () => {
+      const { updateSelectedProperty } = await setupSelection("TagGroup");
+      const { result } = actions();
 
       act(() => {
         result.current.handleFlexDirection("row");
@@ -310,9 +263,9 @@ describe("useStyleActions", () => {
       );
     });
 
-    it("ComboBox row → labelPosition:side (binding accepts 추가됨, field 동형)", () => {
-      const { updateSelectedProperty } = setupSelection("ComboBox");
-      const { result } = renderHook(() => useStyleActions());
+    it("ComboBox row → labelPosition:side (binding accepts 추가됨, field 동형)", async () => {
+      const { updateSelectedProperty } = await setupSelection("ComboBox");
+      const { result } = actions();
 
       act(() => {
         result.current.handleFlexDirection("row");
@@ -324,10 +277,10 @@ describe("useStyleActions", () => {
       );
     });
 
-    it("Select column → labelPosition:top (catalog side variant 는 structure 경유로 이미 존재)", () => {
+    it("Select column → labelPosition:top (catalog side variant 는 structure 경유로 이미 존재)", async () => {
       const { updateSelectedStyles, updateSelectedProperty } =
-        setupSelection("Select");
-      const { result } = renderHook(() => useStyleActions());
+        await setupSelection("Select");
+      const { result } = actions();
 
       act(() => {
         result.current.handleFlexDirection("column");
@@ -340,9 +293,9 @@ describe("useStyleActions", () => {
       expect(updateSelectedStyles).not.toHaveBeenCalled();
     });
 
-    it("DateRangePicker row → labelPosition:side (datepicker 공통 분기 동형)", () => {
-      const { updateSelectedProperty } = setupSelection("DateRangePicker");
-      const { result } = renderHook(() => useStyleActions());
+    it("DateRangePicker row → labelPosition:side (datepicker 공통 분기 동형)", async () => {
+      const { updateSelectedProperty } = await setupSelection("DateRangePicker");
+      const { result } = actions();
 
       act(() => {
         result.current.handleFlexDirection("row");
@@ -360,10 +313,10 @@ describe("useStyleActions", () => {
       ["Slider", "row", "side"],
     ])(
       "%s %s → labelPosition:%s (catalog side variant + accepts — field 동형)",
-      (type, direction, expected) => {
+      async (type, direction, expected) => {
         const { updateSelectedStyles, updateSelectedProperty } =
-          setupSelection(type);
-        const { result } = renderHook(() => useStyleActions());
+          await setupSelection(type);
+        const { result } = actions();
 
         act(() => {
           result.current.handleFlexDirection(direction);
@@ -377,30 +330,13 @@ describe("useStyleActions", () => {
       },
     );
 
-    it("팔레트가 만든 ref instance 는 origin 타입으로 판정한다 (TextField instance → labelPosition)", () => {
-      const updateSelectedStyles = vi.fn();
-      const updateSelectedProperty = vi.fn();
-      useStore.setState({
-        selectedElementId: "inst",
-        elementsMap: new Map<string, Element>([
-          [
-            "component-textfield",
-            { id: "component-textfield", type: "TextField", props: {} },
-          ],
-          [
-            "inst",
-            {
-              id: "inst",
-              type: "ref",
-              ref: "component-textfield",
-              props: {},
-            } as Element,
-          ],
-        ]),
-        updateSelectedStyles,
-        updateSelectedProperty,
-      });
-      const { result } = renderHook(() => useStyleActions());
+    it("팔레트가 만든 ref instance 는 origin 타입으로 판정한다 (TextField instance → labelPosition)", async () => {
+      const { updateSelectedStyles, updateSelectedProperty } = await setup(
+        [{ id: "tf", type: "TextField" }],
+        "tf",
+      );
+      fixture.workspace.selectRecords([fixture.componentize("tf", "Field")]);
+      const { result } = actions();
 
       act(() => {
         result.current.handleFlexDirection("row");
@@ -413,12 +349,12 @@ describe("useStyleActions", () => {
       expect(updateSelectedStyles).not.toHaveBeenCalled();
     });
 
-    it("선택된 버튼 재클릭 (빈 선택 → undefined) 은 아무것도 쓰지 않는다", () => {
+    it("선택된 버튼 재클릭 (빈 선택 → undefined) 은 아무것도 쓰지 않는다", async () => {
       // ToggleButtonGroup 에 disallowEmptySelection 이 없어 재클릭이 빈 Set 을 준다. prop 번역은
       //   column 외를 side / horizontal 로 흡수하므로 가드가 없으면 top → side 로 뒤집힌다.
       const { updateSelectedStyles, updateSelectedProperty } =
-        setupSelection("TextField");
-      const { result } = renderHook(() => useStyleActions());
+        await setupSelection("TextField");
+      const { result } = actions();
 
       act(() => {
         result.current.handleFlexDirection(undefined as unknown as string);
@@ -429,38 +365,32 @@ describe("useStyleActions", () => {
     });
 
     describe("instance 안 자식 (synthetic) 선택", () => {
-      function setupSynthetic(
-        descendants?: Record<string, Record<string, unknown>>,
-      ) {
-        useCanonicalDocumentStore.setState({
-          currentProjectId: "project-1",
-          documents: new Map([
-            ["project-1", makeSyntheticFormDocument(descendants)],
-          ]),
-          documentVersion: 1,
-        });
-        const updateSelectedStyles = vi.fn();
-        const updateSelectedProperty = vi.fn();
-        const updateSelectedProperties = vi.fn();
-        // synthetic 노드는 store elementsMap 에 없다 — 해소된 canonical 노드로만 읽힌다.
-        useStore.setState({
-          selectedElementId: "form-1/field-1",
-          elementsMap: new Map<string, Element>(),
-          updateSelectedStyles,
-          updateSelectedProperty,
-          updateSelectedProperties,
-        });
-        return {
-          updateSelectedStyles,
-          updateSelectedProperty,
-          updateSelectedProperties,
-        };
+      async function setupSynthetic(style?: Record<string, string>) {
+        const spies = await setup(
+          [
+            { id: "form" },
+            {
+              id: "field-1",
+              type: "TextField",
+              parent: "form",
+              props: { label: "Name", labelPosition: "top" },
+            },
+          ],
+          "form",
+        );
+        const instance = fixture.componentize("form", "Form");
+        const child = fixture.workspace.root.domInputs.get(instance)!
+          .children[0]!;
+        fixture.workspace.selectRecords([child]);
+        if (style) fixture.host.updateStyles(style);
+        for (const spy of Object.values(spies)) spy.mockClear();
+        return spies;
       }
 
-      it("origin 타입 (TextField) 으로 판정해 labelPosition 을 쓴다", () => {
+      it("origin 타입 (TextField) 으로 판정해 labelPosition 을 쓴다", async () => {
         const { updateSelectedStyles, updateSelectedProperty } =
-          setupSynthetic();
-        const { result } = renderHook(() => useStyleActions());
+          await setupSynthetic();
+        const { result } = actions();
 
         act(() => {
           result.current.handleFlexDirection("row");
@@ -473,69 +403,65 @@ describe("useStyleActions", () => {
         expect(updateSelectedStyles).not.toHaveBeenCalled();
       });
 
-      it("patch 에 남은 인라인 방향은 null 표식으로 지운다 (descendants 병합은 키 삭제를 잇지 못한다)", () => {
-        const { updateSelectedProperties } = setupSynthetic({
-          "field-1": {
-            style: { display: "flex", flexDirection: "row", width: "200px" },
-          },
+      it("남은 인라인 방향은 prop 과 같은 단계에서 지운다", async () => {
+        const { updatePropertiesWithStyles } = await setupSynthetic({
+          display: "flex",
+          flexDirection: "row",
+          width: "200px",
         });
-        const { result } = renderHook(() => useStyleActions());
+        const { result } = actions();
+        const depth = fixture.workspace.runtime.historyDepth.undo;
 
         act(() => {
           result.current.handleFlexDirection("column");
         });
 
-        expect(updateSelectedProperties).toHaveBeenCalledWith({
-          labelPosition: "top",
-          style: { display: null, flexDirection: null },
-        });
+        expect(updatePropertiesWithStyles).toHaveBeenCalledWith(
+          { labelPosition: "top" },
+          { display: "", flexDirection: "" },
+        );
+        expect(fixture.workspace.runtime.historyDepth.undo).toBe(depth + 1);
+        const style = fixture.host.readSelectedTarget().style;
+        expect(style.flexDirection).toBeUndefined();
+        expect(style.width).toBe("200px");
       });
     });
 
-    it("옛 토글이 남긴 인라인 display · flexDirection 은 같은 쓰기에서 지운다", () => {
-      const updateSelectedStyles = vi.fn();
-      const updateSelectedProperty = vi.fn();
-      const updateSelectedProperties = vi.fn();
-      useStore.setState({
-        selectedElementId: "el1",
-        elementsMap: new Map<string, Element>([
-          [
-            "el1",
-            {
-              id: "el1",
-              type: "ProgressBar",
-              props: {
-                style: {
-                  display: "flex",
-                  flexDirection: "column",
-                  width: "240px",
-                },
-              },
-            },
-          ],
-        ]),
+    it("옛 토글이 남긴 인라인 display · flexDirection 은 같은 쓰기에서 지운다", async () => {
+      const {
         updateSelectedStyles,
         updateSelectedProperty,
-        updateSelectedProperties,
-      });
-      const { result } = renderHook(() => useStyleActions());
+        updatePropertiesWithStyles,
+      } = await setup(
+        [
+          {
+            id: "el1",
+            type: "ProgressBar",
+            style: { display: "flex", flexDirection: "column", width: "240px" },
+          },
+        ],
+        "el1",
+      );
+      updateSelectedStyles.mockClear();
+      const { result } = actions();
 
       act(() => {
         result.current.handleFlexDirection("row");
       });
 
-      expect(updateSelectedProperties).toHaveBeenCalledWith({
-        labelPosition: "side",
-        style: { width: "240px" },
-      });
+      expect(updatePropertiesWithStyles).toHaveBeenCalledWith(
+        { labelPosition: "side" },
+        { display: "", flexDirection: "" },
+      );
       expect(updateSelectedProperty).not.toHaveBeenCalled();
       expect(updateSelectedStyles).not.toHaveBeenCalled();
+      expect(fixture.styleOf("el1")).toEqual({ width: "240px" });
     });
 
-    it("라벨 위치 컨테이너의 Alignment · Space · Wrap 은 display · flexDirection 을 쓰지 않는다", () => {
+    it("라벨 위치 컨테이너의 Alignment · Space · Wrap 은 display · flexDirection 을 쓰지 않는다", async () => {
       // 방향은 labelPosition 이 정한다 — 인라인 flexDirection 은 DOM 에서 side variant 를 이긴다.
-      const { updateSelectedStyles } = setupSelection("TextField");
-      const { result } = renderHook(() => useStyleActions());
+      const { updateSelectedStyles } = await setupSelection("TextField");
+      const { result } = actions();
 
       act(() => {
         result.current.handleFlexAlignment("rightTop", "column");
@@ -560,10 +486,10 @@ describe("useStyleActions", () => {
       });
     });
 
-    it("Form 은 그룹 root derive 아님(자식 상속 hint) → 기존 flexDirection 경로 유지", () => {
+    it("Form 은 그룹 root derive 아님(자식 상속 hint) → 기존 flexDirection 경로 유지", async () => {
       const { updateSelectedStyles, updateSelectedProperty } =
-        setupSelection("Form");
-      const { result } = renderHook(() => useStyleActions());
+        await setupSelection("Form");
+      const { result } = actions();
 
       act(() => {
         result.current.handleFlexDirection("column");
@@ -576,12 +502,12 @@ describe("useStyleActions", () => {
       expect(updateSelectedProperty).not.toHaveBeenCalled();
     });
 
-    it("ButtonGroup 은 SSOT 가 정반대(style.flexDirection) → 기존 경로 유지", () => {
+    it("ButtonGroup 은 SSOT 가 정반대(style.flexDirection) → 기존 경로 유지", async () => {
       // ButtonGroup 의 flexDirection SSOT 는 props.style.flexDirection(Skia/Taffy
       // 직접 read). orientation 으로 번역하면 Skia 미반영 → 새 drift. 제외 확인.
       const { updateSelectedStyles, updateSelectedProperty } =
-        setupSelection("ButtonGroup");
-      const { result } = renderHook(() => useStyleActions());
+        await setupSelection("ButtonGroup");
+      const { result } = actions();
 
       act(() => {
         result.current.handleFlexDirection("column");
@@ -594,10 +520,10 @@ describe("useStyleActions", () => {
       expect(updateSelectedProperty).not.toHaveBeenCalled();
     });
 
-    it("비-orientation 컨테이너(frame) 는 기존 flexDirection 경로 유지", () => {
+    it("비-orientation 컨테이너(frame) 는 기존 flexDirection 경로 유지", async () => {
       const { updateSelectedStyles, updateSelectedProperty } =
-        setupSelection("frame");
-      const { result } = renderHook(() => useStyleActions());
+        await setupSelection("frame");
+      const { result } = actions();
 
       act(() => {
         result.current.handleFlexDirection("column");
@@ -612,21 +538,14 @@ describe("useStyleActions", () => {
   });
 
   describe("inline-flex 보존 — outer inline 을 block 으로 바꾸지 않는다", () => {
-    function setup(type: string, style: Record<string, unknown> = {}) {
-      const updateSelectedStyles = vi.fn();
-      useStore.setState({
-        selectedElementId: "el1",
-        elementsMap: new Map<string, Element>([
-          ["el1", { id: "el1", type, props: { style } } as Element],
-        ]),
-        updateSelectedStyles,
-      });
-      return updateSelectedStyles;
+    async function setupStyled(type: string, style: Record<string, string> = {}) {
+      return (await setup([{ id: "el1", type, style }], "el1"))
+        .updateSelectedStyles;
     }
 
-    it("catalog 기본이 inline-flex 인 Button — 정렬 · Direction · Space · Wrap 이 display 를 쓰지 않는다", () => {
-      const updateSelectedStyles = setup("Button");
-      const { result } = renderHook(() => useStyleActions());
+    it("catalog 기본이 inline-flex 인 Button — 정렬 · Direction · Space · Wrap 이 display 를 쓰지 않는다", async () => {
+      const updateSelectedStyles = await setupStyled("Button");
+      const { result } = actions();
       act(() => {
         result.current.handleFlexAlignment("centerCenter", "row");
         result.current.handleFlexDirection("column");
@@ -639,71 +558,49 @@ describe("useStyleActions", () => {
       }
     });
 
-    it("ref instance 는 origin 인라인 inline-flex 를, tablet 은 그 tier 값을 본다 (패널 표시와 같은 해석)", () => {
-      const updateSelectedStyles = vi.fn();
-      useStore.setState({
-        selectedElementId: "inst",
-        activeBreakpoint: "desktop",
-        elementsMap: new Map<string, Element>([
-          [
-            "origin",
-            {
-              id: "origin",
-              type: "frame",
-              props: { style: { display: "inline-flex" } },
-            } as Element,
-          ],
-          [
-            "inst",
-            { id: "inst", type: "ref", ref: "origin", props: {} } as Element,
-          ],
-        ]),
-        updateSelectedStyles,
-      } as never);
-      const { result } = renderHook(() => useStyleActions());
+    it("ref instance 는 origin 인라인 inline-flex 를, tablet 은 그 tier 값을 본다 (패널 표시와 같은 해석)", async () => {
+      const { updateSelectedStyles } = await setup(
+        [
+          { id: "origin", style: { display: "inline-flex" } },
+          { id: "el1", style: { display: "block" } },
+        ],
+        "origin",
+      );
+      fixture.workspace.selectRecords([fixture.componentize("origin", "Row")]);
+      const { result } = actions();
       act(() => {
         result.current.handleFlexAlignment("leftTop", "row");
       });
-      expect(updateSelectedStyles.mock.calls[0][0]).not.toHaveProperty(
+      expect(updateSelectedStyles.mock.calls[0]![0]).not.toHaveProperty(
         "display",
       );
 
-      useStore.setState({
-        selectedElementId: "el1",
-        activeBreakpoint: "tablet",
-        elementsMap: new Map<string, Element>([
-          [
-            "el1",
-            {
-              id: "el1",
-              type: "frame",
-              props: { style: { display: "block" } },
-              responsive: { styles: { display: { tablet: "inline-flex" } } },
-            } as unknown as Element,
-          ],
-        ]),
-      } as never);
+      fixture.select("el1");
+      fixture.setBreakpoint("tablet");
+      fixture.host.updateStyle("display", "inline-flex");
+      updateSelectedStyles.mockClear();
       act(() => {
         result.current.handleFlexAlignment("leftTop", "row");
       });
-      expect(updateSelectedStyles.mock.calls[1][0]).not.toHaveProperty(
+      expect(updateSelectedStyles.mock.calls[0]![0]).not.toHaveProperty(
         "display",
       );
-      useStore.setState({ activeBreakpoint: "desktop" } as never);
+      fixture.setBreakpoint("desktop");
     });
 
-    it("인라인 inline-flex 도 보존 · block 요소는 종전대로 flex 를 쓴다", () => {
-      let updateSelectedStyles = setup("frame", { display: "inline-flex" });
-      const { result } = renderHook(() => useStyleActions());
+    it("인라인 inline-flex 도 보존 · block 요소는 종전대로 flex 를 쓴다", async () => {
+      let updateSelectedStyles = await setupStyled("frame", { display: "inline-flex" });
+      const { result } = actions();
       act(() => {
         result.current.handleFlexAlignment("leftTop", "row");
       });
       expect(updateSelectedStyles.mock.calls[0][0]).not.toHaveProperty(
         "display",
       );
-      updateSelectedStyles = setup("frame", { display: "block" });
+      updateSelectedStyles = await setupStyled("frame", { display: "block" });
+      const second = actions().result;
       act(() => {
-        result.current.handleFlexAlignment("leftTop", "row");
+        second.current.handleFlexAlignment("leftTop", "row");
       });
       expect(updateSelectedStyles.mock.calls[0][0]).toMatchObject({
         display: "flex",

@@ -257,8 +257,11 @@ export function createCatalogStylesHost(
       endPreviews();
     }
   };
-  const writeStyles = (styles: Record<string, string>) =>
-    run(() => {
+  /** The selection's style edit as one command (undefined = nothing to write). */
+  const styleCommandOf = (
+    styles: Record<string, string>,
+  ): CatalogCommand | undefined => {
+    {
       const items = selection();
       if (!items.length || !Object.keys(styles).length) return undefined;
       const targets = items.map((item) => item.target);
@@ -289,22 +292,29 @@ export function createCatalogStylesHost(
         label: "Edit style",
         ops: commands.flatMap((command) => command(reader).ops),
       })) satisfies CatalogCommand;
-    });
+    }
+  };
+  const writeStyles = (styles: Record<string, string>) =>
+    run(() => styleCommandOf(styles));
   const measured = (identity: string) =>
     workspace.root.getGeometry([identity]).get(identity);
+  /** The selection's prop patch as one command (undefined = nothing to write). */
+  const propsCommandOf = (
+    patch: Record<string, unknown>,
+  ): CatalogCommand | undefined => {
+    const items = selection();
+    const first = items[0];
+    if (!first) return undefined;
+    return (
+      catalogSemanticPatchCommand(
+        items.map((item) => item.target),
+        patch,
+        (key) => workspace.readModel.propSource(first.target, key).value,
+      ) ?? undefined
+    );
+  };
   const writeProps = (patch: Record<string, unknown>) =>
-    run(() => {
-      const items = selection();
-      const first = items[0];
-      if (!first) return undefined;
-      return (
-        catalogSemanticPatchCommand(
-          items.map((item) => item.target),
-          patch,
-          (key) => workspace.readModel.propSource(first.target, key).value,
-        ) ?? undefined
-      );
-    });
+    run(() => propsCommandOf(patch));
 
   const host: StylesHost = {
     useSelectedId: () =>
@@ -356,14 +366,18 @@ export function createCatalogStylesHost(
       const first = selection()[0];
       if (!first) return { id: null, type: undefined, style: {}, props: {} };
       const own = workspace.readModel.ownFields(first.target);
+      const breakpoint = workspace.session.getSnapshot().breakpoint;
+      const fontSize = fontSizeOf(workspace, first.identity);
+      // An instance: its component's values under its own (as `useElementStyleContext` reads).
+      const master = masterTargetOf(workspace, first.target);
+      const view = (fields: typeof own) =>
+        catalogStyleView(catalogFieldsAt(fields, breakpoint), { fontSize });
       return {
         id: first.identity,
         ...propsOf(workspace, first.target),
         style: {
-          ...catalogStyleView(
-            catalogFieldsAt(own, workspace.session.getSnapshot().breakpoint),
-            { fontSize: fontSizeOf(workspace, first.identity) },
-          ),
+          ...(master ? view(workspace.readModel.ownFields(master)) : {}),
+          ...view(own),
           ...catalogPlacementStyle(own.placement),
         },
       };
@@ -416,6 +430,17 @@ export function createCatalogStylesHost(
     },
     updateProperty: (key, value) => writeProps({ [key]: value }),
     updateProperties: writeProps,
+    updatePropertiesWithStyles: (patch, styles) =>
+      run(() => {
+        const commands = [propsCommandOf(patch), styleCommandOf(styles)].filter(
+          (command): command is CatalogCommand => command !== undefined,
+        );
+        if (!commands.length) return undefined;
+        return ((reader) => ({
+          label: "Edit property",
+          ops: commands.flatMap((command) => command(reader).ops),
+        })) satisfies CatalogCommand;
+      }),
     useParentId(id) {
       const version = useLayoutVersion(workspace);
       return useMemo(
@@ -499,8 +524,14 @@ export function createCatalogStylesHost(
       if (!first) return [];
       const own = workspace.readModel.ownFields(first.target);
       const background = catalogAuthoredValues(own.visual).backgroundColor;
+      // The layers the panel shows (`useElementStyleContext`): an instance's own, else its
+      // component's — an edit builds on them, so adding a layer keeps the component's.
+      const master = masterTargetOf(workspace, first.target);
       return resolveElementFills({
-        fills: catalogFillItems(own.fills) as FillItem[] | undefined,
+        fills: (catalogFillItems(own.fills) ??
+          (master
+            ? catalogFillItems(workspace.readModel.ownFields(master).fills)
+            : undefined)) as FillItem[] | undefined,
         props: {
           style: {
             backgroundColor:

@@ -20,7 +20,6 @@ import {
   resolveDirectionDrivenProp,
   flexDirectionToDrivenValue,
 } from "../utils/orientationDrivenTags";
-import { isSyntheticDescendantId } from "../../../projection/syntheticDescendantId";
 import { resolveLayoutSpecPreset } from "../utils/specPresetResolver";
 
 /** Direction 토글이 style 경로에서 쓰는 display 값 — 사용자가 따로 고른 grid 등은 남긴다. */
@@ -30,31 +29,17 @@ const DIRECTION_TOGGLE_DISPLAYS = new Set(["flex", "block"]);
 const DIRECTION_VALUES = new Set(["block", "row", "column"]);
 
 /**
- * 그룹 축 prop 컨테이너의 인라인에 Direction 토글이 남긴 `flexDirection` · `display` 가 있으면
- * 그 둘을 뺀 style 을, 없으면 null 을 준다.
+ * 방향 토글이 prop 번역 전에 남긴 인라인 방향 키 — `flexDirection`, 그리고 토글이 쓰는 `display`
+ * (flex · block). 없으면 빈 배열.
  */
-function withoutStaleDirectionStyle(
-  style: unknown,
-  asPatch: boolean,
-): Record<string, unknown> | null {
-  if (!style || typeof style !== "object") return null;
-  const current = style as Record<string, unknown>;
+function staleDirectionKeys(style: Record<string, unknown>): string[] {
   const staleDisplay =
-    typeof current.display === "string" &&
-    DIRECTION_TOGGLE_DISPLAYS.has(current.display);
-  if (current.flexDirection === undefined && !staleDisplay) return null;
-  // instance 안 자식은 바깥 instance 의 descendants patch 에 병합된다 — 병합은 빠진 키를 지우지
-  //   못하므로 ADR-234 삭제 표식 `null` 을 싣는다.
-  if (asPatch) {
-    return {
-      ...(staleDisplay ? { display: null } : {}),
-      flexDirection: null,
-    };
-  }
-  const next = { ...current };
-  delete next.flexDirection;
-  if (staleDisplay) delete next.display;
-  return next;
+    typeof style.display === "string" &&
+    DIRECTION_TOGGLE_DISPLAYS.has(style.display);
+  return [
+    ...(staleDisplay ? ["display"] : []),
+    ...(style.flexDirection !== undefined ? ["flexDirection"] : []),
+  ];
 }
 
 /**
@@ -202,17 +187,14 @@ export function useStyleActions() {
       const drivenProp = resolveDirectionDrivenProp(selected.type);
       if (drivenProp) {
         const drivenValue = flexDirectionToDrivenValue(drivenProp, value);
-        const staleStyle = withoutStaleDirectionStyle(
-          selected.props.style,
-          selected.id !== null && isSyntheticDescendantId(selected.id),
-        );
-        if (staleStyle) {
+        const stale = staleDirectionKeys(selected.style);
+        if (stale.length) {
           // 이 토글이 prop 번역 전에 (ref instance 판정 누락 · 멤버십 밖) 쓴 인라인이 남아 있으면
-          // DOM 에서 인라인이 variant 를 이긴다 — prop 과 같은 쓰기에서 지운다.
-          host.updateProperties({
-            [drivenProp]: drivenValue,
-            style: staleStyle,
-          });
+          // DOM 에서 인라인이 variant 를 이긴다 — prop 과 같은 쓰기 (한 단계) 에서 지운다.
+          host.updatePropertiesWithStyles(
+            { [drivenProp]: drivenValue },
+            Object.fromEntries(stale.map((key) => [key, ""])),
+          );
           return;
         }
         host.updateProperty(drivenProp, drivenValue);

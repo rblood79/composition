@@ -1,290 +1,95 @@
 // @vitest-environment jsdom
-import "../stylesHost.store"; // old-store host (ADR-248 4e-7: goes with the old store)
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { renderHook, act } from "@testing-library/react";
-
-vi.mock("../../../../services/save", () => ({
-  saveService: {
-    savePropertyChange: vi.fn().mockResolvedValue(undefined),
-  },
-}));
-
-import type { CompositionDocument } from "@composition/shared";
-import { FillType } from "../../../../types/builder/fill.types";
-import type { FillItem } from "../../../../types/builder/fill.types";
-import { useStore } from "../../../stores";
-import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
-import { __resetTraversalCache_TEST_ONLY__ } from "../../../stores/canonical/canonicalTraversalHelpers";
+import { act, renderHook } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
+import {
+  createDefaultColorFill,
+  FillType,
+} from "../../../../types/builder/fill.types";
+import {
+  openStylesFixture,
+  type StylesFixture,
+} from "../__tests__/support/catalogStylesFixture";
 import { useFillActions } from "./useFillActions";
 
 /**
- * FillSection 소스 분열 회귀 테스트 (2026-07-15).
- *
- * 표시(useFillValues → canonical 파생) 와 액션(getCurrentFills) 이 다른 소스를
- * 읽으면 — 과거: 액션이 legacy elementsMap 단독 — canonical 파생이 fills 를
- * 잃는 순간 "표시 0건 ↔ 액션 실값" 분열로 드래그마다 addFill 이 중복 누적됐다.
- * 본 테스트는 (1) 액션 베이스가 canonical 문서에서 오는지, (2) 가상 fill 승격
- * (ensureColorFill) 이 create-or-update 라 중복 append 가 불가능한지 고정한다.
+ * ADR-248 4e-9 C: the Fill actions build on the fills the panel shows — the selected record's own
+ * layers, or an instance position's resolved layers (its component's) — over the catalog Styles
+ * host. (The old store's canonical-vs-legacy precedence cases went with the old store.)
  */
+const COLOR = createDefaultColorFill("#112233FF");
 
-const CANONICAL_FILL: FillItem = {
-  id: "fill-canonical",
-  type: FillType.Color,
-  enabled: true,
-  opacity: 1,
-  blendMode: "normal",
-  color: "#112233FF",
-};
-
-function makeDocument(
-  children: Array<Record<string, unknown>>,
-): CompositionDocument {
-  return {
-    version: "composition-1.0",
-    children: children as unknown as CompositionDocument["children"],
-  } satisfies CompositionDocument;
+function actionsOf(fixture: StylesFixture) {
+  return renderHook(() => useFillActions(), { wrapper: fixture.wrapper })
+    .result;
 }
 
-function setupCanonical(
-  nodeFills?: FillItem[],
-  legacyMetadataFills?: FillItem[],
-): void {
-  useCanonicalDocumentStore.setState({
-    documents: new Map(),
-    currentProjectId: null,
-    documentVersion: 0,
-  });
-  useCanonicalDocumentStore.getState().setCurrentProject("project-1");
-  useCanonicalDocumentStore.getState().setDocument(
-    "project-1",
-    makeDocument([
-      {
-        id: "el-1",
-        type: "Box",
-        props: { style: {} },
-        ...(nodeFills ? { fills: nodeFills } : {}),
-        ...(legacyMetadataFills
-          ? { metadata: { legacyProps: { fills: legacyMetadataFills } } }
-          : {}),
-      },
-    ]),
-  );
-}
-
-describe("useFillActions — 표시·액션 동일 소스 (canonical 우선)", () => {
-  let updateSelectedFills: ReturnType<typeof vi.fn>;
-
-  beforeEach(() => {
-    __resetTraversalCache_TEST_ONLY__();
-    updateSelectedFills = vi.fn();
-    useStore.setState({
-      selectedElementId: "el-1",
-      // 분열 재현: legacy elementsMap 에는 fills 가 없다 — 과거 코드는 이걸 읽었다.
-      elements: [{ id: "el-1", type: "Box", props: { style: {} } }],
-      elementsMap: new Map([
-        ["el-1", { id: "el-1", type: "Box", props: { style: {} } }],
-      ]),
-      updateSelectedFills: updateSelectedFills as unknown as ReturnType<
-        typeof useStore.getState
-      >["updateSelectedFills"],
-    } as unknown as Parameters<typeof useStore.setState>[0]);
-  });
-
-  it("addFill 베이스는 canonical 문서 fills 다 (legacy elementsMap 아님)", () => {
-    setupCanonical([CANONICAL_FILL]);
-    const { result } = renderHook(() => useFillActions());
+describe("useFillActions — 표시·액션 동일 소스", () => {
+  it("addFill 베이스는 선택 요소의 현재 fills 다", async () => {
+    const fixture = await openStylesFixture([{ id: "el-1", fills: [COLOR] }], {
+      select: "el-1",
+    });
+    const result = actionsOf(fixture);
 
     act(() => {
       result.current.addFill(FillType.LinearGradient);
     });
 
-    expect(updateSelectedFills).toHaveBeenCalledTimes(1);
-    const committed = updateSelectedFills.mock.calls[0][0] as FillItem[];
-    // canonical 의 기존 fill 이 베이스로 보존되고 그 위에 append 된다.
+    const committed = fixture.host.readFills();
+    // 기존 fill 이 베이스로 보존되고 그 위에 append 된다.
     expect(committed).toHaveLength(2);
-    expect(committed[0]).toEqual(CANONICAL_FILL);
-    expect(committed[1].type).toBe(FillType.LinearGradient);
+    expect(committed[0]).toEqual(COLOR);
+    expect(committed[1]!.type).toBe(FillType.LinearGradient);
   });
 
-  it("pre-cutover metadata fill stack을 첫 편집에서 보존한다", () => {
-    setupCanonical(undefined, [CANONICAL_FILL]);
-    const { result } = renderHook(() => useFillActions());
-
-    act(() => {
-      result.current.addFill(FillType.LinearGradient);
+  it("ensureColorFill 은 color fill 이 이미 있으면 갱신만 한다 (중복 append 차단)", async () => {
+    const fixture = await openStylesFixture([{ id: "el-1", fills: [COLOR] }], {
+      select: "el-1",
     });
-
-    const committed = updateSelectedFills.mock.calls[0][0] as FillItem[];
-    expect(committed).toHaveLength(2);
-    expect(committed[0]).toEqual(CANONICAL_FILL);
-    expect(committed[1].type).toBe(FillType.LinearGradient);
-  });
-
-  it("ensureColorFill 은 color fill 이 이미 있으면 갱신만 한다 (중복 append 차단)", () => {
-    setupCanonical([CANONICAL_FILL]);
-    const { result } = renderHook(() => useFillActions());
+    const result = actionsOf(fixture);
 
     act(() => {
       result.current.ensureColorFill("#FF0000FF");
     });
 
-    const committed = updateSelectedFills.mock.calls[0][0] as FillItem[];
+    const committed = fixture.host.readFills();
     expect(committed).toHaveLength(1);
-    expect(committed[0]).toEqual({ ...CANONICAL_FILL, color: "#FF0000FF" });
+    expect(committed[0]).toEqual({ ...COLOR, color: "#FF0000FF" });
   });
 
-  it("ensureColorFill 은 color fill 이 없으면 1건 생성한다", () => {
-    setupCanonical();
-    const { result } = renderHook(() => useFillActions());
+  it("ensureColorFill 은 color fill 이 없으면 1건 생성한다", async () => {
+    const fixture = await openStylesFixture([{ id: "el-1" }], {
+      select: "el-1",
+    });
+    const result = actionsOf(fixture);
 
     act(() => {
       result.current.ensureColorFill("#FF0000FF");
     });
 
-    const committed = updateSelectedFills.mock.calls[0][0] as FillItem[];
+    const committed = fixture.host.readFills();
     expect(committed).toHaveLength(1);
-    expect(committed[0].type).toBe(FillType.Color);
-  });
-
-  it("active canonical에 선택 노드가 없으면 stale legacy fill을 되살리지 않는다", () => {
-    useStore.setState({
-      elementsMap: new Map([
-        [
-          "el-1",
-          {
-            id: "el-1",
-            type: "Box",
-            props: { style: {} },
-            fills: [CANONICAL_FILL],
-          },
-        ],
-      ]),
-    } as unknown as Parameters<typeof useStore.setState>[0]);
-    useCanonicalDocumentStore.setState({
-      documents: new Map([
-        ["project-1", makeDocument([{ id: "other", type: "Box", props: {} }])],
-      ]),
-      currentProjectId: "project-1",
-      documentVersion: 1,
-    });
-    const { result } = renderHook(() => useFillActions());
-
-    act(() => {
-      result.current.addFill(FillType.LinearGradient);
-    });
-
-    const committed = updateSelectedFills.mock.calls[0][0] as FillItem[];
-    expect(committed).toHaveLength(1);
-    expect(committed[0].type).toBe(FillType.LinearGradient);
-  });
-
-  it("canonical 문서가 없으면 legacy elementsMap fallback 을 유지한다", () => {
-    useCanonicalDocumentStore.setState({
-      documents: new Map(),
-      currentProjectId: null,
-      documentVersion: 0,
-    });
-    useStore.setState({
-      elementsMap: new Map([
-        [
-          "el-1",
-          {
-            id: "el-1",
-            type: "Box",
-            props: { style: {} },
-            fills: [CANONICAL_FILL],
-          },
-        ],
-      ]),
-    } as unknown as Parameters<typeof useStore.setState>[0]);
-    const { result } = renderHook(() => useFillActions());
-
-    act(() => {
-      result.current.addFill(FillType.LinearGradient);
-    });
-
-    const committed = updateSelectedFills.mock.calls[0][0] as FillItem[];
-    expect(committed).toHaveLength(2);
-    expect(committed[0]).toEqual(CANONICAL_FILL);
+    expect(committed[0]!.type).toBe(FillType.Color);
   });
 });
 
-describe("useFillActions — instance 안 자식 (synthetic)", () => {
-  it("현재 fills 를 해석 노드 (origin ⊕ descendants) 에서 읽는다 — 표시와 같은 소스", () => {
-    __resetTraversalCache_TEST_ONLY__();
-    const updateSelectedFills = vi.fn();
-    useCanonicalDocumentStore.setState({
-      documents: new Map(),
-      currentProjectId: null,
-      documentVersion: 0,
-    });
-    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
-    useCanonicalDocumentStore.getState().setDocument(
-      "project-1",
-      makeDocument([
-        {
-          id: "page-components",
-          type: "frame",
-          metadata: { type: "legacy-page", pageId: "page-components" },
-          children: [
-            {
-              id: "page-components-body",
-              type: "body",
-              props: {},
-              children: [
-                {
-                  id: "component-form",
-                  type: "Form",
-                  reusable: true,
-                  props: {},
-                  children: [
-                    {
-                      id: "field-1",
-                      type: "TextField",
-                      props: { style: {} },
-                      fills: [CANONICAL_FILL],
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-        },
-        {
-          id: "page-1",
-          type: "frame",
-          metadata: { type: "legacy-page", pageId: "page-1" },
-          children: [
-            {
-              id: "body",
-              type: "body",
-              props: {},
-              children: [
-                { id: "form-1", type: "ref", ref: "component-form", props: {} },
-              ],
-            },
-          ],
-        },
-      ]),
-    );
-    // synthetic 노드는 store 에 없다.
-    useStore.setState({
-      selectedElementId: "form-1/field-1",
-      elements: [],
-      elementsMap: new Map(),
-      updateSelectedFills: updateSelectedFills as unknown as ReturnType<
-        typeof useStore.getState
-      >["updateSelectedFills"],
-    } as unknown as Parameters<typeof useStore.setState>[0]);
+describe("useFillActions — instance 안 자식", () => {
+  it("현재 fills 를 해석 노드 (component 의 layer) 에서 읽는다 — 표시와 같은 소스", async () => {
+    const fixture = await openStylesFixture([
+      { id: "form" },
+      { id: "field-1", type: "TextField", parent: "form", fills: [COLOR] },
+    ]);
+    const instance = fixture.componentize("form", "Form");
+    const child = fixture.workspace.root.domInputs.get(instance)!.children[0]!;
+    fixture.workspace.selectRecords([child]);
+    const result = actionsOf(fixture);
 
-    const { result } = renderHook(() => useFillActions());
     act(() => {
       result.current.addFill(FillType.LinearGradient);
     });
 
-    // 종전: 빈 베이스 → 새 fill 하나만 저장해 origin fill 을 지웠다.
-    const committed = updateSelectedFills.mock.calls[0][0] as FillItem[];
+    // 빈 베이스로 저장하면 component 의 fill 을 지운다.
+    const committed = fixture.host.readFills();
     expect(committed).toHaveLength(2);
-    expect(committed[0]).toEqual(CANONICAL_FILL);
+    expect(committed[0]).toEqual(COLOR);
   });
 });

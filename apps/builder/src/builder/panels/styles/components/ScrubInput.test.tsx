@@ -1,4 +1,3 @@
-import "../stylesHost.store"; // old-store host (ADR-248 4e-7: goes with the old store)
 import {
   act,
   cleanup,
@@ -8,6 +7,7 @@ import {
 } from "@testing-library/react";
 import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { openStylesFixture } from "../__tests__/support/catalogStylesFixture";
 import { ScrubInput } from "./ScrubInput";
 
 afterEach(cleanup);
@@ -50,7 +50,10 @@ describe("ScrubInput 드래그 — onScrub 이 value prop 을 되돌려도 드�
   it("pointermove 마다 onScrub, pointerup 에 onCommit 한 번 · 클릭 편집 모드로 새지 않음", async () => {
     const onScrub = vi.fn();
     const onCommit = vi.fn();
-    render(<Host onScrub={onScrub} onCommit={onCommit} />);
+    const fixture = await openStylesFixture([{ id: "box" }], { select: "box" });
+    render(<Host onScrub={onScrub} onCommit={onCommit} />, {
+      wrapper: fixture.wrapper,
+    });
     await flush();
     const el = screen
       .getByLabelText("Blur radius")

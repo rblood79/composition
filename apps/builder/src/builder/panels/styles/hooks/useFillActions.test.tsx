@@ -1,20 +1,7 @@
 // @vitest-environment jsdom
-import "../stylesHost.store"; // old-store host (ADR-248 4e-7: goes with the old store)
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-
-vi.mock("../../../../services/save", () => ({
-  saveService: {
-    savePropertyChange: vi.fn().mockResolvedValue(undefined),
-  },
-}));
-
-import { useStore } from "../../../stores";
-import {
-  resetPanelFixture,
-  seedPanelElements,
-} from "../../../__tests__/panelFixture";
-import type { Element } from "../../../../types/core/store.types";
+import { openStylesFixture } from "../__tests__/support/catalogStylesFixture";
 import { useFillActions } from "./useFillActions";
 import { useFillValues, useFillUIStore } from "./useFillValues";
 
@@ -24,48 +11,29 @@ describe("useFillActions", () => {
       activeFillIndex: 0,
       colorInputMode: "hex",
     });
-
-    resetPanelFixture();
-    seedPanelElements([
-      {
-        id: "legacy-1",
-        type: "Box",
-        props: { style: { backgroundColor: "#112233" } },
-      } as Element,
-    ]);
-    useStore.setState({
-      selectedElementId: "legacy-1",
-      selectedElementProps: {
-        style: { backgroundColor: "#112233" },
-      },
-      currentPageId: null,
-      childrenMap: new Map(),
-      dirtyElementIds: new Set(),
-      layoutVersion: 0,
-    } as never);
   });
 
-  it("legacy backgroundColor-only 요소도 synthetic fill 로 canonicalize 해서 편집할 수 있다", () => {
-    const { result: values } = renderHook(() => useFillValues());
-    const { result: actions } = renderHook(() => useFillActions());
+  it("backgroundColor 만 있는 요소도 synthetic fill 로 canonicalize 해서 편집할 수 있다", async () => {
+    const fixture = await openStylesFixture(
+      [{ id: "box", style: { backgroundColor: "#112233" } }],
+      { select: "box" },
+    );
+    const { result } = renderHook(
+      () => ({ values: useFillValues(), actions: useFillActions() }),
+      { wrapper: fixture.wrapper },
+    );
 
-    expect(values.current.fills).toHaveLength(1);
+    expect(result.current.values.fills).toHaveLength(1);
 
     act(() => {
-      actions.current.updateFill(values.current.fills[0]!.id, {
+      result.current.actions.updateFill(result.current.values.fills[0]!.id, {
         color: "#445566FF",
       });
     });
 
-    const element = useStore.getState().elementsMap.get("legacy-1");
-    expect(element?.fills).toHaveLength(1);
-    expect(element?.fills?.[0]).toMatchObject({
-      type: "color",
-      color: "#445566FF",
-    });
-    expect(
-      (element?.props?.style as { backgroundColor?: string } | undefined)
-        ?.backgroundColor,
-    ).toBeUndefined();
+    const fills = fixture.host.readFills();
+    expect(fills).toHaveLength(1);
+    expect(fills[0]).toMatchObject({ type: "color", color: "#445566FF" });
+    expect(fixture.styleOf("box").backgroundColor).toBeUndefined();
   });
 });

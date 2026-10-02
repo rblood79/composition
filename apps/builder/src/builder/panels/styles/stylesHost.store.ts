@@ -108,6 +108,11 @@ export const STORE_STYLES_HOST: StylesHost = {
     useStore.getState().updateSelectedProperty(key, value),
   updateProperties: (props) =>
     useStore.getState().updateSelectedProperties(props),
+  // Old store (goes with it in ADR-248 4e-9): two writes.
+  updatePropertiesWithStyles: (props, styles) => {
+    useStore.getState().updateSelectedProperties(props);
+    useStore.getState().updateSelectedStyles(styles);
+  },
   useParentId: useStoreParentId,
   useParentLayout(id) {
     const parentId = useStoreParentId(id);
