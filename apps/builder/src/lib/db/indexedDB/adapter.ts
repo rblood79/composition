@@ -11,8 +11,6 @@ import type {
   DatabaseAdapter,
   Project,
   CanonicalDocumentBackupRecord,
-  SerializedActionRecord,
-  SerializedEventRecord,
 } from "../types";
 import type {
   CompositionDocument,
@@ -58,7 +56,7 @@ export function installDocumentsStore(
 }
 
 const DB_NAME = "composition";
-const DB_VERSION = 23; // 2026-09-26 (ADR-235): assets · asset_gc store — 해시 자산 저장소.
+const DB_VERSION = 24; // 2026-10-03 (ADR-248 G4): events · actions mirror store 삭제.
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -391,27 +389,6 @@ export class IndexedDBAdapter implements DatabaseAdapter {
           );
         }
 
-        // ADR-131 Phase 7 — events / actions root collection stores
-        // (design §4 D1=(b) — design_themes / variables / collections /
-        //  api_endpoints 패턴 정합)
-        //
-        // **data store 부재 (Phase 7-revert, 2026-05-13)**: 사용자 framing 정정으로
-        // `data` store 는 기존 `collections` / `api_endpoints` 와 중복 개념으로
-        // 판정 → 본 upgrade path 에서 제거. `CompositionDocument.data` root field 와
-        // `SerializedData` type 은 schema 영역에서 별도 framing 정리 (현 commit
-        // scope 외). DB_VERSION 16 의 (단명 land) `data` store 는 17 에서 drop.
-        if (!db.objectStoreNames.contains("events")) {
-          const eventsStore = db.createObjectStore("events", {
-            keyPath: "id",
-          });
-          eventsStore.createIndex("project_id", "project_id", {
-            unique: false,
-          });
-          eventsStore.createIndex("target", "target", { unique: false });
-          eventsStore.createIndex("kind", "kind", { unique: false });
-          console.log("[IndexedDB] Created store: events");
-        }
-
         // DB_VERSION 16 에서 단명 생성된 `data` store 를 17 에서 drop.
         // 사용자 framing — `collections` / `api_endpoints` 와 중복 개념.
         if (db.objectStoreNames.contains("data")) {
@@ -421,15 +398,14 @@ export class IndexedDBAdapter implements DatabaseAdapter {
           );
         }
 
-        if (!db.objectStoreNames.contains("actions")) {
-          const actionsStore = db.createObjectStore("actions", {
-            keyPath: "id",
-          });
-          actionsStore.createIndex("project_id", "project_id", {
-            unique: false,
-          });
-          actionsStore.createIndex("kind", "kind", { unique: false });
-          console.log("[IndexedDB] Created store: actions");
+        // ADR-248 (DB_VERSION 24): `events` / `actions` 는 구 문서 root 의 fan-out mirror 였다
+        // (ADR-131 Phase 7). 새 모델의 interaction 은 graph entry 하나에만 기록하므로 두 store 를
+        // 만들지 않고, 있던 것은 지운다 — 구 문서 store 안의 원본은 그대로 남는다.
+        for (const mirror of ["events", "actions"]) {
+          if (db.objectStoreNames.contains(mirror)) {
+            db.deleteObjectStore(mirror);
+            console.log(`[IndexedDB] Deleted store: ${mirror} (ADR-248)`);
+          }
         }
 
         if (oldVersion < 13 && oldVersion > 0) {
@@ -915,114 +891,6 @@ export class IndexedDBAdapter implements DatabaseAdapter {
 
     getAll: async (): Promise<Variable[]> => {
       return this.getAllFromStore<Variable>("variables");
-    },
-  };
-
-  // === ADR-131 Phase 7 — Root collection stores ===
-
-  events = {
-    insert: async (
-      record: SerializedEventRecord,
-    ): Promise<SerializedEventRecord> => {
-      await this.putToStore("events", record);
-      return record;
-    },
-
-    update: async (
-      id: string,
-      patch: Partial<SerializedEventRecord>,
-    ): Promise<SerializedEventRecord> => {
-      const existing = await this.events.getById(id);
-      if (!existing) throw new Error(`Event ${id} not found`);
-      const updated: SerializedEventRecord = {
-        ...existing,
-        ...patch,
-        id: existing.id,
-        // ADR-158 Phase 1 — discriminator 가 "event" → "interaction" 으로 교체됨
-        type: "interaction",
-      };
-      await this.putToStore("events", updated);
-      return updated;
-    },
-
-    delete: async (id: string): Promise<void> => {
-      await this.deleteFromStore("events", id);
-    },
-
-    getById: async (id: string): Promise<SerializedEventRecord | null> => {
-      return this.getFromStore<SerializedEventRecord>("events", id);
-    },
-
-    getByProject: async (
-      projectId: string,
-    ): Promise<SerializedEventRecord[]> => {
-      return this.getAllByIndex<SerializedEventRecord>(
-        "events",
-        "project_id",
-        projectId,
-      );
-    },
-
-    getByTarget: async (target: string): Promise<SerializedEventRecord[]> => {
-      return this.getAllByIndex<SerializedEventRecord>(
-        "events",
-        "target",
-        target,
-      );
-    },
-
-    getAll: async (): Promise<SerializedEventRecord[]> => {
-      return this.getAllFromStore<SerializedEventRecord>("events");
-    },
-  };
-
-  // ADR-131 Phase 7-revert (2026-05-13): `data` store 제거 — 기존 `collections`
-  // / `api_endpoints` 와 중복 개념. DB_VERSION 17 에서 deleteObjectStore.
-
-  actions = {
-    insert: async (
-      record: SerializedActionRecord,
-    ): Promise<SerializedActionRecord> => {
-      await this.putToStore("actions", record);
-      return record;
-    },
-
-    update: async (
-      id: string,
-      patch: Partial<SerializedActionRecord>,
-    ): Promise<SerializedActionRecord> => {
-      const existing = await this.actions.getById(id);
-      if (!existing) throw new Error(`Action ${id} not found`);
-      const updated: SerializedActionRecord = {
-        ...existing,
-        ...patch,
-        id: existing.id,
-        type: "action",
-      };
-      await this.putToStore("actions", updated);
-      return updated;
-    },
-
-    delete: async (id: string): Promise<void> => {
-      await this.deleteFromStore("actions", id);
-    },
-
-    getById: async (id: string): Promise<SerializedActionRecord | null> => {
-      return this.getFromStore<SerializedActionRecord>("actions", id);
-    },
-
-    getByProject: async (
-      projectId: string,
-    ): Promise<SerializedActionRecord[]> => {
-      return this.getAllByIndex<SerializedActionRecord>(
-        "actions",
-        "project_id",
-        projectId,
-      );
-    },
-
-    getAll: async (): Promise<SerializedActionRecord[]> => {
-      return this.getAllFromStore<SerializedActionRecord>("actions");
     },
   };
 

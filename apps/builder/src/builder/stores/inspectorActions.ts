@@ -717,40 +717,7 @@ function buildInspectorPersistencePayload(
 }
 
 async function persistActiveCanonicalDocument(): Promise<void> {
-  const persisted = await persistCanonicalDocument(getDB);
-  if (!persisted) return;
-  const { projectId, document: doc } = persisted;
-
-  // ADR-131 Phase 7 — fan-out to dedicated IndexedDB stores so DevTools 표시가
-  // design_themes / variables / collections / api_endpoints
-  // 와 동일하게 events / actions 도 별 store entries 로 보인다.
-  // dev data 0 가정 — full-set replacement (project 별 기존 row 삭제 후 재기록).
-  await syncRootCollectionsToIndexedDB(projectId, doc);
-}
-
-async function syncRootCollectionsToIndexedDB(
-  projectId: string,
-  doc: import("@composition/shared").CompositionDocument,
-): Promise<void> {
-  const db = await getDB();
-
-  // Events
-  const existingEvents = await db.events.getByProject(projectId);
-  await Promise.all(existingEvents.map((e) => db.events.delete(e.id)));
-  for (const ev of doc.events ?? []) {
-    await db.events.insert({ ...ev, project_id: projectId });
-  }
-
-  // Data — 별 store 부재 (Phase 7-revert): `collections` / `api_endpoints` 와
-  // 중복 개념. `doc.data` 는 canonical document root field 로만 보존, 별 store
-  // fan-out 없음. schema 영역 추가 framing 정정 시 별도 처리.
-
-  // Actions
-  const existingActions = await db.actions.getByProject(projectId);
-  await Promise.all(existingActions.map((a) => db.actions.delete(a.id)));
-  for (const a of doc.actions ?? []) {
-    await db.actions.insert({ ...a, project_id: projectId });
-  }
+  await persistCanonicalDocument(getDB);
 }
 
 // ============================================

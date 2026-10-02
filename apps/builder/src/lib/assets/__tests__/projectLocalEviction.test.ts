@@ -51,7 +51,6 @@ async function seedProject(id: string, data = true) {
   } as never);
   await adapter.documents.put(id, doc(`${id}-page`));
   await adapter.documents.backupNow(id);
-  await adapter.events.insert({ id: `${id}-e`, project_id: id } as never);
   if (!data) return;
   await adapter.collections.insert({
     id: `${id}-c`,
@@ -132,7 +131,6 @@ describe("clearProjectLocalContent", () => {
     expect(await adapter.documents.get("a")).toBeNull();
     expect(await adapter.collections.getByProject("a")).toEqual([]);
     expect(await adapter.variables.getByProject("a")).toEqual([]);
-    expect(await adapter.events.getByProject("a")).toEqual([]);
     expect(await adapter.projects.getById("a")).toMatchObject({ id: "a" });
     // 다른 프로젝트는 그대로
     expect(await adapter.documents.get("b")).not.toBeNull();
