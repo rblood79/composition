@@ -9,7 +9,7 @@ import type { DataBadgeBounds } from "../skia/bindingBadgeRenderer";
 import type {
   BindingBadgeInfo,
   BindingBadgeTarget,
-} from "../skia/skiaOverlayHelpers";
+} from "../skia/overlayTypes";
 import { intersectBoxes, type BoundingBox } from "../selection/types";
 
 export interface CatalogBadgeData {

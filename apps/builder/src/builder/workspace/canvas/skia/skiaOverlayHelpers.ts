@@ -29,6 +29,16 @@ import {
   type PagePositionPresentationSnapshot,
 } from "../interaction/pagePositionPresentation";
 import { isBodyType } from "@composition/shared";
+import type {
+  BindingBadgeInfo,
+  BindingBadgeTarget,
+  PageGuideRenderTarget,
+} from "./overlayTypes";
+export type {
+  BindingBadgeInfo,
+  BindingBadgeTarget,
+  PageGuideRenderTarget,
+};
 
 export { buildViewportSceneRect } from "./viewportSceneRect";
 
@@ -54,29 +64,6 @@ export interface CollectionRemainderTarget {
   hiddenRows: number;
   /** 소유 페이지 — 페인트 순서상 위 페이지에 가려지는 부분을 clip 하기 위한 키 */
   pageId: string | null;
-}
-
-/** ADR-212 Phase 6 — data-bound 요소 위 바인딩 배지 (아이콘 + 테이블명 + 상태색) */
-export interface BindingBadgeInfo {
-  collectionId: string;
-  name: string;
-  /** "normal" | "empty" | "error" — collectionBadgeStatus SSOT */
-  state: string;
-}
-
-export interface BindingBadgeTarget extends BindingBadgeInfo {
-  /** 요소 원본 박스 (clip·page delta 반영) — 배지는 좌상단에 앵커 */
-  bounds: BoundingBox;
-  pageId: string | null;
-}
-
-/** ADR-181 — 한 페이지의 수동 가이드 렌더 입력 (scene 좌표) */
-export interface PageGuideRenderTarget {
-  pageId: string;
-  /** 페이지 rect (드래그 delta 반영) — 선 길이이자 클립 영역 */
-  pageRect: BoundingBox;
-  /** axis "x" = x 좌표를 고정하는 세로선 (snapGuides 와 같은 어법) */
-  lines: ReadonlyArray<{ id: string; axis: "x" | "y"; position: number }>;
 }
 
 /**

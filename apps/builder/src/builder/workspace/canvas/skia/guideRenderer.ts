@@ -47,7 +47,7 @@ import {
   OVERLAY_BLUE_HEX,
   OVERLAY_WARM_RED_HEX,
 } from "./semanticOverlayColors";
-import type { PageGuideRenderTarget } from "./skiaOverlayHelpers";
+import type { PageGuideRenderTarget } from "./overlayTypes";
 import {
   resolveGuideEmphasis,
   type GuideEmphasis,

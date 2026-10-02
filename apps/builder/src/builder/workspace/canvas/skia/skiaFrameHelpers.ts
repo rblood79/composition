@@ -6,6 +6,14 @@ import {
   readPagePositionDelta,
   type PagePositionPresentationSnapshot,
 } from "../interaction/pagePositionPresentation";
+import type {
+  OverflowContentInfo,
+  ChildOverflowContext,
+} from "./overlayTypes";
+export type {
+  OverflowContentInfo,
+  ChildOverflowContext,
+};
 
 export function buildPageFrameMap(
   pageFrames: PageFrame[],
@@ -29,25 +37,6 @@ export function buildPageFrameMap(
 // ============================================
 // Overflow Content Info — ADR-050 Phase 3
 // ============================================
-
-/** overflow 컨테이너의 자식 전체 + 개별 bounds */
-export interface OverflowContentInfo {
-  containerBounds: BoundingBox;
-  contentBounds: BoundingBox;
-  overflowChildren: Array<{ id: string; bounds: BoundingBox }>;
-  /** overflow 타입 — scroll/auto 시 선택 상태에서 해칭 패턴 표시 */
-  overflowType: "hidden" | "clip" | "scroll" | "auto";
-}
-
-/** 자식 요소가 속한 overflow 부모 정보 */
-export interface ChildOverflowContext {
-  /** 부모 컨테이너 bounds (클리핑 영역) */
-  containerBounds: BoundingBox;
-  /** 자식 요소의 bounds (원본) */
-  childBounds: BoundingBox;
-  /** 부모의 overflow 타입 */
-  overflowType: "hidden" | "clip" | "scroll" | "auto";
-}
 
 /** 자손 하강 상한 — 순환/비정상 깊이 방어 (`computeScrollExtent` 와 동형). */
 const OVERFLOW_DESCENT_MAX_DEPTH = 32;

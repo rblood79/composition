@@ -14,7 +14,7 @@ import type { EditingSemanticsRole } from "../../../utils/editingSemanticsRole";
 import type {
   OverflowContentInfo,
   ChildOverflowContext,
-} from "./skiaFrameHelpers";
+} from "./overlayTypes";
 import { HATCH_ALPHA, drawDiagonalHatch } from "./hatchPattern";
 import {
   getSemanticOverlayColor,

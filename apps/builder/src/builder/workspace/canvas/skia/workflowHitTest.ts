@@ -14,24 +14,8 @@ import { computeEndpoints, computeControlPoints, computeOrthogonalTurnPoint } fr
 // Types
 // ============================================
 
-export interface BezierSamplePoint {
-  x: number;
-  y: number;
-  t: number;
-}
-
-export interface CachedEdgeGeometry {
-  edgeId: string;
-  samples: BezierSamplePoint[];
-  sx: number;
-  sy: number;
-  ex: number;
-  ey: number;
-  cpx1: number;
-  cpy1: number;
-  cpx2: number;
-  cpy2: number;
-}
+import type { BezierSamplePoint, CachedEdgeGeometry } from './overlayTypes';
+export type { BezierSamplePoint, CachedEdgeGeometry };
 
 // ============================================
 // Bezier Sampling

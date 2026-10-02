@@ -24,7 +24,7 @@ import {
   renderBindingBadge,
   type DataBadgeBounds,
 } from "../skia/bindingBadgeRenderer";
-import type { BindingBadgeTarget } from "../skia/skiaOverlayHelpers";
+import type { BindingBadgeTarget } from "../skia/overlayTypes";
 import {
   renderCollectionRemainderMarker,
   renderSlotHatchPattern,

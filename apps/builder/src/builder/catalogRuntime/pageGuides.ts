@@ -7,7 +7,7 @@ import type {
 import { updatePage } from "../../../../../packages/shared/src/catalog/commands";
 import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
 import type { GuideDragState } from "../workspace/canvas/interaction/guidePresentation";
-import type { PageGuideRenderTarget } from "../workspace/canvas/skia/skiaOverlayHelpers";
+import type { PageGuideRenderTarget } from "../workspace/canvas/skia/overlayTypes";
 
 /**
  * ADR-248 Phase 4e: manual guides (ADR-181) over the catalog document — each page keeps its guides

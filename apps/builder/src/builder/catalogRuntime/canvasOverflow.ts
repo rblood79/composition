@@ -2,7 +2,7 @@ import type { BoundingBox } from "../workspace/canvas/selection/types";
 import type {
   ChildOverflowContext,
   OverflowContentInfo,
-} from "../workspace/canvas/skia/skiaFrameHelpers";
+} from "../workspace/canvas/skia/overlayTypes";
 
 /**
  * ADR-248 Phase 4e: `overflow` on the catalog Canvas — what clips, the scroll range of a

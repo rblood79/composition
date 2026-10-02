@@ -32,16 +32,6 @@ import {
 // Types
 // ============================================
 
-export interface PageFrame {
-  id: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  title?: string;
-  elementCount?: number;
-}
-
 export interface FrameBorderArea {
   id?: string;
   x: number;
@@ -56,6 +46,12 @@ export interface FrameBorderArea {
 // (`{id,left,top,width,height}`) 별개 도메인이라 통합 대상 아님.
 export type { ElementBounds } from "../elementRegistry";
 import type { ElementBounds } from "../elementRegistry";
+import type {
+  PageFrame,
+} from "./overlayTypes";
+export type {
+  PageFrame,
+};
 
 export interface EndpointPair {
   sx: number;

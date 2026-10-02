@@ -1,4 +1,4 @@
-import type { CanvasSceneNode } from "../workspace/canvas/scene/canvasSceneNode";
+import type { CanvasSceneNode } from "../workspace/canvas/scene/canvasSceneNodeTypes";
 import { getIconData } from "@composition/specs";
 import type { ComputedLayout } from "../workspace/canvas/layout/engines/LayoutEngine";
 import {

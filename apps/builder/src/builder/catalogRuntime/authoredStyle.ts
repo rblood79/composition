@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import { fillsToCssBackgroundStyle } from "@composition/shared";
 import type { CatalogFillLayer } from "../../../../../packages/shared/src/catalog/document/types";
-import type { CanvasSceneNode } from "../workspace/canvas/scene/canvasSceneNode";
+import type { CanvasSceneNode } from "../workspace/canvas/scene/canvasSceneNodeTypes";
 import type { SkiaNodeData } from "../workspace/canvas/skia/nodeRendererTypes";
 import { buildBoxNodeData } from "../workspace/canvas/skia/buildBoxNodeData";
 import {
