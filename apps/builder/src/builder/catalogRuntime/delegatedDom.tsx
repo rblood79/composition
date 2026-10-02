@@ -196,6 +196,49 @@ const marker = (input: DelegatedDomInput) => ({
 });
 const renderAll = (input: DelegatedDomInput, list = children(input)) =>
   list.map((child) => input.renderChild(child.id));
+/**
+ * RAC TreeItems of resolved TreeItem records (shared `TreeItem`: title/childItems); their other
+ * children render as the item's content.
+ */
+function treeItemElements(
+  input: DelegatedDomInput,
+  list: readonly CatalogConsumerNode[],
+): ReactElement[] {
+  return list.map((item) => {
+    const kids = childrenOf(input.root, item);
+    const childItems = kids.filter(
+      (kid) => catalogTypeName(input.root, kid) === "TreeItem",
+    );
+    const others = kids.filter(
+      (kid) => catalogTypeName(input.root, kid) !== "TreeItem",
+    );
+    const title = others.length
+      ? ""
+      : resolveTextSourceText("TreeItem", item.props as Record<string, unknown>);
+    const label = others.find(
+      (kid) => catalogTypeName(input.root, kid) === "Text",
+    );
+    return createElement(TreeItem as ElementType, {
+      key: item.id,
+      "data-catalog-id": item.id,
+      // A standalone item is the node itself: its authored inline style (the Tree's items take none).
+      ...(item.id === input.node.id ? { style: input.style } : {}),
+      id: resolveStaticItemKey(item.props as Record<string, unknown>, item.id),
+      title,
+      textValue: label
+        ? resolveTextSourceText("Text", label.props as Record<string, unknown>)
+        : title,
+      hasChildren: childItems.length > 0,
+      showInfoButton: false,
+      isDisabled: item.props.isDisabled === true,
+      children: others.map((kid) => input.renderChild(kid.id)),
+      childItems: childItems.length
+        ? treeItemElements(input, childItems)
+        : undefined,
+    });
+  });
+}
+
 const ownsAll = () => true;
 const container =
   (
@@ -472,36 +515,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     },
     render: (input) => {
       const props = input.node.props;
-      const items = (list: CatalogConsumerNode[]): ReactElement[] =>
-        list.map((item) => {
-          const kids = childrenOf(input.root, item);
-          const childItems = kids.filter(
-            (kid) => catalogTypeName(input.root, kid) === "TreeItem",
-          );
-          const others = kids.filter(
-            (kid) => catalogTypeName(input.root, kid) !== "TreeItem",
-          );
-          const title = others.length
-            ? ""
-            : resolveTextSourceText("TreeItem", item.props as Record<string, unknown>);
-          const label = others.find(
-            (kid) => catalogTypeName(input.root, kid) === "Text",
-          );
-          return createElement(TreeItem as ElementType, {
-            key: item.id,
-            "data-catalog-id": item.id,
-            id: resolveStaticItemKey(item.props as Record<string, unknown>, item.id),
-            title,
-            textValue: label
-              ? resolveTextSourceText("Text", label.props as Record<string, unknown>)
-              : title,
-            hasChildren: childItems.length > 0,
-            showInfoButton: false,
-            isDisabled: item.props.isDisabled === true,
-            children: others.map((kid) => input.renderChild(kid.id)),
-            childItems: childItems.length ? items(childItems) : undefined,
-          });
-        });
+      const items = (list: CatalogConsumerNode[]) => treeItemElements(input, list);
       return createElement(
         Tree as ElementType,
         {
@@ -525,6 +539,22 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         ),
       );
     },
+  },
+  treeitem: {
+    // A TreeItem outside a Tree (Preview orphan host): one row of a contents-only shared Tree, so
+    // the `Tree.css` row (`[data-composition-tree]`) and its chevron apply (4e-11).
+    ownsChild: ownsAll,
+    render: (input) =>
+      createElement(
+        Tree as ElementType,
+        {
+          key: `host:${input.node.id}`,
+          "aria-label": "TreeItem sample",
+          style: { display: "contents" },
+          selectionMode: "none",
+        },
+        ...treeItemElements(input, [input.node]),
+      ),
   },
   tableview: {
     // The parts are composition divs drawn by the TableView itself (Preview renderTableView).

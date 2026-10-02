@@ -85,6 +85,8 @@
       width: 20px;
       height: 100%;
       padding-left: calc((var(--tree-item-level) - 1) * var(--padding));
+      /* Keeps its width beside the full-width label (4e-11). */
+      flex-shrink: 0;
       cursor: pointer;
 
       svg {

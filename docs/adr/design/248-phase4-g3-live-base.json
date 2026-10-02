@@ -29,7 +29,7 @@
     "types": 64,
     "PASS": 63,
     "PASS_withApprovedDifferences": 32,
-    "previewDefectFollowed": 2,
+    "previewDefectFollowed": 1,
     "FAIL": 0,
     "UNVERIFIED": 1,
     "NOT_RUN": 0,
@@ -12285,103 +12285,15 @@
       ],
       "geometry": {
         "pairedNodes": 5,
-        "maxDelta": 18.056076049804688,
+        "maxDelta": 16,
         "overOnePx": [
-          {
-            "new": "project:node:subject/lib:template:component-tree__item-1::lib:template:component-tree-item-default__label",
-            "old": "component-tree__item-1/Label",
-            "newRect": {
-              "x": 62.943925857543945,
-              "y": 39,
-              "width": 174.0560760498047,
-              "height": 24
-            },
-            "oldRect": {
-              "x": 65,
-              "y": 39,
-              "width": 172,
-              "height": 24
-            },
-            "newInput": {
-              "self": {
-                "type": "Text",
-                "props": {
-                  "size": "md",
-                  "children": "Node 1"
-                },
-                "layout": {
-                  "display": "block"
-                },
-                "sizing": {},
-                "visual": {
-                  "color": "#171717",
-                  "fontWeight": 400,
-                  "width": "100%",
-                  "fontSize": 16,
-                  "lineHeight": 1.5,
-                  "radius": 0
-                },
-                "placement": null,
-                "engineInput": {
-                  "display": "block",
-                  "width": "100%",
-                  "contentMinWidth": 39,
-                  "contentMaxWidth": 49.88999938964844,
-                  "contentHeight": 24
-                }
-              },
-              "parent": {
-                "type": "TreeItem",
-                "props": {
-                  "size": "md",
-                  "id": "item-1"
-                },
-                "layout": {
-                  "display": "flex",
-                  "flexDirection": "row",
-                  "alignItems": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "gap": 2,
-                  "minHeight": 32,
-                  "paddingY": 4,
-                  "paddingX": 8,
-                  "fontSize": 16,
-                  "radius": 0,
-                  "iconSize": 16
-                },
-                "placement": null,
-                "engineInput": {
-                  "display": "flex",
-                  "flexDirection": "row",
-                  "alignItems": "center",
-                  "minHeight": "32px",
-                  "rowGap": "2px",
-                  "columnGap": "2px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "8px",
-                  "paddingLeft": "8px"
-                }
-              }
-            },
-            "oldEngineInput": {
-              "display": "block",
-              "width": "100%",
-              "contentMinWidth": 39,
-              "contentMaxWidth": 50,
-              "contentHeight": 24,
-              "leafBaseline": 13.7421875
-            }
-          },
           {
             "new": "project:node:subject/lib:template:component-tree__item-2::lib:template:component-tree-item-default__label",
             "old": "component-tree__item-1/component-tree__item-1-1/Label",
             "newRect": {
-              "x": 62.943925857543945,
+              "x": 65,
               "y": 71,
-              "width": 174.0560760498047,
+              "width": 172,
               "height": 24
             },
             "oldRect": {
@@ -12475,25 +12387,16 @@
       },
       "canvasDom": {
         "pairedNodes": 5,
-        "ownedPairs": 0,
-        "maxDelta": 0.0064258575439453125,
+        "ownedPairs": 2,
+        "maxDelta": 0,
         "overOnePx": [],
         "geometryArbiter": [
           {
-            "new": "project:node:subject/lib:template:component-tree__item-1::lib:template:component-tree-item-default__label",
-            "dom": {
-              "x": 62.9375,
-              "y": 39,
-              "width": 174.0625,
-              "height": 24
-            }
-          },
-          {
             "new": "project:node:subject/lib:template:component-tree__item-2::lib:template:component-tree-item-default__label",
             "dom": {
-              "x": 62.9375,
+              "x": 65,
               "y": 71,
-              "width": 174.0625,
+              "width": 172,
               "height": 24
             }
           }
@@ -12504,16 +12407,10 @@
       },
       "approvedDifferences": [
         {
-          "new": "project:node:subject/lib:template:component-tree__item-1::lib:template:component-tree-item-default__label",
-          "old": "component-tree__item-1/Label",
-          "rule": "tree-chevron-shrink",
-          "class": "previewFollow"
-        },
-        {
           "new": "project:node:subject/lib:template:component-tree__item-2::lib:template:component-tree-item-default__label",
           "old": "component-tree__item-1/component-tree__item-1-1/Label",
-          "rule": "tree-chevron-shrink",
-          "class": "previewFollow"
+          "rule": "tree-collapsed-row-label",
+          "class": "oldDefect"
         },
         {
           "new": "",
@@ -12523,10 +12420,8 @@
         }
       ],
       "approvedClasses": [
-        "previewFollow",
         "oldDefect"
       ],
-      "previewDefectFollowed": true,
       "liveIdentity": {
         "region": "capture clip",
         "pixels": 240000,
@@ -12535,9 +12430,9 @@
         "maxByte": 0
       },
       "L3": {
-        "pixels": 231818,
-        "different": 88,
-        "ratio": 0.0003796081408691301,
+        "pixels": 231821,
+        "different": 87,
+        "ratio": 0.0003752895553034453,
         "maxByte": 232,
         "diffBounds": [
           32,
@@ -12545,7 +12440,7 @@
           79,
           71
         ],
-        "approvedAttributed": 88,
+        "approvedAttributed": 87,
         "movedPaint": {
           "pixels": 0,
           "different": 0,
@@ -12556,9 +12451,9 @@
         "blocked": false
       },
       "L3e": {
-        "pixels": 7333,
+        "pixels": 7322,
         "different": 11,
-        "ratio": 0.0015000681849174963,
+        "ratio": 0.0015023217700081944,
         "maxByte": 154,
         "diffBounds": [
           19,
@@ -12569,14 +12464,14 @@
         "gated": false
       },
       "text": {
-        "pixels": 849,
-        "different": 243,
-        "ratio": 0.2862190812720848,
-        "maxByte": 223,
+        "pixels": 857,
+        "different": 130,
+        "ratio": 0.1516919486581097,
+        "maxByte": 232,
         "diffBounds": [
-          30,
-          21,
-          66,
+          32,
+          42,
+          67,
           50
         ],
         "gated": false

@@ -229,6 +229,15 @@ export const APPROVED_DIFFERENCES: readonly ApprovedDifference[] = [
       "old pins the track top where the md 8 track sits (103) at every size; the DOM centers the size's track (sm 4 · xl 16, 4e-11 size reaches the track) in its grid row",
   },
   {
+    id: "tree-collapsed-row-label",
+    class: "oldDefect",
+    owners: ["Tree"],
+    nodes: ["Text"],
+    axes: ["x", "width"],
+    reason:
+      "the old row paired with the second item is the collapsed first item's child, a level deeper (+16); the DOM's second row is level 1 (chevron 20 kept — 4e-11)",
+  },
+  {
     id: "field-button-size",
     class: "oldDefect",
     owners: ["ComboBox", "NumberField"],
@@ -374,23 +383,6 @@ export const APPROVED_DIFFERENCES: readonly ApprovedDifference[] = [
     nodes: ["GridListItem", "Text"],
     axes: ALL,
     reason: "a standalone item gets no slot",
-  },
-  {
-    id: "tree-chevron-shrink",
-    class: "previewFollow",
-    owners: ["Tree"],
-    nodes: ["Text"],
-    axes: ["x", "width"],
-    reason: "hand CSS chevron width shrinks",
-  },
-  {
-    id: "orphan-tree-host",
-    class: "previewFollow",
-    owners: ["TreeItem"],
-    nodes: ["TreeItem", "Text"],
-    axes: ALL,
-    reason:
-      "standalone host lacks `data-composition-tree` (hand Tree.css not applied)",
   },
   {
     id: "listbox-section-header",

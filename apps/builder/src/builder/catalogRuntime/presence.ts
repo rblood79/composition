@@ -396,7 +396,10 @@ const TREE_LEVEL_PADDING = 4;
 /** The chevron svg (`size={16}`): the button's content height. */
 const TREE_CHEVRON_ICON = 16;
 
-/** A TreeItem's level (1 = child of the Tree), or undefined outside a Tree. */
+/**
+ * A TreeItem's level (1 = child of the Tree). A TreeItem outside a Tree is a level-1 row of its
+ * Preview host (`RAC.Tree` with `data-composition-tree` — the same `Tree.css` row).
+ */
 function catalogTreeLevel(
   node: CatalogConsumerNode,
   get: CatalogRecordLookup,
@@ -409,12 +412,12 @@ function catalogTreeLevel(
     level++;
     cursor = get(cursor.parentId);
   }
-  return cursor && typeOf(cursor) === "Tree" ? level : undefined;
+  return level;
 }
 
 /**
  * Parts a record's DOM owner composes before its children. A TreeItem row renders `TreeItemContent`
- * (`Tree.tsx`): its chevron `Button` — a shrinkable 20px flex item indented by level — precedes the
+ * (`Tree.tsx`): its chevron `Button` — a 20px flex item (`flex-shrink: 0`) indented by level — precedes the
  * item's content.
  */
 export function catalogComposedParts(
@@ -453,7 +456,7 @@ export function catalogComposedParts(
         width: `${TREE_CHEVRON_WIDTH + padding}px`,
         height: `${TREE_CHEVRON_ICON}px`,
         paddingLeft: `${padding}px`,
-        flexShrink: 1,
+        flexShrink: 0,
       },
     },
   ];

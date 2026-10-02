@@ -31,7 +31,7 @@
     "types": 15,
     "PASS": 75,
     "PASS_withApprovedDifferences": 67,
-    "previewDefectFollowed": 19,
+    "previewDefectFollowed": 12,
     "FAIL": 0,
     "UNVERIFIED": 0,
     "NOT_RUN": 0,
@@ -10489,8 +10489,8 @@
         },
         "context": {
           "pixels": 448640,
-          "different": 23141,
-          "ratio": 0.05158033166904422,
+          "different": 23329,
+          "ratio": 0.05199937589158345,
           "maxByte": 209,
           "diffBounds": [
             58,
@@ -10723,8 +10723,8 @@
         },
         "context": {
           "pixels": 448640,
-          "different": 22881,
-          "ratio": 0.05100080242510699,
+          "different": 23104,
+          "ratio": 0.051497860199714696,
           "maxByte": 201,
           "diffBounds": [
             58,
@@ -10957,8 +10957,8 @@
         },
         "context": {
           "pixels": 448640,
-          "different": 20558,
-          "ratio": 0.04582293152639087,
+          "different": 20294,
+          "ratio": 0.04523448644793153,
           "maxByte": 209,
           "diffBounds": [
             58,
@@ -11191,8 +11191,8 @@
         },
         "context": {
           "pixels": 448640,
-          "different": 34607,
-          "ratio": 0.07713757132667617,
+          "different": 34802,
+          "ratio": 0.07757221825962911,
           "maxByte": 206,
           "diffBounds": [
             8,
@@ -11401,8 +11401,8 @@
         },
         "context": {
           "pixels": 312000,
-          "different": 17571,
-          "ratio": 0.056317307692307694,
+          "different": 17255,
+          "ratio": 0.05530448717948718,
           "maxByte": 46,
           "diffBounds": [
             0,
@@ -11572,8 +11572,8 @@
         },
         "context": {
           "pixels": 394740,
-          "different": 129223,
-          "ratio": 0.32736231443481784,
+          "different": 129508,
+          "ratio": 0.32808430865886407,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -11743,8 +11743,8 @@
         },
         "context": {
           "pixels": 394740,
-          "different": 129014,
-          "ratio": 0.32683285200385065,
+          "different": 129421,
+          "ratio": 0.32786391042204993,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -11914,8 +11914,8 @@
         },
         "context": {
           "pixels": 394740,
-          "different": 118489,
-          "ratio": 0.3001697319754775,
+          "different": 118777,
+          "ratio": 0.3008993261387242,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -12085,8 +12085,8 @@
         },
         "context": {
           "pixels": 394740,
-          "different": 129556,
-          "ratio": 0.32820590768607183,
+          "different": 129965,
+          "ratio": 0.3292420327304048,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -12256,8 +12256,8 @@
         },
         "context": {
           "pixels": 345600,
-          "different": 102370,
-          "ratio": 0.29620949074074077,
+          "different": 102694,
+          "ratio": 0.29714699074074075,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -12417,8 +12417,8 @@
         },
         "context": {
           "pixels": 345600,
-          "different": 102739,
-          "ratio": 0.29727719907407407,
+          "different": 102694,
+          "ratio": 0.29714699074074075,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -12578,8 +12578,8 @@
         },
         "context": {
           "pixels": 345600,
-          "different": 102370,
-          "ratio": 0.29620949074074077,
+          "different": 102694,
+          "ratio": 0.29714699074074075,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -12749,8 +12749,8 @@
         },
         "context": {
           "pixels": 345600,
-          "different": 99019,
-          "ratio": 0.28651331018518517,
+          "different": 98974,
+          "ratio": 0.28638310185185184,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -12920,8 +12920,8 @@
         },
         "context": {
           "pixels": 345600,
-          "different": 102370,
-          "ratio": 0.29620949074074077,
+          "different": 102694,
+          "ratio": 0.29714699074074075,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -13081,8 +13081,8 @@
         },
         "context": {
           "pixels": 345600,
-          "different": 102739,
-          "ratio": 0.29727719907407407,
+          "different": 103075,
+          "ratio": 0.2982494212962963,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -13250,8 +13250,8 @@
         },
         "context": {
           "pixels": 395200,
-          "different": 30291,
-          "ratio": 0.07664726720647773,
+          "different": 30526,
+          "ratio": 0.0772419028340081,
           "maxByte": 206,
           "diffBounds": [
             0,
@@ -13419,8 +13419,8 @@
         },
         "context": {
           "pixels": 395200,
-          "different": 25166,
-          "ratio": 0.06367914979757085,
+          "different": 25570,
+          "ratio": 0.06470141700404858,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -13588,8 +13588,8 @@
         },
         "context": {
           "pixels": 395200,
-          "different": 24119,
-          "ratio": 0.06102985829959514,
+          "different": 24420,
+          "ratio": 0.0617914979757085,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -13757,8 +13757,8 @@
         },
         "context": {
           "pixels": 395200,
-          "different": 24831,
-          "ratio": 0.06283147773279352,
+          "different": 24530,
+          "ratio": 0.06206983805668016,
           "maxByte": 149,
           "diffBounds": [
             0,
@@ -13926,8 +13926,8 @@
         },
         "context": {
           "pixels": 395200,
-          "different": 24119,
-          "ratio": 0.06102985829959514,
+          "different": 24420,
+          "ratio": 0.0617914979757085,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -14095,8 +14095,8 @@
         },
         "context": {
           "pixels": 395200,
-          "different": 25852,
-          "ratio": 0.06541497975708502,
+          "different": 26263,
+          "ratio": 0.06645495951417003,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -14473,8 +14473,8 @@
         },
         "context": {
           "pixels": 376800,
-          "different": 43390,
-          "ratio": 0.11515392781316348,
+          "different": 43642,
+          "ratio": 0.11582271762208068,
           "maxByte": 232,
           "diffBounds": [
             8,
@@ -14851,8 +14851,8 @@
         },
         "context": {
           "pixels": 376800,
-          "different": 43742,
-          "ratio": 0.11608811040339703,
+          "different": 44153,
+          "ratio": 0.11717887473460722,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -15231,8 +15231,8 @@
         },
         "context": {
           "pixels": 376800,
-          "different": 43409,
-          "ratio": 0.11520435244161359,
+          "different": 43733,
+          "ratio": 0.11606422505307856,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -15609,8 +15609,8 @@
         },
         "context": {
           "pixels": 376800,
-          "different": 43409,
-          "ratio": 0.11520435244161359,
+          "different": 43820,
+          "ratio": 0.11629511677282378,
           "maxByte": 201,
           "diffBounds": [
             0,
@@ -15987,8 +15987,8 @@
         },
         "context": {
           "pixels": 376800,
-          "different": 43409,
-          "ratio": 0.11520435244161359,
+          "different": 43733,
+          "ratio": 0.11606422505307856,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -16365,8 +16365,8 @@
         },
         "context": {
           "pixels": 376800,
-          "different": 42083,
-          "ratio": 0.1116852441613588,
+          "different": 42494,
+          "ratio": 0.112776008492569,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -21087,207 +21087,21 @@
       ],
       "geometry": {
         "pairedNodes": 2,
-        "maxDelta": 22.050003051757812,
-        "overOnePx": [
-          {
-            "new": "project:node:subject::project:node:subject",
-            "old": "",
-            "newRect": {
-              "x": 30,
-              "y": 30,
-              "width": 82.94999694824219,
-              "height": 32
-            },
-            "oldRect": {
-              "x": 30,
-              "y": 30,
-              "width": 105,
-              "height": 32
-            },
-            "newInput": {
-              "self": {
-                "type": "TreeItem",
-                "props": {
-                  "size": "md"
-                },
-                "layout": {
-                  "display": "flex",
-                  "flexDirection": "row",
-                  "alignItems": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "gap": 2,
-                  "minHeight": 32,
-                  "paddingY": 4,
-                  "paddingX": 8,
-                  "fontSize": 16,
-                  "radius": 0,
-                  "iconSize": 16
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "flexDirection": "row",
-                  "alignItems": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "minHeight": "32px",
-                  "rowGap": "2px",
-                  "columnGap": "2px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "8px",
-                  "paddingLeft": "8px"
-                }
-              },
-              "parent": null
-            },
-            "oldEngineInput": {
-              "display": "flex",
-              "flexDirection": "row",
-              "alignItems": "center",
-              "minHeight": "32px",
-              "paddingTop": "4px",
-              "paddingRight": "8px",
-              "paddingBottom": "4px",
-              "paddingLeft": "30px",
-              "columnGap": "2px",
-              "rowGap": "2px"
-            }
-          },
-          {
-            "new": "project:node:subject::lib:template:component-tree-item-default__label",
-            "old": "_label",
-            "newRect": {
-              "x": 38,
-              "y": 34,
-              "width": 66.94999694824219,
-              "height": 24
-            },
-            "oldRect": {
-              "x": 60,
-              "y": 34,
-              "width": 67,
-              "height": 24
-            },
-            "newInput": {
-              "self": {
-                "type": "Text",
-                "props": {
-                  "size": "md",
-                  "children": "Tree item"
-                },
-                "layout": {
-                  "display": "block"
-                },
-                "sizing": {},
-                "visual": {
-                  "color": "#171717",
-                  "fontWeight": 400,
-                  "width": "100%",
-                  "fontSize": 16,
-                  "lineHeight": 1.5,
-                  "radius": 0
-                },
-                "placement": null,
-                "engineInput": {
-                  "display": "block",
-                  "width": "100%",
-                  "contentMinWidth": 32,
-                  "contentMaxWidth": 66.94999694824219,
-                  "contentHeight": 24
-                }
-              },
-              "parent": {
-                "type": "TreeItem",
-                "props": {
-                  "size": "md"
-                },
-                "layout": {
-                  "display": "flex",
-                  "flexDirection": "row",
-                  "alignItems": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "gap": 2,
-                  "minHeight": 32,
-                  "paddingY": 4,
-                  "paddingX": 8,
-                  "fontSize": 16,
-                  "radius": 0,
-                  "iconSize": 16
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "flexDirection": "row",
-                  "alignItems": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "minHeight": "32px",
-                  "rowGap": "2px",
-                  "columnGap": "2px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "8px",
-                  "paddingLeft": "8px"
-                }
-              }
-            },
-            "oldEngineInput": {
-              "display": "block",
-              "width": "100%",
-              "contentMinWidth": 32,
-              "contentMaxWidth": 67,
-              "contentHeight": 24,
-              "leafBaseline": 13.7421875
-            }
-          }
-        ],
+        "maxDelta": 0.0500030517578125,
+        "overOnePx": [],
         "unpaired": [],
         "unpairedCount": 0,
         "oldSyntheticWrappers": [],
         "pass": true,
-        "strictPass": false,
+        "strictPass": true,
         "unapprovedCount": 0
       },
       "canvasDom": {
         "pairedNodes": 2,
-        "ownedPairs": 0,
+        "ownedPairs": 1,
         "maxDelta": 0.0031280517578125,
         "overOnePx": [],
-        "geometryArbiter": [
-          {
-            "new": "project:node:subject::project:node:subject",
-            "dom": {
-              "x": 30,
-              "y": 30,
-              "width": 82.953125,
-              "height": 32
-            }
-          },
-          {
-            "new": "project:node:subject::lib:template:component-tree-item-default__label",
-            "dom": {
-              "x": 38,
-              "y": 34,
-              "width": 66.953125,
-              "height": 24
-            }
-          }
-        ],
+        "geometryArbiter": [],
         "missing": [],
         "missingCount": 0,
         "pass": true
@@ -21296,72 +21110,58 @@
         {
           "new": "project:node:subject::project:node:subject",
           "old": "",
-          "rule": "orphan-tree-host",
-          "class": "previewFollow"
+          "rule": "subpixel-intrinsic-width-ceil",
+          "class": "oldDefect",
+          "edges": true
         },
         {
           "new": "project:node:subject::lib:template:component-tree-item-default__label",
           "old": "_label",
-          "rule": "orphan-tree-host",
-          "class": "previewFollow"
+          "rule": "subpixel-intrinsic-width-ceil",
+          "class": "oldDefect",
+          "edges": true
         }
       ],
       "approvedClasses": [
-        "previewFollow"
+        "oldDefect"
       ],
-      "previewDefectFollowed": true,
       "liveIdentity": {
         "region": "root box",
-        "pixels": 66560,
+        "pixels": 84160,
         "different": 0,
         "ratio": 0,
         "maxByte": 0
       },
       "L3": {
-        "pixels": 98646,
-        "different": 2153,
-        "ratio": 0.021825517507045394,
-        "maxByte": 232,
-        "diffBounds": [
-          212,
-          243,
-          615,
-          299
-        ],
-        "approvedAttributed": 2153,
+        "pixels": 97987,
+        "different": 0,
+        "ratio": 0,
+        "maxByte": 0,
+        "diffBounds": null,
+        "approvedAttributed": 0,
         "movedPaint": {
-          "pixels": 14197,
+          "pixels": 0,
           "different": 0,
           "maxByte": 0
         },
         "outsideRatio": 0,
-        "outsideMaxByte": 24,
+        "outsideMaxByte": 0,
         "blocked": false
       },
       "L3e": {
-        "pixels": 13247,
-        "different": 88,
-        "ratio": 0.006643013512493395,
-        "maxByte": 232,
-        "diffBounds": [
-          214,
-          256,
-          551,
-          292
-        ],
+        "pixels": 13906,
+        "different": 0,
+        "ratio": 0,
+        "maxByte": 0,
+        "diffBounds": null,
         "gated": false
       },
       "text": {
         "pixels": 17027,
-        "different": 4015,
-        "ratio": 0.23580196159041522,
-        "maxByte": 232,
-        "diffBounds": [
-          181,
-          243,
-          508,
-          300
-        ],
+        "different": 0,
+        "ratio": 0,
+        "maxByte": 0,
+        "diffBounds": null,
         "gated": false
       },
       "fixtureRegion": {
@@ -21373,8 +21173,8 @@
         },
         "context": {
           "pixels": 351080,
-          "different": 24757,
-          "ratio": 0.07051669135239831,
+          "different": 24769,
+          "ratio": 0.07055087159621738,
           "maxByte": 206,
           "diffBounds": [
             0,
@@ -21438,207 +21238,21 @@
       ],
       "geometry": {
         "pairedNodes": 2,
-        "maxDelta": 22.050003051757812,
-        "overOnePx": [
-          {
-            "new": "project:node:subject::project:node:subject",
-            "old": "",
-            "newRect": {
-              "x": 30,
-              "y": 30,
-              "width": 82.94999694824219,
-              "height": 32
-            },
-            "oldRect": {
-              "x": 30,
-              "y": 30,
-              "width": 105,
-              "height": 32
-            },
-            "newInput": {
-              "self": {
-                "type": "TreeItem",
-                "props": {
-                  "size": "md"
-                },
-                "layout": {
-                  "display": "flex",
-                  "flexDirection": "row",
-                  "alignItems": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "gap": 2,
-                  "minHeight": 32,
-                  "paddingY": 4,
-                  "paddingX": 8,
-                  "fontSize": 16,
-                  "radius": 0,
-                  "iconSize": 16
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "flexDirection": "row",
-                  "alignItems": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "minHeight": "32px",
-                  "rowGap": "2px",
-                  "columnGap": "2px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "8px",
-                  "paddingLeft": "8px"
-                }
-              },
-              "parent": null
-            },
-            "oldEngineInput": {
-              "display": "flex",
-              "flexDirection": "row",
-              "alignItems": "center",
-              "minHeight": "32px",
-              "paddingTop": "4px",
-              "paddingRight": "8px",
-              "paddingBottom": "4px",
-              "paddingLeft": "30px",
-              "columnGap": "2px",
-              "rowGap": "2px"
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-tree-item-default--unselected::lib:template:component-tree-item-default__label",
-            "old": "Label",
-            "newRect": {
-              "x": 38,
-              "y": 34,
-              "width": 66.94999694824219,
-              "height": 24
-            },
-            "oldRect": {
-              "x": 60,
-              "y": 34,
-              "width": 67,
-              "height": 24
-            },
-            "newInput": {
-              "self": {
-                "type": "Text",
-                "props": {
-                  "size": "md",
-                  "children": "Tree item"
-                },
-                "layout": {
-                  "display": "block"
-                },
-                "sizing": {},
-                "visual": {
-                  "color": "#171717",
-                  "fontWeight": 400,
-                  "width": "100%",
-                  "fontSize": 16,
-                  "lineHeight": 1.5,
-                  "radius": 0
-                },
-                "placement": null,
-                "engineInput": {
-                  "display": "block",
-                  "width": "100%",
-                  "contentMinWidth": 32,
-                  "contentMaxWidth": 66.94999694824219,
-                  "contentHeight": 24
-                }
-              },
-              "parent": {
-                "type": "TreeItem",
-                "props": {
-                  "size": "md"
-                },
-                "layout": {
-                  "display": "flex",
-                  "flexDirection": "row",
-                  "alignItems": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "gap": 2,
-                  "minHeight": 32,
-                  "paddingY": 4,
-                  "paddingX": 8,
-                  "fontSize": 16,
-                  "radius": 0,
-                  "iconSize": 16
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "flexDirection": "row",
-                  "alignItems": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "minHeight": "32px",
-                  "rowGap": "2px",
-                  "columnGap": "2px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "8px",
-                  "paddingLeft": "8px"
-                }
-              }
-            },
-            "oldEngineInput": {
-              "display": "block",
-              "width": "100%",
-              "contentMinWidth": 32,
-              "contentMaxWidth": 67,
-              "contentHeight": 24,
-              "leafBaseline": 13.7421875
-            }
-          }
-        ],
+        "maxDelta": 0.0500030517578125,
+        "overOnePx": [],
         "unpaired": [],
         "unpairedCount": 0,
         "oldSyntheticWrappers": [],
         "pass": true,
-        "strictPass": false,
+        "strictPass": true,
         "unapprovedCount": 0
       },
       "canvasDom": {
         "pairedNodes": 2,
-        "ownedPairs": 0,
+        "ownedPairs": 1,
         "maxDelta": 0.0031280517578125,
         "overOnePx": [],
-        "geometryArbiter": [
-          {
-            "new": "project:node:subject::project:node:subject",
-            "dom": {
-              "x": 30,
-              "y": 30,
-              "width": 82.953125,
-              "height": 32
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-tree-item-default--unselected::lib:template:component-tree-item-default__label",
-            "dom": {
-              "x": 38,
-              "y": 34,
-              "width": 66.953125,
-              "height": 24
-            }
-          }
-        ],
+        "geometryArbiter": [],
         "missing": [],
         "missingCount": 0,
         "pass": true
@@ -21647,72 +21261,58 @@
         {
           "new": "project:node:subject::project:node:subject",
           "old": "",
-          "rule": "orphan-tree-host",
-          "class": "previewFollow"
+          "rule": "subpixel-intrinsic-width-ceil",
+          "class": "oldDefect",
+          "edges": true
         },
         {
           "new": "project:node:subject/lib:template:component-tree-item-default--unselected::lib:template:component-tree-item-default__label",
           "old": "Label",
-          "rule": "orphan-tree-host",
-          "class": "previewFollow"
+          "rule": "subpixel-intrinsic-width-ceil",
+          "class": "oldDefect",
+          "edges": true
         }
       ],
       "approvedClasses": [
-        "previewFollow"
+        "oldDefect"
       ],
-      "previewDefectFollowed": true,
       "liveIdentity": {
         "region": "root box",
-        "pixels": 66560,
+        "pixels": 84160,
         "different": 0,
         "ratio": 0,
         "maxByte": 0
       },
       "L3": {
-        "pixels": 98646,
-        "different": 2153,
-        "ratio": 0.021825517507045394,
-        "maxByte": 232,
-        "diffBounds": [
-          212,
-          243,
-          615,
-          299
-        ],
-        "approvedAttributed": 2153,
+        "pixels": 97987,
+        "different": 0,
+        "ratio": 0,
+        "maxByte": 0,
+        "diffBounds": null,
+        "approvedAttributed": 0,
         "movedPaint": {
-          "pixels": 14197,
+          "pixels": 0,
           "different": 0,
           "maxByte": 0
         },
         "outsideRatio": 0,
-        "outsideMaxByte": 24,
+        "outsideMaxByte": 0,
         "blocked": false
       },
       "L3e": {
-        "pixels": 13247,
-        "different": 88,
-        "ratio": 0.006643013512493395,
-        "maxByte": 232,
-        "diffBounds": [
-          214,
-          256,
-          551,
-          292
-        ],
+        "pixels": 13906,
+        "different": 0,
+        "ratio": 0,
+        "maxByte": 0,
+        "diffBounds": null,
         "gated": false
       },
       "text": {
         "pixels": 17027,
-        "different": 4015,
-        "ratio": 0.23580196159041522,
-        "maxByte": 232,
-        "diffBounds": [
-          181,
-          243,
-          508,
-          300
-        ],
+        "different": 0,
+        "ratio": 0,
+        "maxByte": 0,
+        "diffBounds": null,
         "gated": false
       },
       "fixtureRegion": {
@@ -21724,8 +21324,8 @@
         },
         "context": {
           "pixels": 351080,
-          "different": 25041,
-          "ratio": 0.0713256237894497,
+          "different": 25058,
+          "ratio": 0.07137404580152672,
           "maxByte": 206,
           "diffBounds": [
             0,
@@ -21789,209 +21389,21 @@
       ],
       "geometry": {
         "pairedNodes": 2,
-        "maxDelta": 22.050003051757812,
-        "overOnePx": [
-          {
-            "new": "project:node:subject::project:node:subject",
-            "old": "",
-            "newRect": {
-              "x": 30,
-              "y": 30,
-              "width": 82.94999694824219,
-              "height": 32
-            },
-            "oldRect": {
-              "x": 30,
-              "y": 30,
-              "width": 105,
-              "height": 32
-            },
-            "newInput": {
-              "self": {
-                "type": "TreeItem",
-                "props": {
-                  "size": "md",
-                  "isDisabled": true
-                },
-                "layout": {
-                  "display": "flex",
-                  "flexDirection": "row",
-                  "alignItems": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "gap": 2,
-                  "minHeight": 32,
-                  "paddingY": 4,
-                  "paddingX": 8,
-                  "fontSize": 16,
-                  "radius": 0,
-                  "iconSize": 16
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "flexDirection": "row",
-                  "alignItems": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "minHeight": "32px",
-                  "rowGap": "2px",
-                  "columnGap": "2px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "8px",
-                  "paddingLeft": "8px"
-                }
-              },
-              "parent": null
-            },
-            "oldEngineInput": {
-              "display": "flex",
-              "flexDirection": "row",
-              "alignItems": "center",
-              "minHeight": "32px",
-              "paddingTop": "4px",
-              "paddingRight": "8px",
-              "paddingBottom": "4px",
-              "paddingLeft": "30px",
-              "columnGap": "2px",
-              "rowGap": "2px"
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-tree-item-default--disabled::lib:template:component-tree-item-default__label",
-            "old": "Label",
-            "newRect": {
-              "x": 38,
-              "y": 34,
-              "width": 66.94999694824219,
-              "height": 24
-            },
-            "oldRect": {
-              "x": 60,
-              "y": 34,
-              "width": 67,
-              "height": 24
-            },
-            "newInput": {
-              "self": {
-                "type": "Text",
-                "props": {
-                  "size": "md",
-                  "children": "Tree item"
-                },
-                "layout": {
-                  "display": "block"
-                },
-                "sizing": {},
-                "visual": {
-                  "color": "#171717",
-                  "fontWeight": 400,
-                  "width": "100%",
-                  "fontSize": 16,
-                  "lineHeight": 1.5,
-                  "radius": 0
-                },
-                "placement": null,
-                "engineInput": {
-                  "display": "block",
-                  "width": "100%",
-                  "contentMinWidth": 32,
-                  "contentMaxWidth": 66.94999694824219,
-                  "contentHeight": 24
-                }
-              },
-              "parent": {
-                "type": "TreeItem",
-                "props": {
-                  "size": "md",
-                  "isDisabled": true
-                },
-                "layout": {
-                  "display": "flex",
-                  "flexDirection": "row",
-                  "alignItems": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "gap": 2,
-                  "minHeight": 32,
-                  "paddingY": 4,
-                  "paddingX": 8,
-                  "fontSize": 16,
-                  "radius": 0,
-                  "iconSize": 16
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "flexDirection": "row",
-                  "alignItems": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "minHeight": "32px",
-                  "rowGap": "2px",
-                  "columnGap": "2px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "8px",
-                  "paddingLeft": "8px"
-                }
-              }
-            },
-            "oldEngineInput": {
-              "display": "block",
-              "width": "100%",
-              "contentMinWidth": 32,
-              "contentMaxWidth": 67,
-              "contentHeight": 24,
-              "leafBaseline": 13.7421875
-            }
-          }
-        ],
+        "maxDelta": 0.0500030517578125,
+        "overOnePx": [],
         "unpaired": [],
         "unpairedCount": 0,
         "oldSyntheticWrappers": [],
         "pass": true,
-        "strictPass": false,
+        "strictPass": true,
         "unapprovedCount": 0
       },
       "canvasDom": {
         "pairedNodes": 2,
-        "ownedPairs": 0,
+        "ownedPairs": 1,
         "maxDelta": 0.0031280517578125,
         "overOnePx": [],
-        "geometryArbiter": [
-          {
-            "new": "project:node:subject::project:node:subject",
-            "dom": {
-              "x": 30,
-              "y": 30,
-              "width": 82.953125,
-              "height": 32
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-tree-item-default--disabled::lib:template:component-tree-item-default__label",
-            "dom": {
-              "x": 38,
-              "y": 34,
-              "width": 66.953125,
-              "height": 24
-            }
-          }
-        ],
+        "geometryArbiter": [],
         "missing": [],
         "missingCount": 0,
         "pass": true
@@ -22000,70 +21412,61 @@
         {
           "new": "project:node:subject::project:node:subject",
           "old": "",
-          "rule": "orphan-tree-host",
-          "class": "previewFollow"
+          "rule": "subpixel-intrinsic-width-ceil",
+          "class": "oldDefect",
+          "edges": true
         },
         {
           "new": "project:node:subject/lib:template:component-tree-item-default--disabled::lib:template:component-tree-item-default__label",
           "old": "Label",
-          "rule": "orphan-tree-host",
-          "class": "previewFollow"
+          "rule": "subpixel-intrinsic-width-ceil",
+          "class": "oldDefect",
+          "edges": true
         }
       ],
       "approvedClasses": [
-        "previewFollow"
+        "oldDefect"
       ],
-      "previewDefectFollowed": true,
       "liveIdentity": {
         "region": "root box",
-        "pixels": 66560,
+        "pixels": 84160,
         "different": 0,
         "ratio": 0,
         "maxByte": 0
       },
       "L3": {
-        "pixels": 98646,
-        "different": 2153,
-        "ratio": 0.021825517507045394,
-        "maxByte": 173,
-        "diffBounds": [
-          212,
-          243,
-          615,
-          299
-        ],
-        "approvedAttributed": 2153,
+        "pixels": 97987,
+        "different": 0,
+        "ratio": 0,
+        "maxByte": 0,
+        "diffBounds": null,
+        "approvedAttributed": 0,
         "movedPaint": {
-          "pixels": 14197,
+          "pixels": 0,
           "different": 0,
           "maxByte": 0
         },
         "outsideRatio": 0,
-        "outsideMaxByte": 24,
+        "outsideMaxByte": 0,
         "blocked": false
       },
       "L3e": {
-        "pixels": 13247,
-        "different": 88,
-        "ratio": 0.006643013512493395,
-        "maxByte": 173,
-        "diffBounds": [
-          214,
-          256,
-          551,
-          292
-        ],
+        "pixels": 13906,
+        "different": 0,
+        "ratio": 0,
+        "maxByte": 0,
+        "diffBounds": null,
         "gated": false
       },
       "text": {
         "pixels": 17027,
-        "different": 5166,
-        "ratio": 0.30340048158806604,
-        "maxByte": 232,
+        "different": 4366,
+        "ratio": 0.2564162800258413,
+        "maxByte": 144,
         "diffBounds": [
-          181,
+          291,
           243,
-          508,
+          615,
           299
         ],
         "gated": false
@@ -22077,8 +21480,8 @@
         },
         "context": {
           "pixels": 351080,
-          "different": 23921,
-          "ratio": 0.06813546769966959,
+          "different": 23603,
+          "ratio": 0.06722969123846417,
           "maxByte": 206,
           "diffBounds": [
             0,
@@ -22142,207 +21545,21 @@
       ],
       "geometry": {
         "pairedNodes": 2,
-        "maxDelta": 22.050003051757812,
-        "overOnePx": [
-          {
-            "new": "project:node:subject::project:node:subject",
-            "old": "",
-            "newRect": {
-              "x": 30,
-              "y": 30,
-              "width": 82.94999694824219,
-              "height": 32
-            },
-            "oldRect": {
-              "x": 30,
-              "y": 30,
-              "width": 105,
-              "height": 32
-            },
-            "newInput": {
-              "self": {
-                "type": "TreeItem",
-                "props": {
-                  "size": "md"
-                },
-                "layout": {
-                  "display": "flex",
-                  "flexDirection": "row",
-                  "alignItems": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "gap": 2,
-                  "minHeight": 32,
-                  "paddingY": 4,
-                  "paddingX": 8,
-                  "fontSize": 16,
-                  "radius": 0,
-                  "iconSize": 16
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "flexDirection": "row",
-                  "alignItems": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "minHeight": "32px",
-                  "rowGap": "2px",
-                  "columnGap": "2px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "8px",
-                  "paddingLeft": "8px"
-                }
-              },
-              "parent": null
-            },
-            "oldEngineInput": {
-              "display": "flex",
-              "flexDirection": "row",
-              "alignItems": "center",
-              "minHeight": "32px",
-              "paddingTop": "4px",
-              "paddingRight": "8px",
-              "paddingBottom": "4px",
-              "paddingLeft": "30px",
-              "columnGap": "2px",
-              "rowGap": "2px"
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-tree-item-default--hover::lib:template:component-tree-item-default__label",
-            "old": "Label",
-            "newRect": {
-              "x": 38,
-              "y": 34,
-              "width": 66.94999694824219,
-              "height": 24
-            },
-            "oldRect": {
-              "x": 60,
-              "y": 34,
-              "width": 67,
-              "height": 24
-            },
-            "newInput": {
-              "self": {
-                "type": "Text",
-                "props": {
-                  "size": "md",
-                  "children": "Tree item"
-                },
-                "layout": {
-                  "display": "block"
-                },
-                "sizing": {},
-                "visual": {
-                  "color": "#171717",
-                  "fontWeight": 400,
-                  "width": "100%",
-                  "fontSize": 16,
-                  "lineHeight": 1.5,
-                  "radius": 0
-                },
-                "placement": null,
-                "engineInput": {
-                  "display": "block",
-                  "width": "100%",
-                  "contentMinWidth": 32,
-                  "contentMaxWidth": 66.94999694824219,
-                  "contentHeight": 24
-                }
-              },
-              "parent": {
-                "type": "TreeItem",
-                "props": {
-                  "size": "md"
-                },
-                "layout": {
-                  "display": "flex",
-                  "flexDirection": "row",
-                  "alignItems": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "gap": 2,
-                  "minHeight": 32,
-                  "paddingY": 4,
-                  "paddingX": 8,
-                  "fontSize": 16,
-                  "radius": 0,
-                  "iconSize": 16
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "flexDirection": "row",
-                  "alignItems": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "minHeight": "32px",
-                  "rowGap": "2px",
-                  "columnGap": "2px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "8px",
-                  "paddingLeft": "8px"
-                }
-              }
-            },
-            "oldEngineInput": {
-              "display": "block",
-              "width": "100%",
-              "contentMinWidth": 32,
-              "contentMaxWidth": 67,
-              "contentHeight": 24,
-              "leafBaseline": 13.7421875
-            }
-          }
-        ],
+        "maxDelta": 0.0500030517578125,
+        "overOnePx": [],
         "unpaired": [],
         "unpairedCount": 0,
         "oldSyntheticWrappers": [],
         "pass": true,
-        "strictPass": false,
+        "strictPass": true,
         "unapprovedCount": 0
       },
       "canvasDom": {
         "pairedNodes": 2,
-        "ownedPairs": 0,
+        "ownedPairs": 1,
         "maxDelta": 0.0031280517578125,
         "overOnePx": [],
-        "geometryArbiter": [
-          {
-            "new": "project:node:subject::project:node:subject",
-            "dom": {
-              "x": 30,
-              "y": 30,
-              "width": 82.953125,
-              "height": 32
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-tree-item-default--hover::lib:template:component-tree-item-default__label",
-            "dom": {
-              "x": 38,
-              "y": 34,
-              "width": 66.953125,
-              "height": 24
-            }
-          }
-        ],
+        "geometryArbiter": [],
         "missing": [],
         "missingCount": 0,
         "pass": true
@@ -22351,72 +21568,58 @@
         {
           "new": "project:node:subject::project:node:subject",
           "old": "",
-          "rule": "orphan-tree-host",
-          "class": "previewFollow"
+          "rule": "subpixel-intrinsic-width-ceil",
+          "class": "oldDefect",
+          "edges": true
         },
         {
           "new": "project:node:subject/lib:template:component-tree-item-default--hover::lib:template:component-tree-item-default__label",
           "old": "Label",
-          "rule": "orphan-tree-host",
-          "class": "previewFollow"
+          "rule": "subpixel-intrinsic-width-ceil",
+          "class": "oldDefect",
+          "edges": true
         }
       ],
       "approvedClasses": [
-        "previewFollow"
+        "oldDefect"
       ],
-      "previewDefectFollowed": true,
       "liveIdentity": {
         "region": "root box",
-        "pixels": 66560,
+        "pixels": 84160,
         "different": 0,
         "ratio": 0,
         "maxByte": 0
       },
       "L3": {
-        "pixels": 98646,
-        "different": 2153,
-        "ratio": 0.021825517507045394,
-        "maxByte": 232,
-        "diffBounds": [
-          212,
-          243,
-          615,
-          299
-        ],
-        "approvedAttributed": 2153,
+        "pixels": 97987,
+        "different": 0,
+        "ratio": 0,
+        "maxByte": 0,
+        "diffBounds": null,
+        "approvedAttributed": 0,
         "movedPaint": {
-          "pixels": 14197,
+          "pixels": 0,
           "different": 0,
           "maxByte": 0
         },
         "outsideRatio": 0,
-        "outsideMaxByte": 24,
+        "outsideMaxByte": 0,
         "blocked": false
       },
       "L3e": {
-        "pixels": 13247,
-        "different": 88,
-        "ratio": 0.006643013512493395,
-        "maxByte": 232,
-        "diffBounds": [
-          214,
-          256,
-          551,
-          292
-        ],
+        "pixels": 13906,
+        "different": 0,
+        "ratio": 0,
+        "maxByte": 0,
+        "diffBounds": null,
         "gated": false
       },
       "text": {
         "pixels": 17027,
-        "different": 4015,
-        "ratio": 0.23580196159041522,
-        "maxByte": 232,
-        "diffBounds": [
-          181,
-          243,
-          508,
-          300
-        ],
+        "different": 0,
+        "ratio": 0,
+        "maxByte": 0,
+        "diffBounds": null,
         "gated": false
       },
       "fixtureRegion": {
@@ -22428,8 +21631,8 @@
         },
         "context": {
           "pixels": 351080,
-          "different": 22231,
-          "ratio": 0.06332175002848353,
+          "different": 22187,
+          "ratio": 0.06319642246781361,
           "maxByte": 149,
           "diffBounds": [
             0,
@@ -22493,207 +21696,21 @@
       ],
       "geometry": {
         "pairedNodes": 2,
-        "maxDelta": 22.050003051757812,
-        "overOnePx": [
-          {
-            "new": "project:node:subject::project:node:subject",
-            "old": "",
-            "newRect": {
-              "x": 30,
-              "y": 30,
-              "width": 82.94999694824219,
-              "height": 32
-            },
-            "oldRect": {
-              "x": 30,
-              "y": 30,
-              "width": 105,
-              "height": 32
-            },
-            "newInput": {
-              "self": {
-                "type": "TreeItem",
-                "props": {
-                  "size": "md"
-                },
-                "layout": {
-                  "display": "flex",
-                  "flexDirection": "row",
-                  "alignItems": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "gap": 2,
-                  "minHeight": 32,
-                  "paddingY": 4,
-                  "paddingX": 8,
-                  "fontSize": 16,
-                  "radius": 0,
-                  "iconSize": 16
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "flexDirection": "row",
-                  "alignItems": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "minHeight": "32px",
-                  "rowGap": "2px",
-                  "columnGap": "2px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "8px",
-                  "paddingLeft": "8px"
-                }
-              },
-              "parent": null
-            },
-            "oldEngineInput": {
-              "display": "flex",
-              "flexDirection": "row",
-              "alignItems": "center",
-              "minHeight": "32px",
-              "paddingTop": "4px",
-              "paddingRight": "8px",
-              "paddingBottom": "4px",
-              "paddingLeft": "30px",
-              "columnGap": "2px",
-              "rowGap": "2px"
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-tree-item-default--pressed::lib:template:component-tree-item-default__label",
-            "old": "Label",
-            "newRect": {
-              "x": 38,
-              "y": 34,
-              "width": 66.94999694824219,
-              "height": 24
-            },
-            "oldRect": {
-              "x": 60,
-              "y": 34,
-              "width": 67,
-              "height": 24
-            },
-            "newInput": {
-              "self": {
-                "type": "Text",
-                "props": {
-                  "size": "md",
-                  "children": "Tree item"
-                },
-                "layout": {
-                  "display": "block"
-                },
-                "sizing": {},
-                "visual": {
-                  "color": "#171717",
-                  "fontWeight": 400,
-                  "width": "100%",
-                  "fontSize": 16,
-                  "lineHeight": 1.5,
-                  "radius": 0
-                },
-                "placement": null,
-                "engineInput": {
-                  "display": "block",
-                  "width": "100%",
-                  "contentMinWidth": 32,
-                  "contentMaxWidth": 66.94999694824219,
-                  "contentHeight": 24
-                }
-              },
-              "parent": {
-                "type": "TreeItem",
-                "props": {
-                  "size": "md"
-                },
-                "layout": {
-                  "display": "flex",
-                  "flexDirection": "row",
-                  "alignItems": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "gap": 2,
-                  "minHeight": 32,
-                  "paddingY": 4,
-                  "paddingX": 8,
-                  "fontSize": 16,
-                  "radius": 0,
-                  "iconSize": 16
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "flexDirection": "row",
-                  "alignItems": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "minHeight": "32px",
-                  "rowGap": "2px",
-                  "columnGap": "2px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "8px",
-                  "paddingLeft": "8px"
-                }
-              }
-            },
-            "oldEngineInput": {
-              "display": "block",
-              "width": "100%",
-              "contentMinWidth": 32,
-              "contentMaxWidth": 67,
-              "contentHeight": 24,
-              "leafBaseline": 13.7421875
-            }
-          }
-        ],
+        "maxDelta": 0.0500030517578125,
+        "overOnePx": [],
         "unpaired": [],
         "unpairedCount": 0,
         "oldSyntheticWrappers": [],
         "pass": true,
-        "strictPass": false,
+        "strictPass": true,
         "unapprovedCount": 0
       },
       "canvasDom": {
         "pairedNodes": 2,
-        "ownedPairs": 0,
+        "ownedPairs": 1,
         "maxDelta": 0.0031280517578125,
         "overOnePx": [],
-        "geometryArbiter": [
-          {
-            "new": "project:node:subject::project:node:subject",
-            "dom": {
-              "x": 30,
-              "y": 30,
-              "width": 82.953125,
-              "height": 32
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-tree-item-default--pressed::lib:template:component-tree-item-default__label",
-            "dom": {
-              "x": 38,
-              "y": 34,
-              "width": 66.953125,
-              "height": 24
-            }
-          }
-        ],
+        "geometryArbiter": [],
         "missing": [],
         "missingCount": 0,
         "pass": true
@@ -22702,72 +21719,58 @@
         {
           "new": "project:node:subject::project:node:subject",
           "old": "",
-          "rule": "orphan-tree-host",
-          "class": "previewFollow"
+          "rule": "subpixel-intrinsic-width-ceil",
+          "class": "oldDefect",
+          "edges": true
         },
         {
           "new": "project:node:subject/lib:template:component-tree-item-default--pressed::lib:template:component-tree-item-default__label",
           "old": "Label",
-          "rule": "orphan-tree-host",
-          "class": "previewFollow"
+          "rule": "subpixel-intrinsic-width-ceil",
+          "class": "oldDefect",
+          "edges": true
         }
       ],
       "approvedClasses": [
-        "previewFollow"
+        "oldDefect"
       ],
-      "previewDefectFollowed": true,
       "liveIdentity": {
         "region": "root box",
-        "pixels": 66560,
+        "pixels": 84160,
         "different": 0,
         "ratio": 0,
         "maxByte": 0
       },
       "L3": {
-        "pixels": 98646,
-        "different": 2153,
-        "ratio": 0.021825517507045394,
-        "maxByte": 232,
-        "diffBounds": [
-          212,
-          243,
-          615,
-          299
-        ],
-        "approvedAttributed": 2153,
+        "pixels": 97987,
+        "different": 0,
+        "ratio": 0,
+        "maxByte": 0,
+        "diffBounds": null,
+        "approvedAttributed": 0,
         "movedPaint": {
-          "pixels": 14197,
+          "pixels": 0,
           "different": 0,
           "maxByte": 0
         },
         "outsideRatio": 0,
-        "outsideMaxByte": 24,
+        "outsideMaxByte": 0,
         "blocked": false
       },
       "L3e": {
-        "pixels": 13247,
-        "different": 88,
-        "ratio": 0.006643013512493395,
-        "maxByte": 232,
-        "diffBounds": [
-          214,
-          256,
-          551,
-          292
-        ],
+        "pixels": 13906,
+        "different": 0,
+        "ratio": 0,
+        "maxByte": 0,
+        "diffBounds": null,
         "gated": false
       },
       "text": {
         "pixels": 17027,
-        "different": 4015,
-        "ratio": 0.23580196159041522,
-        "maxByte": 232,
-        "diffBounds": [
-          181,
-          243,
-          508,
-          300
-        ],
+        "different": 0,
+        "ratio": 0,
+        "maxByte": 0,
+        "diffBounds": null,
         "gated": false
       },
       "fixtureRegion": {
@@ -22779,8 +21782,8 @@
         },
         "context": {
           "pixels": 351080,
-          "different": 22165,
-          "ratio": 0.06313375868747864,
+          "different": 22252,
+          "ratio": 0.06338156545516692,
           "maxByte": 149,
           "diffBounds": [
             0,
@@ -22844,207 +21847,21 @@
       ],
       "geometry": {
         "pairedNodes": 2,
-        "maxDelta": 22.050003051757812,
-        "overOnePx": [
-          {
-            "new": "project:node:subject::project:node:subject",
-            "old": "",
-            "newRect": {
-              "x": 30,
-              "y": 30,
-              "width": 82.94999694824219,
-              "height": 32
-            },
-            "oldRect": {
-              "x": 30,
-              "y": 30,
-              "width": 105,
-              "height": 32
-            },
-            "newInput": {
-              "self": {
-                "type": "TreeItem",
-                "props": {
-                  "size": "md"
-                },
-                "layout": {
-                  "display": "flex",
-                  "flexDirection": "row",
-                  "alignItems": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "gap": 2,
-                  "minHeight": 32,
-                  "paddingY": 4,
-                  "paddingX": 8,
-                  "fontSize": 16,
-                  "radius": 0,
-                  "iconSize": 16
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "flexDirection": "row",
-                  "alignItems": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "minHeight": "32px",
-                  "rowGap": "2px",
-                  "columnGap": "2px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "8px",
-                  "paddingLeft": "8px"
-                }
-              },
-              "parent": null
-            },
-            "oldEngineInput": {
-              "display": "flex",
-              "flexDirection": "row",
-              "alignItems": "center",
-              "minHeight": "32px",
-              "paddingTop": "4px",
-              "paddingRight": "8px",
-              "paddingBottom": "4px",
-              "paddingLeft": "30px",
-              "columnGap": "2px",
-              "rowGap": "2px"
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-tree-item-default--focus-visible::lib:template:component-tree-item-default__label",
-            "old": "Label",
-            "newRect": {
-              "x": 38,
-              "y": 34,
-              "width": 66.94999694824219,
-              "height": 24
-            },
-            "oldRect": {
-              "x": 60,
-              "y": 34,
-              "width": 67,
-              "height": 24
-            },
-            "newInput": {
-              "self": {
-                "type": "Text",
-                "props": {
-                  "size": "md",
-                  "children": "Tree item"
-                },
-                "layout": {
-                  "display": "block"
-                },
-                "sizing": {},
-                "visual": {
-                  "color": "#171717",
-                  "fontWeight": 400,
-                  "width": "100%",
-                  "fontSize": 16,
-                  "lineHeight": 1.5,
-                  "radius": 0
-                },
-                "placement": null,
-                "engineInput": {
-                  "display": "block",
-                  "width": "100%",
-                  "contentMinWidth": 32,
-                  "contentMaxWidth": 66.94999694824219,
-                  "contentHeight": 24
-                }
-              },
-              "parent": {
-                "type": "TreeItem",
-                "props": {
-                  "size": "md"
-                },
-                "layout": {
-                  "display": "flex",
-                  "flexDirection": "row",
-                  "alignItems": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "gap": 2,
-                  "minHeight": 32,
-                  "paddingY": 4,
-                  "paddingX": 8,
-                  "fontSize": 16,
-                  "radius": 0,
-                  "iconSize": 16
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "flexDirection": "row",
-                  "alignItems": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "minHeight": "32px",
-                  "rowGap": "2px",
-                  "columnGap": "2px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "8px",
-                  "paddingLeft": "8px"
-                }
-              }
-            },
-            "oldEngineInput": {
-              "display": "block",
-              "width": "100%",
-              "contentMinWidth": 32,
-              "contentMaxWidth": 67,
-              "contentHeight": 24,
-              "leafBaseline": 13.7421875
-            }
-          }
-        ],
+        "maxDelta": 0.0500030517578125,
+        "overOnePx": [],
         "unpaired": [],
         "unpairedCount": 0,
         "oldSyntheticWrappers": [],
         "pass": true,
-        "strictPass": false,
+        "strictPass": true,
         "unapprovedCount": 0
       },
       "canvasDom": {
         "pairedNodes": 2,
-        "ownedPairs": 0,
+        "ownedPairs": 1,
         "maxDelta": 0.0031280517578125,
         "overOnePx": [],
-        "geometryArbiter": [
-          {
-            "new": "project:node:subject::project:node:subject",
-            "dom": {
-              "x": 30,
-              "y": 30,
-              "width": 82.953125,
-              "height": 32
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-tree-item-default--focus-visible::lib:template:component-tree-item-default__label",
-            "dom": {
-              "x": 38,
-              "y": 34,
-              "width": 66.953125,
-              "height": 24
-            }
-          }
-        ],
+        "geometryArbiter": [],
         "missing": [],
         "missingCount": 0,
         "pass": true
@@ -23053,72 +21870,58 @@
         {
           "new": "project:node:subject::project:node:subject",
           "old": "",
-          "rule": "orphan-tree-host",
-          "class": "previewFollow"
+          "rule": "subpixel-intrinsic-width-ceil",
+          "class": "oldDefect",
+          "edges": true
         },
         {
           "new": "project:node:subject/lib:template:component-tree-item-default--focus-visible::lib:template:component-tree-item-default__label",
           "old": "Label",
-          "rule": "orphan-tree-host",
-          "class": "previewFollow"
+          "rule": "subpixel-intrinsic-width-ceil",
+          "class": "oldDefect",
+          "edges": true
         }
       ],
       "approvedClasses": [
-        "previewFollow"
+        "oldDefect"
       ],
-      "previewDefectFollowed": true,
       "liveIdentity": {
         "region": "root box",
-        "pixels": 66560,
+        "pixels": 84160,
         "different": 0,
         "ratio": 0,
         "maxByte": 0
       },
       "L3": {
-        "pixels": 98646,
-        "different": 2153,
-        "ratio": 0.021825517507045394,
-        "maxByte": 232,
-        "diffBounds": [
-          212,
-          243,
-          615,
-          299
-        ],
-        "approvedAttributed": 2153,
+        "pixels": 97987,
+        "different": 0,
+        "ratio": 0,
+        "maxByte": 0,
+        "diffBounds": null,
+        "approvedAttributed": 0,
         "movedPaint": {
-          "pixels": 14197,
+          "pixels": 0,
           "different": 0,
           "maxByte": 0
         },
         "outsideRatio": 0,
-        "outsideMaxByte": 24,
+        "outsideMaxByte": 0,
         "blocked": false
       },
       "L3e": {
-        "pixels": 13247,
-        "different": 88,
-        "ratio": 0.006643013512493395,
-        "maxByte": 232,
-        "diffBounds": [
-          214,
-          256,
-          551,
-          292
-        ],
+        "pixels": 13906,
+        "different": 0,
+        "ratio": 0,
+        "maxByte": 0,
+        "diffBounds": null,
         "gated": false
       },
       "text": {
         "pixels": 17027,
-        "different": 4015,
-        "ratio": 0.23580196159041522,
-        "maxByte": 232,
-        "diffBounds": [
-          181,
-          243,
-          508,
-          300
-        ],
+        "different": 0,
+        "ratio": 0,
+        "maxByte": 0,
+        "diffBounds": null,
         "gated": false
       },
       "fixtureRegion": {
@@ -23130,8 +21933,8 @@
         },
         "context": {
           "pixels": 351080,
-          "different": 22231,
-          "ratio": 0.06332175002848353,
+          "different": 22187,
+          "ratio": 0.06319642246781361,
           "maxByte": 149,
           "diffBounds": [
             0,
@@ -23195,207 +21998,21 @@
       ],
       "geometry": {
         "pairedNodes": 2,
-        "maxDelta": 22.050003051757812,
-        "overOnePx": [
-          {
-            "new": "project:node:subject::project:node:subject",
-            "old": "",
-            "newRect": {
-              "x": 30,
-              "y": 30,
-              "width": 82.94999694824219,
-              "height": 32
-            },
-            "oldRect": {
-              "x": 30,
-              "y": 30,
-              "width": 105,
-              "height": 32
-            },
-            "newInput": {
-              "self": {
-                "type": "TreeItem",
-                "props": {
-                  "size": "md"
-                },
-                "layout": {
-                  "display": "flex",
-                  "flexDirection": "row",
-                  "alignItems": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "gap": 2,
-                  "minHeight": 32,
-                  "paddingY": 4,
-                  "paddingX": 8,
-                  "fontSize": 16,
-                  "radius": 0,
-                  "iconSize": 16
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "flexDirection": "row",
-                  "alignItems": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "minHeight": "32px",
-                  "rowGap": "2px",
-                  "columnGap": "2px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "8px",
-                  "paddingLeft": "8px"
-                }
-              },
-              "parent": null
-            },
-            "oldEngineInput": {
-              "display": "flex",
-              "flexDirection": "row",
-              "alignItems": "center",
-              "minHeight": "32px",
-              "paddingTop": "4px",
-              "paddingRight": "8px",
-              "paddingBottom": "4px",
-              "paddingLeft": "30px",
-              "columnGap": "2px",
-              "rowGap": "2px"
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-tree-item-default--collapsed::lib:template:component-tree-item-default__label",
-            "old": "Label",
-            "newRect": {
-              "x": 38,
-              "y": 34,
-              "width": 66.94999694824219,
-              "height": 24
-            },
-            "oldRect": {
-              "x": 60,
-              "y": 34,
-              "width": 67,
-              "height": 24
-            },
-            "newInput": {
-              "self": {
-                "type": "Text",
-                "props": {
-                  "size": "md",
-                  "children": "Tree item"
-                },
-                "layout": {
-                  "display": "block"
-                },
-                "sizing": {},
-                "visual": {
-                  "color": "#171717",
-                  "fontWeight": 400,
-                  "width": "100%",
-                  "fontSize": 16,
-                  "lineHeight": 1.5,
-                  "radius": 0
-                },
-                "placement": null,
-                "engineInput": {
-                  "display": "block",
-                  "width": "100%",
-                  "contentMinWidth": 32,
-                  "contentMaxWidth": 66.94999694824219,
-                  "contentHeight": 24
-                }
-              },
-              "parent": {
-                "type": "TreeItem",
-                "props": {
-                  "size": "md"
-                },
-                "layout": {
-                  "display": "flex",
-                  "flexDirection": "row",
-                  "alignItems": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "gap": 2,
-                  "minHeight": 32,
-                  "paddingY": 4,
-                  "paddingX": 8,
-                  "fontSize": 16,
-                  "radius": 0,
-                  "iconSize": 16
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "flexDirection": "row",
-                  "alignItems": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "minHeight": "32px",
-                  "rowGap": "2px",
-                  "columnGap": "2px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "8px",
-                  "paddingLeft": "8px"
-                }
-              }
-            },
-            "oldEngineInput": {
-              "display": "block",
-              "width": "100%",
-              "contentMinWidth": 32,
-              "contentMaxWidth": 67,
-              "contentHeight": 24,
-              "leafBaseline": 13.7421875
-            }
-          }
-        ],
+        "maxDelta": 0.0500030517578125,
+        "overOnePx": [],
         "unpaired": [],
         "unpairedCount": 0,
         "oldSyntheticWrappers": [],
         "pass": true,
-        "strictPass": false,
+        "strictPass": true,
         "unapprovedCount": 0
       },
       "canvasDom": {
         "pairedNodes": 2,
-        "ownedPairs": 0,
+        "ownedPairs": 1,
         "maxDelta": 0.0031280517578125,
         "overOnePx": [],
-        "geometryArbiter": [
-          {
-            "new": "project:node:subject::project:node:subject",
-            "dom": {
-              "x": 30,
-              "y": 30,
-              "width": 82.953125,
-              "height": 32
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-tree-item-default--collapsed::lib:template:component-tree-item-default__label",
-            "dom": {
-              "x": 38,
-              "y": 34,
-              "width": 66.953125,
-              "height": 24
-            }
-          }
-        ],
+        "geometryArbiter": [],
         "missing": [],
         "missingCount": 0,
         "pass": true
@@ -23404,72 +22021,58 @@
         {
           "new": "project:node:subject::project:node:subject",
           "old": "",
-          "rule": "orphan-tree-host",
-          "class": "previewFollow"
+          "rule": "subpixel-intrinsic-width-ceil",
+          "class": "oldDefect",
+          "edges": true
         },
         {
           "new": "project:node:subject/lib:template:component-tree-item-default--collapsed::lib:template:component-tree-item-default__label",
           "old": "Label",
-          "rule": "orphan-tree-host",
-          "class": "previewFollow"
+          "rule": "subpixel-intrinsic-width-ceil",
+          "class": "oldDefect",
+          "edges": true
         }
       ],
       "approvedClasses": [
-        "previewFollow"
+        "oldDefect"
       ],
-      "previewDefectFollowed": true,
       "liveIdentity": {
         "region": "root box",
-        "pixels": 66560,
+        "pixels": 84160,
         "different": 0,
         "ratio": 0,
         "maxByte": 0
       },
       "L3": {
-        "pixels": 98646,
-        "different": 2153,
-        "ratio": 0.021825517507045394,
-        "maxByte": 232,
-        "diffBounds": [
-          212,
-          243,
-          615,
-          299
-        ],
-        "approvedAttributed": 2153,
+        "pixels": 97987,
+        "different": 0,
+        "ratio": 0,
+        "maxByte": 0,
+        "diffBounds": null,
+        "approvedAttributed": 0,
         "movedPaint": {
-          "pixels": 14197,
+          "pixels": 0,
           "different": 0,
           "maxByte": 0
         },
         "outsideRatio": 0,
-        "outsideMaxByte": 24,
+        "outsideMaxByte": 0,
         "blocked": false
       },
       "L3e": {
-        "pixels": 13247,
-        "different": 88,
-        "ratio": 0.006643013512493395,
-        "maxByte": 232,
-        "diffBounds": [
-          214,
-          256,
-          551,
-          292
-        ],
+        "pixels": 13906,
+        "different": 0,
+        "ratio": 0,
+        "maxByte": 0,
+        "diffBounds": null,
         "gated": false
       },
       "text": {
         "pixels": 17027,
-        "different": 4015,
-        "ratio": 0.23580196159041522,
-        "maxByte": 232,
-        "diffBounds": [
-          181,
-          243,
-          508,
-          300
-        ],
+        "different": 0,
+        "ratio": 0,
+        "maxByte": 0,
+        "diffBounds": null,
         "gated": false
       },
       "fixtureRegion": {
@@ -23481,8 +22084,8 @@
         },
         "context": {
           "pixels": 351080,
-          "different": 22165,
-          "ratio": 0.06313375868747864,
+          "different": 22252,
+          "ratio": 0.06338156545516692,
           "maxByte": 149,
           "diffBounds": [
             0,

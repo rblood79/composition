@@ -36,7 +36,11 @@ const measure: CatalogTextMeasure = (text, font) => ({
   height: font.fontSize * (font.lineHeight || 1.2),
 });
 
-async function openOwner(type: string, props: Record<string, string> = {}) {
+async function openOwner(
+  type: string,
+  props: Record<string, string> = {},
+  definitionId?: string,
+) {
   const library = await buildCodeCatalogLibrary();
   const workspace = new CatalogWorkspace(
     new CatalogGraph(
@@ -61,7 +65,7 @@ async function openOwner(type: string, props: Record<string, string> = {}) {
         {
           kind: "node",
           id: "project:node:owner",
-          definitionId: catalogPaletteDefinitionId(library, type),
+          definitionId: definitionId ?? catalogPaletteDefinitionId(library, type),
           children: [],
           props: Object.fromEntries(
             Object.entries(props).map(([key, value]) => [
@@ -297,4 +301,60 @@ describe("Pagination — Table page bar sheet scoped to the Table", () => {
     });
     workspace.dispose();
   });
+});
+
+/**
+ * tree-chevron-shrink · orphan-tree-host: `Tree.css` sizes the chevron button 20 wide but it shrank
+ * beside the full-width label (flex-shrink); a standalone TreeItem's Preview host (`RAC.Tree`)
+ * lacked `data-composition-tree`, so `Tree.css` did not reach the row. The chevron keeps its width
+ * (`flex-shrink: 0`), the orphan host carries the attribute, and the Canvas lays a standalone
+ * TreeItem out as a level-1 row (the host is a Tree).
+ */
+describe("TreeItem chevron — Tree.css width in every host", () => {
+  // A standalone TreeItem: the palette's origin item (label Text child), not the bare type.
+  const labelInset = async (type: string) => {
+    const workspace = await openOwner(
+      type,
+      {},
+      type === "TreeItem"
+        ? "lib:definition:origin-component-tree-item-default"
+        : undefined,
+    );
+    const root = workspace.root;
+    const item = [...root.layoutInputs.values()].find(
+      (record) => record.bindingId === "treeitem" && !record.hidden,
+    )!;
+    const label = item.children
+      .map((id) => root.layoutInputs.get(id)!)
+      .find((record) => record.bindingId === "text")!;
+    // Geometry is parent-relative: the label's x is its inset in the row.
+    const inset = root.getGeometry([label.id]).get(label.id)!.x;
+    return { workspace, root, inset };
+  };
+
+  it("Tree.css keeps the chevron from shrinking", () => {
+    const css = readFileSync(resolve(GENERATED, "../Tree.css"), "utf8");
+    const start = css.indexOf('.react-aria-Button[slot="chevron"] {');
+    expect(css.slice(start, css.indexOf("}", start))).toContain(
+      "flex-shrink: 0;",
+    );
+  });
+
+  it.each(["Tree", "TreeItem"])(
+    "%s row label starts after padding 8 + chevron 20 + gap 2",
+    async (type) => {
+      const { workspace, root, inset } = await labelInset(type);
+      expect(inset).toBe(30);
+      if (type === "TreeItem") {
+        const owner = [...root.domInputs.values()].find(
+          (record) => record.sourceId === "project:node:owner",
+        )!;
+        const html = renderToStaticMarkup(renderCatalogDom(root, owner.id));
+        expect(html).toContain('data-composition-tree="true"');
+        // The row keeps its authored width (the orphan sample's inline style).
+        expect(html).toMatch(/role="row"[^>]*style="[^"]*width:300px/);
+      }
+      workspace.dispose();
+    },
+  );
 });
