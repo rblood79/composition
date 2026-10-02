@@ -106,9 +106,6 @@ describe("ADR-187 Phase 2 migration guards", () => {
       "../panels/styles/sections/EffectSection.tsx",
     );
     const stylePilot = await source("editorPresentationStylePilot.ts");
-    const storeBridge = await source(
-      "../workspace/canvas/skia/StoreRenderBridge.ts",
-    );
     const shadowEditor = await source(
       "../panels/styles/components/BoxShadowEditor.tsx",
     );
@@ -121,8 +118,6 @@ describe("ADR-187 Phase 2 migration guards", () => {
     expect(shadowEditor).toContain("patchBoxShadowPresentation");
     expect(stylePilot).toContain("resolveBoxShadowPresentationPilotTarget");
     expect(stylePilot).toContain('"style-box-shadow"');
-    expect(storeBridge).toContain("presentationShadowTargets");
-    expect(storeBridge).toContain("parseBoxShadowEffects");
   });
 
   it("Typography Text/Button color는 text-bearing root presentation owner로 fail-closed한다", async () => {

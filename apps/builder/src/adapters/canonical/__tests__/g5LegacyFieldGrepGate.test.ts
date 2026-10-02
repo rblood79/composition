@@ -40,8 +40,6 @@ const FRAME_SLOT_SCHEMA_FILES = [
   "apps/builder/src/types/builder/unified.types.ts",
   "packages/shared/src/types/element.types.ts",
   "packages/shared/src/types/renderer.types.ts",
-  "apps/builder/src/preview/store/types.ts",
-  "apps/builder/src/preview/types/index.ts",
 ] as const;
 
 const LEGACY_DESCENDANTS_SCHEMA_FILES = [
@@ -50,17 +48,9 @@ const LEGACY_DESCENDANTS_SCHEMA_FILES = [
 ] as const;
 
 const TARGETED_FRAME_SLOT_FIXTURE_FILES = [
-  "apps/builder/src/builder/workspace/canvas/hooks/useElementHoverInteraction.test.ts",
-  "apps/builder/src/builder/workspace/canvas/renderers/__tests__/buildFrameRendererInput.test.ts",
-  "apps/builder/src/builder/workspace/canvas/skia/visibleFrameRoots.test.ts",
-  "apps/builder/src/builder/stores/utils/__tests__/editingSemanticsRegressionSweep.test.ts",
 ] as const;
 
 const COMPAT_EXTRACTION_RUNTIME_FILES = [
-  "apps/builder/src/resolvers/canonical/index.ts",
-  "apps/builder/src/resolvers/canonical/storeBridge.ts",
-  "apps/builder/src/resolvers/canonical/extractCanonicalProps.ts",
-  "apps/builder/src/preview/components/CanonicalNodeRenderer.tsx",
   "apps/builder/src/builder/stores/canonical/canonicalElementsView.ts",
   "apps/builder/src/builder/stores/utils/instanceActions.ts",
   "apps/builder/src/adapters/canonical/canonicalRefResolution.ts",

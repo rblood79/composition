@@ -39,7 +39,6 @@ const EXCLUDE_PATH_PATTERNS: readonly RegExp[] = [
  */
 const CANONICAL_DESCENDANTS_ALLOWLIST = new Set([
   "apps/builder/src/lib/db/indexedDB/adapter.ts",
-  "apps/builder/src/resolvers/canonical/index.ts",
   "apps/builder/src/builder/stores/canonical/canonicalElementsView.ts",
   "apps/builder/src/builder/stores/canonical/canonicalDocumentStore.ts",
   // canonical 파생 뷰 모델 — RefNode.descendants 를 scene / panel 노드로 투영한다.
@@ -50,7 +49,6 @@ const CANONICAL_DESCENDANTS_ALLOWLIST = new Set([
   // 읽는 것도 canonical `RefNode.descendants` 다 (legacy Element 접근 아님).
   // 게이트 작성 뒤에 만들어져 목록에 없었을 뿐이다.
   "apps/builder/src/builder/stores/canonical/canonicalTraversalHelpers.ts",
-  "apps/builder/src/builder/panels/canonicalPanelNodes.ts",
   "packages/shared/src/utils/export.utils.ts",
   "packages/shared/src/utils/compositionDocumentOrder.ts",
   "packages/shared/src/types/composition-vocabulary.ts",
@@ -67,7 +65,6 @@ const CANONICAL_DESCENDANTS_ALLOWLIST = new Set([
   "apps/builder/src/builder/factories/utils/originChildRefElements.ts",
   // ADR-237 Phase 1 — 그룹 Slot "+" 계획. instance host 의 상속 형제 해제를 canonical `RefNode.descendants`
   //   patch 로 **만든다** (originChildRefs 와 같은 역할).
-  "apps/builder/src/builder/components/groupItemInsert.ts",
   // ADR-240 Phase 1 — Dialog 영역 구조 이관의 instance 경로 전치 (문서 · history 재생) · instance slot 채우기의
   //   mode C 키 (segment · 옛 id 키 이관). canonical `RefNode.descendants` 를 **고쳐 쓴다**.
   "apps/builder/src/builder/components/dialogRegionPaths.ts",
@@ -78,7 +75,6 @@ const CANONICAL_DESCENDANTS_ALLOWLIST = new Set([
   // ADR-228 · 234 · 237 · 238 — origin seed · 목록 틀 "+" · 이관이 canonical `RefNode.descendants` 를 **만들거나 고쳐
   //   쓴다** (originChildRefs 와 같은 역할). 입력 · 출력 모두 `CanonicalNode` / `RefNode` — legacy Element 아님.
   "apps/builder/src/builder/components/catalogOrigins.ts",
-  "apps/builder/src/builder/components/collectionItemInsert.ts",
   "apps/builder/src/builder/components/migrateDialogTriggerInstances.ts",
   "apps/builder/src/builder/components/stateVariantMigration.ts",
   "apps/builder/src/builder/components/staticCollectionMigration.ts",
@@ -89,16 +85,11 @@ const CANONICAL_DESCENDANTS_ALLOWLIST = new Set([
   // ADR-230 · 234 — 상태 변형 층 (`StateLayer.descendants` — 변형 origin 의 자손 patch 투영). RefNode 필드가 아니라
   //   층 모델의 자기 필드다 (Canvas 해석 · Preview render props 가 같은 모델을 읽는다).
   "apps/builder/src/builder/components/stateVariantLayers.ts",
-  "apps/builder/src/preview/utils/stateLayerRender.ts",
   // ADR-234 · 237 — Slot "+" 계획 (canonical 문서에서 만든 `plan.descendants`) 을 adapter 소유 필드
   //   (`COMPONENT_DESCENDANTS_MIRROR_FIELD`) 로 store 에 쓴다. 필드 이름은 adapter 가 정한다.
-  "apps/builder/src/builder/panels/properties/ComponentSlotFillSection.tsx",
-  "apps/builder/src/builder/panels/properties/FrameSlotSection.tsx",
   // ADR-241 Phase 2 — Table 열 "+" 계획 (instance TableHeader mode C · origin 열 patch 이관) 과 그 쓰기 (Slot "+" ·
   //   quick connect · Preview 열 감지). 계획은 canonical `RefNode.descendants` 를 만들고, 쓰기는 adapter 소유 필드로 store 에.
   "apps/builder/src/builder/components/tableColumnInsert.ts",
-  "apps/builder/src/builder/components/tableColumnWrite.ts",
-  "apps/builder/src/builder/panels/datatable/utils/quickConnect.ts",
   "apps/builder/src/builder/hooks/useIframeMessenger.ts",
 ]);
 

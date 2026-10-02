@@ -73,16 +73,6 @@ describe("specShapesToSkia — pre-wrap 명시 줄바꿈의 textBlockHeight", ()
   });
 });
 
-describe("buildSpecNodeData 가 style.whiteSpace 를 text shape 에 싣는다 (static)", () => {
-  it("변환 전 stamp 블록이 있다", () => {
-    const src = readFileSync(
-      resolve(__dirname, "../buildSpecNodeData.ts"),
-      "utf8",
-    );
-    expect(src).toContain('sh.type === "text" && sh.whiteSpace == null');
-  });
-});
-
 /**
  * ADR-027 후속 7 (2026-09-20, 사용자 live: Text 에 border 1px 만 주면 padding 0 에서 텍스트가 상자 밖) —
  * (a) x = 0 이면 블록 높이를 안 재 7줄을 1줄로 보고 (170 − 24) / 2 = 73 에 중앙 배치했다.

@@ -66,18 +66,6 @@ describe("legacy model leaf cleanup static gates", () => {
     expect(source).not.toMatch(/export function resolveInstanceElement\b/);
   });
 
-  it("keeps compositeCreation free of deprecated Element imports", async () => {
-    const source = await readFile(
-      resolve(__dirname, "../../../../services/ai/tools/compositeCreation.ts"),
-      "utf-8",
-    );
-
-    expect(source).toContain("CompositeCreationNode");
-    expect(source).not.toMatch(
-      /import\s+type\s*\{[^}]*\bElement\b[^}]*\}\s*from\s*["'][^"']*(unified\.types|store\.types)["']/,
-    );
-  });
-
   it("removes the legacy Builder-wide layout type surface", async () => {
     const legacyTypePath = resolve(
       __dirname,
@@ -109,13 +97,6 @@ describe("legacy model leaf cleanup static gates", () => {
       resolve(__dirname, "../../canvasStore.ts"),
       "utf-8",
     );
-    const resetSource = await readFile(
-      resolve(
-        __dirname,
-        "../../../panels/styles/hooks/useResetStyles.legacy.ts",
-      ),
-      "utf-8",
-    );
     // builder/overlay (iframe Preview 시절 DOM SelectionOverlay) 는 f011a4098 에서 삭제 —
     //   Skia buildSelectionOverlayData 가 대체. 이 게이트는 남은 세 파일만 본다.
     const viewSource = await readFile(
@@ -125,10 +106,6 @@ describe("legacy model leaf cleanup static gates", () => {
 
     expect(canvasSource).not.toContain("getCanonicalDocumentElementsView");
     expect(canvasSource).not.toContain("visitCanonicalDocumentElements");
-    expect(resetSource).toContain("getNodeMap");
-    expect(resetSource).toContain("getParent");
-    expect(resetSource).not.toContain("getCanonicalDocumentElementsView");
-    expect(resetSource).not.toContain("visitCanonicalDocumentElements");
     expect(viewSource).toContain(
       "const elements = [...getCanonicalDocumentElementProjection(doc)]",
     );

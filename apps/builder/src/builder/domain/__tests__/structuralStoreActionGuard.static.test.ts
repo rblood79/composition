@@ -79,13 +79,6 @@ const SURFACE_STRUCTURAL_WRITES: readonly {
     write: STRUCTURAL_WRITE,
     guard: IMPACT_GUARD,
   },
-  {
-    // ADR-248 4e-7: the AI tools write through the AI write host; the old store's writes are the
-    // old store host's (create · remove).
-    file: "../services/ai/aiHosts.store.ts",
-    write: STRUCTURAL_WRITE,
-    guard: IMPACT_GUARD,
-  },
 ];
 
 /**
