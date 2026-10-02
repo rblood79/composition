@@ -1,5 +1,6 @@
 import "fake-indexeddb/auto";
-import { render, screen } from "@testing-library/react";
+import { act, render, renderHook, screen } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
@@ -24,7 +25,9 @@ import {
   CatalogCardFieldsSection,
   CatalogItemOriginNotice,
 } from "../../panels/properties/catalog/CatalogRowTemplateSections";
+import { CATALOG_FIELD_VALUE_SOURCE } from "../../panels/properties/catalog/catalogFieldValueSource";
 import { catalogBoundRows } from "../dataBinding";
+import { catalogVariableCommands } from "../stateVariables";
 import { catalogPaletteDefinitionId } from "../paletteInsert";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogWorkspaceProvider } from "../react";
@@ -254,7 +257,50 @@ describe("ADR-248 Phase 4e-4e row template", () => {
         position.target.kind === "node" &&
         position.target.id === "project:node:list",
     )!;
-    expect(catalogRowTemplateId(graph, "project:node:list" as NodeId)).toBeTruthy();
+    expect(
+      catalogRowTemplateId(graph, "project:node:list" as NodeId),
+    ).toBeTruthy();
     expect(catalogCardFields(graph, list)).toBeUndefined();
+  });
+
+  it("Properties field source: {field} columns inside the row template; {{ names the element sees", async () => {
+    const { workspace, graph, items } = await open();
+    useDataStore.setState({
+      collections: new Map(COLLECTIONS.map((table) => [table.id, table])),
+      variables: new Map(),
+    } as never);
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <CatalogWorkspaceProvider workspace={workspace}>
+        {children}
+      </CatalogWorkspaceProvider>
+    );
+    const [label] = childPositions(graph, items[0]!);
+    const fields = (identity: string) =>
+      renderHook(() => CATALOG_FIELD_VALUE_SOURCE.useOwnerFields!(identity), {
+        wrapper,
+      }).result.current;
+    expect(fields(label!.identity)?.map((field) => field.key)).toEqual([
+      "id",
+      "name",
+      "size",
+    ]);
+    // Another row, the list itself: no owner.
+    expect(fields(items[1]!.identity)).toBeNull();
+    expect(fields(workspace.root.recordsOfSource(GRID)[0]!)).toBeNull();
+
+    const names = renderHook(
+      () => CATALOG_FIELD_VALUE_SOURCE.useVariableNames!(label!.identity),
+      { wrapper },
+    );
+    expect(names.result.current).toEqual([]);
+    act(() => {
+      workspace.execute(
+        catalogVariableCommands.add(GRID, "selected", workspace.newId),
+      );
+      workspace.execute(
+        catalogVariableCommands.add(HOME, "query", workspace.newId),
+      );
+    });
+    expect(names.result.current).toEqual(["selected", "query"]);
   });
 });

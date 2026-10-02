@@ -23,15 +23,9 @@ export interface FieldValueSource {
     keys: readonly string[],
     baseValues: readonly unknown[],
   ): string;
-  /**
-   * The fields of the collection that owns the element (`{field}` templates) — a hook; absent =
-   * none (the catalog source has none yet).
-   */
+  /** The fields of the collection that owns the element (`{field}` templates) — a hook; absent = none. */
   useOwnerFields?(elementId: string | undefined): OwnerField[] | null;
-  /**
-   * The variable names visible at the element (`{{` autocompletion) — a hook; absent = the project
-   * variables only (the catalog source has no page / element variables here yet).
-   */
+  /** The variable names visible at the element (`{{` autocompletion) — a hook; absent = the project variables only. */
   useVariableNames?(elementId: string | undefined): readonly string[];
 }
 

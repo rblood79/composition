@@ -1,9 +1,21 @@
 import { useCallback, useMemo, useSyncExternalStore } from "react";
 import type { FieldOrigin } from "@composition/shared";
 import type { EditTarget } from "../../../../../../../packages/shared/src/catalog/document/types";
+import {
+  catalogBindingValue,
+  catalogTargetBinding,
+} from "../../../catalogRuntime/dataBinding";
 import { useCatalogWorkspace } from "../../../catalogRuntime/react";
+import { catalogRowTemplateOwner } from "../../../catalogRuntime/rowTemplate";
 import { targetKey } from "../../../catalogRuntime/session";
+import { catalogVisibleVariableEntries } from "../../../catalogRuntime/stateVariables";
+import { useCollections } from "../../../stores/data";
 import type { FieldValueSource } from "../generic/fieldValueSource";
+import { fieldsFromOwner } from "../hooks/useOwnerCollectionColumns";
+import {
+  useProjectVariableNames,
+  useStableNames,
+} from "../hooks/useVisibleVariableNames";
 
 const noSubscription = () => () => {};
 
@@ -38,6 +50,17 @@ const subscribeValue = (
   key === BINDING_KEY
     ? readModel.subscribeBinding(target, notify)
     : readModel.subscribePropSource(target, key, notify);
+
+/** A document reading kept while its JSON is the same (re-read after each step). */
+function useStepReading<T>(read: () => T): T {
+  const { runtime } = useCatalogWorkspace();
+  const subscribe = useCallback(
+    (notify: () => void) => runtime.subscribeSteps(() => notify()),
+    [runtime],
+  );
+  const key = useSyncExternalStore(subscribe, () => JSON.stringify(read()));
+  return useMemo(() => JSON.parse(key ?? "null") as T, [key]);
+}
 
 function useSourcedValues(
   target: EditTarget | undefined,
@@ -89,12 +112,63 @@ export const CATALOG_FIELD_VALUE_SOURCE: FieldValueSource = {
     );
     // The cached reading keeps its value object until the value changes.
     return useSyncExternalStore(subscribe, () =>
-      target
-        ? (readValue(readModel, target, key) ?? baseValue)
-        : baseValue,
+      target ? (readValue(readModel, target, key) ?? baseValue) : baseValue,
     );
   },
   useValuesSnapshot(elementId, _origin, keys, baseValues) {
     return useSourcedValues(useRecordTarget(elementId), keys, baseValues);
+  },
+  /**
+   * `{field}` templates: inside a bound collection's row template, the bound collection's fields
+   * (the old owner lookup's binding source; the rows read the template's value).
+   */
+  useOwnerFields(elementId) {
+    const { runtime } = useCatalogWorkspace();
+    const target = useRecordTarget(elementId);
+    const collections = useCollections();
+    const binding = useStepReading(() => {
+      const ownerId = target
+        ? catalogRowTemplateOwner(runtime.graph, target)
+        : undefined;
+      return ownerId
+        ? (catalogBindingValue(
+            catalogTargetBinding(runtime.graph, { kind: "node", id: ownerId }),
+          ) ?? null)
+        : null;
+    });
+    return useMemo(
+      () =>
+        binding
+          ? fieldsFromOwner({ props: { dataBinding: binding } }, collections)
+          : null,
+      [binding, collections],
+    );
+  },
+  /**
+   * `{{` autocompletion: the variables the element sees — its own and its ancestors' (an instance
+   * descendant: its instance's), its page's, then the project's.
+   */
+  useVariableNames(elementId) {
+    const { runtime } = useCatalogWorkspace();
+    const target = useRecordTarget(elementId);
+    const scoped = useStepReading(() => {
+      if (!target) return [];
+      try {
+        return catalogVisibleVariableEntries(
+          runtime.graph,
+          target.kind === "node" ? target.id : target.ownerId,
+        ).map((variable) => variable.name);
+      } catch {
+        return [];
+      }
+    });
+    const project = useProjectVariableNames();
+    const names = useMemo(() => {
+      const out: string[] = [];
+      for (const name of [...scoped, ...project])
+        if (!out.includes(name)) out.push(name);
+      return out;
+    }, [scoped, project]);
+    return useStableNames(names);
   },
 };
