@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# ADR-198 Phase 5 — D3 시각 파리티 pre-push 게이트
-# ADR-246 Phase 1 — 결정적 카운트 성능 ratchet 게이트 (같은 hook, 스코프·탈출구 독립)
+# ADR-246 Phase 1 — 결정적 카운트 성능 ratchet 게이트
+# (ADR-198 · 205 시각 파리티 단계는 ADR-248 Phase 4e 에서 뺐다 — 옛 Skia 경로를 재던 smoke 와
+#  텍스트 축 격차표가 옛 렌더 경로와 함께 지워졌다. 사용자 결정 2026-10-02.)
 #
 # 이 저장소는 web PR 을 금지하고 main 에 직접 push 한다
 # (`.claude/rules/git-workflow.md`). 그래서 PR status check 라는 자리가 없고,
@@ -9,10 +10,9 @@
 # 다만 게이트가 흐름을 끊으면 그 자체가 손실이라는 것이 같은 규칙의 요지다.
 # 그래서 두 가지를 지킨다:
 #
-# 1. **경로 스코프** — D3 에 닿지 않는 push (문서/통계/ADR 본문 등) 는 테스트를
+# 1. **경로 스코프** — 성능 경로에 닿지 않는 push (문서/통계/ADR 본문 등) 는 측정을
 #    돌리지 않고 즉시 통과한다. 실측상 대부분의 push 가 여기 해당한다.
-# 2. **탈출구** — `SKIP_VISUAL_PARITY=1` 은 시각 파리티 (ADR-198 · 205) 만,
-#    `SKIP_PERF_RATCHET=1` 은 성능 ratchet (ADR-246) 만 건너뛴다. 서로를 우회하지 않는다.
+# 2. **탈출구** — `SKIP_PERF_RATCHET=1` 은 성능 ratchet (ADR-246) 을 건너뛴다.
 #    건너뛴 사실은 조용하지 않게 출력한다.
 #
 # 구조 (ADR-246 round 1·2 리뷰): 조기 exit 0 을 두지 않는다 — 변경 목록 수집 → 스코프 판정
@@ -24,14 +24,9 @@ set -uo pipefail
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 
-RUN_PARITY=1
 RUN_RATCHET=1
-if [ "${SKIP_VISUAL_PARITY:-0}" = "1" ]; then
-  echo "[ADR-198] SKIP_VISUAL_PARITY=1 — 시각 파리티 게이트를 건너뛴다 (의도한 것이 맞는지 확인). 성능 ratchet 은 따로 판정한다."
-  RUN_PARITY=0
-fi
 if [ "${SKIP_PERF_RATCHET:-0}" = "1" ]; then
-  echo "[ADR-246] SKIP_PERF_RATCHET=1 — 성능 ratchet 게이트를 건너뛴다 (의도한 것이 맞는지 확인). 시각 파리티는 따로 판정한다."
+  echo "[ADR-246] SKIP_PERF_RATCHET=1 — 성능 ratchet 게이트를 건너뛴다 (의도한 것이 맞는지 확인)."
   RUN_RATCHET=0
 fi
 
@@ -59,49 +54,19 @@ done
 
 [ -z "${CHANGED// /}" ] && exit 0
 
-# D3 관련 경로 — catalog/spec/생성 CSS, Canvas·Skia, Preview, 폰트·wasm, 하니스
-D3_PATHS='^(packages/shared/src/(catalog|components|renderers)/|packages/specs/src/|apps/builder/src/builder/workspace/canvas/|apps/builder/src/builder/factories/|apps/builder/src/preview/|apps/builder/public/(fonts|wasm)/|apps/builder/tests/visual-parity/|apps/builder/vitest\.(visual-parity|browser)\.config\.ts$|apps/builder/scripts/visual-parity-gate\.mjs$)'
-
 # ADR-246 성능 경로 — builder 런타임 · shared · engine · specs · 의존성 · 하니스와 기준 자체.
 # 테스트 파일만 바뀐 push 는 제외한다 (런타임 비용이 바뀌지 않는다).
 PERF_PATHS='^(apps/builder/src/|packages/shared/src/|packages/engine/(src/|Cargo\.toml$)|packages/specs/src/|apps/builder/vite\.config\.ts$|apps/builder/package\.json$|package\.json$|pnpm-lock\.yaml$|patches/|apps/builder/scripts/perf-(baseline|ratchet-gate|ratchet-run)\.mjs$|apps/builder/perf/ratchet\.json$)'
 TEST_PATHS='(\.test\.(ts|tsx|mjs)$|/__tests__/)'
 
-D3_MATCHED=""
 PERF_MATCHED=""
 if [ "$CHANGED" = "__ALL__" ]; then
-  D3_MATCHED="__ALL__"
   PERF_MATCHED="__ALL__"
 else
-  D3_MATCHED="$(printf '%s\n' "$CHANGED" | grep -E "$D3_PATHS" || true)"
   PERF_MATCHED="$(printf '%s\n' "$CHANGED" | grep -Ev "$TEST_PATHS" | grep -E "$PERF_PATHS" || true)"
 fi
 
 cd "$REPO_ROOT" || exit 1
-
-# ── ADR-198 · 205 시각 파리티 ────────────────────────────────────────────────
-if [ "$RUN_PARITY" = "1" ] && [ -n "$D3_MATCHED" ]; then
-  if [ "$D3_MATCHED" != "__ALL__" ]; then
-    echo "[ADR-198] D3 경로 변경 감지 — 시각 파리티 smoke 게이트를 돌린다:"
-    printf '%s\n' "$D3_MATCHED" | head -5 | sed 's/^/    /'
-  fi
-
-  # ADR-205 G4 — 텍스트 시각 축 격차표 drift (초 단위, 브라우저 불필요).
-  if ! node scripts/generate-text-axis-matrix.mjs --check; then
-    echo ""
-    echo "[ADR-205] push 를 막았다 — 텍스트 시각 축 격차표가 코드와 어긋난다."
-    echo "  고치기: node scripts/generate-text-axis-matrix.mjs && git add docs/reference/TEXT_AXIS_GAP_MATRIX.md"
-    exit 1
-  fi
-
-  if ! pnpm -F @composition/builder test:visual-parity:smoke; then
-    echo ""
-    echo "[ADR-198] push 를 막았다 — Skia↔Preview 시각 파리티 smoke 실패."
-    echo "  증거: apps/builder/tests/visual-parity/.artifacts/"
-    echo "  의도한 변경이면 원인을 먼저 기록하고, 급하면 SKIP_VISUAL_PARITY=1 로 밀 수 있다."
-    exit 1
-  fi
-fi
 
 # ── ADR-246 성능 ratchet ─────────────────────────────────────────────────────
 if [ "$RUN_RATCHET" = "1" ] && [ -n "$PERF_MATCHED" ]; then

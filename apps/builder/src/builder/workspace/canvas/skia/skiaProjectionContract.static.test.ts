@@ -47,11 +47,8 @@ describe("Skia projection SSOT contract", () => {
     ).toBe(false);
   });
 
-  it("does not fallback from renderNodesMap to sceneNodesMap in downstream render/skia utilities", async () => {
-    const sourceDirs = [resolve(__dirname), resolve(__dirname, "../renderers")];
-    const files = (
-      await Promise.all(sourceDirs.map((dir) => collectSourceFiles(dir)))
-    ).flat();
+  it("does not fallback from renderNodesMap to sceneNodesMap in downstream skia utilities", async () => {
+    const files = await collectSourceFiles(resolve(__dirname));
     const offenders: string[] = [];
 
     for (const file of files) {
