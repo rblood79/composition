@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * ADR-248 4e-11 G3 previewFollow repairs: Preview defects the Phase 3 new Canvas followed (②) are
  * fixed in the product, and the Canvas reads the same catalog declaration.
@@ -10,15 +11,29 @@ import { insertNodes } from "../../../../../../packages/shared/src/catalog/comma
 import { catalogCalendarHeaderParts } from "../../../../../../packages/shared/src/catalog/resolvers/resolveCatalogRuleCanvasBox";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
-import type { NodeEntry } from "../../../../../../packages/shared/src/catalog/document/types";
-import type { CatalogTextMeasure } from "../compositionRoot";
+import type {
+  CatalogDocument,
+  DefinitionId,
+  NodeEntry,
+  NodeId,
+} from "../../../../../../packages/shared/src/catalog/document/types";
+import {
+  CatalogCompositionRoot,
+  type CatalogTextMeasure,
+} from "../compositionRoot";
+import { CatalogRuntime } from "../controller";
 import { renderToStaticMarkup } from "react-dom/server";
+import { getSkiaNode } from "../../workspace/canvas/skia/useSkiaNode";
+import { bindCatalogCanvas } from "../canvasBinding";
 import { renderCatalogDom } from "../domBinding";
 import { catalogPaletteDefinitionId } from "../paletteInsert";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
+import { TAILWIND_PALETTE } from "@composition/specs";
+
+const TAILWIND_NEUTRAL_600 = TAILWIND_PALETTE.neutral[600];
 
 const GENERATED = resolve(
   __dirname,
@@ -83,6 +98,69 @@ async function openOwner(
     }),
   );
   return workspace;
+}
+
+/**
+ * A standalone item origin directly on the page (the palette inserts it into a host; the G3 state
+ * scenario lays the origin itself out, as `phase3Presence` does).
+ */
+async function openStandalone(definitionId: string) {
+  const library = await buildCodeCatalogLibrary();
+  const projectId = "project:project:standalone" as const;
+  const pageId = "project:page:main" as const;
+  const nodeId = "project:node:owner" as NodeId;
+  const document: CatalogDocument = {
+    format: "composition-catalog",
+    schemaVersion: 1,
+    libraryContractVersion: 1,
+    revision: 0,
+    projectId,
+    rootId: projectId,
+    entries: {
+      [projectId]: {
+        kind: "project",
+        id: projectId,
+        name: "Standalone",
+        pageIds: [pageId],
+        definitionIds: [],
+        overrideIds: [],
+        themeIds: [],
+        tokenIds: [],
+        stateVariableIds: [],
+        interactionIds: [],
+        assetIds: [],
+      },
+      [pageId]: {
+        kind: "page",
+        id: pageId,
+        name: "Main",
+        route: "/",
+        children: [nodeId],
+      },
+      [nodeId]: {
+        kind: "node",
+        id: nodeId,
+        definitionId: definitionId as DefinitionId,
+        children: [],
+        props: {},
+        visual: {},
+        sizing: {},
+        descendantOverrides: [],
+      },
+    },
+  };
+  const runtime = new CatalogRuntime(
+    new CatalogGraph(document, library),
+    new CatalogStorage(indexedDB, `adr248-4e11-standalone-${Math.random()}`),
+  );
+  return new CatalogCompositionRoot(
+    runtime,
+    await nodeLayoutEngine(),
+    { width: 1000, height: 800 },
+    undefined,
+    undefined,
+    measure,
+  );
 }
 
 /**
@@ -358,3 +436,93 @@ describe("TreeItem chevron — Tree.css width in every host", () => {
     },
   );
 });
+
+/**
+ * standalone-tag-slot · standalone-gridlistitem-slot: a standalone Tag / GridListItem renders in
+ * its RAC host (TagGroup · GridList), but its children got no `slot` attribute (the Preview marked
+ * slots only under a document collection) — `TagGroup.css` `.react-aria-Tag > [slot=avatar]` (16)
+ * and the GridList description weight missed it. The orphan host counts as the collection, and the
+ * Canvas reads the slot rules from the item's own rule.
+ */
+describe("standalone collection items — item slot roles", () => {
+  it("TagGroup.css slot chips take the Tag's gap, no margin", () => {
+    const css = readFileSync(resolve(GENERATED, "../TagGroup.css"), "utf8");
+    for (const selector of [
+      '> .react-aria-Icon[slot="icon"] {',
+      '> .react-aria-Avatar[slot="avatar"] {',
+    ]) {
+      const start = css.indexOf(selector);
+      expect(start).toBeGreaterThan(0);
+      expect(css.slice(start, css.indexOf("}", start))).not.toContain(
+        "margin-right",
+      );
+    }
+  });
+
+  it("a standalone Tag's avatar is the 16 slot chip in both consumers", async () => {
+    const root = await openStandalone(
+      "lib:definition:origin-component-tag-item-default",
+    );
+    const avatar = [...root.layoutInputs.values()].find(
+      (record) => record.props.slot === "avatar" && !record.hidden,
+    );
+    if (avatar) {
+      expect(root.getGeometry([avatar.id]).get(avatar.id)!.width).toBe(16);
+      // Avatar → label: the Tag's flex gap 4 only (catalog `leadingAvatar.gap`), no slot margin.
+      const label = [...root.layoutInputs.values()].find(
+        (record) => record.props.slot === "label" && !record.hidden,
+      )!;
+      const boxes = root.getGeometry([avatar.id, label.id]);
+      expect(
+        boxes.get(label.id)!.x -
+          (boxes.get(avatar.id)!.x + boxes.get(avatar.id)!.width),
+      ).toBe(4);
+      const owner = [...root.domInputs.values()].find(
+        (record) => record.sourceId === "project:node:owner",
+      )!;
+      const html = renderToStaticMarkup(renderCatalogDom(root, owner.id));
+      // Avatar consumes the resolved values inline (`UNLOADED_GENERATED_CSS` C): the slot role and
+      // the 16 chip reach its element.
+      expect(html).toMatch(/slot="avatar" style="width:16px;height:16px/);
+      expect(html).not.toMatch(/slot="avatar" style="[^"]*margin-right/);
+      // The Canvas circle is the 16 box too (not the Avatar size's 32).
+      const canvas = bindCatalogCanvas(root, root.pageRootRecords());
+      const paint = getSkiaNode(avatar.id)!;
+      for (const child of paint.children ?? []) {
+        expect(child.width).toBe(16);
+        expect(child.height).toBe(16);
+      }
+      canvas.dispose();
+    } else expect.fail("the Tag origin has an avatar child");
+  });
+
+  it("a disabled standalone GridListItem fades like the DOM [data-disabled]", async () => {
+    const root = await openStandalone(
+      "lib:definition:origin-component-gridlist-item-default--disabled",
+    );
+    const item = [...root.canvasInputs.values()].find(
+      (record) => record.bindingId === "gridlistitem",
+    )!;
+    expect(item.visual.opacity).toBe(0.38);
+    const css = readFileSync(`${GENERATED}/GridListItem.css`, "utf8");
+    expect(css).toMatch(/\.react-aria-GridListItem\[data-disabled\] \{[^}]*opacity: 0\.38/);
+  });
+
+  it("a standalone GridListItem's description keeps weight 400 and its slot", async () => {
+    const root = await openStandalone(
+      "lib:definition:origin-component-gridlist-item-default",
+    );
+    const description = [...root.canvasInputs.values()].find(
+      (record) => record.props.slot === "description",
+    )!;
+    expect(description.visual.fontWeight).toBe(400);
+    // `GridList.css` `[slot=description]` muted (`--fg-muted` = neutral-600).
+    expect(description.visual.color).toBe(TAILWIND_NEUTRAL_600);
+    const owner = [...root.domInputs.values()].find(
+      (record) => record.sourceId === "project:node:owner",
+    )!;
+    const html = renderToStaticMarkup(renderCatalogDom(root, owner.id));
+    expect(html).toContain('slot="description"');
+  });
+});
+

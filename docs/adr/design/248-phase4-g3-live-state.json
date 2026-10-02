@@ -31,7 +31,7 @@
     "types": 15,
     "PASS": 75,
     "PASS_withApprovedDifferences": 67,
-    "previewDefectFollowed": 12,
+    "previewDefectFollowed": 0,
     "FAIL": 0,
     "UNVERIFIED": 0,
     "NOT_RUN": 0,
@@ -64,12 +64,12 @@
       "types": 11
     },
     "width": {
-      "nodes": 42,
-      "types": 7
+      "nodes": 36,
+      "types": 6
     },
     "height": {
-      "nodes": 27,
-      "types": 6
+      "nodes": 21,
+      "types": 5
     },
     "contentHeight": {
       "nodes": 13,
@@ -3157,337 +3157,32 @@
           "old": "_description",
           "key": "contentMinWidth",
           "oldValue": 91,
-          "newValue": 95.66000366210938
+          "newValue": 90.69000244140625
         },
         {
           "old": "_description",
           "key": "contentMaxWidth",
           "oldValue": 91,
-          "newValue": 95.66000366210938
+          "newValue": 90.69000244140625
         }
       ],
       "geometry": {
         "pairedNodes": 3,
-        "maxDelta": 4.660003662109375,
-        "overOnePx": [
-          {
-            "new": "project:node:subject::project:node:subject",
-            "old": "",
-            "newRect": {
-              "x": 30,
-              "y": 30,
-              "width": 129.66000366210938,
-              "height": 76
-            },
-            "oldRect": {
-              "x": 30,
-              "y": 30,
-              "width": 125,
-              "height": 76
-            },
-            "newInput": {
-              "self": {
-                "type": "GridListItem",
-                "props": {
-                  "size": "md",
-                  "children": "{label}"
-                },
-                "layout": {
-                  "display": "flex",
-                  "flexDirection": "column",
-                  "justifyContent": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "paddingY": 12,
-                  "paddingX": 16,
-                  "gap": 2,
-                  "fontSize": 14,
-                  "radius": 8,
-                  "lineHeight": 1.4285714285714286,
-                  "borderWidth": 1
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "flexDirection": "column",
-                  "justifyContent": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "rowGap": "2px",
-                  "columnGap": "2px",
-                  "paddingTop": "12px",
-                  "paddingBottom": "12px",
-                  "paddingRight": "16px",
-                  "paddingLeft": "16px",
-                  "borderTop": "1px",
-                  "borderRight": "1px",
-                  "borderBottom": "1px",
-                  "borderLeft": "1px"
-                }
-              },
-              "parent": null
-            },
-            "oldEngineInput": {
-              "display": "flex",
-              "flexDirection": "column",
-              "justifyContent": "center",
-              "paddingTop": "12px",
-              "paddingRight": "16px",
-              "paddingBottom": "12px",
-              "paddingLeft": "16px",
-              "borderTop": "1px",
-              "borderRight": "1px",
-              "borderBottom": "1px",
-              "borderLeft": "1px",
-              "columnGap": "2px",
-              "rowGap": "2px"
-            }
-          },
-          {
-            "new": "project:node:subject::lib:template:component-gridlist-item-default__label",
-            "old": "_label",
-            "newRect": {
-              "x": 47,
-              "y": 43,
-              "width": 95.66000366210938,
-              "height": 24
-            },
-            "oldRect": {
-              "x": 47,
-              "y": 43,
-              "width": 91,
-              "height": 24
-            },
-            "newInput": {
-              "self": {
-                "type": "Text",
-                "props": {
-                  "size": "md",
-                  "children": "{label}"
-                },
-                "layout": {
-                  "display": "block"
-                },
-                "sizing": {},
-                "visual": {
-                  "color": "#171717",
-                  "fontWeight": 600,
-                  "width": "100%",
-                  "fontSize": 16,
-                  "lineHeight": 1.5,
-                  "radius": 0
-                },
-                "placement": null,
-                "engineInput": {
-                  "display": "block",
-                  "width": "100%",
-                  "contentMinWidth": 48.18000030517578,
-                  "contentMaxWidth": 48.18000030517578,
-                  "contentHeight": 24
-                }
-              },
-              "parent": {
-                "type": "GridListItem",
-                "props": {
-                  "size": "md",
-                  "children": "{label}"
-                },
-                "layout": {
-                  "display": "flex",
-                  "flexDirection": "column",
-                  "justifyContent": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "paddingY": 12,
-                  "paddingX": 16,
-                  "gap": 2,
-                  "fontSize": 14,
-                  "radius": 8,
-                  "lineHeight": 1.4285714285714286,
-                  "borderWidth": 1
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "flexDirection": "column",
-                  "justifyContent": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "rowGap": "2px",
-                  "columnGap": "2px",
-                  "paddingTop": "12px",
-                  "paddingBottom": "12px",
-                  "paddingRight": "16px",
-                  "paddingLeft": "16px",
-                  "borderTop": "1px",
-                  "borderRight": "1px",
-                  "borderBottom": "1px",
-                  "borderLeft": "1px"
-                }
-              }
-            },
-            "oldEngineInput": {
-              "display": "block",
-              "width": "100%",
-              "contentMinWidth": 48,
-              "contentMaxWidth": 48,
-              "contentHeight": 24,
-              "leafBaseline": 13.75
-            }
-          },
-          {
-            "new": "project:node:subject::lib:template:component-gridlist-item-default__description",
-            "old": "_description",
-            "newRect": {
-              "x": 47,
-              "y": 69,
-              "width": 95.66000366210938,
-              "height": 24
-            },
-            "oldRect": {
-              "x": 47,
-              "y": 69,
-              "width": 91,
-              "height": 24
-            },
-            "newInput": {
-              "self": {
-                "type": "Text",
-                "props": {
-                  "size": "md",
-                  "slot": "description",
-                  "children": "{description}"
-                },
-                "layout": {
-                  "display": "block"
-                },
-                "sizing": {},
-                "visual": {
-                  "color": "#171717",
-                  "fontWeight": 600,
-                  "width": "100%",
-                  "fontSize": 16,
-                  "lineHeight": 1.5,
-                  "radius": 0
-                },
-                "placement": null,
-                "engineInput": {
-                  "display": "block",
-                  "width": "100%",
-                  "contentMinWidth": 95.66000366210938,
-                  "contentMaxWidth": 95.66000366210938,
-                  "contentHeight": 24
-                }
-              },
-              "parent": {
-                "type": "GridListItem",
-                "props": {
-                  "size": "md",
-                  "children": "{label}"
-                },
-                "layout": {
-                  "display": "flex",
-                  "flexDirection": "column",
-                  "justifyContent": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "paddingY": 12,
-                  "paddingX": 16,
-                  "gap": 2,
-                  "fontSize": 14,
-                  "radius": 8,
-                  "lineHeight": 1.4285714285714286,
-                  "borderWidth": 1
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "flexDirection": "column",
-                  "justifyContent": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "rowGap": "2px",
-                  "columnGap": "2px",
-                  "paddingTop": "12px",
-                  "paddingBottom": "12px",
-                  "paddingRight": "16px",
-                  "paddingLeft": "16px",
-                  "borderTop": "1px",
-                  "borderRight": "1px",
-                  "borderBottom": "1px",
-                  "borderLeft": "1px"
-                }
-              }
-            },
-            "oldEngineInput": {
-              "display": "block",
-              "width": "100%",
-              "contentMinWidth": 91,
-              "contentMaxWidth": 91,
-              "contentHeight": 24,
-              "leafBaseline": 13.7421875
-            }
-          }
-        ],
+        "maxDelta": 0.30999755859375,
+        "overOnePx": [],
         "unpaired": [],
         "unpairedCount": 0,
         "oldSyntheticWrappers": [],
         "pass": true,
-        "strictPass": false,
+        "strictPass": true,
         "unapprovedCount": 0
       },
       "canvasDom": {
         "pairedNodes": 3,
         "ownedPairs": 0,
-        "maxDelta": 0.003753662109375,
+        "maxDelta": 0.00250244140625,
         "overOnePx": [],
-        "geometryArbiter": [
-          {
-            "new": "project:node:subject::project:node:subject",
-            "dom": {
-              "x": 30,
-              "y": 30,
-              "width": 129.65625,
-              "height": 76
-            }
-          },
-          {
-            "new": "project:node:subject::lib:template:component-gridlist-item-default__label",
-            "dom": {
-              "x": 47,
-              "y": 43,
-              "width": 95.65625,
-              "height": 24
-            }
-          },
-          {
-            "new": "project:node:subject::lib:template:component-gridlist-item-default__description",
-            "dom": {
-              "x": 47,
-              "y": 69,
-              "width": 95.65625,
-              "height": 24
-            }
-          }
-        ],
+        "geometryArbiter": [],
         "missing": [],
         "missingCount": 0,
         "pass": true
@@ -3496,76 +3191,78 @@
         {
           "new": "project:node:subject::project:node:subject",
           "old": "",
-          "rule": "standalone-gridlistitem-slot",
-          "class": "previewFollow"
+          "rule": "subpixel-intrinsic-width-ceil",
+          "class": "oldDefect",
+          "edges": true
         },
         {
           "new": "project:node:subject::lib:template:component-gridlist-item-default__label",
           "old": "_label",
-          "rule": "standalone-gridlistitem-slot",
-          "class": "previewFollow"
+          "rule": "subpixel-intrinsic-width-ceil",
+          "class": "oldDefect",
+          "edges": true
         },
         {
           "new": "project:node:subject::lib:template:component-gridlist-item-default__description",
           "old": "_description",
-          "rule": "standalone-gridlistitem-slot",
-          "class": "previewFollow"
+          "rule": "subpixel-intrinsic-width-ceil",
+          "class": "oldDefect",
+          "edges": true
         }
       ],
       "approvedClasses": [
-        "previewFollow"
+        "oldDefect"
       ],
-      "previewDefectFollowed": true,
       "liveIdentity": {
         "region": "root box",
-        "pixels": 246620,
+        "pixels": 237120,
         "different": 0,
         "ratio": 0,
-        "maxByte": 26
+        "maxByte": 27
       },
       "L3": {
-        "pixels": 239930,
-        "different": 2713,
-        "ratio": 0.011307464677197517,
+        "pixels": 233210,
+        "different": 366,
+        "ratio": 0.0015694009690836585,
         "maxByte": 227,
         "diffBounds": [
           234,
-          83,
-          731,
-          456
+          94,
+          706,
+          445
         ],
-        "approvedAttributed": 2713,
+        "approvedAttributed": 332,
         "movedPaint": {
           "pixels": 0,
           "different": 0,
           "maxByte": 0
         },
-        "outsideRatio": 0,
-        "outsideMaxByte": 23,
+        "outsideRatio": 0.0001457913468547661,
+        "outsideMaxByte": 227,
         "blocked": false
       },
       "L3e": {
-        "pixels": 27420,
-        "different": 1080,
-        "ratio": 0.03938730853391685,
+        "pixels": 26554,
+        "different": 324,
+        "ratio": 0.012201551555321231,
         "maxByte": 201,
         "diffBounds": [
-          681,
-          80,
-          734,
-          459
+          707,
+          102,
+          711,
+          437
         ],
         "gated": false
       },
       "text": {
-        "pixels": 44610,
-        "different": 15430,
-        "ratio": 0.34588657251737276,
+        "pixels": 42076,
+        "different": 9029,
+        "ratio": 0.2145878885825649,
         "maxByte": 227,
         "diffBounds": [
           175,
           170,
-          648,
+          623,
           380
         ],
         "gated": false
@@ -3574,13 +3271,13 @@
         "clip": {
           "x": 57,
           "y": 50,
-          "width": 709,
+          "width": 686,
           "height": 440
         },
         "context": {
-          "pixels": 168040,
+          "pixels": 178160,
           "different": 3517,
-          "ratio": 0.020929540585574863,
+          "ratio": 0.019740682532555006,
           "maxByte": 43,
           "diffBounds": [
             94,
@@ -3632,337 +3329,32 @@
           "old": "Description",
           "key": "contentMinWidth",
           "oldValue": 91,
-          "newValue": 95.66000366210938
+          "newValue": 90.69000244140625
         },
         {
           "old": "Description",
           "key": "contentMaxWidth",
           "oldValue": 91,
-          "newValue": 95.66000366210938
+          "newValue": 90.69000244140625
         }
       ],
       "geometry": {
         "pairedNodes": 3,
-        "maxDelta": 4.660003662109375,
-        "overOnePx": [
-          {
-            "new": "project:node:subject::project:node:subject",
-            "old": "",
-            "newRect": {
-              "x": 30,
-              "y": 30,
-              "width": 129.66000366210938,
-              "height": 76
-            },
-            "oldRect": {
-              "x": 30,
-              "y": 30,
-              "width": 125,
-              "height": 76
-            },
-            "newInput": {
-              "self": {
-                "type": "GridListItem",
-                "props": {
-                  "size": "md",
-                  "children": "{label}"
-                },
-                "layout": {
-                  "display": "flex",
-                  "flexDirection": "column",
-                  "justifyContent": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "paddingY": 12,
-                  "paddingX": 16,
-                  "gap": 2,
-                  "fontSize": 14,
-                  "radius": 8,
-                  "lineHeight": 1.4285714285714286,
-                  "borderWidth": 1
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "flexDirection": "column",
-                  "justifyContent": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "rowGap": "2px",
-                  "columnGap": "2px",
-                  "paddingTop": "12px",
-                  "paddingBottom": "12px",
-                  "paddingRight": "16px",
-                  "paddingLeft": "16px",
-                  "borderTop": "1px",
-                  "borderRight": "1px",
-                  "borderBottom": "1px",
-                  "borderLeft": "1px"
-                }
-              },
-              "parent": null
-            },
-            "oldEngineInput": {
-              "display": "flex",
-              "flexDirection": "column",
-              "justifyContent": "center",
-              "paddingTop": "12px",
-              "paddingRight": "16px",
-              "paddingBottom": "12px",
-              "paddingLeft": "16px",
-              "borderTop": "1px",
-              "borderRight": "1px",
-              "borderBottom": "1px",
-              "borderLeft": "1px",
-              "columnGap": "2px",
-              "rowGap": "2px"
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-gridlist-item-default--unselected::lib:template:component-gridlist-item-default__label",
-            "old": "Label",
-            "newRect": {
-              "x": 47,
-              "y": 43,
-              "width": 95.66000366210938,
-              "height": 24
-            },
-            "oldRect": {
-              "x": 47,
-              "y": 43,
-              "width": 91,
-              "height": 24
-            },
-            "newInput": {
-              "self": {
-                "type": "Text",
-                "props": {
-                  "size": "md",
-                  "children": "{label}"
-                },
-                "layout": {
-                  "display": "block"
-                },
-                "sizing": {},
-                "visual": {
-                  "color": "#171717",
-                  "fontWeight": 600,
-                  "width": "100%",
-                  "fontSize": 16,
-                  "lineHeight": 1.5,
-                  "radius": 0
-                },
-                "placement": null,
-                "engineInput": {
-                  "display": "block",
-                  "width": "100%",
-                  "contentMinWidth": 48.18000030517578,
-                  "contentMaxWidth": 48.18000030517578,
-                  "contentHeight": 24
-                }
-              },
-              "parent": {
-                "type": "GridListItem",
-                "props": {
-                  "size": "md",
-                  "children": "{label}"
-                },
-                "layout": {
-                  "display": "flex",
-                  "flexDirection": "column",
-                  "justifyContent": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "paddingY": 12,
-                  "paddingX": 16,
-                  "gap": 2,
-                  "fontSize": 14,
-                  "radius": 8,
-                  "lineHeight": 1.4285714285714286,
-                  "borderWidth": 1
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "flexDirection": "column",
-                  "justifyContent": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "rowGap": "2px",
-                  "columnGap": "2px",
-                  "paddingTop": "12px",
-                  "paddingBottom": "12px",
-                  "paddingRight": "16px",
-                  "paddingLeft": "16px",
-                  "borderTop": "1px",
-                  "borderRight": "1px",
-                  "borderBottom": "1px",
-                  "borderLeft": "1px"
-                }
-              }
-            },
-            "oldEngineInput": {
-              "display": "block",
-              "width": "100%",
-              "contentMinWidth": 48,
-              "contentMaxWidth": 48,
-              "contentHeight": 24,
-              "leafBaseline": 13.75
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-gridlist-item-default--unselected::lib:template:component-gridlist-item-default__description",
-            "old": "Description",
-            "newRect": {
-              "x": 47,
-              "y": 69,
-              "width": 95.66000366210938,
-              "height": 24
-            },
-            "oldRect": {
-              "x": 47,
-              "y": 69,
-              "width": 91,
-              "height": 24
-            },
-            "newInput": {
-              "self": {
-                "type": "Text",
-                "props": {
-                  "size": "md",
-                  "slot": "description",
-                  "children": "{description}"
-                },
-                "layout": {
-                  "display": "block"
-                },
-                "sizing": {},
-                "visual": {
-                  "color": "#171717",
-                  "fontWeight": 600,
-                  "width": "100%",
-                  "fontSize": 16,
-                  "lineHeight": 1.5,
-                  "radius": 0
-                },
-                "placement": null,
-                "engineInput": {
-                  "display": "block",
-                  "width": "100%",
-                  "contentMinWidth": 95.66000366210938,
-                  "contentMaxWidth": 95.66000366210938,
-                  "contentHeight": 24
-                }
-              },
-              "parent": {
-                "type": "GridListItem",
-                "props": {
-                  "size": "md",
-                  "children": "{label}"
-                },
-                "layout": {
-                  "display": "flex",
-                  "flexDirection": "column",
-                  "justifyContent": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "paddingY": 12,
-                  "paddingX": 16,
-                  "gap": 2,
-                  "fontSize": 14,
-                  "radius": 8,
-                  "lineHeight": 1.4285714285714286,
-                  "borderWidth": 1
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "flexDirection": "column",
-                  "justifyContent": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "rowGap": "2px",
-                  "columnGap": "2px",
-                  "paddingTop": "12px",
-                  "paddingBottom": "12px",
-                  "paddingRight": "16px",
-                  "paddingLeft": "16px",
-                  "borderTop": "1px",
-                  "borderRight": "1px",
-                  "borderBottom": "1px",
-                  "borderLeft": "1px"
-                }
-              }
-            },
-            "oldEngineInput": {
-              "display": "block",
-              "width": "100%",
-              "contentMinWidth": 91,
-              "contentMaxWidth": 91,
-              "contentHeight": 24,
-              "leafBaseline": 13.7421875
-            }
-          }
-        ],
+        "maxDelta": 0.30999755859375,
+        "overOnePx": [],
         "unpaired": [],
         "unpairedCount": 0,
         "oldSyntheticWrappers": [],
         "pass": true,
-        "strictPass": false,
+        "strictPass": true,
         "unapprovedCount": 0
       },
       "canvasDom": {
         "pairedNodes": 3,
         "ownedPairs": 0,
-        "maxDelta": 0.003753662109375,
+        "maxDelta": 0.00250244140625,
         "overOnePx": [],
-        "geometryArbiter": [
-          {
-            "new": "project:node:subject::project:node:subject",
-            "dom": {
-              "x": 30,
-              "y": 30,
-              "width": 129.65625,
-              "height": 76
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-gridlist-item-default--unselected::lib:template:component-gridlist-item-default__label",
-            "dom": {
-              "x": 47,
-              "y": 43,
-              "width": 95.65625,
-              "height": 24
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-gridlist-item-default--unselected::lib:template:component-gridlist-item-default__description",
-            "dom": {
-              "x": 47,
-              "y": 69,
-              "width": 95.65625,
-              "height": 24
-            }
-          }
-        ],
+        "geometryArbiter": [],
         "missing": [],
         "missingCount": 0,
         "pass": true
@@ -3971,76 +3363,78 @@
         {
           "new": "project:node:subject::project:node:subject",
           "old": "",
-          "rule": "standalone-gridlistitem-slot",
-          "class": "previewFollow"
+          "rule": "subpixel-intrinsic-width-ceil",
+          "class": "oldDefect",
+          "edges": true
         },
         {
           "new": "project:node:subject/lib:template:component-gridlist-item-default--unselected::lib:template:component-gridlist-item-default__label",
           "old": "Label",
-          "rule": "standalone-gridlistitem-slot",
-          "class": "previewFollow"
+          "rule": "subpixel-intrinsic-width-ceil",
+          "class": "oldDefect",
+          "edges": true
         },
         {
           "new": "project:node:subject/lib:template:component-gridlist-item-default--unselected::lib:template:component-gridlist-item-default__description",
           "old": "Description",
-          "rule": "standalone-gridlistitem-slot",
-          "class": "previewFollow"
+          "rule": "subpixel-intrinsic-width-ceil",
+          "class": "oldDefect",
+          "edges": true
         }
       ],
       "approvedClasses": [
-        "previewFollow"
+        "oldDefect"
       ],
-      "previewDefectFollowed": true,
       "liveIdentity": {
         "region": "root box",
-        "pixels": 246620,
+        "pixels": 237120,
         "different": 0,
         "ratio": 0,
-        "maxByte": 26
+        "maxByte": 27
       },
       "L3": {
-        "pixels": 239930,
-        "different": 2715,
-        "ratio": 0.011315800441795523,
+        "pixels": 233210,
+        "different": 368,
+        "ratio": 0.0015779769306633507,
         "maxByte": 227,
         "diffBounds": [
           234,
-          83,
-          731,
-          456
+          94,
+          706,
+          445
         ],
-        "approvedAttributed": 2715,
+        "approvedAttributed": 334,
         "movedPaint": {
           "pixels": 0,
           "different": 0,
           "maxByte": 0
         },
-        "outsideRatio": 0,
-        "outsideMaxByte": 23,
+        "outsideRatio": 0.0001457913468547661,
+        "outsideMaxByte": 227,
         "blocked": false
       },
       "L3e": {
-        "pixels": 27420,
-        "different": 1082,
-        "ratio": 0.039460247994164845,
+        "pixels": 26554,
+        "different": 324,
+        "ratio": 0.012201551555321231,
         "maxByte": 43,
         "diffBounds": [
-          681,
-          80,
-          734,
-          459
+          707,
+          102,
+          711,
+          437
         ],
         "gated": false
       },
       "text": {
-        "pixels": 44610,
-        "different": 15430,
-        "ratio": 0.34588657251737276,
+        "pixels": 42076,
+        "different": 9029,
+        "ratio": 0.2145878885825649,
         "maxByte": 227,
         "diffBounds": [
           175,
           170,
-          648,
+          623,
           380
         ],
         "gated": false
@@ -4049,13 +3443,13 @@
         "clip": {
           "x": 57,
           "y": 50,
-          "width": 709,
+          "width": 686,
           "height": 440
         },
         "context": {
-          "pixels": 168040,
+          "pixels": 178160,
           "different": 4000,
-          "ratio": 0.023803856224708403,
+          "ratio": 0.0224517287831163,
           "maxByte": 43,
           "diffBounds": [
             0,
@@ -4107,340 +3501,32 @@
           "old": "Description",
           "key": "contentMinWidth",
           "oldValue": 91,
-          "newValue": 95.66000366210938
+          "newValue": 90.69000244140625
         },
         {
           "old": "Description",
           "key": "contentMaxWidth",
           "oldValue": 91,
-          "newValue": 95.66000366210938
+          "newValue": 90.69000244140625
         }
       ],
       "geometry": {
         "pairedNodes": 3,
-        "maxDelta": 4.660003662109375,
-        "overOnePx": [
-          {
-            "new": "project:node:subject::project:node:subject",
-            "old": "",
-            "newRect": {
-              "x": 30,
-              "y": 30,
-              "width": 129.66000366210938,
-              "height": 76
-            },
-            "oldRect": {
-              "x": 30,
-              "y": 30,
-              "width": 125,
-              "height": 76
-            },
-            "newInput": {
-              "self": {
-                "type": "GridListItem",
-                "props": {
-                  "size": "md",
-                  "children": "{label}",
-                  "isDisabled": true
-                },
-                "layout": {
-                  "display": "flex",
-                  "flexDirection": "column",
-                  "justifyContent": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "paddingY": 12,
-                  "paddingX": 16,
-                  "gap": 2,
-                  "fontSize": 14,
-                  "radius": 8,
-                  "lineHeight": 1.4285714285714286,
-                  "borderWidth": 1
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "flexDirection": "column",
-                  "justifyContent": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "rowGap": "2px",
-                  "columnGap": "2px",
-                  "paddingTop": "12px",
-                  "paddingBottom": "12px",
-                  "paddingRight": "16px",
-                  "paddingLeft": "16px",
-                  "borderTop": "1px",
-                  "borderRight": "1px",
-                  "borderBottom": "1px",
-                  "borderLeft": "1px"
-                }
-              },
-              "parent": null
-            },
-            "oldEngineInput": {
-              "display": "flex",
-              "flexDirection": "column",
-              "justifyContent": "center",
-              "paddingTop": "12px",
-              "paddingRight": "16px",
-              "paddingBottom": "12px",
-              "paddingLeft": "16px",
-              "borderTop": "1px",
-              "borderRight": "1px",
-              "borderBottom": "1px",
-              "borderLeft": "1px",
-              "columnGap": "2px",
-              "rowGap": "2px"
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-gridlist-item-default--disabled::lib:template:component-gridlist-item-default__label",
-            "old": "Label",
-            "newRect": {
-              "x": 47,
-              "y": 43,
-              "width": 95.66000366210938,
-              "height": 24
-            },
-            "oldRect": {
-              "x": 47,
-              "y": 43,
-              "width": 91,
-              "height": 24
-            },
-            "newInput": {
-              "self": {
-                "type": "Text",
-                "props": {
-                  "size": "md",
-                  "children": "{label}"
-                },
-                "layout": {
-                  "display": "block"
-                },
-                "sizing": {},
-                "visual": {
-                  "color": "#171717",
-                  "fontWeight": 600,
-                  "width": "100%",
-                  "fontSize": 16,
-                  "lineHeight": 1.5,
-                  "radius": 0
-                },
-                "placement": null,
-                "engineInput": {
-                  "display": "block",
-                  "width": "100%",
-                  "contentMinWidth": 48.18000030517578,
-                  "contentMaxWidth": 48.18000030517578,
-                  "contentHeight": 24
-                }
-              },
-              "parent": {
-                "type": "GridListItem",
-                "props": {
-                  "size": "md",
-                  "children": "{label}",
-                  "isDisabled": true
-                },
-                "layout": {
-                  "display": "flex",
-                  "flexDirection": "column",
-                  "justifyContent": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "paddingY": 12,
-                  "paddingX": 16,
-                  "gap": 2,
-                  "fontSize": 14,
-                  "radius": 8,
-                  "lineHeight": 1.4285714285714286,
-                  "borderWidth": 1
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "flexDirection": "column",
-                  "justifyContent": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "rowGap": "2px",
-                  "columnGap": "2px",
-                  "paddingTop": "12px",
-                  "paddingBottom": "12px",
-                  "paddingRight": "16px",
-                  "paddingLeft": "16px",
-                  "borderTop": "1px",
-                  "borderRight": "1px",
-                  "borderBottom": "1px",
-                  "borderLeft": "1px"
-                }
-              }
-            },
-            "oldEngineInput": {
-              "display": "block",
-              "width": "100%",
-              "contentMinWidth": 48,
-              "contentMaxWidth": 48,
-              "contentHeight": 24,
-              "leafBaseline": 13.75
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-gridlist-item-default--disabled::lib:template:component-gridlist-item-default__description",
-            "old": "Description",
-            "newRect": {
-              "x": 47,
-              "y": 69,
-              "width": 95.66000366210938,
-              "height": 24
-            },
-            "oldRect": {
-              "x": 47,
-              "y": 69,
-              "width": 91,
-              "height": 24
-            },
-            "newInput": {
-              "self": {
-                "type": "Text",
-                "props": {
-                  "size": "md",
-                  "slot": "description",
-                  "children": "{description}"
-                },
-                "layout": {
-                  "display": "block"
-                },
-                "sizing": {},
-                "visual": {
-                  "color": "#171717",
-                  "fontWeight": 600,
-                  "width": "100%",
-                  "fontSize": 16,
-                  "lineHeight": 1.5,
-                  "radius": 0
-                },
-                "placement": null,
-                "engineInput": {
-                  "display": "block",
-                  "width": "100%",
-                  "contentMinWidth": 95.66000366210938,
-                  "contentMaxWidth": 95.66000366210938,
-                  "contentHeight": 24
-                }
-              },
-              "parent": {
-                "type": "GridListItem",
-                "props": {
-                  "size": "md",
-                  "children": "{label}",
-                  "isDisabled": true
-                },
-                "layout": {
-                  "display": "flex",
-                  "flexDirection": "column",
-                  "justifyContent": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "paddingY": 12,
-                  "paddingX": 16,
-                  "gap": 2,
-                  "fontSize": 14,
-                  "radius": 8,
-                  "lineHeight": 1.4285714285714286,
-                  "borderWidth": 1
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "flexDirection": "column",
-                  "justifyContent": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "rowGap": "2px",
-                  "columnGap": "2px",
-                  "paddingTop": "12px",
-                  "paddingBottom": "12px",
-                  "paddingRight": "16px",
-                  "paddingLeft": "16px",
-                  "borderTop": "1px",
-                  "borderRight": "1px",
-                  "borderBottom": "1px",
-                  "borderLeft": "1px"
-                }
-              }
-            },
-            "oldEngineInput": {
-              "display": "block",
-              "width": "100%",
-              "contentMinWidth": 91,
-              "contentMaxWidth": 91,
-              "contentHeight": 24,
-              "leafBaseline": 13.7421875
-            }
-          }
-        ],
+        "maxDelta": 0.30999755859375,
+        "overOnePx": [],
         "unpaired": [],
         "unpairedCount": 0,
         "oldSyntheticWrappers": [],
         "pass": true,
-        "strictPass": false,
+        "strictPass": true,
         "unapprovedCount": 0
       },
       "canvasDom": {
         "pairedNodes": 3,
         "ownedPairs": 0,
-        "maxDelta": 0.003753662109375,
+        "maxDelta": 0.00250244140625,
         "overOnePx": [],
-        "geometryArbiter": [
-          {
-            "new": "project:node:subject::project:node:subject",
-            "dom": {
-              "x": 30,
-              "y": 30,
-              "width": 129.65625,
-              "height": 76
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-gridlist-item-default--disabled::lib:template:component-gridlist-item-default__label",
-            "dom": {
-              "x": 47,
-              "y": 43,
-              "width": 95.65625,
-              "height": 24
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-gridlist-item-default--disabled::lib:template:component-gridlist-item-default__description",
-            "dom": {
-              "x": 47,
-              "y": 69,
-              "width": 95.65625,
-              "height": 24
-            }
-          }
-        ],
+        "geometryArbiter": [],
         "missing": [],
         "missingCount": 0,
         "pass": true
@@ -4449,76 +3535,73 @@
         {
           "new": "project:node:subject::project:node:subject",
           "old": "",
-          "rule": "standalone-gridlistitem-slot",
-          "class": "previewFollow"
+          "rule": "subpixel-intrinsic-width-ceil",
+          "class": "oldDefect",
+          "edges": true
         },
         {
           "new": "project:node:subject/lib:template:component-gridlist-item-default--disabled::lib:template:component-gridlist-item-default__label",
           "old": "Label",
-          "rule": "standalone-gridlistitem-slot",
-          "class": "previewFollow"
+          "rule": "subpixel-intrinsic-width-ceil",
+          "class": "oldDefect",
+          "edges": true
         },
         {
           "new": "project:node:subject/lib:template:component-gridlist-item-default--disabled::lib:template:component-gridlist-item-default__description",
           "old": "Description",
-          "rule": "standalone-gridlistitem-slot",
-          "class": "previewFollow"
+          "rule": "subpixel-intrinsic-width-ceil",
+          "class": "oldDefect",
+          "edges": true
         }
       ],
       "approvedClasses": [
-        "previewFollow"
+        "oldDefect"
       ],
-      "previewDefectFollowed": true,
       "liveIdentity": {
         "region": "root box",
-        "pixels": 246620,
-        "different": 0,
-        "ratio": 0,
-        "maxByte": 26
+        "pixels": 237120,
+        "different": 2699,
+        "ratio": 0.011382422402159245,
+        "maxByte": 35
       },
       "L3": {
-        "pixels": 239930,
-        "different": 4065,
-        "ratio": 0.016942441545450757,
-        "maxByte": 83,
+        "pixels": 233287,
+        "different": 34,
+        "ratio": 0.00014574322615490791,
+        "maxByte": 86,
         "diffBounds": [
-          91,
-          83,
-          731,
-          456
+          234,
+          172,
+          565,
+          316
         ],
-        "approvedAttributed": 4065,
+        "approvedAttributed": 0,
         "movedPaint": {
           "pixels": 0,
           "different": 0,
           "maxByte": 0
         },
-        "outsideRatio": 0,
-        "outsideMaxByte": 21,
+        "outsideRatio": 0.00014574322615490791,
+        "outsideMaxByte": 86,
         "blocked": false
       },
       "L3e": {
-        "pixels": 27420,
-        "different": 5408,
-        "ratio": 0.19722830051057622,
-        "maxByte": 43,
-        "diffBounds": [
-          88,
-          80,
-          734,
-          459
-        ],
+        "pixels": 26557,
+        "different": 0,
+        "ratio": 0,
+        "maxByte": 16,
+        "diffBounds": null,
         "gated": false
       },
       "text": {
-        "pixels": 44610,
-        "different": 18743,
-        "ratio": 0.4201524321900919,
-        "maxByte": 230,
+        "pixels": 41996,
+        "different": 9095,
+        "ratio": 0.21656824459472332,
+        "maxByte": 86,
         "diffBounds": [
           175,
           170,
-          648,
+          623,
           380
         ],
         "gated": false
@@ -4527,13 +3610,13 @@
         "clip": {
           "x": 57,
           "y": 50,
-          "width": 709,
+          "width": 686,
           "height": 440
         },
         "context": {
-          "pixels": 168040,
+          "pixels": 178160,
           "different": 4000,
-          "ratio": 0.023803856224708403,
+          "ratio": 0.0224517287831163,
           "maxByte": 43,
           "diffBounds": [
             0,
@@ -4585,337 +3668,32 @@
           "old": "Description",
           "key": "contentMinWidth",
           "oldValue": 91,
-          "newValue": 95.66000366210938
+          "newValue": 90.69000244140625
         },
         {
           "old": "Description",
           "key": "contentMaxWidth",
           "oldValue": 91,
-          "newValue": 95.66000366210938
+          "newValue": 90.69000244140625
         }
       ],
       "geometry": {
         "pairedNodes": 3,
-        "maxDelta": 4.660003662109375,
-        "overOnePx": [
-          {
-            "new": "project:node:subject::project:node:subject",
-            "old": "",
-            "newRect": {
-              "x": 30,
-              "y": 30,
-              "width": 129.66000366210938,
-              "height": 76
-            },
-            "oldRect": {
-              "x": 30,
-              "y": 30,
-              "width": 125,
-              "height": 76
-            },
-            "newInput": {
-              "self": {
-                "type": "GridListItem",
-                "props": {
-                  "size": "md",
-                  "children": "{label}"
-                },
-                "layout": {
-                  "display": "flex",
-                  "flexDirection": "column",
-                  "justifyContent": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "paddingY": 12,
-                  "paddingX": 16,
-                  "gap": 2,
-                  "fontSize": 14,
-                  "radius": 8,
-                  "lineHeight": 1.4285714285714286,
-                  "borderWidth": 1
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "flexDirection": "column",
-                  "justifyContent": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "rowGap": "2px",
-                  "columnGap": "2px",
-                  "paddingTop": "12px",
-                  "paddingBottom": "12px",
-                  "paddingRight": "16px",
-                  "paddingLeft": "16px",
-                  "borderTop": "1px",
-                  "borderRight": "1px",
-                  "borderBottom": "1px",
-                  "borderLeft": "1px"
-                }
-              },
-              "parent": null
-            },
-            "oldEngineInput": {
-              "display": "flex",
-              "flexDirection": "column",
-              "justifyContent": "center",
-              "paddingTop": "12px",
-              "paddingRight": "16px",
-              "paddingBottom": "12px",
-              "paddingLeft": "16px",
-              "borderTop": "1px",
-              "borderRight": "1px",
-              "borderBottom": "1px",
-              "borderLeft": "1px",
-              "columnGap": "2px",
-              "rowGap": "2px"
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-gridlist-item-default--hover::lib:template:component-gridlist-item-default__label",
-            "old": "Label",
-            "newRect": {
-              "x": 47,
-              "y": 43,
-              "width": 95.66000366210938,
-              "height": 24
-            },
-            "oldRect": {
-              "x": 47,
-              "y": 43,
-              "width": 91,
-              "height": 24
-            },
-            "newInput": {
-              "self": {
-                "type": "Text",
-                "props": {
-                  "size": "md",
-                  "children": "{label}"
-                },
-                "layout": {
-                  "display": "block"
-                },
-                "sizing": {},
-                "visual": {
-                  "color": "#171717",
-                  "fontWeight": 600,
-                  "width": "100%",
-                  "fontSize": 16,
-                  "lineHeight": 1.5,
-                  "radius": 0
-                },
-                "placement": null,
-                "engineInput": {
-                  "display": "block",
-                  "width": "100%",
-                  "contentMinWidth": 48.18000030517578,
-                  "contentMaxWidth": 48.18000030517578,
-                  "contentHeight": 24
-                }
-              },
-              "parent": {
-                "type": "GridListItem",
-                "props": {
-                  "size": "md",
-                  "children": "{label}"
-                },
-                "layout": {
-                  "display": "flex",
-                  "flexDirection": "column",
-                  "justifyContent": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "paddingY": 12,
-                  "paddingX": 16,
-                  "gap": 2,
-                  "fontSize": 14,
-                  "radius": 8,
-                  "lineHeight": 1.4285714285714286,
-                  "borderWidth": 1
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "flexDirection": "column",
-                  "justifyContent": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "rowGap": "2px",
-                  "columnGap": "2px",
-                  "paddingTop": "12px",
-                  "paddingBottom": "12px",
-                  "paddingRight": "16px",
-                  "paddingLeft": "16px",
-                  "borderTop": "1px",
-                  "borderRight": "1px",
-                  "borderBottom": "1px",
-                  "borderLeft": "1px"
-                }
-              }
-            },
-            "oldEngineInput": {
-              "display": "block",
-              "width": "100%",
-              "contentMinWidth": 48,
-              "contentMaxWidth": 48,
-              "contentHeight": 24,
-              "leafBaseline": 13.75
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-gridlist-item-default--hover::lib:template:component-gridlist-item-default__description",
-            "old": "Description",
-            "newRect": {
-              "x": 47,
-              "y": 69,
-              "width": 95.66000366210938,
-              "height": 24
-            },
-            "oldRect": {
-              "x": 47,
-              "y": 69,
-              "width": 91,
-              "height": 24
-            },
-            "newInput": {
-              "self": {
-                "type": "Text",
-                "props": {
-                  "size": "md",
-                  "slot": "description",
-                  "children": "{description}"
-                },
-                "layout": {
-                  "display": "block"
-                },
-                "sizing": {},
-                "visual": {
-                  "color": "#171717",
-                  "fontWeight": 600,
-                  "width": "100%",
-                  "fontSize": 16,
-                  "lineHeight": 1.5,
-                  "radius": 0
-                },
-                "placement": null,
-                "engineInput": {
-                  "display": "block",
-                  "width": "100%",
-                  "contentMinWidth": 95.66000366210938,
-                  "contentMaxWidth": 95.66000366210938,
-                  "contentHeight": 24
-                }
-              },
-              "parent": {
-                "type": "GridListItem",
-                "props": {
-                  "size": "md",
-                  "children": "{label}"
-                },
-                "layout": {
-                  "display": "flex",
-                  "flexDirection": "column",
-                  "justifyContent": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "paddingY": 12,
-                  "paddingX": 16,
-                  "gap": 2,
-                  "fontSize": 14,
-                  "radius": 8,
-                  "lineHeight": 1.4285714285714286,
-                  "borderWidth": 1
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "flexDirection": "column",
-                  "justifyContent": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "rowGap": "2px",
-                  "columnGap": "2px",
-                  "paddingTop": "12px",
-                  "paddingBottom": "12px",
-                  "paddingRight": "16px",
-                  "paddingLeft": "16px",
-                  "borderTop": "1px",
-                  "borderRight": "1px",
-                  "borderBottom": "1px",
-                  "borderLeft": "1px"
-                }
-              }
-            },
-            "oldEngineInput": {
-              "display": "block",
-              "width": "100%",
-              "contentMinWidth": 91,
-              "contentMaxWidth": 91,
-              "contentHeight": 24,
-              "leafBaseline": 13.7421875
-            }
-          }
-        ],
+        "maxDelta": 0.30999755859375,
+        "overOnePx": [],
         "unpaired": [],
         "unpairedCount": 0,
         "oldSyntheticWrappers": [],
         "pass": true,
-        "strictPass": false,
+        "strictPass": true,
         "unapprovedCount": 0
       },
       "canvasDom": {
         "pairedNodes": 3,
         "ownedPairs": 0,
-        "maxDelta": 0.003753662109375,
+        "maxDelta": 0.00250244140625,
         "overOnePx": [],
-        "geometryArbiter": [
-          {
-            "new": "project:node:subject::project:node:subject",
-            "dom": {
-              "x": 30,
-              "y": 30,
-              "width": 129.65625,
-              "height": 76
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-gridlist-item-default--hover::lib:template:component-gridlist-item-default__label",
-            "dom": {
-              "x": 47,
-              "y": 43,
-              "width": 95.65625,
-              "height": 24
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-gridlist-item-default--hover::lib:template:component-gridlist-item-default__description",
-            "dom": {
-              "x": 47,
-              "y": 69,
-              "width": 95.65625,
-              "height": 24
-            }
-          }
-        ],
+        "geometryArbiter": [],
         "missing": [],
         "missingCount": 0,
         "pass": true
@@ -4924,76 +3702,78 @@
         {
           "new": "project:node:subject::project:node:subject",
           "old": "",
-          "rule": "standalone-gridlistitem-slot",
-          "class": "previewFollow"
+          "rule": "subpixel-intrinsic-width-ceil",
+          "class": "oldDefect",
+          "edges": true
         },
         {
           "new": "project:node:subject/lib:template:component-gridlist-item-default--hover::lib:template:component-gridlist-item-default__label",
           "old": "Label",
-          "rule": "standalone-gridlistitem-slot",
-          "class": "previewFollow"
+          "rule": "subpixel-intrinsic-width-ceil",
+          "class": "oldDefect",
+          "edges": true
         },
         {
           "new": "project:node:subject/lib:template:component-gridlist-item-default--hover::lib:template:component-gridlist-item-default__description",
           "old": "Description",
-          "rule": "standalone-gridlistitem-slot",
-          "class": "previewFollow"
+          "rule": "subpixel-intrinsic-width-ceil",
+          "class": "oldDefect",
+          "edges": true
         }
       ],
       "approvedClasses": [
-        "previewFollow"
+        "oldDefect"
       ],
-      "previewDefectFollowed": true,
       "liveIdentity": {
         "region": "root box",
-        "pixels": 246620,
+        "pixels": 237120,
         "different": 0,
         "ratio": 0,
-        "maxByte": 26
+        "maxByte": 27
       },
       "L3": {
-        "pixels": 239930,
-        "different": 2715,
-        "ratio": 0.011315800441795523,
+        "pixels": 233210,
+        "different": 368,
+        "ratio": 0.0015779769306633507,
         "maxByte": 227,
         "diffBounds": [
           234,
-          83,
-          731,
-          456
+          94,
+          706,
+          445
         ],
-        "approvedAttributed": 2715,
+        "approvedAttributed": 334,
         "movedPaint": {
           "pixels": 0,
           "different": 0,
           "maxByte": 0
         },
-        "outsideRatio": 0,
-        "outsideMaxByte": 23,
+        "outsideRatio": 0.0001457913468547661,
+        "outsideMaxByte": 227,
         "blocked": false
       },
       "L3e": {
-        "pixels": 27420,
-        "different": 1082,
-        "ratio": 0.039460247994164845,
+        "pixels": 26554,
+        "different": 324,
+        "ratio": 0.012201551555321231,
         "maxByte": 43,
         "diffBounds": [
-          681,
-          80,
-          734,
-          459
+          707,
+          102,
+          711,
+          437
         ],
         "gated": false
       },
       "text": {
-        "pixels": 44610,
-        "different": 15430,
-        "ratio": 0.34588657251737276,
+        "pixels": 42076,
+        "different": 9029,
+        "ratio": 0.2145878885825649,
         "maxByte": 227,
         "diffBounds": [
           175,
           170,
-          648,
+          623,
           380
         ],
         "gated": false
@@ -5002,13 +3782,13 @@
         "clip": {
           "x": 57,
           "y": 50,
-          "width": 709,
+          "width": 686,
           "height": 440
         },
         "context": {
-          "pixels": 168040,
+          "pixels": 178160,
           "different": 4000,
-          "ratio": 0.023803856224708403,
+          "ratio": 0.0224517287831163,
           "maxByte": 43,
           "diffBounds": [
             0,
@@ -5060,337 +3840,32 @@
           "old": "Description",
           "key": "contentMinWidth",
           "oldValue": 91,
-          "newValue": 95.66000366210938
+          "newValue": 90.69000244140625
         },
         {
           "old": "Description",
           "key": "contentMaxWidth",
           "oldValue": 91,
-          "newValue": 95.66000366210938
+          "newValue": 90.69000244140625
         }
       ],
       "geometry": {
         "pairedNodes": 3,
-        "maxDelta": 4.660003662109375,
-        "overOnePx": [
-          {
-            "new": "project:node:subject::project:node:subject",
-            "old": "",
-            "newRect": {
-              "x": 30,
-              "y": 30,
-              "width": 129.66000366210938,
-              "height": 76
-            },
-            "oldRect": {
-              "x": 30,
-              "y": 30,
-              "width": 125,
-              "height": 76
-            },
-            "newInput": {
-              "self": {
-                "type": "GridListItem",
-                "props": {
-                  "size": "md",
-                  "children": "{label}"
-                },
-                "layout": {
-                  "display": "flex",
-                  "flexDirection": "column",
-                  "justifyContent": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "paddingY": 12,
-                  "paddingX": 16,
-                  "gap": 2,
-                  "fontSize": 14,
-                  "radius": 8,
-                  "lineHeight": 1.4285714285714286,
-                  "borderWidth": 1
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "flexDirection": "column",
-                  "justifyContent": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "rowGap": "2px",
-                  "columnGap": "2px",
-                  "paddingTop": "12px",
-                  "paddingBottom": "12px",
-                  "paddingRight": "16px",
-                  "paddingLeft": "16px",
-                  "borderTop": "1px",
-                  "borderRight": "1px",
-                  "borderBottom": "1px",
-                  "borderLeft": "1px"
-                }
-              },
-              "parent": null
-            },
-            "oldEngineInput": {
-              "display": "flex",
-              "flexDirection": "column",
-              "justifyContent": "center",
-              "paddingTop": "12px",
-              "paddingRight": "16px",
-              "paddingBottom": "12px",
-              "paddingLeft": "16px",
-              "borderTop": "1px",
-              "borderRight": "1px",
-              "borderBottom": "1px",
-              "borderLeft": "1px",
-              "columnGap": "2px",
-              "rowGap": "2px"
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-gridlist-item-default--pressed::lib:template:component-gridlist-item-default__label",
-            "old": "Label",
-            "newRect": {
-              "x": 47,
-              "y": 43,
-              "width": 95.66000366210938,
-              "height": 24
-            },
-            "oldRect": {
-              "x": 47,
-              "y": 43,
-              "width": 91,
-              "height": 24
-            },
-            "newInput": {
-              "self": {
-                "type": "Text",
-                "props": {
-                  "size": "md",
-                  "children": "{label}"
-                },
-                "layout": {
-                  "display": "block"
-                },
-                "sizing": {},
-                "visual": {
-                  "color": "#171717",
-                  "fontWeight": 600,
-                  "width": "100%",
-                  "fontSize": 16,
-                  "lineHeight": 1.5,
-                  "radius": 0
-                },
-                "placement": null,
-                "engineInput": {
-                  "display": "block",
-                  "width": "100%",
-                  "contentMinWidth": 48.18000030517578,
-                  "contentMaxWidth": 48.18000030517578,
-                  "contentHeight": 24
-                }
-              },
-              "parent": {
-                "type": "GridListItem",
-                "props": {
-                  "size": "md",
-                  "children": "{label}"
-                },
-                "layout": {
-                  "display": "flex",
-                  "flexDirection": "column",
-                  "justifyContent": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "paddingY": 12,
-                  "paddingX": 16,
-                  "gap": 2,
-                  "fontSize": 14,
-                  "radius": 8,
-                  "lineHeight": 1.4285714285714286,
-                  "borderWidth": 1
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "flexDirection": "column",
-                  "justifyContent": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "rowGap": "2px",
-                  "columnGap": "2px",
-                  "paddingTop": "12px",
-                  "paddingBottom": "12px",
-                  "paddingRight": "16px",
-                  "paddingLeft": "16px",
-                  "borderTop": "1px",
-                  "borderRight": "1px",
-                  "borderBottom": "1px",
-                  "borderLeft": "1px"
-                }
-              }
-            },
-            "oldEngineInput": {
-              "display": "block",
-              "width": "100%",
-              "contentMinWidth": 48,
-              "contentMaxWidth": 48,
-              "contentHeight": 24,
-              "leafBaseline": 13.75
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-gridlist-item-default--pressed::lib:template:component-gridlist-item-default__description",
-            "old": "Description",
-            "newRect": {
-              "x": 47,
-              "y": 69,
-              "width": 95.66000366210938,
-              "height": 24
-            },
-            "oldRect": {
-              "x": 47,
-              "y": 69,
-              "width": 91,
-              "height": 24
-            },
-            "newInput": {
-              "self": {
-                "type": "Text",
-                "props": {
-                  "size": "md",
-                  "slot": "description",
-                  "children": "{description}"
-                },
-                "layout": {
-                  "display": "block"
-                },
-                "sizing": {},
-                "visual": {
-                  "color": "#171717",
-                  "fontWeight": 600,
-                  "width": "100%",
-                  "fontSize": 16,
-                  "lineHeight": 1.5,
-                  "radius": 0
-                },
-                "placement": null,
-                "engineInput": {
-                  "display": "block",
-                  "width": "100%",
-                  "contentMinWidth": 95.66000366210938,
-                  "contentMaxWidth": 95.66000366210938,
-                  "contentHeight": 24
-                }
-              },
-              "parent": {
-                "type": "GridListItem",
-                "props": {
-                  "size": "md",
-                  "children": "{label}"
-                },
-                "layout": {
-                  "display": "flex",
-                  "flexDirection": "column",
-                  "justifyContent": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "paddingY": 12,
-                  "paddingX": 16,
-                  "gap": 2,
-                  "fontSize": 14,
-                  "radius": 8,
-                  "lineHeight": 1.4285714285714286,
-                  "borderWidth": 1
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "flexDirection": "column",
-                  "justifyContent": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "rowGap": "2px",
-                  "columnGap": "2px",
-                  "paddingTop": "12px",
-                  "paddingBottom": "12px",
-                  "paddingRight": "16px",
-                  "paddingLeft": "16px",
-                  "borderTop": "1px",
-                  "borderRight": "1px",
-                  "borderBottom": "1px",
-                  "borderLeft": "1px"
-                }
-              }
-            },
-            "oldEngineInput": {
-              "display": "block",
-              "width": "100%",
-              "contentMinWidth": 91,
-              "contentMaxWidth": 91,
-              "contentHeight": 24,
-              "leafBaseline": 13.7421875
-            }
-          }
-        ],
+        "maxDelta": 0.30999755859375,
+        "overOnePx": [],
         "unpaired": [],
         "unpairedCount": 0,
         "oldSyntheticWrappers": [],
         "pass": true,
-        "strictPass": false,
+        "strictPass": true,
         "unapprovedCount": 0
       },
       "canvasDom": {
         "pairedNodes": 3,
         "ownedPairs": 0,
-        "maxDelta": 0.003753662109375,
+        "maxDelta": 0.00250244140625,
         "overOnePx": [],
-        "geometryArbiter": [
-          {
-            "new": "project:node:subject::project:node:subject",
-            "dom": {
-              "x": 30,
-              "y": 30,
-              "width": 129.65625,
-              "height": 76
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-gridlist-item-default--pressed::lib:template:component-gridlist-item-default__label",
-            "dom": {
-              "x": 47,
-              "y": 43,
-              "width": 95.65625,
-              "height": 24
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-gridlist-item-default--pressed::lib:template:component-gridlist-item-default__description",
-            "dom": {
-              "x": 47,
-              "y": 69,
-              "width": 95.65625,
-              "height": 24
-            }
-          }
-        ],
+        "geometryArbiter": [],
         "missing": [],
         "missingCount": 0,
         "pass": true
@@ -5399,76 +3874,78 @@
         {
           "new": "project:node:subject::project:node:subject",
           "old": "",
-          "rule": "standalone-gridlistitem-slot",
-          "class": "previewFollow"
+          "rule": "subpixel-intrinsic-width-ceil",
+          "class": "oldDefect",
+          "edges": true
         },
         {
           "new": "project:node:subject/lib:template:component-gridlist-item-default--pressed::lib:template:component-gridlist-item-default__label",
           "old": "Label",
-          "rule": "standalone-gridlistitem-slot",
-          "class": "previewFollow"
+          "rule": "subpixel-intrinsic-width-ceil",
+          "class": "oldDefect",
+          "edges": true
         },
         {
           "new": "project:node:subject/lib:template:component-gridlist-item-default--pressed::lib:template:component-gridlist-item-default__description",
           "old": "Description",
-          "rule": "standalone-gridlistitem-slot",
-          "class": "previewFollow"
+          "rule": "subpixel-intrinsic-width-ceil",
+          "class": "oldDefect",
+          "edges": true
         }
       ],
       "approvedClasses": [
-        "previewFollow"
+        "oldDefect"
       ],
-      "previewDefectFollowed": true,
       "liveIdentity": {
         "region": "root box",
-        "pixels": 246620,
+        "pixels": 237120,
         "different": 0,
         "ratio": 0,
-        "maxByte": 26
+        "maxByte": 27
       },
       "L3": {
-        "pixels": 239930,
-        "different": 2715,
-        "ratio": 0.011315800441795523,
+        "pixels": 233210,
+        "different": 368,
+        "ratio": 0.0015779769306633507,
         "maxByte": 227,
         "diffBounds": [
           234,
-          83,
-          731,
-          456
+          94,
+          706,
+          445
         ],
-        "approvedAttributed": 2715,
+        "approvedAttributed": 334,
         "movedPaint": {
           "pixels": 0,
           "different": 0,
           "maxByte": 0
         },
-        "outsideRatio": 0,
-        "outsideMaxByte": 23,
+        "outsideRatio": 0.0001457913468547661,
+        "outsideMaxByte": 227,
         "blocked": false
       },
       "L3e": {
-        "pixels": 27420,
-        "different": 1082,
-        "ratio": 0.039460247994164845,
+        "pixels": 26554,
+        "different": 324,
+        "ratio": 0.012201551555321231,
         "maxByte": 43,
         "diffBounds": [
-          681,
-          80,
-          734,
-          459
+          707,
+          102,
+          711,
+          437
         ],
         "gated": false
       },
       "text": {
-        "pixels": 44610,
-        "different": 15430,
-        "ratio": 0.34588657251737276,
+        "pixels": 42076,
+        "different": 9029,
+        "ratio": 0.2145878885825649,
         "maxByte": 227,
         "diffBounds": [
           175,
           170,
-          648,
+          623,
           380
         ],
         "gated": false
@@ -5477,13 +3954,13 @@
         "clip": {
           "x": 57,
           "y": 50,
-          "width": 709,
+          "width": 686,
           "height": 440
         },
         "context": {
-          "pixels": 168040,
+          "pixels": 178160,
           "different": 4000,
-          "ratio": 0.023803856224708403,
+          "ratio": 0.0224517287831163,
           "maxByte": 43,
           "diffBounds": [
             0,
@@ -5535,337 +4012,32 @@
           "old": "Description",
           "key": "contentMinWidth",
           "oldValue": 91,
-          "newValue": 95.66000366210938
+          "newValue": 90.69000244140625
         },
         {
           "old": "Description",
           "key": "contentMaxWidth",
           "oldValue": 91,
-          "newValue": 95.66000366210938
+          "newValue": 90.69000244140625
         }
       ],
       "geometry": {
         "pairedNodes": 3,
-        "maxDelta": 4.660003662109375,
-        "overOnePx": [
-          {
-            "new": "project:node:subject::project:node:subject",
-            "old": "",
-            "newRect": {
-              "x": 30,
-              "y": 30,
-              "width": 129.66000366210938,
-              "height": 76
-            },
-            "oldRect": {
-              "x": 30,
-              "y": 30,
-              "width": 125,
-              "height": 76
-            },
-            "newInput": {
-              "self": {
-                "type": "GridListItem",
-                "props": {
-                  "size": "md",
-                  "children": "{label}"
-                },
-                "layout": {
-                  "display": "flex",
-                  "flexDirection": "column",
-                  "justifyContent": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "paddingY": 12,
-                  "paddingX": 16,
-                  "gap": 2,
-                  "fontSize": 14,
-                  "radius": 8,
-                  "lineHeight": 1.4285714285714286,
-                  "borderWidth": 1
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "flexDirection": "column",
-                  "justifyContent": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "rowGap": "2px",
-                  "columnGap": "2px",
-                  "paddingTop": "12px",
-                  "paddingBottom": "12px",
-                  "paddingRight": "16px",
-                  "paddingLeft": "16px",
-                  "borderTop": "1px",
-                  "borderRight": "1px",
-                  "borderBottom": "1px",
-                  "borderLeft": "1px"
-                }
-              },
-              "parent": null
-            },
-            "oldEngineInput": {
-              "display": "flex",
-              "flexDirection": "column",
-              "justifyContent": "center",
-              "paddingTop": "12px",
-              "paddingRight": "16px",
-              "paddingBottom": "12px",
-              "paddingLeft": "16px",
-              "borderTop": "1px",
-              "borderRight": "1px",
-              "borderBottom": "1px",
-              "borderLeft": "1px",
-              "columnGap": "2px",
-              "rowGap": "2px"
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-gridlist-item-default--focus-visible::lib:template:component-gridlist-item-default__label",
-            "old": "Label",
-            "newRect": {
-              "x": 47,
-              "y": 43,
-              "width": 95.66000366210938,
-              "height": 24
-            },
-            "oldRect": {
-              "x": 47,
-              "y": 43,
-              "width": 91,
-              "height": 24
-            },
-            "newInput": {
-              "self": {
-                "type": "Text",
-                "props": {
-                  "size": "md",
-                  "children": "{label}"
-                },
-                "layout": {
-                  "display": "block"
-                },
-                "sizing": {},
-                "visual": {
-                  "color": "#171717",
-                  "fontWeight": 600,
-                  "width": "100%",
-                  "fontSize": 16,
-                  "lineHeight": 1.5,
-                  "radius": 0
-                },
-                "placement": null,
-                "engineInput": {
-                  "display": "block",
-                  "width": "100%",
-                  "contentMinWidth": 48.18000030517578,
-                  "contentMaxWidth": 48.18000030517578,
-                  "contentHeight": 24
-                }
-              },
-              "parent": {
-                "type": "GridListItem",
-                "props": {
-                  "size": "md",
-                  "children": "{label}"
-                },
-                "layout": {
-                  "display": "flex",
-                  "flexDirection": "column",
-                  "justifyContent": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "paddingY": 12,
-                  "paddingX": 16,
-                  "gap": 2,
-                  "fontSize": 14,
-                  "radius": 8,
-                  "lineHeight": 1.4285714285714286,
-                  "borderWidth": 1
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "flexDirection": "column",
-                  "justifyContent": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "rowGap": "2px",
-                  "columnGap": "2px",
-                  "paddingTop": "12px",
-                  "paddingBottom": "12px",
-                  "paddingRight": "16px",
-                  "paddingLeft": "16px",
-                  "borderTop": "1px",
-                  "borderRight": "1px",
-                  "borderBottom": "1px",
-                  "borderLeft": "1px"
-                }
-              }
-            },
-            "oldEngineInput": {
-              "display": "block",
-              "width": "100%",
-              "contentMinWidth": 48,
-              "contentMaxWidth": 48,
-              "contentHeight": 24,
-              "leafBaseline": 13.75
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-gridlist-item-default--focus-visible::lib:template:component-gridlist-item-default__description",
-            "old": "Description",
-            "newRect": {
-              "x": 47,
-              "y": 69,
-              "width": 95.66000366210938,
-              "height": 24
-            },
-            "oldRect": {
-              "x": 47,
-              "y": 69,
-              "width": 91,
-              "height": 24
-            },
-            "newInput": {
-              "self": {
-                "type": "Text",
-                "props": {
-                  "size": "md",
-                  "slot": "description",
-                  "children": "{description}"
-                },
-                "layout": {
-                  "display": "block"
-                },
-                "sizing": {},
-                "visual": {
-                  "color": "#171717",
-                  "fontWeight": 600,
-                  "width": "100%",
-                  "fontSize": 16,
-                  "lineHeight": 1.5,
-                  "radius": 0
-                },
-                "placement": null,
-                "engineInput": {
-                  "display": "block",
-                  "width": "100%",
-                  "contentMinWidth": 95.66000366210938,
-                  "contentMaxWidth": 95.66000366210938,
-                  "contentHeight": 24
-                }
-              },
-              "parent": {
-                "type": "GridListItem",
-                "props": {
-                  "size": "md",
-                  "children": "{label}"
-                },
-                "layout": {
-                  "display": "flex",
-                  "flexDirection": "column",
-                  "justifyContent": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "paddingY": 12,
-                  "paddingX": 16,
-                  "gap": 2,
-                  "fontSize": 14,
-                  "radius": 8,
-                  "lineHeight": 1.4285714285714286,
-                  "borderWidth": 1
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "flexDirection": "column",
-                  "justifyContent": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "rowGap": "2px",
-                  "columnGap": "2px",
-                  "paddingTop": "12px",
-                  "paddingBottom": "12px",
-                  "paddingRight": "16px",
-                  "paddingLeft": "16px",
-                  "borderTop": "1px",
-                  "borderRight": "1px",
-                  "borderBottom": "1px",
-                  "borderLeft": "1px"
-                }
-              }
-            },
-            "oldEngineInput": {
-              "display": "block",
-              "width": "100%",
-              "contentMinWidth": 91,
-              "contentMaxWidth": 91,
-              "contentHeight": 24,
-              "leafBaseline": 13.7421875
-            }
-          }
-        ],
+        "maxDelta": 0.30999755859375,
+        "overOnePx": [],
         "unpaired": [],
         "unpairedCount": 0,
         "oldSyntheticWrappers": [],
         "pass": true,
-        "strictPass": false,
+        "strictPass": true,
         "unapprovedCount": 0
       },
       "canvasDom": {
         "pairedNodes": 3,
         "ownedPairs": 0,
-        "maxDelta": 0.003753662109375,
+        "maxDelta": 0.00250244140625,
         "overOnePx": [],
-        "geometryArbiter": [
-          {
-            "new": "project:node:subject::project:node:subject",
-            "dom": {
-              "x": 30,
-              "y": 30,
-              "width": 129.65625,
-              "height": 76
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-gridlist-item-default--focus-visible::lib:template:component-gridlist-item-default__label",
-            "dom": {
-              "x": 47,
-              "y": 43,
-              "width": 95.65625,
-              "height": 24
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-gridlist-item-default--focus-visible::lib:template:component-gridlist-item-default__description",
-            "dom": {
-              "x": 47,
-              "y": 69,
-              "width": 95.65625,
-              "height": 24
-            }
-          }
-        ],
+        "geometryArbiter": [],
         "missing": [],
         "missingCount": 0,
         "pass": true
@@ -5874,76 +4046,78 @@
         {
           "new": "project:node:subject::project:node:subject",
           "old": "",
-          "rule": "standalone-gridlistitem-slot",
-          "class": "previewFollow"
+          "rule": "subpixel-intrinsic-width-ceil",
+          "class": "oldDefect",
+          "edges": true
         },
         {
           "new": "project:node:subject/lib:template:component-gridlist-item-default--focus-visible::lib:template:component-gridlist-item-default__label",
           "old": "Label",
-          "rule": "standalone-gridlistitem-slot",
-          "class": "previewFollow"
+          "rule": "subpixel-intrinsic-width-ceil",
+          "class": "oldDefect",
+          "edges": true
         },
         {
           "new": "project:node:subject/lib:template:component-gridlist-item-default--focus-visible::lib:template:component-gridlist-item-default__description",
           "old": "Description",
-          "rule": "standalone-gridlistitem-slot",
-          "class": "previewFollow"
+          "rule": "subpixel-intrinsic-width-ceil",
+          "class": "oldDefect",
+          "edges": true
         }
       ],
       "approvedClasses": [
-        "previewFollow"
+        "oldDefect"
       ],
-      "previewDefectFollowed": true,
       "liveIdentity": {
         "region": "root box",
-        "pixels": 246620,
+        "pixels": 237120,
         "different": 0,
         "ratio": 0,
-        "maxByte": 26
+        "maxByte": 27
       },
       "L3": {
-        "pixels": 239930,
-        "different": 2715,
-        "ratio": 0.011315800441795523,
+        "pixels": 233210,
+        "different": 368,
+        "ratio": 0.0015779769306633507,
         "maxByte": 227,
         "diffBounds": [
           234,
-          83,
-          731,
-          456
+          94,
+          706,
+          445
         ],
-        "approvedAttributed": 2715,
+        "approvedAttributed": 334,
         "movedPaint": {
           "pixels": 0,
           "different": 0,
           "maxByte": 0
         },
-        "outsideRatio": 0,
-        "outsideMaxByte": 23,
+        "outsideRatio": 0.0001457913468547661,
+        "outsideMaxByte": 227,
         "blocked": false
       },
       "L3e": {
-        "pixels": 27420,
-        "different": 1082,
-        "ratio": 0.039460247994164845,
+        "pixels": 26554,
+        "different": 324,
+        "ratio": 0.012201551555321231,
         "maxByte": 43,
         "diffBounds": [
-          681,
-          80,
-          734,
-          459
+          707,
+          102,
+          711,
+          437
         ],
         "gated": false
       },
       "text": {
-        "pixels": 44610,
-        "different": 15430,
-        "ratio": 0.34588657251737276,
+        "pixels": 42076,
+        "different": 9029,
+        "ratio": 0.2145878885825649,
         "maxByte": 227,
         "diffBounds": [
           175,
           170,
-          648,
+          623,
           380
         ],
         "gated": false
@@ -5952,13 +4126,13 @@
         "clip": {
           "x": 57,
           "y": 50,
-          "width": 709,
+          "width": 686,
           "height": 440
         },
         "context": {
-          "pixels": 168040,
+          "pixels": 178160,
           "different": 4000,
-          "ratio": 0.023803856224708403,
+          "ratio": 0.0224517287831163,
           "maxByte": 43,
           "diffBounds": [
             0,
@@ -10489,8 +8663,8 @@
         },
         "context": {
           "pixels": 448640,
-          "different": 23329,
-          "ratio": 0.05199937589158345,
+          "different": 23141,
+          "ratio": 0.05158033166904422,
           "maxByte": 209,
           "diffBounds": [
             58,
@@ -10723,8 +8897,8 @@
         },
         "context": {
           "pixels": 448640,
-          "different": 23104,
-          "ratio": 0.051497860199714696,
+          "different": 22881,
+          "ratio": 0.05100080242510699,
           "maxByte": 201,
           "diffBounds": [
             58,
@@ -10957,8 +9131,8 @@
         },
         "context": {
           "pixels": 448640,
-          "different": 20294,
-          "ratio": 0.04523448644793153,
+          "different": 20558,
+          "ratio": 0.04582293152639087,
           "maxByte": 209,
           "diffBounds": [
             58,
@@ -11191,8 +9365,8 @@
         },
         "context": {
           "pixels": 448640,
-          "different": 34802,
-          "ratio": 0.07757221825962911,
+          "different": 34607,
+          "ratio": 0.07713757132667617,
           "maxByte": 206,
           "diffBounds": [
             8,
@@ -11401,8 +9575,8 @@
         },
         "context": {
           "pixels": 312000,
-          "different": 17255,
-          "ratio": 0.05530448717948718,
+          "different": 17571,
+          "ratio": 0.056317307692307694,
           "maxByte": 46,
           "diffBounds": [
             0,
@@ -11572,8 +9746,8 @@
         },
         "context": {
           "pixels": 394740,
-          "different": 129508,
-          "ratio": 0.32808430865886407,
+          "different": 129223,
+          "ratio": 0.32736231443481784,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -11743,8 +9917,8 @@
         },
         "context": {
           "pixels": 394740,
-          "different": 129421,
-          "ratio": 0.32786391042204993,
+          "different": 129014,
+          "ratio": 0.32683285200385065,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -11914,8 +10088,8 @@
         },
         "context": {
           "pixels": 394740,
-          "different": 118777,
-          "ratio": 0.3008993261387242,
+          "different": 118489,
+          "ratio": 0.3001697319754775,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -12085,8 +10259,8 @@
         },
         "context": {
           "pixels": 394740,
-          "different": 129965,
-          "ratio": 0.3292420327304048,
+          "different": 129556,
+          "ratio": 0.32820590768607183,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -12256,8 +10430,8 @@
         },
         "context": {
           "pixels": 345600,
-          "different": 102694,
-          "ratio": 0.29714699074074075,
+          "different": 102370,
+          "ratio": 0.29620949074074077,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -12417,8 +10591,8 @@
         },
         "context": {
           "pixels": 345600,
-          "different": 102694,
-          "ratio": 0.29714699074074075,
+          "different": 102739,
+          "ratio": 0.29727719907407407,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -12578,8 +10752,8 @@
         },
         "context": {
           "pixels": 345600,
-          "different": 102694,
-          "ratio": 0.29714699074074075,
+          "different": 102370,
+          "ratio": 0.29620949074074077,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -12749,8 +10923,8 @@
         },
         "context": {
           "pixels": 345600,
-          "different": 98974,
-          "ratio": 0.28638310185185184,
+          "different": 99019,
+          "ratio": 0.28651331018518517,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -12920,8 +11094,8 @@
         },
         "context": {
           "pixels": 345600,
-          "different": 102694,
-          "ratio": 0.29714699074074075,
+          "different": 102370,
+          "ratio": 0.29620949074074077,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -13081,8 +11255,8 @@
         },
         "context": {
           "pixels": 345600,
-          "different": 103075,
-          "ratio": 0.2982494212962963,
+          "different": 102739,
+          "ratio": 0.29727719907407407,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -13250,8 +11424,8 @@
         },
         "context": {
           "pixels": 395200,
-          "different": 30526,
-          "ratio": 0.0772419028340081,
+          "different": 30291,
+          "ratio": 0.07664726720647773,
           "maxByte": 206,
           "diffBounds": [
             0,
@@ -13419,8 +11593,8 @@
         },
         "context": {
           "pixels": 395200,
-          "different": 25570,
-          "ratio": 0.06470141700404858,
+          "different": 25166,
+          "ratio": 0.06367914979757085,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -13588,8 +11762,8 @@
         },
         "context": {
           "pixels": 395200,
-          "different": 24420,
-          "ratio": 0.0617914979757085,
+          "different": 24119,
+          "ratio": 0.06102985829959514,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -13757,8 +11931,8 @@
         },
         "context": {
           "pixels": 395200,
-          "different": 24530,
-          "ratio": 0.06206983805668016,
+          "different": 24119,
+          "ratio": 0.06102985829959514,
           "maxByte": 149,
           "diffBounds": [
             0,
@@ -13926,8 +12100,8 @@
         },
         "context": {
           "pixels": 395200,
-          "different": 24420,
-          "ratio": 0.0617914979757085,
+          "different": 24119,
+          "ratio": 0.06102985829959514,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -14095,8 +12269,8 @@
         },
         "context": {
           "pixels": 395200,
-          "different": 26263,
-          "ratio": 0.06645495951417003,
+          "different": 25852,
+          "ratio": 0.06541497975708502,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -14473,8 +12647,8 @@
         },
         "context": {
           "pixels": 376800,
-          "different": 43642,
-          "ratio": 0.11582271762208068,
+          "different": 43390,
+          "ratio": 0.11515392781316348,
           "maxByte": 232,
           "diffBounds": [
             8,
@@ -14851,8 +13025,8 @@
         },
         "context": {
           "pixels": 376800,
-          "different": 44153,
-          "ratio": 0.11717887473460722,
+          "different": 43742,
+          "ratio": 0.11608811040339703,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -15231,8 +13405,8 @@
         },
         "context": {
           "pixels": 376800,
-          "different": 43733,
-          "ratio": 0.11606422505307856,
+          "different": 43409,
+          "ratio": 0.11520435244161359,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -15609,8 +13783,8 @@
         },
         "context": {
           "pixels": 376800,
-          "different": 43820,
-          "ratio": 0.11629511677282378,
+          "different": 43409,
+          "ratio": 0.11520435244161359,
           "maxByte": 201,
           "diffBounds": [
             0,
@@ -15987,8 +14161,8 @@
         },
         "context": {
           "pixels": 376800,
-          "different": 43733,
-          "ratio": 0.11606422505307856,
+          "different": 43409,
+          "ratio": 0.11520435244161359,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -16365,8 +14539,8 @@
         },
         "context": {
           "pixels": 376800,
-          "different": 42494,
-          "ratio": 0.112776008492569,
+          "different": 42083,
+          "ratio": 0.1116852441613588,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -18038,18 +16212,6 @@
         },
         {
           "old": "_avatar",
-          "key": "width",
-          "oldValue": "16px",
-          "newValue": "32px"
-        },
-        {
-          "old": "_avatar",
-          "key": "height",
-          "oldValue": "16px",
-          "newValue": "32px"
-        },
-        {
-          "old": "_avatar",
           "key": "minWidth",
           "oldValue": "16px",
           "newValue": null
@@ -18057,309 +16219,13 @@
       ],
       "geometry": {
         "pairedNodes": 3,
-        "maxDelta": 16,
-        "overOnePx": [
-          {
-            "new": "project:node:subject::project:node:subject",
-            "old": "",
-            "newRect": {
-              "x": 30,
-              "y": 30,
-              "width": 101.91999816894531,
-              "height": 30
-            },
-            "oldRect": {
-              "x": 30,
-              "y": 30,
-              "width": 86,
-              "height": 30
-            },
-            "newInput": {
-              "self": {
-                "type": "Tag",
-                "props": {
-                  "variant": "default",
-                  "size": "md",
-                  "children": "{label}"
-                },
-                "layout": {
-                  "display": "flex",
-                  "alignItems": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "fontWeight": 400,
-                  "height": 30,
-                  "paddingY": 4,
-                  "paddingX": 12,
-                  "fontSize": 14,
-                  "radius": 6,
-                  "lineHeight": 1.4285714285714286,
-                  "borderWidth": 1,
-                  "iconSize": 14,
-                  "gap": 4,
-                  "width": "fit-content"
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "alignItems": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "width": "fit-content",
-                  "height": "30px",
-                  "rowGap": "4px",
-                  "columnGap": "4px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "12px",
-                  "paddingLeft": "12px",
-                  "borderTop": "1px",
-                  "borderRight": "1px",
-                  "borderBottom": "1px",
-                  "borderLeft": "1px"
-                }
-              },
-              "parent": null
-            },
-            "oldEngineInput": {
-              "display": "flex",
-              "alignItems": "center",
-              "width": "fit-content",
-              "height": "30px",
-              "paddingTop": "4px",
-              "paddingRight": "12px",
-              "paddingBottom": "4px",
-              "paddingLeft": "12px",
-              "borderTop": "1px",
-              "borderRight": "1px",
-              "borderBottom": "1px",
-              "borderLeft": "1px",
-              "columnGap": "4px",
-              "rowGap": "4px"
-            }
-          },
-          {
-            "new": "project:node:subject::lib:template:component-tag-item-default__avatar",
-            "old": "_avatar",
-            "newRect": {
-              "x": 43,
-              "y": 29,
-              "width": 32,
-              "height": 32
-            },
-            "oldRect": {
-              "x": 43,
-              "y": 37,
-              "width": 16,
-              "height": 16
-            },
-            "newInput": {
-              "self": {
-                "type": "Avatar",
-                "props": {
-                  "size": "md",
-                  "slot": "avatar",
-                  "src": "{avatar}",
-                  "alt": ""
-                },
-                "layout": {
-                  "display": "flex",
-                  "alignItems": "center",
-                  "flexShrink": "0"
-                },
-                "sizing": {},
-                "visual": {
-                  "height": 32,
-                  "fontSize": 14,
-                  "radius": 9999,
-                  "width": 32
-                },
-                "placement": null,
-                "engineInput": {
-                  "display": "flex",
-                  "alignItems": "center",
-                  "width": "32px",
-                  "height": "32px",
-                  "flexShrink": 0
-                }
-              },
-              "parent": {
-                "type": "Tag",
-                "props": {
-                  "variant": "default",
-                  "size": "md",
-                  "children": "{label}"
-                },
-                "layout": {
-                  "display": "flex",
-                  "alignItems": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "fontWeight": 400,
-                  "height": 30,
-                  "paddingY": 4,
-                  "paddingX": 12,
-                  "fontSize": 14,
-                  "radius": 6,
-                  "lineHeight": 1.4285714285714286,
-                  "borderWidth": 1,
-                  "iconSize": 14,
-                  "gap": 4,
-                  "width": "fit-content"
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "alignItems": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "width": "fit-content",
-                  "height": "30px",
-                  "rowGap": "4px",
-                  "columnGap": "4px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "12px",
-                  "paddingLeft": "12px",
-                  "borderTop": "1px",
-                  "borderRight": "1px",
-                  "borderBottom": "1px",
-                  "borderLeft": "1px"
-                }
-              }
-            },
-            "oldEngineInput": {
-              "display": "flex",
-              "alignItems": "center",
-              "width": "16px",
-              "height": "16px",
-              "minWidth": "16px",
-              "flexShrink": 0
-            }
-          },
-          {
-            "new": "project:node:subject::lib:template:component-tag-item-default__label",
-            "old": "_label",
-            "newRect": {
-              "x": 79,
-              "y": 35,
-              "width": 39.91999816894531,
-              "height": 20
-            },
-            "oldRect": {
-              "x": 63,
-              "y": 35,
-              "width": 40,
-              "height": 20
-            },
-            "newInput": {
-              "self": {
-                "type": "Text",
-                "props": {
-                  "size": "md",
-                  "slot": "label",
-                  "children": "{label}"
-                },
-                "layout": {
-                  "display": "block"
-                },
-                "sizing": {},
-                "visual": {
-                  "color": "#171717",
-                  "fontWeight": 400,
-                  "width": "100%",
-                  "fontSize": 14,
-                  "lineHeight": 1.4285714285714286,
-                  "radius": 0
-                },
-                "placement": null,
-                "engineInput": {
-                  "display": "block",
-                  "width": "100%",
-                  "contentMinWidth": 39.91999816894531,
-                  "contentMaxWidth": 39.91999816894531,
-                  "contentHeight": 20
-                }
-              },
-              "parent": {
-                "type": "Tag",
-                "props": {
-                  "variant": "default",
-                  "size": "md",
-                  "children": "{label}"
-                },
-                "layout": {
-                  "display": "flex",
-                  "alignItems": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "fontWeight": 400,
-                  "height": 30,
-                  "paddingY": 4,
-                  "paddingX": 12,
-                  "fontSize": 14,
-                  "radius": 6,
-                  "lineHeight": 1.4285714285714286,
-                  "borderWidth": 1,
-                  "iconSize": 14,
-                  "gap": 4,
-                  "width": "fit-content"
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "alignItems": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "width": "fit-content",
-                  "height": "30px",
-                  "rowGap": "4px",
-                  "columnGap": "4px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "12px",
-                  "paddingLeft": "12px",
-                  "borderTop": "1px",
-                  "borderRight": "1px",
-                  "borderBottom": "1px",
-                  "borderLeft": "1px"
-                }
-              }
-            },
-            "oldEngineInput": {
-              "display": "block",
-              "width": "100%",
-              "contentMinWidth": 40,
-              "contentMaxWidth": 40,
-              "contentHeight": 20,
-              "leafBaseline": 13.7119140625,
-              "lineHeight": 20
-            }
-          }
-        ],
+        "maxDelta": 0.0800018310546875,
+        "overOnePx": [],
         "unpaired": [],
         "unpairedCount": 0,
         "oldSyntheticWrappers": [],
         "pass": true,
-        "strictPass": false,
+        "strictPass": true,
         "unapprovedCount": 0
       },
       "canvasDom": {
@@ -18367,35 +16233,7 @@
         "ownedPairs": 0,
         "maxDelta": 0.0018768310546875,
         "overOnePx": [],
-        "geometryArbiter": [
-          {
-            "new": "project:node:subject::project:node:subject",
-            "dom": {
-              "x": 30,
-              "y": 30,
-              "width": 101.921875,
-              "height": 30
-            }
-          },
-          {
-            "new": "project:node:subject::lib:template:component-tag-item-default__avatar",
-            "dom": {
-              "x": 43,
-              "y": 29,
-              "width": 32,
-              "height": 32
-            }
-          },
-          {
-            "new": "project:node:subject::lib:template:component-tag-item-default__label",
-            "dom": {
-              "x": 79,
-              "y": 35,
-              "width": 39.921875,
-              "height": 20
-            }
-          }
-        ],
+        "geometryArbiter": [],
         "missing": [],
         "missingCount": 0,
         "pass": true
@@ -18404,77 +16242,62 @@
         {
           "new": "project:node:subject::project:node:subject",
           "old": "",
-          "rule": "standalone-tag-slot",
-          "class": "previewFollow"
-        },
-        {
-          "new": "project:node:subject::lib:template:component-tag-item-default__avatar",
-          "old": "_avatar",
-          "rule": "standalone-tag-slot",
-          "class": "previewFollow"
+          "rule": "subpixel-intrinsic-width-ceil",
+          "class": "oldDefect",
+          "edges": true
         },
         {
           "new": "project:node:subject::lib:template:component-tag-item-default__label",
           "old": "_label",
-          "rule": "standalone-tag-slot",
-          "class": "previewFollow"
+          "rule": "subpixel-intrinsic-width-ceil",
+          "class": "oldDefect",
+          "edges": true
         }
       ],
       "approvedClasses": [
-        "previewFollow"
+        "oldDefect"
       ],
-      "previewDefectFollowed": true,
       "liveIdentity": {
         "region": "root box",
-        "pixels": 76500,
+        "pixels": 64500,
         "different": 0,
         "ratio": 0,
         "maxByte": 26
       },
       "L3": {
-        "pixels": 93111,
-        "different": 22825,
-        "ratio": 0.24513752403045827,
-        "maxByte": 201,
-        "diffBounds": [
-          253,
-          198,
-          690,
-          341
-        ],
-        "approvedAttributed": 22825,
+        "pixels": 78739,
+        "different": 0,
+        "ratio": 0,
+        "maxByte": 101,
+        "diffBounds": null,
+        "approvedAttributed": 0,
         "movedPaint": {
-          "pixels": 4057,
+          "pixels": 0,
           "different": 0,
           "maxByte": 0
         },
         "outsideRatio": 0,
-        "outsideMaxByte": 22,
+        "outsideMaxByte": 24,
         "blocked": false
       },
       "L3e": {
-        "pixels": 14827,
-        "different": 1926,
-        "ratio": 0.12989815876441627,
-        "maxByte": 201,
-        "diffBounds": [
-          252,
-          195,
-          693,
-          344
-        ],
+        "pixels": 12399,
+        "different": 0,
+        "ratio": 0,
+        "maxByte": 111,
+        "diffBounds": null,
         "gated": false
       },
       "text": {
         "pixels": 11762,
-        "different": 3065,
-        "ratio": 0.260584934534943,
+        "different": 2093,
+        "ratio": 0.17794592756333957,
         "maxByte": 201,
         "diffBounds": [
-          432,
-          237,
-          633,
-          314
+          352,
+          238,
+          547,
+          307
         ],
         "gated": false
       },
@@ -18482,13 +16305,13 @@
         "clip": {
           "x": 155,
           "y": 165,
-          "width": 570,
+          "width": 490,
           "height": 210
         },
         "context": {
-          "pixels": 360300,
+          "pixels": 377100,
           "different": 10865,
-          "ratio": 0.03015542603386067,
+          "ratio": 0.028811986210554228,
           "maxByte": 232,
           "diffBounds": [
             20,
@@ -18538,18 +16361,6 @@
         },
         {
           "old": "Avatar",
-          "key": "width",
-          "oldValue": "16px",
-          "newValue": "32px"
-        },
-        {
-          "old": "Avatar",
-          "key": "height",
-          "oldValue": "16px",
-          "newValue": "32px"
-        },
-        {
-          "old": "Avatar",
           "key": "minWidth",
           "oldValue": "16px",
           "newValue": null
@@ -18557,309 +16368,13 @@
       ],
       "geometry": {
         "pairedNodes": 3,
-        "maxDelta": 16,
-        "overOnePx": [
-          {
-            "new": "project:node:subject::project:node:subject",
-            "old": "",
-            "newRect": {
-              "x": 30,
-              "y": 30,
-              "width": 101.91999816894531,
-              "height": 30
-            },
-            "oldRect": {
-              "x": 30,
-              "y": 30,
-              "width": 86,
-              "height": 30
-            },
-            "newInput": {
-              "self": {
-                "type": "Tag",
-                "props": {
-                  "variant": "default",
-                  "size": "md",
-                  "children": "{label}"
-                },
-                "layout": {
-                  "display": "flex",
-                  "alignItems": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "fontWeight": 400,
-                  "height": 30,
-                  "paddingY": 4,
-                  "paddingX": 12,
-                  "fontSize": 14,
-                  "radius": 6,
-                  "lineHeight": 1.4285714285714286,
-                  "borderWidth": 1,
-                  "iconSize": 14,
-                  "gap": 4,
-                  "width": "fit-content"
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "alignItems": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "width": "fit-content",
-                  "height": "30px",
-                  "rowGap": "4px",
-                  "columnGap": "4px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "12px",
-                  "paddingLeft": "12px",
-                  "borderTop": "1px",
-                  "borderRight": "1px",
-                  "borderBottom": "1px",
-                  "borderLeft": "1px"
-                }
-              },
-              "parent": null
-            },
-            "oldEngineInput": {
-              "display": "flex",
-              "alignItems": "center",
-              "width": "fit-content",
-              "height": "30px",
-              "paddingTop": "4px",
-              "paddingRight": "12px",
-              "paddingBottom": "4px",
-              "paddingLeft": "12px",
-              "borderTop": "1px",
-              "borderRight": "1px",
-              "borderBottom": "1px",
-              "borderLeft": "1px",
-              "columnGap": "4px",
-              "rowGap": "4px"
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-tag-item-default--unselected::lib:template:component-tag-item-default__avatar",
-            "old": "Avatar",
-            "newRect": {
-              "x": 43,
-              "y": 29,
-              "width": 32,
-              "height": 32
-            },
-            "oldRect": {
-              "x": 43,
-              "y": 37,
-              "width": 16,
-              "height": 16
-            },
-            "newInput": {
-              "self": {
-                "type": "Avatar",
-                "props": {
-                  "size": "md",
-                  "slot": "avatar",
-                  "src": "{avatar}",
-                  "alt": ""
-                },
-                "layout": {
-                  "display": "flex",
-                  "alignItems": "center",
-                  "flexShrink": "0"
-                },
-                "sizing": {},
-                "visual": {
-                  "height": 32,
-                  "fontSize": 14,
-                  "radius": 9999,
-                  "width": 32
-                },
-                "placement": null,
-                "engineInput": {
-                  "display": "flex",
-                  "alignItems": "center",
-                  "width": "32px",
-                  "height": "32px",
-                  "flexShrink": 0
-                }
-              },
-              "parent": {
-                "type": "Tag",
-                "props": {
-                  "variant": "default",
-                  "size": "md",
-                  "children": "{label}"
-                },
-                "layout": {
-                  "display": "flex",
-                  "alignItems": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "fontWeight": 400,
-                  "height": 30,
-                  "paddingY": 4,
-                  "paddingX": 12,
-                  "fontSize": 14,
-                  "radius": 6,
-                  "lineHeight": 1.4285714285714286,
-                  "borderWidth": 1,
-                  "iconSize": 14,
-                  "gap": 4,
-                  "width": "fit-content"
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "alignItems": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "width": "fit-content",
-                  "height": "30px",
-                  "rowGap": "4px",
-                  "columnGap": "4px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "12px",
-                  "paddingLeft": "12px",
-                  "borderTop": "1px",
-                  "borderRight": "1px",
-                  "borderBottom": "1px",
-                  "borderLeft": "1px"
-                }
-              }
-            },
-            "oldEngineInput": {
-              "display": "flex",
-              "alignItems": "center",
-              "width": "16px",
-              "height": "16px",
-              "minWidth": "16px",
-              "flexShrink": 0
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-tag-item-default--unselected::lib:template:component-tag-item-default__label",
-            "old": "Label",
-            "newRect": {
-              "x": 79,
-              "y": 35,
-              "width": 39.91999816894531,
-              "height": 20
-            },
-            "oldRect": {
-              "x": 63,
-              "y": 35,
-              "width": 40,
-              "height": 20
-            },
-            "newInput": {
-              "self": {
-                "type": "Text",
-                "props": {
-                  "size": "md",
-                  "slot": "label",
-                  "children": "{label}"
-                },
-                "layout": {
-                  "display": "block"
-                },
-                "sizing": {},
-                "visual": {
-                  "color": "#171717",
-                  "fontWeight": 400,
-                  "width": "100%",
-                  "fontSize": 14,
-                  "lineHeight": 1.4285714285714286,
-                  "radius": 0
-                },
-                "placement": null,
-                "engineInput": {
-                  "display": "block",
-                  "width": "100%",
-                  "contentMinWidth": 39.91999816894531,
-                  "contentMaxWidth": 39.91999816894531,
-                  "contentHeight": 20
-                }
-              },
-              "parent": {
-                "type": "Tag",
-                "props": {
-                  "variant": "default",
-                  "size": "md",
-                  "children": "{label}"
-                },
-                "layout": {
-                  "display": "flex",
-                  "alignItems": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "fontWeight": 400,
-                  "height": 30,
-                  "paddingY": 4,
-                  "paddingX": 12,
-                  "fontSize": 14,
-                  "radius": 6,
-                  "lineHeight": 1.4285714285714286,
-                  "borderWidth": 1,
-                  "iconSize": 14,
-                  "gap": 4,
-                  "width": "fit-content"
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "alignItems": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "width": "fit-content",
-                  "height": "30px",
-                  "rowGap": "4px",
-                  "columnGap": "4px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "12px",
-                  "paddingLeft": "12px",
-                  "borderTop": "1px",
-                  "borderRight": "1px",
-                  "borderBottom": "1px",
-                  "borderLeft": "1px"
-                }
-              }
-            },
-            "oldEngineInput": {
-              "display": "block",
-              "width": "100%",
-              "contentMinWidth": 40,
-              "contentMaxWidth": 40,
-              "contentHeight": 20,
-              "leafBaseline": 13.7119140625,
-              "lineHeight": 20
-            }
-          }
-        ],
+        "maxDelta": 0.0800018310546875,
+        "overOnePx": [],
         "unpaired": [],
         "unpairedCount": 0,
         "oldSyntheticWrappers": [],
         "pass": true,
-        "strictPass": false,
+        "strictPass": true,
         "unapprovedCount": 0
       },
       "canvasDom": {
@@ -18867,35 +16382,7 @@
         "ownedPairs": 0,
         "maxDelta": 0.0018768310546875,
         "overOnePx": [],
-        "geometryArbiter": [
-          {
-            "new": "project:node:subject::project:node:subject",
-            "dom": {
-              "x": 30,
-              "y": 30,
-              "width": 101.921875,
-              "height": 30
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-tag-item-default--unselected::lib:template:component-tag-item-default__avatar",
-            "dom": {
-              "x": 43,
-              "y": 29,
-              "width": 32,
-              "height": 32
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-tag-item-default--unselected::lib:template:component-tag-item-default__label",
-            "dom": {
-              "x": 79,
-              "y": 35,
-              "width": 39.921875,
-              "height": 20
-            }
-          }
-        ],
+        "geometryArbiter": [],
         "missing": [],
         "missingCount": 0,
         "pass": true
@@ -18904,77 +16391,62 @@
         {
           "new": "project:node:subject::project:node:subject",
           "old": "",
-          "rule": "standalone-tag-slot",
-          "class": "previewFollow"
-        },
-        {
-          "new": "project:node:subject/lib:template:component-tag-item-default--unselected::lib:template:component-tag-item-default__avatar",
-          "old": "Avatar",
-          "rule": "standalone-tag-slot",
-          "class": "previewFollow"
+          "rule": "subpixel-intrinsic-width-ceil",
+          "class": "oldDefect",
+          "edges": true
         },
         {
           "new": "project:node:subject/lib:template:component-tag-item-default--unselected::lib:template:component-tag-item-default__label",
           "old": "Label",
-          "rule": "standalone-tag-slot",
-          "class": "previewFollow"
+          "rule": "subpixel-intrinsic-width-ceil",
+          "class": "oldDefect",
+          "edges": true
         }
       ],
       "approvedClasses": [
-        "previewFollow"
+        "oldDefect"
       ],
-      "previewDefectFollowed": true,
       "liveIdentity": {
         "region": "root box",
-        "pixels": 76500,
+        "pixels": 64500,
         "different": 0,
         "ratio": 0,
         "maxByte": 26
       },
       "L3": {
-        "pixels": 93111,
-        "different": 2908,
-        "ratio": 0.031231540849094092,
-        "maxByte": 227,
-        "diffBounds": [
-          279,
-          198,
-          690,
-          341
-        ],
-        "approvedAttributed": 2908,
+        "pixels": 78739,
+        "different": 0,
+        "ratio": 0,
+        "maxByte": 15,
+        "diffBounds": null,
+        "approvedAttributed": 0,
         "movedPaint": {
-          "pixels": 4057,
+          "pixels": 0,
           "different": 0,
           "maxByte": 0
         },
         "outsideRatio": 0,
-        "outsideMaxByte": 24,
+        "outsideMaxByte": 8,
         "blocked": false
       },
       "L3e": {
-        "pixels": 14827,
-        "different": 869,
-        "ratio": 0.0586092938558036,
-        "maxByte": 227,
-        "diffBounds": [
-          407,
-          195,
-          693,
-          344
-        ],
+        "pixels": 12399,
+        "different": 0,
+        "ratio": 0,
+        "maxByte": 18,
+        "diffBounds": null,
         "gated": false
       },
       "text": {
         "pixels": 11762,
-        "different": 2996,
-        "ratio": 0.25471858527461316,
-        "maxByte": 232,
+        "different": 2086,
+        "ratio": 0.17735079068185683,
+        "maxByte": 227,
         "diffBounds": [
-          432,
-          237,
-          627,
-          314
+          352,
+          238,
+          547,
+          307
         ],
         "gated": false
       },
@@ -18982,13 +16454,13 @@
         "clip": {
           "x": 155,
           "y": 165,
-          "width": 570,
+          "width": 490,
           "height": 210
         },
         "context": {
-          "pixels": 360300,
+          "pixels": 377100,
           "different": 22292,
-          "ratio": 0.0618706633361088,
+          "ratio": 0.05911429329090427,
           "maxByte": 201,
           "diffBounds": [
             0,
@@ -19038,18 +16510,6 @@
         },
         {
           "old": "Avatar",
-          "key": "width",
-          "oldValue": "16px",
-          "newValue": "32px"
-        },
-        {
-          "old": "Avatar",
-          "key": "height",
-          "oldValue": "16px",
-          "newValue": "32px"
-        },
-        {
-          "old": "Avatar",
           "key": "minWidth",
           "oldValue": "16px",
           "newValue": null
@@ -19057,312 +16517,13 @@
       ],
       "geometry": {
         "pairedNodes": 3,
-        "maxDelta": 16,
-        "overOnePx": [
-          {
-            "new": "project:node:subject::project:node:subject",
-            "old": "",
-            "newRect": {
-              "x": 30,
-              "y": 30,
-              "width": 101.91999816894531,
-              "height": 30
-            },
-            "oldRect": {
-              "x": 30,
-              "y": 30,
-              "width": 86,
-              "height": 30
-            },
-            "newInput": {
-              "self": {
-                "type": "Tag",
-                "props": {
-                  "variant": "default",
-                  "size": "md",
-                  "children": "{label}",
-                  "isDisabled": true
-                },
-                "layout": {
-                  "display": "flex",
-                  "alignItems": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "fontWeight": 400,
-                  "height": 30,
-                  "paddingY": 4,
-                  "paddingX": 12,
-                  "fontSize": 14,
-                  "radius": 6,
-                  "lineHeight": 1.4285714285714286,
-                  "borderWidth": 1,
-                  "iconSize": 14,
-                  "gap": 4,
-                  "width": "fit-content"
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "alignItems": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "width": "fit-content",
-                  "height": "30px",
-                  "rowGap": "4px",
-                  "columnGap": "4px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "12px",
-                  "paddingLeft": "12px",
-                  "borderTop": "1px",
-                  "borderRight": "1px",
-                  "borderBottom": "1px",
-                  "borderLeft": "1px"
-                }
-              },
-              "parent": null
-            },
-            "oldEngineInput": {
-              "display": "flex",
-              "alignItems": "center",
-              "width": "fit-content",
-              "height": "30px",
-              "paddingTop": "4px",
-              "paddingRight": "12px",
-              "paddingBottom": "4px",
-              "paddingLeft": "12px",
-              "borderTop": "1px",
-              "borderRight": "1px",
-              "borderBottom": "1px",
-              "borderLeft": "1px",
-              "columnGap": "4px",
-              "rowGap": "4px"
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-tag-item-default--disabled::lib:template:component-tag-item-default__avatar",
-            "old": "Avatar",
-            "newRect": {
-              "x": 43,
-              "y": 29,
-              "width": 32,
-              "height": 32
-            },
-            "oldRect": {
-              "x": 43,
-              "y": 37,
-              "width": 16,
-              "height": 16
-            },
-            "newInput": {
-              "self": {
-                "type": "Avatar",
-                "props": {
-                  "size": "md",
-                  "slot": "avatar",
-                  "src": "{avatar}",
-                  "alt": ""
-                },
-                "layout": {
-                  "display": "flex",
-                  "alignItems": "center",
-                  "flexShrink": "0"
-                },
-                "sizing": {},
-                "visual": {
-                  "height": 32,
-                  "fontSize": 14,
-                  "radius": 9999,
-                  "width": 32
-                },
-                "placement": null,
-                "engineInput": {
-                  "display": "flex",
-                  "alignItems": "center",
-                  "width": "32px",
-                  "height": "32px",
-                  "flexShrink": 0
-                }
-              },
-              "parent": {
-                "type": "Tag",
-                "props": {
-                  "variant": "default",
-                  "size": "md",
-                  "children": "{label}",
-                  "isDisabled": true
-                },
-                "layout": {
-                  "display": "flex",
-                  "alignItems": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "fontWeight": 400,
-                  "height": 30,
-                  "paddingY": 4,
-                  "paddingX": 12,
-                  "fontSize": 14,
-                  "radius": 6,
-                  "lineHeight": 1.4285714285714286,
-                  "borderWidth": 1,
-                  "iconSize": 14,
-                  "gap": 4,
-                  "width": "fit-content"
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "alignItems": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "width": "fit-content",
-                  "height": "30px",
-                  "rowGap": "4px",
-                  "columnGap": "4px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "12px",
-                  "paddingLeft": "12px",
-                  "borderTop": "1px",
-                  "borderRight": "1px",
-                  "borderBottom": "1px",
-                  "borderLeft": "1px"
-                }
-              }
-            },
-            "oldEngineInput": {
-              "display": "flex",
-              "alignItems": "center",
-              "width": "16px",
-              "height": "16px",
-              "minWidth": "16px",
-              "flexShrink": 0
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-tag-item-default--disabled::lib:template:component-tag-item-default__label",
-            "old": "Label",
-            "newRect": {
-              "x": 79,
-              "y": 35,
-              "width": 39.91999816894531,
-              "height": 20
-            },
-            "oldRect": {
-              "x": 63,
-              "y": 35,
-              "width": 40,
-              "height": 20
-            },
-            "newInput": {
-              "self": {
-                "type": "Text",
-                "props": {
-                  "size": "md",
-                  "slot": "label",
-                  "children": "{label}"
-                },
-                "layout": {
-                  "display": "block"
-                },
-                "sizing": {},
-                "visual": {
-                  "color": "#171717",
-                  "fontWeight": 400,
-                  "width": "100%",
-                  "fontSize": 14,
-                  "lineHeight": 1.4285714285714286,
-                  "radius": 0
-                },
-                "placement": null,
-                "engineInput": {
-                  "display": "block",
-                  "width": "100%",
-                  "contentMinWidth": 39.91999816894531,
-                  "contentMaxWidth": 39.91999816894531,
-                  "contentHeight": 20
-                }
-              },
-              "parent": {
-                "type": "Tag",
-                "props": {
-                  "variant": "default",
-                  "size": "md",
-                  "children": "{label}",
-                  "isDisabled": true
-                },
-                "layout": {
-                  "display": "flex",
-                  "alignItems": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "fontWeight": 400,
-                  "height": 30,
-                  "paddingY": 4,
-                  "paddingX": 12,
-                  "fontSize": 14,
-                  "radius": 6,
-                  "lineHeight": 1.4285714285714286,
-                  "borderWidth": 1,
-                  "iconSize": 14,
-                  "gap": 4,
-                  "width": "fit-content"
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "alignItems": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "width": "fit-content",
-                  "height": "30px",
-                  "rowGap": "4px",
-                  "columnGap": "4px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "12px",
-                  "paddingLeft": "12px",
-                  "borderTop": "1px",
-                  "borderRight": "1px",
-                  "borderBottom": "1px",
-                  "borderLeft": "1px"
-                }
-              }
-            },
-            "oldEngineInput": {
-              "display": "block",
-              "width": "100%",
-              "contentMinWidth": 40,
-              "contentMaxWidth": 40,
-              "contentHeight": 20,
-              "leafBaseline": 13.7119140625,
-              "lineHeight": 20
-            }
-          }
-        ],
+        "maxDelta": 0.0800018310546875,
+        "overOnePx": [],
         "unpaired": [],
         "unpairedCount": 0,
         "oldSyntheticWrappers": [],
         "pass": true,
-        "strictPass": false,
+        "strictPass": true,
         "unapprovedCount": 0
       },
       "canvasDom": {
@@ -19370,35 +16531,7 @@
         "ownedPairs": 0,
         "maxDelta": 0.0018768310546875,
         "overOnePx": [],
-        "geometryArbiter": [
-          {
-            "new": "project:node:subject::project:node:subject",
-            "dom": {
-              "x": 30,
-              "y": 30,
-              "width": 101.921875,
-              "height": 30
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-tag-item-default--disabled::lib:template:component-tag-item-default__avatar",
-            "dom": {
-              "x": 43,
-              "y": 29,
-              "width": 32,
-              "height": 32
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-tag-item-default--disabled::lib:template:component-tag-item-default__label",
-            "dom": {
-              "x": 79,
-              "y": 35,
-              "width": 39.921875,
-              "height": 20
-            }
-          }
-        ],
+        "geometryArbiter": [],
         "missing": [],
         "missingCount": 0,
         "pass": true
@@ -19407,20 +16540,16 @@
         {
           "new": "project:node:subject::project:node:subject",
           "old": "",
-          "rule": "standalone-tag-slot",
-          "class": "previewFollow"
-        },
-        {
-          "new": "project:node:subject/lib:template:component-tag-item-default--disabled::lib:template:component-tag-item-default__avatar",
-          "old": "Avatar",
-          "rule": "standalone-tag-slot",
-          "class": "previewFollow"
+          "rule": "subpixel-intrinsic-width-ceil",
+          "class": "oldDefect",
+          "edges": true
         },
         {
           "new": "project:node:subject/lib:template:component-tag-item-default--disabled::lib:template:component-tag-item-default__label",
           "old": "Label",
-          "rule": "standalone-tag-slot",
-          "class": "previewFollow"
+          "rule": "subpixel-intrinsic-width-ceil",
+          "class": "oldDefect",
+          "edges": true
         },
         {
           "new": "project:node:subject::project:node:subject",
@@ -19431,29 +16560,27 @@
         }
       ],
       "approvedClasses": [
-        "previewFollow",
         "oldDefect"
       ],
-      "previewDefectFollowed": true,
       "liveIdentity": {
         "region": "root box",
-        "pixels": 76500,
+        "pixels": 64500,
         "different": 0,
         "ratio": 0,
         "maxByte": 26
       },
       "L3": {
-        "pixels": 93111,
-        "different": 39713,
-        "ratio": 0.42651244213895245,
-        "maxByte": 89,
+        "pixels": 78739,
+        "different": 38633,
+        "ratio": 0.49064631250079377,
+        "maxByte": 71,
         "diffBounds": [
           188,
           198,
-          690,
+          610,
           341
         ],
-        "approvedAttributed": 39713,
+        "approvedAttributed": 38633,
         "movedPaint": {
           "pixels": 0,
           "different": 0,
@@ -19464,27 +16591,27 @@
         "blocked": false
       },
       "L3e": {
-        "pixels": 14827,
-        "different": 7571,
-        "ratio": 0.5106225129830714,
+        "pixels": 12399,
+        "different": 7929,
+        "ratio": 0.6394870554076941,
         "maxByte": 71,
         "diffBounds": [
           185,
           195,
-          693,
+          613,
           344
         ],
         "gated": false
       },
       "text": {
         "pixels": 11762,
-        "different": 8476,
-        "ratio": 0.7206257439211019,
+        "different": 8644,
+        "ratio": 0.7349090290766876,
         "maxByte": 232,
         "diffBounds": [
-          425,
+          345,
           237,
-          627,
+          553,
           314
         ],
         "gated": false
@@ -19493,13 +16620,13 @@
         "clip": {
           "x": 155,
           "y": 165,
-          "width": 570,
+          "width": 490,
           "height": 210
         },
         "context": {
-          "pixels": 360300,
+          "pixels": 377100,
           "different": 13654,
-          "ratio": 0.037896197613100195,
+          "ratio": 0.03620790241315301,
           "maxByte": 201,
           "diffBounds": [
             0,
@@ -19549,18 +16676,6 @@
         },
         {
           "old": "Avatar",
-          "key": "width",
-          "oldValue": "16px",
-          "newValue": "32px"
-        },
-        {
-          "old": "Avatar",
-          "key": "height",
-          "oldValue": "16px",
-          "newValue": "32px"
-        },
-        {
-          "old": "Avatar",
           "key": "minWidth",
           "oldValue": "16px",
           "newValue": null
@@ -19568,309 +16683,13 @@
       ],
       "geometry": {
         "pairedNodes": 3,
-        "maxDelta": 16,
-        "overOnePx": [
-          {
-            "new": "project:node:subject::project:node:subject",
-            "old": "",
-            "newRect": {
-              "x": 30,
-              "y": 30,
-              "width": 101.91999816894531,
-              "height": 30
-            },
-            "oldRect": {
-              "x": 30,
-              "y": 30,
-              "width": 86,
-              "height": 30
-            },
-            "newInput": {
-              "self": {
-                "type": "Tag",
-                "props": {
-                  "variant": "default",
-                  "size": "md",
-                  "children": "{label}"
-                },
-                "layout": {
-                  "display": "flex",
-                  "alignItems": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "fontWeight": 400,
-                  "height": 30,
-                  "paddingY": 4,
-                  "paddingX": 12,
-                  "fontSize": 14,
-                  "radius": 6,
-                  "lineHeight": 1.4285714285714286,
-                  "borderWidth": 1,
-                  "iconSize": 14,
-                  "gap": 4,
-                  "width": "fit-content"
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "alignItems": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "width": "fit-content",
-                  "height": "30px",
-                  "rowGap": "4px",
-                  "columnGap": "4px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "12px",
-                  "paddingLeft": "12px",
-                  "borderTop": "1px",
-                  "borderRight": "1px",
-                  "borderBottom": "1px",
-                  "borderLeft": "1px"
-                }
-              },
-              "parent": null
-            },
-            "oldEngineInput": {
-              "display": "flex",
-              "alignItems": "center",
-              "width": "fit-content",
-              "height": "30px",
-              "paddingTop": "4px",
-              "paddingRight": "12px",
-              "paddingBottom": "4px",
-              "paddingLeft": "12px",
-              "borderTop": "1px",
-              "borderRight": "1px",
-              "borderBottom": "1px",
-              "borderLeft": "1px",
-              "columnGap": "4px",
-              "rowGap": "4px"
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-tag-item-default--hover::lib:template:component-tag-item-default__avatar",
-            "old": "Avatar",
-            "newRect": {
-              "x": 43,
-              "y": 29,
-              "width": 32,
-              "height": 32
-            },
-            "oldRect": {
-              "x": 43,
-              "y": 37,
-              "width": 16,
-              "height": 16
-            },
-            "newInput": {
-              "self": {
-                "type": "Avatar",
-                "props": {
-                  "size": "md",
-                  "slot": "avatar",
-                  "src": "{avatar}",
-                  "alt": ""
-                },
-                "layout": {
-                  "display": "flex",
-                  "alignItems": "center",
-                  "flexShrink": "0"
-                },
-                "sizing": {},
-                "visual": {
-                  "height": 32,
-                  "fontSize": 14,
-                  "radius": 9999,
-                  "width": 32
-                },
-                "placement": null,
-                "engineInput": {
-                  "display": "flex",
-                  "alignItems": "center",
-                  "width": "32px",
-                  "height": "32px",
-                  "flexShrink": 0
-                }
-              },
-              "parent": {
-                "type": "Tag",
-                "props": {
-                  "variant": "default",
-                  "size": "md",
-                  "children": "{label}"
-                },
-                "layout": {
-                  "display": "flex",
-                  "alignItems": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "fontWeight": 400,
-                  "height": 30,
-                  "paddingY": 4,
-                  "paddingX": 12,
-                  "fontSize": 14,
-                  "radius": 6,
-                  "lineHeight": 1.4285714285714286,
-                  "borderWidth": 1,
-                  "iconSize": 14,
-                  "gap": 4,
-                  "width": "fit-content"
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "alignItems": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "width": "fit-content",
-                  "height": "30px",
-                  "rowGap": "4px",
-                  "columnGap": "4px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "12px",
-                  "paddingLeft": "12px",
-                  "borderTop": "1px",
-                  "borderRight": "1px",
-                  "borderBottom": "1px",
-                  "borderLeft": "1px"
-                }
-              }
-            },
-            "oldEngineInput": {
-              "display": "flex",
-              "alignItems": "center",
-              "width": "16px",
-              "height": "16px",
-              "minWidth": "16px",
-              "flexShrink": 0
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-tag-item-default--hover::lib:template:component-tag-item-default__label",
-            "old": "Label",
-            "newRect": {
-              "x": 79,
-              "y": 35,
-              "width": 39.91999816894531,
-              "height": 20
-            },
-            "oldRect": {
-              "x": 63,
-              "y": 35,
-              "width": 40,
-              "height": 20
-            },
-            "newInput": {
-              "self": {
-                "type": "Text",
-                "props": {
-                  "size": "md",
-                  "slot": "label",
-                  "children": "{label}"
-                },
-                "layout": {
-                  "display": "block"
-                },
-                "sizing": {},
-                "visual": {
-                  "color": "#171717",
-                  "fontWeight": 400,
-                  "width": "100%",
-                  "fontSize": 14,
-                  "lineHeight": 1.4285714285714286,
-                  "radius": 0
-                },
-                "placement": null,
-                "engineInput": {
-                  "display": "block",
-                  "width": "100%",
-                  "contentMinWidth": 39.91999816894531,
-                  "contentMaxWidth": 39.91999816894531,
-                  "contentHeight": 20
-                }
-              },
-              "parent": {
-                "type": "Tag",
-                "props": {
-                  "variant": "default",
-                  "size": "md",
-                  "children": "{label}"
-                },
-                "layout": {
-                  "display": "flex",
-                  "alignItems": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "fontWeight": 400,
-                  "height": 30,
-                  "paddingY": 4,
-                  "paddingX": 12,
-                  "fontSize": 14,
-                  "radius": 6,
-                  "lineHeight": 1.4285714285714286,
-                  "borderWidth": 1,
-                  "iconSize": 14,
-                  "gap": 4,
-                  "width": "fit-content"
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "alignItems": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "width": "fit-content",
-                  "height": "30px",
-                  "rowGap": "4px",
-                  "columnGap": "4px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "12px",
-                  "paddingLeft": "12px",
-                  "borderTop": "1px",
-                  "borderRight": "1px",
-                  "borderBottom": "1px",
-                  "borderLeft": "1px"
-                }
-              }
-            },
-            "oldEngineInput": {
-              "display": "block",
-              "width": "100%",
-              "contentMinWidth": 40,
-              "contentMaxWidth": 40,
-              "contentHeight": 20,
-              "leafBaseline": 13.7119140625,
-              "lineHeight": 20
-            }
-          }
-        ],
+        "maxDelta": 0.0800018310546875,
+        "overOnePx": [],
         "unpaired": [],
         "unpairedCount": 0,
         "oldSyntheticWrappers": [],
         "pass": true,
-        "strictPass": false,
+        "strictPass": true,
         "unapprovedCount": 0
       },
       "canvasDom": {
@@ -19878,35 +16697,7 @@
         "ownedPairs": 0,
         "maxDelta": 0.0018768310546875,
         "overOnePx": [],
-        "geometryArbiter": [
-          {
-            "new": "project:node:subject::project:node:subject",
-            "dom": {
-              "x": 30,
-              "y": 30,
-              "width": 101.921875,
-              "height": 30
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-tag-item-default--hover::lib:template:component-tag-item-default__avatar",
-            "dom": {
-              "x": 43,
-              "y": 29,
-              "width": 32,
-              "height": 32
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-tag-item-default--hover::lib:template:component-tag-item-default__label",
-            "dom": {
-              "x": 79,
-              "y": 35,
-              "width": 39.921875,
-              "height": 20
-            }
-          }
-        ],
+        "geometryArbiter": [],
         "missing": [],
         "missingCount": 0,
         "pass": true
@@ -19915,20 +16706,16 @@
         {
           "new": "project:node:subject::project:node:subject",
           "old": "",
-          "rule": "standalone-tag-slot",
-          "class": "previewFollow"
-        },
-        {
-          "new": "project:node:subject/lib:template:component-tag-item-default--hover::lib:template:component-tag-item-default__avatar",
-          "old": "Avatar",
-          "rule": "standalone-tag-slot",
-          "class": "previewFollow"
+          "rule": "subpixel-intrinsic-width-ceil",
+          "class": "oldDefect",
+          "edges": true
         },
         {
           "new": "project:node:subject/lib:template:component-tag-item-default--hover::lib:template:component-tag-item-default__label",
           "old": "Label",
-          "rule": "standalone-tag-slot",
-          "class": "previewFollow"
+          "rule": "subpixel-intrinsic-width-ceil",
+          "class": "oldDefect",
+          "edges": true
         },
         {
           "new": "project:node:subject::project:node:subject",
@@ -19939,29 +16726,27 @@
         }
       ],
       "approvedClasses": [
-        "previewFollow",
         "oldDefect"
       ],
-      "previewDefectFollowed": true,
       "liveIdentity": {
         "region": "root box",
-        "pixels": 76500,
+        "pixels": 64500,
         "different": 0,
         "ratio": 0,
         "maxByte": 26
       },
       "L3": {
-        "pixels": 93111,
-        "different": 39900,
-        "ratio": 0.4285207977575152,
+        "pixels": 78739,
+        "different": 38447,
+        "ratio": 0.4882840777759433,
         "maxByte": 196,
         "diffBounds": [
           188,
           198,
-          690,
+          610,
           341
         ],
-        "approvedAttributed": 39900,
+        "approvedAttributed": 38447,
         "movedPaint": {
           "pixels": 0,
           "different": 0,
@@ -19972,27 +16757,27 @@
         "blocked": false
       },
       "L3e": {
-        "pixels": 14827,
-        "different": 7568,
-        "ratio": 0.5104201794024414,
+        "pixels": 12399,
+        "different": 7929,
+        "ratio": 0.6394870554076941,
         "maxByte": 196,
         "diffBounds": [
           185,
           195,
-          693,
+          613,
           344
         ],
         "gated": false
       },
       "text": {
         "pixels": 11762,
-        "different": 8472,
-        "ratio": 0.7202856657031117,
+        "different": 8643,
+        "ratio": 0.7348240095221901,
         "maxByte": 232,
         "diffBounds": [
-          425,
+          345,
           237,
-          627,
+          553,
           314
         ],
         "gated": false
@@ -20001,13 +16786,13 @@
         "clip": {
           "x": 155,
           "y": 165,
-          "width": 570,
+          "width": 490,
           "height": 210
         },
         "context": {
-          "pixels": 360300,
+          "pixels": 377100,
           "different": 19262,
-          "ratio": 0.053461004718290316,
+          "ratio": 0.05107928931317953,
           "maxByte": 201,
           "diffBounds": [
             0,
@@ -20057,18 +16842,6 @@
         },
         {
           "old": "Avatar",
-          "key": "width",
-          "oldValue": "16px",
-          "newValue": "32px"
-        },
-        {
-          "old": "Avatar",
-          "key": "height",
-          "oldValue": "16px",
-          "newValue": "32px"
-        },
-        {
-          "old": "Avatar",
           "key": "minWidth",
           "oldValue": "16px",
           "newValue": null
@@ -20076,309 +16849,13 @@
       ],
       "geometry": {
         "pairedNodes": 3,
-        "maxDelta": 16,
-        "overOnePx": [
-          {
-            "new": "project:node:subject::project:node:subject",
-            "old": "",
-            "newRect": {
-              "x": 30,
-              "y": 30,
-              "width": 101.91999816894531,
-              "height": 30
-            },
-            "oldRect": {
-              "x": 30,
-              "y": 30,
-              "width": 86,
-              "height": 30
-            },
-            "newInput": {
-              "self": {
-                "type": "Tag",
-                "props": {
-                  "variant": "default",
-                  "size": "md",
-                  "children": "{label}"
-                },
-                "layout": {
-                  "display": "flex",
-                  "alignItems": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "fontWeight": 400,
-                  "height": 30,
-                  "paddingY": 4,
-                  "paddingX": 12,
-                  "fontSize": 14,
-                  "radius": 6,
-                  "lineHeight": 1.4285714285714286,
-                  "borderWidth": 1,
-                  "iconSize": 14,
-                  "gap": 4,
-                  "width": "fit-content"
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "alignItems": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "width": "fit-content",
-                  "height": "30px",
-                  "rowGap": "4px",
-                  "columnGap": "4px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "12px",
-                  "paddingLeft": "12px",
-                  "borderTop": "1px",
-                  "borderRight": "1px",
-                  "borderBottom": "1px",
-                  "borderLeft": "1px"
-                }
-              },
-              "parent": null
-            },
-            "oldEngineInput": {
-              "display": "flex",
-              "alignItems": "center",
-              "width": "fit-content",
-              "height": "30px",
-              "paddingTop": "4px",
-              "paddingRight": "12px",
-              "paddingBottom": "4px",
-              "paddingLeft": "12px",
-              "borderTop": "1px",
-              "borderRight": "1px",
-              "borderBottom": "1px",
-              "borderLeft": "1px",
-              "columnGap": "4px",
-              "rowGap": "4px"
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-tag-item-default--pressed::lib:template:component-tag-item-default__avatar",
-            "old": "Avatar",
-            "newRect": {
-              "x": 43,
-              "y": 29,
-              "width": 32,
-              "height": 32
-            },
-            "oldRect": {
-              "x": 43,
-              "y": 37,
-              "width": 16,
-              "height": 16
-            },
-            "newInput": {
-              "self": {
-                "type": "Avatar",
-                "props": {
-                  "size": "md",
-                  "slot": "avatar",
-                  "src": "{avatar}",
-                  "alt": ""
-                },
-                "layout": {
-                  "display": "flex",
-                  "alignItems": "center",
-                  "flexShrink": "0"
-                },
-                "sizing": {},
-                "visual": {
-                  "height": 32,
-                  "fontSize": 14,
-                  "radius": 9999,
-                  "width": 32
-                },
-                "placement": null,
-                "engineInput": {
-                  "display": "flex",
-                  "alignItems": "center",
-                  "width": "32px",
-                  "height": "32px",
-                  "flexShrink": 0
-                }
-              },
-              "parent": {
-                "type": "Tag",
-                "props": {
-                  "variant": "default",
-                  "size": "md",
-                  "children": "{label}"
-                },
-                "layout": {
-                  "display": "flex",
-                  "alignItems": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "fontWeight": 400,
-                  "height": 30,
-                  "paddingY": 4,
-                  "paddingX": 12,
-                  "fontSize": 14,
-                  "radius": 6,
-                  "lineHeight": 1.4285714285714286,
-                  "borderWidth": 1,
-                  "iconSize": 14,
-                  "gap": 4,
-                  "width": "fit-content"
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "alignItems": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "width": "fit-content",
-                  "height": "30px",
-                  "rowGap": "4px",
-                  "columnGap": "4px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "12px",
-                  "paddingLeft": "12px",
-                  "borderTop": "1px",
-                  "borderRight": "1px",
-                  "borderBottom": "1px",
-                  "borderLeft": "1px"
-                }
-              }
-            },
-            "oldEngineInput": {
-              "display": "flex",
-              "alignItems": "center",
-              "width": "16px",
-              "height": "16px",
-              "minWidth": "16px",
-              "flexShrink": 0
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-tag-item-default--pressed::lib:template:component-tag-item-default__label",
-            "old": "Label",
-            "newRect": {
-              "x": 79,
-              "y": 35,
-              "width": 39.91999816894531,
-              "height": 20
-            },
-            "oldRect": {
-              "x": 63,
-              "y": 35,
-              "width": 40,
-              "height": 20
-            },
-            "newInput": {
-              "self": {
-                "type": "Text",
-                "props": {
-                  "size": "md",
-                  "slot": "label",
-                  "children": "{label}"
-                },
-                "layout": {
-                  "display": "block"
-                },
-                "sizing": {},
-                "visual": {
-                  "color": "#171717",
-                  "fontWeight": 400,
-                  "width": "100%",
-                  "fontSize": 14,
-                  "lineHeight": 1.4285714285714286,
-                  "radius": 0
-                },
-                "placement": null,
-                "engineInput": {
-                  "display": "block",
-                  "width": "100%",
-                  "contentMinWidth": 39.91999816894531,
-                  "contentMaxWidth": 39.91999816894531,
-                  "contentHeight": 20
-                }
-              },
-              "parent": {
-                "type": "Tag",
-                "props": {
-                  "variant": "default",
-                  "size": "md",
-                  "children": "{label}"
-                },
-                "layout": {
-                  "display": "flex",
-                  "alignItems": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "fontWeight": 400,
-                  "height": 30,
-                  "paddingY": 4,
-                  "paddingX": 12,
-                  "fontSize": 14,
-                  "radius": 6,
-                  "lineHeight": 1.4285714285714286,
-                  "borderWidth": 1,
-                  "iconSize": 14,
-                  "gap": 4,
-                  "width": "fit-content"
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "alignItems": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "width": "fit-content",
-                  "height": "30px",
-                  "rowGap": "4px",
-                  "columnGap": "4px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "12px",
-                  "paddingLeft": "12px",
-                  "borderTop": "1px",
-                  "borderRight": "1px",
-                  "borderBottom": "1px",
-                  "borderLeft": "1px"
-                }
-              }
-            },
-            "oldEngineInput": {
-              "display": "block",
-              "width": "100%",
-              "contentMinWidth": 40,
-              "contentMaxWidth": 40,
-              "contentHeight": 20,
-              "leafBaseline": 13.7119140625,
-              "lineHeight": 20
-            }
-          }
-        ],
+        "maxDelta": 0.0800018310546875,
+        "overOnePx": [],
         "unpaired": [],
         "unpairedCount": 0,
         "oldSyntheticWrappers": [],
         "pass": true,
-        "strictPass": false,
+        "strictPass": true,
         "unapprovedCount": 0
       },
       "canvasDom": {
@@ -20386,35 +16863,7 @@
         "ownedPairs": 0,
         "maxDelta": 0.0018768310546875,
         "overOnePx": [],
-        "geometryArbiter": [
-          {
-            "new": "project:node:subject::project:node:subject",
-            "dom": {
-              "x": 30,
-              "y": 30,
-              "width": 101.921875,
-              "height": 30
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-tag-item-default--pressed::lib:template:component-tag-item-default__avatar",
-            "dom": {
-              "x": 43,
-              "y": 29,
-              "width": 32,
-              "height": 32
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-tag-item-default--pressed::lib:template:component-tag-item-default__label",
-            "dom": {
-              "x": 79,
-              "y": 35,
-              "width": 39.921875,
-              "height": 20
-            }
-          }
-        ],
+        "geometryArbiter": [],
         "missing": [],
         "missingCount": 0,
         "pass": true
@@ -20423,20 +16872,16 @@
         {
           "new": "project:node:subject::project:node:subject",
           "old": "",
-          "rule": "standalone-tag-slot",
-          "class": "previewFollow"
-        },
-        {
-          "new": "project:node:subject/lib:template:component-tag-item-default--pressed::lib:template:component-tag-item-default__avatar",
-          "old": "Avatar",
-          "rule": "standalone-tag-slot",
-          "class": "previewFollow"
+          "rule": "subpixel-intrinsic-width-ceil",
+          "class": "oldDefect",
+          "edges": true
         },
         {
           "new": "project:node:subject/lib:template:component-tag-item-default--pressed::lib:template:component-tag-item-default__label",
           "old": "Label",
-          "rule": "standalone-tag-slot",
-          "class": "previewFollow"
+          "rule": "subpixel-intrinsic-width-ceil",
+          "class": "oldDefect",
+          "edges": true
         },
         {
           "new": "project:node:subject::project:node:subject",
@@ -20447,29 +16892,27 @@
         }
       ],
       "approvedClasses": [
-        "previewFollow",
         "oldDefect"
       ],
-      "previewDefectFollowed": true,
       "liveIdentity": {
         "region": "root box",
-        "pixels": 76500,
+        "pixels": 64500,
         "different": 0,
         "ratio": 0,
         "maxByte": 26
       },
       "L3": {
-        "pixels": 93111,
-        "different": 39900,
-        "ratio": 0.4285207977575152,
+        "pixels": 78739,
+        "different": 38447,
+        "ratio": 0.4882840777759433,
         "maxByte": 196,
         "diffBounds": [
           188,
           198,
-          690,
+          610,
           341
         ],
-        "approvedAttributed": 39900,
+        "approvedAttributed": 38447,
         "movedPaint": {
           "pixels": 0,
           "different": 0,
@@ -20480,27 +16923,27 @@
         "blocked": false
       },
       "L3e": {
-        "pixels": 14827,
-        "different": 7568,
-        "ratio": 0.5104201794024414,
+        "pixels": 12399,
+        "different": 7929,
+        "ratio": 0.6394870554076941,
         "maxByte": 196,
         "diffBounds": [
           185,
           195,
-          693,
+          613,
           344
         ],
         "gated": false
       },
       "text": {
         "pixels": 11762,
-        "different": 8472,
-        "ratio": 0.7202856657031117,
+        "different": 8643,
+        "ratio": 0.7348240095221901,
         "maxByte": 232,
         "diffBounds": [
-          425,
+          345,
           237,
-          627,
+          553,
           314
         ],
         "gated": false
@@ -20509,13 +16952,13 @@
         "clip": {
           "x": 155,
           "y": 165,
-          "width": 570,
+          "width": 490,
           "height": 210
         },
         "context": {
-          "pixels": 360300,
+          "pixels": 377100,
           "different": 18648,
-          "ratio": 0.05175686927560366,
+          "ratio": 0.04945107398568019,
           "maxByte": 201,
           "diffBounds": [
             0,
@@ -20565,18 +17008,6 @@
         },
         {
           "old": "Avatar",
-          "key": "width",
-          "oldValue": "16px",
-          "newValue": "32px"
-        },
-        {
-          "old": "Avatar",
-          "key": "height",
-          "oldValue": "16px",
-          "newValue": "32px"
-        },
-        {
-          "old": "Avatar",
           "key": "minWidth",
           "oldValue": "16px",
           "newValue": null
@@ -20584,309 +17015,13 @@
       ],
       "geometry": {
         "pairedNodes": 3,
-        "maxDelta": 16,
-        "overOnePx": [
-          {
-            "new": "project:node:subject::project:node:subject",
-            "old": "",
-            "newRect": {
-              "x": 30,
-              "y": 30,
-              "width": 101.91999816894531,
-              "height": 30
-            },
-            "oldRect": {
-              "x": 30,
-              "y": 30,
-              "width": 86,
-              "height": 30
-            },
-            "newInput": {
-              "self": {
-                "type": "Tag",
-                "props": {
-                  "variant": "default",
-                  "size": "md",
-                  "children": "{label}"
-                },
-                "layout": {
-                  "display": "flex",
-                  "alignItems": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "fontWeight": 400,
-                  "height": 30,
-                  "paddingY": 4,
-                  "paddingX": 12,
-                  "fontSize": 14,
-                  "radius": 6,
-                  "lineHeight": 1.4285714285714286,
-                  "borderWidth": 1,
-                  "iconSize": 14,
-                  "gap": 4,
-                  "width": "fit-content"
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "alignItems": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "width": "fit-content",
-                  "height": "30px",
-                  "rowGap": "4px",
-                  "columnGap": "4px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "12px",
-                  "paddingLeft": "12px",
-                  "borderTop": "1px",
-                  "borderRight": "1px",
-                  "borderBottom": "1px",
-                  "borderLeft": "1px"
-                }
-              },
-              "parent": null
-            },
-            "oldEngineInput": {
-              "display": "flex",
-              "alignItems": "center",
-              "width": "fit-content",
-              "height": "30px",
-              "paddingTop": "4px",
-              "paddingRight": "12px",
-              "paddingBottom": "4px",
-              "paddingLeft": "12px",
-              "borderTop": "1px",
-              "borderRight": "1px",
-              "borderBottom": "1px",
-              "borderLeft": "1px",
-              "columnGap": "4px",
-              "rowGap": "4px"
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-tag-item-default--focus-visible::lib:template:component-tag-item-default__avatar",
-            "old": "Avatar",
-            "newRect": {
-              "x": 43,
-              "y": 29,
-              "width": 32,
-              "height": 32
-            },
-            "oldRect": {
-              "x": 43,
-              "y": 37,
-              "width": 16,
-              "height": 16
-            },
-            "newInput": {
-              "self": {
-                "type": "Avatar",
-                "props": {
-                  "size": "md",
-                  "slot": "avatar",
-                  "src": "{avatar}",
-                  "alt": ""
-                },
-                "layout": {
-                  "display": "flex",
-                  "alignItems": "center",
-                  "flexShrink": "0"
-                },
-                "sizing": {},
-                "visual": {
-                  "height": 32,
-                  "fontSize": 14,
-                  "radius": 9999,
-                  "width": 32
-                },
-                "placement": null,
-                "engineInput": {
-                  "display": "flex",
-                  "alignItems": "center",
-                  "width": "32px",
-                  "height": "32px",
-                  "flexShrink": 0
-                }
-              },
-              "parent": {
-                "type": "Tag",
-                "props": {
-                  "variant": "default",
-                  "size": "md",
-                  "children": "{label}"
-                },
-                "layout": {
-                  "display": "flex",
-                  "alignItems": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "fontWeight": 400,
-                  "height": 30,
-                  "paddingY": 4,
-                  "paddingX": 12,
-                  "fontSize": 14,
-                  "radius": 6,
-                  "lineHeight": 1.4285714285714286,
-                  "borderWidth": 1,
-                  "iconSize": 14,
-                  "gap": 4,
-                  "width": "fit-content"
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "alignItems": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "width": "fit-content",
-                  "height": "30px",
-                  "rowGap": "4px",
-                  "columnGap": "4px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "12px",
-                  "paddingLeft": "12px",
-                  "borderTop": "1px",
-                  "borderRight": "1px",
-                  "borderBottom": "1px",
-                  "borderLeft": "1px"
-                }
-              }
-            },
-            "oldEngineInput": {
-              "display": "flex",
-              "alignItems": "center",
-              "width": "16px",
-              "height": "16px",
-              "minWidth": "16px",
-              "flexShrink": 0
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-tag-item-default--focus-visible::lib:template:component-tag-item-default__label",
-            "old": "Label",
-            "newRect": {
-              "x": 79,
-              "y": 35,
-              "width": 39.91999816894531,
-              "height": 20
-            },
-            "oldRect": {
-              "x": 63,
-              "y": 35,
-              "width": 40,
-              "height": 20
-            },
-            "newInput": {
-              "self": {
-                "type": "Text",
-                "props": {
-                  "size": "md",
-                  "slot": "label",
-                  "children": "{label}"
-                },
-                "layout": {
-                  "display": "block"
-                },
-                "sizing": {},
-                "visual": {
-                  "color": "#171717",
-                  "fontWeight": 400,
-                  "width": "100%",
-                  "fontSize": 14,
-                  "lineHeight": 1.4285714285714286,
-                  "radius": 0
-                },
-                "placement": null,
-                "engineInput": {
-                  "display": "block",
-                  "width": "100%",
-                  "contentMinWidth": 39.91999816894531,
-                  "contentMaxWidth": 39.91999816894531,
-                  "contentHeight": 20
-                }
-              },
-              "parent": {
-                "type": "Tag",
-                "props": {
-                  "variant": "default",
-                  "size": "md",
-                  "children": "{label}"
-                },
-                "layout": {
-                  "display": "flex",
-                  "alignItems": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "fontWeight": 400,
-                  "height": 30,
-                  "paddingY": 4,
-                  "paddingX": 12,
-                  "fontSize": 14,
-                  "radius": 6,
-                  "lineHeight": 1.4285714285714286,
-                  "borderWidth": 1,
-                  "iconSize": 14,
-                  "gap": 4,
-                  "width": "fit-content"
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "alignItems": "center",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "width": "fit-content",
-                  "height": "30px",
-                  "rowGap": "4px",
-                  "columnGap": "4px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "12px",
-                  "paddingLeft": "12px",
-                  "borderTop": "1px",
-                  "borderRight": "1px",
-                  "borderBottom": "1px",
-                  "borderLeft": "1px"
-                }
-              }
-            },
-            "oldEngineInput": {
-              "display": "block",
-              "width": "100%",
-              "contentMinWidth": 40,
-              "contentMaxWidth": 40,
-              "contentHeight": 20,
-              "leafBaseline": 13.7119140625,
-              "lineHeight": 20
-            }
-          }
-        ],
+        "maxDelta": 0.0800018310546875,
+        "overOnePx": [],
         "unpaired": [],
         "unpairedCount": 0,
         "oldSyntheticWrappers": [],
         "pass": true,
-        "strictPass": false,
+        "strictPass": true,
         "unapprovedCount": 0
       },
       "canvasDom": {
@@ -20894,35 +17029,7 @@
         "ownedPairs": 0,
         "maxDelta": 0.0018768310546875,
         "overOnePx": [],
-        "geometryArbiter": [
-          {
-            "new": "project:node:subject::project:node:subject",
-            "dom": {
-              "x": 30,
-              "y": 30,
-              "width": 101.921875,
-              "height": 30
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-tag-item-default--focus-visible::lib:template:component-tag-item-default__avatar",
-            "dom": {
-              "x": 43,
-              "y": 29,
-              "width": 32,
-              "height": 32
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-tag-item-default--focus-visible::lib:template:component-tag-item-default__label",
-            "dom": {
-              "x": 79,
-              "y": 35,
-              "width": 39.921875,
-              "height": 20
-            }
-          }
-        ],
+        "geometryArbiter": [],
         "missing": [],
         "missingCount": 0,
         "pass": true
@@ -20931,20 +17038,16 @@
         {
           "new": "project:node:subject::project:node:subject",
           "old": "",
-          "rule": "standalone-tag-slot",
-          "class": "previewFollow"
-        },
-        {
-          "new": "project:node:subject/lib:template:component-tag-item-default--focus-visible::lib:template:component-tag-item-default__avatar",
-          "old": "Avatar",
-          "rule": "standalone-tag-slot",
-          "class": "previewFollow"
+          "rule": "subpixel-intrinsic-width-ceil",
+          "class": "oldDefect",
+          "edges": true
         },
         {
           "new": "project:node:subject/lib:template:component-tag-item-default--focus-visible::lib:template:component-tag-item-default__label",
           "old": "Label",
-          "rule": "standalone-tag-slot",
-          "class": "previewFollow"
+          "rule": "subpixel-intrinsic-width-ceil",
+          "class": "oldDefect",
+          "edges": true
         },
         {
           "new": "project:node:subject::project:node:subject",
@@ -20955,29 +17058,27 @@
         }
       ],
       "approvedClasses": [
-        "previewFollow",
         "oldDefect"
       ],
-      "previewDefectFollowed": true,
       "liveIdentity": {
         "region": "root box",
-        "pixels": 76500,
+        "pixels": 64500,
         "different": 0,
         "ratio": 0,
         "maxByte": 26
       },
       "L3": {
-        "pixels": 93111,
-        "different": 39900,
-        "ratio": 0.4285207977575152,
+        "pixels": 78739,
+        "different": 38447,
+        "ratio": 0.4882840777759433,
         "maxByte": 196,
         "diffBounds": [
           188,
           198,
-          690,
+          610,
           341
         ],
-        "approvedAttributed": 39900,
+        "approvedAttributed": 38447,
         "movedPaint": {
           "pixels": 0,
           "different": 0,
@@ -20988,27 +17089,27 @@
         "blocked": false
       },
       "L3e": {
-        "pixels": 14827,
-        "different": 7568,
-        "ratio": 0.5104201794024414,
+        "pixels": 12399,
+        "different": 7929,
+        "ratio": 0.6394870554076941,
         "maxByte": 196,
         "diffBounds": [
           185,
           195,
-          693,
+          613,
           344
         ],
         "gated": false
       },
       "text": {
         "pixels": 11762,
-        "different": 8472,
-        "ratio": 0.7202856657031117,
+        "different": 8643,
+        "ratio": 0.7348240095221901,
         "maxByte": 232,
         "diffBounds": [
-          425,
+          345,
           237,
-          627,
+          553,
           314
         ],
         "gated": false
@@ -21017,13 +17118,13 @@
         "clip": {
           "x": 155,
           "y": 165,
-          "width": 570,
+          "width": 490,
           "height": 210
         },
         "context": {
-          "pixels": 360300,
+          "pixels": 377100,
           "different": 9324,
-          "ratio": 0.02587843463780183,
+          "ratio": 0.024725536992840094,
           "maxByte": 201,
           "diffBounds": [
             0,
@@ -21173,8 +17274,8 @@
         },
         "context": {
           "pixels": 351080,
-          "different": 24769,
-          "ratio": 0.07055087159621738,
+          "different": 24757,
+          "ratio": 0.07051669135239831,
           "maxByte": 206,
           "diffBounds": [
             0,
@@ -21324,8 +17425,8 @@
         },
         "context": {
           "pixels": 351080,
-          "different": 25058,
-          "ratio": 0.07137404580152672,
+          "different": 25041,
+          "ratio": 0.0713256237894497,
           "maxByte": 206,
           "diffBounds": [
             0,
@@ -21480,8 +17581,8 @@
         },
         "context": {
           "pixels": 351080,
-          "different": 23603,
-          "ratio": 0.06722969123846417,
+          "different": 23592,
+          "ratio": 0.06719835934829668,
           "maxByte": 206,
           "diffBounds": [
             0,
@@ -21631,8 +17732,8 @@
         },
         "context": {
           "pixels": 351080,
-          "different": 22187,
-          "ratio": 0.06319642246781361,
+          "different": 22165,
+          "ratio": 0.06313375868747864,
           "maxByte": 149,
           "diffBounds": [
             0,
@@ -21782,8 +17883,8 @@
         },
         "context": {
           "pixels": 351080,
-          "different": 22252,
-          "ratio": 0.06338156545516692,
+          "different": 22231,
+          "ratio": 0.06332175002848353,
           "maxByte": 149,
           "diffBounds": [
             0,
@@ -21933,8 +18034,8 @@
         },
         "context": {
           "pixels": 351080,
-          "different": 22187,
-          "ratio": 0.06319642246781361,
+          "different": 22165,
+          "ratio": 0.06313375868747864,
           "maxByte": 149,
           "diffBounds": [
             0,
@@ -22084,8 +18185,8 @@
         },
         "context": {
           "pixels": 351080,
-          "different": 22252,
-          "ratio": 0.06338156545516692,
+          "different": 22231,
+          "ratio": 0.06332175002848353,
           "maxByte": 149,
           "diffBounds": [
             0,

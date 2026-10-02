@@ -890,8 +890,27 @@ function itemSlotRole(
 ): string | undefined {
   const role = node.props.slot;
   if (typeof role !== "string" || !ITEM_SLOT_ROLES.has(role)) return undefined;
-  const collection = collectionAncestor(root, node);
+  const collection =
+    collectionAncestor(root, node) ?? orphanItemHost(root, node);
   return collection && ITEM_SLOT_COLLECTIONS.has(collection) ? role : undefined;
+}
+/**
+ * The RAC host (lower-case) a standalone collection item above `node` renders in
+ * (`ORPHAN_ITEM_HOST`): its children are items' children like inside the collection (4e-11).
+ */
+function orphanItemHost(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+): string | undefined {
+  for (
+    let cursor = root.domInputs.get(node.parentId);
+    cursor;
+    cursor = root.domInputs.get(cursor.parentId)
+  ) {
+    const host = ORPHAN_ITEM_HOST[catalogTypeName(root, cursor).toLowerCase()];
+    if (host) return host.toLowerCase();
+  }
+  return undefined;
 }
 const STATIC_ITEM_TYPES: ReadonlySet<string> = componentTypeSet(
   "staticCollectionItem",

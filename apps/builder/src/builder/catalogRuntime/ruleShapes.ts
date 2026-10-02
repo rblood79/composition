@@ -66,6 +66,8 @@ const CHILD_PROP_MERGE_TYPES: ReadonlySet<string> = new Set([
 
 /** Types whose shape generators lay out against the actual box size. */
 const BOX_SIZE_TYPES: ReadonlySet<string> = new Set([
+  // The avatar circle is its box (a Tag slot chip sizes it 16; `Avatar.tsx` inlines the same box).
+  "Avatar",
   "Tag",
   "Breadcrumbs",
   "Tabs",

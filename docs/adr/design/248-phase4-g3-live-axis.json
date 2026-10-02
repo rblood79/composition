@@ -9109,7 +9109,7 @@
         "pixels": 13261,
         "different": 0,
         "ratio": 0,
-        "maxByte": 0,
+        "maxByte": 26,
         "diffBounds": null,
         "gated": false
       },
@@ -9192,7 +9192,7 @@
         "pixels": 13261,
         "different": 0,
         "ratio": 0,
-        "maxByte": 0,
+        "maxByte": 26,
         "diffBounds": null,
         "gated": false
       },
@@ -9275,7 +9275,7 @@
         "pixels": 13261,
         "different": 0,
         "ratio": 0,
-        "maxByte": 0,
+        "maxByte": 26,
         "diffBounds": null,
         "gated": false
       },
@@ -9358,7 +9358,7 @@
         "pixels": 13261,
         "different": 0,
         "ratio": 0,
-        "maxByte": 0,
+        "maxByte": 26,
         "diffBounds": null,
         "gated": false
       },
@@ -9441,7 +9441,7 @@
         "pixels": 13261,
         "different": 0,
         "ratio": 0,
-        "maxByte": 0,
+        "maxByte": 26,
         "diffBounds": null,
         "gated": false
       },
@@ -9524,7 +9524,7 @@
         "pixels": 13261,
         "different": 0,
         "ratio": 0,
-        "maxByte": 0,
+        "maxByte": 26,
         "diffBounds": null,
         "gated": false
       },
@@ -81985,14 +81985,14 @@
       },
       "text": {
         "pixels": 2984,
-        "different": 117,
-        "ratio": 0.03920911528150134,
+        "different": 108,
+        "ratio": 0.036193029490616625,
         "maxByte": 227,
         "diffBounds": [
-          21,
+          98,
           23,
           133,
-          105
+          33
         ],
         "gated": false
       },
@@ -82110,14 +82110,14 @@
       },
       "text": {
         "pixels": 2984,
-        "different": 117,
-        "ratio": 0.03920911528150134,
+        "different": 108,
+        "ratio": 0.036193029490616625,
         "maxByte": 227,
         "diffBounds": [
-          21,
+          98,
           23,
           133,
-          105
+          33
         ],
         "gated": false
       },
@@ -82235,14 +82235,14 @@
       },
       "text": {
         "pixels": 2984,
-        "different": 117,
-        "ratio": 0.03920911528150134,
+        "different": 108,
+        "ratio": 0.036193029490616625,
         "maxByte": 227,
         "diffBounds": [
-          21,
+          98,
           23,
           133,
-          105
+          33
         ],
         "gated": false
       },

@@ -5980,6 +5980,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         //   그 시점의 시각 변화는 Phase 5 fixture 가 감시한다.
         justifyContent: "center",
       },
+      // ADR-248 4e-11: `GridList.css` `[data-disabled]` (opacity 0.38) — the same disabled state as
+      //   ListBoxItem, read by both consumers.
+      states: {
+        disabled: {
+          opacity: 0.38,
+          cursor: "not-allowed",
+          pointerEvents: "none",
+        },
+      },
     },
     // ADR-912 collection sub-part cutover (2026-06-14, TreeItem escape 선례 동형):
     //   GridListItem.spec.render.shapes(카드 box layer-1 + border + label fw600 +

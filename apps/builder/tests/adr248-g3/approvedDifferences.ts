@@ -369,22 +369,6 @@ export const APPROVED_DIFFERENCES: readonly ApprovedDifference[] = [
       "product wrapper outside the RAC structure: TagList 100% unresolved",
   },
   {
-    id: "standalone-tag-slot",
-    class: "previewFollow",
-    owners: ["Tag"],
-    nodes: ["Avatar", "Tag", "Text"],
-    axes: ALL,
-    reason: "a standalone Tag gets no slot (avatar 32)",
-  },
-  {
-    id: "standalone-gridlistitem-slot",
-    class: "previewFollow",
-    owners: ["GridListItem"],
-    nodes: ["GridListItem", "Text"],
-    axes: ALL,
-    reason: "a standalone item gets no slot",
-  },
-  {
     id: "listbox-section-header",
     class: "previewFollow",
     owners: ["ListBoxSection"],
