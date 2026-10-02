@@ -6,6 +6,8 @@
  *   - `previewFollow`: the Preview departs from the declaration and the Phase 3 new side follows the
  *     Preview (②); Phase 4 fixes the product and the new side together.
  *   - `bothDeviate`: neither side draws the catalog value; the new side follows the Preview (②).
+ *   ADR-248 4e-11 (2026-10-03) repaired every previewFollow / bothDeviate pair in the product or
+ *   reclassified it (old Canvas value, or a recorded decision): no rule of those classes remains.
  * A rule approves an over-1px pair only when the pair's owner (the case's type) and node type match
  * and every axis that differs by more than 1 CSS px is listed in `axes`. The pair must also hold the
  * Canvas ↔ isolated DOM contract (the row's DOM leg), unless `noDomBox` names a node the DOM leg
@@ -123,6 +125,15 @@ export const APPROVED_DIFFERENCES: readonly ApprovedDifference[] = [
     axes: ["x", "y", "width"],
     reason:
       "the sample rows move below the content-sized drop zone and the trigger box; value text weight 400 (①)",
+  },
+  {
+    id: "section-generated-css-unloaded",
+    class: "decided",
+    owners: ["ListBoxSection", "GridListSection"],
+    nodes: ["Header"],
+    axes: ALL,
+    reason:
+      "ADR-238 Phase 2: the section layer's generated CSS stays unloaded (`UNLOADED_GENERATED_CSS` F, G5 `adr238SectionDom`) — the DOM section is a UA block; old draws the generated values (section text-base → the inline-flex header's baseline shift 2 · catalog header 24 at full width)",
   },
   // ── B. old Canvas defects (catalog = new) ───────────────────────────────
   {
@@ -366,24 +377,6 @@ export const APPROVED_DIFFERENCES: readonly ApprovedDifference[] = [
     axes: ["width", "x"],
     reason:
       "old trigger right padding = size paddingX 12; catalog `--dp-group-padding` / `--drp-group-padding` right = spacing-xs 4 (md)",
-  },
-  // ── C. Preview defects the new side follows (Phase 4 fixes) ─────────────
-  {
-    id: "listbox-section-header",
-    class: "previewFollow",
-    owners: ["ListBoxSection"],
-    nodes: ["Header"],
-    axes: ["y"],
-    reason: "generated CSS not loaded",
-  },
-  // ── D. neither side draws the catalog value (new follows the Preview) ───
-  {
-    id: "gridlist-section-header",
-    class: "bothDeviate",
-    owners: ["GridListSection"],
-    nodes: ["Header"],
-    axes: ALL,
-    reason: "both sides depart from the catalog header",
   },
 ];
 

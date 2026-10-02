@@ -30,7 +30,7 @@
     "types": 34,
     "PASS": 0,
     "PASS_withApprovedDifferences": 0,
-    "previewDefectFollowed": 2,
+    "previewDefectFollowed": 0,
     "FAIL": 0,
     "UNVERIFIED": 33,
     "NOT_RUN": 1,
@@ -1713,14 +1713,13 @@
         {
           "new": "project:node:host/project:node:subject::lib:template:component-gridlist-section__header",
           "old": "component-gridlist-section__header",
-          "rule": "gridlist-section-header",
-          "class": "bothDeviate"
+          "rule": "section-generated-css-unloaded",
+          "class": "decided"
         }
       ],
       "approvedClasses": [
-        "bothDeviate"
+        "decided"
       ],
-      "previewDefectFollowed": true,
       "failedLegs": [],
       "L3": {
         "measured": false,
@@ -1905,14 +1904,13 @@
         {
           "new": "project:node:host/project:node:subject::lib:template:component-listbox-section__header",
           "old": "component-listbox-section__header",
-          "rule": "listbox-section-header",
-          "class": "previewFollow"
+          "rule": "section-generated-css-unloaded",
+          "class": "decided"
         }
       ],
       "approvedClasses": [
-        "previewFollow"
+        "decided"
       ],
-      "previewDefectFollowed": true,
       "failedLegs": [],
       "L3": {
         "measured": false,
