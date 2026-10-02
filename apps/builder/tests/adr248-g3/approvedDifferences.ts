@@ -350,14 +350,6 @@ export const APPROVED_DIFFERENCES: readonly ApprovedDifference[] = [
   },
   // ── C. Preview defects the new side follows (Phase 4 fixes) ─────────────
   {
-    id: "pagination-wrap",
-    class: "previewFollow",
-    owners: ["Pagination"],
-    nodes: ["Button"],
-    axes: ["x", "y"],
-    reason: "Table hand CSS wraps the Pagination",
-  },
-  {
     id: "taglist-wrapper",
     class: "previewFollow",
     owners: ["TagGroup"],

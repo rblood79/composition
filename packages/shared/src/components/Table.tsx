@@ -1615,7 +1615,7 @@ export default React.memo(function Table<T extends { id: string | number }>(
       {shouldShowPagination &&
         ((isAsync && pageCount !== null) ||
           (effectiveStaticData && effectiveStaticData.length > 0)) && (
-          <div className="react-aria-Pagination">
+          <div className="react-aria-Pagination table-pagination">
             {isAsync && pageCount !== null ? (
               // 서버 사이드 페이지네이션 (API)
               <>

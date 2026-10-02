@@ -608,8 +608,6 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
   // `Form.tsx` renders RAC Form with label/necessity data attributes only (no size): the generated
   // `.react-aria-Form[data-size]` gap blocks never match.
   Form: () => ({ rootSizeAttribute: null }),
-  // `Table.css` `.react-aria-Pagination { flex-wrap: wrap }` (same layer, after the generated sheet).
-  Pagination: () => ({ layout: { flexWrap: "wrap" } }),
 };
 
 /**

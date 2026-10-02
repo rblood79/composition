@@ -273,3 +273,28 @@ describe("NumberField group — per-size padding", () => {
     workspace.dispose();
   });
 });
+
+/**
+ * pagination-wrap: `Table.css` styled its own page bar through `.react-aria-Pagination`, so the
+ * standalone Pagination component wrapped (`flex-wrap: wrap`, text-sm). The Table's bar carries
+ * `table-pagination` and the sheet is scoped to it; the Pagination keeps the catalog row.
+ */
+describe("Pagination — Table page bar sheet scoped to the Table", () => {
+  it("Table.css no longer styles a bare .react-aria-Pagination", () => {
+    const css = readFileSync(resolve(GENERATED, "../Table.css"), "utf8");
+    expect(css).not.toMatch(/(^|\n)\s*\.react-aria-Pagination\s*\{/);
+    expect(css).toContain(".react-aria-Pagination.table-pagination {");
+  });
+
+  it("the Canvas Pagination does not wrap its buttons", async () => {
+    const workspace = await openOwner("Pagination");
+    const root = workspace.root;
+    const owner = [...root.layoutInputs.values()].find(
+      (record) => record.sourceId === "project:node:owner",
+    )!;
+    expect(root.getLayoutInput(owner.id)).not.toMatchObject({
+      flexWrap: "wrap",
+    });
+    workspace.dispose();
+  });
+});
