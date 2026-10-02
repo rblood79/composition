@@ -5631,8 +5631,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     sizes: {
       // ADR-912 단계5 step4 small-B (2026-06-16): gap 보강 — spec 삭제 후 generated CSS `gap: Npx`
-      //   재생성용 (FileTrigger.spec.sizes 미러). padding 은 composition.containerStyles inline-block
-      //   ownsContainerBox → 미emit 이라 보강 불요(gap 만). iconSize 는 이미 존재.
+      //   재생성용 (FileTrigger.spec.sizes 미러). iconSize 는 이미 존재. height · paddingX 는 트리거
+      //   button 의 상자 (ADR-248 4e-10 — composition.containerStyles 제거로 두 소비자가 emit).
       sm: {
         paddingX: 12,
         fontSize: "{typography.text-sm}",
@@ -5681,10 +5681,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           focusRing: "{focus.ring.default}",
         },
       },
+      // ADR-248 4e-10 (2026-10-02): no `composition.containerStyles` — the root is the
+      //   self-composed `.react-aria-FileTrigger` button (renderFileTrigger, 2026-09-10), not a
+      //   wrapper around one, so the size box (height · paddingX) and the variant paint belong to it
+      //   in both consumers (an owned container box drops them from generated CSS and the Canvas).
       composition: {
-        containerStyles: {
-          display: "inline-block",
-        },
         staticSelectors: {
           "input[type='file']": {
             position: "absolute",

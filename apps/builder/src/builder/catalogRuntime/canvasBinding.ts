@@ -381,6 +381,7 @@ function ruleNodeData(
       authoredVisual: catalogAuthoredVisual(root, node),
       state: catalogNodeState(node.displayState, root.state),
       theme: root.colorMode,
+      singleLine: root.textKeptOnOneLine(node.id),
     }),
     x: rect.x,
     y: rect.y,

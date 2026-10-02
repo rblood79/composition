@@ -1710,6 +1710,24 @@ export class CatalogCompositionRoot {
     return this.wrapHeights.has(id);
   }
   /**
+   * Whether the layout sized this text leaf to its one-line max-content (measured, width-driven,
+   * not re-wrapped): its box is the exact fractional advance, so a paint that wraps at the box
+   * width would break a line CSS keeps. A rule-backed leaf's painter reads this.
+   */
+  textKeptOnOneLine(id: string): boolean {
+    const record = this.records.get(id);
+    if (!this.textMeasure || !record || this.wrapHeights.has(id)) return false;
+    if (heightOnlyTextTypes.has(this.typeOf(record))) return false;
+    return (
+      textLeaf(
+        record,
+        this.typeOf(record),
+        "",
+        inheritedLineHeight(record, (key) => this.records.get(key)),
+      ) !== undefined
+    );
+  }
+  /**
    * A DateInput's DOM content is its RAC date segments (`racDateSegmentParts` in the rendering
    * locale, padded by the owning field's `.react-aria-DateSegment` delegation, past the
    * SelectTrigger wrapper): the typed node has no text of its own. A DateRangePicker's one typed

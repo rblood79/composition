@@ -37,7 +37,7 @@
     "failedLegs": {
       "geometry": 1,
       "canvasDom": 1,
-      "L3": 1
+      "L3": 0
     }
   },
   "inputDiffKeys": {
@@ -58,8 +58,8 @@
       "types": 26
     },
     "contentMinHeight": {
-      "nodes": 19,
-      "types": 16
+      "nodes": 20,
+      "types": 17
     },
     "width": {
       "nodes": 28,
@@ -73,6 +73,22 @@
       "nodes": 24,
       "types": 13
     },
+    "borderTop": {
+      "nodes": 13,
+      "types": 12
+    },
+    "borderRight": {
+      "nodes": 13,
+      "types": 12
+    },
+    "borderBottom": {
+      "nodes": 13,
+      "types": 12
+    },
+    "borderLeft": {
+      "nodes": 13,
+      "types": 12
+    },
     "columnGap": {
       "nodes": 16,
       "types": 10
@@ -81,37 +97,21 @@
       "nodes": 16,
       "types": 10
     },
-    "borderTop": {
-      "nodes": 11,
-      "types": 10
-    },
-    "borderRight": {
-      "nodes": 11,
-      "types": 10
-    },
-    "borderBottom": {
-      "nodes": 11,
-      "types": 10
-    },
-    "borderLeft": {
-      "nodes": 11,
-      "types": 10
-    },
     "display": {
-      "nodes": 10,
-      "types": 7
+      "nodes": 12,
+      "types": 9
+    },
+    "paddingRight": {
+      "nodes": 9,
+      "types": 8
     },
     "minHeight": {
       "nodes": 11,
       "types": 7
     },
-    "paddingRight": {
-      "nodes": 7,
-      "types": 6
-    },
     "paddingLeft": {
-      "nodes": 10,
-      "types": 5
+      "nodes": 12,
+      "types": 7
     },
     "justifyContent": {
       "nodes": 5,
@@ -918,7 +918,7 @@
         "blocked": false
       },
       "L3e": {
-        "pixels": 4925,
+        "pixels": 4931,
         "different": 0,
         "ratio": 0,
         "maxByte": 0,
@@ -926,15 +926,15 @@
         "gated": false
       },
       "text": {
-        "pixels": 1434,
-        "different": 137,
-        "ratio": 0.09553695955369595,
+        "pixels": 1428,
+        "different": 173,
+        "ratio": 0.1211484593837535,
         "maxByte": 232,
         "diffBounds": [
           8,
           13,
-          154,
-          35
+          155,
+          36
         ],
         "gated": false
       },
@@ -6196,9 +6196,9 @@
       "liveIdentity": {
         "region": "capture clip",
         "pixels": 240000,
-        "different": 0,
-        "ratio": 0,
-        "maxByte": 0
+        "different": 146,
+        "ratio": 0.0006083333333333333,
+        "maxByte": 157
       },
       "L3": {
         "pixels": 233645,
@@ -10041,9 +10041,9 @@
       "liveIdentity": {
         "region": "capture clip",
         "pixels": 240000,
-        "different": 0,
-        "ratio": 0,
-        "maxByte": 0
+        "different": 25,
+        "ratio": 0.00010416666666666667,
+        "maxByte": 184
       },
       "L3": {
         "pixels": 234367,
@@ -10067,9 +10067,9 @@
         "blocked": false
       },
       "L3e": {
-        "pixels": 5103,
+        "pixels": 5102,
         "different": 6,
-        "ratio": 0.0011757789535567313,
+        "ratio": 0.0011760094080752645,
         "maxByte": 230,
         "diffBounds": [
           152,
@@ -10080,9 +10080,9 @@
         "gated": false
       },
       "text": {
-        "pixels": 530,
+        "pixels": 531,
         "different": 19,
-        "ratio": 0.035849056603773584,
+        "ratio": 0.035781544256120526,
         "maxByte": 202,
         "diffBounds": [
           145,
@@ -10325,9 +10325,9 @@
       "liveIdentity": {
         "region": "capture clip",
         "pixels": 240000,
-        "different": 0,
-        "ratio": 0,
-        "maxByte": 1
+        "different": 42,
+        "ratio": 0.000175,
+        "maxByte": 177
       },
       "L3": {
         "pixels": 233697,
@@ -10346,7 +10346,7 @@
         "blocked": false
       },
       "L3e": {
-        "pixels": 4904,
+        "pixels": 4911,
         "different": 0,
         "ratio": 0,
         "maxByte": 0,
@@ -10354,9 +10354,9 @@
         "gated": false
       },
       "text": {
-        "pixels": 1399,
+        "pixels": 1392,
         "different": 133,
-        "ratio": 0.09506790564689063,
+        "ratio": 0.09554597701149425,
         "maxByte": 232,
         "diffBounds": [
           8,
@@ -10468,6 +10468,12 @@
       "inputDiffs": [
         {
           "old": "",
+          "key": "display",
+          "oldValue": "inline-block",
+          "newValue": "inline-flex"
+        },
+        {
+          "old": "",
           "key": "alignItems",
           "oldValue": null,
           "newValue": "center"
@@ -10477,6 +10483,42 @@
           "key": "justifyContent",
           "oldValue": null,
           "newValue": "center"
+        },
+        {
+          "old": "",
+          "key": "paddingRight",
+          "oldValue": null,
+          "newValue": "24px"
+        },
+        {
+          "old": "",
+          "key": "paddingLeft",
+          "oldValue": null,
+          "newValue": "24px"
+        },
+        {
+          "old": "",
+          "key": "borderTop",
+          "oldValue": null,
+          "newValue": "1px"
+        },
+        {
+          "old": "",
+          "key": "borderRight",
+          "oldValue": null,
+          "newValue": "1px"
+        },
+        {
+          "old": "",
+          "key": "borderBottom",
+          "oldValue": null,
+          "newValue": "1px"
+        },
+        {
+          "old": "",
+          "key": "borderLeft",
+          "oldValue": null,
+          "newValue": "1px"
         }
       ],
       "geometry": {
@@ -10557,9 +10599,15 @@
       "inputDiffs": [
         {
           "old": "component-fileupload__2",
+          "key": "display",
+          "oldValue": "inline-block",
+          "newValue": "inline-flex"
+        },
+        {
+          "old": "component-fileupload__2",
           "key": "height",
           "oldValue": "24px",
-          "newValue": null
+          "newValue": "40px"
         },
         {
           "old": "component-fileupload__2",
@@ -10572,6 +10620,42 @@
           "key": "justifyContent",
           "oldValue": null,
           "newValue": "center"
+        },
+        {
+          "old": "component-fileupload__2",
+          "key": "paddingRight",
+          "oldValue": null,
+          "newValue": "24px"
+        },
+        {
+          "old": "component-fileupload__2",
+          "key": "paddingLeft",
+          "oldValue": null,
+          "newValue": "24px"
+        },
+        {
+          "old": "component-fileupload__2",
+          "key": "borderTop",
+          "oldValue": null,
+          "newValue": "1px"
+        },
+        {
+          "old": "component-fileupload__2",
+          "key": "borderRight",
+          "oldValue": null,
+          "newValue": "1px"
+        },
+        {
+          "old": "component-fileupload__2",
+          "key": "borderBottom",
+          "oldValue": null,
+          "newValue": "1px"
+        },
+        {
+          "old": "component-fileupload__2",
+          "key": "borderLeft",
+          "oldValue": null,
+          "newValue": "1px"
         },
         {
           "old": "component-fileupload__2",
@@ -10588,6 +10672,12 @@
         {
           "old": "component-fileupload__2",
           "key": "contentHeight",
+          "oldValue": null,
+          "newValue": 17
+        },
+        {
+          "old": "component-fileupload__2",
+          "key": "contentMinHeight",
           "oldValue": null,
           "newValue": 17
         },
@@ -10630,7 +10720,7 @@
       ],
       "geometry": {
         "pairedNodes": 11,
-        "maxDelta": 68.20999908447266,
+        "maxDelta": 118.20999908447266,
         "overOnePx": [
           {
             "new": "project:node:subject::lib:template:component-fileupload__2",
@@ -10638,8 +10728,8 @@
             "newRect": {
               "x": 30,
               "y": 94,
-              "width": 68.20999908447266,
-              "height": 17
+              "width": 118.20999908447266,
+              "height": 21
             },
             "oldRect": {
               "x": 30,
@@ -10657,29 +10747,42 @@
                   "allowsMultiple": true
                 },
                 "layout": {
-                  "display": "inline-block",
+                  "display": "inline-flex",
                   "alignItems": "center",
                   "justifyContent": "center"
                 },
                 "sizing": {},
                 "visual": {
                   "width": "fit-content",
+                  "height": 40,
+                  "paddingX": 24,
                   "gap": 8,
                   "fontSize": 14,
                   "radius": 6,
+                  "borderWidth": 1,
                   "iconSize": 16
                 },
                 "placement": null,
                 "engineInput": {
-                  "display": "inline-block",
+                  "display": "inline-flex",
                   "alignItems": "center",
                   "justifyContent": "center",
                   "width": "fit-content",
+                  "height": "40px",
                   "rowGap": "8px",
                   "columnGap": "8px",
+                  "paddingTop": "0px",
+                  "paddingBottom": "0px",
+                  "paddingRight": "24px",
+                  "paddingLeft": "24px",
+                  "borderTop": "1px",
+                  "borderRight": "1px",
+                  "borderBottom": "1px",
+                  "borderLeft": "1px",
                   "contentMinWidth": 40,
                   "contentMaxWidth": 68.20999908447266,
-                  "contentHeight": 17
+                  "contentHeight": 17,
+                  "contentMinHeight": 17
                 }
               },
               "parent": {
@@ -10743,7 +10846,7 @@
             "old": "component-fileupload__3",
             "newRect": {
               "x": 30,
-              "y": 123,
+              "y": 127,
               "width": 220,
               "height": 32
             },
@@ -10864,7 +10967,7 @@
             "old": "component-fileupload__3/component-progressbar__1",
             "newRect": {
               "x": 30,
-              "y": 123,
+              "y": 127,
               "width": 65.87000274658203,
               "height": 20
             },
@@ -10983,7 +11086,7 @@
             "old": "component-fileupload__3/component-progressbar__2",
             "newRect": {
               "x": 166.33999633789062,
-              "y": 123,
+              "y": 127,
               "width": 83.66000366210938,
               "height": 20
             },
@@ -11096,7 +11199,7 @@
             "old": "component-fileupload__3/component-progressbar__3",
             "newRect": {
               "x": 30,
-              "y": 147,
+              "y": 151,
               "width": 220,
               "height": 8
             },
@@ -11201,7 +11304,7 @@
             "old": "component-fileupload__4",
             "newRect": {
               "x": 30,
-              "y": 167,
+              "y": 171,
               "width": 220,
               "height": 32
             },
@@ -11322,7 +11425,7 @@
             "old": "component-fileupload__4/component-progressbar__1",
             "newRect": {
               "x": 30,
-              "y": 167,
+              "y": 171,
               "width": 61.869998931884766,
               "height": 20
             },
@@ -11441,7 +11544,7 @@
             "old": "component-fileupload__4/component-progressbar__2",
             "newRect": {
               "x": 165.02999877929688,
-              "y": 167,
+              "y": 171,
               "width": 84.97000122070312,
               "height": 20
             },
@@ -11554,7 +11657,7 @@
             "old": "component-fileupload__4/component-progressbar__3",
             "newRect": {
               "x": 30,
-              "y": 191,
+              "y": 195,
               "width": 220,
               "height": 8
             },
@@ -11665,7 +11768,7 @@
       "canvasDom": {
         "pairedNodes": 10,
         "ownedPairs": 6,
-        "maxDelta": 73,
+        "maxDelta": 68,
         "overOnePx": [
           {
             "id": "project:node:subject::lib:template:component-fileupload__1",
@@ -11686,13 +11789,13 @@
             "id": "project:node:subject::lib:template:component-fileupload__3",
             "canvas": {
               "x": 30,
-              "y": 123,
+              "y": 127,
               "width": 220,
               "height": 32
             },
             "dom": {
               "x": 30,
-              "y": 196,
+              "y": 192,
               "width": 220,
               "height": 32
             }
@@ -11701,13 +11804,13 @@
             "id": "project:node:subject/lib:template:component-fileupload__3::lib:template:component-progressbar__1",
             "canvas": {
               "x": 30,
-              "y": 123,
+              "y": 127,
               "width": 65.87000274658203,
               "height": 20
             },
             "dom": {
               "x": 30,
-              "y": 196,
+              "y": 192,
               "width": 65.875,
               "height": 20
             },
@@ -11717,13 +11820,13 @@
             "id": "project:node:subject/lib:template:component-fileupload__3::lib:template:component-progressbar__2",
             "canvas": {
               "x": 166.33999633789062,
-              "y": 123,
+              "y": 127,
               "width": 83.66000366210938,
               "height": 20
             },
             "dom": {
               "x": 166.328125,
-              "y": 196,
+              "y": 192,
               "width": 83.671875,
               "height": 20
             },
@@ -11733,13 +11836,13 @@
             "id": "project:node:subject/lib:template:component-fileupload__3::lib:template:component-progressbar__3",
             "canvas": {
               "x": 30,
-              "y": 147,
+              "y": 151,
               "width": 220,
               "height": 8
             },
             "dom": {
               "x": 30,
-              "y": 220,
+              "y": 216,
               "width": 220,
               "height": 8
             },
@@ -11749,13 +11852,13 @@
             "id": "project:node:subject::lib:template:component-fileupload__4",
             "canvas": {
               "x": 30,
-              "y": 167,
+              "y": 171,
               "width": 220,
               "height": 32
             },
             "dom": {
               "x": 30,
-              "y": 240,
+              "y": 236,
               "width": 220,
               "height": 32
             }
@@ -11764,13 +11867,13 @@
             "id": "project:node:subject/lib:template:component-fileupload__4::lib:template:component-progressbar__1",
             "canvas": {
               "x": 30,
-              "y": 167,
+              "y": 171,
               "width": 61.869998931884766,
               "height": 20
             },
             "dom": {
               "x": 30,
-              "y": 240,
+              "y": 236,
               "width": 61.875,
               "height": 20
             },
@@ -11780,13 +11883,13 @@
             "id": "project:node:subject/lib:template:component-fileupload__4::lib:template:component-progressbar__2",
             "canvas": {
               "x": 165.02999877929688,
-              "y": 167,
+              "y": 171,
               "width": 84.97000122070312,
               "height": 20
             },
             "dom": {
               "x": 165.015625,
-              "y": 240,
+              "y": 236,
               "width": 84.984375,
               "height": 20
             },
@@ -11796,13 +11899,13 @@
             "id": "project:node:subject/lib:template:component-fileupload__4::lib:template:component-progressbar__3",
             "canvas": {
               "x": 30,
-              "y": 191,
+              "y": 195,
               "width": 220,
               "height": 8
             },
             "dom": {
               "x": 30,
-              "y": 264,
+              "y": 260,
               "width": 220,
               "height": 8
             },
@@ -11818,7 +11921,7 @@
             "new": "project:node:subject::lib:template:component-fileupload__3",
             "dom": {
               "x": 30,
-              "y": 196,
+              "y": 192,
               "width": 220,
               "height": 32
             }
@@ -11827,7 +11930,7 @@
             "new": "project:node:subject/lib:template:component-fileupload__3::lib:template:component-progressbar__1",
             "dom": {
               "x": 30,
-              "y": 196,
+              "y": 192,
               "width": 65.875,
               "height": 20
             }
@@ -11836,7 +11939,7 @@
             "new": "project:node:subject/lib:template:component-fileupload__3::lib:template:component-progressbar__2",
             "dom": {
               "x": 166.328125,
-              "y": 196,
+              "y": 192,
               "width": 83.671875,
               "height": 20
             }
@@ -11845,7 +11948,7 @@
             "new": "project:node:subject/lib:template:component-fileupload__3::lib:template:component-progressbar__3",
             "dom": {
               "x": 30,
-              "y": 220,
+              "y": 216,
               "width": 220,
               "height": 8
             }
@@ -11854,7 +11957,7 @@
             "new": "project:node:subject::lib:template:component-fileupload__4",
             "dom": {
               "x": 30,
-              "y": 240,
+              "y": 236,
               "width": 220,
               "height": 32
             }
@@ -11863,7 +11966,7 @@
             "new": "project:node:subject/lib:template:component-fileupload__4::lib:template:component-progressbar__1",
             "dom": {
               "x": 30,
-              "y": 240,
+              "y": 236,
               "width": 61.875,
               "height": 20
             }
@@ -11872,7 +11975,7 @@
             "new": "project:node:subject/lib:template:component-fileupload__4::lib:template:component-progressbar__2",
             "dom": {
               "x": 165.015625,
-              "y": 240,
+              "y": 236,
               "width": 84.984375,
               "height": 20
             }
@@ -11881,7 +11984,7 @@
             "new": "project:node:subject/lib:template:component-fileupload__4::lib:template:component-progressbar__3",
             "dom": {
               "x": 30,
-              "y": 264,
+              "y": 260,
               "width": 220,
               "height": 8
             }
@@ -11899,48 +12002,47 @@
         "maxByte": 1
       },
       "L3": {
-        "pixels": 227982,
-        "different": 238,
-        "ratio": 0.0010439420656016703,
-        "maxByte": 227,
+        "pixels": 227141,
+        "different": 215,
+        "ratio": 0.0009465486195799085,
+        "maxByte": 232,
         "diffBounds": [
-          12,
+          17,
           65,
           151,
           82
         ],
-        "blocked": true
+        "blocked": false
       },
       "L3e": {
-        "pixels": 8233,
-        "different": 889,
-        "ratio": 0.10798008016518887,
+        "pixels": 8809,
+        "different": 772,
+        "ratio": 0.0876376433193325,
         "maxByte": 232,
         "diffBounds": [
           8,
           66,
           153,
-          123
+          126
         ],
         "gated": false
       },
       "text": {
-        "pixels": 3785,
-        "different": 720,
-        "ratio": 0.190224570673712,
+        "pixels": 4050,
+        "different": 863,
+        "ratio": 0.21308641975308643,
         "maxByte": 232,
         "diffBounds": [
           7,
           54,
-          143,
-          126
+          156,
+          117
         ],
         "gated": false
       },
       "failedLegs": [
         "geometry",
-        "canvasDom",
-        "L3"
+        "canvasDom"
       ],
       "verdict": "FAIL"
     },

@@ -136,7 +136,10 @@ export function cssVarColor(value: unknown, theme: "light" | "dark"): unknown {
 }
 
 /** Display states whose rule paint (variant fill/text/border) the executor draws for a node. */
-const INTERACTION_STATES: ReadonlySet<StateName> = new Set(["hover", "pressed"]);
+const INTERACTION_STATES: ReadonlySet<StateName> = new Set([
+  "hover",
+  "pressed",
+]);
 const SELECTION_STATES: ReadonlySet<StateName> = new Set([
   "selected",
   "selectedHover",
@@ -147,10 +150,8 @@ const SELECTION_STATES: ReadonlySet<StateName> = new Set([
  * selection). Other states reach it only through typed rules (disabled opacity) — the G3 census
  * classifies registered state axes by this set.
  */
-export const CATALOG_RULE_EXECUTOR_PAINT_STATES: ReadonlySet<StateName> = new Set([
-  ...INTERACTION_STATES,
-  ...SELECTION_STATES,
-]);
+export const CATALOG_RULE_EXECUTOR_PAINT_STATES: ReadonlySet<StateName> =
+  new Set([...INTERACTION_STATES, ...SELECTION_STATES]);
 
 function interaction(state: StateName | undefined) {
   return state && INTERACTION_STATES.has(state)
@@ -168,6 +169,8 @@ export interface CatalogRuleShapeInput {
   readonly authoredVisual: Readonly<Record<string, unknown>>;
   readonly state?: StateName;
   readonly theme?: "light" | "dark";
+  /** The layout kept this text leaf on one line (`textKeptOnOneLine`): its text paints unwrapped. */
+  readonly singleLine?: boolean;
 }
 
 /**
@@ -188,7 +191,9 @@ function catalogRulePaint(
   for (const [key, value] of Object.entries(authoredVisual)) {
     const styleKey = PAINT_STYLE_KEYS[key] ?? GEOMETRY_STYLE_KEYS[key];
     if (styleKey)
-      style[styleKey] = PAINT_STYLE_KEYS[key] ? cssVarColor(value, theme) : value;
+      style[styleKey] = PAINT_STYLE_KEYS[key]
+        ? cssVarColor(value, theme)
+        : value;
   }
   const props: Record<string, unknown> = { ...node.props };
   // RAC `data-selected`: the rule's selected paint (and the `_isSelected` data branch the
@@ -204,7 +209,9 @@ function catalogRulePaint(
     props._isSelected = true;
   } else if (ownerSelected === false) delete props.isSelected;
   if (state === "disabled") props.isDisabled = true;
-  props.style = box ? { ...style, width: box.width, height: box.height } : style;
+  props.style = box
+    ? { ...style, width: box.width, height: box.height }
+    : style;
   if (SHELL_ONLY_TYPES.has(type)) props._hasChildren = true;
   else if (
     type !== "TreeItem" &&
@@ -344,9 +351,15 @@ export function catalogRuleNodeData(
   ] as Record<string, unknown> | undefined;
   normalizeMiddleBaselineTextLineHeight(shapes, size ?? {});
   // Table cells and columns are one line cut at their box with an ellipsis (Table.css
-  // `.react-aria-Cell, .react-aria-Column`: nowrap · hidden · ellipsis).
+  // `.react-aria-Cell, .react-aria-Column`: nowrap · hidden · ellipsis). A leaf the layout kept on
+  // one line is one line at its fractional max-content box.
   const tableText = input.type === "Cell" || input.type === "Column";
-  if (input.type === "Tag" || input.type === "Badge" || tableText)
+  if (
+    input.singleLine ||
+    input.type === "Tag" ||
+    input.type === "Badge" ||
+    tableText
+  )
     for (const shape of shapes)
       if (shape.type === "text" && shape.whiteSpace == null)
         shape.whiteSpace = "nowrap";
