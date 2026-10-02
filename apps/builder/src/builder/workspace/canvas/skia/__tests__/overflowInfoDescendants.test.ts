@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { CanvasSceneNode } from "../../scene/canvasSceneNode";
+import type { CanvasSceneNode } from "../../scene/canvasSceneNodeTypes";
 import type { BoundingBox } from "../../selection/types";
 import {
   buildChildOverflowContextMap,

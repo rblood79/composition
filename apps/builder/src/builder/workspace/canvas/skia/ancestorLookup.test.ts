@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { findAncestorByTag } from "./ancestorLookup";
-import type { CanvasSceneNode } from "../scene/canvasSceneNode";
+import type { CanvasSceneNode } from "../scene/canvasSceneNodeTypes";
 
 function el(
   id: string,

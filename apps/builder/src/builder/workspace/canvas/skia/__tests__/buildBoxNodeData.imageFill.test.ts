@@ -36,7 +36,7 @@ import {
   type ImageFillItem,
   type LinearGradientFillItem,
 } from "../../../../../types/builder/fill.types";
-import type { CanvasSceneNode } from "../../scene/canvasSceneNode";
+import type { CanvasSceneNode } from "../../scene/canvasSceneNodeTypes";
 import type { ComputedLayout } from "../../layout/engines/LayoutEngine";
 
 const layout = { x: 0, y: 0, width: 200, height: 100 } as ComputedLayout;

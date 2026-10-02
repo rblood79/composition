@@ -6,7 +6,7 @@ import {
   type LinearGradientFillItem,
   type MeshGradientFillItem,
 } from "../../../../../types/builder/fill.types";
-import type { CanvasSceneNode } from "../../scene/canvasSceneNode";
+import type { CanvasSceneNode } from "../../scene/canvasSceneNodeTypes";
 import type { ComputedLayout } from "../../layout/engines/LayoutEngine";
 
 /**

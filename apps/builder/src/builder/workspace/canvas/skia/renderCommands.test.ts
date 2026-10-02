@@ -2,7 +2,7 @@
 
 import { afterEach, describe, expect, it } from "vitest";
 import type { Canvas, CanvasKit } from "canvaskit-wasm";
-import type { CanvasSceneNode } from "../scene/canvasSceneNode";
+import type { CanvasSceneNode } from "../scene/canvasSceneNodeTypes";
 import { clearSkiaRegistry, registerSkiaNode } from "./useSkiaNode";
 import { setDragVisualOffset } from "./nodeRendererTree";
 import { setEditingElementId } from "./nodeRendererState";

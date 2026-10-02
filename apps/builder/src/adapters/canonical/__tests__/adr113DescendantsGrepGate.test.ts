@@ -44,6 +44,7 @@ const CANONICAL_DESCENDANTS_ALLOWLIST = new Set([
   // canonical 파생 뷰 모델 — RefNode.descendants 를 scene / panel 노드로 투영한다.
   // (ADR-126/135 이후 신설. gate 작성 시점에는 없던 canonical 경계 파일.)
   "apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts",
+  "apps/builder/src/builder/workspace/canvas/scene/canvasSceneNodeTypes.ts",
   "apps/builder/src/builder/panels/panelNode.ts",
   // canonical 노드를 순회·투영하는 경계 2개 — 위 두 파일과 같은 역할이고
   // 읽는 것도 canonical `RefNode.descendants` 다 (legacy Element 접근 아님).
