@@ -4,7 +4,7 @@
  * 기존 요소의 속성/스타일 수정 (AIPanel.tsx의 executeIntent modify case 추출)
  */
 
-import { canOperate } from "../../../builder/domain/canOperate";
+import { resolveSubpartStyleOwnerType } from "@composition/shared";
 import type {
   ToolExecutionResult,
   ToolExecutor,
@@ -20,6 +20,27 @@ import {
   findUnappliedProps,
   findUnappliedStyles,
 } from "./mutationVerification";
+
+/** The type that owns the element's style (a delegated sub-part), else null. */
+function subpartStyleOwnerOf(
+  id: string,
+  elementsById: ReadonlyMap<
+    string,
+    { type: string; parent_id?: string | null }
+  >,
+): string | null {
+  const self = elementsById.get(id);
+  const parent = self?.parent_id ? elementsById.get(self.parent_id) : undefined;
+  if (!self || !parent) return null;
+  const grandparent = parent.parent_id
+    ? elementsById.get(parent.parent_id)
+    : undefined;
+  return resolveSubpartStyleOwnerType(
+    self.type,
+    parent.type,
+    grandparent?.type,
+  );
+}
 
 export const updateElementTool: ToolExecutor = {
   name: "update_element",
@@ -73,9 +94,11 @@ export const updateElementTool: ToolExecutor = {
 
       // 위임 sub-part (TextField 의 Label 등) 의 style 은 owner rule 이 정한다 — 쓰면 layout · Skia · DOM
       //   이 모두 무시하고 성공만 보고된다. 캔버스 resize · spacing 과 같은 판정 (ADR-236 Phase 3, A-2).
+      //   ADR-248 4e-7: judged on the read model's chain (self · parent · grandparent types) — the
+      //   old store's synthetic-child lookup is the old store host's (`aiHosts.store.ts`).
       if (
         (Object.keys(newStyles).length > 0 || newFills) &&
-        !canOperate("editStyle", targetId, (id) => elementsById.get(id)).ok
+        subpartStyleOwnerOf(targetId, elementsById)
       ) {
         return {
           success: false,

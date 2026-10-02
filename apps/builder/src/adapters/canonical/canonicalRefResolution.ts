@@ -7,7 +7,6 @@ import {
   resolveGroupExpandedDisclosureIds,
   resolveSectionItemKey,
   resolveTemplateBindingValues,
-  resolveTreeItemKey,
   SECTION_TYPES,
   STATIC_LIST_FAMILY_BY_OWNER,
   substituteTemplateBindingsInChildren,
@@ -23,6 +22,7 @@ import type { LegacyElementMirrorFields } from "./legacyElementFields";
 import { readLegacyMetadataCustomId } from "./legacyMetadata";
 import { isRenderProjectionId } from "../../builder/projection/renderProjectionIds";
 import { createPopoverChildFilter } from "./popoverContent";
+import { resolveCanvasTreeItemKey } from "../../builder/workspace/canvas/treeItemRow";
 import {
   buildStateLayerSet,
   omitOwnedKeys,
@@ -1487,43 +1487,8 @@ function selectionOwnerDepth(ownerType: string): number {
   return ownerType === "Tree" ? TREE_OWNER_MAX_DEPTH : 3;
 }
 
-/**
- * ADR-239 Phase 1 — Canvas 해석 트리의 TreeItem RAC key (Preview `renderTree` 와 같은 `resolveTreeItemKey`). instance
- * 판정 = 해석 노드의 `ref` (Canvas 는 ref 를 남긴다 — Preview 는 `_resolvedFrom`).
- */
-export function resolveCanvasTreeItemKey<T extends CanonicalRefResolvableNode>(
-  element: T,
-  elementsMap: Map<string, T>,
-): string {
-  return resolveTreeItemKey(
-    {
-      id: element.id,
-      type: element.type,
-      props: getNodeProps(element),
-      node: element,
-    } as TreeKeyNode<T>,
-    (item) => {
-      const parentId = getParentId(item.node);
-      const parent = parentId ? elementsMap.get(parentId) : undefined;
-      return parent && parent.type === "TreeItem"
-        ? {
-            id: parent.id,
-            type: parent.type,
-            props: getNodeProps(parent),
-            node: parent,
-          }
-        : undefined;
-    },
-    (item) => typeof (item.node as { ref?: unknown }).ref === "string",
-  );
-}
-
-type TreeKeyNode<T> = {
-  id: string;
-  type: string;
-  props: Record<string, unknown>;
-  node: T;
-};
+/** ADR-239 Phase 1 — moved to `treeItemRow.ts` (ADR-248 4e-7: the Canvas owns it). */
+export { resolveCanvasTreeItemKey };
 
 /** owner 의 선택 key (`selectedKey ?? defaultSelectedKey` · `selectedKeys ?? defaultSelectedKeys`) 에 key 가 있나. */
 function isOwnerSelectedKey(

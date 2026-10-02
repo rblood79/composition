@@ -23,7 +23,10 @@ import type { ItemsManagerField } from "@composition/specs";
 import { useVisibleVariableNames } from "../hooks/useVisibleVariableNames";
 
 import { PropertyChipGroup } from "../../../components/property/PropertyChipGroup";
-import { PropertyDataBinding, PropertyDataBindingCreateAction } from "../../../components/property/PropertyDataBinding";
+import {
+  PropertyDataBinding,
+  PropertyDataBindingCreateAction,
+} from "../../../components/property/PropertyDataBinding";
 import { PropertyFieldTemplateInput } from "../../../components/property/PropertyFieldTemplateInput";
 import { PropertyIconPicker } from "../../../components/property/PropertyIconPicker";
 import { PropertyInput } from "../../../components/property/PropertyInput";
@@ -52,10 +55,13 @@ import { evaluateVisibility } from "./evaluateVisibility";
 import { ItemsManager } from "./ItemsManager";
 import {
   TEMPLATE_TEXT_KEYS,
-  useOwnerCollectionFields,
   type OwnerField,
 } from "../hooks/useOwnerCollectionColumns";
-import { useFieldValue, useFieldValuesSnapshot } from "./fieldValueSource";
+import {
+  useFieldOwnerFields,
+  useFieldValue,
+  useFieldValuesSnapshot,
+} from "./fieldValueSource";
 
 /**
  * ResolvedField.itemsManager(catalog self-contained schema) → specs `ItemsManagerField` 투영.
@@ -412,12 +418,7 @@ function FieldRowResetAction({
   const { t } = useI18n();
   const first = row[0]!;
   const second = row[1] ?? first;
-  const v0 = useFieldValue(
-    elementId,
-    first.origin,
-    first.key,
-    first.baseValue,
-  );
+  const v0 = useFieldValue(elementId, first.origin, first.key, first.baseValue);
   const v1 = useFieldValue(
     elementId,
     second.origin,
@@ -824,12 +825,7 @@ const ChipGroupField = memo(function ChipGroupField({
   const bases = useMemo(() => fields.map((f) => f.baseValue), [fields]);
   // 묶음의 origin 은 같다 (semantic) — 첫 필드 기준
   const origin = fields[0]?.origin ?? "semantic";
-  const snapshot = useFieldValuesSnapshot(
-    elementId,
-    origin,
-    keys,
-    bases,
-  );
+  const snapshot = useFieldValuesSnapshot(elementId, origin, keys, bases);
   const chips = useMemo<PropertyChip[]>(() => {
     const values = JSON.parse(snapshot) as unknown[];
     return fields.map((field, index) => {
@@ -984,7 +980,7 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
   literalOptionFields,
 }: GenericFieldRendererProps) {
   // ADR-159 P4a: 조상(또는 master 소비자) collection 소유자의 컬럼 — 필드 피커 소스.
-  const ownerFields = useOwnerCollectionFields(elementId);
+  const ownerFields = useFieldOwnerFields(elementId);
   const ownerColumns = useMemo(
     () => ownerFields?.map((f) => f.key) ?? null,
     [ownerFields],

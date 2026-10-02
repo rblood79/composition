@@ -229,10 +229,19 @@ export const storeAiWriteHost: AiWriteHost = {
     return { ok: true, elementId: newElement.id, parentId };
   },
 
-  async update(id, input) {
+  async update(id, input, t = echo) {
     const { updateElement, updateElementProps } = getStoreState();
-    const element = storeElements().find((el) => el.id === id);
+    const elementsById = new Map(
+      storeElements().map((el) => [el.id, el] as const),
+    );
+    const element = elementsById.get(id);
     if (!element) return { ok: false, error: `Element not found: ${id}` };
+    // 위임 sub-part 의 style 은 owner rule 이 정한다 — instance 의 synthetic 자식까지 (ADR-236 A-2).
+    if (
+      (Object.keys(input.styles ?? {}).length > 0 || input.fills) &&
+      !canOperate("editStyle", id, (key) => elementsById.get(key)).ok
+    )
+      return { ok: false, error: t("aiToolError.subpartStyleOwned", { id }) };
     const newStyles = { ...(input.styles ?? {}) };
     const updates: Record<string, unknown> = { ...(input.props ?? {}) };
     if (Object.keys(newStyles).length > 0 || input.fills) {

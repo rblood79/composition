@@ -34,9 +34,9 @@ import { evaluateVisibility } from "./evaluateVisibility";
 import { ItemsManager } from "./ItemsManager";
 import {
   TEMPLATE_TEXT_KEYS,
-  useOwnerCollectionFields,
   type OwnerField,
 } from "../hooks/useOwnerCollectionColumns";
+import { useOwnerCollectionFields } from "../hooks/useOwnerCollectionColumns.legacy";
 
 /**
  * catalog `InspectorField.itemsManager`(self-contained schema) → specs `ItemsManagerField`
@@ -261,8 +261,10 @@ export const CatalogInspectorFields = memo(function CatalogInspectorFields({
       )}
 
       {groups.map((group, groupIndex) => {
-        const visible = group.fields.filter((f) =>
-          !f.editorHidden && evaluateVisibility(f.visibleWhen, currentProps, parentTag),
+        const visible = group.fields.filter(
+          (f) =>
+            !f.editorHidden &&
+            evaluateVisibility(f.visibleWhen, currentProps, parentTag),
         );
         const showCustomId =
           groupIndex === contentIndex && customIdControl != null;

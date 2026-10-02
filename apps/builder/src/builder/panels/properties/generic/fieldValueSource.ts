@@ -1,14 +1,12 @@
 import { createContext, useContext } from "react";
 import type { FieldOrigin } from "@composition/shared";
-import {
-  useCanonicalPropertyValue,
-  useCanonicalPropertyValuesSnapshot,
-} from "../hooks/useCanonicalPropertyRead";
+import type { OwnerField } from "../hooks/useOwnerCollectionColumns";
 
 /**
  * Where the generic field renderer reads a field's shown value. Each function is a hook (it
- * subscribes to one value). The default is the old canonical store; the catalog Properties panel
- * (ADR-248 Phase 4e-4) provides the read model's prop sources, so the renderer itself is shared.
+ * subscribes to one value). The catalog Properties panel (ADR-248 Phase 4e-4) provides the read
+ * model's prop sources, so the renderer itself is shared. 4e-7: no default — the old canonical
+ * store's source is `fieldValueSource.store.ts` (old-store tests only).
  */
 export interface FieldValueSource {
   useValue(
@@ -24,15 +22,30 @@ export interface FieldValueSource {
     keys: readonly string[],
     baseValues: readonly unknown[],
   ): string;
+  /**
+   * The fields of the collection that owns the element (`{field}` templates) — a hook; absent =
+   * none (the catalog source has none yet).
+   */
+  useOwnerFields?(elementId: string | undefined): OwnerField[] | null;
 }
 
-const CANONICAL_SOURCE: FieldValueSource = {
-  useValue: useCanonicalPropertyValue,
-  useValuesSnapshot: useCanonicalPropertyValuesSnapshot,
-};
+export const FieldValueSourceContext = createContext<FieldValueSource | null>(
+  null,
+);
 
-export const FieldValueSourceContext =
-  createContext<FieldValueSource>(CANONICAL_SOURCE);
+/** Old-store tests only (`fieldValueSource.store.ts`, removed with the old store): the source without a provider. */
+let testFallback: FieldValueSource | null = null;
+export function setFieldValueSourceTestFallback(
+  source: FieldValueSource | null,
+): void {
+  testFallback = source;
+}
+
+function useFieldValueSource(): FieldValueSource {
+  const source = useContext(FieldValueSourceContext) ?? testFallback;
+  if (!source) throw new Error("Field value source is not provided");
+  return source;
+}
 
 export function useFieldValue(
   elementId: string | null | undefined,
@@ -40,12 +53,7 @@ export function useFieldValue(
   key: string,
   baseValue: unknown,
 ): unknown {
-  return useContext(FieldValueSourceContext).useValue(
-    elementId,
-    origin,
-    key,
-    baseValue,
-  );
+  return useFieldValueSource().useValue(elementId, origin, key, baseValue);
 }
 
 export function useFieldValuesSnapshot(
@@ -54,10 +62,19 @@ export function useFieldValuesSnapshot(
   keys: readonly string[],
   baseValues: readonly unknown[],
 ): string {
-  return useContext(FieldValueSourceContext).useValuesSnapshot(
+  return useFieldValueSource().useValuesSnapshot(
     elementId,
     origin,
     keys,
     baseValues,
   );
+}
+
+/** The owning collection's fields of an element (`{field}` templates); null = none. */
+export function useFieldOwnerFields(
+  elementId: string | undefined,
+): OwnerField[] | null {
+  const source = useFieldValueSource();
+  // A source's hook set does not change while it is provided (one provider per panel).
+  return source.useOwnerFields ? source.useOwnerFields(elementId) : null;
 }

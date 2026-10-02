@@ -12,9 +12,9 @@ import {
   resolveBindingSelectionMode,
   resolveBindingSelectionStyle,
   resolveSelectionCheckboxVisible,
+  resolveTreeItemKey,
 } from "@composition/shared";
 
-import { resolveCanvasTreeItemKey } from "../../../adapters/canonical/canonicalRefResolution";
 import { resolveSkiaRule } from "./skia/resolveSkiaVisualRule";
 
 /** 판정에 필요한 최소 노드 — CanvasSceneNode · CanvasLayoutNode 공통. */
@@ -23,6 +23,47 @@ export interface TreeRowNode {
   type: string;
   parent_id?: string | null;
   props?: Record<string, unknown> | null;
+}
+
+/** A resolved Canvas node as the TreeItem key reads it (`ref` = an instance). */
+type TreeKeySource = {
+  id: string;
+  type: string;
+  props?: Record<string, unknown> | null;
+  parent_id?: string | null;
+  parentId?: string | null;
+};
+
+type TreeKeyNode<T> = {
+  id: string;
+  type: string;
+  props: Record<string, unknown>;
+  node: T;
+};
+
+/**
+ * ADR-239 Phase 1 — Canvas 해석 트리의 TreeItem RAC key (Preview `renderTree` 와 같은 `resolveTreeItemKey`). instance
+ * 판정 = 해석 노드의 `ref` (Canvas 는 ref 를 남긴다 — Preview 는 `_resolvedFrom`).
+ */
+export function resolveCanvasTreeItemKey<T extends TreeKeySource>(
+  element: T,
+  elementsMap: ReadonlyMap<string, T>,
+): string {
+  const asItem = (node: T): TreeKeyNode<T> => ({
+    id: node.id,
+    type: node.type,
+    props: node.props ?? {},
+    node,
+  });
+  return resolveTreeItemKey(
+    asItem(element),
+    (item) => {
+      const parentId = item.node.parentId ?? item.node.parent_id ?? null;
+      const parent = parentId ? elementsMap.get(parentId) : undefined;
+      return parent && parent.type === "TreeItem" ? asItem(parent) : undefined;
+    },
+    (item) => typeof (item.node as { ref?: unknown }).ref === "string",
+  );
 }
 
 /**
@@ -167,13 +208,14 @@ export function isTreeItemExpanded<N extends TreeRowNode>(
 ): boolean {
   const tree = findOwnerTree(element, elementsMap);
   if (!tree) {
-    return (element.props as Record<string, unknown> | undefined)?.isExpanded !== false;
+    return (
+      (element.props as Record<string, unknown> | undefined)?.isExpanded !==
+      false
+    );
   }
-  const keys = (tree.props as Record<string, unknown> | undefined)?.expandedKeys;
+  const keys = (tree.props as Record<string, unknown> | undefined)
+    ?.expandedKeys;
   if (!Array.isArray(keys) || keys.length === 0) return false;
-  const key = resolveCanvasTreeItemKey(
-    element as never,
-    elementsMap as never,
-  );
+  const key = resolveCanvasTreeItemKey(element as never, elementsMap as never);
   return keys.some((entry) => String(entry) === key);
 }

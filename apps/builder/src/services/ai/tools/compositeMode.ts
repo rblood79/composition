@@ -4,12 +4,12 @@
  * reads it.
  */
 import { COMPLEX_COMPONENT_TAGS } from "../../../builder/factories/constants";
-import { getReusableCompositeOriginId } from "../../../builder/components/reusableCompositeOrigins";
+import { getReusableOriginId as getCatalogReusableOriginId } from "@composition/shared";
 
 export type CompositeMode = "reusable" | "complex" | "leaf";
 
 export function resolveCompositeMode(type: string): CompositeMode {
-  if (getReusableCompositeOriginId(type)) return "reusable";
+  if (getCatalogReusableOriginId(type)) return "reusable";
   if (COMPLEX_COMPONENT_TAGS.has(type)) return "complex";
   return "leaf";
 }

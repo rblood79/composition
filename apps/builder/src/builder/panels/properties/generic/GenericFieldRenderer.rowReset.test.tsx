@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import "./fieldValueSource.store"; // old-store field value source (ADR-248 4e-7: goes with the old store)
 import type { ResolvedField } from "@composition/shared";
 import { I18nProvider } from "@/i18n";
 import {

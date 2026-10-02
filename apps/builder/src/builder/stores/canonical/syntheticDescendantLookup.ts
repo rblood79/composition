@@ -1,5 +1,4 @@
 import {
-  hasSyntheticIdPath,
   splitSyntheticId,
   SYNTHETIC_ID_SEPARATOR,
   type CanonicalNode,
@@ -16,6 +15,8 @@ import {
   type CanonicalProjectableNodeLookup,
 } from "./canonicalTraversalHelpers";
 
+import { isSyntheticDescendantId } from "../../projection/syntheticDescendantId";
+
 /**
  * ADR-229 Phase 2 (F15) — synthetic 자식 (`<instance>/<path>`) 의 패널 표면.
  *
@@ -31,16 +32,7 @@ import {
  * 문서 참조당 instance 별 1회 해소 (WeakMap). 문서 mutation 은 참조 교체라 캐시가 자연 무효.
  */
 
-export function isSyntheticDescendantId(
-  elementId: string | null | undefined,
-): elementId is string {
-  return (
-    typeof elementId === "string" &&
-    hasSyntheticIdPath(elementId) &&
-    !elementId.startsWith("projection:") &&
-    !elementId.includes("::page-frame::")
-  );
-}
+export { isSyntheticDescendantId };
 
 /** `<instance>/<path>` 의 instance id (없으면 null). */
 export function getSyntheticDescendantRootId(

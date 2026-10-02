@@ -8,7 +8,7 @@ import { getAiReadHost } from "../aiReadHost";
 import { withPanelStyleFields } from "./styleManifest";
 import { getAiComponentCatalog } from "../catalog/componentCatalog";
 import { resolveCompositeMode } from "../tools/compositeMode";
-import { getReusableCompositeOriginId } from "../../../builder/components/reusableCompositeOrigins";
+import { getReusableOriginId as getCatalogReusableOriginId } from "@composition/shared";
 import { listAgentCommands } from "../../agent/executeAgentCommand";
 import type {
   CommandContext,
@@ -43,14 +43,14 @@ export function readCompilerState(): {
         ? {
             id: "__compiler_contract__",
             type: "ref",
-            ref: getReusableCompositeOriginId(entry.type),
+            ref: getCatalogReusableOriginId(entry.type),
             props: {},
           }
         : { id: "__compiler_contract__", type: entry.type, props: {} };
     return {
       ...entry,
       creationMode: mode,
-      reusableId: getReusableCompositeOriginId(entry.type) ?? undefined,
+      reusableId: getCatalogReusableOriginId(entry.type) ?? undefined,
       props: fields(node as CanonicalNode),
     };
   });

@@ -33,7 +33,7 @@ import {
 } from "../../stores";
 import { useLayoutValue } from "./hooks/useLayoutValue";
 import { storeAbsoluteActivationStyles } from "./sections/absoluteActivation";
-import { useStoreResponsiveOverrides } from "./hooks/useResponsiveOverrides";
+import { useStoreResponsiveOverrides } from "./hooks/useResponsiveOverrides.legacy";
 import {
   resetStoreStyles,
   useStoreDirtyStyleProps,

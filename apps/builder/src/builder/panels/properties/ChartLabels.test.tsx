@@ -3,6 +3,7 @@ import "../datatable/usage/quickConnectHost.store"; // old-store host (ADR-248 4
 import "../datatable/usage/dataUsageSource.store"; // old-store host (ADR-248 4e-7: goes with the old store)
 import { cleanup, fireEvent, render, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import "./generic/fieldValueSource.store"; // old-store field value source (ADR-248 4e-7: goes with the old store)
 import { createChartInitialProps, CHART_DESCRIPTORS } from "@composition/specs";
 import { getPrimitiveBinding, resolveEditContract } from "@composition/shared";
 import {

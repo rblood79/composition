@@ -146,7 +146,7 @@ import {
 } from "../../../catalogRuntime/pageGuides";
 import { RulerOverlay } from "../../components/RulerOverlay";
 import { CatalogDefinitionBar } from "./CatalogDefinitionBar";
-import { buildViewportSceneRect } from "../skia/skiaOverlayHelpers";
+import { buildViewportSceneRect } from "../skia/viewportSceneRect";
 import { CatalogTextEditor } from "./CatalogTextEditor";
 import { WorkspaceStatusIndicator } from "../../components/WorkspaceStatusIndicator";
 import { CanvasScrollbar } from "../../scrollbar";

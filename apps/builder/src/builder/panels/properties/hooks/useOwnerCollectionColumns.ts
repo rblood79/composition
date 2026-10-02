@@ -11,12 +11,9 @@
  *    → `config.data[0]` 키
  * 3. `props.items` — 정적 items 행의 첫 record 키
  */
-import { useMemo } from "react";
 
 import { resolveBoundCollection } from "@composition/shared";
 import type { DataTable } from "../../../../types/builder/data.types";
-import { useCollections } from "../../../stores/data";
-import { useCanonicalPropertyElementsMap } from "./useCanonicalPropertyRead";
 import type { PanelNode } from "../../panelNode";
 
 const MAX_ANCESTOR_DEPTH = 20;
@@ -53,9 +50,7 @@ function fieldsFromCollection(
 ): OwnerField[] | null {
   if (!table) return null;
   const schemaFields = (table.schema ?? [])
-    .filter(
-      (field) => typeof field.key === "string" && field.key.length > 0,
-    )
+    .filter((field) => typeof field.key === "string" && field.key.length > 0)
     .map((field) => ({ key: field.key, id: field.id }));
   if (schemaFields.length > 0) return schemaFields;
   return toFields(recordKeys(table.mockData?.[0]));
@@ -190,24 +185,4 @@ export function resolveOwnerCollectionColumns(
       (f) => f.key,
     ) ?? null
   );
-}
-
-/** 소유 collection 필드 (key + id) — `{field}` 템플릿 저장형 변환 (ADR-152 1b) 입력. */
-export function useOwnerCollectionFields(
-  elementId: string | undefined,
-): OwnerField[] | null {
-  const elementsMap = useCanonicalPropertyElementsMap();
-  const collections = useCollections();
-
-  return useMemo(
-    () => resolveOwnerCollectionFields(elementsMap, elementId, collections),
-    [elementsMap, elementId, collections],
-  );
-}
-
-export function useOwnerCollectionColumns(
-  elementId: string | undefined,
-): string[] | null {
-  const fields = useOwnerCollectionFields(elementId);
-  return useMemo(() => fields?.map((f) => f.key) ?? null, [fields]);
 }

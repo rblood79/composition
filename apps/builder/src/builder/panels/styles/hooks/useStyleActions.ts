@@ -20,7 +20,7 @@ import {
   resolveDirectionDrivenProp,
   flexDirectionToDrivenValue,
 } from "../utils/orientationDrivenTags";
-import { isSyntheticDescendantId } from "../../../stores/canonical/syntheticDescendantLookup";
+import { isSyntheticDescendantId } from "../../../projection/syntheticDescendantId";
 import { resolveLayoutSpecPreset } from "../utils/specPresetResolver";
 
 /** Direction 토글이 style 경로에서 쓰는 display 값 — 사용자가 따로 고른 grid 등은 남긴다. */
