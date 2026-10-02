@@ -14,4 +14,5 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
   CheckboxGroup: ["Checkbox"],
   Radio: ["Label"],
   Checkbox: ["Label"],
+  Slider: ["SliderTrack"],
 };

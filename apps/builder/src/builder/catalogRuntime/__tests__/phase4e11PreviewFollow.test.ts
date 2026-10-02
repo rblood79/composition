@@ -212,3 +212,31 @@ describe("group size reaches the items", () => {
     },
   );
 });
+
+/**
+ * slider-track-size-not-propagated: the Slider size reaches its track (the old `size → SliderTrack`
+ * propagation): the typed SliderTrack takes the catalog track height (sm 4 · lg 12), and the DOM
+ * `<SliderTrack>` carries `data-size` so the generated `SliderTrack.css` size blocks apply.
+ */
+describe("Slider size reaches the track", () => {
+  it.each([
+    ["sm", 4],
+    ["lg", 12],
+  ])("Slider %s track is %d tall in both consumers", async (size, height) => {
+    const workspace = await openOwner("Slider", { size });
+    const root = workspace.root;
+    const track = [...root.layoutInputs.values()].find(
+      (record) => record.bindingId === "slidertrack",
+    )!;
+    expect(track.props.size).toBe(size);
+    expect(root.getGeometry([track.id]).get(track.id)!.height).toBe(height);
+    const group = [...root.domInputs.values()].find(
+      (record) => record.sourceId === "project:node:owner",
+    )!;
+    const html = renderToStaticMarkup(renderCatalogDom(root, group.id));
+    expect(html).toMatch(
+      new RegExp(`class="react-aria-SliderTrack"[^>]*data-size="${size}"|data-size="${size}"[^>]*class="react-aria-SliderTrack"`),
+    );
+    workspace.dispose();
+  });
+});

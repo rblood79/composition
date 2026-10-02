@@ -127,7 +127,8 @@ export function Slider<T extends number | number[]>({
           }
         </SliderOutput>
       )}
-      <SliderTrack>
+      {/* The Slider size reaches the track box (generated `SliderTrack.css` size blocks). */}
+      <SliderTrack data-size={size}>
         {({ state, isDisabled }) => (
           <>
             {/* Track background */}

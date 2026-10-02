@@ -220,6 +220,15 @@ export const APPROVED_DIFFERENCES: readonly ApprovedDifference[] = [
       "xl items wider than the 220 group: old keeps max-content and overflows; flex items shrink to min-content and the label wraps (no nowrap declared) — the DOM box",
   },
   {
+    id: "slider-track-row-center",
+    class: "oldDefect",
+    owners: ["Slider"],
+    nodes: ["SliderTrack", "SliderThumb"],
+    axes: ["y"],
+    reason:
+      "old pins the track top where the md 8 track sits (103) at every size; the DOM centers the size's track (sm 4 · xl 16, 4e-11 size reaches the track) in its grid row",
+  },
+  {
     id: "combobox-button-size",
     class: "oldDefect",
     owners: ["ComboBox"],
@@ -398,15 +407,6 @@ export const APPROVED_DIFFERENCES: readonly ApprovedDifference[] = [
     nodes: ["Header"],
     axes: ["y"],
     reason: "generated CSS not loaded",
-  },
-  {
-    id: "slider-track-size-not-propagated",
-    class: "previewFollow",
-    owners: ["Slider"],
-    nodes: ["SliderTrack", "SliderThumb"],
-    axes: ["height", "y"],
-    reason:
-      "the product `<SliderTrack>` carries no `data-size`: its box stays the base 8 while `.slider-track-bg` draws the Slider size (sm 4) — size reaches the bar, not the box",
   },
   {
     id: "numberfield-trigger-content-height",

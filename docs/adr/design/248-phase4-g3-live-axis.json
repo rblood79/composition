@@ -30,7 +30,7 @@
     "types": 63,
     "PASS": 374,
     "PASS_withApprovedDifferences": 177,
-    "previewDefectFollowed": 21,
+    "previewDefectFollowed": 18,
     "FAIL": 0,
     "UNVERIFIED": 6,
     "NOT_RUN": 6,
@@ -55,7 +55,7 @@
       "types": 32
     },
     "height": {
-      "nodes": 333,
+      "nodes": 330,
       "types": 28
     },
     "contentMinHeight": {
@@ -160,10 +160,6 @@
     },
     "flexWrap": {
       "nodes": 5,
-      "types": 1
-    },
-    "insetTop": {
-      "nodes": 3,
       "types": 1
     },
     "flexShrink": {
@@ -69237,21 +69233,9 @@
         },
         {
           "old": "component-slider__3",
-          "key": "height",
-          "oldValue": "4px",
-          "newValue": "8px"
-        },
-        {
-          "old": "component-slider__3",
           "key": "alignItems",
           "oldValue": null,
           "newValue": "center"
-        },
-        {
-          "old": "component-slider__3/component-slider__3_1",
-          "key": "insetTop",
-          "oldValue": "-5px",
-          "newValue": "-3px"
         },
         {
           "old": "component-slider__3/component-slider__3_1",
@@ -69537,9 +69521,9 @@
             "old": "component-slider__3",
             "newRect": {
               "x": 30,
-              "y": 103,
+              "y": 105,
               "width": 220,
-              "height": 8
+              "height": 4
             },
             "oldRect": {
               "x": 30,
@@ -69552,7 +69536,7 @@
                 "type": "SliderTrack",
                 "props": {
                   "variant": "default",
-                  "size": "md",
+                  "size": "sm",
                   "value": 50,
                   "minValue": 0,
                   "maxValue": 100
@@ -69568,8 +69552,8 @@
                 },
                 "sizing": {},
                 "visual": {
-                  "height": 8,
-                  "fontSize": 14,
+                  "height": 4,
+                  "fontSize": 12,
                   "radius": 0,
                   "width": "100%"
                 },
@@ -69578,7 +69562,7 @@
                   "display": "flex",
                   "alignItems": "center",
                   "width": "100%",
-                  "height": "8px",
+                  "height": "4px",
                   "gridColumnStart": "1",
                   "gridColumnEnd": "3",
                   "gridRowStart": "2",
@@ -69692,7 +69676,7 @@
                   "borderLeft": "2px",
                   "position": "absolute",
                   "insetLeft": "50%",
-                  "insetTop": "-3px",
+                  "insetTop": "-5px",
                   "marginLeft": "-7px"
                 }
               },
@@ -69700,7 +69684,7 @@
                 "type": "SliderTrack",
                 "props": {
                   "variant": "default",
-                  "size": "md",
+                  "size": "sm",
                   "value": 50,
                   "minValue": 0,
                   "maxValue": 100
@@ -69716,8 +69700,8 @@
                 },
                 "sizing": {},
                 "visual": {
-                  "height": 8,
-                  "fontSize": 14,
+                  "height": 4,
+                  "fontSize": 12,
                   "radius": 0,
                   "width": "100%"
                 },
@@ -69726,7 +69710,7 @@
                   "display": "flex",
                   "alignItems": "center",
                   "width": "100%",
-                  "height": "8px",
+                  "height": "4px",
                   "gridColumnStart": "1",
                   "gridColumnEnd": "3",
                   "gridRowStart": "2",
@@ -69781,9 +69765,9 @@
             "new": "project:node:subject::lib:template:component-slider__3",
             "dom": {
               "x": 30,
-              "y": 103,
+              "y": 105,
               "width": 220,
-              "height": 8
+              "height": 4
             }
           },
           {
@@ -69816,22 +69800,20 @@
         {
           "new": "project:node:subject::lib:template:component-slider__3",
           "old": "component-slider__3",
-          "rule": "slider-track-size-not-propagated",
-          "class": "previewFollow"
+          "rule": "slider-track-row-center",
+          "class": "oldDefect"
         },
         {
           "new": "project:node:subject::lib:template:component-slider__3_1",
           "old": "component-slider__3/component-slider__3_1",
-          "rule": "slider-track-size-not-propagated",
-          "class": "previewFollow"
+          "rule": "slider-track-row-center",
+          "class": "oldDefect"
         }
       ],
       "approvedClasses": [
         "decided",
-        "oldDefect",
-        "previewFollow"
+        "oldDefect"
       ],
-      "previewDefectFollowed": true,
       "liveIdentity": {
         "region": "capture clip",
         "pixels": 240000,
@@ -69840,9 +69822,9 @@
         "maxByte": 0
       },
       "L3": {
-        "pixels": 234493,
+        "pixels": 234806,
         "different": 13,
-        "ratio": 0.0000554387551014316,
+        "ratio": 0.000055364854390432956,
         "maxByte": 202,
         "diffBounds": [
           146,
@@ -69861,15 +69843,15 @@
         "blocked": false
       },
       "L3e": {
-        "pixels": 5091,
-        "different": 11,
-        "ratio": 0.002160675702219603,
+        "pixels": 4778,
+        "different": 47,
+        "ratio": 0.009836751778987024,
         "maxByte": 230,
         "diffBounds": [
           31,
           16,
           155,
-          36
+          67
         ],
         "gated": false
       },
@@ -70452,21 +70434,9 @@
         },
         {
           "old": "component-slider__3",
-          "key": "height",
-          "oldValue": "12px",
-          "newValue": "8px"
-        },
-        {
-          "old": "component-slider__3",
           "key": "alignItems",
           "oldValue": null,
           "newValue": "center"
-        },
-        {
-          "old": "component-slider__3/component-slider__3_1",
-          "key": "insetTop",
-          "oldValue": "-5px",
-          "newValue": "-7px"
         },
         {
           "old": "component-slider__3/component-slider__3_1",
@@ -70746,123 +70716,6 @@
               "lineHeight": 24,
               "whiteSpace": "nowrap"
             }
-          },
-          {
-            "new": "project:node:subject::lib:template:component-slider__3",
-            "old": "component-slider__3",
-            "newRect": {
-              "x": 30,
-              "y": 104.42857360839844,
-              "width": 220,
-              "height": 8
-            },
-            "oldRect": {
-              "x": 30,
-              "y": 103,
-              "width": 220,
-              "height": 12
-            },
-            "newInput": {
-              "self": {
-                "type": "SliderTrack",
-                "props": {
-                  "variant": "default",
-                  "size": "md",
-                  "value": 50,
-                  "minValue": 0,
-                  "maxValue": 100
-                },
-                "layout": {
-                  "display": "flex",
-                  "position": "relative",
-                  "gridRowStart": "2",
-                  "gridRowEnd": "3",
-                  "gridColumnStart": "1",
-                  "gridColumnEnd": "3",
-                  "alignItems": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "height": 8,
-                  "fontSize": 14,
-                  "radius": 0,
-                  "width": "100%"
-                },
-                "placement": null,
-                "engineInput": {
-                  "display": "flex",
-                  "alignItems": "center",
-                  "width": "100%",
-                  "height": "8px",
-                  "gridColumnStart": "1",
-                  "gridColumnEnd": "3",
-                  "gridRowStart": "2",
-                  "gridRowEnd": "3",
-                  "position": "relative"
-                }
-              },
-              "parent": {
-                "type": "Slider",
-                "props": {
-                  "size": "lg",
-                  "labelPosition": "top",
-                  "minValue": 0,
-                  "maxValue": 100,
-                  "step": 1,
-                  "showValueLabel": true,
-                  "label": "Slider",
-                  "value": 50,
-                  "isDisabled": false
-                },
-                "layout": {
-                  "display": "grid",
-                  "gridTemplateAreas": "\"label output\" \"track track\"",
-                  "gridTemplateColumns": "1fr auto",
-                  "rowGap": "4px",
-                  "columnGap": "20px"
-                },
-                "sizing": {
-                  "width": 220,
-                  "height": 130
-                },
-                "visual": {
-                  "fontSize": 16,
-                  "radius": 9999,
-                  "lineHeight": 1.5,
-                  "width": "100%"
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "grid",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "width": "220px",
-                  "height": "130px",
-                  "gridTemplateColumns": [
-                    "1fr",
-                    "auto"
-                  ],
-                  "rowGap": "4px",
-                  "columnGap": "20px"
-                }
-              }
-            },
-            "oldEngineInput": {
-              "display": "grid",
-              "width": "100%",
-              "height": "12px",
-              "position": "relative",
-              "gridArea": "track",
-              "gridColumnStart": "1",
-              "gridColumnEnd": "3",
-              "gridRowStart": "2",
-              "gridRowEnd": "3"
-            }
           }
         ],
         "unpaired": [],
@@ -70895,15 +70748,6 @@
               "width": 19.078125,
               "height": 20
             }
-          },
-          {
-            "new": "project:node:subject::lib:template:component-slider__3",
-            "dom": {
-              "x": 30,
-              "y": 104.421875,
-              "width": 220,
-              "height": 8
-            }
           }
         ],
         "missing": [],
@@ -70922,31 +70766,23 @@
           "old": "component-slider__2",
           "rule": "slider-output-height",
           "class": "oldDefect"
-        },
-        {
-          "new": "project:node:subject::lib:template:component-slider__3",
-          "old": "component-slider__3",
-          "rule": "slider-track-size-not-propagated",
-          "class": "previewFollow"
         }
       ],
       "approvedClasses": [
         "decided",
-        "oldDefect",
-        "previewFollow"
+        "oldDefect"
       ],
-      "previewDefectFollowed": true,
       "liveIdentity": {
         "region": "capture clip",
         "pixels": 240000,
         "different": 0,
         "ratio": 0,
-        "maxByte": 1
+        "maxByte": 0
       },
       "L3": {
-        "pixels": 234044,
+        "pixels": 233924,
         "different": 17,
-        "ratio": 0.00007263591461434602,
+        "ratio": 0.00007267317590328483,
         "maxByte": 202,
         "diffBounds": [
           144,
@@ -70965,15 +70801,15 @@
         "blocked": false
       },
       "L3e": {
-        "pixels": 5331,
-        "different": 24,
-        "ratio": 0.004501969611705121,
-        "maxByte": 195,
+        "pixels": 5451,
+        "different": 116,
+        "ratio": 0.021280498991010824,
+        "maxByte": 201,
         "diffBounds": [
-          77,
+          9,
           31,
           153,
-          68
+          69
         ],
         "gated": false
       },
@@ -71077,21 +70913,9 @@
         },
         {
           "old": "component-slider__3",
-          "key": "height",
-          "oldValue": "16px",
-          "newValue": "8px"
-        },
-        {
-          "old": "component-slider__3",
           "key": "alignItems",
           "oldValue": null,
           "newValue": "center"
-        },
-        {
-          "old": "component-slider__3/component-slider__3_1",
-          "key": "insetTop",
-          "oldValue": "-5px",
-          "newValue": "-9px"
         },
         {
           "old": "component-slider__3/component-slider__3_1",
@@ -71377,9 +71201,9 @@
             "old": "component-slider__3",
             "newRect": {
               "x": 30,
-              "y": 105.85713958740234,
+              "y": 101.85713958740234,
               "width": 220,
-              "height": 8
+              "height": 16
             },
             "oldRect": {
               "x": 30,
@@ -71392,7 +71216,7 @@
                 "type": "SliderTrack",
                 "props": {
                   "variant": "default",
-                  "size": "md",
+                  "size": "xl",
                   "value": 50,
                   "minValue": 0,
                   "maxValue": 100
@@ -71408,8 +71232,8 @@
                 },
                 "sizing": {},
                 "visual": {
-                  "height": 8,
-                  "fontSize": 14,
+                  "height": 16,
+                  "fontSize": 18,
                   "radius": 0,
                   "width": "100%"
                 },
@@ -71418,7 +71242,7 @@
                   "display": "flex",
                   "alignItems": "center",
                   "width": "100%",
-                  "height": "8px",
+                  "height": "16px",
                   "gridColumnStart": "1",
                   "gridColumnEnd": "3",
                   "gridRowStart": "2",
@@ -71532,7 +71356,7 @@
                   "borderLeft": "2px",
                   "position": "absolute",
                   "insetLeft": "50%",
-                  "insetTop": "-9px",
+                  "insetTop": "-5px",
                   "marginLeft": "-13px"
                 }
               },
@@ -71540,7 +71364,7 @@
                 "type": "SliderTrack",
                 "props": {
                   "variant": "default",
-                  "size": "md",
+                  "size": "xl",
                   "value": 50,
                   "minValue": 0,
                   "maxValue": 100
@@ -71556,8 +71380,8 @@
                 },
                 "sizing": {},
                 "visual": {
-                  "height": 8,
-                  "fontSize": 14,
+                  "height": 16,
+                  "fontSize": 18,
                   "radius": 0,
                   "width": "100%"
                 },
@@ -71566,7 +71390,7 @@
                   "display": "flex",
                   "alignItems": "center",
                   "width": "100%",
-                  "height": "8px",
+                  "height": "16px",
                   "gridColumnStart": "1",
                   "gridColumnEnd": "3",
                   "gridRowStart": "2",
@@ -71621,9 +71445,9 @@
             "new": "project:node:subject::lib:template:component-slider__3",
             "dom": {
               "x": 30,
-              "y": 105.84375,
+              "y": 101.84375,
               "width": 220,
-              "height": 8
+              "height": 16
             }
           },
           {
@@ -71656,60 +71480,58 @@
         {
           "new": "project:node:subject::lib:template:component-slider__3",
           "old": "component-slider__3",
-          "rule": "slider-track-size-not-propagated",
-          "class": "previewFollow"
+          "rule": "slider-track-row-center",
+          "class": "oldDefect"
         },
         {
           "new": "project:node:subject::lib:template:component-slider__3_1",
           "old": "component-slider__3/component-slider__3_1",
-          "rule": "slider-track-size-not-propagated",
-          "class": "previewFollow"
+          "rule": "slider-track-row-center",
+          "class": "oldDefect"
         }
       ],
       "approvedClasses": [
         "decided",
-        "oldDefect",
-        "previewFollow"
+        "oldDefect"
       ],
-      "previewDefectFollowed": true,
       "liveIdentity": {
         "region": "capture clip",
         "pixels": 240000,
         "different": 0,
         "ratio": 0,
-        "maxByte": 1
+        "maxByte": 0
       },
       "L3": {
-        "pixels": 233797,
-        "different": 17,
-        "ratio": 0.00007271265242924418,
+        "pixels": 233697,
+        "different": 81,
+        "ratio": 0.0003466026521521457,
         "maxByte": 202,
         "diffBounds": [
-          143,
+          11,
           30,
           150,
-          36
+          66
         ],
-        "approvedAttributed": 17,
+        "approvedAttributed": 25,
         "movedPaint": {
-          "pixels": 0,
-          "different": 0,
-          "maxByte": 0
+          "pixels": 372,
+          "different": 71,
+          "maxByte": 201
         },
-        "outsideRatio": 0,
-        "outsideMaxByte": 0,
+        "outsideRatio": 0.0005434387262138581,
+        "outsideMaxByte": 201,
         "blocked": false
       },
       "L3e": {
-        "pixels": 5481,
-        "different": 111,
-        "ratio": 0.020251778872468526,
+        "pixels": 5581,
+        "different": 281,
+        "ratio": 0.0503493997491489,
         "maxByte": 201,
         "diffBounds": [
           8,
           31,
           152,
-          70
+          73
         ],
         "gated": false
       },
