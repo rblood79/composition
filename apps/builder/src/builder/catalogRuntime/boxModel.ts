@@ -1,6 +1,7 @@
 import { CATALOG_AUTHORED_PAINT_KEYS } from "./authoredStyle";
 import type { CatalogConsumerNode } from "./compositionRoot";
 import { catalogCurrentTextWeight } from "../../../../../packages/shared/src/catalog/resolvers/resolveCatalogRuleCanvasBox";
+import { installedBaseFontFamily } from "../../utils/theme/themeMaps";
 
 /**
  * ADR-248 — one box model per resolved catalog node. The Rust layout input (`compositionRoot`)
@@ -159,8 +160,9 @@ export function catalogBoxModel(node: CatalogConsumerNode): CatalogBoxModel {
 
 /**
  * Authored typography of a text-painting node: its own value, else the nearest ancestor's
- * (`inheritedText`, CSS inherited properties); `textDecoration` is not inherited. Absent keys keep
- * each consumer's default. The Canvas paragraph, the layout measure and the DOM style read this.
+ * (`inheritedText`, CSS inherited properties); `textDecoration` is not inherited. The font family
+ * falls back to the theme's base family (the DOM root inherits it). Absent keys keep each
+ * consumer's default. The Canvas paragraph, the layout measure and the DOM style read this.
  */
 export interface CatalogTextTypography {
   fontFamily?: string;
@@ -195,6 +197,10 @@ export function catalogTextTypography(
   ] as const) {
     const value = text(key);
     if (value !== undefined) typography[key] = value;
+  }
+  if (typography.fontFamily === undefined) {
+    const base = installedBaseFontFamily();
+    if (base !== undefined) typography.fontFamily = base;
   }
   if (letterSpacing !== undefined)
     typography.letterSpacing = Number(letterSpacing);

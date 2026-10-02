@@ -165,6 +165,13 @@ export class CatalogWorkspace {
     state.install();
     return true;
   }
+  /**
+   * Re-read the theme outside a step (the OS appearance changed under a `system` theme): a
+   * changed theme builds a new root, as after a step.
+   */
+  refreshTheme(): void {
+    if (this.applyTheme()) this.replaceRoot(this.currentRoot.breakpoint);
+  }
   /** A new composition root over the same runtime (the layout engine starts empty). */
   private replaceRoot(breakpoint: BreakpointName): void {
     this.options.engine.clear();

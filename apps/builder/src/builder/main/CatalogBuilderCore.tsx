@@ -42,7 +42,10 @@ import {
   catalogDocumentBindingCommitter,
 } from "../catalogRuntime/dataHistory";
 import { dataChangeEventLabel } from "../panels/history/dataChangeEventLabel";
-import { catalogThemeState } from "../catalogRuntime/theme";
+import {
+  catalogBuilderThemeState,
+  subscribeSystemColorScheme,
+} from "../catalogRuntime/builderTheme";
 import { catalogPropertySelection } from "../catalogRuntime/propertySelection";
 import { PropertySelectionContext } from "../components/property/propertySelection";
 import { CatalogWorkspace } from "../catalogRuntime/workspace";
@@ -200,7 +203,7 @@ export function CatalogBuilderCore() {
         viewportOf: (breakpoint) => CANVAS_VIEWPORT[breakpoint],
         textMeasure: catalogTextMeasure,
         locale: navigator.language,
-        theme: catalogThemeState,
+        theme: catalogBuilderThemeState,
         // Bound collections show the data store's rows (H1 — rows never enter the document).
         root: {
           // The breakpoint the Builder last showed (a Builder-wide choice, like the old app).
@@ -344,6 +347,12 @@ export function CatalogBuilderCore() {
     return history.subscribe(clear);
   }, [workspace, snapshots]);
   useCatalogGlobalShortcuts(workspace, handleSceneError);
+  // A `system` theme follows the OS appearance (the old store's `resolveSkiaTheme` read it live).
+  useEffect(
+    () =>
+      workspace && subscribeSystemColorScheme(() => workspace.refreshTheme()),
+    [workspace],
+  );
   // ADR-235 Phase 5 on the catalog storage: a save over the quota clears the caches and retries
   // once, then tells the user; the first save asks the browser to keep the site's storage.
   useEffect(() => {

@@ -16,6 +16,7 @@ import {
   radius,
   typography,
 } from "@composition/specs";
+import { DEFAULT_BASE_TYPOGRAPHY } from "../../builder/fonts/customFonts";
 import type { ResolvedThemeSnapshot } from "./resolveThemeSnapshot";
 
 type TokenMap = Record<string, unknown>;
@@ -42,8 +43,22 @@ function replace(name: MapName, source: Readonly<TokenMap> = {}): void {
   Object.assign(target, CODE_VALUES[name], source);
 }
 
+/**
+ * The installed theme's base font family when the theme sets one (`base-font-family`), else
+ * undefined (each text consumer keeps its default). The Preview's root inherits the same value.
+ */
+let baseFontFamily: string | undefined;
+export function installedBaseFontFamily(): string | undefined {
+  return baseFontFamily;
+}
+
 /** Install a resolved theme into the specs maps, or the code catalog's values for `null`. */
 export function installThemeMaps(snapshot: ResolvedThemeSnapshot | null): void {
+  const family = snapshot?.base.fontFamily;
+  baseFontFamily =
+    family && family !== DEFAULT_BASE_TYPOGRAPHY.fontFamily
+      ? family
+      : undefined;
   replace("lightColors", snapshot?.colors.light);
   replace("darkColors", snapshot?.colors.dark);
   replace("typography", snapshot?.typography);
