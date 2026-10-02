@@ -44,7 +44,7 @@ function CatalogHistoryContent() {
   const workspace = useCatalogWorkspace();
   const { history } = workspace;
   const [confirmClear, setConfirmClear] = useState(false);
-  const { labels, applied, times } = useSyncExternalStore(
+  const { labels, applied, times, subjects } = useSyncExternalStore(
     history.subscribe,
     history.getSnapshot,
   );
@@ -55,7 +55,15 @@ function CatalogHistoryContent() {
   );
   const rows = [
     { text: t("history.initialState"), Icon: File },
-    ...labels.map((label) => catalogHistoryEntryView(label, t)),
+    // The element the entry acted on follows its label (the old panel's "Add Button").
+    ...labels.map((label, index) => {
+      const view = catalogHistoryEntryView(label, t);
+      const subject = subjects[index];
+      // A label that already names it (the AI host's "AI: add Button") stays as it is.
+      return subject && !view.text.includes(subject)
+        ? { ...view, text: `${view.text} ${subject}` }
+        : view;
+    }),
   ];
   return (
     <>

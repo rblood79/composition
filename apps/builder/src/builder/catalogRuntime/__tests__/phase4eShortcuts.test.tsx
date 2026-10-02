@@ -322,6 +322,39 @@ describe("ADR-248 Phase 4e-5 shortcuts", () => {
     view.unmount();
   });
 
+  it("⌘C / ⌘V with focus in the Properties panel copy and paste the selection (a text field keeps the browser's own)", async () => {
+    const { workspace, record, children } = await open();
+    const cmd = navigator.platform.includes("Mac")
+      ? { metaKey: true }
+      : { ctrlKey: true };
+    function Host() {
+      useCatalogGlobalShortcuts(workspace, (error) => {
+        throw error;
+      });
+      return (
+        <div data-panel-id="properties">
+          <button data-testid="control">control</button>
+          <input data-testid="field" />
+        </div>
+      );
+    }
+    const view = render(<Host />);
+    workspace.selectRecords([record("b")]);
+    const control = view.getByTestId("control");
+    act(() => control.focus());
+    fireEvent.focusIn(control);
+    fireEvent.keyDown(control, { key: "c", code: "KeyC", ...cmd });
+    fireEvent.keyDown(control, { key: "v", code: "KeyV", ...cmd });
+    expect(children("list")).toHaveLength(4);
+
+    const field = view.getByTestId("field");
+    act(() => field.focus());
+    fireEvent.focusIn(field);
+    fireEvent.keyDown(field, { key: "v", code: "KeyV", ...cmd });
+    expect(children("list")).toHaveLength(4);
+    view.unmount();
+  });
+
   it("align / distribute: the placed elements of the selection (the old rule), one step; flow elements and too few do nothing", async () => {
     const { workspace } = await open();
     const placed = (name: string, x: number, y: number, width: number) => ({

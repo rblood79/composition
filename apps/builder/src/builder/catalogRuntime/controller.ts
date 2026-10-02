@@ -25,6 +25,13 @@ export interface CatalogExternalEffect {
   undo(): void | Promise<unknown>;
   redo(): void | Promise<unknown>;
 }
+/** A history entry as the History panel reads it (its operations name its subject). */
+export interface CatalogHistoryEntryView {
+  readonly label: string;
+  readonly at: number;
+  readonly forward: readonly CatalogOperation[];
+  readonly inverse: readonly CatalogOperation[];
+}
 interface HistoryEntry {
   label: string;
   /** When the action ran (epoch ms) — the History panel's time column. */
@@ -215,11 +222,21 @@ export class CatalogRuntime {
   }
   /** History entries of the active project with their times: undo (oldest first), redo (next first). */
   get historyEntries(): {
-    undo: readonly { label: string; at: number }[];
-    redo: readonly { label: string; at: number }[];
+    undo: readonly CatalogHistoryEntryView[];
+    redo: readonly CatalogHistoryEntryView[];
   } {
     const session = this.current();
-    const view = ({ label, at }: HistoryEntry) => ({ label, at });
+    const view = ({
+      label,
+      at,
+      forward,
+      inverse,
+    }: HistoryEntry): CatalogHistoryEntryView => ({
+      label,
+      at,
+      forward,
+      inverse,
+    });
     return {
       undo: session.undo.map(view),
       redo: [...session.redo].reverse().map(view),

@@ -7,7 +7,12 @@ import type {
   NodeEntry,
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
-import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
+import {
+  insertNodes,
+  moveNodes,
+  removeTargets,
+  setFields,
+} from "../../../../../../packages/shared/src/catalog/commands";
 import {
   catalogLeafRecords,
   catalogSlotMarks,
@@ -158,5 +163,54 @@ describe("ADR-248 4e-8 Canvas chrome", () => {
         viewScene.stream.hitBoundsMap,
       ),
     ).toEqual([expect.objectContaining({ empty: true, role: "origin" })]);
+  });
+});
+
+describe("ADR-248 4e-8 History subjects", () => {
+  it("each entry names the element it acted on: created, edited, moved, removed (the snapshot name)", async () => {
+    const workspace = await open();
+    const subjects = () => workspace.history.getSnapshot().subjects;
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [
+          {
+            ...node("project:node:box", "lib:definition:type-frame", [
+              "project:node:hello",
+            ]),
+            name: "Card box",
+          },
+          node("project:node:hello", "lib:definition:text"),
+          node("project:node:other", "lib:definition:type-frame"),
+        ],
+        rootIds: ["project:node:box", "project:node:other"] as NodeId[],
+        newId: workspace.newId,
+      }),
+    );
+    // Two roots: the first one names the entry.
+    expect(subjects()).toEqual(["Card box"]);
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: "project:node:hello" as NodeId }],
+        visual: { color: { kind: "set", value: "#f00" } },
+      }),
+    );
+    expect(subjects().at(-1)).toBe("Text");
+    workspace.execute(
+      moveNodes({
+        ids: ["project:node:hello" as NodeId],
+        parent: { kind: "node", id: "project:node:other" as NodeId },
+        index: 0,
+        newId: workspace.newId,
+      }),
+    );
+    expect(subjects().at(-1)).toBe("Text");
+    workspace.execute(
+      removeTargets({
+        targets: [{ kind: "node", id: "project:node:box" as NodeId }],
+      }),
+    );
+    expect(subjects().at(-1)).toBe("Card box");
+    expect(subjects()).toHaveLength(4);
   });
 });

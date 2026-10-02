@@ -139,10 +139,26 @@ export function useCatalogGlobalShortcuts(
         handlers[id] = () => {
           runCatalogShortcut(workspace, id, onError);
         };
-    return bindHandlersToDefinitions(
+    const bound = bindHandlersToDefinitions(
       Object.keys(handlers) as ShortcutId[],
       handlers,
     );
+    if (!workspace) return bound;
+    // ⌘C / ⌘V with focus in the Properties panel copy and paste the selected elements (the old
+    // panel's own registration — no definition: the canvas `copy` / `paste` keep their scope;
+    // inside a text input the browser copies text, as the registry skips inputs).
+    return [
+      ...bound,
+      ...(["copy", "paste"] as const).map((id) => ({
+        key: id === "copy" ? "c" : "v",
+        modifier: "cmd" as const,
+        handler: () => {
+          runCatalogShortcut(workspace, id, onError);
+        },
+        description: id === "copy" ? "Copy All Elements" : "Paste Elements",
+        scope: "panel:properties" as const,
+      })),
+    ];
   }, [workspace, onError]);
   useKeyboardShortcutsRegistry(shortcuts, [shortcuts, activeScope], {
     capture: true,
