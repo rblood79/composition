@@ -166,7 +166,9 @@ export type LayoutField =
   | "gridTemplateRows"
   | "gridTemplateAreas"
   | "maxWidth"
-  | "maxHeight";
+  | "maxHeight"
+  /** CSS `order` of a flex / grid item (the composition root reorders the engine children). */
+  | "order";
 export type LayoutValues = Readonly<Partial<Record<LayoutField, string>>>;
 /** Node-authored box layout writes (CSS text values, validated per field). */
 export type LayoutWrites = Readonly<

@@ -327,9 +327,17 @@ function layoutChildrenOf(
   children: readonly string[],
   parts: readonly CatalogComposedPart[],
   chromeId: string | undefined,
+  orderOf?: (id: string) => number,
 ): string[] {
   const out = parts.filter((part) => !part.wraps).map((part) => part.id);
-  for (const child of children) {
+  // CSS `order` places a flex / grid item by its order, then source order (a stable sort).
+  const ordered = orderOf
+    ? children
+        .map((child, index) => ({ child, index, order: orderOf(child) }))
+        .sort((a, b) => a.order - b.order || a.index - b.index)
+        .map((entry) => entry.child)
+    : children;
+  for (const child of ordered) {
     const wrapper = parts.find((part) => part.wraps?.includes(child));
     if (!wrapper) out.push(child);
     else if (!out.includes(wrapper.id)) out.push(wrapper.id);
@@ -1046,6 +1054,37 @@ export class CatalogCompositionRoot {
   private readonly rootIds = new Set<NodeId>();
   private readonly slotChrome = new Map<string, SlotChromeInput>();
   /** Owner-composed layout leaves per record (`catalogComposedParts`), before its children. */
+  /** Records whose engine children need CSS `order` sorting after an apply (`applyOrders`). */
+  private readonly orderDirty = new Set<string>();
+  /**
+   * A flex / grid record's child order (`layout.order`, 0 by default) when any child sets one;
+   * undefined for any other record (source order).
+   */
+  private childOrder(
+    record: CatalogConsumerNode | undefined,
+  ): ((id: string) => number) | undefined {
+    if (!record || !/^(inline-)?(flex|grid)$/.test(record.layout.display ?? ""))
+      return undefined;
+    const orderOf = (id: string) =>
+      Number(this.records.get(id)?.layout.order ?? 0) || 0;
+    return record.children.some((id) => orderOf(id) !== 0) ? orderOf : undefined;
+  }
+  /** The engine children of every record an apply left out of CSS `order` (both maps final). */
+  private applyOrders(): void {
+    for (const id of this.orderDirty) {
+      const record = this.records.get(id);
+      if (!record) continue;
+      this.layout.updateChildren(id, [
+        ...layoutChildrenOf(
+          record.children,
+          this.composedParts.get(id) ?? [],
+          this.slotChrome.get(id)?.id,
+          this.childOrder(record),
+        ),
+      ]);
+    }
+    this.orderDirty.clear();
+  }
   private readonly composedParts = new Map<
     string,
     readonly CatalogComposedPart[]
@@ -2084,6 +2123,7 @@ export class CatalogCompositionRoot {
         record.children,
         parts,
         chrome?.id,
+        this.childOrder(record),
       );
       indexes.set(id, batch.length);
       const frame = this.pageFrameStyle(record);
@@ -2414,6 +2454,12 @@ export class CatalogCompositionRoot {
     }
     if (!old || !sameList(beforeChildren, nextChildren))
       this.layout.updateChildren(id, [...nextChildren]);
+    // CSS `order`: sorted once every record of the apply is in place (a child's order can change
+    // before or after its parent's record).
+    if (this.childOrder(record) || (old && this.childOrder(old)))
+      this.orderDirty.add(id);
+    if ((old?.layout.order ?? "") !== (record.layout.order ?? ""))
+      this.orderDirty.add(record.parentId);
     for (const part of parts) {
       const before = oldParts.find((item) => item.id === part.id);
       if (!before || !sameList(before.wraps ?? [], part.wraps ?? []))
@@ -3036,6 +3082,7 @@ export class CatalogCompositionRoot {
         else this.rootMembers.delete(rootId);
       }
     }
+    this.applyOrders();
     if (plan.nextRootIds) {
       const previous = [...this.rootIds];
       this.undoLog?.push(() => {

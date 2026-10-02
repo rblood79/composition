@@ -210,6 +210,7 @@ const layoutValueChoices: Readonly<
   gridTemplateColumns: gridTracks,
   gridTemplateRows: gridTracks,
   gridTemplateAreas: (value) => /^("[\w. ]+"\s*)+$/.test(value.trim()),
+  order: (value) => /^-?\d+$/.test(value),
   maxWidth: (value) =>
     value === "none" ||
     cssLength(value) ||

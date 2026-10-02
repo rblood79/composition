@@ -186,6 +186,8 @@ export const datePickerBinding: PrimitiveBinding = {
     //   **항상 default("md") 고정**, 게다가 wrapper 가 `{...props}` 뒤에 `data-size={size}` 를 다시
     //   써서 toRacProps 가 넣어준 `data-size="lg"` 까지 **덮어쓴다** → Preview 가 size 변경을 전혀
     //   반영 못 함 (2026-07-14 사용자 적발). ProgressCircle/Avatar/StatusLight 선례 동형.
-    propPassthrough: ["size"],
+    //   labelPosition · labelAlign 도 같다: wrapper 가 `data-label-position={labelPosition}` ·
+    //   `data-label-align` 를 다시 써서 side 가 항상 top 으로 덮였다 (ADR-248 4e-12, 2026-10-03).
+    propPassthrough: ["size", "labelPosition", "labelAlign"],
   },
 };

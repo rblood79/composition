@@ -329,6 +329,18 @@ const element =
       ...children,
     );
 
+/**
+ * The side label layout the shared field wrappers read (`labelPosition` → `data-label-position`,
+ * `labelAlign` → `data-label-align`); absent values keep the wrapper defaults.
+ */
+const labelLayout = (node: CatalogConsumerNode) => ({
+  ...(typeof node.props.labelPosition === "string"
+    ? { labelPosition: node.props.labelPosition }
+    : {}),
+  ...(typeof node.props.labelAlign === "string"
+    ? { labelAlign: node.props.labelAlign }
+    : {}),
+});
 const glyph =
   (fallbackName: string, fallbackSize: number): DomBinding =>
   (node, style) =>
@@ -490,6 +502,7 @@ const bindings: Readonly<Record<string, DomBinding>> = {
           ? node.props.placeholder
           : undefined,
       size: typeof node.props.size === "string" ? node.props.size : "md",
+      ...labelLayout(node),
       isDisabled: node.props.isDisabled === true,
       isInvalid: node.props.isInvalid === true,
       isRequired: node.props.isRequired === true,
@@ -506,6 +519,7 @@ const bindings: Readonly<Record<string, DomBinding>> = {
           ? node.props.placeholder
           : undefined,
       size: typeof node.props.size === "string" ? node.props.size : "md",
+      ...labelLayout(node),
       isDisabled: node.props.isDisabled === true,
       isInvalid: node.props.isInvalid === true,
       isReadOnly: node.props.isReadOnly === true,
