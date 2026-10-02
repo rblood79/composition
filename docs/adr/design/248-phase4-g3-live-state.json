@@ -9746,8 +9746,8 @@
         },
         "context": {
           "pixels": 394740,
-          "different": 129223,
-          "ratio": 0.32736231443481784,
+          "different": 129634,
+          "ratio": 0.3284035061052845,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -9917,8 +9917,8 @@
         },
         "context": {
           "pixels": 394740,
-          "different": 129014,
-          "ratio": 0.32683285200385065,
+          "different": 129302,
+          "ratio": 0.32756244616709734,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -10088,8 +10088,8 @@
         },
         "context": {
           "pixels": 394740,
-          "different": 118489,
-          "ratio": 0.3001697319754775,
+          "different": 118900,
+          "ratio": 0.30121092364594415,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -10259,8 +10259,8 @@
         },
         "context": {
           "pixels": 394740,
-          "different": 129556,
-          "ratio": 0.32820590768607183,
+          "different": 129841,
+          "ratio": 0.32892790191011806,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -10430,8 +10430,8 @@
         },
         "context": {
           "pixels": 345600,
-          "different": 102370,
-          "ratio": 0.29620949074074077,
+          "different": 102745,
+          "ratio": 0.2972945601851852,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -10591,8 +10591,8 @@
         },
         "context": {
           "pixels": 345600,
-          "different": 102739,
-          "ratio": 0.29727719907407407,
+          "different": 102745,
+          "ratio": 0.2972945601851852,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -10752,8 +10752,8 @@
         },
         "context": {
           "pixels": 345600,
-          "different": 102370,
-          "ratio": 0.29620949074074077,
+          "different": 102745,
+          "ratio": 0.2972945601851852,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -10923,8 +10923,8 @@
         },
         "context": {
           "pixels": 345600,
-          "different": 99019,
-          "ratio": 0.28651331018518517,
+          "different": 99025,
+          "ratio": 0.2865306712962963,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -11094,8 +11094,8 @@
         },
         "context": {
           "pixels": 345600,
-          "different": 102370,
-          "ratio": 0.29620949074074077,
+          "different": 102745,
+          "ratio": 0.2972945601851852,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -11255,8 +11255,8 @@
         },
         "context": {
           "pixels": 345600,
-          "different": 102739,
-          "ratio": 0.29727719907407407,
+          "different": 102745,
+          "ratio": 0.2972945601851852,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -11424,8 +11424,8 @@
         },
         "context": {
           "pixels": 395200,
-          "different": 30291,
-          "ratio": 0.07664726720647773,
+          "different": 30670,
+          "ratio": 0.07760627530364372,
           "maxByte": 206,
           "diffBounds": [
             0,
@@ -11593,8 +11593,8 @@
         },
         "context": {
           "pixels": 395200,
-          "different": 25166,
-          "ratio": 0.06367914979757085,
+          "different": 25467,
+          "ratio": 0.06444078947368422,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -11762,8 +11762,8 @@
         },
         "context": {
           "pixels": 395200,
-          "different": 24119,
-          "ratio": 0.06102985829959514,
+          "different": 24530,
+          "ratio": 0.06206983805668016,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -11931,8 +11931,8 @@
         },
         "context": {
           "pixels": 395200,
-          "different": 24119,
-          "ratio": 0.06102985829959514,
+          "different": 24420,
+          "ratio": 0.0617914979757085,
           "maxByte": 149,
           "diffBounds": [
             0,
@@ -12100,8 +12100,8 @@
         },
         "context": {
           "pixels": 395200,
-          "different": 24119,
-          "ratio": 0.06102985829959514,
+          "different": 24530,
+          "ratio": 0.06206983805668016,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -12269,8 +12269,8 @@
         },
         "context": {
           "pixels": 395200,
-          "different": 25852,
-          "ratio": 0.06541497975708502,
+          "different": 26153,
+          "ratio": 0.06617661943319839,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -12647,8 +12647,8 @@
         },
         "context": {
           "pixels": 376800,
-          "different": 43390,
-          "ratio": 0.11515392781316348,
+          "different": 43766,
+          "ratio": 0.11615180467091295,
           "maxByte": 232,
           "diffBounds": [
             8,
@@ -13025,8 +13025,8 @@
         },
         "context": {
           "pixels": 376800,
-          "different": 43742,
-          "ratio": 0.11608811040339703,
+          "different": 44066,
+          "ratio": 0.11694798301486199,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -13405,8 +13405,8 @@
         },
         "context": {
           "pixels": 376800,
-          "different": 43409,
-          "ratio": 0.11520435244161359,
+          "different": 43820,
+          "ratio": 0.11629511677282378,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -13783,8 +13783,8 @@
         },
         "context": {
           "pixels": 376800,
-          "different": 43409,
-          "ratio": 0.11520435244161359,
+          "different": 43733,
+          "ratio": 0.11606422505307856,
           "maxByte": 201,
           "diffBounds": [
             0,
@@ -14161,8 +14161,8 @@
         },
         "context": {
           "pixels": 376800,
-          "different": 43409,
-          "ratio": 0.11520435244161359,
+          "different": 43820,
+          "ratio": 0.11629511677282378,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -14539,8 +14539,8 @@
         },
         "context": {
           "pixels": 376800,
-          "different": 42083,
-          "ratio": 0.1116852441613588,
+          "different": 42407,
+          "ratio": 0.11254511677282378,
           "maxByte": 232,
           "diffBounds": [
             0,
@@ -17274,8 +17274,8 @@
         },
         "context": {
           "pixels": 351080,
-          "different": 24757,
-          "ratio": 0.07051669135239831,
+          "different": 24769,
+          "ratio": 0.07055087159621738,
           "maxByte": 206,
           "diffBounds": [
             0,
@@ -17425,8 +17425,8 @@
         },
         "context": {
           "pixels": 351080,
-          "different": 25041,
-          "ratio": 0.0713256237894497,
+          "different": 25058,
+          "ratio": 0.07137404580152672,
           "maxByte": 206,
           "diffBounds": [
             0,
@@ -17581,8 +17581,8 @@
         },
         "context": {
           "pixels": 351080,
-          "different": 23592,
-          "ratio": 0.06719835934829668,
+          "different": 23603,
+          "ratio": 0.06722969123846417,
           "maxByte": 206,
           "diffBounds": [
             0,
@@ -17732,8 +17732,8 @@
         },
         "context": {
           "pixels": 351080,
-          "different": 22165,
-          "ratio": 0.06313375868747864,
+          "different": 22187,
+          "ratio": 0.06319642246781361,
           "maxByte": 149,
           "diffBounds": [
             0,
@@ -17883,8 +17883,8 @@
         },
         "context": {
           "pixels": 351080,
-          "different": 22231,
-          "ratio": 0.06332175002848353,
+          "different": 22252,
+          "ratio": 0.06338156545516692,
           "maxByte": 149,
           "diffBounds": [
             0,
@@ -18034,8 +18034,8 @@
         },
         "context": {
           "pixels": 351080,
-          "different": 22165,
-          "ratio": 0.06313375868747864,
+          "different": 22187,
+          "ratio": 0.06319642246781361,
           "maxByte": 149,
           "diffBounds": [
             0,
@@ -18185,8 +18185,8 @@
         },
         "context": {
           "pixels": 351080,
-          "different": 22231,
-          "ratio": 0.06332175002848353,
+          "different": 22252,
+          "ratio": 0.06338156545516692,
           "maxByte": 149,
           "diffBounds": [
             0,

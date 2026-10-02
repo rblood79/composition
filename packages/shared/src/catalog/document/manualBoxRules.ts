@@ -359,14 +359,15 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
     return { parts };
   },
   // `TagGroup.css` `.react-aria-TagList { display: contents }`: the visible box is
-  // `.tag-list-wrapper` (flex wrap, centered, catalog `TagList` size gap/min-height). Its
-  // `height: 100%` resolves against the RAC TagGroup, which `TagGroup.tsx` renders at auto height
-  // inside the `div` carrying the element style, so the percentage never applies.
+  // `.tag-list-wrapper` (flex wrap, centered, catalog `TagList` size gap/min-height) with the
+  // catalog `height: 100%` — the RAC TagGroup fills the styled outer div (4e-11), so the wrapper
+  // fills what the label leaves (a flex item shrinking to the column, floored by min-height).
   // The wrapper's size values follow the group's `data-tag-size` (TagGroup parts below), not the
   // TagList's own size prop.
   TagList: () => ({
     replace: true,
     layout: { display: "flex", flexWrap: "wrap", alignItems: "center" },
+    visual: { height: "100%" },
   }),
   // `.react-aria-GridListItem .react-aria-Text:not([slot="description"])`: weight 600 for an item's
   // Text children; a description keeps the item's weight and is muted. The Preview marks the slot in a GridList

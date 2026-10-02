@@ -15,4 +15,7 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
   Radio: ["Label"],
   Checkbox: ["Label"],
   Slider: ["SliderTrack"],
+  // TagGroup → TagList (the chip wrapper) → Tag: the chips take the group size.
+  TagGroup: ["TagList"],
+  TagList: ["Tag"],
 };

@@ -30,7 +30,7 @@
     "types": 34,
     "PASS": 0,
     "PASS_withApprovedDifferences": 0,
-    "previewDefectFollowed": 3,
+    "previewDefectFollowed": 2,
     "FAIL": 0,
     "UNVERIFIED": 33,
     "NOT_RUN": 1,
@@ -4654,102 +4654,13 @@
       "inputDiffs": [],
       "geometry": {
         "pairedNodes": 2,
-        "maxDelta": 42,
-        "overOnePx": [
-          {
-            "new": "project:node:subject::lib:template:component-taggroup__2",
-            "old": "component-taggroup__2",
-            "newRect": {
-              "x": 0,
-              "y": 24,
-              "width": 220,
-              "height": 64,
-              "baseline": 64
-            },
-            "oldRect": {
-              "x": 0,
-              "y": 24,
-              "width": 220,
-              "height": 106
-            },
-            "newInput": {
-              "self": {
-                "type": "TagList",
-                "props": {
-                  "size": "md"
-                },
-                "layout": {
-                  "display": "flex",
-                  "flexWrap": "wrap",
-                  "alignItems": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "fontSize": 16,
-                  "radius": 0,
-                  "gap": 4,
-                  "minHeight": 30
-                },
-                "placement": null,
-                "engineInput": {
-                  "display": "flex",
-                  "alignItems": "center",
-                  "flexWrap": "wrap",
-                  "minHeight": "30px",
-                  "rowGap": "4px",
-                  "columnGap": "4px"
-                }
-              },
-              "parent": {
-                "type": "TagGroup",
-                "props": {
-                  "size": "md",
-                  "labelPosition": "top",
-                  "selectionMode": "multiple",
-                  "label": "Tag Group",
-                  "maxRows": 2,
-                  "allowsRemoving": false
-                },
-                "layout": {
-                  "display": "flex",
-                  "flexDirection": "column"
-                },
-                "sizing": {
-                  "width": 220,
-                  "height": 130
-                },
-                "visual": {
-                  "gap": 4,
-                  "fontSize": 14,
-                  "radius": 6,
-                  "width": "100%"
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "flexDirection": "column",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "width": "220px",
-                  "height": "130px",
-                  "rowGap": "4px",
-                  "columnGap": "4px"
-                }
-              }
-            },
-            "oldEngineInput": null
-          }
-        ],
+        "maxDelta": 0.1999969482421875,
+        "overOnePx": [],
         "unpaired": [],
         "unpairedCount": 0,
         "oldSyntheticWrappers": [],
         "pass": true,
-        "strictPass": false,
+        "strictPass": true,
         "unapprovedCount": 0
       },
       "canvasDom": {
@@ -4757,28 +4668,11 @@
         "ownedPairs": 2,
         "maxDelta": 0.0124969482421875,
         "overOnePx": [],
-        "geometryArbiter": [
-          {
-            "new": "project:node:subject::lib:template:component-taggroup__2",
-            "dom": null
-          }
-        ],
+        "geometryArbiter": [],
         "missing": [],
         "missingCount": 0,
         "pass": true
       },
-      "approvedDifferences": [
-        {
-          "new": "project:node:subject::lib:template:component-taggroup__2",
-          "old": "component-taggroup__2",
-          "rule": "taglist-wrapper",
-          "class": "previewFollow"
-        }
-      ],
-      "approvedClasses": [
-        "previewFollow"
-      ],
-      "previewDefectFollowed": true,
       "failedLegs": [],
       "L3": {
         "measured": false,

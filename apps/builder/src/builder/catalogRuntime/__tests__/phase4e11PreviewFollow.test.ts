@@ -526,3 +526,79 @@ describe("standalone collection items — item slot roles", () => {
   });
 });
 
+
+/**
+ * taglist-wrapper: the catalog TagList is `height: 100%` (사용자 지시 2026-09-24) — the chip
+ * wrapper fills what the TagGroup leaves under its label. The DOM wrapper's percentage resolved
+ * against the RAC TagGroup, rendered at auto height inside the styled outer div, so it never
+ * applied. The RAC TagGroup fills that div; the Canvas TagList takes the same 100%.
+ */
+describe("TagList — the catalog 100% height", () => {
+  it("TagGroup.css lets the RAC TagGroup fill its outer box", () => {
+    const css = readFileSync(resolve(GENERATED, "../TagGroup.css"), "utf8");
+    expect(css).toMatch(
+      /\.react-aria-TagGroup:not\(\.table-cell-tag-group\) \{[^}]*height: 100%;/,
+    );
+  });
+
+  it("a 130-tall TagGroup's TagList fills the space under its label", async () => {
+    const library = await buildCodeCatalogLibrary();
+    const workspace = await openOwner("TagGroup");
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: "project:node:home-body" },
+        entries: [
+          {
+            kind: "node",
+            id: "project:node:sized",
+            definitionId: catalogPaletteDefinitionId(library, "TagGroup"),
+            children: [],
+            props: {},
+            visual: {},
+            sizing: {
+              width: { kind: "set", value: 220 },
+              height: { kind: "set", value: 130 },
+            },
+            descendantOverrides: [],
+          } as NodeEntry,
+        ],
+        rootIds: ["project:node:sized"],
+        newId: workspace.newId,
+      }),
+    );
+    const root = workspace.root;
+    const group = [...root.layoutInputs.values()].find(
+      (record) => record.sourceId === "project:node:sized",
+    )!;
+    const list = group.children
+      .map((id) => root.layoutInputs.get(id)!)
+      .find((record) => record.bindingId === "taglist")!;
+    const label = group.children
+      .map((id) => root.layoutInputs.get(id)!)
+      .find((record) => record.bindingId === "label")!;
+    const boxes = root.getGeometry([group.id, list.id, label.id]);
+    const gap = Number(group.visual.gap ?? 0);
+    expect(boxes.get(list.id)!.height).toBeCloseTo(
+      130 - boxes.get(label.id)!.height - gap,
+      1,
+    );
+    workspace.dispose();
+  });
+});
+
+describe("TagGroup size reaches the chips", () => {
+  it("a sm TagGroup's Tags are sm (22 tall)", async () => {
+    const workspace = await openOwner("TagGroup", { size: "sm" });
+    const root = workspace.root;
+    const tags = [...root.layoutInputs.values()].filter(
+      (record) => record.bindingId === "tag" && !record.hidden,
+    );
+    expect(tags.length).toBeGreaterThan(0);
+    const geometry = root.getGeometry(tags.map((record) => record.id));
+    for (const tag of tags) {
+      expect(tag.props.size).toBe("sm");
+      expect(geometry.get(tag.id)!.height).toBe(22);
+    }
+    workspace.dispose();
+  });
+});

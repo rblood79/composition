@@ -30,7 +30,7 @@
     "types": 63,
     "PASS": 374,
     "PASS_withApprovedDifferences": 172,
-    "previewDefectFollowed": 4,
+    "previewDefectFollowed": 0,
     "FAIL": 0,
     "UNVERIFIED": 6,
     "NOT_RUN": 6,
@@ -51,11 +51,11 @@
       "types": 46
     },
     "contentHeight": {
-      "nodes": 304,
+      "nodes": 296,
       "types": 32
     },
     "height": {
-      "nodes": 330,
+      "nodes": 318,
       "types": 28
     },
     "contentMinHeight": {
@@ -98,29 +98,29 @@
       "nodes": 64,
       "types": 12
     },
-    "paddingRight": {
-      "nodes": 50,
-      "types": 10
-    },
     "display": {
       "nodes": 50,
       "types": 9
     },
-    "paddingLeft": {
-      "nodes": 63,
+    "paddingRight": {
+      "nodes": 42,
       "types": 9
+    },
+    "paddingLeft": {
+      "nodes": 55,
+      "types": 8
     },
     "minHeight": {
       "nodes": 55,
       "types": 7
     },
     "paddingTop": {
-      "nodes": 46,
-      "types": 6
+      "nodes": 38,
+      "types": 5
     },
     "paddingBottom": {
-      "nodes": 46,
-      "types": 6
+      "nodes": 38,
+      "types": 5
     },
     "justifyContent": {
       "nodes": 22,
@@ -83507,12 +83507,6 @@
         },
         {
           "old": "component-taggroup__2",
-          "key": "height",
-          "oldValue": "100%",
-          "newValue": null
-        },
-        {
-          "old": "component-taggroup__2",
           "key": "alignItems",
           "oldValue": null,
           "newValue": "center"
@@ -83568,25 +83562,68 @@
       ],
       "geometry": {
         "pairedNodes": 11,
-        "maxDelta": 42,
+        "maxDelta": 10.5,
         "overOnePx": [
           {
-            "new": "project:node:subject::lib:template:component-taggroup__2",
-            "old": "component-taggroup__2",
+            "new": "project:node:subject::lib:template:component-taggroup__2__tag-1",
+            "old": "component-taggroup__2/component-taggroup__2__tag-1",
             "newRect": {
               "x": 30,
-              "y": 54,
-              "width": 220,
-              "height": 64
+              "y": 64.5,
+              "width": 90.62000274658203,
+              "height": 30
             },
             "oldRect": {
               "x": 30,
               "y": 54,
-              "width": 220,
-              "height": 106
+              "width": 90,
+              "height": 30
             },
             "newInput": {
               "self": {
+                "type": "Tag",
+                "props": {
+                  "variant": "default",
+                  "size": "md",
+                  "children": "{label}"
+                },
+                "layout": {
+                  "display": "flex",
+                  "alignItems": "center"
+                },
+                "sizing": {},
+                "visual": {
+                  "fontWeight": 400,
+                  "height": 30,
+                  "paddingY": 4,
+                  "paddingX": 12,
+                  "fontSize": 14,
+                  "radius": 6,
+                  "lineHeight": 1.4285714285714286,
+                  "borderWidth": 1,
+                  "iconSize": 14,
+                  "gap": 4,
+                  "width": "fit-content"
+                },
+                "placement": null,
+                "engineInput": {
+                  "display": "flex",
+                  "alignItems": "center",
+                  "width": "fit-content",
+                  "height": "30px",
+                  "rowGap": "4px",
+                  "columnGap": "4px",
+                  "paddingTop": "4px",
+                  "paddingBottom": "4px",
+                  "paddingRight": "12px",
+                  "paddingLeft": "12px",
+                  "borderTop": "1px",
+                  "borderRight": "1px",
+                  "borderBottom": "1px",
+                  "borderLeft": "1px"
+                }
+              },
+              "parent": {
                 "type": "TagList",
                 "props": {
                   "size": "md"
@@ -83598,6 +83635,7 @@
                 },
                 "sizing": {},
                 "visual": {
+                  "height": "100%",
                   "fontSize": 16,
                   "radius": 0,
                   "gap": 4,
@@ -83608,48 +83646,8 @@
                   "display": "flex",
                   "alignItems": "center",
                   "flexWrap": "wrap",
+                  "height": "100%",
                   "minHeight": "30px",
-                  "rowGap": "4px",
-                  "columnGap": "4px"
-                }
-              },
-              "parent": {
-                "type": "TagGroup",
-                "props": {
-                  "size": "md",
-                  "labelPosition": "top",
-                  "selectionMode": "multiple",
-                  "label": "Tag Group",
-                  "maxRows": 2,
-                  "allowsRemoving": false
-                },
-                "layout": {
-                  "display": "flex",
-                  "flexDirection": "column"
-                },
-                "sizing": {
-                  "width": 220,
-                  "height": 130
-                },
-                "visual": {
-                  "gap": 4,
-                  "fontSize": 14,
-                  "radius": 6,
-                  "width": "100%"
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "flexDirection": "column",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "width": "220px",
-                  "height": "130px",
                   "rowGap": "4px",
                   "columnGap": "4px"
                 }
@@ -83657,12 +83655,321 @@
             },
             "oldEngineInput": {
               "display": "flex",
-              "flexDirection": "row",
-              "flexWrap": "wrap",
-              "height": "100%",
-              "minHeight": "30px",
+              "alignItems": "center",
+              "width": "fit-content",
+              "height": "30px",
+              "paddingTop": "4px",
+              "paddingRight": "12px",
+              "paddingBottom": "4px",
+              "paddingLeft": "12px",
+              "borderTop": "1px",
+              "borderRight": "1px",
+              "borderBottom": "1px",
+              "borderLeft": "1px",
               "columnGap": "4px",
               "rowGap": "4px"
+            }
+          },
+          {
+            "new": "project:node:subject/lib:template:component-taggroup__2__tag-1::lib:template:component-tag-item-default__label",
+            "old": "component-taggroup__2/component-taggroup__2__tag-1/Label",
+            "newRect": {
+              "x": 43,
+              "y": 69.5,
+              "width": 64.62000274658203,
+              "height": 20
+            },
+            "oldRect": {
+              "x": 43,
+              "y": 59,
+              "width": 64,
+              "height": 20
+            },
+            "newInput": {
+              "self": {
+                "type": "Text",
+                "props": {
+                  "size": "md",
+                  "slot": "label",
+                  "children": "Chocolate"
+                },
+                "layout": {
+                  "display": "block"
+                },
+                "sizing": {},
+                "visual": {
+                  "color": "#171717",
+                  "fontWeight": 400,
+                  "width": "100%",
+                  "fontSize": 14,
+                  "lineHeight": 1.4285714285714286,
+                  "radius": 0
+                },
+                "placement": null,
+                "engineInput": {
+                  "display": "block",
+                  "width": "100%",
+                  "contentMinWidth": 64.62000274658203,
+                  "contentMaxWidth": 64.62000274658203,
+                  "contentHeight": 20
+                }
+              },
+              "parent": {
+                "type": "Tag",
+                "props": {
+                  "variant": "default",
+                  "size": "md",
+                  "children": "{label}"
+                },
+                "layout": {
+                  "display": "flex",
+                  "alignItems": "center"
+                },
+                "sizing": {},
+                "visual": {
+                  "fontWeight": 400,
+                  "height": 30,
+                  "paddingY": 4,
+                  "paddingX": 12,
+                  "fontSize": 14,
+                  "radius": 6,
+                  "lineHeight": 1.4285714285714286,
+                  "borderWidth": 1,
+                  "iconSize": 14,
+                  "gap": 4,
+                  "width": "fit-content"
+                },
+                "placement": null,
+                "engineInput": {
+                  "display": "flex",
+                  "alignItems": "center",
+                  "width": "fit-content",
+                  "height": "30px",
+                  "rowGap": "4px",
+                  "columnGap": "4px",
+                  "paddingTop": "4px",
+                  "paddingBottom": "4px",
+                  "paddingRight": "12px",
+                  "paddingLeft": "12px",
+                  "borderTop": "1px",
+                  "borderRight": "1px",
+                  "borderBottom": "1px",
+                  "borderLeft": "1px"
+                }
+              }
+            },
+            "oldEngineInput": {
+              "display": "block",
+              "width": "100%",
+              "contentMinWidth": 64,
+              "contentMaxWidth": 64,
+              "contentHeight": 20,
+              "leafBaseline": 13.7119140625,
+              "lineHeight": 20
+            }
+          },
+          {
+            "new": "project:node:subject::lib:template:component-taggroup__2__tag-2",
+            "old": "component-taggroup__2/component-taggroup__2__tag-2",
+            "newRect": {
+              "x": 124.62000274658203,
+              "y": 64.5,
+              "width": 53.540000915527344,
+              "height": 30
+            },
+            "oldRect": {
+              "x": 124,
+              "y": 54,
+              "width": 54,
+              "height": 30
+            },
+            "newInput": {
+              "self": {
+                "type": "Tag",
+                "props": {
+                  "variant": "default",
+                  "size": "md",
+                  "children": "{label}"
+                },
+                "layout": {
+                  "display": "flex",
+                  "alignItems": "center"
+                },
+                "sizing": {},
+                "visual": {
+                  "fontWeight": 400,
+                  "height": 30,
+                  "paddingY": 4,
+                  "paddingX": 12,
+                  "fontSize": 14,
+                  "radius": 6,
+                  "lineHeight": 1.4285714285714286,
+                  "borderWidth": 1,
+                  "iconSize": 14,
+                  "gap": 4,
+                  "width": "fit-content"
+                },
+                "placement": null,
+                "engineInput": {
+                  "display": "flex",
+                  "alignItems": "center",
+                  "width": "fit-content",
+                  "height": "30px",
+                  "rowGap": "4px",
+                  "columnGap": "4px",
+                  "paddingTop": "4px",
+                  "paddingBottom": "4px",
+                  "paddingRight": "12px",
+                  "paddingLeft": "12px",
+                  "borderTop": "1px",
+                  "borderRight": "1px",
+                  "borderBottom": "1px",
+                  "borderLeft": "1px"
+                }
+              },
+              "parent": {
+                "type": "TagList",
+                "props": {
+                  "size": "md"
+                },
+                "layout": {
+                  "display": "flex",
+                  "flexWrap": "wrap",
+                  "alignItems": "center"
+                },
+                "sizing": {},
+                "visual": {
+                  "height": "100%",
+                  "fontSize": 16,
+                  "radius": 0,
+                  "gap": 4,
+                  "minHeight": 30
+                },
+                "placement": null,
+                "engineInput": {
+                  "display": "flex",
+                  "alignItems": "center",
+                  "flexWrap": "wrap",
+                  "height": "100%",
+                  "minHeight": "30px",
+                  "rowGap": "4px",
+                  "columnGap": "4px"
+                }
+              }
+            },
+            "oldEngineInput": {
+              "display": "flex",
+              "alignItems": "center",
+              "width": "fit-content",
+              "height": "30px",
+              "paddingTop": "4px",
+              "paddingRight": "12px",
+              "paddingBottom": "4px",
+              "paddingLeft": "12px",
+              "borderTop": "1px",
+              "borderRight": "1px",
+              "borderBottom": "1px",
+              "borderLeft": "1px",
+              "columnGap": "4px",
+              "rowGap": "4px"
+            }
+          },
+          {
+            "new": "project:node:subject/lib:template:component-taggroup__2__tag-2::lib:template:component-tag-item-default__label",
+            "old": "component-taggroup__2/component-taggroup__2__tag-2/Label",
+            "newRect": {
+              "x": 137.62000274658203,
+              "y": 69.5,
+              "width": 27.540000915527344,
+              "height": 20
+            },
+            "oldRect": {
+              "x": 137,
+              "y": 59,
+              "width": 28,
+              "height": 20
+            },
+            "newInput": {
+              "self": {
+                "type": "Text",
+                "props": {
+                  "size": "md",
+                  "slot": "label",
+                  "children": "Mint"
+                },
+                "layout": {
+                  "display": "block"
+                },
+                "sizing": {},
+                "visual": {
+                  "color": "#171717",
+                  "fontWeight": 400,
+                  "width": "100%",
+                  "fontSize": 14,
+                  "lineHeight": 1.4285714285714286,
+                  "radius": 0
+                },
+                "placement": null,
+                "engineInput": {
+                  "display": "block",
+                  "width": "100%",
+                  "contentMinWidth": 27.540000915527344,
+                  "contentMaxWidth": 27.540000915527344,
+                  "contentHeight": 20
+                }
+              },
+              "parent": {
+                "type": "Tag",
+                "props": {
+                  "variant": "default",
+                  "size": "md",
+                  "children": "{label}"
+                },
+                "layout": {
+                  "display": "flex",
+                  "alignItems": "center"
+                },
+                "sizing": {},
+                "visual": {
+                  "fontWeight": 400,
+                  "height": 30,
+                  "paddingY": 4,
+                  "paddingX": 12,
+                  "fontSize": 14,
+                  "radius": 6,
+                  "lineHeight": 1.4285714285714286,
+                  "borderWidth": 1,
+                  "iconSize": 14,
+                  "gap": 4,
+                  "width": "fit-content"
+                },
+                "placement": null,
+                "engineInput": {
+                  "display": "flex",
+                  "alignItems": "center",
+                  "width": "fit-content",
+                  "height": "30px",
+                  "rowGap": "4px",
+                  "columnGap": "4px",
+                  "paddingTop": "4px",
+                  "paddingBottom": "4px",
+                  "paddingRight": "12px",
+                  "paddingLeft": "12px",
+                  "borderTop": "1px",
+                  "borderRight": "1px",
+                  "borderBottom": "1px",
+                  "borderLeft": "1px"
+                }
+              }
+            },
+            "oldEngineInput": {
+              "display": "block",
+              "width": "100%",
+              "contentMinWidth": 28,
+              "contentMaxWidth": 28,
+              "contentHeight": 20,
+              "leafBaseline": 13.7119140625,
+              "lineHeight": 20
             }
           },
           {
@@ -83670,7 +83977,7 @@
             "old": "component-taggroup__2/component-taggroup__2__tag-3",
             "newRect": {
               "x": 30,
-              "y": 88,
+              "y": 119.5,
               "width": 96.51000213623047,
               "height": 30
             },
@@ -83736,6 +84043,7 @@
                 },
                 "sizing": {},
                 "visual": {
+                  "height": "100%",
                   "fontSize": 16,
                   "radius": 0,
                   "gap": 4,
@@ -83746,6 +84054,7 @@
                   "display": "flex",
                   "alignItems": "center",
                   "flexWrap": "wrap",
+                  "height": "100%",
                   "minHeight": "30px",
                   "rowGap": "4px",
                   "columnGap": "4px"
@@ -83774,7 +84083,7 @@
             "old": "component-taggroup__2/component-taggroup__2__tag-3/Label",
             "newRect": {
               "x": 43,
-              "y": 93,
+              "y": 124.5,
               "width": 70.51000213623047,
               "height": 20
             },
@@ -83872,7 +84181,7 @@
             "old": "component-taggroup__2/component-taggroup__2__tag-4",
             "newRect": {
               "x": 130.51000213623047,
-              "y": 88,
+              "y": 119.5,
               "width": 67.81999969482422,
               "height": 30
             },
@@ -83938,6 +84247,7 @@
                 },
                 "sizing": {},
                 "visual": {
+                  "height": "100%",
                   "fontSize": 16,
                   "radius": 0,
                   "gap": 4,
@@ -83948,6 +84258,7 @@
                   "display": "flex",
                   "alignItems": "center",
                   "flexWrap": "wrap",
+                  "height": "100%",
                   "minHeight": "30px",
                   "rowGap": "4px",
                   "columnGap": "4px"
@@ -83976,7 +84287,7 @@
             "old": "component-taggroup__2/component-taggroup__2__tag-4/Label",
             "newRect": {
               "x": 143.51000213623047,
-              "y": 93,
+              "y": 124.5,
               "width": 41.81999969482422,
               "height": 20
             },
@@ -84084,14 +84395,46 @@
         "overOnePx": [],
         "geometryArbiter": [
           {
-            "new": "project:node:subject::lib:template:component-taggroup__2",
-            "dom": null
+            "new": "project:node:subject::lib:template:component-taggroup__2__tag-1",
+            "dom": {
+              "x": 30,
+              "y": 64.5,
+              "width": 90.625,
+              "height": 30
+            }
+          },
+          {
+            "new": "project:node:subject/lib:template:component-taggroup__2__tag-1::lib:template:component-tag-item-default__label",
+            "dom": {
+              "x": 43,
+              "y": 69.5,
+              "width": 64.625,
+              "height": 20
+            }
+          },
+          {
+            "new": "project:node:subject::lib:template:component-taggroup__2__tag-2",
+            "dom": {
+              "x": 124.625,
+              "y": 64.5,
+              "width": 53.546875,
+              "height": 30
+            }
+          },
+          {
+            "new": "project:node:subject/lib:template:component-taggroup__2__tag-2::lib:template:component-tag-item-default__label",
+            "dom": {
+              "x": 137.625,
+              "y": 69.5,
+              "width": 27.546875,
+              "height": 20
+            }
           },
           {
             "new": "project:node:subject::lib:template:component-taggroup__2__tag-3",
             "dom": {
               "x": 30,
-              "y": 88,
+              "y": 119.5,
               "width": 96.515625,
               "height": 30
             }
@@ -84100,7 +84443,7 @@
             "new": "project:node:subject/lib:template:component-taggroup__2__tag-3::lib:template:component-tag-item-default__label",
             "dom": {
               "x": 43,
-              "y": 93,
+              "y": 124.5,
               "width": 70.515625,
               "height": 20
             }
@@ -84109,7 +84452,7 @@
             "new": "project:node:subject::lib:template:component-taggroup__2__tag-4",
             "dom": {
               "x": 130.515625,
-              "y": 88,
+              "y": 119.5,
               "width": 67.828125,
               "height": 30
             }
@@ -84118,7 +84461,7 @@
             "new": "project:node:subject/lib:template:component-taggroup__2__tag-4::lib:template:component-tag-item-default__label",
             "dom": {
               "x": 143.515625,
-              "y": 93,
+              "y": 124.5,
               "width": 41.828125,
               "height": 20
             }
@@ -84137,55 +84480,57 @@
           "edges": true
         },
         {
-          "new": "project:node:subject::lib:template:component-taggroup__2",
-          "old": "component-taggroup__2",
-          "rule": "taglist-wrapper",
-          "class": "previewFollow"
+          "new": "project:node:subject::lib:template:component-taggroup__2__tag-1",
+          "old": "component-taggroup__2/component-taggroup__2__tag-1",
+          "rule": "taglist-line-distribution",
+          "class": "oldDefect"
+        },
+        {
+          "new": "project:node:subject/lib:template:component-taggroup__2__tag-1::lib:template:component-tag-item-default__label",
+          "old": "component-taggroup__2/component-taggroup__2__tag-1/Label",
+          "rule": "taglist-line-distribution",
+          "class": "oldDefect"
         },
         {
           "new": "project:node:subject::lib:template:component-taggroup__2__tag-2",
           "old": "component-taggroup__2/component-taggroup__2__tag-2",
-          "rule": "subpixel-intrinsic-width-ceil",
-          "class": "oldDefect",
-          "edges": true
+          "rule": "taglist-line-distribution",
+          "class": "oldDefect"
         },
         {
           "new": "project:node:subject/lib:template:component-taggroup__2__tag-2::lib:template:component-tag-item-default__label",
           "old": "component-taggroup__2/component-taggroup__2__tag-2/Label",
-          "rule": "subpixel-intrinsic-width-ceil",
-          "class": "oldDefect",
-          "edges": true
+          "rule": "taglist-line-distribution",
+          "class": "oldDefect"
         },
         {
           "new": "project:node:subject::lib:template:component-taggroup__2__tag-3",
           "old": "component-taggroup__2/component-taggroup__2__tag-3",
-          "rule": "taglist-wrapper",
-          "class": "previewFollow"
+          "rule": "taglist-line-distribution",
+          "class": "oldDefect"
         },
         {
           "new": "project:node:subject/lib:template:component-taggroup__2__tag-3::lib:template:component-tag-item-default__label",
           "old": "component-taggroup__2/component-taggroup__2__tag-3/Label",
-          "rule": "taglist-wrapper",
-          "class": "previewFollow"
+          "rule": "taglist-line-distribution",
+          "class": "oldDefect"
         },
         {
           "new": "project:node:subject::lib:template:component-taggroup__2__tag-4",
           "old": "component-taggroup__2/component-taggroup__2__tag-4",
-          "rule": "taglist-wrapper",
-          "class": "previewFollow"
+          "rule": "taglist-line-distribution",
+          "class": "oldDefect"
         },
         {
           "new": "project:node:subject/lib:template:component-taggroup__2__tag-4::lib:template:component-tag-item-default__label",
           "old": "component-taggroup__2/component-taggroup__2__tag-4/Label",
-          "rule": "taglist-wrapper",
-          "class": "previewFollow"
+          "rule": "taglist-line-distribution",
+          "class": "oldDefect"
         }
       ],
       "approvedClasses": [
-        "oldDefect",
-        "previewFollow"
+        "oldDefect"
       ],
-      "previewDefectFollowed": true,
       "liveIdentity": {
         "region": "capture clip",
         "pixels": 240000,
@@ -84194,19 +84539,19 @@
         "maxByte": 0
       },
       "L3": {
-        "pixels": 230517,
-        "different": 140,
-        "ratio": 0.0006073304788800826,
-        "maxByte": 216,
+        "pixels": 229713,
+        "different": 103,
+        "ratio": 0.0004483855941979775,
+        "maxByte": 31,
         "diffBounds": [
-          19,
-          74,
+          11,
+          30,
           119,
-          83
+          67
         ],
-        "approvedAttributed": 140,
+        "approvedAttributed": 103,
         "movedPaint": {
-          "pixels": 42,
+          "pixels": 78,
           "different": 0,
           "maxByte": 0
         },
@@ -84215,28 +84560,28 @@
         "blocked": false
       },
       "L3e": {
-        "pixels": 7389,
-        "different": 244,
-        "ratio": 0.03302205981864934,
-        "maxByte": 232,
+        "pixels": 8193,
+        "different": 456,
+        "ratio": 0.055657268399853535,
+        "maxByte": 227,
         "diffBounds": [
           7,
-          50,
+          27,
           120,
-          83
+          90
         ],
         "gated": false
       },
       "text": {
         "pixels": 2094,
-        "different": 349,
-        "ratio": 0.16666666666666666,
+        "different": 410,
+        "ratio": 0.19579751671442217,
         "maxByte": 232,
         "diffBounds": [
           8,
           13,
           110,
-          64
+          86
         ],
         "gated": false
       },
@@ -84333,212 +84678,62 @@
         },
         {
           "old": "component-taggroup__2",
-          "key": "height",
-          "oldValue": "100%",
-          "newValue": null
-        },
-        {
-          "old": "component-taggroup__2",
           "key": "alignItems",
           "oldValue": null,
           "newValue": "center"
         },
         {
-          "old": "component-taggroup__2/component-taggroup__2__tag-1",
-          "key": "height",
-          "oldValue": "22px",
-          "newValue": "30px"
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-1",
-          "key": "paddingTop",
-          "oldValue": "2px",
-          "newValue": "4px"
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-1",
-          "key": "paddingRight",
-          "oldValue": "8px",
-          "newValue": "12px"
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-1",
-          "key": "paddingBottom",
-          "oldValue": "2px",
-          "newValue": "4px"
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-1",
-          "key": "paddingLeft",
-          "oldValue": "8px",
-          "newValue": "12px"
-        },
-        {
           "old": "component-taggroup__2/component-taggroup__2__tag-1/Label",
           "key": "contentMinWidth",
           "oldValue": 55,
-          "newValue": 64.62000274658203
+          "newValue": 55.38999938964844
         },
         {
           "old": "component-taggroup__2/component-taggroup__2__tag-1/Label",
           "key": "contentMaxWidth",
           "oldValue": 55,
-          "newValue": 64.62000274658203
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-1/Label",
-          "key": "contentHeight",
-          "oldValue": 16,
-          "newValue": 20
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-2",
-          "key": "height",
-          "oldValue": "22px",
-          "newValue": "30px"
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-2",
-          "key": "paddingTop",
-          "oldValue": "2px",
-          "newValue": "4px"
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-2",
-          "key": "paddingRight",
-          "oldValue": "8px",
-          "newValue": "12px"
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-2",
-          "key": "paddingBottom",
-          "oldValue": "2px",
-          "newValue": "4px"
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-2",
-          "key": "paddingLeft",
-          "oldValue": "8px",
-          "newValue": "12px"
+          "newValue": 55.38999938964844
         },
         {
           "old": "component-taggroup__2/component-taggroup__2__tag-2/Label",
           "key": "contentMinWidth",
           "oldValue": 24,
-          "newValue": 27.540000915527344
+          "newValue": 23.600000381469727
         },
         {
           "old": "component-taggroup__2/component-taggroup__2__tag-2/Label",
           "key": "contentMaxWidth",
           "oldValue": 24,
-          "newValue": 27.540000915527344
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-2/Label",
-          "key": "contentHeight",
-          "oldValue": 16,
-          "newValue": 20
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-3",
-          "key": "height",
-          "oldValue": "22px",
-          "newValue": "30px"
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-3",
-          "key": "paddingTop",
-          "oldValue": "2px",
-          "newValue": "4px"
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-3",
-          "key": "paddingRight",
-          "oldValue": "8px",
-          "newValue": "12px"
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-3",
-          "key": "paddingBottom",
-          "oldValue": "2px",
-          "newValue": "4px"
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-3",
-          "key": "paddingLeft",
-          "oldValue": "8px",
-          "newValue": "12px"
+          "newValue": 23.600000381469727
         },
         {
           "old": "component-taggroup__2/component-taggroup__2__tag-3/Label",
           "key": "contentMinWidth",
           "oldValue": 60,
-          "newValue": 70.51000213623047
+          "newValue": 60.439998626708984
         },
         {
           "old": "component-taggroup__2/component-taggroup__2__tag-3/Label",
           "key": "contentMaxWidth",
           "oldValue": 60,
-          "newValue": 70.51000213623047
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-3/Label",
-          "key": "contentHeight",
-          "oldValue": 16,
-          "newValue": 20
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-4",
-          "key": "height",
-          "oldValue": "22px",
-          "newValue": "30px"
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-4",
-          "key": "paddingTop",
-          "oldValue": "2px",
-          "newValue": "4px"
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-4",
-          "key": "paddingRight",
-          "oldValue": "8px",
-          "newValue": "12px"
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-4",
-          "key": "paddingBottom",
-          "oldValue": "2px",
-          "newValue": "4px"
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-4",
-          "key": "paddingLeft",
-          "oldValue": "8px",
-          "newValue": "12px"
+          "newValue": 60.439998626708984
         },
         {
           "old": "component-taggroup__2/component-taggroup__2__tag-4/Label",
           "key": "contentMinWidth",
           "oldValue": 35,
-          "newValue": 41.81999969482422
+          "newValue": 35.84000015258789
         },
         {
           "old": "component-taggroup__2/component-taggroup__2__tag-4/Label",
           "key": "contentMaxWidth",
           "oldValue": 35,
-          "newValue": 41.81999969482422
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-4/Label",
-          "key": "contentHeight",
-          "oldValue": 16,
-          "newValue": 20
+          "newValue": 35.84000015258789
         }
       ],
       "geometry": {
         "pairedNodes": 11,
-        "maxDelta": 123,
+        "maxDelta": 16.35714340209961,
         "overOnePx": [
           {
             "new": "project:node:subject::lib:template:component-taggroup__1",
@@ -84649,7 +84844,7 @@
               "x": 30,
               "y": 51.14285659790039,
               "width": 220,
-              "height": 64
+              "height": 108.85714721679688
             },
             "oldRect": {
               "x": 30,
@@ -84661,7 +84856,7 @@
               "self": {
                 "type": "TagList",
                 "props": {
-                  "size": "md"
+                  "size": "sm"
                 },
                 "layout": {
                   "display": "flex",
@@ -84670,6 +84865,7 @@
                 },
                 "sizing": {},
                 "visual": {
+                  "height": "100%",
                   "fontSize": 16,
                   "radius": 0,
                   "gap": 4,
@@ -84680,6 +84876,7 @@
                   "display": "flex",
                   "alignItems": "center",
                   "flexWrap": "wrap",
+                  "height": "100%",
                   "minHeight": "22px",
                   "rowGap": "4px",
                   "columnGap": "4px"
@@ -84742,15 +84939,1162 @@
             "old": "component-taggroup__2/component-taggroup__2__tag-1",
             "newRect": {
               "x": 30,
-              "y": 51.14285659790039,
-              "width": 90.62000274658203,
-              "height": 30
+              "y": 66.35714340209961,
+              "width": 73.38999938964844,
+              "height": 22
             },
             "oldRect": {
               "x": 30,
               "y": 50,
               "width": 73,
               "height": 22
+            },
+            "newInput": {
+              "self": {
+                "type": "Tag",
+                "props": {
+                  "variant": "default",
+                  "size": "sm",
+                  "children": "{label}"
+                },
+                "layout": {
+                  "display": "flex",
+                  "alignItems": "center"
+                },
+                "sizing": {},
+                "visual": {
+                  "fontWeight": 400,
+                  "height": 22,
+                  "paddingY": 2,
+                  "paddingX": 8,
+                  "fontSize": 12,
+                  "radius": 4,
+                  "lineHeight": 1.3333333333333333,
+                  "borderWidth": 1,
+                  "iconSize": 14,
+                  "gap": 4,
+                  "width": "fit-content"
+                },
+                "placement": null,
+                "engineInput": {
+                  "display": "flex",
+                  "alignItems": "center",
+                  "width": "fit-content",
+                  "height": "22px",
+                  "rowGap": "4px",
+                  "columnGap": "4px",
+                  "paddingTop": "2px",
+                  "paddingBottom": "2px",
+                  "paddingRight": "8px",
+                  "paddingLeft": "8px",
+                  "borderTop": "1px",
+                  "borderRight": "1px",
+                  "borderBottom": "1px",
+                  "borderLeft": "1px"
+                }
+              },
+              "parent": {
+                "type": "TagList",
+                "props": {
+                  "size": "sm"
+                },
+                "layout": {
+                  "display": "flex",
+                  "flexWrap": "wrap",
+                  "alignItems": "center"
+                },
+                "sizing": {},
+                "visual": {
+                  "height": "100%",
+                  "fontSize": 16,
+                  "radius": 0,
+                  "gap": 4,
+                  "minHeight": 22
+                },
+                "placement": null,
+                "engineInput": {
+                  "display": "flex",
+                  "alignItems": "center",
+                  "flexWrap": "wrap",
+                  "height": "100%",
+                  "minHeight": "22px",
+                  "rowGap": "4px",
+                  "columnGap": "4px"
+                }
+              }
+            },
+            "oldEngineInput": {
+              "display": "flex",
+              "alignItems": "center",
+              "width": "fit-content",
+              "height": "22px",
+              "paddingTop": "2px",
+              "paddingRight": "8px",
+              "paddingBottom": "2px",
+              "paddingLeft": "8px",
+              "borderTop": "1px",
+              "borderRight": "1px",
+              "borderBottom": "1px",
+              "borderLeft": "1px",
+              "columnGap": "4px",
+              "rowGap": "4px"
+            }
+          },
+          {
+            "new": "project:node:subject/lib:template:component-taggroup__2__tag-1::lib:template:component-tag-item-default__label",
+            "old": "component-taggroup__2/component-taggroup__2__tag-1/Label",
+            "newRect": {
+              "x": 39,
+              "y": 69.35714340209961,
+              "width": 55.38999938964844,
+              "height": 16
+            },
+            "oldRect": {
+              "x": 39,
+              "y": 53,
+              "width": 55,
+              "height": 16
+            },
+            "newInput": {
+              "self": {
+                "type": "Text",
+                "props": {
+                  "size": "md",
+                  "slot": "label",
+                  "children": "Chocolate"
+                },
+                "layout": {
+                  "display": "block"
+                },
+                "sizing": {},
+                "visual": {
+                  "color": "#171717",
+                  "fontWeight": 400,
+                  "width": "100%",
+                  "fontSize": 12,
+                  "lineHeight": 1.3333333333333333,
+                  "radius": 0
+                },
+                "placement": null,
+                "engineInput": {
+                  "display": "block",
+                  "width": "100%",
+                  "contentMinWidth": 55.38999938964844,
+                  "contentMaxWidth": 55.38999938964844,
+                  "contentHeight": 16
+                }
+              },
+              "parent": {
+                "type": "Tag",
+                "props": {
+                  "variant": "default",
+                  "size": "sm",
+                  "children": "{label}"
+                },
+                "layout": {
+                  "display": "flex",
+                  "alignItems": "center"
+                },
+                "sizing": {},
+                "visual": {
+                  "fontWeight": 400,
+                  "height": 22,
+                  "paddingY": 2,
+                  "paddingX": 8,
+                  "fontSize": 12,
+                  "radius": 4,
+                  "lineHeight": 1.3333333333333333,
+                  "borderWidth": 1,
+                  "iconSize": 14,
+                  "gap": 4,
+                  "width": "fit-content"
+                },
+                "placement": null,
+                "engineInput": {
+                  "display": "flex",
+                  "alignItems": "center",
+                  "width": "fit-content",
+                  "height": "22px",
+                  "rowGap": "4px",
+                  "columnGap": "4px",
+                  "paddingTop": "2px",
+                  "paddingBottom": "2px",
+                  "paddingRight": "8px",
+                  "paddingLeft": "8px",
+                  "borderTop": "1px",
+                  "borderRight": "1px",
+                  "borderBottom": "1px",
+                  "borderLeft": "1px"
+                }
+              }
+            },
+            "oldEngineInput": {
+              "display": "block",
+              "width": "100%",
+              "contentMinWidth": 55,
+              "contentMaxWidth": 55,
+              "contentHeight": 16,
+              "leafBaseline": 11.181640625,
+              "lineHeight": 16
+            }
+          },
+          {
+            "new": "project:node:subject::lib:template:component-taggroup__2__tag-2",
+            "old": "component-taggroup__2/component-taggroup__2__tag-2",
+            "newRect": {
+              "x": 107.38999938964844,
+              "y": 66.35714340209961,
+              "width": 41.599998474121094,
+              "height": 22
+            },
+            "oldRect": {
+              "x": 107,
+              "y": 50,
+              "width": 42,
+              "height": 22
+            },
+            "newInput": {
+              "self": {
+                "type": "Tag",
+                "props": {
+                  "variant": "default",
+                  "size": "sm",
+                  "children": "{label}"
+                },
+                "layout": {
+                  "display": "flex",
+                  "alignItems": "center"
+                },
+                "sizing": {},
+                "visual": {
+                  "fontWeight": 400,
+                  "height": 22,
+                  "paddingY": 2,
+                  "paddingX": 8,
+                  "fontSize": 12,
+                  "radius": 4,
+                  "lineHeight": 1.3333333333333333,
+                  "borderWidth": 1,
+                  "iconSize": 14,
+                  "gap": 4,
+                  "width": "fit-content"
+                },
+                "placement": null,
+                "engineInput": {
+                  "display": "flex",
+                  "alignItems": "center",
+                  "width": "fit-content",
+                  "height": "22px",
+                  "rowGap": "4px",
+                  "columnGap": "4px",
+                  "paddingTop": "2px",
+                  "paddingBottom": "2px",
+                  "paddingRight": "8px",
+                  "paddingLeft": "8px",
+                  "borderTop": "1px",
+                  "borderRight": "1px",
+                  "borderBottom": "1px",
+                  "borderLeft": "1px"
+                }
+              },
+              "parent": {
+                "type": "TagList",
+                "props": {
+                  "size": "sm"
+                },
+                "layout": {
+                  "display": "flex",
+                  "flexWrap": "wrap",
+                  "alignItems": "center"
+                },
+                "sizing": {},
+                "visual": {
+                  "height": "100%",
+                  "fontSize": 16,
+                  "radius": 0,
+                  "gap": 4,
+                  "minHeight": 22
+                },
+                "placement": null,
+                "engineInput": {
+                  "display": "flex",
+                  "alignItems": "center",
+                  "flexWrap": "wrap",
+                  "height": "100%",
+                  "minHeight": "22px",
+                  "rowGap": "4px",
+                  "columnGap": "4px"
+                }
+              }
+            },
+            "oldEngineInput": {
+              "display": "flex",
+              "alignItems": "center",
+              "width": "fit-content",
+              "height": "22px",
+              "paddingTop": "2px",
+              "paddingRight": "8px",
+              "paddingBottom": "2px",
+              "paddingLeft": "8px",
+              "borderTop": "1px",
+              "borderRight": "1px",
+              "borderBottom": "1px",
+              "borderLeft": "1px",
+              "columnGap": "4px",
+              "rowGap": "4px"
+            }
+          },
+          {
+            "new": "project:node:subject/lib:template:component-taggroup__2__tag-2::lib:template:component-tag-item-default__label",
+            "old": "component-taggroup__2/component-taggroup__2__tag-2/Label",
+            "newRect": {
+              "x": 116.38999938964844,
+              "y": 69.35714340209961,
+              "width": 23.599998474121094,
+              "height": 16
+            },
+            "oldRect": {
+              "x": 116,
+              "y": 53,
+              "width": 24,
+              "height": 16
+            },
+            "newInput": {
+              "self": {
+                "type": "Text",
+                "props": {
+                  "size": "md",
+                  "slot": "label",
+                  "children": "Mint"
+                },
+                "layout": {
+                  "display": "block"
+                },
+                "sizing": {},
+                "visual": {
+                  "color": "#171717",
+                  "fontWeight": 400,
+                  "width": "100%",
+                  "fontSize": 12,
+                  "lineHeight": 1.3333333333333333,
+                  "radius": 0
+                },
+                "placement": null,
+                "engineInput": {
+                  "display": "block",
+                  "width": "100%",
+                  "contentMinWidth": 23.600000381469727,
+                  "contentMaxWidth": 23.600000381469727,
+                  "contentHeight": 16
+                }
+              },
+              "parent": {
+                "type": "Tag",
+                "props": {
+                  "variant": "default",
+                  "size": "sm",
+                  "children": "{label}"
+                },
+                "layout": {
+                  "display": "flex",
+                  "alignItems": "center"
+                },
+                "sizing": {},
+                "visual": {
+                  "fontWeight": 400,
+                  "height": 22,
+                  "paddingY": 2,
+                  "paddingX": 8,
+                  "fontSize": 12,
+                  "radius": 4,
+                  "lineHeight": 1.3333333333333333,
+                  "borderWidth": 1,
+                  "iconSize": 14,
+                  "gap": 4,
+                  "width": "fit-content"
+                },
+                "placement": null,
+                "engineInput": {
+                  "display": "flex",
+                  "alignItems": "center",
+                  "width": "fit-content",
+                  "height": "22px",
+                  "rowGap": "4px",
+                  "columnGap": "4px",
+                  "paddingTop": "2px",
+                  "paddingBottom": "2px",
+                  "paddingRight": "8px",
+                  "paddingLeft": "8px",
+                  "borderTop": "1px",
+                  "borderRight": "1px",
+                  "borderBottom": "1px",
+                  "borderLeft": "1px"
+                }
+              }
+            },
+            "oldEngineInput": {
+              "display": "block",
+              "width": "100%",
+              "contentMinWidth": 24,
+              "contentMaxWidth": 24,
+              "contentHeight": 16,
+              "leafBaseline": 11.181640625,
+              "lineHeight": 16
+            }
+          },
+          {
+            "new": "project:node:subject::lib:template:component-taggroup__2__tag-3",
+            "old": "component-taggroup__2/component-taggroup__2__tag-3",
+            "newRect": {
+              "x": 152.98999786376953,
+              "y": 66.35714340209961,
+              "width": 78.44000244140625,
+              "height": 22
+            },
+            "oldRect": {
+              "x": 153,
+              "y": 50,
+              "width": 78,
+              "height": 22
+            },
+            "newInput": {
+              "self": {
+                "type": "Tag",
+                "props": {
+                  "variant": "default",
+                  "size": "sm",
+                  "children": "{label}"
+                },
+                "layout": {
+                  "display": "flex",
+                  "alignItems": "center"
+                },
+                "sizing": {},
+                "visual": {
+                  "fontWeight": 400,
+                  "height": 22,
+                  "paddingY": 2,
+                  "paddingX": 8,
+                  "fontSize": 12,
+                  "radius": 4,
+                  "lineHeight": 1.3333333333333333,
+                  "borderWidth": 1,
+                  "iconSize": 14,
+                  "gap": 4,
+                  "width": "fit-content"
+                },
+                "placement": null,
+                "engineInput": {
+                  "display": "flex",
+                  "alignItems": "center",
+                  "width": "fit-content",
+                  "height": "22px",
+                  "rowGap": "4px",
+                  "columnGap": "4px",
+                  "paddingTop": "2px",
+                  "paddingBottom": "2px",
+                  "paddingRight": "8px",
+                  "paddingLeft": "8px",
+                  "borderTop": "1px",
+                  "borderRight": "1px",
+                  "borderBottom": "1px",
+                  "borderLeft": "1px"
+                }
+              },
+              "parent": {
+                "type": "TagList",
+                "props": {
+                  "size": "sm"
+                },
+                "layout": {
+                  "display": "flex",
+                  "flexWrap": "wrap",
+                  "alignItems": "center"
+                },
+                "sizing": {},
+                "visual": {
+                  "height": "100%",
+                  "fontSize": 16,
+                  "radius": 0,
+                  "gap": 4,
+                  "minHeight": 22
+                },
+                "placement": null,
+                "engineInput": {
+                  "display": "flex",
+                  "alignItems": "center",
+                  "flexWrap": "wrap",
+                  "height": "100%",
+                  "minHeight": "22px",
+                  "rowGap": "4px",
+                  "columnGap": "4px"
+                }
+              }
+            },
+            "oldEngineInput": {
+              "display": "flex",
+              "alignItems": "center",
+              "width": "fit-content",
+              "height": "22px",
+              "paddingTop": "2px",
+              "paddingRight": "8px",
+              "paddingBottom": "2px",
+              "paddingLeft": "8px",
+              "borderTop": "1px",
+              "borderRight": "1px",
+              "borderBottom": "1px",
+              "borderLeft": "1px",
+              "columnGap": "4px",
+              "rowGap": "4px"
+            }
+          },
+          {
+            "new": "project:node:subject/lib:template:component-taggroup__2__tag-3::lib:template:component-tag-item-default__label",
+            "old": "component-taggroup__2/component-taggroup__2__tag-3/Label",
+            "newRect": {
+              "x": 161.98999786376953,
+              "y": 69.35714340209961,
+              "width": 60.44000244140625,
+              "height": 16
+            },
+            "oldRect": {
+              "x": 162,
+              "y": 53,
+              "width": 60,
+              "height": 16
+            },
+            "newInput": {
+              "self": {
+                "type": "Text",
+                "props": {
+                  "size": "md",
+                  "slot": "label",
+                  "children": "Strawberry"
+                },
+                "layout": {
+                  "display": "block"
+                },
+                "sizing": {},
+                "visual": {
+                  "color": "#171717",
+                  "fontWeight": 400,
+                  "width": "100%",
+                  "fontSize": 12,
+                  "lineHeight": 1.3333333333333333,
+                  "radius": 0
+                },
+                "placement": null,
+                "engineInput": {
+                  "display": "block",
+                  "width": "100%",
+                  "contentMinWidth": 60.439998626708984,
+                  "contentMaxWidth": 60.439998626708984,
+                  "contentHeight": 16
+                }
+              },
+              "parent": {
+                "type": "Tag",
+                "props": {
+                  "variant": "default",
+                  "size": "sm",
+                  "children": "{label}"
+                },
+                "layout": {
+                  "display": "flex",
+                  "alignItems": "center"
+                },
+                "sizing": {},
+                "visual": {
+                  "fontWeight": 400,
+                  "height": 22,
+                  "paddingY": 2,
+                  "paddingX": 8,
+                  "fontSize": 12,
+                  "radius": 4,
+                  "lineHeight": 1.3333333333333333,
+                  "borderWidth": 1,
+                  "iconSize": 14,
+                  "gap": 4,
+                  "width": "fit-content"
+                },
+                "placement": null,
+                "engineInput": {
+                  "display": "flex",
+                  "alignItems": "center",
+                  "width": "fit-content",
+                  "height": "22px",
+                  "rowGap": "4px",
+                  "columnGap": "4px",
+                  "paddingTop": "2px",
+                  "paddingBottom": "2px",
+                  "paddingRight": "8px",
+                  "paddingLeft": "8px",
+                  "borderTop": "1px",
+                  "borderRight": "1px",
+                  "borderBottom": "1px",
+                  "borderLeft": "1px"
+                }
+              }
+            },
+            "oldEngineInput": {
+              "display": "block",
+              "width": "100%",
+              "contentMinWidth": 60,
+              "contentMaxWidth": 60,
+              "contentHeight": 16,
+              "leafBaseline": 11.181640625,
+              "lineHeight": 16
+            }
+          },
+          {
+            "new": "project:node:subject::lib:template:component-taggroup__2__tag-4",
+            "old": "component-taggroup__2/component-taggroup__2__tag-4",
+            "newRect": {
+              "x": 30,
+              "y": 122.78571701049805,
+              "width": 53.84000015258789,
+              "height": 22
+            },
+            "oldRect": {
+              "x": 30,
+              "y": 107,
+              "width": 53,
+              "height": 22
+            },
+            "newInput": {
+              "self": {
+                "type": "Tag",
+                "props": {
+                  "variant": "default",
+                  "size": "sm",
+                  "children": "{label}"
+                },
+                "layout": {
+                  "display": "flex",
+                  "alignItems": "center"
+                },
+                "sizing": {},
+                "visual": {
+                  "fontWeight": 400,
+                  "height": 22,
+                  "paddingY": 2,
+                  "paddingX": 8,
+                  "fontSize": 12,
+                  "radius": 4,
+                  "lineHeight": 1.3333333333333333,
+                  "borderWidth": 1,
+                  "iconSize": 14,
+                  "gap": 4,
+                  "width": "fit-content"
+                },
+                "placement": null,
+                "engineInput": {
+                  "display": "flex",
+                  "alignItems": "center",
+                  "width": "fit-content",
+                  "height": "22px",
+                  "rowGap": "4px",
+                  "columnGap": "4px",
+                  "paddingTop": "2px",
+                  "paddingBottom": "2px",
+                  "paddingRight": "8px",
+                  "paddingLeft": "8px",
+                  "borderTop": "1px",
+                  "borderRight": "1px",
+                  "borderBottom": "1px",
+                  "borderLeft": "1px"
+                }
+              },
+              "parent": {
+                "type": "TagList",
+                "props": {
+                  "size": "sm"
+                },
+                "layout": {
+                  "display": "flex",
+                  "flexWrap": "wrap",
+                  "alignItems": "center"
+                },
+                "sizing": {},
+                "visual": {
+                  "height": "100%",
+                  "fontSize": 16,
+                  "radius": 0,
+                  "gap": 4,
+                  "minHeight": 22
+                },
+                "placement": null,
+                "engineInput": {
+                  "display": "flex",
+                  "alignItems": "center",
+                  "flexWrap": "wrap",
+                  "height": "100%",
+                  "minHeight": "22px",
+                  "rowGap": "4px",
+                  "columnGap": "4px"
+                }
+              }
+            },
+            "oldEngineInput": {
+              "display": "flex",
+              "alignItems": "center",
+              "width": "fit-content",
+              "height": "22px",
+              "paddingTop": "2px",
+              "paddingRight": "8px",
+              "paddingBottom": "2px",
+              "paddingLeft": "8px",
+              "borderTop": "1px",
+              "borderRight": "1px",
+              "borderBottom": "1px",
+              "borderLeft": "1px",
+              "columnGap": "4px",
+              "rowGap": "4px"
+            }
+          },
+          {
+            "new": "project:node:subject/lib:template:component-taggroup__2__tag-4::lib:template:component-tag-item-default__label",
+            "old": "component-taggroup__2/component-taggroup__2__tag-4/Label",
+            "newRect": {
+              "x": 39,
+              "y": 125.78571701049805,
+              "width": 35.84000015258789,
+              "height": 16
+            },
+            "oldRect": {
+              "x": 39,
+              "y": 110,
+              "width": 35,
+              "height": 16
+            },
+            "newInput": {
+              "self": {
+                "type": "Text",
+                "props": {
+                  "size": "md",
+                  "slot": "label",
+                  "children": "Vanilla"
+                },
+                "layout": {
+                  "display": "block"
+                },
+                "sizing": {},
+                "visual": {
+                  "color": "#171717",
+                  "fontWeight": 400,
+                  "width": "100%",
+                  "fontSize": 12,
+                  "lineHeight": 1.3333333333333333,
+                  "radius": 0
+                },
+                "placement": null,
+                "engineInput": {
+                  "display": "block",
+                  "width": "100%",
+                  "contentMinWidth": 35.84000015258789,
+                  "contentMaxWidth": 35.84000015258789,
+                  "contentHeight": 16
+                }
+              },
+              "parent": {
+                "type": "Tag",
+                "props": {
+                  "variant": "default",
+                  "size": "sm",
+                  "children": "{label}"
+                },
+                "layout": {
+                  "display": "flex",
+                  "alignItems": "center"
+                },
+                "sizing": {},
+                "visual": {
+                  "fontWeight": 400,
+                  "height": 22,
+                  "paddingY": 2,
+                  "paddingX": 8,
+                  "fontSize": 12,
+                  "radius": 4,
+                  "lineHeight": 1.3333333333333333,
+                  "borderWidth": 1,
+                  "iconSize": 14,
+                  "gap": 4,
+                  "width": "fit-content"
+                },
+                "placement": null,
+                "engineInput": {
+                  "display": "flex",
+                  "alignItems": "center",
+                  "width": "fit-content",
+                  "height": "22px",
+                  "rowGap": "4px",
+                  "columnGap": "4px",
+                  "paddingTop": "2px",
+                  "paddingBottom": "2px",
+                  "paddingRight": "8px",
+                  "paddingLeft": "8px",
+                  "borderTop": "1px",
+                  "borderRight": "1px",
+                  "borderBottom": "1px",
+                  "borderLeft": "1px"
+                }
+              }
+            },
+            "oldEngineInput": {
+              "display": "block",
+              "width": "100%",
+              "contentMinWidth": 35,
+              "contentMaxWidth": 35,
+              "contentHeight": 16,
+              "leafBaseline": 11.181640625,
+              "lineHeight": 16
+            }
+          }
+        ],
+        "unpaired": [],
+        "unpairedCount": 0,
+        "oldSyntheticWrappers": [],
+        "pass": true,
+        "strictPass": false,
+        "unapprovedCount": 0
+      },
+      "canvasDom": {
+        "pairedNodes": 10,
+        "ownedPairs": 2,
+        "maxDelta": 0.0149993896484375,
+        "overOnePx": [],
+        "geometryArbiter": [
+          {
+            "new": "project:node:subject::lib:template:component-taggroup__1",
+            "dom": {
+              "x": 30,
+              "y": 30,
+              "width": 58.125,
+              "height": 17.140625
+            }
+          },
+          {
+            "new": "project:node:subject::lib:template:component-taggroup__2",
+            "dom": null
+          },
+          {
+            "new": "project:node:subject::lib:template:component-taggroup__2__tag-1",
+            "dom": {
+              "x": 30,
+              "y": 66.359375,
+              "width": 73.390625,
+              "height": 22
+            }
+          },
+          {
+            "new": "project:node:subject/lib:template:component-taggroup__2__tag-1::lib:template:component-tag-item-default__label",
+            "dom": {
+              "x": 39,
+              "y": 69.359375,
+              "width": 55.390625,
+              "height": 16
+            }
+          },
+          {
+            "new": "project:node:subject::lib:template:component-taggroup__2__tag-2",
+            "dom": {
+              "x": 107.390625,
+              "y": 66.359375,
+              "width": 41.609375,
+              "height": 22
+            }
+          },
+          {
+            "new": "project:node:subject/lib:template:component-taggroup__2__tag-2::lib:template:component-tag-item-default__label",
+            "dom": {
+              "x": 116.390625,
+              "y": 69.359375,
+              "width": 23.609375,
+              "height": 16
+            }
+          },
+          {
+            "new": "project:node:subject::lib:template:component-taggroup__2__tag-3",
+            "dom": {
+              "x": 153,
+              "y": 66.359375,
+              "width": 78.453125,
+              "height": 22
+            }
+          },
+          {
+            "new": "project:node:subject/lib:template:component-taggroup__2__tag-3::lib:template:component-tag-item-default__label",
+            "dom": {
+              "x": 162,
+              "y": 69.359375,
+              "width": 60.453125,
+              "height": 16
+            }
+          },
+          {
+            "new": "project:node:subject::lib:template:component-taggroup__2__tag-4",
+            "dom": {
+              "x": 30,
+              "y": 122.78125,
+              "width": 53.84375,
+              "height": 22
+            }
+          },
+          {
+            "new": "project:node:subject/lib:template:component-taggroup__2__tag-4::lib:template:component-tag-item-default__label",
+            "dom": {
+              "x": 39,
+              "y": 125.78125,
+              "width": 35.84375,
+              "height": 16
+            }
+          }
+        ],
+        "missing": [],
+        "missingCount": 0,
+        "pass": true
+      },
+      "approvedDifferences": [
+        {
+          "new": "project:node:subject::lib:template:component-taggroup__1",
+          "old": "component-taggroup__1",
+          "rule": "field-label-line-height",
+          "class": "oldDefect"
+        },
+        {
+          "new": "project:node:subject::lib:template:component-taggroup__2",
+          "old": "component-taggroup__2",
+          "rule": "taglist-line-distribution",
+          "class": "oldDefect"
+        },
+        {
+          "new": "project:node:subject::lib:template:component-taggroup__2__tag-1",
+          "old": "component-taggroup__2/component-taggroup__2__tag-1",
+          "rule": "taglist-line-distribution",
+          "class": "oldDefect"
+        },
+        {
+          "new": "project:node:subject/lib:template:component-taggroup__2__tag-1::lib:template:component-tag-item-default__label",
+          "old": "component-taggroup__2/component-taggroup__2__tag-1/Label",
+          "rule": "taglist-line-distribution",
+          "class": "oldDefect"
+        },
+        {
+          "new": "project:node:subject::lib:template:component-taggroup__2__tag-2",
+          "old": "component-taggroup__2/component-taggroup__2__tag-2",
+          "rule": "taglist-line-distribution",
+          "class": "oldDefect"
+        },
+        {
+          "new": "project:node:subject/lib:template:component-taggroup__2__tag-2::lib:template:component-tag-item-default__label",
+          "old": "component-taggroup__2/component-taggroup__2__tag-2/Label",
+          "rule": "taglist-line-distribution",
+          "class": "oldDefect"
+        },
+        {
+          "new": "project:node:subject::lib:template:component-taggroup__2__tag-3",
+          "old": "component-taggroup__2/component-taggroup__2__tag-3",
+          "rule": "taglist-line-distribution",
+          "class": "oldDefect"
+        },
+        {
+          "new": "project:node:subject/lib:template:component-taggroup__2__tag-3::lib:template:component-tag-item-default__label",
+          "old": "component-taggroup__2/component-taggroup__2__tag-3/Label",
+          "rule": "taglist-line-distribution",
+          "class": "oldDefect"
+        },
+        {
+          "new": "project:node:subject::lib:template:component-taggroup__2__tag-4",
+          "old": "component-taggroup__2/component-taggroup__2__tag-4",
+          "rule": "taglist-line-distribution",
+          "class": "oldDefect"
+        },
+        {
+          "new": "project:node:subject/lib:template:component-taggroup__2__tag-4::lib:template:component-tag-item-default__label",
+          "old": "component-taggroup__2/component-taggroup__2__tag-4/Label",
+          "rule": "taglist-line-distribution",
+          "class": "oldDefect"
+        }
+      ],
+      "approvedClasses": [
+        "oldDefect"
+      ],
+      "liveIdentity": {
+        "region": "capture clip",
+        "pixels": 240000,
+        "different": 0,
+        "ratio": 0,
+        "maxByte": 0
+      },
+      "L3": {
+        "pixels": 231613,
+        "different": 121,
+        "ratio": 0.000522423180046025,
+        "maxByte": 232,
+        "diffBounds": [
+          14,
+          29,
+          142,
+          69
+        ],
+        "approvedAttributed": 121,
+        "movedPaint": {
+          "pixels": 0,
+          "different": 0,
+          "maxByte": 0
+        },
+        "outsideRatio": 0,
+        "outsideMaxByte": 0,
+        "blocked": false
+      },
+      "L3e": {
+        "pixels": 6808,
+        "different": 337,
+        "ratio": 0.049500587544065805,
+        "maxByte": 155,
+        "diffBounds": [
+          7,
+          24,
+          142,
+          87
+        ],
+        "gated": false
+      },
+      "text": {
+        "pixels": 1579,
+        "different": 331,
+        "ratio": 0.20962634578847372,
+        "maxByte": 232,
+        "diffBounds": [
+          8,
+          14,
+          136,
+          83
+        ],
+        "gated": false
+      },
+      "failedLegs": [],
+      "verdict": "PASS"
+    },
+    {
+      "type": "TagGroup",
+      "axis": "size:md",
+      "oldRef": "component-taggroup",
+      "frozenPngMatch": true,
+      "route": {
+        "source": "code-composite",
+        "definitionId": "lib:definition:origin-component-taggroup"
+      },
+      "axisAuthoring": "authored",
+      "live": {
+        "definitionId": "lib:definition:origin-component-taggroup",
+        "routeMatches": true,
+        "surface": "page",
+        "props": {
+          "size": {
+            "kind": "set",
+            "value": "md"
+          }
+        }
+      },
+      "liveGeometry": {
+        "harnessNodes": 11,
+        "liveNodes": 11,
+        "typeMismatch": [],
+        "maxDelta": 0
+      },
+      "inputDiffs": [
+        {
+          "old": "component-taggroup__1",
+          "key": "contentMinWidth",
+          "oldValue": 40,
+          "newValue": 67.80000305175781
+        },
+        {
+          "old": "component-taggroup__1",
+          "key": "height",
+          "oldValue": null,
+          "newValue": "fit-content"
+        },
+        {
+          "old": "component-taggroup__2",
+          "key": "flexDirection",
+          "oldValue": "row",
+          "newValue": null
+        },
+        {
+          "old": "component-taggroup__2",
+          "key": "alignItems",
+          "oldValue": null,
+          "newValue": "center"
+        },
+        {
+          "old": "component-taggroup__2/component-taggroup__2__tag-1/Label",
+          "key": "contentMinWidth",
+          "oldValue": 64,
+          "newValue": 64.62000274658203
+        },
+        {
+          "old": "component-taggroup__2/component-taggroup__2__tag-1/Label",
+          "key": "contentMaxWidth",
+          "oldValue": 64,
+          "newValue": 64.62000274658203
+        },
+        {
+          "old": "component-taggroup__2/component-taggroup__2__tag-2/Label",
+          "key": "contentMinWidth",
+          "oldValue": 28,
+          "newValue": 27.540000915527344
+        },
+        {
+          "old": "component-taggroup__2/component-taggroup__2__tag-2/Label",
+          "key": "contentMaxWidth",
+          "oldValue": 28,
+          "newValue": 27.540000915527344
+        },
+        {
+          "old": "component-taggroup__2/component-taggroup__2__tag-3/Label",
+          "key": "contentMinWidth",
+          "oldValue": 70,
+          "newValue": 70.51000213623047
+        },
+        {
+          "old": "component-taggroup__2/component-taggroup__2__tag-3/Label",
+          "key": "contentMaxWidth",
+          "oldValue": 70,
+          "newValue": 70.51000213623047
+        },
+        {
+          "old": "component-taggroup__2/component-taggroup__2__tag-4/Label",
+          "key": "contentMinWidth",
+          "oldValue": 41,
+          "newValue": 41.81999969482422
+        },
+        {
+          "old": "component-taggroup__2/component-taggroup__2__tag-4/Label",
+          "key": "contentMaxWidth",
+          "oldValue": 41,
+          "newValue": 41.81999969482422
+        }
+      ],
+      "geometry": {
+        "pairedNodes": 11,
+        "maxDelta": 10.5,
+        "overOnePx": [
+          {
+            "new": "project:node:subject::lib:template:component-taggroup__2__tag-1",
+            "old": "component-taggroup__2/component-taggroup__2__tag-1",
+            "newRect": {
+              "x": 30,
+              "y": 64.5,
+              "width": 90.62000274658203,
+              "height": 30
+            },
+            "oldRect": {
+              "x": 30,
+              "y": 54,
+              "width": 90,
+              "height": 30
             },
             "newInput": {
               "self": {
@@ -84808,17 +86152,19 @@
                 },
                 "sizing": {},
                 "visual": {
+                  "height": "100%",
                   "fontSize": 16,
                   "radius": 0,
                   "gap": 4,
-                  "minHeight": 22
+                  "minHeight": 30
                 },
                 "placement": null,
                 "engineInput": {
                   "display": "flex",
                   "alignItems": "center",
                   "flexWrap": "wrap",
-                  "minHeight": "22px",
+                  "height": "100%",
+                  "minHeight": "30px",
                   "rowGap": "4px",
                   "columnGap": "4px"
                 }
@@ -84828,11 +86174,11 @@
               "display": "flex",
               "alignItems": "center",
               "width": "fit-content",
-              "height": "22px",
-              "paddingTop": "2px",
-              "paddingRight": "8px",
-              "paddingBottom": "2px",
-              "paddingLeft": "8px",
+              "height": "30px",
+              "paddingTop": "4px",
+              "paddingRight": "12px",
+              "paddingBottom": "4px",
+              "paddingLeft": "12px",
               "borderTop": "1px",
               "borderRight": "1px",
               "borderBottom": "1px",
@@ -84846,15 +86192,15 @@
             "old": "component-taggroup__2/component-taggroup__2__tag-1/Label",
             "newRect": {
               "x": 43,
-              "y": 56.14285659790039,
+              "y": 69.5,
               "width": 64.62000274658203,
               "height": 20
             },
             "oldRect": {
-              "x": 39,
-              "y": 53,
-              "width": 55,
-              "height": 16
+              "x": 43,
+              "y": 59,
+              "width": 64,
+              "height": 20
             },
             "newInput": {
               "self": {
@@ -84932,11 +86278,11 @@
             "oldEngineInput": {
               "display": "block",
               "width": "100%",
-              "contentMinWidth": 55,
-              "contentMaxWidth": 55,
-              "contentHeight": 16,
-              "leafBaseline": 11.181640625,
-              "lineHeight": 16
+              "contentMinWidth": 64,
+              "contentMaxWidth": 64,
+              "contentHeight": 20,
+              "leafBaseline": 13.7119140625,
+              "lineHeight": 20
             }
           },
           {
@@ -84944,15 +86290,15 @@
             "old": "component-taggroup__2/component-taggroup__2__tag-2",
             "newRect": {
               "x": 124.62000274658203,
-              "y": 51.14285659790039,
+              "y": 64.5,
               "width": 53.540000915527344,
               "height": 30
             },
             "oldRect": {
-              "x": 107,
-              "y": 50,
-              "width": 42,
-              "height": 22
+              "x": 124,
+              "y": 54,
+              "width": 54,
+              "height": 30
             },
             "newInput": {
               "self": {
@@ -85010,17 +86356,19 @@
                 },
                 "sizing": {},
                 "visual": {
+                  "height": "100%",
                   "fontSize": 16,
                   "radius": 0,
                   "gap": 4,
-                  "minHeight": 22
+                  "minHeight": 30
                 },
                 "placement": null,
                 "engineInput": {
                   "display": "flex",
                   "alignItems": "center",
                   "flexWrap": "wrap",
-                  "minHeight": "22px",
+                  "height": "100%",
+                  "minHeight": "30px",
                   "rowGap": "4px",
                   "columnGap": "4px"
                 }
@@ -85030,11 +86378,11 @@
               "display": "flex",
               "alignItems": "center",
               "width": "fit-content",
-              "height": "22px",
-              "paddingTop": "2px",
-              "paddingRight": "8px",
-              "paddingBottom": "2px",
-              "paddingLeft": "8px",
+              "height": "30px",
+              "paddingTop": "4px",
+              "paddingRight": "12px",
+              "paddingBottom": "4px",
+              "paddingLeft": "12px",
               "borderTop": "1px",
               "borderRight": "1px",
               "borderBottom": "1px",
@@ -85048,15 +86396,15 @@
             "old": "component-taggroup__2/component-taggroup__2__tag-2/Label",
             "newRect": {
               "x": 137.62000274658203,
-              "y": 56.14285659790039,
+              "y": 69.5,
               "width": 27.540000915527344,
               "height": 20
             },
             "oldRect": {
-              "x": 116,
-              "y": 53,
-              "width": 24,
-              "height": 16
+              "x": 137,
+              "y": 59,
+              "width": 28,
+              "height": 20
             },
             "newInput": {
               "self": {
@@ -85134,11 +86482,11 @@
             "oldEngineInput": {
               "display": "block",
               "width": "100%",
-              "contentMinWidth": 24,
-              "contentMaxWidth": 24,
-              "contentHeight": 16,
-              "leafBaseline": 11.181640625,
-              "lineHeight": 16
+              "contentMinWidth": 28,
+              "contentMaxWidth": 28,
+              "contentHeight": 20,
+              "leafBaseline": 13.7119140625,
+              "lineHeight": 20
             }
           },
           {
@@ -85146,845 +86494,7 @@
             "old": "component-taggroup__2/component-taggroup__2__tag-3",
             "newRect": {
               "x": 30,
-              "y": 85.14285659790039,
-              "width": 96.51000213623047,
-              "height": 30
-            },
-            "oldRect": {
-              "x": 153,
-              "y": 50,
-              "width": 78,
-              "height": 22
-            },
-            "newInput": {
-              "self": {
-                "type": "Tag",
-                "props": {
-                  "variant": "default",
-                  "size": "md",
-                  "children": "{label}"
-                },
-                "layout": {
-                  "display": "flex",
-                  "alignItems": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "fontWeight": 400,
-                  "height": 30,
-                  "paddingY": 4,
-                  "paddingX": 12,
-                  "fontSize": 14,
-                  "radius": 6,
-                  "lineHeight": 1.4285714285714286,
-                  "borderWidth": 1,
-                  "iconSize": 14,
-                  "gap": 4,
-                  "width": "fit-content"
-                },
-                "placement": null,
-                "engineInput": {
-                  "display": "flex",
-                  "alignItems": "center",
-                  "width": "fit-content",
-                  "height": "30px",
-                  "rowGap": "4px",
-                  "columnGap": "4px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "12px",
-                  "paddingLeft": "12px",
-                  "borderTop": "1px",
-                  "borderRight": "1px",
-                  "borderBottom": "1px",
-                  "borderLeft": "1px"
-                }
-              },
-              "parent": {
-                "type": "TagList",
-                "props": {
-                  "size": "md"
-                },
-                "layout": {
-                  "display": "flex",
-                  "flexWrap": "wrap",
-                  "alignItems": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "fontSize": 16,
-                  "radius": 0,
-                  "gap": 4,
-                  "minHeight": 22
-                },
-                "placement": null,
-                "engineInput": {
-                  "display": "flex",
-                  "alignItems": "center",
-                  "flexWrap": "wrap",
-                  "minHeight": "22px",
-                  "rowGap": "4px",
-                  "columnGap": "4px"
-                }
-              }
-            },
-            "oldEngineInput": {
-              "display": "flex",
-              "alignItems": "center",
-              "width": "fit-content",
-              "height": "22px",
-              "paddingTop": "2px",
-              "paddingRight": "8px",
-              "paddingBottom": "2px",
-              "paddingLeft": "8px",
-              "borderTop": "1px",
-              "borderRight": "1px",
-              "borderBottom": "1px",
-              "borderLeft": "1px",
-              "columnGap": "4px",
-              "rowGap": "4px"
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-taggroup__2__tag-3::lib:template:component-tag-item-default__label",
-            "old": "component-taggroup__2/component-taggroup__2__tag-3/Label",
-            "newRect": {
-              "x": 43,
-              "y": 90.14285659790039,
-              "width": 70.51000213623047,
-              "height": 20
-            },
-            "oldRect": {
-              "x": 162,
-              "y": 53,
-              "width": 60,
-              "height": 16
-            },
-            "newInput": {
-              "self": {
-                "type": "Text",
-                "props": {
-                  "size": "md",
-                  "slot": "label",
-                  "children": "Strawberry"
-                },
-                "layout": {
-                  "display": "block"
-                },
-                "sizing": {},
-                "visual": {
-                  "color": "#171717",
-                  "fontWeight": 400,
-                  "width": "100%",
-                  "fontSize": 14,
-                  "lineHeight": 1.4285714285714286,
-                  "radius": 0
-                },
-                "placement": null,
-                "engineInput": {
-                  "display": "block",
-                  "width": "100%",
-                  "contentMinWidth": 70.51000213623047,
-                  "contentMaxWidth": 70.51000213623047,
-                  "contentHeight": 20
-                }
-              },
-              "parent": {
-                "type": "Tag",
-                "props": {
-                  "variant": "default",
-                  "size": "md",
-                  "children": "{label}"
-                },
-                "layout": {
-                  "display": "flex",
-                  "alignItems": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "fontWeight": 400,
-                  "height": 30,
-                  "paddingY": 4,
-                  "paddingX": 12,
-                  "fontSize": 14,
-                  "radius": 6,
-                  "lineHeight": 1.4285714285714286,
-                  "borderWidth": 1,
-                  "iconSize": 14,
-                  "gap": 4,
-                  "width": "fit-content"
-                },
-                "placement": null,
-                "engineInput": {
-                  "display": "flex",
-                  "alignItems": "center",
-                  "width": "fit-content",
-                  "height": "30px",
-                  "rowGap": "4px",
-                  "columnGap": "4px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "12px",
-                  "paddingLeft": "12px",
-                  "borderTop": "1px",
-                  "borderRight": "1px",
-                  "borderBottom": "1px",
-                  "borderLeft": "1px"
-                }
-              }
-            },
-            "oldEngineInput": {
-              "display": "block",
-              "width": "100%",
-              "contentMinWidth": 60,
-              "contentMaxWidth": 60,
-              "contentHeight": 16,
-              "leafBaseline": 11.181640625,
-              "lineHeight": 16
-            }
-          },
-          {
-            "new": "project:node:subject::lib:template:component-taggroup__2__tag-4",
-            "old": "component-taggroup__2/component-taggroup__2__tag-4",
-            "newRect": {
-              "x": 130.51000213623047,
-              "y": 85.14285659790039,
-              "width": 67.81999969482422,
-              "height": 30
-            },
-            "oldRect": {
-              "x": 30,
-              "y": 107,
-              "width": 53,
-              "height": 22
-            },
-            "newInput": {
-              "self": {
-                "type": "Tag",
-                "props": {
-                  "variant": "default",
-                  "size": "md",
-                  "children": "{label}"
-                },
-                "layout": {
-                  "display": "flex",
-                  "alignItems": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "fontWeight": 400,
-                  "height": 30,
-                  "paddingY": 4,
-                  "paddingX": 12,
-                  "fontSize": 14,
-                  "radius": 6,
-                  "lineHeight": 1.4285714285714286,
-                  "borderWidth": 1,
-                  "iconSize": 14,
-                  "gap": 4,
-                  "width": "fit-content"
-                },
-                "placement": null,
-                "engineInput": {
-                  "display": "flex",
-                  "alignItems": "center",
-                  "width": "fit-content",
-                  "height": "30px",
-                  "rowGap": "4px",
-                  "columnGap": "4px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "12px",
-                  "paddingLeft": "12px",
-                  "borderTop": "1px",
-                  "borderRight": "1px",
-                  "borderBottom": "1px",
-                  "borderLeft": "1px"
-                }
-              },
-              "parent": {
-                "type": "TagList",
-                "props": {
-                  "size": "md"
-                },
-                "layout": {
-                  "display": "flex",
-                  "flexWrap": "wrap",
-                  "alignItems": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "fontSize": 16,
-                  "radius": 0,
-                  "gap": 4,
-                  "minHeight": 22
-                },
-                "placement": null,
-                "engineInput": {
-                  "display": "flex",
-                  "alignItems": "center",
-                  "flexWrap": "wrap",
-                  "minHeight": "22px",
-                  "rowGap": "4px",
-                  "columnGap": "4px"
-                }
-              }
-            },
-            "oldEngineInput": {
-              "display": "flex",
-              "alignItems": "center",
-              "width": "fit-content",
-              "height": "22px",
-              "paddingTop": "2px",
-              "paddingRight": "8px",
-              "paddingBottom": "2px",
-              "paddingLeft": "8px",
-              "borderTop": "1px",
-              "borderRight": "1px",
-              "borderBottom": "1px",
-              "borderLeft": "1px",
-              "columnGap": "4px",
-              "rowGap": "4px"
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-taggroup__2__tag-4::lib:template:component-tag-item-default__label",
-            "old": "component-taggroup__2/component-taggroup__2__tag-4/Label",
-            "newRect": {
-              "x": 143.51000213623047,
-              "y": 90.14285659790039,
-              "width": 41.81999969482422,
-              "height": 20
-            },
-            "oldRect": {
-              "x": 39,
-              "y": 110,
-              "width": 35,
-              "height": 16
-            },
-            "newInput": {
-              "self": {
-                "type": "Text",
-                "props": {
-                  "size": "md",
-                  "slot": "label",
-                  "children": "Vanilla"
-                },
-                "layout": {
-                  "display": "block"
-                },
-                "sizing": {},
-                "visual": {
-                  "color": "#171717",
-                  "fontWeight": 400,
-                  "width": "100%",
-                  "fontSize": 14,
-                  "lineHeight": 1.4285714285714286,
-                  "radius": 0
-                },
-                "placement": null,
-                "engineInput": {
-                  "display": "block",
-                  "width": "100%",
-                  "contentMinWidth": 41.81999969482422,
-                  "contentMaxWidth": 41.81999969482422,
-                  "contentHeight": 20
-                }
-              },
-              "parent": {
-                "type": "Tag",
-                "props": {
-                  "variant": "default",
-                  "size": "md",
-                  "children": "{label}"
-                },
-                "layout": {
-                  "display": "flex",
-                  "alignItems": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "fontWeight": 400,
-                  "height": 30,
-                  "paddingY": 4,
-                  "paddingX": 12,
-                  "fontSize": 14,
-                  "radius": 6,
-                  "lineHeight": 1.4285714285714286,
-                  "borderWidth": 1,
-                  "iconSize": 14,
-                  "gap": 4,
-                  "width": "fit-content"
-                },
-                "placement": null,
-                "engineInput": {
-                  "display": "flex",
-                  "alignItems": "center",
-                  "width": "fit-content",
-                  "height": "30px",
-                  "rowGap": "4px",
-                  "columnGap": "4px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "12px",
-                  "paddingLeft": "12px",
-                  "borderTop": "1px",
-                  "borderRight": "1px",
-                  "borderBottom": "1px",
-                  "borderLeft": "1px"
-                }
-              }
-            },
-            "oldEngineInput": {
-              "display": "block",
-              "width": "100%",
-              "contentMinWidth": 35,
-              "contentMaxWidth": 35,
-              "contentHeight": 16,
-              "leafBaseline": 11.181640625,
-              "lineHeight": 16
-            }
-          }
-        ],
-        "unpaired": [],
-        "unpairedCount": 0,
-        "oldSyntheticWrappers": [],
-        "pass": true,
-        "strictPass": false,
-        "unapprovedCount": 0
-      },
-      "canvasDom": {
-        "pairedNodes": 10,
-        "ownedPairs": 2,
-        "maxDelta": 0.0149993896484375,
-        "overOnePx": [],
-        "geometryArbiter": [
-          {
-            "new": "project:node:subject::lib:template:component-taggroup__1",
-            "dom": {
-              "x": 30,
-              "y": 30,
-              "width": 58.125,
-              "height": 17.140625
-            }
-          },
-          {
-            "new": "project:node:subject::lib:template:component-taggroup__2",
-            "dom": null
-          },
-          {
-            "new": "project:node:subject::lib:template:component-taggroup__2__tag-1",
-            "dom": {
-              "x": 30,
-              "y": 51.140625,
-              "width": 90.625,
-              "height": 30
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-taggroup__2__tag-1::lib:template:component-tag-item-default__label",
-            "dom": {
-              "x": 43,
-              "y": 56.140625,
-              "width": 64.625,
-              "height": 20
-            }
-          },
-          {
-            "new": "project:node:subject::lib:template:component-taggroup__2__tag-2",
-            "dom": {
-              "x": 124.625,
-              "y": 51.140625,
-              "width": 53.546875,
-              "height": 30
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-taggroup__2__tag-2::lib:template:component-tag-item-default__label",
-            "dom": {
-              "x": 137.625,
-              "y": 56.140625,
-              "width": 27.546875,
-              "height": 20
-            }
-          },
-          {
-            "new": "project:node:subject::lib:template:component-taggroup__2__tag-3",
-            "dom": {
-              "x": 30,
-              "y": 85.140625,
-              "width": 96.515625,
-              "height": 30
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-taggroup__2__tag-3::lib:template:component-tag-item-default__label",
-            "dom": {
-              "x": 43,
-              "y": 90.140625,
-              "width": 70.515625,
-              "height": 20
-            }
-          },
-          {
-            "new": "project:node:subject::lib:template:component-taggroup__2__tag-4",
-            "dom": {
-              "x": 130.515625,
-              "y": 85.140625,
-              "width": 67.828125,
-              "height": 30
-            }
-          },
-          {
-            "new": "project:node:subject/lib:template:component-taggroup__2__tag-4::lib:template:component-tag-item-default__label",
-            "dom": {
-              "x": 143.515625,
-              "y": 90.140625,
-              "width": 41.828125,
-              "height": 20
-            }
-          }
-        ],
-        "missing": [],
-        "missingCount": 0,
-        "pass": true
-      },
-      "approvedDifferences": [
-        {
-          "new": "project:node:subject::lib:template:component-taggroup__1",
-          "old": "component-taggroup__1",
-          "rule": "field-label-line-height",
-          "class": "oldDefect"
-        },
-        {
-          "new": "project:node:subject::lib:template:component-taggroup__2",
-          "old": "component-taggroup__2",
-          "rule": "taglist-wrapper",
-          "class": "previewFollow"
-        },
-        {
-          "new": "project:node:subject::lib:template:component-taggroup__2__tag-1",
-          "old": "component-taggroup__2/component-taggroup__2__tag-1",
-          "rule": "taglist-wrapper",
-          "class": "previewFollow"
-        },
-        {
-          "new": "project:node:subject/lib:template:component-taggroup__2__tag-1::lib:template:component-tag-item-default__label",
-          "old": "component-taggroup__2/component-taggroup__2__tag-1/Label",
-          "rule": "taglist-wrapper",
-          "class": "previewFollow"
-        },
-        {
-          "new": "project:node:subject::lib:template:component-taggroup__2__tag-2",
-          "old": "component-taggroup__2/component-taggroup__2__tag-2",
-          "rule": "taglist-wrapper",
-          "class": "previewFollow"
-        },
-        {
-          "new": "project:node:subject/lib:template:component-taggroup__2__tag-2::lib:template:component-tag-item-default__label",
-          "old": "component-taggroup__2/component-taggroup__2__tag-2/Label",
-          "rule": "taglist-wrapper",
-          "class": "previewFollow"
-        },
-        {
-          "new": "project:node:subject::lib:template:component-taggroup__2__tag-3",
-          "old": "component-taggroup__2/component-taggroup__2__tag-3",
-          "rule": "taglist-wrapper",
-          "class": "previewFollow"
-        },
-        {
-          "new": "project:node:subject/lib:template:component-taggroup__2__tag-3::lib:template:component-tag-item-default__label",
-          "old": "component-taggroup__2/component-taggroup__2__tag-3/Label",
-          "rule": "taglist-wrapper",
-          "class": "previewFollow"
-        },
-        {
-          "new": "project:node:subject::lib:template:component-taggroup__2__tag-4",
-          "old": "component-taggroup__2/component-taggroup__2__tag-4",
-          "rule": "taglist-wrapper",
-          "class": "previewFollow"
-        },
-        {
-          "new": "project:node:subject/lib:template:component-taggroup__2__tag-4::lib:template:component-tag-item-default__label",
-          "old": "component-taggroup__2/component-taggroup__2__tag-4/Label",
-          "rule": "taglist-wrapper",
-          "class": "previewFollow"
-        }
-      ],
-      "approvedClasses": [
-        "oldDefect",
-        "previewFollow"
-      ],
-      "previewDefectFollowed": true,
-      "liveIdentity": {
-        "region": "capture clip",
-        "pixels": 240000,
-        "different": 0,
-        "ratio": 0,
-        "maxByte": 0
-      },
-      "L3": {
-        "pixels": 230712,
-        "different": 98,
-        "ratio": 0.00042477201012517773,
-        "maxByte": 227,
-        "diffBounds": [
-          15,
-          29,
-          142,
-          75
-        ],
-        "approvedAttributed": 98,
-        "movedPaint": {
-          "pixels": 0,
-          "different": 0,
-          "maxByte": 0
-        },
-        "outsideRatio": 0,
-        "outsideMaxByte": 0,
-        "blocked": false
-      },
-      "L3e": {
-        "pixels": 7330,
-        "different": 432,
-        "ratio": 0.05893587994542974,
-        "maxByte": 177,
-        "diffBounds": [
-          7,
-          24,
-          142,
-          76
-        ],
-        "gated": false
-      },
-      "text": {
-        "pixels": 1958,
-        "different": 492,
-        "ratio": 0.2512768130745659,
-        "maxByte": 232,
-        "diffBounds": [
-          8,
-          14,
-          110,
-          62
-        ],
-        "gated": false
-      },
-      "failedLegs": [],
-      "verdict": "PASS"
-    },
-    {
-      "type": "TagGroup",
-      "axis": "size:md",
-      "oldRef": "component-taggroup",
-      "frozenPngMatch": true,
-      "route": {
-        "source": "code-composite",
-        "definitionId": "lib:definition:origin-component-taggroup"
-      },
-      "axisAuthoring": "authored",
-      "live": {
-        "definitionId": "lib:definition:origin-component-taggroup",
-        "routeMatches": true,
-        "surface": "page",
-        "props": {
-          "size": {
-            "kind": "set",
-            "value": "md"
-          }
-        }
-      },
-      "liveGeometry": {
-        "harnessNodes": 11,
-        "liveNodes": 11,
-        "typeMismatch": [],
-        "maxDelta": 0
-      },
-      "inputDiffs": [
-        {
-          "old": "component-taggroup__1",
-          "key": "contentMinWidth",
-          "oldValue": 40,
-          "newValue": 67.80000305175781
-        },
-        {
-          "old": "component-taggroup__1",
-          "key": "height",
-          "oldValue": null,
-          "newValue": "fit-content"
-        },
-        {
-          "old": "component-taggroup__2",
-          "key": "flexDirection",
-          "oldValue": "row",
-          "newValue": null
-        },
-        {
-          "old": "component-taggroup__2",
-          "key": "height",
-          "oldValue": "100%",
-          "newValue": null
-        },
-        {
-          "old": "component-taggroup__2",
-          "key": "alignItems",
-          "oldValue": null,
-          "newValue": "center"
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-1/Label",
-          "key": "contentMinWidth",
-          "oldValue": 64,
-          "newValue": 64.62000274658203
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-1/Label",
-          "key": "contentMaxWidth",
-          "oldValue": 64,
-          "newValue": 64.62000274658203
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-2/Label",
-          "key": "contentMinWidth",
-          "oldValue": 28,
-          "newValue": 27.540000915527344
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-2/Label",
-          "key": "contentMaxWidth",
-          "oldValue": 28,
-          "newValue": 27.540000915527344
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-3/Label",
-          "key": "contentMinWidth",
-          "oldValue": 70,
-          "newValue": 70.51000213623047
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-3/Label",
-          "key": "contentMaxWidth",
-          "oldValue": 70,
-          "newValue": 70.51000213623047
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-4/Label",
-          "key": "contentMinWidth",
-          "oldValue": 41,
-          "newValue": 41.81999969482422
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-4/Label",
-          "key": "contentMaxWidth",
-          "oldValue": 41,
-          "newValue": 41.81999969482422
-        }
-      ],
-      "geometry": {
-        "pairedNodes": 11,
-        "maxDelta": 42,
-        "overOnePx": [
-          {
-            "new": "project:node:subject::lib:template:component-taggroup__2",
-            "old": "component-taggroup__2",
-            "newRect": {
-              "x": 30,
-              "y": 54,
-              "width": 220,
-              "height": 64
-            },
-            "oldRect": {
-              "x": 30,
-              "y": 54,
-              "width": 220,
-              "height": 106
-            },
-            "newInput": {
-              "self": {
-                "type": "TagList",
-                "props": {
-                  "size": "md"
-                },
-                "layout": {
-                  "display": "flex",
-                  "flexWrap": "wrap",
-                  "alignItems": "center"
-                },
-                "sizing": {},
-                "visual": {
-                  "fontSize": 16,
-                  "radius": 0,
-                  "gap": 4,
-                  "minHeight": 30
-                },
-                "placement": null,
-                "engineInput": {
-                  "display": "flex",
-                  "alignItems": "center",
-                  "flexWrap": "wrap",
-                  "minHeight": "30px",
-                  "rowGap": "4px",
-                  "columnGap": "4px"
-                }
-              },
-              "parent": {
-                "type": "TagGroup",
-                "props": {
-                  "size": "md",
-                  "labelPosition": "top",
-                  "selectionMode": "multiple",
-                  "label": "Tag Group",
-                  "maxRows": 2,
-                  "allowsRemoving": false
-                },
-                "layout": {
-                  "display": "flex",
-                  "flexDirection": "column"
-                },
-                "sizing": {
-                  "width": 220,
-                  "height": 130
-                },
-                "visual": {
-                  "gap": 4,
-                  "fontSize": 14,
-                  "radius": 6,
-                  "width": "100%"
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "flexDirection": "column",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "width": "220px",
-                  "height": "130px",
-                  "rowGap": "4px",
-                  "columnGap": "4px"
-                }
-              }
-            },
-            "oldEngineInput": {
-              "display": "flex",
-              "flexDirection": "row",
-              "flexWrap": "wrap",
-              "height": "100%",
-              "minHeight": "30px",
-              "columnGap": "4px",
-              "rowGap": "4px"
-            }
-          },
-          {
-            "new": "project:node:subject::lib:template:component-taggroup__2__tag-3",
-            "old": "component-taggroup__2/component-taggroup__2__tag-3",
-            "newRect": {
-              "x": 30,
-              "y": 88,
+              "y": 119.5,
               "width": 96.51000213623047,
               "height": 30
             },
@@ -86050,6 +86560,7 @@
                 },
                 "sizing": {},
                 "visual": {
+                  "height": "100%",
                   "fontSize": 16,
                   "radius": 0,
                   "gap": 4,
@@ -86060,6 +86571,7 @@
                   "display": "flex",
                   "alignItems": "center",
                   "flexWrap": "wrap",
+                  "height": "100%",
                   "minHeight": "30px",
                   "rowGap": "4px",
                   "columnGap": "4px"
@@ -86088,7 +86600,7 @@
             "old": "component-taggroup__2/component-taggroup__2__tag-3/Label",
             "newRect": {
               "x": 43,
-              "y": 93,
+              "y": 124.5,
               "width": 70.51000213623047,
               "height": 20
             },
@@ -86186,7 +86698,7 @@
             "old": "component-taggroup__2/component-taggroup__2__tag-4",
             "newRect": {
               "x": 130.51000213623047,
-              "y": 88,
+              "y": 119.5,
               "width": 67.81999969482422,
               "height": 30
             },
@@ -86252,6 +86764,7 @@
                 },
                 "sizing": {},
                 "visual": {
+                  "height": "100%",
                   "fontSize": 16,
                   "radius": 0,
                   "gap": 4,
@@ -86262,6 +86775,7 @@
                   "display": "flex",
                   "alignItems": "center",
                   "flexWrap": "wrap",
+                  "height": "100%",
                   "minHeight": "30px",
                   "rowGap": "4px",
                   "columnGap": "4px"
@@ -86290,7 +86804,7 @@
             "old": "component-taggroup__2/component-taggroup__2__tag-4/Label",
             "newRect": {
               "x": 143.51000213623047,
-              "y": 93,
+              "y": 124.5,
               "width": 41.81999969482422,
               "height": 20
             },
@@ -86398,14 +86912,46 @@
         "overOnePx": [],
         "geometryArbiter": [
           {
-            "new": "project:node:subject::lib:template:component-taggroup__2",
-            "dom": null
+            "new": "project:node:subject::lib:template:component-taggroup__2__tag-1",
+            "dom": {
+              "x": 30,
+              "y": 64.5,
+              "width": 90.625,
+              "height": 30
+            }
+          },
+          {
+            "new": "project:node:subject/lib:template:component-taggroup__2__tag-1::lib:template:component-tag-item-default__label",
+            "dom": {
+              "x": 43,
+              "y": 69.5,
+              "width": 64.625,
+              "height": 20
+            }
+          },
+          {
+            "new": "project:node:subject::lib:template:component-taggroup__2__tag-2",
+            "dom": {
+              "x": 124.625,
+              "y": 64.5,
+              "width": 53.546875,
+              "height": 30
+            }
+          },
+          {
+            "new": "project:node:subject/lib:template:component-taggroup__2__tag-2::lib:template:component-tag-item-default__label",
+            "dom": {
+              "x": 137.625,
+              "y": 69.5,
+              "width": 27.546875,
+              "height": 20
+            }
           },
           {
             "new": "project:node:subject::lib:template:component-taggroup__2__tag-3",
             "dom": {
               "x": 30,
-              "y": 88,
+              "y": 119.5,
               "width": 96.515625,
               "height": 30
             }
@@ -86414,7 +86960,7 @@
             "new": "project:node:subject/lib:template:component-taggroup__2__tag-3::lib:template:component-tag-item-default__label",
             "dom": {
               "x": 43,
-              "y": 93,
+              "y": 124.5,
               "width": 70.515625,
               "height": 20
             }
@@ -86423,7 +86969,7 @@
             "new": "project:node:subject::lib:template:component-taggroup__2__tag-4",
             "dom": {
               "x": 130.515625,
-              "y": 88,
+              "y": 119.5,
               "width": 67.828125,
               "height": 30
             }
@@ -86432,7 +86978,7 @@
             "new": "project:node:subject/lib:template:component-taggroup__2__tag-4::lib:template:component-tag-item-default__label",
             "dom": {
               "x": 143.515625,
-              "y": 93,
+              "y": 124.5,
               "width": 41.828125,
               "height": 20
             }
@@ -86451,55 +86997,57 @@
           "edges": true
         },
         {
-          "new": "project:node:subject::lib:template:component-taggroup__2",
-          "old": "component-taggroup__2",
-          "rule": "taglist-wrapper",
-          "class": "previewFollow"
+          "new": "project:node:subject::lib:template:component-taggroup__2__tag-1",
+          "old": "component-taggroup__2/component-taggroup__2__tag-1",
+          "rule": "taglist-line-distribution",
+          "class": "oldDefect"
+        },
+        {
+          "new": "project:node:subject/lib:template:component-taggroup__2__tag-1::lib:template:component-tag-item-default__label",
+          "old": "component-taggroup__2/component-taggroup__2__tag-1/Label",
+          "rule": "taglist-line-distribution",
+          "class": "oldDefect"
         },
         {
           "new": "project:node:subject::lib:template:component-taggroup__2__tag-2",
           "old": "component-taggroup__2/component-taggroup__2__tag-2",
-          "rule": "subpixel-intrinsic-width-ceil",
-          "class": "oldDefect",
-          "edges": true
+          "rule": "taglist-line-distribution",
+          "class": "oldDefect"
         },
         {
           "new": "project:node:subject/lib:template:component-taggroup__2__tag-2::lib:template:component-tag-item-default__label",
           "old": "component-taggroup__2/component-taggroup__2__tag-2/Label",
-          "rule": "subpixel-intrinsic-width-ceil",
-          "class": "oldDefect",
-          "edges": true
+          "rule": "taglist-line-distribution",
+          "class": "oldDefect"
         },
         {
           "new": "project:node:subject::lib:template:component-taggroup__2__tag-3",
           "old": "component-taggroup__2/component-taggroup__2__tag-3",
-          "rule": "taglist-wrapper",
-          "class": "previewFollow"
+          "rule": "taglist-line-distribution",
+          "class": "oldDefect"
         },
         {
           "new": "project:node:subject/lib:template:component-taggroup__2__tag-3::lib:template:component-tag-item-default__label",
           "old": "component-taggroup__2/component-taggroup__2__tag-3/Label",
-          "rule": "taglist-wrapper",
-          "class": "previewFollow"
+          "rule": "taglist-line-distribution",
+          "class": "oldDefect"
         },
         {
           "new": "project:node:subject::lib:template:component-taggroup__2__tag-4",
           "old": "component-taggroup__2/component-taggroup__2__tag-4",
-          "rule": "taglist-wrapper",
-          "class": "previewFollow"
+          "rule": "taglist-line-distribution",
+          "class": "oldDefect"
         },
         {
           "new": "project:node:subject/lib:template:component-taggroup__2__tag-4::lib:template:component-tag-item-default__label",
           "old": "component-taggroup__2/component-taggroup__2__tag-4/Label",
-          "rule": "taglist-wrapper",
-          "class": "previewFollow"
+          "rule": "taglist-line-distribution",
+          "class": "oldDefect"
         }
       ],
       "approvedClasses": [
-        "oldDefect",
-        "previewFollow"
+        "oldDefect"
       ],
-      "previewDefectFollowed": true,
       "liveIdentity": {
         "region": "capture clip",
         "pixels": 240000,
@@ -86508,19 +87056,19 @@
         "maxByte": 0
       },
       "L3": {
-        "pixels": 230517,
-        "different": 140,
-        "ratio": 0.0006073304788800826,
-        "maxByte": 216,
+        "pixels": 229713,
+        "different": 103,
+        "ratio": 0.0004483855941979775,
+        "maxByte": 31,
         "diffBounds": [
-          19,
-          74,
+          11,
+          30,
           119,
-          83
+          67
         ],
-        "approvedAttributed": 140,
+        "approvedAttributed": 103,
         "movedPaint": {
-          "pixels": 42,
+          "pixels": 78,
           "different": 0,
           "maxByte": 0
         },
@@ -86529,28 +87077,28 @@
         "blocked": false
       },
       "L3e": {
-        "pixels": 7389,
-        "different": 244,
-        "ratio": 0.03302205981864934,
-        "maxByte": 232,
+        "pixels": 8193,
+        "different": 456,
+        "ratio": 0.055657268399853535,
+        "maxByte": 227,
         "diffBounds": [
           7,
-          50,
+          27,
           120,
-          83
+          90
         ],
         "gated": false
       },
       "text": {
         "pixels": 2094,
-        "different": 349,
-        "ratio": 0.16666666666666666,
+        "different": 410,
+        "ratio": 0.19579751671442217,
         "maxByte": 232,
         "diffBounds": [
           8,
           13,
           110,
-          64
+          86
         ],
         "gated": false
       },
@@ -86617,12 +87165,6 @@
         },
         {
           "old": "component-taggroup__2",
-          "key": "height",
-          "oldValue": "100%",
-          "newValue": null
-        },
-        {
-          "old": "component-taggroup__2",
           "key": "columnGap",
           "oldValue": "4px",
           "newValue": "6px"
@@ -86640,201 +87182,57 @@
           "newValue": "center"
         },
         {
-          "old": "component-taggroup__2/component-taggroup__2__tag-1",
-          "key": "height",
-          "oldValue": "42px",
-          "newValue": "30px"
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-1",
-          "key": "paddingTop",
-          "oldValue": "8px",
-          "newValue": "4px"
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-1",
-          "key": "paddingRight",
-          "oldValue": "16px",
-          "newValue": "12px"
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-1",
-          "key": "paddingBottom",
-          "oldValue": "8px",
-          "newValue": "4px"
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-1",
-          "key": "paddingLeft",
-          "oldValue": "16px",
-          "newValue": "12px"
-        },
-        {
           "old": "component-taggroup__2/component-taggroup__2__tag-1/Label",
           "key": "contentMinWidth",
           "oldValue": 73,
-          "newValue": 64.62000274658203
+          "newValue": 73.8499984741211
         },
         {
           "old": "component-taggroup__2/component-taggroup__2__tag-1/Label",
           "key": "contentMaxWidth",
           "oldValue": 73,
-          "newValue": 64.62000274658203
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-1/Label",
-          "key": "contentHeight",
-          "oldValue": 24,
-          "newValue": 20
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-2",
-          "key": "height",
-          "oldValue": "42px",
-          "newValue": "30px"
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-2",
-          "key": "paddingTop",
-          "oldValue": "8px",
-          "newValue": "4px"
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-2",
-          "key": "paddingRight",
-          "oldValue": "16px",
-          "newValue": "12px"
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-2",
-          "key": "paddingBottom",
-          "oldValue": "8px",
-          "newValue": "4px"
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-2",
-          "key": "paddingLeft",
-          "oldValue": "16px",
-          "newValue": "12px"
+          "newValue": 73.8499984741211
         },
         {
           "old": "component-taggroup__2/component-taggroup__2__tag-2/Label",
           "key": "contentMinWidth",
           "oldValue": 32,
-          "newValue": 27.540000915527344
+          "newValue": 31.469999313354492
         },
         {
           "old": "component-taggroup__2/component-taggroup__2__tag-2/Label",
           "key": "contentMaxWidth",
           "oldValue": 32,
-          "newValue": 27.540000915527344
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-2/Label",
-          "key": "contentHeight",
-          "oldValue": 24,
-          "newValue": 20
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-3",
-          "key": "height",
-          "oldValue": "42px",
-          "newValue": "30px"
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-3",
-          "key": "paddingTop",
-          "oldValue": "8px",
-          "newValue": "4px"
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-3",
-          "key": "paddingRight",
-          "oldValue": "16px",
-          "newValue": "12px"
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-3",
-          "key": "paddingBottom",
-          "oldValue": "8px",
-          "newValue": "4px"
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-3",
-          "key": "paddingLeft",
-          "oldValue": "16px",
-          "newValue": "12px"
+          "newValue": 31.469999313354492
         },
         {
           "old": "component-taggroup__2/component-taggroup__2__tag-3/Label",
           "key": "contentMinWidth",
           "oldValue": 80,
-          "newValue": 70.51000213623047
+          "newValue": 80.58999633789062
         },
         {
           "old": "component-taggroup__2/component-taggroup__2__tag-3/Label",
           "key": "contentMaxWidth",
           "oldValue": 80,
-          "newValue": 70.51000213623047
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-3/Label",
-          "key": "contentHeight",
-          "oldValue": 24,
-          "newValue": 20
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-4",
-          "key": "height",
-          "oldValue": "42px",
-          "newValue": "30px"
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-4",
-          "key": "paddingTop",
-          "oldValue": "8px",
-          "newValue": "4px"
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-4",
-          "key": "paddingRight",
-          "oldValue": "16px",
-          "newValue": "12px"
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-4",
-          "key": "paddingBottom",
-          "oldValue": "8px",
-          "newValue": "4px"
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-4",
-          "key": "paddingLeft",
-          "oldValue": "16px",
-          "newValue": "12px"
+          "newValue": 80.58999633789062
         },
         {
           "old": "component-taggroup__2/component-taggroup__2__tag-4/Label",
           "key": "contentMinWidth",
           "oldValue": 47,
-          "newValue": 41.81999969482422
+          "newValue": 47.790000915527344
         },
         {
           "old": "component-taggroup__2/component-taggroup__2__tag-4/Label",
           "key": "contentMaxWidth",
           "oldValue": 47,
-          "newValue": 41.81999969482422
-        },
-        {
-          "old": "component-taggroup__2/component-taggroup__2__tag-4/Label",
-          "key": "contentHeight",
-          "oldValue": 24,
-          "newValue": 20
+          "newValue": 47.790000915527344
         }
       ],
       "geometry": {
         "pairedNodes": 11,
-        "maxDelta": 36,
+        "maxDelta": 3.714282989501953,
         "overOnePx": [
           {
             "new": "project:node:subject::lib:template:component-taggroup__1",
@@ -86945,7 +87343,7 @@
               "x": 30,
               "y": 56.85714340209961,
               "width": 220,
-              "height": 66
+              "height": 103.14285278320312
             },
             "oldRect": {
               "x": 30,
@@ -86957,7 +87355,7 @@
               "self": {
                 "type": "TagList",
                 "props": {
-                  "size": "md"
+                  "size": "lg"
                 },
                 "layout": {
                   "display": "flex",
@@ -86966,6 +87364,7 @@
                 },
                 "sizing": {},
                 "visual": {
+                  "height": "100%",
                   "fontSize": 16,
                   "radius": 0,
                   "gap": 6,
@@ -86976,6 +87375,7 @@
                   "display": "flex",
                   "alignItems": "center",
                   "flexWrap": "wrap",
+                  "height": "100%",
                   "minHeight": "42px",
                   "rowGap": "6px",
                   "columnGap": "6px"
@@ -87038,9 +87438,9 @@
             "old": "component-taggroup__2/component-taggroup__2__tag-1",
             "newRect": {
               "x": 30,
-              "y": 56.85714340209961,
-              "width": 90.62000274658203,
-              "height": 30
+              "y": 60.14285659790039,
+              "width": 107.8499984741211,
+              "height": 42
             },
             "oldRect": {
               "x": 30,
@@ -87053,7 +87453,7 @@
                 "type": "Tag",
                 "props": {
                   "variant": "default",
-                  "size": "md",
+                  "size": "lg",
                   "children": "{label}"
                 },
                 "layout": {
@@ -87063,12 +87463,12 @@
                 "sizing": {},
                 "visual": {
                   "fontWeight": 400,
-                  "height": 30,
-                  "paddingY": 4,
-                  "paddingX": 12,
-                  "fontSize": 14,
-                  "radius": 6,
-                  "lineHeight": 1.4285714285714286,
+                  "height": 42,
+                  "paddingY": 8,
+                  "paddingX": 16,
+                  "fontSize": 16,
+                  "radius": 8,
+                  "lineHeight": 1.5,
                   "borderWidth": 1,
                   "iconSize": 14,
                   "gap": 4,
@@ -87079,13 +87479,13 @@
                   "display": "flex",
                   "alignItems": "center",
                   "width": "fit-content",
-                  "height": "30px",
+                  "height": "42px",
                   "rowGap": "4px",
                   "columnGap": "4px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "12px",
-                  "paddingLeft": "12px",
+                  "paddingTop": "8px",
+                  "paddingBottom": "8px",
+                  "paddingRight": "16px",
+                  "paddingLeft": "16px",
                   "borderTop": "1px",
                   "borderRight": "1px",
                   "borderBottom": "1px",
@@ -87095,7 +87495,7 @@
               "parent": {
                 "type": "TagList",
                 "props": {
-                  "size": "md"
+                  "size": "lg"
                 },
                 "layout": {
                   "display": "flex",
@@ -87104,6 +87504,7 @@
                 },
                 "sizing": {},
                 "visual": {
+                  "height": "100%",
                   "fontSize": 16,
                   "radius": 0,
                   "gap": 6,
@@ -87114,6 +87515,7 @@
                   "display": "flex",
                   "alignItems": "center",
                   "flexWrap": "wrap",
+                  "height": "100%",
                   "minHeight": "42px",
                   "rowGap": "6px",
                   "columnGap": "6px"
@@ -87141,10 +87543,10 @@
             "new": "project:node:subject/lib:template:component-taggroup__2__tag-1::lib:template:component-tag-item-default__label",
             "old": "component-taggroup__2/component-taggroup__2__tag-1/Label",
             "newRect": {
-              "x": 43,
-              "y": 61.85714340209961,
-              "width": 64.62000274658203,
-              "height": 20
+              "x": 47,
+              "y": 69.14285659790039,
+              "width": 73.8499984741211,
+              "height": 24
             },
             "oldRect": {
               "x": 47,
@@ -87168,24 +87570,24 @@
                   "color": "#171717",
                   "fontWeight": 400,
                   "width": "100%",
-                  "fontSize": 14,
-                  "lineHeight": 1.4285714285714286,
+                  "fontSize": 16,
+                  "lineHeight": 1.5,
                   "radius": 0
                 },
                 "placement": null,
                 "engineInput": {
                   "display": "block",
                   "width": "100%",
-                  "contentMinWidth": 64.62000274658203,
-                  "contentMaxWidth": 64.62000274658203,
-                  "contentHeight": 20
+                  "contentMinWidth": 73.8499984741211,
+                  "contentMaxWidth": 73.8499984741211,
+                  "contentHeight": 24
                 }
               },
               "parent": {
                 "type": "Tag",
                 "props": {
                   "variant": "default",
-                  "size": "md",
+                  "size": "lg",
                   "children": "{label}"
                 },
                 "layout": {
@@ -87195,12 +87597,12 @@
                 "sizing": {},
                 "visual": {
                   "fontWeight": 400,
-                  "height": 30,
-                  "paddingY": 4,
-                  "paddingX": 12,
-                  "fontSize": 14,
-                  "radius": 6,
-                  "lineHeight": 1.4285714285714286,
+                  "height": 42,
+                  "paddingY": 8,
+                  "paddingX": 16,
+                  "fontSize": 16,
+                  "radius": 8,
+                  "lineHeight": 1.5,
                   "borderWidth": 1,
                   "iconSize": 14,
                   "gap": 4,
@@ -87211,13 +87613,13 @@
                   "display": "flex",
                   "alignItems": "center",
                   "width": "fit-content",
-                  "height": "30px",
+                  "height": "42px",
                   "rowGap": "4px",
                   "columnGap": "4px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "12px",
-                  "paddingLeft": "12px",
+                  "paddingTop": "8px",
+                  "paddingBottom": "8px",
+                  "paddingRight": "16px",
+                  "paddingLeft": "16px",
                   "borderTop": "1px",
                   "borderRight": "1px",
                   "borderBottom": "1px",
@@ -87239,10 +87641,10 @@
             "new": "project:node:subject::lib:template:component-taggroup__2__tag-2",
             "old": "component-taggroup__2/component-taggroup__2__tag-2",
             "newRect": {
-              "x": 126.62000274658203,
-              "y": 56.85714340209961,
-              "width": 53.540000915527344,
-              "height": 30
+              "x": 143.8499984741211,
+              "y": 60.14285659790039,
+              "width": 65.47000122070312,
+              "height": 42
             },
             "oldRect": {
               "x": 141,
@@ -87255,7 +87657,7 @@
                 "type": "Tag",
                 "props": {
                   "variant": "default",
-                  "size": "md",
+                  "size": "lg",
                   "children": "{label}"
                 },
                 "layout": {
@@ -87265,12 +87667,12 @@
                 "sizing": {},
                 "visual": {
                   "fontWeight": 400,
-                  "height": 30,
-                  "paddingY": 4,
-                  "paddingX": 12,
-                  "fontSize": 14,
-                  "radius": 6,
-                  "lineHeight": 1.4285714285714286,
+                  "height": 42,
+                  "paddingY": 8,
+                  "paddingX": 16,
+                  "fontSize": 16,
+                  "radius": 8,
+                  "lineHeight": 1.5,
                   "borderWidth": 1,
                   "iconSize": 14,
                   "gap": 4,
@@ -87281,13 +87683,13 @@
                   "display": "flex",
                   "alignItems": "center",
                   "width": "fit-content",
-                  "height": "30px",
+                  "height": "42px",
                   "rowGap": "4px",
                   "columnGap": "4px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "12px",
-                  "paddingLeft": "12px",
+                  "paddingTop": "8px",
+                  "paddingBottom": "8px",
+                  "paddingRight": "16px",
+                  "paddingLeft": "16px",
                   "borderTop": "1px",
                   "borderRight": "1px",
                   "borderBottom": "1px",
@@ -87297,7 +87699,7 @@
               "parent": {
                 "type": "TagList",
                 "props": {
-                  "size": "md"
+                  "size": "lg"
                 },
                 "layout": {
                   "display": "flex",
@@ -87306,6 +87708,7 @@
                 },
                 "sizing": {},
                 "visual": {
+                  "height": "100%",
                   "fontSize": 16,
                   "radius": 0,
                   "gap": 6,
@@ -87316,6 +87719,7 @@
                   "display": "flex",
                   "alignItems": "center",
                   "flexWrap": "wrap",
+                  "height": "100%",
                   "minHeight": "42px",
                   "rowGap": "6px",
                   "columnGap": "6px"
@@ -87343,10 +87747,10 @@
             "new": "project:node:subject/lib:template:component-taggroup__2__tag-2::lib:template:component-tag-item-default__label",
             "old": "component-taggroup__2/component-taggroup__2__tag-2/Label",
             "newRect": {
-              "x": 139.62000274658203,
-              "y": 61.85714340209961,
-              "width": 27.540000915527344,
-              "height": 20
+              "x": 160.8499984741211,
+              "y": 69.14285659790039,
+              "width": 31.470001220703125,
+              "height": 24
             },
             "oldRect": {
               "x": 158,
@@ -87370,24 +87774,24 @@
                   "color": "#171717",
                   "fontWeight": 400,
                   "width": "100%",
-                  "fontSize": 14,
-                  "lineHeight": 1.4285714285714286,
+                  "fontSize": 16,
+                  "lineHeight": 1.5,
                   "radius": 0
                 },
                 "placement": null,
                 "engineInput": {
                   "display": "block",
                   "width": "100%",
-                  "contentMinWidth": 27.540000915527344,
-                  "contentMaxWidth": 27.540000915527344,
-                  "contentHeight": 20
+                  "contentMinWidth": 31.469999313354492,
+                  "contentMaxWidth": 31.469999313354492,
+                  "contentHeight": 24
                 }
               },
               "parent": {
                 "type": "Tag",
                 "props": {
                   "variant": "default",
-                  "size": "md",
+                  "size": "lg",
                   "children": "{label}"
                 },
                 "layout": {
@@ -87397,12 +87801,12 @@
                 "sizing": {},
                 "visual": {
                   "fontWeight": 400,
-                  "height": 30,
-                  "paddingY": 4,
-                  "paddingX": 12,
-                  "fontSize": 14,
-                  "radius": 6,
-                  "lineHeight": 1.4285714285714286,
+                  "height": 42,
+                  "paddingY": 8,
+                  "paddingX": 16,
+                  "fontSize": 16,
+                  "radius": 8,
+                  "lineHeight": 1.5,
                   "borderWidth": 1,
                   "iconSize": 14,
                   "gap": 4,
@@ -87413,13 +87817,13 @@
                   "display": "flex",
                   "alignItems": "center",
                   "width": "fit-content",
-                  "height": "30px",
+                  "height": "42px",
                   "rowGap": "4px",
                   "columnGap": "4px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "12px",
-                  "paddingLeft": "12px",
+                  "paddingTop": "8px",
+                  "paddingBottom": "8px",
+                  "paddingRight": "16px",
+                  "paddingLeft": "16px",
                   "borderTop": "1px",
                   "borderRight": "1px",
                   "borderBottom": "1px",
@@ -87442,9 +87846,9 @@
             "old": "component-taggroup__2/component-taggroup__2__tag-3",
             "newRect": {
               "x": 30,
-              "y": 92.85714340209961,
-              "width": 96.51000213623047,
-              "height": 30
+              "y": 114.71428298950195,
+              "width": 114.58999633789062,
+              "height": 42
             },
             "oldRect": {
               "x": 30,
@@ -87457,7 +87861,7 @@
                 "type": "Tag",
                 "props": {
                   "variant": "default",
-                  "size": "md",
+                  "size": "lg",
                   "children": "{label}"
                 },
                 "layout": {
@@ -87467,12 +87871,12 @@
                 "sizing": {},
                 "visual": {
                   "fontWeight": 400,
-                  "height": 30,
-                  "paddingY": 4,
-                  "paddingX": 12,
-                  "fontSize": 14,
-                  "radius": 6,
-                  "lineHeight": 1.4285714285714286,
+                  "height": 42,
+                  "paddingY": 8,
+                  "paddingX": 16,
+                  "fontSize": 16,
+                  "radius": 8,
+                  "lineHeight": 1.5,
                   "borderWidth": 1,
                   "iconSize": 14,
                   "gap": 4,
@@ -87483,13 +87887,13 @@
                   "display": "flex",
                   "alignItems": "center",
                   "width": "fit-content",
-                  "height": "30px",
+                  "height": "42px",
                   "rowGap": "4px",
                   "columnGap": "4px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "12px",
-                  "paddingLeft": "12px",
+                  "paddingTop": "8px",
+                  "paddingBottom": "8px",
+                  "paddingRight": "16px",
+                  "paddingLeft": "16px",
                   "borderTop": "1px",
                   "borderRight": "1px",
                   "borderBottom": "1px",
@@ -87499,7 +87903,7 @@
               "parent": {
                 "type": "TagList",
                 "props": {
-                  "size": "md"
+                  "size": "lg"
                 },
                 "layout": {
                   "display": "flex",
@@ -87508,6 +87912,7 @@
                 },
                 "sizing": {},
                 "visual": {
+                  "height": "100%",
                   "fontSize": 16,
                   "radius": 0,
                   "gap": 6,
@@ -87518,6 +87923,7 @@
                   "display": "flex",
                   "alignItems": "center",
                   "flexWrap": "wrap",
+                  "height": "100%",
                   "minHeight": "42px",
                   "rowGap": "6px",
                   "columnGap": "6px"
@@ -87545,10 +87951,10 @@
             "new": "project:node:subject/lib:template:component-taggroup__2__tag-3::lib:template:component-tag-item-default__label",
             "old": "component-taggroup__2/component-taggroup__2__tag-3/Label",
             "newRect": {
-              "x": 43,
-              "y": 97.85714340209961,
-              "width": 70.51000213623047,
-              "height": 20
+              "x": 47,
+              "y": 123.71428298950195,
+              "width": 80.58999633789062,
+              "height": 24
             },
             "oldRect": {
               "x": 47,
@@ -87572,24 +87978,24 @@
                   "color": "#171717",
                   "fontWeight": 400,
                   "width": "100%",
-                  "fontSize": 14,
-                  "lineHeight": 1.4285714285714286,
+                  "fontSize": 16,
+                  "lineHeight": 1.5,
                   "radius": 0
                 },
                 "placement": null,
                 "engineInput": {
                   "display": "block",
                   "width": "100%",
-                  "contentMinWidth": 70.51000213623047,
-                  "contentMaxWidth": 70.51000213623047,
-                  "contentHeight": 20
+                  "contentMinWidth": 80.58999633789062,
+                  "contentMaxWidth": 80.58999633789062,
+                  "contentHeight": 24
                 }
               },
               "parent": {
                 "type": "Tag",
                 "props": {
                   "variant": "default",
-                  "size": "md",
+                  "size": "lg",
                   "children": "{label}"
                 },
                 "layout": {
@@ -87599,12 +88005,12 @@
                 "sizing": {},
                 "visual": {
                   "fontWeight": 400,
-                  "height": 30,
-                  "paddingY": 4,
-                  "paddingX": 12,
-                  "fontSize": 14,
-                  "radius": 6,
-                  "lineHeight": 1.4285714285714286,
+                  "height": 42,
+                  "paddingY": 8,
+                  "paddingX": 16,
+                  "fontSize": 16,
+                  "radius": 8,
+                  "lineHeight": 1.5,
                   "borderWidth": 1,
                   "iconSize": 14,
                   "gap": 4,
@@ -87615,13 +88021,13 @@
                   "display": "flex",
                   "alignItems": "center",
                   "width": "fit-content",
-                  "height": "30px",
+                  "height": "42px",
                   "rowGap": "4px",
                   "columnGap": "4px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "12px",
-                  "paddingLeft": "12px",
+                  "paddingTop": "8px",
+                  "paddingBottom": "8px",
+                  "paddingRight": "16px",
+                  "paddingLeft": "16px",
                   "borderTop": "1px",
                   "borderRight": "1px",
                   "borderBottom": "1px",
@@ -87643,10 +88049,10 @@
             "new": "project:node:subject::lib:template:component-taggroup__2__tag-4",
             "old": "component-taggroup__2/component-taggroup__2__tag-4",
             "newRect": {
-              "x": 132.51000213623047,
-              "y": 92.85714340209961,
-              "width": 67.81999969482422,
-              "height": 30
+              "x": 150.58999633789062,
+              "y": 114.71428298950195,
+              "width": 81.79000091552734,
+              "height": 42
             },
             "oldRect": {
               "x": 148,
@@ -87659,7 +88065,7 @@
                 "type": "Tag",
                 "props": {
                   "variant": "default",
-                  "size": "md",
+                  "size": "lg",
                   "children": "{label}"
                 },
                 "layout": {
@@ -87669,12 +88075,12 @@
                 "sizing": {},
                 "visual": {
                   "fontWeight": 400,
-                  "height": 30,
-                  "paddingY": 4,
-                  "paddingX": 12,
-                  "fontSize": 14,
-                  "radius": 6,
-                  "lineHeight": 1.4285714285714286,
+                  "height": 42,
+                  "paddingY": 8,
+                  "paddingX": 16,
+                  "fontSize": 16,
+                  "radius": 8,
+                  "lineHeight": 1.5,
                   "borderWidth": 1,
                   "iconSize": 14,
                   "gap": 4,
@@ -87685,13 +88091,13 @@
                   "display": "flex",
                   "alignItems": "center",
                   "width": "fit-content",
-                  "height": "30px",
+                  "height": "42px",
                   "rowGap": "4px",
                   "columnGap": "4px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "12px",
-                  "paddingLeft": "12px",
+                  "paddingTop": "8px",
+                  "paddingBottom": "8px",
+                  "paddingRight": "16px",
+                  "paddingLeft": "16px",
                   "borderTop": "1px",
                   "borderRight": "1px",
                   "borderBottom": "1px",
@@ -87701,7 +88107,7 @@
               "parent": {
                 "type": "TagList",
                 "props": {
-                  "size": "md"
+                  "size": "lg"
                 },
                 "layout": {
                   "display": "flex",
@@ -87710,6 +88116,7 @@
                 },
                 "sizing": {},
                 "visual": {
+                  "height": "100%",
                   "fontSize": 16,
                   "radius": 0,
                   "gap": 6,
@@ -87720,6 +88127,7 @@
                   "display": "flex",
                   "alignItems": "center",
                   "flexWrap": "wrap",
+                  "height": "100%",
                   "minHeight": "42px",
                   "rowGap": "6px",
                   "columnGap": "6px"
@@ -87747,10 +88155,10 @@
             "new": "project:node:subject/lib:template:component-taggroup__2__tag-4::lib:template:component-tag-item-default__label",
             "old": "component-taggroup__2/component-taggroup__2__tag-4/Label",
             "newRect": {
-              "x": 145.51000213623047,
-              "y": 97.85714340209961,
-              "width": 41.81999969482422,
-              "height": 20
+              "x": 167.58999633789062,
+              "y": 123.71428298950195,
+              "width": 47.790000915527344,
+              "height": 24
             },
             "oldRect": {
               "x": 165,
@@ -87774,24 +88182,24 @@
                   "color": "#171717",
                   "fontWeight": 400,
                   "width": "100%",
-                  "fontSize": 14,
-                  "lineHeight": 1.4285714285714286,
+                  "fontSize": 16,
+                  "lineHeight": 1.5,
                   "radius": 0
                 },
                 "placement": null,
                 "engineInput": {
                   "display": "block",
                   "width": "100%",
-                  "contentMinWidth": 41.81999969482422,
-                  "contentMaxWidth": 41.81999969482422,
-                  "contentHeight": 20
+                  "contentMinWidth": 47.790000915527344,
+                  "contentMaxWidth": 47.790000915527344,
+                  "contentHeight": 24
                 }
               },
               "parent": {
                 "type": "Tag",
                 "props": {
                   "variant": "default",
-                  "size": "md",
+                  "size": "lg",
                   "children": "{label}"
                 },
                 "layout": {
@@ -87801,12 +88209,12 @@
                 "sizing": {},
                 "visual": {
                   "fontWeight": 400,
-                  "height": 30,
-                  "paddingY": 4,
-                  "paddingX": 12,
-                  "fontSize": 14,
-                  "radius": 6,
-                  "lineHeight": 1.4285714285714286,
+                  "height": 42,
+                  "paddingY": 8,
+                  "paddingX": 16,
+                  "fontSize": 16,
+                  "radius": 8,
+                  "lineHeight": 1.5,
                   "borderWidth": 1,
                   "iconSize": 14,
                   "gap": 4,
@@ -87817,13 +88225,13 @@
                   "display": "flex",
                   "alignItems": "center",
                   "width": "fit-content",
-                  "height": "30px",
+                  "height": "42px",
                   "rowGap": "4px",
                   "columnGap": "4px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "12px",
-                  "paddingLeft": "12px",
+                  "paddingTop": "8px",
+                  "paddingBottom": "8px",
+                  "paddingRight": "16px",
+                  "paddingLeft": "16px",
                   "borderTop": "1px",
                   "borderRight": "1px",
                   "borderBottom": "1px",
@@ -87852,7 +88260,7 @@
       "canvasDom": {
         "pairedNodes": 10,
         "ownedPairs": 2,
-        "maxDelta": 0.013393402099609375,
+        "maxDelta": 0.017856597900390625,
         "overOnePx": [],
         "geometryArbiter": [
           {
@@ -87872,72 +88280,72 @@
             "new": "project:node:subject::lib:template:component-taggroup__2__tag-1",
             "dom": {
               "x": 30,
-              "y": 56.84375,
-              "width": 90.625,
-              "height": 30
+              "y": 60.125,
+              "width": 107.859375,
+              "height": 42
             }
           },
           {
             "new": "project:node:subject/lib:template:component-taggroup__2__tag-1::lib:template:component-tag-item-default__label",
             "dom": {
-              "x": 43,
-              "y": 61.84375,
-              "width": 64.625,
-              "height": 20
+              "x": 47,
+              "y": 69.125,
+              "width": 73.859375,
+              "height": 24
             }
           },
           {
             "new": "project:node:subject::lib:template:component-taggroup__2__tag-2",
             "dom": {
-              "x": 126.625,
-              "y": 56.84375,
-              "width": 53.546875,
-              "height": 30
+              "x": 143.859375,
+              "y": 60.125,
+              "width": 65.46875,
+              "height": 42
             }
           },
           {
             "new": "project:node:subject/lib:template:component-taggroup__2__tag-2::lib:template:component-tag-item-default__label",
             "dom": {
-              "x": 139.625,
-              "y": 61.84375,
-              "width": 27.546875,
-              "height": 20
+              "x": 160.859375,
+              "y": 69.125,
+              "width": 31.46875,
+              "height": 24
             }
           },
           {
             "new": "project:node:subject::lib:template:component-taggroup__2__tag-3",
             "dom": {
               "x": 30,
-              "y": 92.84375,
-              "width": 96.515625,
-              "height": 30
+              "y": 114.703125,
+              "width": 114.59375,
+              "height": 42
             }
           },
           {
             "new": "project:node:subject/lib:template:component-taggroup__2__tag-3::lib:template:component-tag-item-default__label",
             "dom": {
-              "x": 43,
-              "y": 97.84375,
-              "width": 70.515625,
-              "height": 20
+              "x": 47,
+              "y": 123.703125,
+              "width": 80.59375,
+              "height": 24
             }
           },
           {
             "new": "project:node:subject::lib:template:component-taggroup__2__tag-4",
             "dom": {
-              "x": 132.515625,
-              "y": 92.84375,
-              "width": 67.828125,
-              "height": 30
+              "x": 150.59375,
+              "y": 114.703125,
+              "width": 81.796875,
+              "height": 42
             }
           },
           {
             "new": "project:node:subject/lib:template:component-taggroup__2__tag-4::lib:template:component-tag-item-default__label",
             "dom": {
-              "x": 145.515625,
-              "y": 97.84375,
-              "width": 41.828125,
-              "height": 20
+              "x": 167.59375,
+              "y": 123.703125,
+              "width": 47.796875,
+              "height": 24
             }
           }
         ],
@@ -87955,114 +88363,107 @@
         {
           "new": "project:node:subject::lib:template:component-taggroup__2",
           "old": "component-taggroup__2",
-          "rule": "taglist-wrapper",
-          "class": "previewFollow"
+          "rule": "taglist-line-distribution",
+          "class": "oldDefect"
         },
         {
           "new": "project:node:subject::lib:template:component-taggroup__2__tag-1",
           "old": "component-taggroup__2/component-taggroup__2__tag-1",
-          "rule": "taglist-wrapper",
-          "class": "previewFollow"
+          "rule": "taglist-line-distribution",
+          "class": "oldDefect"
         },
         {
           "new": "project:node:subject/lib:template:component-taggroup__2__tag-1::lib:template:component-tag-item-default__label",
           "old": "component-taggroup__2/component-taggroup__2__tag-1/Label",
-          "rule": "taglist-wrapper",
-          "class": "previewFollow"
+          "rule": "taglist-line-distribution",
+          "class": "oldDefect"
         },
         {
           "new": "project:node:subject::lib:template:component-taggroup__2__tag-2",
           "old": "component-taggroup__2/component-taggroup__2__tag-2",
-          "rule": "taglist-wrapper",
-          "class": "previewFollow"
+          "rule": "taglist-line-distribution",
+          "class": "oldDefect"
         },
         {
           "new": "project:node:subject/lib:template:component-taggroup__2__tag-2::lib:template:component-tag-item-default__label",
           "old": "component-taggroup__2/component-taggroup__2__tag-2/Label",
-          "rule": "taglist-wrapper",
-          "class": "previewFollow"
+          "rule": "taglist-line-distribution",
+          "class": "oldDefect"
         },
         {
           "new": "project:node:subject::lib:template:component-taggroup__2__tag-3",
           "old": "component-taggroup__2/component-taggroup__2__tag-3",
-          "rule": "taglist-wrapper",
-          "class": "previewFollow"
+          "rule": "taglist-line-distribution",
+          "class": "oldDefect"
         },
         {
           "new": "project:node:subject/lib:template:component-taggroup__2__tag-3::lib:template:component-tag-item-default__label",
           "old": "component-taggroup__2/component-taggroup__2__tag-3/Label",
-          "rule": "taglist-wrapper",
-          "class": "previewFollow"
+          "rule": "taglist-line-distribution",
+          "class": "oldDefect"
         },
         {
           "new": "project:node:subject::lib:template:component-taggroup__2__tag-4",
           "old": "component-taggroup__2/component-taggroup__2__tag-4",
-          "rule": "taglist-wrapper",
-          "class": "previewFollow"
+          "rule": "taglist-line-distribution",
+          "class": "oldDefect"
         },
         {
           "new": "project:node:subject/lib:template:component-taggroup__2__tag-4::lib:template:component-tag-item-default__label",
           "old": "component-taggroup__2/component-taggroup__2__tag-4/Label",
-          "rule": "taglist-wrapper",
-          "class": "previewFollow"
+          "rule": "taglist-line-distribution",
+          "class": "oldDefect"
         }
       ],
       "approvedClasses": [
-        "oldDefect",
-        "previewFollow"
+        "oldDefect"
       ],
-      "previewDefectFollowed": true,
       "liveIdentity": {
         "region": "capture clip",
         "pixels": 240000,
         "different": 0,
         "ratio": 0,
-        "maxByte": 0
+        "maxByte": 1
       },
       "L3": {
-        "pixels": 230248,
-        "different": 355,
-        "ratio": 0.001541815781244571,
-        "maxByte": 232,
-        "diffBounds": [
-          12,
-          32,
-          140,
-          93
-        ],
-        "approvedAttributed": 355,
+        "pixels": 227922,
+        "different": 0,
+        "ratio": 0,
+        "maxByte": 22,
+        "diffBounds": null,
+        "approvedAttributed": 0,
         "movedPaint": {
-          "pixels": 0,
+          "pixels": 507,
           "different": 0,
           "maxByte": 0
         },
         "outsideRatio": 0,
-        "outsideMaxByte": 17,
+        "outsideMaxByte": 0,
         "blocked": false
       },
       "L3e": {
-        "pixels": 7543,
-        "different": 161,
-        "ratio": 0.021344292721728754,
-        "maxByte": 227,
+        "pixels": 9514,
+        "different": 97,
+        "ratio": 0.0101955013664074,
+        "maxByte": 171,
         "diffBounds": [
           7,
-          29,
-          125,
-          92
+          30,
+          143,
+          95
         ],
         "gated": false
       },
       "text": {
-        "pixels": 2209,
-        "different": 545,
-        "ratio": 0.24671797193300135,
+        "pixels": 2564,
+        "different": 779,
+        "ratio": 0.30382215288611547,
         "maxByte": 232,
         "diffBounds": [
           8,
           13,
-          112,
-          68
+          130,
+          87
         ],
         "gated": false
       },

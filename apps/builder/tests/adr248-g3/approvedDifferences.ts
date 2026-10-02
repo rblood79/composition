@@ -238,6 +238,16 @@ export const APPROVED_DIFFERENCES: readonly ApprovedDifference[] = [
       "the old row paired with the second item is the collapsed first item's child, a level deeper (+16); the DOM's second row is level 1 (chevron 20 kept — 4e-11)",
   },
   {
+    id: "taglist-line-distribution",
+    class: "oldDefect",
+    owners: ["TagGroup"],
+    nodes: ["TagList", "Tag", "Text"],
+    axes: ["x", "y", "height"],
+    noDomBox: true,
+    reason:
+      "the chip wrapper fills its catalog 100% height (4e-11); its wrapped lines stretch (CSS `align-content: normal`) and center the chips in each line — old packs the lines at the top and keeps the md chip gap 4 at lg (catalog `TagList.sizes.lg.gap` 6); the wrapper height follows the label line box",
+  },
+  {
     id: "field-button-size",
     class: "oldDefect",
     owners: ["ComboBox", "NumberField"],
@@ -358,16 +368,6 @@ export const APPROVED_DIFFERENCES: readonly ApprovedDifference[] = [
       "old trigger right padding = size paddingX 12; catalog `--dp-group-padding` / `--drp-group-padding` right = spacing-xs 4 (md)",
   },
   // ── C. Preview defects the new side follows (Phase 4 fixes) ─────────────
-  {
-    id: "taglist-wrapper",
-    class: "previewFollow",
-    owners: ["TagGroup"],
-    nodes: ["TagList", "Tag", "Text"],
-    axes: ALL,
-    noDomBox: true,
-    reason:
-      "product wrapper outside the RAC structure: TagList 100% unresolved",
-  },
   {
     id: "listbox-section-header",
     class: "previewFollow",

@@ -29,7 +29,7 @@
     "types": 64,
     "PASS": 63,
     "PASS_withApprovedDifferences": 32,
-    "previewDefectFollowed": 1,
+    "previewDefectFollowed": 0,
     "FAIL": 0,
     "UNVERIFIED": 1,
     "NOT_RUN": 0,
@@ -50,7 +50,7 @@
       "types": 45
     },
     "height": {
-      "nodes": 69,
+      "nodes": 68,
       "types": 28
     },
     "contentHeight": {
@@ -12520,12 +12520,6 @@
         },
         {
           "old": "component-taggroup__2",
-          "key": "height",
-          "oldValue": "100%",
-          "newValue": null
-        },
-        {
-          "old": "component-taggroup__2",
           "key": "alignItems",
           "oldValue": null,
           "newValue": "center"
@@ -12581,25 +12575,68 @@
       ],
       "geometry": {
         "pairedNodes": 11,
-        "maxDelta": 42,
+        "maxDelta": 10.5,
         "overOnePx": [
           {
-            "new": "project:node:subject::lib:template:component-taggroup__2",
-            "old": "component-taggroup__2",
+            "new": "project:node:subject::lib:template:component-taggroup__2__tag-1",
+            "old": "component-taggroup__2/component-taggroup__2__tag-1",
             "newRect": {
               "x": 30,
-              "y": 54,
-              "width": 220,
-              "height": 64
+              "y": 64.5,
+              "width": 90.62000274658203,
+              "height": 30
             },
             "oldRect": {
               "x": 30,
               "y": 54,
-              "width": 220,
-              "height": 106
+              "width": 90,
+              "height": 30
             },
             "newInput": {
               "self": {
+                "type": "Tag",
+                "props": {
+                  "variant": "default",
+                  "size": "md",
+                  "children": "{label}"
+                },
+                "layout": {
+                  "display": "flex",
+                  "alignItems": "center"
+                },
+                "sizing": {},
+                "visual": {
+                  "fontWeight": 400,
+                  "height": 30,
+                  "paddingY": 4,
+                  "paddingX": 12,
+                  "fontSize": 14,
+                  "radius": 6,
+                  "lineHeight": 1.4285714285714286,
+                  "borderWidth": 1,
+                  "iconSize": 14,
+                  "gap": 4,
+                  "width": "fit-content"
+                },
+                "placement": null,
+                "engineInput": {
+                  "display": "flex",
+                  "alignItems": "center",
+                  "width": "fit-content",
+                  "height": "30px",
+                  "rowGap": "4px",
+                  "columnGap": "4px",
+                  "paddingTop": "4px",
+                  "paddingBottom": "4px",
+                  "paddingRight": "12px",
+                  "paddingLeft": "12px",
+                  "borderTop": "1px",
+                  "borderRight": "1px",
+                  "borderBottom": "1px",
+                  "borderLeft": "1px"
+                }
+              },
+              "parent": {
                 "type": "TagList",
                 "props": {
                   "size": "md"
@@ -12611,6 +12648,7 @@
                 },
                 "sizing": {},
                 "visual": {
+                  "height": "100%",
                   "fontSize": 16,
                   "radius": 0,
                   "gap": 4,
@@ -12621,48 +12659,8 @@
                   "display": "flex",
                   "alignItems": "center",
                   "flexWrap": "wrap",
+                  "height": "100%",
                   "minHeight": "30px",
-                  "rowGap": "4px",
-                  "columnGap": "4px"
-                }
-              },
-              "parent": {
-                "type": "TagGroup",
-                "props": {
-                  "size": "md",
-                  "labelPosition": "top",
-                  "selectionMode": "multiple",
-                  "label": "Tag Group",
-                  "maxRows": 2,
-                  "allowsRemoving": false
-                },
-                "layout": {
-                  "display": "flex",
-                  "flexDirection": "column"
-                },
-                "sizing": {
-                  "width": 220,
-                  "height": 130
-                },
-                "visual": {
-                  "gap": 4,
-                  "fontSize": 14,
-                  "radius": 6,
-                  "width": "100%"
-                },
-                "placement": {
-                  "kind": "absolute",
-                  "x": 30,
-                  "y": 30
-                },
-                "engineInput": {
-                  "display": "flex",
-                  "flexDirection": "column",
-                  "position": "absolute",
-                  "insetLeft": "30px",
-                  "insetTop": "30px",
-                  "width": "220px",
-                  "height": "130px",
                   "rowGap": "4px",
                   "columnGap": "4px"
                 }
@@ -12670,12 +12668,321 @@
             },
             "oldEngineInput": {
               "display": "flex",
-              "flexDirection": "row",
-              "flexWrap": "wrap",
-              "height": "100%",
-              "minHeight": "30px",
+              "alignItems": "center",
+              "width": "fit-content",
+              "height": "30px",
+              "paddingTop": "4px",
+              "paddingRight": "12px",
+              "paddingBottom": "4px",
+              "paddingLeft": "12px",
+              "borderTop": "1px",
+              "borderRight": "1px",
+              "borderBottom": "1px",
+              "borderLeft": "1px",
               "columnGap": "4px",
               "rowGap": "4px"
+            }
+          },
+          {
+            "new": "project:node:subject/lib:template:component-taggroup__2__tag-1::lib:template:component-tag-item-default__label",
+            "old": "component-taggroup__2/component-taggroup__2__tag-1/Label",
+            "newRect": {
+              "x": 43,
+              "y": 69.5,
+              "width": 64.62000274658203,
+              "height": 20
+            },
+            "oldRect": {
+              "x": 43,
+              "y": 59,
+              "width": 64,
+              "height": 20
+            },
+            "newInput": {
+              "self": {
+                "type": "Text",
+                "props": {
+                  "size": "md",
+                  "slot": "label",
+                  "children": "Chocolate"
+                },
+                "layout": {
+                  "display": "block"
+                },
+                "sizing": {},
+                "visual": {
+                  "color": "#171717",
+                  "fontWeight": 400,
+                  "width": "100%",
+                  "fontSize": 14,
+                  "lineHeight": 1.4285714285714286,
+                  "radius": 0
+                },
+                "placement": null,
+                "engineInput": {
+                  "display": "block",
+                  "width": "100%",
+                  "contentMinWidth": 64.62000274658203,
+                  "contentMaxWidth": 64.62000274658203,
+                  "contentHeight": 20
+                }
+              },
+              "parent": {
+                "type": "Tag",
+                "props": {
+                  "variant": "default",
+                  "size": "md",
+                  "children": "{label}"
+                },
+                "layout": {
+                  "display": "flex",
+                  "alignItems": "center"
+                },
+                "sizing": {},
+                "visual": {
+                  "fontWeight": 400,
+                  "height": 30,
+                  "paddingY": 4,
+                  "paddingX": 12,
+                  "fontSize": 14,
+                  "radius": 6,
+                  "lineHeight": 1.4285714285714286,
+                  "borderWidth": 1,
+                  "iconSize": 14,
+                  "gap": 4,
+                  "width": "fit-content"
+                },
+                "placement": null,
+                "engineInput": {
+                  "display": "flex",
+                  "alignItems": "center",
+                  "width": "fit-content",
+                  "height": "30px",
+                  "rowGap": "4px",
+                  "columnGap": "4px",
+                  "paddingTop": "4px",
+                  "paddingBottom": "4px",
+                  "paddingRight": "12px",
+                  "paddingLeft": "12px",
+                  "borderTop": "1px",
+                  "borderRight": "1px",
+                  "borderBottom": "1px",
+                  "borderLeft": "1px"
+                }
+              }
+            },
+            "oldEngineInput": {
+              "display": "block",
+              "width": "100%",
+              "contentMinWidth": 64,
+              "contentMaxWidth": 64,
+              "contentHeight": 20,
+              "leafBaseline": 13.7119140625,
+              "lineHeight": 20
+            }
+          },
+          {
+            "new": "project:node:subject::lib:template:component-taggroup__2__tag-2",
+            "old": "component-taggroup__2/component-taggroup__2__tag-2",
+            "newRect": {
+              "x": 124.62000274658203,
+              "y": 64.5,
+              "width": 53.540000915527344,
+              "height": 30
+            },
+            "oldRect": {
+              "x": 124,
+              "y": 54,
+              "width": 54,
+              "height": 30
+            },
+            "newInput": {
+              "self": {
+                "type": "Tag",
+                "props": {
+                  "variant": "default",
+                  "size": "md",
+                  "children": "{label}"
+                },
+                "layout": {
+                  "display": "flex",
+                  "alignItems": "center"
+                },
+                "sizing": {},
+                "visual": {
+                  "fontWeight": 400,
+                  "height": 30,
+                  "paddingY": 4,
+                  "paddingX": 12,
+                  "fontSize": 14,
+                  "radius": 6,
+                  "lineHeight": 1.4285714285714286,
+                  "borderWidth": 1,
+                  "iconSize": 14,
+                  "gap": 4,
+                  "width": "fit-content"
+                },
+                "placement": null,
+                "engineInput": {
+                  "display": "flex",
+                  "alignItems": "center",
+                  "width": "fit-content",
+                  "height": "30px",
+                  "rowGap": "4px",
+                  "columnGap": "4px",
+                  "paddingTop": "4px",
+                  "paddingBottom": "4px",
+                  "paddingRight": "12px",
+                  "paddingLeft": "12px",
+                  "borderTop": "1px",
+                  "borderRight": "1px",
+                  "borderBottom": "1px",
+                  "borderLeft": "1px"
+                }
+              },
+              "parent": {
+                "type": "TagList",
+                "props": {
+                  "size": "md"
+                },
+                "layout": {
+                  "display": "flex",
+                  "flexWrap": "wrap",
+                  "alignItems": "center"
+                },
+                "sizing": {},
+                "visual": {
+                  "height": "100%",
+                  "fontSize": 16,
+                  "radius": 0,
+                  "gap": 4,
+                  "minHeight": 30
+                },
+                "placement": null,
+                "engineInput": {
+                  "display": "flex",
+                  "alignItems": "center",
+                  "flexWrap": "wrap",
+                  "height": "100%",
+                  "minHeight": "30px",
+                  "rowGap": "4px",
+                  "columnGap": "4px"
+                }
+              }
+            },
+            "oldEngineInput": {
+              "display": "flex",
+              "alignItems": "center",
+              "width": "fit-content",
+              "height": "30px",
+              "paddingTop": "4px",
+              "paddingRight": "12px",
+              "paddingBottom": "4px",
+              "paddingLeft": "12px",
+              "borderTop": "1px",
+              "borderRight": "1px",
+              "borderBottom": "1px",
+              "borderLeft": "1px",
+              "columnGap": "4px",
+              "rowGap": "4px"
+            }
+          },
+          {
+            "new": "project:node:subject/lib:template:component-taggroup__2__tag-2::lib:template:component-tag-item-default__label",
+            "old": "component-taggroup__2/component-taggroup__2__tag-2/Label",
+            "newRect": {
+              "x": 137.62000274658203,
+              "y": 69.5,
+              "width": 27.540000915527344,
+              "height": 20
+            },
+            "oldRect": {
+              "x": 137,
+              "y": 59,
+              "width": 28,
+              "height": 20
+            },
+            "newInput": {
+              "self": {
+                "type": "Text",
+                "props": {
+                  "size": "md",
+                  "slot": "label",
+                  "children": "Mint"
+                },
+                "layout": {
+                  "display": "block"
+                },
+                "sizing": {},
+                "visual": {
+                  "color": "#171717",
+                  "fontWeight": 400,
+                  "width": "100%",
+                  "fontSize": 14,
+                  "lineHeight": 1.4285714285714286,
+                  "radius": 0
+                },
+                "placement": null,
+                "engineInput": {
+                  "display": "block",
+                  "width": "100%",
+                  "contentMinWidth": 27.540000915527344,
+                  "contentMaxWidth": 27.540000915527344,
+                  "contentHeight": 20
+                }
+              },
+              "parent": {
+                "type": "Tag",
+                "props": {
+                  "variant": "default",
+                  "size": "md",
+                  "children": "{label}"
+                },
+                "layout": {
+                  "display": "flex",
+                  "alignItems": "center"
+                },
+                "sizing": {},
+                "visual": {
+                  "fontWeight": 400,
+                  "height": 30,
+                  "paddingY": 4,
+                  "paddingX": 12,
+                  "fontSize": 14,
+                  "radius": 6,
+                  "lineHeight": 1.4285714285714286,
+                  "borderWidth": 1,
+                  "iconSize": 14,
+                  "gap": 4,
+                  "width": "fit-content"
+                },
+                "placement": null,
+                "engineInput": {
+                  "display": "flex",
+                  "alignItems": "center",
+                  "width": "fit-content",
+                  "height": "30px",
+                  "rowGap": "4px",
+                  "columnGap": "4px",
+                  "paddingTop": "4px",
+                  "paddingBottom": "4px",
+                  "paddingRight": "12px",
+                  "paddingLeft": "12px",
+                  "borderTop": "1px",
+                  "borderRight": "1px",
+                  "borderBottom": "1px",
+                  "borderLeft": "1px"
+                }
+              }
+            },
+            "oldEngineInput": {
+              "display": "block",
+              "width": "100%",
+              "contentMinWidth": 28,
+              "contentMaxWidth": 28,
+              "contentHeight": 20,
+              "leafBaseline": 13.7119140625,
+              "lineHeight": 20
             }
           },
           {
@@ -12683,7 +12990,7 @@
             "old": "component-taggroup__2/component-taggroup__2__tag-3",
             "newRect": {
               "x": 30,
-              "y": 88,
+              "y": 119.5,
               "width": 96.51000213623047,
               "height": 30
             },
@@ -12749,6 +13056,7 @@
                 },
                 "sizing": {},
                 "visual": {
+                  "height": "100%",
                   "fontSize": 16,
                   "radius": 0,
                   "gap": 4,
@@ -12759,6 +13067,7 @@
                   "display": "flex",
                   "alignItems": "center",
                   "flexWrap": "wrap",
+                  "height": "100%",
                   "minHeight": "30px",
                   "rowGap": "4px",
                   "columnGap": "4px"
@@ -12787,7 +13096,7 @@
             "old": "component-taggroup__2/component-taggroup__2__tag-3/Label",
             "newRect": {
               "x": 43,
-              "y": 93,
+              "y": 124.5,
               "width": 70.51000213623047,
               "height": 20
             },
@@ -12885,7 +13194,7 @@
             "old": "component-taggroup__2/component-taggroup__2__tag-4",
             "newRect": {
               "x": 130.51000213623047,
-              "y": 88,
+              "y": 119.5,
               "width": 67.81999969482422,
               "height": 30
             },
@@ -12951,6 +13260,7 @@
                 },
                 "sizing": {},
                 "visual": {
+                  "height": "100%",
                   "fontSize": 16,
                   "radius": 0,
                   "gap": 4,
@@ -12961,6 +13271,7 @@
                   "display": "flex",
                   "alignItems": "center",
                   "flexWrap": "wrap",
+                  "height": "100%",
                   "minHeight": "30px",
                   "rowGap": "4px",
                   "columnGap": "4px"
@@ -12989,7 +13300,7 @@
             "old": "component-taggroup__2/component-taggroup__2__tag-4/Label",
             "newRect": {
               "x": 143.51000213623047,
-              "y": 93,
+              "y": 124.5,
               "width": 41.81999969482422,
               "height": 20
             },
@@ -13097,14 +13408,46 @@
         "overOnePx": [],
         "geometryArbiter": [
           {
-            "new": "project:node:subject::lib:template:component-taggroup__2",
-            "dom": null
+            "new": "project:node:subject::lib:template:component-taggroup__2__tag-1",
+            "dom": {
+              "x": 30,
+              "y": 64.5,
+              "width": 90.625,
+              "height": 30
+            }
+          },
+          {
+            "new": "project:node:subject/lib:template:component-taggroup__2__tag-1::lib:template:component-tag-item-default__label",
+            "dom": {
+              "x": 43,
+              "y": 69.5,
+              "width": 64.625,
+              "height": 20
+            }
+          },
+          {
+            "new": "project:node:subject::lib:template:component-taggroup__2__tag-2",
+            "dom": {
+              "x": 124.625,
+              "y": 64.5,
+              "width": 53.546875,
+              "height": 30
+            }
+          },
+          {
+            "new": "project:node:subject/lib:template:component-taggroup__2__tag-2::lib:template:component-tag-item-default__label",
+            "dom": {
+              "x": 137.625,
+              "y": 69.5,
+              "width": 27.546875,
+              "height": 20
+            }
           },
           {
             "new": "project:node:subject::lib:template:component-taggroup__2__tag-3",
             "dom": {
               "x": 30,
-              "y": 88,
+              "y": 119.5,
               "width": 96.515625,
               "height": 30
             }
@@ -13113,7 +13456,7 @@
             "new": "project:node:subject/lib:template:component-taggroup__2__tag-3::lib:template:component-tag-item-default__label",
             "dom": {
               "x": 43,
-              "y": 93,
+              "y": 124.5,
               "width": 70.515625,
               "height": 20
             }
@@ -13122,7 +13465,7 @@
             "new": "project:node:subject::lib:template:component-taggroup__2__tag-4",
             "dom": {
               "x": 130.515625,
-              "y": 88,
+              "y": 119.5,
               "width": 67.828125,
               "height": 30
             }
@@ -13131,7 +13474,7 @@
             "new": "project:node:subject/lib:template:component-taggroup__2__tag-4::lib:template:component-tag-item-default__label",
             "dom": {
               "x": 143.515625,
-              "y": 93,
+              "y": 124.5,
               "width": 41.828125,
               "height": 20
             }
@@ -13150,55 +13493,57 @@
           "edges": true
         },
         {
-          "new": "project:node:subject::lib:template:component-taggroup__2",
-          "old": "component-taggroup__2",
-          "rule": "taglist-wrapper",
-          "class": "previewFollow"
+          "new": "project:node:subject::lib:template:component-taggroup__2__tag-1",
+          "old": "component-taggroup__2/component-taggroup__2__tag-1",
+          "rule": "taglist-line-distribution",
+          "class": "oldDefect"
+        },
+        {
+          "new": "project:node:subject/lib:template:component-taggroup__2__tag-1::lib:template:component-tag-item-default__label",
+          "old": "component-taggroup__2/component-taggroup__2__tag-1/Label",
+          "rule": "taglist-line-distribution",
+          "class": "oldDefect"
         },
         {
           "new": "project:node:subject::lib:template:component-taggroup__2__tag-2",
           "old": "component-taggroup__2/component-taggroup__2__tag-2",
-          "rule": "subpixel-intrinsic-width-ceil",
-          "class": "oldDefect",
-          "edges": true
+          "rule": "taglist-line-distribution",
+          "class": "oldDefect"
         },
         {
           "new": "project:node:subject/lib:template:component-taggroup__2__tag-2::lib:template:component-tag-item-default__label",
           "old": "component-taggroup__2/component-taggroup__2__tag-2/Label",
-          "rule": "subpixel-intrinsic-width-ceil",
-          "class": "oldDefect",
-          "edges": true
+          "rule": "taglist-line-distribution",
+          "class": "oldDefect"
         },
         {
           "new": "project:node:subject::lib:template:component-taggroup__2__tag-3",
           "old": "component-taggroup__2/component-taggroup__2__tag-3",
-          "rule": "taglist-wrapper",
-          "class": "previewFollow"
+          "rule": "taglist-line-distribution",
+          "class": "oldDefect"
         },
         {
           "new": "project:node:subject/lib:template:component-taggroup__2__tag-3::lib:template:component-tag-item-default__label",
           "old": "component-taggroup__2/component-taggroup__2__tag-3/Label",
-          "rule": "taglist-wrapper",
-          "class": "previewFollow"
+          "rule": "taglist-line-distribution",
+          "class": "oldDefect"
         },
         {
           "new": "project:node:subject::lib:template:component-taggroup__2__tag-4",
           "old": "component-taggroup__2/component-taggroup__2__tag-4",
-          "rule": "taglist-wrapper",
-          "class": "previewFollow"
+          "rule": "taglist-line-distribution",
+          "class": "oldDefect"
         },
         {
           "new": "project:node:subject/lib:template:component-taggroup__2__tag-4::lib:template:component-tag-item-default__label",
           "old": "component-taggroup__2/component-taggroup__2__tag-4/Label",
-          "rule": "taglist-wrapper",
-          "class": "previewFollow"
+          "rule": "taglist-line-distribution",
+          "class": "oldDefect"
         }
       ],
       "approvedClasses": [
-        "oldDefect",
-        "previewFollow"
+        "oldDefect"
       ],
-      "previewDefectFollowed": true,
       "liveIdentity": {
         "region": "capture clip",
         "pixels": 240000,
@@ -13207,19 +13552,19 @@
         "maxByte": 0
       },
       "L3": {
-        "pixels": 230517,
-        "different": 140,
-        "ratio": 0.0006073304788800826,
-        "maxByte": 216,
+        "pixels": 229713,
+        "different": 103,
+        "ratio": 0.0004483855941979775,
+        "maxByte": 31,
         "diffBounds": [
-          19,
-          74,
+          11,
+          30,
           119,
-          83
+          67
         ],
-        "approvedAttributed": 140,
+        "approvedAttributed": 103,
         "movedPaint": {
-          "pixels": 42,
+          "pixels": 78,
           "different": 0,
           "maxByte": 0
         },
@@ -13228,28 +13573,28 @@
         "blocked": false
       },
       "L3e": {
-        "pixels": 7389,
-        "different": 244,
-        "ratio": 0.03302205981864934,
-        "maxByte": 232,
+        "pixels": 8193,
+        "different": 456,
+        "ratio": 0.055657268399853535,
+        "maxByte": 227,
         "diffBounds": [
           7,
-          50,
+          27,
           120,
-          83
+          90
         ],
         "gated": false
       },
       "text": {
         "pixels": 2094,
-        "different": 349,
-        "ratio": 0.16666666666666666,
+        "different": 410,
+        "ratio": 0.19579751671442217,
         "maxByte": 232,
         "diffBounds": [
           8,
           13,
           110,
-          64
+          86
         ],
         "gated": false
       },
