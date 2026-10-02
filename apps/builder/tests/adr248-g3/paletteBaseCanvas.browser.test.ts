@@ -444,7 +444,7 @@ afterAll(async () => {
           L3: NON_TEXT,
           L3e: `${EDGE_BAND}px band — recorded only, not a completion condition (user decision 2026-09-29)`,
           approvedDifferences:
-            "old/new pairs approved per owner × node type × differing axes (user decision 2026-09-30, approvedDifferences.ts); the Canvas↔DOM leg still arbitrates; L3 differences an approved box change sweeps are attributed to it — old ∪ new outside the other box plus an edge band (tolerance + 0.3 × radius); a glyph leaf (icon · avatar · image) or one-sided node owns its whole box; a text leaf owns the pixels that are ink in either leg (off its box's most frequent colour); a moved box is compared shifted; the interior both boxes cover still blocks paint changes (2026-09-30)",
+            "old/new pairs approved per owner × node type × differing axes (user decision 2026-09-30, approvedDifferences.ts); the Canvas↔DOM leg still arbitrates; L3 differences an approved box change sweeps are attributed to it — old ∪ new outside the other box plus an edge band (tolerance + 0.3 × radius); a glyph leaf (icon · avatar · image), a one-sided node or a rule marked `paint` (a sized control drawing its own indicator, 4e-11) owns its whole box; a text leaf owns the pixels that are ink in either leg (off its box's most frequent colour); a moved box is compared shifted; the interior both boxes cover still blocks paint changes (2026-09-30)",
           text: "recorded only (HC6 names no text budget)",
         },
         summary: {
@@ -1460,6 +1460,7 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
             old: item.oldPath,
             rule: rule.id,
             class: rule.class,
+            ...(rule.paint ? { whole: true as const } : {}),
           });
         else unapproved.push(item.newId);
       }

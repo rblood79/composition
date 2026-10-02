@@ -969,6 +969,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
                 value: box.id,
                 isIndeterminate: bool(box.props.isIndeterminate),
                 isDisabled: bool(box.props.isDisabled),
+                // The item's resolved size: the group's (`CATALOG_SIZE_PROPAGATION`).
+                size: box.props.size || "md",
               },
               ...(labels.length
                 ? labels.map((label) => input.renderChild(label.id))

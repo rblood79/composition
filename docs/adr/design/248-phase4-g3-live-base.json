@@ -22,7 +22,7 @@
       "maxByte": 2
     },
     "L3e": "3px band — recorded only, not a completion condition (user decision 2026-09-29)",
-    "approvedDifferences": "old/new pairs approved per owner × node type × differing axes (user decision 2026-09-30, approvedDifferences.ts); the Canvas↔DOM leg still arbitrates; L3 differences an approved box change sweeps are attributed to it — old ∪ new outside the other box plus an edge band (tolerance + 0.3 × radius); a glyph leaf (icon · avatar · image) or one-sided node owns its whole box; a text leaf owns the pixels that are ink in either leg (off its box's most frequent colour); a moved box is compared shifted; the interior both boxes cover still blocks paint changes (2026-09-30)",
+    "approvedDifferences": "old/new pairs approved per owner × node type × differing axes (user decision 2026-09-30, approvedDifferences.ts); the Canvas↔DOM leg still arbitrates; L3 differences an approved box change sweeps are attributed to it — old ∪ new outside the other box plus an edge band (tolerance + 0.3 × radius); a glyph leaf (icon · avatar · image), a one-sided node or a rule marked `paint` (a sized control drawing its own indicator, 4e-11) owns its whole box; a text leaf owns the pixels that are ink in either leg (off its box's most frequent colour); a moved box is compared shifted; the interior both boxes cover still blocks paint changes (2026-09-30)",
     "text": "recorded only (HC6 names no text budget)"
   },
   "summary": {
@@ -8293,8 +8293,9 @@
         {
           "new": "project:node:subject::lib:template:component-checkboxgroup__2",
           "old": "component-checkboxgroup__2",
-          "rule": "checkboxgroup-items-width",
-          "class": "oldDefect"
+          "rule": "group-items-old-size",
+          "class": "oldDefect",
+          "whole": true
         },
         {
           "new": "project:node:subject/lib:template:component-checkboxgroup__2::lib:template:component-checkbox__1",
@@ -8339,13 +8340,13 @@
           16,
           63
         ],
-        "approvedAttributed": 0,
+        "approvedAttributed": 20,
         "movedPaint": {
           "pixels": 0,
           "different": 0,
           "maxByte": 0
         },
-        "outsideRatio": 0.000179905421150024,
+        "outsideRatio": 0.00009423617298334589,
         "outsideMaxByte": 232,
         "blocked": false
       },

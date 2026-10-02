@@ -23,6 +23,11 @@ export interface ApprovedDifference {
   axes: readonly GeometryAxis[];
   /** The node has no isolated DOM box (the DOM leg cannot arbitrate it). */
   noDomBox?: boolean;
+  /**
+   * The node's own drawing follows the approved size (a sized control's indicator): L3 attributes
+   * its whole old ∪ new box, not only the swept edges.
+   */
+  paint?: true;
   reason: string;
 }
 
@@ -185,6 +190,34 @@ export const APPROVED_DIFFERENCES: readonly ApprovedDifference[] = [
     noDomBox: true,
     reason:
       "old draws the header row 0 tall at the grid width (238); the DOM header row = the nav buttons (height + spacing-xs, 4e-11 min-width reset) · gaps · heading, as tall as the catalog 30",
+  },
+  {
+    id: "group-items-old-size",
+    class: "oldDefect",
+    owners: ["RadioGroup", "CheckboxGroup"],
+    nodes: ["Radio", "Checkbox"],
+    axes: ALL,
+    paint: true,
+    reason:
+      "old paints the items at md (indicator · label) inside the group size's box, keeps the items gap 12 (catalog `--radio-items-gap` sm 8 · lg 16) and the xl item box at its label line 28 (indicator text-3xl 30) — 4e-11 group size reaches the items",
+  },
+  {
+    id: "group-item-label-old-font",
+    class: "oldDefect",
+    owners: ["RadioGroup", "CheckboxGroup"],
+    nodes: ["Label"],
+    axes: ALL,
+    reason:
+      "old keeps the item Label at the md font (lg/xl: catalog text-base · text-lg) and moves it with the items gap",
+  },
+  {
+    id: "togglebuttongroup-xl-shrink",
+    class: "oldDefect",
+    owners: ["ToggleButtonGroup"],
+    nodes: ["ToggleButton"],
+    axes: ALL,
+    reason:
+      "xl items wider than the 220 group: old keeps max-content and overflows; flex items shrink to min-content and the label wraps (no nowrap declared) — the DOM box",
   },
   {
     id: "combobox-button-size",
@@ -367,15 +400,6 @@ export const APPROVED_DIFFERENCES: readonly ApprovedDifference[] = [
     reason: "generated CSS not loaded",
   },
   {
-    id: "group-size-not-propagated",
-    class: "previewFollow",
-    owners: ["ToggleButtonGroup", "RadioGroup", "CheckboxGroup"],
-    nodes: ["ToggleButton", "Radio", "Checkbox", "Label"],
-    axes: ALL,
-    reason:
-      "group `[data-size]` never reaches the items (generated blocks dead) — RSP propagates (user 2026-09-30)",
-  },
-  {
     id: "slider-track-size-not-propagated",
     class: "previewFollow",
     owners: ["Slider"],
@@ -392,15 +416,6 @@ export const APPROVED_DIFFERENCES: readonly ApprovedDifference[] = [
     axes: ALL,
     reason:
       "no stylesheet reads the catalog trigger `sizes.height` (20/22/42/54): the product group is content-sized, the steppers are `--icon-size`",
-  },
-  {
-    id: "checkbox-label-size-not-propagated",
-    class: "previewFollow",
-    owners: ["Checkbox"],
-    nodes: ["Label"],
-    axes: ALL,
-    reason:
-      "the product label span (`.react-aria-Label`) keeps `--label-font-size` text-sm: the Checkbox size does not reach it",
   },
   // ── D. neither side draws the catalog value (new follows the Preview) ───
   {

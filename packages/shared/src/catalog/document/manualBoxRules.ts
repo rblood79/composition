@@ -543,11 +543,10 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
   // `Radio.css` `.react-aria-Radio { width: fit-content }` (the generated sheet sets no width): a
   // radio keeps its content width inside the group's stretching `.radio-items` column.
   Radio: () => ({ visual: { width: "fit-content" } }),
-  // `RadioGroup.tsx` / `CheckboxGroup.tsx` / `TagGroup.tsx` put the size on `data-radio-size` /
-  // `data-checkbox-size` / `data-tag-size`: the generated `[data-size]` blocks never match. The
-  // manual sheets (`Radio.css` / `Checkbox.css` / `TagGroup.css`) set the group Label font.
+  // `RadioGroup.tsx` / `CheckboxGroup.tsx` also carry `data-size` (4e-11 — the generated
+  // `[data-size]` blocks apply); `TagGroup.tsx` puts the size on `data-tag-size` only. The manual
+  // sheets (`Radio.css` / `Checkbox.css` / `TagGroup.css`) set the group Label font.
   RadioGroup: () => ({
-    rootSizeAttribute: "data-radio-size",
     parts: [
       ...groupLabelFontParts({
         sm: "text-xs",
@@ -564,7 +563,6 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
     ],
   }),
   CheckboxGroup: () => ({
-    rootSizeAttribute: "data-checkbox-size",
     parts: [
       ...groupLabelFontParts({
         sm: "text-xs",

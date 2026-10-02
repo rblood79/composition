@@ -25,6 +25,7 @@ import type {
 } from "../document/types";
 import { CatalogGraph } from "../document/graph";
 import { isInOwnCollection } from "../document/collectionItems";
+import { CATALOG_SIZE_PROPAGATION } from "../document/sizePropagation";
 import { CatalogValidationError } from "../document/validation";
 import { catalogTokenValue } from "../document/themedToken";
 import {
@@ -532,6 +533,32 @@ export function resolveCatalogNode(
     }
     return bindings;
   };
+  /**
+   * An owner's `size` set on the child it propagates to (`CATALOG_SIZE_PROPAGATION` — RSP context:
+   * a group's size reaches its items, an item's its label). The owner wins over the child's own
+   * value, like the old `override: true` propagation; a size the child does not offer stays out.
+   */
+  const applyOwnerSize = (
+    definitionId: DefinitionId,
+    props: Props,
+    parent: ParentContext | undefined,
+  ): void => {
+    const owner = structuralParent(parent);
+    const size = owner?.props.size;
+    if (typeof size !== "string") return;
+    const definition = lookupDefinition(definitionId);
+    if (
+      !CATALOG_SIZE_PROPAGATION[
+        lookupDefinition(owner!.definitionId).name
+      ]?.includes(definition.name) ||
+      definition.accepts.size !== "string"
+    )
+      return;
+    const choices =
+      "propChoices" in definition ? definition.propChoices?.size : undefined;
+    if (choices && !choices.map(String).includes(size)) return;
+    props.size = size;
+  };
   const applyPropVisualRules = (
     definitionId: DefinitionId,
     props: Props,
@@ -582,6 +609,7 @@ export function resolveCatalogNode(
       Object.assign(visual, inherited.visual);
     }
     applyWrites(props, node.props);
+    applyOwnerSize(node.definitionId, props, parent);
     applyPropVisualRules(node.definitionId, props, visual);
     applyTypedRules(node.definitionId, props, visual, layout, parent);
     applyWrites(visual, node.visual);
@@ -759,6 +787,7 @@ export function resolveCatalogNode(
     ): ResolvedCatalogNode => {
       const { props, visual, layout } = base(definitionId);
       Object.assign(props, own);
+      applyOwnerSize(definitionId, props, parent);
       applyPropVisualRules(definitionId, props, visual);
       applyTypedRules(definitionId, props, visual, layout, parent);
       return {
@@ -997,6 +1026,7 @@ export function resolveCatalogNode(
         if (definition.accepts[key] === "boolean" && !instanceAuthored.has(key))
           props[key] = value;
     const nodeState = catalogNodeState(displayState, state);
+    applyOwnerSize(template.definitionId, props, parent);
     applyPropVisualRules(template.definitionId, props, visual);
     applyTypedRules(
       template.definitionId,
