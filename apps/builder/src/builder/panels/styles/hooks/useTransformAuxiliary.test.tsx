@@ -133,9 +133,9 @@ describe("useTransformAuxiliary — ADR-082 A1 부모 Spec fallback", () => {
     expect(result.current).toBe("column");
   });
 
-  // ADR-248 4e-9 C 발견: catalog 의 layout box model 은 ListBox 의 authored display:block 을 무시하고
-  //   flex/column 을 유지한다 (Frame 은 따름). DOM 은 inline 이 이긴다 — 판정 전까지 실패가 기대값.
-  it.fails("inline style.display overrides Spec containerStyles fallback (inline 우선)", async () => {
+  // ADR-248 4e-9 C 에서 발견 (it.fails 로 기록) → 4e-12 수리: 팔레트 ListBox 는 composite instance 라
+  //   resolver 가 instance 의 authored layout 을 template 루트에 넘기지 않았다 (Frame 은 instance 아님).
+  it("inline style.display overrides Spec containerStyles fallback (inline 우선)", async () => {
     reseedWith("lb-1", { props: { style: { display: "block" } } });
     const { result } = hookOf(fixture, useParentDisplay, "item-1");
     expect(result.current).toBe("block");

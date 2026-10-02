@@ -219,6 +219,12 @@ type InstanceRoot = {
   layout: Record<string, string>;
   /** The instance position's display state: it replaces the template root's own. */
   displayState?: DisplayStateName;
+  /**
+   * The instance position's authored fill layers (and their sizing): the one element the author
+   * edits is the instance, so they replace the template root's (ADR-248 4e-12).
+   */
+  fills?: readonly CatalogFillLayer[];
+  fillSizing?: FillSizing;
 };
 /**
  * Accepted boolean props a display state sets, the way the old Canvas and Preview read a state
@@ -336,6 +342,17 @@ export function resolveCatalogNode(
     CASCADE[breakpoint]
       .map((name) => node.responsive?.[name])
       .filter((layer): layer is NodeResponsiveLayer => !!layer);
+  /** A node's authored fill layers and their cascaded sizing (`InstanceRoot` paint). */
+  const instancePaint = (
+    node: NodeEntry,
+    layers: readonly NodeResponsiveLayer[],
+  ): Pick<InstanceRoot, "fills" | "fillSizing"> => {
+    const fillSizing = cascadeFillSizing(node, layers);
+    return {
+      ...(node.fills ? { fills: node.fills } : {}),
+      ...(fillSizing ? { fillSizing } : {}),
+    };
+  };
   /** Authored node output fields that only exist when the node declares them. */
   const authoredExtras = (
     node: NodeEntry,
@@ -499,12 +516,15 @@ export function resolveCatalogNode(
     visual: Values,
     sizing: Readonly<Record<string, number | null>>,
     layout: Readonly<Record<string, string>> = {},
+    paint: Pick<InstanceRoot, "fills" | "fillSizing"> = {},
   ): InstanceRoot => {
     const root: InstanceRoot = {
       props: {},
       visual: {},
       sizing: { ...sizing },
       layout: { ...layout },
+      ...(paint.fills ? { fills: paint.fills } : {}),
+      ...(paint.fillSizing ? { fillSizing: paint.fillSizing } : {}),
     };
     for (const key of propKeys) if (key in props) root.props[key] = props[key];
     for (const key of visualKeys)
@@ -667,6 +687,10 @@ export function resolveCatalogNode(
               ],
               visual,
               sizing,
+              // The instance's authored layout and fills reach its template root (the record the
+              // author edits): its own layout over the root's rules, its fills over the root's.
+              ownLayout,
+              instancePaint(node, layers),
             ),
             undefined,
             rowSet ? { rowSet } : records ? { records } : undefined,
@@ -1079,6 +1103,17 @@ export function resolveCatalogNode(
       applyWrites(visual, change.visual);
     for (const layer of patchLayers)
       if (layer.visual) applyWrites(visual, layer.visual);
+    // This position's fills: a path patch's, else the owning instance's (template root), else the
+    // template node's own — the output fields below and a nested instance's root read the same.
+    const ownPaint = "kind" in template ? instancePaint(template, templateLayers) : {};
+    const fills = patch?.fills ?? root?.fills ?? ownPaint.fills;
+    const fillSizing = patch?.fillSizing
+      ? cascadeFillSizing({ fillSizing: patch.fillSizing } as NodeEntry, patchLayers)
+      : (root?.fillSizing ?? ownPaint.fillSizing);
+    const templatePaint: Pick<InstanceRoot, "fills" | "fillSizing"> = {
+      ...(fills ? { fills } : {}),
+      ...(fillSizing ? { fillSizing } : {}),
+    };
     const children: ResolvedCatalogNode[] = [];
     if (definition.mode === "composite" && definition.templateRootId) {
       const nestedPath = [...instancePath, templateId];
@@ -1115,6 +1150,7 @@ export function resolveCatalogNode(
                 visual,
                 sizing,
                 authoredLayout,
+                templatePaint,
               ),
             ),
             "descendantPatches" in template &&
@@ -1214,14 +1250,9 @@ export function resolveCatalogNode(
         ? { authoredLayout: templateAuthored }
         : {}),
       ...("kind" in template ? authoredExtras(template, templateLayers) : {}),
-      ...(patch?.fills ? { fills: patch.fills } : {}),
-      ...(patch?.fillSizing
-        ? {
-            fillSizing: cascadeFillSizing(
-              { fillSizing: patch.fillSizing } as NodeEntry,
-              patchLayers,
-            ),
-          }
+      ...(templatePaint.fills ? { fills: templatePaint.fills } : {}),
+      ...(templatePaint.fillSizing
+        ? { fillSizing: templatePaint.fillSizing }
         : {}),
       slot: template.slot,
       ...(displayState ? { displayState } : {}),
