@@ -8246,6 +8246,30 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           {
             childSelector: ".react-aria-Group",
             prefix: "nf-group",
+            // 4e-11: per-size padding like ComboBox's `.combobox-container` (the SelectTrigger
+            //   scale — height = padding + the input line + border: 20/22/30/42/54).
+            variables: {
+              xs: {
+                "--nf-group-padding":
+                  "var(--spacing-3xs) var(--spacing-3xs) var(--spacing-3xs) var(--spacing-xs)",
+              },
+              sm: {
+                "--nf-group-padding":
+                  "var(--spacing-2xs) var(--spacing-2xs) var(--spacing-2xs) var(--spacing-sm)",
+              },
+              md: {
+                "--nf-group-padding":
+                  "var(--spacing-xs) var(--spacing-xs) var(--spacing-xs) var(--spacing-md)",
+              },
+              lg: {
+                "--nf-group-padding":
+                  "var(--spacing-sm) var(--spacing-sm) var(--spacing-sm) var(--spacing-lg)",
+              },
+              xl: {
+                "--nf-group-padding":
+                  "var(--spacing-md) var(--spacing-md) var(--spacing-md) var(--spacing-xl)",
+              },
+            },
             bridges: {
               display: "flex",
               "align-items": "center",
@@ -8257,8 +8281,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               overflow: "hidden",
               transition:
                 "border-color 200ms ease, background-color 200ms ease",
-              padding:
-                "var(--spacing-xs) var(--spacing-xs) var(--spacing-xs) var(--spacing-md)",
+              padding: "var(--nf-group-padding)",
             },
             states: {
               ":has(.react-aria-Input[data-hovered]:not([data-focused]):not([data-disabled]))":

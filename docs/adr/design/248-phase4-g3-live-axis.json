@@ -30,7 +30,7 @@
     "types": 63,
     "PASS": 374,
     "PASS_withApprovedDifferences": 177,
-    "previewDefectFollowed": 18,
+    "previewDefectFollowed": 14,
     "FAIL": 0,
     "UNVERIFIED": 6,
     "NOT_RUN": 6,
@@ -99,15 +99,15 @@
       "types": 12
     },
     "paddingRight": {
-      "nodes": 54,
-      "types": 11
-    },
-    "paddingLeft": {
-      "nodes": 67,
+      "nodes": 50,
       "types": 10
     },
     "display": {
       "nodes": 50,
+      "types": 9
+    },
+    "paddingLeft": {
+      "nodes": 63,
       "types": 9
     },
     "minHeight": {
@@ -115,12 +115,12 @@
       "types": 7
     },
     "paddingTop": {
-      "nodes": 50,
-      "types": 7
+      "nodes": 46,
+      "types": 6
     },
     "paddingBottom": {
-      "nodes": 50,
-      "types": 7
+      "nodes": 46,
+      "types": 6
     },
     "justifyContent": {
       "nodes": 22,
@@ -45769,30 +45769,6 @@
           "newValue": null
         },
         {
-          "old": "component-numberfield__2",
-          "key": "paddingTop",
-          "oldValue": "1px",
-          "newValue": "4px"
-        },
-        {
-          "old": "component-numberfield__2",
-          "key": "paddingRight",
-          "oldValue": "1px",
-          "newValue": "4px"
-        },
-        {
-          "old": "component-numberfield__2",
-          "key": "paddingBottom",
-          "oldValue": "1px",
-          "newValue": "4px"
-        },
-        {
-          "old": "component-numberfield__2",
-          "key": "paddingLeft",
-          "oldValue": "4px",
-          "newValue": "12px"
-        },
-        {
           "old": "component-numberfield__2/component-numberfield__2_1",
           "key": "height",
           "oldValue": "16px",
@@ -46071,7 +46047,7 @@
               "x": 30,
               "y": 46.28571319580078,
               "width": 220,
-              "height": 26
+              "height": 20
             },
             "oldRect": {
               "x": 30,
@@ -46104,10 +46080,10 @@
                   "borderWidth": 1,
                   "gap": 4,
                   "width": "100%",
-                  "paddingTop": 4,
-                  "paddingRight": 4,
-                  "paddingBottom": 4,
-                  "paddingLeft": 12
+                  "paddingTop": 1,
+                  "paddingRight": 1,
+                  "paddingBottom": 1,
+                  "paddingLeft": 4
                 },
                 "placement": null,
                 "engineInput": {
@@ -46117,10 +46093,10 @@
                   "width": "100%",
                   "rowGap": "4px",
                   "columnGap": "4px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "4px",
-                  "paddingLeft": "12px",
+                  "paddingTop": "1px",
+                  "paddingBottom": "1px",
+                  "paddingRight": "1px",
+                  "paddingLeft": "4px",
                   "borderTop": "1px",
                   "borderRight": "1px",
                   "borderBottom": "1px",
@@ -46202,9 +46178,9 @@
             "new": "project:node:subject::lib:template:component-numberfield__2_1",
             "old": "component-numberfield__2/component-numberfield__2_1",
             "newRect": {
-              "x": 43,
-              "y": 51.28571319580078,
-              "width": 174,
+              "x": 35,
+              "y": 48.28571319580078,
+              "width": 185,
               "height": 16
             },
             "oldRect": {
@@ -46279,10 +46255,10 @@
                   "borderWidth": 1,
                   "gap": 4,
                   "width": "100%",
-                  "paddingTop": 4,
-                  "paddingRight": 4,
-                  "paddingBottom": 4,
-                  "paddingLeft": 12
+                  "paddingTop": 1,
+                  "paddingRight": 1,
+                  "paddingBottom": 1,
+                  "paddingLeft": 4
                 },
                 "placement": null,
                 "engineInput": {
@@ -46292,10 +46268,10 @@
                   "width": "100%",
                   "rowGap": "4px",
                   "columnGap": "4px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "4px",
-                  "paddingLeft": "12px",
+                  "paddingTop": "1px",
+                  "paddingBottom": "1px",
+                  "paddingRight": "1px",
+                  "paddingLeft": "4px",
                   "borderTop": "1px",
                   "borderRight": "1px",
                   "borderBottom": "1px",
@@ -46321,8 +46297,8 @@
             "new": "project:node:subject::lib:template:component-numberfield__2_2",
             "old": "component-numberfield__2/component-numberfield__2_2",
             "newRect": {
-              "x": 221,
-              "y": 54.28571319580078,
+              "x": 224,
+              "y": 51.28571319580078,
               "width": 10,
               "height": 10
             },
@@ -46409,10 +46385,10 @@
                   "borderWidth": 1,
                   "gap": 4,
                   "width": "100%",
-                  "paddingTop": 4,
-                  "paddingRight": 4,
-                  "paddingBottom": 4,
-                  "paddingLeft": 12
+                  "paddingTop": 1,
+                  "paddingRight": 1,
+                  "paddingBottom": 1,
+                  "paddingLeft": 4
                 },
                 "placement": null,
                 "engineInput": {
@@ -46422,10 +46398,10 @@
                   "width": "100%",
                   "rowGap": "4px",
                   "columnGap": "4px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "4px",
-                  "paddingLeft": "12px",
+                  "paddingTop": "1px",
+                  "paddingBottom": "1px",
+                  "paddingRight": "1px",
+                  "paddingLeft": "4px",
                   "borderTop": "1px",
                   "borderRight": "1px",
                   "borderBottom": "1px",
@@ -46444,8 +46420,8 @@
             "new": "project:node:subject::lib:template:component-numberfield__2_3",
             "old": "component-numberfield__2/component-numberfield__2_3",
             "newRect": {
-              "x": 235,
-              "y": 54.28571319580078,
+              "x": 238,
+              "y": 51.28571319580078,
               "width": 10,
               "height": 10
             },
@@ -46532,10 +46508,10 @@
                   "borderWidth": 1,
                   "gap": 4,
                   "width": "100%",
-                  "paddingTop": 4,
-                  "paddingRight": 4,
-                  "paddingBottom": 4,
-                  "paddingLeft": 12
+                  "paddingTop": 1,
+                  "paddingRight": 1,
+                  "paddingBottom": 1,
+                  "paddingLeft": 4
                 },
                 "placement": null,
                 "engineInput": {
@@ -46545,10 +46521,10 @@
                   "width": "100%",
                   "rowGap": "4px",
                   "columnGap": "4px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "4px",
-                  "paddingLeft": "12px",
+                  "paddingTop": "1px",
+                  "paddingBottom": "1px",
+                  "paddingRight": "1px",
+                  "paddingLeft": "4px",
                   "borderTop": "1px",
                   "borderRight": "1px",
                   "borderBottom": "1px",
@@ -46592,23 +46568,23 @@
               "x": 30,
               "y": 46.28125,
               "width": 220,
-              "height": 26
+              "height": 20
             }
           },
           {
             "new": "project:node:subject::lib:template:component-numberfield__2_1",
             "dom": {
-              "x": 43,
-              "y": 51.28125,
-              "width": 174,
+              "x": 35,
+              "y": 48.28125,
+              "width": 185,
               "height": 16
             }
           },
           {
             "new": "project:node:subject::lib:template:component-numberfield__2_2",
             "dom": {
-              "x": 221,
-              "y": 54.28125,
+              "x": 224,
+              "y": 51.28125,
               "width": 10,
               "height": 10
             }
@@ -46616,8 +46592,8 @@
           {
             "new": "project:node:subject::lib:template:component-numberfield__2_3",
             "dom": {
-              "x": 235,
-              "y": 54.28125,
+              "x": 238,
+              "y": 51.28125,
               "width": 10,
               "height": 10
             }
@@ -46637,33 +46613,31 @@
         {
           "new": "project:node:subject::lib:template:component-numberfield__2",
           "old": "component-numberfield__2",
-          "rule": "numberfield-trigger-content-height",
-          "class": "previewFollow"
+          "rule": "field-label-line-height-cascade",
+          "class": "oldDefect"
         },
         {
           "new": "project:node:subject::lib:template:component-numberfield__2_1",
           "old": "component-numberfield__2/component-numberfield__2_1",
-          "rule": "numberfield-trigger-content-height",
-          "class": "previewFollow"
+          "rule": "field-button-size",
+          "class": "oldDefect"
         },
         {
           "new": "project:node:subject::lib:template:component-numberfield__2_2",
           "old": "component-numberfield__2/component-numberfield__2_2",
-          "rule": "numberfield-trigger-content-height",
-          "class": "previewFollow"
+          "rule": "field-button-size",
+          "class": "oldDefect"
         },
         {
           "new": "project:node:subject::lib:template:component-numberfield__2_3",
           "old": "component-numberfield__2/component-numberfield__2_3",
-          "rule": "numberfield-trigger-content-height",
-          "class": "previewFollow"
+          "rule": "field-button-size",
+          "class": "oldDefect"
         }
       ],
       "approvedClasses": [
-        "oldDefect",
-        "previewFollow"
+        "oldDefect"
       ],
-      "previewDefectFollowed": true,
       "liveIdentity": {
         "region": "capture clip",
         "pixels": 240000,
@@ -46672,36 +46646,36 @@
         "maxByte": 0
       },
       "L3": {
-        "pixels": 233423,
-        "different": 5,
-        "ratio": 0.0000214203398979535,
-        "maxByte": 134,
+        "pixels": 233989,
+        "different": 2,
+        "ratio": 0.000008547410348349709,
+        "maxByte": 205,
         "diffBounds": [
-          11,
+          14,
           27,
-          12,
-          31
+          15,
+          28
         ],
-        "approvedAttributed": 5,
+        "approvedAttributed": 2,
         "movedPaint": {
-          "pixels": 0,
-          "different": 0,
-          "maxByte": 0
+          "pixels": 236,
+          "different": 1,
+          "maxByte": 205
         },
-        "outsideRatio": 0,
-        "outsideMaxByte": 0,
+        "outsideRatio": 0.0000042737051741748545,
+        "outsideMaxByte": 205,
         "blocked": false
       },
       "L3e": {
-        "pixels": 6327,
-        "different": 38,
-        "ratio": 0.006006006006006006,
+        "pixels": 5761,
+        "different": 47,
+        "ratio": 0.008158305849678875,
         "maxByte": 205,
         "diffBounds": [
-          8,
-          26,
-          154,
-          38
+          7,
+          24,
+          155,
+          34
         ],
         "gated": false
       },
@@ -46778,30 +46752,6 @@
           "key": "height",
           "oldValue": "22px",
           "newValue": null
-        },
-        {
-          "old": "component-numberfield__2",
-          "key": "paddingTop",
-          "oldValue": "2px",
-          "newValue": "4px"
-        },
-        {
-          "old": "component-numberfield__2",
-          "key": "paddingRight",
-          "oldValue": "2px",
-          "newValue": "4px"
-        },
-        {
-          "old": "component-numberfield__2",
-          "key": "paddingBottom",
-          "oldValue": "2px",
-          "newValue": "4px"
-        },
-        {
-          "old": "component-numberfield__2",
-          "key": "paddingLeft",
-          "oldValue": "8px",
-          "newValue": "12px"
         },
         {
           "old": "component-numberfield__2/component-numberfield__2_1",
@@ -46962,7 +46912,7 @@
       ],
       "geometry": {
         "pairedNodes": 7,
-        "maxDelta": 4.142856597900391,
+        "maxDelta": 4,
         "overOnePx": [
           {
             "new": "project:node:subject::lib:template:component-numberfield__1",
@@ -47082,7 +47032,7 @@
               "x": 30,
               "y": 51.14285659790039,
               "width": 220,
-              "height": 26
+              "height": 22
             },
             "oldRect": {
               "x": 30,
@@ -47115,10 +47065,10 @@
                   "borderWidth": 1,
                   "gap": 4,
                   "width": "100%",
-                  "paddingTop": 4,
-                  "paddingRight": 4,
-                  "paddingBottom": 4,
-                  "paddingLeft": 12
+                  "paddingTop": 2,
+                  "paddingRight": 2,
+                  "paddingBottom": 2,
+                  "paddingLeft": 8
                 },
                 "placement": null,
                 "engineInput": {
@@ -47128,10 +47078,10 @@
                   "width": "100%",
                   "rowGap": "4px",
                   "columnGap": "4px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "4px",
-                  "paddingLeft": "12px",
+                  "paddingTop": "2px",
+                  "paddingBottom": "2px",
+                  "paddingRight": "2px",
+                  "paddingLeft": "8px",
                   "borderTop": "1px",
                   "borderRight": "1px",
                   "borderBottom": "1px",
@@ -47213,9 +47163,9 @@
             "new": "project:node:subject::lib:template:component-numberfield__2_1",
             "old": "component-numberfield__2/component-numberfield__2_1",
             "newRect": {
-              "x": 43,
-              "y": 56.14285659790039,
-              "width": 166,
+              "x": 39,
+              "y": 54.14285659790039,
+              "width": 172,
               "height": 16
             },
             "oldRect": {
@@ -47290,10 +47240,10 @@
                   "borderWidth": 1,
                   "gap": 4,
                   "width": "100%",
-                  "paddingTop": 4,
-                  "paddingRight": 4,
-                  "paddingBottom": 4,
-                  "paddingLeft": 12
+                  "paddingTop": 2,
+                  "paddingRight": 2,
+                  "paddingBottom": 2,
+                  "paddingLeft": 8
                 },
                 "placement": null,
                 "engineInput": {
@@ -47303,10 +47253,10 @@
                   "width": "100%",
                   "rowGap": "4px",
                   "columnGap": "4px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "4px",
-                  "paddingLeft": "12px",
+                  "paddingTop": "2px",
+                  "paddingBottom": "2px",
+                  "paddingRight": "2px",
+                  "paddingLeft": "8px",
                   "borderTop": "1px",
                   "borderRight": "1px",
                   "borderBottom": "1px",
@@ -47332,8 +47282,8 @@
             "new": "project:node:subject::lib:template:component-numberfield__2_2",
             "old": "component-numberfield__2/component-numberfield__2_2",
             "newRect": {
-              "x": 213,
-              "y": 57.14285659790039,
+              "x": 215,
+              "y": 55.14285659790039,
               "width": 14,
               "height": 14
             },
@@ -47420,10 +47370,10 @@
                   "borderWidth": 1,
                   "gap": 4,
                   "width": "100%",
-                  "paddingTop": 4,
-                  "paddingRight": 4,
-                  "paddingBottom": 4,
-                  "paddingLeft": 12
+                  "paddingTop": 2,
+                  "paddingRight": 2,
+                  "paddingBottom": 2,
+                  "paddingLeft": 8
                 },
                 "placement": null,
                 "engineInput": {
@@ -47433,10 +47383,10 @@
                   "width": "100%",
                   "rowGap": "4px",
                   "columnGap": "4px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "4px",
-                  "paddingLeft": "12px",
+                  "paddingTop": "2px",
+                  "paddingBottom": "2px",
+                  "paddingRight": "2px",
+                  "paddingLeft": "8px",
                   "borderTop": "1px",
                   "borderRight": "1px",
                   "borderBottom": "1px",
@@ -47455,8 +47405,8 @@
             "new": "project:node:subject::lib:template:component-numberfield__2_3",
             "old": "component-numberfield__2/component-numberfield__2_3",
             "newRect": {
-              "x": 231,
-              "y": 57.14285659790039,
+              "x": 233,
+              "y": 55.14285659790039,
               "width": 14,
               "height": 14
             },
@@ -47543,10 +47493,10 @@
                   "borderWidth": 1,
                   "gap": 4,
                   "width": "100%",
-                  "paddingTop": 4,
-                  "paddingRight": 4,
-                  "paddingBottom": 4,
-                  "paddingLeft": 12
+                  "paddingTop": 2,
+                  "paddingRight": 2,
+                  "paddingBottom": 2,
+                  "paddingLeft": 8
                 },
                 "placement": null,
                 "engineInput": {
@@ -47556,10 +47506,10 @@
                   "width": "100%",
                   "rowGap": "4px",
                   "columnGap": "4px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "4px",
-                  "paddingLeft": "12px",
+                  "paddingTop": "2px",
+                  "paddingBottom": "2px",
+                  "paddingRight": "2px",
+                  "paddingLeft": "8px",
                   "borderTop": "1px",
                   "borderRight": "1px",
                   "borderBottom": "1px",
@@ -47603,23 +47553,23 @@
               "x": 30,
               "y": 51.140625,
               "width": 220,
-              "height": 26
+              "height": 22
             }
           },
           {
             "new": "project:node:subject::lib:template:component-numberfield__2_1",
             "dom": {
-              "x": 43,
-              "y": 56.140625,
-              "width": 166,
+              "x": 39,
+              "y": 54.140625,
+              "width": 172,
               "height": 16
             }
           },
           {
             "new": "project:node:subject::lib:template:component-numberfield__2_2",
             "dom": {
-              "x": 213,
-              "y": 57.140625,
+              "x": 215,
+              "y": 55.140625,
               "width": 14,
               "height": 14
             }
@@ -47627,8 +47577,8 @@
           {
             "new": "project:node:subject::lib:template:component-numberfield__2_3",
             "dom": {
-              "x": 231,
-              "y": 57.140625,
+              "x": 233,
+              "y": 55.140625,
               "width": 14,
               "height": 14
             }
@@ -47648,33 +47598,31 @@
         {
           "new": "project:node:subject::lib:template:component-numberfield__2",
           "old": "component-numberfield__2",
-          "rule": "numberfield-trigger-content-height",
-          "class": "previewFollow"
+          "rule": "field-label-line-height-cascade",
+          "class": "oldDefect"
         },
         {
           "new": "project:node:subject::lib:template:component-numberfield__2_1",
           "old": "component-numberfield__2/component-numberfield__2_1",
-          "rule": "numberfield-trigger-content-height",
-          "class": "previewFollow"
+          "rule": "field-button-size",
+          "class": "oldDefect"
         },
         {
           "new": "project:node:subject::lib:template:component-numberfield__2_2",
           "old": "component-numberfield__2/component-numberfield__2_2",
-          "rule": "numberfield-trigger-content-height",
-          "class": "previewFollow"
+          "rule": "field-button-size",
+          "class": "oldDefect"
         },
         {
           "new": "project:node:subject::lib:template:component-numberfield__2_3",
           "old": "component-numberfield__2/component-numberfield__2_3",
-          "rule": "numberfield-trigger-content-height",
-          "class": "previewFollow"
+          "rule": "field-button-size",
+          "class": "oldDefect"
         }
       ],
       "approvedClasses": [
-        "oldDefect",
-        "previewFollow"
+        "oldDefect"
       ],
-      "previewDefectFollowed": true,
       "liveIdentity": {
         "region": "capture clip",
         "pixels": 240000,
@@ -47683,36 +47631,36 @@
         "maxByte": 0
       },
       "L3": {
-        "pixels": 233524,
-        "different": 5,
-        "ratio": 0.00002141107552114558,
-        "maxByte": 132,
+        "pixels": 233834,
+        "different": 3,
+        "ratio": 0.000012829614170736506,
+        "maxByte": 149,
         "diffBounds": [
-          134,
-          33,
-          147,
+          18,
+          31,
+          149,
           33
         ],
-        "approvedAttributed": 5,
+        "approvedAttributed": 3,
         "movedPaint": {
-          "pixels": 0,
-          "different": 0,
-          "maxByte": 0
+          "pixels": 226,
+          "different": 1,
+          "maxByte": 97
         },
-        "outsideRatio": 0,
-        "outsideMaxByte": 0,
+        "outsideRatio": 0.0000042765380569121685,
+        "outsideMaxByte": 97,
         "blocked": false
       },
       "L3e": {
-        "pixels": 6181,
-        "different": 192,
-        "ratio": 0.031062934800194144,
+        "pixels": 5871,
+        "different": 161,
+        "ratio": 0.02742292624765798,
         "maxByte": 167,
         "diffBounds": [
           7,
           24,
           155,
-          41
+          36
         ],
         "gated": false
       },
@@ -48055,30 +48003,6 @@
           "newValue": null
         },
         {
-          "old": "component-numberfield__2",
-          "key": "paddingTop",
-          "oldValue": "8px",
-          "newValue": "4px"
-        },
-        {
-          "old": "component-numberfield__2",
-          "key": "paddingRight",
-          "oldValue": "8px",
-          "newValue": "4px"
-        },
-        {
-          "old": "component-numberfield__2",
-          "key": "paddingBottom",
-          "oldValue": "8px",
-          "newValue": "4px"
-        },
-        {
-          "old": "component-numberfield__2",
-          "key": "paddingLeft",
-          "oldValue": "16px",
-          "newValue": "12px"
-        },
-        {
           "old": "component-numberfield__2/component-numberfield__2_1",
           "key": "height",
           "oldValue": "24px",
@@ -48213,7 +48137,7 @@
       ],
       "geometry": {
         "pairedNodes": 7,
-        "maxDelta": 8,
+        "maxDelta": 1.1428565979003906,
         "overOnePx": [
           {
             "new": "project:node:subject::lib:template:component-numberfield__1",
@@ -48333,7 +48257,7 @@
               "x": 30,
               "y": 60.85714340209961,
               "width": 220,
-              "height": 34
+              "height": 42
             },
             "oldRect": {
               "x": 30,
@@ -48366,10 +48290,10 @@
                   "borderWidth": 1,
                   "gap": 4,
                   "width": "100%",
-                  "paddingTop": 4,
-                  "paddingRight": 4,
-                  "paddingBottom": 4,
-                  "paddingLeft": 12
+                  "paddingTop": 8,
+                  "paddingRight": 8,
+                  "paddingBottom": 8,
+                  "paddingLeft": 16
                 },
                 "placement": null,
                 "engineInput": {
@@ -48379,10 +48303,10 @@
                   "width": "100%",
                   "rowGap": "4px",
                   "columnGap": "4px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "4px",
-                  "paddingLeft": "12px",
+                  "paddingTop": "8px",
+                  "paddingBottom": "8px",
+                  "paddingRight": "8px",
+                  "paddingLeft": "16px",
                   "borderTop": "1px",
                   "borderRight": "1px",
                   "borderBottom": "1px",
@@ -48464,9 +48388,9 @@
             "new": "project:node:subject::lib:template:component-numberfield__2_1",
             "old": "component-numberfield__2/component-numberfield__2_1",
             "newRect": {
-              "x": 43,
-              "y": 65.85714340209961,
-              "width": 150,
+              "x": 47,
+              "y": 69.85714340209961,
+              "width": 142,
               "height": 24
             },
             "oldRect": {
@@ -48541,10 +48465,10 @@
                   "borderWidth": 1,
                   "gap": 4,
                   "width": "100%",
-                  "paddingTop": 4,
-                  "paddingRight": 4,
-                  "paddingBottom": 4,
-                  "paddingLeft": 12
+                  "paddingTop": 8,
+                  "paddingRight": 8,
+                  "paddingBottom": 8,
+                  "paddingLeft": 16
                 },
                 "placement": null,
                 "engineInput": {
@@ -48554,10 +48478,10 @@
                   "width": "100%",
                   "rowGap": "4px",
                   "columnGap": "4px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "4px",
-                  "paddingLeft": "12px",
+                  "paddingTop": "8px",
+                  "paddingBottom": "8px",
+                  "paddingRight": "8px",
+                  "paddingLeft": "16px",
                   "borderTop": "1px",
                   "borderRight": "1px",
                   "borderBottom": "1px",
@@ -48583,8 +48507,8 @@
             "new": "project:node:subject::lib:template:component-numberfield__2_2",
             "old": "component-numberfield__2/component-numberfield__2_2",
             "newRect": {
-              "x": 197,
-              "y": 66.85714340209961,
+              "x": 193,
+              "y": 70.85714340209961,
               "width": 22,
               "height": 22
             },
@@ -48671,10 +48595,10 @@
                   "borderWidth": 1,
                   "gap": 4,
                   "width": "100%",
-                  "paddingTop": 4,
-                  "paddingRight": 4,
-                  "paddingBottom": 4,
-                  "paddingLeft": 12
+                  "paddingTop": 8,
+                  "paddingRight": 8,
+                  "paddingBottom": 8,
+                  "paddingLeft": 16
                 },
                 "placement": null,
                 "engineInput": {
@@ -48684,10 +48608,10 @@
                   "width": "100%",
                   "rowGap": "4px",
                   "columnGap": "4px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "4px",
-                  "paddingLeft": "12px",
+                  "paddingTop": "8px",
+                  "paddingBottom": "8px",
+                  "paddingRight": "8px",
+                  "paddingLeft": "16px",
                   "borderTop": "1px",
                   "borderRight": "1px",
                   "borderBottom": "1px",
@@ -48706,8 +48630,8 @@
             "new": "project:node:subject::lib:template:component-numberfield__2_3",
             "old": "component-numberfield__2/component-numberfield__2_3",
             "newRect": {
-              "x": 223,
-              "y": 66.85714340209961,
+              "x": 219,
+              "y": 70.85714340209961,
               "width": 22,
               "height": 22
             },
@@ -48794,10 +48718,10 @@
                   "borderWidth": 1,
                   "gap": 4,
                   "width": "100%",
-                  "paddingTop": 4,
-                  "paddingRight": 4,
-                  "paddingBottom": 4,
-                  "paddingLeft": 12
+                  "paddingTop": 8,
+                  "paddingRight": 8,
+                  "paddingBottom": 8,
+                  "paddingLeft": 16
                 },
                 "placement": null,
                 "engineInput": {
@@ -48807,10 +48731,10 @@
                   "width": "100%",
                   "rowGap": "4px",
                   "columnGap": "4px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "4px",
-                  "paddingLeft": "12px",
+                  "paddingTop": "8px",
+                  "paddingBottom": "8px",
+                  "paddingRight": "8px",
+                  "paddingLeft": "16px",
                   "borderTop": "1px",
                   "borderRight": "1px",
                   "borderBottom": "1px",
@@ -48854,23 +48778,23 @@
               "x": 30,
               "y": 60.84375,
               "width": 220,
-              "height": 34
+              "height": 42
             }
           },
           {
             "new": "project:node:subject::lib:template:component-numberfield__2_1",
             "dom": {
-              "x": 43,
-              "y": 65.84375,
-              "width": 150,
+              "x": 47,
+              "y": 69.84375,
+              "width": 142,
               "height": 24
             }
           },
           {
             "new": "project:node:subject::lib:template:component-numberfield__2_2",
             "dom": {
-              "x": 197,
-              "y": 66.84375,
+              "x": 193,
+              "y": 70.84375,
               "width": 22,
               "height": 22
             }
@@ -48878,8 +48802,8 @@
           {
             "new": "project:node:subject::lib:template:component-numberfield__2_3",
             "dom": {
-              "x": 223,
-              "y": 66.84375,
+              "x": 219,
+              "y": 70.84375,
               "width": 22,
               "height": 22
             }
@@ -48899,71 +48823,69 @@
         {
           "new": "project:node:subject::lib:template:component-numberfield__2",
           "old": "component-numberfield__2",
-          "rule": "numberfield-trigger-content-height",
-          "class": "previewFollow"
+          "rule": "field-label-line-height-cascade",
+          "class": "oldDefect"
         },
         {
           "new": "project:node:subject::lib:template:component-numberfield__2_1",
           "old": "component-numberfield__2/component-numberfield__2_1",
-          "rule": "numberfield-trigger-content-height",
-          "class": "previewFollow"
+          "rule": "field-label-line-height-cascade",
+          "class": "oldDefect"
         },
         {
           "new": "project:node:subject::lib:template:component-numberfield__2_2",
           "old": "component-numberfield__2/component-numberfield__2_2",
-          "rule": "numberfield-trigger-content-height",
-          "class": "previewFollow"
+          "rule": "field-label-line-height-cascade",
+          "class": "oldDefect"
         },
         {
           "new": "project:node:subject::lib:template:component-numberfield__2_3",
           "old": "component-numberfield__2/component-numberfield__2_3",
-          "rule": "numberfield-trigger-content-height",
-          "class": "previewFollow"
+          "rule": "field-label-line-height-cascade",
+          "class": "oldDefect"
         }
       ],
       "approvedClasses": [
-        "oldDefect",
-        "previewFollow"
+        "oldDefect"
       ],
-      "previewDefectFollowed": true,
       "liveIdentity": {
         "region": "capture clip",
         "pixels": 240000,
         "different": 0,
         "ratio": 0,
-        "maxByte": 0
+        "maxByte": 1
       },
       "L3": {
-        "pixels": 233006,
-        "different": 175,
-        "ratio": 0.0007510536209367999,
+        "pixels": 232214,
+        "different": 23,
+        "ratio": 0.00009904656911297338,
         "maxByte": 205,
         "diffBounds": [
-          12,
-          39,
-          150,
-          60
+          22,
+          42,
+          145,
+          49
         ],
-        "approvedAttributed": 175,
+        "approvedAttributed": 23,
         "movedPaint": {
-          "pixels": 50,
-          "different": 10,
-          "maxByte": 92
+          "pixels": 1728,
+          "different": 47,
+          "maxByte": 205
         },
-        "outsideRatio": 0.000042917349767817136,
-        "outsideMaxByte": 92,
+        "outsideRatio": 0.00020239951079607603,
+        "outsideMaxByte": 205,
         "blocked": false
       },
       "L3e": {
-        "pixels": 6510,
-        "different": 24,
-        "ratio": 0.003686635944700461,
+        "pixels": 7302,
+        "different": 150,
+        "ratio": 0.020542317173377157,
         "maxByte": 186,
         "diffBounds": [
-          7,
+          9,
           32,
-          155,
-          59
+          153,
+          60
         ],
         "gated": false
       },
@@ -49040,30 +48962,6 @@
           "key": "height",
           "oldValue": "54px",
           "newValue": null
-        },
-        {
-          "old": "component-numberfield__2",
-          "key": "paddingTop",
-          "oldValue": "12px",
-          "newValue": "4px"
-        },
-        {
-          "old": "component-numberfield__2",
-          "key": "paddingRight",
-          "oldValue": "12px",
-          "newValue": "4px"
-        },
-        {
-          "old": "component-numberfield__2",
-          "key": "paddingBottom",
-          "oldValue": "12px",
-          "newValue": "4px"
-        },
-        {
-          "old": "component-numberfield__2",
-          "key": "paddingLeft",
-          "oldValue": "24px",
-          "newValue": "12px"
         },
         {
           "old": "component-numberfield__2/component-numberfield__2_1",
@@ -49200,7 +49098,7 @@
       ],
       "geometry": {
         "pairedNodes": 7,
-        "maxDelta": 20,
+        "maxDelta": 2.285715103149414,
         "overOnePx": [
           {
             "new": "project:node:subject::lib:template:component-numberfield__1",
@@ -49320,7 +49218,7 @@
               "x": 30,
               "y": 65.71428680419922,
               "width": 220,
-              "height": 38
+              "height": 54
             },
             "oldRect": {
               "x": 30,
@@ -49353,10 +49251,10 @@
                   "borderWidth": 1,
                   "gap": 4,
                   "width": "100%",
-                  "paddingTop": 4,
-                  "paddingRight": 4,
-                  "paddingBottom": 4,
-                  "paddingLeft": 12
+                  "paddingTop": 12,
+                  "paddingRight": 12,
+                  "paddingBottom": 12,
+                  "paddingLeft": 24
                 },
                 "placement": null,
                 "engineInput": {
@@ -49366,10 +49264,10 @@
                   "width": "100%",
                   "rowGap": "4px",
                   "columnGap": "4px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "4px",
-                  "paddingLeft": "12px",
+                  "paddingTop": "12px",
+                  "paddingBottom": "12px",
+                  "paddingRight": "12px",
+                  "paddingLeft": "24px",
                   "borderTop": "1px",
                   "borderRight": "1px",
                   "borderBottom": "1px",
@@ -49451,9 +49349,9 @@
             "new": "project:node:subject::lib:template:component-numberfield__2_1",
             "old": "component-numberfield__2/component-numberfield__2_1",
             "newRect": {
-              "x": 43,
-              "y": 70.71428680419922,
-              "width": 138,
+              "x": 55,
+              "y": 78.71428680419922,
+              "width": 118,
               "height": 28
             },
             "oldRect": {
@@ -49528,10 +49426,10 @@
                   "borderWidth": 1,
                   "gap": 4,
                   "width": "100%",
-                  "paddingTop": 4,
-                  "paddingRight": 4,
-                  "paddingBottom": 4,
-                  "paddingLeft": 12
+                  "paddingTop": 12,
+                  "paddingRight": 12,
+                  "paddingBottom": 12,
+                  "paddingLeft": 24
                 },
                 "placement": null,
                 "engineInput": {
@@ -49541,10 +49439,10 @@
                   "width": "100%",
                   "rowGap": "4px",
                   "columnGap": "4px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "4px",
-                  "paddingLeft": "12px",
+                  "paddingTop": "12px",
+                  "paddingBottom": "12px",
+                  "paddingRight": "12px",
+                  "paddingLeft": "24px",
                   "borderTop": "1px",
                   "borderRight": "1px",
                   "borderBottom": "1px",
@@ -49570,8 +49468,8 @@
             "new": "project:node:subject::lib:template:component-numberfield__2_2",
             "old": "component-numberfield__2/component-numberfield__2_2",
             "newRect": {
-              "x": 185,
-              "y": 70.71428680419922,
+              "x": 177,
+              "y": 78.71428680419922,
               "width": 28,
               "height": 28
             },
@@ -49658,10 +49556,10 @@
                   "borderWidth": 1,
                   "gap": 4,
                   "width": "100%",
-                  "paddingTop": 4,
-                  "paddingRight": 4,
-                  "paddingBottom": 4,
-                  "paddingLeft": 12
+                  "paddingTop": 12,
+                  "paddingRight": 12,
+                  "paddingBottom": 12,
+                  "paddingLeft": 24
                 },
                 "placement": null,
                 "engineInput": {
@@ -49671,10 +49569,10 @@
                   "width": "100%",
                   "rowGap": "4px",
                   "columnGap": "4px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "4px",
-                  "paddingLeft": "12px",
+                  "paddingTop": "12px",
+                  "paddingBottom": "12px",
+                  "paddingRight": "12px",
+                  "paddingLeft": "24px",
                   "borderTop": "1px",
                   "borderRight": "1px",
                   "borderBottom": "1px",
@@ -49693,8 +49591,8 @@
             "new": "project:node:subject::lib:template:component-numberfield__2_3",
             "old": "component-numberfield__2/component-numberfield__2_3",
             "newRect": {
-              "x": 217,
-              "y": 70.71428680419922,
+              "x": 209,
+              "y": 78.71428680419922,
               "width": 28,
               "height": 28
             },
@@ -49781,10 +49679,10 @@
                   "borderWidth": 1,
                   "gap": 4,
                   "width": "100%",
-                  "paddingTop": 4,
-                  "paddingRight": 4,
-                  "paddingBottom": 4,
-                  "paddingLeft": 12
+                  "paddingTop": 12,
+                  "paddingRight": 12,
+                  "paddingBottom": 12,
+                  "paddingLeft": 24
                 },
                 "placement": null,
                 "engineInput": {
@@ -49794,10 +49692,10 @@
                   "width": "100%",
                   "rowGap": "4px",
                   "columnGap": "4px",
-                  "paddingTop": "4px",
-                  "paddingBottom": "4px",
-                  "paddingRight": "4px",
-                  "paddingLeft": "12px",
+                  "paddingTop": "12px",
+                  "paddingBottom": "12px",
+                  "paddingRight": "12px",
+                  "paddingLeft": "24px",
                   "borderTop": "1px",
                   "borderRight": "1px",
                   "borderBottom": "1px",
@@ -49841,23 +49739,23 @@
               "x": 30,
               "y": 65.703125,
               "width": 220,
-              "height": 38
+              "height": 54
             }
           },
           {
             "new": "project:node:subject::lib:template:component-numberfield__2_1",
             "dom": {
-              "x": 43,
-              "y": 70.703125,
-              "width": 138,
+              "x": 55,
+              "y": 78.703125,
+              "width": 118,
               "height": 28
             }
           },
           {
             "new": "project:node:subject::lib:template:component-numberfield__2_2",
             "dom": {
-              "x": 185,
-              "y": 70.703125,
+              "x": 177,
+              "y": 78.703125,
               "width": 28,
               "height": 28
             }
@@ -49865,8 +49763,8 @@
           {
             "new": "project:node:subject::lib:template:component-numberfield__2_3",
             "dom": {
-              "x": 217,
-              "y": 70.703125,
+              "x": 209,
+              "y": 78.703125,
               "width": 28,
               "height": 28
             }
@@ -49886,33 +49784,31 @@
         {
           "new": "project:node:subject::lib:template:component-numberfield__2",
           "old": "component-numberfield__2",
-          "rule": "numberfield-trigger-content-height",
-          "class": "previewFollow"
+          "rule": "field-label-line-height-cascade",
+          "class": "oldDefect"
         },
         {
           "new": "project:node:subject::lib:template:component-numberfield__2_1",
           "old": "component-numberfield__2/component-numberfield__2_1",
-          "rule": "numberfield-trigger-content-height",
-          "class": "previewFollow"
+          "rule": "field-label-line-height-cascade",
+          "class": "oldDefect"
         },
         {
           "new": "project:node:subject::lib:template:component-numberfield__2_2",
           "old": "component-numberfield__2/component-numberfield__2_2",
-          "rule": "numberfield-trigger-content-height",
-          "class": "previewFollow"
+          "rule": "field-label-line-height-cascade",
+          "class": "oldDefect"
         },
         {
           "new": "project:node:subject::lib:template:component-numberfield__2_3",
           "old": "component-numberfield__2/component-numberfield__2_3",
-          "rule": "numberfield-trigger-content-height",
-          "class": "previewFollow"
+          "rule": "field-label-line-height-cascade",
+          "class": "oldDefect"
         }
       ],
       "approvedClasses": [
-        "oldDefect",
-        "previewFollow"
+        "oldDefect"
       ],
-      "previewDefectFollowed": true,
       "liveIdentity": {
         "region": "capture clip",
         "pixels": 240000,
@@ -49921,36 +49817,36 @@
         "maxByte": 0
       },
       "L3": {
-        "pixels": 232661,
-        "different": 161,
-        "ratio": 0.0006919939310842814,
+        "pixels": 231768,
+        "different": 40,
+        "ratio": 0.0001725863794829312,
         "maxByte": 186,
         "diffBounds": [
-          11,
-          44,
-          151,
-          72
+          29,
+          53,
+          142,
+          58
         ],
-        "approvedAttributed": 161,
+        "approvedAttributed": 40,
         "movedPaint": {
-          "pixels": 70,
-          "different": 5,
+          "pixels": 2236,
+          "different": 55,
           "maxByte": 186
         },
-        "outsideRatio": 0.000021490494754170232,
+        "outsideRatio": 0.00023730627178903042,
         "outsideMaxByte": 186,
         "blocked": false
       },
       "L3e": {
-        "pixels": 6772,
-        "different": 55,
-        "ratio": 0.008121677495569994,
+        "pixels": 7665,
+        "different": 148,
+        "ratio": 0.019308545335942597,
         "maxByte": 186,
         "diffBounds": [
           7,
           36,
           155,
-          68
+          72
         ],
         "gated": false
       },
@@ -65109,13 +65005,13 @@
         {
           "new": "project:node:subject::lib:template:component-combobox__2_1",
           "old": "component-combobox__2/component-combobox__2_1",
-          "rule": "combobox-button-size",
+          "rule": "field-button-size",
           "class": "oldDefect"
         },
         {
           "new": "project:node:subject::lib:template:component-combobox__2_2",
           "old": "component-combobox__2/component-combobox__2_2",
-          "rule": "combobox-button-size",
+          "rule": "field-button-size",
           "class": "oldDefect"
         }
       ],
@@ -65860,13 +65756,13 @@
         {
           "new": "project:node:subject::lib:template:component-combobox__2_1",
           "old": "component-combobox__2/component-combobox__2_1",
-          "rule": "combobox-button-size",
+          "rule": "field-button-size",
           "class": "oldDefect"
         },
         {
           "new": "project:node:subject::lib:template:component-combobox__2_2",
           "old": "component-combobox__2/component-combobox__2_2",
-          "rule": "combobox-button-size",
+          "rule": "field-button-size",
           "class": "oldDefect"
         }
       ],

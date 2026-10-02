@@ -99,6 +99,26 @@
   --label-margin: var(--spacing-xs);
 }
 
+.react-aria-NumberField[data-size="xs"] {
+  --nf-group-padding: var(--spacing-3xs) var(--spacing-3xs) var(--spacing-3xs) var(--spacing-xs);
+}
+
+.react-aria-NumberField[data-size="sm"] {
+  --nf-group-padding: var(--spacing-2xs) var(--spacing-2xs) var(--spacing-2xs) var(--spacing-sm);
+}
+
+.react-aria-NumberField[data-size="md"] {
+  --nf-group-padding: var(--spacing-xs) var(--spacing-xs) var(--spacing-xs) var(--spacing-md);
+}
+
+.react-aria-NumberField[data-size="lg"] {
+  --nf-group-padding: var(--spacing-sm) var(--spacing-sm) var(--spacing-sm) var(--spacing-lg);
+}
+
+.react-aria-NumberField[data-size="xl"] {
+  --nf-group-padding: var(--spacing-md) var(--spacing-md) var(--spacing-md) var(--spacing-xl);
+}
+
 .react-aria-NumberField .react-aria-Group {
   display: flex;
   align-items: center;
@@ -109,7 +129,7 @@
   background: var(--bg-inset);
   overflow: hidden;
   transition: border-color 200ms ease, background-color 200ms ease;
-  padding: var(--spacing-xs) var(--spacing-xs) var(--spacing-xs) var(--spacing-md);
+  padding: var(--nf-group-padding);
 }
 
 .react-aria-NumberField .react-aria-Group:where(:has(.react-aria-Input[data-hovered]:not([data-focused]):not([data-disabled]))) {

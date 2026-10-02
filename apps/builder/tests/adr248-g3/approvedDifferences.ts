@@ -229,13 +229,13 @@ export const APPROVED_DIFFERENCES: readonly ApprovedDifference[] = [
       "old pins the track top where the md 8 track sits (103) at every size; the DOM centers the size's track (sm 4 · xl 16, 4e-11 size reaches the track) in its grid row",
   },
   {
-    id: "combobox-button-size",
+    id: "field-button-size",
     class: "oldDefect",
-    owners: ["ComboBox"],
+    owners: ["ComboBox", "NumberField"],
     nodes: ["SelectIcon", "SelectValue"],
     axes: ALL,
     reason:
-      "old draws the trigger button at the SelectIcon scale (xs 14 · sm 16); catalog `--combo-btn-size` xs 10 · sm 14",
+      "old draws the trigger buttons at the SelectIcon scale (xs 14 · sm 16); catalog `--combo-btn-size` / `--nf-btn-size` xs 10 · sm 14",
   },
   {
     id: "searchfield-icon-clear",
@@ -407,15 +407,6 @@ export const APPROVED_DIFFERENCES: readonly ApprovedDifference[] = [
     nodes: ["Header"],
     axes: ["y"],
     reason: "generated CSS not loaded",
-  },
-  {
-    id: "numberfield-trigger-content-height",
-    class: "previewFollow",
-    owners: ["NumberField"],
-    nodes: ["SelectTrigger", "SelectValue", "SelectIcon"],
-    axes: ALL,
-    reason:
-      "no stylesheet reads the catalog trigger `sizes.height` (20/22/42/54): the product group is content-sized, the steppers are `--icon-size`",
   },
   // ── D. neither side draws the catalog value (new follows the Preview) ───
   {

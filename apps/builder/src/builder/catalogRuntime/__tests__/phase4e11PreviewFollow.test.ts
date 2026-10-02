@@ -240,3 +240,36 @@ describe("Slider size reaches the track", () => {
     workspace.dispose();
   });
 });
+
+/**
+ * numberfield-trigger-content-height: the NumberField group's padding follows the size like
+ * ComboBox's container (the SelectTrigger scale), so the trigger is 20/22/30/42/54 tall in both
+ * consumers — no stylesheet read the catalog trigger heights before.
+ */
+describe("NumberField group — per-size padding", () => {
+  it("generated CSS sizes the group padding per size", () => {
+    const css = readFileSync(`${GENERATED}/NumberField.css`, "utf8");
+    expect(blockOf(css, ".react-aria-NumberField .react-aria-Group")).toContain(
+      "padding: var(--nf-group-padding);",
+    );
+    expect(css).toContain(
+      "--nf-group-padding: var(--spacing-md) var(--spacing-md) var(--spacing-md) var(--spacing-xl);",
+    );
+  });
+
+  it.each([
+    ["xs", 20],
+    ["sm", 22],
+    ["md", 30],
+    ["lg", 42],
+    ["xl", 54],
+  ])("NumberField %s trigger is %d tall", async (size, height) => {
+    const workspace = await openOwner("NumberField", { size });
+    const root = workspace.root;
+    const trigger = [...root.layoutInputs.values()].find(
+      (record) => record.bindingId === "selecttrigger",
+    )!;
+    expect(root.getGeometry([trigger.id]).get(trigger.id)!.height).toBe(height);
+    workspace.dispose();
+  });
+});
