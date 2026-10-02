@@ -1598,7 +1598,7 @@ export class CatalogCompositionRoot {
       this.textMeasure,
       this.typeOf(record),
       this.wrapHeights.get(record.id),
-      this.segmentText(record),
+      this.segmentText(record, get),
       catalogLabelSuffix(record, get, this.typeOf),
       inheritedLineHeight(record, get),
       calendarPartSize(record, get),
@@ -1717,12 +1717,15 @@ export class CatalogCompositionRoot {
    */
   private segmentText(
     record: CatalogConsumerNode,
+    // The records being assembled (an insert's new owner is not committed yet).
+    get: (id: string) => CatalogConsumerNode | undefined = (id) =>
+      this.records.get(id),
   ): CatalogDateSegments | undefined {
     if (record.bindingId !== "dateinput") return undefined;
-    const wrapper = this.records.get(record.parentId);
+    const wrapper = get(record.parentId);
     let owner = wrapper;
     while (owner && this.typeOf(owner) === "SelectTrigger")
-      owner = this.records.get(owner.parentId);
+      owner = get(owner.parentId);
     const ownerType = owner ? this.typeOf(owner) : undefined;
     // RAC-owned segments inherit the line height of their nearest declaring ancestor (CSS
     // inheritance of the unitless ratio).
@@ -1730,7 +1733,7 @@ export class CatalogCompositionRoot {
     for (
       let cursor: CatalogConsumerNode | undefined = record;
       cursor && lineHeight === undefined;
-      cursor = this.records.get(cursor.parentId)
+      cursor = get(cursor.parentId)
     )
       if (Number(cursor.visual.lineHeight) > 0)
         lineHeight = Number(cursor.visual.lineHeight);

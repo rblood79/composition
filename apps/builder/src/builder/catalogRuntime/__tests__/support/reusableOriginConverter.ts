@@ -69,7 +69,8 @@ export type OriginGapReason =
   | "NODE_ICON_NAME_NOT_IN_CONTRACT"
   | "NODE_STYLE_FIELD_NOT_IN_CONTRACT"
   | "CHILDREN_NOT_ARRAY"
-  | "UNKNOWN_CANONICAL_FIELD";
+  | "UNKNOWN_CANONICAL_FIELD"
+  | "PROP_SEED_CREATION_DATE";
 
 export interface OriginContractGap {
   originId: string;
@@ -79,6 +80,9 @@ export interface OriginContractGap {
   valueKind: string;
   value?: unknown;
 }
+
+/** CalendarGrid month data the seed derived from its creation date. */
+const CALENDAR_CREATION_DATE_PROPS = new Set(["dayOffset", "totalDays", "todayDate"]);
 
 const VISUAL_FIELDS = new Set<VisualField>([
   "color",
@@ -376,6 +380,12 @@ export function convertReusableOrigins(
       const path = `props.${key}`;
       if (typeof value === "string" && SEED_UUID.test(value)) {
         gap(path, "PROP_SEED_GENERATED_KEY", value);
+        continue;
+      }
+      // The seed computed the month grid from its creation date (the old factory's `now`); a
+      // library value would freeze one month. Absent, the grid draws the current month.
+      if (node.type === "CalendarGrid" && CALENDAR_CREATION_DATE_PROPS.has(key)) {
+        gap(path, "PROP_SEED_CREATION_DATE", value);
         continue;
       }
       if (isRef && key !== "style") {

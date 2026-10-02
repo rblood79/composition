@@ -4839,9 +4839,6 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "defaultToday": true,
       "locale": "{locale}",
-      "dayOffset": 2,
-      "totalDays": 30,
-      "todayDate": 29,
       "variant": "default",
       "size": "md",
       "calendarSystem": "{calendarSystem}"
@@ -5127,9 +5124,6 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "locale": "{locale}",
       "defaultToday": true,
-      "dayOffset": 2,
-      "totalDays": 30,
-      "todayDate": 29,
       "variant": "default",
       "size": "md",
       "calendarSystem": "{calendarSystem}"
