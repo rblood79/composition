@@ -89,6 +89,28 @@
 
 /* ── Tier 2: Composite Delegation ── */
 
+.react-aria-DropZone .dropzone-icon {
+  width: var(--icon-size);
+  height: var(--icon-size);
+  flex-shrink: 0;
+}
+
+.react-aria-DropZone [slot="label"] {
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: 1.5;
+  color: inherit;
+  text-align: center;
+}
+
+.react-aria-DropZone [slot="description"] {
+  font-size: var(--text-xs);
+  font-weight: inherit;
+  line-height: 1.5;
+  color: inherit;
+  text-align: center;
+}
+
 
 @media (forced-colors: active) {
   .react-aria-DropZone {

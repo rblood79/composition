@@ -68,6 +68,7 @@ import {
   catalogDateRangeEndGrow,
   catalogDateSegmentPaddingX,
 } from "../../../../../packages/shared/src/catalog/document/rulePartRules";
+import { catalogDropZoneContent } from "./dropZoneContent";
 import {
   catalogBoxModel,
   catalogTextBreaksWords,
@@ -749,6 +750,8 @@ function styleOf(
           };
         })()
       : undefined;
+  // A DropZone's content box is its composed icon · label · description column.
+  const dropZone = measure ? catalogDropZoneContent(node, measure) : undefined;
   // A glyph leaf's content box is its icon square (the DOM svg at `--icon-size`).
   const glyph =
     glyphBindings.has(node.bindingId ?? "") && node.children.length === 0
@@ -845,6 +848,13 @@ function styleOf(
       ? { contentMinWidth: glyph, contentMaxWidth: glyph, contentHeight: glyph }
       : {}),
     ...(segments ?? {}),
+    ...(dropZone
+      ? {
+          contentMinWidth: dropZone.minWidth,
+          contentMaxWidth: dropZone.width,
+          contentHeight: wrappedHeight ?? dropZone.height,
+        }
+      : {}),
     ...(headerRow ?? {}),
     // A table never lays out narrower than its columns (CSS table width ≥ min-content), and an
     // auto-width table is not stretched by its flex column (it keeps its columns' width).
@@ -1726,6 +1736,33 @@ export class CatalogCompositionRoot {
    * not re-wrapped): its box is the exact fractional advance, so a paint that wraps at the box
    * width would break a line CSS keeps. A rule-backed leaf's painter reads this.
    */
+  /**
+   * A DropZone's composed content at its laid-out content box (`dropZoneContent.ts`), for the
+   * Canvas paint; undefined without a text measure or for any other record.
+   */
+  dropZoneContent(id: string, borderBoxWidth: number) {
+    const record = this.records.get(id);
+    if (!record || !this.textMeasure) return undefined;
+    return catalogDropZoneContent(
+      record,
+      this.textMeasure,
+      this.dropZoneContentWidth(record, borderBoxWidth),
+    );
+  }
+  private dropZoneContentWidth(
+    record: CatalogConsumerNode,
+    borderBoxWidth: number,
+  ): number {
+    const box = catalogBoxModel(record);
+    const num = (value: CatalogLength | undefined) =>
+      typeof value === "number" ? value : 0;
+    return (
+      borderBoxWidth -
+      num(box.padding?.left) -
+      num(box.padding?.right) -
+      2 * num(box.borderWidth)
+    );
+  }
   textKeptOnOneLine(id: string): boolean {
     const record = this.records.get(id);
     if (!this.textMeasure || !record || this.wrapHeights.has(id)) return false;
@@ -1815,6 +1852,27 @@ export class CatalogCompositionRoot {
     for (const id of candidates) {
       const record = this.records.get(id);
       if (!record || record.hidden) continue;
+      // A DropZone's composed texts break at its content box (the column's stacked height).
+      if (record.bindingId === "dropzone") {
+        const content = catalogDropZoneContent(record, this.textMeasure);
+        let next: number | undefined;
+        if (content) {
+          const rect = this.layout.getLayoutsForIds([id]).get(id);
+          if (!rect) continue;
+          const width = this.dropZoneContentWidth(record, rect.width);
+          next =
+            width > 0 && width + 0.5 < content.width
+              ? catalogDropZoneContent(record, this.textMeasure, width)!.height
+              : undefined;
+        }
+        if (next === this.wrapHeights.get(id)) continue;
+        this.keep(this.wrapHeights, id);
+        if (next === undefined) this.wrapHeights.delete(id);
+        else this.wrapHeights.set(id, next);
+        this.layout.updateNodeStyle(id, this.styleFor(record));
+        changed = true;
+        continue;
+      }
       // A calendar header wraps its heading in the width its nav buttons leave.
       const heading = this.calendarHeading(record);
       const leaf =

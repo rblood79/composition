@@ -9,8 +9,7 @@
  * A rule approves an over-1px pair only when the pair's owner (the case's type) and node type match
  * and every axis that differs by more than 1 CSS px is listed in `axes`. The pair must also hold the
  * Canvas ↔ isolated DOM contract (the row's DOM leg), unless `noDomBox` names a node the DOM leg
- * has no box for. Unlisted pairs (FileUpload — Phase 4, new-side defects, unexplained cases) keep
- * the geometry leg failing.
+ * has no box for. Unlisted pairs (new-side defects, unexplained cases) keep the geometry leg failing.
  */
 export type ApprovedDifferenceClass =
   "decided" | "oldDefect" | "previewFollow" | "bothDeviate";
@@ -102,7 +101,35 @@ export const APPROVED_DIFFERENCES: readonly ApprovedDifference[] = [
     axes: ["width"],
     reason: "⑦ separator = editable Icon (16 + gap 2)",
   },
+  {
+    id: "dropzone-content",
+    class: "decided",
+    owners: ["FileUpload"],
+    nodes: ["DropZone"],
+    axes: ["height"],
+    reason:
+      "user decision A 2026-10-02: the DropZone content follows the catalog delegation and the FileUpload drop zone fits it (old empty box 52 → 165)",
+  },
+  {
+    id: "fileupload-rows-below-input",
+    class: "decided",
+    owners: ["FileUpload"],
+    nodes: ["ProgressBar", "Label", "ProgressBarValue", "ProgressBarTrack"],
+    axes: ["x", "y", "width"],
+    reason:
+      "the sample rows move below the content-sized drop zone and the trigger box; value text weight 400 (①)",
+  },
   // ── B. old Canvas defects (catalog = new) ───────────────────────────────
+  {
+    id: "filetrigger-box",
+    class: "oldDefect",
+    owners: ["FileUpload"],
+    nodes: ["FileTrigger"],
+    axes: ["y", "width", "height"],
+    noDomBox: true,
+    reason:
+      "old draws no FileTrigger box (0×0); the catalog size box (height 40 · paddingX 24) is the button's — 4e-10-2",
+  },
   {
     id: "field-label-line-height",
     class: "oldDefect",

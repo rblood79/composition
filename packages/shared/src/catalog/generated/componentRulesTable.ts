@@ -5458,7 +5458,41 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
         },
-        delegation: [],
+        // ADR-248 4e-10 (사용자 결정 A 2026-10-02): the composed content (DropZone.tsx — upload
+        //   icon, label and description) are the DropZone column's own flex items. The Canvas reads
+        //   the same entries (`catalogDropZoneContentStyle`): icon = `sizes.iconSize`, label = the
+        //   DropZone font, description = text-xs, both centered at line-height 1.5 in the variant
+        //   text color (the generic `.react-aria-Text` rule otherwise paints them 16 px dark).
+        delegation: [
+          {
+            childSelector: ".dropzone-icon",
+            bridges: {
+              width: "var(--icon-size)",
+              height: "var(--icon-size)",
+              "flex-shrink": "0",
+            },
+          },
+          {
+            childSelector: '[slot="label"]',
+            bridges: {
+              "font-size": "inherit",
+              "font-weight": "inherit",
+              "line-height": "1.5",
+              color: "inherit",
+              "text-align": "center",
+            },
+          },
+          {
+            childSelector: '[slot="description"]',
+            bridges: {
+              "font-size": "var(--text-xs)",
+              "font-weight": "inherit",
+              "line-height": "1.5",
+              color: "inherit",
+              "text-align": "center",
+            },
+          },
+        ],
       },
     },
   },

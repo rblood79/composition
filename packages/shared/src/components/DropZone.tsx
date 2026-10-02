@@ -60,11 +60,13 @@ export function DropZone({
   return (
     <AriaDropZone {...props} className={dropZoneClassName} data-size={size}>
       {children || (
-        <div className="dropzone-content">
-          <Upload className="dropzone-icon" />
+        <>
+          {/* The DropZone column's own flex items (catalog delegation: icon `--icon-size`,
+              label · description fonts) — the Canvas lays out and paints the same three. */}
+          <Upload className="dropzone-icon" aria-hidden />
           {label && <Text slot="label">{label}</Text>}
           {description && <Text slot="description">{description}</Text>}
-        </div>
+        </>
       )}
     </AriaDropZone>
   );

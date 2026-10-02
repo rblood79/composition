@@ -610,6 +610,46 @@ export function catalogDateRangeEndGrow(ownerType: string): number {
   return Number.isFinite(grow) && grow > 0 ? grow : 0;
 }
 
+/** One composed text of the DropZone content: its own px font size (absent = the DropZone's). */
+export interface CatalogDropZoneTextStyle {
+  readonly fontSize?: number;
+  /** Ratio to the font size. */
+  readonly lineHeight: number;
+}
+
+/**
+ * The DropZone's composed content (DropZone.tsx: upload icon, label, description) as its rule
+ * delegation declares it — the generated CSS emits the same entries. The icon box is the size's
+ * `iconSize` (`var(--icon-size)`); a text's `font-size: inherit` is the DropZone font.
+ */
+export function catalogDropZoneContentStyle(): {
+  readonly label: CatalogDropZoneTextStyle;
+  readonly description: CatalogDropZoneTextStyle;
+} {
+  const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>).DropZone;
+  const delegation = (
+    rule?.structure?.composition as
+      | { delegation?: Array<{ childSelector?: string; bridges?: Record<string, string> }> }
+      | undefined
+  )?.delegation;
+  const text = (selector: string): CatalogDropZoneTextStyle => {
+    const bridges =
+      delegation?.find((entry) => entry.childSelector === selector)?.bridges ?? {};
+    const size = bridges["font-size"];
+    const fontSize =
+      typeof size === "string" && size.trim() !== "inherit" ? lengthPx(size) : undefined;
+    const ratio = Number(bridges["line-height"]);
+    return {
+      ...(fontSize !== undefined ? { fontSize } : {}),
+      lineHeight: Number.isFinite(ratio) && ratio > 0 ? ratio : 1.5,
+    };
+  };
+  return {
+    label: text('[slot="label"]'),
+    description: text('[slot="description"]'),
+  };
+}
+
 /**
  * Inline inset of a toggle-indicator control's content: the RAC indicator element (checkbox box,
  * radio circle, switch track — `sizes[size].indicator`) and the control's `gap` sit before the

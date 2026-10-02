@@ -13,7 +13,11 @@ import {
 import type { SkiaNodeData } from "../workspace/canvas/skia/nodeRendererTypes";
 import { catalogNodeState } from "../../../../../packages/shared/src/catalog/resolution/resolver";
 import type { CatalogConsumerNode } from "./compositionRoot";
-import { catalogRuleNodeData, cssVarColor } from "./ruleShapes";
+import {
+  catalogRuleNodeData,
+  catalogRuleTextColor,
+  cssVarColor,
+} from "./ruleShapes";
 import { catalogAuthoredVisual } from "./libraryVisual";
 import {
   CATALOG_NOWRAP_TEXT_BINDINGS,
@@ -370,22 +374,111 @@ function ruleNodeData(
       throw new Error(`CATALOG_CANVAS_VISUAL_UNSUPPORTED:${node.id}:${key}`);
   const rule = root.runtime.graph.library.rules.get(node.ruleId!);
   if (!rule) throw new Error(`CATALOG_CANVAS_RULE_REQUIRED:${node.ruleId}`);
+  const input = {
+    node: node.derivedProps
+      ? { ...node, props: { ...node.props, ...node.derivedProps } }
+      : node,
+    rect,
+    rule,
+    type: node.ruleId!,
+    authoredVisual: catalogAuthoredVisual(root, node),
+    state: catalogNodeState(node.displayState, root.state),
+    theme: root.colorMode,
+    singleLine: root.textKeptOnOneLine(node.id),
+  };
+  const data = catalogRuleNodeData(input);
+  const content = dropZoneContentData(
+    root,
+    node,
+    rect,
+    catalogRuleTextColor(input),
+  );
   return {
-    ...catalogRuleNodeData({
-      node: node.derivedProps
-        ? { ...node, props: { ...node.props, ...node.derivedProps } }
-        : node,
-      rect,
-      rule,
-      type: node.ruleId!,
-      authoredVisual: catalogAuthoredVisual(root, node),
-      state: catalogNodeState(node.displayState, root.state),
-      theme: root.colorMode,
-      singleLine: root.textKeptOnOneLine(node.id),
-    }),
+    ...data,
+    ...(content.length
+      ? { children: [...(data.children ?? []), ...content] }
+      : {}),
     x: rect.x,
     y: rect.y,
   };
+}
+
+/**
+ * The DropZone's composed icon · label · description (`dropZoneContent.ts`) as internal children
+ * of its rule data: a centered column in the content box (`justify-content` / `align-items`
+ * center — overflowing both sides alike, like the DOM), in the variant text color.
+ */
+function dropZoneContentData(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+  rect: Rect,
+  color: string | undefined,
+): SkiaNodeData[] {
+  if (node.bindingId !== "dropzone") return [];
+  const content = root.dropZoneContent(node.id, rect.width);
+  if (!content) return [];
+  const box = catalogBoxModel(node);
+  const num = (value: unknown) => (typeof value === "number" ? value : 0);
+  const border = num(box.borderWidth);
+  const left = border + num(box.padding?.left);
+  const top = border + num(box.padding?.top);
+  const width = rect.width - left - border - num(box.padding?.right);
+  const height = rect.height - top - border - num(box.padding?.bottom);
+  const paint = rgba(color ?? "#000000");
+  let y = top + (height - content.height) / 2;
+  const out: SkiaNodeData[] = [];
+  for (const part of content.parts) {
+    const x = left + (width - part.width) / 2;
+    const frame = { x, y, width: part.width, height: part.height };
+    if (part.kind === "icon") {
+      const icon = getIconData("upload");
+      if (!icon) throw new Error(`CATALOG_CANVAS_GLYPH_REQUIRED:${node.id}:upload`);
+      out.push({
+        type: "icon_path",
+        ...frame,
+        visible: true,
+        iconPath: {
+          paths: icon.paths,
+          circles: icon.circles,
+          cx: part.width / 2,
+          cy: part.height / 2,
+          size: part.width,
+          strokeColor: paint,
+          strokeWidth: 2,
+        },
+      });
+    } else {
+      // A rule node's text child spans the node box and is placed by its padding (the executor's
+      // convention, `specShapesToSkia`): the paragraph is laid out in the part's band, and
+      // `autoCenter: false` keeps the command stream from re-centering it in the node.
+      const font = part.font!;
+      out.push({
+        type: "text",
+        x: 0,
+        y: 0,
+        width: rect.width,
+        height: rect.height,
+        visible: true,
+        box: { fillColor: rgba(undefined), borderRadius: 0 },
+        text: {
+          content: part.text!,
+          fontFamilies: catalogFontFamilies(undefined),
+          fontSize: font.fontSize,
+          fontWeight: font.fontWeight,
+          lineHeight: font.fontSize * font.lineHeight,
+          color: paint,
+          align: "center",
+          autoCenter: false,
+          paddingLeft: frame.x,
+          paddingTop: frame.y,
+          maxWidth: part.width,
+          whiteSpace: part.wraps ? "normal" : "nowrap",
+        },
+      });
+    }
+    y += part.height + content.gap;
+  }
+  return out;
 }
 
 /**

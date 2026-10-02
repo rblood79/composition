@@ -1280,7 +1280,8 @@
                   "minWidth": "auto",
                   "contentMinWidth": 170.69000387191772,
                   "contentMaxWidth": 170.69000387191772,
-                  "contentHeight": 20
+                  "contentHeight": 20,
+                  "flexGrow": 1
                 }
               },
               "parent": {

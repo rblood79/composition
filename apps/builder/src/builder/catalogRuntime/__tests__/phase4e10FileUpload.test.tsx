@@ -7,7 +7,9 @@
 import "fake-indexeddb/auto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { DropZone } from "../../../../../../packages/shared/src/components/DropZone";
 import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
@@ -201,6 +203,147 @@ describe("DateRangePicker — the end input's catalog grow", () => {
     expect(next.x - (box.x + box.width)).toBeCloseTo(gap, 1);
     const outer = geometry.get(wrapper.id)!;
     expect(next.x + next.width).toBeGreaterThan(outer.x + outer.width - 10);
+    workspace.dispose();
+  });
+});
+
+/**
+ * ADR-248 4e-10 G3 FileUpload — DropZone content (사용자 결정 A 2026-10-02): the icon, label and
+ * description follow the catalog delegation (`--icon-size` · label at the DropZone font · description
+ * text-xs · line-height 1.5 · centered) as flex items of the DropZone column (gap 12). The Canvas
+ * measures them (CSS `min-height: auto` keeps a declared-height DropZone at its content) and paints
+ * them; the FileUpload template's DropZone fits its content.
+ */
+describe("DropZone content — catalog declaration in both consumers", () => {
+  // 7 px per character, words break at spaces.
+  const measure: CatalogTextMeasure = (text, font, maxWidth) => {
+    const char = font.fontSize / 2;
+    const line = font.fontSize * (font.lineHeight || 1.2);
+    const width = text.length * char;
+    const words = text.split(" ");
+    const minWidth = Math.max(...words.map((word) => word.length)) * char;
+    if (maxWidth === undefined || maxWidth + 0.5 >= width)
+      return { width, exactWidth: width, minWidth, height: line };
+    let lines = 1;
+    let used = 0;
+    for (const word of words) {
+      const need = (used ? used + 1 : 0) + word.length;
+      if (need * char <= maxWidth || !used) used = need;
+      else {
+        lines += 1;
+        used = word.length;
+      }
+    }
+    return { width: maxWidth, height: lines * line };
+  };
+  async function open(type: string, sizing: NodeEntry["sizing"] = {}) {
+    const library = await buildCodeCatalogLibrary();
+    const workspace = new CatalogWorkspace(
+      new CatalogGraph(
+        newCatalogProjectDocument({
+          projectId: "project:project:dropzone" as const,
+          name: "DropZone",
+        }),
+        library,
+      ),
+      new CatalogStorage(indexedDB, `adr248-4e10-dz-${Math.random()}`),
+      {
+        engine: await nodeLayoutEngine(),
+        viewport: { width: 1000, height: 800 },
+        autosaveSchedule: () => {},
+        textMeasure: measure,
+      },
+    );
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: "project:node:home-body" },
+        entries: [
+          {
+            kind: "node",
+            id: "project:node:subject",
+            definitionId: catalogPaletteDefinitionId(library, type),
+            children: [],
+            props: {},
+            visual: {},
+            sizing,
+            descendantOverrides: [],
+          } as NodeEntry,
+        ],
+        rootIds: ["project:node:subject"],
+        newId: workspace.newId,
+      }),
+    );
+    const root = workspace.root;
+    const zone = [...root.layoutInputs.values()].find(
+      (record) => record.bindingId === "dropzone",
+    )!;
+    return { workspace, root, zone };
+  }
+
+  it("generated CSS declares the content (icon size · label · description)", () => {
+    const css = readFileSync(`${GENERATED}/DropZone.css`, "utf8");
+    const icon = blockOf(css, ".react-aria-DropZone .dropzone-icon");
+    expect(icon).toContain("width: var(--icon-size);");
+    expect(icon).toContain("height: var(--icon-size);");
+    const label = blockOf(css, '.react-aria-DropZone [slot="label"]');
+    expect(label).toContain("font-size: inherit;");
+    expect(label).toContain("color: inherit;");
+    const description = blockOf(css, '.react-aria-DropZone [slot="description"]');
+    expect(description).toContain("font-size: var(--text-xs);");
+    expect(description).toContain("color: inherit;");
+  });
+
+  it("the DOM content items are the DropZone's own flex items", () => {
+    const { container } = render(
+      <DropZone label="Drop files here" description="or browse" />,
+    );
+    const zone = container.querySelector(".react-aria-DropZone")!;
+    expect(zone.querySelector(".dropzone-content")).toBeNull();
+    const items = [...zone.children].filter(
+      (child) => !child.querySelector("input, button") && child.tagName !== "INPUT",
+    );
+    expect(items.map((child) => child.getAttribute("slot") ?? child.getAttribute("class"))).toEqual([
+      expect.stringContaining("dropzone-icon"),
+      "label",
+      "description",
+    ]);
+  });
+
+  it("a declared-height DropZone keeps its content height when its column is short (min-height: auto)", async () => {
+    const { root, workspace } = await open("FileUpload", {
+      width: { kind: "set", value: 220 },
+      height: { kind: "set", value: 130 },
+    });
+    const zone = [...root.layoutInputs.values()].find(
+      (record) => record.bindingId === "dropzone",
+    )!;
+    const input = root.getLayoutInput(zone.id)!;
+    expect(Number(input.contentHeight)).toBeGreaterThan(0);
+    const box = root.getGeometry([zone.id]).get(zone.id)!;
+    // padding 24 × 2 + border 2 × 2 + icon 32 + gap 12 + label 21 + gap 12 + description (2 lines × 18)
+    expect(box.height).toBeGreaterThan(52);
+    expect(box.height).toBeCloseTo(52 + Number(input.contentHeight), 0);
+    workspace.dispose();
+  });
+
+  it("the Canvas paints the icon, the label and the description, centered", async () => {
+    const { root, workspace, zone } = await open("DropZone");
+    const canvas = bindCatalogCanvas(root, root.pageRootRecords());
+    const data = getSkiaNode(zone.id)!;
+    const parts = (data.children ?? []).filter(
+      (child) => child.type === "icon_path" || child.text?.content === "Drop files here",
+    );
+    expect(parts.map((child) => child.type)).toEqual(["icon_path", "text"]);
+    const [icon, label] = parts;
+    expect(icon!.width).toBe(32);
+    // Centered on the box's horizontal axis.
+    expect(icon!.x + icon!.width / 2).toBeCloseTo(data.width / 2, 0);
+    // The text child spans the node and sits at its padding (the executor's convention).
+    const text = label!.text!;
+    expect(text.autoCenter).toBe(false);
+    expect(text.paddingLeft + text.maxWidth / 2).toBeCloseTo(data.width / 2, 0);
+    expect(text.paddingTop).toBeGreaterThan(icon!.y + icon!.height);
+    canvas.dispose();
     workspace.dispose();
   });
 });

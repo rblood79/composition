@@ -4490,7 +4490,8 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "size": "md"
     },
     "visual": {
-      "width": "100%"
+      "width": "100%",
+      "height": "fit-content"
     },
     "layout": {
       "display": "flex"
