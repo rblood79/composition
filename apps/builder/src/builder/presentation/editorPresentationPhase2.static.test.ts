@@ -7,27 +7,6 @@ async function source(path: string): Promise<string> {
 }
 
 describe("ADR-187 Phase 2 migration guards", () => {
-  it("Phase 3 pilot은 production default-on이며 query=0만 rollback이다", async () => {
-    const pilot = await source("editorPresentationFillPilot.ts");
-    expect(pilot).toContain('FILL_PILOT_QUERY_PARAM = "adr187FillPilot"');
-    expect(pilot).toContain("new URLSearchParams(window.location.search).get(");
-    expect(pilot).toContain('!==\n    "0"');
-  });
-
-  it("migrated owner는 runtime 외 RAF와 legacy preview write를 호출하지 않는다", async () => {
-    const pilot = await source("editorPresentationFillPilot.ts");
-    const action = await source("../panels/styles/hooks/useFillActions.ts");
-    const gradientBar = await source(
-      "../panels/styles/components/GradientBar.tsx",
-    );
-
-    expect(pilot).not.toContain("requestAnimationFrame");
-    expect(gradientBar).not.toContain("requestAnimationFrame");
-    expect(gradientBar).not.toContain("cancelAnimationFrame");
-    expect(pilot).not.toMatch(/updateSelected.*Preview/);
-    expect(action).toContain("previewFirstFillColorPresentation");
-    expect(action).toContain("presentation.handle.publish(descriptor)");
-  });
 
   it("capability/initial fills resolve는 session acquire에서만 수행하고 active input은 캡처값을 쓴다", async () => {
     // ADR-248 4e-7: the pilot target resolves through the Styles host's presentation bridge.
@@ -84,79 +63,6 @@ describe("ADR-187 Phase 2 migration guards", () => {
     expect(picker).not.toContain("cancelAnimationFrame");
   });
 
-  it("borderColor picker는 style presentation owner를 사용하고 fallback은 단일 경로다", async () => {
-    const appearance = await source(
-      "../panels/styles/sections/BorderSection.tsx",
-    );
-    const propertyColor = await source(
-      "../components/property/PropertyColor.tsx",
-    );
-    const stylePilot = await source("editorPresentationStylePilot.ts");
-    expect(appearance).toContain("previewBorderColorPresentation");
-    expect(appearance).toContain("commitBorderColorPresentation");
-    expect(appearance).toContain("presentationOwnsFrameScheduling");
-    expect(propertyColor).toContain("onPresentationCancel");
-    expect(stylePilot).toContain('"style-border-color"');
-    expect(stylePilot).toContain('"borderColor" in styleRecord');
-    expect(stylePilot).toContain('"borderWidth" in styleRecord');
-  });
-
-  it("boxShadow 레이어 편집은 topology가 유지되는 paint presentation owner, topology 변경은 canonical", async () => {
-    const appearance = await source(
-      "../panels/styles/sections/EffectSection.tsx",
-    );
-    const stylePilot = await source("editorPresentationStylePilot.ts");
-    const shadowEditor = await source(
-      "../panels/styles/components/BoxShadowEditor.tsx",
-    );
-    // 레이어 추가 · 제거 · inset · 프리셋은 presentation 세션을 닫고 canonical commit
-    expect(appearance).toContain('cancelBoxShadowPresentation("superseded")');
-    expect(appearance).toContain("previewBoxShadowModelPresentation");
-    expect(appearance).toContain("commitBoxShadowModelPresentation");
-    expect(appearance).toContain("isBoxShadowPresentationOwned");
-    expect(shadowEditor).toContain("presentationOwnsFrameScheduling");
-    expect(shadowEditor).toContain("patchBoxShadowPresentation");
-    expect(stylePilot).toContain("resolveBoxShadowPresentationPilotTarget");
-    expect(stylePilot).toContain('"style-box-shadow"');
-  });
-
-  it("Typography Text/Button color는 text-bearing root presentation owner로 fail-closed한다", async () => {
-    const typography = await source(
-      "../panels/styles/sections/TypographySection.tsx",
-    );
-    const stylePilot = await source("editorPresentationStylePilot.ts");
-    const nodeTypes = await source(
-      "../workspace/canvas/skia/nodeRendererTypes.ts",
-    );
-    const renderer = await source(
-      "../workspace/canvas/skia/nodeRendererText.ts",
-    );
-    const textColorTypes = await source("editorPresentationTextColor.ts");
-    expect(typography).toContain("previewTextColorPresentation");
-    expect(typography).toContain("commitTextColorPresentation");
-    expect(typography).toContain("presentationOwnsFrameScheduling");
-    expect(stylePilot).toContain("resolveTextColorPresentationPilotTarget");
-    expect(stylePilot).toContain("isTextColorPresentationType");
-    expect(textColorTypes).toContain('new Set(["Button", "Text"])');
-    expect(nodeTypes).toContain("presentationTextTargets");
-    expect(renderer).toContain("drawTextWithPresentationColor");
-  });
-
-  it("explicit opacity:1은 state effect와 ref descendant를 fail-closed한다", async () => {
-    const stylePilot = await source("editorPresentationStylePilot.ts");
-    expect(stylePilot).toContain('target.kind !== "canonical-node"');
-    expect(stylePilot).toContain("Boolean(props.isDisabled)");
-    expect(stylePilot).toContain("Boolean(props.disabled)");
-    expect(stylePilot).toContain('effect.type === "opacity"');
-    expect(stylePilot).toContain("getSkiaNode(target.nodeId)");
-  });
-
-  it("multi-child/component text color는 검증된 root가 없으면 닫힌다", async () => {
-    const textColorTypes = await source("editorPresentationTextColor.ts");
-    expect(textColorTypes).toContain('new Set(["Button", "Text"])');
-    expect(textColorTypes).not.toContain("Card");
-  });
-
   it("Modified Styles 는 read-only 목록 — 편집 경로 (legacy preview 포함) 가 없다", async () => {
     // panel-ui 04 (2026-09-14): 항목마다 편집기를 다시 그리던 뷰를 key·value 목록으로. 편집은
     // 해당 탭의 typed owner 경로가 유일하므로 여기서 legacy preview 가 되살아나면 안 된다.
@@ -168,11 +74,5 @@ describe("ADR-187 Phase 2 migration guards", () => {
     expect(modified).not.toContain("PropertyColor");
     expect(modified).not.toContain("PropertyUnitInput");
     expect(modified).toContain("useResetStyles");
-  });
-
-  it("ref-descendant는 owner에서 semantic 처리한다", async () => {
-    const pilot = await source("editorPresentationFillPilot.ts");
-    expect(pilot).toContain("resolveEditorPresentationTarget");
-    expect(pilot).toContain("getEditorPresentationTargetNode");
   });
 });

@@ -31,20 +31,3 @@ describe("composeCreationProps", () => {
     });
   });
 });
-
-describe("useElementCreator 가 composeCreationProps 를 쓴다 (static)", () => {
-  it("단순 leaf 생성 분기", async () => {
-    const { readFile } = await import("node:fs/promises");
-    const { resolve } = await import("node:path");
-    const src = await readFile(
-      resolve(__dirname, "../../hooks/useElementCreator.ts"),
-      "utf8",
-    );
-    expect(src).toMatch(
-      /props: composeCreationProps\(\s*type,\s*getDefaultProps\(type\),\s*initialProps,?\s*\)/,
-    );
-    expect(src).not.toContain(
-      "props: { ...getDefaultProps(type), ...initialProps }",
-    );
-  });
-});

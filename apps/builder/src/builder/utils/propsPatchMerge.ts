@@ -1,4 +1,4 @@
-/** ADR-248 Phase 4e-7: the instance props merge, apart from the old instance resolver (`adapters/canonical/instanceResolver.ts` re-exports it). */
+/** ADR-248 Phase 4e-7: the instance props merge, split out of the old instance resolver (removed in 4e-13-3). */
 
 /**
  * @internal Reusable props merger with deep-style merging.

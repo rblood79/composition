@@ -17,25 +17,22 @@ describe("ADR-116 direct cutover: IndexedDB canonical document storage", () => {
     expect(source).toMatch(/createObjectStore\(ASSET_GC_STORE/);
   });
 
-  it("documents primary store 와 메서드 그룹이 추가된다", async () => {
+  it("old projects' documents store stays in the schema; the adapter has no document API", async () => {
     const fs = await import("node:fs/promises");
     const path = await import("node:path");
-    const adapterPath = path.resolve(__dirname, "../indexedDB/adapter.ts");
-    const typesPath = path.resolve(__dirname, "../types.ts");
-    const adapterSource = await fs.readFile(adapterPath, "utf-8");
-    const typesSource = await fs.readFile(typesPath, "utf-8");
-
-    expect(adapterSource).toMatch(/createObjectStore\(\s*["']documents["']/);
-    // ADR-248 4e-7: the store's methods are the old Builder's installed part (`documentsStore.legacy.ts`).
-    expect(adapterSource).toMatch(/get documents\(\)/);
-    const storeSource = await fs.readFile(
-      path.resolve(__dirname, "../indexedDB/documentsStore.legacy.ts"),
+    const adapterSource = await fs.readFile(
+      path.resolve(__dirname, "../indexedDB/adapter.ts"),
       "utf-8",
     );
-    expect(storeSource).toMatch(/put:\s*async/);
-    expect(storeSource).toMatch(/get:\s*\(projectId/);
-    expect(typesSource).toMatch(/interface\s+CanonicalDocumentRecord\b/);
-    expect(typesSource).toMatch(/documents\s*:\s*\{/);
+    const typesSource = await fs.readFile(
+      path.resolve(__dirname, "../types.ts"),
+      "utf-8",
+    );
+    // ADR-248 4e-13: the old Builder's document writer went with it — old projects' rows are kept
+    // (asset GC roots · project eviction read them), nothing in the Builder writes them.
+    expect(adapterSource).toMatch(/createObjectStore\(\s*["']documents["']/);
+    expect(adapterSource).not.toMatch(/get documents\(\)/);
+    expect(typesSource).not.toMatch(/documents\s*:\s*\{/);
   });
 
   it("runtime migration _meta store/API 와 getByLayout compatibility path 가 없다", async () => {

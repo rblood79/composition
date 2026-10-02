@@ -32,15 +32,4 @@ describe("ADR-116 direct cutover: getByLayout legacy DB path removed", () => {
     const source = await fs.readFile(filePath, "utf-8");
     expect(source).not.toMatch(/page\.layout_id/);
   });
-
-  it("elementUtils.ts 에 el.layout_id 직접 참조가 더 이상 존재하지 않는다 (E-6 후)", async () => {
-    const fs = await import("node:fs/promises");
-    const path = await import("node:path");
-    const filePath = path.resolve(
-      __dirname,
-      "../../../utils/element/elementUtils.ts",
-    );
-    const source = await fs.readFile(filePath, "utf-8");
-    expect(source).not.toMatch(/el\.layout_id/);
-  });
 });

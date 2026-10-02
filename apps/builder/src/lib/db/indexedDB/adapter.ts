@@ -7,15 +7,8 @@
  * - DatabaseAdapter 인터페이스 구현
  */
 
-import type {
-  DatabaseAdapter,
-  Project,
-  CanonicalDocumentBackupRecord,
-} from "../types";
-import type {
-  CompositionDocument,
-  CollectionRuntimeRow,
-} from "@composition/shared";
+import type { DatabaseAdapter, Project } from "../types";
+import type { CollectionRuntimeRow } from "@composition/shared";
 import type {
   DataTable,
   ApiEndpoint,
@@ -28,32 +21,6 @@ import {
   CACHE_BYTES_LIMIT,
   openCacheDatabase,
 } from "../../storage/storageProtection";
-
-/** What the old canonical documents store reads from the adapter (`documentsStore.legacy.ts`). */
-export interface DocumentsStoreAdapterAccess {
-  ensureDB(): IDBDatabase;
-  getAllByIndex<T>(
-    storeName: string,
-    indexName: string,
-    value: string,
-  ): Promise<T[]>;
-  clearCaches(): Promise<void>;
-}
-
-type DocumentsStore = DatabaseAdapter["documents"];
-
-/**
- * ADR-248 Phase 4e-7: the canonical documents store is the old Builder's — it installs itself
- * (`documentsStore.legacy.ts`, imported by the old canonical document store). The catalog Builder
- * saves its project file elsewhere (ADR-235 container) and never reads it.
- */
-let documentsStoreFactory:
-  ((access: DocumentsStoreAdapterAccess) => DocumentsStore) | null = null;
-export function installDocumentsStore(
-  factory: (access: DocumentsStoreAdapterAccess) => DocumentsStore,
-): void {
-  documentsStoreFactory = factory;
-}
 
 const DB_NAME = "composition";
 const DB_VERSION = 24; // 2026-10-03 (ADR-248 G4): events · actions mirror store 삭제.
@@ -563,24 +530,6 @@ export class IndexedDBAdapter implements DatabaseAdapter {
       return this.getAllFromStore<Project>("projects");
     },
   };
-
-  // === Canonical Documents (ADR-116 primary storage — the old Builder's, 4e-7) ===
-
-  private documentsStore: DocumentsStore | null = null;
-
-  get documents(): DocumentsStore {
-    if (!this.documentsStore) {
-      if (!documentsStoreFactory)
-        throw new Error("Canonical documents store is not installed");
-      this.documentsStore = documentsStoreFactory({
-        ensureDB: () => this.ensureDB(),
-        getAllByIndex: (storeName, indexName, value) =>
-          this.getAllByIndex(storeName, indexName, value),
-        clearCaches: () => this.clearCaches(),
-      });
-    }
-    return this.documentsStore;
-  }
 
   // === Data Tables (Data Panel System) ===
 

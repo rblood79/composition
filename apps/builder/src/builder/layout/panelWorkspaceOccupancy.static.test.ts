@@ -12,7 +12,6 @@ describe("ADR-922 G3 workspace occupancy cutover", () => {
   it("Canvas-local consumer가 legacy panel inset runtime을 import하지 않는다", () => {
     const consumers = [
       "../workspace/scrollbar/CanvasScrollbar.tsx",
-      "../workspace/canvas/skia/skiaOverlayHelpers.ts",
       "PanelWorkspace.tsx",
     ].map(read);
 

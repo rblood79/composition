@@ -15,12 +15,15 @@ import {
   evaluateDocumentPersist,
   shouldWriteBackup,
 } from "./documentPersistGuard";
-import { yieldToMain } from "../../../../../builder/utils/scheduleTask";
 import { trackPersistCall } from "../../../../../builder/utils/persistActivity";
 
 import { DOCUMENT_HEADS, DOCUMENT_PARTS } from "../../../indexedDB/documentStoreNames";
 
 export { DOCUMENT_HEADS, DOCUMENT_PARTS };
+
+/** The old writer yielded a macrotask between serialization chunks (fixture: same). */
+const yieldToMain = (): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, 0));
 const STORES = [
   "documents",
   "documents_backup",

@@ -28,10 +28,9 @@ describe("ADR-922 G6 legacy panel removal", () => {
   });
 
   it("keeps only the v3 Zustand state/actions in production", async () => {
-    const [store, storeIndex, hook, hookType, runtime, coordinator, workspace] =
+    const [store, hook, hookType, runtime, coordinator, workspace] =
       await Promise.all([
         readBuilderFile("stores/panelLayout.ts"),
-        readBuilderFile("stores/index.ts"),
         readBuilderFile("hooks/usePanelLayout.ts"),
         readBuilderFile("layout/types.ts"),
         readBuilderFile("layout/panelWorkspaceRuntime.ts"),
@@ -39,7 +38,7 @@ describe("ADR-922 G6 legacy panel removal", () => {
         readBuilderFile("layout/PanelWorkspace.tsx"),
       ]);
 
-    for (const source of [store, storeIndex, hook, hookType]) {
+    for (const source of [store, hook, hookType]) {
       expect(source).not.toContain("state.panelLayout");
       expect(source).not.toContain("setPanelLayout");
       expect(source).not.toContain("resetPanelLayout");

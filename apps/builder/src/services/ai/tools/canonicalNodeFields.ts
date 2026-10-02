@@ -7,8 +7,8 @@
  * `childrenMap` 직접 접근은 하지 않는다 (R4 회귀 gate).
  *
  * **`componentSemantics` 는 어휘에 넣지 않는다** (Phase 3 실측): 그 이름의 1차 필드는
- * schema 에 없고, `adapters/canonical/componentSemanticsMirror.ts` 의 legacy
- * component-instance mirror metadata 가 adapter quarantine 으로 남아 있을 뿐이다.
+ * schema 에 없다 (legacy component-instance mirror metadata 는 ADR-248 4e-13-3 에서
+ * 구 adapter 와 함께 제거됐다).
  * 컴포넌트 의미의 1차 필드는 `reusable` / `ref` / `descendants` 이며, 그중 이 Phase 가
  * 여는 것은 **`reusable` 하나**다 — `ref` 인스턴스 생성은 ADR-161 의 표면이라 도구에
  * 열지 않는다 (열면 도구가 인스턴스 규칙을 재구현하게 된다).

@@ -20,10 +20,9 @@ describe("ADR-187 Phase 6 legacy cleanup guards", () => {
   it("fill hook와 store에는 legacy preview write/대기 ref가 없다", async () => {
     const hook = await source("../panels/styles/hooks/useFillActions.ts");
     const row = await source("../panels/styles/components/FillLayerRow.tsx");
-    const store = await source("../stores/inspectorActions.ts");
     const section = await source("../panels/styles/sections/FillSection.tsx");
 
-    for (const text of [hook, row, store, section]) {
+    for (const text of [hook, row, section]) {
       expect(text).not.toContain("updateSelectedFillsPreview");
       expect(text).not.toContain("updateFillPreviewThrottled");
       expect(text).not.toContain("onUpdatePreview");

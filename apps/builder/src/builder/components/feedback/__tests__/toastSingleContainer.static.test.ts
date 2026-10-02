@@ -21,7 +21,6 @@ describe("builder toast — 단일 컨테이너 · 단일 store", () => {
 
   it("로컬 훅 경로는 없다 — 발신은 useToastStore 뿐", () => {
     expect(existsSync(join(SRC, "builder/hooks/useToast.ts"))).toBe(false);
-    expect(read("builder/hooks/index.ts")).not.toMatch(/useToast\b/);
     expect(read("builder/main/CatalogBuilderCore.tsx")).toContain(
       "useToastStore.getState().showToast(",
     );

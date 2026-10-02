@@ -476,8 +476,9 @@ H5 수리안은 **main에 미연결 새 모듈을 추가한 뒤 제품 진입점
 | 4e-11-9 | **G3 previewFollow 종결 — section header 2건 재분류**. `listbox-section-header` (previewFollow) · `gridlist-section-header` (bothDeviate) 는 ADR-238 Phase 2 결정 (section 층 생성 CSS 미로드 — `UNLOADED_GENERATED_CSS` F, G5 `adr238SectionDom`) 에 묶임: 옛 쪽은 생성 값 (section text-base → inline-flex header 기준선 2 · catalog header 24 전폭) 을 그렸고 Preview 는 결정대로 UA block. 수리는 그 결정을 뒤집는 일이라 하지 않고 `decided` `section-generated-css-unloaded` 하나로 합침. **결과: previewFollow · bothDeviate 승인 0** (4e-11-1~9 — 제품 수리 8 · 재분류 1), 전 시나리오 `previewDefectFollowed: 0`. 동작 변경 0 (판정 표·문서) | `39856797e` |
 | 4e-12-1 | **팔레트 요소 (composite instance) 의 작성자 layout · fills 가 레코드에 닿지 않던 결함** (4e-9-7 live 확인 중 발견, 사용자 「결함 후보 2건 수리 진행해」 2026-10-03). resolver 가 instance → template 루트로 넘기는 값 (`InstanceRoot`) 에 props · visual · sizing 만 있고 top 레벨 instance 의 `layout` 과 모든 층의 `fills` · `fillSizing` 이 빠져, 팔레트 TextField 에 준 fill 은 Canvas · DOM 어디에도 그려지지 않았고 Styles Layout 편집 (Direction · margin · display) 도 레코드에 닿지 않았다 (Frame 은 instance 가 아니라 정상). 수리: `instanceRoot` 에 instance 의 `ownLayout` 과 fill 층을 싣고, template 위치의 fills = path patch → 소유 instance → template 자기 순. 4e-9-7 에서 `it.fails` 로 기록한 「ListBox 자기 `display: block` 무시」 도 같은 원인이라 함께 닫힘 (`useTransformAuxiliary` 정상 테스트로 승격). 원복 RED: fill · layout · ListBox display 3건 | `aa222486a` |
 | 4e-12-2 | **labelPosition `side`** (같은 지시). 생성 CSS 는 `[data-label-position="side"]` 루트 (row · wrap) 와 자식 선택자 (`> .react-aria-Label` 11rem 열 · `> :not(Label, FieldError, description)` flex 1 · FieldError/description 들여쓰기 · ProgressBar/Meter/Slider 의 `order`) 로 배치하는데, 새 Canvas 는 `containerVariants` 의 size 외 축을 하나도 읽지 않았다 (G3 axis 재생은 variant · size 뿐이라 판정 밖). 수리: (a) `rulePartRules` — label-position 변형의 루트 값을 정의의 `conditionalRules` (`when: {labelPosition}`), 자식 블록을 owner 조건 part 규칙 (size · labelAlign 별) 으로 컴파일, `rem` · `calc()` · `order` · `margin-inline-*` 지원, side 열의 `text-align` (label-align 변수) 은 이 블록에서만 읽음 (rule node 는 textAlign 을 그리지 않음 — 전역으로 넣었다가 G3 base 의 Disclosure bind 실패로 잡혀 좁힘); (b) `LayoutField` `order` + composition root 가 flex/grid 자식을 order 로 안정 정렬 (적용 뒤 한 번 — 부모·자식 적용 순서 무관); (c) DOM 4종이 prop 을 버리던 결함 — Select · ComboBox 는 domBinding 이 labelPosition · labelAlign 을 넘기지 않았고, DatePicker · DateRangePicker 는 toRacProps 가 `data-*` 로만 바꾼 값을 wrapper 가 자기 기본값 top 으로 덮음 (`propPassthrough` 추가, size 선례). 검증: `tests/adr248-g3/propAxisCanvasDom.browser.test.ts` (G3 canvasDom leg 와 같은 환경, side 17종 × top/side 34 케이스 노드별 ≤ 1px) 수리 전 side 13 실패 + DOM 4 누락 → 34/34. 원복 RED: Canvas side 2 · order 1 · DOM 4 | `5300250cc` |
-| 4e-13-1 | **live G4 측정** (원래 순서 live G3 → G4). 도구: `scripts/adr248-g4-live.mjs` — 실제 Builder (dev 5175, headless Chrome, 빈 프로필 + 저장된 인증 세션) 에서 12 항목 15 판정. R1 대시보드 생성 → 편집 → 키보드 undo/redo → 저장됨 → 새로고침 후 문서 동일 (revision 6 = durable 6) · R2 대시보드 목록에서 다시 열기 · R3 data 표 → `composition.collections` 행 · R4 헤더 메뉴 v2 zip · JSON 내보내기 → 다른 프로젝트로 가져오기 (entry 동일 + data 표 왕복) · R5 구 앱 실제 프로젝트 파일 · 구 JSON 거부 (문서 무변경) · 다른 형식 head 는 목록에 나오고 열기는 이유와 함께 거부 · R6 저장소 강제 실패 → 상태 `unsaved → saving → failed` (saved 0), 재시도 후 저장 · 새로고침 유지 · R7 다른 탭이 먼저 저장 → 이 탭 conflict 로 자동 저장 중지, 저장된 값은 다른 탭 것 · R8 편집 직후 앱 안 프로젝트 전환 → 그 프로젝트에 저장 · R9 헤더 Preview → 명시 실패 toast (이동 0 · 새 창 0) · R10 IDB store 구성 · R11 폴더 연결 (OPFS, DEV hook) → 저장 뒤 v2 컨테이너 기록 · R12 `apps/publish` diff 0. 미실행: Preview iframe stale/gap (live 검증에서 iframe 을 열지 않는다 — unit 4d-1 근거). **1차 14/15** — R10 실패: 빈 프로필에서도 구 `composition` DB upgrade 가 `events` · `actions` store 를 만든다 (G4 조건 「events/actions mirror store 미생성」 위반, 아래 4e-13-2). 수리 후 15/15 (`248-phase4-g4-live.json`). 남은 오류 기록 1 = R5 의 의도된 열기 거부 로그 | 이 커밋 |
+| 4e-13-1 | **live G4 측정** (원래 순서 live G3 → G4). 도구: `scripts/adr248-g4-live.mjs` — 실제 Builder (dev 5175, headless Chrome, 빈 프로필 + 저장된 인증 세션) 에서 12 항목 15 판정. R1 대시보드 생성 → 편집 → 키보드 undo/redo → 저장됨 → 새로고침 후 문서 동일 (revision 6 = durable 6) · R2 대시보드 목록에서 다시 열기 · R3 data 표 → `composition.collections` 행 · R4 헤더 메뉴 v2 zip · JSON 내보내기 → 다른 프로젝트로 가져오기 (entry 동일 + data 표 왕복) · R5 구 앱 실제 프로젝트 파일 · 구 JSON 거부 (문서 무변경) · 다른 형식 head 는 목록에 나오고 열기는 이유와 함께 거부 · R6 저장소 강제 실패 → 상태 `unsaved → saving → failed` (saved 0), 재시도 후 저장 · 새로고침 유지 · R7 다른 탭이 먼저 저장 → 이 탭 conflict 로 자동 저장 중지, 저장된 값은 다른 탭 것 · R8 편집 직후 앱 안 프로젝트 전환 → 그 프로젝트에 저장 · R9 헤더 Preview → 명시 실패 toast (이동 0 · 새 창 0) · R10 IDB store 구성 · R11 폴더 연결 (OPFS, DEV hook) → 저장 뒤 v2 컨테이너 기록 · R12 `apps/publish` diff 0. 미실행: Preview iframe stale/gap (live 검증에서 iframe 을 열지 않는다 — unit 4d-1 근거). **1차 14/15** — R10 실패: 빈 프로필에서도 구 `composition` DB upgrade 가 `events` · `actions` store 를 만든다 (G4 조건 「events/actions mirror store 미생성」 위반, 아래 4e-13-2). 수리 후 15/15 (`248-phase4-g4-live.json`). 남은 오류 기록 1 = R5 의 의도된 열기 거부 로그 | `80a9b8ac2` |
 | 4e-13-2 | **events/actions mirror store 삭제** (live G4 R10). 구 문서 저장의 fan-out (`inspectorActions` `syncRootCollectionsToIndexedDB`) 과 `DatabaseAdapter.events/actions` · 레코드 타입 · eviction 대상 목록에서 제거, DB `composition` version 24 upgrade 가 두 store 를 만들지 않고 있던 것은 지운다 (§G0 event/action 저장 경계 — 구 문서 store 안의 원본은 그대로, data 세 store · asset · 구 문서 store 는 유지). 검증: `eventsActionsStoresRemoved.test.ts` (빈 프로필 · v23 upgrade 시 data 행 보존) 수리 전 2 RED → GREEN, live R10 PASS | `166c2b2e6` |
+| 4e-13-3 | **삭제 3차 — G6 import graph 0** (사용자 승인 2026-10-03 「모두 승인, 삭제 3차 진행해」 · 추가 38 「모두 승인, 38개 삭제하고 커밋 진행해」). 준비: G6 절단 6묶음 (`98cc5dba3` · `04c1375fc` · `db11ce8b7`) 으로 새 앱 → 구 모듈 진입 edge 68 → 2, 살아 있는 코드를 구 모듈로 setup 하던 테스트 8 이관 (`ab06b83b6` — 구 문서 writer 는 테스트 지원 `lib/db/__tests__/support/legacyDocuments/` 로, 실행 코드 `assetGcRoots` · `projectLocalEviction` 이 구 layout 을 계속 읽으므로). 이 커밋: 410 파일 삭제 (소스 205 · 테스트·지원·스크립트 205, 아래 목록) · adapter 의 `documents` API (`installDocumentsStore`) 와 `lib/db/types` 의 문서 레코드 타입 제거 → 남은 edge 2 (`lib/db/types`) 해소 — `documents` store 자체는 schema 에 남는다 (구 프로젝트 데이터 읽기). 남는 정적 테스트 13 은 지운 파일을 읽는 사례·단언만 정리, eslint 허용 목록의 없는 경로 43 정리, 단축키 gate 2 의 파서가 handler 객체 등록 (`OBJECT_REGISTRATION_PATTERN`) 도 읽게 고침. 승인 목록 오류: `vite.config.ts` (설정 참조를 세지 않아 섞임) 는 지우지 않음. 발견: 헤더 메뉴 Workflow 오버레이 토글이 새 Canvas 에서 무동작 (구 renderer 는 새 앱에서 실행된 적 없음 — 전환 시점부터의 누락, `KNOWN_UNWIRED_COMMANDS` 에 사유와 함께 기록, 후보 결함). 검증: type-check · `vite build` · builder 전체 632 파일 4513 통과 | 이 커밋 |
 
 **4e-9-1 삭제 목록** (사용자 결정 2026-09-30 「실제 삭제 목록은 병합 전에 커밋 메시지·이 문서에 남긴다」 — 경로는 `apps/builder/src/` 기준)
 
@@ -719,6 +720,105 @@ D4 소스 2:
 - `tests/visual-parity/compare/` — blockInlineProbe.browser.test.ts, crossLeg.browser.test.ts, negativeProbes.browser.test.ts
 - `tests/visual-parity/harness/` — skiaRunner.ts
 - `tests/visual-parity/skia/` — g2.browser.test.ts, productionLeg.browser.test.ts
+
+**4e-13-3 삭제 목록** (사용자 승인 2026-10-03 — 소스는 `apps/builder/src/` 기준, 테스트는 `apps/builder/` 기준)
+
+소스 205:
+
+- `adapters/canonical/` — canonicalDocumentMigrations.ts, canonicalFillPayload.ts, canonicalMutationRunner.ts, canonicalMutations.ts, canonicalRefResolution.ts, checkboxRadioItemsMigration.ts, circleLeafInlineSizeMigration.ts, colorFieldParentLabelMigration.ts, componentSemanticsMirror.ts, compositionExtensionFields.ts, editingSemantics.ts, fieldInlineLayoutMigration.ts, frameElementScope.ts, frameMirror.ts, idPath.ts, index.ts, instanceResolver.ts, legacyElementFields.ts, legacyElementSanitizer.ts, legacyListBoxTemplateMigration.ts, legacyMetadata.ts, mainDocumentNormalization.ts, pageFrameRefChildren.ts, popoverContent.ts, slotAndLayoutAdapter.ts, slotDeclaration.ts, tagRename.ts, themesAdapter.ts, types.ts, variablesAdapter.ts
+- `builder/components/breadcrumbs/` — breadcrumbsTemplateOrigins.ts
+- `builder/components/card/` — cardTemplateOrigins.ts
+- `builder/components/` — catalogOrigins.ts, collectionSectionOrigins.ts, dialogRegionPaths.ts, ensureTemplateOrigins.ts, groupSlotOrigins.ts, itemOriginSnapshots.ts, migrateDialogTriggerInstances.ts, originChildRefs.ts, regionSlotOrigins.ts, reusableCompositeOrigins.ts, slotFillEdit.ts, slotFillPath.ts, slotHostPolicy.ts, slotRegionInsert.ts, stateVariantMigration.ts, staticCollectionMigration.ts, tableColumnInsert.ts, tableOrigins.ts, templateItemOriginIds.ts
+- `builder/components/collection/` — collectionRowProjectionModel.ts
+- `builder/components/colorswatch/` — colorSwatchOrigins.ts
+- `builder/components/form/` — formTemplateOrigins.ts
+- `builder/components/gridlist/` — gridListTemplateOriginId.ts, gridListTemplateOrigins.ts
+- `builder/components/iconbutton/` — iconButtonTemplateOrigins.ts
+- `builder/components/inlinealert/` — inlineAlertTemplateOrigins.ts
+- `builder/components/listbox/` — listBoxRowProjectionModel.ts, listBoxTemplateOrigins.ts
+- `builder/components/menu/` — menuTemplateOrigins.ts
+- `builder/components/tabs/` — tabsTemplateOrigins.ts
+- `builder/components/taggroup/` — tagGroupTemplateOrigins.ts
+- `builder/components/toolbar/` — toolbarTemplateOrigins.ts
+- `builder/components/tree/` — treeTemplateOrigins.ts
+- `builder/config/` — componentSemanticsActions.ts
+- `builder/domain/` — canOperate.ts, resolveMoveTarget.ts
+- `builder/factories/` — ComponentFactory.ts, componentDefinitions.ts
+- `builder/factories/definitions/` — DataComponents.ts, DateColorComponents.ts, DisplayComponents.ts, FormComponents.ts, GroupComponents.ts, LayoutComponents.ts, NavigationComponents.ts, OverlayComponents.ts, SelectionComponents.ts, TableComponents.ts, TableDefinition.ts
+- `builder/factories/types/` — index.ts
+- `builder/factories/utils/` — elementCreation.ts, originChildRefElements.ts
+- `builder/hooks/` — index.ts, useAsyncAction.ts, useAsyncData.ts, useAutoRecovery.ts, useComponentMeta.ts, useElementCreator.ts, useErrorHandler.ts, useGlobalKeyboardShortcuts.ts, useIframeMessenger.ts, useInitialMountDetection.ts, usePageLoader.ts, usePageManager.ts, usePerformanceMonitor.ts, usePerformanceStats.ts, useRAFThrottle.ts, useTreeExpandState.ts, useTreeKeyboardNavigation.ts
+- `builder/panels/styles/utils/` — fillCssIngressParser.ts, fillExternalIngress.ts
+- `builder/presentation/` — editorPresentationCommitAdapter.ts, editorPresentationFillPilot.ts, editorPresentationLayoutPilot.ts, editorPresentationPreviewBridge.ts, editorPresentationProtocol.ts, editorPresentationResizeSession.ts, editorPresentationSpacingCapability.ts, editorPresentationStylePilot.ts, editorPresentationTextColor.ts, editorPresentationTextMetrics.ts, storeCommitDescriptor.ts, storeCommitDescriptorSink.ts, storeCommitEmitter.ts, storeStructureCommitDescriptor.ts
+- `builder/projection/` — renderProjectionIds.ts, syntheticDescendantId.ts
+- `builder/stores/` — assetGcScheduler.ts, asyncState.ts, canvasStore.ts, editMode.ts, elementLoader.ts, elements.ts, history.ts, index.ts, inspectorActions.ts, layoutState.ts, renderState.ts, selection.ts
+- `builder/stores/canonical/` — canonicalDocumentStore.ts, canonicalElementsBridge.ts, canonicalElementsView.ts, canonicalTraversalHelpers.ts, pageStateMutation.ts, pageTitleMutation.ts, persistActiveCanonicalDocument.ts, reusableLayoutStore.ts, rootCollectionInteractionsWrite.ts, subpartOwnerLookup.ts, syntheticDescendantLookup.ts
+- `builder/stores/history/` — canonicalHistoryEvents.ts, historyActions.ts, historyIndexedDB.ts, snapshotRestore.ts, snapshots.ts
+- `builder/stores/utils/` — absoluteSizingEdit.ts, borderCompanionDefaults.ts, borderGeometryBatch.ts, canonicalNestingRejection.ts, elementCreation.ts, elementDiff.ts, elementGrouping.ts, elementHelpers.ts, elementIndexer.ts, elementRemoval.ts, elementTagNormalizer.ts, elementUpdate.ts, globalStyleProps.ts, historyHelpers.ts, instanceActions.ts, layoutInvalidation.ts, pagePlacementCommit.ts, pagePlacementHydration.ts, ratioSizingEdit.ts, siblingReorder.ts
+- `builder/utils/` — LRUPageCache.ts, absolutePositioning.ts, canonicalCopyState.ts, canonicalRefResolution.ts, componentSemanticsRunner.ts, editingSemantics.ts, elementOrdering.ts, idGeneration.ts, multiElementCopy.ts, pagePersistenceQueue.ts, performanceMonitor.ts, scheduleTask.ts
+- `builder/workspace/canvas/actions/` — canvasActions.ts
+- `builder/workspace/canvas/interaction/` — nestingNotice.ts, nestingRelocation.ts
+- `builder/workspace/canvas/layout/` — sizingGeometry.ts
+- `builder/workspace/canvas/scene/` — canvasSceneNode.ts, pageFrameSize.ts, pagePlacementMigration.ts
+- `builder/workspace/canvas/skia/` — skiaFrameHelpers.ts, skiaOverlayHelpers.ts, workflowEdges.ts, workflowHitTest.ts, workflowMinimap.ts, workflowRenderer.ts
+- `builder/workspace/canvas/viewport/` — pageGuideActions.ts
+- `lib/db/indexedDB/` — documentPersistGuard.ts, documentsStore.legacy.ts, incrementalDocuments.ts
+- `services/save/` — index.ts, saveService.ts
+- `utils/component/` — instanceResolver.ts, referenceResolution.ts
+- `utils/element/` — elementUtils.ts
+- `utils/` — messageValidation.ts, performanceMonitor.ts, requestDeduplication.ts, smartCache.ts
+
+테스트·지원·스크립트 205:
+
+- `scripts/` — adr209-rollback-probe.test.ts, adr248-descendant-precedence-baseline.mjs, adr248-g0-save-failure-oracle.ts, adr248-nonvisual-runtime-output.mjs
+- `src/adapters/canonical/__tests__/` — adr113DescendantsGrepGate.test.ts, adr131XCompositionGrepGate.test.ts, adr230StateVariantRefProjection.test.ts, canonicalDocumentMigrations.test.ts, canonicalFillsRoundtrip.test.ts, canonicalMutationReusableOriginOrder.test.ts, canonicalMutationRoleOrder.test.ts, canonicalMutationRunner.static.test.ts, canonicalMutationRunner.test.ts, canonicalMutations.nestingGuard.test.ts, canonicalMutations.projectedIdGuard.test.ts, canonicalMutations.test.ts, checkboxRadioItemsMigration.test.ts, circleLeafInlineSizeMigration.test.ts, colorFieldParentLabelMigration.test.ts, componentSemanticsMirror.test.ts, compositionExtensionFields.priority.test.ts, editingSemanticsProjection.static.test.ts, exportSsotGrepGate.test.ts, fieldInlineLayoutMigration.test.ts, frameElementScope.test.ts, frameLayoutCascade.static.test.ts, frameMirror.test.ts, g5LegacyFieldGrepGate.test.ts, g6ParityCompletion.static.test.ts, idPath.test.ts, legacyElementSanitizer.test.ts, legacyExtensionRoundtrip.test.ts, legacyListBoxTemplateMigration.adr145.test.ts, reusableCard.scenarios.test.ts, reusableTabs.scenarios.test.ts, tagRename.adr130.test.ts, tagRename.test.ts, tokensDelta.test.ts
+- `src/adapters/canonical/__tests__/helpers/` — systemBootstrapNodes.ts
+- `src/builder/__tests__/` — panelFixture.ts
+- `src/builder/components/__tests__/` — adr229BackwardCompat.test.ts, adr230BackwardCompat.test.ts, adr233BackwardCompat.test.ts, adr233RadioOrigin.test.ts, catalogOrigins.test.ts, originChildRefs.test.ts, slotFillEdit.test.ts, slotHostPolicy.test.ts
+- `src/builder/components/card/__tests__/` — cardTemplateOrigins.test.ts
+- `src/builder/components/` — ensureTemplateOrigins.test.ts
+- `src/builder/components/form/__tests__/` — formTemplateOrigins.test.ts
+- `src/builder/components/gridlist/__tests__/` — gridListTemplateOrigins.test.ts
+- `src/builder/components/iconbutton/__tests__/` — iconButtonTemplateOrigins.test.ts
+- `src/builder/components/inlinealert/__tests__/` — inlineAlertTemplateOrigins.test.ts
+- `src/builder/components/listbox/__tests__/` — collectionOriginDefaultItems.test.tsx, listBoxTemplateOrigins.test.ts
+- `src/builder/components/menu/__tests__/` — menuTemplateOrigins.test.ts
+- `src/builder/components/tabs/__tests__/` — tabsTemplateOrigins.test.ts
+- `src/builder/components/taggroup/__tests__/` — tagGroupTemplateOrigins.test.ts
+- `src/builder/components/toolbar/__tests__/` — toolbarTemplateOrigins.test.ts
+- `src/builder/config/` — componentSemanticsActions.static.test.ts, componentSemanticsActions.test.ts
+- `src/builder/domain/__tests__/` — canOperate.test.ts, resolveMoveTarget.test.ts, structuralStoreActionGuard.static.test.ts
+- `src/builder/factories/__tests__/` — adr923SelectValueFactoryInline.test.ts, catalogStyleDefaults.test.ts, componentRegistrationContract.test.ts, factoryNestingOracle.test.ts, factoryOwnership.test.ts, plaintextTokenCorpus.test.ts, tableViewCatalogLayout.test.ts
+- `src/builder/factories/definitions/__tests__/` — SelectionComponents.listbox.test.ts, calendarGridLocale.test.ts, disclosureFactoryWidth.test.ts, selectFamilyFactoryLayout.test.ts
+- `src/builder/factories/utils/__tests__/` — elementCreation.indexSync.test.ts, originChildRefElements.test.ts
+- `src/builder/hooks/__tests__/` — useIframeMessenger.canonical.test.ts, usePageManager.canonical.test.ts, usePageManager.pageCreation.test.tsx
+- `src/builder/hooks/` — chartAuthoring.test.ts, createScopedHandler.test.ts, useElementCreator.reusableInstanceProps.test.ts, useElementCreator.static.test.ts, useElementCreator.test.ts, useTreeExpandState.static.test.ts
+- `src/builder/panels/properties/` — multiSelectHistoryEntry.static.test.ts
+- `src/builder/panels/styles/utils/` — fillCssIngressParser.test.ts, fillExternalIngress.test.ts
+- `src/builder/presentation/` — editorPresentationCommitAdapter.test.ts, editorPresentationCommitProjection.static.test.ts, editorPresentationLayoutPilot.test.ts, editorPresentationPreviewBridge.test.ts, editorPresentationProtocol.test.ts, editorPresentationSpacingCapability.test.ts, storeCommitDescriptor.test.ts, storeCommitDescriptorProducerSeparation.static.test.ts, storeCommitDescriptorSink.test.ts, storeCommitEmitterBatch.test.ts, storeStructureCommitDescriptor.test.ts
+- `src/builder/projection/__tests__/` — renderProjectionIds.test.ts
+- `src/builder/stores/__tests__/` — borderCompanionDefaults.test.ts, elementLoader.static.test.ts, elementMove.test.ts, framePositions.test.ts, inspectorFills.test.ts, inspectorOriginImpactGate.test.ts, itemsActions.canonical.test.ts, itemsActions.test.ts, pageActivation.test.ts, pageRemovalSemantics.test.ts, pagesLayoutInvalidation.test.ts, selectionInvariant.test.ts
+- `src/builder/stores/canonical/__tests__/` — canonicalDocumentStore.test.ts, canonicalElementsBridge.test.tsx, canonicalElementsView.test.ts, canonicalTraversalHelpers.test.ts, interactionRulesSnapshot.test.ts, reusableLayoutStore.test.ts, rootCollectionInteractionsWrite.test.ts, rootCollectionStore.test.ts, subpartOwnerLookup.test.ts, syntheticDescendantLookup.test.ts
+- `src/builder/stores/canonical/` — persistActiveCanonicalDocument.test.ts
+- `src/builder/stores/` — canvasStore.static.test.ts, elements.canonicalLookup.static.test.ts, elements.storeCache.static.test.ts, index.derivedView.static.test.ts, index.test.tsx, inspectorActions.static.test.ts, selection.static.test.ts, selectionConsumerContract.static.test.ts
+- `src/builder/stores/history/__tests__/` — canonicalMoveEvent.test.ts, canonicalReplaceEvents.test.ts, canonicalUpdateEvent.test.ts, historyCallSiteRoundtrip.test.ts, historyEntryCanonicalEvents.static.test.ts, historyIndexedDB.migration.test.ts, historyTransaction.test.ts, pageGuideHistoryRoundtrip.test.ts, pageLifecycleStackMigration.test.ts, pageStateHistoryRoundtrip.test.ts, pageTitleHistoryRoundtrip.test.ts, snapshotRestoreNormalization.test.ts, snapshots.test.ts, snapshotsBytesLimit.test.ts
+- `src/builder/stores/history/` — historyActions.diff.test.ts, historyActions.static.test.ts
+- `src/builder/stores/utils/__tests__/` — adr923BatchStylePatch.test.ts, canonicalNestingRejection.test.ts, chartInstanceCompatibility.test.ts, elementAlignmentDistribution.static.test.ts, elementCanonicalMutation.test.ts, elementCreation.storeCache.static.test.ts, elementCreationCanonical.test.ts, elementGrouping.adr130.test.ts, elementGrouping.static.test.ts, elementIndexer.storeCache.static.test.ts, elementRemoval.static.test.ts, elementRemoval.test.ts, elementUpdate.atomicity.test.ts, elementUpdate.static.test.ts, elementUpdateOriginImpact.test.ts, historyHelpers.storeCache.static.test.ts, historyHelpers.test.ts, instanceActions.static.test.ts, listBoxTemplateAnchorRemoval.test.ts, mutationHistorySyncContract.test.ts, systemOwnedOriginGuard.test.ts
+- `src/builder/stores/utils/` — absoluteSizingEdit.test.ts, borderGeometryBatch.test.ts, globalStyleProps.test.ts, layoutInvalidation.test.ts, ratioSizingEdit.test.ts, siblingReorder.test.ts
+- `src/builder/utils/__tests__/` — sizePropagationPathContract.test.ts
+- `src/builder/utils/` — adr923CompositeLabelBridge.test.tsx, canonicalRefResolution.test.ts, componentSemanticsRunner.test.ts, editingSemantics.test.ts, multiElementCopy.test.ts, pagePersistenceQueue.static.test.ts, performanceMonitor.static.test.ts, scheduleTask.test.ts
+- `src/builder/workspace/canvas/actions/` — canvasActions.test.ts
+- `src/builder/workspace/canvas/interaction/__tests__/` — nestingNotice.test.ts
+- `src/builder/workspace/canvas/layout/` — sizingGeometry.test.ts
+- `src/builder/workspace/canvas/scene/` — canvasSceneNode.tabTemplate.test.ts, canvasSceneNode.test.ts, chartRowInjection.test.ts, pageFrameSize.test.ts, pagePlacementMigration.test.ts
+- `src/builder/workspace/canvas/skia/__tests__/` — overflowInfoDescendants.test.ts, workflowEdges.interactionRules.test.ts
+- `src/builder/workspace/canvas/skia/` — frameAreas.test.ts, skiaOverlayHelpers.test.ts, workflowRenderer.integration.test.ts
+- `src/builder/workspace/canvas/viewport/` — pageGuideActions.test.ts
+- `src/lib/db/indexedDB/__tests__/` — documentPersistGuard.test.ts, incrementalDocuments.test.ts
+- `src/utils/component/` — referenceResolution.test.ts
+- `src/utils/element/` — elementUtils.test.ts
+- `tests/_tmp/` — gaprem.test.tsx
+- `tests/parity/` — adr204MinContentFloorFirstNail.browser.test.ts
 
 **4e-2 live (2026-09-30, headed Playwright · worktree dev 5175)**: 라이선스 인증 → 대시보드 (새 저장소 기준 0 개) → 새 프로젝트 → Builder 가 흰 1920×1080 페이지를 66% 맞춤으로 그림 · 저장 상태 Saved → dev 전용 handle 로 body 에 Heading 삽입 (Saving… → Saved) → 값 편집이 Canvas 에 그려짐 (4e-3a 에서 한 step 늦게 그려지는 결함을 찾아 수리 — 당시 스크린샷은 뒤따른 step 이 앞 편집까지 반영한 것) → 휠 pan · ⌘+휠 zoom (66→77%) → Preview 버튼 = "Preview and publish cannot open the new project format yet." toast · 새 탭 0 → 대시보드 목록 1 → 다시 열기 = 편집 값 유지 · Saved → 없는 route = "Project not found.". Chrome MCP 탭은 `document.hidden` 이라 frame scheduler 가 멈춰 headed Playwright 로 확인했다.
 

@@ -17,16 +17,4 @@ describe("canonical legacy store cache bridge removal", () => {
     expect(builderCoreSource).not.toContain("canonicalLegacyStoreCacheBridge");
     expect(builderCoreSource).not.toContain("recoverElementsSnapshot(");
   });
-
-  it("removes recoverElementsSnapshot from the store action surface", async () => {
-    const storeSource = await readFile(
-      resolve(__dirname, "../stores/elements.ts"),
-      "utf-8",
-    );
-
-    expect(storeSource).not.toContain("recoverElementsSnapshot");
-    await expect(
-      access(resolve(__dirname, "canonicalLegacyStoreCacheBridge.ts")),
-    ).rejects.toThrow();
-  });
 });
