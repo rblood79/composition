@@ -228,13 +228,18 @@ export function CatalogBuilderCore() {
           },
         },
       });
-      // Dev-only live harness handle (Playwright exercises edits before the panels move).
-      if (import.meta.env.DEV)
+      // Live harness handle (Playwright): dev, or a production build made for the G5 paired
+      // measurement (`VITE_COMPOSITION_HARNESS=1`; a normal build drops this branch).
+      if (
+        import.meta.env.DEV ||
+        import.meta.env.VITE_COMPOSITION_HARNESS === "1"
+      )
         (window as unknown as Record<string, unknown>).__COMPOSITION_CATALOG__ =
           {
             workspace: opened,
             commands:
               await import("../../../../../packages/shared/src/catalog/commands"),
+            palette: await import("../catalogRuntime/paletteInsert"),
           };
       const openPage = openPageRef.current;
       openPageRef.current = undefined;

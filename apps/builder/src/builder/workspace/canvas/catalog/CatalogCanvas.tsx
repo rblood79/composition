@@ -713,8 +713,11 @@ export function CatalogCanvas({
       syncScene();
       return scene.stream.boundsMap.get(identity);
     };
-    // Dev-only live harness handle: scene boxes and the camera (screen ↔ scene).
-    if (import.meta.env.DEV) {
+    // Live harness handle: scene boxes and the camera (screen ↔ scene) — dev, or a G5 harness build.
+    if (
+      import.meta.env.DEV ||
+      import.meta.env.VITE_COMPOSITION_HARNESS === "1"
+    ) {
       const handle = ((
         window as unknown as Record<string, unknown>
       ).__COMPOSITION_CATALOG__ ??= {}) as Record<string, unknown>;
