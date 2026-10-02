@@ -79,6 +79,24 @@ const FORBIDDEN: ReadonlyArray<{ label: string; test: RegExp }> = [
     label: "builder 요소 기본값 표",
     test: /\/types\/builder\/unified\.types\.ts$/,
   },
+  // ADR-248 G5 (2026-10-03): the Preview's replica root draws DOM through `NullLayoutEngine`; Canvas
+  // paint and layout-input code reached its boot set through shared helpers (`authoredStyle` →
+  // `buildBoxNodeData`, `compositionRoot` → `ruleShapes` …) — 699 KB gzip at boot, over the
+  // ADR-201 Preview ceiling 623,000 B. The DOM path reads its own leaf modules.
+  { label: "Skia 렌더 코드", test: /\/workspace\/canvas\/skia\// },
+  {
+    label: "Canvas style 변환기",
+    test: /\/workspace\/canvas\/styleConversion\//,
+  },
+  {
+    label: "Canvas layout 입력 utils · implicit style",
+    test: /\/workspace\/canvas\/layout\/engines\/(utils|implicitStyles|cssResolver)\.ts$/,
+  },
+  { label: "Styles 패널 변환기", test: /\/panels\/styles\/utils\// },
+  {
+    label: "catalog 저작 명령",
+    test: /\/catalog\/commands\/(?!context\.ts$|compose\.ts$)[^/]+\.ts$/,
+  },
 ];
 
 describe("Preview builder 저작 코드 import 경계", () => {

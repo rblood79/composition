@@ -18,10 +18,8 @@ import type {
   DataField,
   DataTable,
 } from "../../../../types/builder/data.types";
-import {
-  catalogBindingCommand,
-  catalogCollectionId,
-} from "../../../catalogRuntime/dataBinding";
+import { catalogCollectionId } from "../../../catalogRuntime/dataBinding";
+import { catalogBindingCommand } from "../../../catalogRuntime/dataBindingCommand";
 import { dataChangeEffect } from "../../../catalogRuntime/dataHistory";
 import { catalogTargetTypeName } from "../../../catalogRuntime/interactions";
 import { catalogRouteIdOf } from "../../../catalogRuntime/project";

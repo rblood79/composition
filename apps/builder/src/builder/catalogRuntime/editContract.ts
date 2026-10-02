@@ -26,12 +26,8 @@ import type {
 } from "../../../../../packages/shared/src/catalog/document/types";
 import type { CatalogGraph } from "../../../../../packages/shared/src/catalog/document/graph";
 import { REUSABLE_PROPS_SCHEMAS } from "../components/reusablePropsSchemas";
-import {
-  catalogBindingCommand,
-  catalogBindingRef,
-  catalogBindingValue,
-  catalogTargetBinding,
-} from "./dataBinding";
+import { catalogBindingRef, catalogBindingValue, catalogTargetBinding } from "./dataBinding";
+import { catalogBindingCommand } from "./dataBindingCommand";
 import type { CatalogReadModel } from "./readModel";
 
 const ORIGIN_PREFIX = "lib:definition:origin-";

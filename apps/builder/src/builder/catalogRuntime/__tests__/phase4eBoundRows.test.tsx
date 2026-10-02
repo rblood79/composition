@@ -11,7 +11,8 @@ import type {
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import type { CatalogBoundRow } from "../../../../../../packages/shared/src/catalog/resolution/resolver";
 import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
-import { catalogBindingCommand, catalogBoundRows } from "../dataBinding";
+import { catalogBoundRows } from "../dataBinding";
+import { catalogBindingCommand } from "../dataBindingCommand";
 import { catalogItemRoleCommand, catalogItemRoles } from "../itemRoles";
 import { setFields } from "../../../../../../packages/shared/src/catalog/commands";
 import {

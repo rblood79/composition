@@ -765,26 +765,7 @@ export function convertToTextStyle(
 // P7.5-P7.6: Text Transform Utilities
 // ============================================
 
-/**
- * P7.6: CSS textTransform 적용
- */
-export function applyTextTransform(
-  text: string,
-  transform: string | undefined,
-): string {
-  if (!transform || transform === "none") return text;
-
-  switch (transform.toLowerCase()) {
-    case "uppercase":
-      return text.toUpperCase();
-    case "lowercase":
-      return text.toLowerCase();
-    case "capitalize":
-      return text.replace(/\b\w/g, (c) => c.toUpperCase());
-    default:
-      return text;
-  }
-}
+export { applyTextTransform } from "../../../utils/textTransform";
 
 /**
  * P7.5: CSS verticalAlign을 기반으로 텍스트 Y 위치 계산

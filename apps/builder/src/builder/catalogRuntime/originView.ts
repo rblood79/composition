@@ -10,7 +10,6 @@ import type {
   CatalogReader,
   LibraryDefinitionId,
   NodeEntry,
-  NodeId,
 } from "../../../../../packages/shared/src/catalog/document/types";
 import type { CatalogOperation } from "../../../../../packages/shared/src/catalog/transactions/transaction";
 
@@ -24,7 +23,9 @@ import type { CatalogOperation } from "../../../../../packages/shared/src/catalo
  * project defaults (`setLibraryDefault`); anything else on it — its children, sizing, layout,
  * breakpoint layers, fills, structure — is refused.
  */
-export const ORIGIN_VIEW_NODE = "project:node:catalog-origin-view" as NodeId;
+import { ORIGIN_VIEW_NODE, isLibraryOrigin } from "./originViewNode";
+
+export { ORIGIN_VIEW_NODE, isLibraryOrigin };
 
 export class CatalogOriginEditError extends Error {
   constructor() {
@@ -32,10 +33,6 @@ export class CatalogOriginEditError extends Error {
     this.name = "CatalogOriginEditError";
   }
 }
-
-export const isLibraryOrigin = (
-  id: string | undefined,
-): id is LibraryDefinitionId => !!id && id.startsWith("lib:definition:origin-");
 
 /** A library origin's display name: its type (`Button`). */
 export function catalogDefinitionTitle(

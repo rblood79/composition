@@ -23,11 +23,8 @@ import {
 
 import { readForcedVariantStates } from "../../../components/stateVariantLayers";
 
-import {
-  resolveCatalogVariantName,
-  resolveSkiaRule,
-  resolveSkiaVisualRule,
-} from "./resolveSkiaVisualRule";
+import { resolveCatalogVariantName } from "@composition/shared";
+import { resolveSkiaRule, resolveSkiaVisualRule } from "./resolveSkiaVisualRule";
 
 /** `:root { line-height: 1.5 }` — 항목 rule 에 줄 높이가 없을 때 DOM 이 상속하는 값. */
 const ROOT_LINE_HEIGHT_RATIO = 1.5;

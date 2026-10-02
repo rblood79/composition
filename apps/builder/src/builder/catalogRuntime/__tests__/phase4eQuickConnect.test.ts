@@ -15,7 +15,8 @@ import {
 } from "../../../../../../packages/shared/src/catalog/commands";
 import type { DataTable } from "../../../types/builder/data.types";
 import { createCatalogQuickConnectHost } from "../../panels/datatable/usage/catalogQuickConnectHost";
-import { catalogBindingCommand, catalogBindingRef } from "../dataBinding";
+import { catalogBindingRef } from "../dataBinding";
+import { catalogBindingCommand } from "../dataBindingCommand";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";

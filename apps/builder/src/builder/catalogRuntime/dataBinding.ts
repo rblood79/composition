@@ -11,8 +11,6 @@ import type {
   CatalogBoundRow,
   CatalogBoundRows,
 } from "../../../../../packages/shared/src/catalog/resolution/resolver";
-import { setWholeField } from "../../../../../packages/shared/src/catalog/commands";
-import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
 import type {
   CatalogReader,
   DataBindingRef,
@@ -87,18 +85,6 @@ export function catalogTargetBinding(
   const node = graph.getEntry(target.id);
   return node?.kind === "node" ? node.binding : undefined;
 }
-
-/** Set (or with `undefined` clear) the targets' binding — one step. */
-export const catalogBindingCommand = (
-  targets: readonly EditTarget[],
-  binding: DataBindingRef | undefined,
-): CatalogCommand =>
-  setWholeField({
-    targets,
-    field: "binding",
-    value: binding,
-    label: binding ? "Bind data" : "Unbind data",
-  });
 
 interface CollectionIndexReader extends CatalogReader {
   bindingsOf(collectionId: string): ReadonlySet<string>;

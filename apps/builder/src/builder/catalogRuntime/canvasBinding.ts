@@ -13,11 +13,8 @@ import {
 import type { SkiaNodeData } from "../workspace/canvas/skia/nodeRendererTypes";
 import { catalogNodeState } from "../../../../../packages/shared/src/catalog/resolution/resolver";
 import type { CatalogConsumerNode } from "./compositionRoot";
-import {
-  catalogRuleNodeData,
-  catalogRuleTextColor,
-  cssVarColor,
-} from "./ruleShapes";
+import { catalogRuleNodeData } from "./ruleShapes";
+import { catalogRuleTextColor, cssVarColor } from "./rulePaint";
 import { catalogAuthoredVisual } from "./libraryVisual";
 import {
   CATALOG_NOWRAP_TEXT_BINDINGS,
@@ -36,12 +33,14 @@ import {
   parseTextDecoration,
 } from "../workspace/canvas/styleConversion/styleConverter";
 import {
-  applyCatalogAuthoredPaint,
-  catalogCssColorRgba,
   catalogVisualWithBackground,
   hasCatalogAuthoredPaint,
   isTypedCatalogColor,
 } from "./authoredStyle";
+import {
+  applyCatalogAuthoredPaint,
+  catalogCssColorRgba,
+} from "./authoredPaintCanvas";
 import {
   CATALOG_BINDING_VISUAL_KEYS,
   catalogFontFamilies,

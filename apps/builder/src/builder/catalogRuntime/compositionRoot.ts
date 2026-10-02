@@ -26,8 +26,8 @@ import {
   resolveCatalogNode,
 } from "../../../../../packages/shared/src/catalog/resolution/resolver";
 import { catalogAuthoredVisual } from "./libraryVisual";
-import { catalogRuleTextColor } from "./ruleShapes";
-import { isLibraryOrigin, ORIGIN_VIEW_NODE } from "./originView";
+import { catalogRuleTextColor } from "./rulePaint";
+import { isLibraryOrigin, ORIGIN_VIEW_NODE } from "./originViewNode";
 import type { CatalogDefinitionViewId } from "./session";
 import {
   PersistentLayoutTree,
@@ -43,7 +43,7 @@ import {
   catalogCalendarHeaderParts,
 } from "../../../../../packages/shared/src/catalog/resolvers/resolveCatalogRuleCanvasBox";
 import { resolveTextSourceText } from "@composition/specs";
-import { applyTextTransform } from "../workspace/canvas/styleConversion/styleConverter";
+import { applyTextTransform } from "../utils/textTransform";
 import {
   catalogAspectRatio,
   catalogFillDependents,

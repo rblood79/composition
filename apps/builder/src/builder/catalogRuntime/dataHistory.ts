@@ -9,7 +9,8 @@ import type {
   DocumentBindingCommitter,
 } from "../stores/utils/dataChange";
 import type { CatalogExternalEffect } from "./controller";
-import { catalogBindingCommand, catalogBindingRef } from "./dataBinding";
+import { catalogBindingRef } from "./dataBinding";
+import { catalogBindingCommand } from "./dataBindingCommand";
 import type { CatalogWorkspace } from "./workspace";
 
 /** Re-applies data ops without recording (the data store's `applyDataChange`, `record: false`). */

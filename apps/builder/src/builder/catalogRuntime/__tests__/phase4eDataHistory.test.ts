@@ -10,7 +10,8 @@ import type {
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
 import { catalogDataHistoryRecorder, dataChangeEffect } from "../dataHistory";
-import { catalogBindingCommand, catalogBindingRef } from "../dataBinding";
+import { catalogBindingRef } from "../dataBinding";
+import { catalogBindingCommand } from "../dataBindingCommand";
 import { CatalogHistoryStore } from "../history";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
