@@ -7,6 +7,7 @@ import type {
 } from "../../../../../../../packages/shared/src/catalog/document/types";
 import { iconProps } from "../../../../utils/ui/uiConstants";
 import {
+  catalogHtmlIdBase,
   catalogHtmlIdCommand,
   catalogUniqueHtmlId,
 } from "../../../catalogRuntime/attributes";
@@ -51,6 +52,17 @@ export const CatalogAttributesSection = memo(function CatalogAttributesSection({
     return entry?.kind === "node" ? (entry.metadata?.[field] ?? "") : "";
   };
   const htmlId = useSyncExternalStore(subscribeSteps, metadataOf("htmlId"));
+  // The id an empty field stands for: the first free `type_N` (what the check would assign).
+  const automaticHtmlId = useSyncExternalStore(subscribeSteps, () => {
+    const entry = nodeId ? graph.getEntry(nodeId) : undefined;
+    return entry?.kind === "node"
+      ? catalogUniqueHtmlId(
+          graph,
+          catalogHtmlIdBase(graph, entry),
+          nodeId as NodeId,
+        )
+      : "";
+  });
   const className = useSyncExternalStore(
     subscribeSteps,
     metadataOf("className"),
@@ -82,7 +94,7 @@ export const CatalogAttributesSection = memo(function CatalogAttributesSection({
   const handleCheckId = useCallback(() => {
     if (!nodeId) return;
     const undo = () => workspace.undo();
-    const base = htmlId || contract.type.toLowerCase();
+    const base = htmlId || automaticHtmlId;
     if (htmlId && !catalogHtmlIdCommandTaken(graph, nodeId, htmlId)) {
       globalToast.info(t("propertiesPanel.idUnique", { id: htmlId }), {
         bypassCooldown: true,
@@ -101,7 +113,7 @@ export const CatalogAttributesSection = memo(function CatalogAttributesSection({
         action: { label: t("errors.undo"), onClick: undo },
       },
     );
-  }, [contract.type, graph, htmlId, nodeId, run, t, workspace]);
+  }, [automaticHtmlId, graph, htmlId, nodeId, run, t, workspace]);
 
   const record = workspace.root.domInputs.get(identity);
   const showAriaLabel = needsAuthoredAriaLabel({
@@ -126,7 +138,7 @@ export const CatalogAttributesSection = memo(function CatalogAttributesSection({
             label="ID"
             value={htmlId}
             onChange={handleHtmlId}
-            placeholder={`${contract.type.toLowerCase()}_1`}
+            placeholder={automaticHtmlId}
           />
           <div className="fieldset-actions">
             <ActionTooltipTrigger tooltip={t("propertiesPanel.idCheckUnique")}>

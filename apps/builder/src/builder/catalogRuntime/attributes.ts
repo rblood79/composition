@@ -58,6 +58,23 @@ export function catalogHtmlIdCommand(
 const BODY_DEFINITION = "lib:definition:type-body";
 
 /**
+ * The base of an element's automatic author DOM id: its type name in lower case (`button`, `text`)
+ * — what a new element gets (`base_N`), the empty ID field shows and the check assigns.
+ */
+export function catalogHtmlIdBase(
+  reader: CatalogReader,
+  node: Pick<NodeEntry, "definitionId">,
+): string {
+  try {
+    return definitionTypeName(reader, node.definitionId as DefinitionId)
+      .toLowerCase()
+      .replace(/\s+/g, "-");
+  } catch {
+    return "element";
+  }
+}
+
+/**
  * ADR-248 4e-8: the old app gave every element it created a `customId` (`{type}_{n}`, the first
  * free number), rendered as the DOM `id`. A user action's plan gets the same: each node it creates
  * (an insert, a paste, a duplicate, a group, a detach) without an author DOM id gets `type_N`, and
@@ -90,13 +107,6 @@ export function catalogAutoHtmlIds(
       referrersOf: (id) => reader.referrersOf(id),
       instancesOf: (id) => reader.instancesOf(id),
     };
-    const typeOf = (entry: NodeEntry) => {
-      try {
-        return definitionTypeName(view, entry.definitionId as DefinitionId);
-      } catch {
-        return "element";
-      }
-    };
     // The ids this plan gives, in order: a later copy of one moves on.
     const given = new Set<string>();
     const taken = (htmlId: string, self: NodeId) =>
@@ -107,8 +117,10 @@ export function catalogAutoHtmlIds(
       const own = op.entry.metadata?.htmlId;
       let htmlId = own;
       if (!htmlId || taken(htmlId, self)) {
-        const stem = (own ?? typeOf(op.entry).toLowerCase().replace(/\s+/g, "-"))
-          .replace(/_\d+$/, "");
+        const stem = (own ?? catalogHtmlIdBase(view, op.entry)).replace(
+          /_\d+$/,
+          "",
+        );
         let n = 1;
         while (taken(`${stem}_${n}`, self)) n++;
         htmlId = `${stem}_${n}`;

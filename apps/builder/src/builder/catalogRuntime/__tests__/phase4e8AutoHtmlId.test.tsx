@@ -1,4 +1,5 @@
 import "fake-indexeddb/auto";
+import { act, fireEvent, render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
@@ -14,7 +15,10 @@ import {
   pasteNodes,
   setHtmlId,
 } from "../../../../../../packages/shared/src/catalog/commands";
+import { I18nProvider } from "../../../i18n";
+import { CatalogAttributesSection } from "../../panels/properties/catalog/CatalogAttributesSection";
 import { catalogPaletteDefinitionId } from "../paletteInsert";
+import { CatalogWorkspaceProvider } from "../react";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
@@ -164,5 +168,50 @@ describe("ADR-248 4e-8 automatic element ids", () => {
       setHtmlId({ id: "project:node:t" as NodeId, htmlId: "" }),
     );
     expect(htmlIdOf(workspace, "project:node:t")).toBeUndefined();
+  });
+
+  it("an emptied ID field shows the id the element would get (the first free type_N), and the check assigns it", async () => {
+    const workspace = await open();
+    const button = catalogPaletteDefinitionId(
+      workspace.runtime.graph.library,
+      "Button",
+    );
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [node("project:node:b1", button), node("project:node:b2", button)],
+        rootIds: ["project:node:b1", "project:node:b2"] as NodeId[],
+        newId: workspace.newId,
+      }),
+    );
+    const second = "project:node:b2" as NodeId;
+    const view = render(
+      <I18nProvider initialLocale="en-US">
+        <CatalogWorkspaceProvider workspace={workspace}>
+          <CatalogAttributesSection
+            target={{ kind: "node", id: second }}
+            identity={workspace.root.recordsOfSource(second)[0]!}
+          />
+        </CatalogWorkspaceProvider>
+      </I18nProvider>,
+    );
+    const input = () => view.getAllByRole("textbox")[0] as HTMLInputElement;
+    expect(input().value).toBe("button_2");
+    act(() => {
+      workspace.execute(setHtmlId({ id: second, htmlId: "" }));
+    });
+    expect(input().value).toBe("");
+    // button_1 is the first button's, so the empty field stands for button_2.
+    expect(input().placeholder).toBe("button_2");
+    // Freeing button_1 moves it there.
+    act(() => {
+      workspace.execute(
+        setHtmlId({ id: "project:node:b1" as NodeId, htmlId: "cta" }),
+      );
+    });
+    expect(input().placeholder).toBe("button_1");
+    fireEvent.click(view.getByRole("button", { name: /unique/i }));
+    expect(htmlIdOf(workspace, second)).toBe("button_1");
+    view.unmount();
   });
 });
