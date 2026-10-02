@@ -12,7 +12,11 @@ import {
   setFields,
   setWholeField,
 } from "../../../../../packages/shared/src/catalog/commands";
-import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
+import {
+  composeCommands,
+  type CatalogCommand,
+} from "../../../../../packages/shared/src/catalog/commands/compose";
+import type { CatalogGraph } from "../../../../../packages/shared/src/catalog/document/graph";
 import { definitionTypeName } from "../../../../../packages/shared/src/catalog/commands/context";
 import type { NewId } from "../../../../../packages/shared/src/catalog/commands/materialize";
 import type {
@@ -83,10 +87,14 @@ export interface CatalogGestureHost {
   newId: NewId;
   /** The page of a page body record, when that page can move (not the home page). */
   movablePageOf?(record: string): string | undefined;
-  /** The command a page frame drop at a scene point commits (`undefined` = refused/unchanged). */
+  /**
+   * The command a page frame drop at a scene point commits, with the other selected pages dragged
+   * by the same offset (`undefined` = refused/unchanged).
+   */
   pageDropCommand?(
     page: string,
     topLeft: { x: number; y: number },
+    followers?: readonly { page: string; topLeft: { x: number; y: number } }[],
   ): CatalogCommand | undefined;
   /** Laid-out page frames (page drags snap to the other pages). */
   pageFrames?(): ReadonlyMap<string, BoundingBox>;
@@ -130,6 +138,16 @@ export interface CatalogDropTarget {
   readonly line: BoundingBox;
   /** The container under the pointer refused the nodes: this is its nearest accepting ancestor. */
   readonly relocated?: NestingViolation;
+  /** An absolute drag leaving for a page body: the nodes stay absolute there (no line). */
+  readonly keepsAbsolute?: true;
+}
+
+/** An absolutely placed node in a move: its authored placement (it moves by the offset). */
+interface MovingAbsolute {
+  readonly record: string;
+  readonly id: NodeId;
+  readonly left: number;
+  readonly top: number;
 }
 
 /** A spacing handle pressed without a drag (the inline number input edits its value). */
@@ -149,6 +167,8 @@ type Gesture =
       startBox: BoundingBox;
       /** The authored absolute placement of the leader (`node.placement`): it moves by offset. */
       absolute?: { left: number; top: number };
+      /** Every absolutely placed node of the selection (the leader's included). */
+      absolutes: MovingAbsolute[];
       active: boolean;
       dx: number;
       dy: number;
@@ -179,6 +199,8 @@ type Gesture =
       startY: number;
       page: string;
       startBox: BoundingBox;
+      /** The other selected movable pages: they follow the leader's offset. */
+      followers: { page: string; startBox: BoundingBox }[];
       active: boolean;
       dx: number;
       dy: number;
@@ -236,6 +258,8 @@ function ratioLockOf(record: CatalogConsumerNode): ResizeRatioLockInput | null {
 /** What the overlay draws for the gesture in progress. */
 export interface CatalogGesturePreview {
   readonly ghost?: BoundingBox;
+  /** The other dragged boxes (selected pages, absolutely placed nodes) at the same offset. */
+  readonly ghosts?: readonly BoundingBox[];
   readonly line?: BoundingBox;
   readonly container?: BoundingBox;
   /** Marquee: the rectangle and the boxes it would select. */
@@ -350,9 +374,22 @@ export class CatalogCanvasGestures {
       ) as NodeId[],
       records: moving.map((item) => item.identity),
       startBox,
-      ...(placement?.kind === "absolute" && moving.length === 1
+      ...(placement?.kind === "absolute"
         ? { absolute: { left: placement.x, top: placement.y } }
         : {}),
+      absolutes: moving.flatMap((item) => {
+        const own = records.get(item.identity)?.placement;
+        return own?.kind === "absolute" && item.target.kind === "node"
+          ? [
+              {
+                record: item.identity,
+                id: item.target.id,
+                left: own.x,
+                top: own.y,
+              },
+            ]
+          : [];
+      }),
       active: false,
       dx: 0,
       dy: 0,
@@ -426,12 +463,24 @@ export class CatalogCanvasGestures {
     const page = this.host.movablePageOf?.(record);
     const startBox = this.host.bounds(record);
     if (!page || !startBox) return false;
+    // The other selected page bodies move with it (the old Canvas's multi page drag).
+    const followers = this.host.selection().flatMap((item) => {
+      if (item.identity === record) return [];
+      if (this.host.records.get(item.identity)?.parentId !== PAGE_GRID)
+        return [];
+      const other = this.host.movablePageOf?.(item.identity);
+      const box = this.host.bounds(item.identity);
+      return other && box && other !== page
+        ? [{ page: other, startBox: box }]
+        : [];
+    });
     this.gesture = {
       kind: "page",
       startX: x,
       startY: y,
       page,
       startBox,
+      followers,
       active: false,
       dx: 0,
       dy: 0,
@@ -544,7 +593,7 @@ export class CatalogCanvasGestures {
     // An absolutely placed element snaps (a flow drag reorders; the old Canvas never snapped it).
     if (gesture.absolute) this.snap(gesture, zoom, !!options.snap);
     gesture.drop = gesture.absolute
-      ? undefined
+      ? this.absoluteReparent(x, y, gesture)
       : this.dropTarget(x, y, gesture);
     return true;
   }
@@ -640,6 +689,11 @@ export class CatalogCanvasGestures {
           x: gesture.startBox.x + gesture.dx,
           y: gesture.startBox.y + gesture.dy,
         },
+        ghosts: gesture.followers.map(({ startBox }) => ({
+          ...startBox,
+          x: startBox.x + gesture.dx,
+          y: startBox.y + gesture.dy,
+        })),
         snapGuides: gesture.snapGuides,
       };
     if (gesture.kind === "marquee")
@@ -665,10 +719,24 @@ export class CatalogCanvasGestures {
       x: gesture.startBox.x + gesture.dx,
       y: gesture.startBox.y + gesture.dy,
     };
-    if (!gesture.drop) return { ghost, snapGuides: gesture.snapGuides };
+    // The other absolutely placed nodes move by the same offset (not into a flow container).
+    const ghosts =
+      gesture.absolute && (!gesture.drop || gesture.drop.keepsAbsolute)
+        ? gesture.absolutes
+            .filter((item) => item.record !== gesture.leader)
+            .map((item) => this.host.bounds(item.record))
+            .filter((box): box is BoundingBox => !!box)
+            .map((box) => ({
+              ...box,
+              x: box.x + gesture.dx,
+              y: box.y + gesture.dy,
+            }))
+        : [];
+    if (!gesture.drop) return { ghost, ghosts, snapGuides: gesture.snapGuides };
     return {
       ghost,
-      line: gesture.drop.line,
+      ghosts,
+      ...(gesture.drop.keepsAbsolute ? {} : { line: gesture.drop.line }),
       container: this.host.bounds(gesture.drop.container),
     };
   }
@@ -813,10 +881,20 @@ export class CatalogCanvasGestures {
     const breakpoint = this.host.breakpoint();
     if (gesture.kind === "page")
       return gesture.dx || gesture.dy
-        ? this.host.pageDropCommand?.(gesture.page, {
-            x: gesture.startBox.x + gesture.dx,
-            y: gesture.startBox.y + gesture.dy,
-          })
+        ? this.host.pageDropCommand?.(
+            gesture.page,
+            {
+              x: gesture.startBox.x + gesture.dx,
+              y: gesture.startBox.y + gesture.dy,
+            },
+            gesture.followers.map(({ page, startBox }) => ({
+              page,
+              topLeft: {
+                x: startBox.x + gesture.dx,
+                y: startBox.y + gesture.dy,
+              },
+            })),
+          )
         : undefined;
     if (gesture.kind === "spacing") {
       if (gesture.value === gesture.start) return undefined;
@@ -863,20 +941,7 @@ export class CatalogCanvasGestures {
         ops: [...size(reader).ops, ...place(reader).ops],
       });
     }
-    if (gesture.absolute) {
-      if (!gesture.dx && !gesture.dy) return undefined;
-      if (gesture.copy) return this.absoluteCopy(gesture);
-      return setWholeField({
-        targets: [{ kind: "node", id: gesture.ids[0] }],
-        field: "placement",
-        value: {
-          kind: "absolute",
-          x: Math.round(gesture.absolute.left + gesture.dx),
-          y: Math.round(gesture.absolute.top + gesture.dy),
-        },
-        label: "Move",
-      });
-    }
+    if (gesture.absolute) return this.absoluteMoveCommand(gesture);
     const drop = gesture.drop;
     if (!drop) return undefined;
     if (gesture.copy) {
@@ -907,46 +972,143 @@ export class CatalogCanvasGestures {
   }
 
   /**
-   * Alt drag of an absolutely placed node: a copy right after it in the same parent, at the
-   * dragged offset (the original stays).
+   * An absolute leader's drop (the old Canvas's manual position drop): over a structural container
+   * other than its parent the selection reparents — into a flow container it joins the flow (its
+   * placement goes), into a page body (another page's too) it stays absolute at the front. Over its
+   * own parent (or nowhere) it only moves by the offset.
    */
-  private absoluteCopy(
+  private absoluteReparent(
+    x: number,
+    y: number,
+    gesture: Extract<Gesture, { kind: "move" }>,
+  ): CatalogDropTarget | undefined {
+    const drop = this.dropTarget(x, y, gesture);
+    const leader = this.host.records.get(gesture.leader);
+    if (!drop || !leader || drop.container === leader.parentId) {
+      gesture.refusal = undefined;
+      return undefined;
+    }
+    if (this.host.records.get(drop.container)?.parentId !== PAGE_GRID)
+      return drop;
+    return { ...drop, index: 0, keepsAbsolute: true };
+  }
+
+  /**
+   * The release of an absolute leader's drag: the nodes leaving for another container move there
+   * (one step), and every absolutely placed node gets its placement — the offset in place, the
+   * position in the new page body, none in a flow container. Alt: copies instead.
+   */
+  private absoluteMoveCommand(
     gesture: Extract<Gesture, { kind: "move" }>,
   ): CatalogCommand | undefined {
     const { records, newId } = this.host;
-    const leader = records.get(gesture.leader);
-    const parent = leader ? records.get(leader.parentId) : undefined;
-    if (
-      !leader ||
-      !parent ||
-      !gesture.absolute ||
-      !isNodeSource(parent.sourceId)
-    )
-      return undefined;
-    const id = gesture.ids[0];
-    const index = parent.children.indexOf(leader.id) + 1;
-    const placement = {
+    const drop = gesture.drop;
+    if (!drop && !gesture.dx && !gesture.dy) return undefined;
+    const offset = (item: MovingAbsolute) => ({
       kind: "absolute" as const,
-      x: Math.round(gesture.absolute.left + gesture.dx),
-      y: Math.round(gesture.absolute.top + gesture.dy),
-    };
-    return (reader) => {
-      const clipboard = copyNodes(reader, [id]);
-      return pasteNodes({
-        clipboard: {
-          ...clipboard,
-          entries: clipboard.entries.map((entry) =>
-            entry.id === id && entry.kind === "node"
-              ? { ...entry, placement }
-              : entry,
+      x: Math.round(item.left + gesture.dx),
+      y: Math.round(item.top + gesture.dy),
+    });
+    if (gesture.copy) {
+      if (drop) {
+        const ids = gesture.ids;
+        return (reader) =>
+          pasteNodes({
+            clipboard: copyNodes(reader, ids),
+            parent: { kind: "node", id: drop.parent },
+            index: drop.index,
+            newId,
+            label: "Duplicate",
+          })(reader);
+      }
+      return this.absoluteCopy(gesture.absolutes, offset);
+    }
+    const commands: CatalogCommand[] = [];
+    const leaving = new Set(
+      drop
+        ? gesture.records.filter(
+            (record) => records.get(record)?.parentId !== drop.container,
+          )
+        : [],
+    );
+    if (drop && leaving.size)
+      commands.push(
+        moveNodes({
+          ids: gesture.ids.filter((_, index) =>
+            leaving.has(gesture.records[index]!),
           ),
-        },
-        parent: { kind: "node", id: parent.sourceId as NodeId },
-        index,
-        newId,
-        label: "Duplicate",
-      })(reader);
-    };
+          parent: { kind: "node", id: drop.parent },
+          index: drop.index,
+          newId,
+        }),
+      );
+    const container = drop ? this.host.bounds(drop.container) : undefined;
+    for (const item of gesture.absolutes) {
+      let placement: ReturnType<typeof offset> | undefined = offset(item);
+      if (leaving.has(item.record)) {
+        const box = this.host.bounds(item.record);
+        placement =
+          drop?.keepsAbsolute && box && container
+            ? {
+                kind: "absolute",
+                x: Math.round(box.x + gesture.dx - container.x),
+                y: Math.round(box.y + gesture.dy - container.y),
+              }
+            : undefined;
+      }
+      commands.push(
+        setWholeField({
+          targets: [{ kind: "node", id: item.id }],
+          field: "placement",
+          value: placement,
+        }),
+      );
+    }
+    const graph = this.host.graph as CatalogGraph;
+    return () => composeCommands(graph, "Move", commands);
+  }
+
+  /**
+   * Alt drag of absolutely placed nodes: a copy right after each in the same parent, at the
+   * dragged offset (the originals stay).
+   */
+  private absoluteCopy(
+    items: readonly MovingAbsolute[],
+    offset: (item: MovingAbsolute) => {
+      kind: "absolute";
+      x: number;
+      y: number;
+    },
+  ): CatalogCommand | undefined {
+    const { records, newId } = this.host;
+    const commands: CatalogCommand[] = [];
+    for (const item of items) {
+      const record = records.get(item.record);
+      const parent = record ? records.get(record.parentId) : undefined;
+      if (!record || !parent || !isNodeSource(parent.sourceId)) continue;
+      const index = parent.children.indexOf(record.id) + 1;
+      const placement = offset(item);
+      commands.push((reader) => {
+        const clipboard = copyNodes(reader, [item.id]);
+        return pasteNodes({
+          clipboard: {
+            ...clipboard,
+            entries: clipboard.entries.map((entry) =>
+              entry.id === item.id && entry.kind === "node"
+                ? { ...entry, placement }
+                : entry,
+            ),
+          },
+          parent: { kind: "node", id: parent.sourceId as NodeId },
+          index,
+          newId,
+          label: "Duplicate",
+        })(reader);
+      });
+    }
+    if (!commands.length) return undefined;
+    const graph = this.host.graph as CatalogGraph;
+    return () => composeCommands(graph, "Duplicate", commands);
   }
 
   /** A record's definition type name (the nesting rules' vocabulary). */

@@ -230,6 +230,8 @@ export function catalogOverlayNode(
         if (gesture.container)
           renderHoverHighlight(ck, canvas, gesture.container, zoom);
         if (gesture.ghost) renderLasso(ck, canvas, gesture.ghost, zoom);
+        for (const box of gesture.ghosts ?? [])
+          renderLasso(ck, canvas, box, zoom);
         if (gesture.snapGuides?.length)
           renderSnapGuides(
             ck,

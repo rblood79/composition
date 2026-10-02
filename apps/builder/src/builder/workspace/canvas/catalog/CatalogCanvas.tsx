@@ -439,11 +439,17 @@ export function CatalogCanvas({
           workspace.root.pageFrameRects(),
           exclude,
         ),
-      pageDropCommand: (page, topLeft) =>
+      pageDropCommand: (page, topLeft, followers = []) =>
         catalogPageDropCommand(
           workspace.root,
           page as Parameters<typeof catalogPageDropCommand>[1],
           topLeft,
+          followers.map((follower) => ({
+            pageId: follower.page as Parameters<
+              typeof catalogPageDropCommand
+            >[1],
+            dropped: follower.topLeft,
+          })),
         ),
       reflow: (record, patch) => {
         for (const error of workspace.root.previewRecord(record, patch))
@@ -861,7 +867,13 @@ export function CatalogCanvas({
       if (event.shiftKey) {
         workspace.selectRecords([record], { additive: true });
       } else {
-        workspace.selectRecords([record]);
+        // A page already in the selection keeps it: the other selected pages drag along.
+        if (
+          !workspace.session
+            .getSnapshot()
+            .selection.some((item) => item.identity === record)
+        )
+          workspace.selectRecords([record]);
         syncScene();
         const { x, y } = scenePoint(event);
         pressPointer = event.pointerId;

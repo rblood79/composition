@@ -69,38 +69,60 @@ export function catalogPageDropCommand(
   root: CatalogCompositionRoot,
   pageId: EntryId<"page">,
   dropped: { x: number; y: number },
+  /** Other selected pages dragged with it (each resolved after the earlier ones, one step). */
+  followers: readonly {
+    pageId: EntryId<"page">;
+    dropped: { x: number; y: number };
+  }[] = [],
 ): CatalogCommand | undefined {
   const graph = root.runtime.graph;
   const project = graph.getEntry(graph.projectId);
   if (project?.kind !== "project") return undefined;
   const rects = root.pageFrameRects();
-  const placements: Record<string, PagePlacement | undefined> = {};
+  let placements: Record<string, PagePlacement | undefined> = {};
   for (const id of project.pageIds) {
     const page = graph.getEntry(id);
     if (page?.kind === "page" && page.placement)
       placements[id] = catalogPagePlacement(page.placement);
   }
-  const result = resolvePlacementForDrop(
-    {
-      pages: project.pageIds.map((id) => ({ id })),
-      homePageId: project.pageIds[0] ?? null,
-      positions: Object.fromEntries(
-        [...rects].map(([id, rect]) => [id, { x: rect.x, y: rect.y }]),
-      ),
-      pageSizes: Object.fromEntries(
-        [...rects].map(([id, rect]) => [
-          id,
-          { width: rect.width, height: rect.height },
-        ]),
-      ),
-      layout: root.pageLayout(),
-      placements,
-      activeBreakpoint: root.breakpoint,
-      writeAsOverride: root.breakpoint !== "desktop",
-    },
-    pageId,
-    dropped,
-  );
+  const context = {
+    pages: project.pageIds.map((id) => ({ id })),
+    homePageId: project.pageIds[0] ?? null,
+    positions: Object.fromEntries(
+      [...rects].map(([id, rect]) => [id, { x: rect.x, y: rect.y }]),
+    ),
+    pageSizes: Object.fromEntries(
+      [...rects].map(([id, rect]) => [
+        id,
+        { width: rect.width, height: rect.height },
+      ]),
+    ),
+    layout: root.pageLayout(),
+    activeBreakpoint: root.breakpoint,
+    writeAsOverride: root.breakpoint !== "desktop",
+  };
+  // The old multi page drop (`commitPagePlacementsFromPoints`): each page resolves against the
+  // placements the earlier ones left; the last entry per page wins.
+  const resolved = new Map<
+    string,
+    ReturnType<typeof resolvePlacementForDrop>["entries"][number]
+  >();
+  for (const item of [{ pageId, dropped }, ...followers]) {
+    const result = resolvePlacementForDrop(
+      { ...context, placements },
+      item.pageId,
+      item.dropped,
+    );
+    if (!result.entries.length) continue;
+    const next = { ...placements };
+    for (const entry of result.entries) {
+      if (entry.placement === null) delete next[entry.pageId];
+      else next[entry.pageId] = entry.placement;
+      resolved.set(entry.pageId, entry);
+    }
+    placements = next;
+  }
+  const result = { entries: [...resolved.values()] };
   // A page that lands where it is (a grid page nudged within its cell) is no change.
   const entries = result.entries.filter((entry) => {
     const page = graph.getEntry(entry.pageId);

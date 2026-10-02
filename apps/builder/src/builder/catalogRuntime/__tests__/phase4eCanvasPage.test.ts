@@ -8,10 +8,7 @@ import type {
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import { createPage } from "../../../../../../packages/shared/src/catalog/commands";
 import { CatalogCanvasGestures } from "../canvasGesture";
-import {
-  catalogPageAlignCommand,
-  catalogPageDropCommand,
-} from "../canvasPage";
+import { catalogPageAlignCommand, catalogPageDropCommand } from "../canvasPage";
 import { runCatalogShortcut } from "../shortcuts";
 import { pickTopmostRecord } from "../canvasPick";
 import { CatalogCanvasScene } from "../canvasScene";
@@ -233,5 +230,85 @@ describe("ADR-248 Phase 4e-3b page frame drag", () => {
     scene.sync();
     expect(scene.pageRootIds).toEqual([homeBody, secondBody]);
     expect(scene.sync()).toEqual({ kind: "unchanged" });
+  });
+
+  it("the other selected pages follow the dragged page by the same offset (one step)", async () => {
+    const { workspace, scene, frame } = await open();
+    const THIRD = "project:page:third" as EntryId<"page">;
+    const THIRD_BODY = "project:node:third-body" as NodeId;
+    workspace.execute(
+      createPage({
+        page: {
+          kind: "page",
+          id: THIRD,
+          route: "/third",
+          name: "Third",
+          children: [THIRD_BODY],
+        },
+        entries: [
+          {
+            kind: "node",
+            id: THIRD_BODY,
+            definitionId: "lib:definition:type-body",
+            name: "Body",
+            children: [],
+            props: {},
+            visual: {},
+            sizing: {},
+            descendantOverrides: [],
+          },
+        ],
+      }),
+    );
+    scene.sync();
+    const bodies = new Map([
+      [workspace.root.recordsOfSource(SECOND_BODY)[0]!, SECOND],
+      [workspace.root.recordsOfSource(THIRD_BODY)[0]!, THIRD],
+    ]);
+    const gestures = new CatalogCanvasGestures({
+      get records() {
+        return workspace.root.domInputs;
+      },
+      graph: workspace.runtime.graph,
+      bounds: (record) => scene.stream.boundsMap.get(record),
+      pick: (x, y) =>
+        pickTopmostRecord(scene.stream, x, y, scene.stream.hitBoundsMap.keys()),
+      selection: () => workspace.session.getSnapshot().selection,
+      editingContext: () => undefined,
+      selectRecords: (ids) => workspace.selectRecords(ids),
+      breakpoint: () => "desktop",
+      execute: (command) => {
+        workspace.execute(command);
+        scene.sync();
+      },
+      newId: workspace.newId,
+      movablePageOf: (record) => bodies.get(record),
+      pageDropCommand: (page, topLeft, followers = []) =>
+        catalogPageDropCommand(
+          workspace.root,
+          page as EntryId<"page">,
+          topLeft,
+          followers.map((follower) => ({
+            pageId: follower.page as EntryId<"page">,
+            dropped: follower.topLeft,
+          })),
+        ),
+    });
+    const [secondBody, thirdBody] = [...bodies.keys()];
+    workspace.selectRecords([secondBody!, thirdBody!]);
+    const second = frame(SECOND);
+    const third = frame(THIRD);
+    gestures.beginPageDrag(second.x + 5, second.y + 5, secondBody!);
+    gestures.update(second.x + 5, second.y - 3995, 1);
+    expect(gestures.preview()?.ghosts).toEqual([
+      expect.objectContaining({ x: third.x, y: third.y - 4000 }),
+    ]);
+    const depth = workspace.runtime.historyDepth.undo;
+    expect(gestures.finish()).toBe(true);
+    expect(workspace.runtime.historyDepth.undo).toBe(depth + 1);
+    expect(frame(SECOND)).toMatchObject({ x: second.x, y: second.y - 4000 });
+    expect(frame(THIRD)).toMatchObject({ x: third.x, y: third.y - 4000 });
+    workspace.undo();
+    expect(frame(THIRD)).toMatchObject({ x: third.x, y: third.y });
   });
 });

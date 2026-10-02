@@ -677,4 +677,78 @@ describe("ADR-248 4e-8 drag modifiers and nesting notices", () => {
     gestures.finish();
     expect(sizingOf()).toEqual({ width: { kind: "set", value: 300 } });
   });
+
+  it("absolute nodes: a multi-selection moves by the offset; over another flow container the leader's selection joins its flow; over the page body it stays absolute at the front", async () => {
+    const { workspace, scene, gestures, record, center, box, children } =
+      await open();
+    const place = (name: string, x: number, y: number) =>
+      workspace.execute(
+        setWholeField({
+          targets: [{ kind: "node", id: id(name) }],
+          field: "placement",
+          value: { kind: "absolute", x, y },
+        }),
+      );
+    const placementOf = (name: string) => {
+      const entry = workspace.runtime.graph.getEntry(id(name));
+      return entry?.kind === "node" ? entry.placement : undefined;
+    };
+    // The frame keeps a size of its own (an absolute child takes none).
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: id("box") }],
+        sizing: {
+          width: { kind: "set", value: 400 },
+          height: { kind: "set", value: 200 },
+        },
+      }),
+    );
+    place("d", 10, 12);
+    place("c", 4, 6);
+    scene.sync();
+    workspace.selectRecords([record("d"), record("c")]);
+    // In place (over its own parent): every absolute node moves by the offset, one step.
+    const [dx, dy] = center("d");
+    gestures.beginMove(dx, dy, record("d"));
+    gestures.update(dx + 30, dy + 5, 1);
+    expect(gestures.preview()?.ghosts).toHaveLength(1);
+    const depth = workspace.runtime.historyDepth.undo;
+    expect(gestures.finish()).toBe(true);
+    expect(workspace.runtime.historyDepth.undo).toBe(depth + 1);
+    expect(placementOf("d")).toEqual({ kind: "absolute", x: 40, y: 17 });
+    expect(placementOf("c")).toEqual({ kind: "absolute", x: 34, y: 11 });
+    workspace.undo();
+    scene.sync();
+
+    // Over the page body (empty area): d leaves its frame, stays absolute at the body's front.
+    workspace.selectRecords([record("d")]);
+    const [ex, ey] = center("d");
+    const start = box("d");
+    const body = box("home-body");
+    gestures.beginMove(ex, ey, record("d"));
+    gestures.update(1000, 900, 1);
+    expect(gestures.preview()?.line).toBeUndefined();
+    expect(gestures.finish()).toBe(true);
+    const bodyEntry = workspace.runtime.graph.getEntry(BODY);
+    expect(bodyEntry?.kind === "node" && bodyEntry.children[0]).toBe(id("d"));
+    expect(children("box")).toEqual([]);
+    expect(placementOf("d")).toEqual({
+      kind: "absolute",
+      x: Math.round(start.x + 1000 - ex - body.x),
+      y: Math.round(start.y + 900 - ey - body.y),
+    });
+    workspace.undo();
+    scene.sync();
+
+    // Over another frame: d joins its flow (the placement goes).
+    workspace.selectRecords([record("d")]);
+    const [fx, fy] = center("d");
+    const [bx, by] = center("b");
+    gestures.beginMove(fx, fy, record("d"));
+    gestures.update(bx, by, 1);
+    expect(gestures.preview()?.line).toBeDefined();
+    gestures.finish();
+    expect(children("list")).toContain(id("d"));
+    expect(placementOf("d")).toBeUndefined();
+  });
 });
