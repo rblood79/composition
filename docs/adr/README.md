@@ -166,7 +166,7 @@
 
 #### [248](248-unified-catalog-document.md) — 통합 catalog 문서 모델과 canonical·잔존 spec 제거
 
-- **상태**: Accepted — 2026-09-28 (사용자 "ADR-248 완료까지 착수 시작해") · 리뷰 round 1 (HIGH 6) → round 2 수리 검증 HIGH 0 · 사용자 판정 H1/H2/H4 확정. G0·G1·독립 G2 PASS. [Phase 3 독립 소비자 점검](design/248-phase3-g3-g5-evidence.md)에서 leaf delta 순회 반례를 수리하고 Pencil 3/5를 직접 왕복했으나 G3 실제 시각 비교, Pencil 나머지 2개와 G5 실측은 미완료. 전체 G4/G5/G6 미검증. 제품 전환 없음.
+- **상태**: Accepted — 2026-09-28 (사용자 "ADR-248 완료까지 착수 시작해") · 리뷰 round 1 (HIGH 6) → round 2 수리 검증 HIGH 0 · 사용자 판정 H1/H2/H4 확정. G0·G1·독립 G2 PASS · Phase 3 독립 소비자 검증 완료. **2026-10-03 Phase 4 Builder 전환 완료** (worktree 누적 후 main 1회 병합): live G3 base 63/64 · axis 374/386 · state 75/75 PASS · FAIL 0, live G4 15/15, [G5 PASS](design/248-phase4-g5-evidence.md) (Preview 부팅 JS 는 사용자 판정 (a) — ADR-201 정의 정적 initial 기준), G6 구 모듈 진입 0. Status 는 Publish 후속 전환까지 Accepted.
 - **규모**: 대안 E — 코드 catalog 라이브러리 read-only 참조 + 프로젝트 override/사용자 definition 을 하나의 typed graph·transaction 으로 관리하고 Builder 의 canonical·잔존 spec (Frame/Group/Slot) 을 제거. collections·api_endpoints·project variables 는 ADR-131 별도 data SSOT 유지 (ID 참조만). `apps/publish` 는 후속 — Implemented 는 Publish 전환 뒤. 구 데이터 migration·호환 adapter·dual-write 제외. main 미연결 새 모듈 → 단일 entry 전환. [리뷰](reviews/248.md) · [design/248](design/248-unified-catalog-document-breakdown.md)
 
 #### [244](244-canvaskit-wasm-early-fetch-and-service-worker-cache.md) — 초기 로드: CanvasKit wasm 미리 받기 · 고유 경로화 (Service Worker precache 는 측정 조건부 보류)

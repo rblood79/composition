@@ -11,6 +11,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Catch-up 2026-09-30 ~ 2026-10-03] - 2026-10-03
+
+ADR-248 Phase 4 (4a~~4e) — Builder 를 통합 catalog 문서 모델로 전환. 4a~~4d 는 제품에 연결하지 않은 새 runtime 보강이고, 사용자-가시 변경은 4e 병합 하나에 모인다. 근거: [ADR-248](adr/248-unified-catalog-document.md) · [breakdown §5.1](adr/design/248-unified-catalog-document-breakdown.md) · [G5 근거](adr/design/248-phase4-g5-evidence.md).
+
+### Breaking Changes
+
+- **구 형식 프로젝트는 열리지 않는다.** 대시보드 목록에는 보이지만 열기는 이유와 함께 거부한다 (`UNSUPPORTED_PROJECT_FORMAT`). 구 JSON · 프로젝트 파일 가져오기도 같다. 구 데이터 변환·호환 adapter 는 만들지 않는다 (보존할 프로젝트 0 전제, 사용자 확인 2026-09-28).
+- **헤더 Preview (publish 진입점) 는 명시 실패 안내를 띄운다.** `apps/publish` 가 아직 구 형식을 읽으므로 새 문서를 넘기지 않는다 — Publish 전환은 후속.
+
+### Changed
+
+- **ADR-248 Phase 4e — Builder 전체가 catalog workspace 위에서 동작한다.** 문서 = 코드 catalog 라이브러리 참조 + 프로젝트 override · 사용자 definition 의 typed graph, 사용자 조작 1개 = transaction 1개 = history 1개. Canvas (선택 · drag · resize · spacing · marquee · 인라인 편집 · context menu · 스냅 · 가이드 · 스크롤바) · Navigator (Layers · Pages · Components · Layouts) · Properties · Styles · Themes · Interactions · Data · History · 단축키 · AI 도구 · 파일 가져오기/내보내기 · 폴더 연결 · Preview 수신기가 같은 명령·읽기 계층을 쓴다.
+- **저장은 새 IDB namespace + v2 프로젝트 파일 (ADR-235 컨테이너 + catalog 문서 part).** 자동 저장은 현재 revision 이 durable commit 된 뒤에만 「저장됨」, 실패는 failed, 다른 탭이 먼저 저장하면 conflict 로 중지한다.
+- **컴포넌트 · 레이아웃 원본 편집 view.** 원본으로 이동 · 레이아웃 편집 · 완료, 기본 원본은 루트만 편집, 원본 편집 · 분리 · 해체 확인 대화상자. layout 적용 = page body 가 인스턴스, content 역할 slot 과 slot 역할 표시.
+- **Layers 는 고른 탭의 내용만, 다중 선택 도구는 하단 Contextual Action Bar** (사용자 결정 2026-10-01).
+
+### Added
+
+- 요소를 만들 때 ID 자동 부여 (옛 customId 규칙) · 비운 ID 칸 placeholder = 실제 자동값.
+- 바인딩된 목록 (ListBox · GridList · Table · TagGroup · Breadcrumbs · Chart) 의 데이터 행을 Canvas · Layers 가 같은 행으로 표시 (sample 10 · 「+N more」), Properties 항목 「+」.
+- History 사용자 스냅샷 (복원 직전 자동 스냅샷) · 다국어 label · 비우기 확인, breakpoint · Canvas 카메라를 새로고침 · 다시 열기 뒤에도 유지, 색 · Styles 드래그 중 Canvas 미리보기, resize · spacing 드래그 중 실시간 reflow.
+
+### Fixed
+
+- **ADR-248 G3 live 에서 찾은 컴포넌트 시각 결함** — FileUpload (FileTrigger 상자 · DropZone 내용 · 엔진 column floor) · DateRangePicker xs 끝 입력 폭 · field 트리거 · Calendar nav 버튼 min-width 68 · 그룹 size 가 항목에 전달되지 않던 것 (ToggleButtonGroup · RadioGroup · CheckboxGroup · Slider track · TagGroup) · NumberField 트리거 size 별 높이 · Table 손 CSS 가 독립 Pagination 을 줄바꿈 · Tree chevron 축소 · 독립 Tag · GridListItem slot · Calendar 월 격자가 2026-09 로 고정되던 것 · labelPosition `side`. 결과: live G3 FAIL 0 · Preview 결함 추종 0.
+- 팔레트 요소 (composite instance) 에 준 fill · layout 이 Canvas · DOM 에 닿지 않던 것.
+- 브라우저 리사이즈 때 Canvas 가 비어 보이던 깜빡임 · AI 반영 확인의 padding/margin shorthand 거짓 실패.
+
+### Performance
+
+- **G5 (구 `2a5c97099` production 대조, CPU 4x · 5k 요소)**: 개별 편집 p95 540 → 42 ms · 저장 650 → 43 ms · 불러오기 3,778 → 1,805 ms, paired p95 36/36 · retained heap 새/구 0.56~0.89배 · 5k 문서 2,306,943 B. leaf 편집의 줄바꿈 후보 · Canvas geometry 비교를 영향 집합으로 좁힘 (명령 68.5 → 7.6 ms).
+- initial bundle (gzip): Builder 1,413,531 → 1,228,752 B · Preview 624,427 → 394,104 B. Preview 부팅 시 받는 JS 645,249 B 는 기록값 — 사용자 판정 (a) 2026-10-03 으로 ADR-201 정의 (정적 initial) 기준 PASS, 상한 변경 없음.
+
+### Removed
+
+- 구 canonical 문서 · store · scene · renderer 경로 (삭제 1~~3차, 사용자 승인 목록 — breakdown 4e-9-1 · 4e-9-3~~8 · 4e-13-3). Builder import graph 의 구 모듈 진입 0 (G6).
+- IDB `events` · `actions` mirror store (DB `composition` v24, data 세 store · asset 은 유지).
+
+### Infrastructure
+
+- pre-push · CI 의 옛 렌더 경로 시각 파리티 단계 제거. `perf/ratchet.json` 을 새 앱 기준으로 재기록 (구 기준은 삭제된 모듈 이름이라 비교 불가). perf 하니스는 `VITE_COMPOSITION_HARNESS=1` build 의 catalog 핸들로 동작 (일반 build bundle 동일).
+
 ## [ADR-248 Phase 3 G3 판정에 따른 컴포넌트 시각 정정 · 새 runtime 소비자 수리] - 2026-09-30
 
 ### Changed
