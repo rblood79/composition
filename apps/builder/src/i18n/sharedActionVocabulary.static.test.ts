@@ -22,6 +22,7 @@ const HOMONYMS = new Set([
   "Transform", // DataTable 값 변환 ↔ CSS transform
   "Category", // 차트의 범주 축 ↔ 카테고리(속성 묶음)
   "Fill", // Size 메뉴의 채우기 (ADR-224 grow 가중치) ↔ 칩·버튼 fillStyle 의 채움 (면 채움)
+  "Layer", // 차트 기준선의 층 (chart.referenceLayer) ↔ Layers 패널의 항목 (navigator.layer)
 ]);
 
 /**

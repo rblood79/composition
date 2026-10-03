@@ -341,6 +341,14 @@ export const CatalogLayersSection = memo(function CatalogLayersSection({
             isValidDrop,
             onMove: handleMove,
             dragType: "application/x-layer-tree-item",
+            // The old Layers drag preview: the layer's name, or how many layers move.
+            renderDragPreview: (items) => (
+              <div className="tree-drag-preview">
+                {items.length > 1
+                  ? t("navigator.layersDragCount", { count: items.length })
+                  : (items[0]?.["text/plain"] ?? t("navigator.layer"))}
+              </div>
+            ),
           }}
           className="layer-tree layer-tree--rac-virtualized"
           dropIndicatorClassName="layer-drop-indicator"

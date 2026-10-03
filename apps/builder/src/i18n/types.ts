@@ -1404,6 +1404,8 @@ export interface TranslationKeys {
   };
   navigator: {
     components: string;
+    layer: string;
+    layersDragCount: string;
     deleteLayout: string;
     layoutDefaultName: string;
     noComponents: string;

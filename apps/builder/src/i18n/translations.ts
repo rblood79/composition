@@ -1503,6 +1503,8 @@ const koKR: TranslationKeys = {
   },
   navigator: {
     pages: "페이지",
+    layer: "레이어",
+    layersDragCount: "레이어 {count}개",
     components: "컴포넌트",
     deleteLayout: "레이아웃 삭제",
     layoutDefaultName: "레이아웃",
@@ -3638,6 +3640,8 @@ const enUS: TranslationKeys = {
   },
   navigator: {
     pages: "Pages",
+    layer: "Layer",
+    layersDragCount: "{count} layers",
     components: "Components",
     deleteLayout: "Delete Layout",
     layoutDefaultName: "Layout",
@@ -5280,6 +5284,8 @@ const formattedMessages: Record<
     "chart.referenceMaxHint": (args) =>
       `기준선은 최대 ${String(args?.max ?? 4)}개입니다.`,
     "itemsManager.total": (args) => `총 ${String(args?.count ?? 0)}개`,
+    "navigator.layersDragCount": (args) =>
+      `레이어 ${String(args?.count ?? 0)}개`,
     "properties.usingLayout": (args) =>
       `"${String(args?.name ?? "")}" 레이아웃 사용 중`,
     "datatable.apiUploadEndpointTitle": (args) =>
@@ -5792,6 +5798,7 @@ const formattedMessages: Record<
     "chart.referenceMaxHint": (args) =>
       `Up to ${String(args?.max ?? 4)} reference lines.`,
     "itemsManager.total": (args) => `Total: ${String(args?.count ?? 0)}`,
+    "navigator.layersDragCount": (args) => `${String(args?.count ?? 0)} layers`,
     "properties.usingLayout": (args) =>
       `Using "${String(args?.name ?? "")}" layout`,
     "datatable.apiUploadEndpointTitle": (args) =>
